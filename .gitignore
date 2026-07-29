@@ -22,6 +22,10 @@ wandb/
 # so they are fetched by scripts/pons_benchmark.py and never committed)
 data/
 
+# Local Pokémon Showdown server checkout (Phase 5) — cloned at a pinned
+# commit by scripts/setup_showdown.sh, never committed
+showdown/
+
 # OS / editor
 .DS_Store
 .idea/
