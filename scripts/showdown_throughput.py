@@ -30,11 +30,18 @@ cd showdown && node pokemon-showdown start --no-security
     python scripts/showdown_throughput.py c --workers 1 2 4 8 --servers shared
     python scripts/showdown_throughput.py c --workers 1 2 4 8 --servers per-worker
 
+(d) Forward-pass share at the real encoder, batch-1 vs batched: an offline
+    microbenchmark (no server needed) of the policy forward at batch sizes
+    1..128 — per-sample cost and the implied ceiling on what micro-batching
+    the seam could buy. The live in-situ shares come from rerunning (a) and
+    (b), which price the current encoder automatically.
+
+    python scripts/showdown_throughput.py d
+
 The policy is the real Phase 2 PPO discrete stack at CartPole scale
-(mlp [64, 64] actor + critic, masked logits, sampled action) on the
-placeholder 10-dim encoder — a lower bound on capstone-encoder cost, which
-is the point: (a) shows where time goes BEFORE the encoder grows, and
-measurement (d) later re-prices the forward at the real encoder.
+(mlp [64, 64] actor + critic, masked logits, sampled action) on whatever
+encoder rl/envs/showdown.py currently ships — the 10-dim placeholder when
+(a)-(c) first ran (2026-07-29), the real Gen 1 encoder since 2026-07-30.
 """
 
 import argparse
@@ -285,9 +292,29 @@ def measure_c(workers: list[int], battles_per_worker: int, in_flight: int, serve
         )
 
 
+def measure_d(batch_sizes: list[int], iters: int = 2000):
+    policy = make_policy()
+    rng = np.random.default_rng(0)
+    print(f"policy forward (masked actor + critic + sample) at OBS_DIM={OBS_DIM}")
+    print("batch  total_us  per_sample_us  samples/s")
+    for b in batch_sizes:
+        obs = rng.random((b, OBS_DIM), dtype=np.float32)
+        mask = np.ones((b, N_ACTIONS), dtype=bool)
+        for _ in range(200):  # warmup
+            policy(obs, mask)
+        t0 = time.perf_counter()
+        for _ in range(iters):
+            policy(obs, mask)
+        per_call = (time.perf_counter() - t0) / iters
+        print(
+            f"{b:5d}  {per_call * 1e6:8.1f}  {per_call / b * 1e6:13.2f}  "
+            f"{b / per_call:9.0f}"
+        )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("measurement", choices=["a", "b", "c"])
+    parser.add_argument("measurement", choices=["a", "b", "c", "d"])
     parser.add_argument("--battles", type=int, default=20, help="(a) battle count")
     parser.add_argument(
         "--concurrency", type=int, nargs="+", default=[1, 2, 4, 8, 16, 32, 64]
@@ -310,5 +337,7 @@ if __name__ == "__main__":
         measure_a(args.battles)
     elif args.measurement == "b":
         measure_b(args.concurrency, args.battles_per_point)
-    else:
+    elif args.measurement == "c":
         measure_c(args.workers, args.battles_per_worker, args.in_flight, args.servers)
+    else:
+        measure_d([1, 2, 4, 8, 16, 32, 64, 128])
