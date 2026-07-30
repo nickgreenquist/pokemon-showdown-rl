@@ -18,6 +18,18 @@ cd showdown && node pokemon-showdown start --no-security
 
     python scripts/showdown_throughput.py b --concurrency 1 2 4 8 16 32 64
 
+(c) Multi-process scaling: W spawned workers, each a (b)-style loop at a
+    fixed in-flight count, barrier-synced so the battling spans overlap;
+    aggregate decisions/s = total decisions / slowest worker's wall.
+    --servers shared points every worker at :8000 (start it yourself);
+    --servers per-worker boots one fresh server per worker on 8100+i and
+    tears them down. Account names are pid-based — poke-env's default is a
+    per-process class-name counter, which collides across workers on a
+    shared server.
+
+    python scripts/showdown_throughput.py c --workers 1 2 4 8 --servers shared
+    python scripts/showdown_throughput.py c --workers 1 2 4 8 --servers per-worker
+
 The policy is the real Phase 2 PPO discrete stack at CartPole scale
 (mlp [64, 64] actor + critic, masked logits, sampled action) on the
 placeholder 10-dim encoder — a lower bound on capstone-encoder cost, which
@@ -27,8 +39,13 @@ measurement (d) later re-prices the forward at the real encoder.
 
 import argparse
 import asyncio
+import multiprocessing as mp
+import os
+import socket
 import statistics
+import subprocess
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -38,6 +55,7 @@ from poke_env.concurrency import POKE_LOOP, handle_threaded_coroutines
 from poke_env.data import GenData
 from poke_env.environment import SinglesEnv
 from poke_env.player import RandomPlayer
+from poke_env.ps_client import AccountConfiguration, ServerConfiguration
 
 from rl.collect import InferenceSeam, SeamPlayer
 from rl.envs.showdown import OBS_DIM, embed_battle
@@ -45,6 +63,7 @@ from rl.networks.mlp import mlp
 
 FORMAT = "gen1randombattle"
 N_ACTIONS = 10
+SHOWDOWN_DIR = Path(__file__).resolve().parents[1] / "showdown"
 
 
 def make_policy(seed: int = 0):
@@ -169,9 +188,106 @@ def measure_b(concurrency: list[int], battles_per_point: int | None):
         )
 
 
+def _server_configuration(port: int) -> ServerConfiguration:
+    return ServerConfiguration(
+        f"ws://localhost:{port}/showdown/websocket",
+        "https://play.pokemonshowdown.com/action.php?",
+    )
+
+
+def _port_up(port: int) -> bool:
+    try:
+        socket.create_connection(("127.0.0.1", port), timeout=0.5).close()
+        return True
+    except OSError:
+        return False
+
+
+def _worker_c(port, n_battles, in_flight, barrier, out_q):
+    torch.set_num_threads(1)
+    pid = os.getpid()
+    seam = InferenceSeam(make_policy())
+    cfg = _server_configuration(port)
+    player = SeamPlayer(
+        seam,
+        battle_format=FORMAT,
+        max_concurrent_battles=in_flight,
+        server_configuration=cfg,
+        account_configuration=AccountConfiguration(f"seam{pid}", None),
+    )
+    opponent = RandomPlayer(
+        battle_format=FORMAT,
+        max_concurrent_battles=in_flight,
+        server_configuration=cfg,
+        account_configuration=AccountConfiguration(f"rand{pid}", None),
+    )
+    barrier.wait()  # overlap the battling spans, not the setup skew
+    t0 = time.perf_counter()
+    asyncio.run(player.battle_against(opponent, n_battles=n_battles))
+    out_q.put((seam.requests, time.perf_counter() - t0, seam.inference_seconds))
+
+
+def _start_servers(ports: list[int]) -> list[subprocess.Popen]:
+    procs = [
+        subprocess.Popen(
+            ["node", "pokemon-showdown", str(port), "--no-security"],
+            cwd=SHOWDOWN_DIR,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        for port in ports
+    ]
+    deadline = time.time() + 90
+    for port in ports:
+        while not _port_up(port):
+            if time.time() > deadline:
+                raise RuntimeError(f"server on :{port} not up after 90s")
+            time.sleep(0.5)
+    return procs
+
+
+def measure_c(workers: list[int], battles_per_worker: int, in_flight: int, servers: str):
+    print(f"in-flight {in_flight}/worker, {battles_per_worker} battles/worker, servers={servers}")
+    print("workers  wall_s(max)  decisions/s  battles/s  inference_share(mean)")
+    ctx = mp.get_context("spawn")
+    for w in workers:
+        if servers == "per-worker":
+            ports = [8100 + i for i in range(w)]
+            server_procs = _start_servers(ports)
+        else:
+            if not _port_up(8000):
+                raise RuntimeError("shared mode needs the :8000 server running")
+            ports = [8000] * w
+            server_procs = []
+        try:
+            barrier = ctx.Barrier(w)
+            out_q = ctx.Queue()
+            procs = [
+                ctx.Process(target=_worker_c, args=(ports[i], battles_per_worker, in_flight, barrier, out_q))
+                for i in range(w)
+            ]
+            for p in procs:
+                p.start()
+            results = [out_q.get(timeout=600) for _ in procs]
+            for p in procs:
+                p.join()
+        finally:
+            for p in server_procs:
+                p.terminate()
+            for p in server_procs:
+                p.wait()
+        decisions = sum(r[0] for r in results)
+        wall = max(r[1] for r in results)
+        share = statistics.mean(r[2] / r[1] for r in results)
+        print(
+            f"{w:7d}  {wall:11.2f}  {decisions / wall:11.1f}  "
+            f"{w * battles_per_worker / wall:9.2f}  {share:21.3f}"
+        )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("measurement", choices=["a", "b"])
+    parser.add_argument("measurement", choices=["a", "b", "c"])
     parser.add_argument("--battles", type=int, default=20, help="(a) battle count")
     parser.add_argument(
         "--concurrency", type=int, nargs="+", default=[1, 2, 4, 8, 16, 32, 64]
@@ -180,10 +296,19 @@ if __name__ == "__main__":
         "--battles-per-point", type=int, default=None,
         help="(b) battles per concurrency point; default max(8, 4n)",
     )
+    parser.add_argument("--workers", type=int, nargs="+", default=[1, 2, 4, 8])
+    parser.add_argument("--battles-per-worker", type=int, default=128)
+    parser.add_argument(
+        "--in-flight", type=int, default=16,
+        help="(c) battles in flight per worker; default 16, measurement (b)'s plateau",
+    )
+    parser.add_argument("--servers", choices=["shared", "per-worker"], default="shared")
     args = parser.parse_args()
     # The repo's tiny-net lesson, third confirmation pending: 1 thread.
     torch.set_num_threads(1)
     if args.measurement == "a":
         measure_a(args.battles)
-    else:
+    elif args.measurement == "b":
         measure_b(args.concurrency, args.battles_per_point)
+    else:
+        measure_c(args.workers, args.battles_per_worker, args.in_flight, args.servers)
