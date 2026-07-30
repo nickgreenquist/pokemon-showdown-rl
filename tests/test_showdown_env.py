@@ -21,12 +21,21 @@ import numpy as np
 import pytest
 from gymnasium import spaces
 
+from poke_env.battle.effect import Effect
 from poke_env.battle.move import Move
 from poke_env.battle.pokemon import Pokemon
+from poke_env.battle.pokemon_type import PokemonType
+from poke_env.battle.status import Status
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 
 from rl.envs.make import make_env
 from rl.envs.showdown import (
+    ACTIVE_DIM,
+    GEN1_TYPES,
+    GLOBAL_DIM,
+    MON_DIM,
+    MOVE_DIM,
+    OBS_DIM,
     OPPONENT_PLAYERS,
     ShowdownEnv,
     ShowdownSingles,
@@ -69,34 +78,149 @@ def test_gen1_action_space_is_10(offline_env):
         assert mask_space.shape == (10,)
 
 
-def test_embed_battle_empty_battle_is_zeros(offline_env):
-    battle = SimpleNamespace(
-        active_pokemon=None, opponent_active_pokemon=None, team={}, opponent_team={}
+# --- encoder --------------------------------------------------------------
+#
+# Block offsets, from the layout constants (see rl/envs/showdown.py):
+_OUR_TEAM = GLOBAL_DIM
+_OUR_ACTIVE = _OUR_TEAM + 6 * MON_DIM
+_OUR_MOVES = _OUR_ACTIVE + ACTIVE_DIM
+_OPP_TEAM = _OUR_MOVES + 4 * MOVE_DIM
+_OPP_ACTIVE = _OPP_TEAM + 6 * (MON_DIM + 1)
+
+
+def _stub_battle(**kwargs):
+    base = dict(
+        active_pokemon=None, opponent_active_pokemon=None, team={},
+        opponent_team={}, turn=0, force_switch=False, trapped=False,
     )
-    vec = offline_env.embed_battle(battle)
-    assert vec.shape == (10,) and vec.dtype == np.float32
+    base.update(kwargs)
+    return SimpleNamespace(**base)
+
+
+def _stub_mon(**kwargs):
+    """A mon exposing exactly the attributes the encoder reads, defaulting
+    to an all-zero encoding (except NORMAL typing)."""
+    base = dict(
+        current_hp_fraction=0.0, fainted=False, status=None, level=0,
+        base_stats={"hp": 0, "atk": 0, "def": 0, "spa": 0, "spe": 0},
+        types=[PokemonType.NORMAL], type_1=PokemonType.NORMAL, type_2=None,
+        boosts=dict.fromkeys(("accuracy", "atk", "def", "evasion", "spa", "spd", "spe"), 0),
+        effects={}, status_counter=0, preparing=False, moves={},
+    )
+    base.update(kwargs)
+    return SimpleNamespace(**base)
+
+
+def test_embed_battle_empty_battle_is_zeros(offline_env):
+    vec = offline_env.embed_battle(_stub_battle())
+    assert vec.shape == (OBS_DIM,) and vec.dtype == np.float32
     assert not vec.any()
 
 
-def test_embed_battle_features(offline_env):
-    thunderbolt = Move("thunderbolt", gen=1)
-    active = SimpleNamespace(moves={"thunderbolt": thunderbolt})
-    gyarados = Pokemon(gen=1, species="gyarados")  # water/flying: electric x4
-    mon = lambda fainted: SimpleNamespace(fainted=fainted)  # noqa: E731
-    battle = SimpleNamespace(
-        active_pokemon=active,
-        opponent_active_pokemon=gyarados,
-        team={"a": mon(True), "b": mon(True), "c": mon(False)},
-        opponent_team={"d": mon(True)},
+def test_global_block(offline_env):
+    dead = _stub_mon(fainted=True, status=Status.FNT)
+    battle = _stub_battle(
+        turn=10, force_switch=True, trapped=True,
+        team={"a": dead, "b": dead, "c": _stub_mon()},
+        opponent_team={"d": dead},
     )
     vec = offline_env.embed_battle(battle)
-    assert vec[0] == pytest.approx(0.95)  # base power 95 / 100
-    assert vec[4] == 4.0
-    assert vec[1] == vec[5] == 0.0  # empty move slots stay zero
-    assert vec[8] == pytest.approx(2 / 6)
-    assert vec[9] == pytest.approx(1 / 6)
+    assert vec[0] == pytest.approx(10 / 50)
+    assert vec[1] == pytest.approx(2 / 6)
+    assert vec[2] == pytest.approx(1 / 6)
+    assert vec[3] == 1.0 and vec[4] == 1.0
+    # FNT is carried by the fainted flag, never the status one-hot.
+    assert not vec[_OUR_TEAM + 3 : _OUR_TEAM + 9].any()
+    assert offline_env.embed_battle(_stub_battle(turn=500))[0] == 1.0  # capped
+
+
+def test_mon_block_features_and_switch_slot_order(offline_env):
+    zapdos = Pokemon(gen=1, species="zapdos")  # electric/flying
+    snorlax = Pokemon(gen=1, species="snorlax")  # normal
+    gyarados = Pokemon(gen=1, species="gyarados")  # water/flying
+    battle = _stub_battle(
+        active_pokemon=zapdos,
+        opponent_active_pokemon=gyarados,
+        team={"a": zapdos, "b": snorlax},
+        opponent_team={"g": gyarados},
+    )
+    vec = offline_env.embed_battle(battle)
+    o = _OUR_TEAM  # slot 0 = first of team.values() = zapdos, the active
+    assert vec[o + 2] == 1.0  # is-active
+    assert vec[o + 9] == 1.0  # level 100
+    assert vec[o + 10] == pytest.approx(zapdos.base_stats["hp"] / 255)
+    types = vec[o + 15 : o + 30]
+    assert types[GEN1_TYPES.index(PokemonType.ELECTRIC)] == 1.0
+    assert types[GEN1_TYPES.index(PokemonType.FLYING)] == 1.0
+    assert types.sum() == 2.0
+    assert vec[o + 30] == 4.0  # electric vs water/flying
+    assert vec[o + 31] == 1.0  # gyarados's best type vs zapdos: water, x1
+    # Slot 1 follows team.values() order — the switch-action alignment.
+    o1 = o + MON_DIM
+    assert vec[o1 + 2] == 0.0  # not active
+    assert vec[o1 + 15 + GEN1_TYPES.index(PokemonType.NORMAL)] == 1.0
+    # Opponent block 0: revealed flag, then gyarados as THEIR active.
+    assert vec[_OPP_TEAM] == 1.0
+    assert vec[_OPP_TEAM + 1 + 2] == 1.0
+    # Unrevealed opponent slots stay all-zero, revealed flag included.
+    assert not vec[_OPP_TEAM + (MON_DIM + 1) : _OPP_TEAM + 6 * (MON_DIM + 1)].any()
     raw_space = offline_env.observation_spaces[offline_env.possible_agents[0]]
     assert raw_space["observation"].contains(vec)
+
+
+def test_active_extras_block(offline_env):
+    active = _stub_mon(
+        boosts={"accuracy": 0, "atk": 2, "def": 0, "evasion": 0, "spa": -1,
+                "spd": -1, "spe": 0},
+        effects={Effect.SUBSTITUTE: 1},
+        status_counter=4,
+        preparing=True,
+    )
+    battle = _stub_battle(active_pokemon=active, team={"a": active})
+    vec = offline_env.embed_battle(battle)
+    o = _OUR_ACTIVE  # boosts in sorted-key order
+    assert vec[o + 1] == pytest.approx(2 / 6)  # atk
+    assert vec[o + 4] == pytest.approx(-1 / 6)  # spa
+    volatiles = vec[o + 7 : o + 14]  # (confusion, focus energy, leech seed,
+    assert volatiles[6] == 1.0  # ..., must recharge, wrap, reflect, SUBSTITUTE)
+    assert volatiles.sum() == 1.0
+    assert vec[o + 14] == pytest.approx(4 / 16)
+    assert vec[o + 15] == 1.0
+
+
+def test_move_block_features(offline_env):
+    moves = {
+        "thunderbolt": Move("thunderbolt", gen=1),
+        "recover": Move("recover", gen=1),
+        "quickattack": Move("quickattack", gen=1),
+    }
+    moves["thunderbolt"].use()  # burn one PP: fraction dips below 1
+    active = _stub_mon(moves=moves)
+    gyarados = Pokemon(gen=1, species="gyarados")  # water/flying: electric x4
+    battle = _stub_battle(
+        active_pokemon=active,
+        opponent_active_pokemon=gyarados,
+        team={"a": active},
+        opponent_team={"g": gyarados},
+    )
+    vec = offline_env.embed_battle(battle)
+    o = _OUR_MOVES  # slot 0 = thunderbolt, moves.values() order
+    assert vec[o] == 1.0
+    assert vec[o + 1] == pytest.approx(0.95)  # base power 95 / 100
+    assert vec[o + 2] == 1.0  # accuracy
+    assert vec[o + 3] == pytest.approx(23 / 24)  # PP after one use
+    assert vec[o + 4] == 4.0
+    assert vec[o + 5] == 0.0 and vec[o + 6] == 0.0  # special: neither flag
+    assert vec[o + 8 + GEN1_TYPES.index(PokemonType.ELECTRIC)] == 1.0
+    o1 = o + MOVE_DIM  # recover: a status move
+    assert vec[o1 + 1] == 0.0 and vec[o1 + 6] == 1.0
+    o2 = o + 2 * MOVE_DIM  # quick attack: physical, priority +1
+    assert vec[o2 + 5] == 1.0 and vec[o2 + 7] == pytest.approx(1 / 5)
+    o3 = o + 3 * MOVE_DIM  # fourth slot unknown
+    assert not vec[o3 : o3 + MOVE_DIM].any()
+    # The same move features appear for the opponent's REVEALED moves only:
+    # gyarados has revealed nothing, so its move blocks are all zero.
+    assert not vec[_OPP_ACTIVE + ACTIVE_DIM : OBS_DIM].any()
 
 
 def test_opponent_spec_factory():
@@ -122,7 +246,7 @@ def test_opponent_spec_factory():
 
 def _obs_dict():
     return {
-        "observation": np.zeros(10, np.float32),
+        "observation": np.zeros(OBS_DIM, np.float32),
         "action_mask": np.array([1] + [0] * 9, np.int64),
     }
 
@@ -217,7 +341,7 @@ def test_full_episode_contract_against_live_server():
     rng = np.random.default_rng(0)
     ret = 0.0
     for _ in range(1000):
-        assert obs.shape == (10,) and obs.dtype == np.float32
+        assert obs.shape == (OBS_DIM,) and obs.dtype == np.float32
         mask = info["action_mask"]
         assert mask.dtype == np.bool_ and mask.shape == (10,) and mask.any()
         assert "outcome" not in info
