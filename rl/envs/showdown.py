@@ -47,18 +47,33 @@ OPPONENT_PLAYERS: dict[str, type[Player]] = {
     "heuristics": SimpleHeuristicsPlayer,
 }
 
-_OBS_DIM = 10
+OBS_DIM = 10
+
+
+def embed_battle(battle, type_chart) -> np.ndarray:
+    """Baseline placeholder encoder (move base powers, move type
+    effectiveness vs the opposing active, fainted fractions). Module-level
+    so the asyncio collection path (rl/collect.py) encodes identically to
+    the Gym path without an env instance; the Phase 5 encoder-design step
+    replaces it."""
+    vec = np.zeros(OBS_DIM, dtype=np.float32)
+    active = battle.active_pokemon
+    opponent = battle.opponent_active_pokemon
+    if active is not None:
+        # Slot order matches the action mapping: known moves, first 4.
+        for i, move in enumerate(list(active.moves.values())[:4]):
+            vec[i] = move.base_power / 100.0
+            if opponent is not None:
+                vec[4 + i] = move.type.damage_multiplier(
+                    opponent.type_1, opponent.type_2, type_chart=type_chart
+                )
+    vec[8] = sum(mon.fainted for mon in battle.team.values()) / 6.0
+    vec[9] = sum(mon.fainted for mon in battle.opponent_team.values()) / 6.0
+    return vec
 
 
 class ShowdownSingles(SinglesEnv):
-    """The two-seat poke-env env: encoder + reward, no opponent knowledge.
-
-    `embed_battle` is a deliberately minimal baseline encoder (move base
-    powers, move type effectiveness vs the opposing active, fainted
-    fractions) so the plumbing and the pre-registered throughput
-    measurements have a real encoder to run; the Phase 5 encoder-design
-    step replaces it.
-    """
+    """The two-seat poke-env env: encoder + reward, no opponent knowledge."""
 
     def __init__(self, *, battle_format: str = "gen1randombattle", **kwargs):
         super().__init__(battle_format=battle_format, **kwargs)
@@ -67,7 +82,7 @@ class ShowdownSingles(SinglesEnv):
         # multipliers at 4. The __setattr__ hook on PokeEnv wraps each raw
         # space into Dict({"observation", "action_mask"}) as it is assigned.
         self.observation_spaces = {
-            agent: spaces.Box(low=0.0, high=4.0, shape=(_OBS_DIM,), dtype=np.float32)
+            agent: spaces.Box(low=0.0, high=4.0, shape=(OBS_DIM,), dtype=np.float32)
             for agent in self.possible_agents
         }
 
@@ -81,20 +96,7 @@ class ShowdownSingles(SinglesEnv):
         return 0.0
 
     def embed_battle(self, battle) -> np.ndarray:
-        vec = np.zeros(_OBS_DIM, dtype=np.float32)
-        active = battle.active_pokemon
-        opponent = battle.opponent_active_pokemon
-        if active is not None:
-            # Slot order matches the action mapping: known moves, first 4.
-            for i, move in enumerate(list(active.moves.values())[:4]):
-                vec[i] = move.base_power / 100.0
-                if opponent is not None:
-                    vec[4 + i] = move.type.damage_multiplier(
-                        opponent.type_1, opponent.type_2, type_chart=self._type_chart
-                    )
-        vec[8] = sum(mon.fainted for mon in battle.team.values()) / 6.0
-        vec[9] = sum(mon.fainted for mon in battle.opponent_team.values()) / 6.0
-        return vec
+        return embed_battle(battle, self._type_chart)
 
 
 def battle_outcome(battle) -> int:
