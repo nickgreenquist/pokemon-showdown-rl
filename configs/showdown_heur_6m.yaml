@@ -1,0 +1,43 @@
+# Phase 5 milestone 2, second attempt: the budget lever, one variable.
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# showdown_heuristics_ppo.yaml verbatim except total_steps 2M -> 6M and the
+# run name: the 2M run (showdown_heur_s0, 2026-07-30) ended at 0.292 +/-
+# 0.028 on the locked 1000-battle protocol with eval/win_rate STILL CLIMBING
+# at the wall (0.06 -> 0.31-0.40 band, no plateau — where milestone 1
+# flattened by 500k). Budget is therefore the first lever, alone, so the
+# read stays clean. Watch item recorded in the session log: entropy ended at
+# 0.355 and falling — if the curve stalls short of 0.5 here, the Phase 4
+# entropy floor is the next single lever, then opponent mixing.
+# ~2h wall at the measured ~850 steps/s. Same seed as the 2M run: battles
+# are server-rolled (not seed-reproducible), so this is a fresh sample of
+# the same configuration, not a replay.
+env_id: Showdown-v0
+seed: 0
+total_steps: 6000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_heur_6m_s0
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: heuristics
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [64, 64]
+  lr: 2.5e-4
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
