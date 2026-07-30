@@ -1,0 +1,44 @@
+# Phase 5 milestone 2: PPO vs SimpleHeuristicsPlayer on gen1randombattle.
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# The milestone-1 recipe (showdown_maxbp_ppo.yaml) verbatim except the
+# opponent: the milestone-1 checkpoint scored 0.663 vs max_power but 0.262
+# vs heuristics on the 10-dim placeholder encoder, and the 2026-07-30
+# encoder-design session replaced it with the real Gen 1 observable-state
+# encoder (see OBS_DIM in rl/envs/showdown.py) — HP, status, boosts,
+# revealed moves, matchup features: exactly what SimpleHeuristicsPlayer
+# reads and the placeholder didn't represent. This run prices that encoder.
+# hidden_sizes stays [64, 64]: Phase 4's supervised diagnostic showed net
+# capacity was never the binding constraint at this scale.
+# eval_episodes 100 for in-training checkpoint tracking only; the headline
+# number is a post-hoc >=1000-battle scripts/eval_checkpoint.py pass on the
+# FINAL checkpoint, per the locked protocol.
+env_id: Showdown-v0
+seed: 0
+total_steps: 2000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_heur_s0
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: heuristics
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [64, 64]
+  lr: 2.5e-4
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
