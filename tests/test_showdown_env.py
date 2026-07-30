@@ -28,6 +28,7 @@ from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPl
 from rl.envs.make import make_env
 from rl.envs.showdown import (
     OPPONENT_PLAYERS,
+    ShowdownEnv,
     ShowdownSingles,
     battle_outcome,
     opponent_player,
@@ -110,6 +111,97 @@ def test_opponent_spec_factory():
     assert sorted(OPPONENT_PLAYERS) == ["heuristics", "max_power", "random"]
 
 
+# --- ShowdownEnv.step adapter logic, offline against a scripted stub -------
+#
+# The stub mimics the two attributes step() reads from the poke-env stack:
+# SingleAgentWrapper.step's 5-tuple and PokeEnv's agent1_to_move/battle1.
+# Each script entry is (reward, terminated, truncated, to_move_after) —
+# to_move_after False means the RETURNED state is a wait state (poke-env
+# would silently discard the next action).
+
+
+def _obs_dict():
+    return {
+        "observation": np.zeros(10, np.float32),
+        "action_mask": np.array([1] + [0] * 9, np.int64),
+    }
+
+
+class _StubStack:
+    def __init__(self, script, battle=None):
+        self.env = SimpleNamespace(agent1_to_move=True, battle1=battle)
+        self.script = list(script)
+        self.actions = []
+
+    def step(self, action):
+        self.actions.append(action)
+        reward, terminated, truncated, to_move = self.script.pop(0)
+        self.env.agent1_to_move = to_move
+        return _obs_dict(), reward, terminated, truncated, {}
+
+
+def _adapter(stub) -> ShowdownEnv:
+    env = ShowdownEnv.__new__(ShowdownEnv)  # step()/waits count only
+    env._env = stub
+    env.waits_absorbed = 0
+    return env
+
+
+def test_step_pumps_wait_states_and_accumulates_reward():
+    # Real action -> wait, wait -> wait, wait -> real decision point.
+    stub = _StubStack([(0.0, False, False, False), (0.0, False, False, False),
+                       (0.0, False, False, True)])
+    env = _adapter(stub)
+    obs, reward, terminated, truncated, info = env.step(5)
+    assert env.waits_absorbed == 2
+    assert not terminated and not truncated
+    # The learner's action goes through once; the pump's two dummies are
+    # discarded by poke-env, so their VALUE is deliberately unpinned here
+    # (see the C1 control in scripts/mutations/phase5_env.py).
+    assert int(stub.actions[0]) == 5 and len(stub.actions) == 3
+    assert all(isinstance(a, np.int64) for a in stub.actions)
+
+
+def test_step_asserts_on_silent_discard():
+    stub = _StubStack([(0.0, False, False, True)])
+    stub.env.agent1_to_move = False  # poke-env would drop the action
+    env = _adapter(stub)
+    with pytest.raises(AssertionError, match="silently discarded"):
+        env.step(3)
+
+
+def test_decided_truncation_is_remapped_to_terminal():
+    # A forfeit/timer loss: poke-env reports truncated=True, but the game is
+    # decided (won=False) — the learner must see terminal, no bootstrap.
+    battle = SimpleNamespace(won=False, lost=True)
+    stub = _StubStack([(-1.0, False, True, False)], battle=battle)
+    env = _adapter(stub)
+    obs, reward, terminated, truncated, info = env.step(0)
+    assert terminated and not truncated
+    assert info["outcome"] == -1 and reward == -1.0
+
+
+def test_tie_is_terminal_with_outcome_zero():
+    battle = SimpleNamespace(won=None, lost=None)
+    stub = _StubStack([(0.0, False, True, False)], battle=battle)
+    env = _adapter(stub)
+    obs, reward, terminated, truncated, info = env.step(0)
+    assert terminated and not truncated
+    assert info["outcome"] == 0 and reward == 0.0
+
+
+def test_reward_accumulates_across_pump():
+    # A wait step that carries the terminal reward (opponent's replacement
+    # act finishes the game) must not lose it.
+    battle = SimpleNamespace(won=True, lost=False)
+    stub = _StubStack([(0.0, False, False, False), (1.0, True, False, False)],
+                      battle=battle)
+    env = _adapter(stub)
+    obs, reward, terminated, truncated, info = env.step(2)
+    assert reward == 1.0 and terminated and info["outcome"] == 1
+    assert env.waits_absorbed == 1
+
+
 def _server_up() -> bool:
     try:
         socket.create_connection(("127.0.0.1", 8000), timeout=0.5).close()
@@ -140,4 +232,25 @@ def test_full_episode_contract_against_live_server():
     assert info["outcome"] in (-1, 0, 1)
     assert ret == info["outcome"]  # terminal-only reward equals the outcome
     assert info["action_mask"].shape == (10,)
+    assert terminated and not truncated  # every finish is terminal post-remap
+    env.close()
+
+
+@pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
+def test_wait_states_are_absorbed_over_many_battles():
+    # Wait states (opponent faint-replacements) occur in ~6.4% of raw steps
+    # vs max_power; 15 battles make hitting at least one near-certain. The
+    # in-step assert would fire on any leaked one, so completing the batch
+    # with a nonzero pump count is the phantom-row regression proof.
+    env = ShowdownEnv(opponent="max_power")
+    rng = np.random.default_rng(0)
+    for _ in range(15):
+        obs, info = env.reset()
+        terminated = truncated = False
+        while not (terminated or truncated):
+            action = int(rng.choice(np.flatnonzero(info["action_mask"])))
+            obs, reward, terminated, truncated, info = env.step(action)
+        assert terminated and not truncated
+        assert info["outcome"] in (-1, 0, 1)
+    assert env.waits_absorbed > 0
     env.close()

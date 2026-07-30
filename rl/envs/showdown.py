@@ -142,20 +142,51 @@ class ShowdownEnv(Env):
         self._env = SingleAgentWrapper(inner, opponent_player(opponent, battle_format))
         self.action_space = self._env.action_space
         self.observation_space = self._env.observation_space["observation"]
+        # Wait-states pumped inside step() and never returned (see below);
+        # exposed so the regression test can prove the pump path executes.
+        self.waits_absorbed = 0
 
     def reset(self, *, seed=None, options=None):
         obs, info = self._env.reset(seed=seed, options=options)
+        assert self._env.env.agent1_to_move, "reset returned a wait state"
         info["action_mask"] = obs["action_mask"].astype(bool)
         return obs["observation"], info
 
     def step(self, action):
+        poke = self._env.env
+        # PokeEnv.step converts and sends agent1's action ONLY when
+        # agent1_to_move — otherwise it silently discards the action and
+        # still returns a full transition. Fail loudly instead: a discarded
+        # action entering the buffer is a phantom (s, a) pair.
+        assert poke.agent1_to_move, "action would be silently discarded by poke-env"
         # np.int64, not int: poke-env's action_to_order calls action.item().
         obs, reward, terminated, truncated, info = self._env.step(np.int64(action))
+        total_reward = float(reward)
+        # Absorb wait states (our seat has nothing to choose — e.g. the
+        # opponent is replacing a fainted mon; measured 6.4% of raw steps vs
+        # max_power). As learner rows they carry a placeholder one-legal
+        # mask and an ignored action: zero policy gradient, but they skew
+        # advantage normalization, the entropy metric, and episode lengths.
+        # The pump's dummy action is discarded by the same mechanism the
+        # assert above guards.
+        while not (terminated or truncated) and not poke.agent1_to_move:
+            obs, reward, terminated, truncated, info = self._env.step(np.int64(0))
+            total_reward += float(reward)
+            self.waits_absorbed += 1
         info["action_mask"] = obs["action_mask"].astype(bool)
         if terminated or truncated:
-            assert self._env.env.battle1 is not None
-            info["outcome"] = battle_outcome(self._env.env.battle1)
-        return obs["observation"], float(reward), terminated, truncated, info
+            assert poke.battle1 is not None
+            info["outcome"] = battle_outcome(poke.battle1)
+            # poke-env marks forfeits, ties and timer losses truncated=True
+            # ("not a clean wipe"). To GAE, truncated means "episode cut
+            # off, bootstrap gamma*V(final obs)" — stacked on top of the
+            # terminal reward of a game that is OVER (at gamma=1, up to a
+            # full extra +/-1 on the only reward-bearing row). Every
+            # learner-visible finish is a completed game with its return
+            # fully realized (reset/close-injected forfeits are consumed
+            # inside poke-env and never surface here), so: terminal.
+            terminated, truncated = True, False
+        return obs["observation"], total_reward, terminated, truncated, info
 
     def close(self):
         self._env.close()
