@@ -14,15 +14,18 @@
 # heuristic rankings were 500k-4M. [512,512] on 611 inputs puts actor +
 # critic at ~1.16M — Huang-&-Lee scale — one decisive jump instead of a
 # timid doubling, so the read is unambiguous in both directions.
-# Same 6M budget as the budget-lever run for a clean paired comparison.
+# 12M steps (overnight run): rungs stay at every 100k, so the first 6M IS
+# the clean paired comparison against showdown_heur_6m_s0 and the 6M -> 12M
+# tail is free extension data — the budget-lever lesson (2M cut the [64,64]
+# curve mid-climb) applied in advance instead of learned twice.
 # torch_threads stays 1: the Phase 3 SAC probe measured 4 threads SLOWER
-# even at 256x256. Expect ~600 steps/s (~2.8 h wall).
+# even at 256x256. Expect ~600 steps/s (~5.5 h wall).
 # Pre-registered read: plateau shifts up => capacity was binding; plateau
 # stays ~0.30 => capacity exonerated at this scale, distribution levers
 # (mixing, then entropy floor) are next.
 env_id: Showdown-v0
 seed: 0
-total_steps: 6000000
+total_steps: 12000000
 eval_every: 100000
 eval_episodes: 100
 num_envs: 8
