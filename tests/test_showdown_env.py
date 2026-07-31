@@ -37,6 +37,7 @@ from rl.envs.showdown import (
     MOVE_DIM,
     OBS_DIM,
     OPPONENT_PLAYERS,
+    MixturePlayer,
     ShowdownEnv,
     ShowdownSingles,
     battle_outcome,
@@ -254,6 +255,65 @@ def test_opponent_spec_factory():
     with pytest.raises(ValueError, match="unknown opponent"):
         opponent_player("alphabeta4", fmt)
     assert sorted(OPPONENT_PLAYERS) == ["heuristics", "max_power", "random"]
+
+
+# --- MixturePlayer (training-distribution lever) ---------------------------
+
+
+def _mix_player(spec="mix:heuristics=0.7,max_power=0.2,random=0.1"):
+    return opponent_player(spec, "gen1randombattle")
+
+
+def test_mix_spec_parses_and_normalizes():
+    player = _mix_player("mix:heuristics=7,max_power=2,random=1")  # unnormalized
+    assert isinstance(player, MixturePlayer)
+    assert player._names == ["heuristics", "max_power", "random"]
+    assert player._weights == pytest.approx([0.7, 0.2, 0.1])
+
+
+def test_mix_spec_rejects_bad_input():
+    with pytest.raises(ValueError, match="unknown opponent|non-empty"):
+        _mix_player("mix:alphabeta=1.0")
+    with pytest.raises(ValueError, match="positive"):
+        _mix_player("mix:heuristics=0,random=1")
+    with pytest.raises(ValueError, match="malformed"):
+        _mix_player("mix:heuristics")
+
+
+def test_mix_assignment_is_sticky_within_a_battle():
+    # One battle must be driven by ONE sub-player end to end — a mid-game
+    # opponent swap would make battles chimeras no bot distribution emits.
+    player = _mix_player()
+    calls = []
+    player._players = {
+        name: SimpleNamespace(choose_move=lambda b, n=name: calls.append(n) or n)
+        for name in player._names
+    }
+    b1 = SimpleNamespace(battle_tag="battle-gen1randombattle-1")
+    b2 = SimpleNamespace(battle_tag="battle-gen1randombattle-2")
+    first = player.choose_move(b1)
+    assert all(player.choose_move(b1) == first for _ in range(10))
+    player.choose_move(b2)  # new battle: fresh sample, then sticky again
+    second = calls[-1]
+    assert all(player.choose_move(b2) == second for _ in range(10))
+    assert set(calls) <= set(player._names)
+
+
+def test_mix_sampling_matches_weights_across_battles():
+    player = _mix_player()
+    player._players = {
+        name: SimpleNamespace(choose_move=lambda b, n=name: n)
+        for name in player._names
+    }
+    n = 3000
+    picks = [
+        player.choose_move(SimpleNamespace(battle_tag=f"battle-x-{i}"))
+        for i in range(n)
+    ]
+    freq = {name: picks.count(name) / n for name in player._names}
+    assert freq["heuristics"] == pytest.approx(0.7, abs=0.03)
+    assert freq["max_power"] == pytest.approx(0.2, abs=0.03)
+    assert freq["random"] == pytest.approx(0.1, abs=0.03)
 
 
 # --- ShowdownEnv.step adapter logic, offline against a scripted stub -------

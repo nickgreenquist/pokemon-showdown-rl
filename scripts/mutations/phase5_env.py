@@ -44,6 +44,27 @@ MUTATIONS = [
     ("remap-dropped", ENV,
      "            terminated, truncated = True, False",
      "            pass"),
+    # ---------------------------------------------- mixture-opponent lever
+    # Re-sampling every turn would make battles mid-game chimeras; pinning
+    # the sample to the first name would silently collapse the mixture to
+    # its alphabetically-first component.
+    ("mix-resamples-every-turn", ENV,
+     """        if battle.battle_tag != self._battle_tag:
+            self._battle_tag = battle.battle_tag
+            self._current = self._players[
+                self._rng.choices(self._names, weights=self._weights)[0]
+            ]""",
+     """        self._current = self._players[
+            self._rng.choices(self._names, weights=self._weights)[0]
+        ]"""),
+    ("mix-collapses-to-first", ENV,
+     """            self._current = self._players[
+                self._rng.choices(self._names, weights=self._weights)[0]
+            ]""",
+     """            self._current = self._players[self._names[0]]"""),
+    ("mix-weights-unnormalized", ENV,
+     "        self._weights = [weights[n] / total for n in self._names]",
+     "        self._weights = [1.0 for n in self._names]"),
     # ------------------------------------------------- equivalence CONTROL
     # The pump's dummy action is discarded by poke-env (agent1_to_move is
     # False), so its value is arbitrary. If this is caught, a test is

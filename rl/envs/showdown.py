@@ -28,6 +28,8 @@ and damage ranges, so eval variance is handled by battle count (the Phase 5
 headline metric budgets >=1000 battles per matchup), not by fixed seeds.
 """
 
+import random
+
 import numpy as np
 from gymnasium import Env, spaces
 
@@ -254,16 +256,77 @@ def battle_outcome(battle) -> int:
     return 0
 
 
+class MixturePlayer(Player):
+    """Per-battle mixture over the scripted opponents (training-distribution
+    lever, 2026-07-31): each NEW battle is assigned one sub-player, sampled
+    by weight, that drives it to the end — a battle is never a mid-game
+    chimera. The training env holds one MixturePlayer per sub-env and each
+    sub-env runs one battle at a time, so only the current battle's
+    assignment is kept. Weights are normalized at construction; sampling
+    uses a private RNG so the choice stream is independent of global
+    seeding (battles are server-rolled and non-reproducible anyway).
+    """
+
+    def __init__(self, weights: dict[str, float], *, battle_format: str, **kwargs):
+        super().__init__(battle_format=battle_format, **kwargs)
+        unknown = weights.keys() - OPPONENT_PLAYERS.keys()
+        if unknown or not weights:
+            raise ValueError(
+                f"mix weights must be non-empty and over {sorted(OPPONENT_PLAYERS)}; "
+                f"got {sorted(weights) or '{}'}"
+            )
+        if any(w <= 0 for w in weights.values()):
+            raise ValueError(f"mix weights must be positive, got {weights}")
+        total = sum(weights.values())
+        self._names = sorted(weights)
+        self._weights = [weights[n] / total for n in self._names]
+        self._players = {
+            name: OPPONENT_PLAYERS[name](
+                battle_format=battle_format, start_listening=False
+            )
+            for name in self._names
+        }
+        self._rng = random.Random(0)
+        self._battle_tag: str | None = None
+        self._current: Player | None = None
+
+    def choose_move(self, battle):
+        if battle.battle_tag != self._battle_tag:
+            self._battle_tag = battle.battle_tag
+            self._current = self._players[
+                self._rng.choices(self._names, weights=self._weights)[0]
+            ]
+        return self._current.choose_move(battle)
+
+
+def _parse_mix(spec: str) -> dict[str, float]:
+    """"mix:heuristics=0.7,max_power=0.2,random=0.1" -> weight dict."""
+    weights = {}
+    for part in spec.removeprefix("mix:").split(","):
+        name, sep, weight = part.partition("=")
+        if not sep:
+            raise ValueError(f"malformed mix component {part!r} in {spec!r}")
+        weights[name.strip()] = float(weight)
+    return weights
+
+
 def opponent_player(spec: str | Player, battle_format: str) -> Player:
     """Resolve a config opponent spec to a poke-env Player. The opponent's
     choose_move is called directly on the second seat's battle object, so it
-    never needs its own server connection (start_listening=False)."""
+    never needs its own server connection (start_listening=False). A
+    "mix:name=w,name=w" spec builds a MixturePlayer — kept a plain string so
+    the config stays scalar-only (a hard requirement if collection ever
+    moves to subprocess vector envs, per the 2026-07-30 async review)."""
     if isinstance(spec, Player):
         return spec
+    if isinstance(spec, str) and spec.startswith("mix:"):
+        return MixturePlayer(
+            _parse_mix(spec), battle_format=battle_format, start_listening=False
+        )
     if spec not in OPPONENT_PLAYERS:
         raise ValueError(
-            f"unknown opponent {spec!r}; expected one of {sorted(OPPONENT_PLAYERS)} "
-            "or a poke_env Player instance"
+            f"unknown opponent {spec!r}; expected one of {sorted(OPPONENT_PLAYERS)}, "
+            "a 'mix:name=w,...' spec, or a poke_env Player instance"
         )
     return OPPONENT_PLAYERS[spec](battle_format=battle_format, start_listening=False)
 
