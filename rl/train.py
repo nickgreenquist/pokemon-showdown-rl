@@ -23,7 +23,7 @@ from rl.agents.q_learning import QLearningAgent
 from rl.agents.random_agent import RandomAgent
 from rl.agents.reinforce import ReinforceAgent
 from rl.agents.sac import SACAgent
-from rl.common.checkpoint import save_checkpoint
+from rl.common.checkpoint import load_checkpoint, save_checkpoint
 from rl.common.config import Config, load_config, run_dir
 from rl.common.evaluation import evaluate
 from rl.common.logging import Logger, make_logger
@@ -131,6 +131,16 @@ def train(cfg: Config) -> None:
             f"normalize_obs/normalize_reward need a vectorized algorithm; "
             f"{cfg.agent.get('algo')!r} runs the scalar loop"
         )
+    if cfg.init_from and cfg.agent.get("lr_anneal_steps"):
+        # load_state_dict restores the agent's update count; at a
+        # 12M-checkpoint's count the anneal fraction clamps to 0 and the
+        # whole run trains at lr = 0 — no crash, no metric that looks wrong,
+        # just a frozen policy. No warm-start config anneals, so refuse the
+        # combination instead of inventing resume semantics for it.
+        raise ValueError(
+            "init_from with lr_anneal_steps would resume the anneal schedule "
+            "at the checkpoint's update count (lr ~0 for the whole run)"
+        )
     if cfg.selfplay and (cfg.normalize_obs or cfg.normalize_reward):
         # The normalizers are VECTOR-level wrappers, and the opponent lives
         # inside a sub-env beneath them. The learner would act on z-scored
@@ -165,6 +175,17 @@ def train(cfg: Config) -> None:
         push_every = cfg.selfplay["push_every_updates"]
         if push_every < 1:
             raise ValueError(f"push_every_updates must be >= 1, got {push_every}")
+        if cfg.env_id.startswith("Showdown") and cfg.selfplay.get("fixed_mix", 0.0) > 0.0:
+            # The pool's fixed anchors are Connect 4 Opponents that read a
+            # board out of the obs. On a 611-dim Showdown obs HeuristicOpponent
+            # crashes but RandomOpponent silently plays a legal uniform-random
+            # move, unreported (measured) — half the fixed draws would corrupt
+            # the run without an error. Showdown anchor bots need the battle
+            # object and so must enter at the Player level if ever wanted.
+            raise ValueError(
+                "fixed_mix > 0 is Connect4-only: the pool's fixed anchors "
+                "decode a board from the obs and cannot drive a Showdown battle"
+            )
         pool = SnapshotPool(
             cfg.selfplay["pool_size"], cfg.selfplay["latest_prob"],
             pfsp_power=cfg.selfplay.get("pfsp_power", 0.0),
@@ -194,6 +215,12 @@ def train(cfg: Config) -> None:
         env = NormalizeReward(env, gamma=cfg.agent["gamma"])
         normalizers["reward"] = env.rms
     agent = make_agent(cfg, env)
+    if cfg.init_from:
+        # Warm start. MUST precede the step-0 pool push below: pushing first
+        # would anchor the pool at a random init while the learner starts at
+        # the loaded policy — no crash, and the anchor diagnostic would read
+        # ~1.0 forever and look wonderful.
+        agent.load_state_dict(load_checkpoint(cfg.init_from)["agent"])
     out_dir = run_dir(cfg)
     # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
     _write_run_metadata(out_dir, cfg)
@@ -344,6 +371,26 @@ def _vector_loop(
         )
         if update_metrics:
             logger.log(update_metrics, step)
+            if pool is not None:
+                # Pool-health series, read positionally BEFORE this
+                # boundary's possible push: stats[0] is the permanent step-0
+                # anchor (never evicted at pool_size > 1), stats[-1] the
+                # latest member — the two indices eviction (which deletes
+                # index 1) can never misalign. Cumulative counters; window
+                # them at read time. winrate_anchor is the in-run forgetting
+                # detector (H&L §V-C): the learner's score vs the policy it
+                # anchored on sinking below 0.5 while winrate_latest holds
+                # ~0.5 is the failure signature.
+                sp_metrics = {}
+                score, games = pool.stats[0]
+                if games:
+                    sp_metrics["selfplay/winrate_anchor"] = score / games
+                    sp_metrics["selfplay/anchor_games"] = games
+                score, games = pool.stats[-1]
+                if games:
+                    sp_metrics["selfplay/winrate_latest"] = score / games
+                if sp_metrics:
+                    logger.log(sp_metrics, step)
             # A truthy report means the rollout just drained — the only legal
             # push point: snapshots enter the pool at rollout boundaries so
             # that within a rollout the opponent DISTRIBUTION is fixed, which
