@@ -223,6 +223,27 @@ def test_move_block_features(offline_env):
     assert not vec[_OPP_ACTIVE + ACTIVE_DIM : OBS_DIM].any()
 
 
+def test_save_replays_reaches_both_seats():
+    # The watch.py replay path: the flag must land on poke-env's players,
+    # which write one replay HTML per battle per seat on battle finish.
+    env = ShowdownSingles(start_listening=False, save_replays="replay_dir")
+    assert env.agent1._save_replays == "replay_dir"
+    assert env.agent2._save_replays == "replay_dir"
+
+
+def test_eval_env_extras_cannot_override_config_opponent():
+    # extra_env_kwargs is for eval-site extras (replay saving); the opponent
+    # is config-derived and overriding it would defeat make_eval_env's
+    # whole purpose. The guard fires before any env is constructed.
+    cfg = SimpleNamespace(
+        env_id="Showdown-v0", seed=0, selfplay={"eval_opponent": "max_power"}
+    )
+    from rl.envs.make import make_eval_env
+
+    with pytest.raises(AssertionError, match="may not override"):
+        make_eval_env(cfg, extra_env_kwargs={"opponent": "random"})
+
+
 def test_opponent_spec_factory():
     fmt = "gen1randombattle"
     assert isinstance(opponent_player("random", fmt), RandomPlayer)

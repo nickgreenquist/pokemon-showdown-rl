@@ -282,9 +282,14 @@ class ShowdownEnv(Env):
         opponent: str | Player = "max_power",
         battle_format: str = "gen1randombattle",
         render_mode: str | None = None,
+        save_replays: bool | str = False,
     ):
+        # save_replays (False | True | directory) is poke-env's native replay
+        # dump: each finished battle is written as a Showdown replay HTML
+        # (the official animated viewer; needs internet to load its JS).
+        # Both seats save, so every battle yields two near-identical files.
         self.render_mode = render_mode
-        inner = ShowdownSingles(battle_format=battle_format)
+        inner = ShowdownSingles(battle_format=battle_format, save_replays=save_replays)
         self._env = SingleAgentWrapper(inner, opponent_player(opponent, battle_format))
         self.action_space = self._env.action_space
         self.observation_space = self._env.observation_space["observation"]

@@ -110,17 +110,26 @@ def selfplay_env_kwargs(cfg, key: str) -> dict:
     return {"opponent": cfg.selfplay[key]}
 
 
-def make_eval_env(cfg, render_mode: str | None = None) -> gym.Env:
+def make_eval_env(
+    cfg, render_mode: str | None = None, extra_env_kwargs: dict | None = None
+) -> gym.Env:
     """The eval env for a config. Every eval site goes through here — the
     train loop's best-checkpoint eval and all three of scripts/{watch,
     record,eval_checkpoint}.py — so that none of them can silently evaluate
     a self-play run against the env's DEFAULT opponent instead of the
-    configured anchor."""
+    configured anchor. `extra_env_kwargs` merge over the config-derived ones
+    for eval-site extras (e.g. Showdown replay saving in watch.py); the
+    opponent keys come from the config and may not be overridden."""
+    env_kwargs = selfplay_env_kwargs(cfg, "eval_opponent")
+    if extra_env_kwargs:
+        overlap = extra_env_kwargs.keys() & env_kwargs.keys()
+        assert not overlap, f"extra_env_kwargs may not override {sorted(overlap)}"
+        env_kwargs |= extra_env_kwargs
     return make_env(
         cfg.env_id,
         cfg.seed,
         render_mode=render_mode,
-        env_kwargs=selfplay_env_kwargs(cfg, "eval_opponent"),
+        env_kwargs=env_kwargs,
     )
 
 
