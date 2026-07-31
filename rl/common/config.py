@@ -45,6 +45,14 @@ class Config:
     # Emit eval/win_rate, computed from the env's info["outcome"]. Off by
     # default so no existing config or run changes shape.
     eval_win_rate: bool = False
+    # Warm start (milestone 3): path to a checkpoint whose agent state
+    # initializes training — actor, critic, optimizer and update count, via
+    # load_state_dict. Loaded BEFORE the step-0 pool push, so under
+    # self-play the pool's permanent anchor is the loaded policy, never a
+    # random init. Empty = train from scratch; every existing config is
+    # untouched. Not a resume: step count, pool contents and normalizer
+    # statistics do not carry over.
+    init_from: str = ""
     # Env steps between rungs of the checkpoint ladder the Phase 4 tournament
     # plays against; 0 disables it. Written by THRESHOLD CROSSING, never
     # `step % checkpoint_every` — the vector loop advances `step` by num_envs

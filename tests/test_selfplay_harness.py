@@ -11,7 +11,7 @@ import numpy as np
 import pytest
 import torch
 
-from rl.common.checkpoint import load_checkpoint
+from rl.common.checkpoint import load_checkpoint, save_checkpoint
 from rl.common.config import Config
 from rl.common.evaluation import evaluate
 from rl.envs.make import make_eval_env, make_env, make_vec_env, selfplay_env_kwargs
@@ -401,6 +401,90 @@ def test_pool_mode_requires_the_pool_keys(tmp_path, monkeypatch):
         selfplay={"opponent": "self", "eval_opponent": "heuristic", "pool_size": 4}
     )
     with pytest.raises(ValueError, match="latest_prob"):
+        train(cfg)
+
+
+def test_pool_health_metrics_reach_the_logger(tmp_path, monkeypatch):
+    """selfplay/winrate_anchor + winrate_latest (milestone 3): cumulative
+    learner-vs-member series read positionally — stats[0] is the permanent
+    anchor, stats[-1] the latest member, the two indices eviction (which
+    deletes index 1) can never misalign."""
+    monkeypatch.chdir(tmp_path)
+    logger = _record_metrics(monkeypatch)
+    train(connect4_config(run_name="poolhealth", selfplay=_pool_selfplay()))
+    anchor = [m["selfplay/winrate_anchor"] for _, m in logger.records
+              if "selfplay/winrate_anchor" in m]
+    latest = [m["selfplay/winrate_latest"] for _, m in logger.records
+              if "selfplay/winrate_latest" in m]
+    assert anchor and all(0.0 <= x <= 1.0 for x in anchor)
+    assert latest and all(0.0 <= x <= 1.0 for x in latest)
+    games = [m["selfplay/anchor_games"] for _, m in logger.records
+             if "selfplay/anchor_games" in m]
+    assert games == sorted(games)  # cumulative counter, never resets
+
+
+# ------------------------------------------------------------- init_from
+
+def test_init_from_loads_before_the_anchor_push(tmp_path, monkeypatch):
+    """The warm-start ordering contract (milestone 3): the pool's permanent
+    step-0 anchor must BE the loaded policy. Pushing before loading would
+    anchor the pool at a random init while the learner starts warm — no
+    crash, and selfplay/winrate_anchor would read ~1.0 forever and look
+    wonderful."""
+    monkeypatch.chdir(tmp_path)
+    donor_cfg = connect4_config(run_name="donor")
+    env = make_vec_env("Connect4-v0", seed=0, num_envs=donor_cfg.num_envs)
+    donor = make_agent(donor_cfg, env)
+    env.close()
+    with torch.no_grad():
+        for p in donor.actor.parameters():
+            p.fill_(0.123)
+    save_checkpoint(tmp_path / "donor.pt", donor, 0, donor_cfg)
+
+    captured = {}
+
+    def capture_loop(cfg, envs, eval_env, agent, logger, out_dir,
+                     normalizers, pool, push_every):
+        captured["agent"], captured["pool"] = agent, pool
+
+    monkeypatch.setattr("rl.train._vector_loop", capture_loop)
+    cfg = connect4_config(
+        run_name="warm",
+        init_from=str(tmp_path / "donor.pt"),
+        selfplay=_pool_selfplay(),
+    )
+    train(cfg)
+    anchor = captured["pool"].members[0].agent
+    for p in anchor.actor.parameters():
+        assert torch.equal(p, torch.full_like(p, 0.123))
+    for p, q in zip(captured["agent"].actor.parameters(), anchor.actor.parameters()):
+        assert torch.equal(p, q)
+
+
+def test_init_from_refuses_lr_anneal(tmp_path, monkeypatch):
+    """load_state_dict restores the update count; resuming an anneal
+    schedule there means lr ~0 for the whole run, silently."""
+    monkeypatch.chdir(tmp_path)
+    cfg = connect4_config(
+        init_from="whatever.pt",
+        agent={**CONNECT4_AGENT, "lr_anneal_steps": 1000},
+    )
+    with pytest.raises(ValueError, match="init_from with lr_anneal_steps"):
+        train(cfg)
+
+
+def test_showdown_selfplay_rejects_fixed_mix():
+    """The pool's fixed anchors decode a Connect 4 board from the obs; on a
+    611-dim Showdown obs HeuristicOpponent crashes but RandomOpponent
+    silently plays uniform-random, unreported — so the combination must
+    refuse to construct. Fires before any env (or server) is touched."""
+    cfg = connect4_config(
+        env_id="Showdown-v0",
+        selfplay={"opponent": "self", "eval_opponent": "heuristics",
+                  "pool_size": 4, "latest_prob": 0.8,
+                  "push_every_updates": 1, "fixed_mix": 0.05},
+    )
+    with pytest.raises(ValueError, match="Connect4-only"):
         train(cfg)
 
 
