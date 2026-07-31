@@ -46,6 +46,8 @@ from poke_env.player import (
     SimpleHeuristicsPlayer,
 )
 
+from rl.selfplay.pool import SnapshotPool
+
 # The Phase 5 milestone ladder's fixed opponents, weakest to strongest.
 OPPONENT_PLAYERS: dict[str, type[Player]] = {
     "random": RandomPlayer,
@@ -299,6 +301,67 @@ class MixturePlayer(Player):
         return self._current.choose_move(battle)
 
 
+class PoolPlayer(Player):
+    """Seat-2 adapter driving battles from the shared SnapshotPool
+    (milestone 3): each NEW battle draws one frozen snapshot via
+    pool.select() — the per-episode swap boundary the pool contract pins —
+    and that member plays the battle to the end. One PoolPlayer per sub-env
+    (per-battle tracking assumes one battle at a time), all wrapping the ONE
+    pool object that arrives through the caller-kwargs identity seam
+    (rl/envs/make.py).
+
+    choose_move is SYNC on purpose: SingleAgentWrapper.step calls it on the
+    caller thread and asserts the result is not awaitable. SeamPlayer
+    (rl/collect.py) is the precedent for the encode/mask/convert trio only,
+    NOT for its async signature. Battle tracking uses our own attribute,
+    never Player._battles — SingleAgentWrapper.reset calls reset_battles()
+    on the opponent at every battle boundary.
+    """
+
+    def __init__(self, pool: SnapshotPool, *, battle_format: str, **kwargs):
+        super().__init__(battle_format=battle_format, **kwargs)
+        self._pool = pool
+        # Installer contract (SnapshotPool.freeze docstring): every
+        # installer calls freeze(), even though members freeze at push.
+        pool.freeze()
+        self._type_chart = GenData.from_format(battle_format).type_chart
+        # Reseeded per sub-env via seed_rng() from the env's first seeded
+        # reset. A shared fixed stream (MixturePlayer's pattern, fine for 3
+        # scripted bots) would have every sub-env draw the SAME member
+        # sequence, collapsing the pool's opponent diversity 8-fold.
+        self._rng = np.random.default_rng(0)
+        self._battle_tag: str | None = None
+        self._current = None
+
+    def seed_rng(self, seed: int) -> None:
+        self._rng = np.random.default_rng(seed)
+
+    def report_outcome(self, outcome: int) -> None:
+        """Learner-perspective outcome of the battle that just finished,
+        credited to the member that played it — the pool's PFSP stats feed.
+        Called by ShowdownEnv.step at the terminal step, which is always
+        before the NEXT battle's first choose_move can re-select."""
+        if self._current is not None:
+            self._pool.report(self._current, outcome)
+
+    def choose_move(self, battle):
+        # Wrapper contract: wait states never reach the opponent
+        # (SingleAgentWrapper.step's battle2.wait bypass). If one ever did,
+        # the forward below would advance the member's generator on a
+        # decision poke-env then discards — the seat-2 twin of
+        # ShowdownEnv.step's discarded-action assert.
+        assert not battle.wait, "wait state reached the pool opponent"
+        if battle.battle_tag != self._battle_tag:
+            self._battle_tag = battle.battle_tag
+            self._current = self._pool.select(self._rng)
+        obs = embed_battle(battle, self._type_chart)
+        mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
+        action = self._current.move(obs, mask, self._rng)
+        # strict default: an out-of-mask action raises rather than degrading
+        # to a random move (SeamPlayer precedent).
+        return SinglesEnv.action_to_order(np.int64(action), battle)
+
+
 def _parse_mix(spec: str) -> dict[str, float]:
     """"mix:heuristics=0.7,max_power=0.2,random=0.1" -> weight dict."""
     weights = {}
@@ -310,15 +373,20 @@ def _parse_mix(spec: str) -> dict[str, float]:
     return weights
 
 
-def opponent_player(spec: str | Player, battle_format: str) -> Player:
+def opponent_player(spec: str | Player | SnapshotPool, battle_format: str) -> Player:
     """Resolve a config opponent spec to a poke-env Player. The opponent's
     choose_move is called directly on the second seat's battle object, so it
     never needs its own server connection (start_listening=False). A
     "mix:name=w,name=w" spec builds a MixturePlayer — kept a plain string so
     the config stays scalar-only (a hard requirement if collection ever
-    moves to subprocess vector envs, per the 2026-07-30 async review)."""
+    moves to subprocess vector envs, per the 2026-07-30 async review). A
+    SnapshotPool (what rl/train.py substitutes for `opponent: self`) gets a
+    PoolPlayer; the pool object itself is the one thing that must cross the
+    caller-kwargs seam by identity."""
     if isinstance(spec, Player):
         return spec
+    if isinstance(spec, SnapshotPool):
+        return PoolPlayer(spec, battle_format=battle_format, start_listening=False)
     if isinstance(spec, str) and spec.startswith("mix:"):
         return MixturePlayer(
             _parse_mix(spec), battle_format=battle_format, start_listening=False
@@ -353,7 +421,14 @@ class ShowdownEnv(Env):
         # Both seats save, so every battle yields two near-identical files.
         self.render_mode = render_mode
         inner = ShowdownSingles(battle_format=battle_format, save_replays=save_replays)
-        self._env = SingleAgentWrapper(inner, opponent_player(opponent, battle_format))
+        player = opponent_player(opponent, battle_format)
+        # isinstance, not getattr: a pool-backed opponent gets outcome
+        # reports and per-sub-env seeding, and a renamed hook must fail
+        # loudly — nothing cross-checks the pool's stats, so a silently
+        # disabled report path would corrupt PFSP forever without a metric
+        # that looks wrong.
+        self._pool_player = player if isinstance(player, PoolPlayer) else None
+        self._env = SingleAgentWrapper(inner, player)
         self.action_space = self._env.action_space
         self.observation_space = self._env.observation_space["observation"]
         # Wait-states pumped inside step() and never returned (see below);
@@ -361,6 +436,13 @@ class ShowdownEnv(Env):
         self.waits_absorbed = 0
 
     def reset(self, *, seed=None, options=None):
+        if seed is not None and self._pool_player is not None:
+            # The vector loop's first reset fans out seed + i per sub-env;
+            # every later reset passes None. Latch it here: ShowdownEnv
+            # never seeds gymnasium's np_random (episodes are server-rolled),
+            # so this is the only per-sub-env stream the member draw can
+            # decorrelate on.
+            self._pool_player.seed_rng(seed)
         obs, info = self._env.reset(seed=seed, options=options)
         assert self._env.env.agent1_to_move, "reset returned a wait state"
         info["action_mask"] = obs["action_mask"].astype(bool)
@@ -391,6 +473,8 @@ class ShowdownEnv(Env):
         if terminated or truncated:
             assert poke.battle1 is not None
             info["outcome"] = battle_outcome(poke.battle1)
+            if self._pool_player is not None:
+                self._pool_player.report_outcome(info["outcome"])
             # poke-env marks forfeits, ties and timer losses truncated=True
             # ("not a clean wipe"). To GAE, truncated means "episode cut
             # off, bootstrap gamma*V(final obs)" — stacked on top of the

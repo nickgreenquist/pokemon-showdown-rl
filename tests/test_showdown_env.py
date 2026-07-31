@@ -38,11 +38,13 @@ from rl.envs.showdown import (
     OBS_DIM,
     OPPONENT_PLAYERS,
     MixturePlayer,
+    PoolPlayer,
     ShowdownEnv,
     ShowdownSingles,
     battle_outcome,
     opponent_player,
 )
+from rl.selfplay.pool import SnapshotPool
 
 
 @pytest.fixture(scope="module")
@@ -348,6 +350,7 @@ class _StubStack:
 def _adapter(stub) -> ShowdownEnv:
     env = ShowdownEnv.__new__(ShowdownEnv)  # step()/waits count only
     env._env = stub
+    env._pool_player = None
     env.waits_absorbed = 0
     return env
 
@@ -405,6 +408,160 @@ def test_reward_accumulates_across_pump():
     obs, reward, terminated, truncated, info = env.step(2)
     assert reward == 1.0 and terminated and info["outcome"] == 1
     assert env.waits_absorbed == 1
+
+
+# --- PoolPlayer (milestone 3: the seat-2 pool adapter) ----------------------
+#
+# Unit tests fake the pool (the SnapshotPool contract itself is pinned in
+# tests/test_selfplay_pool.py) and patch the encode/mask/convert trio, which
+# needs a real battle object — what these tests pin is the PoolPlayer's OWN
+# logic: one member per battle, report-to-the-member-that-played, the wait
+# guard, and the sync signature the wrapper asserts.
+
+
+class _FakeMember:
+    def __init__(self, action=0):
+        self.action = action
+
+    def move(self, obs, mask, rng):
+        return self.action
+
+
+class _FakePool:
+    """Records the PoolPlayer contract calls; select() round-robins."""
+
+    def __init__(self, members):
+        self.members = members
+        self.selects = 0
+        self.reports = []
+        self.frozen = 0
+
+    def freeze(self):
+        self.frozen += 1
+
+    def select(self, rng):
+        member = self.members[self.selects % len(self.members)]
+        self.selects += 1
+        return member
+
+    def report(self, member, outcome):
+        self.reports.append((member, outcome))
+
+
+def _pool_player(pool):
+    return PoolPlayer(pool, battle_format="gen1randombattle", start_listening=False)
+
+
+def _patch_trio(monkeypatch):
+    monkeypatch.setattr(
+        "rl.envs.showdown.embed_battle", lambda b, tc: np.zeros(OBS_DIM, np.float32)
+    )
+    monkeypatch.setattr(
+        "rl.envs.showdown.SinglesEnv.get_action_mask",
+        staticmethod(lambda b: np.ones(10, np.int64)),
+    )
+    monkeypatch.setattr(
+        "rl.envs.showdown.SinglesEnv.action_to_order",
+        staticmethod(lambda a, b: int(a)),
+    )
+
+
+def test_pool_player_selects_one_member_per_battle(monkeypatch):
+    # The per-episode swap boundary: one draw drives a battle end to end
+    # (the MixturePlayer stickiness contract), a NEW battle draws fresh.
+    _patch_trio(monkeypatch)
+    pool = _FakePool([_FakeMember(3), _FakeMember(7)])
+    player = _pool_player(pool)
+    assert pool.frozen == 1  # installer contract: every installer freezes
+    b1 = SimpleNamespace(battle_tag="battle-gen1randombattle-1", wait=False)
+    b2 = SimpleNamespace(battle_tag="battle-gen1randombattle-2", wait=False)
+    assert [player.choose_move(b1) for _ in range(5)] == [3] * 5
+    assert pool.selects == 1
+    assert player.choose_move(b2) == 7
+    assert pool.selects == 2
+
+
+def test_pool_player_reports_the_member_that_played(monkeypatch):
+    # PFSP stats feed: the outcome lands on the member whose battle just
+    # ended — report fires before the next battle's choose_move re-selects,
+    # so a stale-member mis-credit cannot happen in this call order.
+    _patch_trio(monkeypatch)
+    members = [_FakeMember(0), _FakeMember(1)]
+    pool = _FakePool(members)
+    player = _pool_player(pool)
+    player.choose_move(SimpleNamespace(battle_tag="b-1", wait=False))
+    player.report_outcome(1)
+    player.choose_move(SimpleNamespace(battle_tag="b-2", wait=False))
+    player.report_outcome(-1)
+    assert pool.reports == [(members[0], 1), (members[1], -1)]
+
+
+def test_pool_player_rejects_wait_states(monkeypatch):
+    # SingleAgentWrapper's battle2.wait bypass means a wait state must never
+    # reach the pool opponent; if one does, fail loudly instead of advancing
+    # the member's generator on a decision poke-env then discards.
+    _patch_trio(monkeypatch)
+    player = _pool_player(_FakePool([_FakeMember()]))
+    with pytest.raises(AssertionError, match="wait state"):
+        player.choose_move(SimpleNamespace(battle_tag="b-1", wait=True))
+
+
+def test_pool_player_choose_move_is_sync():
+    # SingleAgentWrapper.step calls choose_move on the caller thread and
+    # asserts the result is not awaitable — SeamPlayer's async signature is
+    # the precedent for the encode/mask/convert trio only, never for this.
+    import inspect
+
+    assert not inspect.iscoroutinefunction(PoolPlayer.choose_move)
+
+
+def test_pool_player_rng_reseeds_deterministically():
+    player = _pool_player(_FakePool([_FakeMember()]))
+    player.seed_rng(7)
+    first = [player._rng.integers(100) for _ in range(5)]
+    player.seed_rng(7)
+    assert [player._rng.integers(100) for _ in range(5)] == first
+
+
+def test_opponent_player_resolves_a_pool_to_a_pool_player():
+    # The `opponent: self` seam: rl/train.py substitutes the pool OBJECT,
+    # and resolution must wrap it rather than reject it. Empty pool is fine
+    # here — selection happens per battle, never at construction.
+    pool = SnapshotPool(pool_size=1, latest_prob=1.0)
+    player = opponent_player(pool, "gen1randombattle")
+    assert isinstance(player, PoolPlayer)
+
+
+def test_env_terminal_step_reports_to_the_pool_player():
+    # The adapter seam: ShowdownEnv.step forwards the learner-perspective
+    # outcome at the terminal step.
+    stub = _StubStack([(1.0, True, False, False)],
+                      battle=SimpleNamespace(won=True, lost=False))
+    env = _adapter(stub)
+    outcomes = []
+    env._pool_player = SimpleNamespace(report_outcome=outcomes.append)
+    env.step(0)
+    assert outcomes == [1]
+
+
+def test_reset_seed_latches_into_the_pool_player_rng():
+    # The vector loop seeds sub-env i exactly once (first reset, seed + i);
+    # later resets pass None and must not reseed.
+    class _ResetStub:
+        def __init__(self):
+            self.env = SimpleNamespace(agent1_to_move=True, battle1=None)
+
+        def reset(self, *, seed=None, options=None):
+            return _obs_dict(), {}
+
+    env = ShowdownEnv.__new__(ShowdownEnv)
+    env._env = _ResetStub()
+    env.waits_absorbed = 0
+    seeds = []
+    env._pool_player = SimpleNamespace(seed_rng=seeds.append)
+    env.reset(seed=123)
+    env.reset()
+    assert seeds == [123]
 
 
 def _server_up() -> bool:
