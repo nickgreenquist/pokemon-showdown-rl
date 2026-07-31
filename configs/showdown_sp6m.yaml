@@ -1,0 +1,93 @@
+# Phase 5 milestone 3, run 1 (self-play arm): the Phase-4 snapshot pool on
+# the 512 trunk, WARM-STARTED from the 12M capacity checkpoint (0.408).
+# Paired against configs/showdown_cont6m.yaml — continued heuristics
+# training from the SAME checkpoint at the SAME budget — so the two arms
+# differ in exactly one thing: the training distribution. Design of record:
+# the 2026-07-31 milestone-3 design session (three-review adversarial pass;
+# session log).
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+# Launch: 3 seeds concurrent (Stage-0 pattern), then the control arm's 3.
+#
+# Pool recipe: pool_size 20 / latest_prob 0.8 transfer from Phase 4
+# verbatim. push_every_updates 150 does NOT transfer Phase 4's 20 — the
+# validated quantity was never the absolute cadence: strided retention
+# keeps the step-0 anchor + the 19 newest snapshots, so at 6M cadence 150
+# spans 2.92M steps (~49% of the run), the half-run history span Bansal et
+# al. prescribe (pool.py docstring), where 20 would span 6.5% (Phase 4's
+# own 2M setting spanned 19.5%). latest_prob stays 0.8 for single-variable
+# discipline and is the named run-3 lever ahead of PFSP (which holds Phase
+# 4's worst forgetting proxies). fixed_mix stays absent: it is Connect4-only
+# (train.py hard-rejects it here), and any future anchor must be
+# contamination-free — max_power or a policy anchor, NEVER heuristics,
+# which is the eval bot.
+#
+# Pre-registered reads (3 seeds each arm, decided before launch):
+#   R0 GATE — must pass or R1/R2 are not a strength read: locked-eval tie
+#      fraction <= 4.2% (2x the 12M run's 2.1%) AND mean training episode
+#      length <= 1.5x the 12M run's. Under mirror self-play with tie = 0
+#      reward, stalling dominates losing for BOTH seats and eval/win_rate
+#      cannot see it (0.35W/0.60T reports identically to 0.35W/0.60L).
+#      Fail => report a stall-equilibrium finding, not a strength result.
+#   R1 PRIMARY — locked protocol (FINAL ckpt, 1000 fresh battles, seeds
+#      past the ladder), pooled over 3 seeds, minus the control arm's same
+#      read. > +0.025 => self-play credited at matched init and budget;
+#      within +-0.025 => not distinguishable (computed resolution floor);
+#      < -0.025 => self-play worse at this budget.
+#   R2 BAND — 4-6M rung bands, same comparison. Biased AGAINST self-play
+#      (the control trains on the eval distribution), so R2 supports,
+#      never overrides, R3.
+#   R3 CROSS-PLAY — round robin SP-final / CT-final / the 0.408 parent,
+#      1000 battles per pair, BOTH seat orientations
+#      (scripts/eval_checkpoint.py --opponent-checkpoint). The
+#      anchor-confound-free strength read: SP beats CT > 0.55 => self-play
+#      produced the stronger policy even where the anchor is blind to it.
+#   R4 FORGETTING (H&L SS V-C) — selfplay/winrate_anchor (learner vs the
+#      0.408 policy it started from) ends >= 0.65 monotone-ish => healthy;
+#      sinking below 0.5 while winrate_latest holds ~0.5 => forgetting
+#      fires — a milestone-3 finding in its own right, and the trigger for
+#      the contamination-free anchor arm in run 3.
+#   R5 ENTROPY — expected MORE stable than Connect 4 (server-rolled teams
+#      are the Tesauro dice); 3-seed median loss/entropy < 0.15 for 5
+#      consecutive rungs before 3M => record, plan an entropy_coef 0.03
+#      arm; < 0.05 with falling eval/win_rate => abort, relaunch at 0.03.
+#      Never change entropy_coef mid-run.
+#   Scoreboard: SP pooled >= 0.5 => milestone 3 passes the milestone-2 bar.
+#   Expected values, so a gap is not read as a bug: CT ~0.42-0.44 (the 12M
+#   curve's tail decelerated at +0.018/3M); SP anywhere 0.35-0.50, with a
+#   transient dip in the first ~500k expected as play leaves the
+#   heuristics distribution. Limitation: the 3 seeds share the parent
+#   checkpoint — spread measures continuation variance; the SP-CT
+#   comparison is paired. best_checkpoint feeds no reported number.
+env_id: Showdown-v0
+seed: 0
+total_steps: 6000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp6m_s0
+logger: wandb
+eval_win_rate: true
+init_from: runs/showdown_heur_512_s0/ckpt_012000000.pt
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
