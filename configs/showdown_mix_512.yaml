@@ -1,0 +1,47 @@
+# Phase 5 milestone 2, lever 3: opponent-mixture training distribution on
+# the un-throttled [512,512] trunk — the first 3-SEED read of the campaign
+# (Stage-0 probe 2026-07-31: 3 concurrent runs at -20% each; launch all
+# three seeds together, ~2.4 h wall).
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# showdown_heur_512_s0 verbatim except: TRAINING opponent becomes the
+# per-battle mixture 70% heuristics / 20% max_power / 10% random
+# (MixturePlayer; majority weight on the target bot, minority for state
+# coverage — Phase 4's small-external-anchor finding scaled to a setting
+# where the fixed bots ARE the whole distribution), and total_steps 6M
+# (the 512 capacity read is established; this prices the mixture delta
+# against the 12M curve's 4-6M band). EVAL opponent stays pure heuristics —
+# the anchor discipline — so this run reads directly against 0.408
+# (12M capacity headline) and the [64,64] plateau at ~0.31.
+# Pre-registered read: mixture band above the capacity run's matched-step
+# band => distribution lever credited; at/below => the remaining gap is
+# not fixed-bot state coverage, and milestone-3 self-play moves up.
+env_id: Showdown-v0
+seed: 0
+total_steps: 6000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_mix512_s0
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: "mix:heuristics=0.7,max_power=0.2,random=0.1"
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
