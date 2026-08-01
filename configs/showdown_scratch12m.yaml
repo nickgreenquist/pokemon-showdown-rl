@@ -1,0 +1,89 @@
+# Phase 5 milestone 3, run 3: FROM-SCRATCH pool self-play, 12M x 3 seeds —
+# the pre-registered narrative/ceiling arm (the "R1 flat and R3 flat"
+# branch, fired 2026-08-01). Design of record: the 2026-08-01 run-3 design
+# session (three-Opus pass + run-1 re-analysis; session log). NOT a paired
+# comparison with run-1's arms — init, anchor identity and budget all
+# differ deliberately; this is a regime probe: can pool self-play produce
+# a strength gradient on Showdown at all, absent the warm-start plateau?
+# It does NOT discriminate H-budget/H-mixture/H-equilibrium (all three
+# predict a rise from random init); a null at ~6% of H&L's budget stays
+# unattributable (the 2026-07-31 argument, accepted with eyes open).
+#
+# Launch is GATED (do not start the overnight until both hold):
+#   (i)  R3 parent cells closed and the run-1 null confirmed:
+#        both-orientation pooled SP-final-vs-parent within 0.5 +/- 0.013
+#        (wins/total, ties count as losses — run-1 R3 convention).
+#        Outside that band => HOLD; the run-3 tree re-opens.
+#   (ii) showdown_scratch_shakeout.yaml gates pass; recompute the 12M
+#        wall estimate from its measured steps/s (random-init throughput
+#        was unmeasured before it).
+#
+# Recipe notes: push cadence 150, NOT the span-preserving 300 — Phase 4's
+# working from-scratch precedent (history span 19.5%, modest staleness)
+# is the nearer regime on both axes (span here 24.3%, latest-staleness
+# 154k vs 307k steps). A deliberate, recorded deviation from the Bansal
+# half-run-span rule, which was adopted for run 1 — the run that failed.
+# lr_anneal_steps 0 pinned explicitly: run 1 trained at constant lr and
+# there is no init_from here to refuse an anneal for us.
+#
+# Pre-registered reads (3 seeds, decided before launch):
+#   R0 GATE (random-init regime, two-phase): 0-3M recorded, not gated
+#      (random play runs longer for non-pathological reasons). After 3M:
+#      training ties <= 4.2% and mean episode length <= 40, else the run
+#      reports as a degeneracy finding, not a strength result.
+#   R1 LEARNING GATE: winrate_anchor (learner vs the random step-0
+#      snapshot) >= 0.75 by 4M on >= 2 of 3 seeds => learning
+#      demonstrated (the differential control against Phase 4's 291
+#      Elo). Else: self-play from scratch fails to learn here at this
+#      budget — report honestly with the unattributability caveat, and
+#      P4 (encoder ceiling) becomes the priority instrument.
+#   R2 STRENGTH: eval/win_rate rungs are the strength curve (the anchor
+#      saturates if learning works); locked finals = 1000 fresh battles
+#      per seed at 12M. Expected value pre-registered 0.20-0.35 pooled;
+#      >= 0.408 (parent parity from scratch at 2/3 the cumulative
+#      budget) would be a headline, not the expectation.
+#   R3 CROSS-PLAY (only if R2 lands in or above band): scratch-final vs
+#      sp6m-final and vs the 0.408 parent, both orientations, 1000/pair.
+#   R4 EQUILIBRIUM/ENTROPY: winrate_latest ~0.5 throughout is the mirror
+#      equilibrium, not a failure; entropy starts at ln 10 ~= 2.30 and
+#      must fall — 3-seed median < 0.15 for 5 consecutive rungs before
+#      6M => record and plan an entropy_coef arm; never change
+#      entropy_coef mid-run.
+#   Scoreboard: this arm cannot meet the milestone-2 bar by its own
+#   expected values; it is the narrative arm. best_checkpoint feeds no
+#   reported number.
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+# Launch: 3 seeds concurrent (Stage-0 pattern), WANDB_MODE=offline.
+env_id: Showdown-v0
+seed: 0
+total_steps: 12000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_scratch12m_s0
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
