@@ -6,6 +6,7 @@ Metric names are locked in CLAUDE.md — reuse exactly:
 `eval/return_std`, `time/steps_per_sec`, plus `loss/*` per algorithm.
 """
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from pathlib import Path
@@ -34,7 +35,17 @@ class WandbLogger(Logger):
         out_dir = run_dir(cfg)
         out_dir.mkdir(parents=True, exist_ok=True)
         self._run = wandb.init(
-            project=WANDB_PROJECT, name=cfg.run_name, config=asdict(cfg), dir=str(out_dir)
+            project=WANDB_PROJECT,
+            name=cfg.run_name,
+            config=asdict(cfg),
+            dir=str(out_dir),
+            # OFFLINE by default. Every campaign in this project has launched
+            # with WANDB_MODE=offline exported per shell, and one forgotten
+            # export puts a multi-hour run behind a network init (and a
+            # service-startup timeout — the Phase-1 launch storm). An
+            # explicit WANDB_MODE still wins, so `WANDB_MODE=online` is the
+            # opt-in and nothing about the offline data layout changes.
+            mode=os.environ.get("WANDB_MODE", "offline"),
         )
 
     def log(self, metrics: dict[str, float], step: int) -> None:
