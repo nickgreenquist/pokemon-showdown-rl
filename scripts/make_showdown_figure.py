@@ -1,9 +1,10 @@
 """Phase 5 milestone-3 figure: every training arm converges to ~0.4 vs
 SimpleHeuristics, and a supervised clone through the same network sits above.
 
-Left panel: eval/win_rate vs SimpleHeuristics over training — the fixed-bot
-[512,512] run (the lineage every other arm descends from or is compared to)
-and the three from-scratch self-play seeds, which never see the eval bot in
+Left panel: eval/win_rate vs SimpleHeuristics over training — the three
+fixed-bot [512,512] seeds (the lineage every other arm descends from or is
+compared to; s1/s2 are the 2026-08-02 pre-registered replication) and the
+three from-scratch self-play seeds, which never see the eval bot in
 training. Rungs are 100-episode estimates (se ≈ 0.05), so each trace is a
 5-rung (500k-step) centered rolling mean with the raw rungs behind it at low
 alpha — smoothing disclosed here and in the README caption. The 0.5
@@ -84,9 +85,10 @@ left.axhline(BAR, color=INK2, lw=0.9, ls=(0, (5, 3)), zorder=2)
 left.axhline(ASYMPTOTE, color=INK2, lw=0.8, ls=(0, (1, 2)), zorder=2)
 left.axhspan(*CLONE_BAND, color="#b9b7b0", alpha=0.35, zorder=1)
 
-steps, wins = rungs("showdown_heur_512_s0")
-left.plot(steps / 1e6, wins, color=FIXEDBOT_C, lw=0.7, alpha=0.22, zorder=3)
-left.plot(steps / 1e6, rolling(wins), color=FIXEDBOT_C, lw=1.8, zorder=5)
+for seed in (0, 1, 2):
+    steps, wins = rungs(f"showdown_heur_512_s{seed}")
+    left.plot(steps / 1e6, wins, color=FIXEDBOT_C, lw=0.7, alpha=0.22, zorder=3)
+    left.plot(steps / 1e6, rolling(wins), color=FIXEDBOT_C, lw=1.5, alpha=0.9, zorder=5)
 for seed in (0, 1, 2):
     steps, wins = rungs(f"showdown_scratch12m_s{seed}")
     left.plot(steps / 1e6, wins, color=SELFPLAY_C, lw=0.7, alpha=0.22, zorder=3)
@@ -116,7 +118,7 @@ ROWS = [
     ("BC clone, 20k-battle battery", B3.format(a="bc_p4_512"), None),
     ("BC clone, 40k-battle battery", B3.format(a="bc_p4_512_40k"), None),
     ("fixed-bot + 6M continuation (18M)", S3.format(a="cont6m", f="final_eval_heur_1000"), FIXEDBOT_C),
-    ("fixed-bot 12M  (the RL best, n=1 seed)", "runs/showdown_heur_512_s0/final_eval_heur_1000.json", FIXEDBOT_C),
+    ("fixed-bot 12M  (3 seeds)", S3.format(a="heur_512", f="final_eval_heur_1000"), FIXEDBOT_C),
     ("warm-start + 6M self-play (18M)", S3.format(a="sp6m", f="final_eval_heur_1000"), SELFPLAY_C),
     ("from-scratch self-play 12M", S3.format(a="scratch12m", f="final_eval_heur_1000"), SELFPLAY_C),
     ("opponent mixture 6M", S3.format(a="mix512", f="final_eval_heur_1000"), FIXEDBOT_C),
