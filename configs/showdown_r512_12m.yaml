@@ -13,10 +13,26 @@
 # at rollout_steps 128.
 #
 # ARMS (6 lanes, 3 seeds each, concurrent at W=6):
-#   control  = this file,   lr_anneal_steps absent (flat 2.5e-4)
-#   treatment= showdown_r512_lra12m.yaml, lr_anneal_steps: 12000000
+#   control  = this file,   lr_anneal_steps absent (flat 2.5e-4), seeds 0,1,2
+#   treatment= showdown_r512_lra12m.yaml, lr_anneal_steps: 12000000,
+#              SEEDS 3,4,5 — see the collision note below
 # One variable between them. ~6.0-6.4 h at the measured 6-wide 520-556
 # steps/s per lane.
+#
+# SEED DEVIATION, forced (2026-08-04, at launch): the two arms CANNOT share
+# seed values while running concurrently. rl/common/seeding.py seeds the
+# global `random` module, and poke-env derives each player's username from
+# it (account_configuration.py: random.choices over a 5-char space), so two
+# concurrent lanes at the same seed request the SAME Showdown usernames. The
+# first launch died exactly this way: all three annealed lanes lost the
+# handshake to the already-running flat lanes ("|nametaken|", surfacing as
+# poke-env's "Agent is not challenging" TimeoutError at the first reset).
+# Every prior multi-lane run in this repo used distinct seeds across all
+# lanes, so nothing caught it before. Consequence for the read: the arms are
+# UNPAIRED in seed value. The PRIMARY is a pooled 3000-vs-3000 proportion
+# test, which never assumed pairing, so it is unaffected; but per-seed
+# comparison across arms is meaningless here, and the known s0-weak-seed
+# pattern cannot be matched out. Recorded, not worked around.
 #
 # PRE-REGISTERED READ, locked before launch:
 #   R0 gates (both arms): late entropy in [0.2, 1.0] (the annealed arm reads
