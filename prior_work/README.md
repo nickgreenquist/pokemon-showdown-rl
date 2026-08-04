@@ -40,7 +40,16 @@ only, so re-download from the URLs below if one goes missing.
   (BC-from-SH init + faint shaping + arch, no ablation); the "Wang MLP ~1100 Elo" README
   claim has no code support. Transferable: BC-fit-to-the-heuristic as an architecture
   screen; the poke-env SimpleHeuristicsPlayer `_stat_estimation` +1-boost bug (patched in
-  their `worker.py`).
+  their `worker.py`). Action space is **14 = 4 move + 6 switch + 4 tera-move — positional**,
+  the same family as ours, which is the load-bearing fact when the action-space question is
+  re-opened (see the 2026-08-04 entry).
+  Announcement thread: https://www.reddit.com/r/reinforcementlearning/comments/1rgvnbw/pokemon_showdown_ai_elo_1900/
+  (r/reinforcementlearning, title "Pokemon Showdown AI ELO 1900"). **UNREAD — reddit.com is
+  unfetchable from the Claude Code sandbox (both `www.` and `old.`), so nothing from the post
+  body or comments has been verified and none of it informs any claim in this repo.** Attribution
+  to the ps-ppo author is inferred from the matching ">1900 ELO" figure, not confirmed. Worth a
+  manual read: announcement threads often carry author replies on hyperparameters, failures and
+  negative results that never reach the README — exactly the ablation detail ps-ppo lacks.
 - `pokejax/` — analyses, eval summary, and training log from
   https://github.com/JerJer2465/pokejax (gen4randombattle JAX engine). Scratch PPO ~0.55
   vs SH (n=20) at ~378M steps. Most useful part: their diagnosed obs-bridge bug list
