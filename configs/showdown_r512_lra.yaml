@@ -1,0 +1,80 @@
+# P5b — LR-annealing probe on the credited r512 recipe (pre-registered
+# 2026-08-03; maintainer-directed after the prior-work verification dig —
+# a mechanism probe under the milestone-3 stop rule, NOT a bar-chaser).
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# Motivation: Wang 2024 (prior_work/wang2024_mit_thesis_randbats_rl.pdf,
+# §3.1.4) is the only controlled LR ablation in this literature — constant
+# lr stuck ~0.55 vs SimpleHeuristics on gen4randombattles, annealed ~0.80 —
+# and every Showdown run here has trained at flat 2.5e-4. The in-repo
+# counter-evidence (MinAtar: anneal cost 35% at equal base lr) is a
+# different game at a different scale and the maintainer explicitly
+# discounts the transfer; the 2026-08-01 "lr test meaningless" rejection
+# covered MAGNITUDE (per-minibatch advantage normalization), not schedule.
+#
+# One variable: lr_anneal_steps 0 -> 6000000 on the showdown_r512 recipe —
+# linear 2.5e-4 -> 0 over the full budget via the existing machinery
+# (rl/agents/ppo.py, steps_seen = updates x horizon x num_envs; no code
+# change). Stated divergence from Wang: his schedule is a power decay
+# 10^-4.23/(8x+1)^1.5 with admittedly untuned constants; this probe tests
+# the schedule class the repo implements (linear-to-zero, CleanRL-standard).
+# A null exonerates LINEAR annealing at this scale and budget, not
+# annealing in general.
+#
+# Arms: 6M x 3 seeds (CLI --seed 0/1/2 --run-name showdown_r512_lra_s{0,1,2}),
+# Stage-0 concurrent, ~2.9 h 3-wide. Control (already evaluated, 2026-08-03):
+# the r512 probe itself — pooled 6M finals 1177/3000 = 0.3923 +/- 0.0089
+# under the locked 1000-battle protocol; same recipe, same budget, flat lr.
+#
+# Pre-registered read, locked before launch:
+#   R0 gates (as r512): late entropy in [0.2, 1.0]; ties <= 4%; steps/s
+#     within ~25% of the r512 3-wide 587 — outside => read HOLDS, mechanism
+#     first. Note the anneal freezes the policy late (lr -> 0), so the
+#     entropy gate reads a frozen value; that is expected, not a red flag.
+#   PRIMARY: pooled 3-seed finals (final ckpt, 1000 battles/seed, ties as
+#     non-wins) vs the r512 pooled control 0.3923. CREDITED iff delta >=
+#     +0.025 (2*se_diff at n=3000 each, i.e. pooled >= 0.418). At/below =>
+#     NOT credited: linear annealing exonerated on this recipe at this
+#     scale; the Wang analogy does not transfer as-is.
+#   SECONDARY (recorded, not gated): 4-6M rung band vs r512's
+#     0.396/0.383/0.386 (does the whole curve move, or only the frozen
+#     endpoint?); approx_kl trajectory (should shrink toward 0 with lr);
+#     entropy trajectory (where it stops falling).
+#   AMENDMENT CONDITION (pre-stated per the stop rule): CREDITED => the
+#     README closing paragraph gains the measured sentence (r512 pattern)
+#     and the anneal joins the recipe for any 12M-extension question; NOT
+#     credited => session-log entry only.
+#   EXTENSION NOTE: an annealed 6M checkpoint cannot be warm-extended —
+#     rl/train.py refuses init_from with lr_anneal_steps (the resumed
+#     fraction clamps to 0). Any 12M anneal test is its own from-scratch
+#     run with lr_anneal_steps: 12000000.
+env_id: Showdown-v0
+seed: 0
+total_steps: 6000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_r512_lra_s0
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: heuristics
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 6000000  # the one changed line vs showdown_r512.yaml
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 512
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
