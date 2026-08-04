@@ -38,3 +38,4 @@ showdown/
 prior_work/*
 !prior_work/README.md
 !prior_work/PHASE5_PRIOR_WORK_BRIEFING.md
+logs/
