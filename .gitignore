@@ -33,3 +33,8 @@ showdown/
 
 # Local environment
 .env
+
+# Third-party papers/snapshots: local archive only (copyright + size); index and briefing are tracked
+prior_work/*
+!prior_work/README.md
+!prior_work/PHASE5_PRIOR_WORK_BRIEFING.md
