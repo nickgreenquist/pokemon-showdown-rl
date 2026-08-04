@@ -1,0 +1,75 @@
+# P6 CONTROL — flat-lr 12M on the credited r512 recipe.
+#
+# Needs the local Showdown server running (simulator: 4):
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# Pre-registered 2026-08-04, launched into an 8-hour unattended window. The
+# question STATUS has carried as open since P5: does the credited r512
+# recipe keep improving past 6M, and does the P5b anneal still pay at twice
+# the budget? Both arms are from scratch — an annealed checkpoint cannot be
+# warm-extended (rl/train.py refuses init_from with lr_anneal_steps), so a
+# flat 12M control run is required rather than reusable. The existing
+# runs/showdown_scratch12m_s* are NOT a control: they predate P5 and train
+# at rollout_steps 128.
+#
+# ARMS (6 lanes, 3 seeds each, concurrent at W=6):
+#   control  = this file,   lr_anneal_steps absent (flat 2.5e-4)
+#   treatment= showdown_r512_lra12m.yaml, lr_anneal_steps: 12000000
+# One variable between them. ~6.0-6.4 h at the measured 6-wide 520-556
+# steps/s per lane.
+#
+# PRE-REGISTERED READ, locked before launch:
+#   R0 gates (both arms): late entropy in [0.2, 1.0] (the annealed arm reads
+#     a frozen value as lr -> 0 — expected, not a red flag); ties <= 4%;
+#     steps/s within ~25% of the measured 6-wide 556 — outside => the read
+#     HOLDS, mechanism first.
+#   PRIMARY: pooled 3-seed finals (final ckpt, 1000 battles/seed, ties as
+#     non-wins), annealed-12M vs flat-12M. ANNEAL CREDITED AT 12M iff delta
+#     >= +0.025 (2*se_diff at n=3000 per arm, the P5b arithmetic). At or
+#     below => the anneal's 6M advantage does not survive budget doubling,
+#     and the 12M extension is priced on the flat arm alone.
+#   SECONDARY (recorded, NOT gated): each 12M arm vs its own 6M counterpart
+#     — annealed-12M vs P5b's pooled 0.4433, flat-12M vs r512's 0.3923.
+#     CONFOUNDED BY CONSTRUCTION for the annealed pair: a 12M anneal is a
+#     shallower schedule, not merely a longer one, so budget and slope move
+#     together. Read it as "is 12M-annealed better than 6M-annealed", never
+#     as "budget caused it".
+#   SECONDARY: the 6-10M rung band (does the curve still climb, or is the
+#     endpoint a frozen-policy artifact?); approx_kl and entropy
+#     trajectories.
+#   AMENDMENT CONDITION (pre-stated per the 2026-08-02 stop rule): the
+#     README gains a measured sentence only if the PRIMARY credits or if
+#     either arm's pooled final clears 0.47 (past the BC clone's 0.453);
+#     otherwise session-log entry only. This is a mechanism probe under the
+#     stop rule, not a 0.5 bar-chaser.
+#
+# Loop-split instrumentation (landed today) is always-on, so these six lanes
+# also deliver the collect/update/eval split at the real 6-wide operating
+# point — STATUS "Next" item 1, for free, on the production workload.
+env_id: Showdown-v0
+seed: 0
+total_steps: 12000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_r512_12m_s0
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: heuristics
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 512
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

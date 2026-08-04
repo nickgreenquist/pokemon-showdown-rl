@@ -257,11 +257,17 @@ def _scalar_loop(
     ep_losses: dict[str, float] = defaultdict(float)
     ep_counts: dict[str, int] = defaultdict(int)
     last_step, last_time = 0, time.perf_counter()
+    # Loop split, same contract as the vectorized path. This loop has no
+    # rollout boundary, so the flush rides the episode boundary — the same
+    # cadence steps_per_sec already uses.
+    collect_sec, update_sec = 0.0, 0.0
     next_ckpt = cfg.checkpoint_every
 
     for step in range(1, cfg.total_steps + 1):
+        mark = time.perf_counter()
         action = agent.act(obs, mask)
         next_obs, reward, terminated, truncated, info = env.step(action)
+        collect_sec += time.perf_counter() - mark
         next_mask = info.get("action_mask")
         # Per-step update on the fresh transition (tabular Q; DQN keeps this
         # cadence but samples from replay instead). Both flags are passed:
@@ -270,9 +276,12 @@ def _scalar_loop(
         # which n-step accumulation must not chain across. The mask pair
         # rides along: `mask` legalizes obs's actions, `next_mask` s''s (the
         # bootstrap max needs it).
-        for name, value in agent.update(
+        mark = time.perf_counter()
+        update_report = agent.update(
             (obs, action, float(reward), next_obs, terminated, truncated, mask, next_mask)
-        ).items():
+        )
+        update_sec += time.perf_counter() - mark
+        for name, value in update_report.items():
             ep_losses[name] += value
             ep_counts[name] += 1
         obs = next_obs
@@ -287,11 +296,14 @@ def _scalar_loop(
                     "rollout/episode_return": ep_return,
                     "rollout/episode_length": ep_length,
                     "time/steps_per_sec": (step - last_step) / (now - last_time),
+                    "time/collect_sec": collect_sec,
+                    "time/update_sec": update_sec,
                     **{name: total / ep_counts[name] for name, total in ep_losses.items()},
                 },
                 step,
             )
             last_step, last_time = step, now
+            collect_sec, update_sec = 0.0, 0.0
             obs, info = env.reset()
             mask = info.get("action_mask")
             ep_return, ep_length = 0.0, 0
@@ -304,7 +316,9 @@ def _scalar_loop(
                 next_ckpt += cfg.checkpoint_every
 
         if step % cfg.eval_every == 0:
+            mark = time.perf_counter()
             metrics = evaluate(agent, eval_env, cfg.eval_episodes, win_rate=cfg.eval_win_rate)
+            metrics["time/eval_sec"] = time.perf_counter() - mark
             logger.log(metrics, step)
             # The final policy is an arbitrary sample of an oscillating
             # training trajectory (deep RL policies churn), so keep the
@@ -348,6 +362,10 @@ def _vector_loop(
     step, next_eval = 0, cfg.eval_every
     updates_done = 0
     last_step, last_time = 0, time.perf_counter()
+    # Loop split, accumulated per step and flushed per rollout: act+step vs
+    # update. steps_per_sec says how fast the loop runs; these say where the
+    # time goes, which is the thing a throughput decision needs.
+    collect_sec, update_sec = 0.0, 0.0
     # Checkpoint ladder by threshold crossing. `step` advances by num_envs, so
     # it lands ON a multiple of checkpoint_every only when the two divide;
     # `step % checkpoint_every == 0` would silently write 3 rungs where 9 were
@@ -359,18 +377,28 @@ def _vector_loop(
     # of num_envs >= total_steps, and evals fire on crossing each threshold
     # (both overshoot by < num_envs steps).
     while step < cfg.total_steps:
+        mark = time.perf_counter()
         actions = agent.act(obs, masks)
         next_obs, rewards, terminated, truncated, infos = envs.step(actions)
+        collect_sec += time.perf_counter() - mark
         # Autoreset is disabled, so step infos always describe the true
         # successor states — at a truncated row next_masks is the final
         # state's real mask, exactly what a bootstrap consumer needs.
         next_masks = infos.get("action_mask")
         step += num_envs
+        mark = time.perf_counter()
         update_metrics = agent.update(
             (obs, actions, rewards, next_obs, terminated, truncated, masks, next_masks)
         )
+        update_sec += time.perf_counter() - mark
         if update_metrics:
-            logger.log(update_metrics, step)
+            # A truthy report is the rollout boundary, so the accumulators
+            # cover exactly one rollout.
+            logger.log(
+                {**update_metrics, "time/collect_sec": collect_sec, "time/update_sec": update_sec},
+                step,
+            )
+            collect_sec, update_sec = 0.0, 0.0
             if pool is not None:
                 # Pool-health series, read positionally BEFORE this
                 # boundary's possible push: stats[0] is the permanent step-0
@@ -452,7 +480,9 @@ def _vector_loop(
 
         if step >= next_eval:
             next_eval += cfg.eval_every
+            mark = time.perf_counter()
             metrics = evaluate(agent, eval_env, cfg.eval_episodes, win_rate=cfg.eval_win_rate)
+            metrics["time/eval_sec"] = time.perf_counter() - mark
             logger.log(metrics, step)
             if metrics["eval/return_mean"] > best_eval:
                 best_eval = metrics["eval/return_mean"]
