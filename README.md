@@ -27,15 +27,21 @@ Win rate vs poke-env's `SimpleHeuristicsPlayer` (SH). Protocol: final checkpoint
 | agent | win rate |
 |---|---|
 | PPO, 6M steps, flat LR | 0.3923 ± 0.0089 |
-| **PPO, 6M steps, LR annealed to 0** | **0.4433 ± 0.0091** |
-| Behaviour clone of SH (same encoder + trunk) | 0.453–0.465 |
-| SH vs SH mirror (reference ceiling for SH-derived agents) | 0.489 |
+| PPO, 6M steps, LR annealed to 0 | 0.4433 ± 0.0091 |
+| PPO, 12M steps, flat LR | 0.4330 |
+| **PPO, 12M steps, LR annealed to 0 — best RL** | **0.4607** |
+| Behaviour clone of SH (same encoder + trunk) | 0.4530 recorded / 0.4657 re-scored |
+| SH vs SH mirror (parity point; caps SH imitators only) | 0.489 |
 
 The mirror baseline sits below 0.5 because ties count as non-wins. Two levers are
 credited with real effects: rollout length 128→512 (+0.037 pooled) and a linear LR
-anneal (+0.051 pooled). The supervised clone beating every RL result through the
-identical network established that the current plateau is training-side, not a
-representation problem — that finding drives the roadmap (see `DESIGN.md`).
+anneal (+0.051 pooled at 6M; re-measured +0.0277 at 12M, clearing the credit line
+by 0.003). The supervised-clone diagnostic established that the earlier plateau was
+training-side, not a representation problem; training-side work then closed it — the
+best RL policy is now level with the clone (between its two same-protocol
+measurements), with the pre-registered "past the teacher" mark (0.47) not reached.
+The roadmap (`DESIGN.md`, revision 6, under review) targets the one lever not capped
+by the SH mirror: a verified 109k-replay `gen1randombattle` human corpus.
 
 ## Setup
 

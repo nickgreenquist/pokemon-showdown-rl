@@ -89,7 +89,7 @@ def evaluate(actor, obs, masks, actions, free) -> dict[str, float]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data", default="data/bc_heuristics_vs_heuristics.npz")
+    parser.add_argument("--data", default="data/bc_p4_40k.npz")
     parser.add_argument("--hidden", type=int, nargs="+", default=[512, 512],
                         help="actor/critic hidden sizes; the capstone's [512, 512]")
     parser.add_argument("--seed", type=int, default=0)

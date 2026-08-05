@@ -4,13 +4,13 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 
 ## Where things stand (2026-08-05)
 
-Bootstrap complete (port verification 8/8; history pushed). P6 landed: LR anneal
-CREDITED at 12M. **DESIGN.md revision 6 is DONE** — rewritten against P6, hardened by
-three independent Opus review passes (experimental design / strategy / fact-check),
-open forks turned into the decision list §9 D1–D7. **Correction recorded: RL is LEVEL
-with the BC clone, not past it** — port check 8 re-scored the clone at pooled 0.4657
-(vs 0.4530 recorded, ~1σ), and P6's pre-registered "past the teacher" mark (pooled
-≥ 0.47) was not reached.
+Bootstrap complete; P6 landed (anneal CREDITED at 12M). **DESIGN.md r6 done and
+awaiting team review of §9 D1–D7** — that review gates all implementation.
+**Post-migration audit + cleanup done**: 61 dead configs deleted, README brought
+current, doc-archaeologist agent adapted here, and the old repo's `showdown_sp6m`
+self-play record RECOVERED into SESSION_LOGS (D6 amendment satisfied: self-play NOT
+CREDITED at matched init+budget, Δ=−0.023, MDE≈0.14 caveat). Standing correction:
+RL is LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it; 0.47 unmet.
 
 ## Results (vs SH; locked: final ckpt, 1000 battles/seed, 3 seeds pooled, ties=loss)
 
@@ -23,33 +23,35 @@ with the BC clone, not past it** — port check 8 re-scored the clone at pooled 
 | BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
 
-## In flight
+## Open maintainer decisions
 
-- **Team review of DESIGN.md §9 (D1–D7) is the next gate.** Do not implement any arm
-  before it concludes. Author recs: corpus measurement now (D1 c→d), Arm B at 6M with
-  futility screen + 3000-battle eval amendment (D2c), Arm A retired to a ~1 h smoke
-  (D3b), no 24M run (D4c), no new benchmark yet (D5c), closures + sp6m recovery (D6),
-  ladder as success metric (D7a). Arm C parked (3-atom return; nothing to model).
-
-## Next actions, in order
-
-1. Maintainer reads DESIGN.md §9; team review settles D1–D7.
-2. If D1(c) ratifies: Track 1 parse-free afternoon (six checks; provisional bars in §4).
-3. Open, no deadline: adapt doc-archaeologist from the old repo's git history; recover
-   sp6m self-play numbers from the old repo's retained docs (D6 amendment).
+1. **Team review of DESIGN.md §9 (D1–D7).** Author recs: corpus measurement now
+   (D1 c→d), Arm B 6M futility screen + 3000-battle eval amendment (D2c), Arm A →
+   ~1 h smoke (D3b), no 24M run (D4c), no new benchmark yet (D5c), closures (D6,
+   recovery already done), ladder as success metric (D7a). Arm C parked.
+2. **Preservation:** predecessor's 36 capstone log entries + Phase-5 write-ups exist
+   ONLY at old-repo git `5d6a604` (one rm -rf from gone). Commit an extracted archive
+   here / git-bundle the old repo / accept risk. Also: un-gitignore maintainer-authored
+   `prior_work/wang_fork_diffs.md`?
+3. **runs/data reclaim, ~13 GB** (gitignored, irreversible; list + keep-set in the
+   2026-08-05 audit log entry): intermediates 9.34 GB, wandb 2.27 GB (history.csv
+   verified), migration smokes 69 MB, regenerable npz 1.5 GB.
+4. **Predecessor spine prune** (DQN/SAC/connect4/mujoco code, tests, deps, figure
+   scripts, assets — pyproject already says "prune together"). Note: MinAtar/CartPole
+   code must survive for Arm C's spine gate; q_learning.py is unreachable already.
 
 ## Watch items
 
-- `showdown/config/config.js` `simulator: 4` — gitignored; re-set if ever re-cloned
+- `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned
   (+81% collection). Verified present (line 111).
-- Annealed checkpoints cannot be warm-extended; any warm start needs the
-  `rl/train.py:134` guard fix first (design decision taken at the Arm A smoke).
-- P6 arms are seed-UNPAIRED (flat s0/s1/s2, annealed s3/s4/s5) — per-seed cross-arm
-  comparison is meaningless. Username-salt harness fix would enable pairing (DESIGN §8).
-- Value explained-variance is NOT logged — must be added before Arm B launches (§5).
-- poke-env 0.15.0: SH's setup branch is dead (upstream bug, report unfiled) — every
-  vs-SH number is against this build.
-- Throughput planning: 465–478 steps/s/lane end-to-end at 6-wide; ~95% collect — all
-  headroom is in collect. Inherited backlog: decompose collect (measurement stale).
-- P6_RESULTS.md deleted 2026-08-05 as pre-flagged (durable record: SESSION_LOGS P6
-  entry + DESIGN r6). Old milestone-1/2 run dirs remain gone by flagged decision.
+- Annealed checkpoints cannot be warm-extended; warm start needs the `rl/train.py:134`
+  guard fix (decided at the Arm A smoke).
+- `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix
+  before any future self-play rung (recovered bug, 2026-08-05 entry).
+- P6 arms seed-UNPAIRED; per-seed cross-arm comparison meaningless. Username-salt fix
+  would enable pairing (DESIGN §8) — though P3 measured pairing buys ~nothing.
+- Value explained-variance NOT logged — add before Arm B launches (DESIGN §5).
+- poke-env 0.15.0: SH's setup branch is dead (upstream bug, report unfiled).
+- Throughput planning: 465–478 steps/s/lane end-to-end at 6-wide; ~95% collect.
+- `runs/showdown_scratch12m_s*` is the 12M pure SELF-PLAY arm (finals 0.3800), not
+  "12M flat 0.417" — the 2026-08-04 rescue-list label is wrong (corrected in log).

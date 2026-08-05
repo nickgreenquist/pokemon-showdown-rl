@@ -351,8 +351,10 @@ retires a quiet confound: the 6M control numbers were measured under predecessor
   permanently retiring the "both arms carried by one strong seed" caveat class.
 - **Eval battles are not common-random-number paired across arms** — `rl/common/evaluation.py`'s
   docstring advertises paired comparisons, but Showdown episodes are server-rolled and the env
-  never seeds them. Known-wrong doc, low-priority fix; pairing's payoff is bounded by
-  team-draw variance and unmeasured here.
+  never seeds them. The predecessor repo already measured what pairing would buy: per-battle
+  return correlation ≤ 0.04 across all 21 run-pairs, and the observable team draw explains only
+  ~3.7–4% of outcome variance (P3; recovered 2026-08-05). Pairing buys nothing on Showdown —
+  fix the docstring, do not build the machinery.
 - **Launchers assert battle progress, not run-dir existence** — run dirs are written before
   the first `reset`. Stagger lane starts (SIGSEGV in torch lazy init has killed an unstaggered
   lane before any log line).
@@ -417,10 +419,14 @@ fallback, and a ladder eval is the natural success metric *of* the corpus chapte
 follow-on: downgrade per §7. *(ii)* The training-opponent question past parity (self-play
 pool vs SH-anchored mix): defer to the corpus-chapter design, where the answer depends on
 whether a human-BC anchor exists — **amended by review: before deferring, recover the
-predecessor repo's `showdown_sp6m` self-play arm numbers into SESSION_LOGS.md here** (the run
-dirs were deliberately not ported; the numbers live in the old repo's retained docs, and its
-working-tree strip is already authorized — the infra itself, `rl/selfplay/*`, is ported and
-working). **Recommendation: adopt both closures with the amendment.**
+predecessor repo's `showdown_sp6m` self-play arm numbers into SESSION_LOGS.md here.**
+*Recovery DONE 2026-08-05 (see that session-log entry): self-play NOT CREDITED at matched
+init + budget (Δ = −0.023 vs the matched control, inside the ±0.025 floor; SP-final vs its
+own parent 0.5050 ± 0.0065 after 6M steps), with the recorded caveat that the 3-seed paired
+design resolves only MDE ≈ 0.14 at the recipe level. One recovered bug rides along: ported
+`rl/selfplay/pool.py` evicts index 1 on overflow, breaking pre-seeded pools — fix before any
+future self-play rung.* **Recommendation: adopt both closures; the deferral now starts from
+the recovered record instead of a lost one.**
 
 **D7 — Success metric and end state (new in r6; the review should not skip it).** The stop
 rule bounds one recipe class but nothing defines "done" for the project. *(a)* Ratify: the

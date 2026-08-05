@@ -271,3 +271,105 @@ entry by offset — never a broad keyword grep.
   governance-relaxation notes restored, and self-containment restorations (VGC-Bench
   quote, Metamon action-space specifics, pokejax obs-bridge precedent, clone
   free-agreement numbers, ps-ppo commit hash 17e0955).
+
+- 2026-08-05 — Post-migration audit + cleanup; sp6m self-play record RECOVERED (D6 amendment done)
+
+  Three-Opus-subagent audit (configs/references, runs+staleness, old-repo recovery),
+  findings applied. Suite re-run after changes (see verdict at entry end).
+
+  CLEANUP APPLIED (all git-reversible):
+  - 61 dead configs deleted: the 56-file predecessor spine (cartpole non-PPO, connect4,
+    frozenlake, lunarlander, mujoco, pendulum, all minatar DQN + PPO lr-sweep variants)
+    plus 5 non-science probes (showdown_probe_100k, r512_tput, scratch_shakeout,
+    sp_probe, sp_shakeout). Verified first: NO test, script, or module reads configs/
+    (no glob, no default path; rl/train.py --config is required=True) — deletion cannot
+    turn the suite red. Kept 18: 6 roadmap (cartpole_ppo + 5 minatar PPO — Arm C spine
+    gate), 8 live/control showdown, 4 milestone provenance (maxbp, heuristics_ppo,
+    heur_6m, mix_512 — their numbers now recorded below).
+  - README results section brought current: P6 rows added, "clone beating every RL
+    result" claim replaced with the level-with correction, +0.051 qualified as the 6M
+    figure, roadmap pointer updated.
+  - scripts/train_bc.py --data default fixed (pointed at nonexistent
+    bc_heuristics_vs_heuristics.npz; now data/bc_p4_40k.npz, the file backing the live
+    clone). scripts/train_supervised.py comment repointed (connect4_pool.yaml deleted).
+  - DESIGN.md §8 paired-eval line upgraded from "unmeasured here" to the recovered P3
+    measurement; D6 marked recovery-done with the recovered verdict inline.
+  - doc-archaeologist agent ADAPTED here (.claude/agents/doc-archaeologist.md), from
+    the old repo's 793f9bf, repointed at this repo's docs — closes one of the two open
+    maintainer decisions.
+
+  CORRECTION (of the 2026-08-04 sweep entry's rescue list): showdown_scratch12m_s{0,1,2}
+  is NOT "12M flat 0.417". It is the 12M PURE SELF-PLAY arm (config on disk:
+  selfplay.opponent: self, pool_size 20, rollout_steps 128); its on-disk finals pool to
+  0.3800 ± 0.0089 (0.369/0.398/0.373). The 0.417 figure belongs to showdown_heur_512
+  (12M vs fixed SH, pre-P5 recipe, pooled 0.4170 across s0/s1/s2 per the old repo's
+  2026-08-02 replication) — whose run dirs were NOT ported.
+
+  RECOVERED — showdown_sp6m (milestone-3 run 1), from deep-rl-from-scratch
+  SESSION_LOGS.md@5d6a604 (full SHA 5d6a604f9bc129512cfd556418ea678874fe52fe):
+  - Design: warm-started snapshot-pool self-play (pool 20, latest_prob 0.8,
+    push_every_updates 150 ≈ half-run span) vs matched control showdown_cont6m (same
+    0.408 12M parent ckpt, same 6M budget, fixed-SH opponent) — training distribution
+    the single variable; 3 seeds each, ~3 h/arm 3-wide at ~553 steps/s.
+  - Result 2026-08-01: SELF-PLAY NOT CREDITED. Locked finals SP 0.408 ± 0.018
+    (436/375/414) vs CT 0.432 ± 0.018 (421/446/428); Δ = −0.023 inside the ±0.025
+    floor (z ≈ −1.8). Cross-play SP-vs-CT 3008/6000 = 0.501; SP-vs-parent 3030/6000 =
+    0.5050 ± 0.0065 — 6M of self-play moved the policy ±1.3 points from its own parent.
+    All health gates green (ties 1.1–2.4%, ep len ~26.7, entropy 0.384–0.391, no
+    forgetting — H&L §V-C never fired).
+  - The control's +0.024 is specialization, not strength: CT-vs-parent head-to-head
+    3059/6000 = 0.5098.
+  - Caveats that must travel with the number: the 3-seed paired design resolves only
+    MDE ≈ 0.14 at the recipe level (a null about THIS init and budget, not the recipe
+    class); the pool was measured strength-homogeneous (winrate_latest 0.4986–0.5013),
+    killing latest_prob/PFSP retuning at this rung by measurement; SP seed spread 0.061
+    vs CT 0.013; and a +0.018 ± 0.0065 deterministic-vs-sampling SEAT BIAS makes any
+    single-orientation cross-play read wrong by ~2 points (both-orientation averaging
+    cancels it).
+  - Companion: showdown_scratch12m (above) reached 0.4837 ± 0.0065 head-to-head vs the
+    equal-budget fixed-bot policy — a genuine generalist approaching the plateau from
+    below; the plateau, not the training distribution, binds. Also recovered: the
+    entropy-collapse of Connect 4 did NOT reproduce (server-rolled teams are the
+    Tesauro dice).
+  - LIVE BUG recovered with it: rl/selfplay/pool.py evicts index 1 on overflow,
+    flushing pre-seeded pools by ~push 19 of 39 — fix before any future self-play rung.
+
+  RECOVERED — milestone one-liners (same source; backs the 4 kept milestone configs):
+  maxbp 2M placeholder-encoder 0.663 ± 0.029 vs MaxBasePower (milestone 1 PASSED; same
+  policy vs SH 0.262); heur 2M [64,64] 0.292 ± 0.028 (still climbing at wall); heur_6m
+  0.358 ± 0.015 (budget lever "credited, exhausted"); heur_512 12M [512,512] 0.408 ±
+  0.030 s0 ("CAPACITY WAS BINDING"), replicated s1 0.411 / s2 0.432 → pooled 0.4170 ±
+  0.0090; mix512 (70/20/10 opponent mix, 6M×3) 0.356 ± 0.017 NOT CREDITED. Also: the
+  [512,512] band extrapolation "+0.153/+0.103/+0.061/+0.027/+0.016 (ratio ≈0.65) →
+  asymptote ≈0.42" — the source of "the 0.42 asymptote"; and the turn/50 encoder clock
+  saturates at 50 (dead vs heuristics, load-bearing under long self-play games).
+
+  RECOVERED — where the load-bearing written records live (all @5d6a604, old repo):
+  P4 bucket analysis (forced-switch 0.866 / voluntary-switch 0.556 / all-status 1.000 /
+  multi-hit 2.1%) and data-scaling (+0.021/doubling, ratio 0.78 = fresh-common-ground
+  0.0271→0.0212 read — NOT the bc_metrics.json val-agreement deltas, which give ~0.83);
+  2,769 decisions/s (also in DESIGN_P7@import); P3 team-draw R² = 0.0375 lower bound +
+  paired-episode correlation ≤ 0.04 over 21 run-pairs ("no analysis plan may rely on
+  it"); mirror b = 0.489 n=20k / 0.486 n=40k.
+
+  ⚠ PRESERVATION DECISION NEEDED (maintainer): the predecessor's 36 capstone session-log
+  entries, README Phase-5 write-up, and PLAN.md Phase-5 spec exist ONLY at old-repo git
+  5d6a604 — this repo's imported history was path-filtered to code/configs/DESIGN_P7/
+  prior_work and contains none of it. The old repo's own removal doc (CAPSTONE_REMOVAL
+  §4) argued against deleting that narrative. One rm -rf from gone. Options: commit an
+  extracted archive here (e.g. prior_work/predecessor_capstone_logs.md, un-gitignored),
+  git bundle the old repo, or accept the risk. Related: prior_work/wang_fork_diffs.md is
+  maintainer-AUTHORED analysis but sits under the prior_work/* gitignore — consider a
+  !negation.
+
+  RUNS/DATA RECLAIM (audited, ~12.5 GB runs + 3.6 GB data; awaiting sign-off — gitignored,
+  irreversible): 75% of runs/ is intermediate ckpt_*.pt (9.34 GB, ~30× the finals per
+  lane), 18% wandb/ (2.27 GB — history.csv row counts verified against the logged
+  425,265–431,269 this session, so wandb is safely redundant). Candidates: intermediates
+  9.34 GB + wandb 2.27 GB + migration smokes 69 MB + data/bc_p4_main.npz+sub10k 1.5 GB
+  (regenerable; agreement numbers frozen in bc_metrics.json). DO NOT DELETE:
+  p6_finals_logs (sole evidence for 0.4607/0.4330), bc_p4_512_* family incl. sub10k
+  (36 MB — sole on-disk source of the +0.021/doubling ladder),
+  showdown_scratch12m_s*/xplay_*.json, every final_eval/migration_check8/bc_metrics
+  JSON. Provenance note: all run-dir meta.yaml git_shas are old-repo SHAs, unresolvable
+  here — provenance runs through SESSION_LOGS narrative only.

@@ -37,7 +37,8 @@ from rl.train import make_agent
 
 ILLEGAL = -100
 
-# The locked campaign hparams (configs/connect4_pool.yaml). Only the net
+# The locked campaign hparams (the predecessor repo's connect4_pool.yaml;
+# not ported here). Only the net
 # shape matters here — the PPO-specific values ride along so the config
 # round-trips through Config/make_agent unchanged.
 AGENT = dict(
