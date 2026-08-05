@@ -50,12 +50,11 @@ LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
 - **Grad clip:** from scratch it binds 1.00 → 0.50 over the first 5 updates (batch 4096,
   grad_norm 3.30 → 0.47), but the warm-start regime binds HARDER over time (0.67 → 0.94).
   Value EV from scratch starts strongly NEGATIVE (−2.72 → −1.22) — the Arm B baseline.
-- Metric namespace grew: `loss/{explained_variance,adv_std,grad_norm,grad_clip_frac}`
-  and `eval/{loss_faint_diff,loss_faint_lead_frac}`.
+- Metric namespace grew: `loss/{explained_variance,adv_std,grad_norm,grad_clip_frac}`,
+  `eval/{loss_faint_diff,loss_faint_lead_frac}`.
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before
-  any future self-play rung (recovered bug).
+  any self-play rung (recovered bug).
 - P6 arms seed-UNPAIRED; per-seed comparison meaningless. poke-env 0.15.0: SH's setup
   branch is dead (upstream bug, report unfiled).
 - Concurrency: solo ~734 steps/s; 3-wide ≈ −20%/lane (~553-600); 6-wide 465-506/lane.
-  Run-dir `meta.yaml` git_shas are old-repo SHAs — provenance via SESSION_LOGS.
-- Corpus stays on the local box; revision + sha256 pinned in scripts/corpus_survey.py.
+  Run-dir `meta.yaml` git_shas are old-repo SHAs. Corpus: local, pinned in corpus_survey.py.
