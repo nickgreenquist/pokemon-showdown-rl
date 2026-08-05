@@ -700,3 +700,44 @@ entry by offset — never a broad keyword grep.
   Verdict: the warm-start machinery is GREEN and the human-BC chapter's day-one path is
   de-risked. Arm A itself stays retired (D3b). One new chapter prerequisite (the entropy
   decision) and one relaxed constant (warmup ~5, not 10).
+
+- 2026-08-05 — D2c control re-eval DONE: P5b is 0.4308 ± 0.0052 at 3000 battles/seed
+
+  Arm B's pre-registration requires the control re-evaluated in-repo at 3000 battles/seed
+  before the comparison is read (D2c). Done now, ahead of the arm, so the control number
+  is not entangled with the arm's run: 3 x 3000 battles, 88 s per seed, locked protocol
+  (final rung ckpt_006000000.pt, deterministic, vs SimpleHeuristicsPlayer, ties as
+  non-wins, seed_start 100).
+
+    seed   old n=1000   new n=3000
+    s0         0.4160       0.4280
+    s1         0.4680       0.4320
+    s2         0.4460       0.4323
+    pooled  0.4433 (n=3000)   ->   0.4308 (n=9000), se 0.0091 -> 0.0052
+
+  The shift is -0.0125 at se_diff 0.0105, i.e. -1.19 se: NOISE, not a regression, and the
+  n=9000 figure is simply the better estimate. **Arm B's screen now reads against 0.4308,
+  not 0.4433.** Worth noting how load-bearing D2c turned out to be: the baseline moved by
+  1.4x the +0.009 futility gate purely from control sampling noise, so screening against
+  the stale number could have flipped the decision on its own.
+
+  **Showdown eval episodes are confirmed NOT reproducible, empirically.** The re-eval's
+  first 1000 battles per seed do not reproduce the recorded run's per-episode returns for
+  ANY seed — same checkpoint, same deterministic policy, same seed ladder. This is the
+  env docstring's "episodes are server-rolled" property biting at the eval layer, and it
+  makes the old and new samples INDEPENDENT rather than nested (which is why the
+  comparison above uses the sum of both variances). DESIGN §8 had already reasoned to
+  this conclusion and asked for the docstring fix rather than the machinery; that fix is
+  now applied to rl/common/evaluation.py and scripts/eval_checkpoint.py, with the
+  measurement recorded in it. Practical consequences: Showdown comparisons are UNPAIRED,
+  precision is bought with battle count alone, and eval_checkpoint's skip-the-first-N
+  logic is inert on Showdown (harmless — every pass draws fresh battles anyway).
+
+  Tooling: scripts/eval_checkpoint.py now reports the ENV-supplied `eval/win_rate`
+  instead of leaving every downstream analysis to count +1s by hand — which was the exact
+  form the metric's spec review rejected, since it reads the reward a sign bug inverts.
+  Both are emitted and they agree on all three seeds (0.4280/0.4320/0.4323), so the
+  reward stream is confirmed un-inverted. The episode loop still runs ONCE: evaluate()'s
+  arithmetic is factored into eval_metrics() so a caller needing raw per-episode data
+  gets identical numbers without a second pass. Retires the CLAUDE.md landmine
+  "eval_checkpoint.py returns raw returns only".

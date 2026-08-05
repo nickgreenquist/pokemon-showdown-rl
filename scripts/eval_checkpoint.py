@@ -5,13 +5,22 @@
 Why: best_checkpoint.pt is selected as the max over ~50 noisy training-time
 evals, so its recorded score carries selection bias (the max of noisy
 estimates is biased upward). A fresh pass with more episodes gives an
-unbiased score — provided the episodes are new ones: with a deterministic
-policy and fixed seeds, the training-time eval episodes replay
+unbiased score — provided the episodes are new ones: on a SEEDED env, with a
+deterministic policy and fixed seeds, the training-time eval episodes replay
 near-identically (exactly, but for MinAtar's sticky-action carry across
 episode boundaries), so they are skipped (the ladder starts at
-cfg.eval_episodes). The re-eval seeds are still fixed and shared across
-runs, so scores stay directly comparable — including paired per-episode
-comparisons between variants (approximate, not exact: see eval_returns).
+cfg.eval_episodes).
+
+On Showdown that skip is inert and the pairing it enables does not exist:
+the server rolls teams and damage, so every pass draws fresh battles no
+matter what seed it asks for (measured 2026-08-05 — see rl/common/evaluation
+.py's module docstring). Showdown comparisons are UNPAIRED; buy precision
+with battle count, not with seeds.
+
+`eval/win_rate` in the report is the ENV-supplied outcome rate and is the
+authoritative number; `wins_from_returns` is the same statistic computed the
+unsafe way (counting positive returns) and is kept only as a cross-check —
+they must agree, and a disagreement means a reward-sign bug.
 
 Prints a JSON report; --out also writes it to a file.
 """
@@ -25,7 +34,7 @@ import torch
 
 from rl.common.checkpoint import load_checkpoint
 from rl.common.config import Config
-from rl.common.evaluation import eval_returns
+from rl.common.evaluation import _run_eval_episodes, eval_metrics
 from rl.envs.make import make_env, make_eval_env
 from rl.envs.normalize import frozen_obs_env
 from rl.train import make_agent
@@ -93,7 +102,20 @@ def main() -> None:
 
     # Skip the training-time eval episodes: best_checkpoint was *selected*
     # on those, and deterministic policy + fixed seeds replay them exactly.
-    returns = eval_returns(agent, env, args.episodes, seed_start=cfg.eval_episodes)
+    #
+    # Through evaluate(), not eval_returns(), so the report carries the
+    # ENV-SUPPLIED win rate. Every headline number in this repo is a win
+    # rate, and until 2026-08-05 this script reported only raw returns, so
+    # each one was computed downstream by counting +1s — which is the exact
+    # form the metric's own spec review rejected: it reads the reward a sign
+    # bug inverts, so an inversion reports 1.000 and sails through at the
+    # ceiling. info["outcome"] cannot be forged by arithmetic on the rewards.
+    # Both are reported: `win_rate` is authoritative, `wins_from_returns` is
+    # the old definition kept as a cross-check, and they must agree.
+    returns, outcomes, faints = _run_eval_episodes(
+        agent, env, args.episodes, seed_start=cfg.eval_episodes
+    )
+    metrics = eval_metrics(returns, outcomes, faints, win_rate=cfg.eval_win_rate)
     report = {
         "checkpoint": args.checkpoint,
         "run_name": cfg.run_name,
@@ -103,6 +125,9 @@ def main() -> None:
         "seed_start": cfg.eval_episodes,
         "return_mean": float(np.mean(returns)),
         "return_std": float(np.std(returns)),
+        **metrics,
+        "wins_from_returns": sum(1 for r in returns if r > 0) / len(returns),
+        "ties_from_returns": sum(1 for r in returns if r == 0) / len(returns),
         "returns": returns,
     }
     if args.opponent_checkpoint:

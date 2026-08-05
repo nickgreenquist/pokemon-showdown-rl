@@ -5,6 +5,20 @@ training env's RNG or episode state. Episode i always resets with the same
 constant seed — independent of the training seed — so scores are comparable
 across passes, across training seeds (the multi-seed benchmark protocol),
 and across algorithms.
+
+**That seeding buys nothing on Showdown, and the pairing this file used to
+advertise does not exist there** (DESIGN.md §8; confirmed empirically
+2026-08-05 by re-evaluating a stored P5b final and finding NONE of its
+per-episode returns reproduced the recorded run). The server rolls the
+random teams and the damage ranges, and the env never seeds it, so two eval
+passes over "the same" episode ladder are independent samples of different
+battles. Consequences, all deliberate: comparisons between Showdown runs are
+UNPAIRED and their difference carries the full sum of both variances; the
+`seed_start` skip below is inert there (every pass draws fresh battles
+regardless); and eval noise is controlled by battle COUNT alone. The
+predecessor repo priced the pairing that is missing — per-battle return
+correlation <= 0.04 across all 21 run-pairs — so nothing is lost. Pairing
+remains real on the seeded envs (CartPole, MinAtar, Connect 4).
 """
 
 import gymnasium as gym
@@ -72,7 +86,7 @@ def eval_returns(
 
 
 def evaluate(
-    agent: Agent, env: gym.Env, episodes: int, win_rate: bool = False
+    agent: Agent, env: gym.Env, episodes: int, win_rate: bool = False, seed_start: int = 0
 ) -> dict[str, float]:
     """Mean/std of the eval return, plus `eval/win_rate` when asked for.
 
@@ -88,8 +102,26 @@ def evaluate(
 
     Draws count as neither wins nor losses, so win_rate + loss_rate need not
     sum to 1.
+
+    `seed_start` shifts the episode ladder exactly as `eval_returns` does, so
+    a re-evaluation can skip the episodes a checkpoint was selected on. The
+    default 0 is what training-time eval has always used.
     """
-    returns, outcomes, faints = _run_eval_episodes(agent, env, episodes)
+    return eval_metrics(*_run_eval_episodes(agent, env, episodes, seed_start), win_rate=win_rate)
+
+
+def eval_metrics(
+    returns: list[float],
+    outcomes: list[int | None],
+    faints: list[tuple[int, int] | None],
+    win_rate: bool = False,
+) -> dict[str, float]:
+    """The metric arithmetic, split out from the episode loop so a caller
+    that needs the RAW per-episode data as well (scripts/eval_checkpoint.py
+    writes it into the finals JSON) can run the episodes ONCE and still get
+    the identical numbers. Duplicating this arithmetic downstream is exactly
+    how the reported win rate drifted to a hand-rolled `count(+1)` in the
+    first place."""
     metrics = {
         "eval/return_mean": float(np.mean(returns)),
         "eval/return_std": float(np.std(returns)),
