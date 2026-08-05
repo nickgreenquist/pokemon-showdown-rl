@@ -7,7 +7,8 @@ A reinforcement-learning agent for **Pokémon Showdown Gen 1 random battles**
 
 ## Provenance
 
-This project began as the capstone phase of `deep-rl-from-scratch`, a portfolio project
+This project began as the capstone phase of
+[`deep-rl-from-scratch`](https://github.com/nickgreenquist/deep-rl-from-scratch), a portfolio project
 that implemented DQN, PPO and SAC from scratch in PyTorch and benchmarked them across
 classic-control, MinAtar, MuJoCo and board-game tracks. That work — including the
 "no RL libraries" constraint it was built under — is complete and lives in that repo.

@@ -3,6 +3,28 @@
 Dated entries, append-only. Index: `grep -n '^- 20' SESSION_LOGS.md`, then Read the
 entry by offset — never a broad keyword grep.
 
+- 2026-08-05 — Old repo's cleanup VERIFIED; dedicated conda env `pokemon-showdown-rl` created
+
+  Final sweep of deep-rl-from-scratch after its close-out push (6 commits, tip
+  `aa033dd`, clean tree): code grep for showdown/poke_env across .py/.toml/.yaml/.sh —
+  zero hits; every retained md doc (README, PLAN, PLAN_ARCHIVE, SESSION_LOGS, STATUS,
+  CLAUDE) — zero 'showdown' mentions. Their cleanup claim is TRUE and goes further
+  than their own removal manifest recommended: the Phase-5 narrative was scrubbed from
+  the working docs, so **the old repo's capstone log entries / Phase 5 spec now exist
+  only in its git history** (pushed, so durable — `git show <pre-strip>:SESSION_LOGS.md`
+  there if primary sources are ever needed). Their README carries no forwarding link
+  to this repo. Nothing in their six final commits contained capstone material we
+  lacked. Their close-out also confirmed the shared-env hazard from their side: two
+  repos both shipping a top-level `rl` package must not share an env (first `.pth`
+  alphabetically wins, silent wrong-tree imports — measured).
+
+  Env migration (maintainer removed `deep-rl` with `conda env remove`): created
+  `/opt/anaconda3/envs/pokemon-showdown-rl` (Python 3.13), `pip install -e ".[dev]"`
+  from pinned pyproject. Verified: `import rl` resolves here from a neutral cwd;
+  torch 2.13.0 and poke_env import; offline suite `288 passed, 8 warnings`. CLAUDE.md
+  env section updated (name, recreate line, one-env-per-repo warning); the only other
+  deep-rl mentions in live docs are provenance naming, left alone.
+
 - 2026-08-05 — Git history imported: the capstone lineage is now this repo's `main`
 
   Executed the approved plan. Cloned the old repo (222 commits) into the scratchpad;

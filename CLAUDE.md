@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Guide for Claude Code sessions on this repo. At session start read `STATUS.md` — the only mandatory read; everything else on demand per "Docs" below.
+Guide for Claude Code sessions on this repo. At session start read `HANDOFF.md` if non-empty, then `STATUS.md` — the only mandatory read; everything else on demand per "Docs" below.
 
 ## What this project is
 
@@ -14,7 +14,8 @@ This is the capstone of the predecessor project `deep-rl-from-scratch`, spun out
 
 ## Development environment
 
-- **Always run in the `deep-rl` conda env** (`/opt/anaconda3/envs/deep-rl`, Python 3.13): `conda activate deep-rl`, or call `/opt/anaconda3/envs/deep-rl/bin/python` / `.../bin/pytest` directly. Never `base`.
+- **Always run in the `pokemon-showdown-rl` conda env** (`/opt/anaconda3/envs/pokemon-showdown-rl`, Python 3.13): `conda activate pokemon-showdown-rl`, or call `/opt/anaconda3/envs/pokemon-showdown-rl/bin/python` / `.../bin/pytest` directly. Never `base`, and **never share an env with `deep-rl-from-scratch`** — both repos ship a top-level package named `rl`; in a shared env the first `.pth` alphabetically wins and the loser imports silently from the wrong tree (measured, in both repos). One env per repo.
+- Recreate from scratch if needed: `conda create -y -n pokemon-showdown-rl python=3.13`, then `pip install -e ".[dev]"` in it. Verified 2026-08-05: fresh env runs the offline suite green (288 passed).
 - The repo installs editable: `pip install -e ".[dev]"`. Dependency changes go through `pyproject.toml` with exact pins — no ad-hoc `pip install`, no `conda install`.
 - **Showdown server** (required for anything touching the env): `cd showdown && node pokemon-showdown start --no-security`. The server config `showdown/config/config.js` is gitignored — `simulator: 4` (line ~111) must be set; it is worth +81% collection throughput. If `showdown/` is ever re-cloned, re-set it.
 - **Train**: `python -m rl.train --config configs/<run>.yaml --seed N --run-name <name>`
@@ -23,6 +24,8 @@ This is the capstone of the predecessor project `deep-rl-from-scratch`, spun out
 - Tests: `pytest tests/` from the repo root. Known flake: `test_full_episode_contract_against_live_server` fails only when the whole suite runs with a server up; passes alone.
 
 ## Docs
+
+Session start: read `HANDOFF.md` only if non-empty (mid-handoff — fold anything durable into STATUS.md / SESSION_LOGS.md, restore the empty stub; written only when the maintainer explicitly asks for a handoff), then `STATUS.md` — the only mandatory read.
 
 - `STATUS.md` — always read at session start. Current state, last verdict with numbers, next actions, watch items. Rewritten in place (never appended), hard cap 60 lines; update it in the same commit that appends a session-log entry. On conflict, the newest session-log entry wins — say so and fix STATUS.md.
 - `DESIGN.md` — **the roadmap.** Self-contained (written for external reviewers, needs no other file); read it for any substantive "what next" question rather than restating it elsewhere. Status: **PROPOSED, not ratified** — do not implement any of it before the review concludes.

@@ -4,10 +4,10 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 
 ## Where things stand (2026-08-05)
 
-**PORT VERIFICATION PASSED 8/8** (measured reproductions — 2026-08-05 log entry) —
-the old repo's capstone strip is AUTHORIZED; MIGRATION.md, start.md and the handoff
-file are deleted per their rules. P6 landed: LR anneal CREDITED at 12M, and **RL
-beats the BC clone for the first time.**
+**PORT VERIFICATION PASSED 8/8**; old-repo strip AUTHORIZED. History imported
+(42 commits) and bootstrap commit `b696e85` pushed to
+`github.com/nickgreenquist/pokemon-showdown-rl` (main tracks origin). P6 landed:
+LR anneal CREDITED at 12M, and **RL beats the BC clone for the first time.**
 
 ## Results (vs SH; locked: final ckpt, 1000 battles/seed, 3 seeds pooled, ties=loss)
 
@@ -35,12 +35,10 @@ is not 0.489. Full corrected record: SESSION_LOGS.md 2026-08-05 P6 entry.
 
 ## Next actions, in order
 
-1. History IMPORTED (42 commits, tip = P6 complete; log entry has detail). The
-   working tree holds the bootstrap diff — commit it on top when asked.
-2. DESIGN.md revision pass vs P6; then the team review (phase placement of §10).
+1. DESIGN.md revision pass vs P6; then the team review (phase placement of §10).
    P6_RESULTS.md stays until that pass is done.
-3. Maintainer decisions outstanding: old milestone-1/2 run dirs deletion (flagged in
-   report); whether to adapt doc-archaeologist for this repo.
+2. Open, no deadline: whether to adapt doc-archaeologist here (survives in the old
+   repo's git history); old milestone-1/2 run dirs are gone by flagged decision.
 
 ## Watch items
 
