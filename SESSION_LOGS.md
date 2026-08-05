@@ -518,3 +518,128 @@ entry by offset — never a broad keyword grep.
   RATIFIED; its pre-registrations migrate into config headers as arms are built, then
   the file is deleted per lifecycle. Maintainer's session setting for the coding
   work: Opus, high effort.
+
+- 2026-08-05 — CODE EVENING 1: Track 1 measured, warm-start settled, Arm B built
+
+  First session after ratification. Everything in HANDOFF.md item 1 landed, plus Arm B's
+  code and config. Suite: 236 passed offline, +3 live-server (239). No runs launched.
+
+  **1c — mechanism logging (rl/agents/ppo.py).** Added `loss/explained_variance` and
+  `loss/adv_std` (batch-level, computed once per update on the PRE-update critic and the
+  pre-normalization advantages) and `loss/grad_norm` + `loss/grad_clip_frac` (per grad
+  step). EV uses the identity that the GAE residual IS the advantage, so it costs no
+  second forward pass; a zero-variance batch reports 0.0 rather than a NaN that would
+  poison the logger's history. Metric-namespace addition, recorded: these four join
+  `loss/*`, and `eval/loss_faint_diff` + `eval/loss_faint_lead_frac` join `eval/*` (below).
+
+  **PRODUCTION GRAD-CLIP READ (the audit's open question, answered).** Control recipe
+  (showdown_r512_lra), production batch 4096, first 5 updates: grad_clip_frac
+  1.00 / 0.875 / 0.625 / 0.75 / 0.50 with grad_norm 3.30 → 0.47. So the 0.5 clip does NOT
+  bind 16/16 in production the way the audit's synthetic probe suggested — it binds hard
+  at init and relaxes within ~20k steps. Caveat, stated: 5 updates is 0.34% of a 6M run,
+  early-training only; steady state comes from Arm B's own curves. Same probe: EV starts
+  strongly NEGATIVE (−2.72 → −1.22), i.e. the critic is worse than the batch mean for the
+  first 20k steps — expected at gamma 1.0 with terminal-only reward, never measured here
+  before, and the baseline Arm B's EV is read against.
+
+  **1b — warm start settled as "a warm start is a FRESH run" (rl/train.py:124 guard
+  DELETED).** New `Agent.begin_warm_start()`; PPO's rewinds the update counter and re-arms
+  the warmup. Weights and Adam moments survive — they ARE the warm start. `init_from` +
+  `lr_anneal_steps` is now legal and the anneal covers the new run's budget instead of
+  resuming the donor's finished schedule at lr ~0. Staged unfreeze implemented:
+  `critic_warmup_updates` (a TRUE freeze via requires_grad, so Adam skips the params —
+  zeroing grads would let existing moments keep walking the weights) and `actor_lr_scale`
+  on a new actor/critic param-group split.
+    Two compatibility hazards found and closed while building it: (1) the param-group
+  split would have made torch refuse every stored P4/P5/P6 checkpoint (they carry ONE
+  group) — load_state_dict now grafts the moments onto OUR groups, exact because the
+  flattened param order (actor then critic) is unchanged; verified live against the BC
+  clone and both annealed 6M/12M finals. (2) At scale 1.0 the split had to be bit-for-bit
+  a no-op on existing recipes — regression-tested against a hand-built single-group Adam.
+
+  **Arm B — terminal-cancelled faint shaping (rl/envs/showdown.py).** Potential-based:
+  Phi = 0.1*(faints_opp − faints_self), Phi(terminal) := 0, per-step reward Phi(s') − Phi(s).
+  Written as a DIFFERENCED STATE POTENTIAL, never as faint-event attribution — the known
+  trap in this exact lever (ps-ppo 17e0955) is an attribution off-by-one, and a difference
+  has no attribution step to be off by one in. Keyed by the battle OBJECT: the two seats
+  share a battle_tag, so any tag-derived key would fuse their faint counts (caught by a
+  test, not by reasoning). New `Config.env_kwargs`, applied identically to the training env
+  and every eval site, and forbidden from carrying opponent keys.
+    R0 SHAPING GATE, both forms green: unit (scripted faint sequence sums to exactly the
+  terminal ±1) and live (3 real battles, per-episode shaped return == info["outcome"],
+  with an assertion that intermediate faint rewards actually fired). Stronger still, an
+  8192-step real training run with shaping on produced 283 episodes whose returns were
+  exactly {−1, +1} — the cancellation holds end-to-end through wait-absorption.
+
+  **Arm A smoke validated end-to-end at small scale** (configs/showdown_warmstart_smoke.yaml,
+  8192-step version, real BC checkpoint + anneal): approx_kl and clip_frac EXACTLY 0.00000
+  for updates 0-1 then nonzero from update 2 — the actor froze and unfroze on schedule —
+  and EV climbed −0.31 → +0.52. The full ~200k-step smoke is the maintainer's to run.
+
+  **Configs written, both with pre-registration headers per the DESIGN-to-config migration:**
+  `showdown_faint6m.yaml` (Arm B, seeds 6/7/8, 6M screen at +0.009 vs the re-evaluated P5b
+  control, 3000-battle finals, mechanism + falsifier reads) and `showdown_warmstart_smoke.yaml`
+  (seed 9, reads RECORDED not gated). Seeds 6-9 are free of 0/1/2 (lra) and 3/4/5 (lra12m).
+
+  **TRACK 1 (parse-free half) — MEASURED, and it moves the corpus chapter's premise.**
+  scripts/corpus_survey.py, one pinned 199,704,915-byte parquet (revision
+  bc76388c2119f8a5694adf643c640610b157ee1c, sha256 44ca123d...), full pass in ~12 s.
+  109,147 rows, 0 duplicate ids, formatid homogeneous. Numbers:
+    (1) Upload years 2015-2026. Cutoffs: ≥2018 = 82,141; ≥2023 = 49,693; ≥2024 = 48,159;
+        ≥2025 = 25,911.
+    (2) `rating` is NOT mostly null in this format — 69,749/109,147 = 63.9% present.
+        §10's "verified mostly-null" does not hold for gen1randombattle and should be
+        corrected. But the population is weak: median 1203, p90 1415, 23,441 above 1300,
+        1,358 above 1500, ZERO above 1700. In-log per-player Elo (from `|player|`) is
+        recoverable for 2019-2026, median 1306. So a skill signal exists and is usable
+        for reweighting; a strong-player tail essentially does not.
+    (3) Decisions: mean 55.5/battle both sides, 6,059,959 TOTAL across all 109k.
+        §10's "plausibly 10-20M state-action pairs" is 2-3x TOO HIGH. Calibrated against
+        the literal `|choice|` lines old logs carry (21,521 battles), the |move|+|switch|
+        heuristic undercounts by 13.1% (it misses turns spent asleep/frozen/recharging,
+        which log `|cant|`), giving ~6.97M calibrated for the full corpus and ~3.06M for
+        ≥2024. Against P4's 903,090 SH decisions that is ~3.4x, not the 11-22x §10 claims.
+    (4) Winner extractability 108,794/109,147 = 99.68% matched to the `players` field;
+        failures are ties and a handful of 2015 unmatched. Also measured: ~26% of battles
+        end in a forfeit and ~7% in an inactivity timeout.
+    (5) SET-POOL COVERAGE, and this is the finding that sets the cutoff. Species and move
+        pools are near-static across the recent era (species-in-pool 100% from 2023,
+        (species,move) legality 99.3-99.9%). What MOVES is the LEVEL table, and it moves
+        in steps, mid-year — so the survey resolves 2023+ monthly. Level match jumps
+        0.276 → 0.910 at 2024-04 and 0.918 → 0.999 at 2026-01. Battles from each boundary:
+        ≥2024-04 = 44,391; ≥2026-01 = 6,105.
+    **BAR VERDICT: the ≥50k recent-era bar FAILS at every cutoff that buys today's set
+    distribution.** ≥2023 clears 49,693 (99.4% of the bar) but at only 28% level match —
+    a different generator. ≥2024-04 is the honest "sets look like today's" subset at
+    44,391. This is a real decision for the maintainer, not a formality: the bar as
+    written says no, and the sizing (≈3x P4, not 10-20x) says the chapter is a smaller
+    lever than §10 assumed. Recorded, NOT decided unilaterally.
+    Also found, and it cuts the other way: **2015-2018 logs carry literal `|choice|` lines
+    with BOTH players' submitted actions in the player's own encoding** (`|choice|move
+    drillpeck|switch 3`). For those 21,521 battles the hidden-action problem (§10's
+    `action = -1` rows, Track 1 check 8) essentially does not exist — but they are exactly
+    the era with the worst set drift. Cheap labels and clean distribution are in different
+    halves of the corpus.
+
+  **Track 1 check (6) — Foul Play, answered from source (INFERRED, not measured;** clone
+  25c976f05cbf2880eaa579afd6db1dcb2c3b57c6, 2026-07-19). gen1randombattle IS supported:
+  format parsing is generic (`_GEN_REGEX gen([1-9]0?)` + "random" → RANDOM_BATTLE), Gen-1
+  mechanics are explicitly implemented (fp/generations.py GEN1 registered at line 125;
+  gen1 partial-trapping, stat-modification glitches, burn/paralysis nullify volatiles in
+  fp/battle/protocol.py; gen1_pokedex_mods.json), and the randbats set source
+  https://pkmn.github.io/randbats/data/full/gen1randombattle.json exists (HTTP 200,
+  28,151 bytes). **Seconds-per-decision is a DIAL, not an emergent property**:
+  `--search-time-ms` (default 100) feeds straight into `monte_carlo_tree_search(state,
+  search_time_ms, threads)`, and random-battle mode searches parallelism×2 sampled battles
+  (×4 shallow early), so stock wall clock is ~0.2 s/decision, scaling linearly with the
+  flag. That reprices D5 hard: the locked protocol's ~81k decisions is ~4.5 h at stock
+  settings, NOT the "hundreds of hours" §10 assumed from Wang's ~10 s/move MCTS. The real
+  blocker is different — **poke-engine is compiled per generation** (`make poke_engine
+  GEN=gen1`, `--no-default-features`), the pinned build is gen9/terastallization, and one
+  install serves exactly one generation. Unmeasured and still open: Foul Play's STRENGTH
+  at a 100 ms budget, which is what would make it a meaningful anchor.
+
+  Process note: three background agents were used for the parallelizable measurement work
+  and all three died on TLS/API errors mid-flight (harness watchdog, 600 s no-progress).
+  The corpus one had written its results to disk first, so its numbers survived and were
+  re-derived and re-verified here; Foul Play was redone inline. Not a repo problem.
