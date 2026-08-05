@@ -643,3 +643,60 @@ entry by offset — never a broad keyword grep.
   and all three died on TLS/API errors mid-flight (harness watchdog, 600 s no-progress).
   The corpus one had written its results to disk first, so its numbers survived and were
   re-derived and re-verified here; Foul Play was redone inline. Not a repo problem.
+
+- 2026-08-05 — Arm A warm-start smoke RUN: handoff is sound; BC clones start at entropy 0.063
+
+  runs/showdown_warmstart_smoke_s9, 200k steps / 48 updates, ~6 min, clean tree
+  (git_dirty false, sha 9b031a8). All four pre-registered reads below, then the thing
+  the smoke was actually worth running for.
+
+  READ 4 (frozen-actor signature) — PASS, exactly. loss/approx_kl and loss/clip_frac are
+  0.00000000 for updates 0-9 and nonzero from update 10 (0.0039 / 0.0214). The staged
+  unfreeze does what it says at full scale.
+
+  READ 1 (broken-handoff detector) — PASS. During warmup the actor cannot change, so the
+  four evals inside the window measure the cloned policy itself: pooled 0.4875 (n=400,
+  se 0.0250) against the clone's re-scored 0.4657 (n=1000), a +0.87 se gap. The
+  BC-checkpoint -> PPO handoff does not break the policy.
+
+  READ 3 (critic health before unfreeze) — PASS, and it OVER-provisions. loss/value
+  0.446 -> 0.255 and loss/explained_variance -0.17 -> +0.42 across the warmup, but EV is
+  already plateaued at ~0.38-0.42 by update 4. Ten warmup updates is roughly twice what
+  this handoff needed; the chapter can use ~5 and should re-measure rather than inherit 10.
+
+  READ 2 (no first-updates collapse) — PASS at the boundary, with a REAL transient after
+  it. Banded (each rung is only n=100, se 0.05, so single rungs are not readable):
+    frozen 10-40k     0.4875 (n=400)
+    unfreeze 50-80k   0.4550 (n=400)   -0.033 vs frozen  (-0.92 se_diff)
+    mid 90-130k       0.3820 (n=500)   -0.106            (-3.19 se_diff)
+    late 140-200k     0.4757 (n=700)   -0.012            (-0.38 se_diff)
+  So: no cliff at unfreeze — the first four post-unfreeze rungs are within noise — but a
+  real ~0.10 sag opening ~10-20 updates LATER and fully recovered by 140k. Worth knowing
+  before the chapter panics at one: the dip is not at the handoff, it is after it, and it
+  comes back.
+
+  **NOT pre-registered, and the most useful thing here: a BC-warm-started run starts at
+  loss/entropy 0.063 and stays there (0.068 at 200k).** The P5b control from scratch runs
+  1.69 -> 0.317 over 6M. The R0 entropy gate every arm carries is [0.2, 1.0], so a
+  BC-warm-started run FAILS that gate from its first update, permanently — not because
+  anything is wrong but because a cross-entropy clone of a deterministic bot is a peaked
+  policy, and entropy_coef 0.01 cannot lift it. This has two consequences the corpus
+  chapter must design for, and neither is in DESIGN.md: (1) the R0 entropy band does not
+  transfer to the warm-started regime and needs its own value, decided before the first
+  chapter run rather than waived after it; (2) the chapter's exploration story cannot be
+  "PPO will re-explore" — at entropy 0.063 there is nothing to explore with, which is
+  also the most likely reading of the mid-run sag (the policy is perturbed off the clone
+  and has to grind back with almost no stochasticity to help it). A deliberate
+  entropy_coef choice for warm starts is now a chapter prerequisite.
+
+  Mechanism reads, recorded: loss/grad_clip_frac 0.669 warmup -> 0.745 post -> 0.938 at
+  the end, i.e. this regime binds the 0.5 clip HARDER over time, the opposite of the
+  from-scratch probe earlier today (1.00 -> 0.50 over the first 5 updates). grad_norm
+  post-mean 0.725 against max_grad_norm 0.5. adv_std ~0.58 flat. time/steps_per_sec ~752
+  solo, consistent with the ~734 baseline. eval/loss_faint_diff -1.87 -> -1.90: when this
+  policy loses it is ~1.9 mons behind — the first recorded value of Arm B's secondary,
+  though from a clone-like policy rather than the control recipe.
+
+  Verdict: the warm-start machinery is GREEN and the human-BC chapter's day-one path is
+  de-risked. Arm A itself stays retired (D3b). One new chapter prerequisite (the entropy
+  decision) and one relaxed constant (warmup ~5, not 10).

@@ -5,10 +5,10 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 ## Where things stand (2026-08-05, after code evening 1)
 
 DESIGN.md r6 RATIFIED (D1–D7 binding). **HANDOFF item 1 is DONE and green** — Track 1
-measured, warm-start semantics settled, Arm B built. Suite: 236 offline + 3 live-server.
-No runs live; server may still be up on :8000 — check before starting one. Two configs
-are launch-ready, waiting on the maintainer's terminal (below). Standing correction: RL
-is LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
+measured, warm-start semantics settled, Arm B built, **Arm A smoke RUN and green** (all
+four reads passed; see below for its one surprise). Suite: 240 passed. No runs live;
+server may still be up on :8000. Arm B is launch-ready. Standing correction: RL is
+LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
 
 ## Results (vs SH; locked: final ckpt, 1000 battles/seed, 3 seeds pooled, ties=loss)
 
@@ -31,30 +31,31 @@ is LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
    lever than assumed; numbers in the session log, not decided unilaterally. Counterweight:
    2015-18 logs carry literal `|choice|` lines (both seats' true actions), so ~21.5k
    battles have NO hidden-action problem — cheap labels, but the worst set drift.
-2. **Arm A warm-start smoke** — `configs/showdown_warmstart_smoke.yaml`, 200k steps,
-   ~20-30 min. Already validated end-to-end at 8192 steps. Reads RECORDED, not gated.
-3. **Arm B at 6M** — `configs/showdown_faint6m.yaml`, seeds 6/7/8, 3-wide, ~2.9 h;
+2. **Arm B at 6M** — `configs/showdown_faint6m.yaml`, seeds 6/7/8, 3-wide, ~2.9 h;
    pre-registration in the config header. Run the R0 shaping gate before launching:
    `pytest tests/test_showdown_env.py -k "shaped_return or shaped_episode"`. Futility
    screen: advance to 12M iff pooled delta ≥ +0.009 vs the P5b control RE-EVALUATED at
    3000 battles/seed in-repo.
-4. No 24M run (D4c). Arm C parked. Open: un-gitignore `prior_work/wang_fork_diffs.md`?
+3. No 24M run (D4c). Arm C parked. Open: un-gitignore `prior_work/wang_fork_diffs.md`?
 
 ## Watch items
 
 - Commit docs BEFORE launching; launch from a clean tree (`git_dirty` stamping).
 - Distinct `--seed` per lane. Used: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 the smoke.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
-- **Grad clip, production read (new):** binds 1.00/0.875/0.625/0.75/0.50 over the first
-  5 updates at batch 4096, grad_norm 3.30 → 0.47 — NOT the 16/16 the audit's synthetic
-  probe suggested. Early-training only; steady state comes from Arm B. Same probe:
-  **value EV starts strongly NEGATIVE** (−2.72 → −1.22), the baseline Arm B is read against.
+- **BC-warm-started runs sit at loss/entropy 0.063** (vs from-scratch 1.69 → 0.317), so
+  they FAIL the [0.2, 1.0] R0 entropy gate from update 1, permanently. The band does not
+  transfer to that regime and the corpus chapter must pick its own entropy_coef BEFORE
+  its first run. Smoke also says: critic warmup ~5 updates suffices, not 10.
+- **Grad clip:** from scratch it binds 1.00 → 0.50 over the first 5 updates (batch 4096,
+  grad_norm 3.30 → 0.47), but the warm-start regime binds HARDER over time (0.67 → 0.94).
+  Value EV from scratch starts strongly NEGATIVE (−2.72 → −1.22) — the Arm B baseline.
 - Metric namespace grew: `loss/{explained_variance,adv_std,grad_norm,grad_clip_frac}`
   and `eval/{loss_faint_diff,loss_faint_lead_frac}`.
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before
   any future self-play rung (recovered bug).
-- P6 arms seed-UNPAIRED; per-seed cross-arm comparison meaningless (DESIGN §8).
-- poke-env 0.15.0: SH's setup branch is dead (upstream bug, report unfiled).
+- P6 arms seed-UNPAIRED; per-seed comparison meaningless. poke-env 0.15.0: SH's setup
+  branch is dead (upstream bug, report unfiled).
 - Concurrency: solo ~734 steps/s; 3-wide ≈ −20%/lane (~553-600); 6-wide 465-506/lane.
 - Run-dir `meta.yaml` git_shas are old-repo SHAs — provenance via SESSION_LOGS.
 - Corpus stays on the local box; revision + sha256 pinned in scripts/corpus_survey.py.
