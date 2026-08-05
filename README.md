@@ -16,8 +16,14 @@ classic-control, MinAtar, MuJoCo and board-game tracks. That work — including 
 **This repo is not held to that constraint.** Its goal is the strongest agent we can
 build, and it borrows where borrowing wins: external libraries, replay datasets,
 pretrained teachers. Anything borrowed is named here and in code comments. The `rl/`
-package still contains the predecessor's from-scratch training spine (PPO is the learner
-in use; DQN/SAC/Connect-4/MinAtar code came along in the move and prunes over time).
+package keeps only what the capstone uses: the from-scratch PPO learner, the masking
+contract, and the self-play machinery (snapshot pool, Elo, opponent protocol). That
+machinery was built and validated in the predecessor on a Connect-4 self-play study —
+implemented as the sanity check preparing for this project — and the Connect-4 env
+survives here only as the two-player test fixture for the self-play harness tests.
+CartPole/MinAtar PPO support stays for `DESIGN.md`'s Arm C spine gate; the rest of the
+predecessor spine (DQN, SAC, MuJoCo, the Connect-4 study's solver and probes) was
+pruned 2026-08-05.
 
 ## Results so far
 

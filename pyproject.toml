@@ -20,19 +20,17 @@ dependencies = [
     # Imported directly by scripts/record.py (frame annotation + GIF encode).
     "pillow==12.3.0",
     # --- Inherited from the predecessor repo (deep-rl-from-scratch) ---
-    # The rl/ package still carries that project's spine (DQN, SAC, Connect 4,
-    # MinAtar, MuJoCo envs) and its tests, copied wholesale. These pins exist
-    # only because that code imports them; prune them together with the spine.
-    # box2d (LunarLander) needs swig at install time: brew install swig
-    "gymnasium[classic-control,toy-text,box2d,mujoco]==1.3.0",
+    # Spine pruned 2026-08-05 to what the capstone uses: classic-control
+    # (CartPole/Pendulum — PPO harness tests + DESIGN.md's Arm C spine gate)
+    # and MinAtar (same gate). DQN/SAC/MuJoCo/box2d/toy-text/open_spiel went
+    # with the spine; Connect 4 survives only as the two-player test fixture
+    # for the self-play harness tests.
+    "gymnasium[classic-control]==1.3.0",
     "minatar==1.0.15",
-    "mujoco==3.10.0",
 ]
 
 [project.optional-dependencies]
-# open_spiel is a dev-only differential-test oracle for the inherited Connect 4
-# spine tests (tests/test_connect4_oracle.py); prunes with the spine.
-dev = ["pytest==9.1.1", "open_spiel==2.0.1"]
+dev = ["pytest==9.1.1"]
 
 [tool.setuptools.packages.find]
 include = ["rl*"]

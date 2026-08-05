@@ -1,5 +1,5 @@
 """MinAtar integration: explicit registration + ChannelFirst through the env
-factory, ConvQNet shapes (plain and dueling), and conv-DQN and conv-PPO
+factory, ConvQNet shapes (plain and dueling), and a conv-PPO
 through the real train loop on Breakout.
 """
 
@@ -48,39 +48,6 @@ def test_convqnet_requires_fc_layer():
         ConvQNet((4, 10, 10), [], 6)
 
 
-def test_minatar_dqn_smoke(tmp_path, monkeypatch):
-    """Conv-DQN through the real train loop: warmup, gradient steps on
-    bool-plane batches, a target sync, and a checkpoint that restores.
-    Runs the rmsprop optimizer knob — the Adam default is covered by the
-    CartPole smokes and the real configs."""
-    monkeypatch.chdir(tmp_path)
-    cfg = Config(
-        env_id="MinAtar/Breakout-v0",
-        seed=0,
-        total_steps=300,
-        eval_every=150,
-        eval_episodes=2,
-        run_name="test_minatar_dqn",
-        logger="tensorboard",
-        agent={
-            "algo": "dqn",
-            "hidden_sizes": [32],
-            "lr": 1.0e-3,
-            "optimizer": "rmsprop",
-            "gamma": 0.99,
-            "buffer_capacity": 1000,
-            "batch_size": 32,
-            "learning_starts": 100,
-            "target_update_every": 100,
-            "epsilon_start": 1.0,
-            "epsilon_end": 0.1,
-            "epsilon_decay_steps": 200,
-        },
-    )
-    train(cfg)
-    ckpt = load_checkpoint(tmp_path / "runs" / "test_minatar_dqn" / "checkpoint.pt")
-    assert ckpt["step"] == 300
-    assert ckpt["agent"]["grad_steps"] > 0
 
 
 def test_minatar_ppo_smoke(tmp_path, monkeypatch):

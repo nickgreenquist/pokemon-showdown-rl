@@ -38,7 +38,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from rl.envs.connect4 import CELLS, Connect4Board
-from rl.selfplay.solver import MOVE_ORDER, Bitboard
 
 
 class Opponent(ABC):
@@ -119,126 +118,12 @@ class HeuristicOpponent(Opponent):
         return int(rng.choice(legal))
 
 
-def _limited(bb: Bitboard, depth: int, alpha: int, beta: int) -> int:
-    """Negamax to `depth` plies with 0 at the horizon. Solver-convention
-    scores for wins found in range, so nearer wins score higher. The win
-    scan runs BEFORE the horizon check — that ordering is what gives depth
-    d vision of all wins and losses within d plies (a horizon node still
-    reports the win sitting on it); moving the check first silently turns
-    depth 2 into depth 1. 0 conflates "draw" with "nothing tactical in
-    range" on purpose: the anchor makes no positional guess."""
-    if bb.moves == CELLS:
-        return 0
-    for col in MOVE_ORDER:
-        if bb.can_play(col) and bb.is_winning_move(col):
-            return (CELLS + 1 - bb.moves) // 2
-    if depth <= 1:
-        return 0
-    best = -CELLS
-    for col in MOVE_ORDER:
-        if not bb.can_play(col):
-            continue
-        value = -_limited(bb.play(col), depth - 1, -beta, -alpha)
-        if value > best:
-            best = value
-            if value > alpha:
-                alpha = value
-        if alpha >= beta:
-            break
-    return best
-
-
-def alphabeta_move_scores(bb: Bitboard, depth: int) -> dict[int, int]:
-    """Score every legal move at fixed lookahead, each with its own FULL
-    window: threading a rising alpha across root moves would let later
-    moves fail low below their true value and drop out of the tie set by
-    column order — and the uniform tie-break needs TRUE ties (module-level
-    so tests and the tournament can rank moves without an Opponent)."""
-    scores = {}
-    for col in MOVE_ORDER:
-        if not bb.can_play(col):
-            continue
-        if bb.is_winning_move(col):
-            scores[col] = (CELLS + 1 - bb.moves) // 2
-        else:
-            scores[col] = -_limited(bb.play(col), depth - 1, -(CELLS // 2), CELLS // 2)
-    return scores
-
-
-class AlphaBetaOpponent(Opponent):
-    """Fixed-depth alpha-beta anchor with uniform random tie-breaking.
-
-    The horizon evaluation is 0 — purely tactical, no positional guess —
-    so the anchor's strength is a function of depth alone and stays
-    reproducible. That leaves genuine ties on most early positions, and
-    the random tie-break turns them into eval-set diversity: measured
-    89/100 distinct eval games with it, 2/100 without (PLAN.md), which is
-    what `eval/return_std > 0` exists to detect. The draw comes from the
-    rng the env hands in, same as the heuristic's fallback.
-    """
-
-    def __init__(self, depth: int):
-        if depth < 1:
-            raise ValueError(f"depth must be >= 1, got {depth}")
-        self.depth = depth
-
-    def move(self, obs: np.ndarray, mask: np.ndarray, rng: np.random.Generator) -> int:
-        bb = Bitboard.from_board(Connect4Board(board_from_obs(obs)))
-        scores = alphabeta_move_scores(bb, self.depth)
-        best = max(scores.values())
-        return int(rng.choice([c for c, s in sorted(scores.items()) if s == best]))
-
-
-def play_game(
-    first: Opponent,
-    second: Opponent,
-    rng: np.random.Generator,
-    start: Connect4Board | None = None,
-    moves: "list[int] | None" = None,
-) -> int:
-    """One game between two opponents on a raw board, no env: +1 if
-    `first` (the first player) wins, 0 a draw, -1 if `second` wins.
-
-    Each side is queried exactly as the env queries its opponent —
-    `select()` once at the start (the per-episode swap boundary), then
-    `move()` on the board canonicalized to ITS perspective, which the
-    canonical board gives for free since `planes()` always renders the
-    mover's view. Win is checked before full: the 42nd disc can complete
-    a line here just as it can in `Connect4Env.step()`. Committed as the
-    tournament's game runner so the chunk-4 coverage diagnostic can reuse
-    it rather than being rebuilt from session scratch.
-
-    `start` continues the game from a mid-game position instead of an
-    empty board (the value-MSE probe's continuation targets need this);
-    the board is canonical, so `first` is the player to move at `start`,
-    and the outcome sign is from that player's perspective. Played on a
-    copy — the caller's board is never mutated. `moves`, if given, has
-    every played column appended in order (the coverage probe compares
-    move sequences, and the outcome alone cannot distinguish two games).
-    """
-    players = (first.select(rng), second.select(rng))
-    board = Connect4Board() if start is None else start.copy()
-    mover = 0
-    while True:
-        col = players[mover].move(board.planes(), board.legal_mask(), rng)
-        if moves is not None:
-            moves.append(int(col))
-        won = board.drop(int(col))
-        if won:
-            return 1 if mover == 0 else -1
-        if board.full():
-            return 0
-        mover = 1 - mover
-
-
-# Name -> factory, so a config can say `opponent: heuristic`. The alpha-beta
-# anchors are fixed at depths 2 and 4 (the tournament's ladder anchors);
-# chunk 2's pool is passed as an object, not a name.
+# Name -> factory, so a config can say `opponent: heuristic`. The pool is
+# passed as an object, not a name. (The predecessor's alpha-beta anchors were
+# pruned with the Connect 4 study, 2026-08-05.)
 OPPONENTS = {
     "random": RandomOpponent,
     "heuristic": HeuristicOpponent,
-    "alphabeta2": lambda: AlphaBetaOpponent(2),
-    "alphabeta4": lambda: AlphaBetaOpponent(4),
 }
 
 

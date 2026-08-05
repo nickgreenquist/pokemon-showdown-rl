@@ -277,10 +277,7 @@ def test_normalize_flags_reject_a_scalar_path_algorithm(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     cfg = _smoke_cfg(tmp_path, env_id="CartPole-v1", normalize_reward=False)
-    cfg.agent = {"algo": "dqn", "hidden_sizes": [8], "lr": 1e-3, "buffer_size": 100,
-                 "batch_size": 4, "gamma": 0.99, "learning_starts": 8,
-                 "target_sync_interval": 10, "eps_start": 1.0, "eps_end": 0.1,
-                 "eps_decay_steps": 50}
+    cfg.agent = {"algo": "random"}  # the one remaining scalar-path algorithm
     with pytest.raises(ValueError, match="vectorized algorithm"):
         train(cfg)
 

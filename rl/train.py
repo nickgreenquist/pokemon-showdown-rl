@@ -17,12 +17,8 @@ import torch
 import yaml
 
 from rl.agents.base import Agent
-from rl.agents.dqn import DQNAgent
 from rl.agents.ppo import PPOAgent
-from rl.agents.q_learning import QLearningAgent
 from rl.agents.random_agent import RandomAgent
-from rl.agents.reinforce import ReinforceAgent
-from rl.agents.sac import SACAgent
 from rl.common.checkpoint import load_checkpoint, save_checkpoint
 from rl.common.config import Config, load_config, run_dir
 from rl.common.evaluation import evaluate
@@ -42,11 +38,7 @@ from rl.selfplay.pool import SnapshotPool
 # `vectorized` flag to pick env construction and collection path up front.
 ALGOS: dict[str, type[Agent]] = {
     "random": RandomAgent,
-    "q_learning": QLearningAgent,
-    "dqn": DQNAgent,
-    "reinforce": ReinforceAgent,
     "ppo": PPOAgent,
-    "sac": SACAgent,
 }
 
 
@@ -58,8 +50,6 @@ def make_agent(cfg: Config, env: gym.Env) -> Agent:
     if cls is RandomAgent:
         return RandomAgent(env.action_space)
     hparams = {k: v for k, v in cfg.agent.items() if k != "algo"}
-    if cls is QLearningAgent:
-        return QLearningAgent(env.observation_space, env.action_space, **hparams)
     if cls.vectorized:
         # Vectorized agents build against one sub-env's spaces plus the batch
         # width. The getattr fallbacks cover the scalar-env rebuild in

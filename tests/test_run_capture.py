@@ -30,19 +30,9 @@ def tiny_cfg() -> Config:
         eval_episodes=2,
         run_name="test_capture",
         logger="tensorboard",
-        agent={
-            "algo": "dqn",
-            "hidden_sizes": [],
-            "lr": 1.0e-3,
-            "gamma": 0.99,
-            "buffer_capacity": 1000,
-            "batch_size": 32,
-            "learning_starts": 100,
-            "target_update_every": 100,
-            "epsilon_start": 1.0,
-            "epsilon_end": 0.05,
-            "epsilon_decay_steps": 200,
-        },
+        # RandomAgent as the vehicle: the assertions here are about run-dir
+        # artifacts, not learning, and it is the one remaining scalar algo.
+        agent={"algo": "random"},
     )
 
 
@@ -97,8 +87,24 @@ def test_eval_episode_step_cap():
 
 def test_eval_protocol_is_reproducible():
     # Fixed eval seeds + a deterministic policy: two passes must agree
-    # exactly, or cross-run comparisons are meaningless.
+    # exactly, or cross-run comparisons are meaningless. RandomAgent has no
+    # deterministic mode, so the vehicle is an untrained PPO net built on the
+    # scalar env — the same rebuild path eval_checkpoint uses.
     cfg = tiny_cfg()
+    cfg.agent = {
+        "algo": "ppo",
+        "hidden_sizes": [16],
+        "lr": 2.5e-4,
+        "gamma": 0.99,
+        "gae_lambda": 0.95,
+        "rollout_steps": 32,
+        "epochs": 2,
+        "minibatches": 2,
+        "clip_eps": 0.2,
+        "entropy_coef": 0.01,
+        "value_coef": 0.5,
+        "max_grad_norm": 0.5,
+    }
     env = make_env(cfg.env_id, cfg.seed)
     agent = make_agent(cfg, env)
     assert eval_returns(agent, env, 3) == eval_returns(agent, env, 3)

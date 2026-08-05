@@ -373,3 +373,60 @@ entry by offset — never a broad keyword grep.
   showdown_scratch12m_s*/xplay_*.json, every final_eval/migration_check8/bc_metrics
   JSON. Provenance note: all run-dir meta.yaml git_shas are old-repo SHAs, unresolvable
   here — provenance runs through SESSION_LOGS narrative only.
+
+- 2026-08-05 — Cleanup executed: predecessor logs preserved, ~12.5 GB reclaimed, spine PRUNED
+
+  All three maintainer approvals from the audit executed same evening.
+
+  PRESERVED: SESSION_LOGS_PREDECESSOR.md committed (commit 918aef0) — the 36 capstone
+  entries extracted whole from deep-rl-from-scratch@5d6a604 (titles identified via the
+  strip commit 0c3b972's deletion patch, entries taken byte-for-byte from the pre-strip
+  file), plus the predecessor README "Results — Phase 5" section and PLAN.md Phase-5
+  spec as appendices. CLAUDE.md Docs and doc-archaeologist repointed at it. The
+  one-rm-rf-from-gone risk is closed.
+
+  RECLAIMED (~12.5 GB): runs/ 12 GB → 1.0 GB, data/ 3.6 GB → 2.1 GB. Deleted: 696
+  intermediate ckpt_*.pt + 9 mid-run 6M ckpts inside 12M lanes, all 17 wandb/ dirs
+  (history.csv row counts verified against the logged 425,265–431,269 first),
+  migration_smoke + migration_tput, data/bc_p4_main.npz + bc_p4_sub10k.npz
+  (regenerable; agreement numbers frozen in bc_metrics.json), and the Connect-4 Pons
+  data (solver_dataset.npz, Test_L*). Every lane retains its final numbered ckpt,
+  checkpoint.pt, best_checkpoint.pt, config/meta/history.csv, and every eval JSON;
+  p6_finals_logs and the bc_p4_512_* family untouched. data/bc_p4_40k.npz kept (backs
+  the live 0.4657 clone and the Track-1 warm-start smoke).
+
+  SPINE PRUNED (maintainer: "we don't need anything not related to capstone"):
+  - Deleted algorithms: dqn.py, sac.py, q_learning.py, reinforce.py (+ replay buffer,
+    polyak — SAC/DQN-only). ALGOS is now {random, ppo}; the QLearningAgent special
+    branch removed from train.py.
+  - Deleted the Connect-4 STUDY: solver.py, the alpha-beta opponents + play_game
+    (opponents.py trimmed to Opponent/Random/Heuristic/make_opponent — pool.py's fixed
+    anchors), tests test_solver/test_connect4_oracle (open_spiel oracle + the retired
+    no-RL-libraries import ban), scripts (pons_benchmark, pons_agent_metrics,
+    make_solver_dataset, value_mse_probe, coverage_probe, forgetting, tournament,
+    train_supervised, mutate + mutations/), the 4 figure scripts, 8 predecessor asset
+    figures (showdown_milestone3.png stays).
+  - KEPT AS TEST FIXTURE, deliberately: rl/envs/connect4.py + test_connect4.py + the
+    trimmed opponents.py. The self-play harness tests (49 tests backing the ported
+    rl/selfplay/* that D6 keeps live) use Connect4Env as their two-player fixture;
+    removing it means rewriting them. README records the framing the maintainer chose:
+    the Connect-4 self-play study was the sanity check preparing this project.
+    Flag: if the maintainer wants it fully gone, the cost is a two-player dummy env +
+    test rewrite.
+  - KEPT deliberately: normalize.py + its test (frozen_obs_env is imported by four
+    live showdown scripts); continuous-PPO support + test_ppo_continuous (module-level
+    prune only — no interior surgery on the live PPO); conv.py (ppo.py imports it;
+    Arm C MinAtar gate); RandomAgent (ALGOS floor + scalar-loop coverage).
+  - Test edits: masking's DQN section removed (contract coverage for the live algo
+    stays), minatar conv-DQN smoke removed (conv-PPO smoke stays), run_capture +
+    normalize-guard switched to random/PPO vehicles, scalar-split timer test removed
+    (vector split — the capstone path — still tested), _VecRandomAgent restored after
+    an over-cut.
+  - pyproject: gymnasium[classic-control,toy-text,box2d,mujoco] → [classic-control];
+    mujoco and open_spiel pins dropped; minatar stays. Installed env still carries the
+    old packages until a `pip install -e ".[dev]"` refresh — harmless, optional.
+  - README provenance paragraph rewritten with the maintainer's framing.
+
+  Suite: 318 → 219 passed, zero failures — the delta is exactly the pruned spine's
+  tests. Still open (unchanged): team review of DESIGN.md §9; wang_fork_diffs.md
+  gitignore negation question.

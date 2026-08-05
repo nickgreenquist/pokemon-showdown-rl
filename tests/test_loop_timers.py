@@ -69,32 +69,6 @@ def _assert_split_contract(records, wall):
     assert any("rollout/episode_length" in r for r in records)
 
 
-def test_scalar_loop_logs_the_split(tmp_path, monkeypatch):
-    """DQN on CartPole: per-step updates, flushed at the episode boundary."""
-    cfg = Config(
-        env_id="CartPole-v1",
-        seed=0,
-        total_steps=300,
-        eval_every=150,
-        eval_episodes=2,
-        run_name="test_timers_dqn",
-        logger="tensorboard",
-        agent={
-            "algo": "dqn",
-            "hidden_sizes": [],
-            "lr": 1.0e-3,
-            "gamma": 0.99,
-            "buffer_capacity": 1000,
-            "batch_size": 32,
-            "learning_starts": 100,
-            "target_update_every": 100,
-            "epsilon_start": 1.0,
-            "epsilon_end": 0.05,
-            "epsilon_decay_steps": 200,
-        },
-    )
-    records, wall = _run(cfg, monkeypatch, tmp_path)
-    _assert_split_contract(records, wall)
 
 
 def test_vector_loop_logs_the_split(tmp_path, monkeypatch):
