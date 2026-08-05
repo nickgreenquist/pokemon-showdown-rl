@@ -17,6 +17,33 @@ P4's measured 0.489 mirror baseline, bounds this entire package at +0.046 and re
 > in §4, so §10 may dominate this entire package. **Which phase it belongs in is explicitly open
 > — that is the main thing this review needs to settle.**
 
+> ## ⚠ REVISION 4 (2026-08-05, 02:30) — P6 READ, AND IT UNDERCUTS THIS DESIGN'S PREMISE
+>
+> P6 completed 6/6 lanes at 12M and **the annealed arm pooled 0.4607** (1382/3000; per seed
+> 0.449/0.451/0.482), flat 12M **0.4330**. R0 gates passed on all six lanes.
+>
+> **The premise of §2 and §4 was that RL sits BELOW a supervised clone of SH (0.453) with the
+> remaining headroom capped at the 0.489 mirror baseline. That is no longer true.** RL is now at
+> **0.4607 — above the clone, and only 0.028 short of the SH-imitation ceiling.** The band that
+> P7a's BC warm start was designed to exploit has largely closed on its own.
+>
+> Concretely, what this breaks:
+> - **P7a (BC warm start) loses most of its motivation.** Warm-starting from a 0.453 clone to
+>   reach a policy already at 0.4607 is starting *behind*. Its staged-unfreeze machinery is still
+>   the right design if BC is ever used — but the teacher should now be human replays (§10), not SH.
+> - **§5's "a result above ~0.47 would mean PPO is improving on its teacher"** — the annealed arm's
+>   best seed is 0.482 and the pool is 0.4607, so PPO is at or past that mark already, without any
+>   warm start.
+> - **§3's 0.489 bound is now the operative ceiling on everything SH-derived**, with only 0.028 of
+>   room left. Any SH-based arm is fighting for scraps.
+> - **§10 (human replay corpus) is correspondingly MORE important, not less** — it is the only
+>   proposal here whose ceiling is not 0.489.
+> - **P7b (faint shaping) and P7c (distributional value) are unaffected** — neither depends on the
+>   clone gap. They stand as written.
+>
+> **Do not implement §4 as specified.** The design needs a revision pass against these numbers
+> before the team review is meaningful. Full P6 detail: `P6_RESULTS.md` in this repo.
+
 ---
 
 ## 1. Where the project is
