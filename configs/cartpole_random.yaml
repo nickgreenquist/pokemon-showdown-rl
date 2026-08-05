@@ -1,0 +1,11 @@
+# Random-policy pipeline check: env -> rollout -> logging -> eval -> checkpoint.
+env_id: CartPole-v1
+seed: 0
+total_steps: 5000
+eval_every: 1000
+eval_episodes: 10
+run_name: cartpole_random
+device: cpu
+logger: wandb
+agent:
+  algo: random

@@ -1,0 +1,29 @@
+# Tier-2 optimizer ablation: minatar_breakout_dqn.yaml with the paper's exact
+# optimizer — centered RMSprop(alpha=0.95, eps=0.01), hardcoded in dqn.py —
+# instead of our Adam default. Same lr (the paper's 2.5e-4). Isolates the one
+# deliberate deviation from the paper setup; answers whether Adam explains the
+# slower early ramp seen in the seed-0 vanilla run.
+env_id: MinAtar/Breakout-v0
+seed: 0
+total_steps: 5000000
+eval_every: 100000
+eval_episodes: 20
+run_name: minatar_breakout_dqn_rmsprop
+device: cpu
+logger: wandb
+agent:
+  algo: dqn
+  hidden_sizes: [128]  # post-conv FC sizes; the conv trunk is fixed at 16@3x3
+  lr: 2.5e-4
+  optimizer: rmsprop
+  gamma: 0.99
+  buffer_capacity: 100000
+  batch_size: 32
+  learning_starts: 5000
+  target_update_every: 1000  # gradient steps between hard target syncs
+  epsilon_start: 1.0
+  epsilon_end: 0.1
+  epsilon_decay_steps: 100000
+  double: false
+  dueling: false
+  n_step: 1

@@ -1,0 +1,60 @@
+# PPO on MinAtar/Breakout — the annotated reference config for the discrete
+# track's headline: DQN vs PPO on all 5 games, same harness numbers, same 5M
+# budget, so only the algorithm varies. Rank-3 obs (10x10xC binary planes)
+# select ConvQNet for both the actor and the critic, and that trunk is the DQN
+# campaign's exact net (Conv 16@3x3 -> FC 128), so the architecture is held
+# fixed too. One hyperparameter set for all five games — per-game tuning is
+# the probe tier, as it was in Phase 1.
+#
+# RELOCKED 2026-07-25 after the 30-run campaign. The originally-locked numbers
+# (lr 2.5e-4 annealed to 0 over the full 5M) plateaued on Breakout at ~5.0
+# training return by 1M and reached only 5.47 at 5M, against DQN's 10.3 on the
+# identical env and trunk. That was tuning, not a bug — a four-way hunt came
+# back clean (CartPole reproduced chunk 3's eval sequence exactly, critic-vs-
+# return-to-go correlation 1.000, actor state-responsive with correct sign,
+# dead-unit rates matching the working critic). Two knobs changed:
+#   lr 2.5e-4 -> 1e-3. Chosen over 5e-4 on a 3-seed campaign: 1e-3 won or tied
+#     on all five games and had lower seed variance on three. Corroborated
+#     externally — gymnax's own Breakout lr sweep is flat at ~7 for a full 10M
+#     at lr 1e-4, and the anneal below put our time-averaged lr at 1.25e-4,
+#     inside that documented dead zone.
+#   lr_anneal_steps 5M -> 0 (off). At equal base lr the anneal cost 35% of
+#     final return. This departs from the locked spec's Andrychowicz-backed
+#     anneal item, on direct evidence; see PLAN.md session log.
+# Two knobs deliberately NOT changed, both probed and rejected:
+#   clip_eps stays 0.1 — clip 0.2 cost 39%. This departs from a 5-of-5
+#     consensus among MinAtar PPO references, which all use 0.2; they run the
+#     easier variant (3-action minimal set, no sticky actions), so we follow
+#     our own measurement rather than their number.
+#   gamma stays 0.99 for DQN parity — 0.999 was neutral here.
+#
+# Arithmetic: 8 envs x 128 steps = 1024 transitions per update; 5M / 1024 =
+# 4,882 full updates (104 trailing rows discarded mid-fill). 5M and 100k both
+# divide by 8, so evals and the run's end land exactly.
+#
+# Benchmark seeds are 0 / 100 / 200, not 0/1/2: gymnasium fans a vector seed
+# out as seed+i, so adjacent seeds would share sub-env episode-RNG streams
+# across 8-wide runs. Spacing by 100 keeps those windows disjoint.
+env_id: MinAtar/Breakout-v0
+seed: 0
+total_steps: 5000000
+eval_every: 100000
+eval_episodes: 20
+run_name: minatar_breakout_ppo
+device: cpu
+num_envs: 8  # top-level, never under agent: — make_agent injects num_envs itself
+logger: wandb
+agent:
+  algo: ppo
+  hidden_sizes: [128]  # post-conv FC sizes; the conv trunk is fixed at 16@3x3
+  lr: 1.0e-3
+  lr_anneal_steps: 0  # off: annealing cost 35% at equal base lr
+  gamma: 0.99
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.1
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

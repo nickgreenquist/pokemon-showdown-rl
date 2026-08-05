@@ -1,0 +1,31 @@
+# PPO lr probe (Phase 2 chunk 4). The locked Tier-1 config plateaus on
+# Breakout at ~5.0 by 1M; 1.5M probes showed lr is the only lever that moves
+# it (anneal OFF -- annealing cost 35%% at equal base lr; clip stays 0.1 --
+# 0.2 cost 39%%; gamma 0.999 and 64 envs were both neutral). These runs settle
+# the lr shape at the full 5M budget and check the Phase-1 per-game lr
+# fragility (Adam 5e-4 wrecked Seaquest/SpaceInvaders for DQN) before any
+# Tier-1 number is relocked.
+env_id: MinAtar/Seaquest-v0
+seed: 0
+total_steps: 5000000
+eval_every: 100000
+eval_episodes: 20
+run_name: minatar_seaquest_ppo_lr75e4
+device: cpu
+num_envs: 8
+logger: wandb
+agent:
+  algo: ppo
+  hidden_sizes:
+  - 128
+  lr: 0.00075
+  lr_anneal_steps: 0
+  gamma: 0.99
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.1
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

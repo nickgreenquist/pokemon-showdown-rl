@@ -1,0 +1,33 @@
+# DQN lr probe on MinAtar/Breakout — fairness control for the Phase 2
+# DQN-vs-PPO headline. PPO was swept over five learning rates at 5M before
+# its Tier-1 number was chosen; DQN's Breakout number came from the paper's
+# hyperparameters and was never lr-swept (Phase 1 swept lr only on Seaquest,
+# SpaceInvaders and Asterix, the games where its curves trailed). Breakout is
+# where the de-biased re-evals put PPO and DQN in a statistical tie, so an
+# unmatched tuning budget is least defensible exactly there. Seeds 0/1/2
+# match the existing vanilla runs so the comparison is paired.
+env_id: MinAtar/Breakout-v0
+seed: 0
+total_steps: 5000000
+eval_every: 100000
+eval_episodes: 20
+run_name: minatar_breakout_dqn_lr5e4
+device: cpu
+logger: wandb
+agent:
+  algo: dqn
+  hidden_sizes:
+  - 128
+  lr: 0.0005
+  optimizer: adam
+  gamma: 0.99
+  buffer_capacity: 100000
+  batch_size: 32
+  learning_starts: 5000
+  target_update_every: 1000
+  epsilon_start: 1.0
+  epsilon_end: 0.1
+  epsilon_decay_steps: 100000
+  double: false
+  dueling: false
+  n_step: 1

@@ -1,0 +1,28 @@
+# PPO on MinAtar/Freeway — Tier-1 benchmark game. Hyperparameters
+# identical to minatar_breakout_ppo.yaml (the annotated reference config,
+# which documents the 2026-07-25 relock to lr 1e-3 with the anneal off);
+# only the env changes, matching the one-setting-for-all-games discipline
+# the DQN campaign used.
+env_id: MinAtar/Freeway-v0
+seed: 0
+total_steps: 5000000
+eval_every: 100000
+eval_episodes: 20
+run_name: minatar_freeway_ppo
+device: cpu
+num_envs: 8  # top-level, never under agent: — make_agent injects num_envs itself
+logger: wandb
+agent:
+  algo: ppo
+  hidden_sizes: [128]  # post-conv FC sizes; the conv trunk is fixed at 16@3x3
+  lr: 1.0e-3
+  lr_anneal_steps: 0  # off: annealing cost 35% at equal base lr
+  gamma: 0.99
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.1
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

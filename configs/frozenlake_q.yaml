@@ -1,0 +1,19 @@
+# Tabular Q-learning on slippery 4x4 FrozenLake: the first agent that learns.
+# Random baseline succeeds ~1.5% of episodes; the optimal policy ~74%
+# (transitions are stochastic — the floor is slippery — so even optimal play
+# often fails). Success shows as eval/return_mean well above 0.015.
+env_id: FrozenLake-v1
+seed: 0
+total_steps: 200000
+eval_every: 10000
+eval_episodes: 100  # returns are 0/1, so the mean needs many episodes for signal
+run_name: frozenlake_q
+device: cpu
+logger: wandb
+agent:
+  algo: q_learning
+  lr: 0.1
+  gamma: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_steps: 100000  # anneal over the first half, then mostly exploit

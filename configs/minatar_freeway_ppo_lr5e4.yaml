@@ -1,0 +1,34 @@
+# PPO on MinAtar/Freeway — Tier-1 CANDIDATE at lr 0.0005, anneal OFF.
+# The originally-locked config (lr 2.5e-4 annealed over 5M) plateaus on
+# Breakout at ~5.0 training return; its time-averaged lr of 1.25e-4 sits in
+# the dead zone gymnax's own Breakout lr sweep documents (flat at ~7 for a
+# full 10M at lr 1e-4). Probes isolated lr as the only lever that moves it:
+# annealing cost 35% at equal base lr, clip 0.2 cost 39%, and gamma 0.999 and
+# 64 envs were both neutral — so clip stays 0.1 and gamma stays 0.99 (DQN
+# parity), and only lr changes. 1e-3 and 5e-4 both go to a 3-seed campaign
+# because single-seed 5M results were non-monotonic in lr (7.5e-4 landed
+# below both neighbours), i.e. seed noise is too large to pick on one run.
+env_id: MinAtar/Freeway-v0
+seed: 0
+total_steps: 5000000
+eval_every: 100000
+eval_episodes: 20
+run_name: minatar_freeway_ppo_lr5e4
+device: cpu
+num_envs: 8
+logger: wandb
+agent:
+  algo: ppo
+  hidden_sizes:
+  - 128
+  lr: 0.0005
+  lr_anneal_steps: 0
+  gamma: 0.99
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.1
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

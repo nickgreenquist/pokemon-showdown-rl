@@ -1,0 +1,27 @@
+# Diagnostic lr sweep: minatar_space_invaders_dqn.yaml with lr 1e-4 (vs
+# 2.5e-4 reference). SI matches the paper curve to ~2M then plateaus while
+# theirs climbs — the classic signature of lr too high for late refinement.
+env_id: MinAtar/SpaceInvaders-v0
+seed: 0
+total_steps: 5000000
+eval_every: 100000
+eval_episodes: 20
+run_name: minatar_space_invaders_dqn_lr1e4
+device: cpu
+logger: wandb
+agent:
+  algo: dqn
+  hidden_sizes: [128]  # post-conv FC sizes; the conv trunk is fixed at 16@3x3
+  lr: 1.0e-4
+  optimizer: adam
+  gamma: 0.99
+  buffer_capacity: 100000
+  batch_size: 32
+  learning_starts: 5000
+  target_update_every: 1000  # gradient steps between hard target syncs
+  epsilon_start: 1.0
+  epsilon_end: 0.1
+  epsilon_decay_steps: 100000
+  double: false
+  dueling: false
+  n_step: 1

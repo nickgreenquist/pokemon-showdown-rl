@@ -1,0 +1,29 @@
+# Phase 1 on-ramp: the DQN skeleton (replay buffer, target network,
+# epsilon-greedy) with a zero-hidden-layer Q-network — nn.Linear(4, 2).
+# Success is eval/return_mean clearly above the ~22 random baseline; linear
+# features can't reach 500, and that ceiling is the point of the on-ramp.
+# DQN proper is this file with hidden_sizes: [64, 64] (solves CartPole at
+# lr 1.0e-3). The linear net needs the smaller lr below: at 1.0e-3 it
+# diverges — Q predictions run away to ~281 vs the ~100 theoretical max
+# (reward 1/step, gamma 0.99), and eval drops below the random baseline —
+# the deadly triad on display.
+env_id: CartPole-v1
+seed: 0
+total_steps: 100000
+eval_every: 5000
+eval_episodes: 20
+run_name: cartpole_linear_q
+device: cpu
+logger: wandb
+agent:
+  algo: dqn
+  hidden_sizes: []
+  lr: 1.0e-4
+  gamma: 0.99
+  buffer_capacity: 50000
+  batch_size: 64
+  learning_starts: 1000
+  target_update_every: 500  # gradient steps between hard target syncs
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_steps: 20000  # anneal over the first fifth, then mostly exploit

@@ -1,0 +1,37 @@
+# Phase 4 chunk 1 gate: a short smoke proving the self-play env trains at all.
+#
+# NOT a benchmark. The chunk's real gate is the deterministic fixture probes
+# in tests/test_connect4.py; this run only has to show the loop learns from
+# its own start against a fixed anchor. Numbers here are the locked Phase 4
+# config (PLAN.md) at a 200k-step budget instead of 2M.
+#
+# gamma 1.0 is deliberate and is the one hyperparameter that must not be
+# copied from the MinAtar configs: the reward is terminal-only, so every
+# reward is a delayed reward and gamma < 1 would down-weight the only signal
+# there is. At gamma 1 the critic learns exactly P(win) - P(loss).
+env_id: Connect4-v0
+seed: 0
+total_steps: 200000
+eval_every: 25000
+eval_episodes: 400   # se ~0.025 on a win rate; at 100 it is ~0.05
+num_envs: 8
+torch_threads: 1     # measured 3.9x faster than torch's default on this env
+run_name: connect4_gate_s0
+logger: tensorboard
+eval_win_rate: true
+selfplay:
+  opponent: heuristic       # the smoke trains against the fixed anchor
+  eval_opponent: heuristic  # never a pool member: that would score ~50% by construction
+agent:
+  algo: ppo
+  hidden_sizes: [128]
+  lr: 2.5e-4          # lr anneal OFF (lr_anneal_steps unset)
+  gamma: 1.0
+  gae_lambda: 0.95    # 1.0 is the pre-registered probe arm at the chunk-2 pathfinder
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update -> 195 updates at 200k
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

@@ -1,0 +1,114 @@
+# SAC on HalfCheetah-v5 — the annotated reference config for Phase 3. Hopper
+# and Walker2d are this file with the env_id and run_name changed; one
+# hyperparameter set for all three, per-env tuning is the probe tier, exactly
+# as on both earlier tracks.
+#
+# RECIPE: CleanRL sac_continuous_action.py, taken whole rather than assembled
+# from parts, for the same reason chunk 5 took their PPO whole — mixing knobs
+# from two coherent recipes is how the MinAtar config ended up mis-tuned, and
+# for a from-scratch implementation being off-recipe makes "a bug" and "a
+# config difference" indistinguishable. Every value below was verified against
+# that source. Most are also the paper's own Table 1 (Haarnoja et al. 2018b):
+# tau 0.005, batch 256, buffer 1e6, 256x256 ReLU, gamma 0.99, target update
+# interval 1, one gradient step per env step.
+#
+# TWO KNOBS ARE CLEANRL-SPECIFIC AND SAY SO:
+#   q_lr 1e-3 vs policy_lr 3e-4. The paper uses a single 3e-4 for all networks;
+#     SpinningUp and Tianshou use 1e-3 for both; SB3 uses 3e-4 for all. Only
+#     CleanRL splits them. Note the TEMPERATURE optimizer inherits q_lr, not
+#     policy_lr -- the obvious guess is wrong by 3.3x on the one loop that sets
+#     the reward/entropy exchange rate.
+#   policy_frequency 2, TD3-style delayed actor updates. Not in the SAC paper
+#     at all (Algorithm 1 updates everything every step); an unablated import
+#     from TD3 by way of Denis Yarats' implementation. CleanRL restores the 1:1
+#     actor:critic step count by taking two actor steps when it fires, reusing
+#     the same minibatch.
+# learning_starts has no paper support whatsoever and the references span
+# 100 (SB3) to 10,000 (SpinningUp, Tianshou); 5000 is CleanRL's.
+#
+# NO NORMALIZATION, deliberately, where our PPO runs with both normalizers on.
+# Every published SAC number comes from raw envs, so normalizing would cost us
+# the anchors that make this implementation checkable. It is also the correct
+# choice on the merits: a running normalizer under a replay buffer scales
+# stored transitions by statistics that have since moved, and SAC's auto-tuned
+# temperature is calibrated against a target entropy fixed in nats, so a
+# drifting reward scale is something alpha would have to chase. Two independent
+# benchmark suites ship exactly this asymmetry -- Tianshou's mujoco_ppo sets
+# obs_norm/return_scaling on while mujoco_sac sets them off; SB3's rl-zoo SAC
+# entries carry no normalize key. The confound with our PPO runs is closed by
+# measurement, not prose: configs/*_ppo_raw.yaml re-run PPO unnormalized so the
+# headline compares like with like.
+#
+# ANCHORS (directional, and every one carries a PROTOCOL — mixing protocols is
+# the exact error chunk 5 nearly shipped). At 1M steps:
+#   deterministic evaluation: paper (v2) ~10.5-11.3k, SpinningUp (v3) ~11.5k,
+#     Tianshou (v3, a MAX over training) 12139 +/- 1049, SB3-zoo (v3) 9535
+#   stochastic training return: CleanRL live benchmark (v4) ~11,100
+# CAUTION: CleanRL's published docs TABLE is stale v2 (9635) while its live
+# benchmark is v4 (~11,100) -- grading against 9635 would pass a SAC running
+# 15% under recipe. Grade against ~11,000. Our deterministic 100-episode
+# re-eval compares to the deterministic anchors; our training return compares
+# only to CleanRL's. No published 1M-step SAC number exists on any v5 env, and
+# SAC's anchors are v2/v3, a weaker transfer than the v4 ones PPO had.
+#
+# Expected vs our PPO (2437 training return): SAC should win by roughly 4x
+# here. That is the published-consistent outcome, pre-registered so it is not
+# mistaken for a PPO bug -- and if it does NOT happen, suspect this file.
+#
+# Arithmetic: one gradient step per env step after the 5000-step warm-up, so
+# ~995,000 gradient steps. 50k evals divide evenly into 1M. Measured ~425
+# steps/s single-threaded => ~39 min solo, ~79 min at 12-wide concurrency.
+# Seeds 0 / 100 / 200 for cross-repo consistency.
+#
+# PATHFINDER RESULT 2026-07-26 (seed 0, sha d7cb393, 37.7 min, 442 steps/s
+# post-warm-up): GREEN on every band, cleared to scale.
+#   eval climbs monotonically 4350 @50k -> 9064 @1M and is STILL RISING; the
+#     de-biased 100-episode re-eval is 9004 +/- 73 (final == best).
+#   anchor check, like for like: our deterministic 9004 against the
+#     deterministic anchors 9535 (SB3-zoo v3) / ~10.5-11.3k (paper v2) /
+#     ~11.5k (SpinningUp v3) = 78-94%; our stochastic 8582 against CleanRL's
+#     ~11,100 (live v4) / 9635 (stale docs v2) = 77-89%. IN BAND, at the low
+#     end. Recorded as on-anchor rather than chased: entropy converges to
+#     -6.005 against a target of exactly -6, which is the temperature loop
+#     provably working; alpha 0.998 -> 0.20; q_pred_mean 684 against the ~900
+#     the realized return scale implies; nothing has plateaued. The residual
+#     candidates are env version (no published v5 SAC number exists at 1M, and
+#     CleanRL's own v2->v4 shift on the same script is +15%) and mujoco 3.10.0
+#     -- neither separable without running their code, same standing as chunk
+#     5's HalfCheetah truncation hypothesis.
+#   vs our own PPO: 3.30x on deterministic re-evals, 3.52x on training return.
+#     Pre-registration said ~4x; we land under it because our SAC is at the
+#     bottom of its band while our PPO ran 1.69x ABOVE its own anchor.
+#   our log-prob divergence is ELIMINATED as an explanation: mu_absmax peaked
+#     at 4.48, and at |u| <= 4.5 the stable and epsilon-floored forms differ by
+#     1.4e-3 nats (they only part company past ~7.6).
+#   greedy premium is only +4.9% here (9004 vs 8582) where PPO's was +12% --
+#     first real datum on a quantity the literature does not publish.
+#   episode_length is 1000 for every episode, so `terminated` never fires on
+#     this env, exactly as the degeneracy audit predicted. Hopper is where that
+#     path gets exercised.
+env_id: HalfCheetah-v5
+seed: 0
+total_steps: 1000000
+eval_every: 50000
+eval_episodes: 10
+run_name: halfcheetah_sac
+device: cpu
+normalize_obs: false
+normalize_reward: false
+logger: wandb
+agent:
+  algo: sac
+  hidden_sizes: [256, 256]  # separate actor and twin critics, all this shape
+  activation: relu
+  q_lr: 1.0e-3              # also the temperature optimizer's lr
+  policy_lr: 3.0e-4
+  gamma: 0.99
+  tau: 0.005
+  batch_size: 256
+  buffer_capacity: 1000000
+  learning_starts: 5000     # uniform random actions until here
+  policy_frequency: 2
+  target_network_frequency: 1
+  autotune: true            # target entropy is -act_dim, derived not configured
+  alpha: 0.2                # unused while autotune is true

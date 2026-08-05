@@ -1,0 +1,41 @@
+# Phase 4 probe arm: fixed-opponent mixing — connect4_pool.yaml with 5% of
+# episodes routed to the random or heuristic anchor (50/50) instead of the
+# pool. The only lever aimed DIRECTLY at the vs-random decline: with 80% of
+# games against the current policy the pool is structurally self-referential
+# regardless of entropy_coef, and PFSP reweights within the self-lineage
+# without leaving it — a few percent of fixed-bot games keeps external
+# coverage alive by construction. Kept small on purpose, or the agent
+# exploits those two bots specifically (the chunk-1 specialization finding,
+# both directions). checkpoint_every 100000 per the chunk-4 method note
+# (20-point vs-random curves). Everything else is the locked campaign config.
+env_id: Connect4-v0
+seed: 0
+total_steps: 2000000
+eval_every: 50000
+eval_episodes: 400   # at 100 the se on eval/return_mean is 0.093 — rungs closer than ~120 Elo are a coin flip
+num_envs: 8
+torch_threads: 1     # measured 3.9x faster than torch's default on this env
+checkpoint_every: 100000  # probe arms: 20-point curves (chunk-4 method note)
+run_name: connect4_pool_mix_s0
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristic
+  pool_size: 20
+  push_every_updates: 20
+  latest_prob: 0.8
+  fixed_mix: 0.05     # THE lever: this fraction of episodes vs random/heuristic
+agent:
+  algo: ppo
+  hidden_sizes: [128]
+  lr: 2.5e-4
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update -> ~1953 updates at 2M
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
