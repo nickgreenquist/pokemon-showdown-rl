@@ -208,3 +208,66 @@ entry by offset — never a broad keyword grep.
 
   Not done yet, blocked on the P6 run finishing (~02:00–02:30): `pytest tests/`,
   deleting `start.md`, first commit. P6's result arrives via separate handover.
+
+- 2026-08-05 — DESIGN.md revision 6: rewritten vs P6, hardened by three review passes
+
+  The handoff's singular next action. Full rewrite of DESIGN.md against the P6 numbers,
+  then three independent Opus review passes (experimental design / strategy+priorities /
+  adversarial fact-check) whose accepted findings were folded in. P6_RESULTS.md deleted
+  as pre-flagged (durable record: the P6 entry above + DESIGN r6). HANDOFF.md stub
+  restored. Docs only — no code changed, no runs launched.
+
+  CORRECTION (wins over the P6 entry's phrasing above): "first RL result past the BC
+  clone" was overstated. Port check 8 re-scored the same clone checkpoints in-repo at
+  0.460/0.455/0.482 → pooled 0.4657 (vs 0.4530 recorded, ~1σ); RL's 0.4607 sits between
+  the clone's two same-protocol measurements, and P6's own pre-registered "past the
+  teacher" amendment mark (pooled ≥ 0.47, configs/showdown_r512_12m.yaml) was not
+  reached. Correct claim: LEVEL with the clone. P6's PRIMARY (anneal credited vs flat)
+  is untouched by this.
+
+  Substantive design changes from review, all argued in DESIGN r6:
+  - Arm B redesigned: terminal cancellation added (faint potential zeroed at terminal;
+    without it the shaping telescopes to ±0.6 against the ±1 outcome and the trade-down
+    failure mode is IN the objective, not a risk); shaping-correctness R0 gate; mechanism
+    reads pre-registered (value explained-variance must be added to logging first);
+    loss-conditioned secondaries with a falsifier.
+  - Arm C PARKED: under terminal-only ±1 at gamma=1.0 the return support is {-1,0,+1} —
+    a 51-bin categorical head has nothing to model. Unpark iff Arm B credits or dense
+    signal arrives; if unparked, TOST equivalence gate + specified distributional target;
+    note CartPole/MinAtar baseline run dirs were never ported.
+  - Arm A retired to a ~1 h single-seed warm-start smoke from runs/bc_p4_512_40k_s0
+    (guard fix + critic-only warmup + step-0 win-rate handoff check) — de-risks the
+    human-BC chapter's day-one path for ~1/6 the cost of the arm.
+  - Credit line now names its se estimator (larger of pooled-binomial / seed-clustered;
+    P6 cleared by 0.003 or 0.0003 depending on the choice — ambiguity closed). Proposed
+    amendment: finals at 3000 battles/seed for arm AND control (variance decomposition:
+    ~88% of arm-mean variance is battle noise; se_diff 0.0137 → 0.0088 for eval-only
+    cost); 6M futility screen at +0.009 with the full credit line applied only at 12M.
+  - D4 (24M scaling run) statistical rationale corrected: the annealed 6→12M marginal
+    (+0.0174 ± 0.0129, z=1.35) is inside noise and confounded by schedule shape;
+    rejection rests on the stop rule and the SH-exploitation argument alone.
+  - Track 1 re-scoped into a parse-free afternoon (recency cutoff, rating nullity,
+    winner extraction, teams.ts coverage, Foul Play support + measured latency) and a
+    parser-slice half (clean-parse fraction, action=-1 share, RecordingPlayer golden-path
+    round-trip test); provisional go/no-go bars stated for the review to adjust.
+  - §10 risks added: era drift, MNAR bias of hidden-action rows (they correlate with
+    switch decisions — the exact skill the corpus is bought for), scale honesty (25–50 GB
+    embedded at corpus scale; current BC loader is load-all-into-RAM; raw storage is
+    deferred cost, not zero cost), HF revision pin, clone evaluation plan.
+  - New D7: ladder performance as the ratified success metric + defined end state; GPU
+    rental gated on a measured embed/parse throughput split; the unlicensed corpus does
+    not leave the local box without an explicit decision.
+  - D6 amended: recover the old repo's showdown_sp6m self-play numbers into these logs
+    before deferring the post-parity opponent question (the old repo dir is still on
+    disk with full .git; run dirs were deliberately not ported).
+
+  Fact fixes vs the pre-review r6 draft, from the fact-check pass: costs requalified
+  (2.9 h is 3-wide; 12M is ~6.5 h), episode length ~25 (measured 24.2–24.6, not ~27),
+  approx_kl figures re-labeled as cross-arm second-half means with the monotone
+  by-quarter decay restored, Wang 0.786 provenance hedged (no step count in our index;
+  Fig 4.1 ~0.85 unreconciled), Foul Play "well above SH" downgraded to
+  placement-inferred, the poke-env SH setup-branch bug disclosed next to the board,
+  the stop rule's README amendment condition restored, corpus selection-bias and
+  governance-relaxation notes restored, and self-containment restorations (VGC-Bench
+  quote, Metamon action-space specifics, pokejax obs-bridge precedent, clone
+  free-agreement numbers, ps-ppo commit hash 17e0955).

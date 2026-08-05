@@ -4,10 +4,13 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 
 ## Where things stand (2026-08-05)
 
-**PORT VERIFICATION PASSED 8/8**; old-repo strip AUTHORIZED. History imported
-(42 commits) and bootstrap commit `b696e85` pushed to
-`github.com/nickgreenquist/pokemon-showdown-rl` (main tracks origin). P6 landed:
-LR anneal CREDITED at 12M, and **RL beats the BC clone for the first time.**
+Bootstrap complete (port verification 8/8; history pushed). P6 landed: LR anneal
+CREDITED at 12M. **DESIGN.md revision 6 is DONE** — rewritten against P6, hardened by
+three independent Opus review passes (experimental design / strategy / fact-check),
+open forks turned into the decision list §9 D1–D7. **Correction recorded: RL is LEVEL
+with the BC clone, not past it** — port check 8 re-scored the clone at pooled 0.4657
+(vs 0.4530 recorded, ~1σ), and P6's pre-registered "past the teacher" mark (pooled
+≥ 0.47) was not reached.
 
 ## Results (vs SH; locked: final ckpt, 1000 battles/seed, 3 seeds pooled, ties=loss)
 
@@ -16,42 +19,37 @@ LR anneal CREDITED at 12M, and **RL beats the BC clone for the first time.**
 | PPO 6M flat ("r512") | 0.3923 ± 0.0089 |
 | PPO 6M + LR anneal | 0.4433 ± 0.0091 |
 | PPO 12M flat | 0.4330 (0.425/0.424/0.450) |
-| **PPO 12M + LR anneal — best** | **0.4607** (0.449/0.451/0.482) |
-| BC clone of SH (same encoder+trunk) | 0.453–0.465 |
-| SH-vs-SH mirror = ceiling for anything SH-derived | **0.489** |
-
-P6 read: anneal credited at 12M by 0.003 over the line (z=2.16; seed-level Welch
-p≈0.12 recorded as caveat; arms seed-unpaired). RL is past the clone, 0.028 under the
-mirror ceiling — **P4's training-side gap is CLOSED**, undercutting DESIGN.md Arm A
-(revision 5 banner). The §10 human-replay corpus is now the only lever whose ceiling
-is not 0.489. Full corrected record: SESSION_LOGS.md 2026-08-05 P6 entry.
+| **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
+| BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
+| SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
 
 ## In flight
 
-- **`DESIGN.md` is the roadmap** but needs a revision pass against P6 before the team
-  review means anything; do NOT implement its §4 as specified. Arms B/C unaffected.
-- Git history import approved and unblocked (plan preserved in the 2026-08-05
-  verification log entry).
+- **Team review of DESIGN.md §9 (D1–D7) is the next gate.** Do not implement any arm
+  before it concludes. Author recs: corpus measurement now (D1 c→d), Arm B at 6M with
+  futility screen + 3000-battle eval amendment (D2c), Arm A retired to a ~1 h smoke
+  (D3b), no 24M run (D4c), no new benchmark yet (D5c), closures + sp6m recovery (D6),
+  ladder as success metric (D7a). Arm C parked (3-atom return; nothing to model).
 
 ## Next actions, in order
 
-1. DESIGN.md revision pass vs P6; then the team review (phase placement of §10).
-   P6_RESULTS.md stays until that pass is done.
-2. Open, no deadline: whether to adapt doc-archaeologist here (survives in the old
-   repo's git history); old milestone-1/2 run dirs are gone by flagged decision.
+1. Maintainer reads DESIGN.md §9; team review settles D1–D7.
+2. If D1(c) ratifies: Track 1 parse-free afternoon (six checks; provisional bars in §4).
+3. Open, no deadline: adapt doc-archaeologist from the old repo's git history; recover
+   sp6m self-play numbers from the old repo's retained docs (D6 amendment).
 
 ## Watch items
 
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if ever re-cloned
-  (+81% collection). Verified present in the copy (line 111).
-- Annealed checkpoints cannot be warm-extended: a 12M anneal arm runs from scratch
-  with `lr_anneal_steps: 12000000`.
+  (+81% collection). Verified present (line 111).
+- Annealed checkpoints cannot be warm-extended; any warm start needs the
+  `rl/train.py:134` guard fix first (design decision taken at the Arm A smoke).
 - P6 arms are seed-UNPAIRED (flat s0/s1/s2, annealed s3/s4/s5) — per-seed cross-arm
-  comparison is meaningless.
-- poke-env 0.15.0 upstream bug: SH's setup branch is dead; report still unfiled.
+  comparison is meaningless. Username-salt harness fix would enable pairing (DESIGN §8).
+- Value explained-variance is NOT logged — must be added before Arm B launches (§5).
+- poke-env 0.15.0: SH's setup branch is dead (upstream bug, report unfiled) — every
+  vs-SH number is against this build.
 - Throughput planning: 465–478 steps/s/lane end-to-end at 6-wide; ~95% collect — all
-  headroom is in collect (GPU on the update buys ≤5%).
-- Inherited backlog: decompose collect (`showdown_throughput.py a`) — measurement is
-  stale (placeholder-encoder era); constraints in the 2026-08-04 sweep log entry.
-- Old repo's milestone-1/2 run dirs (heur/maxbp/mix512/sp6m era) were NOT copied —
-  judged superseded; flagged in the §5 report so deletion is a decision.
+  headroom is in collect. Inherited backlog: decompose collect (measurement stale).
+- P6_RESULTS.md deleted 2026-08-05 as pre-flagged (durable record: SESSION_LOGS P6
+  entry + DESIGN r6). Old milestone-1/2 run dirs remain gone by flagged decision.
