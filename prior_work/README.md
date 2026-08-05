@@ -48,7 +48,7 @@ lossy by construction and the code has repeatedly contradicted the project's own
   **Structural advantage for us:** randbats sets come from a fixed, public, enumerable pool
   (`showdown/data/random-battles/gen1/teams.ts`, already vendored), so belief-state reconstruction
   is better posed here than in the OU formats Metamon targets.
-  Full analysis, costs and the open phase-placement question: `DESIGN_P7.md` §10.
+  Full analysis, costs and the open phase-placement question: `DESIGN.md` §10.
 
 ## Sources
 

@@ -1,23 +1,36 @@
-# P7 — BC warm start, staged unfreeze, and shaping: a TRAINING-SIDE package
+# Training-side package — BC warm start, staged unfreeze, and faint shaping
 
 **Status: PROPOSED, not ratified. Written 2026-08-04 for review.**
-Lifecycle: reviewed → revised → the ratified version folds into `PLAN.md` as a Phase-5 scope
-block and each arm's pre-registration moves into its config header (the `showdown_r512_lra.yaml`
-pattern); this file is then deleted. Nothing here is decided.
+Lifecycle: reviewed → revised → each ratified arm's pre-registration moves into its config header
+(the `showdown_r512_lra.yaml` pattern) and STATUS.md tracks execution; this file is then deleted.
+Nothing here is decided.
 
 Self-contained on purpose — a reviewer should need no other file and no prior conversation.
+
+Naming note: **P4, P5, P5b and P6 name experiments from the predecessor repo**
+(`deep-rl-from-scratch`), whose artifacts and results this repo inherits — including the P4 clone
+checkpoints at `runs/bc_p4_512_40k_s{0,1,2}`. Those names are kept as provenance. The proposal
+itself uses fresh names: Arms A, B, C.
 
 Revision 2 (2026-08-04, same evening) folds in an external borrow-advisory. Its load-bearing
 contribution: VGC-Bench's BC is trained on HUMAN demonstrations, which disqualifies the +25–30
 figure as justification for a BC-from-SH warm start (§3, verified against the PDF). That, plus
-P4's measured 0.489 mirror baseline, bounds this entire package at +0.046 and reframes P7a.
+P4's measured 0.489 mirror baseline, bounds this entire package at +0.046 and reframes Arm A.
+
+Revision 4 (2026-08-04): renamed from `DESIGN_P7.md` on spin-out into the capstone repo
+(`pokemon-showdown-rl`); the proposal's old phase naming (P7, P7a–c) dropped in favour of
+Arms A–C; stale old-repo references (charter, `PLAN.md` lifecycle, governance) updated. No
+measured number or claim changed.
 
 > **REVIEWERS: READ §10 FIRST.** Revision 3 adds a verified 109,147-replay `gen1randombattle`
 > human corpus. Human demonstrations are not bounded by the 0.489 SH ceiling that caps every arm
 > in §4, so §10 may dominate this entire package. **Which phase it belongs in is explicitly open
 > — that is the main thing this review needs to settle.**
 
-> ## ⚠ REVISION 4 (2026-08-05, 02:30) — P6 READ, AND IT UNDERCUTS THIS DESIGN'S PREMISE
+> ## ⚠ REVISION 5 (2026-08-05, 02:30) — P6 READ, AND IT UNDERCUTS THIS DESIGN'S PREMISE
+>
+> (Authored in the old repo's copy as its revision 4, before the rename; merged here verbatim
+> with arm names updated. Full P6 detail: `P6_RESULTS.md`.)
 >
 > P6 completed 6/6 lanes at 12M and **the annealed arm pooled 0.4607** (1382/3000; per seed
 > 0.449/0.451/0.482), flat 12M **0.4330**. R0 gates passed on all six lanes.
@@ -25,10 +38,10 @@ P4's measured 0.489 mirror baseline, bounds this entire package at +0.046 and re
 > **The premise of §2 and §4 was that RL sits BELOW a supervised clone of SH (0.453) with the
 > remaining headroom capped at the 0.489 mirror baseline. That is no longer true.** RL is now at
 > **0.4607 — above the clone, and only 0.028 short of the SH-imitation ceiling.** The band that
-> P7a's BC warm start was designed to exploit has largely closed on its own.
+> Arm A's BC warm start was designed to exploit has largely closed on its own.
 >
 > Concretely, what this breaks:
-> - **P7a (BC warm start) loses most of its motivation.** Warm-starting from a 0.453 clone to
+> - **Arm A (BC warm start) loses most of its motivation.** Warm-starting from a 0.453 clone to
 >   reach a policy already at 0.4607 is starting *behind*. Its staged-unfreeze machinery is still
 >   the right design if BC is ever used — but the teacher should now be human replays (§10), not SH.
 > - **§5's "a result above ~0.47 would mean PPO is improving on its teacher"** — the annealed arm's
@@ -38,19 +51,20 @@ P4's measured 0.489 mirror baseline, bounds this entire package at +0.046 and re
 >   room left. Any SH-based arm is fighting for scraps.
 > - **§10 (human replay corpus) is correspondingly MORE important, not less** — it is the only
 >   proposal here whose ceiling is not 0.489.
-> - **P7b (faint shaping) and P7c (distributional value) are unaffected** — neither depends on the
->   clone gap. They stand as written.
+> - **Arm B (faint shaping) and Arm C (distributional value) are unaffected** — neither depends on
+>   the clone gap. They stand as written.
 >
 > **Do not implement §4 as specified.** The design needs a revision pass against these numbers
-> before the team review is meaningful. Full P6 detail: `P6_RESULTS.md` in this repo.
+> before the team review is meaningful.
 
 ---
 
 ## 1. Where the project is
 
-From-scratch deep RL in PyTorch (no RL libraries, by hard rule). Capstone: Pokémon Showdown
-Gen 1 random battles, battle phase only, via poke-env against a local Showdown server. Agent is
-PPO with a `[512,512]` MLP over a 611-dim hand-written observation, 10 discrete actions
+Capstone repo spun out of a from-scratch deep-RL project (DQN, PPO, SAC built without RL
+libraries — a rule that is complete there and retired here). Task: Pokémon Showdown Gen 1 random
+battles, battle phase only, via poke-env against a local Showdown server. Agent is PPO with a
+`[512,512]` MLP over a 611-dim hand-written observation, 10 discrete actions
 (6 switch slots + 4 move slots), terminal-only ±1 reward at `gamma = 1.0`.
 
 Benchmark opponent throughout: poke-env's `SimpleHeuristicsPlayer` ("SH"). Locked protocol for
@@ -67,8 +81,8 @@ Numbers that matter here, all measured in-repo:
 | clone val free-agreement (P4) | 0.9017 / 0.8987 / 0.9047 | 40k battery, 3 seeds |
 
 A run in flight (P6, flat-vs-annealed at 12M on r512) will add two more rows around 01:50 on
-2026-08-05. **P7 should not be ratified before P6 reads**, since a 12M result changes the budget
-premise underneath it.
+2026-08-05. **This package should not be ratified before P6 reads**, since a 12M result changes
+the budget premise underneath it.
 
 ## 2. The finding this package is built on
 
@@ -83,46 +97,48 @@ P4 also bucketed the clone's residual disagreements with SH:
 - weakest buckets, forced-switch 0.866 and voluntary-switch-label 0.556 — **boundary sharpness on
   the analytically-covered matchup argmax, i.e. generalization, not missing information**
 
-**Consequence for P7: encoder work and architecture work are NOT the lever.** An earlier draft of
-this design proposed enriching the move features first; P4's bucket analysis refutes that framing
-and the proposal was dropped. See §7 for the one narrow encoder question that survives.
+**Consequence for this package: encoder work and architecture work are NOT the lever.** An earlier
+draft of this design proposed enriching the move features first; P4's bucket analysis refutes that
+framing and the proposal was dropped. See §7 for the one narrow encoder question that survives.
 
-The complementary caveat P4 itself states, and which P7 must respect: *nothing in P4 shows PPO can
-reach that policy under terminal-only reward.* P7 is precisely an attempt to make it reach it.
+The complementary caveat P4 itself states, and which this package must respect: *nothing in P4
+shows PPO can reach that policy under terminal-only reward.* This package is precisely an attempt
+to make it reach it.
 
 ## 3. External evidence
 
 - **VGC-Bench** (Angliss et al. 2025, arXiv 2506.10326): scratch transformer PPO at 5M steps
   = 0.48 vs SH; BC-initialized variants 0.62–0.78, i.e. +25–30 points at matched budget. The
   project's docs have called this the best-evidenced remaining lever. **Two caveats, and the
-  second is disqualifying for P7a's justification:**
+  second is disqualifying for Arm A's justification:**
   (a) VGC-Bench is doubles/VGC with a joint action space and team building in scope, evaluated
   against a doubles-modified SH — not the apples-to-apples anchor it has been called.
   (b) **Their BC is trained on HUMAN demonstrations**, verified in the paper: *"We train a
   behavior cloning (BC) policy to match the distribution of human actions given a state from the
   dataset D collected by the human play data collector."* **BC-from-humans and BC-from-SH are
-  different levers with different ceilings.** P7a is BC-from-SH, which inherits SH's ceiling by
-  construction. The +25–30 figure is NOT evidence for what P7a will do, and this design does not
+  different levers with different ceilings.** Arm A is BC-from-SH, which inherits SH's ceiling by
+  construction. The +25–30 figure is NOT evidence for what Arm A will do, and this design does not
   claim it. (Raised in external review, 2026-08-04; verified against the PDF.)
 - **The ceiling on BC-from-SH is measured, and it is 0.489.** P4's R0 established the
   SH-vs-SH mirror baseline `b = 0.489` (n=20k) / 0.486 (n=40k) — below 0.5 because ties count as
   non-wins. The clone reached 0.4530 pooled, a ~0.03 cloning tax vs `b`, inside its pre-registered
   margin. **So the entire headroom available to a perfect SH imitator is 0.443 → ~0.489, i.e.
   +0.046.** Every arm in §4 is bounded by this unless PPO genuinely improves on its teacher. That
-  is the honest frame for P7, and it is why §9.2 is the sharpest reviewer question.
-- **ps-ppo** (Nebraskinator, Gen 9 randbats; full source at
-  `/Users/nickgreenquist/Documents/Projects/ps-ppo`, read 2026-08-04): the strongest pure neural
-  policy documented. **Confounded, no ablations** — BC-from-SH init + transformer trunk + faint
-  shaping + distributional value + 250M states, all at once. Its ">85% vs SH" figure **must not be
-  used**: no script in 49 commits ever evaluated against SH. Its ladder Elo is real.
+  is the honest frame for this package, and it is why §9.2 is the sharpest reviewer question.
+- **ps-ppo** (Nebraskinator, Gen 9 randbats; full source in the sibling checkout `../ps-ppo`,
+  read 2026-08-04): the strongest pure neural policy documented. **Confounded, no ablations** —
+  BC-from-SH init + transformer trunk + faint shaping + distributional value + 250M states, all at
+  once. Its ">85% vs SH" figure **must not be used**: no script in 49 commits ever evaluated
+  against SH. Its ladder Elo is real.
 - **Wang** (MIT MEng 2024, gen4randombattles): network alone 0.786 vs SH, but the headline result
   needed MCTS. Source of the LR-anneal ablation this repo already replicated as P5b.
 
-## 4. What P7 proposes
+## 4. What this package proposes
 
-Three training-side changes, aimed where P4 says the bottleneck is. `PLAN.md` already directs that
-these be designed "as a pre-registered stack, not one lever at a time," so the arms below share a
-recipe and are added cumulatively rather than crossed.
+Three training-side changes, aimed where P4 says the bottleneck is. The predecessor repo's plan
+directed that these be designed "as a pre-registered stack, not one lever at a time," and that
+direction carries over: the arms below share a recipe and are added cumulatively rather than
+crossed.
 
 Base recipe for every arm: `showdown_r512_lra.yaml` — `[512,512]`, `rollout_steps: 512`,
 `num_envs: 8`, `epochs: 4`, `minibatches: 4`, `lr: 2.5e-4` with linear anneal to 0 over the
@@ -130,7 +146,7 @@ budget, `gamma: 1.0`, 6M steps, 3 seeds, `opponent: heuristics`.
 **Control for every arm: P5b's pooled 0.4433 ± 0.0091** — same recipe, same budget, same protocol.
 Cost per arm: ~2.9 h at 3-wide.
 
-### P7a — BC warm start with a staged unfreeze
+### Arm A — BC warm start with a staged unfreeze
 
 Initialize PPO from the P4 clone (`runs/bc_p4_512_40k_s{0,1,2}`), then train in two phases:
 
@@ -148,7 +164,7 @@ those multipliers are **dead code at HEAD in their repo** (the default mode stri
 the dict key, so `.get(..., (1.0,1.0,1.0))` returns neutral), and they were never ablated. The
 *mechanism* is sound and standard; the specific constants are not evidence.
 
-### P7b — faint-based reward shaping
+### Arm B — faint-based reward shaping
 
 ±0.1 per faint alongside the ±1 terminal, symmetric, as ps-ppo uses (`faint_self: -0.1`,
 `faint_opp: +0.1`, confirmed in their `config.py`). Rationale: terminal-only ±1 at `gamma = 1.0`
@@ -165,7 +181,7 @@ This also reopens a fork the project had nearly closed on Wang alone: Wang used 
 ps-ppo used ±0.1 faint at 250M. Two strong systems, opposite choices — which is why this is a
 probe arm, not a default.
 
-### P7c — distributional value head
+### Arm C — distributional value head
 
 51-bin categorical value over a bounded support, replacing the scalar head. Independent of the
 above and of Pokémon entirely — so it must be validated on **CartPole and MinAtar through the
@@ -179,7 +195,7 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
 
 - **R0 gates, every arm:** late entropy in [0.2, 1.0] (a frozen value is expected under anneal);
   ties ≤ 4%; steps/s within ~25% of the lane baseline for the concurrency used.
-- **P7a PRIMARY:** pooled BC-warm-started finals vs 0.4433. **Expected effect is modest and
+- **Arm A PRIMARY:** pooled BC-warm-started finals vs 0.4433. **Expected effect is modest and
   bounded**: the SH-imitation ceiling is 0.489 (§3), so the whole available band is +0.046 and the
   credit line of +0.025 consumes over half of it. Do NOT expect a VGC-Bench-scale +25–30 — that
   figure is BC-from-humans. A result at or above ~0.47 would mean PPO is improving on its teacher,
@@ -189,14 +205,14 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
   and the harness invariant mandates a deterministic eval policy. So the 0.453-vs-0.489 gap is a
   real cloning tax, not policy entropy, and P4 priced it at ~4σ on the combined read. No
   greedy/sampled split is needed; the concern is answered by the existing protocol.
-- **P7a MECHANISM (recorded, not gated):** win rate at step 0 (should be ≈ the clone's 0.453 if
+- **Arm A MECHANISM (recorded, not gated):** win rate at step 0 (should be ≈ the clone's 0.453 if
   the handoff is clean — **if it is far below, the warm start is broken and the PRIMARY is
   uninterpretable**); the 0–500k trajectory, to see whether PPO destroys the init and re-climbs.
-- **P7b PRIMARY:** vs the P7a result, one variable. **Comparability warning:** shaping changes the
-  objective, so `rollout/episode_return` becomes incomparable to every prior run. Only
+- **Arm B PRIMARY:** vs the Arm A result, one variable. **Comparability warning:** shaping changes
+  the objective, so `rollout/episode_return` becomes incomparable to every prior run. Only
   `eval/win_rate` under the locked protocol stays comparable, and the shaped reward must not leak
   into the eval path.
-- **P7c:** spine-first. Gate on CartPole/MinAtar parity with the existing baselines before any
+- **Arm C:** spine-first. Gate on CartPole/MinAtar parity with the existing baselines before any
   Showdown arm is run.
 
 ## 6. Blockers and risks
@@ -204,27 +220,28 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
 1. **`rl/train.py:134` refuses `init_from` together with `lr_anneal_steps`.** The guard is
    deliberate: `load_state_dict` restores the agent's update count, so the anneal fraction clamps
    to 0 and the entire run trains at lr ≈ 0 — silently, with no crash and no obviously wrong
-   metric. P7a needs both the credited anneal and the init. **This must be resolved as a design
+   metric. Arm A needs both the credited anneal and the init. **This must be resolved as a design
    decision, not bypassed:** the natural fix is that a warm start is a *fresh* run and should reset
    the update counter, but the guard's comment says "no warm-start config anneals, so refuse the
-   combination instead of inventing resume semantics." P7 is the config that changes that premise.
-2. **The clone's untrained critic** — see P7a step 1. If the warmup phase is skipped or too short,
-   the experiment measures a broken handoff rather than the lever.
+   combination instead of inventing resume semantics." Arm A is the config that changes that
+   premise.
+2. **The clone's untrained critic** — see Arm A step 1. If the warmup phase is skipped or too
+   short, the experiment measures a broken handoff rather than the lever.
 3. **P4's data constraint.** P4 found the clone still data-limited at 40k battles (per-doubling
    agreement gain +0.021, ratio 0.78, extrapolating to a ~0.97 ceiling) and its one pre-authorized
    doubling is spent. A better clone may be available for the cost of more data — which would raise
-   the warm-start floor and is arguably a cheaper first move than any of P7a–c.
+   the warm-start floor and is arguably a cheaper first move than any of the arms.
 4. **Budget premise.** P6 may show 12M materially beats 6M, in which case every arm here should be
    specified at 12M and the control re-derived. Do not ratify before P6 reads. **The prior from the
    archive is that step count buys very little:** VGC-Bench 0.48 at 5M, pokejax ~0.55 at ~378M
    (scratch PPO, gen4randombattle) — roughly 75× the steps for ~7 points. If P6 confirms that
    shape, it argues against any multi-day 150M run and in favour of initialization as the lever.
-5. **Stacking vs isolating.** `PLAN.md` directs a stack. The cost is attribution: if P7a+b+c
-   together clear the line, we will not know which carried it — the exact failure mode that makes
-   ps-ppo uncitable. The arms above are cumulative-but-separately-read to mitigate this, at
-   ~2.9 h per arm.
+5. **Stacking vs isolating.** The stack direction (§4) saves wall-clock; the cost is attribution:
+   if Arms A+B+C together clear the line, we will not know which carried it — the exact failure
+   mode that makes ps-ppo uncitable. The arms above are cumulative-but-separately-read to mitigate
+   this, at ~2.9 h per arm.
 6. **Stop rule.** Ratified 2026-08-02: the 0.5 bar is not chased under this recipe class, and
-   training probes need their own pre-registration. P7 is a mechanism package under that rule.
+   training probes need their own pre-registration. This is a mechanism package under that rule.
    Amendment condition: the README gains a measured sentence only if a PRIMARY credits.
 
 ## 7. Explicitly NOT proposed
@@ -234,7 +251,7 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
   generalization, not information. *The one question that survives:* P4's audit never priced
   **STAB** specifically, and our encoder omits it while precomputing the harder cross-entity type
   multiplier — ps-ppo encodes STAB explicitly. It is a 4-dim change. Proposed only as a possible
-  cheap arm *after* P7a, never as the headline, and note it changes `OBS_DIM` and therefore
+  cheap arm *after* Arm A, never as the headline, and note it changes `OBS_DIM` and therefore
   invalidates every existing checkpoint (see §8).
   A second encoder change is better aimed than the feature additions and is worth a reviewer's
   attention: **boosts as a 7×13 one-hot rather than the current `boosts/6` scalar** (ps-ppo's
@@ -267,15 +284,16 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
 
 ## 9. Questions for reviewers
 
-1. Does P7a's staged unfreeze adequately address the untrained critic, or does the value head need
-   supervised pre-training on returns from the BC dataset before PPO at all?
+1. Does Arm A's staged unfreeze adequately address the untrained critic, or does the value head
+   need supervised pre-training on returns from the BC dataset before PPO at all?
 2. Is the P5b control (0.4433, flat 6M annealed) the right control for a warm-started run, given
    the warm start begins near 0.453? Should the control instead be "the clone, frozen" — i.e. is
    the honest question "does PPO improve on the clone" rather than "does BC init beat scratch"?
-3. §6.3: is *more BC data* the cheaper first move than any P7 arm, given the clone is still
+3. §6.3: is *more BC data* the cheaper first move than any arm, given the clone is still
    data-limited and the warm-start floor scales with clone quality?
-4. Does faint shaping (P7b) risk teaching trade-down behaviour that terminal-only reward correctly
-   avoids — and is potential-based shaping worth the extra machinery to preserve policy invariance?
+4. Does faint shaping (Arm B) risk teaching trade-down behaviour that terminal-only reward
+   correctly avoids — and is potential-based shaping worth the extra machinery to preserve policy
+   invariance?
 5. Is stacking (§6.5) the right call, or does the attribution cost outweigh the wall-clock saving
    at ~2.9 h per arm?
 6. Is anything in §7 wrongly excluded — in particular, is the STAB omission larger than P4's
@@ -285,13 +303,13 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
    from HUMAN demonstrations (§3) and BC-from-SH is capped at 0.489, should the project be pursuing
    a human-replay corpus instead? Metamon's is Gen1**OU**; we are on Gen1**randombattle**. Nobody
    has checked what `gen1randombattle` replay volume actually exists. If the answer is "enough,"
-   that is plausibly a larger and cheaper win than every arm in §4 combined — and it would make P7
-   a detour. **This should be checked before P7 is ratified.**
+   that is plausibly a larger and cheaper win than every arm in §4 combined — and it would make
+   this package a detour. **This should be checked before it is ratified.**
 8. Should the MCTS follow-on be formally downgraded? PokéAgent 2025 had Gen1OU taken by pure-policy
    RL at #1 and #2 with the engine-search agent at #8 in Gen1OU despite winning Gen9OU — evidence
-   the pure-policy handicap is smallest in early generations. Out of P7's scope, but worth settling
-   so it stops being revisited.
-9. **§10 — which phase does the human-replay corpus belong in, and does it demote P7?**
+   the pure-policy handicap is smallest in early generations. Out of this package's scope, but
+   worth settling so it stops being revisited.
+9. **§10 — which phase does the human-replay corpus belong in, and does it demote this package?**
 
 ---
 
@@ -361,8 +379,9 @@ us out of the human-data lever.
 
 - **Selection bias.** Replays are uploaded voluntarily, over-representing games someone thought
   worth saving. Milder in randbats than tournament OU, but real.
-- **No license is stated** on the dataset page. This repo may go public. Handle it the way the
-  Pons benchmark data is already handled — used locally, gitignored, never committed.
+- **No license is stated** on the dataset page — keep it local, gitignored, never committed
+  (it is 69.8 GB in full anyway). The may-go-public strictness that originally motivated this
+  caveat was relaxed 2026-08-05; not committing unlicensed data still stands.
 
 ### The alternative alternative: expert iteration from a strong bot
 
@@ -376,10 +395,11 @@ than human experts, far lower engineering risk.
 
 ### Governance — this needs an explicit decision
 
-CLAUDE.md's hard rule forbids depending on RL libraries. **Metamon ships offline RL algorithms**
-(`metamon` includes trained-agent and RL code), so forking or importing its parser requires an
-explicit carve-out on the `open_spiel` model: dev-only, data-preparation only, pinned by a test
-that greps the tree. This must be a stated decision, not something that happens incidentally
+The predecessor's no-RL-libraries rule is retired in this repo, so no carve-out is required.
+What remains binding is the provenance obligation — anything forked from Metamon gets named in the
+README and in code, with an exact pin — and the fact that Metamon ships offline RL algorithms and
+trained agents we would NOT be adopting wholesale by taking its parser. Adopting it should still
+be a stated decision recorded in this file or STATUS.md, not something that happens incidentally
 because a parser was convenient.
 
 ### Recommended first step: measure, do not build
@@ -396,17 +416,18 @@ of the 109k `gen1randombattle` replays and establish:
 
 ### Phase placement — the open question
 
-- **(A) Before P7.** If human BC is the real lever, P7's SH-based arms are a detour and the 0.489
-  cap makes them low-ceiling by construction. Argues for reordering now.
-- **(B) After P7.** P7 is designed, cheap (~2.9 h/arm) and answers a question P4 posed directly.
-  This is a chapter with a data pipeline and a correctness hazard in front of it.
-- **(C) Measurement now, build later.** Run the five checks above in parallel with P6/P7 and let
-  the numbers decide. Cheapest, and forecloses nothing.
+- **(A) Before this package.** If human BC is the real lever, the SH-based arms are a detour and
+  the 0.489 cap makes them low-ceiling by construction. Argues for reordering now.
+- **(B) After this package.** The package is designed, cheap (~2.9 h/arm) and answers a question
+  P4 posed directly. The corpus is a chapter with a data pipeline and a correctness hazard in
+  front of it.
+- **(C) Measurement now, build later.** Run the five checks above in parallel with P6 and this
+  review, and let the numbers decide. Cheapest, and forecloses nothing.
 - **(D) Its own phase.** It is a data-engineering chapter, not a probe, and does not fit the
   one-variable pre-registration pattern the rest of this document uses.
 
-**Author's recommendation: (C), then very likely (D).** The measurement is cheap and P7a's staged
-unfreeze is worth building regardless — a warm-start pipeline that works for an SH clone is the
-same pipeline a human clone would use, so P7a de-risks the larger chapter rather than competing
-with it. But if the measurement shows a strong skill signal and clean parsing, (A) becomes
-defensible and the team should say so.
+**Author's recommendation: (C), then very likely (D).** The measurement is cheap and Arm A's
+staged unfreeze is worth building regardless — a warm-start pipeline that works for an SH clone is
+the same pipeline a human clone would use, so Arm A de-risks the larger chapter rather than
+competing with it. But if the measurement shows a strong skill signal and clean parsing, (A)
+becomes defensible and the team should say so.

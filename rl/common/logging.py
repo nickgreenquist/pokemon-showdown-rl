@@ -13,7 +13,7 @@ from pathlib import Path
 
 from rl.common.config import Config, run_dir
 
-WANDB_PROJECT = "deep-rl-from-scratch"
+WANDB_PROJECT = "pokemon-showdown-rl"
 
 
 class Logger(ABC):

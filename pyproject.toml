@@ -3,43 +3,35 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "deep-rl-from-scratch"
+name = "pokemon-showdown-rl"
 version = "0.1.0"
-description = "DQN, PPO, and SAC implemented from scratch in PyTorch on a shared training harness"
+description = "RL agent for Pokemon Showdown Gen 1 random battles, played via poke-env against a local Showdown server"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "torch==2.13.0",
-    # box2d (LunarLander) needs swig at install time: brew install swig
-    "gymnasium[classic-control,toy-text,box2d,mujoco]==1.3.0",
+    # Env driver for the capstone task: battle-protocol client/env layer over a
+    # local Node.js Showdown server (vendored at showdown/, gitignored).
+    "poke-env==0.15.0",
     "numpy==2.5.1",
-    "wandb==0.28.1",       # default logger
+    "wandb==0.28.1",       # default logger (offline by default)
     "tensorboard==2.21.0", # offline fallback logger
     "pyyaml==6.0.3",
-    # Phase 1 discrete-track benchmark envs. Drags in its GUI/analysis stack
-    # (matplotlib, seaborn, pandas, scipy) transitively — unavoidable via pip.
-    "minatar==1.0.15",
-    # Imported directly by scripts/record.py (frame annotation + GIF encode);
-    # pinned to the version matplotlib already pulls in transitively.
+    # Imported directly by scripts/record.py (frame annotation + GIF encode).
     "pillow==12.3.0",
-    # Phase 2-3 continuous-track benchmark envs (HalfCheetah/Hopper/Walker2d).
-    # gymnasium's mujoco extra requires only mujoco>=2.1.5; pinned exactly here
-    # because the physics engine version moves benchmark numbers. Note the
-    # published PPO anchors we compare against were produced on v4 envs under
-    # mujoco<=2.3.3, which is one reason those anchors are directional only.
+    # --- Inherited from the predecessor repo (deep-rl-from-scratch) ---
+    # The rl/ package still carries that project's spine (DQN, SAC, Connect 4,
+    # MinAtar, MuJoCo envs) and its tests, copied wholesale. These pins exist
+    # only because that code imports them; prune them together with the spine.
+    # box2d (LunarLander) needs swig at install time: brew install swig
+    "gymnasium[classic-control,toy-text,box2d,mujoco]==1.3.0",
+    "minatar==1.0.15",
     "mujoco==3.10.0",
-    # Phase 5 capstone env driver (Pokémon Showdown Gen 1). Not an RL library —
-    # it is a battle-protocol client/env layer; agents and training stay ours.
-    # Requires a local Node.js Showdown server: scripts/setup_showdown.sh.
-    "poke-env==0.15.0",
 ]
 
 [project.optional-dependencies]
-# open_spiel is a DEV-ONLY differential-test oracle for the Phase 4 Connect 4
-# board — the narrow carve-out from the no-RL-libraries rule (see CLAUDE.md).
-# It also ships open_spiel.python.algorithms.{dqn,ppo,...}; tests may import
-# `pyspiel.load_game("connect_four")` and NEVER open_spiel.python.*, which
-# tests/test_connect4_oracle.py pins by grepping the tree.
+# open_spiel is a dev-only differential-test oracle for the inherited Connect 4
+# spine tests (tests/test_connect4_oracle.py); prunes with the spine.
 dev = ["pytest==9.1.1", "open_spiel==2.0.1"]
 
 [tool.setuptools.packages.find]
