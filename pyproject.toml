@@ -31,6 +31,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest==9.1.1"]
+# Human-replay corpus survey (DESIGN.md §4 Track 1 / §10). Only needed to run
+# scripts/corpus_survey.py, which downloads and measures the single
+# gen1randombattle parquet from HolidayOugi/pokemon-showdown-replays at a
+# pinned revision. Not needed by rl/ or by the test suite.
+corpus = [
+    "huggingface-hub==1.26.0", # pinned-revision download of one parquet file
+    "pyarrow==25.0.0",         # read that parquet without pandas in the loop
+    "hf-xet==1.6.0",           # Xet-backed transfer for the 200 MB file
+]
 
 [tool.setuptools.packages.find]
 include = ["rl*"]
