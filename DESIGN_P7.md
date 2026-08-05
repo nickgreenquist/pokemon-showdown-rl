@@ -7,6 +7,11 @@ pattern); this file is then deleted. Nothing here is decided.
 
 Self-contained on purpose — a reviewer should need no other file and no prior conversation.
 
+Revision 2 (2026-08-04, same evening) folds in an external borrow-advisory. Its load-bearing
+contribution: VGC-Bench's BC is trained on HUMAN demonstrations, which disqualifies the +25–30
+figure as justification for a BC-from-SH warm start (§3, verified against the PDF). That, plus
+P4's measured 0.489 mirror baseline, bounds this entire package at +0.046 and reframes P7a.
+
 ---
 
 ## 1. Where the project is
@@ -56,12 +61,23 @@ reach that policy under terminal-only reward.* P7 is precisely an attempt to mak
 ## 3. External evidence
 
 - **VGC-Bench** (Angliss et al. 2025, arXiv 2506.10326): scratch transformer PPO at 5M steps
-  = 0.48 vs SH; BC-initialized variants 0.62–0.78. **+25–30 points at matched budget** — the
-  best-evidenced remaining lever anywhere. *Caveat, and it is not small:* VGC-Bench is doubles/VGC
-  with a joint action space and team building in scope, and it evaluates against a
-  doubles-modified SH. The relative BC-vs-scratch effect transfers across settings far better than
-  the absolute win rate does, but this is not the apples-to-apples anchor the project's docs have
-  called it.
+  = 0.48 vs SH; BC-initialized variants 0.62–0.78, i.e. +25–30 points at matched budget. The
+  project's docs have called this the best-evidenced remaining lever. **Two caveats, and the
+  second is disqualifying for P7a's justification:**
+  (a) VGC-Bench is doubles/VGC with a joint action space and team building in scope, evaluated
+  against a doubles-modified SH — not the apples-to-apples anchor it has been called.
+  (b) **Their BC is trained on HUMAN demonstrations**, verified in the paper: *"We train a
+  behavior cloning (BC) policy to match the distribution of human actions given a state from the
+  dataset D collected by the human play data collector."* **BC-from-humans and BC-from-SH are
+  different levers with different ceilings.** P7a is BC-from-SH, which inherits SH's ceiling by
+  construction. The +25–30 figure is NOT evidence for what P7a will do, and this design does not
+  claim it. (Raised in external review, 2026-08-04; verified against the PDF.)
+- **The ceiling on BC-from-SH is measured, and it is 0.489.** P4's R0 established the
+  SH-vs-SH mirror baseline `b = 0.489` (n=20k) / 0.486 (n=40k) — below 0.5 because ties count as
+  non-wins. The clone reached 0.4530 pooled, a ~0.03 cloning tax vs `b`, inside its pre-registered
+  margin. **So the entire headroom available to a perfect SH imitator is 0.443 → ~0.489, i.e.
+  +0.046.** Every arm in §4 is bounded by this unless PPO genuinely improves on its teacher. That
+  is the honest frame for P7, and it is why §9.2 is the sharpest reviewer question.
 - **ps-ppo** (Nebraskinator, Gen 9 randbats; full source at
   `/Users/nickgreenquist/Documents/Projects/ps-ppo`, read 2026-08-04): the strongest pure neural
   policy documented. **Confounded, no ablations** — BC-from-SH init + transformer trunk + faint
@@ -108,6 +124,15 @@ over ~27-step episodes is an extremely sparse signal, and P4 localized the failu
 distribution / optimization. Known trap, from their commit log: an off-by-one in faint attribution
 (`17e0955 fixed off-by-one in faint reward calculation`).
 
+**The form is load-bearing and theirs is the right one.** Symmetric and faint-based, NOT HP-delta:
+equal magnitude in both directions keeps it near the potential-based form so the optimal policy is
+roughly preserved, whereas HP-delta shaping penalizes switching — the single skill we most want
+learned, and the one P4's weak buckets (forced-switch 0.866, voluntary-switch-label 0.556) already
+show is hardest. Keep the shaped term clearly subordinate to the terminal signal.
+This also reopens a fork the project had nearly closed on Wang alone: Wang used sparse ±1 at 150M,
+ps-ppo used ±0.1 faint at 250M. Two strong systems, opposite choices — which is why this is a
+probe arm, not a default.
+
 ### P7c — distributional value head
 
 51-bin categorical value over a bounded support, replacing the scalar head. Independent of the
@@ -122,9 +147,16 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
 
 - **R0 gates, every arm:** late entropy in [0.2, 1.0] (a frozen value is expected under anneal);
   ties ≤ 4%; steps/s within ~25% of the lane baseline for the concurrency used.
-- **P7a PRIMARY:** pooled BC-warm-started finals vs 0.4433. VGC-Bench predicts a large effect; a
-  null at this budget is itself informative and would be the first evidence that the BC-init
-  result does not transfer from doubles/VGC to Gen 1 singles.
+- **P7a PRIMARY:** pooled BC-warm-started finals vs 0.4433. **Expected effect is modest and
+  bounded**: the SH-imitation ceiling is 0.489 (§3), so the whole available band is +0.046 and the
+  credit line of +0.025 consumes over half of it. Do NOT expect a VGC-Bench-scale +25–30 — that
+  figure is BC-from-humans. A result at or above ~0.47 would mean PPO is improving on its teacher,
+  which is the genuinely interesting outcome and a stronger claim than "BC init helps."
+- **Clone-eval protocol, resolved in advance** (raised in external review): our clone numbers are
+  already **greedy**, not sampled — `scripts/train_bc.py` evaluates by argmax over masked logits,
+  and the harness invariant mandates a deterministic eval policy. So the 0.453-vs-0.489 gap is a
+  real cloning tax, not policy entropy, and P4 priced it at ~4σ on the combined read. No
+  greedy/sampled split is needed; the concern is answered by the existing protocol.
 - **P7a MECHANISM (recorded, not gated):** win rate at step 0 (should be ≈ the clone's 0.453 if
   the handoff is clean — **if it is far below, the warm start is broken and the PRIMARY is
   uninterpretable**); the 0–500k trajectory, to see whether PPO destroys the init and re-climbs.
@@ -151,7 +183,10 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
    doubling is spent. A better clone may be available for the cost of more data — which would raise
    the warm-start floor and is arguably a cheaper first move than any of P7a–c.
 4. **Budget premise.** P6 may show 12M materially beats 6M, in which case every arm here should be
-   specified at 12M and the control re-derived. Do not ratify before P6 reads.
+   specified at 12M and the control re-derived. Do not ratify before P6 reads. **The prior from the
+   archive is that step count buys very little:** VGC-Bench 0.48 at 5M, pokejax ~0.55 at ~378M
+   (scratch PPO, gen4randombattle) — roughly 75× the steps for ~7 points. If P6 confirms that
+   shape, it argues against any multi-day 150M run and in favour of initialization as the lever.
 5. **Stacking vs isolating.** `PLAN.md` directs a stack. The cost is attribution: if P7a+b+c
    together clear the line, we will not know which carried it — the exact failure mode that makes
    ps-ppo uncitable. The arms above are cumulative-but-separately-read to mitigate this, at
@@ -169,9 +204,18 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
   multiplier — ps-ppo encodes STAB explicitly. It is a 4-dim change. Proposed only as a possible
   cheap arm *after* P7a, never as the headline, and note it changes `OBS_DIM` and therefore
   invalidates every existing checkpoint (see §8).
+  A second encoder change is better aimed than the feature additions and is worth a reviewer's
+  attention: **boosts as a 7×13 one-hot rather than the current `boosts/6` scalar** (ps-ppo's
+  `boosts_raw`, 91 dims). It adds no information, so P4's "information is not missing" verdict
+  does not refute it — it changes the *representation*, removing a nonlinearity the net currently
+  has to learn, which targets precisely the "boundary sharpness" P4 blamed. Same `OBS_DIM` caveat.
 - **Transformer / entity-tokenized trunk** — capacity is not the measured constraint, and on CPU
   it would cost throughput in a loop that is already 95% collect (measured 2026-08-04), where
-  inference sits inside collect.
+  inference sits inside collect. **The inference-cost measurement is a hard PRECONDITION, not a
+  step within the work.** Gen 1 also shrinks the prize: their Pokémon token fuses species, item,
+  four ability slots, Tera, weather and hazards — none of which exist in Gen 1 — so much of what
+  their attention relates does not exist in our format. What would transfer is the part our audit
+  cares about: attending to the opponent's active when scoring switch candidates.
 - **JEPA, KV-cache history, move-ID embeddings** — undisclosed and unablated in the only source
   that uses them; the author's public description of the history path contradicts his own code.
 - **Wholesale hyperparameter adoption** from ps-ppo (`gamma` 0.999, `clip` 0.1, `epochs` 2, …) —
@@ -203,4 +247,15 @@ finals (1000 battles/seed, ties as non-wins) against the P5b control 0.4433.
 5. Is stacking (§6.5) the right call, or does the attribution cost outweigh the wall-clock saving
    at ~2.9 h per arm?
 6. Is anything in §7 wrongly excluded — in particular, is the STAB omission larger than P4's
-   bucket analysis implies, given that analysis never isolated it?
+   bucket analysis implies, given that analysis never isolated it? And is the boosts one-hot
+   (a representation change aimed at P4's actual finding) a better cheap arm than any feature add?
+7. **The largest open question this design does not answer:** given that VGC-Bench's +25–30 comes
+   from HUMAN demonstrations (§3) and BC-from-SH is capped at 0.489, should the project be pursuing
+   a human-replay corpus instead? Metamon's is Gen1**OU**; we are on Gen1**randombattle**. Nobody
+   has checked what `gen1randombattle` replay volume actually exists. If the answer is "enough,"
+   that is plausibly a larger and cheaper win than every arm in §4 combined — and it would make P7
+   a detour. **This should be checked before P7 is ratified.**
+8. Should the MCTS follow-on be formally downgraded? PokéAgent 2025 had Gen1OU taken by pure-policy
+   RL at #1 and #2 with the engine-search agent at #8 in Gen1OU despite winning Gen9OU — evidence
+   the pure-policy handicap is smallest in early generations. Out of P7's scope, but worth settling
+   so it stops being revisited.
