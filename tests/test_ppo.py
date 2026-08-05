@@ -1,8 +1,10 @@
 """PPO-specific tests: hand-computed clipped-surrogate cases through the
 factored loss function (a regression points at the code, not at a second
 implementation of the same formula), the fill-then-train update cadence,
-the lr-anneal schedule's endpoints, act()'s rank handling on conv-shaped
-observations, and a train-loop smoke through the real vector path.
+the lr-anneal schedule's endpoints, the batch-level mechanism diagnostics
+(explained variance, advantage scale, whether the grad clip binds), act()'s
+rank handling on conv-shaped observations, and a train-loop smoke through the
+real vector path.
 """
 
 import math
@@ -13,6 +15,7 @@ import pytest
 import torch
 
 from rl.agents.ppo import PPOAgent, clipped_surrogate_loss
+from rl.buffers.rollout import compute_gae
 from rl.common.checkpoint import load_checkpoint
 from rl.common.config import Config
 from rl.train import train
@@ -87,9 +90,10 @@ def test_loss_is_mean_over_transitions():
     assert frac.item() == 1.0
 
 
-def _agent(rollout_steps=4, num_envs=2):
+def _agent(rollout_steps=4, num_envs=2, **overrides):
     torch.manual_seed(0)
     return PPOAgent(
+        **overrides,
         observation_space=gym.spaces.Box(-1.0, 1.0, (3,), np.float32),
         action_space=gym.spaces.Discrete(2),
         num_envs=num_envs,
@@ -184,6 +188,7 @@ def test_update_cadence_fill_train_clear():
     metrics = agent.update(_row(3, terminated=True))  # the fill triggers training
     assert set(metrics) == {
         "loss/policy", "loss/value", "loss/entropy", "loss/approx_kl", "loss/clip_frac",
+        "loss/grad_norm", "loss/grad_clip_frac", "loss/explained_variance", "loss/adv_std",
     }
     assert agent.updates == 1
     assert len(agent.buffer) == 0  # cleared: on-policy data dies after one cycle
@@ -314,6 +319,190 @@ def test_cartpole_ppo_smoke(tmp_path, monkeypatch):
     # fills exactly 4 times.
     assert ckpt["agent"]["updates"] == 4
     assert (tmp_path / "runs" / "test_cartpole_ppo" / "best_checkpoint.pt").exists()
+
+
+def _batch_before_training(rows):
+    """The advantages and value targets the LAST row's update() is about to
+    compute, re-derived on a twin agent from the public helpers.
+
+    `_agent` is seeded, and the fills that only accumulate consume no RNG, so
+    the twin's critic is bit-identical to the one the real update reads."""
+    twin = _agent(rollout_steps=len(rows))
+    for row in rows:
+        twin.buffer.add(*row[:-1])  # add() takes everything but next_masks
+    buf = twin.buffer
+    flat_obs = torch.as_tensor(buf.obs, dtype=torch.float32).flatten(0, 1)
+    flat_next_obs = torch.as_tensor(buf.next_obs, dtype=torch.float32).flatten(0, 1)
+    with torch.no_grad():
+        values = twin.critic(flat_obs).squeeze(-1).view(buf.horizon, buf.num_envs).numpy()
+        next_values = (
+            twin.critic(flat_next_obs).squeeze(-1).view(buf.horizon, buf.num_envs).numpy()
+        )
+    advantages = compute_gae(
+        buf.rewards, buf.terminated, buf.truncated, values, next_values,
+        twin.gamma, twin.gae_lambda,
+    )
+    return advantages.reshape(-1), (advantages + values).reshape(-1)
+
+
+def test_explained_variance_and_adv_std_match_a_hand_computation():
+    """The two batch-level mechanism reads (DESIGN.md §5). Explained variance
+    is 1 - Var(target - V) / Var(target) over the WHOLE rollout, from the
+    critic as it stood before this update's epochs — recomputed here from
+    compute_gae rather than from the agent's internals."""
+    agent = _agent(rollout_steps=4)
+    rows = [_row(t) for t in range(3)] + [_row(3, terminated=True)]
+    for row in rows[:-1]:
+        agent.update(row)
+    metrics = agent.update(rows[-1])
+
+    advantages, targets = _batch_before_training(rows)
+    expected_ev = 1.0 - advantages.var() / targets.var()
+    assert metrics["loss/explained_variance"] == pytest.approx(expected_ev, abs=1e-6)
+    assert metrics["loss/adv_std"] == pytest.approx(advantages.std(), abs=1e-6)
+    # Population, not sample, variance — the batch IS the population. The two
+    # differ by n/(n-1), which at this batch size is a 14% gap, so a silent
+    # switch to the unbiased spelling would be caught here.
+    assert advantages.std(ddof=1) != pytest.approx(advantages.std(), abs=1e-6)
+
+
+def test_explained_variance_is_zero_on_a_degenerate_batch():
+    """Constant targets leave the ratio 0/0. Report 0.0 ("explains nothing"),
+    never a NaN — a NaN would propagate through the logger's history and every
+    downstream mean, and the metric is a diagnostic, not a loss.
+
+    gamma = lambda = 0 collapses GAE to r - V(s), so identical rows give an
+    identical advantage on every transition and a target of exactly r: zero
+    variance, by construction rather than by luck."""
+    torch.manual_seed(0)
+    agent = PPOAgent(
+        observation_space=gym.spaces.Box(-1.0, 1.0, (3,), np.float32),
+        action_space=gym.spaces.Discrete(2),
+        num_envs=2, device="cpu", lr=1.0e-3, gamma=0.0, gae_lambda=0.0,
+        rollout_steps=4, epochs=1, minibatches=1, clip_eps=0.2,
+        entropy_coef=0.01, value_coef=0.5, max_grad_norm=0.5, hidden_sizes=[8],
+    )
+    for _ in range(3):
+        agent.update(_row(0))
+    metrics = agent.update(_row(0))
+    assert metrics["loss/adv_std"] == pytest.approx(0.0, abs=1e-7)
+    assert metrics["loss/explained_variance"] == 0.0
+    assert not math.isnan(metrics["loss/explained_variance"])
+
+
+def test_grad_clip_frac_reports_whether_the_clip_binds():
+    """The production read the 2026-08-05 audit could not get: `loss/grad_norm`
+    is the PRE-clip total norm and `loss/grad_clip_frac` the share of
+    minibatches it exceeds max_grad_norm on. A permanently-binding clip is a
+    silent lr divisor, which is a different failure from a rare spike."""
+    always = _agent(rollout_steps=4)
+    always.max_grad_norm = 1e-9  # every minibatch must clip
+    for t in range(3):
+        always.update(_row(t))
+    metrics = always.update(_row(3, terminated=True))
+    assert metrics["loss/grad_clip_frac"] == 1.0
+    assert metrics["loss/grad_norm"] > 1e-9  # the norm is reported BEFORE the clip
+
+    never = _agent(rollout_steps=4)
+    never.max_grad_norm = 1e9
+    for t in range(3):
+        never.update(_row(t))
+    metrics = never.update(_row(3, terminated=True))
+    assert metrics["loss/grad_clip_frac"] == 0.0
+    assert metrics["loss/grad_norm"] > 0.0
+
+
+def _fill(agent, base=0):
+    """Drive exactly one rollout fill and return the update's metric report."""
+    report = {}
+    for t in range(agent.buffer.horizon):
+        report = agent.update(_row(base + t, num_envs=agent.buffer.num_envs))
+    return report
+
+
+def test_param_group_split_is_a_no_op_at_the_default_scale():
+    """The actor/critic param-group split exists so actor_lr_scale has
+    somewhere to live. At scale 1.0 both groups carry identical
+    hyperparameters, so every pre-existing recipe must train BIT-FOR-BIT as
+    it did under the single group this replaced — the PPO audit's standard."""
+    def run(single_group: bool):
+        agent = _agent(rollout_steps=4)  # seeded init, identical either way
+        if single_group:  # the pre-split optimizer, verbatim
+            agent.optimizer = torch.optim.Adam(agent.params, lr=agent.base_lr, eps=1e-5)
+        torch.manual_seed(1)  # the epoch loop's randperm stream
+        for _ in range(3):
+            _fill(agent)
+        return [p.detach().clone() for p in agent.params]
+
+    for split, unsplit in zip(run(False), run(True)):
+        assert torch.equal(split, unsplit)
+
+
+def test_load_state_dict_accepts_a_pre_split_single_group_checkpoint():
+    """Every stored P4/P5/P6 final was written before the param-group split
+    and carries ONE group; torch refuses a state dict whose group count
+    differs. The graft keeps our groups and restores only the moments, whose
+    keys are positional indices over the params flattened in group order —
+    actor then critic, unchanged by the split, which is what makes the
+    remap exact rather than approximate."""
+    donor = _agent()
+    for _ in range(2):
+        _fill(donor)  # real Adam moments to restore
+    state = donor.state_dict()
+    groups = state["optimizer"]["param_groups"]
+    assert len(groups) == 2
+    legacy = dict(groups[0]) | {"params": [i for g in groups for i in g["params"]]}
+    state["optimizer"] = {"state": state["optimizer"]["state"], "param_groups": [legacy]}
+
+    recipient = _agent()
+    recipient.load_state_dict(state)
+    assert len(recipient.optimizer.param_groups) == 2  # our grouping survives
+    for ours, theirs in zip(recipient.params, donor.params):
+        assert torch.equal(
+            recipient.optimizer.state[ours]["exp_avg"], donor.optimizer.state[theirs]["exp_avg"]
+        )
+        assert torch.equal(
+            recipient.optimizer.state[ours]["exp_avg_sq"],
+            donor.optimizer.state[theirs]["exp_avg_sq"],
+        )
+
+
+def test_critic_only_warmup_freezes_the_actor_then_hands_it_back():
+    """The staged unfreeze (DESIGN.md §4, inherited by the human-BC chapter):
+    a cloned policy must not be handed to advantages computed off a random
+    value head. During warmup the actor is untouched and the critic still
+    learns; the update that crosses the boundary starts moving the actor."""
+    agent = _agent(rollout_steps=4, critic_warmup_updates=2)
+    actor0 = [p.detach().clone() for p in agent.actor_params]
+    critic0 = [p.detach().clone() for p in agent.critic_params]
+
+    for update in range(2):
+        report = _fill(agent, base=update * 4)
+        assert all(torch.equal(p, q) for p, q in zip(agent.actor_params, actor0))
+        # A frozen actor makes pi_new == pi_old exactly, which is the visible
+        # signature of a warmup update in the logs.
+        assert report["loss/approx_kl"] == pytest.approx(0.0, abs=1e-12)
+        assert report["loss/clip_frac"] == 0.0
+    assert any(not torch.equal(p, q) for p, q in zip(agent.critic_params, critic0))
+
+    _fill(agent, base=8)  # update 2: the actor is live again
+    assert any(not torch.equal(p, q) for p, q in zip(agent.actor_params, actor0))
+
+
+def test_actor_lr_scale_applies_to_the_actor_group_only_and_anneals():
+    agent = _agent(rollout_steps=4, actor_lr_scale=0.25)
+    actor_group, critic_group = agent.optimizer.param_groups
+    assert actor_group["lr"] == pytest.approx(0.25e-3)
+    assert critic_group["lr"] == pytest.approx(1.0e-3)
+    assert [id(p) for p in actor_group["params"]] == [id(p) for p in agent.actor_params]
+
+    # The anneal rewrites BOTH groups from base_lr each update; reading a
+    # group's own lr back and scaling it would compound the fraction.
+    annealed = _agent(rollout_steps=4, actor_lr_scale=0.25, lr_anneal_steps=32)
+    annealed.updates = 2  # 2 * 4 * 2 = 16 of 32 steps seen -> frac 0.5
+    _fill(annealed)
+    assert annealed.optimizer.param_groups[0]["lr"] == pytest.approx(0.125e-3)
+    assert annealed.optimizer.param_groups[1]["lr"] == pytest.approx(0.5e-3)
 
 
 def test_load_state_dict_keeps_the_configs_lr():

@@ -218,6 +218,8 @@ class PPOAgent(Agent):
         hidden_sizes: list[int],
         lr_anneal_steps: int = 0,
         kernel_size: int = 3,
+        critic_warmup_updates: int = 0,
+        actor_lr_scale: float = 1.0,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -250,6 +252,26 @@ class PPOAgent(Agent):
         self.obs_rank = len(observation_space.shape)
         self.base_lr = lr
         self.lr_anneal_steps = lr_anneal_steps
+        # Staged unfreeze, for warm starts from a checkpoint whose critic is
+        # untrained — a behaviour-cloned policy is the case that matters (a BC
+        # clone has no critic at all). Naive PPO from there computes every
+        # advantage off a random value head and destroys the cloned policy in
+        # the first updates, which measures a broken handoff and not the
+        # policy. Both default to the no-op, so every pre-existing config
+        # trains exactly as before.
+        #   critic_warmup_updates: the actor is FROZEN for this many updates
+        #     while the critic regresses onto the cloned policy's returns.
+        #   actor_lr_scale: after unfreeze, the actor's lr is this multiple of
+        #     the critic's — ps-ppo's "reduced backbone LR" idea, which maps
+        #     to the whole actor here because the two heads share no trunk.
+        #     Their specific multipliers are dead code at their HEAD and were
+        #     never ablated, so the constant is ours to choose.
+        if critic_warmup_updates < 0:
+            raise ValueError(f"critic_warmup_updates must be >= 0, got {critic_warmup_updates}")
+        if actor_lr_scale <= 0.0:
+            raise ValueError(f"actor_lr_scale must be > 0, got {actor_lr_scale}")
+        self.critic_warmup_updates = critic_warmup_updates
+        self.actor_lr_scale = actor_lr_scale
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
         if self.obs_rank == 3:
@@ -286,8 +308,23 @@ class PPOAgent(Agent):
         self.critic.to(self.device)
         # One Adam over the union of both nets' params; eps=1e-5 is the
         # canonical PPO detail (shipped by every reference implementation).
-        self.params = [*self.actor.parameters(), *self.critic.parameters()]
-        self.optimizer = torch.optim.Adam(self.params, lr=lr, eps=1e-5)
+        # Split into two PARAM GROUPS — actor first, critic second, which is
+        # the flat order `self.params` and every existing checkpoint already
+        # use — so `actor_lr_scale` has somewhere to live. At the default
+        # scale of 1.0 the two groups carry identical hyperparameters and
+        # Adam's per-tensor arithmetic is unchanged, so the split is
+        # bit-for-bit a no-op on every existing recipe (regression-tested).
+        self.actor_params = list(self.actor.parameters())
+        self.critic_params = list(self.critic.parameters())
+        self.params = [*self.actor_params, *self.critic_params]
+        self.optimizer = torch.optim.Adam(
+            [
+                {"params": self.actor_params, "lr": lr * actor_lr_scale},
+                {"params": self.critic_params, "lr": lr},
+            ],
+            eps=1e-5,
+        )
+        self._set_actor_trainable(critic_warmup_updates == 0)
         action_storage = (
             {"action_shape": (act_dim,), "action_dtype": np.float32} if self.continuous
             else {"action_shape": (), "action_dtype": np.int64, "n_actions": int(action_space.n)}
@@ -300,6 +337,14 @@ class PPOAgent(Agent):
             **action_storage,
         )
         self.updates = 0  # completed fill -> epochs cycles
+
+    def _set_actor_trainable(self, trainable: bool) -> None:
+        """The staged unfreeze's switch. requires_grad=False is a TRUE freeze:
+        backward never populates those grads, and Adam skips any param whose
+        grad is None. Zeroing the gradients instead would not freeze anything
+        — Adam's existing moments keep walking the weights on a zero grad."""
+        for param in self.actor_params:
+            param.requires_grad_(trainable)
 
     def act(self, obs: Any, action_mask: Any = None, deterministic: bool = False) -> Any:
         # float32 at tensor time (MinAtar obs are bool planes); branch on obs
@@ -416,16 +461,58 @@ class PPOAgent(Agent):
         flat_advantages = advantages_t.reshape(-1)
         flat_old_logp = old_logp.reshape(-1)
 
+        # Mechanism diagnostics, computed ONCE per update on the whole batch
+        # (DESIGN.md §5: without them a null result cannot distinguish "the
+        # lever did nothing" from "the lever never changed the learning
+        # signal"). Both read PRE-update quantities — the critic's fit and the
+        # advantage scale the epochs below are about to consume.
+        with torch.no_grad():
+            # explained variance = 1 - Var(target - V) / Var(target), the
+            # standard CleanRL/SB3 critic-quality read: 0 means the critic is
+            # no better than predicting the batch mean, 1 means it explains
+            # the returns exactly, negative means actively worse than the
+            # mean. The residual target - V IS the advantage here
+            # (flat_targets = advantages + values), so no second pass.
+            target_var = flat_targets.var(unbiased=False)
+            # Population variance, not sample — the batch is the population.
+            # A degenerate batch (every target identical) leaves the ratio
+            # undefined; report 0.0 rather than a NaN that would poison the
+            # logger's history and every downstream mean.
+            explained_variance = (
+                0.0
+                if float(target_var) < 1e-12
+                else float(1.0 - flat_advantages.var(unbiased=False) / target_var)
+            )
+            # PRE-normalization advantage std: the minibatch loop z-scores
+            # advantages, which makes the surrogate blind to the signal's
+            # scale, so this is the only place a shaping term's effect on
+            # advantage magnitude is visible at all.
+            adv_std = float(flat_advantages.std(unbiased=False))
+
+        # Staged unfreeze (no-op unless critic_warmup_updates > 0): the actor
+        # is frozen for the first N updates while the critic regresses onto
+        # the loaded policy's returns. The loss below keeps its policy and
+        # entropy terms rather than branching — with a frozen actor the ratio
+        # is identically 1, so both terms are constants that contribute no
+        # gradient, and their diagnostics stay readable: approx_kl and
+        # clip_frac pinned at exactly 0 are the visible signature of a warmup
+        # update, and loss/grad_norm reads the critic alone (clip_grad_norm_
+        # skips params with no grad).
+        self._set_actor_trainable(self.updates >= self.critic_warmup_updates)
+
         # Linear lr anneal, off at lr_anneal_steps=0 (CartPole's constant lr).
         # Andrychowicz et al. 2021 report it pays at benchmark scale, which is
         # why it arrives with the MinAtar configs and not before. Keyed off the
         # update counter — which is checkpointed — so a resumed run picks the
-        # schedule back up, and an eval-only restore never touches it. One
-        # param group: the single Adam over the actor+critic union.
+        # schedule back up, and an eval-only restore never touches it. Both
+        # param groups are rewritten from base_lr each time (group 0 actor,
+        # group 1 critic): reading each group's own lr back and scaling it
+        # would compound the fraction every update.
         if self.lr_anneal_steps:
             steps_seen = self.updates * horizon * num_envs
             frac = max(0.0, 1.0 - steps_seen / self.lr_anneal_steps)
-            self.optimizer.param_groups[0]["lr"] = self.base_lr * frac
+            self.optimizer.param_groups[0]["lr"] = self.base_lr * self.actor_lr_scale * frac
+            self.optimizer.param_groups[1]["lr"] = self.base_lr * frac
 
         batch_size = flat_actions.shape[0]
         minibatch_size = batch_size // self.minibatches
@@ -456,8 +543,13 @@ class PPOAgent(Agent):
                 self.optimizer.zero_grad()
                 loss.backward()
                 # One clip over the actor+critic union — separate calls would
-                # hand each net the full norm budget.
-                nn.utils.clip_grad_norm_(self.params, self.max_grad_norm)
+                # hand each net the full norm budget. The return value is the
+                # total norm BEFORE clipping, which is the diagnostic: paired
+                # with the fraction of minibatches that exceed max_grad_norm
+                # it says whether the clip is a rare safety net or a
+                # permanent lr divisor (the 2026-08-05 PPO audit saw it bind
+                # 16/16 on synthetic data and could not tell which).
+                grad_norm = nn.utils.clip_grad_norm_(self.params, self.max_grad_norm)
                 self.optimizer.step()
 
                 sums["loss/policy"] += float(policy_loss.item())
@@ -465,6 +557,8 @@ class PPOAgent(Agent):
                 sums["loss/entropy"] += float(entropy.item())
                 sums["loss/approx_kl"] += float(approx_kl.item())
                 sums["loss/clip_frac"] += float(clip_frac.item())
+                sums["loss/grad_norm"] += float(grad_norm.item())
+                sums["loss/grad_clip_frac"] += float(grad_norm.item() > self.max_grad_norm)
                 if self.continuous:
                     # The exploration readout on this track: with a free
                     # log_std the entropy bonus is off (ent_coef 0 on MuJoCo),
@@ -475,7 +569,13 @@ class PPOAgent(Agent):
 
         self.buffer.clear()
         self.updates += 1
-        return {name: total / grad_steps for name, total in sums.items()}
+        # sums are per-grad-step and averaged; the two batch-level reads are
+        # already single numbers for this update and must not be divided.
+        return {
+            **{name: total / grad_steps for name, total in sums.items()},
+            "loss/explained_variance": explained_variance,
+            "loss/adv_std": adv_std,
+        }
 
     def state_dict(self) -> dict[str, Any]:
         # The rollout in progress is deliberately not checkpointed: restore
@@ -490,15 +590,47 @@ class PPOAgent(Agent):
     def load_state_dict(self, state: dict[str, Any]) -> None:
         self.actor.load_state_dict(state["actor"])
         self.critic.load_state_dict(state["critic"])
-        self.optimizer.load_state_dict(state["optimizer"])
-        # torch's Optimizer.load_state_dict restores the CHECKPOINT's
-        # param-group hyperparameters, lr included — and a constant-lr config
-        # never rewrites lr after construction (the anneal branch in update()
-        # is gated on lr_anneal_steps). A warm start from an annealed
-        # checkpoint would otherwise train at the donor's final lr (~0 after
-        # a full anneal) silently, forever. The constructing config wins on
-        # lr; the checkpoint supplies optimizer STATE (moments), not
-        # hyperparameters. Annealed resumes are unaffected: update()
-        # recomputes lr from the restored counter before every step.
-        self.optimizer.param_groups[0]["lr"] = self.base_lr
+        # Optimizer MOMENTS are restored onto THIS agent's param groups, and
+        # the checkpoint's own group records are discarded. Two reasons, both
+        # of which have already cost a bug:
+        #
+        # - Hyperparameters. torch's Optimizer.load_state_dict restores the
+        #   CHECKPOINT's param-group hyperparameters, lr included, and a
+        #   constant-lr config never rewrites lr after construction (the
+        #   anneal branch in update() is gated on lr_anneal_steps). A warm
+        #   start from an annealed checkpoint would otherwise train at the
+        #   donor's final lr (~0 after a full anneal) silently, forever. The
+        #   constructing config wins on lr; the checkpoint supplies state.
+        # - Grouping. Checkpoints written before the actor/critic param-group
+        #   split carry ONE group, and torch refuses a state dict whose group
+        #   count differs — that would have invalidated every stored P4/P5/P6
+        #   final. The `state` keys are positional indices over the groups'
+        #   params flattened in order, and that order (actor then critic) is
+        #   identical either way, so grafting the moments onto our own groups
+        #   is exact, not an approximation.
+        #
+        # Annealed resumes are unaffected: update() recomputes both groups'
+        # lr from the restored counter before every step.
+        self.optimizer.load_state_dict(
+            {
+                "state": state["optimizer"]["state"],
+                "param_groups": self.optimizer.state_dict()["param_groups"],
+            }
+        )
         self.updates = state["updates"]
+
+    def begin_warm_start(self) -> None:
+        """`init_from` semantics, settled 2026-08-05: a warm start is a FRESH
+        run, not a resume. Only the update counter carries a schedule, and
+        leaving it at the donor's value is what made `init_from` +
+        `lr_anneal_steps` illegal (train.py used to refuse the combination):
+        at a 12M checkpoint's count the anneal fraction clamps to 0 and the
+        whole run trains at lr = 0 — no crash, no metric that looks wrong,
+        just a frozen policy. Rewinding it here makes the anneal cover the
+        new run's own budget, and re-arms the critic-only warmup from update
+        0, which is the point of warm-starting an untrained critic.
+
+        Weights and Adam moments deliberately survive: they ARE the warm
+        start."""
+        self.updates = 0
+        self._set_actor_trainable(self.critic_warmup_updates == 0)

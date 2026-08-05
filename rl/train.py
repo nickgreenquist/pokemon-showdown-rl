@@ -121,16 +121,6 @@ def train(cfg: Config) -> None:
             f"normalize_obs/normalize_reward need a vectorized algorithm; "
             f"{cfg.agent.get('algo')!r} runs the scalar loop"
         )
-    if cfg.init_from and cfg.agent.get("lr_anneal_steps"):
-        # load_state_dict restores the agent's update count; at a
-        # 12M-checkpoint's count the anneal fraction clamps to 0 and the
-        # whole run trains at lr = 0 — no crash, no metric that looks wrong,
-        # just a frozen policy. No warm-start config anneals, so refuse the
-        # combination instead of inventing resume semantics for it.
-        raise ValueError(
-            "init_from with lr_anneal_steps would resume the anneal schedule "
-            "at the checkpoint's update count (lr ~0 for the whole run)"
-        )
     if cfg.selfplay and (cfg.normalize_obs or cfg.normalize_reward):
         # The normalizers are VECTOR-level wrappers, and the opponent lives
         # inside a sub-env beneath them. The learner would act on z-scored
@@ -211,6 +201,11 @@ def train(cfg: Config) -> None:
         # the loaded policy — no crash, and the anchor diagnostic would read
         # ~1.0 forever and look wonderful.
         agent.load_state_dict(load_checkpoint(cfg.init_from)["agent"])
+        # A warm start is a FRESH run (settled 2026-08-05; Agent.begin_warm_start
+        # holds the reasoning). This is the line that makes init_from +
+        # lr_anneal_steps legal: the anneal now covers this run's budget
+        # instead of resuming the donor's finished schedule at lr ~0.
+        agent.begin_warm_start()
     out_dir = run_dir(cfg)
     # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
     _write_run_metadata(out_dir, cfg)

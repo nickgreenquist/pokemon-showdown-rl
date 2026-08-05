@@ -32,3 +32,11 @@ class Agent(ABC):
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
         pass
+
+    def begin_warm_start(self) -> None:
+        """Called by the train loop right after `load_state_dict` when the
+        checkpoint is an INIT (`init_from`), not a resume: a warm start is a
+        FRESH run, so anything schedule-shaped that rode in with the
+        checkpoint has to be rewound here. Learned weights and optimizer
+        moments are exactly what the warm start is for and must survive.
+        No-op for agents with no schedule."""

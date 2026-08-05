@@ -202,6 +202,46 @@ def test_win_rate_is_absent_unless_requested():
     assert "eval/win_rate" not in evaluate(_ConstantAgent(), env, 2)
 
 
+# --------------------------------------- eval/loss_faint_* (Arm B secondary)
+
+class _FaintOutcomeEnv(_FixedOutcomeEnv):
+    """_FixedOutcomeEnv plus the Showdown env's terminal faint counts."""
+
+    def __init__(self, outcomes, faints):
+        super().__init__(outcomes)
+        self.faints = faints
+
+    def step(self, action):
+        obs, reward, term, trunc, info = super().step(action)
+        return obs, reward, term, trunc, info | {"faints": self.faints[self.i % len(self.faints)]}
+
+
+def test_loss_conditioned_faint_metrics_use_losses_only():
+    """DESIGN.md §5's Arm B secondary. Conditioned on LOSSES because the
+    unconditional differential is mechanically determined by the outcome —
+    the won episode here would drag the mean to a number that says nothing
+    about whether shaping taught trading."""
+    #                    win        loss         loss        tie
+    outcomes = [1, -1, -1, 0]
+    faints = [(1, 6), (6, 5), (6, 2), (3, 3)]  # (ours, theirs)
+    metrics = evaluate(_ConstantAgent(), _FaintOutcomeEnv(outcomes, faints), 4, win_rate=True)
+    # Losses only: differentials (theirs - ours) of -1 and -4.
+    assert metrics["eval/loss_faint_diff"] == pytest.approx(-2.5)
+    # Neither loss had the agent ahead on faints.
+    assert metrics["eval/loss_faint_lead_frac"] == pytest.approx(0.0)
+
+
+def test_loss_faint_metrics_are_absent_where_the_env_supplies_no_faints():
+    """Spine envs (CartPole, MinAtar, Connect 4) have no faint concept; the
+    metric must simply not appear rather than default to a number."""
+    metrics = evaluate(_ConstantAgent(), _FixedOutcomeEnv([1, -1]), 2, win_rate=True)
+    assert "eval/loss_faint_diff" not in metrics
+    # ... and a run with no losses at all leaves it out too, rather than
+    # reporting a mean over an empty set.
+    only_wins = evaluate(_ConstantAgent(), _FaintOutcomeEnv([1], [(0, 6)]), 2, win_rate=True)
+    assert "eval/loss_faint_diff" not in only_wins
+
+
 # ------------------------------------------------------- normalize guard
 
 @pytest.mark.parametrize("flag", ["normalize_obs", "normalize_reward"])
@@ -461,16 +501,68 @@ def test_init_from_loads_before_the_anchor_push(tmp_path, monkeypatch):
         assert torch.equal(p, q)
 
 
-def test_init_from_refuses_lr_anneal(tmp_path, monkeypatch):
-    """load_state_dict restores the update count; resuming an anneal
-    schedule there means lr ~0 for the whole run, silently."""
+def test_init_from_rewinds_the_anneal_schedule(tmp_path, monkeypatch):
+    """A warm start is a FRESH run (settled 2026-08-05). The combination
+    init_from + lr_anneal_steps used to be refused outright, because
+    load_state_dict restores the DONOR's update count and the anneal fraction
+    clamps to 0 at any large count — lr ~0 for the whole run, no crash and no
+    metric that looks wrong. Rewinding the counter at the handoff is what
+    makes the anneal cover the new run's own budget, and it is the path the
+    human-BC chapter needs on day one."""
     monkeypatch.chdir(tmp_path)
+    donor_cfg = connect4_config(run_name="donor")
+    env = make_vec_env("Connect4-v0", seed=0, num_envs=donor_cfg.num_envs)
+    donor = make_agent(donor_cfg, env)
+    env.close()
+    donor.updates = 4096  # a donor whose own schedule finished long ago
+    save_checkpoint(tmp_path / "donor.pt", donor, 0, donor_cfg)
+
+    captured = {}
+
+    def capture_loop(cfg, envs, eval_env, agent, logger, out_dir,
+                     normalizers, pool, push_every):
+        captured["agent"] = agent
+
+    monkeypatch.setattr("rl.train._vector_loop", capture_loop)
     cfg = connect4_config(
-        init_from="whatever.pt",
+        run_name="warm",
+        init_from=str(tmp_path / "donor.pt"),
         agent={**CONNECT4_AGENT, "lr_anneal_steps": 1000},
     )
-    with pytest.raises(ValueError, match="init_from with lr_anneal_steps"):
-        train(cfg)
+    train(cfg)  # no longer raises
+    # The donor's weights arrived (it IS a warm start) but its clock did not.
+    assert captured["agent"].updates == 0
+    assert load_checkpoint(tmp_path / "donor.pt")["agent"]["updates"] == 4096
+
+
+def test_init_from_rearms_the_critic_warmup(tmp_path, monkeypatch):
+    """The other half of "fresh run": the staged unfreeze re-arms from update
+    0. A warm start is precisely when the critic is untrained, so a warmup
+    left half-spent by the donor's counter would hand the cloned policy
+    straight to advantages computed off a random value head."""
+    monkeypatch.chdir(tmp_path)
+    donor_cfg = connect4_config(run_name="donor2")
+    env = make_vec_env("Connect4-v0", seed=0, num_envs=donor_cfg.num_envs)
+    donor = make_agent(donor_cfg, env)
+    env.close()
+    donor.updates = 4096
+    save_checkpoint(tmp_path / "donor2.pt", donor, 0, donor_cfg)
+
+    captured = {}
+
+    def capture_loop(cfg, envs, eval_env, agent, logger, out_dir,
+                     normalizers, pool, push_every):
+        captured["agent"] = agent
+
+    monkeypatch.setattr("rl.train._vector_loop", capture_loop)
+    cfg = connect4_config(
+        run_name="warm2",
+        init_from=str(tmp_path / "donor2.pt"),
+        agent={**CONNECT4_AGENT, "critic_warmup_updates": 3},
+    )
+    train(cfg)
+    assert all(not p.requires_grad for p in captured["agent"].actor_params)
+    assert all(p.requires_grad for p in captured["agent"].critic_params)
 
 
 def test_showdown_selfplay_rejects_fixed_mix():

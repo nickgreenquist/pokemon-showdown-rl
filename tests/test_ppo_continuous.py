@@ -178,6 +178,8 @@ def test_update_cadence_and_metrics_on_a_box_space():
     assert set(metrics) == {
         "loss/policy", "loss/value", "loss/entropy",
         "loss/approx_kl", "loss/clip_frac", "loss/policy_std",
+        "loss/grad_norm", "loss/grad_clip_frac",
+        "loss/explained_variance", "loss/adv_std",
     }
     assert all(np.isfinite(v) for v in metrics.values())
     assert agent.updates == 1 and len(agent.buffer) == 0
