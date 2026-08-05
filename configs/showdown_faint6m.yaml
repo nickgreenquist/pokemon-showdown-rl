@@ -1,0 +1,118 @@
+# Arm B — terminal-cancelled faint reward shaping (pre-registered 2026-08-05;
+# design of record DESIGN.md §4/§5, ratified r6 D2(c)). The first compute arm
+# after P6. A probe under the milestone-3 stop rule, NOT a bar-chaser.
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# Motivation: terminal-only ±1 at gamma = 1.0 over ~25-step episodes (24.2-24.6
+# measured on the P6 finals) is an extremely sparse signal. ps-ppo shipped
+# ±0.1-per-faint shaping at 250M states; Wang 2024 won with sparse ±1. Two
+# strong systems, opposite choices — hence a probe.
+#
+# ONE variable vs configs/showdown_r512_lra.yaml: faint_shaping 0 -> 0.1.
+# Everything else — recipe, budget, anneal, opponent — is held fixed.
+#
+# FORM (the deliberate deviation from ps-ppo, DESIGN.md §4). Potential-based:
+#     Phi(s) = 0.1 * (faints_opp(s) - faints_self(s)),  Phi(terminal) := 0
+# so the per-step reward is Phi(s') - Phi(s) — ±0.1 per faint, symmetric,
+# their confirmed constants — and the terminal transition emits -Phi(s),
+# cancelling everything the episode accumulated. WITHOUT the cancellation the
+# sum telescopes to Phi(s_T): the effective outcome signal spans ±1.6, and a
+# clean-sweeping 48%-win policy outscores a trading 50%-win one. That
+# trade-down failure is in the objective as ps-ppo wrote it; cancellation
+# removes it provably (policy invariance, Ng et al. 1999), keeps
+# rollout/episode_return comparable to every prior run, and keeps value
+# targets in ±1 (advantages are normalized per minibatch, value targets are
+# NOT — unshaped-terminal shaping would inflate the value loss ~2.5x against
+# value_coef 0.5). Implemented as a differenced state potential, never as
+# faint-event attribution: the known trap in this exact lever (ps-ppo commit
+# 17e0955) is an attribution off-by-one, and a difference has no attribution
+# step to get wrong.
+#
+# Arms: 6M x 3 seeds, CLI --seed 6/7/8 --run-name showdown_faint6m_s{6,7,8}.
+# Seeds 6-8 are FREE: 0/1/2 went to the P5b lra arm and 3/4/5 to lra12m, and
+# concurrent lanes sharing a seed collide on Showdown usernames (the loser
+# dies at first reset with a misleading "Agent is not challenging").
+# 3-wide, ~2.9 h, stagger the lane starts.
+#
+# CONTROL: showdown_r512_lra (P5b), 6M + anneal, pooled 0.4433 ± 0.0091 at
+# 1000 battles/seed — RE-EVALUATED at 3000 battles/seed under the D2c
+# amendment, in this repo, before the comparison is read. The re-eval also
+# retires a quiet confound: P5b's numbers were measured under
+# predecessor-repo code.
+#
+# Pre-registered reads, locked before launch:
+#   R0 GATES (must pass or nothing below is a strength read):
+#     - shaping correctness, and it runs BEFORE the launch, not after:
+#       pytest tests/test_showdown_env.py -k "shaped_return or shaped_episode"
+#       — per-episode shaped return must equal the terminal ±1 exactly on
+#       live battles, and the intermediate faint rewards must actually fire.
+#       This catches the ps-ppo off-by-one class in seconds.
+#     - late loss/entropy in [0.2, 1.0]. The anneal freezes the policy late
+#       (lr -> 0), so this reads a frozen value; expected, not a red flag.
+#     - eval tie fraction <= 4%.
+#     - time/steps_per_sec within ~25% of the 3-wide lane baseline (553-600).
+#   PRIMARY: pooled 3-seed finals (final ckpt, 3000 battles/seed, ties as
+#     non-wins, deterministic policy, vs SimpleHeuristicsPlayer) minus the
+#     re-evaluated control's same read. This is a SCREEN, not the credit
+#     line: advance to 12M iff pooled delta >= +0.009 (the point where the
+#     one-sided 90% upper bound still reaches +0.025). Screening at the
+#     +0.025 credit line itself is a ~50%-sensitivity coin flip that kills
+#     real levers. The full credit line (delta >= +0.025 AND >= 2*se_diff,
+#     se_diff = the LARGER of the pooled-binomial and seed-clustered
+#     estimates) applies only at 12M, vs the P6 annealed control.
+#     Accepted blind spot: a lever whose effect exists only at 12M dies here.
+#     P6's own transfer shape (+0.051 at 6M -> +0.028 at 12M) says a lever
+#     worth +0.025 at 12M should show ~+0.045 at 6M, which this screen
+#     catches with >99% probability.
+#   MECHANISM (recorded, not gated — without these a null is uninterpretable,
+#     because "shaping did nothing" and "shaping never changed the learning
+#     signal" look identical in the win rate): loss/explained_variance,
+#     loss/adv_std (pre-normalization), loss/approx_kl, loss/clip_frac,
+#     loss/grad_norm and loss/grad_clip_frac. All added 2026-08-05; the
+#     grad-clip pair exists because the PPO audit saw the 0.5 clip bind 16/16
+#     on synthetic data and could not tell whether it binds in production.
+#   SECONDARIES with a falsifier: rollout/episode_length; eval/loss_faint_diff
+#     and eval/loss_faint_lead_frac (the faint differential conditional on
+#     LOSSES — the unconditional one is mechanically determined by outcome).
+#     FALSIFIER: win-rate delta <= 0 while the loss-conditioned differential
+#     improves by > 0.5 mons => the objective is distorted, the agent is
+#     buying faints instead of wins. Do NOT raise the coefficient. Kill the
+#     arm.
+#   FAMILY SIZE for false-credit accounting: two primaries are planned
+#     against this control (Arm B now, Arm C if unparked). No correction
+#     applied; recorded so the count stays honest.
+#   AMENDMENT CONDITION: credited at 12M => shaping joins the recipe and the
+#     README gains the measured sentence; screened out => session-log entry
+#     only, and the arm is closed rather than re-tuned.
+env_id: Showdown-v0
+seed: 6
+total_steps: 6000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_faint6m_s6
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  faint_shaping: 0.1  # the one changed line vs showdown_r512_lra.yaml
+selfplay:
+  opponent: heuristics
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 6000000
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 512
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

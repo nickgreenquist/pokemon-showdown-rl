@@ -1,0 +1,84 @@
+# Arm A warm-start SMOKE (DESIGN.md §4 "Retired", filed under Track 1
+# engineering). NOT an experiment and NOT pre-registered as one: it is a
+# machinery test whose reads are RECORDED, never gated. Arm A itself is
+# retired (D3(b)) — its motivation was the clone gap, which P6 closed from
+# the other side, and its ceiling is parity.
+#
+# Needs the local Showdown server running:
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# What it de-risks: the human-BC chapter's day-one path (§10). The only
+# UNTESTED init path in the repo is exactly this one — a BC checkpoint, whose
+# critic is untrained, plus an anneal. configs/showdown_sp6m.yaml already
+# proves init_from works for PPO checkpoints, where the critic is trained.
+# Naive PPO from a BC clone computes every advantage off a RANDOM value head
+# and destroys the cloned policy in the first updates: that measures a broken
+# handoff, not a lever. The staged unfreeze is the fix under test.
+#
+# Machinery exercised, all of it landing 2026-08-05:
+#   - init_from + lr_anneal_steps, previously REFUSED by rl/train.py. Settled:
+#     a warm start is a FRESH run (Agent.begin_warm_start rewinds the update
+#     counter, so the anneal covers this run's budget instead of resuming the
+#     donor's finished schedule at lr ~0). Weights and Adam moments survive.
+#   - critic_warmup_updates: 10 — the actor is frozen (requires_grad False, a
+#     true freeze; zeroing grads would let existing Adam moments keep walking
+#     the weights) for the first 10 updates = 40,960 steps, while the critic
+#     regresses onto the cloned policy's returns.
+#   - actor_lr_scale: 0.25 — after unfreeze the actor trains at a quarter of
+#     the critic's lr. ps-ppo's "reduced backbone LR", mapped to the whole
+#     actor because our two heads share no trunk. Their multipliers are dead
+#     code at their HEAD and were never ablated, so the constant is ours;
+#     0.25 is a choice, not a measurement, and the chapter re-picks it.
+#
+# Reads (RECORDED, not gated):
+#   1. BROKEN-HANDOFF DETECTOR. eval/win_rate at the evals inside the warmup
+#      window (10k/20k/30k/40k steps) must sit at the clone's ~0.466
+#      (runs/bc_p4_512_40k_s0/checkpoint.pt, 1000 battles, re-scored in-repo).
+#      During warmup the actor CANNOT change, so those four evals measure the
+#      cloned policy itself — pooled n=400, se ~0.025. Anything far below
+#      means the handoff is broken, not that the lever failed.
+#   2. NO FIRST-UPDATES COLLAPSE. eval/win_rate across the unfreeze boundary
+#      (updates 10-12, ~41-53k steps): a cliff there is the untrained-critic
+#      failure the warmup exists to prevent.
+#   3. CRITIC HEALTH BEFORE UNFREEZE. loss/value should fall over the warmup
+#      and loss/explained_variance should climb clear of 0 by update 10. EV
+#      still ~0 at unfreeze means 10 updates is too few and the chapter needs
+#      a longer warmup, which is exactly the number this smoke exists to get.
+#   4. Sanity: loss/approx_kl and loss/clip_frac are EXACTLY 0 for updates
+#      0-9 (the frozen-actor signature) and become nonzero at update 10.
+#
+# Single seed, ~200k steps = 48 updates. Seed 9 is free (0/1/2 = P5b lra,
+# 3/4/5 = lra12m, 6/7/8 = Arm B), which matters if anything else is running:
+# concurrent lanes sharing a seed collide on Showdown usernames.
+# Launch: python -m rl.train --config configs/showdown_warmstart_smoke.yaml
+env_id: Showdown-v0
+seed: 9
+total_steps: 200000
+eval_every: 10000    # dense on purpose: reads 1, 2 and 4 all live in the first ~50k
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 50000
+run_name: showdown_warmstart_smoke_s9
+logger: wandb
+eval_win_rate: true
+init_from: runs/bc_p4_512_40k_s0/checkpoint.pt
+selfplay:
+  opponent: heuristics
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]  # must match the clone's trunk
+  lr: 2.5e-4
+  lr_anneal_steps: 200000   # the combination rl/train.py used to refuse
+  critic_warmup_updates: 10
+  actor_lr_scale: 0.25
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 512
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

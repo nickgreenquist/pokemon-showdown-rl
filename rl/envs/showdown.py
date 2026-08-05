@@ -222,11 +222,60 @@ def embed_battle(battle, type_chart) -> np.ndarray:
 
 
 class ShowdownSingles(SinglesEnv):
-    """The two-seat poke-env env: encoder + reward, no opponent knowledge."""
+    """The two-seat poke-env env: encoder + reward, no opponent knowledge.
 
-    def __init__(self, *, battle_format: str = "gen1randombattle", **kwargs):
+    `faint_shaping` (0.0 = off, the shape every run before Arm B trained on)
+    adds POTENTIAL-BASED faint shaping on top of the terminal ±1:
+
+        Phi(s) = faint_shaping * (faints_opp(s) - faints_self(s)),  Phi(terminal) := 0
+        shaping(s -> s') = Phi(s') - Phi(s)
+
+    which is ±faint_shaping per faint, symmetric, exactly the ps-ppo term
+    (their confirmed constants `faint_self: -0.1`, `faint_opp: +0.1`) PLUS
+    the terminal cancellation that pins Phi to 0 at the end of the episode.
+    The cancellation is the deliberate deviation (DESIGN.md §4), and it is
+    load-bearing rather than cosmetic:
+
+    - At gamma = 1.0 the shaping sum telescopes to Phi(s_T) - Phi(s_0) =
+      Phi(s_T). WITHOUT the cancellation the effective outcome signal spans
+      ±1.6 and a clean-sweeping 48%-win policy outscores a trading 50%-win
+      one — the trade-down failure mode is then in the objective as written.
+      Ng et al.'s policy-invariance result is exactly what forcing
+      Phi(terminal) = 0 buys back.
+    - Episode return stays the terminal ±1 exactly, so
+      `rollout/episode_return` remains comparable to every prior run and no
+      eval number moves.
+    - Value targets stay in ±1. Advantages are normalized per minibatch but
+      value targets are NOT, so shaping that survived to the terminal would
+      silently inflate the value loss ~2.5x against `value_coef: 0.5`.
+
+    Implemented as a state POTENTIAL rather than by attributing faint events
+    to the transitions that caused them: the potential is recomputed from the
+    two teams' fainted counts every step and only differenced, so there is no
+    event bookkeeping to get wrong. That is deliberate — the known trap in
+    this exact lever (ps-ppo commit `17e0955`) is an off-by-one in faint
+    attribution, and a differenced potential has no attribution step to be
+    off by one in.
+    """
+
+    def __init__(
+        self,
+        *,
+        battle_format: str = "gen1randombattle",
+        faint_shaping: float = 0.0,
+        **kwargs,
+    ):
         super().__init__(battle_format=battle_format, **kwargs)
         self._type_chart = GenData.from_format(battle_format).type_chart
+        self.faint_shaping = faint_shaping
+        # Phi(s) for the CURRENT state of each live battle, keyed by the
+        # battle OBJECT: calc_reward is called once per step for each seat's
+        # own battle, and the two share a battle_tag, so any key derived from
+        # the tag would fuse the two seats' faint counts. Battle defines no
+        # __eq__/__hash__, so this is identity keying. Cleared at reset, which
+        # bounds it at two entries — the natural lifetime, since a potential
+        # from a finished battle must never be differenced against a new one.
+        self._faint_potential: dict[object, float] = {}
         # Bounds: boosts/6 and priority/5 reach -1; damage multipliers top
         # out at 4 (everything else is a flag or a normalized fraction). The
         # __setattr__ hook on PokeEnv wraps each raw space into
@@ -236,14 +285,37 @@ class ShowdownSingles(SinglesEnv):
             for agent in self.possible_agents
         }
 
+    def reset(self, seed=None, options=None):
+        # Potentials are per-battle and must not survive into the next one.
+        self._faint_potential.clear()
+        return super().reset(seed=seed, options=options)
+
     def calc_reward(self, battle) -> float:
         # Called once per step; battle.won/lost are None until the server
-        # decides the game, so this is nonzero exactly once, at the end.
-        if battle.won:
-            return 1.0
-        if battle.lost:
-            return -1.0
-        return 0.0
+        # decides the game, so the outcome term is nonzero exactly once, at
+        # the end.
+        outcome = 1.0 if battle.won else -1.0 if battle.lost else 0.0
+        if not self.faint_shaping:
+            # Bit-for-bit the pre-Arm-B reward, and the only path any
+            # existing config takes. Also the reason nothing below needs to
+            # tolerate the reward-only stub battles the offline tests build.
+            return outcome
+        previous = self._faint_potential.pop(battle, 0.0)
+        if battle.finished:
+            # Phi(terminal) := 0, so the transition INTO it emits -Phi(s),
+            # cancelling everything the episode accumulated. Note this fires
+            # on `finished` — a decided game — and never on a truncation,
+            # where the episode continues and the potential must be carried
+            # (this env remaps every decided finish to terminal, so the two
+            # cannot be confused, but the condition is written on the game's
+            # state and not on the flag either way).
+            return outcome - previous
+        potential = self.faint_shaping * (
+            sum(mon.fainted for mon in battle.opponent_team.values())
+            - sum(mon.fainted for mon in battle.team.values())
+        )
+        self._faint_potential[battle] = potential
+        return outcome + potential - previous
 
     def embed_battle(self, battle) -> np.ndarray:
         return embed_battle(battle, self._type_chart)
@@ -414,13 +486,18 @@ class ShowdownEnv(Env):
         battle_format: str = "gen1randombattle",
         render_mode: str | None = None,
         save_replays: bool | str = False,
+        faint_shaping: float = 0.0,
     ):
         # save_replays (False | True | directory) is poke-env's native replay
         # dump: each finished battle is written as a Showdown replay HTML
         # (the official animated viewer; needs internet to load its JS).
         # Both seats save, so every battle yields two near-identical files.
         self.render_mode = render_mode
-        inner = ShowdownSingles(battle_format=battle_format, save_replays=save_replays)
+        inner = ShowdownSingles(
+            battle_format=battle_format,
+            save_replays=save_replays,
+            faint_shaping=faint_shaping,
+        )
         player = opponent_player(opponent, battle_format)
         # isinstance, not getattr: a pool-backed opponent gets outcome
         # reports and per-sub-env seeding, and a renamed hook must fail
@@ -473,6 +550,15 @@ class ShowdownEnv(Env):
         if terminated or truncated:
             assert poke.battle1 is not None
             info["outcome"] = battle_outcome(poke.battle1)
+            # Terminal faint counts (ours, theirs). Always emitted, shaping or
+            # not: Arm B's pre-registered SECONDARY is the faint differential
+            # CONDITIONAL ON LOSSES, which needs the same number from the
+            # control arm to mean anything. The unconditional differential is
+            # mechanically determined by the outcome and is not the read.
+            info["faints"] = (
+                sum(mon.fainted for mon in poke.battle1.team.values()),
+                sum(mon.fainted for mon in poke.battle1.opponent_team.values()),
+            )
             if self._pool_player is not None:
                 self._pool_player.report_outcome(info["outcome"])
             # poke-env marks forfeits, ties and timer losses truncated=True

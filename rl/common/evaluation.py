@@ -19,16 +19,19 @@ EVAL_SEED_OFFSET = 10_000
 
 def _run_eval_episodes(
     agent: Agent, env: gym.Env, episodes: int, seed_start: int = 0, max_steps: int = 10_000
-) -> tuple[list[float], list[int | None]]:
-    """The protocol itself, returning per-episode (returns, outcomes).
+) -> tuple[list[float], list[int | None], list[tuple[int, int] | None]]:
+    """The protocol itself, returning per-episode (returns, outcomes, faints).
 
     `outcomes` is the env's own `info["outcome"]` at the terminal step, or
     None where the env supplies none (every env before Phase 4) or where the
-    episode hit `max_steps`. Private so that `eval_returns` keeps its exact
-    public signature and return type for the analysis scripts.
+    episode hit `max_steps`. `faints` is `info["faints"]` under the same
+    rule — Showdown-only, None everywhere else. Private so that
+    `eval_returns` keeps its exact public signature and return type for the
+    analysis scripts.
     """
     returns: list[float] = []
     outcomes: list[int | None] = []
+    faints: list[tuple[int, int] | None] = []
     for episode in range(episodes):
         obs, info = env.reset(seed=EVAL_SEED_OFFSET + seed_start + episode)
         mask = info.get("action_mask")  # masking applies at eval time too
@@ -43,7 +46,8 @@ def _run_eval_episodes(
             done = terminated or truncated
         returns.append(ep_return)
         outcomes.append(info.get("outcome") if done else None)
-    return returns, outcomes
+        faints.append(info.get("faints") if done else None)
+    return returns, outcomes, faints
 
 
 def eval_returns(
@@ -85,11 +89,23 @@ def evaluate(
     Draws count as neither wins nor losses, so win_rate + loss_rate need not
     sum to 1.
     """
-    returns, outcomes = _run_eval_episodes(agent, env, episodes)
+    returns, outcomes, faints = _run_eval_episodes(agent, env, episodes)
     metrics = {
         "eval/return_mean": float(np.mean(returns)),
         "eval/return_std": float(np.std(returns)),
     }
+    # Arm B's pre-registered SECONDARY (DESIGN.md §5), emitted only where the
+    # env supplies faint counts — i.e. Showdown, and never on the spine envs.
+    # Conditioned on LOSSES because the unconditional differential is
+    # mechanically determined by the outcome: a win means they lost more mons
+    # than you almost by definition, so the unconditional number measures the
+    # win rate a second time. Restricted to decided losses; ties carry no
+    # "did the shaping teach trading" signal either way.
+    lost = [f for f, o in zip(faints, outcomes) if o == -1 and f is not None]
+    if lost:
+        differential = [theirs - ours for ours, theirs in lost]
+        metrics["eval/loss_faint_diff"] = float(np.mean(differential))
+        metrics["eval/loss_faint_lead_frac"] = float(np.mean([d > 0 for d in differential]))
     if win_rate:
         missing = sum(outcome is None for outcome in outcomes)
         if missing:

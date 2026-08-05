@@ -26,6 +26,7 @@ from poke_env.battle.move import Move
 from poke_env.battle.pokemon import Pokemon
 from poke_env.battle.pokemon_type import PokemonType
 from poke_env.battle.status import Status
+from poke_env.environment import SinglesEnv
 from poke_env.player import MaxBasePowerPlayer, RandomPlayer, SimpleHeuristicsPlayer
 
 from rl.envs.make import make_env
@@ -54,9 +55,17 @@ def offline_env():
     return ShowdownSingles(start_listening=False)
 
 
-def _battle(won):
+def _battle(won, mine=(), theirs=()):
+    """A finished battle stub. `mine`/`theirs` are the two sides' fainted
+    flags — empty by default, which is all the reward/outcome tests need and
+    still enough for the terminal step to count faints for info["faints"]."""
     lost = None if won is None else not won
-    return SimpleNamespace(won=won, lost=lost)
+    return SimpleNamespace(
+        won=won,
+        lost=lost,
+        team={i: SimpleNamespace(fainted=f) for i, f in enumerate(mine)},
+        opponent_team={i: SimpleNamespace(fainted=f) for i, f in enumerate(theirs)},
+    )
 
 
 def test_outcome_mapping_is_won_lost_tie():
@@ -239,7 +248,8 @@ def test_eval_env_extras_cannot_override_config_opponent():
     # is config-derived and overriding it would defeat make_eval_env's
     # whole purpose. The guard fires before any env is constructed.
     cfg = SimpleNamespace(
-        env_id="Showdown-v0", seed=0, selfplay={"eval_opponent": "max_power"}
+        env_id="Showdown-v0", seed=0, selfplay={"eval_opponent": "max_power"},
+        env_kwargs={},
     )
     from rl.envs.make import make_eval_env
 
@@ -381,7 +391,7 @@ def test_step_asserts_on_silent_discard():
 def test_decided_truncation_is_remapped_to_terminal():
     # A forfeit/timer loss: poke-env reports truncated=True, but the game is
     # decided (won=False) — the learner must see terminal, no bootstrap.
-    battle = SimpleNamespace(won=False, lost=True)
+    battle = _battle(False)
     stub = _StubStack([(-1.0, False, True, False)], battle=battle)
     env = _adapter(stub)
     obs, reward, terminated, truncated, info = env.step(0)
@@ -389,8 +399,18 @@ def test_decided_truncation_is_remapped_to_terminal():
     assert info["outcome"] == -1 and reward == -1.0
 
 
+def test_terminal_step_reports_faint_counts():
+    """info["faints"] = (ours, theirs) at the terminal step — the data behind
+    Arm B's loss-conditioned secondary, emitted whether or not shaping is on
+    so the arm and the control produce the same number."""
+    battle = _battle(False, mine=(True,) * 6, theirs=(True, True, False))
+    stub = _StubStack([(-1.0, True, False, False)], battle=battle)
+    obs, reward, terminated, truncated, info = _adapter(stub).step(0)
+    assert info["faints"] == (6, 2)
+
+
 def test_tie_is_terminal_with_outcome_zero():
-    battle = SimpleNamespace(won=None, lost=None)
+    battle = _battle(None)
     stub = _StubStack([(0.0, False, True, False)], battle=battle)
     env = _adapter(stub)
     obs, reward, terminated, truncated, info = env.step(0)
@@ -401,7 +421,7 @@ def test_tie_is_terminal_with_outcome_zero():
 def test_reward_accumulates_across_pump():
     # A wait step that carries the terminal reward (opponent's replacement
     # act finishes the game) must not lose it.
-    battle = SimpleNamespace(won=True, lost=False)
+    battle = _battle(True)
     stub = _StubStack([(0.0, False, False, False), (1.0, True, False, False)],
                       battle=battle)
     env = _adapter(stub)
@@ -535,8 +555,7 @@ def test_opponent_player_resolves_a_pool_to_a_pool_player():
 def test_env_terminal_step_reports_to_the_pool_player():
     # The adapter seam: ShowdownEnv.step forwards the learner-perspective
     # outcome at the terminal step.
-    stub = _StubStack([(1.0, True, False, False)],
-                      battle=SimpleNamespace(won=True, lost=False))
+    stub = _StubStack([(1.0, True, False, False)], battle=_battle(True))
     env = _adapter(stub)
     outcomes = []
     env._pool_player = SimpleNamespace(report_outcome=outcomes.append)
@@ -595,6 +614,156 @@ def test_full_episode_contract_against_live_server():
     assert ret == info["outcome"]  # terminal-only reward equals the outcome
     assert info["action_mask"].shape == (10,)
     assert terminated and not truncated  # every finish is terminal post-remap
+    env.close()
+
+
+# --- Arm B: terminal-cancelled faint shaping -------------------------------
+#
+# The lever's whole safety argument is that the shaping telescopes to ZERO
+# over an episode, so these tests are the R0 shaping-correctness gate
+# (DESIGN.md §5) in unit form: the live-server version below runs the same
+# assertion on real battles, and this version runs it on scripted faint
+# sequences that can't be produced on demand from a server.
+
+class _ShapingBattle:
+    """A battle stub carrying only what the potential reads: the two teams'
+    fainted counts, the outcome flags, and `finished`.
+
+    MUTATED in place across steps, because that is what poke-env does — one
+    Battle object per seat, updated as the protocol arrives, handed to
+    calc_reward again every step. A test that built a fresh object per step
+    would silently exercise a different contract from the one that ships.
+
+    A plain class, not SimpleNamespace, because the potential dict is keyed
+    by the battle OBJECT and SimpleNamespace defines __eq__ (so it is
+    unhashable). poke-env's Battle defines neither __eq__ nor __hash__ and
+    hashes by identity, which is what this reproduces.
+    """
+
+    def __init__(self, mine=0, theirs=0):
+        self.team = {i: SimpleNamespace(fainted=False) for i in range(6)}
+        self.opponent_team = {i: SimpleNamespace(fainted=False) for i in range(6)}
+        self.won = self.lost = None
+        self.finished = False
+        self.faint(mine, theirs)
+
+    def faint(self, mine, theirs):
+        """Set the two sides' fainted counts (monotone in a real battle)."""
+        for i, mon in self.team.items():
+            mon.fainted = i < mine
+        for i, mon in self.opponent_team.items():
+            mon.fainted = i < theirs
+        return self
+
+    def finish(self, won):
+        self.won, self.lost = won, None if won is None else not won
+        self.finished = True
+        return self
+
+
+def test_faint_shaping_is_off_by_default():
+    """Every config before Arm B must take the identical code path — the
+    stub battles the offline reward tests build carry no teams at all, so a
+    default that touched them would fail loudly here."""
+    env = ShowdownSingles(start_listening=False)
+    assert env.faint_shaping == 0.0
+    assert env.calc_reward(_battle(True)) == 1.0
+    assert env.calc_reward(_battle(None)) == 0.0
+
+
+@pytest.mark.parametrize("won,outcome", [(True, 1.0), (False, -1.0), (None, 0.0)])
+def test_shaped_episode_return_is_exactly_the_terminal_outcome(won, outcome):
+    """The R0 gate. A scripted episode: we lose two, they lose four, in an
+    interleaved order, and the sum over the whole episode must come back to
+    the bare ±1. Without the terminal cancellation this sums to outcome +
+    0.1*(4-2) = outcome + 0.2 — exactly the failure the cancellation exists
+    to remove, and invisible in any single step's reward."""
+    env = ShowdownSingles(start_listening=False, faint_shaping=0.1)
+    battle = _ShapingBattle()
+    total = 0.0
+    for mine, theirs in [(0, 0), (0, 1), (1, 1), (1, 2), (1, 3), (2, 3), (2, 4)]:
+        total += env.calc_reward(battle.faint(mine, theirs))
+    # The intermediate steps DID carry signal — otherwise this proves nothing.
+    assert total == pytest.approx(0.1 * (4 - 2))
+    total += env.calc_reward(battle.finish(won))
+    assert total == pytest.approx(outcome)
+    assert not env._faint_potential  # the finished battle left no state behind
+
+
+def test_faint_shaping_is_signed_and_symmetric():
+    env = ShowdownSingles(start_listening=False, faint_shaping=0.1)
+    battle = _ShapingBattle()
+    assert env.calc_reward(battle) == pytest.approx(0.0)
+    # Their faint pays +0.1; ours costs -0.1. Same magnitude, opposite sign.
+    assert env.calc_reward(battle.faint(0, 1)) == pytest.approx(0.1)
+    assert env.calc_reward(battle.faint(1, 1)) == pytest.approx(-0.1)
+    # A step with no faint on either side pays nothing at all.
+    assert env.calc_reward(battle) == pytest.approx(0.0)
+    # A double faint in one step nets to zero, not to a doubled payout.
+    assert env.calc_reward(battle.faint(2, 2)) == pytest.approx(0.0)
+
+
+def test_faint_potentials_do_not_fuse_across_the_two_seats():
+    """calc_reward is called once per step for EACH seat's own battle object,
+    and the two share a battle_tag — so any key derived from the tag would
+    difference one seat's potential against the other's and emit garbage on
+    every step of every battle."""
+    env = ShowdownSingles(start_listening=False, faint_shaping=0.1)
+    p1 = _ShapingBattle(mine=0, theirs=3)  # p1 is three faints up
+    p2 = _ShapingBattle(mine=3, theirs=0)  # the same game from p2's seat
+    assert env.calc_reward(p1) == pytest.approx(0.3)
+    assert env.calc_reward(p2) == pytest.approx(-0.3)
+    assert len(env._faint_potential) == 2
+    # Second step, nothing fainted: both seats must now pay exactly zero.
+    assert env.calc_reward(p1) == pytest.approx(0.0)
+    assert env.calc_reward(p2) == pytest.approx(0.0)
+
+
+def test_reset_clears_potentials_so_they_cannot_leak_into_the_next_battle(monkeypatch):
+    env = ShowdownSingles(start_listening=False, faint_shaping=0.1)
+    env.calc_reward(_ShapingBattle(theirs=2))
+    assert env._faint_potential
+    # poke-env's own reset opens a challenge and needs a live server; stub it
+    # out so this stays an offline test of OUR override.
+    sentinel = ("obs", {})
+    monkeypatch.setattr(SinglesEnv, "reset", lambda self, seed=None, options=None: sentinel)
+    assert env.reset() == sentinel  # the super() call still happens
+    assert not env._faint_potential
+
+
+def test_env_kwargs_reach_the_inner_env_through_the_factory():
+    """The config seam: `env_kwargs` in the run YAML must arrive at
+    ShowdownSingles, or Arm B would launch, train and report as the control
+    with nothing looking wrong."""
+    env = ShowdownEnv(opponent="random", faint_shaping=0.1)
+    assert env._env.env.faint_shaping == 0.1
+    env.close()
+
+
+@pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
+def test_shaped_return_equals_the_outcome_on_live_battles():
+    """The R0 gate on real battles, random policy: per-episode shaped return
+    must equal the terminal ±1 exactly, and the shaping must actually have
+    fired (a silently-zero potential would pass the first assertion by doing
+    nothing at all)."""
+    env = make_env(
+        "Showdown-v0", seed=0,
+        env_kwargs={"opponent": "random", "faint_shaping": 0.1},
+    )
+    rng = np.random.default_rng(0)
+    fired = False
+    for _ in range(3):
+        obs, info = env.reset()
+        terminated = truncated = False
+        ret = 0.0
+        while not (terminated or truncated):
+            action = int(rng.choice(np.flatnonzero(info["action_mask"])))
+            obs, reward, terminated, truncated, info = env.step(action)
+            ret += reward
+            if not (terminated or truncated) and reward != 0.0:
+                fired = True  # an intermediate faint paid out
+        assert ret == pytest.approx(float(info["outcome"]), abs=1e-9)
+    assert fired, "no intermediate faint reward in 3 battles — shaping is inert"
     env.close()
 
 

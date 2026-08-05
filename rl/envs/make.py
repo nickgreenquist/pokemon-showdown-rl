@@ -93,21 +93,31 @@ def make_vec_env(
 
 
 def selfplay_env_kwargs(cfg, key: str) -> dict:
-    """Env kwargs for a self-play config, or {} for every other config —
-    which is what keeps all of Phases 0-3 untouched.
+    """Env kwargs for a config: `cfg.env_kwargs` verbatim, plus the opponent
+    for a self-play config. {} for a pre-Phase-4 config, which is what keeps
+    all of Phases 0-3 untouched.
 
     `key` selects which opponent: "opponent" for the training env,
     "eval_opponent" for the eval env. They are deliberately separate. Eval
     must run against a FIXED external anchor and never against a pool
     member: under self-play a policy scores ~50% against its own snapshots
     by construction, so a pool-based eval measures nothing about strength
-    and would report an equilibrium as a plateau.
+    and would report an equilibrium as a plateau. `cfg.env_kwargs` may not
+    carry either opponent key for exactly that reason — one dict that fed
+    both envs would erase the distinction this function exists to enforce.
     """
+    reserved = cfg.env_kwargs.keys() & {"opponent", "eval_opponent"}
+    if reserved:
+        raise ValueError(
+            f"env_kwargs may not set {sorted(reserved)}; opponents are configured "
+            "under `selfplay`, which keeps the training and eval opponents separate"
+        )
+    kwargs = dict(cfg.env_kwargs)
     if not cfg.selfplay:
-        return {}
+        return kwargs
     if key not in cfg.selfplay:
         raise ValueError(f"selfplay config must set {key!r}; got {sorted(cfg.selfplay)}")
-    return {"opponent": cfg.selfplay[key]}
+    return kwargs | {"opponent": cfg.selfplay[key]}
 
 
 def make_eval_env(

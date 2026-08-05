@@ -45,6 +45,15 @@ class Config:
     # Emit eval/win_rate, computed from the env's info["outcome"]. Off by
     # default so no existing config or run changes shape.
     eval_win_rate: bool = False
+    # Extra kwargs forwarded to the env constructor, for env knobs that are
+    # neither harness contracts nor agent hyperparameters — Arm B's
+    # `faint_shaping` is the first. Applied identically to the training env
+    # and to EVERY eval site (they all build through make_eval_env), because
+    # an eval env that differs from the training env in the reward it emits
+    # is a silent confound. Opponent selection is NOT allowed in here: it has
+    # its own two keys under `selfplay` precisely so training and eval
+    # opponents cannot be conflated.
+    env_kwargs: dict = field(default_factory=dict)
     # Warm start (milestone 3): path to a checkpoint whose agent state
     # initializes training — actor, critic, optimizer and update count, via
     # load_state_dict. Loaded BEFORE the step-0 pool push, so under
