@@ -314,3 +314,20 @@ def test_cartpole_ppo_smoke(tmp_path, monkeypatch):
     # fills exactly 4 times.
     assert ckpt["agent"]["updates"] == 4
     assert (tmp_path / "runs" / "test_cartpole_ppo" / "best_checkpoint.pt").exists()
+
+
+def test_load_state_dict_keeps_the_configs_lr():
+    """Warm-start hazard (audit 2026-08-05): torch's Optimizer.load_state_dict
+    restores the CHECKPOINT's param-group lr, and a constant-lr config never
+    rewrites lr after construction — so loading an annealed-to-the-floor donor
+    would silently train the whole run at ~0. The constructing config must win
+    on lr while the optimizer STATE (moments, updates counter) still restores."""
+    donor = _agent()
+    donor.optimizer.param_groups[0]["lr"] = 1.44e-7  # a finished anneal's floor
+    donor.updates = 17
+    state = donor.state_dict()
+
+    recipient = _agent()  # same constructor lr=1.0e-3
+    recipient.load_state_dict(state)
+    assert recipient.optimizer.param_groups[0]["lr"] == recipient.base_lr == 1.0e-3
+    assert recipient.updates == 17  # optimizer/agent state still restored

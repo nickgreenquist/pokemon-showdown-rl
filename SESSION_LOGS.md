@@ -493,3 +493,12 @@ entry by offset — never a broad keyword grep.
   Bottom line: the learner is not the risk the library question worried it was —
   keep ours stands on evidence now, not just argument. The one real hazard sits
   exactly where DESIGN already scheduled work (the warm-start smoke), one line away.
+
+- 2026-08-05 — Warm-start lr bug FIXED (maintainer-approved, same evening as the audit)
+
+  ppo.py load_state_dict now re-asserts the constructing config's base_lr after the
+  optimizer load; regression test test_load_state_dict_keeps_the_configs_lr added
+  (donor at the anneal floor 1.44e-7, recipient keeps its config lr, updates counter
+  still restores). Live repro re-run against the fix: recipient stays at 2.5e-4.
+  Annealed resumes unaffected (update() recomputes lr from the counter). Suite: 220
+  passed. The audit entry above stands except its "not applied" line — applied here.

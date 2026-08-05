@@ -491,4 +491,14 @@ class PPOAgent(Agent):
         self.actor.load_state_dict(state["actor"])
         self.critic.load_state_dict(state["critic"])
         self.optimizer.load_state_dict(state["optimizer"])
+        # torch's Optimizer.load_state_dict restores the CHECKPOINT's
+        # param-group hyperparameters, lr included — and a constant-lr config
+        # never rewrites lr after construction (the anneal branch in update()
+        # is gated on lr_anneal_steps). A warm start from an annealed
+        # checkpoint would otherwise train at the donor's final lr (~0 after
+        # a full anneal) silently, forever. The constructing config wins on
+        # lr; the checkpoint supplies optimizer STATE (moments), not
+        # hyperparameters. Annealed resumes are unaffected: update()
+        # recomputes lr from the restored counter before every step.
+        self.optimizer.param_groups[0]["lr"] = self.base_lr
         self.updates = state["updates"]
