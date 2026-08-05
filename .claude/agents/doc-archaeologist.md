@@ -20,11 +20,13 @@ Protocol:
 2. Never read any of these files whole. Never dump raw entries into your answer.
 3. Check for supersession: a later entry may have overturned what you found — the newest
    dated entry wins (the repo's stated convention; STATUS.md defers to it too).
-4. Predecessor-era records not imported into this repo's SESSION_LOGS (full P3/P4 entries,
-   milestone campaigns, the pre-strip narrative) survive only in the old repo's git history:
+4. Predecessor-era capstone records (full P3/P4 entries, milestone campaigns, the Phase-5
+   README/PLAN sections) live in `SESSION_LOGS_PREDECESSOR.md` — committed here 2026-08-05,
+   36 entries + two appendices, same grep index protocol. It is frozen history;
+   SESSION_LOGS.md wins on conflict. Non-capstone spine history (DQN/SAC/Connect-4 phases)
+   survives only in the old repo's git:
    `git -C /Users/nickgreenquist/Documents/Projects/deep-rl-from-scratch show 5d6a604:SESSION_LOGS.md`.
-   Quote from there when the question requires it, and say that is where it came from —
-   never reconstruct from memory.
+   Say where a quote came from — never reconstruct from memory.
 
 Answer format — hard cap ~300 words:
 
