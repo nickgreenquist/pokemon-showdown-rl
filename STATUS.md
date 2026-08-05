@@ -42,8 +42,12 @@ MDE≈0.14). Standing correction: RL is LEVEL with the BC clone (0.4607 vs
 
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned
   (+81% collection). Verified present (line 111).
-- Annealed checkpoints cannot be warm-extended; warm start needs the
-  `rl/train.py:134` guard fix (decided at the Arm A smoke).
+- **CONFIRMED latent bug (PPO audit 2026-08-05):** `PPOAgent.load_state_dict`
+  (ppo.py:493) restores the checkpoint's optimizer lr over the config's — a warm
+  start from any P6 annealed checkpoint into a constant-lr config silently trains
+  at lr≈1.4e-07. No completed run affected (verified). Fix rides with the Arm A
+  warm-start decision, alongside the `rl/train.py:134` guard. Audit verdict
+  otherwise: core CLEAN, bit-for-bit vs independent reimplementation (see log).
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix
   before any future self-play rung (recovered bug).
 - P6 arms seed-UNPAIRED; per-seed cross-arm comparison meaningless. Username-salt

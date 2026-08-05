@@ -430,3 +430,66 @@ entry by offset — never a broad keyword grep.
   Suite: 318 → 219 passed, zero failures — the delta is exactly the pruned spine's
   tests. Still open (unchanged): team review of DESIGN.md §9; wang_fork_diffs.md
   gitignore negation question.
+
+- 2026-08-05 — PPO CORRECTNESS AUDIT: core CLEAN (bit-for-bit), one confirmed LATENT bug
+
+  Motivated by the library-vs-ours question (ps-ppo turns out to be a custom PPO too;
+  Wang is the one who used SB3). Method: one Opus subagent did an adversarial
+  line-by-line audit of the learner core (ppo.py, rollout.py, masking.py) with
+  runnable numerical repros; the main session independently audited the integration
+  seams (vector loop, showdown env semantics, eval path, checkpointing) and
+  re-verified the subagent's confirmed bug live before accepting it.
+
+  CORE VERDICT: CLEAN. Strongest evidence: an independent re-implementation of the
+  entire update from the PPO spec reproduced PPOAgent.update BIT-FOR-BIT (max |dparam|
+  = 0.0 across all 12 tensors) at production settings. Verified item by item: GAE vs
+  brute-force lambda-sum over 1500 randomized rollouts incl. gamma=1.0 (0 mismatches;
+  termination cuts bootstrap, truncation keeps it); ratio contract (old_logp
+  recomputed under STORED masks before any grad step — epoch-0 ratio exactly 1.0; all
+  shapes (B,), no broadcast bugs); masked entropy GRADIENT exactly 0 on illegal logits
+  (the unmasked form would leak 0.2255); per-minibatch advantage normalization after
+  slicing, targets from unnormalized advantages; losses/optimizer (0.5*MSE value loss
+  = SB3 convention); randperm-without-replacement epochs, old_logp/targets fixed
+  pre-epoch; LR anneal arithmetic exact (CleanRL's schedule; 12M config consumes
+  99.94% of it, floor clamped). Vector-loop wiring spot-checked end-to-end: stored
+  obs/mask/action identical to what act() consumed/returned, 160/160 rows.
+
+  INTEGRATION VERDICT (main session): CLEAN. The two nastiest seams are explicitly
+  engineered away with rationale in-code: showdown.py:486 remaps every finished
+  battle to terminated=True (poke-env reports forfeits/ties/timer as truncated,
+  which would stack a bootstrap on a decided game's terminal reward at gamma=1);
+  autoreset genuinely disabled with manual partial resets AFTER the terminal row
+  reaches the buffer, reset-mask merge on done rows only; wait-states absorbed
+  inside env.step (no phantom rows; reward accumulates across the pump); eval is
+  fixed-seed deterministic masked argmax with outcome from battle.won/lost and a
+  hard error on missing outcomes; checkpoints write-then-rename.
+
+  CONFIRMED BUG (latent — no completed run affected, verified): PPOAgent.
+  load_state_dict (ppo.py:493) restores the CHECKPOINT's optimizer hyperparameters,
+  including lr, and a constant-lr config never rewrites lr after construction
+  (anneal branch gated on lr_anneal_steps). Live repro: warm-start from an
+  annealed-to-the-floor checkpoint (saved lr 1.44e-07) into a fresh lr=2.5e-4
+  config -> trains at 1.44e-07 forever, silently. Both historical init_from configs
+  (sp6m/cont6m) loaded a constant-lr checkpoint at identical lr, so nothing to date
+  is corrupted — but P6's annealed checkpoints ARM the hazard on exactly the Arm A
+  warm-start smoke path, and the train.py:134 guard does not fire (it checks the
+  new config's lr_anneal_steps, not the checkpoint's saved lr). Fix (one line —
+  re-assert base_lr after optimizer load, plus a regression test) is bundled into
+  the Arm A warm-start-semantics decision (DESIGN D3/§4); not applied unilaterally.
+
+  Low severity, recorded: (1) size-1 trailing minibatch NaNs the net when
+  batch % (batch//minibatches) == 1 — impossible at production 4096/4, fails LOUDLY
+  if ever hit; a construction-time divisibility assert is the cheap guard. (2)
+  approx_kl/clip_frac are averaged over all 16 grad steps, damping the read ~1.5x
+  vs CleanRL's last-minibatch convention — relative comparisons (P6's mechanism
+  reads) survive; absolute bands are judged against a damped statistic. (3) No
+  explained-variance or grad-norm logging — already a pre-Arm-B task in DESIGN §5;
+  the audit measured (synthetic data) the 0.5 grad clip binding on 16/16 steps with
+  the critic carrying ~93% of the norm, which production logging should check.
+  (4) Coverage gaps -> five one-line test specs recorded by the audit: lr-after-load
+  invariant, GAE property test vs brute force, vector-wiring bitwise test, minibatch
+  divisibility guard, entropy-gradient masking test.
+
+  Bottom line: the learner is not the risk the library question worried it was —
+  keep ours stands on evidence now, not just argument. The one real hazard sits
+  exactly where DESIGN already scheduled work (the warm-start smoke), one line away.
