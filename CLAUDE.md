@@ -59,5 +59,5 @@ Session start: read `HANDOFF.md` only if non-empty (mid-handoff — fold anythin
 - Direct tone; skip superlatives and filler; push back when warranted. Sessions are short evening blocks — optimize for incremental, resumable progress.
 - **Runs longer than ~5 minutes go in the maintainer's terminal, not through Claude** (agent-launched training measured ~10× slower). Hand over the exact command, then read logs/checkpoints from disk. Short smokes and pytest stay in-session.
 - **Handed-over commands: one command per fenced block, never multi-line.** No inline `#` comments. State-changing steps (`kill`, `rm`) are separate blocks run one at a time; runs meant to execute together are ONE `&&`-chained line. Wrap every handed-over block in `<command>` / `</command>` sentinel lines OUTSIDE the fence.
-- **Git:** commit only when asked; never commit+push in one command — commit, then ask before pushing.
+- **Git:** commit your own work — `git add` + `git commit` directly, without asking, in small single-purpose commits as the work lands. Committing to `main` is this repo's normal flow; do not branch for it. **Pushing is different: never commit+push in one command, and always ask before pushing.**
 - To watch a recorded GIF, drag the file into Chrome — Preview shows a static filmstrip.
