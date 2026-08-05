@@ -24,6 +24,32 @@ lossy by construction and the code has repeatedly contradicted the project's own
   **Read the ps-ppo entry under Sources before citing anything from it** — several of its
   public claims do not survive contact with the code.
 
+## Datasets
+
+- **`HolidayOugi/pokemon-showdown-replays`** (HuggingFace) — public Showdown replays via the
+  Showdown API. 33,154,470 rows / 69.8 GB parquet, upload dates 2005–2026, counts current to
+  2026-06-20. Schema `id, format, players, log, uploadtime, views, formatid, rating`.
+  **`gen1randombattle` = 109,147 replays** (verified against the dataset's own per-format table
+  2026-08-04; more than Gen 1 OU's 102,574) — plausibly 10–20M state-action pairs counting both
+  perspectives, vs P4's 903,090 SH decisions. **The only known route to human demonstrations in
+  our exact format**, and human demos are NOT bounded by the 0.489 SH-imitation ceiling that caps
+  every SH-clone approach. Filter to the format; do not pull 69.8 GB.
+  Known problems, all verified: **`rating` is mostly null** (no skill filter — a clone learns the
+  mean uploader, not the strong players); **no license is stated** (this repo may go public —
+  handle like the Pons benchmark data: local, gitignored, never committed); voluntary-upload
+  selection bias; and spectator logs hide each player's private view, so reconstruction is
+  required and some actions are unrecoverable.
+  **Metamon's parser is NOT a shortcut** — it does not support random battles (Gens 1–4 OU +
+  Gen 9 OU only), it replaced poke-env's message parsing with its own so it cannot feed our
+  `embed_battle`, and its action space (13, or a 9-choice `MinimalActionSpace` for Gens 1–4) orders
+  moves and switches **alphabetically** where ours uses poke-env insertion order with 6 switch
+  slots — a re-sort plus a hole, where an off-by-one silently mislabels every row. Its Gen-1
+  mechanics parsing is still the right thing to fork.
+  **Structural advantage for us:** randbats sets come from a fixed, public, enumerable pool
+  (`showdown/data/random-battles/gen1/teams.ts`, already vendored), so belief-state reconstruction
+  is better posed here than in the OU formats Metamon targets.
+  Full analysis, costs and the open phase-placement question: `DESIGN_P7.md` §10.
+
 ## Sources
 
 - `wang2024_mit_thesis_randbats_rl.pdf` — Jett Wang, *Winning at Pokémon Random Battles
