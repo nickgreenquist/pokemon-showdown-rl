@@ -40,8 +40,8 @@ LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
 
 ## Watch items
 
-- Commit docs BEFORE launching; launch from a clean tree (`git_dirty` stamping).
-- Distinct `--seed` per lane. Used: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 the smoke.
+- Commit docs BEFORE launching, from a clean tree. Distinct `--seed` per lane: 0/1/2
+  lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 the smoke.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
 - **BC-warm-started runs sit at loss/entropy 0.063** (vs from-scratch 1.69 → 0.317), so
   they FAIL the [0.2, 1.0] R0 entropy gate from update 1, permanently. The band does not
