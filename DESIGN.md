@@ -1,14 +1,14 @@
 # DESIGN — the roadmap after P6
 
-**Status: PROPOSED, not ratified. Revision 6, rewritten 2026-08-05 for team review.**
-Lifecycle: reviewed → revised → each ratified item's pre-registration moves into its config
-header (the `configs/showdown_r512_lra.yaml` pattern) and STATUS.md tracks execution; this file
-is then deleted. Nothing here is decided.
+**Status: RATIFIED 2026-08-05 — maintainer (human) review; §9's author recommendations D1–D7
+adopted as written.** Lifecycle from here: each item's pre-registration moves into its config
+header (the `configs/showdown_r512_lra.yaml` pattern) as it is built, STATUS.md tracks
+execution, and this file is deleted once its content has fully migrated.
 
 Self-contained on purpose — a reviewer should need no other file and no prior conversation.
 
-> **REVIEWERS: §9 is the decision list (D1–D7). Everything else in this document is evidence
-> for it.**
+> **§9 is the decision list (D1–D7), each now DECIDED per its stated recommendation.
+> Everything else in this document is the evidence those decisions rest on.**
 
 Revision history, condensed. r1–r3 (2026-08-04): the original training-side package —
 BC-from-SH warm start (Arm A), faint shaping (Arm B), distributional value (Arm C) — plus an

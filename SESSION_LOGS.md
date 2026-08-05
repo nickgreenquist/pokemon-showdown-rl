@@ -502,3 +502,19 @@ entry by offset — never a broad keyword grep.
   still restores). Live repro re-run against the fix: recipient stays at 2.5e-4.
   Annealed resumes unaffected (update() recomputes lr from the counter). Suite: 220
   passed. The audit entry above stands except its "not applied" line — applied here.
+
+- 2026-08-05 — DESIGN r6 RATIFIED (maintainer review): D1–D7 adopted as recommended
+
+  "Consider it human reviewed; the design is set, coding work starts." Decisions now
+  binding, per §9's recommendations: D1 (c)→(d) corpus measurement now, chapter
+  presumptive; D2 (c) Arm B 6M futility screen (advance ≥ +0.009) → 12M credit, with
+  the 3000-battle/seed eval amendment for arm AND re-evaluated control; D3 (b) Arm A
+  retired to the ~1 h warm-start smoke; D4 (c) no 24M run under the stop rule; D5 (c)
+  no new benchmark yet (Foul Play checks ride inside Track 1); D6 both closures (MCTS
+  downgrade formal; post-parity opponent question deferred to the corpus chapter —
+  sp6m recovery already done); D7 (a) ladder performance is the ratified success
+  metric, GPU rental gated on measured embed/parse throughput, the unlicensed corpus
+  never leaves the local box. Arm C stays parked. DESIGN.md status flipped to
+  RATIFIED; its pre-registrations migrate into config headers as arms are built, then
+  the file is deleted per lifecycle. Maintainer's session setting for the coding
+  work: Opus, high effort.
