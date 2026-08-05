@@ -57,5 +57,5 @@ LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
 - P6 arms seed-UNPAIRED; per-seed comparison meaningless. poke-env 0.15.0: SH's setup
   branch is dead (upstream bug, report unfiled).
 - Concurrency: solo ~734 steps/s; 3-wide ≈ −20%/lane (~553-600); 6-wide 465-506/lane.
-- Run-dir `meta.yaml` git_shas are old-repo SHAs — provenance via SESSION_LOGS.
+  Run-dir `meta.yaml` git_shas are old-repo SHAs — provenance via SESSION_LOGS.
 - Corpus stays on the local box; revision + sha256 pinned in scripts/corpus_survey.py.
