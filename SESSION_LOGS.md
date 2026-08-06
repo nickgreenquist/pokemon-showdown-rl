@@ -1109,3 +1109,106 @@ entry by offset — never a broad keyword grep.
   90.2/11.3). Pilot win rate 0.82 at n=50 (se 0.054), consistent with the 0.8467 primary.
 
   NOT yet done: the bulk tranche, the BC fit, the learning curve, the encoder screen.
+
+- 2026-08-06 — THREE REVIEWS: real defects found. Corrections to numbers, claims and gates.
+
+  Three Opus reviewers (patches / pipeline / adversarial). Two reached the same pipeline
+  defects independently, which is why I believe them. This entry SUPERSEDES the earlier
+  2026-08-06 entries wherever they conflict.
+
+  **NUMBERS I GOT WRONG, now corrected:**
+
+  1. **"7.05 se above the 0.70 GO line" is WRONG; it is 5.54 se.** Distance from a threshold
+     uses se under H0 -- sqrt(0.7*0.3/300) = 0.0265 -- not se at p-hat (0.0208). My own
+     pre-registration used the right one ("se = 0.026 at p~0.7") and I then published the
+     wrong one. Margin overstated by 27%. **Verdict unchanged: GO.**
+  2. **The dataset arithmetic conflated TURNS with DECISIONS.** I divided 903,090 by
+     `mean_turns` 21.97. Decisions exceed turns (forced switches after a faint issue a
+     request without incrementing the turn). MEASURED from the pilot tape: **25.46
+     decisions/battle**. So a P4-scale set is **35,471 battles, not 41,112**.
+  3. **Re-priced with the persistent pool: 6.03 s/battle -> 59.4 h single-lane, ~7.4 h at
+     8-way** (I had published 90.2/11.3). Note the 8-way figure assumes linear scaling and
+     will not hold -- the repo has already measured collection lanes losing ~20% at 3-wide.
+  4. **s/decision, the §11(A) deliverable I claimed to have retired without ever stating:
+     0.237 s/decision measured**, against DESIGN's INFERRED ~0.2. The inference was good.
+
+  **CLAIMS I OVERSTATED:**
+
+  - **"0.8467 is a lower bound" is NOT established.** The lower-bound argument needs v1 to
+    have only *restricted* options; it did more than that -- v1 returned before setting
+    `last_selected_move`, so Foul Play's record of its own last move went stale for the whole
+    duration of every sleep, feeding its opponent-speed inference a lie ~195 times over 300
+    battles. That is an uncontrolled perturbation of unknown sign, not a handicap with a
+    monotonicity guarantee. Honest statement: **a variant of Foul Play -- not stock, and not
+    the bot now generating our data -- scored 0.8467.** First read on the corrected bot:
+    **0.875 (35-5, n=40, se 0.052)**, directionally consistent with v1 having handicapped it
+    but nowhere near conclusive. A full 300-battle re-measure is owed before any bulk run.
+  - **"independently corroborates Metamon's 'strongest open-source engine'"** -- Metamon
+    states that as an explicit judgement call ("based on results in old forum posts... and our
+    knowledge of method details"), not a measurement. Calling our extrapolation independent
+    corroboration of an opinion is the exact error prior_work/README exists to catch.
+  - **"+297 Elo, ~79% GXE, top of the published field"** rests on three unmeasured bridges:
+    transitivity from ONE opponent (which this project has already BANNED for its own agent
+    via the cyclic-payoff caveat), cross-format (anchor is gen7/gen9 randbats; ours is gen1),
+    and cross-population (humans on a ladder vs a scripted bot on localhost). The caveats were
+    in the session log but STATUS.md carried the bare number, and STATUS is the only mandatory
+    read. Caveated there now.
+  - **A new watch item nobody had connected:** STATUS already records "poke-env 0.15.0: SH's
+    setup branch is dead (upstream, unfiled)". If that bug postdates the poke-env Metamon
+    laddered, **our SH is weaker than the ~40%-GXE anchor** and every vs-SH number here is
+    inflated relative to it. Cheap to check; it moves the headline.
+
+  **DEFECTS IN MY OWN FIX, found by measurement not argument:**
+
+  - **Restoring all four moves split "stay in" into four duplicate actions.** MCTS visit
+    share IS the policy, so measured on a neutral asleep position the aggregate stay-in share
+    went **23% -> 66%**, and the 75%-of-best truncation then left a candidate set of moves
+    only -- reproducing the very "never switch out of sleep" bias the patch existed to fix.
+    Fixed: restore ONE representative move. poke-engine prices all four identically under
+    slp/frz (0.244 each vs 0.484 healthy), so one action is the truer model. After the fix,
+    placeholder turns fell 0.78 -> 0.10-0.25/battle, because the bot now ESCAPES those states
+    instead of sitting in them.
+  - **poke-engine models `partiallytrapped` with MODERN semantics** -- it deletes the switch
+    options and lets the trapped mon attack at full power. Gen 1 does neither. Not fixable
+    from our side, so `trap_kind` is now taped and `--drop-trap` excludes those rows.
+  - **Sleep and freeze ARE handled correctly** -- status travels independently of the move
+    list. My stated worry that the search would think the mon could freely act does not
+    materialise there.
+  - **`requirements.txt` still pinned the gen9 build.** A gen9 engine runs gen1 battles
+    without ever crashing -- it just makes a far worse teacher, silently. Now pinned to gen1.
+  - `BrokenProcessPool` was permanent with the persistent pool (stock self-healed per
+    decision); now rebuilds and retries. Plus: fallback branch mutated the discarded deepcopy,
+    `password is None` -> `not password`, and a vestigial `if True:`.
+  - **A positive control I had failed to find:** the installed `.so` contains
+    `src/gen1/state.rs` and "Cannot Boost spd in gen1. spa is used for spc". That is
+    artefact-level proof of the gen1 build, which my retracted `strings` probe was not.
+
+  **PIPELINE GATES REBUILT.** The old ones gave false assurance: G1 and G4 were literally the
+  same measurement (`battle.finished` is set by the same two lines that set the winner); G2
+  checked legality, NOT the round-trip identity its docstring claimed and which
+  `rl/collect.py` actually performs; G5 counted `forced`, which the corrected patch almost
+  never emits, so it would have false-FAILed forever; a FAIL printed and then wrote the npz
+  and exited 0. Rewritten with six gates that gate (non-zero exit, nothing written), plus:
+    - **G3 rqid alignment** -- the decision was taped against the request the reconstruction
+      stands on. This converts the file's central premise into a measurement and is the single
+      highest-value check; both reviewers named it independently.
+    - **G2 real round-trip identity**, mirroring rl/collect.py.
+    - **G4** now compares poke-env's `battle.won` against the taped winner -- catches a
+      username/role mix-up, which is otherwise silent.
+    - per-FILE username inference (a directory-wide guess would hand 7 of 8 lanes the wrong
+      seat at the planned 8-way scale), streaming per tape file with per-battle exception
+      isolation (the old version materialised the whole corpus and would not have run at
+      target scale), counters for dropped policy mass and per-branch skips, and `forceSwitch`
+      list-indexing / `maybeTrapped` fixes in the legal-set cross-check.
+
+  **GATES ON THE CORRECTED 40-BATTLE TAPE: ALL PASS.** 40/40 terminal; 1015/1015 labels
+  round-trip; 1015/1015 rqid aligned; 40/40 outcomes agree; 0 protocol errors; 1015/1015
+  legal-set cardinality; no dropped policy mass. Placeholder 0.25/battle, trap_kind recorded.
+
+  **STILL OPEN, deliberately:** no obs-fidelity gate (tape a battle played by our own
+  RecordingPlayer and assert the replayed `embed_battle` equals the live one elementwise --
+  the obs is the product and nothing yet checks it); the gen9-vs-gen1 A/B that would turn the
+  engine gate into a measurement; tape provenance headers; action-slot aliasing on placeholder
+  turns (action 6 resolves to the placeholder while obs move-slot 0 still describes the real
+  move -- pre-existing, affects prior runs too); and `train_bc.py` reads neither `policy` nor
+  `placeholder`, so soft targets change nothing until it does.
