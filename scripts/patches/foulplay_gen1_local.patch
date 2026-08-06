@@ -1,8 +1,29 @@
+diff --git a/fp/battle/inference.py b/fp/battle/inference.py
+index 81220a0..38399f2 100644
+--- a/fp/battle/inference.py
++++ b/fp/battle/inference.py
+@@ -187,6 +187,16 @@ def check_speed_ranges(battle, msg_lines):
+     if number_of_moves not in [1, 2]:
+         return
+ 
++    # PATCHED (pokemon-showdown-rl): latent upstream bug. Below, this function
++    # indexes all_move_json with `battle.user.last_selected_move.move`, which is
++    # the raw choice string and can be "switch <species>" -- KeyError
++    # 'switchseaking'. The sibling guard already exists elsewhere in this file
++    # (see the `.startswith("switch ")` check further down); it is simply
++    # missing here. Speed inference from a turn the bot spent switching carries
++    # no information anyway, so skipping is also the semantically right answer.
++    if battle.user.last_selected_move.move.startswith("switch "):
++        return
++
+     if (
+         number_of_moves == 1
+         and moves[0][0].startswith(battle.opponent.name)
 diff --git a/fp/data/__init__.py b/fp/data/__init__.py
-index 5dbb1f6..1a4569f 100644
+index 5dbb1f6..ab87182 100644
 --- a/fp/data/__init__.py
 +++ b/fp/data/__init__.py
-@@ -10,6 +10,32 @@ move_json_location = os.path.join(PWD, "moves.json")
+@@ -10,6 +10,37 @@ move_json_location = os.path.join(PWD, "moves.json")
  with open(move_json_location) as f:
      all_move_json = json.load(f)
  
@@ -15,9 +36,14 @@ index 5dbb1f6..1a4569f 100644
 +# ). `fight` is not in moves.json, so add_move() silently fails and the caller
 +# indexes moves[-1] on an empty list -> IndexError, killing the process. This is
 +# the same synthetic-move fix Foul Play already applies to Showdown's other
-+# placeholder, `recharge` (see data/scripts/update_moves.py). The turn is a
-+# forced choice with exactly one legal action, so supplying the placeholder
-+# changes no decision the bot actually makes.
++# placeholder, `recharge`, which is present in moves.json but absent from the
++# upstream move data (the generator script is not in this checkout).
++#
++# NOTE, corrected after measuring it: such a turn is NOT a forced choice. See
++# fp/modes/base.py -- `trapped` is False and every legal switch remains
++# available, so the search must still weigh staying in against switching. An
++# earlier version of this patch assumed one legal action and silently forbade
++# the bot from ever switching out of sleep/freeze/trap.
 +all_move_json["fight"] = {
 +    "accuracy": True,
 +    "basePower": 0,
@@ -36,7 +62,7 @@ index 5dbb1f6..1a4569f 100644
  with open(pkmn_json_location, "r") as f:
      pokedex = json.loads(f.read())
 diff --git a/fp/modes/base.py b/fp/modes/base.py
-index 3d2c4dc..a032867 100644
+index 3d2c4dc..30b6405 100644
 --- a/fp/modes/base.py
 +++ b/fp/modes/base.py
 @@ -10,7 +10,8 @@ from fp.battle.state import Battle, Battler, LastUsedMove, Pokemon
@@ -49,25 +75,104 @@ index 3d2c4dc..a032867 100644
  from fp.websocket_client import PSWebsocketClient
  
  logger = logging.getLogger(__name__)
-@@ -201,9 +202,33 @@ async def async_pick_move(battle):
+@@ -153,6 +154,40 @@ class BattleMode:
+         await handle_team_preview(battle, ps_websocket_client)
+ 
+ 
++def _placeholder_kind(battle):
++    """Which gen1 condition produced the placeholder: "slp", "frz" or "trap".
++
++    This matters for the demonstration corpus. poke-engine's gen1 build honours
++    sleep and freeze correctly -- all moves evaluate identically and distinctly
++    worse than healthy, so the search prices the turn as lost and weighs
++    switching properly. But it models `partiallytrapped` with MODERN semantics:
++    it removes the switch options entirely AND lets the trapped mon attack at
++    full power. Gen 1 partial trap does neither. So trap-induced placeholder
++    turns are searched in a wrong game and their labels are not trustworthy;
++    they are marked here so the corpus can exclude them.
++    """
++    active = battle.user.active
++    if "partiallytrapped" in getattr(active, "volatile_statuses", []):
++        return "trap"
++    status = getattr(active, "status", None)
++    if status in ("slp", "frz"):
++        return status
++    return "unknown"
++
++
++def _placeholder_real_moves(battle):
++    """The active pkmn's true move list, read off the request's own side data.
++
++    The gen1 placeholder blanks `active[0].moves`, but `side.pokemon[i].moves`
++    still carries the real four, so the search can be given a truthful state.
++    """
++    request = getattr(battle, "request_json", None) or {}
++    for mon in request.get("side", {}).get("pokemon", []):
++        if mon.get("active"):
++            return [m for m in mon.get("moves", []) if m]
++    return []
++
++
+ def format_decision(battle, decision):
+     # Formats a decision for communication with Pokemon-Showdown
+     # If the move can be used as a Z-Move, it will be
+@@ -201,9 +236,80 @@ async def async_pick_move(battle):
      if not battle_copy.team_preview:
          battle_copy.user.update_from_request_json(battle_copy.request_json)
  
-+    # PATCHED (pokemon-showdown-rl): gen1 forced-choice short-circuit.
++    # PATCHED (pokemon-showdown-rl): gen1 `Fight` placeholder.
++    #
 +    # In gen1 ONLY, when the active pkmn is asleep, frozen or partially trapped,
 +    # Showdown replaces the whole move list with a single `Fight` placeholder
-+    # (sim/pokemon.ts). There is then exactly ONE legal action, so there is
-+    # nothing to search: submit it. Without this, the placeholder reaches
-+    # poke-engine, which has no representable action for it, returns the choice
-+    # "none", and format_decision crashes on get_move("none").can_z.
-+    # This decides no turn that Foul Play would otherwise have a choice about.
++    # (sim/pokemon.ts). Foul Play cannot represent that: `fight` is not a move,
++    # poke-engine returns the choice "none", and format_decision dies.
++    #
++    # CORRECTED after measuring it: this is NOT a forced choice. Showdown's own
++    # comment calls these "actions that don't hard lock out of switching", and
++    # poke-env confirms it -- on such a turn `trapped` is False and the mask
++    # carries the placeholder PLUS every legal switch. Switching a sleeping mon
++    # out is ordinary gen1 play. An earlier version of this patch submitted the
++    # placeholder unsearched, which silently forbade Foul Play from ever
++    # switching out of sleep/freeze/trap: it weakened the bot, and it would have
++    # written a systematically biased "never switch when asleep" label into
++    # every demonstration row from such a turn.
++    #
++    # Correct handling: the placeholder hides the mon's real moves, but the
++    # request still lists them under `side.pokemon[active].moves`. Restore them
++    # so the search sees a truthful state and weighs staying in against
++    # switching; then, if it elects to stay in, any move choice is submitted as
++    # `/choose move 1`, which is what the server expects for the placeholder.
 +    active_moves = battle_copy.user.active.moves
-+    if len(active_moves) == 1 and active_moves[0].name == "fight":
-+        logger.info("Only the gen1 `fight` placeholder is legal; submitting it unsearched")
-+        tape.decision(  # PATCHED: taped so the reconstructor can EXCLUDE these
-+            battle_copy.battle_tag, battle_copy.rqid, "fight", forced=True
-+        )
-+        return ["/choose move 1", str(battle_copy.rqid)]
++    placeholder = len(active_moves) == 1 and active_moves[0].name == "fight"
++    trap_kind = _placeholder_kind(battle_copy) if placeholder else None
++    if placeholder:
++        real_moves = _placeholder_real_moves(battle_copy)
++        if real_moves:
++            # ONE representative move, not all four. Restoring four splits a
++            # single behavioural option ("stay in") into four duplicate actions,
++            # and MCTS visit share IS the policy: measured, that inflates the
++            # aggregate stay-in share from 23% to 66% on a neutral asleep
++            # position, and `select_move_from_mcts_results`'s 75%-of-best
++            # truncation then leaves a candidate set of moves only -- reproducing
++            # the very "never switch out of sleep" bias this patch exists to fix.
++            # poke-engine prices all four identically under slp/frz (measured:
++            # 0.244 each, vs 0.484 healthy), so one action is the truer model.
++            battle_copy.user.active.moves.clear()
++            battle_copy.user.active.add_move(real_moves[0])
++        else:
++            # No move list to restore: submit the placeholder unsearched.
++            tape.decision(
++                battle_copy.battle_tag,
++                battle_copy.rqid,
++                "fight",
++                forced=True,
++                placeholder=True,
++                trap_kind=trap_kind,
++            )
++            battle.user.last_selected_move = LastUsedMove(
++                battle.user.active.name, "fight", battle.turn
++            )
++            return ["/choose move 1", str(battle_copy.rqid)]
 +
      loop = asyncio.get_event_loop()
      with concurrent.futures.ThreadPoolExecutor() as pool:
@@ -79,15 +184,32 @@ index 3d2c4dc..a032867 100644
 +        policy=LAST_POLICY["policy"],
 +        values=LAST_POLICY["values"],
 +        forced=False,
++        placeholder=placeholder,
++        trap_kind=trap_kind,
 +    )
++    if placeholder and not best_move.startswith(constants.SWITCH_STRING + " "):
++        # Staying in on a placeholder turn: the server wants the placeholder
++        # slot, whichever move the search nominally preferred.
++        battle.user.last_selected_move = LastUsedMove(
++            battle.user.active.name, best_move, battle.turn
++        )
++        return ["/choose move 1", str(battle_copy.rqid)]
      battle.user.last_selected_move = LastUsedMove(
          battle.user.active.name,
          best_move.removesuffix("-tera").removesuffix("-mega"),
 diff --git a/fp/search/main.py b/fp/search/main.py
-index 947795e..ddb59b0 100644
+index 947795e..9d1b925 100644
 --- a/fp/search/main.py
 +++ b/fp/search/main.py
-@@ -13,8 +13,17 @@ from fp.search.poke_engine_helpers import battle_to_poke_engine_state
+@@ -1,6 +1,7 @@
+ import logging
+ import random
+ from concurrent.futures import ProcessPoolExecutor
++from concurrent.futures.process import BrokenProcessPool
+ from copy import deepcopy
+ 
+ from fp.battle.state import Battle
+@@ -13,8 +14,20 @@ from fp.search.poke_engine_helpers import battle_to_poke_engine_state
  logger = logging.getLogger(__name__)
  
  
@@ -95,7 +217,10 @@ index 947795e..ddb59b0 100644
 +# most recent decision, so demonstrations can carry soft targets instead of an
 +# argmax. Foul Play is STOCHASTIC -- it truncates to moves within 75% of the
 +# best and then `random.choices` among them -- so a one-hot label imitates the
-+# wrong object. Single-threaded per battle, so a module global is safe here.
++# wrong object. Foul Play runs one battle and one decision at a time
++# (fp/main.py, fp/run_battle.py are a single sequential loop), so a module
++# global is safe; `rqid` is stamped alongside so the tape-writing site can
++# assert the policy belongs to the decision it is recording.
 +LAST_POLICY = {"policy": None, "values": None}
 +
 +
@@ -105,24 +230,25 @@ index 947795e..ddb59b0 100644
      for mcts_result, sample_chance, index in mcts_results:
          this_policy = max(mcts_result.side_one, key=lambda x: x.visits)
          logger.info(
-@@ -30,9 +39,24 @@ def select_move_from_mcts_results(mcts_results: list[(MctsResult, float, int)])
+@@ -30,9 +43,25 @@ def select_move_from_mcts_results(mcts_results: list[(MctsResult, float, int)])
              final_policy[s1_option.move_choice] = final_policy.get(
                  s1_option.move_choice, 0
              ) + (sample_chance * (s1_option.visits / mcts_result.total_visits))
-+            # PATCHED: visit-weighted mean value per action, same marginalisation.
-+            if s1_option.visits:
-+                score_num[s1_option.move_choice] = score_num.get(
-+                    s1_option.move_choice, 0.0
-+                ) + sample_chance * s1_option.total_score
-+                score_den[s1_option.move_choice] = score_den.get(
-+                    s1_option.move_choice, 0.0
-+                ) + sample_chance * s1_option.visits
++            if s1_option.visits:  # PATCHED: visit-weighted value per action
++                score_num[s1_option.move_choice] = (
++                    score_num.get(s1_option.move_choice, 0.0)
++                    + sample_chance * s1_option.total_score
++                )
++                score_den[s1_option.move_choice] = (
++                    score_den.get(s1_option.move_choice, 0.0)
++                    + sample_chance * s1_option.visits
++                )
  
      final_policy = sorted(final_policy.items(), key=lambda x: x[1], reverse=True)
  
 +    # PATCHED: snapshot BEFORE truncation -- the truncated list is a decision
-+    # artefact, the full distribution is the supervision signal.
-+    LAST_POLICY["policy"] = [[m, float(p)] for m, p in final_policy]
++    # artefact; the full distribution is the supervision signal.
++    LAST_POLICY["policy"] = [[m, float(v)] for m, v in final_policy]
 +    LAST_POLICY["values"] = {
 +        m: float(score_num[m] / score_den[m]) for m in score_den if score_den[m]
 +    }
@@ -130,14 +256,14 @@ index 947795e..ddb59b0 100644
      # Consider all moves that are close to the best move
      highest_percentage = final_policy[0][1]
      final_policy = [i for i in final_policy if i[1] >= highest_percentage * 0.75]
-@@ -55,6 +79,20 @@ def get_result_from_mcts(
+@@ -55,6 +84,20 @@ def get_result_from_mcts(
      return res
  
  
 +# PATCHED (pokemon-showdown-rl): a PERSISTENT process pool. Stock Foul Play
 +# builds a ProcessPoolExecutor per decision; on macOS that is spawn, not fork,
-+# and it showed up as ~0.16 s/decision of non-search overhead against ~0.20 s
-+# of actual search. Over a 41k-battle generation run that is tens of hours.
++# and it measured ~0.16 s/decision of non-search overhead against ~0.20 s of
++# actual search. Hoisting it took 7.9 -> 6.03 s/battle (-24%).
 +_EXECUTOR = None
 +
 +
@@ -151,22 +277,58 @@ index 947795e..ddb59b0 100644
  def find_best_move(battle: Battle) -> str:
      battle = deepcopy(battle)
      if battle.team_preview:
-@@ -68,7 +106,8 @@ def find_best_move(battle: Battle) -> str:
+@@ -68,19 +111,34 @@ def find_best_move(battle: Battle) -> str:
      logger.info(
          "Sampling {} battles at {}ms each".format(num_battles, search_time_per_battle)
      )
 -    with ProcessPoolExecutor(max_workers=FoulPlayConfig.parallelism) as executor:
-+    executor = _get_executor()
-+    if True:
-         futures = []
-         for index, (b, chance) in enumerate(battles):
-             fut = executor.submit(
+-        futures = []
+-        for index, (b, chance) in enumerate(battles):
+-            fut = executor.submit(
+-                get_result_from_mcts,
+-                battle_to_poke_engine_state(b).to_string(),
+-                search_time_per_battle,
++    def _submit(executor):
++        return [
++            (
++                executor.submit(
++                    get_result_from_mcts,
++                    battle_to_poke_engine_state(b).to_string(),
++                    search_time_per_battle,
++                    index,
++                    FoulPlayConfig.search_threads,
++                ),
++                chance,
+                 index,
+-                FoulPlayConfig.search_threads,
+             )
+-            futures.append((fut, chance, index))
+-
+-    mcts_results = [(fut.result(), chance, index) for (fut, chance, index) in futures]
++            for index, (b, chance) in enumerate(battles)
++        ]
++
++    global _EXECUTOR
++    futures = _submit(_get_executor())
++    try:
++        mcts_results = [(f.result(), c, i) for (f, c, i) in futures]
++    except BrokenProcessPool:
++        # PATCHED: a persistent pool does not self-heal the way the stock
++        # per-decision pool did. Without this, one dead worker kills every
++        # remaining decision of a multi-hour generation run.
++        logger.warning("Process pool broke; rebuilding and retrying this decision")
++        _EXECUTOR = None
++        futures = _submit(_get_executor())
++        mcts_results = [(f.result(), c, i) for (f, c, i) in futures]
+     choice = select_move_from_mcts_results(mcts_results)
+     logger.info("Choice: {}".format(choice))
+     return choice
 diff --git a/fp/tape.py b/fp/tape.py
 new file mode 100644
-index 0000000..4522cb6
+index 0000000..1068343
 --- /dev/null
 +++ b/fp/tape.py
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,69 @@
 +# ADDED (pokemon-showdown-rl): demonstration tape writer.
 +#
 +# Records Foul Play's battles as a raw, replayable event stream so that the
@@ -221,7 +383,8 @@ index 0000000..4522cb6
 +    write({"k": "m", "v": raw})
 +
 +
-+def decision(tag, rqid, choice, policy=None, values=None, forced=False) -> None:
++def decision(tag, rqid, choice, policy=None, values=None, forced=False,
++             placeholder=False, trap_kind=None) -> None:
 +    write(
 +        {
 +            "k": "d",
@@ -231,10 +394,12 @@ index 0000000..4522cb6
 +            "policy": policy,
 +            "values": values,
 +            "forced": forced,
++            "placeholder": placeholder,
++            "trap_kind": trap_kind,
 +        }
 +    )
 diff --git a/fp/websocket_client.py b/fp/websocket_client.py
-index d49b726..37675f5 100644
+index d49b726..adca987 100644
 --- a/fp/websocket_client.py
 +++ b/fp/websocket_client.py
 @@ -1,5 +1,7 @@
@@ -254,7 +419,7 @@ index d49b726..37675f5 100644
 +        # reach out to the public login server for one. poke-env takes exactly
 +        # this path (ps_client.py: `assertion = ""` when there is no password),
 +        # which is why every training run in that repo connects fine.
-+        self.local_no_security = password is None and (
++        self.local_no_security = not password and (
 +            "localhost" in address or "127.0.0.1" in address
 +        )
          self.login_uri = (
@@ -282,3 +447,16 @@ index d49b726..37675f5 100644
          if guest_login:
              response = requests.post(
                  self.login_uri,
+diff --git a/requirements.txt b/requirements.txt
+index 5f792ed..03f654d 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,4 +1,7 @@
+ requests==2.33.0
+ websockets==14.1
+ python-dateutil==2.8.0
+-poke-engine==0.0.48 --config-settings="build-args=--features poke-engine/terastallization --no-default-features"
++# PATCHED (pokemon-showdown-rl): gen1, NOT the upstream gen9/terastallization
++# build. A gen9 engine runs gen1 battles with gen9 mechanics and NEVER crashes;
++# it just makes a far worse teacher, with no signal that anything is wrong.
++poke-engine==0.0.48 --config-settings="build-args=--features poke-engine/gen1 --no-default-features"
