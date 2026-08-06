@@ -1212,3 +1212,65 @@ entry by offset — never a broad keyword grep.
   turns (action 6 resolves to the placeholder while obs move-slot 0 still describes the real
   move -- pre-existing, affects prior runs too); and `train_bc.py` reads neither `policy` nor
   `placeholder`, so soft targets change nothing until it does.
+
+- 2026-08-06 — All four open checks CLOSED. Obs fidelity PASS; engine A/B measured; SH anchor OK.
+
+  Follow-through on the reviewers' "you are assuming, not measuring" list. All four resolved.
+
+  **1. OBS FIDELITY -- PASS, and it is the check that was missing.** The reconstructor gated
+  labels, rqids and termination but never the OBSERVATION, which is the product;
+  `apply_message` is a hand-rolled mirror of poke-env's dispatch, so any divergence yields
+  wrong obs while every gate still passes. `scripts/obs_fidelity_check.py` plays real battles
+  with our own `RecordingPlayer`, tapes the same seat's frames at poke-env's own entry point
+  (`ps_client._handle_message`), replays offline through the IDENTICAL code path, and compares
+  elementwise. **189 decisions / 8 battles: 0 obs mismatch, 0 mask mismatch, 0 key mismatch**,
+  bitwise on float32 (np.array_equal, not allclose). Three of my own bugs surfaced building it:
+  `battle.rqid` is a Foul Play attribute poke-env does not have; `opponent_player()` builds a
+  NON-listening player that cannot battle over a server; and a stray `scripts/__init__.py` I
+  had created would have changed pytest collection (removed).
+
+  **2. ENGINE BUILD -- a real positive control, and the A/B run in both directions.** The
+  compiled .so's MODULE PATHS discriminate the build; move-name tables do NOT, which is why
+  the earlier `strings` probe was correctly retracted -- but for an incomplete reason: I had
+  grepped move names, and module paths were available the whole time.
+      gen1 build : 7x `src/gen1/`, 0x `src/genx/`, "used for spc" present
+      gen9 build : 0x `src/gen1/`, 20+x `src/genx/`, no gen1 string
+  **A/B: with the gen9 engine deliberately installed, Foul Play went 2-5 over 7 battles and
+  then DIED** -- 6 exceptions, terminating in `pyo3_runtime.PanicException` (not even
+  picklable back across the process pool) -- against ~0.85 for gen1. This CORRECTS a
+  reviewer's assumption that a wrong-gen engine "never crashes, just makes a worse teacher
+  silently": measured, it fails loudly. gen1 build restored and re-verified afterwards.
+
+  **3. IS OUR SH WEAKER THAN METAMON'S ANCHOR? No.** The setup branch
+  (`baselines.py`) compares `move.target == "self"` -- a STRING -- against a `Target` ENUM, so
+  it is always False and **SimpleHeuristicsPlayer never uses a setup move, in any generation**
+  (Swords Dance, Amnesia, Barrier, Acid Armor, Agility all qualify on every other condition
+  and die there; all appear in gen1 randbats sets). But the `Target` enum landed 2024-04-11
+  (poke-env 0.8.1) and `baselines.py` was never updated -- the bug is still at upstream HEAD.
+  That is ~8 months BEFORE Metamon's Dec 2024-Mar 2025 window, so their SH almost certainly
+  shares it and our SH is comparable to the ~40% GXE anchor rather than weaker. Residual
+  caveat: Metamon ships a custom poke-env fork, so a local fix cannot be excluded.
+
+  **4. THE CORRECTED PATCH DOES NOT DETECTABLY CHANGE THE WIN RATE -- and I over-read the
+  first sample.** Earlier tonight I called a 0.875 (n=40) read "directionally consistent with
+  v1 having handicapped it". Pooling properly:
+      v1                 254-46  0.8467  se 0.0208
+      corrected (pooled)  82-18  0.8200  se 0.0384   (40 + 60 battles)
+      difference -0.0267, se_diff 0.0437, **z = -0.61 -> INDISTINGUISHABLE**
+  So 0.875 was noise and I should not have read a direction into it. The corrected bot still
+  clears the bar on its own: **2.62 se above the 0.70 GO line at n=100**.
+  **The patch mattered for LABEL QUALITY, not for the score** -- v1 forbade switching on
+  placeholder turns, and the search elects to switch on a large share of them, so v1 would
+  have written a systematically wrong "never switch when asleep" label into the corpus. That
+  was always the reason to fix it; the win rate was never the point.
+
+  **GATES on the 60-battle confirmation tape (restored gen1 build): ALL PASS.** 60/60
+  terminal; 1493/1493 labels round-trip; 1493/1493 rqid aligned; 60/60 outcomes agree; 0
+  protocol errors; 1493/1493 legal-set cardinality; no dropped policy mass. Placeholder
+  0.38/battle. Suite 240 passed.
+
+  **STILL OPEN, stated so it does not look finished:** `scripts/train_bc.py` reads neither
+  `policy` nor `placeholder`, so soft targets and trap flags change nothing until it does; and
+  the action-slot aliasing on placeholder turns (action 6 resolves to the placeholder while
+  the obs move-slot 0 still describes a real move) is real, PRE-EXISTING, affects prior RL/BC
+  runs too, and needs a decision rather than a note.

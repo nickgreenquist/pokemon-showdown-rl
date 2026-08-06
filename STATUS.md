@@ -19,7 +19,7 @@ teacher and the demonstration tape pipeline is built and gate-green; §11 awaits
 | **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
 | BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
-| **Foul Play (+our gen1 patch) — teacher candidate** | **0.8467** (254-46, n=300)* |
+| **Foul Play (+our gen1 patch) — teacher candidate** | **0.8467** (n=300)* / 0.82 corrected (n=100) |
 
 **LADDER TRANSLATION (derivation + caveats atop `prior_work/README.md`).** SH scores 39.7/41.2%
 GXE on gen7/gen9 randbats, so **0.489 parity ≈ 40% GXE, not "solved"**; the pure-policy field
@@ -30,8 +30,8 @@ figure here is a cross-format extrapolation, not a measurement.
 
 0. **MAINTAINER DECISION — ratify §11 (D8/D9). Its gate is PASSED.** Foul Play 0.8467 vs SH
    (254-46, n=300), **5.54 se** over the 0.70 GO line (se under H0 0.0265; an earlier "7.05"
-   used se at p-hat, wrong). Measured with an EARLIER patch — corrected bot reads 0.875
-   (n=40); a 300-battle re-measure is owed. "+297 Elo / ~79% GXE" is an EXTRAPOLATION over
+   used se at p-hat, wrong). Corrected patch pooled 0.82 (n=100) — INDISTINGUISHABLE from
+   v1 (z=-0.61); still 2.62 se over the GO line. "+297 Elo / ~79% GXE" is an EXTRAPOLATION over
    three unmeasured bridges (see prior_work/README), not a measurement. Re-priced from
    measured 25.46 decisions/battle @ 6.03 s: **35.5k battles = 59 h solo, ~7.4 h 8-way**
    (won't scale fully; 3-wide already costs ~20%).
