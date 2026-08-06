@@ -1421,3 +1421,74 @@ entry by offset — never a broad keyword grep.
   NOT yet done: the BC tranche and the agreement-vs-reveal-fraction read that estimates the
   information bound; `train_bc.py` still needs soft targets, the shard-merging loader and the
   teacher-value critic target; `--drop-trap` still has no positive test.
+
+- 2026-08-06 — TRANCHE RUN + BC CURVE. The set prior does NOT help agreement. Negative result.
+
+  1,200 battles collected (3 lanes x 400), reconstructed, and fitted. Everything below is
+  measured. **The headline is a negative result on the encoder change I made earlier today.**
+
+  **COLLECTION.** 3 lanes, distinct usernames, 0 errors, 1,200/1,200 battles.
+    lane1 327-72 (0.8175)  lane2 338-58 (0.8450)  lane3 335-64 (0.8375)
+    **POOLED 1000-194, 6 ties, n=1200 -> 0.8333, se 0.0108, 95% CI [0.812, 0.854]**
+  This DISCHARGES the owed re-measure of the shipped (corrected-patch) bot, at 4x the
+  pre-registered n: **10.08 se above the 0.70 GO line**, and vs v1's 0.8467 (n=300) the
+  difference is -0.0133, z=-0.57 -> still indistinguishable. The patch changed labels, not
+  strength, exactly as the n=100 read said.
+
+  **THROUGHPUT AT 3-WIDE, MEASURED (nobody had run more than one lane).** 5.67-5.91 s/battle
+  per lane vs 6.03 solo -- i.e. **3.02x aggregate speedup, essentially LINEAR**, unlike our own
+  collection which loses ~20%/lane at 3-wide. Foul Play's search sits in its own process pool,
+  so lanes barely contend. A P4-scale 35,471-battle set is **19.7 h at 3-wide** (was quoted 59 h
+  solo / 7.4 h at a never-tested 8-wide). Tapes ~96 KB/battle, 115 MB for 1,200.
+
+  **GATES AT SCALE: ALL PASS.** 1200/1200 terminal; **29,844/29,844 labels round-tripped**;
+  29,844/29,844 rqid aligned; 1200/1200 outcomes agree; 0 protocol errors; 0 dropped policy
+  mass; 0 missing teacher values. Placeholder 0.43/battle.
+
+  **BC LEARNING CURVE (soft targets, by-battle rungs, best held-out free-agreement):**
+      3,750 rows -> 0.3432
+      7,500      -> 0.3510   (+0.008)
+     15,000      -> 0.3983   (+0.047)
+     30,000      -> 0.4215   (+0.023)
+  **Still climbing at 30k**, ~+2.6 pts/doubling over the last two doublings, against a Bayes
+  ceiling of ~0.894 for predicting this stochastic teacher's SAMPLED action. So on this read
+  the branch is "more data helps", not "the encoder is the wall".
+
+  **THE ABLATION, and it falsifies the hypothesis I acted on.** The tape design exists exactly
+  so this costs a re-embed rather than a re-collection, so I re-embedded the SAME 1,200 battles
+  with `POKEMON_RL_NO_SET_PRIOR=1` (revealed opponent moves only, the pre-today behaviour):
+      n=15,000   with prior 0.3983   without 0.3863   delta +0.0120  (z +0.65)
+      n=30,000   with prior 0.4215   without 0.4189   delta +0.0027  (z +0.21)
+  **No measurable benefit.** And those z's use a binomial se that UNDERSTATES the true one,
+  because val rows are correlated within a battle -- a lesson already in this repo. So the
+  opponent set prior, which demonstrably supplies 3.16 certain opponent moves per decision and
+  whose mechanism I verified, does not move teacher agreement at this scale.
+
+  **The reveal-conditioned read -- the pre-registered falsifier -- does not fire either.**
+  Agreement by number of opponent mons revealed, at n=30,000:
+      with prior     0-1: 0.454   2-3: 0.412   4-6: 0.418
+      without prior  0-1: 0.472   2-3: 0.428   4-6: 0.397
+  FLAT in both conditions, and if anything HIGHER when less is revealed -- the opposite of the
+  "student is bounded by missing opponent information" prediction that all three path reviewers
+  converged on and that I implemented against. **On this evidence the information gap is not
+  what is limiting the clone at 30k rows.**
+
+  Honest reading of my own change: the set prior is theoretically sound, faithful to Showdown's
+  generator, costs zero OBS_DIM, and is measurably inert on this metric at this scale. It may
+  still matter for PLAY STRENGTH rather than move-matching (never tested), or at larger n. It
+  should NOT be quoted as an improvement. Keeping it is defensible -- it is free and it removes
+  a known information asymmetry with the teacher -- but the claim that it addresses the
+  binding constraint is now falsified, and the reviewers' central diagnosis with it.
+
+  **SOFT vs HARD targets at n=30,000:** agreement 0.4215 vs 0.4212 -- identical. But fitted
+  policy entropy **1.449 (soft) vs 1.255 (hard)**, against a teacher entropy of 1.098. So soft
+  targets buy nothing on agreement and do what they were adopted for: they anchor the student's
+  entropy near the teacher's instead of driving it toward 0. That is the warm-start landmine
+  (`loss/entropy` 0.063, failing the [0.2,1.0] R0 gate from update 1), and both fits land ABOVE
+  that band, confirming it must be re-derived rather than inherited.
+
+  **OPEN / NEXT:** the curve is still climbing, so a larger tranche is justified on the data
+  read -- but the clone has never been scored on the thing that matters (`eval_checkpoint.py`
+  vs SH under the locked protocol), and agreement is not win rate. That eval, plus the
+  never-run head-to-heads (FP vs our best RL checkpoint; FP vs the BC clone of SH), are worth
+  more than more rows. `--drop-trap` still has no positive test.

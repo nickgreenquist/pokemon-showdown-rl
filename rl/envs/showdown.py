@@ -28,6 +28,7 @@ and damage ranges, so eval variance is handled by battle count (the Phase 5
 headline metric budgets >=1000 battles per matchup), not by fixed seeds.
 """
 
+import os
 import random
 
 import numpy as np
@@ -263,6 +264,13 @@ def _move_obj(move_id: str):
     return Move(move_id, gen=1)
 
 
+# Ablation switch. Set POKEMON_RL_NO_SET_PRIOR=1 to encode ONLY revealed
+# opponent moves, i.e. the pre-2026-08-06 behaviour. Because the durable
+# artefact is the raw tape, this makes "what did the set prior actually buy?"
+# an offline re-embed rather than a re-collection.
+_NO_SET_PRIOR = bool(os.environ.get("POKEMON_RL_NO_SET_PRIOR"))
+
+
 def _opponent_move_slots(theirs):
     """Up to 4 (Move, probability) pairs for the opponent's active pokemon."""
     revealed = [m for m in list(theirs.moves.values())[:4]]
@@ -270,7 +278,7 @@ def _opponent_move_slots(theirs):
     if len(slots) >= 4:
         return slots[:4]
     species = theirs.species
-    if species not in known_species():
+    if _NO_SET_PRIOR or species not in known_species():
         return slots
     seen = frozenset(m.id for m in revealed)
     for move_id, prob in conditional_move_probs(species, seen):
