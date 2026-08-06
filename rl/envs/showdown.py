@@ -39,6 +39,7 @@ from poke_env.battle.move import Move
 from poke_env.battle.move_category import MoveCategory
 from poke_env.battle.pokemon_type import PokemonType
 from poke_env.battle.status import Status
+from poke_env.battle.target import Target
 from poke_env.data import GenData
 from poke_env.environment import SingleAgentWrapper, SinglesEnv
 from functools import lru_cache
@@ -115,11 +116,26 @@ _VOLATILES = (
 # same way.
 _SPECIAL_MOVE_IDS = frozenset({"fight", "struggle", "recharge"})
 
+# --- Encoder v2 (2026-08-06, BC-chapter screen), behind POKEMON_RL_ENCODER_V2=1.
+# Appends (a) a 23-dim per-move EFFECT block — what the move DOES beyond damage:
+# inflicted status + probability, self/foe boost sums, heal/recoil/drain,
+# crit class, multi-hit, self-destruct, recharge/charge, volatiles — and (b) a
+# per-mon speed-edge scalar vs the opposing active. Motivation (direction
+# audit): under v1, Rest/Amnesia/Reflect are near-identical vectors, and the
+# Foul Play teacher conditions on exactly these mechanics; the SH clone never
+# needed them because SH doesn't read them. Feature list adapted from ps-ppo's
+# move token (obs_moves.py, github.com/Nebraskinator/ps-ppo, MIT) — the
+# secondary-status-probability and STAB-class fields our 2026-08-04 audit
+# flagged — recomputed here from poke-env gen-1 move data. Default OFF: with
+# the flag unset, OBS_DIM stays 611 and the encoding is bit-identical to v1.
+_ENCODER_V2 = bool(os.environ.get("POKEMON_RL_ENCODER_V2"))
+
 # Block layouts (offsets documented in the fill helpers below).
 GLOBAL_DIM = 5
-MON_DIM = 32  # hp, fainted, active, status(6), level, stats(5), types(15), off/def matchup
+EFFECT_DIM = 23  # v2 only: appended to each move block
+MON_DIM = 33 if _ENCODER_V2 else 32  # hp, fainted, active, status(6), level, stats(5), types(15), off/def matchup [, v2 speed edge]
 ACTIVE_DIM = 16  # boosts(7), volatiles(7), status_counter, preparing
-MOVE_DIM = 23  # known, bp, acc, pp, matchup, physical, status, priority, type(15)
+MOVE_DIM = (23 + EFFECT_DIM) if _ENCODER_V2 else 23  # known, bp, acc, pp, matchup, physical, status, priority, type(15) [, v2 effect block]
 
 # Layout: global | our 6 team blocks (switch-action order) | our active
 # extras | our active's 4 move blocks (move-action order) | opponent's 6
@@ -140,7 +156,8 @@ def _best_multiplier(attacker, defender, type_chart) -> float:
 def _fill_mon(vec, o, mon, foe, active, type_chart):
     """[o] hp | [+1] fainted | [+2] is-active | [+3..8] status one-hot |
     [+9] level | [+10..14] base stats | [+15..29] types | [+30] best
-    multiplier of mon's types vs foe | [+31] of foe's types vs mon."""
+    multiplier of mon's types vs foe | [+31] of foe's types vs mon |
+    v2 only: [+32] speed edge vs foe in (-1, 1)."""
     vec[o] = mon.current_hp_fraction
     vec[o + 1] = mon.fainted
     vec[o + 2] = mon is active
@@ -157,6 +174,8 @@ def _fill_mon(vec, o, mon, foe, active, type_chart):
     if foe is not None:
         vec[o + 30] = _best_multiplier(mon, foe, type_chart)
         vec[o + 31] = _best_multiplier(foe, mon, type_chart)
+        if _ENCODER_V2:
+            vec[o + 32] = _speed_edge(mon, foe, mon is active)
 
 
 def _fill_active(vec, o, mon):
@@ -194,6 +213,8 @@ def _fill_move(vec, o, move, foe, type_chart, prob: float = 1.0):
     idx = _TYPE_INDEX.get(move.type)
     if idx is not None:
         vec[o + 8 + idx] = 1.0
+    if _ENCODER_V2:
+        vec[o + 23 : o + 23 + EFFECT_DIM] = _effect_block(move.id)
 
 
 def embed_battle(battle, type_chart) -> np.ndarray:
@@ -262,6 +283,98 @@ def _move_slots_aliased(battle) -> bool:
 @lru_cache(maxsize=4096)
 def _move_obj(move_id: str):
     return Move(move_id, gen=1)
+
+
+# --- Encoder-v2 helpers (inert unless POKEMON_RL_ENCODER_V2=1) -------------
+
+# m.secondary carries lowercase status strings; indices match _STATUS_INDEX.
+_SEC_STATUS_STR = {"brn": 0, "frz": 1, "par": 2, "psn": 3, "slp": 4, "tox": 5}
+
+# Volatiles a MOVE can inflict, indexed within the effect block. MUST_RECHARGE
+# (Hyper Beam) is omitted — the recharge flag carries it.
+_MOVE_VOL_INDEX = {
+    Effect.CONFUSION: 0,
+    Effect.PARTIALLY_TRAPPED: 1,
+    Effect.SUBSTITUTE: 2,
+    Effect.REFLECT: 3,
+    Effect.LEECH_SEED: 4,
+    Effect.FLINCH: 5,
+}
+_SEC_VOL_STR = {"confusion": 0, "partiallytrapped": 1, "flinch": 5}
+
+
+@lru_cache(maxsize=4096)
+def _effect_block(move_id: str) -> np.ndarray:
+    """v2: what the move DOES beyond damage. Static per move id, cached.
+
+    [0..5] inflicted-status one-hot (BRN FRZ PAR PSN SLP TOX) | [6] its
+    probability (1.0 primary, chance/100 secondary) | [7] self boost sum /4
+    (Amnesia 1.0) | [8] foe boost sum /4, chance-weighted, signed (Growl
+    -0.25, gen1 Psychic -0.165) | [9] heal fraction ('heal'-flagged moves
+    with no numeric fraction, i.e. Rest, encode 1.0) | [10] recoil |
+    [11] drain | [12] crit ratio /2 (Slash 1.0) | [13] extra hits /2
+    (Double Kick 0.5) | [14] self-destruct | [15] recharge | [16] charge
+    turn | [17..22] inflicted-volatile one-hot (CONFUSION PARTIALLY_TRAPPED
+    SUBSTITUTE REFLECT LEECH_SEED FLINCH), chance-weighted (a secondary's
+    chance overwrites the primary 1.0, e.g. Bite's flinch at 0.1)."""
+    v = np.zeros(EFFECT_DIM, dtype=np.float32)
+    try:
+        m = _move_obj(move_id)
+    except Exception:
+        return v  # synthetic ids (the gen1 fight placeholder): stay zero
+    if m.status is not None:
+        idx = _STATUS_INDEX.get(m.status)
+        if idx is not None:
+            v[idx] = 1.0
+            v[6] = 1.0
+    boosts = m.boosts or {}
+    if m.target == Target.SELF:
+        v[7] = sum(boosts.values()) / 4.0
+    else:
+        v[8] = sum(boosts.values()) / 4.0
+    vol = _MOVE_VOL_INDEX.get(m.volatile_status)
+    if vol is not None:
+        v[17 + vol] = 1.0
+    for sec in m.secondary or []:
+        chance = sec.get("chance", 100) / 100.0
+        st = _SEC_STATUS_STR.get(sec.get("status"))
+        if st is not None:
+            v[st] = 1.0
+            v[6] = max(v[6], chance)
+        if "boosts" in sec:
+            v[8] += sum(sec["boosts"].values()) * chance / 4.0
+        svol = _SEC_VOL_STR.get(sec.get("volatileStatus"))
+        if svol is not None:
+            v[17 + svol] = chance
+    v[9] = m.heal if m.heal else (1.0 if "heal" in m.flags else 0.0)
+    v[10] = m.recoil
+    v[11] = m.drain
+    v[12] = m.crit_ratio / 2.0
+    v[13] = (m.expected_hits - 1.0) / 2.0
+    v[14] = bool(m.self_destruct)
+    v[15] = "recharge" in m.flags
+    v[16] = "charge" in m.flags
+    return v
+
+
+def _spe_est(mon, is_active: bool) -> float:
+    """Crude actual-speed proxy: base speed scaled by level, with boost and
+    paralysis applied for on-field mons. Monotone in the true gen1 stat
+    (randbats DVs/stat exp are fixed), which is all the edge feature needs."""
+    s = mon.base_stats["spe"] * mon.level / 100.0
+    if is_active:
+        b = mon.boosts["spe"]
+        s *= (2 + b) / 2.0 if b >= 0 else 2.0 / (2 - b)
+        if mon.status == Status.PAR:
+            s *= 0.25
+    return max(s, 1e-3)
+
+
+def _speed_edge(mon, foe, mon_is_active: bool) -> float:
+    """v2: (a-d)/(a+d) in (-1, 1); positive = mon outspeeds the foe active."""
+    a = _spe_est(mon, mon_is_active)
+    d = _spe_est(foe, True)
+    return (a - d) / (a + d)
 
 
 # Ablation switch. Set POKEMON_RL_NO_SET_PRIOR=1 to encode ONLY revealed
