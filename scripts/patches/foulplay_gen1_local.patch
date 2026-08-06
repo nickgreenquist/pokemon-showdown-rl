@@ -36,10 +36,20 @@ index 5dbb1f6..1a4569f 100644
  with open(pkmn_json_location, "r") as f:
      pokedex = json.loads(f.read())
 diff --git a/fp/modes/base.py b/fp/modes/base.py
-index 3d2c4dc..924c8ad 100644
+index 3d2c4dc..a032867 100644
 --- a/fp/modes/base.py
 +++ b/fp/modes/base.py
-@@ -201,6 +201,19 @@ async def async_pick_move(battle):
+@@ -10,7 +10,8 @@ from fp.battle.state import Battle, Battler, LastUsedMove, Pokemon
+ from fp.config import FoulPlayConfig
+ from fp.constants import BattleType
+ from fp.data.sets import SmogonSets
+-from fp.search.main import find_best_move
++from fp.search.main import find_best_move, LAST_POLICY  # PATCHED (pokemon-showdown-rl)
++from fp import tape  # PATCHED (pokemon-showdown-rl)
+ from fp.websocket_client import PSWebsocketClient
+ 
+ logger = logging.getLogger(__name__)
+@@ -201,9 +202,33 @@ async def async_pick_move(battle):
      if not battle_copy.team_preview:
          battle_copy.user.update_from_request_json(battle_copy.request_json)
  
@@ -54,16 +64,188 @@ index 3d2c4dc..924c8ad 100644
 +    active_moves = battle_copy.user.active.moves
 +    if len(active_moves) == 1 and active_moves[0].name == "fight":
 +        logger.info("Only the gen1 `fight` placeholder is legal; submitting it unsearched")
++        tape.decision(  # PATCHED: taped so the reconstructor can EXCLUDE these
++            battle_copy.battle_tag, battle_copy.rqid, "fight", forced=True
++        )
 +        return ["/choose move 1", str(battle_copy.rqid)]
 +
      loop = asyncio.get_event_loop()
      with concurrent.futures.ThreadPoolExecutor() as pool:
          best_move = await loop.run_in_executor(pool, find_best_move, battle_copy)
++    tape.decision(  # PATCHED (pokemon-showdown-rl)
++        battle_copy.battle_tag,
++        battle_copy.rqid,
++        best_move,
++        policy=LAST_POLICY["policy"],
++        values=LAST_POLICY["values"],
++        forced=False,
++    )
+     battle.user.last_selected_move = LastUsedMove(
+         battle.user.active.name,
+         best_move.removesuffix("-tera").removesuffix("-mega"),
+diff --git a/fp/search/main.py b/fp/search/main.py
+index 947795e..ddb59b0 100644
+--- a/fp/search/main.py
++++ b/fp/search/main.py
+@@ -13,8 +13,17 @@ from fp.search.poke_engine_helpers import battle_to_poke_engine_state
+ logger = logging.getLogger(__name__)
+ 
+ 
++# PATCHED (pokemon-showdown-rl): the full, PRE-TRUNCATION search policy for the
++# most recent decision, so demonstrations can carry soft targets instead of an
++# argmax. Foul Play is STOCHASTIC -- it truncates to moves within 75% of the
++# best and then `random.choices` among them -- so a one-hot label imitates the
++# wrong object. Single-threaded per battle, so a module global is safe here.
++LAST_POLICY = {"policy": None, "values": None}
++
++
+ def select_move_from_mcts_results(mcts_results: list[(MctsResult, float, int)]) -> str:
+     final_policy = {}
++    score_num, score_den = {}, {}
+     for mcts_result, sample_chance, index in mcts_results:
+         this_policy = max(mcts_result.side_one, key=lambda x: x.visits)
+         logger.info(
+@@ -30,9 +39,24 @@ def select_move_from_mcts_results(mcts_results: list[(MctsResult, float, int)])
+             final_policy[s1_option.move_choice] = final_policy.get(
+                 s1_option.move_choice, 0
+             ) + (sample_chance * (s1_option.visits / mcts_result.total_visits))
++            # PATCHED: visit-weighted mean value per action, same marginalisation.
++            if s1_option.visits:
++                score_num[s1_option.move_choice] = score_num.get(
++                    s1_option.move_choice, 0.0
++                ) + sample_chance * s1_option.total_score
++                score_den[s1_option.move_choice] = score_den.get(
++                    s1_option.move_choice, 0.0
++                ) + sample_chance * s1_option.visits
+ 
+     final_policy = sorted(final_policy.items(), key=lambda x: x[1], reverse=True)
+ 
++    # PATCHED: snapshot BEFORE truncation -- the truncated list is a decision
++    # artefact, the full distribution is the supervision signal.
++    LAST_POLICY["policy"] = [[m, float(p)] for m, p in final_policy]
++    LAST_POLICY["values"] = {
++        m: float(score_num[m] / score_den[m]) for m in score_den if score_den[m]
++    }
++
+     # Consider all moves that are close to the best move
+     highest_percentage = final_policy[0][1]
+     final_policy = [i for i in final_policy if i[1] >= highest_percentage * 0.75]
+@@ -55,6 +79,20 @@ def get_result_from_mcts(
+     return res
+ 
+ 
++# PATCHED (pokemon-showdown-rl): a PERSISTENT process pool. Stock Foul Play
++# builds a ProcessPoolExecutor per decision; on macOS that is spawn, not fork,
++# and it showed up as ~0.16 s/decision of non-search overhead against ~0.20 s
++# of actual search. Over a 41k-battle generation run that is tens of hours.
++_EXECUTOR = None
++
++
++def _get_executor():
++    global _EXECUTOR
++    if _EXECUTOR is None:
++        _EXECUTOR = ProcessPoolExecutor(max_workers=FoulPlayConfig.parallelism)
++    return _EXECUTOR
++
++
+ def find_best_move(battle: Battle) -> str:
+     battle = deepcopy(battle)
+     if battle.team_preview:
+@@ -68,7 +106,8 @@ def find_best_move(battle: Battle) -> str:
+     logger.info(
+         "Sampling {} battles at {}ms each".format(num_battles, search_time_per_battle)
+     )
+-    with ProcessPoolExecutor(max_workers=FoulPlayConfig.parallelism) as executor:
++    executor = _get_executor()
++    if True:
+         futures = []
+         for index, (b, chance) in enumerate(battles):
+             fut = executor.submit(
+diff --git a/fp/tape.py b/fp/tape.py
+new file mode 100644
+index 0000000..4522cb6
+--- /dev/null
++++ b/fp/tape.py
+@@ -0,0 +1,66 @@
++# ADDED (pokemon-showdown-rl): demonstration tape writer.
++#
++# Records Foul Play's battles as a raw, replayable event stream so that the
++# demonstration dataset is NOT welded to any particular observation encoder.
++# Two event kinds, written in the order they occur:
++#
++#   {"k":"m","v":<raw inbound websocket message>}
++#   {"k":"d","tag":...,"rqid":...,"choice":...,"policy":[[move,prob],...],
++#    "values":{move: avg_score}, "forced":bool}
++#
++# Interleaving is the point: the reconstructor replays messages into a
++# poke-env Battle and, when it reaches a decision event, the battle object is
++# in exactly the state Foul Play saw when it chose. Because Foul Play OWNS the
++# seat, the tape contains the `|request|` JSONs, so there is no hidden-action
++# problem and no belief reconstruction -- the thing that makes the human
++# replay corpus expensive does not arise here.
++#
++# Enabled by setting FP_TAPE_DIR. No-op otherwise, so stock behaviour is
++# unchanged when we are not collecting.
++
++import json
++import os
++import threading
++
++_DIR = os.environ.get("FP_TAPE_DIR")
++_lock = threading.Lock()
++_fh = None
++
++
++def enabled() -> bool:
++    return _DIR is not None
++
++
++def _handle():
++    global _fh
++    if _fh is None:
++        os.makedirs(_DIR, exist_ok=True)
++        path = os.path.join(_DIR, "run_{}.jsonl".format(os.getpid()))
++        _fh = open(path, "a", buffering=1)
++    return _fh
++
++
++def write(obj) -> None:
++    if _DIR is None:
++        return
++    with _lock:
++        fh = _handle()
++        fh.write(json.dumps(obj, separators=(",", ":")) + "\n")
++
++
++def message(raw: str) -> None:
++    write({"k": "m", "v": raw})
++
++
++def decision(tag, rqid, choice, policy=None, values=None, forced=False) -> None:
++    write(
++        {
++            "k": "d",
++            "tag": tag,
++            "rqid": rqid,
++            "choice": choice,
++            "policy": policy,
++            "values": values,
++            "forced": forced,
++        }
++    )
 diff --git a/fp/websocket_client.py b/fp/websocket_client.py
-index d49b726..7c5e388 100644
+index d49b726..37675f5 100644
 --- a/fp/websocket_client.py
 +++ b/fp/websocket_client.py
-@@ -33,6 +33,14 @@ class PSWebsocketClient:
+@@ -1,5 +1,7 @@
+ import asyncio
+ import websockets
++
++from fp import tape  # PATCHED (pokemon-showdown-rl)
+ import requests
+ import json
+ import time
+@@ -33,6 +35,14 @@ class PSWebsocketClient:
          self.password = password
          self.address = address
          self.websocket = await websockets.connect(self.address)
@@ -78,7 +260,15 @@ index d49b726..7c5e388 100644
          self.login_uri = (
              "https://play.pokemonshowdown.com/api/login"
              if password
-@@ -92,6 +100,13 @@ class PSWebsocketClient:
+@@ -48,6 +58,7 @@ class PSWebsocketClient:
+     async def receive_message(self):
+         message = await self.websocket.recv()
+         logger.debug("Received message from websocket: {}".format(message))
++        tape.message(message)  # PATCHED (pokemon-showdown-rl)
+         return message
+ 
+     async def send_message(self, room, message_list):
+@@ -92,6 +103,13 @@ class PSWebsocketClient:
  
          guest_login = self.password is None
  

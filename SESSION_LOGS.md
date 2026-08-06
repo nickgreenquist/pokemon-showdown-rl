@@ -1038,3 +1038,74 @@ entry by offset — never a broad keyword grep.
   Showdown server, so the server is the referee and any engine/Showdown divergence shows up as
   Foul Play playing worse, which the win rate already prices in. Ratification of §11 is the
   maintainer's call and is now the only thing between here and generating the dataset.
+
+- 2026-08-06 — Demonstration pipeline BUILT and validated; my own placeholder patch was WRONG
+
+  Maintainer lifted the >5min rule (remote, full day available), so this was built and run in
+  session. Three reviewers were spawned afterwards; their findings are a separate entry.
+
+  **What exists now.** Foul Play instrumentation (`scripts/patches/foulplay_gen1_local.patch`,
+  5 files, applied to `../foul-play`): local no-security login; the synthetic `fight` move;
+  correct gen1 placeholder handling; a persistent ProcessPoolExecutor; pre-truncation policy
+  capture; a switch guard on `check_speed_ranges`; and a new `fp/tape.py` event-tape writer
+  gated on `FP_TAPE_DIR` so stock behaviour is unchanged when off. Plus
+  `scripts/tape_to_dataset.py`, which replays tapes OFFLINE through poke-env's own parser.
+
+  **Design decision: store TAPES, not embedded observations.** P4's dataset was 2.1 GB of
+  611-dim rows that any OBS_DIM change turns into 2.1 GB of nothing, and this project intends
+  to change the encoder. The durable artefact is the raw protocol stream plus the teacher's
+  decision, so an encoder change costs a re-embed (minutes) not a re-collection (tens of
+  hours). This is NOT §10's replay-parser problem: Foul Play owns the seat, so the tape
+  carries that seat's own `|request|` JSONs -- no hidden actions, no belief reconstruction.
+
+  **Soft targets, because the teacher is STOCHASTIC.** `select_move_from_mcts_results` builds
+  a visit-share policy marginalised over determinizations, THEN truncates to moves within 75%
+  of the best and `random.choices` among them. An argmax label imitates the wrong object. A
+  real captured decision: `switch abra` 0.618, `sludge` 0.064, `switch venusaur` 0.063, ...
+  over 9 actions, plus per-action values. The top choice at 0.62 is not a delta function, so
+  argmax discards real signal. This also attacks the entropy-0.063 landmine at its root:
+  that collapse is what one-hot BC on a near-deterministic target PRODUCES.
+
+  **MY PLACEHOLDER PATCH WAS WRONG, and the 300-battle measurement was taken with it.**
+  I had asserted the gen1 `Fight` turn was a forced choice with one legal action. Measured
+  against a real captured request, it is not: `trapped` is False and the mask holds the
+  placeholder PLUS every legal switch (verified: 3 switches + placeholder = 4 actions;
+  action 1 -> `/choose switch Clefable`, 6 -> `/choose move fight`). Showdown's own source
+  says so -- "actions that don't hard lock out of switching". Switching a sleeping mon out is
+  ordinary gen1 play.
+
+  **How wrong, measured:** across 50 battles the placeholder fires 0.78x/battle, and on
+  **17 of 39 such turns (44%) the search elects to SWITCH OUT.** The old patch forced "stay
+  in" on all of them. Two consequences:
+    1. **0.8467 is a LOWER BOUND** -- Foul Play was handicapped on ~0.34 decisions/battle.
+    2. Every such dataset row would have carried a systematically biased "never switch when
+       asleep" label. Generating 41k battles first would have baked that in.
+  Fix: restore the mon's real moves from `side.pokemon[active].moves` (the request still
+  carries them, the placeholder only blanks `active[0].moves`), let the search weigh staying
+  against switching, and map a stay-in result back to `/choose move 1`.
+
+  **A latent Foul Play bug, found by it killing a run at battle 11 of 50.**
+  `check_speed_ranges` (`fp/battle/inference.py:197`) indexes `all_move_json` with
+  `battle.user.last_selected_move.move`, which can be the raw string "switch <species>" ->
+  `KeyError: 'switchseaking'`. The sibling guard already exists further down the same file;
+  it is simply missing here. Guarded. Speed inference from a turn the bot spent switching
+  carries no information anyway.
+
+  **Also caught by piloting small first:** a TIE in the 5-battle test, which my gate report
+  was miscounting as a missing outcome. Ties are outcomes -- Foul Play scores them as losses,
+  the locked protocol counts them as non-wins.
+
+  **GATES, 50 battles / 1,273 decisions, after the fixes:**
+    G1 reconstruction  50/50 battles terminal          100%
+    G2 label legality  1273/1273 rows kept             100%   (0 unmapped, 0 outside mask)
+    G3 legal-set SIZE  1273/1273                       100%   (cardinality only; G2 is identity)
+    G4 outcome present 50/50 (1 tie)                   100%
+  The gates earned their place: on the pre-fix run G2 flagged exactly 3 unmapped labels and
+  they were exactly the 3 placeholder rows -- the pipeline caught my bad assumption on its
+  own, before any bulk generation.
+
+  **Throughput re-priced by the executor hoist: 7.9 -> 6.03 s/battle (-24%).** A P4-scale
+  903,090-decision set is ~41,112 battles = **68.9 h single-lane, ~8.6 h at 8-way** (was
+  90.2/11.3). Pilot win rate 0.82 at n=50 (se 0.054), consistent with the 0.8467 primary.
+
+  NOT yet done: the bulk tranche, the BC fit, the learning curve, the encoder screen.
