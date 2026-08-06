@@ -741,3 +741,73 @@ entry by offset — never a broad keyword grep.
   arithmetic is factored into eval_metrics() so a caller needing raw per-episode data
   gets identical numbers without a second pass. Retires the CLAUDE.md landmine
   "eval_checkpoint.py returns raw returns only".
+
+- 2026-08-06 — ARM B SCREENED OUT: delta -0.0004. The cancellation that made it safe made it inert.
+
+  3 lanes x 6M, seeds 6/7/8, ~2.9 h 3-wide, all green, launched from a clean tree
+  (git_dirty false). Finals per D2c: 3000 battles/seed, locked protocol, against the
+  control RE-EVALUATED the same way earlier tonight.
+
+    ARM  showdown_faint6m   0.4307 / 0.4237 / 0.4367   pooled 0.4303 (n=9000)
+    CTRL showdown_r512_lra  0.4280 / 0.4320 / 0.4323   pooled 0.4308 (n=9000)
+    DELTA -0.0004,  se_diff 0.0074 (binomial 0.0074 > seed-clustered 0.0040; DESIGN §5
+    takes the larger),  z = -0.06
+
+  **D2c futility screen: DO NOT ADVANCE to 12M** (needs >= +0.009). And this is not a
+  can't-tell: the one-sided 90% upper bound on the true delta is **+0.0090, which does not
+  reach the +0.025 credit line**. The screen was designed to be liberal precisely so it
+  would not kill real levers, and this lever cleared none of it.
+
+  R0 gates, all PASS: shaping correctness — `rollout/episode_return` stayed exactly
+  {-1, 0, +1} across **639,409 episodes** in three independent runs, so the terminal
+  cancellation held for the entire arm; late entropy 0.314-0.318 in [0.2, 1.0]; ties 1.57%
+  <= 4%; steps/s 575-605 against the 553-600 3-wide baseline.
+
+  FALSIFIER: does NOT fire. It required win-rate delta <= 0 (true, -0.0004) AND the
+  loss-conditioned faint differential improving by > 0.5 mons; the actual change is
+  **+0.017 mons** (arm -1.985 vs control -2.002). So there is no objective distortion to
+  find. The agent did not learn to buy faints instead of wins — it did not learn anything
+  different at all. Episode length 24.18 vs 24.22 (-0.04). `eval/loss_faint_lead_frac` is
+  0.000 for BOTH arms: in not one losing battle out of ~5100 did either policy lead on
+  faints, which says our losses are decisive rather than close, and is a more interesting
+  fact about this agent than anything the arm was testing.
+
+  **WHY THE NULL, and this is the part worth keeping.** The mechanism reads say the lever
+  never changed the learning signal: late-window value loss +0.0013, approx_kl identical to
+  four decimals (0.0008 both), clip_frac +0.0002, entropy +0.0017. Two independent reasons,
+  both derivable BEFORE the run:
+
+  1. **Terminal-cancelled shaping is potential-based, and PBS leaves the advantage function
+     exactly invariant.** With r' = r + gamma*Phi(s') - Phi(s), the optimal shifted value is
+     V' = V - Phi, so delta' = r' + gamma*V'(s') - V'(s) = r + gamma*V(s') - V(s) = delta.
+     Every TD error is unchanged, so every GAE advantage is unchanged, so the policy
+     gradient is unchanged. The safety property DESIGN §4 chose the cancellation FOR —
+     policy invariance, Ng et al. — is the same property that guarantees it cannot move the
+     optimum. The arm was therefore only ever testing the second-order effect: whether a
+     denser reward reduces estimator variance under function approximation.
+  2. **It cannot help the critic either, because the potential is already in the
+     observation.** Phi = 0.1*(faints_opp - faints_self), and the encoder emits
+     `vec[1] = faints_self/6` and `vec[2] = faints_opp/6` (rl/envs/showdown.py:199-200), so
+     **Phi = 0.6*(obs[2] - obs[1]) exactly** — a linear function of two features the network
+     already receives. Learning V and learning V - Phi are the same difficulty for this
+     approximator, which is exactly what the flat value-loss comparison shows.
+
+  **Generalizable design rule, recorded so this is not re-run in another costume: a
+  potential-based shaping term whose potential is an (approximately) linear function of
+  features the encoder already emits is predictably inert.** It changes no advantage and
+  eases no regression. Checking that before launch costs one line of algebra and would have
+  saved 2.9 h of compute here. Any future shaping proposal must state its potential and
+  show it is NOT already representable from the observation.
+
+  Corollary about ps-ppo, whose faint shaping this arm was modelled on: theirs has NO
+  terminal cancellation, so it is NOT policy-invariant and does change their objective. If
+  their shaping does anything, it does it by distorting the optimum — which is the
+  trade-down failure mode DESIGN §4 identified and deliberately designed out. The honest
+  fork is safe-and-inert versus effective-and-distorting; we picked safe, and got the null
+  the theory predicts. Reopening this lever means arguing FOR the distortion, on evidence.
+
+  Disposition: **Arm B is CLOSED, not re-tuned.** The pre-registration's amendment condition
+  (README gains a measured sentence only if a PRIMARY credits) is not met — session-log
+  entry only, which is this. Do NOT raise the coefficient: the coefficient is not why it did
+  nothing. Arm C stays parked; its unparking condition was "iff Arm B credits", which is now
+  settled as no.

@@ -2,13 +2,12 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-05, after code evening 1)
+## Where things stand (2026-08-06, after code evening 1 + Arm B)
 
-DESIGN.md r6 RATIFIED (D1–D7 binding). **HANDOFF item 1 is DONE and green** — Track 1
-measured, warm-start semantics settled, Arm B built, **Arm A smoke RUN and green** (all
-four reads passed; see below for its one surprise). Suite: 240 passed. No runs live;
-server may still be up on :8000. Arm B is launch-ready. Standing correction: RL is
-LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
+DESIGN.md r6 RATIFIED (D1–D7 binding). Track 1 measured, warm-start settled, Arm A smoke
+green, **Arm B RUN and SCREENED OUT** (delta −0.0004; closed, not re-tuned). Suite: 240
+passed. No runs live. Standing correction: RL is LEVEL with the BC clone (0.4607 vs
+0.4530/0.4657), not past it. **Nothing is queued — next move is a maintainer decision.**
 
 ## Results (vs SH; locked: final ckpt, 3 seeds pooled, ties=loss; n=3000 unless noted)
 
@@ -16,6 +15,7 @@ LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
 |---|---|
 | PPO 6M flat ("r512") | 0.3923 ± 0.0089 |
 | PPO 6M + LR anneal (P5b) — **re-eval, Arm B's control** | **0.4308 ± 0.0052** (n=9000) |
+| PPO 6M + faint shaping (Arm B) — **screened out** | 0.4303 (n=9000), Δ −0.0004 |
 | PPO 12M flat | 0.4330 (0.425/0.424/0.450) |
 | **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
 | BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
@@ -31,12 +31,11 @@ LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
    lever than assumed; numbers in the session log, not decided unilaterally. Counterweight:
    2015-18 logs carry literal `|choice|` lines (both seats' true actions), so ~21.5k
    battles have NO hidden-action problem — cheap labels, but the worst set drift.
-2. **Arm B at 6M** — `configs/showdown_faint6m.yaml`, seeds 6/7/8, 3-wide, ~2.9 h;
-   pre-registration in the config header. Run the R0 shaping gate before launching:
-   `pytest tests/test_showdown_env.py -k "shaped_return or shaped_episode"`. Futility
-   screen: advance to 12M iff pooled delta ≥ +0.009 vs the re-evaluated control 0.4308
-   (D2c re-eval DONE — that baseline moved 1.4x the gate vs the stale 0.4433).
-3. No 24M run (D4c). Arm C parked. Open: D8/D9 in DESIGN §11 (search re-entry).
+2. **D8/D9 — DESIGN §11 (search re-entry), PROPOSED, needs your ratification.** Recommends
+   a cheap poke-engine feasibility note, then expert iteration from Foul Play as a teacher
+   (~6 h at 8-way for a P4-scale dataset); rejects search-in-the-training-loop on cost.
+3. No 24M run (D4c). **Arm C stays parked — its unparking condition was "iff Arm B
+   credits", now settled as no.** Arm B closed; do NOT re-tune its coefficient.
 
 ## Watch items
 
@@ -49,9 +48,12 @@ LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
   they FAIL the [0.2, 1.0] R0 entropy gate from update 1, permanently. The band does not
   transfer to that regime and the corpus chapter must pick its own entropy_coef BEFORE
   its first run. Smoke also says: critic warmup ~5 updates suffices, not 10.
-- **Grad clip:** from scratch binds 1.00 → 0.50 over the first 5 updates (batch 4096,
-  grad_norm 3.30 → 0.47); warm start binds HARDER over time (0.67 → 0.94). Value EV from
-  scratch starts strongly NEGATIVE (−2.72 → −1.22) — the Arm B baseline.
+- **Grad clip:** from scratch binds 1.00 → 0.50 over the first 5 updates; warm start binds
+  HARDER over time (0.67 → 0.94). Arm B's EV ran 0.24 (early) → 0.43 (late).
+- **Design rule from Arm B, check it before ANY future shaping proposal:** a potential-based
+  term whose potential is ~linear in features the encoder already emits is predictably inert
+  — PBS leaves advantages exactly invariant, and here Φ = 0.6·(obs[2] − obs[1]) exactly. One
+  line of algebra pre-launch would have predicted the null and saved 2.9 h.
 - Metric namespace grew: `loss/{explained_variance,adv_std,grad_norm,grad_clip_frac}`,
   `eval/{loss_faint_diff,loss_faint_lead_frac}`.
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before
