@@ -110,6 +110,25 @@ lossy by construction and the code has repeatedly contradicted the project's own
   toolchain, and a from-source compile (verified 2026-08-06: builds clean in ~9 s).
   Gets its own Python env — never the `pokemon-showdown-rl` one.
 
+  **HOW TO PROVE THE ENGINE IS THE GEN1 BUILD (measured 2026-08-06, both directions).** The
+  compiled extension's MODULE PATHS are a binary discriminator; move-name tables are NOT (they
+  are shared across builds, which is why an earlier `strings`-on-move-names probe was correctly
+  retracted as inconclusive). On the .so at
+  `<env>/lib/python3.11/site-packages/poke_engine/poke_engine.cpython-311-darwin.so`:
+
+  | build | `src/gen1/` | `src/genx/` | `"used for spc"` |
+  |---|---|---|---|
+  | `--features poke-engine/gen1` | **7** | 0 | 1 |
+  | `--features poke-engine/terastallization` (gen9) | **0** | 20+ | 0 |
+
+  **And the A/B was run.** With the gen9 engine deliberately installed, Foul Play vs SH in
+  gen1randombattle went **2-5 over 7 battles and then died** with 6 exceptions, terminating in
+  `pyo3_runtime.PanicException` (which cannot even be pickled back across the process pool),
+  against **~0.85 for the gen1 build**. So a wrong-generation engine is NOT the silent
+  degradation it was assumed to be — it panics loudly, and where it does play it is far
+  weaker. Both halves of "a wrong build would bias the teacher DOWN" are now measured rather
+  than inferred.
+
   **CORRECTION, measured 2026-08-06 by RUNNING it — "Foul Play supports gen1randombattle" is
   not true out of the box.** DESIGN §11 records that support as MEASURED FROM SOURCE (generic
   format parsing, a registered GEN1 mechanics entry, gen1 protocol handling, a live gen1 set
