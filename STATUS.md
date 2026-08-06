@@ -42,7 +42,7 @@ passed. No runs live. Standing correction: RL is LEVEL with the BC clone (0.4607
 - Commit docs BEFORE launching, from a clean tree. Distinct `--seed` per lane: 0/1/2
   lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 the smoke.
 - Showdown eval episodes are NOT reproducible (measured): comparisons are UNPAIRED, buy
-  precision with battle count. `eval_checkpoint.py` now reports env-supplied win rate.
+  precision with battle count.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
 - **BC-warm-started runs sit at loss/entropy 0.063** (vs from-scratch 1.69 → 0.317), so
   they FAIL the [0.2, 1.0] R0 entropy gate from update 1, permanently. The band does not
@@ -54,8 +54,9 @@ passed. No runs live. Standing correction: RL is LEVEL with the BC clone (0.4607
   term whose potential is ~linear in features the encoder already emits is predictably inert
   — PBS leaves advantages exactly invariant, and here Φ = 0.6·(obs[2] − obs[1]) exactly. One
   line of algebra pre-launch would have predicted the null and saved 2.9 h.
-- Metric namespace grew: `loss/{explained_variance,adv_std,grad_norm,grad_clip_frac}`,
-  `eval/{loss_faint_diff,loss_faint_lead_frac}`.
+- Metrics added: `loss/{explained_variance,adv_std,grad_norm,grad_clip_frac}`,
+  `eval/{loss_faint_diff,loss_faint_lead_frac}`; P5b predates them, so arm-vs-control
+  comparison on those four is only possible for runs from 2026-08-05 on.
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before
   any self-play rung. poke-env 0.15.0: SH's setup branch is dead (upstream, unfiled).
 - Concurrency: solo ~734 steps/s; 3-wide ≈ −20%/lane (~553-600); 6-wide 465-506/lane.
