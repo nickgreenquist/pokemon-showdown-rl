@@ -1274,3 +1274,97 @@ entry by offset — never a broad keyword grep.
   the action-slot aliasing on placeholder turns (action 6 resolves to the placeholder while
   the obs move-slot 0 still describes a real move) is real, PRE-EXISTING, affects prior RL/BC
   runs too, and needs a decision rather than a note.
+
+- 2026-08-06 — THREE PATH REVIEWS. The obs-fidelity proof was ~half a proof. Encoder is the wall.
+
+  Three Opus reviewers on "where do we stand, best next path". They converge, and two findings
+  overturn the plan I was about to recommend. Everything below I verified myself.
+
+  **THE BIGGEST FINDING WAS ALREADY ON DISK AND NOBODY PLOTTED IT.** `runs/bc_p4_*/bc_metrics.json`:
+      202,584 decisions -> 0.8595 held-out agreement with SH
+      405,914 decisions -> 0.8814 / 0.8808 / 0.8857
+      812,848 decisions -> 0.9017 / 0.8987 / 0.9047
+  **+2.1 points per doubling, log-linear, NO saturation.** Our 611-dim encoder into MLP[512,512]
+  cannot exceed ~90% agreement with a DETERMINISTIC rule-based bot on 813k examples. That is
+  the P4 encoder-ceiling diagnostic returning its informative verdict, and the project (me
+  included) had been reading it as "the clone reproduces SH". Extrapolated, 0.95 needs ~4M
+  decisions ~= 157k Foul Play battles ~= 263 h. **That road is closed.** Foul Play is a far
+  harder function than SH, so more tapes buy variance reduction against a bias floor.
+
+  **WHY: we delete the teacher's principal input.** `rl/envs/showdown.py:219` iterates
+  `list(theirs.moves.values())[:4]` -- poke-env's REVEALED-moves-only dict. Foul Play does the
+  opposite: it samples full opponent sets from the randbats pool weighted by consistency, and
+  fills unrevealed slots. Verified in the vendored pool (`showdown/data/random-battles/gen1/
+  data.json`): 146 species, ~36-42 fully determined the instant the species is revealed, 91
+  with 3-of-4 certain. **The fix costs ZERO OBS_DIM** -- `_fill_move` slot 0 is currently
+  `vec[o] = 1.0`, a binary "slot known" flag, and can carry P(move present) instead.
+
+  **MY OBS-FIDELITY PROOF WAS ~55% OF A PROOF, and the reason is self-inflicted.** I ran it
+  SH-expert vs SH-opponent -- after establishing THE SAME DAY that SH never uses a setup move
+  (dead `Target` comparison). That run was structurally incapable of emitting `|-boost|`.
+  Measured: 13 protocol tags occur in the Foul Play corpus and NEVER in that fidelity sample --
+  `-boost` x67, `-curestatus` x28, `-immune` x14, `-fail` x10, `-start` x8, `-activate` x8,
+  `-end` x6 -- i.e. exactly the frames driving `_fill_active`'s boosts/volatiles and
+  `_fill_mon`'s status. ~32 of 611 dims were validated only in their default state, and zero
+  of 221 requests were gen1 placeholders (23 of 1761 in the real corpus).
+  **REDONE with a coverage gate** (`--require-coverage`, random-vs-random so setup moves fire):
+  **1,967 decisions, 0 obs / 0 mask / 0 key mismatches, and all 7 fragile tags exercised**
+  (-boost x149, -fail x133, -curestatus x46, -immune x37, -start x13, -activate x3, -end x1).
+  The original claim was not wrong, it was under-evidenced; it is now evidenced.
+
+  **OTHER VERIFIED DEFECTS IN MY OWN PIPELINE, all fixed this session:**
+  - "non-zero exit, nothing written" was FALSE -- shards were written inside the per-file loop
+    BEFORE `report()` ran, so a failing corpus left .npz files indistinguishable from good
+    ones. Writes now happen only after a PASS verdict.
+  - **The soft policy was UNGATED.** `policy_missing` / `policy_empty` / `policy_mass_dropped`
+    / `legal_size_mismatch` were printed and not in the fail list. So if a patch revision
+    stopped passing a policy, every row would get a zero vector, all six gates would PASS, and
+    the entire premise of the tape design would be silently gone. They now gate.
+  - **`train_bc.py` could not have loaded this corpus at all**: it reads `data["expert"]`,
+    which `tape_to_dataset` never wrote (0 occurrences). Added. It also loads exactly ONE npz
+    while we write one shard per tape file, and `battle_ids` restarted at 0 per file, so any
+    merge would split the holdout on a fictitious battle count -- ids are now globally unique.
+    The shard-merging loader is still owed.
+  - **`--drop-trap` is dead code.** trap_kind across every tape on disk: {slp 22, frz 11,
+    **trap 0**}. It has never excluded a row, and v1's 300-battle run logged Wrap/Bind among
+    the placeholder triggers -- so either the rate is genuinely zero (implausible) or
+    `"partiallytrapped" in active.volatile_statuses` is the wrong key. Untested mitigation for
+    the one modelling defect we know about. NOT fixed; needs a positive test.
+
+  **CORRECTIONS TO CLAIMS I MADE EARLIER TODAY:**
+  - "argmax discards real signal" was overstated ~4x. The teacher samples from the 75%-TRUNCATED
+    set, so the sampled choice differs from the pre-truncation argmax on only **10.3%** of
+    decisions, and a Bayes-optimal predictor of the sampled label tops out at **0.8935
+    agreement**. Soft targets are still right -- for the entropy landmine, which is the stronger
+    argument -- but 0.894 is the ceiling any agreement read must be scored against, and it
+    should be pre-registered before the first fit.
+  - **The GO bands rest on an inapplicable prior.** They used P4's "a clone lands ~0.023 below
+    its teacher". That 95% transfer came from cloning SH, whose policy is a function of exactly
+    the poke-env battle object our encoder reads -- recoverable by construction. Foul Play's is
+    not. Reusing the ratio is a category error.
+  - **Teacher entropy MEASURED** (1,493 decisions): mean **1.092 nats**, median 1.179, top-1
+    prob 0.603, mean 7.08 legal actions. So the policy is genuinely soft -- and it sits ABOVE
+    the [0.2, 1.0] R0 band, meaning a well-fit student fails that gate from the OTHER side.
+    The band must be re-derived from this number, not inherited.
+  - The per-action `values` are taped for 1493/1493 decisions and `tape_to_dataset` reads them
+    **zero** times -- a free critic warm-start target thrown away, directly relevant to the
+    critic-warmup problem (5 updates of frozen-actor noise from a random critic).
+  - An open item was lost to renumbering: I listed FIVE open items, then wrote "all FOUR
+    closed" and substituted the SH anchor. **Tape provenance headers were dropped** and are
+    still missing -- nothing in a tape records engine build, patch revision, search budget or
+    poke-env version, across 8 lanes and tens of hours.
+
+  **THE STRONGEST OBJECTION TO THE WHOLE CHAPTER, and it is not answered:** nothing in this
+  repo shows RL from a BC warm start ever improving on the BC checkpoint it started from. The
+  SH clone scored 0.4657; RL from that region landed 0.4607. The clone was the CEILING, not
+  the floor. Foul Play raises the ceiling but the play is identical in shape. Separately, the
+  student is missing INFORMATION, not just search: AlphaZero-style expert iteration puts
+  student and teacher on the same information set differing only in compute, whereas here the
+  ceiling is bounded by I(our obs ; teacher's action), which nobody has estimated.
+
+  **DISPOSITION: do NOT launch bulk generation.** The next move is the encoder information fix
+  (zero OBS_DIM) plus a ~500-2,000 battle tranche read against the 0.894 ceiling, with
+  agreement conditioned on opponent-reveal fraction -- that last read directly estimates the
+  information bound and is the chapter's falsifier. Also owed: the n=300 re-measure on the
+  shipped bot, and FP vs two NON-SH opponents (our best RL checkpoint and the BC clone), both
+  of which already exist and have never been played.

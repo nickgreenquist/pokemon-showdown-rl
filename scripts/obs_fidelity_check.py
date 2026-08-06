@@ -63,7 +63,21 @@ def parse_args():
     p.add_argument("--expert", default="heuristics")
     p.add_argument("--username", default="fidelityrec")
     p.add_argument("--tape", type=Path, default=Path("data/fidelity/tape.jsonl"))
+    p.add_argument("--require-coverage", action="store_true",
+                   help="Also require that the sample EXERCISED the fragile obs paths.")
     return p.parse_args()
+
+
+# Protocol tags that drive the parts of embed_battle most likely to diverge:
+# boosts and volatiles (_fill_active) and status (_fill_mon). A fidelity run
+# that never sees these has validated their reconstruction on ZERO samples.
+#
+# This list exists because the first fidelity run was SH-vs-SH, and this repo
+# separately established that SimpleHeuristicsPlayer never uses a setup move in
+# any generation (poke-env's dead `move.target == "self"` comparison). That run
+# was therefore STRUCTURALLY incapable of emitting `|-boost|`, and reported PASS
+# on 611 dims of which ~32 were only ever seen in their default state.
+COVERAGE_TAGS = ["-boost", "-start", "-end", "-activate", "-curestatus", "-immune", "-fail"]
 
 
 class TapingRecordingPlayer(RecordingPlayer):
@@ -138,6 +152,23 @@ async def collect(args):
     await asyncio.sleep(3)
     player.close_tape()
     return list(player.live), player.username
+
+
+def tag_coverage(tape_path):
+    """How many times each fragile tag actually occurred in the sample."""
+    import collections
+
+    seen = collections.Counter()
+    with tape_path.open() as fh:
+        for line in fh:
+            ev = json.loads(line)
+            if ev["k"] != "m":
+                continue
+            for raw in ev["v"].split("\n")[1:]:
+                parts = raw.split("|")
+                if len(parts) > 1 and parts[1]:
+                    seen[parts[1]] += 1
+    return seen
 
 
 def replay(tape_path, username):
@@ -225,6 +256,25 @@ def main():
         tag, rqid, idx, lv, ov = first
         print(f"first obs divergence: {tag} rqid={rqid} feature[{idx}] live={lv} offline={ov}")
     ok = not (obs_bad or mask_bad or key_bad) and n > 0
+
+    if args.require_coverage:
+        seen = tag_coverage(args.tape)
+        placeholders = sum(
+            1 for _, _, _, m in offline if int(np.asarray(m).sum()) and False
+        )
+        print("\ncoverage of the fragile obs paths:")
+        missing = []
+        for tag in COVERAGE_TAGS:
+            c = seen.get(tag, 0)
+            print(f"  {tag:<14} x{c}")
+            if c == 0:
+                missing.append(tag)
+        if missing:
+            print("\nCOVERAGE FAIL: never exercised " + ", ".join(missing))
+            print("A zero-mismatch result over paths that never fired proves nothing "
+                  "about them. Re-run against an opponent that boosts/statuses.")
+            ok = False
+
     print("\nOBS FIDELITY: " + ("PASS — offline replay reproduces live observations exactly"
                                if ok else "FAIL"))
     sys.exit(0 if ok else 1)

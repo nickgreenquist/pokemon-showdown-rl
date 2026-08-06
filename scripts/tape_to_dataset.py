@@ -233,7 +233,10 @@ def soft_policy(battle, policy, n_actions, placeholder, counts):
     return vec
 
 
-def process_file(path, type_chart, counts, drop_trap):
+def process_file(path, type_chart, counts, drop_trap, id_base=0):
+    """id_base keeps battle_ids globally unique across shards: an honest
+    holdout splits on BATTLES, and per-file ids restarting at 0 would merge
+    lane-0-battle-7 with lane-3-battle-7 and split on a fiction."""
     username = infer_username(path)
     if username is None:
         counts["no_username"] += 1
@@ -250,7 +253,7 @@ def process_file(path, type_chart, counts, drop_trap):
             if room not in battles:
                 battles[room] = Battle(room, username, LOGGER, gen=GEN)
                 states[room] = {"request": None, "winner": None, "tie": False, "errors": []}
-                index_of[room] = len(index_of)
+                index_of[room] = id_base + len(index_of)
             try:
                 apply_message(battles[room], ev["v"], states[room])
             except Exception as exc:  # one bad tag must not abort the corpus
@@ -330,14 +333,31 @@ def main():
     if not tapes:
         raise SystemExit("No run_*.jsonl under " + str(args.tapes))
 
-    shards = []
+    pending = []
+    next_id = 0
     for path in tapes:
-        rows = process_file(path, type_chart, counts, args.drop_trap)
+        rows = process_file(path, type_chart, counts, args.drop_trap, id_base=next_id)
+        next_id = counts["battles"]
         if rows and rows["obs"] and not args.gates_only:
+            pending.append((path, rows))
+
+    ok = report(counts, args)
+    if not ok:
+        print("\nGates FAILED -- writing NOTHING. A failing corpus must not be")
+        print("indistinguishable on disk from a passing one.")
+        sys.exit(1)
+
+    shards = []
+    for path, rows in pending:
+        if True:
             args.out.parent.mkdir(parents=True, exist_ok=True)
             shard = args.out.parent / (args.out.name + "_" + path.stem + ".npz")
+            args.out.parent.mkdir(parents=True, exist_ok=True)
             np.savez_compressed(
                 shard,
+                # `expert` is what train_bc.py keys the run name off; without it
+                # the loader raises before it reads a single row.
+                expert=np.str_("foulplay"),
                 obs=np.asarray(rows["obs"], dtype=np.float32),
                 masks=np.asarray(rows["masks"], dtype=bool),
                 actions=np.asarray(rows["actions"], dtype=np.int64),
@@ -349,12 +369,6 @@ def main():
             )
             shards.append((shard, len(rows["obs"])))
 
-    ok = report(counts, args)
-    if not ok:
-        print("\nGates FAILED -- this corpus is not usable as-is.")
-        for shard, _ in shards:
-            print("  (shard written for inspection: " + str(shard) + ")")
-        sys.exit(1)
     for shard, n in shards:
         print("wrote " + str(shard) + "  (" + str(n) + " rows)")
 
@@ -399,6 +413,15 @@ def report(counts, args):
         fail.append("G6")
     if counts["no_username"]:
         fail.append("username-inference")
+    # The soft policy is the whole reason the tape design exists. If it silently
+    # degrades -- a patch revision stops passing it, an exception path fires --
+    # every per-row gate above still passes and the premise is gone. So it gates.
+    if counts["policy_missing"] or counts["policy_empty"]:
+        fail.append("soft-policy (missing/empty rows)")
+    if counts["policy_mass_dropped"]:
+        fail.append("soft-policy (mass dropped)")
+    if counts["legal_size_mismatch"]:
+        fail.append("legal-set size")
     print()
     print("GATES: " + ("PASS" if not fail else "FAIL -> " + ", ".join(fail)))
     return not fail

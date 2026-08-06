@@ -19,7 +19,7 @@ teacher and the demonstration tape pipeline is built and gate-green; §11 awaits
 | **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
 | BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
-| **Foul Play (+our gen1 patch) — teacher candidate** | **0.8467** (n=300)* / 0.82 corrected (n=100) |
+| **Foul Play (+patch) — teacher candidate; SHIPPED bot** | **0.82** (n=100)*; v1 read 0.8467 (n=300) |
 
 **LADDER TRANSLATION (derivation + caveats atop `prior_work/README.md`).** SH scores 39.7/41.2%
 GXE on gen7/gen9 randbats, so **0.489 parity ≈ 40% GXE, not "solved"**; the pure-policy field
@@ -54,7 +54,7 @@ figure here is a cross-format extrapolation, not a measurement.
   ~linear in features the encoder already emits is inert (Φ = 0.6·(obs[2]−obs[1])).
 - Grad clip: scratch 1.00→0.50 over 5 updates, warm start HARDER (0.67→0.94). `loss/*` +
   `eval/loss_faint_*` postdate P5b: arm-vs-control needs runs ≥2026-08-05.
-- **Is our SH weaker than Metamon's?** poke-env 0.15.0's SH setup branch is dead (upstream,
-  unfiled); if that postdates theirs, every vs-SH number here is inflated vs the GXE anchor.
+- SH's setup branch is DEAD upstream (`move.target == "self"` vs a Target enum) — SH never
+  uses a setup move, any gen. Predates Metamon's window, so the GXE anchor shares it: OK.
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before any
   self-play rung. Concurrency: solo ~734 steps/s; 3-wide −20%/lane; 6-wide 465-506/lane.
