@@ -42,18 +42,18 @@ PS Elo ≠ Glicko-1. All GXE readings are cross-format extrapolations, not measu
    ~6.06M decisions, ~3.4x P4 not 11-22x. Counterweight: 2015-18 logs carry `|choice|` lines
    — ~21.5k battles, no hidden-action problem, but the worst set drift.
 2. **MAINTAINER DECISION — push or not.** `main` is well ahead of `origin/main`; never asked.
-3. No 24M run (D4c). **Arm C parked permanently** — unparking condition was "iff Arm B
-   credits", settled as no. Arm B closed; do NOT re-tune its coefficient.
+3. No 24M run (D4c). **Arm C parked permanently** (unparking was "iff Arm B credits" = no).
+   Arm B closed; do NOT re-tune its coefficient.
 
 ## Watch items
 
-- Seed ledger (lanes must not collide): 0/1/2 lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 the smoke.
-- Showdown eval episodes are NOT reproducible: comparisons are UNPAIRED — buy precision with n.
+- Seed ledger: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 smoke. Distinct usernames per lane too.
+- Showdown evals are NOT reproducible: comparisons are UNPAIRED — buy precision with n.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
 - **BC-warm-started runs sit at loss/entropy 0.063** (scratch 1.69→0.317), FAILING the
   [0.2,1.0] R0 gate from update 1 — pick entropy_coef BEFORE run 1. Critic warmup ~5, not 10.
-- **Design rule from Arm B — check before ANY shaping proposal:** a potential-based term whose
-  potential is ~linear in features the encoder already emits is inert (Φ = 0.6·(obs[2]−obs[1])).
+- **Arm B rule — check before ANY shaping proposal:** a potential-based term whose potential is
+  ~linear in features the encoder already emits is inert (Φ = 0.6·(obs[2]−obs[1])).
 - Grad clip: scratch 1.00→0.50 over 5 updates, warm start HARDER (0.67→0.94). `loss/*` +
   `eval/loss_faint_*` postdate P5b: arm-vs-control there needs runs ≥2026-08-05.
 - **Is our SH weaker than Metamon's?** poke-env 0.15.0's SH setup branch is dead (upstream,
