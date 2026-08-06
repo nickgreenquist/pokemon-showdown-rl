@@ -176,18 +176,39 @@ def test_pool_size_one_is_the_naive_arm_and_replaces_on_push():
     assert torch.equal(pool.members[0].agent.actor.head.weight, head)
 
 
-def test_eviction_keeps_the_oldest_and_drops_the_second_oldest():
-    """Strided retention: the step-0 snapshot anchors the pool's span for
-    the whole run; a plain recency deque is the published-worst design
-    (Bansal et al., PLAN.md)."""
+def test_eviction_is_span_preserving_and_keeps_the_anchor():
+    """Span-preserving thinning (fixed 2026-08-06): the step-0 snapshot
+    anchors the pool, the newest member is never evicted at push time, and
+    the retained push ids stay ~uniform over [0, latest] — a plain recency
+    deque is the published-worst design (Bansal et al., PLAN.md). The old
+    rule deleted index 1 every time, which degenerated to anchor + recency
+    window ({0,3,4} here) and flushed pre-seeded pools."""
     pool = SnapshotPool(3, 0.8)
     pushed = []
     for seed in range(5):
         pool.push(fresh_agent(seed))
         pushed.append(pool.members[-1])
-    # [m0,m1,m2] -> push m3 evicts m1 -> push m4 evicts m2.
-    assert pool.members == [pushed[0], pushed[3], pushed[4]]
+    # ids [0,1,2] -> push 3 evicts 1 (tie, oldest) -> push 4 evicts 3.
+    assert pool.push_ids == [0, 2, 4]
+    assert pool.members == [pushed[0], pushed[2], pushed[4]]
     assert len(pool) == 3 and pool.pushes == 5
+
+
+def test_a_preseeded_pool_is_not_flushed_by_later_pushes():
+    """Regression for the recovered predecessor bug: seed pool_size 4 with
+    four diverse anchors, then push 8 more snapshots. The old index-1 rule
+    left {0,9,10,11} — every seed except the anchor gone, retention a pure
+    recency window. Thinning keeps the retained ids spread across the whole
+    push history instead."""
+    pool = SnapshotPool(4, 0.8)
+    for seed in range(12):
+        pool.push(fresh_agent(seed))
+    assert pool.push_ids == [0, 4, 7, 11]
+    assert pool.push_ids != [0, 9, 10, 11]  # the failure mode, spelled out
+    # Span coverage: largest gap between retained ids stays well under the
+    # recency window's 9.
+    gaps = [b - a for a, b in zip(pool.push_ids, pool.push_ids[1:])]
+    assert max(gaps) <= 4
 
 
 def test_select_on_an_empty_pool_raises():

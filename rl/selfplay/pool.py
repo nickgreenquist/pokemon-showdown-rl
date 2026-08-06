@@ -26,15 +26,21 @@ than by state in here:
   opponent distribution, not a non-stationary one. That is what PPO's
   importance ratios actually require.
 
-Retention on overflow evicts the SECOND-oldest, not the oldest: a plain
+Retention on overflow is SPAN-PRESERVING THINNING (fixed 2026-08-06; the
+ported rule deleted index 1 every time, which flushed a pre-seeded pool
+within pool_size pushes and degenerated retention to anchor + recency
+window — the recovered predecessor record measured exactly that). A plain
 recency deque was the only pool-span design with a published ablation
 against it (Bansal et al., ICLR 2018 — "training against the latest
-opponent leads to worst performance"), so the pool's span grows with
-training instead of trailing it, anchored by the step-0 snapshot that never
-leaves. The exception is `pool_size: 1` — the naive arm, a <=push-cadence
--lagged copy of the learner, which is what the self-play literature means
-by naive self-play — where push must REPLACE, because keeping the oldest
-would pin the naive arm to its random init forever.
+opponent leads to worst performance"), so on overflow the pool evicts the
+member whose push-time neighbors are closest together — the one whose
+removal costs the least span coverage — never the step-0 anchor and never
+the newest. Retained push ids stay ~uniform over [0, latest], so the
+pool's span grows with training instead of trailing it. The exception is
+`pool_size: 1` — the naive arm, a <=push-cadence-lagged copy of the
+learner, which is what the self-play literature means by naive self-play —
+where push must REPLACE, because keeping the oldest would pin the naive
+arm to its random init forever.
 """
 
 import copy
@@ -134,6 +140,7 @@ class SnapshotPool(Opponent):
         # alive by construction"). Rule-based, so freeze() is a no-op.
         self._fixed = (RandomOpponent(), HeuristicOpponent())
         self.pushes = 0  # lifetime count; also seeds each member's generator
+        self.push_ids: list[int] = []  # per-member push counter, for retention
 
     def __len__(self) -> int:
         return len(self.members)
@@ -145,19 +152,27 @@ class SnapshotPool(Opponent):
         member.freeze()
         self.members.append(member)
         self.stats.append([0.0, 0])
+        self.push_ids.append(self.pushes)
         self.pushes += 1
         if len(self.members) > self.pool_size:
-            # Strided retention: evict the SECOND-oldest, so the step-0
-            # snapshot anchors the pool's span for the whole run. At
-            # pool_size 1 (the naive arm) that rule would keep the random
-            # init forever and evict every later snapshot, so the sole
-            # member is replaced instead.
-            evict = 1 if self.pool_size > 1 else 0
+            evict = self._evict_index()
             del self.members[evict]
             del self.stats[evict]
+            del self.push_ids[evict]
         # Membership only ever changes here, so weights recomputed here can
         # never be stale against the member list.
         self.refresh()
+
+    def _evict_index(self) -> int:
+        """Span-preserving thinning (module docstring). Never the step-0
+        anchor, never the newest; among the rest, evict the member whose
+        push-time neighbors are closest together — ties go to the oldest.
+        At pool_size 1 (the naive arm) the sole member is replaced, because
+        protecting the oldest would pin that arm to its random init."""
+        if self.pool_size == 1:
+            return 0
+        ids = self.push_ids
+        return min(range(1, len(ids) - 1), key=lambda i: (ids[i + 1] - ids[i - 1], i))
 
     def report(self, played: Opponent, outcome: int) -> None:
         """Accumulate the learner's result vs the member that played.
