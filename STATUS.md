@@ -15,9 +15,8 @@ teacher and the demonstration tape pipeline is built and gate-green; §11 awaits
 |---|---|
 | PPO 6M flat ("r512") / +LR anneal (P5b, Arm B's control) | 0.3923 / **0.4308 ± 0.0052** |
 | PPO 6M + faint shaping (Arm B) — **screened out** | 0.4303 (n=9000), Δ −0.0004 |
-| PPO 12M flat | 0.4330 (0.425/0.424/0.450) |
-| **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
-| BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
+| PPO 12M flat / **+LR anneal — best RL** | 0.4330 / **0.4607** |
+| BC clone of SH | **0.4657** re-scored in-repo |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
 | **Foul Play (+patch) — teacher; SHIPPED bot** | **0.8333** (1000-194, n=1200)* |
 | Foul Play vs our best RL / vs BC-clone-of-SH | **0.876 / 0.872** (n=250 each)* |
@@ -30,13 +29,12 @@ figure here is a cross-format extrapolation, not a measurement.
 
 ## Next actions, in order
 
-0. **MAINTAINER DECISION — ratify §11 (D8/D9). Its gate is PASSED.** Foul Play 0.8467 vs SH
-   (254-46, n=300), **5.54 se** over the 0.70 GO line (se under H0 0.0265; an earlier "7.05"
-   used se at p-hat, wrong). Corrected patch pooled 0.82 (n=100) — INDISTINGUISHABLE from
-   v1 (z=-0.61); still 2.62 se over the GO line. "+297 Elo / ~79% GXE" is an EXTRAPOLATION over
-   three unmeasured bridges (see prior_work/README), not a measurement. Re-priced from
-   measured 25.46 decisions/battle @ 6.03 s: **35.5k battles = 59 h solo, ~7.4 h 8-way**
-   (won't scale fully; 3-wide already costs ~20%).
+0. **MAINTAINER DECISION — ratify §11 (D8/D9). Gate PASSED and no longer SH-only:** teacher
+   0.8333 vs SH (n=1200) and 0.876/0.872 vs two non-SH opponents, so §11's exploitation trap
+   does NOT fire. BUT the 30k-row clone scores 0.3683 — below the SH clone (0.4657) — because
+   agreement is only 0.42 vs that clone's 0.86. Curve still climbing (+2.6 pts/doubling,
+   ceiling 0.894). 3-wide collection measured LINEAR (3.02x): P4-scale = **19.7 h**.
+   "+297 Elo / ~79% GXE" remains an EXTRAPOLATION over three unmeasured bridges.
 1. **MAINTAINER DECISION — Track 1's bars.** The ≥50k recent-era bar FAILS at every cutoff
    buying today's sets (≥2023 = 49,693 at 28% level match; ≥2024-04 = 44,391 at 91%); sizing
    ~6.06M decisions, ~3.4x P4 not 11-22x. Counterweight: 2015-18 logs carry `|choice|` lines
