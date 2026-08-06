@@ -811,3 +811,28 @@ entry by offset — never a broad keyword grep.
   entry only, which is this. Do NOT raise the coefficient: the coefficient is not why it did
   nothing. Arm C stays parked; its unparking condition was "iff Arm B credits", which is now
   settled as no.
+
+- 2026-08-06 — Handoff absorbed: three items were NOT already recorded; stub restored
+
+  Read HANDOFF.md against STATUS.md / SESSION_LOGS.md / DESIGN.md. Almost all of it was
+  already in the record — Arm B's closure and the generalized shaping rule, Arm C's parking,
+  the BC-warm-start entropy 0.063 prerequisite, the corpus parquet's pin, and the background-
+  agent TLS deaths all exist in the 2026-08-05/06 entries and STATUS's watch list. Three gaps
+  were real and are now closed:
+
+  1. DESIGN §11 option (A) did not carry the poke-engine build cost, though the session log
+     did: it compiles PER GENERATION (`make poke_engine GEN=gen1`, `--no-default-features`)
+     and the stock wheel is gen9, so the feasibility note starts with a from-source build.
+     §11 is written to be self-contained for reviewers, so it needed the clause.
+  2. DESIGN §11 gained the paragraph the handoff flagged as unbuilt: the teacher dataset from
+     (C) doubles as an **architecture screen** — same BC objective on our encoder, MLP-[512,512]
+     vs transformer, compared on held-out teacher agreement, for zero RL budget. ps-ppo's own
+     method; a read inside the chapter, not a separate arm.
+  3. STATUS's decision list was missing "push or not" — `main` is 17 commits ahead of
+     `origin/main`. Now decision 3. Track 1's block was tightened by two lines to stay under
+     the 60-line cap.
+
+  Deliberately NOT folded anywhere: the ephemeral Foul Play clone path under $CLAUDE_JOB_DIR
+  (re-clone if gone) and "the Showdown server is up on :8000" — both are session facts, not
+  repo state. Tree was clean going in; no runs live; nothing queued. The next move remains a
+  maintainer decision (D8/D9, Track 1's bars, push), not code.

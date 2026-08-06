@@ -629,7 +629,10 @@ continuity only.** A search arm scored on vs-SH would be a bar-chaser under the 
   semantics, hyper-beam recharge, the stat-modification glitches Foul Play's source names).
   Deliverables: a mechanics-agreement rate against our own env on replayed trajectories, a
   measured s/decision (retiring the INFERRED 0.2 above), and a measured Foul-Play-vs-SH win
-  rate under a reduced protocol — the number our index has never had.
+  rate under a reduced protocol — the number our index has never had. First cost, already
+  measured: poke-engine compiles **per generation** (`make poke_engine GEN=gen1`,
+  `--no-default-features`) and the stock wheel is gen9/terastallization, so (A) starts with a
+  from-source gen1 build, not a `pip install`.
 - **(B) Inference-time search wrapper.** Wrap search around the existing policy at eval/ladder
   time; no training change, reuses a checkpoint we already have. Cost at the locked protocol:
   3 seeds × 3000 battles × ~27 decisions/side ≈ 243k decisions ≈ **13.5 h at 0.2 s/decision**,
@@ -659,6 +662,12 @@ waived after it.
 Does NOT inherit §10's evaluation plan: there is no held-out human agreement metric here. The
 reads are held-out agreement against the TEACHER (a supervised milestone available long before
 any RL), vs-SH for board continuity only, head-to-head vs the best RL policy, and the ladder.
+
+A free by-product of (C), worth taking: the teacher dataset is also an **architecture screen**.
+Fitting the same BC objective on our encoder with each candidate trunk (current MLP-[512,512]
+vs a transformer) and comparing held-out teacher agreement answers the architecture question
+with **zero RL budget** — it is the method ps-ppo itself used, and the dataset it needs is one
+(C) produces anyway. This is a read inside the chapter, not a separate arm.
 
 Ceiling, stated honestly: (C) is bounded by Foul Play's own strength, which **nobody in our
 index has measured**. That is the single number option (A) exists to get, and it should be got

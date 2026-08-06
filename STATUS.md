@@ -24,17 +24,17 @@ passed. No runs live. Standing correction: RL is LEVEL with the BC clone (0.4607
 
 ## Next actions, in order
 
-1. **MAINTAINER DECISION — Track 1's bars.** The ≥50k recent-era bar FAILS at every
-   cutoff that buys today's set distribution: ≥2023 = 49,693 battles but only 28% level
-   match; ≥2024-04 (the level table's step change) = 44,391 at 91%. Sizing also drops —
-   ~6.06M decisions corpus-wide (~6.97M calibrated), ~3.4x P4, not §10's 11-22x. Smaller
-   lever than assumed; numbers in the session log, not decided unilaterally. Counterweight:
-   2015-18 logs carry literal `|choice|` lines (both seats' true actions), so ~21.5k
-   battles have NO hidden-action problem — cheap labels, but the worst set drift.
+1. **MAINTAINER DECISION — Track 1's bars.** The ≥50k recent-era bar FAILS at every cutoff
+   that buys today's set distribution (≥2023 = 49,693 at 28% level match; ≥2024-04 = 44,391
+   at 91%), and sizing drops to ~6.06M decisions corpus-wide (~6.97M calibrated), ~3.4x P4
+   not §10's 11-22x. Counterweight: 2015-18 logs carry literal `|choice|` lines (both seats),
+   so ~21.5k battles have NO hidden-action problem — cheap labels, worst set drift.
 2. **D8/D9 — DESIGN §11 (search re-entry), PROPOSED, needs your ratification.** Recommends
    a cheap poke-engine feasibility note, then expert iteration from Foul Play as a teacher
    (~6 h at 8-way for a P4-scale dataset); rejects search-in-the-training-loop on cost.
-3. No 24M run (D4c). **Arm C stays parked — its unparking condition was "iff Arm B
+3. **MAINTAINER DECISION — push or not.** `main` is 17 commits ahead of `origin/main`;
+   never asked for, never done unilaterally.
+4. No 24M run (D4c). **Arm C stays parked — its unparking condition was "iff Arm B
    credits", now settled as no.** Arm B closed; do NOT re-tune its coefficient.
 
 ## Watch items
