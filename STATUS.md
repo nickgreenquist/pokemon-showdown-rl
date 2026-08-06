@@ -56,6 +56,5 @@ figure here is a cross-format extrapolation, not a measurement.
   `eval/loss_faint_*` postdate P5b: arm-vs-control needs runs ≥2026-08-05.
 - **Is our SH weaker than Metamon's?** poke-env 0.15.0's SH setup branch is dead (upstream,
   unfiled); if that postdates theirs, every vs-SH number here is inflated vs the GXE anchor.
-- `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before
-  any self-play rung.
-- Concurrency: solo ~734 steps/s; 3-wide ≈ −20%/lane (~553-600); 6-wide 465-506/lane.
+- `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before any
+  self-play rung. Concurrency: solo ~734 steps/s; 3-wide −20%/lane; 6-wide 465-506/lane.
