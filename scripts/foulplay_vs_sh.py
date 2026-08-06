@@ -132,6 +132,43 @@ from poke_env.ps_client.account_configuration import AccountConfiguration
 BATTLE_FORMAT = "gen1randombattle"
 
 
+def _checkpoint_player(ckpt_path: str, username: str):
+    """A LISTENING poke-env player driven by a checkpointed policy.
+
+    eval_checkpoint.py builds the same thing with start_listening=False, since
+    in-process cross-play calls choose_move directly. Here the opponent is an
+    external websocket client, so this seat must own a connection.
+    """
+    from types import SimpleNamespace
+
+    import gymnasium as gym
+    import numpy as np
+    import torch
+
+    from rl.train import make_agent
+    from rl.common.checkpoint import load_checkpoint
+    from rl.common.config import Config
+    from rl.envs.showdown import OBS_DIM, PoolPlayer
+    from rl.selfplay.pool import SnapshotPool
+
+    ckpt = load_checkpoint(ckpt_path)
+    cfg = Config(**ckpt["config"])
+    torch.set_num_threads(1)
+    agent = make_agent(cfg, SimpleNamespace(
+        observation_space=gym.spaces.Box(-1.0, 4.0, (OBS_DIM,), np.float32),
+        action_space=gym.spaces.Discrete(10),
+    ))
+    agent.load_state_dict(ckpt["agent"])
+    pool = SnapshotPool(pool_size=1, latest_prob=1.0)
+    pool.push(agent)
+    return PoolPlayer(
+        pool,
+        battle_format=BATTLE_FORMAT,
+        account_configuration=AccountConfiguration(username, None),
+        max_concurrent_battles=1,
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument(
@@ -144,6 +181,15 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=300,
         help="Challenges to accept. 300 is the pre-registered primary; use 5 for the smoke.",
+    )
+    parser.add_argument(
+        "--seat",
+        default="heuristics",
+        help="who occupies our seat: 'heuristics' (SimpleHeuristicsPlayer, the "
+        "locked board) or a path to a checkpoint .pt. The checkpoint option "
+        "exists because every number in this repo comes from ONE opponent that "
+        "is also the training opponent, and the project's own rule says vs-SH "
+        "past parity measures SH-EXPLOITATION rather than strength.",
     )
     parser.add_argument(
         "--username",
@@ -168,11 +214,14 @@ async def run(args: argparse.Namespace) -> dict:
     # No password: poke-env then skips the assertion request entirely, which is
     # what the local --no-security server expects. Same path every training run
     # already takes.
-    sh = SimpleHeuristicsPlayer(
-        account_configuration=AccountConfiguration(args.username, None),
-        battle_format=BATTLE_FORMAT,
-        max_concurrent_battles=1,
-    )
+    if args.seat == "heuristics":
+        sh = SimpleHeuristicsPlayer(
+            account_configuration=AccountConfiguration(args.username, None),
+            battle_format=BATTLE_FORMAT,
+            max_concurrent_battles=1,
+        )
+    else:
+        sh = _checkpoint_player(args.seat, args.username)
 
     print(f"SH seat '{args.username}' waiting for {args.battles} challenges from '{args.opponent}'")
     started = time.monotonic()

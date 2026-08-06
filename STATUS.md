@@ -19,7 +19,9 @@ teacher and the demonstration tape pipeline is built and gate-green; §11 awaits
 | **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
 | BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
-| **Foul Play (+patch) — teacher candidate; SHIPPED bot** | **0.82** (n=100)*; v1 read 0.8467 (n=300) |
+| **Foul Play (+patch) — teacher; SHIPPED bot** | **0.8333** (1000-194, n=1200)* |
+| Foul Play vs our best RL / vs BC-clone-of-SH | **0.876 / 0.872** (n=250 each)* |
+| BC clone of Foul Play, 30k rows — **worse than the SH clone** | **0.3683** (n=600) |
 
 **LADDER TRANSLATION (derivation + caveats atop `prior_work/README.md`).** SH scores 39.7/41.2%
 GXE on gen7/gen9 randbats, so **0.489 parity ≈ 40% GXE, not "solved"**; the pure-policy field

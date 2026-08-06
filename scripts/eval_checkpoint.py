@@ -26,6 +26,7 @@ Prints a JSON report; --out also writes it to a file.
 """
 
 import argparse
+import dataclasses
 import json
 from pathlib import Path
 
@@ -73,6 +74,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("checkpoint", help="path to a checkpoint .pt")
     parser.add_argument("--episodes", type=int, default=100)
+    parser.add_argument(
+        "--opponent",
+        help="override the checkpoint config's eval_opponent. Needed for a "
+        "clone of a teacher that is not a registered in-process player: a "
+        "Foul Play clone records eval_opponent='foulplay', but the LOCKED "
+        "protocol scores against SimpleHeuristics, so the board stays "
+        "comparable with every other number in the repo.",
+    )
     parser.add_argument("--out", help="also write the JSON report here")
     parser.add_argument(
         "--opponent-checkpoint",
@@ -83,6 +92,11 @@ def main() -> None:
 
     ckpt = load_checkpoint(args.checkpoint)
     cfg = Config(**ckpt["config"])
+    if args.opponent:
+        sp = dict(cfg.selfplay)
+        sp["eval_opponent"] = args.opponent
+        sp["opponent"] = args.opponent
+        cfg = dataclasses.replace(cfg, selfplay=sp)
     torch.set_num_threads(cfg.torch_threads)
     if args.opponent_checkpoint:
         # Deliberate, loud bypass of the make_eval_env anchor doctrine:

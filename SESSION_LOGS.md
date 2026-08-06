@@ -1492,3 +1492,55 @@ entry by offset — never a broad keyword grep.
   vs SH under the locked protocol), and agreement is not win rate. That eval, plus the
   never-run head-to-heads (FP vs our best RL checkpoint; FP vs the BC clone of SH), are worth
   more than more rows. `--drop-trap` still has no positive test.
+
+- 2026-08-06 — CLONE SCORED and the SH-EXPLOITATION question SETTLED. Two firsts for this repo.
+
+  **1. THE FOUL PLAY CLONE SCORES 0.3683 vs SH (n=600), WORSE than cloning SH did.**
+  `runs/bc_fp_soft_30000` under the locked protocol, `--opponent heuristics`.
+  `eval/win_rate` == `wins_from_returns` to all digits, so not a reward-sign bug.
+
+      Foul Play (the teacher)              0.8333   (n=1200)
+      SH-vs-SH parity                      0.489
+      BC clone of SH (P4, 813k rows)       0.4657
+      best RL (12M + LR anneal)            0.4607
+      **BC clone of Foul Play (30k rows)   0.3683**
+
+  Cloning a teacher twice as strong produced an agent WEAKER than cloning the weak one. The
+  explanation is consistent with the day's other numbers rather than mysterious: the SH clone
+  reached 0.86-0.90 held-out agreement and scored 0.4657; this clone is at **0.42** agreement
+  and scores 0.368. Imitation fidelity dominates, and 30k rows is 1/27th of P4's 813k. So this
+  is NOT evidence the chapter fails -- it is evidence 30k rows is nowhere near the operating
+  point -- but it is the first honest calibration between the two scales we have:
+  **agreement ~0.42 -> win rate ~0.37.** The clone is currently the FLOOR, below everything we
+  already have, not the ceiling the P4 clone was.
+
+  **2. THE TEACHER IS NOT SH-EXPLOITING. §11's own trap does NOT fire.**
+  Two opponents that already existed on disk and had never been played, 250 battles each,
+  0 errors, via a new `--seat <checkpoint>` mode on `scripts/foulplay_vs_sh.py` (a LISTENING
+  PoolPlayer; eval_checkpoint's cross-play path builds the same thing non-listening):
+
+      Foul Play vs SimpleHeuristics     1000-194(6)   n=1200   0.8333 +/- 0.0108
+      Foul Play vs our best RL 12M+LRA    219-31(0)   n=250    **0.8760** +/- 0.0208
+      Foul Play vs the BC clone of SH     218-32(0)   n=250    **0.8720** +/- 0.0211
+
+  Deltas vs the SH board: **+0.043 (z +1.82)** and **+0.039 (z +1.63)** -- i.e. Foul Play is if
+  anything STRONGER against structurally different opponents, certainly not weaker. DESIGN §11
+  wrote the trap before any option was chosen ("search would exploit SimpleHeuristicsPlayer
+  hard and vs-SH would jump... any search work is read on the ladder, with vs-SH as board
+  continuity only"), and the red-team review made it the central objection to the GO. **It is
+  now answered with data rather than argument: the 0.83 is not SH-specific.**
+
+  Incidental but worth recording: our best RL (0.4607 vs SH) and the P4 BC clone (0.4657 vs SH)
+  are also indistinguishable from EACH OTHER against Foul Play (0.124 vs 0.128 from their
+  side), independently corroborating STATUS's standing correction that RL is LEVEL with
+  imitation rather than past it -- now measured against a third party instead of inferred from
+  two vs-SH numbers.
+
+  **WHAT THIS CHANGES.** The GO for §11(C) is now evidence-backed on the axis that mattered
+  most and was weakest. What is NOT established is that distillation reaches useful strength:
+  the only end-to-end datapoint is a clone at 0.368, and the repo still contains no measurement
+  of RL from a BC warm start improving on its starting checkpoint. The curve is climbing
+  (+2.6 pts/doubling at 30k, ceiling ~0.894), 3-wide collection is linear (19.7 h for P4
+  scale), and the honest next question is whether agreement converts to win rate at a rate that
+  ever clears 0.4657 -- which one more rung on the curve would answer far more cheaply than a
+  full chapter.
