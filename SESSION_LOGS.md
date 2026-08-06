@@ -963,3 +963,78 @@ entry by offset — never a broad keyword grep.
   recorded under "Local code checkouts" in `prior_work/README.md`.
 
   Suite 240 passed. Nothing has been run against a server yet; `results/` is gitignored.
+
+- 2026-08-06 — FOUL PLAY vs SH MEASURED: 0.8467 (254-46, n=300). GO. And FP does not work in gen1.
+
+  Maintainer was remote and lifted the >5min handover rule to unblock, so this was run in
+  session end to end. Everything below is measured, not projected.
+
+  **PRIMARY: Foul Play 254-46 vs SimpleHeuristicsPlayer in gen1randombattle, 0 ties.**
+
+    win rate 0.8467, se 0.0208, 95% CI [0.806, 0.887]
+    **7.05 se above the pre-registered 0.70 GO line** -> GO, not close to the boundary
+    +297 Elo over SH
+
+  For scale, on the same board: our best RL 0.4607, BC clone of SH 0.4657, SH-mirror parity
+  0.489. The teacher is ~0.39 above our best agent. Converting via last night's ladder
+  translation (SH ~40% GXE), +297 Elo puts Foul Play around **79% GXE** — the top of the
+  published randbats field (Huang & Lee 72%, ps-ppo 76.7%, Wang 79.5%). That independently
+  corroborates Metamon's "strongest open-source engine today" and, notably, matches the
+  back-of-envelope written BEFORE the run (a ~76% GXE agent should beat SH ~0.82; measured
+  0.847).
+
+  R0 GATES, all PASS. (1) Engine built for gen1: the flag reached cargo verbatim
+  (`--features poke-engine/gen1 --no-default-features`) and poke-engine's Cargo.toml has
+  `default = []`, so with no defaults and only gen1 selected there is no path to a gen9 build;
+  300 battles ran with 0 exceptions. NOTE a probe that did NOT work: `strings` on the compiled
+  .so shows `terastallize`/`dynamax`/`steelbeam` even in the gen1 build, because move-name
+  tables compile in regardless of the mechanics feature — that test discriminates nothing and
+  is not evidence either way. (2) Two independent tallies agree EXACTLY: Foul Play's own
+  `W: 254  L: 46` against the SH seat's 254/46. (3) 300/300 challenges resolved. (4) SH
+  accepted from the Foul Play username only.
+
+  SECONDARY READS, retiring inferred numbers:
+    - **7.9 s/battle**, mean 21.97 turns. DESIGN §11 carried ~0.2 s/decision as INFERRED.
+    - **Re-priced dataset generation:** a P4-scale 903,090-decision set is ~41,112 battles =
+      **90.2 h single-lane, ~11.3 h at 8-way**. §11 projected "~50 h single-threaded or ~6 h
+      at 8-way", so the real cost is ~1.8x the estimate. Still a weekend, not a blocker.
+    - **Tie rate 0.0% over 300** (our own arms run 1.57% vs our policy). Mean length 21.97 vs
+      our arms' 24.18/24.22 — Foul Play ends battles faster.
+
+  **THE OTHER FINDING, which is arguably worth more than the number: "Foul Play supports
+  gen1randombattle" was FALSE out of the box, and DESIGN §11 asserted it from source-reading.**
+  Showdown has a gen-1-ONLY protocol path (`sim/pokemon.ts`: gen === 1 && !lockedMove && (frz
+  || slp || partiallytrapped)) that replaces the entire move list with a single `Fight`
+  placeholder. Foul Play models it nowhere and dies ~12 turns into the first battle, at TWO
+  layers: `fight` is absent from moves.json so `add_move()` no-ops and the caller indexes
+  `moves[-1]` on an empty list (IndexError); and once the move exists, poke-engine has no
+  representable action, returns the choice `none`, and `format_decision` dies on
+  `get_move("none").can_z`. **It fired 195 times across 300 battles** (~0.65/battle) — Rest,
+  sleep moves, freeze, Wrap/Bind/Fire Spin. Not an edge case. Source-reading found that nothing
+  REJECTS the format and mistook that for support; this is the same class of error
+  prior_work/README exists to catch, except this time the unverified claim was ours.
+
+  Three patches, in `scripts/patches/foulplay_gen1_local.patch`, applied to `../foul-play`:
+  local `--no-security` login (poke-env already skips auth outright — `assertion = ""`), the
+  synthetic `fight` move mirroring Foul Play's own `recharge` handling, and a forced-choice
+  short-circuit submitting the placeholder unsearched. The third is faithful, not inventive:
+  that turn has exactly ONE legal action, so it decides nothing Foul Play would otherwise
+  choose. **Every number here is "Foul Play + our patches" and must be quoted that way.**
+
+  CAVEATS ON THE NUMBER, stated so it is not over-read:
+    - vs-SH is a PROJECTION, not a ranking (VGC-Bench Appendix C: cyclic payoff matrices).
+      0.847 vs SH does not guarantee 0.847 against our RL policy or against humans.
+    - DESIGN §3/D7 already warn that vs-SH past parity measures SH-EXPLOITATION. 0.847 is far
+      past parity, so some of this is exploitation rather than absolute strength. For expert
+      iteration what matters is narrower and IS established: its demonstrations are much better
+      than SH's, which is the ceiling that capped P4.
+    - Distilling a search bot loses the search. The student inherits Foul Play's move choices,
+      not its ability to compute them, so the realistic ceiling is "policy that predicts Foul
+      Play", below Foul Play itself. That is the standard expert-iteration bet, not a defect.
+    - Nothing here touches the public ladder; the 2026-08-06 deferral stands.
+
+  DISPOSITION: **§11(A)'s gate is passed and D8(c)/D9(c) are now evidence-backed.** The
+  mechanics-agreement half of (A) was NOT run and was not needed — Foul Play plays on the real
+  Showdown server, so the server is the referee and any engine/Showdown divergence shows up as
+  Foul Play playing worse, which the win rate already prices in. Ratification of §11 is the
+  maintainer's call and is now the only thing between here and generating the dataset.

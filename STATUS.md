@@ -20,6 +20,7 @@ with the BC clone (0.4607 vs 0.4657) — and per the ladder translation, that le
 | **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
 | BC clone of SH | 0.4530 recorded / **0.4657 re-scored in-repo** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
+| **Foul Play (+our 3 gen1 patches) — teacher candidate** | **0.8467** (254-46, n=300) |
 
 **LADDER TRANSLATION (2026-08-06; derivation + caveats at the TOP of `prior_work/README.md`).**
 SH scores **39.7/41.2% GXE** on gen7/gen9 randbats (Metamon Table 2), so **0.489 parity ≈ 40%
@@ -29,18 +30,17 @@ buys only confirmation. PS Elo ≠ Glicko-1: quote GXE across sources.
 
 ## Next actions, in order
 
-0. **QUEUED AND STAGED — measure Foul Play vs SH** (approved 2026-08-06; the §11 D8/D9 gate).
-   Pre-registration + SH seat: `scripts/foulplay_vs_sh.py`; GO ≥0.70 / MARGINAL 0.60–0.70 /
-   NO <0.60 at n=300. Clone at `../foul-play`, our login patch applied. **Blocked on: no Rust
-   installed, and the engine ships gen9 — rebuild `make poke_engine GEN=gen1`.** A wrong-gen
-   build biases FP DOWN, the direction that wrongly kills (C): smoke 5 and read FP's log.
+0. **MAINTAINER DECISION — ratify §11 (D8/D9). Its gate is PASSED.** Foul Play measured
+   **0.8467 vs SH** (254-46, n=300, se 0.0208, 7.05 se over the pre-registered 0.70 GO line;
+   +297 Elo, ~79% GXE). Teacher is ~0.39 above our best agent, so D8(c)/D9(c) are now
+   evidence-backed. Re-priced: a P4-scale set is ~41k battles = 90 h single-lane / ~11 h
+   8-way (§11 said 6 h). Nothing else blocks generating the dataset.
 1. **MAINTAINER DECISION — Track 1's bars.** The ≥50k recent-era bar FAILS at every cutoff
    buying today's sets (≥2023 = 49,693 at 28% level match; ≥2024-04 = 44,391 at 91%); sizing
    ~6.06M decisions, ~3.4x P4 not §10's 11-22x. Counterweight: 2015-18 logs carry `|choice|`
    lines — ~21.5k battles, NO hidden-action problem, but the worst set drift.
-2. **D8/D9 (DESIGN §11) — now GATED on item 0**; ratify once the teacher's strength is known.
-3. **MAINTAINER DECISION — push or not.** `main` is well ahead of `origin/main`; never asked.
-4. No 24M run (D4c). **Arm C parked permanently** — unparking condition was "iff Arm B
+2. **MAINTAINER DECISION — push or not.** `main` is well ahead of `origin/main`; never asked.
+3. No 24M run (D4c). **Arm C parked permanently** — unparking condition was "iff Arm B
    credits", settled as no. Arm B closed; do NOT re-tune its coefficient.
 
 ## Watch items
