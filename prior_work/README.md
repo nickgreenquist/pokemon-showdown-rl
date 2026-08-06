@@ -34,6 +34,64 @@ re-download from the URLs below if one goes missing.
   cross-features doc ranks above everything in this one, and Gen 1's ~165 moves with no items
   or abilities shrinks the prize further. Deferred, not scheduled.
 
+## What a vs-SH win rate is worth in ladder terms — TRACKED, derived 2026-08-06
+
+**Read this before proposing a ladder eval, or before treating vs-SH parity as "done."**
+Source facts are Metamon's (Table 2 + Figure 17, see its entry below); the conversion is ours.
+
+SH's own measured record against humans, by format — note that the ONE number this index
+previously carried (Gen1OU, ~0.21) is SH's *worst* row and comes from an OU tier, not randbats:
+
+| format | SH W–L vs humans | raw WR | GXE (Fig 17 labels) |
+|---|---|---|---|
+| Gen1**OU** | 16–59 | 21.3% | 21.8% |
+| Gen3OU | 16–54 | 22.9% | 26.7% |
+| Gen4OU | 21–36 | 36.8% | 31.6% |
+| **Gen7RandomBattle** | 24–32 | **42.9%** | **39.7%** |
+| **Gen9RandomBattle** | 28–32 | **46.7%** | **41.2%** |
+
+**In random battles — our format family — SH is roughly twice the player it is in OU**
+(team-building removed), landing at **~40% GXE, Glicko-1 ≈ 1450–1500**. The GXE figures are
+exact bar labels; the Glicko band is read off the figure and should be quoted as approximate.
+
+**The conversion, worked for our own numbers.** Ties are non-wins under the locked protocol,
+so SH-mirror parity is **0.489, not 0.500**. Best RL (12M+LRA) = 0.4607; renormalizing the
+1.57% ties out gives ~46.8% head-to-head, i.e. **≈ −20 Elo vs SH**. So our best agent projects
+to **~38–40% GXE**, a couple of points under SH. The rule of thumb: *a vs-SH win rate near the
+0.489 parity mark means ~40% GXE, not "nearly solved."*
+
+Where that sits in the published randbats field:
+
+| agent | format | Glicko-1 | GXE |
+|---|---|---|---|
+| **ours (12M+LRA), projected** | gen1RB | ~1400–1450 | **~38–40%** |
+| poke-env SH | Gen7RB / Gen9RB | ~1450–1500 | 39.7% / 41.2% |
+| Huang & Lee 2019 — PPO self-play, **no search** | Gen7RB | 1677 | 72% |
+| ps-ppo — transformer PPO | Gen9RB | 1725 ± 25 | 76.7% |
+| Wang 2024 — PPO + test-time MCTS | Gen4RB | 1756 | 79.5% |
+| Metamon SynRL-V2 — offline RL on human data | Gen1OU | 1761 ± 35 | 79.9% |
+| best human players | — | — | 74–90% |
+
+**Consequences, and the reason this is filed at the top of the index:**
+
+1. **SH parity is not the finish line — it is ~40% GXE.** The floor of the published
+   pure-policy randbats field is 72%. That gap is not a shaping/LR/step-count gap; it is the
+   size that BC-init (VGC-Bench: +25–30 pts at matched budget) and encoder work move.
+2. **A ladder eval is now PREDICTABLE from vs-SH, so it buys confirmation only.** Maintainer
+   decision 2026-08-06: D7(a) stands (ladder Elo/GXE remains the ratified success metric) but
+   its EXECUTION is deferred until an agent is clearly past SH. Metamon reports being accused
+   of botting in chat at exactly this rating band.
+3. **PS Elo ≠ Glicko-1.** ps-ppo's own screenshot is Elo 2102 / Glicko-1 1725 for one agent,
+   and Metamon calls PS Elo "intentionally noisy" and not comparable across game modes. Our
+   corpus survey's ratings (median 1203, p90 1415) are PS **Elo** and cannot be read against
+   any Glicko row above. Quote GXE when comparing across sources.
+
+**Four caveats, all stated by the source itself:** n is tiny (56 and 60 battles → ±6.5pp);
+SH's low rating skews matchmaking toward weak opponents, so **raw W–L is an upper bound**;
+Fig 17's Glicko "is possibly an overestimate" (slow convergence far below the mean); and
+**nobody has measured gen1randombattle** — every randbats row above is gen4/7/9 and every
+gen1 row is OU, so this is a cross-format extrapolation, not a measurement of our board.
+
 ## Local code checkouts — READ THESE DIRECTLY
 
 Full source for the closest comparable system is on this machine, OUTSIDE the repo tree.
@@ -96,10 +154,16 @@ lossy by construction and the code has repeatedly contradicted the project's own
   winrate is a projection, not a ranking.
 - `grigsby2025_metamon.pdf` — Grigsby et al., *Metamon* (arXiv 2504.04395), RLC 2025.
   https://arxiv.org/abs/2504.04395 · code https://github.com/UT-Austin-RPL/metamon
-  Offline RL on ~1M human battles. Measured SimpleHeuristics vs the human ladder: Gen1OU
-  16W–59L (~0.21) — SH's weakest format. Its `PokeEnvHeuristic` IS poke-env's
-  SimpleHeuristicsPlayer. Paper's naive latest-checkpoint self-play arm underdelivered;
-  post-paper, large diverse agent-vs-agent datasets became the main driver.
+  Offline RL on ~1M human battles. Its `PokeEnvHeuristic` IS poke-env's SimpleHeuristicsPlayer,
+  and **Table 2 + Figure 17 are the measured SH-vs-humans ladder record for FIVE formats** —
+  the basis of the vs-SH → ladder conversion filed at the top of this index. Read that section
+  rather than the Gen1OU number alone: this entry used to carry only Gen1OU 16W–59L (~0.21),
+  which is SH's *worst* row and an OU tier, while the randbats rows (Gen7RB 24–32, Gen9RB
+  28–32, GXE 39.7%/41.2%) are the ones that apply to our format. Paper's naive
+  latest-checkpoint self-play arm underdelivered; post-paper, large diverse agent-vs-agent
+  datasets became the main driver. Appendix A.1/A.2 also carry the randbats ladder anchors
+  (Huang & Lee 1677/72%, Wang 1756/79.5%) and call Foul Play "the strongest open-source engine
+  today" — relevant to §11's ceiling argument, which rests on a competition placement instead.
 - `karten2026_pokeagent_challenge.pdf` — Karten, Grigsby et al., *PokéAgent Challenge*
   (arXiv 2603.15563), NeurIPS 2025 competition report.
   https://arxiv.org/abs/2603.15563 · https://pokeagent.github.io

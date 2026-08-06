@@ -836,3 +836,66 @@ entry by offset — never a broad keyword grep.
   (re-clone if gone) and "the Showdown server is up on :8000" — both are session facts, not
   repo state. Tree was clean going in; no runs live; nothing queued. The next move remains a
   maintainer decision (D8/D9, Track 1's bars, push), not code.
+
+- 2026-08-06 — WHAT A vs-SH WIN RATE IS WORTH: SH is ~40% GXE in randbats; ladder eval DEFERRED
+
+  Maintainer pushed back on the "build the ladder eval next" recommendation and asked the
+  right question instead: what Elo does SH actually get, so we can map our own numbers onto
+  the ladder without playing a single human. It is measured, and it was already sitting in
+  `prior_work/grigsby2025_metamon.pdf` — our index had recorded only the worst row of it.
+
+  **Metamon Table 2 + Figure 17 — PokeEnvHeuristic (= poke-env SimpleHeuristicsPlayer) vs
+  humans on the public ladder:**
+
+    format              W-L      raw WR   GXE (Fig 17 bar labels)
+    Gen1OU              16-59    21.3%    21.8%
+    Gen3OU              16-54    22.9%    26.7%
+    Gen4OU              21-36    36.8%    31.6%
+    Gen7RandomBattle    24-32    42.9%    39.7%
+    Gen9RandomBattle    28-32    46.7%    41.2%
+
+  Our index carried ONLY "Gen1OU 16W-59L (~0.21) — SH's weakest format". True, but it is an
+  OU tier and it is the wrong anchor: **in random battles, where team-building is removed,
+  SH is roughly twice the player it is in OU** — ~40% GXE, Glicko-1 ~1450-1500 (GXE labels
+  exact; the Glicko band is read off the figure and must be quoted as approximate).
+
+  **The conversion for our own numbers.** Ties are non-wins under the locked protocol, so
+  SH-mirror parity is 0.489, not 0.500. Best RL (12M+LRA) = 0.4607; renormalizing the 1.57%
+  ties out gives ~46.8% head-to-head = **~20 Elo BELOW SH**. So our best agent projects to
+  ~38-40% GXE. Rule of thumb now recorded in three places: **a vs-SH win rate near 0.489
+  means ~40% GXE, not "nearly solved."**
+
+  **The randbats field, for scale:** SH 39.7/41.2% GXE; Huang & Lee 2019 (PPO self-play, NO
+  search, Gen7RB) 1677 Glicko-1 / 72% GXE; ps-ppo (Gen9RB) 1725 +/- 25 / 76.7%; Wang 2024
+  (PPO + test-time MCTS, Gen4RB) 1756 / 79.5%; Metamon SynRL-V2 (Gen1OU) 1761 +/- 35 / 79.9%;
+  best humans 74-90%. **The floor of the published pure-policy field is 72% GXE and we are at
+  ~40%.** That gap is not a shaping/LR/step-count gap — it is the size that BC-init
+  (VGC-Bench: +25-30 pts at matched budget) and encoder work move.
+
+  **DECISION (maintainer): ladder eval DEFERRED.** D7(a) stands — ladder Elo/GXE remains the
+  ratified success metric — but its EXECUTION waits until an agent is clearly past SH. The
+  result is now predictable from vs-SH, so it buys confirmation only, at the cost of hundreds
+  of real-time battles on a human account; Metamon reports being accused of botting in chat
+  at exactly this rating band. This retracts the recommendation made earlier tonight to build
+  it first.
+
+  **Also corrected: PS Elo is NOT Glicko-1.** ps-ppo's own screenshot reads Elo 2102 /
+  Glicko-1 1725 for one agent, and Metamon calls PS Elo "intentionally noisy" and not
+  comparable across game modes. Consequence: the corpus survey's ratings (median 1203, p90
+  1415, zero above 1700) are PS **Elo** and cannot be read against any Glicko figure above.
+  Quote GXE when comparing across sources.
+
+  **Caveats, all the source's own, all carried into the index:** n is tiny (56 and 60 battles,
+  ~+/-6.5pp); SH's low rating skews matchmaking toward weak opponents so raw W-L is an UPPER
+  bound; Fig 17's Glicko "is possibly an overestimate" (slow convergence far below the mean);
+  and **nobody has measured gen1randombattle** — every randbats row is gen4/7/9, every gen1
+  row is OU. This is a cross-format extrapolation, not a measurement of our board.
+
+  **Softens one claim made earlier tonight:** Metamon calls Foul Play "the strongest
+  open-source engine today", and the #8 Gen1OU placement is a competition result under a fixed
+  time budget, not a strength measurement. §11's ceiling argument rests on that placement; the
+  (A) feasibility note's Foul-Play-vs-SH number therefore matters more, not less.
+
+  Recorded in four places by design: `prior_work/README.md` (new tracked section at the top,
+  where the citation rule already forces a read), `CLAUDE.md` landmines (one line, always
+  loaded), `STATUS.md` (ladder-translation block under the results table), and here.
