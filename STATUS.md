@@ -36,7 +36,7 @@ LEVEL with the BC clone (0.4607 vs 0.4530/0.4657), not past it.
    `pytest tests/test_showdown_env.py -k "shaped_return or shaped_episode"`. Futility
    screen: advance to 12M iff pooled delta ≥ +0.009 vs the re-evaluated control 0.4308
    (D2c re-eval DONE — that baseline moved 1.4x the gate vs the stale 0.4433).
-3. No 24M run (D4c). Arm C parked. Open: un-gitignore `prior_work/wang_fork_diffs.md`?
+3. No 24M run (D4c). Arm C parked. Open: D8/D9 in DESIGN §11 (search re-entry).
 
 ## Watch items
 

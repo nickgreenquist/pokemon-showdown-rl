@@ -34,8 +34,14 @@ showdown/
 # Local environment
 .env
 
-# Third-party papers/snapshots: local archive only (copyright + size); index and briefing are tracked
+# prior_work/ is gitignored BY DEFAULT (third-party copyright + repo size). The rule for
+# whitelisting, settled 2026-08-05: track a file iff its CONTENT is ours — the index and
+# our own written analyses. A file we generated but whose content is someone else's stays
+# ignored, which is why wang_fork_diffs.md does not appear below: it is 2,362 lines of
+# another author's source diffs wrapped in a thin layer of our commentary.
 prior_work/*
 !prior_work/README.md
 !prior_work/PHASE5_PRIOR_WORK_BRIEFING.md
+!prior_work/CROSS_FEATURES_AND_ARCHITECTURE.md
+!prior_work/LLM_IN_RL_REPORT.md
 logs/

@@ -2,9 +2,37 @@
 
 Local archive of the papers and project write-ups that informed Phase 5 design, collected
 during the 2026-08-03 prior-work verification dig (full findings: the "prior-work
-verification" entry in `SESSION_LOGS.md`). Everything here except this index and the
-briefing is **gitignored** (third-party copyright + repo size); the files live on disk
-only, so re-download from the URLs below if one goes missing.
+verification" entry in `SESSION_LOGS.md`).
+
+**Tracking rule (settled 2026-08-05):** this directory is gitignored by default —
+third-party copyright, plus repo size. A file is whitelisted iff its CONTENT is ours: this
+index, and the analyses listed directly below. A file we *generated* but whose content is
+someone else's stays ignored, which is why `wang_fork_diffs.md` is not tracked (2,362 lines
+of another author's source diffs under a thin layer of our commentary) — that closes the
+standing "un-gitignore it?" question with a no. Everything ignored lives on disk only, so
+re-download from the URLs below if one goes missing.
+
+## Our own analyses — TRACKED, and the only files here guaranteed to exist
+
+- **`PHASE5_PRIOR_WORK_BRIEFING.md`** — the Phase 5 briefing distilled from the sources below.
+- **`CROSS_FEATURES_AND_ARCHITECTURE.md`** — implementation spec for the encoder/architecture
+  question, and per its own header **the primary path** of the two. A four-rung ladder from
+  hand-composed cross features (rung 0) through a pointer/shared-slot scoring head, explicit
+  crossing (two-tower dot product / DCN), to entity attention over Pokémon tokens (rung 3),
+  with per-move and per-Pokémon feature formulas, an experimental design and a
+  pre-registration sketch. **Caveat carried from its own Provenance section: written in a
+  session with NO repo access, so every formula must be verified against `baselines.py` and
+  the Gen 1 damage formula before implementing — where it contradicts this repo's own audit,
+  the audit wins.** Bears directly on DESIGN §7's parked STAB and boosts-one-hot items and on
+  §11's proposed architecture screen.
+- **`LLM_IN_RL_REPORT.md`** — LLM-in-the-loop *for* RL (not RL for LLMs, and not
+  LLM-as-agent). Taxonomy plus graded evidence. Its own revision note **retracts** the first
+  draft's headline recommendation: frozen LLM embeddings of species/move text are a constant
+  per move, so they cannot encode STAB or type effectiveness — the two properties most likely
+  to bind — and the real precedents (EMMA, ATLA) inject embeddings through entity-conditioned
+  attention rather than concatenation into a flat MLP. Conclusion: everything in the
+  cross-features doc ranks above everything in this one, and Gen 1's ~165 moves with no items
+  or abilities shrinks the prize further. Deferred, not scheduled.
 
 ## Local code checkouts — READ THESE DIRECTLY
 
