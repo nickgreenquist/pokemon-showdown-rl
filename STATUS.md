@@ -48,15 +48,12 @@ passed. No runs live. Standing correction: RL is LEVEL with the BC clone (0.4607
   they FAIL the [0.2, 1.0] R0 entropy gate from update 1, permanently. The band does not
   transfer to that regime and the corpus chapter must pick its own entropy_coef BEFORE
   its first run. Smoke also says: critic warmup ~5 updates suffices, not 10.
-- **Grad clip:** from scratch binds 1.00 → 0.50 over the first 5 updates; warm start binds
-  HARDER over time (0.67 → 0.94). Arm B's EV ran 0.24 (early) → 0.43 (late).
-- **Design rule from Arm B, check it before ANY future shaping proposal:** a potential-based
-  term whose potential is ~linear in features the encoder already emits is predictably inert
-  — PBS leaves advantages exactly invariant, and here Φ = 0.6·(obs[2] − obs[1]) exactly. One
-  line of algebra pre-launch would have predicted the null and saved 2.9 h.
-- Metrics added: `loss/{explained_variance,adv_std,grad_norm,grad_clip_frac}`,
-  `eval/{loss_faint_diff,loss_faint_lead_frac}`; P5b predates them, so arm-vs-control
-  comparison on those four is only possible for runs from 2026-08-05 on.
+- **Design rule from Arm B — check before ANY future shaping proposal:** a potential-based
+  term whose potential is ~linear in features the encoder already emits is predictably
+  inert (PBS leaves advantages exactly invariant; here Φ = 0.6·(obs[2] − obs[1]) exactly).
+- Grad clip: from scratch binds 1.00 → 0.50 over 5 updates; warm start binds HARDER (0.67
+  → 0.94). New `loss/*` + `eval/loss_faint_*` metrics postdate P5b, so arm-vs-control on
+  those four only works for runs from 2026-08-05 on.
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before
   any self-play rung. poke-env 0.15.0: SH's setup branch is dead (upstream, unfiled).
 - Concurrency: solo ~734 steps/s; 3-wide ≈ −20%/lane (~553-600); 6-wide 465-506/lane.
