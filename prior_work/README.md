@@ -127,12 +127,15 @@ lossy by construction and the code has repeatedly contradicted the project's own
   nobody has run Foul Play in gen1 randbats seriously**, which is worth weighing against
   Metamon's "strongest open-source engine today" when pricing §11 option (C).
 
-  **Our patches are in `scripts/patches/foulplay_gen1_local.patch`** (three hunks, applied to
-  the clone; re-apply after any pull): local `--no-security` login, the synthetic `fight` move
-  mirroring Foul Play's own `recharge` handling, and a forced-choice short-circuit that submits
-  the placeholder unsearched. The third is faithful rather than inventive — that turn has
-  exactly ONE legal action, so it decides nothing Foul Play would otherwise choose. Any number
-  measured here is nonetheless **"Foul Play + our patches"** and must be quoted that way.
+  **Our patches are in `scripts/patches/foulplay_gen1_local.patch`** (7 files, applied to the
+  clone; re-apply after any pull): local `--no-security` login; the synthetic `fight` move;
+  correct placeholder handling; a persistent process pool; pre-truncation policy capture; a
+  switch guard on a latent upstream `KeyError`; the gen1 engine pin; and a tape writer.
+  **CORRECTED 2026-08-06:** an earlier version treated the placeholder turn as a forced choice
+  with one legal action. It is not — `trapped` is False and every switch remains legal, and
+  the search elects to switch on a large share of them. Any number measured here is **"Foul
+  Play + our patches"**, and 0.8467 specifically was measured with the EARLIER, handicapped
+  version, so it is not a number for stock Foul Play nor for the bot generating our data.
 - **`/Users/nickgreenquist/Documents/Projects/ps-ppo`** — full clone of
   https://github.com/Nebraskinator/ps-ppo (49 commits, MIT-licensed as of a later commit).
   ~4.6k lines of Python. Machine-local and never committed here; re-clone from the URL if
