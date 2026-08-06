@@ -1,0 +1,94 @@
+diff --git a/fp/data/__init__.py b/fp/data/__init__.py
+index 5dbb1f6..1a4569f 100644
+--- a/fp/data/__init__.py
++++ b/fp/data/__init__.py
+@@ -10,6 +10,32 @@ move_json_location = os.path.join(PWD, "moves.json")
+ with open(move_json_location) as f:
+     all_move_json = json.load(f)
+ 
++# PATCHED (pokemon-showdown-rl): Showdown has a GEN-1-ONLY protocol path that
++# Foul Play does not implement. In gen1, when the active pkmn is asleep, frozen
++# or partially trapped, the server replaces the entire move list with a single
++# `Fight` placeholder (sim/pokemon.ts:
++#   if (this.battle.gen === 1 && !lockedMove && (['frz','slp'].includes(...)
++#       moves = [{ move: 'Fight', id: 'fight' }]
++# ). `fight` is not in moves.json, so add_move() silently fails and the caller
++# indexes moves[-1] on an empty list -> IndexError, killing the process. This is
++# the same synthetic-move fix Foul Play already applies to Showdown's other
++# placeholder, `recharge` (see data/scripts/update_moves.py). The turn is a
++# forced choice with exactly one legal action, so supplying the placeholder
++# changes no decision the bot actually makes.
++all_move_json["fight"] = {
++    "accuracy": True,
++    "basePower": 0,
++    "category": "status",
++    "flags": {},
++    "id": "fight",
++    "name": "Fight",
++    "pp": 40,
++    "priority": 0,
++    "secondary": None,
++    "target": "self",
++    "type": "normal",
++}
++
+ pkmn_json_location = os.path.join(PWD, "pokedex.json")
+ with open(pkmn_json_location, "r") as f:
+     pokedex = json.loads(f.read())
+diff --git a/fp/modes/base.py b/fp/modes/base.py
+index 3d2c4dc..924c8ad 100644
+--- a/fp/modes/base.py
++++ b/fp/modes/base.py
+@@ -201,6 +201,19 @@ async def async_pick_move(battle):
+     if not battle_copy.team_preview:
+         battle_copy.user.update_from_request_json(battle_copy.request_json)
+ 
++    # PATCHED (pokemon-showdown-rl): gen1 forced-choice short-circuit.
++    # In gen1 ONLY, when the active pkmn is asleep, frozen or partially trapped,
++    # Showdown replaces the whole move list with a single `Fight` placeholder
++    # (sim/pokemon.ts). There is then exactly ONE legal action, so there is
++    # nothing to search: submit it. Without this, the placeholder reaches
++    # poke-engine, which has no representable action for it, returns the choice
++    # "none", and format_decision crashes on get_move("none").can_z.
++    # This decides no turn that Foul Play would otherwise have a choice about.
++    active_moves = battle_copy.user.active.moves
++    if len(active_moves) == 1 and active_moves[0].name == "fight":
++        logger.info("Only the gen1 `fight` placeholder is legal; submitting it unsearched")
++        return ["/choose move 1", str(battle_copy.rqid)]
++
+     loop = asyncio.get_event_loop()
+     with concurrent.futures.ThreadPoolExecutor() as pool:
+         best_move = await loop.run_in_executor(pool, find_best_move, battle_copy)
+diff --git a/fp/websocket_client.py b/fp/websocket_client.py
+index d49b726..7c5e388 100644
+--- a/fp/websocket_client.py
++++ b/fp/websocket_client.py
+@@ -33,6 +33,14 @@ class PSWebsocketClient:
+         self.password = password
+         self.address = address
+         self.websocket = await websockets.connect(self.address)
++        # PATCHED (pokemon-showdown-rl): a local server started with
++        # --no-security neither needs nor validates an assertion, so do not
++        # reach out to the public login server for one. poke-env takes exactly
++        # this path (ps_client.py: `assertion = ""` when there is no password),
++        # which is why every training run in that repo connects fine.
++        self.local_no_security = password is None and (
++            "localhost" in address or "127.0.0.1" in address
++        )
+         self.login_uri = (
+             "https://play.pokemonshowdown.com/api/login"
+             if password
+@@ -92,6 +100,13 @@ class PSWebsocketClient:
+ 
+         guest_login = self.password is None
+ 
++        # PATCHED (pokemon-showdown-rl): local --no-security short-circuit.
++        if self.local_no_security:
++            await self.send_message("", ["/trn " + self.username + ",0,"])
++            logger.info("Logged in to local server without assertion")
++            await asyncio.sleep(1)
++            return self.username
++
+         if guest_login:
+             response = requests.post(
+                 self.login_uri,

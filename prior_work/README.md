@@ -107,9 +107,32 @@ lossy by construction and the code has repeatedly contradicted the project's own
   **It is pinned to `poke-engine==0.0.48` built `--features poke-engine/terastallization`,
   i.e. GEN 9** — `gen1` is a real feature flag (verified against poke-engine's `Cargo.toml`:
   `gen1`..`gen9`, `default = []`), so gen1 work needs `make poke_engine GEN=gen1`, a Rust
-  toolchain, and a from-source compile. **It carries our local-login patch applied**
-  (`scripts/patches/foulplay_local_login.patch` in the main repo); re-apply it after any pull.
+  toolchain, and a from-source compile (verified 2026-08-06: builds clean in ~9 s).
   Gets its own Python env — never the `pokemon-showdown-rl` one.
+
+  **CORRECTION, measured 2026-08-06 by RUNNING it — "Foul Play supports gen1randombattle" is
+  not true out of the box.** DESIGN §11 records that support as MEASURED FROM SOURCE (generic
+  format parsing, a registered GEN1 mechanics entry, gen1 protocol handling, a live gen1 set
+  file). Source-reading was right that nothing *rejects* the format, and wrong that the format
+  works: Foul Play crashes out of a gen1 battle within ~12 turns of the first one. Showdown has
+  a **gen-1-ONLY** protocol path (`sim/pokemon.ts`: `if (this.battle.gen === 1 && !lockedMove
+  && (['frz','slp'].includes(this.status) || partiallytrapped))`) that replaces the entire move
+  list with a single `Fight` placeholder when the active pkmn is asleep, frozen or partially
+  trapped. Foul Play models it nowhere: `fight` is absent from `moves.json`, so `add_move()`
+  silently no-ops and the caller indexes `moves[-1]` on an empty list (`IndexError`); and even
+  once the move exists, poke-engine has no representable action for that state, returns the
+  choice `none`, and `format_decision` dies on `get_move("none").can_z`. In gen1 randbats this
+  fires constantly — Rest, Sleep Powder, Hypnosis, Sing, Lovely Kiss, Blizzard/Ice Beam freeze,
+  Wrap/Bind/Fire Spin — not as an edge case. **This is the strongest available evidence that
+  nobody has run Foul Play in gen1 randbats seriously**, which is worth weighing against
+  Metamon's "strongest open-source engine today" when pricing §11 option (C).
+
+  **Our patches are in `scripts/patches/foulplay_gen1_local.patch`** (three hunks, applied to
+  the clone; re-apply after any pull): local `--no-security` login, the synthetic `fight` move
+  mirroring Foul Play's own `recharge` handling, and a forced-choice short-circuit that submits
+  the placeholder unsearched. The third is faithful rather than inventive — that turn has
+  exactly ONE legal action, so it decides nothing Foul Play would otherwise choose. Any number
+  measured here is nonetheless **"Foul Play + our patches"** and must be quoted that way.
 - **`/Users/nickgreenquist/Documents/Projects/ps-ppo`** — full clone of
   https://github.com/Nebraskinator/ps-ppo (49 commits, MIT-licensed as of a later commit).
   ~4.6k lines of Python. Machine-local and never committed here; re-clone from the URL if

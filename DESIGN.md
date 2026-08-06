@@ -567,7 +567,14 @@ measured on 2026-08-05 changed the inputs, which is the legitimate trigger for r
    exactly this outcome: *expert iteration from a search bot.*
 2. **That search bot was priced.** Foul Play supports `gen1randombattle` (MEASURED from source
    at commit `25c976f0`: generic format parsing, a registered GEN1 mechanics entry, gen1
-   protocol handling, and a live gen1 set file at pkmn.github.io). Its per-decision cost is a
+   protocol handling, and a live gen1 set file at pkmn.github.io). **CORRECTED 2026-08-06 by
+   running it: that support does not survive contact with a real battle.** Nothing rejects the
+   format, but Foul Play crashes ~12 turns into the first battle on gen1's `Fight` placeholder
+   (Showdown's gen-1-only forced-choice path for sleep/freeze/partial-trap), at two separate
+   layers, and the trigger moves are common. Three local patches make it playable — see
+   `prior_work/README.md` — so every number below is "Foul Play + our patches", and the
+   likeliest reading is that nobody has run this bot in gen1 randbats seriously. Its
+   per-decision cost is a
    **dial, not a property**: `--search-time-ms` defaults to 100 and feeds
    `monte_carlo_tree_search(state, search_time_ms, threads)`, with random-battle mode searching
    `parallelism × 2` sampled battles (×4 shallow early), so stock wall clock is **~0.2
