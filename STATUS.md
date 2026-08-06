@@ -45,8 +45,8 @@ figure here is a cross-format extrapolation, not a measurement.
 
 ## Watch items
 
-- Seed ledger: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 smoke. Distinct usernames per lane too.
-- Showdown evals are NOT reproducible: comparisons are UNPAIRED — buy precision with n.
+- Seeds: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 smoke. Distinct usernames per lane too.
+  Showdown evals are NOT reproducible: comparisons are UNPAIRED — buy precision with n.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
 - **BC-warm-started runs sit at loss/entropy 0.063** (scratch 1.69→0.317), FAILING the
   [0.2,1.0] R0 gate from update 1 — pick entropy_coef BEFORE run 1. Critic warmup ~5, not 10.
