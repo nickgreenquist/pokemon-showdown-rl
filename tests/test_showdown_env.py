@@ -230,9 +230,65 @@ def test_move_block_features(offline_env):
     assert vec[o2 + 5] == 1.0 and vec[o2 + 7] == pytest.approx(1 / 5)
     o3 = o + 3 * MOVE_DIM  # fourth slot unknown
     assert not vec[o3 : o3 + MOVE_DIM].any()
-    # The same move features appear for the opponent's REVEALED moves only:
-    # gyarados has revealed nothing, so its move blocks are all zero.
-    assert not vec[_OPP_ACTIVE + ACTIVE_DIM : OBS_DIM].any()
+    # The opponent's move blocks are filled from the vendored randbats SET
+    # PRIOR, not from revealed moves alone. Gyarados has revealed nothing, but
+    # its set pool is public and enumerable, so the encoder supplies the four
+    # most likely moves with slot 0 carrying P(the mon has this move).
+    #
+    # This replaces an earlier contract ("unrevealed => all zeros"), which
+    # discarded the single largest input the search teacher conditions on.
+    # Reusing the existing `known` flag as a probability keeps OBS_DIM at 611.
+    opp = _OPP_ACTIVE + ACTIVE_DIM
+    assert vec[opp : opp + 4 * MOVE_DIM].any(), "set prior did not populate"
+    probs = [float(vec[opp + i * MOVE_DIM]) for i in range(4)]
+    assert probs[0] == pytest.approx(1.0)  # bodyslam is in every gyarados set
+    assert all(0.0 < q <= 1.0 for q in probs), probs
+    assert probs == sorted(probs, reverse=True), "slots must be most-likely first"
+    # A fully-determined species leaves no uncertainty at all.
+    tauros = Pokemon(gen=1, species="tauros")
+    vec_t = offline_env.embed_battle(
+        _stub_battle(
+            active_pokemon=active,
+            opponent_active_pokemon=tauros,
+            team={"a": active},
+            opponent_team={"t": tauros},
+        )
+    )
+    assert all(
+        float(vec_t[opp + i * MOVE_DIM]) == pytest.approx(1.0) for i in range(4)
+    ), "tauros has exactly one possible set; all four slots should be certain"
+
+
+def test_move_slots_not_aliased_on_placeholder(offline_env):
+    """On a gen1 placeholder turn our own move blocks must be inert.
+
+    Showdown replaces the move list with a single `Fight` when the active is
+    asleep/frozen/partially trapped, and poke-env re-bases move actions onto
+    `available_moves` -- so slot 0 stops meaning "the mon's first move". Filling
+    the blocks with the four real moves would teach the network a contradictory
+    input->label mapping on those turns. Struggle and Recharge alias the same
+    way.
+    """
+    moves = {
+        "thunderbolt": Move("thunderbolt", gen=1),
+        "recover": Move("recover", gen=1),
+    }
+    active = _stub_mon(moves=moves)
+    gyarados = Pokemon(gen=1, species="gyarados")
+    battle = _stub_battle(
+        active_pokemon=active,
+        opponent_active_pokemon=gyarados,
+        team={"a": active},
+        opponent_team={"g": gyarados},
+    )
+    battle.available_moves = [Move("fight", gen=1)]
+    vec = offline_env.embed_battle(battle)
+    ours = _OUR_MOVES
+    assert not vec[ours : ours + 4 * MOVE_DIM].any(), (
+        "our move blocks must be zeroed on a placeholder turn"
+    )
+    # ...while the rest of the state is still described.
+    assert vec[_OPP_ACTIVE + ACTIVE_DIM : _OPP_ACTIVE + ACTIVE_DIM + MOVE_DIM].any()
 
 
 def test_save_replays_reaches_both_seats():

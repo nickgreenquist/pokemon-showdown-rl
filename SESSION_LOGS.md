@@ -1368,3 +1368,56 @@ entry by offset — never a broad keyword grep.
   information bound and is the chapter's falsifier. Also owed: the n=300 re-measure on the
   shipped bot, and FP vs two NON-SH opponents (our best RL checkpoint and the BC clone), both
   of which already exist and have never been played.
+
+- 2026-08-06 — ENCODER: the opponent set prior, at ZERO OBS_DIM. The largest missing input.
+
+  Acting on the three path reviews. This is the fix for the finding that reframed the chapter:
+  our encoder showed the opponent's moves only once REVEALED, while the teacher we intend to
+  distil conditions on the full randbats set distribution. BC against such a teacher regresses
+  E[action | our obs] with the teacher's principal input deleted -- an IRREDUCIBLE bias that no
+  amount of extra demonstration data reduces.
+
+  **`rl/envs/randbats_prior.py` (new).** Marginal P(move in set | moves revealed so far), per
+  species. NOT a heuristic: `_sample_set` reproduces Showdown's own gen1 `randomSet` move
+  selection (`data/random-battles/gen1/teams.ts`) step for step -- comboMoves all-or-none on a
+  50% coin flip; exactly ONE exclusiveMove, added BEFORE the essentials so a three-move combo
+  can still roll one; essentials in order to the 4-move cap; remainder sampleNoReplace.
+  Conditioning is rejection over 4,000 sampled sets per species, which is precisely Foul Play's
+  determinization logic. Deterministic (fixed seed) so the encoder stays pure and offline
+  replay stays bitwise reproducible. The set file is vendored to `rl/envs/data/` (24,970 bytes,
+  sha256 85fc2743...) because `showdown/` is gitignored and re-clonable;
+  `verify_against_showdown()` re-checks it, and drift matters -- Foul Play fetches sets at
+  runtime from pkmn.github.io, so a mismatch would have the teacher searching movesets we do
+  not encode, silently.
+
+  **The change costs ZERO dimensions.** `_fill_move`'s slot 0 was a binary "slot known" flag;
+  it now carries the probability (1.0 for our own moves and for revealed opponent moves).
+  Opponent move blocks carry NO action -- the encoder docstring says they sit in reveal order --
+  so unlike our own blocks they are free to be re-filled: revealed moves first, then the most
+  likely unrevealed candidates. **OBS_DIM stays 611, so no checkpoint is invalidated.**
+
+  **Also landed, same commit, also zero-dim: the action-slot ALIASING fix.** On a gen1
+  placeholder turn (asleep/frozen/partially trapped) poke-env re-bases move actions onto
+  `available_moves`, so slot 0 stops meaning "the mon's first move". We were filling the blocks
+  with the four REAL moves and teaching a contradictory input->label mapping on ~1.5% of
+  decisions. Now zeroed; the SLP/FRZ/PARTIALLY_TRAPPED bits already in `_fill_mon`/`_fill_active`
+  keep the state fully described. Covers struggle and recharge by the same rule.
+
+  **MEASURED, on the 1,493-decision corpus:**
+    opponent move slots populated       3.99 / 4   (was: revealed only)
+    of which CERTAIN (p >= 0.999)       3.16 / 4
+    decisions with the opponent's FULL moveset known   30.7%
+    decisions with NO opponent move info                0.0%   (was: every unrevealed slot)
+  Sanity: tauros (one possible set) comes back all-certain; alakazam gives psychic/recover/
+  thunderwave at 1.0 and splits the 4th slot 0.398/0.398/0.204; gyarados 1.0/0.673/0.668/0.666.
+
+  **Regressions:** suite 241 passed (240 + a new placeholder-aliasing test). The obs-fidelity
+  check re-run against the NEW encoder still passes bitwise -- 1,154 decisions, 0 obs / 0 mask
+  / 0 key mismatches, all 7 fragile tags exercised -- so the prior did not break replay
+  determinism, which was the risk of putting sampling anywhere near the encoder.
+  `tests/test_showdown_env.py::test_move_block_features` was re-pinned: it asserted
+  "unrevealed => all zeros", which is exactly the contract this change replaces.
+
+  NOT yet done: the BC tranche and the agreement-vs-reveal-fraction read that estimates the
+  information bound; `train_bc.py` still needs soft targets, the shard-merging loader and the
+  teacher-value critic target; `--drop-trap` still has no positive test.

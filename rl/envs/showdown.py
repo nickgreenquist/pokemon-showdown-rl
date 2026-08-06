@@ -34,11 +34,14 @@ import numpy as np
 from gymnasium import Env, spaces
 
 from poke_env.battle.effect import Effect
+from poke_env.battle.move import Move
 from poke_env.battle.move_category import MoveCategory
 from poke_env.battle.pokemon_type import PokemonType
 from poke_env.battle.status import Status
 from poke_env.data import GenData
 from poke_env.environment import SingleAgentWrapper, SinglesEnv
+from functools import lru_cache
+
 from poke_env.player import (
     MaxBasePowerPlayer,
     Player,
@@ -46,6 +49,7 @@ from poke_env.player import (
     SimpleHeuristicsPlayer,
 )
 
+from rl.envs.randbats_prior import conditional_move_probs, known_species
 from rl.selfplay.pool import SnapshotPool
 
 # The Phase 5 milestone ladder's fixed opponents, weakest to strongest.
@@ -103,6 +107,13 @@ _VOLATILES = (
     Effect.SUBSTITUTE,
 )
 
+# poke-env's SPECIAL_MOVES (battle/move.py): when one of these is the only
+# legal move-action, poke-env re-bases the move index onto `available_moves`,
+# so move slot i stops meaning "the mon's move i". gen1's `fight` placeholder
+# is the common case (~1.5% of decisions); struggle and recharge alias the
+# same way.
+_SPECIAL_MOVE_IDS = frozenset({"fight", "struggle", "recharge"})
+
 # Block layouts (offsets documented in the fill helpers below).
 GLOBAL_DIM = 5
 MON_DIM = 32  # hp, fainted, active, status(6), level, stats(5), types(15), off/def matchup
@@ -159,11 +170,16 @@ def _fill_active(vec, o, mon):
     vec[o + 15] = bool(mon.preparing)
 
 
-def _fill_move(vec, o, move, foe, type_chart):
-    """[o] slot known | [+1] base power/100 | [+2] accuracy | [+3] PP left |
+def _fill_move(vec, o, move, foe, type_chart, prob: float = 1.0):
+    """[o] slot known -- for the OPPONENT this is P(the mon has this move),
+    read from the vendored randbats set prior, so an unrevealed but near-certain
+    move is encoded as such instead of as a block of zeros. 1.0 for our own
+    moves and for opponent moves already revealed. Reinterpreting this flag as
+    a probability is what makes the set prior cost ZERO extra dimensions.
+    | [+1] base power/100 | [+2] accuracy | [+3] PP left |
     [+4] type multiplier vs foe | [+5] physical | [+6] status move |
     [+7] priority/5 | [+8..22] move type one-hot."""
-    vec[o] = 1.0
+    vec[o] = prob
     vec[o + 1] = move.base_power / 100.0
     vec[o + 2] = move.accuracy
     vec[o + 3] = move.current_pp / move.max_pp if move.max_pp else 0.0
@@ -206,8 +222,18 @@ def embed_battle(battle, type_chart) -> np.ndarray:
     o += 6 * MON_DIM
     if ours is not None:
         _fill_active(vec, o, ours)
-        for i, move in enumerate(list(ours.moves.values())[:4]):
-            _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, theirs, type_chart)
+        # ALIASING FIX. On a gen1 placeholder turn (active asleep/frozen/
+        # partially trapped) Showdown replaces the move list with a single
+        # `Fight`, and poke-env maps it to move-action slot 0 -- but these
+        # blocks describe the four REAL moves, so the network would be taught
+        # "slot-0 features X => take action 6" when action 6 means "stay in
+        # with whatever gen1 forces". Same for Struggle/Recharge. Leave the
+        # blocks zeroed: the `known` flags at 0 say the slots are inert, and
+        # the SLP/FRZ/PARTIALLY_TRAPPED bits are already in _fill_mon and
+        # _fill_active, so the state stays fully described.
+        if not _move_slots_aliased(battle):
+            for i, move in enumerate(list(ours.moves.values())[:4]):
+                _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, theirs, type_chart)
     o += ACTIVE_DIM + 4 * MOVE_DIM
     for i, mon in enumerate(list(battle.opponent_team.values())[:6]):
         base = o + i * (MON_DIM + 1)
@@ -216,9 +242,45 @@ def embed_battle(battle, type_chart) -> np.ndarray:
     o += 6 * (MON_DIM + 1)
     if theirs is not None:
         _fill_active(vec, o, theirs)
-        for i, move in enumerate(list(theirs.moves.values())[:4]):
-            _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, ours, type_chart)
+        # Opponent blocks carry NO action, so unlike our own they are free to
+        # be filled from the set prior. Revealed moves first at p=1.0, then the
+        # most likely unrevealed candidates. This is the information Foul Play
+        # determinizes over and that we were discarding as zeros.
+        for i, (move, prob) in enumerate(_opponent_move_slots(theirs)):
+            _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, ours, type_chart, prob)
     return vec
+
+
+def _move_slots_aliased(battle) -> bool:
+    """True when the only legal move-action is one of poke-env's SPECIAL_MOVES
+    (fight / struggle / recharge), so move slot i no longer means move i."""
+    avail = getattr(battle, "available_moves", None)
+    return bool(avail) and len(avail) == 1 and avail[0].id in _SPECIAL_MOVE_IDS
+
+
+@lru_cache(maxsize=4096)
+def _move_obj(move_id: str):
+    return Move(move_id, gen=1)
+
+
+def _opponent_move_slots(theirs):
+    """Up to 4 (Move, probability) pairs for the opponent's active pokemon."""
+    revealed = [m for m in list(theirs.moves.values())[:4]]
+    slots = [(m, 1.0) for m in revealed]
+    if len(slots) >= 4:
+        return slots[:4]
+    species = theirs.species
+    if species not in known_species():
+        return slots
+    seen = frozenset(m.id for m in revealed)
+    for move_id, prob in conditional_move_probs(species, seen):
+        if len(slots) >= 4:
+            break
+        try:
+            slots.append((_move_obj(move_id), prob))
+        except Exception:
+            continue  # a pool entry poke-env cannot construct: skip, do not fail
+    return slots
 
 
 class ShowdownSingles(SinglesEnv):
