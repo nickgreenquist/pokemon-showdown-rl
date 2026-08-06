@@ -1544,3 +1544,69 @@ entry by offset — never a broad keyword grep.
   scale), and the honest next question is whether agreement converts to win rate at a rate that
   ever clears 0.4657 -- which one more rung on the curve would answer far more cheaply than a
   full chapter.
+
+- 2026-08-06 — DIRECTION AUDIT (evening): teacher-noise measurement, ps-ppo deep re-read,
+  stack gap list. Run at maintainer request ("debug the direction"). Durable findings below;
+  strategic recommendations delivered in-session and NOT ratified — nothing here changes a
+  standing decision by itself.
+
+  **1. THE TEACHER IS STOCHASTIC ENOUGH THAT THE SH-CLONE AGREEMENT BAR (0.86) CANNOT APPLY.**
+  Measured on the 29,844-row tranche: Foul Play takes the argmax of its own recorded search
+  policy only **0.8923** of the time; on the non-greedy 10.8%, the taken action is rank-2 in
+  83% of cases with recorded mass 0.300 vs top-1 0.341 — near-tie search noise, not
+  placeholder turns (placeholder rows are 1.7% of data and LESS non-greedy, 0.094). Policy
+  concentration: mean top-1 prob **0.594** (median 0.553), mean entropy 1.118 nats, 41.1% of
+  decisions have top-1 mass < 0.5, 22.0% have a top1−top2 gap < 0.1. Consequences: (a) top-1
+  agreement of ANY state-function predictor is bounded at 0.892, so **the learning curve's
+  fitted "ceiling 0.894" is this bound echoed back, not a reachable target** — the realistic
+  ceiling with cross-replicate search noise is ~0.7–0.8; (b) the 30k clone's 0.4215 is
+  therefore ~55–60% of its true ceiling, not 49% of the SH clone's bar — **the primary read of
+  the next rung must be WIN RATE**, with `val_kl` to the soft policy as the fit metric and
+  agreement demoted to a diagnostic; (c) a soft-policy clone that argmaxes E[policy] can in
+  principle out-play single noisy search replicates — clone-below-teacher is not a law.
+
+  **2. ps-ppo RE-READ (full source + git history; the load-bearing claim re-verified
+  in-session).** Corrections filed in `prior_work/README.md`; headlines: the 2102-Elo system
+  is the `7fb522c`-era code (15 tokens/turn, d_model 1024, 2 layers, single snapshot, NO JEPA,
+  NO KV cache) and that snapshot does not even instantiate — the author's Reddit description
+  is accurate for THAT system, and HEAD is a later unpublished one. Its RL phase is **pure
+  mirror self-play vs the current policy** after BC-from-patched-SH — the checkpoint league
+  was never runnable in any commit. `self_boost_sum` and tera-STAB **never fire** (`Move.target`
+  is a `Target` enum compared against strings — verified live; same bug class as SH's dead
+  setup branch), and the published agent trained with the MISALIGNED faint bonus (the
+  off-by-one fix postdates the Elo screenshot) yet laddered 2102 anyway — further
+  corroboration that Arm B's shaping null is unsurprising. Claimed scale: 150→250M states
+  (revised upward in two minutes of commits), 2 days on an RTX 3090, 800–2048 concurrent
+  battles across 10 local servers via a custom chat plugin.
+
+  **3. ENCODER-SEMANTICS DRIFT UNDER EXISTING CHECKPOINTS (operational flag).** The set prior
+  (default ON) and the placeholder aliasing fix changed observation SEMANTICS at constant
+  OBS_DIM on 2026-08-06 — after every stored RL checkpoint. Re-evaluating any pre-Aug-6
+  checkpoint today scores it off the distribution it trained on; nothing stamps encoder
+  semantics into run meta or checkpoints. `POKEMON_RL_NO_SET_PRIOR=1` restores the prior only,
+  not the aliasing fix. Note the FP-vs-our-RL head-to-heads (0.876/0.872) were played under
+  the NEW semantics, so the old checkpoints' side may read slightly pessimistic. Add an
+  encoder-version stamp before the next chapter's runs.
+
+  **4. `scripts/score_ladder.py` DEFAULT-OPPONENTS DEFECT.** Its default
+  `--opponents ["random", "heuristic"]` uses the Connect-4 registry names; Showdown's registry
+  is `{random, max_power, heuristics}`, so the default raises. CLAUDE.md calls it "the correct
+  path", but every headline number on disk came from `scripts/eval_checkpoint.py`. Fix the
+  default or the doc.
+
+  **5. VERDICT (compressed; maintainer's to ratify).** The wall is real and has a name: every
+  ≥72%-GXE system in the index spent 10–60× our steps or ~1M human battles, trained on a
+  non-SH signal (mirror self-play / humans / a search teacher), and most used sequence models
+  — we are 0-for-3 in the RL line, and the week's +0.025-resolution rigor was aimed inside a
+  recipe class whose remaining headroom is ~0.03. D8(c)/D9(c) — FP expert iteration — remains
+  the right chapter (strongest measured teacher, no parsing risk, durable tapes). Amendments
+  recommended: (i) read the 120k rung on win rate per finding 1; (ii) encoder work moves
+  INSIDE the BC chapter now — tapes re-embed in minutes, the RL line is banked, and the
+  teacher conditions on exactly what MOVE_DIM omits (no secondary-effect id/prob, no
+  self-boost — gen1 Amnesia's +2/+2 is invisible — no crit/recharge class, no speed-order
+  scalar; Rest/Amnesia/Reflect are near-identical 23-dim vectors); screen encoder-v2 and an
+  entity-attention trunk on the SAME tranche by `val_kl`/win-rate before buying P4-scale
+  data; (iii) pre-register the post-BC RL phase as mirror self-play + a KL-to-BC anchor
+  (grep: no KL-anchor exists anywhere in `rl/`) rather than vs-SH — ps-ppo's laddered path
+  was exactly BC-from-a-bot → mirror self-play at ~20× our steps, and our self-play nulls
+  were different inits at MDE 0.14 with the pool's index-1 eviction defect live.

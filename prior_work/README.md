@@ -315,6 +315,34 @@ lossy by construction and the code has repeatedly contradicted the project's own
   report of definition/usage mismatches. **Treat the repo as a design reference, not a recipe**;
   the author says as much in the thread ("not intended to be a package that you can simply
   download and run"; files were deliberately withheld).
+
+  **CORRECTIONS 2026-08-06 (direction audit: full-source re-read + git-history walk; the
+  load-bearing claim re-verified in-session).** (1) **`self_boost_sum` and the tera-STAB
+  branch NEVER fire**: `Move.target` returns a `Target` enum on poke-env 0.15 and
+  `obs_moves.py` compares it against `("self", "allAlly")` — verified live:
+  `Move("swordsdance", gen=9).target` is `<Target.SELF: 15>`, membership False. The
+  "SH's setup rule, same gate" sentence above is wrong in the flattering direction — their
+  laddered agent had NO working setup-move or tera-STAB feature (same bug class as SH's own
+  dead setup branch). (2) **The 2102-Elo agent is the `7fb522c`-era system** — 15 tokens/turn,
+  d_model 1024, 2 layers, single snapshot, no JEPA, no KV cache, gamma 0.9999, lr 1e-4,
+  clip 0.2, 2048 concurrent battles — and the author's Reddit statements (d_model 1024,
+  support ±1.6, "single snapshot") describe THAT system accurately; only HEAD contradicts
+  them, so "HEAD IS NOT THE PUBLISHED SYSTEM" above stands but the contradiction runs the
+  other way. That snapshot does not instantiate (two hard errors at `config.py:257` and
+  `ppo_core.py:203`), so **no committed revision reproduces the Elo**. (3) **The RL phase is
+  pure MIRROR self-play vs the current policy** — both seats route to one weight set; the
+  checkpoint league was never runnable in any commit (`policy_router.py` exists in no
+  commit; HEAD deleted the mechanism). (4) **The published agent trained with a MISALIGNED
+  faint bonus** — the off-by-one fix (`17e0955`, 2026-04-20) postdates the Elo screenshot
+  (2026-02-27) — and laddered 2102 anyway; corroborates our Arm B null. (5) HEAD PPO
+  plumbing is partly dead: `grad_accum_steps` never reaches the update (true batch 768),
+  `target_kl` is inert under the default `ppo_with_jepa` mode, value-head decode support is
+  [−1.6, 1.6] against an encode support of [−1.5, 1.5] (a 1.0667× scale error), and the LR
+  "anneal" is a 27× single-step cliff caused by the `1_00_000` typo. (6) Claimed scale went
+  ">150M" → ">250M states" in two minutes of commits; no logs or checkpoints exist anywhere
+  in history. Infrastructure worth copying regardless: the `rlspawn.ts` server chat plugin
+  (autospawn/reconcile/rescue battles), 10 local servers on one box, the action mask fed in
+  as an observation feature, and integer embedding banks initialized sinusoidally.
 - `pokejax/` — analyses, eval summary, and training log from
   https://github.com/JerJer2465/pokejax (gen4randombattle JAX engine). Scratch PPO ~0.55
   vs SH (n=20) at ~378M steps. Most useful part: their diagnosed obs-bridge bug list
