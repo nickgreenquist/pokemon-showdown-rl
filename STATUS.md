@@ -2,20 +2,18 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-06, after code evening 1 + Arm B)
+## Where things stand (2026-08-06, after the Foul Play measurement + 3 reviews)
 
-DESIGN.md r6 RATIFIED (D1–D7 binding). Track 1 measured, warm-start settled, **Arm B RUN and
-SCREENED OUT** (−0.0004; closed, not re-tuned). Suite 240 passed, no runs live. RL is LEVEL
-with the BC clone (0.4607 vs 0.4657) — and per the ladder translation, that level is ~40% GXE.
-**Queued: the Foul-Play-vs-SH measurement, staged and blocked only on a Rust/gen1 build.**
+DESIGN r6 RATIFIED (D1–D7). Arm B SCREENED OUT (−0.0004, closed). Suite 240 passed, no runs
+live. RL is LEVEL with the BC clone (0.4607 vs 0.4657) — ~40% GXE. **Foul Play measured as a
+teacher and the demonstration tape pipeline is built and gate-green; §11 awaits ratification.**
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
-## *The Foul Play row is NOT locked-protocol: 1 lane, 1 seed, n=300, a scouting read.)
+## *Foul Play row is NOT locked-protocol: 1 lane, 1 seed, n=300, a scouting read.)
 
 | result | win rate |
 |---|---|
-| PPO 6M flat ("r512") | 0.3923 ± 0.0089 |
-| PPO 6M + LR anneal (P5b) — **re-eval, Arm B's control** | **0.4308 ± 0.0052** (n=9000) |
+| PPO 6M flat ("r512") / +LR anneal (P5b, Arm B's control) | 0.3923 / **0.4308 ± 0.0052** |
 | PPO 6M + faint shaping (Arm B) — **screened out** | 0.4303 (n=9000), Δ −0.0004 |
 | PPO 12M flat | 0.4330 (0.425/0.424/0.450) |
 | **PPO 12M + LR anneal — best RL** | **0.4607** (0.449/0.451/0.482) |
@@ -23,10 +21,10 @@ with the BC clone (0.4607 vs 0.4657) — and per the ladder translation, that le
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
 | **Foul Play (+our gen1 patch) — teacher candidate** | **0.8467** (254-46, n=300)* |
 
-**LADDER TRANSLATION (derivation + caveats at the TOP of `prior_work/README.md`).** SH scores
-**39.7/41.2% GXE** on gen7/gen9 randbats, so **0.489 parity ≈ 40% GXE, not "solved"**; the
-pure-policy field STARTS at 72%. **D7(a) stands, ladder EXECUTION DEFERRED** until past SH.
-PS Elo ≠ Glicko-1. All GXE readings are cross-format extrapolations, not measurements.
+**LADDER TRANSLATION (derivation + caveats atop `prior_work/README.md`).** SH scores 39.7/41.2%
+GXE on gen7/gen9 randbats, so **0.489 parity ≈ 40% GXE, not "solved"**; the pure-policy field
+STARTS at 72%. **D7(a) stands, ladder DEFERRED** until past SH. PS Elo ≠ Glicko-1. Every GXE
+figure here is a cross-format extrapolation, not a measurement.
 
 ## Next actions, in order
 
@@ -55,7 +53,7 @@ PS Elo ≠ Glicko-1. All GXE readings are cross-format extrapolations, not measu
 - **Arm B rule — check before ANY shaping proposal:** a potential-based term whose potential is
   ~linear in features the encoder already emits is inert (Φ = 0.6·(obs[2]−obs[1])).
 - Grad clip: scratch 1.00→0.50 over 5 updates, warm start HARDER (0.67→0.94). `loss/*` +
-  `eval/loss_faint_*` postdate P5b: arm-vs-control there needs runs ≥2026-08-05.
+  `eval/loss_faint_*` postdate P5b: arm-vs-control needs runs ≥2026-08-05.
 - **Is our SH weaker than Metamon's?** poke-env 0.15.0's SH setup branch is dead (upstream,
   unfiled); if that postdates theirs, every vs-SH number here is inflated vs the GXE anchor.
 - `rl/selfplay/pool.py` evicts index 1 on overflow — breaks pre-seeded pools; fix before
