@@ -99,6 +99,17 @@ Any agent working on encoder, action-space, reward-shaping, self-play or PPO-hyp
 questions should read it rather than reason from the summaries below — the summaries are
 lossy by construction and the code has repeatedly contradicted the project's own README.
 
+- **`/Users/nickgreenquist/Documents/Projects/foul-play`** — full clone of
+  https://github.com/pmariglia/foul-play at `25c976f` (the same commit DESIGN §11 audited).
+  The teacher candidate for §11 option (C). Read `fp/config.py` for the CLI surface
+  (`--bot-mode challenge_user`, `--user-to-challenge`, `--run-count`, `--search-time-ms`
+  default 100, `--search-parallelism` default 1) and `Makefile` for the engine rebuild.
+  **It is pinned to `poke-engine==0.0.48` built `--features poke-engine/terastallization`,
+  i.e. GEN 9** — `gen1` is a real feature flag (verified against poke-engine's `Cargo.toml`:
+  `gen1`..`gen9`, `default = []`), so gen1 work needs `make poke_engine GEN=gen1`, a Rust
+  toolchain, and a from-source compile. **It carries our local-login patch applied**
+  (`scripts/patches/foulplay_local_login.patch` in the main repo); re-apply it after any pull.
+  Gets its own Python env — never the `pokemon-showdown-rl` one.
 - **`/Users/nickgreenquist/Documents/Projects/ps-ppo`** — full clone of
   https://github.com/Nebraskinator/ps-ppo (49 commits, MIT-licensed as of a later commit).
   ~4.6k lines of Python. Machine-local and never committed here; re-clone from the URL if

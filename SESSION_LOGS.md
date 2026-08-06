@@ -899,3 +899,67 @@ entry by offset — never a broad keyword grep.
   Recorded in four places by design: `prior_work/README.md` (new tracked section at the top,
   where the citation rule already forces a read), `CLAUDE.md` landmines (one line, always
   loaded), `STATUS.md` (ladder-translation block under the results table), and here.
+
+- 2026-08-06 — Foul-Play-vs-SH measurement PRE-REGISTERED and STAGED (approved); blocked on Rust
+
+  Maintainer approved §11(A)'s teacher-strength measurement as the next direction. Built and
+  staged, not run — the engine build is a prerequisite that needs a toolchain install.
+
+  **No fork is needed, and that was worth checking rather than assuming.** Foul Play and
+  poke-env's SimpleHeuristicsPlayer are both websocket CLIENTS of a Showdown server; they meet
+  in the server we already run on :8000, and neither imports the other. Foul Play already ships
+  the mode (`fp/config.py`): `--bot-mode challenge_user --user-to-challenge <name>
+  --run-count N`, and randbats needs no team file (`team_dict = None` unless `--team-name`).
+
+  **The one patch that IS needed is login.** `PSWebsocketClient.create` hardcodes `login_uri`
+  to play.pokemonshowdown.com even for guest login, and posts for an assertion a
+  `--no-security` server neither needs nor validates. poke-env short-circuits this outright
+  (`ps_client.py`: `assertion = ""` when there is no password) — which is exactly why every
+  training run in this repo connects fine — so the patch makes Foul Play do the same for
+  localhost. Saved as `scripts/patches/foulplay_local_login.patch`, generated from the clone so
+  it applies cleanly, and already applied to `../foul-play`.
+
+  **The real gate is the engine, not the battling.** Foul Play pins `poke-engine==0.0.48` built
+  `--features poke-engine/terastallization` = GEN 9. `gen1` IS a real feature flag (verified
+  against poke-engine's `Cargo.toml`: `gen1`..`gen9`, `default = []`), so `make poke_engine
+  GEN=gen1` is the command — a from-source Rust compile. **Rust is NOT installed on this
+  machine** (`cargo`/`rustc` absent), so that install is step one and is the maintainer's.
+
+  **Design point that reorders §11(A).** Getting this number does NOT require settling the
+  mechanics-agreement question first. Foul Play plays on the real Showdown server, so the
+  SERVER is the referee: any divergence between poke-engine's gen1 model and Showdown's shows
+  up AS Foul Play playing worse, which the win rate already captures. The number therefore
+  measures Foul-Play-as-deployed — exactly what expert iteration would distil. §11(A) splits
+  into two independently useful measurements and the decision-relevant one is the cheap one;
+  the agreement study is only worth paying for if the teacher survives this.
+
+  **Asymmetric failure mode, and why it gets an explicit gate.** A wrong-generation or
+  half-broken engine makes Foul Play play BADLY, biasing the primary read DOWN — the direction
+  that wrongly KILLS option (C). So the pre-registration gates on build validity (smoke 5
+  battles, read Foul Play's log for engine exceptions and fallback-to-random) before the 300,
+  rather than treating a low number as evidence.
+
+  **Pre-registered decision rule** (full text in the `scripts/foulplay_vs_sh.py` docstring):
+  PRIMARY is Foul Play's win rate vs SH in gen1randombattle at stock budget
+  (`--search-time-ms 100 --search-parallelism 1`), ties as non-wins, n=300 single lane
+  (se ~0.026 at p~0.7, so the band edges sit ~4 se apart). **GO >= 0.70; MARGINAL 0.60-0.70
+  (re-priced, smaller first dataset); NO < 0.60** — below which (C) does not proceed and D9(a),
+  the corpus chapter on the >=2024-04 subset, becomes the main line by default. Bands are
+  calibrated off the ladder translation recorded earlier tonight: SH ~40% GXE, the published
+  pure-policy class ~76% GXE = ~270 Elo = ~0.82 head to head, and a clone lands BELOW its
+  teacher (P4: 0.4657 against SH's 0.489 parity, ~0.023 short). A teacher under 0.60 distils
+  into a student sitting roughly where our 0.4607 already is.
+
+  Secondary reads, pre-registered so they are not fished for: measured s/decision (retires
+  §11's INFERRED ~0.2), wall-clock per battle (re-prices §11(C)'s "~6 h at 8-way" for a
+  P4-scale 903,090-decision dataset), tie rate, mean battle length. R0 gates: gen1 build
+  verified; Foul Play's own W/L tally agrees with the SH seat's (two independent counters);
+  n_finished == requested; SH accepts challenges from the Foul Play username only.
+
+  Env rule, stated because it is the kind of thing this repo has already paid for: **Foul Play
+  gets its OWN Python env.** It pulls poke-engine and its own pinned requirements; installing
+  it into `pokemon-showdown-rl` would violate the exact-pins/no-ad-hoc-pip rule. Two envs, one
+  server. The clone is a sibling at `../foul-play`, matching the ps-ppo precedent, and is
+  recorded under "Local code checkouts" in `prior_work/README.md`.
+
+  Suite 240 passed. Nothing has been run against a server yet; `results/` is gitignored.

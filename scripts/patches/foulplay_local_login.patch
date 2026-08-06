@@ -1,0 +1,33 @@
+diff --git a/fp/websocket_client.py b/fp/websocket_client.py
+index d49b726..7c5e388 100644
+--- a/fp/websocket_client.py
++++ b/fp/websocket_client.py
+@@ -33,6 +33,14 @@ class PSWebsocketClient:
+         self.password = password
+         self.address = address
+         self.websocket = await websockets.connect(self.address)
++        # PATCHED (pokemon-showdown-rl): a local server started with
++        # --no-security neither needs nor validates an assertion, so do not
++        # reach out to the public login server for one. poke-env takes exactly
++        # this path (ps_client.py: `assertion = ""` when there is no password),
++        # which is why every training run in that repo connects fine.
++        self.local_no_security = password is None and (
++            "localhost" in address or "127.0.0.1" in address
++        )
+         self.login_uri = (
+             "https://play.pokemonshowdown.com/api/login"
+             if password
+@@ -92,6 +100,13 @@ class PSWebsocketClient:
+ 
+         guest_login = self.password is None
+ 
++        # PATCHED (pokemon-showdown-rl): local --no-security short-circuit.
++        if self.local_no_security:
++            await self.send_message("", ["/trn " + self.username + ",0,"])
++            logger.info("Logged in to local server without assertion")
++            await asyncio.sleep(1)
++            return self.username
++
+         if guest_login:
+             response = requests.post(
+                 self.login_uri,
