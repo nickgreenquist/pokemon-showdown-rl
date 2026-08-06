@@ -337,7 +337,9 @@ retires a quiet confound: the 6M control numbers were measured under predecessor
 - **MCTS follow-on.** Downgraded, and D6 makes it formal: PokéAgent 2025's Gen1OU podium was
   pure-policy RL at #1 and #2 with the engine-search agent (Foul Play) #8 despite winning
   Gen9OU — the pure-policy handicap is smallest in early gens. Search stays out of scope for
-  this phase.
+  this phase. **REOPENED 2026-08-05 by §11** (proposed, not yet ratified): Track 1's bars
+  failed and §10's own fallback is a search bot, so the question is no longer hypothetical.
+  §11 does not overturn the reasoning above — it narrows what "search" is being proposed.
 
 ## 8. Operational notes
 
@@ -545,3 +547,137 @@ stated license**: local, gitignored, never committed (it is 69.8 GB in full anyw
 does not leave the local box without a D7 decision. (The may-go-public strictness that
 originally motivated extra caution was relaxed 2026-08-05; not committing and not
 redistributing unlicensed data still stands.)
+
+## 11. Search — proposed amendment to §7 and D6(i)
+
+**Status: PROPOSED 2026-08-05, NOT ratified.** Written at maintainer request, on the stated
+view that "eventually we will need some type of search." If ratified, this supersedes §7's
+MCTS bullet and D6(i)'s closure. Everything below separates MEASURED from INFERRED, because
+most of what is confidently repeated about search in Pokémon is neither.
+
+### Why this reopens now, when D6 had just closed it
+
+D6(i) closed the MCTS question so it would stop being re-litigated every session. Two things
+measured on 2026-08-05 changed the inputs, which is the legitimate trigger for reopening:
+
+1. **Track 1's bars failed.** The ≥50k recent-era subset does not exist at today's set
+   distribution (≥2023 = 49,693 replays but only 28% level-table match; ≥2024-04, the level
+   table's step change, = 44,391 at 91%), and the corpus sizes at ~6.06M decisions total
+   (~6.97M calibrated) — **~3.4× P4, not §10's projected 11–22×**. §10 names the fallback for
+   exactly this outcome: *expert iteration from a search bot.*
+2. **That search bot was priced.** Foul Play supports `gen1randombattle` (MEASURED from source
+   at commit `25c976f0`: generic format parsing, a registered GEN1 mechanics entry, gen1
+   protocol handling, and a live gen1 set file at pkmn.github.io). Its per-decision cost is a
+   **dial, not a property**: `--search-time-ms` defaults to 100 and feeds
+   `monte_carlo_tree_search(state, search_time_ms, threads)`, with random-battle mode searching
+   `parallelism × 2` sampled battles (×4 shallow early), so stock wall clock is **~0.2
+   s/decision (INFERRED, not measured)**.
+
+So the fallback §10 already sanctioned is both triggered and priced. That is a narrower claim
+than "search is now a good idea," and §11 is deliberately not making the wider one.
+
+### What the prior against search actually says, and how far it reaches
+
+§7's evidence stands and is the strongest datapoint we have: Foul Play won Gen9OU and placed
+**#8 in Gen1OU**, where #1 and #2 were pure-policy RL. Same bot, same search, opposite outcome
+by generation. A plausible mechanism: Gen 1 removes most of what makes deep tactical trees pay
+(no items, abilities, weather, Tera) while adding brutal variance (speed-derived crit rates,
+permanent freeze, sleep), and averaging over a high-variance tree shrinks the EV gap between
+candidate moves relative to the noise. **Honest caveat, per prior_work/README.md's standing
+warning:** that is a competition *placement*, not a measurement — no direct Foul-Play-vs-SH
+number exists in our index — and placement conflates tuning, search budget, and luck.
+
+The prior therefore bears hard on *inference-time search as the agent* and much more weakly on
+*search as an offline teacher*, where a slow bot's strength is amortized rather than paid per
+move. §11 proposes the latter.
+
+### Three structural facts any search design here must respect
+
+1. **Simultaneous moves.** Both players commit at once; there is no "my move then yours" tree
+   and no max node. The correct treatment at each node is a matrix game wanting a MIXED
+   (equilibrium) strategy — a search that maximizes against a fixed opponent model is
+   exploitable by construction. This is not a detail that can be patched later; it decides the
+   algorithm.
+2. **Imperfect information.** You cannot instantiate a tree over a hidden opponent team, so
+   candidate teams are sampled and each searched (determinization), which carries documented
+   pathologies — chiefly strategy fusion, where the search assumes it will know the hidden
+   state at future nodes when it will not. **Mitigating, and it is the same structural
+   advantage §10 identifies:** randbats sets come from a fixed, public, enumerable pool we
+   already vendor, so the sampling distribution is far tighter than OU's player-chosen teams.
+   Determinization is better posed here than anywhere else in this game.
+3. **The cost fork, which matters more than either.** Collection runs ~600 steps/s/lane.
+   Search *in the training loop* (true AlphaZero, where search generates the targets) is a
+   100–1000× hit on data generation; AlphaZero worked because its simulator was nearly free
+   and it had TPU farms. On one CPU box at our budgets that is not viable, and §11 recommends
+   against it explicitly rather than leaving it implied. Search *offline* or *at inference
+   only* costs what it costs, once.
+
+### The trap, stated before any option is chosen
+
+Search would exploit `SimpleHeuristicsPlayer` hard and vs-SH would jump. §3 and D7 already say
+that past parity vs-SH measures SH-EXPLOITATION, not strength — so search's most
+impressive-looking number is precisely the one this project has agreed not to trust. **Any
+search work is read on the ladder (D7's ratified success metric), with vs-SH as board
+continuity only.** A search arm scored on vs-SH would be a bar-chaser under the stop rule.
+
+### Options, with costs
+
+- **(A) Feasibility note only — the gate.** ~an afternoon, no arm. Does poke-engine's gen1
+  build reproduce *Showdown's* gen1 mechanics closely enough to search in, and what is its node
+  throughput? Any divergence is a silent modelling error that makes the search optimize the
+  wrong game, and Gen 1 is exactly where sims disagree (1/256 miss, speed-derived crits, wrap
+  semantics, hyper-beam recharge, the stat-modification glitches Foul Play's source names).
+  Deliverables: a mechanics-agreement rate against our own env on replayed trajectories, a
+  measured s/decision (retiring the INFERRED 0.2 above), and a measured Foul-Play-vs-SH win
+  rate under a reduced protocol — the number our index has never had.
+- **(B) Inference-time search wrapper.** Wrap search around the existing policy at eval/ladder
+  time; no training change, reuses a checkpoint we already have. Cost at the locked protocol:
+  3 seeds × 3000 battles × ~27 decisions/side ≈ 243k decisions ≈ **13.5 h at 0.2 s/decision**,
+  which is why (B) implies a reduced pre-registered protocol (D5 already anticipated this).
+  Directly tests §7's inherited claim on our own board.
+- **(C) Expert iteration — search as a teacher. RECOMMENDED.** Generate demonstrations offline
+  with Foul Play, distill into the policy by BC, then RL from there using the warm-start
+  machinery already built and smoke-tested (critic-only warmup, `actor_lr_scale`,
+  `begin_warm_start`). Arithmetic: P4's dataset was 903,090 SH decisions; at 0.2 s/decision
+  that is ~50 h single-threaded or **~6 h at 8-way parallelism**, and the search budget is a
+  knob that can be turned down for bulk generation. This buys a P4-scale dataset from a far
+  stronger teacher than SimpleHeuristics, with perfect formatting, correct perspective, our
+  exact action space, and **zero parsing risk** — against a human corpus that just came in
+  smaller and dirtier than projected. It also sidesteps all three structural facts above: cost
+  is paid once offline, and the shipped agent needs no search at inference.
+- **(D) Search in the training loop.** NOT recommended; see fact 3.
+
+### What (C) inherits and what it does not
+
+Inherits: the whole warm-start path, now measured — handoff verified non-breaking (frozen-window
+0.4875 vs the clone's 0.4657), critic warmup ~5 updates sufficient, and the **entropy finding
+that is a hard prerequisite: a BC-warm-started run sits at `loss/entropy` 0.063 and does not
+move, failing the [0.2, 1.0] R0 band from update 1.** A distilled search teacher will be at
+least as peaked as an SH clone, so its `entropy_coef` must be chosen before the first run, not
+waived after it.
+
+Does NOT inherit §10's evaluation plan: there is no held-out human agreement metric here. The
+reads are held-out agreement against the TEACHER (a supervised milestone available long before
+any RL), vs-SH for board continuity only, head-to-head vs the best RL policy, and the ladder.
+
+Ceiling, stated honestly: (C) is bounded by Foul Play's own strength, which **nobody in our
+index has measured**. That is the single number option (A) exists to get, and it should be got
+before (C) is committed to — a teacher weaker than it looks would cap the chapter exactly the
+way SH capped P4.
+
+### Decisions for the maintainer
+
+**D8 — Does search re-enter scope, and in which form?** *(a)* No; D6(i) stands. *(b)* (A) only
+— buy the measurement, decide later. *(c)* (A) then (C), with (C) gated on the feasibility
+note's numbers. *(d)* (A) then (B). *(e)* (C) immediately, skipping the gate.
+**Recommendation: (c).** It is the cheapest path that converts §7's inherited judgement into a
+measured one, and it puts the gate before the chapter-sized commitment. (e) commits to a
+teacher of unmeasured strength; (a) is now hard to defend given Track 1's result.
+
+**D9 — Does the corpus chapter yield to it, or run beside it?** *(a)* Corpus chapter proceeds
+as the main line anyway on the ≥2024-04 subset (44,391 replays, ~3.06M decisions). *(b)* Expert
+iteration replaces it as the main line. *(c)* Expert iteration first — it is faster, cleaner and
+parser-free — with the corpus chapter re-priced afterwards against what the distilled agent
+actually achieves. **Recommendation: (c), with (a) explicitly still live.** The two are not
+exclusive and the corpus does not spoil; but the human corpus's headline advantage was scale,
+and that advantage is what Track 1 just removed.
