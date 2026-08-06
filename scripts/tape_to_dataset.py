@@ -207,6 +207,38 @@ def teacher_order(battle, choice, placeholder):
     return None, "move"
 
 
+def soft_values(battle, values, policy_vec, placeholder, counts):
+    """The teacher's search value for the state, on our reward scale.
+
+    Foul Play tapes `{move: total_score/visits}` per action -- a poke-engine MCTS
+    average in [0, 1] -- for every decision, and nothing read it. It is a free
+    critic target, and the critic is exactly what the warm-start path lacks:
+    `begin_warm_start` re-arms `critic_warmup_updates` precisely because a BC
+    checkpoint's critic is random, and during warmup the actor is frozen while
+    GAE advantages are noise.
+
+    V(s) = sum_a p(a) * Q(a), rescaled to [-1, +1] because `calc_reward` is
+    terminal +/-1 at gamma 1.0, so value targets already live on that scale.
+    """
+    if not values:
+        counts["value_missing"] += 1
+        return 0.0
+    num = den = 0.0
+    for choice, q in values.items():
+        order, _ = teacher_order(battle, choice, placeholder)
+        if order is None:
+            continue
+        idx = int(SinglesEnv.order_to_action(order, battle))
+        if 0 <= idx < policy_vec.shape[0]:
+            w = float(policy_vec[idx])
+            num += w * float(q)
+            den += w
+    if den <= 0:
+        counts["value_empty"] += 1
+        return 0.0
+    return 2.0 * (num / den) - 1.0
+
+
 def soft_policy(battle, policy, n_actions, placeholder, counts):
     vec = np.zeros(n_actions, dtype=np.float32)
     if not policy:
@@ -306,7 +338,9 @@ def process_file(path, type_chart, counts, drop_trap, id_base=0):
         rows["masks"].append(mask)
         rows["actions"].append(action)
         rows["battle_ids"].append(index_of[tag])
-        rows["policy"].append(soft_policy(battle, ev.get("policy"), mask.shape[0], placeholder, counts))
+        pol = soft_policy(battle, ev.get("policy"), mask.shape[0], placeholder, counts)
+        rows["policy"].append(pol)
+        rows["value"].append(soft_values(battle, ev.get("values"), pol, placeholder, counts))
         rows["placeholder"].append(placeholder)
         rows["trap_kind"].append(trap or "")
 
@@ -363,6 +397,7 @@ def main():
                 actions=np.asarray(rows["actions"], dtype=np.int64),
                 battle_ids=np.asarray(rows["battle_ids"], dtype=np.int64),
                 policy=np.asarray(rows["policy"], dtype=np.float32),
+                value=np.asarray(rows["value"], dtype=np.float32),
                 placeholder=np.asarray(rows["placeholder"], dtype=bool),
                 trap_kind=np.asarray(rows["trap_kind"]),
                 obs_dim=np.int64(OBS_DIM),
@@ -395,6 +430,8 @@ def report(counts, args):
           % (counts["legal_size_ok"], counts["legal_size_mismatch"]))
     print("   soft policy     missing %d  mass-dropped %d  empty %d"
           % (counts["policy_missing"], counts["policy_mass_dropped"], counts["policy_empty"]))
+    print("   teacher value   missing %d  empty %d"
+          % (counts["value_missing"], counts["value_empty"]))
     if args.drop_trap:
         print("   dropped trap rows %d" % counts["dropped_trap"])
 
@@ -420,6 +457,8 @@ def report(counts, args):
         fail.append("soft-policy (missing/empty rows)")
     if counts["policy_mass_dropped"]:
         fail.append("soft-policy (mass dropped)")
+    if counts["value_missing"] or counts["value_empty"]:
+        fail.append("teacher-value")
     if counts["legal_size_mismatch"]:
         fail.append("legal-set size")
     print()

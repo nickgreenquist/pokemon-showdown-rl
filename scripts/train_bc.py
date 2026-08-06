@@ -49,7 +49,7 @@ import torch.nn.functional as F
 from rl.common.checkpoint import save_checkpoint
 from rl.common.config import Config
 from rl.common.masking import masked_logits
-from rl.envs.showdown import OBS_DIM
+from rl.envs.showdown import ACTIVE_DIM, GLOBAL_DIM, MON_DIM, MOVE_DIM, OBS_DIM
 from rl.train import make_agent
 
 # The milestone-3 capstone hparams (configs/showdown_heur_512_s0.yaml).
@@ -61,6 +61,50 @@ AGENT = dict(
     epochs=4, minibatches=4, clip_eps=0.2, entropy_coef=0.01,
     value_coef=0.5, max_grad_norm=0.5,
 )
+
+
+def load_dataset(spec: str) -> dict:
+    """One .npz, or every `<prefix>_*.npz` shard merged.
+
+    `tape_to_dataset.py` writes one shard per tape file (one per collection
+    lane), so a single-file loader cannot read a multi-lane corpus at all.
+    battle_ids are already globally unique across shards, which is what keeps
+    the by-battle holdout honest after a merge.
+    """
+    path = Path(spec)
+    if path.suffix == ".npz" and path.exists():
+        return {k: v for k, v in np.load(path).items()}
+    shards = sorted(path.parent.glob(path.name + "_*.npz"))
+    if not shards:
+        raise SystemExit(f"no dataset at {spec} and no {spec}_*.npz shards")
+    parts = [np.load(sh) for sh in shards]
+    keys = set(parts[0].files)
+    for q in parts[1:]:
+        keys &= set(q.files)
+    out = {}
+    for k in keys:
+        arrs = [q[k] for q in parts]
+        out[k] = arrs[0] if arrs[0].ndim == 0 else np.concatenate(arrs, axis=0)
+    print(f"merged {len(shards)} shards: {[sh.name for sh in shards]}", flush=True)
+    return out
+
+
+def truncate_by_battle(data: dict, max_rows: int, seed: int) -> dict:
+    """Keep whole battles until max_rows -- learning-curve rungs must not
+    split a battle across the boundary, for the same reason the holdout is
+    by battle."""
+    ids = data["battle_ids"]
+    order = np.random.default_rng(seed).permutation(np.unique(ids))
+    keep, n = set(), 0
+    for b in order:
+        c = int((ids == b).sum())
+        if n + c > max_rows and keep:
+            break
+        keep.add(int(b))
+        n += c
+    sel = np.array([i in keep for i in ids])
+    return {k: (v[sel] if getattr(v, "ndim", 0) and v.shape[:1] == ids.shape else v)
+            for k, v in data.items()}
 
 
 def battle_split(battle_ids: np.ndarray, val_frac: float, seed: int):
@@ -75,21 +119,54 @@ def battle_split(battle_ids: np.ndarray, val_frac: float, seed: int):
 
 
 @torch.no_grad()
-def evaluate(actor, obs, masks, actions, free) -> dict[str, float]:
-    """Cross-entropy plus agreement, overall and over the multi-choice rows."""
+def evaluate(actor, obs, masks, actions, free, policy=None, reveal=None) -> dict:
+    """Agreement, fitted entropy, and agreement conditioned on how much of the
+    opponent's team has been revealed.
+
+    That last read is the point. If the student is bounded by MISSING
+    INFORMATION rather than by capacity or data, agreement is near-chance when
+    0-1 opponent mons are revealed -- where a search teacher leans hardest on
+    its set prior -- and near-ceiling when 5-6 are. A flat profile says the
+    opposite. It is the cheapest available estimate of I(our obs ; teacher's
+    action), and it is what decides whether buying more demonstrations helps.
+    """
     logits = masked_logits(actor(obs), masks)
     picks = logits.argmax(dim=-1)
     agree = (picks == actions).float()
-    return {
+    logp = F.log_softmax(logits, dim=-1)
+    ent = float(-(logp.exp() * logp).nan_to_num().sum(-1).mean())
+    out = {
         "val_loss": float(F.cross_entropy(logits, actions)),
         "agreement": float(agree.mean()),
         "agreement_free": float(agree[free].mean()),
+        "fitted_entropy": ent,
     }
+    if policy is not None:
+        # Forward KL(teacher || student) -- 0 is a meaningful floor, unlike
+        # soft cross-entropy, which bottoms out at the teacher's own entropy.
+        tgt = policy.clamp_min(1e-9)
+        out["val_kl"] = float((tgt * (tgt.log() - logp)).sum(-1).mean())
+        out["teacher_entropy"] = float(-(tgt * tgt.log()).sum(-1).mean())
+    if reveal is not None:
+        for lo, hi in ((0, 1), (2, 3), (4, 6)):
+            sel = free & (reveal >= lo) & (reveal <= hi)
+            if int(sel.sum()):
+                out[f"agree_reveal_{lo}_{hi}"] = float(agree[sel].mean())
+                out[f"n_reveal_{lo}_{hi}"] = int(sel.sum())
+    return out
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data", default="data/bc_p4_40k.npz")
+    parser.add_argument("--data", default="data/bc_p4_40k.npz",
+                        help="an .npz, or a PREFIX matching <prefix>_*.npz shards")
+    parser.add_argument("--target", choices=["hard", "soft"], default="hard",
+                        help="hard = one-hot CE on the teacher's sampled action; "
+                             "soft = cross-entropy against its full search policy")
+    parser.add_argument("--value-coef", type=float, default=0.0,
+                        help="weight on the teacher-value critic loss (0 = off)")
+    parser.add_argument("--max-rows", type=int, default=None,
+                        help="truncate by BATTLE to this many rows (learning curves)")
     parser.add_argument("--hidden", type=int, nargs="+", default=[512, 512],
                         help="actor/critic hidden sizes; the capstone's [512, 512]")
     parser.add_argument("--seed", type=int, default=0)
@@ -101,7 +178,7 @@ def main() -> None:
     parser.add_argument("--val-frac", type=float, default=0.1)
     args = parser.parse_args()
 
-    data = np.load(args.data)
+    data = load_dataset(args.data)
     expert = str(data["expert"])
     hidden = "x".join(str(h) for h in args.hidden)
     run_name = args.run_name or f"bc_{expert}_{hidden}_s{args.seed}"
@@ -129,10 +206,26 @@ def main() -> None:
         action_space=gym.spaces.Discrete(n_actions),
     ))
 
+    if args.max_rows:
+        data = truncate_by_battle(data, args.max_rows, args.seed)
     obs = torch.as_tensor(data["obs"], dtype=torch.float32)
     masks = torch.as_tensor(data["masks"], dtype=torch.bool)
     actions = torch.as_tensor(data["actions"], dtype=torch.int64)
     assert obs.shape[1] == OBS_DIM, f"dataset is {obs.shape[1]}-dim, encoder is {OBS_DIM}"
+    policy = (torch.as_tensor(data["policy"], dtype=torch.float32)
+              if "policy" in data else None)
+    value = (torch.as_tensor(data["value"], dtype=torch.float32)
+             if "value" in data else None)
+    if args.target == "soft" and policy is None:
+        raise SystemExit("--target soft needs a `policy` column; this dataset has none")
+    if args.value_coef and value is None:
+        raise SystemExit("--value-coef needs a `value` column; this dataset has none")
+    # How much of the opponent's team is revealed, straight off the encoder's
+    # own per-mon revealed flags.
+    base = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM
+    reveal = torch.stack(
+        [torch.as_tensor(data["obs"][:, base + i * (MON_DIM + 1)]) for i in range(6)]
+    ).sum(0).to(torch.int64)
     train_idx, val_idx, n_val_battles = battle_split(
         data["battle_ids"], args.val_frac, args.seed
     )
@@ -148,7 +241,10 @@ def main() -> None:
 
     # Actor only: the value head has no labels here, and handing its params
     # to the optimizer would imply otherwise.
-    optimizer = torch.optim.Adam(agent.actor.parameters(), lr=args.lr)
+    params = list(agent.actor.parameters())
+    if args.value_coef:
+        params += list(agent.critic.parameters())
+    optimizer = torch.optim.Adam(params, lr=args.lr)
     generator = torch.Generator().manual_seed(args.seed)
     val = torch.as_tensor(val_idx)
     history, best = [], -1.0
@@ -160,12 +256,27 @@ def main() -> None:
         for i in range(0, len(perm), args.batch_size):
             idx = perm[i:i + args.batch_size]
             logits = masked_logits(agent.actor(obs[idx]), masks[idx])
-            loss = F.cross_entropy(logits, actions[idx])
+            if args.target == "soft":
+                # Equals forward KL up to the teacher's entropy, so the
+                # gradient is identical and the student's entropy is anchored
+                # at the teacher's instead of running away to 0. One-hot CE has
+                # NO finite minimiser, which is what produces the recorded
+                # loss/entropy 0.063 collapse in warm-started runs.
+                loss = -(policy[idx] * F.log_softmax(logits, dim=-1)).sum(-1).mean()
+            else:
+                loss = F.cross_entropy(logits, actions[idx])
+            if args.value_coef:
+                loss = loss + args.value_coef * F.mse_loss(
+                    agent.critic(obs[idx]).squeeze(-1), value[idx]
+                )
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             total += loss.item() * len(idx)
-        metrics = evaluate(agent.actor, obs[val], masks[val], actions[val], free)
+        metrics = evaluate(
+            agent.actor, obs[val], masks[val], actions[val], free,
+            policy[val] if policy is not None else None, reveal[val],
+        )
         metrics = {"epoch": epoch, "train_loss": total / len(perm), **metrics}
         history.append(metrics)
         print(f"epoch {epoch:3d}  train loss {metrics['train_loss']:.4f}  "
