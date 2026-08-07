@@ -1,0 +1,95 @@
+# SELF-PLAY PREVIEW (2026-08-06, direction-audit follow-up; maintainer
+# requested): the old from-scratch pool-self-play run REPEATED with exactly
+# two fixes, to price the 50-100M "pure self-play" experiment before it is
+# bought. Comparator of record: showdown_scratch12m (2026-08-01, predecessor)
+# — pooled finals 0.3800 +/- 0.0089 vs SH (0.369/0.398/0.373), 583 steps/s
+# median, 6.1 h. This config is that one verbatim EXCEPT:
+#
+#   1. ENCODER V2 (launch with POKEMON_RL_ENCODER_V2=1): move-effect block +
+#      speed edge, OBS_DIM 611 -> 807. Screened same-tapes 2026-08-06:
+#      +3.1 pts teacher agreement, gap grows with data. Hypothesis: the old
+#      run's policy could not REPRESENT technique (Rest==Amnesia==Reflect),
+#      so self-play had nothing to bootstrap into.
+#   2. POOL EVICTION FIXED (commit ccae800): span-preserving thinning. The
+#      old run's pool silently degenerated to anchor + last-19 recency
+#      (index-1 eviction bug, recovered record); at push cadence 150 over
+#      12M (~78 pushes into pool 20) the fixed pool retains ~uniform
+#      coverage of the whole training history — the anti-cycling machinery
+#      actually working as designed.
+#
+#   Seeds 10/11/12 (NOT the old 0/1/2): Showdown evals are server-rolled and
+#   UNPAIRED, so reusing seeds buys nothing, and distinct values avoid
+#   username collisions with BC-clone eval lanes sharing the server tonight.
+#   Everything else deliberately unchanged, including flat lr (anneal is
+#   credited on vs-SH arms but adding it here would be a third variable) and
+#   rollout_steps 128. This run BUNDLES its two fixes: a positive result
+#   demonstrates, it does not attribute — attribution ablations only get
+#   paid for on success.
+#
+# R0 GATES (any failure voids the read):
+#   - meta.yaml stamps encoder {obs_dim: 807, encoder: v2, set_prior: true}
+#     in EVERY lane (the env var is process-level and forgettable; this is
+#     the check that it was not forgotten).
+#   - Old two-phase regime gates carry over: 0-3M recorded not gated; after
+#     3M training ties <= 4.2% and mean episode length <= 40.
+#   - steps/s within ~25% of the concurrency-matched baseline (583 solo-ish;
+#     v2's wider input layer expects <10% hit). Battle PROGRESS per lane
+#     verified at launch, not run-dir existence.
+#
+# R1 LEARNING GATE (unchanged): winrate_anchor >= 0.75 by 4M on >= 2/3
+#   seeds, else "fails to learn" reports as in the old run.
+#
+# R2 PRIMARY — pooled finals vs SH, locked protocol (1000/seed x 3, ties as
+#   non-wins, deterministic, final checkpoint), read against 0.3800:
+#   - delta >= +0.025 AND >= 2*se_diff  => encoder+pool CREDITED as the
+#     bootstrap binder (bundled); the 50-100M run is justified and gets its
+#     own pre-registration.
+#   - within +/-0.025 of 0.3800        => representation+pool were NOT the
+#     binder at 12M; the pure-self-play question moves to scale/curriculum
+#     and loses its cheap justification. Report honestly.
+#   - >= 0.4607 (best vs-SH-trained RL) => headline: a generalist matching
+#     the specialist on the specialist's board.
+#   - >= 0.489 (SH-mirror parity)      => the strong claim; do not expect it.
+#
+# R3 (only if R2 credits): cross-play vs showdown_r512_lra12m best final and
+#   vs the strongest FP-BC clone, BOTH orientations (measured +0.018
+#   deterministic-vs-sampling seat bias), 500/pair/orientation.
+#
+# R4 ENTROPY (unchanged from old config): starts ~ln 10, must fall; 3-seed
+#   median < 0.15 for 5 consecutive rungs before 6M => record, plan an
+#   entropy_coef arm, never change mid-run.
+#
+# Launch (server on :8000; 3 lanes, distinct seeds, staggered starts):
+#   POKEMON_RL_ENCODER_V2=1 WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp12m_v2.yaml --seed N --run-name showdown_sp12m_v2_sN
+env_id: Showdown-v0
+seed: 10
+total_steps: 12000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp12m_v2_s10
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
