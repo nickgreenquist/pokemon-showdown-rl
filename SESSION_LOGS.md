@@ -1765,3 +1765,30 @@ entry by offset — never a broad keyword grep.
   SP preview meanwhile: R1 LEARNING GATE PASSED on all seeds (winrate_anchor 0.94-0.95 at
   ~3.7M vs the 0.75 bar); in-training rungs ~0.30-0.40 vs SH at 3.7M — hovering near the OLD
   run's FINAL (0.380) at a third of the budget. Finals ~13:00.
+
+- 2026-08-07 (13:20) — SELF-PLAY PREVIEW READ: **NULL. Encoder v2 + the fixed pool do NOT
+  unlock from-scratch self-play at 12M.** Pre-registered branch fired exactly as written.
+
+  Finals, locked protocol (final ckpt, deterministic, ties non-wins, n=1000/seed, v2):
+      s10 0.393   s11 0.377   s12 0.397   ->  POOLED 0.3890 (se 0.0089)
+      OLD run (v1 + broken pool, 2026-08-01): 0.3800 ± 0.0089
+      delta +0.0090, se_diff 0.0126, z +0.72  ->  NOT CREDITED (line: >=+0.025 AND >=2se)
+  R0 gates all passed (fingerprints v2/807 every lane; ties ~1%; ~500-555 steps/s; one
+  external kill + clean relaunch at 1.0M, cause outside the session, recorded). R1 passed
+  early (winrate_anchor 0.94-0.95 by 3.7M). Entropy 1.88->~0.4, never near the 0.15 alarm.
+  In-training matched-window read (6-7.3M: 0.382 vs 0.363) had suggested ~+0.02; finals say
+  +0.009 — both instruments agree on "small positive, far below credit."
+
+  **THE INSTRUCTIVE CONTRAST: the SAME encoder v2 bought +0.107 win rate in the BC chapter
+  and +0.009 ± 0.013 in scratch self-play at 12M.** Representation pays when there is a
+  strong signal to represent; it does not rescue a sparse-signal bootstrap at 1/20th of
+  field scale. This corroborates the audit's ordering (prior first, RL second) with a
+  controlled measurement rather than an argument.
+
+  Consequence, per the pre-registration: the 50-100M pure-self-play run LOSES its cheap
+  justification. If it is ever bought, the H&L-verified recipe deltas are the hypotheses to
+  pre-register alongside scale: gamma 0.95 + 5-term ZERO-SUM shaping (their undocumented
+  signal design), the per-action scoring head, entity embeddings — see the H&L entry in
+  prior_work/README.md. The main line (P4-scale BC -> warm-started anchored RL) is
+  unaffected and remains the recommendation. Bundling caveat recorded: this run changed
+  encoder+pool together; the null is on the BUNDLE.

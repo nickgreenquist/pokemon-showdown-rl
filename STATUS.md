@@ -4,10 +4,10 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 
 ## Where things stand (2026-08-06 23:45 — the probe answered)
 
-DESIGN r6 RATIFIED (D1–D7). Suite 243 green. **The v2 Foul-Play clone (180k rows) scores
-0.558 vs SH — the FIRST agent in this repo past SimpleHeuristics** (probe: 1 fit seed,
-n=1000). Teacher 0.8307 (n=7,200). Encoder v2 = +0.107 win rate at matched data. Self-play
-preview (sp12m_v2, s10/11/12) runs overnight vs the 0.3800 bar.
+DESIGN r6 RATIFIED (D1–D7). Suite 243 green. **v2 FP clone past SH: 0.558 final / 0.569
+val-peak (probe reads)**; teacher 0.8307 (n=7,200); encoder v2 = +0.107 win rate at matched
+data in BC — and +0.009 (null) in scratch self-play, the instructive contrast. Research
+sweep 2026-08-07 landed 3 tracked analyses + the warmrl draft pre-reg.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
 ## *Starred rows are NOT locked-protocol: scouting/probe reads.)
@@ -15,6 +15,7 @@ preview (sp12m_v2, s10/11/12) runs overnight vs the 0.3800 bar.
 | result | win rate |
 |---|---|
 | PPO 12M flat / **+LR anneal — best RL** (6M rows: logs) | 0.4330 / **0.4607** |
+| Scratch self-play 12M: v1+broken pool / v2+fixed pool | 0.3800 / 0.3890 — **null, z +0.7** |
 | BC clone of SH (P4, 813k rows) | **0.4657** re-scored in-repo |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
 | **Foul Play (+patch) — teacher; SHIPPED bot** | **0.8307** (n=7,200)* |
@@ -36,11 +37,10 @@ are cross-format extrapolations.
 1. **Protocol-grade the milestone:** refit 180k WITH early stopping (final==best; the 0.569
    val-peak read carries a selection caveat) + 2 more fit seeds + n=3000; head-to-heads owed.
    900k fit recipe settled: soft-BC + value-coef 0.5 (prior_work/DISTILLATION_OBJECTIVES.md).
-2. **Read the self-play preview** (R0 → R1 by 4M → R2 finals vs 0.3800; tree in the config
-   header). Launched 23:07, ~7 h; clone evals shared the server in its first half hour.
+2. Self-play preview READ (2026-08-07): NULL — v2+pool bought +0.009 (z 0.7) at 12M vs the
+   0.3800 record. 50-100M pure-SP needs a NEW pre-reg (H&L recipe deltas) if ever bought.
 3. **MAINTAINER DECISION — push or not.** `main` is well ahead of `origin/main`; never asked.
-4. RL-phase pre-reg (bc_kl coef, entropy from 1.12, opponent) before any warm start; Arm B
-   stays closed, Arm C parked.
+4. Ratify `configs/showdown_warmrl_v2.yaml` (DRAFT; 6 decisions in its header). Arm B/C closed/parked.
 
 ## Watch items
 
