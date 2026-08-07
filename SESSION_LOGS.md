@@ -1862,3 +1862,30 @@ entry by offset — never a broad keyword grep.
   lane-days, or >8 weeks; on abandon warmrl resumes and the negative publishes with a scale
   bound). Consequences now binding: tonight = Stage-0 fix + 3×12M control re-run on the fixed
   encoder (new comparator replaces 0.3890); Rung 1 launches the night after.
+
+- 2026-08-07 (night) — D13a EXECUTED + RUNG 1 CODE COMPLETE, BOTH R0-2 GATES PASS. The
+  ratification evening's full slate, in order. **(1) Stage-0 MUST_RECHARGE fix landed**
+  (0c83339): dead Effect slot now reads `mon.must_recharge` on both actives + global
+  aliased-turn flag at vec[5]; OBS_DIM v1 611→612, v2 807→**808**; fingerprint gains
+  `recharge_fix: true`; live obs-fidelity PASS (215 decisions, 0 mismatches).
+  **(2) Re-baseline lanes LAUNCHED** (maintainer terminal, nohup, staggered):
+  `showdown_sp12m_v2r` seeds 31/32/33 from clean ce2fe2c — R0-1 verified per lane
+  (v2/808 + recharge_fix, git_dirty false), battle progress verified per lane at
+  540-600 steps/s. ETA ~6.2 h (~21:30); liveness monitor armed in-session (external-kill
+  landmine). Pooled finals at 3×3000 become the Rung 1/2 comparator; **0.3890 is dead**.
+  Smoke seed 34 spent; seeds 31-34 now claimed. **(3) Rung 1 code items all landed**
+  (1062623): `hl_shaping` kwarg (metagrok constants verbatim, per-battle event cursor
+  over `_replay_data`), `--no-shaping` on eval_checkpoint (+ report stamps it, R0-4),
+  stub attrs per the HISTORY_FEATURES rule. **R0-2(a) OFFLINE PASS** as a permanent test
+  (tests/test_hl_shaping_tapes.py): 2 tapes, >=50 battles, per-battle two-seat sums
+  cancel EXACTLY (== 0.0), term-by-term hand-parse agrees, all five terms fire.
+  **R0-2(b) LIVE PASS** (scripts/hl_shaping_live_smoke.py, 10 battles, seed 29):
+  in-process seat-2 reward captured via calc_reward spy; s1+s2 == 0.0 exactly on every
+  battle; cursor-complete vs full-log recompute <=1e-12; return identity <=1e-9. First
+  live term counts (seat 1, 10 battles): faint 102, -fail 41, -supereffective 45,
+  -resisted 57, -immune 8; per-battle |shaping| 0.005-0.0525 — at/below the low end of
+  the predicted 0.05-0.15 band, recorded not gated. Rung 1/2 headers amended in place
+  (RATIFIED banners): v2/808 everywhere, comparator = v2r pooled finals (R2 carries a
+  blank to fill BEFORE launch), locked reads at 3000/seed × 3 per D10a (escalation
+  clause moot). Suite 258 green. Tomorrow: v2r R0 gates + 3×3000 locked evals, fill the
+  comparator, then launch Rung 1 (seeds 23/24/25).

@@ -6,8 +6,10 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 
 **Pure from-scratch self-play in gen1randombattle is the main chase** (novelty over
 strength; revocable per D17). **DESIGN r7 RATIFIED 2026-08-07 — D10a/D11a/D12b/D13a/D14a/
-D15b/D16a/D17a all binding.** FP/BC chapter BANKED (eval anchors + fallback): teacher 0.8307
-(n=7,200), tapes 180k rows, v2 clone 0.558/0.569*, warmrl on ice. Pushed through 288a347.
+D15b/D16a/D17a all binding.** D13a executed: encoder fixed to **v2/808**, re-baseline lanes
+RUNNING (s31/32/33, launched ~15:17, ~6.2 h). Rung 1 code landed, **R0-2(a)+(b) both PASS**.
+FP/BC chapter BANKED: teacher 0.8307, tapes 180k, clone 0.558/0.569*, warmrl on ice.
+Suite 258 green. Pushed through 288a347; 5 local commits since (push is ask-first).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
 ## *Starred rows are probe reads: 1 fit seed and/or n=1000.)
@@ -27,13 +29,12 @@ non-SH-anchor guard from M2 up. vs-SH ADMISSIBLE (SH held out of training entire
 
 ## Next actions, in order
 
-1. **TONIGHT (D13a): MUST_RECHARGE Stage-0 fix + 3×12M control re-run** on the fixed
-   encoder (v2/808), seeds 31/32/33 — the new comparator REPLACES 0.3890. Then locked eval
-   3×3000.
-2. **Rung 1 (SIGNAL) the night after:** control config verbatim + gamma 0.95 + H&L 5-term
-   zero-sum shaping (constants from metagrok's code); seeds 23/24/25; pre-reg
-   `configs/showdown_sp_signal12m.yaml`. Code items: `hl_shaping` kwarg, `--no-shaping`
-   eval seam, R0-2 antisymmetry gate. Rung 2 draft: `showdown_sp_struct12m.yaml` (26/27/28).
+1. **TOMORROW: read the v2r re-baseline** (finals land ~21:30 tonight; R0 gates per its
+   header, then locked eval 3×3000/seed — ~3 h, maintainer terminal). Fill the pooled
+   number into `showdown_sp_signal12m.yaml` R2 (blank is waiting). 0.3890 is DEAD.
+2. **Then LAUNCH Rung 1** (seeds 23/24/25, one overnight): all three code items are DONE
+   and gated — R0-2(a) offline PASS (permanent test), R0-2(b) live PASS (10 battles,
+   exact zero-sum; scripts/hl_shaping_live_smoke.py). Rung 2 next (26/27/28).
 3. **Rung 0 measurement evening (E1-E4, ≤10 min each, D12b/D14a):** decompose the loop at
    [512,512] per `prior_work/THROUGHPUT_SPEC.md`; cheap wins authorized on their numbers.
 4. ON ICE, zero rework: warmrl (seeds 14-22 reserved), P4-scale GO (19.7 h), §11 D8/D9.
@@ -41,15 +42,14 @@ non-SH-anchor guard from M2 up. vs-SH ADMISSIBLE (SH held out of training entire
 
 ## Watch items
 
-- Seeds: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 ArmB, 9 smoke, 10-13 SP preview+smoke, 14-22
-  RESERVED (warmrl), 23+ = the chase. Distinct across lanes AND arms (username landmine).
-  Showdown evals are UNPAIRED and non-reproducible — buy precision with battles.
+- Seeds: 0-13 spent (see logs), 14-22 RESERVED (warmrl), 23/24/25 Rung 1, 26/27/28 Rung 2,
+  29/30 smokes, 31-33 v2r lanes, 34 v2r smoke; 35+ free. Distinct across lanes AND arms
+  (username landmine). Showdown evals are UNPAIRED — buy precision with battles.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
-- **Encoder freezes at v2/808 once the Stage-0 fix lands (D13a):** dead MUST_RECHARGE slot
-  → live `mon.must_recharge` bool (both actives) + global move-slots-aliased flag at vec[5].
-  OBS_DIM 807→808 (v1 611→612) — invalidates all pre-fix checkpoints for re-eval; the
-  fingerprint stamp is the guard, CHECK IT per lane (R0-1). 0.3890 is DEAD as a comparator
-  once the re-baseline reads out.
+- **Encoder FROZEN at v2/808 (D13a, commit 0c83339):** live `mon.must_recharge` bool (both
+  actives) + global aliased-turn flag at vec[5]. OBS_DIM 807→808 (v1 611→612) — pre-fix
+  checkpoints can't re-eval on current code; fingerprint (+`recharge_fix: true`) is the
+  guard, CHECK IT per lane (R0-1). Obs-fidelity PASS post-fix (215 decisions, exact).
 - **Rung 1 shaping is NOT Arm B:** non-cancelled, zero-sum, 5-term, gamma 0.95, mirror play
   — Arm B's null (cancelled potential-based single term vs SH) does not transfer. Its R0
   gate: both seats' shaping sums to exactly 0 per event; shaping/terminal mass ratio logged.
