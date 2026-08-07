@@ -1792,3 +1792,17 @@ entry by offset — never a broad keyword grep.
   prior_work/README.md. The main line (P4-scale BC -> warm-started anchored RL) is
   unaffected and remains the recommendation. Bundling caveat recorded: this run changed
   encoder+pool together; the null is on the BUNDLE.
+
+- 2026-08-07 (afternoon) — **MAINTAINER DECISION: PURE SELF-PLAY BECOMES THE MAIN CHASE.**
+  Verbatim rationale: it is a more interesting project for gen1 because it has never been
+  done; sitting atop already-done BC or supervised training is not as interesting; it does
+  not need to match or beat Foul Play; it is the strongest subproject. "We can call it quits
+  later" — the chase is explicitly revocable. Consequences: the FP/BC chapter's artifacts
+  (teacher, tapes, clones at 0.558/0.569, warmrl draft) are BANKED as infrastructure and
+  eval anchors, not abandoned — P4-scale collection and warmrl ratification go ON ICE rather
+  than dead. DESIGN gets an r7 reorientation (drafted this session). The evidence base the
+  new chapter starts from: the 12M v2+pool preview NULL (+0.009), the verified H&L recipe
+  (2-3e8 decisions, gamma 0.95 + 5-term zero-sum shaping, per-action scoring head, entity
+  embeddings — none of which our null run had), and the throughput math (current loop ~540
+  steps/s/lane; H&L scale = ~5 days/lane; loop re-architecture is the enabler). Also
+  maintainer authorized PUSH of main to origin (first push of the repo's backlog).
