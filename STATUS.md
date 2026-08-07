@@ -4,9 +4,9 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 
 ## Where things stand (2026-08-06, after the Foul Play day + the direction audit)
 
-DESIGN r6 RATIFIED (D1–D7). Arm B closed (−0.0004). Suite 241 green, no runs live. RL LEVEL
-with the SH clone (0.4607 vs 0.4657) — ~40% GXE. FP teacher measured; tapes gate-green; §11
-awaits ratification. **Audit (last log entry): CONFIRMED w/ amendments; read WIN RATE.**
+DESIGN r6 RATIFIED (D1–D7). Arm B closed (−0.0004). Suite 243 green; tranche 2 collecting
+(3×2,000 battles). RL LEVEL with the SH clone (0.4607 vs 0.4657) — ~40% GXE. **Audit:
+chapter CONFIRMED; encoder v2 screens +3.1 pts agreement on same tapes (log); read WIN RATE.**
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
 ## *Foul Play rows are NOT locked-protocol: scouting reads.)
@@ -55,6 +55,6 @@ stands, ladder DEFERRED until past SH. PS Elo ≠ Glicko-1; all GXE rows are ext
   (Φ = 0.6·(obs[2]−obs[1])). Grad clip: warm starts clip HARDER (0.67→0.94).
 - SH's setup branch is DEAD upstream (Target enum vs string) — SH never uses setup moves, any
   gen; same bug kills ps-ppo's `self_boost_sum`. Predates Metamon's window: GXE anchor OK.
-- `rl/selfplay/pool.py` evicts index 1 on overflow — fix before any self-play rung.
-  `score_ladder.py` default `--opponents` raises on Showdown (Connect-4 names); headline
-  numbers came from `eval_checkpoint.py`. Solo ~734 steps/s; 6-wide 465-506/lane.
+- Pool eviction FIXED (span-preserving thinning, ccae800). `score_ladder.py` default
+  `--opponents` raises on Showdown (Connect-4 names); headline numbers came from
+  `eval_checkpoint.py`. Solo ~734 steps/s; 6-wide 465-506/lane.

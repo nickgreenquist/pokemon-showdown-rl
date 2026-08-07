@@ -1610,3 +1610,54 @@ entry by offset — never a broad keyword grep.
   (grep: no KL-anchor exists anywhere in `rl/`) rather than vs-SH — ps-ppo's laddered path
   was exactly BC-from-a-bot → mirror self-play at ~20× our steps, and our self-play nulls
   were different inits at MDE 0.14 with the pool's index-1 eviction defect live.
+
+- 2026-08-06 — ENCODER V2 SCREENED ON THE TRANCHE: +3.1 pts agreement, GAP GROWS WITH DATA.
+  Built while tranche 2 collects (maintainer authorized in-session launch; 3 lanes x 2,000
+  battles toward ~180k rows, distinct usernames, gen1 engine build verified by module paths
+  before launch).
+
+  **ENCODER V2 (`POKEMON_RL_ENCODER_V2=1`, commit 838586d).** The audit's representation
+  hypothesis, implemented: a 23-dim per-move EFFECT block (inflicted status + probability,
+  self/foe boost sums, heal, recoil, drain, crit class, multi-hit, self-destruct, recharge,
+  charge, inflicted volatiles — under v1, Rest/Amnesia/Reflect were near-identical vectors)
+  plus a per-mon SPEED-EDGE scalar vs the opposing active (level-scaled, boost- and
+  paralysis-aware). Feature list adapted from ps-ppo's move token (MIT), recomputed from
+  poke-env gen1 data. OBS_DIM 611 -> 807; default OFF and bit-identical to v1 when unset.
+  Because the tapes are the durable artefact, the screen was a RE-EMBED of the same 1,200
+  battles (all six gates pass at 807 dims) — the exact workflow the set-prior ablation used.
+
+  **THE SCREEN, same tapes, same seed, same by-battle split (paired val battles):**
+
+      rows    v1      v2      delta
+      3,750   0.3432  0.3432  +0.0000
+      7,500   0.3510  0.3642  +0.0132
+     15,000   0.3983  0.4089  +0.0106
+     30,000   0.4215  0.4527  +0.0312   (naive z +2.45; se understated per repo lesson,
+                                         but 11x the set prior's inert +0.0027 on the
+                                         SAME data and metric)
+
+  The delta GROWS with data — the signature of a representational fix the data can exploit,
+  not noise: v2's last-doubling slope is +4.4 pts vs v1's +2.3. `val_kl` drops 0.840 -> 0.818.
+  Contrast with the set prior (opponent-side information, inert): the binding constraint was
+  what OUR OWN moves do, exactly as the stack audit predicted from Rest==Amnesia==Reflect.
+  v2 is a BUNDLE (effects + speed); per-feature attribution is unmeasured — ablate only if a
+  decision ever hangs on which half, per the set-prior lesson. Win rate not yet scored: that
+  read comes with the 60k/120k/180k rungs when tranche 2 lands (~3.3 h at the measured
+  ~6.4 s/battle/lane, linear again).
+
+  **ALSO BUILT, all committed, suite 243 green:**
+  - **Pool eviction fixed (ccae800):** span-preserving thinning replaces the index-1 delete
+    that flushed pre-seeded pools (recovered predecessor bug; STATUS watch item retired).
+    Anchor and newest never leave; retained push ids stay ~uniform over [0, latest];
+    pool_size 1 still replaces (the naive arm). Regression test: 12 pushes into size 4 keeps
+    ids {0,4,7,11}, not the old {0,9,10,11} recency window.
+  - **KL-to-BC anchor (7521ed7):** `bc_kl_coef` on PPOAgent, default 0.0 = no-op.
+    `begin_warm_start()` snapshots the just-loaded actor as a frozen anchor; update() adds
+    bc_kl_coef * KL(pi_new || pi_anchor) per minibatch over the same stored mask (finite
+    sentinel keeps illegal entries an exact 0), logged as `loss/bc_kl`; anchor persists
+    through checkpoints; a scratch run with the penalty on fails loudly. This is the
+    audit-recommended mechanism for the post-BC RL phase; its COEFFICIENT is unchosen and
+    pre-registration of that phase is still owed.
+  - **Encoder fingerprint stamped (f1cb74b):** `ENCODER_FINGERPRINT` {obs_dim, encoder
+    v1/v2, set_prior} written into Showdown runs' meta.yaml and bc_metrics.json — closes the
+    audit's "nothing records which obs semantics a checkpoint trained under" flag.
