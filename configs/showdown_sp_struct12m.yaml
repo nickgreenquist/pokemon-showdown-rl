@@ -1,0 +1,348 @@
+# =====================================================================
+# DRAFT PRE-REGISTRATION — NOT RATIFIED, NOT LAUNCHED (2026-08-07).
+# LADDER RUNG 2 of 2 in the PURE SELF-PLAY chapter. Rung 1 is
+# configs/showdown_sp_signal12m.yaml and MUST HAVE READ OUT before this
+# launches (see THE LADDER RULE). Do not launch until ratified.
+# =====================================================================
+#
+# RUNG 2 — STRUCTURE. Isolate H&L's NETWORK at 12M: entity embeddings +
+# a shared per-Pokemon subnet + DeepSets team pooling + a shared
+# PER-ACTION scoring head, replacing the flat [512,512] MLP readout.
+#
+# THE QUESTION. The preview showed a better INPUT does not unlock the 12M
+# bootstrap (encoder v2: +0.107 win rate in BC, +0.009 in scratch
+# self-play). Rung 1 asks whether a better SIGNAL does. This rung asks the
+# remaining identified H&L delta: whether the flat readout is the binder —
+# whether the policy is failing to bootstrap because it has to relearn
+# "this action targets this entity" in every weight column, rather than
+# being handed that structure.
+#
+# EXPLICITLY NOT THE TRANSFORMER. prior_work/ARCH_SCREEN_SPEC.md's entity-
+# attention trunk measured 34.6x the MLP train step on this machine and
+# projects ~205-220 steps/s/lane vs ~570 — its OWN pre-registered gate
+# ("> 2.5x RL throughput loss kills the RL adoption regardless of the
+# screen's primary read") would fire before we learned anything. H&L did
+# not use attention either. This rung takes rung 1-2 of the architecture
+# ladder — the CPU-cheap part — and leaves attention to the BC screen
+# where the update cost is affordable.
+#
+# ---------------------------------------------------------------------
+# THE LADDER RULE, AND THE FACTORIAL-CREEP HAZARD IT AVOIDS
+# ---------------------------------------------------------------------
+# Two levers is 4 cells; three is 8. At ~7 h and se_diff ~0.013 per cell,
+# a factorial is both unaffordable AND underpowered — detecting a 2x2
+# INTERACTION needs roughly 4x the n of a main effect, so the honest
+# version of "just run the 2x2" is a 12-lane, ~30 h design that still
+# cannot resolve the interaction. We do not run it.
+#
+# RUNGS RUN SEQUENTIALLY, EACH AGAINST THE STANDING BEST:
+#   - Rung 1 NULL or NEGATIVE (branches b/c) -> this file as committed:
+#     gamma 1.0, no shaping, comparator 0.3890 +- 0.0089 (the preview).
+#   - Rung 1 CREDITED (branch a) -> ONE pre-declared edit, made BEFORE
+#     launch and without re-reading Rung 1's number beyond its branch:
+#     set `gamma: 0.95` and `env_kwargs: {hl_shaping: 1.0}` (i.e. carry
+#     Rung 1's treatment), and the comparator becomes Rung 1's pooled
+#     final under the identical protocol. Everything else is unchanged.
+# WHAT WE GIVE UP, STATED UP FRONT: we never learn whether signal and
+# structure interact. We accept that. If both credit, the 50M combination
+# run is the DEMONSTRATION and no attribution is claimed — the same house
+# rule the preview wrote ("a positive result demonstrates, it does not
+# attribute").
+#
+# ---------------------------------------------------------------------
+# THE ARCHITECTURE (H&L's, minus the parts gen 1 does not have)
+# ---------------------------------------------------------------------
+# Source: prior_work/README.md's H&L entry (VERIFIED 2026-08-07) and the
+# `yuzeh/metagrok` clone (MIT) at
+# /Users/nickgreenquist/Documents/Projects/metagrok, whose committed
+# config reproduces the paper's 1,327,618 params exactly. Their stack:
+# 128-d entity embeddings (species/moves/items/abilities), a shared
+# per-Pokemon net, DeepSets max-pool over the team, and a SHARED
+# PER-ACTION SCORING HEAD: [trunk || move_emb || switch_target_emb] ->
+# shared MLP -> scalar. Uncontested by ps-ppo, which uses a flat readout.
+#
+# GEN-1 SIMPLIFICATION: no items, no abilities. TWO embedding tables only:
+#   species: 151 + 1 unknown = 152 rows
+#   moves:   165 + 1 unknown = 166 rows
+#
+# TOKENIZATION — reuse ARCH_SCREEN_SPEC's, verbatim. A reshape layer over
+# the existing flat v2 obs; slices derived from `rl.envs.showdown`
+# constants and asserted at construction. 21 tokens: 1 field [0:5];
+# 12 mon tokens (MON_DIM 33 + ACTIVE_DIM 16 gated by that mon's own
+# is_active bit = 49, own mons prepend a constant 1.0 -> 50, so both sides
+# share one input projection); 8 move tokens (MOVE_DIM 46; own 4 +
+# opponent's prior-filled 4). This tokenizer is ALREADY SPEC'D AND
+# PROTOTYPED for the attention screen — sharing it is the single largest
+# de-risking available and means the two arch arms differ only in trunk.
+#
+# TRUNK (this rung):
+#   per-mon subnet:  [mon token 50 || species_emb 64] -> 2-layer -> 128
+#   per-move subnet: [move token 46 || move_emb 64]   -> 2-layer -> 128
+#   DeepSets pool:   MAX over our 6 mon vectors, MAX over their 6 (H&L's
+#                    choice; permutation-invariant, which is the point)
+#   context:         concat(field_proj 128, own_pool 128, opp_pool 128,
+#                    own_active 128, opp_active 128) = 640 -> [384, 384]
+#   POLICY HEAD (the analogue of H&L's scorer, and near-identical to
+#   ARCH_SCREEN_SPEC's POINTER HEAD minus the attention that feeds it):
+#     logits_i = scorer(concat(ctx 384, entity_i 128)) + slot_bias_i
+#     switch action i (0-5) <-> own-mon token 1+i
+#     move action 6+j (6-9)  <-> own-move token 13+j
+#   — the exact poke-env action alignment the encoder already relies on.
+#   scorer is ONE shared 2-layer MLP (512 -> 256 -> 1) applied to all 10
+#   actions. That sharing IS the hypothesis: what the net learns about
+#   "how good is switching to a Rhydon" transfers across slots and across
+#   games, which a flat 512->10 readout cannot express.
+#   MASKING is unchanged and stays OUTSIDE the head — rl/common/masking,
+#   finite -1e8 sentinel, no `mask is None` branch, applied at eval too
+#   (harness contract).
+#   VALUE HEAD: separate stack over the same pooled features, NEVER
+#   masked, NO shared trunk (repo contract, ppo.py; note H&L DO share —
+#   deliberate deviation, recorded).
+#
+# ---------------------------------------------------------------------
+# CODE THAT MUST EXIST FIRST (nothing below exists today)
+# ---------------------------------------------------------------------
+# 1. `rl/networks/entity_deepsets.py` — tokenizer (shared with the
+#    attention screen), embedding tables, subnets, pooling, pointer-style
+#    scorer, separate value stack.
+# 2. `trunk:` / `trunk_kwargs:` keys on PPOAgent with default "mlp", plus
+#    a `build` branch — the SAME integration seam ARCH_SCREEN_SPEC
+#    specifies. If the attention screen lands first, this rung adds only
+#    the branch. REGRESSION TEST (from that spec): trunk="mlp" must be
+#    BIT-IDENTICAL in params and forward to today's code. If it is not,
+#    the seam is wrong and every prior number is in question (K3).
+# 3. INIT HAZARD, generalized from ARCH_SCREEN_SPEC: do NOT run
+#    `_orthogonal_init` over this net — it would hit the embedding tables.
+#    Use an `init_head(gain)` method: Xavier for the subnets/scorer,
+#    std-0.02 for embeddings (ps-ppo's recipe), final scorer layer
+#    rescaled.
+# 4. ENCODER: THE IDENTITY BLOCK. Today species identity enters ONLY
+#    through base stats and types — "no embedding table, so the obs stays
+#    a flat Box" (rl/envs/showdown.py:66-70), which explicitly names a
+#    species/move embedding as the priced follow-up. An embedding needs an
+#    INDEX, so the obs must carry one. Design, following the repo's two
+#    existing precedents exactly:
+#      - ENV-VAR GATED: `POKEMON_RL_ENCODER_IDS=1`, DEFAULT OFF, exactly
+#        like POKEMON_RL_ENCODER_V2 and the proposed _HIST. With the flag
+#        unset, OBS_DIM stays 807 and the encoding is bit-identical.
+#        THIS IS WHAT KEEPS THE LANDMINE CLOSED: "changing OBS_DIM
+#        invalidates every existing checkpoint" — gated and off by
+#        default, it invalidates nothing, and this rung trains from
+#        scratch so it needs no checkpoint reuse.
+#      - PURE SUFFIX: 12 species ids + 8 move ids = 20 dims appended,
+#        so vec[:807] stays bitwise v2. OBS_DIM 807 -> 827 with the flag.
+#      - VALUES SCALED: emit id/256.0 in [0,1] and recover
+#        round(x*256).long() inside the tokenizer. Exact in float32, and
+#        it keeps the declared Box(low=-1, high=4) valid — raw ids would
+#        break that bound and the hardcoded spaces in
+#        eval_checkpoint.py::_opponent_from_checkpoint.
+#      - Unknown/unrevealed -> id 0.
+#      - meta.yaml's ENCODER_FINGERPRINT gains an `ids: true` field.
+#
+# ---------------------------------------------------------------------
+# PARAM BUDGET — MATCHED, SO CAPACITY CANNOT BE THE EXPLANATION
+# ---------------------------------------------------------------------
+# Target: actor ~0.55-0.68M, HARD CEILING = the MLP actor's 681k
+# (807x512 + 512x512 + 512x10). Sketch at the sizes above: embeddings
+# 152x64 + 166x64 = 20k; mon subnet ~31k; move subnet ~30k; field proj
+# ~17k; context 640->[384,384] = 393k; scorer 512->256->1 = 131k;
+# total ~0.62M. Critic (no scorer needed) ~0.5M, so ~1.1M all-in against
+# the MLP's 1.36M and H&L's 1.33M — in the right class and BELOW the
+# control on the actor, per ARCH_SCREEN_SPEC's discipline ("sized so the
+# actor lands BELOW the MLP's 681k, so the screen is not confounded by
+# capacity"). Exact counts are asserted at construction (R0-2) and
+# stamped in meta.yaml.
+#
+# ---------------------------------------------------------------------
+# WHY THIS IS AFFORDABLE WHERE ATTENTION IS NOT
+# ---------------------------------------------------------------------
+# ARCH_SCREEN_SPEC measured the attention trunk at FLOPs 13.6x but train
+# step 34.6x (4.9 ms -> 170 ms, batch 512, 1 thread). The 2.5x gap between
+# those two numbers is the tell: at 21 tokens and d_model 128 the
+# attention trunk is OP-LAUNCH-BOUND on one CPU thread (2 pre-LN layers x
+# MHA's many small ops), not FLOP-bound. This trunk has neither problem:
+#   - No token mixing at all. The subnets are ONE batched matmul over 21
+#     tokens: ~0.6 MFLOP/sample against the MLP's ~0.68 — call it ~1x.
+#   - The per-action scorer is the new cost: 10 actions x (512x256) ~ 1.3
+#     MFLOP/sample. Total ~3x the MLP's FLOPs.
+#   - Op count ~10-15 launches vs attention's ~60.
+# PROJECTION: train step ~2.5-4x the MLP's 4.9 ms = ~12-20 ms. The update
+# is ~5% of the MLP loop, so it becomes ~15-20% here, not attention's
+# 55-60%. Expected ~430-500 steps/s/lane against the preview's measured
+# 537/535/535.
+# THIS IS A PROJECTION, NOT A MEASUREMENT, AND IT IS GATED (R0-4): a 1M
+# smoke measures it BEFORE the 3x12M launch, and a miss stops the launch.
+#
+# ---------------------------------------------------------------------
+# R0 GATES (any failure voids the read)
+# ---------------------------------------------------------------------
+# R0-1 FINGERPRINT: every lane's meta.yaml stamps encoder v2 AND
+#   {ids: true, obs_dim: 827}. Two process-level env vars now, twice as
+#   forgettable — this gate is the check that neither was forgotten.
+# R0-2 PARAM CEILING: actor param count <= 681k, asserted at construction
+#   and logged. Over it, the rung tests capacity and not structure.
+# R0-3 MLP BIT-IDENTITY: `trunk: mlp` reproduces today's params and
+#   forward exactly (unit test, offline).
+# R0-4 THROUGHPUT SMOKE, BEFORE THE REAL LAUNCH: 1 lane x 1M steps, seed
+#   30, ~35 min. GATE >= 380 steps/s/lane (<= 30% below the preview's
+#   537) — comfortably inside ARCH_SCREEN_SPEC's standing "2.5x loss
+#   kills it" bar. Miss -> K1, do not launch the 3x12M.
+# R0-5 EMBEDDING SANITY (offline, on tapes): the species/move id block
+#   round-trips (encode -> round(x*256) -> id) for >= 5000 decisions;
+#   unrevealed opponent mons map to 0; the id for a revealed mon matches
+#   its species across consecutive decisions.
+# R0-6 REGIME (carried): after 3M, ties <= 4.2%, mean episode length
+#   <= 40 (preview reference: 26.4/27.0/27.7).
+# R0-7 MASKING: eval-time masking on; masked logits use the -1e8 sentinel;
+#   value head unmasked. Contract test, offline.
+#
+# R1 LEARNING GATE (carried): selfplay/winrate_anchor >= 0.75 by 4M on
+#   >= 2/3 seeds.
+#
+# ---------------------------------------------------------------------
+# R2 PRIMARY
+# ---------------------------------------------------------------------
+# Pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol: FINAL
+# checkpoint, deterministic, ties as non-wins, 1000 battles/seed x 3
+# seeds = 3000 pooled. Comparator per THE LADDER RULE above — 0.3890 +-
+# 0.0089 if Rung 1 nulled, else Rung 1's pooled final. (If Rung 1
+# credited, its finals eval also carries `--no-shaping`; both arms then
+# use it, so the eval env is identical on both sides of the comparison.)
+#
+#   CREDIT LINE (repo standing): pooled delta >= +0.025 AND >= 2*se_diff.
+#   Against the preview, se_diff = 0.0126 so the bar is +0.0252 -> a
+#   pooled final of >= 0.4142.
+#   The same ONE-TIME symmetric escalation to 3000 battles/seed applies
+#   in the [+0.015, +0.025) band, if it was not already spent on Rung 1.
+#   At most ONE escalation for the whole chapter.
+#
+# BRANCHES:
+#  (a) CREDIT: the flat readout WAS a binder. Combined with whatever Rung
+#      1 credited, this is the 50M pre-registration's content.
+#  (b) NULL: structure is not the binder at 12M either.
+#  (c) NEGATIVE: the entity/pointer stack is worse from scratch at 12M —
+#      plausible and worth reporting (a shared scorer has fewer free
+#      parameters per action and can be slower to break symmetry early).
+#      Do NOT retune width in place.
+#  (d) BOTH RUNGS NULL — the honest reading, pre-committed now: neither
+#      of the two identified H&L deltas is the binder at 12M, and the
+#      remaining candidate is SCALE. H&L worked at 3.84M battles / 2-3e8
+#      decisions, 20-45x our budget. That is a maintainer GO/NO-GO on the
+#      throughput re-architecture, and "we can call it quits later" is
+#      explicitly in scope for this chase. Do not launch a 50M run off two
+#      nulls without that decision.
+#
+# ---------------------------------------------------------------------
+# SECONDARY (recorded, none of them a read)
+# ---------------------------------------------------------------------
+# S1 HEAD-TO-HEAD vs the standing best's final, BOTH orientations,
+#    500/pair/orientation (+0.018 seat bias is measured — pool them).
+# S2 time/update_sec share of the loop vs the preview's ~5% (the number
+#    that decides whether this trunk survives to 50M and 250M).
+# S3 loss/explained_variance and loss/entropy vs the standing best.
+# S4 SLOT-TRANSFER PROBE, the mechanism read for the shared scorer: does
+#    the policy's switch preference for a species it has seen in slot k
+#    transfer when the same species appears in slot j? Measured offline on
+#    the final checkpoint over recorded tapes; a gain concentrated here is
+#    evidence for the pointer structure specifically rather than generic
+#    capacity (the analogue of ARCH_SCREEN_SPEC's agree_reveal buckets).
+# S5 embedding-table health: fraction of species/move rows that received
+#    a gradient; near-dead rows mean the table is decorative.
+#
+# ---------------------------------------------------------------------
+# KILL CRITERIA (honest, pre-stated)
+# ---------------------------------------------------------------------
+# K1 THROUGHPUT: R0-4 smoke < 380 steps/s/lane -> DO NOT LAUNCH. Exactly
+#    ONE pre-declared shrink is legal (subnet width 128 -> 96, scorer 256
+#    -> 192, ctx [384,384] -> [320,320]), re-smoked once. Still short ->
+#    report the rung as UNAFFORDABLE at the current loop speed and fold it
+#    into the post-throughput-work plan. Do not chip away at it.
+# K2 PARAM CEILING breach (R0-2).
+# K3 MLP BIT-IDENTITY breach (R0-3) — the seam is wrong; this invalidates
+#    more than this rung and is fixed before anything else launches.
+# K4 INIT HAZARD: any run whose embedding tables show orthogonal-init
+#    statistics is void; relaunch.
+# K5 R1 miss -> "fails to learn", reported as such.
+# K6 ENTROPY: 3-seed median loss/entropy < 0.15 for 5 consecutive rungs
+#    before 6M -> record and stop the lane set. No mid-run changes, ever.
+# AT MOST ONE repair rung across K1/K6 for the whole chapter, SHARED with
+# Rung 1's budget — if Rung 1 spent it, this rung has none.
+#
+# ---------------------------------------------------------------------
+# THE SEQUEL (stated so the ladder has a visible end)
+# ---------------------------------------------------------------------
+# 12M rungs (these two) -> 50M COMBINATION of whichever rungs credited,
+# 3 seeds, its own pre-registration. At today's ~537 steps/s/lane that is
+# ~26 h/lane, ~28 h wall at 3-wide: borderline affordable now, comfortable
+# after the throughput work, and the throughput work is the point — the
+# 2026-08-07 decision entry names loop re-architecture as THE enabler.
+# Then the 250M-class run: H&L's own scale is 2-3e8 decisions (~5
+# days/lane at current speed, ~$91 on GCP for them). That is the run at
+# which "pure self-play works in gen1randombattle" becomes a testable
+# claim rather than an extrapolation. Nothing at 12M settles it; these two
+# rungs decide WHAT we would scale, and whether it is worth scaling.
+#
+# ---------------------------------------------------------------------
+# BUDGET AND SEEDS
+# ---------------------------------------------------------------------
+# R0-4 smoke: 1 lane x 1M, seed 30, ~35 min. Main: 12M x 3 lanes at the
+# projected 430-500 steps/s = ~7.0-8.0 h wall (~8.8 h at the 380 floor).
+# Finals eval 3 x 1000 battles ~1 h.
+# SEEDS 26/27/28 (23/24/25 are Rung 1's; 0-22 previously claimed; 29 is
+# Rung 1's live smoke). Seed 30 for the throughput smoke. Distinct seeds
+# across lanes AND arms are mandatory — username collision landmine.
+# Commit code and docs BEFORE launching; launch from a clean tree.
+#
+# Launch (server on :8000 with simulator: 4; 3 lanes, staggered starts;
+# verify each lane by battle PROGRESS, not run-dir existence):
+#   POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 WANDB_MODE=offline \
+#     python -m rl.train --config configs/showdown_sp_struct12m.yaml \
+#     --seed N --run-name showdown_sp_struct12m_sN
+# Every eval command needs BOTH env vars too.
+env_id: Showdown-v0
+seed: 26
+total_steps: 12000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_struct12m_s26
+logger: wandb
+eval_win_rate: true
+# LADDER RULE: as committed, this file is the Rung-1-NULL branch (gamma
+# 1.0, no shaping, comparator 0.3890). If Rung 1 CREDITS, the one legal
+# pre-launch edit is to add `env_kwargs: {hl_shaping: 1.0}` here and set
+# `gamma: 0.95` below, and to read against Rung 1's pooled final instead.
+selfplay:                # identical to showdown_sp12m_v2.yaml
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets   # THE TREATMENT. Default is "mlp" (bit-identical
+                           # to today); this is the only structural change.
+  trunk_kwargs:
+    species_vocab: 152     # 151 gen-1 species + unknown
+    move_vocab: 166        # 165 gen-1 moves + unknown
+    embed_dim: 64          # H&L use 128; halved to hold the param ceiling
+    entity_dim: 128        # per-mon / per-move subnet output
+    pool: max              # DeepSets max-pool over each team (H&L's choice)
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]    # shared per-action scorer -> scalar
+    value_sizes: [384, 384]  # separate stack; never masked; no shared trunk
+  hidden_sizes: [512, 512]   # unused when trunk != mlp; kept so a
+                             # trunk: mlp rerun of this file is exact
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0               # Rung-1-NULL branch; -> 0.95 on the credit branch
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

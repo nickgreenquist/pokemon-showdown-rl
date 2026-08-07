@@ -1,0 +1,461 @@
+# =====================================================================
+# DRAFT PRE-REGISTRATION — NOT RATIFIED, NOT LAUNCHED (2026-08-07).
+# LADDER RUNG 1 of 2 in the PURE SELF-PLAY chapter (maintainer decision,
+# 2026-08-07 afternoon). Rung 2 is configs/showdown_sp_struct12m.yaml.
+# Do not launch until ratified.
+# =====================================================================
+#
+# RUNG 1 — SIGNAL. Isolate Huang & Lee's REWARD/DISCOUNT design at 12M,
+# holding everything else at the just-completed preview.
+#
+# THE QUESTION. The preview (showdown_sp12m_v2, read 2026-08-07 13:20)
+# gave from-scratch self-play the two fixes we believed were the binder —
+# encoder v2 and the repaired pool — and returned a NULL: pooled 0.3890
+# (s10 0.393 / s11 0.377 / s12 0.397, se 0.0089) vs the old 0.3800,
+# delta +0.0090, se_diff 0.0126, z +0.72. NOT CREDITED. That run had a
+# representation and an opponent distribution; what it did NOT have was
+# H&L's signal design. This rung supplies exactly that and nothing else.
+#
+# 0.3890 IS THE BASELINE FOR BOTH RUNGS. Same encoder, same pool, same
+# trunk, same budget, same protocol — the cleanest comparator this repo
+# has ever had for a self-play arm.
+#
+# ---------------------------------------------------------------------
+# THE TREATMENT (a two-part BUNDLE, deliberately not splittable — see
+# "WHY BUNDLED" below)
+# ---------------------------------------------------------------------
+#
+#   1. gamma 1.0 -> 0.95
+#   2. hl_shaping 0.0 -> 1.0: the 5-term ZERO-SUM event shaping, applied
+#      per seat from protocol events, antisymmetric by construction.
+#
+# Provenance: `prior_work/README.md` H&L entry (VERIFIED 2026-08-07) and
+# the code it names — `yuzeh/metagrok`, cloned at
+# /Users/nickgreenquist/Documents/Projects/metagrok, MIT. The constants
+# are `expts/01.json` verbatim; the attribution rule is
+# `metagrok/pkmn/reward_shaper.py::NewRewardShaper` with zero_sum=True,
+# read line by line this session. Neither the magnitudes nor the signs
+# are in the paper — they exist only in that code.
+#
+# EXACT EVENT -> REWARD MAPPING (ours, per step, from OUR seat's view;
+# `who` = battle.player_role in {"p1","p2"}; a protocol line is a split
+# message ["", tag, "p1a: Snorlax", ...] so index 1 is the tag and index
+# 2 is the named Pokemon; v = +1 if index 2 startswith `who`, else -1):
+#
+#     tag                 w          reward contribution = hl_shaping*w*v
+#     |faint|             -0.0125    our mon faints -0.0125; theirs +0.0125
+#     |-fail|             -0.0050    named on us -0.005; on them +0.005
+#     |-supereffective|   -0.0025    SE hit on us -0.0025; on them +0.0025
+#     |-resisted|         +0.0025    we resisted +0.0025; they resisted -0.0025
+#     |-immune|           +0.0050    we were immune +0.005; they were -0.005
+#
+# ANTISYMMETRY IS EXACT AND IS THE WHOLE SAFETY ARGUMENT. One protocol
+# line contributes +hl_shaping*w to the named side and -hl_shaping*w to
+# the other — the same float, negated. In mirror self-play both seats run
+# this identical rule, so no policy can farm the shaping: every +delta it
+# harvests hands -delta to a copy of itself. Per-episode, summed over both
+# seats, the shaping is exactly 0.0 (IEEE 754: negation and addition are
+# sign-symmetric, so seat 2's partial sums are the exact negatives of seat
+# 1's given the same event order). That is R0-2 below, and it is a
+# property we can ASSERT rather than argue.
+#
+# ---------------------------------------------------------------------
+# WHERE IT LIVES, AND WHY IT IS IMPLEMENTABLE PER STEP (checked against
+# installed poke-env 0.15.0 this session)
+# ---------------------------------------------------------------------
+#
+# New env kwarg on ShowdownSingles: `hl_shaping: float = 0.0` (a SCALE on
+# the table above; 1.0 = H&L magnitudes, 0.0 = off and bit-for-bit the
+# current reward path). Threaded through ShowdownEnv exactly like
+# `faint_shaping`, set from `env_kwargs:` in the config. The two shaping
+# levers are independent and MUTUALLY EXCLUSIVE in practice: faint_shaping
+# stays 0.0 here (Arm B is closed).
+#
+#   (a) THE EVENTS ARE VISIBLE, AND ONLY HERE. `-supereffective`,
+#       `-resisted`, `-fail` and `-immune` are ALL in poke-env's
+#       MESSAGES_TO_IGNORE — they are recoverable from NOWHERE in the
+#       parsed battle state. `AbstractBattle._replay_data`
+#       (abstract_battle.py:146) is appended as the FIRST line of
+#       `parse_message` (:566), BEFORE the ignore filter, so all four are
+#       in it. This is the core finding of
+#       prior_work/HISTORY_FEATURES_DESIGN.md, and this rung is its first
+#       consumer. `|faint|` is not ignored, but reading it from the same
+#       log keeps ONE code path and one attribution rule.
+#   (b) BOTH SEATS ARE SCORED EVERY STEP. poke-env's PokeEnv.step calls
+#       `calc_reward(battle1)` AND `calc_reward(battle2)` (env.py:458-459)
+#       on every step; SingleAgentWrapper simply discards seat 2's. So the
+#       zero-sum property is directly instrumentable in-process — no
+#       second env, no offline reconstruction.
+#   (c) NO DOUBLE-COUNTING ACROSS THE WAIT PUMP. ShowdownEnv.step absorbs
+#       wait states in a loop and SUMS the rewards (~6.4% of raw steps).
+#       Implementation is a per-battle CURSOR — `self._event_cursor:
+#       dict[object, int]`, identity-keyed on the battle object exactly
+#       like `_faint_potential`, advanced to `len(_replay_data)` on every
+#       call and cleared in `reset()`. Each event is therefore consumed
+#       exactly once per seat regardless of pumping, and the two seats'
+#       potentials/cursors cannot fuse (both battles share a battle_tag;
+#       identity keying is the existing, correct choice).
+#   (d) TERMINAL FRAME IS INCLUDED. `battle_queue.race_get` returns only
+#       after the frame is parsed, so the deciding `|faint|` is already in
+#       `_replay_data` when the terminal `calc_reward` runs. R0-2 is what
+#       proves this rather than asserting it.
+#   (e) `_replay_data` also receives ["", "tie"] and ["", "win", name]
+#       (:1259, :1326). Neither collides with the five tags; entries
+#       shorter than 3 fields are skipped.
+#   (f) TEST STUBS. tests' reward-only stub battles must gain explicit
+#       `_replay_data = []` and `player_role = "p1"` attributes — read
+#       directly, never getattr-defaulted (the HISTORY_FEATURES rule).
+#
+# RECORDED QUIRK, REPRODUCED VERBATIM ON PURPOSE: Showdown's `|-fail|`
+# names the Pokemon the failed action was AIMED AT. When our status move
+# fails against an already-statused opponent, the line names THEM, and
+# H&L's rule pays US +0.005 for our own move failing. We reproduce it
+# unchanged — fidelity to the one verified recipe is the point of this
+# rung, and the term stays exactly zero-sum so it cannot be farmed in
+# mirror play. Counted as S6 below; correcting it is a legal follow-up
+# ONLY if this arm credits.
+#
+# ---------------------------------------------------------------------
+# WHY BUNDLED, AND WHY gamma 0.95 ALONE WOULD BE A STRICT DOWNGRADE
+# ---------------------------------------------------------------------
+#
+# Measured on the preview's own histories: mean episode length over the
+# last 40 logged rungs is 26.4 / 27.0 / 27.7 decisions (s10/s11/s12). At
+# gamma 1.0 the terminal +-1 reaches V(s_0) at full strength. At gamma
+# 0.95 it arrives as 0.95^27 ~ 0.25 — a 4x attenuation of the ONLY signal
+# the preview had. Running gamma 0.95 without dense shaping would test a
+# strictly worse configuration and tell us nothing about H&L. The two
+# changes are one design: the discount shortens the credit window and the
+# event terms fill it. The bundle is the hypothesis.
+#
+# Effective credit horizon: gamma*lam goes 0.95 -> 0.9025, i.e. ~20 ->
+# ~10 decisions of exponentially-weighted credit — roughly one third of a
+# battle instead of two thirds.
+#
+# BUNDLING CAVEAT, house rule (same words as the preview): a positive
+# result DEMONSTRATES, it does not ATTRIBUTE. Attribution ablations
+# (gamma-only, shaping-only) are paid for only on success.
+#
+# ---------------------------------------------------------------------
+# WHY ARM B'S NULL DOES NOT CONTRADICT THIS
+# ---------------------------------------------------------------------
+#
+# Arm B (showdown_faint6m, SCREENED OUT 2026-08-06 at delta -0.0004) and
+# this rung differ in all four load-bearing respects:
+#
+#   1. FORM. Arm B was POTENTIAL-BASED with Phi(terminal) := 0, so the
+#      whole episode's shaping telescopes to exactly zero — policy
+#      invariant by Ng et al. 1999, by construction. That cancellation is
+#      precisely WHY it could not change the optimum, and the recorded
+#      diagnosis ("potential-based shaping ~linear in already-encoded
+#      features is inert; Phi = 0.6*(obs[2]-obs[1])") is the mechanism.
+#      H&L's terms do NOT cancel: they are a genuine change to the
+#      objective, not a re-timing of credit.
+#   2. DISCOUNT. Arm B ran at gamma 1.0, where the telescoping is exact.
+#      Here gamma 0.95 makes the near-term event terms the DOMINANT
+#      component of V near the start of a battle (~0.25 of terminal signal
+#      left at t=0; see above).
+#   3. INFORMATION CONTENT. Arm B's single term was faints — fully
+#      encoded, hence inert by its own rule. Four of these five terms are
+#      events our encoder CANNOT see at all (they are in
+#      MESSAGES_TO_IGNORE). Honest qualifier: SE/resisted/immune against
+#      the opponent's ACTIVE are partly predictable from the damage
+#      multipliers v2 already encodes; the incoming direction (their move,
+#      possibly unrevealed) and `-fail` are not predictable at all. So
+#      "not encoded" is partial, not total — weaker than Arm B's fully
+#      linear case, which is the point.
+#   4. OPPONENT. Arm B trained vs SimpleHeuristics, where a non-cancelled
+#      shaping is farmable and the trade-down failure mode is real (a
+#      clean-sweeping 48%-win policy outscoring a trading 50%-win one).
+#      Mirror self-play with an antisymmetric term removes that failure
+#      mode by symmetry rather than by cancellation. This is the
+#      substitution that makes a non-policy-invariant shaping safe here
+#      and would not have been safe there.
+#
+# ---------------------------------------------------------------------
+# gamma 0.95: CONSEQUENCES FOR THE BUFFER, GAE AND THE VALUE HEAD
+# ---------------------------------------------------------------------
+#
+#   - compute_gae (rl/buffers/rollout.py) takes gamma as an argument and
+#     needs no change: delta_t = r_t + gamma*V(s')*(1-terminated) - V(s),
+#     chained by gamma*lam. Termination zeroes the bootstrap, so the +-1
+#     still lands undiscounted on the final row and is discounted backward
+#     from there. Nothing in the buffer assumes gamma == 1.
+#   - VALUE TARGET BOUND. Targets stop being the exact +-1 of every prior
+#     Showdown run. Formal bound |V| <= 1 + s_max/(1-gamma) where s_max is
+#     the max per-step shaping; a pathological step (double faint + SE +
+#     immune) is ~0.035, giving |V| <= ~1.7 in the limit. From MEASURED
+#     event rates (HISTORY_FEATURES: SE 4-7%/decision, fail ~7%; total
+#     faints ~8-10 per decided battle) the realistic per-episode shaping
+#     magnitude is ~0.05-0.15, so |V| <~ 1.15 and the un-normalized value
+#     loss inflates by <~15% against value_coef 0.5 — inside noise. This
+#     is the quantitative reason this shaping is SAFE where an uncancelled
+#     potential form at gamma 1.0 (the ~2.5x inflation the Arm-B docstring
+#     warns about) would not have been. value_coef stays 0.5.
+#   - EXPLAINED VARIANCE should get EASIER, not harder: the target now
+#     carries within-episode signal instead of one terminal bit. Recorded
+#     as a pre-stated prediction (S2); a WORSE EV than the preview at
+#     matched steps is a mechanism finding worth reporting.
+#   - ROLLOUT/EPISODE_RETURN NO LONGER EQUALS THE OUTCOME. It becomes
+#     outcome + (undiscounted sum of shaped terms), so a win logs ~+1.05
+#     and a loss ~-1.05. Across the mirror population the shaping is
+#     zero-sum and seat assignment is symmetric, so its MEAN stays ~0 and
+#     `rollout/episode_return` remains comparable to the preview in mean
+#     but not per-episode. Both facts are gated (R0-3).
+#
+# ---------------------------------------------------------------------
+# EVAL PURITY — THE SIGN-BUG LANDMINE, RESTATED FOR SHAPED REWARDS
+# ---------------------------------------------------------------------
+#
+# `eval/win_rate` comes from env-supplied info["outcome"] in {-1,0,+1} and
+# NEVER from the sign of the return — the measured landmine is that a
+# reward-sign inversion would report 100% and pass its own detector.
+# info["outcome"] is computed by `battle_outcome()` from battle.won/lost
+# and is structurally immune to anything shaping does. Likewise
+# `selfplay/winrate_anchor` and `winrate_latest`: PoolPlayer.report_outcome
+# is fed info["outcome"], so R1 stays comparable to the preview.
+#
+# WHAT SHAPING DOES BREAK: eval_checkpoint.py's `wins_from_returns` /
+# `ties_from_returns` cross-check — the repo's standing guard against
+# exactly that sign bug. Under shaping, returns are no longer +-1 and
+# `ties_from_returns` collapses toward 0, so the guard would fire
+# spuriously and, worse, would be ignored as expected noise. RESTORE IT
+# rather than lose it:
+#
+#   REQUIRED CODE (small, pre-declared): `--no-shaping` on
+#   scripts/eval_checkpoint.py, which sets cfg.env_kwargs["hl_shaping"]=0
+#   before make_eval_env. EVERY locked-protocol eval in this rung runs
+#   with it. Then returns are +-1 again, `win_rate` and
+#   `wins_from_returns` must agree EXACTLY as in every prior run, and the
+#   headline number is produced by an eval env that is bit-for-bit the
+#   preview's. Shaping never touches a reported number.
+#   (make_eval_env cannot express this via extra_env_kwargs — it asserts
+#   no overlap with config-derived kwargs — and eval_checkpoint.py takes
+#   its config from the checkpoint, so the flag is the minimal seam.)
+#   In-training evals keep shaping on and their eval/return_mean is
+#   therefore NOT comparable across the treatment boundary; only
+#   eval/win_rate is read.
+#
+# ---------------------------------------------------------------------
+# R0 GATES (any failure voids the read; fix and relaunch)
+# ---------------------------------------------------------------------
+#
+# R0-1 FINGERPRINT: meta.yaml stamps {obs_dim: 807, encoder: v2,
+#   set_prior: true} in EVERY lane (POKEMON_RL_ENCODER_V2 is process-level
+#   and forgettable).
+# R0-2 SHAPING CORRECTNESS — the gate this rung exists to earn. Two parts,
+#   BOTH before the 3x12M launch:
+#   (a) OFFLINE, no server: replay >= 2 recorded tapes (>= 50 battles)
+#       through the shaping function from BOTH seats' perspective and
+#       assert per battle |sum_seat1 + sum_seat2| <= 1e-12. It should be
+#       EXACTLY 0.0; any nonzero value means the two seats saw different
+#       events or a different event ORDER, which is itself the finding.
+#       Also assert the term-by-term counts match a hand-parse of the raw
+#       log for one battle.
+#   (b) LIVE 10-battle smoke (~2 min, seed 29): the same two-seat
+#       assertion in-process via the discarded seat-2 reward, plus
+#       per-episode |episode_return - outcome - shaping_sum| <= 1e-9.
+#   FAILURE IS A KILL, NOT A TUNE (K3).
+# R0-3 TREATMENT IS ON / RETURN SEMANTICS: within the first 200k steps,
+#   (i) `rollout/episode_return` must NOT be +-1-valued — if every episode
+#   return is exactly +-1, hl_shaping silently did not reach the env, and
+#   that is the single most likely way this run wastes 7 hours;
+#   (ii) mean |episode_return| in [0.90, 1.25] and max |episode_return|
+#   <= 1.5 over any 100k window.
+# R0-4 EVAL PURITY: the finals eval command carries `--no-shaping`, and
+#   in its report win_rate == wins_from_returns exactly. (A disagreement
+#   now means what it always meant: a reward-sign bug.)
+# R0-5 REGIME (carried from the preview): 0-3M recorded not gated; after
+#   3M, training ties <= 4.2% and mean episode length <= 40.
+# R0-6 THROUGHPUT: >= 450 steps/s/lane against the preview's measured
+#   537/535/535 median at 3-wide (budget <= 15%). The event scan is a
+#   forward cursor over ~9 new entries per decision; the comparable scan
+#   in HISTORY_FEATURES measured 78 us/decision against embed_battle's
+#   ~1.7 ms, so the expected hit is ~1%. Verify battle PROGRESS per lane
+#   at launch, never run-dir existence.
+# R0-7 VALUE SANITY: no NaN in loss/value; loss/explained_variance > 0 by
+#   1M on >= 2/3 lanes.
+#
+# R1 LEARNING GATE (carried, and still outcome-based hence comparable):
+#   selfplay/winrate_anchor >= 0.75 by 4M on >= 2/3 seeds.
+#
+# ---------------------------------------------------------------------
+# R2 PRIMARY
+# ---------------------------------------------------------------------
+#
+# Pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol: FINAL
+# checkpoint, deterministic policy, ties as non-wins, 1000 battles/seed
+# x 3 seeds = 3000 pooled, `--no-shaping`. Read against the preview's
+# 0.3890 +- 0.0089 (seeds 10/11/12, same protocol, same encoder).
+#
+#   se_diff = sqrt(0.0089^2 + 0.0089^2) = 0.0126, so 2*se_diff = 0.0252
+#   and the two halves of the credit line coincide: the bar is +0.0252,
+#   i.e. a pooled final of >= 0.4142.
+#   CREDIT LINE (repo standing): delta >= +0.025 AND >= 2*se_diff.
+#
+# PRE-DECLARED ONE-TIME ESCALATION (declared now so it is not a post-hoc
+# choice; applied SYMMETRICALLY to both arms or not at all): if the pooled
+# delta lands in the ambiguous band [+0.015, +0.025), extend BOTH this arm
+# and the preview arm to 3000 battles/seed. The preview's finals still
+# exist (runs/showdown_sp12m_v2_s1{0,1,2}/checkpoint.pt), so this is
+# ~2 h of eval and no retraining. It halves se_diff to ~0.0073 and moves
+# the 2*se bar to +0.0146; the +0.025 half of the credit line does NOT
+# move. Used at most ONCE in this chapter.
+#
+# BRANCHES:
+#  (a) CREDIT (>= +0.025 and >= 2*se_diff): H&L's signal design IS a
+#      binder at 12M — the first credited lever in the self-play line.
+#      Rung 2 then runs ON TOP of this treatment and is read against THIS
+#      number (see the ladder rule in the Rung 2 header). The 50M
+#      combination run becomes justified and gets its own pre-registration.
+#      Attribution (gamma-only vs shaping-only) becomes payable, and is a
+#      maintainer choice between attribution and progress.
+#  (b) NULL (|delta| < 0.025): the signal design does not rescue the 12M
+#      bootstrap either. Report honestly, as the preview's null was
+#      reported. Rung 2 still runs, at gamma 1.0 / no shaping, against the
+#      SAME 0.3890 baseline. Do NOT retune magnitudes in place — that is
+#      the p-hacking path and it is closed. The only pre-declared repair
+#      is the entropy rung, and only if K1 fired.
+#  (c) NEGATIVE (delta <= -0.025): the non-cancelled objective change is a
+#      net distortion at our scale. This is a genuinely useful result —
+#      it says H&L's shaping is a 10^8-scale instrument, not a 10^7 one —
+#      and it closes this line. Rung 2 proceeds at gamma 1.0 / no shaping.
+#  (d) >= 0.4607 (best vs-SH-trained RL) => headline: a generalist
+#      matching the specialist on the specialist's board.
+#  (e) >= 0.489 (SH-mirror parity) => the strong claim; do not expect it.
+#
+# ---------------------------------------------------------------------
+# SECONDARY (recorded, none of them a read)
+# ---------------------------------------------------------------------
+# S1 SHAPING ACCOUNTING: per-episode shaping sum, decomposed into the five
+#    term counters. First measurement in this repo of how often
+#    fail/SE/resisted/immune actually fire in gen1 randbats.
+# S2 loss/explained_variance vs the preview at matched steps (prediction:
+#    higher — dense targets).
+# S3 loss/entropy trace vs the preview's 1.88 -> ~0.39-0.42.
+# S4 mean episode length and tie rate vs the preview's 26.4/27.0/27.7.
+#    A large drop with no win-rate gain is the "hurry up and trade"
+#    distortion signature and would qualify any credit.
+# S5 HEAD-TO-HEAD vs the preview's best final (s12), BOTH orientations,
+#    500/pair/orientation — the +0.018 deterministic-vs-sampling seat bias
+#    is measured, so pool orientations.
+# S6 THE `-fail` QUIRK: count lines where `-fail` names the opponent while
+#    OUR move was the failing one, i.e. how much of the fail term is paid
+#    backwards. Diagnostic only.
+#
+# ---------------------------------------------------------------------
+# KILL CRITERIA (honest, pre-stated)
+# ---------------------------------------------------------------------
+# K1 ENTROPY COLLAPSE: 3-seed median loss/entropy < 0.15 for 5 consecutive
+#    rungs before 6M -> record and stop the lane set. The ONLY pre-declared
+#    repair is the entropy_coef rung below, never a shaping magnitude
+#    change.
+# K2 VALUE BLOWUP: NaN in loss/value, or |value target| observed > 2.0 ->
+#    this is a magnitude BUG, not a finding. Kill, audit, relaunch.
+# K3 ZERO-SUM VIOLATION: R0-2 failing at any point voids the arm outright.
+#    A farmable shaping in mirror play is the one failure mode that
+#    manufactures a fake win, and it must never be diagnosed after the
+#    fact.
+# K4 Any R0 failure.
+# K5 R1 miss (winrate_anchor < 0.75 by 4M on >= 2/3 seeds) -> "fails to
+#    learn", reported as in the old scratch run.
+# AT MOST ONE repair rung is spent across K1/K2 for the whole chapter,
+# shared with Rung 2's budget.
+#
+# ---------------------------------------------------------------------
+# ENTROPY: entropy_coef STAYS 0.01 (a deliberate deviation from H&L)
+# ---------------------------------------------------------------------
+# H&L use NO entropy bonus. We keep 0.01. Reasons, in order:
+#   1. It is not part of the SIGNAL design. Discount and shaping define
+#      the objective; the entropy bonus is a regularizer on the optimizer.
+#      This rung is about the objective.
+#   2. It would be a THIRD simultaneous change, in a bundle already
+#      carrying two, at a budget where each cell costs ~7 h.
+#   3. The repo's standing entropy alarm (median < 0.15) is calibrated AT
+#      entropy_coef 0.01; dropping it invalidates the gate and its
+#      predecessors. The preview's trace (1.88 -> ~0.40, never near 0.15)
+#      is the reference curve we want to keep reading against.
+#   4. Scale asymmetry: H&L chose no-entropy at 2-3e8 decisions. At 12M
+#      (1/20th of that) premature determinism is the larger risk, not
+#      excess exploration.
+#   5. The change is a no-op in relative terms anyway: advantages are
+#      z-scored PER MINIBATCH, so the entropy term's weight against the
+#      surrogate is invariant to the discount change — there is no
+#      "gamma 0.95 makes 0.01 too strong" effect to correct for.
+# PRE-DECLARED FOLLOW-UP "SIGNAL-b" (entropy_coef 0, one 12M lane set,
+# seeds from the next free block): runs ONLY if (a) this rung credits and
+# the maintainer buys fidelity, or (b) K1 fires. Never both directions,
+# never as a rescue of a null.
+#
+# OTHER H&L SETTINGS DELIBERATELY NOT ADOPTED (recorded so the deviation
+# list is complete, all from expts/01.json): gae_lambda 0.9 (we hold 0.95
+# — lambda interacts with gamma and would widen the bundle to three;
+# note gamma*lam is already 0.9025 here vs their 0.855), clip 0.1 (we
+# hold 0.2), epochs 6 (we hold 4), minibatch 8192 (we run 1024/update in
+# 4 minibatches of 256), weight_decay 2e-6 (we hold 0), no grad clip (we
+# hold max_grad_norm 0.5), constant lr 2e-4 (we hold the preview's flat
+# 2.5e-4). These are the optimizer's shape, not the signal; changing them
+# is a separate, later, and much less interesting rung.
+#
+# ---------------------------------------------------------------------
+# BUDGET AND SEEDS
+# ---------------------------------------------------------------------
+# 12M x 3 lanes at the preview's measured 537/535/535 steps/s median
+# (3-wide) = 6.2 h; with the <=15% shaping budget, ~6.4-7.1 h wall.
+# Finals eval 3 x 1000 battles ~1 h. Optional escalation +2 h.
+# SEEDS 23/24/25 (0-22 are claimed: 0-2 lra, 3-5 lra12m, 6-8 Arm B,
+# 9 smoke, 10-12 sp12m_v2, 13 sp smoke, 14-16/17-19/20-22 reserved by the
+# warmrl draft). Seed 29 for the R0-2 live smoke. Distinct seeds are
+# MANDATORY across lanes AND arms — poke-env derives usernames from the
+# global `random` stream and a collision kills the loser at first reset
+# with a misleading "Agent is not challenging".
+#
+# CODE THAT MUST LAND (and be committed) BEFORE LAUNCH:
+#   1. `hl_shaping` kwarg on ShowdownSingles + ShowdownEnv; the cursor
+#      dict + reset() clear; the 5-term mapping above.
+#   2. `--no-shaping` on scripts/eval_checkpoint.py.
+#   3. Test stub attrs (_replay_data, player_role) + an offline unit test
+#      that IS R0-2(a).
+#   Commit docs and code BEFORE launching; launch from a clean tree —
+#   launches stamp git_dirty and one untracked file flips it.
+#
+# Launch (server on :8000 with simulator: 4; 3 lanes, staggered starts;
+# verify each lane by battle PROGRESS):
+#   POKEMON_RL_ENCODER_V2=1 WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_signal12m.yaml --seed N \
+#     --run-name showdown_sp_signal12m_sN
+env_id: Showdown-v0
+seed: 23
+total_steps: 12000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_signal12m_s23
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  hl_shaping: 1.0        # TREATMENT 2/2: scale on H&L's 5-term zero-sum
+                         # event shaping (1.0 = their magnitudes verbatim).
+                         # faint_shaping stays absent/0.0 — Arm B is closed.
+selfplay:                # identical to showdown_sp12m_v2.yaml
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 0.95            # TREATMENT 1/2: H&L (expts/01.json). Was 1.0.
+  gae_lambda: 0.95       # held at the preview's value; H&L use 0.9
+  rollout_steps: 128     # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01     # deliberate deviation from H&L's 0; see ENTROPY
+  value_coef: 0.5
+  max_grad_norm: 0.5
