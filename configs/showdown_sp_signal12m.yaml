@@ -1,8 +1,25 @@
 # =====================================================================
-# DRAFT PRE-REGISTRATION — NOT RATIFIED, NOT LAUNCHED (2026-08-07).
-# LADDER RUNG 1 of 2 in the PURE SELF-PLAY chapter (maintainer decision,
-# 2026-08-07 afternoon). Rung 2 is configs/showdown_sp_struct12m.yaml.
-# Do not launch until ratified.
+# PRE-REGISTRATION — RATIFIED with DESIGN r7 (D10–D17, 2026-08-07
+# evening), NOT YET LAUNCHED. LADDER RUNG 1 of 2 in the PURE SELF-PLAY
+# chapter. Rung 2 is configs/showdown_sp_struct12m.yaml.
+#
+# POST-RATIFICATION AMENDMENTS (same evening, before launch — D13a and
+# D10a landed after this draft was written):
+#   1. ENCODER: the chase runs on v2/808 (Stage-0 MUST_RECHARGE fix,
+#      commit 0c83339). Every "807" below reads 808; R0-1 also expects
+#      recharge_fix: true.
+#   2. COMPARATOR: 0.3890 (sp12m_v2, v2/807) is DEAD as a comparator —
+#      D13 ruled cross-semantics reads out. The baseline for both rungs
+#      is showdown_sp12m_v2r's pooled finals (same recipe, v2/808,
+#      seeds 31/32/33, launched 2026-08-07 ~15:17, reads out 2026-08-08).
+#      FILL ITS NUMBER INTO R2 BELOW before launching this arm.
+#   3. EVAL n: the locked read is 3000 battles/seed × 3 seeds (the D10a
+#      ladder n, matching the v2r comparator), superseding the 1000/seed
+#      + escalation scheme in R2 below; the escalation clause is MOOT
+#      (both arms start at 3000/seed). The credit line is unchanged:
+#      delta >= +0.025 AND >= 2*se_diff.
+#   4. SEEDS: 31-33 (v2r re-baseline) and 34 (its smoke) are now also
+#      claimed alongside the allocation listed below.
 # =====================================================================
 #
 # RUNG 1 — SIGNAL. Isolate Huang & Lee's REWARD/DISCOUNT design at 12M,
@@ -16,9 +33,10 @@
 # representation and an opponent distribution; what it did NOT have was
 # H&L's signal design. This rung supplies exactly that and nothing else.
 #
-# 0.3890 IS THE BASELINE FOR BOTH RUNGS. Same encoder, same pool, same
-# trunk, same budget, same protocol — the cleanest comparator this repo
-# has ever had for a self-play arm.
+# THE v2r RE-BASELINE (amendment 2 above) IS THE BASELINE FOR BOTH
+# RUNGS: same encoder, same pool, same trunk, same budget, same protocol
+# — the cleanest comparator this repo has ever had for a self-play arm.
+# (0.3890 was that comparator until D13a changed the encoder under it.)
 #
 # ---------------------------------------------------------------------
 # THE TREATMENT (a two-part BUNDLE, deliberately not splittable — see
@@ -240,9 +258,9 @@
 # R0 GATES (any failure voids the read; fix and relaunch)
 # ---------------------------------------------------------------------
 #
-# R0-1 FINGERPRINT: meta.yaml stamps {obs_dim: 807, encoder: v2,
-#   set_prior: true} in EVERY lane (POKEMON_RL_ENCODER_V2 is process-level
-#   and forgettable).
+# R0-1 FINGERPRINT: meta.yaml stamps {obs_dim: 808, encoder: v2,
+#   set_prior: true, recharge_fix: true} in EVERY lane
+#   (POKEMON_RL_ENCODER_V2 is process-level and forgettable).
 # R0-2 SHAPING CORRECTNESS — the gate this rung exists to earn. Two parts,
 #   BOTH before the 3x12M launch:
 #   (a) OFFLINE, no server: replay >= 2 recorded tapes (>= 50 battles)
@@ -284,9 +302,11 @@
 # ---------------------------------------------------------------------
 #
 # Pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol: FINAL
-# checkpoint, deterministic policy, ties as non-wins, 1000 battles/seed
-# x 3 seeds = 3000 pooled, `--no-shaping`. Read against the preview's
-# 0.3890 +- 0.0089 (seeds 10/11/12, same protocol, same encoder).
+# checkpoint, deterministic policy, ties as non-wins, 3000 battles/seed
+# x 3 seeds = 9000 pooled (amendment 3; was 1000/seed), `--no-shaping`.
+# Read against showdown_sp12m_v2r's pooled finals at the same protocol
+# (amendment 2; the number lands here before this arm launches):
+#   v2r pooled = ______ +- ______  (seeds 31/32/33, v2/808)
 #
 #   se_diff = sqrt(0.0089^2 + 0.0089^2) = 0.0126, so 2*se_diff = 0.0252
 #   and the two halves of the credit line coincide: the bar is +0.0252,

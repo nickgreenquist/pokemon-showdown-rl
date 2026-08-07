@@ -1,8 +1,20 @@
 # =====================================================================
-# DRAFT PRE-REGISTRATION — NOT RATIFIED, NOT LAUNCHED (2026-08-07).
-# LADDER RUNG 2 of 2 in the PURE SELF-PLAY chapter. Rung 1 is
-# configs/showdown_sp_signal12m.yaml and MUST HAVE READ OUT before this
-# launches (see THE LADDER RULE). Do not launch until ratified.
+# PRE-REGISTRATION — RATIFIED with DESIGN r7 (D10–D17, 2026-08-07
+# evening), NOT YET LAUNCHED. LADDER RUNG 2 of 2 in the PURE SELF-PLAY
+# chapter. Rung 1 is configs/showdown_sp_signal12m.yaml and MUST HAVE
+# READ OUT before this launches (see THE LADDER RULE).
+#
+# POST-RATIFICATION AMENDMENTS (mirror of Rung 1's; D13a/D10a):
+#   1. ENCODER: the chase runs on v2/808 (Stage-0 MUST_RECHARGE fix,
+#      commit 0c83339). Every "807" below reads 808, "827" reads 828,
+#      "vec[:807]" reads "vec[:808]"; fingerprints also expect
+#      recharge_fix: true.
+#   2. COMPARATOR: every "0.3890" below is DEAD (cross-semantics, D13).
+#      The baseline is showdown_sp12m_v2r's pooled finals (v2/808, seeds
+#      31/32/33) — or Rung 1's finals if Rung 1 credits, per THE LADDER
+#      RULE, which is unchanged.
+#   3. EVAL n: locked reads at 3000 battles/seed × 3 (D10a ladder n),
+#      superseding any 1000/seed figure below.
 # =====================================================================
 #
 # RUNG 2 — STRUCTURE. Isolate H&L's NETWORK at 12M: entity embeddings +

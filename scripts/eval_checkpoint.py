@@ -88,10 +88,26 @@ def main() -> None:
         help="cross-play: a second checkpoint drives seat 2 instead of the "
         "config's eval_opponent (Showdown only)",
     )
+    parser.add_argument(
+        "--no-shaping",
+        action="store_true",
+        help="zero hl_shaping from the checkpoint's env_kwargs before "
+        "building the eval env. REQUIRED for every locked-protocol eval of "
+        "a shaped (Rung 1+) checkpoint: returns become ±1 again, so the "
+        "wins_from_returns cross-check — the standing guard against a "
+        "reward-sign inversion — must agree with win_rate EXACTLY (R0-4), "
+        "and the headline is produced by an env bit-for-bit the control's. "
+        "make_eval_env cannot express this via extra kwargs (it asserts no "
+        "overlap with config-derived kwargs), so this flag is the seam.",
+    )
     args = parser.parse_args()
 
     ckpt = load_checkpoint(args.checkpoint)
     cfg = Config(**ckpt["config"])
+    if args.no_shaping:
+        cfg = dataclasses.replace(
+            cfg, env_kwargs={**cfg.env_kwargs, "hl_shaping": 0.0}
+        )
     if args.opponent:
         sp = dict(cfg.selfplay)
         sp["eval_opponent"] = args.opponent
@@ -146,6 +162,10 @@ def main() -> None:
     }
     if args.opponent_checkpoint:
         report["opponent_checkpoint"] = args.opponent_checkpoint
+    if args.no_shaping:
+        # Audit trail for R0-4: the locked eval of a shaped checkpoint must
+        # carry this flag, and the report is where that is checked.
+        report["no_shaping"] = True
     text = json.dumps(report, indent=2)
     print(text)
     if args.out:

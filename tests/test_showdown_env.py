@@ -65,6 +65,12 @@ def _battle(won, mine=(), theirs=()):
         lost=lost,
         team={i: SimpleNamespace(fainted=f) for i, f in enumerate(mine)},
         opponent_team={i: SimpleNamespace(fainted=f) for i, f in enumerate(theirs)},
+        # Explicit per the stub rule (read directly, never getattr-defaulted).
+        # Note this stub stays unhashable (SimpleNamespace defines __eq__),
+        # so it can only travel the shaping-off path — which is the point of
+        # the tests that use it.
+        _replay_data=[],
+        player_role="p1",
     )
 
 
@@ -744,6 +750,11 @@ class _ShapingBattle:
         self.opponent_team = {i: SimpleNamespace(fainted=False) for i in range(6)}
         self.won = self.lost = None
         self.finished = False
+        # Read directly by the hl_shaping path, never getattr-defaulted
+        # (the HISTORY_FEATURES stub rule): the protocol event log and this
+        # seat's role, exactly as poke-env exposes them.
+        self._replay_data = []
+        self.player_role = "p1"
         self.faint(mine, theirs)
 
     def faint(self, mine, theirs):
@@ -832,11 +843,131 @@ def test_reset_clears_potentials_so_they_cannot_leak_into_the_next_battle(monkey
 
 def test_env_kwargs_reach_the_inner_env_through_the_factory():
     """The config seam: `env_kwargs` in the run YAML must arrive at
-    ShowdownSingles, or Arm B would launch, train and report as the control
-    with nothing looking wrong."""
-    env = ShowdownEnv(opponent="random", faint_shaping=0.1)
+    ShowdownSingles, or Arm B (or Rung 1) would launch, train and report as
+    the control with nothing looking wrong."""
+    env = ShowdownEnv(opponent="random", faint_shaping=0.1, hl_shaping=1.0)
     assert env._env.env.faint_shaping == 0.1
+    assert env._env.env.hl_shaping == 1.0
     env.close()
+
+
+# --- Rung 1: H&L 5-term zero-sum event shaping -----------------------------
+#
+# Constants and attribution rule from metagrok expts/01.json /
+# reward_shaper.py::NewRewardShaper (see _HL_WEIGHTS in rl/envs/showdown.py).
+# These unit tests plus tests/test_hl_shaping_tapes.py (real recorded
+# protocol, both seats) are R0-2(a) of configs/showdown_sp_signal12m.yaml;
+# R0-2(b) is the live smoke.
+
+
+def _ev(tag, ident):
+    """One _replay_data entry: a poke-env split message."""
+    return ["", tag, ident]
+
+
+def test_hl_shaping_is_off_by_default():
+    env = ShowdownSingles(start_listening=False)
+    assert env.hl_shaping == 0.0
+    # Bit-for-bit the control reward path; stub carries no events to read.
+    assert env.calc_reward(_battle(True)) == 1.0
+
+
+def test_hl_event_attribution_signs_and_magnitudes():
+    """The exact table from the Rung 1 pre-registration, from p1's seat:
+    named side gets w, the other side -w. Includes the |-fail| quirk —
+    Showdown names the Pokemon the failed action was AIMED AT, so our
+    failed status move (line names THEM) pays US +0.005, reproduced
+    verbatim on purpose."""
+    env = ShowdownSingles(start_listening=False, hl_shaping=1.0)
+    battle = _ShapingBattle()
+    for tag, ident, expected in [
+        ("faint", "p1a: Snorlax", -0.0125),
+        ("faint", "p2a: Tauros", 0.0125),
+        ("-fail", "p2a: Slowbro", 0.005),
+        ("-fail", "p1a: Chansey", -0.005),
+        ("-supereffective", "p1a: Rhydon", -0.0025),
+        ("-supereffective", "p2a: Zapdos", 0.0025),
+        ("-resisted", "p1a: Starmie", 0.0025),
+        ("-resisted", "p2a: Gengar", -0.0025),
+        ("-immune", "p1a: Gengar", 0.005),
+        ("-immune", "p2a: Golem", -0.005),
+    ]:
+        battle._replay_data.append(_ev(tag, ident))
+        assert env.calc_reward(battle) == expected, (tag, ident)
+    # Non-scoring protocol noise pays nothing, including the short win/tie
+    # entries poke-env also appends to _replay_data.
+    battle._replay_data += [["", "tie"], ["", "win", "somename"], _ev("move", "p1a: Snorlax")]
+    assert env.calc_reward(battle) == 0.0
+
+
+def test_hl_events_are_consumed_exactly_once():
+    """The cursor rule that survives the wait pump: however many events
+    arrive between calc_reward calls, each is paid exactly once, and a call
+    with nothing new pays exactly zero."""
+    env = ShowdownSingles(start_listening=False, hl_shaping=1.0)
+    battle = _ShapingBattle()
+    battle._replay_data += [_ev("faint", "p2a: Tauros"), _ev("-supereffective", "p2a: Tauros")]
+    assert env.calc_reward(battle) == pytest.approx(0.015)
+    assert env.calc_reward(battle) == 0.0
+    battle._replay_data.append(_ev("faint", "p1a: Snorlax"))
+    assert env.calc_reward(battle) == -0.0125
+
+
+def test_hl_two_seats_negate_exactly():
+    """The safety argument in unit form: the same event sequence read from
+    the two seats sums to EXACTLY 0.0 — not approximately. IEEE negation
+    and addition are sign-symmetric, so seat 2's partial sums are the exact
+    negatives of seat 1's; R0-2 gates on == 0.0 and so does this test."""
+    env = ShowdownSingles(start_listening=False, hl_shaping=1.0)
+    events = [
+        _ev("faint", "p1a: Snorlax"), _ev("-supereffective", "p2a: Tauros"),
+        _ev("-fail", "p2a: Slowbro"), _ev("-resisted", "p1a: Starmie"),
+        _ev("-immune", "p2a: Golem"), _ev("faint", "p2a: Tauros"),
+        _ev("-fail", "p1a: Chansey"),
+    ]
+    seat1, seat2 = _ShapingBattle(), _ShapingBattle()
+    seat2.player_role = "p2"
+    seat1._replay_data = list(events)
+    seat2._replay_data = list(events)
+    r1, r2 = env.calc_reward(seat1), env.calc_reward(seat2)
+    assert r1 != 0.0  # the events did carry signal
+    assert r1 + r2 == 0.0  # exact
+
+
+def test_hl_scale_and_terminal_composition():
+    """hl_shaping is a SCALE on the table, and the terminal frame's events
+    (the deciding faint) ride on top of the ±1 outcome."""
+    env = ShowdownSingles(start_listening=False, hl_shaping=0.5)
+    battle = _ShapingBattle()
+    battle._replay_data.append(_ev("faint", "p2a: Tauros"))
+    assert env.calc_reward(battle) == pytest.approx(0.00625)
+    battle._replay_data.append(_ev("faint", "p1a: Snorlax"))
+    battle.finish(True)
+    assert env.calc_reward(battle) == pytest.approx(1.0 - 0.00625)
+
+
+def test_hl_composes_with_faint_shaping_through_the_shared_tail():
+    """No ratified config sets both levers, but the code composes them and
+    the restructured reward tail must be right: the potential differences
+    against `reward` (outcome + hl term), and the terminal cancellation
+    still removes exactly the accumulated potential."""
+    env = ShowdownSingles(start_listening=False, faint_shaping=0.1, hl_shaping=1.0)
+    battle = _ShapingBattle()
+    battle._replay_data.append(_ev("faint", "p2a: Tauros"))
+    assert env.calc_reward(battle.faint(0, 1)) == pytest.approx(0.0125 + 0.1)
+    assert env.calc_reward(battle.finish(True)) == pytest.approx(1.0 - 0.1)
+
+
+def test_hl_cursor_cleared_on_reset(monkeypatch):
+    env = ShowdownSingles(start_listening=False, hl_shaping=1.0)
+    battle = _ShapingBattle()
+    battle._replay_data.append(_ev("faint", "p2a: Tauros"))
+    env.calc_reward(battle)
+    assert env._event_cursor
+    sentinel = ("obs", {})
+    monkeypatch.setattr(SinglesEnv, "reset", lambda self, seed=None, options=None: sentinel)
+    assert env.reset() == sentinel
+    assert not env._event_cursor
 
 
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")

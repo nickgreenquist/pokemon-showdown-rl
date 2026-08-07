@@ -431,8 +431,65 @@ def _opponent_move_slots(theirs):
     return slots
 
 
+# --- Rung 1 (SIGNAL): Huang & Lee's 5-term zero-sum event shaping ----------
+#
+# Constants are metagrok `expts/01.json` VERBATIM (yuzeh/metagrok, MIT;
+# local clone at ../metagrok) — they are absent from the paper. Attribution
+# rule is `metagrok/pkmn/reward_shaper.py::NewRewardShaper` with
+# zero_sum=True: a protocol line names one side's Pokemon
+# ("|faint|p1a: Snorlax"); the named seat receives w and the other seat
+# exactly -w. The four dash-tags are all in poke-env's MESSAGES_TO_IGNORE,
+# so `battle._replay_data` (appended BEFORE the ignore filter) is the only
+# place they survive; |faint| is not ignored but is read from the same log
+# to keep ONE code path and one attribution rule
+# (prior_work/HISTORY_FEATURES_DESIGN.md).
+#
+# The |-fail| quirk is reproduced on purpose: Showdown names the Pokemon the
+# failed action was AIMED AT, so our status move failing against an already-
+# statused foe pays US +w. Verbatim fidelity to the one verified recipe is
+# the point of Rung 1; the term stays exactly zero-sum so it cannot be
+# farmed in mirror play (S6 tracks the rate; correcting it is a follow-up
+# only if the arm credits).
+_HL_WEIGHTS = {
+    "faint": -0.0125,
+    "-fail": -0.005,
+    "-supereffective": -0.0025,
+    "-resisted": 0.0025,
+    "-immune": 0.005,
+}
+
+
+def hl_event_sum(events, who: str, start: int = 0) -> float:
+    """Signed H&L event sum over `events[start:]` from seat `who`'s view
+    (`who` in {"p1", "p2"}). Entries are poke-env split messages
+    ["", tag, "p1a: Snorlax", ...]; entries shorter than 3 fields
+    (["", "tie"], ["", "win", name]) are skipped. Antisymmetry is EXACT in
+    IEEE 754 — negation and addition are sign-symmetric, so the p2 sum over
+    the same events is bit-for-bit the negated p1 sum. The R0-2 gates
+    (offline tape test + live smoke) assert that rather than argue it."""
+    total = 0.0
+    for entry in events[start:]:
+        if len(entry) < 3:
+            continue
+        w = _HL_WEIGHTS.get(entry[1])
+        if w is not None:
+            total += w if entry[2].startswith(who) else -w
+    return total
+
+
 class ShowdownSingles(SinglesEnv):
     """The two-seat poke-env env: encoder + reward, no opponent knowledge.
+
+    `hl_shaping` (0.0 = off) adds Huang & Lee's NON-CANCELLED zero-sum event
+    shaping (Rung 1 treatment; constants and rule above): each of the five
+    protocol events pays ±hl_shaping*w the step it is consumed, attributed
+    per seat from `battle._replay_data` behind a per-battle cursor. Unlike
+    `faint_shaping` below it is a genuine change to the objective — no
+    telescoping, no policy invariance. Its safety argument is symmetry, not
+    cancellation: in mirror self-play both seats run the identical rule and
+    every +delta harvested hands -delta to a copy of yourself. The two
+    levers are independent and mutually exclusive in practice (Arm B is
+    closed; no ratified config sets both).
 
     `faint_shaping` (0.0 = off, the shape every run before Arm B trained on)
     adds POTENTIAL-BASED faint shaping on top of the terminal ±1:
@@ -473,11 +530,19 @@ class ShowdownSingles(SinglesEnv):
         *,
         battle_format: str = "gen1randombattle",
         faint_shaping: float = 0.0,
+        hl_shaping: float = 0.0,
         **kwargs,
     ):
         super().__init__(battle_format=battle_format, **kwargs)
         self._type_chart = GenData.from_format(battle_format).type_chart
         self.faint_shaping = faint_shaping
+        self.hl_shaping = hl_shaping
+        # Next unconsumed index into each battle's _replay_data, keyed by the
+        # battle OBJECT for the same reason as _faint_potential below (the
+        # two seats share a battle_tag). Advanced to len(_replay_data) on
+        # every calc_reward call, so each event is consumed exactly once per
+        # seat no matter how the wait pump batches steps; cleared at reset.
+        self._event_cursor: dict[object, int] = {}
         # Phi(s) for the CURRENT state of each live battle, keyed by the
         # battle OBJECT: calc_reward is called once per step for each seat's
         # own battle, and the two share a battle_tag, so any key derived from
@@ -496,8 +561,10 @@ class ShowdownSingles(SinglesEnv):
         }
 
     def reset(self, seed=None, options=None):
-        # Potentials are per-battle and must not survive into the next one.
+        # Potentials and cursors are per-battle and must not survive into
+        # the next one.
         self._faint_potential.clear()
+        self._event_cursor.clear()
         return super().reset(seed=seed, options=options)
 
     def calc_reward(self, battle) -> float:
@@ -505,11 +572,22 @@ class ShowdownSingles(SinglesEnv):
         # decides the game, so the outcome term is nonzero exactly once, at
         # the end.
         outcome = 1.0 if battle.won else -1.0 if battle.lost else 0.0
-        if not self.faint_shaping:
-            # Bit-for-bit the pre-Arm-B reward, and the only path any
-            # existing config takes. Also the reason nothing below needs to
+        if not self.faint_shaping and not self.hl_shaping:
+            # Bit-for-bit the pre-shaping reward, and the only path any
+            # control config takes. Also the reason nothing below needs to
             # tolerate the reward-only stub battles the offline tests build.
             return outcome
+        reward = outcome
+        if self.hl_shaping:
+            # The terminal frame is parsed before the terminal calc_reward
+            # runs (battle_queue.race_get returns post-parse), so a deciding
+            # |faint| is already in _replay_data here — R0-2(b) proves it.
+            events = battle._replay_data
+            start = self._event_cursor.get(battle, 0)
+            reward += self.hl_shaping * hl_event_sum(events, battle.player_role, start)
+            self._event_cursor[battle] = len(events)
+        if not self.faint_shaping:
+            return reward
         previous = self._faint_potential.pop(battle, 0.0)
         if battle.finished:
             # Phi(terminal) := 0, so the transition INTO it emits -Phi(s),
@@ -519,13 +597,13 @@ class ShowdownSingles(SinglesEnv):
             # (this env remaps every decided finish to terminal, so the two
             # cannot be confused, but the condition is written on the game's
             # state and not on the flag either way).
-            return outcome - previous
+            return reward - previous
         potential = self.faint_shaping * (
             sum(mon.fainted for mon in battle.opponent_team.values())
             - sum(mon.fainted for mon in battle.team.values())
         )
         self._faint_potential[battle] = potential
-        return outcome + potential - previous
+        return reward + potential - previous
 
     def embed_battle(self, battle) -> np.ndarray:
         return embed_battle(battle, self._type_chart)
@@ -697,6 +775,7 @@ class ShowdownEnv(Env):
         render_mode: str | None = None,
         save_replays: bool | str = False,
         faint_shaping: float = 0.0,
+        hl_shaping: float = 0.0,
     ):
         # save_replays (False | True | directory) is poke-env's native replay
         # dump: each finished battle is written as a Showdown replay HTML
@@ -707,6 +786,7 @@ class ShowdownEnv(Env):
             battle_format=battle_format,
             save_replays=save_replays,
             faint_shaping=faint_shaping,
+            hl_shaping=hl_shaping,
         )
         player = opponent_player(opponent, battle_format)
         # isinstance, not getattr: a pool-backed opponent gets outcome
