@@ -1661,3 +1661,58 @@ entry by offset — never a broad keyword grep.
   - **Encoder fingerprint stamped (f1cb74b):** `ENCODER_FINGERPRINT` {obs_dim, encoder
     v1/v2, set_prior} written into Showdown runs' meta.yaml and bc_metrics.json — closes the
     audit's "nothing records which obs semantics a checkpoint trained under" flag.
+
+- 2026-08-06 (23:45) — TRANCHE 2 LANDED AND THE PROBE ANSWERED: **THE v2 FOUL-PLAY CLONE
+  SCORES 0.558 vs SH — THE FIRST AGENT IN THIS REPO PAST SIMPLEHEURISTICS.**
+
+  **COLLECTION.** 6,000/6,000 battles (3 lanes x 2,000, seeds/usernames distinct, 0 errors,
+  ~5.9-6.4 s/battle/lane). FP pooled 4,981-1,019 = **0.8302** (n=6,000); with tranche 1 the
+  teacher stands at **0.8307 (n=7,200)**. Reconstruction ran as ONE invocation per encoder
+  over a symlinked union of both tranches' tapes — `id_base` restarts at 0 per invocation, so
+  separate runs would have collided battle_ids and corrupted the by-battle holdout (checked
+  before it happened, not after). **180,440 rows / 7,200 battles, ids 0-7199 unique, all six
+  gates PASS under both encoders.**
+
+  **AGREEMENT CURVE** (soft targets, seed 0, fresh split: val 18,201 decisions / 718 battles):
+
+      rows     v1      v2
+      60k    0.4375  0.4727
+     120k    0.4669  0.4965
+     180k    0.4860  0.5147
+
+  Still ~+3 pts/doubling at 180k, no saturation; v2's edge stable at ~+3 pts. Against the
+  measured teacher self-greedy bound of 0.892 (audit entry), 0.5147 is ~65% of the realistic
+  ceiling — a different regime from yesterday's 0.42-vs-0.86 misreading.
+
+  **WIN RATES vs SH** (n=1,000 each, final checkpoint, deterministic, ties as non-wins;
+  `eval/win_rate` == `wins_from_returns` in all three; PROBE protocol — single fit seed, not
+  the locked 3-seed board):
+
+      v1 @ 180k rows   0.451 ± 0.016
+      v2 @ 120k rows   0.515 ± 0.016
+      v2 @ 180k rows   **0.558 ± 0.016**
+
+  Readings: (1) v2@180k clears the ENTIRE board — SH clone 0.4657, best RL 0.4607, SH-mirror
+  parity 0.489 (z ≈ +4.4 over parity). (2) **Encoder v2 is worth +0.107 win rate at 180k**
+  (0.451 → 0.558, z ≈ 4.8) — ~3.5x its agreement delta; with v1, 180k rows had still not
+  cleared the old clone bar. The representation was the binder, exactly as the audit argued.
+  (3) Win-rate slope 120k→180k ≈ +7 pts/doubling — conversion is SUPERLINEAR in agreement
+  (+2.9 agreement bought +4.3 win rate). The open question from the 30k entry ("does
+  agreement convert fast enough to ever clear 0.4657") is answered: it cleared at 120k.
+
+  **CAVEATS, owed before this becomes a headline row:** single fit seed (locked protocol
+  wants 3); demonstrations are FP-vs-SH games, so the clone's state distribution is
+  SH-conditioned — the TEACHER is measured non-SH-specific (0.876/0.872) but the CLONE's
+  off-SH strength is not yet: run both-orientation head-to-heads (v2 clone vs SH clone / vs
+  best RL / vs FP) next session.
+
+  **IMPLICATION (maintainer's call, but the branch fired):** the pre-stated probe decision
+  rule says commit P4-scale collection with the winning encoder — ~35k battles ≈ 900k rows ≈
+  19.7 h at 3-wide. Naive log-linear extrapolation lands agreement ~0.58 and win rate well
+  past 0.6 at P4 scale; bank the slope, not the extrapolation.
+
+  **ALSO RUNNING:** the pre-registered self-play preview (configs/showdown_sp12m_v2.yaml,
+  seeds 10/11/12, every lane's meta stamped v2/807, smoke at 573 steps/s vs the old 583
+  baseline) launched at ~23:07 and owns the box overnight; R2 reads against the 0.3800
+  record in the morning. Server-sharing note: the three clone evals ran during the SP lanes'
+  first half hour — if any SP R0 throughput read looks marginal, exclude that window.
