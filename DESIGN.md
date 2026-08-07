@@ -1,9 +1,10 @@
 # DESIGN — the roadmap after the pivot
 
-**Status: r7 PROPOSED 2026-08-07 — drafted at maintainer request the same afternoon as the
-pivot decision; NOT ratified.** §7's decision list (D10–D17) is the ratification agenda. r6's
-D1–D7 remain ratified and still bind wherever r7 does not supersede them; §8 names exactly
-what carries. Lifecycle unchanged: each item's pre-registration moves into its config header
+**Status: r7 RATIFIED 2026-08-07 (maintainer review, same day as drafted) — D10–D17 binding,
+all per the inline recommendations: D10(a) M3 is the success claim, D11(a), D12(b), D13(a)
+Stage-0 MUST_RECHARGE fix lands and the 0.3890 comparator re-baselines, D14(a), D15(b),
+D16(a), D17(a).** r6's D1–D7 remain ratified and still bind wherever r7 does not supersede
+them; §8 names exactly what carries. Lifecycle unchanged: each item's pre-registration moves into its config header
 (the `configs/showdown_sp12m_v2.yaml` pattern) as it is built, STATUS.md tracks execution,
 and this file is deleted once its content has fully migrated.
 
@@ -438,6 +439,9 @@ the self-play chase claims **23 upward**. Distinct seeds across lanes AND arms i
 not a preference.
 
 ## 7. DECISIONS FOR THIS REVIEW (D10–D17)
+
+**RATIFIED 2026-08-07: all eight adopted per recommendation — D10(a), D11(a), D12(b),
+D13(a), D14(a), D15(b), D16(a), D17(a).**
 
 Numbering continues from r6/§11's D1–D9. Each with options and the author's recommendation.
 

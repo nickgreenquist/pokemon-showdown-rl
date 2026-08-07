@@ -1848,3 +1848,17 @@ entry by offset — never a broad keyword grep.
   the value-target-bound question at gamma 0.95 (|V| <~ 1.15, value loss +<~15%).
 
   Everything through this entry is pushed to origin/main.
+
+- 2026-08-07 (late evening) — **DESIGN r7 RATIFIED. All eight decisions adopted per the
+  inline recommendations** (maintainer review, structured Q&A): **D10(a)** ladder as written,
+  M1 0.4400 go/no-go, **M3 0.510 is the success claim**, M2 parity the headline if M3 misses;
+  **D11(a)** purity definition incl. design-time disclosure; **D12(b)** Rung-0 measurement
+  evening first, Rung 1 immediately at today's loop speed; **D13(a) the MUST_RECHARGE Stage-0
+  fix LANDS NOW and the 0.3890 comparator RE-BASELINES** (one extra overnight, whole chase on
+  one encoder); **D14(a)** throughput measurement only, cheap wins authorized later on their
+  numbers; **D15(b)** rented many-core CPU box for Rung 3 only, gated on Rung 0's
+  decomposition; **D16(a)** keep the opponent pool (recorded deviation from H&L/ps-ppo pure
+  mirror); **D17(a)** abandon criterion as written (below M1 after Rungs 1+2+50M, or >20
+  lane-days, or >8 weeks; on abandon warmrl resumes and the negative publishes with a scale
+  bound). Consequences now binding: tonight = Stage-0 fix + 3×12M control re-run on the fixed
+  encoder (new comparator replaces 0.3890); Rung 1 launches the night after.
