@@ -20,7 +20,7 @@ preview (sp12m_v2, s10/11/12) runs overnight vs the 0.3800 bar.
 | **Foul Play (+patch) — teacher; SHIPPED bot** | **0.8307** (n=7,200)* |
 | Foul Play vs our best RL / vs BC-clone-of-SH | **0.876 / 0.872** (n=250 each)* |
 | BC-of-FP, v1 encoder: 30k / 180k rows | 0.3683 / 0.451* |
-| **BC-of-FP, v2 encoder: 120k / 180k rows — PAST SH** | 0.515 / **0.558 ± 0.016*** |
+| **BC-of-FP, v2, 120k/180k — PAST SH** (val-peak ckpt) | 0.515 / 0.558 / **0.569*** |
 
 **LADDER TRANSLATION (derivation atop `prior_work/README.md`).** SH is 39.7/41.2% GXE on
 gen7/gen9 randbats → 0.489 parity ≈ 40% GXE; the pure-policy field STARTS at 72%. D7(a)
@@ -33,9 +33,9 @@ are cross-format extrapolations.
    fired: agreement 0.5147 still climbing +3 pts/doubling; win rate 0.515→0.558 over one
    half-doubling (+7 pts/doubling, superlinear in agreement); v2 credited in win-rate terms
    (+0.107, z≈4.8). P4-scale = ~35k battles ≈ 900k rows ≈ **19.7 h at 3-wide** with v2.
-1. **Protocol-grade the milestone:** 2 more BC fit seeds + n=3000 re-eval of v2@180k; then
-   both-orientation head-to-heads (v2 clone vs SH clone / vs best RL / vs Foul Play) — the
-   clone's off-SH strength is unmeasured (demos are FP-vs-SH states; the teacher's is not).
+1. **Protocol-grade the milestone:** refit 180k WITH early stopping (final==best; the 0.569
+   val-peak read carries a selection caveat) + 2 more fit seeds + n=3000; head-to-heads owed.
+   900k fit recipe settled: soft-BC + value-coef 0.5 (prior_work/DISTILLATION_OBJECTIVES.md).
 2. **Read the self-play preview** (R0 → R1 by 4M → R2 finals vs 0.3800; tree in the config
    header). Launched 23:07, ~7 h; clone evals shared the server in its first half hour.
 3. **MAINTAINER DECISION — push or not.** `main` is well ahead of `origin/main`; never asked.

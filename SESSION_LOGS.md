@@ -1716,3 +1716,52 @@ entry by offset — never a broad keyword grep.
   baseline) launched at ~23:07 and owns the box overnight; R2 reads against the 0.3800
   record in the morning. Server-sharing note: the three clone evals ran during the SP lanes'
   first half hour — if any SP R0 throughput read looks marginal, exclude that window.
+
+- 2026-08-07 (morning) — FIVE-AGENT RESEARCH SWEEP while the SP preview trains. Deliverables
+  committed; findings that changed numbers or plans:
+
+  **1. NEW BEST NUMBER: 0.569 ± 0.016 vs SH** — the 180k v2 fit's VAL-PEAK checkpoint
+  (epoch 7, agreement 0.5147) had never been evaluated; the 0.558 was the OVERFIT final
+  epoch (agreement 0.4949; train KL ~0.185 vs val 0.738). Carries a best-checkpoint
+  selection caveat; the protocol fix is early stopping so final == best — MANDATORY for the
+  900k fit (`prior_work/DISTILLATION_OBJECTIVES.md`).
+
+  **2. THE 900k FIT'S OBJECTIVE IS SETTLED BY MEASUREMENT: soft-target BC stays.** Teacher
+  advantage of the taken action computed from our own tapes: 97.1% positive, exp(0.5·A) in
+  [1.000, 1.036] — Metamon-style weighted/filtered/offline-RL variants are numerically inert
+  on this data (their gain came from discarding 55-85% of mixed-quality human rows). ExIt
+  (NeurIPS 2017) measured soft-vs-hard = +50 ± 13 Elo at IDENTICAL agreement — our own
+  soft-vs-hard agreement tie was not evidence against soft. Adopted: early stopping,
+  --value-coef 0.5 (critic pretraining; zero actor coupling — donor
+  runs/bc_fp_v2_soft_val_180k_s0 fitted, held-out value R^2 0.661). Gated add-on: one DAgger
+  round (~100k relabels ≈ 2.2 h) iff a ~5k-decision covariate-shift diagnostic fires.
+
+  **3. HUANG & LEE 2019 VERIFIED — the citation survives better than any ladder row** (full
+  entry + archived PDF in prior_work; metagrok cloned as sibling). Pure mirror self-play,
+  2-3×10⁸ decisions, ~$91. Extracted from code, absent from the paper: gamma 0.95 + 5-term
+  ZERO-SUM shaping, no entropy bonus, and a per-action shared scoring head over 128-d entity
+  embeddings — NOT a flat MLP. Index's guessed title was a different paper (fixed).
+
+  **4. ARCHITECTURE SCREEN SPEC'D AND PRICED** (`prior_work/ARCH_SCREEN_SPEC.md`): 21-token
+  reshape inside the network, d128/L2 pointer trunk at 0.73× MLP params, measured 34.6×
+  CPU train-step cost (fits still affordable: ~18 min at 180k), decision rule pre-sketched.
+  Inverts a standing note: for this trunk the UPDATE is ~55-60% of the RL loop, not collect.
+
+  **5. HISTORY FEATURES NEED ZERO NEW STATE** (`prior_work/HISTORY_FEATURES_DESIGN.md`):
+  poke-env's `_replay_data` is an always-on event log shared by both encode paths (divergence
+  impossible by construction; -crit/-supereffective/-miss/cant recoverable from nowhere
+  else). 22-dim suffix block spec'd with measured firing rates. AND A LIVE ENCODER BUG:
+  `Effect.MUST_RECHARGE` in `_VOLATILES` is STRUCTURALLY ALWAYS 0 (v1 and v2; poke-env sets
+  `mon.must_recharge`, never the Effect — 0/2,427 vs 185/2,427 measured), so recharge and
+  partial-trap placeholder turns encode as all-zero move blocks with no indicator why.
+  PARTIALLY_TRAPPED-as-Effect also never fires. Fix is 2 dims (bool + aliased flag),
+  pre-registered as Stage-0 with the history screen — NOT hotfixed (obs semantics change).
+
+  **6. WARM-RL PRE-REGISTRATION DRAFTED AND COMMITTED** (`configs/showdown_warmrl_v2.yaml`,
+  DRAFT — not ratified): one new variable (bc_kl_coef, anchored ladder {0.03/0.10/0.30}),
+  SH held out of training (first time vs-SH is admissible as a held-out primary), donor
+  gates measured, F1 SH-exploitation falsifier, K1-K4 kills, seeds 14-22 claimed.
+
+  SP preview meanwhile: R1 LEARNING GATE PASSED on all seeds (winrate_anchor 0.94-0.95 at
+  ~3.7M vs the 0.75 bar); in-training rungs ~0.30-0.40 vs SH at 3.7M — hovering near the OLD
+  run's FINAL (0.380) at a third of the budget. Finals ~13:00.
