@@ -2,59 +2,59 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-06 23:45 — the probe answered)
+## Where things stand (2026-08-07 — THE PIVOT)
 
-DESIGN r6 RATIFIED (D1–D7). Suite 243 green. **v2 FP clone past SH: 0.558 final / 0.569
-val-peak (probe reads)**; teacher 0.8307 (n=7,200); encoder v2 = +0.107 win rate at matched
-data in BC — and +0.009 (null) in scratch self-play, the instructive contrast. Research
-sweep 2026-08-07 landed 3 tracked analyses + the warmrl draft pre-reg.
+**Maintainer decision: pure from-scratch self-play in gen1randombattle is the main chase**
+(novelty over strength; revocable). **DESIGN r7 PROPOSED — D10–D17 await ratification.**
+FP/BC chapter BANKED (eval anchors + fallback): teacher 0.8307 (n=7,200), tapes 180k rows,
+v2 clone 0.558/0.569*, warmrl draft on ice. Suite 243 green. Pushed through 19a62c2.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
-## *Starred rows are NOT locked-protocol: scouting/probe reads.)
+## *Starred rows are probe reads: 1 fit seed and/or n=1000.)
 
 | result | win rate |
 |---|---|
-| PPO 12M flat / **+LR anneal — best RL** (6M rows: logs) | 0.4330 / **0.4607** |
-| Scratch self-play 12M: v1+broken pool / v2+fixed pool | 0.3800 / 0.3890 — **null, z +0.7** |
-| BC clone of SH (P4, 813k rows) | **0.4657** re-scored in-repo |
+| PPO 12M flat / **+LR anneal — best vs-SH-trained RL** | 0.4330 / **0.4607** |
+| **Scratch self-play 12M: v1+broken pool / v2+fixed pool** | **0.3800 / 0.3890** (null, z +0.7) |
+| BC clone of SH (P4, 813k rows) | **0.4657** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
-| **Foul Play (+patch) — teacher; SHIPPED bot** | **0.8307** (n=7,200)* |
-| Foul Play vs our best RL / vs BC-clone-of-SH | **0.876 / 0.872** (n=250 each)* |
-| BC-of-FP, v1 encoder: 30k / 180k rows | 0.3683 / 0.451* |
-| **BC-of-FP, v2, 120k/180k — PAST SH** (val-peak ckpt) | 0.515 / 0.558 / **0.569*** |
+| Foul Play (+patch) — teacher; banked anchor | **0.8307** (n=7,200)* |
+| BC-of-FP v2 180k: final / val-peak — banked anchor | 0.558 / **0.569*** |
 
-**LADDER TRANSLATION (derivation atop `prior_work/README.md`).** SH is 39.7/41.2% GXE on
-gen7/gen9 randbats → 0.489 parity ≈ 40% GXE; the pure-policy field STARTS at 72%. D7(a)
-stands; ladder still DEFERRED until clearly past SH on protocol-grade reads. All GXE rows
-are cross-format extrapolations.
+**MILESTONE LADDER (r7 §2, unratified):** M1 ≥0.4400 (go/no-go) · M2 ≥0.489 parity ·
+M3 ≥0.510 past SH (success claim) · M4 ≥0.558 stretch. All at 3×3000, non-SH-anchor guard
+from M2 up. vs-SH is ADMISSIBLE for self-play agents (SH held out of training entirely).
 
 ## Next actions, in order
 
-0. **MAINTAINER DECISION — ratify §11 (D8/D9) + P4-scale GO.** The pre-stated probe branch
-   fired: agreement 0.5147 still climbing +3 pts/doubling; win rate 0.515→0.558 over one
-   half-doubling (+7 pts/doubling, superlinear in agreement); v2 credited in win-rate terms
-   (+0.107, z≈4.8). P4-scale = ~35k battles ≈ 900k rows ≈ **19.7 h at 3-wide** with v2.
-1. **Protocol-grade the milestone:** refit 180k WITH early stopping (final==best; the 0.569
-   val-peak read carries a selection caveat) + 2 more fit seeds + n=3000; head-to-heads owed.
-   900k fit recipe settled: soft-BC + value-coef 0.5 (prior_work/DISTILLATION_OBJECTIVES.md).
-2. Self-play preview READ (2026-08-07): NULL — v2+pool bought +0.009 (z 0.7) at 12M vs the
-   0.3800 record. 50-100M pure-SP needs a NEW pre-reg (H&L recipe deltas) if ever bought.
-3. **MAINTAINER DECISION — push or not.** `main` is well ahead of `origin/main`; never asked.
-4. Ratify `configs/showdown_warmrl_v2.yaml` (DRAFT; 6 decisions in its header). Arm B/C closed/parked.
+0. **MAINTAINER — ratify DESIGN r7 (D10–D17).** Highest-leverage: D10 (ladder + which bar is
+   "works"), D13 (freeze v2 vs land the MUST_RECHARGE Stage-0 fix + re-baseline 0.3890 for
+   one night), D17 (abandon criterion: M1 miss after Rungs 1+2+50M, or >20 lane-days, or
+   >8 weeks). Recommendations in the file.
+1. **Rung 0 measurement evening:** decompose the loop at [512,512] production width
+   (embed_battle measured ~1.7 ms/decision — the wall may be our Python, not the server).
+   Throughput spec + Rung 1/2 pre-reg configs: drafts landing from the research agents.
+2. **Rung 1 (SIGNAL) after ratification:** 0.3890 config verbatim + gamma 0.95 + H&L 5-term
+   zero-sum shaping; 3×12M ≈ one overnight; comparator re-eval at 3000/seed owed first.
+3. ON ICE, zero rework to resume: warmrl draft (seeds 14–22 reserved), P4-scale collection GO
+   (19.7 h), §11 D8/D9 (moot for the main line). Self-play chase claims seeds 23+.
 
 ## Watch items
 
-- Seeds: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 Arm B, 9 smoke, 10/11/12 sp12m_v2, 13 sp smoke.
-  Showdown evals are NOT reproducible: comparisons are UNPAIRED — buy precision with n.
+- Seeds: 0/1/2 lra, 3/4/5 lra12m, 6/7/8 ArmB, 9 smoke, 10-13 SP preview+smoke, 14-22
+  RESERVED (warmrl), 23+ = the chase. Distinct across lanes AND arms (username landmine).
+  Showdown evals are UNPAIRED and non-reproducible — buy precision with battles.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
-- **Encoder SEMANTICS changed 2026-08-06 at constant OBS_DIM** (set prior default-ON +
-  aliasing fix): pre-Aug-6 checkpoints re-eval off-distribution; `POKEMON_RL_NO_SET_PRIOR=1`
-  restores the prior only. v2 runs stamp `encoder` in meta.yaml/bc_metrics.json — check it.
-- **BC-warm-started runs sit at loss/entropy 0.063**, FAILING the [0.2,1.0] R0 gate from
-  update 1 — entropy_coef + `bc_kl_coef` chosen BEFORE run 1. Critic warmup ~5, not 10.
-- **Arm B rule:** potential-based shaping ~linear in already-encoded features is inert
-  (Φ = 0.6·(obs[2]−obs[1])). Grad clip: warm starts clip HARDER (0.67→0.94).
-- SH's setup branch is DEAD upstream (Target enum vs string) — SH never uses setup moves;
-  same bug kills ps-ppo's `self_boost_sum`. Predates Metamon's window: GXE anchor OK.
-- Pool eviction FIXED (ccae800). `score_ladder.py` default `--opponents` raises on Showdown;
-  headline numbers come from `eval_checkpoint.py`.
+- **Encoder v2/807 is the chase's frozen observation (pending D13).** Semantics changed
+  2026-08-06 at constant OBS_DIM; fingerprint in meta.yaml/bc_metrics.json is the guard.
+  KNOWN BUG (D13): Effect.MUST_RECHARGE structurally always 0 in v1 AND v2; recharge/trap
+  placeholder turns encode as unexplained all-zero move blocks. Fix = Stage-0, 2 dims,
+  re-baselines the 0.3890 comparator if landed.
+- **Rung 1 shaping is NOT Arm B:** non-cancelled, zero-sum, 5-term, gamma 0.95, mirror play
+  — Arm B's null (cancelled potential-based single term vs SH) does not transfer. Its R0
+  gate: both seats' shaping sums to exactly 0 per event; shaping/terminal mass ratio logged.
+- BC-warm-start landmines (on ice with warmrl): loss/entropy 0.063 from update 1; critic
+  warmup 5 at rollout 512; grad clip binds harder on warm starts (0.67→0.94).
+- `score_ladder.py` default `--opponents` raises on Showdown; headline numbers come from
+  `eval_checkpoint.py`. H&L scale accounting (both seats or one?) unresolved — settle from
+  metagrok before Rung 3's 250M budget is set.
