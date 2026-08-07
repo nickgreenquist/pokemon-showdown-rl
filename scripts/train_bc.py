@@ -49,7 +49,9 @@ import torch.nn.functional as F
 from rl.common.checkpoint import save_checkpoint
 from rl.common.config import Config
 from rl.common.masking import masked_logits
-from rl.envs.showdown import ACTIVE_DIM, GLOBAL_DIM, MON_DIM, MOVE_DIM, OBS_DIM
+from rl.envs.showdown import (
+    ACTIVE_DIM, ENCODER_FINGERPRINT, GLOBAL_DIM, MON_DIM, MOVE_DIM, OBS_DIM,
+)
 from rl.train import make_agent
 
 # The milestone-3 capstone hparams (configs/showdown_heur_512_s0.yaml).
@@ -289,6 +291,7 @@ def main() -> None:
     save_checkpoint(f"runs/{run_name}/checkpoint.pt", agent, args.epochs, cfg)
     report = {
         "run_name": run_name, "data": args.data, "expert": expert,
+        "encoder": dict(ENCODER_FINGERPRINT),
         "hidden_sizes": list(args.hidden), "seed": args.seed,
         "epochs": args.epochs, "batch_size": args.batch_size, "lr": args.lr,
         "train_decisions": len(train_idx), "val_decisions": len(val_idx),

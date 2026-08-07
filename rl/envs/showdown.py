@@ -143,6 +143,15 @@ MOVE_DIM = (23 + EFFECT_DIM) if _ENCODER_V2 else 23  # known, bp, acc, pp, match
 # | opponent active extras | opponent active's revealed move blocks.
 OBS_DIM = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM + 6 * (MON_DIM + 1) + ACTIVE_DIM + 4 * MOVE_DIM
 
+# Stamped into run metadata and BC metrics (direction-audit watch item: the
+# set prior and the aliasing fix changed obs SEMANTICS at constant OBS_DIM,
+# and nothing recorded which semantics a checkpoint trained under).
+ENCODER_FINGERPRINT = {
+    "obs_dim": OBS_DIM,
+    "encoder": "v2" if _ENCODER_V2 else "v1",
+    "set_prior": not bool(os.environ.get("POKEMON_RL_NO_SET_PRIOR")),
+}
+
 
 def _best_multiplier(attacker, defender, type_chart) -> float:
     """Best type multiplier among the attacker's types vs the defender — the

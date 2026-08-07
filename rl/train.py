@@ -98,6 +98,14 @@ def _write_run_metadata(out_dir: Path, cfg: Config) -> None:
         "git_dirty": dirty,
         "versions": versions,
     }
+    if cfg.env_id.startswith("Showdown"):
+        # Deferred import on purpose: only Showdown runs pay for poke_env,
+        # and only they have encoder semantics to stamp (the set prior and
+        # v2 flags change the obs at constant OBS_DIM — a checkpoint is only
+        # interpretable together with this record).
+        from rl.envs.showdown import ENCODER_FINGERPRINT
+
+        meta["encoder"] = dict(ENCODER_FINGERPRINT)
     (out_dir / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
 
 
