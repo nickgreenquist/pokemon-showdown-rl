@@ -279,6 +279,17 @@ def main() -> None:
             agent.actor, obs[val], masks[val], actions[val], free,
             policy[val] if policy is not None else None, reveal[val],
         )
+        if args.value_coef:
+            # Held-out value R^2 vs the teacher-value column — the warm-start
+            # donor acceptance gate (warmrl pre-reg D-1a): a donor critic that
+            # cannot explain teacher values off-distribution reproduces the
+            # random-critic handoff the warmup exists to avoid.
+            with torch.no_grad():
+                pred = agent.critic(obs[val]).squeeze(-1)
+                tgt = value[val]
+                ss_res = float(((tgt - pred) ** 2).sum())
+                ss_tot = float(((tgt - tgt.mean()) ** 2).sum())
+                metrics["value_r2"] = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
         metrics = {"epoch": epoch, "train_loss": total / len(perm), **metrics}
         history.append(metrics)
         print(f"epoch {epoch:3d}  train loss {metrics['train_loss']:.4f}  "
