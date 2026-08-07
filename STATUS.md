@@ -7,7 +7,7 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 **Maintainer decision: pure from-scratch self-play in gen1randombattle is the main chase**
 (novelty over strength; revocable). **DESIGN r7 PROPOSED — D10–D17 await ratification.**
 FP/BC chapter BANKED (eval anchors + fallback): teacher 0.8307 (n=7,200), tapes 180k rows,
-v2 clone 0.558/0.569*, warmrl draft on ice. Suite 243 green. Pushed through 19a62c2.
+v2 clone 0.558/0.569*, warmrl draft on ice. Suite 243 green. Pushed through 288a347.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
 ## *Starred rows are probe reads: 1 fit seed and/or n=1000.)
