@@ -31,9 +31,10 @@ from M2 up. vs-SH is ADMISSIBLE for self-play agents (SH held out of training en
    "works"), D13 (freeze v2 vs land the MUST_RECHARGE Stage-0 fix + re-baseline 0.3890 for
    one night), D17 (abandon criterion: M1 miss after Rungs 1+2+50M, or >20 lane-days, or
    >8 weeks). Recommendations in the file.
-1. **Rung 0 measurement evening:** decompose the loop at [512,512] production width
-   (embed_battle measured ~1.7 ms/decision — the wall may be our Python, not the server).
-   Throughput spec + Rung 1/2 pre-reg configs: drafts landing from the research agents.
+1. **Rung 0 measurement evening (E1-E4, ≤10 min each):** `prior_work/THROUGHPUT_SPEC.md` —
+   SyncVectorEnv SERIALIZES sub-envs (num_envs dead lever, <1%); ~80% of loop = idle websocket
+   wait; Stage-2 async collector projects 540→~1,400 steps/s/lane. Rung 1/2 pre-reg DRAFTS:
+   `configs/showdown_sp_signal12m.yaml` + `showdown_sp_struct12m.yaml` (seeds 23-30 claimed).
 2. **Rung 1 (SIGNAL) after ratification:** 0.3890 config verbatim + gamma 0.95 + H&L 5-term
    zero-sum shaping; 3×12M ≈ one overnight; comparator re-eval at 3000/seed owed first.
 3. ON ICE, zero rework to resume: warmrl draft (seeds 14–22 reserved), P4-scale collection GO
@@ -55,6 +56,5 @@ from M2 up. vs-SH is ADMISSIBLE for self-play agents (SH held out of training en
   gate: both seats' shaping sums to exactly 0 per event; shaping/terminal mass ratio logged.
 - BC-warm-start landmines (on ice with warmrl): loss/entropy 0.063 from update 1; critic
   warmup 5 at rollout 512; grad clip binds harder on warm starts (0.67→0.94).
-- `score_ladder.py` default `--opponents` raises on Showdown; headline numbers come from
-  `eval_checkpoint.py`. H&L scale accounting (both seats or one?) unresolved — settle from
-  metagrok before Rung 3's 250M budget is set.
+- `score_ladder.py` default `--opponents` raises on Showdown (use `eval_checkpoint.py`). H&L
+  scale accounting (both seats?) unresolved — settle from metagrok before Rung 3's budget.

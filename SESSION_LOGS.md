@@ -1806,3 +1806,45 @@ entry by offset — never a broad keyword grep.
   embeddings — none of which our null run had), and the throughput math (current loop ~540
   steps/s/lane; H&L scale = ~5 days/lane; loop re-architecture is the enabler). Also
   maintainer authorized PUSH of main to origin (first push of the repo's backlog).
+
+- 2026-08-07 (evening) — THE PIVOT'S DESIGN WORK LANDED: DESIGN r7 + Rung 0-2 artifacts, all
+  committed and pushed. Three-subagent output, session-curated:
+
+  **1. DESIGN r7 PROPOSED (D10-D17)** — full reorientation around the pure-self-play chase:
+  milestone ladder (M1 0.4400 go/no-go / M2 0.489 parity / M3 0.510 success claim / M4 0.558
+  stretch, all 3x3000, non-SH-anchor guard from M2 up), enforceable purity definition (no BC
+  init, no teacher data, no SH in training; encoder = environment, not prior), four rungs
+  cheapest-falsifiable-first, FP/BC chapter banked, D17 abandon criterion. Two corrections
+  the draft caught: H&L's AGGREGATE throughput was only ~450 decisions/s (our 3-wide box
+  already exceeds it — the gap is wall-clock per seed, not speed), and their 2-3e8 scale may
+  count both seats (settle from metagrok before Rung 3's budget; a 2x error is 2.5 days).
+
+  **2. RUNG 0 SPEC (`prior_work/THROUGHPUT_SPEC.md`)** — the enabler, from source:
+  **SyncVectorEnv SERIALIZES all 8 sub-envs' server round-trips on the main thread; num_envs
+  is a dead lever (<1%); ~80% of the loop is idle websocket wait** (steps/s = N/(N*1.85ms),
+  constant in N). poke-env's PokeEnv hardcodes max_concurrent_battles=1, so the fix is an
+  async collector on the plain-Player path (K=32-64 battles, batched inference via the
+  rl/collect.py seam, ~950 lines) — which leaves the locked eval path UNTOUCHED by
+  construction. Projects 540 -> ~1,400 steps/s/lane (H&L scale: 5.4 -> 2.1 days, all three
+  seeds simultaneously). Two CRITICAL silent hazards pre-gated: the old_logp recompute
+  assumption (first-epoch ratio would be exactly 1.0 and look healthy while doing stale
+  vanilla PG) and the PoolPlayer one-battle latch (silent pool corruption under concurrency).
+  Cut list with arithmetic: GPU inference (0.7% ceiling), Ray, AsyncVectorEnv (fork-unsafe,
+  permanently), rlspawn.ts, 10 servers (we have simulator:4; 2-server contingency gated on
+  E4). Decomposition experiments E1-E4 (<=10 min each) come first; G9 is a null-expected
+  learning-equivalence gate at 12M vs the 0.3890 basis.
+
+  **3. RUNG 1+2 DRAFT PRE-REGISTRATIONS** (`configs/showdown_sp_signal12m.yaml`,
+  `configs/showdown_sp_struct12m.yaml`, NOT ratified): Rung 1 = gamma 0.95 + H&L's 5-term
+  zero-sum event shaping with constants READ FROM METAGROK'S CODE (absent from the paper:
+  faint 0.0125, fail 0.005, SE 0.0025, resisted 0.0025, immune 0.005, zero_sum), an
+  ASSERTABLE antisymmetry gate (both seats' shaping sums to exactly 0.0 — poke-env scores
+  both seats every step, so it is instrumentable in-process), and a `--no-shaping` eval seam
+  that keeps the wins_from_returns sign-bug cross-check alive. Rung 2 = entity DeepSets +
+  shared per-action scorer at a param ceiling of the MLP's 681k, with a gated
+  POKEMON_RL_ENCODER_IDS suffix (807->827) for species/move ids. Sequential ladder vs 0.3890,
+  one-time symmetric n-escalation, factorial explicitly refused with the power arithmetic.
+  Seeds 23-30 claimed. Both drafts pre-answer the eval-leak, the wait-pump double-count, and
+  the value-target-bound question at gamma 0.95 (|V| <~ 1.15, value loss +<~15%).
+
+  Everything through this entry is pushed to origin/main.

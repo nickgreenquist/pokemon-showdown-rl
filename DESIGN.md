@@ -244,16 +244,16 @@ Ordering principle: the 12M preview says representation was not the binder, so *
 
 ### Rung 0 — loop throughput engineering (the enabler; engineering, no compute)
 
-A standalone spec is being drafted from four sources that exist:
-`scripts/showdown_throughput.py` (with CLAUDE.md's standing caveat — it measures server-side
-decisions/s only, overstates full-loop gains ~7×, and hardcodes `[64,64]` where production is
-`[512,512]`), the inherited "decompose collect" backlog item (last run 2026-07-30 against the
-10-dim placeholder encoder, i.e. stale, with the constraint that an encode timer must NOT go
-into shared code — `embed_battle` lives inside `ShowdownSingles` and a `hasattr` branch in
-`rl/train.py` is what the masking contract bans), `prior_work/elitefurretai_RL.md` (one server
-process = one core; server-per-worker; centralized batched inference), and ps-ppo's measured
-precedent (800–2048 concurrent battles, 10 local servers on one box, an `rlspawn.ts` chat
-plugin for autospawn/reconcile/rescue).
+The standalone spec EXISTS: `prior_work/THROUGHPUT_SPEC.md` (2026-08-07). Its headline
+finding, from source: **`num_envs` buys zero concurrency — SyncVectorEnv serializes all 8
+sub-envs' server round-trips on the main thread, and ~80% of the loop is idle websocket
+wait**. The fix is a Stage-2 async collector on the plain-Player path (poke-env's `PokeEnv`
+hardcodes `max_concurrent_battles=1`, so the Gym stack cannot be extended — which conveniently
+leaves the locked eval path untouched by construction), K=32–64 concurrent battles, batched
+inference through the `rl/collect.py` seam (~950 lines, 2–4 evenings), projecting 540 →
+~1,400 steps/s/lane with pre-registered gates G1–G9 — including two CRITICAL silent-corruption
+hazards it caught in advance (the `old_logp` recompute assumption and a `PoolPlayer` latch
+race under concurrent battles). Decomposition experiments E1–E4 (each ≤10 min) come first.
 
 **Do the measurement half first — it is one evening and it decides whether the rest is a day
 or a week.** The arithmetic that motivates it: the history-features audit measured

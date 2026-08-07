@@ -47,4 +47,5 @@ prior_work/*
 !prior_work/DISTILLATION_OBJECTIVES.md
 !prior_work/ARCH_SCREEN_SPEC.md
 !prior_work/HISTORY_FEATURES_DESIGN.md
+!prior_work/THROUGHPUT_SPEC.md
 logs/

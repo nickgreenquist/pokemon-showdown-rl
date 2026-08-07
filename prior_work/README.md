@@ -38,6 +38,10 @@ re-download from the URLs below if one goes missing.
   entirely from poke-env's always-on `_replay_data` event log (provably path-divergence-free);
   plus a live encoder bug: the MUST_RECHARGE volatile flag is structurally always 0 (v1 AND
   v2), and recharge/partial-trap placeholder turns are indistinguishable all-zero move blocks.
+- **`THROUGHPUT_SPEC.md`** (2026-08-07) — Rung-0 engineering spec for the collection loop.
+  Headline: SyncVectorEnv serializes all sub-env round-trips (num_envs is a dead lever, <1%);
+  ~80% of the loop is idle websocket wait; Stage-2 async collector on the Player path projects
+  540 → ~1,400 steps/s/lane with gates G1–G9 and decomposition experiments E1–E4 first.
 - **`LLM_IN_RL_REPORT.md`** — LLM-in-the-loop *for* RL (not RL for LLMs, and not
   LLM-as-agent). Taxonomy plus graded evidence. Its own revision note **retracts** the first
   draft's headline recommendation: frozen LLM embeddings of species/move text are a constant
