@@ -1,0 +1,197 @@
+# =====================================================================
+# DRAFT PRE-REGISTRATION — NOT RATIFIED, NOT LAUNCHED (2026-08-07).
+# Drafted by a session subagent from the direction audit's amendments;
+# curated in-session. Maintainer decisions before launch are listed at
+# the BOTTOM of this header. Do not launch until ratified.
+# =====================================================================
+#
+# WARM-STARTED RL, STAGE 1 (6M SCREEN) — PPO from the Foul-Play behavioral
+# clone, held near it by the KL-to-BC anchor, trained as mirror self-play.
+#
+# THE QUESTION, stated so a null is publishable: every RL run in this repo
+# has started from noise. This one starts from the strongest policy the
+# repo has produced and asks the one thing never measured here: DOES RL
+# IMPROVE ON ITS OWN INITIALIZATION? A clean negative is the chapter's
+# most valuable outcome after a clean positive.
+#
+# ONE new variable vs the credited stack: `bc_kl_coef` (commit 7521ed7).
+# The warm start, the pool fix and encoder v2 are bundled INTO the initial
+# condition, not into the treatment.
+#
+# D-1. THE DONOR. init_from must be a v2 soft-target FP clone fit WITH the
+#   teacher-value critic (train_bc --target soft --value-coef 0.5). The
+#   plain bc_fp_v2_soft_180000 checkpoint does NOT qualify: its critic is
+#   untrained (EV -0.72 on the teacher-value column, measured 2026-08-07).
+#   The committed donor below EXISTS and passes D-1(a): held-out value R^2
+#   0.661 (gate: > 0.10) and (b): fingerprint v2/807, [512,512]. STILL
+#   OWED, (c): the donor's OWN vs-SH bar under the locked protocol (3 eval
+#   seeds x 3000, deterministic, ties non-wins) on the exact init_from
+#   file — that number IS the comparator; the 0.558/0.569 probe reads
+#   (single fit seed, n=1000, and 0.569 carries a best-checkpoint
+#   selection caveat) are NOT the bar. Swapping in the P4-scale (~900k)
+#   refit as donor is the one legal pre-launch edit besides bc_kl_coef;
+#   if made, re-run (a)-(c) on the new donor (with early stopping per
+#   prior_work/DISTILLATION_OBJECTIVES.md, so final == best). Use
+#   checkpoint.pt, never best_checkpoint.pt.
+#
+# D-2. OPPONENT — mirror self-play; SH is EVAL ANCHOR ONLY. Training never
+#   sees SimpleHeuristics: (i) vs-SH past parity measures SH exploitation
+#   and this policy STARTS past parity; (ii) ps-ppo's laddered path was
+#   exactly BC-from-a-bot -> pure mirror self-play. Holding SH out makes
+#   vs-SH a genuinely HELD-OUT opponent for the first time — which is what
+#   makes it admissible as the PRIMARY read here.
+#     pool_size 20; latest_prob 0.8 (the standing 80/20; Bansal is the
+#     only published ablation vs recency); push_every_updates 38 (= the SP
+#     lineage's 150-at-rollout-128 rescaled to rollout 512: ~156k steps
+#     between pushes). rl/train.py loads init_from BEFORE the step-0 pool
+#     push, so the pool's permanent anchor IS THE DONOR CLONE and
+#     selfplay/winrate_anchor is a free continuous read of the PRIMARY
+#     question.
+#
+# D-3. CRITIC HANDOFF. critic_warmup_updates 5 (measured sufficient AT
+#   rollout_steps 512 — hence 512 here, not the SP lineage's 128; the
+#   constant's units are updates at 4096 steps each). actor_lr_scale 0.25
+#   (inherited from the smoke; a choice, unablated — not re-picked, that
+#   would add a second variable). BC Adam moments do not carry (train_bc
+#   steps its own optimizer); fresh moments are correct here.
+#
+# D-4. ENTROPY — the [0.2, 1.0] band is RETIRED for warm starts.
+#   R0-ENT (handoff check): loss/entropy at first post-unfreeze update
+#   within +/-0.25 nats of the DONOR'S recorded fitted_entropy (read it
+#   from its bc_metrics.json; do not hardcode — 180k soft fit: 1.353).
+#   R4-ENT (running floor): 3-seed median loss/entropy >= 0.55 (~half the
+#   teacher's 1.128); below it the student is more deterministic than the
+#   search teacher it distilled. entropy_coef stays 0.01 and never moves
+#   mid-run.
+#
+# D-5. bc_kl_coef — calibrated to a DRIFT BUDGET, not guessed. Scale
+#   anchors from repo measurements: 0.005 nats flips a measured near-tie;
+#   0.13 reverses a clear preference; >= 0.52 (= -ln 0.594) collapses to
+#   deterministic-on-anchor-argmax. TARGET DRIFT BAND D*: 3-seed median
+#   loss/bc_kl in [0.05, 0.30] at end of run; HARD CEILING 0.40. NOTE:
+#   KL(new||anchor) is mode-seeking — it cannot prevent entropy collapse
+#   by itself; that is R4-ENT's job. The ladder {0.03, 0.10, 0.30} is
+#   anchored at c* = entropy_coef*H / 0.52 = 0.026 ~ 0.03 (below which the
+#   anchor is weaker than a term already in the loss), stepping ~3.3x.
+#   R0-S SWEEP (optional, ~33 min at 3-wide): 1M steps per lane, seeds
+#   14/15/16 for c = 0.03/0.10/0.30; PICK the SMALLEST c with
+#   loss/bc_kl(1M) <= 0.15 AND loss/entropy(1M) >= 0.55. All above 0.15 ->
+#   add c=1.0; all below 0.005 -> add c=0.01. Coefficient confounded with
+#   seed — accepted, it is a calibration, not an arm. Default if skipped:
+#   the middle rung 0.10 (committed below).
+#
+# R0 GATES (any failure voids the read; fix and relaunch):
+#   R0-1 fingerprint: every lane meta.yaml == donor's encoder block.
+#   R0-2 frozen-actor signature: approx_kl, clip_frac, bc_kl EXACTLY 0 for
+#        updates 0-4, nonzero from 5 (also proves the anchor captured the
+#        LOADED policy).
+#   R0-3 value transfer: loss/explained_variance > 0.20 at first logged
+#        update on >= 2/3 lanes. EV <= 0 is a finding: record, raise
+#        warmup to 20, relaunch.
+#   R0-4 entropy handoff (D-4). R0-5 regime: after 3M, ties <= 4.2%, mean
+#        ep len <= 40. R0-6 throughput: >= 450 steps/s/lane vs the 539
+#        measured at 3-wide (anchor budget <= 10%); verify battle PROGRESS
+#        per lane at launch.
+#
+# R1 LEARNING GATE: WINDOWED selfplay/winrate_anchor >= 0.50 by 3M on
+#   >= 2/3 seeds ("not losing to its own start" — NOT the preview's 0.75,
+#   which against this anchor would be the result, not a gate). Counters
+#   are cumulative: window as (w2*g2 - w1*g1)/(g2 - g1); 1M windows early,
+#   2M after 4M; denominator < 200 games -> fall back to cumulative and
+#   say so.
+#
+# R2 PRIMARY (6M screen): pooled finals vs SH, LOCKED protocol, n=1000/
+#   seed, against the DONOR'S OWN BAR from D-1(c). se_diff = larger of
+#   pooled-binomial and seed-clustered. FUTILITY GATE >= +0.010 (the point
+#   where the one-sided 90% upper bound reaches +0.025; deliberately
+#   generous — a warm start's edge over its own init plausibly GROWS with
+#   budget, unlike P6's from-scratch transfer shape).
+#   BRANCHES: (a) >= +0.010 and F1 clear -> ADVANCE to 12M confirm, no
+#   retuning. (b) [0, +0.010) -> RESCUE iff windowed winrate_anchor (last
+#   2M) >= 0.55 on >= 2/3 seeds AND pooled two-orientation head-to-head vs
+#   the donor >= 0.53; else STOP and report. (c) < 0 -> RL DEGRADES ITS
+#   START: publishable, do NOT retune in place; one ladder rung may be
+#   spent ONLY if K1 or K2 fired; else the conclusion is "this recipe
+#   class cannot improve on a strong clone" and the next lever is
+#   data/teacher, not RL.
+#
+# R3 CONFIRM (separate 12M config; seeds 20/21/22; finals 3000/seed both
+#   sides): CREDIT iff pooled delta >= +0.025 AND >= 2*se_diff AND F1
+#   clear. The headline on credit: "RL improved on its own initialization,
+#   measured, for the first time in this repo."
+#
+# SECONDARY (recorded): S1 head-to-head vs donor BOTH orientations
+#   (500/pair/orientation, all seeds; +0.018 seat bias is measured — pool
+#   orientations); S2 bc_kl vs D*; S3 entropy; S4 windowed anchor/latest
+#   (forgetting signature: anchor < 0.5 while latest ~ 0.5); S5 vs Foul
+#   Play, best confirm seed, 250/orientation (~50 min); S6 in-training
+#   eval vs SH (shape only); S7 mechanism set (EV, approx_kl, clip_frac,
+#   grad_norm/clip_frac, adv_std, ep len, ties).
+#
+# FALSIFIERS / KILLS: F1 SH-EXPLOITATION (voids PRIMARY): vs-SH delta >=
+#   +0.025 while pooled S1 < 0.50 (and S5 flat). K1 ANCHOR TOO TIGHT:
+#   median bc_kl < 0.02 at 3M AND winrate_anchor in [0.45, 0.55] -> kill,
+#   step DOWN one rung, relaunch (~1.7 h). K2 TOO LOOSE/COLLAPSE: median
+#   entropy < 0.55 for 5 rungs before 3M OR bc_kl > 0.40 before 3M ->
+#   kill, step UP one rung. K3: windowed anchor < 0.50 at 3M on >= 2/3
+#   seeds -> kill and report (R2(c) arriving early). K4: any R0 failure.
+#   AT MOST ONE ladder rung spent across K1/K2 for the whole chapter.
+#
+# BUDGET (539 steps/s/lane measured; anchor <= 6%): sweep ~33 min; screen
+#   3x6M ~3.3 h; confirm 3x12M ~6.5 h; evals ~tens of minutes each; S5
+#   ~50 min. Seeds claimed: 14/15/16 sweep, 17/18/19 screen, 20/21/22
+#   confirm (distinct across arms AND lanes — username collision landmine).
+#   Stagger starts; verify lanes by battle progress.
+#
+# MAINTAINER DECISIONS BEFORE LAUNCH (from the draft, plus session adds):
+#   1. Donor: 180k refit (exists, below) vs P4-scale ~900k refit (19.7 h
+#      collection first; §11 GO still unratified). Ceiling moves with it.
+#   2. rollout_steps 512 (keeps warmup units) vs 128 (SP lineage; then
+#      warmup 20). Draft chooses 512.
+#   3. Run R0-S sweep vs launch on the 0.10 default.
+#   4. Pure mirror vs 80/20 pool/SH mix (draft: pure mirror — preserves
+#      the held-out-SH argument).
+#   5. R2(c) retune budget (draft: one rung, only on K1/K2).
+#   6. Ratify the futility gate (+0.010) and drift band ([0.05, 0.30]).
+#
+# Launch (server on :8000; clean tree; one lane per seed, staggered):
+#   POKEMON_RL_ENCODER_V2=1 WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_warmrl_v2.yaml --seed N \
+#     --run-name showdown_warmrl_v2_6m_sN
+# Every eval command needs POKEMON_RL_ENCODER_V2=1 too.
+env_id: Showdown-v0
+seed: 17
+total_steps: 6000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_warmrl_v2_6m_s17
+logger: wandb
+eval_win_rate: true
+# D-1: v2 soft-target clone WITH teacher-value critic (value_r2 0.661).
+init_from: runs/bc_fp_v2_soft_val_180k_s0/checkpoint.pt
+selfplay:
+  opponent: self             # mirror self-play; SH never trains against us
+  eval_opponent: heuristics  # the fixed anchor, eval only
+  pool_size: 20
+  push_every_updates: 38     # ~156k steps between pushes = SP lineage
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]   # must match the donor's trunk
+  lr: 2.5e-4
+  lr_anneal_steps: 6000000   # credited lever; init_from + anneal legal
+  critic_warmup_updates: 5   # measured sufficient AT rollout_steps 512
+  actor_lr_scale: 0.25       # inherited from the smoke; unablated choice
+  bc_kl_coef: 0.10           # ladder middle rung; R0-S may replace
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 512
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
