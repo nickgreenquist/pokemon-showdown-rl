@@ -95,6 +95,7 @@ share of the single shared gradient-norm clip. A persistently underfitting
 critic wants its own optimizer, not a bigger coefficient.
 """
 
+import copy
 import math
 from collections import defaultdict
 from typing import Any
@@ -220,6 +221,7 @@ class PPOAgent(Agent):
         kernel_size: int = 3,
         critic_warmup_updates: int = 0,
         actor_lr_scale: float = 1.0,
+        bc_kl_coef: float = 0.0,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -272,6 +274,23 @@ class PPOAgent(Agent):
             raise ValueError(f"actor_lr_scale must be > 0, got {actor_lr_scale}")
         self.critic_warmup_updates = critic_warmup_updates
         self.actor_lr_scale = actor_lr_scale
+        # KL-to-BC anchor (2026-08-06 direction audit): once the actor
+        # unfreezes, nothing else holds a warm-started policy near the clone
+        # it started from — the measured signature is `loss/entropy` 0.063
+        # from update 1 and drift off the teacher while vs-SH climbs. With
+        # bc_kl_coef > 0, `begin_warm_start()` snapshots the just-loaded
+        # actor as a frozen anchor and update() adds
+        # bc_kl_coef * KL(pi_new || pi_anchor) per minibatch (forward KL, so
+        # the penalty is heaviest where the policy invents probability the
+        # anchor never had). Discrete-only: the anchor distribution is the
+        # masked categorical. Default 0.0 = the no-op, every existing config
+        # unchanged.
+        if bc_kl_coef < 0.0:
+            raise ValueError(f"bc_kl_coef must be >= 0, got {bc_kl_coef}")
+        if bc_kl_coef > 0.0 and self.continuous:
+            raise TypeError("bc_kl_coef requires a discrete action space")
+        self.bc_kl_coef = bc_kl_coef
+        self._bc_anchor: "nn.Module | None" = None
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
         if self.obs_rank == 3:
@@ -539,6 +558,30 @@ class PPOAgent(Agent):
                 value_loss = F.mse_loss(self.critic(flat_obs[idx]).squeeze(-1), flat_targets[idx])
                 entropy = entropies.mean()
                 loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
+                if self.bc_kl_coef > 0.0:
+                    if self._bc_anchor is None:
+                        raise RuntimeError(
+                            "bc_kl_coef > 0 but no anchor is set: the anchor is "
+                            "captured by begin_warm_start(), so bc_kl_coef "
+                            "requires init_from"
+                        )
+                    # Forward KL(pi_new || pi_anchor) over the SAME stored
+                    # mask both sides — the finite -1e8 sentinel keeps every
+                    # illegal entry's contribution an exact 0 * bounded = 0.
+                    # Costs one extra actor forward per minibatch; the loop
+                    # is ~95% collect, so this is noise.
+                    with torch.no_grad():
+                        anchor_logp = F.log_softmax(
+                            masked_logits(self._bc_anchor(flat_obs[idx]), flat_masks[idx]),
+                            dim=-1,
+                        )
+                    cur_logp = F.log_softmax(
+                        masked_logits(self.actor(flat_obs[idx]), flat_masks[idx]),
+                        dim=-1,
+                    )
+                    bc_kl = (cur_logp.exp() * (cur_logp - anchor_logp)).sum(-1).mean()
+                    loss = loss + self.bc_kl_coef * bc_kl
+                    sums["loss/bc_kl"] += float(bc_kl.item())
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -579,13 +622,18 @@ class PPOAgent(Agent):
 
     def state_dict(self) -> dict[str, Any]:
         # The rollout in progress is deliberately not checkpointed: restore
-        # serves eval/watch; resuming training refills the buffer.
-        return {
+        # serves eval/watch; resuming training refills the buffer. The BC
+        # anchor rides along when set so a resumed warm-started run keeps
+        # its penalty target (update() raises if it were silently lost).
+        state = {
             "actor": self.actor.state_dict(),
             "critic": self.critic.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "updates": self.updates,
         }
+        if self._bc_anchor is not None:
+            state["bc_anchor"] = self._bc_anchor.state_dict()
+        return state
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
         self.actor.load_state_dict(state["actor"])
@@ -618,6 +666,11 @@ class PPOAgent(Agent):
             }
         )
         self.updates = state["updates"]
+        # Restore a persisted BC anchor (absent from every pre-2026-08-06
+        # checkpoint; .get keeps them loadable).
+        anchor_state = state.get("bc_anchor")
+        if anchor_state is not None:
+            self._install_bc_anchor(anchor_state)
 
     def begin_warm_start(self) -> None:
         """`init_from` semantics, settled 2026-08-05: a warm start is a FRESH
@@ -631,6 +684,18 @@ class PPOAgent(Agent):
         0, which is the point of warm-starting an untrained critic.
 
         Weights and Adam moments deliberately survive: they ARE the warm
-        start."""
+        start. With bc_kl_coef > 0 this is also where the KL anchor is
+        captured: the just-loaded actor, frozen — the policy the penalty
+        holds the run near."""
         self.updates = 0
         self._set_actor_trainable(self.critic_warmup_updates == 0)
+        if self.bc_kl_coef > 0.0:
+            self._install_bc_anchor(self.actor.state_dict())
+
+    def _install_bc_anchor(self, actor_state: dict[str, Any]) -> None:
+        anchor = copy.deepcopy(self.actor)
+        anchor.load_state_dict(actor_state)
+        anchor.eval()
+        for param in anchor.parameters():
+            param.requires_grad_(False)
+        self._bc_anchor = anchor

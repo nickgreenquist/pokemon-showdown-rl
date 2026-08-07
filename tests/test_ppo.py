@@ -520,3 +520,69 @@ def test_load_state_dict_keeps_the_configs_lr():
     recipient.load_state_dict(state)
     assert recipient.optimizer.param_groups[0]["lr"] == recipient.base_lr == 1.0e-3
     assert recipient.updates == 17  # optimizer/agent state still restored
+
+
+def test_bc_kl_coef_validates_and_requires_an_anchor():
+    """The anchor is captured at begin_warm_start(); a scratch run with the
+    penalty on is a config error and must fail loudly, not train un-anchored."""
+    with pytest.raises(ValueError, match="bc_kl_coef"):
+        _agent(bc_kl_coef=-0.1)
+    with pytest.raises(TypeError, match="discrete"):
+        PPOAgent(
+            observation_space=gym.spaces.Box(-1.0, 1.0, (3,), np.float32),
+            action_space=gym.spaces.Box(-1.0, 1.0, (2,), np.float32),
+            num_envs=2, device="cpu", lr=1.0e-3, gamma=0.99, gae_lambda=0.95,
+            rollout_steps=4, epochs=2, minibatches=2, clip_eps=0.2,
+            entropy_coef=0.0, value_coef=0.5, max_grad_norm=0.5,
+            hidden_sizes=[8], bc_kl_coef=0.5,
+        )
+    agent = _agent(rollout_steps=4, bc_kl_coef=0.5)
+    with pytest.raises(RuntimeError, match="begin_warm_start"):
+        _fill(agent)
+
+
+def test_bc_kl_reports_the_metric_and_starts_at_zero():
+    """At the warm start the policy IS the anchor, so the first minibatch's
+    KL is exactly 0 and the update-mean stays near it; the metric key only
+    appears when the penalty is on (the default report is unchanged)."""
+    agent = _agent(rollout_steps=4, bc_kl_coef=0.5)
+    agent.begin_warm_start()
+    assert agent._bc_anchor is not None
+    report = _fill(agent)
+    assert 0.0 <= report["loss/bc_kl"] < 0.05
+    assert "loss/bc_kl" not in _fill(_agent(rollout_steps=4))
+
+
+def test_bc_kl_anchor_reduces_drift_from_the_start_policy():
+    """The penalty's whole purpose: hold the unfrozen policy near the clone.
+    Same init, same data, three update cycles — the anchored agent must end
+    closer to its starting actor than the unanchored one."""
+    def drift(coef: float) -> float:
+        agent = _agent(rollout_steps=4, bc_kl_coef=coef)
+        agent.begin_warm_start()
+        start = [p.detach().clone() for p in agent.actor_params]
+        for update in range(3):
+            _fill(agent, base=4 * update)
+        return sum(
+            float((p - q).abs().sum()) for p, q in zip(agent.actor_params, start)
+        )
+
+    assert drift(50.0) < drift(0.0)
+
+
+def test_bc_kl_anchor_survives_a_checkpoint_round_trip():
+    """A resumed warm-started run must keep its penalty target: the anchor
+    rides in state_dict when set, restores on load, and stays absent from
+    default checkpoints (pre-anchor checkpoints load unchanged)."""
+    agent = _agent(rollout_steps=4, bc_kl_coef=0.5)
+    agent.begin_warm_start()
+    state = agent.state_dict()
+    assert "bc_anchor" in state
+
+    fresh = _agent(rollout_steps=4, bc_kl_coef=0.5)
+    fresh.load_state_dict(state)
+    assert fresh._bc_anchor is not None
+    report = _fill(fresh)  # would raise without the restored anchor
+    assert "loss/bc_kl" in report
+
+    assert "bc_anchor" not in _agent().state_dict()
