@@ -25,6 +25,19 @@ re-download from the URLs below if one goes missing.
   the Gen 1 damage formula before implementing — where it contradicts this repo's own audit,
   the audit wins.** Bears directly on DESIGN §7's parked STAB and boosts-one-hot items and on
   §11's proposed architecture screen.
+- **`DISTILLATION_OBJECTIVES.md`** (2026-08-07) — verified survey + in-repo measurements on
+  the BC objective for the Foul-Play chapter. Verdict: soft-target CE stays; every
+  weighted/filtered/offline-RL variant is measurably inert on our tapes (teacher advantage
+  97.1% positive); adopt early stopping + value-coef critic pretraining; DAgger is the one
+  gated add-on. Key citation: ExIt's soft-vs-hard = +50 Elo at identical agreement.
+- **`ARCH_SCREEN_SPEC.md`** (2026-08-07) — implementable entity-attention-vs-MLP BC screen:
+  21-token reshape inside the network (no encoder change), d128/L2 pointer-head trunk sized
+  below the MLP's params, measured 34.6× CPU train-step cost, decision rule, and a 23-item
+  audit of CROSS_FEATURES_AND_ARCHITECTURE.md (which it supersedes on conflicts).
+- **`HISTORY_FEATURES_DESIGN.md`** (2026-08-07) — Stage-1 history block (22 dims) derived
+  entirely from poke-env's always-on `_replay_data` event log (provably path-divergence-free);
+  plus a live encoder bug: the MUST_RECHARGE volatile flag is structurally always 0 (v1 AND
+  v2), and recharge/partial-trap placeholder turns are indistinguishable all-zero move blocks.
 - **`LLM_IN_RL_REPORT.md`** — LLM-in-the-loop *for* RL (not RL for LLMs, and not
   LLM-as-agent). Taxonomy plus graded evidence. Its own revision note **retracts** the first
   draft's headline recommendation: frozen LLM embeddings of species/move text are a constant
@@ -66,7 +79,7 @@ Where that sits in the published randbats field:
 |---|---|---|---|
 | **ours (12M+LRA), projected** | gen1RB | ~1400–1450 | **~38–40%** |
 | poke-env SH | Gen7RB / Gen9RB | ~1450–1500 | 39.7% / 41.2% |
-| Huang & Lee 2019 — PPO self-play, **no search** | Gen7RB | 1677 | 72% |
+| Huang & Lee 2019 — PPO self-play, **no search** (VERIFIED, see entry) | Gen7RB | 1677 (n=300) | 72%* |
 | ps-ppo — transformer PPO | Gen9RB | 1725 ± 25 | 76.7% |
 | Wang 2024 — PPO + test-time MCTS | Gen4RB | 1756 | 79.5% |
 | Metamon SynRL-V2 — offline RL on human data | Gen1OU | 1761 ± 35 | 79.9% |
@@ -368,6 +381,33 @@ lossy by construction and the code has repeatedly contradicted the project's own
   36 poke-env state-tracking fixes (encoder-relevant ones upstreamed by 0.15.0), SB3
   instrumentation only. Read + verified against our tree in the 2026-08-03 log entries.
 
-Referenced but not archived: Huang & Lee 2019 (~1677 Glicko-1, Gen 7 randbats — already a
-PLAN.md anchor); PokéChamp / PokeLLMon (LLM agents, no SH numbers); rlmon (results tables
-arithmetically impossible — do not cite).
+- `huang_lee_2019_selfplay_pokemon.pdf` — Huang & Lee, *A Self-Play Policy Optimization
+  Approach to Battling Pokémon*, IEEE CoG 2019. **VERIFIED 2026-08-07 (subagent deep-read;
+  the citation survives contact BETTER than any other ladder row).** NOTE: the title this
+  index previously guessed ("Competitive Deep RL over a Pokémon Battling Simulator") is a
+  DIFFERENT paper (Simões et al. 2020) — do not chase it. Code: `yuzeh/metagrok` (MIT),
+  **cloned as a sibling at `/Users/nickgreenquist/Documents/Projects/metagrok`**; the
+  committed config reproduces the paper's 1,327,618 params exactly and the released
+  checkpoint loads. The recipe: **pure mirror self-play from random init** (both seats the
+  same object, no pool, no BC init, no curriculum), **3.84M battles ≈ 2-3×10⁸ decisions,
+  6 days, ~$91 on GCP** — 20-45× our 12M budget, i.e. "pure self-play works" is a 10⁸-scale
+  statement; also financially trivial. Architecture is NOT a flat MLP: 128-d entity
+  embeddings (species/moves/items/abilities), shared per-Pokémon net, DeepSets max-pool over
+  the team, and a SHARED PER-ACTION SCORING HEAD ([trunk ‖ move_emb ‖ switch_target_emb] →
+  shared MLP → scalar) — rung 1-2 of the architecture ladder, uncontested by ps-ppo (flat
+  readout). Zero precomputed type chart (now 2 of 2 published ≥70% pure-policy agents).
+  Undocumented in the paper, extracted from code: **gamma 0.95** + a **5-term ZERO-SUM
+  shaping** (faint 0.0125, fail 0.005, supereffective 0.0025, resisted 0.0025, immune 0.005,
+  all antisymmetric — unfarmable in mirror self-play), **no entropy bonus**, no grad clip,
+  constant lr 2e-4. The 1677 Glicko is real (peer-reviewed, ladder script released) but
+  n=300, one run, one fresh account, no error bar (±2.6pp binomial), possibly sampled rather
+  than greedy (then a lower bound); "72% GXE" is 1677 pushed through Showdown's GXE formula
+  (verified: 71.94%), NOT an independent measurement — quoting both is quoting one number
+  twice. Their bot table does NOT transfer: 0.829 is vs a max-damage-typed bot far weaker
+  than SH, and their 0.612 is vs the 2019 ancestor of foul-play, pre-Rust. Negative results:
+  randbats self-play never learned multi-turn setup (Trick Room 0.12-0.15), and 50 iters of
+  fine-tuning on fixed teams collapsed randbats play to 15.4% vs its own parent
+  (catastrophic forgetting).
+
+Referenced but not archived: PokéChamp / PokeLLMon (LLM agents, no SH numbers); rlmon
+(results tables arithmetically impossible — do not cite).

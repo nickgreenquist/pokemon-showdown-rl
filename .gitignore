@@ -44,4 +44,7 @@ prior_work/*
 !prior_work/PHASE5_PRIOR_WORK_BRIEFING.md
 !prior_work/CROSS_FEATURES_AND_ARCHITECTURE.md
 !prior_work/LLM_IN_RL_REPORT.md
+!prior_work/DISTILLATION_OBJECTIVES.md
+!prior_work/ARCH_SCREEN_SPEC.md
+!prior_work/HISTORY_FEATURES_DESIGN.md
 logs/
