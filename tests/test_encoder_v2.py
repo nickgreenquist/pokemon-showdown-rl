@@ -20,7 +20,7 @@ from rl.envs.showdown import (
 
 assert MON_DIM == 33 and MOVE_DIM == 46, (MON_DIM, MOVE_DIM)
 assert OBS_DIM == GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM \
-    + 6 * (MON_DIM + 1) + ACTIVE_DIM + 4 * MOVE_DIM == 807, OBS_DIM
+    + 6 * (MON_DIM + 1) + ACTIVE_DIM + 4 * MOVE_DIM == 808, OBS_DIM
 
 # The audit's motivating example: Rest, Amnesia and Reflect were
 # near-identical 23-dim vectors under v1. The effect block separates them.
@@ -79,7 +79,7 @@ def test_default_encoder_is_still_v1():
             sys.executable,
             "-c",
             "from rl.envs.showdown import OBS_DIM, MON_DIM, MOVE_DIM;"
-            "assert (OBS_DIM, MON_DIM, MOVE_DIM) == (611, 32, 23)",
+            "assert (OBS_DIM, MON_DIM, MOVE_DIM) == (612, 32, 23)",
         ],
         env=env,
         capture_output=True,

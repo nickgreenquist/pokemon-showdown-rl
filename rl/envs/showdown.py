@@ -108,6 +108,10 @@ _VOLATILES = (
     Effect.MUST_RECHARGE, Effect.PARTIALLY_TRAPPED, Effect.REFLECT,
     Effect.SUBSTITUTE,
 )
+# The MUST_RECHARGE slot is filled from `mon.must_recharge`, not effect
+# membership: poke-env routes |-mustrecharge| to that bool and never starts
+# the Effect (measured 0/2,427 decisions vs 185 with the bool set), so the
+# Effect test would leave the slot structurally dead — Stage-0 fix, D13(a).
 
 # poke-env's SPECIAL_MOVES (battle/move.py): when one of these is the only
 # legal move-action, poke-env re-bases the move index onto `available_moves`,
@@ -127,11 +131,11 @@ _SPECIAL_MOVE_IDS = frozenset({"fight", "struggle", "recharge"})
 # move token (obs_moves.py, github.com/Nebraskinator/ps-ppo, MIT) — the
 # secondary-status-probability and STAB-class fields our 2026-08-04 audit
 # flagged — recomputed here from poke-env gen-1 move data. Default OFF: with
-# the flag unset, OBS_DIM stays 611 and the encoding is bit-identical to v1.
+# the flag unset, OBS_DIM stays 612 and the encoding is bit-identical to v1.
 _ENCODER_V2 = bool(os.environ.get("POKEMON_RL_ENCODER_V2"))
 
 # Block layouts (offsets documented in the fill helpers below).
-GLOBAL_DIM = 5
+GLOBAL_DIM = 6
 EFFECT_DIM = 23  # v2 only: appended to each move block
 MON_DIM = 33 if _ENCODER_V2 else 32  # hp, fainted, active, status(6), level, stats(5), types(15), off/def matchup [, v2 speed edge]
 ACTIVE_DIM = 16  # boosts(7), volatiles(7), status_counter, preparing
@@ -150,6 +154,9 @@ ENCODER_FINGERPRINT = {
     "obs_dim": OBS_DIM,
     "encoder": "v2" if _ENCODER_V2 else "v1",
     "set_prior": not bool(os.environ.get("POKEMON_RL_NO_SET_PRIOR")),
+    # Stage-0 MUST_RECHARGE fix (D13a, 2026-08-07): live recharge bool + the
+    # global aliased-turn flag. Distinguishes v2/808 from the dead-slot v2/807.
+    "recharge_fix": True,
 }
 
 
@@ -188,13 +195,16 @@ def _fill_mon(vec, o, mon, foe, active, type_chart):
 
 
 def _fill_active(vec, o, mon):
-    """[o..6] boosts/6 | [+7..13] volatile flags | [+14] status counter
-    (sleep/toxic turns, /16 = the toxic cap) | [+15] preparing (two-turn
-    move charging)."""
+    """[o..6] boosts/6 | [+7..13] volatile flags (MUST_RECHARGE at +10 from
+    the bool, see _VOLATILES) | [+14] status counter (sleep/toxic turns,
+    /16 = the toxic cap) | [+15] preparing (two-turn move charging)."""
     for i, key in enumerate(_BOOST_KEYS):
         vec[o + i] = mon.boosts[key] / 6.0
     for i, effect in enumerate(_VOLATILES):
-        vec[o + 7 + i] = effect in mon.effects
+        vec[o + 7 + i] = (
+            mon.must_recharge if effect is Effect.MUST_RECHARGE
+            else effect in mon.effects
+        )
     vec[o + 14] = mon.status_counter / 16.0
     vec[o + 15] = bool(mon.preparing)
 
@@ -247,6 +257,12 @@ def embed_battle(battle, type_chart) -> np.ndarray:
     vec[2] = sum(mon.fainted for mon in battle.opponent_team.values()) / 6.0
     vec[3] = bool(battle.force_switch)
     vec[4] = bool(battle.trapped)
+    # Stage-0 fix (D13a): on gen1 placeholder turns the move blocks below are
+    # deliberately zeroed. Sleep/freeze turns at least carried a status bit;
+    # recharge and partial trap carried NOTHING (battle.trapped stays False on
+    # nearly all of them, 1,262/1,273 measured). This flag states outright
+    # that the move slots are aliased to poke-env's re-based single action.
+    vec[5] = _move_slots_aliased(battle)
     o = GLOBAL_DIM
     for i, mon in enumerate(list(battle.team.values())[:6]):
         _fill_mon(vec, o + i * MON_DIM, mon, theirs, ours, type_chart)
@@ -259,9 +275,11 @@ def embed_battle(battle, type_chart) -> np.ndarray:
         # blocks describe the four REAL moves, so the network would be taught
         # "slot-0 features X => take action 6" when action 6 means "stay in
         # with whatever gen1 forces". Same for Struggle/Recharge. Leave the
-        # blocks zeroed: the `known` flags at 0 say the slots are inert, and
-        # the SLP/FRZ/PARTIALLY_TRAPPED bits are already in _fill_mon and
-        # _fill_active, so the state stays fully described.
+        # blocks zeroed: the `known` flags at 0 say the slots are inert;
+        # vec[5] plus the SLP/FRZ and (fixed) MUST_RECHARGE bits in _fill_mon
+        # / _fill_active say why, so the state stays fully described. (Before
+        # the Stage-0 fix that last claim was FALSE for recharge and partial
+        # trap — those turns encoded as all-zero move blocks with no cause.)
         if not _move_slots_aliased(battle):
             for i, move in enumerate(list(ours.moves.values())[:4]):
                 _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, theirs, type_chart)

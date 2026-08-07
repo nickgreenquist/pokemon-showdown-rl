@@ -567,7 +567,7 @@ def test_init_from_rearms_the_critic_warmup(tmp_path, monkeypatch):
 
 def test_showdown_selfplay_rejects_fixed_mix():
     """The pool's fixed anchors decode a Connect 4 board from the obs; on a
-    611-dim Showdown obs HeuristicOpponent crashes but RandomOpponent
+    612-dim Showdown obs HeuristicOpponent crashes but RandomOpponent
     silently plays uniform-random, unreported — so the combination must
     refuse to construct. Fires before any env (or server) is touched."""
     cfg = connect4_config(

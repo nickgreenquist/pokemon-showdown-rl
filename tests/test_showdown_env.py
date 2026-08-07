@@ -118,6 +118,7 @@ def _stub_mon(**kwargs):
         types=[PokemonType.NORMAL], type_1=PokemonType.NORMAL, type_2=None,
         boosts=dict.fromkeys(("accuracy", "atk", "def", "evasion", "spa", "spd", "spe"), 0),
         effects={}, status_counter=0, preparing=False, moves={},
+        must_recharge=False,
     )
     base.update(kwargs)
     return SimpleNamespace(**base)
@@ -200,6 +201,48 @@ def test_active_extras_block(offline_env):
     assert vec[o + 15] == 1.0
 
 
+def test_must_recharge_reads_the_bool_not_the_effect(offline_env):
+    # Stage-0 fix (D13a): poke-env routes |-mustrecharge| to the bool
+    # `pokemon.must_recharge` and never starts Effect.MUST_RECHARGE, so the
+    # slot fires from the bool — and ONLY the bool, the Effect stays inert.
+    recharging = _stub_mon(must_recharge=True)
+    battle = _stub_battle(active_pokemon=recharging, team={"a": recharging})
+    vec = offline_env.embed_battle(battle)
+    volatiles = vec[_OUR_ACTIVE + 7 : _OUR_ACTIVE + 14]
+    assert volatiles[3] == 1.0 and volatiles.sum() == 1.0
+    phantom = _stub_mon(effects={Effect.MUST_RECHARGE: 1})
+    vec = offline_env.embed_battle(
+        _stub_battle(active_pokemon=phantom, team={"a": phantom})
+    )
+    assert not vec[_OUR_ACTIVE + 7 : _OUR_ACTIVE + 14].any()
+    # The opponent's active extras block gets the same fix. A real Pokemon
+    # here, not a stub: the opponent path also walks the set prior by species.
+    snorlax = Pokemon(gen=1, species="snorlax")  # the Hyper Beam case
+    snorlax.must_recharge = True
+    vec = offline_env.embed_battle(
+        _stub_battle(opponent_active_pokemon=snorlax, opponent_team={"s": snorlax})
+    )
+    assert vec[_OPP_ACTIVE + 7 + 3] == 1.0
+
+
+def test_global_aliased_flag(offline_env):
+    # Stage-0 fix (D13a): vec[5] says the move blocks are zeroed because the
+    # only legal move-action is a poke-env SPECIAL_MOVE (fight/struggle/
+    # recharge) — the one dim that distinguishes a recharge/trap placeholder
+    # turn from an ordinary state, since battle.trapped stays False there.
+    aliased = _stub_battle(
+        available_moves=[SimpleNamespace(id="recharge")],
+    )
+    assert offline_env.embed_battle(aliased)[5] == 1.0
+    two_real = _stub_battle(
+        available_moves=[SimpleNamespace(id="tackle"), SimpleNamespace(id="rest")],
+    )
+    assert offline_env.embed_battle(two_real)[5] == 0.0
+    # One remaining REAL move is not aliasing — slot i still means move i.
+    one_real = _stub_battle(available_moves=[SimpleNamespace(id="tackle")])
+    assert offline_env.embed_battle(one_real)[5] == 0.0
+
+
 def test_move_block_features(offline_env):
     moves = {
         "thunderbolt": Move("thunderbolt", gen=1),
@@ -237,7 +280,7 @@ def test_move_block_features(offline_env):
     #
     # This replaces an earlier contract ("unrevealed => all zeros"), which
     # discarded the single largest input the search teacher conditions on.
-    # Reusing the existing `known` flag as a probability keeps OBS_DIM at 611.
+    # Reusing the existing `known` flag as a probability costs zero extra dims.
     opp = _OPP_ACTIVE + ACTIVE_DIM
     assert vec[opp : opp + 4 * MOVE_DIM].any(), "set prior did not populate"
     probs = [float(vec[opp + i * MOVE_DIM]) for i in range(4)]
