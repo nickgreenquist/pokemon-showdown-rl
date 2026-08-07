@@ -1,8 +1,10 @@
-# Smoke for showdown_sp12m_v2.yaml (not an experiment; no pre-registration):
-# 30k steps of the identical selfplay+v2 recipe to prove the integration
-# (v2 encoder under the live env, fixed pool, fingerprint stamping) before
-# the overnight lanes. Seed 13 per the seed allocation. Verify after:
-# meta.yaml encoder block says v2/807, battles progress, no exceptions.
+# Smoke for showdown_sp12m_v2.yaml and its v2r re-baseline (not an
+# experiment; no pre-registration): 30k steps of the identical selfplay+v2
+# recipe to prove the integration (v2 encoder under the live env, fixed
+# pool, fingerprint stamping) before the overnight lanes. Seed 13 (original
+# run) / 34 (post-recharge-fix re-smoke) per the seed allocation. Verify
+# after: meta.yaml encoder block says v2/808 with recharge_fix, battles
+# progress, no exceptions.
 env_id: Showdown-v0
 seed: 13
 total_steps: 30000

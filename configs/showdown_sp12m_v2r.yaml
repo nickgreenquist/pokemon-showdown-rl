@@ -1,0 +1,88 @@
+# RE-BASELINE (2026-08-07, D13a — ratified same day): showdown_sp12m_v2
+# REPEATED VERBATIM on the recharge-fixed encoder (v2/808), to establish the
+# chase's comparator on the ONE encoder the whole chase will run on.
+#
+# Why this run exists: r7 D13(a). The Stage-0 MUST_RECHARGE fix (commit
+# 0c83339) changed obs semantics — live recharge bool on both actives plus
+# the global aliased-turn flag at vec[5], OBS_DIM 807 -> 808 — and D13 ruled
+# a cross-semantics comparator NOT acceptable. The 0.3890 +/- 0.0089 basis
+# (sp12m_v2, seeds 10/11/12) therefore DIES as a comparator when this run
+# reads out; Rung 1 (showdown_sp_signal12m) and Rung 2 (showdown_sp_struct12m)
+# read against THIS run's pooled finals instead.
+#
+# Verbatim means verbatim: every hyperparameter, the pool config, and the
+# two-phase gates below are byte-identical to showdown_sp12m_v2. The ONLY
+# changes are the encoder fix (code-level, not config-level), seeds, and
+# run names. Seeds 31/32/33 — 0-13 spent, 14-22 reserved (warmrl), 23-30
+# claimed by Rungs 1/2 + smokes; distinct across lanes AND arms (username
+# landmine).
+#
+# R0 GATES (any failure voids the read):
+#   - R0-1 FINGERPRINT: meta.yaml stamps {obs_dim: 808, encoder: v2,
+#     set_prior: true, recharge_fix: true} in EVERY lane. The env var is
+#     process-level and forgettable; obs_dim 808 (not 807) and the
+#     recharge_fix key are exactly what distinguish this run from a
+#     pre-fix relaunch.
+#   - Two-phase regime gates carry over: 0-3M recorded not gated; after 3M
+#     training ties <= 4.2% and mean episode length <= 40.
+#   - steps/s within ~25% of the sp12m_v2 lanes (~537-583); the fix adds one
+#     input dim, expect no measurable hit. Battle PROGRESS per lane verified
+#     at launch, not run-dir existence.
+#
+# R1 LEARNING GATE (unchanged): winrate_anchor >= 0.75 by 4M on >= 2/3
+#   seeds, else "fails to learn" reports as in the old runs.
+#
+# R2 PRIMARY — pooled finals vs SH, LOCKED protocol at the ladder's n
+#   (D2c/D10a: final checkpoint, deterministic, ties as non-wins,
+#   3000/seed x 3 seeds = 9000 pooled — note this is the ladder-grade n,
+#   not the 1000/seed the old comparator was read at):
+#   => The pooled mean +/- se IS the deliverable: the Rung 1/2 comparator
+#      of record. There is no pass/fail bar; the run cannot "miss".
+#   Credit-line context for its consumers: Rung 1/2 credit at
+#   delta >= +0.025 AND >= 2*se_diff against THIS number.
+#
+# SECONDARY (informative, unpaired, cross-semantics — read with that
+#   caveat): delta vs 0.3890 +/- 0.0089 estimates the Stage-0 fix's OWN
+#   effect (2 dims of truth on ~7.6% of turns). If it clears the credit
+#   line in either direction, record it in SESSION_LOGS as a finding about
+#   representation of forced turns; expected value: within noise.
+#
+# R4 ENTROPY (unchanged): starts ~ln 10, must fall; 3-seed median < 0.15
+#   for 5 consecutive rungs before 6M => record, plan an entropy_coef arm,
+#   never change mid-run.
+#
+# Launch (server on :8000 with simulator:4; 3 lanes, distinct seeds,
+# staggered starts ~90s apart against the torch lazy-init SIGSEGV):
+#   POKEMON_RL_ENCODER_V2=1 WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp12m_v2r.yaml --seed N --run-name showdown_sp12m_v2r_sN
+env_id: Showdown-v0
+seed: 31
+total_steps: 12000000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp12m_v2r_s31
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128  # 8 envs x 128 = 1024 per update, the Phase 4 cadence
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
