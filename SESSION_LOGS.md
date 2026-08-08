@@ -1909,3 +1909,28 @@ entry by offset — never a broad keyword grep.
   FILLED (credit bar >= 0.4246; M1 0.4400 still above it), and the signal config
   passed a construct dry-check (Config -> env_kwargs seam -> live ShowdownSingles
   with hl_shaping 1.0). Rung 1 is GO for launch: seeds 23/24/25, one overnight.
+
+- 2026-08-08 (13:30) — **RUNG 1 (SIGNAL) READ OUT: NULL. H&L's reward/discount design does
+  NOT rescue the 12M bootstrap.** Locked finals (3×3000, --no-shaping, R0-4 exact-agree +
+  no_shaping stamped on all three): s23 0.4147 / s24 0.4107 / s25 0.4140, **pooled 0.4131
+  ± 0.0052 vs comparator 0.3996 ± 0.0052 → delta +0.0135, z +1.84 — misses BOTH halves of
+  the credit line** (needs ≥ +0.025 and ≥ 2·se_diff = 0.0146). Below the [+0.015, +0.025)
+  ambiguous band, so no escalation question even if it weren't moot. **Branch (b) of the
+  pre-registration binds: report honestly, Rung 2 runs at gamma 1.0 / NO shaping against
+  the SAME 0.3996 baseline; magnitude retuning stays closed.** The null is CLEAN — every
+  gate green: R0-3 treatment-on (98.7% of episodes non-±1), R0-5 regime (ties ~0%, len 28),
+  R0-6 throughput 516-537, R0-7/K2 value sane (EV +0.55 by 1M, zero NaNs), K1 never fired
+  (entropy 0.44-0.47), R1 anchor 0.96. Secondaries: **S2 CONFIRMED** — EV end 0.575-0.656
+  vs control 0.513-0.555 (dense targets make the value problem easier, as pre-stated);
+  S3 entropy trace ~unchanged; **S4 no "hurry-up-and-trade" signature** (ep len 27.5-29 vs
+  control 26-28, ties equal). MECHANISM NOTE, recorded not read: the signal arm's seed
+  spread COLLAPSED — 0.004 across seeds vs the control's 0.050 (s32 0.431 outlier) — dense
+  zero-sum shaping appears to stabilize what self-play converges to, without moving its
+  mean past the bar. Also honest caveat on z +1.84: the pooled-binomial se convention
+  ignores the control's measured seed heterogeneity; using between-seed variance the z
+  drops to ~+0.9. Direction is positive, evidence is below every bar we pre-registered.
+  Ladder state: two nulls (preview, signal) — the chase now rests on Rung 2 (STRUCTURE)
+  and Rung 3 (SCALE), exactly the position D17's abandon criterion was written for.
+  NEXT: implement Rung 2's entity trunk (DeepSets + per-action scorer, param ceiling
+  681k, spec in configs/showdown_sp_struct12m.yaml), R0-4 arch smoke seed 30, then 3×12M
+  seeds 26/27/28. Evals: in-session (~2 min each, measured again today).

@@ -5,11 +5,11 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 ## Where things stand (2026-08-07 — PIVOT RATIFIED)
 
 **Pure from-scratch self-play in gen1randombattle is the main chase** (novelty over
-strength; revocable per D17). **DESIGN r7 RATIFIED 2026-08-07, all eight per rec.** D13a
-DONE: encoder v2/808, re-baseline complete + read out same night. **Comparator of record:
-0.3996 ± 0.0052** (v2r, 3×3000, gates green; s32 0.431 is +3.5sd seed heterogeneity).
-Rung 1 code landed, R0-2(a)+(b) PASS, config dry-checked — **Rung 1 is GO.** FP/BC BANKED:
-0.8307 / 180k tapes / clone 0.558. Suite 258 green. Pushed through 288a347 (ask-first).
+strength; revocable per D17; r7 RATIFIED, encoder frozen v2/808, comparator 0.3996±0.0052).
+**RUNG 1 (SIGNAL) READ OUT 2026-08-08: NULL — 0.4131 ± 0.0052, delta +0.0135, z +1.84,
+misses both credit-line halves. Branch (b): Rung 2 at gamma 1.0 / no shaping vs 0.3996.**
+Clean null (all gates green; S2 EV-easier confirmed; seed spread collapsed 0.050→0.004).
+FP/BC BANKED. Suite 258 green. Pushed through 288a347 (ask-first; 8 local commits).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
 ## *Starred rows are probe reads: 1 fit seed and/or n=1000.)
@@ -19,6 +19,7 @@ Rung 1 code landed, R0-2(a)+(b) PASS, config dry-checked — **Rung 1 is GO.** F
 | PPO 12M flat / **+LR anneal — best vs-SH-trained RL** | 0.4330 / **0.4607** |
 | Scratch self-play 12M: v1+broken pool / v2+fixed pool | 0.3800 / 0.3890 (dead, v2/807) |
 | **Self-play 12M control on v2/808 — COMPARATOR (3×3000)** | **0.3996 ± 0.0052** |
+| Rung 1 SIGNAL (γ0.95 + H&L shaping) — NULL, branch (b) | 0.4131 ± 0.0052 (z +1.84) |
 | BC clone of SH (P4, 813k rows) | **0.4657** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
 | Foul Play (+patch) — teacher; banked anchor | **0.8307** (n=7,200)* |
@@ -30,12 +31,11 @@ non-SH-anchor guard from M2 up. vs-SH ADMISSIBLE (SH held out of training entire
 
 ## Next actions, in order
 
-1. **LAUNCH RUNG 1** (seeds 23/24/25, one overnight, ~6.5 h): everything is gated and
-   filled — R0-2(a)+(b) PASS, comparator 0.3996 in the R2 header, credit bar ≥0.4246,
-   M1 0.4400. Launch pattern = v2r's (3 lanes, 90 s stagger, nohup). At launch verify
-   R0-3 (episode_return NOT ±1-valued in first 200k) on top of the usual per-lane checks.
-2. **Then Rung 2** (26/27/28) per THE LADDER RULE; locked evals now cost ~2 min/seed
-   (measured), so read-outs are same-evening.
+1. **RUNG 2 (STRUCTURE) implementation session:** entity DeepSets trunk + shared
+   per-action scorer at the 681k param ceiling, per branch (b) at **gamma 1.0 / NO
+   shaping vs 0.3996** (spec + amendments in `configs/showdown_sp_struct12m.yaml`).
+   Then R0-4 arch smoke (1 lane × 1M, seed 30, ~35 min), then 3×12M seeds 26/27/28.
+2. Rung 0 E1-E4 still owed (D12b); evals cost ~2 min (measured 2×); Rung 3/D15 waits on Rung 2.
 3. **Rung 0 measurement evening (E1-E4, ≤10 min each, D12b/D14a):** decompose the loop at
    [512,512] per `prior_work/THROUGHPUT_SPEC.md`; cheap wins authorized on their numbers.
 4. ON ICE, zero rework: warmrl (seeds 14-22 reserved), P4-scale GO (19.7 h), §11 D8/D9.
