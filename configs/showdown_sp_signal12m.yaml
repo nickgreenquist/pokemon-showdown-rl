@@ -305,8 +305,14 @@
 # checkpoint, deterministic policy, ties as non-wins, 3000 battles/seed
 # x 3 seeds = 9000 pooled (amendment 3; was 1000/seed), `--no-shaping`.
 # Read against showdown_sp12m_v2r's pooled finals at the same protocol
-# (amendment 2; the number lands here before this arm launches):
-#   v2r pooled = ______ +- ______  (seeds 31/32/33, v2/808)
+# (amendment 2; number filled 2026-08-07 ~22:15, all v2r gates green):
+#   v2r pooled = 0.3996 +- 0.0052  (seeds 31/32/33, v2/808, n=9000;
+#   per-seed 0.3867 / 0.4310 / 0.3810 — note s32 sits ~3.5 binomial-sd
+#   above its seed-mates: real seed heterogeneity, recorded not gated)
+#   se_diff = sqrt(0.0052^2 + 0.0052^2) = 0.0073, 2*se_diff = 0.0146,
+#   so the +0.025 half of the credit line binds: CREDIT at >= 0.4246.
+#   (M1 go/no-go remains 0.4400; M1 > credit bar, so "credited but below
+#   M1" is a possible and meaningful outcome.)
 #
 #   se_diff = sqrt(0.0089^2 + 0.0089^2) = 0.0126, so 2*se_diff = 0.0252
 #   and the two halves of the credit line coincide: the bar is +0.0252,

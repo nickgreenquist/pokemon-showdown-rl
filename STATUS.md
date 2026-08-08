@@ -5,11 +5,11 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 ## Where things stand (2026-08-07 — PIVOT RATIFIED)
 
 **Pure from-scratch self-play in gen1randombattle is the main chase** (novelty over
-strength; revocable per D17). **DESIGN r7 RATIFIED 2026-08-07 — D10a/D11a/D12b/D13a/D14a/
-D15b/D16a/D17a all binding.** D13a executed: encoder fixed to **v2/808**, re-baseline lanes
-RUNNING (s31/32/33, launched ~15:17, ~6.2 h). Rung 1 code landed, **R0-2(a)+(b) both PASS**.
-FP/BC chapter BANKED: teacher 0.8307, tapes 180k, clone 0.558/0.569*, warmrl on ice.
-Suite 258 green. Pushed through 288a347; 5 local commits since (push is ask-first).
+strength; revocable per D17). **DESIGN r7 RATIFIED 2026-08-07, all eight per rec.** D13a
+DONE: encoder v2/808, re-baseline complete + read out same night. **Comparator of record:
+0.3996 ± 0.0052** (v2r, 3×3000, gates green; s32 0.431 is +3.5sd seed heterogeneity).
+Rung 1 code landed, R0-2(a)+(b) PASS, config dry-checked — **Rung 1 is GO.** FP/BC BANKED:
+0.8307 / 180k tapes / clone 0.558. Suite 258 green. Pushed through 288a347 (ask-first).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
 ## *Starred rows are probe reads: 1 fit seed and/or n=1000.)
@@ -17,7 +17,8 @@ Suite 258 green. Pushed through 288a347; 5 local commits since (push is ask-firs
 | result | win rate |
 |---|---|
 | PPO 12M flat / **+LR anneal — best vs-SH-trained RL** | 0.4330 / **0.4607** |
-| **Scratch self-play 12M: v1+broken pool / v2+fixed pool** | **0.3800 / 0.3890** (null, z +0.7) |
+| Scratch self-play 12M: v1+broken pool / v2+fixed pool | 0.3800 / 0.3890 (dead, v2/807) |
+| **Self-play 12M control on v2/808 — COMPARATOR (3×3000)** | **0.3996 ± 0.0052** |
 | BC clone of SH (P4, 813k rows) | **0.4657** |
 | SH-vs-SH mirror = parity; caps imitators only | **0.489** (0.486 at n=40k) |
 | Foul Play (+patch) — teacher; banked anchor | **0.8307** (n=7,200)* |
@@ -29,12 +30,12 @@ non-SH-anchor guard from M2 up. vs-SH ADMISSIBLE (SH held out of training entire
 
 ## Next actions, in order
 
-1. **TOMORROW: read the v2r re-baseline** (finals land ~21:30 tonight; R0 gates per its
-   header, then locked eval 3×3000/seed — ~3 h, maintainer terminal). Fill the pooled
-   number into `showdown_sp_signal12m.yaml` R2 (blank is waiting). 0.3890 is DEAD.
-2. **Then LAUNCH Rung 1** (seeds 23/24/25, one overnight): all three code items are DONE
-   and gated — R0-2(a) offline PASS (permanent test), R0-2(b) live PASS (10 battles,
-   exact zero-sum; scripts/hl_shaping_live_smoke.py). Rung 2 next (26/27/28).
+1. **LAUNCH RUNG 1** (seeds 23/24/25, one overnight, ~6.5 h): everything is gated and
+   filled — R0-2(a)+(b) PASS, comparator 0.3996 in the R2 header, credit bar ≥0.4246,
+   M1 0.4400. Launch pattern = v2r's (3 lanes, 90 s stagger, nohup). At launch verify
+   R0-3 (episode_return NOT ±1-valued in first 200k) on top of the usual per-lane checks.
+2. **Then Rung 2** (26/27/28) per THE LADDER RULE; locked evals now cost ~2 min/seed
+   (measured), so read-outs are same-evening.
 3. **Rung 0 measurement evening (E1-E4, ≤10 min each, D12b/D14a):** decompose the loop at
    [512,512] per `prior_work/THROUGHPUT_SPEC.md`; cheap wins authorized on their numbers.
 4. ON ICE, zero rework: warmrl (seeds 14-22 reserved), P4-scale GO (19.7 h), §11 D8/D9.

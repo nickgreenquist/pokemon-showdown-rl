@@ -1889,3 +1889,23 @@ entry by offset — never a broad keyword grep.
   blank to fill BEFORE launch), locked reads at 3000/seed × 3 per D10a (escalation
   clause moot). Suite 258 green. Tomorrow: v2r R0 gates + 3×3000 locked evals, fill the
   comparator, then launch Rung 1 (seeds 23/24/25).
+
+- 2026-08-07 (22:15, autonomous overnight read) — **THE v2r RE-BASELINE IS IN: pooled
+  0.3996 ± 0.0052 (n=9,000) IS THE CHASE'S COMPARATOR OF RECORD.** Per-seed
+  0.3867 / 0.4310 / 0.3810 (s31/32/33, 3000 battles each, locked protocol,
+  `eval/win_rate == wins_from_returns` EXACTLY on all three — the sign-bug guard holds).
+  All gates green: 12M complete on every lane (final ckpt step 12,000,000), R0-1
+  fingerprints v2/808+recharge_fix from clean ce2fe2c, post-3M tie rates 0.4-0.6%
+  (gate 4.2%), ep len ~28 (gate 40), throughput medians 510-553 (band 537-583 -25%),
+  R1 anchor 0.94-0.95 @4M, entropy floor ~0.45. Notes: (1) **s32's 0.4310 is ~3.5
+  binomial-sd above its seed-mates** — real seed heterogeneity at 12M, recorded not
+  gated; the pooled number is the comparator per protocol. (2) Cross-semantics delta
+  vs the dead 0.3890: +0.0106, z +1.03 — within noise, exactly as the pre-registered
+  secondary expected (the 2-dim Stage-0 fix alone moved nothing measurable at 12M).
+  (3) **OPS FINDING: a 3,000-battle serial eval takes ~2 MINUTES, not ~1 h** — the
+  eval env has no learner/wandb in the loop and the serial websocket path runs at
+  full lane speed (THROUGHPUT_SPEC's own arithmetic, confirmed in anger); locked-n
+  evals are effectively free, stop budgeting hours for them. Rung 1's R2 blank is
+  FILLED (credit bar >= 0.4246; M1 0.4400 still above it), and the signal config
+  passed a construct dry-check (Config -> env_kwargs seam -> live ShowdownSingles
+  with hl_shaping 1.0). Rung 1 is GO for launch: seeds 23/24/25, one overnight.
