@@ -222,6 +222,8 @@ class PPOAgent(Agent):
         critic_warmup_updates: int = 0,
         actor_lr_scale: float = 1.0,
         bc_kl_coef: float = 0.0,
+        trunk: str = "mlp",
+        trunk_kwargs: dict | None = None,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -291,6 +293,16 @@ class PPOAgent(Agent):
             raise TypeError("bc_kl_coef requires a discrete action space")
         self.bc_kl_coef = bc_kl_coef
         self._bc_anchor: "nn.Module | None" = None
+        # Trunk seam (ARCH_SCREEN_SPEC / Rung 2): default "mlp" is the
+        # historical path, bit-identical in construction order and RNG
+        # consumption (regression-tested against pre-seam goldens). The
+        # entity trunk is discrete/flat-obs only — the conv rule and the
+        # Gaussian track keep their existing shapes.
+        if trunk not in ("mlp", "entity_deepsets"):
+            raise ValueError(f"unknown trunk {trunk!r}; expected 'mlp' or 'entity_deepsets'")
+        if trunk != "mlp" and (self.obs_rank == 3 or self.continuous):
+            raise TypeError(f"trunk {trunk!r} requires a flat obs and a Discrete action space")
+        self.trunk = trunk
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
         if self.obs_rank == 3:
@@ -302,6 +314,15 @@ class PPOAgent(Agent):
             def build(out_dim: int) -> nn.Module:
                 return ConvQNet(
                     observation_space.shape, hidden_sizes, out_dim, kernel_size=kernel_size
+                )
+        elif trunk == "entity_deepsets":
+            # Deferred import: only entity-trunk construction pays for the
+            # poke_env import chain behind the tokenizer's layout asserts.
+            from rl.networks.entity_deepsets import EntityDeepSetsNet
+
+            def build(out_dim: int) -> nn.Module:
+                return EntityDeepSetsNet(
+                    observation_space.shape[0], out_dim, **(trunk_kwargs or {})
                 )
         else:
             # Tanh hiddens: the feedforward-PPO reference default the numeric
@@ -321,8 +342,17 @@ class PPOAgent(Agent):
         else:
             self.actor = build(int(action_space.n))
         self.critic = build(1)
-        _orthogonal_init(self.actor, head_gain=0.01)
-        _orthogonal_init(self.critic, head_gain=1.0)
+        if trunk == "entity_deepsets":
+            # INIT HAZARD (K4): _orthogonal_init iterates every Linear and
+            # would rescale the pointer stack while leaving the embedding
+            # tables at torch's default N(0,1) — the net owns its init
+            # (Xavier + std-0.02 embeddings + rescaled final layer), with
+            # the same head gains as the orthogonal path.
+            self.actor.init_head(0.01)
+            self.critic.init_head(1.0)
+        else:
+            _orthogonal_init(self.actor, head_gain=0.01)
+            _orthogonal_init(self.critic, head_gain=1.0)
         self.actor.to(self.device)
         self.critic.to(self.device)
         # One Adam over the union of both nets' params; eps=1e-5 is the

@@ -65,7 +65,7 @@ def make_agent(cfg: Config, env: gym.Env) -> Agent:
     return cls(env.observation_space, env.action_space, device=cfg.device, **hparams)
 
 
-def _write_run_metadata(out_dir: Path, cfg: Config) -> None:
+def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) -> None:
     """Stamp the run dir before training starts: the resolved config (CLI
     overrides baked in, reloadable via load_config) plus provenance — a
     benchmark campaign spans days of possible code drift, so every result
@@ -106,6 +106,15 @@ def _write_run_metadata(out_dir: Path, cfg: Config) -> None:
         from rl.envs.showdown import ENCODER_FINGERPRINT
 
         meta["encoder"] = dict(ENCODER_FINGERPRINT)
+    if agent is not None and hasattr(agent, "actor") and hasattr(agent, "critic"):
+        # Exact param counts (Rung 2 R0-2 stamps them; harmless everywhere
+        # else): a capacity-matched comparison is only auditable if the
+        # counts are in the run record, not re-derived from code that may
+        # have drifted.
+        meta["params"] = {
+            "actor": sum(p.numel() for p in agent.actor.parameters()),
+            "critic": sum(p.numel() for p in agent.critic.parameters()),
+        }
     (out_dir / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
 
 
@@ -216,7 +225,7 @@ def train(cfg: Config) -> None:
         agent.begin_warm_start()
     out_dir = run_dir(cfg)
     # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
-    _write_run_metadata(out_dir, cfg)
+    _write_run_metadata(out_dir, cfg, agent)
     logger = make_logger(cfg)
     if pool is not None:
         # Before the loop: _vector_loop's first statement is envs.reset(),
