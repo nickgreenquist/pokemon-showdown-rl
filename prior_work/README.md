@@ -221,10 +221,15 @@ lossy by construction and the code has repeatedly contradicted the project's own
   (§5.1.3). Hyperparameters in Table A.3.
 - `angliss2025_vgc_bench.pdf` — Angliss et al., *VGC-Bench* (arXiv 2506.10326), 2025.
   https://arxiv.org/abs/2506.10326 · code https://github.com/cameronangliss/vgc-bench
-  Best apples-to-apples anchor: scratch transformer PPO at 5M steps = 0.48 vs
-  SimpleHeuristics; BC-initialized variants 0.62–0.78 (+25–30 pts at matched budget — the
-  best-evidenced lever anywhere). Cyclic payoff matrices (Appendix C) — a single SH
-  winrate is a projection, not a ranking.
+  Best apples-to-apples anchor — CORRECTED 2026-08-08 against the paper's own Tables
+  8/10/11 (the previous "0.48 / 0.62–0.78" row mixed regimes): vs SimpleHeuristics at
+  ~5M steps, scratch SP/FP/DO win 0.771–0.804 at 1 team, decaying to 0.510–0.518 at 64
+  teams; BC-initialized 0.822–0.909 at 1 team, HOLDING 0.801–0.834 at 64 teams; BC alone
+  0.449–0.489. The BC edge GROWS with team diversity (+10 pts → +32 pts) — and randbats
+  is the diversity limit. Their recipe (Table 7): gamma 1.0, lambda 0.95, ~3k
+  steps/update — OUR gamma/lambda, not Wang/ps-ppo's 0.75, so the "convergent recipe"
+  prior has a third system on the other side. Cyclic payoff matrices (Appendix C) — a
+  single SH winrate is a projection, not a ranking.
 - `grigsby2025_metamon.pdf` — Grigsby et al., *Metamon* (arXiv 2504.04395), RLC 2025.
   https://arxiv.org/abs/2504.04395 · code https://github.com/UT-Austin-RPL/metamon
   Offline RL on ~1M human battles. Its `PokeEnvHeuristic` IS poke-env's SimpleHeuristicsPlayer,

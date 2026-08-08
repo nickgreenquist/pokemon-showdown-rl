@@ -2000,3 +2000,33 @@ entry by offset — never a broad keyword grep.
   now: at 12M a 32k rollout is ~366 updates total, so push_every_updates 150 would push TWO
   snapshots — pool cadence must be re-keyed in steps. Rung 2 is UNCHANGED (ratified; launches
   on R0-4 PASS); nothing from the advisory folds into it mid-flight.
+
+- 2026-08-08 (night) — **"SHOULD WE RELAX PURE SELF-PLAY?" — landscape-review PDF read,
+  key evidence verified at primary source, decision framed for the maintainer.** The
+  uploaded PDF is a project-selection landscape review; despite the outside-experts
+  framing it is NOT anti-pure-self-play: its verdict is "pure self-play headline + a
+  matched-budget BC-initialized arm as the controlled comparison," with harsher gates than
+  ours (0.8 vs SH at 50M) calibrated to a 150M budget. VERIFIED LOCALLY against
+  angliss2025_vgc_bench.pdf Tables 7-11 (and our index CORRECTED — its old row mixed
+  regimes): scratch PPO vs SH decays 0.785 → 0.587 → 0.514 as team diversity grows
+  1 → 16 → 64 while BC-init holds 0.890 → 0.848 → 0.834; BC edge +10 → +32 pts; randbats
+  is the diversity limit. That is the strongest published evidence FOR the experts'
+  warning at our scale. AGAINST fatalism, also verified: H&L is a pure self-play,
+  no-search, RANDOM-BATTLES success (gen7, 72% GXE) at 2-3e8 decisions = 20-45x our
+  budget — the existence proof in the closest regime; gen1 is the friendliest gen for
+  pure-policy (PokéAgent: Gen1OU won by pure-policy RL); and no published hard ceiling
+  exists. New wrinkle: VGC-Bench's Table 7 recipe is gamma 1.0 / lambda 0.95 / ~3k
+  steps-per-update — OUR side of the recipe split, softening the advisory's two-system
+  convergence prior (though their scratch arm is also the one that decays). FRAMING: the
+  experts are probably right that pure self-play misses M3 at 12-50M; they are unproven
+  at H&L scale; and the ladder was DESIGNED to decide cheaply what to scale before paying
+  for scale — the expensive fork is already gated at branch (d)/D15/D17. RECOMMENDATION
+  (maintainer to ratify, nothing changed tonight): (1) run Rung 2 as ratified — it is
+  built and nearly free; (2) recipe rung next if desired; (3) at the branch-(d) fork,
+  decide between the 50M pure scale step and UN-ICING warmrl/BC-arm as a PARALLEL
+  headline, not a replacement — the scratch-vs-BC matched-budget curve in
+  gen1randombattle is itself novel (VGC-Bench did gen9 doubles; nobody has done gen1
+  randbats), so the chase's novelty survives either answer. The PDF's own Option-B
+  trigger (pure plateaus AND BC arm stalls) requires having run the BC arm. Resources
+  named: 109k HolidayOugi gen1randombattle human replays (BC source), Metamon's open
+  Gen1 checkpoints (external yardstick, "single most valuable legibility move").

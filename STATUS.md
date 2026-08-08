@@ -36,9 +36,9 @@ non-SH-anchor guard from M2 up. vs-SH ADMISSIBLE (SH held out of training entire
    params actor 626059 / critic 494849, battle PROGRESS. Miss → K1 (ONE shrink, unspent).
 2. On PASS: **3×12M seeds 26/27/28** (v2r nohup pattern, 90 s stagger, BOTH env vars
    `POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1`). Finals evals in-session, ~2 min.
-3. **RECIPE rung candidate (2026-08-08 advisory, verified — maintainer to ratify):**
-   rollout ~1k → ~16-32k steps/update + λ 0.75 arm vs 0.3996, slotted at branch (d)'s
-   GO/NO-GO before any 50M pricing. ~38 episodes/update vs references' ~1,500 (log entry).
+3. **Branch-(d) stack (maintainer to ratify; 2026-08-08 logs):** RECIPE rung (rollout
+   →16-32k + λ0.75 vs 0.3996; ~38 eps/update vs refs' ~1,500) AND relax-purity/BC-arm
+   hedge (VGC-Bench: scratch 0.51 vs BC 0.83 @64 teams; H&L pure-SP proof; warmrl iced).
 4. Rung 0 E1-E4 measurement evening still owed (D12b/D14a); cheap wins on their numbers.
 5. ON ICE, zero rework: warmrl (seeds 14-22), P4-scale GO (19.7 h), §11 D8/D9.
    D17 abandon criterion armed: below M1 after Rungs 1+2+50M, or >20 lane-days, or >8 wks.
