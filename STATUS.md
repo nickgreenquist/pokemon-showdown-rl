@@ -31,11 +31,11 @@ non-SH-anchor guard from M2 up. vs-SH ADMISSIBLE (SH held out of training entire
 
 ## Next actions, in order
 
-1. **R0-4 smoke (maintainer terminal):** configs/showdown_sp_struct12m_smoke.yaml,
-   seed 30, 1M, ~35 min. GATE ≥380 steps/s. Verify meta.yaml: obs_dim 828 + ids true,
-   params actor 626059 / critic 494849, battle PROGRESS. Miss → K1 (ONE shrink, unspent).
-2. On PASS: **3×12M seeds 26/27/28** (v2r nohup pattern, 90 s stagger, BOTH env vars
-   `POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1`). Finals evals in-session, ~2 min.
+1. **R0-4 PASSED (2026-08-08 night): 552.7 steps/s** median steady-state (gate ≥380;
+   MLP preview 537), S2 update share 14%, meta 828/ids exact, git_dirty false. **GO.**
+2. **LAUNCH 3×12M seeds 26/27/28** (v2r nohup pattern, 90 s stagger, BOTH env vars).
+   Verify per lane: fingerprint + battle PROGRESS. Finals evals in-session (~2 min
+   each) vs 0.3996 tomorrow. K1 shrink unspent.
 3. **Branch-(d) stack (maintainer to ratify; 2026-08-08 logs):** RECIPE rung (rollout
    →16-32k + λ0.75 vs 0.3996; ~38 eps/update vs refs' ~1,500) AND relax-purity/BC-arm
    hedge (VGC-Bench: scratch 0.51 vs BC 0.83 @64 teams; H&L pure-SP proof; warmrl iced).

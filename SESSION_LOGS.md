@@ -2030,3 +2030,17 @@ entry by offset — never a broad keyword grep.
   trigger (pure plateaus AND BC arm stalls) requires having run the BC arm. Resources
   named: 109k HolidayOugi gen1randombattle human replays (BC source), Metamon's open
   Gen1 checkpoints (external yardstick, "single most valuable legibility move").
+
+- 2026-08-08 (23:45) — **R0-4 THROUGHPUT SMOKE: PASS — the entity trunk is FASTER than
+  projected. GO for the 3×12M.** Seed 30, 1M steps, ~30 min wall, clean HEAD (ba81c37,
+  git_dirty false). Steady-state (steps > 100k) `time/steps_per_sec` **median 552.7**
+  (p10 437, p90 617, n=23,753) vs the ≥380 gate and the 430-500 projection — above even
+  the MLP preview's 537 (collection dominates; the batched scorer matmuls are cheap at
+  1 thread, as the FLOP arithmetic said). **S2: update share 14.0%** of collect+update
+  (projection 15-20%, MLP ~5%) — affordable at 50M. R0-1 verified live: meta stamps
+  obs_dim 828 / ids true / recharge_fix true, params actor 626,059 / critic 494,849.
+  Health at 1M: ep len 34.5 (R0-6's ≤40 applies to main lanes after 3M), entropy
+  1.746 → 0.444 (K6 floor 0.15, wide margin), EV 0.520, winrate_anchor 0.966, probe
+  evals 0.55/0.50 at n=20 (noise, not a read). K1 shrink stays unspent. Lane command
+  handed over: seeds 26/27/28, v2r nohup pattern, 90 s stagger, both env vars, logs in
+  gitignored runs/. Overnight ETA ~6-7.5 h at 430-550 steps/s.
