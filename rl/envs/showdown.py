@@ -66,8 +66,9 @@ OPPONENT_PLAYERS: dict[str, type[Player]] = {
 # observe: own team fully, opponent mons/moves only once revealed. Species
 # identity enters ONLY through base stats + types (both derivable from the
 # observed species) — no embedding table, so the obs stays a flat Box and
-# the harness is untouched; a species/move embedding is the priced follow-up
-# if milestone 2 stalls. Type-chart multipliers are kept as engineered
+# the harness is untouched; the priced follow-up (a species/move embedding)
+# landed 2026-08-08 as the gated id suffix below. Type-chart multipliers are
+# kept as engineered
 # features ALONGSIDE raw type one-hots: the multiplier is the directly
 # decision-relevant scalar (sample efficiency under terminal-only reward),
 # the one-hots let the net learn what the scalar can't express.
@@ -134,6 +135,21 @@ _SPECIAL_MOVE_IDS = frozenset({"fight", "struggle", "recharge"})
 # the flag unset, OBS_DIM stays 612 and the encoding is bit-identical to v1.
 _ENCODER_V2 = bool(os.environ.get("POKEMON_RL_ENCODER_V2"))
 
+# --- Encoder ids (2026-08-08, Rung 2 STRUCTURE), behind POKEMON_RL_ENCODER_IDS=1.
+# The identity block the entity trunk's embedding tables index by
+# (configs/showdown_sp_struct12m.yaml): species identity currently enters
+# ONLY through base stats + types (the priced follow-up named below), and an
+# embedding needs an INDEX, so the obs must carry one. PURE SUFFIX: 12
+# species ids + 8 move ids appended after the v2 block, so vec[:808] stays
+# bitwise v2 and, with the flag unset, OBS_DIM and the encoding are
+# untouched — the "changing OBS_DIM invalidates every checkpoint" landmine
+# stays closed. Values are emitted as id/256.0 in [0, 1): exact in float32
+# (256 is a power of two), inside the declared Box(low=-1, high=4), and
+# recovered as round(x*256) inside the tokenizer. Unknown/unrevealed -> 0.
+_ENCODER_IDS = bool(os.environ.get("POKEMON_RL_ENCODER_IDS"))
+ID_DIM = 20 if _ENCODER_IDS else 0  # 6 own + 6 opp species | 4 own + 4 opp moves
+ID_SCALE = 256.0
+
 # Block layouts (offsets documented in the fill helpers below).
 GLOBAL_DIM = 6
 EFFECT_DIM = 23  # v2 only: appended to each move block
@@ -144,8 +160,9 @@ MOVE_DIM = (23 + EFFECT_DIM) if _ENCODER_V2 else 23  # known, bp, acc, pp, match
 # Layout: global | our 6 team blocks (switch-action order) | our active
 # extras | our active's 4 move blocks (move-action order) | opponent's 6
 # team blocks, each prefixed by a revealed flag (reveal order, zero-padded)
-# | opponent active extras | opponent active's revealed move blocks.
-OBS_DIM = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM + 6 * (MON_DIM + 1) + ACTIVE_DIM + 4 * MOVE_DIM
+# | opponent active extras | opponent active's revealed move blocks
+# | (ids flag only) the 20-dim identity suffix.
+OBS_DIM = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM + 6 * (MON_DIM + 1) + ACTIVE_DIM + 4 * MOVE_DIM + ID_DIM
 
 # Stamped into run metadata and BC metrics (direction-audit watch item: the
 # set prior and the aliasing fix changed obs SEMANTICS at constant OBS_DIM,
@@ -157,6 +174,8 @@ ENCODER_FINGERPRINT = {
     # Stage-0 MUST_RECHARGE fix (D13a, 2026-08-07): live recharge bool + the
     # global aliased-turn flag. Distinguishes v2/808 from the dead-slot v2/807.
     "recharge_fix": True,
+    # Identity suffix (Rung 2, R0-1): true iff the 20-dim id block is on.
+    "ids": _ENCODER_IDS,
 }
 
 
@@ -297,7 +316,50 @@ def embed_battle(battle, type_chart) -> np.ndarray:
         # determinizes over and that we were discarding as zeros.
         for i, (move, prob) in enumerate(_opponent_move_slots(theirs)):
             _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, ours, type_chart, prob)
+    if _ENCODER_IDS:
+        _fill_ids(vec, battle, ours, theirs)
     return vec
+
+
+def _fill_ids(vec, battle, ours, theirs) -> None:
+    """The 20-dim identity suffix at [OBS_DIM - ID_DIM:], each value id/256.0:
+    [+0..5] own team species (switch-action order) | [+6..11] opponent species
+    (reveal order, zero-padded) | [+12..15] own active's moves (move-action
+    order; zeroed on aliased turns, matching the zeroed move blocks — slot i
+    must never carry move i's identity on a turn where action 6+i does not
+    mean move i) | [+16..19] opponent active's move slots (the id of whatever
+    move fills the block: revealed at p=1.0 AND prior-filled — the block and
+    its id must describe the same move). _opponent_move_slots is deterministic
+    in the battle state, so calling it again here re-derives the identical
+    slot assignment the block fill used."""
+    o = OBS_DIM - ID_DIM
+    for i, mon in enumerate(list(battle.team.values())[:6]):
+        vec[o + i] = _species_id(mon.species) / ID_SCALE
+    for i, mon in enumerate(list(battle.opponent_team.values())[:6]):
+        vec[o + 6 + i] = _species_id(mon.species) / ID_SCALE
+    if ours is not None and not _move_slots_aliased(battle):
+        for i, move in enumerate(list(ours.moves.values())[:4]):
+            vec[o + 12 + i] = _move_id(move) / ID_SCALE
+    if theirs is not None:
+        for i, (move, _) in enumerate(_opponent_move_slots(theirs)):
+            vec[o + 16 + i] = _move_id(move) / ID_SCALE
+
+
+@lru_cache(maxsize=1024)
+def _species_id(species: str) -> int:
+    """Gen-1 pokedex number in 1..151 — the species embedding row index.
+    0 (= unknown) for anything outside gen 1's dex, including the negative
+    nums poke-env's dex carries for CAP/custom entries."""
+    entry = GenData.from_gen(1).pokedex.get(species)
+    num = entry["num"] if entry else 0
+    return num if 1 <= num <= 151 else 0
+
+
+def _move_id(move) -> int:
+    """Gen-1 move number in 1..165 — the move embedding row index. 0 for
+    synthetic/non-gen1 entries (recharge is num -3 in poke-env's table)."""
+    num = move.entry.get("num", 0)
+    return num if 1 <= num <= 165 else 0
 
 
 def _move_slots_aliased(battle) -> bool:
