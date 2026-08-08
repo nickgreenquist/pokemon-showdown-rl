@@ -9,7 +9,7 @@ strength; revocable per D17; r7 RATIFIED, encoder frozen v2/808, comparator 0.39
 **RUNG 1 (SIGNAL) READ OUT 2026-08-08: NULL — 0.4131 ± 0.0052, delta +0.0135, z +1.84,
 misses both credit-line halves. Branch (b): Rung 2 at gamma 1.0 / no shaping vs 0.3996.**
 Clean null (all gates green; S2 EV-easier confirmed; seed spread collapsed 0.050→0.004).
-FP/BC BANKED. Suite 258 green. Pushed through 288a347 (ask-first; 8 local commits).
+FP/BC BANKED. Suite 258 green. Pushed: origin == main (2026-08-08; pushing stays ask-first).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
 ## *Starred rows are probe reads: 1 fit seed and/or n=1000.)
