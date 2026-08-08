@@ -2,22 +2,22 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-07 — PIVOT RATIFIED)
+## Where things stand (2026-08-08 — RUNG 2 CODE COMPLETE)
 
 **Pure from-scratch self-play in gen1randombattle is the main chase** (novelty over
 strength; revocable per D17; r7 RATIFIED, encoder frozen v2/808, comparator 0.3996±0.0052).
-**RUNG 1 (SIGNAL) READ OUT 2026-08-08: NULL — 0.4131 ± 0.0052, delta +0.0135, z +1.84,
-misses both credit-line halves. Branch (b): Rung 2 at gamma 1.0 / no shaping vs 0.3996.**
-Clean null (all gates green; S2 EV-easier confirmed; seed spread collapsed 0.050→0.004).
-FP/BC BANKED. Suite 258 green. Pushed: origin == main (2026-08-08; pushing stays ask-first).
+Rung 1 (SIGNAL) read out NULL (0.4131±0.0052, z +1.84; branch (b) binds: Rung 2 at gamma
+1.0 / no shaping vs 0.3996). **RUNG 2 (STRUCTURE) CODE LANDED, ALL OFFLINE GATES GREEN:**
+entity DeepSets trunk + pointer scorer (actor 626,059 ≤ ceiling 681,994), gated id-suffix
+encoder (obs 828), R0-2/R0-3/R0-5/R0-7/K4 pass, suite **264 green**, live integration
+smoke clean incl. the eval_checkpoint rebuild path. **NEXT: R0-4 throughput smoke.**
+FP/BC BANKED. Origin == main at 9725816 pre-session (pushing stays ask-first).
 
-## Results (vs SH; ties=loss; locked = final ckpt, 3 seeds, n=3000/seed per D2c.
-## *Starred rows are probe reads: 1 fit seed and/or n=1000.)
+## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed per D2c; *probe: 1 seed/n=1000)
 
 | result | win rate |
 |---|---|
 | PPO 12M flat / **+LR anneal — best vs-SH-trained RL** | 0.4330 / **0.4607** |
-| Scratch self-play 12M: v1+broken pool / v2+fixed pool | 0.3800 / 0.3890 (dead, v2/807) |
 | **Self-play 12M control on v2/808 — COMPARATOR (3×3000)** | **0.3996 ± 0.0052** |
 | Rung 1 SIGNAL (γ0.95 + H&L shaping) — NULL, branch (b) | 0.4131 ± 0.0052 (z +1.84) |
 | BC clone of SH (P4, 813k rows) | **0.4657** |
@@ -31,30 +31,30 @@ non-SH-anchor guard from M2 up. vs-SH ADMISSIBLE (SH held out of training entire
 
 ## Next actions, in order
 
-1. **RUNG 2 (STRUCTURE) implementation session:** entity DeepSets trunk + shared
-   per-action scorer at the 681k param ceiling, per branch (b) at **gamma 1.0 / NO
-   shaping vs 0.3996** (spec + amendments in `configs/showdown_sp_struct12m.yaml`).
-   Then R0-4 arch smoke (1 lane × 1M, seed 30, ~35 min), then 3×12M seeds 26/27/28.
-2. Rung 0 E1-E4 still owed (D12b); evals cost ~2 min (measured 2×); Rung 3/D15 waits on Rung 2.
-3. **Rung 0 measurement evening (E1-E4, ≤10 min each, D12b/D14a):** decompose the loop at
-   [512,512] per `prior_work/THROUGHPUT_SPEC.md`; cheap wins authorized on their numbers.
-4. ON ICE, zero rework: warmrl (seeds 14-22 reserved), P4-scale GO (19.7 h), §11 D8/D9.
+1. **R0-4 smoke (maintainer terminal):** configs/showdown_sp_struct12m_smoke.yaml,
+   seed 30, 1M, ~35 min. GATE ≥380 steps/s. Verify meta.yaml: obs_dim 828 + ids true,
+   params actor 626059 / critic 494849, battle PROGRESS. Miss → K1 (ONE shrink, unspent).
+2. On PASS: **3×12M seeds 26/27/28** (v2r nohup pattern, 90 s stagger, BOTH env vars
+   `POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1`). Finals evals in-session, ~2 min.
+3. **RECIPE rung candidate (2026-08-08 advisory, verified — maintainer to ratify):**
+   rollout ~1k → ~16-32k steps/update + λ 0.75 arm vs 0.3996, slotted at branch (d)'s
+   GO/NO-GO before any 50M pricing. ~38 episodes/update vs references' ~1,500 (log entry).
+4. Rung 0 E1-E4 measurement evening still owed (D12b/D14a); cheap wins on their numbers.
+5. ON ICE, zero rework: warmrl (seeds 14-22), P4-scale GO (19.7 h), §11 D8/D9.
    D17 abandon criterion armed: below M1 after Rungs 1+2+50M, or >20 lane-days, or >8 wks.
 
 ## Watch items
 
-- Seeds: 0-13 spent (see logs), 14-22 RESERVED (warmrl), 23/24/25 Rung 1, 26/27/28 Rung 2,
-  29/30 smokes, 31-33 v2r lanes, 34 v2r smoke; 35+ free. Distinct across lanes AND arms
-  (username landmine). Showdown evals are UNPAIRED — buy precision with battles.
+- Seeds: 0-13 spent, 14-22 RESERVED (warmrl), 23/24/25 Rung 1, 26/27/28 Rung 2, 29/34
+  smokes, 30 = R0-4 arch smoke, 31-33 v2r, 99 throwaway integration smoke; 35+ free.
+  Distinct across lanes AND arms (username landmine). Showdown evals are UNPAIRED.
+- **TWO env vars now, twice as forgettable (R0-1):** every lane's meta.yaml must show
+  obs_dim 828, recharge_fix true, ids true. Rung 2 checkpoints need BOTH vars at eval too;
+  a forgotten var now dies loudly at trunk construction (tokenizer assert), by design.
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
-- **Encoder FROZEN at v2/808 (D13a, commit 0c83339):** live `mon.must_recharge` bool (both
-  actives) + global aliased-turn flag at vec[5]. OBS_DIM 807→808 (v1 611→612) — pre-fix
-  checkpoints can't re-eval on current code; fingerprint (+`recharge_fix: true`) is the
-  guard, CHECK IT per lane (R0-1). Obs-fidelity PASS post-fix (215 decisions, exact).
-- **Rung 1 shaping is NOT Arm B:** non-cancelled, zero-sum, 5-term, gamma 0.95, mirror play
-  — Arm B's null (cancelled potential-based single term vs SH) does not transfer. Its R0
-  gate: both seats' shaping sums to exactly 0 per event; shaping/terminal mass ratio logged.
-- BC-warm-start landmines (on ice with warmrl): loss/entropy 0.063 from update 1; critic
+- Encoder FROZEN v2/808 (D13a); id suffix is a gated pure ADDITION (off = bit-identical;
+  vec[:808] untouched). 0.3890/0.3800 are dead comparators (v2/807).
+- `score_ladder.py` default `--opponents` raises on Showdown (use `eval_checkpoint.py`).
+- H&L scale accounting (both seats?) unresolved — settle from metagrok before Rung 3 budget.
+- BC-warm-start landmines (on ice with warmrl): entropy 0.063 from update 1; critic
   warmup 5 at rollout 512; grad clip binds harder on warm starts (0.67→0.94).
-- `score_ladder.py` default `--opponents` raises on Showdown (use `eval_checkpoint.py`). H&L
-  scale accounting (both seats?) unresolved — settle from metagrok before Rung 3's budget.

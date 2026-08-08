@@ -1934,3 +1934,69 @@ entry by offset — never a broad keyword grep.
   NEXT: implement Rung 2's entity trunk (DeepSets + per-action scorer, param ceiling
   681k, spec in configs/showdown_sp_struct12m.yaml), R0-4 arch smoke seed 30, then 3×12M
   seeds 26/27/28. Evals: in-session (~2 min each, measured again today).
+
+- 2026-08-08 (evening) — **RUNG 2 (STRUCTURE) CODE COMPLETE — every offline gate green,
+  R0-4 smoke is the only thing between here and the 3×12M launch.** Per branch (b):
+  gamma 1.0, no shaping, comparator 0.3996. What landed (commit this entry rides in):
+  **(1) Encoder id suffix** behind `POKEMON_RL_ENCODER_IDS=1` (default OFF, bit-identical
+  unset): 20 dims appended after the v2 block — 6 own + 6 opp species dex nums (1-151),
+  4 own + 4 opp move nums (1-165), each emitted id/256.0 (exact in float32), unknown/
+  unrevealed → 0. Own-move ids zero on aliased turns (matching the zeroed blocks); opp-move
+  ids name the move occupying the block, prior fills included. OBS_DIM 828 with both vars;
+  fingerprint gains `ids`. **(2) `rl/networks/entity_deepsets.py`**: EntityTokenizer
+  (ARCH_SCREEN_SPEC's 21-token reshape, offsets derived from showdown constants, asserted —
+  a forgotten env var dies at construction naming the var, the R0-1 seam) + the H&L trunk:
+  152/166×64 embeddings, shared per-mon/per-move subnets (in→128→128, terminal LayerNorm —
+  ps-ppo's shape at the ratified width; ReLU — H&L's activation, verified in metagrok),
+  DeepSets max pools, ctx 640→[384,384], ONE shared scorer 512→256→1 + 10-d slot bias over
+  [ctx‖entity] pairs (switch i ↔ mon vec i, move 6+j ↔ move vec j), fully separate value
+  stack. **Actor 626,059 ≤ ceiling 681,994** (the v2/808 MLP actor's exact count, verified
+  live; asserted at construction, K2) — critic 494,849; both match the ratified sketch.
+  **(3) PPOAgent `trunk:`/`trunk_kwargs:` seam**, default "mlp" — R0-3 proven against
+  GOLDENS captured from pre-seam HEAD (9725816): param sums and forward outputs EXACT.
+  K4: the entity net owns its init (Xavier + std-0.02 embeddings + 0.01-rescaled final
+  scorer); `_orthogonal_init` never touches it. **(4) meta.yaml stamps exact actor/critic
+  param counts** (all runs). **(5) Tests 258 → 264**: R0-2 exact counts + ceiling formula,
+  R0-3 goldens, R0-5 on SIX tapes (6,000 decisions: exact round-trip, own ids all known,
+  unrevealed → 0, per-slot reveal stability — the hl pair alone has only ~2,300 decisions,
+  so the corpus widened to fp_tapes_all), R0-7 eval-time masking through agent.act, seam
+  guards (unknown trunk / conv / continuous / missing flag all raise). **(6) Live proof**
+  (seed 99 throwaway, 2,048 steps vs the :8000 server; runs/struct_integration_smoke
+  kept, gitignored): fingerprint v2/828/ids ✓, params stamped ✓, 28 episodes progressed,
+  in-loop eval fired, and `eval_checkpoint.py` REBUILT the entity agent from the config
+  snapshot and played real battles — the finals path needs no changes. steps/s median 498
+  on the 2k sample (startup-heavy; the R0-4 read stays the 1M smoke). **(7)
+  `configs/showdown_sp_struct12m_smoke.yaml`** (R0-4: 1 lane × 1M, seed 30, gate ≥ 380
+  steps/s, K1 shrink pre-declared and unspent). NEXT: maintainer runs the R0-4 smoke
+  (~35 min); on PASS launch 3×12M seeds 26/27/28, v2r nohup pattern, BOTH env vars.
+
+- 2026-08-08 (late evening) — **OUTSIDE ADVISORY on the self-play PPO recipe: read, verified,
+  one genuinely new candidate surfaced.** Maintainer uploaded an advisory written without repo
+  access; per the prior_work rule its externals were verified before anything is cited.
+  VERIFIED: ps-ppo at the LADDER-ERA checkout 7fb522c (the 2102-Elo system): `gae_lambda`
+  0.75 FLAT, `steps_per_update` 32,768. The advisory read HEAD (36,864 + DYNAMIC λ clamped to
+  [0.55, 0.95]) — HEAD never laddered, but its Tier-1 claim survives at the checkout that did.
+  Wang's numbers match our verified index (0.575@6M, LR ablation 0.55→0.80). OUR numbers it
+  used are stale/wrong in ways that mostly STRENGTHEN its point: the self-play chapter runs
+  rollout 128×8 = 1,024 (its "4,096" was the r512 vs-SH arm), trained ep length is ~26-28
+  decisions (not ">100 turns" — its two errors cancel), and the baseline is 0.3996 (not
+  0.443). Net: **~38 completed episodes per update vs Wang's ~1,600 and ps-ppo's ~1,500 — a
+  ~40× terminal-signal gap per update — plus λ 0.95 (settled on Connect4's 11-step episodes)
+  vs both references' 0.75. RECIPE is a candidate binder the ladder does not test.** Weak
+  in-house corroboration: the control's 0.050 seed spread (s32 0.431) and Rung 1's
+  spread-collapse under dense shaping both fit "noise-dominated updates". Already
+  done/settled elsewhere in it: endpoint-read discipline (Rung 1 did exactly that, nulled);
+  flat-MLP + rich-features control (IS the v2r comparator); move-token question (settled and
+  implemented today); 80/20 snapshot pool, frozen-pool contract, anchor winrate (all in
+  place). REJECTED as written: fixed bots in the training pool (breaks the pure-self-play
+  chapter definition; SH must stay held out for vs-SH admissibility); replacing the LOCKED
+  deterministic eval (fixed scripted opponent — sampled eval is fine as a SECONDARY only);
+  "free 2×" both-seat harvest (seat 2 is ALWAYS a frozen snapshot inside SingleAgentWrapper —
+  no current-vs-current games exist, rows never surface, needs behavioral-logp storage: a
+  throughput lever to price for Rung 3, not free signal). DISPOSITION, maintainer to ratify:
+  a pre-registered RECIPE rung — rollout toward ~16-32k steps/update (named knob!) and a λ
+  0.75 arm, 12M, vs the same 0.3996 — slotted at branch (d)'s GO/NO-GO, so the cheap
+  candidate is burned down BEFORE the 50M scale step is priced. Pre-registration trap noted
+  now: at 12M a 32k rollout is ~366 updates total, so push_every_updates 150 would push TWO
+  snapshots — pool cadence must be re-keyed in steps. Rung 2 is UNCHANGED (ratified; launches
+  on R0-4 PASS); nothing from the advisory folds into it mid-flight.

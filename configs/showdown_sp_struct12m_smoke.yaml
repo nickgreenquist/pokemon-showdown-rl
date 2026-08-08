@@ -1,0 +1,62 @@
+# R0-4 THROUGHPUT SMOKE for configs/showdown_sp_struct12m.yaml (not an
+# experiment; no separate pre-registration — the gate is pre-registered in
+# that file). 1 lane x 1M steps of the identical selfplay + entity-trunk
+# recipe, seed 30 per the seed allocation, ~35 min at the projected rate.
+#
+# GATE: time/steps_per_sec >= 380 steps/s/lane in steady state (<= 30%
+# below the preview's 537). Miss -> K1: do NOT launch the 3x12M; exactly
+# ONE pre-declared shrink is legal (subnet 128->96, scorer 256->192, ctx
+# [384,384]->[320,320]), re-smoked once — IF Rung 1 did not spend the
+# shared repair budget (it did not).
+#
+# Verify after (the v2r checklist + Rung 2's additions):
+#   - meta.yaml encoder block: v2, obs_dim 828, recharge_fix true, ids true
+#     (R0-1 — BOTH env vars, twice as forgettable);
+#   - meta.yaml params block: actor 626059, critic 494849 (R0-2);
+#   - battle PROGRESS in the log, not run-dir existence; no exceptions;
+#   - S2 preview: time/update_sec share of the loop (~15-20% projected).
+#
+# Launch (server on :8000 with simulator: 4):
+#   POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 WANDB_MODE=offline \
+#     python -m rl.train --config configs/showdown_sp_struct12m_smoke.yaml
+env_id: Showdown-v0
+seed: 30
+total_steps: 1000000
+eval_every: 500000
+eval_episodes: 20
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 500000
+run_name: showdown_sp_struct12m_smoke
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
