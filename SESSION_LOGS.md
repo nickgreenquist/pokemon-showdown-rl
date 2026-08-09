@@ -2177,3 +2177,21 @@ entry by offset — never a broad keyword grep.
   cannot fire (M1 passed at 12M). Config body verified: agent/selfplay blocks parse-
   identical to struct12m — only seed/total_steps/cadence/run_name differ. Seeds: none
   consumed (no runs). Suite untouched (267). State: server up :8000, nothing running.
+
+- 2026-08-09 (afternoon, cont.) — **M2 + M3 FORMALLY BLESSED — THE SUCCESS CLAIM IS
+  CLAIMED.** The maintainer adopted the following sentence (drafted in-session at the
+  maintainer's request, issued by the maintainer 2026-08-09, "do it"), recorded
+  verbatim as the citable claim of record: **"M2 and M3 — the success claim — are
+  CLAIMED as of 2026-08-09: the Rung 2 entity-trunk agent, pure from-scratch self-play
+  per DESIGN §5 with SH held out of training entirely, scored 0.5509 ± 0.0052 pooled
+  under the locked protocol (worst seed 0.5210 — every seed individually clears M3),
+  with the F1 anchor guard satisfied in full (FP-clone h2h 0.657 pooled, Foul Play
+  0.824-against vs 0.876 over the old best, v2r 0.612, MaxBasePower +9.2 — every
+  anchor moves, the gain is general); per our index, which records no counterexample,
+  this is the first demonstrated pure self-play agent to surpass the scripted
+  benchmark in gen1 random battles — a local first in a generation where it had never
+  been shown, not entry into the published field."** Consequences: the README/results
+  narrative may now call M3 delivered at 12M; gate 1 on
+  `configs/showdown_sp_struct50m.yaml` is satisfied (header updated in this commit) —
+  RATIFICATION is the only remaining gate before the 50M launch. STATUS flipped
+  guard-backed → CLAIMED. Push through this commit maintainer-authorized same message.

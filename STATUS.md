@@ -2,18 +2,18 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-09 — 50M PRE-REGISTRATION DRAFTED, AWAITS RATIFICATION)
+## Where things stand (2026-08-09 — M2/M3 CLAIMED; 50M DRAFT AWAITS RATIFICATION)
 
 **Pure from-scratch self-play in gen1randombattle is the main chase** (novelty over
 strength; r7 RATIFIED; encoder frozen v2/808 + gated id suffix 828 for entity trunks).
 **RUNG 2 (STRUCTURE) CREDITED 2026-08-09, branch (a): s26 0.5633 / s27 0.5683 / s28
 0.5210, pooled 0.5509 ± 0.0052 (3×3000) vs 0.3996 ± 0.0052 → delta +0.1513, z +20.5.
 THE FLAT READOUT WAS THE BINDER** (matched params 626,059 ≤ 681,994; every gate green).
-**M1 PASSED. M2/M3 GUARD-BACKED (F1 complete): clone h2h 0.657 ± 0.015 pooled; FP-itself
-0.824-against (vs 0.876 over old best — teacher gap closed ~5 pts); v2r 0.612; MaxBP
-+9.2. Formal blessing sentence NOT yet issued** ("results look great" is a reaction, not
-the blessing) — get it and record it before M3 is cited as claimed. Suite 267 green.
-Pushed through 93342b5; commits after it (handoff, 50M draft) are LOCAL — push ask-first.
+**M1 PASSED. M2 + M3 (the success claim) FORMALLY CLAIMED 2026-08-09** — blessing issued
+by the maintainer, recorded verbatim in SESSION_LOGS; F1 guard in full (clone h2h 0.657
+± 0.015 pooled; FP-itself 0.824-against vs 0.876 over old best — teacher gap closed ~5
+pts; v2r 0.612; MaxBP +9.2). README/results may now call M3 delivered at 12M. Suite 267
+green. Pushed through the blessing commit 2026-08-09 (authorized); push stays ask-first.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed per D2c; *probe: 1 seed/n=1000)
 
@@ -29,20 +29,22 @@ Pushed through 93342b5; commits after it (handoff, 50M draft) are LOCAL — push
 | Foul Play (+patch) teacher* / takes off Rung 2 (n=250) | 0.8307* / 0.824-against |
 
 **MILESTONE LADDER (r7 §2):** M1 ≥0.4400 **PASSED** · M2 ≥0.489 / M3 ≥0.510 (**success
-claim**) guard-backed, AWAIT BLESSING · M4 ≥0.5777 stretch (now protocol-grade).
+claim**) **CLAIMED 2026-08-09** · M4 ≥0.5777 stretch (now protocol-grade).
 
 ## Next actions, in order
 
-1. **Maintainer: formal M2/M3 blessing sentence** — record it in SESSION_LOGS.
-2. **Maintainer: ratify `configs/showdown_sp_struct50m.yaml`** (drafted 2026-08-09,
-   PROPOSED, do-not-launch). Rung 3 step 1: structure only, γ1.0, no shaping, seeds
-   35/36/37, comparator 0.5509, credit bar ≥0.5759, M4 read ≥0.5777 + anchor guard,
-   ckpt 500k / eval 250k (deviation from §4's 100k recorded), ~40 h wall as-is at the
-   measured 350 steps/s/lane 3-wide (~15 h/lane IF Rung 0's ~2.6× projection holds).
-3. Push to origin (ask-first). Rung 0 E1-E4 measurement evening still owed (D12b) —
-   feeds D15 (rent-a-box vs local) and the post-throughput budget line.
+1. **Maintainer: ratify `configs/showdown_sp_struct50m.yaml`** (drafted 2026-08-09,
+   PROPOSED, do-not-launch; blessing gate DONE). Rung 3 step 1: structure only, γ1.0,
+   no shaping, seeds 35/36/37, comparator 0.5509, credit bar ≥0.5759, M4 read ≥0.5777
+   + anchor guard, ckpt 500k / eval 250k (deviation from §4's 100k recorded), ~40 h
+   wall as-is at the measured 350 steps/s/lane 3-wide (~15 h/lane IF Rung 0's ~2.6×
+   projection holds). Judgment calls: eval cadence; local box vs D15(b) rent.
+2. On ratification: launch prep (amendments committed, clean tree, staggered lanes,
+   caffeinate, R0-8 liveness) — runs in the maintainer's terminal.
+3. Rung 0 E1-E4 measurement evening still owed (D12b) — feeds D15; fits any gap.
 4. Settle H&L seat accounting from metagrok BEFORE any 250M budget is set (gates the
-   250M quote, not the 50M launch). ON ICE unchanged: warmrl (14-22), §11 D8/D9.
+   250M quote, not the 50M launch). README/results narrative update (M3 delivered at
+   12M) is now unblocked. ON ICE unchanged: warmrl (14-22), §11 D8/D9.
 
 ## Watch items
 

@@ -1,13 +1,11 @@
 # =====================================================================
 # PRE-REGISTRATION — DRAFTED 2026-08-09. STATUS: PROPOSED, NOT RATIFIED,
 # DO NOT LAUNCH. Two maintainer actions gate this file, in order:
-#   1. The FORMAL M2/M3 BLESSING SENTENCE. F1 is complete and every
-#      anchor moves (clone h2h 0.657 pooled, FP-itself 0.824-against vs
-#      0.876 historically, v2r 0.612, MaxBasePower +9.2); the maintainer
-#      reacted "results look great" but has not issued the blessing.
-#      Until it is recorded in SESSION_LOGS, this header cites M2/M3 as
-#      GUARD-BACKED, not CLAIMED.
-#   2. RATIFICATION of this pre-registration (arms, gates, branches).
+#   1. DONE 2026-08-09 — the formal M2/M3 blessing was issued by the
+#      maintainer and is recorded verbatim in SESSION_LOGS (same-day
+#      entry). M2 and M3 are CLAIMED; M3 is the delivered success claim.
+#   2. RATIFICATION of this pre-registration (arms, gates, branches) —
+#      the ONLY remaining gate before launch.
 #
 # RUNG 3, STEP 1 — SCALE at 50M, STRUCTURE ONLY (Rung 2 branch (a)).
 # DESIGN r7 §4 Rung 3: "carrying whatever credited." What credited:
@@ -71,9 +69,9 @@
 # MILESTONE READS AT 50M (r7 §2 ladder; M1-M3 already cleared at 12M)
 # ---------------------------------------------------------------------
 # M1 0.4400 PASSED at 12M. M2 0.489 / M3 0.510 (the success claim)
-# guard-backed at 12M, blessing pending (top of file). This run cannot
-# un-claim them; a 50M final below 0.510 is a scaling result, not a
-# retraction of the 12M read.
+# CLAIMED at 12M — blessing issued and recorded 2026-08-09. This run
+# cannot un-claim them; a 50M final below 0.510 is a scaling result,
+# not a retraction of the 12M read.
 # M4 — STRETCH: pooled >= 0.5777, the FP clone's VAL-PEAK checkpoint
 # protocol-graded 2026-08-09 (0.5777 ± 0.0090, n=3000, ties non-wins,
 # runs/bc_fp_v2r_soft_180k_s0; supersedes the starred 0.558/0.569
