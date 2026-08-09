@@ -1,11 +1,12 @@
 # =====================================================================
-# PRE-REGISTRATION — DRAFTED 2026-08-09. STATUS: PROPOSED, NOT RATIFIED,
-# DO NOT LAUNCH. Two maintainer actions gate this file, in order:
-#   1. DONE 2026-08-09 — the formal M2/M3 blessing was issued by the
-#      maintainer and is recorded verbatim in SESSION_LOGS (same-day
-#      entry). M2 and M3 are CLAIMED; M3 is the delivered success claim.
-#   2. RATIFICATION of this pre-registration (arms, gates, branches) —
-#      the ONLY remaining gate before launch.
+# PRE-REGISTRATION — DRAFTED 2026-08-09. STATUS: RATIFIED 2026-08-09
+# (maintainer, as drafted, no amendments — the eval-cadence deviation
+# and the as-is local-box budget are ratified with it). LAUNCH
+# AUTHORIZED from a clean committed tree. Gate history:
+#   1. DONE 2026-08-09 — formal M2/M3 blessing issued and recorded
+#      verbatim in SESSION_LOGS; M2/M3 CLAIMED, M3 the delivered
+#      success claim.
+#   2. DONE 2026-08-09 — ratified same day, no amendments.
 #
 # RUNG 3, STEP 1 — SCALE at 50M, STRUCTURE ONLY (Rung 2 branch (a)).
 # DESIGN r7 §4 Rung 3: "carrying whatever credited." What credited:

@@ -2,7 +2,7 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-09 — M2/M3 CLAIMED; 50M DRAFT AWAITS RATIFICATION)
+## Where things stand (2026-08-09 — M2/M3 CLAIMED; 50M RATIFIED — LAUNCH IS NEXT)
 
 **Pure from-scratch self-play in gen1randombattle is the main chase** (novelty over
 strength; r7 RATIFIED; encoder frozen v2/808 + gated id suffix 828 for entity trunks).
@@ -33,15 +33,15 @@ claim**) **CLAIMED 2026-08-09** · M4 ≥0.5777 stretch (now protocol-grade).
 
 ## Next actions, in order
 
-1. **Maintainer: ratify `configs/showdown_sp_struct50m.yaml`** (drafted 2026-08-09,
-   PROPOSED, do-not-launch; blessing gate DONE). Rung 3 step 1: structure only, γ1.0,
-   no shaping, seeds 35/36/37, comparator 0.5509, credit bar ≥0.5759, M4 read ≥0.5777
-   + anchor guard, ckpt 500k / eval 250k (deviation from §4's 100k recorded), ~40 h
-   wall as-is at the measured 350 steps/s/lane 3-wide (~15 h/lane IF Rung 0's ~2.6×
-   projection holds). Judgment calls: eval cadence; local box vs D15(b) rent.
-2. On ratification: launch prep (amendments committed, clean tree, staggered lanes,
-   caffeinate, R0-8 liveness) — runs in the maintainer's terminal.
-3. Rung 0 E1-E4 measurement evening still owed (D12b) — feeds D15; fits any gap.
+1. **LAUNCH the 50M lanes** — `configs/showdown_sp_struct50m.yaml` RATIFIED 2026-08-09
+   as drafted (Rung 3 step 1: structure only, γ1.0, no shaping; comparator 0.5509,
+   credit bar ≥0.5759, M4 ≥0.5777 + anchor guard; ~40 h wall at 350 steps/s/lane).
+   Seeds 35/36/37, maintainer's terminal, staggered, caffeinate, verify per R0-8
+   (battle PROGRESS within 15 min, ≥300 steps/s warm), from a clean committed tree.
+2. After finals: locked eval 3×3000 + anchor guard (clone h2h pooled, FP engine 250);
+   branch per header — (a) credit → M4 read + 250M decision; (b)/(c) per file.
+3. Rung 0 E1-E4 measurement evening still owed (D12b) — feeds D15; needs an IDLE box
+   (before launch or after readout, never alongside the lanes).
 4. Settle H&L seat accounting from metagrok BEFORE any 250M budget is set (gates the
    250M quote, not the 50M launch). README/results narrative update (M3 delivered at
    12M) is now unblocked. ON ICE unchanged: warmrl (14-22), §11 D8/D9.

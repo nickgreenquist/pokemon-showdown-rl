@@ -2195,3 +2195,18 @@ entry by offset — never a broad keyword grep.
   `configs/showdown_sp_struct50m.yaml` is satisfied (header updated in this commit) —
   RATIFICATION is the only remaining gate before the 50M launch. STATUS flipped
   guard-backed → CLAIMED. Push through this commit maintainer-authorized same message.
+
+- 2026-08-09 (afternoon, cont.) — **50M PRE-REGISTRATION RATIFIED ("ratified",
+  maintainer, 2026-08-09) — AS DRAFTED, NO AMENDMENTS.** Ratification explicitly
+  covers the two flagged judgment calls: the eval-cadence deviation (250k vs DESIGN
+  §4's "every 100k") and the as-is local-box budget (~40 h wall at the measured 350
+  steps/s/lane, 3-wide). Both gates on `configs/showdown_sp_struct50m.yaml` are now
+  DONE (blessing + ratification, same day); header stamped RATIFIED / LAUNCH
+  AUTHORIZED. Rung 3 step 1 is GO: seeds 35/36/37, staggered starts, caffeinate,
+  R0-8 liveness (battle PROGRESS within 15 min, ≥300 steps/s warm), launch from this
+  clean committed tree in the maintainer's terminal. Next session artifacts to expect:
+  three run dirs `runs/showdown_sp_struct50m_s{35,36,37}`, ~100 ckpts/lane at 500k
+  cadence, eval curve every 250k. Reads after finals: locked 3×3000 pooled vs the
+  0.5509 comparator (credit ≥0.5759), M4 ≥0.5777 with the mandatory anchor guard,
+  12M→50M slope = the 250M purchase decision. Seeds consumed this entry: none yet
+  (35/36/37 committed to the lanes at launch).
