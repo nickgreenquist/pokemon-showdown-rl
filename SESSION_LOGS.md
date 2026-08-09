@@ -2105,3 +2105,30 @@ entry by offset — never a broad keyword grep.
   NAMED anchors (maintainer to ratify sufficiency or schedule): FP clone needs a
   re-fit on v2/808 (v2/807 ckpts are un-shimmable by design), Foul Play needs the
   engine harness (no shim required — FP reads the protocol, not our encoder).
+
+- 2026-08-09 (morning, cont.) — **F1 NAMED-ANCHOR GUARD EXECUTED: the FP clone re-fit,
+  protocol-graded, and beaten head-to-head 0.657 — the M2/M3 anchors MOVE.** Steps, all
+  on current code: **(1) Re-embed** of the six-tape corpus on v2/808
+  (data/fp_all_v2r, tape_to_dataset one invocation): 7,200 battles / 180,440 rows, ALL
+  SIX GATES PASS. **(2) Re-fit** with the banked recipe (soft, 512/512, seed 0, 20
+  epochs, batch 512, lr 1e-3; ONE deviation: no --max-rows cap → all 180,440 rows vs
+  the banked 180,000): val free-agreement 0.517 vs banked 0.5147 — recipe reproduced.
+  **(3) Protocol-grade** (n=3,000, deterministic, ties non-wins, vs SH, v2/808 process):
+  FINAL 0.5490 ± 0.0091, VAL-PEAK **0.5777 ± 0.0090** — the starred 0.558/0.569 probes
+  reproduce and are SUPERSEDED; **M4's comparator is now protocol-grade at 0.5777**
+  (runs/bc_fp_v2r_soft_180k_s0). **(4) The guard head-to-head** (named anchor, now
+  protocol-graded; 500/pair/orientation via the shim): Rung 2 s26 vs clone FINAL —
+  orientation A 0.800, orientation B 0.514 from the sampling seat → **pooled 0.657 ±
+  0.015, z +10.5 vs parity.** The deterministic-vs-sampling seat asymmetry is unusually
+  large here (a soft-target BC's sampled policy is far weaker than its argmax) — exactly
+  why the protocol pools orientations. Note for the board: clone-final and Rung 2 are
+  near-EQUAL vs SH (0.549 vs 0.551) yet 0.657 apart head-to-head — VGC-Bench's cyclic-
+  payoff caveat live in our own data; single-opponent numbers are projections. **F1
+  STATUS: satisfied per its letter** — two-orientation head-to-heads vs a protocol-graded
+  NAMED anchor, and the anchors move (clone 0.657, v2r 0.612, MaxBasePower +9.2), so the
+  vs-SH jump is NOT SH-specific. **M2 (0.489) and M3 (0.510, the success claim) are now
+  guard-backed at pooled 0.5509 (worst seed 0.5210)** — maintainer's formal blessing is
+  the remaining step. ALSO: Foul Play engine smoke PASS (5/5 resolved, zero engine
+  exceptions; ops note — the recorded launch lacked the full URI, it is
+  `--websocket-uri ws://localhost:8000/showdown/websocket`); the 250-battle FP-vs-Rung 2
+  teacher-relative read is RUNNING (prior mark: FP 0.876 over our old best RL).

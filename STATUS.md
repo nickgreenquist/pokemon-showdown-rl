@@ -10,9 +10,9 @@ strength; r7 RATIFIED; encoder frozen v2/808 + gated id suffix 828 for entity tr
 s28 0.5210, pooled 0.5509 ± 0.0052 (3×3000) vs 0.3996 ± 0.0052 → delta +0.1513, z +20.5.
 THE FLAT READOUT WAS THE BINDER** (input null, signal null, structure credits at matched
 params 626,059 ≤ 681,994). Every gate green (R0-1/6, R1, K6, sign-guard exact). **M1
-PASSED (every seed). M2/M3 numerically cleared — worst seed 0.5210 > 0.510 — but claims
-PEND the mandatory non-SH-anchor guard (F1 head-to-heads).** Beats best vs-SH-trained
-(0.4607) and SH clone (0.4657); never saw SH in training. Suite 267 green. NOT pushed.
+PASSED. M2/M3 GUARD-BACKED (F1 satisfied 2026-08-09): named-anchor h2h vs the
+protocol-graded FP clone 0.657 ± 0.015 pooled; v2r 0.612; +9.2 MaxBasePower — anchors
+move, the gain is general. Maintainer blessing = the claim.** Suite 267. NOT pushed.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed per D2c; *probe: 1 seed/n=1000)
 
@@ -24,7 +24,7 @@ PEND the mandatory non-SH-anchor guard (F1 head-to-heads).** Beats best vs-SH-tr
 | **Rung 2 STRUCTURE (entity DeepSets ptr) — CREDIT (a)** | **0.5509 ± 0.0052** (z +20.5) |
 | BC clone of SH (P4, 813k rows) | 0.4657 |
 | SH-vs-SH mirror = parity; caps imitators only | 0.489 (0.486 at n=40k) |
-| Foul Play (+patch) — teacher / BC-of-FP v2 val-peak | 0.8307* / 0.569* |
+| Foul Play (+patch) teacher* / **FP-clone v2r 3000: final/best** | 0.8307* / **0.549/0.5777** |
 | Rung 2 s26 vs MaxBasePower (v2r-best s32: 0.749*) | 0.841* — gain generalizes |
 
 **MILESTONE LADDER (r7 §2):** M1 ≥0.4400 **PASSED** · M2 ≥0.489 / M3 ≥0.510 (**success
@@ -32,10 +32,10 @@ claim**) numerically cleared, AWAIT F1 guard · M4 ≥0.558 stretch (re-grade cl
 
 ## Next actions, in order
 
-1. **M2/M3 GUARD:** shim BUILT+tested (PrefixSliceActor; exact 828→808; 807 refused).
-   **S1 DONE: Rung 2 beats v2r-best head-to-head 0.612 ± 0.015 pooled (z +7.3 vs
-   parity), both orientations** — anchors move, gain not SH-specific. Formal claim:
-   ratify sufficiency or schedule NAMED anchors (FP-clone re-fit on 808; FP harness).
+1. **F1 DONE except the FP-itself read (250 battles RUNNING; prior mark 0.876 vs old
+   best RL).** Clone re-fit on 808 + protocol-graded (0.549/0.5777); h2h 0.657 pooled;
+   v2r 0.612; shim built+tested. **Maintainer: bless M2+M3 claims.** M4 gap to the
+   graded 0.5777: −0.027.
 2. **50M pre-registration, STRUCTURE ONLY** per branch (a): entity trunk, γ1.0, no
    shaping, 3 seeds, own config header. Price with D15 (3-wide ~350 steps/s → ~40 h/lane
    at 50M; loop re-architecture is the named enabler — now clearly worth it).
