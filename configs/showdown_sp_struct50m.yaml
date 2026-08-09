@@ -1,0 +1,266 @@
+# =====================================================================
+# PRE-REGISTRATION — DRAFTED 2026-08-09. STATUS: PROPOSED, NOT RATIFIED,
+# DO NOT LAUNCH. Two maintainer actions gate this file, in order:
+#   1. The FORMAL M2/M3 BLESSING SENTENCE. F1 is complete and every
+#      anchor moves (clone h2h 0.657 pooled, FP-itself 0.824-against vs
+#      0.876 historically, v2r 0.612, MaxBasePower +9.2); the maintainer
+#      reacted "results look great" but has not issued the blessing.
+#      Until it is recorded in SESSION_LOGS, this header cites M2/M3 as
+#      GUARD-BACKED, not CLAIMED.
+#   2. RATIFICATION of this pre-registration (arms, gates, branches).
+#
+# RUNG 3, STEP 1 — SCALE at 50M, STRUCTURE ONLY (Rung 2 branch (a)).
+# DESIGN r7 §4 Rung 3: "carrying whatever credited." What credited:
+#   - Rung 1 (SIGNAL, gamma 0.95 + H&L shaping): NULL, branch (b) —
+#     0.4131 ± 0.0052 vs 0.3996, z +1.84. NOT carried.
+#   - Rung 2 (STRUCTURE, entity DeepSets + pointer scorer): CREDIT,
+#     branch (a) — pooled 0.5509 ± 0.0052 (s26 0.5633 / s27 0.5683 /
+#     s28 0.5210, 3x3000) vs 0.3996 ± 0.0052, delta +0.1513, z +20.5.
+#     CARRIED. The flat readout was the binder.
+# Therefore this run is configs/showdown_sp_struct12m.yaml with more
+# steps: entity_deepsets trunk, gamma 1.0, NO shaping, same pool
+# (D16a — the comparator's configuration), same optimizer constants.
+#
+# THE QUESTION. Does the structure gain SCALE? 12M bought +0.151 over
+# the flat-readout control; the field's only existence proof (H&L)
+# lives at 2-3e8 decisions. 50M is a 4.2x step and this repo's first
+# self-play scaling slope on a credited recipe. Nothing at 12M predicts
+# the slope; the vs-SH-trained line's own 6M->12M slope was +0.0407.
+#
+# NO NEW LEVERS — stated to keep the rung honest. A scale rung isolates
+# scale. Temptations considered and DECLINED, each a second lever that
+# would turn the read into a bundle:
+#   - LR anneal (credited +0.051 on the vs-SH line; never tested in
+#     this chapter). lr_anneal_steps stays 0.
+#   - Dropping entropy_coef to H&L's 0 (deviation recorded at Rung 1;
+#     unchanged here). Stays 0.01.
+#   - Pure mirror instead of the pool (D16a keeps the pool; deviation
+#     from both precedents stands recorded).
+# PURITY: this run is PURE per DESIGN §5 — random init, own-weights
+# opponents only, no teacher/human data, no KL anchor, SH held out.
+#
+# ---------------------------------------------------------------------
+# COMPARATOR AND PRIMARY
+# ---------------------------------------------------------------------
+# COMPARATOR: Rung 2's own pooled final — 0.5509 ± 0.0052 (3x3000,
+# v2/808 + gated id suffix = 828, seeds 26/27/28). A 50M run must beat
+# the 12M version of itself; nothing else attributes scale.
+#
+# PRIMARY: pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol —
+# FINAL checkpoint, deterministic, ties as non-wins, 3000 battles/seed
+# x 3 seeds = 9000 pooled (D2c/D10a ladder n). Eval process carries
+# BOTH env vars (POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1);
+# a forgotten var dies loudly at trunk construction (designed seam).
+#
+#   CREDIT LINE (repo standing): pooled delta >= +0.025 AND >= 2*se_diff.
+#   Both arms at 3x3000: se_diff = sqrt(2)*0.0052 ~ 0.0074, so 2*se_diff
+#   ~ 0.0147 and the binding bar is +0.025 -> POOLED FINAL >= 0.5759.
+#   No escalation clause: both sides are already at the 3000/seed n.
+#
+# SECONDARY THAT DECIDES 250M (pre-registered per DESIGN §4 Rung 3):
+# the 12M->50M delta IS the purchase decision for the 250M-class run.
+# Credit here -> take the M4 read and put the 250M decision to the
+# maintainer with the slope attached. Null here -> 250M is NOT bought
+# on a flat slope; pre-stated now so it cannot be argued later.
+# BUDGET PRECONDITION carried from §4: the H&L decisions-per-step seat
+# accounting (both seats or one? ~2x on the target) MUST be resolved
+# from the metagrok clone BEFORE any 250M budget is set. It does not
+# gate this 50M run; it gates quoting this run as "1/5th of H&L scale".
+#
+# ---------------------------------------------------------------------
+# MILESTONE READS AT 50M (r7 §2 ladder; M1-M3 already cleared at 12M)
+# ---------------------------------------------------------------------
+# M1 0.4400 PASSED at 12M. M2 0.489 / M3 0.510 (the success claim)
+# guard-backed at 12M, blessing pending (top of file). This run cannot
+# un-claim them; a 50M final below 0.510 is a scaling result, not a
+# retraction of the 12M read.
+# M4 — STRETCH: pooled >= 0.5777, the FP clone's VAL-PEAK checkpoint
+# protocol-graded 2026-08-09 (0.5777 ± 0.0090, n=3000, ties non-wins,
+# runs/bc_fp_v2r_soft_180k_s0; supersedes the starred 0.558/0.569
+# probes; clone FINAL graded 0.5490 — we cite the harder number).
+# Gap from the 12M final: -0.027. NOTE M4 > credit bar (0.5777 >
+# 0.5759): an M4 pass strictly implies scale credit.
+# ANCHOR GUARD, MANDATORY at any claimed milestone (F1, carried): the
+# vs-SH final does not claim a milestone alone. On the pooled-median
+# seed's final: (i) two-orientation h2h vs the protocol-graded FP clone
+# val-peak, 500/pair/orientation, POOLED (seat asymmetry measured up to
+# 0.800/0.514 — never read one orientation); (ii) Foul Play engine read,
+# 250 battles (full URI --websocket-uri ws://localhost:8000/showdown/websocket,
+# smoke 5 battles first). 12M marks to move: clone 0.657 pooled,
+# FP-against 0.824. Anchors flat while vs-SH jumps -> SH-specific, no claim.
+#
+# ---------------------------------------------------------------------
+# R0 GATES (carried from Rung 2; any failure voids the read)
+# ---------------------------------------------------------------------
+# R0-1 FINGERPRINT: every lane's meta.yaml stamps encoder v2,
+#   recharge_fix: true, ids: true, obs_dim: 828. Two env vars, twice as
+#   forgettable — this gate is the check.
+# R0-2 PARAM CEILING: actor 626,059 <= 681,994, asserted at
+#   construction (unchanged code; the assert re-fires every launch).
+# R0-3 MLP BIT-IDENTITY: standing unit test, offline, green in the 267.
+# R0-5 EMBEDDING SANITY: standing offline test (id round-trip on tapes),
+#   validated at Rung 2; no re-run, must still be green in the suite.
+# R0-6 REGIME: after 3M, ties <= 4.2%, mean episode length <= 40
+#   (Rung 2 reference: 26.4/27.0/27.7 at the preview).
+# R0-7 MASKING: contract test offline — -1e8 sentinel, eval-time
+#   masking on, value head never masked.
+# R0-8 LANE LIVENESS (the 40 h version of the launch landmine): lanes
+#   staggered; each lane shows BATTLE PROGRESS within 15 min of its
+#   start; steps/s/lane >= 300 once warm (measured band ~350 at
+#   3-wide). A lane dead at hour 30 costs more than the experiment —
+#   check cadence is the maintainer's, but the gate is per-lane
+#   progress, never run-dir existence.
+#
+# R1 LEARNING GATE (carried unchanged): selfplay/winrate_anchor >= 0.75
+#   by 4M on >= 2/3 seeds. It is an early-bootstrap gate; 50M does not
+#   move it.
+#
+# ---------------------------------------------------------------------
+# KILL / PATHOLOGY CRITERIA
+# ---------------------------------------------------------------------
+# K6 ENTROPY (carried): 3-seed median loss/entropy < 0.15 for 5
+#    consecutive readings before 6M -> record and stop the lane set.
+#    No mid-run changes, ever.
+# REPAIR BUDGET: the chapter's ONE repair rung (shared clause, Rungs
+#    1/2) was never spent — it remains available, at most once.
+# LATE-RUN COLLAPSE (new at this horizon; H&L measured catastrophic
+#    forgetting in this exact setting): if eval/win_rate on >= 2/3
+#    lanes falls > 0.05 below its running peak and stays there for
+#    >= 5M steps, RECORD IT AND LET THE LANES RUN — no mid-run
+#    intervention. The final read stands regardless; the collapse
+#    curve is branch-(c) evidence, and the peak checkpoint is NOT
+#    substituted for the final (locked protocol reads FINAL).
+#
+# BRANCHES:
+#  (a) CREDIT (>= 0.5759): structure scales. Take the M4 read + anchor
+#      guard. Put the 250M-class decision to the maintainer with the
+#      slope, the D15(b) cloud option, and the seat-accounting item
+#      resolved. Rung 0's re-architecture becomes the named enabler.
+#  (b) NULL (delta < +0.025 or < 2*se_diff): the 12M structure gain
+#      does not compound by 50M under this recipe. The chapter headline
+#      stays the 12M result (M2/M3, blessing permitting). 250M is not
+#      bought. The optional secondary levers (recipe rung: rollout/
+#      lambda; LR anneal as its own rung) become the live candidates,
+#      each needing its own pre-registration.
+#  (c) NEGATIVE (pooled below 12M's 0.5509 by the same line): scale
+#      HURT — overtraining/cycling/forgetting at this horizon. Report
+#      with the eval curve and pool composition; the 12M result stands
+#      as the chapter's best. D17's calculus then runs on "three
+#      recipes tried, scale negative" — a maintainer decision, but the
+#      honest write-up is a measured negative with a scale bound.
+#  D17 NOTE: the abandon criterion's M1 clause cannot fire (12M already
+#      cleared M1); its compute clause is live — this run adds ~5
+#      lane-days against the 20 lane-day cumulative cap (chapter total
+#      after it: ~8, within budget).
+#
+# ---------------------------------------------------------------------
+# SECONDARY READS (recorded, none of them a read)
+# ---------------------------------------------------------------------
+# S1 h2h vs Rung 2 12M's median-seed final (the direct scale
+#    comparison, SH removed entirely): 500/pair/orientation, pooled,
+#    via the same-process path (both ckpts are 828 — no shim needed).
+# S2 time/update_sec share of the loop vs Rung 2's (the number that
+#    prices the 250M run).
+# S3 loss/explained_variance and loss/entropy trajectories vs Rung 2's
+#    (does the critic keep up over 4.2x the horizon?).
+# S4 curve shape: eval/win_rate every 250k (200 points) — where does
+#    the 12M-equivalent mark sit on this run's curve, and is the curve
+#    still rising at 50M? The "still rising" read feeds the 250M
+#    decision alongside the primary.
+# S5 embedding-table health at 50M vs 12M (fraction of rows with
+#    gradient traffic; near-dead rows at 4x data = decorative table).
+#
+# ---------------------------------------------------------------------
+# BUDGET, SEEDS, CADENCE, OPS
+# ---------------------------------------------------------------------
+# THROUGHPUT, MEASURED (not the solo smoke's 552): ~350 steps/s/lane at
+# 3-wide. Stated both ways per the D15 decision:
+#   AS-IS:            50M / 350 ~ 39.7 h/lane, ~40 h wall at 3-wide
+#                     (~2 days incl. finals; spans multiple evening
+#                     blocks — see OPS).
+#   POST-THROUGHPUT:  Rung 0 E1-E4 (THROUGHPUT_SPEC, D12b) is STILL
+#                     OWED and feeds D15. The spec's Stage-2 async
+#                     projection is ~2.6x at MLP width; IF it transfers
+#                     to this trunk, ~15 h/lane. That is a projection
+#                     on top of an unrun measurement — the as-is number
+#                     is the one this file budgets.
+#   D15(b) (rent a many-core CPU box) is ratified and available; at
+#   ~40 h wall the local box is affordable and this file assumes it.
+#   The maintainer may substitute the box decision at ratification.
+# FINALS EVAL: 3 x 3000 battles + anchor guard (~1000 h2h battles +
+# 250 FP engine at ~7.4 s/battle) ~ 3-4 h total.
+#
+# SEEDS: lanes 35/36/37 (first free block; 0-13 and 23-34 SPENT, 14-22
+# RESERVED warmrl, 99 disposable). Distinct across lanes AND arms —
+# username-collision landmine. No new throughput smoke is scheduled:
+# the trunk's 3-wide number is measured from the 12M lanes themselves;
+# seed 99 remains available for a disposable integration check.
+#
+# CADENCE (settled here, per the handoff's design questions):
+#   checkpoint_every: 500k — ~24 min of work at risk per lane at 350
+#     steps/s, 100 checkpoints/lane (~few GB; fine). 12M's 200k cadence
+#     at 50M would be 250 ckpts for no added safety.
+#   eval_every: 250k, eval_episodes 100 — 200 curve points. DEVIATION,
+#     recorded: DESIGN §4 Rung 3 says "every 100k for curve shape";
+#     that sentence predates the eval-cost measurement, and 500 in-run
+#     evals would spend real wall clock on a curve that 200 points
+#     draws just as well. Ratification of this file ratifies the
+#     deviation.
+#
+# OPS (the 40 h reality, all previously measured): runs go in the
+# maintainer's terminal, never through Claude. `caffeinate -is` per the
+# 2026-08-09 offer — laptop sleep suspends lanes+server harmlessly but
+# kills session Monitors (TaskStop the zombie, re-arm). Monitor/watch
+# scripts use bracket forms (rl[.]train) so guard pgreps don't match
+# themselves. Commit docs BEFORE launching; launch from a clean tree;
+# stagger lane starts (torch lazy-init SIGSEGV); verify per R0-8.
+# Server on :8000 with simulator: 4 (gitignored — re-set if re-cloned).
+#
+# Launch, per lane (N in 35/36/37):
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_struct50m.yaml \
+#     --seed N --run-name showdown_sp_struct50m_sN
+# Every eval command needs BOTH env vars too.
+env_id: Showdown-v0
+seed: 35
+total_steps: 50000000
+eval_every: 250000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 500000
+run_name: showdown_sp_struct50m_s35
+logger: wandb
+eval_win_rate: true
+selfplay:                # identical to showdown_sp_struct12m.yaml (D16a)
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets   # the credited Rung 2 treatment, unchanged
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]   # unused when trunk != mlp; kept so a
+                             # trunk: mlp rerun of this file is exact
+  lr: 2.5e-4
+  lr_anneal_steps: 0       # declined lever — see NO NEW LEVERS
+  gamma: 1.0               # Rung 1 nulled; signal NOT carried
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
