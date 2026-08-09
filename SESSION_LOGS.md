@@ -2146,3 +2146,34 @@ entry by offset — never a broad keyword grep.
   results/foulplay_vs_sh/fp_vs_struct.json (+ smoke_struct.json),
   runs/bc_fp_v2r_soft_180k_s0, data/fp_all_v2r, the h2h JSONs under
   runs/showdown_sp_struct12m_s26/. Seeds: none consumed (evals only).
+
+- 2026-08-09 (afternoon, design session) — **50M PRE-REGISTRATION DRAFTED:
+  `configs/showdown_sp_struct50m.yaml` — Rung 3 step 1, STRUCTURE ONLY (Rung 2 branch
+  (a)), PROPOSED / DO-NOT-LAUNCH pending two maintainer actions: the formal M2/M3
+  blessing sentence, then ratification.** Handoff folded first (stub restored; STATUS's
+  stale "NOT pushed" corrected — origin/main is at 93342b5, later commits local). What
+  the draft settles, per the handoff's open design questions: **COMPARATOR** = Rung 2's
+  own pooled final 0.5509 ± 0.0052 (a 50M run must beat the 12M version of itself);
+  **CREDIT BAR** ≥ 0.5759 (se_diff ~0.0074 at 3×3000 both sides, so the flat +0.025
+  binds; no escalation clause — both arms already at ladder n). **M4 READ** ≥ 0.5777
+  (clone VAL-PEAK, protocol-graded, the harder of the two graded numbers; note M4 >
+  credit bar, so an M4 pass implies credit), with the F1-style anchor guard mandatory
+  (clone h2h 500/pair/orientation pooled + FP engine 250, 12M marks to move: 0.657 /
+  0.824-against). **EVAL n** = locked 3×3000. **CADENCE** = checkpoint 500k (~24 min
+  at risk/lane at 350 steps/s), eval 250k ×100 eps (200 curve points; RECORDED
+  DEVIATION from DESIGN §4's "every 100k" — 500 in-run evals overpay for curve shape;
+  ratifying the file ratifies the deviation). **SEEDS** 35/36/37; no new throughput
+  smoke (3-wide ~350 steps/s/lane is measured from the 12M lanes). **BUDGET both ways**
+  per the handoff: as-is ~39.7 h/lane ≈ 40 h wall at 3-wide; post-throughput ~15 h/lane
+  IF THROUGHPUT_SPEC's ~2.6× Stage-2 projection transfers (E1-E4 still owed, D12b);
+  D15(b) box substitutable at ratification. **NO NEW LEVERS**, declined explicitly: LR
+  anneal (never tested in-chapter), entropy_coef 0 (H&L), pure mirror (D16a keeps the
+  pool). New at this horizon: a LATE-RUN COLLAPSE criterion (>0.05 below running peak
+  for ≥5M on ≥2/3 lanes → record, never intervene; final read stands) since H&L
+  measured forgetting in this setting. **SECONDARY THAT DECIDES 250M** pre-registered:
+  the 12M→50M delta is the purchase decision; H&L seat accounting must be resolved from
+  metagrok before any 250M budget is quoted (gates the quote, not this launch). D17
+  accounting: +~5 lane-days, chapter total ~8 of the 20-day cap; the M1 abandon clause
+  cannot fire (M1 passed at 12M). Config body verified: agent/selfplay blocks parse-
+  identical to struct12m — only seed/total_steps/cadence/run_name differ. Seeds: none
+  consumed (no runs). Suite untouched (267). State: server up :8000, nothing running.
