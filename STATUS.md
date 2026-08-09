@@ -32,10 +32,10 @@ claim**) numerically cleared, AWAIT F1 guard · M4 ≥0.558 stretch (re-grade cl
 
 ## Next actions, in order
 
-1. **F1 DONE except the FP-itself read (250 battles RUNNING; prior mark 0.876 vs old
-   best RL).** Clone re-fit on 808 + protocol-graded (0.549/0.5777); h2h 0.657 pooled;
-   v2r 0.612; shim built+tested. **Maintainer: bless M2+M3 claims.** M4 gap to the
-   graded 0.5777: −0.027.
+1. **F1 COMPLETE (all anchors): FP-itself 0.824 over Rung 2 (was 0.876 over old best —
+   teacher gap closed ~5 pts); clone graded 0.549/0.5777 + beaten 0.657 pooled; v2r
+   0.612; MaxBP +9.2. Maintainer: bless M2+M3, then ratify the 50M structure-only
+   pre-registration (branch a).** M4 gap to the graded 0.5777: −0.027.
 2. **50M pre-registration, STRUCTURE ONLY** per branch (a): entity trunk, γ1.0, no
    shaping, 3 seeds, own config header. Price with D15 (3-wide ~350 steps/s → ~40 h/lane
    at 50M; loop re-architecture is the named enabler — now clearly worth it).

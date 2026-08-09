@@ -2132,3 +2132,17 @@ entry by offset — never a broad keyword grep.
   exceptions; ops note — the recorded launch lacked the full URI, it is
   `--websocket-uri ws://localhost:8000/showdown/websocket`); the 250-battle FP-vs-Rung 2
   teacher-relative read is RUNNING (prior mark: FP 0.876 over our old best RL).
+
+- 2026-08-09 (late morning) — **F1 COMPLETE: the Foul Play (engine) read is in — FP
+  0.824 over Rung 2 (206-43-1, n=250, both tallies agree, 0 engine exceptions,
+  7.35 s/battle).** Context that makes it a good number: FP took **0.876** off our old
+  best RL and 0.872 off the SH clone — the entity trunk closed the teacher gap by ~5
+  points, and our win-take against the teacher rose 0.124 → 0.172 (+39% relative). Both
+  NAMED anchors are now measured (clone h2h 0.657 pooled; FP-itself 0.824-against), on
+  top of v2r 0.612 and MaxBasePower +9.2: every anchor moves in Rung 2's favor, the
+  vs-SH +0.151 is general strength. **The full guard package for the M2 + M3 claims is
+  on the table; maintainer blessing is the only remaining step, then the 50M
+  structure-only pre-registration (branch a) is unblocked.** Session artifacts:
+  results/foulplay_vs_sh/fp_vs_struct.json (+ smoke_struct.json),
+  runs/bc_fp_v2r_soft_180k_s0, data/fp_all_v2r, the h2h JSONs under
+  runs/showdown_sp_struct12m_s26/. Seeds: none consumed (evals only).
