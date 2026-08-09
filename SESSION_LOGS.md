@@ -2044,3 +2044,44 @@ entry by offset — never a broad keyword grep.
   evals 0.55/0.50 at n=20 (noise, not a read). K1 shrink stays unspent. Lane command
   handed over: seeds 26/27/28, v2r nohup pattern, 90 s stagger, both env vars, logs in
   gitignored runs/. Overnight ETA ~6-7.5 h at 430-550 steps/s.
+
+- 2026-08-09 (05:50, autonomous overnight read) — **RUNG 2 (STRUCTURE) READ OUT: CREDIT,
+  branch (a) — THE FLAT READOUT WAS THE BINDER. Pure self-play jumped +15.1 points.**
+  Locked finals (final ckpts, 3×3000, deterministic, ties as non-wins, vs SH, both env
+  vars; `wins_from_returns` == `eval/win_rate` EXACTLY on all three — the reward-sign
+  guard): s26 0.5633 / s27 0.5683 / s28 0.5210, **pooled 0.5509 ± 0.0052 vs comparator
+  0.3996 ± 0.0052 → delta +0.1513, se_diff 0.0074, z +20.5** — six times the +0.025
+  credit line, ten times 2·se_diff. Seed spread 0.047 (control's was 0.050). After the
+  preview (input, null) and Rung 1 (signal, null), STRUCTURE at identical capacity
+  (626,059 ≤ 681,994 params) is what unlocks the 12M bootstrap: handing the policy
+  "this action targets this entity" beats making it relearn that in every weight column.
+  **MILESTONE LADDER: M1 (0.4400) PASSED** — pooled AND every individual seed clear it;
+  D17's below-M1 abandon arm is moot. **M2 (0.489) and M3 (0.510 — the success claim)
+  are numerically cleared (worst seed 0.5210 > M3) but NOT YET CLAIMED: the mandatory
+  non-SH-anchor guard (warmrl F1, DESIGN r7 §2) requires two-orientation head-to-heads
+  vs the FP clone / Foul Play, 500/pair/orientation.** That work is now OWED (its
+  trigger fired). Blocker recorded: one process = one encoder config, so 828-checkpoint
+  vs 808/807-checkpoint cross-play needs a small per-seat obs shim — the id suffix is a
+  pure suffix, so seat-2 slicing vec[:808] is exact; build the seam, don't improvise it.
+  Also on the board: 0.5509 beats the best vs-SH-TRAINED MLP (0.4607) and the SH clone
+  (0.4657) — an agent that has NEVER SEEN SH outscores agents trained on/against it —
+  and sits 0.007 under M4's un-graded 0.558 comparator (re-grade the clone before any
+  M4 talk). SECONDARY SANITY (labeled, not the guard): vs MaxBasePower n=1000 — Rung 2
+  s26 0.841 vs v2r-best s32 0.749 (+9.2) — the gain generalizes to a non-SH opponent.
+  GATES, all green: R0-1 fingerprints 828/ids on all lanes (git_dirty false, ba81c37);
+  R0-6 ties 0.16-0.18% / ep len 30.8-31.5; R1 anchor 0.974-0.976 by 4M on 3/3; K6 never
+  fired (s26 touched 0.138 but the 3-seed median held; ends 0.19-0.23); EV end
+  0.376-0.587; S2 update share 13.5-13.9% (smoke-consistent; 50M-affordable). OPS: ~8.7 h
+  wall at ~350 steps/s/lane 3-wide; a 50-min laptop-sleep suspended everything cleanly
+  (ckpt gap 20:17→21:05, zero errors); s27's turn-1000 auto-tie marathons benign; the
+  overnight Monitor died in the sleep and was re-armed (its exit-time lane count was
+  buggy — lanes were verified complete by hand). CONSEQUENCES: the 50M pre-registration's
+  content per branch (a) is STRUCTURE ALONE (entity trunk, gamma 1.0, no shaping) — write
+  it fresh, price it with D15 (3-wide 350 steps/s → ~40 h/lane at 50M; the loop
+  re-architecture is now clearly the enabler). The 2026-08-08 branch-(d) decision stack
+  is MOOT (that fork assumed two nulls): the RECIPE rung is demoted to an optional
+  secondary lever, and the relax-purity question is ANSWERED BY DATA at 12M — no
+  relaxation needed; a BC arm is now an optional comparison, not a hedge. NEXT (maintainer
+  morning): (1) guard plan — FP-clone protocol-grading + the cross-encoder shim + the
+  F1 head-to-heads (M2/M3 claims hang on this); (2) S1 vs the v2r final (same shim);
+  (3) the 50M structure-only pre-registration + D15; (4) push to origin (ask-first).
