@@ -2085,3 +2085,23 @@ entry by offset — never a broad keyword grep.
   morning): (1) guard plan — FP-clone protocol-grading + the cross-encoder shim + the
   F1 head-to-heads (M2/M3 claims hang on this); (2) S1 vs the v2r final (same shim);
   (3) the 50M structure-only pre-registration + D15; (4) push to origin (ask-first).
+
+- 2026-08-09 (morning) — **CROSS-ENCODER EVAL SHIM BUILT + S1 HEAD-TO-HEAD RUN: Rung 2
+  beats the standing best 0.612 ± 0.015 pooled — the falsifier moves, the gain is not
+  SH-specific.** The shim: `PrefixSliceActor` (rl/networks/mlp.py) + a
+  `_load_showdown_agent` seam in eval_checkpoint.py used by BOTH cross-play seats — a
+  v2/808 checkpoint under the 828 id-suffix process is built at its native width and its
+  actor input sliced, EXACT because the id block is a pure suffix; v2/807 (pre-fix,
+  inserted dim) is REFUSED with a named error, never shimmed. Tests +3 (suite 267):
+  wrapped-forward bitwise equality; the pure-suffix claim MEASURED across processes
+  (same battle, v2/808 vs v2/828, first 808 floats byte-identical); loader shims 808 /
+  passes 828 / refuses 807. **S1 (per its spec — standing best's final, both
+  orientations, 500/pair/orientation, pooled):** Rung 2 s26 (median seed) vs v2r s32
+  (the control's BEST lane, 0.431 vs SH): orientation A 0.628 (ties 0.004), orientation
+  B 0.596 from the sampling seat (seat asymmetry visible, pooled) → **612/1000, z +7.3
+  vs parity.** Falsifier reading (F1's logic): the +0.151 vs-SH jump arrives WITH a
+  decisive head-to-head win over a non-SH opponent and the +9.2 MaxBasePower gain — a
+  vs-SH-specific exploit would show flat anchors. FORMAL M2/M3 claim still awaits the
+  NAMED anchors (maintainer to ratify sufficiency or schedule): FP clone needs a
+  re-fit on v2/808 (v2/807 ckpts are un-shimmable by design), Foul Play needs the
+  engine harness (no shim required — FP reads the protocol, not our encoder).

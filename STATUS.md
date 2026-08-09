@@ -12,7 +12,7 @@ THE FLAT READOUT WAS THE BINDER** (input null, signal null, structure credits at
 params 626,059 ≤ 681,994). Every gate green (R0-1/6, R1, K6, sign-guard exact). **M1
 PASSED (every seed). M2/M3 numerically cleared — worst seed 0.5210 > 0.510 — but claims
 PEND the mandatory non-SH-anchor guard (F1 head-to-heads).** Beats best vs-SH-trained
-(0.4607) and SH clone (0.4657); never saw SH in training. Suite 264 green. NOT pushed.
+(0.4607) and SH clone (0.4657); never saw SH in training. Suite 267 green. NOT pushed.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed per D2c; *probe: 1 seed/n=1000)
 
@@ -32,10 +32,10 @@ claim**) numerically cleared, AWAIT F1 guard · M4 ≥0.558 stretch (re-grade cl
 
 ## Next actions, in order
 
-1. **M2/M3 GUARD (now owed — trigger fired):** build the cross-encoder eval shim (one
-   process = one encoder; seat-2 slices vec[:808], exact by pure-suffix design), then
-   F1 two-orientation head-to-heads 500/pair/orientation vs FP clone (protocol-grade it
-   first) and/or Foul Play. S1 vs v2r final rides the same shim.
+1. **M2/M3 GUARD:** shim BUILT+tested (PrefixSliceActor; exact 828→808; 807 refused).
+   **S1 DONE: Rung 2 beats v2r-best head-to-head 0.612 ± 0.015 pooled (z +7.3 vs
+   parity), both orientations** — anchors move, gain not SH-specific. Formal claim:
+   ratify sufficiency or schedule NAMED anchors (FP-clone re-fit on 808; FP harness).
 2. **50M pre-registration, STRUCTURE ONLY** per branch (a): entity trunk, γ1.0, no
    shaping, 3 seeds, own config header. Price with D15 (3-wide ~350 steps/s → ~40 h/lane
    at 50M; loop re-architecture is the named enabler — now clearly worth it).

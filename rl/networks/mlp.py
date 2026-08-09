@@ -7,6 +7,30 @@ on-ramp's `nn.Linear(4, 2)` and full DQN differ only in this argument.
 from torch import nn
 
 
+class PrefixSliceActor(nn.Module):
+    """Cross-encoder eval shim: run an actor trained on a strict PREFIX of
+    the current obs layout by slicing its input down to the width it was
+    trained on.
+
+    The one legal pair is a v2/808 checkpoint under the 828 id-suffix
+    process: the id block is a pure suffix (rl/envs/showdown.py::_fill_ids),
+    so `obs[..., :808]` is bit-for-bit the v2/808 encoding — the slice is
+    exact, not an approximation. Anything else (in particular pre-recharge-
+    fix v2/807 checkpoints, whose layout differs by an INSERTED dim, not a
+    truncated one) has no exact map and must be refused by the caller, never
+    shimmed. Eval-only: wraps the actor alone (eval never touches the
+    critic), and wrapping composes with AgentOpponent's deepcopy/freeze.
+    """
+
+    def __init__(self, actor: nn.Module, in_dim: int):
+        super().__init__()
+        self.actor = actor
+        self.in_dim = in_dim
+
+    def forward(self, x):
+        return self.actor(x[..., : self.in_dim])
+
+
 def mlp(
     in_dim: int,
     hidden_sizes: list[int],
