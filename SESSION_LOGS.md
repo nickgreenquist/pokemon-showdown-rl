@@ -2250,3 +2250,19 @@ entry by offset — never a broad keyword grep.
   by design (running normalizer would break frozen comparators). Novelty caveat per
   §9: "nobody did privileged critic in Pokemon" needs the adversarial index check
   before it is ever claimed. 50M lanes untouched throughout (evals/reads only).
+
+- 2026-08-09 (night, cont.) — **CORRECTION to the triage entry above, from the
+  doc-archaeologist sweep: two claims fixed.** (1) The Light Screen gap is NOT new —
+  documented 2026-07-30 (predecessor log): gen1 emits `|-start|...Light Screen` and
+  poke-env 0.15.0 maps it to Effect.UNKNOWN (no LIGHT_SCREEN member) — dropped rather
+  than parser-forked; Reflect parses fine. So the v3-bundle item is really "parser
+  fork or upstream fix + encode," not "add to _VOLATILES." (2) PARTIALLY_TRAPPED is
+  in _VOLATILES but STRUCTURALLY DEAD — measured never-firing (gen1 traps surface as
+  |cant|, no |-start|; HISTORY_FEATURES_DESIGN 2026-08-07); only the Stage-0 global
+  aliased-turn flag covers those turns. Also confirmed by the sweep: sleep-counter
+  rescale was reviewed inert (Arm-B linear rule); toxic/confusion/disable one-hots,
+  Substitute HP, Bide/Rage/Transform/Mimic/Mist = genuinely absent from the record;
+  Wang's 36 poke-env commits verified 2026-08-03 — both encoder-relevant fixes
+  already upstream in our 0.15.0, rest moot in gen1; obs_fidelity_check's own
+  coverage gaps (crit/SE/miss/cant paths) are documented. v3-bundle list stands with
+  these corrections; the two freeze-dodging rungs are unaffected.
