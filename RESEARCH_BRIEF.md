@@ -69,6 +69,92 @@ steps alone isn't paying under this recipe.
 4. Later: richer belief/history observation features (gen1 turn counters,
    revealed-move tracking, last-turn events).
 
+## Technical detail (for cross-checking against literature)
+
+### Environment
+poke-env 0.15.0 (our pinned build; its setup branch is dead upstream) against a local
+Node Showdown server. `gen1randombattle`: random teams and sets, 151 species / 165
+moves, **no team preview** (at turn 1 the opponent's entire team is hidden), no items/
+abilities in gen1. Episodes average ~25–35 decisions. Simultaneous-move game with
+substantial outcome RNG (crits keyed to base Speed, damage rolls, sleep/freeze turns).
+
+### Action space
+`Discrete(10)`: actions 0–5 = switch to team slot i (poke-env team order), actions
+6–9 = use move slot j of the active Pokémon. Legal-action mask supplied by the env
+every step; masking applied outside the network with a finite −1e8 sentinel (never
+−inf), at eval too; the value head is never masked. Slot alignment is load-bearing:
+obs block i corresponds to action i. Gen1 quirk we handle explicitly: on "placeholder"
+turns (recharge, locked moves, Struggle) Showdown re-bases the move list to a single
+action; our encoder zeroes the move blocks and sets a global aliased-turn flag rather
+than mislabeling slot semantics.
+
+### Observation (hand-written, 828 dims, all values hand-normalized to ~[0,1])
+- **Global (6)**: turn/50 (capped), own fainted/6, opponent fainted/6, force-switch
+  flag, trapped flag, aliased-turn flag.
+- **Own 6 Pokémon blocks (33 each)**: HP fraction, fainted, is-active, status one-hot
+  (6), level/100, base stats (5, /255), type one-hots (15), best type multiplier of
+  mon's types vs current foe, foe's vs mon, speed-edge scalar vs foe.
+- **Own active extras (16)**: 7 boosts (/6), 7 volatile flags (confusion, focus
+  energy, leech seed, must-recharge, partial-trap, reflect, substitute), a shared
+  sleep/toxic turn counter (/16), a "preparing" flag (two-turn moves).
+- **Own active's 4 move blocks (46 each)**: known flag, base power/100, accuracy, PP
+  fraction, type multiplier vs foe, physical/status category, priority/5, move-type
+  one-hot (15), and a 23-dim hand-built move-effect block.
+- **Opponent: 6 blocks of (33+1)** — same mon features plus a revealed flag, in
+  reveal order, zero-padded for unrevealed mons; opponent active extras (16); and the
+  opponent active's 4 move blocks where the "known" dim is **P(mon has this move)
+  from a vendored randbats set prior** — an unrevealed-but-likely move is encoded as
+  a probability-weighted block instead of zeros. This is the belief-state mechanism.
+- **ID suffix (20)**: 12 species ids + 8 move ids (id/256), recovered to embedding
+  indices inside the network.
+
+**What each side knows**: our full team always; the opponent's bench only as revealed;
+opponent active's moves via revealed + set prior. The critic currently sees exactly
+what the actor sees — that is what the queued privileged-critic experiment changes.
+
+### Model (the credited "entity" trunk, ~0.62M actor params)
+A tokenizer reshapes the flat obs into 21 tokens (1 field, 12 mons, 8 moves). Species
+embedding table 152×64, move table 166×64. Shared per-mon subnet: [mon token 50 ‖
+species emb 64] → 2 layers → 128; shared per-move subnet likewise → 128. **DeepSets
+max-pool** over our 6 mon vectors and separately over theirs. Context = concat(field
+projection, own pool, opp pool, own active, opp active) = 640 → MLP [384,384].
+**Policy head is a pointer-style shared scorer**: logit_i = scorer(context ‖
+entity_i) + slot bias, where entity_i is the mon token for switch actions and the
+move token for move actions — ONE shared 2-layer scorer (512→256→1) across all 10
+actions. That sharing is the hypothesis that credited: what the net learns about
+"switching into X" transfers across slots. Value head: separate [384,384] stack over
+the same pooled features (no shared trunk with the actor — deliberate deviation from
+Huang & Lee, who share). No attention anywhere — an entity-attention trunk measured
+34.6× the MLP train step on CPU and was rejected on throughput.
+
+### Training recipe
+PPO: clip 0.2, lr 2.5e-4 constant (no anneal), γ=1.0, GAE λ=0.95, rollout 128 steps ×
+8 envs = 1024 steps/update, 4 epochs, 4 minibatches, entropy coef 0.01, value coef
+0.5, grad-norm clip 0.5, single torch thread. Reward: terminal ±1 only, ties 0.
+Self-play: opponent pool of 20 past checkpoints, push every 150 updates, 80% latest /
+20% pool sampling, span-preserving eviction. (Both published pure-self-play successes
+used no pool — pure mirror; our pool is a recorded deviation.)
+
+### Eval protocol (locked; what every headline number means)
+Final checkpoint, deterministic argmax, ties count as non-wins, 3 seeds × 3000
+battles pooled vs SimpleHeuristicsPlayer; win rate comes from env-supplied outcome,
+never the return sign. In-training curve: n=100 eval every 250k steps (noisy, shape
+only — never a headline). Head-to-heads: both orientations, 500/pair, pooled —
+deterministic-vs-sampling seat asymmetry is large (measured up to 0.800/0.514) so one
+orientation alone is never read. Eval anchors: SH, a BC clone of SH, a BC clone of the
+Foul Play search engine (protocol-graded 0.5490 final / 0.5777 val-peak), the Foul
+Play engine itself, and a max-base-power bot. Milestone claims require the non-SH
+anchors to move (guards against benchmark-specific exploits).
+
+### Known encoder gaps (audited, deliberately deferred — useful cross-check targets)
+Light Screen is unparseable in our poke-env version (maps to a generic unknown
+effect); the partial-trap volatile flag never fires (gen1 protocol path); sleep/toxic
+counters are a shared scalar, not one-hots; no Substitute remaining-HP; no
+Bide/Rage/Transform/Mimic/Mist flags; no last-turn history features (who moved first,
+crits, effectiveness — designed but deferred); no summed-team-HP aggregates; PP is a
+continuous fraction (not binned). We audit poke-env field population before trusting
+any field — two "present" features were measured structurally dead this way.
+
 ## Constraints that make research suggestions useful or useless here
 
 - On-policy PPO self-play, sparse terminal ±1 reward at γ=1.0.
