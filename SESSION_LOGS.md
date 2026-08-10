@@ -2210,3 +2210,14 @@ entry by offset — never a broad keyword grep.
   0.5509 comparator (credit ≥0.5759), M4 ≥0.5777 with the mandatory anchor guard,
   12M→50M slope = the 250M purchase decision. Seeds consumed this entry: none yet
   (35/36/37 committed to the lanes at launch).
+
+- 2026-08-09 (evening) — **README staleness confirmed + rewrite scheduled.** "Results
+  so far" is three chapters stale (protocol still 1000/seed pre-D2c; best-RL still
+  0.4607; no self-play chapter, no FP/clone rows, no M3 claim; narrative still cites
+  r6-under-review + the human-corpus line). Maintainer decision: DEFER the rewrite to
+  the 50M readout (~2026-08-10 evening) and fold finals + the blessed M3 claim + the
+  r7 narrative in one pass; thereafter README stays current with plan/status as a
+  STANDING directive (recorded in session memory as well). 50M lanes at ~12M steps at
+  the 19:11 ops check — all green, ~387 steps/s, collapse criterion not met (1/3
+  lanes; early-peak cummax artifact — credited 12M lanes had the identical flat
+  shape). Ops watch continues 3-hourly.

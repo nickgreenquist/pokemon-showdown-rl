@@ -42,17 +42,17 @@ claim**) **CLAIMED 2026-08-09** · M4 ≥0.5777 stretch (now protocol-grade).
    branch per header — (a) credit → M4 read + 250M decision; (b)/(c) per file.
 3. Rung 0 E1-E4 measurement evening still owed (D12b) — feeds D15; needs an IDLE box
    (before launch or after readout, never alongside the lanes).
-4. Settle H&L seat accounting from metagrok BEFORE any 250M budget is set (gates the
-   250M quote, not the 50M launch). README/results narrative update (M3 delivered at
-   12M) is now unblocked. ON ICE unchanged: warmrl (14-22), §11 D8/D9.
+4. README rewrite DEFERRED to the 50M readout (maintainer 2026-08-09): fold finals +
+   blessed M3 claim + r7 narrative in the readout session; standing directive —
+   README stays current with plan/status. Settle H&L seat accounting from metagrok
+   BEFORE any 250M budget. ON ICE unchanged: warmrl (14-22), §11 D8/D9.
 
 ## Watch items
 
-- Seeds: 0-13, 23-34 SPENT, 14-22 RESERVED (warmrl), 99 disposable; 35/36/37 assigned
-  to the 50M lanes (draft); 38+ free. Distinct across lanes AND arms.
-- **Entity checkpoints need BOTH env vars at every eval** (v2 + ids → 828); a forgotten
-  var dies loudly at trunk construction — designed seam.
-- **Cross-encoder cross-play needs the shim** (828 vs 808 ok; v2/807 refused, no map).
+- Seeds: 0-13, 23-37 SPENT (35/36/37 = 50M lanes), 14-22 RESERVED (warmrl), 99
+  disposable; 38+ free. Distinct across lanes AND arms.
+- **Entity ckpts need BOTH env vars at every eval** (v2 + ids → 828; forgotten var dies
+  loudly — designed seam). Cross-encoder play needs the shim (808 ok; 807 refused).
 - `showdown/config/config.js` `simulator: 4` — gitignored; re-set if re-cloned (+81%).
 - 3-wide lane throughput is ~350 steps/s/lane (not the solo smoke's 552) — budget with
   the measured number. `score_ladder.py --opponents` raises on Showdown (use
