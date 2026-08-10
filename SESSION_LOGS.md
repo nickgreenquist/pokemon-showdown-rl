@@ -2266,3 +2266,15 @@ entry by offset — never a broad keyword grep.
   already upstream in our 0.15.0, rest moot in gen1; obs_fidelity_check's own
   coverage gaps (crit/SE/miss/cant paths) are documented. v3-bundle list stands with
   these corrections; the two freeze-dodging rungs are unaffected.
+
+- 2026-08-09 (late night) — **DESIGN §12 DRAFTED (D18–D20, PROPOSED — ratify at the
+  50M readout): the post-50M lever queue is now durable against context loss.** D18
+  privileged/asymmetric critic rung (first; evidence: loss/explained_variance plateaus
+  0.56–0.59 at 15M on all three live 50M lanes — the free control curve; falsifier and
+  GAE caveat pre-stated in the section). D19 auxiliary opponent-team prediction rung
+  (shares D18's cross-seat plumbing; sequenced after D18's read). D20 v3 encoder
+  bundle incl. the parked 22-dim history block, Light Screen parser fix, real
+  partial-trap fix, counters, Sub HP, team-HP aggregates — one re-baseline pays for
+  all; obs_fidelity_check coverage extension is the precondition; declined items
+  recorded so they do not resurface. STATUS points at §12. Lanes untouched (~15.3M,
+  all green at the 22:11-class checks).

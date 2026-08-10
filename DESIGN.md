@@ -587,3 +587,62 @@ These bind unchanged; they are listed so the reviewer knows nothing was quietly 
    H&L; "Foul Play supports gen1randombattle", which was true from source and false in
    practice). Before any writeup, the gen1-pure-self-play claim gets one deliberate
    adversarial search against it.
+
+## 12. Post-50M lever queue (PROPOSED 2026-08-09 — D18–D20, ratify at the 50M readout)
+
+**Status: PROPOSED, not ratified.** Drafted while the 50M lanes run, from two
+maintainer-supplied external advisories triaged against the encoder source and the
+record (SESSION_LOGS 2026-08-09 night entries, including the correction entry). Nothing
+here touches the running 50M or its read. Numbering continues from D17; the section
+number continues past r6's retired §10–11 (§11 D8/D9 remains unratified and moot).
+
+**D18 — PRIVILEGED (ASYMMETRIC) CRITIC rung — recommended first after the readout.**
+CTDE (AlphaStar-style): during self-play training the critic's input is widened with the
+opponent seat's TRUE own-side state; the actor's observation is unchanged.
+- EVIDENCE (measured on the live 50M lanes at 15M): `loss/explained_variance` plateaus
+  at 0.56–0.59 on all three seeds — ~40% of return variance unexplained, at gamma 1.0 /
+  terminal-only ±1 / no team preview (5/6 opponent mons hidden at turn 1). Part is
+  irreducible gen1 RNG; the hidden-team part is what this lever removes. The 50M lanes'
+  EV trajectory is the free control curve.
+- WHY CHEAP HERE: the critic is ALREADY a separate stack (repo contract, deliberate
+  deviation from H&L); the privileged vector never enters the obs space, so no OBS_DIM
+  change, no checkpoint invalidation, no comparator re-baseline; the locked eval
+  protocol exercises the actor only, so the eval path is untouched by construction.
+- PURITY: clean under §5 — the opponent seat's state in mirror/pool self-play is our
+  own process's environment state; no teacher, no scripted opponent. One disclosure
+  line in any writeup.
+- DESIGN SKETCH: privileged input = actor obs 828 ‖ opponent seat's own-side blocks
+  (reuse `_fill_mon`/`_fill_move`; no new features). Plumbing: per-battle registry
+  passes seat B's own-side vector into seat A's `info` through the collection path
+  (~2–3 evenings, Rung-2-scale). The SAME plumbing serves D19 — build once.
+- RUNG SHAPE: one lever (critic input only; same actor/trunk/recipe as the 50M
+  winner), read at 12M vs the matched-budget standing best under the standard credit
+  line, own pre-registered config header. Secondary: EV delta vs the control curve.
+- FALSIFIER, PRE-STATED: EV jumps but win rate flat/negative ⇒ the critic fits
+  information the policy cannot exploit and the advantage signal degraded — kill the
+  rung, do not tune around it. CAVEAT recorded: GAE bootstrapping with a privileged V
+  value-aliases states the policy cannot distinguish (bias accepted by AlphaStar-class
+  projects; not formally clean). NOVELTY: "no privileged critic in Pokemon RL" is
+  UNVERIFIED — §9's adversarial index search is mandatory before any such claim.
+
+**D19 — AUXILIARY OPPONENT-TEAM PREDICTION rung.** CE head over species for unrevealed
+opponent slots, trained against ground truth (free in self-play); forces an explicit
+belief state instead of hoping one emerges from win/loss. One head + one loss term on
+D18's plumbing. Purity-clean, no obs change. Sequence AFTER D18's read (attribution).
+
+**D20 — the v3 ENCODER BUNDLE (post-chase; one re-baseline pays for everything, D13
+cost known and paid once already for v1→v2/808).** Contents: Light Screen — a POKE-ENV
+PARSER problem, not a tuple edit (gen1 `|-start|...Light Screen` maps to
+`Effect.UNKNOWN` in 0.15.0; known since 2026-07-30); real partial-trap fix
+(`PARTIALLY_TRAPPED` is structurally dead — gen1 traps surface via `|cant|`, same bug
+class as MUST_RECHARGE); toxic/confusion/disable counters + which-move-disabled;
+Substitute remaining HP; summed-team-HP scalars both sides (matters more under DeepSets
+max-pool, which cannot reconstruct sums); minor volatiles (Bide/Rage/Transform/Mimic/
+Mist); and the parked 22-dim history block RIDES ALONG so one re-baseline covers all.
+PRECONDITION: extend `obs_fidelity_check` to the crit/SE/miss/`|cant|` paths (its
+coverage gaps are documented) and verify each field actually populates before encoding
+it. DECLINED, recorded so they do not resurface: running obs normalization (breaks
+frozen comparators; obs are hand-normalized by design), Wang's PP/HP binning
+(information already present continuously), standalone sleep-counter one-hot (scalar
+present; ruled inert under the Arm-B linearity rule).
+
