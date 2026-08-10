@@ -2221,3 +2221,32 @@ entry by offset — never a broad keyword grep.
   the 19:11 ops check — all green, ~387 steps/s, collapse criterion not met (1/3
   lanes; early-peak cummax artifact — credited 12M lanes had the identical flat
   shape). Ops watch continues 3-hourly.
+
+- 2026-08-09 (night) — **CANDIDATE-LEVER TRIAGE of two external advisory lists
+  (maintainer-pasted), against encoder source + record. Encoder list first: most is
+  ALREADY IN v2/808** (the list audited the stale 611-dim v1: revealed-flag belief
+  state + set-prior move probabilities, recharge fix = OUR D13a find, preparing,
+  per-mon Reflect, status_counter scalar, PP ratio, continuous HP) or REVIEWED-AND-
+  DEFERRED (22-dim history block, D13: separate bundle). **Genuinely new encoder
+  gaps banked for a post-chase v3 bundle: LIGHT SCREEN missing from _VOLATILES
+  (Reflect present, its special twin absent — verify poke-env populates it in gen1
+  first), Disable counter + which-move, Substitute remaining HP, turn-count one-hots
+  vs the shared scalar, Bide/Rage/Transform/Mimic/Mist.** All frozen behind r7's
+  encoder freeze (semantics change = checkpoint invalidation + comparator
+  re-baseline). **Second list (frontier game-RL): two REAL new levers that DODGE the
+  freeze — training-side only, purity-clean per §5, no re-baseline (eval exercises
+  the actor only): (1) PRIVILEGED/ASYMMETRIC CRITIC (AlphaStar CTDE) — critic sees
+  opponent's true state during self-play, policy does not; our critic is ALREADY a
+  separate stack (repo contract), and turn-1 value estimation with 5/6 opponents
+  unknown at γ=1.0 terminal-only is exactly the high-variance case it targets; GAE
+  bootstrap caveat noted (privileged V bounds-mismatch, accepted by the big
+  projects). (2) AUXILIARY OPPONENT-TEAM PREDICTION LOSS — CE over species for
+  unrevealed slots, ground truth free in self-play; forces explicit belief state.
+  Each is a RUNG (one lever, own pre-registration, vs the 50M winner) — NOT an
+  injection; no mid-run changes. Also already-have from that list: turn/50 + fainted
+  counts both sides in the global block (summed-team-HP scalar is NOT explicit —
+  matters more under DeepSets max-pool than flat MLP; goes in the v3 bundle list);
+  slot-permutation invariance = Rung 2's architecture itself; obs are hand-normalized
+  by design (running normalizer would break frozen comparators). Novelty caveat per
+  §9: "nobody did privileged critic in Pokemon" needs the adversarial index check
+  before it is ever claimed. 50M lanes untouched throughout (evals/reads only).
