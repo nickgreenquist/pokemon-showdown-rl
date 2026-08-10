@@ -620,10 +620,18 @@ opponent seat's TRUE own-side state; the actor's observation is unchanged.
   line, own pre-registered config header. Secondary: EV delta vs the control curve.
 - FALSIFIER, PRE-STATED: EV jumps but win rate flat/negative ⇒ the critic fits
   information the policy cannot exploit and the advantage signal degraded — kill the
-  rung, do not tune around it. CAVEAT recorded: GAE bootstrapping with a privileged V
-  value-aliases states the policy cannot distinguish (bias accepted by AlphaStar-class
-  projects; not formally clean). NOVELTY: "no privileged critic in Pokemon RL" is
-  UNVERIFIED — §9's adversarial index search is mandatory before any such claim.
+  rung, do not tune around it.
+- BIAS QUESTION RESOLVED (third advisory, 2026-08-10): Baisero & Amato, "Unbiased
+  Asymmetric RL under Partial Observability" (AAMAS 2022, arXiv:2105.11674) — a
+  privileged-ONLY critic V(s) is biased (Thm 4.2, and Monte-Carlo targets do not fix
+  it), but a critic conditioned on the actor's observation PLUS privileged state,
+  V(h,s), is unbiased incl. for bootstrapping (Thm 5.1). BINDING DESIGN CONSTRAINT:
+  the critic input is actor-obs ‖ privileged block — the privileged block may never
+  REPLACE the actor's view. (Our sketch already satisfies this.) Honest residue: the
+  theorem's h is the full action-observation history; our obs is an approximate
+  belief state standing in for h — near-Markov by construction, noted, not proven.
+  NOVELTY: "no privileged critic in Pokemon RL" is UNVERIFIED — §9's adversarial
+  index search is mandatory before any such claim.
 
 **D19 — AUXILIARY OPPONENT-TEAM PREDICTION rung.** CE head over species for unrevealed
 opponent slots, trained against ground truth (free in self-play); forces an explicit
@@ -645,4 +653,23 @@ it. DECLINED, recorded so they do not resurface: running obs normalization (brea
 frozen comparators; obs are hand-normalized by design), Wang's PP/HP binning
 (information already present continuously), standalone sleep-counter one-hot (scalar
 present; ruled inert under the Arm-B linearity rule).
+
+**D21 — RECIPE/SELF-PLAY HYGIENE POOL (optional, sequenced after D18/D19; refreshed
+from the third advisory, 2026-08-10).** The demoted recipe rung's candidate contents,
+updated: rollout sizing + GAE λ≈0.75–0.8 (the known rung; VGC-Bench sits on our side
+of the λ split), plus three cheap additions with strong on-policy evidence — KL-based
+early stopping on epochs (guards the 4-epoch stale-rollout collapse mode), entropy
+COEFFICIENT SCHEDULING high→low (entropy does double duty in a simultaneous-move game:
+exploration AND mixed-strategy exploitability control — consistent with our measured
+deterministic-vs-sampling seat asymmetry), and PFSP-style win-rate-prioritized pool
+sampling (favor near-50% opponents; cheap bookkeeping on the existing pool; D16's
+comparator note applies — any sampling change is a lever, not a default). Each is a
+separate pre-registered lever; bundling them re-creates the factorial hazard the
+ladder rule exists to prevent. CONFIRMED-DECLINED by the same advisory's negative-
+results list (independent corroboration, recorded): RND/curiosity, recurrence-first,
+periodic resets/ReDo, exotic optimizers, PopArt/symlog at bounded ±1 returns,
+reconstruction aux losses. Two-hot/categorical value head: stays PARKED (Arm C) — the
+advisory grades PPO-specific evidence weak; the Farebrother non-stationarity argument
+is noted for whenever Arm C is re-read. SimBa block (obs-norm+residual+LayerNorm):
+rides only with a future trunk change, never alone mid-chapter.
 

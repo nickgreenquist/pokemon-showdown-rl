@@ -2292,3 +2292,22 @@ entry by offset — never a broad keyword grep.
   line, policy sharpening; watch, no gate. Ops: all lanes alive, ~390 steps/s, 16M
   ckpts, server up. Final read stands regardless, per the header's own clause; this
   entry is the branch-(c) evidence trail, nothing more.
+
+- 2026-08-10 (morning) — **THIRD ADVISORY TRIAGED (maintainer-supplied survey, the
+  strongest of the three — evidence-graded, cited). Two §12 amendments landed, both
+  pre-ratification:** (1) **D18 UPGRADED — the GAE bias caveat is substantially
+  RESOLVED**: Baisero & Amato (AAMAS 2022) prove V(actor-obs ‖ privileged) is unbiased
+  incl. for bootstrapping (Thm 5.1) while privileged-ONLY V(s) is biased (Thm 4.2);
+  our sketch already used the concat form, now recorded as a BINDING constraint (the
+  privileged block never replaces the actor view; honest residue noted — our obs
+  approximates the theorem's full history h). (2) **D21 added**: recipe/hygiene pool —
+  the known rollout/λ rung plus KL early stopping, entropy scheduling (double duty:
+  exploration + mixed-strategy exploitability — matches our measured seat asymmetry),
+  and PFSP win-rate-prioritized pool sampling; each its own lever, no bundling.
+  Advisory's negative-results list independently corroborates our declined set
+  (RND/recurrence-first/resets/exotic optimizers/PopArt/reconstruction). Two-hot value
+  head stays PARKED (Arm C) with the Farebrother note attached. Staleness noted: the
+  advisory audits the 0.44-plateau/611-dim era and its Stage-1 hypothesis ("exceed the
+  BC-clone ceiling via entity encoder") is what Rung 2 ALREADY CONFIRMED at 0.5509.
+  Its rollout figures (~4k vs 37-40k) restate the 2026-08-08 recipe advisory. Lanes
+  untouched (evals/doc work only).
