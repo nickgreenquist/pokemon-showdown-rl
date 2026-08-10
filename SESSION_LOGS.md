@@ -2278,3 +2278,17 @@ entry by offset — never a broad keyword grep.
   all; obs_fidelity_check coverage extension is the precondition; declined items
   recorded so they do not resurface. STATUS points at §12. Lanes untouched (~15.3M,
   all green at the 22:11-class checks).
+
+- 2026-08-09 (22:11 ops check) — **LATE-RUN COLLAPSE CRITERION MET ON ITS LETTER —
+  RECORDED PER THE PRE-REGISTRATION; NO INTERVENTION, LANES RUN TO COMPLETION.** At
+  ~16.0–16.3M: s35 smoothed eval 0.528 vs running peak 0.589@3.0M (gap 0.061,
+  sustained ~7M steps); s36 0.485 vs 0.607@3.5M (gap 0.122, sustained ~11.8M) → 2/3
+  lanes >0.05 below peak ≥5M. CALIBRATION, recorded with it: both "peaks" are
+  3–3.5M cummax artifacts of an n=100 eval series (inflation ~2·se ≈ 0.04); the
+  CREDITED 12M lanes showed the same early-peak-then-flat shape and still pooled
+  0.5509; and s37 is at its ALL-TIME peak right now (0.604@16.2M) — a three-lane
+  collapse this is not. The genuinely soft lane is s36 (0.485, low end of its band;
+  entropy still 0.27). Entropy color: s35 0.14 / s37 0.13 — below the (closed) K6
+  line, policy sharpening; watch, no gate. Ops: all lanes alive, ~390 steps/s, 16M
+  ckpts, server up. Final read stands regardless, per the header's own clause; this
+  entry is the branch-(c) evidence trail, nothing more.
