@@ -27,27 +27,49 @@ pruned 2026-08-05.
 
 ## Results so far
 
-Win rate vs poke-env's `SimpleHeuristicsPlayer` (SH). Protocol: final checkpoint,
-1000 battles/seed, 3 seeds pooled, ties count as non-wins, deterministic policy.
+Win rate vs poke-env's `SimpleHeuristicsPlayer` (SH). Locked protocol: final
+checkpoint, deterministic policy, ties count as non-wins, 3 seeds × **3000
+battles/seed** pooled. Rows marked † predate the 3000/seed protocol (1000/seed era);
+rows marked * are single-seed probes, not headline-grade.
 
 | agent | win rate |
 |---|---|
-| PPO, 6M steps, flat LR | 0.3923 ± 0.0089 |
-| PPO, 6M steps, LR annealed to 0 | 0.4433 ± 0.0091 |
-| PPO, 12M steps, flat LR | 0.4330 |
-| **PPO, 12M steps, LR annealed to 0 — best RL** | **0.4607** |
-| Behaviour clone of SH (same encoder + trunk) | 0.4530 recorded / 0.4657 re-scored |
+| PPO trained *against* SH, 12M, flat / LR-annealed | 0.4330† / 0.4607† |
+| Behaviour clone of SH (813k rows) | 0.4657† |
 | SH vs SH mirror (parity point; caps SH imitators only) | 0.489 |
+| **Pure self-play**, 12M, flat MLP — the plateau | 0.3996 ± 0.0052 |
+| + H&L reward shaping (γ0.95, 5-term zero-sum) — null | 0.4131 ± 0.0052 |
+| **+ entity architecture (DeepSets + pointer head), 12M** | **0.5509 ± 0.0052** |
+| **same recipe at 50M — current best** | **0.5802 ± 0.0052** |
+| Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
+| Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 
-The mirror baseline sits below 0.5 because ties count as non-wins. Two levers are
-credited with real effects: rollout length 128→512 (+0.037 pooled) and a linear LR
-anneal (+0.051 pooled at 6M; re-measured +0.0277 at 12M, clearing the credit line
-by 0.003). The supervised-clone diagnostic established that the earlier plateau was
-training-side, not a representation problem; training-side work then closed it — the
-best RL policy is now level with the clone (between its two same-protocol
-measurements), with the pre-registered "past the teacher" mark (0.47) not reached.
-The roadmap (`DESIGN.md`, revision 6, under review) targets the one lever not capped
-by the SH mirror: a verified 109k-replay `gen1randombattle` human corpus.
+**The chapter that matters (2026-08-07 →): pure from-scratch self-play.** The project
+pivoted from "strongest agent" to a novelty target: no BC init, no teacher or human
+data, no scripted opponents in training — weights are a function of random init +
+self-play experience + environment only. Three pre-registered rungs at 12M isolated
+what binds the self-play bootstrap: a better *input* (encoder v2) did not (+0.009),
+a better *signal* (Huang & Lee's shaping) did not (+0.0135, n.s.), and a better
+*structure* — entity embeddings, a shared per-Pokémon subnet, DeepSets team pooling,
+one shared per-action scorer — moved it **+0.151** at matched parameters. That run
+cleared the pre-registered success milestone (**M3, "past SH": ≥0.510**), guarded by
+head-to-heads against non-SH anchors (beats the Foul Play clone 0.657 pooled; the
+engine's edge over our best shrank 0.876 → 0.824), and was formally claimed
+2026-08-09. Per an adversarial prior-art search (2026-08-10, scope in
+`SESSION_LOGS.md`): **no documented instance found of a pure self-play agent past
+the scripted benchmark in gen1** — stated as "none found," not "proven first". A 4.2×
+scale run (50M) then read out at **0.5802 pooled — crediting its pre-registered bar,
+with a recorded caveat**: the seed spread tripled (0.509–0.659), so the scale effect
+is not yet seed-robust; adjudication and the remaining anchor read are in
+`SESSION_LOGS.md`.
+
+**Honest scoping.** SH parity ≈ 40% GXE in human-ladder terms; the strongest
+documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach
+~80% GXE. This chase is a *purity-lane* first in a generation where it had not been
+shown — it is not a strength record and does not enter the published field. The
+roadmap is `DESIGN.md` (r7 ratified; §12 queues the next levers — an
+asymmetric/privileged critic first, also with no documented Pokémon-RL instance
+found).
 
 ## Setup
 
