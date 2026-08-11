@@ -174,6 +174,7 @@ class EntityDeepSetsNet(nn.Module):
         ctx_sizes: list[int] = (384, 384),
         scorer_sizes: list[int] = (256,),
         value_sizes: list[int] = (384, 384),
+        privileged_dim: int = 0,
     ):
         super().__init__()
         if out_dim not in (10, 1):
@@ -187,8 +188,31 @@ class EntityDeepSetsNet(nn.Module):
         self.mon_net = _subnet(self.tokenizer.mon_token_dim + embed_dim, entity_dim)
         self.move_net = _subnet(self.tokenizer.move_dim + embed_dim, entity_dim)
         self.field_net = _subnet(self.tokenizer.global_dim, entity_dim)
-        # context: field || own pool || opp pool || own active || opp active.
-        ctx_in = 5 * entity_dim
+        # D18 privileged critic: the value stack may take the opponent seat's
+        # own-side block (rl/envs/showdown.py::privileged_block) appended
+        # AFTER the obs. Value-only — the actor's input never widens (the
+        # Baisero & Amato V(h,s) construction, and the locked eval protocol,
+        # both live on that asymmetry). The privileged tokens go through the
+        # SAME mon/move subnets and embeddings as the observed ones — the
+        # entity space is shared, only the pooling slots widen.
+        if privileged_dim:
+            if self.is_policy:
+                raise ValueError("privileged_dim is critic-only: the actor never widens")
+            expected = (
+                6 * self.tokenizer.mon_dim + self.tokenizer.active_dim
+                + 4 * self.tokenizer.move_dim + 10
+            )
+            if privileged_dim != expected:
+                raise ValueError(
+                    f"privileged_dim {privileged_dim} != encoder PRIV_DIM {expected}: "
+                    "the env and the critic disagree on the privileged layout "
+                    "(check the POKEMON_RL_ENCODER_V2 / POKEMON_RL_ENCODER_IDS "
+                    "env vars — the id tail is required)"
+                )
+        self.privileged_dim = privileged_dim
+        # context: field || own pool || opp pool || own active || opp active
+        # (|| priv pool || priv active || priv-move pool when privileged).
+        ctx_in = (5 + (3 if privileged_dim else 0)) * entity_dim
         sizes = list(ctx_sizes if self.is_policy else value_sizes)
         layers: list[nn.Module] = []
         for width in sizes:
@@ -232,7 +256,41 @@ class EntityDeepSetsNet(nn.Module):
         with torch.no_grad():
             final.weight.mul_(gain)
 
+    def _priv_features(self, priv: torch.Tensor) -> list[torch.Tensor]:
+        """Pooled entity features from the opponent seat's own-side block —
+        tokenized by the SAME rules the tokenizer applies to our own side
+        (constant flag 1, extras gated by the is-active bit at mon offset
+        +2, ids recovered as round(x*256))."""
+        batch = priv.shape[0]
+        md, ad, vd = self.tokenizer.mon_dim, self.tokenizer.active_dim, self.tokenizer.move_dim
+        mons = priv[:, : 6 * md].view(batch, 6, md)
+        extras = priv[:, 6 * md : 6 * md + ad]
+        moves = priv[:, 6 * md + ad : 6 * md + ad + 4 * vd].view(batch, 4, vd)
+        ids = (priv[:, -10:] * 256.0).round().long()
+        active = mons[:, :, 2]
+        tokens = torch.cat(
+            [priv.new_ones(batch, 6, 1), mons,
+             extras.unsqueeze(1) * active.unsqueeze(-1)],
+            dim=-1,
+        )
+        pmons = self.mon_net(torch.cat(
+            [tokens, self.species_emb(ids[:, :6].clamp(0, self.tokenizer.species_vocab - 1))],
+            dim=-1,
+        ))
+        pmoves = self.move_net(torch.cat(
+            [moves, self.move_emb(ids[:, 6:].clamp(0, self.tokenizer.move_vocab - 1))],
+            dim=-1,
+        ))
+        return [
+            pmons.amax(dim=1),
+            (pmons * active.unsqueeze(-1)).sum(dim=1),
+            pmoves.amax(dim=1),
+        ]
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        priv = None
+        if self.privileged_dim:
+            x, priv = x[:, : -self.privileged_dim], x[:, -self.privileged_dim :]
         tok = self.tokenizer(x)
         mons = self.mon_net(
             torch.cat([tok["mons"], self.species_emb(tok["species_ids"])], dim=-1)
@@ -245,18 +303,16 @@ class EntityDeepSetsNet(nn.Module):
         # DeepSets max over each team (permutation-invariant, which is the
         # point); the active mon's vector selected by its own is-active bit
         # (a one-hot -- or all-zero when no active, leaving a zero vector).
-        ctx = self.ctx_net(
-            torch.cat(
-                [
-                    self.field_net(tok["field"]),
-                    mons[:, :6].amax(dim=1),
-                    mons[:, 6:].amax(dim=1),
-                    (mons[:, :6] * tok["own_active"].unsqueeze(-1)).sum(dim=1),
-                    (mons[:, 6:] * tok["opp_active"].unsqueeze(-1)).sum(dim=1),
-                ],
-                dim=-1,
-            )
-        )
+        ctx_parts = [
+            self.field_net(tok["field"]),
+            mons[:, :6].amax(dim=1),
+            mons[:, 6:].amax(dim=1),
+            (mons[:, :6] * tok["own_active"].unsqueeze(-1)).sum(dim=1),
+            (mons[:, 6:] * tok["opp_active"].unsqueeze(-1)).sum(dim=1),
+        ]
+        if priv is not None:
+            ctx_parts += self._priv_features(priv)
+        ctx = self.ctx_net(torch.cat(ctx_parts, dim=-1))
         if not self.is_policy:
             return self.head(ctx)
         # Pointer alignment (the exact poke-env mapping the encoder relies

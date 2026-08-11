@@ -31,6 +31,7 @@ class RolloutBuffer(Buffer):
         action_shape: tuple[int, ...] = (),
         action_dtype=np.int64,
         n_actions: int | None = None,
+        priv_dim: int | None = None,
     ):
         self.horizon = horizon
         self.num_envs = num_envs
@@ -59,9 +60,24 @@ class RolloutBuffer(Buffer):
             None if n_actions is None
             else np.zeros((horizon, num_envs, n_actions), dtype=bool)
         )
+        # Privileged critic-side state (D18): per-row like next_obs, so the
+        # critic's bootstrap input at a truncation is the true final state's
+        # privileged view. Allocated only when the agent declares a
+        # privileged_dim — a construction-time fact, same rule as `masks`.
+        self.privs = (
+            None if priv_dim is None
+            else np.zeros((horizon, num_envs, priv_dim), dtype=np.float32)
+        )
+        self.next_privs = (
+            None if priv_dim is None
+            else np.zeros((horizon, num_envs, priv_dim), dtype=np.float32)
+        )
         self._ptr = 0
 
-    def add(self, obs, actions, rewards, next_obs, terminated, truncated, masks=None) -> None:
+    def add(
+        self, obs, actions, rewards, next_obs, terminated, truncated, masks=None,
+        privs=None, next_privs=None,
+    ) -> None:
         """Store one batched (N-wide) transition row."""
         t = self._ptr  # IndexError past the horizon: the agent drains at full()
         self.obs[t] = obs
@@ -72,6 +88,9 @@ class RolloutBuffer(Buffer):
         self.truncated[t] = truncated
         if self.masks is not None:
             self.masks[t] = masks
+        if self.privs is not None:
+            self.privs[t] = privs
+            self.next_privs[t] = next_privs
         self._ptr += 1
 
     def full(self) -> bool:

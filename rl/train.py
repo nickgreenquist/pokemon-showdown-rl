@@ -411,6 +411,7 @@ def _vector_loop(
     num_envs = envs.num_envs
     obs, infos = envs.reset(seed=cfg.seed)  # gymnasium seeds sub-env i with seed + i
     masks = infos.get("action_mask")  # (N, A); None only for continuous envs
+    privs = infos.get("privileged")  # (N, PRIV_DIM); None unless the env emits it (D18)
     best_eval = float("-inf")
     ep_returns = np.zeros(num_envs)
     ep_lengths = np.zeros(num_envs, dtype=np.int64)
@@ -438,12 +439,15 @@ def _vector_loop(
         collect_sec += time.perf_counter() - mark
         # Autoreset is disabled, so step infos always describe the true
         # successor states — at a truncated row next_masks is the final
-        # state's real mask, exactly what a bootstrap consumer needs.
+        # state's real mask, exactly what a bootstrap consumer needs (and
+        # next_privs the final state's privileged view, same argument).
         next_masks = infos.get("action_mask")
+        next_privs = infos.get("privileged")
         step += num_envs
         mark = time.perf_counter()
         update_metrics = agent.update(
-            (obs, actions, rewards, next_obs, terminated, truncated, masks, next_masks)
+            (obs, actions, rewards, next_obs, terminated, truncated, masks, next_masks,
+             privs, next_privs)
         )
         update_sec += time.perf_counter() - mark
         if update_metrics:
@@ -501,6 +505,7 @@ def _vector_loop(
         ep_lengths += 1
         obs = next_obs
         masks = next_masks
+        privs = next_privs
 
         done = terminated | truncated
         if done.any():
@@ -527,6 +532,11 @@ def _vector_loop(
             obs, reset_infos = envs.reset(options={"reset_mask": done})
             if masks is not None:
                 masks = np.where(done[:, None], reset_infos["action_mask"], masks)
+            if privs is not None:
+                # Same merge rule as masks: non-reset rows are placeholders
+                # in gymnasium's aggregation, so only done rows take the
+                # fresh battle's privileged view.
+                privs = np.where(done[:, None], reset_infos["privileged"], privs)
 
         if cfg.checkpoint_every and step >= next_ckpt:
             save_checkpoint(out_dir / f"ckpt_{step:09d}.pt", agent, step, cfg, normalizers)

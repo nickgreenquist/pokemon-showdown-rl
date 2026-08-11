@@ -224,6 +224,7 @@ class PPOAgent(Agent):
         bc_kl_coef: float = 0.0,
         trunk: str = "mlp",
         trunk_kwargs: dict | None = None,
+        privileged_dim: int = 0,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -303,6 +304,15 @@ class PPOAgent(Agent):
         if trunk != "mlp" and (self.obs_rank == 3 or self.continuous):
             raise TypeError(f"trunk {trunk!r} requires a flat obs and a Discrete action space")
         self.trunk = trunk
+        # D18 privileged critic: the CRITIC's input is obs ‖ the env's
+        # info["privileged"] block; the actor never widens and the obs space
+        # is untouched. Discrete/flat only — the tracks that have an env
+        # emitting the block.
+        if privileged_dim < 0:
+            raise ValueError(f"privileged_dim must be >= 0, got {privileged_dim}")
+        if privileged_dim and (self.obs_rank == 3 or self.continuous):
+            raise TypeError("privileged_dim requires a flat obs and a Discrete action space")
+        self.privileged_dim = privileged_dim
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
         if self.obs_rank == 3:
@@ -341,7 +351,22 @@ class PPOAgent(Agent):
             self.actor = GaussianActor(build(act_dim), act_dim)
         else:
             self.actor = build(int(action_space.n))
-        self.critic = build(1)
+        if not privileged_dim:
+            self.critic = build(1)
+        elif trunk == "entity_deepsets":
+            from rl.networks.entity_deepsets import EntityDeepSetsNet
+
+            self.critic = EntityDeepSetsNet(
+                observation_space.shape[0], 1,
+                privileged_dim=privileged_dim, **(trunk_kwargs or {}),
+            )
+        else:
+            # MLP critic: plain input concat — the widened first layer is the
+            # whole change.
+            self.critic = mlp(
+                observation_space.shape[0] + privileged_dim, hidden_sizes, 1,
+                activation=nn.Tanh,
+            )
         if trunk == "entity_deepsets":
             # INIT HAZARD (K4): _orthogonal_init iterates every Linear and
             # would rescale the pointer stack while leaving the embedding
@@ -384,6 +409,7 @@ class PPOAgent(Agent):
             observation_space.shape,
             obs_dtype=observation_space.dtype,
             **action_storage,
+            priv_dim=privileged_dim or None,
         )
         self.updates = 0  # completed fill -> epochs cycles
 
@@ -453,8 +479,23 @@ class PPOAgent(Agent):
         # step; accumulate until the horizon fills, then train on the rollout.
         # next_masks has no consumer: the critic is the only next_obs reader,
         # and values are never masked.
-        obs, actions, rewards, next_obs, terminated, truncated, masks, _next_masks = batch
-        self.buffer.add(obs, actions, rewards, next_obs, terminated, truncated, masks)
+        (obs, actions, rewards, next_obs, terminated, truncated, masks, _next_masks,
+         *rest) = batch
+        privs, next_privs = rest if rest else (None, None)
+        # Loud seam (R0-1 style): a lane with the env flag but not the agent
+        # flag would silently train a blind critic; the reverse would train
+        # the wide critic on zeros. Neither may pass.
+        if (privs is None) == bool(self.privileged_dim):
+            raise ValueError(
+                f"privileged mismatch: agent privileged_dim={self.privileged_dim} "
+                f"but the env {'did not emit' if privs is None else 'emitted'} "
+                "info['privileged'] — the env kwarg and the agent hparam must "
+                "be set together"
+            )
+        self.buffer.add(
+            obs, actions, rewards, next_obs, terminated, truncated, masks,
+            privs, next_privs,
+        )
         if not self.buffer.full():
             return {}
         buf = self.buffer
@@ -479,6 +520,24 @@ class PPOAgent(Agent):
             None if self.continuous
             else torch.as_tensor(buf.masks, device=self.device).flatten(0, 1)  # (T*N, A) bool
         )
+        # The critic's input: obs ‖ privileged when the block is carried,
+        # plain obs otherwise (aliases, no copy). Every critic forward below
+        # reads these two and only these two.
+        if self.privileged_dim:
+            flat_critic_obs = torch.cat(
+                [flat_obs, torch.as_tensor(
+                    buf.privs, dtype=torch.float32, device=self.device
+                ).flatten(0, 1)],
+                dim=-1,
+            )
+            flat_critic_next_obs = torch.cat(
+                [flat_next_obs, torch.as_tensor(
+                    buf.next_privs, dtype=torch.float32, device=self.device
+                ).flatten(0, 1)],
+                dim=-1,
+            )
+        else:
+            flat_critic_obs, flat_critic_next_obs = flat_obs, flat_next_obs
         with torch.no_grad():
             # Recomputed at update start, not stored during collection: exact
             # (the policy hasn't changed since it acted — same argument as
@@ -486,8 +545,8 @@ class PPOAgent(Agent):
             # because every buffer row carries its own successor. old_logp is
             # recomputed under the STORED masks — the same masking every
             # epoch's forward applies below, so the first ratio is exactly 1.
-            values = self.critic(flat_obs).squeeze(-1).view(horizon, num_envs)
-            next_values = self.critic(flat_next_obs).squeeze(-1).view(horizon, num_envs)
+            values = self.critic(flat_critic_obs).squeeze(-1).view(horizon, num_envs)
+            next_values = self.critic(flat_critic_next_obs).squeeze(-1).view(horizon, num_envs)
             old_logp = self._logp_entropy(flat_obs, flat_actions, flat_masks)[0].view(
                 horizon, num_envs
             )
@@ -585,7 +644,9 @@ class PPOAgent(Agent):
                 policy_loss, approx_kl, clip_frac = clipped_surrogate_loss(
                     new_logp, flat_old_logp[idx], mb_adv, self.clip_eps
                 )
-                value_loss = F.mse_loss(self.critic(flat_obs[idx]).squeeze(-1), flat_targets[idx])
+                value_loss = F.mse_loss(
+                    self.critic(flat_critic_obs[idx]).squeeze(-1), flat_targets[idx]
+                )
                 entropy = entropies.mean()
                 loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
                 if self.bc_kl_coef > 0.0:
