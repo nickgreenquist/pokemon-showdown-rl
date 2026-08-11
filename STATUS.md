@@ -2,7 +2,7 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-11 night — D22 CLOSED, all 5 reads in; next: D18)
+## Where things stand (2026-08-11 late night — D22 CLOSED; D18 BUILT, ready to ratify+launch)
 
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED: pooled 0.5802 ± 0.0052 CREDIT
@@ -40,20 +40,21 @@ suite 269 green). BR color: exploiter hit ~0.56 vs SH in 6M vs one frozen oppone
 
 ## Next actions, in order
 
-1. **D18 privileged critic** (D22 routing final; plumbing ~2–3 evenings: cross-seat
-   registry through collection; critic input = actor-obs ‖ opponent own-side blocks,
-   BINDING never privileged-only; header MUST restate the FULL credit line incl.
-   larger-of se_diff clause; read at 12M vs matched-budget standing best).
+1. **RATIFY + LAUNCH D18** (plumbing DONE 2026-08-11, suite 279 green, live-smoked):
+   configs/showdown_sp_priv12m.yaml — critic = actor-obs ‖ opponent own-side block
+   (408d), never privileged-only; full §8 credit line in header (bar 0.5759 vs
+   0.5509); val-peak co-primary on n=1000 evals; seeds 39/40/41, 3 lanes ~9 h wall.
+   Launch commands in the config header; stagger starts; per-lane R0-8.
 2. Regenerative L2-toward-init: named next-after-D18; jumps queue if D18 lanes
-   reproduce an s37-class grad blowup.
+   reproduce an s37-class grad blowup (D22-watch gate in the header, record-only).
 3. 250M decision: after D18 + H&L seat accounting (gates any 250M quote).
 
 ## Watch items
 
-- Seeds: 0-13, 23-38 SPENT, 14-22 RESERVED (warmrl), 99 disposable; **39+ free.**
+- Seeds: 0-13, 23-38 SPENT, 39-41 ASSIGNED (D18 lanes), 14-22 RESERVED (warmrl),
+  99 disposable; **42+ free.**
 - **Entity ckpts need BOTH env vars at every eval** (v2+ids→828; dies loudly if not).
   Cross-encoder play needs the shim (808 ok; 807 refused). `simulator: 4` gitignored.
 - Idle-box evals FAST (~3 min/3000); FP reads ~6.5-10 s/battle; solo lane ≥400 steps/s.
-- D22 artifacts in results/d22/ (gitignored): binned trajectories, weight norms,
-  dormant/rank CSVs, per-lane mirror obs tapes (obs_s3*.npz, 5.8-7.4k decisions).
+- D22 artifacts: results/d22/ (gitignored) — CSVs + mirror obs tapes (obs_s3*.npz).
 - Laptop sleep kills session Monitors (not lanes/server); caffeinate for long jobs.

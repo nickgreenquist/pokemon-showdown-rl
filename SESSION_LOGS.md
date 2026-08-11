@@ -2476,3 +2476,34 @@ entry by offset — never a broad keyword grep.
   probe end-to-end (launch→verdict) ~3.6 h; h2h evals ~2 min/1000 on the idle box.
   Artifacts: runs/showdown_br50m_s38/, results/d22/br38_vs_s36_orient{A,B}.json.
   Seed 38 SPENT.
+
+- 2026-08-11 (late night) — **D18 PLUMBING COMPLETE IN ONE SESSION (est. 2–3
+  evenings): privileged critic landed end-to-end, suite 279 green, live-smoked;
+  PRE-REGISTRATION DRAFTED (configs/showdown_sp_priv12m.yaml) — awaiting
+  ratification, then a 3-lane overnight launch (seeds 39/40/41, ~9 h wall).**
+  Three commits: (1) cedd6fb env side — `privileged_block()` slices the opponent
+  seat's own-side state (6 mon blocks + active extras + 4 move blocks + 10 ids =
+  408 dims) out of THAT SEAT's own embed_battle encoding — zero new fill code,
+  bit-identical semantics by construction; ShowdownEnv(privileged=True) emits it
+  as info["privileged"] at every decision point from battle2; live test proves the
+  block carries hidden info (all 6 opponent mons populated vs <6 revealed in the
+  actor's view). (2) 6d21064 collection+critic — RolloutBuffer stores per-row
+  privs/next_privs (masks precedent); _vector_loop captures/rotates/reset-merges
+  info["privileged"] exactly like masks and hands a 10-tuple to update() (8-tuple
+  still means non-privileged); PPOAgent(privileged_dim=408): critic input =
+  actor-obs ‖ priv — the actor NEVER widens (Baisero & Amato V(h,s), binding);
+  env-flag/agent-flag mismatch dies at first update in both directions (tested).
+  EntityDeepSetsNet(privileged_dim=): value-only (policy head refuses it), priv
+  tokens through the SAME mon/move subnets + embeddings, ctx pooling 5→8 entity
+  slots (+147k critic params; actor param count and R0-2 untouched). (3) live
+  smoke seed 99: 4096 steps of pool self-play with the privileged critic — finite
+  losses, EV 0.22 by update 4. PRE-REG HEADER carries: full §8 credit line
+  VERBATIM incl. larger-of (binomial vs seed-clustered) se_diff clause (the
+  2026-08-11 process fix — bar 0.5759 vs Rung 2's 0.5509 comparator); val-peak
+  co-primary RECORDED-NOT-CREDIT-BEARING on n=1000 in-training evals every 500k
+  (both wishlist items adopted); EV-vs-control secondary + critic-srank read;
+  §12's falsifier verbatim (EV up + wr flat = kill); the +147k critic-capacity
+  confound disclosed with the capacity-matched control NAMED but not run; D22
+  WATCH gate (s37-class grad blowup, median >100 for 3 consecutive 1M bins →
+  regenerative-L2 jumps the queue at readout, record-only). Seeds 39/40/41
+  assigned here; 42+ free after launch.

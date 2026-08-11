@@ -1,0 +1,215 @@
+# =====================================================================
+# PRE-REGISTRATION — DRAFTED 2026-08-11 (evening, D22 closed same day).
+# STATUS: DRAFT — ratify before launch (maintainer). Launch from a clean
+# committed tree, three lanes, seeds 39/40/41.
+#
+# D18 — PRIVILEGED (ASYMMETRIC) CRITIC at 12M (DESIGN §12, RATIFIED
+# 2026-08-11; sequenced first by D22's closed decision rule).
+#
+# THE ONE LEVER. During self-play training the CRITIC's input is widened
+# with the opponent seat's TRUE own-side state; the actor, the obs
+# space, the trunk, and the recipe are the 50M winner's, unchanged.
+# Plumbing landed 2026-08-11 (commits cedd6fb, 6d21064; suite 279
+# green; live-smoked):
+#   env_kwargs.privileged: true  -> info["privileged"] = the opponent
+#     seat's own-side block, sliced from ITS OWN embed_battle encoding
+#     (6 mon blocks + active extras + 4 move blocks + 10 ids = 408 dims;
+#     rl/envs/showdown.py::privileged_block — same fill code as our own
+#     side, zero new encoder features).
+#   agent.privileged_dim: 408    -> critic input = actor-obs ‖ privileged
+#     block; priv tokens go through the SAME mon/move subnets and
+#     embeddings; ctx pooling widens 5 -> 8 entity slots. The two flags
+#     are checked against each other at first update (loud seam).
+# BINDING (Baisero & Amato, arXiv:2105.11674, Thm 5.1): the critic
+# conditions on the actor's obs PLUS the privileged block — NEVER
+# privileged-only. Honest residue, carried verbatim from §12: the
+# theorem's h is the full action-observation history; our obs is an
+# approximate belief state standing in for h — near-Markov by
+# construction, noted, not proven.
+#
+# WHY NOW (D22, closed 2026-08-11): EV plateaus at 0.56–0.59 on all
+# three 50M lanes from 5M to 50M; the critic's feature srank99 collapsed
+# to 7–11 of 384; the exploitability and (binding) plasticity clauses
+# both failed to fire. The plateau diagnosis is a representation/critic
+# ceiling — exactly the ~40% unexplained terminal-return variance this
+# lever attacks (hidden team: 5/6 opponent mons unseen at turn 1).
+#
+# PURITY (§5): clean — the opponent seat's state in mirror/pool
+# self-play is our own process's environment state; no teacher, no
+# scripted opponent, no human data. One disclosure line in any writeup.
+# NOVELTY (2026-08-10 adversarial search, binding phrasing): "no
+# documented instance found" of a privileged/asymmetric critic in any
+# Pokemon RL system.
+#
+# ---------------------------------------------------------------------
+# COMPARATOR AND PRIMARY
+# ---------------------------------------------------------------------
+# COMPARATOR: Rung 2's pooled final at the SAME 12M budget and recipe —
+# 0.5509 ± 0.0052 (s26 0.5633 / s27 0.5683 / s28 0.5210, 3x3000, locked
+# protocol). One lever apart from this run by construction.
+#
+# PRIMARY: pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol —
+# FINAL checkpoint, deterministic, ties as non-wins, 3000 battles/seed
+# x 3 seeds = 9000 pooled. Eval process carries BOTH env vars; the
+# privileged block never touches the eval path by construction (the
+# critic is not exercised at eval; asserted by the actor-only act()).
+#
+#   CREDIT LINE (DESIGN §8, restated IN FULL per the 2026-08-11
+#   adjudication process fix): a lever is credited iff pooled delta
+#   >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the
+#   pooled-binomial se_diff and the seed-clustered se_diff. Both arms
+#   at 3x3000: binomial se_diff = sqrt(2)*0.0052 ~ 0.0074, so the
+#   binomial floor is max(+0.025, 2*0.0074 = 0.0147) -> +0.025 ->
+#   POOLED FINAL >= 0.5759; the seed-clustered se_diff is computed from
+#   the six per-seed finals at read time and GOVERNS if larger (the 50M
+#   lesson: spread 0.151 made the seed-clustered z +0.63 — a seed-
+#   fragile credit gets the weakness NAMED in every narrative use).
+#
+# CO-PRIMARY, RECORDED NOT CREDIT-BEARING (next-pre-reg wishlist,
+# 2026-08-11, adopted here): the VAL-PEAK checkpoint per lane (argmax of
+# the n=1000 in-training evals below), re-graded under the locked
+# protocol at 3x3000. Feeds the LIVE ckpt-selection policy question
+# (50M best-ckpt gap was +0.035 pooled with a selection caveat at
+# n=100); the n=1000 cadence shrinks that caveat ~3x. CREDIT IS JUDGED
+# ON THE PRIMARY ALONE — pre-stated so the co-primary can never be
+# argued into the claim after the fact.
+#
+# SECONDARY (mechanism, pre-stated): loss/explained_variance trajectory
+# vs the Rung 2 12M control curves (plateau 0.56–0.59) AND vs the 50M
+# curves. The lever's own theory of change predicts EV rises. Also
+# recorded: critic feature srank99 at final (D22 read-4 harness,
+# scripts/d22_dormant_rank.py adapted) — does the privileged input
+# de-collapse the critic's representation (7–11 of 384 at 50M)?
+#
+# FALSIFIER, PRE-STATED (§12 verbatim): EV jumps but win rate flat or
+# negative => the critic fits information the policy cannot exploit and
+# the advantage signal degraded — KILL THE RUNG, do not tune around it.
+#
+# CONFOUND, DISCLOSED: the widened ctx adds ~147k CRITIC params (actor
+# untouched — R0-2 actor ceiling 626,059 unchanged and re-asserted at
+# construction). Input and critic capacity move together in this rung;
+# if it credits and the attribution ever matters, the capacity-matched
+# control (widened ctx, zeroed priv input) is the named follow-up arm —
+# NOT run now (one lever per rung; the zeros-input control is inert by
+# construction but costs a full lane set to prove).
+#
+# ---------------------------------------------------------------------
+# GATES (R0 set carried from Rung 2/50M; any failure voids the read)
+# ---------------------------------------------------------------------
+# R0-1 FINGERPRINT: meta.yaml stamps v2, recharge_fix, ids, obs 828 —
+#   PLUS this rung's own seam: config snapshot carries
+#   env_kwargs.privileged=true AND agent.privileged_dim=408; the
+#   first-update mismatch check is the runtime guard (measured to fire
+#   in tests, both directions).
+# R0-2 PARAM CEILING: actor 626,059 <= 681,994 (unchanged code path;
+#   the assert re-fires every launch). Critic ~642k — NO ceiling
+#   applies (R0-2 is actor-only, by its own text); disclosed above.
+# R0-3 MLP BIT-IDENTITY: standing unit test, green in the 279.
+# R0-6 REGIME: after 3M, ties <= 4.2%, mean episode length <= 40.
+# R0-7 MASKING: contract test offline — the value head is never masked
+#   (unchanged; the privileged critic variant is still the value stack).
+# R0-8 LANE LIVENESS: staggered starts; battle PROGRESS within 15 min;
+#   steps/s/lane >= 300 once warm at 3-wide (band was 350–390; the
+#   extra seat-B encode costs a few % — if warm rate lands under 300,
+#   record and continue, the read is unaffected; under 250, stop and
+#   investigate before burning 3 lanes).
+# R1 LEARNING GATE: selfplay/winrate_anchor >= 0.75 by 4M on >= 2/3
+#   seeds (carried unchanged).
+# K6 ENTROPY: 3-seed median loss/entropy < 0.15 for 5 consecutive
+#   readings before 6M -> record and stop. No mid-run changes, ever.
+# D22 WATCH (new, record-only): per-lane pre-clip grad_norm median over
+#   each 1M bin — an s37-class sustained blowup (median >100 for 3
+#   consecutive bins) is RECORDED and, per D22's closed routing, makes
+#   the regenerative-L2 rung jump the queue at the readout. Never a
+#   mid-run intervention.
+#
+# ---------------------------------------------------------------------
+# BUDGET, SEEDS, CADENCE, OPS
+# ---------------------------------------------------------------------
+# BUDGET: 12M x 3 lanes at ~350–390 steps/s 3-wide ~ 8.5–9.5 h/lane,
+# ~9 h wall (evening launch, overnight finish). Finals 3x3000 ~ 3 min
+# each on the idle box + val-peak re-grades. D17 compute clause: ~1.2
+# lane-days, chapter cumulative stays well under the 20 lane-day cap.
+# SEEDS: 39/40/41 (38 spent by the D22 BR probe; 0-13, 23-38 SPENT,
+# 14-22 RESERVED warmrl, 99 disposable). Distinct across lanes AND
+# arms — username-collision landmine.
+# CADENCE (wishlist adopted): eval_every 500k, eval_episodes 1000
+# (~50 s/eval measured on the idle box; 24 evals/lane ~ 20 min/lane
+# overhead) — buys the val-peak co-primary its defensible n. Deviation
+# from Rung 2's 100k/n=100 cadence is DELIBERATE and recorded here;
+# best_checkpoint selection bias shrinks ~3x. checkpoint_every 200k
+# (Rung 2's), 60 ckpts/lane — feeds the D22-watch and any post-hoc
+# norm/rank reads without re-training.
+# OPS: runs in the maintainer's terminal; caffeinate -is; commit docs
+# BEFORE launching; stagger lane starts; verify per R0-8; server on
+# :8000 with simulator: 4.
+#
+# Launch, per lane (N in 39/40/41):
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_priv12m.yaml \
+#     --seed N --run-name showdown_sp_priv12m_sN
+#
+# BRANCHES:
+#  (a) CREDIT (>= 0.5759 and >= 2*se_diff under the larger-of rule):
+#      the asymmetric-critic lever is real at 12M. Next decision to the
+#      maintainer: carry it to 50M-scale (same slope question as Rung
+#      3), and re-scope D19 (§12: partially redundant with a credited
+#      D18 — the critic now USES hidden info; whether a head that
+#      INFERS it still adds is a new question, not the queued one).
+#  (b) NULL: the queued next lever is the regenerative-L2 rung (D22's
+#      named runner-up), not D18 tuning; D19 stays as-queued (its
+#      mechanism is actor-side and independent of this null). The EV
+#      secondary decides the epitaph: EV flat too -> the critic could
+#      not even FIT the privileged signal (plumbing or capacity
+#      question, record for the post-chase bundle); EV up, wr flat ->
+#      the falsifier fired — kill, per its own clause.
+#  (c) NEGATIVE (pooled below 0.5509 by the same line): privileged
+#      value LEARNING actively hurt the policy — record with the EV
+#      curve; the known mechanism candidate (advantage scale shift
+#      from a sharper V) goes in the log, not in a rerun.
+env_id: Showdown-v0
+seed: 39
+total_steps: 12000000
+eval_every: 500000
+eval_episodes: 1000
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_priv12m_s39
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  privileged: true         # THE LEVER, env side: seat-B own-side block in info
+selfplay:                  # identical to showdown_sp_struct12m.yaml (D16a)
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets   # the credited Rung 2/50M treatment, unchanged
+  privileged_dim: 408      # THE LEVER, agent side: critic = obs ‖ priv
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512] # unused when trunk != mlp; kept so a
+                           # trunk: mlp rerun of this file is exact
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
