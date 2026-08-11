@@ -50,9 +50,11 @@
 #
 # PRIMARY: pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol —
 # FINAL checkpoint, deterministic, ties as non-wins, 3000 battles/seed
-# x 3 seeds = 9000 pooled. Eval process carries BOTH env vars; the
-# privileged block never touches the eval path by construction (the
-# critic is not exercised at eval; asserted by the actor-only act()).
+# x 3 seeds = 9000 pooled. Eval process carries BOTH env vars. Eval
+# NUMBERS cannot read the privileged block: act() is structurally
+# actor-only (hook-verified, 0 critic forwards at eval; the eval env
+# does compute-and-discard the block — see CONFOUND 3). Eval-with-flag
+# path live-smoked 2026-08-11 (3 evals fired, no incident).
 #
 #   CREDIT LINE (DESIGN §8, restated IN FULL per the 2026-08-11
 #   adjudication process fix): a lever is credited iff pooled delta
@@ -64,6 +66,23 @@
 #   the six per-seed finals at read time and GOVERNS if larger (the 50M
 #   lesson: spread 0.151 made the seed-clustered z +0.63 — a seed-
 #   fragile credit gets the weakness NAMED in every narrative use).
+#   OPERATIVE BAR, COMPUTED IN ADVANCE (2026-08-11 pre-launch review,
+#   so no letter-vs-rule gap can open at the readout): the comparator's
+#   own per-seed spread (s = 0.0260 over .5633/.5683/.5210) already
+#   contributes 0.0260/sqrt(3) = 0.0150 to the clustered se_diff, so
+#   even a ZERO-spread D18 arm faces 2*se_diff >= 0.0300 -> pooled
+#   final >= 0.5809; with Rung-2-like spread in this arm the bar is
+#   ~0.593. THE LARGER-OF RULE GOVERNS CREDIT; 0.5759 is the binomial
+#   letter only. POWERING, disclosed: at 3 seeds the governing rule
+#   demands delta ~ +0.042 at Rung-2-like spread — Rung 3's credited
+#   delta was +0.029, so a real-but-unclaimable result in the
+#   +0.025..+0.042 band is a plausible outcome. PRE-STATED RECORDING
+#   RULE for that band (the 50M adjudication's shape, adopted in
+#   advance): the result is recorded as "letter-met, seed-fragile,
+#   NOT credited", full per-seed detail in the log, no narrative use
+#   without the weakness named. RATIFICATION OPTION, maintainer's
+#   call: 5 lanes (seeds 39-43) cuts the clustered se_diff by 0.77x
+#   (bar ~0.583 at Rung-2-like spread) for +0.8 lane-days.
 #
 # CO-PRIMARY, RECORDED NOT CREDIT-BEARING (next-pre-reg wishlist,
 # 2026-08-11, adopted here): the VAL-PEAK checkpoint per lane (argmax of
@@ -72,26 +91,62 @@
 # (50M best-ckpt gap was +0.035 pooled with a selection caveat at
 # n=100); the n=1000 cadence shrinks that caveat ~3x. CREDIT IS JUDGED
 # ON THE PRIMARY ALONE — pre-stated so the co-primary can never be
-# argued into the claim after the fact.
+# argued into the claim after the fact. SELECTION-PROCEDURE CONFOUND,
+# named (pre-launch review): this arm draws its val-peak from 24 evals
+# (500k cadence) vs Rung 2's 120 and 50M's 200, and best_checkpoint is
+# selected on eval/return_mean, not eval/win_rate — both shift the
+# expected peak-vs-final gap independently of the lever, so the
+# co-primary compares cleanly against ITSELF (final vs val-peak, same
+# lanes), not against the 50M gap number.
 #
 # SECONDARY (mechanism, pre-stated): loss/explained_variance trajectory
 # vs the Rung 2 12M control curves (plateau 0.56–0.59) AND vs the 50M
 # curves. The lever's own theory of change predicts EV rises. Also
-# recorded: critic feature srank99 at final (D22 read-4 harness,
-# scripts/d22_dormant_rank.py adapted) — does the privileged input
+# recorded: critic feature srank99 at final — does the privileged input
 # de-collapse the critic's representation (7–11 of 384 at 50M)?
+# SCOPED (pre-launch review — the D22 harness cannot run as-is on a
+# widened critic): BOTH scripts need adapting post-run, offline —
+# d22_collect_obs.py must run its mirror battles with privileged=True
+# and save the priv vectors alongside obs; d22_dormant_rank.py must
+# build the critic with privileged_dim and forward obs ‖ priv. A plain
+# 828 tensor into the widened critic raises loudly (verified), so the
+# unadapted harness cannot silently produce a wrong read.
 #
 # FALSIFIER, PRE-STATED (§12 verbatim): EV jumps but win rate flat or
 # negative => the critic fits information the policy cannot exploit and
 # the advantage signal degraded — KILL THE RUNG, do not tune around it.
 #
-# CONFOUND, DISCLOSED: the widened ctx adds ~147k CRITIC params (actor
-# untouched — R0-2 actor ceiling 626,059 unchanged and re-asserted at
-# construction). Input and critic capacity move together in this rung;
-# if it credits and the attribution ever matters, the capacity-matched
-# control (widened ctx, zeroed priv input) is the named follow-up arm —
-# NOT run now (one lever per rung; the zeros-input control is inert by
-# construction but costs a full lane set to prove).
+# CONFOUNDS, DISCLOSED (numbers corrected by the 2026-08-11 3-agent
+# pre-launch review):
+# (1) CAPACITY+FEATURE-CLASS: allocated critic delta is +147,456
+#   params (ctx first layer 640->1024; critic 494,849 -> 642,305; actor
+#   untouched — R0-2 ceiling 626,059 re-asserted at construction). But
+#   the EFFECTIVE change is larger, ~189k: in the control critic the
+#   move subnet + move embeddings (41,600 params) receive ZERO gradient
+#   (the value stack never consumed move tokens — measured, grad None),
+#   and _priv_features makes them live. So this rung adds hidden STATE
+#   and, as a side effect, the critic's first MOVE features of any
+#   kind. If it credits, attribution between the two is NOT separable
+#   from this read. The capacity-matched control (widened ctx, zeroed
+#   priv input) controls for BOTH — zeroed priv tokens still flow
+#   through move_net into ctx — and is the named follow-up arm, NOT
+#   run now (one lever per rung). NOTE for that future arm: the
+#   widened critic consumes extra global-RNG draws at construction, so
+#   a same-seed control does NOT hold the actor init fixed (measured);
+#   seed-match at the ARM level, never claim init-match.
+# (2) ALIASED SEAT-B TURNS: the priv block inherits embed_battle's
+#   own-side aliasing rule — on ~1-3% of decisions (measured 1.2% and
+#   3.0% in two probes) seat B is mid-recharge/sleep/etc. and its move
+#   blocks + move ids are zeroed, while the explaining flag (global
+#   vec[5]) sits OUTSIDE the slice. Status/volatile bits recover the
+#   cause except for struggle/partial-trap. Accepted for this rung
+#   (critic-side noise, never corrupts); a v2 carrying seat-B's global
+#   block is the named fix if the lever credits and gets rebuilt.
+# (3) EVAL-ENV OVERHEAD: env_kwargs flows to the eval env, which
+#   computes the block nothing reads (~65 us/step, ~40 s/lane across
+#   in-training evals) — time/eval_sec is NOT like-for-like vs the
+#   Rung 2 control curves; eval NUMBERS are unaffected (structural:
+#   act() is actor-only; verified by forward hooks, 0 critic calls).
 #
 # ---------------------------------------------------------------------
 # GATES (R0 set carried from Rung 2/50M; any failure voids the read)
@@ -142,7 +197,15 @@
 # norm/rank reads without re-training.
 # OPS: runs in the maintainer's terminal; caffeinate -is; commit docs
 # BEFORE launching; stagger lane starts; verify per R0-8; server on
-# :8000 with simulator: 4.
+# :8000 with simulator: 4. MEMORY (review-measured): SnapshotPool
+# deep-copies the full agent per member — ~25.5 MB/snapshot with the
+# widened critic (pool.py's "~1 MB" docstring is stale) -> ~510 MB/lane
+# at pool_size 20, ~1.5 GB at 3-wide; D18's own delta ~+90-110 MB/lane.
+# Fine on this box; recorded so nobody debugs "why is RSS 2 GB" cold.
+# PERF note, no action: the seat-B encode duplicates work poke-env
+# already does for its discarded seat-2 obs (~65 us/step, ~2-4% of a
+# lane-second) — the free-slice optimization exists if a lane ever
+# lands under R0-8's 300 steps/s floor.
 #
 # Launch, per lane (N in 39/40/41):
 #   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \

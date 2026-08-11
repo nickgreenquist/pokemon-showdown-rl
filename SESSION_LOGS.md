@@ -2507,3 +2507,37 @@ entry by offset — never a broad keyword grep.
   WATCH gate (s37-class grad blowup, median >100 for 3 consecutive 1M bins →
   regenerative-L2 jumps the queue at readout, record-only). Seeds 39/40/41
   assigned here; 42+ free after launch.
+
+- 2026-08-11 (pre-launch review) — **D18 REVIEWED BY 3 INDEPENDENT OPUS AGENTS
+  (data path / critic math / theory+pre-reg) BEFORE LAUNCH: ZERO CRITICAL FINDINGS,
+  ZERO CODE CHANGES — the reviewed SHAs (cedd6fb, 6d21064) launch as-is. Header
+  revised instead (this commit).** Strongest verifications, all empirical: (1)
+  _priv_features output BITWISE EQUAL to the reference own-side tokenization; (2)
+  621 live decision points (44 through the wait pump) — zero battle2-staleness or
+  cross-seat mismatches; probe of the REAL _vector_loop over adversarial episode
+  interleavings — zero (obs,priv) alignment violations; (3) K3 bit-identity at
+  privileged_dim=0 vs the parent commit incl. RNG stream position, both trunks; (4)
+  forward hooks: critic input width ∈ {1236} only, actor ∈ {828} only, act() = 0
+  critic calls; checkpoint cross-loads fail loudly both directions; gymnasium 1.3
+  partial-reset placeholder semantics confirmed from source. FINDINGS FOLDED INTO
+  THE HEADER (no code): (a) OPERATIVE BAR — comparator seed spread (s=0.0260)
+  alone forces the larger-of bar to ≥0.5809 even at zero D18 spread, ~0.593 at
+  Rung-2-like spread; 0.5759 is the binomial letter only. Powering disclosed
+  (governing rule wants Δ~+0.042 at 3 seeds); RECORDING RULE pre-stated for the
+  +0.025..0.042 band ("letter-met, seed-fragile, NOT credited"); 5-lane option
+  (seeds 39-43, bar ~0.583, +0.8 lane-days) put to the maintainer at ratification.
+  (b) FEATURE-CLASS CONFOUND, previously missed: the control critic's move subnet
+  + move embeddings get ZERO gradient (value stack never consumed move tokens) —
+  D18 wakes them, so effective capacity delta is ~189k not 147k, and the rung adds
+  the critic's first MOVE features alongside hidden state; the capacity-matched
+  control covers both (zeroed priv still flows through move_net); same-seed
+  init-match for that future arm is impossible (widened critic shifts the RNG
+  stream — measured). (c) srank secondary scoped: BOTH d22 scripts need post-run
+  adaptation (priv-carrying tapes + privileged_dim build); unadapted harness
+  raises, cannot silently mis-read. (d) co-primary selection-procedure confound
+  named (24 vs 120 draws; selected on return_mean). (e) aliased seat-B turns:
+  ~1-3% of rows zero priv move blocks/ids with the vec[5] cause flag outside the
+  slice; disclosed, v2 named. (f) pool memory ~25.5 MB/snapshot (~510 MB/lane);
+  eval-env compute-and-discard noted (time/eval_sec not like-for-like vs control).
+  Closed during review: eval-with-privileged path had never fired — smoked same
+  evening (3 evals, no incident). Review cost ~506k agent tokens, ~45 min.

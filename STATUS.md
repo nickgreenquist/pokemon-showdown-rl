@@ -40,11 +40,11 @@ suite 269 green). BR color: exploiter hit ~0.56 vs SH in 6M vs one frozen oppone
 
 ## Next actions, in order
 
-1. **RATIFY + LAUNCH D18** (plumbing DONE 2026-08-11, suite 279 green, live-smoked):
-   configs/showdown_sp_priv12m.yaml — critic = actor-obs ‖ opponent own-side block
-   (408d), never privileged-only; full §8 credit line in header (bar 0.5759 vs
-   0.5509); val-peak co-primary on n=1000 evals; seeds 39/40/41, 3 lanes ~9 h wall.
-   Launch commands in the config header; stagger starts; per-lane R0-8.
+1. **RATIFY + LAUNCH D18** (built + 3-agent-reviewed 2026-08-11: 0 critical, 0 code
+   changes; header revised): configs/showdown_sp_priv12m.yaml — critic = actor-obs ‖
+   opponent own-side block (408d). OPERATIVE bar ≥0.5809 (larger-of rule; 0.5759 is
+   the binomial letter); recording rule pre-stated for the unclaimable band; 5-lane
+   option at ratification. Seeds 39/40/41 (39-43 if 5 lanes), ~9 h wall, staggered.
 2. Regenerative L2-toward-init: named next-after-D18; jumps queue if D18 lanes
    reproduce an s37-class grad blowup (D22-watch gate in the header, record-only).
 3. 250M decision: after D18 + H&L seat accounting (gates any 250M quote).
