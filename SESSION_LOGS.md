@@ -2451,3 +2451,28 @@ entry by offset — never a broad keyword grep.
   launch = ratification). Side-read, noise-level (n=200): deterministic seat vs its
   own sampling twin 0.565/0.480/0.560. Artifacts: results/d22/ (binned
   trajectories, weight_norms, dormant, effective_rank, adam_grad_scale per lane).
+
+- 2026-08-11 (night) — **D22 READ 5 IN — EXPLOITABILITY PROBE: THE 50M EQUILIBRIUM
+  IS ROBUST AT THE PROBE BUDGET. D22 IS CLOSED; ROUTING FINAL: D18 FIRST, AS
+  QUEUED — now unconditional.** Lane showdown_br50m_s38 (launched by maintainer =
+  header ratified, 2026-08-11): fresh entity learner vs FROZEN s36-50M final, 6M
+  steps, 482–503 steps/s solo, fingerprint clean (git_dirty false @ a1cd882), no
+  incidents. PRIMARY (pre-stated): pooled two-orientation h2h 1000/orientation, ties
+  as non-wins — **BR 0.479 (orient A, BR deterministic) / 0.474 (orient B, derived;
+  s36 took 0.522) → POOLED 0.4765 ± 0.0112 < 0.55 → "equilibrium robust."** The
+  exploiter's training curve confirms shape: 0.30→~0.45 in the first 1M, then
+  plateau, 0.488 (sampling both sides) by 6M — a dedicated 6M attacker never
+  reached parity with the frozen target. §12's exploitability clause is dead on
+  BOTH halves (entropy 0.21–0.32 ≠ collapsed; BR did not win easily). With reads
+  1–4, every routing signal now agrees: the plateau is a REPRESENTATION/CRITIC
+  ceiling (flat EV 0.56–0.59, critic feature srank99 7–11 of 384), not an
+  exploitability ceiling and not (yet) a binding plasticity ceiling → **D18
+  privileged critic is next work; regenerative L2-toward-init stays named
+  next-after-D18** (jumps if D18 lanes reproduce an s37-class grad blowup).
+  SECONDARY, recorded as color (in-training n=100 evals, NOT locked protocol): the
+  BR-trained policy scores ~0.56 vs SH (last-4 mean 0.562, max 0.64) after only 6M
+  steps against ONE frozen opponent — near the 50M pooled 0.5802; dense-signal
+  observation for any future curriculum thinking, no claim attached. Ops color:
+  probe end-to-end (launch→verdict) ~3.6 h; h2h evals ~2 min/1000 on the idle box.
+  Artifacts: runs/showdown_br50m_s38/, results/d22/br38_vs_s36_orient{A,B}.json.
+  Seed 38 SPENT.

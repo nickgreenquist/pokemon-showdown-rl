@@ -2,7 +2,7 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-11 evening — D22 reads 1–4 IN; read 5 ready to launch)
+## Where things stand (2026-08-11 night — D22 CLOSED, all 5 reads in; next: D18)
 
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED: pooled 0.5802 ± 0.0052 CREDIT
@@ -12,14 +12,15 @@ unclaimed (+0.3σ), anchor guard complete (clone h2h 0.643, FP 0.812-against).
 0.56–0.59 all lanes 5M→50M; entropy NOT collapsed (0.21–0.32 at 50M); weight norms
 grow ×2.3–3.0 monotonically (embeddings fastest); dormant fraction climbs to 84–88%
 (actor ctx layer, s35/s36); ctx feature srank99 collapses ~250→33–54 (actor), →7–11
-of 384 (critic). §12's representation clause (flat EV + low rank) FIRES CLEANLY →
-provisional routing: D18 first, AS QUEUED.** Seed-fragility explained mechanically:
-s37 flatline = sustained actor grad blowup from ~20M (pre-clip median 1088, clip
-pinned 1.0) + critic stall at 25M; s35 = same norm growth, one recovered spike, still
+of 384 (critic). READ 5 (exploitability, ran 2026-08-11 night): fresh 6M
+best-response vs frozen s36-50M final → pooled two-orientation h2h **0.4765 ± 0.0112
+< 0.55 = equilibrium ROBUST at probe budget**. §12 routing FINAL: representation
+clause fires, exploitability clause dead on both halves → D18 FIRST, AS QUEUED.**
+Seed-fragility explained mechanically: s37 flatline = sustained actor grad blowup
+from ~20M + critic stall at 25M; s35 = same norm growth, one recovered spike, still
 rising at 50M. Regenerative L2-toward-init named next-after-D18 (jumps queue if D18
-reproduces an s37-class blowup). Read 5 (exploitability probe) pre-registered:
-configs/showdown_br50m_s38.yaml — fresh entity learner vs FROZEN s36-50M final, 6M,
-seed 38; frozen-ckpt opponent seam landed (rl/train.py, suite 269 green, live-smoked).
+reproduces an s37-class blowup). Frozen-ckpt opponent seam landed (rl/train.py,
+suite 269 green). BR color: exploiter hit ~0.56 vs SH in 6M vs one frozen opponent.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 
@@ -39,17 +40,17 @@ seed 38; frozen-ckpt opponent seam landed (rl/train.py, suite 269 green, live-sm
 
 ## Next actions, in order
 
-1. **LAUNCH D22 read 5** (maintainer terminal; launch = ratification of the header):
-   configs/showdown_br50m_s38.yaml, ~3–4 h solo. Post-run: two-orientation h2h
-   1000/orientation vs frozen s36-50M (commands in the config header).
-2. **D18 privileged critic** (routing confirmed by reads 1–4; plumbing ~2–3 evenings;
-   header MUST restate the FULL credit line incl. larger-of se_diff clause).
-3. 250M decision: after read 5 + H&L seat accounting (gates any 250M quote).
+1. **D18 privileged critic** (D22 routing final; plumbing ~2–3 evenings: cross-seat
+   registry through collection; critic input = actor-obs ‖ opponent own-side blocks,
+   BINDING never privileged-only; header MUST restate the FULL credit line incl.
+   larger-of se_diff clause; read at 12M vs matched-budget standing best).
+2. Regenerative L2-toward-init: named next-after-D18; jumps queue if D18 lanes
+   reproduce an s37-class grad blowup.
+3. 250M decision: after D18 + H&L seat accounting (gates any 250M quote).
 
 ## Watch items
 
-- Seeds: 0-13, 23-38 SPENT/assigned (38 = BR probe), 14-22 RESERVED (warmrl), 99
-  disposable; **39+ free.**
+- Seeds: 0-13, 23-38 SPENT, 14-22 RESERVED (warmrl), 99 disposable; **39+ free.**
 - **Entity ckpts need BOTH env vars at every eval** (v2+ids→828; dies loudly if not).
   Cross-encoder play needs the shim (808 ok; 807 refused). `simulator: 4` gitignored.
 - Idle-box evals FAST (~3 min/3000); FP reads ~6.5-10 s/battle; solo lane ≥400 steps/s.
