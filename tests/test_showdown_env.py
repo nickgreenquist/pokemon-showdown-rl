@@ -466,6 +466,7 @@ def _adapter(stub) -> ShowdownEnv:
     env = ShowdownEnv.__new__(ShowdownEnv)  # step()/waits count only
     env._env = stub
     env._pool_player = None
+    env._privileged = False
     env.waits_absorbed = 0
     return env
 
@@ -680,6 +681,7 @@ def test_reset_seed_latches_into_the_pool_player_rng():
 
     env = ShowdownEnv.__new__(ShowdownEnv)
     env._env = _ResetStub()
+    env._privileged = False
     env.waits_absorbed = 0
     seeds = []
     env._pool_player = SimpleNamespace(seed_rng=seeds.append)

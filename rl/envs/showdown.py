@@ -369,6 +369,39 @@ def _move_slots_aliased(battle) -> bool:
     return bool(avail) and len(avail) == 1 and avail[0].id in _SPECIAL_MOVE_IDS
 
 
+# --- Privileged (asymmetric-critic) block — D18, DESIGN §12 ----------------
+#
+# The opponent seat's TRUE own-side state, for widening the CRITIC's input
+# during self-play training (never the actor's, never the obs space — the
+# Baisero & Amato V(h,s) construction requires actor-obs ‖ privileged, and
+# the "no OBS_DIM change" landmine requires the obs space untouched).
+#
+# Defined as a SLICE of the opponent seat's own embed_battle encoding rather
+# than a new fill path: seat B's own-side blocks are computed by exactly the
+# code that computes ours, so the privileged features carry bit-identical
+# semantics (aliasing rule, set-free own moves, id suffix) with zero new
+# encoder code to drift. The cost is encoding B's full vector and discarding
+# its opponent-side half — accepted; the collection loop is I/O-dominated.
+#
+# Layout: 6 own-mon blocks | own-active extras | own-active's 4 move blocks
+# (= embed_battle[GLOBAL_DIM : opp_mon_off], 398 dims at v2) | ids flag only:
+# 6 own species ids + 4 own move ids (10 dims).
+PRIV_ID_DIM = 10 if _ENCODER_IDS else 0
+_PRIV_OWN_END = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM
+PRIV_DIM = (_PRIV_OWN_END - GLOBAL_DIM) + PRIV_ID_DIM
+
+
+def privileged_block(vec: np.ndarray) -> np.ndarray:
+    """The own-side slice of an embed_battle vector — call on the OPPONENT
+    seat's encoding to get the privileged block for our critic. Returns a
+    copy (the source vector is reused by the caller's encode path)."""
+    own = vec[GLOBAL_DIM:_PRIV_OWN_END]
+    if not _ENCODER_IDS:
+        return own.copy()
+    o = OBS_DIM - ID_DIM
+    return np.concatenate([own, vec[o : o + 6], vec[o + 12 : o + 16]])
+
+
 @lru_cache(maxsize=4096)
 def _move_obj(move_id: str):
     return Move(move_id, gen=1)
@@ -838,6 +871,7 @@ class ShowdownEnv(Env):
         save_replays: bool | str = False,
         faint_shaping: float = 0.0,
         hl_shaping: float = 0.0,
+        privileged: bool = False,
     ):
         # save_replays (False | True | directory) is poke-env's native replay
         # dump: each finished battle is written as a Showdown replay HTML
@@ -860,9 +894,27 @@ class ShowdownEnv(Env):
         self._env = SingleAgentWrapper(inner, player)
         self.action_space = self._env.action_space
         self.observation_space = self._env.observation_space["observation"]
+        # D18: emit info["privileged"] — the OPPONENT seat's own-side block —
+        # at every decision point. Info-dict only, never the obs space; the
+        # flag defaults off so every existing config's env is bit-identical.
+        self._privileged = privileged
         # Wait-states pumped inside step() and never returned (see below);
         # exposed so the regression test can prove the pump path executes.
         self.waits_absorbed = 0
+
+    def _emit_privileged(self, info: dict) -> None:
+        """info["privileged"] from seat 2's battle object. Called at exactly
+        the points that emit info["action_mask"], so a consumer can rely on
+        the pair arriving together. Seat 2's battle exists whenever a
+        decision is returned (reset asserts agent1_to_move; the wait pump
+        never returns mid-wait), so a missing battle is a wiring bug."""
+        if not self._privileged:
+            return
+        battle2 = self._env.env.battle2
+        assert battle2 is not None, "privileged emission before seat 2's battle exists"
+        info["privileged"] = privileged_block(
+            embed_battle(battle2, self._env.env._type_chart)
+        )
 
     def reset(self, *, seed=None, options=None):
         if seed is not None and self._pool_player is not None:
@@ -875,6 +927,7 @@ class ShowdownEnv(Env):
         obs, info = self._env.reset(seed=seed, options=options)
         assert self._env.env.agent1_to_move, "reset returned a wait state"
         info["action_mask"] = obs["action_mask"].astype(bool)
+        self._emit_privileged(info)
         return obs["observation"], info
 
     def step(self, action):
@@ -899,6 +952,7 @@ class ShowdownEnv(Env):
             total_reward += float(reward)
             self.waits_absorbed += 1
         info["action_mask"] = obs["action_mask"].astype(bool)
+        self._emit_privileged(info)
         if terminated or truncated:
             assert poke.battle1 is not None
             info["outcome"] = battle_outcome(poke.battle1)
