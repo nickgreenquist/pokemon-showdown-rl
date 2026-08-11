@@ -40,8 +40,9 @@ suite 269 green). BR color: exploiter hit ~0.56 vs SH in 6M vs one frozen oppone
 
 ## Next actions, in order
 
-1. **D18 LAUNCHED 2026-08-11 (RATIFIED "ratify 5 and launch"; 5 lanes, seeds 39-43,
-   staggered, ~9-13 h wall at 5-wide)**: configs/showdown_sp_priv12m.yaml — critic =
+1. **D18 RUNNING (launched 16:03 EDT 2026-08-11; 5 lanes, seeds 39-43; ~300
+   steps/s/lane → finals ETA ~03:30-04:30 EDT 08-12; 3.3M health check GREEN, s41
+   270 sps record-and-continue)**: configs/showdown_sp_priv12m.yaml — critic =
    actor-obs ‖ opponent own-side block (408d). OPERATIVE bar: floor 0.5809, ~0.589
    at Rung-2-like spread (larger-of rule; 0.5759 binomial letter); recording rule
    pre-stated for the unclaimable band. At readout: 5×3000 finals + val-peak

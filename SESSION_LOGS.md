@@ -2556,3 +2556,21 @@ entry by offset — never a broad keyword grep.
   Readout protocol at completion: 5x3000 finals + val-peak re-grades (locked, both
   env vars) -> larger-of credit line -> recording rule if in the unclaimable band;
   d22 scripts need priv adaptation before the srank secondary.
+- 2026-08-11 (~19:15, mid-run health check @ ~3.3-3.4M) — **D18 FLEET GREEN 5/5; launch
+  clock corrected; overnight watch re-armed.** Launch was actually **16:03 EDT**
+  (wandb dir stamps 20260811_1603xx-1607xx), not the "~23:00" in the handoff/launch
+  record — at measured ~300 steps/s/lane pooled, **finals ETA ~03:30-04:30 EDT
+  2026-08-12** (not 09-10h). Gates at ~3.3M: R1 anchor 0.970-0.977 all lanes (PASS);
+  K6 entropy 0.26-0.38 (clear); R0-6 mean ep length 30.9-33.1 ≤ 40 (PASS; rare
+  turn-1000 auto-tie stalls appear as 'bigerror' log warnings, ~tens of battles/lane,
+  don't move the mean); D22-watch grad_norm median 0.88-1.0 in every 1M bin, all
+  lanes (QUIET — no s37-class blowup); R0-8 steps/s s39 341 / s40 346 / **s41 270
+  (under the 300 band → record-and-continue per header; above the 250 stop line)** /
+  s42 305 / s43 317. EV at ~3.3M: s39 0.580, s40 0.556, **s41 0.640**, s42 0.539,
+  s43 0.542 vs control plateau band 0.549-0.561 — separation clear on s39/s41,
+  within-band on s40/s42/s43; more mixed than the handoff's 3M note (0.57-0.61 on
+  priv lanes). In-training eval/win_rate (n=1000, not the read): 0.477-0.593.
+  Ops: 13h `caffeinate -is -t 46800` started (lanes' own caffeinate exits with them
+  — box must stay awake for the readout); session monitor re-armed (per-lane
+  done/died/stall, fires the readout when all 5 terminate). Handoff folded, stub
+  restored this commit.
