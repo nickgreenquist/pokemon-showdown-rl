@@ -2541,3 +2541,18 @@ entry by offset — never a broad keyword grep.
   eval-env compute-and-discard noted (time/eval_sec not like-for-like vs control).
   Closed during review: eval-with-privileged path had never fired — smoked same
   evening (3 evals, no incident). Review cost ~506k agent tokens, ~45 min.
+
+- 2026-08-11 (night, launch record) — **D18 LAUNCHED: 5 lanes (seeds 39-43), staggered
+  ~75 s apart, nohup+disown+caffeinate from the maintainer's "ratify 5 and launch"
+  (agent-launched under the recorded long-job pattern; per-lane R0-8 verified at
+  launch: process alive, wandb growing ~130-160 KB/30 s on every lane, git_dirty
+  FALSE on all five meta.yaml @ c6e6d87, both privileged flags in every config
+  snapshot; first updates completed without tripping the mismatch guard).** 5-lane
+  bar arithmetic CORRECTED at ratification (the option line had applied sqrt(3/5)
+  to both arms; comparator stays 3-seed): floor 0.5809 unchanged, ~0.589 at
+  Rung-2-like spread — in the header at the PRIMARY block. Box is 14-core/10-perf;
+  350-390 steps/s band was 3-wide, 5-wide expected lower (R0-8 record-and-continue
+  covers it). Fleet monitor armed (1M milestones + exit/crash). ETA ~9-13 h.
+  Readout protocol at completion: 5x3000 finals + val-peak re-grades (locked, both
+  env vars) -> larger-of credit line -> recording rule if in the unclaimable band;
+  d22 scripts need priv adaptation before the srank secondary.
