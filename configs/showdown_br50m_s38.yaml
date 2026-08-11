@@ -1,0 +1,108 @@
+# =====================================================================
+# PRE-REGISTRATION — DRAFTED 2026-08-11. STATUS: DRAFT (maintainer
+# launch = ratification; a diagnostic probe, not a lever rung — no
+# credit line applies and no milestone can be claimed from it).
+#
+# D22 READ 5 (DESIGN §12, RATIFIED 2026-08-11): EXPLOITABILITY PROBE —
+# "train a fresh best-response vs the frozen final checkpoint (short
+# lane, eval-side artifact, purity-irrelevant) and read its win rate."
+#
+# WHAT THIS RUN IS. A FRESH (random-init) entity-trunk learner trains
+# against the 50M chapter's pooled-MEDIAN seed final —
+# runs/showdown_sp_struct50m_s36/checkpoint.pt — held FROZEN for the
+# whole run via the checkpoint-path opponent seam (rl/train.py::
+# _frozen_checkpoint_pool, landed with this file; the learner is never
+# pushed, so the opponent never moves). Same trunk/recipe as the 50M
+# winner, so the probe measures the TARGET's exploitability, not a
+# recipe delta. PURITY: eval-side artifact per §12 — trains ON a frozen
+# own-process policy; never a comparator, never carried forward.
+#
+# WHY s36: pooled-median seed, the anchor-guard convention (FP engine
+# read and clone h2h both ran on s36). s35 (best lane, 0.6593) is the
+# named optional repeat if this probe's verdict is load-bearing and
+# tight.
+#
+# PRIMARY READ (pre-stated operationalization of §12's "best-response
+# wins easily"; maintainer adjudicates the verdict on these numbers):
+# after 6M steps, pooled TWO-ORIENTATION h2h vs the frozen target, 1000
+# battles/orientation via scripts/eval_checkpoint.py --opponent-
+# checkpoint (seat asymmetry measured up to 0.800/0.514 — never read
+# one orientation), ties as non-wins:
+#   BR pooled >= 0.65          -> "wins easily": exploitability HIGH.
+#   0.55 <= BR pooled < 0.65   -> moderate; recorded, not routing.
+#   BR pooled < 0.55           -> equilibrium robust AT THIS BUDGET.
+# ONE-SIDED, pre-stated: a weak exploiter does NOT prove inexploit-
+# ability (budget-bounded search); a strong one DOES prove exploit-
+# ability. §12's routing clause needs "wins easily" AND entropy
+# collapsed — the entropy half already read FAILED (0.21-0.32 at 50M,
+# floor 0.15; D22 reads 1-2, 2026-08-11), so even a HIGH read cannot
+# trigger the PFSP/R-NaD route alone; it enters the D22 synthesis as
+# evidence weight.
+#
+# SECONDARY (free, none a read): eval/win_rate vs SH every 250k — does
+# a policy trained ONLY vs one frozen self-play product transfer to SH;
+# rollout/episode_return tracks in-training progress vs the target
+# (wr ~ (return+1)/2 at gamma 1.0 terminal-only, ties inflating
+# neither).
+#
+# GATES (diagnostic-weight, not R0): fingerprint (meta.yaml stamps v2 +
+# ids + obs 828 — BOTH env vars on the launch line); lane liveness
+# (battle progress within 15 min); steps/s >= 400 solo once warm (the
+# 3-wide band was 350-390; solo should clear it). No kill criteria —
+# 6M is one evening; let it finish.
+#
+# BUDGET: 6M steps solo ~ 3-4 h at 450-550 steps/s (idle box, server
+# up, simulator: 4). SEED 38 — first free (0-13, 23-37 SPENT, 14-22
+# RESERVED warmrl); distinct from every live lane, username-collision
+# landmine.
+#
+# Launch (maintainer terminal, clean committed tree, ONE line):
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_br50m_s38.yaml \
+#     --seed 38 --run-name showdown_br50m_s38
+# Post-run reads (both env vars on every eval, fresh usernames):
+#   python scripts/eval_checkpoint.py runs/showdown_br50m_s38/checkpoint.pt \
+#     --opponent-checkpoint runs/showdown_sp_struct50m_s36/checkpoint.pt \
+#     --episodes 1000
+#   python scripts/eval_checkpoint.py runs/showdown_sp_struct50m_s36/checkpoint.pt \
+#     --opponent-checkpoint runs/showdown_br50m_s38/checkpoint.pt \
+#     --episodes 1000
+env_id: Showdown-v0
+seed: 38
+total_steps: 6000000
+eval_every: 250000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 500000
+run_name: showdown_br50m_s38
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: runs/showdown_sp_struct50m_s36/checkpoint.pt   # FROZEN target
+  eval_opponent: heuristics                                # fixed anchor, free curve
+agent:                       # the 50M winner's recipe, fresh init, verbatim
+  algo: ppo
+  trunk: entity_deepsets
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
