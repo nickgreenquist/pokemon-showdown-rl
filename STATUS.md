@@ -35,14 +35,13 @@ REFUTED, phrasing "no documented instance found"). README rewritten this session
 
 ## Next actions, in order
 
-1. **FP engine read** (~15 min: smoke 5, then 250 vs s36 final; foul-play conda env;
-   full URI ws://localhost:8000/showdown/websocket) — completes the anchor guard.
-2. **Ratify DESIGN §12** (D18–D22). Recommended order: D22 diagnostics FIRST (also
-   explains the s35/s37 divergence), then D18 privileged critic (novelty verified).
-3. **Push** (many local commits, ask-first). 250M: NOT auto-bought — slope positive
-   but seed-fragile; decision after D22 + H&L seat accounting. Handoff on request.
-4. DONE 2026-08-11: credit adjudicated (header letter governs, weakness named);
-   process fix codified in CLAUDE.md (headers restate the full §8 credit line).
+1. **FP engine read IN FLIGHT** (smoke PASSED 5/5; 250-battle read running, s36 final
+   vs FP; marks: 0.824 taken off 12M, our take 0.172) — fold on landing, closes guard.
+2. **D22 plateau diagnostics** (§12 RATIFIED 2026-08-11, D18–D22 binding; D22 first
+   per its decision rule, then D18 privileged critic — plumbing ~2-3 evenings).
+3. 250M: NOT auto-bought — slope seed-fragile; decision after D22 + seat accounting.
+   Handoff on request. DONE 2026-08-11: credit adjudicated (header letter governs);
+   §12 ratified; pushed through the ratification commit (maintainer-authorized).
 
 ## Watch items
 

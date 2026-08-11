@@ -590,11 +590,14 @@ These bind unchanged; they are listed so the reviewer knows nothing was quietly 
 
 ## 12. Post-50M lever queue (PROPOSED 2026-08-09 — D18–D20, ratify at the 50M readout)
 
-**Status: PROPOSED, not ratified.** Drafted while the 50M lanes run, from two
-maintainer-supplied external advisories triaged against the encoder source and the
-record (SESSION_LOGS 2026-08-09 night entries, including the correction entry). Nothing
-here touches the running 50M or its read. Numbering continues from D17; the section
-number continues past r6's retired §10–11 (§11 D8/D9 remains unratified and moot).
+**Status: RATIFIED 2026-08-11 (maintainer, "ratify 12") — D18–D22 binding.** Adopted
+with the recommended sequencing: **D22 plateau diagnostics FIRST** (also explains the
+50M s35/s37 seed divergence), **then D18 privileged critic** (novelty verified
+2026-08-10), then D19/D21 as singles per their notes; D20 stays post-chase. Drafted
+2026-08-09–10 from three maintainer-supplied external advisories triaged against the
+encoder source and the record (SESSION_LOGS entries, incl. corrections). Numbering
+continues from D17; the section number continues past r6's retired §10–11 (§11 D8/D9
+remains unratified and moot).
 
 **D18 — PRIVILEGED (ASYMMETRIC) CRITIC rung — recommended first after the readout.**
 CTDE (AlphaStar-style): during self-play training the critic's input is widened with the

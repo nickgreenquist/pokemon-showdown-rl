@@ -2388,3 +2388,10 @@ entry by offset — never a broad keyword grep.
   unclaimed; the process fix is codified in CLAUDE.md conventions this commit.
   Remaining morning items: FP engine read (completes the guard), §12 ratification,
   push.
+
+- 2026-08-11 (morning, cont.) — **DESIGN §12 RATIFIED (maintainer, "ratify 12 and
+  push"): D18–D22 BINDING, with the recommended sequencing — D22 plateau diagnostics
+  first, then D18 privileged critic, then D19/D21 as singles; D20 post-chase.** Push
+  through this commit maintainer-authorized in the same message. FP anchor-guard
+  status at this entry: smoke PASS (5/5, tallies agree, 0 exceptions, seat took 3/5
+  n=5); 250-battle read RUNNING (~185/250 at 07:56), folds in on landing.
