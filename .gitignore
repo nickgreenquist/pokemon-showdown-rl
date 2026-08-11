@@ -48,4 +48,5 @@ prior_work/*
 !prior_work/ARCH_SCREEN_SPEC.md
 !prior_work/HISTORY_FEATURES_DESIGN.md
 !prior_work/THROUGHPUT_SPEC.md
+!prior_work/RESEARCH_2026-08-10_prior_art_and_levers.md
 logs/

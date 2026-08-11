@@ -630,13 +630,29 @@ opponent seat's TRUE own-side state; the actor's observation is unchanged.
   REPLACE the actor's view. (Our sketch already satisfies this.) Honest residue: the
   theorem's h is the full action-observation history; our obs is an approximate
   belief state standing in for h — near-Markov by construction, noted, not proven.
-  NOVELTY: "no privileged critic in Pokemon RL" is UNVERIFIED — §9's adversarial
-  index search is mandatory before any such claim.
+  NOVELTY CHECK DONE (2026-08-10, external deep-research pass, archived at
+  prior_work/RESEARCH_2026-08-10_prior_art_and_levers.md — UNVERIFIED citations):
+  adversarial search across arXiv/ICML/NeurIPS/ICLR/AAMAS/IEEE-CoG/RLC/GitHub/Smogon/
+  the PokeAgent Challenge retrospective found NO privileged/asymmetric critic in any
+  Pokemon RL system (Metamon: shared-trunk symmetric; VGC-Bench: symmetric twin nets;
+  H&L, Wang: symmetric PPO) — claim NOT REFUTED. Phrasing rule, binding: "no
+  documented instance found," never "proven first." Additional refs banked: Lyu et
+  al. JAIR 2023 (history-state values unbiased), Informed AAC (arXiv 2509.26000 —
+  partial privilege can match full state; start compact: species+sets), and a
+  cautionary null (asymmetric SAC underperforming in memory settings — the effect is
+  largest when hidden info dominates returns, which turn-1 gen1 satisfies; size NOT
+  guaranteed, and never tested at γ=1.0 terminal-only).
 
 **D19 — AUXILIARY OPPONENT-TEAM PREDICTION rung.** CE head over species for unrevealed
 opponent slots, trained against ground truth (free in self-play); forces an explicit
 belief state instead of hoping one emerges from win/loss. One head + one loss term on
 D18's plumbing. Purity-clean, no obs change. Sequence AFTER D18's read (attribution).
+CAVEATS from the 2026-08-10 research pass: the head's gradient flows into the ACTOR
+trunk (actor-side change — unlike D18 it can shift actor behavior directly, so its
+rung stands alone and never bundles); and it is partially redundant with D18 (critic
+USES hidden info, head learns to INFER it) — if D18 credits, re-scope D19's question
+before spending lanes. Supporting prior art: agent-modeling-as-auxiliary-task (arXiv
+1907.09597), DouZero+ hidden-hand prediction.
 
 **D20 — the v3 ENCODER BUNDLE (post-chase; one re-baseline pays for everything, D13
 cost known and paid once already for v1→v2/808).** Contents: Light Screen — a POKE-ENV
@@ -655,17 +671,41 @@ frozen comparators; obs are hand-normalized by design), Wang's PP/HP binning
 present; ruled inert under the Arm-B linearity rule).
 
 **D21 — RECIPE/SELF-PLAY HYGIENE POOL (optional, sequenced after D18/D19; refreshed
-from the third advisory, 2026-08-10).** The demoted recipe rung's candidate contents,
-updated: rollout sizing + GAE λ≈0.75–0.8 (the known rung; VGC-Bench sits on our side
-of the λ split), plus three cheap additions with strong on-policy evidence — KL-based
-early stopping on epochs (guards the 4-epoch stale-rollout collapse mode), entropy
-COEFFICIENT SCHEDULING high→low (entropy does double duty in a simultaneous-move game:
+from the third advisory 2026-08-10, λ note amended same day).** The demoted recipe
+rung's candidate contents, updated: ROLLOUT SIZING restated in the right currency —
+episodes/update (~30 today at 1024 steps; target 100–300; scale via batch-size-
+invariance, Hilton et al.); GAE λ as a pre-registered SWEEP {0.95, 0.98, 1.0}, NOT an
+assumed 0.75 — the 2026-08-10 research pass reverses the earlier low-λ advice for OUR
+regime (terminal-only ±1 + short ~30-step episodes → MC return unbiased with bounded
+variance; Alpha-Mini found λ=1.0 optimal for exactly this reason; the λ≈0.75 systems
+are longer-horizon); LR annealing (Wang's gen4 thesis carries the only controlled
+ablation in this literature: 0.55→0.80 val win rate — single thesis, but a real
+ablation); plus three cheap additions with on-policy evidence — KL-based early
+stopping on epochs, entropy COEFFICIENT SCHEDULING high→low (entropy does double duty:
 exploration AND mixed-strategy exploitability control — consistent with our measured
-deterministic-vs-sampling seat asymmetry), and PFSP-style win-rate-prioritized pool
-sampling (favor near-50% opponents; cheap bookkeeping on the existing pool; D16's
-comparator note applies — any sampling change is a lever, not a default). Each is a
-separate pre-registered lever; bundling them re-creates the factorial hazard the
-ladder rule exists to prevent. CONFIRMED-DECLINED by the same advisory's negative-
+seat asymmetry; decay too fast and exploitability rises), and PFSP-style win-rate-
+prioritized pool sampling (favor near-50% opponents; D16's comparator note applies —
+any sampling change is a lever, not a default). Each is a separate pre-registered
+lever; bundling them re-creates the factorial hazard the ladder rule exists to
+prevent.
+
+**D22 — PLATEAU DIAGNOSTICS (Stage 0 of the post-50M program — run BEFORE choosing
+among D18/D21 orderings; offline + one cheap probe, no new training lanes).** From the
+2026-08-10 research pass, adopted because it redirects everything after it. On the
+EXISTING 50M artifacts, measure: (1) value explained-variance trajectory (already
+logged); (2) policy-entropy trajectory (logged); (3) WEIGHT-NORM trajectory across the
+~100 checkpoints/lane (Juliani & Ash: plasticity loss under on-policy domain shift
+correlates with growing parameter norms — self-play drift IS continual domain shift);
+(4) dormant-neuron fraction + feature effective rank on tapes; (5) an EXPLOITABILITY
+PROXY — train a fresh best-response vs the frozen final checkpoint (short lane, eval-
+side artifact, purity-irrelevant) and read its win rate. DECISION RULE, pre-stated:
+rising weight norms + flat win rate → plasticity ceiling → the REGENERATIVE
+(L2-toward-init) regularizer rung jumps the queue (the ONE plasticity family validated
+on-policy; ReDo/hard resets stay banned); flat EV + low effective rank →
+representation/optimization ceiling → D18 first (as queued); best-response wins easily
++ entropy collapsed → equilibrium/exploitability ceiling → PFSP first, and an
+R-NaD-style dynamics regularizer (DeepNash, Science 2022) becomes the named
+larger-change candidate. Otherwise → D18 as queued. CONFIRMED-DECLINED by the same advisory's negative-
 results list (independent corroboration, recorded): RND/curiosity, recurrence-first,
 periodic resets/ReDo, exotic optimizers, PopArt/symlog at bounded ±1 returns,
 reconstruction aux losses. Two-hot/categorical value head: stays PARKED (Arm C) — the

@@ -2311,3 +2311,32 @@ entry by offset — never a broad keyword grep.
   BC-clone ceiling via entity encoder") is what Rung 2 ALREADY CONFIRMED at 0.5509.
   Its rollout figures (~4k vs 37-40k) restate the 2026-08-08 recipe advisory. Lanes
   untouched (evals/doc work only).
+
+- 2026-08-10 (night) — **EXTERNAL ADVERSARIAL PRIOR-ART SEARCH IN: BOTH NOVELTY
+  CLAIMS SURVIVE (NOT REFUTED). §9's mandatory pre-writeup search is now DONE for
+  both claims** (Claude-web deep-research pass, maintainer-supplied; archived with
+  an UNVERIFIED-citations banner at prior_work/RESEARCH_2026-08-10_prior_art_and_
+  levers.md). Scope: arXiv, ICML/NeurIPS/ICLR/AAMAS/IEEE-CoG/RLC, GitHub, Smogon,
+  PokeAgent Challenge retrospective (arXiv 2603.15563) incl. participant appendix.
+  **Claim A (no privileged/asymmetric critic in Pokemon RL): NOT REFUTED** — Metamon
+  is shared-trunk symmetric, VGC-Bench symmetric twin nets, H&L/Wang symmetric PPO.
+  **Claim B (no pure from-scratch self-play agent in gen1): NOT REFUTED** — H&L is
+  gen7; Wang gen4 AND test-time MCTS; Metamon + both PokeAgent gen1 finalists are
+  human-replay-bootstrapped; VGC-Bench's SP arm is gen9 doubles. **BINDING PHRASING
+  RULE for all writeups: "no documented instance found," never "proven first."**
+  Field calibration for the README narrative: strongest documented gen1 agents are
+  Metamon-family imitation+offline-RL at ~80% GXE (SynRL-V2 79.9%, PokeAgent gen1
+  champion 80.35%, TaurosEnsemble has held #1 on the human gen1OU ladder) — our lane
+  is orthogonal (purity), not competitive with that number; ps-ppo's ">85% vs SH"
+  claim explicitly down-weighted by the search (unverified + BC-phase). **§12
+  amendments landed:** D18 novelty-check marked DONE + refs + cautionary null
+  (effect size not guaranteed; never tested at γ=1.0 terminal) + start-compact
+  privilege option; D19 gains the actor-side-gradient caveat (never bundles; partial
+  redundancy with D18 — re-scope if D18 credits); D21 λ advice AMENDED to a sweep
+  {0.95, 0.98, 1.0} (short-episode terminal-only regime reverses the low-λ argument;
+  Alpha-Mini precedent) + episodes/update currency (~30 → 100–300 target) + Wang's
+  controlled LR-anneal ablation noted; **NEW D22 — plateau diagnostics (Stage 0)**:
+  five measurements on the existing 50M artifacts (EV, entropy, WEIGHT-NORM
+  trajectory, dormant/effective-rank, exploitability proxy via fresh best-response)
+  with a pre-stated decision rule routing to D18 vs regenerative-regularizer vs
+  PFSP/R-NaD. Finals runner armed (results/struct50m_finals/), lanes in final steps.
