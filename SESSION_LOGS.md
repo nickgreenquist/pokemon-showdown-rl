@@ -2340,3 +2340,37 @@ entry by offset — never a broad keyword grep.
   trajectory, dormant/effective-rank, exploitability proxy via fresh best-response)
   with a pre-stated decision rule routing to D18 vs regenerative-regularizer vs
   PFSP/R-NaD. Finals runner armed (results/struct50m_finals/), lanes in final steps.
+
+- 2026-08-10 (23:11, autonomous overnight readout) — **RUNG 3 STEP 1 (50M, STRUCTURE
+  ONLY) READ OUT: CREDIT PER THE RATIFIED BAR — pooled 0.5802 ± 0.0052 vs 0.5509,
+  delta +0.0293, binomial z +3.99 — WITH A SEED-FRAGILITY CAVEAT THE MAINTAINER MUST
+  ADJUDICATE.** All lanes completed 50M; finals on ckpt_050000000.pt each, 3×3000,
+  sign cross-check exact on all six evals. **Seeds: s35 0.6593 / s36 0.5727 / s37
+  0.5087 — spread 0.151, 3.2× the 12M run's 0.047.** The ratified header's explicit
+  credit bar (pooled ≥ 0.5759, binomial se_diff 0.0074) is MET. BUT the repo-standing
+  credit line (DESIGN §8: se_diff = larger of binomial and seed-clustered) was NOT
+  restated in the header: seed-clustered se_diff ≈ 0.046 → z ≈ +0.63 — the scale
+  delta is NOT seed-robust. Recorded honestly: the header's letter credits; the
+  standing rule would not; maintainer adjudicates which governs the narrative.
+  **M4 (≥ 0.5777): met on its letter at 0.5802, margin +0.0025 ≈ 0.3σ — NOT
+  decisive; do not claim without adjudication + full guard.** ANCHOR GUARD partial:
+  clone-val-peak h2h on the median seed (s36 final), 500/pair/orientation pooled =
+  **0.643** (A 0.804 / B-take 0.482 — the measured seat asymmetry again), z +9.4 vs
+  parity — the anchor moves, the gain is not SH-specific; ~flat vs 12M's 0.657
+  (cyclic-payoff caveat stands). FP ENGINE read PENDING (needs foul-play env; morning
+  task, ~15 min: smoke 5 then 250 with the full websocket URI). **BEST-CKPT
+  SECONDARIES (selection caveat recorded): 0.6330 / 0.6193 / 0.5937, pooled 0.6153 —
+  every lane's best ≥ 0.59 at n=3000;** s36/s37 finals sit 0.047/0.085 BELOW their
+  own bests → the checkpoint-selection-policy question (2026-08-10 morning discussion)
+  is LIVE: val-peak-re-graded as co-primary belongs in the next pre-registration.
+  Curve note: s35 surged late (5M-mean 0.606 at 41M) and its final graded 0.659 —
+  still-rising at 50M on 1/3 lanes; s37 flat-lined ~0.50 from 17M. **250M secondary
+  (the purchase decision): slope +0.0293/4.2× — positive, seed-fragile; NOT
+  auto-bought; feeds D22 diagnostics + seat accounting + maintainer call.** D22 is
+  now doubly motivated: explaining the s35-vs-s37 divergence (weight norms, entropy,
+  exploitability probe) is exactly its job. Eval-cost note for the next header:
+  3000-battle evals took ~2.5-4 min each on the idle box (~25 min for all six) — the
+  n=1000-in-training-eval proposal costs even less than estimated. Artifacts:
+  results/struct50m_finals/ (6 finals/bests + 2 h2h JSONs + runner.log). Seeds
+  consumed: none (evals only). Next: README rewritten this session per standing
+  directive; §12 ratification, FP engine read, credit adjudication, push = morning.
