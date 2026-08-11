@@ -2,20 +2,24 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-10 night — 50M READ OUT: CREDIT per ratified bar, seed-fragile)
+## Where things stand (2026-08-11 evening — D22 reads 1–4 IN; read 5 ready to launch)
 
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
-r7; encoder frozen v2/808+ids=828). **RUNG 3 STEP 1 (50M structure-only) READ OUT
-2026-08-10: s35 0.6593 / s36 0.5727 / s37 0.5087, pooled 0.5802 ± 0.0052 vs 0.5509 →
-+0.0293, binomial z +3.99. CREDIT ADJUDICATED 2026-08-11 (maintainer, verbatim in
-log): stands per the ratified header bar; seed-fragility (spread 0.151, seed-clustered
-z +0.63) is a NAMED WEAKNESS carried in every narrative use — real on the registered
-read, unreplicated at seed level.** M4 NOT claimed (+0.3σ margin, guard incomplete).
-Anchor guard PARTIAL: clone-VP h2h (s36 final) 0.643 pooled ✓ moves; FP engine PENDING.
-Best-ckpt secondaries (selection caveat): 0.633/0.619/0.594, pooled 0.6153 — every
-lane ≥0.59; ckpt-selection policy question LIVE for the next pre-reg. M1–M3 CLAIMED at
-12M (blessed 2026-08-09; adversarial prior-art search DONE — both novelty claims NOT
-REFUTED, phrasing "no documented instance found"). README rewritten this session.
+r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED: pooled 0.5802 ± 0.0052 CREDIT
+(adjudicated 2026-08-11; seed-fragility a NAMED WEAKNESS), M1–M3 claimed at 12M, M4
+unclaimed (+0.3σ), anchor guard complete (clone h2h 0.643, FP 0.812-against).
+**D22 PLATEAU DIAGNOSTICS (§12) — reads 1–4 DONE 2026-08-11 (offline): EV flat
+0.56–0.59 all lanes 5M→50M; entropy NOT collapsed (0.21–0.32 at 50M); weight norms
+grow ×2.3–3.0 monotonically (embeddings fastest); dormant fraction climbs to 84–88%
+(actor ctx layer, s35/s36); ctx feature srank99 collapses ~250→33–54 (actor), →7–11
+of 384 (critic). §12's representation clause (flat EV + low rank) FIRES CLEANLY →
+provisional routing: D18 first, AS QUEUED.** Seed-fragility explained mechanically:
+s37 flatline = sustained actor grad blowup from ~20M (pre-clip median 1088, clip
+pinned 1.0) + critic stall at 25M; s35 = same norm growth, one recovered spike, still
+rising at 50M. Regenerative L2-toward-init named next-after-D18 (jumps queue if D18
+reproduces an s37-class blowup). Read 5 (exploitability probe) pre-registered:
+configs/showdown_br50m_s38.yaml — fresh entity learner vs FROZEN s36-50M final, 6M,
+seed 38; frozen-ckpt opponent seam landed (rl/train.py, suite 269 green, live-smoked).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 
@@ -28,26 +32,27 @@ REFUTED, phrasing "no documented instance found"). README rewritten this session
 | **Rung 3 50M finals — CREDIT (seed-fragile, see log)** | **0.5802 ± 0.0052** |
 | 50M best-ckpts pooled (SELECTION CAVEAT, secondary) | 0.6153 (0.594–0.633) |
 | BC-of-FP clone graded final / val-peak = M4 bar | 0.5490 / 0.5777 ± 0.0090 |
-| SH mirror parity 0.489 · FP engine 0.8307* · clone h2h | 50M-vs-clone 0.643 pooled |
+| SH mirror parity 0.489 · FP engine 0.812-against* · clone h2h | 50M-vs-clone 0.643 pooled |
 
 **LADDER:** M1/M2/**M3 (success claim) CLAIMED at 12M** · M4 ≥0.5777: letter-met at
-50M, +0.3σ margin, guard partial — awaiting adjudication, NOT claimed.
+50M, +0.3σ margin — NOT claimed (adjudicated).
 
 ## Next actions, in order
 
-1. **D22 plateau diagnostics** (§12 RATIFIED 2026-08-11, D18–D22 binding; D22 first
-   per its decision rule, then D18 privileged critic — plumbing ~2-3 evenings).
-   ANCHOR GUARD CLOSED 2026-08-11: FP 0.812-against on s36-50M (was 0.824 at 12M,
-   take rose 0.172→0.188) + clone h2h 0.643 — anchors hold; M4 stays unclaimed.
-3. 250M: NOT auto-bought — slope seed-fragile; decision after D22 + seat accounting.
-   Handoff on request. DONE 2026-08-11: credit adjudicated (header letter governs);
-   §12 ratified; pushed through the ratification commit (maintainer-authorized).
+1. **LAUNCH D22 read 5** (maintainer terminal; launch = ratification of the header):
+   configs/showdown_br50m_s38.yaml, ~3–4 h solo. Post-run: two-orientation h2h
+   1000/orientation vs frozen s36-50M (commands in the config header).
+2. **D18 privileged critic** (routing confirmed by reads 1–4; plumbing ~2–3 evenings;
+   header MUST restate the FULL credit line incl. larger-of se_diff clause).
+3. 250M decision: after read 5 + H&L seat accounting (gates any 250M quote).
 
 ## Watch items
 
-- Seeds: 0-13, 23-37 SPENT, 14-22 RESERVED (warmrl), 99 disposable; 38+ free.
+- Seeds: 0-13, 23-38 SPENT/assigned (38 = BR probe), 14-22 RESERVED (warmrl), 99
+  disposable; **39+ free.**
 - **Entity ckpts need BOTH env vars at every eval** (v2+ids→828; dies loudly if not).
   Cross-encoder play needs the shim (808 ok; 807 refused). `simulator: 4` gitignored.
-- Idle-box evals are FAST (~3 min/3000 battles); 3-wide training ~350-390 steps/s.
-- Next pre-reg: consider val-peak-re-graded co-primary + n=1000 in-training evals.
+- Idle-box evals FAST (~3 min/3000); FP reads ~6.5-10 s/battle; solo lane ≥400 steps/s.
+- D22 artifacts in results/d22/ (gitignored): binned trajectories, weight norms,
+  dormant/rank CSVs, per-lane mirror obs tapes (obs_s3*.npz, 5.8-7.4k decisions).
 - Laptop sleep kills session Monitors (not lanes/server); caffeinate for long jobs.

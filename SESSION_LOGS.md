@@ -2409,3 +2409,45 @@ entry by offset — never a broad keyword grep.
   With this, every measurement attached to the 50M read is closed: finals, best-ckpt
   secondaries, clone h2h, FP engine. Chapter state: M1-M3 claimed at 12M; 50M credit
   stands (seed-fragility named); §12 ratified — NEXT WORK IS D22 THEN D18.
+
+- 2026-08-11 (evening) — **D22 PLATEAU DIAGNOSTICS: READS 1–4 IN (offline, on the
+  50M artifacts); READ 5 PRE-REGISTERED AND HANDED OVER. Provisional routing per
+  the §12 rule: D18 FIRST, AS QUEUED.** Note first: the lanes' history.csv were
+  stale (extracted Aug 10 19:11, truncated ~45M) — re-extracted all three to 50M.
+  READ 1 (EV): flat 0.56–0.59 on all lanes from 5M through 50M (late slopes
+  ±0.006/10M) — the D18 evidence line holds unchanged at 4.2× the horizon. READ 2
+  (entropy): NOT collapsed — 50M levels 0.255/0.317/0.208 (s35/s36/s37); the
+  ~0.13–0.16 dip near 12–16M (the 22:11 ops-check readings) RECOVERED on s35/s36.
+  K6 never fired. READ 3 (weight norms, 100 ckpts/lane): monotone growth, never
+  flattening — actor ×2.34–2.46, critic ×2.25–3.00 (500k→50M), species embeddings
+  fastest (×5.6–6.6) — the Juliani & Ash plasticity correlate is present in ALL
+  lanes including the still-improving one. READ 4 (dormant/rank, on each lane's own
+  final-policy mirror obs, 5.8–7.4k decisions, results/d22/obs_s3*.npz): actor
+  ctx_net.1 dormant fraction (τ=0.025) climbs 27%→84–88% on s35/s36 (s37 30–52%),
+  scorer 54–74%; ctx feature srank99 collapses ~250→33–54 of 384 (actor) and →7–11
+  (critic). **Flat EV + low effective rank — §12's representation/optimization
+  clause — FIRES CLEANLY on all three lanes.** BONUS (s35 surge vs s37 flatline):
+  s37 shows a SUSTAINED actor-side grad pathology from ~20M — pre-clip grad norm
+  median 1088 over ≥30M (healthy lanes 1.4–1.7 median with a 10–14% >100 tail),
+  grad_clip_frac pinned at 1.0000 from ~25M, post-clip Adam mass in actor
+  species_emb/field_net where healthy lanes put it in critic/head — its critic
+  STALLS (drift 5.2 over 25M→50M vs 34+ for s35/s36, norm pinned at 102.3) and its
+  eval slides 0.616@16M→0.490. s35 took ONE transient spike (bin 15M, 447) and
+  recovered; still rising at its 50M final (peak=final). s36 intermediate (spike at
+  45M; early 0.626@3.2M peak is the known n=100 cummax artifact). The 50M read's
+  seed-fragility maps onto per-lane optimization health, not luck-of-the-final.
+  ROUTING (provisional; read 5 pending): representation clause fires → **D18 first,
+  as queued**; plasticity clause PARTIAL (norms rise everywhere but s35's rising
+  win rate confounds "flat win rate") → regenerative L2-toward-init NAMED
+  next-after-D18, and it jumps the queue if D18's lanes reproduce an s37-class
+  blowup; exploitability clause CANNOT fully fire (entropy half already failed) —
+  read 5 quantifies the BR half as evidence weight. INFRA LANDED: frozen-checkpoint
+  opponent seam (`selfplay.opponent: <path>.pt` → one-member frozen pool, learner
+  never pushed; rl/train.py::_frozen_checkpoint_pool) + 2 tests (suite 269 green);
+  live smoke on seed 99 trained 4096 steps vs frozen s36-50M, fingerprint clean;
+  four scripts (scripts/d22_*.py); READ-5 PRE-REG configs/showdown_br50m_s38.yaml
+  (fresh entity learner vs frozen s36-50M, 6M steps, seed 38; primary = pooled
+  two-orientation h2h 1000/orientation, thresholds pre-stated in the header;
+  launch = ratification). Side-read, noise-level (n=200): deterministic seat vs its
+  own sampling twin 0.565/0.480/0.560. Artifacts: results/d22/ (binned
+  trajectories, weight_norms, dormant, effective_rank, adam_grad_scale per lane).
