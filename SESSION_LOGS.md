@@ -2574,3 +2574,19 @@ entry by offset — never a broad keyword grep.
   — box must stay awake for the readout); session monitor re-armed (per-lane
   done/died/stall, fires the readout when all 5 terminate). Handoff folded, stub
   restored this commit.
+- 2026-08-11 (evening, mid-run offline work) — **d22 scripts ADAPTED for the D18
+  srank secondary (9c5ccc7; scoped in the priv12m header, zero rl/ changes, lanes
+  untouched).** collect: `privileged` auto-detected from the ckpt config, block
+  saved per decision as `priv`; rank: `--lanes/--steps/--run-prefix/--obs-prefix`,
+  critic built widened from ckpt `privileged_dim`, forwarded obs ‖ priv; priv ckpt
+  + priv-less npz raises loudly. VERIFIED offline: defaults reproduce the D22 read
+  exactly (s35@500k actor srank99_ctx 243 / PR 1.7118, critic 252 / 2.1805 — match
+  recorded CSV to 4 decimals); widened path loads the live s39@3.2M ckpt and
+  probes; plain-828-into-widened still raises. Dormancy in a priv critic counts
+  BOTH subnet passes (obs + priv tokens); the mon rank read keeps the first
+  (observed) pass for D22 comparability — documented in the docstring. D18
+  invocation uses `--out results/d18` (must not clobber results/d22 CSVs) and
+  runs ONLY with the fleet down (collect derives usernames from cfg.seed — the
+  same-seed collision landmine, now warned in the docstring). Readout eval driver
+  staged at ~/.claude/jobs/62d4fa41/tmp/d18_readout_evals.sh (2 batches of 5
+  concurrent 3000-battle evals, distinct seeds per batch).

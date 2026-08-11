@@ -46,7 +46,7 @@ suite 269 green). BR color: exploiter hit ~0.56 vs SH in 6M vs one frozen oppone
    actor-obs ‖ opponent own-side block (408d). OPERATIVE bar: floor 0.5809, ~0.589
    at Rung-2-like spread (larger-of rule; 0.5759 binomial letter); recording rule
    pre-stated for the unclaimable band. At readout: 5×3000 finals + val-peak
-   re-grades + EV/srank secondaries (d22 scripts need priv adaptation first).
+   re-grades + EV/srank secondaries (d22 scripts ADAPTED 9c5ccc7; results/d18).
 2. Regenerative L2-toward-init: named next-after-D18; jumps queue if D18 lanes
    reproduce an s37-class grad blowup (D22-watch gate in the header, record-only).
 3. 250M decision: after D18 + H&L seat accounting (gates any 250M quote).
