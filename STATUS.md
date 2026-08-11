@@ -35,10 +35,10 @@ REFUTED, phrasing "no documented instance found"). README rewritten this session
 
 ## Next actions, in order
 
-1. **FP engine read IN FLIGHT** (smoke PASSED 5/5; 250-battle read running, s36 final
-   vs FP; marks: 0.824 taken off 12M, our take 0.172) — fold on landing, closes guard.
-2. **D22 plateau diagnostics** (§12 RATIFIED 2026-08-11, D18–D22 binding; D22 first
+1. **D22 plateau diagnostics** (§12 RATIFIED 2026-08-11, D18–D22 binding; D22 first
    per its decision rule, then D18 privileged critic — plumbing ~2-3 evenings).
+   ANCHOR GUARD CLOSED 2026-08-11: FP 0.812-against on s36-50M (was 0.824 at 12M,
+   take rose 0.172→0.188) + clone h2h 0.643 — anchors hold; M4 stays unclaimed.
 3. 250M: NOT auto-bought — slope seed-fragile; decision after D22 + seat accounting.
    Handoff on request. DONE 2026-08-11: credit adjudicated (header letter governs);
    §12 ratified; pushed through the ratification commit (maintainer-authorized).

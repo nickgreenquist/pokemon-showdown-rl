@@ -2395,3 +2395,17 @@ entry by offset — never a broad keyword grep.
   through this commit maintainer-authorized in the same message. FP anchor-guard
   status at this entry: smoke PASS (5/5, tallies agree, 0 exceptions, seat took 3/5
   n=5); 250-battle read RUNNING (~185/250 at 07:56), folds in on landing.
+
+- 2026-08-11 (morning, cont.) — **FP ENGINE READ IN: ANCHOR GUARD COMPLETE FOR THE
+  50M READ. FP takes 0.812 off the 50M median seed (203-47, n=250, 0 ties, 250/250
+  resolved, 6.46 s/battle)** vs 0.824 off the 12M agent and 0.876 off the old best —
+  the engine's edge HOLDS (Δ −0.012, within n=250 noise), and our win-take rose
+  0.172 → 0.188. Guard package for the 50M credit: clone-VP h2h 0.643 pooled (z +9.4
+  vs parity) + FP 0.812-against — anchors hold or improve; the small vs-SH gain
+  (+0.029) shows the matching signature at the anchors (no regression, no
+  SH-specific jump). **M4 remains UNCLAIMED per the 2026-08-11 adjudication** — the
+  guard-incomplete leg is now closed but the +0.3σ margin leg stands on its own.
+  Artifacts: results/foulplay_vs_sh/{smoke_struct50m,fp_vs_struct50m}.json + logs.
+  With this, every measurement attached to the 50M read is closed: finals, best-ckpt
+  secondaries, clone h2h, FP engine. Chapter state: M1-M3 claimed at 12M; 50M credit
+  stands (seed-fragility named); §12 ratified — NEXT WORK IS D22 THEN D18.
