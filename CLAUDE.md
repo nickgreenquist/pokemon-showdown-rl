@@ -51,7 +51,7 @@ Session start: read `HANDOFF.md` only if non-empty (mid-handoff — fold anythin
 
 ## Conventions (they earned their place)
 
-- **Pre-register every experiment** in the config header before launching — pattern: `configs/showdown_r512_lra.yaml`. Arms, R0 sanity gates, PRIMARY read with explicit credit line, secondary reads, action on each branch.
+- **Pre-register every experiment** in the config header before launching — pattern: `configs/showdown_r512_lra.yaml`. Arms, R0 sanity gates, PRIMARY read with explicit credit line, secondary reads, action on each branch. **The header must restate the FULL credit line verbatim, including the larger-of (binomial vs seed-clustered) se_diff clause** — the 50M header omitted it and forced a maintainer adjudication (2026-08-11).
 - **Credit line:** a lever is credited iff pooled delta ≥ +0.025 **and** ≥ 2·se_diff.
 - **Locked eval protocol:** final checkpoint, 1000 battles/seed, 3 seeds pooled, ties as non-wins, deterministic policy, vs `SimpleHeuristicsPlayer`.
 - **Locked metric names:** `rollout/episode_return`, `rollout/episode_length`, `eval/return_mean`, `eval/return_std`, `eval/win_rate`, `time/steps_per_sec`, `time/collect_sec`, `time/update_sec`, `time/eval_sec`, plus `loss/*` and `selfplay/*`.

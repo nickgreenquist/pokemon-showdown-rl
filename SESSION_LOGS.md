@@ -2374,3 +2374,17 @@ entry by offset — never a broad keyword grep.
   results/struct50m_finals/ (6 finals/bests + 2 h2h JSONs + runner.log). Seeds
   consumed: none (evals only). Next: README rewritten this session per standing
   directive; §12 ratification, FP engine read, credit adjudication, push = morning.
+
+- 2026-08-11 (morning) — **50M CREDIT ADJUDICATED (maintainer, "adopt", verbatim):
+  "Adjudicated 2026-08-11: the 50M CREDIT stands per the ratified header's explicit
+  bar — a pre-registration binds in both directions, and tightening the rule after
+  seeing the data is as post-hoc as loosening it. The seed-fragility (spread 0.151,
+  seed-clustered z +0.63) is recorded as a named weakness of the credit, not a
+  footnote: the scale effect is real on the registered read but unreplicated at seed
+  level. M4 is NOT claimed (+0.3σ margin, guard incomplete). Process fix, binding:
+  every future pre-registration header restates the full §8 credit line verbatim,
+  including the larger-of se_diff clause."** Consequences: standing best = 0.5802
+  (50M s35/36/37, carried with the named weakness in every narrative use); M4 stays
+  unclaimed; the process fix is codified in CLAUDE.md conventions this commit.
+  Remaining morning items: FP engine read (completes the guard), §12 ratification,
+  push.

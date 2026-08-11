@@ -7,10 +7,10 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
 r7; encoder frozen v2/808+ids=828). **RUNG 3 STEP 1 (50M structure-only) READ OUT
 2026-08-10: s35 0.6593 / s36 0.5727 / s37 0.5087, pooled 0.5802 ± 0.0052 vs 0.5509 →
-+0.0293, binomial z +3.99 — CREDIT per the ratified header bar (≥0.5759). CAVEAT the
-maintainer must adjudicate: seed spread 0.151 (3.2× the 12M run's); seed-clustered
-se_diff ≈0.046 → z +0.63 — NOT seed-robust under DESIGN §8's larger-of rule, which the
-header failed to restate.** M4 met on its letter only (+0.3σ) — do not claim yet.
++0.0293, binomial z +3.99. CREDIT ADJUDICATED 2026-08-11 (maintainer, verbatim in
+log): stands per the ratified header bar; seed-fragility (spread 0.151, seed-clustered
+z +0.63) is a NAMED WEAKNESS carried in every narrative use — real on the registered
+read, unreplicated at seed level.** M4 NOT claimed (+0.3σ margin, guard incomplete).
 Anchor guard PARTIAL: clone-VP h2h (s36 final) 0.643 pooled ✓ moves; FP engine PENDING.
 Best-ckpt secondaries (selection caveat): 0.633/0.619/0.594, pooled 0.6153 — every
 lane ≥0.59; ckpt-selection policy question LIVE for the next pre-reg. M1–M3 CLAIMED at
@@ -33,16 +33,16 @@ REFUTED, phrasing "no documented instance found"). README rewritten this session
 **LADDER:** M1/M2/**M3 (success claim) CLAIMED at 12M** · M4 ≥0.5777: letter-met at
 50M, +0.3σ margin, guard partial — awaiting adjudication, NOT claimed.
 
-## Next actions, in order (maintainer's morning)
+## Next actions, in order
 
-1. **Adjudicate the 50M credit strength** (header letter vs §8 seed-clustered rule) —
-   then the narrative line for README/claims is fixed. Log entry has both numbers.
-2. **FP engine read** (~15 min: smoke 5, then 250 vs s36 final; foul-play conda env;
+1. **FP engine read** (~15 min: smoke 5, then 250 vs s36 final; foul-play conda env;
    full URI ws://localhost:8000/showdown/websocket) — completes the anchor guard.
-3. **Ratify DESIGN §12** (D18–D22). Recommended order: D22 diagnostics FIRST (also
+2. **Ratify DESIGN §12** (D18–D22). Recommended order: D22 diagnostics FIRST (also
    explains the s35/s37 divergence), then D18 privileged critic (novelty verified).
-4. **Push** (many local commits). 250M: NOT auto-bought — slope positive but
-   seed-fragile; decision after D22 + H&L seat accounting. Handoff on request.
+3. **Push** (many local commits, ask-first). 250M: NOT auto-bought — slope positive
+   but seed-fragile; decision after D22 + H&L seat accounting. Handoff on request.
+4. DONE 2026-08-11: credit adjudicated (header letter governs, weakness named);
+   process fix codified in CLAUDE.md (headers restate the full §8 credit line).
 
 ## Watch items
 
