@@ -65,6 +65,47 @@ def make_agent(cfg: Config, env: gym.Env) -> Agent:
     return cls(env.observation_space, env.action_space, device=cfg.device, **hparams)
 
 
+def _frozen_checkpoint_pool(path: str) -> SnapshotPool:
+    """A `.pt` path under `selfplay.opponent` resolves here: the checkpoint
+    becomes the SINGLE frozen member of a one-member pool, and the learner —
+    fresh init, its own config — trains against it as a fixed opponent. The
+    pool object is what lets N sub-envs share one frozen policy through the
+    caller-kwargs seam, exactly as `opponent: self` does; `train()` keeps its
+    own push pool as None, so the learner is never pushed and the opponent
+    never moves. Built for D22's exploitability probe (DESIGN §12: fresh
+    best-response vs a frozen final), and deliberately general: any future
+    exploiter/PFSP work needs this same seam.
+
+    Showdown-only and same-encoder-only: the agent is built against spaces
+    faked at the CURRENT process OBS_DIM (a real env here would open
+    websockets just to read shapes), so a checkpoint from another encoder
+    width is refused rather than shimmed — the training path never needs the
+    eval-side cross-encoder shim, and silently mis-slicing a training
+    opponent would corrupt a run without an error."""
+    from types import SimpleNamespace
+
+    from rl.envs.showdown import OBS_DIM
+
+    ckpt = load_checkpoint(path)
+    cfg = Config(**ckpt["config"])
+    spaces = SimpleNamespace(
+        observation_space=gym.spaces.Box(-1.0, 4.0, (OBS_DIM,), np.float32),
+        action_space=gym.spaces.Discrete(10),
+    )
+    agent = make_agent(cfg, spaces)
+    try:
+        agent.load_state_dict(ckpt["agent"])
+    except RuntimeError as err:
+        raise ValueError(
+            f"frozen opponent {path} does not load at the process encoder "
+            f"width {OBS_DIM}: check the POKEMON_RL_ENCODER_V2 / "
+            "POKEMON_RL_ENCODER_IDS env vars"
+        ) from err
+    pool = SnapshotPool(pool_size=1, latest_prob=1.0)
+    pool.push(agent)
+    return pool
+
+
 def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) -> None:
     """Stamp the run dir before training starts: the resolved config (CLI
     overrides baked in, reloadable via load_config) plus provenance — a
@@ -189,6 +230,18 @@ def train(cfg: Config) -> None:
             fixed_mix=cfg.selfplay.get("fixed_mix", 0.0),
         )
         train_env_kwargs["opponent"] = pool
+    elif str(train_env_kwargs.get("opponent", "")).endswith(".pt"):
+        # Frozen-checkpoint opponent (best-response/exploiter lanes). `pool`
+        # stays None on purpose: the learner is never pushed, so the frozen
+        # member is the opponent for the whole run.
+        if not cfg.env_id.startswith("Showdown"):
+            raise ValueError(
+                "a checkpoint-path opponent is Showdown-only: the frozen "
+                "agent is built against faked Showdown spaces"
+            )
+        train_env_kwargs["opponent"] = _frozen_checkpoint_pool(
+            train_env_kwargs["opponent"]
+        )
     if vectorized:
         env = make_vec_env(cfg.env_id, cfg.seed, cfg.num_envs, env_kwargs=train_env_kwargs)
     else:
