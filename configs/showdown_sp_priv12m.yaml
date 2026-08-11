@@ -1,7 +1,11 @@
 # =====================================================================
 # PRE-REGISTRATION — DRAFTED 2026-08-11 (evening, D22 closed same day).
-# STATUS: DRAFT — ratify before launch (maintainer). Launch from a clean
-# committed tree, three lanes, seeds 39/40/41.
+# STATUS: RATIFIED 2026-08-11 (maintainer, "ratify 5 and launch") — the
+# FIVE-LANE option adopted: seeds 39/40/41/42/43, clustered bar ~0.589
+# at Rung-2-like spread (floor 0.5809; arithmetic at the PRIMARY
+# block), ~2 lane-days. Header revised same evening per the 3-agent
+# pre-launch review (zero critical, zero code changes) BEFORE
+# ratification. Launched from a clean committed tree, staggered.
 #
 # D18 — PRIVILEGED (ASYMMETRIC) CRITIC at 12M (DESIGN §12, RATIFIED
 # 2026-08-11; sequenced first by D22's closed decision rule).
@@ -50,7 +54,16 @@
 #
 # PRIMARY: pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol —
 # FINAL checkpoint, deterministic, ties as non-wins, 3000 battles/seed
-# x 3 seeds = 9000 pooled. Eval process carries BOTH env vars. Eval
+# x 5 seeds = 15000 pooled (5-lane ratification). 5-LANE ARITHMETIC,
+# corrected at ratification (the option line's 0.77x/"~0.583" applied
+# sqrt(3/5) to BOTH arms; only the D18 arm gains lanes — the
+# comparator stays 3-seed): binomial se_diff = sqrt(0.0052^2 +
+# 0.0041^2) = 0.0066, letter still +0.025 -> 0.5759; clustered FLOOR
+# unchanged at 0.5809 (comparator-limited); at Rung-2-like D18 spread
+# the clustered bar is ~0.589 (2*sqrt(0.0150^2 + (0.026/sqrt5)^2)),
+# vs ~0.593 at 3 lanes. The real 5-lane gains: the D18 spread is
+# ESTIMATED on 5 seeds instead of 3, the binomial tightens, and the
+# recording-rule band narrows. Eval carries BOTH env vars. Eval
 # NUMBERS cannot read the privileged block: act() is structurally
 # actor-only (hook-verified, 0 critic forwards at eval; the eval env
 # does compute-and-discard the block — see CONFOUND 3). Eval-with-flag
@@ -81,8 +94,11 @@
 #   advance): the result is recorded as "letter-met, seed-fragile,
 #   NOT credited", full per-seed detail in the log, no narrative use
 #   without the weakness named. RATIFICATION OPTION, maintainer's
-#   call: 5 lanes (seeds 39-43) cuts the clustered se_diff by 0.77x
-#   (bar ~0.583 at Rung-2-like spread) for +0.8 lane-days.
+#   call: 5 lanes (seeds 39-43) for +0.8 lane-days — ADOPTED at
+#   ratification; corrected 5-lane arithmetic at the PRIMARY block
+#   (the original option line's "0.77x -> ~0.583" over-credited
+#   sqrt(3/5) to both arms; true bar ~0.589 at Rung-2-like spread,
+#   floor 0.5809 unchanged — the comparator's 3 seeds limit it).
 #
 # CO-PRIMARY, RECORDED NOT CREDIT-BEARING (next-pre-reg wishlist,
 # 2026-08-11, adopted here): the VAL-PEAK checkpoint per lane (argmax of
@@ -181,13 +197,15 @@
 # ---------------------------------------------------------------------
 # BUDGET, SEEDS, CADENCE, OPS
 # ---------------------------------------------------------------------
-# BUDGET: 12M x 3 lanes at ~350–390 steps/s 3-wide ~ 8.5–9.5 h/lane,
-# ~9 h wall (evening launch, overnight finish). Finals 3x3000 ~ 3 min
-# each on the idle box + val-peak re-grades. D17 compute clause: ~1.2
-# lane-days, chapter cumulative stays well under the 20 lane-day cap.
-# SEEDS: 39/40/41 (38 spent by the D22 BR probe; 0-13, 23-38 SPENT,
-# 14-22 RESERVED warmrl, 99 disposable). Distinct across lanes AND
-# arms — username-collision landmine.
+# BUDGET (5-lane, as ratified): 12M x 5 lanes; the 350–390 steps/s
+# band was measured 3-WIDE — at 5-wide on this box (14 cores / 10
+# perf) expect lower; R0-8's record-and-continue structure covers it.
+# ~9–13 h wall (overnight). Finals 5x3000 ~ 3 min each on the idle box
+# + val-peak re-grades. D17 compute clause: ~2 lane-days, chapter
+# cumulative stays well under the 20 lane-day cap.
+# SEEDS: 39/40/41/42/43 (38 spent by the D22 BR probe; 0-13, 23-38
+# SPENT, 14-22 RESERVED warmrl, 99 disposable). Distinct across lanes
+# AND arms — username-collision landmine.
 # CADENCE (wishlist adopted): eval_every 500k, eval_episodes 1000
 # (~50 s/eval measured on the idle box; 24 evals/lane ~ 20 min/lane
 # overhead) — buys the val-peak co-primary its defensible n. Deviation

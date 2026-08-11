@@ -40,19 +40,20 @@ suite 269 green). BR color: exploiter hit ~0.56 vs SH in 6M vs one frozen oppone
 
 ## Next actions, in order
 
-1. **RATIFY + LAUNCH D18** (built + 3-agent-reviewed 2026-08-11: 0 critical, 0 code
-   changes; header revised): configs/showdown_sp_priv12m.yaml — critic = actor-obs ‖
-   opponent own-side block (408d). OPERATIVE bar ≥0.5809 (larger-of rule; 0.5759 is
-   the binomial letter); recording rule pre-stated for the unclaimable band; 5-lane
-   option at ratification. Seeds 39/40/41 (39-43 if 5 lanes), ~9 h wall, staggered.
+1. **D18 LAUNCHED 2026-08-11 (RATIFIED "ratify 5 and launch"; 5 lanes, seeds 39-43,
+   staggered, ~9-13 h wall at 5-wide)**: configs/showdown_sp_priv12m.yaml — critic =
+   actor-obs ‖ opponent own-side block (408d). OPERATIVE bar: floor 0.5809, ~0.589
+   at Rung-2-like spread (larger-of rule; 0.5759 binomial letter); recording rule
+   pre-stated for the unclaimable band. At readout: 5×3000 finals + val-peak
+   re-grades + EV/srank secondaries (d22 scripts need priv adaptation first).
 2. Regenerative L2-toward-init: named next-after-D18; jumps queue if D18 lanes
    reproduce an s37-class grad blowup (D22-watch gate in the header, record-only).
 3. 250M decision: after D18 + H&L seat accounting (gates any 250M quote).
 
 ## Watch items
 
-- Seeds: 0-13, 23-38 SPENT, 39-41 ASSIGNED (D18 lanes), 14-22 RESERVED (warmrl),
-  99 disposable; **42+ free.**
+- Seeds: 0-13, 23-38 SPENT, 39-43 ASSIGNED (D18 lanes), 14-22 RESERVED (warmrl),
+  99 disposable; **44+ free.**
 - **Entity ckpts need BOTH env vars at every eval** (v2+ids→828; dies loudly if not).
   Cross-encoder play needs the shim (808 ok; 807 refused). `simulator: 4` gitignored.
 - Idle-box evals FAST (~3 min/3000); FP reads ~6.5-10 s/battle; solo lane ≥400 steps/s.
