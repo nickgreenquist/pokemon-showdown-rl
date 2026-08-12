@@ -2764,3 +2764,19 @@ entry by offset — never a broad keyword grep.
   frozen, s41 trigger fire labeled bins 8-10. READY TO LAUNCH: 3 treatment lanes
   (l2init config, seeds 44/45/46) + 2 comparator lanes (struct12m verbatim,
   original 100k/100 cadence, seeds 49/50), 5-wide, ~10.6 h wall.**
+- 2026-08-12 (early afternoon, D23 LAUNCH RECORD) — **D23 LAUNCHED ("launch"): 5
+  lanes up — 3 treatment (l2init cfg, seeds 44/45/46) + 2 comparator (struct12m
+  verbatim, 100k/100 cadence, seeds 49/50).** s44 was launched by the maintainer
+  from the handed-over command (~17:00 UTC stamp / ~13:00 EDT); agent launched the
+  remaining four staggered 75s (s45 17:02:20, s46 17:03:35, s49 17:04:50, s50
+  17:06:05 local-log clock), nohup+disown+caffeinate, all from clean tree 6e50d5c.
+  R0-8 launch checks ALL GREEN: 5 python + 5 caffeinate processes; wandb binaries
+  growing seconds-fresh on every lane; git_dirty FALSE on all five meta.yaml;
+  l2_init_decay: 0.02 in all three treatment config snapshots, ABSENT in both
+  comparator snapshots (original cadence confirmed); theta0.pt (4.49 MB) present
+  on exactly the treatment lanes. Fleet monitor armed (done/died/stall per lane,
+  fires the readout when all 5 terminate); 14h caffeinate up. ETA ~10.6 h at
+  5-wide → finals late tonight. Readout: scripts/d23_grade.py (R0-4 hard-fail
+  inside), locked evals for 3 treatment finals + val-peaks + 2 fresh comparator
+  finals, mechanism reads per the ratified header (BOUND ≤ 4.452, srank ≥ 40 vs
+  control 11-17, l2init/* trajectories).
