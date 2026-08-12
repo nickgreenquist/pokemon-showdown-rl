@@ -38,9 +38,12 @@ accounting RESOLVED (both-seat; prior_work). DESIGN §13 (250M budget memo) PROP
 
 ## Next actions, in order
 
-1. **Regenerative-L2 pre-reg** (D22's named runner-up; branch (b) of the D18 header):
-   evidence now includes 2-of-8 entity lanes with grad blowups (s37, s41) and srank
-   collapse that persists even with privileged input. Draft → maintainer ratifies.
+1. **D23 regen-L2 pre-reg DRAFTED (1d10c5e; 2 Opus designers + 2 Opus reviews per
+   the new process) — AWAITING RATIFICATION**: configs/showdown_sp_l2init12m.yaml.
+   Decoupled decay toward θ₀, λ=0.02 closed-form; mechanism co-primary = critic
+   srank de-collapse. Maintainer decides: Q1 lane split (3+2 dominates 5+0 at equal
+   cost — P(credit|+0.02) 0.180 vs 0.078), Q2 build (~1 evening, lever not yet in
+   rl/), Q3 LR-anneal ordering. Then R0-9 control curves + R0-11 grader, then launch.
 2. **E1-E4 DONE 2026-08-12 (D12b discharged)**: E1 FLAT (serialization confirmed,
    num_envs dead as a lever); E2 reset 5% (ignore); E3 race_get 54% (middle band);
    E4a node 7.6% of a core; E4b knee at K=8, ~1240 dec/s at entity width = 2.3×
