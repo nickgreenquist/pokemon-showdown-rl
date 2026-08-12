@@ -2619,3 +2619,16 @@ entry by offset — never a broad keyword grep.
   E1-E4 measured + the cap/rent question answered. Also: CLAUDE.md landmine fixed —
   eval_checkpoint.py has reported env-supplied win_rate since 2026-08-05 (the "raw
   returns only" clause was stale).
+- 2026-08-11 (night, pre-readout tooling) — **D18 grader + E4(b) width patch landed
+  (f55f0a3, f4ce757).** scripts/d18_grade.py computes the pre-registered credit line
+  mechanically from the readout JSONs: larger-of rule at EXACT arithmetic (the
+  header's 0.5809 floor displays rounded; true clustered floor 0.58091 — the script
+  credits on the rule, not the rounding), R0-4 win_rate==wins_from_returns hard-fail,
+  recording-rule verbatim, branch (a)/(b)/(c) routing, co-primary recorded-only;
+  verified on synthetic boundary/band/null/mismatch JSONs. showdown_throughput.py
+  grew --net {tiny,mlp512,entity} per THROUGHPUT_SPEC E4(b): tiny default preserves
+  historical shape reads, entity = credited Rung 2 trunk (refuses OBS_DIM != 828),
+  net stamped in every header. E1-E4 remaining tooling (scripts/profile_collect.py +
+  the POKEMON_RL_PROFILE block in _vector_loop) is rl/-touching and DEFERRED until
+  after the readout evals run on the reviewed SHAs (3-agent review: zero code
+  changes); the measurement evening still needs the idle box regardless.
