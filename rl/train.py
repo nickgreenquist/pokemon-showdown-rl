@@ -159,6 +159,42 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
     (out_dir / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
 
 
+def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
+    """D23: the L2-toward-init anchors are written ONCE per run dir, and the
+    digest that every checkpoint carries is checked against the file here.
+
+    Scoped to the TRAINING construction path deliberately. theta0 is
+    regenerable for a fixed (seed, config), so a fresh lane writes it and a
+    restart into the same dir re-derives the identical anchors and verifies —
+    but a restart against someone else's theta0.pt, or a resume whose anchors
+    were deleted, is a silently different experiment and raises. The eval path
+    (make_agent + load_state_dict, score_ladder, eval_checkpoint) never calls
+    this: a guard in the shared loader would break the locked eval protocol.
+    """
+    if getattr(agent, "l2_init_decay", 0.0) <= 0.0:
+        return
+    path = out_dir / "theta0.pt"
+    digest = agent.theta0_hash()
+    if path.exists():
+        stored = torch.load(path, weights_only=False).get("theta0_hash")
+        if stored != digest:
+            raise ValueError(
+                f"{path} was written from a different initialization "
+                f"({stored} != {digest}): l2_init_decay > 0 anchors this run to "
+                "its own init, so resuming against another run's theta0 would "
+                "train a different experiment"
+            )
+        return
+    if cfg.init_from or any(out_dir.glob("*.pt")):
+        raise FileNotFoundError(
+            f"{path} is missing but {out_dir} already holds checkpoints (or the "
+            "run is warm-started): the L2-toward-init anchors cannot be "
+            "recovered from a checkpoint, so this resume would silently anchor "
+            "to a fresh init"
+        )
+    torch.save(agent.theta0_state(), path)
+
+
 def train(cfg: Config) -> None:
     # First, before any tensor work (config.py explains the default of 1).
     # Belt-and-suspenders: OMP_NUM_THREADS=1 at launch also binds the OpenMP
@@ -279,6 +315,9 @@ def train(cfg: Config) -> None:
     out_dir = run_dir(cfg)
     # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
     _write_run_metadata(out_dir, cfg, agent)
+    # No-op unless l2_init_decay > 0; raises before a single step is collected
+    # if the run dir's anchors disagree with this construction.
+    _ensure_theta0(agent, out_dir, cfg)
     logger = make_logger(cfg)
     if pool is not None:
         # Before the loop: _vector_loop's first statement is envs.reset(),
@@ -374,6 +413,11 @@ def _scalar_loop(
             mark = time.perf_counter()
             metrics = evaluate(agent, eval_env, cfg.eval_episodes, win_rate=cfg.eval_win_rate)
             metrics["time/eval_sec"] = time.perf_counter() - mark
+            # D23 l2init/*: per-LN-free-block ||theta - theta0||, treatment
+            # lanes only — the method returns {} (no keys) when the lever is
+            # off, and agents without it contribute nothing.
+            if hasattr(agent, "l2_init_metrics"):
+                metrics.update(agent.l2_init_metrics())
             logger.log(metrics, step)
             # The final policy is an arbitrary sample of an oscillating
             # training trajectory (deep RL policies churn), so keep the
@@ -548,6 +592,11 @@ def _vector_loop(
             mark = time.perf_counter()
             metrics = evaluate(agent, eval_env, cfg.eval_episodes, win_rate=cfg.eval_win_rate)
             metrics["time/eval_sec"] = time.perf_counter() - mark
+            # D23 l2init/*: per-LN-free-block ||theta - theta0||, treatment
+            # lanes only — the method returns {} (no keys) when the lever is
+            # off, and agents without it contribute nothing.
+            if hasattr(agent, "l2_init_metrics"):
+                metrics.update(agent.l2_init_metrics())
             logger.log(metrics, step)
             if metrics["eval/return_mean"] > best_eval:
                 best_eval = metrics["eval/return_mean"]

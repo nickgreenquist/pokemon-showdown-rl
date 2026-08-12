@@ -96,6 +96,7 @@ critic wants its own optimizer, not a bigger coefficient.
 """
 
 import copy
+import hashlib
 import math
 from collections import defaultdict
 from typing import Any
@@ -165,6 +166,45 @@ def _orthogonal_init(net: nn.Module, head_gain: float) -> None:
         nn.init.zeros_(layer.bias)
 
 
+def _l2_init_covered(net: nn.Module) -> list[tuple[str, nn.Parameter]]:
+    """The parameters an L2-toward-init decay may touch (D23 COVERAGE):
+    everything except parameters owned by an `nn.LayerNorm` and except frozen
+    ones.
+
+    LayerNorm is excluded because the `_subnet` stack (Linear-ReLU-Linear-LN)
+    is approximately scale-invariant, so decaying its weights is gauge, not
+    function — the LN gain is the compensating knob and stays free. The filter
+    is by OWNING MODULE, not by type: `slot_bias` is a bare `nn.Parameter` and
+    an `isinstance(Linear)` filter would miss it.
+    """
+    ln_params = {
+        id(p)
+        for module in net.modules()
+        if isinstance(module, nn.LayerNorm)
+        for p in module.parameters(recurse=False)
+    }
+    return [
+        (name, param)
+        for name, param in net.named_parameters()
+        if id(param) not in ln_params and param.requires_grad
+    ]
+
+
+def _ln_free_blocks(net: nn.Module) -> list[str]:
+    """Top-level blocks of `net` that contain no LayerNorm anywhere below them
+    — for the entity trunk: species_emb, move_emb, ctx_net, scorer, slot_bias
+    (policy) / head (value); mon_net, move_net and field_net are excluded
+    because each terminates in LN, which makes their norms ~half gauge-inert
+    (D23: every functional read uses the LN-free blocks only)."""
+    blocks = [
+        name
+        for name, child in net.named_children()
+        if not any(isinstance(m, nn.LayerNorm) for m in child.modules())
+    ]
+    # Bare parameters own no module, so they are LN-free by construction.
+    return blocks + [name for name, _ in net.named_parameters(recurse=False)]
+
+
 class GaussianActor(nn.Module):
     """Diagonal Gaussian policy for Box action spaces: an MLP mean, plus a
     state-INDEPENDENT log standard deviation.
@@ -225,6 +265,7 @@ class PPOAgent(Agent):
         trunk: str = "mlp",
         trunk_kwargs: dict | None = None,
         privileged_dim: int = 0,
+        l2_init_decay: float = 0.0,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -294,6 +335,19 @@ class PPOAgent(Agent):
             raise TypeError("bc_kl_coef requires a discrete action space")
         self.bc_kl_coef = bc_kl_coef
         self._bc_anchor: "nn.Module | None" = None
+        # D23 regenerative regularization: after every optimizer step each
+        # covered parameter decays toward its OWN initialization,
+        #     theta <- theta - group_lr * l2_init_decay * (theta - theta0),
+        # decoupled (AdamW-style) rather than added to the loss — a coupled
+        # term would be preconditioned by Adam's 1/sqrt(v) (a ~1200x spread
+        # across blocks, and a full-lr reset for dormant parameters), and it
+        # would ride inside clip_grad_norm_, moving loss/grad_norm and
+        # loss/clip_frac away from every control curve. Default 0.0 is the
+        # exact no-op: nothing is captured, no metric key appears, and no
+        # checkpoint rider is written (bc_kl_coef precedent).
+        if l2_init_decay < 0.0:
+            raise ValueError(f"l2_init_decay must be >= 0, got {l2_init_decay}")
+        self.l2_init_decay = l2_init_decay
         # Trunk seam (ARCH_SCREEN_SPEC / Rung 2): default "mlp" is the
         # historical path, bit-identical in construction order and RNG
         # consumption (regression-tested against pre-seam goldens). The
@@ -399,6 +453,20 @@ class PPOAgent(Agent):
             eps=1e-5,
         )
         self._set_actor_trainable(critic_warmup_updates == 0)
+        # theta0 capture, AFTER init_head()/.to(device) (so the anchors are
+        # the seed's realized init on the training device) and AFTER the
+        # optimizer exists (so every covered parameter is paired with the
+        # group whose CURRENT lr the decay reads — composing with
+        # actor_lr_scale and the lr anneal for free). Plain lists, never
+        # Parameters and never buffers: anything registered on the nets would
+        # show up in actor/critic state_dict(), which breaks plain-828 eval
+        # loading and the d22 block parsers (D23 R0-2b asserts the keys).
+        self._theta0: list[torch.Tensor] = []
+        self._theta0_names: list[str] = []
+        self._l2_init_groups: list[tuple[dict, list[nn.Parameter], list[torch.Tensor], bool]] = []
+        self._l2_init_blocks: list[tuple[str, list[nn.Parameter], list[torch.Tensor]]] = []
+        if self.l2_init_decay > 0.0:
+            self._capture_theta0()
         action_storage = (
             {"action_shape": (act_dim,), "action_dtype": np.float32} if self.continuous
             else {"action_shape": (), "action_dtype": np.int64, "n_actions": int(action_space.n)}
@@ -420,6 +488,91 @@ class PPOAgent(Agent):
         — Adam's existing moments keep walking the weights on a zero grad."""
         for param in self.actor_params:
             param.requires_grad_(trainable)
+        # Read by the L2-init decay: a frozen net must not drift toward its
+        # anchor either, or the "true freeze" above would leak through the
+        # decoupled term.
+        self._actor_trainable = trainable
+
+    def _capture_theta0(self) -> None:
+        for prefix, net, group in (
+            ("actor", self.actor, self.optimizer.param_groups[0]),
+            ("critic", self.critic, self.optimizer.param_groups[1]),
+        ):
+            covered = _l2_init_covered(net)
+            params = [param for _, param in covered]
+            anchors = [param.detach().clone() for param in params]
+            self._theta0_names += [f"{prefix}.{name}" for name, _ in covered]
+            self._theta0 += anchors
+            self._l2_init_groups.append((group, params, anchors, prefix == "actor"))
+            if prefix != "actor":
+                continue
+            # Per-block metric views over the same tensors (no extra copies).
+            for block in _ln_free_blocks(net):
+                members = [
+                    (param, anchor)
+                    for (name, param), anchor in zip(covered, anchors)
+                    if name == block or name.startswith(f"{block}.")
+                ]
+                if members:
+                    self._l2_init_blocks.append(
+                        (block, [p for p, _ in members], [a for _, a in members])
+                    )
+
+    def _apply_l2_init_decay(self) -> None:
+        """The lever, applied immediately AFTER optimizer.step() so that
+        clip_grad_norm_'s return value (loss/grad_norm) and loss/clip_frac
+        stay bit-comparable to a l2_init_decay=0 run. Batched per param group
+        through torch._foreach_*: ~2 element passes against Adam's ~5."""
+        with torch.no_grad():
+            for group, params, anchors, is_actor in self._l2_init_groups:
+                if not params or (is_actor and not self._actor_trainable):
+                    continue
+                alpha = -group["lr"] * self.l2_init_decay
+                if alpha == 0.0:  # a fully annealed lr freezes the anchor pull too
+                    continue
+                torch._foreach_add_(params, torch._foreach_sub(params, anchors), alpha=alpha)
+
+    def l2_init_metrics(self) -> dict[str, float]:
+        """||theta - theta0||_2 per LN-FREE actor block plus their aggregate,
+        logged at eval boundaries (D23 CONFOUND 7). Empty — no keys at all —
+        unless the lever is on."""
+        if self.l2_init_decay <= 0.0:
+            return {}
+        metrics: dict[str, float] = {}
+        total = 0.0
+        with torch.no_grad():
+            for block, params, anchors in self._l2_init_blocks:
+                sq = sum(
+                    float((param - anchor).pow(2).sum())
+                    for param, anchor in zip(params, anchors)
+                )
+                metrics[f"l2init/anchor_dist_{block}"] = math.sqrt(sq)
+                total += sq
+        metrics["l2init/anchor_dist_actor_lnfree"] = math.sqrt(total)
+        return metrics
+
+    def theta0_state(self) -> dict[str, Any]:
+        """The run dir's theta0.pt payload: the anchors themselves, keyed by
+        qualified name, plus the digest every checkpoint carries."""
+        return {
+            "theta0_hash": self.theta0_hash(),
+            "l2_init_decay": self.l2_init_decay,
+            "theta0": {
+                name: anchor.detach().to("cpu")
+                for name, anchor in zip(self._theta0_names, self._theta0)
+            },
+        }
+
+    def theta0_hash(self) -> str:
+        """sha256 over the anchors in capture order — each contributes its
+        qualified name and its raw CPU bytes. Stamped into every checkpoint
+        (60 identical 4.5 MB riders would be strictly worse) so a training
+        resume against a theta0.pt from a different init is caught."""
+        digest = hashlib.sha256()
+        for name, anchor in zip(self._theta0_names, self._theta0):
+            digest.update(name.encode())
+            digest.update(anchor.detach().to("cpu").contiguous().numpy().tobytes())
+        return digest.hexdigest()
 
     def act(self, obs: Any, action_mask: Any = None, deterministic: bool = False) -> Any:
         # float32 at tensor time (MinAtar obs are bool planes); branch on obs
@@ -685,6 +838,10 @@ class PPOAgent(Agent):
                 # 16/16 on synthetic data and could not tell which).
                 grad_norm = nn.utils.clip_grad_norm_(self.params, self.max_grad_norm)
                 self.optimizer.step()
+                if self.l2_init_decay > 0.0:
+                    # AFTER the step and after the clip read above: the lever
+                    # is a post-step displacement, not part of the gradient.
+                    self._apply_l2_init_decay()
 
                 sums["loss/policy"] += float(policy_loss.item())
                 sums["loss/value"] += float(value_loss.item())
@@ -724,6 +881,12 @@ class PPOAgent(Agent):
         }
         if self._bc_anchor is not None:
             state["bc_anchor"] = self._bc_anchor.state_dict()
+        if self.l2_init_decay > 0.0:
+            # A digest, not the anchors: theta0.pt lives once in the run dir.
+            # Riders are ignored by load_state_dict on purpose — an EVAL-side
+            # rebuild (score_ladder, eval_checkpoint) reconstructs a different
+            # init and must still load a D23 checkpoint unchanged.
+            state["theta0_hash"] = self.theta0_hash()
         return state
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
