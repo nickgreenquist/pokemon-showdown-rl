@@ -2607,3 +2607,15 @@ entry by offset — never a broad keyword grep.
   their per-seat env experience; their run ≈ 19× our 12M learner-consumed, ≈ 9.6×
   per-seat. Full detail folded into prior_work/README.md (H&L entry). Also this
   evening: maintainer-authorized push landed f27bea2..b53eac3 on origin/main.
+- 2026-08-11 (late evening, cont.) — **DESIGN §13 DRAFTED (PROPOSED): the 250M budget
+  memo** — discharges Rung 3's metagrok budget precondition (seat accounting, above)
+  and replaces its stale "5.4 days/lane" cost line with measured-rate arithmetic:
+  250M×3 at 3-wide ≈ 25 lane-days (exceeds the whole D17 20-lane-day trigger; ~2.5×
+  the ~9-10 remaining), solo ≈ 7 (fits, but single-seed = weak under our own 50M
+  adjudication), post-throughput IF ~2.6× transfers ≈ 9.5 for 3 lanes (fits) — so
+  **E1-E4 (D12b) is the gating item for any in-cap 3-lane 250M**. Open question
+  surfaced for ratification: whether rented compute counts against the lane-day
+  trigger. Pre-stated sequencing: no 250M pre-reg before a credited lever at 50M +
+  E1-E4 measured + the cap/rent question answered. Also: CLAUDE.md landmine fixed —
+  eval_checkpoint.py has reported env-supplied win_rate since 2026-08-05 (the "raw
+  returns only" clause was stale).

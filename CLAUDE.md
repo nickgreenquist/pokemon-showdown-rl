@@ -40,7 +40,7 @@ Session start: read `HANDOFF.md` only if non-empty (mid-handoff — fold anythin
 - A lane can die at startup with SIGSEGV in torch lazy static init, before any log line or run dir. Stagger lane starts; verify every lane individually.
 - **Shell loops run under `bash`, not zsh** — unquoted `$VAR` does not word-split in zsh. Also zsh: `echo ===` is a glob error; inline `#` comments do not parse interactively.
 - **Changing `OBS_DIM` invalidates every existing checkpoint.** Evaluate all outstanding finals before any encoder change lands.
-- **`eval/win_rate` comes from env-supplied `info["outcome"] ∈ {-1,0,+1}`, never the sign of the return** — a reward-sign inversion would report 100% and pass its own detector (measured). `scripts/score_ladder.py` is the correct path; `scripts/eval_checkpoint.py` returns raw returns only.
+- **`eval/win_rate` comes from env-supplied `info["outcome"] ∈ {-1,0,+1}`, never the sign of the return** — a reward-sign inversion would report 100% and pass its own detector (measured). Both `scripts/score_ladder.py` and `scripts/eval_checkpoint.py` report the env-supplied `win_rate` (the latter since 2026-08-05, with `wins_from_returns` kept only as the sign-bug cross-check — they must agree).
 - **Commit docs BEFORE launching runs; launch from a clean tree.** Launches stamp `git_dirty`; one untracked `.md` flips it (measured: dirtied 8 of 9 runs once). Never edit the tree — even untracked files — while the maintainer may be launching.
 - **vs-SH parity is NOT "done" — it is ~40% GXE.** SH itself scores 39.7%/41.2% GXE on the
   gen7/gen9 randbats ladders (Metamon Table 2), the published pure-policy randbats field

@@ -716,3 +716,55 @@ advisory grades PPO-specific evidence weak; the Farebrother non-stationarity arg
 is noted for whenever Arm C is re-read. SimBa block (obs-norm+residual+LayerNorm):
 rides only with a future trunk change, never alone mid-chapter.
 
+
+## 13. The 250M budget memo (PROPOSED 2026-08-11 — decision inputs only, no launch)
+
+**Status: DRAFTED 2026-08-11 (evening, D18 lanes running). Nothing here is a
+decision: Rung 3's own pre-registration makes the 12M→50M delta the purchase
+input and D18's readout reshapes the lever question. This section makes the
+250M quote HONEST when the chapter asks for it. It supersedes Rung 3's stale
+cost line ("250M = 5.4 days/lane" assumed ~540 steps/s; measured reality
+below) and discharges its budget precondition (metagrok accounting).**
+
+**Seat accounting, RESOLVED 2026-08-11 (prior_work/README.md, H&L entry).**
+H&L's learner trained on BOTH seats of every battle (paper Algorithm 1 "2m
+self-play matches"; code path verified). Their 3.84M battles ≈ ~2.3×10⁸
+learner-consumed transitions ≈ ~1.15×10⁸ per-seat decisions. **A 250M-step
+run of ours ≈ 1.1× their learner diet and ≈ 2.2× their per-seat experience**
+— 250M is scale parity-to-excess with the only published ≥70%-GXE pure
+self-play agent (budget parity, not result parity; theirs is gen7).
+
+**Wall-clock at MEASURED rates** (350-390 steps/s 3-wide, ≥400 solo, ~300-315
+at 5-wide, entity trunk, this box):
+- 250M × 3 lanes, 3-wide @ ~350/s: ~8.3 days/lane ≈ **25 lane-days** — alone
+  exceeds the ENTIRE 20 lane-day abandon trigger (D17), and ~2.5× the ~9-10
+  lane-days remaining (chapter ~10-11 spent through D18).
+- 250M × 1 lane, solo @ ~400/s: ~7.2 days ≈ 7 lane-days — fits the remainder
+  but is single-seed, which the 50M seed-fragility adjudication makes weak
+  evidence by this repo's own standards.
+- Post-throughput IF THROUGHPUT_SPEC's ~2.6× Stage-2 projection transfers
+  (E1-E4 measurement evening, D12b, still owed): 3-wide ~910/s → ~3.2
+  days/lane ≈ **9.5 lane-days for 3 lanes — fits the remaining budget.**
+  E1-E4 is therefore the GATING ITEM for any in-cap 3-lane 250M.
+
+**Paths if 3 lanes are wanted and E1-E4 under-delivers** (maintainer calls,
+listed not recommended): (a) renegotiate the 20 lane-day trigger (it is an
+abandon trigger, not a budget line — but renegotiating a pre-stated criterion
+after the money wants spending is exactly what D17 warns about; say so in the
+log if done); (b) rent compute — in charter scope, H&L's whole run was ~$91
+on 2019 GCP, a modern many-core box for ~10 days is roughly $200-500 (needs a
+real quote); OPEN QUESTION for ratification: does rented compute count
+against the lane-day trigger, whose purpose is opportunity cost of the chase?
+(c) 2 lanes as a middle — still ~17 lane-days pre-throughput, over remainder.
+
+**What 250M buys, honestly.** The 12M→50M credited delta was +0.029 over a
+4.17× scale-up; 50M→250M is another 5×. But D22's closed diagnosis (EV
+plateau 5M→50M, critic srank collapse) says the plateau is representational,
+not experience-starved — naive scale-up is the wrong buy, which is WHY D18
+ran. 250M is only worth pre-registering while carrying a credited lever:
+- D18 CREDITS → the next scale step is a priv-critic 50M (~5 lane-days at
+  measured rates, fits remainder); 250M sits behind ITS readout + E1-E4.
+- D18 NULL/NEGATIVE → regenerative-L2 at 12M (~2 lane-days) is next; 250M
+  recedes until some lever moves the 12M number again.
+Either branch: no 250M pre-registration before (1) a credited lever at 50M,
+(2) E1-E4 measured, (3) the lane-count/cap/rent question above answered.
