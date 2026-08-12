@@ -1,9 +1,12 @@
 # =====================================================================
 # PRE-REGISTRATION — DRAFTED 2026-08-12, REVISED same morning per the
-# two-agent review. STATUS: **DRAFT — NOT RATIFIED. NOT LAUNCHABLE.**
-# The lever is NOT YET IMPLEMENTED (no l2_init code exists in rl/);
-# ratification covers the design AND the build. Open questions at the
-# bottom; ratification is the maintainer's.
+# two-agent review. STATUS: **RATIFIED 2026-08-12 (maintainer: "q1 -
+# 3+2, q2 - I approve the build, q3 - whatever you recommend" →
+# Q1 = 3+2 ADOPTED (treatment 44/45/46, comparator 49/50); Q2 build
+# APPROVED (2-Opus build per the standing process); Q3 resolved
+# AS-ROUTED per recommendation — D23 now, LR anneal stays D21).
+# LAUNCH REMAINS GATED on: build complete + suite green, R0-9 control
+# curves frozen into this header, R0-11 grader committed.**
 # PROCESS (maintainer instruction 2026-08-12): 2 independent Opus
 # design agents (mechanism-first / experimental-design-first),
 # synthesized, then 2 independent Opus reviews (adversarial-arithmetic
@@ -456,23 +459,21 @@
 #      one-lever rule). D19 next.
 #
 # ---------------------------------------------------------------------
-# OPEN QUESTIONS FOR RATIFICATION (both reviews folded; Q-list
-# rewritten — old Q2 promoted into the design, Q4/Q5 resolved above,
-# old Q1 declined with reasons in ARMS):
-# Q1 LANE ALLOCATION (the real decision, per review): 3+2
-#    (recommended — see ARMS table), 4+1, or 5+0. Determines seeds,
-#    bars-as-formulas vs frozen bars, and the comparator's future
-#    for D19+.
-# Q2 IMPLEMENTATION APPROVAL: the lever does not exist in rl/ yet.
-#    Build = config key l2_init_decay (default 0.0 exact no-op),
-#    theta0 capture + theta0.pt + hash + scoped load guard,
-#    post-step _foreach decay, l2init/* metrics, R0-2b/R0-3 tests,
-#    d22-script --lanes adaptation for R0-9, d23_grade.py. Estimate
-#    ~1 evening including tests. Approve build before or with
-#    ratification?
-# Q3 LR-ANNEAL ORDERING: run D23 as routed, or pull LR anneal (D21,
-#    zero-code, confounded lever) forward first? (Recorded as
-#    considered; routing says D23; maintainer may override.)
+# RATIFICATION ANSWERS (2026-08-12, verbatim: "q1 - 3+2 / q2 - I
+# approve the build, use 2 opus sub agents to help / q3 - whatever
+# you recommend"):
+# Q1 LANE ALLOCATION: **3+2 ADOPTED** — treatment seeds 44/45/46
+#    (this config), comparator seeds 49/50 (struct12m verbatim at its
+#    original 100k/100 cadence). Bars are FORMULAS at readout (5-seed
+#    comparator: 26/27/28 frozen + 49/50 fresh); frozen 0.5509 stays
+#    the historical baseline; the log records whether prior verdicts
+#    would have changed.
+# Q2 BUILD: APPROVED — built 2026-08-12 with 2 Opus agents per the
+#    standing design/build process.
+# Q3 ORDERING: AS-ROUTED (recommendation adopted) — D23 now; LR
+#    anneal stays D21. Basis: the ratified routing; anneal's evidence
+#    is probe-era from the vs-SH-trained arm (not transferable
+#    as-is); the 3+2 comparator lanes improve any future D21 read.
 # =====================================================================
 env_id: Showdown-v0
 seed: 44

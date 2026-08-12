@@ -2734,3 +2734,12 @@ entry by offset — never a broad keyword grep.
   (~1 evening). Q3: LR-anneal ordering (considered, declined by routing, maintainer
   may override). Paired-init declined; old Q4/Q5 resolved in-header. NOTHING
   LAUNCHES until ratification + build + R0-9/R0-11 complete.
+- 2026-08-12 (morning, D23 RATIFIED) — **Maintainer ratified D23 (verbatim: "q1 -
+  3+2 / q2 - I approve the build, use 2 opus sub agents to help / q3 - whatever you
+  recommend"). Q1 = 3+2 ADOPTED (treatment 44/45/46, fresh comparator lanes 49/50 on
+  struct12m verbatim at its original 100k/100 cadence; bars become formulas at
+  readout over the 5-seed comparator; frozen 0.5509 stays the historical baseline).
+  Q2 = build approved, 2-Opus build. Q3 = as-routed per recommendation (D23 now, LR
+  anneal stays D21; anneal evidence is probe-era vs-SH-arm, and the new comparator
+  lanes improve any future D21 read). Launch stays gated on build + R0-9 (control
+  curves frozen into the header) + R0-11 (grader committed).**
