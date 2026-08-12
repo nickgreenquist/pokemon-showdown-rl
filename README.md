@@ -41,6 +41,7 @@ rows marked * are single-seed probes, not headline-grade.
 | + H&L reward shaping (γ0.95, 5-term zero-sum) — null | 0.4131 ± 0.0052 |
 | **+ entity architecture (DeepSets + pointer head), 12M** | **0.5509 ± 0.0052** |
 | **same recipe at 50M — current best** | **0.5802 ± 0.0052** |
+| + privileged (asymmetric) critic, 12M, 5 seeds — null | 0.5364 ± 0.0066 |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 
@@ -61,15 +62,19 @@ the scripted benchmark in gen1** — stated as "none found," not "proven first".
 scale run (50M) then read out at **0.5802 pooled — crediting its pre-registered bar,
 with a recorded caveat**: the seed spread tripled (0.509–0.659), so the scale effect
 is not yet seed-robust; adjudication and the remaining anchor read are in
-`SESSION_LOGS.md`.
+`SESSION_LOGS.md`. The first post-50M lever — a privileged (asymmetric) critic that
+sees the opponent's true hidden team during training, itself with no documented
+Pokémon-RL instance found — read out null at 12M × 5 seeds (0.5364 pooled) and was
+killed by its own pre-registered falsifier: the critic's explained variance rose on
+every seed while the win rate did not move, and its feature rank stayed as collapsed
+as the controls' — the value function learned things the policy could not use.
 
 **Honest scoping.** SH parity ≈ 40% GXE in human-ladder terms; the strongest
 documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach
 ~80% GXE. This chase is a *purity-lane* first in a generation where it had not been
 shown — it is not a strength record and does not enter the published field. The
-roadmap is `DESIGN.md` (r7 ratified; §12 queues the next levers — an
-asymmetric/privileged critic first, also with no documented Pokémon-RL instance
-found).
+roadmap is `DESIGN.md` (r7 ratified; §12's first lever, the privileged critic, is
+read out and killed — a regenerative-L2 plasticity rung is next in its queue).
 
 ## Setup
 

@@ -2632,3 +2632,39 @@ entry by offset — never a broad keyword grep.
   the POKEMON_RL_PROFILE block in _vector_loop) is rl/-touching and DEFERRED until
   after the readout evals run on the reviewed SHAs (3-agent review: zero code
   changes); the measurement evening still needs the idle box regardless.
+- 2026-08-12 (early morning, THE D18 READOUT) — **D18 PRIVILEGED-CRITIC RUNG: NULL,
+  AND KILLED BY ITS OWN PRE-STATED FALSIFIER.** All 5 lanes completed 12M clean
+  (~10.6 h at 5-wide, ~300-324 steps/s warm; R0-8 recorded: s41 dipped to ~270 at
+  3.3M, recovered). **PRIMARY (locked, 5×3000, both env vars, R0-4 exact-agree on
+  all 10 evals): s39 0.5610 / s40 0.5477 / s41 0.4740 / s42 0.5623 / s43 0.5370 →
+  pooled 0.5364, Δ −0.0145 vs comparator 0.5509.** Spread s=0.0364; clustered
+  se_diff 0.0221 governs (binomial 0.0066); z = −0.65 — statistically flat, and
+  |Δ| < 0.025 so not letter-negative either. **Branch (b) NULL.** CO-PRIMARY
+  (val-peak re-grades, recorded-not-credit-bearing): 0.5587/0.5517/0.5200/0.6363/
+  0.5523 → pooled 0.5638 (+0.0129); within-lane final→peak gap +0.0274 (selection
+  n=1000 on eval/return_mean, 24 evals — its own confound block applies).
+  **FALSIFIER FIRED (the epitaph): EV rose on EVERY lane** — per-2M means climb
+  ~0.50 → 0.60-0.62, final-1M 0.597-0.621, clearly above the 12M control plateau
+  0.549-0.561 — while win rate stayed flat: the header's verbatim kill clause
+  ("critic fits information the policy cannot exploit; advantage signal degraded —
+  KILL THE RUNG, do not tune around it"). The named mechanism candidate (advantage
+  scale shift from a sharper V) is recorded here, not rerun. **SRANK SECONDARY
+  (adapted d22 scripts, results/d18): the privileged input did NOT de-collapse the
+  critic** — critic ctx srank99 at 12M: s39 14 / s40 14 / s41 25 / s42 17 / s43 7
+  of 384 (50M controls: 7-11); the critic fit MORE variance (EV up) through an
+  equally collapsed representation. Actor srank fell too (92/26/9/85/73 by 12M;
+  s41's 9 is the blowup lane). Collapse is training-dynamics-intrinsic, not
+  information starvation — regen-L2's thesis, strengthened. **D22-WATCH: s41
+  reproduced an s37-class escalating grad blowup** — bin-medians 6.92 → 23.55 →
+  61.97 → 1607.5 over the final 4M, worst final (0.4740 vs its 0.5200 val-peak);
+  the pre-stated trigger (median >100 ×3 consecutive bins) is NOT met by letter
+  (one bin >100; the 12M horizon truncated the escalation) — moot for queue order,
+  branch (b) makes regen-L2 next regardless, but it is now 2-of-8 entity lanes
+  with the phenomenon. K6: window closed pre-6M clean; late entropy dipped to
+  0.155 (s42) / 0.172 (s41), after the window — recorded. Attribution footnote
+  (confound 1): the EV rise is not separable between hidden-state and the critic's
+  first move features; moot post-kill. **NEXT, per branch (b): regenerative-L2
+  pre-reg (D22's named runner-up); D19 stays as-queued.** D17 accounting: +~2
+  lane-days, chapter ~12-13 of 20. Artifacts: results/d18/ (10 eval JSONs + 5 obs
+  tapes + dormant/effective_rank CSVs, gitignored). Grader output verbatim in
+  results/d18/ via scripts/d18_grade.py; seeds 39-43 SPENT.

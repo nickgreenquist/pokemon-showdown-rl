@@ -27,8 +27,10 @@ saves); the actor is forwarded on obs alone, unchanged. A priv checkpoint
 probed with a priv-less npz raises loudly — no silent wrong read. D18 read:
 
     python scripts/d22_dormant_rank.py --lanes 39,40,41,42,43 \
-        --steps 500000,3000000,6000000,9000000,12000000 \
+        --steps 400000,3000000,6000000,9000000,12000000 \
         --run-prefix showdown_sp_priv12m_s --out results/d18
+
+(400k not 500k: D18's checkpoint_every is 200k, so 500k does not exist.)
 
 (--out results/d18, NOT the default: the script writes dormant.csv /
 effective_rank.csv into --out and must not clobber the D22 artifacts; the
