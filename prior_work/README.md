@@ -398,9 +398,27 @@ lossy by construction and the code has repeatedly contradicted the project's own
   **cloned as a sibling at `/Users/nickgreenquist/Documents/Projects/metagrok`**; the
   committed config reproduces the paper's 1,327,618 params exactly and the released
   checkpoint loads. The recipe: **pure mirror self-play from random init** (both seats the
-  same object, no pool, no BC init, no curriculum), **3.84M battles ≈ 2-3×10⁸ decisions,
-  6 days, ~$91 on GCP** — 20-45× our 12M budget, i.e. "pure self-play works" is a 10⁸-scale
-  statement; also financially trivial. Architecture is NOT a flat MLP: 128-d entity
+  same object, no pool, no BC init, no curriculum), **3.84M battles (500 iters × 7680),
+  6 days, ~$91 on GCP** — a 10⁸-scale statement; also financially trivial. **SEAT
+  ACCOUNTING RESOLVED 2026-08-11 (subagent deep-read, gates any 250M quote): their PPO
+  learner consumes BOTH seats' trajectories from every battle.** Paper Algorithm 1 is
+  explicit ("update the neural network parameters using the **2m** self-play matches as
+  training data"); code agrees (simulate_worker.py:48-53 writes p1+p2 trajectories per
+  battle; integrated_rl.py:327-329 filters to one seat only if the expt config sets
+  `player`, which the paper's run config expts/01.json does not; learner.py:130 sweeps
+  both files into the rollup). The paper publishes NO decision count — this index's old
+  "≈2-3×10⁸ decisions" was a reconstruction and is a BOTH-SEAT number; per-seat their
+  run is ~0.96-1.5×10⁸ decisions (~1.15×10⁸ at ~30 decisions/seat/battle, the residual
+  uncertainty being that 25-40 band, gen7). PPO epochs 6 (each transition reused 6× in
+  SGD — data diet, not extra experience; no cross-iteration replay,
+  updater_buffer_length_iters 1); errored battles re-simulated, not half-counted;
+  terminal result rows dropped from training data; RL-meta adds a further 384k battles
+  on top of the headline run. Structural note: their both-seat batches are exactly
+  return-balanced per battle (one winner + one loser trajectory) — our one-seat-vs-pool
+  batches are not. **CONVERSION LINE for the 250M decision: a 250M-step run in our
+  currency ≈ 1.1× their learner-consumed diet (~2.3×10⁸) and ≈ 2.2× their per-seat env
+  experience (~1.15×10⁸); their run ≈ 19× our 12M in learner-consumed terms, ≈ 9.6×
+  per-seat.** Architecture is NOT a flat MLP: 128-d entity
   embeddings (species/moves/items/abilities), shared per-Pokémon net, DeepSets max-pool over
   the team, and a SHARED PER-ACTION SCORING HEAD ([trunk ‖ move_emb ‖ switch_target_emb] →
   shared MLP → scalar) — rung 1-2 of the architecture ladder, uncontested by ps-ppo (flat

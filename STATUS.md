@@ -49,7 +49,8 @@ suite 269 green). BR color: exploiter hit ~0.56 vs SH in 6M vs one frozen oppone
    re-grades + EV/srank secondaries (d22 scripts ADAPTED 9c5ccc7; results/d18).
 2. Regenerative L2-toward-init: named next-after-D18; jumps queue if D18 lanes
    reproduce an s37-class grad blowup (D22-watch gate in the header, record-only).
-3. 250M decision: after D18 + H&L seat accounting (gates any 250M quote).
+3. 250M decision: after D18. H&L seat accounting RESOLVED 2026-08-11 (both-seat;
+   250M ≈ 1.1× their learner diet, 2.2× their per-seat experience — prior_work).
 
 ## Watch items
 

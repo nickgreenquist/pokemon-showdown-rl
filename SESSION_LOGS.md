@@ -2590,3 +2590,20 @@ entry by offset — never a broad keyword grep.
   same-seed collision landmine, now warned in the docstring). Readout eval driver
   staged at ~/.claude/jobs/62d4fa41/tmp/d18_readout_evals.sh (2 batches of 5
   concurrent 3000-battle evals, distinct seeds per batch).
+- 2026-08-11 (late evening) — **H&L SEAT ACCOUNTING RESOLVED (the named gate on any
+  250M quote, per the 50M pre-reg): their learner trains on BOTH seats of every
+  battle.** Subagent deep-read of the metagrok clone + paper PDF. Proof: Algorithm 1
+  "update ... using the 2m self-play matches as training data" (paper, Sec. III.B);
+  simulate_worker.py:48-53 writes both seats' trajectories per battle;
+  integrated_rl.py:327-329 one-seat filter requires an expt `player` key the paper's
+  run config (expts/01.json — QuadCapacity, 500 iters, 7680 matches/iter) does not
+  set; learner.py:130 rollup glob sweeps both files. The paper publishes battles only
+  (3.84M); prior_work's "≈2-3×10⁸ decisions" was a reconstruction and is BOTH-SEAT;
+  per-seat ~0.96-1.5×10⁸ (~1.15×10⁸ @ ~30 dec/seat/battle — the 25-40 band is the
+  only residual uncertainty, gen7). Complications recorded: PPO epochs 6 (reuse ≠
+  experience), no cross-iteration replay, errored battles re-simulated, result rows
+  dropped, RL-meta +384k battles extra, both-seat batches return-balanced per battle
+  (ours are not). CONVERSION: 250M ours ≈ 1.1× their learner-consumed diet / ≈ 2.2×
+  their per-seat env experience; their run ≈ 19× our 12M learner-consumed, ≈ 9.6×
+  per-seat. Full detail folded into prior_work/README.md (H&L entry). Also this
+  evening: maintainer-authorized push landed f27bea2..b53eac3 on origin/main.
