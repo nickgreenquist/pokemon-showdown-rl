@@ -38,10 +38,16 @@ cd showdown && node pokemon-showdown start --no-security
 
     python scripts/showdown_throughput.py d
 
-The policy is the real Phase 2 PPO discrete stack at CartPole scale
-(mlp [64, 64] actor + critic, masked logits, sampled action) on whatever
-encoder rl/envs/showdown.py currently ships — the 10-dim placeholder when
-(a)-(c) first ran (2026-07-29), the real Gen 1 encoder since 2026-07-30.
+The policy defaults to the historical tiny stack (mlp [64, 64] actor +
+critic, masked logits, sampled action) so old shape-comparisons stay valid,
+on whatever encoder rl/envs/showdown.py currently ships — the 10-dim
+placeholder when (a)-(c) first ran (2026-07-29), the real Gen 1 encoder
+since 2026-07-30. `--net` swaps in production-scale stacks (THROUGHPUT_SPEC
+E4(b): absolute claims must never be made at [64,64] — the two prior
+misreads): `mlp512` = [512, 512] (the spec's patch target), `entity` = the
+Rung 2 entity_deepsets actor+critic at the credited trunk_kwargs (needs
+both encoder env vars — refuses to run below OBS_DIM 828). Every output
+header carries the net; quote nothing without it.
 """
 
 import argparse
@@ -73,10 +79,29 @@ N_ACTIONS = 10
 SHOWDOWN_DIR = Path(__file__).resolve().parents[1] / "showdown"
 
 
-def make_policy(seed: int = 0):
+RUNG2_TRUNK_KWARGS = dict(  # the credited Rung 2/50M production trunk
+    species_vocab=152, move_vocab=166, embed_dim=64, entity_dim=128,
+    pool="max", ctx_sizes=[384, 384], scorer_sizes=[256],
+    value_sizes=[384, 384],
+)
+
+
+def make_policy(seed: int = 0, net: str = "tiny"):
     torch.manual_seed(seed)
-    actor = mlp(OBS_DIM, [64, 64], N_ACTIONS, activation=torch.nn.Tanh)
-    critic = mlp(OBS_DIM, [64, 64], 1, activation=torch.nn.Tanh)
+    if net == "entity":
+        if OBS_DIM != 828:
+            raise SystemExit(
+                f"--net entity needs the production encoder (OBS_DIM 828, got "
+                f"{OBS_DIM}): set POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1"
+            )
+        from rl.networks.entity_deepsets import EntityDeepSetsNet
+
+        actor = EntityDeepSetsNet(OBS_DIM, N_ACTIONS, **RUNG2_TRUNK_KWARGS)
+        critic = EntityDeepSetsNet(OBS_DIM, 1, **RUNG2_TRUNK_KWARGS)
+    else:
+        width = {"tiny": [64, 64], "mlp512": [512, 512]}[net]
+        actor = mlp(OBS_DIM, width, N_ACTIONS, activation=torch.nn.Tanh)
+        critic = mlp(OBS_DIM, width, 1, activation=torch.nn.Tanh)
     from rl.common.masking import masked_logits
 
     @torch.no_grad()
@@ -148,8 +173,8 @@ def _stats(xs, unit=1e3):
     )
 
 
-def measure_a(battles: int):
-    seam = InferenceSeam(make_policy())
+def measure_a(battles: int, net: str = "tiny"):
+    seam = InferenceSeam(make_policy(net=net))
     player = TimedSeamPlayer(seam, battle_format=FORMAT)
     opponent = RandomPlayer(battle_format=FORMAT)
     parse = _wrap_parse_timers()
@@ -169,7 +194,7 @@ def measure_a(battles: int):
         if a[0] == b[0]  # same battle only
     ]
     n = seam.requests
-    print(f"{battles} battles, {n} decisions, wall {wall:.2f}s")
+    print(f"{battles} battles, {n} decisions, wall {wall:.2f}s  [net={net}]")
     print(f"encode (embed_battle + mask):  {_stats(encode)}")
     print(f"inference (seam, batch-1):     mean {seam.inference_seconds / n * 1e3:7.3f} ms")
     print(f"env gap (order -> next req):   {_stats(gaps)}")
@@ -179,11 +204,12 @@ def measure_a(battles: int):
     print(f"    residual = gap - parse - RTT (server compute + loop scheduling)")
 
 
-def measure_b(concurrency: list[int], battles_per_point: int | None):
+def measure_b(concurrency: list[int], battles_per_point: int | None, net: str = "tiny"):
+    print(f"[net={net}]")
     print("in-flight  battles  wall_s  decisions/s  battles/s  inference_share")
     for n in concurrency:
         n_battles = battles_per_point or max(8, 4 * n)
-        seam = InferenceSeam(make_policy())
+        seam = InferenceSeam(make_policy(net=net))
         player = SeamPlayer(seam, battle_format=FORMAT, max_concurrent_battles=n)
         opponent = RandomPlayer(battle_format=FORMAT, max_concurrent_battles=n)
         t0 = time.perf_counter()
@@ -210,10 +236,10 @@ def _port_up(port: int) -> bool:
         return False
 
 
-def _worker_c(port, n_battles, in_flight, barrier, out_q):
+def _worker_c(port, n_battles, in_flight, barrier, out_q, net):
     torch.set_num_threads(1)
     pid = os.getpid()
-    seam = InferenceSeam(make_policy())
+    seam = InferenceSeam(make_policy(net=net))
     cfg = _server_configuration(port)
     player = SeamPlayer(
         seam,
@@ -253,8 +279,8 @@ def _start_servers(ports: list[int]) -> list[subprocess.Popen]:
     return procs
 
 
-def measure_c(workers: list[int], battles_per_worker: int, in_flight: int, servers: str):
-    print(f"in-flight {in_flight}/worker, {battles_per_worker} battles/worker, servers={servers}")
+def measure_c(workers: list[int], battles_per_worker: int, in_flight: int, servers: str, net: str = "tiny"):
+    print(f"in-flight {in_flight}/worker, {battles_per_worker} battles/worker, servers={servers}  [net={net}]")
     print("workers  wall_s(max)  decisions/s  battles/s  inference_share(mean)")
     ctx = mp.get_context("spawn")
     for w in workers:
@@ -270,7 +296,7 @@ def measure_c(workers: list[int], battles_per_worker: int, in_flight: int, serve
             barrier = ctx.Barrier(w)
             out_q = ctx.Queue()
             procs = [
-                ctx.Process(target=_worker_c, args=(ports[i], battles_per_worker, in_flight, barrier, out_q))
+                ctx.Process(target=_worker_c, args=(ports[i], battles_per_worker, in_flight, barrier, out_q, net))
                 for i in range(w)
             ]
             for p in procs:
@@ -292,10 +318,10 @@ def measure_c(workers: list[int], battles_per_worker: int, in_flight: int, serve
         )
 
 
-def measure_d(batch_sizes: list[int], iters: int = 2000):
-    policy = make_policy()
+def measure_d(batch_sizes: list[int], iters: int = 2000, net: str = "tiny"):
+    policy = make_policy(net=net)
     rng = np.random.default_rng(0)
-    print(f"policy forward (masked actor + critic + sample) at OBS_DIM={OBS_DIM}")
+    print(f"policy forward (masked actor + critic + sample) at OBS_DIM={OBS_DIM}  [net={net}]")
     print("batch  total_us  per_sample_us  samples/s")
     for b in batch_sizes:
         obs = rng.random((b, OBS_DIM), dtype=np.float32)
@@ -330,14 +356,20 @@ if __name__ == "__main__":
         help="(c) battles in flight per worker; default 16, measurement (b)'s plateau",
     )
     parser.add_argument("--servers", choices=["shared", "per-worker"], default="shared")
+    parser.add_argument(
+        "--net", choices=["tiny", "mlp512", "entity"], default="tiny",
+        help="policy stack; absolute claims need mlp512/entity (E4b), tiny is "
+        "shape-reads only",
+    )
     args = parser.parse_args()
     # The repo's tiny-net lesson, third confirmation pending: 1 thread.
     torch.set_num_threads(1)
     if args.measurement == "a":
-        measure_a(args.battles)
+        measure_a(args.battles, net=args.net)
     elif args.measurement == "b":
-        measure_b(args.concurrency, args.battles_per_point)
+        measure_b(args.concurrency, args.battles_per_point, net=args.net)
     elif args.measurement == "c":
-        measure_c(args.workers, args.battles_per_worker, args.in_flight, args.servers)
+        measure_c(args.workers, args.battles_per_worker, args.in_flight, args.servers,
+                  net=args.net)
     else:
-        measure_d([1, 2, 4, 8, 16, 32, 64, 128])
+        measure_d([1, 2, 4, 8, 16, 32, 64, 128], net=args.net)
