@@ -2767,7 +2767,8 @@ entry by offset — never a broad keyword grep.
 - 2026-08-12 (early afternoon, D23 LAUNCH RECORD) — **D23 LAUNCHED ("launch"): 5
   lanes up — 3 treatment (l2init cfg, seeds 44/45/46) + 2 comparator (struct12m
   verbatim, 100k/100 cadence, seeds 49/50).** s44 was launched by the maintainer
-  from the handed-over command (~17:00 UTC stamp / ~13:00 EDT); agent launched the
+  from the handed-over command (17:00 EDT — the wandb stamps are local; a UTC
+  mislabel here was corrected same day); agent launched the
   remaining four staggered 75s (s45 17:02:20, s46 17:03:35, s49 17:04:50, s50
   17:06:05 local-log clock), nohup+disown+caffeinate, all from clean tree 6e50d5c.
   R0-8 launch checks ALL GREEN: 5 python + 5 caffeinate processes; wandb binaries
