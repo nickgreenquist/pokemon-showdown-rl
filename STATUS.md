@@ -41,12 +41,12 @@ accounting RESOLVED (both-seat; prior_work). DESIGN §13 (250M budget memo) PROP
 1. **Regenerative-L2 pre-reg** (D22's named runner-up; branch (b) of the D18 header):
    evidence now includes 2-of-8 entity lanes with grad blowups (s37, s41) and srank
    collapse that persists even with privileged input. Draft → maintainer ratifies.
-2. E1-E4 measurement evening (D12b): rl/-touching tooling (profile_collect.py +
-   _vector_loop timers) now UNBLOCKED (readout evals done on reviewed SHAs);
-   showdown_throughput.py --net patch landed (f4ce757). Gates in-cap 3-lane 250M
-   (DESIGN §13).
-3. 250M decision: per §13 — no pre-reg before a credited lever at 50M + E1-E4 +
-   the cap/rent question.
+2. **E1-E4 DONE 2026-08-12 (D12b discharged)**: E1 FLAT (serialization confirmed,
+   num_envs dead as a lever); E2 reset 5% (ignore); E3 race_get 54% (middle band);
+   E4a node 7.6% of a core; E4b knee at K=8, ~1240 dec/s at entity width = 2.3×
+   solo loop → Stage-2 async collector pays; 250M×3 post-Stage-2 ≈ 7-8 lane-days.
+3. 250M decision: per §13 — needs a credited lever at 50M + the cap/rent question
+   (E1-E4 gate now cleared).
 
 ## Watch items
 

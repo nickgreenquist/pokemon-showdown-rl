@@ -2668,3 +2668,24 @@ entry by offset — never a broad keyword grep.
   lane-days, chapter ~12-13 of 20. Artifacts: results/d18/ (10 eval JSONs + 5 obs
   tapes + dormant/effective_rank CSVs, gitignored). Grader output verbatim in
   results/d18/ via scripts/d18_grade.py; seeds 39-43 SPENT.
+- 2026-08-12 (early morning, cont.) — **E1-E4 MEASUREMENT EVENING RUN AND CLOSED
+  (D12b discharged; box idle post-readout; runner 0fb72eb, artifacts
+  results/throughput/).** E1 (num_envs sweep 1-16, rollout×envs held at 1024, 30k
+  steps each): steps/s 523-550, spread 1.05× → **FLAT — serialization CONFIRMED,
+  num_envs closed as a lever forever; Stage 2 (async collector) is the whole
+  answer.** Solo entity-trunk baseline ~540 steps/s. E2: reset share of collect
+  0.050 — at the ignore boundary; concurrency absorbs it, no battle-creation
+  pipelining needed. E3 (8k instrumented steps): embed 133 µs/decision (spec
+  predicted 158), mask 8 µs, opponent 368 µs, race_get 408 µs/call → **race_get
+  share of vector step 0.54 — MIDDLE BAND: the residual is ~half idle wait, half
+  CPU; concurrency relief is partial, spec's §5 ceiling is cut accordingly.** E4a:
+  node median **7.6% of one core** (max 15.7%) during a 1-lane run → server has
+  ~10× headroom beyond the spec's own bar; one server suffices, network:1
+  contingency dead. E4b (in-flight sweep, --net entity, the trustworthy-absolute
+  config): 879 dec/s at K=1 → **1218 at K=8, flat to K=64 (~1240 max), knee at
+  K=8; inference share 0.40 at batch-1** → the Stage-2 build target is K≈8-16
+  concurrent battles/worker and batched inference has ~2× further headroom. NET
+  FOR §13: a single async worker at entity width already measured **~1240 dec/s ≈
+  2.3× the solo training loop** — Stage 2's ~2.6× projection survives contact at
+  the shape level; 250M×3 post-Stage-2 lands ~7-8 lane-days (fits the remaining
+  cap). The E1-E4 gate on the 250M quote is DISCHARGED.
