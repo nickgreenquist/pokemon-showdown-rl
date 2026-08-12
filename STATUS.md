@@ -38,12 +38,11 @@ accounting RESOLVED (both-seat; prior_work). DESIGN §13 (250M budget memo) PROP
 
 ## Next actions, in order
 
-1. **D23 regen-L2 pre-reg DRAFTED (1d10c5e; 2 Opus designers + 2 Opus reviews per
-   the new process) — AWAITING RATIFICATION**: configs/showdown_sp_l2init12m.yaml.
-   Decoupled decay toward θ₀, λ=0.02 closed-form; mechanism co-primary = critic
-   srank de-collapse. Maintainer decides: Q1 lane split (3+2 dominates 5+0 at equal
-   cost — P(credit|+0.02) 0.180 vs 0.078), Q2 build (~1 evening, lever not yet in
-   rl/), Q3 LR-anneal ordering. Then R0-9 control curves + R0-11 grader, then launch.
+1. **D23 RATIFIED (3+2) + BUILT + ALL LAUNCH GATES CLEARED (f9e4333) — READY TO
+   LAUNCH**: configs/showdown_sp_l2init12m.yaml (λ=0.02 decoupled decay toward θ₀;
+   mechanism co-primary critic srank ≥40 vs control 11-17; BOUND ≤4.452 frozen).
+   Launch: 3 treatment lanes (l2init cfg, seeds 44/45/46) + 2 comparator lanes
+   (struct12m verbatim, seeds 49/50), staggered, 5-wide ~10.6 h. Suite 293 green.
 2. **E1-E4 DONE 2026-08-12 (D12b discharged)**: E1 FLAT (serialization confirmed,
    num_envs dead as a lever); E2 reset 5% (ignore); E3 race_get 54% (middle band);
    E4a node 7.6% of a core; E4b knee at K=8, ~1240 dec/s at entity width = 2.3×
