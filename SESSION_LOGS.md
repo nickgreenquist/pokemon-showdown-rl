@@ -2689,3 +2689,48 @@ entry by offset — never a broad keyword grep.
   2.3× the solo training loop** — Stage 2's ~2.6× projection survives contact at
   the shape level; 250M×3 post-Stage-2 lands ~7-8 lane-days (fits the remaining
   cap). The E1-E4 gate on the 250M quote is DISCHARGED.
+- 2026-08-12 (morning, D23 DRAFTED under the new design process) — **REGENERATIVE
+  L2-TOWARD-INIT pre-registration drafted, 2-agent-designed and 2-agent-reviewed
+  (maintainer instruction 2026-08-12: design decisions get 2 Opus agents + reviews);
+  configs/showdown_sp_l2init12m.yaml — DRAFT, NOT RATIFIED, lever NOT built.**
+  DESIGN (agents: mechanism-first / read-first): DECOUPLED post-step decay toward
+  θ₀ (AdamW-style), NOT a loss term — a coupled L2-init under Adam is measurably a
+  dormancy-triggered soft reset (≈ the banned ReDo family; per-block λ_match spans
+  ~1200×), contaminates grad_norm/clip comparability, and is eps-sensitive.
+  Coverage: both nets minus LayerNorm (approximate-gauge argument; consequence
+  drawn: global-norm stats ~half inert → all functional reads on LN-free blocks).
+  λ = 1/(lr·N) = 0.02 closed-form (one anchor e-fold/budget; instantaneous-drift
+  alternative rejected at 15× seed spread); per-step constant at other budgets.
+  READ: 5 lanes, locked primary vs frozen 0.5509, larger-of credit line with bars
+  precomputed; power honesty PUBLISHED IN THE HEADER (P(credit|+0.02) ≈ 0.08;
+  best-case mechanism story pre-computes as NULL) → mechanism co-primary = critic
+  srank de-collapse (≥40 of 384), well-powered at 12M. REVIEWS (adversarial /
+  decision-quality): every core number REPRODUCED exactly (λ, N=187,488 counted
+  from s26's history, all bars, power sims, D18 gaps, budget); 1 BLOCKER — the
+  mechanism criteria were graded against s35-37 while R0-9 produces s26-28 curves
+  (tunable-after-the-fact hole; two companion thresholds sat INSIDE the s35-37
+  control range) — fixed: R0-9 freezes s26-28 numbers pre-ratification, thresholds
+  as fractions of control mean, partition-complete (dead zone removed). Other
+  majors fixed: falsifier scoped to "closed AT 12M for this chapter — budget
+  decision, not refutation" (the old family-kill was a Type-II-driven kill
+  contradicting the header's own horizon confound); VOID branch single-action
+  (D19 next, stronger-λ queued behind, asymmetry vs NEGATIVE justified); revised
+  D23-watch trigger honestly scoped to 12M (it retro-fires on s35/s36's RECOVERING
+  50M transients — 50M carry needs a recovery clause); "θ₀ not regenerable" was
+  FALSE (deterministic per (seed,config); D18's warning was cross-config) → one
+  theta0.pt/run + hash, load guard scoped to training path (a shared-loader guard
+  would break the locked eval); R0-2 cannot detect rider pollution → R0-2b
+  state_dict-keys assert; smoke calibration replaced by deterministic identity
+  unit tests (a 1.9-3.8% n=1 deviation verifies nothing); SnapshotPool θ₀
+  exclusion dropped (needed a shared-class deepcopy override risking R0-3; +90
+  MB/lane accepted instead); baselines labeled (500k- vs θ₀-relative had mixed);
+  dormancy quoted at named threshold (tau100 0.81-0.86, 2-of-3 seeds); eps/λ-range
+  numbers corrected (~6-41%, ~1200×); K6/R1 restated for T lanes; lane-failure
+  rule added; R0-11 grader pre-commit (R0-4 check carried). DECISION-QUALITY
+  HEADLINE (new lead question Q1): at IDENTICAL cost, 3 treatment + 2 fresh
+  comparator lanes DOMINATES 5+0 (P(credit|+0.02) 0.180 vs 0.078; the comparator's
+  sd rests on 3 numbers, 95% CI [0.0135,0.163]; comparator lanes are a permanent
+  chapter asset for D19+) — maintainer decides 3+2 / 4+1 / 5+0. Q2: build approval
+  (~1 evening). Q3: LR-anneal ordering (considered, declined by routing, maintainer
+  may override). Paired-init declined; old Q4/Q5 resolved in-header. NOTHING
+  LAUNCHES until ratification + build + R0-9/R0-11 complete.

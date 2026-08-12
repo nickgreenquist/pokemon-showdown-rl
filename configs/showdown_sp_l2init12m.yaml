@@ -1,0 +1,520 @@
+# =====================================================================
+# PRE-REGISTRATION — DRAFTED 2026-08-12, REVISED same morning per the
+# two-agent review. STATUS: **DRAFT — NOT RATIFIED. NOT LAUNCHABLE.**
+# The lever is NOT YET IMPLEMENTED (no l2_init code exists in rl/);
+# ratification covers the design AND the build. Open questions at the
+# bottom; ratification is the maintainer's.
+# PROCESS (maintainer instruction 2026-08-12): 2 independent Opus
+# design agents (mechanism-first / experimental-design-first),
+# synthesized, then 2 independent Opus reviews (adversarial-arithmetic
+# / decision-quality). The adversarial review REPRODUCED every core
+# number (lambda, all bars, power sims, budget) and found 1 blocker +
+# 6 majors, all folded in below; the decision-quality verdict was RUN
+# WITH FIXES, strongest recommendation = the Q1 lane reallocation.
+# Session log carries the full process record.
+#
+# D23 — REGENERATIVE L2-TOWARD-INIT at 12M. Routing authority: D18's
+# branch (b) (D18 read out NULL 2026-08-12, falsifier-killed) plus
+# D22's "named next-after-D18". Stated precisely: D22's plasticity
+# clause fired PARTIALLY (norms rise everywhere; "flat wr" was
+# confounded by s35), and s41's blowup missed the old watch-letter —
+# the routing is branch (b)'s, not a full D22 clause fire. NOT D21:
+# D21 tunes the existing objective's hyperparameters; this adds a NEW
+# term targeting a NAMED pathology.
+# ORDERING ALTERNATIVE, considered and declined (recorded so a reader
+# can see it was seen): LR anneal — cheaper, zero-code, and this
+# repo's own largest non-structural delta (0.4330->0.4607, vs-SH arm,
+# probe era) — is confounded with this lever (CONFOUND 1) and runs
+# later as D21. Ratified routing puts D23 here; the maintainer may
+# reorder at ratification.
+# DECISION SURFACE, stated plainly up front: the likely outcome is a
+# null on a primary that is near-unpowered at the predicted effect
+# size (P(credit|+0.02) ~ 0.08 at 5+0; the best-case mechanism story
+# pre-computes as E[delta]=+0.018 -> null); the best outcome (credit)
+# is attribution-confounded with effective-LR (C1) and entropy (C3),
+# whose separating arms are named-not-run. The rung's decisive
+# deliverable is therefore the MECHANISM CO-PRIMARY (srank), which is
+# well-powered at 12M. Q1 exists because lane reallocation materially
+# improves the primary's power at identical cost.
+#
+# THE ONE LEVER. After every optimizer step, every covered parameter
+# of BOTH nets decays toward its own initialization:
+#
+#     theta <- theta - group_lr * l2_init_decay * (theta - theta0)
+#
+# DECOUPLED (AdamW-style), NOT a loss term — measured reasons:
+# (1) a coupled lambda*||theta-theta0||^2 under Adam is preconditioned
+#     by 1/sqrt(v): the lambda at which the pull matches the task
+#     gradient spans ~3 orders of magnitude across blocks (~1.5e-4
+#     critic ctx to ~1.7e-1 critic head, s35/s36 Adam state; s37's
+#     post-blowup state degenerate, excluded — ~1200x range), and for
+#     near-zero-gradient (dormant) parameters Adam normalizes the pull
+#     up to a full lr step: a coupled L2-init here IS a dormancy-
+#     triggered soft reset, functionally adjacent to the CONFIRMED-
+#     DECLINED ReDo/reset family. Decoupled decays every displacement
+#     at the same fractional rate.
+# (2) Adam eps 1e-5 is ~6-41% of measured RMS(sqrt(v)) across trunk
+#     blocks (s35/s36) — a coupled term's strength would be part-set
+#     by a numerical constant.
+# (3) A coupled term rides inside clip_grad_norm_ and loss/grad_norm —
+#     rescaled by a time-varying clip during exactly the pathology it
+#     targets, and contaminating the D22-watch statistics vs every
+#     control curve. Decoupled applies after the step: grad_norm /
+#     clip_frac stay bit-comparable to Rung 2 / 50M / D18 curves
+#     (verified against ppo.py's zero_grad->backward->clip->step
+#     order, 4 epochs x 4 minibatches).
+#
+# COVERAGE: every parameter of actor AND critic EXCEPT those inside
+# nn.LayerNorm modules. Basis: the _subnet stack (Linear-ReLU-Linear-
+# LN) is APPROXIMATELY scale-invariant (ReLU positively homogeneous,
+# LN kills scale up to eps; exact only where theta0=0 — biases are
+# zero-init so their decay is exactly gauge, weights approximately).
+# The LN gain is the compensating knob and stays free. CONSEQUENCE,
+# drawn honestly: mon/move/field subnets (~45% of actor init squared
+# norm) are gauge-protected, so GLOBAL norm statistics are ~half
+# functionally inert — every functional read below therefore uses the
+# LN-FREE blocks (species_emb, move_emb, ctx_net, scorer, slot_bias,
+# head). slot_bias covered (bare nn.Parameter; an isinstance(Linear)
+# filter would miss it). Frozen params skipped.
+# theta0 = the seed's init, captured AFTER init_head() and
+# .to(device), held as detached clones in a PLAIN LIST — never
+# Parameters, never buffers, never in state_dict()'s module keys
+# (guard: assert actor/critic state_dict keys identical to the
+# l2_init_decay=0.0 build — a polluted state_dict breaks plain-828
+# loading and crashes the d22 measurement scripts). theta0 IS
+# regenerable for a fixed (seed, config) — construction is
+# deterministic given both; R0-9 asserts it — the D18 header's
+# "never claim init-match" was about DIFFERENT configs consuming
+# different construction RNG. Stored once per run dir as theta0.pt
+# with a hash stamped in every checkpoint (Q4 resolved: 60 identical
+# 4.5 MB riders is strictly worse). LOAD GUARD, scoped to the
+# TRAINING construction path only: resuming with l2_init_decay>0 and
+# no theta0.pt (or hash mismatch) raises. The EVAL path never touches
+# theta0 — score_ladder/eval_checkpoint on a D23 checkpoint must work
+# unchanged (a guard in the shared loader would break the locked
+# eval; scope it).
+#
+# COEFFICIENT, CLOSED-FORM (procedurally tuning-free; the target is a
+# stated CONVENTION, not a forced choice): one anchor e-fold over the
+# budget —
+#     lambda = 1 / (lr * N_opt),  N_opt = floor(12e6/(128*8)) * 16
+#            = 11,718 * 16 = 187,488  (matches s26's counted updates)
+#     lambda = 1 / (2.5e-4 * 187,488) = 0.0213 -> OPERATIVE 0.02
+# (tau = 200k optimizer steps ~ 12.8M env steps.) The instantaneous-
+# drift alternative was computed and REJECTED: 15x seed spread — not
+# pre-registerable. LAMBDA AT OTHER BUDGETS, pre-stated to close the
+# ambiguity the review caught: lambda is a PER-STEP CONSTANT; a 50M
+# follow-up carries 0.02 unchanged (~3.9x stronger vs that budget's
+# drift, where the pathology is worse). The "one e-fold per budget"
+# convention is how 0.02 was picked once, not a per-budget rule.
+# Cross-check: lr*lambda = 5e-6/step = half standard AdamW decay,
+# anchored at theta0.
+# PREDICTED EFFECT, with the model named: radial-drift replay of the
+# measured 500k-increment norm trajectories through the decay. Two
+# independent implementations landed ~12% apart (species_emb at 12M:
+# x3.4-3.7 and x3.8-4.1 vs control ~x5.8-6.1 on s26-28) — the
+# BINDING threshold below is set as a fraction of the R0-9 control
+# mean with that spread in mind, and the per-block ||theta-theta0||
+# metric (l2init/* namespace, logged at every eval boundary on
+# treatment lanes) makes the realized trajectory exact rather than
+# model-dependent.
+#
+# WHY NOW (evidence chain; baselines labeled — the review caught a
+# 500k-vs-theta0 mix): from theta0, actor species_emb grows ~x6 by
+# 12M and ~x11-13 by 50M (500k-relative: x5.6-6.6 at 50M); actor
+# global x1.4-1.7 at 12M, x2.3-2.5 at 50M (500k-relative); actor ctx
+# srank99 collapses 208-254 -> 74-98% of its total collapse by 12M
+# (85/5/74 at 12M); critic srank collapse essentially complete by 12M
+# (8/14/11 of 384 on s35-37). Dormancy (tau100, actor ctx): ~0.46-
+# 0.52 at 12M -> 0.81-0.86 at 50M on 2 of 3 seeds (s37 0.42). D18
+# (2026-08-12): privileged critic RAISED EV on all 5 lanes through a
+# collapsed representation and was falsifier-killed — collapse is
+# training-dynamics-intrinsic. Blowups: 2-of-8 entity lanes by eye
+# (s37@50M, s41@12M) — definition-sensitive, see SECONDARY 3.
+# Advisory: regenerative regularization is "the ONE plasticity family
+# validated on-policy" (2026-08-10; Juliani & Ash arXiv:2405.19153;
+# survey arXiv:2411.04832). ReDo/hard resets stay banned. s41
+# DOUBLE-DIP disclosed: motivating evidence AND comparison-set member.
+#
+# PURITY (§5): clean — regularizer toward the run's own random init.
+# Novelty: not claimed (published method transfer).
+#
+# ---------------------------------------------------------------------
+# ARMS — THE Q1 DECISION (maintainer ratifies one; bodies identical)
+# ---------------------------------------------------------------------
+# The bar is COMPARATOR-LIMITED (floor 0.5809 from the 3-seed
+# comparator's own spread; no treatment lane count moves it), and the
+# comparator's sd=0.0260 rests on 3 numbers (95% CI [0.0135, 0.163]).
+# Simulated P(credit) at IDENTICAL 5-lane / ~2 lane-day cost:
+#   design            +0.02   +0.03   +0.04   +0.05
+#   5 treat + 0 comp  0.078   0.273   0.578   0.840
+#   4 treat + 1 comp  0.135   0.345   0.613   0.831
+#   3 treat + 2 comp  0.180   0.372   0.590   0.778
+# REVIEW RECOMMENDATION: 3 treatment (44/45/46) + 2 fresh Rung 2
+# comparator lanes (49/50) — doubles power at the predicted effect
+# size, repairs the 3-number variance estimate, and the comparator
+# lanes are a PERMANENT chapter asset (D19 and every later 12M rung
+# faces this floor). Handling: the frozen 0.5509/3-seed comparator
+# remains the historical baseline (D18/Rung-3 verdicts are NOT
+# re-opened); D23 onward grades against the augmented 5-seed
+# comparator (pooled and clustered terms recomputed at readout from
+# all 5 comparator seeds); the log records whether prior verdicts
+# would have changed (honesty obligation, not re-adjudication).
+# Under 5+0 the frozen comparator stands as-is. Mechanism-read lane
+# counts below are written for T treatment lanes as ">= ceil(T/2)+1
+# of T" and "T-lane median". Q1 also covered: paired-init DECLINED
+# (streams desynchronize at the first differing action; a 3-paired/
+# 2-fresh mix invites a post-hoc estimator choice; if lanes are being
+# reallocated they are worth more as comparator lanes).
+#
+# ---------------------------------------------------------------------
+# COMPARATOR AND PRIMARY
+# ---------------------------------------------------------------------
+# COMPARATOR: Rung 2 12M — frozen 0.5509 (s26 0.5633 / s27 0.5683 /
+# s28 0.5210, 3x3000) — augmented per Q1 if 3+2/4+1 is ratified.
+# The treatment config is struct12m's body + ONE lever + a DELIBERATE
+# cadence change (eval_every 100k->500k, eval_episodes 100->1000),
+# disclosed here, not hidden: see CADENCE DISCLOSURE.
+#
+# PRIMARY: pooled finals vs SimpleHeuristicsPlayer, LOCKED protocol —
+# FINAL checkpoint, deterministic, ties as non-wins, 3000/seed. Both
+# env vars at every eval. Plain-828 checkpoints; privileged_dim ABSENT.
+#
+#   CREDIT LINE (DESIGN §8, IN FULL): credited iff pooled delta >=
+#   +0.025 AND >= 2*se_diff, se_diff = the LARGER of pooled-binomial
+#   and seed-clustered (computed from per-seed finals at read time).
+#   At 5+0: binomial se_diff 0.00663 -> letter 0.5759; clustered
+#   floor 0.5809 (comparator-limited); ~0.5889 at Rung-2-like spread
+#   (0.026), ~0.5952 at D18-like (0.0364). At 3+2/4+1 the bars are
+#   FORMULAS, not constants (the comparator mean and spread are
+#   partly measured at readout): same rule, comparator terms from all
+#   comparator seeds; the grader script implements it (R0-11).
+#   LOW-SPREAD ASYMMETRY disclosed: the lever's theory of change is
+#   variance reduction and the clustered bar rewards low spread —
+#   arithmetic, not gaming; named in advance.
+#   POWER, stated: see the Q1 table. Best-case mechanism story
+#   (remove a 25%-incidence -0.07 tail): E[delta] = +0.018,
+#   P(credit) ~ 0.04-0.05 at 5+0 — ON ITS OWN, A NULL. The primary is
+#   run and graded honestly, but the rung's decisive read is the
+#   mechanism co-primary.
+#   RECORDING RULE (pre-stated): pooled in [letter bar, operative
+#   bar) -> "letter-met, seed-fragile, NOT credited", full per-seed
+#   detail, no narrative use without the weakness named.
+#   FLAT, defined (the review caught it undefined): pooled delta <
+#   +0.025 and not NEGATIVE. NEGATIVE: pooled <= comparator -
+#   max(0.025, 2*se_diff) by the same larger-of line.
+#   LANE FAILURE RULE: a lane lost/stopped after R1 (incl. R1/K6
+#   stop-clauses) is reported as-is; NO replacement lane; pooled n
+#   shrinks and both se terms recompute at the surviving count; <3
+#   surviving treatment lanes voids the primary (mechanism reads
+#   still report).
+#
+# MECHANISM CO-PRIMARY (recorded co-equal deliverable; NOT credit-
+# bearing on the win-rate claim; promoted per review from secondary —
+# this replaces the old Q2): critic ctx srank99 at 12M, from the
+# adapted d22 scripts at steps 400k/3M/6M/9M/12M.
+#   Controls, honestly labeled: s35-37 critic 8/14/11 of 384 (true
+#   same-recipe controls at 12M); D18 lanes 7-25 (TREATMENT arm of a
+#   killed rung, comparison-not-control); s26-28 = R0-9's job,
+#   numbers frozen into this header before ratification.
+#   DE-COLLAPSE = treatment critic srank99 >= 40 of 384 on >=
+#   ceil(T/2)+1 lanes. Diagnostic of mechanism, not of value (D18
+#   proved EV can rise through a collapsed representation).
+#   Dormancy (tau100, named) reported as a SLOPE vs the 12M control
+#   values only (~0.46-0.52); never against the 50M headline.
+#
+# CO-PRIMARY 2, RECORDED NOT CREDIT-BEARING: val-peak re-grades at
+# 3000/seed, cadence held at D18's (500k/1000) so D18's within-lane
+# final->peak gap (+0.0274 pooled; 2-of-5 lanes <= 0.01) is the
+# cadence-matched control. MECHANISM PREDICTION: the gap shrinks.
+# SELECTION CONFOUND carried from D18 (the review caught it dropped):
+# best_checkpoint selects on eval/return_mean, not win_rate, over 24
+# evals — AND it is now DIRECTIONALLY ADVERSARIAL: C3 predicts the
+# lever raises entropy -> raises eval-return variance -> widens the
+# max-of-24 artifact -> pushes the gap UP, against the prediction. A
+# shrunken gap is therefore evidence; a grown gap is confounded.
+#
+# CADENCE DISCLOSURE (corrected per review): the treatment runs
+# 24x1000 = 24,000 in-training SH eval battles by 12M vs Rung 2's
+# 12,000 (120x100) — ~2x the draws off the GLOBAL random stream that
+# SimpleHeuristicsPlayer shares with training (poke_env baselines.py:
+# 70,93,95; player.py:339,470,478 — resolved from code 2026-08-12).
+# Noise-class (variance-inflating, unbiased), un-modeled in se_diff,
+# touches the PRIMARY not just the curves; identical in D18, so
+# treatment-vs-D18 comparisons are cadence-clean.
+#
+# ---------------------------------------------------------------------
+# MANIPULATION CHECK AND SECONDARIES
+# ---------------------------------------------------------------------
+# MANIPULATION CHECK (formerly "SECONDARY 1"; renamed per review — it
+# verifies the regularizer executed, it is NOT the mechanism read):
+# actor species_emb norm growth from theta0 at 12M, graded on the
+# T-LANE MEDIAN against the R0-9 s26-28 control mean (reconstructed
+# preview: ~x5.84-6.12; R0-9 freezes the operative numbers). The
+# review's recomputation on the right population, and the analytic-
+# init method (species_emb ||theta0|| = 0.02*sqrt(152*64) = 1.972),
+# are recorded in the log; R0-9 writes the control table to
+# results/d23/ as the artifact of record. PARTITION (no dead zone —
+# review blocker fix):
+#   BOUND:      median ratio <= 0.75 x control mean  (~<= 4.5)
+#   NOT BOUND:  median ratio >  0.75 x control mean
+#   VOID:       additionally, median >= 0.92 x control mean (~5.5) —
+#               the lever effectively did not execute.
+#   OVERBOUND:  LN-FREE-block aggregate ratio <= 1.0 (net shrinkage;
+#               the global-norm version was ~half gauge-inert and is
+#               retired) -> wr losses attributed to lambda, recorded
+#               as calibration failure, NOT as thesis refutation.
+# Companions (recorded, LN-free blocks only): species_emb trajectory
+# from the l2init/* metrics; ctx_net ratio vs R0-9 control.
+# SECONDARY 3 — grad-blowup incidence, with the definition stated
+# (the review showed the base rate is definition-sensitive): operative
+# definition = the D23-watch trigger below, which classifies s41 and
+# s37 as fires and (retrospectively) also fires on s35/s36's
+# recovering 50M transients — so the honest base rate at the 12M
+# horizon is s41's 1-of-8, and 2-of-8 (adding s37) is the by-eye
+# count. Binomial honesty: P(0-of-5 | p=0.25) = 0.237; Fisher 0-of-5
+# vs 2-of-8 p = 0.49. 0-of-T = "consistent with, not evidence for";
+# this secondary can never carry a claim at this N.
+# SECONDARY 4 — entropy trajectory vs the control band (s26/27/28
+# final-1M-bin means 0.212-0.284): see CONFOUND 3. A credit with
+# treatment entropy > 0.05 above the band over the back half STANDS
+# on the primary but is recorded attribution-open (pre-stated so the
+# clause cannot be argued at readout).
+#
+# FALSIFIER, PRE-STATED (partition-complete; scoped per review — the
+# old "kill the family" contradicted CONFOUND 2's own horizon
+# argument and would have been a Type-II-driven kill):
+#   BOUND + srank de-collapse fails + wr FLAT (as defined above) =>
+#     constrained drift is not the binding constraint AT THE 12M
+#     HORIZON — the regenerative family is CLOSED FOR THIS CHAPTER
+#     AT 12M. This is a budget decision, not a refutation: the 50M
+#     re-test is unaffordable under the cap and is not re-opened
+#     absent new evidence. Do not tune lambda; do not try the
+#     coupled form.
+#   BOUND + srank RECOVERS + wr flat => norms and rank restored and
+#     it still didn't help at 12M: representation health is not the
+#     12M binder; same closure, epitaph recorded, D19 next.
+#   NOT BOUND (incl. VOID) => the read is VOID on the lever, not
+#     null. NEXT ACTION, single (review fix): D19 runs next; a
+#     single stronger-lambda re-run is QUEUED BEHIND D19 and
+#     launches only if the cap allows. (Why VOID may re-try where
+#     NEGATIVE may not: VOID = the intervention never landed —
+#     nothing was tested; NEGATIVE = it landed and hurt — that is a
+#     result.)
+#   VOID + primary CREDIT (both can hold — credit is judged on the
+#     primary alone): the credit STANDS, recorded as
+#     "mechanism-unexplained"; branch (a)'s narrative claim
+#     ("plasticity is a real binder") is NOT available.
+#   R1 fail + entropy > 2x control at 4M => lambda too strong:
+#     lane stopped, calibration failure, no in-rung re-tune. R1
+#     fail WITHOUT the entropy signature => lane voided,
+#     unattributed (an s41-class lane is not a lambda failure).
+#
+# ---------------------------------------------------------------------
+# GATES
+# ---------------------------------------------------------------------
+# R0-1 FINGERPRINT: v2, recharge_fix, ids, obs 828 + this rung's seam:
+#   config snapshot carries agent.l2_init_decay=0.02; theta0.pt
+#   exists in the run dir with its hash in every checkpoint;
+#   privileged_dim ABSENT everywhere.
+# R0-2 PARAM CEILING: actor 626,059 <= 681,994 (unchanged). The
+#   theta0-registration hazard the old text hung here is NOT
+#   detectable by R0-2 (it asserts at net construction, before any
+#   rider could attach; buffers never enter .parameters()) — the
+#   real guard is R0-2b: actor/critic state_dict() KEYS bit-identical
+#   to an l2_init_decay=0.0 build (a polluted state_dict breaks
+#   plain-828 eval loading and crashes the d22 scripts' block
+#   parser).
+# R0-3 MLP BIT-IDENTITY + NO-OP: standing test, plus a new unit test
+#   that l2_init_decay=0.0 is an exact no-op (bc_kl_coef precedent),
+#   plus the DETERMINISTIC LEVER TEST (replaces the old smoke's
+#   statistical criterion — review: a 1.9-3.8% deviation at n=1
+#   cannot verify calibration): a unit test asserts the post-step
+#   decay displacement equals group_lr*lambda*(theta-theta0) to
+#   1e-6, and a synthetic-constant-gradient test reproduces the
+#   closed-form displacement exactly.
+# R0-6 REGIME: after 3M, ties <= 4.2%, mean episode length <= 40.
+# R0-7 MASKING: unchanged.
+# R0-8 LANE LIVENESS: staggered starts; PROGRESS within 15 min;
+#   >= 300 steps/s warm at 5-wide (record-and-continue under 300,
+#   stop under 250). Lever cost predicted < 0.3% wall
+#   (torch._foreach_add_; ~2 element-passes vs Adam's ~5).
+# R0-9 CONTROL CURVES IN HAND (pre-launch, offline, BLOCKING):
+#   d22_weight_norms + d22_dormant_rank (+ collect) run on s26/27/28
+#   into results/d23/; the MANIPULATION CHECK and MECHANISM
+#   CO-PRIMARY numbers are then FROZEN in this header (a criterion
+#   graded against curves produced later is tunable-after-the-fact —
+#   review blocker). Norm scripts need --lanes/--run-prefix
+#   adaptation first (they hardcode s35-37). PLUS the init-match
+#   assertion: build the agent at seed 44 with and without the lever
+#   -> bit-identical state_dicts at step 0.
+# R0-10 THROUGHPUT SMOKE (demoted from calibration duty per review):
+#   <= 1M steps at seed 99, reads steps/s and the l2init/* metric
+#   plumbing only; correctness lives in R0-3's deterministic tests.
+#   Blind to win rate (pre-committed).
+# R0-11 GRADER PRE-COMMITTED: scripts/d23_grade.py (the credit-line
+#   formula incl. the Q1-dependent comparator handling) committed
+#   before launch, with the R0-4 win_rate==wins_from_returns
+#   hard-fail carried from d18_grade.py.
+# R1 LEARNING GATE: selfplay/winrate_anchor >= 0.75 by 4M on >=
+#   ceil(T/2)+1 of T treatment lanes (per-lane counts fixed for
+#   5-lane rungs — review). NOT slack here: controls sit 0.955-0.975
+#   from bin 0; R1 doubles as the lambda-too-strong detector per the
+#   FALSIFIER's last clause.
+# K6 ENTROPY: T-lane MEDIAN loss/entropy < 0.15 for 5 consecutive
+#   readings before 6M -> record and stop (lane rule per LANE
+#   FAILURE RULE).
+# D23-WATCH (record-only; REVISED trigger, honestly scoped): per-lane
+#   per-1M-bin median pre-clip loss/grad_norm; TRIGGER = 3
+#   consecutive bins each >= 3.0x the lane's own bins-0-3 median AND
+#   non-decreasing. CALIBRATION SET: the 7 healthy 12M entity lanes
+#   (84 bins; max single-bin ratio 1.40 = s40) — cannot fire on any;
+#   fires on s41 at bin 10 (ratios 6.0/20.3/53.4). SCOPE: 12M
+#   HORIZON ONLY — retrospectively it also fires on s35/s36's
+#   RECOVERING 50M transients (peak ratios ~340-690, final 1.4-1.7),
+#   so any 50M carry needs a recovery clause (final bin still >=
+#   3.0x) added at that pre-registration, not here. The old ">100 x3
+#   bins" letter is retired at ratification. grad_clip_frac rejected
+#   as a statistic (healthy lanes reach 1.00).
+#
+# ---------------------------------------------------------------------
+# CONFOUNDS, DISCLOSED
+# ---------------------------------------------------------------------
+# (1) EFFECTIVE-LR: partly indistinguishable from LR decay (a queued
+#   D21 lever; Wang's 0.55->0.80 the only controlled ablation, plus
+#   this repo's own probe-era anneal +0.028). Attribution NOT
+#   separable from this read; named separating arm (not run):
+#   matched-effective-step LR anneal. See also the ORDERING
+#   ALTERNATIVE note at top.
+# (2) HORIZON, quantified (theta0-relative): at 12M the 50M lanes
+#   had realized roughly half the embedding growth (x6 of x11-13),
+#   a minority of global-norm growth, 74-98% of actor srank
+#   collapse, ALL of critic srank collapse, ~half of dormancy;
+#   blowups appeared ~8M/~20M. A 12M read tests the embedding/rank
+#   half and UNDER-TESTS the global-norm/dormancy/effective-lr
+#   half. A null closes the family AT 12M FOR THIS CHAPTER (budget
+#   decision); it does not refute the 50M thesis.
+# (3) ENTROPY SIDE EFFECT: pull toward the near-uniform init raises
+#   entropy mechanically; entropy is itself a lever (D21). Band
+#   rule and credit handling in SECONDARY 4.
+# (4) EVAL-TIME ASYMMETRY: NONE — update-time-only; plain-828
+#   checkpoints; even time/eval_sec like-for-like vs Rung 2.
+# (5) OPS/MEMORY (review: the old "free exclusion" required a
+#   deepcopy override on the SHARED agent class, risking R0-3):
+#   theta0 stays ON the agent and IS deep-copied by SnapshotPool —
+#   +4.5 MB x pool_size 20 = ~+90 MB/lane, ACCEPTED (the pool
+#   already carries ~25 MB/member incl. Adam state); no shared-class
+#   behavior change. theta0.pt on disk once per run dir (Q4
+#   resolved).
+# (6) s41 DOUBLE-DIP: see WHY NOW.
+# (7) NEW METRICS: l2init/anchor_dist_<block> (per-LN-free-block
+#   ||theta-theta0||) logged at eval boundaries on treatment lanes —
+#   a deliberate, pre-registered extension of the locked metric
+#   namespace, treatment-only, so the binding read is exact rather
+#   than checkpoint-sparse and geometry-model-dependent.
+#
+# ---------------------------------------------------------------------
+# BUDGET, SEEDS, CADENCE, OPS
+# ---------------------------------------------------------------------
+# BUDGET: 5 lanes x 12M ~ 2.2 lane-days (D18 measured 10.6 h/lane at
+# 5-wide). Chapter after this rung: ~14-15 of 20. PRE-STATED: branch
+# (a)'s 50M follow-up (~5 lane-days) exceeds the cap -> it triggers
+# a CAP CONVERSATION, not a launch (old Q5, now a statement; DESIGN
+# §13 already gates any 250M quote the same way).
+# SEEDS: per Q1 — 5+0: 44-48 treatment. 3+2: 44/45/46 treatment,
+# 49/50 comparator (fresh Rung 2 lanes, struct12m config verbatim at
+# its ORIGINAL cadence 100k/100 so the comparator population stays
+# cadence-homogeneous). Distinct across lanes AND arms — username
+# landmine.
+# CADENCE (treatment): eval_every 500k, eval_episodes 1000,
+# checkpoint_every 200k (D18-matched; disclosure above).
+# OPS: maintainer's terminal; caffeinate -is; commit docs BEFORE
+# launch; stagger; verify per R0-8; server :8000 simulator 4; both
+# env vars everywhere.
+#
+# Launch, per treatment lane (seeds per Q1) — AFTER RATIFICATION AND
+# BUILD ONLY:
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_l2init12m.yaml \
+#     --seed N --run-name showdown_sp_l2init12m_sN
+#
+# BRANCHES:
+#  (a) CREDIT (larger-of rule; narrative gated by the VOID clause):
+#      plasticity is a real 12M binder (claimable only if BOUND).
+#      Next: maintainer decides between the separating controls
+#      (L2-toward-ZERO at matched magnitude; entropy-matched;
+#      LR-matched — C1/C3 name them) and/or 50M carry — all behind
+#      the cap conversation. D19 stays queued.
+#  (b) NULL: epitaph per the FALSIFIER's cases (closed-at-12M /
+#      closed-with-recovered-srank / VOID->D19-then-maybe-retry).
+#      Queue moves to D19 (auxiliary opponent-model head —
+#      actor-side, orthogonal, un-blurred by D18's null).
+#  (c) NEGATIVE (per the defined line): the penalty actively costs
+#      capability at the closed-form lambda; record entropy + R1
+#      curves + lambda; NO smaller-lambda rerun (a sweep — D17 +
+#      one-lever rule). D19 next.
+#
+# ---------------------------------------------------------------------
+# OPEN QUESTIONS FOR RATIFICATION (both reviews folded; Q-list
+# rewritten — old Q2 promoted into the design, Q4/Q5 resolved above,
+# old Q1 declined with reasons in ARMS):
+# Q1 LANE ALLOCATION (the real decision, per review): 3+2
+#    (recommended — see ARMS table), 4+1, or 5+0. Determines seeds,
+#    bars-as-formulas vs frozen bars, and the comparator's future
+#    for D19+.
+# Q2 IMPLEMENTATION APPROVAL: the lever does not exist in rl/ yet.
+#    Build = config key l2_init_decay (default 0.0 exact no-op),
+#    theta0 capture + theta0.pt + hash + scoped load guard,
+#    post-step _foreach decay, l2init/* metrics, R0-2b/R0-3 tests,
+#    d22-script --lanes adaptation for R0-9, d23_grade.py. Estimate
+#    ~1 evening including tests. Approve build before or with
+#    ratification?
+# Q3 LR-ANNEAL ORDERING: run D23 as routed, or pull LR anneal (D21,
+#    zero-code, confounded lever) forward first? (Recorded as
+#    considered; routing says D23; maintainer may override.)
+# =====================================================================
+env_id: Showdown-v0
+seed: 44
+total_steps: 12000000
+eval_every: 500000
+eval_episodes: 1000
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_l2init12m_s44
+logger: wandb
+eval_win_rate: true
+selfplay:                  # identical to showdown_sp_struct12m.yaml (Rung 2)
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets   # the credited Rung 2/50M treatment, unchanged
+  l2_init_decay: 0.02      # THE LEVER: decoupled per-step decay toward
+                           # theta0, closed-form 1/(lr*N); 0.0 = exact no-op
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512] # unused when trunk != mlp; kept so a
+                           # trunk: mlp rerun of this file is exact
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
