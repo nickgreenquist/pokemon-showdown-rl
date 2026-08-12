@@ -5,8 +5,9 @@
 # Q1 = 3+2 ADOPTED (treatment 44/45/46, comparator 49/50); Q2 build
 # APPROVED (2-Opus build per the standing process); Q3 resolved
 # AS-ROUTED per recommendation — D23 now, LR anneal stays D21).
-# LAUNCH REMAINS GATED on: build complete + suite green, R0-9 control
-# curves frozen into this header, R0-11 grader committed.**
+# ALL LAUNCH GATES CLEARED 2026-08-12: build complete (aa8036b core,
+# 34d25f0 periphery; suite 292+R0-3 green), R0-9 frozen, R0-10 smoked,
+# R0-11 committed. READY TO LAUNCH from a clean committed tree.**
 # PROCESS (maintainer instruction 2026-08-12): 2 independent Opus
 # design agents (mechanism-first / experimental-design-first),
 # synthesized, then 2 independent Opus reviews (adversarial-arithmetic
@@ -216,10 +217,14 @@
 # bearing on the win-rate claim; promoted per review from secondary —
 # this replaces the old Q2): critic ctx srank99 at 12M, from the
 # adapted d22 scripts at steps 400k/3M/6M/9M/12M.
-#   Controls, honestly labeled: s35-37 critic 8/14/11 of 384 (true
-#   same-recipe controls at 12M); D18 lanes 7-25 (TREATMENT arm of a
-#   killed rung, comparison-not-control); s26-28 = R0-9's job,
-#   numbers frozen into this header before ratification.
+#   Controls, honestly labeled: **s26-28 (R0-9, RUN 2026-08-12,
+#   results/d23/: critic ctx srank99 at 12M = 11 / 17 / 16 of 384;
+#   actor 72 / 90 / 45; from 225-242 at 400k; actor ctx dormancy
+#   tau100 at 12M 0.510/0.534/0.677; one recorded anomaly: s26
+#   critic reads srank 1 at its 6M ckpt, normal at 12M)**; s35-37
+#   critic 8/14/11 (same-recipe 50M lanes at 12M); D18 lanes 7-25
+#   (TREATMENT arm of a killed rung, comparison-not-control). The
+#   >= 40 de-collapse bar sits 2.4-3.6x above the s26-28 band.
 #   DE-COLLAPSE = treatment critic srank99 >= 40 of 384 on >=
 #   ceil(T/2)+1 lanes. Diagnostic of mechanism, not of value (D18
 #   proved EV can rise through a collapsed representation).
@@ -252,23 +257,29 @@
 # MANIPULATION CHECK (formerly "SECONDARY 1"; renamed per review — it
 # verifies the regularizer executed, it is NOT the mechanism read):
 # actor species_emb norm growth from theta0 at 12M, graded on the
-# T-LANE MEDIAN against the R0-9 s26-28 control mean (reconstructed
-# preview: ~x5.84-6.12; R0-9 freezes the operative numbers). The
-# review's recomputation on the right population, and the analytic-
-# init method (species_emb ||theta0|| = 0.02*sqrt(152*64) = 1.972),
-# are recorded in the log; R0-9 writes the control table to
-# results/d23/ as the artifact of record. PARTITION (no dead zone —
-# review blocker fix):
-#   BOUND:      median ratio <= 0.75 x control mean  (~<= 4.5)
-#   NOT BOUND:  median ratio >  0.75 x control mean
-#   VOID:       additionally, median >= 0.92 x control mean (~5.5) —
-#               the lever effectively did not execute.
-#   OVERBOUND:  LN-FREE-block aggregate ratio <= 1.0 (net shrinkage;
-#               the global-norm version was ~half gauge-inert and is
-#               retired) -> wr losses attributed to lambda, recorded
-#               as calibration failure, NOT as thesis refutation.
+# T-LANE MEDIAN against the R0-9 s26-28 control mean. **R0-9 RUN AND
+# FROZEN 2026-08-12 (results/d23/control_norms.csv, 34d25f0's script;
+# validated exactly against the review's independent reconstruction):
+# control at 12M = 5.844 / 5.848 / 6.117, MEAN 5.936. OPERATIVE
+# PARTITION: BOUND <= 4.452 (0.75x) / VOID >= 5.461 (0.92x).**
+# theta0 reconstructed per (seed, config) — six-lane exact agreement
+# with the review numbers, and the analytic ||theta0(species_emb)||
+# = 0.02*sqrt(152*64) = 1.972 cross-check (+-2%) is a script guard.
+# PARTITION (no dead zone — review blocker fix):
+#   BOUND:      median ratio <= 4.452
+#   NOT BOUND:  median ratio >  4.452
+#   VOID:       additionally, median >= 5.461 — the lever
+#               effectively did not execute.
+#   OVERBOUND:  ACTOR LN-free aggregate ratio <= 1.0 (control
+#               1.507/1.563/1.509; the ACTOR aggregate specifically —
+#               the critic's is diluted by its exactly-dead
+#               move_emb/move_net blocks, ratio 1.000000 on every
+#               control lane: the value stack never consumes move
+#               tokens, so the lever is a strict no-op there) -> wr
+#               losses attributed to lambda, recorded as calibration
+#               failure, NOT as thesis refutation.
 # Companions (recorded, LN-free blocks only): species_emb trajectory
-# from the l2init/* metrics; ctx_net ratio vs R0-9 control.
+# from the l2init/* metrics; ctx_net ratio vs control 1.54/1.61/1.53.
 # SECONDARY 3 — grad-blowup incidence, with the definition stated
 # (the review showed the base rate is definition-sensitive): operative
 # definition = the D23-watch trigger below, which classifies s41 and
@@ -342,23 +353,28 @@
 #   >= 300 steps/s warm at 5-wide (record-and-continue under 300,
 #   stop under 250). Lever cost predicted < 0.3% wall
 #   (torch._foreach_add_; ~2 element-passes vs Adam's ~5).
-# R0-9 CONTROL CURVES IN HAND (pre-launch, offline, BLOCKING):
-#   d22_weight_norms + d22_dormant_rank (+ collect) run on s26/27/28
-#   into results/d23/; the MANIPULATION CHECK and MECHANISM
-#   CO-PRIMARY numbers are then FROZEN in this header (a criterion
-#   graded against curves produced later is tunable-after-the-fact —
-#   review blocker). Norm scripts need --lanes/--run-prefix
-#   adaptation first (they hardcode s35-37). PLUS the init-match
-#   assertion: build the agent at seed 44 with and without the lever
-#   -> bit-identical state_dicts at step 0.
-# R0-10 THROUGHPUT SMOKE (demoted from calibration duty per review):
-#   <= 1M steps at seed 99, reads steps/s and the l2init/* metric
-#   plumbing only; correctness lives in R0-3's deterministic tests.
-#   Blind to win rate (pre-committed).
-# R0-11 GRADER PRE-COMMITTED: scripts/d23_grade.py (the credit-line
-#   formula incl. the Q1-dependent comparator handling) committed
-#   before launch, with the R0-4 win_rate==wins_from_returns
-#   hard-fail carried from d18_grade.py.
+# R0-9 CONTROL CURVES IN HAND — **COMPLETE 2026-08-12**: norms via
+#   the adapted d22_weight_norms (regression byte-identical to D22;
+#   theta0 mode validated 6/6 lanes vs the review) -> operative
+#   numbers frozen above; srank/dormancy via collect (server was
+#   needed — the gate's "offline" label was wrong for that half) +
+#   d22_dormant_rank into results/d23/. Init-match assertion: green
+#   as a standing subprocess test (seed 44 with/without lever ->
+#   bit-identical state at step 0; tests/test_l2_init.py).
+# R0-10 THROUGHPUT SMOKE — **COMPLETE 2026-08-12** (60k steps, seed
+#   99, blind to wr): all six l2init/* metrics logging at eval
+#   boundaries, theta0.pt written (4.49 MB), 517 steps/s solo vs the
+#   540 baseline (~4%, within noise + predicted lever cost).
+#   Correctness lives in R0-3's deterministic tests (14 new, green;
+#   full offline suite 292 green + R0-3 golden green fresh-process —
+#   NOTE for launch checks: the R0-3 golden has a PRE-EXISTING 1-ULP
+#   flake when test_ppo.py runs first in the same pytest process;
+#   run tests/test_entity_deepsets.py in its own process).
+# R0-11 GRADER — **COMMITTED 2026-08-12** (scripts/d23_grade.py,
+#   34d25f0): 3+2 formulas, lane-failure recompute, R0-4 hard-fail
+#   on BOTH pools, equal-n guard on fresh comparator JSONs, honesty
+#   record (frozen-vs-augmented: D18 and Rung 3 verdicts UNCHANGED).
+#   Verified on six synthetic cases.
 # R1 LEARNING GATE: selfplay/winrate_anchor >= 0.75 by 4M on >=
 #   ceil(T/2)+1 of T treatment lanes (per-lane counts fixed for
 #   5-lane rungs — review). NOT slack here: controls sit 0.955-0.975
@@ -372,7 +388,8 @@
 #   consecutive bins each >= 3.0x the lane's own bins-0-3 median AND
 #   non-decreasing. CALIBRATION SET: the 7 healthy 12M entity lanes
 #   (84 bins; max single-bin ratio 1.40 = s40) — cannot fire on any;
-#   fires on s41 at bin 10 (ratios 6.0/20.3/53.4). SCOPE: 12M
+#   fires on s41 over bins 8-10 (ratios 6.0/20.3/53.4; a fire is
+#   labeled by its LAST bin). SCOPE: 12M
 #   HORIZON ONLY — retrospectively it also fires on s35/s36's
 #   RECOVERING 50M transients (peak ratios ~340-690, final 1.4-1.7),
 #   so any 50M carry needs a recovery clause (final bin still >=

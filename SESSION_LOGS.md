@@ -2743,3 +2743,24 @@ entry by offset — never a broad keyword grep.
   anneal stays D21; anneal evidence is probe-era vs-SH-arm, and the new comparator
   lanes improve any future D21 read). Launch stays gated on build + R0-9 (control
   curves frozen into the header) + R0-11 (grader committed).**
+- 2026-08-12 (mid-morning, D23 BUILT + ALL LAUNCH GATES CLEARED) — **2-Opus build
+  landed (core aa8036b: l2_init_decay lever, θ₀ capture/theta0.pt+hash with
+  training-scoped guard, post-step _foreach decay per group-lr, l2init/* metrics,
+  14 new offline tests; periphery 34d25f0: d22 norm scripts get --lanes/--theta0
+  modes with byte-identical D22 regression, d23_grade.py with 3+2 formulas). Full
+  suite 292 green + R0-3 golden green in a fresh process (NOTE: pre-existing 1-ULP
+  golden flake when test_ppo runs first in-process — run test_entity_deepsets.py
+  alone at launch checks). R0-9 COMPLETE: control_norms.csv (s26-28 species_emb at
+  12M = 5.844/5.848/6.117, mean 5.936 → frozen partition BOUND ≤4.452 / VOID
+  ≥5.461; actor LN-free aggregate control 1.507-1.563; critic move blocks exactly
+  DEAD ratio 1.000000 → OVERBOUND reads the ACTOR aggregate) + srank/dormancy
+  (critic ctx srank99 at 12M 11/17/16 of 384, actor 72/90/45, tau100 0.510/0.534/
+  0.677; s26 6M srank-1 anomaly recorded) — collect needed the server, the gate's
+  "offline" label was wrong for that half. R0-10 COMPLETE: 60k smoke seed 99 — six
+  l2init metrics logging, theta0.pt 4.49 MB, 517 steps/s solo vs 540 baseline.
+  R0-11 COMPLETE: grader verified on six synthetic cases; honesty record shows D18
+  and Rung 3 verdicts UNCHANGED under the augmented 5-seed comparator (pooled
+  0.5511 vs frozen 0.5509). Header updated: gates marked cleared, R0-9 numbers
+  frozen, s41 trigger fire labeled bins 8-10. READY TO LAUNCH: 3 treatment lanes
+  (l2init config, seeds 44/45/46) + 2 comparator lanes (struct12m verbatim,
+  original 100k/100 cadence, seeds 49/50), 5-wide, ~10.6 h wall.**
