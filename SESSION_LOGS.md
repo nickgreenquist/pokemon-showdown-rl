@@ -2846,3 +2846,20 @@ entry by offset — never a broad keyword grep.
   maintainer decisions, laid out in STATUS. Seeds 44-46/50/51 SPENT, 49 burned,
   47-48 free. Artifacts: results/d23/ (8 eval JSONs, grade.txt, control/treatment
   norms, obs tapes, rank CSVs).
+- 2026-08-13 (session start, HANDOFF FOLDED) — Handoff taken and stub restored;
+  nothing durable was outstanding (STATUS + the D23 readout entry already carried
+  it). Verified at fold time: clean tree, **no lanes/evals/monitors running**,
+  Showdown server up, 5 commits local past origin (push still unauthorized —
+  now STATUS action 0). Folded into STATUS: the push item, the standing design
+  process (2 Opus design agents + 2 Opus reviews per pre-reg/lever — maintainer
+  2026-08-12, D23 is the template), and the s49 incident detail merged into the
+  eval-auto-tie watch line. **DESIGN §12 caught up** (the handoff's deferred item):
+  new QUEUE STATE block (D22 closed 08-11 → D18 read out 08-12 NULL → regen-L2
+  runner-up became D23, read out 08-13; unread = D19/D20/D21), a READ-OUT stamp on
+  D18 and a CLOSED stamp on D22 with its actual routing ("D18 first, unconditional"
+  — representation/critic ceiling, not exploitability, not yet plasticity), and a
+  D19 STATUS note: its D18-credits re-scope clause does NOT bite (D18 null), its
+  plumbing dependency is satisfied, and the D23 comparator-spread finding means any
+  12M D19 must be mechanism-primary, not win-rate-primary. No code touched; no
+  numbers changed. Open maintainer calls unchanged: push, and D19 vs 50M regen-L2
+  carry vs both (the carry needs the 20-day-cap conversation, chapter ~17/20).

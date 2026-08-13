@@ -2,22 +2,19 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-13 — D23 READ OUT: letter-met, NOT credited; mechanism strong)
+## Where things stand (2026-08-13 — D23 READ OUT: letter-met, NOT credited; nothing running)
 
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
-r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (0.5802 CREDIT, seed-fragile).
-D18 priv-critic: NULL, falsifier-killed. **D23 REGEN-L2 (λ=0.02 toward-init, 3
-treatment + 2 fresh comparator lanes): Δ +0.0451 (0.5897 vs 5-seed comparator 0.5445)
-— "letter-met, seed-fragile, NOT credited" per the pre-stated recording rule
-(clustered 2·se 0.0650; treatment spread 0.0491, s44 0.6463 vs arm-mates 0.561).
-MECHANISM: BOUND (species_emb ×4.10-4.17 vs control ×5.8-6.1), final→peak gap SHRANK
-(+0.0114 vs D18 +0.0274, prediction realized vs adversarial confound), srank 2-3×
-control (31/53/36 vs 11-17) but de-collapse letter NOT met (≥40 on ≥2/3). Falsifier
-NOT fired — family neither killed nor closed.** MAJOR FINDING: fresh comparator lanes
-(0.5763, 0.4937) show true Rung-2 12M seed sd ≈0.036 (3-seed estimate was 0.026) —
-12M win-rate primaries are effectively un-creditable at advisory-scale effects;
-mechanism reads must carry future 12M rungs. s49 died at 7.2M (exogenous eval
-auto-tie crash), re-run as s51 pre-grading; zombie-battle relaunch landmine logged.
+r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (0.5802 CREDIT, seed-fragile);
+D18 priv-critic NULL, falsifier-killed. **D23 REGEN-L2 (λ=0.02 toward-init, 3 treatment
++ 2 fresh comparator lanes): Δ +0.0451 (0.5897 vs 5-seed comparator 0.5445) —
+"letter-met, seed-fragile, NOT credited" per the pre-stated rule (clustered 2·se 0.0650;
+spread 0.0491, s44 0.6463 vs arm-mates 0.561). MECHANISM: BOUND (species_emb ×4.10-4.17
+vs control ×5.8-6.1); final→peak gap SHRANK (+0.0114 vs D18 +0.0274 — realized against
+the adversarial confound); srank 2-3× control (31/53/36 vs 11-17) but de-collapse letter
+NOT met (≥40 on ≥2/3); falsifier NOT fired — family neither killed nor closed.** MAJOR
+FINDING: fresh comparator lanes (0.5763, 0.4937) put true Rung-2 12M seed sd at ≈0.036
+(3-seed said 0.026) → 12M win-rate primaries are un-creditable; mechanism carries rungs.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 
@@ -38,23 +35,26 @@ auto-tie crash), re-run as s51 pre-grading; zombie-battle relaunch landmine logg
 
 ## Next actions, in order (maintainer decisions at the top)
 
+0. **PUSH PENDING — 5 commits local past origin/main** (D23 readout, README, grader
+   fix, norms guard, fold). Ask-first rule; maintainer says push.
 1. **MAINTAINER CALL — what follows D23's recording-band readout**: (a) D19 as
    queued (aux opponent-model head, actor-side); (b) 50M regen-L2 carry — BOUND +
    gap-shrink + letter-met make a real case, but ~5 lane-days exceeds the 20-day
    cap (chapter ~17/20) → needs the cap conversation; (c) both, sequenced. The
    comparator-spread finding also reframes 12M rungs: mechanism-primary designs.
-2. Post-chase bundle: comparator-spread finding + D23 mechanism story are
-   publishable-negative-adjacent material; README updated, DESIGN §12 queue intact.
-3. 250M: per §13 — still needs a credited lever at 50M + cap/rent answer (E1-E4
-   cleared; Stage-2 collector measured 2.3× at entity width).
+2. Post-chase bundle: comparator-spread finding + D23 mechanism story (README and
+   DESIGN §12 queue state are current through the readout).
+3. 250M: per §13 — needs a credited 50M lever + the cap/rent answer (E1-E4 cleared).
 
 ## Watch items
 
-- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED** (dead lane); 14-22 RESERVED;
-  99 disposable; **47-48, 52+ free.**
-- Entity ckpts need BOTH env vars; D23 treatment ckpts also fine on plain eval
-  path (theta0 never needed at eval; theta0.pt lives in each run dir).
-- Eval auto-tie crash (1-in-10⁴ eval battles) can kill a lane at eval; relaunch
-  same-seed collides with zombie server battles — use a FRESH seed (log 08-12).
+- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 disposable;
+  **47-48, 52+ free.**
+- Entity ckpts need BOTH env vars; D23 treatment ckpts eval fine on the plain path
+  (theta0 never needed at eval; theta0.pt lives in each run dir).
+- Eval auto-tie crash (~1-in-10⁴ eval battles) can kill a lane (killed s49 at 7.2M →
+  re-run s51); same-seed relaunch hits zombie battles — relaunch FRESH seed (log 08-12).
 - Artifacts: results/d23/ (gitignored) — grade.txt, 8 eval JSONs, norms, ranks.
 - Suite 293 green (R0-3 golden needs its own pytest process — 1-ULP flake, log).
+- Design process (standing, maintainer 2026-08-12): pre-regs/lever designs get 2
+  Opus design agents + 2 Opus reviews before ratification — D23 is the template.

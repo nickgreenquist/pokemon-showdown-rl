@@ -599,7 +599,16 @@ encoder source and the record (SESSION_LOGS entries, incl. corrections). Numberi
 continues from D17; the section number continues past r6's retired §10–11 (§11 D8/D9
 remains unratified and moot).
 
+**QUEUE STATE 2026-08-13: D22 CLOSED 2026-08-11 (routing: D18 first, unconditional;
+regen-L2 named next-after-D18) → D18 READ OUT 2026-08-12, NULL, falsifier fired → the
+regenerative L2-toward-init runner-up was drafted and ratified out-of-queue as D23
+(contract in `configs/showdown_sp_l2init12m.yaml`'s header, not here) and READ OUT
+2026-08-13, "letter-met, seed-fragile, NOT credited." Remaining unread: D19, D20, D21.**
+
 **D18 — PRIVILEGED (ASYMMETRIC) CRITIC rung — recommended first after the readout.**
+**READ OUT 2026-08-12: NULL, FALSIFIER FIRED — EV rose, win rate did not (0.5364 ±
+0.0066 vs the 12M comparator); rung killed, not tuned around. Full numbers in the
+SESSION_LOGS entry of that date; the CTDE plumbing it built survives for D19.**
 CTDE (AlphaStar-style): during self-play training the critic's input is widened with the
 opponent seat's TRUE own-side state; the actor's observation is unchanged.
 - EVIDENCE (measured on the live 50M lanes at 15M): `loss/explained_variance` plateaus
@@ -655,7 +664,13 @@ trunk (actor-side change — unlike D18 it can shift actor behavior directly, so
 rung stands alone and never bundles); and it is partially redundant with D18 (critic
 USES hidden info, head learns to INFER it) — if D18 credits, re-scope D19's question
 before spending lanes. Supporting prior art: agent-modeling-as-auxiliary-task (arXiv
-1907.09597), DouZero+ hidden-hand prediction.
+1907.09597), DouZero+ hidden-hand prediction. **STATUS 2026-08-13: still queued,
+UNREAD. Its D18 contingency is resolved — D18 did NOT credit, so the re-scope clause
+does not bite and D19's question stands as written. Its plumbing dependency is
+satisfied (D18 built it). One caveat added by the D23 readout: fresh 5-seed comparator
+lanes put true Rung-2 12M seed sd at ~0.036, so a 12M win-rate PRIMARY is effectively
+un-creditable at advisory-scale effects — if D19 runs at 12M, it must be designed
+mechanism-primary (D23's shape) rather than win-rate-primary.**
 
 **D20 — the v3 ENCODER BUNDLE (post-chase; one re-baseline pays for everything, D13
 cost known and paid once already for v1→v2/808).** Contents: Light Screen — a POKE-ENV
@@ -691,6 +706,12 @@ prioritized pool sampling (favor near-50% opponents; D16's comparator note appli
 any sampling change is a lever, not a default). Each is a separate pre-registered
 lever; bundling them re-creates the factorial hazard the ladder rule exists to
 prevent.
+
+**D22 — CLOSED 2026-08-11 (all 5 reads in). Diagnosis: a REPRESENTATION/CRITIC ceiling
+(flat EV 0.56–0.59, critic srank99 7–11 of 384) — not exploitability (BR probe 0.4765
+< 0.55, entropy 0.21–0.32) and not yet a binding plasticity ceiling. Routing was
+therefore "D18 first, unconditional," with regenerative L2-toward-init named
+next-after-D18; when D18 read NULL that runner-up became D23. Kept for the rule.**
 
 **D22 — PLATEAU DIAGNOSTICS (Stage 0 of the post-50M program — run BEFORE choosing
 among D18/D21 orderings; offline + one cheap probe, no new training lanes).** From the
