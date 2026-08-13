@@ -3254,3 +3254,47 @@ entry by offset — never a broad keyword grep.
   promoted the most favourable measured variant while the source documents carried the
   honest range.** Every future readout quotes the range. Red-team call: ratify D25 once
   corrections 2 and 3 land. Artifacts: results/d24_design/d25_ratify_2.md.
+- 2026-08-13 (night, D25 RATIFIED at r2 on L6 — the call was delegated to me and r1 was
+  REFUSED) — **Two ratification audits (defect audit + red team) plus an executed
+  re-freeze gate; ten agents on this rung, zero training lanes.** r1 was NOT ratified:
+  three blocking defects. **(1) THE HEAD COULD NOT BE BUILT AS SPECIFIED** — it scores
+  "opponent move slots" but `entity_deepsets.py:298-302` builds `own_moves` from
+  `tok["moves"][:, :4]` ONLY; the observation carries the opponent's revealed move slots
+  and the trunk never tokenizes them (verified in source this session). Fix written into
+  r2: the aux head applies the EXISTING `move_net`/`move_emb` to `tok["moves"][:, 4:]`,
+  with the honest consequence stated — aux gradient now reaches SHARED weights, so this
+  is an actor-side lever touching shared params, with five bit-identical invariants
+  enumerated. **(2) THE RETIRED ADOPT-RULE WAS WORSE THAN RECORDED.** R0-L was
+  CONJUNCTIVE (>= 0.05 nats at BOTH named lanes) with a pre-stated fallback to L6; it
+  cleared **0 of 2 named lanes, 1 of 5**, and r1 reported the MEAN (+0.040) and deleted
+  the gate — which had been Reviewer 2's ranked blocking defect. r2 restores it as
+  EXECUTED/FAILED with all five numbers, executes the fallback, and refuses the
+  override; the bend is described in the ledger rather than dropped. **(3) THE LETTER'S
+  CONTROL DISTRIBUTION WAS COMPUTED ON s26, a COMPARATOR LANE.** The re-freeze also
+  found **s35 INADMISSIBLE** as the neutral reference — it switches on 1.9% of decisions
+  against the comparator arm's 6.8-9.7% (policy-side P(switch) 0.023 vs 0.072-0.181),
+  and switch targets are exactly what the label space measures; the header's "same
+  recipe, same horizon" justification was false (50M runs, eval_every 250k vs 100k).
+  **Reference is now s36@12M (sha256 3ffee9ba...074917), s37 as replication.** **THE
+  GATE'S OWN RECIPE WAS ALSO WRONG: at max_iter=300, 44 of 96 probe fits fail the
+  convergence test and the control mean is inflated ~25%** (2000 and 8000 agree) — the
+  first gate's numbers were never converged. **RE-FROZEN CONTROL (L6-native, s36,
+  lambda 0.01, 8 splits): +0.0217/+0.0072/+0.0201/+0.0114/+0.0145, mean +0.0150, sd
+  0.0060.** **HONEST OPERATING CHARACTERISTICS, the range and not the best case:** level
+  12/252 = 0.047619 rising to 0.052-0.054 under 2x treatment spread (anti-conservative,
+  disclosed); MDE(80%) 0.0105 equal-spread -> 0.0130 (df=4) -> 0.0169 (2x) -> **0.0207
+  (both)**, worst admissible corner 0.0301; **power at +0.010 = 0.27-0.76, NOT the 0.88
+  first reported.** Reviewer 1's pre-stated ~0.015 re-examination trigger **FIRES**.
+  **MY RE-EXAMINATION VERDICT, recorded: ratify anyway, on one asymmetry — the aux loss
+  DIRECTLY OPTIMISES the very quantity the probe measures**, unlike D23's srank which
+  was an indirect side effect, so an effect well above MDE is plausible; and the header
+  states plainly that a non-fire below ~0.017 nats is UNINFORMATIVE. Specificity on the
+  new reference improves to **r = +0.405** (was +0.69 on s26; +0.821 on s37 — a third
+  reason s36 is the pick), with the ref-tape correlation labelled a tautology.
+  **RATIFIED at r2 on L6** (configs/showdown_sp_actpred12m.yaml; body diff vs struct12m
+  is still seed + run_name + six lever keys, checked by parse). **TWO R0 GATES REMAIN
+  OWED AND BLOCK LAUNCH, both zero-lane:** R0-13 must re-derive the LEARNED bar on L6
+  inputs (0.371 is anchored on 12-class values; its 0.80 multiplier is unsourced), and
+  R0-12b's four capacity nulls have not been re-run on s36. Also flagged in-header as
+  the reviser's arithmetic rather than measurement: R0-8's 255/210 and the param total
+  675,538. NEXT: the build (~200 lines) + tests + smoke, then the maintainer launches.
