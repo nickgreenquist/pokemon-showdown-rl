@@ -294,7 +294,9 @@ def main() -> None:
         parts = []
         for b in BLOCKS:
             if b in d.columns and not d[b].isna().all():
-                parts.append(f"{b} x{d[b].get(hi)/d[b].get(lo):.2f}")
+                num, den = d[b].get(hi), d[b].get(lo)
+                if num is not None and den is not None:
+                    parts.append(f"{b} x{num/den:.2f}")
         print(f"  s{seed}: " + ", ".join(parts))
 
     if args.theta0:
