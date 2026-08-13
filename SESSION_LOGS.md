@@ -2878,3 +2878,75 @@ entry by offset — never a broad keyword grep.
   at 2.5× the cost.** Also done this session: the 6 outstanding commits PUSHED
   (origin/main at ba4356d, maintainer authorized). NEXT: draft the carry pre-reg
   under the standing 2-Opus design process.
+- 2026-08-13 (morning, THE CARRY DESIGN CYCLE — 2 Opus designers + 2 Opus reviews,
+  NO LANES SPENT) — **The 50M regen-L2 carry was designed, reviewed, and comes back
+  NO-GO AS SCOPED; the cycle's real output is four findings that cost zero lane-days,
+  two of which bear on results already recorded.** Documents (durable, gitignored):
+  results/d24_design/{carry_design_A,carry_design_B,carry_review_1,carry_review_2}.md.
+  **FINDING 1 — MEASUREMENT BUG, affects the D22/D23 rank record: `srank99 = 1` is a
+  silent float32 NaN sentinel, not a real rank.** Reviewer 1 flipped a true 15 to 1
+  under a 1.2e-7 perturbation and identified a corrupted cell already on disk —
+  `results/d22/effective_rank.csv`, s36 critic @6M reads 1, true value 19. Fix before
+  any rank number is quoted again: float64 `svdvals` + a NaN hard-fail in the grader.
+  Designer B independently hit the same symptom, diagnosed it as DC degeneracy and
+  "fixed" it by mean-centering — **wrong cause, wrong remedy**, recorded so the
+  centering change is not adopted on B's reasoning. B's 12M control reads inherited
+  the bug (actor "108-110" is really 113/17/108, critic "9-14" is 9/18/25).
+  **FINDING 2 — THE GEOMETRIC NULL, and it re-grades D23's own srank co-primary.**
+  Interpolate a control checkpoint back toward its OWN init, theta(alpha) = theta0 +
+  alpha*(theta_c - theta0), no training, pure geometry: at the alpha matching D23's
+  treatment anchor distance the null alone reproduces ~50% of the headline de-collapse
+  (critic 12 -> 24 vs treatment 34; actor 104 -> 127 vs 152). Reviewer 1 reproduced B's
+  table independently (its critic null came out STRONGER) and extended it to 50M: at
+  the treatment's predicted distance (alpha 0.3-0.5) pure geometry yields critic srank
+  26-164. **Consequence: D23's actor srank margin over the null is only 1.21x and its
+  critic margin ~1.5x — a de-collapse claim under a toward-init regularizer is partly
+  a distance-from-init artifact, and any future rank read MUST be graded against the
+  null at matched anchor distance.** D23's recorded verdict does not change (its srank
+  letter was NOT met anyway), but its mechanism narrative is now weaker than logged.
+  **FINDING 3 — dormancy is the null-robust plasticity statistic** (the interpolation
+  moves the median control lane only 0.763 -> 0.701 across alpha 1.0 -> 0.3), and the
+  matched-tau 12M restatement corrects a D23-era claim: treatment median 0.45 vs
+  control 0.51 is a real -0.06, not "the lever left dormancy unchanged" (that
+  comparison was tau=0.025 against tau=0.1). Actor dormancy is also where the 50M
+  pathology actually lives (0.45-0.52 at 12M -> 0.85/0.76/0.39 at 50M), whereas
+  **critic srank SATURATES 12M->50M (control 8/14/11 -> 10/7/9) — D23's chosen
+  co-primary has no headroom left at the carry's horizon.**
+  **FINDING 4 — the 50M win-rate channel is arithmetically un-creditable, verified to
+  the digit by both reviewers.** Frozen comparator s35 0.65933 / s36 0.57267 / s37
+  0.50867 -> pooled 0.580222, sd 0.075617; the clustered term alone is >= 0.0873 at
+  ZERO treatment spread, binomial (0.0147) can never govern, so the credit bar is
+  **>= 0.6675 unconditionally** — above s35's 0.6593, the best single lane in repo
+  history. The bar is treatment-spread-owned: a zero-variance comparator still leaves
+  0.637, and two extra comparator lanes (3.3 lane-days) move it only 0.6843 -> 0.6685.
+  **WHY NO-GO (Reviewer 2, and Reviewer 1's evidence agrees):** every reachable verdict
+  in both designs terminates at the same next action ("D19, or close the chapter"); the
+  one branch that would redirect the project is the unreachable one. Worse, Reviewer 1
+  showed **A's primaries cannot fail** — at the treatment's own predicted distance the
+  geometric null clears A's letters (">11", ">=21") outright, and A's norm-growth-arrest
+  read is a near-certain consequence of a 3.9-e-fold anchor pull; A also has no
+  GEOMETRIC-ONLY verdict state and no capability condition, so it could return
+  "MECHANISM CARRIES" on an under-trained network. **IF the carry is ever run, the
+  ratified spine is B-merged** (PRIMARY = dormancy; PRIMARY 2 = rank ABOVE the null at
+  matched anchor distance, keeping A's back-half-median lane statistic; capability
+  floor made RELATIVE to the control's own 12M->50M delta — as written B's absolute
+  floor fails on control s37; win rate descriptive with A's un-creditability table
+  verbatim; seeds 52/53/54 with 47/48 named for crash replacement; A's R0-12
+  frozen-comparator attestation imported). **ROADMAP DEFECT for the maintainer:** DESIGN
+  §13 conditions a 250M pre-registration on "a credited lever at 50M"; under today's
+  larger-of line no such lever exists (Rung 3's CREDIT was graded under the era's line
+  and its recorded verdict stands, per the D23 readout), and this carry cannot create
+  one at 3 lanes. §13(1) needs restating or explicitly waiving. **OPS/TOOLING, all
+  pre-launch for any future rank-bearing rung:** `d22_dormant_rank.py` clobbers its own
+  CSVs (no `--out-name`, unconditional writes ~L155-156) and has already destroyed the
+  D23 CONTROL rank pass — results/d23/effective_rank.csv holds only seeds 44/45/46;
+  neither grader exists yet; the locked protocol is 3000/seed per DESIGN §8 and
+  **CLAUDE.md's "1000 battles/seed" is the stale line — fix it**; `reconstruct_theta0`
+  VERIFIED working on struct50m-era configs (A had flagged this as a risk; it resolves
+  positive) but needs both encoder env vars; ||theta0|| = 1.97261 for species_emb (the
+  repo comment is wrong); 50M LN-free band measured 2.83-3.11. **Lane-day cost is
+  UNRESOLVED between the reviewers** — R1 measured 388-398 steps/s -> 34.9-35.8 h/lane
+  -> ~4.4 lane-days; R2 used 336 steps/s -> 41.3 h/lane -> ~5.6. The gap is almost
+  certainly 3-wide vs 5-wide collection; resolve before any launch, and do not launch
+  on the "~5.0" figure that was accepted. Repo tree untouched by all four agents
+  (verified clean); no code changed this session.
