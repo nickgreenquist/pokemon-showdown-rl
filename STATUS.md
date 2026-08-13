@@ -21,7 +21,6 @@ INCONCLUSIVE, not refuted** ("2 of 3 below geometry" used the max null).
 | **Rung 3 50M finals — CREDIT (era-graded, seed sd 0.0756)** | **0.5802 ± 0.0052** |
 | D18 priv-critic NULL 0.5364 · D23 regen-L2 not-credited | 0.5897 ± 0.0066 |
 | BC-of-FP clone final / val-peak = M4 bar · SH mirror 0.489 | 0.5490 / 0.5777 |
-
 **LADDER:** M1/M2/**M3 CLAIMED at 12M** · M4 letter-met at 50M, NOT claimed.
 
 ## Next actions, in order (maintainer decisions at the top)
