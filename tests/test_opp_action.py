@@ -298,13 +298,13 @@ def test_the_head_can_learn_the_task_it_is_asked_to_learn():
     first = None
     for _ in range(400):
         loss = aux_cross_entropy(head(ctx, moves, bench), target, allow, valid)
-        first = first if first is not None else float(loss)
+        first = first if first is not None else float(loss.detach())
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
     marginal = -torch.log(torch.bincount(target, minlength=N_CLASSES) / n)
     assert first > 1.5  # starts near log 6 = 1.79
-    assert float(loss) < 0.5 * float((marginal[target]).mean())
+    assert float(loss.detach()) < 0.5 * float((marginal[target]).mean())
 
 
 # --- the trunk-side gates, in a subprocess at the 828 encoder ----------------

@@ -836,6 +836,13 @@ class PoolPlayer(Player):
         # D25: the identity of the action this seat chose on the CURRENT inner
         # step, or the sentinel. Read by ShowdownEnv.step; see clear_choice.
         self._choice = _OPP_CHOICE_NONE
+        # Which pool member is playing this battle, as a push id (§6): the
+        # oracle floor A3 must be evaluated on the member that actually
+        # generated each label. Per-BATTLE, so it is not cleared per step.
+        self._member = -1
+
+    def take_member(self) -> int:
+        return self._member
 
     def clear_choice(self) -> None:
         """Reset to the sentinel — called before EVERY inner env.step (B2).
@@ -869,6 +876,7 @@ class PoolPlayer(Player):
         if battle.battle_tag != self._battle_tag:
             self._battle_tag = battle.battle_tag
             self._current = self._pool.select(self._rng)
+            self._member = self._pool.member_id(self._current)
         obs = embed_battle(battle, self._type_chart)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         action = self._current.move(obs, mask, self._rng)
@@ -1026,6 +1034,7 @@ class ShowdownEnv(Env):
         # choices are forced post-faint replacements, not the simultaneous
         # decision, and are discarded.
         choice = self._pool_player.take_choice() if self._opp_action else None
+        member = self._pool_player.take_member() if self._opp_action else -1
         total_reward = float(reward)
         # Absorb wait states (our seat has nothing to choose — e.g. the
         # opponent is replacing a fainted mon; measured 6.4% of raw steps vs
@@ -1044,6 +1053,12 @@ class ShowdownEnv(Env):
         self._emit_privileged(info)
         if self._opp_action:
             info["opp_choice"] = np.array(choice, dtype=np.int32)
+            # ALONGSIDE the three-field seam, deliberately not inside it (B2
+            # pins the array at three fields): which pool member generated this
+            # label. §6's build item — the manipulation check's oracle floor is
+            # not specific unless A3 is evaluated on the member that actually
+            # played, and the training loss never reads this.
+            info["opp_member"] = np.int32(member)
         if terminated or truncated:
             assert poke.battle1 is not None
             info["outcome"] = battle_outcome(poke.battle1)

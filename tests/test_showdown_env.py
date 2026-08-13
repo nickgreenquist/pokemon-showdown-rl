@@ -558,9 +558,10 @@ class _StubPoolPlayer:
     """PoolPlayer's D25 surface. `decides` is one entry per inner step: an
     identity tuple when this seat chooses, None for a wait turn."""
 
-    def __init__(self, decides):
+    def __init__(self, decides, member=3):
         self.decides = list(decides)
         self._choice = (-1, -1, 0)
+        self._member = member
         self.clears = 0
 
     def clear_choice(self):
@@ -569,6 +570,9 @@ class _StubPoolPlayer:
 
     def take_choice(self):
         return self._choice
+
+    def take_member(self):
+        return self._member
 
     def decide(self):
         choice = self.decides.pop(0) if self.decides else None
@@ -596,6 +600,12 @@ def test_r05a_label_is_this_step_s_opponent_action():
     assert info["opp_choice"].tolist() == [1, 33, OPP_CHOICE_PRESENT]
     assert info["opp_choice"].dtype == np.int32  # never a tuple: see B2
     assert len(info["opp_choice"]) == OPP_CHOICE_DIM
+    # ALONGSIDE the seam, not inside it: §6's oracle floor must be evaluated on
+    # the member that actually generated the label, or a legitimate head reads
+    # a gap closure of 1.08 and the "g > 1.0 is a bug" hard fail fires on a
+    # correct run.
+    assert int(info["opp_member"]) == 3
+
 
 
 def test_r05a_wait_pump_choices_are_discarded():
@@ -694,6 +704,9 @@ class _FakePool:
         member = self.members[self.selects % len(self.members)]
         self.selects += 1
         return member
+
+    def member_id(self, member):
+        return self.members.index(member)
 
     def report(self, member, outcome):
         self.reports.append((member, outcome))

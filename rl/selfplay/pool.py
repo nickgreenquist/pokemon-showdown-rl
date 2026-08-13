@@ -174,6 +174,23 @@ class SnapshotPool(Opponent):
         ids = self.push_ids
         return min(range(1, len(ids) - 1), key=lambda i: (ids[i + 1] - ids[i - 1], i))
 
+    def member_id(self, played: Opponent) -> int:
+        """The push id of the member that played, or -1 for a fixed anchor or
+        one evicted mid-episode. Identity match, same rule as `report`.
+
+        Push ids and not list indices: indices shift under eviction, while a
+        push id names the checkpoint that generated a decision for the run's
+        whole life. D25 §6 needs exactly that — the manipulation check's oracle
+        floor A3 must be evaluated on the member that actually produced each
+        label, not on one arbitrary actor. Under a real pool (latest_prob 0.8,
+        per-member E[H] spanning 0.17-0.43) a legitimate head otherwise reaches
+        a gap closure of 1.08 and the "g > 1.0 is a bug" hard fail fires on a
+        correct run."""
+        for member, push_id in zip(self.members, self.push_ids):
+            if member is played:
+                return push_id
+        return -1
+
     def report(self, played: Opponent, outcome: int) -> None:
         """Accumulate the learner's result vs the member that played.
         Identity match on purpose: a fixed-mix opponent or a member evicted

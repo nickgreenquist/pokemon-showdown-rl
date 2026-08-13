@@ -176,6 +176,28 @@ def test_pool_size_one_is_the_naive_arm_and_replaces_on_push():
     assert torch.equal(pool.members[0].agent.actor.head.weight, head)
 
 
+def test_member_id_reports_the_push_id_and_survives_eviction():
+    """D25 §6: the manipulation check's oracle floor A3 must be evaluated on
+    the member that actually generated each label — under a real pool
+    (latest_prob 0.8, per-member E[H] spanning 0.17-0.43) a legitimate head
+    otherwise reads a gap closure of 1.08 and trips the "g > 1.0 is a bug"
+    hard fail on a correct run.
+
+    Push ids, not list indices: an index shifts under eviction while a push id
+    names the same checkpoint for the run's whole life."""
+    pool = SnapshotPool(2, 0.8)
+    members = []
+    for seed in range(3):
+        pool.push(fresh_agent(seed))
+        members.append(pool.members[-1])
+    assert pool.push_ids == [0, 2]  # the step-0 anchor is never evicted
+    assert pool.member_id(members[0]) == 0
+    assert pool.member_id(members[2]) == 2
+    # Not a member: evicted mid-episode, or a fixed anchor. Never a fake id.
+    assert pool.member_id(members[1]) == -1
+    assert pool.member_id(RandomOpponent()) == -1
+
+
 def test_eviction_is_span_preserving_and_keeps_the_anchor():
     """Span-preserving thinning (fixed 2026-08-06): the step-0 snapshot
     anchors the pool, the newest member is never evicted at push time, and
