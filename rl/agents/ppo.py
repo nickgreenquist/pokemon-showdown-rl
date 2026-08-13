@@ -527,6 +527,19 @@ class PPOAgent(Agent):
             # landmine on any future init_from/resume.
             self.aux_params = list(self.aux_head.parameters())
             groups.append({"params": self.aux_params, "lr": lr * actor_lr_scale})
+            # The SHARED trunk — everything the aux gradient can reach, which
+            # is the actor minus its policy readout. Held for the R0-10b
+            # diagnostic below: both the fresh-head and fitted-head OFFLINE
+            # proxies were shown to be dominated by the head's last-layer
+            # weight scale and by the norm of an arbitrary z-scored advantage
+            # vector (13.6x spread with the actor held fixed), so the ratio is
+            # measured HERE instead, live, on the co-trained head against the
+            # moving trunk with the run's own real advantages.
+            self.trunk_params = [
+                p for name, p in self.actor.named_parameters()
+                if not name.startswith(("scorer.", "slot_bias"))
+            ]
+            self._trunk_ids = {id(p) for p in self.trunk_params}
         self.optimizer = torch.optim.Adam(groups, eps=1e-5)
         self._set_actor_trainable(critic_warmup_updates == 0)
         # theta0 capture, AFTER init_head()/.to(device) (so the anchors are
@@ -750,6 +763,11 @@ class PPOAgent(Agent):
         )
         present = [g for g in grads if g is not None]
         total = float(torch.norm(torch.stack([g.norm() for g in present]))) if present else 0.0
+        # The trunk-only slice, post-coefficient and PRE-clip: the numerator of
+        # R0-10b's ratio, measured on the real thing rather than on a proxy.
+        on_trunk = [g for p, g in zip(params, grads)
+                    if g is not None and id(p) in self._trunk_ids]
+        trunk = float(torch.norm(torch.stack([g.norm() for g in on_trunk]))) if on_trunk else 0.0
         # clip_grad_norm_'s own arithmetic, applied to a detached grad list.
         scale = min(1.0, self.aux_max_grad_norm / (total + 1e-6))
         for param, grad in zip(params, grads):
@@ -759,7 +777,7 @@ class PPOAgent(Agent):
                 param.grad = grad * scale
             else:
                 param.grad.add_(grad, alpha=scale)
-        return float(loss.item()), total
+        return float(loss.item()), total, trunk
 
     def update(self, batch: Any) -> dict[str, float]:
         # The vector loop hands one batched (N-wide) transition row per env
@@ -833,7 +851,7 @@ class PPOAgent(Agent):
             aux_target, aux_allow, aux_valid, aux_stats = canonicalise(
                 flat_obs,
                 torch.as_tensor(buf.opp_choice, device=self.device).flatten(0, 1),
-                self.actor.tokenizer.id_off,
+                self.actor.tokenizer,
             )
         # The critic's input: obs ‖ privileged when the block is carried,
         # plain obs otherwise (aliases, no copy). Every critic forward below
@@ -1004,6 +1022,18 @@ class PPOAgent(Agent):
                 # (B9's build decision — a second forward is ~+25% update time
                 # and is not in the rung's -2.1% budget).
                 loss.backward(retain_graph=self.aux_head is not None)
+                if self.aux_head is not None:
+                    # PRE-clip, and read-only: clip_grad_norm_ rescales .grad in
+                    # place, so the denominator has to be taken before it. Both
+                    # norms are logged and the RATIO is derived at read time —
+                    # a per-minibatch mean-of-ratios is Jensen-inflated by
+                    # 1.3-1.5x against ratio-of-means, which is how the offline
+                    # proxy came to overstate itself.
+                    with torch.no_grad():
+                        pol_trunk = torch.norm(torch.stack(
+                            [p.grad.norm() for p in self.trunk_params
+                             if p.grad is not None]))
+                    sums["aux/policy_trunk_norm"] += float(pol_trunk)
                 # One clip over the actor+critic union — separate calls would
                 # hand each net the full norm budget. The return value is the
                 # total norm BEFORE clipping, which is the diagnostic: paired
@@ -1015,11 +1045,12 @@ class PPOAgent(Agent):
                 if self.aux_head is not None:
                     # AFTER the clip read above, BEFORE the step: the aux term
                     # must not move loss/grad_norm or loss/grad_clip_frac.
-                    aux_loss, aux_norm = self._aux_gradient(
+                    aux_loss, aux_norm, aux_trunk = self._aux_gradient(
                         feats, aux_target[idx], aux_allow[idx], aux_valid[idx]
                     )
                     sums["aux/loss"] += aux_loss
                     sums["aux/grad_norm"] += aux_norm
+                    sums["aux/trunk_norm"] += aux_trunk
                     sums["aux/grad_clip_frac"] += float(aux_norm > self.aux_max_grad_norm)
                 self.optimizer.step()
                 if self.l2_init_decay > 0.0:

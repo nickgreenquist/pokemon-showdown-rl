@@ -22,6 +22,7 @@ import sys
 
 import pytest
 import torch
+from types import SimpleNamespace
 
 from rl.envs.showdown import OPP_CHOICE_ALIASED, OPP_CHOICE_DIM, OPP_CHOICE_PRESENT
 from rl.networks.opp_action import (
@@ -34,9 +35,10 @@ from rl.networks.opp_action import (
     canonicalise,
 )
 
-# The real layout: OBS_DIM 828 with the 20-dim id suffix at the end. The
-# canonicaliser takes id_off as an argument precisely so it needs no encoder.
-OBS_W, ID_OFF = 828, 808
+# The real layout at OBS_DIM 828, duck-typed: canonicalise takes the net's own
+# EntityTokenizer precisely so it needs no encoder import of its own.
+OBS_W = 828
+ID_OFF = SimpleNamespace(id_off=808, opp_mon_off=404, mon_dim=33)
 PRESENT, ALIASED = OPP_CHOICE_PRESENT, OPP_CHOICE_PRESENT | OPP_CHOICE_ALIASED
 
 
@@ -78,13 +80,18 @@ def test_the_two_seam_widths_agree():
     assert CHOICE_DIM == OPP_CHOICE_DIM == 3
 
 
-def _obs(slot_ids=(0, 0, 0, 0), opp_faints=0, n=1):
+def _obs(slot_ids=(0, 0, 0, 0), opp_faints=0, n=1, active_alive=True):
     """A minimal obs row carrying only what canonicalise reads: the global
-    block's opponent faint count and the id suffix's opponent-move block."""
+    block's opponent faint count, the id suffix's opponent-move block, and the
+    opponent active's revealed/fainted/is-active bits."""
     obs = torch.zeros(n, OBS_W)
     obs[:, 2] = opp_faints / 6.0
     for j, move_id in enumerate(slot_ids):
-        obs[:, ID_OFF + 16 + j] = move_id / 256.0
+        obs[:, ID_OFF.id_off + 16 + j] = move_id / 256.0
+    base = ID_OFF.opp_mon_off  # opponent mon block 0 = their active
+    obs[:, base + 0] = 1.0  # revealed
+    obs[:, base + 3] = 1.0  # is-active
+    obs[:, base + 2] = 0.0 if active_alive else 1.0  # fainted
     return obs
 
 
@@ -122,15 +129,39 @@ def test_legality_is_obs_derived_and_other_move_is_always_legal():
     obs = _obs(slot_ids=(33, 94, 0, 0), opp_faints=1)
     _, allow, _, _ = canonicalise(obs, _choice(1, 33), ID_OFF)
     assert allow[0].tolist() == [True, True, False, False, True, True]
-    # SWITCH turns illegal only once no live bench remains: 6 mons, one active,
-    # so a live bench exists iff at most 4 have fainted. The faint count is
-    # public, which is why this needs no privileged read.
+    # SWITCH is legal iff a LIVE NON-ACTIVE mon exists. With the active alive
+    # that is "at most 4 fainted"; the faint count is public, which is why this
+    # needs no privileged read.
     for faints, switch_legal in ((0, True), (4, True), (5, False)):
         _, allow, _, _ = canonicalise(
             _obs(slot_ids=(33, 0, 0, 0), opp_faints=faints), _choice(1, 33), ID_OFF
         )
         assert bool(allow[0, SWITCH]) is switch_legal
         assert bool(allow[0, OTHER_MOVE]) is True  # never masked — see B11
+
+
+def test_a_forced_post_faint_replacement_can_still_switch():
+    """THE BUG THE FROZEN TAPES COULD NOT CATCH, found by running the real
+    launch path: "6 - 1 - faints" assumes the opponent's ACTIVE IS ALIVE. On a
+    forced post-faint replacement it is not, so with 5 fainted the one survivor
+    sits on the BENCH and is switchable. The old rule called that label illegal
+    and dropped it, at a measured 0.12% of live decisions — a rate that would
+    have hard-failed R0-5(d) at read time.
+
+    Whether forced replacements belong in the loss at all is C10 and is still
+    open; this fixes only their LEGALITY."""
+    for faints, switch_legal in ((4, True), (5, True)):
+        obs = _obs(slot_ids=(33, 0, 0, 0), opp_faints=faints, active_alive=False)
+        target, allow, valid, stats = canonicalise(obs, _choice(0, 121), ID_OFF)
+        assert int(target[0]) == SWITCH
+        assert bool(allow[0, SWITCH]) is switch_legal
+        assert bool(valid[0]) is switch_legal
+        assert stats["aux/illegal_label_frac"] == 0.0
+    # A fainted active with the whole team down is still illegal — the battle is
+    # over, and the rule must not become "SWITCH is always legal".
+    obs = _obs(slot_ids=(33, 0, 0, 0), opp_faints=6, active_alive=False)
+    _, allow, _, _ = canonicalise(obs, _choice(0, 121), ID_OFF)
+    assert not bool(allow[0, SWITCH])
 
 
 def test_an_illegal_label_is_dropped_and_counted_never_scored():
@@ -172,12 +203,14 @@ def _random_rows(n, generator):
     obs = torch.zeros(n, OBS_W)
     faints = torch.randint(0, 6, (n,), generator=generator)
     obs[:, 2] = faints / 6.0
+    obs[:, ID_OFF.opp_mon_off + 0] = 1.0   # their active: revealed,
+    obs[:, ID_OFF.opp_mon_off + 3] = 1.0   # is-active, and alive
     slot_ids = torch.zeros(n, 4, dtype=torch.long)
     for i in range(n):
         filled = int(torch.randint(1, 5, (1,), generator=generator))
         ids = torch.randperm(165, generator=generator)[:filled] + 1
         slot_ids[i, :filled] = ids
-    obs[:, ID_OFF + 16 : ID_OFF + 20] = slot_ids.float() / 256.0
+    obs[:, ID_OFF.id_off + 16 : ID_OFF.id_off + 20] = slot_ids.float() / 256.0
     return obs, slot_ids
 
 
@@ -536,13 +569,16 @@ allow = torch.ones(8, 6, dtype=torch.bool)
 valid = torch.ones(8, dtype=torch.bool)
 for param in (*bounded.actor_params, *bounded.critic_params, *bounded.aux_params):
     param.grad = None
-loss, norm = bounded._aux_gradient(tuple(feats), target, allow, valid)
+loss, norm, trunk = bounded._aux_gradient(tuple(feats), target, allow, valid)
 applied = torch.norm(torch.stack([
     p.grad.norm() for p in (*bounded.actor_params, *bounded.aux_params)
     if p.grad is not None
 ]))
 assert norm > 0.5, norm  # the raw gradient really did need clipping
 assert float(applied) <= 0.5 + 1e-5, float(applied)
+# The trunk slice is a strict subset of the whole aux gradient, and nonzero:
+# it is the numerator R0-10b's ratio is read from, live.
+assert 0.0 < trunk <= norm, (trunk, norm)
 
 # WHERE THE AUX GRADIENT MAY GO, asserted rather than argued (B6b): the
 # shared trunk — ctx_net, mon_net, move_net, field_net and both embedding

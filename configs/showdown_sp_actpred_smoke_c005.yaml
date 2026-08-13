@@ -1,0 +1,91 @@
+# =====================================================================
+# R0-10 COEFFICIENT SMOKE, arm aux_oppact_coef = 0.05 — configs/showdown_sp_actpred12m.yaml
+# §9 R0-10. NOT a lane, NOT a rung: ~100k steps, seed 99, ~4 minutes.
+#
+# **RUN THE FOUR ARMS ONE AT A TIME.** They all use seed 99 and poke-env
+# derives its usernames from the global `random` seed, so concurrent arms
+# collide on Showdown usernames and the loser dies with the misleading
+# `TimeoutError: Agent is not challenging` at first reset.
+#
+# THE READ, per R0-10 — take the LARGEST coefficient satisfying BOTH:
+#   (a) g >= 0.25 AND RISING by the smoke's end, on the smoke lane's own
+#       tape. 100k steps is ~1,560 grad steps for a jointly-trained head
+#       against a MOVING trunk, where the 0.3286 bar (R0-13(b)) was
+#       calibrated on a probe over FROZEN features — the 0.3286-class bar
+#       stays the 12M partition where it was calibrated.
+#   (b) `loss/entropy` and `selfplay/winrate_anchor` within the control
+#       band at matched steps.
+# BLIND TO WIN RATE. If nothing satisfies both, the rung does not launch —
+# a design failure bought for 20 minutes instead of 2.3 lane-days.
+#
+# ALSO READ HERE, and it is why the smoke is now load-bearing: the LIVE
+# aux/policy trunk-gradient ratio, `aux/trunk_norm` / `aux/policy_trunk_norm`
+# as a RATIO OF MEANS (a per-minibatch mean-of-ratios is Jensen-inflated
+# ~1.3-1.5x). Both of R0-10b's OFFLINE proxies were shown to be dominated
+# by the head's last-layer weight scale and by the norm of an arbitrary
+# z-scored advantage vector — with the actor held FIXED at 12M the policy
+# proxy's norm spans 13.6x across advantage draws. This measures the real
+# thing: a co-trained head against a moving trunk with the run's own
+# advantages. Reference: 0.177 at coef 0.1 over the first 8k steps.
+#
+# Plus the standing SMOKE READS: label-present fraction,
+# `aux/illegal_label_frac` == 0, `aux/frame_collision_frac` == 0, finite
+# losses, and R0-8 throughput (record-and-continue below 255, stop below
+# 210, WARM wall-clock effective).
+# =====================================================================
+env_id: Showdown-v0
+seed: 99
+total_steps: 100000
+eval_every: 100000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 100000
+run_name: showdown_sp_actpred_smoke_c005
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.05
+  aux_label_space: l6
+  aux_scorer_sizes:
+  - 96
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes:
+    - 384
+    - 384
+    scorer_sizes:
+    - 256
+    value_sizes:
+    - 384
+    - 384
+  hidden_sizes:
+  - 512
+  - 512
+  lr: 0.00025
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

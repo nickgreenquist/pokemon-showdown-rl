@@ -62,13 +62,17 @@ CHOICE_DIM = 3
 # launch — not so it can be swept.
 LABEL_SPACES = ("l6",)
 
-# The id suffix's opponent-move block, and the id scale, both mirroring
+# The id suffix's opponent-move block, and the id scale, mirroring
 # rl.envs.showdown._fill_ids / EntityTokenizer (which hardcodes the same 256.0).
-# Not imported: this module must not pull poke_env in for two integers.
+# Every OTHER offset comes from the tokenizer that `canonicalise` is handed, so
+# this module never has to import poke_env or restate the encoder layout.
 _OPP_MOVE_ID_OFF = 16
 _ID_SCALE = 256.0
 # embed_battle's global block: vec[2] = opponent fainted count / 6.
 _OPP_FAINT_IDX = 2
+# Within an opponent mon block: [0] revealed flag, then _fill_mon's own layout,
+# whose first three fields are hp, fainted, is-active.
+_REVEALED, _FAINTED, _IS_ACTIVE = 0, 2, 3
 
 
 class OppActionHead(nn.Module):
@@ -147,14 +151,15 @@ class OppActionHead(nn.Module):
 
 
 def canonicalise(
-    obs: torch.Tensor, choice: torch.Tensor, id_off: int
+    obs: torch.Tensor, choice: torch.Tensor, layout
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict[str, float]]:
     """Env labels -> (target, allow, valid, stats), ONCE PER ROLLOUT (B12).
 
-    `obs` is the flat (B, OBS_DIM) buffered observation and `choice` the (B, 3)
-    `[kind, id, flags]` the env emitted for the SAME rows. Done inside the
-    epoch x minibatch loop instead this costs 16x and surfaces as an
-    unexplained update-time regression.
+    `obs` is the flat (B, OBS_DIM) buffered observation, `choice` the (B, 3)
+    `[kind, id, flags]` the env emitted for the SAME rows, and `layout` the
+    net's own `EntityTokenizer` — the authority on where things are, so no
+    offset is restated here. Done inside the epoch x minibatch loop instead
+    this costs 16x and surfaces as an unexplained update-time regression.
 
     A row is VALID — i.e. contributes to the loss — iff it carries a real
     decision, was not an aliased turn, its label is legal, and its id matched
@@ -177,15 +182,29 @@ def canonicalise(
     """
     kind, ident, flags = choice[:, 0], choice[:, 1], choice[:, 2]
     # THE FRAME: this row's own id suffix, opponent-move block (B4).
-    off = id_off + _OPP_MOVE_ID_OFF
+    off = layout.id_off + _OPP_MOVE_ID_OFF
     slot_ids = (obs[:, off : off + 4] * _ID_SCALE).round().long()  # (B, 4)
 
     slot_legal = slot_ids != 0
-    # The opponent has 6 mons and one of them is active, so a live bench exists
-    # iff at most 4 have fainted. The faint count is public (embed_battle's
-    # global block), which is why this needs no privileged read.
+    # SWITCH is legal iff a LIVE NON-ACTIVE opponent mon exists. The faint count
+    # is public (embed_battle's global block), which is why this needs no
+    # privileged read — but the count ALONE is not enough, and that was a bug
+    # the frozen tapes could not have caught. "6 - 1 - faints" assumes the
+    # opponent's active is ALIVE; on a FORCED POST-FAINT REPLACEMENT it is not,
+    # so with 5 fainted the one survivor sits on the bench and IS switchable
+    # while the count says otherwise. Measured live at 0.12% of decisions — a
+    # rate that would have hard-failed R0-5(d) at read time (B11). Whether the
+    # forced replacements themselves belong in the loss is C10, still open;
+    # this fixes only their LEGALITY.
     opp_faints = (obs[:, _OPP_FAINT_IDX] * 6.0).round().long()
-    switch_legal = (opp_faints <= 4).unsqueeze(-1)
+    mons = obs[:, layout.opp_mon_off : layout.opp_mon_off + 6 * (layout.mon_dim + 1)]
+    mons = mons.view(obs.shape[0], 6, layout.mon_dim + 1)
+    active_alive = (
+        (mons[:, :, _REVEALED] > 0.5)
+        & (mons[:, :, _IS_ACTIVE] > 0.5)
+        & (mons[:, :, _FAINTED] <= 0.5)
+    ).any(dim=1).long()
+    switch_legal = ((6 - opp_faints - active_alive) >= 1).unsqueeze(-1)
     other_legal = torch.ones_like(switch_legal)
     allow = torch.cat([slot_legal, other_legal, switch_legal], dim=-1)  # (B, 6)
 

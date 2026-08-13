@@ -1985,9 +1985,47 @@
 #   maintainer's call under the standing 2-designers-2-reviews process.
 #   NOTHING IN THIS FILE WAS CHANGED IN RESPONSE.**
 #
-# **STILL OWED BEFORE LAUNCH: the R0-10 coefficient smoke** (four arms,
-# seed 99, ONE AT A TIME), which cannot be specified until R0-10b's
-# adjudication settles the grid.
+# **R0-10b's ADJUDICATION — PROPOSED, NOT ENACTED. Nothing below this
+# line has changed any operative number in this file.**
+# `results/d25/d25_amendment_r010b.md` carries it in full: amendment A1
+# (re-measure the ratio on a FITTED head) was drafted, sent to two
+# independent Opus reviews, and **REFUSED** — the fitted construction is
+# not determinate (a reviewer reproduced the recipe and got 1.74/1.46/1.24
+# against A1's 2.50/3.41/4.19, which moves the filter across the whole
+# grid), A1's headline was a Jensen-inflated mean-of-ratios whose "spread
+# across head draws" was really the DENOMINATOR (with the actor held
+# FIXED at 12M, ‖g_trunk policy‖ spans 13.6x across advantage draws), and
+# A1's claim to retro-fix D19-B ran the wrong way — the fresh->fitted
+# factor is common-mode and CANCELS.
+# **A2, PROPOSED IN ITS PLACE: neither offline proxy gates the rung.**
+# Both measure ‖W_last(t)‖ x residual over a random advantage vector, not
+# the lever's coupling — which is also why the band rejects D19-B's own
+# recommendation. The ratio is instead measured LIVE during R0-10's
+# smoke, on the co-trained head against the moving trunk with the run's
+# own advantages: `aux/trunk_norm` / `aux/policy_trunk_norm`, both
+# PRE-clip, read as a RATIO OF MEANS. A pure diagnostic; it reads `.grad`
+# and changes no update. **Already measured at 0.177 for coef 0.1 over
+# the first 8k steps — inside the band.** On the evidence so far R0-10's
+# own unmodified rule selects **0.1, the value this file already
+# carries.** If the maintainer prefers the strict reading of R0-10b, it
+# stands and the rung does not launch; that is a legitimate call.
+#
+# **STILL OWED BEFORE LAUNCH: the R0-10 coefficient smoke.** Arms shipped
+# as `configs/showdown_sp_actpred_smoke_c{005,010,025,050}.yaml`, seed
+# 99, **ONE AT A TIME** — they collide on Showdown usernames otherwise.
+#
+# **ONE MORE BUILD FIX, found by running the real launch path** (the
+# earlier smoke drove the loop by hand and could not have caught it):
+# SWITCH legality read "6 - 1 - faints", which assumes the opponent's
+# ACTIVE IS ALIVE. On a FORCED POST-FAINT REPLACEMENT it is not, so with
+# 5 fainted the one survivor sits on the bench and IS switchable. The old
+# rule called that label illegal and dropped it, at **0.12% of live
+# decisions — a rate that would have HARD-FAILED R0-5(d) at read time**.
+# The frozen tapes carry none of these rows, so no offline gate could
+# have caught it. Legality now reads the opponent active's own
+# revealed/fainted/is-active bits; `aux/illegal_label_frac` is back to
+# 0.0000 over a live run. Whether forced replacements belong in the loss
+# at all is C10, still open and untouched.
 #
 # **THE TWO NUMBERS THE HEADER ASKED TO VERIFY AT BUILD — BOTH HOLD.**
 #   (1) **actor+aux = 675,538. VERIFIED LIVE** from this config file:
