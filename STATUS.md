@@ -35,11 +35,10 @@ review and A2 measures the ratio LIVE in the smoke instead.**
    the rule selects **0.1, already in the config**. Full record:
    `results/d25/d25_amendment_r010b.md`. If you prefer R0-10b's strict reading it stands
    and the rung does not launch — a legitimate call.
-1. **YOUR CALL, also before launch: the shuffled-label placebo arm, +2.35 lane-days**
-   (chapter → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
+1. **YOUR CALL before launch: the shuffled-label placebo arm, +2.35 lane-days** (chapter
+   → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
 3. **LEDGER: chase = 13.54, headroom ~6.5**; re-measure, never increment. **§13
    DEFECT:** it conditions 250M on a credited 50M lever and none exists → restate.
-
 ## Gate results, frozen into the config's §15B (zero-lane, `scripts/d25_gates.py`)
 - **R0-12b PASS** — nulls +0.0009 / +0.0021 / -0.0046 / -0.0146 against a real ctx of
   +0.0150; closest null 7× below. Header claim corrected: the PCA nulls are NOT "worse
@@ -55,9 +54,9 @@ review and A2 measures the ratio LIVE in the smoke instead.**
   carries such a row, so no offline gate could have caught it. Fixed; now 0.0000.
 
 ## Watch items
-- **results/d25/ IS THE ONLY COPY of the sha256-frozen reference tapes** (gitignored;
-  rescued from a job scratch dir). Losing it voids the mechanism co-primary.
-- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 disposable; 47-48
+- **results/d25/ IS THE ONLY COPY of the sha256-frozen reference tapes** (gitignored,
+  rescued from a job scratch dir) — losing it voids the mechanism co-primary.
+- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 = the smoke; 47-48
   held for a D25 lane lost before R1; **52-56 = D25**; 57+ free.
 - **Quote the RANGE, not the best measured variant.** **MAX null to ESTABLISH, MEDIAN to
   RETIRE.** Letters at n=3 quantize to {0, 0.21, 0.79, 1}. `ctx` is max-pooled ⇒ heads and
