@@ -7,9 +7,9 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (seed sd 0.0756); D18 NULL; D23
 regen-L2 "letter-met, seed-fragile, NOT credited"; the 50M CARRY IS REJECTED (bar
 ≥0.6675, above the best lane ever, 0.6593). **D25 (opponent ACTION prediction) is now
-BUILT** (~230 lines, 25 tests, suite **318 green**) **and its zero-lane gates are RUN:
-R0-12b, R0-13(a), R0-13(b) PASS. R0-10b fired; its amendment A1 was REFUSED on
-review and A2 measures the ratio LIVE in the smoke instead.**
+BUILT** (~230 lines, 26 tests, suite **319 green**) **and its zero-lane gates are RUN:
+R0-12b, R0-13(a), R0-13(b) PASS. R0-10b fired; amendment A1 was REFUSED on review and
+A2 measures the ratio LIVE in the smoke instead.**
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 | result | win rate |
@@ -30,11 +30,10 @@ review and A2 measures the ratio LIVE in the smoke instead.**
    mean-of-ratios whose "head-draw spread" was the DENOMINATOR (13.6× across advantage
    draws with the actor FIXED). **A2, PROPOSED: neither offline proxy gates the rung** —
    both measure ‖W_last‖ × residual over a random advantage vector — so the ratio is
-   measured LIVE (`aux/trunk_norm` / `aux/policy_trunk_norm`, ratio-of-means).
-   **Reads 0.177 at coef 0.1 over 8k steps, in band.** No pre-registered number changes;
-   the rule selects **0.1, already in the config**. Full record:
-   `results/d25/d25_amendment_r010b.md`. If you prefer R0-10b's strict reading it stands
-   and the rung does not launch — a legitimate call.
+   measured LIVE (`aux/trunk_norm` / `aux/policy_trunk_norm`, ratio-of-means). **Reads
+   0.177 at coef 0.1 over 8k steps, in band.** No pre-registered number changes; the rule
+   selects **0.1, already in the config**. Record: `results/d25/d25_amendment_r010b.md`.
+   If you prefer R0-10b's strict reading it stands and the rung does not launch.
 1. **YOUR CALL before launch: the shuffled-label placebo arm, +2.35 lane-days** (chapter
    → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
 3. **LEDGER: chase = 13.54, headroom ~6.5**; re-measure, never increment. **§13
@@ -58,6 +57,5 @@ review and A2 measures the ratio LIVE in the smoke instead.**
   rescued from a job scratch dir) — losing it voids the mechanism co-primary.
 - Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 = the smoke; 47-48
   held for a D25 lane lost before R1; **52-56 = D25**; 57+ free.
-- **Quote the RANGE, not the best measured variant.** **MAX null to ESTABLISH, MEDIAN to
-  RETIRE.** Letters at n=3 quantize to {0, 0.21, 0.79, 1}. `ctx` is max-pooled ⇒ heads and
-  estimators must be scorer-shaped. BOTH encoder env vars, always.
+- **Quote the RANGE, not the best variant.** **MAX null to ESTABLISH, MEDIAN to RETIRE.**
+  `ctx` is max-pooled ⇒ heads and estimators must be scorer-shaped. BOTH env vars, always.
