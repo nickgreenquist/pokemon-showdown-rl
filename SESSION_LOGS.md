@@ -3298,3 +3298,73 @@ entry by offset — never a broad keyword grep.
   R0-12b's four capacity nulls have not been re-run on s36. Also flagged in-header as
   the reviser's arithmetic rather than measurement: R0-8's 255/210 and the param total
   675,538. NEXT: the build (~200 lines) + tests + smoke, then the maintainer launches.
+
+- 2026-08-13 (night, **D25 BUILT — ~230 lines, 7 files, 24 new tests, ZERO LANES**; the
+  ratified pre-registration is now executable code and the two numbers it asked to
+  verify at build both hold). Suite **293 -> 317 green**, tree clean, nothing running.
+  **WHAT LANDED**, per the header's build order: the env seam (`_order_identity`,
+  PoolPlayer's recorded choice + `clear_choice`, `opp_action`, `info["opp_choice"]`),
+  buffer storage with no `next_*` twin, `forward(x, return_features=True)` +
+  `_aux_features` in the trunk, a new `rl/networks/opp_action.py` (head, canonicaliser,
+  masked CE), five aux hparams on `PPOAgent` with the head built LAST and its own third
+  optimizer group, `_aux_gradient`'s decoupled clip, `SnapshotPool.member_id`, and
+  train.py's purity seam + meta stamps. **DISCHARGED BY THE BUILD: R0-2, R0-2b, R0-2c,
+  R0-3(a)+(b), R0-5(a)(b)(c)(d), R0-7, R0-9.** **STILL BLOCKING, UNCHANGED: R0-13,
+  R0-12b, R0-10, R0-10b.** **BOTH VERIFY-AT-BUILD NUMBERS HOLD.** actor+aux = **675,538
+  VERIFIED LIVE** from the config file itself (actor 626,059 bit-identical to control,
+  critic 494,849, aux 49,479, ceiling 681,994, headroom 6,456), and the whole B7 width
+  table reproduces (32/64/96/128/256 -> 16,583 / 33,031 / 49,479 / 65,927 / 131,719).
+  R0-8's **255/210 verified as arithmetic against sourced inputs**: SESSION_LOGS.md:
+  2567-2568 records D18's own R0-8 with **s41 at 270 and HEALTHY**, the 5-wide band is
+  12e6/(10.79*3600)=308.9 to 12e6/(10.69*3600)=311.8, and at -2.5% that is ~301-304 with
+  s41 -> 263, so 255 sits 3.1% below the historical healthy floor and 210 = 0.70 x 301.
+  **B15 IS RESOLVED**: the YAML was "a SPEC, NOT A RUNNABLE FILE" and now constructs —
+  `ShowdownEnv` takes `opp_action`, `make_agent` splats the five aux keys, both checked
+  live; amended in place. **THE ONE HEADER ITEM THE FIRST PASS MISSED, and it was in §6
+  rather than in the build contract: "emit the pool member id alongside `opp_choice`
+  ... build item, not optional."** Without it A3 is computed from ONE actor while pool
+  members' conditional entropies span 0.17-0.43, so a LEGITIMATE head reaches gap
+  closure 1.08 and the "g > 1.0 is a bug" HARD FAIL fires on a correct run. Discharged
+  as a SEPARATE `info["opp_member"]` key, not a fourth field — B2 pins the array at
+  three and r2 widened it deliberately — carrying the pool PUSH ID (indices shift under
+  eviction; a push id names the checkpoint for the run's life) and -1 for a non-member.
+  **BUILD DECISIONS WHERE THE HEADER LEFT LATITUDE, recorded so they are auditable
+  rather than discovered:** (1) **SWITCH legality comes from the PUBLIC FAINT COUNT and
+  NOT from the revealed bench, and the two are genuinely different** — early in a battle
+  the opponent has five unrevealed live mons, so the bench POOL TOKEN is all-zero while
+  switching is perfectly legal; conflating them would have masked SWITCH illegal for
+  most of the early game and silently deleted the class the label space exists to
+  measure. (2) The live/non-active bench mask is TOKEN-side information (revealed flag,
+  fainted bit, is-active bit at token offsets 0/2/3), so the pooling happens inside
+  `_aux_features` rather than in the agent-owned head, which receives only the pooled
+  128-d vector. (3) The learned null token is initialised at std 0.02, i.e. OFF ZERO, so
+  OTHER_MOVE is not the same scorer input as an empty-bench SWITCH. (4) The aux
+  optimizer group anneals with the ACTOR's schedule (inert at this rung's
+  `lr_anneal_steps: 0`). **SMOKE READS, MEASURED LIVE** (4-wide self-play at the step-0
+  pool member, seed 99, 512 steps, ~1.8 s; a smoke, not a lane): **label-present
+  fraction 0.941** — §9 called ~6% "a guess" off our own seat's 6.4% absorbed waits and
+  the opponent seat's true rate is **5.9%**, so the guess holds and the effective aux
+  batch does not shrink; **aliased 0.064**, inside the tapes' 0.040-0.103;
+  `aux/illegal_label_frac` and `aux/frame_collision_frac` both **exactly 0**, matching
+  all five tapes; `aux/loss` 1.750 -> 1.635 against log 6 = 1.79. **The switch fraction
+  reads 0.43 against the comparator's 0.068-0.097 and this is NOT a defect** — the
+  labelling policy here is a RANDOM INIT picking near-uniformly over 10 actions of which
+  6 are switches, where the comparator is a trained 12M policy; recorded so it is not
+  read as one at launch. **DELIBERATELY NOT QUOTED as an R0-10b read:** the smoke's
+  aux/policy gradient ratio (~0.02 at init) is over actor+head params post-coefficient,
+  where R0-10b specifies TRUNK gradient norms at control checkpoints — it is indicative
+  of nothing, and saying so is cheaper than having it quoted later. **THE TESTS**, 24 of
+  them: R0-5(c)'s ORACLE IDENTITY on a synthetic tape written back out in the env's own
+  `[kind, id, flags]` encoding (so the round trip exercises the real canonicaliser), with
+  a companion proving the aliasing fix BUYS something — draw the aliased rows from a
+  re-based frame and the identity fails UPWARD, the direction the real tapes measured at
+  +0.66 nats; the ANTI-LEAK REPLAY ASSERTION over 400 random rows; R0-5(a) timing on the
+  two-seat stub (pump choices discarded, wait turns yield the sentinel, `clear_choice`
+  before EVERY inner step); R0-9's byte-identical `loss/grad_norm` / `grad_clip_frac`
+  lever-on vs lever-off on the same batch; R0-2c's third-group graft, which is the test
+  that FAILS on the group-0 append. **NEXT UNIT: the gate scripts** — the L6 probe/grader
+  for R0-13 (the LEARNED bar) and R0-12b (four capacity nulls on the s36 tape, max_iter
+  2000 with the asserted `||g||_2 < 1e-3`), then R0-10b offline and the R0-10 coefficient
+  smoke (four arms, seed 99, ONE AT A TIME), then the maintainer launches 52-56. **OPEN
+  MAINTAINER CALL, unchanged and still needed before launch: the shuffled-label placebo,
+  +2.35 lane-days.**

@@ -2,7 +2,7 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-13 — D25 RATIFIED at r2 on L6, NOT BUILT; 0 lanes)
+## Where things stand (2026-08-13 — D25 RATIFIED at r2 and BUILT; 0 lanes)
 
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (era-graded, seed sd 0.0756); D18
@@ -26,18 +26,20 @@ INCONCLUSIVE, not refuted** ("2 of 3 below geometry" used the max null).
 
 ## Next actions, in order (maintainer decisions at the top)
 
-0. **D25 (opponent ACTION prediction) RATIFIED at r2 on L6, NOT BUILT, NOT LAUNCHED** —
-   `configs/showdown_sp_actpred12m.yaml` is the 1,922-line SPEC (9 docs merged; r1 was
-   REFUSED, r2 supersedes). Premise **0.544 nats realised (L6, 5 lanes, 8 splits) of a
-   ~1.0-nat pool-corrected window**. Letter Δ_ref-ctx on the FROZEN s36@12M reference,
-   level 12/252 = 0.0476, **MDE(80%) 0.0105–0.0301, power at +0.010 = 0.27–0.76** (the
-   RANGE, never the best cell); a non-fire below ~0.017 nats is uninformative. Seeds
-   **52–56**, ~2.35 lane-days → 15.9/20. Build ~200 lines + 12–16 tests, zero lanes.
-   Verify at build (reviser's arithmetic, not measurement): R0-8's 255/210, and 675,538.
-1. **BLOCKING BEFORE LAUNCH, both zero-lane:** (a) **R0-13** must re-derive the LEARNED
-   bar on **L6** inputs — 0.371 is anchored on 12-class `g_frozen-probe` values and its
-   0.80 multiplier is unsourced — plus the pool correction on the REAL `_evict_index`
-   schedule; (b) **R0-12b**'s four capacity nulls, not yet re-run on the s36 tape.
+0. **D25 (opponent ACTION prediction) RATIFIED at r2 on L6 and BUILT, NOT LAUNCHED** —
+   `configs/showdown_sp_actpred12m.yaml` is the SPEC and now also RUNS (§15 BUILD
+   RECORD). Premise **0.544 nats realised (L6, 5 lanes, 8 splits) of a ~1.0-nat
+   pool-corrected window**. Letter Δ_ref-ctx on the FROZEN s36@12M reference, level
+   12/252 = 0.0476, **MDE(80%) 0.0105–0.0301, power at +0.010 = 0.27–0.76** (the RANGE,
+   never the best cell); a non-fire below ~0.017 nats is uninformative. Seeds **52–56**,
+   ~2.35 lane-days → 15.9/20. Build: ~230 lines, 24 tests, suite **317 green**; both
+   verify-at-build numbers HOLD; **R0-2/2b/2c, R0-3, R0-5(a-d), R0-7, R0-9 DISCHARGED**.
+1. **NEXT UNIT — the gate scripts, all zero-lane, all BLOCKING:** (a) **R0-13**'s L6
+   LEARNED bar (0.371 is anchored on 12-class `g_frozen-probe` values and its 0.80
+   multiplier is unsourced) plus the pool correction on the REAL `_evict_index`
+   schedule; (b) **R0-12b**'s four capacity nulls on the s36 tape at max_iter 2000 with
+   the asserted ||g||<1e-3; then **R0-10b** offline and the **R0-10** coefficient smoke
+   (four arms, seed 99, ONE AT A TIME — they collide on Showdown usernames otherwise).
 2. **YOUR CALL, needed BEFORE launch: the shuffled-label placebo arm, +2.35 lane-days**
    (chapter → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
    Currently NAMED-NOT-RUN; the header scopes the claim accordingly.
