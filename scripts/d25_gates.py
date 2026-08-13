@@ -764,8 +764,89 @@ def cmd_r010b():
     print(f"  -> {path}")
 
 
+# --------------------------------------------------------------------------
+# smoke — read R0-10's arms
+# --------------------------------------------------------------------------
+
+SMOKE_COEF = {"c005": 0.05, "c010": 0.1, "c025": 0.25, "c050": 0.5}
+# Control band, from the five comparator lanes (§7 S3 / §9 R1).
+ENTROPY_BAND = (0.212, 0.284)
+ANCHOR_MIN = 0.75
+
+
+def cmd_smoke():
+    import csv
+    import subprocess
+
+    print("=== R0-10 COEFFICIENT SMOKE — read of the arms present on disk ===")
+    print("BLIND TO WIN RATE. Take the LARGEST coefficient satisfying BOTH")
+    print("(a) g >= 0.25 and RISING, and (b) entropy and winrate_anchor in band.\n")
+    rows = {}
+    for tag, coef in SMOKE_COEF.items():
+        run = REPO / "runs" / f"showdown_sp_actpred_smoke_{tag}"
+        if not (run / "checkpoint.pt").exists():
+            print(f"  {tag} (coef {coef:<5g}) — not run")
+            continue
+        hist = run / "history.csv"
+        if not hist.exists():
+            subprocess.run([sys.executable, str(REPO / "scripts/extract_history.py"),
+                            str(run)], check=True, capture_output=True)
+        data = list(csv.DictReader(hist.open()))
+
+        def col(key):
+            return np.array([float(r[key]) for r in data if r.get(key) not in (None, "")])
+
+        aux, pol = col("aux/trunk_norm"), col("aux/policy_trunk_norm")
+        # RATIO OF MEANS. A per-minibatch mean-of-ratios is Jensen-inflated
+        # ~1.3-1.5x, which is how the offline proxy came to overstate itself.
+        ratio = float(aux.mean() / pol.mean()) if len(pol) and pol.mean() else float("nan")
+        half = len(aux) // 2
+        late = float(aux[half:].mean() / pol[half:].mean()) if half else float("nan")
+        ent, anchor = col("loss/entropy"), col("selfplay/winrate_anchor")
+        loss = col("aux/loss")
+        rows[tag] = dict(
+            coef=coef, ratio=ratio, ratio_late=late,
+            in_band=BAND[0] <= ratio <= BAND[1],
+            entropy=float(ent[-1]) if len(ent) else float("nan"),
+            anchor=float(anchor[-1]) if len(anchor) else float("nan"),
+            aux_loss_first=float(loss[0]) if len(loss) else float("nan"),
+            aux_loss_last=float(loss[-1]) if len(loss) else float("nan"),
+            illegal=float(col("aux/illegal_label_frac").max()) if len(col("aux/illegal_label_frac")) else 0.0,
+            collision=float(col("aux/frame_collision_frac").max()) if len(col("aux/frame_collision_frac")) else 0.0,
+            labelled=float(col("aux/labelled_frac").mean()),
+            aux_clip=float(col("aux/grad_clip_frac").mean()),
+        )
+        r = rows[tag]
+        print(f"  {tag} (coef {coef:<5g})")
+        print(f"    LIVE trunk ratio (ratio-of-means)  {ratio:.4f}  "
+              f"[back half {late:.4f}]  {'IN' if r['in_band'] else 'OUT of'} "
+              f"[{BAND[0]}, {BAND[1]}]")
+        print(f"    aux/loss {r['aux_loss_first']:.4f} -> {r['aux_loss_last']:.4f}"
+              f"   (log 6 = 1.792)")
+        print(f"    loss/entropy {r['entropy']:.4f} (control band "
+              f"{ENTROPY_BAND[0]}-{ENTROPY_BAND[1]}, a BACK-HALF statistic — at "
+              f"100k steps this is a smoke read, not a gate)")
+        print(f"    selfplay/winrate_anchor {r['anchor']:.4f} (R1 wants >= {ANCHOR_MIN} by 4M)")
+        print(f"    aux/grad_clip_frac {r['aux_clip']:.4f}  labelled {r['labelled']:.4f}")
+        print(f"    illegal {r['illegal']:.6f}  collisions {r['collision']:.6f}"
+              f"   {'OK' if r['illegal'] == 0 == r['collision'] else '** HARD FAIL **'}")
+    if not rows:
+        print("\nNo arms on disk yet.")
+        return
+    print("\n  NOT COMPUTED HERE: condition (a)'s g, which needs a tape collected")
+    print("  from each arm's own checkpoint (A1 and A3 are re-derived on it at")
+    print("  read time so no constant can drift). `aux/loss` above is the head's")
+    print("  CE on fresh on-policy rows and is the right thing to watch falling,")
+    print("  but it is NOT g and must not be reported as g.")
+    ok = [t for t, r in rows.items() if r["in_band"] and r["illegal"] == 0 == r["collision"]]
+    print(f"\n  arms with a live ratio in band and clean label health: "
+          f"{[f'{t} ({SMOKE_COEF[t]})' for t in ok] or 'NONE'}")
+    (D25 / "d25_smoke.json").write_text(json.dumps(rows, indent=1))
+    print(f"  -> {D25 / 'd25_smoke.json'}")
+
+
 COMMANDS = {"verify": cmd_verify, "r012b": cmd_r012b, "r013-bar": cmd_r013_bar,
-            "r013-pool": cmd_r013_pool, "r010b": cmd_r010b}
+            "r013-pool": cmd_r013_pool, "r010b": cmd_r010b, "smoke": cmd_smoke}
 
 
 if __name__ == "__main__":
