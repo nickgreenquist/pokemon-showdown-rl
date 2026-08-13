@@ -40,6 +40,38 @@ OBS_W, ID_OFF = 828, 808
 PRESENT, ALIASED = OPP_CHOICE_PRESENT, OPP_CHOICE_PRESENT | OPP_CHOICE_ALIASED
 
 
+def test_the_class_order_is_the_pre_registered_one():
+    """§1 writes the space as "{ slot 0,1,2,3 | OTHER_MOVE | SWITCH }" and pins
+    it numerically: its realised s26 frequencies are 43.6/27.3/13.6/5.2/3.0/
+    **7.2**%, and s26's measured tape switch fraction is 0.0719 — so the LAST
+    class is SWITCH. The design cycle's own probe code (`y12_to_y6` in
+    results/d25/scripts/gate_r012.py) uses the same order.
+
+    Nothing cross-references these indices between the head and the probe, so
+    the ordering is not load-bearing for the loss. It is load-bearing for the
+    READOUT: a head whose class 4 is SWITCH, read against a header whose class
+    4 is OTHER_MOVE, is a silent mis-attribution. Pinned here so it cannot
+    drift back."""
+    assert (OTHER_MOVE, SWITCH) == (4, 5)
+    # And the head's entity list must agree with the constants: the null token
+    # scores OTHER_MOVE, the bench pool scores SWITCH.
+    torch.manual_seed(0)
+    head = OppActionHead(ctx_dim=4, entity_dim=3, sizes=[8])
+    head.init_head(1.0)
+    ctx = torch.randn(2, 4)
+    moves = torch.randn(2, 4, 3)
+    bench = torch.randn(2, 3)
+    logits = head(ctx, moves, bench)
+    null = head.null_token.detach().expand(2, 1, -1)
+    assert torch.allclose(
+        logits[:, OTHER_MOVE], head(ctx, null.expand(-1, 4, -1), bench)[:, 0], atol=1e-6
+    )
+    assert torch.allclose(
+        logits[:, SWITCH], head(ctx, bench.unsqueeze(1).expand(-1, 4, -1), bench)[:, 0],
+        atol=1e-6,
+    )
+
+
 def test_the_two_seam_widths_agree():
     """The env writes [kind, id, flags]; the agent side reads it without
     importing poke_env, so the two constants are asserted equal here."""

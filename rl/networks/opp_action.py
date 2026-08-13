@@ -38,10 +38,19 @@ from torch import nn
 
 from rl.common.masking import masked_logits
 
-# The six L6 classes. 0..3 are the opponent active's move slots.
+# The six L6 classes, in the PRE-REGISTERED ORDER: §1 writes the space as
+# "{ opponent-move-slot 0, 1, 2, 3 | OTHER_MOVE | SWITCH }" and pins it
+# numerically — its realised s26 frequencies 43.6/27.3/13.6/5.2/3.0/**7.2**%
+# end in the switch class, and s26's measured tape switch fraction is 0.0719.
+# The design cycle's own probe code (`y12_to_y6`) uses the same order.
+#
+# Nothing cross-references these indices between the head and the probe, so the
+# ordering is not load-bearing for the loss — but a head whose class 4 is
+# SWITCH read against a header whose class 4 is OTHER_MOVE is a readout bug
+# waiting to happen, and the header is the contract.
 N_CLASSES = 6
-SWITCH = 4
-OTHER_MOVE = 5
+OTHER_MOVE = 4
+SWITCH = 5
 
 # Width of the env's `[kind, id, flags]` seam. Mirrors
 # rl.envs.showdown.OPP_CHOICE_DIM, which the agent side must not import
@@ -67,8 +76,8 @@ class OppActionHead(nn.Module):
     NOT BY THE ACTOR.
 
         logit_j      = scorer([ctx || opp_move_token_j]) , j = 0..3
-        logit_SWITCH = scorer([ctx || opp_bench_pool_token])
         logit_OTHER  = scorer([ctx || null_token])
+        logit_SWITCH = scorer([ctx || opp_bench_pool_token])
         + a 6-dim slot bias
 
     Agent ownership is load-bearing, not stylistic: `actor.state_dict()` keeps
@@ -128,9 +137,9 @@ class OppActionHead(nn.Module):
         """(B, 384), (B, 4, 128), (B, 128) -> (B, 6) unmasked logits."""
         batch = ctx.shape[0]
         entities = torch.cat(
-            [opp_moves, opp_bench.unsqueeze(1), self.null_token.expand(batch, 1, -1)],
+            [opp_moves, self.null_token.expand(batch, 1, -1), opp_bench.unsqueeze(1)],
             dim=1,
-        )  # (B, 6, entity_dim), class order: slots 0-3, SWITCH, OTHER_MOVE
+        )  # (B, 6, entity_dim), class order: slots 0-3, OTHER_MOVE, SWITCH
         pairs = torch.cat(
             [ctx.unsqueeze(1).expand(-1, entities.shape[1], -1), entities], dim=-1
         )
@@ -178,7 +187,7 @@ def canonicalise(
     opp_faints = (obs[:, _OPP_FAINT_IDX] * 6.0).round().long()
     switch_legal = (opp_faints <= 4).unsqueeze(-1)
     other_legal = torch.ones_like(switch_legal)
-    allow = torch.cat([slot_legal, switch_legal, other_legal], dim=-1)  # (B, 6)
+    allow = torch.cat([slot_legal, other_legal, switch_legal], dim=-1)  # (B, 6)
 
     is_move = kind == 1
     match = slot_legal & (slot_ids == ident.unsqueeze(-1))
