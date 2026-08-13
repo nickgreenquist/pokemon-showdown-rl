@@ -2950,3 +2950,48 @@ entry by offset — never a broad keyword grep.
   certainly 3-wide vs 5-wide collection; resolve before any launch, and do not launch
   on the "~5.0" figure that was accepted. Repo tree untouched by all four agents
   (verified clean); no code changed this session.
+- 2026-08-13 (late morning, THE ZERO-LANE WORK — measurement stack repaired and the
+  GEOMETRIC NULL STUDY RUN; maintainer chose option (a)) — **Three deliverables, no
+  lanes.** (1) **`d22_dormant_rank.py` HARDENED.** srank now computes in float64 with
+  a deterministic Gram/`eigvalsh` fallback and a hard fail; it can no longer report
+  the silent `srank99 = 1` NaN sentinel. Two distinct failure modes were measured, not
+  assumed: the historical corrupt cell (s36 critic @6M) fails float32 svdvals **40/40
+  and float64 0/40** — a deterministic precision failure, true value **19** — while a
+  separate RARE non-deterministic LAPACK failure hit float64 once mid-sweep on an
+  interpolated critic that then succeeded 60/60 in isolation, which is why the
+  fallback is a different decomposition rather than a retry (it agrees with svdvals
+  exactly: 19 and 21). Also: overwriting an existing dormant/effective_rank CSV is now
+  REFUSED before any forward pass, with `--tag` to write alongside and `--force` to
+  override — the clobber that destroyed D23's control rank pass. (2) **THE RECORD
+  RE-DERIVED.** Full D22 rank pass re-run in float64: **35 of 36 cells identical, one
+  corrected — s36 critic @6M, 1 -> 19** (results/d22/effective_rank_float64.csv; the
+  original is kept). D18 and D23 rank CSVs scanned: **zero sentinel cells**, so the
+  D23 readout's 31/53/36 are sound. **D23's destroyed control pass REGENERATED from
+  the surviving tapes** (results/d23/effective_rank_control.csv): critic 12M
+  **11/17/16**, actor **72/90/45** — exactly the values the D23 readout logged, so
+  that entry needed no correction. (3) **THE GEOMETRIC NULL STUDY** — new
+  `scripts/d24_interp_null.py` + `scripts/d24_null_match.py`, artifacts and write-up
+  in results/d24_null/SUMMARY.md. Interpolating a control back toward its own theta0
+  over the lever's covered params reproduces each lane's recorded `d_lnfree` to 0.000
+  and its recorded srank exactly at alpha=1, then: **critic srank rises from 11/17/16
+  to 185/210/182 at alpha=0.3 with NO training** (50M: 10/7/9 -> 140/121/164).
+  **THE RE-GRADE OF D23, at matched anchor distance, adversarially against the most
+  favourable control lane: the CRITIC de-collapse SURVIVES on all three lanes (margins
+  1.35x / 2.21x / 1.64x) — it is a real effect beyond geometry. The ACTOR rise does
+  NOT: margins 1.26x / 0.94x / 0.63x, i.e. two of three treatment lanes sit AT OR
+  BELOW what pure interpolation reaches at the same distance** (s46's actor 87 against
+  a null of 139). D23 logged "actor srank 141/103/87 vs control 72/90/45" as
+  supporting color; that is a contrast at the control's OWN distance and it does not
+  survive matching. **D23's recorded verdict is unchanged** (the srank letter was not
+  met, and the co-primary was the critic read) — but the actor-side mechanism color is
+  retired, and the critic co-primary is now on firmer ground than when it was logged.
+  **CONSEQUENCE FOR ANY 50M RANK READ:** at 50M a treatment would sit near alpha
+  0.3-0.5, where the null alone gives critic srank 14-164 against a control of 7-10 —
+  **a naive "treatment >> control" rank read at 50M is satisfied by geometry alone**,
+  which retires Designer A's PRIMARY 1 on measurement, not on argument. **DORMANCY IS
+  NULL-ROBUST and is the statistic to use:** across the distances a treatment would
+  occupy, interpolation moves the control's actor dormancy only 0.50->0.47 (12M) and
+  0.76->0.74 (50M), while the pathology itself grows 0.45-0.52 -> 0.85/0.76/0.39. Suite
+  293 green after the tooling change; tree clean; no lanes, no evals. Any future
+  mechanism rung inherits: rank letters stated as a margin over the matched-distance
+  null, dormancy as the primary, and the `--tag` discipline on every rank pass.

@@ -36,6 +36,16 @@ probed with a priv-less npz raises loudly — no silent wrong read. D18 read:
 effective_rank.csv into --out and must not clobber the D22 artifacts; the
 collect stage's npz files for the D18 lanes go in results/d18 too.)
 
+Two hardening changes landed 2026-08-13, both from real damage:
+- Overwriting an existing dormant/effective_rank CSV is now REFUSED. Pass
+  --tag <name> to write dormant_<name>.csv alongside, or --force to overwrite
+  on purpose. A control pass and a treatment pass into the same --out is what
+  destroyed D23's control rank numbers (they survive only in that run's stdout).
+- srank is computed in float64, falls back to a Gram/eigvalsh decomposition if
+  LAPACK returns non-finite, and hard-fails rather than record a wrong number.
+  A failed SVD returned NaN and the old code reported srank99 = 1, which is
+  indistinguishable from real rank-1 collapse and reached the record.
+
 In a privileged critic the shared mon/move subnets fire a second time on the
 priv tokens (_priv_features): dormant fractions count ALL traffic through a
 unit (a unit alive only on priv tokens is not dormant), while the named mon
@@ -63,7 +73,42 @@ def build(part: str, trunk_kwargs: dict, privileged_dim: int = 0) -> EntityDeepS
                              **trunk_kwargs)
 
 
-def probe(net: EntityDeepSetsNet, obs: torch.Tensor) -> tuple[dict, dict]:
+def srank99(m: torch.Tensor, where: str) -> tuple[int, float]:
+    """srank_0.99 and participation ratio of `m`: float64, with a deterministic
+    fallback, and a hard fail rather than a silent wrong number.
+
+    TWO FAILURE MODES, both measured 2026-08-13, both of which used to be
+    recorded as **srank99 = 1** — when svdvals returns NaN every comparison is
+    False, `(cum < 0.99).sum()` is 0, and 1 is indistinguishable from a real
+    rank-1 collapse:
+
+    1. DETERMINISTIC float32 failure. results/d22/effective_rank.csv had s36
+       critic @6M as 1; that matrix fails float32 svdvals 40 times out of 40
+       and float64 0 out of 40. True value 19. Never widen this to float32.
+    2. RARE NON-DETERMINISTIC LAPACK failure that reaches float64 too — seen
+       once mid-sweep on an interpolated critic that then succeeded 60/60 in
+       isolation. Retrying is not enough for reproducibility, so the fallback
+       is a DIFFERENT decomposition: eigenvalues of the Gram matrix via
+       `eigvalsh` (syevd, far more stable than gesdd). Verified to agree with
+       svdvals exactly on both cases above (19 and 21).
+    """
+    s = torch.linalg.svdvals(m.double())
+    if not torch.isfinite(s).all():
+        g = m.double().T @ m.double()
+        s = torch.linalg.eigvalsh(g).clamp_min(0.0).flip(0).sqrt()
+        print(f"  [srank99] svdvals returned non-finite at {where}; "
+              f"fell back to Gram/eigvalsh", flush=True)
+    if not torch.isfinite(s).all() or float(s.sum()) <= 0.0:
+        raise SystemExit(
+            f"cannot compute a rank at {where}: both float64 svdvals and the "
+            "Gram/eigvalsh fallback returned non-finite or zero spectra. Do "
+            "NOT record a rank for this checkpoint — investigate."
+        )
+    cum = torch.cumsum(s, 0) / s.sum()
+    return int((cum < 0.99).sum()) + 1, float((s.pow(2).sum() ** 2) / s.pow(4).sum())
+
+
+def probe(net: EntityDeepSetsNet, obs: torch.Tensor, where: str = "?") -> tuple[dict, dict]:
     acts: dict[str, list[torch.Tensor]] = {}
 
     def hook(name):
@@ -97,10 +142,7 @@ def probe(net: EntityDeepSetsNet, obs: torch.Tensor) -> tuple[dict, dict]:
     for name, key in (("ctx_out", "ctx"), ("mon_net.3", "mon")):
         first = acts[name][0]
         m = first.reshape(-1, first.shape[-1])
-        s = torch.linalg.svdvals(m.float())
-        cum = torch.cumsum(s, 0) / s.sum()
-        ranks[f"srank99_{key}"] = int((cum < 0.99).sum()) + 1
-        ranks[f"pr_{key}"] = float((s.pow(2).sum() ** 2) / s.pow(4).sum())
+        ranks[f"srank99_{key}"], ranks[f"pr_{key}"] = srank99(m, f"{where} {name}")
     return dormant, ranks
 
 
@@ -116,8 +158,27 @@ def main() -> None:
                     help="run dir name is <prefix><seed>")
     ap.add_argument("--obs-prefix", default="obs_s",
                     help="obs npz name is <prefix><seed>.npz under --out")
+    ap.add_argument("--tag", default="",
+                    help="suffix for the output CSVs: dormant_<tag>.csv / "
+                         "effective_rank_<tag>.csv. Use it to keep a control "
+                         "pass and a treatment pass side by side in one --out")
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite existing output CSVs (refused by default)")
     args = ap.parse_args()
     out = Path(args.out)
+    suffix = f"_{args.tag}" if args.tag else ""
+    d_path = out / f"dormant{suffix}.csv"
+    r_path = out / f"effective_rank{suffix}.csv"
+    # Refuse to clobber BEFORE spending the forward passes (2026-08-13): two
+    # passes into one --out silently destroyed the D23 CONTROL rank pass, which
+    # survives only in that run's stdout. --tag keeps both; --force is explicit.
+    existing = [p for p in (d_path, r_path) if p.exists()]
+    if existing and not args.force:
+        raise SystemExit(
+            "refusing to overwrite " + ", ".join(str(p) for p in existing)
+            + " — pass --tag <name> to write alongside them, or --force to "
+              "overwrite deliberately."
+        )
     lanes = tuple(int(s) for s in args.lanes.split(","))
     steps = tuple(int(s) for s in args.steps.split(","))
 
@@ -144,7 +205,7 @@ def main() -> None:
                 x = obs
                 if part == "critic" and pd_dim:
                     x = torch.cat([obs, priv], dim=-1)
-                dormant, ranks = probe(net, x)
+                dormant, ranks = probe(net, x, f"s{seed} step={step} {part}")
                 for layer, d in dormant.items():
                     d_rows.append({"seed": seed, "step": step, "part": part,
                                    "layer": layer, **d})
@@ -152,8 +213,9 @@ def main() -> None:
         print(f"s{seed} done")
 
     dd, rr = pd.DataFrame(d_rows), pd.DataFrame(r_rows)
-    dd.to_csv(out / "dormant.csv", index=False)
-    rr.to_csv(out / "effective_rank.csv", index=False)
+    dd.to_csv(d_path, index=False)
+    rr.to_csv(r_path, index=False)
+    print(f"wrote {d_path} and {r_path}")
 
     print("\n=== dormant fraction tau=0.025 (actor), by layer, across steps ===")
     for seed in lanes:
