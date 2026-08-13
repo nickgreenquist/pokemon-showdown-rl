@@ -3159,3 +3159,44 @@ entry by offset — never a broad keyword grep.
   placebo arm is a further 2.24 lane-days and is what separates "an explicit opponent
   model helps" from "an auxiliary loss helps" — named-not-run leaves the claim scoped.
   Nothing built, nothing launched, tree clean.
+- 2026-08-13 (evening, R0-12 CALIBRATION GATE RUN — the letter IS calibratable, but
+  NOT in the form either designer wrote; D25 is GO) — **Zero training lanes; five short
+  mirror collections + offline probes.** (1) **THE FIVE-LANE CONTROL DISTRIBUTION**
+  (Designer A's own-tape design, 12-class, 8 battle-level splits, split-averaged):
+  s26 +0.0228 / s27 +0.0274 / s28 +0.0373 / s50 +0.0162 / s51 -0.0000; **mean +0.0207,
+  between-lane sd 0.0139**, 35% of that variance being split noise. **Reviewer 1's
+  alarming "2.7x spread on n=2" was a single-split artefact** — the thing that made the
+  whole rung look uncertain evaporates once probe numbers are split-averaged, which was
+  R1's own binding correction. (2) **BUT THE PROPOSED STATISTIC IS DEAD ON
+  SPECIFICITY.** Delta_ctx correlates with the lane's own total decodable gain at
+  **r = +0.994 (Spearman 1.000)** and with its own policy entropy at -0.946; own-tape
+  gains span 0.209 nats but collapse to 0.040 on one common tape. **The own-tape spread
+  IS tape endogeneity — the very nuisance the lever moves — and its range (0.037)
+  exceeds the letter's own MDE (0.025).** A rung run on Delta_ctx would have measured
+  the nuisance and called it a belief state: the same failure shape as the geometric
+  null, caught before launch for the third time this chapter. R1's competing worry
+  (de-dormancy driving it) is CLEARED at r = -0.08. (3) **THE FIX IS REVIEWER 2'S
+  MANDATED FUSION** of R0-12 with Designer B's fixed reference tape, and it was
+  measured, not argued: control atoms +0.0211/+0.0144/+0.0268/+0.0171/+0.0155,
+  **mean 0.0190, sd 0.0051 — 2.7x tighter** — and REPLICATED on a second reference tape
+  (sd 0.0062, no home-field advantage). Neither designer alone had this; it exists only
+  because the two reviews were merged. (4) **THE RATIFIABLE LETTER: Delta_ref-ctx** on
+  one sha256-frozen reference tape drawn from a checkpoint in NEITHER arm; 12-class
+  canonical space; **lambda FROZEN at 0.01 with no per-lane selection**; mean over 8
+  battle-level splits; exact one-sided permutation (treatment higher) over 252 splits →
+  **attained level 12/252 = 0.047619** (independently enumerated; min p 1/252),
+  **power 0.88 at +0.010 and 1.00 at >= +0.015, MDE(80%) 0.0093 nats.** Reachability:
+  the required shift is ~1.6% of the arithmetic cap and ~2% of the pool-corrected
+  realised signal — **Reviewer 2's NO-GO trigger does NOT fire.** (5) **THREE MORE
+  BUILD-BINDING FINDINGS:** inner-CV picks the lambda-grid floor on 100% of fits and
+  TRIPLES atom noise (freeze lambda=0.01, which keeps 96% of the probe gain); 1 LBFGS
+  fit in 40 diverged (needs a convergence assert, not a silent number); and two new
+  capacity nulls — PCA-384 of the raw observation in the ctx slot gives **-0.058** and
+  the opponent's OWN observation gives **-0.013**, so only a LEARNED ctx pays, which is
+  the geometric-null test applied to this statistic and passed. (6) **The information
+  band is confirmed at five lanes: 0.544 nats (L6), not A's 0.573** — R1's downward
+  correction holds at n=5. NEXT: merge six documents into one pre-registered config
+  header for maintainer ratification; then build (~200 lines, ~5 evenings); then the
+  maintainer launches. STILL PENDING A MAINTAINER DECISION: the shuffled-label placebo
+  arm (+2.24 lane-days) is what separates "an explicit opponent model helps" from "an
+  auxiliary loss helps". Artifacts: results/d24_design/d25_r012_gate.md.
