@@ -1,0 +1,1227 @@
+# =====================================================================
+# PRE-REGISTRATION — **PROPOSED 2026-08-13. AWAITING MAINTAINER
+# RATIFICATION. NOT BUILT, NOT LAUNCHED.**
+#
+# D25 — AUXILIARY **OPPONENT-ACTION** PREDICTION at 12M, 5 lanes,
+# seeds 52-56, ~2.35 lane-days.
+#
+# PROCESS (standing, maintainer 2026-08-12): 2 independent Opus design
+# agents (d25_design_A.md = information-and-verdict lens; d25_design_B.md
+# = build-and-alternative-explanation lens), then 2 independent Opus
+# reviews (d25_review_1.md = evidential validity; d25_review_2.md =
+# buildability / what the budget buys), then THIS single merged header.
+# A BLOCKING CALIBRATION GATE WAS THEN EXECUTED AT ZERO LANES
+# (d25_r012_gate.md, results/d24_design/). **THE GATE SUPERSEDES BOTH
+# DESIGNS AND BOTH REVIEWS WHEREVER THEY CONFLICT WITH IT**, and it
+# changed the mechanism co-primary from the statistic Designer A
+# proposed to a different one. Every conflict resolution is listed in
+# §14 so a ratifier can audit the merge without re-reading seven
+# documents.
+#
+# ROUTING AUTHORITY: D23's branch (b) named "D19 (auxiliary
+# opponent-model head)" as next. D19's TEAM-prediction premise then died
+# at zero lanes (teams are independent draws: 0.074 nats oracle, 0.035
+# realised, **0.000 at one revealed mon**). The maintainer re-targeted
+# the lever to opponent ACTION prediction. That re-target clears D19's
+# own kill gate by ~15x, on measurements taken before any lane exists
+# (§0). This is the same discipline that killed D19 for free, applied
+# again.
+#
+# ---------------------------------------------------------------------
+# 0. THE INFORMATION PREMISE — MEASURED FIRST, HONEST NUMBERS
+# ---------------------------------------------------------------------
+# Five opponent-action tapes, 300 mirror self-play battles each, against
+# the 12M finals of the five Rung-2 comparator lanes s26/27/28/50/51
+# (d25_r012_gate.md §1; Designer A's collector unchanged). Every probe
+# number is a MEAN OVER 8 BATTLE-LEVEL 70/30 SPLITS with its split sd
+# reported (Reviewer 1 MUST-FIX 1 and 3: single-split reads moved s27's
+# headline by 0.157 nats).
+#
+#   REALISED decodable structure, 12-class canonical space, per lane:
+#     0.598 / 0.619 / 0.684 / 0.545 / 0.475  -> **MEAN 0.584 nats**
+#   Same fitted posteriors marginalised to the 6-class view (L6):
+#     0.576 / 0.579 / 0.638 / 0.491 / 0.436  -> **MEAN 0.544 nats**
+#   ORACLE windows (A1 - A3): 1.213 / 1.309 / 1.237 / 1.292 / 1.037
+#   Frozen-probe gap closure of the ctx-ABLATED probe:
+#     0.474 / 0.452 / 0.523 / 0.410 / 0.458
+#
+# **THE HEADLINE PREMISE IS 0.544 NATS (L6) AT FIVE LANES — NOT
+# DESIGNER A'S 0.573.** A's 0.573 was one split seed on two lanes; the
+# five-lane split-averaged L6 number is 0.544 and it is what this header
+# is graded against. **The 12-class figure (0.584) is HIGHER than the L6
+# figure, and that is not a bonus: coarsening 12 -> 6 can only destroy
+# mutual information (data-processing inequality), so L6 is a
+# conservative view of the same fitted model, not a different result.**
+# Reviewer 1 measured this directly (12-class realised 0.610/0.673 vs L6
+# 0.577/0.568 on the two-lane tapes) and it reproduces at five.
+#
+# **HISTORICAL-POOL CORRECTION — every number above was measured against
+# a ONE-MEMBER pool, while training draws latest_prob 0.8, i.e. 20%
+# HISTORICAL.** Reviewer 1 rebuilt the real `_evict_index` schedule
+# (128*8 steps/update, push_every_updates 150 -> 78 pushes at 12M,
+# pool_size 20, **the step-0 anchor is never evicted**; retained push ids
+# [0,4,8,...,73,77] spanning 0.15M-12M) and re-priced it: the oracle
+# window falls 1.174 -> **1.005 nats, i.e. ~86% of the measured one**,
+# with per-member E[H] spanning 0.17-0.43. So the pool-corrected effective
+# realised signal is **~0.47-0.50 nats of a ~1.0-nat window.** Designer
+# A's R0-13 recipe ("a 20-member pool from the lane's own 8M-12M
+# checkpoints") describes a pool this repo does not build and would have
+# reported "the ceiling barely moves" — the right answer for the wrong
+# reason. R0-13 below uses the real schedule.
+#
+#   AGAINST THE LEVER THIS REPLACES:
+#     quantity                       D19 team pred.   D25 opp-action
+#     ORACLE learnable structure        0.074           1.04-1.31
+#     REALISED by a fitted model        0.035           **0.544 (L6)**
+#     at ONE revealed opponent mon      **0.000**       0.63-0.65
+#     at the battle's FIRST decision    0.000           **0.78-0.86**
+#   ~15x the realised nats, ~14x the oracle bound after the pool
+#   correction, and largest exactly where D19's was exactly zero.
+#
+# THE ALIASING FIX, and why every number above can be trusted. On gen-1
+# placeholder turns (sleep / freeze / recharge / partial trap) poke-env
+# re-bases the opponent's move list, so a move slot stops naming a move.
+# Those rows are dropped from the measurement AND from the head's loss —
+# measured cost 4.0%-10.3% of paired decisions across the five tapes
+# (kept 96.0 / 94.7 / 94.1 / 89.7 / 93.1%). VALIDATION: the oracle's CE
+# against the realised labels must equal the oracle's own entropy (the
+# labels ARE draws from it). Unfiltered they differ by **+0.66 nats**;
+# filtered they agree to **+0.008 / +0.015**. This identity is R0-5(c)
+# and is the single best test in the whole cycle: it catches label,
+# ordering and timing bugs at once.
+#
+# ---------------------------------------------------------------------
+# 1. THE ONE LEVER
+# ---------------------------------------------------------------------
+#   L = L_ppo + aux_oppact_coef * L_aux
+#   L_aux = mean over NON-ALIASED, labelled opponent decisions of
+#           -log p(y | s), y in the 12-class canonical space,
+#           p = softmax MASKED to the obs-derivable legal classes.
+#
+# The head predicts, from the agent's own policy context, WHICH ACTION
+# THE OPPONENT IS CHOOSING ON THE SAME TURN. Ground truth is free in
+# self-play because the opponent is a frozen snapshot of the agent
+# itself. The head is TRAIN-TIME ONLY and is not part of the evaluated
+# agent. OBS_DIM stays 828; the encoder landmine is untouched.
+#
+# THE 12-CLASS CANONICAL LABEL SPACE (Designer B's; Reviewer 1
+# MUST-FIX 5; ratified by the gate, which is defined on it):
+#   0-5  opponent switches to OUR opponent-reveal slot i
+#        legal iff revealed AND not fainted AND not active
+#   6-9  opponent uses the move in OUR opponent-move-slot j
+#        legal iff that slot carries a nonzero move id
+#   10   opponent switches to a mon we have NEVER SEEN
+#        legal iff fewer than 6 revealed
+#   11   opponent uses a move not in our four slots (incl. recharge /
+#        Struggle / id 0) — ALWAYS legal, which is what keeps
+#        `masked_logits`' ">= 1 legal" assert from ever tripping
+# Measured on the tapes: **0.0000 of realised labels marked illegal on
+# all five lanes** — the mask is implementable and correct.
+# **TRAIN ON 12; REPORT L6 BY MARGINALISING THE SAME FITTED 12-WAY
+# POSTERIORS** ({0-5,10} -> SWITCH, {6-9} -> slots 0-3, {11} ->
+# OTHER_MOVE — an exact deterministic coarsening). That preserves
+# Designer A's oracle-validated L6 constants as the manipulation-check
+# scale at zero cost, and the residual bias is conservative (a 12-trained
+# head marginalised to L6 can only be handicapped by gradient dilution,
+# so a pass is trustworthy).
+#
+# PURITY (DESIGN §5): CLEAN, conditionally, and the condition is a seam.
+# The label is the action of the agent's own current or past weights —
+# §5 clause (b) verbatim. No teacher, no human data, no scripted
+# opponent, no observation change. **But an action-prediction head IS a
+# self-distillation channel and is inside the claim only because the
+# teacher is us.** `SnapshotPool._fixed` really does hold a
+# `HeuristicOpponent`, so a mis-set `fixed_mix`/`pfsp_power` would have
+# the head DISTILLING SimpleHeuristicsPlayer, which §5 forbids. Hence
+# R0-1b, which raises loudly.
+# NOVELTY: not claimed — agent-modelling-as-auxiliary-task is published
+# (arXiv:1907.09597; DouZero+ hidden-hand prediction).
+# DISCLOSURE LINE for any writeup, verbatim:
+#   "During training the agent also predicts, from its own policy
+#   context, which action its opponent is choosing on the same turn —
+#   ground truth that self-play makes free, because the opponent is a
+#   frozen snapshot of the agent itself. No teacher, no human data and no
+#   scripted opponent is involved, and the prediction head is train-time
+#   only and is not part of the evaluated agent. The predictable content
+#   of that label was bounded in advance from the agent's own play (0.544
+#   nats realised at five lanes, of a 1.04-1.31-nat oracle window,
+#   ~1.0 after the historical-pool correction) and the result is reported
+#   against that bound."
+#
+# ---------------------------------------------------------------------
+# 2. BUILD CONTRACT — BINDING. EVERY LINE WAS AUDITED AGAINST SOURCE.
+# ---------------------------------------------------------------------
+# B1 WHERE THE LABEL COMES FROM. `rl/envs/showdown.py::PoolPlayer.
+#   choose_move` (~805-817) already computes `action = self._current.move
+#   (obs, mask, rng)` — **an int in the repo's own 10-way indexing,
+#   BEFORE `action_to_order` builds the BattleOrder** — and throws it
+#   away. `poke_env`'s `SingleAgentWrapper.step` (:35-51) calls
+#   `choose_move(self.env.battle2)` INSIDE our step, from `battle2` in
+#   its **pre-resolution** state. The label is therefore genuinely
+#   simultaneous-move and costs zero inference. D18's 408-float
+#   privileged block is NOT used and D18's measured ~65 us/step seat-B
+#   re-encode is NOT incurred.
+# B2 WHAT CROSSES THE SEAM IS AN IDENTITY, NOT THE INDEX. The raw index
+#   is in the OPPONENT'S OWN frame (`0..5` = its team order, `6..9` = its
+#   move order), and both orders are per-battle random permutations we
+#   never observe. So `PoolPlayer` records `order.order` from the same
+#   decision and the env emits
+#     info["opp_choice"] = np.array([kind, id], np.int32)
+#   kind in {0 switch, 1 move}; id from the encoder's OWN `_species_id` /
+#   `_move_id` so no second id convention can drift; sentinel (-1,-1)
+#   when there was no decision. **Emit the key ALWAYS** so the vector
+#   array's shape is stable across sub-envs. (Designer A's
+#   `(kind, ident)` PYTHON TUPLE hits gymnasium `VectorEnv._add_info`'s
+#   object-array branch, and her `ident = 0` for switches would hard-wire
+#   the 6-class space into the plumbing. B's seam is adopted verbatim.)
+#   Read the label after the **FIRST** inner `self._env.step`; the
+#   wait-pump's later opponent choices are forced replacements, not the
+#   simultaneous decision, and are DISCARDED. `battle2.wait` turns issue
+#   a `DefaultBattleOrder` without calling `choose_move` and yield the
+#   sentinel; those rows are dropped, not zero-filled.
+# B3 TIMING — THE BUG THIS DESIGN MOST FEARS, AND IT IS THE OPPOSITE OF
+#   `privileged`. `rl/train.py:481-495`: `infos` from `envs.step`
+#   describe the SUCCESSOR state, and `privs` is carried forward into row
+#   t. **The opponent's action is produced DURING that same call and
+#   belongs to row t.** It is a TRANSITION-TIME info like
+#   `info["outcome"]`, not a state info like `action_mask`. Consequences,
+#   both simplifications: **no carry variable, no `next_*` twin, and NO
+#   RESET MERGE** (reset has no preceding turn and emits no label —
+#   D18's fiddliest line does not recur). An off-by-one here silently
+#   trains the head on the NEXT state's label and still learns
+#   something; R0-5(a) is the deterministic test.
+# B4 THE FRAME COMES FROM THE BUFFERED OBS ROW'S OWN ID-SUFFIX — this is
+#   what makes the anti-leak property STRUCTURAL rather than argued.
+#   `_fill_ids` writes `obs[-20:][6:12]` = opponent species in OUR reveal
+#   order and `obs[-20:][16:20]` = the opponent active's four
+#   `_opponent_move_slots` ids. Canonicalisation reads THAT row. A
+#   switch-in that `battle1.opponent_team` only learns about AFTER
+#   `self._env.step(...)` therefore cannot become a nameable class:
+#   **the label can only name entities the actor could see.** If
+#   canonicalisation were done env-side post-step it would leak. Assert
+#   it (T4 replay assertion), do not comment it.
+# B5 NO ENCODER CHANGE. No change to `embed_battle`, `_fill_ids`,
+#   `OBS_DIM` (828), or the observation/action spaces. The actor's inputs
+#   at decision time are byte-identical to the control's.
+# B6 THE HEAD IS A POINTER SCORER, AND IT IS OWNED BY `PPOAgent`, NOT BY
+#   THE ACTOR.
+#     aux_logits[:, i] = aux_scorer([ctx || opp_entity_i]) + aux_slot_bias[i]
+#   over the 12 slots: the 6 opponent mon vectors `mons[:, 6:]`, the 4
+#   opponent move vectors, and two constant tokens for classes 10/11.
+#   **A plain `Linear(ctx -> K)` is ILL-POSED and this is measured, not
+#   argued:** `ctx` is `ctx_net` over MAX-POOLED team features
+#   (`entity_deepsets.py:298-315`), so opponent slot identity is
+#   destroyed before `ctx` exists, and every logit in this net is
+#   `scorer([ctx || entity_i])` (:322-326). The decisive evidence is
+#   Designer A's positive control: the identical linear ctx probe cannot
+#   decode **the actor's own greedy action** (gain **-0.061**, worse than
+#   the marginal). Any ctx-only head or ctx-only estimator would have
+#   produced a confident null on an architecture that cannot express the
+#   target. This retires D19-A's co-primary B permanently.
+#   Agent ownership buys three things: the acting network stays
+#   byte-identical at 626,059 params; construction order fixes the global
+#   RNG stream so **actor and critic initial weights at a given seed are
+#   BIT-IDENTICAL to the aux-off control** (D18 could not have this);
+#   and `actor.state_dict()` is unchanged, so `eval_checkpoint.py`,
+#   `score_ladder.py` and `d22_dormant_rank.py` run against D25
+#   checkpoints UNMODIFIED. The head rides in `state["aux_head"]`,
+#   ignored on absence (the `theta0_hash` / `bc_anchor` rider precedent).
+# B7 **HEAD WIDTH 96** (Reviewer 2's resolution, which dissolves the
+#   designers' 64-vs-128 disagreement by satisfying both readings).
+#   Live arithmetic at the ratified `trunk_kwargs`, reproduced
+#   independently by both reviewers:
+#     OBS_DIM 828 · actor 626,059 · critic 494,849
+#     ACTOR_PARAM_CEILING 681,994 · slack 55,935
+#     aux w= 32   16,455 -> 642,514  OK
+#     aux w= 64   32,903 -> 658,962  OK   (Designer A's pick)
+#     **aux w= 96 (12-class) 49,357 -> 675,416  OK, headroom 6,578**
+#     aux w=128   65,799 -> 691,858  over 681,994 by 9,864 (B's pick)
+#     aux w=256  131,591 -> 757,650  over by 75,656
+#   (12-class costs +6 params over 6-class — the slot-bias count. If
+#   classes 10/11 use LEARNED 128-d tokens rather than pure bias, add
+#   256: 675,672, headroom 6,322. Either variant passes; declare which
+#   at build.)
+#   **REVIEWER 1'S FINDING, CARRIED BECAUSE IT CHANGES WHAT THE CEILING
+#   MEANS: `ACTOR_PARAM_CEILING = 681,994` still encodes the flat-MLP
+#   actor AT THE OLD OBS_DIM 808** (`tests/test_entity_deepsets.py:142`:
+#   `808*512+512+512*512+512+512*10+10`). **The encoder has been 828
+#   since D13a**, and the same capacity-matched reference at 828 is
+#   `828*512+512+512*512+512+512*10+10 = 692,234`. So the constant is
+#   ~10k stale. Width 96 passes on BOTH the stale constant and the
+#   current-encoder reference; width 128 passes only the latter; width
+#   256 fails both. **We take 96 and do not touch the constant** —
+#   editing a ceiling constant inside a lever's own pre-registration is
+#   exactly the move this repo does not make. Fixing 681,994 -> 692,234
+#   is recorded as a separate, unrelated cleanup.
+#   ALSO REVIEWER 1, and it must be said plainly: **the ceiling is not
+#   enforced where Designer A said it is.** The assert lives in
+#   `EntityDeepSetsNet.__init__` over `self.parameters()`, so an
+#   agent-owned head is INVISIBLE to it and no aux width hard-fails at
+#   launch. **The ceiling is a POLICY here, not a code gate.** R0-2
+#   therefore asserts both numbers explicitly (626,059 and 675,416),
+#   stamps both in meta.yaml, and ships a unit test that widths 128/256
+#   fail the strict actor+aux accounting.
+# B8 **AUX PARAMS GO IN THEIR OWN THIRD OPTIMIZER GROUP, APPENDED
+#   LAST.** Designer B specified group-0 append; Reviewer 2 measured that
+#   this is exactly backwards. `PPOAgent.load_state_dict` (`ppo.py:
+#   892-925`) substitutes its own `param_groups` into the loaded state,
+#   so torch never compares group counts — what the graft depends on is
+#   the POSITIONAL ORDER of params flattened across groups:
+#     appended to group 0 -> [actor, AUX, critic]: loaded state keys 2,3
+#       land on the AUX head; **the critic gets no Adam moments** and the
+#       aux head receives the critic's `exp_avg`.
+#     third group appended -> [actor, critic, AUX]: keys 0-3 land on
+#       actor+critic with matching shapes; aux simply gets none.
+#   In-rung impact is nil (D25 lanes are fresh) but it is a silent
+#   corruption landmine on any future `init_from`/resume, the fix is
+#   free, it makes the init-isolation test trivially true, and it leaves
+#   group 0/1 lr-anneal indexing untouched. R0-2c is the ordering test.
+# B9 **THE AUX GRADIENT IS CLIPPED SEPARATELY.** Measured on control s26:
+#   `loss/grad_clip_frac` mean **0.90** / median 0.94 — the global clip
+#   binds on ~9 of 10 minibatches, so **any coupled aux term is a covert
+#   10-30% policy-LR cut**, i.e. an unregistered second lever (and D21
+#   already queues LR annealing as its own). Per minibatch:
+#     1. `loss_ppo` (bit-identical to control) -> backward ->
+#        `clip_grad_norm_(params, 0.5)`
+#     2. `g_aux = autograd.grad(coef * aux_loss, trunk + head)`; clip to
+#        its OWN `aux_max_grad_norm` (0.5); add into `.grad`
+#     3. `optimizer.step()`
+#   So `loss/grad_norm` and `loss/grad_clip_frac` stay numerically
+#   identical to every control curve on a fixed batch (T7).
+#   **IRREDUCIBLE RESIDUE, DISCLOSED: the aux gradient still enters
+#   Adam's second moment for shared trunk parameters**, so the policy's
+#   per-parameter effective step is not perfectly preserved. That cannot
+#   be fixed for a shared trunk.
+# B10 DROP ALIASED ROWS from the loss and from every read (4.0%-10.3%
+#   measured; kept 96.0/94.7/94.1/89.7/93.1%). Under B2's identity seam
+#   aliasing does not CORRUPT the label (a recharge is poke-env num -3,
+#   `_move_id` -> 0, which lands in class 11 by construction) — the drop
+#   is a **read-alignment requirement**, because A's constants and the
+#   +0.008/+0.015 oracle identity were measured on the filtered set.
+#   A nonzero "aliased row entered the loss" counter is a HARD FAIL.
+# B11 The mask is derived from the ACTOR'S OWN OBSERVATION ONLY, routed
+#   through `rl/common/masking` with the finite -1e8 sentinel (here the
+#   masked object genuinely is a legality vector with the harness's own
+#   semantics, so reusing the contract is right). Using seat 2's true
+#   `get_action_mask` is available and is DELIBERATELY REJECTED: it would
+#   hand the trunk the opponent's legality for free and make "what can
+#   they even do" unlearnable rather than learned.
+# B12 CANONICALISE **ONCE PER ROLLOUT**, not inside the epoch x minibatch
+#   loop — done wrong it costs 16x and shows up as an unexplained
+#   update-time regression.
+# B13 `PPOAgent.update` unpacks `(..., masks, _next_masks, *rest)` then
+#   `privs, next_privs = rest if rest else (None, None)` (`ppo.py:
+#   634-636`). An 11th tuple element raises there, and that tuple is
+#   shared by every agent fed by `train_vector`. Trivial, but the "no
+#   algorithm changes outside the aux path" claim needs the caveat.
+# B14 SIZE OF THE BUILD, stated up front so it is not discovered:
+#   env + train + buffer really is ~20 lines (5 in `PoolPlayer`, ~12 in
+#   `ShowdownEnv.step`, 2 in `train.py`, ~4 in `rollout.py`). The
+#   `ppo.py` side — coefficient plumbing, the `forward(x,
+#   return_features=True)` seam, canonicaliser, obs-derived legality,
+#   masked aux CE, decoupled clip path, five purity seams, metric
+#   namespace — is realistically **150-200 lines plus 12-16 offline
+#   tests. Budget 2-3 maintainer evenings for the build, not one
+#   sitting**, and ~5 evenings all-in with the blocking gates.
+#
+# ---------------------------------------------------------------------
+# 3. ARMS, SEEDS, BUDGET, CADENCE
+# ---------------------------------------------------------------------
+# ARMS: ONE. 5 treatment lanes, seeds **52/53/54/55/56**. NO fresh
+# comparator lanes — the 5-seed Rung-2 comparator {26,27,28,50,51} was
+# bought by D23's Q1 and is a permanent chapter asset.
+# SEEDS 47/48 are held for a lane lost BEFORE R1 only. **Never relaunch a
+# dead lane on its own seat** (s49 -> s51 landmine, 08-12: a same-seed
+# relaunch after an eval auto-tie crash hits zombie battles). Concurrent
+# lanes MUST carry distinct `--seed` values, across arms as well as
+# within — poke-env derives usernames from the global `random` seed and
+# the loser dies with the misleading `TimeoutError: Agent is not
+# challenging` at first `reset`.
+# BUDGET: 5 x 12M, 5-wide. D18's identical fleet shape measured
+# 10.69-10.79 h/lane; D25's cost is **update-side only** and was
+# microbenchmarked by Reviewer 2 (minibatch 256, 1 thread, actor+critic
+# fwd/bwd with and without a width-96 12-slot pointer head plus the
+# opponent move-token `move_net` pass: 11.95 -> 15.29 ms = +28% of the
+# network math; network math is ~58% of `update_sec`, so update 0.331 ->
+# ~0.384 s and loop 2.469 -> 2.522 s) = **-2.1%, call it -2 to -3% with
+# env-side label capture.** ~11.0 h/lane -> **2.30 lane-days**; evals and
+# the M4 obligations ~0.05 -> **~2.35 lane-days all-in.**
+# CHAPTER: audited 13.54 + 2.35 = **15.9 of D17's 20.** (~5% over the
+# 2.24 authorised at re-target; immaterial, the authorisation survives.)
+# Re-measure the ledger at readout; never increment it.
+# CADENCE: `showdown_sp_struct12m.yaml` **VERBATIM, including its
+# 100k/100 eval cadence.** The five comparator lanes were run at it
+# (s50/s51 deliberately on struct12m verbatim), so the arms differ in
+# exactly one thing. This rung is therefore cadence-clean against its
+# comparator and NOT against D18/D23 (C7).
+#
+# ---------------------------------------------------------------------
+# 4. CO-PRIMARY A — WIN RATE. CREDIT IS LIVE, AND UNDERPOWERED.
+# ---------------------------------------------------------------------
+# PROTOCOL (locked, DESIGN §8): FINAL checkpoint, deterministic policy,
+# ties as non-wins, vs `SimpleHeuristicsPlayer`, **3000 battles/seed**, 5
+# seeds pooled = 15,000. Both encoder env vars at every eval.
+# (DESIGN §8's 3000 wins over CLAUDE.md's stale 1000 — STATUS item 2.)
+# COMPARATOR (frozen, the 5-seed Rung-2 refresh): s26 0.5633 / s27 0.5683
+# / s28 0.5210 / s50 0.5763 / s51 0.4937 -> **pooled 0.54452, sd
+# 0.03558.** Re-derived independently by both reviewers to 4 d.p.
+#
+#   **CREDIT LINE (DESIGN §8, RESTATED IN FULL, VERBATIM, INCLUDING THE
+#   LARGER-OF CLAUSE): a lever is credited iff pooled delta >= +0.025
+#   AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial
+#   se_diff and the seed-clustered se_diff, the latter computed from the
+#   per-seed finals at read time.**
+#
+#   ARITHMETIC (verified by both reviewers):
+#     binomial se_diff at 15,000 vs 15,000, p~0.55 = 0.005745 -> 2*se =
+#       0.011489 < 0.025, so **the binomial can NEVER govern**; the
+#       LETTER BAR is 0.54452 + 0.025 = **0.5695**.
+#     seed-clustered 2*se_diff = 2*sqrt(s_T^2/5 + 0.03558^2/5):
+#        s_T     2*se_clus    OPERATIVE BAR
+#        0.000    0.03182      0.5763   <- comparator-limited FLOOR
+#        0.020    0.03651      **0.5810**
+#        0.026    0.03942      **0.5839**
+#        0.036    0.04527      **0.5898**
+#        0.049    0.05416      **0.5987**
+#        0.060    0.06239      0.6069
+#     Every 12M arm ever measured here sits in that band (Rung-2 0.0356,
+#     D18 0.0364, D23 0.0491), so the realistic bar is **0.584-0.599**.
+#     The bar is COMPARATOR-LIMITED: no treatment lane count moves the
+#     0.5763 floor.
+#
+#   POWER, PRE-STATED (200k-draw sim, comparator FIXED at its measured
+#   values so all randomness is the treatment arm). Second row of each
+#   cell is P(letter-met recording band):
+#        delta    s_T=.020  .026    .036    .049
+#        +0.020    0.040   0.062   0.081   0.091  | band .25 .27 .30 .32
+#        +0.025    0.113   0.128   0.134   0.129  | band .39 .37 .36 .37
+#        +0.030    0.247   0.234   0.206   0.179  | band .47 .43 .42 .41
+#        +0.045    0.820   0.684   0.515   0.382  | band .17 .27 .38 .44
+#        +0.060    0.993   0.951   0.806   0.618  | band .01 .05 .18 .33
+#   **HONEST SUMMARY: powered only for a D23-sized effect (+0.045:
+#   38-82%), effectively dead below +0.030, and the single most likely
+#   NON-NULL outcome is the RECORDING BAND at 36-47%.** The primary is
+#   run and graded honestly; it is NOT the rung's decisive read and is
+#   not sold as one. See §11.
+#
+#   RECORDING RULE (pre-stated, verbatim from the D18/D23 line): pooled
+#   in **[0.5695, operative bar)** -> "**letter-met, seed-fragile, NOT
+#   credited**", full per-seed detail in the log, and no narrative use
+#   without the weakness named. This is the band D23 landed in
+#   (+0.0451); D25 would be the chapter's third visit.
+#   FLAT, defined: pooled delta < +0.025 and not NEGATIVE.
+#   NEGATIVE: pooled <= 0.54452 - max(0.025, 2*se_diff), same larger-of
+#   line.
+#   LANE FAILURE RULE: a lane lost or stopped after R1 (incl. the R1/K6
+#   stop clauses) is reported as-is; NO replacement lane; pooled n
+#   shrinks and BOTH se terms recompute at the surviving count; **fewer
+#   than 3 surviving treatment lanes VOIDS the primary** (mechanism reads
+#   still report).
+#
+# ### M4 — THE OBLIGATIONS, KEYED TO THE NUMBER AND NOT TO THE VERDICT
+# **The whole credit region sits above M4 (0.558):** the comparator-
+# limited floor 0.5763 already exceeds it, so there is no
+# credited-but-below-M4 outcome. **But Reviewer 2 found that both
+# designers keyed the obligations to the wrong event.** DESIGN §2 defines
+# M4 as **pooled >= 0.558 UNDER THE LOCKED PROTOCOL — a number, not a
+# verdict.** The letter band's floor (0.5695) is above it, and so is much
+# of the FLAT region: a pooled 0.560 is FLAT (delta +0.0155) and still
+# crosses M4. The chapter has been here twice already (Rung 3 50M finals
+# 0.5802, D23's arm 0.5897, both above 0.558, both recorded "M4
+# letter-met, NOT claimed").
+# **THEREFORE, PRE-COMMITTED: the moment D25's pooled final is >= 0.558,
+# regardless of CREDIT / letter-met / FLAT, both DESIGN §2 obligations
+# fire and M4 may not be claimed until both are discharged:**
+#   (i) **CLONE RE-SCORE.** DESIGN §2: "M4's comparator is not yet
+#       protocol-grade — 0.558/0.569 are single-fit-seed n=1000 probes
+#       and 0.569 carries a best-checkpoint selection caveat. If M4 is
+#       ever in play, the clone gets re-scored under the locked protocol
+#       first." Re-score the BC-of-FP clone at 3 x 3000. **If it lands
+#       above D25's pooled final, M4 is NOT claimed regardless of the
+#       verdict.**
+#   (ii) **SH-EXPLOITATION FALSIFIER.** DESIGN §2's mandatory guard at M2
+#       and above: two-orientation head-to-head vs at least one non-SH
+#       anchor (the clone), 500/pair/orientation, pooled over
+#       orientations (the +0.018 deterministic-vs-sampling seat bias is
+#       measured). A vs-SH number that jumps while the anchor
+#       head-to-heads stay flat is SH-specific and does not claim the
+#       milestone.
+# PRICE: SESSION_LOGS records locked-protocol finals at 88 s/seed, so
+# D25's own 5 x 3000 ~ 8 min, the clone re-score ~ 5 min, the 2,000
+# head-to-head battles single-digit minutes — **well under 2 hours,
+# ~0.05 lane-days, 2% of the rung.** They are not a cost centre.
+# **OPEN ITEM FOR THE MAINTAINER (Reviewer 2's recommendation, and it is
+# independent of D25): discharge the clone re-score NOW, BEFORE LAUNCH
+# (~30 min), and freeze the protocol-grade number into this header
+# beside the frozen comparator.** It already blocks a chapter-level open
+# item that has stopped two readouts, and doing it in advance means the
+# M4 branch is not adjudicated under the pressure of a live result.
+# CONVERSELY: a 12M credit does NOT make Rung 3 creditable
+# retroactively and does NOT repair the §13 defect (§13 conditions 250M
+# on a credited lever AT 50M; none exists).
+#
+# ---------------------------------------------------------------------
+# 5. MECHANISM CO-PRIMARY — **Delta_ref-ctx**, ON A FROZEN REFERENCE TAPE
+# ---------------------------------------------------------------------
+# **THIS REPLACES DESIGNER A's Delta_ctx, WHICH IS DEAD ON SPECIFICITY.**
+# The calibration gate (d25_r012_gate.md) executed A's own R0-12 at five
+# lanes and found her statistic exactly calibrated in LEVEL and
+# **confounded at r = +0.994 (Spearman +1.000) with the lane's own total
+# decodable gain** — i.e. with how predictable that lane's own opponent
+# is, which is the thing the aux head is trained to change. Its own-tape
+# control range is **0.037 nats, LARGER than its own MDE of 0.025.** The
+# five own-tape gains span 0.209 nats; re-measured on ONE common tape
+# they collapse to 0.040. **That spread is tape endogeneity, not lane
+# difference.** A treatment arm whose policy is merely sharper or flatter
+# moves A's statistic with no ctx mechanism whatsoever. Level exact,
+# specificity absent — it cannot carry a co-primary. (Designer B's D2
+# fixed-reference-opponent argument and Reviewer 2's ranked defect 2 both
+# called this; the gate quantified it.)
+# The fix is B's D2 fused with A's R0-12, and it is already measured: one
+# frozen reference tape supplies the observations, labels, legality masks
+# and battle splits for every lane, so only the ctx encoder varies, the
+# ctx-ablated arm is IDENTICAL across lanes and its noise is common-mode.
+# **Control spread tightens 2.7x and MDE(80%) falls to 0.0093 nats.**
+#
+# > **CO-PRIMARY B — Delta_ref-ctx (pooled-context decodability, fixed
+# > reference tape). THE RATIFIED LETTER, VERBATIM FROM THE GATE:**
+# >
+# > **Atom, per lane.** Delta_ref-ctx = NLL(scorer-shaped 12-class probe,
+# > ctx ABLATED) - NLL(same probe WITH that lane's ctx), both fit and
+# > evaluated on ONE frozen reference tape; **mean over 8 battle-level
+# > 70/30 splits, seeds 0-7**; **lambda FROZEN at 0.01, NO PER-LANE
+# > SELECTION**; 12-class canonical label space with obs-derived
+# > legality; aliased opponent decisions dropped; L6 reported by
+# > marginalising the same fitted posteriors. Split sd reported alongside
+# > every atom. The grader ASSERTS LBFGS CONVERGENCE ON EVERY FIT.
+# >
+# > **Reference tape.** 300 mirror self-play battles from a checkpoint in
+# > **NEITHER ARM**, collected once and **sha256-frozen before any
+# > treatment lane exists.** (Home-field bias measured at <= 0 across two
+# > reference choices; if a control lane must be used, the bias favours
+# > CONTROLS, i.e. conservative for a treatment-higher letter.)
+# >
+# > **Test.** Exact one-sided permutation on the difference of means,
+# > treatment HIGHER, enumerated over all 252 splits of n_T = 5 vs
+# > n_C = 5. **LEVEL = 12/252 = 0.047619** (min attainable p 1/252 =
+# > 0.003968; simulated size at delta = 0 measured 0.042).
+# >
+# > **Frozen control distribution** (s26 reference, gate session):
+# > **+0.0211 / +0.0144 / +0.0268 / +0.0171 / +0.0155 — mean 0.0190,
+# > between-lane sd 0.0051**, within-lane split sd (rms) 0.0049 -> atom
+# > se 0.0017, implied true between-lane sd 0.0048. **Re-frozen on
+# > whichever reference is finally chosen.**
+# >
+# > **POWER: 0.41 at +0.005 · 0.88 at +0.010 · 1.00 at >= +0.015.
+# > MDE(80%) = 0.0093 nats (0.011 on a second reference — quote the
+# > conservative 0.011), MDE(90%) = 0.0112.**
+# >
+# > **Recorded jointly, letter or no letter:** each lane's live-ctx-unit
+# > count (controls r = -0.335 on the reference tape, so de-dormancy
+# > pushes this statistic DOWN); the four capacity nulls; and the lane's
+# > OWN-TAPE Delta_ctx and own-tape gain12 as the endogeneity diagnostic.
+# > A treatment Delta ordering that tracks live-unit count monotonically
+# > is recorded as "confounded with de-dormancy".
+# >
+# > **CLAIM BOUND (Reviewer 1 MUST-FIX 6, retained).** The statistic is
+# > an UPPER BOUND on policy-usable belief — the probe decodes ctx
+# > against opponent entity features the policy's scorer never receives.
+# > It licenses "**the pooled context became more decodable for the
+# > opponent's next action**"; it does NOT license "belief state" or
+# > "opponent model" until the shuffled-target arm runs (§12).
+#
+# IS THE REQUIRED SHIFT PLAUSIBLE? The letter needs the treatment lanes
+# to average **~0.029 against a control 0.019 — a 1.5x increase.** In
+# context: realised signal 0.584 (12-class) / 0.544 (L6), ~86% surviving
+# the pool correction -> ~0.47-0.50 effective; the arithmetic cap on
+# Delta_ctx (ablated-probe NLL minus the oracle floor, per lane) is
+# 0.56-0.76 nats. **The required shift is ~1.6% of the arithmetic cap
+# and ~2% of the pool-corrected realised signal.** A head trained for 12M
+# steps on exactly this target, whose gradient enters the trunk that
+# produces ctx, moving the linear decodability of ctx by 2% of the
+# available signal is a LOW BAR, not a stretch. REACHABLE.
+# THE HONEST CONVERSE, because the bar is low: the letter is only as good
+# as its specificity. It is now specific against tape endogeneity
+# (removed by construction), against capacity (four nulls, §9 R0-12b),
+# and against de-dormancy (r = -0.08 own-tape, -0.335 reference-tape,
+# both the wrong sign to manufacture a positive). **It remains NOT
+# specific against "any aux-induced feature that happens to help this
+# probe" — that is the shuffled-target placebo, named-not-run.**
+# LAMBDA IS FROZEN, NOT SELECTED, and this is worth ~2.7x in MDE:
+# inner-CV picked the grid floor (1e-3) on **100% of 40 lane x split
+# fits**, leaving the 384-dim probe under-regularised. At lambda = 0.01
+# split noise falls 3-5x (s27's within-lane sd 0.043 -> 0.0025 on the
+# reference tape) while keeping **96%** of the probe's gain; lambda >=
+# 0.1 buys no further stability and starts destroying the probe. A
+# per-lane lambda chosen on a leaky inner split adds variance to exactly
+# the statistic the letter tests. (The gate also moved the inner split
+# from a ROW permutation to a BATTLE split — Reviewer 1 MUST-FIX 7; the
+# designers' inner split leaked battles into inner val.)
+#
+# ---------------------------------------------------------------------
+# 6. MANIPULATION CHECK — DID THE HEAD ACTUALLY LEARN?
+# (verifies the lever executed; it is NOT the mechanism read — D23's
+# lesson, where the manipulation check was mistaken for one)
+# ---------------------------------------------------------------------
+# STATISTIC: the head's own held-out NLL per non-aliased, labelled
+# opponent decision, reported as **GAP CLOSURE g = (A1 - NLL_head) /
+# (A1 - A3)** with A1 (mask-renormalised marginal) and A3 (oracle floor)
+# RE-DERIVED at read time on the reference tape by the frozen script, so
+# no constant can drift. Read at 3M, 6M and the 12M final so the
+# trajectory is visible. Sampling error: battle-clustered se of the gain
+# is 0.026-0.027 nats at 90 test battles -> **~0.012 at 400 battles**;
+# the window is ~95 clustered se wide, so n does not decide this check.
+#   PARTITION — **EXPRESSED AS A FORMULA, NOT A CONSTANT** (Reviewer 1
+#   MUST-FIX 2: the pool correction raises A3 and shrinks the denominator
+#   ~14%, which INFLATES g by ~16% for identical head performance — the
+#   frozen-probe anchor rises 0.4905 -> 0.5701, so a fixed 0.40 silently
+#   loosens into ~0.34 in the units it was calibrated in):
+#     **LEARNED  g >= 0.80 * g_frozen-probe on >= 4 of 5 lanes**, both
+#               computed in the SAME pool-corrected units under R0-13.
+#               Inputs measured at five lanes: g_frozen-probe = 0.474 /
+#               0.452 / 0.523 / 0.410 / 0.458 (mean 0.463) in 1-member-
+#               pool units; x ~1.16 pool-corrected -> ~0.537, so the
+#               indicative bar is **~0.43** and the fallback, if R0-13's
+#               corrected constants are not obtained, is A's fixed
+#               **0.40** in 1-member-pool units. Whichever applies is
+#               written into this header BEFORE launch.
+#     **WEAK**  0.10 <= median g < the LEARNED bar.
+#     **VOID**  median g < 0.10 (~10 clustered se): the task did not
+#               train. VOID = nothing was tested; NEGATIVE = it landed
+#               and hurt (D23's distinction, retained).
+#     **g > 1.0 IS A BUG, NOT A RESULT** — A3 is a true information floor
+#               (the opponent's action is conditionally independent of
+#               our obs given the opponent's own obs), so beating it
+#               means the label or the timing is wrong. HARD FAIL.
+#               **REFINEMENT (Reviewer 1): under a real pool this test is
+#               not specific as A wrote it** — A3 was computed from ONE
+#               actor, and pool members range 0.17-0.43, so if the
+#               label-generating member is more deterministic than the
+#               oracle actor a LEGITIMATE head reaches
+#               (1.43-0.17)/(1.43-0.26) = **1.08** and the hard fail
+#               fires on a correct run. **Emit the pool member id
+#               alongside `opp_choice` and evaluate the oracle on the
+#               member that actually generated each label** (or define A3
+#               as the explicit pool mixture). Build item, not optional.
+#
+# ---------------------------------------------------------------------
+# 7. SECONDARIES (recorded; letter-bearing only where calibrated)
+# ---------------------------------------------------------------------
+# S1 ACTOR `ctx_net.1` DORMANCY (tau = 0.025) at 12M, per lane. Motivated
+#   on its own terms: an auxiliary loss injecting gradient into a trunk
+#   whose units are ~50% dead (**measured: 214 of 384 ctx units have
+#   EXACTLY ZERO variance over 7k real decisions on s26@12M; live units
+#   171/162/115/165/130 across the five controls**) is the textbook
+#   representation-regulariser mechanism, and dormancy is the
+#   null-robust plasticity statistic (results/d24_null/SUMMARY.md §4:
+#   interpolation moves the 12M control median only 0.50 -> 0.47, and at
+#   50M it is flat to within 0.02-0.06 — geometry cannot manufacture it).
+#   CONTROL (results/d23/dormant_control.csv, 12M): s26 0.4844 / s27
+#   0.5000 / s28 0.6432; extended to s50/s51 under R0-12.
+#   LETTER: same exact permutation test, level 0.0476 at n_C = 5,
+#   treatment LOWER. **SPECIFICITY, and it is why this is a SECONDARY:
+#   D18 — a rung with NO actor-side lever — scores p = 0.0893 against the
+#   3-lane control, i.e. the statistic gets near 0.09 with no lever
+#   present.**
+# S2 VAL-PEAK RE-GRADES at 5 x 3000, cadence-matched to the comparator's
+#   120 x 100. Recorded, NO letter — the `best_checkpoint`
+#   argmax-over-noisy-evals selection confound is unchanged.
+# S3 ENTROPY trajectory vs the control band (final-1M-bin means
+#   0.212-0.284). An auxiliary loss can suppress OR inflate entropy;
+#   either excursion beyond +/-0.05 over the back half is recorded and,
+#   on a credit, attaches an attribution-open note.
+# S4 D23-WATCH grad-blowup trigger, record-only, unchanged: per-lane
+#   per-1M-bin median pre-clip `loss/grad_norm`; TRIGGER = 3 consecutive
+#   bins each >= 3.0x the lane's own bins-0-3 median AND non-decreasing.
+#   Base rate 1-of-8 at the 12M horizon; **can never carry a claim at
+#   N = 5** (P(0-of-5 | p = 0.25) = 0.237).
+# S5 BELIEF PROFILE BY REVEAL STAGE — the pre-computed shape the head
+#   should reproduce if it learned a belief rather than a constant: gain
+#   by opponent mons revealed (s26/s27) 0.63/0.65, 0.69/0.67, 0.60/0.69,
+#   0.35/0.59, 0.65/0.42, 0.56/0.51, and **0.78/0.86 at the battle's
+#   FIRST decision.** Recorded, no letter (the profile is flat-ish, so it
+#   discriminates weakly) — but **a head near zero at the first decision
+#   has learned the marginal, not a belief, and the readout must say so.**
+# S6 CTX-ONLY BINARY SWITCH PROBE (Reviewer 1's policy-shaped companion,
+#   recorded): "will the opponent SWITCH this turn" needs no entity
+#   argument, so the interaction-symmetry escape hatch disappears. On
+#   control s26: marginal 0.2423 -> 0.2059, **gain +0.0364 nats of a
+#   0.2655-nat binary entropy (~14%)**, switch rate 0.0747 (lambda picked
+#   on test, so an upper bound). Unlike the 6-way ctx probe's +0.008 this
+#   is NOT zero — there is a coarse belief in ctx today, and it is
+#   exactly the shape a policy can use.
+# S7 SENSITIVITY ATTRIBUTION (Designer B's D3, recorded, one autograd
+#   pass, no lanes): on the frozen final, ||d aux_logits / d obs_opp-side
+#   || / ||d aux_logits / d obs_own-side||, and the same ratio for the
+#   POLICY's logits on the same rows. A head genuinely modelling the
+#   opponent should be MORE opponent-side-sensitive than the policy is; a
+#   regulariser or a self-copy has no reason to be. Pre-registered
+#   direction; recorded, no letter (uncalibrated).
+# S8 ORACLE-MIRROR RATIO (B, recorded, free in self-play): at read time
+#   the true Bayes predictor is computable — it is the label generator
+#   itself, mapped into the canonical frame. Report `head_belief /
+#   mirror_belief` as the honest units for "how much of the knowable did
+#   it learn".
+# **DECLINED AS A LETTER: actor ctx srank99.** Control {72, 90, 45}
+#   (CV 0.33); D18's inert-actor arm spanned 9-92; and
+#   results/d24_null/SUMMARY.md shows the D23 actor rank rise does NOT
+#   survive a matched-distance geometric null on 2 of 3 lanes. If quoted
+#   at all it must be a **MARGIN over the matched-distance null**
+#   (`scripts/d24_null_match.py`), never a raw contrast, and every rank
+#   pass must carry `--tag d25_control` (the clobber that destroyed
+#   D23's control pass). Critic reads: none — the critic is untouched.
+#
+# ---------------------------------------------------------------------
+# 8. FALSIFIER, PRE-STATED, PARTITION-COMPLETE — AND WHERE THE VALUE IS
+# ---------------------------------------------------------------------
+# **STATED PLAINLY, BEFORE THE BRANCHES: the modal primary outcome is
+# FLAT, and the modal NON-NULL primary outcome is a third instance of the
+# recording band (36-47%). Neither changes a decision. THE RUNG'S VALUE
+# IS CONCENTRATED IN THE F1 FALSIFIER BRANCH.** Reviewer 2 put the
+# purchase this way and it is carried verbatim: the joint modal outcome
+# is {flat or letter-met} x {F2}, "a coupling failure plus a recorded
+# band, for 2.3 lane-days and ~5 evenings — a thin purchase." What makes
+# it worth buying anyway is the one property D19 lacked: **the target's
+# information content is MEASURED and LARGE and frozen in this header
+# before launch, which converts a null into a real chapter finding rather
+# than an excuse.** That property is carried entirely by the mechanism
+# co-primary — which is why §5's letter had to be calibratable, and why
+# Reviewer 2 pre-stated that if it could not be, the rung is NO-GO. The
+# gate PASSED, so that trigger does not fire.
+#
+# F1. **LEARNED + Delta_ref-ctx LETTER FIRES + win rate FLAT.**
+#     => The actor CAN infer what the opponent is about to do, the pooled
+#     context the policy reads DOES carry it, and the policy still cannot
+#     convert it into wins.
+#     **KILLS hidden-information belief modelling as a 12M capability
+#     lever FROM BOTH SIDES**: D18 showed a critic GIVEN the opponent's
+#     hidden state gains nothing; F1 shows an actor that INFERS the
+#     opponent's next action gains nothing either. **Unlike a D19 null it
+#     cannot be excused as "the target was empty" — 0.544 realised nats
+#     of a ~1.0-nat pool-corrected window, measured before launch and
+#     frozen here.** ACTION: record the epitaph; do NOT tune the
+#     coefficient; do NOT widen the head; do NOT re-run at 50M.
+#     **LEAVES OPEN, explicitly:** (i) USING the belief at DECISION time
+#     — search or rollout over the predicted opponent distribution
+#     (DESIGN §11, PROPOSED) — a belief as a trunk feature is not a
+#     belief in a decision rule, and F1 says nothing against that; it is
+#     the natural successor. (ii) OPPONENT GENERALISATION (C4).
+#     (iii) HORIZON: 12M under-tests, as it did for D18 and D23.
+# F2. **LEARNED + the letter does NOT fire + FLAT.** The head learned the
+#     task through the ENTITY path and the pooled context did not change.
+#     **This is the a-priori MODAL mechanism branch and it is quantified
+#     in advance: 88-95% of the realised structure survives removing ctx
+#     entirely.** Reviewer 1 sharpened what that means, and the header
+#     uses his words: the ablated probe is a linear scorer on the **RAW
+#     OBSERVATION** with no trunk at all, so **"88-95% of the belief is
+#     linearly decodable straight off the raw observation"** — the head
+#     can drive its loss to near-optimum with an almost linear read of
+#     its input and essentially no representational change.
+#     A COUPLING FAILURE, **NOT a thesis refutation, and it concludes
+#     nothing.** ACTION: record as such; the named remedies (larger
+#     coefficient, ctx-only head, a bottleneck on the entity half of the
+#     aux scorer's input) are NOT run in-rung — one-lever rule. Reviewer
+#     2's note, recorded now because saying it later costs credibility:
+#     **the entity-half bottleneck is the right named-not-run successor
+#     to promote AHEAD of the placebo if F2 lands.**
+# F3. **VOID (median g < the VOID line).** The auxiliary task never
+#     trained. VOID on the lever; the primary is reported but carries no
+#     thesis weight. ACTION: diagnose offline; any re-run queues behind
+#     whatever comes next.
+# F4. **VOID + CREDIT.** Both can hold — credit is judged on the primary
+#     alone. The credit STANDS, recorded "mechanism-unexplained"; the
+#     belief narrative is NOT available; the M4 obligations still apply.
+# F5. **NEGATIVE.** The auxiliary gradient cost capability. ACTION:
+#     record the entropy and R1 curves and the coefficient; **NO
+#     smaller-coefficient re-run** — that is a sweep (D17 + one-lever).
+#
+# ---------------------------------------------------------------------
+# 9. GATES — PRE-LAUNCH (BLOCKING, ZERO LANES) AND DURING
+# ---------------------------------------------------------------------
+# ## PRE-LAUNCH, BLOCKING
+# R0-1 FINGERPRINT: every lane's meta.yaml stamps encoder v2,
+#   recharge_fix, ids, obs_dim 828; PLUS this rung's seam — the config
+#   snapshot carries `agent.aux_oppact_coef > 0` AND **`agent.
+#   privileged_dim` ABSENT** AND **`env_kwargs.privileged` ABSENT**
+#   (D18's plumbing must not ride along; D25 needs neither).
+# R0-1b **PURITY SEAM (Designer B's; Reviewer 1 calls it a real find).**
+#   `aux_oppact_coef > 0` REQUIRES `selfplay.opponent == self` AND
+#   `fixed_mix` / `pfsp_power` at their zero defaults. `SnapshotPool.
+#   _fixed` holds a `HeuristicOpponent`; without this seam a mis-set
+#   config has the head **distilling SimpleHeuristicsPlayer**, which
+#   DESIGN §5 forbids. Raise loudly, with the purity reason in the
+#   message.
+# R0-2 **PARAM CEILING — AS A POLICY, NOT A CODE GATE (B7).** Assert and
+#   log BOTH `actor = 626,059` (bit-identical to control) AND
+#   `actor + aux = 675,416 <= 681,994`; stamp both in meta.yaml; ship the
+#   unit test that widths 128 (691,858) and 256 (757,650) fail the strict
+#   actor+aux accounting. The header does NOT call width 128 a "breach of
+#   the gate" — the gate does not see it. Critic unchanged at 494,849.
+# R0-2b STATE_DICT / EVAL PATH: the aux head lives on `PPOAgent`, so
+#   `eval_checkpoint.py`, `score_ladder.py` and `d22_dormant_rank.py::
+#   build` construct the actor unchanged; a D25 checkpoint scores
+#   identically to a control checkpoint of the same weights. Note
+#   (Reviewer 2): `make_agent` splats every `cfg.agent` key, so a rebuild
+#   from a D25 config WILL construct the head at eval — harmless, and
+#   exactly what the forward-hook count of 0 is for. **A's "an aux
+#   checkpoint loaded into an aux-off agent must fail loudly" will NOT
+#   fail on its own — the optimizer graft silently tolerates extra state
+#   keys. Make it an explicit raise.**
+# R0-2c **THIRD-GROUP ORDERING TEST (B8):** load a 2-group control
+#   checkpoint into a D25 agent and assert **every critic param receives
+#   a shape-matching `exp_avg`**. This test fails on the group-0 design.
+# R0-3 BIT-IDENTITY + NO-OP: the standing MLP test, plus (a)
+#   `aux_oppact_coef = 0.0` with `opp_action: false` is an EXACT no-op
+#   including RNG stream position, and (b) with the lever ON, actor and
+#   critic `state_dict`s at a fixed seed are BIT-IDENTICAL to the
+#   lever-off build (init isolation — fails immediately if anyone moves
+#   the head's construction earlier).
+# R0-4 EVAL CROSS-CHECK: `win_rate` (env-supplied `info["outcome"]`) and
+#   `wins_from_returns` agree exactly on every eval JSON, BOTH pools.
+#   HARD FAIL. (A reward-sign inversion would report 100% and pass its
+#   own detector — measured.)
+# R0-5 **LABEL CORRECTNESS — three deterministic tests:**
+#   (a) TIMING: on a scripted two-seat fixture the label emitted by
+#       step(t) is the opponent's turn-t action, not turn-(t+1)'s; reset
+#       emits no label; the wait-pump's later choices are discarded; a
+#       `battle2.wait` turn yields the sentinel and the row is dropped.
+#   (b) ALIASING: the valid flag is False on exactly the turns where seat
+#       2's obs[5] is 1; those rows contribute ZERO loss; a nonzero
+#       "aliased row entered the loss" counter is a hard fail.
+#   (c) **THE ORACLE IDENTITY — the single best test in the cycle: on a
+#       tape, the oracle's CE against the realised labels must equal the
+#       oracle's own entropy to within clustered se (measured
+#       +0.008/+0.015 correct; +0.66 with the aliasing fix removed).**
+#       It catches label, ordering AND timing bugs at once.
+#   (d) CANONICALISATION: synthetic (obs-suffix, choice) pairs — switch
+#       to a revealed mon -> its reveal-order slot; switch to an
+#       unrevealed mon -> class 10; a slotted move -> that slot; an
+#       unslotted move or id 0 -> class 11; `allow` has exactly the legal
+#       classes with -1e8 elsewhere; class 11 always legal;
+#       `aux/frame_collision_frac == 0` (`_species_id` is injective
+#       within a team by the species clause and `_opponent_move_slots`
+#       dedups, so a collision is a bug, not a class). **Plus the
+#       ANTI-LEAK REPLAY ASSERTION: a canonicalised label is never a
+#       class whose entity is absent from the row's own obs.**
+# R0-7 MASKING: the ACTION mask is untouched, eval-time masking on, -1e8
+#   sentinel, value head unmasked. The aux head's 12-class mask goes
+#   through `rl/common/masking` (same semantics — B11). **Assert the aux
+#   head is never called in `act()` or at eval: forward-hook count 0 over
+#   a full eval pass.**
+# R0-9 **DECOUPLED CLIP (B9):** on a fixed batch, `loss/grad_norm` and
+#   `loss/grad_clip_frac` are numerically identical lever-on and
+#   lever-off, and the aux contribution to the step is bounded by
+#   `aux_max_grad_norm`.
+# R0-10 **COEFFICIENT SMOKE — BLOCKING, AND IT SETS THE ONE FREE
+#   NUMBER.** 60k-100k steps, seed 99, blind to win rate. Sweep
+#   `aux_oppact_coef` over a pre-stated {0.05, 0.1, 0.25, 0.5} and take
+#   the LARGEST value satisfying BOTH (a) **g >= 0.25 AND RISING by the
+#   smoke's end** (Reviewer 2's softening: 100k steps is ~1,560 grad
+#   steps for a jointly-trained head against a MOVING trunk, whereas 0.40
+#   was calibrated on a probe over FROZEN features; **0.40-class stays
+#   the 12M partition where it was calibrated**) and (b) `loss/entropy`
+#   and `selfplay/winrate_anchor` within the control band at matched
+#   steps. Written into the config and this header BEFORE launch; no
+#   in-rung re-tune. **If nothing satisfies both, the rung does not
+#   launch** — a design failure bought for 20 minutes instead of 2.3
+#   lane-days. ~4 min per smoke arm at ~400 steps/s, ~20 min total.
+# R0-10b **GRADIENT-RATIO CALIBRATION (Designer B's R0-A, complementary
+#   and offline):** on the BUILT head at control checkpoints {init, 600k,
+#   6M, 12M}, require aux/policy trunk-gradient-norm ratio in
+#   **[0.05, 1.5]** at 600k/6M/12M. It picks the starting value in
+#   minutes; R0-10 confirms it live. D19-B's ratios cannot simply be
+#   reused — D25's aux gradient reaches the trunk through a WIDER path
+#   (ctx AND `mon_net`/`move_net`/`species_emb`/`move_emb` via the
+#   opponent entity vectors). Reference control-lane trunk-gradient
+#   norms: 0.005 (init), 0.434 (600k), 0.324 (6M), 1.094 (12M).
+# R0-12 **REFERENCE TAPE FROZEN + CONTROL DISTRIBUTION RE-FROZEN —
+#   BLOCKING, ZERO LANES.** The gate's control atoms (§5) are on the
+#   **s26** reference, and s26 is a comparator lane. **Pick a reference
+#   checkpoint in NEITHER ARM** — RECOMMENDED **s35@12M** (same struct
+#   recipe, same horizon, a Rung-3 lane, in neither arm), fallback
+#   s36/s37@12M or a D23 lane; collect 300 mirror self-play battles,
+#   **sha256-freeze the tape**, re-run the five control atoms on it and
+#   **write the re-frozen mean, sd, power table and MDE into this header
+#   before ratification is final.** Measured invariance that makes this
+#   safe: across two independent references the between-lane sd is stable
+#   at **0.005-0.006** and there is **no home-field advantage** (s27 does
+#   not top its own tape — it ranks 3rd; s28 is highest on both), while
+#   the absolute LEVEL is reference-dependent, which is why the letter is
+#   a treatment-vs-control contrast on ONE tape and never a threshold.
+#   **NO-LAUNCH RULE, pre-stated (Reviewer 2's escalation, adopted): if
+#   the re-frozen control sd is wide enough that MDE(80%) exceeds 0.05
+#   nats (~10% of the realised 0.544-nat signal, ~5x the s26-reference
+#   MDE), the letter drops to recorded-only AND — because the rung's
+#   value is concentrated in F1 and the win-rate primary alone is an
+#   underpowered probe whose modal outcome the chapter has recorded twice
+#   — THE RUNG IS NO-GO.** Decided on the R0 number, in the open, at zero
+#   lanes.
+# R0-12b **CAPACITY NULLS — all four negative, carried into the header as
+#   the clearance they are.** A positive Delta cannot be manufactured by
+#   handing the probe more dimensions:
+#       ctx slot replaced by                        s26      s27
+#       PCA-384 of the RAW OBSERVATION ("lossless") **-0.058** -0.021
+#       PCA-384 of the OPPONENT'S OWN OBSERVATION
+#         (i.e. cheating)                           **-0.013** -0.028
+#       row-shuffled real ctx                       -0.003..-0.025
+#       iid Gaussian at the live dimension          -0.039   -0.040
+#       **real trained ctx**                        **+0.024** +0.016
+#   Added uninformative dimensions COST held-out NLL; only a LEARNED ctx
+#   pays. Note the force of row 1: a 384-dim linear summary of the
+#   observation is worse than nothing, so the +0.02 is a property of the
+#   TRUNK'S REPRESENTATION, not of the observation being visible.
+#   Re-run on the final reference tape and freeze.
+#   **THE NULL THAT REMAINS MISSING is the shuffled TARGET (§12): a
+#   revived ctx unit in a TRAINED net is state-correlated, not random, so
+#   the shuffled-ctx null does not bound it.**
+# R0-12c **LBFGS CONVERGENCE ASSERT.** One fit in 40 diverged in the gate
+#   (s27, split 2: Delta = -0.067 at lambda 1e-3 and -0.040 at 1e-2,
+#   while every other encoder on that same split sat at +0.026 to
+#   +0.039). **A single bad fit moves an 8-split atom by ~0.008, which is
+#   most of the MDE.** The grader asserts convergence on EVERY fit and
+#   fails loudly; it does not silently drop or retry.
+# R0-13 **HISTORICAL-POOL CORRECTION — BLOCKING, ZERO LANES.** Every
+#   information number in §0 was measured against a ONE-MEMBER pool
+#   (`latest_prob = 1.0`) while training draws **20% historical from a
+#   20-member pool**. Re-measure A1/A3/A2s against the **REAL
+#   `_evict_index` schedule** (78 pushes at 12M, `pool_size` 20, retained
+#   push ids [0,4,8,...,73,77] spanning 0.15M-12M, **step-0 anchor never
+#   evicted**, members snapped to the nearest 200k checkpoint,
+#   `latest_prob` 0.8) — NOT Designer A's 8M-12M reconstruction, which
+#   describes a pool this repo does not build. Freeze the corrected
+#   constants as the gap-closure denominator and re-derive the LEARNED
+#   bar (§6). PRE-REGISTERED PRIOR from Reviewer 1's measurement: window
+#   1.174 -> **1.005 (86%)** at latest_prob 0.8 (0.868 at 0.5).
+#   **NUMERIC NO-LAUNCH THRESHOLD (Reviewer 1 MUST-FIX 1 — a gate with no
+#   fail condition cannot block): NO-LAUNCH if the pool-corrected ORACLE
+#   WINDOW falls below 0.60 nats or the pool-corrected REALISED gain
+#   below 0.30 nats.** Caveat recorded: states come from latest-vs-latest
+#   play, so under pool play the state distribution shifts too; this is
+#   the right order, not an exact number.
+# R0-14 GRADER COMMITTED: one script implementing the credit line
+#   VERBATIM (larger-of), the recording band, the lane-failure recompute,
+#   R0-4's hard fail, and the exact permutation p for CO-PRIMARY B and
+#   S1. Verified on synthetic cases including a known-p case from the
+#   enumerated grid (min p 0.003968, level 12/252 = 0.047619).
+# R0-15 FROZEN-COMPARATOR ATTESTATION: the five comparator finals
+#   (0.5633 / 0.5683 / 0.5210 / 0.5763 / 0.4937) and the derived
+#   0.54452 / 0.03558 are re-read from results/ and PRINTED by the grader
+#   **before any treatment number is loaded.**
+#
+# ## DURING (record-and-continue unless stated)
+# R0-6 REGIME: after 3M, ties <= 4.2%, mean episode length <= 40.
+# R0-8 LANE LIVENESS: staggered starts; **battle PROGRESS within 15 min —
+#   never "run dir exists"** (config.yaml/meta.yaml/wandb/ are written
+#   before the first `reset`, so directory existence is true for a lane
+#   that never trained); a lane can also die at startup with SIGSEGV in
+#   torch lazy static init before any log line, so **verify every lane
+#   individually.** THRESHOLDS **290 steps/s record-and-continue, 245
+#   stop** — Reviewer 2 corrected A's 300/250: 5-wide 12M fleets ran
+#   309-343, and at -2.5% the slowest lands at ~301, flush against 300,
+#   which would fire cosmetically and waste an intervention.
+# R1 LEARNING GATE: `selfplay/winrate_anchor` >= 0.75 by 4M on **>= 3 of
+#   5** lanes (controls sit 0.955-0.975 from bin 0; D23 lanes
+#   0.968-0.978). Doubles as the coefficient-too-large detector per F5.
+# K6 ENTROPY: 5-lane MEDIAN `loss/entropy` < 0.15 for 5 consecutive
+#   readings before 6M -> record and stop that lane (LANE FAILURE RULE
+#   applies). No mid-run changes, ever.
+# VOID CLAUSE (Designer B, retained): if a lane's median `loss/grad_norm`
+#   moves >10% from the control's, or `grad_clip_frac` moves >0.05 from
+#   0.90, the clip path is not behaving as designed and **mechanism
+#   attribution is VOID for that lane.**
+# SMOKE READS (not gates): label-present fraction (the opponent seat's
+#   wait frequency is UNMEASURED offline; our own seat's absorbed waits
+#   were 6.4%, so ~6% is a guess — if it is much larger the effective aux
+#   batch shrinks and the coefficient gate must account for it);
+#   `aux/frame_collision_frac == 0`; finite losses.
+#
+# ---------------------------------------------------------------------
+# 10. CONFOUNDS, DISCLOSED
+# ---------------------------------------------------------------------
+# C1 CAPACITY / GENERIC-AUX-TASK. The trained (not acting) stack gains
+#   49,357 params and their Adam state. **If D25 credits, "belief
+#   shaping" vs "an auxiliary loss helps" is NOT separable from this
+#   read.** The only clean control is the shuffled-label placebo — §12.
+# C2 HORIZON: 12M under-tests. A null closes the family **AT 12M FOR THIS
+#   CHAPTER** — a budget decision under D17's cap — not a refutation of
+#   the 50M thesis.
+# C3 **THE HEAD MODELS OURSELVES.** In mirror/pool self-play the opponent
+#   IS our own policy, so the belief is a self-model. That is what makes
+#   the ground truth free and the information large. Three distinct
+#   failure modes hide in it and they need different evidence:
+#   (a) STATE-INDEPENDENT SELF-MARGINAL — the head fits P(class), which
+#       is just our own action-type mix (controls: P(switch) 0.233-0.241,
+#       P(move) 0.759-0.767, near-flat within each group). Designed
+#       against: `aux_slot_bias` absorbs the marginal at the optimum and
+#       receives no trunk gradient. Detected by the g statistic, which is
+#       the residual ABOVE the mask-renormalised marginal.
+#   (b) SELF-COPYING — the head implements "what would I do in that
+#       seat", re-deriving the policy rather than inferring anything.
+#       Not WRONG (in a symmetric game the mirror IS the correct opponent
+#       model) but it means the aux loss added no information the trunk
+#       did not already contain, which is a different claim. Detected by
+#       S7 and S8.
+#   (c) ENDOGENOUS LABELS — the lever changes the policy, which changes
+#       the pool, which changes the labels, so raw `aux_ce` is NOT
+#       comparable across arms. **Handled by construction: every
+#       mechanism read is on the FIXED REFERENCE TAPE (§5).** Also worth
+#       stating as a mechanism possibility, not only a nuisance: an agent
+#       that predicts its own pool better may simply have become more
+#       self-consistent, which is not the same as being stronger.
+# C4 EVAL-OPPONENT MISMATCH: the head is discarded at eval and the
+#   evaluated opponent (SH) is not the modelled one. Transfer is
+#   untested. **The lever's claim is REPRESENTATIONAL — the trunk learns
+#   to reason about a simultaneous-move opponent at all — NOT "we ship an
+#   opponent model".**
+# C5 CTX-FREE DECODABILITY: 88-95% of the realised structure survives
+#   removing ctx, and the ablated probe is a linear read of the RAW
+#   OBSERVATION. Quantified in advance; §5 is the test; F2 is the branch.
+# C6 NEW INPUT PATHWAY: `move_net` / `move_emb` currently never see
+#   opponent move tokens; the aux head feeds them. A representation
+#   change could come from those subnets seeing 2x the data rather than
+#   from belief. The alternative that removes it — a private move subnet
+#   for the aux head — would gut the mechanism claim by removing the
+#   trunk gradient from the four move classes. **We share and disclose.**
+# C7 CADENCE: the comparator's 120 x 100 in-training SH evals draw off
+#   the global RNG stream that `SimpleHeuristicsPlayer` shares with
+#   training; D25 matches it verbatim, so this rung is cadence-clean
+#   against the comparator and NOT against D18/D23.
+# C8 MEASUREMENT n: the §0 probes were fit on ~4.7-4.9k rows and the
+#   raw-obs probe's learning curve was still RISING (0.27 at n = 1.2k ->
+#   0.43 at n = 5.0k). **0.544 is a LOWER bound on what a head trained on
+#   12M steps can reach**; the upper bound is the oracle (~1.0
+#   pool-corrected). Both bounds are in this header so neither can be
+#   quoted alone.
+# C9 ADAM SECOND MOMENT: the irreducible residue of B9 — not fixable for
+#   a shared trunk.
+#
+# ---------------------------------------------------------------------
+# 11. BRANCHES — ACTION ON EVERY BRANCH
+# ---------------------------------------------------------------------
+# (a) **CREDIT** (pooled >= the operative bar). IMMEDIATE OBLIGATIONS,
+#     NOT OPTIONS: the M4 clone re-score and the non-SH anchor
+#     head-to-head (§4, and they fire on the NUMBER 0.558, so they may
+#     already have fired). THEN: the shuffled-label placebo (§12) as the
+#     next rung, AHEAD of any 50M carry — a 50M carry faces the same
+#     >= 0.6675-class bar that killed the regen-L2 carry and is NOT
+#     proposed here. **No writeup uses "belief state" or "opponent model"
+#     until the placebo has run** (D18's capacity-matched-control
+#     precedent).
+# (b) **LETTER-MET, NOT CREDITED** (modal non-null, 36-47%): recorded
+#     verbatim per the recording rule, weakness named in every use.
+#     Mechanism reads decide the epitaph. **NO re-run at more lanes** —
+#     the bar is comparator-limited and two more treatment lanes move it
+#     very little. M4 obligations fire (0.5695 > 0.558).
+# (c) **FLAT / F1**: the epitaph in §8 — hidden-information belief is
+#     closed as a 12M capability lever from the critic side (D18) and the
+#     actor side (D25), **with the information demonstrably present.**
+#     Chapter 15.9/20. Next is a MAINTAINER call between DESIGN §11
+#     (search over the predicted opponent distribution — the successor F1
+#     explicitly leaves open), D21 (recipe / LR-anneal pool), or closing
+#     the chapter. **If pooled >= 0.558 the M4 obligations fire even
+#     here.**
+# (d) **F2 / F3 (VOID)**: no thesis conclusion; diagnose offline; the
+#     queue moves on. If F2, promote the entity-half bottleneck as the
+#     named successor (§8 F2).
+# (e) **F5 NEGATIVE**: recorded with the entropy and R1 curves and the
+#     coefficient; no coefficient sweep.
+#
+# ---------------------------------------------------------------------
+# 12. THE PLACEBO — NAMED, NOT RUN. **OPEN MAINTAINER DECISION.**
+# ---------------------------------------------------------------------
+# **THE SHUFFLED-LABEL PLACEBO ARM: identical head, identical
+# coefficient, identical clipping, labels permuted across rows within the
+# batch — same parameter count, same gradient magnitude, ZERO
+# information.** It is the only clean control, and it is **exactly what
+# separates "an explicit opponent model helps" from "an auxiliary loss
+# helps".** Cost: a **second full 5-lane arm, +2.24 lane-days, chapter ->
+# ~18.1/20.** A 2-lane descriptive version costs ~0.9 lane-days and
+# carries no letter.
+# **CONSEQUENTLY THIS RUNG'S CLAIM IS SCOPED, and the scoping is
+# pre-registered, not retrofitted:**
+#   - What D25 can license on its own: "**the pooled context became more
+#     decodable for the opponent's next action**" (§5's claim bound), and
+#     on a credit, "an auxiliary opponent-action prediction loss on the
+#     shared trunk moved the win rate."
+#   - What D25 CANNOT license without the placebo: **"belief state",
+#     "opponent model", or any claim that the INFORMATION rather than the
+#     auxiliary gradient did the work.** Silently omitting the placebo is
+#     not an option; this is the name-not-run.
+# **MAINTAINER DECISION REQUIRED AT RATIFICATION (Reviewer 2 asks it in
+# these terms): if you would NOT authorise that second arm on a credit,
+# then a credit buys less than it appears to, and that should be decided
+# BEFORE launch, not after.** Options: (1) authorise the placebo
+# contingently now; (2) accept the scoped claim permanently; (3) run the
+# 2-lane descriptive version. This header assumes (2) unless ratified
+# otherwise.
+#
+# ---------------------------------------------------------------------
+# 13. OPS AND LANDMINES
+# ---------------------------------------------------------------------
+# Maintainer's terminal (agent-launched training measured ~10x slower);
+# `caffeinate -is`; **COMMIT CODE AND DOCS BEFORE LAUNCHING AND LAUNCH
+# FROM A CLEAN TREE** — launches stamp `git_dirty` and one untracked .md
+# flips it (measured: dirtied 8 of 9 runs once); stagger lane starts and
+# verify each individually per R0-8; server on :8000 with `simulator: 4`
+# in the gitignored `showdown/config/config.js` (worth +81% collection
+# throughput; re-set it if `showdown/` is ever re-cloned).
+# **BOTH ENCODER ENV VARS EVERYWHERE, INCLUDING EVERY EVAL** —
+# `POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1`. Two process-level
+# vars is twice as forgettable; R0-1 is the check that neither was
+# forgotten.
+# **DISTINCT `--seed` PER CONCURRENT LANE, ACROSS ARMS TOO.**
+# **IF A LANE DIES TO AN EVAL AUTO-TIE CRASH, RELAUNCH ON A FRESH SEED**
+# (s49 -> s51, 08-12) — a same-seat relaunch hits zombie battles.
+#
+# Launch, per lane (N in 52..56) — **AFTER RATIFICATION, BUILD, AND
+# R0-10 / R0-10b / R0-12 / R0-13 ONLY**, one &&-chained line:
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_actpred12m.yaml \
+#     --seed N --run-name showdown_sp_actpred12m_sN
+#
+# ---------------------------------------------------------------------
+# 14. CONFLICT LEDGER — WHERE THE SEVEN DOCUMENTS DISAGREED
+# ---------------------------------------------------------------------
+#  1 MECHANISM STATISTIC. A: own-tape Delta_ctx. B: fixed reference tape.
+#    **GATE WINS -> Delta_ref-ctx.** A's is dead on specificity (r=+0.994
+#    with the nuisance the lever moves; control range 0.037 > its MDE
+#    0.025). §5.
+#  2 LABEL SPACE. A: 6-class (argued as forced by the ordering problem).
+#    B: 12-class canonical. Reviewer 2 showed A's "not groundable" is
+#    wrong — `order.order.species` IS mappable — so L6 was a CHOICE, and
+#    an exact coarsening of B's 12. **12-class trained, L6 marginalised.**
+#    NOTE, recorded because it cuts the other way: Reviewer 2's R0-L rule
+#    was "adopt 12 iff the switch-target sub-decomposition realises
+#    >= 0.05 nats above L6". The gate measured **+0.040 mean (+0.022 to
+#    +0.054 per lane) — BELOW that threshold.** Resolution: R0-L is
+#    RETIRED, because the gate's ratified letter is DEFINED on the
+#    12-class space and L6 is recovered from the same fitted posteriors
+#    at zero cost, so nothing is lost either way. Stated openly rather
+#    than quietly dropped.
+#  3 INFORMATION HEADLINE. A: 0.573 nats, "two lanes to the third
+#    decimal". B: 1.59-nat window / "72% unlearnable permutation".
+#    **BOTH OUT.** A's precision was one split seed (s27 moves 0.157
+#    across splits); B committed a category error (subtracting
+#    H(raw index | class) from a MUTUAL INFORMATION, ~3x wrong).
+#    **HEADER PREMISE = 0.544 nats L6 / 0.584 12-class, five lanes,
+#    8 splits, ~0.47-0.50 pool-corrected.** §0.
+#  4 HEAD WIDTH. A: 64 (calls 128 a gate breach). B: 128. **Reviewer 2's
+#    resolution WINS: 96** — agent-owned AND under the strict actor+aux
+#    ceiling, 6,578 to spare. Reviewer 1's finding that the ceiling
+#    constant still encodes OBS_DIM 808 (vs 828 today; true reference
+#    692,234) is carried, and the constant is NOT edited here. B7.
+#  5 CEILING ENFORCEMENT. A: "a unit test asserts width 128 MUST fail
+#    this gate." **Reviewer 1: no such gate exists** — the assert walks
+#    `EntityDeepSetsNet.parameters()` only, so an agent-owned head is
+#    invisible. **Ceiling is a POLICY; R0-2 asserts both numbers.**
+#  6 OPTIMIZER GROUP. B: group-0 append, "a third group breaks the
+#    positional graft". **Reviewer 2 measured the opposite** —
+#    group-0 append makes the critic receive NO Adam moments. **Third
+#    group, appended last.** B8, R0-2c.
+#  7 ENV SEAM. A: Python tuple `(kind, ident)` with `ident = 0` for
+#    switches. **B's `np.array([kind, id], int32)` WINS** — A's tuple
+#    hits gymnasium's object-array branch and her sentinel hard-wires L6
+#    into the plumbing. B2.
+#  8 AUX MASK ROUTING. A's R0-7 FORBADE routing the aux mask through
+#    `rl/common/masking`; B routes it there. **B WINS for the 12-class
+#    space** — it genuinely is an action-legality vector with the
+#    harness's semantics (A's objection was against a species mask).
+#    B11.
+#  9 LAMBDA / SPLITS for the probe. Both designers: L2 selected on an
+#    inner split. **GATE WINS: lambda FROZEN at 0.01, 8 battle-level
+#    splits, no per-lane selection** — inner-CV picked the grid floor on
+#    100% of fits; freezing is worth ~2.7x in MDE. Reviewer 1's inner-
+#    split-leak fix is folded in.
+# 10 POOL RECONSTRUCTION. A's R0-13: "20 members from the lane's own
+#    8M-12M checkpoints". **Reviewer 1 WINS: that is not this repo's
+#    pool** (step-0 anchor never evicted; span 0.15M-12M). Real schedule,
+#    plus the numeric no-launch threshold A's gate lacked. R0-13.
+# 11 LEARNED BAR. A: fixed g >= 0.40. **Reviewer 1 WINS: a formula** —
+#    the pool correction inflates g ~16% for identical performance, so a
+#    fixed 0.40 silently loosens to ~0.34 in its own calibration units.
+#    Also: the `g > 1.0` hard fail is not specific under a real pool and
+#    needs the label-generating member's oracle. §6.
+# 12 SMOKE ACCEPTANCE. A: g >= 0.40 at 60-100k steps. **Reviewer 2 WINS:
+#    g >= 0.25 and rising** (0.40 was calibrated on FROZEN features);
+#    0.40-class stays the 12M partition. R0-10.
+# 13 M4 TRIGGER. Both designers keyed the obligations to a CREDIT.
+#    **Reviewer 2 WINS: DESIGN §2 keys M4 to pooled >= 0.558, a NUMBER,
+#    which even a FLAT result reaches (0.560 is FLAT and crosses M4).**
+#    §4.
+# 14 R0-8 THRESHOLDS. A: 300/250. **Reviewer 2 WINS: 290/245** — the
+#    measured -2.5% puts the slowest lane at ~301, flush against 300.
+# 15 CADENCE. A's D19 draft used D18's 500k/1000; A's D25 draft and B
+#    both use struct12m's 100k/100. **NOT LIVE — 100k/100**, because the
+#    comparator is what this rung is graded against.
+# 16 GO/NO-GO ON AN UNCALIBRATABLE LETTER. A: drop it to recorded-only
+#    and run anyway. **Reviewer 2 WINS: that flips the rung to NO-GO.**
+#    The gate PASSED, so the trigger does not fire — but it is retained
+#    for the reference-tape re-freeze (R0-12).
+# =====================================================================
+env_id: Showdown-v0
+seed: 52
+total_steps: 12000000
+eval_every: 100000          # struct12m cadence VERBATIM — the 5-seed
+eval_episodes: 100          # comparator was run at it (C7)
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_actpred12m_s52
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true         # LEVER, env side: capture the pool opponent's
+                           # chosen action IDENTITY (kind, id) at every
+                           # simultaneous decision. NOT env_kwargs.privileged
+                           # — D18's plumbing is unused and BOTH
+                           # env_kwargs.privileged and agent.privileged_dim
+                           # are ABSENT by R0-1.
+selfplay:                  # identical to showdown_sp_struct12m.yaml
+  opponent: self           # REQUIRED by the purity seam R0-1b
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets   # the credited Rung 2 / 50M treatment, unchanged
+  aux_oppact_coef: 0.1     # THE LEVER. PROVISIONAL: R0-10b picks the
+                           # starting value offline and R0-10's smoke sets
+                           # the operative one from {0.05, 0.1, 0.25, 0.5}
+                           # BEFORE launch. This is the ONLY line the gates
+                           # may change; no in-rung re-tune. 0.0 = exact no-op.
+  aux_scorer_sizes: [96]   # pointer scorer over [ctx 384 || opp_entity 128]
+                           # -> 96 -> 1, 12 classes. 49,357 params;
+                           # actor+aux 675,416 <= 681,994 (headroom 6,578).
+                           # [128] = 691,858 and [256] = 757,650 fail the
+                           # strict actor+aux accounting — R0-2 unit test.
+  aux_head_gain: 0.01      # the net's own init_head convention: Xavier, zero
+                           # biases, final layer x0.01. Not a free number —
+                           # ctx has no LayerNorm (RMS 0.54 at init -> ~82 at
+                           # 12M) while the entity half IS LayerNorm'd.
+  aux_max_grad_norm: 0.5   # aux gradient clipped SEPARATELY, added after the
+                           # PPO clip (R0-9). Control grad_clip_frac is 0.90,
+                           # so a coupled term would be a covert policy-LR cut.
+  trunk_kwargs:            # byte-identical to showdown_sp_struct12m.yaml
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512] # unused when trunk != mlp; kept so a
+                           # trunk: mlp rerun of this file is exact
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
