@@ -40,11 +40,10 @@ FINDING: fresh comparator lanes (0.5763, 0.4937) put true Rung-2 12M seed sd at 
    ~17/20). NEXT STEP: pre-registration under the 2-Opus design process, **written
    mechanism-primary** — weight norms + srank at 50M (where D22 diagnosed the
    pathology and D23 only tested at 12M) as PRIMARY, win rate SECONDARY, since 50M
-   is seed-fragile too and an advisory-scale delta will land in the recording band
-   again. Then a cap/lane-day accounting line, then launch by the maintainer.
-   D19 deferred behind it (unread; DESIGN §12 carries its status note). Push DONE.
-2. Post-chase bundle: comparator-spread finding + D23 mechanism story (README and
-   DESIGN §12 queue state are current through the readout).
+   is seed-fragile too and an advisory-scale delta lands in the recording band
+   again. Then lane-day accounting, then launch by the maintainer. D19 deferred
+   behind it (unread; DESIGN §12 carries its status note). Push DONE 08-13.
+2. Post-chase bundle: comparator-spread finding + D23 mechanism story.
 3. 250M: per §13 — needs a credited 50M lever + the cap/rent answer (E1-E4 cleared).
 
 ## Watch items
