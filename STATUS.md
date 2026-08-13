@@ -50,7 +50,7 @@ below geometry" used the max null, anti-conservative for retiring a claim).
 
 - Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 disposable;
   **47-48, 52+ free**. Rank reads: margin over the matched-distance null — **MAX null
-  to establish an effect, MEDIAN to retire one; not interchangeable**; `--tag` them.
+  to establish, MEDIAN to retire; not interchangeable**.
 - **Quote the range, not the best measured variant** — this session's systematic error.
 - Entity ckpts need BOTH env vars. Eval auto-tie crash can kill a lane; relaunch on a
   FRESH seed (same-seed hits zombie battles; s49→s51, log 08-12).
