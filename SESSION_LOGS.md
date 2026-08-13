@@ -3443,3 +3443,67 @@ entry by offset — never a broad keyword grep.
   design cycle's label path on 1.0000 of 1,024 rows.** Suite **318 green**. **NEXT: the
   R0-10b adjudication is the blocker and it is the maintainer's**, then the placebo call,
   then the R0-10 smoke (four arms, seed 99, ONE AT A TIME) and the 52-56 launch.
+
+- 2026-08-13 (night, **R0-10b ADJUDICATED: amendment A1 REFUSED by two independent Opus
+  reviews; A2 measures the ratio LIVE instead** — plus a build fix no offline gate could
+  have caught). Zero lanes. Suite **319 green**. **A1 PROPOSED** that R0-10b's fresh-head
+  measurement is an initialisation artefact (`aux_head_gain = 0.01` scales the scorer's
+  FINAL layer, so the gradient into ctx is proportional to it) and that on a FITTED head
+  the ratio is 2.50/3.41/4.19, filtering the pre-stated grid to {0.05, 0.1, 0.25} rather
+  than leaving it empty. **Reviewer 1 (evidential validity) REFUSED; Reviewer 2 (decision
+  and risk) said RATIFY WITH CHANGES, landing on coefficient 0.1. THREE OF A1's
+  LOAD-BEARING CLAIMS DID NOT SURVIVE.** (1) **The fitted construction is NOT
+  DETERMINATE** — Reviewer 1 re-ran A1's own recipe, matched its held-out CE (so it IS
+  the same construction), and got **1.74/1.46/1.24 against A1's 2.50/3.41/4.19**, under
+  which coef 0.5 is IN BAND and the sweep would start at 0.5. A gate whose output moves
+  across the whole pre-stated grid under undisclosed fit hyperparameters is not a gate.
+  (2) **A1's HEADLINE WAS STATISTICALLY WRONG IN ITS OWN FAVOUR.** Its "2.31-6.56 across
+  three head draws" at 12M is DENOMINATOR noise: re-measured here with the actor held
+  FIXED and only the random z-scored advantage vector varying, **||g_trunk policy|| spans
+  0.236-3.196 over 20 draws, 13.6x**. A1 varied the advantage seed WITH the head seed and
+  then took a **mean-of-ratios, Jensen-inflated 1.3-1.5x** against ratio-of-means; it
+  also dropped from the executed gate's 5 draws to 3 while the spread widened — fewer
+  draws, narrower range, in the flattering direction, on the one quantity the launch
+  turns on. (3) **A1's "retro-fixes D19-B's self-contradiction" RUNS THE WRONG WAY**, and
+  both reviewers caught it independently: D19-B's table is fresh-head at the SAME gain
+  0.01, so the fresh->fitted factor is COMMON-MODE and CANCELS — it cannot explain the
+  4x/33x/36x gap, and a symmetric correction pushes D19-B's own recommendation out the
+  TOP of the band. Reviewer 1 also verified the mechanism directly (scaling the head's
+  final layer by 100 raises ||g_trunk aux|| 66.7-87.4x, so "~100x" is the right order)
+  and then turned it on A1: **at that scale a RANDOM head sits within 1.5-2.2x of the
+  FITTED head, so both constructions measure ||W_last(t)|| x residual, not coupling** —
+  which is A1's own critique of the fresh number. **A2, PROPOSED AND NOT ENACTED: neither
+  offline proxy gates the rung.** The ratio is measured LIVE during R0-10's smoke on the
+  co-trained head against the moving trunk with the run's own advantages — shipped as
+  `aux/trunk_norm` and `aux/policy_trunk_norm`, both PRE-clip, read as a RATIO OF MEANS;
+  a pure diagnostic that reads `.grad` and changes no update. **It already reads 0.177 at
+  coef 0.1 over the first 8k steps, inside the band.** NO pre-registered number changes,
+  and on the evidence R0-10's own unmodified rule selects **0.1 — the value the ratified
+  config already carries.** Reviewer 1's strict reading (fresh-head is defensible: the
+  first updates are when the trunk is most plastic, and gain 0.01 was chosen in that
+  frame) is recorded as a legitimate alternative under which the rung does NOT launch.
+  Reviewer 2's independently-adopted findings: calibrate on INJECTION FRACTION (coef x
+  ratio IS the aux gradient as a fraction of the policy's, and nothing in this repo has
+  recommended an aux loss pushing the trunk as hard as the policy — which 0.25 would);
+  the head's own learning is **nearly coefficient-free** because `aux_params` are their
+  own Adam group, so the coefficient buys little g and all of the F5 risk; the aux clip
+  binds at the top of the grid, so the band would regulate a pre-clip quantity that no
+  longer describes what reaches the trunk; and condition (a) may never bind, since a head
+  on frozen 600k features already reaches g ~ 0.65 against the 0.3286 bar. Budget
+  arithmetic independently verified (2.35 all-in, 15.9/20, headroom ~6.5). **THE BUILD
+  FIX, found by running the REAL launch entry point for the first time** (every earlier
+  smoke drove the loop by hand): **SWITCH legality read "6 - 1 - faints", which assumes
+  the opponent's ACTIVE IS ALIVE.** On a FORCED POST-FAINT REPLACEMENT it is not, so with
+  5 fainted the one survivor sits on the BENCH and IS switchable; the old rule called
+  that label illegal and dropped it at **0.12% of live decisions — a rate that would have
+  HARD-FAILED R0-5(d) at read time.** No frozen tape carries such a row, so no offline
+  gate could have caught it. Legality now reads the opponent active's own
+  revealed/fainted/is-active bits and `canonicalise` takes the tokenizer rather than
+  restating offsets; live rate back to 0.0000. C10 (whether forced replacements belong in
+  the loss at all) is untouched and still open. Also fixed at gate time: **the shipped L6
+  CLASS ORDER was inverted** (SWITCH=4/OTHER_MOVE=5 against §1's own frequency line,
+  whose last entry 7.2% matches s26's measured 0.0719 switch rate) — not load-bearing for
+  the loss, load-bearing for the readout, now pinned by a test. **NEXT: run the four
+  R0-10 smoke arms (seed 99, ONE AT A TIME, ~4 min each,
+  `configs/showdown_sp_actpred_smoke_c*.yaml`), read with `scripts/d25_gates.py smoke`,
+  then launch 52-56.** The placebo remains an open maintainer call.
