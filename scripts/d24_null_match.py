@@ -14,8 +14,18 @@ not read off a curve). The reported margin is
 
     margin = srank99(treatment) / srank99(null at alpha*)
 
-against the MOST FAVOURABLE-TO-THE-NULL control lane (the max), which is the
-adversarial choice. A margin at or below 1.0 means the claim is geometry.
+against the MOST FAVOURABLE-TO-THE-NULL control lane (the max).
+
+ASYMMETRY — READ THIS BEFORE QUOTING A MARGIN (corrected 2026-08-13 by the
+ratification red team). Taking the max null is adversarial, and therefore the
+right choice, only when ESTABLISHING an effect: clearing it means the effect
+survives the most generous null available. It is ANTI-CONSERVATIVE when
+RETIRING a claim — a margin at or below 1.0 against the max null does NOT mean
+"the claim is geometry", it means the most generous null happened to beat it.
+Retiring a claim needs the MEDIAN null (printed alongside). D23's actor read is
+the worked example: max-null margins 1.26/0.94/0.63 read as "2 of 3 lanes at or
+below geometry", but median-null gives 1.57/1.18/0.74 — one of three — so the
+honest verdict there is INCONCLUSIVE, not refuted.
 
 Defaults grade D23 (treatment 44/45/46 vs the Rung-2 controls 26/27/28 at 12M),
 which is the re-grade the 2026-08-13 design cycle called for. See

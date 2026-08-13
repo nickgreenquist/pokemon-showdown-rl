@@ -3200,3 +3200,57 @@ entry by offset — never a broad keyword grep.
   maintainer launches. STILL PENDING A MAINTAINER DECISION: the shuffled-label placebo
   arm (+2.24 lane-days) is what separates "an explicit opponent model helps" from "an
   auxiliary loss helps". Artifacts: results/d24_design/d25_r012_gate.md.
+- 2026-08-13 (night, RATIFICATION RED TEAM — CORRECTIONS TO TODAY'S RECORD; this entry
+  supersedes the earlier 08-13 entries wherever they conflict) — **An independent
+  red-team pass re-derived every load-bearing conclusion of this session. The
+  load-bearing links HELD; six statements did not, two of which had been reported to
+  the maintainer and written into STATUS.** WHAT HELD, re-derived independently: the
+  geometric null's matched-distance construction (d_lnfree IS exactly linear in alpha,
+  so alpha* = d_T/d_C is exact); **the CRITIC half of the D23 re-grade, robust to every
+  aggregation** (max/median/mean/min-null margins 1.35-2.07 / 2.21-3.53 / ...; per-lane
+  z = +2.7/+6.6/+4.2) and to a confound the study never tested — probing all 6 nets x 6
+  tapes puts the tape effect at <=5% actor, <=20% critic, nowhere near the margins; D23's
+  recorded ranks reproduced exactly; the lane-day ledger reproduced to the digit (a
+  wandb true-end recompute moves it +0.48 h over 53 dirs, and headroom is >=4.3 lane-days
+  under every alternative method); the srank fix (Gram/eigvalsh agrees with svdvals on 12
+  synthetic cases + the real cell, 0 disagreements); and the kill of Delta_ctx
+  (r = +0.9940, p = 0.0006). **CORRECTION 1 — "the actor rise does NOT survive the null"
+  is WRONG; the honest verdict is INCONCLUSIVE.** The margins used the MAX null over the
+  three controls, which is adversarial (hence correct) when ESTABLISHING an effect but
+  ANTI-CONSERVATIVE when RETIRING one. Under the MEDIAN null the actor margins are
+  **1.57 / 1.18 / 0.74 — one of three below 1, not two.** Fixed in
+  results/d24_null/SUMMARY.md §2, in STATUS, and in scripts/d24_null_match.py's
+  docstring, which had encoded the bad rule ("a margin at or below 1.0 means the claim
+  is geometry"). The critic conclusion is untouched. **CORRECTION 2 — there were TWO
+  srank NaN sentinels, not one.** The 2026-08-11 entry's "s26 6M srank-1 anomaly" is
+  also a sentinel: re-measured in float64 it is **25** (verified this session,
+  results/d23/effective_rank_s26_6m_recheck.csv). The corrupt d22 row also had a blank
+  pr_ctx (true 2.0637). **CORRECTION 3 — D25's power was overstated.** "sd 0.0051,
+  power 0.88 at +0.010" is the BETTER of the two reference tapes, with sd treated as
+  known and arm spreads assumed equal. Exact-permutation simulation gives **0.73** at
+  the second reference's sd, **0.74** integrating sd uncertainty (df=4), and
+  **0.45-0.56** if the treatment arm runs 2x the comparator's spread — which every 12M
+  arm in this repo has done. **Honest pair: MDE(80%) 0.009-0.011 nats, power 0.45-0.88.**
+  This is the rung's load-bearing number and the config header must carry the range, not
+  the best case. **CORRECTION 4 — the specificity test that killed Delta_ctx was never
+  applied to its replacement:** r(Delta_ref-ctx, the lane's own gain12) = **+0.69**. Far
+  better than Delta_ctx's +0.994 and probably acceptable, but it belongs in the header as
+  a disclosed limitation rather than being absent. **CORRECTION 5 — D19's stated premise
+  is false in three ways, though the KILL STANDS.** gen1 randbats is NOT "independent
+  near-uniform draws": showdown/data/random-battles/gen1/teams.ts:106-217 is rejection
+  sampling with a species clause, a type cap of 2 and a weakness cap of 2. Belief at one
+  revealed mon is **0.035 nats, not 0.000** (the zero was a model-class artefact — those
+  features are identically zero at r=1). The log's "of the 0.074, 0.064 is exclusion" is
+  **INVERTED**: exclusion is 0.007. Realised held-out structure is **0.347 nats
+  tape-weighted, ~4x the ceiling Designer A quoted.** The lever is still correctly
+  killed — 0.347 against D25's 0.544 with far worse decision-relevance — but every
+  sentence of the reasoning as recorded was wrong, and D25's premise is unaffected
+  because it rests on its own standalone measurement. **CORRECTION 6 — stale derived
+  figures:** "39% of the loss" was derived from the retracted 0.573 and is ~37%; "~15x
+  D19" is ~18x at one revealed mon but only **~1.6x tape-averaged** once D19's
+  denominator is corrected per above; and SUMMARY §4's "the pathology grows 0.45-0.52 ->
+  0.85/0.76/0.39" is 2-of-3 — s37 FALLS (0.516 -> 0.388). **DIAGNOSIS OF THIS SESSION'S
+  FAILURE MODE, recorded so it does not repeat: uniform and mild — the summaries
+  promoted the most favourable measured variant while the source documents carried the
+  honest range.** Every future readout quotes the range. Red-team call: ratify D25 once
+  corrections 2 and 3 land. Artifacts: results/d24_design/d25_ratify_2.md.
