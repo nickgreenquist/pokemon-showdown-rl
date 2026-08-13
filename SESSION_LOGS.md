@@ -2995,3 +2995,49 @@ entry by offset — never a broad keyword grep.
   293 green after the tooling change; tree clean; no lanes, no evals. Any future
   mechanism rung inherits: rank letters stated as a margin over the matched-distance
   null, dormancy as the primary, and the `--tag` discipline on every rank pass.
+- 2026-08-13 (midday, THE SPEND-OR-STOP PAIR — 2 opposed Opus advocates, 0 lanes) —
+  **Both advocates independently reject the carry; they split on D19 vs stop, and the
+  exercise corrected three numbers I had wrong.** (1) **THROUGHPUT RESOLVED — the
+  reviewers' 4.4-vs-5.6 lane-day disagreement was FLEET WIDTH, not measurement error.**
+  Measured end-to-end (started_at -> last-ckpt mtime, cross-checked against
+  history.csv): struct50m **3-wide = 387.6/389.0/398.1 steps/s** (34.9-35.8 h/lane);
+  D23's **5-wide fleet 331-343**; D18's 5-wide 309-312. So a 3-wide 50M carry is
+  **~5.1 lane-days** — neither reviewer's figure — and D19 needs no model at all
+  because D18 was the identical fleet shape (5x12M, 5-wide, same plumbing) at
+  10.69-10.79 h/lane = **2.24 lane-days, ~2.4 all-in**. My earlier "~1.5" for D19 came
+  from a reviewer estimate and was wrong. Bonus, like-for-like inside one fleet: the
+  regen-L2 lever costs **-3.2%** throughput (s44/45/46 mean 331.8 vs no-lever s50 342.7,
+  same night, same cadence) — not Designer A's "<0.3%" nor Reviewer 2's "-4.3%".
+  (2) **THE D19 CREDIT ARITHMETIC DEPENDS ON LANE COUNT, and 5 lanes changes the
+  answer.** Against the 5-seed comparator (0.54452, sd 0.03558): at n_T=3 a D23-sized
+  effect (+0.045) needs treatment sd <= 0.0275, tighter than EVERY 12M arm ever
+  measured here (Rung-2 0.0356, D18 0.0364, D23 0.0491) — so at 3 lanes credit is
+  effectively out of reach, as ADVOCATE-STOP argued. **At n_T=5 the bar is 0.5810 /
+  0.5839 / 0.5898 / 0.5987 for s_T = 0.020 / 0.026 / 0.036 / 0.049** — i.e. a
+  D23-sized effect with Rung-2-sized spread lands ON the line (D23's realized 0.5897 vs
+  a 0.5898 bar), so D19 credits iff it beats D23 slightly. **The entire credit region
+  also sits above M4 (0.558)** — a credited D19 would claim the ladder's unclaimed
+  stretch milestone at 12M. (3) **THE LANE-DAY LEDGER LOOKS OVERSTATED — reconcile
+  before it gates anything.** Reconstructed from all 53 surviving run dirs with usable
+  timing: **393 lane-hours = 16.4 lane-days TOTAL**, of which the pre-chase
+  vs-SH-trained era (r512*, faint6m*, warmstart*) is ~68 h ~ 2.8 lane-days, leaving
+  **~13.5 lane-days of chase-era spend against the recorded ~17** (ADVOCATE-SPEND got
+  ~12.1 on a slightly different inclusion rule). CAVEAT, stated because it cuts the
+  other way: a reconstruction from surviving dirs cannot see deleted runs, so the gap
+  may be ledger drift OR real spend whose dirs are gone. Either way D19 (~2.4) fits
+  inside D17's 20 with room, and so would the carry on price alone — **the carry fails
+  on merit, not on cost, which is the point both advocates independently reached.**
+  (4) **TWO NEW HITS ON THE CARRY'S DESIGN, from ADVOCATE-SPEND:** Designer B's
+  dormancy letter (3-lane median <= 0.60) is roughly a **level-0.26 test** given the
+  control triple {0.839, 0.763, 0.388} — s37 alone satisfies it and P(median of 3 <=
+  0.60) = 7/27 — so even the null-robust statistic needs a properly calibrated letter,
+  not just a plausible threshold; and the 50M dormancy pathology is 2-of-3 and largely
+  realized by 25M (s37's dormancy FALLS, 0.516 -> 0.388). (5) **ADVOCATE-STOP's
+  strongest point, which stands: the ~5 lane-day overage authorized this morning was
+  PURCHASE-SPECIFIC TO THE CARRY, and the carry came back NO-GO — the authorized thing
+  no longer exists**, so any D19 spend needs its own authorization rather than
+  inheriting that one. STOP also reads D17's compute trigger as unconditional (the
+  drafter qualified the calendar trigger with "without M1" and not the compute one);
+  that is a defensible reading of an ambiguous sentence and is the maintainer's to
+  settle, not mine. Documents: results/d24_design/ now also holds decide_spend.md and
+  decide_stop.md. No lanes, no code, tree clean.
