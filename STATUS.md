@@ -12,11 +12,10 @@ gap-shrink realized, srank letter not met, falsifier NOT fired); Rung-2 12M seed
 0 lanes, results/d24_design/) — no branch changes a decision, and the 50M win-rate
 credit bar is **≥0.6675 unconditionally**, above the best lane ever (0.6593).
 Zero-lane work landed (detail in the 08-13 log): rank tooling repaired (`srank99=1` was
-a float32 NaN sentinel; one record cell fixed; D23's destroyed control pass regenerated
-and it MATCHES what was logged), and the **GEOMETRIC-NULL STUDY** (results/d24_null/)
-re-grades D23 at matched distance — **critic de-collapse SURVIVES (1.35/2.21/1.64×),
-actor rise does NOT** — showing a raw 50M rank contrast is geometry and **dormancy is
-the null-robust statistic**.
+a float32 NaN sentinel; one cell fixed; D23's destroyed control pass regenerated and it
+MATCHES what was logged), and the **GEOMETRIC-NULL STUDY** (results/d24_null/) re-grades
+D23 at matched distance — **critic de-collapse SURVIVES (1.35/2.21/1.64×), actor rise
+does NOT** — so a raw 50M rank contrast is geometry and **dormancy is null-robust**.
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 
@@ -31,18 +30,18 @@ the null-robust statistic**.
 
 ## Next actions, in order (maintainer decisions at the top)
 
-0. **MAINTAINER CALL — D19's PREMISE FAILED at zero lanes; authorized but NOT built.**
-   Two designers, independent data (1800 tape-recovered teams; 4000 generator teams),
-   both measured gen1-randbats teams as independent near-uniform draws: learnable
-   structure **0.074 nats of ~4.94** (0.064 of it mere exclusion), belief content
-   **0.000 at one revealed mon**. A team-prediction head cannot form a belief state
-   here. Options: (i) drop D19, record the format finding; (ii) **RE-TARGET to opponent
-   ACTION prediction** — in a simultaneous-move game that is the belief that bears on
-   the decision, free ground truth, same plumbing and budget, own cycle; (iii) close
-   the chapter. **I recommend (ii).**
+0. **D25 (opponent ACTION prediction) DESIGNED + REVIEWED, NOT BUILT.** Re-target
+   approved after D19's team-prediction premise died at zero lanes (teams are
+   independent draws: 0.074 nats, 0.000 at one revealed mon). D25 CLEARS that gate
+   ~15×: **0.51-0.56 nats realised, actor-visible, 39% of the loss, largest exactly
+   where D19's was zero.** Cost measured ~2.35 lane-days → 15.9/20; build ~200 lines.
+   **BLOCKING: R0-12 running** — if the mechanism letter can't be calibrated the rung
+   is NO-GO (its value rides on one falsifier branch). **PENDING YOUR CALL: the
+   shuffled-label placebo arm (+2.24 lane-days) is what separates "an opponent model
+   helps" from "an aux loss helps" — without it the claim stays scoped.**
 1. **LEDGER AUDITED — recorded ~17 was ~3.5 HIGH.** 392.8 lane-hours, 67.9 pre-chase →
-   **chase = 13.54, headroom ~6.5**; drift was estimate-rounding, not lost runs. Any
-   5-lane 12M rung = 2.24 → 15.8/20. Re-measure, never increment.
+   **chase = 13.54, headroom ~6.5**; drift was estimate-rounding. Re-measure, never
+   increment.
 2. **§13 DEFECT:** conditions 250M on "a credited lever at 50M"; none exists under
    today's line → restate or waive. CLAUDE.md's locked-eval line says 1000
    battles/seed, DESIGN §8 says 3000 — fix.
@@ -51,10 +50,11 @@ the null-robust statistic**.
 
 - Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 disposable;
   **47-48, 52+ free**. Rank reads: MARGIN over the matched-distance null; `--tag` them.
-- Entity ckpts need BOTH env vars. Eval auto-tie crash (~1-in-10⁴) can kill a lane;
-  same-seed relaunch hits zombies — use a FRESH seed (s49→s51, log 08-12).
-- Aux head: 384→152 breaches ACTOR_PARAM_CEILING (own it on the agent); clip aux grads
-  SEPARATELY (`grad_clip_frac` 0.90 ⇒ coupled = covert LR cut). Letters at n=3 quantize
-  to {0, 0.21, 0.79, 1} — calibrate every level, never eyeball.
+- Entity ckpts need BOTH env vars. Eval auto-tie crash can kill a lane; same-seed
+  relaunch hits zombies — use a FRESH seed (s49→s51, log 08-12).
+- Aux head: own it on the AGENT; give aux params their OWN optimizer group (group-0
+  append steals the critic's Adam moments) and SEPARATE grad clipping. `ctx` is
+  max-pooled, logits are `scorer([ctx‖entity])` ⇒ a linear ctx probe can't decode even
+  the actor's own action; heads and estimators must be scorer-shaped. Calibrate letters.
 - Artifacts results/d23/, d24_design/, d24_null/ (gitignored). Suite 293 green (R0-3
   golden needs its own pytest run). Process: 2 Opus designers + 2 reviews per pre-reg.
