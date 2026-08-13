@@ -37,11 +37,15 @@ from rl.envs.showdown import (
     MON_DIM,
     MOVE_DIM,
     OBS_DIM,
+    OPP_CHOICE_ALIASED,
+    OPP_CHOICE_DIM,
+    OPP_CHOICE_PRESENT,
     OPPONENT_PLAYERS,
     MixturePlayer,
     PoolPlayer,
     ShowdownEnv,
     ShowdownSingles,
+    _order_identity,
     battle_outcome,
     opponent_player,
 )
@@ -535,6 +539,126 @@ def test_reward_accumulates_across_pump():
     obs, reward, terminated, truncated, info = env.step(2)
     assert reward == 1.0 and terminated and info["outcome"] == 1
     assert env.waits_absorbed == 1
+
+
+# --- D25 R0-5(a): LABEL TIMING, the bug this design most fears --------------
+#
+# The opponent's action is produced DURING our step and belongs to row t, which
+# is the OPPOSITE of info["privileged"]/info["action_mask"] (successor-state
+# infos the loop carries forward). An off-by-one here silently trains the head
+# on the NEXT state's label and still learns something, so it gets a
+# deterministic test rather than an argument.
+#
+# The fixture mimics the one thing that matters: SingleAgentWrapper.step calls
+# the opponent's choose_move INSIDE the inner env.step, and a `battle2.wait`
+# turn issues a DefaultBattleOrder WITHOUT calling it.
+
+
+class _StubPoolPlayer:
+    """PoolPlayer's D25 surface. `decides` is one entry per inner step: an
+    identity tuple when this seat chooses, None for a wait turn."""
+
+    def __init__(self, decides):
+        self.decides = list(decides)
+        self._choice = (-1, -1, 0)
+        self.clears = 0
+
+    def clear_choice(self):
+        self._choice = (-1, -1, 0)
+        self.clears += 1
+
+    def take_choice(self):
+        return self._choice
+
+    def decide(self):
+        choice = self.decides.pop(0) if self.decides else None
+        if choice is not None:
+            self._choice = choice
+
+
+class _LabelStack(_StubStack):
+    """_StubStack that drives the seat-2 player from inside step(), where the
+    real SingleAgentWrapper drives it."""
+
+    def __init__(self, script, player, battle=None):
+        super().__init__(script, battle=battle)
+        self.player = player
+
+    def step(self, action):
+        self.player.decide()
+        return super().step(action)
+
+
+def test_r05a_label_is_this_step_s_opponent_action():
+    player = _StubPoolPlayer([(1, 33, OPP_CHOICE_PRESENT)])
+    stack = _LabelStack([(0.0, False, False, True)], player)
+    _, _, _, _, info = _adapter(stack, player).step(6)
+    assert info["opp_choice"].tolist() == [1, 33, OPP_CHOICE_PRESENT]
+    assert info["opp_choice"].dtype == np.int32  # never a tuple: see B2
+    assert len(info["opp_choice"]) == OPP_CHOICE_DIM
+
+
+def test_r05a_wait_pump_choices_are_discarded():
+    """The pump's later opponent choices are FORCED POST-FAINT REPLACEMENTS,
+    not the simultaneous decision. Only the first inner step's label counts."""
+    player = _StubPoolPlayer([(1, 33, OPP_CHOICE_PRESENT), (0, 143, OPP_CHOICE_PRESENT)])
+    stack = _LabelStack(
+        [(0.0, False, False, False), (0.0, False, False, True)], player
+    )
+    env = _adapter(stack, player)
+    _, _, _, _, info = env.step(6)
+    assert env.waits_absorbed == 1
+    assert info["opp_choice"].tolist() == [1, 33, OPP_CHOICE_PRESENT]  # not the switch
+
+
+def test_r05a_a_wait_turn_yields_the_sentinel_and_never_a_stale_label():
+    """The clear_choice contract. Without it a turn on which seat 2 never
+    chose would silently re-emit the previous turn's label — a fabricated
+    training row that nothing downstream could detect."""
+    player = _StubPoolPlayer([(1, 33, OPP_CHOICE_PRESENT), None])
+    stack = _LabelStack(
+        [(0.0, False, False, True), (0.0, False, False, True)], player
+    )
+    env = _adapter(stack, player)
+    _, _, _, _, first = env.step(6)
+    _, _, _, _, second = env.step(7)
+    assert first["opp_choice"].tolist() == [1, 33, OPP_CHOICE_PRESENT]
+    assert second["opp_choice"].tolist() == [-1, -1, 0]
+    assert player.clears == 2  # cleared before EVERY inner step
+
+
+def test_opp_choice_is_inert_without_a_pool_opponent():
+    """R0-2b: cfg.env_kwargs flows to every EVAL site via make_eval_env, where
+    the opponent is the fixed anchor and there is no self-play label. The key
+    must simply not appear, and nothing may raise."""
+    stack = _StubStack([(0.0, False, False, True)])
+    _, _, _, _, info = _adapter(stack).step(3)
+    assert "opp_choice" not in info
+
+
+def test_order_identity_resolves_through_the_encoder_s_own_id_tables():
+    battle = SimpleNamespace(available_moves=[Move("tackle", gen=1)])
+    move_order = SimpleNamespace(order=Move("psychic", gen=1))
+    switch_order = SimpleNamespace(order=Pokemon(gen=1, species="starmie"))
+    assert _order_identity(move_order, battle) == (1, 94, OPP_CHOICE_PRESENT)
+    assert _order_identity(switch_order, battle) == (0, 121, OPP_CHOICE_PRESENT)
+    # A Default/Forfeit order names no entity and must not fabricate one.
+    assert _order_identity(SimpleNamespace(order="/choose default"), battle) == (-1, -1, 0)
+
+
+def test_order_identity_flags_aliased_turns_and_zeroes_placeholder_moves():
+    """R0-5(b). On a gen-1 placeholder turn poke-env re-bases the opponent's
+    move list, so a move slot stops naming a move; those rows are dropped from
+    the loss and from every read (4.0%-10.3% measured across the five tapes).
+    `recharge` has no `num` in poke-env's table and maps to id 0 -> OTHER_MOVE;
+    Struggle is a real num (165) and reaches OTHER_MOVE by the slot lookup
+    failing instead, which is the same path as any unslotted move."""
+    aliased = SimpleNamespace(available_moves=[Move("recharge", gen=1)])
+    both = OPP_CHOICE_PRESENT | OPP_CHOICE_ALIASED
+    assert _order_identity(SimpleNamespace(order=Move("recharge", gen=1)), aliased) == (1, 0, both)
+    assert _order_identity(SimpleNamespace(order=Move("struggle", gen=1)), aliased) == (1, 165, both)
+    normal = SimpleNamespace(available_moves=[Move("tackle", gen=1), Move("psychic", gen=1)])
+    assert _order_identity(SimpleNamespace(order=Move("tackle", gen=1)), normal)[2] == OPP_CHOICE_PRESENT
 
 
 # --- PoolPlayer (milestone 3: the seat-2 pool adapter) ----------------------
