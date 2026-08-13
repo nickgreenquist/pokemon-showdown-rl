@@ -51,10 +51,9 @@ A2 measures the ratio LIVE in the smoke instead.**
   active is ALIVE, so forced post-faint replacements were called illegal and dropped at
   0.12% of live decisions — enough to HARD-FAIL R0-5(d) at read time. No frozen tape
   carries such a row, so no offline gate could have caught it. Fixed; now 0.0000.
-
 ## Watch items
-- **results/d25/ IS THE ONLY COPY of the sha256-frozen reference tapes** (gitignored,
-  rescued from a job scratch dir) — losing it voids the mechanism co-primary.
+- **results/d25/ IS THE ONLY COPY of the sha256-frozen tapes** (gitignored, rescued from
+  a job scratch dir) — losing it voids the mechanism co-primary.
 - Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 = the smoke; 47-48
   held for a D25 lane lost before R1; **52-56 = D25**; 57+ free.
 - **Quote the RANGE, not the best variant.** **MAX null to ESTABLISH, MEDIAN to RETIRE.**
