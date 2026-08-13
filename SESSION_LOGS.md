@@ -3103,3 +3103,59 @@ entry by offset — never a broad keyword grep.
   free in self-play, same plumbing, same 5 lanes / 2.24 lane-days) — a new lever
   needing its own cycle; or close the chapter. Documents: results/d24_design/
   d19_design_A.md, d19_design_B.md. Tree clean, no lanes, no code changed.
+- 2026-08-13 (late afternoon, D25 DESIGNED AND REVIEWED — opponent ACTION prediction;
+  the re-target CLEARS the information gate D19 failed, but the mechanism letter is
+  unsettled and one blocking gate is running) — **The maintainer approved re-targeting
+  the aux head from team composition to OPPONENT ACTION (gen1 is simultaneous-move, so
+  that is the belief that bears on the decision). 2 designers + 2 reviews, 0 training
+  lanes.** Documents in results/d24_design/d25_*.md. **INFORMATION GATE: CLEARED, ~15x
+  D19.** Designer A collected two 300-battle mirror tapes (s26/s27 finals, ~2 min each)
+  recording (seat-1 obs, seat-2 action) — the labels are NOT on disk, the existing tapes
+  carry no actions — and measured realised, held-out, actor-visible structure with the
+  legality/mask term subtracted FIRST: headline 0.573 nats, 39% of the loss, **largest
+  exactly where D19's was zero** (0.63-0.65 at one revealed mon, 0.78-0.86 at the
+  battle's first decision) against D19's 0.035 nats / 0.7% / 0.000. **Reviewer 1
+  reproduced A's entire measurement table exactly, then found the headline's PRECISION
+  does not hold: both lanes were read at split seed 0, and over 6 battle-level splits
+  s26 is 0.5594 (sd 0.017) and s27 is 0.5059 (sd 0.057, range 0.41-0.57) — "two lanes
+  agreeing to the third decimal" was a split-seed coincidence. Honest premise: 0.51-0.56
+  nats.** Two corrections that go the OTHER way, both R1: collapsing 12 classes to 6
+  DEFLATES by the data-processing inequality (12-class realised 0.610/0.673), so A's
+  number is conservative; and **Designer B's headline "1.59-nat window, 21x" is WRONG —
+  that is the raw-frame window; canonical is 1.21/1.37, and B's 1.290 "permutation
+  noise" is H(raw|canonical), an ENTROPY subtracted from a MUTUAL INFORMATION.**
+  Permutation is 13-24% of the window, not 72%. **THE STRUCTURAL FINDING BOTH DESIGNERS
+  REACHED INDEPENDENTLY, from opposite lenses:** EntityDeepSets forms logits as
+  `scorer([ctx||entity])` and ctx is max-pooled, so a linear probe on ctx **cannot
+  decode even the ACTOR'S OWN action** (positive control: -0.061 nats) and a plain
+  `Linear(ctx->K)` head is ill-posed for switch classes. **D19's proposed mechanism
+  co-primary was therefore a null BY CONSTRUCTION — it would have read "the trunk does
+  not carry the belief" when it only showed the estimator was the wrong shape.** Both
+  the head and every estimator must be scorer/pointer-shaped. **BUILD CONTRACT (merged,
+  verified against source by R2):** label = the 10-way int `PoolPlayer.choose_move`
+  already computes pre-BattleOrder, read synchronously from pre-resolution `battle2`;
+  it is TRANSITION-time info (like `info["outcome"]`) so it belongs to row t with no
+  carry variable and no reset merge; anti-leak holds because the frame is derived from
+  the buffered obs row's own id-suffix, so the label can only name entities the actor
+  could see; no `embed_battle`/OBS_DIM change; train on B's 12-class canonical space and
+  marginalise to A's oracle-validated 6 for reporting. **THREE BUGS CAUGHT BEFORE A LINE
+  WAS WRITTEN:** (a) appending aux params to optimizer group 0 silently hands them the
+  CRITIC's Adam moments (R2 measured it) — they need a third group; (b) A's env seam
+  emits a tuple that hits gymnasium's object-array branch and hard-wires the 6-class
+  space via `ident=0`; (c) the ACTOR_PARAM_CEILING dispute is settled — the assert walks
+  `EntityDeepSetsNet.parameters()` ONLY, so an agent-owned head is invisible and nothing
+  hard-fails (B operative), but R1 found the ceiling CONSTANT still encodes the flat MLP
+  at OBS_DIM 808 while today's encoder is 828. **COST, measured not assumed: -2.1%
+  throughput (the aux is update-side only and update is 13.4% of the loop), so 2.30
+  lane-days training + 0.05 evals = ~2.35 -> chapter 15.9/20, inside D17. Build is ~200
+  lines and ~5 evenings, NOT the "~20 lines" first estimated.** **THE OPEN QUESTION,
+  and it is a launch gate:** R2's GO flips to NO-GO if the mechanism letter cannot be
+  calibrated, because the rung's value concentrates in the one falsifier branch that
+  rides on it; R1 found the control set is n=2 with Delta_ctx 0.034 vs 0.092 (2.7x on
+  two points) and expects the drop-to-recorded-only clause to be live. **R0-12 is now
+  running at zero lanes: build the five-lane control distribution (s26/27/28/50/51) and
+  decide whether the permutation letter (level 12/252 = 0.0476) is calibrated AND
+  reachable.** Also pending a maintainer decision BEFORE launch: the shuffled-label
+  placebo arm is a further 2.24 lane-days and is what separates "an explicit opponent
+  model helps" from "an auxiliary loss helps" — named-not-run leaves the claim scoped.
+  Nothing built, nothing launched, tree clean.
