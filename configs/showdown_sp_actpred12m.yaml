@@ -1,7 +1,7 @@
 # =====================================================================
 # PRE-REGISTRATION — **REVISION 2, RATIFIED 2026-08-13 on the L6 label
-# space. NOT BUILT, NOT LAUNCHED** (the maintainer runs every training
-# lane personally).
+# space. BUILT 2026-08-13 (§15 BUILD RECORD). NOT LAUNCHED** (the
+# maintainer runs every training lane personally).
 #
 # RATIFICATION AUTHORITY: the maintainer delegated the call this session
 # — verbatim, "have two more agents review all you've done, and you make
@@ -512,16 +512,19 @@
 #   2-3 maintainer evenings for the build, not one sitting**, and ~4
 #   evenings all-in with the two gates that remain blocking (R0-13,
 #   R0-12b) plus R0-10/R0-10b.
-# B15 **THE YAML IS A SPEC, NOT A RUNNABLE FILE** (audit item 10).
-#   Verified live: `ShowdownEnv.__init__` (:866-875) raises `TypeError …
-#   unexpected keyword argument 'opp_action'`; `make_agent` splats every
-#   `cfg.agent` key into `PPOAgent` (`train.py:52-63`) -> `TypeError …
-#   unexpected keyword argument 'aux_oppact_coef'`. Expected for an
-#   unbuilt lever. **But `cfg.env_kwargs` also flows to EVERY EVAL SITE**
-#   via `make_eval_env` (`make.py:123-144`, used by `score_ladder.py:51`
-#   and `eval_checkpoint.py:164`), so `opp_action: true` is passed at
-#   eval where `_pool_player` is `None`. **It MUST be inert there** —
-#   added to R0-2b.
+# B15 **THE YAML WAS A SPEC AND IS NOW A RUNNABLE FILE — RESOLVED AT
+#   BUILD, 2026-08-13** (audit item 10). At ratification this was verified
+#   live to FAIL: `ShowdownEnv.__init__` raised `TypeError … unexpected
+#   keyword argument 'opp_action'` and `make_agent`, which splats every
+#   `cfg.agent` key into `PPOAgent` (`train.py:52-63`), raised `TypeError
+#   … unexpected keyword argument 'aux_oppact_coef'`. Both now construct;
+#   §15 records the live check. **`cfg.env_kwargs` also flows to EVERY
+#   EVAL SITE** via `make_eval_env` (`make.py:123-144`, used by
+#   `score_ladder.py:51` and `eval_checkpoint.py:164`), so `opp_action:
+#   true` is passed at eval where `_pool_player` is `None`. **It MUST be
+#   inert there** — added to R0-2b, and the build makes it inert by
+#   construction (`self._opp_action = opp_action and self._pool_player is
+#   not None`), tested.
 #
 # ---------------------------------------------------------------------
 # 3. ARMS, SEEDS, BUDGET, CADENCE
@@ -1845,6 +1848,76 @@
 #    the §0 tapes included forced post-faint replacements) is
 #    UNDETERMINED in every source and must be settled before the readout.
 #    §12's placebo is an OPEN MAINTAINER DECISION.
+#
+# ---------------------------------------------------------------------
+# 15. BUILD RECORD — 2026-08-13. **ADDED AFTER RATIFICATION; IT RECORDS
+#     WHAT WAS BUILT AND WHAT WAS MEASURED, AND CHANGES NO PRE-REGISTERED
+#     DECISION, THRESHOLD OR NUMBER.**
+# ---------------------------------------------------------------------
+# ~230 lines across 7 files, in B14's estimate (150-200 + ~20), plus 23
+# offline tests (B14 asked 12-16). Suite **293 -> 317 green**. ZERO LANES.
+#   rl/envs/showdown.py      `_order_identity`, PoolPlayer's recorded
+#                            choice + `clear_choice`, `opp_action`,
+#                            info["opp_choice"] / info["opp_member"]
+#   rl/buffers/rollout.py    `opp_choice_dim` storage, no next_* twin
+#   rl/networks/entity_deepsets.py  `forward(x, return_features)` and
+#                            `_aux_features` (B6a's opponent-move pass,
+#                            the live-bench pool)
+#   rl/networks/opp_action.py       NEW: `OppActionHead`, `canonicalise`,
+#                            `aux_cross_entropy`
+#   rl/agents/ppo.py         five aux hparams, agent-owned head built
+#                            LAST, third optimizer group, `_aux_gradient`
+#   rl/selfplay/pool.py      `member_id` (push id, §6's build item)
+#   rl/train.py              R0-1b purity seam, meta stamps, plumbing
+# TESTS: tests/test_opp_action.py (17) + 6 env-seam tests in
+# tests/test_showdown_env.py + 1 pool test in tests/test_selfplay_pool.py.
+#
+# **DISCHARGED BY THE BUILD:** R0-2 (both counts, and widths 128/256 fail
+# the strict accounting), R0-2b (eval path + the aux-into-aux-off raise +
+# eval-site inertness), R0-2c (third-group ordering), R0-3(a) exact no-op
+# and R0-3(b) init isolation, R0-5(a)(b)(c)(d), R0-7, R0-9.
+# **STILL BLOCKING, UNCHANGED: R0-13, R0-12b, R0-10, R0-10b.** R0-1 /
+# R0-1b / R0-4 / R0-6 / R0-8 / R1 / K6 are launch-time reads.
+#
+# **THE TWO NUMBERS THE HEADER ASKED TO VERIFY AT BUILD — BOTH HOLD.**
+#   (1) **actor+aux = 675,538. VERIFIED LIVE** from this config file:
+#       actor 626,059 (bit-identical to control), critic 494,849, aux
+#       49,479 (scorer 512x96+96 + 96+1 = 49,345, + 6 slot biases, + the
+#       128-d learned null token), ceiling 681,994, headroom 6,456. The
+#       whole B7 table reproduces: w=32 16,583 / w=64 33,031 / w=96
+#       49,479 / w=128 65,927 / w=256 131,719.
+#   (2) **R0-8's 255/210. VERIFIED AS ARITHMETIC**, and its inputs are
+#       sourced: SESSION_LOGS.md:2567-2568 records D18's own R0-8 as s39
+#       341 / s40 346 / **s41 270 (healthy, record-and-continue)** / s42
+#       305 / s43 317, and 12e6/(10.79*3600) = 308.9 to 12e6/(10.69*3600)
+#       = 311.8 is the 5-wide band. At -2.5%: band ~301-304, s41 -> 263.
+#       255 is 3.1% below 263 (so an s41-class lane does not trip it) and
+#       210 = 0.70 x 301. Both thresholds stand as written.
+#
+# **§6's MEMBER-ID BUILD ITEM IS DISCHARGED**, as a SEPARATE key
+# `info["opp_member"]` rather than a fourth field — B2 pins the array at
+# three fields and r2 widened it deliberately. It carries the pool PUSH
+# ID (indices shift under eviction; a push id names the checkpoint for
+# the run's life) and -1 for a non-member. The training loss never reads
+# it; the §6 read does.
+#
+# **SMOKE READS, MEASURED LIVE** (4-wide self-play at the step-0 pool
+# member, seed 99, 512 steps, ~1.8 s — a smoke, not a lane):
+#   label-present fraction **0.941**. §9 called ~6% "a guess" off our own
+#     seat's 6.4% absorbed waits; the opponent seat's rate is **5.9%**, so
+#     the guess holds and the effective aux batch does not shrink.
+#   aliased fraction **0.064** — inside the tapes' 0.040-0.103.
+#   `aux/illegal_label_frac` **0.0000** and `aux/frame_collision_frac`
+#     **0.0000**, matching all five tapes and the s36 reference.
+#   switch fraction **0.43**, and this is NOT a defect: the labelling
+#     policy here is a RANDOM INIT, which picks near-uniformly over 10
+#     actions of which 6 are switches. The comparator's 0.068-0.097 is a
+#     TRAINED 12M policy. Recorded so nobody reads it as one at launch.
+#   `aux/loss` 1.750 -> 1.635 over two updates against log 6 = 1.79.
+# **NOT a read on R0-10b:** the smoke's aux/policy gradient ratio (~0.02
+# at init) is over actor+head params and post-coefficient, where R0-10b
+# specifies TRUNK gradient norms at control checkpoints {init, 600k, 6M,
+# 12M}. It is indicative of nothing and is quoted only to say so.
 # =====================================================================
 env_id: Showdown-v0
 seed: 52
