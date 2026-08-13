@@ -42,6 +42,7 @@ rows marked * are single-seed probes, not headline-grade.
 | **+ entity architecture (DeepSets + pointer head), 12M** | **0.5509 ± 0.0052** |
 | **same recipe at 50M — current best** | **0.5802 ± 0.0052** |
 | + privileged (asymmetric) critic, 12M, 5 seeds — null | 0.5364 ± 0.0066 |
+| + regenerative L2-toward-init, 12M, 3 seeds — letter-met, not credited | 0.5897 ± 0.0066 |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 
@@ -67,7 +68,18 @@ sees the opponent's true hidden team during training, itself with no documented
 Pokémon-RL instance found — read out null at 12M × 5 seeds (0.5364 pooled) and was
 killed by its own pre-registered falsifier: the critic's explained variance rose on
 every seed while the win rate did not move, and its feature rank stayed as collapsed
-as the controls' — the value function learned things the policy could not use.
+as the controls' — the value function learned things the policy could not use. The
+next lever — a regenerative L2-toward-init regularizer against the measured
+plasticity pathology — read out at **+0.045 pooled over a 5-seed comparator but was
+not credited** under the pre-registered seed-clustered rule: one seed hit 0.6463
+(the repo's highest 12M result, above even the 50M pooled number) while its
+arm-mates sat at 0.561. Its mechanism reads did land: the regularizer bound at the
+predicted strength, critic feature rank recovered to 2-3× the control band, and the
+final-vs-peak checkpoint gap shrank as predicted. The run also refreshed the
+comparator with two fresh seeds, which landed 0.083 apart — the honest headline is
+that **seed variance at 12M is large enough that win-rate deltas of the size these
+levers produce cannot clear a seed-robust bar**; mechanism evidence has to carry
+such rungs, and scale (50M+) is where win-rate claims live.
 
 **Honest scoping.** SH parity ≈ 40% GXE in human-ladder terms; the strongest
 documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach

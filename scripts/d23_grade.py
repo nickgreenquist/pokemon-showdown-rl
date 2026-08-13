@@ -5,13 +5,13 @@
 Ingests, from --results:
   final_s{44,45,46}.json   treatment finals            (PRIMARY)
   best_s{44,45,46}.json    treatment val-peak re-grades (CO-PRIMARY 2, recorded)
-  comparator_s{49,50}.json the two FRESH Rung 2 comparator lanes
+  comparator_s{50,51}.json the two FRESH Rung 2 comparator lanes (s49 died, re-run as s51)
 all in eval_checkpoint.py's JSON schema, and grades exactly what
 configs/showdown_sp_l2init12m.yaml pre-registers under the ratified Q1 = 3+2:
 
     COMPARATOR = 5 seeds at equal n: the three FROZEN Rung 2 12M finals
       (s26 0.5633 / s27 0.5683 / s28 0.5210, 3000 battles each) plus the two
-      fresh lanes s49/s50, read from disk. Pooled = the 5-seed mean.
+      fresh lanes s50/s51, read from disk. Pooled = the 5-seed mean.
     CREDIT iff pooled treatment delta >= +0.025 AND >= 2*se_diff, se_diff the
       LARGER of pooled-binomial (each pool at its true n) and seed-clustered
       (comparator term sd(5 comparator seeds)/sqrt(5), treatment term
@@ -52,7 +52,10 @@ TREATMENT_SEEDS = (44, 45, 46)
 # Rung 2 12M, 3000 battles each, frozen 2026-08-05 (STATUS.md's 0.5509 row).
 FROZEN_COMPARATOR = {26: 0.5633, 27: 0.5683, 28: 0.5210}
 FROZEN_POOLED = 0.5509  # the historical baseline; D18/Rung-3 were graded on it
-FRESH_COMPARATOR_SEEDS = (49, 50)
+# s49 crashed at 7.2M (exogenous eval auto-tie bug, 2026-08-12 incident entry)
+# and was re-run fresh as s51 BEFORE any grading; the ratified design (2 fresh
+# comparator lanes) is preserved with seeds 50/51.
+FRESH_COMPARATOR_SEEDS = (50, 51)
 COMPARATOR_N_PER_SEED = 3000
 LETTER = 0.025
 # D18's cadence-matched control for CO-PRIMARY 2 (config header): pooled

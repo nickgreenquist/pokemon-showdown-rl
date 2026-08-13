@@ -2803,3 +2803,46 @@ entry by offset — never a broad keyword grep.
   FAILURE RULE applies as written (no replacement — the asymmetry vs this
   comparator re-run: comparator lanes estimate the baseline, not the treatment
   effect, and s49's death predates any treatment data it could bias).
+- 2026-08-13 (mid-morning, THE D23 READOUT) — **D23 REGEN-L2: "LETTER-MET,
+  SEED-FRAGILE, NOT CREDITED" (the pre-stated recording rule, verbatim) — and the
+  mechanism story is strong: BOUND, gap-shrink realized, srank 2-3× control but
+  short of its letter.** PRIMARY (locked, 3×3000 treatment vs 5-seed comparator,
+  R0-4 exact on all 8 JSONs): treatment s44 **0.6463** / s45 0.5620 / s46 0.5607 →
+  pooled 0.5897; comparator s26 0.5633 / s27 0.5683 / s28 0.5210 / s50 0.5763 /
+  s51 0.4937 → pooled 0.5445; **Δ +0.0451** ≥ letter 0.025, but clustered se
+  governs (treatment s=0.0491, comparator s=0.0356) → 2·se 0.0650, operative bar
+  0.6095 → NOT credited. GRADER NOTE: first pass ran mis-specified at 4 comparator
+  seeds (the s49→s51 swap hadn't been folded into FRESH_COMPARATOR_SEEDS; verdict
+  class identical, Δ +0.0324, conservative-against-treatment; superseded same
+  hour, both passes in results/d23/grade.txt history). **MAJOR CHAPTER FINDING —
+  the comparator lanes did exactly what Q1 bought them for: fresh Rung 2 lanes
+  landed 0.5763 and 0.4937 (range 0.083 across 5 seeds, sd 0.0356 vs the 3-seed
+  estimate 0.0260) — Rung-2 12M seed variance is far larger than the frozen trio
+  suggested, the operative bar at realistic spreads is ~0.61, and a 12M win-rate
+  primary is effectively un-creditable at advisory-scale effects. Future 12M
+  rungs must be carried by mechanism reads (as D23's design anticipated).**
+  MECHANISM: manipulation check **BOUND** — species_emb ‖θ‖/‖θ₀‖ at 12M
+  4.169/4.120/4.103 (median 4.120 ≤ 4.452; control 5.844-6.117; models predicted
+  3.4-4.1); no OVERBOUND (actor LN-free 1.19-1.31). srank co-primary: critic ctx
+  srank99 **31/53/36 of 384 vs control 11/17/16** — 2-3× de-collapse, but the
+  letter (≥40 on ≥2/3) is met only by s45 → **DE-COLLAPSE NOT MET, recorded with
+  values**; actor srank 141/103/87 vs control 72/90/45. CO-PRIMARY 2: within-lane
+  final→peak gap **+0.0114 pooled vs D18's +0.0274** (s44 +0.0007, s45 +0.0340,
+  s46 −0.0003; 2-of-3 ≈ 0) — the SHRINK prediction realized AGAINST the
+  adversarial selection confound. FALSIFIER: does NOT fire (wr is letter-met, not
+  FLAT per the defined partition) — the regenerative family is neither killed nor
+  closed. SECONDARY 3: 0-of-3 blowups (max bin-median ratio 1.06; "consistent
+  with, not evidence for, suppression"). SECONDARY 4/C3: back-half entropy s44
+  0.336 EXCURSION, s45 0.334 at-the-line, s46 0.306 within (comparator s50
+  0.264); credit-attribution clause moot (no credit). GATES all green: R1
+  0.968-0.978 by 4M, eplen 30.7-31.9, K6 clear, R0-8 within band. HONESTY RECORD
+  (grader block): augmented 5-seed comparator 0.5445 vs frozen 0.5509; D18 NULL
+  unchanged; Rung 3 regrade differences are the ERA'S line (pre-larger-of), not
+  the comparator — recorded verdicts stand. **s44's 0.6463 is the highest
+  single-lane 12M result in repo history and exceeds the 50M pooled 0.5802 — 
+  named ONLY with the recording rule's weakness attached (its arm-mates sit at
+  0.561).** NEXT: not-credit → D19 as queued; a 50M regen-L2 carry (BOUND +
+  gap-shrink + letter-met make a real case) requires the cap conversation —
+  maintainer decisions, laid out in STATUS. Seeds 44-46/50/51 SPENT, 49 burned,
+  47-48 free. Artifacts: results/d23/ (8 eval JSONs, grade.txt, control/treatment
+  norms, obs tapes, rank CSVs).
