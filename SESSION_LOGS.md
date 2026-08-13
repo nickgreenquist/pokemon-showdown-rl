@@ -2781,3 +2781,25 @@ entry by offset — never a broad keyword grep.
   inside), locked evals for 3 treatment finals + val-peaks + 2 fresh comparator
   finals, mechanism reads per the ratified header (BOUND ≤ 4.452, srank ≥ 40 vs
   control 11-17, l2init/* trajectories).
+- 2026-08-12 (night, MID-RUN INCIDENT + RECOVERY) — **Comparator lane s49 CRASHED at
+  7.2M and was re-run as s51; treatment lanes unaffected.** Cause (exogenous infra,
+  NOT config/seed/lever): at the ~7.2M in-training eval one eval battle hit the
+  server's turn-1000 auto-tie and terminated without info["outcome"] → the eval
+  harness's strict guard raised (`eval_win_rate is on but 1/100 eval episodes
+  supplied no outcome`) and killed the lane. First firing of this mode across all
+  lanes to date (~1-in-10⁴ eval battles). RELAUNCH LESSON (new landmine): a
+  same-seed relaunch COLLIDES WITH THE DEAD RUN'S ZOMBIE BATTLES server-side —
+  same seed → same usernames → poke-env raises `Can not reset player's battles
+  while they are still running`. Server restart was not an option (4 live lanes).
+  Recovery: comparator lane re-launched FRESH at **seed 51** (s51, 23:05 EDT,
+  verified alive + growing) — the ratified design (2 fresh comparator lanes) is
+  preserved; seed identity 49→51 recorded as the deviation. Dead artifacts kept:
+  runs/showdown_sp_struct12m_s49_dead_at_7m2 (+ _relaunch_collision stub).
+  CONSEQUENCES: s51 finals ~09:40 EDT 08-13 (~6h after the others, ~03:40) →
+  treatment evals can run at ~04:00 but GRADING IS ONE PASS and waits for s51's
+  final + eval (~10:00). Monitor re-armed on the corrected lane list (s44/45/46 +
+  s50/s51); keep-awake extended to ~11:10. Seeds: 49 BURNED (dead lane), 51
+  ASSIGNED. If a treatment lane hits the same eval crash, the pre-registered LANE
+  FAILURE RULE applies as written (no replacement — the asymmetry vs this
+  comparator re-run: comparator lanes estimate the baseline, not the treatment
+  effect, and s49's death predates any treatment data it could bias).
