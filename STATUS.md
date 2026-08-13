@@ -37,14 +37,14 @@ credit bar ≥0.6675 unconditionally**, above the best lane ever (s35 0.6593).
 
 0. **MAINTAINER CALL — D19 or close.** The 50M carry is rejected on merit by all six
    agents (no branch changes a decision). **D19 AT 5 LANES = 2.24 lane-days measured**
-   (D18's identical fleet shape) — not the ~1.5 quoted earlier. Credit needs 5 lanes:
-   bar 0.5898 at s_T=0.036 vs D23's realized 0.5897 — it credits iff it beats D23
-   slightly, and the credit region is entirely above M4 (0.558). Caveats: the overage
-   was authorized FOR THE CARRY, now dead, so D19 needs its own nod; and D17's compute
-   trigger may read unconditional — your call.
-1. **AUDIT THE LANE-DAY LEDGER first.** Reconstructed from 53 run dirs: 393 lane-hours
-   = 16.4 total, ~2.8 pre-chase → **~13.5 chase-era vs the recorded ~17** (deleted run
-   dirs are invisible to this — reconcile, don't assume).
+   (D18's identical fleet shape) → chapter **15.8/20**, inside D17, no renegotiation.
+   Credit needs 5 lanes: bar 0.5898 at s_T=0.036 vs D23's realized 0.5897 — it credits
+   iff it beats D23 slightly, and the credit region is entirely above M4 (0.558). Needs
+   its OWN authorization: the 08-13 overage was purchase-specific to the carry, now
+   dead. If it runs: 2-Opus pre-reg first, dormancy-primary with a CALIBRATED letter.
+1. **LEDGER AUDITED 08-13 — the recorded ~17 was ~3.5 HIGH.** Measured over all run
+   dirs: 392.8 lane-hours, 67.9 pre-chase → **chase = 13.54, headroom ~6.5.** Drift was
+   estimate-rounding, not lost runs. Future accounting: re-measure, never increment.
 2. **§13 DEFECT:** it conditions 250M on "a credited lever at 50M"; none exists under
    today's line (Rung 3 stands era-graded) → restate or waive. Also CLAUDE.md's
    locked-eval line says 1000 battles/seed, DESIGN §8 says 3000 — fix.

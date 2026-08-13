@@ -3041,3 +3041,26 @@ entry by offset — never a broad keyword grep.
   that is a defensible reading of an ambiguous sentence and is the maintainer's to
   settle, not mine. Documents: results/d24_design/ now also holds decide_spend.md and
   decide_stop.md. No lanes, no code, tree clean.
+- 2026-08-13 (midday, cont., THE LANE-DAY LEDGER AUDITED — the recorded figure was
+  ~3.5 lane-days HIGH) — **Measured, from every surviving run dir with usable timing
+  (started_at -> last-ckpt mtime): total 392.8 lane-hours = 16.37 lane-days, of which
+  the pre-chase vs-SH-trained era (r512*, faint6m*, warmstart*) is 67.9 h = 2.83, so
+  the r7 pure-self-play CHASE has cost 324.9 h = 13.54 LANE-DAYS against a recorded
+  ~17.** Per-arm: struct50m 4.43 (3 lanes) · priv12m/D18 2.23 (5) · struct12m 2.18 (7,
+  incl. comparators s50/s51 and the dead s49) · l2init12m/D23 1.25 (3) · sp12m_v2 0.89
+  (7) · signal12m 0.82 (3) · sp12m_v2r 0.82 (4) · scratch12m 0.76 (3) · br50m probe
+  0.14 (1). **WHERE THE DRIFT CAME FROM:** the ledger was incremented with round
+  estimates, each high, and the running total outran even those — the Rung-3 entry
+  logged "+~5, chapter ~8" against an actual 4.43, the D18 entry logged "+~2, chapter
+  ~12-13" against an actual 2.23 (8 + 2 = 10, not 12-13), and D23's actual +2.2 then
+  carried STATUS to ~17. **THE DELETED-DIRS CAVEAT IS DISCHARGED for the chase era:**
+  every arm the logs name has a surviving run dir (v2 control, v2r, scratch, signal,
+  struct12m + comparators, struct50m, br50m, priv12m, l2init12m, smokes), so the
+  reconstruction is complete for r7 — the known deletions were pre-chase milestone-1/2
+  dirs. **CONSEQUENCE: D17 headroom is ~6.5 lane-days, not ~3.** D19 at 5 lanes (2.24
+  measured) would put the chapter at **15.8/20** — comfortably inside the trigger, no
+  renegotiation, and the 50M carry (5.1) would also have fit on price alone, which
+  changes nothing because it was rejected on merit. **Method note for future
+  accounting: measure, do not estimate — the per-arm reconstruction above is cheap
+  (one pass over runs/) and should be re-run rather than incremented.** Corrected in
+  STATUS. Tree clean; no lanes.
