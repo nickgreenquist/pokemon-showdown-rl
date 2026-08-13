@@ -1901,6 +1901,16 @@
 # the run's life) and -1 for a non-member. The training loss never reads
 # it; the §6 read does.
 #
+# **THE FROZEN TAPES WERE ONE JOB-DELETION FROM GONE, AND ARE NOW IN
+# `results/d25/`** (gitignored, so still the only copy — see its README).
+# They were found in a Claude Code job's scratch directory, which is
+# deleted with the job. All three sha256s VERIFY against this header
+# across the copy: s36 3ffee9ba…074917, s37 58e64af1…39483f, s35 (the
+# inadmissible one, kept because its numbers are what disqualify it)
+# 9388ef3e…babe484. Without them §5's control distribution, power table
+# and every MDE are unreproducible and R0-15's attestation is
+# unsatisfiable — a re-collected tape is a DIFFERENT tape.
+#
 # **SMOKE READS, MEASURED LIVE** (4-wide self-play at the step-0 pool
 # member, seed 99, 512 steps, ~1.8 s — a smoke, not a lane):
 #   label-present fraction **0.941**. §9 called ~6% "a guess" off our own

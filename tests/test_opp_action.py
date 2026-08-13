@@ -502,7 +502,7 @@ logits, *feats = bounded.actor(
 target = torch.zeros(8, dtype=torch.long)
 allow = torch.ones(8, 6, dtype=torch.bool)
 valid = torch.ones(8, dtype=torch.bool)
-for param in (*bounded.actor_params, *bounded.aux_params):
+for param in (*bounded.actor_params, *bounded.critic_params, *bounded.aux_params):
     param.grad = None
 loss, norm = bounded._aux_gradient(tuple(feats), target, allow, valid)
 applied = torch.norm(torch.stack([
@@ -511,6 +511,20 @@ applied = torch.norm(torch.stack([
 ]))
 assert norm > 0.5, norm  # the raw gradient really did need clipping
 assert float(applied) <= 0.5 + 1e-5, float(applied)
+
+# WHERE THE AUX GRADIENT MAY GO, asserted rather than argued (B6b): the
+# shared trunk — ctx_net, mon_net, move_net, field_net and both embedding
+# tables — and the head. NEVER the policy scorer or slot_bias (those are the
+# acting readout, and a lever that moved them would not be one lever), and
+# NEVER the critic, which this rung leaves untouched.
+touched = {
+    name for name, param in bounded.actor.named_parameters() if param.grad is not None
+}
+assert all(not n.startswith(("scorer.", "slot_bias")) for n in touched), sorted(touched)
+assert any(n.startswith("ctx_net.") for n in touched)
+assert any(n.startswith("move_net.") for n in touched)   # B6a's new pathway
+assert any(n.startswith("move_emb") for n in touched)
+assert all(p.grad is None for p in bounded.critic_params)
 
 # --- the loud seams: env flag and agent hparam must be set together.
 try:
