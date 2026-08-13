@@ -8,13 +8,11 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (era-graded, seed sd 0.0756); D18
 NULL, falsifier-killed; D23 regen-L2 **"letter-met, seed-fragile, NOT credited"**;
 Rung-2 12M seed sd ≈0.036. **THE 50M CARRY IS REJECTED** (2 designers + 2 reviews + 2
-opposed advocates, 0 lanes) — no branch changes a decision, and the 50M win-rate credit
-bar is **≥0.6675 unconditionally**, above the best lane ever (0.6593). Zero-lane work
-landed: rank tooling repaired (**two** NaN-sentinel cells fixed) and the **GEOMETRIC-NULL
-STUDY** (results/d24_null/) re-grades D23 at matched distance — **critic de-collapse
+opposed advocates, 0 lanes) — no branch changes a decision, and the 50M credit bar is
+**≥0.6675 unconditionally**, above the best lane ever (0.6593). The **GEOMETRIC-NULL
+STUDY** (results/d24_null/) re-grades D23 at matched distance: **critic de-collapse
 SURVIVES (1.35/2.21/1.64×); the actor read is INCONCLUSIVE, not refuted** (median-null
-1.57/1.18/0.74; the earlier "2 of 3 below geometry" used the max null, anti-conservative
-for retiring a claim).
+1.57/1.18/0.74 — the earlier "2 of 3 below geometry" used the max null).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 
@@ -37,14 +35,13 @@ for retiring a claim).
    RANGE, never the best cell); a non-fire below ~0.017 nats is uninformative. Seeds
    **52–56**, ~2.35 lane-days → 15.9/20. Build ~200 lines + 12–16 tests, zero lanes.
 1. **BLOCKING BEFORE LAUNCH, both zero-lane:** (a) **R0-13** must re-derive the LEARNED
-   bar on **L6** inputs — the 0.371 is anchored on 12-class `g_frozen-probe` values and
-   its 0.80 multiplier is unsourced — plus the historical-pool correction on the REAL
-   `_evict_index` schedule; (b) **R0-12b**'s four capacity nulls have NOT been re-run on
-   the s36 tape. Verify at build (reviser's arithmetic, not quoted measurement): R0-8's
-   255/210 and the param total 675,538.
+   bar on **L6** inputs — 0.371 is anchored on 12-class `g_frozen-probe` values and its
+   0.80 multiplier is unsourced — plus the pool correction on the REAL `_evict_index`
+   schedule; (b) **R0-12b**'s four capacity nulls, not yet re-run on the s36 tape.
+   Verify at build (reviser's arithmetic, not measurement): R0-8's 255/210, and 675,538.
 2. **YOUR CALL, needed BEFORE launch: the shuffled-label placebo arm, +2.35 lane-days**
-   (chapter → ~18.2/20). It is the difference between "an explicit opponent model helps"
-   and "an auxiliary loss helps". Currently NAMED-NOT-RUN; the header scopes the claim.
+   (chapter → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
+   Currently NAMED-NOT-RUN; the header scopes the claim accordingly.
 3. **LEDGER AUDITED — recorded ~17 was ~3.5 HIGH.** 392.8 lane-hours, 67.9 pre-chase →
    **chase = 13.54, headroom ~6.5**. Re-measure, never increment.
 4. **§13 DEFECT:** conditions 250M on "a credited lever at 50M"; none exists → restate or
@@ -52,18 +49,16 @@ for retiring a claim).
 
 ## Watch items
 
-- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 disposable;
-  **47-48 held for a D25 lane lost before R1; 52-56 = D25; 57+ free.**
-- **Quote the RANGE, not the best measured variant** — the 08-13 systematic error.
-  Rank reads: **MAX null to ESTABLISH an effect, MEDIAN null to RETIRE one** — not
-  interchangeable. srank float64 + Gram/eigvalsh fallback; `--tag` every rank pass.
-- Letters at n=3 quantize to {0, 0.21, 0.79, 1} — calibrate every letter's level first.
+- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 disposable; 47-48
+  held for a D25 lane lost before R1; **52-56 = D25**; 57+ free.
+- **Quote the RANGE, not the best measured variant** — the 08-13 systematic error. Rank
+  reads: **MAX null to ESTABLISH, MEDIAN null to RETIRE**; srank float64 + Gram fallback;
+  `--tag` every pass. Letters at n=3 quantize to {0, 0.21, 0.79, 1} — calibrate first.
 - `ctx` is max-pooled and logits are `scorer([ctx‖entity])`, so a linear ctx probe cannot
   decode even the actor's OWN action ⇒ heads and estimators must be scorer-shaped.
 - Aux head: owned by the AGENT; own (third) optimizer group — a group-0 append steals the
-  critic's Adam moments; SEPARATE gradient clipping. Opponent move tokens DO NOT EXIST in
-  the trunk today (`entity_deepsets.py:298-302` is own-moves-only).
+  critic's Adam moments; SEPARATE clipping. Opponent move tokens DO NOT EXIST in the
+  trunk today (`entity_deepsets.py:298-302` is own-moves-only).
 - Entity ckpts need BOTH env vars. Eval auto-tie crash can kill a lane; relaunch on a
-  FRESH seed (same-seed hits zombie battles; s49→s51, log 08-12).
-- Artifacts results/d23/, d24_design/, d24_null/ (gitignored). Suite 293 green. Process:
-  2 Opus designers + 2 reviews per pre-reg.
+  FRESH seed (s49→s51, log 08-12). Artifacts results/d23/, d24_design/, d24_null/
+  (gitignored). Suite 293 green. Process: 2 Opus designers + 2 reviews per pre-reg.
