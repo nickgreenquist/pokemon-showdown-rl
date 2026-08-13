@@ -2863,3 +2863,18 @@ entry by offset — never a broad keyword grep.
   12M D19 must be mechanism-primary, not win-rate-primary. No code touched; no
   numbers changed. Open maintainer calls unchanged: push, and D19 vs 50M regen-L2
   carry vs both (the carry needs the 20-day-cap conversation, chapter ~17/20).
+- 2026-08-13 (session start, cont., THE POST-D23 DECISION) — **Maintainer took
+  branch (b): the 50M REGEN-L2 CARRY**, over D19-as-queued and over both-sequenced,
+  and accepted the ~5 lane-days past the 20-day cap (chapter ~17/20 — the cap
+  conversation is settled by that acceptance, recorded here as the authorization).
+  Rationale on the table when the call was made: regen-L2 was motivated by a 50M
+  pathology (D22's weight-norm growth on the 50M lanes) but only tested at 12M;
+  mechanism power is higher at 50M (larger growth, ~100 ckpts/lane); and the 12M
+  win-rate channel is known-dead after the comparator-spread finding (sd 0.036 →
+  operative bar ~0.61). Stated counter, and the binding design constraint that
+  follows it: **Rung 3 is itself seed-fragile, so an advisory-scale delta will land
+  in the recording band at 50M too — the carry's pre-reg must be MECHANISM-PRIMARY
+  (norms + srank primary, win rate secondary), not a repeat of a win-rate primary
+  at 2.5× the cost.** Also done this session: the 6 outstanding commits PUSHED
+  (origin/main at ba4356d, maintainer authorized). NEXT: draft the carry pre-reg
+  under the standing 2-Opus design process.

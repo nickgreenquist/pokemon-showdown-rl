@@ -35,13 +35,14 @@ FINDING: fresh comparator lanes (0.5763, 0.4937) put true Rung-2 12M seed sd at 
 
 ## Next actions, in order (maintainer decisions at the top)
 
-0. **PUSH PENDING — 5 commits local past origin/main** (D23 readout, README, grader
-   fix, norms guard, fold). Ask-first rule; maintainer says push.
-1. **MAINTAINER CALL — what follows D23's recording-band readout**: (a) D19 as
-   queued (aux opponent-model head, actor-side); (b) 50M regen-L2 carry — BOUND +
-   gap-shrink + letter-met make a real case, but ~5 lane-days exceeds the 20-day
-   cap (chapter ~17/20) → needs the cap conversation; (c) both, sequenced. The
-   comparator-spread finding also reframes 12M rungs: mechanism-primary designs.
+0. **DECIDED 2026-08-13: branch (b), the 50M REGEN-L2 CARRY** (maintainer, over D19
+   and over both-sequenced; ~5 lane-days accepted past the 20-day cap, chapter
+   ~17/20). NEXT STEP: pre-registration under the 2-Opus design process, **written
+   mechanism-primary** — weight norms + srank at 50M (where D22 diagnosed the
+   pathology and D23 only tested at 12M) as PRIMARY, win rate SECONDARY, since 50M
+   is seed-fragile too and an advisory-scale delta will land in the recording band
+   again. Then a cap/lane-day accounting line, then launch by the maintainer.
+   D19 deferred behind it (unread; DESIGN §12 carries its status note). Push DONE.
 2. Post-chase bundle: comparator-spread finding + D23 mechanism story (README and
    DESIGN §12 queue state are current through the readout).
 3. 250M: per §13 — needs a credited 50M lever + the cap/rent answer (E1-E4 cleared).
