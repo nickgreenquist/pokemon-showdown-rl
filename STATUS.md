@@ -2,7 +2,7 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-13 — carry rejected, D19 killed, D25 pre-registered; 0 lanes)
+## Where things stand (2026-08-13 — D25 RATIFIED at r2 on L6, NOT BUILT; 0 lanes)
 
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (era-graded, seed sd 0.0756); D18
@@ -10,11 +10,11 @@ NULL, falsifier-killed; D23 regen-L2 **"letter-met, seed-fragile, NOT credited"*
 Rung-2 12M seed sd ≈0.036. **THE 50M CARRY IS REJECTED** (2 designers + 2 reviews + 2
 opposed advocates, 0 lanes) — no branch changes a decision, and the 50M win-rate credit
 bar is **≥0.6675 unconditionally**, above the best lane ever (0.6593). Zero-lane work
-landed (see the 08-13 log): rank tooling repaired (**two** NaN-sentinel cells fixed) and
-the **GEOMETRIC-NULL STUDY** (results/d24_null/) re-grades D23 at matched distance —
-**critic de-collapse SURVIVES (1.35/2.21/1.64×, robust to every aggregation); the actor
-read is INCONCLUSIVE, not refuted** (median-null 1.57/1.18/0.74; the earlier "2 of 3
-below geometry" used the max null, anti-conservative for retiring a claim).
+landed: rank tooling repaired (**two** NaN-sentinel cells fixed) and the **GEOMETRIC-NULL
+STUDY** (results/d24_null/) re-grades D23 at matched distance — **critic de-collapse
+SURVIVES (1.35/2.21/1.64×); the actor read is INCONCLUSIVE, not refuted** (median-null
+1.57/1.18/0.74; the earlier "2 of 3 below geometry" used the max null, anti-conservative
+for retiring a claim).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 
@@ -29,33 +29,41 @@ below geometry" used the max null, anti-conservative for retiring a claim).
 
 ## Next actions, in order (maintainer decisions at the top)
 
-0. **D25 (opponent ACTION prediction) PRE-REGISTERED, PROPOSED, NOT BUILT** —
-   `configs/showdown_sp_actpred12m.yaml` (7 docs merged, 16 conflicts ledgered; body
-   diff = seed, run_name, 5 aux keys). Premise: **0.544 nats realised, actor-visible,
-   ~37% of the loss** vs D19's 0.347 (D19's kill stands; its recorded *reasoning* was
-   wrong — see the 08-13 red-team entry). Letter Δ_ref-ctx, level 12/252 = 0.0476,
-   **MDE(80%) 0.009-0.011, power 0.45-0.88** (range, not the 0.88 best case). Cost
-   ~2.35 lane-days → 15.9/20; build ~200 lines. **BLOCKING: re-freeze the control
-   distribution on a checkpoint in NEITHER arm** (the gate used comparator s26;
-   s35@12M recommended). **YOUR CALL: placebo arm +2.24 lane-days** — "an opponent
-   model helps" vs "an aux loss helps".
-1. **LEDGER AUDITED — recorded ~17 was ~3.5 HIGH.** 392.8 lane-hours, 67.9 pre-chase →
-   **chase = 13.54, headroom ~6.5**; drift was estimate-rounding. Re-measure, never
-   increment.
-2. **§13 DEFECT:** conditions 250M on "a credited lever at 50M"; none exists under
-   today's line → restate or waive. CLAUDE.md's locked-eval line says 1000
-   battles/seed, DESIGN §8 says 3000 — fix.
+0. **D25 (opponent ACTION prediction) RATIFIED at r2 on L6, NOT BUILT, NOT LAUNCHED** —
+   `configs/showdown_sp_actpred12m.yaml` is the 1,922-line SPEC (9 docs merged; r1 was
+   REFUSED, r2 supersedes). Premise **0.544 nats realised (L6, 5 lanes, 8 splits) of a
+   ~1.0-nat pool-corrected window**. Letter Δ_ref-ctx on the FROZEN s36@12M reference,
+   level 12/252 = 0.0476, **MDE(80%) 0.0105–0.0301, power at +0.010 = 0.27–0.76** (the
+   RANGE, never the best cell); a non-fire below ~0.017 nats is uninformative. Seeds
+   **52–56**, ~2.35 lane-days → 15.9/20. Build ~200 lines + 12–16 tests, zero lanes.
+1. **BLOCKING BEFORE LAUNCH, both zero-lane:** (a) **R0-13** must re-derive the LEARNED
+   bar on **L6** inputs — the 0.371 is anchored on 12-class `g_frozen-probe` values and
+   its 0.80 multiplier is unsourced — plus the historical-pool correction on the REAL
+   `_evict_index` schedule; (b) **R0-12b**'s four capacity nulls have NOT been re-run on
+   the s36 tape. Verify at build (reviser's arithmetic, not quoted measurement): R0-8's
+   255/210 and the param total 675,538.
+2. **YOUR CALL, needed BEFORE launch: the shuffled-label placebo arm, +2.35 lane-days**
+   (chapter → ~18.2/20). It is the difference between "an explicit opponent model helps"
+   and "an auxiliary loss helps". Currently NAMED-NOT-RUN; the header scopes the claim.
+3. **LEDGER AUDITED — recorded ~17 was ~3.5 HIGH.** 392.8 lane-hours, 67.9 pre-chase →
+   **chase = 13.54, headroom ~6.5**. Re-measure, never increment.
+4. **§13 DEFECT:** conditions 250M on "a credited lever at 50M"; none exists → restate or
+   waive. CLAUDE.md's locked-eval line says 1000 battles/seed, DESIGN §8 says 3000 — fix.
 
 ## Watch items
 
 - Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 disposable;
-  **47-48, 52+ free**. Rank reads: margin over the matched-distance null — **MAX null
-  to establish, MEDIAN to retire; not interchangeable**.
-- **Quote the range, not the best measured variant** — this session's systematic error.
+  **47-48 held for a D25 lane lost before R1; 52-56 = D25; 57+ free.**
+- **Quote the RANGE, not the best measured variant** — the 08-13 systematic error.
+  Rank reads: **MAX null to ESTABLISH an effect, MEDIAN null to RETIRE one** — not
+  interchangeable. srank float64 + Gram/eigvalsh fallback; `--tag` every rank pass.
+- Letters at n=3 quantize to {0, 0.21, 0.79, 1} — calibrate every letter's level first.
+- `ctx` is max-pooled and logits are `scorer([ctx‖entity])`, so a linear ctx probe cannot
+  decode even the actor's OWN action ⇒ heads and estimators must be scorer-shaped.
+- Aux head: owned by the AGENT; own (third) optimizer group — a group-0 append steals the
+  critic's Adam moments; SEPARATE gradient clipping. Opponent move tokens DO NOT EXIST in
+  the trunk today (`entity_deepsets.py:298-302` is own-moves-only).
 - Entity ckpts need BOTH env vars. Eval auto-tie crash can kill a lane; relaunch on a
   FRESH seed (same-seed hits zombie battles; s49→s51, log 08-12).
-- Aux head: own it on the AGENT; aux params get their OWN optimizer group (group-0
-  append steals the critic's Adam moments) and SEPARATE clipping. `ctx` is max-pooled,
-  logits are `scorer([ctx‖entity])` ⇒ heads and estimators must be scorer-shaped.
 - Artifacts results/d23/, d24_design/, d24_null/ (gitignored). Suite 293 green. Process:
   2 Opus designers + 2 reviews per pre-reg.
