@@ -60,7 +60,7 @@ def test_gaussian_logp_and_entropy_are_hand_computed_sums_over_dims():
     agent = _agent(act_dim=3)
     _zero_the_mean(agent)
     actions = torch.tensor([[0.5, -1.0, 0.25]])
-    logp, entropy = agent._logp_entropy(torch.zeros(1, OBS_DIM), actions, None)
+    logp, entropy, _ = agent._logp_entropy(torch.zeros(1, OBS_DIM), actions, None)
 
     assert logp.shape == (1,) and entropy.shape == (1,)  # never (B, act_dim), never (B, B)
     assert logp.item() == pytest.approx(-0.65625 - 1.5 * math.log(2 * math.pi))
@@ -73,7 +73,7 @@ def test_logp_entropy_shapes_are_per_transition_not_a_matrix():
     for act_dim in (1, 3):
         agent = _agent(act_dim=act_dim)
         obs, actions = torch.zeros(5, OBS_DIM), torch.zeros(5, act_dim)
-        logp, entropy = agent._logp_entropy(obs, actions, None)
+        logp, entropy, _ = agent._logp_entropy(obs, actions, None)
         assert logp.shape == (5,) and entropy.shape == (5,)
 
 

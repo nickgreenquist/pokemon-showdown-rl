@@ -113,6 +113,13 @@ from rl.buffers.rollout import RolloutBuffer, compute_gae
 from rl.common.masking import masked_entropy, masked_logits
 from rl.networks.conv import ConvQNet
 from rl.networks.mlp import mlp
+from rl.networks.opp_action import (
+    CHOICE_DIM,
+    LABEL_SPACES,
+    OppActionHead,
+    aux_cross_entropy,
+    canonicalise,
+)
 
 
 def clipped_surrogate_loss(
@@ -266,6 +273,11 @@ class PPOAgent(Agent):
         trunk_kwargs: dict | None = None,
         privileged_dim: int = 0,
         l2_init_decay: float = 0.0,
+        aux_oppact_coef: float = 0.0,
+        aux_label_space: str = "l6",
+        aux_scorer_sizes: list[int] = (96,),
+        aux_head_gain: float = 0.01,
+        aux_max_grad_norm: float = 0.5,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -367,6 +379,39 @@ class PPOAgent(Agent):
         if privileged_dim and (self.obs_rank == 3 or self.continuous):
             raise TypeError("privileged_dim requires a flat obs and a Discrete action space")
         self.privileged_dim = privileged_dim
+        # D25 auxiliary OPPONENT-ACTION head (configs/showdown_sp_actpred12m
+        # .yaml, ratified r2 2026-08-13). The head predicts, from the agent's
+        # own policy context, which action the opponent is choosing on the same
+        # turn; ground truth is free in self-play because the opponent is a
+        # frozen snapshot of the agent itself. TRAIN-TIME ONLY — it is not part
+        # of the evaluated agent, and the observation and action spaces are
+        # untouched. Default 0.0 is the EXACT no-op: no head, no third
+        # optimizer group, no metric key, no checkpoint rider (the bc_kl_coef /
+        # l2_init_decay precedent).
+        if aux_oppact_coef < 0.0:
+            raise ValueError(f"aux_oppact_coef must be >= 0, got {aux_oppact_coef}")
+        if aux_oppact_coef > 0.0:
+            if trunk != "entity_deepsets":
+                raise TypeError(
+                    "aux_oppact_coef requires trunk 'entity_deepsets': the head is a "
+                    "pointer scorer over that trunk's ctx and opponent entity tokens"
+                )
+            if aux_label_space not in LABEL_SPACES:
+                raise ValueError(
+                    f"unknown aux_label_space {aux_label_space!r}; expected one of "
+                    f"{list(LABEL_SPACES)} — L6 is R0-L's pre-stated fallback, "
+                    "executed because the 12-class adopt-rule FAILED, not a free choice"
+                )
+            if privileged_dim:
+                raise TypeError(
+                    "aux_oppact_coef with privileged_dim: R0-1's fingerprint requires "
+                    "D18's plumbing ABSENT — D25 needs neither the privileged block "
+                    "nor its ~65 us/step seat-B re-encode"
+                )
+        self.aux_oppact_coef = aux_oppact_coef
+        self.aux_label_space = aux_label_space
+        self.aux_max_grad_norm = aux_max_grad_norm
+        self.aux_head: nn.Module | None = None
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
         if self.obs_rank == 3:
@@ -434,6 +479,20 @@ class PPOAgent(Agent):
             _orthogonal_init(self.critic, head_gain=1.0)
         self.actor.to(self.device)
         self.critic.to(self.device)
+        # THE AUX HEAD IS CONSTRUCTED LAST, after both nets are built,
+        # initialised and moved — so at a fixed seed the actor's and critic's
+        # state_dicts are BIT-IDENTICAL to the lever-off build (R0-3b, which
+        # D18 could not have). Moving this construction earlier breaks that
+        # test immediately, which is the point of putting it here.
+        if self.aux_oppact_coef > 0.0:
+            cfg = trunk_kwargs or {}
+            self.aux_head = OppActionHead(
+                ctx_dim=list(cfg.get("ctx_sizes", (384, 384)))[-1],
+                entity_dim=cfg.get("entity_dim", 128),
+                sizes=list(aux_scorer_sizes),
+            )
+            self.aux_head.init_head(aux_head_gain)
+            self.aux_head.to(self.device)
         # One Adam over the union of both nets' params; eps=1e-5 is the
         # canonical PPO detail (shipped by every reference implementation).
         # Split into two PARAM GROUPS — actor first, critic second, which is
@@ -444,14 +503,31 @@ class PPOAgent(Agent):
         # bit-for-bit a no-op on every existing recipe (regression-tested).
         self.actor_params = list(self.actor.parameters())
         self.critic_params = list(self.critic.parameters())
+        # What clip_grad_norm_ sees, and it deliberately EXCLUDES the aux head:
+        # the aux gradient is clipped separately (B9).
         self.params = [*self.actor_params, *self.critic_params]
-        self.optimizer = torch.optim.Adam(
-            [
-                {"params": self.actor_params, "lr": lr * actor_lr_scale},
-                {"params": self.critic_params, "lr": lr},
-            ],
-            eps=1e-5,
-        )
+        groups = [
+            {"params": self.actor_params, "lr": lr * actor_lr_scale},
+            {"params": self.critic_params, "lr": lr},
+        ]
+        self.aux_params: list[nn.Parameter] = []
+        if self.aux_head is not None:
+            # A THIRD GROUP, APPENDED LAST (D25 B8) — the opposite of the
+            # obvious group-0 append, and this was measured rather than
+            # reasoned. `load_state_dict` below substitutes our own
+            # param_groups into the loaded state, so torch never compares group
+            # counts; what the graft depends on is the POSITIONAL ORDER of
+            # params flattened across groups. Appended to group 0 the order
+            # becomes [actor, AUX, critic]: a loaded checkpoint's keys 2,3 land
+            # on the aux head, THE CRITIC RECEIVES NO ADAM MOMENTS, and the
+            # head silently inherits the critic's exp_avg. As a third group the
+            # order is [actor, critic, AUX], every loaded key lands on a
+            # shape-matching param and the head simply gets none. In-rung
+            # impact is nil (D25 lanes are fresh) — it is a silent corruption
+            # landmine on any future init_from/resume.
+            self.aux_params = list(self.aux_head.parameters())
+            groups.append({"params": self.aux_params, "lr": lr * actor_lr_scale})
+        self.optimizer = torch.optim.Adam(groups, eps=1e-5)
         self._set_actor_trainable(critic_warmup_updates == 0)
         # theta0 capture, AFTER init_head()/.to(device) (so the anchors are
         # the seed's realized init on the training device) and AFTER the
@@ -478,6 +554,7 @@ class PPOAgent(Agent):
             obs_dtype=observation_space.dtype,
             **action_storage,
             priv_dim=privileged_dim or None,
+            opp_choice_dim=CHOICE_DIM if self.aux_head is not None else None,
         )
         self.updates = 0  # completed fill -> epochs cycles
 
@@ -610,22 +687,79 @@ class PPOAgent(Agent):
         return actions.cpu().numpy()
 
     def _logp_entropy(
-        self, obs: torch.Tensor, actions: torch.Tensor, masks: torch.Tensor | None
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """log pi(a|s) and H(pi(.|s)) for a batch, both shaped (B,).
+        self,
+        obs: torch.Tensor,
+        actions: torch.Tensor,
+        masks: torch.Tensor | None,
+        features: bool = False,
+    ) -> tuple[torch.Tensor, torch.Tensor, tuple[torch.Tensor, ...] | None]:
+        """log pi(a|s), H(pi(.|s)) — both (B,) — and D25's aux features.
 
         The one place the two action spaces fork during optimization, so the
         surrogate, the recompute and the entropy bonus cannot drift apart.
         A diagonal Gaussian's components are independent, so its joint
         log-prob and entropy are sums over the action dimensions — the sum
         that turns (B, act_dim) into the (B,) the surrogate needs.
+
+        `features` is D25's seam: the aux head reads ctx and the opponent
+        entity tokens off the SAME forward the surrogate already makes (B9),
+        rather than paying a second actor pass at ~+25% update time. The extra
+        tensors do not enter the policy logits, so the surrogate is unchanged.
         """
         if self.continuous:
             dist = Normal(*self.actor(obs))
-            return dist.log_prob(actions).sum(-1), dist.entropy().sum(-1)
-        logits = self.actor(obs)
+            return dist.log_prob(actions).sum(-1), dist.entropy().sum(-1), None
+        if features:
+            logits, *feats = self.actor(obs, return_features=True)
+        else:
+            logits, feats = self.actor(obs), None
         dist = Categorical(logits=masked_logits(logits, masks))
-        return dist.log_prob(actions), masked_entropy(logits, masks)
+        return dist.log_prob(actions), masked_entropy(logits, masks), feats
+
+    def _aux_gradient(
+        self,
+        feats: tuple[torch.Tensor, ...],
+        target: torch.Tensor,
+        allow: torch.Tensor,
+        valid: torch.Tensor,
+    ) -> tuple[float, float]:
+        """B9 step 2: the aux gradient, clipped to its OWN budget and added
+        into `.grad` AFTER the PPO clip has been read. Returns (loss, norm).
+
+        Decoupled because the global clip BINDS: measured on control s26
+        (11,718 rows) `loss/grad_clip_frac` is 0.8995, median 0.9375 — the clip
+        binds on ~9 of 10 minibatches, so a coupled aux term would shrink the
+        policy's effective step on nearly every one. That is a covert 10-30%
+        policy-LR cut, i.e. an unregistered second lever inside a one-lever
+        rung (and D21 already queues LR annealing as its own). Keeping the aux
+        term out of `clip_grad_norm_` is what makes `loss/grad_norm` and
+        `loss/grad_clip_frac` numerically identical to every control curve on a
+        fixed batch (R0-9).
+
+        IRREDUCIBLE RESIDUE, DISCLOSED (C9): the aux gradient still enters
+        Adam's second moment for shared trunk parameters, so the policy's
+        per-parameter effective step is not perfectly preserved. That cannot be
+        fixed for a shared trunk, and it is not claimed to be.
+        """
+        loss = aux_cross_entropy(self.aux_head(*feats), target, allow, valid)
+        # requires_grad filter: under the staged unfreeze the actor is frozen
+        # for the first N updates and autograd.grad would refuse the batch.
+        params = [p for p in (*self.actor_params, *self.aux_params) if p.requires_grad]
+        grads = torch.autograd.grad(
+            self.aux_oppact_coef * loss, params, allow_unused=True
+        )
+        present = [g for g in grads if g is not None]
+        total = float(torch.norm(torch.stack([g.norm() for g in present]))) if present else 0.0
+        # clip_grad_norm_'s own arithmetic, applied to a detached grad list.
+        scale = min(1.0, self.aux_max_grad_norm / (total + 1e-6))
+        for param, grad in zip(params, grads):
+            if grad is None:
+                continue
+            if param.grad is None:
+                param.grad = grad * scale
+            else:
+                param.grad.add_(grad, alpha=scale)
+        return float(loss.item()), total
 
     def update(self, batch: Any) -> dict[str, float]:
         # The vector loop hands one batched (N-wide) transition row per env
@@ -634,7 +768,11 @@ class PPOAgent(Agent):
         # and values are never masked.
         (obs, actions, rewards, next_obs, terminated, truncated, masks, _next_masks,
          *rest) = batch
-        privs, next_privs = rest if rest else (None, None)
+        if len(rest) > 3:
+            raise ValueError(
+                f"update() takes at most 11 batch elements, got {8 + len(rest)}"
+            )
+        privs, next_privs, opp_choice = (*rest, *(None,) * (3 - len(rest)))
         # Loud seam (R0-1 style): a lane with the env flag but not the agent
         # flag would silently train a blind critic; the reverse would train
         # the wide critic on zeros. Neither may pass.
@@ -645,9 +783,20 @@ class PPOAgent(Agent):
                 "info['privileged'] — the env kwarg and the agent hparam must "
                 "be set together"
             )
+        # The same loud seam for D25: a lane carrying env_kwargs.opp_action but
+        # not agent.aux_oppact_coef would collect labels nobody trains on; the
+        # reverse would train the head on a buffer of zeros.
+        if (opp_choice is None) == (self.aux_head is not None):
+            raise ValueError(
+                f"opponent-action mismatch: agent aux_oppact_coef="
+                f"{self.aux_oppact_coef} but the env "
+                f"{'did not emit' if opp_choice is None else 'emitted'} "
+                "info['opp_choice'] — env_kwargs.opp_action and the agent "
+                "hparam must be set together"
+            )
         self.buffer.add(
             obs, actions, rewards, next_obs, terminated, truncated, masks,
-            privs, next_privs,
+            privs, next_privs, opp_choice,
         )
         if not self.buffer.full():
             return {}
@@ -673,6 +822,19 @@ class PPOAgent(Agent):
             None if self.continuous
             else torch.as_tensor(buf.masks, device=self.device).flatten(0, 1)  # (T*N, A) bool
         )
+        # D25's labels, canonicalised ONCE PER ROLLOUT (B12) — done inside the
+        # epoch x minibatch loop this is the same work 16 times over and
+        # surfaces only as an unexplained update-time regression. The frame is
+        # each row's OWN id suffix, so the label can only ever name entities
+        # the actor could see (B4, the structural anti-leak property).
+        aux_target = aux_allow = aux_valid = None
+        aux_stats: dict[str, float] = {}
+        if self.aux_head is not None:
+            aux_target, aux_allow, aux_valid, aux_stats = canonicalise(
+                flat_obs,
+                torch.as_tensor(buf.opp_choice, device=self.device).flatten(0, 1),
+                self.actor.tokenizer.id_off,
+            )
         # The critic's input: obs ‖ privileged when the block is carried,
         # plain obs otherwise (aliases, no copy). Every critic forward below
         # reads these two and only these two.
@@ -774,6 +936,14 @@ class PPOAgent(Agent):
             frac = max(0.0, 1.0 - steps_seen / self.lr_anneal_steps)
             self.optimizer.param_groups[0]["lr"] = self.base_lr * self.actor_lr_scale * frac
             self.optimizer.param_groups[1]["lr"] = self.base_lr * frac
+            if self.aux_head is not None:
+                # The head is actor-side, so it rides the actor's schedule —
+                # one lr over the whole actor stack. Inert at D25's
+                # lr_anneal_steps: 0, which is why B8 could call a third group
+                # "safe" against an anneal that writes [0] and [1] by index.
+                self.optimizer.param_groups[2]["lr"] = (
+                    self.base_lr * self.actor_lr_scale * frac
+                )
 
         batch_size = flat_actions.shape[0]
         minibatch_size = batch_size // self.minibatches
@@ -790,9 +960,10 @@ class PPOAgent(Agent):
                 # Every epoch reapplies the stored mask: pi_new must be masked
                 # exactly like the pi_old above, or the ratio is silently
                 # wrong (all-True leaves the logits bitwise untouched).
-                new_logp, entropies = self._logp_entropy(
+                new_logp, entropies, feats = self._logp_entropy(
                     flat_obs[idx], flat_actions[idx],
                     None if self.continuous else flat_masks[idx],
+                    features=self.aux_head is not None,
                 )
                 policy_loss, approx_kl, clip_frac = clipped_surrogate_loss(
                     new_logp, flat_old_logp[idx], mb_adv, self.clip_eps
@@ -828,7 +999,11 @@ class PPOAgent(Agent):
                     sums["loss/bc_kl"] += float(bc_kl.item())
 
                 self.optimizer.zero_grad()
-                loss.backward()
+                # retain_graph only for D25: the aux term reuses THIS
+                # minibatch's graph rather than paying a second actor forward
+                # (B9's build decision — a second forward is ~+25% update time
+                # and is not in the rung's -2.1% budget).
+                loss.backward(retain_graph=self.aux_head is not None)
                 # One clip over the actor+critic union — separate calls would
                 # hand each net the full norm budget. The return value is the
                 # total norm BEFORE clipping, which is the diagnostic: paired
@@ -837,6 +1012,15 @@ class PPOAgent(Agent):
                 # permanent lr divisor (the 2026-08-05 PPO audit saw it bind
                 # 16/16 on synthetic data and could not tell which).
                 grad_norm = nn.utils.clip_grad_norm_(self.params, self.max_grad_norm)
+                if self.aux_head is not None:
+                    # AFTER the clip read above, BEFORE the step: the aux term
+                    # must not move loss/grad_norm or loss/grad_clip_frac.
+                    aux_loss, aux_norm = self._aux_gradient(
+                        feats, aux_target[idx], aux_allow[idx], aux_valid[idx]
+                    )
+                    sums["aux/loss"] += aux_loss
+                    sums["aux/grad_norm"] += aux_norm
+                    sums["aux/grad_clip_frac"] += float(aux_norm > self.aux_max_grad_norm)
                 self.optimizer.step()
                 if self.l2_init_decay > 0.0:
                     # AFTER the step and after the clip read above: the lever
@@ -866,6 +1050,9 @@ class PPOAgent(Agent):
             **{name: total / grad_steps for name, total in sums.items()},
             "loss/explained_variance": explained_variance,
             "loss/adv_std": adv_std,
+            # Rollout-level label diagnostics; already single numbers for this
+            # update and must not be divided. Empty unless the lever is on.
+            **aux_stats,
         }
 
     def state_dict(self) -> dict[str, Any]:
@@ -881,6 +1068,12 @@ class PPOAgent(Agent):
         }
         if self._bc_anchor is not None:
             state["bc_anchor"] = self._bc_anchor.state_dict()
+        if self.aux_head is not None:
+            # A rider, like bc_anchor: `actor` and `critic` keep exactly the
+            # keys and counts a control checkpoint has, so eval_checkpoint.py,
+            # score_ladder.py and d22_dormant_rank.py load a D25 checkpoint
+            # unmodified (R0-2b).
+            state["aux_head"] = self.aux_head.state_dict()
         if self.l2_init_decay > 0.0:
             # A digest, not the anchors: theta0.pt lives once in the run dir.
             # Riders are ignored by load_state_dict on purpose — an EVAL-side
@@ -890,6 +1083,18 @@ class PPOAgent(Agent):
         return state
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
+        # D25 R0-2b, checked BEFORE anything is loaded: a lever-on checkpoint
+        # must not load silently into a lever-off agent. Nothing else would
+        # catch it — actor/critic keys match exactly (the head is agent-owned)
+        # and the optimizer graft below tolerates extra state keys by design.
+        # The reverse — an aux-on agent warm-starting from a control
+        # checkpoint — is legitimate and leaves the head at its init.
+        if state.get("aux_head") is not None and self.aux_head is None:
+            raise ValueError(
+                "checkpoint carries a D25 aux head but this agent has "
+                "aux_oppact_coef = 0: the auxiliary head would be dropped "
+                "without a word. Rebuild the agent from the run's own config."
+            )
         self.actor.load_state_dict(state["actor"])
         self.critic.load_state_dict(state["critic"])
         # Optimizer MOMENTS are restored onto THIS agent's param groups, and
@@ -925,6 +1130,9 @@ class PPOAgent(Agent):
         anchor_state = state.get("bc_anchor")
         if anchor_state is not None:
             self._install_bc_anchor(anchor_state)
+        aux_state = state.get("aux_head")
+        if aux_state is not None:
+            self.aux_head.load_state_dict(aux_state)
 
     def begin_warm_start(self) -> None:
         """`init_from` semantics, settled 2026-08-05: a warm start is a FRESH

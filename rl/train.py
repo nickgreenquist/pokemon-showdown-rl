@@ -156,6 +156,17 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
             "actor": sum(p.numel() for p in agent.actor.parameters()),
             "critic": sum(p.numel() for p in agent.critic.parameters()),
         }
+        # D25 R0-2 stamps BOTH numbers: `actor` must stay bit-identical to the
+        # control (626,059) while the trained stack grows by the head, and the
+        # ceiling is a POLICY here — EntityDeepSetsNet's assert walks its own
+        # parameters(), so an agent-owned head is invisible to it and no aux
+        # width can hard-fail at launch. R0-1 stamps the adopted label space
+        # for the same reason: so it cannot be changed silently at launch.
+        if getattr(agent, "aux_head", None) is not None:
+            aux = sum(p.numel() for p in agent.aux_head.parameters())
+            meta["params"]["aux"] = aux
+            meta["params"]["actor_plus_aux"] = meta["params"]["actor"] + aux
+            meta["aux_label_space"] = agent.aux_label_space
     (out_dir / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
 
 
@@ -235,6 +246,31 @@ def train(cfg: Config) -> None:
     # self` — make_opponent raises "unknown opponent", so nothing can
     # silently evaluate against the pool.
     train_env_kwargs = selfplay_env_kwargs(cfg, "opponent")
+    # D25 R0-1b, THE PURITY SEAM. The auxiliary label is the action of the
+    # agent's own current or past weights — DESIGN §5 clause (b) — and that is
+    # the ONLY thing that keeps an action-prediction head inside the pure
+    # self-play claim, because such a head IS a self-distillation channel and
+    # is admissible only because the teacher is us. Raised here, where the
+    # config is visible, and raised loudly with the reason in the message.
+    #
+    # The hazard is in fact DOUBLY FORECLOSED in source already — `fixed_mix`
+    # is rejected outright for Showdown envs below, and `pfsp_power` reweights
+    # only among AgentOpponent members and can never reach the pool's fixed
+    # anchors. This is cheap belt-and-braces, not a real find.
+    if cfg.agent.get("aux_oppact_coef", 0.0) > 0.0:
+        offending = {
+            key: cfg.selfplay.get(key, 0.0)
+            for key in ("fixed_mix", "pfsp_power")
+            if cfg.selfplay.get(key, 0.0)
+        }
+        if cfg.selfplay.get("opponent") != "self" or offending:
+            raise ValueError(
+                "aux_oppact_coef > 0 requires selfplay.opponent 'self' with "
+                f"fixed_mix and pfsp_power at zero (got opponent="
+                f"{cfg.selfplay.get('opponent')!r}, {offending or 'both zero'}): the "
+                "opponent-action label is only pure self-play while the labelled "
+                "opponent is a snapshot of this agent"
+            )
     pool, push_every = None, 0
     if train_env_kwargs.get("opponent") == "self":
         if not vectorized:
@@ -487,11 +523,15 @@ def _vector_loop(
         # next_privs the final state's privileged view, same argument).
         next_masks = infos.get("action_mask")
         next_privs = infos.get("privileged")
+        # D25: TRANSITION-time, not state — the opponent's action was produced
+        # during the step just taken and belongs to row t, so it is handed over
+        # directly and never carried forward the way masks and privs are.
+        opp_choice = infos.get("opp_choice")
         step += num_envs
         mark = time.perf_counter()
         update_metrics = agent.update(
             (obs, actions, rewards, next_obs, terminated, truncated, masks, next_masks,
-             privs, next_privs)
+             privs, next_privs, opp_choice)
         )
         update_sec += time.perf_counter() - mark
         if update_metrics:
