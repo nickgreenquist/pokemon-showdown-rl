@@ -44,9 +44,9 @@ INCONCLUSIVE, not refuted** ("2 of 3 below geometry" used the max null).
    (chapter → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
    Currently NAMED-NOT-RUN; the header scopes the claim accordingly.
 3. **LEDGER AUDITED — recorded ~17 was ~3.5 HIGH.** 392.8 lane-hours, 67.9 pre-chase →
-   **chase = 13.54, headroom ~6.5**. Re-measure, never increment. **§13 DEFECT:** it
-   conditions 250M on "a credited lever at 50M"; none exists → restate or waive.
-   CLAUDE.md's locked-eval line says 1000 battles/seed, DESIGN §8 says 3000 — fix.
+   **chase = 13.54, headroom ~6.5**; re-measure, never increment. **§13 DEFECT:** it
+   conditions 250M on "a credited lever at 50M", and none exists → restate or waive.
+   CLAUDE.md's locked eval says 1000 battles/seed, DESIGN §8 says 3000 — fix.
 
 ## Watch items
 
@@ -56,7 +56,6 @@ INCONCLUSIVE, not refuted** ("2 of 3 below geometry" used the max null).
   reads: **MAX null to ESTABLISH, MEDIAN null to RETIRE**; srank float64 + Gram fallback;
   `--tag` every pass. Letters at n=3 quantize to {0, 0.21, 0.79, 1} — calibrate first.
 - `ctx` is max-pooled and logits are `scorer([ctx‖entity])`, so a linear ctx probe cannot
-  decode even the actor's OWN action ⇒ heads and estimators must be scorer-shaped. Aux
-  head: AGENT-owned, own (third) optimizer group, SEPARATE clipping.
+  decode even the actor's OWN action ⇒ heads and estimators must be scorer-shaped.
 - Entity ckpts need BOTH env vars. Eval auto-tie crash can kill a lane; relaunch on a
   FRESH seed (s49→s51). Artifacts results/d23/, d24_design/, d24_null/ are gitignored.
