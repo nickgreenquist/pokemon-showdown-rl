@@ -32,6 +32,7 @@ class RolloutBuffer(Buffer):
         action_dtype=np.int64,
         n_actions: int | None = None,
         priv_dim: int | None = None,
+        opp_choice_dim: int | None = None,
     ):
         self.horizon = horizon
         self.num_envs = num_envs
@@ -72,11 +73,21 @@ class RolloutBuffer(Buffer):
             None if priv_dim is None
             else np.zeros((horizon, num_envs, priv_dim), dtype=np.float32)
         )
+        # D25 opponent-action labels: (kind, id, flags) int32 per row. NO
+        # next_* twin, and that is the design rather than an omission — the
+        # opponent's action is produced during the transition and belongs to
+        # row t, where privs describe the successor STATE (see the transition-
+        # vs-state distinction in ShowdownEnv.step). Allocated only when the
+        # agent declares the lever, same construction-time rule as `masks`.
+        self.opp_choice = (
+            None if opp_choice_dim is None
+            else np.zeros((horizon, num_envs, opp_choice_dim), dtype=np.int32)
+        )
         self._ptr = 0
 
     def add(
         self, obs, actions, rewards, next_obs, terminated, truncated, masks=None,
-        privs=None, next_privs=None,
+        privs=None, next_privs=None, opp_choice=None,
     ) -> None:
         """Store one batched (N-wide) transition row."""
         t = self._ptr  # IndexError past the horizon: the agent drains at full()
@@ -91,6 +102,8 @@ class RolloutBuffer(Buffer):
         if self.privs is not None:
             self.privs[t] = privs
             self.next_privs[t] = next_privs
+        if self.opp_choice is not None:
+            self.opp_choice[t] = opp_choice
         self._ptr += 1
 
     def full(self) -> bool:

@@ -462,11 +462,12 @@ class _StubStack:
         return _obs_dict(), reward, terminated, truncated, {}
 
 
-def _adapter(stub) -> ShowdownEnv:
+def _adapter(stub, pool_player=None) -> ShowdownEnv:
     env = ShowdownEnv.__new__(ShowdownEnv)  # step()/waits count only
     env._env = stub
-    env._pool_player = None
+    env._pool_player = pool_player
     env._privileged = False
+    env._opp_action = pool_player is not None
     env.waits_absorbed = 0
     return env
 

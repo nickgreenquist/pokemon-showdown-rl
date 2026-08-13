@@ -37,6 +37,7 @@ from gymnasium import Env, spaces
 from poke_env.battle.effect import Effect
 from poke_env.battle.move import Move
 from poke_env.battle.move_category import MoveCategory
+from poke_env.battle.pokemon import Pokemon
 from poke_env.battle.pokemon_type import PokemonType
 from poke_env.battle.status import Status
 from poke_env.battle.target import Target
@@ -367,6 +368,51 @@ def _move_slots_aliased(battle) -> bool:
     (fight / struggle / recharge), so move slot i no longer means move i."""
     avail = getattr(battle, "available_moves", None)
     return bool(avail) and len(avail) == 1 and avail[0].id in _SPECIAL_MOVE_IDS
+
+
+# --- D25 opponent-action labels (configs/showdown_sp_actpred12m.yaml, B1/B2) --
+#
+# The label the auxiliary head predicts: WHICH ACTION the pool opponent chose on
+# the same simultaneous decision our own action was taken at. Free in self-play
+# — the opponent is a frozen snapshot of the agent itself — and free in compute:
+# PoolPlayer.choose_move already computes the decision, and SingleAgentWrapper.
+# step calls it INSIDE our step from `battle2` in its pre-resolution state.
+#
+# WHAT CROSSES THE SEAM IS AN IDENTITY, NOT THE INDEX (B2). The raw 10-way index
+# is in the OPPONENT's own frame (0..5 = its team order, 6..9 = its move order),
+# and both orders are per-battle random permutations we never observe. So the
+# order's target is resolved to the encoder's OWN _species_id / _move_id, which
+# is also what the observation's id suffix carries — one id convention, so the
+# canonicaliser can match a label against the actor's own obs row and nothing
+# can drift between the two.
+#
+# An np.array, never a tuple: a tuple hits gymnasium VectorEnv._add_info's
+# object-array branch. Emitted ALWAYS (sentinel included) so the vector info
+# array keeps a stable (N, 3) int32 shape across sub-envs.
+OPP_CHOICE_DIM = 3
+OPP_CHOICE_PRESENT = 1  # flags bit 0: a real decision was made this step
+OPP_CHOICE_ALIASED = 2  # flags bit 1: gen-1 re-based the opponent's move list
+_OPP_CHOICE_NONE = (-1, -1, 0)
+
+
+def _order_identity(order, battle) -> tuple[int, int, int]:
+    """(kind, id, flags) for the opponent's BattleOrder — kind 0 switch, 1 move.
+
+    Ids come from the encoder's own tables, so `_move_id` maps gen-1's
+    placeholder moves (fight, recharge — no `num` in poke-env's table) to 0,
+    which the canonicaliser reads as OTHER_MOVE. Struggle is a real num (165)
+    and lands in OTHER_MOVE by the slot lookup failing instead, which is the
+    same path any unslotted move takes.
+    """
+    flags = OPP_CHOICE_PRESENT | (
+        OPP_CHOICE_ALIASED if _move_slots_aliased(battle) else 0
+    )
+    target = getattr(order, "order", None)
+    if isinstance(target, Move):
+        return (1, _move_id(target), flags)
+    if isinstance(target, Pokemon):
+        return (0, _species_id(target.species), flags)
+    return _OPP_CHOICE_NONE  # a Default/Forfeit order names no entity
 
 
 # --- Privileged (asymmetric-critic) block — D18, DESIGN §12 ----------------
@@ -787,6 +833,20 @@ class PoolPlayer(Player):
         self._rng = np.random.default_rng(0)
         self._battle_tag: str | None = None
         self._current = None
+        # D25: the identity of the action this seat chose on the CURRENT inner
+        # step, or the sentinel. Read by ShowdownEnv.step; see clear_choice.
+        self._choice = _OPP_CHOICE_NONE
+
+    def clear_choice(self) -> None:
+        """Reset to the sentinel — called before EVERY inner env.step (B2).
+
+        A `battle2.wait` turn issues a DefaultBattleOrder without ever calling
+        choose_move, so without this the previous turn's label would silently
+        be re-emitted on a step where this seat made no decision at all."""
+        self._choice = _OPP_CHOICE_NONE
+
+    def take_choice(self) -> tuple[int, int, int]:
+        return self._choice
 
     def seed_rng(self, seed: int) -> None:
         self._rng = np.random.default_rng(seed)
@@ -814,7 +874,13 @@ class PoolPlayer(Player):
         action = self._current.move(obs, mask, self._rng)
         # strict default: an out-of-mask action raises rather than degrading
         # to a random move (SeamPlayer precedent).
-        return SinglesEnv.action_to_order(np.int64(action), battle)
+        order = SinglesEnv.action_to_order(np.int64(action), battle)
+        # D25 (B1/B2): record the chosen action's IDENTITY off the SAME
+        # decision, before it becomes a protocol message. Costs no inference —
+        # `action` was computed above regardless — and is unconditional
+        # because the label carries no cost worth branching on.
+        self._choice = _order_identity(order, battle)
+        return order
 
 
 def _parse_mix(spec: str) -> dict[str, float]:
@@ -872,6 +938,7 @@ class ShowdownEnv(Env):
         faint_shaping: float = 0.0,
         hl_shaping: float = 0.0,
         privileged: bool = False,
+        opp_action: bool = False,
     ):
         # save_replays (False | True | directory) is poke-env's native replay
         # dump: each finished battle is written as a Showdown replay HTML
@@ -898,6 +965,13 @@ class ShowdownEnv(Env):
         # at every decision point. Info-dict only, never the obs space; the
         # flag defaults off so every existing config's env is bit-identical.
         self._privileged = privileged
+        # D25: emit info["opp_choice"] — the pool opponent's chosen action
+        # identity at this step's simultaneous decision. INERT without a
+        # PoolPlayer, which is what makes it safe at every EVAL site: cfg.
+        # env_kwargs flows through make_eval_env to score_ladder.py and
+        # eval_checkpoint.py, where the opponent is the fixed anchor and there
+        # is no self-play label to capture (B15, R0-2b).
+        self._opp_action = opp_action and self._pool_player is not None
         # Wait-states pumped inside step() and never returned (see below);
         # exposed so the regression test can prove the pump path executes.
         self.waits_absorbed = 0
@@ -937,8 +1011,21 @@ class ShowdownEnv(Env):
         # still returns a full transition. Fail loudly instead: a discarded
         # action entering the buffer is a phantom (s, a) pair.
         assert poke.agent1_to_move, "action would be silently discarded by poke-env"
+        if self._opp_action:
+            self._pool_player.clear_choice()
         # np.int64, not int: poke-env's action_to_order calls action.item().
         obs, reward, terminated, truncated, info = self._env.step(np.int64(action))
+        # D25 (B3): TRANSITION-TIME info. The opponent's action is produced
+        # DURING this call and belongs to row t — like info["outcome"], and
+        # unlike info["action_mask"] / info["privileged"], which describe the
+        # SUCCESSOR state and are carried forward by the train loop. So: no
+        # carry variable, no next_* twin, and no reset merge (reset has no
+        # preceding turn and emits no label).
+        #
+        # Read after the FIRST inner step only. The wait pump's later opponent
+        # choices are forced post-faint replacements, not the simultaneous
+        # decision, and are discarded.
+        choice = self._pool_player.take_choice() if self._opp_action else None
         total_reward = float(reward)
         # Absorb wait states (our seat has nothing to choose — e.g. the
         # opponent is replacing a fainted mon; measured 6.4% of raw steps vs
@@ -948,11 +1035,15 @@ class ShowdownEnv(Env):
         # The pump's dummy action is discarded by the same mechanism the
         # assert above guards.
         while not (terminated or truncated) and not poke.agent1_to_move:
+            if self._opp_action:
+                self._pool_player.clear_choice()
             obs, reward, terminated, truncated, info = self._env.step(np.int64(0))
             total_reward += float(reward)
             self.waits_absorbed += 1
         info["action_mask"] = obs["action_mask"].astype(bool)
         self._emit_privileged(info)
+        if self._opp_action:
+            info["opp_choice"] = np.array(choice, dtype=np.int32)
         if terminated or truncated:
             assert poke.battle1 is not None
             info["outcome"] = battle_outcome(poke.battle1)
