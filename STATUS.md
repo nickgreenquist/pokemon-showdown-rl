@@ -10,9 +10,9 @@ NULL, falsifier-killed; D23 regen-L2 **"letter-met, seed-fragile, NOT credited"*
 12M seed sd ≈0.036. **THE 50M CARRY IS REJECTED** (2 designers + 2 reviews + 2 opposed
 advocates, 0 lanes) — no branch changes a decision, and the 50M credit bar is **≥0.6675
 unconditionally**, above the best lane ever (0.6593). The **GEOMETRIC-NULL STUDY**
-(results/d24_null/) re-grades D23 at matched distance: **critic de-collapse SURVIVES
-(1.35/2.21/1.64×); the actor read is INCONCLUSIVE, not refuted** (median-null 1.57/1.18/
-0.74 — the earlier "2 of 3 below geometry" used the max null).
+(results/d24_null/) re-grades D23 at matched distance: **critic de-collapse SURVIVES;
+the actor read is INCONCLUSIVE, not refuted** (the "2 of 3 below geometry" used the max
+null, which is anti-conservative for retiring a claim).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 
@@ -57,8 +57,7 @@ unconditionally**, above the best lane ever (0.6593). The **GEOMETRIC-NULL STUDY
 - `ctx` is max-pooled and logits are `scorer([ctx‖entity])`, so a linear ctx probe cannot
   decode even the actor's OWN action ⇒ heads and estimators must be scorer-shaped. Aux
   head: owned by the AGENT, own (third) optimizer group (a group-0 append steals the
-  critic's Adam moments), SEPARATE clipping; opponent move tokens DO NOT EXIST in the
-  trunk today (`entity_deepsets.py:298-302` is own-moves-only).
+  critic's Adam moments), SEPARATE clipping.
 - Entity ckpts need BOTH env vars. Eval auto-tie crash can kill a lane; relaunch on a
-  FRESH seed (s49→s51, log 08-12). Artifacts results/d23/, d24_design/, d24_null/
-  (gitignored). Suite 293 green. Process: 2 Opus designers + 2 reviews per pre-reg.
+  FRESH seed (s49→s51). Artifacts results/d23/, d24_design/, d24_null/ (gitignored).
+  Process: 2 Opus designers + 2 reviews per pre-reg.
