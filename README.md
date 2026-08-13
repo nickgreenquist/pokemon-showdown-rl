@@ -85,8 +85,9 @@ such rungs, and scale (50M+) is where win-rate claims live.
 documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach
 ~80% GXE. This chase is a *purity-lane* first in a generation where it had not been
 shown — it is not a strength record and does not enter the published field. The
-roadmap is `DESIGN.md` (r7 ratified; §12's first lever, the privileged critic, is
-read out and killed — a regenerative-L2 plasticity rung is next in its queue).
+roadmap is `DESIGN.md` (r7 ratified; §12's first two levers — the privileged critic
+and the regenerative-L2 rung — are read out; the auxiliary opponent-model head (D19)
+is next in its queue, pending the maintainer's call on a 50M regen-L2 carry).
 
 ## Setup
 
