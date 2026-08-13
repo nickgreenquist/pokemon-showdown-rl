@@ -3064,3 +3064,42 @@ entry by offset — never a broad keyword grep.
   accounting: measure, do not estimate — the per-arm reconstruction above is cheap
   (one pass over runs/) and should be re-run rather than incremented.** Corrected in
   STATUS. Tree clean; no lanes.
+- 2026-08-13 (afternoon, D19 DESIGN CYCLE — THE PREMISE FAILS AT ZERO LANES; DO NOT
+  LAUNCH AS QUEUED) — **Two designers, working independently from DIFFERENT data
+  sources, both measured that opponent-TEAM prediction is very nearly information-free
+  in gen1 randbats — the format makes D19's target almost empty by construction.**
+  Designer A, from 1800 teams recovered off the existing obs tapes: species marginal
+  entropy **4.949 nats over 146 observed species vs uniform 4.984**; exclusion-prior
+  NLL 4.942 against an oracle 4.868, so the **practical ceiling on learnable structure
+  is 0.074 nats of ~4.94**, and a fitted held-out model captures 0.035 — top-1 moves
+  3.09% -> 3.12%. Of that 0.074, **0.064 is exclusion** (don't re-predict an already
+  revealed species), which is a mask, not a learned belief. Designer B, from 4,000
+  teams drawn from the real generator: frame-level belief content **0.296 nats of
+  4.921, and EXACTLY 0.000 at one revealed mon.** The two disagree on the number
+  (different definitions — A's is what a model can capture beyond exclusion, B's is
+  averaged over reveal states) and agree completely on the conclusion: **teams are
+  independent near-uniform draws, so seeing one of the opponent's mons tells you
+  essentially nothing about the rest.** The lever was imported from advisories about
+  games where hidden composition is CORRELATED (DouZero+ hidden hand, agent-modeling
+  aux tasks); gen1 randbats has no such structure to infer. **This is a real finding
+  and it is worth recording whether or not anything else runs: an auxiliary
+  opponent-team-prediction head cannot form a useful belief state in a format whose
+  teams are drawn independently.** Two further zero-lane catches: (a) a plain
+  `Linear(384->152)` head is 684,579 params and **BREACHES ACTOR_PARAM_CEILING
+  (681,994)** — R0-2 would have hard-failed at launch; B's fix (head owned by PPOAgent,
+  constructed after both nets) keeps the actor at 626,059 AND makes actor/critic init
+  bit-identical to the control at the same seed, which D18 could not claim; (b)
+  `loss/grad_clip_frac` is **0.90 on control lanes**, so any COUPLED aux term is a
+  covert ~10-30% policy-LR cut — an aux gradient must be clipped separately (D23's
+  decoupling precedent). Also recorded from Designer A: at n_C=3 every threshold letter
+  has its level quantized to {0, 0.2099, 0.7901, 1} — which is exactly why the earlier
+  dormancy letter came out at level 0.26 — and D18, a rung with NO actor lever, scores
+  p=0.0893 on the dormancy permutation letter, i.e. that letter is not specific. **NOT
+  IMPLEMENTED, NOT LAUNCHED. The maintainer authorized D19 on the queued premise; the
+  premise did not survive the design cycle, so the decision goes back rather than the
+  lanes going out.** Options put up: drop D19 and record the format finding; RE-TARGET
+  the aux head from team composition to OPPONENT ACTION prediction (in a simultaneous-
+  move game that is the belief that actually bears on the decision, ground truth is
+  free in self-play, same plumbing, same 5 lanes / 2.24 lane-days) — a new lever
+  needing its own cycle; or close the chapter. Documents: results/d24_design/
+  d19_design_A.md, d19_design_B.md. Tree clean, no lanes, no code changed.
