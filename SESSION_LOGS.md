@@ -3368,3 +3368,78 @@ entry by offset — never a broad keyword grep.
   smoke (four arms, seed 99, ONE AT A TIME), then the maintainer launches 52-56. **OPEN
   MAINTAINER CALL, unchanged and still needed before launch: the shuffled-label placebo,
   +2.35 lane-days.**
+
+- 2026-08-13 (night, **D25's PRE-LAUNCH GATES RUN AT ZERO LANES — three PASS, R0-10b
+  FIRES**; and the sha256-frozen reference tapes were rescued from a job scratch
+  directory one deletion from gone). `scripts/d25_gates.py` is committed and
+  SELF-CONTAINED: the design cycle's probe machinery lives under the gitignored
+  `results/`, so a gate that imported it would die with that directory — which is exactly
+  what nearly happened. **THE ARTEFACT RESCUE FIRST.** The tapes §5 freezes by sha256 —
+  and which R0-15 requires the grader to PRINT before any treatment number is loaded —
+  were in `~/.claude/jobs/<id>/tmp/`, deleted with the job. Copied to `results/d25/` with
+  all three hashes verified across the copy (s36 3ffee9ba…074917, s37 58e64af1…39483f,
+  and the INADMISSIBLE s35 9388ef3e…babe484, kept because its numbers are what
+  disqualify it). **Without them §5's control distribution, power table and every MDE are
+  unreproducible and a re-collected tape is a DIFFERENT tape.** results/ is gitignored,
+  so results/d25/ is still the only copy and its README says so at the top. **THE GRADER
+  VALIDATES BEFORE IT GATES:** `verify` re-fits §5's atoms at split seeds 0 and 1 and
+  matches the frozen run to **max |diff| 4.7e-05 over 10 atoms**; R0-12b's own control
+  row then reproduces all five 8-split atoms (+0.0217/+0.0072/+0.0201/+0.0114/+0.0145,
+  mean +0.0150) to four decimals. Splits 0 and 1 are the two LOWEST of the eight, so the
+  check is per-split — a mean-vs-mean comparison looked like a systematic defect and was
+  not one. Every fit in every gate passed R0-12c's `||g||_2 < 1e-3`; none dropped or
+  retried. **R0-12b PASS.** On the s36 tape in L6 at max_iter 2000: PCA-384 of the raw
+  observation **+0.0009**, PCA-384 of the opponent's own observation **+0.0021**,
+  row-shuffled ctx **-0.0046**, iid Gaussian at the live dimension **-0.0146**, real
+  trained ctx **+0.0150**. The closest null is 7x below the control. **ONE HEADER CLAIM
+  DOES NOT REPRODUCE AND IS CORRECTED IN-HEADER:** "a 384-dim linear summary of the
+  observation is worse than nothing" was a 12-class own-tape result (-0.058/-0.021) and
+  is FALSE in the adopted space on the primary reference, where both PCA nulls are
+  slightly POSITIVE. The gate's own criterion is untouched; the rhetorical force of that
+  row is. **R0-13(a) PASS**, and it corrects two things. The retained push ids were
+  re-derived by SIMULATING the shipped `SnapshotPool._evict_index` rather than copying a
+  list, which surfaced an off-by-one: **push id 0 is the STEP-0 ANCHOR at step 0**, not
+  at 0.15M — the design cycle mapped push id k to (k+1)*153,600 and that is where the
+  header's "push ids spanning 0.15M-12M" came from. Oracle window **1.1505 -> 0.9783
+  (85%)**, reproducing Reviewer 1's pre-stated 86% prior. And the number he explicitly
+  declined to estimate, which R0-13 nonetheless required (`re-measure A1/A3/A2s`):
+  **realised does NOT hold constant under pool labels — 0.544 -> 0.4485**, measured by
+  resampling each row's label from its own pool mixture and refitting the L6 with-ctx
+  probe. The RATIO barely moves (47.3% -> 45.8%), so the honest headline is **~46% of the
+  knowable, not ~50%**. Both NO-LAUNCH thresholds clear with ~50% margin. **R0-13(b)
+  DISCHARGED AND THE BAR MOVES.** The L6 `g_frozen-probe` values are
+  **0.4396/0.4035/0.4681/0.3504/0.3922 -> mean 0.4108** against the 12-class 0.463, so
+  the **OPERATIVE LEARNED BAR IS 0.3286, not 0.371 — an 11.4% LOOSENING**, and §6's WEAK
+  band becomes [0.10, 0.3286). The header guessed it would "land in the same place" off
+  A's s26 single-split L6 datum of 0.4905; **that datum was HIGH — the 8-split s26 value
+  is 0.4396.** The 0.80 multiplier remains an unsourced free parameter. **R0-10b FIRES
+  NO-LAUNCH, AND THE GATE ITSELF IS DEFECTIVE.** D19-B's procedure verbatim (1,024 real
+  s26 rows, policy proxy = the surrogate at ratio 1 with z-scored advantages, head at
+  gain 0.01), on the BUILT head, **5 head draws per stage because the head is fresh every
+  lane and a one-draw ratio is a property of a seed**: raw aux/policy trunk-gradient
+  ratio **0.037-0.074 (600k) / 0.020-0.047 (6M) / 0.006-0.059 (12M)**. The POLICY column
+  reproduces D19-B's within ~1.5x at every stage, so the proxy is right; **D25's AUX
+  trunk gradient is 4x/33x/36x SMALLER than D19's** — the OPPOSITE of the header's
+  expectation that B6a's wider path would make it larger. Every coefficient in the
+  pre-stated {0.05, 0.1, 0.25, 0.5} therefore lands at 0.0015-0.029 against a 0.05 floor:
+  **the grid is EMPTY and R0-10b's stated action is "the rung does not launch".** **BUT
+  THE BAND DOES NOT SURVIVE ITS OWN SOURCE:** [0.05, 1.5] is inherited from D19-B §6
+  ("with the chosen coefficient"), and applied to D19-B's OWN table at D19-B's OWN
+  recommended coefficient 0.1 it gives 0.027 (600k, OUT), 0.117 (6M, in), 0.045 (12M,
+  OUT) — **it rejects the recommendation of the design that proposed it, at 2 of the 3
+  gated stages. It is not a criterion the design cycle ever met.** Both facts are
+  recorded and neither is smoothed over. Arithmetic only, offered as arithmetic and NOT
+  as a proposal: on the mean ratios the band wants coef in **[1.7, 26]**. **NOTHING IN
+  THE RATIFIED CONFIG WAS CHANGED IN RESPONSE** — the grid, the band and `aux_head_gain`
+  are all pre-registered numbers and amending any of them is a maintainer call under the
+  standing 2-designers-2-reviews process. **ALSO FIXED AT GATE TIME: the shipped L6 CLASS
+  ORDER was inverted.** The build had SWITCH=4/OTHER_MOVE=5; §1 writes the space as
+  "{ slot 0,1,2,3 | OTHER_MOVE | SWITCH }" and pins it numerically (its realised s26
+  frequencies end in 7.2% and s26's measured tape switch fraction is 0.0719), and the
+  design cycle's own `y12_to_y6` agrees. NOT load-bearing for the loss — the head learns
+  whatever indexing it is given, which is why 17 green tests missed it — but load-bearing
+  for the READOUT. Corrected and pinned by a test quoting the frequency line. The gate
+  run also produced a free cross-check: **the SHIPPED canonicaliser agrees with the
+  design cycle's label path on 1.0000 of 1,024 rows.** Suite **318 green**. **NEXT: the
+  R0-10b adjudication is the blocker and it is the maintainer's**, then the placebo call,
+  then the R0-10 smoke (four arms, seed 99, ONE AT A TIME) and the 52-56 launch.
