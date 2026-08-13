@@ -287,7 +287,54 @@ class EntityDeepSetsNet(nn.Module):
             pmoves.amax(dim=1),
         ]
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def _aux_features(self, tok, mons, ctx) -> tuple[torch.Tensor, ...]:
+        """D25's auxiliary-head inputs, off the SAME forward the PPO loss makes.
+
+        THE OPPONENT MOVE TOKENS DO NOT EXIST IN THIS NET (D25 B6a). forward()
+        runs `move_net` over `tok["moves"][:, :4]` — OWN moves only, exactly as
+        the module docstring says — while the tokenizer emits all 8 and nothing
+        consumes slots 4:8. The aux path applies the EXISTING subnet and
+        embedding to those existing-but-unused tokens: no new module, no new
+        parameters, and the pattern is `_priv_features`' verbatim. The
+        consequence is disclosed rather than hidden — `move_net` / `move_emb`
+        are SHARED trunk weights, so the aux gradient reaches them through a
+        path the policy never used, and D25 is an actor-side lever that
+        MODIFIES SHARED PARAMETERS (B6b, C6).
+
+        The bench token is pooled here rather than in the agent-owned head
+        because the live/non-active mask is TOKEN-side information (revealed
+        flag, fainted bit, is-active bit at token offsets 0/2/3) that no
+        consumer of a 128-d entity vector could recover.
+
+        Runs only under return_features=True, i.e. only inside `update` and
+        only when the lever is on — `forward(x)` and the acting path are
+        untouched (R0-7's forward-hook count of 0 over a full eval pass).
+        """
+        # move_ids are already clamped to the table by the tokenizer.
+        opp_moves = self.move_net(
+            torch.cat(
+                [tok["moves"][:, 4:], self.move_emb(tok["move_ids"][:, 4:])], dim=-1
+            )
+        )  # (B, 4, entity_dim)
+        opp_tok = tok["mons"][:, 6:]
+        # Token layout is [revealed flag || mon block || gated extras], and the
+        # mon block opens hp, fainted, is-active (_fill_mon).
+        live_bench = (
+            (opp_tok[:, :, 0] > 0) & (opp_tok[:, :, 2] <= 0) & (opp_tok[:, :, 3] <= 0)
+        )  # (B, 6)
+        bench = mons[:, 6:]
+        floor = torch.full_like(bench, torch.finfo(bench.dtype).min)
+        pooled = torch.where(live_bench.unsqueeze(-1), bench, floor).amax(dim=1)
+        # All-zero when no revealed live bench slot exists. Note this is NOT
+        # the same as "SWITCH is illegal": early in a battle the opponent has
+        # five unrevealed live mons and switching is legal while this token is
+        # zero. Legality comes from the public faint count, in the canonicaliser.
+        opp_bench = torch.where(
+            live_bench.any(dim=1, keepdim=True), pooled, torch.zeros_like(pooled)
+        )
+        return ctx, opp_moves, opp_bench
+
+    def forward(self, x: torch.Tensor, return_features: bool = False) -> torch.Tensor:
         priv = None
         if self.privileged_dim:
             x, priv = x[:, : -self.privileged_dim], x[:, -self.privileged_dim :]
@@ -314,6 +361,8 @@ class EntityDeepSetsNet(nn.Module):
             ctx_parts += self._priv_features(priv)
         ctx = self.ctx_net(torch.cat(ctx_parts, dim=-1))
         if not self.is_policy:
+            if return_features:
+                raise ValueError("return_features is actor-only: the critic has no aux head")
             return self.head(ctx)
         # Pointer alignment (the exact poke-env mapping the encoder relies
         # on): switch action i <-> own-mon vector i, move action 6+j <->
@@ -323,4 +372,7 @@ class EntityDeepSetsNet(nn.Module):
         pairs = torch.cat(
             [ctx.unsqueeze(1).expand(-1, entities.shape[1], -1), entities], dim=-1
         )
-        return self.scorer(pairs).squeeze(-1) + self.slot_bias
+        logits = self.scorer(pairs).squeeze(-1) + self.slot_bias
+        if not return_features:
+            return logits
+        return (logits, *self._aux_features(tok, mons, ctx))
