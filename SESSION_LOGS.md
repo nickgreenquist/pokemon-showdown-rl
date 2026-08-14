@@ -3677,3 +3677,24 @@ entry by offset — never a broad keyword grep.
   de-dormantifies the ctx trunk (recorded jointly per §5; the letter's own
   de-dormancy specificity read is r = -0.453 on controls, wrong sign to manufacture
   a positive, but the JOINT record must name the treatment shift).
+- 2026-08-14 (evening, cont., **CO-PRIMARY B: LETTER FIRED AT MIN ATTAINABLE p =
+  1/252 — IN BOTH LABEL SPACES**). `scripts/d25_atoms.py` ran on the frozen s36 tape
+  (sha attested pre-fit; 8 splits; lambda 0.01; all 112 fits converged, max ||g||
+  2.4e-04 vs the 1e-3 bound): **L6-native atoms s52 +0.0530 / s53 +0.0659 / s54
+  +0.0505 / s55 +0.0619 / s56 +0.0568 (split sds 0.0135-0.0217) -> treatment mean
+  +0.0576 vs control +0.0150.** Every treatment atom exceeds every control atom, so
+  the exact permutation sits at its floor: **p = 1/252 = 0.003968 vs level 12/252 —
+  FIRED** (grader transcript results/d25/grade_with_atoms.txt). 12-class secondary:
+  same shape (+0.0476-0.0622, mean +0.0539, p = 1/252), letter-met, reported-not-
+  graded. The shift (+0.0426 control-relative) exceeds the WORST admissible-corner
+  MDE (0.0301) — this is not a marginal fire. Recorded jointly per §5: **live ctx
+  units 220/257/293/271/247 vs controls 170/158/111/164/125 on the same tape** — the
+  lever roughly doubles trunk liveness; the §5 de-dormancy specificity (r = -0.453 on
+  controls, wrong sign) plus the four R0-12b capacity nulls are the standing answers,
+  and the own-tape-gain endogeneity diagnostic still needs the own tapes (collect
+  stage queued). CLAIM BOUND stands: "the pooled context became MORE DECODABLE for
+  the opponent's next action" — not "belief state", not "opponent model" (that is
+  the shuffled-label placebo's to license, §12, OPEN). BOTH CO-PRIMARIES HAVE NOW
+  FIRED: win rate CREDIT (0.6185, bar 0.58273) + mechanism at min p. Still owed for
+  the full readout: §6 g (LEARNED bar 0.3286), S1/R0-16 dormancy, M4 obligations
+  (clone re-score RUNNING, SH-exploitation falsifier), the placebo decision.
