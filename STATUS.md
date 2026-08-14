@@ -2,14 +2,14 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-14 — D25 LAUNCHED at coef 0.1, 5 lanes s52-56)
+## Where things stand (2026-08-14 — D25 RUNNING at coef 0.1, 5 lanes s52-56)
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (seed sd 0.0756); D18 NULL; D23
 regen-L2 "letter-met, seed-fragile, NOT credited"; the 50M CARRY IS REJECTED (bar
-≥0.6675, above the best lane ever, 0.6593). **D25 (opponent ACTION prediction) is now
-BUILT** (~230 lines, 26 tests, suite **319 green**) **and its zero-lane gates are RUN:
-R0-12b, R0-13(a), R0-13(b) PASS; R0-10b's A1 amendment was REFUSED on review and the
-ratio is measured LIVE instead; R0-10's four smoke arms ran and set coef 0.1.**
+≥0.6675, above the best lane ever, 0.6593). **D25 (opponent ACTION prediction) BUILT**
+(~230 lines, 26 tests, suite **319 green**); gates R0-12b/R0-13(a)/(b) PASS; smoke set
+coef 0.1 — frozen in config §15B/§15C + SESSION_LOGS 2026-08-13/14; R0-10's
+largest-passing-arm rule was DEVIATED FROM, disclosed (§15C).
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 | result | win rate |
@@ -21,40 +21,40 @@ ratio is measured LIVE instead; R0-10's four smoke arms ran and set coef 0.1.**
 | **LADDER** M1/M2/**M3 CLAIMED at 12M** · M4 letter-met at 50M | **NOT claimed** |
 
 ## Next actions, in order (maintainer decisions at the top)
-0. **D25 IS RUNNING — 5 lanes, s52-56, coef 0.1, ETA ~10.2 h from 2026-08-14 ~00:10.**
-   Each lane is a DETACHED `screen` session: `screen -r d25_s52` (…s56), `ctrl-a d` to
-   detach. Verified by battle PROGRESS (148k-185k steps, 3.8k-4.9k episodes), 314-325
-   steps/s wall 5-wide, R0-1 stamps correct on all five. WATCH: R0-8 battle
-   PROGRESS per lane (never "run dir exists"), R1 `selfplay/winrate_anchor` ≥0.75 by 4M
-   (arm STOPS and records F5 NEGATIVE if <3 of 5 clear), K6 entropy, the VOID clause on
-   `loss/grad_norm`/`grad_clip_frac`, and `aux/illegal_label_frac` == 0.
-   **R0-10's rule was DEVIATED FROM, disclosed (config §15C):** it says take the LARGEST
-   passing arm (0.5), but (a) is flat across a 10× range (**and g itself was NOT computed
-   — proxied only**) and (b) is NON-MONOTONE against the matched-step control band, i.e.
-   noise. What IS monotone: injection fraction and `aux/grad_clip_frac` (0.102 at 0.5 —
-   the clip binds, so the declared coefficient stops being the effective one).
+0. **D25 RUNNING — verified 11:10 EDT by battle PROGRESS: 3.68-3.72M steps, wall
+   312-327 steps/s** (R0-8: ≥30-min WALL window, never logged `steps_per_sec`; record
+   <255, STOP <210), `winrate_anchor` 0.969-0.979 (R1 ≥0.75 at 4M met; <3 of 5 clearing
+   STOPS the arm → F5 NEGATIVE, no re-tune), entropy 0.35-0.47 (K6: median <0.15 ×5
+   before 6M → stop lane), `aux/illegal_label_frac` 0. Finals **~18:30 EDT**; `screen`
+   d25_s52…s56; a dead lane relaunches on a FRESH seed (47-48 held), never same seat.
 1. **YOUR CALL: the shuffled-label placebo arm, +2.35 lane-days** (chapter → ~18.2/20) —
-   "an explicit opponent model helps" vs "an aux loss helps". Needed before the readout.
-3. **LEDGER: chase 13.54 + this rung's 2.35 = 15.9/20**; re-measure, never increment.
-## Gate results, frozen into the config's §15B (zero-lane, `scripts/d25_gates.py`)
-- **R0-12b PASS** — nulls +0.0009 / +0.0021 / -0.0046 / -0.0146 against a real ctx of
-  +0.0150; closest null 7× below. Header claim corrected: the PCA nulls are NOT "worse
-  than nothing" in L6 on s36. **R0-13(a) PASS** — window 1.1505 → **0.9783 (85%)**,
-  matching the 86% prior; and realised does NOT hold constant under pool labels
-  (**0.544 → 0.4485**), so the honest headline is **~46% of the knowable, not ~50%**.
-- **R0-13(b) — the LEARNED bar MOVES to 0.3286** (L6 mean g 0.4108) from 0.371, an 11.4%
-  loosening; §6's WEAK band becomes [0.10, 0.3286). The grader reproduces §5's frozen
-  atoms to 4.7e-05 before any gate runs.
-- **BUILD FIX from running the real launch path:** SWITCH legality assumed the opponent's
-  active is ALIVE, so forced post-faint replacements were called illegal and dropped at
-  0.12% of live decisions — enough to HARD-FAIL R0-5(d) at read time. No frozen tape
-  carries such a row, so no offline gate could have caught it. Fixed; now 0.0000.
+   "an explicit opponent model helps" vs "an aux loss helps". Needed before the READOUT.
+2. **R0-14 GRADER — NOT WRITTEN; owed before the readout, needs no lane.** Credit line
+   VERBATIM (pooled ≥ +0.025 AND ≥ 2·se_diff, se_diff the LARGER of pooled-binomial vs
+   seed-clustered), recording band, lane-failure recompute, R0-4 hard fail, permutation
+   p for CO-PRIMARY B in BOTH label spaces and for S1 at the pre-stated level for the
+   surviving n_T (5→12/252, 4→6/126, 3→2/56, VOID <3). Comparator FROZEN:
+   0.5633/0.5683/0.5210/0.5763/0.4937 → **0.54452, sd 0.03558**; operative bar
+   0.584-0.599. R0-15: print those five + tape sha256 BEFORE any treatment number loads.
+3. **M4 CLONE RE-SCORE at 5×3000 BEFORE the finals land** — the obligations fire on the
+   NUMBER (pooled ≥0.558), not on a verdict; a FLAT result can trigger them.
+4. At the finals: locked eval — final ckpt, deterministic, ties as non-wins, vs SH,
+   **3000 battles/seed × 5 seeds pooled**, BOTH encoder env vars at every eval.
+5. Also owed: **C10** — do §0 tapes include forced post-faint replacements? settle
+   pre-readout. **g NEVER COMPUTED** for R0-10(a) (proxied via `aux/loss`) — close or
+   say "proxied". **R0-16** dormancy control s50/s51, 12M, tau 0.025 (S1 letter only).
+6. **LEDGER: chase 13.54 + this rung's 2.35 = 15.9/20**; re-measure, never increment.
+
 ## Watch items
+- **`grad_clip_frac` ~0.99 mid-run is NORMAL, NOT a VOID trigger** — the clause's 0.90
+  is a WHOLE-RUN mean; controls sit 0.9847-0.9878 at matched steps (D25 0.9843-0.9886).
+  Compare at MATCHED STEPS or every lane voids, controls included.
 - **results/d25/ IS THE ONLY COPY of the sha256-frozen tapes** (gitignored) — losing it
-  voids the mechanism co-primary.
-- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 = the smoke; 47-48
-  held for a D25 lane lost before R1; **52-56 = D25**; 57+ free.
-- **Quote the RANGE, not the best variant.** **MAX null to ESTABLISH, MEDIAN to RETIRE.**
-  `ctx` is max-pooled ⇒ estimators must be scorer-shaped. BOTH env vars, always. **Verify
-  a launch by battle PROGRESS, never by what the launcher printed** (`setsid` is absent on
-  macOS and printed five plausible pids for five dead lanes).
+  voids the mechanism co-primary. `scripts/d25_gates.py verify` attests them.
+- Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 47-48 held for a D25
+  lane lost before R1; **52-56 = D25**; 57+ free.
+- **Quote the RANGE, not the best variant** (MDE 0.0105-0.0301; non-fire <~0.017 nats
+  UNINFORMATIVE). MAX null to ESTABLISH, MEDIAN to RETIRE. LEARNED bar **0.3286**. L6
+  class order `{slot0..3, OTHER_MOVE=4, SWITCH=5}`. Realised under pool labels
+  **0.4485** (~46%). **Verify launches by battle PROGRESS** (`setsid` absent on macOS;
+  wandb offline — a stale history.csv is not a stalled lane).

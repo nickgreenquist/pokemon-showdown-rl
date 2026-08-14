@@ -3585,3 +3585,15 @@ entry by offset — never a broad keyword grep.
   condition (b), where §7's final-1M-bin entropy band was inert against a 100k smoke —
   **this chapter's constants are mostly whole-run or end-of-run figures and several of the
   during-run gates quote them without saying so.**
+- 2026-08-14 (midday, **handoff taken; 11:10 EDT lane verification**). All five D25
+  lanes re-verified by battle PROGRESS after re-extracting history.csv (wandb offline —
+  a stale CSV is not a stalled lane): 3.68-3.72M steps, **wall 312-327 steps/s** over
+  the trailing 35 min (s52 320.6 / s53 316.0 / s54 318.4 / s55 311.7 / s56 326.6 —
+  s55's logged instantaneous `time/steps_per_sec` of 42.5 is exactly the noise R0-8's
+  wall-window rule exists to ignore), `selfplay/winrate_anchor` 0.9687-0.9786 (R1's
+  0.75 at 4M already met on every lane), `loss/entropy` 0.350-0.466 (K6 floor 0.15 not
+  approached), `aux/illegal_label_frac` 0 on all five, all `screen` sessions attached
+  and detached cleanly. HANDOFF.md folded into STATUS.md and the stub restored: the
+  owed-before-readout list (R0-14 grader, M4 clone re-score at 5×3000 before finals,
+  C10, g-proxied disclosure, R0-16) promoted into STATUS next actions, and the
+  grad_clip_frac matched-steps trap promoted to a STATUS watch item.
