@@ -24,10 +24,10 @@ the claim is "an aux opponent-action loss helps", NOT "an opponent model helps".
 | **LADDER** M1/M2/M3 CLAIMED · **M4: (i) clear, rests on (ii) + blessing** | pending |
 
 ## Next actions, in order (maintainer decisions at the top)
-0. **IN FLIGHT: the §6/S1/R0-16 collect stage** (own oppact tapes s52-56, obs
-   s50-56, both dormancy passes → `results/d25/dormant_d25.csv` +
-   `results/d23/dormant_d25_control.csv`). Then: grader S1 read; §6 g script (aux
-   head NLL on own tape vs A1/A3, LEARNED bar 0.3286) is the next unit to WRITE.
+0. **ALL FOUR LETTER-BEARING READS LANDED FULL-SUCCESS (2026-08-14 night): PRIMARY
+   CREDIT + co-primary B p=1/252 (both spaces) + §6 LEARNED (median g 0.7055, 2.1×
+   bar, 5/5, trajectory rising) + S1 p=1/252. Falsifier does NOT fire. R0-16 done
+   (controls s50 0.4896 / s51 0.4115). Transcripts/artifacts under results/d25/.**
 1. **YOUR CALL — the shuffled-label placebo (+2.35 lane-days), now the claim-scope
    decider for a CREDITED lever**; and ratify the M4 adjudication once (ii) lands.
 2. **M4 (ii) SH-exploitation falsifier — OWED:** two-orientation head-to-heads vs the
