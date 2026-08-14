@@ -3564,3 +3564,24 @@ entry by offset — never a broad keyword grep.
   **433 steps/s** from the agent, i.e. near-native. The rule still stands for an 11 h
   fleet, but the binding risk there is JOB LIFETIME, not throughput — which is why the
   lanes are in detached screens rather than in the agent's process tree.
+
+- 2026-08-14 (midday, **D25 mid-run check at 3.6M — all five lanes healthy; and a VOID-
+  clause trap recorded before it can fire spuriously**). 311-315 steps/s wall 5-wide, ETA
+  ~7.5 h to finals; `selfplay/winrate_anchor` **0.9685-0.9785** (R1's 0.75 gate at 4M is
+  already comfortably met, and the values sit in the control range 0.955-0.975 / D23's
+  0.968-0.978); `loss/entropy` 0.298-0.440, well above K6's 0.15 floor; live trunk ratio
+  0.125-0.130, matching the smoke's 0.1137 at this coefficient; **`aux/illegal_label_frac`
+  0.000000 on every lane across ~18M cumulative steps** — the forced-replacement legality
+  fix holds at scale. **THE TRAP, recorded so the readout does not fire it: mid-run
+  `loss/grad_clip_frac` reads ~0.99, and the VOID CLAUSE says a move of >0.05 from 0.90
+  means "the clip path is not behaving as designed and mechanism attribution is VOID for
+  that lane".** Read naively that voids all five. It is an artefact of comparing a mid-run
+  value against **0.8995, which is a WHOLE-RUN 12M mean**: at matched steps the CONTROL
+  lanes themselves sit at **0.9847-0.9878** over their own first 3.6M (against whole-run
+  means of 0.8995-0.9517), and D25 sits at **0.9843-0.9886** — indistinguishable. **That
+  is R0-9's decoupled clip holding in PRODUCTION, not a defect**: the aux term is added
+  after the clip is read, so the policy's clip statistics are the control's. Compare at
+  MATCHED STEPS, or void every lane including the controls. Same shape as R0-10's
+  condition (b), where §7's final-1M-bin entropy band was inert against a 100k smoke —
+  **this chapter's constants are mostly whole-run or end-of-run figures and several of the
+  during-run gates quote them without saying so.**
