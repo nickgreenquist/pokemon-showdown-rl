@@ -29,13 +29,11 @@ ratio is measured LIVE instead; R0-10's four smoke arms ran and set coef 0.1.**
    PROGRESS per lane (never "run dir exists"), R1 `selfplay/winrate_anchor` ≥0.75 by 4M
    (arm STOPS and records F5 NEGATIVE if <3 of 5 clear), K6 entropy, the VOID clause on
    `loss/grad_norm`/`grad_clip_frac`, and `aux/illegal_label_frac` == 0.
-   **R0-10's rule was DEVIATED FROM, disclosed:** it says take the LARGEST passing arm
-   (0.5), but condition (a) is flat across a 10× range (`aux/loss` 1.5312-1.5574, and g
-   itself was NOT computed — proxied only) and condition (b) is NON-MONOTONE against the
-   matched-step control band (0.05 in, 0.1 out, 0.25 in, 0.5 in), i.e. noise. What IS
-   monotone: injection fraction and `aux/grad_clip_frac` (0.102 at coef 0.5 — the clip
-   binds, so the declared coefficient stops being the effective one). 0.1 sits in
-   D19-B's targeted 3-12% injection band and never clips. Full record: config §15C.
+   **R0-10's rule was DEVIATED FROM, disclosed (config §15C):** it says take the LARGEST
+   passing arm (0.5), but (a) is flat across a 10× range (**and g itself was NOT computed
+   — proxied only**) and (b) is NON-MONOTONE against the matched-step control band, i.e.
+   noise. What IS monotone: injection fraction and `aux/grad_clip_frac` (0.102 at 0.5 —
+   the clip binds, so the declared coefficient stops being the effective one).
 1. **YOUR CALL: the shuffled-label placebo arm, +2.35 lane-days** (chapter → ~18.2/20) —
    "an explicit opponent model helps" vs "an aux loss helps". Needed before the readout.
 3. **LEDGER: chase 13.54 + this rung's 2.35 = 15.9/20**; re-measure, never increment.
