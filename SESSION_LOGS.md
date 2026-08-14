@@ -3597,3 +3597,30 @@ entry by offset — never a broad keyword grep.
   owed-before-readout list (R0-14 grader, M4 clone re-score at 5×3000 before finals,
   C10, g-proxied disclosure, R0-16) promoted into STATUS next actions, and the
   grad_clip_frac matched-steps trap promoted to a STATUS watch item.
+- 2026-08-14 (afternoon, **R0-14 DISCHARGED: the grader is written and verified;
+  R0-15's attestation PASSES against the real frozen inputs**). `scripts/d25_grade.py`
+  (~380 lines) + `tests/test_d25_grade.py` (20 tests), suite **319 -> 339 green**.
+  What it implements, all verbatim from the config header: the credit line with the
+  larger-of se clause; the recording band [0.5695, operative bar); NEGATIVE at
+  0.54452 - max(0.025, 2*se); the LANE FAILURE recompute with PRIMARY VOID below 3
+  survivors; R0-4's hard fail on every ingested JSON (both pools); the M4 obligations
+  firing ON THE NUMBER (pooled >= 0.558) regardless of verdict; exact one-sided
+  permutation letters for CO-PRIMARY B (L6 GRADED, 12-class reported-not-graded) and
+  S1 (treatment LOWER) at the pre-stated levels by surviving n_T (12/252, 6/126, 2/56,
+  VOID < 3), ties counted extreme (conservative). **R0-15 runs FIRST and hard-stops on
+  drift**: re-reads the five comparator finals from disk (s26/27/28 =
+  runs/showdown_sp_struct12m_s*/final_eval_3000.json; s50/51 =
+  results/d23/comparator_s*.json), checks each against the frozen 4-dp values, derives
+  0.54453/0.03561 vs frozen 0.54452/0.03558 (4-dp rounding, tol 1e-4), prints §5's
+  frozen atoms in both label spaces and verifies both tape sha256s — ALL PASS on this
+  machine. Verification includes HAND-DERIVED known-p cases (subset-sum counting over
+  distinct integers, not the implementation checking itself): 2/252, 4/252, 2/126,
+  2/56-at-level-fires, 4/56-does-not; binomial se reproduces the header's 0.005745;
+  synthetic verdict cases hit CREDIT / band / FLAT / NEGATIVE / VOID and the
+  clustered-governs case at D23-like spread. S1 grading correctly BLOCKS at n_C = 3
+  until R0-16 lands s50/s51. Full-output rehearsal on synthetic finals under the job
+  tmp dir confirmed every section fires. Inputs owed at readout: finals ->
+  results/d25/final_s{52..56}.json, mech atoms -> results/d25/treatment_atoms.json
+  ({"L6": {...}, "c12": {...}}, 8-split means from the post-run probe pass), dormancy
+  CSV in the d22 schema. Still owed elsewhere: the atoms pipeline run itself, the M4
+  clone re-score at 5x3000, R0-16, C10, and g (proxied).

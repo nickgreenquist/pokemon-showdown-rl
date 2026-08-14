@@ -29,13 +29,11 @@ largest-passing-arm rule was DEVIATED FROM, disclosed (§15C).
    d25_s52…s56; a dead lane relaunches on a FRESH seed (47-48 held), never same seat.
 1. **YOUR CALL: the shuffled-label placebo arm, +2.35 lane-days** (chapter → ~18.2/20) —
    "an explicit opponent model helps" vs "an aux loss helps". Needed before the READOUT.
-2. **R0-14 GRADER — NOT WRITTEN; owed before the readout, needs no lane.** Credit line
-   VERBATIM (pooled ≥ +0.025 AND ≥ 2·se_diff, se_diff the LARGER of pooled-binomial vs
-   seed-clustered), recording band, lane-failure recompute, R0-4 hard fail, permutation
-   p for CO-PRIMARY B in BOTH label spaces and for S1 at the pre-stated level for the
-   surviving n_T (5→12/252, 4→6/126, 3→2/56, VOID <3). Comparator FROZEN:
-   0.5633/0.5683/0.5210/0.5763/0.4937 → **0.54452, sd 0.03558**; operative bar
-   0.584-0.599. R0-15: print those five + tape sha256 BEFORE any treatment number loads.
+2. **R0-14 GRADER WRITTEN + VERIFIED** (`scripts/d25_grade.py`, 20 tests incl. known-p
+   cases per grid; suite **339 green**). Attestation-first (R0-15): reproduces the five
+   frozen comparator finals from disk, 0.54452/0.03558, §5 atoms, both tape shas — PASS.
+   At readout: put finals in `results/d25/final_s{52..56}.json`, atoms in
+   `treatment_atoms.json` {"L6":{...},"c12":{...}}, dormancy CSV; then run it.
 3. **M4 CLONE RE-SCORE at 5×3000 BEFORE the finals land** — the obligations fire on the
    NUMBER (pooled ≥0.558), not on a verdict; a FLAT result can trigger them.
 4. At the finals: locked eval — final ckpt, deterministic, ties as non-wins, vs SH,
