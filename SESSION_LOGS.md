@@ -3698,3 +3698,23 @@ entry by offset — never a broad keyword grep.
   FIRED: win rate CREDIT (0.6185, bar 0.58273) + mechanism at min p. Still owed for
   the full readout: §6 g (LEARNED bar 0.3286), S1/R0-16 dormancy, M4 obligations
   (clone re-score RUNNING, SH-exploitation falsifier), the placebo decision.
+- 2026-08-14 (evening, cont., **M4 OBLIGATION (i) DISCHARGED — the clone re-score does
+  NOT block**). Both clone checkpoints re-scored at 5x3000 under the locked protocol
+  (v2/808 process, --opponent heuristics, R0-4 exact on all ten JSONs,
+  results/d25/clone_rescore_{final,best}_p{1..5}.json): **FINAL 0.5537/0.5560/0.5387/
+  0.5607/0.5423 -> pooled 0.5503, sd 0.0094** (confirms the v2r protocol-grade 0.5490;
+  DESIGN §2's 0.558 was the superseded n=1000 probe and the number conflict resolves
+  to the re-score, as the header prescribed); **VAL-PEAK 0.5760/0.5850/0.5937/0.5837/
+  0.5800 -> pooled 0.5837, sd 0.0066** (confirms 0.5777). Neither lands above D25's
+  pooled 0.6185 — D25 clears even the clone's selection-biased val-peak by +0.035.
+  **M4 now rests on obligation (ii) alone**: the SH-exploitation falsifier
+  (two-orientation head-to-heads vs the clone, 500/pair/orientation, via the
+  cross-encoder shim) + the maintainer's formal blessing. OPEN CHOICE FLAGGED for the
+  maintainer: which treatment lane seats the head-to-head (M3's precedent used a
+  single lane; the median-final lane s55 0.6073 is the least favorable-looking pick,
+  s52/s53 the strongest). Ops note, measured tonight: the first clone chain died
+  loading the v2/808 clone in the 828 process — v2/808 ckpts eval under V2=1 with IDS
+  unset; the shim is for cross-play seats, not single-checkpoint evals. §6/S1/R0-16
+  COLLECT STAGE LAUNCHED post-clone (own oppact tapes s52-56 at 300 eps; obs for
+  s50/s51 + s52-56 at 200 eps; then both dormancy passes, control tagged
+  d25_control).
