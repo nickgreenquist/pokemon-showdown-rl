@@ -3647,3 +3647,33 @@ entry by offset — never a broad keyword grep.
   docstring; sha-attests the tape before any fit; writes
   results/d25/treatment_atoms.json in the grader's schema + a detail file). Maintainer
   launched the locked finals chain ~18:40; C10 and the atoms script done while it ran.
+- 2026-08-14 (evening, **THE D25 PRIMARY: CREDIT — pooled 0.6185, the first credited
+  lever since Rung 3, and the first ever under the larger-of clause**). Maintainer ran
+  the locked finals chain (~18:40-18:49 EDT, 5x3000, both encoder env vars, sequential);
+  the grader ran attestation-first (R0-15 PASS, transcript in
+  results/d25/grade_primary.txt) and then graded: **s52 0.6233 / s53 0.6573 / s54
+  0.6063 / s55 0.6073 / s56 0.5980 -> pooled 0.6185; delta +0.0739** over the frozen
+  0.54453; clustered se governs (treatment s = 0.0236, comparator s = 0.0356), 2*se =
+  0.03820, **operative bar 0.58273 — cleared by +0.036, roughly the margin D23 MISSED
+  by**. R0-4 exact-agree on all ten JSONs. Named per the 50M lesson: treatment spread
+  is Rung-2-like (0.0236) and the credit survives it — this is NOT a seed-fragility
+  band case. **s53's 0.6573 is a new single-lane record** (prior: D23 s44 0.6463);
+  the POOLED 0.6185 exceeds every prior pooled result including the 50M finals
+  (0.5802). D23's chapter finding ("a 12M win-rate primary is effectively
+  un-creditable at advisory-scale effects") is refuted in the only honest way — by an
+  effect (+0.074) that is NOT advisory-scale. **CLAIM SCOPE, pre-registered and
+  binding: without the shuffled-label placebo (§12, maintainer decision OPEN), the
+  licensed claim is "an auxiliary opponent-action loss helps," NOT "an explicit
+  opponent model helps"; and §5's CLAIM BOUND caps the mechanism language at "the
+  pooled context became more decodable," not "belief state."** M4 obligations FIRED
+  ON THE NUMBER (0.6185 >= 0.558): (i) clone re-score at 5x3000 — RUNNING (both
+  clone checkpoints, v2/808 process, results/d25/clone_rescore_*_p*.json; first
+  attempt died on the 808-vs-828 state-dict mismatch: the 828 id-suffix process
+  cannot load the v2/808 clone, and the clone's own protocol-grade precedent is the
+  808 process — V2=1, IDS unset); (ii) the SH-exploitation falsifier (two-orientation
+  head-to-heads vs the clone via the shim) — OWED. Mechanism co-primary atoms
+  (scripts/d25_atoms.py) RUNNING on the frozen s36 tape; first read: treatment live
+  ctx units ~247 (s56) vs controls 111-170 on the same tape — the lever visibly
+  de-dormantifies the ctx trunk (recorded jointly per §5; the letter's own
+  de-dormancy specificity read is r = -0.453 on controls, wrong sign to manufacture
+  a positive, but the JOINT record must name the treatment shift).
