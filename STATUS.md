@@ -36,8 +36,8 @@ ratio is measured LIVE instead; R0-10's four smoke arms ran and set coef 0.1.**
    monotone: injection fraction and `aux/grad_clip_frac` (0.102 at coef 0.5 — the clip
    binds, so the declared coefficient stops being the effective one). 0.1 sits in
    D19-B's targeted 3-12% injection band and never clips. Full record: config §15C.
-1. **YOUR CALL before launch: the shuffled-label placebo arm, +2.35 lane-days** (chapter
-   → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
+1. **YOUR CALL: the shuffled-label placebo arm, +2.35 lane-days** (chapter → ~18.2/20) —
+   "an explicit opponent model helps" vs "an aux loss helps". Needed before the readout.
 3. **LEDGER: chase 13.54 + this rung's 2.35 = 15.9/20**; re-measure, never increment.
 ## Gate results, frozen into the config's §15B (zero-lane, `scripts/d25_gates.py`)
 - **R0-12b PASS** — nulls +0.0009 / +0.0021 / -0.0046 / -0.0146 against a real ctx of
@@ -53,8 +53,8 @@ ratio is measured LIVE instead; R0-10's four smoke arms ran and set coef 0.1.**
   0.12% of live decisions — enough to HARD-FAIL R0-5(d) at read time. No frozen tape
   carries such a row, so no offline gate could have caught it. Fixed; now 0.0000.
 ## Watch items
-- **results/d25/ IS THE ONLY COPY of the sha256-frozen tapes** (gitignored, rescued from
-  a job scratch dir) — losing it voids the mechanism co-primary.
+- **results/d25/ IS THE ONLY COPY of the sha256-frozen tapes** (gitignored) — losing it
+  voids the mechanism co-primary.
 - Seeds: 0-13, 23-46, 50-51 SPENT; **49 BURNED**; 14-22 RESERVED; 99 = the smoke; 47-48
   held for a D25 lane lost before R1; **52-56 = D25**; 57+ free.
 - **Quote the RANGE, not the best variant.** **MAX null to ESTABLISH, MEDIAN to RETIRE.**
