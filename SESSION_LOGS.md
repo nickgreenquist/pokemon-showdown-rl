@@ -3541,3 +3541,26 @@ entry by offset — never a broad keyword grep.
   is the value ratified in the config, so no pre-registered number moved. No in-rung
   re-tune — F5's no-smaller-coefficient clause stands. Config §15C carries the full
   record.
+
+- 2026-08-14 (**D25 LAUNCH RECORD** — 5 lanes away, seeds 52-56, `aux_oppact_coef` 0.1).
+  **A FIRST LAUNCH ATTEMPT FAILED SILENTLY AND IS RECORDED SO IT IS NOT REDISCOVERED:
+  `setsid` DOES NOT EXIST ON macOS**, so a `setsid nohup env … &` launch printed five
+  plausible pids — the subshells — while every lane died instantly. Nothing ran, no run
+  dirs, nothing burned; but the pids made it look launched, which is exactly the shape of
+  the "run dir exists ≠ lane trained" landmine one level further out. **The lesson
+  generalises: verify a launch by battle PROGRESS, never by anything the launcher itself
+  printed.** Relaunched under `screen -dmS d25_s{52..56}` (macOS has `screen`, not
+  `tmux`), staggered 25 s, each `caffeinate -is`, fully detached from the agent job so the
+  fleet survives it — attach with `screen -r d25_s52`. **VERIFIED LIVE at first check:**
+  148k-185k steps and 3.8k-4.9k episodes per lane, **314-325 steps/s wall-clock 5-wide**
+  (ETA ~10.2 h/lane, against the header's ~11.0 h estimate), R0-1 stamps correct on all
+  five (`git_dirty: false`, `aux_label_space: l6`, `actor_plus_aux: 675538`), logs free of
+  the startup SIGSEGV, `aux/illegal_label_frac` **0.000000 on every lane**, live trunk
+  ratio 0.125-0.130 (in band, and consistent with the smoke's 0.1137 at this coefficient),
+  `loss/grad_clip_frac` 0.741-0.761. **NOT an R0-8 read** — those numbers are COLD and
+  include startup, where R0-8 specifies WARM wall-clock effective over a sustained >=30-min
+  window after the first 1M steps; take the R0-8 read then. Also worth recording against
+  CLAUDE.md's "agent-launched training measured ~10x slower": the 100k smoke arms ran at
+  **433 steps/s** from the agent, i.e. near-native. The rule still stands for an 11 h
+  fleet, but the binding risk there is JOB LIFETIME, not throughput — which is why the
+  lanes are in detached screens rather than in the agent's process tree.
