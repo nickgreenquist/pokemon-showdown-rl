@@ -3733,3 +3733,22 @@ entry by offset — never a broad keyword grep.
   de-dormantifies the actor ctx trunk, exactly the textbook
   representation-regulariser mechanism §7 named. §6 manipulation check
   (scripts/d25_manipulation.py, g on own tapes vs bar 0.3286) RUNNING.
+- 2026-08-14 (night, **§6 MANIPULATION CHECK: LEARNED — median g 0.7055, 2.1x the bar,
+  5/5 lanes; THE RUNG'S READOUT IS COMPLETE ON EVERY AGENT-RUNNABLE READ**).
+  scripts/d25_manipulation.py on each lane's OWN tape (A1/A3 re-derived per split;
+  mirror tapes, so the oracle IS the generator and g > 1.0 had no escape — max lane g
+  0.7472, nowhere near it): **g@12M = 0.7472 / 0.7098 / 0.6885 / 0.6634 / 0.7055
+  (s52-56), MEDIAN 0.7055 vs LEARNED bar 0.3286 — LEARNED, 5/5 consistency**, and the
+  trajectory rises on every lane (3M 0.23-0.42 -> 6M 0.33-0.46 -> 12M 0.66-0.75), so
+  the head was still learning at the horizon. A1 1.48-1.54, A3 0.25-0.38, NLL_head
+  0.56-0.75 (results/d25/manipulation.json). **THE FALSIFIER (§8) DOES NOT FIRE — this
+  is the full-success branch on all four letter-bearing reads:** PRIMARY CREDIT
+  0.6185 (bar 0.58273) + CO-PRIMARY B at p = 1/252 (both spaces) + §6 LEARNED (2.1x
+  bar) + S1 at p = 1/252, with M4 (i) clear (clone 0.5503/0.5837, both < 0.6185),
+  C10 settled, R0-14/15/16 discharged. STILL OPEN, all maintainer-gated: the
+  shuffled-label placebo (claim scope: "aux loss helps" is licensed today; "opponent
+  model" needs the placebo), M4 (ii) falsifier h2h (lane choice yours) + formal M4
+  blessing, and the R0-10(a) g-for-coefficient-selection disclosure stays "proxied"
+  (tonight's §6 g is the manipulation check, not that). Session artifacts all under
+  results/d25/ (grade_primary/with_atoms/s1.txt, treatment_atoms*.json,
+  manipulation.json, clone_rescore_*, oppact_s52-56.npz, obs_s52-56.npz, dormant_d25*).
