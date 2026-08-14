@@ -19,19 +19,20 @@ the claim is "an aux opponent-action loss helps", NOT "an opponent model helps".
 | Rung 3 50M finals — CREDIT (era-graded, seed sd 0.0756) | 0.5802 ± 0.0052 |
 | D18 priv-critic NULL 0.5364 · D23 regen-L2 not-credited 0.5897 | — |
 | **D25 oppact-aux 12M — CREDIT (bar 0.58273; s53 record 0.6573)** | **0.6185** |
-| BC-of-FP v2r clone 0.5490/0.5777 (1×3000; re-score at 5×3000 RUNNING) | — |
-| **LADDER** M1/M2/M3 CLAIMED at 12M · **M4 0.558: obligations FIRED** | pending |
+| **D25 mech co-primary: LETTER at MIN p = 1/252, both label spaces** | Δ +0.0426 |
+| BC-of-FP v2r clone at 5×3000: final 0.5503 / val-peak 0.5837 — both < D25 | — |
+| **LADDER** M1/M2/M3 CLAIMED · **M4: (i) clear, rests on (ii) + blessing** | pending |
 
 ## Next actions, in order (maintainer decisions at the top)
-0. **IN FLIGHT (launched by the session agent, 2026-08-14 ~19:00):** (a) M4 clone
-   re-score, 5×3000 × BOTH clone ckpts (final + val-peak), v2/808 process, →
-   `results/d25/clone_rescore_{final,best}_p{1..5}.json`; (b) mech atoms
-   (`scripts/d25_atoms.py`) on the frozen s36 tape → `treatment_atoms.json`; then
-   re-run `scripts/d25_grade.py` for the CO-PRIMARY B permutation letter.
+0. **IN FLIGHT: the §6/S1/R0-16 collect stage** (own oppact tapes s52-56, obs
+   s50-56, both dormancy passes → `results/d25/dormant_d25.csv` +
+   `results/d23/dormant_d25_control.csv`). Then: grader S1 read; §6 g script (aux
+   head NLL on own tape vs A1/A3, LEARNED bar 0.3286) is the next unit to WRITE.
 1. **YOUR CALL — the shuffled-label placebo (+2.35 lane-days), now the claim-scope
-   decider for a CREDITED lever**; and ratify the M4 adjudication once (i)+(ii) land.
+   decider for a CREDITED lever**; and ratify the M4 adjudication once (ii) lands.
 2. **M4 (ii) SH-exploitation falsifier — OWED:** two-orientation head-to-heads vs the
-   clone via the cross-encoder shim, 500/pair/orientation.
+   clone via the shim, 500/pair/orientation. **YOUR pick: which treatment lane seats
+   it** (M3 precedent used one lane; median-final s55 is the conservative pick).
 3. **§6 manipulation check + S1/R0-16 — OWED, need per-lane tapes:** collect oppact
    tapes + obs (s52-56) and obs for s50/s51 (fleet is DOWN, safe); then g vs bar
    0.3286 (A1/A3 re-derived per lane, per-member oracle for the >1.0 hard fail) and
