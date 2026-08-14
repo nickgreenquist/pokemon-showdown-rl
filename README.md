@@ -43,6 +43,7 @@ rows marked * are single-seed probes, not headline-grade.
 | **same recipe at 50M — current best** | **0.5802 ± 0.0052** |
 | + privileged (asymmetric) critic, 12M, 5 seeds — null | 0.5364 ± 0.0066 |
 | + regenerative L2-toward-init, 12M, 3 seeds — letter-met, not credited | 0.5897 ± 0.0066 |
+| **+ opponent-action auxiliary loss, 12M, 5 seeds — CREDITED, current best** | **0.6185 ± 0.0040** |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 
@@ -79,7 +80,18 @@ final-vs-peak checkpoint gap shrank as predicted. The run also refreshed the
 comparator with two fresh seeds, which landed 0.083 apart — the honest headline is
 that **seed variance at 12M is large enough that win-rate deltas of the size these
 levers produce cannot clear a seed-robust bar**; mechanism evidence has to carry
-such rungs, and scale (50M+) is where win-rate claims live.
+such rungs, and scale (50M+) is where win-rate claims live. The next lever broke
+that pattern (2026-08-14): **an auxiliary opponent-action prediction loss** — the
+agent's pooled context must also predict which of six action classes the opponent
+takes each turn, labels harvested free from self-play's second seat — read out at
+**0.6185 pooled × 5 seeds, +0.074 over its frozen comparator, crediting under the
+seed-clustered rule with margin** (operative bar 0.583), the first credited lever
+since the 50M run and the first ever under the stricter clustered rule. Its
+mechanism co-primary fired at the minimum attainable exact-permutation p (1/252,
+both label spaces): the pooled context became ~4× more decodable for the
+opponent's next action on a frozen reference tape. Claim scope is deliberately
+narrow pending a pre-registered placebo arm: what is licensed is "an auxiliary
+opponent-action loss helps", not yet "the agent learned an opponent model".
 
 **Honest scoping.** SH parity ≈ 40% GXE in human-ladder terms; the strongest
 documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach
