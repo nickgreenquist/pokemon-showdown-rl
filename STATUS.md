@@ -21,11 +21,10 @@ ratio is measured LIVE instead; R0-10's four smoke arms ran and set coef 0.1.**
 | **LADDER** M1/M2/**M3 CLAIMED at 12M** · M4 letter-met at 50M | **NOT claimed** |
 
 ## Next actions, in order (maintainer decisions at the top)
-0. **D25 IS RUNNING — 5 lanes, seeds 52-56, coef 0.1, ETA ~10.2 h from 2026-08-14 ~00:10.**
+0. **D25 IS RUNNING — 5 lanes, s52-56, coef 0.1, ETA ~10.2 h from 2026-08-14 ~00:10.**
    Each lane is a DETACHED `screen` session: `screen -r d25_s52` (…s56), `ctrl-a d` to
-   detach, `screen -ls` to list. Launch verified by battle PROGRESS (148k-185k steps,
-   3.8k-4.9k episodes at first check), 314-325 steps/s wall 5-wide, R0-1 stamps correct
-   on all five (`git_dirty: false`, `l6`, actor+aux 675,538). WATCH: R0-8 battle
+   detach. Verified by battle PROGRESS (148k-185k steps, 3.8k-4.9k episodes), 314-325
+   steps/s wall 5-wide, R0-1 stamps correct on all five. WATCH: R0-8 battle
    PROGRESS per lane (never "run dir exists"), R1 `selfplay/winrate_anchor` ≥0.75 by 4M
    (arm STOPS and records F5 NEGATIVE if <3 of 5 clear), K6 entropy, the VOID clause on
    `loss/grad_norm`/`grad_clip_frac`, and `aux/illegal_label_frac` == 0.
