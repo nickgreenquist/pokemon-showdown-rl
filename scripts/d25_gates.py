@@ -769,9 +769,26 @@ def cmd_r010b():
 # --------------------------------------------------------------------------
 
 SMOKE_COEF = {"c005": 0.05, "c010": 0.1, "c025": 0.25, "c050": 0.5}
-# Control band, from the five comparator lanes (§7 S3 / §9 R1).
-ENTROPY_BAND = (0.212, 0.284)
 ANCHOR_MIN = 0.75
+
+
+def control_band(step_cap, key):
+    """R0-10 condition (b) says "within the control band AT MATCHED STEPS", so
+    the band is re-derived from the comparator lanes' own first `step_cap`
+    steps — NOT §7's 0.212-0.284, which is a final-1M-bin statistic and inert
+    against a 100k smoke. s51 has no history.csv on disk (§7 S3), so this is a
+    FOUR-lane band and the readout must say so."""
+    out = []
+    for lane in LANES:
+        hist = REPO / f"runs/showdown_sp_struct12m_s{lane}/history.csv"
+        if not hist.exists():
+            continue
+        import csv as _csv
+        vals = [float(r[key]) for r in _csv.DictReader(hist.open())
+                if r.get(key) not in (None, "") and float(r["_step"]) <= step_cap]
+        if vals:
+            out.append(float(np.mean(vals[-10:])))
+    return (min(out), max(out), len(out)) if out else (float("nan"), float("nan"), 0)
 
 
 def cmd_smoke():
@@ -803,11 +820,12 @@ def cmd_smoke():
         half = len(aux) // 2
         late = float(aux[half:].mean() / pol[half:].mean()) if half else float("nan")
         ent, anchor = col("loss/entropy"), col("selfplay/winrate_anchor")
+        ent_late = float(np.mean(ent[-10:])) if len(ent) else float("nan")
         loss = col("aux/loss")
         rows[tag] = dict(
             coef=coef, ratio=ratio, ratio_late=late,
             in_band=BAND[0] <= ratio <= BAND[1],
-            entropy=float(ent[-1]) if len(ent) else float("nan"),
+            entropy=ent_late,
             anchor=float(anchor[-1]) if len(anchor) else float("nan"),
             aux_loss_first=float(loss[0]) if len(loss) else float("nan"),
             aux_loss_last=float(loss[-1]) if len(loss) else float("nan"),
@@ -823,10 +841,13 @@ def cmd_smoke():
               f"[{BAND[0]}, {BAND[1]}]")
         print(f"    aux/loss {r['aux_loss_first']:.4f} -> {r['aux_loss_last']:.4f}"
               f"   (log 6 = 1.792)")
-        print(f"    loss/entropy {r['entropy']:.4f} (control band "
-              f"{ENTROPY_BAND[0]}-{ENTROPY_BAND[1]}, a BACK-HALF statistic — at "
-              f"100k steps this is a smoke read, not a gate)")
-        print(f"    selfplay/winrate_anchor {r['anchor']:.4f} (R1 wants >= {ANCHOR_MIN} by 4M)")
+        lo, hi, n = control_band(100_000, "loss/entropy")
+        print(f"    loss/entropy last-10 {ent_late:.4f}  "
+              f"{'IN' if lo <= ent_late <= hi else 'OUT of'} the MATCHED-STEP control "
+              f"band {lo:.4f}-{hi:.4f} ({n} lanes)")
+        alo, ahi, _ = control_band(100_000, "selfplay/winrate_anchor")
+        print(f"    selfplay/winrate_anchor {r['anchor']:.4f} "
+              f"(control at 100k {alo:.4f}-{ahi:.4f}; R1's gate is >= {ANCHOR_MIN} by 4M)")
         print(f"    aux/grad_clip_frac {r['aux_clip']:.4f}  labelled {r['labelled']:.4f}")
         print(f"    illegal {r['illegal']:.6f}  collisions {r['collision']:.6f}"
               f"   {'OK' if r['illegal'] == 0 == r['collision'] else '** HARD FAIL **'}")
