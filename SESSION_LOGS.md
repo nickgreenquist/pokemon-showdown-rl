@@ -3718,3 +3718,18 @@ entry by offset — never a broad keyword grep.
   COLLECT STAGE LAUNCHED post-clone (own oppact tapes s52-56 at 300 eps; obs for
   s50/s51 + s52-56 at 200 eps; then both dormancy passes, control tagged
   d25_control).
+- 2026-08-14 (night, **S1: LETTER FIRED at min p = 1/252; R0-16 DISCHARGED in the same
+  pass**). The collect stage ran clean post-clone (~19:12-19:36 EDT: own oppact tapes
+  s52-56 at 300 eps ~1.8-2.1 MB each; obs s50/s51 + s52-56 at 200 eps; both dormancy
+  passes). **R0-16**: the control extends to five lanes — actor ctx_net.1 tau025 at
+  12M: s26 0.4844 / s27 0.5000 / s28 0.6432 (frozen, drift-checked by the grader) +
+  **s50 0.4896 / s51 0.4115** (results/d23/dormant_d25_control.csv, --tag
+  d25_control). **S1**: treatment 0.3385 / 0.2474 / 0.2422 / 0.2370 / 0.2604 —
+  every treatment lane BELOW every control — **exact permutation p = 1/252,
+  treatment LOWER, FIRED** (results/d25/grade_s1.txt). Read WITH §7's own caveat:
+  S1 is a SECONDARY with a known specificity weakness (D18, no actor lever, reached
+  p = 0.0893 on the 3-lane control), though tonight's read is at n_C = 5 and the
+  floor. Consistent with the §5 joint record (live units ~2x) — the lever
+  de-dormantifies the actor ctx trunk, exactly the textbook
+  representation-regulariser mechanism §7 named. §6 manipulation check
+  (scripts/d25_manipulation.py, g on own tapes vs bar 0.3286) RUNNING.
