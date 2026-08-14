@@ -2,14 +2,14 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-13 — D25 BUILT and GATED; smoke is next; 0 lanes)
+## Where things stand (2026-08-14 — D25 LAUNCHED at coef 0.1, 5 lanes s52-56)
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
 r7; encoder frozen v2/808+ids=828). 50M chapter CLOSED (seed sd 0.0756); D18 NULL; D23
 regen-L2 "letter-met, seed-fragile, NOT credited"; the 50M CARRY IS REJECTED (bar
 ≥0.6675, above the best lane ever, 0.6593). **D25 (opponent ACTION prediction) is now
 BUILT** (~230 lines, 26 tests, suite **319 green**) **and its zero-lane gates are RUN:
-R0-12b, R0-13(a), R0-13(b) PASS. R0-10b fired; amendment A1 was REFUSED on review and
-A2 measures the ratio LIVE in the smoke instead.**
+R0-12b, R0-13(a), R0-13(b) PASS; R0-10b's A1 amendment was REFUSED on review and the
+ratio is measured LIVE instead; R0-10's four smoke arms ran and set coef 0.1.**
 
 ## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; *probe/†1000-seed era)
 | result | win rate |
@@ -21,19 +21,17 @@ A2 measures the ratio LIVE in the smoke instead.**
 | **LADDER** M1/M2/**M3 CLAIMED at 12M** · M4 letter-met at 50M | **NOT claimed** |
 
 ## Next actions, in order (maintainer decisions at the top)
-0. **RUN THE R0-10 SMOKE, then launch 52-56.** Four arms shipped as
-   `configs/showdown_sp_actpred_smoke_c{005,010,025,050}.yaml`, seed 99, **ONE AT A
-   TIME** (they collide on Showdown usernames), ~4 min each; read with
-   `scripts/d25_gates.py smoke`. **R0-10b's A1 amendment was REFUSED by both reviews**
-   — the fitted-head construction is not determinate (a reviewer reproduced it and got
-   1.74/1.46/1.24 vs A1's 2.50/3.41/4.19) and A1's headline was a Jensen-inflated
-   mean-of-ratios whose "head-draw spread" was the DENOMINATOR (13.6× across advantage
-   draws with the actor FIXED). **A2, PROPOSED: neither offline proxy gates the rung** —
-   both measure ‖W_last‖ × residual over a random advantage vector — so the ratio is
-   measured LIVE (`aux/trunk_norm` / `aux/policy_trunk_norm`, ratio-of-means). **Reads
-   0.177 at coef 0.1 over 8k steps, in band.** No pre-registered number changes; the rule
-   selects **0.1, already in the config**. Record: `results/d25/d25_amendment_r010b.md`.
-   If you prefer R0-10b's strict reading it stands and the rung does not launch.
+0. **D25 IS RUNNING — 5 lanes, seeds 52-56, coef 0.1, ~11 h/lane.** WATCH: R0-8 battle
+   PROGRESS per lane (never "run dir exists"), R1 `selfplay/winrate_anchor` ≥0.75 by 4M
+   (arm STOPS and records F5 NEGATIVE if <3 of 5 clear), K6 entropy, the VOID clause on
+   `loss/grad_norm`/`grad_clip_frac`, and `aux/illegal_label_frac` == 0.
+   **R0-10's rule was DEVIATED FROM, disclosed:** it says take the LARGEST passing arm
+   (0.5), but condition (a) is flat across a 10× range (`aux/loss` 1.5312-1.5574, and g
+   itself was NOT computed — proxied only) and condition (b) is NON-MONOTONE against the
+   matched-step control band (0.05 in, 0.1 out, 0.25 in, 0.5 in), i.e. noise. What IS
+   monotone: injection fraction and `aux/grad_clip_frac` (0.102 at coef 0.5 — the clip
+   binds, so the declared coefficient stops being the effective one). 0.1 sits in
+   D19-B's targeted 3-12% injection band and never clips. Full record: config §15C.
 1. **YOUR CALL before launch: the shuffled-label placebo arm, +2.35 lane-days** (chapter
    → ~18.2/20) — "an explicit opponent model helps" vs "an aux loss helps".
 3. **LEDGER: chase = 13.54, headroom ~6.5**; re-measure, never increment. **§13

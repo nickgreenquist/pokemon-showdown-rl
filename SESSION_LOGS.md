@@ -3507,3 +3507,37 @@ entry by offset — never a broad keyword grep.
   R0-10 smoke arms (seed 99, ONE AT A TIME, ~4 min each,
   `configs/showdown_sp_actpred_smoke_c*.yaml`), read with `scripts/d25_gates.py smoke`,
   then launch 52-56.** The placebo remains an open maintainer call.
+
+- 2026-08-14 (**R0-10 EXECUTED and D25 LAUNCHED at aux_oppact_coef = 0.1, 5 lanes, seeds
+  52-56**). Four smoke arms, 100k steps each, seed 99, one at a time, ~4 min each — and
+  worth recording against the CLAUDE.md landmine: agent-launched training ran at **433
+  steps/s wall-clock (100k steps in 231 s)**, i.e. near-native, NOT the ~10x penalty the
+  rule was written from. The rule still stands for the 11 h/lane fleet, where job
+  lifetime rather than throughput is the risk. **RESULTS:** coef 0.05/0.1/0.25/0.5 gave
+  live trunk ratios 0.0685/0.1137/0.3282/0.4807, `aux/loss` ends 1.5411/1.5574/1.5314/
+  1.5312, entropy@100k 1.2082/1.0329/1.3680/1.2081, `aux/grad_clip_frac` 0/0/0.0052/
+  0.1018. **`aux/illegal_label_frac` and `aux/frame_collision_frac` are EXACTLY 0.000000
+  on all four over 400k steps of real battles** — the forced-replacement legality fix
+  holds live. **THE LIVE RATIO SETTLED A2's PROXY DISPUTE: implied raw ratio ~0.96-1.37,
+  between the two offline constructions and much closer to the REVIEWER's replication
+  (1.24-1.74) than to A1's (2.50-4.19). A1 was the outlier; the refusal was
+  well-founded** — recorded because A1 was mine. **R0-10's RULE COULD NOT DISCRIMINATE
+  AND THE DEVIATION IS DISCLOSED.** (a) `aux/loss` is FLAT across a 10x coefficient range
+  (spread 0.026), so g is near-identical too — the head's own learning is nearly
+  coefficient-free because `aux_params` have their own Adam group, exactly as Reviewer 2
+  predicted; **g ITSELF WAS NOT COMPUTED (it needs a tape per arm), so condition (a) is
+  PROXIED, not evaluated, and the readout must say so.** (b) Read as written ("at matched
+  steps") the control band is the comparator lanes' own first 100k — **1.1541-1.4415,
+  FOUR lanes** (s51 has no history.csv) — not §7's final-1M-bin 0.212-0.284, which is
+  inert against a 100k smoke; on that band the arms are **NON-MONOTONE in the
+  coefficient** (0.05 in, 0.1 OUT, 0.25 in, 0.5 in), which across a 10x range is run
+  noise. So "take the LARGEST satisfying both" would have selected **0.5 on a noise-driven
+  condition, and it was NOT taken.** What IS monotone: injection fraction
+  0.069/0.114/0.328/0.481 and `aux/grad_clip_frac`, which reaches **0.1018 at coef 0.5 —
+  the aux clip binds on ~10% of minibatches, so the DECLARED coefficient stops being the
+  EFFECTIVE one.** The coefficient buys nothing measurable in the aux task and
+  monotonically more trunk perturbation. **0.1 taken:** injection ~11%, inside the 3-12%
+  band D19-B's own recipe targeted; clip never binds; 2.3x above the band floor; and it
+  is the value ratified in the config, so no pre-registered number moved. No in-rung
+  re-tune — F5's no-smaller-coefficient clause stands. Config §15C carries the full
+  record.
