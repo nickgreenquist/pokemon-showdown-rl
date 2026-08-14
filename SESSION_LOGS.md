@@ -3624,3 +3624,26 @@ entry by offset — never a broad keyword grep.
   ({"L6": {...}, "c12": {...}}, 8-split means from the post-run probe pass), dormancy
   CSV in the d22 schema. Still owed elsewhere: the atoms pipeline run itself, the M4
   clone re-score at 5x3000, R0-16, C10, and g (proxied).
+- 2026-08-14 (evening, **C10 SETTLED + the atoms pipeline written; lanes COMPLETE at
+  12M**). All five lanes finished 12M cleanly (~18:10-18:20 EDT; final `checkpoint.pt`
+  verified at step 12,000,000 on each; anchors 0.975-0.983 at close, K6 never fired,
+  `aux/illegal_label_frac` 0 throughout). **C10, settled empirically and by source:
+  the §0 tapes contain ZERO forced post-faint replacement rows — 0 of 53,848 rows
+  across all seven frozen tapes** (five control + s36/s37 references) have all four
+  move slots illegal in `mask2` (the forced-switch signature). Cause is BY
+  CONSTRUCTION, not accident: `collect_oppact.py:137-146` pairs rows on
+  (battle_tag, turn) and keeps only rows **non-forced on BOTH sides**, and the live
+  wait-pump reads the opponent's choice after the FIRST inner step only
+  (rl/envs/showdown.py:1033-1034), so wait-window replacements never become labels.
+  The LIVE loss (post legality fix) DOES include the simultaneous double-faint
+  replacements at ~0.12% of labelled decisions. READOUT DISCLOSURE: every frozen-tape
+  constant (A1/A3, §5 atoms, §6 g bars) is measured on a distribution that EXCLUDES
+  forced replacements while the head trained on one including 0.12% of them; the
+  mechanism read and manipulation check are internally consistent (both tape-based,
+  same collector), and the train/measure gap is bounded by 0.12% of the aux batch.
+  **`scripts/d25_atoms.py` written** (treatment Delta_ref-ctx atoms on the frozen s36
+  tape, both label spaces, 8 splits, lambda 0.01, ||g|| < 1e-3 asserted; imports the
+  SAME gitignored fit path that froze the controls, provenance disclosed in its
+  docstring; sha-attests the tape before any fit; writes
+  results/d25/treatment_atoms.json in the grader's schema + a detail file). Maintainer
+  launched the locked finals chain ~18:40; C10 and the atoms script done while it ran.
