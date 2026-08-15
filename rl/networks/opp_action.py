@@ -245,6 +245,82 @@ def canonicalise(
     return target, allow, valid, stats
 
 
+def shuffle_within_allow(
+    target: torch.Tensor,
+    allow: torch.Tensor,
+    valid: torch.Tensor,
+    generator: torch.Generator,
+) -> tuple[torch.Tensor, dict[str, float]]:
+    """D25-P's placebo lever (config P1): uniform random permutation of labels
+    WITHIN exact-`allow` equivalence classes, over VALID rows only, once per
+    rollout. Invalid rows never donate or receive. Preserves `valid` bitwise,
+    the legality of every trained label (donor and receiver share one allow
+    vector), and the per-class label multiset; destroys the obs-conditional
+    law up to the finite-block without-replacement residual (P1). A class
+    with < 2 valid rows keeps its true label and is counted (identity_frac).
+
+    `generator` must be a dedicated stream (P4): drawing from the default
+    stream would perturb the minibatch randperm sequence, and poke-env
+    derives usernames from global `random`.
+    """
+    out = target.clone()
+    v = valid.nonzero(as_tuple=True)[0]
+    stats = {
+        "aux/shuffle_n_classes": 0.0,
+        "aux/shuffle_identity_frac": 0.0,
+        "aux/shuffle_match_frac": 0.0,
+        "aux/shuffle_illegal_frac": 0.0,
+    }
+    n_valid = int(v.numel())
+    if n_valid == 0:
+        return out, stats
+    weights = (1 << torch.arange(allow.shape[1], device=allow.device)).long()
+    key = (allow[v].long() * weights).sum(-1)
+    classes = key.unique()
+    identity = 0
+    for c in classes:
+        rows = v[key == c]
+        if rows.numel() < 2:
+            identity += int(rows.numel())
+            continue
+        perm = torch.randperm(int(rows.numel()), generator=generator)
+        out[rows] = target[rows][perm.to(rows.device)]
+    # Structural invariant (P1), asserted in the function rather than
+    # remembered by a caller: a permuted label is legal for its receiving row
+    # BY CONSTRUCTION, because the class shares one allow vector.
+    illegal = ~allow.gather(1, out.unsqueeze(-1)).squeeze(-1)[v]
+    assert not bool(illegal.any()), "shuffled label illegal for its row"
+    stats["aux/shuffle_n_classes"] = float(len(classes))
+    stats["aux/shuffle_identity_frac"] = identity / n_valid
+    stats["aux/shuffle_match_frac"] = float((out[v] == target[v]).float().mean())
+    stats["aux/shuffle_illegal_frac"] = float(illegal.float().mean())
+    return out, stats
+
+
+def marginal_nll(
+    target: torch.Tensor, allow: torch.Tensor, valid: torch.Tensor
+) -> float:
+    """Allow-class-conditional marginal NLL over VALID rows (Laplace 0.5 on
+    the legal classes) — the placebo task's exact floor (D25-P P2/P5). The
+    shuffled head's aux loss should pin here; a sustained drop below it is
+    the leak signature (P-SHUF)."""
+    v = valid.nonzero(as_tuple=True)[0]
+    if v.numel() == 0:
+        return 0.0
+    weights = (1 << torch.arange(allow.shape[1], device=allow.device)).long()
+    key = (allow[v].long() * weights).sum(-1)
+    t = target[v]
+    total = 0.0
+    for c in key.unique():
+        rows = key == c
+        y = t[rows]
+        legal = allow[v[rows][0]].double()
+        counts = torch.bincount(y, minlength=allow.shape[1]).double() + 0.5 * legal
+        p = counts / counts.sum()
+        total += float(-torch.log(p[y]).sum())
+    return total / int(v.numel())
+
+
 def aux_cross_entropy(
     logits: torch.Tensor,
     target: torch.Tensor,

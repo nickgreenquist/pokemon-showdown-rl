@@ -167,6 +167,11 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
             meta["params"]["aux"] = aux
             meta["params"]["actor_plus_aux"] = meta["params"]["actor"] + aux
             meta["aux_label_space"] = agent.aux_label_space
+            # D25-P: the placebo flag is stamped so it cannot be flipped
+            # silently at launch (R0-1's fingerprint covers it).
+            meta["aux_shuffle_labels"] = bool(
+                getattr(agent, "aux_shuffle_labels", False)
+            )
     (out_dir / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
 
 

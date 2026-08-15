@@ -119,6 +119,8 @@ from rl.networks.opp_action import (
     OppActionHead,
     aux_cross_entropy,
     canonicalise,
+    marginal_nll,
+    shuffle_within_allow,
 )
 
 
@@ -278,6 +280,7 @@ class PPOAgent(Agent):
         aux_scorer_sizes: list[int] = (96,),
         aux_head_gain: float = 0.01,
         aux_max_grad_norm: float = 0.5,
+        aux_shuffle_labels: bool = False,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -493,6 +496,27 @@ class PPOAgent(Agent):
             )
             self.aux_head.init_head(aux_head_gain)
             self.aux_head.to(self.device)
+        # D25-P's one lever (placebo config P1/P4). The loud seam mirrors the
+        # opp_choice seam: a shuffle with no aux loss is a silent no-op and
+        # means the wrong config is running.
+        self.aux_shuffle_labels = bool(aux_shuffle_labels)
+        self._shuffle_gen: torch.Generator | None = None
+        if self.aux_shuffle_labels:
+            if self.aux_oppact_coef <= 0.0:
+                raise ValueError(
+                    "aux_shuffle_labels=True with aux_oppact_coef=0: the "
+                    "placebo shuffles labels the loss never reads. Rebuild "
+                    "from the placebo config (D25-P P5)."
+                )
+            # Dedicated stream (P4): seeded from the run's global torch seed
+            # by a documented derivation, so the draw is reproducible per
+            # lane while the default stream — which the minibatch randperm
+            # and (via global `random`) poke-env usernames ride on — is
+            # untouched whether the flag is on or off.
+            self._shuffle_gen = torch.Generator()
+            self._shuffle_gen.manual_seed(
+                (torch.initial_seed() * 1_000_003 + 25) % (2**63 - 1)
+            )
         # One Adam over the union of both nets' params; eps=1e-5 is the
         # canonical PPO detail (shipped by every reference implementation).
         # Split into two PARAM GROUPS — actor first, critic second, which is
@@ -853,6 +877,19 @@ class PPOAgent(Agent):
                 torch.as_tensor(buf.opp_choice, device=self.device).flatten(0, 1),
                 self.actor.tokenizer,
             )
+            if self.aux_shuffle_labels:
+                # D25-P (placebo config P1/P4): ONE permutation per rollout,
+                # drawn here and reused by all epochs x minibatches via
+                # aux_target[idx] — the treatment's label structure exactly.
+                # aux/marginal_nll is the shuffled task's exact floor; both
+                # keys exist only on placebo lanes (P5).
+                aux_stats["aux/marginal_nll"] = marginal_nll(
+                    aux_target, aux_allow, aux_valid
+                )
+                aux_target, shuf_stats = shuffle_within_allow(
+                    aux_target, aux_allow, aux_valid, self._shuffle_gen
+                )
+                aux_stats.update(shuf_stats)
         # The critic's input: obs ‖ privileged when the block is carried,
         # plain obs otherwise (aliases, no copy). Every critic forward below
         # reads these two and only these two.
@@ -1052,6 +1089,13 @@ class PPOAgent(Agent):
                     sums["aux/grad_norm"] += aux_norm
                     sums["aux/trunk_norm"] += aux_trunk
                     sums["aux/grad_clip_frac"] += float(aux_norm > self.aux_max_grad_norm)
+                    if self.aux_shuffle_labels and grad_steps == 0:
+                        # Epoch-1 minibatch-0, before any step this rollout:
+                        # the memorisation-free tracker P-SHUF reads (D25-P
+                        # P5 — in-sample aux/loss can drift below the batch
+                        # marginal by permutation memorisation alone).
+                        # Rollout-level, not divided by grad_steps.
+                        aux_stats["aux/loss_mb0"] = aux_loss
                 self.optimizer.step()
                 if self.l2_init_decay > 0.0:
                     # AFTER the step and after the clip read above: the lever
