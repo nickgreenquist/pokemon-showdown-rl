@@ -3832,3 +3832,22 @@ entry by offset — never a broad keyword grep.
   recorded. Smoke artifacts: runs/showdown_sp_actpred_smoke_{c010_p2,c010_p2b,
   placebo,placebo_b}. Launch: 5 lanes, seeds 57-61, staggered screens, verify by
   battle PROGRESS; grader path at readout: scripts/d25_grade.py --placebo <dir>.
+- 2026-08-15 (evening, **D25-P LAUNCH RECORD — 5 lanes away, seeds 57-61**).
+  Maintainer launched ~19:55 EDT (s61 relaunched minutes later on the SAME seat
+  after my handed-over block carried a typo — `WANDB_MODE=OFFLINE=offline` — and
+  died before creating a run dir or touching the server, so the zombie-battle
+  landmine did not apply; the typo is mine, recorded). Verified by battle PROGRESS
+  on all five (29.7k-34.7k steps at ~2 min, s61 7.1k at launch+~30s; ~315 steps/s
+  5-wide), R0-1 stamps correct (`aux_shuffle_labels: true`, l6) on every meta.yaml,
+  `git_dirty: false`. **THE PLACEBO SIGNATURE IS LIVE ON EVERY LANE: aux/loss
+  1.541-1.565 pinned at aux/marginal_nll 1.514-1.539**; aux/shuffle_illegal_frac
+  0.000000 x5 (the post-shuffle HARD gate); match_frac 0.236-0.298 vs the frozen
+  chance band 0.243-0.330 (s61's 0.236 is a first-reading sample); identity_frac
+  0.0000-0.0011 (predicted 0.0002-0.0007 scale). WATCH: R1 at 4M (arm stops <3 of
+  5, branch B6), K6 before 6M, R0-8 wall (255/210), P-SHUF (per-1M-bin median of
+  loss_mb0 - marginal_nll < -0.03 x3 bins), VOID clause at matched steps. ETA ~11 h.
+  At the finals: locked eval 5x3000 into results/d25p/final_s{57..61}.json, then
+  scripts/d25_grade.py --placebo results/d25p; atoms via d25_atoms.py (placebo
+  lanes), dormancy --tag d25_placebo. OWED while lanes run: the R-4 adaptation of
+  d25_manipulation.py for placebo lanes (g_P vs the 0.02 band; A0 reference
+  1.773-1.780).
