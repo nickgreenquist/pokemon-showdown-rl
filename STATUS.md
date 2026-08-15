@@ -21,7 +21,7 @@ the claim is "an aux opponent-action loss helps", NOT "an opponent model helps".
 | **D25 oppact-aux 12M — CREDIT (bar 0.58273; s53 record 0.6573)** | **0.6185** |
 | **D25 mech co-primary: LETTER at MIN p = 1/252, both label spaces** | Δ +0.0426 |
 | BC-of-FP v2r clone at 5×3000: final 0.5503 / val-peak 0.5837 — both < D25 | — |
-| **LADDER** M1/M2/M3 CLAIMED · **M4: (i) clear, rests on (ii) + blessing** | pending |
+| **LADDER** M1/M2/M3 CLAIMED · **M4: BOTH obligations clear — bless it?** | 0.6185 |
 
 ## Next actions, in order (maintainer decisions at the top)
 0. **ALL FOUR LETTER-BEARING READS LANDED FULL-SUCCESS (2026-08-14 night): PRIMARY
@@ -30,9 +30,10 @@ the claim is "an aux opponent-action loss helps", NOT "an opponent model helps".
    (controls s50 0.4896 / s51 0.4115). Transcripts/artifacts under results/d25/.**
 1. **YOUR CALL — the shuffled-label placebo (+2.35 lane-days), now the claim-scope
    decider for a CREDITED lever**; and ratify the M4 adjudication once (ii) lands.
-2. **M4 (ii) SH-exploitation falsifier — OWED:** two-orientation head-to-heads vs the
-   clone via the shim, 500/pair/orientation. **YOUR pick: which treatment lane seats
-   it** (M3 precedent used one lane; median-final s55 is the conservative pick).
+2. **M4 (ii) DISCHARGED (2026-08-15): s55 beats the clone 0.7190 pooled over
+   orientations (0.854 det / 0.584 sampling, z +15.4)** — the anchor MOVED with the
+   vs-SH number (Rung 2: 0.657 at 0.5509 → D25: 0.719 at 0.6073), so the jump is not
+   SH-specific. **M4 is one formal blessing from claimed.**
 3. **§6 manipulation check + S1/R0-16 — OWED, need per-lane tapes:** collect oppact
    tapes + obs (s52-56) and obs for s50/s51 (fleet is DOWN, safe); then g vs bar
    0.3286 (A1/A3 re-derived per lane, per-member oracle for the >1.0 hard fail) and
