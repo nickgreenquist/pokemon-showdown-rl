@@ -48,9 +48,8 @@ the claim is "an aux opponent-action loss helps", NOT "an opponent model helps".
    attestation green vs frozen inputs (`results/d25/grade_primary.txt`).
 
 ## Watch items
-- **Treatment live ctx units ~247 vs controls 111-170 on the same tape** — the lever
-  de-dormantifies the trunk; record JOINTLY with the §5 letter, don't over-read (the
-  control-side specificity r is -0.453, wrong sign to manufacture a positive).
+- **Treatment live ctx units 220-293 vs controls 111-170** — record JOINTLY with §5;
+  don't over-read (control-side specificity r = -0.453, wrong sign). R-5 adjudicates.
 - **`grad_clip_frac` ~0.99 mid-run is NORMAL** — the VOID clause's 0.90 is a WHOLE-RUN
   mean; compare at MATCHED STEPS or every lane voids, controls included.
 - **results/d25/ IS THE ONLY COPY of the sha256-frozen tapes AND now the finals/grade
