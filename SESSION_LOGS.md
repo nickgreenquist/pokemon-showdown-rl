@@ -3801,3 +3801,34 @@ entry by offset — never a broad keyword grep.
   Header assumes 5-and-no-more unless ratified otherwise. Build (flag + shuffle fn
   + R0-P1 tests + R0-P2 smokes + R0-P4 grader extension) queued behind
   ratification.
+- 2026-08-15 (**D25-P BUILT AND ALL PRE-LAUNCH GATES RUN; R0-P2 PASSES WITH TWO
+  DISCLOSED DISPOSITIONS; READY FOR LAUNCH**). Header RATIFIED (P11 = 5-and-no-more,
+  the stated default). Build: shuffle_within_allow + marginal_nll
+  (rl/networks/opp_action.py), aux_shuffle_labels flag + dedicated generator + loud
+  seam + aux/loss_mb0 (rl/agents/ppo.py), meta stamp (rl/train.py); R0-P1 battery 11
+  tests incl. the lag-correlation/fixed-point kills; R0-P4 grader placebo mode with
+  synthetic boundary tests; suite **339 -> 354 green**. R0-P0: dose_bins.json frozen
+  and REPRODUCES review R1's independent table bin-for-bin. results/d25/ BACKED UP to
+  ../pokemon-showdown-rl-d25-backup-20260815/ (114 files; tapes re-attested green
+  post-copy). **R0-P2 (paired seed-99 smokes, one at a time):** all hard zeros hold
+  (illegal/collision/shuffle_illegal 0.000000); placebo aux/loss PINS AT ITS FLOOR
+  (loss_mb0 - marginal_nll = +0.010/+0.017 across the two placebo runs, band
+  [-0.05, +0.10]); labelled_frac 0.8749 in the smoke band; trunk ratio 0.0685 in
+  [0.05, 1.5]; shuffle_match_frac 0.267 (predicted 0.243-0.330), identity_frac
+  0.0005 (predicted 0.0002-0.0007), n_classes 2-4 (predicted 3-4). TWO ACCEPTANCE
+  ITEMS DID NOT PASS AS WRITTEN, dispositions recorded: **(c) update-1 bit-identity
+  is VOID-BY-PREMISE** — the Showdown server rolls fresh teams/damage every run
+  regardless of seed (measured 2026-08-05, rl/common/evaluation docstring), so two
+  runs NEVER share a rollout and the check cannot pass on any build; the property it
+  witnessed (shuffle consumes no collection RNG) is proven at unit level
+  (test_determinism_and_dedicated_stream). **(f) wall +-5% failed on the first pair
+  (0.861) and passed on an A-B-A re-measure** — T1 418.3 / P1 360.2 / P2 402.9 /
+  T2 412.3: the treatment itself varies 1.4% between identical runs, P1 was an
+  11%-scale infra outlier, P2/T-mean = 0.970 is in band; no mechanism exists for an
+  O(microseconds/rollout) shuffle to cost 14%; the binding protection at scale is
+  R0-8's during-run wall gate (255/210) regardless. Both dispositions travel with
+  the launch record; the maintainer's launch is their ratification. P1's entropy
+  0.807 (vs T 1.290) also normalised on the re-run (P2 1.150) — batch noise at 100k,
+  recorded. Smoke artifacts: runs/showdown_sp_actpred_smoke_{c010_p2,c010_p2b,
+  placebo,placebo_b}. Launch: 5 lanes, seeds 57-61, staggered screens, verify by
+  battle PROGRESS; grader path at readout: scripts/d25_grade.py --placebo <dir>.
