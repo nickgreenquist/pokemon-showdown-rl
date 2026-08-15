@@ -3775,7 +3775,7 @@ entry by offset — never a broad keyword grep.
   independent framings (A implementation-first, B inference-first) -> synthesis -> 2
   Opus reviews (R1 verification, R2 house-rules) -> all blocking findings folded ->
   configs/showdown_sp_actpred12m_placebo.yaml (header ~330 lines, DRAFT r1). Both
-  designers独立ly converged on the scheme: uniform permutation WITHIN exact-allow
+  designers independently converged on the scheme: uniform permutation WITHIN exact-allow
   equivalence classes, valid rows only, once per rollout, dedicated RNG generator.
   REVIEWS EARNED THEIR KEEP: R2 caught two defective HARD gates (per-update
   labelled_frac band would have failed the CREDITED treatment arm on 14-35% of
