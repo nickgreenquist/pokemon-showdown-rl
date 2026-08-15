@@ -1,0 +1,485 @@
+# =====================================================================
+# D25-P — THE SHUFFLED-LABEL PLACEBO ARM. §12 OPTION (1), RATIFIED
+# 2026-08-15 (maintainer: "pick (1) ratified"). ONE LEVER vs
+# configs/showdown_sp_actpred12m.yaml: agent.aux_shuffle_labels.
+# Seeds 57-61. 12M. coef 0.1. 5 lanes. Price 2.35 lane-days + ~1 h
+# readout chain (finals, atoms, dormancy, grader) -> ledger 18.25/20.
+# PROCESS: 2 Opus designers (A implementation-first, B inference-first,
+# convergent on the scheme) + 2 Opus reviews (R1 verification: 16
+# findings; R2 house-rules: 21) folded in; both verdicts needs-changes,
+# all blocking items resolved here. HEADER STATUS: DRAFT r1 —
+# PENDING MAINTAINER RATIFICATION, incl. the P11 pre-commitment.
+# ---------------------------------------------------------------------
+# P0. WHAT THIS ARM ADJUDICATES, AND THE BINDING PRE-STATEMENT
+# ---------------------------------------------------------------------
+# D25 BANKED (all four letters, full-success, 2026-08-14): PRIMARY
+# CREDIT pooled 0.6185 vs 0.54452, bar 0.58273; co-primary B atoms
+# p = 1/252 both label spaces; §6 LEARNED median g 0.7055; S1 p = 1/252.
+# This arm RE-ATTRIBUTES; it cannot un-credit. It decides between
+# "an explicit opponent-action model helps" (the INFORMATION did the
+# work) and "an auxiliary loss of this shape and dose helps" (any
+# matched aux gradient would have). It does NOT license "belief state"
+# in any branch (§5's claim bound: the probe reads opponent entity
+# features the policy's scorer never receives) and does not touch
+# C3(b) (mirror self-play: the opponent model is a self-model) or C4
+# (representational claim, not "we ship an opponent model").
+# **THE BINDING PRE-STATEMENT: the upgrade rests on R-1
+# (treatment-vs-placebo) being CREDITED, never on R-2
+# (placebo-vs-comparator) being null. A null R-2 at n = 5 is
+# uninformative below ~+0.030 by §4's own power table.**
+# This arm IS the shuffled-TARGET null R0-12b named as missing.
+# ---------------------------------------------------------------------
+# P1. PERMUTATION SEMANTICS — WITHIN-ALLOW-CLASS, VALID ROWS, PER ROLLOUT
+# ---------------------------------------------------------------------
+# Uniform random permutation of `target` WITHIN exact-`allow`
+# equivalence classes (6-bit key), over VALID rows only, whole rollout
+# batch (128 x 8 = 1024 rows, always full). Invalid rows never donate
+# or receive. Implemented as
+# rl/networks/opp_action.py::shuffle_within_allow(target, allow, valid,
+# generator), with the legality assert (allow.gather on valid all-true)
+# a structural invariant of the function itself.
+# PRESERVED EXACTLY: `valid` bitwise (hence aux_cross_entropy's
+# denominator and the effective aux batch); legality of every trained
+# label (donor and receiver share one allow vector); the global AND
+# per-class label multisets (hence P(y|allow) w.r.t. the block's own
+# empirical law); params 675,538; coef 0.1; decoupled clip 0.5; cadence;
+# optimizer groups.
+# DESTROYED: the obs-conditional law — exact w.r.t. the block's own
+# empirical class-conditional multiset. RESIDUAL, disclosed (review R1):
+# sampling WITHOUT replacement leaves an O(1/n_class) finite-block
+# correlation (a row from a switch-heavy battle is slightly likelier to
+# receive SWITCH; ~25 of ~830 rows in the dominant class come from the
+# row's own battle). Magnitude ~0.1-3%, far below R-4's resolution;
+# R-4(1)'s g_P is the catch-all.
+# MATCH FRACTION IS NOT RETAINED INFORMATION: 0.243-0.330 of labels are
+# unchanged by the permutation (the chance rate, closed form
+# sum_c p_c sum_y q^2). The match event is invisible to the head; its
+# conditional law is P(y|allow) either way. Do not read a third of
+# labels surviving as a third of the signal surviving.
+# DEVIATION FROM §12's RATIFIED TEXT, NAMED: §12 promised "same gradient
+# magnitude". That cannot be delivered by ANY zero-information placebo:
+# at the placebo head's floor its expected trunk gradient is ZERO-MEAN
+# (minibatch noise), while the treatment's has a coherent component —
+# equal norms are not equal dose, in either direction. The arm is
+# shape-, count-, marginal-, coefficient- and cadence-matched; magnitude
+# is MEASURED (P3), not matched. Bears on how B4 and the a-fortiori
+# clause may be read.
+# REJECTED, with the killing reason: global permutation (0.42-0.93% of
+# rows land on -1e8 logits -> ~1e8 CE terms, silent today);
+# permute-then-drop (shrinks valid count, selectively drifts the SWITCH
+# marginal); resample-from-allow (marginal + dose drift); iid resample
+# (breaks multiset preservation); DERANGEMENT (anti-information — an
+# adversarial arm, not a placebo); fixed class relabeling (a bijection
+# preserves everything); feature-row shuffling (second actor pass,
+# +25% update, touches the policy path).
+# IDENTITY ROWS (class < 2 valid rows in the block keeps its true
+# label): measured mean 0.013-0.077%, worst full block 0.217%; their
+# info ~0.0008 nats. Recorded as aux/shuffle_identity_frac,
+# record-and-investigate above 0.01 whole-run mean (14-50x headroom).
+# THE ESCALATION CLAUSE IS DELETED (review R1-13: cross-class swaps
+# violate the per-class-multiset invariant, "smallest superset" does
+# not give mutual legality, and a mid-run switch is a second lever).
+# ---------------------------------------------------------------------
+# P2. FROZEN ZERO-LANE CONSTANTS (R0-P0 — re-derived by review R1 from
+#     the TEN LANE TAPES results/d25/oppact_s{26,27,28,50,51,52..56}.npz
+#     via the SHIPPED canonicalise; reconstruction validated against the
+#     banked switch/aliased/illegal fractions)
+# ---------------------------------------------------------------------
+# Allow classes over valid rows: [1,1,1,1,1,1] 90.70-94.22%;
+# [1,1,1,1,1,0] 5.50-8.94%; [1,0,0,0,1,1] 0.109-0.296%;
+# [1,0,0,0,1,0] present on 8/10 tapes, 0.012-0.099%.
+# Legality-only residual (allow-class marginal over global marginal,
+# Laplace 0.5, 8 battle-clustered folds): [-0.0009, +0.0015] NATS
+# held-out; in NORMALISED g UNITS ~0.0012-0.0020. R-4's 0.02 band is in
+# g units — 10-16x this measured residual. ~300x below the treatment's
+# realised information.
+# Chance match fraction 0.243-0.330. Identity rows P1. A1 (mask-renorm
+# marginal) 1.479-1.542 on the treatment tapes; A0 (uniform-over-legal,
+# the never-trained level) 1.773-1.780 on tapes, 1.736 live at init —
+# discriminating gap A0 - A1 = 0.238-0.298 nats vs a 0.02 g-band.
+# A1 vs allow-class A1' differ by only 0.0005-0.0024 nats
+# (interchangeable at this precision).
+# ---------------------------------------------------------------------
+# P3. THE DOSE — MEASURED, NOT ASSUMED (review R1 re-derivation; windows
+#     DEFINED: "late" = last-1M-step per-lane median, "mid" = 5-7M)
+# ---------------------------------------------------------------------
+# THE AUX CLIP NEVER MEANINGFULLY BINDS AT COEF 0.1: aux/grad_clip_frac
+# nonzero on 96 of 58,590 treatment updates (max 0.1875, on s52 AND
+# s55; per-lane whole-run means 5e-6 - 2.1e-4; rising late, per-1M-bin
+# max 0.00179 in bin 11). No clip-based magnitude-equalisation argument
+# exists. aux/grad_norm late [0.141, 0.164]; aux/trunk_norm late
+# [0.083, 0.098] (s53 0.0975 — a 0.085 ceiling would exclude a real
+# lane); trunk RATIO (aux/trunk_norm / aux/policy_trunk_norm) whole-run
+# medians 0.095-0.110, last-1M 0.098-0.142. The per-1M-bin 5-lane
+# min/max table for grad_norm, trunk_norm and clip_frac is FROZEN in
+# results/d25/dose_bins.json (R0-P0 writes it; the two summary numbers
+# above are for reading, the table GOVERNS at matched bins).
+# PRE-STATED DOSE READS (per-1M-bin, matched steps): placebo trunk_norm
+# >= the bin band and nothing moves -> generic-aux refuted A FORTIORI
+# (subject to P1's zero-mean caveat); < 0.7x the bin band -> the null is
+# DOSE-CAVEATED (caveat written; NO re-tune, NO relaunch — one-lever,
+# D17). If placebo aux/grad_clip_frac materially exceeds the bin band,
+# the declared coefficient stops being the effective one (the config's
+# own words at coef 0.5) and the dose read must say so.
+# ---------------------------------------------------------------------
+# P4. CADENCE AND RNG
+# ---------------------------------------------------------------------
+# ONE permutation per rollout, drawn immediately after canonicalise()
+# in PPOAgent.update(), inside the aux_head branch, reused by all
+# 4 x 4 = 16 grad steps — the treatment's label structure exactly.
+# Per-minibatch/epoch redraw REFUSED (a 16-draw stochastic-target
+# regulariser is a different, weaker lever; minibatch classes shrink 4x).
+# RNG: dedicated torch.Generator seeded seed * 1_000_003 + 25, never
+# the default stream (poke-env derives usernames from global `random`;
+# the minibatch randperm sequence must be unchanged with the flag ON —
+# asserted). Flag OFF is an exact no-op incl. RNG stream position and
+# bit-identical state_dict at fixed seed (P0-3).
+# ---------------------------------------------------------------------
+# P5. DIAGNOSTICS AND DURING-GATES (both review corrections folded)
+# ---------------------------------------------------------------------
+# New keys, emitted only when the flag is on: aux/marginal_nll (the
+# allow-class marginal NLL over valid rows — the task's exact floor,
+# every update), aux/shuffle_illegal_frac (**NEW KEY, computed on the
+# PERMUTED labels post-shuffle** — the existing aux/illegal_label_frac
+# is computed inside canonicalise BEFORE the shuffle and is structurally
+# incapable of witnessing a shuffle bug; it keeps its meaning and its 0),
+# aux/shuffle_identity_frac, aux/shuffle_match_frac, aux/shuffle_n_classes,
+# and aux/loss_mb0 (aux loss on epoch-1 minibatch-0, pre-update on that
+# batch — the memorisation-free tracker; in-sample aux/loss can drift
+# below the batch marginal by permutation memorisation with zero
+# information, review R2-16).
+# HARD during-gates (lever-specific): **aux/shuffle_illegal_frac == 0
+# every update**; aux/shuffle_match_frac inside the P2 chance band
+# +-0.05 and never ~1.0 (identity permutation).
+# RECORD-AND-CONTINUE (corrected — the draft's per-update labelled_frac
+# band [0.80, 0.87] would have hard-failed the CREDITED arm on 14-35%
+# of updates; the metric drifts 0.86 -> 0.81 over training):
+# aux/labelled_frac whole-run mean in [0.78, 0.88] (treatment realised
+# 0.804-0.819; smoke-era band 0.84-0.88 applies to R0-P2 ONLY);
+# aux/shuffle_identity_frac whole-run mean <= 0.01; P-SHUF: per-1M-bin
+# median of (aux/loss_mb0 - aux/marginal_nll) < -0.03 for 3 consecutive
+# bins -> investigate (tightened from -0.10, which could not catch what
+# R-4 calls a leak, review R2-15).
+# ---------------------------------------------------------------------
+# P6. THE READS — PRE-REGISTERED, WITH LEVELS, POWER AND LADDERS
+# ---------------------------------------------------------------------
+# P0-15 ATTESTATION, printed before any placebo number loads, hard-stop
+# on drift: comparator five (0.5633/0.5683/0.5210/0.5763/0.4937 ->
+# 0.54452, sd 0.03558); treatment five (0.6233/0.6573/0.6063/0.6073/
+# 0.5980 -> 0.6185, sd 0.02357 — NEVER re-scored); control atoms five
+# (+0.0217/+0.0072/+0.0201/+0.0114/+0.0145, mean +0.0150 sd 0.0060);
+# treatment atoms FIVE (+0.0530/+0.0659/+0.0505/+0.0619/+0.0568, mean
+# +0.0576); tape sha 3ffee9ba...074917; dormancy control 0.4844/0.5000/
+# 0.6432/0.4896/0.4115 and treatment 0.3385/0.2474/0.2422/0.2370/
+# 0.2604; §6 g five (0.7472/0.7098/0.6885/0.6634/0.7055, median
+# 0.7055); live ctx units 220-293 vs 111-170.
+# ERA ATTESTATION (review R2-13b): placebo finals are scored by the
+# same scripts/eval_checkpoint.py + grader at a RECORDED git sha, both
+# encoder env vars, same Showdown server version; any eval-path change
+# between the treatment pass (2026-08-14) and the placebo pass VOIDS
+# R-1. Full-run replay is impossible (live server); the protection is
+# R0-3's unit-level flag-off no-op, not run-level reproduction — said
+# plainly (review R1 ask-4 item 7).
+# CREDIT LINE, RESTATED IN FULL, VERBATIM, INCLUDING THE LARGER-OF
+# CLAUSE: a lever is credited iff pooled delta >= +0.025 AND
+# >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial
+# se_diff and the seed-clustered se_diff, the latter computed from the
+# per-seed finals at read time. (Correct governance statement, review
+# R1: binomial se_diff 0.00565 < sqrt(s_T^2/5) = 0.01054 even at
+# s_P = 0, so CLUSTERED governs the se comparison always; below
+# s_P ~ 0.0150 it is the +0.025 FLOOR that governs the bar. Disclosed:
+# the fixed 2x multiplier at 5+5 lanes with plug-in sds is
+# anti-conservative vs Welch-t (~2.31 at ~8 df) — same class of
+# disclosure as the permutation test's 0.052-0.054.)
+# R-1 (PRIMARY): TREATMENT vs PLACEBO, win rate. s_T FROZEN at 0.02357
+#   (an identity, not an approximation — the banked finals are never
+#   re-scored, review R1 ask-4). Credit boundary (placebo must pool <=):
+#   0.5935/0.5909/0.5871/0.5800/0.5699/0.5608 at s_P = 0/0.020/0.026/
+#   0.036/0.049/0.060 (re-derived cell-by-cell by review R1).
+#   RECORDING BAND IN THIS CONTRAST'S OWN UNITS (review R2-5): delta_TP
+#   in [+0.025, 2*se_gov) -> "letter-met, seed-fragile, NOT credited",
+#   i.e. placebo in (boundary, 0.5935]; the band phrase and narrative
+#   prohibition verbatim. NEGATIVE: placebo pooled >= 0.6185 +
+#   max(0.025, 2*se_gov) — the attribution-flip cell, branch B8.
+#   SECONDARY: exact 5v5 permutation, treatment HIGHER, level 12/252,
+#   anti-conservatism 0.052-0.054 disclosed.
+#   POWER (R0-P5, 200k draws, treatment FIXED at measured — run
+#   2026-08-15, frozen):
+#     delta    s_P=.020  .026   .036   .049   | P(band)
+#     +0.020    0.205    0.195  0.170  0.146  | .08 .14 .21 .26
+#     +0.025    0.387    0.322  0.250  0.197  | .11 .18 .25 .30
+#     +0.030    0.593    0.473  0.346  0.258  | .12 .19 .28 .33
+#     +0.037    0.832    0.683  0.496  0.354  | .08 .16 .28 .35
+#     +0.045    0.962    0.861  0.664  0.477  | .03 .10 .23 .34
+#     +0.074    1.000    0.999  0.975  0.856  | .00 .00 .02 .13
+#     attained size at delta=0: 0.001-0.031.
+#   STATED PLAINLY (§8's convention): the arm resolves the two extremes
+#   — all-information (+0.074: 0.86-1.00) and all-generic (via R-2) —
+#   and NOT the middle: half-information (+0.037) is 0.35-0.83 across
+#   the plausible spread band, and the modal non-null outcome at wide
+#   spreads is the RECORDING BAND (0.28-0.35). QUOTE THE RANGE.
+# R-2: PLACEBO vs FROZEN COMPARATOR, win rate. §4's machinery verbatim
+#   (same frozen comparator): bars 0.5810/0.5839/0.5898/0.5987 at
+#   s_P = 0.020/0.026/0.036/0.049; recording band [0.5695, bar)
+#   verbatim; NEGATIVE: pooled <= 0.54452 - max(0.025, 2*se_diff).
+#   §4's published power table applies to this contrast unchanged.
+# LANE-FAILURE LADDER, explicit (review R2-6): a lost placebo lane
+#   recomputes BOTH se terms in R-1 and R-2 at surviving n_P; the
+#   permutation levels drop per §5's ladder (n=4 -> 6/126, n=3 -> 2/56);
+#   **n_P < 3 VOIDS R-1, R-2, R-3 AND R-5.** Seeds 62/63 are held for a
+#   lane lost BEFORE R1 only — consistent with §4's "no replacement
+#   lane", which scopes to losses AFTER R1 (the s49 -> s51 precedent);
+#   said here so it does not read as a bend.
+# R-3: PLACEBO ATOMS on the frozen s36 tape, §5 machinery verbatim
+#   (8 splits, lambda 0.01, max_iter >= 2000, ||g||_2 < 1e-3 asserted,
+#   L6 primary + 12-class secondary, admissibility: tape switch frac in
+#   0.0679-0.0974). Tests at level 12/252 (ladder above):
+#   (a) P vs C, placebo HIGHER; (b) T vs P, treatment HIGHER.
+#   MDE STATEMENT (review R2-9): §5's own range applies — MDE(80%)
+#   0.0105-0.0301 — so a SILENT (a) does NOT clear specificity below
+#   that range; a null placebo-atom read licenses nothing on its own.
+#   (b) is near-certain to fire under the predicted outcome (every
+#   treatment atom > control band) — its informativeness is
+#   concentrated entirely in the high-placebo case (review R2-19).
+#   ACTION ON (a) FIRING — REWRITTEN PER THE D23 PRECEDENT ("recorded
+#   verdicts stand", review R2-7): §5's banked letter KEEPS ITS NUMBER,
+#   ITS p = 1/252 AND ITS VERDICT; what NARROWS is the license — from
+#   "the pooled context became more decodable for the opponent's next
+#   action" to "an aux gradient of this shape moves this probe
+#   statistic" — under §5's own pre-registered converse ("NOT specific
+#   against any aux-induced feature that happens to help this probe").
+#   GOVERNANCE (review R2-8): the license narrows iff (a) fires AND the
+#   reproduced fraction (mean_P - 0.0150)/0.0426 >= 1/3; if the two
+#   disagree, the FRACTION governs and the discrepancy is reported.
+# R-4: PLACEBO §6 — ONE statistic, two views (g_P and NLL_head are
+#   algebraically the same read, review R1-16; the second view exists to
+#   disambiguate the negative branch). Own tape per lane (300-ep mirror,
+#   same collector), A1/A3 re-derived per split, per-member oracle,
+#   read at 3M/6M/12M (a RISING |g_P| trajectory is the leak signature,
+#   review R2-17).
+#   |g_P| <= 0.02 (g units, = 10-16x the measured legality residual) ->
+#   SHUFFLE CONFIRMED; 0.02-0.10 -> residual, disclosed, caveats R-1;
+#   >= 0.10 -> LEAK: R-1/R-2/R-3/R-5's placebo letters VOID; materially
+#   negative -> derangement check, same VOID.
+#   NLL_head vs the floor: ~A1 (KL <= 0.02) -> TRAINED-TO-FLOOR, the
+#   designed outcome, reported as "the head learned everything its task
+#   contained, which was nothing beyond legality; a real aux gradient
+#   was injected for 12M steps", beside lane health (R1 cleared, entropy
+#   and wall in band, aux/loss_mb0 pinned at marginal_nll);
+#   ~A0 = 1.773-1.780 (init level) -> NEVER-TRAINED, arm VOID;
+#   MIDDLE CELL, actioned (review R2-11): NLL_head in (A1 + 0.05,
+#   A0 - 0.05) -> PARTIALLY-TRAINED: the dose is not matched; R-1 is
+#   DOSE-CAVEATED (not VOID) and P3's dose read governs the wording.
+# R-5: PLACEBO S1 DORMANCY, --tag d25_placebo (NEVER the control tag —
+#   the D23 clobber). Tests at 12/252 (ladder above): P vs C placebo
+#   LOWER; T vs P treatment LOWER. §7's caveat VERBATIM: S1 is a
+#   SECONDARY; D18 (no actor lever) reached p = 0.0893 on the 3-lane
+#   control; at n = 3 a dormancy letter is a level-0.26 test. Joint
+#   reading: placebo de-dormantifies + atoms/wr flat -> de-dormancy is a
+#   SIDE EFFECT; S1's banked letter keeps its number, its mechanism
+#   reading is re-narrated, STATUS's watch item is rewritten. Placebo
+#   does not -> de-dormancy tracks the information (still caveated).
+# R-6 recorded, no letters: h2h placebo-median vs treatment-median lane
+#   (500/orientation, both 828, NO shim); S3-P entropy vs the four-lane
+#   band 0.212-0.284; S5-P reveal-stage profile (predicted flat,
+#   especially the first decision); S7-P sensitivity (predicted no
+#   opponent-side preference); dose curves per 1M bin vs P3's table.
+# ---------------------------------------------------------------------
+# P7. BRANCHES — PARTITION-COMPLETE, WITH PRECEDENCE AND OBLIGATIONS
+# ---------------------------------------------------------------------
+# PRECEDENCE: B7 (R-4 leak / never-trained) and B6 (R1 arm-stop) are
+# evaluated FIRST; B6 and B7 can co-occur. Then B1-B5/B8/B9 off the
+# R-1 x R-2 grid. EVERY branch names its STATUS.md and README
+# obligation (the README tracks every major claim).
+# B1 R-1 CREDITS, R-2 does not: UPGRADE — "an explicit opponent-action
+#    model helps", WITH the two uncontrolled confounds attached in the
+#    same sentence (C3(b) self-model; C4 representational-only). NOT
+#    "belief state". README headline changes; STATUS results row gains
+#    the placebo line.
+# B2 both CREDIT: DECOMPOSED — generic part = P - 0.54452, information
+#    part = 0.6185 - P, both with ses, as fractions of +0.0739. No
+#    "opponent model" headline without the split beside it.
+# B3 R-1 does not credit, R-2 CREDITS: DOWNGRADE — the win-rate credit
+#    STANDS as fact; attribution moves to "an aux gradient of this
+#    shape/dose"; C1 confirmed; §11 search loses this rung's
+#    motivation; R-3 governance applies in the same pass.
+# B4 neither credits, R-1 outside its recording band: NO CHANGE —
+#    today's scoped claim verbatim; both point estimates + CIs
+#    reported; the arm was underpowered for the middle, SAID AT
+#    READOUT, never converted into an upgrade.
+#    NO further placebo lanes UNLESS P11 pre-authorises them — and the
+#    honest reason is BUDGET: R-1's bar is NOT comparator-limited
+#    (n_P = 8 tightens the resolvable delta 0.0385 -> ~0.033, n_P = 10
+#    -> ~0.031, floor 0.025; review R2-10).
+# B5 R-1 CREDITS, R-2 NEGATIVE: UPGRADE, stronger form (the shuffled
+#    gradient HURTS); dose asymmetry disclosed.
+# B6 arm fails R1 (< 3 of 5 clear 0.75 by 4M): PLACEBO-HARMS, the
+#    F5-analogue, coefficient named. RESOLUTION RULE (review R2-12):
+#    the formal R-1 letter VOIDs (a broken control is not a control);
+#    the weak-form sentence "a matched zero-information gradient
+#    damages learning, so generic-aux cannot account for the gain" is a
+#    RECORDED OBSERVATION, not a letter, and may be written ONLY IF the
+#    pre-divergence aux/trunk_norm comparison at matched steps holds
+#    against P3's bin table; otherwise it is not written at all.
+# B7 R-4 reads LEAK or NEVER-TRAINED: arm VOID, nothing adjudicated,
+#    the 2.35 lane-days recorded as spent.
+# B8 R-1 NEGATIVE (placebo ABOVE treatment by the larger-of margin):
+#    attribution flips hard — the information HURT relative to noise;
+#    record with entropy/R1 curves; claim re-scoped to "the aux
+#    gradient, not the information, carried the gain"; a lever family
+#    note is opened (noise-target aux as its own lever) but NOT run.
+# B9 R-1 in its RECORDING BAND (the modal non-null at wide spreads,
+#    0.28-0.35): "letter-met, seed-fragile, NOT credited" for the
+#    information-specific part; claim stays scoped; full per-seed
+#    detail in the log; no narrative use without the weakness named.
+# Cross-cutting: placebo pooled >= 0.558 is recorded as a standalone
+# fact (a zero-information aux loss reaching M4's number) — M4 attaches
+# to claimed agents, not controls.
+# ---------------------------------------------------------------------
+# P8. GATES
+# ---------------------------------------------------------------------
+# CARRIED VERBATIM: R0-1 (+ NEW STAMP: meta.yaml gains
+# aux_shuffle_labels via rl/train.py, asserted TRUE for this arm's
+# lanes), R0-1b, R0-2/2b/2c (param count unchanged), R0-3 (extended:
+# flag OFF exact no-op incl. RNG position), R0-4 HARD, R0-5, R0-7
+# (+ the shuffle never executes in act()/eval — forward-hook count 0),
+# R0-9, R0-15 -> P0-15, R0-16 (done). R0-10 NOT re-run (one-lever;
+# no re-tune). R0-10b re-read as during-record: trunk ratio in
+# [0.05, 1.5] per 1M bin.
+# DURING, carried: R0-6 (ties <= 4.2%, eplen <= 40 after 3M); R0-8
+# (staggered starts; battle PROGRESS within 15 min, never "run dir
+# exists"; WARM wall-clock >= 30-min window after 1M: record < 255,
+# STOP < 210); K6 (5-lane median entropy < 0.15 x 5 readings before
+# 6M -> stop lane); VOID clause on grad stats AT MATCHED STEPS; R1
+# (>= 0.75 by 4M; lane below -> STOPPED under the LANE FAILURE RULE;
+# < 3 of 5 -> ARM STOPPED, branch B6). Plus P5's lever-specific gates.
+# R0-P0 ZERO-LANE CONSTANTS: frozen in P2/P3 (re-derived by review R1;
+#   the per-1M-bin dose table written to results/d25/dose_bins.json in
+#   the same pass). DONE 2026-08-15 up to the dose_bins.json write,
+#   which the build performs.
+# R0-P1 SHUFFLE CORRECTNESS, BLOCKING — unit tests (A's T1-T14 and B's
+#   S-A 1-7, union, plus review R1-14's additions): valid bitwise;
+#   legality on valid all-true; per-class multiset exact; global stats
+#   unchanged; row-conditional law destroyed (MC: TV < 0.03, MI at
+#   chance); bijection (sorted targets identical); invalid rows never
+#   written; singleton kept + counted; match_frac = closed form +- 3
+#   sigma; **lag-correlation test: corr(y', y_true) at lag 0 AND at
+#   same-env-next-step lags at chance (kills order-structured
+#   "permutations" — sort-and-roll passes multiset/legality/bijection
+#   otherwise); fixed-point count vs Binomial(n, sum q^2)**; flag-off
+#   exact no-op incl. RNG position; loud seam (flag true with coef 0
+#   raises); no eval-path execution; params unchanged; weight.sum()
+#   identical; marginal_nll = brute-force reference; dedicated-generator
+#   isolation (minibatch randperm sequence unchanged with flag ON).
+# R0-P2 SMOKE, BLOCKING: 100k, seed 99, ALONE (username collision), ~4
+#   min, PLUS a matched treatment smoke re-run at the current sha, also
+#   seed 99, also alone. Acceptance: shuffle_illegal/collision == 0;
+#   labelled_frac lane mean in [0.84, 0.88] (SMOKE-ERA band; treatment
+#   first-100k means 0.8539-0.8668 — distinct from the during-run band,
+#   review R1-9); aux/loss_mb0 tracks aux/marginal_nll within [-0.05,
+#   +0.10] over the last 20k; trunk ratio in [0.05, 1.5] (treatment
+#   smoke 0.1137 recorded); UPDATE-1 LABEL BOOKKEEPING BIT-IDENTICAL
+#   between the two smokes (the shuffle consumes no RNG during
+#   collection); wall within +-5%; entropy/anchor recorded vs the
+#   control band. HONESTY: a 100k smoke cannot discriminate an
+#   informative head from a placebo head (the treatment smoke's aux/loss
+#   only reached 1.557 from 1.736); discrimination lives in R0-P1 and
+#   R-4. ANY acceptance failure -> the arm does not launch.
+# R0-P3 ONE-LEVER DIFF, BLOCKING: comment-stripped YAML-body diff vs
+#   configs/showdown_sp_actpred12m.yaml shows EXACTLY seed, run_name,
+#   + aux_shuffle_labels: true; transcript + both shas in the log.
+# R0-P4 GRADER EXTENSION, BLOCKING: d25_grade.py grows R-1/R-2/R-3/R-5
+#   reusing se_terms/exact_perm_p/grade_permutation; the recording band
+#   and NEGATIVE lines in EACH contrast's own units; the lane-failure
+#   ladder; P0-15 + era attestation first; synthetic known-p tests per
+#   grid, as R0-14 was verified.
+# R0-P5 POWER SIM: RUN 2026-08-15, frozen into P6. Re-run only if a
+#   lane fails R1 (the fixed arm changes).
+# ---------------------------------------------------------------------
+# P9. CONFOUNDS, DISCLOSED
+# ---------------------------------------------------------------------
+# C-P1 DIRECTION, NOT JUST MAGNITUDE (P1's zero-mean note). C-P2 the
+# legality residual (P2, priced). C-P3 GIT SHA (P6's era attestation;
+# unit-level protection only). C-P4 CAPACITY IS MATCHED — and so is C6's
+# shared move_net/move_emb opponent-move path (the placebo also drives
+# it); the placebo controls C1 AND C6's plumbing, a strict improvement
+# on D18's capacity-only control. C-P5 CADENCE clean vs both arms (C7).
+# ---------------------------------------------------------------------
+# P10. OPS
+# ---------------------------------------------------------------------
+# Seeds 57-61; 62/63 held per P6's ladder note; DISTINCT --seed per
+# concurrent lane across arms. **BACK UP results/d25/ BEFORE LAUNCH**
+# (it now holds the frozen tapes AND both arms' comparison sets; losing
+# it voids both). Commit code+docs before launching; launch from a
+# clean tree; caffeinate -is; both encoder env vars everywhere incl.
+# every eval; server :8000 simulator 4; detached screens, staggered,
+# verify by battle PROGRESS. Launch, per lane (N in 57..61):
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1
+#     WANDB_MODE=offline python -m rl.train
+#     --config configs/showdown_sp_actpred12m_placebo.yaml
+#     --seed N --run-name showdown_sp_actpred12m_placebo_sN
+# ---------------------------------------------------------------------
+# P11. OPEN MAINTAINER PRE-COMMITMENT — DECIDE BEFORE LAUNCH
+# ---------------------------------------------------------------------
+# Reviewer-2-of-D25's question, exact analogue (review R2-28): if R-1
+# lands in the unresolvable middle (B4/B9 — jointly the modal non-null
+# outcome at realistic spreads), is a THIRD arm authorised? The bar is
+# NOT comparator-limited here: +3 lanes move the resolvable delta
+# 0.0385 -> ~0.033, +5 -> ~0.031, floor 0.025. Refusing is legitimate
+# ONLY as a budget choice. Options: (a) pre-commit "5 and no more —
+# B4/B9 ends the placebo question for this chapter"; (b) pre-authorise
+# +3 lanes contingent on B4/B9 (+1.4 lane-days). THIS HEADER ASSUMES
+# (a) UNLESS RATIFIED OTHERWISE.
+# =====================================================================
+env_id: Showdown-v0
+seed: 57
+total_steps: 12000000
+eval_every: 100000          # struct12m cadence VERBATIM — the 5-seed
+eval_episodes: 100          # comparator was run at it (C7)
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_actpred12m_placebo_s57
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true         # unchanged from the treatment arm (R0-P3)
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1     # IDENTICAL to the treatment arm — frozen
+  aux_label_space: l6
+  aux_shuffle_labels: true # THE ONE LEVER (P1). Everything else in
+                           # this body is byte-identical to
+                           # showdown_sp_actpred12m.yaml (R0-P3 diffs
+                           # it mechanically before launch).
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 0
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
