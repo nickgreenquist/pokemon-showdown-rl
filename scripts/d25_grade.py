@@ -93,6 +93,19 @@ S1_CONTROL_SEEDS = (26, 27, 28, 50, 51)
 # --- pre-stated permutation levels by surviving n_T against n_C = 5 (§5) -----
 PERM_LEVELS = {5: (12, 252), 4: (6, 126), 3: (2, 56)}
 
+# --- D25-P (placebo config P0-15): the BANKED treatment comparison set, frozen.
+# The treatment arm is NEVER re-scored; a change to the eval path between the
+# 2026-08-14 treatment pass and the placebo pass VOIDS R-1 (era attestation).
+PLACEBO_SEEDS = (57, 58, 59, 60, 61)
+TREATMENT_FINALS = {52: 0.6233333333333333, 53: 0.6573333333333333,
+                    54: 0.6063333333333333, 55: 0.6073333333333333, 56: 0.598}
+TREATMENT_POOLED = 0.6185
+TREATMENT_SD = 0.02357
+TREATMENT_ATOMS_L6 = {52: 0.0530, 53: 0.0659, 54: 0.0505, 55: 0.0619, 56: 0.0568}
+TREATMENT_DORM = {52: 0.3385, 53: 0.2474, 54: 0.2422, 55: 0.2370, 56: 0.2604}
+R3_FRACTION_BAR = 1.0 / 3.0   # P6: license narrows iff R-3(a) fires AND
+                              # (mean_P - 0.0150)/0.0426 >= 1/3; fraction governs.
+
 
 def sample_std(xs):
     if len(xs) < 2:
@@ -345,6 +358,162 @@ def read_dormancy_csv(paths, seeds, step=12_000_000) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# D25-P — the placebo contrasts (R0-P4; placebo config P6)
+# ---------------------------------------------------------------------------
+
+
+def grade_r1_treatment_vs_placebo(p_rates: dict) -> str:
+    """R-1, THE PLACEBO ARM'S PRIMARY: does the treatment beat the placebo
+    under the credit line (larger-of, s_T frozen at the banked value)?
+    Recording band and NEGATIVE are stated in THIS contrast's own units."""
+    pv = [p_rates[s] for s in sorted(p_rates)]
+    n_p = len(pv)
+    pooled_p = sum(pv) / n_p
+    s_p = sample_std(pv)
+    delta = TREATMENT_POOLED - pooled_p
+    se_binom = math.sqrt(
+        TREATMENT_POOLED * (1 - TREATMENT_POOLED) / (N_PER_SEED * 5)
+        + pooled_p * (1 - pooled_p) / (N_PER_SEED * n_p))
+    se_clust = math.sqrt(TREATMENT_SD**2 / 5 + s_p**2 / n_p)
+    se_gov = max(se_binom, se_clust)
+    governs = "seed-clustered" if se_clust >= se_binom else "pooled-binomial"
+
+    print("\n=== R-1 (PLACEBO PRIMARY) — treatment vs placebo, win rate ===")
+    for s in sorted(p_rates):
+        print(f"  s{s}: {p_rates[s]:.4f}")
+    print(f"  placebo pooled {pooled_p:.4f} (n_P = {n_p}, s_P = {s_p:.4f}) vs "
+          f"treatment {TREATMENT_POOLED} (s_T frozen {TREATMENT_SD})")
+    print(f"  delta_TP {delta:+.4f}; se: binomial {se_binom:.5f} | clustered "
+          f"{se_clust:.5f} -> {governs} GOVERNS, 2*se = {2 * se_gov:.5f}")
+    print(f"  credit boundary: placebo <= {TREATMENT_POOLED - max(0.025, 2 * se_gov):.5f}")
+
+    if n_p < 3:
+        print("  VERDICT: R-1 VOID — LANE FAILURE LADDER: fewer than 3 "
+              "surviving placebo lanes voids R-1, R-2, R-3 and R-5 (P6).")
+        return "VOID"
+    if delta >= LETTER and delta >= 2 * se_gov:
+        print("  VERDICT: R-1 CREDITS — the information-specific part is "
+              "credited. Branch per R-2 (B1 UPGRADE / B2 DECOMPOSED / B5), "
+              "with C3(b) self-model and C4 representational-only attached "
+              "in the same sentence. NOT 'belief state'.")
+        return "CREDIT"
+    if -delta >= max(LETTER, 2 * se_gov):
+        print("  VERDICT: R-1 NEGATIVE — placebo ABOVE treatment (B8): the "
+              "attribution flips; record with entropy/R1 curves.")
+        return "NEGATIVE"
+    if delta >= LETTER:
+        print('  VERDICT: R-1 RECORDING BAND (B9) — "letter-met, '
+              'seed-fragile, NOT credited" for the information-specific '
+              "part; claim stays scoped; per-seed detail in the log; no "
+              "narrative use without the weakness named.")
+        return "letter-met, seed-fragile, NOT credited"
+    print("  VERDICT: R-1 does not credit (delta < +0.025). With R-2 null "
+          "this is B4 NO CHANGE — the arm was underpowered for the middle, "
+          "SAID AT READOUT, never converted into an upgrade. P11: 5-and-no-"
+          "more is the ratified pre-commitment.")
+    return "FLAT"
+
+
+def grade_r3_fraction(p_atoms: dict, fired_a: bool) -> None:
+    """P6's governance: the §5 license narrows iff R-3(a) fires AND the
+    reproduced fraction >= 1/3; on disagreement the FRACTION governs."""
+    mean_p = sum(p_atoms.values()) / len(p_atoms)
+    frac = (mean_p - 0.0150) / 0.0426
+    print(f"  reproduced fraction: (mean_P {mean_p:+.4f} - 0.0150)/0.0426 = "
+          f"{frac:+.3f} vs bar {R3_FRACTION_BAR:.3f}")
+    narrow = fired_a and frac >= R3_FRACTION_BAR
+    if fired_a != (frac >= R3_FRACTION_BAR):
+        print("  NOTE: significance and fraction DISAGREE — the FRACTION "
+              "governs (P6); discrepancy reported.")
+    if narrow:
+        print("  ACTION: §5's banked letter KEEPS its number, p and verdict; "
+              "its LICENSE NARROWS to 'an aux gradient of this shape moves "
+              "this probe statistic' (§5's own pre-registered converse).")
+    else:
+        print("  ACTION: no license change. A silent (a) does NOT clear "
+              "specificity below §5's MDE range 0.0105-0.0301 — say so.")
+
+
+def placebo_main(root: Path, atoms_path: Path, dorm_path: Path,
+                 s1_controls: list) -> None:
+    comparator = attest()
+    print("\n=== P0-15 EXTENSION — the banked treatment set (frozen; never "
+          "re-scored; eval-path change since 2026-08-14 VOIDS R-1) ===")
+    print("  finals: " + " ".join(f"s{s} {TREATMENT_FINALS[s]:.4f}"
+                                  for s in sorted(TREATMENT_FINALS))
+          + f" -> {TREATMENT_POOLED}, sd {TREATMENT_SD}")
+    print("  L6 atoms: " + " ".join(f"s{s} {TREATMENT_ATOMS_L6[s]:+.4f}"
+                                    for s in sorted(TREATMENT_ATOMS_L6)))
+    print("  dormancy: " + " ".join(f"s{s} {TREATMENT_DORM[s]:.4f}"
+                                    for s in sorted(TREATMENT_DORM)))
+
+    r04: list = []
+    finals = {}
+    for s in PLACEBO_SEEDS:
+        p = root / f"final_s{s}.json"
+        if p.exists():
+            finals[s] = read_report(p, r04)
+    if r04:
+        raise SystemExit(f"R0-4 FAILURE: {sorted(r04)} — the read is VOID")
+    if not finals:
+        raise SystemExit(f"no final_s*.json for seeds {PLACEBO_SEEDS} under {root}")
+    lost = [s for s in PLACEBO_SEEDS if s not in finals]
+    if lost:
+        print(f"\nLANE FAILURE LADDER: seed(s) {lost} lost — both se terms "
+              f"recompute at n_P = {len(finals)}; permutation levels drop per "
+              "the ladder; n_P < 3 voids R-1/R-2/R-3/R-5.")
+    ns = {r["episodes"] for r in finals.values()}
+    if ns != {N_PER_SEED}:
+        raise SystemExit(f"episode counts {ns} != {{{N_PER_SEED}}}")
+    p_rates = {s: r["eval/win_rate"] for s, r in finals.items()}
+
+    grade_r1_treatment_vs_placebo(p_rates)
+    print("\n=== R-2 — placebo vs frozen comparator (§4 machinery verbatim) ===")
+    grade_primary(p_rates, comparator)
+
+    if atoms_path.exists():
+        atoms = json.loads(atoms_path.read_text())
+        p_atoms = {int(s): v for s, v in atoms["L6"].items()}
+        va = grade_permutation(p_atoms, CONTROL_L6,
+                               "R-3(a) — placebo atoms vs CONTROLS, placebo "
+                               "HIGHER (fires => governance below)",
+                               direction=+1)
+        grade_r3_fraction(p_atoms, va == "FIRED")
+        if len(p_atoms) == 5:
+            grade_permutation(dict(TREATMENT_ATOMS_L6), p_atoms,
+                              "R-3(b) — treatment atoms vs PLACEBO, treatment "
+                              "HIGHER (informative only in the high-placebo "
+                              "case)", direction=+1)
+        else:
+            print("  R-3(b): needs 5 placebo atoms for the enumerated level")
+    else:
+        print(f"\nR-3: SKIPPED — no atoms at {atoms_path} "
+              "(scripts/d25_atoms.py with LANES = the placebo seeds).")
+
+    if dorm_path.exists():
+        p_dorm = read_dormancy_csv([dorm_path], PLACEBO_SEEDS)
+        c_dorm = read_dormancy_csv([p for p in s1_controls if Path(p).exists()],
+                                   S1_CONTROL_SEEDS)
+        if p_dorm:
+            grade_permutation(p_dorm, c_dorm,
+                              "R-5 — placebo dormancy vs CONTROLS, placebo "
+                              "LOWER (fires + flat atoms/wr => de-dormancy "
+                              "is a SIDE EFFECT; S1 keeps its number, its "
+                              "mechanism reading is re-narrated)",
+                              direction=-1)
+            if len(p_dorm) == 5:
+                grade_permutation(dict(TREATMENT_DORM), p_dorm,
+                                  "R-5(b) — treatment vs PLACEBO, treatment "
+                                  "LOWER", direction=-1)
+    else:
+        print(f"\nR-5: SKIPPED — no dormancy CSV at {dorm_path} "
+              "(--tag d25_placebo, NEVER the control tag).")
+
+    print("\nBRANCHES (P7): precedence B7 (R-4 leak/never-trained — read "
+          "R-4 from scripts/d25_manipulation.py adapted to the placebo "
+          "lanes, |g_P| <= 0.02 confirms) and B6 (R1 arm-stop) first, then "
+          "B1-B5/B8/B9 off the R-1 x R-2 grid. Every branch carries its "
+          "STATUS/README obligation.")
 
 
 def main() -> None:
@@ -354,7 +523,17 @@ def main() -> None:
     ap.add_argument("--dormancy", default="results/d25/dormant.csv")
     ap.add_argument("--s1-control", action="append",
                     default=["results/d23/dormant_control.csv"])
+    ap.add_argument("--placebo", metavar="DIR", default=None,
+                    help="D25-P mode (R0-P4): grade the placebo contrasts "
+                         "R-1/R-2/R-3/R-5 from final_s{57..61}.json etc. "
+                         "under DIR, against the frozen banked sets.")
     args = ap.parse_args()
+    if args.placebo:
+        placebo_main(Path(args.placebo),
+                     Path(args.placebo) / "placebo_atoms.json",
+                     Path(args.placebo) / "dormant_d25_placebo.csv",
+                     args.s1_control)
+        return
     root = Path(args.results)
 
     # R0-15: attestation first, unconditionally, before any treatment read.

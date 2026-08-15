@@ -240,3 +240,61 @@ def test_attest_passes_on_real_frozen_inputs(capsys):
     assert "ATTESTATION PASS" in out
     assert "0.54452" in out and "3ffee9" in out
     assert rates[50] == pytest.approx(0.5763333, abs=1e-6)
+
+
+# --------------------------------------------------------------------------
+# R0-P4 (D25-P): the placebo contrasts
+# --------------------------------------------------------------------------
+
+from d25_grade import (  # noqa: E402
+    TREATMENT_POOLED,
+    TREATMENT_SD,
+    grade_r1_treatment_vs_placebo,
+    grade_r3_fraction,
+)
+
+
+def test_r1_credits_on_low_placebo():
+    # placebo at the comparator level: delta +0.074 >> bar
+    p = {s: 0.5445 for s in range(57, 62)}
+    assert grade_r1_treatment_vs_placebo(p) == "CREDIT"
+
+
+def test_r1_boundary_matches_frozen_table():
+    # equal placebo seeds (s_P = 0): 2*se_clus = 0.0211 < 0.025, so the
+    # LETTER FLOOR governs the bar (P6's corrected governance statement) and
+    # the frozen table's first cell is 0.6185 - 0.025 = 0.5935.
+    bar = TREATMENT_POOLED - max(0.025, 2 * math.sqrt(TREATMENT_SD**2 / 5))
+    assert bar == pytest.approx(0.5935, abs=3e-4)
+    assert grade_r1_treatment_vs_placebo(
+        {s: bar - 0.001 for s in range(57, 62)}) == "CREDIT"
+    # just above the boundary at s_P = 0 the letter floor fails -> FLAT (no
+    # recording band exists below s_P ~ 0.015, where 2*se < 0.025)
+    assert grade_r1_treatment_vs_placebo(
+        {s: bar + 0.001 for s in range(57, 62)}) == "FLAT"
+    # the band exists at spread: delta +0.030 with s_P ~ 0.035 ->
+    # 2*se_clus ~ 0.038 > delta >= 0.025
+    band_case = {57: 0.545, 58: 0.565, 59: 0.5885, 60: 0.610, 61: 0.634}
+    assert grade_r1_treatment_vs_placebo(
+        band_case) == "letter-met, seed-fragile, NOT credited"
+
+
+def test_r1_flat_negative_void():
+    assert grade_r1_treatment_vs_placebo(
+        {s: 0.610 for s in range(57, 62)}) == "FLAT"
+    # placebo ABOVE treatment by more than the margin: B8
+    assert grade_r1_treatment_vs_placebo(
+        {s: 0.680 for s in range(57, 62)}) == "NEGATIVE"
+    assert grade_r1_treatment_vs_placebo({57: 0.55, 58: 0.55}) == "VOID"
+
+
+def test_r3_fraction_governs(capsys):
+    # fired but fraction below 1/3 -> no license change, disagreement noted
+    p_atoms = {s: 0.0230 for s in range(57, 62)}   # frac = 0.0080/0.0426 = 0.19
+    grade_r3_fraction(p_atoms, fired_a=True)
+    out = capsys.readouterr().out
+    assert "FRACTION governs" in out and "no license change" in out
+    # fired and fraction above 1/3 -> license narrows
+    p_atoms = {s: 0.0330 for s in range(57, 62)}   # frac = 0.42
+    grade_r3_fraction(p_atoms, fired_a=True)
+    assert "LICENSE NARROWS" in capsys.readouterr().out
