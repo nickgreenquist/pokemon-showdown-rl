@@ -3851,3 +3851,19 @@ entry by offset — never a broad keyword grep.
   lanes), dormancy --tag d25_placebo. OWED while lanes run: the R-4 adaptation of
   d25_manipulation.py for placebo lanes (g_P vs the 0.02 band; A0 reference
   1.773-1.780).
+- 2026-08-15 (evening, **M4 CLAIMED — maintainer's formal blessing ("M4 blessing");
+  THE PRE-REGISTERED LADDER IS COMPLETE, M1-M4, ALL ON PURE FROM-SCRATCH
+  SELF-PLAY**). The claim rests on, all under the locked protocol: D25 pooled
+  **0.6185** >= DESIGN §2's 0.558 bar (5x3000, R0-15-attested comparator);
+  obligation (i) the clone re-scored at 5x3000 — final 0.5503 (sd 0.0094),
+  val-peak 0.5837 (sd 0.0066), BOTH below D25's pooled, resolving the
+  0.558-vs-0.5490 number conflict by re-score as the header prescribed;
+  obligation (ii) the SH-exploitation falsifier — s55 vs clone 0.7190 pooled over
+  two orientations (z +15.4), the anchor edge MOVING with the vs-SH number
+  (0.657 at 0.5509 -> 0.719 at 0.6073), so the gain transfers off-SH. What M4
+  means and does not mean: the pure self-play agent now exceeds, vs SH AND
+  head-to-head, the behaviour clone of Foul Play — the strongest imitation-of-
+  search anchor in the repo — while the ENGINE itself (0.8307 vs SH) remains far
+  ahead; M4 is the last LADDER rung, not parity with search. Claim scope on the
+  LEVER (opponent model vs aux loss) still awaits D25-P, running now — M4 is a
+  WIN-RATE milestone and is not conditioned on that attribution.
