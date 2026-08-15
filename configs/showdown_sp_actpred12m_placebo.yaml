@@ -7,8 +7,9 @@
 # PROCESS: 2 Opus designers (A implementation-first, B inference-first,
 # convergent on the scheme) + 2 Opus reviews (R1 verification: 16
 # findings; R2 house-rules: 21) folded in; both verdicts needs-changes,
-# all blocking items resolved here. HEADER STATUS: DRAFT r1 —
-# PENDING MAINTAINER RATIFICATION, incl. the P11 pre-commitment.
+# all blocking items resolved here. HEADER STATUS: **RATIFIED 2026-08-15
+# (maintainer: "ratified"); P11 = OPTION (a), 5-AND-NO-MORE** (the
+# header's stated default; no contrary instruction given).
 # ---------------------------------------------------------------------
 # P0. WHAT THIS ARM ADJUDICATES, AND THE BINDING PRE-STATEMENT
 # ---------------------------------------------------------------------
