@@ -3752,3 +3752,20 @@ entry by offset — never a broad keyword grep.
   (tonight's §6 g is the manipulation check, not that). Session artifacts all under
   results/d25/ (grade_primary/with_atoms/s1.txt, treatment_atoms*.json,
   manipulation.json, clone_rescore_*, oppact_s52-56.npz, obs_s52-56.npz, dormant_d25*).
+- 2026-08-15 (early, **M4 OBLIGATION (ii) DISCHARGED — the SH-exploitation falsifier
+  PASSES; M4 now awaits only the maintainer's blessing**). Two-orientation
+  head-to-head, s55 (median D25 final, the conservative seat) vs the v2r clone FINAL,
+  500/orientation via the cross-encoder shim, ties as non-wins on both sides, R0-4
+  exact on both JSONs (results/d25/h2h_s55_vs_clone_{A,B}.json): orientation A (s55
+  deterministic) **0.8540**, orientation B (s55 from the sampling seat) **0.5840** ->
+  **pooled 0.7190 ± 0.0142, z +15.4 vs parity**. The deterministic-vs-sampling seat
+  asymmetry is large, as the protocol expects for BC-family opponents — exactly why
+  it pools orientations. THE GUARD'S QUESTION ANSWERED: the anchor head-to-head
+  MOVED with the vs-SH number (Rung 2: 0.5509 vs SH, 0.657 vs clone -> D25 s55:
+  0.6073 vs SH, 0.719 vs clone), so the vs-SH jump is NOT SH-specific. **M4 status:
+  pooled 0.6185 >= 0.558 under the locked protocol; obligation (i) clone re-score
+  5x3000 discharged (0.5503 final / 0.5837 val-peak, both below); obligation (ii)
+  discharged tonight. Formal claim is the maintainer's blessing away** (M2/M3
+  precedent). Placebo design cycle running per the 2-Opus mandate (Designer A's memo
+  in: within-allow-class permutation + a zero-lane g_allow ceiling gate; Designer B
+  drafting; synthesis + reviews next).
