@@ -28,8 +28,10 @@ the claim is "an aux opponent-action loss helps", NOT "an opponent model helps".
    CREDIT + co-primary B p=1/252 (both spaces) + §6 LEARNED (median g 0.7055, 2.1×
    bar, 5/5, trajectory rising) + S1 p=1/252. Falsifier does NOT fire. R0-16 done
    (controls s50 0.4896 / s51 0.4115). Transcripts/artifacts under results/d25/.**
-1. **YOUR CALL — the shuffled-label placebo (+2.35 lane-days), now the claim-scope
-   decider for a CREDITED lever**; and ratify the M4 adjudication once (ii) lands.
+1. **D25-P placebo: RATIFIED, BUILT, ALL GATES GREEN — LAUNCH-READY** (header in
+   `configs/showdown_sp_actpred12m_placebo.yaml`, RATIFIED 2026-08-15, P11 =
+   5-and-no-more; suite 354; R0-P2 dispositions in the log). Seeds 57-61, launch
+   recipe = D25's. At readout: `scripts/d25_grade.py --placebo <dir>`. **M4: bless?**
 2. **M4 (ii) DISCHARGED (2026-08-15): s55 beats the clone 0.7190 pooled over
    orientations (0.854 det / 0.584 sampling, z +15.4)** — the anchor MOVED with the
    vs-SH number (Rung 2: 0.657 at 0.5509 → D25: 0.719 at 0.6073), so the jump is not
