@@ -3769,3 +3769,35 @@ entry by offset — never a broad keyword grep.
   precedent). Placebo design cycle running per the 2-Opus mandate (Designer A's memo
   in: within-allow-class permutation + a zero-lane g_allow ceiling gate; Designer B
   drafting; synthesis + reviews next).
+- 2026-08-15 (early, **D25-P PLACEBO PRE-REGISTRATION DRAFTED under the 2-Opus
+  process; PENDING RATIFICATION**). Maintainer ratified §12 option (1) (5-lane
+  letter-bearing arm). Process ran in full: evidence brief -> 2 Opus designers with
+  independent framings (A implementation-first, B inference-first) -> synthesis -> 2
+  Opus reviews (R1 verification, R2 house-rules) -> all blocking findings folded ->
+  configs/showdown_sp_actpred12m_placebo.yaml (header ~330 lines, DRAFT r1). Both
+  designers独立ly converged on the scheme: uniform permutation WITHIN exact-allow
+  equivalence classes, valid rows only, once per rollout, dedicated RNG generator.
+  REVIEWS EARNED THEIR KEEP: R2 caught two defective HARD gates (per-update
+  labelled_frac band would have failed the CREDITED treatment arm on 14-35% of
+  updates — the metric drifts 0.86->0.81 over training; and the post-shuffle
+  illegality gate as drafted read a PRE-shuffle metric, structurally unable to fire
+  — the R0-8 inert-gate lesson twice over), the missing modal-non-null branch, and
+  the illegal retro-demotion of §5's banked letter (rewritten to license-narrowing
+  per the D23 "recorded verdicts stand" precedent, governed by reproduced fraction
+  >= 1/3). R1 re-derived every frozen constant (corrected: clip max 0.1875 not
+  0.125; trunk_norm late band [0.083, 0.098] — the draft's 0.085 ceiling excluded
+  s53; chance match 0.243-0.330; global-perm illegality 0.42-0.93%), broke the
+  identity-row escalation clause (cross-class swaps violate the multiset invariant
+  it claims to protect — DELETED), softened the independence claim to the honest
+  block-conditional form, validated s_T-frozen-at-0.02357 as an identity, and
+  verified both boundary tables cell-by-cell. R0-P5 power sim RUN (200k draws,
+  treatment fixed at measured): resolves +0.074 at 0.86-1.00, half-information
+  +0.037 at 0.35-0.83 (range quoted), recording band modal at wide spreads
+  (0.28-0.35). R0-P3 semantic diff PASSES: exactly seed/run_name/
+  aux_shuffle_labels (and caught a real transcription omission, max_grad_norm,
+  before commit). OPEN FOR THE MAINTAINER: ratify the header, and P11 — if R-1
+  lands in the unresolvable middle, is a third arm (+1.4 lane-days, resolvable
+  delta 0.0385 -> ~0.033) pre-authorised, or is 5-and-no-more the pre-commitment?
+  Header assumes 5-and-no-more unless ratified otherwise. Build (flag + shuffle fn
+  + R0-P1 tests + R0-P2 smokes + R0-P4 grader extension) queued behind
+  ratification.
