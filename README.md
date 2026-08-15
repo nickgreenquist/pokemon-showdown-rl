@@ -92,6 +92,13 @@ both label spaces): the pooled context became ~4× more decodable for the
 opponent's next action on a frozen reference tape. Claim scope is deliberately
 narrow pending a pre-registered placebo arm: what is licensed is "an auxiliary
 opponent-action loss helps", not yet "the agent learned an opponent model".
+That run also completed the pre-registered milestone ladder: **M4 — surpassing
+the Foul Play behaviour clone under the locked protocol — was formally claimed
+2026-08-15** (pooled 0.6185 vs the clone's 5×3000 re-scores of 0.5503
+final / 0.5837 val-peak, guarded by two-orientation head-to-heads: 0.719
+pooled over the clone, an edge that moved with the vs-SH number rather than
+staying flat). M1–M4 are now all claimed on pure from-scratch self-play; the
+search engine itself (0.8307) remains the open frontier.
 
 **Honest scoping.** SH parity ≈ 40% GXE in human-ladder terms; the strongest
 documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach

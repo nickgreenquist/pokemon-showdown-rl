@@ -21,17 +21,17 @@ the claim is "an aux opponent-action loss helps", NOT "an opponent model helps".
 | **D25 oppact-aux 12M — CREDIT (bar 0.58273; s53 record 0.6573)** | **0.6185** |
 | **D25 mech co-primary: LETTER at MIN p = 1/252, both label spaces** | Δ +0.0426 |
 | BC-of-FP v2r clone at 5×3000: final 0.5503 / val-peak 0.5837 — both < D25 | — |
-| **LADDER** M1/M2/M3 CLAIMED · **M4: BOTH obligations clear — bless it?** | 0.6185 |
+| **LADDER COMPLETE: M1-M4 ALL CLAIMED** (M4 blessed 2026-08-15) | 0.6185 |
 
 ## Next actions, in order (maintainer decisions at the top)
 0. **ALL FOUR LETTER-BEARING READS LANDED FULL-SUCCESS (2026-08-14 night): PRIMARY
    CREDIT + co-primary B p=1/252 (both spaces) + §6 LEARNED (median g 0.7055, 2.1×
    bar, 5/5, trajectory rising) + S1 p=1/252. Falsifier does NOT fire. R0-16 done
    (controls s50 0.4896 / s51 0.4115). Transcripts/artifacts under results/d25/.**
-1. **D25-P placebo: RATIFIED, BUILT, ALL GATES GREEN — LAUNCH-READY** (header
-   RATIFIED 2026-08-15, P11 = 5-and-no-more; suite 354; R0-P2 dispositions in the
-   log). Seeds 57-61, recipe = D25's; readout via `d25_grade.py --placebo`. **M4:
-   bless?**
+1. **D25-P RUNNING — 5 lanes s57-61, launched 2026-08-15 ~19:55 EDT, ETA ~11 h.**
+   Placebo signature live on every lane (aux/loss pinned at marginal_nll;
+   shuffle_illegal 0). Watch R1 at 4M / K6 / R0-8 wall / P-SHUF. Readout:
+   `d25_grade.py --placebo results/d25p`. **M4 CLAIMED** (both obligations + blessing).
 2. **M4 (ii) DISCHARGED (2026-08-15): s55 beats the clone 0.7190 pooled over
    orientations (0.854 det / 0.584 sampling, z +15.4)** — the anchor MOVED with the
    vs-SH number (Rung 2: 0.657 at 0.5509 → D25: 0.719 at 0.6073), so the jump is not
