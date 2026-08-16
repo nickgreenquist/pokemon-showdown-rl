@@ -9,11 +9,10 @@ r7; encoder frozen v2/808+ids=828). **D25 CREDITED (0.6185, +0.0739 over the fro
 claim SCOPE — without the placebo the claim is "an aux opponent-action loss helps", NOT
 "an opponent model helps". D25-P settles it. 50M CLOSED; D18 NULL; D23 not-credited.
 
-## Results (vs SH; ties=loss; locked = final ckpt, 3×3000/seed; 5×3000 from D23 on)
+## Results (vs SH; ties=loss; locked = final ckpt; 5×3000 from D23 on)
 | result | win rate |
 |---|---|
-| Rung 2 STRUCTURE 12M — CREDIT · 5-seed refresh 0.5445 (sd 0.0356) | 0.5509 |
-| Rung 3 50M — CREDIT 0.5802 ± 0.0052 · D18 NULL 0.5364 · D23 0.5897 · clone 0.5503 | — |
+| Rung 2 12M 0.5509 · Rung 3 50M 0.5802 · D18 0.5364 · D23 0.5897 · clone 0.5503 | — |
 | **D25 oppact-aux 12M — CREDIT** (bar 0.58273) · **M1-M4 CLAIMED** | **0.6185** |
 | **D25 mech co-primary: LETTER at MIN p = 1/252, both spaces** · D25-P RUNNING | Δ +0.0426 |
 
