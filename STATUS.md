@@ -22,9 +22,10 @@ claim SCOPE — without the placebo the claim is "an aux opponent-action loss he
    finals ~06:45-07:15 EDT Aug 16). Verify by battle PROGRESS — re-extract history.csv
    first, wandb is offline. Gates: R1 `winrate_anchor` >= 0.75 by 4M (**<3 of 5 -> ARM
    STOPS, B6 PLACEBO-HARMS: a RESULT, record per P7, no re-tune**); K6 (5-lane median
-   entropy < 0.15 x5) before 6M; R0-8 WARM wall (>=30-min window after 1M: record <255,
-   STOP <210); P-SHUF (per-1M-bin median `aux/loss_mb0` - `aux/marginal_nll` < -0.03 x3).
-   A lane lost BEFORE R1 relaunches on seed 62/63, never the same seat. T+19min: 5/5 green.
+   entropy < 0.15 x5) before 6M; P-SHUF (per-1M-bin median `aux/loss_mb0` -
+   `aux/marginal_nll` < -0.03 x3). **R0-8 DISCHARGED 21:23 — wall 309.5-318.1 steps/s,
+   median 312.2, all five clear 255/210.** A lane lost BEFORE R1 relaunches on seed
+   62/63, never the same seat.
 2. **At the finals: locked eval** — `mkdir -p results/d25p`; 5x3000, BOTH env vars,
    sequential, `--out results/d25p/final_s{57..61}.json`. Maintainer's terminal, ~10 min.
 3. **Grade: `python scripts/d25_grade.py --placebo results/d25p`** — attestation + era-

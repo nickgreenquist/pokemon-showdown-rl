@@ -4003,3 +4003,8 @@ entry by offset — never a broad keyword grep.
   42 s -> 325.9; plus 88 s (4.2%) of checkpoint/logging/pool overhead -> 311.9, the
   wall. So eval and fixed overhead cost ~6.3% of throughput, and that is the entire
   gap between the per-update rate and the gate's number.
+  Suite re-run after the wall reading was banked (the reason it was deferred): **370
+  passed, 0 failed, 27 s** — 354 carried plus R-4's 16. The documented flake
+  (`test_full_episode_contract_against_live_server`, which fails when the whole suite
+  runs with a server up) did NOT fire this time despite five lanes and the server being
+  live; recorded as a data point on that flake, not as a fix.
