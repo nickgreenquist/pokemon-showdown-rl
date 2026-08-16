@@ -30,14 +30,14 @@ claim SCOPE — without the placebo the claim is "an aux opponent-action loss he
 3. **Grade: `python scripts/d25_grade.py --placebo results/d25p`** — attestation + era-
    attestation print first, then R-1/R-2 (+R-3/R-5 once their inputs exist). P7
    precedence: B7 (R-4 leak/never-trained) and B6 FIRST, then B1-B5/B8/B9.
-4. **Mech inputs — fleet DOWN for collections.** (a) atoms: `d25_atoms.py` is HARDCODED
-   to 52-56 / `showdown_sp_actpred12m_s`; edit LANES + prefix + output to
-   `results/d25p/placebo_atoms.json` (grader expects that name). (b) dormancy:
+4. **Mech inputs — ALL THREE SCRIPTS NOW EXIST; fleet must be DOWN for collections.**
+   (a) atoms: `d25_atoms.py --lanes 57,58,59,60,61 --run-prefix
+   showdown_sp_actpred12m_placebo_s --out results/d25p/placebo_atoms.json` (flags added
+   2026-08-15; defaults still reproduce the banked treatment atoms). (b) dormancy:
    `d22_collect_obs.py` (200 eps)/lane -> `d22_dormant_rank.py --lanes 57,58,59,60,61
    --run-prefix showdown_sp_actpred12m_placebo_s --out results/d25p --tag d25_placebo`
-   (NEVER the control tag) -> `dormant_d25_placebo.csv`. (c) **R-4 IS NOT WRITTEN — the
-   owed build while lanes run:** adapt `d25_manipulation.py` for placebo lanes (own tapes,
-   300 eps; g_P vs the 0.02 band; floor check vs A0 1.773-1.780; 3M/6M/12M, rising = leak).
+   (NEVER the control tag). (c) R-4: `scripts/d25p_manipulation.py` — needs 300-ep mirror
+   tapes at `results/d25p/oppact_s{57..61}.npz` first (`collect_oppact.py`).
 5. **Readout entry** naming the P7 branch, discharging its STATUS/README obligation, and
    re-measuring the ledger (~18.25/20, never increment). **Expected shapes, R-1 credit
    boundaries, R-3 governance: the 2026-08-15 night ADDENDUM — read before grading.**

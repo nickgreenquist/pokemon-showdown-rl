@@ -3930,3 +3930,41 @@ entry by offset — never a broad keyword grep.
   R0-8 is the gate that governs at 12M. C10 (tapes exclude forced replacements BY
   CONSTRUCTION, 0 of 53,848 rows; live loss included double-faints at ~0.12%) is
   disclosed at readout.
+- 2026-08-15 (night, **THE OWED BUILDS LANDED WHILE THE LANES RUN: R-4 written, atoms
+  parametrised**). Both were the handoff's "owed while lanes run" item; neither touches
+  a running lane. (1) **`scripts/d25p_manipulation.py` — R-4, the placebo §6 check.**
+  Written as a SIBLING of `d25_manipulation.py` rather than a flag on it: that script
+  produced the BANKED §6 treatment letter (median g 0.7055) and has to stay reproducible
+  bit-for-bit, so it is untouched and the estimator is shared by import — g_P and the
+  treatment g are unit-compatible by construction, not by convention. Implements the
+  header's two views of one statistic: |g_P| <= 0.02 SHUFFLE CONFIRMED / < 0.10 RESIDUAL
+  / >= 0.10 LEAK / <= -0.10 DERANGEMENT (sign matters — the negative branch is
+  anti-information, not a leak), and NLL_head against the floor with TRAINED-TO-FLOOR
+  (|NLL_head - A1| <= 0.02, the DESIGNED outcome), NEVER-TRAINED (>= A0 - 0.05, arm
+  VOID) and PARTIALLY-TRAINED (the R2-11 middle cell -> R-1 DOSE-CAVEATED, not void).
+  Reads 3M/6M/12M and flags RISING |g_P| as the leak signature (R2-17). **Two places the
+  pre-registration underdetermines the read, both surfaced rather than quietly resolved:**
+  (i) R-4 fixes the bands but never names the ACROSS-LANE AGGREGATOR — §6's median is
+  inherited and said so in the docstring and the printout, with the worst lane's |g_P|
+  printed beside it so a maintainer who wants max-governs can read it without a re-run;
+  (ii) the header's cells leave (A1 + 0.02, A1 + 0.05] unnamed, so a lane landing there
+  prints NEAR-FLOOR (unnamed cell — disclose) instead of being folded into a neighbour.
+  A0 is MEASURED per lane (mean log of the legal-class count) rather than assumed from
+  the treatment tapes' 1.773-1.780; the formula was sanity-anchored against log 6 =
+  1.7918, the all-six-legal ceiling the reference range sits just under. 16 tests
+  (`tests/test_d25p_manipulation.py`), all green. One recorded quirk: the inclusive <=
+  at the TRAINED-TO-FLOOR boundary loses to float representation (1.5 + 0.02 exceeds A1
+  by 1.8e-17), so an exact-boundary lane reads NEAR-FLOOR — a disclosure, not a silent
+  reclassification, and real NLL_head values do not land on the boundary. (2)
+  **`d25_atoms.py` gained `--lanes` / `--run-prefix` / `--out`.** The handoff prescribed
+  editing LANES, the prefix and the output path IN PLACE for the placebo run; that would
+  have overwritten the defaults behind §5's banked treatment atoms
+  (+0.0530/+0.0659/+0.0505/+0.0619/+0.0568). Flags instead, defaults byte-identical to
+  the banked invocation (`out.stem + "_detail.json"` reproduces
+  `treatment_atoms_detail.json` exactly), placebo command in the docstring. Same frozen
+  s36 tape and the same sha assertion either way — only whose ctx is read changes.
+  NOT DONE, and deliberately: the full suite was not re-run tonight. Five lanes are
+  saturating the CPU and R0-8's WARM wall is a THROUGHPUT gate — a suite run inside that
+  window would depress the number the gate reads. The D25 subset (70 tests across
+  test_d25_grade / test_d25_placebo / test_d25p_manipulation / test_opp_action) is green;
+  run the full suite after the wall reading is banked.
