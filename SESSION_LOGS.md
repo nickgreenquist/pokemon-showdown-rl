@@ -4139,3 +4139,19 @@ entry by offset — never a broad keyword grep.
   **Do not use the in-loop eval to preview a locked number again**, not even as a
   5-lane mean; the per-lane n=100 noise does not average out at n_lanes = 5. Still
   outstanding: R-3 (atoms) and R-5 (dormancy), inputs collecting now.
+  **R-5 INPUTS COLLECTED (obs 200 eps/lane, then `d22_dormant_rank.py --tag d25_placebo`
+  on the treatment's own step grid 400k/3M/6M/9M/12M — NEVER the control tag).** Placebo
+  actor `ctx_net.1` tau025 at 12M: **0.4453 / 0.4297 / 0.5339 / 0.6641 / 0.7266, mean
+  0.560**, against controls 0.4844/0.5000/0.6432/0.4896/0.4115 (mean 0.506) and treatment
+  0.3385/0.2474/0.2422/0.2370/0.2604 (mean 0.265). **The placebo does NOT de-dormantify —
+  it is slightly MORE dormant than the controls, and the treatment sits far below both.**
+  Per §7's pre-stated joint reading that is the branch where **de-dormancy TRACKS THE
+  INFORMATION** (still caveated: S1 is a SECONDARY, and at n = 3 a dormancy letter is a
+  level-0.26 test, D18 having reached p = 0.0893 on the 3-lane control). S1's banked
+  letter keeps its number either way; this is the reading that does NOT force the
+  "side effect" re-narration. Effective rank is a separate, unpretty story worth
+  recording: the placebo's actor ctx srank99 COLLAPSES over training (s57 227->111,
+  s58 218->14, s59 228->49, s60 244->21, s61 193->11 across the five steps) while its
+  dormancy stays high — a narrow, largely-dead ctx. Do not conflate the two metrics;
+  R-5 reads tau025, and the STATUS watch item on "live ctx units 220-293" is a THIRD
+  metric again.
