@@ -3980,3 +3980,26 @@ entry by offset — never a broad keyword grep.
   massive leak, because its labels really do carry information — so the bands are
   oriented the right way round. This is the strongest available check short of the
   placebo tapes themselves, which cannot be collected until the fleet is down.
+- 2026-08-15 (night, **R0-8 WARM WALL READ AND BANKED — ALL FIVE CLEAR, and the metric
+  you would reach for first is the WRONG ONE**). The gate: a >=30-min window after 1M,
+  record below 255 steps/s, STOP below 210. Window opened ~20:50 EDT and closed ~21:21;
+  read at 21:23 over each lane's own post-1M span (32.1-34.5 min, 596k-659k steps
+  inside the window). **WALL throughput, delta_step / delta_runtime: s57 312.2, s58
+  312.0, s59 313.8, s60 318.1, s61 309.5 — 5-lane median 312.2, range 309.5-318.1.
+  Every lane clears the record line by >=21% and the STOP line by ~48%. R0-8 IS
+  DISCHARGED**; no lane is stopped, nothing is recorded against the arm. Fleet
+  throughput is flat against launch (~315 5-wide at T+2min) and against the T+19min
+  projection, so the 12M ETA holds at ~10.8-11.3 h -> finals ~06:45-07:15 EDT Aug 16.
+  **THE LANDMINE, measured tonight: do NOT read R0-8 off `time/steps_per_sec`.** That
+  key averages 361 on the post-1M rows and would say every lane clears by 42%; the true
+  wall is 312. The two are not the same population — post-1M, s57 logs
+  `time/steps_per_sec` 17,166 times against 627 updates (`time/collect_sec` /
+  `time/update_sec` appear once per update, `time/eval_sec` 7 times), so the key is
+  emitted at a far finer granularity and its mean is not a throughput. On the 134 rows
+  where both keys happen to appear its mean is 53.2, a third regime again — which is
+  the tell that pairing them is meaningless. Read the gate as delta_step over
+  delta_runtime and nothing else. The honest decomposition of s57's 2058 s window, which
+  DOES reconcile: collect 1588 s + update 340 s = 1928 s -> 333.0 steps/s; plus eval
+  42 s -> 325.9; plus 88 s (4.2%) of checkpoint/logging/pool overhead -> 311.9, the
+  wall. So eval and fixed overhead cost ~6.3% of throughput, and that is the entire
+  gap between the per-update rate and the gate's number.
