@@ -4362,3 +4362,65 @@ entry by offset — never a broad keyword grep.
   live rung on two dead ones; and the two D19 draft pre-registrations in
   `results/d24_design/`, now stamped SUPERSEDED (they still claim seeds 52-56, spent on
   D25). Suite 370 green; ledger unchanged at 17.91/20; no lanes spent.
+- 2026-08-16 (night, **D27 MATCHED-DOSE CONTROL KILLED AT ZERO LANES — AND THE REASON IS A
+  BETTER RESULT THAN THE ARM WOULD HAVE BEEN**). The maintainer picked the matched-dose
+  auxiliary control over D26 and asked for it launch-ready. **It cannot be built.** Two
+  Opus designers, working independently from different evidence, reached the same kill by
+  different routes, and both said so unprompted.
+  **THE FINDING: A SHUFFLED-LABEL AUXILIARY HEAD CANNOT BE DOSED, BECAUSE IT STOPS USING
+  THE TRUNK.** `OppActionHead` carries a `slot_bias` term whose documented purpose is to
+  "absorb the class marginal at the optimum … the design against C3(a) (a head that fits
+  P(class) and calls it a belief)" (`rl/networks/opp_action.py:126-128`). For a
+  shuffled-label head **P(class) IS the entire task**, so the head routes everything into
+  that bias and disconnects its input path. Measured at the weights (designer A, from the
+  banked checkpoints): placebo `|slot_bias|` 0.56 -> 1.98 with final scorer weight FLAT at
+  0.32 -> 0.34; treatment the exact reverse, `|W_last|` 0.48 -> 1.25 with slot_bias
+  0.09-0.29. Measured at the gradients (designer B, from history.csv): the fraction of the
+  aux gradient reaching the trunk collapses 0.44-0.54 (bin 0) -> **0.05-0.09 (bin 11)**
+  against the treatment's 0.51-0.62. **The anti-confound device that made D25's claim
+  credible is the same device that makes its placebo undosable.**
+  **WHY NO COEFFICIENT FIXES IT — THREE INDEPENDENT WALLS.** (1) **It is an identity, not
+  a shortfall.** Matching the trunk component needs ~58x the coefficient, which puts the
+  TOTAL aux gradient at ~8.3x the treatment's; the gap is exactly the ratio of the two
+  trunk fractions. **No scalar changes a fraction — including a per-update servo**, which
+  kills the dose-controller option I had offered as a way out; it only picks which
+  mismatch to accept. (2) **The clip is applied AFTER the coefficient**
+  (`rl/agents/ppo.py:796`: `scale = min(1, aux_max_grad_norm / total)` where `total` is
+  already post-coefficient), so delivered dose is capped at `clip x trunk_fraction` and
+  **bins 6-11 are unreachable at ANY coefficient** under the shipped 0.5. Escaping needs
+  the clip at >= 1.37-2.0 — a second lever off both D25 and D25-P. (3) **Adam is
+  scale-invariant on the aux group**: `aux_params` is its own optimizer group fed only by
+  the aux loss (`ppo.py:552`), so the coefficient cannot change what the head LEARNS, only
+  how hard an input-ignoring head pushes.
+  **A LIVE METRIC TRAP, CAUGHT BEFORE IT BIT: `aux/trunk_norm` is logged PRE-CLIP** (the
+  code says so at `ppo.py:790-794`). At a raised coefficient the dose gate would have read
+  in-band while a third of that was actually delivered — **D25-P's P3 dose gate, applied
+  unchanged, would have certified a dose that never landed.** Harmless at coef 0.1
+  (clip_frac <= 0.0018), decisive at 5.0.
+  **AND THE BOUND WOULD NOT HAVE BEEN WORTH IT.** phi = the fraction of D25's +0.0739 a
+  generic gradient reproduces. D27's BEST case (placebo dead flat, n_P=4, s_P=0.0308)
+  bounds phi <= 41.7% under the house convention, 59.9-70.5% once T's and C's own
+  seed-clustered uncertainty is propagated. **D25-P already banks phi <= 33.2% from finals
+  on disk — a TIGHTER bound.** D27's best case is numerically weaker with wider scope. In
+  the middle (placebo 0.575-0.581) the interval contains 100% and bounds nothing.
+  **A BUDGET FACT I HAD MISSED, and it reframes the whole choice:** STATUS allocates seeds
+  62-65 and ~1.74 lane-days to D26. D27 wanted the same four seeds and ~1.88.
+  **17.91 + 1.74 + 1.88 = 21.53 > 20 — it was always a SUBSTITUTION, never an addition**,
+  so the question was never "is D27 worth 1.88" but "is D27 worth more than D26".
+  **CORRECTIONS TO THE RECORD, both found independently by both designers:** STATUS's
+  "placebo ran at 3-31% of the frozen band" is wrong — that is 3-31% of the **0.7x
+  THRESHOLD**; against the band itself it is **~1.2-21.9%**. And my own brief was wrong on
+  calibration: 100k smokes cannot calibrate this arm, because the placebo's trunk
+  disconnect only develops after ~700k (trunk fraction 0.505 at 100k vs 0.067 at bin 11),
+  so a 100k smoke would have calibrated the coefficient 3.3x low.
+  **WHAT THE CAVEAT NOW NEEDS, named and NOT run:** an auxiliary task with permanent
+  structure and zero opponent information — predicting the agent's OWN action (labels
+  already sit in the buffer as `flat_actions`, `ppo.py:862`) or regressing a fixed random
+  projection of the row's own observation. Such a head never exhausts its task, never
+  disconnects, and holds its dose flat at a constant coefficient, so this obstruction does
+  not arise. It is a different control, needs its own pre-registration and its own ~1.75
+  lane-days, and the chapter does not have them alongside D26.
+  **NO LANES SPENT. Ledger unchanged at 17.91/20.** RESULTS.md §5's dose disclosure is
+  rewritten from "untested, not eliminated" to "untested, AND this control cannot test it,
+  and here is the measured reason". Suite 370 green. Minor build note recorded, not fixed:
+  `ppo.py:762` annotates `tuple[float, float]` but `:804` returns three values.

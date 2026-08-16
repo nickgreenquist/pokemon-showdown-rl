@@ -241,9 +241,40 @@ self-play got to 0.6185 without ever seeing it, from a 0.3996 start. The gap is 
 - **Representational, not shipped.** The head is train-time only; nothing at evaluation
   time consults an opponent model. The claim is about what the auxiliary gradient did to
   the trunk.
-- **Dose caveat, part of the claim rather than a footnote.** The placebo's auxiliary
-  gradient ran at 3–31% of the treatment's, so "a *generic* auxiliary gradient of matched
-  size would have helped too" is **untested, not eliminated**.
+- **Dose caveat — and the measured reason it cannot be closed with this control.** The
+  placebo's auxiliary gradient reached only ~1.2–21.9% of the treatment's per-bin trunk
+  dose, so "a *generic* auxiliary gradient of matched size would have helped too" is
+  **untested**. It was going to be tested by re-running the placebo at a higher
+  coefficient; a zero-lane design pass (2026-08-16) showed **that control cannot be
+  built**, and the reason is worth more than the arm would have been:
+
+  **A shuffled-label auxiliary head cannot be dosed, because it stops using the trunk.**
+  The head has a `slot_bias` term whose documented purpose is to "absorb the class
+  marginal at the optimum … the design against C3(a) (a head that fits P(class) and calls
+  it a belief)" (`rl/networks/opp_action.py:126-128`). For a shuffled head, P(class) *is*
+  the whole task — so it routes everything there and disconnects its input path.
+  Measured on the banked lanes: placebo `|slot_bias|` grows 0.56 → 1.98 while its final
+  scorer weight stays flat at 0.32 → 0.34; the treatment does the reverse (0.48 → 1.25,
+  bias 0.09–0.29). The fraction of the auxiliary gradient that reaches the trunk therefore
+  collapses from 0.44–0.54 at 1M to **0.05–0.09 at 12M**, against the treatment's
+  0.51–0.62.
+
+  That makes the mismatch **an identity, not a shortfall**: matching the trunk component
+  requires ~58× the coefficient, which puts the *total* gradient at ~8.3× the treatment's,
+  and the gap is exactly the ratio of the two trunk fractions. **No scalar changes a
+  fraction** — not a constant coefficient and not a per-update controller. Two further
+  walls confirm it independently: the auxiliary clip is applied *after* the coefficient
+  (`rl/agents/ppo.py:796`), capping delivered dose at `clip × trunk-fraction` and putting
+  bins 6–11 out of reach at **any** coefficient; and the head's own parameters are a
+  separate Adam group fed only by the auxiliary loss (`:552`), so by scale-invariance the
+  coefficient cannot change what the head learns — only how hard an input-ignoring head
+  pushes.
+
+  **So the honest status is not "untested" but "untested, and this control cannot test
+  it."** Closing it needs an auxiliary task with permanent structure and zero opponent
+  information — predicting the agent's *own* action, or regressing a fixed random
+  projection of its own observation — which never exhausts its task, never disconnects,
+  and holds its dose flat at a constant coefficient. Named, not run.
 
 ---
 
@@ -298,7 +329,9 @@ these systems do not survive contact with their source, and it records which.
 
 - **Transfer.** Does the D25 trunk model *an opponent*, or only itself? Cheap to test
   against a held-out anchor; not yet run.
-- **Matched-dose control.** The one live alternative explanation for D25's gain.
+- **Matched-dose control.** Attempted and found unbuildable — see §5's disclosure. The
+  live alternative explanation for D25's gain now needs a *structured*
+  zero-information auxiliary task, not a rescaled shuffled-label one.
 - **Scale.** D25 credited at 12M and has never been carried to 50M. The 50M comparator's
   seed spread (sd 0.0756) puts the bar above the best single lane in repo history, so this
   needs a variance-reduction idea, not just compute.
