@@ -4424,3 +4424,62 @@ entry by offset — never a broad keyword grep.
   rewritten from "untested, not eliminated" to "untested, AND this control cannot test it,
   and here is the measured reason". Suite 370 green. Minor build note recorded, not fixed:
   `ppo.py:762` annotates `tuple[float, float]` but `:804` returns three values.
+- 2026-08-16 (night, **C4 TRANSFER PROBE — LETTER FIRED AT THE MINIMUM ATTAINABLE p, AND
+  THE CONFOUND IT EXPOSED WAS FOUND AND CLEARED**). Maintainer chose "A then B": the free
+  transfer diagnostic first, then the annealing arm. This is A. Zero training lanes.
+  **PRE-REGISTERED FIRST, AND COMMITTED BEFORE THE TAPE EXISTED** (`4db2532`, the C4
+  TRANSFER PROBE block appended to `configs/showdown_sp_actpred12m.yaml`) — letters,
+  levels, both failure readings and an explicit power warning, all written before any
+  number was computed.
+  **THE QUESTION** is D25's own disclosed C4 (`actpred12m.yaml:1489`, "the evaluated
+  opponent (SH) is not the modelled one. Transfer is untested"). D25 trains in MIRROR
+  self-play, so the "opponent" its aux head predicts is a snapshot of the agent itself.
+  Did the trunk learn to model AN opponent, or only ITSELF?
+  **THE DESIGN: §5's machinery with exactly one change — the reference tape's opponent.**
+  Same frozen s36@12M checkpoint (in neither arm), 300 battles, but playing
+  `SimpleHeuristicsPlayer` instead of itself; 7,059 paired rows, 5,871 after the aliasing
+  filter, sha 88e6d42f...d7e35. Same eight battle-level splits, same frozen lambda 0.01,
+  same ten lanes, same exact permutation at 12/252. Collector and probe in
+  `results/c4_transfer/`; the probe imports `d25_atoms`'s own fit path so this and the
+  banked letter go through byte-identical fits. `d25_atoms.py` itself was NOT edited — it
+  pins the frozen mirror tape by sha and asserts it, correctly, because it computes a
+  banked letter.
+  **RESULT: FIRED, p = 1/252 = 0.003968, THE MINIMUM ATTAINABLE, IN BOTH LABEL SPACES.**
+  L6 primary: treatment s52-56 +0.0647/+0.0623/+0.0792/+0.0678/+0.0585 -> mean **+0.0665**
+  against control s26/27/28/50/51 +0.0458/+0.0339/+0.0295/+0.0318/+0.0420 -> **+0.0366**.
+  **Complete separation — every treatment lane above every control lane.** 12-class
+  secondary agrees: +0.0700 vs +0.0386, same p. Lower-side test p = 252/252, does not
+  fire. Worst ||g|| over all 176 fits 2.53e-04, inside the letter's 1e-3.
+  **THE CONFOUND, FOUND BY ASKING THE OBVIOUS QUESTION AND NOT PRE-REGISTERED — MY GAP.**
+  Treatment lanes carry ~1.7x more live ctx units (221-293 vs 131-169) and across the ten
+  lanes **r(live units, Delta^SH) = +0.939** (Spearman +0.891), with **ZERO OVERLAP**
+  between arms — so "treatment" and "more live units" are perfectly confounded in the
+  pre-registered design and the permutation test cannot separate them. **§5's specificity
+  argument does NOT transfer**: on the mirror tape that same correlation is -0.453, the
+  WRONG sign to manufacture a positive, which is exactly what cleared de-dormancy there.
+  On the SH tape the sign flips.
+  **THE POST-HOC CONTROL, LABELLED AS POST-HOC, AND IT CLEARS IT.** Cut every lane to
+  exactly K=131 randomly chosen live units (the minimum across lanes), zero the rest,
+  refit. Three independent draws: diff **+0.0329 / +0.0296 / +0.0329, mean +0.0318, exact
+  p = 1/252 on every draw** — against the unmatched +0.0299. **Capacity is not doing the
+  work; if anything the matched gap is larger.**
+  **LICENSED, per the pre-registration verbatim: the representation TRANSFERS to an
+  opponent outside the training distribution, and the "it only models itself" reading is
+  refuted. C4 IS DISCHARGED.** What it does NOT do, also per the pre-reg: it does not
+  discharge C3(b) (training is still mirror self-play), does not license "belief state"
+  (§5's claim bound is unchanged), does not make the head shipped (train-time only), and
+  cannot touch D25's win rate, which has its own letter and its own placebo.
+  **A PRE-REGISTERED PREDICTION OF MINE THAT WAS WRONG, AND INSTRUCTIVELY SO.** C4-POWER
+  warned that this probe would be WEAKER than §5's because SH is scripted and
+  near-deterministic, so "there is simply less for any probe to find", and that a null was
+  the modal outcome. **The opposite happened: the control atoms here (+0.0366) are ~2.4x
+  §5's mirror-tape control atoms (+0.0150).** I conflated LOW MARGINAL ENTROPY with LOW
+  DECODABLE GAIN. A deterministic opponent has less entropy but is MORE decodable from
+  state, and Delta measures the decodable part. The warning was honest and it was wrong;
+  recorded so the reasoning error is not repeated.
+  **Also measured, recorded not graded:** SH switches on **1.02%** of turns against a
+  self-play opponent's 6.8-9.7% — a 7-9x difference that compresses the L6 label space and
+  is worth knowing before any future SH-tape probe. Aliased-row fraction 16.8% vs the
+  mirror tapes' 4.0-10.3%.
+  Artifacts backed up alongside `results/d25/`. Suite 370 green; ledger unchanged at
+  17.91/20. **NEXT: B — D26's blocking gates.**

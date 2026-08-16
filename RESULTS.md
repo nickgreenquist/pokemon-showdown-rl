@@ -235,9 +235,36 @@ self-play got to 0.6185 without ever seeing it, from a 0.3996 start. The gap is 
 
 ### Disclosures attached to the D25 claim
 
-- **The opponent model is a self-model.** Training is mirror self-play, so the "opponent"
-  the head learns to predict is the agent's own frozen weights. Whether it transfers to a
-  genuinely different opponent is **untested**.
+- **Transfer: TESTED, and it holds** (2026-08-16, zero lanes, `results/c4_transfer/`).
+  This was the open one — the head is trained in mirror self-play, so the "opponent" it
+  predicts is the agent's own frozen weights, and whether any of that transfers to a
+  *different* opponent was untested. Pre-registered before the measurement, then run:
+  take the same frozen reference checkpoint §5 used (in neither arm), have it play
+  **`SimpleHeuristicsPlayer`** instead of itself, and ask whether the credited lanes'
+  context decodes SH's next action better than the control lanes' does. **It does, at the
+  minimum attainable p:** treatment **+0.0665** vs control **+0.0366** nats, complete
+  separation of all five lanes against all five, exact permutation **p = 1/252 = 0.0040**
+  against a 12/252 level — in both label spaces, on an opponent no lane ever trained
+  against.
+
+  **The obvious confound was found and cleared.** The credited lanes have ~1.7x more live
+  context units (221–293 vs 131–169), and across the ten lanes live-unit count correlates
+  with the statistic at **r = +0.94** — with *zero overlap* between arms, so "treatment"
+  and "more live units" are perfectly confounded in the pre-registered design. (§5's
+  mirror-tape specificity argument does **not** transfer here: there the same correlation
+  was −0.453, the wrong sign to manufacture a positive.) A post-hoc capacity-matched
+  control — every lane cut to exactly 131 randomly chosen live units, refit — leaves the
+  gap intact: **+0.0318, p = 1/252 on all three draws**. Capacity is not what is doing the
+  work.
+
+  **What this licenses, and what it does not.** The representation transfers to an
+  opponent outside the training distribution; the "it only models itself" reading is
+  refuted. It does **not** discharge the self-model confound below — training is still
+  mirror self-play — it does not license "belief state", and it does not make the head
+  shipped: it remains train-time only.
+- **The opponent model is still a self-model in training.** Mirror self-play is the
+  regime; what the transfer probe shows is that the resulting representation is not
+  *only* about itself.
 - **Representational, not shipped.** The head is train-time only; nothing at evaluation
   time consults an opponent model. The claim is about what the auxiliary gradient did to
   the trunk.
@@ -327,8 +354,6 @@ these systems do not survive contact with their source, and it records which.
 
 ## 8. Still open
 
-- **Transfer.** Does the D25 trunk model *an opponent*, or only itself? Cheap to test
-  against a held-out anchor; not yet run.
 - **Matched-dose control.** Attempted and found unbuildable — see §5's disclosure. The
   live alternative explanation for D25's gain now needs a *structured*
   zero-information auxiliary task, not a rescaled shuffled-label one.

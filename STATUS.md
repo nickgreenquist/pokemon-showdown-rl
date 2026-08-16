@@ -7,7 +7,8 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 not the levers** — proven technique inside it is fine (DESIGN §5:390); expert-data
 bootstrapping is what's excluded. **D25 CREDITED 0.6185; its placebo lands dead on the
 comparator (0.5415), so the INFORMATION did the work; M1-M4 all claimed.** Licensed: *an
-explicit opponent-action model helps*, with C3(b)/C4/dose caveats — **NEVER "belief
+explicit opponent-action model helps*, **and it TRANSFERS to an opponent never trained
+against (C4 discharged 2026-08-16)** — C3(b) and the dose caveat remain; **NEVER "belief
 state"**. 50M CLOSED; D18 NULL; D23 not-credited; D19 KILLED. `RESULTS.md` = the account.
 
 ## Results (vs SH; ties=loss; locked = final ckpt; 5×3000 from D23 on)
@@ -38,7 +39,10 @@ sentence: 88-90% of the structure is a cap MASK; belief residual 0.024-0.034 nat
    P(CREDIT), doubles P(NEGATIVE), and needs an override of ratified `DESIGN.md:786`.
 4. **Blocking build gate:** `ppo.py:999` (anneal × aux-head, group 2) has **never executed**
    — no config pairs a live aux head with a live anneal, and no test combines them.
-5. **Zero-lane either way:** the C4 transfer probe; **R-6**.
+5. **C4 TRANSFER PROBE: RUN, FIRED, C4 DISCHARGED** (`results/c4_transfer/`, zero lanes):
+   D25 ctx decodes SH +0.0665 vs controls' +0.0366, exact p = 1/252 both spaces, on an
+   opponent no lane trained against; de-dormancy confound (r=+0.94, no overlap) CLEARED by
+   a post-hoc capacity-matched refit at K=131 (+0.0318, p=1/252 x3). C3(b) is NOT.
 6. **Maintainer:** DESIGN §8 D7(a) defers the ladder eval "until M2/M3" (now satisfied)
    while CLAUDE.md forbids it. Two ratified docs contradict; one must move.
 
