@@ -1,0 +1,95 @@
+# =====================================================================
+# C4 TRANSFER PROBE — PRE-REGISTRATION. ADDED 2026-08-16 AFTER
+# RATIFICATION AND AFTER READOUT. ZERO TRAINING LANES.
+# **LETTERS ARE WRITTEN HERE, BEFORE ANY NUMBER IS COMPUTED.** This is a
+# POST-HOC probe on an adjudicated rung, and that is disclosed: it can
+# NARROW or WIDEN D25's licensed sentence, and it cannot un-credit D25's
+# win rate, which is a measured fact with its own letter.
+# ---------------------------------------------------------------------
+# C0. THE QUESTION
+# ---------------------------------------------------------------------
+# C4, this rung's own disclosed confound (see :1489-1493): "the head is
+# discarded at eval and the evaluated opponent (SH) is not the modelled
+# one. **Transfer is untested.**" D25 trains in MIRROR self-play, so the
+# "opponent" its auxiliary head learns to predict is a frozen snapshot of
+# the agent ITSELF (confound C3(b)). **Did the trunk learn to model AN
+# opponent, or only ITSELF?**
+# ---------------------------------------------------------------------
+# C1. THE STATISTIC — §5's MACHINERY, POINTED AT A DIFFERENT OPPONENT
+# ---------------------------------------------------------------------
+# Delta_ref-ctx^SH = NLL(scorer-shaped L6 probe, ctx ABLATED)
+#                  - NLL(same probe WITH that lane's ctx),
+# both fit and evaluated on ONE FROZEN REFERENCE TAPE, mean over 8
+# battle-level 70/30 splits (seeds 0-7), lambda FROZEN at 0.01, no
+# per-lane selection, LBFGS max_iter >= 2000 with ||g||_2 < 1e-3
+# asserted on every fit. Identical to §5 in every respect EXCEPT the
+# opponent whose action is the label.
+# **THE TAPE: the SAME reference checkpoint §5 used — s36@12M, which is
+# in NEITHER ARM — playing `SimpleHeuristicsPlayer` instead of playing
+# itself.** 300 battles. Arm-symmetric by construction: one tape supplies
+# the observations, labels and splits for every lane, so only the ctx
+# encoder varies and the ablated arm is common-mode.
+# ARMS: treatment s52-56 vs control s26/27/28/50/51 — the same ten lanes
+# §5 graded, so the ONLY change from the banked letter is the opponent.
+# ---------------------------------------------------------------------
+# C2. THE TEST AND ITS LEVEL
+# ---------------------------------------------------------------------
+# Exact one-sided permutation on the difference of means, **treatment
+# HIGHER**, enumerated over all splits. n_T = 5 vs n_C = 5: 252 splits,
+# LEVEL 12/252 = 0.047619, min attainable p 1/252 = 0.003968. Ties count
+# as extreme (conservative). Anti-conservatism under heteroscedasticity
+# (0.052-0.054) inherited from §5 and disclosed.
+# **UPPER SIDE ONLY.** If the point estimate runs the other way, the
+# direction = -1 test is a SEPARATE one-sided test reported under its own
+# name, never "the same test with the sign flipped".
+# ---------------------------------------------------------------------
+# C3. THE READS, PRE-STATED
+# ---------------------------------------------------------------------
+# **FIRES (p <= 12/252, treatment HIGHER):** the trunk's opponent-action
+#   structure decodes an opponent it NEVER TRAINED AGAINST better than
+#   the control lanes' trunks do. C4 is DISCHARGED. Licensed addition,
+#   and it is the strongest sentence this probe can buy: "the
+#   representation transfers to an opponent outside the training
+#   distribution." C3(b) (self-model) is NOT discharged by this — mirror
+#   self-play remains the training regime — but the "it only models
+#   itself" reading is refuted.
+# **DOES NOT FIRE:** transfer is **NOT DEMONSTRATED**. It is NOT
+#   established absent. C4 stays a live disclosure on the claim, and the
+#   licensed sentence gains: "whether the representation transfers to a
+#   different opponent was tested and not demonstrated." **The
+#   distinction is load-bearing and the readout must not blur it.**
+# **NEGATIVE (direction = -1 fires):** control lanes decode SH BETTER
+#   than treatment lanes. That would say the auxiliary loss made the
+#   trunk WORSE at modelling an out-of-distribution opponent — a
+#   specificity finding that narrows the claim toward self-consistency.
+#   Recorded with its own one-sided p.
+# ---------------------------------------------------------------------
+# C4-POWER. HONESTY, PRE-STATED — THIS PROBE IS WEAK AND A NULL IS CHEAP
+# ---------------------------------------------------------------------
+# §5's own operating characteristics on the mirror tape give MDE(80%)
+# 0.0105 (best case) to 0.0301 (worst admissible corner). **This probe
+# is expected to be WEAKER still, for a reason that is structural rather
+# than statistical: SH is a scripted, near-deterministic policy, so the
+# TOTAL decodable structure on an SH tape is smaller in absolute nats
+# than on a self-play tape — there is simply less for any probe to
+# find.** A1 (the mask-renormalised marginal) and the oracle window are
+# therefore expected to be smaller, and the same absolute Delta is a
+# larger fraction of a smaller pool.
+# **CONSEQUENCE, WRITTEN BEFORE THE NUMBERS: a null here is the MODAL
+# OUTCOME and licenses almost nothing. This probe is run because a FIRE
+# would be strong evidence and costs an hour, not because its null is
+# informative.** Report A1, the ablated NLL, and the realised total
+# decodable structure alongside the atoms, so a null can be attributed
+# to "nothing to find" versus "found nothing".
+# ---------------------------------------------------------------------
+# C5-BOUND. WHAT THIS CANNOT DO, IN ANY BRANCH
+# ---------------------------------------------------------------------
+# - It cannot un-credit D25's 0.6185, which is a win rate with its own
+#   letter and its own placebo control.
+# - It cannot license "belief state" — §5's claim bound holds unchanged:
+#   the probe reads opponent entity features the policy's scorer never
+#   receives, so it upper-bounds policy-usable belief.
+# - It cannot discharge C3(b). Training is still mirror self-play.
+# - A FIRE does not make the head shipped: it is train-time only and
+#   nothing at evaluation consults an opponent model.
+# =====================================================================
