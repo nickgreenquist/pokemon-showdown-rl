@@ -4088,3 +4088,54 @@ entry by offset — never a broad keyword grep.
   env_kwargs), which the treatment finals corroborate by having `win_rate ==
   wins_from_returns` exactly (R0-4). So the placebo eval is bit-comparable with no flag
   differences at all.
+- 2026-08-16 (midday, **D25-P READOUT INPUTS: R-1 CREDITS (0.5415 vs 0.6185), R-2 FLAT,
+  R-4 SHUFFLE CONFIRMED — B7 does NOT fire, B6 does NOT fire, the grid lands on B1**).
+  Maintainer authorised me to run the evals in-session ("sub 1h"); the whole locked set
+  took **10 min**, 5 lanes sequential at ~2 min each (11:53:52-12:03:20).
+  **LOCKED FINALS (5x3000 vs SH, ties=loss, final ckpt, both env vars, no extra flags):
+  s57 0.5763 / s58 0.4967 / s59 0.5600 / s60 0.5473 / s61 0.5273 -> POOLED 0.5415, seed
+  sd 0.0308.** R0-4 exact on all five (`win_rate == wins_from_returns` to the digit).
+  Attestation PASSED before any placebo number loaded: comparator re-derived 0.54453 vs
+  frozen 0.54452 (sd 0.03561 vs 0.03558), both reference tape sha256s OK.
+  **R-1 (PRIMARY): CREDITS.** treatment 0.6185 vs placebo 0.5415, delta **+0.0770**;
+  se_diff binomial 0.00568 vs seed-clustered 0.01735 -> the LARGER (clustered) governs,
+  2*se = 0.03471, credit boundary placebo <= 0.58379. The delta is 2.2x the bar and the
+  placebo is 0.042 below the boundary. **R-2: FLAT** — placebo vs frozen comparator
+  delta **-0.0030** (letter bar 0.56953, operative 0.58666), the modal pre-stated
+  outcome. The placebo landed essentially ON the comparator, which is the textbook shape
+  for a working placebo.
+  **R-4 (B7, precedence): SHUFFLE CONFIRMED.** Own 300-ep mirror tapes per lane
+  (7223-7881 paired rows, 300 battles each, structurally matched to the treatment
+  tapes' 7601-10160). 5-lane median g_P = **-0.0118**, inside the |g_P| <= 0.02
+  CONFIRMED band; per-lane -0.0037/+0.0124/-0.0118/-0.0166/-0.0226; **RISING |g_P| on
+  0/5 lanes — not the leak signature** (the trajectories mostly SHRINK: e.g. s59
+  -0.0303 -> -0.0128 -> -0.0118). g_P is mildly NEGATIVE on 4 of 5, which is what an
+  out-of-sample head fitted to permutation noise should do, and nowhere near the -0.10
+  derangement line. VIEW 2: **4/5 TRAINED-TO-FLOOR** (NLL_head - A1 = -0.0130 to
+  +0.0190) — the DESIGNED outcome; no lane NEVER-TRAINED (A0 measured 1.7703-1.7761,
+  NLL_head 1.373-1.532, nowhere near it) and no lane PARTIALLY-TRAINED. **So B7 does not
+  fire and the arm is not void.**
+  **BOTH GAPS I FLAGGED IN THE R-4 BUILD ACTUALLY MATERIALISED — worth the flagging.**
+  (i) The aggregator: the 5-lane MEDIAN reads CONFIRMED (0.0118), but the WORST lane
+  (s61, |g_P| 0.0226) sits just inside RESIDUAL (0.02-0.10). **The branch is ROBUST to
+  the choice — both are far below the 0.10 LEAK line, so B7 does not fire either way** —
+  but if the maintainer prefers max-governs, the letter reads "RESIDUAL, disclosed,
+  caveats R-1" rather than "CONFIRMED". Only the wording moves. (ii) The unnamed cell:
+  s61's NLL_head - A1 = +0.0260 lands in (A1+0.02, A1+0.05], which the header never
+  names; it prints NEAR-FLOOR and is disclosed rather than folded into a neighbour.
+  **BRANCH: B1 UPGRADE** (R-1 credits, R-2 does not), with B7 and B6 both cleared first
+  per P7 precedence. Licensed sentence: "an explicit opponent-action model helps", with
+  C3(b) self-model and C4 representational-only attached IN THE SAME SENTENCE, and never
+  "belief state". **THE DOSE CAVEAT IS NOW LIVE AND MUST JOIN THEM:** P3's rule attaches
+  to a NULL, and R-2 is exactly that null — the placebo delivered 3-31% of the frozen
+  trunk band (12/12 bins DOSE-CAVEATED), so R-2's flatness does NOT refute "a generic
+  aux gradient is what helps"; that alternative is untested at matched dose, not
+  eliminated. Recorded blind this morning, before any win rate was seen.
+  **MY IN-LOOP PREVIEW WAS WRONG AND THE INTERVAL WAS TOO TIGHT.** I quoted ~0.576 +-
+  0.022 from the n=100 in-loop metric; the locked answer is 0.5415, off by -0.035 and
+  outside the band I gave. It tracked on s57/s58/s59 (0.58/0.50/0.57 vs 0.5763/0.4967/
+  0.5600) but s60 and s61's last in-loop readings were high by ~0.08 (0.63/0.60 vs
+  0.5473/0.5273). The treatment-arm calibration (+0.0025 bias) did not transfer.
+  **Do not use the in-loop eval to preview a locked number again**, not even as a
+  5-lane mean; the per-lane n=100 noise does not average out at n_lanes = 5. Still
+  outstanding: R-3 (atoms) and R-5 (dormancy), inputs collecting now.
