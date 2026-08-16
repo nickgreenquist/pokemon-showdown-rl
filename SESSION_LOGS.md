@@ -4223,3 +4223,76 @@ entry by offset — never a broad keyword grep.
   screening; it is only the RESIDUAL cell whose interpretation is sign-dependent, which
   is a wrinkle the pre-registration does not name and which is now on the record.
   Nothing else moves: the branch was B1 under either reading.
+- 2026-08-16 (evening, **THE HANDOFF WAS VOID — D19 WAS ALREADY DEAD, AND ITS LAST OPEN
+  CHANNEL IS NOW MEASURED SHUT**). Session opened on `HANDOFF.md`'s instruction to write
+  D19's pre-registration ("§12 is RATIFIED so D19 is binding, just unread"; "the right
+  lever"; a 5-lane arm priced at 2.17 against a 17.91/20 ledger). **That premise is
+  false. D19 ran a full 2-designer cycle on 2026-08-13, its information premise failed at
+  ZERO LANES, and the maintainer re-targeted it into what became D25** — the rung that
+  then credited at 0.6185 (`SESSION_LOGS.md:3067` and `:3106`; the ratified D25 header
+  says it outright at `configs/showdown_sp_actpred12m.yaml:130`, "**The D19 KILL
+  STANDS**"). No lanes were spent and no pre-registration was written.
+  **ROOT CAUSE, and it is a documentation defect worth more than the incident.**
+  `DESIGN.md` — which CLAUDE.md designates "the roadmap… read it for any substantive
+  'what next' question" — was last committed **2026-08-13 07:29**, hours BEFORE that
+  afternoon's kill, and had never recorded the kill, the D25 re-target, D25's credit, or
+  D25-P. Its D19 entry still read "still queued, UNREAD… D19's question stands as
+  written." It also **never mentioned D24 or D25 at all** (grep count: 0), i.e. the
+  roadmap carried no record of the chapter's only credited lever. A session that follows
+  the documented reading protocol therefore lands on a dead rung. Fixed: DESIGN §12's
+  queue state now runs through D25-P, D19 carries a KILLED/RE-TARGETED status block in
+  its heading and body, and CLAUDE.md records that **DESIGN's status lines are not
+  self-updating and must be checked against the newest SESSION_LOGS entry.**
+  **THE NEW MEASUREMENT (`results/d19_closeout/`, zero lanes, ~2 min).** The 2026-08-13
+  cycle killed D19 on the GENERATOR channel (what revealed mons imply about the rest).
+  Neither designer measured the BEHAVIOURAL channel — whether the opponent's PLAY leaks
+  its hidden team. That is the channel a "belief state" claim would actually rest on and
+  the only honest route back, so it was measured. Eight pre-D25 tapes pooled
+  (s26/27/28/50/51 + the three frozen references), **52,514 rows / 2,400 battles**;
+  target = the multiset of UNREVEALED opponent species; everything masked to not-yet-
+  revealed species so **exclusion is free to every model and never scores as belief**;
+  deliberately generous to D19 (probe reads the full 828-d observation, which upper-
+  bounds any ctx head since ctx is a function of obs; lambda tuned on held-out).
+  **A1 = 4.8726 nats. Generator channel beyond exclusion +0.0062; BEHAVIOURAL channel
+  +0.0061; TOTAL +0.0123 sd 0.0011 — 0.25% of the target.** By reveal state the best
+  phase is one revealed mon at +0.024, and that is exactly where D25's premise was
+  LARGEST (0.63-0.65) — **~26x apart at D19's own best point.**
+  **CONTROLS, because a null is worthless without them, and this project has been bitten
+  by precisely this** (`:3131`: D19's original mechanism read "was a null BY CONSTRUCTION
+  — it would have read 'the trunk does not carry the belief' when it only showed the
+  estimator was the wrong shape"). Negative: our own team is contained in the label field
+  0/1658 times, so the field really is the opponent's. Positive: the same probe extracts
+  **+2.55 nats** with the answer planted in the input and **+3.73 nats** with the true
+  team leaked as a feature (4.961 -> 1.232, near the log-k floor). It finds 3.7 nats when
+  the information is there and 0.012 when it is not. lambda 0.1 stays an INTERIOR optimum
+  on a grid extended to 10, so the gain is not an under-regularisation artefact.
+  **HONEST LIMIT, self-corrected mid-session:** the generator number here is sample-
+  limited at 2,400 battles, while a 12M-step run sees ~340k and could plausibly reach the
+  record's 400,000-team figure of 0.347 nats. That does NOT rescue the rung — that channel
+  is exclusion and cap saturation, "a mask effect, not a belief about which mon"
+  (`configs/showdown_sp_actpred12m.yaml:131`), and 0.347 is still ~7% of a 4.95-nat
+  target. The belief-bearing channel is the behavioural one and it is ~0.006. Also a
+  linear probe at tape scale; a nonlinear head over 340k battles might find more, though
+  PC1/PC2 show this probe class extracts 2.5-3.7 nats when the signal exists.
+  **WHY IT MATTERS BEYOND D19:** ~99.75% of D19's aux CE would have been a constant fit,
+  and D25-P has since measured what a shape-, count-, marginal-, coefficient- and
+  cadence-matched aux gradient carrying ~zero information does to win rate — **nothing**
+  (0.5415 vs 0.54452). Dose caveat attached (placebo ran at 3-31% of the treatment band,
+  so it is not a matched-dose control). D19 would have bought a ~2.17-lane-day null.
+  **FIVE MORE DOC DEFECTS FOUND AND FIXED OR FLAGGED** (adversarial review pass, 2 Opus
+  agents, maintainer-authorised): (a) `CLAUDE.md`'s locked eval protocol said **1000
+  battles/seed** against DESIGN §8's 3000 — flagged for fixing 2026-08-13 and still
+  there; fixed, with 5x3000 named as the disclosed deviation it is. (b) **There is no
+  DESIGN §11** — r7 retired §10-11, headers run §9 -> §12 -> §13, and DESIGN §8 itself
+  calls D8/D9 (search) "UNRATIFIED and now moot" — yet `STATUS.md:40` and CLAUDE.md both
+  cited "§11 (search)" as the live next lever; recorded as dangling. (c) `STATUS.md:39`
+  claimed "nothing pushed" while `main == origin/main == 034ad81`, 0 ahead / 0 behind.
+  (d) `README.md:126` still says D19 "is next in its queue, pending the maintainer's call
+  on a 50M regen-L2 carry" — both clauses dead. (e) **A live contradiction between two
+  ratified documents, left for the maintainer:** DESIGN §8's D7(a) defers ladder
+  execution "until M2/M3, at which point it becomes the natural confirmation of the
+  chase" — **M2/M3 are now claimed, so that trigger is satisfied** — while CLAUDE.md's
+  landmine says flatly not to propose a real-ladder eval. One of them has to move.
+  **NO LANES SPENT; ledger unchanged at 17.91/20. Suite 370 green, tree clean.** The
+  handoff stub is restored and its durable content folded: the five D25/D25-P
+  pre-registration lessons are now CLAUDE.md conventions.

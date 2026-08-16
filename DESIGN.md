@@ -599,11 +599,23 @@ encoder source and the record (SESSION_LOGS entries, incl. corrections). Numberi
 continues from D17; the section number continues past r6's retired §10–11 (§11 D8/D9
 remains unratified and moot).
 
-**QUEUE STATE 2026-08-13: D22 CLOSED 2026-08-11 (routing: D18 first, unconditional;
-regen-L2 named next-after-D18) → D18 READ OUT 2026-08-12, NULL, falsifier fired → the
-regenerative L2-toward-init runner-up was drafted and ratified out-of-queue as D23
-(contract in `configs/showdown_sp_l2init12m.yaml`'s header, not here) and READ OUT
-2026-08-13, "letter-met, seed-fragile, NOT credited." Remaining unread: D19, D20, D21.**
+**QUEUE STATE 2026-08-16 (this file went THREE DAYS stale — it was last touched
+2026-08-13 07:29, hours before the D19 kill, and recorded none of what follows;
+that staleness mis-routed a whole session on 2026-08-16. Verify against the newest
+SESSION_LOGS entry before acting on anything here):** D22 CLOSED 2026-08-11 (routing:
+D18 first, unconditional; regen-L2 named next-after-D18) → D18 READ OUT 2026-08-12,
+NULL, falsifier fired → the regenerative L2-toward-init runner-up was drafted and
+ratified out-of-queue as D23 (contract in `configs/showdown_sp_l2init12m.yaml`'s
+header, not here) and READ OUT 2026-08-13, "letter-met, seed-fragile, NOT credited."
+→ **D19 KILLED 2026-08-13 at zero lanes on its information premise and RE-TARGETED,
+with maintainer approval, into D25 — auxiliary opponent-ACTION prediction (contract in
+`configs/showdown_sp_actpred12m.yaml`, ratified r2 2026-08-13). D25 READ OUT
+2026-08-14: CREDITED, pooled 0.6185 vs the frozen 0.54452 comparator — the chapter's
+only lever credited under the current larger-of line, and M1–M4 are now claimed.
+D25-P, its shuffled-label placebo arm, READ OUT 2026-08-16: the placebo lands dead on
+the comparator (0.5415), so the INFORMATION and not the gradient did the work.
+Licensed sentence: *an explicit opponent-action model helps* — never "belief state."**
+**Remaining unread: D20, D21. D19 is CLOSED, not queued.**
 
 **D18 — PRIVILEGED (ASYMMETRIC) CRITIC rung — recommended first after the readout.**
 **READ OUT 2026-08-12: NULL, FALSIFIER FIRED — EV rose, win rate did not (0.5364 ±
@@ -655,8 +667,9 @@ opponent seat's TRUE own-side state; the actor's observation is unchanged.
   largest when hidden info dominates returns, which turn-1 gen1 satisfies; size NOT
   guaranteed, and never tested at γ=1.0 terminal-only).
 
-**D19 — AUXILIARY OPPONENT-TEAM PREDICTION rung.** CE head over species for unrevealed
-opponent slots, trained against ground truth (free in self-play); forces an explicit
+**D19 — AUXILIARY OPPONENT-TEAM PREDICTION rung. KILLED 2026-08-13 AT ZERO LANES;
+RE-TARGETED INTO D25. Read the STATUS block below before anything else here.**
+CE head over species for unrevealed opponent slots, trained against ground truth (free in self-play); forces an explicit
 belief state instead of hoping one emerges from win/loss. One head + one loss term on
 D18's plumbing. Purity-clean, no obs change. Sequence AFTER D18's read (attribution).
 CAVEATS from the 2026-08-10 research pass: the head's gradient flows into the ACTOR
@@ -664,13 +677,49 @@ trunk (actor-side change — unlike D18 it can shift actor behavior directly, so
 rung stands alone and never bundles); and it is partially redundant with D18 (critic
 USES hidden info, head learns to INFER it) — if D18 credits, re-scope D19's question
 before spending lanes. Supporting prior art: agent-modeling-as-auxiliary-task (arXiv
-1907.09597), DouZero+ hidden-hand prediction. **STATUS 2026-08-13: still queued,
-UNREAD. Its D18 contingency is resolved — D18 did NOT credit, so the re-scope clause
-does not bite and D19's question stands as written. Its plumbing dependency is
-satisfied (D18 built it). One caveat added by the D23 readout: fresh 5-seed comparator
-lanes put true Rung-2 12M seed sd at ~0.036, so a 12M win-rate PRIMARY is effectively
-un-creditable at advisory-scale effects — if D19 runs at 12M, it must be designed
-mechanism-primary (D23's shape) rather than win-rate-primary.**
+1907.09597), DouZero+ hidden-hand prediction.
+
+**STATUS 2026-08-16: KILLED AT ZERO LANES, AND RE-TARGETED INTO D25. DO NOT
+PRE-REGISTER OR LAUNCH THIS RUNG.** (The paragraph above is the ORIGINAL 2026-08-09
+queue entry, kept verbatim for the record. Its own 2026-08-13 status line — "still
+queued, UNREAD… D19's question stands as written" — was written the MORNING of the
+kill and was never corrected; on 2026-08-16 a session read it and began writing this
+rung's pre-registration. That is what this block exists to prevent.)
+
+**Why it died (`SESSION_LOGS.md:3067`, 2026-08-13 afternoon).** Two designers working
+independently from different data sources both measured that opponent-team prediction
+is very nearly information-free in gen-1 randbats: **the format makes the target
+almost empty by construction.** Teams are near-independent, near-uniform draws from a
+~146-species pool — marginal entropy 4.91–4.95 nats against a uniform 4.98 — so seeing
+one of the opponent's mons tells you essentially nothing about the rest. The lever had
+been imported from advisories about games where hidden composition IS correlated
+(DouZero+'s hidden hand, agent-modeling aux tasks); gen-1 randbats has no such
+structure to infer. The maintainer approved re-targeting the head from team
+composition to opponent ACTION — in a simultaneous-move game that is the belief that
+actually bears on the decision, ground truth is equally free in self-play, and the
+plumbing is the same. That became D25, which credited. **The kill is restated in the
+ratified D25 header at `configs/showdown_sp_actpred12m.yaml:130`: "The D19 KILL
+STANDS."**
+
+**The one door left open, now closed (2026-08-16, `results/d19_closeout/`).** The
+original cycle measured only the GENERATOR channel — what the revealed mons imply
+about the rest. It never measured the BEHAVIOURAL channel: whether the opponent's
+PLAY leaks its hidden team. That is the channel a "belief state" claim would rest on,
+and it was the only honest route back. Measured on the eight pre-D25 tapes (52,514
+rows, 2,400 battles), masked so exclusion is free to every model and generous to D19
+throughout (full 828-d observation, lambda tuned on held-out): **total decodable
+structure beyond exclusion +0.0123 nats of a 4.873-nat target — 0.25% — of which the
+behavioural channel is +0.0061.** Best phase (one revealed mon) +0.024, against
+D25's 0.63–0.65 at that same phase. Controls rule out the "null by construction"
+estimator artefact this project has been bitten by before: the same probe extracts
++2.55 nats with the answer planted in the input and +3.73 with the team leaked.
+
+**And the counterfactual is no longer hypothetical.** ~99.75% of D19's auxiliary
+cross-entropy would have been a constant fit, and D25-P has since measured what a
+shape-, count-, marginal-, coefficient- and cadence-matched auxiliary gradient
+carrying ~zero information does to win rate: **nothing** (0.5415 vs a 0.54452
+comparator). Dose caveat attached — the placebo ran at 3–31% of the treatment band, so
+it is not a matched-dose control.
 
 **D20 — the v3 ENCODER BUNDLE (post-chase; one re-baseline pays for everything, D13
 cost known and paid once already for v1→v2/808).** Contents: Light Screen — a POKE-ENV
