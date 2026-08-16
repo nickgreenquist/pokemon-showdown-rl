@@ -44,13 +44,21 @@ rows marked * are single-seed probes, not headline-grade.
 | **Pure self-play**, 12M, flat MLP — the plateau | 0.3996 ± 0.0052 |
 | + H&L reward shaping (γ0.95, 5-term zero-sum) — null | 0.4131 ± 0.0052 |
 | **+ entity architecture (DeepSets + pointer head), 12M** | **0.5509 ± 0.0052** |
-| **same recipe at 50M — current best** | **0.5802 ± 0.0052** |
+| **same recipe at 50M** | **0.5802 ± 0.0052** |
 | + privileged (asymmetric) critic, 12M, 5 seeds — null | 0.5364 ± 0.0066 |
 | + regenerative L2-toward-init, 12M, 3 seeds — letter-met, not credited | 0.5897 ± 0.0066 |
 | **+ opponent-action auxiliary loss, 12M, 5 seeds — CREDITED, current best** | **0.6185 ± 0.0040** |
 | ↳ same loss on SHUFFLED labels (placebo, 12M, 5 seeds) — flat on the comparator | 0.5415 ± 0.0041 |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
+
+**Read those ± with care: they are WITHIN-SEED BINOMIAL standard errors, and they are not
+what governs a verdict.** This project's credit line uses the larger of the binomial and
+the **seed-clustered** se, and on this task the clustered term always wins — for the
+0.6185 headline it is **0.0105, 2.66x the ±0.0040 shown** (between-lane sd 0.0236 over 5
+seeds). Between-lane spread has run 0.024–0.049 across arms, which is why three separate
+arms cleared the +0.025 letter and still did not credit. Quote the clustered interval
+whenever the number is doing work.
 
 **The chapter that matters (2026-08-07 →): pure from-scratch self-play.** The project
 pivoted from "strongest agent" to a novelty target: no BC init, no teacher or human
