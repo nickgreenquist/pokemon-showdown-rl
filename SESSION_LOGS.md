@@ -4067,3 +4067,24 @@ entry by offset — never a broad keyword grep.
   the dose caveat must be written into whichever branch fires. NO re-tune and NO relaunch
   (one-lever, D17); the caveat is the action. R-4 will read the same fact from the
   NLL_head side once the placebo tapes exist.
+  IN-LOOP PREVIEW, read only AFTER the dose read above was committed, and NOT a result:
+  the lanes' own `eval/win_rate` (n=100, `eval_opponent: heuristics` — the SAME opponent
+  as the locked protocol, so it is on-scale) ends 0.58/0.50/0.57/0.63/0.60, 5-lane mean
+  **~0.576**. Calibrated on the TREATMENT arm, that statistic is near-unbiased for the
+  locked pooled number: treatment in-loop mean 0.6160 vs locked pooled 0.6185, bias
+  +0.0025, though per-lane it swings -0.073 to +0.083 at n=100 (se ~0.05, so ~0.022 on
+  the 5-lane mean). **0.576 sits just UNDER R-1's credit boundary (<= 0.5935/0.5871/
+  0.5800 at s_P = 0/0.026/0.036) — inside the noise of it. The finals genuinely decide
+  this; no branch may be pre-announced.** Worth flagging: 0.576 is ABOVE the ~0.545 the
+  pre-registration expected for the placebo, i.e. the placebo may have moved ~+0.03 over
+  the frozen comparator. If that survives the locked eval it sits in tension with the
+  dose read — a lane that received 3-5% of the treatment's trunk dose from bin 4 on
+  should not gain much FROM the aux gradient, so the honest candidates are comparator
+  spread (5-lane sd 0.0356, se ~0.016) or the RECORDING BAND (B9), not "generic aux
+  helps". Do not resolve that here; it is the readout's job.
+  PROTOCOL CONFIRMED for the finals: the treatment used NO extra eval flags —
+  `seed_start` is `cfg.eval_episodes` = 100 on both arms, and `--no-shaping` is a
+  provable no-op (env default `hl_shaping: float = 0.0`, absent from both configs'
+  env_kwargs), which the treatment finals corroborate by having `win_rate ==
+  wins_from_returns` exactly (R0-4). So the placebo eval is bit-comparable with no flag
+  differences at all.
