@@ -5,6 +5,10 @@ A reinforcement-learning agent for **Pokémon Showdown Gen 1 random battles**
 [poke-env](https://github.com/hsahovic/poke-env) against a local
 [Pokémon Showdown](https://github.com/smogon/pokemon-showdown) server.
 
+**→ [`RESULTS.md`](RESULTS.md) is the account of the chapter: the claim, what "pure
+self-play" is enforced to mean, the evidence, what failed, and the honest scoping.
+Start there.** `STATUS.md` is current state; `SESSION_LOGS.md` is the dated record.
+
 ## Provenance
 
 This project began as the capstone phase of
