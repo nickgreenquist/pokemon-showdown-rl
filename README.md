@@ -122,9 +122,14 @@ search engine itself (0.8307) remains the open frontier.
 documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach
 ~80% GXE. This chase is a *purity-lane* first in a generation where it had not been
 shown — it is not a strength record and does not enter the published field. The
-roadmap is `DESIGN.md` (r7 ratified; §12's first two levers — the privileged critic
-and the regenerative-L2 rung — are read out; the auxiliary opponent-model head (D19)
-is next in its queue, pending the maintainer's call on a 50M regen-L2 carry).
+roadmap is `DESIGN.md` (r7 ratified). §12's queue is now spent: the privileged critic
+read NULL, the regenerative-L2 rung was letter-met but not credited, and the auxiliary
+opponent-TEAM head (D19) was **killed at zero lanes** — gen-1 randbats teams are
+near-independent near-uniform draws, so the target is almost empty by construction
+(measurement and controls in `results/d19_closeout/`). It was re-targeted to opponent
+*action* prediction, which became D25 and is the one lever that credited. What remains
+is an open maintainer call on whether to spend the chase's last ~2 lane-days or close
+the chapter here.
 
 ## Setup
 
