@@ -1,6 +1,9 @@
 """D25 treatment atoms: Delta_ref-ctx for the five treatment lanes (§5).
 
-    python scripts/d25_atoms.py
+    python scripts/d25_atoms.py                       # the banked treatment run
+    python scripts/d25_atoms.py --lanes 57,58,59,60,61 \
+        --run-prefix showdown_sp_actpred12m_placebo_s \
+        --out results/d25p/placebo_atoms.json         # D25-P (R-2's input)
 
 Computes, for each treatment lane s52-56, the mechanism co-primary's atom on
 the FROZEN s36 reference tape — mean over 8 battle-level 70/30 splits (seeds
@@ -23,6 +26,7 @@ standing check that this path computes what §5 froze.
 The tape sha256 is verified against §5's frozen value before any fit.
 """
 
+import argparse
 import hashlib
 import json
 import sys
@@ -103,6 +107,21 @@ def fit_eval(C, Gr, ncls, Y, M, fit, ev, lam, tag):
 
 
 def main():
+    # D25-P: the placebo arm needs the SAME atom on the SAME frozen s36
+    # reference tape, differing only in whose ctx is read. These flags exist so
+    # that is a command-line change and not an in-place edit of LANES — this
+    # script produced the BANKED treatment atoms in §5's attestation
+    # (+0.0530/+0.0659/+0.0505/+0.0619/+0.0568), and the defaults below
+    # reproduce them exactly.
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--lanes", default=",".join(str(s) for s in LANES))
+    ap.add_argument("--run-prefix", default="showdown_sp_actpred12m_s")
+    ap.add_argument("--out", default=str(D25 / "treatment_atoms.json"))
+    args = ap.parse_args()
+    lanes = [int(x) for x in args.lanes.split(",") if x.strip()]
+    out_path = Path(args.out)
+    detail_path = out_path.with_name(out_path.stem + "_detail.json")
+
     t00 = time.time()
     got = hashlib.sha256(REF_NPZ.read_bytes()).hexdigest()
     assert got == REF_SHA, f"{REF_NPZ} is not the frozen s36 tape: {got}"
@@ -123,15 +142,15 @@ def main():
     Y6, M6 = torch.as_tensor(D["y6"]), torch.as_tensor(D["m6"])
 
     CTX, live_units = {}, {}
-    for s in LANES:
-        ck = load_checkpoint(str(REPO / f"runs/showdown_sp_actpred12m_s{s}/checkpoint.pt"))
+    for s in lanes:
+        ck = load_checkpoint(str(REPO / f"runs/{args.run_prefix}{s}/checkpoint.pt"))
         agent = _load_showdown_agent(ck, Config(**ck["config"]))
         CTX[s] = ctx_features({"obs1": obs1}, agent).astype(np.float64)
         live_units[s] = int((CTX[s].std(0) > 1e-8).sum())
         print(f"  s{s}: ctx {CTX[s].shape}, live units {live_units[s]}",
               flush=True)
 
-    rows = {s: [] for s in LANES}
+    rows = {s: [] for s in lanes}
     for sp in range(NSPL):
         t0 = time.time()
         tr, te = G.split_by_battle(battle, sp, n)
@@ -141,7 +160,7 @@ def main():
         A2e6n = fit_eval(Ce6, Ge6, 6, Y6, M6, tr, te, LAM, f"abl6n.sp{sp}")
 
         line = []
-        for s in LANES:
+        for s in lanes:
             C, Gr, _ = G.prep(CTX[s], g12, tr)
             A2s12 = fit_eval(C, Gr, 12, Y12, M12, tr, te, LAM, f"s{s}.12.sp{sp}")
             C6, Gr6, _ = G.prep(CTX[s], g6, tr)
@@ -152,20 +171,21 @@ def main():
               + "  ".join(line), flush=True)
 
     out = {"L6": {}, "c12": {}}
-    detail = dict(rows={f"s{s}": rows[s] for s in LANES}, live=live_units,
+    detail = dict(rows={f"s{s}": rows[s] for s in lanes}, live=live_units,
                   conv=CONV, n=n, lam=LAM, nspl=NSPL, tape_sha=REF_SHA)
     for key, space in (("d6n", "L6"), ("d12", "c12")):
         print(f"\n=== Delta_ref-ctx {space} (s36 reference, {NSPL} splits) ===")
-        for s in LANES:
+        for s in lanes:
             v = np.array([r[key] for r in rows[s]])
             out[space][str(s)] = float(v.mean())
             print(f"  s{s}: {v.mean():+.4f}  split sd {v.std(ddof=1):.4f}")
 
-    with open(D25 / "treatment_atoms.json", "w") as f:
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w") as f:
         json.dump(out, f, indent=1)
-    with open(D25 / "treatment_atoms_detail.json", "w") as f:
+    with open(detail_path, "w") as f:
         json.dump(detail, f, indent=1)
-    print(f"\nwrote {D25/'treatment_atoms.json'} (+ detail); "
+    print(f"\nwrote {out_path} (+ detail); "
           f"convergence max ||g|| {max(c['gnorm'] for c in CONV):.3e}; "
           f"total {time.time()-t00:.0f}s")
 
