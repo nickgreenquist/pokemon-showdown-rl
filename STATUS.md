@@ -2,59 +2,60 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-16 — **D25-P DONE, 12M x5 CLEAN; FINALS EVAL IS THE GATE**)
+## Where things stand (2026-08-16 — **D25-P READ OUT: BRANCH B1 UPGRADE**)
 **Pure from-scratch self-play in gen1randombattle is the chase** (novelty over strength;
-r7; encoder frozen v2/808+ids=828). **D25 CREDITED (0.6185); the LADDER IS COMPLETE —
-M1-M4 CLAIMED.** Open: claim SCOPE — without the placebo the claim is "an aux
-opponent-action loss helps", NOT "an opponent model helps". **D25-P finished all five
-lanes at 12M, every during-gate passes, and the pre-stated P3 dose read fires
-DOSE-CAVEATED on 12/12 bins** (2026-08-16 log). Only the finals eval is outstanding.
+r7; encoder frozen v2/808+ids=828). **D25 CREDITED 0.6185; ladder COMPLETE (M1-M4); and
+the placebo arm has now WIDENED THE CLAIM.** Licensed sentence: *an explicit
+opponent-action model helps* — with C3(b) self-model, C4 representational-only, and the
+P3 dose caveat attached in the same breath. **NEVER "belief state".** The shuffled-label
+placebo lands dead on the comparator (0.5415 vs 0.54452) while treatment reaches 0.6185.
+50M CLOSED; D18 NULL; D23 not-credited.
 
 ## Results (vs SH; ties=loss; locked = final ckpt; 5×3000 from D23 on)
 | result | win rate |
 |---|---|
 | Rung 2 12M 0.5509 · Rung 3 50M 0.5802 · D18 0.5364 · D23 0.5897 · clone 0.5503 | — |
 | **D25 oppact-aux 12M — CREDIT** (bar 0.58273) · **M1-M4 CLAIMED** | **0.6185** |
-| **D25 mech co-primary: LETTER at MIN p = 1/252, both spaces** | Δ +0.0426 |
-| D25-P placebo — in-loop PREVIEW only, NOT a result (see item 1) | ~0.576 |
+| **D25-P placebo (shuffled labels) — FLAT on comparator, delta -0.0030** | **0.5415** |
+| R-1 treatment vs placebo **+0.0770** vs 2·se 0.03471 — **CREDITS** | Δ +0.0770 |
+
+## The D25-P grid (all reads in; `results/d25p/grade_placebo.txt`, `r4_manipulation.txt`)
+- **R-1 CREDITS** +0.0770 (clustered se governs). **R-2 FLAT** -0.0030.
+- **R-3(a) NOT FIRED** p=0.948 — placebo atoms +0.0071 BELOW controls' +0.0150; fraction
+  -0.185 vs bar 0.333, so **the license does NOT narrow**. Rider: a silent (a) does not
+  clear specificity below §5's MDE 0.0105-0.0301. **R-3(b) FIRED p=1/252.**
+- **R-4 SHUFFLE CONFIRMED** (median g_P -0.0118, 0/5 rising, 4/5 TRAINED-TO-FLOOR) →
+  **B7 does not fire.** **B6 does not fire** (R1 5/5).
+- **R-5(a) NOT FIRED** p=0.778 (placebo MORE dormant than controls) → de-dormancy tracks
+  the information. **R-5(b) FIRED p=1/252.**
 
 ## Next actions, in order
-1. **RUN THE FINALS EVAL — everything else waits on it.** `mkdir -p results/d25p`, then
-   5x3000 sequential, BOTH env vars, no extra flags (the treatment used none;
-   `seed_start=100` derives from `eval_episodes`). Maintainer's terminal, ~10 min.
-   **PREVIEW, NOT A RESULT:** in-loop `eval/win_rate` (n=100, same SH opponent) 5-lane
-   mean **~0.576** (near-unbiased on the treatment arm, +0.0025; se ~0.022). That sits
-   just under R-1's boundary (<= 0.5935/0.5871/0.5800 at s_P = 0/0.026/0.036) and ABOVE
-   the 0.545 expected — **too close to call; do not pre-announce a branch.**
-2. **Grade: `python scripts/d25_grade.py --placebo results/d25p`** — attestation +
-   era-attestation first, then R-1/R-2 (+R-3/R-5 when their inputs exist). P7: B7 (R-4)
-   and B6 FIRST, then B1-B5/B8/B9. **B6 does NOT fire** (R1 clear 5/5, 0.972-0.978 @4M).
-3. **Mech inputs — ALL THREE SCRIPTS EXIST; the fleet is DOWN, so collections can run.**
-   (a) atoms: `d25_atoms.py --lanes 57,58,59,60,61 --run-prefix
-   showdown_sp_actpred12m_placebo_s --out results/d25p/placebo_atoms.json` (defaults
-   still reproduce the banked treatment atoms). (b) dormancy: `d22_collect_obs.py`
-   (200 eps)/lane -> `d22_dormant_rank.py --lanes 57,58,59,60,61 --run-prefix
-   showdown_sp_actpred12m_placebo_s --out results/d25p --tag d25_placebo` (NEVER the
-   control tag). (c) R-4: `scripts/d25p_manipulation.py` — needs 300-ep mirror tapes at
-   `results/d25p/oppact_s{57..61}.npz` first (`collect_oppact.py`).
-4. **Readout entry** naming the P7 branch, discharging its STATUS/README obligation,
-   re-measuring the ledger (~18.25/20, never increment). **The dose caveat below binds
-   whichever branch fires.** Expected shapes / R-1 boundaries / R-3 governance:
-   2026-08-15 night ADDENDUM — read before grading.
+1. **MAINTAINER CALL — R-4 aggregator wording.** Median reads SHUFFLE CONFIRMED; the
+   worst lane (s61, |g_P| 0.0226) reads RESIDUAL under max-governs. **The branch is
+   identical either way** (both far below the 0.10 LEAK line); only the letter's wording
+   moves. R-4 fixes the bands but never names the aggregator; §6's median was inherited.
+2. **R-6 NOT RUN** (recorded-no-letters, optional, nothing depends on it): h2h
+   placebo-vs-treatment, S3-P entropy vs band 0.212-0.284, S5-P/S7-P, dose curves.
+3. **Push** — nothing pushed; commits sit on `main` (ask first). Next lever: DESIGN.md
+   is the roadmap; §11 (search) is PROPOSED, not ratified.
 
 ## Watch items
-- **THE DOSE CAVEAT (pre-stated P3, fires 12/12 bins).** Placebo `aux/trunk_norm` bin
-  medians fall 0.0137-0.0173 (bin 0) to 0.0011-0.0022 (bin 11) vs a frozen band of
-  0.079-0.098 — 3-31% of the 0.7x threshold. **The a-fortiori refutation of "a generic
-  aux gradient helps" is NOT available here**; the caveat BINDS at readout. Not a fault
-  or a void (§12 predicts the direction); no re-tune, no relaunch (one-lever, D17).
-  Trunk RATIO: placebo 0.025-0.029 -> 0.0000-0.0031; treatment holds 0.094-0.108.
-- **VOID clause does not fire:** placebo clip 0.8812-0.9705 vs treatment 0.9729-0.9929 —
-  a naive 0.90 read voids the CREDITED arm too. Read at MATCHED STEPS.
+- **THE DOSE CAVEAT IS PART OF THE CLAIM, not a footnote.** Placebo `aux/trunk_norm`
+  ran at 3-31% of the frozen band, 12/12 bins DOSE-CAVEATED (bin 0 0.0137-0.0173 →
+  bin 11 0.0011-0.0022 vs band 0.079-0.098). So R-2's flatness does NOT refute "a
+  generic aux gradient of matched size would help" — untested, not eliminated.
+- s61's NLL_head sits in the header's UNNAMED cell (A1+0.02, A1+0.05] — disclosed as
+  NEAR-FLOOR, never folded into a neighbour.
+- **R-5 needs `--s1-control results/d23/dormant_d25_control.csv`** for n_C=5; the
+  default CSV has s26/s27/s28 only and the grader rightly refuses to grade at n_C=3.
+- **Three DIFFERENT ctx metrics — do not conflate:** R-5 reads tau025; srank99 collapses
+  on the placebo (s58 218→14) while dormancy stays high; "live ctx units" is a third.
 - **Never read R0-8 off `time/steps_per_sec`** (mean 361 vs wall 312) — Δstep/Δruntime.
-- **`results/d25/` IS THE ONLY COPY** of the sha256-frozen tapes + grade artifacts (backup
-  `../pokemon-showdown-rl-d25-backup-20260815/`); `results/d25p/` joins it.
-- **808/828 seam:** 828 ckpts (placebo + treatment) eval with BOTH env vars; the v2/808
-  clone with V2=1 only. A mixed chain dies at load.
+- **In-loop `eval/win_rate` (n=100) does NOT preview a locked number** — it said 0.576,
+  the locked answer was 0.5415. Per-lane noise does not average out at 5 lanes.
+- **`results/d25/` + `results/d25p/` are the ONLY copies** of the frozen tapes and grade
+  artifacts; both now in `../pokemon-showdown-rl-d25-backup-20260815/` (verified).
+- **LEDGER 17.91/20 chase lane-days** (re-measured 2026-08-16 across 78 lanes; D25-P
+  cost 2.17). Re-measure, never increment.
 - Seeds: 0-13, 23-46, 50-51 SPENT; 49 BURNED; 14-22 RESERVED; 47-48 held; 52-56 = D25;
   **57-61 = D25-P (SPENT)**; 62-63 never needed; 64+ free.
