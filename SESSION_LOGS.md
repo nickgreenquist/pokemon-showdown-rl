@@ -3968,3 +3968,15 @@ entry by offset — never a broad keyword grep.
   window would depress the number the gate reads. The D25 subset (70 tests across
   test_d25_grade / test_d25_placebo / test_d25p_manipulation / test_opp_action) is green;
   run the full suite after the wall reading is banked.
+  CROSS-CHECK, RUN AND PASSED (the reason `--run-prefix` is on the R-4 CLI): pointing
+  the NEW estimator at a TREATMENT lane and tape reproduces §6's banked number to the
+  digit — `d25p_manipulation.py --tape-dir results/d25 --run-prefix
+  showdown_sp_actpred12m_s --lanes 52` returns **g@12M = +0.7472, exactly the frozen
+  s52 attestation value**, with g@3M/6M = +0.4177/+0.4585 (the rising trajectory §6
+  recorded), n = 7273 at 95.7% kept, and **A0 measured 1.7785 — inside the documented
+  1.773-1.780 without being told the range**, which independently confirms the
+  uniform-over-legal formula. The verdict line correctly reads LEAK / BELOW-FLOOR /
+  arm-VOID on that input: a treatment lane run through PLACEBO bands SHOULD look like a
+  massive leak, because its labels really do carry information — so the bands are
+  oriented the right way round. This is the strongest available check short of the
+  placebo tapes themselves, which cannot be collected until the fleet is down.

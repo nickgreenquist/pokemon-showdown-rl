@@ -172,12 +172,18 @@ def main() -> None:
     ap.add_argument("--tape-dir", default=str(TAPE_DIR))
     ap.add_argument("--out", default=str(TAPE_DIR / "manipulation_placebo.json"))
     ap.add_argument("--lanes", default=",".join(str(s) for s in LANES))
+    ap.add_argument("--run-prefix", default=RUN_PREFIX,
+                    help="also the seam for the cross-check that this "
+                         "estimator reproduces the banked treatment g: "
+                         "--tape-dir results/d25 --run-prefix "
+                         "showdown_sp_actpred12m_s --lanes 52")
     args = ap.parse_args()
     lanes = [int(x) for x in args.lanes.split(",") if x.strip()]
 
     detail = {}
     for s in lanes:
-        r = lane_result(s, tape_dir=Path(args.tape_dir))
+        r = lane_result(s, tape_dir=Path(args.tape_dir),
+                        run_prefix=args.run_prefix)
         detail[f"s{s}"] = r
         gm = r["g_by_step"]
         print(f"s{s}: n={r['n']} (kept {r['keep']*100:.1f}%)  A1 {r['A1']:.4f}  "
