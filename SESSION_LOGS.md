@@ -4155,3 +4155,54 @@ entry by offset — never a broad keyword grep.
   dormancy stays high — a narrow, largely-dead ctx. Do not conflate the two metrics;
   R-5 reads tau025, and the STATUS watch item on "live ctx units 220-293" is a THIRD
   metric again.
+- 2026-08-16 (**D25-P READOUT — BRANCH B1 UPGRADE. The claim widens from "an aux
+  opponent-action loss helps" to "an EXPLICIT OPPONENT-ACTION MODEL helps", with three
+  caveats bolted on. Every pre-registered read is in.**) Full grid, all inputs present,
+  transcripts frozen at `results/d25p/grade_placebo.txt` and `r4_manipulation.txt`:
+  **R-1 PRIMARY: CREDITS.** placebo 0.5415 vs treatment 0.6185, delta +0.0770 against a
+  seed-clustered 2*se of 0.03471 (clustered 0.01735 governs over binomial 0.00568);
+  boundary 0.58379, cleared by 0.042. **R-2: FLAT**, -0.0030 vs the frozen comparator.
+  **R-3(a): NOT FIRED** — placebo atoms +0.0155/-0.0016/+0.0058/+0.0016/+0.0143 (mean
+  **+0.0071**) are BELOW the controls' +0.0150, exact p = 239/252 = 0.948. The
+  governance fraction is (0.0071 - 0.0150)/0.0426 = **-0.185 against a bar of 0.333**,
+  so **the LICENSE DOES NOT NARROW** — and both governance conditions fail, not just
+  one. Grader's own rider, carried verbatim: a silent (a) does NOT clear specificity
+  below §5's MDE range 0.0105-0.0301. **R-3(b): FIRED at the floor**, treatment +0.0576
+  vs placebo +0.0071, p = **1/252**. **R-4: SHUFFLE CONFIRMED** (median g_P -0.0118, 0/5
+  rising, 4/5 TRAINED-TO-FLOOR) — **B7 does not fire**. **R-5(a): NOT FIRED** — placebo
+  dormancy 0.5599 vs controls 0.5057, p = 196/252 = 0.778, i.e. the placebo is if
+  anything MORE dormant; graded against all five controls only after passing
+  `--s1-control results/d23/dormant_d25_control.csv` (the default CSV holds s26/s27/s28
+  only, and with n_C = 3 the grader correctly REFUSES to grade — the pre-stated levels
+  are enumerated against five). **R-5(b): FIRED at the floor**, treatment 0.2651 vs
+  placebo 0.5599, p = **1/252**. B6 was already cleared (R1 5/5).
+  **SO: B7 no, B6 no -> the R-1 x R-2 grid gives B1 UPGRADE.** The licensed sentence,
+  with everything the pre-registration requires attached IN THE SAME BREATH: *an
+  explicit opponent-action model helps — the labels being the agent's own mirror-self
+  (C3(b): as much a self-model as an opponent model), the evidence being that the
+  representation became more decodable rather than that the policy consults it (C4),
+  and a generic auxiliary gradient of matched size remaining UNTESTED rather than
+  refuted (the P3 dose caveat: 3-31% of the frozen trunk band, 12/12 bins).* NEVER
+  "belief state". Three converging separations make this the strongest rung in the
+  repo: win rate (+0.0770, clustered rule), the mechanism atom (p = 1/252) and dormancy
+  (p = 1/252) all split treatment from a placebo that is otherwise identical in head,
+  coefficient, cadence, label marginal and legality.
+  **What the placebo actually did:** landed on the comparator (0.5415 vs 0.54452), left
+  its ctx LESS decodable than the controls' (+0.0071 vs +0.0150), stayed MORE dormant
+  than the controls (0.560 vs 0.506), and sat at its marginal floor throughout. It is a
+  clean null on every axis, which is exactly what makes R-1 readable.
+  **OBLIGATIONS DISCHARGED.** README headline rewritten (B1 requires it): the claim
+  scope paragraph now states the placebo result, the licensed sentence and all three
+  caveats; the results table gains the placebo row (0.5415 +- 0.0041). STATUS results
+  row updated. **LEDGER RE-MEASURED, not incremented** (the 2026-08-13 audit's rule):
+  sweeping every run dir with usable timing (`started_at` -> last-ckpt mtime) gives
+  **497.7 lane-hours = 20.74 lane-days total, of which pre-chase 2.83, so the r7
+  PURE-SELF-PLAY CHASE stands at 429.7 h = 17.91 LANE-DAYS** across 78 lanes. That
+  reconciles with the audited 13.54 plus D25's 2.16 and D25-P's 2.17 (= 17.87, rounding
+  aside) — the ~18.25 the handoff projected was a shade high. D25-P cost 2.17 lane-days.
+  **STILL OPEN, and the honest limits of this rung:** R-6's recorded-no-letters set
+  (h2h placebo-vs-treatment, S3-P entropy, S5-P reveal-stage, S7-P sensitivity, dose
+  curves) was NOT run; the R-4 aggregator wording is the maintainer's call (median reads
+  CONFIRMED, worst lane s61 |g_P| 0.0226 reads RESIDUAL — the branch is identical either
+  way); s61's NLL_head sits in the header's unnamed near-floor cell; and vs-SH at 0.6185
+  is still ~40% GXE territory, so none of this is "nearly solved".

@@ -44,6 +44,7 @@ rows marked * are single-seed probes, not headline-grade.
 | + privileged (asymmetric) critic, 12M, 5 seeds — null | 0.5364 ± 0.0066 |
 | + regenerative L2-toward-init, 12M, 3 seeds — letter-met, not credited | 0.5897 ± 0.0066 |
 | **+ opponent-action auxiliary loss, 12M, 5 seeds — CREDITED, current best** | **0.6185 ± 0.0040** |
+| ↳ same loss on SHUFFLED labels (placebo, 12M, 5 seeds) — flat on the comparator | 0.5415 ± 0.0041 |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 
@@ -89,9 +90,26 @@ seed-clustered rule with margin** (operative bar 0.583), the first credited leve
 since the 50M run and the first ever under the stricter clustered rule. Its
 mechanism co-primary fired at the minimum attainable exact-permutation p (1/252,
 both label spaces): the pooled context became ~4× more decodable for the
-opponent's next action on a frozen reference tape. Claim scope is deliberately
-narrow pending a pre-registered placebo arm: what is licensed is "an auxiliary
-opponent-action loss helps", not yet "the agent learned an opponent model".
+opponent's next action on a frozen reference tape. **The pre-registered placebo
+arm has now run and widened that scope (2026-08-16):** five more lanes trained
+12M with the opponent-action labels SHUFFLED within each legality class —
+identical head, identical coefficient, identical cadence, zero information —
+land at **0.5415 pooled, dead on the 0.5445 comparator**, while the real labels
+give 0.6185. The gap is +0.077 against a 0.034 seed-clustered bar, and the
+shuffle is verified to have destroyed the information rather than merely
+perturbed it (held-out gap-closure |g| = 0.012 on the placebo's own mirror
+tapes, versus 0.75 for the real head; the placebo head sits at its marginal
+floor on 4 of 5 lanes). The mechanism atom and the dormancy shift both separate
+treatment from placebo at the minimum attainable p (1/252). So what is licensed
+is now **"an explicit opponent-action model helps"** — with two confounds named
+in the same breath: the labels are the agent's own mirror-self, so this is as
+much a self-model as an opponent model, and the evidence is that the
+representation became more decodable, not that the policy consults it. It is
+NOT "the agent learned a belief state". One alternative stays live rather than
+refuted: the placebo delivered only 3-31% of the real arm's auxiliary gradient
+into the trunk (it converges to its floor and stops pushing), so "a generic
+auxiliary gradient of matched size would help too" is untested here, not
+eliminated.
 That run also completed the pre-registered milestone ladder: **M4 — surpassing
 the Foul Play behaviour clone under the locked protocol — was formally claimed
 2026-08-15** (pooled 0.6185 vs the clone's 5×3000 re-scores of 0.5503
