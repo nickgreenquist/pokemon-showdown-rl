@@ -199,16 +199,36 @@ run.
 
 **This is not a strength record, and it does not enter the published field.**
 
-Converting to human-ladder terms (cross-format, from the Metamon paper's Table 2 and
-Fig 17): SH itself scores 39.7% / 41.2% GXE on the gen7/gen9 randbats human ladders, so
-**parity with SH is roughly 40% GXE**. The published *pure-policy* randbats field
-*starts* at 72% GXE, and the replay-bootstrapped Metamon family reaches ~80%. Our 0.6185
-is meaningfully past SH but still in that neighbourhood — a purity-lane first, not a
-leaderboard result.
+Converting to human-ladder terms (source facts from the Metamon paper's Table 2 and
+Fig 17; the conversion is ours): SH itself scores **39.7% GXE on Gen7RandomBattle and
+41.2% on Gen9RandomBattle** — in random battles, with team-building removed, SH is
+roughly twice the player it is in OU tiers. So **parity with SH is ~40% GXE, Glicko-1
+≈ 1450–1500**, and a vs-SH number near the 0.489 parity mark means ~40% GXE, not "nearly
+solved."
 
-Every one of those translations is a cross-format extrapolation. **Nobody has measured
-`gen1randombattle` on a human ladder at all**, including us. Read the ladder numbers as
-scale-setting, not as a score.
+Where the field sits:
+
+| system | format | GXE |
+|---|---|---|
+| poke-env SH — our benchmark | Gen7RB / Gen9RB | 39.7% / 41.2% |
+| Huang & Lee 2019 — PPO self-play, no search | Gen7RB | 72% |
+| ps-ppo — transformer PPO | Gen9RB | 76.7% |
+| Wang 2024 — PPO + test-time MCTS | Gen4RB | 79.5% |
+| Metamon SynRL-V2 — offline RL on human replays | **Gen1OU** | 79.9% |
+| strong human players | — | 74–90% |
+
+**The floor of the published pure-policy randbats field is 72%.** That gap is not a
+shaping or step-count gap. Our 0.6185 is meaningfully past SH and still nowhere near
+that floor — a purity-lane first, not a leaderboard result.
+
+**Four caveats, all stated by the sources themselves, and they all cut the same way:**
+n is tiny for SH's rows (56 and 60 battles, ±6.5pp); SH's low rating skews matchmaking
+toward weak opponents, so its raw W–L is an **upper** bound; Fig 17's Glicko "is possibly
+an overestimate"; and — the big one — **nobody has measured `gen1randombattle` on a human
+ladder at all.** Every randbats row above is gen4/7/9 and every gen1 row is OU. This is a
+cross-format extrapolation, not a measurement of our board. Note in particular that the
+~80% Metamon figure is **Gen1OU — a different format from ours**, with team-building
+present. Read all of it as scale-setting, not as a score.
 
 The honest frame: the search engine this project distilled from scores 0.8307. Pure
 self-play got to 0.6185 without ever seeing it, from a 0.3996 start. The gap is the result.
