@@ -3867,3 +3867,66 @@ entry by offset — never a broad keyword grep.
   ahead; M4 is the last LADDER rung, not parity with search. Claim scope on the
   LEVER (opponent model vs aux loss) still awaits D25-P, running now — M4 is a
   WIN-RATE milestone and is not conditioned on that attribution.
+- 2026-08-15 (night, **HANDOFF FOLDED; D25-P HEALTH CHECK #1 AT T+19 MIN — 5/5 GREEN,
+  two during-records resolved**). Stub restored; the handoff's operational chain now
+  lives in STATUS.md "Next actions" and the do-not-rediscover items below. All five
+  screens (`d25p_s57`..`s61`) detached and alive; verified BY BATTLE PROGRESS after
+  re-extracting history.csv on every lane (wandb offline — a stale CSV is not a stalled
+  lane). At ~20:14 EDT: steps 325.9k-355.4k, `time/steps_per_sec` 341-359 per lane,
+  wall projection **10.89-11.31 h to 12M** (finals ~06:45-07:15 EDT Aug 16, matching the
+  ~11 h launch estimate). **THE PLACEBO SIGNATURE HOLDS AT SCALE**: `aux/loss` 1.508-
+  1.584 pinned +0.0125 to +0.0152 ABOVE `aux/marginal_nll` on every lane (the head is
+  at its floor and cannot beat the marginal); `aux/shuffle_illegal_frac` **0.000000 x5**
+  (the HARD post-shuffle gate); `aux/shuffle_identity_frac` whole-run means 0.00044-
+  0.00062, 16-23x under the 0.01 record-and-investigate line; `aux/labelled_frac`
+  0.7906-0.8176, inside the during-band [0.78, 0.88] (NOT the 0.84-0.88 smoke band);
+  `selfplay/winrate_anchor` 0.962-0.971 — R1's 0.75-by-4M gate is already clear 5/5,
+  so branch B6 (PLACEBO-HARMS) is not in play on current evidence. `loss/entropy`
+  0.519-0.807, well above K6's 0.15 floor. P-SHUF partial bin-0 medians of
+  (`aux/loss_mb0` - `aux/marginal_nll`) are **+0.017 to +0.030** — the WRONG SIGN for a
+  leak (the trigger is < -0.03 x3 consecutive bins); first complete bin lands at 1M.
+  TWO DURING-RECORDS RESOLVED, both benign, both worth not rediscovering. (1)
+  **match_frac**: the launch record flagged s61's 0.236 against "the frozen chance band
+  0.243-0.330". That range is the CLOSED-FORM chance rate (sum_c p_c sum_y q^2, header
+  l55/l97), a prediction from treatment-era tapes; **the GATE is that range +-0.05 =
+  [0.193, 0.380]** (l153). Whole-run lane means are 0.2400/0.2420/0.2431/0.2442/0.2712
+  (R0-P2 smokes: 0.2673/0.2668) — three lanes sit marginally under the closed form's
+  0.243 floor and ALL FIVE clear the gate with wide room; max 0.358, never ~1.0, so the
+  identity-permutation failure is excluded. Read this gate on lane MEANS, not per-update
+  (per-update range 0.175-0.358; same lesson as labelled_frac, R0-P2). (2) **trunk ratio
+  (R0-10b)**: the metric is `aux/trunk_norm` / `aux/policy_trunk_norm` as a RATIO OF
+  MEANS (`scripts/d25_gates.py:816`; a mean-of-ratios is Jensen-inflated 1.3-1.5x — I
+  inverted it once, note the direction). Provisional whole-run-so-far: **0.0447/0.0472/
+  0.0563/0.0533/0.0447 — three of five BELOW the [0.05, 1.5] floor**, and below the
+  placebo smoke's own 0.0685, while the treatment ran 0.125-0.130 live (smoke 0.1137).
+  This is NOT a defect and must not be reported as a failed gate: R0-10b is a
+  during-RECORD per 1M bin (no bin is complete at 0.35M), and the header ALREADY
+  PREDICTS the direction — the named deviation from §12 (l60-67) states that no
+  zero-information placebo can match gradient magnitude, because at the head's floor the
+  placebo's trunk gradient is ZERO-MEAN minibatch noise while the treatment's has a
+  coherent component; "magnitude is MEASURED (P3), not matched." So a decaying trunk
+  ratio is the predicted placebo behaviour, not a build fault. It DOES bear on the
+  readout: the arm controls for label INFORMATION, not for trunk-gradient MAGNITUDE, so
+  carry the measured ratio into how **B4 and the a-fortiori clause** are read (the header
+  says so explicitly) and disclose it alongside the B1 UPGRADE caveats if B1 fires.
+  Nothing owed to the maintainer tonight; next reads are the R0-8 WARM wall (>=30-min
+  window after 1M: record <255, STOP <210), then R1/K6, then the finals.
+  ADDENDUM — the handoff's do-not-rediscover items, banked here so STATUS can point
+  instead of carry. **Expected outcome shapes:** placebo win rate near 0.545 plus an
+  R-1 credit = branch **B1 UPGRADE** — the licensed sentence becomes "an explicit
+  opponent-action model helps" with the C3(b)/C4 caveats attached, and NEVER "belief
+  state". R-1's credit boundary: placebo <= 0.5935 / 0.5871 / 0.5800 at s_P = 0 / 0.026
+  / 0.036. At wide spreads the modal non-null outcome is the RECORDING BAND (B9). **A
+  null R-2 alone licenses NOTHING** — that is the binding pre-statement P0. **P7 branch
+  precedence:** B7 (R-4 leak / never-trained) and B6 (placebo-harms) adjudicate FIRST,
+  then B1-B5/B8/B9; every branch carries its own STATUS/README obligation, discharged in
+  the readout entry. **R-3 governance:** §5's banked letter NEVER loses its number or
+  its verdict; the LICENSE narrows iff R-3(a) fires AND (mean_P - 0.0150)/0.0426 >= 1/3
+  (the fraction governs on disagreement). **Ops:** screens survive agent jobs
+  (`screen -r d25p_s57`, ctrl-a d); server on :8000; the fleet must be DOWN before any
+  tape/obs collection. The R0-P2 (c) update-1 bit-identity check is VOID-BY-PREMISE (the
+  server rolls fresh battles every run, measured 2026-08-05) — do not re-run it and do
+  not read its failure as a build defect; wall noise at 100k-smoke scale is ~10%, and
+  R0-8 is the gate that governs at 12M. C10 (tapes exclude forced replacements BY
+  CONSTRUCTION, 0 of 53,848 rows; live loss included double-faints at ~0.12%) is
+  disclosed at readout.
