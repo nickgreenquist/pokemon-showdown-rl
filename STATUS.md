@@ -23,9 +23,8 @@ claim SCOPE — without the placebo the claim is "an aux opponent-action loss he
    first, wandb is offline. Gates: R1 `winrate_anchor` >= 0.75 by 4M (**<3 of 5 -> ARM
    STOPS, B6 PLACEBO-HARMS: a RESULT, record per P7, no re-tune**); K6 (5-lane median
    entropy < 0.15 x5) before 6M; P-SHUF (per-1M-bin median `aux/loss_mb0` -
-   `aux/marginal_nll` < -0.03 x3). **R0-8 DISCHARGED 21:23 — wall 309.5-318.1 steps/s,
-   median 312.2, all five clear 255/210.** A lane lost BEFORE R1 relaunches on seed
-   62/63, never the same seat.
+   `aux/marginal_nll` < -0.03 x3). **R0-8 DISCHARGED 21:23 — wall 309.5-318.1, median
+   312.2, all five clear 255/210.** A lane lost pre-R1 relaunches on seed 62/63.
 2. **At the finals: locked eval** — `mkdir -p results/d25p`; 5x3000, BOTH env vars,
    sequential, `--out results/d25p/final_s{57..61}.json`. Maintainer's terminal, ~10 min.
 3. **Grade: `python scripts/d25_grade.py --placebo results/d25p`** — attestation + era-
@@ -39,19 +38,20 @@ claim SCOPE — without the placebo the claim is "an aux opponent-action loss he
    --run-prefix showdown_sp_actpred12m_placebo_s --out results/d25p --tag d25_placebo`
    (NEVER the control tag). (c) R-4: `scripts/d25p_manipulation.py` — needs 300-ep mirror
    tapes at `results/d25p/oppact_s{57..61}.npz` first (`collect_oppact.py`).
-5. **Readout entry** naming the P7 branch, discharging its STATUS/README obligation, and
+5. **Readout entry** naming the P7 branch, discharging its STATUS/README obligation,
    re-measuring the ledger (~18.25/20, never increment). **Expected shapes, R-1 credit
-   boundaries, R-3 governance: the 2026-08-15 night ADDENDUM — read before grading.**
+   boundaries, R-3 governance: 2026-08-15 night ADDENDUM — read before grading.**
 
 ## Watch items
 - **Trunk ratio (R0-10b) runs 0.045-0.056, three lanes under the [0.05, 1.5] floor — NOT
   a defect, NOT a failed gate.** During-RECORD per 1M bin; the header's named §12
   deviation predicts it (no zero-info placebo matches gradient magnitude — measured, not
-  matched). Carry into B4 / the a-fortiori clause.
-- **match_frac gate = closed form 0.243-0.330 ±0.05 = [0.193, 0.380], read on lane MEANS**
-  (0.240-0.271 now). Sub-0.243 per-update reads are noise, not a breach.
-- **`grad_clip_frac` ~0.99 mid-run is NORMAL** (policy clip; the AUX clip never binds).
-  VOID's 0.90 is a WHOLE-RUN mean — read at MATCHED STEPS or every lane voids.
+  matched). Carry into B4 / a-fortiori.
+- **match_frac gate = closed form ±0.05 = [0.193, 0.380], on lane MEANS** (0.240-0.271).
+- **Never read R0-8 off `time/steps_per_sec`** (mean 361 vs wall 312) — Δstep/Δruntime.
+- **`grad_clip_frac` ~0.99 mid-run is NORMAL** (policy clip); VOID's 0.90 is a WHOLE-RUN
+  mean — read at MATCHED STEPS or every lane voids.
+- Trunk-ratio metric = `aux/trunk_norm` ÷ `aux/policy_trunk_norm`, RATIO OF MEANS.
 - **`results/d25/` IS THE ONLY COPY** of the sha256-frozen tapes + finals/grade artifacts
   (backup `../pokemon-showdown-rl-d25-backup-20260815/`); `results/d25p/` joins it at
   readout — losing either voids the mechanism co-primary.
