@@ -40,8 +40,12 @@
 # "bundling maximises P(improve)" is TRUE ONLY IF YOU ALREADY BELIEVE
 # LAMBDA HELPS. This repo has no measurement of lambda whatsoever.**
 # THREE FURTHER REASONS, each independently sufficient:
-#  (a) **IT CONTRADICTS RATIFIED TEXT.** DESIGN.md:786, inside §12
-#      which is RATIFIED at :593, names THESE TWO LEVERS and says
+#  (a) **IT CONTRADICTS RATIFIED TEXT.** The levers are named at
+#      DESIGN.md:774-775 (GAE lambda — and there as a pre-registered
+#      SWEEP {0.95, 0.98, 1.0}, not as lambda=1.0) and :778 (LR
+#      annealing), in a D21 paragraph naming six levers; the
+#      prohibition is the span at :785-787, inside §12, RATIFIED at
+#      :593. It binds. The sentence:
 #      "Each is a separate pre-registered lever; bundling them
 #      re-creates the factorial hazard the ladder rule exists to
 #      prevent." A header cannot self-authorise past that.
@@ -116,9 +120,15 @@
 #      A TEST.** Every config with a live aux head pins
 #      lr_anneal_steps: 0; every config with a live anneal has no aux
 #      head. ppo.py:997 says so itself: "Inert at D25's
-#      lr_anneal_steps: 0". tests/test_ppo.py:494 does
-#      `actor_group, critic_group = agent.optimizer.param_groups`, a
-#      2-tuple unpack that RAISES the moment a third group exists.
+#      lr_anneal_steps: 0". **The CLAIM is verified — no config pairs a
+#      live aux head with a live anneal and no test combines
+#      aux_oppact_coef with lr_anneal_steps — but the draft's citation
+#      of tests/test_ppo.py:494 does NOT support it: that test's `_agent()`
+#      builds no aux head, so its 2-tuple unpack of param_groups never
+#      sees a third group and would not raise.** Sole near-counterexample:
+#      configs/showdown_warmrl_v2.yaml pairs `opponent: self` with
+#      `lr_anneal_steps: 6000000`, and is marked NOT RATIFIED, NOT
+#      LAUNCHED — it was never run, so the path is still virgin.
 #      **THIS ARM DELETES THAT PREMISE. R0-B is the gate and it is this
 #      arm's single most important pre-launch item.**
 # **DECIDED: lr_anneal_steps: 12000000** — linear 2.5e-4 -> ~0 over
@@ -226,9 +236,22 @@
 #      0.024     0.03195      0.6504         +0.0320
 #      0.036     0.04172      0.6602         +0.0417
 #      0.049     0.05335      0.6718         +0.0533
-#   Every 12M arm ever measured here sits in 0.0236-0.0491, so **the
-#   realistic operative bar is 0.650-0.672, a required delta of +0.032
-#   to +0.053.**
+#   **CORRECTED AFTER REVIEW — THE DRAFT'S "every 12M arm ever measured
+#   here sits in 0.0236-0.0491" WAS FALSE, AND IT BIASED THIS HEADER
+#   AGAINST ITS OWN ARM.** That range is the min/max of the D18/D23/D25
+#   lineage ONLY. Six 12M arms in this repo sit BELOW its floor:
+#   signal12m 0.00214, SP-preview s10-12 0.0106, P6 flat 0.0147,
+#   scratch12m 0.0157, P6 annealed 0.0185. **This matters because below
+#   the s_T ~ 0.0134 crossover the +0.025 FLOOR governs and the bar is
+#   0.6435 — BELOW the anneal's own measured +0.0277 — at which
+#   P(CREDIT) at delta=+0.028 is 0.60 (s_T=0.011) to 0.75 (s_T=0.002).**
+#   HONEST STATEMENT: the operative bar is 0.6435 at low spread and
+#   0.650-0.672 in the D18/D23/D25 range, so the required delta is
+#   +0.025 to +0.053 and **s_T is the single biggest determinant of
+#   whether this arm credits.** The relevant reference class is
+#   arguable — the low-sd arms are all near the 0.39-0.41 plateau where
+#   there is less room to vary, and this arm builds on D25 (0.0236) —
+#   but the header may not assert the pessimistic range as a universal.
 #
 #   POWER (60k draws/cell, comparator FIXED at D25's measured five so
 #   all randomness is this arm's; cells are B1-B5 and SUM TO 1):
@@ -248,7 +271,11 @@
 #   **STATED PLAINLY, AS §8's CONVENTION REQUIRES: the arm needs +0.032
 #   to +0.053 — a pooled 0.650-0.672 vs SH. The anneal's own
 #   best-measured effect at this budget is +0.028 and is BELOW that
-#   bar; it credits here with probability 0.23-0.44. The single most
+#   bar; it credits here with probability **0.23-0.39 in the
+#   D18/D23/D25 spread range** (NOT the draft's "0.23-0.44", which is
+#   not derivable from the table above — 0.44 occurs only at s_T=0.020;
+#   Q1's "anneal alone 0.222" is a third figure and is the neutral-prior
+#   marginal, not a cell), and **0.60-0.75 if s_T lands low.** The single most
 #   likely outcome is B3 (FLAT) or B2 (letter-met), jointly 0.61-0.75.
 #   The arm is well-powered only against a surprise (>= +0.05) — and
 #   against LARGE HARM (0.88 at -0.050), which is a real property and
@@ -301,8 +328,14 @@
 #     obligations are DISCHARGED and do NOT re-fire. **If and only if
 #     D26 pools >= 0.6435 does the SH-EXPLOITATION FALSIFIER RE-FIRE**
 #     — two-orientation h2h vs the clone, 500/pair/orientation, pooled
-#     over orientations (the +0.018 deterministic-vs-sampling seat bias
-#     is measured) — because a vs-SH number that jumps while the non-SH
+#     over orientations. **POOL OVER ORIENTATIONS BECAUSE THE SEAT
+#     ASYMMETRY IS LARGE AND MEASURED — and the draft cited the wrong
+#     number for it.** The "+0.018 deterministic-vs-sampling bias"
+#     inherited from D25's PRE-LAUNCH text is an SP-vs-CT cross-play
+#     figure; the EXECUTED two-orientation h2h vs the clone measured
+#     orientation A 0.8540 against B 0.5840 (results/d25/
+#     h2h_s55_vs_clone_{A,B}.json, 2026-08-15) — a ~0.27 asymmetry the
+#     log itself calls "large", ~15x the inherited number — because a vs-SH number that jumps while the non-SH
 #     anchor h2h stays flat is SH-specific. ~20 min, priced in.
 # ---------------------------------------------------------------------
 # Q8. R0 PRE-LAUNCH GATES — BLOCKING, ZERO LANES
@@ -315,10 +348,17 @@
 #   (Q3d).** A NEW unit test building a PPOAgent with an aux head AND
 #   lr_anneal_steps: 12_000_000, asserting: (a) len(param_groups) == 3
 #   and group 2's params are exactly aux_head.parameters() BY ID;
-#   (b) after an update at counter u, ALL THREE groups' lr equal
+#   (b) **u here is the PRE-INCREMENT counter (ppo.py:990 reads
+#   self.updates before ppo.py:1121 increments it); R0-C below uses the
+#   POST-increment checkpointed counter, hence its (updates-1). Same
+#   letter, two conventions, labelled so neither is mis-asserted.** The
+#   test must also pin rollout_steps=128 and num_envs=8, without which
+#   u*1024 is wrong. After an update at counter u, ALL THREE groups' lr
+#   equal
 #   2.5e-4 * max(0, 1 - u*1024/12e6) at u in {0, 1, 1000, 5859, 11717,
-#   11718, 20000} — including the clamped-to-zero case and the
-#   strictly-positive u=11717; (c) at actor_lr_scale 1.0 all three are
+#   11718, 11719, 20000} — **u=11718 is NOT the clamped case
+#   (frac = 6.4e-5 > 0); the first clamped counter is 11719**, and
+#   u=20000 is deep in the clamp. Both boundaries are asserted; (c) at actor_lr_scale 1.0 all three are
 #   EQUAL at every u (Q3c's ratio claim); (d) with lr_anneal_steps: 0,
 #   no group's lr is ever written (exact no-op, group 2 included).
 #   ON FAIL: the arm does not launch, and it is a CODE BUG report, not
@@ -330,14 +370,25 @@
 #   checkpoint's own counter. The off-by-one is real and is asserted,
 #   not tolerated. **This is the gate that proves the anneal ANNEALED
 #   rather than that the YAML said so.**
-# R0-E SMOKE: 100k, seed 99, **ALONE** (username collision), ~4 min,
+# R0-E SMOKE: 100k, seed 99, **ALONE** (username collision), ~4 min.
+#   **rl/train.py exposes only --config/--seed/--run-name, so this needs
+#   its own smoke YAML (the *_smoke.yaml pattern) with total_steps
+#   100000; R0-A's one-diff proof covers the 12M config and must be run
+#   a second time against the smoke config with total_steps named as the
+#   expected fourth difference.**
 #   PLUS a matched D25 100k re-run at the current sha, also seed 99,
 #   also alone. ACCEPTANCE: R0-C passes on the 100k checkpoint (all
-#   three groups at 2.4586e-04); aux/illegal_label_frac == 0;
+#   three groups at **2.479520e-04**, NOT 2.4586e-04 — that is Q3's
+#   200,000/u=195 row and putting it here would FAIL A CORRECT RUN.
+#   Derivation, because this gate is where an off-by-one bites: `step`
+#   advances by num_envs=8 per iteration, so 100k steps = 12,500
+#   iterations = floor(12500/128) = 97 completed updates, and the lr is
+#   written from the PRE-increment counter, so frac = 1 - 96*1024/12e6
+#   = 0.9918080); aux/illegal_label_frac == 0;
 #   aux/frame_collision_frac == 0; aux/labelled_frac lane mean in
 #   [0.84, 0.88] (SMOKE-ERA band; D25's first-100k means were
 #   0.8539-0.8668); all losses finite; wall within +-5% of the matched
-#   D25 smoke. **HONESTY: at 100k frac = 0.9917. A 100k smoke says
+#   D25 smoke. **HONESTY: at 100k frac = 0.991808. A 100k smoke says
 #   NOTHING about the anneal's EFFECT — it proves plumbing. The effect
 #   lives in the 12M lanes and nowhere else.** Any failure -> no launch.
 # R0-F FINGERPRINT: every lane's meta.yaml stamps encoder v2,
@@ -453,7 +504,10 @@
 #    agent at constant LR (0.6185, 5 seeds), crediting at an operative
 #    bar of <bar>." Rule H4's SH-exploitation falsifier fires. D25's
 #    licensed sentence is reprinted unchanged in the same paragraph so
-#    nothing reads as a retraction.
+#    nothing reads as a retraction. **H4's falsifier fires on its own
+#    trigger (pooled >= 0.6435), which is the FLOOR bar — so it can
+#    also fire inside B2, where the headline does NOT move. Named here
+#    because the draft attached it only to B1.**
 # B2 **+0.025 <= delta < hi — LETTER-MET, SEED-FRAGILE, NOT CREDITED**
 #    (upper side; non-empty whenever s_T > ~0.0134, which every arm
 #    ever measured here exceeds). **D25 stays the headline (H1, and the
@@ -489,9 +543,11 @@
 # as its own row carrying its verdict phrase verbatim, and STATUS gains
 # the same line. On B6/B7 only STATUS records the void. No branch
 # leaves README untouched, and no branch silently rewrites it.
-# CROSS-CUTTING: if D26 pools >= 0.558 it clears M4's number — already
-# CLAIMED at D25 — so it is a corroboration, not a new claim, and is
-# written that way.
+# CROSS-CUTTING: **M4's BAR is 0.558 (DESIGN.md:94); 0.5503 is the
+# protocol-grade CLONE re-score M4 was adjudicated against. They are
+# different quantities and the draft called both "M4".** If D26 pools
+# >= 0.558 it clears the bar — already CLAIMED at D25 — so it is a
+# corroboration, not a new claim, and is written that way.
 # **NO INTERIM LOOKS (pre-registered):** every surviving lane runs to
 # 12M regardless of in-loop `eval/win_rate`, which STATUS records does
 # NOT preview the locked number (0.576 vs a locked 0.5415). In-loop
