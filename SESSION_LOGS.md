@@ -4206,3 +4206,20 @@ entry by offset — never a broad keyword grep.
   CONFIRMED, worst lane s61 |g_P| 0.0226 reads RESIDUAL — the branch is identical either
   way); s61's NLL_head sits in the header's unnamed near-floor cell; and vs-SH at 0.6185
   is still ~40% GXE territory, so none of this is "nearly solved".
+- 2026-08-16 (**R-4 AGGREGATOR ADJUDICATED — SHUFFLE CONFIRMED, and on substance rather
+  than on the median convention**). Maintainer delegated the call. Deciding it by
+  "inherit §6's median" would have been an appeal to convention; the sign structure
+  settles it properly. **Leakage is a POSITIVE-g_P phenomenon** — retained information
+  lets the head BEAT the class marginal. Per-lane g_P@12M: s57 -0.0037, s58 **+0.0124**,
+  s59 -0.0118, s60 -0.0166, s61 -0.0226. **The largest POSITIVE value is +0.0124, inside
+  the 0.02 CONFIRMED band; the only lane exceeding 0.02 in magnitude (s61, -0.0226) does
+  so in the NEGATIVE direction, which is not leakage at all** — it is a head fitted to
+  permutation noise scoring worse than the marginal out-of-sample, and the header's
+  negative branch (derangement) triggers only at <= -0.10, four times further out. So
+  max-governs would have reported "RESIDUAL — possible retained information" on the
+  strength of a number pointing the wrong way for that conclusion. **LETTER: SHUFFLE
+  CONFIRMED**, with s61's -0.0226 disclosed in the same line. The band structure is
+  two-sided by design (the script applies |g_P|), and that stays right for VOID
+  screening; it is only the RESIDUAL cell whose interpretation is sign-dependent, which
+  is a wrinkle the pre-registration does not name and which is now on the record.
+  Nothing else moves: the branch was B1 under either reading.

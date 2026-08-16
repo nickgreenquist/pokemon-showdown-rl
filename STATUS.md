@@ -30,10 +30,10 @@ placebo lands dead on the comparator (0.5415 vs 0.54452) while treatment reaches
   the information. **R-5(b) FIRED p=1/252.**
 
 ## Next actions, in order
-1. **MAINTAINER CALL — R-4 aggregator wording.** Median reads SHUFFLE CONFIRMED; the
-   worst lane (s61, |g_P| 0.0226) reads RESIDUAL under max-governs. **The branch is
-   identical either way** (both far below the 0.10 LEAK line); only the letter's wording
-   moves. R-4 fixes the bands but never names the aggregator; §6's median was inherited.
+1. **R-4 wording SETTLED 2026-08-16: SHUFFLE CONFIRMED.** Not by median convention —
+   leakage is a POSITIVE-g_P phenomenon, the max positive is +0.0124 (in band), and the
+   only |g_P| > 0.02 (s61 -0.0226) points the WRONG WAY for retained information
+   (derangement line is -0.10). s61 disclosed in the letter. Branch unchanged.
 2. **R-6 NOT RUN** (recorded-no-letters, optional, nothing depends on it): h2h
    placebo-vs-treatment, S3-P entropy vs band 0.212-0.284, S5-P/S7-P, dose curves.
 3. **Push** — nothing pushed; commits sit on `main` (ask first). Next lever: DESIGN.md
