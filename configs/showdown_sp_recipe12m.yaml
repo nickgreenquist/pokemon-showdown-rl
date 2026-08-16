@@ -1,0 +1,598 @@
+# =====================================================================
+# D26 — LR ANNEALING ON THE STANDING BEST. THE FINAL TRAINING ARM OF
+# THE r7 PURE-SELF-PLAY CHAPTER. Built on D25 (0.6185). ONE LEVER:
+# lr_anneal_steps 0 -> 12000000. Seeds 62-65. 12M. 4 lanes.
+# Price ~1.74 lane-days + ~0.5 h readout -> ledger 17.91 -> ~19.65/20.
+# PROCESS: 2 Opus designers (A implementation-first, B inference-first)
+# + 2 Opus reviews, per the maintainer's standing process.
+# HEADER STATUS: **PROPOSED — NOT RATIFIED.** Written after r6
+# ratification, so it carries its own status line (CLAUDE.md, Docs).
+# ---------------------------------------------------------------------
+# Q0. WHAT THIS ARM ADJUDICATES
+# ---------------------------------------------------------------------
+# THE QUESTION: **what is the best vs-SH number pure from-scratch
+# self-play reaches under a standard, published PPO recipe?** This is
+# an ENGINEERING READOUT that also happens to be a clean one-lever test.
+# THE NOVELTY IS THE LANE, NOT THE LEVER. DESIGN §5:390 already allows
+# "hyperparameters, architectures and reward designs read from
+# published work ... These do not enter the weights", so annealing is
+# purity-clean by the ratified definition, not by exception.
+# THIS ARM DOES NOT RE-ADJUDICATE D25. D25's credit, its M1-M4 claims
+# and its licensed sentence *an explicit opponent-action model helps*
+# stand on every branch, including NEGATIVE. **D25's five finals are
+# NEVER re-scored.** No mechanism claim is made or transferred: D25's
+# banked §5/§6/S1 letters describe D25's checkpoints, and this arm is a
+# DIFFERENT TRAINING of the same architecture (C4).
+# ---------------------------------------------------------------------
+# Q1. WHY ONE LEVER AND NOT TWO — THE BUNDLE WAS DESIGNED, COSTED,
+#     AND DECLINED ON ITS OWN NUMBERS
+# ---------------------------------------------------------------------
+# The maintainer's initial framing bundled this with GAE lambda
+# 0.95 -> 1.0, on the argument that "the one-lever rule buys SEQUENTIAL
+# attribution, this is the final arm, so bundling maximises P(headline
+# improves)". **BOTH DESIGNERS INDEPENDENTLY REJECTED THAT ARGUMENT,
+# and designer B rejected it by SIMULATING it rather than debating it:**
+#   lambda's true effect      anneal alone   bundled    delta
+#   coin flip (0 +- 0.012)       0.222        0.246     +0.024
+#   mildly positive (+0.008)     0.222        0.344     +0.122
+#   mildly negative (-0.008)     0.222        0.163     -0.059
+# and P(NEGATIVE) rises 0.008 -> 0.015 under the neutral prior. **So
+# "bundling maximises P(improve)" is TRUE ONLY IF YOU ALREADY BELIEVE
+# LAMBDA HELPS. This repo has no measurement of lambda whatsoever.**
+# THREE FURTHER REASONS, each independently sufficient:
+#  (a) **IT CONTRADICTS RATIFIED TEXT.** DESIGN.md:786, inside §12
+#      which is RATIFIED at :593, names THESE TWO LEVERS and says
+#      "Each is a separate pre-registered lever; bundling them
+#      re-creates the factorial hazard the ladder rule exists to
+#      prevent." A header cannot self-authorise past that.
+#  (b) **THE LEVERS ARE NOT SYMMETRIC IN STANDING.** The anneal has
+#      been credited twice in-repo. lambda has NEVER EXECUTED HERE —
+#      all 39 configs pin gae_lambda: 0.95 — and its only support is
+#      Alpha-Mini in prior_work/RESEARCH_2026-08-10..., a memo whose
+#      own header says "UNVERIFIED: citations and quotes have NOT been
+#      independently checked". ZERO hits in prior_work/README.md, the
+#      designated verified index CLAUDE.md requires reading first.
+#  (c) **THE MECHANISM POINTS THE WRONG WAY.** D22 closed on a
+#      REPRESENTATION/CRITIC ceiling (flat EV 0.56-0.59, critic srank99
+#      7-11 of 384). lambda=1.0's unbiasedness argument is about the
+#      ADVANTAGE; the same knob moves the VALUE target from
+#      lambda-return to MC return, which is strictly harder for the
+#      component already diagnosed as the bottleneck.
+#  (d) **F-GATE ASYMMETRY.** Under a bundle, if EITHER lever fails its
+#      manipulation check the WHOLE arm VOIDs — neither converts into
+#      "the other was tested alone". The worst case is a NEGATIVE with
+#      lambda as the culprit: last budget spent, number down, and the
+#      anneal (the lever with real evidence) left permanently untested
+#      in self-play, with no attribution to say so.
+# **IF THE MAINTAINER STILL WANTS THE BUNDLE** it is a one-line change
+# (gae_lambda: 1.0) plus: an explicit written override of DESIGN.md:786
+# in SESSION_LOGS.md; Q6's bars unchanged; a second manipulation gate
+# (loss/adv_std per-1M-bin median >= 0.55 in bins 0-2, UPPER SIDE ONLY,
+# against D25's measured [0.4629, 0.4883]); an R0-D lambda arithmetic
+# unit test; and the permanent deletion of all per-lever attribution
+# from every branch. **THIS FILE DEFAULTS TO THE COMPLIANT ARM.**
+# ---------------------------------------------------------------------
+# Q2. THE EXACT DIFF vs D25 — THREE LINES
+# ---------------------------------------------------------------------
+# Against configs/showdown_sp_actpred12m.yaml the comment-stripped YAML
+# body differs in EXACTLY:
+#     seed:                  52 -> 62|63|64|65
+#     run_name:              ...actpred12m_s52 -> ...recipe12m_sN
+#     agent.lr_anneal_steps:  0 -> 12000000     (THE LEVER)
+# Proven mechanically by R0-A before launch. UNCHANGED, each for a
+# named reason: the D25 aux head STAYS ON (aux_oppact_coef 0.1,
+# aux_label_space l6, env_kwargs.opp_action) — it is the standing best;
+# trunk entity_deepsets + all trunk_kwargs — **the encoder is FROZEN at
+# v2/808+ids=828 and changing OBS_DIM invalidates every checkpoint**;
+# lr 2.5e-4 (the SCHEDULE is the lever, not the magnitude — see C2);
+# gamma 1.0, gae_lambda 0.95, rollout_steps 128, num_envs 8, epochs 4,
+# minibatches 4, clip_eps, entropy_coef, value_coef, max_grad_norm, all
+# of selfplay:, and eval_every 100000 / eval_episodes 100 (struct12m
+# cadence VERBATIM, as D25 carried it — cadence-clean against D25 and
+# against nothing else, C9).
+# ---------------------------------------------------------------------
+# Q3. THE SCHEDULE, ARGUED FROM rl/agents/ppo.py:989-1001 (READ, NOT
+#     ASSUMED)
+# ---------------------------------------------------------------------
+#     if self.lr_anneal_steps:
+#         frac = max(0.0, 1.0 - steps_seen / self.lr_anneal_steps)
+#         param_groups[0]["lr"] = base_lr * actor_lr_scale * frac
+#         param_groups[1]["lr"] = base_lr * frac
+#         if self.aux_head is not None:
+#             param_groups[2]["lr"] = base_lr * actor_lr_scale * frac
+# CONSEQUENCES THAT DECIDE THE SCHEDULE:
+#  (a) LINEAR ONLY, NO FLOOR EXISTS. Any other shape is a code change,
+#      i.e. a second lever. Refused.
+#  (b) **lr_anneal_steps < total_steps IS FORBIDDEN** — the clamp means
+#      the tail trains at lr EXACTLY 0: parameters frozen, wall-clock
+#      spent, and no metric that looks wrong.
+#  (c) With actor_lr_scale at its default 1.0, groups 0/1/2 carry an
+#      IDENTICAL lr at every update. The anneal is a PURE GLOBAL
+#      STEP-SIZE SCHEDULE: the aux:policy gradient RATIO is untouched
+#      and D25's coefficient 0.1 stays the operative coefficient.
+#      **Dose is matched in RATIO, NOT in absolute magnitude (C2), and
+#      D-A is how we would know.**
+#  (d) **param_groups[2] HAS NEVER BEEN WRITTEN — NOT IN A RUN, NOT IN
+#      A TEST.** Every config with a live aux head pins
+#      lr_anneal_steps: 0; every config with a live anneal has no aux
+#      head. ppo.py:997 says so itself: "Inert at D25's
+#      lr_anneal_steps: 0". tests/test_ppo.py:494 does
+#      `actor_group, critic_group = agent.optimizer.param_groups`, a
+#      2-tuple unpack that RAISES the moment a third group exists.
+#      **THIS ARM DELETES THAT PREMISE. R0-B is the gate and it is this
+#      arm's single most important pre-launch item.**
+# **DECIDED: lr_anneal_steps: 12000000** — linear 2.5e-4 -> ~0 over
+# exactly the budget. It is the schedule that earned BOTH in-repo
+# credits verbatim (showdown_r512_lra.yaml:71 at 6M,
+# showdown_r512_lra12m.yaml:33 at 12M) and the CleanRL/published
+# default the "standard recipe" framing rests on. A floor
+# (lr_anneal_steps 15000000 -> 0.20x base) is the named alternative and
+# is DECLINED ON PROCESS: it introduces a FREE NUMBER, and D25's
+# discipline for its one free number was a four-arm smoke sweep this
+# arm has no budget for. Cosine/power decay = code change = refused.
+# REALISED SCHEDULE (steps_seen = updates * 1024; 12M/1024 = 11718.75):
+#     200,000    u=195     lr 2.4586e-04   frac 0.9834
+#   2,000,000    u=1953    lr 2.0836e-04   frac 0.8334
+#   6,000,000    u=5859    lr 1.2503e-04   frac 0.5001
+#  11,800,000    u=11523   lr 4.1973e-06   frac 0.0168
+#   MEAN lr OVER THE RUN = 0.500 x base — half D25's step mass (C2).
+#   The lr is written at the TOP of update() from the PRE-increment
+#   counter (self.updates += 1 at ppo.py:1121), so a checkpoint at
+#   counter u carries frac = 1 - (u-1)*1024/12e6. **R0-C asserts THAT
+#   formula, off-by-one included.**
+# ---------------------------------------------------------------------
+# Q4. WHAT THE ANNEAL IS ACTUALLY WORTH AT 12M — **AND IT IS NOT
+#     DESIGN.md:101's +0.051**
+# ---------------------------------------------------------------------
+# DESIGN.md:101 calls the anneal "the largest lever this repo has ever
+# credited" at +0.051. **THAT IS THE 6M NUMBER.** The 12M number — the
+# budget THIS arm runs — was separately measured, both arms, and is
+# **+0.0277**: SESSION_LOGS.md:170-176, annealed 0.449/0.451/0.482 ->
+# 0.4607 vs flat 0.425/0.424/0.450 -> 0.4330. The log's own verdict:
+# **"Direction replicates, magnitude does not."** Its own recorded
+# caveat, which must travel with the number: **"seed-level Welch
+# t ~ 2.03, p ~ 0.12; both arms carried by one strong seed"**, and the
+# arms were seed-UNPAIRED by necessity (the username-collision
+# landmine). Re-derived under the MODERN larger-of rule, that 12M read
+# cleared by 0.0004.
+# **SO: THE ANNEAL'S OWN BEST-MEASURED 12M EFFECT (+0.028) SITS BELOW
+# THIS ARM'S OPERATIVE CREDIT BAR (+0.032 to +0.053, Q6). If the anneal
+# reproduces exactly, THIS ARM DOES NOT CREDIT.** That is the
+# arithmetic, stated before launch so it cannot be re-narrated after.
+# WHAT IS BEING EXTRAPOLATED: both anneal credits are vs-SH-TRAINED, on
+# the MLP r512 recipe, at rollout_steps 512, with no aux head. This arm
+# is self-play, entity_deepsets, rollout 128, aux head on — **four
+# simultaneous transfers** (C6). showdown_sp_struct50m.yaml:32-33
+# declined the anneal for exactly this reason.
+# IN-REPO NEGATIVE, priced not dismissed: MinAtar Breakout at EQUAL
+# base lr, flat final return 8.42 vs annealed 5.51 — the anneal cost
+# 34.6%. Discounted by the maintainer 2026-08-03 and vindicated twice on
+# Showdown; recorded so a NEGATIVE branch is not reported as a surprise.
+# ---------------------------------------------------------------------
+# Q5. ARMS, SEEDS, LANE COUNT, BUDGET
+# ---------------------------------------------------------------------
+# ARMS: ONE. **4 lanes, seeds 62/63/64/65.** No fresh comparator lanes:
+# D25's five banked finals ARE the comparator. Seeds 66/67 held for a
+# lane lost BEFORE R1 only. **Never relaunch a dead lane on its own
+# seat** (s49 -> s51). Distinct --seed per concurrent lane, across arms.
+# **LANE COUNT = 4, AND STATUS.md's EARLIER 5-LANE ARGUMENT WAS WRONG
+# ON BOTH CLAIMS** (corrected 2026-08-16): scripts/d25_grade.py:94 is
+# `PERM_LEVELS = {5: (12, 252), 4: (6, 126), 3: (2, 56)}` — **4 IS
+# ENUMERATED** — and C(9,4)=126 with 6/126 = 0.047619 against C(10,5)
+# =252 with 12/252 = 0.047619 — **THE LEVEL IS IDENTICAL.** What 4
+# costs is only the MINIMUM ATTAINABLE p: 1/126 = 0.0079 vs 1/252 =
+# 0.0040. Simulated, the 5th lane buys 5-7 power points at delta=+0.051
+# and 1-2 at +0.030 — least exactly where the decision is hard.
+# BUDGET: ledger 17.91/20. 4 lanes 4-wide at ~9.8-10.4 h/lane =
+# ~1.63-1.73, + finals and readout ~0.02 -> **~1.74 -> ~19.65/20.
+# FITS.** 5 lanes 5-wide = 2.17-2.29 -> 20.08+. DOES NOT FIT.
+# DISCLOSED COST OF 4: s_T is estimated on 3 df, so the clustered se —
+# which always governs — is noisier and the bar wobbles more; and Welch
+# df at 4v5 is 4.1-6.9 (vs 8 at 5v5), making the fixed 2x multiplier
+# MORE anti-conservative here than in D25-P.
+# ---------------------------------------------------------------------
+# Q6. PRIMARY READ — WIN RATE vs D25. CREDIT LINE VERBATIM.
+# ---------------------------------------------------------------------
+# PROTOCOL: FINAL checkpoint, deterministic policy, ties as non-wins,
+# vs SimpleHeuristicsPlayer, 3000 battles/seed, 4 seeds pooled =
+# 12,000. Both encoder env vars at every eval. DISCLOSED DEVIATIONS,
+# neither silent: DESIGN §8's 3000/seed wins over CLAUDE.md's stale
+# 1000; DESIGN §8/§2 lock THREE seeds and this pools FOUR (4 >= 3, same
+# conservative direction, a DEVIATION, disclosed, not "locked").
+# **THE ACROSS-LANE AGGREGATOR, NAMED ONCE AND BINDING EVERYWHERE: the
+# EQUAL-WEIGHT MEAN of the per-seed win rates.** The per-lane MEDIAN
+# and the WORST LANE are recorded and NEVER govern any verdict, on any
+# branch. (D25-P's R-4 aggregator had to be adjudicated mid-readout;
+# this header pays that cost up front.) Health gates differ and are
+# named at each: K6 reads the 4-lane MEDIAN; R1 and D-D read EACH LANE
+# INDIVIDUALLY; R0-A/B/C read every lane CONJUNCTIVELY.
+# COMPARATOR, FROZEN, re-read from disk by R0-H, NEVER re-scored:
+# s52 0.6233 / s53 0.6573 / s54 0.6063 / s55 0.6073 / s56 0.5980 ->
+# **pooled 0.61847, sd 0.02358, n = 5.**
+#
+#   **CREDIT LINE (DESIGN §8, RESTATED IN FULL, VERBATIM, INCLUDING THE
+#   LARGER-OF CLAUSE): a lever is credited iff pooled delta >= +0.025
+#   AND >= 2*se_diff, where se_diff is the LARGER of the
+#   pooled-binomial se_diff and the seed-clustered se_diff, the latter
+#   computed from the per-seed finals at read time.**
+#
+#   ARITHMETIC, CELL BY CELL (binomial 2*se_diff = 0.01178 at p~0.62-
+#   0.65, so **the binomial can NEVER govern**; below s_T ~ 0.0134 the
+#   +0.025 FLOOR governs instead):
+#      s_T      2*se_clus    OPERATIVE BAR   REQUIRED DELTA
+#      0.000     0.02109      0.6435         +0.0250 (floor)
+#      0.020     0.02907      0.6475         +0.0291
+#      0.02357   0.03163      0.6501         +0.0316   <- = D25's s_T
+#      0.024     0.03195      0.6504         +0.0320
+#      0.036     0.04172      0.6602         +0.0417
+#      0.049     0.05335      0.6718         +0.0533
+#   Every 12M arm ever measured here sits in 0.0236-0.0491, so **the
+#   realistic operative bar is 0.650-0.672, a required delta of +0.032
+#   to +0.053.**
+#
+#   POWER (60k draws/cell, comparator FIXED at D25's measured five so
+#   all randomness is this arm's; cells are B1-B5 and SUM TO 1):
+#     delta   s_T    B1 cred  B2 let+  B3 flat  B4 let-  B5 NEG
+#     +0.028  .024    0.39     0.21     0.40     0.00     0.00
+#     +0.028  .049    0.23     0.32     0.43     0.01     0.00
+#     +0.040  .024    0.70     0.18     0.12     0.00     0.00
+#     +0.040  .049    0.36     0.36     0.27     0.00     0.00
+#     +0.051  .024    0.89     0.08     0.02     0.00     0.00
+#     +0.051  .049    0.51     0.35     0.15     0.00     0.00
+#      0.000  .024    0.01     0.01     0.95     0.01     0.01
+#      0.000  .049    0.04     0.12     0.68     0.12     0.04
+#     -0.050  .024    0.00     0.00     0.03     0.09     0.88
+#   Attained size at delta = 0: 0.005/0.011/0.028/0.042 at
+#   s_T = 0.020/0.024/0.036/0.049.
+#
+#   **STATED PLAINLY, AS §8's CONVENTION REQUIRES: the arm needs +0.032
+#   to +0.053 — a pooled 0.650-0.672 vs SH. The anneal's own
+#   best-measured effect at this budget is +0.028 and is BELOW that
+#   bar; it credits here with probability 0.23-0.44. The single most
+#   likely outcome is B3 (FLAT) or B2 (letter-met), jointly 0.61-0.75.
+#   The arm is well-powered only against a surprise (>= +0.05) — and
+#   against LARGE HARM (0.88 at -0.050), which is a real property and
+#   is most of what the negative branches buy. QUOTE THE RANGE.**
+#   **AND FLAT EXCLUDES NOTHING: at s_T = 0.024 the delta carries
+#   2*se = 0.032, so an observed +0.005 gives CI [-0.027, +0.037],
+#   which excludes neither zero NOR the anneal's own +0.0277. To
+#   exclude +0.0277 the arm must read delta < -0.004. QUOTE THIS
+#   SENTENCE AT READOUT.**
+#
+#   SECONDARY, LETTER-BEARING: exact 4v5 permutation on the per-seed
+#   finals, scripts/d25_grade.py::exact_perm_p, **direction = +1 (this
+#   arm HIGHER), level 6/126 = 0.04762, min attainable p = 1/126 =
+#   0.0079.** ONE-SIDED, UPPER SIDE ONLY. If the point estimate lands
+#   in B4/B5 the direction = -1 test is run and reported as a SEPARATE
+#   one-sided test with its own name, NEVER as "the same test with the
+#   sign flipped" (that doubles the size silently).
+#   **PRECEDENCE, PRE-STATED: the credit line GOVERNS; the permutation
+#   p is reported alongside; a disagreement is REPORTED, never
+#   adjudicated in favour of whichever fired.** Disclosed: at n=4 the
+#   permutation is marginally MORE powerful than the credit line, which
+#   is exactly why precedence is fixed in advance.
+# ---------------------------------------------------------------------
+# Q7. THE HEADLINE RULE — DECIDED BEFORE ANY NUMBER EXISTS
+# ---------------------------------------------------------------------
+# H1. The chapter's headline pure-self-play number is the HIGHER pooled
+#     final of {D25 0.61847 (n=5), D26 (n=4)}, reported with BOTH arms'
+#     per-seed values, the delta, its se under the larger-of rule, and
+#     — whenever the delta does not clear the credit line — the phrase
+#     **"not distinguishable from D25 at the credit line"** in the same
+#     sentence. No exceptions, no branch.
+# H2. NON-INFERIORITY GUARD: if D26 pools BELOW D25, D25 stays the
+#     headline unchanged and D26 is a measured negative. D25's finals
+#     are never re-scored, re-pooled, or averaged with D26's.
+# H3. NO CHERRY-PICKING: the headline is the POOLED number. Not the
+#     best lane, not best_checkpoint.pt, not an in-loop eval/win_rate
+#     (STATUS records those do NOT preview the locked number — 0.576 vs
+#     a locked 0.5415 on D25-P).
+# H4. M-BAR OBLIGATIONS: D25 already cleared M4 against a
+#     protocol-grade clone re-score of 0.5503 (5x3000). Both DESIGN §2
+#     obligations are DISCHARGED and do NOT re-fire. **If and only if
+#     D26 pools >= 0.6435 does the SH-EXPLOITATION FALSIFIER RE-FIRE**
+#     — two-orientation h2h vs the clone, 500/pair/orientation, pooled
+#     over orientations (the +0.018 deterministic-vs-sampling seat bias
+#     is measured) — because a vs-SH number that jumps while the non-SH
+#     anchor h2h stays flat is SH-specific. ~20 min, priced in.
+# ---------------------------------------------------------------------
+# Q8. R0 PRE-LAUNCH GATES — BLOCKING, ZERO LANES
+# ---------------------------------------------------------------------
+# R0-A ONE-DIFF PROOF. Parse both YAMLs, drop comments, diff the dicts:
+#   must differ in EXACTLY {seed, run_name, agent.lr_anneal_steps} with
+#   Q2's values and NOTHING else — added, removed and changed nested
+#   keys all fail. Transcript + both shas to the log.
+# R0-B **THE ANNEAL x AUX-HEAD PATH — THIS ARM'S MOST IMPORTANT GATE
+#   (Q3d).** A NEW unit test building a PPOAgent with an aux head AND
+#   lr_anneal_steps: 12_000_000, asserting: (a) len(param_groups) == 3
+#   and group 2's params are exactly aux_head.parameters() BY ID;
+#   (b) after an update at counter u, ALL THREE groups' lr equal
+#   2.5e-4 * max(0, 1 - u*1024/12e6) at u in {0, 1, 1000, 5859, 11717,
+#   11718, 20000} — including the clamped-to-zero case and the
+#   strictly-positive u=11717; (c) at actor_lr_scale 1.0 all three are
+#   EQUAL at every u (Q3c's ratio claim); (d) with lr_anneal_steps: 0,
+#   no group's lr is ever written (exact no-op, group 2 included).
+#   ON FAIL: the arm does not launch, and it is a CODE BUG report, not
+#   a config change.
+# R0-C **READ THE lr OUT OF THE OPTIMIZER, NOT THE CONFIG.**
+#   save_checkpoint stores optimizer param_groups; a gate script loads
+#   the checkpoint and asserts, for all three groups, lr == 2.5e-4 *
+#   max(0, 1 - (updates-1)*1024/12e6) to 1e-12 relative, using THAT
+#   checkpoint's own counter. The off-by-one is real and is asserted,
+#   not tolerated. **This is the gate that proves the anneal ANNEALED
+#   rather than that the YAML said so.**
+# R0-E SMOKE: 100k, seed 99, **ALONE** (username collision), ~4 min,
+#   PLUS a matched D25 100k re-run at the current sha, also seed 99,
+#   also alone. ACCEPTANCE: R0-C passes on the 100k checkpoint (all
+#   three groups at 2.4586e-04); aux/illegal_label_frac == 0;
+#   aux/frame_collision_frac == 0; aux/labelled_frac lane mean in
+#   [0.84, 0.88] (SMOKE-ERA band; D25's first-100k means were
+#   0.8539-0.8668); all losses finite; wall within +-5% of the matched
+#   D25 smoke. **HONESTY: at 100k frac = 0.9917. A 100k smoke says
+#   NOTHING about the anneal's EFFECT — it proves plumbing. The effect
+#   lives in the 12M lanes and nowhere else.** Any failure -> no launch.
+# R0-F FINGERPRINT: every lane's meta.yaml stamps encoder v2,
+#   recharge_fix, ids, obs_dim 828; the written config.yaml carries
+#   aux_oppact_coef > 0, aux_label_space l6, privileged_dim ABSENT,
+#   AND **lr_anneal_steps == 12000000**, asserted at launch.
+# R0-G CARRIED FROM D25, RE-RUN: R0-1b (PURITY SEAM —
+#   aux_oppact_coef > 0 REQUIRES selfplay.opponent == self with
+#   fixed_mix/pfsp_power at zero; this is the novelty claim's seam and
+#   it is re-run every arm), R0-2/2b (param counts actor 626,059 /
+#   actor+aux 675,538 / critic 494,849), **R0-2c THIRD-GROUP ORDERING
+#   — more load-bearing here than in D25, because this arm is the first
+#   to WRITE group 2's lr**, R0-4 (eval/win_rate == wins_from_returns
+#   on every eval JSON, HARD), R0-7 (masking untouched; aux forward-
+#   hook count 0 over a full eval pass), R0-9 (decoupled aux clip).
+#   NOT RE-RUN, with reasons: R0-10/10b (aux coefficient FROZEN at 0.1
+#   — no free number, no re-tune); R0-L (label space settled);
+#   R0-12/13 (they serve MECHANISM reads this arm does not claim);
+#   R0-5 (the aux path is byte-identical and R0-A proves it).
+# R0-H ATTESTATION, RUNS FIRST, before any D26 number loads: re-read
+#   results/d25/final_s{52..56}.json from disk, verify the five values
+#   and pooled 0.61847 / sd 0.02358, verify R0-4 on each, HARD-STOP on
+#   drift. **ERA ATTESTATION: same eval_checkpoint.py + grader at a
+#   RECORDED git sha, both encoder env vars, same server version; any
+#   eval-path change between D25's pass (2026-08-14) and D26's VOIDS
+#   the primary.** Full-run replay is impossible (live server); the
+#   protection is R0-B/C's unit-level determinism. Said plainly.
+# R0-I GRADER COMMITTED: one script implementing Q6 and Q10, reusing
+#   d25_grade.py::se_terms and ::exact_perm_p unchanged
+#   (PERM_LEVELS[4] already exists), printing the operative bar, the
+#   governing se term BY NAME, every branch cut in win-rate units, and
+#   the branch it lands in — with synthetic known-p tests per cell.
+# R0-J BACKUP + CLEAN TREE: verify results/d25/ and results/d25p/ are
+#   intact and backed up (they are the ONLY copies; losing them voids
+#   the comparator). Commit code and docs; launch from a CLEAN TREE.
+# ---------------------------------------------------------------------
+# Q9. DURING-RUN GATES AND LANE FAILURE
+# ---------------------------------------------------------------------
+# D-A **LR TRACE, HARD.** R0-C re-run at the 2M, 6M and 12M checkpoints
+#   of EVERY lane (conjunctive), record-only at every other 200k. A
+#   lane whose realised lr deviates from Q3's table is STOPPED and the
+#   deviation is a code bug report. **This is the only gate that
+#   distinguishes "the anneal ran" from "the YAML said 12000000".**
+# D-C REGIME (D25 R0-6): after 3M, ties <= 4.2%, mean
+#   rollout/episode_length <= 40 (D25 measured 30-32 in every window).
+# D-D LANE LIVENESS, RE-DERIVED FOR 4-WIDE (D25's 255/210 were
+#   calibrated at 5-wide; carrying them unchanged would make them
+#   inert). Metric: **WALL-CLOCK EFFECTIVE steps/s** (Δsteps/Δwall),
+#   WARM, over a sustained >= 30-min window after the first 1M.
+#   **NEVER time/steps_per_sec** (D25 logged 370-400 against a 5-wide
+#   wall band of 308.9-312.0). Battle PROGRESS within 15 min, never
+#   "run dir exists"; verify every lane individually (a lane can die
+#   with SIGSEGV in torch lazy static init before any log line).
+#   THRESHOLDS from a 4-wide expectation of ~330-340: **record below
+#   275, STOP below 230.** **PRE-STATED RE-DERIVATION CLAUSE so it is
+#   not a bend later: if the observed 4-wide fleet MEDIAN in that first
+#   warm window falls outside 320-350, both thresholds are recomputed
+#   from the observed median by the SAME two ratios (0.871 x 0.97, and
+#   0.70) BEFORE any lane is judged, and the recomputation is logged.**
+#   The RULE is fixed; only its reference is measured.
+# D-E R1 LEARNING GATE: selfplay/winrate_anchor >= 0.75 by 4M (D25 ran
+#   0.961-0.983, large headroom). Lane below -> STOPPED. **Fewer than 3
+#   of 4 lanes clearing -> ARM STOPPED, branch B6, recorded as a
+#   LEARNING FAILURE with the value named. NO re-tune, NO relaunch.**
+# D-F K6 ENTROPY, AND **EXPLICITLY DISARMED LATE**: 4-lane MEDIAN
+#   loss/entropy < 0.15 for 5 consecutive readings **before 6M** ->
+#   stop that lane. Before 6M the lr is still >= 1.25e-4 so the gate
+#   reads a moving policy. **AFTER 6M IT IS DISARMED BY CONSTRUCTION:
+#   the anneal freezes the policy, so a frozen late entropy is the
+#   EXPECTED signature, not a red flag.** D25 measured 0.59-0.65 (0-1M)
+#   -> 0.27-0.36 (11-12M). **DO NOT BUILD A GATE ON ENTROPY
+#   SEPARATION**: under an anneal P6 measured a clean 3-vs-3 rank split
+#   but only ~6.5%, and the pre-registered tell (entropy COLLAPSE) did
+#   not occur — 6.5% is inside D25's own 4-lane spread.
+# D-G RECORDED SIGNATURES, NOT GATES: P6's corrected anneal signature
+#   is second-half loss/approx_kl 0.00167 annealed vs 0.00554 flat
+#   (3.3x), decaying MONOTONICALLY by quarter (0.00468/0.00367/0.00233/
+#   0.00101) against a trendless flat arm; loss/clip_frac 0.0206 vs
+#   0.0569 (2.8x). D25's measured approx_kl per-lane medians:
+#   0.0059-0.0067 (0-1M) -> 0.0107-0.0124 (11-12M). PREDICTION,
+#   DIRECTIONAL: this arm's per-quarter medians decay monotonically and
+#   its 11-12M median falls BELOW [0.0107, 0.0124]. Recorded, not
+#   gated — D-A is the unconfounded version of this read.
+# D-H DROPPED, SAID EXPLICITLY: D25's mechanism VOID clause (grad_norm
+#   within 10% of control, grad_clip_frac within 0.05 of 0.90) is NOT
+#   carried. It gated MECHANISM ATTRIBUTION, which this arm does not
+#   claim, and both quantities move under the lever by design.
+#   Carrying a gate whose read does not exist is how silent gaps happen.
+# LANE FAILURE RULE: a lane lost or stopped AFTER R1 is reported as-is;
+#   NO replacement lane; pooled n shrinks and BOTH se terms recompute
+#   at the surviving count; the permutation level drops to 2/56 (min p
+#   1/56 = 0.0179) at n=3. **FEWER THAN 3 SURVIVING LANES VOIDS THE
+#   PRIMARY AND RULE H1** — the headline stays D25's and the lane-days
+#   are recorded as spent. Seeds 66/67 cover a loss BEFORE R1 only.
+# ---------------------------------------------------------------------
+# Q10. FALSIFIERS AND BRANCHES — PARTITION-COMPLETE
+# ---------------------------------------------------------------------
+# PRECEDENCE: F-gates first (B6, B7), then B1-B5 off the single real
+# line of pooled delta. B6 and B7 can co-occur.
+# F1 **THE ANNEAL DID NOT ANNEAL** — R0-B, R0-C or D-A fails at any
+#    lane. VOID; nothing adjudicated; lane-days recorded as spent; the
+#    failure is filed as a CODE BUG in ppo.py's three-group path, which
+#    is the most valuable thing this arm could find.
+# F2 **ERA BREAK** (R0-H): the primary VOIDs; the raw pooled number is
+#    still recorded with the break named; Rule H1 does NOT fire.
+# BRANCHES over delta = pooled_D26 - 0.61847, hi = max(0.025,
+# 2*se_gov) computed at read time. **THE FIVE CELLS ARE MUTUALLY
+# EXCLUSIVE AND COVER THE REAL LINE.**
+# B1 **delta >= hi — CREDIT** (upper side). Rule H1 fires; README
+#    headline and STATUS results row change. Licensed: "pure
+#    from-scratch self-play reaches X vs SH under a standard PPO recipe
+#    with linear LR annealing to zero; that is +delta over the same
+#    agent at constant LR (0.6185, 5 seeds), crediting at an operative
+#    bar of <bar>." Rule H4's SH-exploitation falsifier fires. D25's
+#    licensed sentence is reprinted unchanged in the same paragraph so
+#    nothing reads as a retraction.
+# B2 **+0.025 <= delta < hi — LETTER-MET, SEED-FRAGILE, NOT CREDITED**
+#    (upper side; non-empty whenever s_T > ~0.0134, which every arm
+#    ever measured here exceeds). Rule H1 still fires **with the phrase
+#    attached verbatim**, full per-seed detail in the log, no narrative
+#    use without the weakness named. The chapter's fourth visit to this
+#    band; the repetition is itself worth recording.
+# B3 **|delta| < 0.025 — FLAT. THE ONLY TWO-SIDED CELL.** Rule H1 fires
+#    on the point estimate but the sentence is "linear LR annealing did
+#    not move the number", with BOTH point estimates and CIs and
+#    **Q6's "excludes nothing" clause verbatim, including that the CI
+#    does not exclude the anneal's own +0.0277.** No further lanes.
+# B4 **-hi < delta <= -0.025 — LETTER-MET NEGATIVE, SEED-FRAGILE**
+#    (lower side; the cell D25's own header left UNNAMED). Rule H2;
+#    D25 stays the headline; direction = -1 permutation reported as its
+#    own one-sided test.
+# B5 **delta <= -hi — NEGATIVE.** Rule H2; D25 stays the headline,
+#    unchanged and unqualified. Recorded as a measured negative for the
+#    anneal IN SELF-PLAY, with the MinAtar precedent (-34.6% at equal
+#    base lr) cited as the named prior and C2/C5/C6 attached: it
+#    licenses "annealing to zero hurt in THIS regime", never "annealing
+#    hurts", because step mass is not matched (C2) and four transfers
+#    are in play (C6).
+# B6 **ARM STOPPED at R1** (fewer than 3 of 4 clear 0.75 by 4M):
+#    LEARNING FAILURE, primary VOID, H1 does not fire, D25 stays the
+#    headline. NO re-tune.
+# B7 **FEWER THAN 3 LANES SURVIVE**: primary VOID; surviving finals are
+#    recorded individually and NEVER pooled into a headline.
+# CROSS-CUTTING: if D26 pools >= 0.558 it clears M4's number — already
+# CLAIMED at D25 — so it is a corroboration, not a new claim, and is
+# written that way.
+# ---------------------------------------------------------------------
+# Q11. CONFOUNDS, DISCLOSED
+# ---------------------------------------------------------------------
+# C2 **STEP MASS IS NOT MATCHED — DECIDED UP FRONT, AND HERE IS HOW WE
+#    WOULD KNOW.** The anneal at fixed base lr halves the integral of
+#    lr: mean lr = 0.500 x base. A positive result is consistent with
+#    "the schedule helps" AND "less total step mass helps" AND "a
+#    smaller average lr helps". The dose-matched control (flat lr at
+#    1.25e-4) is a SECOND ARM and is NOT run — no budget. **WHAT IS
+#    MATCHED: the aux:policy gradient RATIO, exactly (Q3c).** HOW WE
+#    KNOW: D-A reads the realised lr of all three groups off the
+#    checkpoints and the integral is recomputed from it, so the
+#    unmatched quantity is MEASURED and reported, not assumed.
+# C4 **THE MECHANISM DOES NOT CARRY OVER.** The aux head is on, but it
+#    now trains under a decaying lr at half the average step size. This
+#    arm's checkpoints are a DIFFERENT TRAINING, so D25's banked §5
+#    atoms, §6 g and S1 dormancy numbers do NOT describe them. This arm
+#    re-measures none and claims none.
+# C5 **SELF-PLAY x A FREEZING LEARNER.** push_every_updates and
+#    latest_prob are unchanged so the pool refresh CADENCE is matched —
+#    but late in the run the pushed policies are near-copies of a
+#    frozen learner, so the opponent DISTRIBUTION's late diversity is
+#    not. **Both anneal credits are against a STATIONARY scripted
+#    opponent, where freezing is pure convergence; in self-play it
+#    freezes the whole system. Unmeasured, disclosed, and it is the
+#    mechanism by which a self-play anneal could underperform its
+#    vs-SH credit.**
+# C6 **FOUR SIMULTANEOUS TRANSFERS**: vs-SH -> self-play, MLP ->
+#    entity_deepsets, rollout 512 -> 128, no-aux -> aux.
+# C7 UNEQUAL GROUP SIZES (4 vs 5) — handled by se_terms and
+#    PERM_LEVELS[4]; Welch anti-conservatism larger than D25-P's.
+# C8 ERA / GIT SHA — R0-H; unit-level protection only.
+# C9 CADENCE — clean against D25, and against nothing else.
+# ---------------------------------------------------------------------
+# Q12. OPS
+# ---------------------------------------------------------------------
+# Maintainer's terminal (agent-launched training measured ~10x slower);
+# caffeinate -is; **COMMIT CODE AND DOCS BEFORE LAUNCHING, LAUNCH FROM
+# A CLEAN TREE**; server on :8000 with simulator: 4 in the gitignored
+# showdown/config/config.js. **BOTH ENCODER ENV VARS EVERYWHERE,
+# INCLUDING EVERY EVAL.** **DISTINCT --seed PER CONCURRENT LANE, ACROSS
+# ARMS TOO.** **STAGGER LANE STARTS** and **VERIFY EVERY LANE BY BATTLE
+# PROGRESS**, never by "run dir exists". If a lane dies to an eval
+# auto-tie crash, relaunch on a FRESH seed (s49 -> s51). The R0-E smoke
+# runs ALONE on seed 99. Launch per lane, N in 62..65, AFTER
+# ratification and R0-A..J, one lane per block, staggered:
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_recipe12m.yaml \
+#     --seed N --run-name showdown_sp_recipe12m_sN
+# ---------------------------------------------------------------------
+# Q13. OPEN MAINTAINER PRE-COMMITMENTS — DECIDE BEFORE LAUNCH
+# ---------------------------------------------------------------------
+# (1) **RUN AT ALL?** Required delta +0.032 to +0.053 against a lever
+#     whose own best-measured 12M effect is +0.028. P(CREDIT)
+#     0.23-0.44; modal outcome FLAT at 0.40-0.43. The honest case for
+#     running is that **these lane-days have no alternative use** — the
+#     chapter ends either way, the writeup is banked, so a FLAT costs
+#     only wall-clock. The honest case against is that a FLAT licenses
+#     nothing and B5 would end the chapter on a sour note.
+# (2) **BUNDLE OR NOT (Q1).** This file defaults to ANNEAL-ONLY, which
+#     both designers recommend and which complies with DESIGN.md:786.
+#     Adding gae_lambda: 1.0 requires an explicit written override.
+# (3) **SCHEDULE (Q3).** lr_anneal_steps: 12000000 (anneal-to-zero, the
+#     credited-and-published schedule) is the recommendation and the
+#     default. Named alternative: 15000000 (a 0.20x floor).
+# (4) **NO THIRD ARM.** This header pre-commits to **"4 and no more —
+#     B2/B3 ENDS THE CHAPTER"**, and the honest reason is BUDGET, not
+#     method: n=6 would move the resolvable delta only ~0.032 -> ~0.030
+#     at s_T = 0.024, and the +0.025 floor is the asymptote.
+# =====================================================================
+env_id: Showdown-v0
+seed: 62
+total_steps: 12000000
+eval_every: 100000          # struct12m cadence VERBATIM, as D25
+eval_episodes: 100          # carried it (C9)
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_recipe12m_s62
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true         # unchanged from D25 (R0-A)
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1     # IDENTICAL to D25 — frozen, no re-tune
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 12000000  # THE ONE LEVER (Q3). D25 has 0 here, and
+                             # so does every self-play arm ever run.
+  gamma: 1.0
+  gae_lambda: 0.95           # UNCHANGED. The bundle variant sets 1.0
+                             # and needs the DESIGN.md:786 override (Q1)
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
