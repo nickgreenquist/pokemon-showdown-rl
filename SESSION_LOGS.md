@@ -4008,3 +4008,62 @@ entry by offset — never a broad keyword grep.
   (`test_full_episode_contract_against_live_server`, which fails when the whole suite
   runs with a server up) did NOT fire this time despite five lanes and the server being
   live; recorded as a data point on that flake, not as a fix.
+- 2026-08-16 (morning, **D25-P FINISHED CLEAN — ALL 12M, EVERY DURING-GATE PASSES, AND
+  THE PRE-STATED P3 DOSE READ FIRES: DOSE-CAVEATED ON 12/12 BINS**). Recorded BEFORE any
+  placebo win rate was computed or looked at — the ordering is checkable in git history,
+  and it matters, because a dose caveat discovered after seeing the outcome would be
+  worth much less. **All five lanes reached exactly 12,000,000 steps and exited
+  normally** (screens gone, `ckpt_012000000.pt` + final `checkpoint.pt` on every lane,
+  mtimes 06:15-06:21 EDT, wall 10.34-10.44 h — slightly faster than the 10.8-11.3 h
+  projection). No lane was lost; seeds 62/63 were never needed.
+  **DURING-GATES, all five lanes, whole run.** HARD: `aux/shuffle_illegal_frac` == 0 on
+  **all 11,718 updates x 5 lanes, zero exceptions** — the post-shuffle legality gate
+  never fired once. `aux/shuffle_match_frac` lane means 0.2566/0.2819/0.2900/0.2722/
+  0.2860, every one inside the [0.193, 0.380] gate, max single-update 0.4127 and never
+  near 1.0 (identity permutation excluded). R1: `winrate_anchor` at 4M
+  0.972-0.978 on all five, final 0.978-0.983 — **B6 does NOT fire**. K6: minimum 5-lane
+  median entropy over the 5,859 pre-6M readings is 0.2460, never once below 0.15 — not
+  triggered (per-lane final 0.203-0.284, per-lane min 0.093-0.172). R0-6: mean episode
+  length after 3M 29.94-32.53 (<= 40) and ties 0.15-0.22% (<= 4.2%). RECORD-AND-CONTINUE:
+  `aux/labelled_frac` whole-run means 0.8009-0.8110, inside [0.78, 0.88];
+  `aux/shuffle_identity_frac` means 0.000500-0.000620, 16-20x under the 0.01 line.
+  **P-SHUF: CLEAR on every lane and it is not close** — the per-1M-bin medians of
+  (`aux/loss_mb0` - `aux/marginal_nll`) span **+0.0058 to +0.0187 across all 60
+  lane-bins, always POSITIVE**, versus a trigger of < -0.03 for 3 consecutive bins;
+  longest run below -0.03 is 0 on all five. The memorisation-free tracker never once
+  dipped under the batch marginal in 12M steps, which is the strongest during-run
+  evidence available that the shuffle held.
+  **VOID clause: does not fire, and reading it naively would have voided the CREDITED
+  arm.** Placebo `loss/grad_clip_frac` whole-run means 0.8812-0.9705; the treatment lanes
+  s52-56 run 0.9729-0.9929. Four of five placebo lanes sit above the 0.90 figure — but so
+  do ALL FIVE treatment lanes, by more. The placebo is if anything LESS clipped than the
+  arm it controls, so at matched steps there is nothing to void. `aux/grad_clip_frac` is
+  exactly 0.000000 on every placebo bin (the treatment's frozen table has small nonzeros
+  from bin 4 on, max 0.001793) — the aux clip never binds, so P3's "the declared
+  coefficient stops being the effective one" branch is clean.
+  **THE HEADLINE: THE PRE-STATED DOSE READ (P3, per-1M bin, matched steps) RESOLVES TO
+  DOSE-CAVEATED ON ALL TWELVE BINS.** The rule: placebo `aux/trunk_norm` >= the frozen
+  bin band -> generic-aux refuted A FORTIORI; < 0.7x the band's low edge -> the null is
+  DOSE-CAVEATED. Measured against `results/d25/dose_bins.json`, the placebo's bin medians
+  are **0.0137-0.0173 in bin 0 falling to 0.0011-0.0022 in bin 11**, against a band that
+  holds steady at 0.079-0.098 (low edge) all run. As a fraction of the 0.7x threshold
+  the worst-lane value is **0.313 in bin 0 and 0.033-0.056 from bin 4 on** — one to two
+  orders of magnitude short, in every bin, with no bin ambiguous and the a-fortiori
+  branch unreachable even at bin 0. The trunk RATIO tells the same story from the other
+  side: treatment holds 0.094-0.108 whole-run and 0.095-0.134 per bin across all 12
+  bins, while the placebo starts at 0.025-0.029 in bin 0 and decays to 0.0000-0.0031 by
+  bin 11 (whole-run 0.0002-0.0070; s58 is effectively zero). `aux/grad_norm` shows it at
+  the head too: placebo 0.022-0.034 against a band of 0.098-0.164.
+  **What this does and does not mean.** It is NOT a fault, NOT a void, and NOT a
+  surprise in DIRECTION — P1's zero-mean caveat and the header's named §12 deviation
+  both predicted that no zero-information placebo can match gradient magnitude
+  ("magnitude is MEASURED (P3), not matched"). What is new is the MAGNITUDE: the
+  shuffled-label head converges to the marginal within roughly the first 1M steps and
+  thereafter injects almost nothing into the trunk. So the header's TRAINED-TO-FLOOR
+  wording — "a real aux gradient was injected for 12M steps" — is only fair for the
+  first bin or so; from bin 4 on the injected trunk gradient is ~3-5% of the treatment's.
+  CONSEQUENCE FOR THE READOUT, binding because it is pre-stated: the a-fortiori
+  refutation of "a generic aux gradient is what helps" is NOT available on this arm, and
+  the dose caveat must be written into whichever branch fires. NO re-tune and NO relaunch
+  (one-lever, D17); the caveat is the action. R-4 will read the same fact from the
+  NLL_head side once the placebo tapes exist.
