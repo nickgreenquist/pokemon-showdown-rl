@@ -274,12 +274,21 @@
 # ---------------------------------------------------------------------
 # Q7. THE HEADLINE RULE — DECIDED BEFORE ANY NUMBER EXISTS
 # ---------------------------------------------------------------------
-# H1. The chapter's headline pure-self-play number is the HIGHER pooled
-#     final of {D25 0.61847 (n=5), D26 (n=4)}, reported with BOTH arms'
-#     per-seed values, the delta, its se under the larger-of rule, and
-#     — whenever the delta does not clear the credit line — the phrase
-#     **"not distinguishable from D25 at the credit line"** in the same
-#     sentence. No exceptions, no branch.
+# H1. **THE HEADLINE MOVES TO D26 ONLY ON B1 (CREDIT). ON B2/B3/B4/B5
+#     D25 STAYS THE HEADLINE, UNCHANGED**, and D26 is reported beside
+#     it as a replication at a different LR schedule, with both arms'
+#     per-seed values, the delta and its se under the larger-of rule.
+#     **CORRECTED 2026-08-16 AFTER REVIEW. The draft rule was "the
+#     headline is the HIGHER of the two, with a caveat phrase attached"
+#     — a ONE-WAY RATCHET that banks an unearned number.** Under a true
+#     null P(headline rises) ~ 0.5 while P(the rise is EARNED) is
+#     0.23-0.44 by Q6's own table, and E[max of two arms] exceeds the
+#     truth by s_d/sqrt(2*pi) = +0.0064. It also silently overturned a
+#     DECIDED CASE: **D23 pooled 0.5897 — at the time the highest
+#     number in the repo, above Rung 3's 50M 0.5802 — and was recorded
+#     as a non-credit rather than promoted.** The caveat phrase travels
+#     one hop; the number travels forever. D25 is also the better
+#     estimator here: n=5 against D26's n=4.
 # H2. NON-INFERIORITY GUARD: if D26 pools BELOW D25, D25 stays the
 #     headline unchanged and D26 is a measured negative. D25's finals
 #     are never re-scored, re-pooled, or averaged with D26's.
@@ -447,13 +456,14 @@
 #    nothing reads as a retraction.
 # B2 **+0.025 <= delta < hi — LETTER-MET, SEED-FRAGILE, NOT CREDITED**
 #    (upper side; non-empty whenever s_T > ~0.0134, which every arm
-#    ever measured here exceeds). Rule H1 still fires **with the phrase
-#    attached verbatim**, full per-seed detail in the log, no narrative
-#    use without the weakness named. The chapter's fourth visit to this
+#    ever measured here exceeds). **D25 stays the headline (H1, and the
+#    D23 precedent is exactly this cell).** The phrase is attached
+#    verbatim, full per-seed detail in the log, no narrative use
+#    without the weakness named. The chapter's fourth visit to this
 #    band; the repetition is itself worth recording.
-# B3 **|delta| < 0.025 — FLAT. THE ONLY TWO-SIDED CELL.** Rule H1 fires
-#    on the point estimate but the sentence is "linear LR annealing did
-#    not move the number", with BOTH point estimates and CIs and
+# B3 **|delta| < 0.025 — FLAT. THE ONLY TWO-SIDED CELL.** D25 stays the
+#    headline (H1). The sentence is "linear LR annealing did not move
+#    the number", with BOTH point estimates and CIs and
 #    **Q6's "excludes nothing" clause verbatim, including that the CI
 #    does not exclude the anneal's own +0.0277.** No further lanes.
 # B4 **-hi < delta <= -0.025 — LETTER-MET NEGATIVE, SEED-FRAGILE**
@@ -472,9 +482,28 @@
 #    headline. NO re-tune.
 # B7 **FEWER THAN 3 LANES SURVIVE**: primary VOID; surviving finals are
 #    recorded individually and NEVER pooled into a headline.
+# **README/STATUS OBLIGATION, NAMED ON EVERY BRANCH (the placebo header
+# required this and the draft named it only on B1):** on B1 the README
+# headline row and STATUS results row change to D26's pooled. **On
+# B2/B3/B4/B5 the README headline row does NOT change**; D26 is added
+# as its own row carrying its verdict phrase verbatim, and STATUS gains
+# the same line. On B6/B7 only STATUS records the void. No branch
+# leaves README untouched, and no branch silently rewrites it.
 # CROSS-CUTTING: if D26 pools >= 0.558 it clears M4's number — already
 # CLAIMED at D25 — so it is a corroboration, not a new claim, and is
 # written that way.
+# **NO INTERIM LOOKS (pre-registered):** every surviving lane runs to
+# 12M regardless of in-loop `eval/win_rate`, which STATUS records does
+# NOT preview the locked number (0.576 vs a locked 0.5415). In-loop
+# evals may not be used to stop, extend or reallocate lanes. Only the
+# D-A/D-C/D-E/D-F health gates may stop a lane.
+# **BUDGET-BREACH RULE (pre-registered, hung off D-D's warm median):**
+# D-D's tolerated band reaches down to 230 steps/s, at which 4 lanes
+# cost ~2.42 lane-days and the ledger lands at ~20.33 — past D17's 20,
+# which Q5 used to reject 5 lanes. So: **at the first warm fleet-median
+# reading (~1M), project 4-lane cost; if it implies a total above 19.9,
+# DROP TO 3 LANES before 2M and record the drop.** The n=3 rung is
+# already registered (bar 0.6497-0.6789, permutation 2/56).
 # ---------------------------------------------------------------------
 # Q11. CONFOUNDS, DISCLOSED
 # ---------------------------------------------------------------------
