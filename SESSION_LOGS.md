@@ -4296,3 +4296,69 @@ entry by offset — never a broad keyword grep.
   **NO LANES SPENT; ledger unchanged at 17.91/20. Suite 370 green, tree clean.** The
   handoff stub is restored and its durable content folded: the five D25/D25-P
   pre-registration lessons are now CLAUDE.md conventions.
+- 2026-08-16 (evening, **ADVERSARIAL REVIEW LANDED: KILL NOT REFUTED, BUT MY OWN WRITE-UP
+  HAD RESTORED A RETRACTED PREMISE — CORRECTED**). Reviewer 1 (Opus, tasked to refute the
+  D19 kill on five axes) returned **NOT REFUTED**, and confirmed the chronology to the
+  minute: DESIGN.md's "still queued, UNREAD" line was added by `ba4356d` at **07:29:23**
+  and the kill landed in `6711205` at **11:41:23** — 4h12m later, after which DESIGN.md
+  was untouched until today. It also closed the axis I expected to be the real risk:
+  **both killed D19 designs were ALREADY set-valued and Designer A's head was ALREADY
+  pointer/scorer-shaped** (`results/d24_design/d19_design_A.md:107-110`, `:130-137`), and
+  the `Linear(ctx->K)` ill-posedness finding hit D19's mechanism PROBE, not its head or
+  its premise — the premise was measured entirely outside the network, on generator and
+  tape teams. So there is no re-shaped D19 that clears a gate the killed one failed.
+  Ratification of §12 is an authorization to spend, not an obligation: the same maintainer
+  who authorized D19 redirected it two days later (`:3098-3110`).
+  **THREE CORRECTIONS TO MY OWN ENTRY ABOVE, ALL FOLDED IN.** (1) **I restored a sentence
+  this repo formally retracted.** I wrote "teams are near-independent near-uniform draws"
+  into DESIGN.md, STATUS.md and README.md; `SESSION_LOGS.md:3238` (CORRECTION 5, "D19's
+  stated premise is false in three ways, though the KILL STANDS") says outright that gen-1
+  randbats is NOT independent near-uniform draws — the generator is rejection sampling
+  with a species clause, a type cap of 2 and a weakness cap of 2. Reviewer 1 generated
+  **600,000 teams** (fixing a `battleHasDitto` provenance bug in Designer B's original
+  4,000-team sample that suppressed Ditto after its first occurrence) and found **0 of
+  600,000 violate either cap** — the caps bind hard, and the structure is real. **The
+  correct sentence: 88-90% of D19's structure is a deterministic cap MASK, a closed-form
+  function of the revealed set, leaving a genuine belief residual of 0.024-0.034 nats of
+  4.955.** Model-free confirmation at one revealed mon (full 146x146 conditional, 300k
+  fitting teams, held-out on 300k): **0.0341 nats, 0.69% of the loss** — reproducing the
+  red team's 0.035 by an independent method and showing it is a CEILING, not a floor.
+  This was the wrong reason for a right conclusion, i.e. the exact failure mode `:3252`
+  diagnoses. Fixed in all three files, which now quote the retraction rather than repeat
+  the error. (2) **My "+0.0123 nats / ~99.75% constant fit" was a probe-capacity result
+  sold as a property of the world.** The team is constant within a battle, so the
+  effective sample is **2,400 teams, not 52,514 rows** — Designer A hit the same wall at
+  1,800 teams. At 300k fitting teams the generator channel is 0.20-0.33 nats. The kill
+  does NOT rest on my measurement; it rests on the 0.024-0.034 residual, measured at
+  generator scale. What the probe adds is that nothing in the game state rescued the
+  channel at tape scale and that the estimator could find 3.7 nats when there was
+  something to find. Honest constant-fit fraction ~93-95%, and the sharper number is the
+  88-90% mask share. (3) **My D25-P inference was over-read** — "close to a direct
+  empirical measurement of what D19 would have bought" is deleted. D25-P's placebo carried
+  literally zero information; a D19 head would carry 0.20-0.33 nats of real signal. It is
+  suggestive, not a measurement, and the 3-31% dose caveat sits on top.
+  **NEW, AND IT CORRECTS A RATIFIED HEADER: the "~1.6x tape-averaged" multiplier at
+  `:3250` and `configs/showdown_sp_actpred12m.yaml:126-129` is apples-to-oranges IN D19's
+  FAVOUR.** D25's realised 0.544 is measured beyond its MASK-renormalised marginal
+  (`actpred12m.yaml:855`); D19's 0.347 is gross and INCLUDES its cap mask. Matched on both
+  sides it is **0.544 vs 0.024-0.034 = ~16-23x.** The red team corrected r1's inflated
+  "15x" and overshot the other way. Recorded, not silently patched — D25's numbers and
+  verdict are untouched and its premise never rested on the ratio.
+  **RESIDUAL LEVER, AND IT IS NOT A TRAINING RUNG.** The one channel that survives is the
+  cap mask, and it is genuinely not free to the trunk: per-mon type one-hots are in the
+  observation but the opponent team is MAX-POOLED (`rl/networks/entity_deepsets.py:355`),
+  and max-of-one-hots cannot recover type COUNTS. The fix is a summed type/weakness-count
+  feature over the revealed opponent set — **which is already D20's named "summed scalars
+  … matters more under DeepSets max-pool, which cannot reconstruct sums" item, at ZERO
+  lanes instead of 2.17.** It is a mask, so it can never earn the belief-state claim.
+  **STALE POINTERS SWEPT** (reviewer 1's exhaustive list, all fixed): two EXECUTABLE
+  graders that print dead routing on re-run (`scripts/d23_grade.py:161,172-173`,
+  `scripts/d18_grade.py:80-81`); `prior_work/README.md:207-209`, the sentence most likely
+  to re-motivate a revival ("belief-state reconstruction is better posed here"), which
+  also pointed at a `DESIGN.md` §10 that no longer exists; `RESEARCH_BRIEF.md:59-66`
+  (external-facing, listed D19 AND the privileged critic as queued-next, and PFSP whose
+  own D22 trigger never fired); the D23 and D18 config headers, which got ROUTING-ONLY
+  addenda leaving every number and verdict untouched; DESIGN's D21 entry, which gated a
+  live rung on two dead ones; and the two D19 draft pre-registrations in
+  `results/d24_design/`, now stamped SUPERSEDED (they still claim seeds 52-56, spent on
+  D25). Suite 370 green; ledger unchanged at 17.91/20; no lanes spent.

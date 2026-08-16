@@ -18,14 +18,14 @@ representational-only and the P3 dose caveat in the same breath. **NEVER "belief
 | **D25-P placebo — FLAT**, Δ -0.0030; R-1 T-vs-P Δ **+0.0770** CREDITS | **0.5415** |
 
 ## D19 is closed — do not re-queue it (`results/d19_closeout/`, zero lanes)
-Killed 2026-08-13 at zero lanes (teams are near-independent near-uniform draws) and
-**re-targeted into D25**; `showdown_sp_actpred12m.yaml:130` = "The D19 KILL STANDS." The
-one unmeasured channel — whether the opponent's PLAY leaks its team — is now measured
-shut: **+0.0061 nats of a 4.873-nat target; +0.0123 total (0.25%)**, best phase +0.024 vs
-D25's 0.63-0.65 there; controls (planted answer +2.55, leaked team +3.73) make it an
-information verdict, not a wrong-shaped estimator. **A session was sent here on 2026-08-16
-because `DESIGN.md` was 3 days stale and recorded D24/D25 zero times — DESIGN is NOT
-self-updating; check it against SESSION_LOGS.**
+Killed 2026-08-13 and **re-targeted into D25**; `actpred12m.yaml:130` = "The D19 KILL
+STANDS." **State the reason correctly — SESSION_LOGS CORRECTION 5 (`:3238`) retracted
+"independent near-uniform draws" as FALSE** and the generator's type/weakness caps of 2
+bind on 0 of 600,000 sampled teams. The right sentence: **88-90% of D19's structure is a
+deterministic cap MASK; the genuine belief residual is 0.024-0.034 nats of 4.955**, vs
+D25's **0.544 beyond mask+marginal — ~16-23x, NOT the "~1.6x" at `:3250`**, which
+compares D19 gross of its mask against D25 net of its own. **A session was sent here on
+2026-08-16 because `DESIGN.md` was 3 days stale and recorded D24/D25 zero times.**
 
 ## Next actions — **ONE OPEN MAINTAINER CALL; everything else is zero-lane**
 1. **THE CALL: spend the last ~2.09 lane-days, or close the chapter?** Chase is at

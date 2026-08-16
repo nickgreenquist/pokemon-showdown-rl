@@ -58,14 +58,22 @@ steps alone isn't paying under this recipe.
 
 ## What's queued next (all training-side, purity-compatible)
 
-1. **Privileged/asymmetric critic** — critic sees the opponent's true hidden team
-   during self-play training; actor doesn't (AlphaStar precedent; Baisero & Amato,
-   AAMAS 2022, prove the actor-obs ‖ privileged form unbiased for bootstrapping). We
-   believe this is unattempted in Pokémon RL but have NOT verified.
-2. **Auxiliary opponent-team prediction head** (belief-state learning; ground truth is
-   free in self-play).
+**This section is a frozen 2026-08-10 snapshot; all three items have since resolved.**
+
+1. ~~**Privileged/asymmetric critic**~~ — RAN as D18 and **read NULL** 2026-08-12:
+   explained variance rose, win rate did not (0.5364 vs a 0.5445 comparator), and the
+   pre-stated falsifier fired, so the rung was killed rather than tuned around. The CTDE
+   plumbing it built was reused.
+2. ~~**Auxiliary opponent-team prediction head**~~ — **KILLED 2026-08-13 at zero lanes**
+   and re-targeted to opponent ACTION prediction, which ran and CREDITED (+0.074 vs a
+   frozen comparator, with a shuffled-label placebo controlling it). Team composition
+   turned out to be the wrong target: gen-1 randbats hides 5 of 6 mons, but 88-90% of
+   what is inferable about them is a deterministic cap mask rather than a belief, leaving
+   ~0.03 nats of a 4.955-nat target.
 3. Hygiene levers: KL early stopping, entropy-coefficient scheduling, PFSP-style
-   win-rate-prioritized opponent sampling.
+   win-rate-prioritized opponent sampling. **Still unrun — and PFSP's own trigger did
+   NOT fire:** the plateau diagnosis came back representation/critic-bound, not
+   exploitability-bound (best-response probe 0.4765 < 0.55, entropy 0.21-0.32).
 4. Later: richer belief/history observation features (gen1 turn counters,
    revealed-move tracking, last-turn events).
 

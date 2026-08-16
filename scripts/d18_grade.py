@@ -78,7 +78,8 @@ def grade(rates: dict[int, float], n_per_seed: int, label: str) -> None:
     negative = -delta >= LETTER and -delta >= 2 * se_gov
     if credited:
         print("  VERDICT: CREDIT — branch (a). Header next-steps: 50M-scale decision "
-              "+ D19 re-scope (maintainer).")
+              "+ D19 re-scope (maintainer). [Routing stale: D18 read NULL, and "
+              "D19 was later killed and re-targeted into D25. See STATUS.md.]")
         if governs == "seed-clustered" and s_d18 > 0.02:
             print("  NOTE: seed spread is Rung-2-like or worse — if credited on the "
                   "clustered line, name the spread in every narrative use (50M lesson).")

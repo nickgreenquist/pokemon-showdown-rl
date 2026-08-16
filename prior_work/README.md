@@ -204,10 +204,17 @@ lossy by construction and the code has repeatedly contradicted the project's own
   moves and switches **alphabetically** where ours uses poke-env insertion order with 6 switch
   slots — a re-sort plus a hole, where an off-by-one silently mislabels every row. Its Gen-1
   mechanics parsing is still the right thing to fork.
-  **Structural advantage for us:** randbats sets come from a fixed, public, enumerable pool
-  (`showdown/data/random-battles/gen1/teams.ts`, already vendored), so belief-state reconstruction
-  is better posed here than in the OU formats Metamon targets.
-  Full analysis, costs and the open phase-placement question: `DESIGN.md` §10.
+  **Structural advantage for us — NOW MEASURED, AND MUCH SMALLER THAN THIS SENTENCE
+  IMPLIED (2026-08-16).** randbats sets come from a fixed, public, enumerable pool
+  (`showdown/data/random-battles/gen1/teams.ts`, already vendored), which does make
+  belief-state reconstruction better POSED here than in the OU formats Metamon targets.
+  It does not make it worth learning: the pool is ~146 species at 4.955 nats, the
+  generator's type/weakness caps of 2 supply real structure, but **88-90% of it is a
+  deterministic cap MASK and the genuine belief residual is 0.024-0.034 nats** — which is
+  why D19 was killed at zero lanes and re-targeted into D25 (opponent ACTION prediction,
+  which credited). Do not read this paragraph as motivating a team-prediction rung; see
+  `DESIGN.md` §12's D19 block and `results/d19_closeout/`.
+  (`DESIGN.md` §10 no longer exists — r7 retired §10-11.)
 
 ## Sources
 

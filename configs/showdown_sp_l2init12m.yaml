@@ -492,6 +492,23 @@
 #    is probe-era from the vs-SH-trained arm (not transferable
 #    as-is); the 3+2 comparator lanes improve any future D21 read.
 # =====================================================================
+# =====================================================================
+# ADDENDUM — ADDED AFTER RATIFICATION, 2026-08-16. ROUTING ONLY; NO
+# NUMBER, LETTER OR VERDICT ABOVE IS TOUCHED (D23's recorded verdict
+# stands: "letter-met, seed-fragile, NOT credited").
+# THE "D19 NEXT" ROUTING IN THIS HEADER IS DEAD. D19 (auxiliary
+# opponent-TEAM prediction) was KILLED 2026-08-13 at ZERO LANES and
+# re-targeted, with maintainer approval, to opponent-ACTION prediction
+# = D25, which RAN and CREDITED (0.6185 vs 0.54452). Its shuffled-label
+# placebo D25-P then landed dead on the comparator (0.5415), so the
+# information and not the gradient carried the gain.
+# Why D19 died, stated correctly: NOT "the teams are random" — that
+# phrasing is retracted at SESSION_LOGS.md:3238. The generator's type
+# and weakness caps of 2 bind, so there IS structure; but 88-90% of it
+# is a deterministic cap MASK, leaving a genuine belief residual of
+# 0.024-0.034 nats of a 4.955-nat target. See DESIGN §12's D19 block
+# and results/d19_closeout/.
+# =====================================================================
 env_id: Showdown-v0
 seed: 44
 total_steps: 12000000

@@ -124,9 +124,12 @@ documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) r
 shown — it is not a strength record and does not enter the published field. The
 roadmap is `DESIGN.md` (r7 ratified). §12's queue is now spent: the privileged critic
 read NULL, the regenerative-L2 rung was letter-met but not credited, and the auxiliary
-opponent-TEAM head (D19) was **killed at zero lanes** — gen-1 randbats teams are
-near-independent near-uniform draws, so the target is almost empty by construction
-(measurement and controls in `results/d19_closeout/`). It was re-targeted to opponent
+opponent-TEAM head (D19) was **killed at zero lanes**. Not because gen-1 randbats teams
+are random — the generator's type and weakness caps of 2 bind hard, so there is real
+structure — but because of its *shape*: 88–90% of it is a deterministic cap mask, a
+closed-form function of what the opponent has already revealed, leaving a genuine belief
+residual of ~0.03 nats against a 4.955-nat target (measurement and controls in
+`results/d19_closeout/`). It was re-targeted to opponent
 *action* prediction, which became D25 and is the one lever that credited. What remains
 is an open maintainer call on whether to spend the chase's last ~2 lane-days or close
 the chapter here.

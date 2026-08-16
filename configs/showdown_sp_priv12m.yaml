@@ -249,6 +249,13 @@
 #      value LEARNING actively hurt the policy — record with the EV
 #      curve; the known mechanism candidate (advantage scale shift
 #      from a sharper V) goes in the log, not in a rerun.
+# =====================================================================
+# ADDENDUM — ADDED AFTER RATIFICATION, 2026-08-16. ROUTING ONLY.
+# D18 read NULL 2026-08-12 (falsifier fired). The "D19 stays as-queued"
+# routing in this header is DEAD: D19 was KILLED 2026-08-13 at zero
+# lanes and re-targeted into D25 (opponent-ACTION prediction), which
+# CREDITED. See DESIGN §12's D19 block and results/d19_closeout/.
+# =====================================================================
 env_id: Showdown-v0
 seed: 39
 total_steps: 12000000

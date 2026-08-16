@@ -158,7 +158,9 @@ def grade(t_rates: dict, t_n: int, c_rates: dict, c_n: int, label: str,
     elif negative:
         print("  VERDICT: NEGATIVE — branch (c). The penalty costs capability at "
               "the closed-form lambda; record entropy + R1 curves + lambda. NO "
-              "smaller-lambda rerun (D17 + the one-lever rule). D19 next.")
+              "smaller-lambda rerun (D17 + the one-lever rule). [Routing stale: "
+              "D19 was killed 2026-08-13 and re-targeted into D25, which "
+              "credited. See STATUS.md.]")
     elif letter_met:
         print('  VERDICT (pre-stated recording rule): "letter-met, seed-fragile, '
               'NOT credited" — full per-seed detail in the log, no narrative use '
@@ -169,8 +171,10 @@ def grade(t_rates: dict, t_n: int, c_rates: dict, c_n: int, label: str,
               "BOUND + srank fails -> regenerative family CLOSED FOR THIS "
               "CHAPTER AT 12M; BOUND + srank recovers -> representation health "
               "is not the 12M binder, same closure; NOT BOUND (incl. VOID) -> "
-              "the read is VOID on the lever, D19 first and a stronger-lambda "
-              "re-run queued behind it. Queue moves to D19 either way.")
+              "the read is VOID on the lever, with a stronger-lambda re-run "
+              "queued behind it. [Routing stale: the queue moved to D19, which "
+              "was then killed 2026-08-13 and re-targeted into D25, which "
+              "credited. See STATUS.md.]")
     print("  REMINDERS: (1) the FALSIFIER needs the manipulation check "
           "(BOUND/NOT BOUND/VOID/OVERBOUND) and the srank co-primary — this "
           "script cannot fire it; (2) R0-4 was checked on every JSON ingested "

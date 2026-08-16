@@ -687,39 +687,68 @@ kill and was never corrected; on 2026-08-16 a session read it and began writing 
 rung's pre-registration. That is what this block exists to prevent.)
 
 **Why it died (`SESSION_LOGS.md:3067`, 2026-08-13 afternoon).** Two designers working
-independently from different data sources both measured that opponent-team prediction
-is very nearly information-free in gen-1 randbats: **the format makes the target
-almost empty by construction.** Teams are near-independent, near-uniform draws from a
-~146-species pool — marginal entropy 4.91–4.95 nats against a uniform 4.98 — so seeing
-one of the opponent's mons tells you essentially nothing about the rest. The lever had
-been imported from advisories about games where hidden composition IS correlated
-(DouZero+'s hidden hand, agent-modeling aux tasks); gen-1 randbats has no such
-structure to infer. The maintainer approved re-targeting the head from team
+independently both measured that opponent-team prediction has almost nothing to infer
+in gen-1 randbats, against a ~146-species pool whose marginal entropy is 4.955 nats
+against a uniform 4.984. The maintainer approved re-targeting the head from team
 composition to opponent ACTION — in a simultaneous-move game that is the belief that
 actually bears on the decision, ground truth is equally free in self-play, and the
 plumbing is the same. That became D25, which credited. **The kill is restated in the
 ratified D25 header at `configs/showdown_sp_actpred12m.yaml:130`: "The D19 KILL
 STANDS."**
 
-**The one door left open, now closed (2026-08-16, `results/d19_closeout/`).** The
-original cycle measured only the GENERATOR channel — what the revealed mons imply
-about the rest. It never measured the BEHAVIOURAL channel: whether the opponent's
-PLAY leaks its hidden team. That is the channel a "belief state" claim would rest on,
-and it was the only honest route back. Measured on the eight pre-D25 tapes (52,514
-rows, 2,400 battles), masked so exclusion is free to every model and generous to D19
-throughout (full 828-d observation, lambda tuned on held-out): **total decodable
-structure beyond exclusion +0.0123 nats of a 4.873-nat target — 0.25% — of which the
-behavioural channel is +0.0061.** Best phase (one revealed mon) +0.024, against
-D25's 0.63–0.65 at that same phase. Controls rule out the "null by construction"
-estimator artefact this project has been bitten by before: the same probe extracts
-+2.55 nats with the answer planted in the input and +3.73 with the team leaked.
+**STATE THE REASON CORRECTLY — the obvious phrasing is FALSE and the repo has already
+retracted it once.** `SESSION_LOGS.md:3238` (CORRECTION 5, "D19's stated premise is
+false in three ways, though the KILL STANDS") records that gen-1 randbats is **NOT**
+"independent near-uniform draws": `showdown/data/random-battles/gen1/teams.ts:106-217`
+is rejection sampling with a species clause, a **type cap of 2 and a weakness cap of
+2**, and those caps bind — 0 of 600,000 freshly generated teams violate either. There
+IS real structure. **What kills the rung is its SHAPE, not its absence: 88–90% of that
+structure is a deterministic cap MASK — a closed-form function of the revealed set, not
+a belief about which mon — leaving a genuine belief residual of 0.024–0.034 nats of a
+4.955-nat target.** Model-free confirmation at one revealed mon (full 146×146
+conditional, fitted on 300k teams, scored held-out on 300k): **0.0341 nats, 0.69% of
+the loss**, reproducing the red team's 0.035 by an independent method and showing that
+figure is a CEILING. Designer B's "exactly 0.000" was a model-class artefact — at one
+revealed mon no type or weakness can reach count 2, so the cap features are identically
+zero. Writing "the teams are random so there is nothing to learn" is the wrong reason
+for a right conclusion, which is the exact failure mode diagnosed at `:3252`.
 
-**And the counterfactual is no longer hypothetical.** ~99.75% of D19's auxiliary
-cross-entropy would have been a constant fit, and D25-P has since measured what a
-shape-, count-, marginal-, coefficient- and cadence-matched auxiliary gradient
-carrying ~zero information does to win rate: **nothing** (0.5415 vs a 0.54452
-comparator). Dose caveat attached — the placebo ran at 3–31% of the treatment band, so
-it is not a matched-dose control.
+**AND THE HEADLINE COMPARISON IN THE RECORD IS WRONG IN D19's FAVOUR.** `:3250` and
+`configs/showdown_sp_actpred12m.yaml:126-129` quote "~1.6x tape-averaged" (D25's 0.544
+against D19's 0.347). Those are not like quantities: **D25's 0.544 is measured beyond
+its mask-renormalised marginal (`actpred12m.yaml:855`), while D19's 0.347 is gross and
+INCLUDES its cap mask.** Matched — beyond mask+marginal on both sides — it is **0.544
+vs 0.024–0.034, i.e. ~16–23x.** The red team corrected r1's inflated 15x and overshot
+in the other direction.
+
+**The one door left open (2026-08-16, `results/d19_closeout/`).** The original cycle
+measured only the GENERATOR channel. It never measured the BEHAVIOURAL one: whether
+the opponent's PLAY leaks its hidden team. That is the channel a "belief state" claim
+would rest on, and it was the only honest route back. Probed on the eight pre-D25
+tapes, masked so exclusion is free to every model and generous to D19 throughout (full
+828-d observation, lambda tuned on held-out, interior optimum): **total decodable
+structure beyond exclusion +0.0123 nats, of which the behavioural channel is +0.0061.**
+Best phase (one revealed mon) +0.024, against D25's 0.63–0.65 at that same phase.
+Controls rule out the "null by construction" estimator artefact this project has been
+bitten by before: the same probe extracts +2.55 nats with the answer planted in the
+input and +3.73 with the team leaked.
+
+**READ THAT AS A PROBE-CAPACITY RESULT, NOT A PROPERTY OF THE WORLD.** The team is
+constant within a battle, so the effective sample is **2,400 teams, not 52,514 rows** —
+Designer A hit the same wall at 1,800 teams and got 0.035. At 300k fitting teams the
+generator channel is 0.20–0.33 nats, so the tape-scale figure understates it, and the
+behavioural channel is bounded below at ~0.006 rather than shown to be zero. **The kill
+does not rest on this measurement**; it rests on the 0.024–0.034-nat belief residual
+above, which is measured at generator scale. What the probe adds is that nothing in the
+game state rescued the channel at tape scale, and that the estimator was capable of
+finding 3.7 nats when there was something to find.
+
+**A weaker inference, stated as such.** D25-P measured what a shape-, count-, marginal-,
+coefficient- and cadence-matched auxiliary gradient carrying ~zero information does to
+win rate: **nothing** (0.5415 vs a 0.54452 comparator). That is suggestive for D19 and
+NOT a measurement of it — D25-P's placebo carried literally zero information, while a
+D19 head would carry 0.20–0.33 nats of real, state-dependent signal (mostly mask). The
+3–31% dose caveat applies on top.
 
 **D20 — the v3 ENCODER BUNDLE (post-chase; one re-baseline pays for everything, D13
 cost known and paid once already for v1→v2/808).** Contents: Light Screen — a POKE-ENV
@@ -737,7 +766,8 @@ frozen comparators; obs are hand-normalized by design), Wang's PP/HP binning
 (information already present continuously), standalone sleep-counter one-hot (scalar
 present; ruled inert under the Arm-B linearity rule).
 
-**D21 — RECIPE/SELF-PLAY HYGIENE POOL (optional, sequenced after D18/D19; refreshed
+**D21 — RECIPE/SELF-PLAY HYGIENE POOL (optional; its original "sequenced after D18/D19"
+gate is spent — D18 read NULL and D19 was killed, so D21 is unblocked; refreshed
 from the third advisory 2026-08-10, λ note amended same day).** The demoted recipe
 rung's candidate contents, updated: ROLLOUT SIZING restated in the right currency —
 episodes/update (~30 today at 1024 steps; target 100–300; scale via batch-size-
