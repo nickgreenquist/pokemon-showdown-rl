@@ -31,20 +31,20 @@ Killed 2026-08-13, re-targeted into D25. **CORRECTION 5 (`SESSION_LOGS.md:3238`)
    an opponent no lane trained against. De-dormancy confound (r=+0.94, no arm overlap)
    CLEARED by a post-hoc capacity-matched refit at K=131 (+0.0318, p=1/252 x3). C3(b) NOT
    discharged.
-2. **D26 (LR anneal) — 4 lanes, 12M, seeds 62-65, ~1.74 lane-days -> 19.65/20. FITS.**
-   Header ratifiable at `configs/showdown_sp_recipe12m.yaml`; R0-A passes (exactly
-   {seed, run_name, lr_anneal_steps} differ). **Maintainer chose to run it.**
+2. **D26 (LR anneal) — RATIFIED 2026-08-16 BY DELEGATION, GATES PASS, READY TO LAUNCH.**
+   4 lanes, 12M, seeds 62-65, ~1.74 lane-days -> 19.65/20. Q13 calls: RUN; ANNEAL-ONLY
+   (bundle declined, `gae_lambda` stays 0.95); `lr_anneal_steps: 12000000`; 4-and-no-more.
+   **Taken by the assistant under the maintainer's "ratify whatever you think is best" —
+   not by the maintainer.** Launch commands in Q12.
 3. **ALL PRE-LAUNCH GATES PASS.** `scripts/d26_gates.py` (R0-A/C/E/F/H/J) +
    `tests/test_anneal_aux_group.py` (R0-B). R0-B proved the never-executed
    anneal x aux-head path CORRECT on a real `update()`; R0-C read the realised lr off the
    100k smoke checkpoint — **97 updates, all three groups at 2.479520e-04**, the aux group
    annealing with the rest. **D26 is launch-ready pending ratification.**
 4. **s_T DECIDES D26.** Required delta **+0.025 to +0.053**: below the s_T~0.0134 crossover
-   the +0.025 FLOOR governs (bar 0.6435, BELOW the lever's own effect); in the D18/D23/D25
-   range the bar is 0.650-0.672, ABOVE it. The anneal is **+0.0277 at 12M**, not
-   DESIGN.md:101's +0.051 (6M). **P(CREDIT) 0.23-0.39 typical, 0.60-0.75 if s_T low.**
-   ANNEAL-ONLY, not the anneal+lambda bundle (both designers; bundling needs a
-   `DESIGN.md:786` override and doubles P(NEGATIVE)).
+   the +0.025 FLOOR governs (bar 0.6435, BELOW the lever's own +0.0277); in the D18/D23/D25
+   range the bar is 0.650-0.672, ABOVE it. **P(CREDIT) 0.23-0.39 typical, 0.60-0.75 if s_T
+   lands low.** Not DESIGN.md:101's +0.051, which is the 6M number.
 5. **Maintainer:** DESIGN §8 D7(a) defers the ladder eval "until M2/M3" (now satisfied)
    while CLAUDE.md forbids it. Two ratified docs contradict; one must move.
 

@@ -5,8 +5,14 @@
 # Price ~1.74 lane-days + ~0.5 h readout -> ledger 17.91 -> ~19.65/20.
 # PROCESS: 2 Opus designers (A implementation-first, B inference-first)
 # + 2 Opus reviews, per the maintainer's standing process.
-# HEADER STATUS: **PROPOSED — NOT RATIFIED.** Written after r6
-# ratification, so it carries its own status line (CLAUDE.md, Docs).
+# HEADER STATUS: **RATIFIED 2026-08-16 BY DELEGATION.** The maintainer
+# chose "A then B", asked for this arm launch-ready, then delegated the
+# open Q13 calls verbatim: "ratify whatever you think is best". **Those
+# four decisions were taken by the assistant under that delegation, not
+# by the maintainer, and this line exists so the record never implies
+# otherwise.** Written after r6 ratification, so it carries its own
+# status line (CLAUDE.md, Docs). ALL PRE-LAUNCH GATES PASS
+# (scripts/d26_gates.py + tests/test_anneal_aux_group.py, 2026-08-16).
 # ---------------------------------------------------------------------
 # Q0. WHAT THIS ARM ADJUDICATES
 # ---------------------------------------------------------------------
@@ -611,25 +617,46 @@
 #     --config configs/showdown_sp_recipe12m.yaml \
 #     --seed N --run-name showdown_sp_recipe12m_sN
 # ---------------------------------------------------------------------
-# Q13. OPEN MAINTAINER PRE-COMMITMENTS — DECIDE BEFORE LAUNCH
+# Q13. THE FOUR CALLS — RATIFIED BY DELEGATION 2026-08-16
 # ---------------------------------------------------------------------
-# (1) **RUN AT ALL?** Required delta +0.032 to +0.053 against a lever
-#     whose own best-measured 12M effect is +0.028. P(CREDIT)
-#     0.23-0.44; modal outcome FLAT at 0.40-0.43. The honest case for
-#     running is that **these lane-days have no alternative use** — the
-#     chapter ends either way, the writeup is banked, so a FLAT costs
-#     only wall-clock. The honest case against is that a FLAT licenses
-#     nothing and B5 would end the chapter on a sour note.
-# (2) **BUNDLE OR NOT (Q1).** This file defaults to ANNEAL-ONLY, which
-#     both designers recommend and which complies with DESIGN.md:786.
-#     Adding gae_lambda: 1.0 requires an explicit written override.
-# (3) **SCHEDULE (Q3).** lr_anneal_steps: 12000000 (anneal-to-zero, the
-#     credited-and-published schedule) is the recommendation and the
-#     default. Named alternative: 15000000 (a 0.20x floor).
-# (4) **NO THIRD ARM.** This header pre-commits to **"4 and no more —
-#     B2/B3 ENDS THE CHAPTER"**, and the honest reason is BUDGET, not
-#     method: n=6 would move the resolvable delta only ~0.032 -> ~0.030
-#     at s_T = 0.024, and the +0.025 floor is the asymptote.
+# (1) **RUN IT. RATIFIED.** The honest case is NOT that the odds are
+#     good — P(CREDIT) is 0.23-0.39 at typical seed spread and the modal
+#     outcome is FLAT. It is that **these lane-days have no alternative
+#     use.** D27, the only competing arm, was killed at zero lanes; the
+#     chapter's account is already banked in RESULTS.md; so a FLAT costs
+#     wall-clock and nothing else. Against that, Review 1's correction
+#     materially improved the picture: the draft's claim that every 12M
+#     arm sits in s_T 0.0236-0.0491 was FALSE (six sit below it), and
+#     **below the s_T ~ 0.0134 crossover the +0.025 FLOOR governs at a
+#     bar of 0.6435 — BELOW the anneal's own measured +0.0277 — where
+#     P(CREDIT) is 0.60-0.75.** s_T is the biggest determinant and is not
+#     knowable in advance. A 1-in-3-to-2-in-3 shot at the chapter's
+#     headline, for budget that otherwise expires, is worth taking under
+#     a pre-registration that forbids spinning a null.
+# (2) **ANNEAL-ONLY. THE BUNDLE IS DECLINED. RATIFIED.** Both designers
+#     rejected it independently and one by simulation: bundling buys
+#     +0.024 P(CREDIT) under an honest lambda prior and nearly DOUBLES
+#     P(NEGATIVE). It would also require overriding ratified text
+#     (DESIGN.md:785-787), rests on an UNVERIFIED citation with zero hits
+#     in the designated verified index, hands a diagnosed-weak critic a
+#     harder target, and creates an F-gate asymmetry where either lever
+#     failing VOIDs the whole arm. Declining costs ~2 points of P(CREDIT)
+#     and buys full attribution and DESIGN compliance. **gae_lambda
+#     STAYS 0.95.**
+# (3) **lr_anneal_steps: 12000000. RATIFIED.** Anneal-to-zero over
+#     exactly the budget: the schedule that earned BOTH in-repo credits
+#     verbatim, and the published default the "standard recipe" framing
+#     rests on. The 15000000 floor variant is DECLINED ON PROCESS, not
+#     physics — it introduces a FREE NUMBER, and this arm has no budget
+#     for the smoke sweep D25's discipline requires before setting one.
+# (4) **"4 AND NO MORE" — B2/B3 ENDS THE CHAPTER. RATIFIED.** The honest
+#     reason is BUDGET, not method: n=6 moves the resolvable delta only
+#     ~0.032 -> ~0.030 at s_T = 0.024 and the +0.025 floor is the
+#     asymptote, while 4 lanes already put the ledger at ~19.65/20.
+# **NOT RATIFIED, AND NOT THIS ARM'S TO TAKE:** the DESIGN §8 D7(a) vs
+# CLAUDE.md ladder-eval contradiction — D7(a) defers the ladder eval
+# "until M2/M3", now satisfied, while the landmine forbids it. Two
+# ratified documents disagree and one must move. Left for the maintainer.
 # =====================================================================
 env_id: Showdown-v0
 seed: 62

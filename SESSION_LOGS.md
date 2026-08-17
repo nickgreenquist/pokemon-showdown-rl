@@ -4483,3 +4483,43 @@ entry by offset — never a broad keyword grep.
   mirror tapes' 4.0-10.3%.
   Artifacts backed up alongside `results/d25/`. Suite 370 green; ledger unchanged at
   17.91/20. **NEXT: B — D26's blocking gates.**
+- 2026-08-16 (night, **D26 RATIFIED BY DELEGATION; ALL PRE-LAUNCH GATES PASS; ARM READY**).
+  Maintainer: "ratify whatever you think is best." **The four Q13 calls were therefore
+  taken by me, not by the maintainer, and the header's status line says so explicitly so
+  the record never implies otherwise.**
+  **(1) RUN IT.** Not because the odds are good — P(CREDIT) is 0.23-0.39 at typical seed
+  spread and the modal outcome is FLAT — but because **these lane-days have no alternative
+  use**: D27 was killed at zero lanes, the chapter's account is banked in RESULTS.md, so a
+  FLAT costs wall-clock and nothing else. Review 1's correction materially improved the
+  picture: below the s_T ~ 0.0134 crossover the +0.025 FLOOR governs at a bar of 0.6435 —
+  BELOW the anneal's own +0.0277 — where P(CREDIT) is 0.60-0.75, and six 12M arms have
+  landed below that crossover. **(2) ANNEAL-ONLY; the bundle is DECLINED** — it buys +0.024
+  P(CREDIT) under an honest lambda prior, nearly doubles P(NEGATIVE), needs an override of
+  ratified DESIGN.md:785-787, and rests on an UNVERIFIED citation. `gae_lambda` stays 0.95.
+  **(3) `lr_anneal_steps: 12000000`** — the schedule that earned both in-repo credits
+  verbatim; the 15000000 floor declined ON PROCESS (a free number with no budget to
+  calibrate it). **(4) "4 and no more"** — n=6 moves the resolvable delta only
+  ~0.032 -> ~0.030 and the +0.025 floor is the asymptote.
+  **LEFT OPEN AND EXPLICITLY NOT MINE TO TAKE:** DESIGN §8's D7(a) defers the ladder eval
+  "until M2/M3" — now satisfied — while CLAUDE.md's landmine forbids it. Two ratified
+  documents contradict; one must move, and that is a maintainer call.
+  **GATES: ALL PASS** (`scripts/d26_gates.py` for R0-A/C/E/F/H/J, plus
+  `tests/test_anneal_aux_group.py` for R0-B). The decisive one is **R0-C**: read off the
+  100k smoke checkpoint's optimizer state rather than the config — **97 updates, THREE
+  param groups, all at 2.4795200000e-04** against an expected 2.4795200000e-04, i.e. the
+  aux group annealed with the rest and **the code path that had never executed in any run
+  or test is now proven correct on a real run, at the corrected value.** R0-E: illegal and
+  collision fracs 0.0, `aux/labelled_frac` 0.8686 inside the smoke-era band, all losses
+  finite. R0-F reads the WRITTEN config, not the file: anneal and aux stamped, privileged
+  absent, purity seam `opponent: self`, encoder v2/ids/828. R0-H re-read all five D25
+  finals from disk — pooled 0.6184667, sd 0.0235815 exact, `wins_from_returns` ==
+  `eval/win_rate` on every one. R0-A: exactly {seed, run_name, lr_anneal_steps} differ.
+  **R0-B ALSO CAUGHT A LIVE TRAP** that would have rejected a correct anneal: R0-B's `u` is
+  the PRE-increment counter while R0-C and Q3's table use the POST-increment checkpoint
+  counter, so Q3's "200,000 / u=195 / 2.4586e-04" read as pre-increment is 2.45840e-04.
+  Both conventions are now pinned by assertion in both directions. Two of my own drafts of
+  that test failed against a CORRECT anneal because I hand-typed trailing digits the header
+  never claimed; it now asserts at the 5 s.f. Q3 actually prints.
+  Adds `configs/showdown_sp_recipe12m_smoke.yaml` (R0-E needs it — `rl/train.py` exposes no
+  `total_steps` override) and `scripts/d26_gates.py`. Suite 371 passed, 9 skipped. Ledger
+  **17.91/20 unchanged** — the smoke is 100k. **NOTHING LAUNCHED; nothing pushed.**
