@@ -4575,3 +4575,37 @@ entry by offset — never a broad keyword grep.
   opponent-STATE to a separate critic (D18) → nothing; opponent-ACTION into the actor's
   trunk (D25) → +0.074 credited. The injection point, not the information family, was
   the lever. Docs-only session; STATUS.md amended in this commit. Nothing launched.
+- 2026-08-16 (night, **CHAPTER-2 PROPOSAL DRAFTED AND REVIEWED: `DESIGN2.md` r1, PROPOSED —
+  NOT RATIFIED. D26 LAUNCHED BY THE MAINTAINER AND HEALTHY.**). D26 went up at 21:05 (4
+  lanes, s62-65, ~312 steps/s median indicative, ~08:00 finish); this session ran the
+  maintainer-mandated design process for the next chapter alongside it, all zero-lane.
+  **PROCESS (standing, 2026-08-12): 2 independent Opus design agents** (`results/
+  design_ch2/ch2_design_A.md` = information/verdict; `ch2_design_B.md` = build/cost),
+  **synthesis (`DESIGN2.md` r0), then 2 independent Opus reviews** (`ch2_review_1.md` =
+  evidential validity; `ch2_review_2.md` = buildability), **then r1 folding in all 26
+  MUST-FIXes.** `results/` is gitignored — the four process docs are the ONLY copies and
+  are not yet in the backup. Three arms, staged ask (full tranche ≈9.0 ld → ledger ≈28.6
+  vs the standing 20 cap, so the ask IS a new tranche): **D28** zero-info aux control
+  (the D25 dose-caveat closure; task corrected in review to a shared-readout synthetic
+  pointer — the head's shared scorer makes independent per-slot readouts ~75%
+  unrepresentable), **D29** D25@50M (re-opens the CLOSED 50M line; the un-creditable-bar
+  finding was already banked 2026-08-13 at SESSION_LOGS:2916-2940 and Designer A
+  re-derived it independently; descriptive 3v3-permutation primary; anneal-off on every
+  D26 branch, pre-stated), **D30** soft-label aux (premise measured THIN at zero lanes:
+  opponent L6 distribution 0.87-0.90 max-class, H(p) 0.25-0.32 nats; a 0.19-0.20
+  nats/row legality leak makes the naive arm two levers; blocking offline test Z3-3 can
+  kill it free). **Review catches worth their cost:** the r0 anneal-guard form would
+  have rejected D26's own ratified smoke config; the r0 D29 cadence fallback was
+  cadence-dirty against its own comparator in exactly the branch where it mattered; the
+  r0 dose gates merged two incompatible band systems and would have failed D25 itself
+  read per-bin; `d25_grade.py` at 3v3 silently prints NOT GRADED rather than crashing;
+  the trunk-fraction "discrepancy" (0.51-0.62 vs 0.619-0.676) is a bin-11-vs-run-mean
+  window difference, not a contradiction. **All bar arithmetic verified to <0.001 by
+  review** (D29 floor 0.66754; D30 floor 0.64347; D28 boundaries reproduce the ratified
+  placebo header's). Maintainer decision points are DESIGN2 §7; Stage-0 zero-lane work
+  is free and listed in §6; the two small code patches (delivered-dose logging; the
+  train.py interval-form anneal guard) are HELD until the D26 fleet finishes. Earlier
+  same session: the D18 post-hoc audit (separate entry above) — clean, null upheld.
+  STATUS.md rewritten in place (D26 running; DESIGN2 pointer). Nothing launched by the
+  assistant; server untouched; **D26's D-D throughput clause may fire at the compliant
+  1M warm read — thresholds remain 275/230 until then.**
