@@ -9,7 +9,7 @@ bootstrapping is what's excluded. **D25 CREDITED 0.6185; its placebo lands dead 
 comparator (0.5415), so the INFORMATION did the work; M1-M4 all claimed.** Licensed: *an
 explicit opponent-action model helps*, **and it TRANSFERS to an opponent never trained
 against (C4 discharged 2026-08-16)** — C3(b) and the dose caveat remain; **NEVER "belief
-state"**. 50M CLOSED; D18 NULL; D23 not-credited; D19 KILLED. `RESULTS.md` = the account.
+state"**. 50M CLOSED; D18 NULL (audit 08-16: impl clean); D23 not-credited; D19 KILLED.
 
 ## Results (vs SH; ties=loss; locked = final ckpt; 5×3000 from D23 on)
 | result | win rate |
@@ -18,10 +18,9 @@ state"**. 50M CLOSED; D18 NULL; D23 not-credited; D19 KILLED. `RESULTS.md` = the
 | **D25 oppact-aux 12M — CREDIT** (bar 0.58273) · **M1-M4 CLAIMED** | **0.6185** |
 | **D25-P placebo — FLAT** Δ -0.0030; R-1 T-vs-P Δ **+0.0770** CREDITS | **0.5415** |
 
-## D19 is closed (`results/d19_closeout/`; full account in RESULTS.md)
-Killed 2026-08-13, re-targeted into D25. **CORRECTION 5 (`SESSION_LOGS.md:3238`) retracted
-"independent near-uniform draws" as FALSE**: 88-90% is a cap MASK, belief residual
-0.024-0.034 nats of 4.955.
+## D19 is closed (`results/d19_closeout/`; full account in `RESULTS.md` = the account)
+Killed 2026-08-13 → D25. CORRECTION 5 (`SESSION_LOGS.md:3238`): 88-90% is a cap MASK,
+belief residual 0.024-0.034 nats of 4.955.
 
 ## Next actions
 0. **D27 (matched-dose control) IS DEAD** — zero lanes, mechanism in `RESULTS.md` §5. Do

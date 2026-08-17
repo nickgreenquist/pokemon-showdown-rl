@@ -4523,3 +4523,55 @@ entry by offset — never a broad keyword grep.
   Adds `configs/showdown_sp_recipe12m_smoke.yaml` (R0-E needs it — `rl/train.py` exposes no
   `total_steps` override) and `scripts/d26_gates.py`. Suite 371 passed, 9 skipped. Ledger
   **17.91/20 unchanged** — the smoke is 100k. **NOTHING LAUNCHED; nothing pushed.**
+- 2026-08-16 (night, **D18 POST-HOC IMPLEMENTATION AUDIT: CLEAN — THE NULL STANDS ON A
+  CORRECT IMPLEMENTATION, AND ITS EV SECONDARY QUANTIFIES WHY**). The maintainer asked
+  whether D18's null could be an implementation artifact ("perhaps it wasn't done right?").
+  First post-hoc adversarial audit of the D18 code (the 2026-08-11 3-Opus review was
+  pre-launch); independent of it, every path re-read from source. **ZERO DEFECTS FOUND.**
+  Verified: slice arithmetic vs the OBS layout incl. the id-tail sub-slices
+  (`rl/envs/showdown.py:440-448` — `o:o+6` own species, `o+12:o+16` own moves, against
+  `ID_DIM`'s "6 own + 6 opp | 4 own + 4 opp" layout at `:151`); emission after the wait
+  pump at exactly the mask-emitting decision points (`:1046-1053`); collection alignment
+  privs↔obs / next_privs↔next_obs with the done-row reset merge ordered AFTER the carry
+  (`rl/train.py:595-628`); per-row `privs`/`next_privs` so a truncated row bootstraps the
+  true final state's privileged view (`rl/buffers/rollout.py:64-75`); critic input =
+  obs ‖ priv at values, next_values, AND the value loss (`rl/agents/ppo.py:896-919,1026`);
+  the loud both-way env/agent mismatch seam (`:821-827`, tested both directions); actor
+  never widens and `act()` calls only `self.actor` (`:691-714`); priv tokens through the
+  same subnets with extras gated by the is-active bit at mon offset 2 and ids recovered
+  ×256 = write-side `ID_SCALE` (`rl/networks/entity_deepsets.py:259-288`).
+  **READOUT PREMISES RE-DERIVED FROM THE TAPES** (history.csv, not the log): EV last-1M
+  D18 0.5972/0.6150/0.6206/0.5972/0.6040 (s39-43) vs control 0.5751/0.5572/0.5657
+  (s26-28); every D18 lane above every control lane in every window tried (5-12M, 10-12M,
+  11-12M) — the falsifier's premise is robust to windowing. (The recorded control band
+  "0.549-0.561" reads slightly low vs my windows' 0.556-0.575; direction unchanged.)
+  `loss/adv_std` last-1M: D18 0.4730-0.4788 vs control 0.4830-0.4919 — the named
+  "advantage scale shift" mechanism moved the scale only −2-3%, and advantages are
+  z-scored per minibatch anyway (`ppo.py:1014`), so scale per se cannot carry the effect.
+  `loss/value` lower in D18 (0.213-0.229 vs 0.224-0.234); KL/clip_frac comparable.
+  **THE SUBSTANTIVE FINDING — the hypothesis's magnitude was wrong, not the plumbing:**
+  handed the ENTIRE hidden team, the critic gained only ~+0.045 EV against the pre-reg's
+  hoped-for ~0.40 ("the ~40% unexplained terminal-return variance this lever attacks").
+  Confound 1 (the priv path made the critic's move subnet live for the first time) can
+  only INFLATE that, so true hidden-team content is ≤ ~0.045 of return variance — the
+  rest of the unexplained variance is aleatoric (crits, rolls, 1/256 miss, full para,
+  sampled opponent actions), which no privileged state can explain. Independently
+  corroborated by the later D19 closeout: 88-90% of the hidden team is a deterministic
+  cap mask, belief residual 0.024-0.034 nats of 4.955. Two measurements, two methods,
+  same answer.
+  **DESIGN-LEVEL RESIDUALS, RECORDED NOT DEFECTS:** (1) actor and critic are fully
+  separate nets (`ppo.py:418-419`), so the lever's only channel is advantage quality —
+  at γ=1, λ=0.95 over ~35-turn episodes the advantage is MC-heavy in the tail, and at
+  λ<1 the V(h,s) bootstrap injects state-innovation noise the actor cannot condition on
+  (the centralized-critic variance critique, Lyu et al.) — consistent with the small
+  negative delta; a λ=1 pure-baseline variant was never run and, given ≤0.045 EV of
+  content, is not worth a lane. (2) The value stack in BOTH arms never consumes our own
+  active's move tokens (`entity_deepsets.py:345-359` computes `own_moves`, ctx never
+  includes it) — shared across arms so it cannot explain the delta, but it is the first
+  thing to fix if critic-side work is ever revisited. (3) s41 (grad-blowup lane, 0.4740)
+  drags pooled; without it pooled ≈ 0.552 — still NULL, nothing changes.
+  **VERDICT: the D18 null is real and informative, not an artifact. Do not re-run a
+  "corrected" D18 — there is no correction to make.** The chapter's arc is coherent:
+  opponent-STATE to a separate critic (D18) → nothing; opponent-ACTION into the actor's
+  trunk (D25) → +0.074 credited. The injection point, not the information family, was
+  the lever. Docs-only session; STATUS.md amended in this commit. Nothing launched.
