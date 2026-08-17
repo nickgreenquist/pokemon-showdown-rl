@@ -1,0 +1,66 @@
+# =====================================================================
+# D26 R0-E SMOKE CONFIG. 100k steps, seed 99, RUN ALONE (username
+# collision). NOT a training arm and never graded.
+# rl/train.py exposes only --config/--seed/--run-name, so the smoke needs
+# its own file (Review 1, finding 14). Against
+# configs/showdown_sp_recipe12m.yaml this differs in EXACTLY:
+#   total_steps 12000000 -> 100000, run_name, seed, and
+#   eval_every/checkpoint_every shrunk so the 100k run emits a
+#   checkpoint for R0-C to read the realised lr out of.
+# **lr_anneal_steps STAYS 12000000** — the smoke must anneal on the ARM's
+# schedule, not its own, or R0-C's assertion means nothing.
+# ACCEPTANCE (Q8 R0-E, corrected): all three optimizer groups at
+# 2.479520e-04 at the 100k checkpoint (97 completed updates, lr from the
+# pre-increment counter 96, frac 0.9918080). NOT 2.4586e-04 — that is
+# Q3's 200,000 row and would fail a correct run.
+# =====================================================================
+env_id: Showdown-v0
+seed: 99
+total_steps: 100000
+eval_every: 50000          # struct12m cadence VERBATIM, as D25
+eval_episodes: 100          # carried it (C9)
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 50000
+run_name: showdown_sp_recipe12m_smoke_s99
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true         # unchanged from D25 (R0-A)
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1     # IDENTICAL to D25 — frozen, no re-tune
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 12000000  # THE ONE LEVER (Q3). D25 has 0 here, and
+                             # so does every self-play arm ever run.
+  gamma: 1.0
+  gae_lambda: 0.95           # UNCHANGED. The bundle variant sets 1.0
+                             # and needs the DESIGN.md:786 override (Q1)
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

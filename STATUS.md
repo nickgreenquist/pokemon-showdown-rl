@@ -34,11 +34,11 @@ Killed 2026-08-13, re-targeted into D25. **CORRECTION 5 (`SESSION_LOGS.md:3238`)
 2. **D26 (LR anneal) — 4 lanes, 12M, seeds 62-65, ~1.74 lane-days -> 19.65/20. FITS.**
    Header ratifiable at `configs/showdown_sp_recipe12m.yaml`; R0-A passes (exactly
    {seed, run_name, lr_anneal_steps} differ). **Maintainer chose to run it.**
-3. **R0-B STILL OWED, BLOCKING BEFORE LAUNCH:** `ppo.py:999` (anneal x aux-head, group 2)
-   has **never executed** — no config pairs a live aux head with a live anneal, no test
-   combines them. The gate must drive a REAL `update()` (aux agent + `opp_choice` in the
-   batch) per `tests/test_ppo.py::_lr_after_fill`; a formula-only test was drafted and
-   discarded as fake cover. Then R0-C/E/F/G/H/I/J.
+3. **ALL PRE-LAUNCH GATES PASS.** `scripts/d26_gates.py` (R0-A/C/E/F/H/J) +
+   `tests/test_anneal_aux_group.py` (R0-B). R0-B proved the never-executed
+   anneal x aux-head path CORRECT on a real `update()`; R0-C read the realised lr off the
+   100k smoke checkpoint — **97 updates, all three groups at 2.479520e-04**, the aux group
+   annealing with the rest. **D26 is launch-ready pending ratification.**
 4. **s_T DECIDES D26.** Required delta **+0.025 to +0.053**: below the s_T~0.0134 crossover
    the +0.025 FLOOR governs (bar 0.6435, BELOW the lever's own effect); in the D18/D23/D25
    range the bar is 0.650-0.672, ABOVE it. The anneal is **+0.0277 at 12M**, not
