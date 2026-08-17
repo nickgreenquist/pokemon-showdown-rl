@@ -1,138 +1,91 @@
-# Handoff — written 2026-08-16 night. **NOTHING IS RUNNING. D26 is ratified and ready to launch.**
+# Handoff — written Monday 2026-08-18 ~15:30 ET, mid-run. **D29r IS RUNNING: 3 lanes,
+# seeds 90-92, ~34 h left. Wednesday-morning readout. Everything else is committed.**
 
-Read this, then `STATUS.md`. Everything below is committed and PUSHED (`main` == `origin/main`
-at `c0add37`, suite 371 passed / 9 skipped, tree clean, server up on :8000).
-
----
-
-# 1. FOR THE MAINTAINER — the whole roadmap in one page
-
-## Already done
-
-| DESIGN.md item | outcome |
-|---|---|
-| §2 milestone ladder M1–M4 | **all four CLAIMED** |
-| §4 Rung 0 — throughput | done |
-| §4 Rung 1 — reward shaping | ran, **NULL** |
-| §4 Rung 2 — entity architecture | ran, **+0.151** ← the big one |
-| §4 Rung 3 — scale 12M→50M | ran, +0.029 |
-| §12 D22 — plateau diagnostics | closed: representation/critic ceiling |
-| §12 D18 — privileged critic | ran, **NULL**, falsifier fired |
-| §12 D19 — opponent-team prediction | **KILLED at zero lanes**, re-targeted → D25 |
-| D23 — regenerative L2 (out-of-queue) | ran, letter-met, **NOT credited** |
-| D25 — opponent-**action** aux head | ran, **CREDITED 0.6185** ← the other one |
-| D25-P — shuffled-label placebo | ran, flat (0.5415) → the *information* did it |
-| C4 transfer probe | ran 2026-08-16, **FIRED**, C4 discharged |
-| D27 — matched-dose control | **KILLED at zero lanes** (undosable) |
-
-## What was tried and failed
-
-- **Reward shaping** (Rung 1) — nothing.
-- **Better inputs** (encoder v2 + pool fix) — +0.009, nothing.
-- **Privileged critic** (D18) — critic got better, agent didn't. Killed by its own falsifier.
-- **Regenerative L2** (D23) — met the letter, failed the seed-robustness bar.
-- **Predicting the opponent's hidden team** (D19) — killed before spending compute: 88–90% of
-  what's inferable is a deterministic cap mask, not a belief.
-- **Matched-dose control** (D27) — killed before spending compute: a shuffled-label head
-  routes everything into its bias term and disconnects from the trunk, so it *cannot* be
-  dosed at any coefficient.
-- **Scale** (Rung 3) — +0.029 for 4.17× compute. Real but small, and diagnosed: the ceiling
-  is representational, not experience.
-
-## What moved the needle — only two things
-
-1. **Architecture (Rung 2): 0.3996 → 0.5509, +0.151.** Entity embeddings + DeepSets pooling +
-   a per-action scorer, at *identical* parameter count. Score "this move against this
-   opponent" instead of learning slot-indexed preferences.
-2. **The opponent-action auxiliary head (D25): → 0.6185, +0.074.** Predict which action the
-   opponent is choosing this turn; labels are free in self-play. Controlled by a placebo, and
-   as of today the representation is shown to **transfer** to an opponent it never trained on.
-
-Everything else nulled. The pattern: **structure beat signal, inputs, and scale.**
-
-## What's left to try
-
-- **D26 — LR annealing** (a §12/D21 item). Ratified, gated, ready. ~1.74 lane-days. The last
-  thing that fits the budget.
-- **D21 leftovers** — GAE λ sweep, KL early stopping, entropy scheduling, rollout sizing. Each
-  is its own arm; none fits alongside D26. *PFSP is effectively dead* — D22's trigger for it
-  never fired.
-- **D20 — v3 encoder bundle.** Post-chase by design. Changing OBS_DIM invalidates every
-  checkpoint, so the control alone costs a full arm before any treatment.
-- **§13 — 250M scale.** Blocked by its own precondition: it requires a credited lever *at 50M*
-  and none exists.
-- **A structured zero-information aux control** — the honest way to close the last caveat on
-  D25 (predict the agent's *own* action, or regress a random projection of its own obs). Needs
-  its own pre-registration and ~1.75 lane-days the chapter doesn't have.
-
-**Budget: 17.91 of 20 lane-days spent. D26 takes it to ~19.65. After that the chase is over.**
+Read this, then `STATUS.md`. Tree clean through the last commit; **NOT pushed** (several
+commits pending — the maintainer reviews and pushes, never the assistant).
 
 ---
 
-# 2. FOR THE NEXT SESSION — state and next actions
+## 1. WHAT IS RUNNING RIGHT NOW (do not disturb)
 
-## Where things stand
-`RESULTS.md` is the chapter's written account (self-contained; it is DESIGN.md's successor,
-since DESIGN.md is deleted by its own lifecycle rule once migrated). `STATUS.md` is current
-state. **DESIGN.md is NOT self-updating — verify its status lines against the newest
-SESSION_LOGS entry before acting on anything in it.** A stale D19 entry cost a whole session
-on 2026-08-16.
+**D29r — the credited stack at 50M** (`configs/showdown_sp_stack50m.yaml`, ratified by
+the maintainer launching it 2026-08-18 ~10:45 ET; the launch itself accepted the two
+DESIGN2 §2 overrides flagged in the header):
+- 3 lanes 3-wide alone: `showdown_sp_stack50m_s90/91/92`, entity arch + oppact aux +
+  `lr_anneal_steps: 50000000`.
+- Health at 15:11 Mon: all alive, 6.0M steps, warm rate 352–364 steps/s (below the
+  375–395 expectation band, ABOVE the record line 330 and stop line 275 — no action
+  per the letter; cost drifts ~4.5 → ~5.0 lane-days).
+- **ETA: ~01:00–02:00 Wednesday.** Finish = all three at `ckpt_050000000.pt` and
+  processes exited.
+- **The 5-hourly health loop and the monitor DIED with the previous session** (session-
+  scoped). RE-ARM on reactivation: `/loop 5h` with the lane-health prompt, checks =
+  3 processes alive (`ps aux | grep -o "showdown_sp_stack50m_s9[0-9]" | sort -u`),
+  latest ckpt fresh (<~30 min; rungs land every ~23 min), warm rate = Δstep/Δwall from
+  ckpt mtimes (NEVER `time/steps_per_sec`, overstates 14.5%).
 
-## The one live action: launch D26, or don't
-`configs/showdown_sp_recipe12m.yaml` is **RATIFIED BY DELEGATION** (the maintainer said
-"ratify whatever you think is best"; the four Q13 calls were taken by the assistant and the
-header says so). **All pre-launch gates pass** — `scripts/d26_gates.py` (R0-A/C/E/F/H/J) and
-`tests/test_anneal_aux_group.py` (R0-B). Re-run both before launching; they are cheap.
+## 2. AT READOUT — the exact procedure (all pre-registered; do not improvise)
 
-Launch commands are in the header's Q12 — four lanes, seeds 62–65, one per detached shell,
-staggered ~60 s. **Verify each lane by battle PROGRESS, never by the run directory existing.**
-~10.4 h wall. Runs go in the maintainer's terminal.
+1. Confirm all 3 lanes at 50M, processes exited, `checkpoint.pt` final.
+2. Finals, sequential, locked protocol (~4–5 min each):
+   `env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 <envpy> scripts/eval_checkpoint.py
+   runs/showdown_sp_stack50m_sN/checkpoint.pt --episodes 3000 --out results/d29/final_sN.json`
+   for N in 90 91 92 (mkdir results/d29 first).
+3. `<envpy> scripts/d29_grade.py` — it ATTESTS both frozen comparators from disk,
+   runs the hard D-A LR trace (2M/10M/26M/50M ckpts × 3 lanes, three param groups),
+   applies the lane-failure rule (<3 survivors VOIDS), prints both reads' cells.
+4. Verdict routing is the header's branch table VERBATIM. Key rules: R-A (vs struct50m
+   0.580222) is PRIMARY; bar by realised s_T (0.6675 floor → 0.7037 at 50M-like
+   spread; kill-point s_T ≥ 0.092). R-B (vs D26 0.718250) is the scale read — it may
+   NOT satisfy §13(1), it MAY retire the 250M line on futility. The headline stays
+   D26's 0.71825 UNLESS R-B also credits (then the 50M number leads). Falsifier-class
+   = pooled < 0.6185 (composes with the cell; cannot co-fire with B1; B2∧F is a named
+   cell — both sentences, neither suppressed).
+5. Also record: K6/D-C/D-D in-run gates off history.csv (extract first:
+   `scripts/extract_history.py <run_dir>`); aux/loss vs the pre-registered
+   pool-hardening prediction (expected plateau ABOVE 0.81; diagnostic ceiling 1.40);
+   the new aux/trunk_norm_delivered + aux/clip_scale columns exist in these lanes only.
+6. Record everywhere in ONE commit: SESSION_LOGS entry (numbers exact), STATUS rewrite,
+   README table row, RESULTS.md §10 addendum. Back up `results/d29/` to
+   `../pokemon-showdown-rl-d25-backup-20260815/` (results/ is gitignored — only copy).
+7. **Maintainer decisions at readout, not the assistant's:** the §13(1) wording ruling
+   on a B1 ("credited STACK" vs "credited lever"); push timing.
 
-**Honest expectation, pre-stated:** required delta is +0.025 to +0.053 and the lever's own
-horizon-matched effect is +0.0277. P(CREDIT) 0.23–0.39 at typical seed spread, 0.60–0.75 if
-seed spread lands low. **The modal outcome is FLAT, and a FLAT licenses nothing** — its
-interval would not even exclude +0.0277. That is written into Q6 so it cannot be re-narrated
-at readout.
+## 3. STATE OF EVERYTHING ELSE (all committed; see SESSION_LOGS 08-16..08-18)
 
-## At readout
-Grade with the committed grader per Q6; the headline moves to D26 **only on B1 (credit)** —
-on every other branch D25 stays the headline and D26 is reported beside it. That rule was
-corrected after review: the draft version was a one-way ratchet that would have overturned
-the D23 precedent.
+- **Headline: D26 CREDITED 0.71825** (4×3000, delta +0.0998 vs D25, floor bar, perm
+  1/126, all gates; RESULTS.md §9). Recipe: entity arch + oppact aux + LR anneal =
+  0.3996 → 0.5509 → 0.6185 → 0.71825. WHY the anneal tripled its estimate is OPEN.
+- **D18 audited post-hoc: implementation CLEAN, null upheld** — do not revisit.
+- **Chapter 2 (`DESIGN2.md` r2 + readout note, PROPOSED):** D30 soft-labels KILLED at
+  zero lanes (Z3-3: +1–2% of head signal — cannot clear any bar); Z1-1 offline screen
+  VOID (proxy≠live; D28 dose certified in-run only, 6M abort threshold 0.35 measured);
+  **D28 (zero-info control, ~2.2 ld) is the queued next arm after D29r** — its build
+  is specified in DESIGN2 §1 + `results/design_ch2/` memos (synthetic pointer task
+  with ONE shared w_move — the per-slot version is unrepresentable by the head).
+- **Patches landed:** train.py refuses 0 < lr_anneal_steps < total_steps (the 38M-
+  steps-at-lr-0 trap); `_aux_gradient` returns delivered dose + clip scale.
+- **Process docs (ONLY copies, gitignored):** `results/design_ch2/` — 2 design memos,
+  2 chapter reviews, 2 D29r reviews, Stage-0 JSONs. Backed up 08-17/08-18 along with
+  struct50m_finals and d25 (both had been MISSING from the backup).
+- Ledger: chapter-1 spent (~19.7/20). D29r is on a maintainer-authorized new tranche
+  (~5.0 ld realised). Seeds: 90-92 burning, 93/94 held, 70-86 reserved per DESIGN2 §5.
+- Standing maintainer items: the DESIGN §8 D7(a) vs CLAUDE.md ladder-eval
+  contradiction (at 0.718 the GXE question presses harder); §13 is PROPOSED with three
+  preconditions; the unexplained anneal surprise is worth a mechanism look someday.
 
-## If D26 is NOT run
-The chapter closes at 17.91/20. `RESULTS.md` needs no further work. That is a legitimate and
-defensible ending — "we stopped because the remaining levers were below what the budget could
-resolve" reads better than spending the last of it on a pre-registered long shot.
+## 4. LANDMINES FROM THIS SESSION — do not rediscover
 
-## Open, and NOT the assistant's to decide
-**DESIGN §8's D7(a) defers the ladder eval "until M2/M3" — now satisfied — while CLAUDE.md's
-landmine forbids proposing one. Two ratified documents contradict; one must move.**
-
----
-
-# 3. LANDMINES FROM THIS SESSION — do not rediscover
-
-- **Verify a handoff's premise before executing it.** The last one sent a session at D19,
-  which had been dead for three days.
-- **`aux/trunk_norm` is logged PRE-clip** (`ppo.py:790`), and the clip is applied POST-
-  coefficient (`:796`). A dose gate reading the logged value would certify a dose never
-  delivered.
-- **Two counter conventions, same letter.** R0-B's `u` is PRE-increment; R0-C and Q3's table
-  use the POST-increment checkpoint counter. Mixing them rejects a correct anneal. Both are
-  now pinned by assertion.
-- **Don't hand-type precise constants.** Two drafts of R0-B failed against a *correct* anneal
-  because I typed digits the header never claimed. Assert at the precision actually printed.
-- **`rl.envs.showdown` freezes `ID_DIM` from the process env at IMPORT.** Setting the encoder
-  flags at construction is too late; use the subprocess pattern
-  (`tests/test_privileged_block.py:69`).
-- **A null needs a positive control.** The D19 closeout is only credible because the same
-  probe extracts +3.73 nats when the answer is planted.
-- **Check the obvious confound before believing a letter.** The C4 probe fired at p=1/252, and
-  live-unit count correlated with the statistic at r=+0.94 with zero overlap between arms. It
-  survived a capacity-matched refit — but it might not have.
-- **`results/` is gitignored.** `d25/`, `d25p/`, `d19_closeout/`, `c4_transfer/` are the ONLY
-  copies; all are backed up at `../pokemon-showdown-rl-d25-backup-20260815/`.
-- **`time/steps_per_sec` is not throughput** (361 logged vs a 312 wall) and **in-loop
-  `eval/win_rate` (n=100) does not preview a locked number** (0.576 vs a locked 0.5415).
-- **vs-SH 0.6185 is still ~40% GXE.** Nothing here is "nearly solved."
+- **Handed-over commands: the maintainer must copy ONLY the command line, not the
+  ``` fence lines** — pasted fences execute the command inside backtick-substitution
+  and then try to run its output ("zsh: command not found: SELFTEST").
+- **Long background shells get killed by the harness** — use a persistent Monitor for
+  watch loops, or a cron for scheduled checks. Both are SESSION-SCOPED and die on
+  context clear; re-arm after any restart.
+- **wandb offline is ~750 MB/lane at 250k cadence** — disk math must include it.
+- `tests/test_anneal_aux_group.py` silently SKIPS 9/10 without both encoder env vars.
+- The D26-era grader lesson is now protocol: **the grader exists and self-tests BEFORE
+  launch** (`scripts/d29_grade.py --selftest`); it hard-stops if the frozen comparator
+  JSONs are moved or edited.
+- `results/d26/finals` numbers at full precision are what the grader attests — README
+  and RESULTS quote 0.71825 (exact disk 0.718250); never re-round into new documents.
