@@ -242,6 +242,20 @@ def train(cfg: Config) -> None:
             "normalizers wrap the vector env, but the opponent lives inside a "
             "sub-env and would keep seeing raw observations"
         )
+    # The anneal trap (ch2_review_2 MF-6): a schedule shorter than the run
+    # trains every step past lr_anneal_steps at lr EXACTLY 0 — parameters
+    # frozen, no crash, no metric that looks wrong (copy-pasting a 12M anneal
+    # under total_steps 50M silently burns the last 38M steps). The interval
+    # form permits the two legitimate shapes: 0 (off) and >= total_steps
+    # (full-horizon anneal, or a deliberate schedule-prefix smoke such as
+    # configs/showdown_sp_recipe12m_smoke.yaml with anneal 12M over 100k).
+    anneal_steps = int(cfg.agent.get("lr_anneal_steps", 0) or 0)
+    if 0 < anneal_steps < cfg.total_steps:
+        raise ValueError(
+            f"lr_anneal_steps {anneal_steps} < total_steps {cfg.total_steps}: "
+            "the run would train past the schedule's end at lr exactly 0. "
+            "Use 0 (no anneal) or >= total_steps (full-horizon anneal)."
+        )
     # Self-play configs pass their opponent into the env; every other config
     # gets {} and is bit-for-bit unaffected. `opponent: self` trains against
     # the snapshot pool: the string is replaced with the live pool OBJECT

@@ -569,7 +569,11 @@ allow = torch.ones(8, 6, dtype=torch.bool)
 valid = torch.ones(8, dtype=torch.bool)
 for param in (*bounded.actor_params, *bounded.critic_params, *bounded.aux_params):
     param.grad = None
-loss, norm, trunk = bounded._aux_gradient(tuple(feats), target, allow, valid)
+loss, norm, trunk, delivered, scale = bounded._aux_gradient(
+    tuple(feats), target, allow, valid
+)
+assert abs(delivered - trunk * scale) < 1e-9, (delivered, trunk, scale)
+assert 0.0 < scale <= 1.0, scale
 applied = torch.norm(torch.stack([
     p.grad.norm() for p in (*bounded.actor_params, *bounded.aux_params)
     if p.grad is not None

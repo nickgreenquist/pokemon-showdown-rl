@@ -28,12 +28,16 @@ caveat logic unaffected by D26; its 0.6185-era narrative is stale against 0.7182
    `results/d26/` (only copy, backed up); grader `scripts/d26_grade.py` (R0-I owed it —
    the handoff's "committed grader" did NOT exist; written at readout BEFORE any final
    was read). Suite re-run before push is cheap and owed (new script only).
-2. **DESIGN2.md §7 decisions, now against 0.71825**: (a) authorise D28 (2.16 ld, a new
-   tranche — ledger ~19.7/20 is spent); its frozen-comparator caveat logic is
-   unaffected by D26. (b) The 50M/§13(1) ruling; note any 50M carry is now a question
-   about the FULL credited stack (DESIGN2 §2's pre-stated anneal-off rule needs a
-   maintainer revisit given B1). D30 is DEAD (Z3-3). The two held code patches
-   (delivered-dose logging; train.py anneal guard) may now land — fleet is done.
+2. **D29r (THE CREDITED STACK AT 50M) IS PREPPED, PENDING YOUR RATIFICATION + a ~4.5 ld
+   tranche.** `configs/showdown_sp_stack50m.yaml` (full pre-reg; launch commands in its
+   OPS block; seeds 90-92) + `scripts/d29_grade.py` (committed BEFORE launch, attests
+   both frozen comparators from disk). 2-Opus reviewed; all must-fixes folded
+   (`results/design_ch2/d29_review_{1,2}.md`). **Two DESIGN2 §2 pre-stated rules are
+   OVERRIDDEN in the header, flagged as ratification-time decisions:** the anneal-off
+   rule (unpaid +3-lane price) and the primary/perm swap. Bars: R-A credit needs
+   pooled >= 0.6675-0.7037 BY SPREAD (kill-point s_T>=0.092); R-B scale-credit needs
+   >= 0.7433. Both held code patches LANDED + tested (guard rejects the 12M-under-50M
+   anneal paste; delivered-dose logged). D28 queued after; D30 DEAD (Z3-3).
 3. **D27 IS DEAD; never re-propose a rescaled shuffled placebo. D18 audited 08-16:
    zero defects, null upheld, do not revisit.** (SESSION_LOGS entries.)
 4. **Maintainer:** DESIGN §8 D7(a) defers the ladder eval "until M2/M3" (satisfied)

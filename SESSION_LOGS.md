@@ -4668,3 +4668,35 @@ entry by offset — never a broad keyword grep.
   Ledger: +4 finals ~0.02 ld; D26 lanes ~1.78 ld -> **~19.7/20. The chapter budget is
   spent; chapter 2 is a new-tranche decision (DESIGN2 §7).** Suite not re-run (no
   production code changed except the new grader script). Not pushed.
+- 2026-08-17 (mid-morning, **D29r PREPPED: THE CREDITED STACK AT 50M — pre-reg drafted,
+  2-Opus reviewed, ALL must-fixes folded, grader committed BEFORE launch. PENDING
+  ratification + tranche. Nothing launched.**). Maintainer said "prep it" after the D26
+  credit flipped the 50M arithmetic (a stack that HOLDS 0.718 clears the 0.6675 floor
+  the 08-13 carry cycle proved unreachable at 0.6185). Landed first, suite 372 green:
+  **(1) the anneal-trap guard** — rl/train.py raises iff 0 < lr_anneal_steps <
+  total_steps (interval form: permits the recipe smoke's 12M-over-100k and every lra
+  config; rejects the 12M-under-50M paste that silently trains 38M steps at lr 0) +
+  test; **(2) delivered-dose logging** — _aux_gradient returns (loss, total, trunk,
+  delivered, scale), new keys aux/trunk_norm_delivered + aux/clip_scale, test arity
+  fixed. Then `configs/showdown_sp_stack50m.yaml` (D25 recipe + lr_anneal_steps
+  50000000, cadence 250k/100/500k, seeds 90-92, ~4.5 ld, ~37 h 3-wide alone) and
+  `scripts/d29_grade.py` (R-A vs struct50m 0.580222/sd 0.0756/n3; R-B vs D26
+  0.718250/sd 0.011177/n4 EXACT disk values, attested at every run; 3v3 + 3v4 exact
+  perms with ties=non-separation; lane-failure rule implemented; five branch cells hit
+  in the selftest). **Review round (2 Opus, results/design_ch2/d29_review_{1,2}.md):
+  R1 verified every bar to <5e-6 and found 7 must-fixes** (worst: C-1's lr-integral
+  understated 2x — 4.17x not 2.08x; the R-A table omitted the 50M regime's own spread
+  row — bar 0.70370 at s_T 0.0756, kill-point 0.092, "P(credit) HIGH" re-priced at
+  both regimes; the falsifier threshold was vacuous where stated and the B2-and-
+  falsifier cell unnamed; the DESIGN2 §2 anneal-off override and primary/perm swap
+  were unnamed — now explicit ratification-time decisions); **R2 (READY WITH FIXES)
+  found R0-g protected the WRONG artifacts** — struct50m_finals (the PRIMARY
+  comparator) was unlisted AND missing from the backup, as was d25/ — **backup
+  repaired** (struct50m_finals, d25, d19_closeout, c4_transfer copied in); R0-c must
+  carry the encoder env vars (9 silent skips without); disk is ~6.5 GB with wandb not
+  4.2. All folded same morning; one-diff verified in THREE directions (6/9/6 keys,
+  byte-exact); selftest + attestation + lane-failure paths all exercised green.
+  **The three ratification-time calls, maintainer's:** (1) the ~4.5 ld tranche; (2)
+  accept the two §2 overrides; (3) at readout only — whether a credited STACK
+  satisfies §13(1)'s "credited lever" wording. Ledger unchanged (~19.7/20 spent;
+  D29r is new-tranche). Launch commands in the header's OPS block, 3 lanes staggered.

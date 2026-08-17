@@ -759,9 +759,12 @@ class PPOAgent(Agent):
         target: torch.Tensor,
         allow: torch.Tensor,
         valid: torch.Tensor,
-    ) -> tuple[float, float]:
+    ) -> tuple[float, float, float, float, float]:
         """B9 step 2: the aux gradient, clipped to its OWN budget and added
-        into `.grad` AFTER the PPO clip has been read. Returns (loss, norm).
+        into `.grad` AFTER the PPO clip has been read. Returns (loss,
+        total_norm, trunk_norm, delivered_trunk_norm, clip_scale) — the last
+        two added 2026-08-17 so a dose gate can read what the trunk actually
+        received rather than the pre-clip log.
 
         Decoupled because the global clip BINDS: measured on control s26
         (11,718 rows) `loss/grad_clip_frac` is 0.8995, median 0.9375 — the clip
@@ -801,7 +804,13 @@ class PPOAgent(Agent):
                 param.grad = grad * scale
             else:
                 param.grad.add_(grad, alpha=scale)
-        return float(loss.item()), total, trunk
+        # DELIVERED trunk norm: the logged pre-clip trunk × the clip scale the
+        # grads actually received. Logged per-minibatch because
+        # min(1, c/E[x]) != E[min(1, c/x)] — a rollout-mean reconstruction of
+        # this quantity certifies a dose that was never delivered (the D27/
+        # D25-P landmine; ch2_review_2 verified this arithmetic against the
+        # coefficient entering at torch.autograd.grad above).
+        return float(loss.item()), total, trunk, trunk * scale, scale
 
     def update(self, batch: Any) -> dict[str, float]:
         # The vector loop hands one batched (N-wide) transition row per env
@@ -1082,12 +1091,16 @@ class PPOAgent(Agent):
                 if self.aux_head is not None:
                     # AFTER the clip read above, BEFORE the step: the aux term
                     # must not move loss/grad_norm or loss/grad_clip_frac.
-                    aux_loss, aux_norm, aux_trunk = self._aux_gradient(
-                        feats, aux_target[idx], aux_allow[idx], aux_valid[idx]
+                    aux_loss, aux_norm, aux_trunk, aux_delivered, aux_scale = (
+                        self._aux_gradient(
+                            feats, aux_target[idx], aux_allow[idx], aux_valid[idx]
+                        )
                     )
                     sums["aux/loss"] += aux_loss
                     sums["aux/grad_norm"] += aux_norm
                     sums["aux/trunk_norm"] += aux_trunk
+                    sums["aux/trunk_norm_delivered"] += aux_delivered
+                    sums["aux/clip_scale"] += aux_scale
                     sums["aux/grad_clip_frac"] += float(aux_norm > self.aux_max_grad_norm)
                     if self.aux_shuffle_labels and grad_steps == 0:
                         # Epoch-1 minibatch-0, before any step this rollout:

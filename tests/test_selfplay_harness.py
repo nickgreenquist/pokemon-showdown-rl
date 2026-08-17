@@ -256,6 +256,23 @@ def test_selfplay_with_normalizers_raises(tmp_path, monkeypatch, flag):
         train(cfg)
 
 
+# ------------------------------------------------------- anneal-trap guard
+
+def test_anneal_shorter_than_run_raises(tmp_path, monkeypatch):
+    """The anneal trap (ch2_review_2 MF-6): 0 < lr_anneal_steps < total_steps
+    trains every step past the schedule's end at lr exactly 0 — no crash, no
+    metric that looks wrong. The two legitimate shapes must both pass: 0
+    (off) and >= total_steps (full-horizon anneal / a schedule-prefix smoke
+    like showdown_sp_recipe12m_smoke.yaml, anneal 12M over 100k)."""
+    monkeypatch.chdir(tmp_path)
+    agent = dict(CONNECT4_AGENT, lr_anneal_steps=128)  # < total_steps 256
+    with pytest.raises(ValueError, match="lr exactly 0"):
+        train(connect4_config(agent=agent))
+    for legit in (0, 256, 12_000_000):
+        agent = dict(CONNECT4_AGENT, lr_anneal_steps=legit)
+        train(connect4_config(agent=agent, run_name=f"test_c4_anneal_{legit}"))
+
+
 # ----------------------------------------------------- checkpoint ladder
 
 def test_ladder_writes_by_threshold_crossing_not_modulo(tmp_path, monkeypatch):
