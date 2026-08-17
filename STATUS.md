@@ -2,7 +2,7 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-16 — **D19 CLOSED; D26 DESIGNED, AWAITING RATIFICATION**)
+## Where things stand (2026-08-16 — **D26 RATIFIED + GATED, READY TO LAUNCH. Nothing running.**)
 **Pure from-scratch self-play in gen1randombattle is the chase. The NOVELTY IS THE LANE,
 not the levers** — proven technique inside it is fine (DESIGN §5:390); expert-data
 bootstrapping is what's excluded. **D25 CREDITED 0.6185; its placebo lands dead on the
@@ -26,11 +26,10 @@ Killed 2026-08-13, re-targeted into D25. **CORRECTION 5 (`SESSION_LOGS.md:3238`)
 ## Next actions
 0. **D27 (matched-dose control) IS DEAD** — zero lanes, mechanism in `RESULTS.md` §5. Do
    not re-propose a rescaled shuffled-label placebo. D26+D27 = 21.53 > 20: always a swap.
-1. **C4 TRANSFER PROBE: RUN, FIRED, C4 DISCHARGED** (`results/c4_transfer/`, zero lanes).
-   D25 ctx decodes SH +0.0665 vs controls' +0.0366, exact p = 1/252 both label spaces, on
-   an opponent no lane trained against. De-dormancy confound (r=+0.94, no arm overlap)
-   CLEARED by a post-hoc capacity-matched refit at K=131 (+0.0318, p=1/252 x3). C3(b) NOT
-   discharged.
+1. **C4 TRANSFER PROBE: FIRED, C4 DISCHARGED** (`results/c4_transfer/`, zero lanes). D25 ctx
+   decodes SH +0.0665 vs controls' +0.0366, exact p = 1/252 both spaces, on an opponent no
+   lane trained against; de-dormancy confound (r=+0.94, no overlap) CLEARED by a post-hoc
+   capacity-matched refit at K=131 (+0.0318, p=1/252 x3). C3(b) NOT discharged.
 2. **D26 (LR anneal) — RATIFIED 2026-08-16 BY DELEGATION, GATES PASS, READY TO LAUNCH.**
    4 lanes, 12M, seeds 62-65, ~1.74 lane-days -> 19.65/20. Q13 calls: RUN; ANNEAL-ONLY
    (bundle declined, `gae_lambda` stays 0.95); `lr_anneal_steps: 12000000`; 4-and-no-more.
