@@ -47,16 +47,18 @@ rows marked * are single-seed probes, not headline-grade.
 | **same recipe at 50M** | **0.5802 ± 0.0052** |
 | + privileged (asymmetric) critic, 12M, 5 seeds — null | 0.5364 ± 0.0066 |
 | + regenerative L2-toward-init, 12M, 3 seeds — letter-met, not credited | 0.5897 ± 0.0066 |
-| **+ opponent-action auxiliary loss, 12M, 5 seeds — CREDITED, current best** | **0.6185 ± 0.0040** |
+| **+ opponent-action auxiliary loss, 12M, 5 seeds — CREDITED** | **0.6185 ± 0.0040** |
 | ↳ same loss on SHUFFLED labels (placebo, 12M, 5 seeds) — flat on the comparator | 0.5415 ± 0.0041 |
+| **+ LR anneal on top (D26), 12M, 4 seeds — CREDITED 2026-08-17, current best** | **0.7183 ± 0.0041** |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 
 **Read those ± with care: they are WITHIN-SEED BINOMIAL standard errors, and they are not
 what governs a verdict.** This project's credit line uses the larger of the binomial and
 the **seed-clustered** se, and on this task the clustered term always wins — for the
-0.6185 headline it is **0.0105, 2.66x the ±0.0040 shown** (between-lane sd 0.0236 over 5
-seeds). Between-lane spread has run 0.024–0.049 across arms, which is why three separate
+0.7183 headline the governing clustered se on its delta vs D25 is **0.0119, vs the
+±0.0041 binomial shown** (between-lane sd 0.0112 over 4 seeds; delta +0.0998 credits at
+a 0.0250 floor bar, exact 4v5 permutation p = 1/126). Between-lane spread has run 0.024–0.049 across arms, which is why three separate
 arms cleared the +0.025 letter and still did not credit. Quote the clustered interval
 whenever the number is doing work.
 

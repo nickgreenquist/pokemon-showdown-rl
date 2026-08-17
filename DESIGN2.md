@@ -3,7 +3,14 @@
 **STATUS: DRAFT r2, PROPOSED (r1 2026-08-16; r2 2026-08-17 after the Stage-0
 measurements — see §0b: D30 KILLED at zero lanes; Z1-1 void as a screen, D28 moves to
 in-run-only dose certification). NOT RATIFIED. Nothing launched; no tranche
-authorised.** Ratification and the budget are the maintainer's. This file is the
+authorised.**
+
+**READOUT NOTE, 2026-08-17 morning (after r2): D26 CREDITED — B1, pooled 0.71825,
+delta +0.0998 (RESULTS.md §9).** This file's 0.6185-era narrative framing is stale;
+the numbers themselves (D28's frozen comparators, D29's banked bars) are unchanged by
+construction. Two premises need a maintainer revisit before any Stage-2 ratification:
+§2's pre-stated anneal-off rule (a 50M carry is now a question about the FULL credited
+stack: arch + aux + anneal), and §7's decision list (D30 items already moot per §0b). Ratification and the budget are the maintainer's. This file is the
 decision document; full designs and reviews live in `results/design_ch2/` —
 `ch2_design_A.md` (information-and-verdict lens), `ch2_design_B.md` (build-and-cost
 lens), `ch2_review_1.md` (evidential validity), `ch2_review_2.md` (buildability) — two

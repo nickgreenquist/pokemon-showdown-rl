@@ -4640,3 +4640,31 @@ entry by offset — never a broad keyword grep.
   **Chapter shape after Stage 0: D28 IS the chapter (2.16 ld); D29 held pending the
   maintainer's 50M/§13 ruling; D30 dead.** DESIGN2.md r2 records all of it (§0b).
   Tree committed; nothing launched; D26 lanes verified progressing throughout.
+- 2026-08-17 (morning, **D26 READOUT: B1 CREDIT — POOLED 0.71825, DELTA +0.0998, THE
+  HEADLINE MOVES TO D26. All gates pass.**). Fleet finished ~08:30 (4 lanes, 12M each,
+  clean exits). Finals run under the locked protocol (final ckpt, 3000/seed,
+  deterministic, ties as non-wins, both env vars): **s62 0.7297 / s63 0.7187 / s64
+  0.7217 / s65 0.7030 -> pooled 0.71825** vs the frozen D25 comparator 0.61847 ->
+  **delta +0.0998**, governing se = seed-clustered 0.0119 (s_T 0.0112 — the low-spread
+  branch Q6 said would govern), operative bar = the +0.025 floor, **B1 CREDIT**; exact
+  4v5 permutation 1/126 (minimum attainable; every treatment lane beats every
+  comparator lane). **Gates: D-A LR trace PASS 12/12 checkpoints** (three groups, Q3
+  pre-increment convention, lr ends 3.7e-08 — the anneal genuinely ran); R0-4
+  exact-agree x4; K6 clean (min pre-6M entropy 0.228-0.276); R1 anchor 0.969-0.975 at
+  4M all lanes. Final-1M entropy 0.286-0.318 — the anneal did NOT collapse exploration.
+  **HANDOFF PREMISE FAILURE, caught by the landmine rule:** the "committed grader per
+  Q6" (R0-I) did NOT exist on disk; written at readout BEFORE any final was read
+  (`scripts/d26_grade.py`, reusing `d25_grade.py::se_terms/::exact_perm_p` unchanged
+  per R0-I's own text; branch cuts printed in win-rate units). Finals + stdout in
+  `results/d26/` (gitignored, ONLY copy; backed up to the d25 backup dir this session).
+  **Honest surprise, recorded not narrated:** the measured +0.0998 is 3.6x the lever's
+  own horizon-matched estimate (+0.0277) and exceeds every cell of Q6's power table.
+  WHY is open — candidates (6M->12M transfer underestimate; anneal x aux interaction,
+  C6's untested fifth transfer) recorded in RESULTS.md §9, not adjudicated. Docs:
+  README table + se note updated; RESULTS.md §9 addendum; STATUS rewritten; DESIGN2
+  r2 header noted (its 0.6185-era narrative bars are stale; D28's frozen-comparator
+  caveat logic unaffected; chapter-2 decisions should be revisited against 0.7183 —
+  e.g. any future 50M carry is now a question about the FULL credited stack).
+  Ledger: +4 finals ~0.02 ld; D26 lanes ~1.78 ld -> **~19.7/20. The chapter budget is
+  spent; chapter 2 is a new-tranche decision (DESIGN2 §7).** Suite not re-run (no
+  production code changed except the new grader script). Not pushed.

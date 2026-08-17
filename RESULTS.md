@@ -362,3 +362,36 @@ these systems do not survive contact with their source, and it records which.
   needs a variance-reduction idea, not just compute.
 - **The frontier.** 0.6185 against a search engine's 0.8307, in a lane that started at
   0.3996.
+
+## 9. Addendum, 2026-08-17 — D26 (LR anneal) CREDITED; the headline moves to 0.7183
+
+Written at readout, same morning. The pre-registration
+(`configs/showdown_sp_recipe12m.yaml`, ratified by delegation 2026-08-16) predicted a
+modal FLAT with the lever's own horizon-matched effect at +0.0277 and P(CREDIT)
+0.23–0.39 at typical seed spread. The measured result exceeded every cell in its own
+power table:
+
+- **Finals (locked protocol, final ckpt, 3000/seed, deterministic, ties as non-wins,
+  vs SH): s62 0.7297 / s63 0.7187 / s64 0.7217 / s65 0.7030 → pooled 0.71825.**
+- Comparator (frozen, never re-scored): D25's five banked finals, pooled 0.61847.
+- **Delta +0.0998**; governing se = seed-clustered 0.0119 (s_T 0.0112, low-spread
+  branch); operative bar = the +0.025 floor → **B1 CREDIT**, exact 4v5 permutation
+  p = 1/126 (minimum attainable — every treatment lane above every comparator lane).
+- Gates: D-A LR trace PASS on all 12 checkpoints (2M/6M/12M × 4 lanes, three param
+  groups, Q3's pre-increment convention — the anneal genuinely ran, ending at lr
+  3.7e-08); R0-4 exact-agree on all four finals; K6 clean (min pre-6M entropy
+  0.228–0.276, floor 0.15 never approached); R1 anchor 0.969–0.975 at 4M, all lanes.
+- Deviations, disclosed: 4 seeds pooled (locked protocol says 3; conservative
+  direction, the D23-era pattern). The grader R0-I owed was found MISSING at readout
+  and written before any final was read (`scripts/d26_grade.py`); finals in
+  `results/d26/` (gitignored — only copy, backed up alongside the D25 artifacts).
+
+Two things this changes. First, the pure-self-play recipe is now: entity architecture
++ opponent-action auxiliary head + linear LR anneal — 0.3996 → 0.5509 → 0.6185 →
+**0.7183** — and the third lever is the cheapest of the three (one YAML line). Second,
+the "structure beat signal, inputs, and scale" epitaph gains a rider: *optimization
+schedule* beat all of them per lane-day. Why the effect is 3.6× its horizon-matched
+estimate is NOT explained by this read; the honest candidates (the D21 estimate was a
+6M-horizon transfer; anneal × aux-head interaction, C6's untested fifth transfer) are
+recorded as open, not adjudicated. vs-SH 0.7183 is still far from ladder-strong; the
+GXE caveat at the top of `prior_work/README.md` stands unchanged.
