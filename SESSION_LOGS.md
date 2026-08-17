@@ -4609,3 +4609,34 @@ entry by offset — never a broad keyword grep.
   STATUS.md rewritten in place (D26 running; DESIGN2 pointer). Nothing launched by the
   assistant; server untouched; **D26's D-D throughput clause may fire at the compliant
   1M warm read — thresholds remain 275/230 until then.**
+- 2026-08-17 (early AM, **STAGE-0 EXECUTED AT ZERO LANES: D30 KILLED; Z1-1 VOID AS A
+  SCREEN; D28's ABORT THRESHOLD CALIBRATED. DESIGN2.md -> r2.** D26 still running,
+  untouched). Maintainer said "run 1 yourself" — the free offline checks. All CPU-only,
+  nice'd, server untouched; scripts + JSON in `results/design_ch2/` (only copies).
+  **(1) Z3-3 KILLS D30.** 13 tapes, 8 battle-level splits each, production canonicalise
+  pipeline, all Z3-2 oracle-identity sanity gates PASS (reproduces ch2_design_B §1.5 to
+  4 decimals). Soft-label training beats hard on held-out hard-label CE — real sign
+  (12/13 tapes, 39/40 D25-lane splits, robust to 3 early-stop rules) — but only
+  **-0.0078 nats pooled / -0.0155 on aux-trained tapes = 0.2-1.8% of the head's own
+  learned signal** (0.73-0.86 nats), which in total bought +0.074 win rate. 1-2% more
+  mechanism cannot clear a +0.025-0.049 bar. Still bundles the 0.19-0.20-nat legality
+  channel; generator-dependent. `results/design_ch2/z3_3_results.json`.
+  **(2) Z1-1 IS VOID AS A CALIBRATED SCREEN** — the pre-allowed honest negative. A/B
+  anchor gaps offline +0.046/+0.221/+0.092/-0.204 (median +0.069 vs live ~+0.47), one
+  INVERSION; offline shuffled anchor sits above the live treatment band on 3/4 tapes;
+  head-scale confound persists at convergence (`ppo.py:554-561` vindicated; last-layer
+  norm 5.6x spread, r=+0.53 with f). No proxy->live mapping exists; **D28's dose is
+  certified IN-RUN ONLY** (200k read + 6M abort). Secondary positives: amended
+  synthetic task learnable (held-out acc 0.75, CE 0.77 at tau* vs live 0.81); **tau*
+  median 8.8** hits the 0.250-nat target; r0 per-slot construction collapses exactly as
+  review-2 MF-1 predicted; own-action task independently corroborated dead (can't beat
+  its own marginal floor on any tape). New free number: per-class OFFSETS needed to
+  match D25's label marginal (unit-variance alone is near-flat). `z1_1_results.json`.
+  **(3) CALIBRATIONS BANKED** (`trunk_fraction_bins.json`): trunk-fraction
+  "discrepancy" RECONCILED — bin-11 0.50-0.62 (=RESULTS §5) vs run-mean 0.62-0.68
+  (=ch2_design_B); same data, two windows. D25-P per-bin collapse trajectory: 0.45-0.52
+  (bin 0) -> 0.07-0.14 (bins 5-6) -> 0.05-0.09 (bin 11); treatment holds 0.60-0.69 at
+  6M -> **D28's 6M abort threshold = 0.35, measured not guessed**.
+  **Chapter shape after Stage 0: D28 IS the chapter (2.16 ld); D29 held pending the
+  maintainer's 50M/§13 ruling; D30 dead.** DESIGN2.md r2 records all of it (§0b).
+  Tree committed; nothing launched; D26 lanes verified progressing throughout.

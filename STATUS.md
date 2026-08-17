@@ -9,9 +9,11 @@ bootstrapping is what's excluded. **D25 CREDITED 0.6185; placebo dead flat (0.54
 the INFORMATION did it; M1-M4 all claimed; C4 transfer FIRED, C4 discharged.** C3(b) and
 the dose caveat remain; **NEVER "belief state"**. 50M CLOSED; D18 NULL (audit 08-16:
 impl clean, null upheld); D23 not-credited; D19 KILLED (cap-mask correction stands).
-`RESULTS.md` = the account. **Chapter-2 proposal DRAFTED: `DESIGN2.md` r1 (PROPOSED,
-NOT ratified) — 2 Opus designs + 2 Opus reviews, 26 must-fixes folded in; process docs
-in `results/design_ch2/` (only copies).**
+`RESULTS.md` = the account. **Chapter-2 proposal: `DESIGN2.md` r2 (PROPOSED, NOT
+ratified; 2 Opus designs + 2 reviews + Stage-0 measurements). Stage-0 (08-17, zero
+lanes): D30 KILLED (soft labels add only 0.2-1.8% of head signal, Z3-3); Z1-1 VOID as
+offline screen (D28 dose certified in-run only, 6M abort = 0.35 calibrated). D28 IS
+the chapter; D29 held pending the 50M/§13 ruling.**
 
 ## Results (vs SH; ties=loss; locked = final ckpt; 5×3000 from D23 on)
 | result | win rate |
@@ -29,11 +31,10 @@ in `results/design_ch2/` (only copies).**
 2. **D26 throughput note**: indicative 4-wide fleet median ~311.8 steps/s (ckpt mtimes,
    200k-600k) vs the D-D band 320-350 — re-read at the gate's own ≥30-min warm window
    after 1M; **thresholds remain 275/230 until that compliant read** (DESIGN2 §8).
-3. **DESIGN2.md decision points (its §7)**: the tranche (full chapter ≈9.0 ld takes the
-   ledger to ≈28.6 vs the 20 cap — a new tranche is the ask); re-open the closed 50M
-   line + the §13(1) ruling; D30's S-A vs S-B legality channel; D29-vs-D30 order.
-   Stage-0 zero-lane work is free (DESIGN2 §6); the two small code patches are HELD
-   until the D26 fleet finishes.
+3. **DESIGN2.md decisions remaining (§7, post-Stage-0)**: (a) authorise D28 (2.16 ld —
+   a new tranche; ledger is at the 20 cap after D26); (b) re-open the closed 50M line
+   + the §13(1) ruling, else D29 never runs. D30 decisions are MOOT (killed). The two
+   small code patches stay HELD until the D26 fleet finishes.
 4. **D27 IS DEAD** (zero lanes; mechanism `RESULTS.md` §5) — never re-propose a
    rescaled shuffled-label placebo. **D18 audited post-hoc 2026-08-16: zero defects,
    null upheld, do not revisit** (SESSION_LOGS 2026-08-16 audit entry).

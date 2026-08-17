@@ -1,7 +1,9 @@
 # DESIGN2 — Chapter 2 proposal: seal D25, then extend it
 
-**STATUS: DRAFT r1, PROPOSED 2026-08-16 (night). NOT RATIFIED. Nothing launched; no
-tranche authorised.** Ratification and the budget are the maintainer's. This file is the
+**STATUS: DRAFT r2, PROPOSED (r1 2026-08-16; r2 2026-08-17 after the Stage-0
+measurements — see §0b: D30 KILLED at zero lanes; Z1-1 void as a screen, D28 moves to
+in-run-only dose certification). NOT RATIFIED. Nothing launched; no tranche
+authorised.** Ratification and the budget are the maintainer's. This file is the
 decision document; full designs and reviews live in `results/design_ch2/` —
 `ch2_design_A.md` (information-and-verdict lens), `ch2_design_B.md` (build-and-cost
 lens), `ch2_review_1.md` (evidential validity), `ch2_review_2.md` (buildability) — two
@@ -41,6 +43,46 @@ budgeted 0.470 — is OWED a ruling; both totals quoted where they differ.)
 | **D29** — D25 recipe at 50M, anneal-off | the scale question; requires re-opening the closed 50M line and a §13 ruling | 3 | **4.45–4.57** |
 | **D30** — soft-label aux, 12M | the direct extension of the credited lever | 5 (3-lane mechanism-only variant ≈ 1.30) | **2.16** |
 | zero-lane gates, calibrations, finals | — | — | ~0.10 |
+
+## 0b. Stage-0 results (2026-08-17, zero lanes, all offline; scripts + JSON in `results/design_ch2/`)
+
+1. **D30 is KILLED at zero lanes by Z3-3.** Soft-label training beats hard-label
+   training on held-out hard-label CE — the sign is real (12/13 tapes; 39/40 splits on
+   the D25 lanes; robust to three early-stopping rules) — but the size is **−0.008 nats
+   pooled (−0.016 on aux-trained tapes), i.e. 0.2–1.8% of the head's own learned
+   signal**, which bought +0.074 win rate in total. A 1–2% increment on the mechanism
+   cannot plausibly clear a +0.025–0.049 credit bar. The measured gain also still
+   bundles the 0.19–0.20-nat legality channel (Z3-4 unrun) and is generator-dependent
+   (larger on aux-trained tapes). §3 below is retained for the record; the arm does not
+   run. The D19 precedent, applied properly: killed by its own premise measurement.
+2. **Z1-1 is VOID as a calibrated screen — the honest negative the design allowed for.**
+   The offline gradient proxy does not reproduce the live contrast: per-tape A−B anchor
+   gaps are +0.046/+0.221/+0.092/**−0.204** (median +0.069 vs a live gap of ~+0.47);
+   the offline shuffled anchor sits ABOVE the live treatment band on 3/4 tapes;
+   same-task cross-tape spread (2.4×) exceeds the within-tape task gap; the head-scale
+   confound (`ppo.py:554-561`) persists at convergence (last-layer norm spans 5.6×,
+   r=+0.53 with f). **No proxy→live mapping exists on this evidence; no zero-lane dose
+   certificate for D28 is available.** D28's dose is certified IN-RUN ONLY: the 200k
+   read (stop lane, adjust τ, relaunch ≈ 0.03 ld per false start) and the 6M abort.
+   Reported on the invalid scale, for completeness: the synthetic task's f is uniformly
+   the highest family and never near the shuffled anchor.
+3. **Useful positives from the same runs:** the amended synthetic task is genuinely
+   learnable (held-out acc 0.75, CE 0.77 at τ\* vs D25's live 0.81); **τ\* = 8.5–9.3
+   (median 8.8)** hits the 0.250-nat entropy target (Z1-2 curve frozen in the JSON);
+   the r0 per-slot construction collapses exactly as Review 2 MF-1 predicted; the
+   **own-action task is independently corroborated dead** (lowest f on 3/4 tapes, head
+   cannot beat its own marginal floor on any tape). One new free number surfaced: unit-
+   variance standardisation yields a near-flat class marginal, so matching D25's
+   marginal needs **per-class offsets** — a third calibrated constant for the header.
+4. **Calibrations banked** (`trunk_fraction_bins.json`): the trunk-fraction
+   "discrepancy" is two windows of the same data (bin-11 0.50–0.62 = RESULTS; run-mean
+   0.62–0.68 = B) — reconciled; the D25-P collapse trajectory gives the **6M abort
+   threshold = 0.35** (placebo 0.07–0.14 at bins 5–6 vs treatment 0.60–0.69), measured
+   not guessed.
+
+**Net effect on the chapter: D30 is out; D28 is the chapter (2.16 ld), with D29 held
+pending the maintainer's 50M/§13 ruling. §5's D29-vs-D30 ordering question and §7's
+decision points 3–4 are moot.**
 
 ## 1. D28 — the zero-information control (the chapter's core purchase)
 
@@ -174,7 +216,8 @@ effect at low spread); (ii) amend to the distribution-free criterion (3v3 comple
 separation, p = 1/20) — **Designer A's recommendation** (B did not address it); (iii)
 leave closed and retire the 250M line.
 
-## 3. D30 — soft-label aux (premise measured, and it is thin)
+## 3. D30 — soft-label aux — **KILLED AT ZERO LANES 2026-08-17 (§0b.1; Z3-3 measured).
+Retained for the record; do not run, do not re-propose without new evidence.**
 
 **The lever.** Train the D25 head with soft-CE against the opponent snapshot's full
 masked action distribution mapped into L6 (the distribution is computed and discarded
