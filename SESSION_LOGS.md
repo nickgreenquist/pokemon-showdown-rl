@@ -4700,3 +4700,32 @@ entry by offset — never a broad keyword grep.
   accept the two §2 overrides; (3) at readout only — whether a credited STACK
   satisfies §13(1)'s "credited lever" wording. Ledger unchanged (~19.7/20 spent;
   D29r is new-tranche). Launch commands in the header's OPS block, 3 lanes staggered.
+- 2026-08-18 (afternoon, **D29r LANE s90 DIED AT 35.0M — MASK/ORDER RACE IN A TURN-1000
+  AUTO-TIE BATTLE; 2 SURVIVORS → R-A PRIMARY HEADED FOR VOID PER THE LANE-FAILURE
+  RULE**): s90 (pid gone ~13:45 Tue) crashed unhandled at step ~35,139,488; last rung
+  `ckpt_035000000.pt` 13:38; wandb stream closed cleanly 13:45:03. Maintainer's
+  terminal traceback (pasted into session): 13:43:25 `bigerror` "You will auto-tie if
+  the battle doesn't end in 0 turns (on turn 1000)" in
+  battle-gen1randombattle-33084355, then `ValueError: Invalid action 1 ... /choose
+  switch Muk not in valid orders ['switch Dugtrio','switch Marowak', 4 moves]` raised
+  by poke-env `singles_env.action_to_order` (strict), up through
+  `SyncVectorEnv.step` → train loop dead. MECHANISM: `showdown.py:881` emits
+  `info["action_mask"]` from poke-env's `get_action_mask(battle)` at obs time; strict
+  order validation re-reads battle state at step time; the turn-1000 auto-tie path
+  churned available_switches in between (Muk legal at mask time, gone at order time).
+  The strict-raise choice is documented at `showdown.py:883` — this is the first
+  observed desync in ~400M+ cumulative training steps (struct50m 3x50M + D25/D26 +
+  35M here), i.e. rare race, but exposure scales with any 250M line. Lane was HEALTHY
+  to the last row (no NaN/inf in final 200 rows, normal losses/returns). NOT
+  restarted: the pre-reg lane-failure rule (D25's, verbatim in the header) says dies
+  → reported as-is, NEVER replaced; <3 survivors VOIDS the primary (surviving finals
+  individual, never pooled); the seeds-93/94 provision was pre-D-D (4M) only.
+  s91/s92 unaffected, running ~397-407 steps/s on the freed cores (expectation band
+  was 3-wide; 2-wide runs faster), ETA ~midnight → Wed readout stands, graded by
+  `scripts/d29_grade.py` which implements the 2-survivor arithmetic. Watch re-armed
+  2-hourly (survivor-aware, VOID-aware endgame); the stale 3-lane 5-hourly cron
+  found still registered and deleted. OPEN (maintainer, no action taken): whether to
+  harden the seam before D28/any 250M line — e.g. catch the strict ValueError at the
+  `showdown.py` step boundary, log the desync, and issue a legal default order
+  (truncation semantics) instead of dying at 70% of a 4.5 ld run. A fix is NOT a
+  D29r matter (its arm is closed to code changes mid-run).
