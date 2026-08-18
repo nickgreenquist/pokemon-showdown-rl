@@ -37,6 +37,7 @@ from rl.common.checkpoint import load_checkpoint
 from rl.common.config import Config
 from rl.common.evaluation import _run_eval_episodes, eval_metrics
 from rl.envs.make import make_env, make_eval_env
+from rl.envs.showdown import mask_desync_total
 from rl.envs.normalize import frozen_obs_env
 from rl.train import make_agent
 
@@ -193,6 +194,10 @@ def main() -> None:
         **metrics,
         "wins_from_returns": sum(1 for r in returns if r > 0) / len(returns),
         "ties_from_returns": sum(1 for r in returns if r == 0) / len(returns),
+        # Recovered mask/valid-orders desyncs (rl/envs/showdown.py). A
+        # nonzero count means that many battles contained one random-legal
+        # fallback order — disclose beside the win rate, like no_shaping.
+        "mask_desyncs": mask_desync_total(),
         "returns": returns,
     }
     if args.opponent_checkpoint:

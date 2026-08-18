@@ -4729,3 +4729,32 @@ entry by offset — never a broad keyword grep.
   `showdown.py` step boundary, log the desync, and issue a legal default order
   (truncation semantics) instead of dying at 70% of a 4.5 ld run. A fix is NOT a
   D29r matter (its arm is closed to code changes mid-run).
+- 2026-08-18 (evening, **MASK-DESYNC HARDENING LANDED: the s90 crash class can no longer
+  kill a run — conversion-site interception, 2-Opus reviewed, r1 retry design KILLED by
+  both reviewers**): maintainer directive after s90 ("never let a single error take
+  down a 50M run"). r1 (strict-flip + retry at the step boundary) was proven UNSOUND
+  independently by both reviewers: PokeEnv.step flips agent*_to_move BEFORE the raising
+  conversion, so a retry deadlocks silently in the timeout-less race_get — worse than
+  the crash. Landed design (memo r2 + both reviews in results/design_ch2/maskfix_*):
+  `ShowdownSingles.action_to_order/order_to_action` overrides + wrapped PoolPlayer
+  static call route ValueError through one module-level `_recover_mask_desync` —
+  WARNING + count + poke-env's own random-legal fallback; `MaskDesyncCapExceeded` on a
+  2nd desync in the same battle or >3 in a rolling 100K-step window (benign race
+  2.5e-9/step vs >=1e-3 systemic: six orders of margin; per-PROCESS module state so
+  num_envs can't multiply the budget). Seat-2 recovery DROPS the D25 label
+  (_OPP_CHOICE_NONE) — a fallback label vs the stale frame could flip the
+  aux/illegal_label_frac==0 hard gates. Eval recovers on the same path;
+  `mask_desyncs` now in eval_checkpoint JSON + score_ladder rows (nonzero on a locked
+  number = disclosure item); no new W&B metric (locked names — maintainer call if
+  wanted). REVIEW-2 CORRECTED THE MECHANISM: tied() touches no availability; the churn
+  is parse_request on the LISTENER thread racing a held decision
+  ([Unavailable choice]/[Invalid choice], gen-1 stall wars) — so the rate SCALES with
+  long battles; that is why the cap is a rolling window, not lifetime. RESIDUALS on
+  record in the memo: the finished-battle assert window (stale order_queue await makes
+  naive synthesis corrupting — needs its own design round), hangs (race_get has no
+  timeout — watch-loop progress checks remain the only defense), and resume (the thing
+  that would have saved s90's 35M) stays OPEN. Forfeit/truncation alternatives rejected
+  for cause: a forfeit scores as a LOSS (-1 into the credit-line quantity). Tests:
+  tests/test_mask_desync.py (8, offline); suite 380 passed 9 skipped; env-var mode
+  failures identical to HEAD via stash (8 pre-existing), zero regressions. Protects
+  FUTURE launches (D28+) only — s91/s92 run pre-fix code.

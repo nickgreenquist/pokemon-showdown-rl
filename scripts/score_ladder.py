@@ -30,6 +30,7 @@ from rl.common.checkpoint import load_checkpoint
 from rl.common.config import Config
 from rl.common.evaluation import evaluate
 from rl.envs.make import make_eval_env
+from rl.envs.showdown import mask_desync_total
 from rl.train import make_agent
 
 
@@ -61,6 +62,9 @@ def score_ladder(run_dir: Path, opponents: list[str], episodes: int) -> list[dic
                 "win_rate": metrics["eval/win_rate"],
                 "return_mean": metrics["eval/return_mean"],
                 "return_std": metrics["eval/return_std"],
+                # Recovered mask desyncs so far this process (cumulative
+                # across rows); nonzero on a quoted number is a disclosure.
+                "mask_desyncs": mask_desync_total(),
             }
             rows.append(row)
             print(

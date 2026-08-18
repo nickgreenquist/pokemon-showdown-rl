@@ -28,8 +28,10 @@ and damage ranges, so eval variance is handled by battle count (the Phase 5
 headline metric budgets >=1000 battles per matchup), not by fixed seeds.
 """
 
+import logging
 import os
 import random
+from collections import deque
 
 import numpy as np
 from gymnasium import Env, spaces
@@ -618,6 +620,97 @@ def hl_event_sum(events, who: str, start: int = 0) -> float:
     return total
 
 
+# --- Mask-desync recovery (2026-08-18, after D29r lane s90) ----------------
+#
+# poke-env's request state lives on its websocket listener thread
+# (`parse_request` clears `_available_switches` before repopulating); the
+# main thread's strict `action_to_order`/`order_to_action` re-reads
+# `valid_orders` at conversion time. A re-request landing in that window
+# (e.g. `[Unavailable choice]`/`[Invalid choice]` near gen-1 stall turns)
+# makes a mask-legal action invalid at conversion — observed once in ~400M
+# cumulative steps, and it killed a 50M lane at 70%. The exception must be
+# absorbed HERE, at the conversion site, and nowhere shallower:
+# `PokeEnv.step` flips `agent*_to_move` BEFORE converting, so an exception
+# escaping `step` leaves the state machine half-mutated and any retry
+# deadlocks in the timeout-less `battle_queue.race_get`.
+#
+# The recovery is poke-env's own non-strict fallback (`Player.
+# choose_random_singles_move`, poke_env/player/player.py — one random draw
+# from `valid_orders`, `choose_default_move()` if empty; note it consumes
+# one draw from the global `random` stream that seeding.py seeds — harmless
+# after construction, when usernames have already been derived). The mask
+# contract stays LOUD: every recovery warns and counts, a second desync in
+# the same battle raises, and more than _MASK_DESYNC_CAP recoveries inside
+# a rolling _MASK_DESYNC_WINDOW of env steps raises — a systemic mask bug
+# (encoder change, poke-env bump) fires on >=1e-3 of steps and dies within
+# seconds, while the benign race (~2.5e-9/step observed) never trips it at
+# any horizon. All state is module-level: per PROCESS (one lane = one
+# process), not per instance — `num_envs: 8` must not multiply the cap.
+
+_MASK_DESYNC_WINDOW = 100_000  # env steps
+_MASK_DESYNC_CAP = 3  # recoveries allowed inside one window
+
+_mask_desync_total = 0
+_mask_desync_steps: "deque[int]" = deque()
+_mask_desync_battles: set = set()
+_env_step_counter = 0
+
+
+class MaskDesyncCapExceeded(RuntimeError):
+    """Systemic mask/valid-orders divergence: recovery budget exhausted."""
+
+
+def mask_desync_total() -> int:
+    """Lifetime recovered-desync count for this process (0 = clean run).
+    Eval scripts surface it in their reports; any nonzero value on a locked
+    number is a disclosure item."""
+    return _mask_desync_total
+
+
+def _reset_mask_desync_state() -> None:
+    """Test hook: module-level counters would otherwise leak across cases."""
+    global _mask_desync_total, _env_step_counter
+    _mask_desync_total = 0
+    _env_step_counter = 0
+    _mask_desync_steps.clear()
+    _mask_desync_battles.clear()
+
+
+def _recover_mask_desync(battle, exc: ValueError):
+    """One legal order in place of a raced one — loud, counted, capped."""
+    global _mask_desync_total
+    tag = getattr(battle, "battle_tag", "<unknown>")
+    if tag in _mask_desync_battles:
+        # One race in a battle is a race; two is a state-machine bug.
+        raise MaskDesyncCapExceeded(
+            f"second mask desync in {tag}: {exc}"
+        ) from exc
+    _mask_desync_battles.add(tag)
+    _mask_desync_total += 1
+    _mask_desync_steps.append(_env_step_counter)
+    while (
+        _mask_desync_steps
+        and _env_step_counter - _mask_desync_steps[0] > _MASK_DESYNC_WINDOW
+    ):
+        _mask_desync_steps.popleft()
+    if len(_mask_desync_steps) > _MASK_DESYNC_CAP:
+        raise MaskDesyncCapExceeded(
+            f"{len(_mask_desync_steps)} mask desyncs within "
+            f"{_MASK_DESYNC_WINDOW} env steps (cap {_MASK_DESYNC_CAP}), "
+            f"latest in {tag}: {exc}"
+        ) from exc
+    logger = getattr(battle, "logger", None) or logging.getLogger(__name__)
+    logger.warning(
+        "mask desync #%d in %s turn %s — recovering with a random legal "
+        "order: %s",
+        _mask_desync_total,
+        tag,
+        getattr(battle, "turn", "?"),
+        exc,
+    )
+    return Player.choose_random_singles_move(battle)
+
+
 class ShowdownSingles(SinglesEnv):
     """The two-seat poke-env env: encoder + reward, no opponent knowledge.
 
@@ -707,6 +800,32 @@ class ShowdownSingles(SinglesEnv):
         self._faint_potential.clear()
         self._event_cursor.clear()
         return super().reset(seed=seed, options=options)
+
+    # Mask-desync interception (see _recover_mask_desync above). These are
+    # instance-attribute lookups at every in-poke-env conversion site —
+    # both seats in PokeEnv.step and SingleAgentWrapper's opponent-order
+    # conversion — so overriding here covers all of them with one path.
+    # strict=False callers never raise and pass straight through.
+
+    @staticmethod
+    def action_to_order(action, battle, fake: bool = False, strict: bool = True):
+        try:
+            return SinglesEnv.action_to_order(action, battle, fake=fake, strict=strict)
+        except ValueError as exc:
+            return _recover_mask_desync(battle, exc)
+
+    @staticmethod
+    def order_to_action(order, battle, fake: bool = False, strict: bool = True):
+        try:
+            return SinglesEnv.order_to_action(order, battle, fake=fake, strict=strict)
+        except ValueError as exc:
+            fallback = _recover_mask_desync(battle, exc)
+            # The fallback is drawn from the CURRENT valid_orders, so its
+            # conversion should hold; strict=False guards the residual race
+            # (poke-env then maps it to its own default action code).
+            return SinglesEnv.order_to_action(
+                fallback, battle, fake=fake, strict=False
+            )
 
     def calc_reward(self, battle) -> float:
         # Called once per step; battle.won/lost are None until the server
@@ -880,9 +999,18 @@ class PoolPlayer(Player):
         obs = embed_battle(battle, self._type_chart)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         action = self._current.move(obs, mask, self._rng)
-        # strict default: an out-of-mask action raises rather than degrading
-        # to a random move (SeamPlayer precedent).
-        order = SinglesEnv.action_to_order(np.int64(action), battle)
+        # strict, with counted recovery: an out-of-mask action raises unless
+        # it is the listener-thread request race (SeamPlayer precedent for
+        # the raise; _recover_mask_desync for why the race is survivable).
+        try:
+            order = SinglesEnv.action_to_order(np.int64(action), battle)
+        except ValueError as exc:
+            # Drop the label: a fallback order scored against the stale
+            # buffered frame could flip the aux/illegal_label_frac == 0 and
+            # frame_collision_frac == 0 hard gates, and canonicalise's
+            # policy is drop, never zero-fill.
+            self._choice = _OPP_CHOICE_NONE
+            return _recover_mask_desync(battle, exc)
         # D25 (B1/B2): record the chosen action's IDENTITY off the SAME
         # decision, before it becomes a protocol message. Costs no inference —
         # `action` was computed above regardless — and is unconditional
@@ -1013,6 +1141,11 @@ class ShowdownEnv(Env):
         return obs["observation"], info
 
     def step(self, action):
+        # The mask-desync rate window is denominated in env steps; one
+        # module-global counter across this process's instances (train env
+        # sub-envs + eval env alike — the cap is per process by design).
+        global _env_step_counter
+        _env_step_counter += 1
         poke = self._env.env
         # PokeEnv.step converts and sends agent1's action ONLY when
         # agent1_to_move — otherwise it silently discards the action and
