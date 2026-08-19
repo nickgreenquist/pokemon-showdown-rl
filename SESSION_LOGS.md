@@ -4804,3 +4804,14 @@ entry by offset — never a broad keyword grep.
   frozen comparator sets attested present, backups intact) re-verified at draft.
   Suite 380 passed / 9 skipped. Launch commands in the OPS block; 3-wide alone,
   ~37 h wall, ETA ~Thu evening if launched Wed morning. The watch re-arms on launch.
+- 2026-08-19 (morning, **PRE-DECLARED before any D29r2 data exists: the 5-lane
+  DESCRIPTIVE pool**): at the D29r2 readout, ALONGSIDE (never instead of) the
+  pre-registered 3-lane reads, report one labeled descriptive: equal-weight mean of
+  all 5 completed 50M-stack lanes (s91 0.73267, s92 0.75133, + s80/81/82) with the
+  seed-clustered se over 5. It is NOT a verdict input, NOT a credit basis, and NOT
+  the headline — the credit test stays 80/81/82 vs the frozen comparators, because
+  s91/s92's values are known and above-bar and would subsidize any pool they enter
+  (the lane-failure rule's "never pooled into a headline" stands). Declared now,
+  launch morning, so the readout doesn't invent it after seeing the r2 numbers.
+  Maintainer prompt: "so we will have 5 runs to avg right?" — this is the honest
+  version of yes.
