@@ -1,0 +1,376 @@
+# =====================================================================
+# PRE-REGISTRATION — D29r2, DRAFTED 2026-08-19 (overnight, at the D29r
+# readout). STATUS: RE-RUN ORDERED BY THE MAINTAINER 2026-08-19
+# ("we should rerun for sure"); ratification completed by the launch
+# itself, per the D29r precedent. New tranche ~4.5 lane-days.
+#
+# RE-RUN PROVENANCE — read this before anything else:
+# - D29r (seeds 90-92, launched 2026-08-18) ended PRIMARY VOID by the
+#   lane-failure rule: s90 died at 35.0M (poke-env strict ValueError,
+#   the mask/valid-orders listener race; SESSION_LOGS 2026-08-18).
+#   Its surviving finals — s91 0.73267, s92 0.75133 — are recorded
+#   INDIVIDUALLY in RESULTS.md §10 and are NOT inputs here: every bar
+#   below derives from the same FROZEN comparators as D29r, verbatim,
+#   and none is re-priced on those observations. This header is D29r's
+#   with exactly the mechanical deltas: seeds/run names/grader/results
+#   paths, this block, and the code-diff note below.
+# - SEEDS 80/81/82 (83/84 held): D29's own block is burned (90-92;
+#   never relaunch on a dead seat) and its held pair is 2 wide; D30
+#   was KILLED at zero lanes (Z3-3), so its DESIGN2 §5 block 80-84 is
+#   unencumbered and is reallocated whole. D28 keeps 70-74 (75/76).
+# - CODE DIFF SINCE D29r's LAUNCH (one item): the mask-desync
+#   hardening (commit 9ac445d, 2-Opus reviewed) — conversion-site
+#   recovery so the s90 crash class cannot kill a lane; recovery is
+#   counted+capped (MaskDesyncCapExceeded on burst or same-battle
+#   repeat) and finals JSONs now carry `mask_desyncs` (any nonzero is
+#   a disclosure item beside the number). No config key, encoder,
+#   reward, or objective changed; OBS_DIM unchanged; suite 380 green.
+# - PROCESS: the 2-Opus review is INHERITED from D29r (design content
+#   unchanged; verdicts in results/design_ch2/d29_review_{1,2}.md,
+#   hardening reviews in maskfix_review_{1,2}.md). The maintainer may
+#   veto the inheritance and order a fresh round before launch.
+# - The two DESIGN2 §2 overrides below remain, accepted at D29r's
+#   launch; the launch of THIS arm re-accepts them.
+#
+# D29r2 — **THE CREDITED STACK AT 50M**: entity arch + opponent-action
+# aux head + full-horizon LR anneal, 3 lanes, seeds 80-82, ~4.5 ld.
+#
+# WHY NOW (what changed since DESIGN2 §2 said "descriptive only"): the
+# banked 50M comparator's spread put the credit bar at 0.6675 — above
+# the best lane in repo history AT THAT TIME (0.6593, pre-D26) — so no
+# 50M arm could credit. **D26's B1 (12M pooled 0.71825) moved the
+# achievable range above that bar.** A stack that merely HOLDS its 12M
+# level at 50M credits UNDER 12M-LIKE SPREAD (see the honest-
+# expectation block for the 50M-spread caveat); the Rung-3 scale slope
+# (+0.029) on top would land ~0.747. The single-lever alternative
+# (aux-only at 50M) stays dead: 0.6185 + a Rung-3-like slope ≈ 0.65 <
+# 0.6675 — it cannot credit, so the stack read is the only creditable
+# 50M question. **DISCLOSED: this is a STACK arm, TWO levers from the
+# struct50m comparator (aux + anneal). Attribution between them at 50M
+# is NOT separable from this read and is not claimed.**
+#
+# **TWO PRE-STATED DESIGN2 §2 RULES ARE OVERRIDDEN HERE, PLAINLY, AND
+# BOTH ARE RATIFICATION-TIME DECISIONS (review M5/M6):**
+# (1) §2's "anneal-off on EVERY D26 branch" is OVERRIDDEN — this arm
+#     is anneal-ON with zero extra comparator lanes, and §2's priced
+#     override (+3 comparator lanes) is NOT paid. The substitute
+#     argument: the treatment is expected far ABOVE the bar, so buying
+#     the bar down is unnecessary; the maintainer accepts or rejects
+#     this AT RATIFICATION, not at readout. (Also note §2's rule
+#     predates the D26 credit; its own rationale — "a non-credited
+#     lever must never be smuggled in" — no longer applies to a
+#     credited one.)
+# (2) §2 pre-stated the 3v3 permutation as PRIMARY with the credit
+#     line as letter-bearing secondary. This header INVERTS that (the
+#     credit line is PRIMARY) because the credit line can now fire.
+#     The inversion favours the arm and is disclosed as a change to a
+#     pre-stated rule, not presented as continuity.
+# §13 STATUS NOTE: DESIGN §13 (the 250M memo) is itself PROPOSED /
+# UNRATIFIED; its three preconditions all stand (a credited lever at
+# 50M; E1-E4 measured; the lane-count/cap/rent question).
+#
+# THE ONE LINE THAT MUST BE RIGHT: `lr_anneal_steps: 50000000` — full
+# horizon. A 12M value under a 50M run trains the last 38M steps at lr
+# EXACTLY 0 with no visible symptom. Since 2026-08-17 rl/train.py
+# REFUSES 0 < lr_anneal_steps < total_steps (the interval guard,
+# tested); R0-b re-asserts it at launch.
+#
+# PURITY (§5): unchanged from D25/D26 — pure self-play, no teacher, no
+# human data; `opponent: self` seam asserted by R0-d.
+#
+# ---------------------------------------------------------------------
+# COMPARATORS AND READS. CREDIT LINE VERBATIM (both reads): a lever is
+# credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff
+# is the LARGER of the pooled-binomial se_diff and the seed-clustered
+# se_diff, the latter computed from the per-seed finals at read time.
+# ACROSS-LANE AGGREGATOR, NAMED ONCE, BINDING EVERYWHERE: the
+# EQUAL-WEIGHT MEAN of per-seed finals. Median and worst lane are
+# recorded and never govern. Health gates read as named at each gate.
+# PROTOCOL: FINAL checkpoint, deterministic, ties as non-wins, vs
+# SimpleHeuristicsPlayer, 3000 battles/seed, 3 seeds pooled = 9000,
+# both encoder env vars at every eval (3 = DESIGN §8's locked count).
+#
+# R-A, PRIMARY — vs the FROZEN struct50m comparator (aux-off,
+#   anneal-off, 50M): s35 0.65933 / s36 0.57267 / s37 0.50867 ->
+#   pooled 0.580222, sd 0.075617, n=3 (9000). Never re-scored. The s37
+#   outlier has a RECORDED diagnosis (sustained grad pathology from
+#   ~20M, reproduced in D18 s41) — a recurring regime property; the sd
+#   is real and stands. Binomial 2*se ~ 0.014 -> the CLUSTERED term
+#   governs at every plausible s_T:
+#     s_T      2*se_clus   OPERATIVE BAR (pooled >=)
+#     0.000     0.08732     0.66754
+#     0.0112    0.08827     0.66849   <- D26's s_T
+#     0.0236    0.09147     0.67169   <- D25's s_T
+#     0.049     0.10404     0.68427   <- max 12M-lineage spread (D18-D25)
+#     0.0756    0.12348     0.70370   <- the comparator's OWN 50M spread
+#   KILL-POINT (review M2): s_T >= 0.092 defeats even a perfectly flat
+#   transfer (bar > 0.718). The 0.0756 row is the honest reference for
+#   this regime — the same header that argues s37's spread is a
+#   recurring 50M property may not then price credit off 12M spreads.
+#   EXACT 3v3 PERMUTATION (secondary, letter-bearing): direction +1,
+#   C(6,3)=20, min attainable p = 1/20 = 0.050, fires iff EVERY
+#   treatment lane > 0.65933 (max comparator lane). **Ties at the
+#   boundary read as NON-separation.** NAMED CELL (no unnamed cells):
+#   "credit line fires, permutation does not" — possible at low
+#   treatment spread with one lane <= 0.65933; recorded as CREDIT per
+#   the governing credit line, with the non-separation stated wherever
+#   the permutation would have been quoted.
+#
+# R-B, SECONDARY (letter-bearing) — THE SCALE READ — vs the FROZEN D26
+#   12M stack: s62 0.7297 / s63 0.7187 / s64 0.7217 / s65 0.7030 ->
+#   pooled 0.718250, sd 0.011177, n=4 (12000) — EXACT DISK VALUES
+#   (results/d26/final_s6*.json; the grader attests them at every
+#   run), matching the published 0.71825. Never re-scored.
+#     s_T      2*se_clus   OPERATIVE BAR
+#     0.000     0.01118     0.74325 (the +0.025 FLOOR governs)
+#     0.0112    0.01709     0.74325 (floor; crossover at s_T ~ 0.0194)
+#     0.0236    0.02945     0.74770
+#     0.049     0.05767     0.77592
+#   EXACT 3v4 PERMUTATION: C(7,3)=35, min p = 1/35 = 0.0286, fires iff
+#   every treatment lane > 0.72967 (s62, the max comparator lane).
+#   Same tie rule, same named cell, same pre-written sentence (in the
+#   grader). R-B answers "does 4.17x compute add ON TOP of the
+#   credited stack"; it may NOT be promoted to satisfy §13(1); it MAY
+#   retire §13's 250M line on futility (S3/S4/S5 are decision-grade).
+#
+# HONEST EXPECTATION, PRE-STATED (corrected per review M2 — priced at
+#   BOTH spread regimes, not just the favourable one): flat transfer
+#   (~0.718) credits by +0.050 over the bar at 12M-like spread but by
+#   only **+0.014 at the comparator's own 0.0756 spread** — at 50M
+#   spread the arm fails on a mere 0.014 regression, and s_T >= 0.092
+#   defeats a flat transfer outright. So: **P(R-A credit) is high IF
+#   the treatment's spread stays 12M-like, and only moderate if the
+#   50M spread regime (s37's pathology) recurs in this arm.** s_T is,
+#   as in D26, the single biggest determinant. P(R-B credit) is
+#   genuinely uncertain (needs the full +0.025 on top of 0.71825; the
+#   only measured 12M->50M slope is +0.029 on a different recipe). A
+#   FLAT R-B is NOT a failure of the arm — "scale adds nothing on top
+#   of the stack" MAY RETIRE §13's 250M line on futility grounds
+#   (decision-grade), while never satisfying §13(1).
+#
+# FALSIFIER-CLASS THRESHOLD (branch-preamble scope, per review M3 —
+#   NOT a property of any single cell): pooled < 0.6185 (D25's 12M
+#   aux-only number) means the annealed stack regresses VS ITS OWN 12M
+#   LINEAGE — regardless of which R-A cell it lands in. It COMPOSES
+#   with the cell, never replaces it. It cannot co-fire with B1
+#   (B1's minimum bar 0.66754 > 0.6185 — mutually exclusive); it CAN
+#   co-fire with B2 (a pooled ~0.610 is simultaneously letter-met vs
+#   the aux-less 50M baseline AND a regression vs 12M — NAMED CELL,
+#   recorded with both sentences, neither suppressed), and with
+#   B3/B4/B5. Leading suspect on any firing: C-1.
+#
+# §13 ROUTING, FLAGGED NOW: a B1 here yields "a credited STACK at
+#   50M" — two levers from the comparator. Whether that satisfies
+#   §13(1)'s "a credited lever at 50M" wording is the MAINTAINER'S
+#   ruling, made at readout with the number in hand, not assumed here.
+#   §13's preconditions (2) and (3) stand regardless.
+#
+# MECHANISM SECONDARIES (recorded, no letter, no falsifier — D25's 12M
+#   bars are non-comparable under the 50M pool, per the pool-span
+#   analysis in results/design_ch2/ch2_design_B.md §3.3):
+#   - aux/loss: PRE-REGISTERED PREDICTION — plateaus ABOVE the 12M
+#     value (0.81) because the pool's historical span grows ~5x
+#     (offline proxy E[KL(member||mixture)] = 0.176 nats). A rising
+#     aux/loss at 30M is the pool's signature, NOT a bug; no one stops
+#     a healthy lane over it. DIAGNOSTIC CEILING, recorded-only: a
+#     final-1M aux/loss >= 1.40 (~the allow-marginal floor) means the
+#     head learned ~nothing at 50M — reported beside any verdict.
+#   - aux/trunk_norm_delivered and aux/clip_scale: NEW COLUMNS as of
+#     2026-08-17 (delivered-dose instrumentation). Banked histories
+#     lack them; any cross-arm reader must tolerate absence.
+#   - loss/entropy under the 50M anneal (K6 window below), and the
+#     D22-watch grad-norm bins (s37's pathology is a 50M regime risk;
+#     record-only, never a mid-run intervention).
+#
+# CONFOUNDS, DISCLOSED:
+#   C-1 ANNEAL HORIZON x4.17 (corrected per review M1): a linear
+#     anneal's lr integral is (1/2)*lr0*H, so this run's is **4.17x
+#     the 12M-annealed run's** (2.08x is the ratio vs D25's
+#     CONSTANT-lr 12M run, a different comparison), and the
+#     near-frozen tail is 4.17x longer in absolute steps. This arm
+#     TESTS that transfer rather than assuming it; C-1 is the leading
+#     suspect on any R-B negative or falsifier-class firing.
+#   C-2 TWO-LEVER: aux-vs-anneal attribution at 50M not separable, not
+#     claimed (above).
+#   C-3 POOL SPAN: the aux task hardens with horizon (prediction
+#     pre-stated above).
+#   C-4 R-B's comparator spread (sd 0.0112, n=4) may be lucky-low; if
+#     so R-B's floor bar understates. The larger-of rule at read time
+#     is the guard; noted so a marginal R-B credit is not over-read.
+#   C-5 CADENCE: 250k/100 evals, 500k ckpts — struct50m's cadence
+#     (one-diff vs R-A's arm on exactly the lever keys), NOT D25/D26's
+#     100k/200k. The in-loop eval count differs from both 12M arms;
+#     eval NUMBERS are unaffected (final-ckpt protocol) but in-loop
+#     curves are not like-for-like vs 12M curves.
+#
+# ---------------------------------------------------------------------
+# GATES (any failure voids the read; zero-lane gates BLOCK launch)
+# ---------------------------------------------------------------------
+# R0-a ONE-DIFF, FOUR DIRECTIONS (comment-stripped YAML dict diff;
+#   all four verified at draft time):
+#   vs showdown_sp_stack50m.yaml (the VOIDed D29r arm — the re-run
+#     must be it, exactly): exactly {seed, run_name};
+#   vs showdown_sp_actpred12m.yaml: exactly {total_steps, eval_every,
+#     checkpoint_every, agent.lr_anneal_steps, seed, run_name};
+#   vs showdown_sp_struct50m.yaml: exactly {env_kwargs.opp_action,
+#     agent.aux_oppact_coef, agent.aux_label_space, agent.
+#     aux_scorer_sizes, agent.aux_head_gain, agent.aux_max_grad_norm,
+#     agent.lr_anneal_steps, seed, run_name};
+#   vs showdown_sp_recipe12m.yaml (R-B's validity as a scale read —
+#     the treatment must be D26's config + horizon): exactly
+#     {total_steps, eval_every, checkpoint_every,
+#     agent.lr_anneal_steps, seed, run_name}.
+# R0-b ANNEAL GUARD: lr_anneal_steps == total_steps == 50000000; the
+#   rl/train.py interval guard (landed+tested 2026-08-17) re-asserted.
+# R0-c ANNEAL x AUX GROUP: run as
+#   `env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 pytest
+#   tests/test_anneal_aux_group.py` — WITHOUT the env vars 9 of 10
+#   tests SKIP silently and "green" certifies nothing (review). Expect
+#   9 passed / 1 skipped.
+# R0-d CARRIED SEAMS: actor 626,059 / actor+aux 675,538 / critic
+#   494,849; optimizer groups [29,26,6] (verified by construction
+#   2026-08-17; DISCLOSED: no automated checker asserts the group
+#   SIZES — tests assert only the count of 3); purity seam
+#   opponent: self; R0-4 (win_rate == wins_from_returns) every final.
+# R0-e GRADER COMMITTED BEFORE LAUNCH: scripts/d29r2_grade.py — both
+#   reads, branch cells exercised at known win-rate cuts in the
+#   selftest, D-A trace, disk ATTESTATION of both frozen comparators,
+#   the lane-failure rule (below), episodes==3000 asserts. (The R0-I
+#   lesson: D26's grader was found missing at readout.)
+# R0-f POOL ARITHMETIC: 48,828 updates -> 325 pushes at
+#   push_every_updates 150; pool_size 20 caps pool memory (~420
+#   MB/lane carried figure, order-of-magnitude only).
+# R0-g BACKUPS INTACT (corrected per review — the list must protect
+#   what THIS arm reads): results/struct50m_finals (R-A) and
+#   results/d26 (R-B), plus their copies in
+#   ../pokemon-showdown-rl-d25-backup-20260815/ (struct50m_finals and
+#   d25 were MISSING from the backup until 2026-08-17; repaired).
+#   The grader's attest() is the automated half of this gate.
+# LANE-FAILURE RULE (D25's, verbatim, review M4): a lane that dies or
+#   is stopped by K6 is reported as-is and NEVER replaced; both se
+#   terms recompute at the surviving count; fewer than 3 surviving
+#   lanes VOIDS the primary (surviving finals recorded individually,
+#   never pooled into a headline). The grader implements this.
+# D-A LR TRACE, HARD, IN-RUN: realised lr off the 2M / 10M / 26M / 50M
+#   checkpoints (nearest 500k rung), EVERY lane conjunctively, all
+#   three param groups, frac = 1 - (updates-1)*1024/50e6 (Q3's
+#   PRE-increment convention). The only gate that distinguishes "the
+#   anneal ran" from "the YAML said 50000000".
+# D-B THROUGHPUT: warm effective steps/s = dStep/dWall >= 30 min after
+#   1M, NEVER time/steps_per_sec (overstates 14.5% measured). 3-wide
+#   expectation 375-395 (struct50m measured 387.6-398.1, less D25's
+#   ~2.1% aux cost). Record below 330; STOP and investigate below 275.
+#   Runs ALONE 3-wide — co-scheduling costs +1.0 ld (measured).
+# D-C AUX HEALTH at every 5M: illegal_label_frac == 0,
+#   frame_collision_frac == 0, labelled_frac MEAN OVER THE 5M BIN in
+#   [0.78, 0.86] (12M RUN MEANS were 0.804-0.819; per-rollout values
+#   range 0.49-0.91, so an instantaneous read of this band is wrong by
+#   construction — review), all losses finite, aux/loss ALLOWED to
+#   rise per the pool prediction.
+# D-D LEARNING: selfplay/winrate_anchor >= 0.75 by 4M, each lane
+#   individually (D25/D26 ran 0.96-0.98; logs at rollout boundaries,
+#   independent of eval cadence).
+# K6 ENTROPY, HORIZON-SCALED (disclosed deviation from the 12M
+#   letter): 3-lane median loss/entropy < 0.15 for 5 consecutive
+#   readings before 25M -> record and stop. 25M is not just
+#   proportional scaling: it is the lr >= 1.25e-4 point of THIS
+#   anneal, exactly the invariance the 12M letter's "before 6M"
+#   encoded (the gate reads a still-moving policy). Readings are
+#   rollout-boundary logs (~1 per 1024 steps), the 12M letter's own
+#   cadence, carried verbatim. No mid-run changes, ever.
+#
+# BRANCHES (R-A primary; delta_A = pooled - 0.580222; hi_A =
+# max(0.025, 2*se_gov_A) at read time):
+#  (B1) delta_A >= hi_A: **CREDIT — the stack survives 50M.** Headline
+#       stays D26's 0.71825 unless R-B ALSO credits (then the 50M
+#       number leads). Take the §13(1) wording question to the
+#       maintainer WITH the number. Next-arm queue: the D28 caveat
+#       control (unchanged priority), then 250M only per §13's own
+#       remaining preconditions.
+#  (B2) +0.025 <= delta_A < hi_A: letter-met, seed-fragile, NOT
+#       credited — verbatim phrase, per-seed detail, no narrative use
+#       without the weakness named. §13 unmoved.
+#  (B2∧F) NAMED CELL (review M3): B2 with pooled < 0.6185 — letter-met
+#       vs the aux-less 50M baseline AND falsifier-class vs its own
+#       12M lineage. BOTH sentences recorded, neither suppressed; no
+#       narrative use of either alone.
+#  (B3) |delta_A| < 0.025 (pooled 0.5552-0.6052): FLAT vs the old 50M
+#       recipe — the stack's 12M gains VANISH at 50M. (Every B3 pooled
+#       is < 0.6185, so B3 is falsifier-class by construction — the
+#       threshold discriminates in B2, not here.) Mechanism reads
+#       decide the epitaph; the 250M line dies on futility.
+#  (B4) -hi_A < delta_A <= -0.025: "letter-met NEGATIVE, not
+#       credited" (the grader's cell string) — regresses vs even the
+#       aux-less 50M baseline; C-1 the named suspect.
+#  (B5) delta_A <= -hi_A: "NEGATIVE, credited in reverse" — as B4,
+#       credited; record the entropy/lr/grad trajectories beside it.
+#       250M dies on both.
+#  R-B cells (S1 credit / S2 letter / S3 flat / S4-S5 negative) read
+#  independently under the same credit line and tie/named-cell rules;
+#  S3 ("scale adds nothing on top") and S4-S5 ("scale subtracts") are
+#  decision-grade for §13 regardless of R-A's cell.
+#
+# BUDGET/OPS: 3 lanes x ~1.50 ld = **~4.5 lane-days**, ~37 h wall
+#   3-wide alone (~385 steps/s/lane expected). NEW TRANCHE REQUIRED.
+#   Seeds 80/81/82; 83/84 held for a pre-D-D lane loss; never relaunch
+#   a dead lane on its own seat. Maintainer's terminal; caffeinate;
+#   commit docs BEFORE launch; clean tree; server :8000 simulator 4;
+#   stagger ~60 s; verify by battle PROGRESS. Disk ~6.5 GB total: 3 x
+#   100 ckpts x ~13.2 MB = ~4.0 GB PLUS ~750 MB/lane of offline wandb
+#   at this cadence (measured on struct50m — the 4.2 GB draft figure
+#   omitted wandb; 144 GB free, no risk, number corrected).
+#
+# Launch, per lane (N in 80/81/82), AFTER ratification and R0-a..g:
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_stack50m.yaml \
+#     --seed N --run-name showdown_sp_stack50m_r2_sN
+# =====================================================================
+env_id: Showdown-v0
+seed: 80
+total_steps: 50000000
+eval_every: 250000         # struct50m cadence (C-5) — one-diff vs R-A's arm
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 500000   # struct50m cadence; feeds D-A's 500k rungs
+run_name: showdown_sp_stack50m_r2_s80
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true         # D25's label seam, unchanged
+selfplay:                  # identical to showdown_sp_actpred12m.yaml
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1     # D25's credited value, frozen
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:            # byte-identical to the credited recipe
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512] # unused when trunk != mlp; kept for exactness
+  lr: 2.5e-4
+  lr_anneal_steps: 50000000   # THE LEVER CARRIED: full horizon. NOT 12M.
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

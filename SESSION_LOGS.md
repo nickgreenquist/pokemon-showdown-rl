@@ -4787,3 +4787,20 @@ entry by offset — never a broad keyword grep.
   **Maintainer decisions open:** (1) whether to re-run the 50M stack as a fresh
   pre-registered 3-lane arm (new tranche; seeds per DESIGN2 §5 — never on seat 90) or
   proceed straight to D28 (~2.2 ld, queued); (2) push timing (several commits local).
+- 2026-08-19 (overnight, **D29r2 PREPPED: THE 50M STACK RE-RUN — maintainer ordered it
+  at the VOID readout ("we should rerun for sure"); seeds 80-82 from dead D30's
+  block**): `configs/showdown_sp_stack50m_r2.yaml` is D29r's pre-reg with EXACTLY
+  {seed, run_name} changed (comment-stripped dict diff VERIFIED — R0-a gains a fourth
+  direction, vs the VOIDed arm itself), plus a RE-RUN PROVENANCE block: bars derive
+  from the same frozen comparators VERBATIM, s91/s92's 0.73267/0.75133 observations
+  are NOT inputs and re-price nothing; the only code diff since D29r's launch is the
+  mask-desync hardening (9ac445d); the 2-Opus review is INHERITED from D29r
+  (d29_review_{1,2} + maskfix_review_{1,2}) since zero design content changed —
+  maintainer may veto and order a fresh round. Seeds: 90-92 burned, 93/94 only 2
+  wide, D30 KILLED at zero lanes -> its DESIGN2 §5 block 80-84 reallocated whole
+  (80/81/82 run, 83/84 held pre-D-D); 70-74 stays D28's. Grader
+  `scripts/d29r2_grade.py` committed BEFORE launch per R0-e (seeds/paths only;
+  selftest green). R0-b (anneal==total==50M), R0-d (opponent: self), R0-g (both
+  frozen comparator sets attested present, backups intact) re-verified at draft.
+  Suite 380 passed / 9 skipped. Launch commands in the OPS block; 3-wide alone,
+  ~37 h wall, ETA ~Thu evening if launched Wed morning. The watch re-arms on launch.
