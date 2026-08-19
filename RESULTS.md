@@ -395,3 +395,45 @@ estimate is NOT explained by this read; the honest candidates (the D21 estimate 
 6M-horizon transfer; anneal × aux-head interaction, C6's untested fifth transfer) are
 recorded as open, not adjudicated. vs-SH 0.7183 is still far from ladder-strong; the
 GXE caveat at the top of `prior_work/README.md` stands unchanged.
+
+## 10. Addendum, 2026-08-19 — D29r (the credited stack at 50M): PRIMARY VOID by lane
+loss; two surviving finals recorded individually
+
+Written at readout, overnight. The arm (`configs/showdown_sp_stack50m.yaml`, 3 lanes,
+seeds 90–92, ~4.2 lane-days realised) asked whether the credited 12M stack — entity
+architecture + opponent-action aux + LR anneal — holds at 50M. It did not get to
+answer: **lane s90 died at 35.0M** (a poke-env strict `ValueError`, a mask/valid-orders
+race in a ~turn-1000 stall battle; §SESSION_LOGS 2026-08-18), and the pre-registered
+lane-failure rule (D25's, verbatim in the header) is unambiguous: a dead lane is
+reported as-is and never replaced; **fewer than 3 survivors VOIDS the primary**. The
+grader (`scripts/d29_grade.py`, committed before launch) attested both frozen
+comparators, then refused to grade either read. **R-A and R-B cells: UNREAD. The
+headline remains D26's 0.71825.**
+
+What is recorded, individually and never pooled (locked protocol, final ckpt,
+3000/seed, deterministic, ties as non-wins, vs SH):
+
+- **s91: 0.73267** (2198/3000; ties 0.0080; return_mean +0.4733)
+- **s92: 0.75133** (2254/3000; ties 0.0097; return_mean +0.5123)
+
+Both individual finals sit above the 12M stack's pooled 0.71825. That is an
+observation, not a credit — two surviving lanes cannot clear a bar priced for three,
+and this document does not pool them. Whether to re-run the arm as a fresh
+pre-registered 3-lane tranche is the maintainer's call; the VOID rule existed to make
+exactly this outcome expensive to rationalize around.
+
+Recorded-only diagnostics, per the header: D-A LR trace PASS 16/16 surviving rungs
+(2M/10M/26M/50M × s91/s92, all three param groups; final lr 5.76e-9 — the anneal
+genuinely ran). D-C PASS both lanes (illegal_label_frac and frame_collision_frac
+exactly 0 everywhere; labelled_frac 5M-bin means 0.7945–0.8133, in band; all losses
+finite). D-D PASS both (winrate_anchor 0.976 by 4M). R0-4 exact-agree on both finals;
+`mask_desyncs` 0 in both (first readout carrying the field). K6 as pre-registered is
+a 3-lane median and is **unreadable** after the lane loss; per-lane facts: s91 ran 6
+consecutive sub-0.15 entropy readings before 25M (min 0.1251) — a per-lane variant
+would have tripped; s92 never dipped (min 0.1574). The pre-registered aux/loss
+prediction **missed in the informative direction**: predicted plateau ABOVE 0.81 on
+pool hardening; measured 0.7265/0.7438 at 12M falling to 0.6451/0.5742 over the final
+1M — the head kept learning against the 50M pool, and the offline KL proxy that
+priced the prediction overstated the hardening. Delivered-dose columns (first run):
+aux/trunk_norm_delivered means 0.1093/0.0982; aux/clip_scale ~1.000 (the clip never
+engaged). Artifacts: `results/d29/` (only copy, backed up).

@@ -4758,3 +4758,32 @@ entry by offset — never a broad keyword grep.
   tests/test_mask_desync.py (8, offline); suite 380 passed 9 skipped; env-var mode
   failures identical to HEAD via stash (8 pre-existing), zero regressions. Protects
   FUTURE launches (D28+) only — s91/s92 run pre-fix code.
+- 2026-08-19 (overnight, **D29r READOUT: PRIMARY VOID BY LANE LOSS — R-A AND R-B UNREAD;
+  s91 0.73267 / s92 0.75133 RECORDED INDIVIDUALLY, NEVER POOLED; HEADLINE STAYS D26
+  0.71825**): s91/s92 completed 50M cleanly (exited 23:56/23:35 Tue; ~37.2 h wall,
+  ~4.2 ld realised incl. s90's 1.13 to its death at 35M). Finals, locked protocol
+  (final ckpt, 3000/seed, deterministic, ties non-wins, vs SH), run sequentially at
+  readout: **s91 0.7326667** (2198/3000, ties 0.0080, return_mean +0.47333), **s92
+  0.7513333** (2254/3000, ties 0.0097, return_mean +0.51233); R0-4 exact-agree both;
+  `mask_desyncs` 0 both (first readout with the disclosure field). Grader
+  (`scripts/d29_grade.py`): attest PASS on both frozen comparators, then the
+  pre-registered lane-failure rule fired — 2 survivors < 3 → **PRIMARY VOID, exits
+  before grading either cell**. Both individual finals exceed 0.71825 — recorded as
+  OBSERVATIONS, explicitly not credits; nothing here satisfies any bar. Recorded-only
+  diagnostics: D-A trace PASS 16/16 surviving rungs (2M/10M/26M/50M x s91/s92, 3 param
+  groups, final lr 5.76e-9; run standalone, labeled recorded-only — the grader's own
+  short-circuit is the pre-registered behavior); D-C PASS both (illegal/frame exactly
+  0 everywhere, labelled 5M-bin means 0.7945-0.8133, losses finite); D-D PASS both
+  (anchor 0.976 by 4M); K6 UNREADABLE as pre-registered (3-lane median, s90 dead) —
+  per-lane: s91 six consecutive <0.15 entropy readings pre-25M (min 0.1251; a
+  per-lane variant would have stopped it), s92 zero (min 0.1574); named, not
+  adjudicated. **aux/loss prediction MISSED in the informative direction**: predicted
+  plateau >0.81; measured 0.7265/0.7438 @12M FALLING to 0.6451/0.5742 final-1M —
+  the offline KL proxy overstated pool hardening; ceiling 1.40 never approached.
+  Delivered dose (new cols, first run): trunk_norm_delivered 0.1093/0.0982 mean,
+  clip_scale 1.0000/0.9999 (clip never engaged). Recorded everywhere in this commit:
+  STATUS rewrite, README row, RESULTS.md §10; results/d29/ backed up to
+  ../pokemon-showdown-rl-d25-backup-20260815/; HANDOFF folded and restored to stub.
+  **Maintainer decisions open:** (1) whether to re-run the 50M stack as a fresh
+  pre-registered 3-lane arm (new tranche; seeds per DESIGN2 §5 — never on seat 90) or
+  proceed straight to D28 (~2.2 ld, queued); (2) push timing (several commits local).
