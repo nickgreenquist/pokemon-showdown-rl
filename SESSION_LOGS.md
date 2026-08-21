@@ -4815,3 +4815,30 @@ entry by offset — never a broad keyword grep.
   launch morning, so the readout doesn't invent it after seeing the r2 numbers.
   Maintainer prompt: "so we will have 5 runs to avg right?" — this is the honest
   version of yes.
+- 2026-08-20 (night, **D29r2 READOUT: R-A CREDIT (named cell, no strict separation) —
+  THE STACK TRANSFERS TO 50M; R-B FLAT — SCALE ADDS NOTHING; HEADLINE STAYS D26
+  0.71825; 5-LANE DESCRIPTIVE 0.71813**): all 3 lanes finished 50M clean (exited
+  20:27-20:35 Thu; ~37.4 h wall, ~4.6 ld; ZERO incidents — first 50M fleet to
+  survive whole, hardening aboard, mask_desyncs 0 across all 9000 final battles).
+  Finals (locked, sequential at readout): **s80 0.7423333** (2227/3000), **s81
+  0.7346667** (2204/3000), **s82 0.6296667** (1889/3000) -> **pooled 0.70222**.
+  R0-4 exact-agree x3. Grader `scripts/d29r2_grade.py` (attest PASS both frozen
+  sets): **R-A CREDIT** — delta +0.12200 vs struct50m 0.580222, bar 0.11361
+  (clustered se 0.05681 governs, s_T 0.0630 < kill 0.092), perm 2/20 = 0.10, NAMED
+  CELL fired — the pre-written non-separation sentence attaches to every quote (s82
+  0.6297 < struct50m's best lane 0.6593). **R-B FLAT** — delta -0.01603 vs D26
+  0.71825; scale saturates; decision-grade for §13 futility per the header. Headline
+  unchanged (moves only on R-B credit). **5-lane descriptive (pre-declared 08-19
+  launch-morning): mean 0.71813 sd 0.05000 clustered-se 0.02236** — numerically the
+  12M pooled number; the recipe's level is ~0.72 at 12M and 50M alike, one lane in
+  five landing ~0.10 low. Diagnostics: D-A 24/24 (final lr 5.76e-9); D-C PASS x3
+  (illegal/frame 0 exactly, labelled bins 0.7944-0.8218); D-D PASS x3 (anchor
+  0.971-0.974 by 4M); K6 READABLE this time and clean (3-lane 100k-bin median
+  entropy min 0.1806 pre-25M). **aux/loss prediction miss REPLICATED** (final-1M
+  0.5557/0.5710/0.6373 vs predicted >0.81 plateau — 0-for-5 lanes; retire the
+  offline KL proxy). Recorded in this commit: RESULTS §11, README rows (+ ‡ legend),
+  STATUS rewrite; results/d29r2/ backed up. **Maintainer decisions now live:** (1)
+  the §13(1) wording ruling (credited STACK vs "credited lever") is finally
+  load-bearing — R-A provides the candidate, R-B FLAT simultaneously argues 250M
+  futility; both sentences recorded, neither suppressed; (2) D28 (~2.2 ld) is the
+  queued next arm; (3) push. Tranche: ~4.6 ld realised.

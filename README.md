@@ -34,7 +34,9 @@ pruned 2026-08-05.
 Win rate vs poke-env's `SimpleHeuristicsPlayer` (SH). Locked protocol: final
 checkpoint, deterministic policy, ties count as non-wins, 3 seeds × **3000
 battles/seed** pooled. Rows marked † predate the 3000/seed protocol (1000/seed era);
-rows marked * are single-seed probes, not headline-grade.
+rows marked * are single-seed probes, not headline-grade; the row marked ‡ is a
+descriptive pool across two arms (its ± is the seed-clustered se over 5 lanes), never
+a verdict input.
 
 | agent | win rate |
 |---|---|
@@ -51,6 +53,8 @@ rows marked * are single-seed probes, not headline-grade.
 | ↳ same loss on SHUFFLED labels (placebo, 12M, 5 seeds) — flat on the comparator | 0.5415 ± 0.0041 |
 | **+ LR anneal on top (D26), 12M, 4 seeds — CREDITED 2026-08-17, current best** | **0.7183 ± 0.0041** |
 | ↳ same stack at 50M (D29r) — **PRIMARY VOID**: 1 of 3 lanes died at 35M (lane-failure rule); two surviving finals recorded individually, never pooled | 0.7327 / 0.7513 |
+| ↳ 50M re-run (D29r2, 3 fresh seeds) — **R-A CREDIT** vs the bare 50M recipe (named cell: lanes do not fully separate); **R-B FLAT** vs the 12M stack — scale adds nothing | 0.7022 ± 0.0048 |
+| ↳ all five 50M-stack lanes, descriptive only (pre-declared before the re-run's data) | 0.7181 ± 0.0224‡ |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 

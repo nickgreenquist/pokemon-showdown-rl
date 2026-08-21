@@ -437,3 +437,45 @@ pool hardening; measured 0.7265/0.7438 at 12M falling to 0.6451/0.5742 over the 
 priced the prediction overstated the hardening. Delivered-dose columns (first run):
 aux/trunk_norm_delivered means 0.1093/0.0982; aux/clip_scale ~1.000 (the clip never
 engaged). Artifacts: `results/d29/` (only copy, backed up).
+
+## 11. Addendum, 2026-08-20 — D29r2 (the 50M re-run): R-A CREDIT, R-B FLAT — the
+stack transfers to 50M; scale adds nothing on top
+
+Written at readout, Thursday night. The re-run of the VOIDed D29r arm (3 fresh lanes,
+seeds 80–82 from dead D30's block, ~4.6 lane-days, zero incidents — the full fleet
+survived with the mask-desync hardening aboard, `mask_desyncs` 0 across all 9000
+final battles). Finals (locked protocol): **s80 0.74233, s81 0.73467, s82 0.62967 →
+pooled 0.70222.**
+
+- **R-A PRIMARY vs struct50m (frozen 0.58022): CREDIT.** Delta +0.12200 against an
+  operative bar of 0.11361 (seed-clustered se 0.05681 governs; s_T 0.0630, under the
+  0.092 kill-point). **Named cell, pre-written sentence, quoted wherever this credit
+  is:** "the read credits under the governing credit line; the lanes do not fully
+  separate, and the non-separation is stated wherever the permutation would be
+  quoted" (exact perm 2/20 = 0.10; s82's 0.6297 sits below struct50m's best lane).
+  The two-lever attribution disclaimer stands: this credits the STACK (aux + anneal)
+  over the bare 50M recipe; it does not separate the levers.
+- **R-B SCALE vs the D26 12M stack (frozen 0.71825): FLAT.** Delta −0.01603.
+  4.17× compute neither adds nor subtracts. Per the header this cell is
+  decision-grade for §13 — it argues the 250M line buys nothing at this recipe.
+- **Headline: stays D26's 0.71825** (it moves only on an R-B credit).
+- **The pre-declared 5-lane descriptive** (declared 2026-08-19, launch morning,
+  before any r2 number existed; labeled, non-verdict): all five completed 50M-stack
+  lanes — 0.73267, 0.75133, 0.74233, 0.73467, 0.62967 — **mean 0.71813, sd 0.05000,
+  clustered se 0.02236.** Numerically identical to the 12M pooled number. The
+  cleanest one-line summary this project has: the recipe's level is ~0.72 vs SH, at
+  12M and at 50M alike, with one-in-five lanes landing ~0.10 low at 50M.
+- Gates: D-A 24/24 rungs (final lr 5.76e-9); R0-4 exact-agree ×3; D-C PASS ×3
+  (illegal/frame exactly 0, labelled bins 0.7944–0.8218 in band); D-D PASS ×3
+  (anchor 0.971–0.974 by 4M); K6 readable and clean (3-lane median entropy min
+  0.1806 pre-25M, never below 0.15). The §10 aux/loss prediction miss REPLICATED:
+  final-1M 0.5557–0.6373, far under the predicted >0.81 plateau — the offline KL
+  proxy's pool-hardening story is now 0-for-5 lanes and should not be reused.
+- Artifacts: `results/d29r2/` (only copy, backed up).
+
+What this closes and opens: the 50M question is ANSWERED — the credited stack
+transfers intact (R-A) and scale saturates (R-B FLAT). §13's precondition (i) now
+has a live candidate ("a credited lever at 50M" — the maintainer's wording ruling on
+STACK-vs-lever is finally load-bearing), while the same readout's R-B FLAT argues
+the 250M line is futile at this recipe. Both sentences are recorded; neither is
+suppressed. D28 (the dose control, ~2.2 ld) is the queued next arm.
