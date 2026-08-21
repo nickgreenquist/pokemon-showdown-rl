@@ -4904,3 +4904,24 @@ entry by offset — never a broad keyword grep.
   adjudications owed). Recorded in this commit: RESULTS §12, README row, STATUS
   rewrite; results/d28/ backed up. Maintainer items: push timing; chapter-3
   direction (DESIGN2's remaining lines + the §13 futility ruling still open).
+- 2026-08-21 (late evening, **HANDOFF FOLDED — session restart; NOTHING RUNNING,
+  chapter 2 complete and fully read out**): tree clean at bbd925f (the handoff
+  commit; origin at 5d7ebe0 — all five chapter-2 readouts are pushed). Durable
+  landmines folded from the handoff that were not recorded elsewhere: (1) **watch
+  crons/monitors are SESSION-SCOPED** — they die with every context clear; after
+  any session restart while lanes are running, re-arm them FIRST (cost nothing
+  this cycle only because the maintainer handed back promptly). (2) **Never trust
+  doc-quoted per-seed numbers** — D28's R1 per-seed values were transcribed wrong
+  from memory and attest() caught them; always re-derive from the finals JSONs.
+  (3) **A 40k smoke's dose/entropy stats are NOT band-comparable to 1M-bin
+  medians** (two false alarms avoided that way: labelled_frac 0.849 and F-HIGH,
+  both fine at bin scale) — compare same-window-to-same-window (D25's own
+  first-40k). (4) `results/design_ch2/scripts/z1_2.py` + `z1_2_frozen.json` are
+  the FROZEN D28 task definition; tests assert module==JSON — never edit one
+  without the other. Ops for the record: seed 68 was the D28 smoke (dead run dir,
+  ignorable); precise seed ledger 70-74/80-82/90-92 burned; 66/67, 75/76, 83/84,
+  93/94 held. STATUS fix in this commit: next-action "readout commit local" was
+  stale — the readout is on origin; only the handoff commit was ahead. Stub
+  restored. Open decision unchanged: **chapter-3 direction** (candidates and the
+  §13 RETIRE-on-futility recommendation are on record in the 08-21 readout entry
+  and STATUS; any pick starts a fresh 2-Opus design round).
