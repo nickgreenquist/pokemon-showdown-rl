@@ -122,6 +122,7 @@ from rl.networks.opp_action import (
     marginal_nll,
     shuffle_within_allow,
 )
+from rl.networks.zeroinfo import synthetic_labels
 
 
 def clipped_surrogate_loss(
@@ -281,6 +282,7 @@ class PPOAgent(Agent):
         aux_head_gain: float = 0.01,
         aux_max_grad_norm: float = 0.5,
         aux_shuffle_labels: bool = False,
+        aux_synthetic: bool = False,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -516,6 +518,29 @@ class PPOAgent(Agent):
             self._shuffle_gen = torch.Generator()
             self._shuffle_gen.manual_seed(
                 (torch.initial_seed() * 1_000_003 + 25) % (2**63 - 1)
+            )
+        # D28's one lever (DESIGN2 §1): the zero-information synthetic task.
+        # Same loud-seam and dedicated-stream rules as the shuffle placebo;
+        # mutually exclusive with it — a lane running both is two levers.
+        self.aux_synthetic = bool(aux_synthetic)
+        self._synth_gen: torch.Generator | None = None
+        if self.aux_synthetic:
+            if self.aux_oppact_coef <= 0.0:
+                raise ValueError(
+                    "aux_synthetic=True with aux_oppact_coef=0: the synthetic "
+                    "task generates labels the loss never reads. Rebuild from "
+                    "the D28 config."
+                )
+            if self.aux_shuffle_labels:
+                raise ValueError(
+                    "aux_synthetic and aux_shuffle_labels are mutually "
+                    "exclusive: each is its own arm's ONE lever."
+                )
+            # Dedicated per-lane label stream (the _shuffle_gen precedent,
+            # distinct derivation constant so the two streams never collide).
+            self._synth_gen = torch.Generator()
+            self._synth_gen.manual_seed(
+                (torch.initial_seed() * 1_000_003 + 28) % (2**63 - 1)
             )
         # One Adam over the union of both nets' params; eps=1e-5 is the
         # canonical PPO detail (shipped by every reference implementation).
@@ -899,6 +924,28 @@ class PPOAgent(Agent):
                     aux_target, aux_allow, aux_valid, self._shuffle_gen
                 )
                 aux_stats.update(shuf_stats)
+            if self.aux_synthetic:
+                # D28: the REAL labels' only surviving role is the row filter
+                # — aux_allow/aux_valid pass through untouched so trained
+                # rows match D25's exactly; the target is the frozen-task
+                # draw, a function of the observation alone (zero opponent-
+                # action information; rl/networks/zeroinfo.py). ONE draw per
+                # rollout, reused by all epochs x minibatches via
+                # aux_target[idx] — the treatment's label structure exactly.
+                aux_target, synth_stats = synthetic_labels(
+                    flat_obs, aux_allow, aux_valid,
+                    self.actor.tokenizer, self._synth_gen,
+                )
+                aux_stats.update(synth_stats)
+                # The manipulation check's A1 term, on the SYNTHETIC target
+                # (the trained task's own mask-renormalised marginal floor;
+                # review MF-1a/MF-4 — without it B-VOID-TASK cannot fire).
+                # Own name, not aux/marginal_nll: that key means "the
+                # SHUFFLED task's floor" on placebo lanes and the two must
+                # never be conflated by a cross-arm reader.
+                aux_stats["aux/synth_marginal_nll"] = marginal_nll(
+                    aux_target, aux_allow, aux_valid
+                )
         # The critic's input: obs ‖ privileged when the block is carried,
         # plain obs otherwise (aliases, no copy). Every critic forward below
         # reads these two and only these two.
@@ -1102,11 +1149,14 @@ class PPOAgent(Agent):
                     sums["aux/trunk_norm_delivered"] += aux_delivered
                     sums["aux/clip_scale"] += aux_scale
                     sums["aux/grad_clip_frac"] += float(aux_norm > self.aux_max_grad_norm)
-                    if self.aux_shuffle_labels and grad_steps == 0:
+                    if (self.aux_shuffle_labels or self.aux_synthetic) \
+                            and grad_steps == 0:
                         # Epoch-1 minibatch-0, before any step this rollout:
                         # the memorisation-free tracker P-SHUF reads (D25-P
                         # P5 — in-sample aux/loss can drift below the batch
                         # marginal by permutation memorisation alone).
+                        # D28 reuses ONE draw across every epoch x minibatch
+                        # and has the same channel (review MF-1b).
                         # Rollout-level, not divided by grad_steps.
                         aux_stats["aux/loss_mb0"] = aux_loss
                 self.optimizer.step()

@@ -4842,3 +4842,37 @@ entry by offset — never a broad keyword grep.
   load-bearing — R-A provides the candidate, R-B FLAT simultaneously argues 250M
   futility; both sentences recorded, neither suppressed; (2) D28 (~2.2 ld) is the
   queued next arm; (3) push. Tranche: ~4.6 ld realised.
+- 2026-08-20/21 (overnight, **D28 BUILT, FROZEN, 2-OPUS REVIEWED, MUST-FIXES FOLDED —
+  READY TO LAUNCH** on the maintainer's evening "go"): the zero-info dose control is
+  production code. Build: `rl/networks/zeroinfo.py` (shared-w_move pointer task,
+  frozen scalars, module-seed 20260817 W never serialised) + `aux_synthetic` in
+  ppo.py (loud seams, dedicated per-lane gen, +38 additive lines; REAL labels keep
+  only the row-filter role so trained rows match D25's; D-C ==0 gates still read
+  real labels) + `tests/test_zeroinfo.py` (12: Z1-3/Z1-4 gates, seams, equivariance,
+  golden-vector port pin, module==JSON). Z1-2 EXECUTED (agent, results in
+  z1_2_frozen.json): tau 6.94, IPF offsets b (mean-zero), pooled (mu,sigma) x3 over
+  10 tapes/76,364 rows; marginal L1 0.00405, entropy 0.23516 (band), seed-stable;
+  G-BAR = 0.54338 = 0.80 x mean frozen-probe g 0.67922 (10 tapes, 0.608-0.765,
+  aux-trained and comparator lanes overlap -> no generator dependence). Z1-5 smoke
+  GREEN (aux/loss 1.74->0.67 at 40k; illegal/frame exactly 0; labelled 0.849 =
+  D25's own first-40k 0.854) AND load-bearing: it measured the delivered ratio at
+  0.39-0.46 vs D25's 0.13-0.16 (2.4-2.9x, hump-shaped, f RISING 0.11->0.95 where
+  D25 falls 0.80->0.52) — reviewer 2 measured the mechanism (near-deterministic
+  label keeps the residual obs-correlated; raw-block readout unexpressible by the
+  head pushes error onto the trunk; the excess appears as the head fits, NOT at
+  init). Reviews (d28_review_{1,2}.md, both SOUND-WITH-MUST-FIXES, 17 MFs total,
+  ALL FOLDED same night + SFs except the update()-path test, at precedent parity):
+  headline folds = OVER named as the modal A1 sentence (a-fortiori), S-letter
+  bands named in the pre-reg, NULL:=A1/A2 defined, manipulation check MADE REAL
+  (aux/synth_marginal_nll + loss_mb0 now logged on synthetic lanes; grader
+  computes median-g vs bar; B-VOID-TASK can fire), fleet aggregators named,
+  f-gate split (<0.45 void / >0.70 F-HIGH non-voiding), trajectory cells
+  SUSTAINED/DECAYING/ERRATIC with r_late>=0.70 in the seal, 6M abort dual-trigger
+  (f and q, dose-only, never the eval curve), permutation secondary pre-registered
+  with precedence, C-A6 era clause with 9ac445d ruled non-voiding NOW, mask_desyncs
+  a REQUIRED key. RULINGS (reviewer 1): tau freeze honoured (criterion as written);
+  coef stays 0.1 (one-diff identity > tuned dose; the arithmetic was the fix).
+  R0-a verified post-fold: exactly {agent.aux_synthetic, seed, run_name}. Grader
+  selftest green (incl. DECAYING-not-MATCHED and g cells); suite 384/17. Seeds
+  70-74 (75/76 held). ~2.16 ld, 5-wide alone, ~11 h. Backups: z1_2_frozen +
+  dose_ratio_bins + both reviews copied to the backup dir.

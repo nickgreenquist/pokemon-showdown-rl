@@ -1,0 +1,438 @@
+# =====================================================================
+# PRE-REGISTRATION — D28, THE ZERO-INFORMATION DOSE CONTROL. DRAFTED
+# 2026-08-20 (night, at the D29r2 readout; maintainer's "go" same
+# night). STATUS: PROPOSED — LAUNCHES ONLY AFTER (1) the Z1-2 frozen
+# constants land in rl/networks/zeroinfo.py AND this header, (2) the
+# 2-Opus review of build+header folds, (3) Z1-5 smoke green, (4) the
+# maintainer launches (ratification by launch, the D29r precedent).
+# Tranche: ~2.16 ld (5 lanes x 12M, 5-wide alone, ~11 h wall).
+#
+# PROCESS: chapter design + this arm's shape are DESIGN2.md §1 (r2,
+# built by 2-Opus design + 2-Opus review; memos ch2_design_{A,B}.md,
+# reviews ch2_review_{1,2}.md); Stage-0 zero-lane results 2026-08-17
+# (z1_1_results.json: task learnable, tau* entropy-matched, per-slot
+# r0 construction collapses as predicted, own-action corroborated
+# dead; abort threshold 0.35 MEASURED from D25-P's per-bin collapse,
+# trunk_fraction_bins.json). THIS header + the production build get
+# their own 2-Opus review before launch (d28_review_{1,2}.md).
+#
+# PURPOSE. D25's credit carries ONE open caveat: "a generic auxiliary
+# gradient of matched size would have helped too" — untested, because
+# a shuffled-label head cannot be dosed (D25-P's trunk-fraction
+# collapse 0.44-0.54 -> 0.05-0.09 killed D27 at zero lanes). D28 is
+# the dosable version: the aux head trains on labels drawn from a
+# FIXED random linear readout of the raw obs blocks its entities are
+# built from — ZERO opponent-ACTION information by construction (the
+# label path has no opp_choice parameter at all; asserted by
+# tests/test_zeroinfo.py). HONEST SCOPE, attached to every licensed
+# sentence: the label reads opponent move/mon FEATURE blocks, so the
+# trunk is still pushed to encode opponent features — "zero-info"
+# refers to the opponent's DECISION, not its existence.
+#
+# THE HEADER'S SINGLE MOST IMPORTANT SENTENCE (DESIGN2 §1 verbatim):
+# a null licenses "an auxiliary gradient of D25's delivered size,
+# through D25's head and entity path, on a task with zero
+# opponent-action information and no decision-relevant structure,
+# does not reproduce D25's gain" — AT 12M, for this chapter, not
+# universally (C-A4; the chapter has a live 50M line where the same
+# caveat can be raised). It does NOT license "no generic
+# auxiliary gradient of matched size would have helped" — the
+# strongest task-relevant generic candidate (own-action) is
+# architecturally unfittable by this head (corroborated: D25 B6 probe
+# -0.061; Stage-0: cannot beat its own marginal floor on any tape)
+# and is not run.
+#
+# THE TASK (amended r1; rl/networks/zeroinfo.py, provenance
+# results/design_ch2/scripts/z1_1.py):
+#   s_j = <w_move, raw_opp_move_block_j> j=0..3 (ONE shared w_move —
+#     the per-slot r0 variant is ~75% unrepresentable by the shared
+#     scorer and collapses into slot_bias, MEASURED in Stage-0);
+#   s_4 = <w_glob, global block> (OTHER_MOVE; ctx-only path — class
+#     4's entity is the constant null token, DISCLOSED);
+#   s_5 = <w_bench, maxpool(live bench opp mons)> (SWITCH);
+#   logits = masked_logits(tau * (standardise(s) + b), allow);
+#   y ~ Categorical, ONE draw per rollout row.
+# W from module-constant seed 20260817, redrawn per call, NEVER
+# serialised (theta0 precedent) — identical task across lanes. Label
+# draw from a dedicated per-lane generator (derivation constant 28;
+# the _shuffle_gen precedent — global streams untouched, Z1-4 test).
+# Rows: D25's canonicalise allow/valid REUSED VERBATIM (trained rows
+# match, labelled_frac expectation 0.78-0.86). Standardisation is
+# FROZEN SCALARS (batch statistics would make the target
+# nonstationary); the four move slots share ONE (mu, sigma) (per-slot
+# scales break the restored permutation equivariance — tested); the
+# per-slot OFFSETS b[0..3] are representable by the head's own
+# slot_bias, hence legitimate where per-slot scales are not.
+#
+# Z1-2 FROZEN CONSTANTS (results/design_ch2/z1_2_frozen.json;
+# criterion: PRIMARY minimise L1(sampled marginal, D25's [0.436,
+# 0.273, 0.136, 0.052, 0.030, 0.072]) s.t. sampler entropy within
+# 0.250 +/- 0.020 nats; TIE-BREAK |entropy - 0.250|):
+#   tau = 6.94; b = [1.39941, 0.83812, -0.22570, -0.71738, -1.12180,
+#   -0.17265] (mean-zero gauge); standardisation (mu, sigma): move
+#   group (0.264042, 2.432108) over 304,922 allowed+valid entries,
+#   global (0.664521, 0.565015), bench (0.310099, 1.460024) — pooled
+#   over the 10 D25-era tapes (s52-56 + the 5 Rung-2 lanes; 76,364
+#   valid rows). Achieved: sampled marginal L1 0.00405 vs D25's,
+#   sampler entropy 0.23516 nats (band [0.230, 0.270]); marginal
+#   seed-stable (L1 0.0016-0.0028 across 3 other seeds), entropy
+#   bit-identical. DISCLOSED (reviewer caveats, in the JSON): (1) the
+#   min-L1-first criterion is degenerate across the entropy band
+#   (IPF fits b at every tau), so the tau pick is seed-lucky WITHIN
+#   the band — tau 6.5 sits nearer the 0.250 target (0.2494); the
+#   stated criterion was honoured as written and is not re-litigated
+#   post-freeze. (2) Constants are pooled over END-OF-RUN tapes, so
+#   early-training rollouts sit off-distribution for them: the
+#   banked-tape entropy span is 0.206-0.271 but the live 40k smoke
+#   measured 0.169-0.263 (mean 0.203) with realised switch marginal
+#   0.120 vs the frozen 0.072 — a lane's realised A3 is therefore
+#   read PER-LANE from aux/synth_sampler_entropy, which enters g
+#   exactly (review MF-5a; not a bug — constants are never re-tuned
+#   post-freeze). (3) DISCLOSED here, not only in the JSON (review
+#   MF-5b): the trained ROW SET is not literally opp_choice-
+#   independent — `valid` reads the real label's presence/aliased
+#   flags (and its legality/frame checks, both measured exactly 0
+#   live), so the row filter depends on the opponent's decision
+#   EXISTING; the trained TARGET does not read it at all. (4) On a
+#   D28 lane aux/switch_frac is the opponent's REAL switch rate and
+#   aux/synth_switch_frac is the trained target's — do not misread
+#   one for the other at readout (review MF-5c).
+#
+# ---------------------------------------------------------------------
+# COMPARATORS AND READS. CREDIT LINE (DESIGN §8, RESTATED IN FULL,
+# VERBATIM, INCLUDING THE LARGER-OF CLAUSE): a lever is credited iff
+# pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the
+# LARGER of the pooled-binomial se_diff and the seed-clustered
+# se_diff, the latter computed from the per-seed finals at read time.
+# Across-lane aggregator: EQUAL-WEIGHT MEAN of per-seed finals
+# (DESIGN2 preamble; median/worst recorded, never govern).
+#
+# R-1 PRIMARY: Delta_1 = frozen D25 pooled MINUS control pooled,
+#   one-sided upper. Frozen D25: s52 0.6233 / s53 0.6573 / s54 0.6063
+#   / s55 0.6073 / s56 0.5980 -> POOLED 0.618467, sd 0.023575, n=5
+#   (results/d25/final_s5*.json; grader ATTESTS from disk).
+# R-2 SECONDARY, letter-bearing: Delta_2 = control pooled MINUS
+#   frozen Rung-2 comparator, one-sided upper. Frozen Rung-2: s26
+#   0.5633 / s27 0.5683 / s28 0.5210 / s50 0.5763 / s51 0.4937 ->
+#   POOLED 0.544533 (7-dp pooling; the design docs' 0.54452 was
+#   4-dp — this is the one number quoted everywhere), sd 0.03558,
+#   n=5 (paths as scripts/d25_grade.py COMPARATOR_PATHS; grader
+#   ATTESTS from disk).
+# PERMUTATION SECONDARY, PRE-REGISTERED (review MF-8; A §1.5's two
+#   lines restated): the exact 5v5 permutation p on R-1, direction
+#   +1, level 12/252 = 0.04762, minimum attainable 1/252. THE CREDIT
+#   LINE GOVERNS; p is reported alongside; a disagreement between
+#   them is REPORTED, never adjudicated in favour of whichever
+#   fired.
+# C-A6 ERA CLAUSE (review MF-9, inherited from D25-P, the known
+#   delta RULED ON NOW): the locked eval path changed once since the
+#   frozen comparators were scored — commit 9ac445d (2026-08-18,
+#   mask-desync hardening) touched rl/envs/showdown.py and
+#   scripts/eval_checkpoint.py. Eval-visible effect: a counted,
+#   disclosed recovery at the observed ~2.5e-9/step rate (0 desyncs
+#   across D29r2's 9000 final battles; worst case one random-legal
+#   order in one battle of 15,000, ~6.7e-5 vs the 0.025 floor).
+#   RULING, made now: this change does NOT void R-1; the grader
+#   REQUIRES the mask_desyncs key in every final (missing key =
+#   hard stop, never "clean"); any nonzero is disclosed beside the
+#   number. Any OTHER eval-path change between this pre-reg and the
+#   readout voids R-1, per C-A6's letter.
+# MECHANISM SECONDARY — DELIBERATELY NOT RUN (review S-6, decided
+#   now, not discovered later): A §1.5's Delta_ref-ctx atoms read on
+#   the frozen s36 tape is NOT part of this arm; running it post-hoc
+#   at readout would be a forking path, so it is named here as
+#   available to a FUTURE pre-registered arm and excluded from this
+#   one. This arm's deliverable is the win-rate caveat closure only.
+# SEALING (operationalised, review-1 amendment; the full conjunction
+#   — a bare "iff A1 and Delta_2 >= 0" was quotable at readout to
+#   seal under a void, review MF-7): the caveat is SEALED iff A1 AND
+#   Delta_2 >= 0 AND no VOID fires AND the dose cell is not
+#   INSUFFICIENT AND r_late >= 0.70 (trajectory gate below) AND the
+#   S cell is not S-c AND the manipulation check reads LEARNED.
+#
+# BRANCHES on Delta_1, hi_1 = max(0.025, 2*se_diff_1) (A §1.3-1.7 as
+# amended; partition-complete, no unnamed cells):
+#  (A1) Delta_1 >= hi_1: control does NOT reproduce D25 ->
+#       INFORMATION CLAIM SEALED, conditional on (dose cell) x (S
+#       cell) — the pre-written sentences (DESIGN2's "any + S-a"
+#       restored, and OVER named: the smoke says OVER is the MODAL
+#       dose cell — review MF-1):
+#         MATCHED x S-b -> "the generic-gradient explanation is
+#           REFUTED at Delta_1 = <x>; the caveat is CLOSED." RESULTS
+#           §5's dose disclosure rewritten; STATUS watch item removed.
+#         OVER x S-b -> "the generic-gradient explanation is REFUTED
+#           at Delta_1 = <x>; A FORTIORI — the control received
+#           <r_bar>x D25's delivered trunk gradient and still did
+#           not reproduce the gain." Same rewrites as MATCHED x S-b,
+#           with the multiplier quoted.
+#         ANY dose x S-a -> "BOTH contribute: opponent-action content
+#           adds over a generic gradient (at the stated dose cell),
+#           which itself credits vs Rung-2" — a PARTIAL seal, never
+#           "refuted".
+#         SHORT x any -> seal WITH the shortfall caveat attached to
+#           every use of the sentence.
+#         ANY x S-letter(+/-) -> see the S cells below.
+#  (A2) +0.025 <= Delta_1 < hi_1: letter-met, seed-fragile, NOT
+#       credited — verbatim phrase, per-seed detail, no narrative
+#       use; caveat downgraded to "tested once, directionally
+#       supportive, seed-fragile", NOT closed. (Modal non-null cell
+#       at wide spread, P 0.28-0.35 per the frozen power table.)
+#  (A3) |Delta_1| < 0.025 (the only two-sided cell IN THE A
+#       PARTITION, deliberately — S-b below is also two-sided, as a
+#       null band correctly is; pre-reg lesson 5):
+#       RETRACTION — the control reproduced D25 at matched dose.
+#       "The information did it" is retracted; replaced by "a
+#       structured auxiliary gradient on the shared trunk, of this
+#       size, helps; opponent-action content is not established as
+#       necessary." Obligations, all named now: RESULTS §1/§3/§5
+#       rewritten; README attribution sentence changed; STATUS
+#       licensed sentence changed; D25-P's own R-1 credit
+#       REINTERPRETED (dose collapse, not information), not
+#       retracted. The soft-label successor stays DEAD (Z3-3 is
+#       mechanism-independent).
+#  (A4) -hi_1 < Delta_1 <= -0.025: letter-met NEGATIVE (control
+#       pooled ABOVE D25): retraction as A3 PLUS the synthetic task
+#       is promoted to a candidate lever in its own right — named,
+#       not claimed, not run.
+#  (A5) Delta_1 <= -hi_1: NEGATIVE, credited in reverse; the
+#       chapter's headline lever is re-described as "a structured
+#       auxiliary head", never "an opponent model".
+# CROSS-CUTTING on Delta_2 (modifies A1 only; se_2 by the same
+# larger-of clause):
+#  (S-a) Delta_2 >= max(0.025, 2*se_2): generic gradient credits vs
+#        Rung-2 -> A1 reads "both contribute" (partial seal).
+#  (S-b) |Delta_2| < 0.025: generic gradient did nothing -> with A1,
+#        the CLEAN seal.
+#  (S-c) Delta_2 <= -max(0.025, 2*se_2): the control HURT. A1 x S-c
+#        does NOT seal (this task was harmful, nothing more);
+#        caveat stays open; the random-projection successor is
+#        promoted, named-not-run.
+#  (S-letter(+)) +0.025 <= Delta_2 < 2*se_2: letter-met positive,
+#        seed-fragile. The seal STANDS (Delta_2 >= 0) with the
+#        clause "the generic gradient directionally helped —
+#        letter-met, seed-fragile, not credited" attached.
+#  (S-letter(-)) -2*se_2 < Delta_2 <= -0.025: letter-met negative.
+#        The seal is BLOCKED (routed as A1 x S-c is: this task
+#        directionally hurt; caveat stays open). NO unnamed S band
+#        remains (pre-reg lesson 2 — the grader names these cells
+#        and the pre-registration must be the thing that says so).
+# NULL/POSITIVE, DEFINED (review MF-3 — B-VOID-DOSE's terms in
+#   A-cells): NULL result = A1 or A2 (the control did NOT reproduce
+#   D25); POSITIVE = A3, A4 or A5. A2 x INSUFFICIENT is therefore a
+#   VOID (a null at insufficient dose licenses nothing).
+# VOIDS (any fires -> no thesis conclusion from the affected read):
+#  (B-VOID-DOSE) dose cell INSUFFICIENT with a NULL result, or f
+#        outside its late band, or clip-neutrality fails, or the 6M
+#        abort fired: caveat recorded as "resisted two independent
+#        matched-dose designs"; random-projection promoted. (An
+#        INSUFFICIENT-cell POSITIVE is a-fortiori informative and is
+#        NOT voided — A's table governs.)
+#  (B-VOID-TASK) manipulation check median g < 0.10: the task never
+#        trained; nothing was tested; diagnose offline, no in-rung
+#        re-tune.
+#  (B-LANES) fewer than 3 surviving lanes: primary VOID; surviving
+#        finals individual, never pooled (D25's rule verbatim).
+#
+# DOSE GATES (unified r1: ONE scalar, one band system; the
+# delivered-dose instrumentation landed 2026-08-17 and is verified
+# against _aux_gradient):
+#  SCALAR: delivered ratio = aux/trunk_norm_delivered /
+#    aux/policy_trunk_norm, per-1M-bin per-lane MEDIAN. D25's frozen
+#    envelope (derived at header time from s52-56 histories,
+#    results/design_ch2/d28_dose_ratio_bins.json; delivered==pre-clip
+#    there — D25's aux clip bound on <0.03% of minibatches):
+#    per-bin [lo, hi] from bin0 [0.116, 0.130] through bin11 [0.098,
+#    0.142], midpoints ("midpoint" = the MIDRANGE (lo+hi)/2 of the 5
+#    lanes' per-bin medians, review MF-11) 0.092-0.123; run means
+#    0.097-0.114. The comparison is control-DELIVERED vs D25
+#    PRE-CLIP — legitimate because D25's aux clip bound on <=0.021%
+#    of minibatches (measured); this sentence travels with any
+#    quoted r_bar.
+#  CELLS on r_bar = per-lane median over the 12 bins of q_b =
+#    (control bin-b median ratio / D25 midpoint for bin b); FLEET
+#    r_bar = median of per-lane r_bar, and AT AN EVEN SURVIVING
+#    COUNT the mean of the two central values (the named aggregator,
+#    pre-reg lesson 1; applies to every fleet median below):
+#    INSUFFICIENT r_bar < 0.70 | SHORT [0.70, 1.00) | MATCHED
+#    [1.00, 2.00] | OVER > 2.00 (licenses only "a LARGER generic
+#    gradient", never "a matched one"). No unnamed cells.
+#  TRAJECTORY CELLS (review MF-12 — r_bar's median is a faithful
+#    summary only of a FLAT trajectory, which D25's is (+/-15%) and
+#    the smoke says the control's is NOT: delivered ratio fell 35%
+#    inside 40k on a stationary, learnable task; a hump running 2.5x
+#    early and 0.4x late medians near 1.0 and would read MATCHED
+#    with no bin actually matched). q_b fleet medians, all 12
+#    printed at readout; r_early = median(q_0..q_2), r_late =
+#    median(q_9..q_11):
+#    SUSTAINED  min_b q_b >= 0.70 -> r_bar's cell governs unchanged.
+#    DECAYING   r_early >= 1.00 and r_late < 0.70 -> on a NULL
+#      (A1/A2): B-VOID-DOSE, pre-written sentence "the delivered
+#      dose was not sustained — it decayed below the matched band
+#      over the second half; D27's failure mode recurred in
+#      attenuated form; the caveat is not closed." On a POSITIVE:
+#      a-fortiori informative, NOT voided.
+#    ERRATIC    neither -> the per-bin table is quoted verbatim and
+#      any seal carries the SHORT shortfall caveat.
+#    PRECEDENCE: the seal requires r_bar's cell in {SHORT, MATCHED,
+#    OVER} AND r_late >= 0.70.
+#  TRUNK-FRACTION f = aux/trunk_norm / aux/grad_norm (the quantity
+#    D25/D25-P measured; trunk_fraction_bins.json's convention),
+#    LATE WINDOW (bin 11), FLEET MEDIAN of per-lane medians (a
+#    single out-of-band lane is a DISCLOSURE, not a void — review
+#    MF-6). The band [0.45, 0.70] brackets D25's recorded bin-11
+#    0.51-0.62, and its two sides read DIFFERENTLY:
+#    f < 0.45 -> B-VOID-DOSE (D27's collapse — the mode the band was
+#      designed for).
+#    f > 0.70 -> F-HIGH, a NAMED NON-VOIDING cell (the smoke's f
+#      rose 0.11 -> 0.95: the head converged and the trunk term
+#      dominates — MORE aux gradient reached the trunk, a-fortiori
+#      FAVOURABLE to a null). Recorded and disclosed on every quoted
+#      sentence; on a POSITIVE it attaches the OVER cell's "larger,
+#      not matched" qualifier.
+#  CLIP-NEUTRALITY: run-mean aux/clip_scale >= 0.99 every lane
+#    (equivalently delivered/pre-clip within 1%); a binding aux clip
+#    means the declared coefficient is not the effective one ->
+#    B-VOID-DOSE.
+#  6M ABORT (in-run, fleet decision at the 6.0M rung), TWO triggers,
+#    either fires -> STOP THE ARM, recover ~half the tranche, record
+#    the B-VOID-DOSE sentence: (1) fleet-median f over the 5-6M
+#    window < 0.35 (MEASURED calibration: D25-P collapsed to
+#    0.07-0.14 by bins 5-6 while treatment held 0.60-0.69); (2)
+#    fleet-median q over the 5-6M window < 0.35 (the dose analogue,
+#    same half-the-INSUFFICIENT-floor semantics, review MF-12). THE
+#    ABORT READS DOSE ONLY — the in-run eval curve is NOT consulted;
+#    consulting it would make the abort a peek at the outcome. The
+#    watch runs this check.
+#
+# MANIPULATION CHECK (did the control task train?): g = (A1_nll -
+# NLL_head) / (A1_nll - A3) per lane on its own final rollouts, where
+# A1_nll = the mask-renormalised SYNTHETIC-marginal NLL and A3 = the
+# tau-set sampler's OWN entropy — logged in-run as
+# aux/synth_sampler_entropy, EXACTLY computable, not estimated (the
+# own-action A3 = H(pi) and its self-distillation confound are struck
+# with the task that carried them). g > 1.0 = hard fail/bug. LEARNED:
+# median g >= BAR; WEAK: 0.10 <= median g < BAR; VOID: < 0.10
+# (B-VOID-TASK). BAR = 0.80 x mean(frozen-probe g on the banked
+# tapes), the D25 construction — derived at zero lanes, value written
+# into d28_grade.py's header before launch:
+#   BAR = 0.54338 = 0.80 x mean g 0.67922 over the 10 banked tapes at
+#   the frozen constants (per-tape 0.608-0.765, no g>1.0, held-out
+#   acc 0.752-0.829; aux-trained and comparator lanes overlap, so the
+#   bar carries no generator dependence; z1_2_frozen.json "g_bar").
+#   D25's own bar was 0.371 — this task's is higher because the
+#   frozen linear task is easier to fit, and that is the point.
+#
+# HONEST EXPECTATION (H(D28), design-A as re-shaped): if D25's gain
+# is information-carried, the control pools AT/NEAR Rung-2's 0.54452
+# -> Delta_1 ~ +0.074, R-1 fires with power 0.86-1.00 at 12M-like
+# spread. The modal non-null alternative is A2 at wide spread
+# (P 0.28-0.35). A control landing ABOVE D25 (A4/A5) retracts.
+# ---------------------------------------------------------------------
+# GATES (zero-lane gates BLOCK launch)
+# R0-a ONE-DIFF: comment-stripped YAML dict diff vs
+#   showdown_sp_actpred12m.yaml = exactly {agent.aux_synthetic, seed,
+#   run_name} (verified at draft time; the treatment IS D25's config
+#   with the label source swapped). vs the placebo config
+#   showdown_sp_actpred12m_placebo.yaml = exactly
+#   {agent.aux_shuffle_labels, agent.aux_synthetic, seed, run_name}.
+# R0-b SEAMS (tests/test_zeroinfo.py, all green offline): synthetic
+#   requires aux coef; synthetic x shuffle mutually exclusive; frozen
+#   guard refuses an unfrozen task; Z1-4 bit-identity (actor, critic,
+#   aux_head) at fixed seed with the flag flipped; Z1-3 no-opp_choice
+#   signature + reproducible draw + labels always within allow.
+# R0-c GRADER BEFORE LAUNCH: scripts/d28_grade.py — attests BOTH
+#   frozen comparator sets from disk, implements A1-A5 x S x VOIDs +
+#   dose cells + g, selftest exercises every cell at known cuts.
+# R0-d PURITY: opponent: self; no human data; the synthetic W is
+#   noise, not knowledge.
+# R0-e IN-RUN GATES (read at readout off history.csv, except the 6M
+#   abort which the watch runs live): D-C aux health at every 5M ==
+#   D25's (illegal_label_frac == 0, frame_collision_frac == 0,
+#   labelled_frac 5M-bin means in [0.78, 0.86], losses finite; the
+#   ==0 gates read the REAL-label canonicalise stats, which the
+#   synthetic path leaves untouched); D-D selfplay/winrate_anchor >=
+#   0.75 by 4M each lane; K6 entropy letter (12M form: 5-lane median
+#   loss/entropy < 0.15 for 5 consecutive rollout-boundary readings
+#   before 6M -> record and stop).
+# R0-f BACKUPS: results/d25/final_s5*.json + the five Rung-2 finals +
+#   their backup copies verified pre-launch; z1_2_frozen.json backed
+#   up with them.
+# LANE-FAILURE RULE: D25's, verbatim (see B-LANES).
+# EVAL: locked protocol, final ckpt, 3000/seed, deterministic, ties
+#   non-wins, vs SH; FIVE lanes pooled 15000 (the disclosed 5>=3
+#   deviation, D23-on precedent). mask_desyncs from each final JSON
+#   disclosed beside any quoted number (nonzero = disclosure item).
+#
+# BUDGET/OPS: 5 lanes x 12M, 5-wide ALONE (~11 h wall, ~2.16 ld;
+#   co-scheduling penalty measured +1.0 ld — do not co-run). Seeds
+#   70/71/72/73/74; 75/76 held for a pre-D-D lane loss; never
+#   relaunch a dead lane on its own seat. Server :8000 simulator 4;
+#   stagger ~60 s; verify by battle PROGRESS; commit docs BEFORE
+#   launch; clean tree. Disk: 5 x (60 ckpts x ~13 MB + ~180 MB
+#   wandb at this cadence) ~ 4.8 GB.
+#
+# Launch, per lane (N in 70..74), AFTER the review folds + Z1-5:
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline python -m rl.train \
+#     --config configs/showdown_sp_zeroinfo12m.yaml \
+#     --seed N --run-name showdown_sp_zeroinfo12m_sN
+# =====================================================================
+env_id: Showdown-v0
+seed: 70
+total_steps: 12000000
+eval_every: 100000          # struct12m cadence VERBATIM (C-A5): clean
+eval_episodes: 100          # against D25 AND the Rung-2 comparator
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: showdown_sp_zeroinfo12m_s70
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true         # UNCHANGED from D25: the seam still captures
+                           # the real labels — their ONLY surviving role
+                           # is the canonicalise row filter (valid/allow),
+                           # so trained rows match D25's exactly. The
+                           # trained TARGET never reads them
+                           # (rl/networks/zeroinfo.py; Z1-3).
+selfplay:                  # identical to showdown_sp_struct12m.yaml
+  opponent: self           # REQUIRED by the purity seam
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 150
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets   # the credited Rung 2 treatment, unchanged
+  aux_oppact_coef: 0.1     # D25's operative value, UNCHANGED — the dose
+                           # knob stays where the treatment had it; the
+                           # dose GATES (header) judge what was delivered
+  aux_synthetic: true      # THE LEVER, THE ONLY DIFF vs D25 (R0-a):
+                           # train the aux head on the frozen zero-info
+                           # draw instead of the captured labels
+  aux_label_space: l6
+  aux_scorer_sizes: [96]   # D25's head byte-for-byte: 49,479 params
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:            # byte-identical to showdown_sp_struct12m.yaml
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512] # unused when trunk != mlp; kept for exactness
+  lr: 2.5e-4
+  lr_anneal_steps: 0       # D25's shape: NO anneal — the control matches
+                           # the arm whose caveat it closes, not D26
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
