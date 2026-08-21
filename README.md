@@ -55,6 +55,7 @@ a verdict input.
 | ↳ same stack at 50M (D29r) — **PRIMARY VOID**: 1 of 3 lanes died at 35M (lane-failure rule); two surviving finals recorded individually, never pooled | 0.7327 / 0.7513 |
 | ↳ 50M re-run (D29r2, 3 fresh seeds) — **R-A CREDIT** vs the bare 50M recipe (named cell: lanes do not fully separate); **R-B FLAT** vs the 12M stack — scale adds nothing | 0.7022 ± 0.0048 |
 | ↳ all five 50M-stack lanes, descriptive only (pre-declared before the re-run's data) | 0.7181 ± 0.0224‡ |
+| D28 zero-info dose control (12M, 5 seeds) — **A1: does NOT reproduce D25** (perm 1/252, strict separation); **not sealed** — the control's delivered dose collapsed once the task was learned (g 0.979) | 0.5224 ± 0.0041 |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 

@@ -4876,3 +4876,31 @@ entry by offset — never a broad keyword grep.
   selftest green (incl. DECAYING-not-MATCHED and g cells); suite 384/17. Seeds
   70-74 (75/76 held). ~2.16 ld, 5-wide alone, ~11 h. Backups: z1_2_frozen +
   dose_ratio_bins + both reviews copied to the backup dir.
+- 2026-08-21 (evening, **D28 READOUT: A1 — THE ZERO-INFO CONTROL DOES NOT REPRODUCE
+  D25 (+0.09607, PERM 1/252, STRICT SEPARATION) — BUT NOT SEALED: the dose collapsed
+  late (r_late 0.12) and Delta_2 pointed -0.022**): 5 lanes finished 12M clean
+  (~11.4 h, ~2.2 ld, zero incidents, mask_desyncs 0/15000). Finals: s70 0.5610 /
+  s71 0.4377 / s72 0.5453 / s73 0.4853 / s74 0.5827 -> pooled **0.52240**. R-1
+  delta +0.09607 vs bar 0.05732 (clustered 0.02866 governs) -> **A1**, perm 1/252
+  minimum attainable. R-2 delta -0.02213 -> **S-b** (null band, negative sign).
+  SEAL BLOCKED by two pre-registered conditions: Delta_2 >= 0 (failed) and
+  r_late >= 0.70 (failed hard: per-bin fleet q 1.12/0.68/0.61/0.68/0.77/0.81/0.86/
+  0.93/0.95/**0.12**/0.68/**0.01**; trajectory ERRATIC, r_bar 0.760 SHORT).
+  MECHANISM: median g **0.979** (bar 0.544; max 0.989, no g>1.0) — the head
+  LEARNED the stationary task nearly completely and a learned task stops sending
+  gradient; the 6M gate had passed easily (f 0.826 / q 0.815) — the collapse is
+  bins 9-11. f_late fleet 0.614 IN BAND (no F-HIGH at bin 11 despite the smoke);
+  clip neutral >= 0.998; D-C (illegal/frame exactly 0, labelled bins in band),
+  D-D (anchor 0.969-0.975 by 4M), K6 clean, R0-4 exact x5, attest PASS x2.
+  **Verdict language (RESULTS §12): the caveat is DOWNGRADED, NOT CLOSED** — the
+  strongest directional evidence yet against the generic-gradient explanation,
+  one pre-registered condition short of the seal. THE STRUCTURAL FINDING, recorded
+  for any successor: a control easy enough to dose is easy enough to learn, and
+  once learned it stops dosing (D27 died of trunk collapse; D28's task survived
+  the trunk and died of its own convergence) — the dose caveat's closure has a
+  measured obstacle that may be inherent to learnable stationary tasks. EVERY cell
+  the readout landed in was NAMED IN ADVANCE (the 17 folded must-fixes — r_late,
+  ERRATIC, S-b's sign condition — all load-bearing tonight; zero maintainer
+  adjudications owed). Recorded in this commit: RESULTS §12, README row, STATUS
+  rewrite; results/d28/ backed up. Maintainer items: push timing; chapter-3
+  direction (DESIGN2's remaining lines + the §13 futility ruling still open).

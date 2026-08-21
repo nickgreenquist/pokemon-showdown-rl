@@ -479,3 +479,44 @@ has a live candidate ("a credited lever at 50M" — the maintainer's wording rul
 STACK-vs-lever is finally load-bearing), while the same readout's R-B FLAT argues
 the 250M line is futile at this recipe. Both sentences are recorded; neither is
 suppressed. D28 (the dose control, ~2.2 ld) is the queued next arm.
+
+## 12. Addendum, 2026-08-21 — D28 (the zero-information dose control): A1 — the
+control does NOT reproduce D25 (perm 1/252, strict separation) — but the seal's
+dose-sustainment condition failed; the caveat is downgraded, not closed
+
+Written at readout, Friday evening. Five lanes, seeds 70–74, 12M, ~2.2 lane-days,
+zero incidents, `mask_desyncs` 0 across all 15,000 final battles. Finals (locked):
+**s70 0.5610, s71 0.4377, s72 0.5453, s73 0.4853, s74 0.5827 → pooled 0.52240.**
+
+- **R-1 PRIMARY: A1, maximally.** D25 (frozen 0.61847) minus control = **+0.09607**
+  over a 0.05732 bar (clustered governs); exact permutation **1/252 — the minimum
+  attainable**; every D25 lane above every control lane. A zero-opponent-action-
+  information gradient through D25's head and entity path did not reproduce D25's
+  gain.
+- **R-2: S-b** (point estimate −0.02213, inside the two-sided null band): the
+  generic gradient did nothing vs Rung-2 — and pointed slightly negative.
+- **The seal does NOT complete**, for two pre-registered reasons: (1) the sealing
+  conjunction requires the R-2 point estimate ≥ 0 (measured −0.022); (2) it
+  requires r_late ≥ 0.70, and **the control's delivered dose collapsed late** —
+  per-bin fleet q: 1.12, 0.68, 0.61, 0.68, 0.77, 0.81, 0.86, 0.93, 0.95, **0.12,
+  0.68, 0.01** (trajectory cell ERRATIC; r_early 0.68, r_late 0.12; fleet r_bar
+  0.760 = SHORT). Mechanism, visible in the manipulation check: **median g 0.979**
+  (bar 0.544) — the head learned the stationary task nearly completely, and a
+  fully-learned task stops sending gradient. The 6M abort was nowhere near firing
+  (fleet f 0.826, q 0.815 at the gate); the collapse is a bins-9–11 phenomenon.
+- Clean elsewhere: f_late fleet 0.614 (inside [0.45, 0.70] — the smoke's F-HIGH
+  worry did not materialise at bin 11); clip neutral (≥ 0.998); D-C/D-D/K6 and
+  R0-4 all pass; attest PASS both comparator sets.
+
+**What is licensed, exactly:** the caveat "a generic auxiliary gradient of matched
+size would have helped too" is **downgraded, not closed**: tested once against a
+structured zero-information control whose delivered dose was certified in-run
+(SHORT overall, sustained through bin 8, collapsed after), the generic-gradient
+explanation failed to reproduce the gain at the strongest separation the
+permutation can express. The formal seal awaits a control whose dose survives its
+own learnability — and the deep finding is that **that may be impossible for any
+learnable stationary task**: a control easy enough to dose is easy enough to
+learn, and once learned it stops dosing. D27 died of collapse at the trunk; D28's
+task survived the trunk and died of its own convergence. The dose caveat's
+closure now has a measured, structural obstacle, recorded here for whatever arm
+succeeds this one.
