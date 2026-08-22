@@ -28,19 +28,16 @@ volatiles; from_string drops volatiles; sleep-success branch still self-KOs).
 | CH3 R0 ensemble-of-4 — B1 CREDIT (+0.036, THESE four ckpts only) | 0.74633 |
 
 ## Next actions
-1. **FG-2 ROUTE RULING (maintainer)** — repairs measured to their ceiling
-   (~0.95 < 0.98): gap attribution = truncation 1.51pt (top_b is §3 law —
-   design change), net_heal 1.42 (SECONDARY built, 0.9237), turn_order
-   0.37, ditto-residual 0.39, chip 0.26, sleep-interrupt 0.14
-   (engine-internal), rest observability/boundary. Options (a) re-scope
-   band, (b) accept + named strata, R2 carries verdict, (c) A-sidecar,
-   (d) stop. REC: (b). Full memo: 08-22 'later' log entry.
-2. ~~R2 driver~~ ~~pre-reg draft + grader~~ DONE (driver live-smoked 3/4
-   at Dose M, ms 83.7 in band; ch3_rung2.yaml DRAFT + ch3_r2_grade.py —
-   grader refuses DRAFT). After the ruling: transcribe it into
-   fg2_disposition, register, launch checklist in the 08-22 later-night
-   log entry (A0 ~8 min -> R2-10 -> A1S ~2-3.5 h -> grade).
-3. Push: 12 local commits — say the word.
+1. ~~FG-2 ruling~~ RULED (b) 2026-08-22: ACCEPTED 0.9092 + named strata,
+   number unrewritten, R2 adjudicates wins. Transcribed in ch3_rung2.yaml
+   fg2_disposition; pre-reg REGISTERED.
+2. **RUN A1S** (maintainer terminal, ~2-3.5 h 4-wide): the one-block
+   command is in the 08-22 'latest' log entry / final session message.
+   A0 DONE + R2-10 PASS (pooled 0.72358 vs 0.71825, diff 0.0053; lanes
+   0.73233/0.71833/0.73233/0.71133; desyncs 0; R2-5 exact on 40 chunks).
+   Then: `python scripts/ch3_r2_grade.py --prereg configs/eval/ch3_rung2.yaml`
+   (clean tree; F-gates first; KILL rule; README/STATUS per branch).
+3. Push: 3 local commits since the last push — ask first (standing rule).
 4. Standing: §13/250M futility ruling (rec RETIRE); resume-from-checkpoint
    (24h bar); D7(a) ladder ruling only if R2 lands B1.
 

@@ -5348,3 +5348,30 @@ entry by offset — never a broad keyword grep.
   --selfcheck + suite green, (4) run A0 (4 jobs, ~8 min), check R2-10,
   (5) run A1S (4 jobs, ~2-3.5 h in the maintainer's terminal), (6)
   scripts/ch3_r2_grade.py --prereg configs/eval/ch3_rung2.yaml.
+
+- 2026-08-22 (latest, **R2 LAUNCH SEQUENCE EXECUTED THROUGH A0: ruling (b)
+  transcribed, pre-reg REGISTERED, gates green, A0 swept, R2-10 PASS —
+  A1S handed to the maintainer's terminal; suite 428/17**): maintainer
+  (same message): "puah" [push — done, through 583cf2e], "fg-2: agree
+  with your rec" [= route (b): FG-2 ACCEPTED at 0.9092 with the residual
+  map as named strata, number unrewritten, R2 adjudicates wins],
+  "i agree with your launch checklist path". Executed: (1) ruling
+  transcribed into ch3_rung2.yaml fg2_disposition verbatim-with-numbers;
+  status DRAFT -> REGISTERED (commit db3083b); battery output now carries
+  an fg2_ruling note (FG-1 precedent). (2) R2-1 battery re-run at the
+  launch code: FG-1/4/5/6/7 PASS, FG-2 0.9092 GREEN per ruling, FG-2k
+  post-expansion residual 0.0075; transcript + fg_battery.json sha256
+  recorded in r2_1_fg_transcript; R2-2 (FG-4 static + SF-13 live half)
+  in r2_2_fg4_transcript. (3) --selfcheck 4x 1000/1000 (R0-c); suite
+  428/17 green at launch sha (R2-6); tree clean (R2-9); checkpoint shas
+  asserted by preflight (R2-7); simulator:4 verified. (4) **A0 SWEPT**
+  (4x3000, 10x300 chunks, ~35 min in-session, sequential): s62 0.73233 /
+  s63 0.71833 / s64 0.73233 / s65 0.71133, every chunk's win_rate ==
+  wins_from_returns EXACTLY (R2-5), mask_desyncs 0 on all 40 chunks.
+  **Pooled 0.72358; R2-10 A0-STABILITY PASS** (|0.72358 - 0.71825| =
+  0.0053 <= 0.02) — the era held; A1S cleared. (5) A1S (4 lanes x 3000
+  at Dose M, 4-wide, ~2-3.5 h) handed over — chunks resume at
+  boundaries, chunk-0 sentinel automatic in every job; then
+  scripts/ch3_r2_grade.py --prereg configs/eval/ch3_rung2.yaml (grader
+  enforces clean tree; F-gates before any cell; KILL rule; per-branch
+  README/STATUS obligations pre-registered).
