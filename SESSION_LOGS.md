@@ -4925,3 +4925,54 @@ entry by offset — never a broad keyword grep.
   restored. Open decision unchanged: **chapter-3 direction** (candidates and the
   §13 RETIRE-on-futility recommendation are on record in the 08-21 readout entry
   and STATUS; any pick starts a fresh 2-Opus design round).
+- 2026-08-21 (night, **CHAPTER 3 = SEARCH, PICKED AND DESIGNED: the full 2-Opus
+  round ran same-session — 2 independent designs, synthesis, 2 adversarial
+  reviews (27 must-fixes), ALL FOLDED — `results/design_ch3/
+  ch3_search_design_r2.md` is the self-contained ratifiable design**):
+  maintainer picked the search line (over the D26-anneal mechanism study and a
+  §13-only ruling) and authorized the push (origin at e03f331). Evidence brief
+  written first (D8/D9 archive dig: option (B) — search wrapped around our own
+  policy — was never recommended, built, or tested; the FP work that "already
+  happened" was option (C); chapter 3 is greenfield). DESIGNS: A
+  (algorithm-first) and B (engineering-first) CONVERGED independently on the
+  core — depth-1 joint-action matrix at the root, best response to an
+  opponent model factored from the credited oppact head (which IS in the D26
+  checkpoints and runs at inference — verified), critic as leaf evaluator,
+  node-budget determinism, placeholder-turn containment, MC-leaf-vs-V-leaf as
+  the value-ceiling bracket, paired-by-lane stats with the +0.025 floor
+  governing — and DIVERGED on the forward model (A: vendored-Showdown Node
+  sidecar, ~1.2 ms/leaf, sampled chance; B: poke-engine gen1 pure transition
+  function, ~93-155 µs/leaf, enumerated chance). SYNTHESIS took B's spine
+  (engine + exhaustive depth-1 + executable YAML pre-regs with machine-checked
+  branch partitions) under A's statistical superstructure (power table, df
+  disclosure, PIMC rationale, the no-SH-model-inside-the-agent constraint);
+  A-sidecar = the named fallback. REVIEWS (both SOUND-WITH-MUST-FIXES, 17+10
+  MF / 14+13 SF) caught real defects: "chance handled EXACTLY" was false TWICE
+  (top-6 truncation AND `DamageRolls::Average` — KO coins scored
+  deterministically); F3 would have VOIDED a healthy arm (realized branches
+  mean 2.79 vs nominal 6 — gate re-based to a measured baseline); the r1
+  oppact fallback was an SH MODEL INSIDE THE AGENT (deleted; self-play
+  marginal + SH-free switch criterion); equal-log2 dose spacing made the R3
+  slope blind to saturation (→ two segment contrasts, T2 split
+  RESOLVED-NULL/INDETERMINATE); poke-engine's DEFAULT BUILD IS GEN 4 and
+  PEP 621 can't carry the gen1 flags (→ requirements-search.txt + --no-cache-dir,
+  maintainer ruling); the watchdog's silent fallback-to-policy was replaced by
+  raise-and-kill-the-chunk. Review positives that retire unknowns: poke-engine
+  gen1 BUILDS ON PYTHON 3.13 (cp313 wheel in pip cache, `generate_instructions`
+  run live in our env); the critic is obs-only; `embed_battle` reads no event
+  history (ShadowBattle plan viable); switch actions = bare species id
+  (measured); FP never calls `generate_instructions` — its 0.83 does NOT
+  transfer to our primitive (honesty line in the design). SHAPE: R0 free
+  compute + headroom (1 evening, ~0.02 ld, kills K0-1/K0-2) -> R1 bridge + FG
+  battery + R1-0 spike (3-4 evenings, no verdict battles) -> R2 credit test
+  (4x3000 paired vs fresh A0, one evening, ~0.5 ld, floor +0.025 governs,
+  point prediction +0.02..+0.05 = CREDIT-vs-FLAT coin flip) -> R3
+  NON-CREDITING mechanism grid (~2.6-3.0 ld, one overnight at Dose L).
+  Through R3 ~3.1-3.5 ld, ~8-10 evenings; ZERO training; seeds untouched.
+  FIVE MAINTAINER RULINGS pending (design §10): poke-engine admissibility
+  (rec: ALLOW), install-mechanics deviation, determinization-source
+  disclosure, K0-2 override ownership, D7(a) ladder contradiction. All seven
+  artifacts (brief, 2 designs, r1, 2 reviews, r2) in results/design_ch3/
+  (gitignored only-copies), backed up to
+  ../pokemon-showdown-rl-d25-backup-20260815/design_ch3/. NOT RATIFIED — no
+  rung is authorized until the maintainer rules.

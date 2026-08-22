@@ -28,15 +28,15 @@ account. **NEVER "belief state"**; D18 NULL; D27/D30 dead.
 | **D28 zero-info control — A1 (p 1/252), NOT SEALED (late dose collapse)** | **0.52240** |
 
 ## Next actions
-1. **Maintainer: review the D28 record; push the local commits** (readout is on
-   origin at 5d7ebe0; handoff+fold commits local; `results/d28/` backed up).
-2. **Chapter-3 direction is now fully open** — the chapter-2 questions are spent:
-   dose caveat downgraded with a measured structural obstacle (RESULTS §12), 50M
-   saturated, D27/D30 dead. Candidates on record: the D26 anneal surprise
-   mechanism; the retired search line (DESIGN §8, saturation re-opens the
-   calculus); §13/250M futility ruling (R-B FLAT argues retire). New 2-Opus
-   design round when you pick.
-3. Standing: ladder-eval contradiction (DESIGN §8 D7(a) vs CLAUDE.md);
+1. **Maintainer: RATIFY (or amend) the chapter-3 SEARCH design** —
+   `results/design_ch3/ch3_search_design_r2.md` (self-contained; full 2-Opus
+   round done 08-21: 2 designs + synthesis + 2 reviews, 27 MFs all folded).
+   **Five rulings in its §10** (poke-engine admissibility rec ALLOW; install
+   deviation; determinization disclosure; K0-2 ownership; D7(a) ladder).
+   Nothing runs until ratified; R0 is one evening, ~0.02 ld, zero training.
+2. Push: origin current through e03f331; tonight's ch3 session-log commit is
+   local (say the word).
+3. Standing: §13/250M futility ruling (rec RETIRE, on record);
    resume-from-checkpoint (the 24h bar) — design on request.
 
 ## Watch items
