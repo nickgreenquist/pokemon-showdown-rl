@@ -29,13 +29,13 @@ account. **NEVER "belief state"**; D18 NULL; D27/D30 dead.
 | **D28 zero-info control — A1 (p 1/252), NOT SEALED (late dose collapse)** | **0.52240** |
 
 ## Next actions
-1. **R1 build (authorized; 3-4 evenings, no verdict battles):** poke-engine
-   gen1 install per ruling 2's exact command, `rl/search/bridge.py`,
-   ShadowBattle, the R1-0 end-to-end spike (freezes dose/F3/watchdog), FG
-   battery FG-1..FG-8 vs the 500-battle harvest. Kill: any blocking FG
-   unfixable in 3 evenings -> the A-sidecar fallback or the chapter stops.
-2. Push: several local commits (ratification, R0 build, R0 readout) — say
-   the word.
+1. **R1 part 3** (parts 1-2 DONE 08-22: engine installed+attested, bridge,
+   RSD determinizer, ShadowBattle; leaf ~90us, Dose-M ~73ms implied):
+   harvest recorder -> FG battery (banded FG-2 + ko_disagreement) ->
+   matrix.py (L6 mapping law, BR solve) -> R1-0 spike (freezes dose/F3/
+   watchdog) -> cap-of-2 rejection. HANDOFF.md §2 has the ordered list;
+   design r2 §3-§5 are the spec. Kill: blocking FG unfixable in 3 evenings.
+2. Push: 7 local commits — say the word.
 3. Standing: §13/250M futility ruling (rec RETIRE, on record);
    resume-from-checkpoint (24h bar) — design on request; D7(a) ladder
    ruling only if R2 lands B1.
