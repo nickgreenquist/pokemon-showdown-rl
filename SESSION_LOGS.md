@@ -5102,3 +5102,61 @@ entry by offset — never a broad keyword grep.
   for R1: harvest recorder, FG battery script (FG-1..FG-8 incl. banded
   FG-2 + FG-2k ko_disagreement), matrix.py (L6 mapping law + BR solve),
   R1-0 spike on the harvest, cap-of-2 rejection in the bench sampler.
+
+- 2026-08-22 (day, **R1 PART 3 COMPLETE — harvest 13,702 decisions, matrix +
+  SearchAgent landed, R1-0 spike 58 ms/decision, FG battery run: FG-4/5/6/7
+  PASS, FG-2 0.8946 BLOCKING FAIL with causes named, FG-2k roll-expansion
+  branch FIRES; suite 413/17**): five commits (17a3522, c7372d8, 4039e4e,
+  27d41be + handoff fold). (1) **Harvest**: rl/search/harvest.py
+  freeze/rehydrate of battle1's public surface — contract
+  embed(rehydrate(freeze(b))) BIT-IDENTICAL, held 13,702/13,702 live;
+  scripts/ch3_harvest.py recorded 500 battles (125 x 4 D26 lanes) vs SH,
+  BOTH seats (seat-2 true teams + actual orders in a separate privileged
+  file nothing under rl/search/ reads — FG-4 discipline); win rates
+  0.712-0.744, mask_desyncs 0; results/ch3_r1/, backed up. (2) **Cap-of-2**:
+  bench sampler now rejects on the vendored generator's caps (<=2/type,
+  <=2 weak per spammable {Electric,Psychic,Water,Ice,Ground,Fire}, <=1
+  L100, one Ditto/battle read off OUR public team); FG-7 then measured
+  support 0.998 >= 0.99 PASS. (3) **matrix.py + agent.py**: the full §3 L6
+  law (OTHER_MOVE never simulated, q renormalized + mass recorded; SWITCH
+  uniform-per-det; locked opponent -> "none" counted), shared dets, top-6
+  renormalized, batched leaf valuation w/ terminal override, BR argmax,
+  D2 keyed rng, D3 tie-break law, raising watchdog. (4) **R1-0 spike**
+  (200 real harvest decisions, complete Dose-M): **58.0 ms/decision** mean
+  (p99 116.6) — under every estimate (r1 124, review-2 108, synthetic 73);
+  leaves 342/1296 cap (F3 baseline 0.264); node cap 1500 HOLDS; implied
+  1.32 h/3000-battle lane at 1-wide; **flip rate vs recorded greedy 0.635**
+  (descriptive; R2 adjudicates). (5) **THREE NEW ENGINE LANDMINES**, all
+  pinned by tests: statuses must be FULL NAMES (burn/paralyze/...) — any
+  string is accepted at construction and only parsed inside
+  generate_instructions ("par" panics, readback echoes the raw string so
+  states look clean); applied-state readback UPPERCASES volatile_statuses
+  (leaf shadows silently lost every volatile until .lower()); engine
+  from_string DROPS volatiles => FG-1 byte-identity unreachable on
+  volatile states (742/800; 0 panics) — MAINTAINER RULING NEEDED on FG-1's
+  scope. (6) **FG battery** (scripts/ch3_fidelity_check.py ->
+  results/ch3_r1/fg_battery.json): FG-5 7/0/1 PASS; FG-4 static PASS (live
+  sentinel = R2 chunk-0 per SF-13); FG-6 PASS after fixing 3 real bugs it
+  caught (volatile case, PP default 16 -> real max, faint leaves now carry
+  force_switch — the critic's trained family), budget FROZEN as named
+  families (det_unrevealed_bench, slot_known_prob, pp, opp_hp_grain 0.0105,
+  sleep_rest_counter, volatiles, preparing, transform_ditto, root_trapped
+  3/13,396); **FG-2 PRIMARY 0.8946** (n=11,333, bar 0.98) — cause families:
+  engine keeps MUSTRECHARGE after KO where gen1 skips recharge (secondary
+  ex-recharge 0.9035, recorded never governing), transformed Ditto,
+  turn-order edges (speed ties; engine let a freshly-slept mon explode),
+  hp_band/status tails; action_unsimulable 4.4% (det support);
+  **3-evening repair clock starts**; FG-2p 0.6171 -> pre-registered
+  action: stratum out-of-scope, §3 skip covers it; **FG-2k 0.0928 > 0.05
+  -> the 2-point roll expansion MUST be built + re-priced before R2**;
+  FG-3 drift 0.061 (flag 0.10 clear). (7) Zero-battle reads: oppact
+  **sh_accuracy 0.424-0.479 vs 0.436 marginal — the promoted head adds
+  LITTLE vs SH** (named confound, now measured); entropy median 0.57-0.64
+  << 1.70 so MF-4's degenerate-q fallback does NOT engage;
+  successor-ranking AUC(2-8) **0.816** — K0-1's revisit statistic SUPPORTS
+  V-leaf; Z2' truncation negligible (retained mass 0.9946); unmodellables:
+  opp mustrecharge 5.8%, partialtrap 0%, SH lightscreen 0%. REMAINING for
+  R1 CLOSE: maintainer rulings on FG-1 scope + FG-2 repair route (recharge
+  exclusion? ditto stratum? sleep-interrupt fix upstream?), build the
+  FG-2k 2-point roll expansion, then the R2 driver (--search on
+  ch3_eval.py) with chunk-0 sentinel.

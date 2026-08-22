@@ -2,23 +2,21 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-22 — **CH3 SEARCH RATIFIED (depth-1 only) + R0
-READ OUT: ensemble-of-4 B1 CREDIT 0.74633 (+0.036, licensed sentence:
-"THESE four checkpoints"); K0-1 PASS (AUC 0.780) — V-leaf search allowed;
-placeholder stratum 1.1%; flip anchor 0.103; R1 (bridge+FG) is next**)
+## Where things stand (2026-08-22 — **R1 PART 3 DONE: harvest 13.7k decisions,
+matrix/SearchAgent landed, spike 58 ms/decision @ Dose M, FG battery run.
+FG-4/5/6/7 PASS · FG-2 0.8946 vs bar 0.98 BLOCKING FAIL (causes named, 3-evening
+repair clock RUNNING) · FG-2k 0.093 > 0.05 -> 2-point roll expansion REQUIRED
+before R2 · FG-1 needs a maintainer ruling (engine from_string drops volatiles)**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
-0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** 50M answered
-(D29r2): R-A CREDIT (stack transfers, 0.70222, named cell) / R-B FLAT (scale adds
-nothing; 5-lane descriptive 0.71813 = the 12M number). **D28 (zero-info dose
-control, s70-74): pooled 0.52240 — A1** (+0.09607 vs D25, bar 0.05732, perm 1/252,
-strict separation) **x S-b** (-0.022, null band) at dose SHORT/ERRATIC — **SEAL
-BLOCKED** (Delta_2 < 0; r_late 0.12: per-bin q collapsed 0.12/0.68/0.01 in bins
-9-11 because median g 0.979 — the head LEARNED the task and a learned task stops
-dosing). **Structural finding for any successor: a control easy enough to dose is
-easy enough to learn; D27 died of trunk collapse, D28's task died of convergence.**
-Every readout cell was pre-named; zero adjudications owed. RESULTS §9-12 = the
-account. **NEVER "belief state"**; D18 NULL; D27/D30 dead.
+0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** CH3 ratified
+(depth-1 only). R0: ensemble-of-4 B1 CREDIT 0.74633 ("THESE four checkpoints");
+K0-1 PASS 0.780 -> V-leaf allowed; flip anchor 0.103. R1 reads that matter: spike
+58 ms/decision (all estimates beaten), successor-ranking AUC 0.816 (supports
+V-leaf), oppact sh_accuracy 0.42-0.48 vs 0.436 marginal (promoted head adds
+LITTLE vs SH — named confound, measured), q entropy low (MF-4 fallback inert),
+Z2' truncation negligible. Three engine landmines pinned by tests (full-name
+statuses; readback UPPERCASES volatiles; from_string drops volatiles).
 
 ## Results (vs SH; ties=loss; locked = final ckpt)
 | result | win rate |
@@ -26,31 +24,31 @@ account. **NEVER "belief state"**; D18 NULL; D27/D30 dead.
 | R2 12M 0.5509 · R3 50M 0.5802 · D25 aux 0.6185 · placebo 0.5415 | — |
 | **D26 +LR anneal 12M — B1 CREDIT, HEADLINE** (+0.0998, p 1/126) | **0.71825** |
 | D29r2 50M — R-A CREDIT (named cell) / R-B FLAT · 5-lane desc 0.7181 | 0.70222 |
-| **D28 zero-info control — A1 (p 1/252), NOT SEALED (late dose collapse)** | **0.52240** |
+| D28 zero-info control — A1 (p 1/252), NOT SEALED (late dose collapse) | 0.52240 |
+| CH3 R0 ensemble-of-4 — B1 CREDIT (+0.036, THESE four ckpts only) | 0.74633 |
 
 ## Next actions
-1. **R1 part 3** (parts 1-2 DONE 08-22: engine installed+attested, bridge,
-   RSD determinizer, ShadowBattle; leaf ~90us, Dose-M ~73ms implied):
-   harvest recorder -> FG battery (banded FG-2 + ko_disagreement) ->
-   matrix.py (L6 mapping law, BR solve) -> R1-0 spike (freezes dose/F3/
-   watchdog) -> cap-of-2 rejection. HANDOFF.md §2 has the ordered list;
-   design r2 §3-§5 are the spec. Kill: blocking FG unfixable in 3 evenings.
-2. Push: 7 local commits — say the word.
-3. Standing: §13/250M futility ruling (rec RETIRE, on record);
-   resume-from-checkpoint (24h bar) — design on request; D7(a) ladder
-   ruling only if R2 lands B1.
+1. **Maintainer rulings needed to close R1**: (a) FG-1 scope — engine
+   from_string drops volatiles, so byte-identity caps at 742/800; object
+   construction carries the load; (b) FG-2 repair route within the 3-evening
+   clock: candidates = KO-skip recharge exclusion (secondary 0.9035),
+   transformed-Ditto stratum, engine sleep-interrupt/speed-tie fidelity;
+   fallback = A-sidecar (design §2) or chapter stops.
+2. **Build the FG-2k 2-point roll expansion** (0.093 > 0.05 — pre-registered
+   repair, ~2x leaf cost) and re-price via the spike before R2.
+3. Then the R2 driver: `--search` branch on ch3_eval.py + chunk-0 raise-on-
+   access sentinel (SF-13). Dose M frozen off the spike; node cap 1500 holds.
+4. Push: 12 local commits — say the word.
+5. Standing: §13/250M futility ruling (rec RETIRE); resume-from-checkpoint
+   (24h bar); D7(a) ladder ruling only if R2 lands B1.
 
 ## Watch items
-- **D28's A1 is quoted WITH "not sealed"** — the pre-registered sentence; the
-  caveat is downgraded ("tested once, strongest separation, dose SHORT with late
-  collapse"), never "closed"/"refuted". The per-bin q table travels with it.
-- **The D29r2 R-A credit is a NAMED CELL** (no strict separation) — sentence
-  travels with every quote; STACK not lever.
-- **README ± are BINOMIAL except the ‡ row; clustered se governs verdicts.**
-- **Never read throughput off `time/steps_per_sec`**; Δstep/Δwall off ckpt mtimes.
-- **`results/d25 d25p d19_closeout c4_transfer design_ch2 d26 d29 d29r2 d28
-  struct12m/50m finals` are the ONLY copies**, backed up at
-  `../pokemon-showdown-rl-d25-backup-20260815/`.
-- Ledger: ch-2 realised ~11 ld total (D29r 4.2 + D29r2 4.6 + D28 2.2). Seeds:
-  70-74 burned, 75/76 held, 80-92 burned/held per 08-19. vs-SH 0.72 is still
-  ~40% GXE — nothing here is "nearly solved".
+- **Spike flip rate vs recorded greedy = 0.635** — descriptive only; R2
+  adjudicates whether flips WIN. Quote it nowhere as a strength claim.
+- FG-2p 0.6171 < 0.95 -> placeholder stratum OUT-OF-SCOPE per pre-reg (§3 skip
+  covers it); FG-6 budget FROZEN as named families incl. transform_ditto.
+- D28's A1 quoted WITH "not sealed"; D29r2 R-A is a NAMED CELL; README ± are
+  binomial except ‡; never read throughput off `time/steps_per_sec`.
+- `results/` dirs are the ONLY copies (ch3_r1 incl. harvest+battery backed up
+  to `../pokemon-showdown-rl-d25-backup-20260815/`). Seeds 66/67, 75/76,
+  83/84, 93/94 held — ch3 burns none. vs-SH 0.72 is still ~40% GXE.
