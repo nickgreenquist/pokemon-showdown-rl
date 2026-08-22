@@ -2,11 +2,12 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-22 — **R1 PART 3 DONE: harvest 13.7k decisions,
-matrix/SearchAgent landed, spike 58 ms/decision @ Dose M, FG battery run.
-FG-4/5/6/7 PASS · FG-2 0.8946 vs bar 0.98 BLOCKING FAIL (causes named, 3-evening
-repair clock RUNNING) · FG-2k 0.093 > 0.05 -> 2-point roll expansion REQUIRED
-before R2 · FG-1 needs a maintainer ruling (engine from_string drops volatiles)**)
+## Where things stand (2026-08-22 — **R1 PART 3 + EXPANSION DONE: harvest 13.7k
+decisions; matrix/SearchAgent/2-point-roll-expansion landed; FG battery:
+FG-4/5/6/7 PASS · FG-2k residual 0.0928 -> 0.0082 post-expansion (repair built,
+re-priced: Dose M 73.2 ms/decision, node cap holds) · FG-2 0.9057 vs bar 0.98
+still BLOCKING (residuals: transformed Ditto, turn-order edges, band tails;
+3-evening clock running) · FG-1 ruling owed (from_string drops volatiles)**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
 0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** CH3 ratified
@@ -34,17 +35,18 @@ statuses; readback UPPERCASES volatiles; from_string drops volatiles).
    clock: candidates = KO-skip recharge exclusion (secondary 0.9035),
    transformed-Ditto stratum, engine sleep-interrupt/speed-tie fidelity;
    fallback = A-sidecar (design §2) or chapter stops.
-2. **Build the FG-2k 2-point roll expansion** (0.093 > 0.05 — pre-registered
-   repair, ~2x leaf cost) and re-price via the spike before R2.
-3. Then the R2 driver: `--search` branch on ch3_eval.py + chunk-0 raise-on-
-   access sentinel (SF-13). Dose M frozen off the spike; node cap 1500 holds.
-4. Push: 7 local commits (this session's) — say the word.
+2. ~~Roll expansion~~ DONE (rl/search/expansion.py; residual 0.0082; spike
+   re-priced 73.2 ms/dec; flip rate 0.635 -> 0.51). Next build: the R2 driver
+   (`--search` on ch3_eval.py + chunk-0 sentinel, SF-13) once FG-2 is ruled.
+3. Push: 2 local commits — say the word.
 5. Standing: §13/250M futility ruling (rec RETIRE); resume-from-checkpoint
    (24h bar); D7(a) ladder ruling only if R2 lands B1.
 
 ## Watch items
-- **Spike flip rate vs recorded greedy = 0.635** — descriptive only; R2
-  adjudicates whether flips WIN. Quote it nowhere as a strength claim.
+- **Spike flip rate vs recorded greedy = 0.51 (post-expansion)** — descriptive
+  only; R2 adjudicates whether flips WIN. Quote it nowhere as a strength claim.
+- The part-3d 'engine keeps MUSTRECHARGE after KO' claim was WRONG (engine
+  implements KO-skip itself); corrected in the 08-22 evening log entry.
 - FG-2p 0.6171 < 0.95 -> placeholder stratum OUT-OF-SCOPE per pre-reg (§3 skip
   covers it); FG-6 budget FROZEN as named families incl. transform_ditto.
 - D28's A1 quoted WITH "not sealed"; D29r2 R-A is a NAMED CELL; README ± are

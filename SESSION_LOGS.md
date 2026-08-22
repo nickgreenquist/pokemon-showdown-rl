@@ -5160,3 +5160,42 @@ entry by offset — never a broad keyword grep.
   exclusion? ditto stratum? sleep-interrupt fix upstream?), build the
   FG-2k 2-point roll expansion, then the R2 driver (--search on
   ch3_eval.py) with chunk-0 sentinel.
+
+- 2026-08-22 (evening, **2-POINT ROLL EXPANSION BUILT + RE-PRICED — FG-2k
+  residual 0.0928 -> 0.0082; FG-2 0.9057; Dose M 73.2 ms/decision; plus a
+  disk cleanup that recovered ~180 GB; suite 416/17**): (1) session pushed
+  through 0d78449 (maintainer's word). (2) **Cleanup**: two 56-GB error
+  logs truncated (showdown/logs/errors.txt + the job-tmp showdown.log the
+  live server was writing stdout+stderr into — it was CRASH-looping
+  'Map maximum size exceeded' in sockets.js); 3,521 periodic ckpt_*.pt
+  snapshots deleted (~50 GB) after verifying every pinned path (D26 finals
+  sha-checked; the ONE pinned intermediate struct50m_s36/ckpt_012000000.pt
+  kept); 74 wandb dirs with extracted history.csv deleted (~14 GB); server
+  restarted clean (output to /dev/null, simulator:4 verified, 4-battle
+  live smoke green). Disk 12Gi -> 192Gi free; repo 126G -> 9.8G.
+  (3) **rl/search/expansion.py** (§2.1's pre-registered repair, mandatory
+  after FG-2k fired): KO-straddling branches split into low-roll survivor
+  (0.85 x max) + KO, weighted by TRUE roll mass over the 39 discrete gen1
+  rolls; per-branch max damage via calculate_damage (design-allowed;
+  verified branch dmg = 0.925 x candidate); engine leaves immutable ->
+  duck-typed views, legal at depth-1 (leaves never re-simulated); KO-skip
+  recharge strip applied to expansion-created KO variants. **CORRECTION of
+  this morning's misattribution: the engine ALREADY implements gen1's
+  KO-skip on its own branches** (measured — KO branches carry no
+  MUSTRECHARGE); the 'engine keeps MUSTRECHARGE after a KO' cause-family
+  claim in the part-3d entry was WRONG; the ~1% ex-recharge delta is real
+  but its mechanism is unresolved (sub-break / poke-env |-mustrecharge|
+  timing are the candidates). (4) **MEASURED**: FG-2k post-expansion
+  residual **0.0082** (KO boundary essentially recovered; the 0.0928 gate
+  number stays recorded); FG-2 primary 0.8946 -> **0.9057** (bar 0.98 —
+  adjudication still owed; residual families: transformed Ditto,
+  turn-order edges incl. the slept-mon-still-explodes case, hp_band/status
+  tails); spike re-price 58.0 -> **73.2 ms/decision** (+26%, vs the
+  design's priced ~2x; leaves 353 mean / 729 max, node cap 1500 HOLDS;
+  1.67 h/3000-battle lane at 1-wide); flip rate vs recorded greedy 0.635
+  -> **0.51** (avg-damage KO overconfidence was driving flips). Battery
+  reports fg2k_post_expansion_residual + keeps the raw average leaf
+  matchable at zero mass so the split never shrinks band coverage. Tests
+  24 ch3-matrix/bridge (+3); suite 416/17. STILL OWED to close R1: the
+  FG-1 scope ruling and the FG-2 route ruling (repair vs named-stratum
+  vs sidecar) — both flagged to the maintainer with numbers in hand.
