@@ -178,6 +178,7 @@ def solve_decision(
     leaf_fixed: list[float] = []  # terminal values; nan = ask the critic
     leaf_at: list[tuple[int, int, int, float]] = []  # (row_i, col_i, det_i, w)
     n_leaves = 0
+    retained_mass: list[float] = []  # kept mass per cell BEFORE renorm (Z2'/F-flag)
     turn = int(battle.turn)
     for ri, action in enumerate(rows):
         a_str = our_action_str(battle, action)
@@ -187,6 +188,7 @@ def solve_decision(
                 branches = sorted(branches, key=lambda b: -b.percentage)
                 kept = branches[: dose.top_branches]
                 total = sum(b.percentage for b in kept)
+                retained_mass.append(total / 100.0)
                 if total <= 0:
                     continue
                 for br in kept:
@@ -238,6 +240,9 @@ def solve_decision(
         "search/row_ev": {int(rows[i]): float(row_ev[i]) for i in range(len(rows))},
         "search/chosen": int(best),
         "search/policy_argmax": int(max(rows, key=lambda a: prior[a])),
+        "search/retained_mass_mean": float(np.mean(retained_mass)) if retained_mass else 1.0,
+        "search/ev_matrix": ev_matrix.tolist(),
+        "search/col_classes": list(col_classes),
         "bridge/unmapped_effects": dict(counters.unmapped_effects),
     }
     return best, stats

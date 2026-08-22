@@ -154,6 +154,7 @@ def sample_determinization(battle: Any, rng: np.random.Generator) -> dict:
                 "types": [t.name.lower() for t in mon.types if t is not None]
             },
             "live": mon,
+            "provenance": "rsd",  # FG-4: asserted at bridge construction
         }
     n_unrevealed = 6 - len(opponents)
     caps = _TeamCaps()
@@ -178,5 +179,6 @@ def sample_determinization(battle: Any, rng: np.random.Generator) -> dict:
             "level": randbats_prior.species_level(sp),
             "base_stats": _static_base_stats(sp),
             "live": None,
+            "provenance": "rsd",  # FG-4: asserted at bridge construction
         }
     return {"opponents": opponents}

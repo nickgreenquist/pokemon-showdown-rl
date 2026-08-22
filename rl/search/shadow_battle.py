@@ -26,6 +26,7 @@ from functools import lru_cache
 from types import SimpleNamespace
 from typing import Any
 
+from poke_env.battle.effect import Effect
 from poke_env.battle.move import Move as PEMove
 from poke_env.battle.pokemon_type import PokemonType
 from poke_env.battle.status import Status
@@ -80,14 +81,21 @@ def _mon_view(mon: Any, side: Any, is_active: bool) -> SimpleNamespace:
     # downstream consumers (pokedex, encoder id block) want lowercase
     species = mon.id.lower()
     base_stats, types = _static_species(species)
-    status = _STATUS_ENUM.get(mon.status)
+    status = _STATUS_ENUM.get(str(mon.status).lower())
     fainted = mon.hp <= 0
-    vols = set(side.volatile_statuses) if is_active else set()
+    # applied-state readback UPPERCASES volatiles too (measured 2026-08-22,
+    # same family as the mon-id uppercasing) — without .lower() every leaf
+    # silently lost its volatiles at the shadow boundary
+    vols = {v.lower() for v in side.volatile_statuses} if is_active else set()
     effects = _Effects()
     for v in vols:
         eff_name = _VOLATILE_EFFECT_MAP.get(v)
-        if eff_name is not None:
-            effects[SimpleNamespace(name=eff_name)] = 1
+        # REAL Effect members, not name-alikes: the encoder tests membership
+        # with `Effect.X in mon.effects` (hash equality), and SimpleNamespace
+        # keys are unhashable anyway (found by FG-6 on real volatile states —
+        # the synthetic tests carried no volatiles).
+        if eff_name is not None and eff_name in Effect.__members__:
+            effects[Effect[eff_name]] = 1
     moves = {}
     for em in mon.moves:
         if em.id.lower() == "none":
@@ -152,7 +160,11 @@ def shadow_battle(state: Any, turn: int) -> SimpleNamespace:
         team=team,
         opponent_team=opp_team,
         turn=turn,
-        force_switch=False,
+        # gen1: force_switch iff our active fainted — true at faint LEAVES
+        # too, which is the state family the critic actually trained on
+        # (poke-env flags it before the replacement); measured by FG-6
+        # (dim 3 was the whole non-exempt violation set on 40 battles).
+        force_switch=bool(active is not None and active.fainted),
         trapped=False,
         available_moves=available,
     )

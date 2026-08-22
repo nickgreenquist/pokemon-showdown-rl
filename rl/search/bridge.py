@@ -105,10 +105,24 @@ class BridgeCounters:
         self.unmapped_effects[name] = self.unmapped_effects.get(name, 0) + 1
 
 
+def _default_pp(mid: str) -> int:
+    """A determinized move's PP defaults to its REAL max PP (poke-env's
+    gen-1 table), not a constant: poke-env never decrements the opponent's
+    PP so the public fraction is always max/max = 1.0, and a constant-16
+    default made ShadowBattle's pp dim read 16/max_pp != 1.0 (FG-6 caught
+    ratios up to 2.1)."""
+    try:
+        from rl.search.shadow_battle import _cached_move
+
+        return int(_cached_move(mid).max_pp or 16)
+    except Exception:
+        return 16
+
+
 def _engine_moves(move_ids: list[str], pp_by_id: dict[str, int] | None) -> list[EngineMove]:
     out = []
     for mid in move_ids[:4]:
-        pp = (pp_by_id or {}).get(mid, 16)
+        pp = (pp_by_id or {}).get(mid, _default_pp(mid))
         out.append(EngineMove(id=mid, pp=max(int(pp), 0), disabled=False))
     while len(out) < 4:
         out.append(EngineMove(id="none", pp=0, disabled=True))
@@ -243,6 +257,11 @@ def battle_to_state(battle: Any, determinization: dict,
     opp_mons = []
     opp_active = battle.opponent_active_pokemon
     for species, spec in determinization["opponents"].items():
+        # FG-4: every generated mon must carry RSD provenance — a spec that
+        # arrived from anywhere but the determinizer is a purity incident.
+        assert spec.get("provenance") == "rsd", (
+            f"opponent spec for {species} lacks RSD provenance"
+        )
         live = spec.get("live")  # the poke-env mon if revealed
         opp_mons.append(
             _det_pokemon(

@@ -252,3 +252,46 @@ def test_status_round_trips_through_shadow():
     state = battle_to_state(b, det, BridgeCounters())
     sb = shadow_battle(state, turn=b.turn)
     assert sb.opponent_active_pokemon.status is Status.PAR
+
+
+def test_leaf_volatiles_survive_shadow_readback():
+    """LANDMINE PIN (2026-08-22): the engine UPPERCASES volatile_statuses on
+    applied-state readback (same family as mon-id uppercasing) — before the
+    .lower() fix every leaf silently lost its volatiles at the shadow
+    boundary, and the FG-2 comparison misread MUSTRECHARGE as absent."""
+    from poke_engine import generate_instructions
+
+    from rl.search.shadow_battle import shadow_battle
+
+    b = _battle()
+    b.opponent_active_pokemon.moves = {"hyperbeam": PEMove("hyperbeam", gen=1)}
+    det = sample_determinization(b, np.random.default_rng(4))
+    state = battle_to_state(b, det, BridgeCounters())
+    branches = generate_instructions(state, "bodyslam", "hyperbeam")
+    hit = next(
+        (state.apply_instructions(br) for br in branches
+         if any("mustrecharge" == v.lower() for v in
+                state.apply_instructions(br).side_two.volatile_statuses)),
+        None,
+    )
+    assert hit is not None, "no branch left the opponent recharging"
+    sb = shadow_battle(hit, turn=2)
+    assert sb.opponent_active_pokemon.must_recharge
+
+
+def test_faint_leaf_carries_force_switch():
+    """A leaf where our active fainted must embed as a force-switch state —
+    the family the critic trained on (FG-6 dim-3 finding)."""
+    from rl.search.shadow_battle import shadow_battle
+
+    b = _battle()
+    det = sample_determinization(b, np.random.default_rng(6))
+    state = battle_to_state(b, det, BridgeCounters())
+    sb = shadow_battle(state, turn=2)
+    assert not sb.force_switch
+    b.active_pokemon.current_hp = 0
+    b.active_pokemon.current_hp_fraction = 0.0
+    b.active_pokemon.fainted = True
+    state = battle_to_state(b, det, BridgeCounters())
+    sb = shadow_battle(state, turn=2)
+    assert sb.force_switch
