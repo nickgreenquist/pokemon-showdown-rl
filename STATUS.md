@@ -38,7 +38,7 @@ statuses; readback UPPERCASES volatiles; from_string drops volatiles).
    repair, ~2x leaf cost) and re-price via the spike before R2.
 3. Then the R2 driver: `--search` branch on ch3_eval.py + chunk-0 raise-on-
    access sentinel (SF-13). Dose M frozen off the spike; node cap 1500 holds.
-4. Push: 12 local commits — say the word.
+4. Push: 7 local commits (this session's) — say the word.
 5. Standing: §13/250M futility ruling (rec RETIRE); resume-from-checkpoint
    (24h bar); D7(a) ladder ruling only if R2 lands B1.
 
