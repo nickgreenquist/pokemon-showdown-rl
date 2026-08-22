@@ -13,6 +13,17 @@ is one chunk. When all chunks exist the job writes a merged
 `eval/win_rate` (env-supplied) is authoritative; `wins_from_returns` is the
 sign-bug cross-check and MUST agree exactly (R0-a; the grader enforces).
 
+R2 (the search rungs): an arm with `kind: search` (plus `dose`, per-lane
+`lanes`) runs each lane through rl/search's SearchAgent via
+_SearchEvalAdapter — battle1 read live off the env, decision rng keyed by
+the GLOBAL episode index so re-run chunks replay identically; per-chunk
+reports carry search counter deltas + ms/leaves stats (R2-8 budget gate,
+F3). `kind: policy` arms run the lane's bare checkpoint. Chunk 0 of EVERY
+verdict arm installs the raise-on-access battle2 sentinel (SF-13): fatal
+on any rl/search-originated read, transparent to the harness's own
+battle2 machinery. The watchdog RAISES and kills the chunk — resume
+re-runs it; there is no silent policy fallback anywhere.
+
 Pre-flight, every invocation: checkpoint sha256s match the pre-reg (R0-d),
 `simulator: 4` set in showdown/config/config.js, realized usernames printed.
 --selfcheck runs the R0-c gate: for each lane, a single-member ensemble must
@@ -24,6 +35,8 @@ import hashlib
 import json
 import random
 import re
+import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -40,6 +53,128 @@ from rl.search.ensemble import EnsembleAgent
 from rl.train import make_agent
 
 
+class PurityIncident(RuntimeError):
+    """FG-4/SF-13: search code touched seat-2 state. Retraction, not caveat."""
+
+
+class _Battle2Sentinel:
+    """Raise-on-access sentinel for `battle2` (SF-13, chunk 0 of every
+    verdict arm). A class-level DATA descriptor: poke-env's own machinery
+    (race_get, the SingleAgentWrapper wait bypass) reads battle2
+    legitimately, so the sentinel walks the caller's stack and raises ONLY
+    when a frame under rl/search/ is present. Installed on the inner
+    poke-env class for chunk 0, uninstalled after — the ~us-per-access
+    stack walk never touches the timed arms. This class lives HERE and not
+    under rl/search/ because FG-4's static grep forbids the string
+    battle2 in that directory."""
+
+    def __init__(self) -> None:
+        self._store: dict[int, object] = {}
+
+    def __get__(self, obj, objtype=None):
+        if obj is None:
+            return self
+        f = sys._getframe(1)
+        while f is not None:
+            fn = f.f_code.co_filename
+            if "rl/search" in fn or "rl\\search" in fn:
+                raise PurityIncident(
+                    "battle2 accessed from rl/search "
+                    f"({fn}:{f.f_lineno}) — FG-4/SF-13 purity incident"
+                )
+            f = f.f_back
+        return self._store.get(id(obj))
+
+    def __set__(self, obj, value) -> None:
+        self._store[id(obj)] = value
+
+
+def _install_battle2_sentinel(poke) -> tuple[type, object]:
+    """Swap the instance's battle2 for the sentinel descriptor; returns the
+    (class, sentinel) handle for uninstall."""
+    cls = type(poke)
+    assert not isinstance(
+        cls.__dict__.get("battle2"), _Battle2Sentinel
+    ), "battle2 sentinel already installed"
+    sentinel = _Battle2Sentinel()
+    current = poke.__dict__.pop("battle2", None)
+    sentinel._store[id(poke)] = current
+    setattr(cls, "battle2", sentinel)
+    return cls, sentinel
+
+
+def _uninstall_battle2_sentinel(poke, handle: tuple[type, object]) -> None:
+    cls, sentinel = handle
+    delattr(cls, "battle2")
+    poke.battle2 = sentinel._store.get(id(poke))
+
+
+class _SearchEvalAdapter:
+    """SearchAgent -> the eval loop's `agent.act(obs, mask, deterministic)`
+    interface. Reads battle1 (and ONLY battle1) live off the env; keys the
+    D2 decision rng by the GLOBAL episode index (seed_start + episode,
+    latched on battle_tag change) so a re-run chunk replays identical
+    randomness. Collects per-decision wall ms and realized leaves for the
+    R2-8 budget gate and F3 (searched decisions only — placeholder skips
+    are excluded from the mean and reported separately, per F3)."""
+
+    def __init__(self, search_agent, env):
+        self._sa = search_agent
+        self._env = env
+        self._next_battle_index = 0
+        self._battle_index = -1
+        self._decision_index = 0
+        self._tag = None
+        self.ms: list[float] = []
+        self.leaves: list[int] = []
+        self._counter_snapshot = dict(search_agent.counters)
+
+    def begin_chunk(self, base_battle_index: int) -> None:
+        self._next_battle_index = base_battle_index
+        self._tag = None
+
+    def act(self, obs, mask, deterministic=True):
+        assert deterministic, "R2 protocol is deterministic-only"
+        poke = self._env.unwrapped._env.env
+        battle = poke.battle1
+        assert battle is not None, "search decision before battle1 exists"
+        tag = battle.battle_tag
+        if tag != self._tag:
+            self._battle_index = self._next_battle_index
+            self._next_battle_index += 1
+            self._decision_index = 0
+            self._tag = tag
+        t0 = time.perf_counter()
+        action, stats = self._sa.act(
+            battle, obs, np.asarray(mask), self._battle_index, self._decision_index
+        )
+        if "search/leaves" in stats:  # searched (non-placeholder) decision
+            self.ms.append((time.perf_counter() - t0) * 1e3)
+            self.leaves.append(int(stats["search/leaves"]))
+        self._decision_index += 1
+        return action
+
+    def chunk_summary(self) -> dict:
+        """Per-chunk DELTAS (a resumed job restarts the SearchAgent's
+        cumulative counters, so the merge sums chunk deltas)."""
+        ms = np.array(self.ms) if self.ms else np.array([0.0])
+        lv = np.array(self.leaves) if self.leaves else np.array([0])
+        out = {
+            "search/ms_mean": float(ms.mean()),
+            "search/ms_p50": float(np.percentile(ms, 50)),
+            "search/ms_p99": float(np.percentile(ms, 99)),
+            "search/leaves_mean": float(lv.mean()),
+            "search/leaves_max": int(lv.max()),
+            "search/searched_decisions": len(self.ms),
+            "oppact/entropy_median": self._sa.entropy_median(),
+        }
+        for key in ("search/decisions", "search/placeholder_skips", "search/flips"):
+            out[key] = self._sa.counters[key] - self._counter_snapshot[key]
+        self._counter_snapshot = dict(self._sa.counters)
+        self.ms, self.leaves = [], []
+        return out
+
+
 def _sha256(path: str) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -54,15 +189,34 @@ def _load_prereg(path: str) -> dict:
 
 
 def _jobs(prereg: dict) -> dict[str, dict]:
+    """One job per (arm, lane|batch), from the pre-reg's arm kinds:
+    policy (bare checkpoint per lane), search (SearchAgent per lane, R2),
+    ensemble (member batches, R0), ensemble_loo (leave-one-out, R0)."""
     jobs: dict[str, dict] = {}
-    arms = prereg["arms"]
-    for lane in arms["A0"]["lanes"]:
-        jobs[f"a0_{lane}"] = {"arm": "A0", "members": [lane]}
-    for b in range(arms["A1"]["batches"]):
-        jobs[f"a1_b{b}"] = {"arm": "A1", "members": arms["A1"]["members"], "batch": b}
-    for lane in arms["A2"]["members"]:
-        members = [m for m in arms["A2"]["members"] if m != lane]
-        jobs[f"a2_loo_{lane}"] = {"arm": "A2", "members": members}
+    for arm_name, spec in prereg["arms"].items():
+        kind, prefix = spec["kind"], arm_name.lower()
+        if kind == "policy":
+            for lane in spec["lanes"]:
+                jobs[f"{prefix}_{lane}"] = {"arm": arm_name, "members": [lane]}
+        elif kind == "search":
+            for lane in spec["lanes"]:
+                jobs[f"{prefix}_{lane}"] = {
+                    "arm": arm_name, "members": [lane],
+                    "search_dose": spec["dose"],
+                }
+        elif kind == "ensemble":
+            for b in range(spec["batches"]):
+                jobs[f"{prefix}_b{b}"] = {
+                    "arm": arm_name, "members": spec["members"], "batch": b,
+                }
+        elif kind == "ensemble_loo":
+            for lane in spec["members"]:
+                jobs[f"{prefix}_loo_{lane}"] = {
+                    "arm": arm_name,
+                    "members": [m for m in spec["members"] if m != lane],
+                }
+        else:
+            raise ValueError(f"unknown arm kind {kind!r} on {arm_name}")
     return jobs
 
 
@@ -124,7 +278,20 @@ def run_job(prereg: dict, name: str) -> None:
     first_lane = job["members"][0]
     agent0, cfg, env = _load_member(prereg, first_lane)
     torch.set_num_threads(cfg.torch_threads)
-    if len(job["members"]) == 1 and job["arm"] == "A0":
+    adapter = None
+    if "search_dose" in job:
+        from rl.search.agent import SearchAgent
+        from rl.search.matrix import DOSES
+
+        assert getattr(env.unwrapped, "_privileged", None) is False, (
+            "SF-13: the eval env must not emit info['privileged']"
+        )
+        sa = SearchAgent(
+            agent0, DOSES[job["search_dose"]],
+            checkpoint_seed=int(first_lane.lstrip("s")),
+        )
+        adapter = agent = _SearchEvalAdapter(sa, env)
+    elif len(job["members"]) == 1:
         agent = agent0
     else:
         members = [agent0]
@@ -142,9 +309,22 @@ def run_job(prereg: dict, name: str) -> None:
             print(f"{chunk_path.name}: exists, skipping")
             continue
         seed_start = base + k * chunk_size
-        returns, outcomes, faints = _run_eval_episodes(
-            agent, env, chunk_size, seed_start=seed_start
-        )
+        if adapter is not None:
+            adapter.begin_chunk(seed_start)
+        sentinel_handle = None
+        if k == 0:
+            # SF-13: the raise-on-access battle2 sentinel runs at chunk 0
+            # of EVERY verdict arm (policy and search alike)
+            sentinel_handle = _install_battle2_sentinel(env.unwrapped._env.env)
+        try:
+            returns, outcomes, faints = _run_eval_episodes(
+                agent, env, chunk_size, seed_start=seed_start
+            )
+        finally:
+            if sentinel_handle is not None:
+                _uninstall_battle2_sentinel(env.unwrapped._env.env, sentinel_handle)
+                print(f"chunk {k}: battle2 sentinel armed for the whole chunk, "
+                      "0 rl/search accesses (SF-13)")
         metrics = eval_metrics(returns, outcomes, faints, win_rate=True)
         desync_now = mask_desync_total()
         report = {
@@ -164,6 +344,9 @@ def run_job(prereg: dict, name: str) -> None:
         if isinstance(agent, EnsembleAgent):
             report["ensemble_decisions"] = agent.decisions
             report["ensemble_flips"] = agent.flips
+        if adapter is not None:
+            report.update(adapter.chunk_summary())
+            report["search_dose"] = job["search_dose"]
         desync_before = desync_now
         chunk_path.write_text(json.dumps(report, indent=2) + "\n")
         print(
@@ -193,6 +376,29 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
         "mask_desyncs": sum(rep["mask_desyncs_delta"] for rep in reports),
         "chunks": chunks,
     }
+    if "search/decisions" in reports[0]:
+        dec = sum(rep["search/decisions"] for rep in reports)
+        skips = sum(rep["search/placeholder_skips"] for rep in reports)
+        flips = sum(rep["search/flips"] for rep in reports)
+        searched = sum(rep["search/searched_decisions"] for rep in reports)
+        final["search_dose"] = reports[0]["search_dose"]
+        final["search/decisions"] = dec
+        final["search/placeholder_skips"] = skips
+        final["search/placeholder_skip_rate"] = skips / dec if dec else None
+        final["search/flips"] = flips
+        final["search/flip_rate"] = flips / max(dec - skips, 1)
+        final["search/ms_mean"] = (
+            sum(rep["search/ms_mean"] * rep["search/searched_decisions"]
+                for rep in reports) / searched if searched else None
+        )
+        final["search/ms_p99_max_over_chunks"] = max(
+            rep["search/ms_p99"] for rep in reports
+        )
+        final["search/leaves_mean"] = (
+            sum(rep["search/leaves_mean"] * rep["search/searched_decisions"]
+                for rep in reports) / searched if searched else None
+        )
+        final["search/leaves_max"] = max(rep["search/leaves_max"] for rep in reports)
     last = reports[-1]
     if "ensemble_decisions" in last:
         final["ensemble_decisions"] = last["ensemble_decisions"]
@@ -204,6 +410,36 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
         )
     (out_dir / f"{name}.final.json").write_text(json.dumps(final, indent=2) + "\n")
     print(f"{name}.final.json: pooled win_rate {wins:.5f} over {n}")
+
+
+def search_smoke(prereg: dict, lane: str, battles: int, dose: str) -> None:
+    """Live end-to-end smoke of the search path: SearchAgent + adapter +
+    battle2 sentinel on `battles` real battles. The R1 spike ran on
+    REHYDRATED harvest snapshots; this is the first place the search reads
+    a LIVE battle1 — the freeze/rehydrate contract says the surfaces
+    match, and this proves it before any verdict arm."""
+    agent0, cfg, env = _load_member(prereg, lane)
+    torch.set_num_threads(cfg.torch_threads)
+    from rl.search.agent import SearchAgent
+    from rl.search.matrix import DOSES
+
+    sa = SearchAgent(agent0, DOSES[dose], checkpoint_seed=int(lane.lstrip("s")))
+    adapter = _SearchEvalAdapter(sa, env)
+    adapter.begin_chunk(0)
+    _print_username(env)
+    handle = _install_battle2_sentinel(env.unwrapped._env.env)
+    try:
+        returns, outcomes, faints = _run_eval_episodes(
+            adapter, env, battles, seed_start=0
+        )
+    finally:
+        _uninstall_battle2_sentinel(env.unwrapped._env.env, handle)
+    summary = adapter.chunk_summary()
+    wins = sum(1 for o in outcomes if o == 1)
+    print(json.dumps(summary, indent=2))
+    print(f"search smoke: {wins}/{battles} wins, dose {dose}, lane {lane}; "
+          "battle2 sentinel armed throughout, 0 rl/search accesses")
+    env.close()
 
 
 def selfcheck(prereg: dict) -> None:
@@ -255,6 +491,10 @@ def main() -> None:
     parser.add_argument("--job")
     parser.add_argument("--list-jobs", action="store_true")
     parser.add_argument("--selfcheck", action="store_true")
+    parser.add_argument("--search-smoke", metavar="LANE",
+                        help="live search smoke: SearchAgent on N real battles")
+    parser.add_argument("--battles", type=int, default=4)
+    parser.add_argument("--dose", default="M")
     args = parser.parse_args()
     prereg = _load_prereg(args.prereg)
     if args.list_jobs:
@@ -264,6 +504,10 @@ def main() -> None:
     if args.selfcheck:
         _preflight(prereg)
         selfcheck(prereg)
+        return
+    if args.search_smoke:
+        _preflight(prereg)
+        search_smoke(prereg, args.search_smoke, args.battles, args.dose)
         return
     assert args.job, "--job, --list-jobs or --selfcheck required"
     _preflight(prereg)
