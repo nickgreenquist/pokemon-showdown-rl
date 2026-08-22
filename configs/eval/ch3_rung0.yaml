@@ -1,0 +1,87 @@
+# =========================================================================
+# CH3 RUNG 0 — FREE COMPUTE + HEADROOM. Executable pre-registration.
+# PRE-REGISTERED 2026-08-21, BEFORE any R0 verdict battle. Chapter design:
+# results/design_ch3/ch3_search_design_r2.md (RATIFIED 2026-08-21; rulings
+# 1-4 approved; depth-1 only; R4+ unauthorized). This file is read by
+# scripts/ch3_eval.py (the driver) and scripts/ch3_grade.py (the grader) —
+# it cannot drift from what ran because it is what ran.
+#
+# ARMS. A0 POLICY: the four D26 checkpoints (s62-s65) played greedily,
+#   3000 battles/lane, 10x300 chunks. A1 ENSEMBLE-4: one agent = equal-weight
+#   masked log-prob mean of the four, argmax; 3 independent eval batches x
+#   3000. A2 LOO-3: the four leave-one-out 3-member ensembles, 3000 each —
+#   SECONDARY, recorded, NEVER governing (correlation-inflated: each LOO-3
+#   shares two members with every other; the sentence travels).
+# PRIMARY READ. delta = p(A1, pooled 9000) - EQUAL-WEIGHT MEAN of the four
+#   per-lane A0 win rates (12000). Across-lane aggregator: the equal-weight
+#   mean, named once, binding; per-lane median and worst lane recorded and
+#   never governing on any branch.
+# CLUSTERING, WITH ITS LIMIT NAMED: eval batch (n=3) for A1, checkpoint-lane
+#   (n=4) for A0. A1 has NO training-seed replication — its clustered term
+#   measures eval sampling only, so THE +0.025 FLOOR IS EXPECTED TO GOVERN.
+#   Pre-registered consequence: a credit licenses "ensembling THESE four
+#   checkpoints helps", NEVER "ensembling helps".
+# CREDIT LINE (VERBATIM, INCL. THE LARGER-OF CLAUSE) in credit_line below;
+#   grader asserts it byte-equal against its module constant.
+# BANDS (sides named; hi = max(0.025, 2*se_gov) at read time; the five cells
+#   partition the real line — grader machine-checks): B1 upper delta>=hi
+#   CREDIT; B2 upper 0.025<=delta<hi LETTER-MET SEED-FRAGILE (EMPTY whenever
+#   2*se_gov<=0.025 — named, expected); B3 |delta|<0.025 FLAT, the only
+#   two-sided cell; B4 lower -hi<delta<=-0.025; B5 lower delta<=-hi.
+# DOSE MATCHING, DECIDED UP FRONT: the ensemble is NOT dose-matched to any
+#   search (4x forward pass vs ~100+ ms) and is never reported as its
+#   placebo. How we would know it mattered: ensemble/flip_rate is logged and
+#   (flip_rate, delta) is the chapter's only flip-value anchor.
+# KILLS (chapter-level, from the ratified design; K0-1 reads the AUDIT, not
+#   this file's arms): K0-1 leaf-evaluator gate — AUC POOLED over all
+#   decisions in turn deciles 2-8 (aggregator named; per-decile recorded,
+#   never governing) < 0.60 -> no V-leaf search; re-route to MC-leaf (FG-8);
+#   both failing -> chapter STOPS. 0.60 is a disclosed design constant, not
+#   a measurement; revisitable at R1 on the successor-ranking statistic.
+#   K0-2 — A1 delta <= 0 AND contested_frac(p_max<0.90) < 0.15 -> honest
+#   cost-benefit STOP; maintainer-overridable IN WRITING only. K0-3 —
+#   placeholder_frac > 0.25 -> headline-caveat escalation (the skip-rate
+#   disclosure itself is unconditional at R2+).
+# R0 GATES (blocking before the verdict read): R0-a win_rate ==
+#   wins_from_returns EXACTLY on every chunk JSON (HARD). R0-b mask_desyncs
+#   recorded on every JSON; nonzero = disclosure beside the number, not a
+#   void. R0-c the single-member ensemble reproduces that member's argmax
+#   1000/1000 on replayed decision points (tests/test_ch3_r0.py + the
+#   driver's --selfcheck). R0-d checkpoint sha256s match this file. R0-e
+#   this file committed, tree clean (grader refuses otherwise).
+# ACTION ON EACH BRANCH: B1 -> README gains an R0 row (pre-shrunk sentence),
+#   STATUS updated; the flip anchor is quoted at R2/R3. B2/B3/B4/B5 -> no
+#   README headline change; row added with the verdict phrase; K0-2 checked
+#   on B3/B4/B5. On any R0-a/R0-d failure the read VOIDS.
+# LEDGER: 33,000 battles ~= 25-40 min wall at 1-wide (measured 0.039
+#   s/battle + overheads); ~0.02 ld. burns_training_seeds: false.
+# =========================================================================
+rung: 0
+title: ch3_r0_free_compute
+status: "PRE-REGISTERED 2026-08-21 under the RATIFIED ch3 design (r2)"
+results_dir: results/ch3_r0
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+arms:
+  A0: {kind: policy, lanes: [s62, s63, s64, s65], battles: 3000, chunks: 10, letter_bearing: true}
+  A1: {kind: ensemble, members: [s62, s63, s64, s65], batches: 3, battles: 3000, chunks: 10, letter_bearing: true}
+  A2: {kind: ensemble_loo, members: [s62, s63, s64, s65], battles: 3000, chunks: 10, letter_bearing: false}
+comparator: fresh
+pairing: none
+clustering_unit: "eval batch (n=3) for A1; checkpoint-lane (n=4) for A0; A1 has no training-seed replication so the +0.025 floor is expected to govern"
+aggregator: equal_weight_mean_of_per_lane_A0
+recorded_only: [per_lane_median, worst_lane, A2_loo_deltas]
+credit_line: "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time"
+se_terms: [pooled_binomial_two_sample, clustered_batch_lane]
+se_rule: larger_of
+branches: five_cell_floor   # B1..B5 as in the header; grader machine-checks the partition at read time
+dose_matched: false
+how_we_would_know: "ensemble/flip_rate is logged; (flip_rate, delta) is the chapter's flip-value anchor, quoted at R2/R3"
+readme_status_obligation: "B1: README R0 row (pre-shrunk sentence) + STATUS; B2-B5: row with verdict phrase, headline unchanged; VOID: STATUS only"
+ledger_days_projected: 0.02
+wall_minutes_projected: 40
+lane_width: 1
+burns_training_seeds: false

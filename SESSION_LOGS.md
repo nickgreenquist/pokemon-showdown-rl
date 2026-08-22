@@ -4988,3 +4988,27 @@ entry by offset — never a broad keyword grep.
   r2 status line flipped to RATIFIED (backup refreshed). R0 (free compute +
   headroom, one evening, ~0.02 ld, zero training) is now authorized; build
   starts this session.
+- 2026-08-21/22 (overnight, **R0 BUILT AND PRE-REGISTERED — ready for the
+  maintainer's "go"**): under the ratified ch3 design. Build:
+  `rl/search/ensemble.py` (EnsembleAgent: masked log-prob mean over frozen
+  actors, argmax, deterministic-only, flip-rate counters; single-member ==
+  member argmax by monotonicity — R0-c's mechanism), `scripts/ch3_eval.py`
+  (pre-reg-driven chunked resumable driver, 11 jobs = 4 A0 + 3 A1 batches +
+  4 LOO; per-chunk JSONs, worst-case loss one 300-battle chunk; preflight
+  asserts encoder env vars + R0-d sha256 x4 + simulator:4 + prints realized
+  usernames), `scripts/ch3_audit.py` (R0.A: per-decision instrumented audit
+  -> contested_frac, placeholder/recharge fracs, decisions/battle vs SH, Z1
+  calibration/Brier-decomposition/per-decile AUC + THE K0-1 STATISTIC =
+  AUC pooled over turn-deciles 2-8, aleatoric EV floor), `scripts/
+  ch3_grade.py` (CREDIT_LINE byte-equal assert, dirty-tree refusal,
+  five_cell_floor partition MACHINE-CHECKED, two se terms with governing
+  named, B2/B4-empty condition named; the partition check caught its own
+  probe-ordering bug at hi==floor in selftest — working as designed),
+  `configs/eval/ch3_rung0.yaml` (executable pre-reg, full header: arms,
+  gates R0-a..e, kills K0-1/2/3, bands + sides, dose-matching clause,
+  README obligations, checkpoint sha256s pinned). VERIFIED: grader selftest
+  green; R0-c selfcheck 1000/1000 x4 real lanes; suite **392 passed / 17
+  skipped** (384 + 8 new in tests/test_ch3_r0.py). Runs next: selfcheck +
+  audit (1000 battles) + 11 jobs (33,000 battles, ~25-40 min) in the
+  maintainer's terminal, then `ch3_grade.py --prereg`. Seeds: none burned
+  (eval only).
