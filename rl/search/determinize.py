@@ -15,12 +15,17 @@ Determinization law (per the ratified design):
   sampling the species' own set distribution conditioned on the revealed
   moves (rejection via `randbats_prior._sample_set` draws).
 - UNREVEALED bench slots: species sampled uniformly from the pool minus the
-  species already seen, then a full set sampled.
-  KNOWN APPROXIMATION, named (design §3): the generator's team-level
-  type/weakness cap-of-2 is NOT yet enforced here (needs a species->types
-  table wired in); D19 measured the cap as 88-90% of pool structure, so
-  FG-7's support gate (>= 0.99) is the arbiter of whether this shortcut
-  survives. TODO(R1): enforce cap by rejection before FG-7 runs.
+  species already seen, REJECTED if adding them would break the vendored
+  generator's team caps (showdown/data/random-battles/gen1/teams.ts,
+  limitFactor 1): at most 2 mons per type; at most 2 mons weak (net
+  supereffective, no immunity) to each spammable type {Electric, Psychic,
+  Water, Ice, Ground, Fire}; at most 1 level-100 mon; one Ditto per BATTLE
+  (so ditto is excluded whenever our own team carries it — public
+  knowledge). Caps are evaluated against the full determinized team
+  (revealed + already-sampled), a final-team approximation of the
+  generator's sequential counters; the generator's rejected-pool refill
+  (only reachable when the pool exhausts — never at 146 species for 6
+  slots) is not modelled. FG-7's support gate (>= 0.99) is the arbiter.
 - All randomness from the caller-supplied numpy Generator (key-derived per
   decision — determinism clause D2); the global `random` module is never
   touched (username landmine).
@@ -28,6 +33,7 @@ Determinization law (per the ratified design):
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 import numpy as np
@@ -65,6 +71,61 @@ def _static_base_stats(species: str) -> dict:
     }
 
 
+# The generator's "spammable attack" weakness set (teams.ts, verbatim).
+_SPAMMABLE_TYPES = ("electric", "psychic", "water", "ice", "ground", "fire")
+
+
+@lru_cache(maxsize=256)
+def _species_caps(species: str) -> tuple[frozenset, frozenset, int]:
+    """(types, spammable weaknesses, level) for the generator's team caps.
+    Weak = net-supereffective with no immunity — damage_multiplier > 1
+    reproduces PS's getImmunity && getEffectiveness > 0 exactly."""
+    from poke_env.battle.pokemon_type import PokemonType
+    from poke_env.data import GenData
+
+    gen1 = GenData.from_gen(1)
+    entry = gen1.pokedex[species]
+    t1 = PokemonType.from_name(entry["types"][0])
+    t2 = (
+        PokemonType.from_name(entry["types"][1])
+        if len(entry["types"]) > 1 else None
+    )
+    weak = frozenset(
+        name for name in _SPAMMABLE_TYPES
+        if PokemonType.from_name(name).damage_multiplier(
+            t1, t2, type_chart=gen1.type_chart
+        ) > 1.0
+    )
+    level = randbats_prior.species_level(species) or 100
+    return frozenset(t.lower() for t in entry["types"]), weak, level
+
+
+class _TeamCaps:
+    """The generator's running team counters (limitFactor 1): <=2 per type,
+    <=2 weak per spammable type, <=1 level-100."""
+
+    def __init__(self) -> None:
+        self.type_count: dict[str, int] = {}
+        self.weak_count: dict[str, int] = dict.fromkeys(_SPAMMABLE_TYPES, 0)
+        self.max_level = 0
+
+    def admit(self, species: str, count: bool = True) -> bool:
+        types, weak, level = _species_caps(species)
+        ok = (
+            all(self.type_count.get(t, 0) < 2 for t in types)
+            and all(self.weak_count[w] < 2 for w in weak)
+            and (level < 100 or self.max_level < 1)
+        )
+        if count:  # revealed mons count unconditionally — they ARE on the team
+            for t in types:
+                self.type_count[t] = self.type_count.get(t, 0) + 1
+            for w in weak:
+                self.weak_count[w] += 1
+            if level == 100:
+                self.max_level += 1
+        return ok
+
+
 def sample_determinization(battle: Any, rng: np.random.Generator) -> dict:
     """One consistent opponent team for `battle1`'s current information set."""
     opponents: dict[str, dict] = {}
@@ -95,10 +156,23 @@ def sample_determinization(battle: Any, rng: np.random.Generator) -> dict:
             "live": mon,
         }
     n_unrevealed = 6 - len(opponents)
+    caps = _TeamCaps()
+    for sp in opponents:
+        caps.admit(sp)  # revealed mons seed the counters unconditionally
     pool = sorted(randbats_prior.known_species() - seen)
+    # One Ditto per battle (teams.ts battleHasDitto): our own team is public,
+    # so a Ditto on OUR side excludes it from the opponent's unrevealed pool.
+    if any(m.species == "ditto" for m in battle.team.values()):
+        pool = [sp for sp in pool if sp != "ditto"]
     for _ in range(max(0, n_unrevealed)):
-        sp = str(rng.choice(pool))
-        pool.remove(sp)
+        while pool:
+            sp = str(rng.choice(pool))
+            pool.remove(sp)
+            if caps.admit(sp, count=False):
+                caps.admit(sp)
+                break
+        else:  # generator's rejected-pool refill; unreachable at 146 species
+            break
         opponents[sp] = {
             "moves": _complete_revealed(sp, frozenset(), rng),
             "level": randbats_prior.species_level(sp),

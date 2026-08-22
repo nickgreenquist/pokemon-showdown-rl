@@ -167,3 +167,49 @@ def test_shadow_available_moves_synthesized():
     ids = {m.id for m in sb.available_moves}
     assert ids == {"bodyslam", "blizzard", "earthquake", "hyperbeam"}
     assert all(m.current_pp > 0 for m in sb.available_moves)
+
+
+def test_freeze_rehydrate_embed_parity():
+    """Harvest contract: embed_battle(rehydrate(freeze(b))) is bit-identical
+    to embed_battle(b), and the rehydrated battle still feeds the
+    determinizer (identity of the opponent active survives)."""
+    from rl.envs.showdown import ShowdownSingles
+    from rl.search.harvest import freeze_battle, rehydrate_battle
+
+    env = ShowdownSingles(start_listening=False)
+    b = _battle()
+    b.active_pokemon.boosts["atk"] = 2
+    b.active_pokemon.status_counter = 3
+    r = rehydrate_battle(freeze_battle(b))
+    assert np.array_equal(env.embed_battle(b), env.embed_battle(r))
+    assert r.opponent_active_pokemon is list(r.opponent_team.values())[0]
+    det = sample_determinization(r, np.random.default_rng(9))
+    state = battle_to_state(r, det, BridgeCounters())
+    assert state.side_one.pokemon[0].id == "tauros"
+    assert state.side_one.attack_boost == 2
+
+
+def test_bench_sampler_enforces_generator_caps():
+    """Cap-of-2 rejection (design §3): every determinized team must satisfy
+    the vendored generator's team caps — <=2 mons per type, <=2 weak per
+    spammable type, <=1 level-100 — and never carry ditto when our own team
+    does (one Ditto per battle)."""
+    from rl.search.determinize import _TeamCaps, _species_caps
+
+    b = _battle()
+    b.team["p1: Ditto"] = _mon("ditto", ["transform"])
+    for seed in range(30):
+        det = sample_determinization(b, np.random.default_rng(seed))
+        assert "ditto" not in det["opponents"]
+        caps = _TeamCaps()
+        for sp in det["opponents"]:
+            caps.admit(sp)
+        assert all(v <= 2 for v in caps.type_count.values()), (seed, caps.type_count)
+        assert all(v <= 2 for v in caps.weak_count.values()), (seed, caps.weak_count)
+        assert caps.max_level <= 1, seed
+    # the weakness rule matches PS semantics on known cases: chansey is not
+    # weak to psychic; golem is weak to water/ice/ground... and immune to
+    # electric despite ground's SE never applying to it
+    assert "psychic" not in _species_caps("chansey")[1]
+    assert {"water", "ice"} <= _species_caps("golem")[1]
+    assert "electric" not in _species_caps("golem")[1]
