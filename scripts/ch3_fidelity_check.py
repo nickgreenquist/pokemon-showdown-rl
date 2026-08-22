@@ -331,9 +331,44 @@ def _hp_band_ok(dmg_obs: float, dmg_br: float, tol: float) -> bool:
     return lo <= dmg_obs <= hi
 
 
+_EVT_RE = __import__("re").compile(r"^Damage Side(One|Two): (-?\d+)$")
+
+
+def _branch_move_damage(br) -> tuple[int, int]:
+    """Largest single Damage event per side in this branch's instruction
+    list — the move-damage component the roll band applies to (chips and
+    heals are deterministic). Feeds the heal-aware SECONDARY band."""
+    d = {"One": 0, "Two": 0}
+    for ins in br.instruction_list:
+        m = _EVT_RE.match(str(ins))
+        if m:
+            v = int(m.group(2))
+            if v > d[m.group(1)]:
+                d[m.group(1)] = v
+    return d["One"], d["Two"]
+
+
+def _hp_band_ok_ctx(dmg_obs: float, dmg_br: float, tol: float, d_move: float) -> bool:
+    """Roll band applied to the MOVE component only: the branch's net hp
+    delta dmg_br composes move damage d_move (average leaf ~0.925 x max,
+    rolls 0.85..1.0 x max) with deterministic heals/chip. The strict
+    checker gives net-heal turns a ZERO-variance band (measured: 161 of
+    the 493 residual hp_band fails, 2026-08-22 turn-order diagnostic) —
+    this band keeps their roll variance. Reduces exactly to the strict
+    band when the branch is a single pure damage event."""
+    if d_move <= 0:
+        return abs(dmg_obs - dmg_br) <= tol
+    lo = dmg_br - d_move + 0.85 * d_move / 0.925 - tol
+    hi = dmg_br - d_move + d_move / 0.925 + tol
+    return lo <= dmg_obs <= hi
+
+
 def _match_branch(leaf, snap_next: dict, snap_now: dict, det: dict,
-                  relaxed_opp_active: bool) -> tuple[bool, dict]:
-    """Field-set comparison of one branch leaf vs the observed next state."""
+                  relaxed_opp_active: bool,
+                  band_ctx: tuple[int, int] | None = None) -> tuple[bool, dict]:
+    """Field-set comparison of one branch leaf vs the observed next state.
+    `band_ctx` (heal-aware SECONDARY only): per-side move-damage components
+    from _branch_move_damage; None keeps the strict pre-registered band."""
     fails = {}
     s1, s2 = leaf.side_one, leaf.side_two
     our_leaf, opp_leaf = _leaf_mons(s1), _leaf_mons(s2)
@@ -378,9 +413,11 @@ def _match_branch(leaf, snap_next: dict, snap_now: dict, det: dict,
             if st != _snap_status_engine(m_next):
                 fails.setdefault("status", 0)
                 fails["status"] += 1
-            if not _hp_band_ok(
-                m_now["current_hp"] - m_next["current_hp"],
-                m_now["current_hp"] - lm.hp, tol=1.5,
+            _obs = m_now["current_hp"] - m_next["current_hp"]
+            _br = m_now["current_hp"] - lm.hp
+            if not _hp_band_ok(_obs, _br, tol=1.5) and not (
+                band_ctx is not None
+                and _hp_band_ok_ctx(_obs, _br, 1.5, band_ctx[0])
             ):
                 fails.setdefault("hp_band", 0)
                 fails["hp_band"] += 1
@@ -400,9 +437,11 @@ def _match_branch(leaf, snap_next: dict, snap_now: dict, det: dict,
                 fails.setdefault("status", 0)
                 fails["status"] += 1
             f_now = m_now["current_hp_fraction"] if m_now else 1.0
-            if not _hp_band_ok(
-                f_now - m_next["current_hp_fraction"],
-                f_now - (lm.hp / lm.maxhp if lm.maxhp else 0.0), tol=0.0155,
+            _obs = f_now - m_next["current_hp_fraction"]
+            _br = f_now - (lm.hp / lm.maxhp if lm.maxhp else 0.0)
+            if not _hp_band_ok(_obs, _br, tol=0.0155) and not (
+                band_ctx is not None and lm.maxhp
+                and _hp_band_ok_ctx(_obs, _br, 0.0155, band_ctx[1] / lm.maxhp)
             ):
                 fails.setdefault("hp_band", 0)
                 fails["hp_band"] += 1
@@ -465,6 +504,7 @@ def fg2_battery(lanes, prereg: dict) -> dict:
     fail_fields = Counter()
     results = {"normal": [0, 0], "placeholder": [0, 0]}  # [covered, total]
     ex_recharge = [0, 0]  # normal-stratum coverage excusing ONLY the KO-skip recharge flag
+    healaware = [0, 0]    # normal-stratum coverage under the heal-aware band (SECONDARY)
     mass_on_observed = []
     ko_total = ko_disagree = ko_post_disagree = 0
     lane_seeds = {lane: int(lane[1:]) for lane in lanes}
@@ -519,6 +559,7 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                     strata["replacement_relaxed"] += 1
                 covered = False
                 covered_ex_recharge = False
+                covered_healaware = False
                 faint_covered = False  # FG-2k post-expansion: some variant
                 best_mass = 0.0        # predicts the observed faint outcome
                 branch_faint_pred = None
@@ -544,6 +585,7 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                     total = sum(x.percentage for x in branches) or 1.0
                     det_mass = 0.0
                     for br in branches:
+                        dctx = _branch_move_damage(br)
                         raw_leaf = state.apply_instructions(br)
                         expanded = expand_leaf(state, raw_leaf, dmg)
                         if len(expanded) > 1 or expanded[0][0] is not raw_leaf:
@@ -556,10 +598,16 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                             if ok:
                                 covered = True
                                 covered_ex_recharge = True
+                                covered_healaware = True
                                 det_mass += w * br.percentage / total
                             else:
                                 if set(fails) == {"recharge"}:
                                     covered_ex_recharge = True
+                                if not covered_healaware and _match_branch(
+                                    leaf, snap_next, snap_now, det, relaxed,
+                                    band_ctx=dctx,
+                                )[0]:
+                                    covered_healaware = True
                                 for k in fails:
                                     fail_fields[k] += 1
                             our_leaf = _leaf_mons(leaf.side_one)
@@ -586,6 +634,8 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                 if not placeholder:
                     ex_recharge[0] += int(covered_ex_recharge)
                     ex_recharge[1] += 1
+                    healaware[0] += int(covered_healaware)
+                    healaware[1] += 1
                 if "ditto" in (battle.opponent_active_pokemon.species,):
                     strata["opp_active_ditto"] += 1
                 if covered:
@@ -621,6 +671,13 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                                  "server skips the recharge (KO-skip Hyper Beam rule); "
                                  "recorded, never governing — the primary keeps the "
                                  "pre-registered field set"),
+        "fg2_covered_healaware_SECONDARY": healaware[0] / max(healaware[1], 1),
+        "fg2_healaware_note": ("heal-aware = the roll band applied to the branch's "
+                               "move-damage component only (heals/chip deterministic); "
+                               "the strict band gives net-heal turns zero variance — a "
+                               "checker artifact, 161/493 residual hp_band fails in the "
+                               "turn-order diagnostic. Recorded, never governing, until "
+                               "the maintainer rules on promoting it"),
         "fg2p_covered": cov_p / max(tot_p, 1),
         "fg2p_n": tot_p,
         "fg2p_pass": bool(cov_p / max(tot_p, 1) >= 0.95),

@@ -142,9 +142,13 @@ def _status_str(mon: Any) -> str:
     return _STATUS_MAP.get(getattr(st, "name", str(st)), "none")
 
 
-def _our_pokemon(mon: Any) -> EnginePokemon:
-    """Our side is EXACT: species, level, real stats, real HP, real PP."""
-    stats = mon.stats or {}
+def _our_pokemon(mon: Any, stats_override: dict | None = None) -> EnginePokemon:
+    """Our side is EXACT: species, level, real stats, real HP, real PP.
+    `stats_override` (our-side transformed ditto): battle stats replaced by
+    the transform target's modeled stats; HP always stays ditto's own."""
+    stats = dict(mon.stats or {})
+    if stats_override:
+        stats.update(stats_override)
     types = [t.name.lower() for t in mon.types if t is not None]
     while len(types) < 2:
         types.append("typeless")
@@ -223,6 +227,33 @@ def _boost(active: Any, key: str) -> int:
     return int((getattr(active, "boosts", None) or {}).get(key, 0))
 
 
+def _our_transform_stats_override(battle: Any, mon: Any) -> dict | None:
+    """OUR transformed ditto (the mirror of the opp-side bridge below):
+    poke-env updates our ditto's base_stats on |-transform| (measured on the
+    harvest) while its `stats` stay ditto's own — stale for damage. Gen1
+    Transform copies the TARGET'S ACTUAL stats; the target is an OPPONENT
+    mon (matched by base-stats equality, level from the revealed mon), so
+    the best model is the gen1 formula at the target's level with max DVs
+    (the evidence-based DV law). Returns None when untransformed, {} when
+    transformed but unmatched."""
+    if getattr(mon, "species", None) != "ditto":
+        return None
+    from poke_env.data import GenData
+
+    dex_bs = dict(GenData.from_gen(1).pokedex["ditto"]["baseStats"])
+    bs = dict(mon.base_stats)
+    if bs == dex_bs:
+        return None
+    for t in battle.opponent_team.values():
+        if dict(t.base_stats) == bs:
+            lvl = int(t.level)
+            return {
+                k: gen1_stat(bs[k], lvl)
+                for k in ("atk", "def", "spa", "spd", "spe")
+            }
+    return {}
+
+
 def _transform_stats_override(battle: Any, live: Any) -> dict | None:
     """Gen1 Transform copies the TARGET'S ACTUAL STATS (not a recomputation
     at ditto's level), and the target is always one of OUR mons — whose
@@ -292,7 +323,14 @@ def battle_to_state(battle: Any, determinization: dict,
     unchanged; only branch weights shift).
     """
     counters = counters or BridgeCounters()
-    our_mons = [_our_pokemon(m) for m in battle.team.values()]
+    our_mons = []
+    for m in battle.team.values():
+        ov = _our_transform_stats_override(battle, m)
+        if ov:
+            counters.transform_bridged += 1
+        elif ov == {}:
+            counters.transform_unmatched += 1
+        our_mons.append(_our_pokemon(m, stats_override=ov or None))
     side_one = build_side(
         our_mons, battle.active_pokemon.species, battle.active_pokemon, counters
     )

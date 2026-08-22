@@ -347,3 +347,69 @@ def test_transformed_ditto_gets_target_stats():
     c2 = BridgeCounters()
     battle_to_state(b2, sample_determinization(b2, np.random.default_rng(4)), c2)
     assert c2.transform_bridged == 0 and c2.transform_unmatched == 0
+
+
+def test_our_transformed_ditto_gets_target_stats():
+    """The mirror case: OUR ditto transformed (poke-env updates its
+    base_stats on |-transform| while `stats` stay ditto's own — measured on
+    the harvest). Battle stats must come from the gen1 formula at the
+    TARGET'S level (max DV); HP stays ditto's own."""
+    b = _battle()
+    ditto = _mon("ditto", ["softboiled"], level=88)
+    ditto.base_stats = dict(b.opponent_active_pokemon.base_stats)  # copied
+    b.team["p1: Ditto"] = ditto
+    det = sample_determinization(b, np.random.default_rng(5))
+    counters = BridgeCounters()
+    state = battle_to_state(b, det, counters)
+    em = next(m for m in state.side_one.pokemon if m.id == "ditto")
+    tgt = b.opponent_active_pokemon
+    assert em.attack == gen1_stat(tgt.base_stats["atk"], tgt.level)
+    assert em.speed == gen1_stat(tgt.base_stats["spe"], tgt.level)
+    assert em.hp == ditto.current_hp and em.maxhp == ditto.max_hp
+    assert counters.transform_bridged == 1
+    # untransformed our-ditto: no override, no count
+    b2 = _battle()
+    from poke_env.data import GenData
+
+    d2 = _mon("ditto", ["transform"], level=88)
+    d2.base_stats = dict(GenData.from_gen(1).pokedex["ditto"]["baseStats"])
+    d2.stats = {"atk": 194, "def": 194, "spa": 194, "spd": 194, "spe": 194}
+    b2.team["p1: Ditto"] = d2
+    c2 = BridgeCounters()
+    state2 = battle_to_state(b2, sample_determinization(b2, np.random.default_rng(6)), c2)
+    em2 = next(m for m in state2.side_one.pokemon if m.id == "ditto")
+    assert em2.attack == 194
+    assert c2.transform_bridged == 0 and c2.transform_unmatched == 0
+
+
+def test_opp_active_speed_override_flips_order_only():
+    """The turn-order counterfactual hook: overriding the opponent ACTIVE's
+    raw speed must flip who acts first and touch nothing else (gen1 damage
+    never reads speed)."""
+    from poke_engine import generate_instructions
+
+    b = _battle()
+    b.opponent_active_pokemon.current_hp_fraction = 0.5  # softboiled heals
+    det = sample_determinization(b, np.random.default_rng(7))
+    slow = battle_to_state(b, det, BridgeCounters(), opp_active_speed_override=1)
+    fast = battle_to_state(b, det, BridgeCounters(), opp_active_speed_override=9999)
+    assert next(m for m in slow.side_two.pokemon if m.id == "chansey").speed == 1
+    assert next(m for m in fast.side_two.pokemon if m.id == "chansey").speed == 9999
+    # bench speeds untouched by the override
+    for s in (slow, fast):
+        for m in s.side_two.pokemon:
+            if m.id != "chansey":
+                assert m.speed not in (1, 9999)
+    # order flips: softboiled is revealed (always in det support); with opp
+    # speed 1 our bodyslam damage lands BEFORE their heal, with 9999 after.
+    def first_event(state):
+        br = max(generate_instructions(state, "bodyslam", "softboiled"),
+                 key=lambda x: x.percentage)
+        for ins in br.instruction_list:
+            s = str(ins)
+            if s.startswith(("Damage SideTwo", "Heal SideTwo")):
+                return s.split(" ")[0]
+        return None
+
+    assert first_event(slow) == "Damage"
+    assert first_event(fast) == "Heal"

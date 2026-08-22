@@ -265,3 +265,31 @@ def _hyperbeam_state(their_hp):
         side_two=Side(pokemon=[emon("chansey", ["tackle"], their_hp)],
                       active_index=PokemonIndex.P0),
     )
+
+
+def test_healaware_band_reduces_to_strict_and_keeps_roll_variance():
+    """The battery's heal-aware SECONDARY band (scripts/ch3_fidelity_check):
+    identical to the strict band on a single pure-damage branch; on a
+    net-heal branch (rest/softboiled + incoming damage) it must keep the
+    incoming move's roll variance, which the strict band (zero variance at
+    dmg_br <= 0) falsely fails."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    from ch3_fidelity_check import _hp_band_ok, _hp_band_ok_ctx
+
+    # pure damage: ctx band == strict band (d_move == dmg_br)
+    for obs in (85, 92, 100, 108, 112):
+        assert _hp_band_ok_ctx(obs, 100, 1.5, 100) == _hp_band_ok(obs, 100, 1.5)
+    # net heal: rest 150 - incoming avg 100 => dmg_br = -50; observed low
+    # roll (-58) and high roll (-42) are real outcomes the strict band fails
+    assert not _hp_band_ok(-58, -50, 1.5)
+    assert _hp_band_ok_ctx(-58, -50, 1.5, 100)
+    assert _hp_band_ok_ctx(-42, -50, 1.5, 100)
+    # but an outcome outside the move's roll band still fails
+    assert not _hp_band_ok_ctx(-75, -50, 1.5, 100)
+    assert not _hp_band_ok_ctx(-20, -50, 1.5, 100)
+    # no damage event at all: exact, same as strict
+    assert _hp_band_ok_ctx(-150, -150, 1.5, 0)
+    assert not _hp_band_ok_ctx(-140, -150, 1.5, 0)
