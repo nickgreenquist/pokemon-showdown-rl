@@ -276,12 +276,20 @@ def is_locked_turn(battle: Any) -> bool:
 
 
 def battle_to_state(battle: Any, determinization: dict,
-                    counters: BridgeCounters | None = None) -> State:
+                    counters: BridgeCounters | None = None,
+                    opp_active_speed_override: int | None = None) -> State:
     """battle1 (public) + one determinization -> engine State.
 
     `determinization` is rl/search/determinize.py's output: per opponent
     species -> {"moves": [ids], "base_stats": {...}, "level": int}, plus
     "bench_species" for unrevealed slots. Seat 1 = us.
+
+    `opp_active_speed_override` replaces the opponent ACTIVE's raw speed
+    stat only (bench and every other stat untouched) — the turn-order
+    counterfactual hook: gen1 damage never reads speed, so forcing an
+    extreme value flips who acts first without touching anything else
+    except the engine's speed-derived crit RATE (branch membership is
+    unchanged; only branch weights shift).
     """
     counters = counters or BridgeCounters()
     our_mons = [_our_pokemon(m) for m in battle.team.values()]
@@ -303,6 +311,8 @@ def battle_to_state(battle: Any, determinization: dict,
             counters.transform_bridged += 1
         elif t_override == {}:
             counters.transform_unmatched += 1
+        if opp_active_speed_override is not None and species == opp_active.species:
+            t_override = dict(t_override or {}) | {"spe": int(opp_active_speed_override)}
         opp_mons.append(
             _det_pokemon(
                 species,
