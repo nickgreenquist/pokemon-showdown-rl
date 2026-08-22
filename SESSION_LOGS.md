@@ -5235,3 +5235,56 @@ entry by offset — never a broad keyword grep.
   turn-order diagnostic (speed ties + slept-mon-still-explodes), then
   status/band tails; FG-2 needs +7.3pt in ~2 evenings or the fallback
   ruling.
+
+- 2026-08-22 (later, **TURN-ORDER DIAGNOSTIC RUN + TWO REPAIRS: the FG-2 gap
+  is now fully attributed; primary 0.9074 -> 0.9092, heal-aware SECONDARY
+  0.9237; measured repair CEILING ~0.95 < bar 0.98 — adjudication owed;
+  suite 421/17**): three commits (fb70c02, 9ffe595 + docs). (1)
+  **scripts/ch3_turnorder_diag.py** — reproduces the battery's FG-2 loop
+  bit-for-bit (baseline check == battery to 16 digits), then per uncovered
+  normal-stratum transition attributes hierarchically by counterfactual
+  probes: lift the top-6 cap (-> truncation, with the covering branch's
+  mass rank recorded); force we-first/opp-first via a new
+  `opp_active_speed_override` hook on battle_to_state (gen1 damage never
+  reads speed, so the override flips order and nothing else) ->
+  turn_order; newly-slept/frozen mon fainted-in-branch ->
+  sleep_interrupt_selfko; else residual with minimal fail signature +
+  hp_band subfamily tags. Engine facts probed and pinned in the docstring:
+  the engine DOES branch both orders on exact speed ties (8 branches,
+  50/50) so ties are a truncation/mass problem; para speed-quartering is
+  correct; the sleep-success branch still self-KOs a freshly-slept
+  Explosion user (engine-internal). (2) **ATTRIBUTION** (pre-repair, n
+  11,333, uncovered 1,049): truncation 171 = 1.51pt (covering ranks 6-11:
+  top_b 12 recovers ~156 of them — but top_b 6 is §3's L6 law, so raising
+  it is a design change + spike re-price, not a patch); turn_order 46 =
+  0.41pt; sleep_interrupt 16 = 0.14pt; residual 816 = 7.20pt, of which
+  hp_band-only 493: net_heal 161 (checker gives net-heal turns a
+  ZERO-variance band — artifact), plain 243 (band-edge grain/DV-tail
+  marginals: opp-side fails median 1% below band; plus mid-charge
+  `preparing` dropped by dets — skyattack obs 168 vs branch 0 with the
+  harvest snapshot showing preparing True; plus multi-exchange boundary
+  cases the row structure cannot represent: a snorlax took 296 from an
+  eevee whose crit max is 252), ditto 59 (OUR transformed ditto
+  unbridged), chip_status 30; then boosts-only 121, faints-only 77,
+  status-only 56, recharge 26. (3) **REPAIRS LANDED**: our-side
+  transformed ditto bridged (poke-env updates our ditto's base_stats on
+  transform, stats stay stale — measured; target's formula stats at the
+  target's level now used, HP stays ditto's) -> primary 0.9074 -> 0.9092;
+  heal-aware band (roll band applied to the branch's largest Damage
+  instruction; reduces exactly to strict on pure damage) added as
+  fg2_covered_healaware_SECONDARY = 0.9237 — SECONDARY ONLY, promotion is
+  the maintainer's call. +3 tests; suite 421/17. (4) **THE ADJUDICATION
+  READ**: post-repair uncovered 1,029; summing every named fixable family
+  (truncation 1.51 + turn_order 0.37 + net_heal 1.42 + ditto-residual
+  0.39 + chip 0.26 + sleep 0.14 + grain-tolerance ~0.6) lands ~0.95 —
+  the 0.98 bar is NOT reachable by repairs of this class; what remains is
+  engine-internal (sleep-interrupt), observability-limited (preparing/
+  charge state, opp DV tails, HP grain) or harvest-boundary structure.
+  Options for the ruling, with everything measured: (a) re-scope FG-2 to
+  the heal-aware band + named exempt families (the FG-1 precedent), (b)
+  accept ~0.91-0.92 with the residual map as named strata and let R2's
+  chunk-0 sentinel + win-rate verdict carry the load, (c) the A-sidecar
+  fallback, (d) stop. Recommendation: (b) — every remaining family is
+  small, named, and bounded, and R2 adjudicates flips by WINS, not by
+  one-step fidelity; the diagnostic reruns in 23 s if the ruling wants
+  different strata.
