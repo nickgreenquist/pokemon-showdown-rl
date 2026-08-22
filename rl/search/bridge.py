@@ -68,9 +68,18 @@ assert set(EFFECT_VOLATILE_MAP.values()) <= GEN1_ENGINE_VOLATILES, (
     "EFFECT_VOLATILE_MAP emits a name outside the engine's gen1 enum"
 )
 
+# poke-env Status.name -> the engine's FULL status names. LANDMINE
+# (measured 2026-08-22 on real harvest states): the engine accepts ANY
+# string at Pokemon construction and only parses it inside
+# generate_instructions/to_string — the 3-letter forms ("par") panic there
+# with "Invalid PokemonStatus: PAR", and State.status READBACK returns the
+# raw string unparsed, so a scan of constructed states looks clean. The
+# accepted names below are probed+pinned by test_engine_accepts_every_
+# mapped_status; sleep/freeze also confirm the engine ENFORCES those locks
+# (4 branches vs 8).
 _STATUS_MAP = {
-    "BRN": "brn", "PAR": "par", "PSN": "psn", "TOX": "tox",
-    "SLP": "slp", "FRZ": "frz", "FNT": "none",  # fainted carried via hp=0
+    "BRN": "burn", "PAR": "paralyze", "PSN": "poison", "TOX": "toxic",
+    "SLP": "sleep", "FRZ": "freeze", "FNT": "none",  # fainted carried via hp=0
 }
 
 # gen1 stat-exp term at maxed 65535: floor(min(255, ceil(sqrt(65535)))/4)
@@ -120,7 +129,7 @@ def _our_pokemon(mon: Any) -> EnginePokemon:
     while len(types) < 2:
         types.append("typeless")
     status = _status_str(mon)
-    sleep_turns = int(getattr(mon, "status_counter", 0)) if status == "slp" else 0
+    sleep_turns = int(getattr(mon, "status_counter", 0)) if status == "sleep" else 0
     return EnginePokemon(
         id=mon.species,
         level=mon.level,
@@ -245,7 +254,7 @@ def battle_to_state(battle: Any, determinization: dict,
                 level=spec.get("level"),
                 sleep_turns=(
                     int(getattr(live, "status_counter", 0))
-                    if live is not None and _status_str(live) == "slp"
+                    if live is not None and _status_str(live) == "sleep"
                     else 0
                 ),
             )

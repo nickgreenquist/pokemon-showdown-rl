@@ -33,9 +33,11 @@ from poke_env.battle.status import Status
 from rl.search.bridge import EFFECT_VOLATILE_MAP
 
 _VOLATILE_EFFECT_MAP = {v: k for k, v in EFFECT_VOLATILE_MAP.items()}
+# Keys are the ENGINE's full status names (bridge._STATUS_MAP values;
+# probed+pinned 2026-08-22 — the 3-letter forms panic in the engine).
 _STATUS_ENUM = {
-    "brn": Status.BRN, "par": Status.PAR, "psn": Status.PSN,
-    "tox": Status.TOX, "slp": Status.SLP, "frz": Status.FRZ,
+    "burn": Status.BRN, "paralyze": Status.PAR, "poison": Status.PSN,
+    "toxic": Status.TOX, "sleep": Status.SLP, "freeze": Status.FRZ,
 }
 
 

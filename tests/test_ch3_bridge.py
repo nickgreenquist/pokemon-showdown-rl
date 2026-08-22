@@ -213,3 +213,42 @@ def test_bench_sampler_enforces_generator_caps():
     assert "psychic" not in _species_caps("chansey")[1]
     assert {"water", "ice"} <= _species_caps("golem")[1]
     assert "electric" not in _species_caps("golem")[1]
+
+
+def test_engine_accepts_every_mapped_status():
+    """LANDMINE PIN (2026-08-22): the engine accepts any status string at
+    Pokemon construction and only parses it inside generate_instructions —
+    the 3-letter poke-env forms ("par") panic there, and .status READBACK
+    returns the raw string unparsed so constructed states look clean. Every
+    poke-env status must therefore survive an actual generate_instructions
+    call through the bridge's map."""
+    from poke_env.battle.status import Status
+    from poke_engine import generate_instructions
+
+    from rl.search.bridge import _STATUS_MAP
+
+    for name in _STATUS_MAP:
+        if name == "FNT":
+            continue
+        b = _battle()
+        b.opponent_active_pokemon.status = Status[name]
+        det = sample_determinization(b, np.random.default_rng(1))
+        state = battle_to_state(b, det, BridgeCounters())
+        branches = generate_instructions(state, "bodyslam", "softboiled")
+        assert branches, f"engine rejected mapped status for {name}"
+
+
+def test_status_round_trips_through_shadow():
+    """A paralyzed opponent must survive bridge -> engine -> shadow -> the
+    encoder's status one-hot (it silently vanished before the status-name
+    fix: shadow's reverse map keyed the 3-letter forms)."""
+    from poke_env.battle.status import Status
+
+    from rl.search.shadow_battle import shadow_battle
+
+    b = _battle()
+    b.opponent_active_pokemon.status = Status.PAR
+    det = sample_determinization(b, np.random.default_rng(2))
+    state = battle_to_state(b, det, BridgeCounters())
+    sb = shadow_battle(state, turn=b.turn)
+    assert sb.opponent_active_pokemon.status is Status.PAR
