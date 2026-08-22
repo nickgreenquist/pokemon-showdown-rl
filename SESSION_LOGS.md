@@ -5225,3 +5225,13 @@ entry by offset — never a broad keyword grep.
   internal), the 5% sub-max-DV tail, status/band tails. Battery + spike
   + backups current; ch3-suite 25 tests. R2 driver still to build after
   FG-2 closes.
+
+- 2026-08-22 (close, **DITTO TRANSFORM BRIDGED: FG-2 0.9057 -> 0.9074; suite
+  418/17**): gen1 Transform copies the target's ACTUAL stats (never HP);
+  target is always one of OUR mons with exact known stats — bridge detects
+  the copied base stats and overrides formula stats with the target's real
+  ones (transform_bridged/transform_unmatched counted). Gain small as
+  expected (~1.2% of transitions involve ditto). NEXT EVENING: the
+  turn-order diagnostic (speed ties + slept-mon-still-explodes), then
+  status/band tails; FG-2 needs +7.3pt in ~2 evenings or the fallback
+  ruling.

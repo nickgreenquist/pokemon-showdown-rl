@@ -8,7 +8,7 @@ FG-1/4/5/6/7 PASS (FG-1 re-scoped per ruling: volatile-free byte-identity
 100%) · FG-2k residual 0.0928 -> 0.0082 post-expansion (Dose M re-priced 73.2
 ms/decision) · FG-2 0.9057 vs bar 0.98 still BLOCKING — DV lead run to ground
 (max-DV now EVIDENCE-BASED: 94.85% of realized stats exactly max; sampling and
-expected-8 both measured worse); next repair: Ditto transform, ~2 evenings**)
+expected-8 both measured worse); Ditto transform BRIDGED (0.9074); next: turn-order diagnostic, ~2 evenings**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
 0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** CH3 ratified
@@ -30,11 +30,10 @@ statuses; readback UPPERCASES volatiles; from_string drops volatiles).
 | CH3 R0 ensemble-of-4 — B1 CREDIT (+0.036, THESE four ckpts only) | 0.74633 |
 
 ## Next actions
-1. **FG-2 deeper repair, ~2 evenings left**: top fixable = TRANSFORMED DITTO
-   (poke-env exposes copied base stats; bridge uses them but the det level/
-   stat path and shadow static-dex path diverge); then turn-order edges
-   (speed ties; slept-mon-still-explodes is engine-internal — may end as a
-   named residual). Fallback stays: A-sidecar (design §2) or chapter stops.
+1. **FG-2 deeper repair, ~2 evenings left, now at 0.9074**: Ditto DONE
+   (target's actual stats bridged). Next: a dedicated TURN-ORDER diagnostic
+   (speed ties; slept-mon-still-explodes is engine-internal — may end a
+   named residual), then status/band tails. Fallback: A-sidecar or stop.
    FG-1 CLOSED (ruled re-scope, PASS).
 2. ~~Roll expansion~~ DONE (rl/search/expansion.py; residual 0.0082; spike
    re-priced 73.2 ms/dec; flip rate 0.635 -> 0.51). Next build: the R2 driver
