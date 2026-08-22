@@ -127,4 +127,6 @@ readme_status_obligation: "B1: README headline row + STATUS; B2-B5: row with ver
 ledger_days_projected: 0.1
 wall_hours_projected: 3.5
 lane_width: 4
+r2_1_fg_transcript: "2026-08-22, git db3083b (pre-launch, code identical to launch sha): FG-1 PASS (ruled scope) / FG-2 0.9092 GREEN per fg2_disposition ruling (b), FG-2p 0.6278 out-of-scope per pre-reg, FG-2k post-expansion residual 0.0075 / FG-6 PASS (frozen families) / FG-7 PASS 0.998; fg_battery.json sha256 36f3443dbf47efd26aaf0a0b565384a8865d451ecfe866ff83df84029769dc9d"
+r2_2_fg4_transcript: "2026-08-22, git db3083b: FG-4 static PASS (no forbidden hits, RSD provenance asserted); live half = chunk-0 battle2 sentinel in BOTH arms (driver-automatic, SF-13), live-smoked 2026-08-22 with zero rl/search accesses over a full armed run"
 burns_training_seeds: false

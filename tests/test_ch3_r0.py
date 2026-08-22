@@ -248,11 +248,18 @@ def test_r2_grader_selftest_and_credit_line_identity():
     assert prereg["credit_line"] == ch3_r2_grade.CREDIT_LINE
 
 
-def test_r2_grader_refuses_draft_prereg():
+def test_r2_grader_refuses_draft_prereg(tmp_path):
     prereg = yaml.safe_load(R2_PREREG.read_text())
-    assert "DRAFT" in prereg["status"]  # until the maintainer registers it
+    # ruled (b) + registered 2026-08-22; the ruling text is transcribed
+    assert "REGISTERED" in prereg["status"]
+    assert "PENDING" not in prereg["fg2_disposition"]
+    assert "RULED (b)" in prereg["fg2_disposition"]
+    # the refusal path stays pinned via a synthetic draft
+    draft = dict(prereg, status="DRAFT — synthetic")
+    dp = tmp_path / "draft.yaml"
+    dp.write_text(yaml.safe_dump(draft))
     with pytest.raises(AssertionError, match="DRAFT"):
-        ch3_r2_grade.grade(str(R2_PREREG))
+        ch3_r2_grade.grade(str(dp))
 
 
 def test_r2_prereg_arms_match_driver_and_r0_checkpoints():
