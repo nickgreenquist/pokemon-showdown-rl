@@ -5324,3 +5324,27 @@ entry by offset — never a broad keyword grep.
   verbatim credit line incl. the larger-of-THREE clause, branches
   B1-B5 + F-gates, R2-0..R2-10 gates; goes through the maintainer per
   the pre-reg process), then the R2-1/R2-2 gate re-runs at launch sha.
+
+- 2026-08-22 (later night, **R2 PRE-REG DRAFTED + GRADER BUILT — everything
+  up to the ruling is now staged; suite 428/17**): commit a44ae46.
+  configs/eval/ch3_rung2.yaml transcribes ratified design §4 R2 (A0
+  policy-fresh + A1S search@M paired on the four D26 lanes, 3000/lane
+  chunked 10x300; verbatim credit line; larger-of-THREE se rule; B1-B5
+  with per-branch R3 actions; F1-F4; R2-0..R2-10; measured constants
+  f3_leaves_expected=353 / ms 73.2 / A0 anchor 0.71825±0.02). Marked
+  **DRAFT, NOT REGISTERED** — the fg2_disposition field is PENDING and
+  must carry the FG-2 route ruling's text before registration (per the
+  pre-reg process; R0 precedent: built in-session post-ratification,
+  maintainer registers). scripts/ch3_r2_grade.py enforces all of it and
+  REFUSES to grade a DRAFT/PENDING pre-reg, a dirty tree, or an
+  uncommitted pre-reg; selftest pins MF-8's 2·se_binom ≈ 0.0115 and the
+  pairing-collapse case (uniform lane shift → sd(d)=0, the unpaired term
+  keeps the bar up — the third term doing exactly its disclosed job).
+  Credit line byte-identical across ch3_grade and ch3_r2_grade (tested).
+  LAUNCH CHECKLIST once the ruling lands: (1) transcribe the ruling into
+  fg2_disposition + flip status to REGISTERED (maintainer), (2) R2-1 FG
+  re-run at launch sha (battery, ~5 min) + R2-2 FG-4, transcripts into
+  the pre-reg fields r2_1_fg_transcript / r2_2_fg4_transcript, (3)
+  --selfcheck + suite green, (4) run A0 (4 jobs, ~8 min), check R2-10,
+  (5) run A1S (4 jobs, ~2-3.5 h in the maintainer's terminal), (6)
+  scripts/ch3_r2_grade.py --prereg configs/eval/ch3_rung2.yaml.
