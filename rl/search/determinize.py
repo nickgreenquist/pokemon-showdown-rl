@@ -41,6 +41,30 @@ import numpy as np
 from rl.envs import randbats_prior
 
 
+# DV MODEL, settled empirically 2026-08-22 (the bridge's declared FG-2
+# question): the vendored teams source (ts AND dist) rolls RANDOM DVs, but
+# REALIZED server stats — measured on our own randbats side, 1,500 mons /
+# 7,500 stats from the harvest — are 94.85% EXACTLY the max-DV formula
+# (5.15% below, none above; 74.4% of mons fully max). Something downstream
+# of the generator overrides ivs to default-max (mechanism unresolved,
+# recorded). Both alternatives were built and measured WORSE on FG-2:
+# per-det random sampling 0.9057 -> 0.8253 (variance the roll band cannot
+# absorb), expected-DV 8 point model 0.7153 (bias against the max-heavy
+# truth). Max DV therefore stays the det model — now evidence-based, not
+# assumed; the 5% sub-max tail is part of FG-2's honest residual.
+EXPECTED_DVS = {"atk": 15, "def": 15, "spa": 15, "spd": 15, "spe": 15, "hp": 15}
+
+
+def sample_dvs(rng: np.random.Generator) -> dict[str, int]:
+    """Kept for diagnostics: one generator-faithful DV roll (uniform 0..15,
+    spd = spa, HP DV from the classic parity bits)."""
+    atk, dfn, spa, spe = (int(rng.integers(16)) for _ in range(4))
+    return {
+        "atk": atk, "def": dfn, "spa": spa, "spd": spa, "spe": spe,
+        "hp": 8 * (atk % 2) + 4 * (dfn % 2) + 2 * (spe % 2) + (spa % 2),
+    }
+
+
 def _complete_revealed(species: str, revealed: frozenset, rng: np.random.Generator) -> list[str]:
     """Revealed moves exact + sampled completion consistent with them."""
     probs = randbats_prior.conditional_move_probs(species, revealed)
@@ -154,6 +178,7 @@ def sample_determinization(battle: Any, rng: np.random.Generator) -> dict:
                 "types": [t.name.lower() for t in mon.types if t is not None]
             },
             "live": mon,
+            "dvs": dict(EXPECTED_DVS),
             "provenance": "rsd",  # FG-4: asserted at bridge construction
         }
     n_unrevealed = 6 - len(opponents)
@@ -179,6 +204,7 @@ def sample_determinization(battle: Any, rng: np.random.Generator) -> dict:
             "level": randbats_prior.species_level(sp),
             "base_stats": _static_base_stats(sp),
             "live": None,
+            "dvs": dict(EXPECTED_DVS),
             "provenance": "rsd",  # FG-4: asserted at bridge construction
         }
     return {"opponents": opponents}

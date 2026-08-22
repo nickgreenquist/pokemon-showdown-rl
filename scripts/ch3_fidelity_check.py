@@ -144,6 +144,7 @@ def fg1_string_stability(lanes, per_lane: int = 200) -> dict:
     from poke_engine import State
 
     n = stable = panics = 0
+    vf_n = vf_stable = 0  # volatile-free stratum (the RULED scope)
     lane_seeds = {lane: i for i, lane in enumerate(lanes)}
     for lane, (pub, _) in lanes.items():
         rows = [(bi, si) for bi, b in enumerate(pub) for si in range(len(b["rows"]))]
@@ -154,17 +155,34 @@ def fg1_string_stability(lanes, per_lane: int = 200) -> dict:
             rng = decision_rng(1000 + lane_seeds[lane], bi, battle.turn, si)
             det = sample_determinization(battle, rng)
             state = battle_to_state(battle, det, BridgeCounters())
+            volatile_free = not (
+                state.side_one.volatile_statuses or state.side_two.volatile_statuses
+            )
             n += 1
+            vf_n += int(volatile_free)
             try:
                 s1 = state.to_string()
                 s2 = State.from_string(s1).to_string()
-                stable += int(s1 == s2)
+                ok = int(s1 == s2)
+                stable += ok
+                vf_stable += ok if volatile_free else 0
             except BaseException:
                 panics += 1
     return {
-        "gate": "FG-1", "bar": "100% byte-identical", "blocking": True,
+        "gate": "FG-1",
+        "bar": ("RULED SCOPE (maintainer, 2026-08-22): 100% byte-identical on "
+                "VOLATILE-FREE states — the engine's own from_string drops "
+                "volatile_statuses (known landmine), so byte-identity is "
+                "structurally unreachable on volatile states; the "
+                "object-construction invariant carries the load and strings "
+                "are FG-1-only"),
+        "blocking": True,
         "n": n, "stable": stable, "panics": panics,
-        "pass": bool(stable == n and panics == 0),
+        "volatile_free_n": vf_n, "volatile_free_stable": vf_stable,
+        "volatile_stratum_recorded": {
+            "n": n - vf_n, "stable": stable - vf_stable,
+        },
+        "pass": bool(vf_stable == vf_n and panics == 0),
     }
 
 

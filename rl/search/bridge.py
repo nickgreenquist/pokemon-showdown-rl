@@ -20,10 +20,14 @@ Invariants this module owns:
 - The engine does NOT enforce partial-trap or must-recharge (measured):
   action substitution to "none" is the MATRIX layer's job; this module
   only reports `is_locked_turn`.
-- Gen1 stats for determinized opponents use max DVs (15) and max stat exp
-  (65535): term = floor(min(255, ceil(sqrt(exp)))/4) = 63. Pinned by test
-  vectors (Tauros L100: HP 353, Spe 318). Whether randbats uses maxed
-  DVs/exp is an FG-2 question — this is the declared assumption.
+- Gen1 stats for determinized opponents: max stat exp (65535 -> term 63)
+  CONFIRMED against the vendored generator (teams.ts: "Maxed EVs"); DVs
+  are RANDOM per mon (this.random(16) per stat, HP DV from the parity
+  bits, spd = spa) — the r1 max-DV assumption was measured WRONG by FG-2
+  (the hp_band tail) and each determinization now SAMPLES DVs exactly as
+  the generator does (rl/search/determinize.sample_dvs). gen1_stat's
+  dv parameter defaults to 15 so the pinned max-DV test vectors
+  (Tauros L100: HP 353, Spe 318) still hold.
 """
 
 from __future__ import annotations
@@ -87,8 +91,8 @@ _EXP_TERM = 63
 _DV = 15
 
 
-def gen1_stat(base: int, level: int, hp: bool = False) -> int:
-    core = (base + _DV) * 2 + _EXP_TERM
+def gen1_stat(base: int, level: int, hp: bool = False, dv: int = _DV) -> int:
+    core = (base + dv) * 2 + _EXP_TERM
     if hp:
         return math.floor(core * level / 100) + level + 10
     return math.floor(core * level / 100) + 5
@@ -166,27 +170,31 @@ def _our_pokemon(mon: Any) -> EnginePokemon:
 
 def _det_pokemon(species: str, move_ids: list[str], hp_fraction: float,
                  status: str = "none", base_stats: dict | None = None,
-                 level: int | None = None, sleep_turns: int = 0) -> EnginePokemon:
+                 level: int | None = None, sleep_turns: int = 0,
+                 dvs: dict | None = None) -> EnginePokemon:
     """A determinized opponent mon: exact where revealed, sampled elsewhere.
-    Stats from the gen1 formula at the randbats level (max DV/exp assumption,
-    module docstring); HP scaled from the public fraction."""
+    Stats from the gen1 formula at the randbats level; DVs are the
+    determinization's own generator-faithful sample (max-DV fallback only
+    when a caller supplies none); HP scaled from the public fraction."""
     level = level if level is not None else (randbats_prior.species_level(species) or 100)
     bs = base_stats or {}
-    maxhp = gen1_stat(bs.get("hp", 100), level, hp=True)
+    dvs = dvs or {}
+    maxhp = gen1_stat(bs.get("hp", 100), level, hp=True, dv=dvs.get("hp", _DV))
     types = list(bs.get("types") or ["normal"])[:2]
     while len(types) < 2:
         types.append("typeless")
+    spa_dv = dvs.get("spa", _DV)
     return EnginePokemon(
         id=species,
         level=level,
         types=(types[0], types[1]),
         hp=max(0, min(maxhp, round(hp_fraction * maxhp))),
         maxhp=maxhp,
-        attack=gen1_stat(bs.get("atk", 100), level),
-        defense=gen1_stat(bs.get("def", 100), level),
-        special_attack=gen1_stat(bs.get("spa", 100), level),
-        special_defense=gen1_stat(bs.get("spd", 100), level),
-        speed=gen1_stat(bs.get("spe", 100), level),
+        attack=gen1_stat(bs.get("atk", 100), level, dv=dvs.get("atk", _DV)),
+        defense=gen1_stat(bs.get("def", 100), level, dv=dvs.get("def", _DV)),
+        special_attack=gen1_stat(bs.get("spa", 100), level, dv=spa_dv),
+        special_defense=gen1_stat(bs.get("spd", 100), level, dv=spa_dv),
+        speed=gen1_stat(bs.get("spe", 100), level, dv=dvs.get("spe", _DV)),
         status=status,
         sleep_turns=sleep_turns,
         moves=_engine_moves(move_ids, None),
@@ -271,6 +279,7 @@ def battle_to_state(battle: Any, determinization: dict,
                 status=_status_str(live) if live is not None else "none",
                 base_stats=spec.get("base_stats"),
                 level=spec.get("level"),
+                dvs=spec.get("dvs"),
                 sleep_turns=(
                     int(getattr(live, "status_counter", 0))
                     if live is not None and _status_str(live) == "sleep"

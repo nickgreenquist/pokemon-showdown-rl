@@ -295,3 +295,26 @@ def test_faint_leaf_carries_force_switch():
     state = battle_to_state(b, det, BridgeCounters())
     sb = shadow_battle(state, turn=2)
     assert sb.force_switch
+
+
+def test_dv_model_is_max_and_pinned():
+    """DV model settled empirically (94.85% of 7,500 realized stats are
+    exactly max-DV; random-sample and expected-8 alternatives both measured
+    worse on FG-2): dets carry max DVs, and the diagnostic sampler keeps
+    the generator's true law (spd = spa, HP DV parity bits) for the
+    record."""
+    from rl.search.determinize import EXPECTED_DVS, sample_dvs
+
+    assert set(EXPECTED_DVS.values()) == {15}
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        d = sample_dvs(rng)
+        assert all(0 <= d[k] <= 15 for k in ("atk", "def", "spa", "spe"))
+        assert d["spd"] == d["spa"]
+        assert d["hp"] == 8 * (d["atk"] % 2) + 4 * (d["def"] % 2) + \
+            2 * (d["spe"] % 2) + (d["spa"] % 2)
+    b = _battle()
+    det = sample_determinization(b, np.random.default_rng(1))
+    assert det["opponents"]["chansey"]["dvs"] == EXPECTED_DVS
+    # max-DV pins unchanged
+    assert gen1_stat(75, 100, hp=True) == 353 and gen1_stat(110, 100) == 318
