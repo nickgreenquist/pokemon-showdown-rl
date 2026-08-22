@@ -1,0 +1,18 @@
+# Chapter-3 search-line extra dependency — OUTSIDE pyproject.toml by explicit
+# maintainer ruling (2026-08-21, ch3_search_design_r2.md §10.2): PEP 621
+# cannot carry per-requirement build flags, poke-engine's DEFAULT build is
+# GEN 4, and pip's wheel cache ignores --config-settings. Install with
+# EXACTLY this command (requires a Rust toolchain, e.g. ~/.cargo/bin on PATH):
+#
+#   pip install --no-cache-dir --force-reinstall --no-binary poke-engine \
+#     "poke-engine==0.0.48" \
+#     --config-settings="build-args=--features poke-engine/gen1 --no-default-features"
+#
+# Verify the build EVERY time (FG-5): the compiled .so must contain
+# src/gen1/ >= 1, src/genx/ == 0, "used for spc" >= 1. A gen4 (default) or
+# gen9 build fails that discriminator. scripts/ch3_fidelity_check.py --fg5
+# runs the check. Provenance: poke-engine is pmariglia's battle engine
+# (MIT), used ONLY as a pure transition function (State /
+# generate_instructions / apply_instructions); its search and evaluation
+# entry points are forbidden (purity ruling + do-NOT list).
+poke-engine==0.0.48

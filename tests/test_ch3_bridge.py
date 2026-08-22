@@ -1,0 +1,126 @@
+"""CH3 R1 bridge tests: stat formula pins, volatile-map integrity, the
+determinizer's containment law, and the end-to-end stub -> State ->
+generate_instructions pipeline. Offline: no server, no checkpoints."""
+
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+from poke_env.battle.pokemon_type import PokemonType
+from poke_env.battle.move import Move as PEMove
+
+from rl.search.bridge import (
+    EFFECT_VOLATILE_MAP,
+    GEN1_ENGINE_VOLATILES,
+    BridgeCounters,
+    battle_to_state,
+    gen1_stat,
+    is_locked_turn,
+)
+from rl.search.determinize import sample_determinization
+
+
+def test_gen1_stat_pinned_vectors():
+    # Tauros L100, max DV/statexp: the two classic RBY numbers
+    assert gen1_stat(75, 100, hp=True) == 353
+    assert gen1_stat(110, 100) == 318
+    # level scaling: Tauros at randbats level 68
+    assert gen1_stat(110, 68) == 217
+
+
+def test_volatile_map_within_engine_enum():
+    assert set(EFFECT_VOLATILE_MAP.values()) <= GEN1_ENGINE_VOLATILES
+
+
+def _mon(species, moves, level=68, hp_frac=1.0, active=False, stats=None):
+    base_stats = {"hp": 75, "atk": 100, "def": 95, "spa": 70, "spd": 70, "spe": 110}
+    return SimpleNamespace(
+        species=species,
+        level=level,
+        current_hp=int(300 * hp_frac),
+        max_hp=300,
+        current_hp_fraction=hp_frac,
+        fainted=hp_frac == 0.0,
+        status=None,
+        status_counter=0,
+        base_stats=base_stats,
+        stats=stats or {"atk": 200, "def": 190, "spa": 150, "spd": 150, "spe": 220},
+        types=[PokemonType.NORMAL],
+        boosts=dict.fromkeys(("accuracy", "atk", "def", "evasion", "spa", "spd", "spe"), 0),
+        effects={},
+        preparing=False,
+        must_recharge=False,
+        moves={m: PEMove(m, gen=1) for m in moves},
+    )
+
+
+def _battle():
+    ours = _mon("tauros", ["bodyslam", "blizzard", "earthquake", "hyperbeam"])
+    theirs = _mon("chansey", ["softboiled"], level=76)
+    return SimpleNamespace(
+        active_pokemon=ours,
+        opponent_active_pokemon=theirs,
+        team={"p1: Tauros": ours},
+        opponent_team={"p2: Chansey": theirs},
+        turn=5,
+        force_switch=False,
+        trapped=False,
+        available_moves=list(ours.moves.values()),
+    )
+
+
+def test_determinizer_containment_and_determinism():
+    b = _battle()
+    d1 = sample_determinization(b, np.random.default_rng(42))
+    d2 = sample_determinization(b, np.random.default_rng(42))
+    # same key -> identical determinization (determinism clause D2)
+    assert {s: spec["moves"] for s, spec in d1["opponents"].items()} == {
+        s: spec["moves"] for s, spec in d2["opponents"].items()
+    }
+    # the active's slots are the encoder's four (containment, MF-5b):
+    # softboiled revealed must be among them
+    assert "softboiled" in d1["opponents"]["chansey"]["moves"]
+    # a full team: 6 opponents, 5 sampled from the pool, no duplicates
+    assert len(d1["opponents"]) == 6
+    assert len(set(d1["opponents"])) == 6
+
+
+def test_bridge_end_to_end_generates_instructions():
+    from poke_engine import generate_instructions
+
+    b = _battle()
+    det = sample_determinization(b, np.random.default_rng(7))
+    counters = BridgeCounters()
+    state = battle_to_state(b, det, counters)
+    # our side exact: real stats, real hp
+    us = state.side_one.pokemon[0]
+    assert us.id == "tauros" and us.hp == 300 and us.speed == 220
+    # opponent active determinized at its randbats level with formula stats
+    them = state.side_two.pokemon[0]
+    assert them.id == "chansey"
+    # joint transition: branch percentages sum to ~100
+    branches = generate_instructions(state, "bodyslam", "softboiled")
+    total = sum(br.percentage for br in branches)
+    assert branches and abs(total - 100.0) < 1e-3
+
+
+def test_locked_turn_detection():
+    b = _battle()
+    assert not is_locked_turn(b)
+    b.available_moves = [PEMove("struggle", gen=1)]
+    assert not is_locked_turn(b)  # struggle is a real move, not a lock
+    fight = SimpleNamespace(id="fight")
+    b.available_moves = [fight]
+    assert is_locked_turn(b)
+
+
+def test_unmapped_effects_are_counted_not_dropped():
+    b = _battle()
+    class _FakeEffect:
+        name = "SOME_NEW_EFFECT"
+
+    b.active_pokemon.effects = {_FakeEffect(): 1}
+    det = sample_determinization(b, np.random.default_rng(3))
+    counters = BridgeCounters()
+    battle_to_state(b, det, counters)
+    assert counters.unmapped_effects.get("SOME_NEW_EFFECT") == 1

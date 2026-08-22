@@ -5048,3 +5048,34 @@ entry by offset — never a broad keyword grep.
   (ruling 2's exact command), bridge, FG battery, R1-0 spike; 3-4
   evenings, no verdict battles, kill = any blocking FG unfixable in 3
   evenings.
+- 2026-08-22 (continued, **R1 BUILD PART 1: ENGINE INSTALLED + ATTESTED,
+  BRIDGE + DETERMINIZER LANDED, end-to-end synthetic pipeline green; suite
+  398/17**): poke-engine 0.0.48 gen1 built from source INTO OUR 3.13 env
+  per ruling 2's exact command (Rust at ~/.cargo/bin; ~2 min build). FG-5
+  attestation on the installed .so: src/gen1/ 7 / src/genx/ 0 / spc 1, sha
+  7a530c64... `requirements-search.txt` carries the command + why (pyproject
+  gets a pointer comment; ruling 2's deviation recorded in-file). NEW
+  MEASUREMENT that reshapes the bridge: **State.to_string/from_string DROPS
+  volatile_statuses entirely** (all names, valid ones included) — direct
+  construction carries them (review 2 had measured reflect working) — so
+  the bridge CONSTRUCTS State objects and never round-trips through
+  strings; FG-1 stays a string-stability check only. The gen1 volatile
+  enum was extracted from the sdist (src/gen1/state.rs) and
+  `bridge.EFFECT_VOLATILE_MAP` is asserted against a pinned subset at
+  import; unmapped Effects are COUNTED (BridgeCounters), never dropped.
+  `rl/search/bridge.py`: our side exact (real stats/HP/PP), determinized
+  opponents via the gen1 stat formula (max DV/statexp ASSUMPTION, declared;
+  term=63 pinned by Tauros L100 HP 353 / Spe 318 test vectors), gen1
+  Special mapped to both engine spa/spd boost slots, is_locked_turn
+  (fight/recharge placeholder). `rl/search/determinize.py`: RSD — active's
+  moveset = the encoder's four slots VERBATIM (MF-5b containment by
+  construction; _opponent_move_slots yields Move OBJECTS, ids extracted),
+  revealed bench completed via conditional_move_probs sampling, unrevealed
+  bench species uniform-over-unseen with base stats/types from poke-env's
+  static gen-1 pokedex; **type/weakness cap-of-2 rejection NOT yet enforced
+  — named TODO(R1), FG-7 support >= 0.99 is the arbiter**; all randomness
+  caller-keyed numpy Generator (D2; global random untouched).
+  `tests/test_ch3_bridge.py` (6): stat pins, map-within-enum, determinism +
+  containment, end-to-end generate_instructions (branch mass 100 +- 1e-3),
+  locked-turn detection, unmapped-effect counting. REMAINING for R1:
+  ShadowBattle, harvest recorder, FG battery script, R1-0 spike, matrix.py.

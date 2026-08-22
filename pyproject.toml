@@ -2,6 +2,9 @@
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
+# NOTE: the chapter-3 search line needs poke-engine (gen1 source build) —
+# deliberately NOT listed here (maintainer ruling 2026-08-21): see
+# requirements-search.txt for the exact install command and why.
 [project]
 name = "pokemon-showdown-rl"
 version = "0.1.0"
