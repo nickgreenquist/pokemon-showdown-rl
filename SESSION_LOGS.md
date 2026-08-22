@@ -5012,3 +5012,39 @@ entry by offset — never a broad keyword grep.
   audit (1000 battles) + 11 jobs (33,000 battles, ~25-40 min) in the
   maintainer's terminal, then `ch3_grade.py --prereg`. Seeds: none burned
   (eval only).
+- 2026-08-22 (night, **R0 READ OUT: B1 CREDIT — the four-checkpoint ensemble
+  scores 0.74633, +0.03600 over the fresh greedy mean at bar 0.025; K0-1
+  PASS (pooled AUC 0.780) — V-LEAF SEARCH IS ALLOWED; every kill missed;
+  R1 is authorized**): maintainer ran the full chain (selfcheck + audit +
+  11 jobs, 33,000 battles + 1,000 audit battles, zero incidents,
+  mask_desyncs 0/33,000, R0-a exact on every chunk). R0.B: A0 fresh lanes
+  s62 0.71233 / s63 0.71433 / s64 0.71467 / s65 0.70000 -> equal-weight
+  mean 0.71033 (banked D26 0.71825; -0.0079 gap, ~0.7 lane-sd, no gate at
+  R0 — R2-10 re-checks at R2); A1 batches 0.73933/0.76233/0.73733 ->
+  pooled **0.74633** (9,000); delta **+0.03600**; se binom 0.00618,
+  clustered 0.00874 GOVERNING, 2*se_gov 0.0175 < floor -> operative bar
+  0.025, B2/B4 EMPTY as pre-named -> **B1**. ensemble/flip_rate **0.1027**
+  = THE FLIP-VALUE ANCHOR (quoted at R2/R3: ~10% of decisions flipped is
+  worth +0.036 on this board). A2 LOO deltas (recorded, never governing,
+  correlation-inflated): +0.0297/+0.0303/+0.0263/+0.0200 — all positive.
+  LICENSED SENTENCE (pre-shrunk, travels with every quote): "ensembling
+  THESE four checkpoints helps" — NEVER "ensembling helps" (one committee,
+  no training-seed replication, floor-governed). README gains the R0 row;
+  D26 0.71825 REMAINS THE HEADLINE (single-agent recipe). R0.A audit
+  (27,226 decisions / 1,000 battles): decisions/battle vs SH **27.2**
+  (cost anchor; M2's 29 was self-play); flip_budget 0.977; contested_frac
+  0.601/0.439/**0.351**/0.203 at p_max<0.99/0.95/0.90/0.75 — a third of
+  decisions are genuinely contested; placeholder_frac **0.0108** + recharge
+  0.0054 (K0-3 clear by 20x; the search's no-op stratum is tiny — the
+  4-10% prior estimate was a different measurement context); aux entropy
+  median 0.594 nats (oppact head informative vs SH, its accuracy still
+  measured at R1); Z1: Brier 0.1567 = reliability 0.0117 (well calibrated)
+  + resolution 0.0594 vs uncertainty 0.2050; aleatoric floor of EV 0.290
+  (V-bins explain ~29% of outcome variance — first-ever decomposition);
+  **K0-1: AUC pooled deciles 2-8 = 0.780 >= 0.60 PASS** (per-decile
+  monotone 0.64 -> 0.97, recorded never governing). K0-2 moot (delta > 0
+  AND contested 0.351 >= 0.15). Readout: results/ch3_r0/r0_readout.json
+  (prereg sha 55c606b4..., git d282e61). **NEXT: R1** — engine install
+  (ruling 2's exact command), bridge, FG battery, R1-0 spike; 3-4
+  evenings, no verdict battles, kill = any blocking FG unfixable in 3
+  evenings.

@@ -56,6 +56,7 @@ a verdict input.
 | ↳ 50M re-run (D29r2, 3 fresh seeds) — **R-A CREDIT** vs the bare 50M recipe (named cell: lanes do not fully separate); **R-B FLAT** vs the 12M stack — scale adds nothing | 0.7022 ± 0.0048 |
 | ↳ all five 50M-stack lanes, descriptive only (pre-declared before the re-run's data) | 0.7181 ± 0.0224‡ |
 | D28 zero-info dose control (12M, 5 seeds) — **A1: does NOT reproduce D25** (perm 1/252, strict separation); **not sealed** — the control's delivered dose collapsed once the task was learned (g 0.979) | 0.5224 ± 0.0041 |
+| CH3 R0: log-prob ensemble of the four D26 checkpoints (inference-only, zero training) — **B1 CREDIT** vs their fresh greedy mean 0.7103; licenses "ensembling THESE four checkpoints", never "ensembling helps" (one committee, no seed replication, floor-governed) | 0.7463 ± 0.0046 |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 

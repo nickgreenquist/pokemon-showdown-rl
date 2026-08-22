@@ -2,9 +2,10 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-21 evening — **D28 READ OUT: A1, NOT SEALED — the
-zero-info control fails to reproduce D25 at perm 1/252; the dose caveat is
-DOWNGRADED, not closed**)
+## Where things stand (2026-08-22 — **CH3 SEARCH RATIFIED (depth-1 only) + R0
+READ OUT: ensemble-of-4 B1 CREDIT 0.74633 (+0.036, licensed sentence:
+"THESE four checkpoints"); K0-1 PASS (AUC 0.780) — V-leaf search allowed;
+placeholder stratum 1.1%; flip anchor 0.103; R1 (bridge+FG) is next**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
 0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** 50M answered
@@ -28,16 +29,16 @@ account. **NEVER "belief state"**; D18 NULL; D27/D30 dead.
 | **D28 zero-info control — A1 (p 1/252), NOT SEALED (late dose collapse)** | **0.52240** |
 
 ## Next actions
-1. **Maintainer: RATIFY (or amend) the chapter-3 SEARCH design** —
-   `results/design_ch3/ch3_search_design_r2.md` (self-contained; full 2-Opus
-   round done 08-21: 2 designs + synthesis + 2 reviews, 27 MFs all folded).
-   **Five rulings in its §10** (poke-engine admissibility rec ALLOW; install
-   deviation; determinization disclosure; K0-2 ownership; D7(a) ladder).
-   Nothing runs until ratified; R0 is one evening, ~0.02 ld, zero training.
-2. Push: origin current through e03f331; tonight's ch3 session-log commit is
-   local (say the word).
+1. **R1 build (authorized; 3-4 evenings, no verdict battles):** poke-engine
+   gen1 install per ruling 2's exact command, `rl/search/bridge.py`,
+   ShadowBattle, the R1-0 end-to-end spike (freezes dose/F3/watchdog), FG
+   battery FG-1..FG-8 vs the 500-battle harvest. Kill: any blocking FG
+   unfixable in 3 evenings -> the A-sidecar fallback or the chapter stops.
+2. Push: several local commits (ratification, R0 build, R0 readout) — say
+   the word.
 3. Standing: §13/250M futility ruling (rec RETIRE, on record);
-   resume-from-checkpoint (the 24h bar) — design on request.
+   resume-from-checkpoint (24h bar) — design on request; D7(a) ladder
+   ruling only if R2 lands B1.
 
 ## Watch items
 - **D28's A1 is quoted WITH "not sealed"** — the pre-registered sentence; the
