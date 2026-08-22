@@ -435,9 +435,10 @@ def _match_branch(leaf, snap_next: dict, snap_now: dict, det: dict,
 def fg2_battery(lanes, prereg: dict) -> dict:
     from rl.search.bridge import BridgeCounters, battle_to_state
     from rl.search.determinize import sample_determinization
+    from rl.search.expansion import expand_leaf
     from rl.search.harvest import rehydrate_battle
     from rl.search.matrix import decision_rng, our_action_str
-    from poke_engine import generate_instructions
+    from poke_engine import calculate_damage, generate_instructions
 
     move_by_num, species_by_num = _tables()
     n_det, top_b = 4, 6
@@ -447,7 +448,7 @@ def fg2_battery(lanes, prereg: dict) -> dict:
     results = {"normal": [0, 0], "placeholder": [0, 0]}  # [covered, total]
     ex_recharge = [0, 0]  # normal-stratum coverage excusing ONLY the KO-skip recharge flag
     mass_on_observed = []
-    ko_total = ko_disagree = 0
+    ko_total = ko_disagree = ko_post_disagree = 0
     lane_seeds = {lane: int(lane[1:]) for lane in lanes}
 
     for lane, (pub, priv) in lanes.items():
@@ -500,8 +501,14 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                     strata["replacement_relaxed"] += 1
                 covered = False
                 covered_ex_recharge = False
-                best_mass = 0.0
+                faint_covered = False  # FG-2k post-expansion: some variant
+                best_mass = 0.0        # predicts the observed faint outcome
                 branch_faint_pred = None
+                obs_faints = (
+                    {m["species"] for m in snap_next["team"] if m["fainted"]},
+                    {m["species"] for m in snap_next["opponent_team"] if m["fainted"]},
+                )
+                comparable_opp = {m["species"] for m in snap_next["opponent_team"]}
                 for det, bs in zip(dets, b_strs):
                     if bs is None:
                         continue
@@ -511,23 +518,45 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                     except BaseException:
                         strata["engine_reject"] += 1
                         continue
+                    try:
+                        dmg = calculate_damage(state, a_str, bs, True)
+                    except BaseException:
+                        dmg = None
                     branches = sorted(branches, key=lambda x: -x.percentage)[:top_b]
                     total = sum(x.percentage for x in branches) or 1.0
                     det_mass = 0.0
                     for br in branches:
-                        leaf = state.apply_instructions(br)
-                        ok, fails = _match_branch(leaf, snap_next, snap_now, det, relaxed)
-                        if ok:
-                            covered = True
-                            covered_ex_recharge = True
-                            det_mass += br.percentage / total
-                        else:
-                            if set(fails) == {"recharge"}:
+                        raw_leaf = state.apply_instructions(br)
+                        expanded = expand_leaf(state, raw_leaf, dmg)
+                        if len(expanded) > 1 or expanded[0][0] is not raw_leaf:
+                            # keep the average leaf matchable at ZERO mass: the
+                            # 2-point split narrows the survivor band, but an
+                            # observed near-average outcome is still model-covered
+                            expanded = expanded + [(raw_leaf, 0.0)]
+                        for leaf, w in expanded:
+                            ok, fails = _match_branch(leaf, snap_next, snap_now, det, relaxed)
+                            if ok:
+                                covered = True
                                 covered_ex_recharge = True
-                            for k in fails:
-                                fail_fields[k] += 1
-                        if branch_faint_pred is None:  # max-mass branch (first)
-                            our_leaf, opp_leaf = _leaf_mons(leaf.side_one), _leaf_mons(leaf.side_two)
+                                det_mass += w * br.percentage / total
+                            else:
+                                if set(fails) == {"recharge"}:
+                                    covered_ex_recharge = True
+                                for k in fails:
+                                    fail_fields[k] += 1
+                            our_leaf = _leaf_mons(leaf.side_one)
+                            opp_leaf = _leaf_mons(leaf.side_two)
+                            pred = (
+                                {sp for sp, m in our_leaf.items() if m.hp <= 0},
+                                {sp for sp, m in opp_leaf.items() if m.hp <= 0},
+                            )
+                            if (pred[0] == obs_faints[0]
+                                    and (pred[1] & comparable_opp)
+                                    == (obs_faints[1] & comparable_opp)):
+                                faint_covered = True
+                        if branch_faint_pred is None:  # max-mass RAW branch
+                            our_leaf = _leaf_mons(raw_leaf.side_one)
+                            opp_leaf = _leaf_mons(raw_leaf.side_two)
                             branch_faint_pred = (
                                 {sp for sp, m in our_leaf.items() if m.hp <= 0},
                                 {sp for sp, m in opp_leaf.items() if m.hp <= 0},
@@ -548,14 +577,13 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                 # mons both sides can name (ours all; theirs revealed-in-det)
                 if branch_faint_pred is not None and not placeholder:
                     pred_our, pred_opp = branch_faint_pred
-                    obs_our = {m["species"] for m in snap_next["team"] if m["fainted"]}
-                    obs_opp = {m["species"] for m in snap_next["opponent_team"] if m["fainted"]}
-                    comparable = {m["species"] for m in snap_next["opponent_team"]}
                     ko_total += 1
                     ko_disagree += int(
-                        pred_our != obs_our
-                        or (pred_opp & comparable) != (obs_opp & comparable)
+                        pred_our != obs_faints[0]
+                        or (pred_opp & comparable_opp)
+                        != (obs_faints[1] & comparable_opp)
                     )
+                    ko_post_disagree += int(not faint_covered)
 
     cov_n, tot_n = results["normal"]
     cov_p, tot_p = results["placeholder"]
@@ -587,6 +615,11 @@ def fg2_battery(lanes, prereg: dict) -> dict:
         "fg2k_ko_disagreement": ko_disagree / max(ko_total, 1),
         "fg2k_n": ko_total,
         "fg2k_expansion_needed": bool(ko_disagree / max(ko_total, 1) > 0.05),
+        "fg2k_post_expansion_residual": ko_post_disagree / max(ko_total, 1),
+        "fg2k_post_expansion_note": ("fraction of transitions where NO expanded "
+                                     "variant of any retained branch predicts the "
+                                     "observed faint outcome — what the built "
+                                     "2-point expansion does not recover"),
     }
 
 

@@ -44,11 +44,12 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 import numpy as np
-from poke_engine import generate_instructions
+from poke_engine import calculate_damage, generate_instructions
 
 from rl.envs.showdown import embed_battle
 from rl.search.bridge import BridgeCounters, battle_to_state
 from rl.search.determinize import sample_determinization
+from rl.search.expansion import expand_leaf
 from rl.search.shadow_battle import shadow_battle
 
 # L6 class indices, pinned by rl/networks/opp_action.py (the header contract).
@@ -180,36 +181,44 @@ def solve_decision(
     n_leaves = 0
     retained_mass: list[float] = []  # kept mass per cell BEFORE renorm (Z2'/F-flag)
     turn = int(battle.turn)
+    n_expanded = 0
     for ri, action in enumerate(rows):
         a_str = our_action_str(battle, action)
         for ci in range(len(col_classes)):
             for di, state in enumerate(states):
-                branches = generate_instructions(state, a_str, col_actions[ci][di])
+                b_str = col_actions[ci][di]
+                branches = generate_instructions(state, a_str, b_str)
                 branches = sorted(branches, key=lambda b: -b.percentage)
                 kept = branches[: dose.top_branches]
                 total = sum(b.percentage for b in kept)
                 retained_mass.append(total / 100.0)
                 if total <= 0:
                     continue
+                try:  # max-damage rolls for the 2-point expansion (§2.1)
+                    dmg = calculate_damage(state, a_str, b_str, True)
+                except BaseException:
+                    dmg = None
                 for br in kept:
-                    n_leaves += 1
-                    if dose.node_cap is not None and n_leaves > dose.node_cap:
-                        raise SearchWatchdogError(
-                            f"{n_leaves} leaves > node cap {dose.node_cap} "
-                            f"(dose n_det={dose.n_det}, {len(rows)} rows, "
-                            f"{len(col_classes)} cols)"
-                        )
                     leaf = state.apply_instructions(br)
-                    tv = _terminal_value(leaf)
-                    if tv is None:
-                        leaf_obs.append(
-                            embed_battle(shadow_battle(leaf, turn + 1), type_chart)
-                        )
-                        leaf_fixed.append(np.nan)
-                    else:
-                        leaf_obs.append(None)
-                        leaf_fixed.append(tv)
-                    leaf_at.append((ri, ci, di, br.percentage / total))
+                    for lv, w in expand_leaf(state, leaf, dmg):
+                        n_leaves += 1
+                        n_expanded += int(lv is not leaf)
+                        if dose.node_cap is not None and n_leaves > dose.node_cap:
+                            raise SearchWatchdogError(
+                                f"{n_leaves} leaves > node cap {dose.node_cap} "
+                                f"(dose n_det={dose.n_det}, {len(rows)} rows, "
+                                f"{len(col_classes)} cols)"
+                            )
+                        tv = _terminal_value(lv)
+                        if tv is None:
+                            leaf_obs.append(
+                                embed_battle(shadow_battle(lv, turn + 1), type_chart)
+                            )
+                            leaf_fixed.append(np.nan)
+                        else:
+                            leaf_obs.append(None)
+                            leaf_fixed.append(tv)
+                        leaf_at.append((ri, ci, di, w * br.percentage / total))
 
     # --- batched leaf valuation ----------------------------------------
     values = np.array(leaf_fixed, dtype=np.float64)
@@ -241,6 +250,7 @@ def solve_decision(
         "search/chosen": int(best),
         "search/policy_argmax": int(max(rows, key=lambda a: prior[a])),
         "search/retained_mass_mean": float(np.mean(retained_mass)) if retained_mass else 1.0,
+        "search/expanded_leaves": n_expanded,
         "search/ev_matrix": ev_matrix.tolist(),
         "search/col_classes": list(col_classes),
         "bridge/unmapped_effects": dict(counters.unmapped_effects),

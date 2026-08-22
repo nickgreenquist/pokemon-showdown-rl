@@ -142,3 +142,126 @@ def test_cell_count_and_other_move_mass():
     assert stats["oppact/other_move_mass"] == pytest.approx(0.2)
     assert stats["search/rows"] == 5  # 4 moves + 1 switch
     assert stats["search/leaves"] <= DOSES["S"].leaf_cap
+
+
+def _engine_state(our_hp=300, their_hp=300, their_moves=("tackle",)):
+    from poke_engine import Move as EMove
+    from poke_engine import Pokemon as EPokemon
+    from poke_engine import PokemonIndex, Side, State
+
+    def emon(mid, moves, hp):
+        return EPokemon(
+            id=mid, level=68, types=("normal", "typeless"), hp=hp, maxhp=300,
+            attack=200, defense=190, special_attack=150, special_defense=150,
+            speed=220, status="none",
+            moves=[EMove(id=m, pp=16, disabled=False) for m in moves],
+        )
+
+    return State(
+        side_one=Side(pokemon=[emon("tauros", ["bodyslam"], our_hp)],
+                      active_index=PokemonIndex.P0),
+        side_two=Side(pokemon=[emon("chansey", list(their_moves), their_hp)],
+                      active_index=PokemonIndex.P0),
+    )
+
+
+def test_ko_mass_exact_discrete_rolls():
+    from rl.search.expansion import _ko_mass
+
+    # floor(100 * r / 255) >= 93  <=>  r >= 238 -> 18 of the 39 rolls
+    assert _ko_mass(100, 93) == 18 / 39
+    assert _ko_mass(100, 101) == 0.0
+    assert _ko_mass(100, 50) == 1.0
+
+
+def test_roll_expansion_splits_straddling_branch():
+    from poke_engine import calculate_damage, generate_instructions
+
+    from rl.search.expansion import expand_leaf
+
+    # bodyslam normal: max 79, avg 73 -> a 75-hp defender straddles the KO
+    state = _engine_state(their_hp=75)
+    dmg = calculate_damage(state, "bodyslam", "tackle", True)
+    branches = generate_instructions(state, "bodyslam", "tackle")
+    for br in branches:
+        leaf = state.apply_instructions(br)
+        them = leaf.side_two.pokemon[0]
+        if 0 < them.hp < 75:  # the normal-hit branch (survived at average)
+            out = expand_leaf(state, leaf, dmg)
+            assert len(out) == 2
+            (lv_no, w_no), (lv_ko, w_ko) = out
+            assert abs(w_no + w_ko - 1.0) < 1e-9
+            assert lv_ko.side_two.pokemon[0].hp == 0
+            assert lv_no.side_two.pokemon[0].hp == them.hp
+            # floor(79 r/255) >= 75 <=> r >= 243 -> 13/39
+            assert abs(w_ko - 13 / 39) < 1e-9
+            break
+    else:
+        raise AssertionError("no survived normal-hit branch found")
+
+
+def test_ko_skip_recharge_stripped_on_kill():
+    from poke_engine import calculate_damage, generate_instructions
+
+    from rl.search.expansion import expand_leaf
+    from rl.search.shadow_battle import shadow_battle
+
+    # The engine already skips recharge on its OWN KO branches (measured).
+    # The strip matters for EXPANSION-CREATED KO variants: a survived-at-
+    # average hyper beam branch carries MUSTRECHARGE, and its high-roll KO
+    # variant must drop it (gen1 KO-skip).
+    probe = _engine_state(their_hp=300, their_moves=("tackle",))
+    probe2 = _engine_state(their_hp=300)
+    dmg_probe = calculate_damage(
+        _hyperbeam_state(300), "hyperbeam", "tackle", True
+    )
+    normal_max = min(c for c in dmg_probe[0] if c > 0)
+    hp = int(0.95 * normal_max)  # avg (0.925x) survives, max roll kills
+    state = _hyperbeam_state(hp)
+    dmg = calculate_damage(state, "hyperbeam", "tackle", True)
+    branches = generate_instructions(state, "hyperbeam", "tackle")
+    checked = False
+    for br in branches:
+        leaf = state.apply_instructions(br)
+        them = leaf.side_two.pokemon[0]
+        has_recharge = any(
+            v.lower() == "mustrecharge" for v in leaf.side_one.volatile_statuses
+        )
+        if 0 < them.hp < hp and has_recharge:
+            variants = expand_leaf(state, leaf, dmg)
+            ko = [lv for lv, _w in variants if lv.side_two.pokemon[0].hp <= 0]
+            alive = [lv for lv, _w in variants if lv.side_two.pokemon[0].hp > 0]
+            assert ko and alive
+            assert all(
+                "mustrecharge" not in {v.lower() for v in lv.side_one.volatile_statuses}
+                for lv in ko
+            )
+            assert all(
+                "mustrecharge" in {v.lower() for v in lv.side_one.volatile_statuses}
+                for lv in alive
+            )
+            assert not shadow_battle(ko[0], turn=2).active_pokemon.must_recharge
+            assert shadow_battle(alive[0], turn=2).active_pokemon.must_recharge
+            checked = True
+    assert checked, "no survived hyper beam branch with recharge found"
+
+
+def _hyperbeam_state(their_hp):
+    from poke_engine import Move as EMove
+    from poke_engine import Pokemon as EPokemon
+    from poke_engine import PokemonIndex, Side, State
+
+    def emon(mid, moves, hp):
+        return EPokemon(
+            id=mid, level=68, types=("normal", "typeless"), hp=hp, maxhp=300,
+            attack=200, defense=190, special_attack=150, special_defense=150,
+            speed=220, status="none",
+            moves=[EMove(id=m, pp=16, disabled=False) for m in moves],
+        )
+
+    return State(
+        side_one=Side(pokemon=[emon("tauros", ["hyperbeam"], 300)],
+                      active_index=PokemonIndex.P0),
+        side_two=Side(pokemon=[emon("chansey", ["tackle"], their_hp)],
+                      active_index=PokemonIndex.P0),
+    )
