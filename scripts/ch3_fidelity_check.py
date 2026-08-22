@@ -671,6 +671,12 @@ def fg2_battery(lanes, prereg: dict) -> dict:
                                  "server skips the recharge (KO-skip Hyper Beam rule); "
                                  "recorded, never governing — the primary keeps the "
                                  "pre-registered field set"),
+        "fg2_ruling": ("RULED (b), maintainer 2026-08-22: ACCEPTED at the "
+                       "measured primary with the residual map as NAMED "
+                       "STRATA (fg2_pass keeps reporting vs the original "
+                       "0.98 bar — the number is never rewritten); R2 "
+                       "adjudicates whether flips WIN. Full map: the "
+                       "2026-08-22 turn-order-diagnostic log entry."),
         "fg2_covered_healaware_SECONDARY": healaware[0] / max(healaware[1], 1),
         "fg2_healaware_note": ("heal-aware = the roll band applied to the branch's "
                                "move-damage component only (heals/chip deterministic); "

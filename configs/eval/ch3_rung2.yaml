@@ -1,14 +1,12 @@
 # =========================================================================
 # CH3 RUNG 2 — THE CREDIT TEST. Executable pre-registration.
-# STATUS: DRAFT 2026-08-22 — NOT YET REGISTERED. Two blockers, both named:
-#   (1) the FG-2 ROUTE RULING (maintainer): FG-2 primary is 0.9092 vs the
-#       pre-registered 0.98 bar, so gate R2-1 as written cannot pass; the
-#       ruling (accept-with-named-strata / re-scope / sidecar / stop) must
-#       be transcribed into fg2_disposition below BEFORE registration.
-#   (2) maintainer registration per the pre-reg process. Everything else in
-#       this file is a transcription of the RATIFIED design's §4 R2
-#       (results/design_ch3/ch3_search_design_r2.md, ratified 2026-08-21)
-#       plus measured constants from the R1-0 spike and the live smoke.
+# STATUS: REGISTERED 2026-08-22 — maintainer ruled FG-2 route (b)
+#   (accept-with-named-strata) and approved the launch checklist in the
+#   same message; both former blockers are closed and the ruling is
+#   transcribed in fg2_disposition below. This file is a transcription of
+#   the RATIFIED design's §4 R2
+#   (results/design_ch3/ch3_search_design_r2.md, ratified 2026-08-21)
+#   plus measured constants from the R1-0 spike and the live smoke.
 # Read by scripts/ch3_eval.py (driver) and scripts/ch3_r2_grade.py (grader).
 #
 # ARMS, SAME SESSION, SAME SHA, SAME SERVER PROCESS: A0 POLICY FRESH — the
@@ -95,8 +93,8 @@
 # =========================================================================
 rung: 2
 title: ch3_r2_credit_test
-status: "DRAFT 2026-08-22 — NOT REGISTERED; blocked on the FG-2 route ruling + maintainer registration"
-fg2_disposition: "PENDING MAINTAINER RULING — transcribe the ruling here before registration (FG-2 primary 0.9092 / heal-aware SECONDARY 0.9237 vs pre-registered bar 0.98; full attribution in the 2026-08-22 'later' SESSION_LOGS entry)"
+status: "REGISTERED 2026-08-22 (maintainer: FG-2 ruling (b) + launch checklist approved)"
+fg2_disposition: "RULED (b), maintainer 2026-08-22: FG-2 ACCEPTED at primary 0.9092 (bar 0.98 NOT met — the number stands, unrewritten) with the residual map as NAMED STRATA (turn-order diagnostic, 2026-08-22 'later' log entry: truncation 1.51pt / net_heal 1.42 / turn_order 0.37 / ditto-residual 0.39 / chip 0.26 / sleep-interrupt 0.14 / grain+observability+boundary remainder); measured repair ceiling ~0.95; every remaining family small, named, bounded; R2 adjudicates whether flips WIN — one-step fidelity is not the verdict instrument. heal-aware SECONDARY 0.9237 recorded, never governing. R2-1's FG-2 element reads GREEN under this ruling; the B1 licensed sentence quotes FG-2 = 0.9092."
 results_dir: results/ch3_r2
 checkpoints:
   s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
