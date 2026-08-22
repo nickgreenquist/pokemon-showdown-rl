@@ -4976,3 +4976,15 @@ entry by offset — never a broad keyword grep.
   (gitignored only-copies), backed up to
   ../pokemon-showdown-rl-d25-backup-20260815/design_ch3/. NOT RATIFIED — no
   rung is authorized until the maintainer rules.
+- 2026-08-21 (late night, **CH3 DESIGN RATIFIED — maintainer: "yes, approve all
+  the above", i.e. §10 rulings 1-4** — poke-engine as pure transition function
+  ALLOWED; requirements-search.txt install deviation OK'd; determinization via
+  the vendored generator ALLOWED-AND-DISCLOSED with the SH-derived-prior ban;
+  K0-2 override is maintainer-only — **ruling 5 (D7(a) ladder) stays deferred
+  by design. Emphasis recorded verbatim-adjacent: "just want to make sure we
+  aren't deviating from pure self play. but one turn lookahead is valid" —
+  DEPTH-1 ONLY is ratified; R4+ (depth >= 2 / SM-MCTS / mirror refinement /
+  Nash) remains unauthorized and needs its own pre-reg + ratification.**
+  r2 status line flipped to RATIFIED (backup refreshed). R0 (free compute +
+  headroom, one evening, ~0.02 ld, zero training) is now authorized; build
+  starts this session.
