@@ -318,3 +318,32 @@ def test_dv_model_is_max_and_pinned():
     assert det["opponents"]["chansey"]["dvs"] == EXPECTED_DVS
     # max-DV pins unchanged
     assert gen1_stat(75, 100, hp=True) == 353 and gen1_stat(110, 100) == 318
+
+
+def test_transformed_ditto_gets_target_stats():
+    """Gen1 Transform copies the TARGET'S ACTUAL STATS; the target is one of
+    our mons and battle1 knows its exact stats — the bridge must use them
+    (FG-2's ditto hp_band family). HP is never copied: ditto keeps its own."""
+    b = _battle()
+    ditto = _mon("ditto", ["bodyslam"], level=88)
+    ditto.base_stats = dict(b.active_pokemon.base_stats)  # transformed copy
+    b.opponent_team["p2: Ditto"] = ditto
+    b.opponent_active_pokemon = ditto
+    det = sample_determinization(b, np.random.default_rng(3))
+    counters = BridgeCounters()
+    state = battle_to_state(b, det, counters)
+    em = next(m for m in state.side_two.pokemon if m.id == "ditto")
+    assert em.attack == b.active_pokemon.stats["atk"]
+    assert em.speed == b.active_pokemon.stats["spe"]
+    assert counters.transform_bridged == 1
+    # untransformed ditto keeps formula stats and does not count
+    b2 = _battle()
+    from poke_env.data import GenData
+    dex = GenData.from_gen(1).pokedex["ditto"]["baseStats"]
+    d2 = _mon("ditto", ["transform"], level=88)
+    d2.base_stats = dict(dex)
+    b2.opponent_team["p2: Ditto"] = d2
+    b2.opponent_active_pokemon = d2
+    c2 = BridgeCounters()
+    battle_to_state(b2, sample_determinization(b2, np.random.default_rng(4)), c2)
+    assert c2.transform_bridged == 0 and c2.transform_unmatched == 0

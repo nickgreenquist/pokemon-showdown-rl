@@ -104,6 +104,8 @@ class BridgeCounters:
     def __init__(self) -> None:
         self.unmapped_effects: dict[str, int] = {}
         self.lightscreen_unobservable = 0  # bumped by callers that know
+        self.transform_bridged = 0    # ditto given its transform target's stats
+        self.transform_unmatched = 0  # transformed ditto, target not identified
 
     def count_effect(self, name: str) -> None:
         self.unmapped_effects[name] = self.unmapped_effects.get(name, 0) + 1
@@ -171,7 +173,8 @@ def _our_pokemon(mon: Any) -> EnginePokemon:
 def _det_pokemon(species: str, move_ids: list[str], hp_fraction: float,
                  status: str = "none", base_stats: dict | None = None,
                  level: int | None = None, sleep_turns: int = 0,
-                 dvs: dict | None = None) -> EnginePokemon:
+                 dvs: dict | None = None,
+                 stats_override: dict | None = None) -> EnginePokemon:
     """A determinized opponent mon: exact where revealed, sampled elsewhere.
     Stats from the gen1 formula at the randbats level; DVs are the
     determinization's own generator-faithful sample (max-DV fallback only
@@ -184,17 +187,18 @@ def _det_pokemon(species: str, move_ids: list[str], hp_fraction: float,
     while len(types) < 2:
         types.append("typeless")
     spa_dv = dvs.get("spa", _DV)
+    ov = stats_override or {}
     return EnginePokemon(
         id=species,
         level=level,
         types=(types[0], types[1]),
         hp=max(0, min(maxhp, round(hp_fraction * maxhp))),
-        maxhp=maxhp,
-        attack=gen1_stat(bs.get("atk", 100), level, dv=dvs.get("atk", _DV)),
-        defense=gen1_stat(bs.get("def", 100), level, dv=dvs.get("def", _DV)),
-        special_attack=gen1_stat(bs.get("spa", 100), level, dv=spa_dv),
-        special_defense=gen1_stat(bs.get("spd", 100), level, dv=spa_dv),
-        speed=gen1_stat(bs.get("spe", 100), level, dv=dvs.get("spe", _DV)),
+        maxhp=maxhp,  # gen1 Transform never copies HP: ditto keeps its own
+        attack=int(ov.get("atk") or gen1_stat(bs.get("atk", 100), level, dv=dvs.get("atk", _DV))),
+        defense=int(ov.get("def") or gen1_stat(bs.get("def", 100), level, dv=dvs.get("def", _DV))),
+        special_attack=int(ov.get("spa") or gen1_stat(bs.get("spa", 100), level, dv=spa_dv)),
+        special_defense=int(ov.get("spd") or gen1_stat(bs.get("spd", 100), level, dv=spa_dv)),
+        speed=int(ov.get("spe") or gen1_stat(bs.get("spe", 100), level, dv=dvs.get("spe", _DV))),
         status=status,
         sleep_turns=sleep_turns,
         moves=_engine_moves(move_ids, None),
@@ -217,6 +221,29 @@ def _side_volatiles(active: Any, counters: BridgeCounters) -> set[str]:
 
 def _boost(active: Any, key: str) -> int:
     return int((getattr(active, "boosts", None) or {}).get(key, 0))
+
+
+def _transform_stats_override(battle: Any, live: Any) -> dict | None:
+    """Gen1 Transform copies the TARGET'S ACTUAL STATS (not a recomputation
+    at ditto's level), and the target is always one of OUR mons — whose
+    exact stats battle1 carries. A transformed ditto is detected by its
+    copied base stats differing from the dex, and the target matched by
+    base-stats equality. FG-2's hp_band failures on ditto transitions
+    measured the gap this closes."""
+    if live is None or getattr(live, "species", None) != "ditto":
+        return None
+    from poke_env.data import GenData
+
+    dex_bs = dict(GenData.from_gen(1).pokedex["ditto"]["baseStats"])
+    bs = dict(live.base_stats)
+    if bs == dex_bs:
+        return None
+    for mon in battle.team.values():
+        if dict(mon.base_stats) == bs and mon.stats:
+            stats = {k: int(v) for k, v in mon.stats.items() if v}
+            if {"atk", "def", "spa", "spe"} <= stats.keys():
+                return stats
+    return {}  # transformed, target unidentified
 
 
 def build_side(mons: list[EnginePokemon], active_species: str,
@@ -271,6 +298,11 @@ def battle_to_state(battle: Any, determinization: dict,
             f"opponent spec for {species} lacks RSD provenance"
         )
         live = spec.get("live")  # the poke-env mon if revealed
+        t_override = _transform_stats_override(battle, live)
+        if t_override:
+            counters.transform_bridged += 1
+        elif t_override == {}:
+            counters.transform_unmatched += 1
         opp_mons.append(
             _det_pokemon(
                 species,
@@ -285,6 +317,7 @@ def battle_to_state(battle: Any, determinization: dict,
                     if live is not None and _status_str(live) == "sleep"
                     else 0
                 ),
+                stats_override=t_override or None,
             )
         )
     side_two = build_side(
