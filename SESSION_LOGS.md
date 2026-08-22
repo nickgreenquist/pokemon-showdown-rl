@@ -5199,3 +5199,29 @@ entry by offset — never a broad keyword grep.
   24 ch3-matrix/bridge (+3); suite 416/17. STILL OWED to close R1: the
   FG-1 scope ruling and the FG-2 route ruling (repair vs named-stratum
   vs sidecar) — both flagged to the maintainer with numbers in hand.
+
+- 2026-08-22 (late, **RULINGS EXECUTED: FG-1 re-scoped and PASSES; the DV
+  question SETTLED by measurement (max-DV stays, both alternatives built
+  and measured worse); FG-2 baseline stands at 0.9057; suite 417/17**):
+  maintainer ruled "deeper repair" for FG-2 and approved the FG-1
+  re-scope. (1) **FG-1 PASS** under the ruled scope: byte-identity on
+  volatile-free states (100%, 0 panics); volatile stratum recorded —
+  engine from_string drops volatiles so identity is unreachable there;
+  object construction carries the load. (2) **DV investigation** — the
+  deeper-repair lead, run fully to ground: teams.ts AND the compiled dist
+  both roll RANDOM DVs, but REALIZED server stats (our own randbats side,
+  1,500 mons / 7,500 stats) are **94.85% exactly max-DV** (5.15% below,
+  none above) — something downstream overrides ivs to default-max,
+  mechanism unresolved, recorded. Built and measured BOTH alternatives:
+  per-det DV sampling FG-2 0.9057 -> 0.8253 (stat variance the roll band
+  cannot absorb); expected-DV-8 0.7153 (biased vs the max-heavy truth).
+  **Max DV stays — now evidence-based, not assumed** (gen1_stat dv param;
+  EXPECTED_DVS pinned 15 with rationale; sample_dvs kept as the
+  generator-law diagnostic). A false lead that bought a pinned fact.
+  (3) FG-2 residual map for the NEXT repair pass (clock: ~2 evenings):
+  transformed Ditto (top fixable — poke-env exposes copied base stats,
+  the shadow's static-dex path is the gap), turn-order edges (speed
+  ties; the engine lets a freshly-slept mon still explode — engine-
+  internal), the 5% sub-max-DV tail, status/band tails. Battery + spike
+  + backups current; ch3-suite 25 tests. R2 driver still to build after
+  FG-2 closes.
