@@ -35,10 +35,11 @@ volatiles; from_string drops volatiles; sleep-success branch still self-KOs).
    (engine-internal), rest observability/boundary. Options (a) re-scope
    band, (b) accept + named strata, R2 carries verdict, (c) A-sidecar,
    (d) stop. REC: (b). Full memo: 08-22 'later' log entry.
-2. After the ruling: build the R2 driver (`--search` on ch3_eval.py +
-   chunk-0 sentinel, SF-13). Spike price current: 73.2 ms/dec, 1.67
-   h/3000-battle lane.
-3. Push: 7 local commits — say the word.
+2. ~~R2 driver~~ DONE (search arms + SF-13 sentinel; FIRST LIVE search
+   run green: 3/4 at Dose M, ms 83.7 vs spike 73.2, +14% < ±25% band).
+   After the ruling: R2 executable pre-reg YAML (transcribe design §4 R2;
+   maintainer process), then R2-1/R2-2 gate re-runs at launch sha.
+3. Push: 9 local commits — say the word.
 4. Standing: §13/250M futility ruling (rec RETIRE); resume-from-checkpoint
    (24h bar); D7(a) ladder ruling only if R2 lands B1.
 

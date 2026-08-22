@@ -5288,3 +5288,39 @@ entry by offset — never a broad keyword grep.
   small, named, and bounded, and R2 adjudicates flips by WINS, not by
   one-step fidelity; the diagnostic reruns in 23 s if the ruling wants
   different strata.
+
+- 2026-08-22 (night, **R2 DRIVER BUILT + FIRST LIVE SEARCH RUN GREEN: search
+  arms on ch3_eval.py, SF-13 battle2 sentinel, live smoke 3/4 at Dose M
+  inside every budget band; suite 424/17**): commit 2c684a7. Built while
+  the FG-2 route ruling is pending — the driver is route-independent
+  (needed for every option except stop). (1) `_jobs` dispatches on pre-reg
+  arm kinds (policy | search | ensemble | ensemble_loo); a `search` arm
+  runs each lane through SearchAgent at the arm's dose. (2)
+  `_SearchEvalAdapter`: battle1 (and ONLY battle1) read live off the env;
+  the D2 decision rng keyed by GLOBAL episode index (latched on battle_tag
+  change) so a killed chunk re-runs with identical randomness; per-chunk
+  counter DELTAS (resume-safe); ms/leaves recorded on searched decisions
+  only (placeholder skips excluded from the mean, reported separately —
+  F3's requirement) for the R2-8 budget gate. (3) **SF-13 built**:
+  `_Battle2Sentinel`, a class-level data descriptor installed at chunk 0
+  of EVERY verdict arm; raises PurityIncident on any battle2 read whose
+  stack contains an rl/search/ frame; transparent to poke-env's own
+  battle2 machinery (race_get, the SingleAgentWrapper wait bypass, the
+  privileged emitter). It lives in scripts/ch3_eval.py because FG-4's
+  static grep forbids the string in rl/search/. Tested: raises from a
+  synthetic rl/search-filenamed frame, transparent otherwise, uninstall
+  restores the instance attribute. (4) **FIRST LIVE RUN of the search
+  path** (`--search-smoke`; the R1 spike ran on rehydrated snapshots —
+  the freeze/rehydrate surface contract had never been exercised
+  against live poke-env objects): 4 battles, Dose M, lane s62 — 3/4
+  wins, 104 decisions, 1 placeholder skip, ms_mean 83.7 vs spike 73.2
+  (+14%, R2-8 band ±25%), p99 157, leaves_mean 383 vs spike 353,
+  leaves_max 716 < cap 1500, flip rate 0.44 (harvest 0.51), oppact
+  entropy median 0.51 (MF-4 threshold 1.70 — fallback stays inert),
+  sentinel armed the whole run, zero rl/search accesses, no watchdog.
+  (5) REMAINING before R2 launch: the FG-2 route ruling, then the R2
+  executable pre-reg YAML (a transcription of ratified design §4 R2 —
+  arms A0 policy-fresh + A1S search@M 4x3000 chunked 10x300, the
+  verbatim credit line incl. the larger-of-THREE clause, branches
+  B1-B5 + F-gates, R2-0..R2-10 gates; goes through the maintainer per
+  the pre-reg process), then the R2-1/R2-2 gate re-runs at launch sha.
