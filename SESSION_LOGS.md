@@ -5079,3 +5079,26 @@ entry by offset — never a broad keyword grep.
   containment, end-to-end generate_instructions (branch mass 100 +- 1e-3),
   locked-turn detection, unmapped-effect counting. REMAINING for R1:
   ShadowBattle, harvest recorder, FG battery script, R1-0 spike, matrix.py.
+- 2026-08-22 (continued, **R1 BUILD PART 2: SHADOWBATTLE LANDED — the full
+  leaf pipeline runs and is CHEAPER than every prior estimate; suite
+  400/17**): `rl/search/shadow_battle.py` — engine State -> the exact
+  attribute surface `embed_battle` reads (no second encoder, per design):
+  cached poke-env Move per id behind a read-only _MoveView carrying the
+  engine's live PP; base_stats/types from the static gen-1 pokedex
+  (cached); effects reverse-mapped from side volatiles; the KNOWN
+  non-parity families named in the module docstring (opp-HP grain, PP,
+  sleep-vs-Rest, preparing, lightscreen). TWO ENGINE QUIRKS MEASURED and
+  handled: (1) sides are padded to 6 with filler mons (id "none") —
+  skipped; (2) **applied-state readback UPPERCASES ids** — normalized to
+  lowercase at the shadow boundary. Synthetic leaf timing (stub battle,
+  warm caches): generate 13.5us / apply 17.2us / shadow 18.9us / embed
+  53.7us -> **per-branch leaf 89.8us + ~5.4us batched critic**; RSD
+  determinization 3.22ms each (cold-key dominated, amortizes);
+  **implied Dose-M ~73 ms/decision** (~2.1 s/battle, ~1.8 h/seed at
+  1-wide) — below r1's 124ms and review 2's 108ms estimates; the R1-0
+  spike on real harvest decisions remains the number that freezes the
+  dose. tests/test_ch3_bridge.py now 8 (adds round-trip parity tripwire
+  <25% dims at synthetic grade + available_moves synthesis). REMAINING
+  for R1: harvest recorder, FG battery script (FG-1..FG-8 incl. banded
+  FG-2 + FG-2k ko_disagreement), matrix.py (L6 mapping law + BR solve),
+  R1-0 spike on the harvest, cap-of-2 rejection in the bench sampler.

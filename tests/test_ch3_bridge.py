@@ -46,6 +46,8 @@ def _mon(species, moves, level=68, hp_frac=1.0, active=False, stats=None):
         base_stats=base_stats,
         stats=stats or {"atk": 200, "def": 190, "spa": 150, "spd": 150, "spe": 220},
         types=[PokemonType.NORMAL],
+        type_1=PokemonType.NORMAL,
+        type_2=None,
         boosts=dict.fromkeys(("accuracy", "atk", "def", "evasion", "spa", "spd", "spe"), 0),
         effects={},
         preparing=False,
@@ -124,3 +126,44 @@ def test_unmapped_effects_are_counted_not_dropped():
     counters = BridgeCounters()
     battle_to_state(b, det, counters)
     assert counters.unmapped_effects.get("SOME_NEW_EFFECT") == 1
+
+
+def test_shadow_battle_round_trip_parity():
+    """Synthetic FG-6 at exact-information grade: a fully-revealed battle
+    bridged to a State and shadowed back must embed CLOSE to the original.
+    Exact parity is not expected pre-FG-6 (stats source, PP, HP grain
+    differ by construction); this pins the pipeline and counts the
+    differing dims so regressions are visible."""
+    import numpy as np
+    from rl.envs.showdown import ShowdownSingles
+    from rl.search.shadow_battle import shadow_battle
+
+    env = ShowdownSingles(start_listening=False)
+    b = _battle()
+    det = sample_determinization(b, np.random.default_rng(11))
+    state = battle_to_state(b, det, BridgeCounters())
+    sb = shadow_battle(state, turn=b.turn)
+    v_live = env.embed_battle(b)
+    v_shadow = env.embed_battle(sb)
+    assert v_shadow.shape == v_live.shape
+    diff = np.flatnonzero(np.abs(v_live - v_shadow) > 1e-6)
+    # our active + our moves must round-trip essentially exactly; the
+    # opponent side may differ (determinized bench, formula stats). The
+    # loose bound below is a tripwire, not a parity claim — FG-6 measures
+    # the real budget on live harvest data.
+    assert len(diff) < v_live.shape[0] * 0.25, (
+        f"{len(diff)} dims differ — bridge/shadow regression"
+    )
+
+
+def test_shadow_available_moves_synthesized():
+    import numpy as np
+    from rl.search.shadow_battle import shadow_battle
+
+    b = _battle()
+    det = sample_determinization(b, np.random.default_rng(5))
+    state = battle_to_state(b, det, BridgeCounters())
+    sb = shadow_battle(state, turn=1)
+    ids = {m.id for m in sb.available_moves}
+    assert ids == {"bodyslam", "blizzard", "earthquake", "hyperbeam"}
+    assert all(m.current_pp > 0 for m in sb.available_moves)
