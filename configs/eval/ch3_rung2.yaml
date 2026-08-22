@@ -1,0 +1,132 @@
+# =========================================================================
+# CH3 RUNG 2 — THE CREDIT TEST. Executable pre-registration.
+# STATUS: DRAFT 2026-08-22 — NOT YET REGISTERED. Two blockers, both named:
+#   (1) the FG-2 ROUTE RULING (maintainer): FG-2 primary is 0.9092 vs the
+#       pre-registered 0.98 bar, so gate R2-1 as written cannot pass; the
+#       ruling (accept-with-named-strata / re-scope / sidecar / stop) must
+#       be transcribed into fg2_disposition below BEFORE registration.
+#   (2) maintainer registration per the pre-reg process. Everything else in
+#       this file is a transcription of the RATIFIED design's §4 R2
+#       (results/design_ch3/ch3_search_design_r2.md, ratified 2026-08-21)
+#       plus measured constants from the R1-0 spike and the live smoke.
+# Read by scripts/ch3_eval.py (driver) and scripts/ch3_r2_grade.py (grader).
+#
+# ARMS, SAME SESSION, SAME SHA, SAME SERVER PROCESS: A0 POLICY FRESH — the
+#   four D26 checkpoints played greedily, 3000/lane, 10x300 chunks (~8 min
+#   total). A1S SEARCH@M — the SAME four lanes through depth-1 BR search at
+#   Dose M (4 det x top-6, node cap 1500), 3000/lane, 10x300 (~1.7-3.5 h).
+#   A0 RUNS FIRST: gate R2-10 (A0 stability) STOPS the sweep before any A1S
+#   battle if the era moved.
+# PRIMARY READ. PAIRED per-lane deltas d_i = p(A1S, lane) - p(A0, lane);
+#   across-lane aggregator: EQUAL-WEIGHT MEAN of the four d_i, named once,
+#   binding. Median/worst-lane recorded, never governing. Clustering unit:
+#   checkpoint-lane, PAIRED (cluster-level pairing; DESIGN §8's per-battle
+#   "UNPAIRED" measurement r <= 0.04 does not forbid it).
+# CREDIT LINE (VERBATIM, INCL. THE LARGER-OF CLAUSE) in credit_line below;
+#   grader asserts byte-equality. DISCLOSED CONSERVATIVE ADDITION (design
+#   §4 R2, stated before data): se_diff here = the larger of THREE terms —
+#   pooled-binomial two-sample, paired-clustered sd(d_i)/sqrt(4), unpaired
+#   two-sample clustered. The third term can only raise the bar.
+# df DISCLOSURE (MF-9, before data): n=4 lanes, df=3. 2*se at df=3 is ~86%
+#   coverage (t3,.975=3.18); P(sd underestimates sigma_d by 2x) ~ 0.14 —
+#   the seed-fragility clause is close to inert at this n; the +0.025 FLOOR
+#   is the substantive protection. Arithmetic before data (MF-8): 2*se_binom
+#   ~ 0.0115 two-sample, so the binomial never governs; the floor is the
+#   expected operative bar unless sd(d_i) > 0.025. Power (provenance
+#   disclosed in the design: frozen-comparator optimism ~3 points): ~0.71
+#   at true +0.030, ~0.97 at +0.040, size <= ~0.023. The 4-lane sign-flip
+#   permutation has min p = 1/16 — color, NEVER letter-bearing.
+# BANDS (five_cell_floor; hi = max(0.025, 2*se_gov) at read time; grader
+#   machine-checks the partition): B1 CREDIT (licensed sentence with ALL
+#   qualifiers: FG-2 number, ko_disagreement, average-damage approximation
+#   named, placeholder skip rate; fires the SH-exploitation falsifier +
+#   the foul-play h2h + R3 LAUNCHES; D7(a) contradiction goes to the
+#   maintainer, named not acted on). B2 LETTER-MET SEED-FRAGILE, not
+#   credited (EMPTY whenever 2*se_gov <= 0.025 — named, expected); R3
+#   launches. B3 FLAT (the only two-sided cell; sentence carries both
+#   points, the CI, the non-exclusion clause); R3 launches ONLY IF the R0
+#   flip anchor is positive (it is: +0.103 recorded at R0) or
+#   search/flip_rate >= 0.05 with Instrument-3 diagnostics indicating
+#   noise-limited; otherwise the chapter STOPS. B4 LETTER-MET NEGATIVE: no
+#   R3; §7 oracle-leaf diagnostics at 1-lane scale as post-mortem only.
+#   B5 NEGATIVE: no R3; routes to §7 value-quality diagnosis. KILL
+#   (sufficient): delta <= 0 AND d_i <= 0 in >= 3 of 4 lanes -> R3 does
+#   not launch regardless of branch.
+# F-GATES, EVALUATED BEFORE ANY BRANCH IS READ; any firing F VOIDS the
+#   primary; co-occurring F-gates all reported: F1 any blocking FG fails at
+#   R2-1. F2 FG-4 fails -> VOID + PURITY INCIDENT (retraction, not caveat).
+#   F3 search did not search: search/timeouts > 0 after diagnosis shows a
+#   code defect, OR |leaves_mean - leaves_expected|/leaves_expected > 0.25
+#   on any lane, leaves_expected = 353 (the R1-0 spike's realized-leaves
+#   baseline post-expansion — NEVER the nominal cap; placeholder skips
+#   excluded from the mean, reported separately). F4 era break: N/A (fresh
+#   comparator, same session) — named.
+# PRE-LAUNCH GATES: R2-0 FG-5 attestation. R2-1 FG-1/2/2k/6/7 re-run green
+#   at launch sha (SEE fg2_disposition — blocked on the ruling), transcript
+#   to SESSION_LOGS. R2-2 FG-4 static + live green; chunk-0 battle2
+#   sentinel in BOTH arms (SF-13; driver-built, live-smoked 2026-08-22).
+#   R2-3 determinism gate. R2-4 no-op + mapping gate (dose-1 collapsed
+#   matrix returns policy argmax 50/50; shared-det assertion; engine
+#   strings from state). R2-5 win_rate == wins_from_returns EXACT on every
+#   chunk (HARD). R2-6 offline suite green at launch sha. R2-7 checkpoint
+#   sha256 == R0-d (same four files, asserted by driver preflight). R2-8
+#   budget gate: ms/decision and leaves/decision within +/-25% of the
+#   spike (73.2 ms, 353 leaves; live smoke 83.7 ms / 383 leaves — inside),
+#   else THE DOSE IS RECOMPUTED by the same formula to hold the sweep
+#   <= 3.5 h at 4-wide, logged, before any lane is judged. R2-9 this file
+#   committed + clean tree (grader enforces). R2-10 A0-STABILITY:
+#   |fresh A0 pooled - 0.71825| <= 0.02 (~3.4 binomial se), else STOP
+#   before any A1S battle; the frozen D26 finals are the tripwire, never
+#   the comparator. DURING: D2-A watchdog/fallback counters at every chunk
+#   boundary; D2-B chunk wall <= 2x projection (recorded, not a stop);
+#   D2-C mask_desyncs per arm, differences disclosed.
+# DOSE MATCHING, DECIDED UP FRONT (design §4 R2): NO dose-matched placebo —
+#   a zero-information same-compute arm degenerates to a known-weaker
+#   policy and fails for unrelated reasons. THE PRE-WRITTEN SENTENCE:
+#   "a generic-compute confound smaller than 0.028 survives this chapter
+#   UNTESTED." Upgrade pre-priced: E2(sigma=0.2) at 4x3000 = 0.5 ld.
+# README/STATUS OBLIGATION: B1 changes the headline row; B2-B5 add a row
+#   with the verdict phrase verbatim, headline unchanged; F1-F3 record the
+#   void in STATUS only. No branch leaves README untouched.
+# LEDGER: A0 12,000 battles ~8 min; A1S 12,000 battles at ~84 ms/decision
+#   x ~26 searched decisions/battle ~ 1.7-2.5 h at 4-wide + battle time;
+#   cap 3.5 h (R2-8 recomputes the dose past it). ~0.1 ld.
+#   burns_training_seeds: false.
+# =========================================================================
+rung: 2
+title: ch3_r2_credit_test
+status: "DRAFT 2026-08-22 — NOT REGISTERED; blocked on the FG-2 route ruling + maintainer registration"
+fg2_disposition: "PENDING MAINTAINER RULING — transcribe the ruling here before registration (FG-2 primary 0.9092 / heal-aware SECONDARY 0.9237 vs pre-registered bar 0.98; full attribution in the 2026-08-22 'later' SESSION_LOGS entry)"
+results_dir: results/ch3_r2
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+arms:
+  A0: {kind: policy, lanes: [s62, s63, s64, s65], battles: 3000, chunks: 10, letter_bearing: true}
+  A1S: {kind: search, lanes: [s62, s63, s64, s65], dose: M, battles: 3000, chunks: 10, letter_bearing: true}
+run_order: [A0, A1S]   # R2-10 A0-stability gates A1S launch
+comparator: fresh
+pairing: checkpoint_lane_paired
+clustering_unit: "checkpoint-lane (n=4), PAIRED at cluster level; no training-seed replication beyond the four D26 seeds — a credit licenses 'search over THESE four checkpoints helps', with the design's licensed sentence verbatim"
+aggregator: equal_weight_mean_of_per_lane_paired_deltas
+recorded_only: [per_lane_deltas, per_lane_median_delta, worst_lane_delta, sign_flip_permutation_p, search_flip_rate, placeholder_skip_rate, oppact_entropy_median]
+credit_line: "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time"
+se_terms: [pooled_binomial_two_sample, paired_clustered_sd_d, unpaired_two_sample_clustered]
+se_rule: larger_of_three   # disclosed conservative addition; the third term can only raise the bar
+branches: five_cell_floor
+kill_rule: "delta <= 0 AND d_i <= 0 in >= 3 of 4 lanes -> R3 does not launch regardless of branch"
+b3_r3_condition: "R0 flip anchor positive (+0.103, recorded) OR search/flip_rate >= 0.05 with Instrument-3 noise-limited; else chapter STOPS"
+f3_leaves_expected: 353          # R1-0 spike realized-leaves baseline, post-expansion
+f3_band: 0.25
+r2_8_ms_expected: 73.2           # spike, post-expansion re-price; live smoke 83.7 (inside band)
+r2_10_a0_anchor: 0.71825
+r2_10_a0_tolerance: 0.02
+dose_matched: false
+dose_confound_sentence: "a generic-compute confound smaller than 0.028 survives this chapter UNTESTED"
+readme_status_obligation: "B1: README headline row + STATUS; B2-B5: row with verdict phrase verbatim, headline unchanged; F1-F3: void in STATUS only"
+ledger_days_projected: 0.1
+wall_hours_projected: 3.5
+lane_width: 4
+burns_training_seeds: false

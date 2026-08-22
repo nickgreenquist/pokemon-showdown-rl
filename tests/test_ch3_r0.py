@@ -228,3 +228,54 @@ def test_search_adapter_indices_and_chunk_deltas():
     s2 = ad.chunk_summary()
     assert s2["search/decisions"] == 1
     assert sa.calls[-1] == ("battle-3", 600, 0)
+
+
+# ---------------------------------------------------------------------------
+# R2 grader + pre-reg integrity
+# ---------------------------------------------------------------------------
+
+import ch3_grade  # noqa: E402
+import ch3_r2_grade  # noqa: E402
+
+R2_PREREG = REPO / "configs/eval/ch3_rung2.yaml"
+
+
+def test_r2_grader_selftest_and_credit_line_identity():
+    ch3_r2_grade.selftest()
+    # one ratified credit line, byte-equal across every grader
+    assert ch3_r2_grade.CREDIT_LINE == ch3_grade.CREDIT_LINE
+    prereg = yaml.safe_load(R2_PREREG.read_text())
+    assert prereg["credit_line"] == ch3_r2_grade.CREDIT_LINE
+
+
+def test_r2_grader_refuses_draft_prereg():
+    prereg = yaml.safe_load(R2_PREREG.read_text())
+    assert "DRAFT" in prereg["status"]  # until the maintainer registers it
+    with pytest.raises(AssertionError, match="DRAFT"):
+        ch3_r2_grade.grade(str(R2_PREREG))
+
+
+def test_r2_prereg_arms_match_driver_and_r0_checkpoints():
+    prereg = yaml.safe_load(R2_PREREG.read_text())
+    r0 = yaml.safe_load(PREREG.read_text())
+    # R2-7: identical checkpoint files + sha256s as R0
+    assert prereg["checkpoints"] == r0["checkpoints"]
+    jobs = ch3_eval._jobs(prereg)
+    assert set(jobs) == {f"a0_{l}" for l in ("s62", "s63", "s64", "s65")} | {
+        f"a1s_{l}" for l in ("s62", "s63", "s64", "s65")
+    }
+    assert all(jobs[f"a1s_{l}"]["search_dose"] == "M"
+               for l in ("s62", "s63", "s64", "s65"))
+    # paired read preconditions the grader relies on
+    assert prereg["arms"]["A0"]["lanes"] == prereg["arms"]["A1S"]["lanes"]
+    assert prereg["arms"]["A0"]["battles"] == prereg["arms"]["A1S"]["battles"] == 3000
+
+
+def test_r2_se_three_terms_governing_cases():
+    p0 = [0.72, 0.71, 0.73, 0.70]
+    # heterogeneous lane deltas: the paired term must govern over binomial
+    t = ch3_r2_grade.se_terms_r2([0.80, 0.66, 0.78, 0.68], p0, 3000)
+    assert t["paired_clustered_sd_d"] > t["pooled_binomial_two_sample"]
+    assert t["se_gov"] == max(t["pooled_binomial_two_sample"],
+                              t["paired_clustered_sd_d"],
+                              t["unpaired_two_sample_clustered"])
