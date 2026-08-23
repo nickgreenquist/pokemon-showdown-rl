@@ -29,16 +29,19 @@ Skip-rate trail (mechanism color): 4.4-5.8% SH / 10.8% clone / 17.9% FP.
 | FP budget ladder (greedy s65, n=250): @20 0.312 · @100 0.388 · @500 0.332 | — |
 
 ## Next actions
-1. **R4-family candidate for maintainer**: depth-1 search@M with an
-   ENSEMBLE-CRITIC evaluator (pure, zero training; E3's +0.036 directional
-   at the credited dose). Needs fresh pre-reg + ratification (MF-7) + the
-   anchor battery (P2 makes off-SH transfer THE question for it).
+1. **R4 DRAFT r2 READY FOR RATIFICATION** (design cycle complete 08-23
+   night: 2-Opus design + synthesis + 2 reviews, all fixes in;
+   results/design_ch3_r4/ch3_r4_prereg_draft.yaml + ch3_r4_synthesis.md).
+   Decisions owed AT ratification: U1 budget (~8 h T-FULL recommended —
+   fresh A1S comparator; measured -0.0148/day session drift kills frozen),
+   U2 clone anchor n=1000, U3 anchors-iff-B1/B2 reading, **U4 headline
+   policy under credit-without-transfer (must be ruled BEFORE launch)**.
+   Then BI-1..BI-6 offline build (~5-7 h) before any battle.
 2. Open R3 remainders: MC-leaf/λ-blend DROPPED (ruling (b) 2026-08-23,
    recorded — no State→obs bridge); oracle-team diag built, unrun
-   (BARRED binary, scripts/ch3_oracle_diag.py, 1 lane × 1000);
-   E2(σ=0.2) upgrade at 4×3000 stays maintainer-buyable.
+   (BARRED binary); E2(σ=0.2) upgrade stays maintainer-buyable. U9 flag:
+   T2b seg2 is cross-session-contaminated — "saturates at M" is soft.
 3. Readiness anchor simplifies: FP h2h at stock budget (no ladder staircase).
-4. Pushed through the evening readouts (maintainer-authorized "push after").
 
 ## Watch items
 - Never quote 0.79283 without its README caveat. Never quote per-arm numbers

@@ -5727,3 +5727,65 @@ entry by offset — never a broad keyword grep.
   memo owed. Still queued, unchanged: oracle-team diag (BARRED binary,
   built, unrun, ~35 min); E2(sigma=0.2) at 4x3000 stays
   maintainer-buyable.
+
+- 2026-08-23 (night, **R4 DESIGN CYCLE COMPLETE — 2-Opus design + synthesis
+  + 2 reviews, all fixes applied; DRAFT r2 pre-reg ready for ratification,
+  NOTHING LAUNCHED**): per ruling (a), the full design-decisions-two-opus
+  process ran in results/design_ch3_r4/ (gitignored like all results/;
+  mirrored to the backup dir): evidence_brief -> design_input_A
+  (measurement-first) + design_input_B (falsification-first, independent)
+  -> ch3_r4_synthesis -> ch3_r4_prereg_draft.yaml -> draft_review_1
+  (adversarial methods, 31 findings) + draft_review_2 (conventions/
+  executability, 10 checks) -> draft r2 with every BLOCKER/MAJOR/MINOR
+  closed. BOTH design agents independently found the decisive fact: the
+  same four checkpoints re-measured greedy one day apart moved 0.72358 ->
+  0.70875 (-0.0148 pooled, ~2.6x binomial se; a0_* vs a0r3_* finals) — a
+  session nuisance worth 59% of the credit floor that enters a
+  frozen-comparator delta as pure bias. THE DESIGN: A1E (search@M + LOO
+  3-critic ensemble, byte-identical to the screened E3L cell) vs FRESH
+  same-session A1S (E0), 4x3000 each, lane-paired concurrent waves (a
+  fact-check killed the serial-order alternative: the username-collision
+  landmine is training-lane-only — eval never calls set_seed; verified in
+  code and consistent with the e-cells' 10 jobs 4-wide), A0 era pin
+  first; equal-weight mean of paired lane deltas, larger-of-three se,
+  five_cell_floor with B1a/B1b split, KILL = chapter-scoped closure; F5
+  membership gate (the did-the-manipulation-happen gate), F6 arm
+  contrast, F7 leaf match, banded F4 era, F10 A1S tripwire, F11 pairing
+  window; dose_matched TRUE (structural: same tree, no RNG in the LOO
+  evaluator — review-verified from source; quantitative: T2b's 4x step
+  bought +0.0025, so E3's 1.07x is order-of-magnitude excluded); anchors
+  iff B1/B2 on s65 with E0-SEARCH comparator, clone at n=1000
+  (recommended upward deviation, U2), FP@100 frozen-comparator with the
+  crash-forfeit rule verbatim, three-cell resolved partitions + the
+  CI-exclusion instrument (R2's sign-based P2 rule NOT inherited — it
+  fires ~50% under exact transfer). HONEST NUMBERS, pre-stated: power
+  0.43-0.49 at the pre-registered point +0.028 (B3 modal over much of
+  the band), 0.63-0.95 at the screen's +0.036; size <= 0.016; battle
+  wall ~5.8-8.0 h (NOT the ~3 h signal — the delta buys the fresh
+  comparator, U1) + ~5-7 h offline build (BI-1..BI-6; the anchor
+  machinery is several hours, honestly re-priced after review caught
+  "~15 lines" as fantasy, and must be built result-blind BEFORE the
+  sweep). REVIEW CATCHES OF RECORD: "zero driver changes" was false (F5
+  needs provenance the driver doesn't write); the band-boundary prose
+  contradicted the executed land() law (delta=-0.025 -> B5 at hi=0.025,
+  not B4); B3+KILL licensed two contradictory sentences; the FP anchor
+  arm as first drafted would have SILENTLY run the greedy seat; the R0
+  ensemble-actor "+0.028" in the licensed sentence was itself a
+  cross-session number (true same-session credit +0.036; LOO-3 actor
+  +0.0266 added as closest analogue). MAINTAINER DECISIONS AT
+  RATIFICATION (full list in synthesis): U1 budget tier (T-FULL ~8 h
+  recommended; T-LEAN ~3 h frozen-comparator designed but rejected by
+  both agents), U2 clone n=1000, U3 anchors-conditional reading of the
+  battery ruling, U4 headline policy under a credit with non-positive
+  transfer — U4 must be ruled BEFORE launch (the grader refuses while
+  its bracket stands). Also flagged for separate ruling (B's finding,
+  U9): T2b's "dose saturates at M" is itself cross-session-contaminated
+  (@S/@L fresh vs @M reused from R2 in a session reading 0.0148 low) —
+  seg2's true value could be ~+0.017, softening the VALUE-LIMITED
+  verdict's dose half; and the R2 SH-facing finding statistically rests
+  on ONE anchor (the clone CI-exclusion), not two (FP's -0.020 +/- 0.043
+  carried ~no information). Draft validated end-to-end: YAML parses,
+  credit_line byte-equal to ch3_rung2.yaml AND ch3_r2_grade.CREDIT_LINE,
+  land() boundary landings match, ch3_eval --list-jobs emits exactly the
+  wave job names, all five sha pins (four lanes + clone) verified against
+  disk.
