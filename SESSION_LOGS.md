@@ -5489,3 +5489,27 @@ entry by offset — never a broad keyword grep.
   cost; the anchor battery is the better board until the projections
   say otherwise. Ruling owed before any README wording that calls
   anything "the success metric."
+
+- 2026-08-23 (overnight, cont., **FP h2h INCIDENT + RECOVERY, read rule
+  pre-stated before the FS number exists**): FG arm CLEAN — greedy s65
+  takes **0.388** off Foul Play (97W-153L-0T, n=250, G2 tallies agree
+  EXACTLY, 0 engine exceptions, 0 desyncs, 7.18 s/battle) — the
+  -against trail now reads 0.124 (old best) → 0.172 (Rung 2) → 0.388
+  (D26 greedy); FP's own take fell 0.876 → 0.824 → 0.612. FS arm
+  attempt 1 DIED at battle 10: poke-engine Rust panic
+  `Invalid PokemonMoveIndex: 4` inside battle_to_poke_engine_state —
+  a gen1 5th-move state (most plausibly the synthetic `fight`
+  placeholder stacking onto 4 tracked moves; the patched engine's
+  known-landmine class). FG's 250 and the 2026-08 runs (1200+250+250)
+  never hit it; battle-content-dependent. RECOVERY, decided and logged
+  BEFORE the rerun's number: seat+runner killed, server restarted
+  (clears the dangling battle; simulator:4 verified), FS restarted
+  FROM ZERO (attempt-1's 9 battles DISCARDED, its stdout kept as
+  fp_fs.attempt1.stdout) under an FP auto-relaunch loop (cap 30).
+  READ RULE for the rerun, pre-stated: an FP crash forfeits the
+  in-flight battle TO US server-side, so crash-forfeited battles are
+  EXCLUDED from the FS number — n_eff = seat-finished minus
+  crash-forfeits, our_wins reduced by the same count; G2 then requires
+  the seat and FP tallies to agree on n_eff exactly, with the
+  relaunch count and every crash point disclosed beside the number.
+  Any TOO_MANY_CRASHES (≥30) outcome VOIDs the arm.
