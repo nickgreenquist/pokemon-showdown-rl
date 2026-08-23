@@ -1,0 +1,65 @@
+# =====================================================================
+# CH3 R4 ANCHOR BATTERY / FP BLOCK — arm FE3, the runner's config.
+# Status: DERIVED, NOT A PRE-REGISTRATION. Every field below is copied
+#   from the REGISTERED pre-reg configs/eval/ch3_r4_ensemble_critic.yaml
+#   (anchor_arms.FE3 + checkpoints, shas byte-for-byte); this file exists
+#   only because scripts/ch3_fp_h2h.py reads the ch3_r2_fp_h2h.yaml
+#   SCHEMA (results_dir / checkpoints / arms / fp), not the R4 pre-reg's.
+#   If the two ever disagree, THE PRE-REG WINS — the grader
+#   (scripts/ch3_r4_anchor_grade.py) re-reads its thresholds from the
+#   pre-reg, never from here.
+# ---------------------------------------------------------------------
+# ARM FE3: s65 + depth-1 search@M with the LOO 3-CRITIC ENSEMBLE
+#   evaluator (pool minus the seat lane -> [s62, s63, s64]; F5 asserts at
+#   resolution), deterministic listening seat vs Foul Play + our patches
+#   at --search-time-ms 100 --search-parallelism 1, n=250.
+#   COMPARATOR: FROZEN FS_E0 = 0.368 (2026-08-23) — NOT re-run. Threshold
+#   PINNED as a LITERAL 0.087 (anchor_mde.fp_250_pinned_literal) so it
+#   cannot move with the data.
+#   NON-CREDITING: descriptive anchor, never a verdict input.
+# F-C TWIN carried from the R2 FP pre-reg: pooled |leaves_mean - 353|/353
+#   <= 0.25 AND timeouts == 0; placeholder skips excluded from the mean
+#   and reported.
+# CRASH-FORFEIT READ RULE (2026-08-23, verbatim in the pre-reg): an FP
+#   crash forfeits the in-flight battle TO US server-side, so
+#   crash-forfeited battles are EXCLUDED; n_eff = seat-finished minus
+#   crash-forfeits, our_wins reduced by the same count; the seat and FP
+#   tallies must agree on n_eff EXACTLY (G2); every crash point and the
+#   relaunch count disclosed beside the number; >= 30 relaunches VOIDs
+#   the arm. Implemented by scripts/ch3_r4_fp_runner.sh, which writes
+#   fe3.runner.json for the grader.
+# R0 GATES inherited from ch3_r2_fp_h2h.yaml: G1 5-battle smoke first;
+#   G2 two independent tallies agree; G3 every challenge resolved;
+#   G4 the seat accepts from the FP username only; G5 mask_desyncs
+#   reported, nonzero disclosed.
+# CHECKPOINTS: all five pins are carried (four D26 lanes + clone) so this
+#   file stays schema-identical to the pre-reg's `checkpoints:` block and
+#   a drifted pin is caught by inspection. The FP path loads s65 (seat)
+#   and s62/s63/s64 (evaluator members, sha-asserted at resolution); the
+#   clone pin is UNUSED here — the clone block runs through
+#   scripts/ch3_r4_anchors.py.
+# =====================================================================
+results_dir: results/ch3_r4_fp_anchor
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+  clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683}
+arms:
+  FE3: {kind: search_seat, seat: s65, dose: M, battles: 250,
+        seat_username: r4anchorseat, fp_username: r4anchorfp,
+        evaluator: {kind: loo, pool: [s62, s63, s64, s65]},
+        comparator: frozen_0.368}
+fp:
+  search_time_ms: 100
+  search_parallelism: 1
+  format: gen1randombattle
+crash_forfeit:
+  max_relaunches: 30
+  void_marker: TOO_MANY_CRASHES
+anchors:
+  fs_e0_frozen: 0.368
+  fp_250_pinned_literal: 0.087
+  fg_greedy_s65: 0.388
+  fp_vs_sh: 0.8307

@@ -15,6 +15,20 @@ DEVIATION from the historical --seat PoolPlayer numbers, disclosed in the
 pre-reg: this seat is DETERMINISTIC (locked protocol + the R2-credited
 configuration), where the 2026-08 -against marks sampled. The FG/FS delta
 is seat-matched, so the deviation cancels in the primary read.
+
+CH3 R4 BI-5 additions (additive only; with no `evaluator` key on the arm
+every path here behaves exactly as it did for FG/FS):
+  * `assert arm["kind"] in ARM_KINDS` — any other string used to run the
+    GREEDY seat silently (pre-reg ANCHOR BATTERY / FP BLOCK, review 2
+    blocker 2);
+  * an `evaluator` key (kind loo) resolves pool-minus-seat-lane with the F5
+    membership asserts and is passed to SearchAgent, its provenance written
+    into the output JSON — this is what arm FE3 of
+    configs/eval/ch3_r4_fp_anchor.yaml runs;
+  * the seat lane is `arm.get("seat", "s65")`, so arms that name no seat
+    (FG/FS) resolve to exactly the s65 checkpoint and checkpoint_seed 65
+    they always did.
+The crash-forfeit auto-relaunch loop lives in scripts/ch3_r4_fp_runner.sh.
 """
 
 import argparse
@@ -32,6 +46,7 @@ from poke_env.player import Player
 from poke_env.ps_client.account_configuration import AccountConfiguration
 
 BATTLE_FORMAT = "gen1randombattle"
+ARM_KINDS = ("greedy_seat", "search_seat")
 
 
 def _build_agent(spec: dict):
@@ -60,6 +75,36 @@ def _build_agent(spec: dict):
     ))
     agent.load_state_dict(ckpt["agent"])
     return agent
+
+
+def _resolve_evaluator(prereg: dict, seat_lane: str, spec_eval, agent0):
+    """CH3 R4 BI-5: the evaluator plumb-through for the FE3 anchor (pre-reg
+    ANCHOR BATTERY / FP BLOCK), mirroring ch3_eval._resolve_evaluator. `loo`
+    resolves POOL MINUS THE SEAT LANE here and the F5 membership asserts fire
+    at resolution — pool size == 3, own key absent, own agent excluded by
+    IDENTITY, every member file sha256 == pin. The provenance dict goes into
+    the output JSON so the gate is gradeable from disk. Returns (None, None)
+    when the arm carries no `evaluator` key, which leaves the FG/FS code path
+    exactly as it was."""
+    if not spec_eval:
+        return None, None
+    evaluator = dict(spec_eval)
+    provenance = {"kind": evaluator["kind"]}
+    if evaluator["kind"] == "loo":
+        pool = [x for x in evaluator.pop("pool") if x != seat_lane]
+        assert len(pool) == 3, f"F5: loo pool resolved to {pool}"
+        assert seat_lane not in pool, f"F5: own lane {seat_lane} in pool"
+        evaluator["agents"] = [
+            _build_agent(prereg["checkpoints"][x]) for x in pool
+        ]
+        assert all(a is not agent0 for a in evaluator["agents"]), (
+            "F5: the lane's own agent object is in the ensemble"
+        )
+        provenance["members"] = pool
+        provenance["member_sha256"] = [
+            prereg["checkpoints"][x]["sha256"] for x in pool
+        ]
+    return evaluator, provenance
 
 
 class SeatPlayer(Player):
@@ -111,13 +156,28 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     from rl.envs.showdown import mask_desync_total
 
     arm = prereg["arms"][arm_name]
-    agent = _build_agent(prereg["checkpoints"]["s65"])
+    # CH3 R4 BI-5 (review 2 blocker 2): an unrecognised kind used to run the
+    # GREEDY seat SILENTLY. It now fails loudly.
+    assert arm["kind"] in ARM_KINDS, (
+        f"{arm_name}: kind {arm['kind']!r} not in {ARM_KINDS} — an unknown "
+        "kind must not silently run the greedy seat"
+    )
+    seat_lane = arm.get("seat", "s65")
+    agent = _build_agent(prereg["checkpoints"][seat_lane])
     search_agent = None
+    eval_provenance = None
     if arm["kind"] == "search_seat":
         from rl.search.agent import SearchAgent
         from rl.search.matrix import DOSES
 
-        search_agent = SearchAgent(agent, DOSES[arm["dose"]], checkpoint_seed=65)
+        evaluator, eval_provenance = _resolve_evaluator(
+            prereg, seat_lane, arm.get("evaluator"), agent
+        )
+        search_agent = SearchAgent(
+            agent, DOSES[arm["dose"]],
+            checkpoint_seed=int(seat_lane.lstrip("s")),
+            evaluator=evaluator,
+        )
     seat = SeatPlayer(
         agent,
         search_agent,
@@ -166,6 +226,9 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             "search/placeholder_skips": search_agent.counters["search/placeholder_skips"],
             "search/flips": search_agent.counters["search/flips"],
         })
+    if eval_provenance is not None:
+        report["evaluator"] = eval_provenance   # F5, gradeable from disk
+        report["seat_lane"] = seat_lane
     return report
 
 

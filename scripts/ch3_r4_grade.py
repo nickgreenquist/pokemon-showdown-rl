@@ -26,6 +26,7 @@ line, dirty tree, uncommitted pre-reg.
 import argparse
 import hashlib
 import json
+import re
 import statistics
 import subprocess
 import sys
@@ -57,7 +58,9 @@ def grade(prereg_path: str) -> dict:
         "pre-reg status is DRAFT — registration is the maintainer's, not the "
         "grader's"
     )
-    assert "[MAINTAINER RULING" not in raw, (
+    # the pre-reg's own BI-3 description QUOTES this string, so match only
+    # an unquoted occurrence (a real unruled bracket, the U4 pattern)
+    assert not re.search(r'(?<!")\[MAINTAINER RULING', raw), (
         "an unruled maintainer bracket remains in the pre-reg (U4 pattern) — "
         "rule it before grading"
     )
