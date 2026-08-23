@@ -57,6 +57,7 @@ a verdict input.
 | ↳ all five 50M-stack lanes, descriptive only (pre-declared before the re-run's data) | 0.7181 ± 0.0224‡ |
 | D28 zero-info dose control (12M, 5 seeds) — **A1: does NOT reproduce D25** (perm 1/252, strict separation); **not sealed** — the control's delivered dose collapsed once the task was learned (g 0.979) | 0.5224 ± 0.0041 |
 | CH3 R0: log-prob ensemble of the four D26 checkpoints (inference-only, zero training) — **B1 CREDIT** vs their fresh greedy mean 0.7103; licenses "ensembling THESE four checkpoints", never "ensembling helps" (one committee, no seed replication, floor-governed) | 0.7463 ± 0.0046 |
+| **CH3 R2: one-ply expectation search over a validated gen-1 forward model (transition agreement FG-2 = 0.9092 per the accept-with-named-strata ruling; ko_disagreement 0.092 on raw average-damage leaves, 0.0075 after the pre-registered 2-point roll expansion; average-damage approximation named; search inactive on ~5.0% of decisions — the gen-1 placeholder stratum), using only our own self-play policy/value/opponent-action heads — B1 CREDIT 2026-08-22, new best: +0.0693 over the identical checkpoints played greedily (fresh A0 0.7236, same session), all four lanes positive (worst +0.0497), operative bar 0.025 (floor-governed; largest se term 0.0069 unpaired-clustered)** | **0.7928 ± 0.0037** |
 | Behaviour clone of Foul Play (graded final / val-peak) | 0.5490 / 0.5777 |
 | Foul Play engine (search bot, our patches) — eval anchor | 0.8307* |
 

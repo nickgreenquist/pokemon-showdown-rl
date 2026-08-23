@@ -5375,3 +5375,37 @@ entry by offset — never a broad keyword grep.
   scripts/ch3_r2_grade.py --prereg configs/eval/ch3_rung2.yaml (grader
   enforces clean tree; F-gates before any cell; KILL rule; per-branch
   README/STATUS obligations pre-registered).
+
+- 2026-08-22/23 (overnight, **R2 READ OUT: B1 CREDIT — SEARCH WINS, NEW BEST
+  0.7928: delta +0.06925 vs bar 0.025, ALL FOUR lanes positive, zero
+  F-gates; the chapter's verdict instrument did its job**): maintainer ran
+  A1S (4x3000 at Dose M, 4-wide, ~2.6 h); grader run per delegation
+  ("you can run the verdict command yourself"). **THE NUMBERS**
+  (results/ch3_r2/r2_readout.json, prereg sha stamped): A0 fresh
+  0.73233/0.71833/0.73233/0.71133 (pooled 0.72358; R2-10 PASS vs 0.71825,
+  diff 0.0053); A1S 0.78200/0.79300/0.80400/0.79233 (pooled 0.79283);
+  per-lane paired deltas +0.0497/+0.0747/+0.0717/+0.0810, equal-weight
+  mean **+0.06925**; se terms binom 0.00551 / paired 0.00681 / unpaired
+  0.00691 -> se_gov 0.00691 (unpaired governs, the disclosed third term),
+  2*se_gov 0.0138 < floor -> operative bar 0.025, B2/B4 EMPTY as
+  pre-named; **worst lane alone clears the floor**. KILL not fired. ZERO
+  F-gates: F3 leaves_mean 292-328 per chunk vs expected 353 (band 265-441)
+  — checked per lane in the readout; ms_mean 65.3-68.4 (spike 73.2, R2-8
+  band held); R2-5 exact on all 80 chunk files both arms; mask_desyncs 0;
+  chunk-0 battle2 sentinel passed silently in all 8 jobs (SF-13).
+  Recorded-never-governing: flip_rate 0.567-0.631, placeholder_skip_rate
+  0.044-0.058, sign-flip permutation min p 1/16 (color only). **B1
+  OBLIGATIONS EXECUTED**: README headline row added (licensed sentence
+  with ALL mandatory qualifiers: FG-2 0.9092 per ruling (b),
+  ko_disagreement 0.092 raw / 0.0075 post-expansion, average-damage
+  approximation named, ~5.0% placeholder skips); STATUS rewritten. **B1
+  CONSEQUENCES, NAMED**: (i) SH-exploitation falsifier owed (two-
+  orientation h2h vs the BC clone, D26 H4 machinery, ~20 min); (ii) h2h
+  vs FOUL PLAY itself (purity-legal anchor; FP evals at 0.8307* vs SH —
+  our 0.7928 closes most of the gap to the search bot); (iii) **R3
+  LAUNCHES** (mechanism grid, non-crediting throughout, design §4 R3);
+  (iv) D7(a)-vs-CLAUDE.md ladder contradiction goes to the maintainer —
+  named, not acted on (the vs-SH~40%-GXE caveat stands). Chapter-3
+  narrative: R0 ensemble +0.028, R2 search +0.069 on top of the same
+  checkpoints — inference-time compute is the first lever since D26 to
+  move the headline, and the first EVER to move it without training.

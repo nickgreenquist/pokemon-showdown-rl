@@ -2,12 +2,11 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-22 — **FG-2 GAP FULLY ATTRIBUTED: turn-order
-diagnostic run (scripts/ch3_turnorder_diag.py, reruns in 23 s); two repairs
-landed (our-side transformed Ditto bridged; heal-aware band) — primary
-0.9074 -> 0.9092, heal-aware SECONDARY 0.9237, bar 0.98; measured repair
-CEILING ~0.95 -> the FG-2 ROUTE RULING is now the blocking item, options +
-recommendation (b) in the 08-22 'later' log entry**)
+## Where things stand (2026-08-23 — **R2 B1 CREDIT: SEARCH WINS, NEW BEST
+0.7928 (+0.0693 over the same checkpoints greedy, bar 0.025, ALL 4 lanes
+positive, worst +0.0497, zero F-gates). FG-2 ruled (b) accepted 0.9092 +
+named strata; pre-reg REGISTERED + graded (r2_readout.json). B1 fires:
+SH-exploitation falsifier + foul-play h2h + R3 LAUNCH — next session**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
 0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** CH3 ratified
@@ -26,18 +25,17 @@ volatiles; from_string drops volatiles; sleep-success branch still self-KOs).
 | D29r2 50M — R-A CREDIT (named cell) / R-B FLAT · 5-lane desc 0.7181 | 0.70222 |
 | D28 zero-info control — A1 (p 1/252), NOT SEALED (late dose collapse) | 0.52240 |
 | CH3 R0 ensemble-of-4 — B1 CREDIT (+0.036, THESE four ckpts only) | 0.74633 |
+| **CH3 R2 depth-1 search@M — B1 CREDIT (+0.0693, 4/4 lanes, NEW BEST)** | **0.79283** |
 
 ## Next actions
-1. ~~FG-2 ruling~~ RULED (b) 2026-08-22: ACCEPTED 0.9092 + named strata,
-   number unrewritten, R2 adjudicates wins. Transcribed in ch3_rung2.yaml
-   fg2_disposition; pre-reg REGISTERED.
-2. **RUN A1S** (maintainer terminal, ~2-3.5 h 4-wide): the one-block
-   command is in the 08-22 'latest' log entry / final session message.
-   A0 DONE + R2-10 PASS (pooled 0.72358 vs 0.71825, diff 0.0053; lanes
-   0.73233/0.71833/0.73233/0.71133; desyncs 0; R2-5 exact on 40 chunks).
-   Then: `python scripts/ch3_r2_grade.py --prereg configs/eval/ch3_rung2.yaml`
-   (clean tree; F-gates first; KILL rule; README/STATUS per branch).
-3. Push: 3 local commits since the last push — ask first (standing rule).
+1. **B1 follow-ups (pre-registered, in order)**: (a) SH-exploitation
+   falsifier — two-orientation h2h vs the BC clone (D26 H4 machinery,
+   ~20 min); (b) h2h vs Foul Play (purity-legal anchor, 0.8307* vs SH);
+   (c) **R3 mechanism grid** (design §4 R3, non-crediting; E1-E4 dials);
+   (d) D7(a) ladder contradiction -> maintainer ruling (named, not acted).
+2. R2 artifacts: results/ch3_r2/ (80 chunks + r2_readout.json) — back up
+   to the d25-backup dir with the next results sync.
+3. Push: 4 local commits since the last push — ask first (standing rule).
 4. Standing: §13/250M futility ruling (rec RETIRE); resume-from-checkpoint
    (24h bar); D7(a) ladder ruling only if R2 lands B1.
 
