@@ -5513,3 +5513,28 @@ entry by offset — never a broad keyword grep.
   the seat and FP tallies to agree on n_eff exactly, with the
   relaunch count and every crash point disclosed beside the number.
   Any TOO_MANY_CRASHES (≥30) outcome VOIDs the arm.
+
+- 2026-08-23 (overnight, cont., **B1 CONSEQUENCE (ii) READ OUT: THE FOUL
+  PLAY H2H CONFIRMS P2 — the second off-SH anchor is also flat-to-
+  negative for search@M; the SH-facing finding now rests on TWO
+  independent anchors**): FS rerun CLEAN, relaunches=0 (the attempt-1
+  panic did not recur; the pre-stated crash-forfeit exclusion is a
+  no-op at zero crashes). **THE NUMBERS** (results/ch3_r2_fp_h2h/,
+  pre-reg configs/eval/ch3_r2_fp_h2h.yaml): FG greedy s65 **0.388**
+  (97W-153L-0T); FS search@M s65 **0.368** (92W-157L-1T; G2 exact —
+  FP's W157/L93 vs our 157/92+1 tie, reconciled; G3 250/250 both arms;
+  0 desyncs; 0 engine exceptions). **PRIMARY: delta FS−FG = −0.020,
+  se_diff 0.0434 → P2 (delta ≤ 0)** per the pre-registered mirror of
+  the falsifier's branches. CI on the delta [−0.107, +0.067] — wide at
+  n=250 (named), but the SIGN agrees with the clone anchor and the
+  same configuration's vs-SH gain on this lane is +0.081: the two
+  off-SH anchors independently show the search increment NOT
+  transferring. SECONDARY: skip-rate trail vs opponent type now
+  4.4–5.8% (SH) → 10.8% (clone) → **17.9% (FP)** — placeholder skips
+  scale with opponent distance from SH-like play, the leading named
+  mechanism candidate for R3's grid; leaves_mean 349.5 (at baseline);
+  flips 55.9% (in band); search battles run LONGER vs FP (38.5 mean
+  turns vs greedy 27.6, recorded). -against trail: our take off FP
+  0.124 → 0.172 → **0.388 greedy** — D26's training gains transfer to
+  the strongest anchor; search's do not. R3 dose axis LAUNCHED
+  automatically on fs.json (A0 chunking on all 4 lanes at entry time).
