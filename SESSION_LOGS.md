@@ -5650,3 +5650,39 @@ entry by offset — never a broad keyword grep.
   an eyeballed glob-order grep mis-mapped two @L lanes; the grader's
   named-file reads are authoritative — never quote lane numbers from an
   unsorted glob.
+
+- 2026-08-23 (afternoon, **E-CELL SCREENS READ OUT — THE CHAPTER'S MECHANISM
+  VERDICT COHERES: VALUE-LIMITED, NOT DOSE-LIMITED. E3 LOO-ensemble
+  evaluator lands ABOVE E0 (+0.036 directional); evaluator noise collapses
+  the gain monotonically; the oppact head is inference-inert vs SH; all
+  screen grade (2 lanes x 1000, +/-0.028, color never verdicts)**):
+  configs/eval/ch3_r3_ecells.yaml, 10/10 finals, zero repairs, R2-5 exact
+  throughout, leaves 308-330 in band. NUMBERS (s63/s65 vs E0 @M
+  0.793/0.792): E2 noise sigma 0.1 -> 0.732/0.729; sigma 0.2 ->
+  0.636/0.635; sigma 0.4 -> 0.480/0.412 — a steep monotone dose-response
+  to evaluator corruption; the R2 credit rides on evaluator INFORMATION,
+  not compute (the design's "compute-confound instrument" answering in
+  the direction that seals, at screen grade). E3 LOO 3-lane critic
+  ensemble -> 0.847/0.810, pair mean +0.036 OVER E0 — the evaluator is on
+  the steep part; with seg2 saturated (T2b, same day) the §4 reading
+  table lands on VALUE-LIMITED: better evaluators, not more dose, is
+  where the next win lives. OPA oppact-uniform -> 0.802/0.777, flat
+  within screen noise vs E0 — the credited head buys ~nothing AT
+  INFERENCE vs SH (decision-level confirmation of the R1 sh_accuracy
+  marginality; its D25 TRAINING credit is untouched — the aux loss
+  shaped representations, the posterior itself is dead weight in the
+  matrix). Secondary: flip_rate RISES with noise (0.56 -> 0.66) as wins
+  FALL — flips are not wins, permanently. CONSEQUENCES, per MF-7: no
+  cell credits anything; the natural R4-FAMILY CANDIDATE is named for
+  the maintainer — depth-1 search@M with an ENSEMBLE CRITIC evaluator
+  (pure, zero training, E3's directional +0.036 at the credited dose),
+  own fresh pre-reg + ratification + the anchor battery (the falsifier
+  P2 makes off-SH transfer THE open question for any evaluator
+  upgrade). MC-leaf/lambda-blend and the oracle diagnostic remain
+  unrun (blocker/options unchanged). Incident ledger for the day, so
+  the record is honest: (1) the first FP-ladder runner died instantly
+  on a bash-3.2 `${ARM,,}` bad substitution (macOS bash; the zsh
+  landmine's cousin — now recorded here); (2) my log-file shuffle after
+  that failure orphaned the e-cells trigger and idled the box ~1.5h
+  before I caught it at an ETA check; both fixed, ladder re-queued
+  behind the e-cells and now starting.
