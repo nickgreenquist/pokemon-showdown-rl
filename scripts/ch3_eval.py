@@ -286,9 +286,21 @@ def run_job(prereg: dict, name: str) -> None:
         assert getattr(env.unwrapped, "_privileged", None) is False, (
             "SF-13: the eval env must not emit info['privileged']"
         )
+        evaluator = None
+        spec_eval = prereg["arms"][job["arm"]].get("evaluator")
+        if spec_eval:
+            # R3 E-cells (design §4 R3, screen grade). `loo` resolves its
+            # pool here: the OTHER lanes' agents, this lane excluded.
+            evaluator = dict(spec_eval)
+            if evaluator["kind"] == "loo":
+                pool = [x for x in evaluator.pop("pool") if x != first_lane]
+                evaluator["agents"] = [
+                    _load_member(prereg, x, env=env)[0] for x in pool
+                ]
         sa = SearchAgent(
             agent0, DOSES[job["search_dose"]],
             checkpoint_seed=int(first_lane.lstrip("s")),
+            evaluator=evaluator,
         )
         adapter = agent = _SearchEvalAdapter(sa, env)
     elif len(job["members"]) == 1:
