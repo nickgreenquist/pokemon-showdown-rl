@@ -1,0 +1,32 @@
+# =====================================================================
+# FP BUDGET LADDER — anchor calibration (maintainer-directed 2026-08-23
+#   "FP budget ladder for sure, add it"). DESCRIPTIVE THROUGHOUT: no
+#   branches, no credit; these rungs place the readiness gradient the
+#   2026-08-23 rulings need ("exhausted vs SH and FP" -> beat FP@100,
+#   then face FP@500). Pre-registered before any ladder battle ran.
+# ARMS (our seat = s65 GREEDY deterministic — the transfer-proven
+#   config; 250 battles each, the FP-h2h precedent n; ties non-wins;
+#   FP flags identical to every recorded FP number except search time;
+#   all numbers are "Foul Play + our patches"):
+#   FP20:  FP at --search-time-ms 20  (weaker rung)  vs s65 greedy.
+#   FP500: FP at --search-time-ms 500 (stronger rung) vs s65 greedy.
+#   FP@100 rung already measured 2026-08-23: greedy 0.388 (n=250).
+# EXPECTED ORDERING, stated up front (a sanity read, not a verdict):
+#   our_wr(FP20) > 0.388 > our_wr(FP500). A violation is a finding to
+#   record, not a gate.
+# GATES: the FP-h2h G1-G5 carry over (tallies agree, all challenges
+#   resolved, no third party, desyncs disclosed); crash-forfeit read
+#   rule of 2026-08-23 carries over (auto-relaunch, forfeits excluded).
+# SCHEDULING: runs only after the R3 chain + repair finish (box kept
+#   uncontended per the R3 pre-reg's disclosure).
+# Runtime priced: FP20 ~20-25 min; FP500 ~1-1.5 h (search time is
+#   ~5x per decision; sec/battle recorded).
+# =====================================================================
+results_dir: results/fp_budget_ladder
+checkpoints:
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+arms:
+  FP20:  {kind: greedy_seat, battles: 250, seat_username: fpladseat20, fp_username: fpladbot20, search_time_ms: 20}
+  FP500: {kind: greedy_seat, battles: 250, seat_username: fpladseat500, fp_username: fpladbot500, search_time_ms: 500}
+anchors:
+  fp100_greedy_s65: 0.388

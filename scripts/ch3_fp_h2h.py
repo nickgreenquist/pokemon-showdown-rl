@@ -174,7 +174,8 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--prereg", required=True)
-    parser.add_argument("--arm", required=True, choices=["FG", "FS"])
+    parser.add_argument("--arm", required=True,
+                        help="an arm name defined in the pre-reg's arms block")
     parser.add_argument("--battles", type=int)
     parser.add_argument("--tag")
     args = parser.parse_args()
