@@ -1,0 +1,99 @@
+# =====================================================================
+# CH3 R2 B1 CONSEQUENCE (i): THE SH-EXPLOITATION FALSIFIER
+# Pre-registered 2026-08-22 BEFORE any battle of this diagnostic ran.
+# Status: REGISTERED (executes the falsifier OWED by the R2 B1 CREDIT,
+#   configs/eval/ch3_rung2.yaml BANDS/B1; machinery = D26 rule H4,
+#   configs/showdown_sp_recipe12m.yaml H4; executed precedent =
+#   2026-08-15 s55-vs-clone h2h, SESSION_LOGS.md:3755).
+# NON-CREDITING THROUGHOUT: no branch below changes the headline number
+#   (0.79283 stands); the only branch with a consequence adds a caveat
+#   and goes to the maintainer.
+# ---------------------------------------------------------------------
+# QUESTION. R2 credited depth-1 search@M with +0.06925 vs SH over the
+#   same checkpoints greedy. Is that jump SH-SPECIFIC (exploiting the
+#   fixed heuristic anchor) or general strength? H4's logic: a vs-SH
+#   number that jumps while the non-SH anchor h2h stays flat is
+#   SH-specific. The non-SH anchor is the BC clone of Foul Play
+#   (runs/bc_fp_v2r_soft_180k_s0 FINAL; 5x3000 re-score 0.5503 vs SH).
+#   Anchor trail so far (vs SH <-> vs clone pooled): 12M recipe 0.5509
+#   <-> 0.657; D25 s55 0.6073 <-> 0.7190.
+# LANE (pre-stated rule, D25 precedent "median final, the conservative
+#   seat"): median lane of the credited A1S arm, lower middle of
+#   {0.78200, 0.79233, 0.79300, 0.80400} -> s65 (A1S 0.79233, A0
+#   0.71133, per-lane vs-SH search delta +0.0810). DISCLOSED
+#   CO-OCCURRENCE: the median rule happens to select the lane with the
+#   LARGEST vs-SH delta; the selection rule is the median, stated here
+#   before data, not the delta. Licensed scope is "this lane" only.
+# ---------------------------------------------------------------------
+# ARMS (500 battles each; ties as non-wins on both sides; deterministic
+#   seat-1 per the locked protocol; encoder env vars V2=1, IDS=1):
+#   GA greedy orientation A: s65 deterministic seat 1 vs clone sampling
+#      seat 2 (PoolPlayer), the exact 2026-08-15 machinery:
+#      scripts/eval_checkpoint.py <s65> --opponent-checkpoint <clone>
+#      --episodes 500 --out results/ch3_r2_falsifier/ga.json
+#   GB greedy orientation B (continuity anchor only): clone seat 1 vs
+#      s65 sampling seat 2; s65's B win rate = 1 - win_rate(clone) -
+#      tie rate, ties non-wins both sides:
+#      scripts/eval_checkpoint.py <clone> --opponent-checkpoint <s65>
+#      --episodes 500 --out results/ch3_r2_falsifier/gb.json
+#   SA search orientation A: s65 + depth-1 search@M (DOSES[M],
+#      checkpoint_seed 65, the A1S configuration verbatim) seat 1 vs
+#      clone sampling seat 2; scripts/ch3_r2_falsifier.py, 5x100
+#      chunks, resumable, SF-13 battle2 sentinel at chunk 0.
+# DISCLOSED DEVIATION from H4's "two-orientation, pooled": the search
+#   seat exists only as seat-1 machinery (_SearchEvalAdapter reads
+#   battle1 live off the env); a seat-2 search player would be NEW
+#   machinery built for a diagnostic. The PRIMARY is therefore a
+#   SAME-ORIENTATION delta (SA - GA), in which the large measured seat
+#   asymmetry (~0.27 at D25) cancels by construction. The greedy arm
+#   still runs both orientations so the pooled G extends the D25
+#   continuity trail. The pooled-level read of H4 is NOT reproduced for
+#   the search arm — named, priced, accepted for a non-crediting
+#   diagnostic.
+# ---------------------------------------------------------------------
+# PRIMARY (pre-stated): delta = win_rate(SA) - win_rate(GA), n=500
+#   each; se_diff = sqrt(pSA(1-pSA)/500 + pGA(1-pGA)/500). Branches:
+#   P1 NOT-SH-SPECIFIC (falsifier PASSES): delta >= 2*se_diff. Sentence
+#      licensed: "on the s65 lane the search gain moves the non-SH
+#      anchor too; the R2 jump is not SH-exploitation on the anchor
+#      available." No headline change.
+#   P2 FIRES (SH-exploitation flagged): delta <= 0. The 0.79283
+#      headline KEEPS its number and GAINS a mandatory caveat ("gain
+#      does not transfer to the BC-clone anchor on the tested lane");
+#      goes to the maintainer before any wording lands in README.
+#   P3 INDETERMINATE: 0 < delta < 2*se_diff -> maintainer, levels
+#      quoted, no letter claimed.
+#   CEILING GUARD (pre-named): if GA >= 0.90 the headroom is < 0.10 and
+#      a commensurate move is not expressible; P1/P3 are then replaced
+#      by "CEILING-LIMITED, descriptive" and only P2 remains fireable.
+#   Side declared: the delta read is ONE-SIDED positive (P2 is the
+#      two-sidedness: any non-positive delta fires).
+# SECONDARY (descriptive, never governing): (i) G pooled (GA+GB)/2
+#   extends the trail 0.657 -> 0.719 -> x beside vs-SH 0.5509 -> 0.6073
+#   -> 0.71133; (ii) SA search health: ms_mean vs the 73.2 spike band,
+#   leaves_mean vs 353, flip_rate recorded-never-governing.
+# GATES (any of F-A/F-B/F-C fires -> VOID, diagnose, re-run):
+#   F-A preflight sha256 of both checkpoints == pins below.
+#   F-B win_rate == wins_from_returns EXACT on every JSON, both arms.
+#   F-C search searched: pooled |leaves_mean - 353|/353 <= 0.25 AND
+#       timeouts == 0 (R2 F3's after-diagnosis clause carries over);
+#       placeholder skips excluded from the mean, reported separately.
+#   F-D mask_desyncs reported per JSON; nonzero -> disclosed beside the
+#       number (repo convention), not VOID.
+# Runtime priced: GA/GB minutes each; SA ~25-35 min (A1S measured
+#   ~3.1 s/battle wall at Dose M). Grader:
+#   scripts/ch3_r2_falsifier.py --grade (reads the three JSONs + this
+#   file; branch logic above, no data-dependent choices).
+# =====================================================================
+results_dir: results/ch3_r2_falsifier
+checkpoints:
+  s65:   {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+  clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683}
+arms:
+  GA: {kind: greedy_h2h, seat1: s65, seat2: clone, battles: 500}
+  GB: {kind: greedy_h2h, seat1: clone, seat2: s65, battles: 500}
+  SA: {kind: search_h2h, seat1: s65, seat2: clone, dose: M, battles: 500, chunks: 5}
+anchors:
+  s65_vs_sh_greedy: 0.71133
+  s65_vs_sh_search_m: 0.79233
+  d25_trail_vs_clone: [0.657, 0.7190]
