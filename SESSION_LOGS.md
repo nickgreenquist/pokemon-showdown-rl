@@ -5618,3 +5618,35 @@ entry by offset — never a broad keyword grep.
   on the Connect4 self-play harness (killed at an eval boundary, resumes,
   completes, meta stamped). Three pre-existing _vector_loop stubs updated
   for the new resume_state param.
+
+- 2026-08-23 (afternoon, **R3 DOSE AXIS READ OUT: T2b — THE LADDER
+  SATURATES AT M. seg1 (S->M) +0.0200 RESOLVED ABOVE THE BAND (CI
+  [+0.0128, +0.0272] excludes both 0 and +0.0125); seg2 (M->L) +0.0025
+  UNRESOLVED (CI [-0.0086, +0.0136] contains both) — more dose than M
+  buys nothing detectable at 4x3000; NON-CREDITING, README untouched**):
+  grader scripts/ch3_r3_grade.py on a clean tree, readout
+  results/ch3_r3/r3_readout.json (prereg+git sha stamped). Numbers: A0
+  fresh 0.70900/0.69700/0.73667/0.69233 (pooled 0.70875; F4 era PASS,
+  |0.70875-0.72358| = 0.0148 <= 0.02 — low side, named; same
+  checkpoints, server-rolled variance); @S 0.77100/0.77567/0.77833/
+  0.76633 (s62 via the resumable repair after its chunk-2 abort: 1/300
+  episodes returned no info["outcome"] — max_steps stall battle, chunk
+  re-rolled clean; repair ran at the post-E-cell-commit sha, safe by the
+  E0 bit-identity test); @M REUSED from R2 per the verified sha-unchanged
+  condition (0.78200/0.79300/0.80400/0.79233); @L fresh 0.77833/0.81200/
+  0.79967/0.79133. Per-lane seg1 +0.0110/+0.0173/+0.0257/+0.0260; seg2
+  -0.0037/+0.0190/-0.0043/-0.0010. CELLS: T2b lands by the pre-stated
+  partition (T1 false: seg2 mean 0.0025 < bar; T2a false: seg1's CI is
+  above the band, not below; T3 false). The citable descriptive
+  substructure, per-segment as pre-registered: S->M is a RESOLVED
+  POSITIVE dose response; M->L is saturation-or-noise at this power.
+  Read with the falsifier: the dose that buys (S->M) buys ON THE SH
+  BOARD; nothing here re-opens the transfer question. F-gates: zero
+  (R2-5 exact on 120 fresh chunks; timeouts 0; @S/@L leaves_mean now
+  RECORDED as their own baselines per the pre-reg). Consequence per
+  design MF-7: NO credit, no README row; an R4-family pre-reg MAY cite
+  seg1's resolved positive but nothing launches from this file. E-cell
+  screens queued (FP ladder first). Lane-order lesson, cheap this time:
+  an eyeballed glob-order grep mis-mapped two @L lanes; the grader's
+  named-file reads are authoritative — never quote lane numbers from an
+  unsorted glob.
