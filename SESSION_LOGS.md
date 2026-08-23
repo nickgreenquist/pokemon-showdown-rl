@@ -5686,3 +5686,24 @@ entry by offset — never a broad keyword grep.
   that failure orphaned the e-cells trigger and idled the box ~1.5h
   before I caught it at an ETA check; both fixed, ladder re-queued
   behind the e-cells and now starting.
+
+- 2026-08-23 (evening, **FP BUDGET LADDER READ OUT: NO GRADIENT — the
+  pre-stated ordering is violated at both ends and the budget knob is
+  not a readiness dial at n=250**): configs/eval/fp_budget_ladder.yaml,
+  both arms clean, relaunches=0, G2 tallies exact both arms, G3
+  250/250, 0 desyncs, 0 engine panics. NUMBERS (our greedy s65 side):
+  FP@20 **0.312** (78-172, 1.46 s/battle), FP@100 0.388 (same-day
+  h2h), FP@500 **0.332** (83-167, 35.5 s/battle). Expected
+  0.312<0.388>0.332 vs pre-stated FP20 > FP100 > FP500 — the point
+  estimates are NON-MONOTONE and every pairwise gap is ~1-2 se
+  (se_diff ~0.042): consistent with FP's realized strength being FLAT
+  in budget on gen1's small trees (20 ms already searches deep enough)
+  plus sampling noise. RECORDED CONSEQUENCE for the rulings' readiness
+  gradient: "beat FP@100 then face FP@500" does not buy a staircase —
+  FP at any budget takes ~62-69% off us; the readiness anchor is
+  simply "FP h2h at stock budget" until our number moves enough that
+  budget differentiation becomes measurable (or n is raised). A
+  glob-order eyeball briefly mis-mapped the two JSONs AGAIN before the
+  named-file read corrected it — second same-day occurrence, so the
+  rule graduates to a convention: NEVER quote per-lane/per-arm numbers
+  from unsorted multi-file grep output; read named files.
