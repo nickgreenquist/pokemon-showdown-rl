@@ -240,7 +240,8 @@ def _preflight(prereg: dict) -> None:
         "showdown/config/config.js: `simulator: 4` not set "
         "(the gitignored config was re-cloned? see CLAUDE.md)"
     )
-    print("preflight: R0-d sha256 x4 OK; simulator>=4 OK")
+    print(f"preflight: R0-d sha256 x{len(prereg['checkpoints'])} OK; "
+          "simulator>=4 OK")
 
 
 def _load_member(prereg: dict, lane: str, env=None):
@@ -252,6 +253,33 @@ def _load_member(prereg: dict, lane: str, env=None):
     agent = make_agent(cfg, env)
     agent.load_state_dict(ckpt["agent"])
     return agent, cfg, env
+
+
+def _resolve_evaluator(prereg, first_lane, spec_eval, env, agent0):
+    """R3 E-cell dial + R4 F5 provenance. `loo` resolves its pool here: the
+    OTHER lanes' agents, this lane excluded. F5 (ch3_r4 pre-reg): the
+    membership asserts fire at resolution — pool size, own key absent, own
+    agent excluded by IDENTITY — and the returned provenance dict is written
+    into every chunk JSON so the gate is gradeable from disk."""
+    if not spec_eval:
+        return None, None
+    evaluator = dict(spec_eval)
+    provenance = {"kind": evaluator["kind"]}
+    if evaluator["kind"] == "loo":
+        pool = [x for x in evaluator.pop("pool") if x != first_lane]
+        assert len(pool) == 3, f"F5: loo pool resolved to {pool}"
+        assert first_lane not in pool, f"F5: own lane {first_lane} in pool"
+        evaluator["agents"] = [
+            _load_member(prereg, x, env=env)[0] for x in pool
+        ]
+        assert all(a is not agent0 for a in evaluator["agents"]), (
+            "F5: the lane's own agent object is in the ensemble"
+        )
+        provenance["members"] = pool
+        provenance["member_sha256"] = [
+            prereg["checkpoints"][x]["sha256"] for x in pool
+        ]
+    return evaluator, provenance
 
 
 def _print_username(env) -> None:
@@ -286,17 +314,10 @@ def run_job(prereg: dict, name: str) -> None:
         assert getattr(env.unwrapped, "_privileged", None) is False, (
             "SF-13: the eval env must not emit info['privileged']"
         )
-        evaluator = None
-        spec_eval = prereg["arms"][job["arm"]].get("evaluator")
-        if spec_eval:
-            # R3 E-cells (design §4 R3, screen grade). `loo` resolves its
-            # pool here: the OTHER lanes' agents, this lane excluded.
-            evaluator = dict(spec_eval)
-            if evaluator["kind"] == "loo":
-                pool = [x for x in evaluator.pop("pool") if x != first_lane]
-                evaluator["agents"] = [
-                    _load_member(prereg, x, env=env)[0] for x in pool
-                ]
+        evaluator, eval_provenance = _resolve_evaluator(
+            prereg, first_lane, prereg["arms"][job["arm"]].get("evaluator"),
+            env, agent0,
+        )
         sa = SearchAgent(
             agent0, DOSES[job["search_dose"]],
             checkpoint_seed=int(first_lane.lstrip("s")),
@@ -328,6 +349,7 @@ def run_job(prereg: dict, name: str) -> None:
             # SF-13: the raise-on-access battle2 sentinel runs at chunk 0
             # of EVERY verdict arm (policy and search alike)
             sentinel_handle = _install_battle2_sentinel(env.unwrapped._env.env)
+        started_at = time.time()
         try:
             returns, outcomes, faints = _run_eval_episodes(
                 agent, env, chunk_size, seed_start=seed_start
@@ -351,6 +373,10 @@ def run_job(prereg: dict, name: str) -> None:
             "wins_from_returns": sum(1 for r in returns if r > 0) / len(returns),
             "ties_from_returns": sum(1 for r in returns if r == 0) / len(returns),
             "mask_desyncs_delta": desync_now - desync_before,
+            # BI-2 (ch3_r4 F11): wall-clock span of this chunk, so the
+            # lane-paired-wave claim is auditable from the artifacts
+            "started_at": started_at,
+            "finished_at": time.time(),
             "returns": returns,
         }
         if isinstance(agent, EnsembleAgent):
@@ -359,6 +385,8 @@ def run_job(prereg: dict, name: str) -> None:
         if adapter is not None:
             report.update(adapter.chunk_summary())
             report["search_dose"] = job["search_dose"]
+            if eval_provenance is not None:
+                report["evaluator"] = eval_provenance
         desync_before = desync_now
         chunk_path.write_text(json.dumps(report, indent=2) + "\n")
         print(
@@ -388,6 +416,11 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
         "mask_desyncs": sum(rep["mask_desyncs_delta"] for rep in reports),
         "chunks": chunks,
     }
+    if "evaluator" in reports[0]:
+        final["evaluator"] = reports[0]["evaluator"]
+    if "started_at" in reports[0]:
+        final["started_at"] = reports[0]["started_at"]
+        final["finished_at"] = reports[-1]["finished_at"]
     if "search/decisions" in reports[0]:
         dec = sum(rep["search/decisions"] for rep in reports)
         skips = sum(rep["search/placeholder_skips"] for rep in reports)
@@ -459,7 +492,10 @@ def selfcheck(prereg: dict) -> None:
     from rl.envs.showdown import OBS_DIM
 
     rng = random.Random(20260821)
-    for lane in prereg["checkpoints"]:
+    # iterate ARM lanes, not every checkpoint pin — non-lane pins (the R4
+    # clone anchor, 808-d pre-ids) are hashed by preflight but never play
+    lanes = sorted({l for a in prereg["arms"].values() for l in a["lanes"]})
+    for lane in lanes:
         agent, cfg, _spaces_env = _load_member_spaces(prereg, lane)
         wrapped = EnsembleAgent([agent])
         agree = 0
@@ -475,6 +511,54 @@ def selfcheck(prereg: dict) -> None:
             agree += int(a == b)
         assert agree == 1000, f"R0-c FAIL on {lane}: {agree}/1000"
         print(f"R0-c {lane}: 1000/1000")
+
+
+def r4_discrimination(prereg: dict) -> None:
+    """R4-13 (BI-4): evaluator-discrimination smoke, serverless. On 1000
+    synthetic decision points per A1E lane: (a) mean |v_LOO - v_own| >= 0.02
+    in value units AND (b) the argmax over a collapsed 6-action x 4-det
+    synthetic matrix (per-action value = mean over its dets, the solve
+    aggregation shape) differs on >= 5% of points. FAILURE MEANS DO NOT
+    LAUNCH (pre-reg R4-13). Values are transcribed into the pre-reg's
+    r4_13_discrimination field before launch."""
+    from rl.envs.showdown import OBS_DIM
+
+    arm = prereg["arms"]["A1E"]
+    lanes = arm["lanes"]
+    pool = arm["evaluator"]["pool"]
+    agents = {x: _load_member_spaces(prereg, x)[0] for x in dict.fromkeys(pool + lanes)}
+    rng = np.random.default_rng(20260823)
+    results = {}
+    for lane in lanes:
+        own = agents[lane]
+        peers = [agents[x] for x in pool if x != lane]
+        assert len(peers) == 3 and all(p is not own for p in peers)
+        diffs, flips = [], 0
+        for _ in range(1000):
+            batch = rng.standard_normal((24, OBS_DIM)).astype(np.float32)
+            t = torch.as_tensor(batch)
+            with torch.no_grad():
+                v_own = own.critic(t).reshape(-1).numpy()
+                v_loo = torch.stack(
+                    [p.critic(t).reshape(-1) for p in peers]
+                ).mean(dim=0).numpy()
+            diffs.append(float(np.mean(np.abs(v_loo - v_own))))
+            flips += int(
+                np.argmax(v_own.reshape(6, 4).mean(axis=1))
+                != np.argmax(v_loo.reshape(6, 4).mean(axis=1))
+            )
+        mean_abs = float(np.mean(diffs))
+        flip_frac = flips / 1000
+        ok = mean_abs >= 0.02 and flip_frac >= 0.05
+        results[lane] = {
+            "mean_abs_diff": round(mean_abs, 4),
+            "argmax_differ_frac": round(flip_frac, 3),
+        }
+        print(f"R4-13 {lane}: mean|v_LOO-v_own| {mean_abs:.4f} (>=0.02), "
+              f"argmax differ {flip_frac:.3f} (>=0.05) -> "
+              f"{'PASS' if ok else 'FAIL'}")
+        assert ok, f"R4-13 FAIL on {lane}: DO NOT LAUNCH"
+    print(json.dumps(results))
 
 
 def _load_member_spaces(prereg: dict, lane: str):
@@ -503,6 +587,8 @@ def main() -> None:
     parser.add_argument("--job")
     parser.add_argument("--list-jobs", action="store_true")
     parser.add_argument("--selfcheck", action="store_true")
+    parser.add_argument("--r4-discrimination", action="store_true",
+                        help="R4-13 evaluator-discrimination smoke (serverless)")
     parser.add_argument("--search-smoke", metavar="LANE",
                         help="live search smoke: SearchAgent on N real battles")
     parser.add_argument("--battles", type=int, default=4)
@@ -516,6 +602,10 @@ def main() -> None:
     if args.selfcheck:
         _preflight(prereg)
         selfcheck(prereg)
+        return
+    if args.r4_discrimination:
+        _preflight(prereg)
+        r4_discrimination(prereg)
         return
     if args.search_smoke:
         _preflight(prereg)

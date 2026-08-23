@@ -657,5 +657,15 @@ prior_anchors:
   r0_ensemble_actor: {credited_delta_same_session: 0.036, loo3_actor_mean_delta: 0.0266}
   clone_s65: {greedy: 0.894, search_e0: 0.860, greedy_pooled_two_orientation: 0.795, seat_asymmetry: 0.198}
   fp_s65_at_100ms: {greedy: 0.388, search_e0: 0.368}
-r4_1_fg_transcript: "<filled at launch sha, before any battle>"
-r4_13_discrimination: "<per lane: mean |v_LOO - v_own| (>= 0.02 required) and argmax-differ fraction (>= 0.05 required), 1000 synthetic points, filled before launch>"
+r4_1_fg_transcript: "2026-08-23 night, launch sha: FG battery re-run green — FG-1/4/5/6/7 PASS; FG-2 0.9092 GREEN per the standing accept-with-named-strata ruling (raw bar 0.98 not met, number unrewritten); FG-2k ko 0.0918 raw, expansion covers; FG-2p 0.6278 OUT-OF-SCOPE; unsimulable 0.0439; fg_battery.json sha256 36f3443dbf47efd26aaf0a0b565384a8865d451ecfe866ff83df84029769dc9d"
+r4_2_fg4_transcript: "2026-08-23 night: FG-4 static PASS (battery); live half: --search-smoke s65 4 battles, 4/4, battle2 sentinel armed throughout, 0 rl/search accesses; R4-8 read on the smoke: ms_mean 81.85 inside [54.9, 91.5] — no dose recompute; leaves_mean 391.1 at n=4 (small-sample, F3 reads the finals)"
+r4_13_selfcheck_note: "R0-c 1000/1000 x4 lanes at launch sha; offline suite 442 passed / 17 skipped (incl. new tests/test_ch3_r4_driver.py); grader selftest green — independent size re-simulation reads P(B1|mu=0)=0.019, P(B2|mu=0)=0.015 at tau=0.025 vs the design sim's 0.016 (implementation variance, same order, both disclosed)"
+r4_13_discrimination:
+  # transcribed 2026-08-23 night, pre-launch (--r4-discrimination, 1000
+  # synthetic points/lane; thresholds mean>=0.02 AND argmax_differ>=0.05):
+  # ALL FOUR LANES PASS with wide margin — the two arms' evaluators are
+  # numerically different objects at the decision level.
+  s62: {mean_abs_diff: 0.4401, argmax_differ_frac: 0.367}
+  s63: {mean_abs_diff: 0.4271, argmax_differ_frac: 0.317}
+  s64: {mean_abs_diff: 0.4619, argmax_differ_frac: 0.358}
+  s65: {mean_abs_diff: 0.5113, argmax_differ_frac: 0.385}
