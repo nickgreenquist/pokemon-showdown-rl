@@ -501,7 +501,7 @@ def test_init_from_loads_before_the_anchor_push(tmp_path, monkeypatch):
     captured = {}
 
     def capture_loop(cfg, envs, eval_env, agent, logger, out_dir,
-                     normalizers, pool, push_every):
+                     normalizers, pool, push_every, resume_state=None):
         captured["agent"], captured["pool"] = agent, pool
 
     monkeypatch.setattr("rl.train._vector_loop", capture_loop)
@@ -537,7 +537,7 @@ def test_init_from_rewinds_the_anneal_schedule(tmp_path, monkeypatch):
     captured = {}
 
     def capture_loop(cfg, envs, eval_env, agent, logger, out_dir,
-                     normalizers, pool, push_every):
+                     normalizers, pool, push_every, resume_state=None):
         captured["agent"] = agent
 
     monkeypatch.setattr("rl.train._vector_loop", capture_loop)
@@ -568,7 +568,7 @@ def test_init_from_rearms_the_critic_warmup(tmp_path, monkeypatch):
     captured = {}
 
     def capture_loop(cfg, envs, eval_env, agent, logger, out_dir,
-                     normalizers, pool, push_every):
+                     normalizers, pool, push_every, resume_state=None):
         captured["agent"] = agent
 
     monkeypatch.setattr("rl.train._vector_loop", capture_loop)

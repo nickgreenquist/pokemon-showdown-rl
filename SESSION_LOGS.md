@@ -5589,3 +5589,32 @@ entry by offset — never a broad keyword grep.
   table's rows except the MC bracket. ch3_rung3.yaml deliberately NOT
   amended while the dose-axis chain and repair still read it; the e-cell
   arms + smoke land after the R3 readout.
+
+- 2026-08-23 (day, cont., **RESUME-FROM-CHECKPOINT BUILT — the standing 24h
+  run-loss item closes; suite 441/17**): `python -m rl.train --resume
+  runs/<dir>` picks a killed run up from its own dir. What was already
+  there: the PPO state_dict has carried optimizer moments + the update
+  counter all along, the lr anneal is keyed off that counter, and same
+  seed + same config reconstructs the identical init so the l2 theta0
+  guard verifies EXACTLY on resume. What was missing and is now built:
+  (1) SnapshotPool.state_dict/load_state_dict — members (actor+critic),
+  per-member torch generator STATE (consumed draws don't replay), PFSP
+  stats, push ids; pool.pt saved beside checkpoint.pt at every latest-
+  checkpoint boundary (write-then-rename, ~4-8 MB/member); (2)
+  save_checkpoint `extras` — checkpoint.pt now carries {"loop":
+  {best_eval, updates_done}} so best_checkpoint stays monotone across
+  the seam and the push cadence keeps phase; (3) the resume path in
+  train()/main(): config/seed/run-name come FROM THE RUN DIR (flags
+  refused — a resume can never silently change the experiment; the
+  checkpoint's stored config must equal config.yaml, asserted), meta.yaml
+  gains an appended `resumes` stamp without losing the original,
+  begin_warm_start deliberately NOT called. NAMED LIMITS: vectorized loop
+  only; W&B starts a new offline segment (history spans two run dirs);
+  env reset streams restart (battles are server-rolled — inert on
+  Showdown); a PRE-resume-era run dir has no pool.pt — the pool reseeds
+  from the resumed weights with a loud disclosure (winrate_anchor
+  restarts). Tests: pool round-trip incl. eviction + generator streams,
+  extras round-trip, config-drift refusal, and an end-to-end kill/resume
+  on the Connect4 self-play harness (killed at an eval boundary, resumes,
+  completes, meta stamped). Three pre-existing _vector_loop stubs updated
+  for the new resume_state param.

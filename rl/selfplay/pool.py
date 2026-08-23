@@ -237,6 +237,56 @@ class SnapshotPool(Opponent):
     def move(self, obs: np.ndarray, mask: np.ndarray, rng: np.random.Generator) -> int:
         raise TypeError("the pool never plays; select() returns the member that does")
 
+    def state_dict(self) -> dict:
+        """Everything a resumed run needs to reconstruct THIS pool exactly:
+        member networks (actor + critic — a member's play reads only the
+        actor, the critic rides so a member restores to what push() froze),
+        per-member torch generator STATE (not just its seed: draws already
+        consumed must not replay), PFSP stats, push ids, lifetime counter.
+        The learner's own weights are the checkpoint's job, not the pool's."""
+        return {
+            "pool_size": self.pool_size,
+            "latest_prob": self.latest_prob,
+            "pfsp_power": self.pfsp_power,
+            "fixed_mix": self.fixed_mix,
+            "pushes": self.pushes,
+            "push_ids": list(self.push_ids),
+            "stats": [list(s) for s in self.stats],
+            "members": [
+                {
+                    "actor": m.agent.actor.state_dict(),
+                    "critic": m.agent.critic.state_dict(),
+                    "generator": m.generator.get_state(),
+                }
+                for m in self.members
+            ],
+        }
+
+    def load_state_dict(self, state: dict, agent_factory) -> None:
+        """Rebuild members via `agent_factory` (a zero-arg callable returning
+        a freshly constructed learner-shaped agent). Restores membership,
+        stats, weights and generator streams; refresh() re-derives the PFSP
+        weights from the restored counts."""
+        for key in ("pool_size", "latest_prob", "pfsp_power", "fixed_mix"):
+            got, want = getattr(self, key), state[key]
+            assert got == want, (
+                f"pool {key} mismatch on resume: constructed {got}, "
+                f"checkpoint {want} — the pool config must come from the "
+                "run's own config.yaml"
+            )
+        self.members, self.stats = [], []
+        self.push_ids = list(state["push_ids"])
+        self.pushes = state["pushes"]
+        for mstate, push_id in zip(state["members"], self.push_ids):
+            member = AgentOpponent(agent_factory(), seed=push_id)
+            member.agent.actor.load_state_dict(mstate["actor"])
+            member.agent.critic.load_state_dict(mstate["critic"])
+            member.generator.set_state(mstate["generator"])
+            member.freeze()
+            self.members.append(member)
+        self.stats = [list(s) for s in state["stats"]]
+        self.refresh()
+
     def freeze(self) -> None:
         """No-op on purpose: members are frozen one by one at push(), which
         is their install point. The env still calls this when the pool is

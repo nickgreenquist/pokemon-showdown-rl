@@ -211,7 +211,7 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
     torch.save(agent.theta0_state(), path)
 
 
-def train(cfg: Config) -> None:
+def train(cfg: Config, resume_dir: Path | None = None) -> None:
     # First, before any tensor work (config.py explains the default of 1).
     # Belt-and-suspenders: OMP_NUM_THREADS=1 at launch also binds the OpenMP
     # runtime itself, which is sized before this call can run.
@@ -368,13 +368,65 @@ def train(cfg: Config) -> None:
         # instead of resuming the donor's finished schedule at lr ~0.
         agent.begin_warm_start()
     out_dir = run_dir(cfg)
-    # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
-    _write_run_metadata(out_dir, cfg, agent)
+    resume_state: dict | None = None
+    if resume_dir is not None:
+        # RESUME (2026-08-23, the 24h run-loss bar): pick a killed run back
+        # up from its own dir. Constructed from the run's OWN config.yaml
+        # (main() enforces), same seed -> same init, same usernames, and the
+        # l2 theta0 guard below re-derives identical anchors and verifies.
+        # NOT a warm start: begin_warm_start() is deliberately not called —
+        # optimizer moments and the update counter come back from the
+        # checkpoint and the lr anneal resumes its own schedule.
+        assert vectorized, "resume supports the vectorized loop only"
+        assert Path(out_dir).resolve() == Path(resume_dir).resolve(), (
+            f"resume dir {resume_dir} != run dir {out_dir} (run_name drift?)"
+        )
+        ckpt = load_checkpoint(Path(resume_dir) / "checkpoint.pt")
+        assert ckpt["config"] == asdict(cfg), (
+            "checkpoint config != run config.yaml — a resume must not "
+            "silently change the experiment"
+        )
+        agent.load_state_dict(ckpt["agent"])
+        for name, rms in (normalizers or {}).items():
+            if "normalizers" in ckpt and name in ckpt["normalizers"]:
+                rms.load_state_dict(ckpt["normalizers"][name])
+        resume_state = {"step": ckpt["step"], **ckpt.get("loop", {})}
+        # Provenance: append to meta.yaml rather than rewriting it — the
+        # original stamp (started_at, launch sha) must survive the seam.
+        meta_path = out_dir / "meta.yaml"
+        meta = yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
+        meta.setdefault("resumes", []).append({
+            "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "from_step": int(ckpt["step"]),
+        })
+        meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
+        print(f"RESUME: {cfg.run_name} from step {ckpt['step']} "
+              f"(best_eval {resume_state.get('best_eval')})")
+    else:
+        # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
+        _write_run_metadata(out_dir, cfg, agent)
     # No-op unless l2_init_decay > 0; raises before a single step is collected
     # if the run dir's anchors disagree with this construction.
     _ensure_theta0(agent, out_dir, cfg)
     logger = make_logger(cfg)
-    if pool is not None:
+    if pool is not None and resume_dir is not None:
+        pool_path = Path(resume_dir) / "pool.pt"
+        if pool_path.exists():
+            pool.load_state_dict(
+                torch.load(pool_path, weights_only=False),
+                agent_factory=lambda: make_agent(cfg, env),
+            )
+            logger.log({"selfplay/pool_size": len(pool)}, resume_state["step"])
+        else:
+            # Pre-resume-era run dir: no pool snapshot exists. DISCLOSED
+            # approximation — the pool restarts seeded with the RESUMED
+            # weights (not the step-0 init): training stays sane, but the
+            # winrate_anchor series restarts against a new anchor.
+            print("RESUME: no pool.pt — pool reseeded from the resumed "
+                  "weights (winrate_anchor restarts; disclosed)")
+            pool.push(agent)
+            logger.log({"selfplay/pool_size": len(pool)}, resume_state["step"])
+    elif pool is not None:
         # Before the loop: _vector_loop's first statement is envs.reset(),
         # which draws an opponent per sub-env, and select() on an empty pool
         # raises. The step-0 snapshot is also the naive arm's starting
@@ -383,7 +435,8 @@ def train(cfg: Config) -> None:
         logger.log({"selfplay/pool_size": len(pool)}, 0)
 
     if vectorized:
-        _vector_loop(cfg, env, eval_env, agent, logger, out_dir, normalizers, pool, push_every)
+        _vector_loop(cfg, env, eval_env, agent, logger, out_dir, normalizers, pool,
+                     push_every, resume_state)
     else:
         _scalar_loop(cfg, env, eval_env, agent, logger, out_dir)
 
@@ -497,6 +550,7 @@ def _vector_loop(
     normalizers: dict[str, RunningMeanStd] | None = None,
     pool: SnapshotPool | None = None,
     push_every: int = 0,
+    resume_state: dict | None = None,
 ) -> None:
     """N lockstep envs, batched transitions — vectorized (on-policy) agents.
 
@@ -511,12 +565,17 @@ def _vector_loop(
     obs, infos = envs.reset(seed=cfg.seed)  # gymnasium seeds sub-env i with seed + i
     masks = infos.get("action_mask")  # (N, A); None only for continuous envs
     privs = infos.get("privileged")  # (N, PRIV_DIM); None unless the env emits it (D18)
-    best_eval = float("-inf")
+    # Resume (resume_state from the run's own checkpoint.pt): the loop picks
+    # up at the saved step; eval/checkpoint thresholds re-derive from it; a
+    # stale best_eval keeps best_checkpoint.pt monotone across the seam.
+    rs = resume_state or {}
+    best_eval = rs.get("best_eval", float("-inf"))
     ep_returns = np.zeros(num_envs)
     ep_lengths = np.zeros(num_envs, dtype=np.int64)
-    step, next_eval = 0, cfg.eval_every
-    updates_done = 0
-    last_step, last_time = 0, time.perf_counter()
+    step = rs.get("step", 0)
+    next_eval = (step // cfg.eval_every + 1) * cfg.eval_every
+    updates_done = rs.get("updates_done", 0)
+    last_step, last_time = step, time.perf_counter()
     # Loop split, accumulated per step and flushed per rollout: act+step vs
     # update. steps_per_sec says how fast the loop runs; these say where the
     # time goes, which is the thing a throughput decision needs.
@@ -526,7 +585,9 @@ def _vector_loop(
     # `step % checkpoint_every == 0` would silently write 3 rungs where 9 were
     # asked for. The while-loop advance also survives a stride that skips a
     # whole threshold.
-    next_ckpt = cfg.checkpoint_every
+    next_ckpt = 0
+    if cfg.checkpoint_every:
+        next_ckpt = (step // cfg.checkpoint_every + 1) * cfg.checkpoint_every
 
     # Step advances num_envs at a time, so the run ends at the first multiple
     # of num_envs >= total_steps, and evals fire on crossing each threshold
@@ -660,19 +721,49 @@ def _vector_loop(
             if metrics["eval/return_mean"] > best_eval:
                 best_eval = metrics["eval/return_mean"]
                 save_checkpoint(out_dir / "best_checkpoint.pt", agent, step, cfg, normalizers)
-            save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers)
+            loop_extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
+            save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers,
+                            extras=loop_extras)
+            if pool is not None:
+                # The pool snapshot pairs with checkpoint.pt (same boundary,
+                # same write-then-rename discipline): a resume needs both or
+                # it silently restarts the opponent curriculum.
+                tmp = out_dir / "pool.pt.tmp"
+                torch.save(pool.state_dict(), tmp)
+                tmp.replace(out_dir / "pool.pt")
 
-    save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers)
+    loop_extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
+    save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers,
+                    extras=loop_extras)
+    if pool is not None:
+        tmp = out_dir / "pool.pt.tmp"
+        torch.save(pool.state_dict(), tmp)
+        tmp.replace(out_dir / "pool.pt")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", required=True, help="path to a run YAML")
+    parser.add_argument("--config", help="path to a run YAML (fresh runs)")
     # Overrides for the multi-seed benchmark protocol: same YAML, N seeds,
     # each under its own run name.
     parser.add_argument("--seed", type=int, default=None, help="override the config seed")
     parser.add_argument("--run-name", default=None, help="override the config run_name")
+    parser.add_argument(
+        "--resume", metavar="RUN_DIR",
+        help="resume a killed run from its dir: config/seed/run-name come "
+        "from RUN_DIR/config.yaml (the flags above are refused so a resume "
+        "can never silently change the experiment)",
+    )
     args = parser.parse_args()
+    if args.resume:
+        assert not (args.config or args.seed is not None or args.run_name), (
+            "--resume takes its config, seed and run name from the run dir"
+        )
+        run_path = Path(args.resume)
+        cfg = load_config(run_path / "config.yaml")
+        train(cfg, resume_dir=run_path)
+        return
+    assert args.config, "--config is required for a fresh run"
     cfg = load_config(args.config)
     if args.seed is not None:
         cfg.seed = args.seed
