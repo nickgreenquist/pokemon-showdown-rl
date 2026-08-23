@@ -1,0 +1,55 @@
+# =====================================================================
+# CH3 R3 — EVALUATOR/INSTRUMENT CELLS (screen grade). NON-CREDITING.
+# Pre-registered 2026-08-23 BEFORE any e-cell battle ran; REGISTERED as
+#   the executable half of ch3_rung3.yaml's pending_cells now that the
+#   dial machinery exists (rl/search evaluator seam, suite 441/17; the
+#   E0/None path is bit-identical to R2 by test).
+# PROTOCOL (design §4 R3 verbatim): screen grade, 2 lanes x 1000 each,
+#   +/-2 binomial ~= +/-0.028 — "descriptive, bands read as directional
+#   color, never verdicts". E2 resolves only >= ~0.028 at this n
+#   (MF-17 honest sizing); the pre-priced upgrade (E2 sigma=0.2 at
+#   4x3000) stays maintainer-buyable at readout.
+# LANES (pre-stated rule): the A1S median pair s63/s65 — the same
+#   median logic the falsifier pre-stated, extended to a pair for the
+#   2-lane screen. Dose M throughout (the credited configuration).
+# CELLS RUN HERE: E2 noise sigma 0.1 / 0.2 / 0.4 (compute-confound
+#   instrument); E3 LOO 3-lane critic ensemble (pure, zero training);
+#   OPPACT ABLATION (uniform over the L6 classes — the first
+#   inference-time measurement of the credited head's contribution).
+# NOT here: MC-leaf + lambda-blend (blocked on policy playouts inside
+#   engine States — a State->obs reverse bridge; options to the
+#   maintainer, named 2026-08-23, non-blocking); ORACLE-TEAM runs from
+#   its own BARRED binary (scripts/ch3_oracle_diag.py), never from this
+#   driver, and its numbers never enter this file's readout.
+# READING TABLE (design §4 R3): the screen's slope d(win)/d(evaluator
+#   quality) at the operating point — E0 (dose-axis @M rungs, reused
+#   from ch3_rung3's readout) vs E2's sigma ladder vs E3. Rising at E0
+#   -> the value head binds (evaluator is the next lever; feeds the
+#   §13 re-trigger conversation). Flat across E0/E2(0.2) -> evaluation
+#   quality is not the constraint. OPPACT ablation reads directly: E0
+#   minus ablated = what the credited head buys at inference (its
+#   vs-SH sh_accuracy was only marginally above chance — this is the
+#   decision-level test of that confound).
+# F-GATES: driver preflight (sha/simulator); R2-5 exact per chunk
+#   (grader-checked); timeouts 0; leaves_mean RECORDED per cell (the E2
+#   determinization-replay property is guaranteed by the salted-stream
+#   test, not re-derived here). SCHEDULING: runs only after the FP
+#   budget ladder finishes (box uncontended, same discipline as the
+#   dose axis).
+# Cost: 5 cells x 2 lanes x 1000 at ~3.1 s/battle ~= 8.6 h sequential,
+#   ~2.2 h at 4-wide; chunks 5x200, resumable.
+# =====================================================================
+results_dir: results/ch3_r3_ecells
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+arms:
+  E2A: {kind: search, lanes: [s63, s65], dose: M, battles: 1000, chunks: 5, letter_bearing: false, evaluator: {kind: noise, sigma: 0.1}}
+  E2B: {kind: search, lanes: [s63, s65], dose: M, battles: 1000, chunks: 5, letter_bearing: false, evaluator: {kind: noise, sigma: 0.2}}
+  E2C: {kind: search, lanes: [s63, s65], dose: M, battles: 1000, chunks: 5, letter_bearing: false, evaluator: {kind: noise, sigma: 0.4}}
+  E3L: {kind: search, lanes: [s63, s65], dose: M, battles: 1000, chunks: 5, letter_bearing: false, evaluator: {kind: loo, pool: [s62, s63, s64, s65]}}
+  OPA: {kind: search, lanes: [s63, s65], dose: M, battles: 1000, chunks: 5, letter_bearing: false, evaluator: {kind: oppact_uniform}}
+anchors:
+  e0_m_per_lane: {s63: 0.79300, s65: 0.79233}
