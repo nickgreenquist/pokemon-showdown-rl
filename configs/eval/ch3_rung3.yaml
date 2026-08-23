@@ -1,0 +1,108 @@
+# =====================================================================
+# CH3 RUNG 3 — THE MECHANISM GRID (why, not whether).
+# NON-CREDITING THROUGHOUT (design MF-7: no R3 cell can produce a
+#   credit; any new credit claim needs a fresh R4-family pre-reg, own
+#   yaml, own ratification. Dose M's R2 read STANDS and is never
+#   re-read against R3's comparator).
+# Status: REGISTERED 2026-08-23 (transcribed from the RATIFIED chapter
+#   design, results/design_ch3/ch3_search_design_r2.md §4 R3, before
+#   any R3 battle ran; launched by the R2 B1 branch, which fires R3
+#   regardless of the falsifier's P2 — the P2 finding travels as
+#   context, not as a gate). DOSE AXIS ONLY in this file's executable
+#   arms; the EVALUATOR/INSTRUMENT cells (E2 noise dial, E3 LOO
+#   ensemble, MC-leaf bracket, lambda-blend, oppact ablation, oracle-
+#   team diagnostic) are transcribed as NAMED PENDING CELLS below —
+#   their rl/search machinery does not exist yet (verified 2026-08-23:
+#   no noise/MC/LOO/blend/ablation code under rl/search/) and building
+#   verdict-adjacent search code unreviewed overnight is out of scope
+#   for an autonomous block. They run after the dials are built and
+#   smoked, same screen-grade protocol, this same file governs.
+# ---------------------------------------------------------------------
+# DOSE AXIS (design §4 R3 verbatim): A0 fresh; SEARCH@S; SEARCH@M
+#   REUSED from R2 (condition "sha unchanged" VERIFIED and met:
+#   rl/ subtree d769781f7b3a8ecc59211758705c840d25de51de, driver
+#   scripts/ch3_eval.py 0145dd996c45bdd3d4e8fc0ae5dde125f48932d6, and
+#   configs/eval/ch3_rung2.yaml cfa44b6acfb98cd8024959f8a742cdb81c50b822
+#   are IDENTICAL at the R2 launch sha 0ec9bfa and at this file's
+#   commit; checkpoint sha256s pinned below are the same four files) —
+#   per-lane finals read from results/ch3_r2/a1s_*.final.json;
+#   SEARCH@L fresh. 4 lanes x 3000 per fresh arm, 10x300 chunks,
+#   chunk-resumable, SF-13 chunk-0 sentinel automatic in the driver.
+# PRIMARY (MF-5): the TWO SEGMENT CONTRASTS, per lane then equal-weight
+#   mean over the 4 lanes: seg1_i = wr_M,i - wr_S,i; seg2_i = wr_L,i -
+#   wr_M,i. Band = +0.0125 per segment (minimum meaningful response:
+#   +0.025 across the full ladder). se_seg = clustered sd(seg_i)/sqrt(4)
+#   per segment. CELLS, sides named, evaluated on BOTH segments; the
+#   LANDING cell by pre-stated precedence T3 > T1 > T2a > T2b, with
+#   every true predicate reported (these cells are not a partition of
+#   the (seg1, seg2) plane; precedence + full disclosure is the
+#   pre-registered resolution):
+#   T1 DEPTH/DOSE-LIMITED (upper): seg2 >= max(0.0125, 2*se_seg2) —
+#      still buying at the top. Action: an R4-family pre-reg MAY be
+#      proposed; nothing launches from this file.
+#   T2a RESOLVED-NULL (MF-6): BOTH segment CIs (mean +/- 2*se_seg)
+#      exclude +0.0125 from below -> licensed bound sentence: "one-ply
+#      search over our own heads does not gain >= +0.025 more anywhere
+#      on S->L (realized leaves recorded below)". Reachability stated
+#      up front: needs se_seg <= ~0.006; if unreached, T2b lands and NO
+#      bound is published.
+#   T2b INDETERMINATE: a CI contains both 0 and +0.0125 -> "the dose
+#      ladder did not resolve a slope at this power", CI quoted.
+#   T3 VALUE-LIMITED / SEARCH-PATHOLOGY (lower): either seg <=
+#      -max(0.0125, 2*se_seg) — more search made it worse
+#      (correlated-evaluator amplification, Beal/Nau). Chapter closes
+#      on the diagnosis with §7 instruments as evidence.
+# F-GATES (before any cell is read; any firing -> VOID that arm):
+#   F1 driver preflight fails (sha/simulator).
+#   F2 R2-5 exact: win_rate == wins_from_returns on EVERY chunk file.
+#   F3 search-searched, @M-band only where a baseline exists: fresh @M
+#      never runs unless F5 fires; @S and @L have NO realized-leaves
+#      baseline — their leaves_mean/ms_mean are RECORDED and BECOME the
+#      baselines (named up front; timeouts must be 0 after diagnosis
+#      per R2 F3's clause; placeholder skips excluded from means,
+#      rates reported).
+#   F4 era: pooled |A0_fresh - 0.72358| > 0.02 -> the @M REUSE is VOID
+#      (its comparator era broke); @M re-runs fresh and is priced.
+#   F5 any pinned sha mismatch at grade time -> VOID, re-run @M fresh.
+#   CONTENTION DISCLOSURE, up front: the runner delays its start until
+#   the FP h2h (same night) finishes, so no arm shares the box with
+#   another battle workload; ms stats are read under that condition.
+# SECONDARY (recorded, never governing): flip_rate per dose (does
+#   flipping rise with dose), placeholder_skip_rate per dose (10.8% vs
+#   clone / 9.1% vs FP / 4.4-5.8% vs SH so far — the off-SH elevation
+#   is a named observation, not a claim), ms_mean/leaves_mean per dose,
+#   Delta_S/Delta_M/Delta_L vs fresh A0 per lane (the levels behind the
+#   segments), A0 pooled vs the 0.72358/0.71825 anchors.
+# NON-CREDITING record obligation per cell: STATUS one-liner + session
+#   log entry; README untouched by any R3 cell (MF-7); the P2 caveat
+#   ruling owns README wording.
+# LEDGER: A0 ~35 min 4-wide; @S ~1h 4-wide (est., no baseline); @L
+#   ~8h 4-wide (est. ~4x M's 2.6h; recorded, not gated). Grader:
+#   scripts/ch3_r3_grade.py (clean tree enforced, prereg+git sha
+#   stamped, cells machine-evaluated, precedence applied, all true
+#   predicates printed).
+# burns_training_seeds: false — chapter 3 trains nothing.
+# =====================================================================
+results_dir: results/ch3_r3
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+arms:
+  A0R3: {kind: policy, lanes: [s62, s63, s64, s65], battles: 3000, chunks: 10, letter_bearing: false}
+  A1SS: {kind: search, lanes: [s62, s63, s64, s65], dose: S, battles: 3000, chunks: 10, letter_bearing: false}
+  A1SL: {kind: search, lanes: [s62, s63, s64, s65], dose: L, battles: 3000, chunks: 10, letter_bearing: false}
+reused_m:
+  source: results/ch3_r2
+  finals: [a1s_s62.final.json, a1s_s63.final.json, a1s_s64.final.json, a1s_s65.final.json]
+  condition: "rl/ subtree + driver + rung2 yaml byte-identical at 0ec9bfa and at this commit; checkpoints sha-pinned above; F4 era gate on fresh A0"
+anchors:
+  a0_r2_pooled: 0.72358
+  d26_banked: 0.71825
+  m_r2_per_lane: {s62: 0.78200, s63: 0.79300, s64: 0.80400, s65: 0.79233}
+segment_band: 0.0125
+pending_cells:
+  evaluator_instruments: [e2_noise_sigma_0.1_0.2_0.4, e3_loo_ensemble, mc_leaf_matched_budget, lambda_blend_0.25_0.5, oppact_ablation_uniform, oracle_team_contained]
+  protocol: "screen grade, 2 lanes x 1000, +/-2 binomial ~= 0.028, directional color never verdicts; oracle-team BARRED from README/STATUS/headlines"
+  blocked_on: "rl/search dial machinery (not built as of 2026-08-23)"
