@@ -5538,3 +5538,27 @@ entry by offset — never a broad keyword grep.
   0.124 → 0.172 → **0.388 greedy** — D26's training gains transfer to
   the strongest anchor; search's do not. R3 dose axis LAUNCHED
   automatically on fs.json (A0 chunking on all 4 lanes at entry time).
+
+- 2026-08-23 (morning, **THE THREE RULINGS LAND — P2 caveat (c) EXECUTED,
+  D7(a) deferral-until-ready, §13 RETIRED with named re-triggers; push
+  authorized**): maintainer, verbatim: "Rec: (c), as for ladder: its
+  still going to happen, we just dont need to do it until we think we
+  are ready, Rec: (a) and once we have a ladder ready model THEN we can
+  try a 120 or 250M run just to see if we squeeze more from it.
+  summary: ladder still will happen, but why waste time until we have
+  exhausted models playing against SH and FP. huge runs can still be
+  usefull but ONLY for things we might think are truly ready (or if we
+  relaly see training is still climing in logs). push what we have
+  after." EXECUTED: (1) P2 caveat option (c) — README R2 row now
+  carries the SH-facing caveat sentence (s65-lane scope named) plus two
+  new anchor rows (clone h2h 0.894/0.860/0.795, FP h2h 0.388/0.368);
+  (2) D7(a) — ladder execution DEFERRED-UNTIL-READY (readiness =
+  maintainer judges the models exhausted vs the SH and FP anchors);
+  neither text retired: CLAUDE.md's landmine reworded to carry the
+  ruling instead of the contradiction (and its stale "~20 Elo BELOW
+  SH" claim removed); (3) DESIGN §13 status flipped PROPOSED ->
+  RETIRED with the two named re-triggers (ladder-ready polish run;
+  training logs still climbing) and the budget arithmetic kept as
+  decision inputs. R3 dose axis still running at ruling time (A0 +
+  3/4 @S lanes + @L in flight; a1ss_s62 repair queued behind the
+  chain). Push follows this commit.

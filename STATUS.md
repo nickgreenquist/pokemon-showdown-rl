@@ -8,8 +8,8 @@ greedy 0.894, transfer > +0.008 excluded ~95%) AND Foul Play h2h P2 (0.368 vs
 0.388, n=250/arm) while the same config gains +0.081 vs SH. Headline 0.79283
 KEEPS its number, OWES the caveat — WORDING AWAITS MAINTAINER RULING, README
 untouched. D26 GREEDY itself transfers everywhere: clone trail 0.657→0.719→
-0.795, FP -against trail 0.124→0.172→0.388. R3 dose axis RUNNING overnight
-(A0 → @S → @L, 4-wide; grade with scripts/ch3_r3_grade.py when done)**)
+0.795, FP -against trail 0.124→0.172→0.388. R3 dose axis RUNNING
+(grade with scripts/ch3_r3_grade.py when done). THREE RULINGS EXECUTED**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
 0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** CH3 ratified
@@ -24,25 +24,24 @@ debt (owed at >=0.6435, never run at its readout) discharged tonight: PASSES.
 | R2 12M 0.5509 · R3 50M 0.5802 · D25 aux 0.6185 · placebo 0.5415 | — |
 | **D26 +LR anneal 12M — B1 CREDIT, HEADLINE** (+0.0998, p 1/126) | **0.71825** |
 | D29r2 50M R-A · D28 A1 "not sealed" 0.52240 · R0 ensemble 0.74633 | 0.70222 |
-| **CH3 R2 search@M — B1 CREDIT, NEW BEST; P2 caveat pending ruling** | **0.79283** |
+| **CH3 R2 search@M — B1 CREDIT, NEW BEST; P2 caveat in README per (c)** | **0.79283** |
 | s65 vs BC clone: greedy 0.894 / search@M 0.860 / G pooled 0.795 | — |
 | s65 vs Foul Play (n=250/arm): greedy 0.388 / search@M 0.368 | — |
 
 ## Next actions
-1. **Maintainer rulings owed (morning)**: (a) P2 caveat wording for the
-   0.79283 headline (draft in the 08-23 falsifier log entry; now backed by
-   TWO anchors); (b) D7(a) ladder contradiction (options + rec (3) in the
-   08-23 memo entry); (c) standing: §13/250M futility (rec RETIRE).
-2. **R3 readout** when the overnight chain finishes: clean tree, then
+1. **RULINGS EXECUTED 2026-08-23**: P2 caveat (c) in README (+2 anchor rows);
+   D7(a) ladder = DEFERRED-UNTIL-READY (ready = models exhausted vs SH+FP
+   anchors; CLAUDE.md landmine reworded); DESIGN §13 RETIRED with named
+   re-triggers (ladder-ready polish run / logs still climbing). Pushed.
+2. **R3 readout** when the chain + a1ss_s62 repair finish: clean tree, then
    `python scripts/ch3_r3_grade.py` (NON-CREDITING; cells T1/T2a/T2b/T3).
    E-cells (noise/MC-leaf/LOO/blend/oppact-ablation/oracle) are PENDING on
    rl/search dial machinery — named in configs/eval/ch3_rung3.yaml.
-3. Push: 8+ local commits since last push — ask first (standing rule).
-4. Standing: resume-from-checkpoint (24h bar).
+3. Standing: resume-from-checkpoint (24h bar).
 
 ## Watch items
-- **P2 does NOT retract the R2 credit** — the sentence stands; its scope is
-  SH-facing until ruled. Never quote 0.79283 without the caveat once worded.
+- **P2 does NOT retract the R2 credit** — but never quote 0.79283 without
+  its README caveat (SH-facing, s65-lane scope).
 - FP numbers are "Foul Play + our patches" (always quoted so); FS attempt-1
   hit a poke-engine panic (Invalid PokemonMoveIndex: 4, gen1 5th-move state)
   — rerun was clean; crash-forfeit read rule pre-stated in the log.

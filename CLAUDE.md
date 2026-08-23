@@ -42,11 +42,13 @@ Session start: read `HANDOFF.md` only if non-empty (mid-handoff — fold anythin
 - **Changing `OBS_DIM` invalidates every existing checkpoint.** Evaluate all outstanding finals before any encoder change lands.
 - **`eval/win_rate` comes from env-supplied `info["outcome"] ∈ {-1,0,+1}`, never the sign of the return** — a reward-sign inversion would report 100% and pass its own detector (measured). Both `scripts/score_ladder.py` and `scripts/eval_checkpoint.py` report the env-supplied `win_rate` (the latter since 2026-08-05, with `wins_from_returns` kept only as the sign-bug cross-check — they must agree).
 - **Commit docs BEFORE launching runs; launch from a clean tree.** Launches stamp `git_dirty`; one untracked `.md` flips it (measured: dirtied 8 of 9 runs once). Never edit the tree — even untracked files — while the maintainer may be launching.
-- **vs-SH parity is NOT "done" — it is ~40% GXE.** SH itself scores 39.7%/41.2% GXE on the
-  gen7/gen9 randbats ladders (Metamon Table 2), the published pure-policy randbats field
-  starts at 72%, and our best agent is ~20 Elo BELOW SH. Do not read the 0.489 mirror ceiling
-  as "nearly solved," and do not propose a real-ladder eval to find out — the result is
-  predictable from vs-SH. Full conversion + caveats at the top of `prior_work/README.md`.
+- **vs-SH numbers are NOT ladder numbers — the board is ~40% GXE territory.** SH itself
+  scores 39.7%/41.2% GXE on the gen7/gen9 randbats ladders (Metamon Table 2); the published
+  pure-policy randbats field starts at 72%. The 2026-08-23 falsifier showed vs-SH gains can
+  be SH-facing (search@M: +0.081 vs SH, negative vs clone AND vs Foul Play). **Ladder
+  execution WILL happen but is deferred by ruling (2026-08-23) until the maintainer judges
+  the models ready — i.e. exhausted against the SH and Foul Play anchors — so do not
+  propose it before then.** Full conversion + caveats at the top of `prior_work/README.md`.
 - `scripts/showdown_throughput.py` measures server-side decisions/s only — collection-only numbers overstate full-loop gains ~7×, and it hardcodes `[64,64]` where production is `[512,512]`. Anything quoted from it must carry its network width.
 
 ## Conventions (they earned their place)

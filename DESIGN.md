@@ -817,9 +817,20 @@ is noted for whenever Arm C is re-read. SimBa block (obs-norm+residual+LayerNorm
 rides only with a future trunk change, never alone mid-chapter.
 
 
-## 13. The 250M budget memo (PROPOSED 2026-08-11 — decision inputs only, no launch)
+## 13. The 250M budget memo (RETIRED 2026-08-23 by maintainer ruling)
 
-**Status: DRAFTED 2026-08-11 (evening, D18 lanes running). Nothing here is a
+**Status: RETIRED 2026-08-23 (maintainer, verbatim: "huge runs can still be
+usefull but ONLY for things we might think are truly ready (or if we relaly
+see training is still climing in logs)"). The 250M line does not launch on
+the current evidence — D29r2's R-B read scale FLAT at 50M and only
+inference-time levers have moved the headline since D26. NAMED RE-TRIGGERS,
+per the same ruling: (1) a ladder-ready model exists and the maintainer
+wants to "squeeze more from it" (a 120M/250M run becomes a deliberate
+polish step, not a lever probe); (2) training logs on a live run are still
+clearly climbing at the horizon. The budget arithmetic below is kept as
+decision inputs for that day. Superseded text follows unchanged:**
+
+**Original status: DRAFTED 2026-08-11 (evening, D18 lanes running). Nothing here is a
 decision: Rung 3's own pre-registration makes the 12M→50M delta the purchase
 input and D18's readout reshapes the lever question. This section makes the
 250M quote HONEST when the chapter asks for it. It supersedes Rung 3's stale
