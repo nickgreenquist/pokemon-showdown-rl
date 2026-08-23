@@ -5707,3 +5707,23 @@ entry by offset — never a broad keyword grep.
   named-file read corrected it — second same-day occurrence, so the
   rule graduates to a convention: NEVER quote per-lane/per-arm numbers
   from unsorted multi-file grep output; read named files.
+
+- 2026-08-23 (late evening, **HANDOFF FOLDED + RULING (b) RECORDED:
+  MC-LEAF/LAMBDA-BLEND DROPPED — the State->obs reverse bridge is not
+  built; R4 ensemble-critic design cycle APPROVED and starting**):
+  session opened at the R3-complete boundary (HANDOFF cf2fd46, now
+  restored to the empty stub). Maintainer decisions from the 08-23
+  evening session, now on the record: (a) R4 ensemble-critic pre-reg
+  APPROVED TO DESIGN — a LETTER-BEARING credit test of depth-1
+  search@M with an ensemble-critic evaluator (pure, zero training;
+  E3's +0.036 screen-grade directional at the credited dose); the
+  2-Opus design cycle runs this session, fresh pre-reg + maintainer
+  ratification required before any battle, the ANCHOR BATTERY
+  mandatory (locked SH + clone 500 + FP@100 250 — after P2, off-SH
+  transfer is THE question). (b) MC-LEAF/LAMBDA-BLEND DROPPED
+  (maintainer: "agree with both", concurring with the drop
+  recommendation) — the R3 remainder is closed WITHOUT building the
+  State->obs reverse bridge; pending_cells for it are dead, no options
+  memo owed. Still queued, unchanged: oracle-team diag (BARRED binary,
+  built, unrun, ~35 min); E2(sigma=0.2) at 4x3000 stays
+  maintainer-buyable.
