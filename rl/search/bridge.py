@@ -41,6 +41,27 @@ from poke_engine import Side, State
 
 from rl.envs import randbats_prior
 
+# R3 oracle-team diagnostic ONLY (design §4 R3, D18-privileged discipline).
+# Nothing in rl/search ever reads the opponent seat's battle object — the
+# oracle det is BUILT by the
+# separate diagnostic binary and injected; this flag only lets its "oracle"
+# provenance through the FG-4 assert, and flipping it prints the banner.
+_FG4_DISARMED = False
+
+
+def fg4_disarm() -> None:
+    """Loudly disarm FG-4 for the CONTAINED oracle-team diagnostic. Numbers
+    produced under this flag are BARRED from README/STATUS/headlines."""
+    global _FG4_DISARMED
+    _FG4_DISARMED = True
+    print(
+        "=" * 72
+        + "\nFG-4 DISARMED: oracle-team diagnostic. Every number produced in"
+        "\nthis process is DIAGNOSTIC-ONLY — barred from README/STATUS/"
+        "\nheadlines (design §4 R3, D18-privileged discipline).\n"
+        + "=" * 72
+    )
+
 # The engine's gen1 PokemonVolatileStatus variants we may emit, lowercased
 # (from_str is case-insensitive lowercase; pinned subset of the enum in
 # poke-engine 0.0.48 src/gen1/state.rs).
@@ -340,8 +361,14 @@ def battle_to_state(battle: Any, determinization: dict,
     for species, spec in determinization["opponents"].items():
         # FG-4: every generated mon must carry RSD provenance — a spec that
         # arrived from anywhere but the determinizer is a purity incident.
-        assert spec.get("provenance") == "rsd", (
+        # The ONE exception is R3's CONTAINED oracle-team diagnostic
+        # (design §4 R3): "oracle" provenance passes ONLY while the caller
+        # has loudly disarmed FG-4 via fg4_disarm() — a separate binary
+        # whose numbers are BARRED from README/STATUS/headlines.
+        prov = spec.get("provenance")
+        assert prov == "rsd" or (prov == "oracle" and _FG4_DISARMED), (
             f"opponent spec for {species} lacks RSD provenance"
+            + (" (oracle spec without fg4_disarm())" if prov == "oracle" else "")
         )
         live = spec.get("live")  # the poke-env mon if revealed
         t_override = _transform_stats_override(battle, live)

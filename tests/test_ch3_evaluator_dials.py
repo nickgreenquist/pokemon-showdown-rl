@@ -118,9 +118,10 @@ def test_oppact_uniform_substitutes_q_but_records_real_entropy(monkeypatch):
     captured = {}
     real_solve = agent_mod.solve_decision
 
-    def spy(battle, mask, q, prior, dose, rng, critic_fn, type_chart):
+    def spy(battle, mask, q, prior, dose, rng, critic_fn, type_chart, det_fn=None):
         captured["q"] = q.copy()
-        return real_solve(battle, mask, q, prior, dose, rng, critic_fn, type_chart)
+        return real_solve(battle, mask, q, prior, dose, rng, critic_fn,
+                          type_chart, det_fn=det_fn)
 
     monkeypatch.setattr(agent_mod, "solve_decision", spy)
     sa = SearchAgent(
@@ -142,3 +143,23 @@ def test_evaluator_spec_validated():
     with pytest.raises(AssertionError):
         SearchAgent(_StubAgent(), DOSES["S"], 7,
                     evaluator={"kind": "loo", "agents": []})
+
+
+def test_fg4_oracle_provenance_gated(monkeypatch):
+    from rl.search import bridge
+    from rl.search.bridge import BridgeCounters, battle_to_state
+    from rl.search.determinize import sample_determinization
+
+    b = _two_mon_battle()
+    det = sample_determinization(b, np.random.default_rng(1))
+    for spec in det["opponents"].values():
+        spec["provenance"] = "oracle"
+    with pytest.raises(AssertionError):
+        battle_to_state(b, det, BridgeCounters())
+    monkeypatch.setattr(bridge, "_FG4_DISARMED", True)
+    battle_to_state(b, det, BridgeCounters())  # passes under the disarm
+    # and a random-junk provenance never passes, disarmed or not
+    for spec in det["opponents"].values():
+        spec["provenance"] = "handcrafted"
+    with pytest.raises(AssertionError):
+        battle_to_state(b, det, BridgeCounters())

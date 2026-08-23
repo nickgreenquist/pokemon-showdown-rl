@@ -139,15 +139,20 @@ def solve_decision(
     rng: np.random.Generator,
     critic_fn: Callable[[np.ndarray], np.ndarray],
     type_chart: dict,
+    det_fn: Callable[[Any, np.random.Generator], dict] | None = None,
 ) -> tuple[int, dict]:
     """One depth-1 BR solve. `q` is the oppact head's plain L6 posterior at
     the root; `prior` the masked policy probabilities (tie-break only);
-    `critic_fn` maps (N, OBS_DIM) float32 -> (N,) values. Returns
+    `critic_fn` maps (N, OBS_DIM) float32 -> (N,) values. `det_fn` defaults
+    to RSD sampling; the ONLY other caller is R3's contained oracle-team
+    diagnostic, which injects true-team dets from outside rl/search (the
+    bridge's FG-4 assert still governs what passes). Returns
     (action index, stats)."""
     rows = [i for i in range(len(mask)) if mask[i]]
     assert rows, "no legal action at a decision point"
     counters = BridgeCounters()
-    dets = [sample_determinization(battle, rng) for _ in range(dose.n_det)]
+    det_fn = det_fn or sample_determinization
+    dets = [det_fn(battle, rng) for _ in range(dose.n_det)]
     states = [battle_to_state(battle, det, counters) for det in dets]
 
     # --- opponent columns (the L6 law) ---------------------------------

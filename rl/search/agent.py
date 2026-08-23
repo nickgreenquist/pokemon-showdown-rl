@@ -50,6 +50,7 @@ class SearchAgent:
         checkpoint_seed: int,
         battle_format: str = "gen1randombattle",
         evaluator: dict | None = None,
+        det_fn=None,
     ):
         """`evaluator` — R3's E-cell dial (design §4 R3). None = E0, the
         R2-credited configuration, bit-identical (no extra rng draws, no
@@ -78,6 +79,9 @@ class SearchAgent:
         self._dose = dose
         self._seed = int(checkpoint_seed)
         self._evaluator = evaluator
+        # det_fn: R3 oracle-team diagnostic ONLY — injected from the
+        # separate binary; None = RSD sampling (every other arm, ever).
+        self._det_fn = det_fn
         self._type_chart = GenData.from_format(battle_format).type_chart
         self.counters = {
             "search/decisions": 0,
@@ -151,6 +155,7 @@ class SearchAgent:
             battle, np.asarray(mask), q, prior, self._dose, rng,
             self._decision_critic(battle_index, turn, decision_index),
             self._type_chart,
+            det_fn=self._det_fn,
         )
         if action != stats["search/policy_argmax"]:
             self.counters["search/flips"] += 1
