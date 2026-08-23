@@ -1,0 +1,72 @@
+# =====================================================================
+# CH3 R2 B1 CONSEQUENCE (ii): H2H VS FOUL PLAY ITSELF
+# Pre-registered 2026-08-23 BEFORE any battle of this diagnostic ran.
+# Status: REGISTERED (executes the h2h OWED by the R2 B1 CREDIT,
+#   configs/eval/ch3_rung2.yaml BANDS/B1: "the foul-play h2h").
+# NON-CREDITING THROUGHOUT. Purity note: PLAYING against Foul Play is
+#   purity-legal (no expert data enters training; the lane's exclusion
+#   is bootstrapping, per the novelty-over-strength memory) — same
+#   footing as the 2026-08-09 "FP 0.824 over Rung 2" anchor.
+# ---------------------------------------------------------------------
+# QUESTION. The falsifier (P2, 2026-08-23, same night) showed the
+#   search increment does not transfer to the BC-CLONE anchor. Foul
+#   Play itself is the second, harder off-SH anchor (a real search
+#   bot, 0.8307 vs SH at n=7200; historical -against marks: 0.876 off
+#   our old best, 0.824 off Rung 2 — both from SAMPLING seats, named
+#   caveat). Does depth-1 search@M move the FP h2h at all?
+# LANE: s65, same pre-stated median rule as the falsifier (decided
+#   there, inherited here so the two anchors read the same lane).
+# ---------------------------------------------------------------------
+# ARMS (250 battles each, the FP-engine-250 precedent n; ties as
+#   non-wins; our seat DETERMINISTIC — a DISCLOSED DEVIATION from the
+#   historical sampling-seat PoolPlayer numbers, matching the locked
+#   protocol + the R2 configuration instead; FP at stock budget
+#   --search-time-ms 100 --search-parallelism 1, the same flags as
+#   every recorded FP number):
+#   FG greedy: s65 deterministic listening seat vs Foul Play, 250.
+#   FS search: s65 + depth-1 search@M (DOSES[M], checkpoint_seed 65,
+#      the A1S configuration verbatim) listening seat vs Foul Play, 250.
+#   Seat script: scripts/ch3_fp_h2h.py (new; PoolPlayer's encode/mask/
+#   convert trio + SearchAgent driven off the seat's OWN battle
+#   object). FP process: ../foul-play run.py in the foul-play env,
+#   challenge_user mode, patched per foulplay_gen1_local.patch —
+#   every number is "Foul Play + our patches", quoted that way.
+# R0 GATES (foulplay_vs_sh.py precedent, any failure -> VOID):
+#   G1 5-battle smoke first; FP log shows 0 engine exceptions.
+#   G2 two independent tallies agree (FP's own W/L vs our seat's).
+#   G3 every challenge resolved: n_finished == battles_requested.
+#   G4 no third party: seat accepts from the FP username only.
+#   G5 mask_desyncs reported; nonzero disclosed beside the number.
+# ---------------------------------------------------------------------
+# PRIMARY (pre-stated): delta = our_wr(FS) - our_wr(FG), n=250 each;
+#   se_diff = sqrt(pFS(1-pFS)/250 + pFG(1-pFG)/250). Branches mirror
+#   the falsifier: P1 delta >= 2*se_diff (search moves the FP anchor);
+#   P2 delta <= 0 (second off-SH anchor flat-or-negative -> the
+#   SH-facing caveat hardens; maintainer wording updated accordingly);
+#   P3 in between -> INDETERMINATE, levels quoted. One-sided positive;
+#   no ceiling guard (FP historically wins ~0.82-0.88 from its side —
+#   our level is far from 0.90).
+# SECONDARY (descriptive, never governing): (i) our_wr(FG) vs the
+#   historical sampling-seat marks 0.124/0.172-from-our-side (2026-08
+#   trail) — deterministic-seat caveat named; (ii) FS search health:
+#   ms_mean, leaves_mean vs 353 band (|x-353|/353 <= 0.25 = F-C twin,
+#   VOIDs FS if violated AND diagnosis shows a defect; placeholder
+#   skips excluded, rate reported — the falsifier saw 10.8% vs clone,
+#   this is the second off-SH datapoint for that dial); (iii) tie
+#   rates, sec/battle, mean turns (FP dataset arithmetic).
+# Runtime priced: FP measured 7.35 s/battle -> FG ~31 min; FS adds
+#   search ~2 s/decision-battle -> ~40 min; ~75 min total sequential.
+# =====================================================================
+results_dir: results/ch3_r2_fp_h2h
+checkpoints:
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+arms:
+  FG: {kind: greedy_seat, battles: 250, seat_username: ch3fpseatg, fp_username: ch3fpbotg}
+  FS: {kind: search_seat, dose: M, battles: 250, seat_username: ch3fpseats, fp_username: ch3fpbots}
+fp:
+  search_time_ms: 100
+  search_parallelism: 1
+  format: gen1randombattle
+anchors:
+  fp_vs_sh: 0.8307
+  historical_fp_against: {old_best: 0.876, rung2: 0.824}
