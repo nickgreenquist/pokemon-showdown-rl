@@ -5452,3 +5452,40 @@ entry by offset — never a broad keyword grep.
   branch) and its E-dials now carry the mechanism question. Suite not
   re-run (no rl/ change; scripts+config only). Seeds: none consumed
   (evals only, server-rolled).
+
+- 2026-08-23 (overnight, cont., **B1 CONSEQUENCE (iv): THE D7(a) LADDER
+  CONTRADICTION, NAMED FOR RULING — no action taken**): the two texts
+  cannot both stand now. DESIGN §8 D7(a) (RATIFIED r6): "ladder Elo/GXE
+  remains the project's ratified success metric ... EXECUTION stays
+  deferred until an agent is clearly past SH — i.e. until M2/M3, at
+  which point it becomes the natural confirmation of the chase."
+  M2/M3 were CLAIMED 2026-08-09; the board now reads 0.71825 greedy /
+  0.79283 search@M vs SH — "clearly past SH" is met on its own terms,
+  so D7(a)'s deferral clause has EXPIRED and the ratified metric now
+  demands execution. CLAUDE.md (landmines, standing): "do not propose
+  a real-ladder eval to find out — the result is predictable from
+  vs-SH." One of them yields; naming which is the maintainer's call.
+  TONIGHT'S FALSIFIER BEARS ON THE CHOICE, both ways: P2 shows the
+  search increment is SH-FACING (does not transfer to the BC clone),
+  which (a) STRENGTHENS CLAUDE.md's premise that vs-SH inflates — the
+  ladder-relevant level of the search config is likely nearer the
+  greedy 0.72 than the 0.79 — and (b) WEAKENS "the result is
+  predictable from vs-SH" as a reason not to measure: the anchors now
+  demonstrably DISAGREE about the same agent, so no internal number
+  predicts the ladder any more. OPTIONS, for ruling, not acted on:
+  (1) CLAUDE.md supersedes — D7(a) execution stays deferred; then the
+  "ratified success metric" is one the project has decided never to
+  measure, and that should be said in DESIGN rather than left implied;
+  (2) D7(a) fires — a ladder run is planned; if so the CONFIG matters
+  and P2 says the honest entry is the GREEDY committee (general
+  strength), not search@M (SH-facing edge, and depth-1 at ~65 ms/move
+  is also ladder-timer-relevant); (3) AMEND D7(a) — retire ladder
+  Elo/GXE as the metric in favor of the anchor battery that already
+  exists and moved tonight (SH + BC-clone + Foul Play h2h), which is
+  measurable, repeatable, and does not touch the public ladder.
+  RECOMMENDATION (one line, push-back priced in): (3), with (2)
+  available later from a stronger base — a ~46% GXE projection makes a
+  ladder campaign a confirmation of mediocrity at real operational
+  cost; the anchor battery is the better board until the projections
+  say otherwise. Ruling owed before any README wording that calls
+  anything "the success metric."
