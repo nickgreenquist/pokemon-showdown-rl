@@ -5789,3 +5789,16 @@ entry by offset — never a broad keyword grep.
   land() boundary landings match, ch3_eval --list-jobs emits exactly the
   wave job names, all five sha pins (four lanes + clone) verified against
   disk.
+
+- 2026-08-23 (night, cont., **R4 RATIFIED — all four rulings in one
+  message; pre-reg REGISTERED at configs/eval/ch3_r4_ensemble_critic.yaml;
+  execution delegated**): U1 BUDGET T-FULL ("8h vs 3h is not that big a
+  deal") — fresh same-session A1S comparator bought, T-LEAN dead; U2
+  clone anchor n=1000 APPROVED (disclosed upward deviation from the
+  battery ruling's 500); U3 the anchors-iff-B1/B2 reading CONFIRMED; U4
+  headline policy CONFIRMED as drafted (number moves on a credit, caveat
+  travels strengthened; grader bracket removed). Maintainer: "you can
+  run what you need yourself" — build + gates + launch proceed in this
+  session. Order of execution: BI-1..BI-6 offline build, pre-launch
+  gates R4-0..R4-14 with R4-13 numbers transcribed into the config, then
+  A0 -> F4 read -> wave A -> wave B; anchors iff B1/B2.
