@@ -8,6 +8,8 @@
 # landmine). Run from the repo root:
 #   nohup bash scripts/ch3_r4_run_sweep.sh > results/ch3_r4/sweep.log 2>&1 &
 set -u
+export POKEMON_RL_ENCODER_V2=1
+export POKEMON_RL_ENCODER_IDS=1
 PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python
 PREREG=configs/eval/ch3_r4_ensemble_critic.yaml
 RDIR=results/ch3_r4
