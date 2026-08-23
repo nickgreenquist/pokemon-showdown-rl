@@ -8,8 +8,9 @@ greedy 0.894, transfer > +0.008 excluded ~95%) AND Foul Play h2h P2 (0.368 vs
 0.388, n=250/arm) while the same config gains +0.081 vs SH. Headline 0.79283
 KEEPS its number, OWES the caveat — WORDING AWAITS MAINTAINER RULING, README
 untouched. D26 GREEDY itself transfers everywhere: clone trail 0.657→0.719→
-0.795, FP -against trail 0.124→0.172→0.388. R3 dose axis RUNNING
-(grade with scripts/ch3_r3_grade.py when done). THREE RULINGS EXECUTED**)
+0.795, FP -against trail 0.124→0.172→0.388. R3 DOSE AXIS READ OUT: T2b,
+SATURATES AT M — seg1 (S→M) +0.020 resolved above the +0.0125 band, seg2
+(M→L) +0.0025 unresolved; zero F-gates; non-crediting. RULINGS EXECUTED**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
 0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** CH3 ratified
@@ -33,11 +34,13 @@ debt (owed at >=0.6435, never run at its readout) discharged tonight: PASSES.
    D7(a) ladder = DEFERRED-UNTIL-READY (ready = models exhausted vs SH+FP
    anchors; CLAUDE.md landmine reworded); DESIGN §13 RETIRED with named
    re-triggers (ladder-ready polish run / logs still climbing). Pushed.
-2. **R3 readout** when the chain + a1ss_s62 repair finish: clean tree, then
-   `python scripts/ch3_r3_grade.py` (NON-CREDITING; cells T1/T2a/T2b/T3).
-   E-cells (noise/MC-leaf/LOO/blend/oppact-ablation/oracle) are PENDING on
-   rl/search dial machinery — named in configs/eval/ch3_rung3.yaml.
-3. Standing: resume-from-checkpoint (24h bar).
+2. Pipeline (auto): FP budget ladder (@20/@500) → E-cell screens (E2 σ
+   ladder / E3 LOO / oppact ablation, configs/eval/ch3_r3_ecells.yaml).
+   MC-leaf/λ-blend blocked on a State→obs reverse bridge — options with
+   maintainer (async). Oracle diag binary built, not yet run (BARRED).
+3. resume-from-checkpoint BUILT 2026-08-23 (`--resume RUN_DIR`) — closed.
+4. Push: several local commits since 087e3dc — maintainer said push after;
+   will push with the evening readouts.
 
 ## Watch items
 - **P2 does NOT retract the R2 credit** — but never quote 0.79283 without
