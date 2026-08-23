@@ -5409,3 +5409,46 @@ entry by offset — never a broad keyword grep.
   narrative: R0 ensemble +0.028, R2 search +0.069 on top of the same
   checkpoints — inference-time compute is the first lever since D26 to
   move the headline, and the first EVER to move it without training.
+
+- 2026-08-23 (overnight autonomous block; maintainer asleep, delegated "run
+  stuff yourself unless its a 10h+ run", **B1 CONSEQUENCE (i) EXECUTED — THE
+  SH-EXPLOITATION FALSIFIER FIRES (P2): THE SEARCH INCREMENT DOES NOT
+  TRANSFER TO THE BC-CLONE ANCHOR; the D26 GREEDY agent itself PASSES the
+  same anchor**): pre-reg `configs/eval/ch3_r2_falsifier.yaml` REGISTERED
+  and committed (6d21d14) before any battle; lane by the pre-stated median
+  rule (lower middle of A1S) = s65, with the co-occurrence disclosed that
+  the median rule selects the lane with the LARGEST vs-SH delta (+0.0810);
+  disclosed deviation: the search seat exists only as seat-1 machinery, so
+  the PRIMARY is a SAME-ORIENTATION delta (SA−GA, seat asymmetry cancels by
+  construction) and H4's two-orientation pooling is reproduced for the
+  greedy arm only. **THE NUMBERS** (results/ch3_r2_falsifier/, prereg sha
+  stamped in sa.final.json): GA s65-greedy-det vs clone **0.8940**; GB
+  clone-det 0.3000 (ties 0.004) → s65-from-sampling-seat 0.6960; G pooled
+  **0.7950** — the greedy trail vs clone now reads 0.657 → 0.719 → 0.795
+  beside vs-SH 0.5509 → 0.6073 → 0.71133, i.e. D26's TRAINING gain moved
+  the non-SH anchor and is NOT SH-specific. (This also retroactively
+  discharges D26's own H4 re-fire, which its pre-reg owed at ≥ 0.6435 and
+  which the 08-16 readout never ran — a gap found and named tonight.) SA
+  s65+depth-1 search@M vs clone **0.8600** (500, 5×100 chunks, SF-13
+  sentinel chunk-0 clean, F-B exact on every JSON, F-C leaves_mean 311.6
+  in band, mask_desyncs 0). **PRIMARY: delta SA−GA = −0.0340, se_diff
+  0.0207 → P2 FIRES (delta ≤ 0)**: the +0.081 vs-SH search gain on this
+  lane does not appear against the clone; 95% CI upper bound +0.0075, so
+  transfer commensurate with the vs-SH jump is EXCLUDED, not merely
+  unproven. Ceiling guard did not trigger (GA 0.894 < 0.90) but headroom
+  0.106 is a named qualifier. Secondary (recorded-never-governing):
+  placeholder_skip_rate vs clone 10.8% (2793/25876) — DOUBLE the 4.4–5.8%
+  R2-vs-SH band, a named mechanism candidate (the skip predicate hits
+  FP-BC play far more often); flip_rate 62.4% (inside R2's 56.7–63.1%,
+  search was as active as ever); ms_mean 62.2. **CONSEQUENCE, per the
+  pre-reg**: the 0.79283 headline KEEPS its number and OWES the caveat;
+  README deliberately untouched — the caveat wording goes to the
+  maintainer first. DRAFT for ruling: "the +0.069 search credit is
+  SH-FACING on the anchors available: on the tested lane the search
+  increment does not transfer to the BC-clone anchor (0.894 greedy →
+  0.860 search@M, −0.034 ± 0.041; transfer > +0.008 excluded ~95%),
+  while the D26 policy's own strength does (clone trail 0.657 → 0.719 →
+  0.795)." R3 still launches (a B1 consequence independent of this
+  branch) and its E-dials now carry the mechanism question. Suite not
+  re-run (no rl/ change; scripts+config only). Seeds: none consumed
+  (evals only, server-rolled).
