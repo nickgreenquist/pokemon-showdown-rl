@@ -5562,3 +5562,30 @@ entry by offset — never a broad keyword grep.
   decision inputs. R3 dose axis still running at ruling time (A0 +
   3/4 @S lanes + @L in flight; a1ss_s62 repair queued behind the
   chain). Push follows this commit.
+
+- 2026-08-23 (day, autonomous block, **R3 E-CELL DIAL MACHINERY BUILT —
+  tranches 1+2 of the pending cells; suite 436/17**): the blocker named in
+  ch3_rung3.yaml pending_cells is now largely discharged, offline, zero
+  battles. TRANCHE 1 (rl/search/agent.py evaluator seam + driver
+  passthrough + 7 tests): E2 noise dial (v_leaf + N(0,σ), per-decision rng
+  SALTED off the determinization stream — an E2 arm provably expands the
+  EXACT leaves of E0, tested), E3 LOO 3-lane critic ensemble (mean of the
+  OTHER lanes' critics, own critic unused, tested), oppact-uniform
+  ablation (q -> uniform over N_L6 AT THE SOLVE; the real head's entropy
+  still recorded, tested via solve spy). evaluator=None is the R2 path
+  BIT-IDENTICAL (identity test; matters because the a1ss_s62 repair will
+  import this tree while the arm's other lanes ran pre-edit — named, safe).
+  TRANCHE 2: oracle-team diagnostic — det_fn injection seam through
+  SearchAgent/solve_decision (default = RSD, unchanged), bridge FG-4
+  assert now passes "oracle" provenance ONLY under fg4_disarm() (loud
+  banner; junk provenance still refused; gate test), and the separate
+  BARRED binary scripts/ch3_oracle_diag.py (reads the true team off the
+  opponent seat IN THE SCRIPT — rl/search leak grep stays clean, verified).
+  NOT BUILT, blocker named: MC-leaf and λ-blend both need policy playouts
+  inside engine States, i.e. a State->obs reverse bridge that does not
+  exist; options (uniform-rollout compromise vs building the reverse
+  bridge vs dropping the bracket corner) go to the maintainer
+  ASYNCHRONOUSLY — nothing blocks: E2/E3/oppact/oracle cover the reading
+  table's rows except the MC bracket. ch3_rung3.yaml deliberately NOT
+  amended while the dose-axis chain and repair still read it; the e-cell
+  arms + smoke land after the R3 readout.
