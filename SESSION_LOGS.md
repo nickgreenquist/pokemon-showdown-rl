@@ -6085,3 +6085,12 @@ entry by offset — never a broad keyword grep.
   Everything mirrored to the backup. NEXT SESSION (or maintainer tonight,
   their call): PHASE=collect (~2.8 h) -> PHASE=fits (~1 h) -> commit
   stamp -> PHASE=read (~24 min) -> grade -> conditional PHASE=pl_anchors.
+
+- 2026-08-25 (maintainer, verbatim: "can you run this stuff? im at work
+  all day and won't be back to my laptop until 6 hours" — **STAGE 2
+  LAUNCH AUTHORIZED**, the r5a "run it now" pattern): the pre-reg's
+  no-same-evening-launch line is satisfied/overridden by explicit
+  maintainer instruction on the record; execution stays delegated to the
+  agent (2026-08-23 standing delegation). Running: PHASE=collect ->
+  PHASE=fits -> stamp commit -> PHASE=read -> grade -> conditional
+  PHASE=pl_anchors, results ready for the maintainer's return.
