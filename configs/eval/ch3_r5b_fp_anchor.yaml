@@ -1,0 +1,54 @@
+# =====================================================================
+# CH3 R5b ANCHOR BATTERY / FP BLOCK — arm FA, the runner's config.
+# Status: DERIVED, NOT A PRE-REGISTRATION (BI-7b, generated at
+#   ratification 2026-08-24). Every field is copied from the REGISTERED
+#   pre-reg configs/eval/ch3_r5b_exit.yaml (fp_anchor_arm + checkpoints);
+#   this file exists only because scripts/ch3_fp_h2h.py reads the
+#   ch3_r2_fp_h2h.yaml SCHEMA (results_dir / checkpoints / arms / fp),
+#   not the r5b pre-reg's. IF THE TWO EVER DISAGREE, THE PRE-REG WINS —
+#   the grader (scripts/ch3_r5b_grade.py) re-reads its thresholds from
+#   the pre-reg, never from here.
+# ---------------------------------------------------------------------
+# ARM FA: THE DISTILLED s65 (pin d65), GREEDY listening seat — kind
+#   greedy_seat, NO search, NO evaluator — vs Foul Play + our patches at
+#   --search-time-ms 100 --search-parallelism 1, n=250.
+#   COMPARATOR: FROZEN 0.388 = the GREEDY s65 FP@100 number (2026-08-23)
+#   — greedy-vs-greedy, because this lever's claim is about GREEDY play
+#   (pre-reg anchor_comparator; design B's U4 with its cost and flag).
+#   Threshold PINNED as a LITERAL 0.087 (anchor_mde.fp_250_pinned_
+#   literal) so it cannot move with the data. FM-9 GUARD, pre-stated:
+#   FA CANNOT resolve a +0.028-sized effect (3.1x below its MDE); it is
+#   retained because a SURPRISE is still gradeable.
+#   NON-CREDITING: descriptive anchor, never a verdict input. Runs IFF
+#   the primary cell is B1a/B1b/B2 and no VOIDing gate fired.
+# d65's sha256 is a PLACEHOLDER until fit time: B-5 stamps it into the
+#   pre-reg's `checkpoints:` and the same stamp updates this file
+#   (scripts/ch3_fp_h2h.py sha-asserts the pins it loads, so FA cannot
+#   run against an unstamped pin — that is the point).
+# CRASH-FORFEIT READ RULE + R0 GATES G1-G5: inherited unchanged from the
+#   R4 FP block (configs/eval/ch3_r4_fp_anchor.yaml); the runner
+#   (scripts/ch3_r4_fp_runner.sh, PREREG/ARM env overrides) implements
+#   the relaunch/void discipline and writes fa.runner.json.
+# =====================================================================
+results_dir: results/ch3_r5b_fp_anchor
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+  clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683}
+  d65: {path: runs/exit_s65/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+arms:
+  FA: {kind: greedy_seat, seat: d65, battles: 250,
+       seat_username: r5banchorseat, fp_username: r5banchorfp,
+       comparator: frozen_0.388}
+fp:
+  search_time_ms: 100
+  search_parallelism: 1
+  format: gen1randombattle
+crash_forfeit:
+  max_relaunches: 30
+  void_marker: TOO_MANY_CRASHES
+anchors:
+  fg_greedy_s65_frozen: 0.388
+  fp_250_pinned_literal: 0.087

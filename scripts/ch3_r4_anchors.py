@@ -100,7 +100,13 @@ def _preflight(prereg: dict) -> None:
     for var in ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS"):
         assert os.environ.get(var) == "1", f"{var}=1 required (828-d id-suffix protocol)"
     pins = prereg["checkpoints"]
-    assert len(pins) == 5, f"R4-7 expects five pins (four lanes + clone), got {sorted(pins)}"
+    # R5b BI-7(a): the pin count is the pre-reg's own `expected_pins`
+    # (default 5 keeps R4's file exactly as it was). THE ONLY DRIVER CHANGE
+    # either R5 file makes.
+    expected = prereg.get("expected_pins", 5)
+    assert len(pins) == expected, (
+        f"preflight expects {expected} pins, got {sorted(pins)}"
+    )
     for lane, spec in pins.items():
         got = _sha256(spec["path"])
         assert got == spec["sha256"], (
