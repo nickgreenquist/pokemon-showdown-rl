@@ -2,11 +2,11 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-24 afternoon — **T-GATE T-PASS, DECISIVE:
-search@M beats its own greedy self in MIRROR play by mean +0.1515 (3x the
-+0.05 bar), 4/4 lanes, zero excluded — the expert-iteration family is
-ALIVE and ch3_r5b (offline actor-ExIt credit test) is ELIGIBLE pending
-maintainer rulings. Same day: R4 ensemble-critic B3 FLAT (+0.0224 <
+## Where things stand (2026-08-24 evening — **ch3_r5b RATIFIED: all 7
+brackets ruled in one batch (RULE-1 option 1 CLEAN+provenance, RULE-1b
+NO self-play only, U-B1 n=1000, U-B2 4x3000) on top of the decisive
+T-PASS (mirror margin +0.1515, 3x bar, 4/4 lanes) — the offline actor
+expert-iteration credit test is cleared to BUILD. Same day: R4 ensemble-critic B3 FLAT (+0.0224 <
 0.025, not credited); oracle diag (BARRED) showed true-team info HURTS
 search; standing diagnosis corrected — D26 critic srank99 49/51/35/52 of
 384, D22's "7-11" is STALE (regen-L2/capacity levers dead). Chapter
@@ -29,18 +29,16 @@ resume-from-checkpoint BUILT (`--resume RUN_DIR`).
 | s65 anchors: clone greedy/search 0.894/0.860 · FP@100 greedy/search 0.388/0.368 | — |
 
 ## Next actions
-1. **MAINTAINER RULINGS for ch3_r5b** (the offline actor expert-iteration
-   credit test; draft results/design_critic/ch3_r5b_exit_draft.yaml, 7
-   open brackets): RULE-1 purity of engine-derived targets entering
-   weights — THREE options (CLEAN / NOT-CLEAN / CLEAN-for-search-deployed-
-   only; option 3 kills r5b's greedy read, revives design A's successor);
-   RULE-1b SH-state prohibition reading; U-B1 clone n=1000; U-B2 4×3000.
-   On CLEAN + ratification: ~9 h agent build (recorder/distiller/gates/
-   grader), ~2.7 h collection, ~1 h fit, 16-min greedy read. Zero seeds.
-2. R5 design cycle artifacts: results/design_critic/ (2 memos, synthesis,
-   2 reviews, revision r2, changelog, power sim) — all backed up.
+1. **BUILD ch3_r5b** (results/design_critic/ch3_r5b_exit_draft.yaml,
+   RATIFIED 2026-08-24 evening): result-blind BI-1..BI-8 (~9 h projected
+   — recorder/distiller/gate harness/D7-D8/placebo/grader/anchor
+   plumbing/wave runner), pre-launch gates B-1..B-10, then ~2.8 h
+   self-play collection + ~1 h fit + offline temperature resolution +
+   16-min greedy read X0/X1. Zero training seeds. Band [+0.010,+0.045]
+   point +0.028, P(credit) ~0.35, B3 modal — pre-stated.
+2. Unpushed: commits past e3bca48 (morning auth only) — ask before push.
 3. Open: E2(σ=0.2) maintainer-buyable; U9 T2b contamination flag; FP h2h
-   at stock budget is the readiness anchor.
+   at stock budget is the readiness anchor; R4 follow-ups unproposed.
 
 ## Watch items
 - **Never quote 0.81200 as a best (B3, uncredited). Never quote T-GATE

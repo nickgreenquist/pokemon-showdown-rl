@@ -5983,3 +5983,33 @@ entry by offset — never a broad keyword grep.
   family has. NOT DONE, correctly: r5b is NOT ratified (7 open
   maintainer brackets incl. RULE-1 purity) — no build, no collection,
   nothing launched beyond the registered diagnostic. Backed up.
+
+- 2026-08-24 (evening, **ALL SEVEN R5b BRACKETS RULED IN ONE BATCH —
+  ch3_r5b RATIFIED; the build is unblocked**): handoff folded (stub
+  restored, commit 1278854), then the maintainer ruled all four open
+  questions, every one on the draft's recommended branch, in a single
+  interactive batch (the R4 all-rulings-in-one precedent):
+  **RULE-1 = OPTION 1, CLEAN WITH A MANDATORY PROVENANCE CLAUSE** —
+  poke-engine-derived expert-iteration targets may enter the weights;
+  every descending claim carries the provenance qualifier. Options 2
+  (kill) and 3 (search-deployed-only, which would have killed the
+  greedy read and revived design A's successor) declined.
+  **RULE-1b = NO, explicitly, on the record** — SH-generated states
+  may not enter a training set; the ~2.8 h self-play collection stands
+  as designed (B's "materially cheaper / more likely to credit /
+  materially less honest" asymmetry was quoted verbatim in the ask).
+  **U-B1 = n=1000 re-approved** for CA/CB (disclosed deviation from
+  the standing n=500, R4-U2 shape, clone MDE 0.044 -> 0.031).
+  **U-B2 = 4x3000 accepted** explicitly with this file as a disclosed
+  conservative deviation from the locked 3x3000.
+  All 7 [MAINTAINER RULING PENDING brackets resolved in
+  ch3_r5b_exit_draft.yaml, status flipped to RATIFIED 2026-08-24
+  (evening), r2 body otherwise unchanged; the only remaining
+  "[MAINTAINER RULING" string is the quoted form in the BI-6 grader
+  spec, which the established scan (ch3_r4_grade.py:63 negative
+  lookbehind) excludes. NEXT: result-blind build BI-1..BI-8 (~9 h
+  projected), then ~2.8 h self-play collection + ~1 h fit + offline
+  temperature resolution + 16-min greedy read X0/X1. Zero training
+  seeds. Expectation band [+0.010, +0.045] point +0.028, P(credit)
+  ~0.35, B3 modal — pre-stated, not re-narrated. Push state: commits
+  past e3bca48 remain unpushed (morning auth only); ask before push.
