@@ -2,56 +2,56 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-25 — **R5b READ OUT: B5 + KILL. Compiling
-search into the weights makes the agent WORSE vs SH: delta -0.0545 (bar
-0.0442, paired-clustered governs), 4/4 lanes negative. THE ACTOR
-EXPERT-ITERATION LINE IS CLOSED for this chapter; search@M stands as an
-inference-time lever that does not compile into weights. Ran under
-Amendment A1 (D-2 capture-fraction form, win-rate-blind, disclosed on
-every branch; headline was capped regardless). Mechanism: C7 materialized
-— distilled switch rates ~double; the T-GATE's +0.15 mirror margin is
-real IN PLAY but hard-label BC transfers the bias with the signal.
-Durable rider: |v_LOO-v_own| 0.047-0.072 at 500k real points (A's ~0.06
-confirmed). Headline 0.71825 and R2 0.79283 UNTOUCHED.**)
-**Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
-levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
-0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** R2 search@M
-B1 CREDIT 0.79283 BEST, quoted only WITH its SH-facing caveat. R4 B3 FLAT.
-resume-from-checkpoint BUILT (`--resume RUN_DIR`).
+## Where things stand (2026-08-25/26 — **FP-GAP DESIGN CYCLE (option C) ran
+end-to-end: 2 Opus memos -> synthesis -> 2 adversarial reviews -> revised
+pre-reg. CH4 R1 "off-SH instrument" is DRAFT r2 at
+configs/eval/ch4_r1_offsh_instrument.yaml, COMMITTED, AWAITING RATIFICATION +
+brackets MU-1..MU-11b (results/design_fp_gap/ch4_synthesis.md §7.3). Nothing
+launched. Key cycle findings: memo B's Bradley-Terry fit says the h2h board is
+transitive to ±0.03 EXCEPT the clone (we over-beat it +0.11 pooled) and FP's
+take off D26 is BELOW prediction — "FP exploits D26" excluded ~95% on banked
+data; D22 read 5 already refuted the exploitability pathology (BR 0.4765,
+never parity); the P2 rider is TOO WEAK as banked (non-transfer is z~-2.9 on
+FP, -6.0 on clone vs BT-commensurate transfer; supersede pending MU-8); the
+brief's "oppact head fixes the switch column" is NOT implementable (C7 is the
+bench TARGET, matrix.py:103-114). CH3 remains CLOSED; R5b B5+KILL stands.**)
+**Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE.**
+Recipe: entity arch + oppact aux + LR anneal = 0.71825 (D26 12M, CREDITED
+HEADLINE). R2 search@M B1 CREDIT 0.79283 BEST (SH-facing caveat). Search is
+REAL and INFERENCE-ONLY (T-GATE +0.1515 mirror; distilling it = B5+KILL).
 
 ## Results (vs SH; ties=loss; locked = final ckpt)
 | result | win rate |
 |---|---|
 | D26 12M HEADLINE 0.71825 · R0 ensemble 0.74633 · D29r2 50M 0.70222 | — |
 | **CH3 R2 search@M — B1 CREDIT, BEST (caveat: SH-facing, P2×2)** | **0.79283** |
-| CH3 R4 ensemble-critic — B3 FLAT, uncredited (A1S fresh 0.78958) | 0.81200* |
-| T-GATE (mirror, n=1000/lane): TM 0.478-0.540, TS 0.637-0.685, mean m +0.1515 | T-PASS |
-| R5b ExIt distill (Amendment A1): X1 0.6526 vs X0 0.7071, 4/4 neg | **B5+KILL** |
+| R5b ExIt distill: B5+KILL (delta -0.0545, 4/4 neg); actor ExIt CLOSED | — |
 | s65 anchors: clone greedy/search 0.894/0.860 · FP@100 greedy/search 0.388/0.368 | — |
+| FP budget ladder (no gradient): FP@20 0.312 · FP@100 0.388 · FP@500 0.332 | — |
 
 ## Next actions
-1. **C: FOUL-PLAY-GAP DESIGN CYCLE** (ruled 2026-08-25, "a then c, skip
-   b"): 2-Opus design + synthesis + 2 adversarial reviews on off-anchor
-   strength — why the agent loses to FP (0.388 h2h) and what lever
-   moves it. Evidence in hand: search increments are SH-facing; C7
-   switch bias measured at policy level; FP budget ladder no-gradient;
-   U9 T2b flag. Nothing runs before a ratified pre-reg. CH3 is CLOSED
-   (README chapter section landed); B (critic lever, R4 follow-ups)
-   SHELVED. Ladder deferred until exhausted vs SH+FP (standing ruling).
-2. Pushed through 60d73fc; commits after that unpushed — ask first.
+1. **Maintainer: ratify (or amend) CH4 R1 DRAFT r2 + rule the brackets.**
+   Headline brackets: MU-1 off-SH credit line (conditional on s_T; depends on
+   MU-9 two-vs-three-term); MU-3 confirm agent-side eval-wave precedent
+   (~10.3 h battles serial, 0 terminal); MU-4 pre-commit the no-anomaly
+   action (a/b/c) BEFORE readout; MU-10 Ch-3 sentence on R2 (A: untouched,
+   B: correct); MU-11 tau-DIV dispute; MU-11b optional X-PROBE (3.6 h).
+2. On ratification: BI-1..BI-8 build, then waves V -> A -> B -> C per the
+   wave plan. Lever designs banked: A's EXPL (design_input_A.md §2/§7B),
+   B's tau-DIV/POOL-SPAN (design_input_B.md §2). Ladder stays DEFERRED.
+3. Commits after 60d73fc remain unpushed — ask before pushing.
 ## Watch items
-- **Never quote 0.81200 as a best (B3, uncredited). Never quote T-GATE
-  numbers as vs-SH strength — they are MIRROR-regime margins.**
-- Oracle-diag numbers BARRED from README/STATUS/headlines (log-only).
-- Critic srank "7-11 of 384" is STALE (D22/D25-era); D26 measures
-  49/51/35/52 — scope any quote to its era (the D19-pointer landmine).
-- Paired se governed R4; unpaired governed the T-GATE; expect sd(d_i)
-  0.016-0.033 in evaluator/mirror reads for power planning.
-- Named-file reads only; bash 3.2 (no ${var,,}); FP crash-forfeit rule +
-  auto-relaunch runner BUILT (scripts/ch3_r4_fp_runner.sh). Encoder env
-  vars must NOT be exported to the whole suite — canonical B-3 run is bare.
-- README ± binomial except ‡; never read throughput off time/steps_per_sec.
-- results/ dirs are the ONLY copies; ch3_r4, ch3_r3_oracle, ch3_r5a,
-  design_ch3_r4, design_critic all mirrored to
-  ../pokemon-showdown-rl-d25-backup-20260815/. Seeds 66/67, 75/76, 83/84,
-  93/94 all HELD (nothing this cycle burned any). vs-SH ~40% GXE.
+- **Never quote 0.81200 as a best (B3). Never quote T-GATE numbers as vs-SH
+  strength.** Oracle-diag numbers BARRED (log-only).
+- CH4 R1 is NON-CREDITING; anchors stay descriptive; no anchor number is a
+  "best". FP numbers always "FP + our patches" with budget named.
+- The banked P2-rider sentence ("FP anchor carried ~no information") is
+  PENDING SUPERSESSION (MU-8) — do not re-quote it without the BT re-grade.
+- R5b D-9 switch rates 0.143-0.197 include force-switch rows (~+0.09
+  definitional) — recompute (BI-8) before using as a style baseline.
+- Paired se governed R4; unpaired governed T-GATE; sd(d_i) 0.016-0.033.
+- Named-file reads only; bash 3.2; encoder env vars NOT exported to the
+  whole suite; F-U compares FULL quoted usernames.
+- results/ dirs are the ONLY copies; design_fp_gap (8 files) + earlier
+  cycles mirrored to ../pokemon-showdown-rl-d25-backup-20260815/. Seeds
+  66/67, 75/76, 83/84, 93/94 all HELD (CH4 R1 burns none). vs-SH ~40% GXE.

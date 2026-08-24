@@ -1,0 +1,560 @@
+# =====================================================================
+# CH4 R1 — THE OFF-SH INSTRUMENT + DIAGNOSIS. Executable pre-registration.
+# STATUS: DRAFT r2 (post-adversarial-review) — NOT RATIFIED. Nothing
+#   launches without maintainer ratification of this file plus rulings
+#   MU-1..MU-11 (results/design_fp_gap/ch4_synthesis.md §5, revised).
+#   Provenance: 2-agent design cycle (design_input_A.md mechanism-first,
+#   design_input_B.md distribution-first) -> synthesis -> 2 adversarial
+#   reviews (draft_review_1.md technical: 4 BL + 18 MA; draft_review_2.md
+#   process: 5 BL + 20 MA) -> this revision. Disposition of every finding:
+#   results/design_fp_gap/revision_log.md. EVAL-ONLY: zero training, zero
+#   lane-days, zero training seeds burned. All eight held seeds survive.
+# ---------------------------------------------------------------------
+# Q0. WHAT THIS RUNG ADJUDICATES. Memo A predicts a real self-play-
+#   induced STYLE HOLE vs Foul Play; memo B fits Bradley-Terry through
+#   the SH hub to every h2h on disk and predicts NO ANOMALY (FP's take
+#   off D26, 0.612, is BELOW the BT prediction 0.658-0.700; the board's
+#   real outlier is the CLONE, which we over-beat by +0.11 pooled). This
+#   rung MEASURES: (1) s_T off-SH (never measured; governs any off-SH
+#   credit line; every banked FP number is one lane — s65, the WEAKEST
+#   D26 lane vs SH — at n=250, MDE 0.087); (2) the BT residual at a real
+#   in-session hub; (3) C1: FP vs its OWN clone (style-robustness vs
+#   generic BC brittleness); (4) FP@20's licence as the 4.9x cheaper
+#   instrument; (5) HOW we lose, via pre-registered tape reads.
+#   NON-CREDITING THROUGHOUT. No lever tested. No headline movement.
+# ---------------------------------------------------------------------
+# Q1. PURITY. Nothing trains. FP tapes are READ for diagnosis only.
+#   STANDING SEAM: no quantity derived from an FP tape may enter a loss,
+#   a target, a prior, a value bootstrap, or a dataset. Reading FP's own
+#   printed avg_score / visit fractions for DIAGNOSIS is inside the
+#   novelty memo (expert-data bootstrapping of WEIGHTS is what is
+#   excluded; this steers design, enters no gradient) — stated
+#   explicitly because it is the closest this project has come to
+#   consuming expert knowledge rather than expert actions (review 2
+#   m11). RULE-1b holds and extends to the FP seam. The actor
+#   expert-iteration family stays CLOSED. Exploiter-family boundary
+#   (pending MU-5): an exploiter lane may not consume any search-derived
+#   quantity — not as a target, aux loss, action prior, or value
+#   bootstrap; wanting one makes it actor ExIt under a new name: KILLED.
+# ---------------------------------------------------------------------
+# Q1b. PROTOCOL RELATIONSHIP (review 2 MAJOR-16). The locked vs-SH eval
+#   protocol does NOT govern this rung (no vs-SH credit read is taken).
+#   Named deviations, disclosed with every number: sampled seat on S1
+#   (the point of S1; pinned seat_rng_seed); n=250 on C1/E1 (era pin +
+#   a cheap adjudication); n=1000 on H2/S1; 4 lanes on L62-L65
+#   (conservative, 4 >= 3); non-SH opponents throughout except V/H arms.
+# ---------------------------------------------------------------------
+# Q2. ARMS. Distinct seat/FP username pair per arm; F-U compares FULL
+#   quoted usernames (the ShowdownSing prefix lesson). FP = "FP + our
+#   patches", gen1 engine build verified by the module-path
+#   discriminator, --search-parallelism 1. Budget NAMED in every quoted
+#   number, forever ("FP@20" = --search-time-ms 20, spent PER SAMPLED
+#   DETERMINIZATION by FP's own scheduler — review 1 MI-3).
+#     V62-V65 D26 lanes vs SH (locked-protocol form)  n=3000 ea ~10 min ea
+#             (SH-SIDE ERA PIN + the rho inputs — review 1 MA-7: rho is
+#             computed from THESE in-session values; the banked finals
+#             are the tripwire, band |pooled - 0.71825| <= 0.020)
+#     H1   FP@20  vs SH                       n=3000   ~75 min
+#     H2   FP@100 vs SH                       n=1000   ~2.0 h
+#     L62-L65 D26 lane greedy det seat vs FP@20  n=3000 ea ~73 min ea
+#     C1   FP@20 vs the FP clone, clone SAMPLING (form-matched to the
+#          banked 0.795 pooled-orientation comparator — review 1 MA-11)
+#                                             n=250    ~7 min
+#     C1b  same, clone DETERMINISTIC (recorded-only)  n=250  ~7 min
+#     S1   s65 SAMPLED seat vs FP@20          n=1000   ~25 min
+#     E1   s65 greedy det seat vs FP@100      n=250    ~30 min (FP ERA PIN)
+#   S0 (the sampled-vs-greedy comparator) = L65's FIRST 1000 battles by
+#   battle index on the per-battle record (BI-7); crash-forfeited
+#   battles inside [0,1000) are excluded from the slice with the same
+#   n_eff correction as the arm.
+# ---------------------------------------------------------------------
+# Q2b. WAVE PLAN (review 2 MAJOR-10 — FP CPU share is a dose; any two
+#   arms entering a common comparison run at the same k or the
+#   comparison is VOID):
+#     wave V (k=4): V62-V65                       (SH is CPU-light)
+#     wave A (k=1 until G7 passes, then k<=3): H1, H2   (G6 compares
+#             them -> same wave, same k)
+#     wave B (same k as wave A's final k): L62, L63, L64
+#     wave C (same k): L65 + S1 launched together (R-5 compares them),
+#             then C1, C1b, E1
+#     G7 duplicate arm: L65 (pre-named; it feeds s_T, S0 and an era pin)
+# ---------------------------------------------------------------------
+# Q3. GATES — BLOCKING unless marked (G1-G5 + crash-forfeit inherited
+#   verbatim from configs/eval/ch3_r2_fp_h2h.yaml):
+#   G0 NEW (review 2 BL-1/MAJOR-13): tree clean, git_dirty false, this
+#      pre-reg and all BI items COMMITTED; the pre-reg's git blob sha
+#      stamped into every arm JSON beside the launch sha.
+#   G1 5-battle smoke per arm; FP log shows 0 engine exceptions.
+#   G2 two independent tallies agree on n_eff EXACTLY.
+#   G3 every challenge resolved: n_finished == battles_requested
+#      (evaluated on REQUESTED, not n_eff — the crash-forfeit rule then
+#      adjusts n_eff; review 1 MI-7).
+#   G4 the seat accepts from its own FP username only (full-name match).
+#   G5 mask_desyncs reported; any nonzero disclosed beside the number.
+#   G6 BUDGET EQUIVALENCE, TIERED (review 1 MA-4: the old 0.05 band was
+#      3.65 se and a passing 0.05 hub shift propagates to -0.08/-0.09 on
+#      our FP take — 3.5x the credit floor; arithmetic:
+#      d(our_take) ~ -1.6 x d(hub) at these levels):
+#        PASS      |H1 - H2| <= 0.02  -> FP@20 licensed for this rung's
+#                  reads AND proposable as standing anchor (MU-2).
+#        MARGINAL  0.02 < |H1 - H2| <= 0.05 -> FP@20 licensed for THIS
+#                  RUNG's descriptive reads only, disclosed; MU-2 defers.
+#        FAIL      |H1 - H2| > 0.05  -> FP@20 not licensed; L-arms read
+#                  as FP@20-specific only; future arms pay FP@100 prices.
+#      POWER, stated before data: 2*se_diff(3000,1000) at p~0.83 is
+#      0.027, so PASS is a ~1.5-se equivalence band — weakly powered,
+#      disclosed; that is why MARGINAL exists instead of a knife-edge.
+#   G6b STYLE EQUIVALENCE G-FP20 (A's gate RESTORED, review 1 MA-17 /
+#      review 2 MAJOR-8; computed from tapes in R-6b):
+#        |sw_FP(20) - sw_FP(100)| <= 0.05 AND
+#        |d mean_turns|/mean_turns(100) <= 0.15 AND
+#        |d faints_per_battle| <= 0.75.
+#      NON-BLOCKING for this rung's arms; GOVERNS QUOTABILITY: on FAIL,
+#      FG-arm archaeology reads are FP@100-specific and may not be
+#      quoted about FP@20 behaviour, and MU-2's standing-anchor licence
+#      requires BOTH G6-PASS and G6b-PASS.
+#   G7 CONCURRENCY NEUTRALITY, TIMING-BASED, ONE-SIDED (review 1 MA-3 /
+#      review 2 MAJOR-11: the old form — win rate at n=500, 2*se_diff =
+#      0.045 — passed by default; starvation is SIGNED; FP is
+#      TIME-budgeted at 5-10 ms per determinization and the banked
+#      ladder ran on a deliberately uncontended box):
+#      duplicate L65 at n=500 SERIAL; gate on
+#        median per-decision FP wall clock (from |t:| timestamps) and
+#        realized decisions/s, concurrent vs serial:
+#        slowdown <= 5% relative (ONE-SIDED — only slower fires).
+#      Win-rate difference RECORDED-ONLY. ON FAIL: k drops to 1 and
+#      affected arms re-run serial.
+#   G8 ERA/PROVENANCE STAMP: FP binary sha, foulplay_gen1_local.patch
+#      sha, Showdown server version, launch git sha + pre-reg blob sha,
+#      both encoder env vars, every checkpoint an arm loads sha-asserted
+#      at load (full five-pin table stamped regardless — review 1 MI-6),
+#      AND (review 1 MA-10) the REALIZED FP BUDGET: the FP log's own
+#      "Sampling N battles at M ms each" lines are asserted against the
+#      arm's declared search_time_ms and the realized values written
+#      into the arm JSON; the runner reads the budget FROM THIS FILE,
+#      never from a free environment variable.
+#   CRASH-FORFEIT READ RULE (2026-08-23, verbatim): crash-forfeited
+#      battles EXCLUDED; n_eff = seat-finished minus crash-forfeits,
+#      our_wins reduced by the same count; every crash point and
+#      relaunch disclosed; >= 30 relaunches VOIDs the arm.
+#      Implemented: scripts/ch3_r4_fp_runner.sh (BI-6 makes VOID_MARKER
+#      and log paths ARM-SCOPED — review 1 MA-18).
+# ---------------------------------------------------------------------
+# Q4. ERA PINS, BANDS PRE-STATED. All era-pin bands are TWO-SIDED,
+#   deliberately — an era break is a VOID screen, lesson 5's own example
+#   (review 2 m2). Family-wise: three pins at ~2-2.5 se each carry a
+#   ~10-14% chance of one spurious break on a healthy session — stated
+#   before data (review 1 MI-2); a single-pin break is investigated
+#   before it is declared (re-run the pin arm once, disclosed).
+#   V   pooled in-session vs-SH within +/-0.020 of banked 0.71825.
+#   E1  in 0.388 +/- 0.087 -> [0.301, 0.475]  (2*se_diff at 250v250).
+#   L65 in 0.312 +/- 0.061 -> [0.251, 0.373]  (2*se_diff at 250v3000,
+#       p=0.312 — corrected from the r1 draft's padded 0.065, review 1
+#       MI-1; the grader re-derives this constant in --selftest).
+#   OUTSIDE (after the re-run rule): era BROKEN; banked numbers do not
+#   travel; downstream re-baselined in-session; the break named in
+#   every sentence that uses the data.
+# ---------------------------------------------------------------------
+# Q5. READS (ALL DESCRIPTIVE — this rung credits nothing).
+#   R-1 s_T OFF-SH = sd (ddof=1) of {L62..L65} win rates, GRADED ON ITS
+#       95% CI, not the point estimate (review 1 MA-5: at 3 df the CI
+#       multiplier is 0.57x-3.73x and a point threshold misses a true
+#       0.06 spread 44% of the time):
+#         lower95(s_T) >= 0.05          -> branch R1 (infeasible)
+#         upper95(s_T) <  0.05          -> feasibility clause of R2/R3
+#         CI straddles 0.05             -> branch R1b (unresolved)
+#       Requires 4 non-void lanes; at 3 lanes s_T is DESCRIPTIVE-ONLY
+#       with df named and MU-1's conditional ruling DEFERS (review 2
+#       MAJOR-12). Projected future-bar table (INFORMATIVE, generated by
+#       the formula below — review 2 MAJOR-4):
+#         bar(s_T) = max(0.025, 2*max(se_diff_binomial,
+#                        se_diff_seed_clustered))    # TWO-TERM form;
+#         {0.010: 0.025, 0.015: 0.025, 0.020: 0.028, 0.030: 0.042,
+#          0.050: 0.071}
+#       whether a future off-SH bar uses this two-term larger-of or memo
+#       A's THREE-term form (adds unpaired two-sample clustered; A: "the
+#       unpaired term will probably govern, 67-84% of R4's simulated
+#       cells"; the difference is power 0.70 vs 0.95 at mu=+0.05) is
+#       bracket MU-9, and MU-1's price depends on it.
+#   R-2 off-SH vs vs-SH rank agreement, 4 lanes (Spearman; "n=4 rank
+#       stats are nearly uninformative" attached to the number).
+#   R-3 BT RESIDUAL — ORIENTATION FIXED (review 1 BL-1): for agent x,
+#         rho_x = obs_FPtake(x) - sigmoid(logit(H1) - logit(vsSH_x))
+#       where obs_FPtake = FP's take = 1 - our win rate, vsSH_x = the
+#       IN-SESSION V-arm value for lane x (review 1 MA-7).
+#       POSITIVE rho = FP over-performs = THE ANOMALY AGAINST US.
+#       AGGREGATOR (review 2 MAJOR-1): rho_pooled =
+#       equal_weight_mean_of_per_lane_rho, named once, BINDING; the
+#       residual-at-pooled-rates form is RECORDED-ONLY.
+#       SE (review 1 MA-6 — the hub is COMMON-MODE and does not average
+#       down): se(rho_pooled) = sqrt(se_hub^2 + (se_indep^2)/k), with
+#       se_hub from H1's n; BI-1's --selftest reproduces this on
+#       synthetic inputs AND asserts that the BANKED D26 numbers
+#       (rho ~ -0.046..-0.072, i.e. NEGATIVE) land in the NO-ANOMALY
+#       direction under this orientation.
+#       HUBS (review 1 MI-4): bt_hub_fp20 (pinned from H1) serves the
+#       L-arm residuals; bt_hub_fp100 (pinned from H2) serves the
+#       P2-rider re-grade and any FP@100-observation residual.
+#       P2-RIDER RE-GRADE: status PENDING MU-8 (review 2 MAJOR-18) —
+#       BI-1 computes it on every branch including VOID but REFUSES to
+#       emit the superseding sentence until MU-8 is recorded. Quoted
+#       z-values use the s65 LANE-consistent levels (z ~ -2.8 on FP;
+#       ~-6.0 on clone; review 1 MI-5), pooling choice stated.
+#   R-4 C1, LOGIT SCALE (review 1 BL-3 — on the probability scale the
+#       comparison was ceiling-capped: BT predicts FP takes 0.782-0.819
+#       off its own clone, max attainable residual +0.18..+0.22, below
+#       our det-seat +0.234 — the D25-P unreachable-branch trap):
+#         excess_FP = logit(obs C1 take) - logit(BT_pred C1 take)
+#       COMPARATOR, pre-registered: OUR pooled-orientation excess
+#       +0.60 logits (from 0.795 vs BT-pred ~0.66-0.68; the det-seat
+#       +1.37 is recorded-only and NOT form-matched — MA-11).
+#       READ: "the clone is GENERICALLY BRITTLE" iff excess_FP >= +0.30
+#       logits (half our pooled excess) with its binomial se quoted
+#       (n=250 -> se(logit) ~ 0.17, so the read resolves 0.30 at ~1.8
+#       se — adequate for the +0.6-vs-0 question, said before data).
+#       C1 is NON-GOVERNING for the branch decision (review 2 MAJOR-19):
+#       it EXPLAINS the clone intransitivity; an unexplained clone
+#       (excess_FP < 0.30) inside R2 is reported as an OPEN OBSERVATION,
+#       never a lever justification.
+#       INPUT PIN (review 1 MA-12): clone_vs_sh = 0.5503 (final-ckpt
+#       5x3000 re-score, configs/eval/ch3_r2_falsifier.yaml header);
+#       0.5777 val-peak carried as a disclosed sensitivity.
+#   R-5 S1 - S0: sampled minus greedy seat vs FP@20, two-sided,
+#       2*se_diff = 0.041 at the arms' operating point p~0.31 (review 1
+#       MA-14); S1 and L65 run in the SAME WAVE at the SAME k (Q2b).
+#       Reported whatever it does; a positive result is an
+#       inference-time observation, NOT a lever without its own pre-reg.
+#   R-6 TAPE ARCHAEOLOGY (SCREEN-GRADE, NO LETTERS, hypothesis-SELECTING
+#       only). REFERENCE ARM: FG (review 2 MAJOR-2) — the largest banked
+#       corpus at the anchor-battery budget, paired with FS for the
+#       search contrast; FS is a RECORDED-ONLY contrast; FP20/FP500
+#       serve G6b. THE ~12,000 NEW FP@20 TAPES THIS RUNG PRODUCES ARE
+#       **OUT** of this archaeology (review 2 MAJOR-3): it is a
+#       banked-corpus read; the new tapes are archived for a future
+#       pre-registered read.
+#       PARSE RULES (THE PRE-REGISTRATION; review 1 BL-4 + MA-1):
+#       (i)   a |faint| followed by that side's next |switch| is a
+#             FORCED REPLACEMENT, excluded from voluntary switches;
+#       (ii)  the <=2 automatic lead |switch| lines between |start and
+#             the first |turn|1 are excluded (500 lines = 0.036/side =
+#             36% of the P-SHARP threshold — unhandled in r1);
+#       (iii) EXCLUSIONS from the decision denominator: recharge |cant|
+#             turns, and (FP seat only) request-proven choiceless turns
+#             ("trapped":true with no legal alternative). slp/frz/par/
+#             flinch |cant| turns are KEPT — the player had a live
+#             request and chose to stay (gen-1 does not trap on status);
+#             excluding them inflates the switch rate asymmetrically
+#             with status incidence (MA-1's charge, accepted);
+#       (iv)  sw_FP is computed from FP's own "Choice:" lines (GROUND
+#             TRUTH; 7819 = 6903 turns + 916 forced in FG, exact) and
+#             the faint-suppression heuristic is CROSS-VALIDATED against
+#             it (|heuristic - truth| <= 0.02 or the parse VOIDs);
+#             sw_us is heuristic-only (no request on our side) —
+#             ASYMMETRIC INFORMATION QUALITY, disclosed with delta_sw;
+#       (v)   battles keyed by room prefix; rooms without |win| dropped
+#             AND counted; |player| maps seat<->username exactly;
+#       (vi)  BI-5's fixture battle exercises a lead pair, a forced
+#             replacement, AND a |cant| before the corpus is touched;
+#             free cross-check pinned: |turn| total in FG = 6903 =
+#             250 x banked mean 27.612 exactly (review 1 N-3);
+#       (vii) "partiallytrapped" DOES NOT EXIST in these tapes as a
+#             protocol token; partial-trap detection = request-side
+#             "trapped":true (FP seat only) + move-name grep
+#             (Wrap/Bind/Fire Spin/Clamp — measured 0 in FG; an ABSENT
+#             mechanic is REPORTED ABSENT, never silently dropped).
+#       MEASUREMENTS (per side per arm with binomial se; within-arm
+#       aggregator = pooled rate over decisions, BINDING; per-battle
+#       medians recorded-only):
+#         a. voluntary-switch rate per side; PRIMARY SCALAR delta_sw =
+#            sw_FP - sw_us on FG (v2 parse). DISCLOSED (review 1 N-2):
+#            delta_sw is partially recoverable from already-published
+#            marker counts; the +0.10 threshold is an a-priori design
+#            choice (roughly half the plausible style gap), not derived;
+#            the maintainer may re-derive it at ratification.
+#            SUPPORTING (review 1 N-4, adopted): FP's per-decision
+#            visit-fraction entropy at loss-decisive decisions,
+#            RECORDED for the lever stage.
+#         b. FP style equivalence across 20/100/500 ms -> gate G6b.
+#         c. battle-length dist, ours-win vs ours-lose; mon-differential
+#            trajectory; sweep share (last 3 mons faint within 5 turns).
+#         d. switch ledger: sign of next-turn damage exchange after each
+#            voluntary switch, by side.
+#         e. status ledger: first slp/frz/par by side; outcome
+#            conditional, both directions, se quoted.
+#         f. FP's printed avg_score: first turn it crosses 0.5 and never
+#            returns, dist over our losses.
+#         g. partial-trap per rule (vii); explosion/self-destruct usage
+#            + outcome per side.
+#         h. hax audit, NORMALIZED (review 1 MA-16: gen-1 crit rate
+#            scales with user Speed and attacking exposure — raw counts
+#            are asymmetric in expectation under the very hypothesis
+#            under test): crits per attacking move used, misses per
+#            accuracy-checked move. FALSIFIER with teeth (review 2 m3):
+#            normalized asymmetry > 2 se -> re-run the BI-5 fixture and
+#            investigate; unresolved -> archaeology VOID-D.
+#         i. our voluntary-switch rate on self-play states from the R5b
+#            collection — RECOMPUTED (review 1 MA-2: the banked D-9
+#            0.143/0.197/0.152/0.173 include force-switch rows, 9.1% of
+#            rows and 100% switches — a definitional +0.09 offset
+#            larger than the old E-b band): force-switch rows EXCLUDED,
+#            column = policy_argmax, seat/lane filter pinned at build
+#            (the 494,603 figure is one of two mirror seats of 989,206
+#            recorded rows — the filter that produces it is stamped);
+#            the reference band is COMMITTED before the archaeology
+#            grades; disclosed as a LOOSE reference (search-play state
+#            distribution; review 2 m8).
+#       EXPECTATIONS (sanity, not gates; violation = recorded finding):
+#       E-a delta_sw > 0 (ONE-SIDED, the style hypothesis's direction);
+#       E-b our FG switch rate within +/-0.06 of the RECOMPUTED
+#       self-play reference; E-c FS-vs-FG switch contrast GENUINELY
+#       UNCERTAIN; E-d normalized hax symmetric within 2 se.
+# ---------------------------------------------------------------------
+# Q6. BRANCHES — RESTRUCTURED (review 1 MA-8 / review 2 MAJOR-19: the
+#   r1 partition made "no anomaly" a 4-fold conjunction and routed some
+#   all-null states into a lever recommendation; both memos' modal
+#   expectation IS the null, so the null is now the DEFAULT/complement
+#   and every anomaly cell is positively defined). Evaluated in order,
+#   first match wins.
+#   P-CELLS, TOTALLY ORDERED (review 2 BL-2), all read on FG, each fires
+#   iff its threshold is met AND the statistic excludes the threshold by
+#   >= 2 binomial se (this replaces the undefined word "decisively" —
+#   review 2 BL-4):
+#     1 P-SHARP  delta_sw >= 0.10 AND parse cross-validation (iv) green
+#     2 P-MECH   first-status outcome swing >= 0.35 OR sweep share
+#                >= 0.50
+#     3 P-COVER  share of our losses in the top TERCILE of battle
+#                length (tercile bounds from ALL FG battles) >= 0.45
+#                (numeric trigger new in r2 — review 2 BL-4; the
+#                skip-rate trail 4.4-5.8% SH -> 10.8% clone -> 17.9% FP
+#                is RECORDED COLOR, search-arm-only, never the trigger)
+#     4 P-EVAL   >= 0.45 of our losses were mon-ahead at turn 20
+#   (P-BR — "the same mistake recurs" — is REMOVED from the auto-map:
+#   it has no honest tape statistic and its old route transplanted A's
+#   G-EXP 0.60 across incomparable probes — review 2 MAJOR-9. The
+#   exploiter question is bracket MU-11b instead.)
+#   BRANCHES:
+#   R1  INSTRUMENT INFEASIBLE: lower95(s_T) >= 0.05. No affordable
+#       off-SH credit line at k=4; letter to the instrument; maintainer
+#       chooses more lanes (priced: +2 lanes = 2 seeds + ~2.5 h FP
+#       battles) / descriptive-forever / close. NO TRAINING ARM.
+#   R1b INSTRUMENT UNRESOLVED: the s_T CI straddles 0.05. Reported with
+#       the CI; maintainer chooses (same menu); MU-1's conditional
+#       ruling defers. NO TRAINING ARM. (New in r2 — review 1 MA-5.)
+#   R3  REAL HOLE: [rho_pooled >= +0.03 AND rho_pooled >= 2*se(rho)]
+#       OR a P-cell fires (per the 2-se rule). Route:
+#         P-SHARP -> design tau-DIV (memo B §2.2) — CARRIES BRACKET
+#                    MU-11: memo A REJECTED opponent-temperature levers
+#                    on mechanism (R-H, "incompetent style variation");
+#                    memo B's defense: tau<1 SHARPENS (a sharper
+#                    opponent is not a worse one). The dispute is the
+#                    maintainer's, at the lever pre-reg, before launch.
+#         P-MECH  -> mechanic mini design cycle (new pre-reg).
+#         P-COVER -> design POOL-SPAN (latest_prob 0.8 -> 0.5; B §2.5-2).
+#         P-EVAL  -> critic-family un-shelve — REQUIRES a maintainer
+#                    ruling (a diagnostic may not reverse a shelving
+#                    ruling; this route leads back to skipped option B
+#                    and the maintainer sees that at ratification —
+#                    review 2 n2).
+#       R3-NULL (new in r2 — review 2 BL-3): the BT disjunct fires and
+#       NO P-cell fires -> the residual is real and the mechanism is
+#       UNLOCATED; deliverable = the residual + a NEW design cycle
+#       scoped to mechanism. NOT a lever from the map.
+#       Every selected lever gets ITS OWN pre-reg + ratification.
+#       Nothing launches from this file.
+#   R2  NO ANOMALY (DEFAULT — the complement of R1/R1b/R3): includes
+#       upper95(s_T) < 0.05 with |rho_pooled| <= 0.03 and no P-cell.
+#       "The FP gap is raw strength; off-SH is not a separate axis." NO
+#       robustness lever. C1's answer travels as the EXPLANATION of the
+#       clone intransitivity (excess_FP >= 0.30: generic BC brittleness,
+#       the style inference dies; excess_FP < 0.30: the clone
+#       intransitivity is OURS and UNEXPLAINED — an open observation,
+#       recorded, no lever). The Chapter-3 closing-sentence correction
+#       is bracket MU-10, NOT an automatic edit. The maintainer's
+#       PRE-COMMITTED R2 action (MU-4) executes.
+#   VOID-D (restored from memo A — review 2 MAJOR-12): > 5% of rooms
+#       unparseable, or the h-falsifier unresolved, or cross-validation
+#       (iv) fails -> the archaeology is ABSENT (reported, never
+#       silent); P-cells CANNOT fire; branch evaluation proceeds on the
+#       BT/s_T axes alone and says so.
+#   ARM VOIDs: void the affected arm only, except G8 (voids everything
+#       downstream of the break). If an L-arm voids: R-1 per its 4-lane
+#       requirement (above).
+# ---------------------------------------------------------------------
+# Q6b. LICENSED SENTENCES, INLINE (review 2 MAJOR-15 — no pointers into
+#   untracked memos; these are the deliverable):
+#   R1/R1b: "Off-anchor strength varies across training seeds with
+#     sd = X [CI a,b] at n=3000/lane, 4 lanes. At this lane count the
+#     operative bar for an off-SH credit is Y, [which exceeds every
+#     effect this project has credited / whose feasibility is
+#     unresolved at 3 df]. No off-SH credit line is proposable at this
+#     lane count; the Foul Play anchor stays descriptive."
+#   R2: "Foul Play's head-to-head take off the D26 policy is within
+#     [se] of what a Bradley-Terry model anchored on the in-session SH
+#     hub predicts from the two agents' vs-SH win rates (rho_pooled =
+#     X +/- se). Across the board the h2h graph is transitive to within
+#     +/-0.03. We find no evidence that this agent is exploited off its
+#     own play distribution beyond its general strength deficit."
+#     [+ C1 clause per Q6 R2.]
+#   R3: "Foul Play takes X more off the D26 policy than its SH-relative
+#     strength predicts (rho_pooled = X +/- se, hub pinned at H1=[v]).
+#     This is the first measured evidence in this project of an
+#     off-distribution weakness distinct from general strength. The
+#     archaeology fired [cell]; the selected next design is [route],
+#     pending its own pre-registration and the attached brackets."
+#   R3-NULL: same first sentence + "the tape archaeology located no
+#     mechanism (no pre-registered pattern cell fired); the residual is
+#     unexplained and a mechanism-scoped design cycle is next."
+#   VOID: "[arm/archaeology] VOID per [gate]; no read is licensed from
+#     the voided component; surviving axes report as above."
+#   ON EVERY BRANCH: every FP number is "FP + our patches" with budget
+#     named; clone numbers carry seat/orientation form; vs-SH numbers
+#     carry the 4-seed deviation note; no anchor number is a "best";
+#     STATUS rewritten in place <= 60 lines in the SAME COMMIT as the
+#     SESSION_LOGS append; 0.71825 and 0.79283 UNTOUCHED on every
+#     branch (review 2 m6).
+# ---------------------------------------------------------------------
+# Q7. WHAT THIS RUNG MAY NOT DO: credit anything; move the headline;
+#   propose a ladder read (deferred by standing ruling — the sole
+#   exception is executing the maintainer's own MU-4 pre-commitment,
+#   which is the maintainer's ruling, not this rung's proposal — review
+#   2 m4); license a lever outside the R3 map; quote any anchor number
+#   as a "best"; quote oracle-diag numbers (BARRED); re-open actor
+#   ExIt; un-shelve the critic family without a ruling; edit the
+#   ratified Chapter-3 README section without MU-10.
+# ---------------------------------------------------------------------
+# Q8. LEDGER (corrected — review 1 MA-15: the r1 draft's "6.5 h" was
+#   arithmetically wrong; its own arms summed to 9.15 h):
+#   Battles: V 4x10min + H1 75min + H2 120min + L 4x73min + C1/C1b
+#   7+7min + S1 25min + E1 30min + smokes ~25min + G7 dup ~15min
+#   ~= 10.3 h SERIAL; ~3.5-4 h at k=3 IF G7 passes (imperfect packing,
+#   2.0 h longest arm; realistic makespan >= 3.6 h).
+#   Build (BI-1..BI-8) + analysis: ~11-14 h agent-side.
+#   TOTAL: ~21-24 h agent-side across 5-6 evening blocks (review 2 m9;
+#   arms are individually resumable, nothing lost at an interrupt).
+#   Maintainer terminal: ZERO — precedent: eval waves have run
+#   agent-side since 2026-08-23 (FP anchors, budget ladder, R5b era
+#   pins) via scripts/ch3_r4_fp_runner.sh; the CLAUDE.md >5-min rule's
+#   measured 10x penalty is about TRAINING throughput. MU-3 asks the
+#   maintainer to confirm that precedent covers this wave (review 2
+#   MAJOR-17). Lane-days: ZERO. Training seeds burned: ZERO.
+#   MIRRORING OBLIGATION (review 2 MAJOR-14): results/ch4_r1_offsh/ and
+#   results/design_fp_gap/ are mirrored to
+#   ../pokemon-showdown-rl-d25-backup-20260815/ at each readout, named
+#   in the SESSION_LOGS entry.
+# =====================================================================
+rung: "ch4_r1"
+title: ch4_r1_offsh_instrument
+status: "DRAFT r2 (post-review) — NOT RATIFIED"
+results_dir: results/ch4_r1_offsh
+crediting: false
+headline_may_move: false
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+  clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683,
+          note: "808-dim encoder (IDS=0): loads ONLY via the eval_checkpoint.py PrefixSliceActor shim — BI-2b; ch3_fp_h2h.py cannot load it as-is (review 1 BL-2, proved by execution)"}
+arms:
+  V62: {kind: vs_sh_locked_form, seat: s62, battles: 3000, wave: V}
+  V63: {kind: vs_sh_locked_form, seat: s63, battles: 3000, wave: V}
+  V64: {kind: vs_sh_locked_form, seat: s64, battles: 3000, wave: V}
+  V65: {kind: vs_sh_locked_form, seat: s65, battles: 3000, wave: V}
+  H1:  {kind: fp_vs_sh,     search_time_ms: 20,  battles: 3000, seat_username: c4h1sh,    fp_username: c4h1fp,    wave: A}
+  H2:  {kind: fp_vs_sh,     search_time_ms: 100, battles: 1000, seat_username: c4h2sh,    fp_username: c4h2fp,    wave: A}
+  L62: {kind: greedy_seat,  seat: s62, search_time_ms: 20, battles: 3000, seat_username: c4l62seat, fp_username: c4l62fp, wave: B}
+  L63: {kind: greedy_seat,  seat: s63, search_time_ms: 20, battles: 3000, seat_username: c4l63seat, fp_username: c4l63fp, wave: B}
+  L64: {kind: greedy_seat,  seat: s64, search_time_ms: 20, battles: 3000, seat_username: c4l64seat, fp_username: c4l64fp, wave: B}
+  L65: {kind: greedy_seat,  seat: s65, search_time_ms: 20, battles: 3000, seat_username: c4l65seat, fp_username: c4l65fp, wave: C, g7_duplicate: true}
+  C1:  {kind: fp_vs_clone,  seat: clone, clone_policy: sampling,      search_time_ms: 20, battles: 250, seat_username: c4c1seat,  fp_username: c4c1fp,  wave: C}
+  C1b: {kind: fp_vs_clone,  seat: clone, clone_policy: deterministic, search_time_ms: 20, battles: 250, seat_username: c4c1bseat, fp_username: c4c1bfp, wave: C, recorded_only: true}
+  S1:  {kind: sampled_seat, seat: s65, search_time_ms: 20, battles: 1000, seat_username: c4s1seat, fp_username: c4s1fp, wave: C, seat_rng_seed: 41307}
+  E1:  {kind: greedy_seat,  seat: s65, search_time_ms: 100, battles: 250, seat_username: c4e1seat, fp_username: c4e1fp, wave: C}
+s0_slice: {from_arm: L65, battle_index_range: [0, 1000], defined_on: per_battle_records, crash_forfeit_handling: excluded_with_arm_n_eff_rule}
+wave_plan:
+  V: {k: 4}
+  A: {k: 1_until_G7_then_up_to_3, contains_g6_comparison: true}
+  B: {k: same_as_A_final}
+  C: {k: same_as_A_final, s1_l65_same_wave_same_k: true}
+  rule: "any two arms entering a common comparison run at the same k or the comparison is VOID"
+tapes:
+  FG:    {tape: results/ch3_r2_fp_h2h/fp_fg.stdout,       json: results/ch3_r2_fp_h2h/fg.json,       fp_ms: 100, seat: greedy, role: archaeology_reference}
+  FS:    {tape: results/ch3_r2_fp_h2h/fp_fs.stdout,       json: results/ch3_r2_fp_h2h/fs.json,       fp_ms: 100, seat: search_M, role: recorded_only_contrast,
+          extra_tape: results/ch3_r2_fp_h2h/fp_fs.attempt1.stdout}
+  FP20:  {tape: results/fp_budget_ladder/fp_FP20.stdout,  json: results/fp_budget_ladder/fp20.json,  fp_ms: 20,  seat: greedy, role: g6b_style_equivalence}
+  FP500: {tape: results/fp_budget_ladder/fp_FP500.stdout, json: results/fp_budget_ladder/fp500.json, fp_ms: 500, seat: greedy, role: g6b_style_equivalence}
+  SP:    {source: results/ch3_r5b/collect, recorded_rows_total: 989206, use: selfplay_switch_baseline,
+          filter: "single mirror seat + policy_argmax column + force-switch rows EXCLUDED; exact filter pinned at build (BI-8) and the recomputed reference committed BEFORE the archaeology grades"}
+  new_fp20_tapes_from_this_rung: OUT_archived_for_future_prereg_read
+fp:
+  search_parallelism: 1
+  format: gen1randombattle
+  patch: scripts/patches/foulplay_gen1_local.patch
+  budget_source: this_file_never_environment
+  quote_as: "FP + our patches; budget named in every number; --search-time-ms is spent per sampled determinization"
+crash_forfeit: {max_relaunches: 30, void_marker: TOO_MANY_CRASHES, marker_scope: per_arm}
+era_pins:
+  V:   {banked_pooled: 0.71825, band_abs: 0.020, source: results/d26/final_s6x.json, note: "in-session V values feed rho; banked is the tripwire"}
+  E1:  {banked: 0.388, banked_n: 250, band: [0.301, 0.475], source: results/ch3_r2_fp_h2h/fg.json}
+  L65: {banked: 0.312, banked_n: 250, band: [0.251, 0.373], source: results/fp_budget_ladder/fp20.json, note: "2*se_diff(250,3000) at p=0.312 = 0.061, grader re-derives"}
+  family_wise_note: "three pins ~2-2.5 se each -> ~10-14% one spurious break per healthy session; single-pin break re-runs once before declaring"
+vs_sh_banked_tripwire:
+  s62: {value: 0.72966667, source: results/d26/final_s62.json}
+  s63: {value: 0.71866667, source: results/d26/final_s63.json}
+  s64: {value: 0.72166667, source: results/d26/final_s64.json}
+  s65: {value: 0.70300000, source: results/d26/final_s65.json}
+  pooled: 0.71825
+  s_T_vs_sh: 0.01118
+clone_vs_sh_pinned: {value: 0.5503, source: "configs/eval/ch3_r2_falsifier.yaml header, final-ckpt 5x3000 re-score", sensitivity: {val_peak: 0.5777}}
+bt_hubs_until_measured: {readme_n7200_fp100: 0.8307, tranche3_n400: 0.8375, primary_n300_handicapped_patch_conservative_for_us: 0.8467,
+                         fp_vs_rl_json: "0.876 n=250 ON DISK, in neither memo's board — identified at build time and added with its vs-SH pin or excluded with the reason stamped (review 2 m12)"}
+bt_hub_fp20_pinned_literal: null    # from H1; committed before any residual is graded; R2/R3 thresholds fixed PRIOR (review 2 m7)
+bt_hub_fp100_pinned_literal: null   # from H2; same discipline
+rho: {orientation: fp_excess_take_positive_is_anomaly, aggregator: equal_weight_mean_of_per_lane_rho,
+      recorded_only_alt: residual_at_pooled_rates, se: "sqrt(se_hub^2 + se_indep^2/k)",
+      selftest_asserts: "banked D26 residuals land NEGATIVE (no-anomaly direction)"}
+p2_regrade: {status: PENDING_MU-8, computed_on: every_branch_incl_VOID, sentence_emitted_only_after_ruling: true}
+s_T: {estimator: "sd ddof=1 over 4 lane rates", graded_on: ci95, ci_multipliers_3df: [0.57, 3.73],
+      min_nonvoid_lanes: 4, at_3_lanes: descriptive_only_MU1_defers}
+aggregator: equal_weight_mean_of_per_lane_rates
+aggregator_note: "per-lane median and worst lane RECORDED, NEVER GOVERNING"
+pairing: none
+pairing_note: "teams are server-rolled; arms play different games; unpaired two-sample se; no pairing claimed"
+ties: non_wins
+seat_policy: deterministic
+seat_policy_deviations: {S1: "sampled seat, pinned seat_rng_seed 41307 — DISCLOSED deviation from the locked deterministic protocol; the point of the arm"}
+thresholds:
+  r1_s_T: 0.05                      # graded on the CI per s_T block, one-sided high
+  r3_rho: +0.03                     # ONE-SIDED POSITIVE (FP excess); also requires >= 2*se(rho_pooled)
+  r2_rho_band: 0.03                 # two-sided, descriptive summary of "transitive"
+  c1_generic_brittleness_logit_excess: 0.30   # one-sided positive; NON-GOVERNING for branches
+  p_sharp_delta_sw: 0.10            # one-sided positive; + 2-se exclusion rule; + cross-validation green
+  p_mech_status_swing: 0.35         # one-sided positive; + 2-se rule
+  p_mech_sweep_share: 0.50          # one-sided positive; + 2-se rule
+  p_cover_top_tercile_loss_share: 0.45   # one-sided positive; + 2-se rule
+  p_eval_ahead_at_t20_loss_share: 0.45   # one-sided positive; + 2-se rule
+  void_unparseable_room_share: 0.05 # -> VOID-D cell (restored)
+p_cell_order: [P_SHARP, P_MECH, P_COVER, P_EVAL]
+p_cell_note: "first match wins; all fired cells RECORDED; P-BR removed (no honest tape statistic; exploiter question = bracket MU-11b)"
+gate_g6: {pass: 0.02, marginal: 0.05, power_note: "2*se_diff(3000,1000)@p0.83 = 0.027; PASS is ~1.5 se — weakly powered, hence the MARGINAL tier"}
+gate_g6b: {d_sw_max: 0.05, d_turns_frac_max: 0.15, d_faints_max: 0.75, governs: quotability_and_MU2_not_arms}
+gate_g7: {form: timing_one_sided, duplicate_arm: L65, duplicate_n: 500, max_relative_slowdown: 0.05,
+          inputs: [t_colon_timestamps, fp_sampling_lines], win_rate: recorded_only}
+projected_bar_formula: "bar(s_T) = max(0.025, 2*max(se_diff_binomial, se_diff_seed_clustered))  # two-term; three-term question = MU-9"
+projected_bar_table: {0.010: 0.025, 0.015: 0.025, 0.020: 0.028, 0.030: 0.042, 0.050: 0.071}
+branches: [R1_instrument_infeasible, R1b_instrument_unresolved, R3_real_hole_incl_R3NULL, R2_no_anomaly_DEFAULT, VOID_D]
+lever_map:
+  P_SHARP: tau_DIV_design_CARRIES_MU-11_dispute
+  P_MECH: mechanic_mini_cycle
+  P_COVER: POOL_SPAN_design
+  P_EVAL: critic_family_unshelve_REQUIRES_RULING
+offlist_rule: "a pattern outside the map is an OPEN OBSERVATION routed to a new design cycle, never a lever justification"
+seeds_burned: 0
+lane_days: 0
+maintainer_terminal_hours: 0
+build_items: [BI-1_bt_grader_selftest_p2regrade_pending_MU8, BI-2a_h1_h2_reuse_foulplay_vs_sh_py_for_hub_commensurability,
+              BI-2b_clone_shim_via_eval_checkpoint_PrefixSliceActor_per_arm_encoder_env,
+              BI-3_sampled_seat_with_pinned_seed_and_disclosure, BI-4_g7_timing_harness,
+              BI-5_tape_parser_with_fixture_lead_faint_cant, BI-6_wave_runner_arm_scoped_markers,
+              BI-7_per_battle_records_in_every_arm_json, BI-8_sp_baseline_recompute_committed_before_grading]
+readme_status_obligation: "licensed sentences are INLINE in Q6b. STATUS <=60 lines, same commit as the SESSION_LOGS append. 0.71825 and 0.79283 untouched on every branch. Chapter-3 sentence edits require MU-10. Mirroring per Q8."

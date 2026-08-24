@@ -6215,3 +6215,65 @@ entry by offset — never a broad keyword grep.
   budget ladder's no-gradient result, U9 T2b contamination flag.
   Ladder itself stays deferred (2026-08-23 ruling) until exhausted vs
   SH + FP anchors. HANDOFF.md written per explicit maintainer request.
+
+- 2026-08-25/26 (night, autonomous block, **FP-GAP DESIGN CYCLE (OPTION C)
+  EXECUTED END-TO-END: brief -> 2 independent Opus memos -> synthesis ->
+  2 adversarial reviews -> revised DRAFT r2 pre-reg AWAITING RATIFICATION.
+  Nothing launched, nothing trained, headline untouched**): opened at the
+  CH3-closed handoff (folded, stub restored, 479d4ae). Evidence brief at
+  results/design_fp_gap/evidence_brief.md. MEMO A (mechanism-first, 1436
+  lines): the gap is FP's STYLE hitting the network, not FP's search
+  (search adds -0.020 h2h; FP budget-flat); five corrections to the brief
+  incl. a real one — the "oppact head replaces the uniform switch column"
+  idea is NOT implementable (the head already supplies the column WEIGHT,
+  matrix.py:179; C7 is the bench TARGET, :103-114, and L6 has one SWITCH
+  class — verified against source); proposes EXPL (frozen best-response
+  exploiter at 25% dose in a +3M matched-compute fine-tune), honest power:
+  its own arm more likely misses than credits. MEMO B (distribution-first,
+  1529 lines): fits Bradley-Terry through the SH hub to every h2h on disk —
+  the board is transitive to ±0.03 EXCEPT the clone (we over-beat it +0.11
+  pooled), and FP's take off D26 (0.612) is BELOW the BT prediction
+  (0.658-0.700): "FP exploits D26" excluded ~95% one-sided on banked data;
+  archaeology find: D22 read 5 (2026-08-11) already REFUTED the
+  exploitability pathology (6M best-responder 0.4765±0.0112, never parity)
+  and A never cited it; P2-rider re-grade: the search increment's
+  non-transfer is z~-2.9 (FP) / -6.0 (clone) against BT-COMMENSURATE
+  transfer — stronger than the banked rider, on two anchors not one.
+  SYNTHESIS (verified A's matrix.py claims, B's D22/BT/clone-sha claims
+  against source this session): both memos independently landed
+  diagnosis-first/eval-only/zero-terminal; merged into CH4 R1 — the off-SH
+  instrument (s_T off-SH never measured and governs everything; every
+  banked FP number is one lane s65 n=250), BT residual at an in-session
+  hub, C1 = FP vs its OWN clone (style-robustness vs BC brittleness,
+  ~7 min), FP@20 licence gates, pre-registered tape archaeology with A's
+  parse discipline. REVIEWS: technical (4 BL + 18 MA — rho sign inverted
+  in r1 branches; C1 unbuildable as scoped, clone is 808-dim, needs the
+  PrefixSliceActor shim, PROVED by execution; C1 threshold
+  probability-scale-capped; parse spec missed lead switch-ins and named a
+  nonexistent protocol token; G6/G7 near-vacuous as drafted; cost ledger
+  wrong 45%) and process (5 BL + 20 MA — r1 pre-reg was gitignored; P-cells
+  unordered; R3 could fire with no route; two P-cells thresholdless; the r1
+  AMBIGUOUS-default lever was memo A's explicitly-rejected R-H and the
+  synthesis hid the dispute — the exact failure the 2-agent process
+  exists to catch). ALL 9 BLOCKERS + 38 MAJORS dispositioned
+  (results/design_fp_gap/revision_log.md): r2 = configs/eval/
+  ch4_r1_offsh_instrument.yaml, COMMITTED, restructured partition
+  (no-anomaly is the DEFAULT cell; rho orientation fixed, positive = FP
+  excess; s_T graded on its 95% CI with an UNRESOLVED branch; C1 on the
+  logit scale vs the pooled-orientation comparator, non-governing; V-arms
+  added as the SH-side era pin feeding rho in-session; G0 tree/blob-sha
+  gate; G6 tiered; G6b = A's style gate restored; G7 timing-based
+  one-sided; G8 asserts realized FP budget from FP's own log; licensed
+  sentences inline; P-BR deleted; wave plan with same-k rule). Bracket set
+  MU-1..MU-11b in ch4_synthesis.md §7.3 — headline brackets: MU-1 (off-SH
+  credit line, conditional on s_T, priced against MU-9's two-vs-three-term
+  question), MU-4 (pre-commit the no-anomaly action incl. restored option
+  (b)), MU-10 (may R2 edit the ratified Ch-3 closing sentence — A said
+  untouched, B said correct it), MU-11 (the tau-DIV dispute: A's R-H
+  rejection vs B's sharpening defense), MU-11b (X-PROBE, 3.6 h, settles
+  exploiter feasibility before A's 10.6 h producer). COST if ratified:
+  ~10.3 h agent-side battles serial (~3.5-4 h at k=3 iff G7 passes) +
+  ~11-14 h build/analysis over 5-6 evening blocks; 0 maintainer terminal,
+  0 seeds, 0 lane-days. Cycle docs (8 files, ~5.4k lines) mirrored to
+  ../pokemon-showdown-rl-d25-backup-20260815/design_fp_gap/. NOTHING RUNS
+  until the maintainer ratifies the r2 pre-reg and rules the brackets.
