@@ -6197,3 +6197,21 @@ entry by offset — never a broad keyword grep.
   resumed). README additive row landed (B5 verdict verbatim, all
   disclosures, X1/X0 descriptive levels, headline untouched — 0.71825
   and R2's 0.79283 both stand). Backed up.
+
+- 2026-08-25 (maintainer, verbatim: "a then c, skip b" then "after you
+  close up this session, handoff md" — **RULING: CH3 CLOSED (option A
+  executed now), next work is the FOUL-PLAY-GAP DESIGN CYCLE (option
+  C); design A's critic lever and the R4 follow-ups are SKIPPED (option
+  B), shelved not killed**): pushed e3bca48..60d73fc to origin (30
+  commits, maintainer-authorized). README gains a "Chapter 3, closed"
+  narrative section — search's value is real and inference-only; best
+  deployment = D26 + search@M (0.793, SH-facing caveat); best pure
+  network = D26 (0.71825); the inherited open problem is OFF-ANCHOR
+  strength (FP h2h 0.39, search does not help off-SH). C's scope for
+  the next session: a design cycle (2-Opus + reviews, per the standing
+  process) on why the agent loses off-SH and what lever moves it —
+  candidate threads from banked evidence: C7 switch-bias at the policy
+  level, opponent-style generalization (SH-facing increments), the FP
+  budget ladder's no-gradient result, U9 T2b contamination flag.
+  Ladder itself stays deferred (2026-08-23 ruling) until exhausted vs
+  SH + FP anchors. HANDOFF.md written per explicit maintainer request.

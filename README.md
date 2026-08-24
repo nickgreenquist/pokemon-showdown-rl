@@ -29,6 +29,41 @@ CartPole/MinAtar PPO support stays for `DESIGN.md`'s Arm C spine gate; the rest 
 predecessor spine (DQN, SAC, MuJoCo, the Connect-4 study's solver and probes) was
 pruned 2026-08-05.
 
+## Chapter 3, closed 2026-08-25: search — what a forward model buys, and where it lives
+
+The question was whether classical search on top of the self-play agent's own
+heads could beat the agent alone, and if so, where that advantage lives. The
+answer is now complete:
+
+- **One-ply expectation search over a validated gen-1 forward model**
+  (poke-engine-derived, transition agreement 0.909), using only our own
+  policy/value/opponent-action heads, is the project's best number: **0.793 vs
+  SH, +0.069 over the same checkpoints played greedily** (credited, all lanes
+  positive). Caveat, measured not assumed: the increment is SH-facing — it does
+  not transfer to the BC-clone or Foul Play anchors.
+- **The advantage is real in self-play too**: in mirror games, search beats its
+  own greedy self by **+0.15** (4/4 lanes) — twice its vs-SH increment.
+- **But it does not compile into weights.** One iteration of expert iteration
+  (494,603 own-search decisions, actor-only offline distillation, frozen
+  critic, self-play collection) made every lane WORSE vs SH (**−0.055 pooled,
+  4/4 negative** — B5+KILL, the pre-registered strongest-negative cell). The
+  mechanism matched the pre-registered risk exactly: the model's uniform-switch
+  optimism cancels inside a live comparison but is toxic once imitated
+  (distilled switch rates roughly doubled). The actor expert-iteration family
+  is closed for this chapter.
+- **The critic is not the bottleneck in the ways we guessed**: it is not
+  rank-collapsed (srank99 ~47/384 on the headline lanes), a 3-critic ensemble
+  evaluator inside search was flat (+0.022, uncredited), and on-distribution
+  critic disagreement is small (|v_LOO−v_own| ≈ 0.05–0.07 over 500k real
+  decision points).
+
+Net: **search@M's value is real, and it is inference-only.** The strongest
+deployment of this project is the D26 checkpoint with search at decision time;
+the strongest pure network remains the D26 checkpoint itself. The open problem
+the next chapter inherits: everything here is strong against SH-like play and
+still loses to Foul Play (0.39 h2h) — off-anchor strength, not more search, is
+the path to ladder readiness.
+
 ## Results so far
 
 Win rate vs poke-env's `SimpleHeuristicsPlayer` (SH). Locked protocol: final

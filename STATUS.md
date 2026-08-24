@@ -30,14 +30,15 @@ resume-from-checkpoint BUILT (`--resume RUN_DIR`).
 | s65 anchors: clone greedy/search 0.894/0.860 · FP@100 greedy/search 0.388/0.368 | — |
 
 ## Next actions
-1. R5b is CLOSED (B5+KILL, README row landed). Legal next moves: design
-   A's critic-value family (needs its own pre-reg; NOT closed by this
-   KILL); R4 follow-ups (all-4 / single-foreign-critic / U8 k=4->8);
-   E2(σ=0.2) upgrade; U9 T2b contamination flag; FP h2h at stock budget
-   remains the readiness anchor. Chapter story: search@M's value is
-   REAL and INFERENCE-ONLY — polish/ladder-readiness path goes through
-   the search-deployed agent, maintainer's call.
-2. Unpushed: commits past e3bca48 (morning auth only) — ask before push.
+1. **C: FOUL-PLAY-GAP DESIGN CYCLE** (ruled 2026-08-25, "a then c, skip
+   b"): 2-Opus design + synthesis + 2 adversarial reviews on off-anchor
+   strength — why the agent loses to FP (0.388 h2h) and what lever
+   moves it. Evidence in hand: search increments are SH-facing; C7
+   switch bias measured at policy level; FP budget ladder no-gradient;
+   U9 T2b flag. Nothing runs before a ratified pre-reg. CH3 is CLOSED
+   (README chapter section landed); B (critic lever, R4 follow-ups)
+   SHELVED. Ladder deferred until exhausted vs SH+FP (standing ruling).
+2. Pushed through 60d73fc; commits after that unpushed — ask first.
 ## Watch items
 - **Never quote 0.81200 as a best (B3, uncredited). Never quote T-GATE
   numbers as vs-SH strength — they are MIRROR-regime margins.**
