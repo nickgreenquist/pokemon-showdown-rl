@@ -32,9 +32,12 @@ fu_check() {
   # F-U: every 'realized usernames' line across the given logs must be
   # pairwise distinct (usernames are per-process entropy; a collision dies
   # with the misleading 'Agent is not challenging' timeout).
+  # Full usernames are quoted and contain spaces ('ShowdownSing xxxxx');
+  # extract the complete quoted strings — splitting on whitespace flagged
+  # the shared 'ShowdownSing' PREFIX as a duplicate (false-fired
+  # 2026-08-25 on the era-pin wave).
   DUP=$(grep -h "realized usernames" "$@" 2>/dev/null \
-        | tr -d "[]'," | tr ' ' '\n' | grep -v '^$' \
-        | grep -v 'realized\|usernames' | sort | uniq -d)
+        | grep -o "'[^']*'" | sort | uniq -d)
   if [ -n "$DUP" ]; then
     echo "F-U FAIL: duplicate usernames across concurrent jobs: $DUP"
     return 1
