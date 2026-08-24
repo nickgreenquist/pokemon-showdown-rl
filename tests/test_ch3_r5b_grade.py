@@ -130,3 +130,17 @@ def test_prereg_jobs_resolve_through_unmodified_driver():
            [f"x1_d{l[1:]}" for l in grade.LANES] + \
            [f"pl_p{l[1:]}" for l in grade.LANES]
     assert sorted(jobs) == sorted(want)
+
+
+def test_amendment_headline_cap_b1a_unreachable():
+    assert grade.b1_split("B1", "GREEN", amended=True) == "B1b"
+    assert grade.b1_split("B1", "GREEN", amended=False) == "B1a"
+    assert grade.b1_split("B3", "GREEN", amended=True) == "B3"
+
+
+def test_prereg_carries_amendment_and_gates_grade_it():
+    prereg = yaml.safe_load(PREREG.read_text())
+    assert "capture" in prereg["d2_rule_amended"].lower() or \
+           "FIFTH" in prereg["d2_rule_amended"]
+    assert "gain-aware" in prereg["d2_amendment_provenance"]
+    assert "B1a unreachable" in prereg["headline_cap_under_amendment"]

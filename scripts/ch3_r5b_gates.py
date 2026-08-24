@@ -207,7 +207,20 @@ def run_lane(prereg: dict, prereg_path: str, lane: str, collect_dir: str,
     if final_path.exists():
         rows_per_battle = json.loads(final_path.read_text())["rows_per_battle"]
 
-    d2_pass = a1 >= a0 + D2_MARGIN
+    d2_original_pass = a1 >= a0 + D2_MARGIN
+    # AMENDMENT A1 (2026-08-25, prereg d2_rule_amended): capture-fraction
+    # form + battle-clustered significance. The ORIGINAL verdict is
+    # recorded beside it on every branch, per the amendment's own terms.
+    gain_rows = (x1_pick == chosen).astype(float) - (stored_x0 == chosen).astype(float)
+    bids = np.asarray(data["battle_id"][gate_ix])
+    battle_means = [gain_rows[bids == b].mean() for b in np.unique(bids)]
+    se_cluster = float(np.std(battle_means, ddof=1) / np.sqrt(len(battle_means)))
+    capture = (a1 - a0) / (1.0 - a0) if a0 < 1.0 else 0.0
+    d2_amended_pass = capture >= 0.20 and (a1 - a0) >= 4 * se_cluster
+    if "d2_rule_amended" in prereg:
+        d2_pass = d2_amended_pass
+    else:
+        d2_pass = d2_original_pass
     d3_hi = f_base + D3_TOL
     d3_pass = D3_LO <= flip_x1 <= d3_hi
     d4_floor = D4_FRAC * x0_entropy
@@ -225,6 +238,14 @@ def run_lane(prereg: dict, prereg_path: str, lane: str, collect_dir: str,
         "gate_rows": int(len(gate_ix)),
         "D-2": {"a0_selfplay": a0, "a1": a1, "margin_required": D2_MARGIN,
                 "pass": bool(d2_pass),
+                "original_absolute_pass": bool(d2_original_pass),
+                "amended": {"active": "d2_rule_amended" in prereg,
+                            "capture_fraction": capture,
+                            "capture_bar": 0.20,
+                            "gain": a1 - a0,
+                            "se_cluster": se_cluster,
+                            "n_battles": len(battle_means),
+                            "pass": bool(d2_amended_pass)},
                 "a0_r5a_flip_xcheck": {
                     "r5a_flip_rate": r5a_flip, "abs_diff": a0_xcheck,
                     "within_tol": None if a0_xcheck is None

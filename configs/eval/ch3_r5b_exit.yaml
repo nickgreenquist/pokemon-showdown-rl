@@ -1052,3 +1052,37 @@ temperature_grid_transcript: "PENDING — written here before any battle (B-10)"
 placebo_dose_search_transcript: "PENDING — written here before any battle (B-10)"
 a0_selfplay_measured: "PENDING — read from the GATE split at collection time and cross-checked against ch3_r5a's recorded self-play flip rate (B-10)"
 b7_fg4_transcript: "PENDING — recorded before launch (B-7)"
+# =====================================================================
+# AMENDMENT A1 (2026-08-25) — D-2 MARGIN FORM. Appended post-STOP,
+# maintainer-authorized ("go with what you recommend, and run what you
+# need", after the agent's written recommendation + counterargument).
+# EPISTEMIC STATUS, STATED PLAINLY: this amendment is BLIND TO EVERY WIN
+# RATE (no Stage-2 evaluation battle had run when D-2 fired or when this
+# was written) but it is NOT blind to the four GATE-split gains
+# (+0.2192 / +0.1148 / +0.1942 / +0.2373) — the amender saw them. Three
+# consequences follow and are binding:
+#   (1) the ORIGINAL rule's verdict (FAIL on s63 -0.0852 and s64
+#       -0.0058) travels beside the amended verdict on EVERY branch of
+#       every readout, forever;
+#   (2) the exact capture-fraction recalibration of the original margin
+#       (+0.20 at the assumed a0=0.402 = 0.334 of the remaining gap)
+#       would FAIL 3 of 4 lanes (captures 0.329/0.218/0.311/0.378) —
+#       said out loud so nobody mistakes the amended bar for a neutral
+#       re-derivation;
+#   (3) HEADLINE CAP: under this amendment B1a IS UNREACHABLE. A credit
+#       from this read lands as an ADDITIVE row with the amended-gate
+#       qualifier; "new best vs-SH number" is not licensed regardless of
+#       F-T. Promotion would be a separate maintainer ruling with these
+#       facts quoted.
+# WHY AMEND AT ALL: the original absolute margin was calibrated on
+# homogeneous a0 ~ 0.402 ("IF a0_selfplay ~ 0.402 THIS REPRODUCES THE r1
+# DRAFT'S >= 0.60"); measured a0 spans 0.333-0.472 (s63's base already
+# agrees with search 47%, making its bar 0.672, the arm's hardest), and
+# the ~150-battle GATE split puts s64's -0.0058 miss inside split noise.
+# D-2's PURPOSE (Q6) is broken-fit detection — a null read must mean
+# "the lever didn't help", never "the fit didn't happen".
+# =====================================================================
+d2_rule_amended: "AMENDED FORM, supersedes d2_rule for the verdict (original evaluated and recorded beside it): per lane, on the GATE split, searched decisions only: (a1 - a0_selfplay) >= 0.20 * (1 - a0_selfplay) — the student captures at least a FIFTH of the teacher's excess over the base — AND (a1 - a0_selfplay) >= 4 * se_cluster, where se_cluster is the battle-clustered se of the per-row agreement gain (sd of per-battle mean gains / sqrt(n_battles)). A broken fit captures ~0 and fails both conjuncts. STOP below, no battles, as before."
+d2_amendment_provenance: "2026-08-25, maintainer-authorized post-STOP; win-rate-blind, gain-aware (the four GATE gains were known); the 0.334-of-gap recalibration of the original margin fails 3/4 lanes and was NOT chosen — the 0.20-of-gap bar is a broken-fit floor, not a re-tuned margin, and the difference is disclosed here rather than discovered later."
+d2_amendment_disclosure_obligation: "every licensed sentence from this arm carries: 'the pre-registered D-2 (absolute +0.20) fired on 2 of 4 lanes (-0.0852, -0.0058) and was amended result-blind-on-win-rates to a capture-fraction form before any evaluation battle ran'."
+headline_cap_under_amendment: "B1a unreachable; credit lands additive with the amended-gate qualifier; no 'new best' claim on any branch of this read."

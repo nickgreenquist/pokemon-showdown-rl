@@ -95,11 +95,16 @@ def refuse_checks(prereg: dict, prereg_path: str) -> None:
     assert not _git(["status", "--porcelain", "--", prereg_path]), "pre-reg uncommitted"
 
 
-def b1_split(cell: str, f_t_state: str) -> str:
+def b1_split(cell: str, f_t_state: str, amended: bool = False) -> str:
     """B1a: CREDIT AND F-T GREEN. B1b: CREDIT otherwise (disclosed band).
-    The frozen-number conjunct is struck by the pre-reg itself."""
+    The frozen-number conjunct is struck by the pre-reg itself.
+    AMENDMENT A1 headline cap: when the D-2 amendment is active, B1a is
+    UNREACHABLE — a credit lands B1b (additive row, amended-gate
+    qualifier, no 'new best') regardless of F-T."""
     if cell != "B1":
         return cell
+    if amended:
+        return "B1b"
     return "B1a" if f_t_state == "GREEN" else "B1b"
 
 
@@ -239,7 +244,8 @@ def grade(prereg_path: str) -> dict:
     f_d = {l: {"x0": x0[l].get("mask_desyncs"), "x1": x1[l].get("mask_desyncs")}
            for l in LANES}
 
-    cell = b1_split(cell_raw, f_t)
+    amended = "d2_rule_amended" in prereg
+    cell = b1_split(cell_raw, f_t, amended=amended)
 
     # ---- PL, iff its finals exist ----
     pl_report = None
@@ -297,6 +303,15 @@ def grade(prereg_path: str) -> dict:
         "PL": pl_report,
         "anchors": anchors,
         "provenance_qualifier": prereg["provenance_qualifier_mandatory"],
+        "d2_amendment": None if not amended else {
+            "active": True,
+            "disclosure": prereg["d2_amendment_disclosure_obligation"],
+            "headline_cap": prereg["headline_cap_under_amendment"],
+            "original_verdicts": {l: d_gates[l]["D-2"]["original_absolute_pass"]
+                                  for l in LANES},
+            "amended_verdicts": {l: d_gates[l]["D-2"]["amended"]
+                                 for l in LANES},
+        },
         "recorded_only": {
             "per_lane_median_delta": statistics.median(d),
             "worst_lane_delta": min(d),
