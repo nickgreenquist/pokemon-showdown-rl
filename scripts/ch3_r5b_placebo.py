@@ -102,16 +102,42 @@ def build_placebo_targets(mask: np.ndarray, row_ev: np.ndarray,
 def dose_search(agent, obs, mask, targets, kept_idx, gate_obs, gate_mask,
                 stored_x0_gate: np.ndarray, flip_x1: float, seed: int):
     """One fixed-seed MAX_EPOCHS run; flip(PL_E vs X0) measured on GATE after
-    every epoch. Returns (probes, selected_epoch, selected_state)."""
+    every probe point. Returns (probes, selected_step_label, in_band)."""
     torch.manual_seed(seed)
     generator = torch.Generator().manual_seed(seed)
     optimizer = torch.optim.Adam(agent.actor.parameters(), lr=LR)
     fit_t = torch.as_tensor(kept_idx)
     probes = []
-    best = None  # (dist_to_1, epoch, state)
+    best = None  # (dist_to_1, label, state, in_band)
+
+    def _probe(label: str, fit_loss: float | None):
+        nonlocal best
+        picks, _ = actor_read(agent.actor, gate_obs, gate_mask)
+        flip_pl = float((picks.numpy() != stored_x0_gate).mean())
+        ratio = flip_pl / flip_x1 if flip_x1 else float("inf")
+        in_band = PL_DOSE_BAND[0] <= ratio <= PL_DOSE_BAND[1]
+        probes.append({"step": label, "fit_loss": fit_loss,
+                       "flip_pl": flip_pl, "ratio": ratio,
+                       "in_band": bool(in_band)})
+        print(f"  step {label}: flip_pl {flip_pl:.4f}, "
+              f"ratio {ratio:.3f} {'IN BAND' if in_band else ''}", flush=True)
+        dist = abs(ratio - 1.0)
+        if best is None or (in_band and not best[3]) or \
+                (in_band == best[3] and dist < best[0]):
+            best = (dist, label,
+                    {k: v.detach().clone()
+                     for k, v in agent.actor.state_dict().items()},
+                    in_band)
+
     for epoch in range(1, MAX_EPOCHS + 1):
         perm = fit_t[torch.randperm(len(fit_t), generator=generator)]
-        total = 0.0
+        n_batches = (len(perm) + BATCH - 1) // BATCH
+        # the knob is the OPTIMIZER-STEP count: within epoch 1 the search
+        # probes quarter-epoch boundaries too, so an overshoot at one full
+        # epoch (measured on the 100-battle smoke) can still be matched
+        quarters = {round(n_batches * q / 4) for q in (1, 2, 3)} \
+            if epoch == 1 else set()
+        total, done = 0.0, 0
         for i in range(0, len(perm), BATCH):
             ix = perm[i:i + BATCH]
             logp = F.log_softmax(masked_logits(agent.actor(obs[ix]), mask[ix]), -1)
@@ -120,25 +146,13 @@ def dose_search(agent, obs, mask, targets, kept_idx, gate_obs, gate_mask,
             loss.backward()
             optimizer.step()
             total += loss.item() * len(ix)
-        picks, _ = actor_read(agent.actor, gate_obs, gate_mask)
-        flip_pl = float((picks.numpy() != stored_x0_gate).mean())
-        ratio = flip_pl / flip_x1 if flip_x1 else float("inf")
-        in_band = PL_DOSE_BAND[0] <= ratio <= PL_DOSE_BAND[1]
-        probes.append({"epoch": epoch, "fit_loss": total / len(perm),
-                       "flip_pl": flip_pl, "ratio": ratio,
-                       "in_band": bool(in_band)})
-        print(f"  epoch {epoch:2d}: flip_pl {flip_pl:.4f}, "
-              f"ratio {ratio:.3f} {'IN BAND' if in_band else ''}", flush=True)
-        dist = abs(ratio - 1.0)
-        if best is None or (in_band and not best[3]) or \
-                (in_band == best[3] and dist < best[0]):
-            best = (dist, epoch,
-                    {k: v.detach().clone()
-                     for k, v in agent.actor.state_dict().items()},
-                    in_band)
-    _, epoch, state, in_band = best
+            done += 1
+            if done in quarters:
+                _probe(f"epoch1+{done}/{n_batches}b", None)
+        _probe(f"epoch{epoch}", total / len(perm))
+    _, label, state, in_band = best
     agent.actor.load_state_dict(state)
-    return probes, epoch, in_band
+    return probes, label, in_band
 
 
 def run_lane(prereg: dict, prereg_path: str, lane: str, collect_dir: str,
@@ -167,7 +181,7 @@ def run_lane(prereg: dict, prereg_path: str, lane: str, collect_dir: str,
     gate_ix = idx["GATE"]
     stored_x0_gate = np.asarray(data["policy_argmax"][gate_ix])
     _, _, agent = build_base_agent(prereg, lane)
-    probes, sel_epoch, in_band = dose_search(
+    probes, sel_step, in_band = dose_search(
         agent, obs, mask_t, targets, kept,
         obs[gate_ix], mask_t[gate_ix], stored_x0_gate, flip_x1,
         seed=int(lane.lstrip("s")))
@@ -186,7 +200,7 @@ def run_lane(prereg: dict, prereg_path: str, lane: str, collect_dir: str,
         "tau": tau,
         "pairing": pair_report,
         "dose_search": probes,
-        "selected_epoch": sel_epoch,
+        "selected_step": sel_step,
         "dose_matched": bool(in_band),
         "non_binding_if_unmatched": not in_band,
         "flip_x1_reference": flip_x1,
@@ -202,7 +216,7 @@ def run_lane(prereg: dict, prereg_path: str, lane: str, collect_dir: str,
                            else f"{lane}_placebo.json")
     out.write_text(json.dumps(transcript, indent=2) + "\n")
     verdict = "DOSE-MATCHED" if in_band else "DOSE-UNMATCHED (NON-BINDING)"
-    print(f"{out.name}: epoch {sel_epoch}, {verdict}; placebo pin {pname} "
+    print(f"{out.name}: step {sel_step}, {verdict}; placebo pin {pname} "
           f"sha256 {sha} -> stamp into checkpoints: (B-5)")
 
 
