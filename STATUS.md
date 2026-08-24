@@ -52,8 +52,7 @@ resume-from-checkpoint BUILT (`--resume RUN_DIR`).
   0.016-0.033 in evaluator/mirror reads for power planning.
 - Named-file reads only; bash 3.2 (no ${var,,}); FP crash-forfeit rule +
   auto-relaunch runner BUILT (scripts/ch3_r4_fp_runner.sh). Encoder env
-  vars must NOT be exported to the whole test suite (8 default-encoder
-  tests fail under the flags; canonical B-3 run is bare).
+  vars must NOT be exported to the whole suite — canonical B-3 run is bare.
 - README ± binomial except ‡; never read throughput off time/steps_per_sec.
 - results/ dirs are the ONLY copies; ch3_r4, ch3_r3_oracle, ch3_r5a,
   design_ch3_r4, design_critic all mirrored to
