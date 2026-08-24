@@ -46,19 +46,31 @@ from poke_env.player import Player
 from poke_env.ps_client.account_configuration import AccountConfiguration
 
 BATTLE_FORMAT = "gen1randombattle"
-ARM_KINDS = ("greedy_seat", "search_seat")
+# CH4 R1 BI-2b/BI-3 (pre-reg configs/eval/ch4_r1_offsh_instrument.yaml):
+#   sampled_seat — the checkpoint seat samples instead of argmaxing, rng
+#     pinned by the arm's seat_rng_seed (a DISCLOSED locked-protocol
+#     deviation; the point of arm S1);
+#   fp_vs_clone — the seat is the 808-dim FP behaviour clone, loadable in
+#     this 828-dim process ONLY through the eval_checkpoint shim (review 1
+#     BL-2 proved load_state_dict RuntimeErrors without it); clone_policy
+#     selects sampling (form-matched to the banked pooled comparator) or
+#     deterministic (C1b, recorded-only).
+ARM_KINDS = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone")
 
 
 def _build_agent(spec: dict):
+    """sha-assert then load THROUGH THE SHIM (eval_checkpoint's
+    _load_showdown_agent): an 828 lane loads natively; the 808 clone gets
+    PrefixSliceActor — bit-for-bit its own encoding. Returns (agent,
+    native_dim) so G8 can stamp the realized width."""
     import hashlib
-    from types import SimpleNamespace
+    import sys
 
-    import gymnasium as gym
+    sys.path.insert(0, str(Path(__file__).parent))
+    from eval_checkpoint import _load_showdown_agent
 
     from rl.common.checkpoint import load_checkpoint
     from rl.common.config import Config
-    from rl.envs.showdown import OBS_DIM
-    from rl.train import make_agent
 
     h = hashlib.sha256()
     with open(spec["path"], "rb") as f:
@@ -69,12 +81,10 @@ def _build_agent(spec: dict):
     ckpt = load_checkpoint(spec["path"])
     cfg = Config(**ckpt["config"])
     torch.set_num_threads(1)
-    agent = make_agent(cfg, SimpleNamespace(
-        observation_space=gym.spaces.Box(-1.0, 4.0, (OBS_DIM,), np.float32),
-        action_space=gym.spaces.Discrete(10),
-    ))
-    agent.load_state_dict(ckpt["agent"])
-    return agent
+    agent = _load_showdown_agent(ckpt, cfg)
+    native = getattr(getattr(agent, "actor", None), "in_dim", None)
+    from rl.envs.showdown import OBS_DIM
+    return agent, int(native) if native is not None else OBS_DIM
 
 
 def _resolve_evaluator(prereg: dict, seat_lane: str, spec_eval, agent0):
@@ -95,7 +105,7 @@ def _resolve_evaluator(prereg: dict, seat_lane: str, spec_eval, agent0):
         assert len(pool) == 3, f"F5: loo pool resolved to {pool}"
         assert seat_lane not in pool, f"F5: own lane {seat_lane} in pool"
         evaluator["agents"] = [
-            _build_agent(prereg["checkpoints"][x]) for x in pool
+            _build_agent(prereg["checkpoints"][x])[0] for x in pool
         ]
         assert all(a is not agent0 for a in evaluator["agents"]), (
             "F5: the lane's own agent object is in the ensemble"
@@ -113,14 +123,16 @@ class SeatPlayer(Player):
     seat's own battle object with rng keyed by (checkpoint_seed,
     battle_index, turn, decision_index) exactly as the R2 eval driver."""
 
-    def __init__(self, agent, search_agent=None, **kwargs):
+    def __init__(self, agent, search_agent=None, deterministic=True, **kwargs):
         super().__init__(battle_format=BATTLE_FORMAT, max_concurrent_battles=1, **kwargs)
         self._agent = agent
         self._sa = search_agent
+        self._det = deterministic
         self._type_chart = GenData.from_format(BATTLE_FORMAT).type_chart
         self._battle_tag: str | None = None
         self._battle_index = -1
         self._decision_index = 0
+        self.tag_index: dict[str, int] = {}  # CH4 R1 BI-7: per-battle records
         self.ms: list[float] = []
         self.leaves: list[int] = []
 
@@ -132,6 +144,7 @@ class SeatPlayer(Player):
             self._battle_tag = battle.battle_tag
             self._battle_index += 1
             self._decision_index = 0
+            self.tag_index[battle.battle_tag] = self._battle_index
         obs = embed_battle(battle, self._type_chart)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         if self._sa is not None:
@@ -143,7 +156,7 @@ class SeatPlayer(Player):
                 self.ms.append((time.perf_counter() - t0) * 1e3)
                 self.leaves.append(int(stats["search/leaves"]))
         else:
-            action = self._agent.act(obs, mask, deterministic=True)
+            action = self._agent.act(obs, mask, deterministic=self._det)
         self._decision_index += 1
         try:
             order = SinglesEnv.action_to_order(np.int64(action), battle)
@@ -163,7 +176,18 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "kind must not silently run the greedy seat"
     )
     seat_lane = arm.get("seat", "s65")
-    agent = _build_agent(prereg["checkpoints"][seat_lane])
+    agent, native_dim = _build_agent(prereg["checkpoints"][seat_lane])
+    # CH4 R1 BI-3: a sampling seat (S1's whole point; C1's form-matching to
+    # the banked pooled-orientation clone comparator) draws from torch's
+    # RNG, so the arm must pin seat_rng_seed or it is irreproducible.
+    deterministic = True
+    if arm["kind"] == "sampled_seat" or (
+        arm["kind"] == "fp_vs_clone" and arm.get("clone_policy") == "sampling"
+    ):
+        deterministic = False
+        seed = int(arm["seat_rng_seed"])
+        torch.manual_seed(seed)
+        np.random.seed(seed)
     search_agent = None
     eval_provenance = None
     if arm["kind"] == "search_seat":
@@ -181,6 +205,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     seat = SeatPlayer(
         agent,
         search_agent,
+        deterministic=deterministic,
         account_configuration=AccountConfiguration(arm["seat_username"], None),
     )
     print(f"seat '{arm['seat_username']}' ({arm['kind']}) waiting for {battles} "
@@ -214,6 +239,27 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "sec_per_battle": round(elapsed / finished, 2) if finished else None,
         "mask_desyncs": mask_desync_total(),
         "gate_all_challenges_resolved": finished == battles,
+        # CH4 R1 BI-7: per-battle records — the S0 slice, the tape<->JSON
+        # join, and the crash-forfeit interaction are all defined on these.
+        "per_battle": sorted(
+            (
+                {
+                    "index": seat.tag_index.get(t, -1),
+                    "tag": t,
+                    "outcome": ("win" if b.won else "loss") if b.won is not None else "tie",
+                    "turns": b.turn,
+                }
+                for t, b in seat.battles.items()
+                if b.finished
+            ),
+            key=lambda r: r["index"],
+        ),
+        # CH4 R1 G8 stamps.
+        "seat_policy": "sampled" if not deterministic else "deterministic",
+        "seat_rng_seed": arm.get("seat_rng_seed"),
+        "seat_lane": seat_lane,
+        "seat_native_dim": native_dim,
+        "declared_search_time_ms": arm.get("search_time_ms"),
     }
     if search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
@@ -252,6 +298,24 @@ def main() -> None:
     tag = args.tag or args.arm.lower()
 
     result = asyncio.run(run(prereg, args.arm, battles, tag))
+
+    # CH4 R1 G8: era/provenance stamp — launch sha, the pre-reg's content
+    # hash (the thresholds cannot drift between launch and grading without
+    # a trace), encoder state, process obs width.
+    import hashlib
+    import subprocess
+
+    from rl.envs.showdown import OBS_DIM
+    result["launch_git_sha"] = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True
+    ).stdout.strip()
+    result["prereg_path"] = args.prereg
+    result["prereg_sha256"] = hashlib.sha256(Path(args.prereg).read_bytes()).hexdigest()
+    result["encoder_env"] = {
+        v: os.environ.get(v)
+        for v in ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS")
+    }
+    result["process_obs_dim"] = OBS_DIM
 
     out_dir = Path(prereg["results_dir"])
     out_dir.mkdir(parents=True, exist_ok=True)

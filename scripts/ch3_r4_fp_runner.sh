@@ -50,12 +50,42 @@ START_STAGGER="${START_STAGGER:-30}"
 export POKEMON_RL_ENCODER_V2=1
 export POKEMON_RL_ENCODER_IDS=1
 
+# CH4 R1 BI-6 + G8: when the pre-reg's arms block defines this arm, its
+# kind/usernames/battles/budget come FROM THE PRE-REG, never from free env
+# vars (review 1 MA-10: a mis-exported SEARCH_TIME_MS used to produce a JSON
+# indistinguishable from a correct one). Older pre-regs without these keys
+# keep the env-var path untouched.
+ARM_KIND="$("$PY" -c "
+import yaml,sys
+arm = yaml.safe_load(open('$PREREG'))['arms'].get('$ARM') or {}
+print(arm.get('kind',''))" 2>/dev/null || echo "")"
+if [ -n "$ARM_KIND" ]; then
+    eval "$("$PY" -c "
+import yaml
+arm = yaml.safe_load(open('$PREREG'))['arms']['$ARM']
+for shell, key in (('SEAT_USER','seat_username'),('FP_USER','fp_username'),
+                   ('BATTLES','battles'),('SEARCH_TIME_MS','search_time_ms')):
+    v = arm.get(key)
+    if v is not None:
+        print(f'{shell}={v}')")"
+fi
+
+# G1 smokes: SMOKE_BATTLES (if set) wins over the pre-reg battle count —
+# the ONLY sanctioned post-derivation override, and it also forces a
+# smoke_ tag prefix so a smoke can never overwrite a real arm JSON.
+if [ -n "${SMOKE_BATTLES:-}" ]; then
+    BATTLES="$SMOKE_BATTLES"
+    case "$TAG" in smoke_*) ;; *) TAG="smoke_$TAG" ;; esac
+fi
+
 mkdir -p "$OUT"
 SEAT_LOG="$OUT/$TAG.seat.stdout"
 FP_LOG="$OUT/$TAG.fp.stdout"
 RUNNER_LOG="$OUT/$TAG.runner.log"
 RUNNER_JSON="$OUT/$TAG.runner.json"
-VOID_MARKER="$OUT/TOO_MANY_CRASHES"
+# BI-6: arm-scoped VOID marker — concurrent arms in one OUT dir must not
+# share a crash sentinel (review 1 MA-18).
+VOID_MARKER="$OUT/$TAG.TOO_MANY_CRASHES"
 
 rm -f "$VOID_MARKER"
 : > "$FP_LOG"
@@ -119,9 +149,17 @@ EOF
 }
 
 # ---- the seat: OUR side, started first and staggered (torch lazy-init
-# ---- SIGSEGV landmine) ------------------------------------------------
-"$PY" scripts/ch3_fp_h2h.py --prereg "$PREREG" --arm "$ARM" \
-    --battles "$BATTLES" --tag "$TAG" > "$SEAT_LOG" 2>&1 &
+# ---- SIGSEGV landmine). CH4 R1: fp_vs_sh arms seat SimpleHeuristics via
+# ---- foulplay_vs_sh.py (BI-2a — the same implementation that produced
+# ---- every banked hub number, so H1/H2 stay commensurable); every other
+# ---- kind seats a checkpoint via ch3_fp_h2h.py. ------------------------
+if [ "$ARM_KIND" = "fp_vs_sh" ]; then
+    "$PY" scripts/foulplay_vs_sh.py --opponent "$FP_USER" --battles "$BATTLES" \
+        --username "$SEAT_USER" --tag "$TAG" --out-dir "$OUT" > "$SEAT_LOG" 2>&1 &
+else
+    "$PY" scripts/ch3_fp_h2h.py --prereg "$PREREG" --arm "$ARM" \
+        --battles "$BATTLES" --tag "$TAG" > "$SEAT_LOG" 2>&1 &
+fi
 SEAT_PID=$!
 log "seat pid $SEAT_PID ($ARM, $BATTLES battles, tag $TAG); staggering ${START_STAGGER}s"
 sleep "$START_STAGGER"

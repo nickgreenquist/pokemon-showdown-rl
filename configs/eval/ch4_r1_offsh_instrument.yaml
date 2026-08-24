@@ -479,7 +479,7 @@ arms:
   L63: {kind: greedy_seat,  seat: s63, search_time_ms: 20, battles: 3000, seat_username: c4l63seat, fp_username: c4l63fp, wave: B}
   L64: {kind: greedy_seat,  seat: s64, search_time_ms: 20, battles: 3000, seat_username: c4l64seat, fp_username: c4l64fp, wave: B}
   L65: {kind: greedy_seat,  seat: s65, search_time_ms: 20, battles: 3000, seat_username: c4l65seat, fp_username: c4l65fp, wave: C, g7_duplicate: true}
-  C1:  {kind: fp_vs_clone,  seat: clone, clone_policy: sampling,      search_time_ms: 20, battles: 250, seat_username: c4c1seat,  fp_username: c4c1fp,  wave: C}
+  C1:  {kind: fp_vs_clone,  seat: clone, clone_policy: sampling,      search_time_ms: 20, battles: 250, seat_username: c4c1seat,  fp_username: c4c1fp,  wave: C, seat_rng_seed: 41309}
   C1b: {kind: fp_vs_clone,  seat: clone, clone_policy: deterministic, search_time_ms: 20, battles: 250, seat_username: c4c1bseat, fp_username: c4c1bfp, wave: C, recorded_only: true}
   S1:  {kind: sampled_seat, seat: s65, search_time_ms: 20, battles: 1000, seat_username: c4s1seat, fp_username: c4s1fp, wave: C, seat_rng_seed: 41307}
   E1:  {kind: greedy_seat,  seat: s65, search_time_ms: 100, battles: 250, seat_username: c4e1seat, fp_username: c4e1fp, wave: C}
