@@ -6277,3 +6277,21 @@ entry by offset — never a broad keyword grep.
   0 seeds, 0 lane-days. Cycle docs (8 files, ~5.4k lines) mirrored to
   ../pokemon-showdown-rl-d25-backup-20260815/design_fp_gap/. NOTHING RUNS
   until the maintainer ratifies the r2 pre-reg and rules the brackets.
+
+- 2026-08-26 (maintainer, verbatim: "do you what you recommend" — **RULING:
+  CH4 R1 RATIFIED BY DELEGATION; all brackets ruled on the synthesis §7.3
+  recommendations** — MU-1 conditional (s_T CI decides); MU-2 FP@20 licence
+  conditional on G6+G6b, CLAUDE.md edit only after gates pass; MU-3 agent-side
+  execution confirmed by the delegation itself; MU-4 pre-committed R2 action =
+  (a) CLOSE the off-anchor thread, (c) ladder revisit NOT auto-executed
+  (standing ruling stays the maintainer's; R2's sentence surfaced as
+  evidence), (b) declined; MU-5 exploiter family in-family under the boundary
+  sentence; MU-6 clone stays, residual annotated on the README anchor row;
+  MU-7 deferred; MU-8 SUPERSEDE (the P2-rider BT re-grade may emit); MU-9
+  two-term for the informative projection, three-term question re-surfaces at
+  any lever pre-reg; MU-10 Ch-3 sentence UNTOUCHED on R2, Chapter-4
+  superseding note instead; MU-11 deferred to the tau-DIV pre-reg iff P-SHARP
+  fires; MU-11b X-PROBE not run now (training lane, not needed for R1).
+  Rulings recorded in the pre-reg's bracket_rulings block. EXECUTION BEGINS:
+  BI-1..BI-8 build, then waves V -> A -> B -> C per the wave plan; unpushed
+  commits stay unpushed (no push authorization given).

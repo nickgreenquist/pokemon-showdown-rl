@@ -444,7 +444,20 @@
 # =====================================================================
 rung: "ch4_r1"
 title: ch4_r1_offsh_instrument
-status: "DRAFT r2 (post-review) — NOT RATIFIED"
+status: "RATIFIED 2026-08-26 by maintainer delegation (verbatim: 'do you what you recommend' — the standing r5a/R5b delegation pattern). Brackets ruled per ch4_synthesis.md §7.3 recommendations; resolutions below."
+bracket_rulings:
+  MU-1: "conditionally yes — an off-SH credit line exists iff R1's s_T CI licenses it; decided by this rung's readout"
+  MU-2: "FP@20 standing-anchor licence CONDITIONAL on G6-PASS and G6b-PASS; CLAUDE.md anchor-battery edit lands only after both gates pass, in its own commit"
+  MU-3: "agent-side execution CONFIRMED by the delegation itself; eval-wave precedent (2026-08-23) covers this wave"
+  MU-4: "pre-committed R2 action = (a) CLOSE the off-anchor thread. Option (c) (ladder revisit) is NOT auto-executed: the ladder deferral is a standing maintainer ruling and R2's sentence is surfaced to the maintainer as evidence for revisiting it whenever they choose. Option (b) declined (scale dead vs SH; §12 queue spent)"
+  MU-5: "exploiter-family lanes are IN-FAMILY (not actor ExIt) under the Q1 boundary sentence"
+  MU-6: "clone stays in the battery; BT residual annotated on the README anchor row only"
+  MU-7: "deferred to the lever stage (no action this cycle)"
+  MU-8: "SUPERSEDE — the P2-rider BT re-grade lands; the grader may emit the superseding sentence (see p2_regrade)"
+  MU-9: "two-term larger-of for this rung's INFORMATIVE projection; the three-term question re-surfaces at any lever pre-reg where the pairing structure is known"
+  MU-10: "on R2 the ratified Chapter-3 closing sentence is UNTOUCHED (memo A's obligation); Chapter 4 gets a superseding note (achieves memo B's correction without editing ratified text)"
+  MU-11: "deferred — adjudicated at the tau-DIV lever pre-reg iff P-SHARP fires"
+  MU-11b: "X-PROBE NOT run now (a training lane; not needed for R1); re-surfaced only if the readout points at the exploiter family"
 results_dir: results/ch4_r1_offsh
 crediting: false
 headline_may_move: false
@@ -513,7 +526,7 @@ bt_hub_fp100_pinned_literal: null   # from H2; same discipline
 rho: {orientation: fp_excess_take_positive_is_anomaly, aggregator: equal_weight_mean_of_per_lane_rho,
       recorded_only_alt: residual_at_pooled_rates, se: "sqrt(se_hub^2 + se_indep^2/k)",
       selftest_asserts: "banked D26 residuals land NEGATIVE (no-anomaly direction)"}
-p2_regrade: {status: PENDING_MU-8, computed_on: every_branch_incl_VOID, sentence_emitted_only_after_ruling: true}
+p2_regrade: {status: RULED_MU-8_SUPERSEDE, computed_on: every_branch_incl_VOID, sentence_may_be_emitted: true}
 s_T: {estimator: "sd ddof=1 over 4 lane rates", graded_on: ci95, ci_multipliers_3df: [0.57, 3.73],
       min_nonvoid_lanes: 4, at_3_lanes: descriptive_only_MU1_defers}
 aggregator: equal_weight_mean_of_per_lane_rates
