@@ -6142,3 +6142,17 @@ entry by offset — never a broad keyword grep.
   the D-2 margin's absolute-vs-relative form + GATE-split noise as a
   design defect and commission a re-registration (a new pre-reg per
   U6; the 2-Opus process). Everything mirrored to the backup.
+
+- 2026-08-25 (maintainer, verbatim: "go with what you recommend, and run
+  what you need" — **RULING: option (b), D-2 AMENDED RESULT-BLIND ON WIN
+  RATES; the read runs under the amended gate with full disclosure**):
+  scope of the amendment = D-2's margin FORM only, per the recommendation
+  the maintainer accepted: a form that scales with each lane's own
+  starting point, the original failure disclosed on every branch, and —
+  the agent's own added discipline — the licensed ceiling of this read
+  is CAPPED below "new best/headline move" (B1a is unreachable; a credit
+  lands as an additive row) because the amendment, while blind to every
+  win rate, was written KNOWING the four gate-split gains. Amendment
+  text appended to configs/eval/ch3_r5b_exit.yaml as d2_rule_amended +
+  provenance + disclosure obligations; gates harness re-grades both
+  forms (original recorded forever beside the amended verdict).
