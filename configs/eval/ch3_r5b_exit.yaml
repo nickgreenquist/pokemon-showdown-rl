@@ -1,0 +1,1054 @@
+# =====================================================================
+# CH3 R5b — EXPERT ITERATION: DOES SEARCH COMPILE INTO WEIGHTS?
+# Executable pre-registration, STAGE 2. STATUS: **RATIFIED 2026-08-24
+#   (evening)** — both blockers cleared: T-PASS landed (t_gate_readout
+#   .json cell == T-PASS, mean mirror margin +0.1515) and RULE-1 ruled
+#   option 1 (CLEAN for a greedy claim). r2 body unchanged at
+#   ratification.
+#
+# **BLOCKED ON, BOTH REQUIRED, BOTH BEFORE THE BUILD IS SPENT:
+#   (1) ch3_r5a_tgate_draft.yaml lands cell T-PASS, read mechanically
+#       from results/ch3_r5a/t_gate_readout.json["cell"]; and
+#   (2) RULE-1 RULED CLEAN-FOR-A-GREEDY-CLAIM (option 1 below).
+#   Option 3 ("CLEAN only for the search-deployed agent, never for a
+#   greedy claim") KILLS THIS FILE AS DESIGNED — see RULE-1.
+#   RULED 2026-08-24 (evening), all four in one batch, every one on the
+#   draft's recommended branch: RULE-1 option 1 (CLEAN + mandatory
+#   provenance clause), RULE-1b NO (self-play collection stands), U-B1
+#   n=1000 re-approved, U-B2 4x3000 accepted. No pending bracket
+#   remains; the grader may grade.**
+#
+# PROVENANCE. 2-agent independent design cycle (design_input_A.md,
+#   design_input_B.md, synthesis ch3_r5_synthesis.md) + 2 adversarial
+#   reviews (draft_review_1.md, methods, NOT-RATIFIABLE, 6 blockers /
+#   23 majors; draft_review_2.md, conventions, RATIFIABLE-WITH-FIXES,
+#   2 blockers / 8 majors). This r2 splits the r1 single-file draft into
+#   ch3_r5a (the T-GATE, standalone) and this file, and closes every
+#   BLOCKER and MAJOR from both reviews; finding-by-finding disposition
+#   in results/design_critic/r2_changelog.md. Shape = design B (gated
+#   actor expert-iteration, greedy read). Grafts from design A: the E2
+#   bridge AS A CEILING DEVICE WITH A'S CAVEATS INTACT, the
+#   dose-matched placebo, the on-distribution discrimination record
+#   (D-8), the model-bias risk R-1 (C7), and A's provenance / no-leak /
+#   selection-audit gates (F-R / F-L / F-S).
+#
+# WHERE A AND B DISAGREE — SURFACED, NOT SMOOTHED. The r1 draft
+#   reported agreement in four places its sources do not contain, and
+#   dropped two positions that cut against its chosen shape. Corrected:
+#   (i)   PURITY: A raised engine-into-weights (UD-0) and offered THREE
+#         options; B never mentions engine purity (verified: zero hits).
+#         NO CONSENSUS EXISTS. See RULE-1.
+#   (ii)  B's U8 (SH-generated states) is a DIFFERENT question and is
+#         restored as RULE-1b with B's cost asymmetry quoted.
+#   (iii) EFFECT SIZE: A produced NO actor-path number (A declined the
+#         actor path: "value-only, not policy+value"). A's +0.028 is
+#         A's OWN critic lever's pre-registered point for a different
+#         mechanism on a different read. **"BOTH PRIORS POINT +0.028" IS
+#         WITHDRAWN.** See Q7.
+#   (iv)  THE T-GATE'S SCOPE: it adjudicates the ACTOR family only. A's
+#         critic-value family asserted no mirror-play premise and is
+#         neither opened nor closed by any cell of r5a or r5b.
+#   (v)   B REJECTED the family this file's r1 draft promoted to "named
+#         successor". Both positions are recorded; no status is granted.
+# ---------------------------------------------------------------------
+# Q0. WHAT THIS ARM ADJUDICATES
+# ---------------------------------------------------------------------
+# THE QUESTION. R2 credited depth-1 search@M at +0.06925 vs
+#   SimpleHeuristicsPlayer as an INFERENCE-TIME lever. Does that
+#   advantage COMPILE INTO WEIGHTS — i.e. does ONE iteration of offline
+#   expert iteration, on self-generated SELF-PLAY search data, move the
+#   GREEDY vs-SH number? THE NOVELTY IS THE LANE, NOT THE LEVER: expert
+#   iteration is a published technique; the expert is our own weights.
+# THIS ARM DOES NOT RE-ADJUDICATE R2 OR R4. R2's +0.06925 and R4's B3
+#   FLAT stand on every branch. D26's four finals are NEVER re-scored;
+#   X0 is a FRESH re-measurement, not a re-score.
+# WHY THIS LEVER AND NOT THE FOUR CRITIC LEVERS — ON NUMBERS.
+#   L5 committee distillation: upside BOUNDED at R4's measured +0.0224,
+#     BELOW the +0.025 floor; distillation is lossy so its ceiling is
+#     below the bar. The ACTOR analogue (R0 LOO-3 ensemble-actor, mean
+#     +0.0266) is 1.06x the floor before any loss. REJECTED.
+#   L4 critic capacity: the critic uses 46.8 of 384 ctx dims (12%),
+#     measured 2026-08-24 on D22's probe. D18 handed the critic the
+#     ENTIRE hidden opponent state for delta win -0.0145 (z -0.65).
+#     REJECTED.
+#   L2 D23 regen-L2: its manipulation target no longer exists. D23's
+#     pre-registered de-collapse letter (srank99 >= 40 on >= 2/3 lanes)
+#     FAILED at D23 (30/47/29) and D26 MEETS IT 3 of 4 (49/51/35/52) on
+#     the probe that reproduces D23's control at 11/16/17 vs the
+#     record's 11/17/16. Also a virgin code path. REJECTED.
+#   L3 gae_lambda: killed by its own source — the D18 residual points
+#     lambda UP and says verbatim "not worth a lane". REJECTED; stays
+#     0.95.
+#   ONE LEVER. The anti-bundle discipline (DESIGN.md:785-787) binds; the
+#   policy+value variant is a SECOND lever and is not run.
+# ---------------------------------------------------------------------
+# Q1. RULE-1 — THE PURITY RULING. OPEN. NO CONSENSUS. BLOCKS THE BUILD.
+# ---------------------------------------------------------------------
+# THE QUESTION (design A's UD-0): distillation moves poke-engine-derived
+#   information — search ACTIONS here — INTO THE WEIGHTS. R2 licensed
+#   inference-time engine use only. The agent that ships is no longer
+#   "trained purely by self-play interaction"; it is "trained by
+#   self-play interaction plus offline policy iteration through a model
+#   of the game."
+# **WHO SAID WHAT (review 1 BLOCKER 34). A raised it and recommended
+#   option 1. B NEVER RAISED ENGINE PURITY AT ALL (verified: zero hits
+#   for poke-engine / poke_engine / UD-0 in design_input_B.md; A
+#   predicted exactly this at A §9.4). THE r1 DRAFT'S "BOTH DESIGN
+#   AGENTS RECOMMEND RULING CLEAN" IS FALSE AND IS WITHDRAWN. No
+#   recommendation is attributed to B anywhere in this file.**
+# A'S THREE OPTIONS, VERBATIM (design_input_A.md:1148) — ALL THREE PUT
+#   TO THE MAINTAINER. The r1 draft deleted the third, which is the only
+#   one that bites this arm:
+#     (1) "CLEAN with a mandatory provenance clause"
+#     (2) "NOT CLEAN (kill the lever)"
+#     (3) "CLEAN only for the search-deployed agent, never for a greedy
+#          claim"
+# CONSEQUENCE OF EACH, SPELLED OUT BEFORE THE RULING:
+#   (1) THIS FILE PROCEEDS. Every licensed sentence on every branch
+#       carries A's qualifier verbatim: "the actor was fitted offline to
+#       its own search's decisions, backed up through poke-engine from
+#       the checkpoint's own self-play."
+#   (2) THIS FILE DIES, and so does design A's critic-value design. The
+#       T-GATE (r5a) still runs and still yields its measurements.
+#   (3) **THIS FILE DIES AS DESIGNED.** The entire point of this arm is
+#       a GREEDY, zero-inference-cost, single-checkpoint artefact; a
+#       ruling that engine-derived weights are clean only for a
+#       SEARCH-DEPLOYED agent removes the read, not a caveat. What
+#       survives under option 3 is a SEARCH-READ successor, which is
+#       design A's shape (design_input_A.md) and which would need its
+#       own pre-registration. SAY IT PLAINLY: option 3 does not soften
+#       this file, it replaces it with A's.
+# A'S COUNTER-ARGUMENT, RESTORED VERBATIM (the r1 draft dropped it):
+#   "*Not clean*: `poke-engine` is external software encoding game
+#   knowledge our agent never had to learn, and after distillation that
+#   knowledge is indistinguishable, in the weights, from something
+#   learned."
+# A'S ARGUMENT FOR CLEAN, for balance: the engine is the environment's
+#   own dynamics, not an expert policy; SESSION_LOGS.md:1361's own
+#   criterion for the 2026-08-07 FP-ExIt retirement — same information
+#   set, differing only in compute — is SATISFIED by a self-teacher and
+#   was VIOLATED by the retired FP one.
+# **THIS BLOCKS THE BUILD, NOT JUST THE LAUNCH** (A's words; the r1
+#   draft softened it to a Stage-2 launch blocker). No BI item is
+#   started before the ruling.
+# ---------------------------------------------------------------------
+# Q2. RULE-1b — B'S OWN PURITY QUESTION, UN-MERGED. OPEN.
+# ---------------------------------------------------------------------
+# The r1 draft wrote "A's UD-0 = B's U8 seam, generalized". THEY ARE
+#   DIFFERENT QUESTIONS (review 1 finding 35). A's UD-0 is
+#   engine-into-weights. B's U8 is SH-GENERATED STATES. B, verbatim:
+#   "I assert that recording search play against `SimpleHeuristicsPlayer`
+#   and then training on those states would break the R0-1b purity seam
+#   *and* be train-on-test against the headline metric. That reading is
+#   mine, not a ruling. **If the maintainer rules the other way, the
+#   design gets materially cheaper and materially more likely to credit
+#   — and materially less honest.** I have designed the expensive,
+#   honest version. **DECIDE EXPLICITLY, on the record, either way.**"
+# THIS FILE IMPLEMENTS B'S EXPENSIVE, HONEST READING: seat 2 in the
+#   Stage-2a collection is OUR OWN checkpoint, and the ~2.8 h collection
+#   exists because of it. A ruling the other way would let the dataset
+#   be harvested from existing vs-SH play. The cost asymmetry is B's,
+#   quoted, and the ruling is the maintainer's.
+# ---------------------------------------------------------------------
+# Q3. ARMS, COMPARATOR, SEEDS
+# ---------------------------------------------------------------------
+# X0 COMPARATOR, FRESH SAME SESSION: the four D26 finals, greedy vs SH,
+#   3000/lane, 10x300. ~8 min at 4-wide.
+# X1 TREATMENT: the four DISTILLED actors, greedy vs SH, 3000/lane,
+#   10x300, LANE-PAIRED WAVES with X0. ~8 min.
+# PL PLACEBO (Q8): the four placebo actors, greedy vs SH, 3000/lane.
+#   FITTED RESULT-BLIND PRE-LAUNCH; its battles run IFF the cell is
+#   B1a/B1b/B2. ~8 min.
+# **THE LETTER-BEARING DELTA IS X1 - X0, PAIRED BY BASE LANE.**
+#   letter_bearing_comparisons is stated honestly below as
+#   1 primary + 1 conditional falsifier (review 1 finding 23): the PL
+#   comparison cannot create a credit, but it CAN strike the primary's
+#   licensed sentence, and by this repo's usage that makes it
+#   letter-bearing. delta(PL) is computed AGAINST X0, PAIRED BY BASE
+#   LANE — the same construction as the primary. Stated because the r1
+#   draft never said against what.
+# WHY FRESH: R2's A0 read 0.72358 vs R3's A0 read 0.70875 — identical
+#   checkpoints, one day apart, -0.01483 = 59.3% of the floor, entering
+#   a frozen-comparator delta as PURE BIAS no se term can see. Teams are
+#   SERVER-ROLLED. D26's frozen 0.71825 is a TRIPWIRE ONLY (F-T), never
+#   a comparator. Freshness costs 8 minutes; the bias costs 59% of the
+#   bar.
+# SEEDS: burns_training_seeds FALSE. 66/67, 75/76, 83/84, 93/94 all
+#   held. The fit is offline supervised on .npz — it never constructs a
+#   poke-env player and never calls set_seed; ch3_eval.py /
+#   ch3_r4_anchors.py likewise never call set_seed (fact-checked
+#   2026-08-23). Username disjointness is re-verified at every wave
+#   start anyway (F-U).
+# DISCLOSED DEVIATION, conservative: 4 lanes x 3000 vs the locked 3
+#   seeds x 3000 (4 >= 3), same shape as the D23+ "5 >= 3" disclosure.
+# ---------------------------------------------------------------------
+# Q4. THE DATA
+# ---------------------------------------------------------------------
+# STAGE 2a COLLECTION, ~2.8 h at 4-wide: search@M, E0 (evaluator
+#   ABSENT), seat 1, vs THE SAME LANE's checkpoint on seat 2, 3000
+#   battles/lane x 4 lanes. Per SEARCHED decision the recorder appends:
+#   obs (828 f32), action mask, stats["search/row_ev"] (the
+#   per-legal-action root EV vector, ALREADY COMPUTED at
+#   rl/search/matrix.py:254 — no extra search cost; :256 is
+#   policy_argmax, the r1 draft's cite was off by two), search/chosen,
+#   search/policy_argmax, lane, battle_id, decision_index.
+#   YIELD: NOT TRANSFERRED FROM vs-SH. The r1 draft projected ~415,000
+#   rows and ~1.4 GB from the vs-SH rate of 34.6 searched
+#   decisions/battle. **r5a's T_S arms measure the SELF-PLAY rate
+#   directly, for free, before this collection is authorised**; the
+#   yield, the GB and the wall are re-derived from that number and
+#   transcribed here pre-launch (Q11 carries the vs-SH figure only as
+#   the order-of-magnitude anchor it is).
+# PLACEHOLDER ROWS ARE EXCLUDED FROM THE DATASET, THE FIT AND EVERY
+#   D-GATE (review 2 MAJOR-8). rl/search/agent.py:144-148 returns early
+#   on locked turns with {"search/placeholder_skip": 1, "search/chosen":
+#   <policy argmax>} and NO row_ev — so such a row has no teacher target
+#   at all, and its only available label is the base actor's own argmax,
+#   i.e. pure self-labelling. Carrying them would also move D-2's
+#   baseline (they agree with the base by construction). **EVERY
+#   DENOMINATOR IN D-2/D-3/D-4/D-9 IS SEARCHED DECISIONS ONLY**, and the
+#   realized placeholder-skip rate is recorded beside every number.
+# NO EXISTING TAPE IS REUSED: verified 2026-08-24 that every chunk JSON
+#   in results/ch3_r2 and results/ch3_r4 carries ONLY per-episode
+#   returns and per-chunk scalar search aggregates — 3.3 KB per 300
+#   battles. The brief's "~36k battles of search-play tapes exist on
+#   disk" is FALSE and nothing here relies on it.
+# PURITY OF THE DATASET (B's U8 reading, pending RULE-1b): seat 2 is OUR
+#   OWN checkpoint. NO SH-generated state enters the dataset. data/fp_*
+#   is never opened (static gate, F-P2).
+# SPLITS, FIXED PRE-LAUNCH, BATTLE-DISJOINT BY CONSTRUCTION (review 1
+#   finding 6 — the r1 draft used ONE held-out split as BOTH the
+#   temperature selection rule and the blocking gates, which is
+#   circular: the selected model passes all three gates by construction,
+#   so they provided no independent validation):
+#     h = int(sha256(f"{lane}:{battle_id}").hexdigest()[:8], 16) % 20
+#     h == 0  -> SEL  (5%)   the TEMPERATURE SELECTION split
+#     h == 1  -> GATE (5%)   the D-GATE split. NOTHING is selected here.
+#     else    -> FIT  (90%)  the training split
+#   The rule is deterministic, transcribed pre-launch, and audited by
+#   F-L (zero battle_id intersection across the three splits).
+# ---------------------------------------------------------------------
+# Q5. THE LOSS, AND EVERY FREE NUMBER — HONESTLY ENUMERATED
+# ---------------------------------------------------------------------
+# LOSS: masked cross-entropy from the distilled actor to a target built
+#   from row_ev by softmax at temperature tau over the LEGAL rows.
+#   ACTOR ONLY. Critic frozen and asserted identical (D-5). The
+#   distilled checkpoint carries the base cfg VERBATIM and the full
+#   agent state (actor/critic/optimizer/updates/aux_head); D26
+#   checkpoints are normalize_obs False with no `normalizers` block
+#   (verified by loading runs/showdown_sp_recipe12m_s65/checkpoint.pt:
+#   keys ['agent','step','config']), so the frozen-normalizer trap
+#   (rl/envs/normalize.py:254-264) does not fire — recorded so the
+#   distiller does not "helpfully" add one (review 2 MINOR-19).
+# **THE r1 DRAFT CLAIMED "THE ONE FREE NUMBER". THAT WAS FALSE (review 1
+#   finding 26): a KL-to-init coefficient, a step count, an LR and a
+#   batch size were all undeclared, and the STEP COUNT DIRECTLY SETS THE
+#   DOSE that D-3 bands and PL must match. All five are declared here
+#   with their offline resolution rules.**
+#   (1) TARGET TEMPERATURE tau. Grid {hard, 0.05, 0.10, 0.25, 0.50}.
+#       SELECTION RULE, pre-stated, ON THE SEL SPLIT ONLY: the SMALLEST
+#       tau whose fit attains the minimum SEL cross-entropy within 1
+#       standard error of the grid's best. NO WIN RATE IS AN INPUT. The
+#       chosen value and the full grid transcript are written into this
+#       header BEFORE any battle (the r4_13_discrimination precedent).
+#       Hard labels are IN the grid because search emits a single
+#       action; they are not the default because the recorded BC
+#       entropy-collapse landmine (loss/entropy 0.063) is exactly this
+#       failure mode.
+#   (2) KL-TO-INIT COEFFICIENT. **RESOLVED TO ZERO — the term is DROPPED
+#       (review 1 finding 26's simplest fix).** The one-lever assertion
+#       is already carried mechanically by the frozen critic (D-5) and
+#       by D-4's entropy floor; a KL coefficient would be a second
+#       undeclared knob buying the same protection by argument. Named
+#       here as a free number that was resolved to zero BEFORE data;
+#       reinstating it is a new lever and a new pre-reg (design B's U6:
+#       "A code change here is a **new lever and a new pre-reg**. ... I
+#       recommend holding the line.").
+#   (3) STEP COUNT. Train to the SEL-split cross-entropy minimum with
+#       patience 3 evaluations, cap 20 epochs. **NO DOSE-BASED EARLY
+#       STOPPING**, so the realized dose is an OUTCOME that D-3 grades,
+#       not a knob tuned until D-3 lands in band.
+#   (4) LR = 1e-3, (5) BATCH = 512, Adam — scripts/train_bc.py's
+#       committed defaults, transcribed here, not swept.
+#   ONE EXCEPTION, DECLARED: PL's step count MAY be adjusted to match
+#       dose (Q8), result-blind, and the search is transcribed. It is
+#       the placebo's knob, never the treatment's.
+# IF NO TEMPERATURE PASSES D-2/D-3/D-4 ON THE GATE SPLIT, THE ARM DOES
+#   NOT LAUNCH and the failure is reported as-is.
+# ---------------------------------------------------------------------
+# Q6. OFFLINE GATES — ALL EVALUATED BEFORE ANY STAGE-2 BATTLE
+# ---------------------------------------------------------------------
+# (The r1 draft filed run-time gates under a heading reading "ALL
+#  OFFLINE, ALL BEFORE ANY BATTLE"; they are separated — review 1
+#  finding 31. Run-time / read-time gates are Q9.)
+# D-0 SPLITS as Q4, transcribed, F-L-audited. BLOCKING.
+# D-1 TEACHER EXISTS: results/ch3_r5a/t_gate_readout.json["cell"] ==
+#     "T-PASS". Asserted MECHANICALLY at the start of every Stage-2 job
+#     and every BI script (review 1 finding 13: in the r1 draft this was
+#     prose and enforced by human discipline only). BLOCKING.
+# D-2 FIT CONVERGED, ON THE GATE SPLIT: top-1 agreement with
+#     search/chosen rises from the MEASURED base a0_selfplay to
+#     a1 >= a0_selfplay + 0.20.
+#     **a0_selfplay IS MEASURED, NOT TRANSFERRED (review 1 finding 3).**
+#     The r1 draft used 0.402 = 1 - 0.598, but 0.598 is a vs-SH number
+#     (results/ch3_r4/a1s_*, 248,641/415,645) and this dataset is
+#     SELF-PLAY. a0_selfplay is read off the GATE split at collection
+#     time (the recorder stores search/policy_argmax and search/chosen,
+#     so it is free) and cross-checked against r5a's recorded self-play
+#     flip rate; the two must agree within 0.02 or the discrepancy is
+#     disclosed and the gate uses the GATE-split value.
+#     IF a0_selfplay ~ 0.402 THIS REPRODUCES THE r1 DRAFT'S >= 0.60.
+#     BELOW -> STOP, NO BATTLES.
+# D-3 DOSE, BOTH SIDES NAMED (lesson 3): F = argmax-flip rate of X1 vs
+#     X0 on the GATE split, F in [0.25, f_base + 0.05] where
+#     f_base = 1 - a0_selfplay. STOP either side, BEFORE any battle.
+#     **THE UPPER EDGE IS RE-DERIVED (review 1 BLOCKER 1). The r1 band
+#     [0.15, 0.55] STOPPED THE ARM AT A PERFECT FIT: a student matching
+#     search on every gate-split decision has a1 = 1.0 and therefore
+#     F = P(argmax X0 != search) = f_base EXACTLY (= 0.598 at the vs-SH
+#     rate), and 0.55 < 0.598. Worse, the interval (0.55, f_base] is
+#     UNDERSHOOT and the r1 rationale misclassified it as overshoot.**
+#     The band is now closed ABOVE f_base with a +0.05 tolerance, so a
+#     perfect distillation PASSES and "overshoot" means what it says:
+#     beyond the teacher's own disagreement rate plus tolerance, the
+#     student is a different policy, not a distilled one.
+#     COMPOSITION, CHECKED BEFORE DATA (review 1 finding 2): partition
+#     decisions by (X0 matches search?, X1 matches search?); then
+#     F >= a1 - a0 ALWAYS, so D-2 alone forces F >= 0.20. D-3's lower
+#     edge 0.25 therefore BINDS only in the strip
+#     a1 in [a0+0.20, a0+0.25) and is a mechanical redundancy check
+#     above it. **SAID OUT LOUD** — the r1 draft's 0.15 was logically
+#     inert (0.15 < 0.198) and its "lever did not bite" cell could never
+#     fire. The admissible region is non-empty: any
+#     a1 >= a0_selfplay + 0.25 with F in [0.25, f_base + 0.05] satisfies
+#     D-2 and D-3 simultaneously, and D-4 imposes no algebraic conflict.
+# D-4 ENTROPY GUARD, ON THE GATE SPLIT: mean masked entropy of X1
+#     >= 0.55 x X0's. **THE BASE IS QUOTED ABSOLUTELY (review 1 finding
+#     5): X0's final loss/entropy is 0.2867 (s62) / 0.3199 (s65)
+#     measured from runs/showdown_sp_recipe12m_s6*/history.csv, so 0.55x
+#     licenses a floor of ~0.158-0.176 nats — 2.5-2.8x above the
+#     BC-collapse landmine at 0.063, i.e. THIS GATE IS PERMISSIVE, NOT
+#     TIGHT.** Stated so nobody reads it as a tight guard.
+#     CONSEQUENCE, ADOPTED VERBATIM FROM design_input_B.md:515 (the r1
+#     draft named NO consequence at all — review 1 finding 4, review 2
+#     MAJOR-6.1): "below -> the recorded BC entropy-collapse landmine
+#     (`loss/entropy` 0.063) has fired; **the temperature is re-resolved
+#     by D-2/D-3 offline and the fit re-run — never re-tuned after
+#     seeing a win rate**". Non-circular here because the re-resolution
+#     runs on SEL and the re-check on GATE. If no tau survives, STOP.
+# D-5 CRITIC IDENTITY between X0 and X1 (and X0 and PL): sha256 of the
+#     SERIALIZED CRITIC SUB-STATE_DICT is equal AND torch.equal holds
+#     over every critic tensor. **The checkpoint FILE sha necessarily
+#     differs; the object is named** (review 2 MINOR-17). VOID
+#     otherwise. This is the ONE-LEVER assertion, mechanically enforced.
+# D-6 ARM CONTRAST: the X0 and X1 arm dicts are identical except
+#     `lanes`, AND sha256(X0 lane file) != sha256(X1 lane file) per lane.
+#     Grader-asserted. VOID otherwise. **This is R4's F6 failure mode,
+#     which review 2 found REALISED in the r1 draft: X1 declared
+#     `lanes: [s62..s65]` plus a `source: distilled` key that NO DRIVER
+#     READS (grep over scripts/ rl/ configs/ returns four hits, none an
+#     arm key), so X1 would have loaded the IDENTICAL four D26
+#     checkpoints as X0 and produced a guaranteed clean null
+#     indistinguishable from a real B3.**
+# D-7 srank RECORDED, NEVER GATED: actor and critic ctx srank99 of X1 on
+#     the fixed 13,702-obs probe set, via scripts/d22_dormant_rank.py.
+#     D23's mechanism co-primary is the precedent. BUILT AND PRICED IN
+#     BI-4 (review 1 finding 32: the r1 draft registered D-7/D-8 with no
+#     build item able to run them).
+# D-8 ON-DISTRIBUTION DISCRIMINATION RECORD (design A's MG-2 rider;
+#     RECORDED, never gated): on the GATE split's real decision points,
+#     record mean |v_LOO - v_own| — the number that settles whether the
+#     on-distribution critic disagreement is ~0.06 (A's E2-bridge
+#     estimate) or ~0.45 (the R4-13 synthetic reading). **A'S
+#     CONSEQUENCE SENTENCE, RESTORED (review 1 finding 46): "if the
+#     on-distribution disagreement is actually ~0.4, the achievable
+#     effect is far larger than my band and this arm is BADLY
+#     UNDER-REGISTERED ON THE UPSIDE."** Requires loading the other
+#     three lanes' critics (the `loo` pool machinery); BUILT IN BI-4.
+#     NOTE ON THE RECORD: ch3_r5_synthesis.md calls D-8 "blocking"; it
+#     is not, and A's own text makes it a recorded rider. The synthesis
+#     is wrong and this file is right.
+# D-9 SWITCH-RATE RECORD (new; review 1 finding 39 — design A's R-1 risk
+#     was dropped entirely from the r1 draft and it applies MORE
+#     strongly to an actor distillation): record the distilled actor's
+#     SWITCH-action rate vs X0's on the GATE split. A: "FG-2 fidelity is
+#     **0.9092** ... `matrix.py:14-17` states the search 'is
+#     systematically OPTIMISTIC about our staying in' (uniform switch
+#     column); damage uses the 2-point max-damage expansion. At
+#     inference that bias ... partly cancels within a comparison.
+#     **Distilled, it is permanent.**" RECORDED, never gated; the
+#     disclosure travels on EVERY branch (C7).
+# ---------------------------------------------------------------------
+# Q7. PRIMARY READ. CREDIT LINE VERBATIM. ARITHMETIC BEFORE DATA.
+# ---------------------------------------------------------------------
+# PROTOCOL: FINAL artefact, deterministic policy, ties as non-wins, vs
+#   SimpleHeuristicsPlayer, 3000 battles/lane, 4 lanes pooled = 12,000.
+#   Both encoder env vars at EVERY JOB INCLUDING EVERY OFFLINE ONE
+#   (design A's R5-6 scope; the r1 draft narrowed it to "every eval" —
+#   review 1 finding 41 — and the recorder and distiller are offline
+#   jobs whose obs must match the eval encoder).
+# ACROSS-LANE AGGREGATOR, NAMED ONCE, BINDING EVERYWHERE (lesson 1): the
+#   EQUAL-WEIGHT MEAN of the four per-lane PAIRED deltas d_i. Median and
+#   worst-lane are recorded and NEVER govern any verdict on any branch.
+# CLUSTERING UNIT: base checkpoint-lane (n=4), PAIRED at cluster level.
+#
+#   **CREDIT LINE (DESIGN §8, RESTATED IN FULL, VERBATIM, INCLUDING THE
+#   LARGER-OF CLAUSE): a lever is credited iff pooled delta >= +0.025
+#   AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial
+#   se_diff and the seed-clustered se_diff, the latter computed from the
+#   per-seed finals at read time.**
+#
+#   DISCLOSED CONSERVATIVE ADDITION, identical to R2/R4, before data:
+#   se_diff = the LARGER OF THREE — pooled-binomial two-sample,
+#   paired-clustered sd(d_i)/sqrt(4), unpaired two-sample clustered.
+# ARITHMETIC BEFORE DATA (MF-8), k=4, n=3000:
+#   2*se_binom = 0.0116 at p0 = p1 = 0.72, 0.0114 at p0 = 0.72 /
+#     p1 = 0.748 — THE BINOMIAL NEVER GOVERNS, and more battles per lane
+#     cannot buy power; only more base lanes could, and that costs
+#     training and is NOT bought here.
+#   **s_C, THE PLANNING LANE SPREAD, CORRECTED (review 1 finding 15).
+#   The r1 draft used D26's TRAINING-ERA sd 0.011177 and claimed an arm
+#   derived from D26's checkpoints "inherits that spread". THE REPO'S
+#   THREE FRESH RE-MEASUREMENTS OF THESE SAME FOUR CHECKPOINTS FALSIFY
+#   THAT:**
+#     D26 finals (banked)  0.7297 0.7187 0.7217 0.7030  sd 0.011177
+#     R2 a0_*   fresh      0.73233 0.71833 0.73233 0.71133  sd 0.01050
+#     R3 a0r3_* fresh      0.70900 0.69700 0.73667 0.69233  sd 0.01989
+#     R4 a0_*   fresh      0.73033 0.70167 0.73067 0.72133  sd 0.01360
+#   The lane RANK ORDER is not even stable (D26 s62>s64>s63>s65; R3
+#   s64>s62>s63>s65). The relevant s_C is the MEASUREMENT-level lane
+#   spread and its observed range is 0.0105-0.0199. **PLANNING VALUE =
+#   THE WORST, 0.0199.**
+#   2*se_unpaired = sqrt(s_T^2 + s_C^2) at s_C = 0.0199:
+#     s_T 0.011 -> 0.0227 | 0.016 -> 0.0255 | 0.0199 -> 0.0281 |
+#     0.024 -> 0.0312 | 0.035 -> 0.0403 | 0.049 -> 0.0529
+#   2*se_paired = sd(d_i): 0.010 -> 0.010 | 0.016 -> 0.016 |
+#     0.025 -> 0.025 | 0.035 -> 0.035
+#   **EXPECTED OPERATIVE BAR, WITH TEETH: the unpaired term exceeds the
+#   0.025 floor whenever s_T >= 0.01513. At s_T = s_C = 0.0199 the bar
+#   is ~0.028, ABOVE the floor. The r1 draft's "EXPECTED OPERATIVE BAR:
+#   THE 0.025 FLOOR" was materially less safe than it read; the honest
+#   statement is that THE BAR IS EXPECTED AT ~0.025-0.031 AND THE
+#   UNPAIRED TERM IS THE LIKELY GOVERNOR.**
+# df DISCLOSURE (MF-9, before data): k=4, df=3, t(3,.975)=3.18, so "2*se"
+#   is ~86% coverage and P(sd underestimates by 2x) ~ 0.14. THE FLOOR IS
+#   THE SUBSTANTIVE PROTECTION; the seed-fragility clause is weak at
+#   n=4. **NOTE, since the r1 draft's power table said "df=3 penalty
+#   applied" and review 1 could not reproduce what that meant: THE
+#   CREDIT LINE USES A FIXED 2*se, NOT A t-MULTIPLIER, AND THE
+#   SIMULATION BELOW APPLIES NO PENALTY OF ANY KIND. The df disclosure
+#   is a caveat on coverage, not a term in the rule.**
+# POWER AND SIZE, REGENERATED FROM A COMMITTED SCRIPT
+#   (results/design_critic/r5_power_sim.py --primary --reps 20000, rng
+#   seed 20260824; exact simulation rule in its docstring; cells pinned
+#   in the grader --selftest per review 1 finding 14). AT s_C = 0.0199:
+#       mu      sd_d=.010   .016    .025    .035
+#     +0.000      0.000    0.002   0.011   0.020   (SIZE, REPORTED)
+#     +0.020      0.137    0.146   0.146   0.142
+#     +0.028      0.393    0.350   0.289   0.232   <- the point
+#     +0.030      0.472    0.414   0.328   0.267
+#     +0.040      0.778    0.690   0.549   0.417
+#     +0.055      0.963    0.925   0.821   0.678
+#   FOR REFERENCE ONLY, at the falsified s_C = 0.011177: +0.028 gives
+#     0.595 / 0.510 / 0.396 / 0.309 and SIZE 0.000 / 0.004 / 0.015 /
+#     0.032. **The r1 draft's +0.030 row (0.78/0.66/0.51/0.42) was
+#     over-stated by 0.065-0.093 even at that s_C, and its SIZE row
+#     claimed "<= 0.025" at sd_d = 0.035 where the rule actually
+#     delivers 0.032 — a stated bound its own rule did not honour. Both
+#     are corrected; SIZE is now REPORTED, never bounded by a claim.**
+#   **EXPECTED sd_d, NAMED SO THE PRE-REGISTRATION CONSTRAINS SOMETHING
+#   (review 1 finding 17, review 2 MINOR-15): sd_d = 0.016, the sd(d_i)
+#   R4 MEASURED over these same four lanes for a paired lever
+#   (STATUS.md). At that value and the planning s_C, P(credit) at the
+#   point is 0.35.**
+# PRE-REGISTERED EXPECTATION BAND: [+0.010, +0.045], POINT +0.028,
+#   conditional on the T-GATE having passed. P(credit) 0.35 at the named
+#   sd_d; 0.23-0.39 across the tabled range. **A B3 IS THE MODAL OUTCOME
+#   OVER THE LOWER HALF OF THE BAND** (P(B3) 0.34-0.44 at the point) and
+#   must not be re-narrated as either a refutation or a success.
+# **THE POINT'S PROVENANCE, CORRECTED (review 1 BLOCKER 33). +0.028 is
+#   DESIGN B'S OWN actor-path point: the teacher's vs-SH increment is
+#   +0.06925 and one lossy iteration is priced at ~40% of it. IT IS ONE
+#   PRIOR, NOT TWO. A produced NO actor-path number — A declined the
+#   actor path ("value-only, not policy+value") — and A's +0.028 is A's
+#   pre-registered point for A's OWN two-round CRITIC lever on a
+#   SEARCH read. Two designs agreeing because one supplied both numbers
+#   is not corroboration. "BOTH PRIORS POINT +0.028" IS DELETED.**
+# A'S E2 BRIDGE — KEPT AS A CEILING DEVICE, WITH EVERY CAVEAT A ATTACHED
+#   (review 1 finding 37; the r1 draft stripped all of them):
+#     e2_fit, A'S OWN KEY VERBATIM: "Delta(sigma) = -1.669 * sigma^1.437
+#     (3 points, 2 params — order of magnitude, NOT a calibrated law)"
+#   The fit prices R4's committee +0.0224 at sigma_equiv 0.0499 and the
+#   +0.025 floor at 0.0538. A'S IF-CLAUSE, RESTORED: "**If** the
+#   committee's gain is variance reduction of an idiosyncratic
+#   per-critic leaf error sigma_1 ... then sigma_1 ~ 0.061 ... and E2
+#   says that is worth ~2-3 points". A'S DISCLOSURE, RESTORED:
+#   "**DISCLOSED, IT COULD BE ZERO:** if the committee's gain is *model
+#   diversity* rather than variance reduction, a single distilled critic
+#   cannot reproduce any of it." USED HERE ONLY AS A CEILING ARGUMENT ON
+#   VALUE-ROUTED GAIN — it supports "if this lever's gain routes through
+#   value-like mechanisms, the reducible budget is small", and it
+#   supports NO point estimate for an actor lever.
+# PRIOR HONESTY, before data: the teacher overrides the student on
+#   59.8% of vs-SH searched decisions for a POOLED +0.06925 vs SH, and
+#   LOSES to the clone (-0.034) and to Foul Play (-0.020).
+#   **P(B5) — RESTATED HONESTLY (the r1 draft's "P(B5) 0.10-0.15" was
+#   unfalsifiable because P(B5) depends on mu, which is what we do not
+#   know): CONDITIONAL ON THE PRE-REGISTERED POINT +0.028, P(B5) <
+#   0.001 (simulated). The 0.10-0.15 is a PRIOR OVER mu — the
+#   probability we assign, before data, to a true mu <= -0.025 — and it
+#   is named here so a negative result cannot be reported as a surprise.
+#   At mu = -0.010 the simulation gives P(B5) 0.027-0.047.**
+# ---------------------------------------------------------------------
+# Q8. THE PLACEBO (PL) — REBUILT
+# ---------------------------------------------------------------------
+# **THE r1 CONSTRUCTION WAS A BLOCKER (review 1 findings 20/38). Its
+#   targets were "the search action of a RANDOMLY PAIRED state from the
+#   SAME BATTLE", claimed as "ZERO state-correct information". Within
+#   one gen1randombattle a random other decision point shares the same
+#   two teams, usually the same active Pokemon, the same move-slot and
+#   switch-slot semantics, and heavy temporal autocorrelation in what
+#   search picks — a noisy but GENUINELY INFORMATIVE teacher. The
+#   falsifier would then be biased toward striking a TRUE claim. Second,
+#   the paired action could be ILLEGAL under the current row's mask, and
+#   masked cross-entropy to an out-of-mask target is degenerate against
+#   the -1e8 sentinel; the r1 draft said nothing about it. Third, the
+#   target FORM differed from the treatment's (hard action vs
+#   temperature-shaped row_ev), which is precisely what made design A's
+#   "dose ratio 1.00" true in A's own construction (a shuffled SCALAR).**
+# THE REBUILT CONSTRUCTION, adopting review 1's option (a) plus finding
+#   38's form fix:
+#   * PAIRING IS CROSS-BATTLE, WITHIN THE SAME LANE, within the FIT
+#     split: each row is paired with a row drawn uniformly from a
+#     DIFFERENT battle_id of the same lane.
+#   * PARTNERS ARE RESTRICTED TO ROWS WITH AN IDENTICAL LEGAL-ACTION
+#     COUNT, and the target is INDEX-ALIGNED onto the current row's
+#     legal set: the k-th legal action of this row receives the k-th
+#     component of the partner's target. **EVERY TARGET IS THEREFORE
+#     LEGAL BY CONSTRUCTION — there is no illegal-target case, and the
+#     rule is stated rather than left to the implementer.**
+#   * THE TARGET IS THE SAME TEMPERATURE tau APPLIED TO THE PARTNER'S
+#     row_ev VECTOR — a shuffled DISTRIBUTION, the direct analogue of
+#     A's shuffled scalar, so "same temperature" is TRUE again and the
+#     target form matches the treatment's.
+#   * Rows with no available partner at their legal count are DROPPED
+#     and the dropped fraction is reported; > 2% -> PL is disclosed as
+#     ROW-MISMATCHED and the falsifier is reported as WEAKENED.
+#   * Same optimizer, same LR, same batch, same FIT rows (minus drops).
+# THE INFORMATION CLAIM, RESTATED HONESTLY: **NO STATE-CORRECT
+#   INFORMATION BEYOND THE LEGAL-ACTION-COUNT MARGINAL.** Not "zero
+#   information" — matching on legal count is itself a weak function of
+#   state, and the marginal over action indices conditional on legal
+#   count is genuinely state-correlated (e.g. 4-move no-switch
+#   positions). The residual is named, and it is far smaller than the
+#   r1 construction's team/active-Pokemon/autocorrelation leakage.
+# DOSE IS MEASURED, NOT ASSERTED (review 1 finding 21, review 2
+#   MAJOR-7 — the r1 draft wrote `dose_ratio: 1.00` as an input claim,
+#   which is EXACTLY the D25-P failure it was grafted in to close: D25-P
+#   ran at 3-31% of the trunk band): F(PL vs X0) is measured on the GATE
+#   split at fit time, RESULT-BLIND, and REQUIRED in
+#   F(PL) / F(X1) in [0.80, 1.25]. Outside -> PL's STEP COUNT (its only
+#   knob, result-blind) is adjusted until it is in band and the search
+#   is transcribed into this header beside the temperature grid. **IF IT
+#   CANNOT BE MATCHED, PL IS REPORTED AS DOSE-UNMATCHED AND
+#   NON-BINDING — it strikes nothing — and the a-fortiori branch is
+#   recorded as UNREACHABLE, in the D25-P sentence: "a generic actor
+#   perturbation of matched size would move greedy play" survives
+#   UNTESTED.**
+# THE FALSIFIER IS se-AWARE AND ITS SURVIVE-SIDE IS NAMED (review 1
+#   finding 22; review 2 MAJOR-6.3 — the r1 draft had a bare point
+#   comparison with a "strikes IN FULL" consequence and no branch for
+#   the < 0.6 side). delta(PL) is computed against X0, paired by base
+#   lane, with the same larger-of-three se law:
+#   PL-STRIKE      delta(PL) >= 0.6*delta(X1) AND
+#                  delta(PL) >= 2*se_gov(PL)
+#                  -> the information claim is STRUCK IN FULL and the
+#                  licensed sentence becomes "any actor perturbation of
+#                  this magnitude moves greedy play".
+#   PL-UNCONFIRMED delta(PL) >= 0.6*delta(X1) BUT < 2*se_gov(PL)
+#                  -> the information claim is DISCLOSED AS UNCONFIRMED,
+#                  NOT struck; both numbers and both se terms quoted.
+#   PL-SURVIVE     delta(PL) < 0.6*delta(X1)
+#                  -> the information claim STANDS and the licensed
+#                  sentence is "the gain requires state-correct search
+#                  targets: a dose-matched perturbation carrying no
+#                  state-correct information beyond the legal-count
+#                  marginal moved greedy play by delta(PL) = <value>".
+#   RESIDUAL FALSE-STRIKE RATE, PRE-COMPUTED under a TRULY NULL placebo
+#   at delta(X1) = +0.028 (strike threshold 0.0168), s_C = 0.0199:
+#   P(PL-STRIKE) = 0.003 / 0.006 / 0.015 at sd_d = 0.010 / 0.016 /
+#   0.025, with P(PL-UNCONFIRMED) = 0.012 / 0.037 / 0.096. The bare
+#   point rule of the r1 draft would have struck a true result 5-12% of
+#   the time.
+# ---------------------------------------------------------------------
+# Q9. RUN-TIME / READ-TIME GATES
+# ---------------------------------------------------------------------
+# VOIDING: F-A8, F-C, F-R, F-L, F-S, D-5, D-6. NON-VOIDING with named
+# consequences: F-T, F-P, F-D, F-U, F-M. ALL CO-OCCURRING GATES ARE
+# REPORTED, BEFORE any branch is read.
+# F-A8 R2-5 TWIN, HARD: eval/win_rate == wins_from_returns EXACTLY on
+#     every chunk of every arm. VOID.
+# F-C SEARCH INTEGRITY ON THE STAGE-2a COLLECTION (review 1 finding 11):
+#     per lane, |search/leaves_mean - 353|/353 <= 0.25 AND every chunk
+#     present. Failure -> the COLLECTION IS VOID and is re-run; the
+#     dataset is not used. rl/search has no timeout counter (the
+#     node_cap watchdog RAISES), so chunk completeness is half the gate.
+# F-P2 PURITY GATE ON THE NEW RECORDER PATH (review 1 finding 28 — the
+#     r1 draft asserted purity as a static property while the recorder
+#     is BRAND-NEW CODE running inside the search seat, which is exactly
+#     where a privileged field would leak into a PERSISTED dataset):
+#     the recorder runs through the same `env.unwrapped._privileged is
+#     False` assert and the same chunk-0 battle2 sentinel as every other
+#     search arm (ch3_eval.py / ch3_r4_anchors.py:199-201, :226-237);
+#     the persisted obs array width == 828; NO `info` key outside the
+#     recorded whitelist is written; a static grep transcript shows no
+#     `data/fp_*` path in the recorder or the distiller sources (review
+#     2 MINOR-18: R2's analogue produced a real transcript, not a
+#     claim). VIOLATION -> PURITY INCIDENT, RETRACTION NOT CAVEAT.
+# F-R TARGET PROVENANCE (design A's R5-4, restored — review 1 finding
+#     40): every stored target equals softmax_tau(row_ev) recomputed
+#     offline on 500 sampled rows to 1e-9; placeholder rows are ABSENT
+#     from the dataset; the harvest's realized searched-decisions/battle
+#     is recorded. VOID otherwise.
+# F-L NO-LEAK (design A's R5-5, restored): zero battle_id intersection
+#     across FIT / SEL / GATE; every D-gate number computed on GATE
+#     only; the temperature selected on SEL only. VOID otherwise.
+# F-S SELECTION AUDIT (design A's R5-9, restored): a transcript proving
+#     that no checkpoint, epoch, temperature or step count was selected
+#     using ANY battle outcome. The r1 draft asserted the property ("NO
+#     WIN RATE IS AN INPUT") and gated nothing. VOID otherwise.
+# F-T A0 ERA TRIPWIRE — **R4's F4 DISPOSITION ADOPTED, NOT REVERSED
+#     (review 1 finding 19; the r1 draft made this gate VOIDing above
+#     0.040 and dropped R4's asymmetry rationale, un-argued).** R4's F4
+#     is explicitly "DISCLOSURE + STOP, never VOID — the paired primary
+#     is era-immune by construction, stated before data so the opposite
+#     reflex cannot void a valid result", with a DELIBERATELY ASYMMETRIC
+#     upper bound to catch the arm-swap / search-ran-on-X0 signature.
+#     That reasoning carries here unchanged: X1 - X0 is paired and
+#     same-session, so an era shift moves BOTH arms. Bands, carried:
+#     GREEN [0.689, 0.744] (both prior fresh reads +/- 0.02);
+#     STOP outside [0.650, 0.770] — the upper bound sits BELOW R2's
+#     search level 0.79283, which is what makes it an arm-swap detector.
+#     Between GREEN and STOP -> DISCLOSED and quoted in every sentence,
+#     B1a unclaimable. NEVER VOIDING.
+# F-P PAIRING WINDOW (R4's F11, carried, WITH ITS DISPOSITION FULLY
+#     SPECIFIED — review 1 finding 16: the r1 draft said only
+#     "DISCLOSED AS UNPAIRED, never silently pooled", which does not say
+#     whether the lane enters the mean, and dropping a lane changes
+#     delta, all three se terms, hi and df, so two readers could land in
+#     different cells): per lane, X0/X1 chunk-time spans overlap >= 80%
+#     of the shorter. BELOW -> **the lane's d_i REMAINS IN the
+#     equal-weight mean (the primary is NEVER re-cut on a data-dependent
+#     lane subset)**; the pairing failure is disclosed beside the number
+#     and the by-construction era-immunity clause is struck FOR THAT
+#     LANE. RE-RUN POLICY, carried from R4 verbatim: "either both-arms
+#     re-run for that lane or the disclosure, maintainer's pick AT THE
+#     TIME, disclosed either way."
+# F-D mask_desyncs reported per arm; nonzero -> DISCLOSED, not void.
+# F-U USERNAME DISJOINTNESS at every wave start (R4-12 twin).
+# F-M ms/decision band [54.9, 91.5] on the Stage-2a collection;
+#     outside -> recorded and STOP for diagnosis, never a silent
+#     re-dose.
+# ---------------------------------------------------------------------
+# Q10. BRANCHES — PARTITION-COMPLETE. five_cell_floor,
+#      hi = max(0.025, 2*se_gov) at read time. Sidedness per cell
+#      (lesson 5): B1/B2 upper, B3 the only two-sided cell, B4/B5 lower.
+# ---------------------------------------------------------------------
+# B1a CREDIT AND F-T GREEN -> "new best vs-SH number" licensed (NEVER
+#     "new best agent"); headline row moves; the R2 SH-facing caveat
+#     travels VERBATIM and STRENGTHENED unless ANCHOR-TRANSFER-POSITIVE;
+#     anchor battery fires; no ladder-readiness claim.
+#     **SIMPLIFIED (review 1 finding 18): the r1 draft's third conjunct
+#     "X1 pooled > 0.71825" can never bind — CREDIT means delta >=
+#     0.025 and F-T green means X0_fresh >= 0.689, so X1 >= 0.714 and
+#     the frozen 0.71825 does no work. B1a is exactly CREDIT AND F-T
+#     GREEN. Stated so no reader thinks the frozen number governs.**
+# B1b CREDIT AND NOT B1a (i.e. F-T disclosed-band) -> lever credited,
+#     "new best" EXPLICITLY DECLINED, session nuisance named, F-T value
+#     quoted.
+# B2  +0.025 <= delta < hi -> LETTER-MET, SEED-FRAGILE, NOT CREDITED.
+#     Phrase verbatim, governing se term named BY NAME, headline
+#     unchanged, anchors fire as a descriptive column.
+# B3  |delta| < 0.025 -> FLAT. Headline unchanged. Sentence carries both
+#     endpoints, the CI, the non-exclusion clause WITH NUMBERS, and Q7's
+#     power table. Anchors NOT run. PL NOT run.
+# B4  -hi < delta <= -0.025 -> LETTER-MET NEGATIVE, SEED-FRAGILE.
+# B5  delta <= -hi -> NEGATIVE, and THE INFORMATIVE ONE: the agent's own
+#     argmax beats its own search's decisions once those decisions are
+#     compiled into weights. Pre-named (Q7), not a surprise.
+# KILL (sufficient): delta <= 0 AND d_i <= 0 on >= 3 of 4 lanes -> THE
+#     ACTOR EXPERT-ITERATION LINE IS CLOSED WITHIN THIS CHAPTER (no
+#     policy+value, no multi-iteration, no temperature re-sweep, no
+#     larger-n retest) absent evidence from OUTSIDE this chapter, and
+#     search@M is recorded as an inference-time lever that DOES NOT
+#     COMPILE INTO WEIGHTS. On B3+KILL the closure sentence is the ONLY
+#     licensed narration. **KILL SCOPES TO THE ACTOR FAMILY ONLY** — it
+#     does not close design A's critic-value family, which is not a
+#     party to this file.
+# ANCHOR TRANSFER CELLS, DEFINED NUMERICALLY BEFORE DATA (review 2
+#     MAJOR-6.2 — the r1 draft's "unless both anchors transfer" was an
+#     undefined threshold left to post-hoc judgement):
+#     ANCHOR-TRANSFER-POSITIVE: (CA - CB) >= 0.031 AND (FA - 0.388) >=
+#       0.087 (each anchor's own pinned MDE).
+#     ANCHOR-TRANSFER-NEGATIVE: (CA - CB) <= -0.031 OR (FA - 0.388) <=
+#       -0.087.
+#     ANCHOR-AMBIGUOUS: everything else — THE MODAL CELL by construction
+#       (a +0.028 effect is 3.1x below FA's MDE; the FM-9 guard, below).
+#     The caveat travels STRENGTHENED on every cell except
+#     ANCHOR-TRANSFER-POSITIVE.
+# ---------------------------------------------------------------------
+# Q11. LEDGER, AND WHAT THE CAP COUNTS
+# ---------------------------------------------------------------------
+# THROUGHPUT, MEASURED, WITH PROVENANCE (results/ch3_r4 chunk
+#   timestamps): greedy vs SH 20.8 battles/s per lane 4-wide (0.048
+#   s/battle); search@M vs SH 0.40 battles/s per lane (2.5 s/battle).
+#   PRICED CONSERVATIVELY HERE: 0.16 s per greedy battle, 3.2 s per
+#   search battle — the search margin because Stage-2a's seat 2 is a
+#   NETWORK opponent (extra forward passes) plus per-decision recorder
+#   I/O. **2.7 h is a FLOOR for the collection, not a point estimate;
+#   ~2.8 h is the planning number.**
+# STAGE 2a  collection 12,000 search battles          ~2.8 h  (floor 2.7)
+# FIT       X1 x4 + PL x4 + every offline gate        ~1.0 h  CPU, no battles
+# READ      X0 + X1, 24,000 greedy battles            ~16 min
+# PL        12,000 greedy battles, iff B1a/B1b/B2     ~8 min
+# ANCHORS   CA + CB + FA, iff B1a/B1b/B2              ~1.3 h  (FA-dominated)
+#   BATTLE WALL: ~3.1 h (B3-B5) to ~4.5 h (B1/B2).
+#   OFFLINE BUILD: ~9.0 h (Q12), pre-launch, result-blind.
+# **WHAT THE CAP COUNTS, STATED (review 1 finding 29 — the r1 draft's
+#   wall_hours_cap: 8 was violated by its own arithmetic, which summed
+#   to 10.8-12.1 h, and its ledger_days_projected matched neither):
+#   battle_wall_hours_cap COUNTS BATTLE WALL ONLY. Offline build and fit
+#   CPU are tracked separately and are not charged against it.**
+# EXECUTION IS DELEGATED, NOT FREE (review 2 MAJOR-9 — the r1 draft's
+#   "MAINTAINER TERMINAL HOURS: 0" read as a design property).
+#   CLAUDE.md routes runs longer than ~5 minutes to the maintainer's
+#   terminal because agent-launched training measured ~10x slower; the
+#   2026-08-23 R4 ratification DELEGATED eval execution to the agent
+#   ("you can run what you need yourself"). **Every wall number above is
+#   a maintainer-terminal-grade number, and the delegation — not the
+#   design — is why no maintainer hours are booked.** Handover blocks
+#   are pre-written, one command per fenced block, <command> sentinels.
+# ---------------------------------------------------------------------
+# Q12. BUILD ITEMS OWED BEFORE LAUNCH — HONESTLY PRICED (the R4 BI-5
+#      lesson: "several hours offline, NOT '~15 lines'")
+# ---------------------------------------------------------------------
+# BI-1 PER-DECISION RECORDER in the search seat: append (obs, mask,
+#      row_ev, chosen, policy_argmax, lane, battle_id, decision_index)
+#      and dump npz per chunk. row_ev is ALREADY in stats
+#      (rl/search/matrix.py:254; _SearchEvalAdapter.act at
+#      scripts/ch3_eval.py:136-155 already holds obs, mask and the full
+#      stats dict) — NO EXTRA SEARCH COST, verified. Excludes
+#      placeholder rows. Carries F-P2 and the freeze/rehydrate fidelity
+#      tripwire.                                            ~1.5 h
+# BI-2 DISTILLER: load a D26 checkpoint, fit the ACTOR ONLY to the
+#      temperature-shaped target, write a checkpoint carrying the base
+#      cfg verbatim and the full agent state, whose critic is identical
+#      per D-5. train_bc.py is the nearest precedent but builds a FRESH
+#      net; init-from-checkpoint is the existing `_load_member` idiom
+#      (ch3_eval.py:254) so it is less new than the r1 draft implied;
+#      the frozen byte-identical critic and the split machinery are
+#      genuinely new.                                       ~2.0 h
+# BI-3 OFFLINE GATE HARNESS: the SEL/GATE/FIT split rule, the
+#      temperature grid + transcript, D-2/D-3/D-4/D-9, and the dose
+#      measurement for PL.                                  ~1.0 h
+# BI-4 D-7 + D-8 HARNESS (review 1 finding 32: unbuilt and unpriced in
+#      the r1 draft): srank99 on the fixed 13,702-obs probe via
+#      scripts/d22_dormant_rank.py, and |v_LOO - v_own| on the GATE
+#      split's real decision points, which needs the `loo` pool
+#      machinery to load the other three lanes' critics. ~1.0 h
+# BI-5 PLACEBO BUILDER + FIT (review 1 finding 24: absent from the r1
+#      draft's build list AND its ledger, though the synthesis priced
+#      it): cross-battle legal-count-matched pairing, the shuffled
+#      row_ev target, the dose search.                      ~0.5 h
+# BI-6 GRADER scripts/ch3_r5b_grade.py: reuses ch3_r2_grade's
+#      **land(), check_partition() AND se_terms_r2(), all UNMODIFIED**
+#      (review 1 finding 30: naming only land() invites a
+#      re-implementation of the one piece of arithmetic that decides the
+#      cell), plus the CREDIT_LINE byte-assert; adds B1a/B1b, the
+#      anchor-transfer cells, every D- and F-gate, the PL cells, and the
+#      D-1 assert on t_gate_readout.json. REFUSES to grade a DRAFT
+#      status, a dirty tree, an uncommitted pre-reg, or any file
+#      containing a "[MAINTAINER RULING" bracket. --selftest pins the
+#      five band-boundary landings AND the Q7 power/size cells AND the
+#      Q8 false-strike cells. NOTE, on the record: ch3_r2_grade.grade()
+#      itself is R2-shaped (arms A0/A1S, a0_/a1s_ prefixes,
+#      f3_leaves_expected, r2_10_a0_anchor, b3_r3_condition) and CANNOT
+#      be called on this pre-reg — only its law is reused. ~1.5 h
+# BI-7 ANCHOR PLUMBING, honestly priced: (a) parameterise
+#      ch3_r4_anchors._preflight's hard `len(pins) == 5` assert
+#      (:103) — THIS FILE CARRIES 13 PINS and the assert would fail;
+#      the parameter is `expected_pins` read from the pre-reg, default
+#      5, so R4's file is unaffected. (b) derive
+#      configs/eval/ch3_r5b_fp_anchor.yaml for scripts/ch3_fp_h2h.py
+#      (which reads its own schema, per the ch3_r4_fp_anchor.yaml
+#      precedent) and drive scripts/ch3_r4_fp_runner.sh with PREREG/ARM
+#      overrides — it defaults to the R4 file and arm FE3. ~1.0 h
+#      **THIS IS THE ONLY DRIVER CHANGE IN EITHER FILE. ch3_r5a needs
+#      NONE.**
+# BI-8 WAVE RUNNER (bash-3.2-safe, no ${var,,}; liveness polls chunk
+#      PROGRESS never directory existence; ~30 s start stagger for the
+#      torch lazy-init SIGSEGV landmine).                    ~0.5 h
+# TOTAL OFFLINE BUILD ~9.0 h, ALL AGENT TIME, ALL RESULT-BLIND, ALL
+# BEFORE ANY STAGE-2 BATTLE. **STAGE 2 DOES NOT LAUNCH THE SAME EVENING
+# IT IS RATIFIED, AND THIS HEADER SAYS SO RATHER THAN DISCOVERING IT AT
+# LAUNCH.** (The synthesis's maintainer-facing "~5 h result-blind" is
+# withdrawn in favour of the honest number — review 1 finding 42.)
+# ---------------------------------------------------------------------
+# Q13. PRE-LAUNCH GATES (blocking) — the R4 R4-0..R4-14 pattern
+# ---------------------------------------------------------------------
+# B-0  RULE-1 RULED (option 1) AND RULE-1b RULED, both recorded in
+#      SESSION_LOGS.md. **BLOCKS THE BUILD, not just the launch.**
+# B-1  r5a cell == T-PASS in results/ch3_r5a/t_gate_readout.json.
+# B-2  THIS FILE COMMITTED AND THE TREE CLEAN at the launch sha (R2-9
+#      twin; the grader enforces both). One untracked .md flips
+#      git_dirty — do not edit the tree while a launch may be running.
+# B-3  OFFLINE SUITE GREEN at the launch sha, including BI-1..BI-8 tests
+#      (R2-6 twin).
+# B-4  GRADER BUILT AND --selftest GREEN at the launch sha (BI-6),
+#      committed with this file.
+# B-5  CHECKPOINT sha256 PREFLIGHT on ALL THIRTEEN pins, EVERY job.
+#      **The four distilled and four placebo shas are stamped AT FIT
+#      TIME, BEFORE ANY BATTLE, and transcribed into `checkpoints:`
+#      here — the r4_13_discrimination precedent.** simulator: 4 in
+#      showdown/config/config.js.
+# B-6  ENCODER ENV VARS POKEMON_RL_ENCODER_V2=1 and
+#      POKEMON_RL_ENCODER_IDS=1 in EVERY job INCLUDING EVERY OFFLINE ONE
+#      (recorder, distiller, gate harness, placebo fit).
+# B-7  FG-4 STATIC + LIVE and the SF-13 chunk-0 battle2 sentinel armed
+#      in every search job (driver-automatic); F-P2's static grep
+#      transcript recorded.
+# B-8  OFFLINE DETERMINISM GATE: same obs/mask -> same action for X0,
+#      X1 and PL.
+# B-9  R2-5 WIRING SMOKE (the F-A8 check exercised end-to-end).
+# B-10 D-0..D-6 ALL GREEN on the GATE split, transcribed here, before
+#      the first evaluation battle.
+# B-11 USERNAME DISJOINTNESS at every wave start (F-U).
+# B-12 THE FIDELITY TRIPWIRE: freeze/rehydrate a distilled checkpoint
+#      and assert bit-identical actor logits on 1000 stored obs.
+# B-13 X0 RUNS FIRST (~8 min) and is read against F-T's bands before
+#      X1's wave launches (the R4-10 pattern).
+# ---------------------------------------------------------------------
+# Q14. CONFOUNDS, DISCLOSED — TRAVELLING ON EVERY BRANCH
+# ---------------------------------------------------------------------
+# C1 THE TEACHER IS SH-VALIDATED ONLY. Its edge is measured vs SH
+#    (pooled +0.06925) and is NEGATIVE vs the clone and vs Foul Play.
+#    r5a measures the self-play regime — the regime we train in — but
+#    the EVAL is vs SH. A credit is consistent with "search's decisions
+#    are generally better" AND with "search's decisions are better
+#    against SH-like opponents". THE ANCHOR BATTERY IS HOW WE WOULD
+#    KNOW, and it is descriptive only.
+# C2 STATE-DISTRIBUTION MISMATCH: the dataset is self-play states, the
+#    eval is vs-SH states. DELIBERATE and purity-required; it biases the
+#    arm TOWARD THE NULL. Named, not fixed.
+# C3 HARD-LABEL TEACHER: search emits one action, not a distribution;
+#    row_ev is an EV vector, not a policy. Converting it needs Q5's
+#    temperature. Disclosed as a modelling choice.
+# C4 ONE ITERATION ONLY. A null does not refute expert iteration; it
+#    refutes ONE ITERATION AT THIS DOSE ON THESE FOUR CHECKPOINTS.
+#    Licensed on B3, SUPPRESSED under KILL.
+# C5 n=4 CLUSTERS, df=3. No training-seed replication beyond D26's four.
+#    A credit licenses "over THESE four checkpoints", verbatim.
+# C6 ERA / GIT SHA: same eval path, recorded sha, both encoder env vars,
+#    same server process for X0 and X1. F-T is the tripwire.
+# C7 **MODEL BIAS BAKED INTO WEIGHTS (design A's R-1, restored — review
+#    1 finding 39; absent from the r1 draft entirely). FG-2 fidelity is
+#    0.9092; rl/search/matrix.py:14-17 states the search "is
+#    systematically OPTIMISTIC about our staying in" (uniform switch
+#    column) and damage uses the 2-point max-damage expansion. At
+#    inference that bias partly cancels within a comparison. DISTILLED,
+#    IT IS PERMANENT — a distilled ACTOR inherits the uniform-switch-
+#    column optimism directly as a switch/stay policy bias. This is the
+#    single most predictable failure mode of the lever. D-9 records the
+#    distilled actor's switch rate against X0's, and THIS DISCLOSURE
+#    TRAVELS WITH EVERY LICENSED SENTENCE ON EVERY BRANCH, INCLUDING
+#    B1a** (A required exactly that of its own MG-4 detector).
+# =====================================================================
+rung: 5
+stage: 2
+title: ch3_r5b_expert_iteration
+status: "RATIFIED 2026-08-24 (evening). Blockers cleared: ch3_r5a cell == T-PASS (mean mirror margin +0.1515, 4/4 lanes) AND RULE-1 ruled option 1 (CLEAN for a greedy claim). RULE-1/RULE-1b/U-B1/U-B2 all RULED 2026-08-24, each on the draft's recommended branch; no pending bracket remains."
+blocked_on:
+  t_gate: "results/ch3_r5a/t_gate_readout.json['cell'] == 'T-PASS' — asserted mechanically by every Stage-2 job and every BI script (D-1)"
+  rule_1: "RULED 2026-08-24 (evening) — OPTION 1: CLEAN WITH A MANDATORY PROVENANCE CLAUSE. Engine-derived search targets may enter the weights; every claim descending from the distilled checkpoints carries the provenance qualifier (poke-engine-derived expert-iteration targets in the weights, engine named per the standing provenance obligation). Options 2 and 3 declined. The build is unblocked. (For the record: A recommended (1); B never raised engine purity and no recommendation is attributed to B.)"
+  rule_1b: "RULED 2026-08-24 (evening) — NO, EXPLICITLY, ON THE RECORD: SH-generated states may NOT enter a training set. This file's self-play collection (~2.8 h) stands as designed. B's cost asymmetry was quoted to the maintainer verbatim ('materially cheaper and materially more likely to credit — and materially less honest') and the honest side was chosen; the vs-SH eval seam stays uncontaminated."
+results_dir: results/ch3_r5b
+driver: "scripts/ch3_eval.py --prereg <this file> --job <job>   # reads prereg['arms']"
+grader: "scripts/ch3_r5b_grade.py (BI-6; reuses ch3_r2_grade.land + check_partition + se_terms_r2 UNMODIFIED and the CREDIT_LINE byte-assert)"
+checkpoints:
+  # BASE PINS — byte-equal to configs/eval/ch3_r4_ensemble_critic.yaml.
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+  clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683}
+  # DISTILLED PINS (review 2 BLOCKER-1: the r1 draft had NONE, and its
+  # `source: distilled` key is read by no driver, so X1 would have
+  # loaded the base checkpoints and returned a guaranteed null).
+  # Paths are fixed pre-launch; shas are STAMPED AT FIT TIME, BEFORE ANY
+  # BATTLE, and transcribed here (B-5).
+  d62: {path: runs/exit_s62/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  d63: {path: runs/exit_s63/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  d64: {path: runs/exit_s64/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  d65: {path: runs/exit_s65/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  # PLACEBO PINS — same discipline; PL is FITTED result-blind pre-launch
+  # even though its battles run only on B1a/B1b/B2.
+  p62: {path: runs/exit_pl_s62/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  p63: {path: runs/exit_pl_s63/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  p64: {path: runs/exit_pl_s64/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  p65: {path: runs/exit_pl_s65/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+expected_pins: 13
+arms:
+  # The schema scripts/ch3_eval.py actually reads (prereg["arms"];
+  # _jobs at :193, run_job at :300, selfcheck at :497). `kind: policy`
+  # -> one job per lane key, resolved through prereg["checkpoints"].
+  # There is NO `source` key anywhere: no driver reads one.
+  X0: {kind: policy, lanes: [s62, s63, s64, s65], battles: 3000, chunks: 10, letter_bearing: true}
+  X1: {kind: policy, lanes: [d62, d63, d64, d65], battles: 3000, chunks: 10, letter_bearing: true}
+  PL: {kind: policy, lanes: [p62, p63, p64, p65], battles: 3000, chunks: 10, letter_bearing: conditional_falsifier}
+lane_map: {s62: d62, s63: d63, s64: d64, s65: d65}
+placebo_map: {s62: p62, s63: p63, s64: p64, s65: p65}
+pairing: base_checkpoint_lane_paired
+comparator: fresh_same_session_X0
+waves:
+  # OPERATOR DOCUMENTATION — no driver reads this; BI-8 implements it.
+  WAVE_0: [x0_s62, x0_s63, x0_s64, x0_s65]     # B-13: X0 first, read against F-T
+  WAVE_A: [x0_s62, x1_d62, x0_s63, x1_d63]     # re-run pairing waves
+  WAVE_B: [x0_s64, x1_d64, x0_s65, x1_d65]
+  WAVE_P: [pl_p62, pl_p63, pl_p64, pl_p65]     # iff cell in {B1a, B1b, B2}
+wave_note: "B-13 runs X0 once as the era pin; the LETTER-BEARING X0 read is the lane-paired one in WAVE_A/WAVE_B, which is what F-P grades. If the era-pin read is reused as the letter-bearing X0, F-P will fire on every lane by construction — so it is not."
+aggregator: equal_weight_mean_of_per_lane_paired_deltas
+recorded_never_governing: [per_lane_median_delta, worst_lane_delta, per_lane_deltas, sign_flip_permutation_p]
+clustering_unit: "base checkpoint-lane (n=4), PAIRED at cluster level; a credit licenses 'one iteration of offline expert iteration on self-generated self-play search data helps greedy play over THESE four checkpoints'"
+letter_bearing_comparisons: "1 primary (X1 - X0, paired by base lane) + 1 CONDITIONAL FALSIFIER (PL - X0, paired by base lane; runs iff the cell is B1a/B1b/B2; cannot create a credit, can only strike or qualify one). The r1 draft's flat '1' was false: any comparison that can strike the headline claim is letter-bearing by this repo's usage."
+credit_line: "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time"
+se_terms: [pooled_binomial_two_sample, paired_clustered_sd_d, unpaired_two_sample_clustered]
+se_rule: larger_of_three
+se_implementation: "scripts/ch3_r2_grade.se_terms_r2 UNMODIFIED; scripts/ch3_r2_grade.land and check_partition UNMODIFIED"
+branches: five_cell_floor
+band_sides: {B1: upper, B2: upper, B3: two_sided, B4: lower, B5: lower}
+band_boundaries: "delta=+0.025 -> B1 at hi=0.025, B2 at hi>0.025; delta=-0.025 -> B4 at hi>0.025, B5 at hi=0.025; delta=-hi -> B5 always; grader --selftest pins all five landings"
+b1_split: "B1a: CREDIT AND F-T GREEN -> 'new best vs-SH number' licensed (never 'new best agent'). B1b: CREDIT AND F-T in the disclosed band -> credited, 'new best' explicitly DECLINED, F-T value quoted. The r1 draft's third conjunct (X1 pooled > 0.71825) can never bind and is struck."
+s_c_planning: 0.0199
+s_c_basis: "the WORST of the three FRESH re-measurements of these same four checkpoints (R2 0.01050, R4 0.01360, R3 0.01989). D26's training-era 0.011177 is NOT used for planning: the r1 draft's 'inherits that spread' claim is falsified by R3, where the same four checkpoints re-measured fresh gave 1.8x that spread and did not preserve lane rank order."
+expected_sd_d: 0.016
+expected_sd_d_basis: "sd(d_i) = 0.0160, the value R4 MEASURED over these same four lanes for a paired lever (STATUS.md)"
+expected_operative_bar: "~0.025-0.031; the unpaired term exceeds the 0.025 floor whenever s_T >= 0.01513, and at s_T = s_C = 0.0199 the bar is ~0.028. The UNPAIRED TERM IS THE LIKELY GOVERNOR — not the floor."
+power_table:
+  source: "results/design_critic/r5_power_sim.py --primary --reps 20000 (rng seed 20260824); exact simulation rule in that file's docstring; NO t-multiplier and NO df penalty is applied anywhere — the credit line uses a fixed 2*se"
+  s_C: 0.0199
+  columns: [0.010, 0.016, 0.025, 0.035]
+  "+0.000_SIZE_REPORTED": [0.000, 0.002, 0.011, 0.020]
+  "+0.020": [0.137, 0.146, 0.146, 0.142]
+  "+0.028": [0.393, 0.350, 0.289, 0.232]
+  "+0.030": [0.472, 0.414, 0.328, 0.267]
+  "+0.040": [0.778, 0.690, 0.549, 0.417]
+  "+0.055": [0.963, 0.925, 0.821, 0.678]
+  reference_only_s_C_0.011177: {"+0.028": [0.595, 0.510, 0.396, 0.309], "+0.000_SIZE": [0.000, 0.004, 0.015, 0.032]}
+expectation_band: [0.010, 0.045]
+expectation_point: 0.028
+expectation_point_provenance: "DESIGN B's OWN actor-path prior: ~40% of the teacher's pooled vs-SH increment +0.06925 after one lossy iteration. ONE PRIOR, NOT TWO. Design A produced no actor-path number (A declined the actor path); A's identically-valued +0.028 is A's pre-registered point for A's OWN two-round CRITIC lever on a SEARCH read, and 'both priors point +0.028' is WITHDRAWN."
+e2_fit: "Delta(sigma) = -1.669 * sigma^1.437 (3 points, 2 params — order of magnitude, NOT a calibrated law)"
+e2_bridge_use: "CEILING DEVICE ONLY, never a point estimate. Prices R4's committee +0.0224 at sigma_equiv 0.0499 and the +0.025 floor at 0.0538. A's if-clause, verbatim: 'If the committee's gain is variance reduction of an idiosyncratic per-critic leaf error sigma_1 ... then sigma_1 ~ 0.061 ... and E2 says that is worth ~2-3 points.' A's disclosure, verbatim: 'DISCLOSED, IT COULD BE ZERO: if the committee's gain is model diversity rather than variance reduction, a single distilled critic cannot reproduce any of it.'"
+power_at_point: "P(credit) 0.35 at the named sd_d=0.016 and s_C=0.0199; 0.23-0.39 across the tabled sd_d range; P(B3) 0.34-0.44 — a B3 is the modal outcome over the lower half of the band. P(B5) CONDITIONAL ON mu=+0.028 is < 0.001; the '0.10-0.15' is a PRIOR OVER mu (probability of a true mu <= -0.025), named before data so a negative cannot be reported as a surprise."
+free_numbers:
+  target_temperature: "grid {hard, 0.05, 0.10, 0.25, 0.50}; SELECTED ON THE SEL SPLIT ONLY as the SMALLEST tau within 1 se of the grid's best SEL cross-entropy; gates read on GATE. No win rate is an input. Grid transcript written here pre-launch."
+  kl_to_init_coefficient: "RESOLVED TO ZERO — the term is DROPPED. The one-lever assertion is carried by the frozen critic (D-5) and D-4. Reinstating it is a new lever and a new pre-reg (design B's U6)."
+  step_count: "train to the SEL-split cross-entropy minimum, patience 3 evaluations, cap 20 epochs. NO DOSE-BASED EARLY STOPPING — the realized dose is an OUTCOME that D-3 grades, not a knob."
+  lr: "1e-3 (scripts/train_bc.py committed default), not swept"
+  batch_size: "512 (scripts/train_bc.py committed default), not swept"
+  placebo_step_count: "the ONE exception: PL's step count MAY be adjusted, result-blind, to bring flip(PL)/flip(X1) into [0.80, 1.25]; the search is transcribed here. It is the placebo's knob, never the treatment's."
+splits: "battle-disjoint by construction: h = int(sha256(f'{lane}:{battle_id}').hexdigest()[:8], 16) % 20; h==0 -> SEL (5%, temperature selection ONLY); h==1 -> GATE (5%, D-gates ONLY, nothing selected); else FIT (90%). Audited by F-L. This breaks the r1 draft's selection/gate circularity."
+offline_gates: [D-0_splits, D-1_t_gate_pass, D-2_fit_converged, D-3_dose_band, D-4_entropy_guard, D-5_critic_identity, D-6_arm_contrast, D-7_srank_recorded, D-8_discrimination_recorded, D-9_switch_rate_recorded]
+d2_rule: "a1 >= a0_selfplay + 0.20 on the GATE split, searched decisions ONLY; a0_selfplay MEASURED on the GATE split and cross-checked against r5a's recorded self-play flip rate (must agree within 0.02 or the discrepancy is disclosed and the GATE-split value governs). NOT transferred from the vs-SH 0.402. STOP below, no battles."
+d3_rule: "F = argmax-flip rate of X1 vs X0 on the GATE split, searched decisions ONLY, in [0.25, (1 - a0_selfplay) + 0.05]. STOP either side, before any battle. A PERFECT distillation has a1 = 1.0 and F = 1 - a0_selfplay exactly, which is INSIDE the band — the r1 band [0.15, 0.55] excluded it. Lower edge 0.25 binds only in the strip a1 in [a0+0.20, a0+0.25); above that it is a mechanical redundancy check, since F >= a1 - a0 always."
+d4_rule: "mean masked entropy of X1 >= 0.55 x X0's on the GATE split. X0 base is 0.2867 (s62) / 0.3199 (s65) nats measured from history.csv, so the absolute floor is ~0.158-0.176 nats vs the BC-collapse landmine at 0.063 — THIS GATE IS PERMISSIVE, NOT TIGHT. Consequence, design_input_B.md:515 verbatim: 'below -> the recorded BC entropy-collapse landmine (loss/entropy 0.063) has fired; the temperature is re-resolved by D-2/D-3 offline and the fit re-run — never re-tuned after seeing a win rate.' Non-circular because re-resolution runs on SEL and re-check on GATE. If no tau survives, STOP."
+d5_rule: "sha256 of the SERIALIZED CRITIC SUB-STATE_DICT equal AND torch.equal over every critic tensor, X0 vs X1 and X0 vs PL. The checkpoint FILE sha necessarily differs; the object is named. VOID otherwise."
+d6_rule: "X0 and X1 arm dicts identical except `lanes`, AND sha256(X0 lane file) != sha256(X1 lane file) per lane. VOID otherwise."
+d8_consequence_recorded: "design A verbatim: 'if the on-distribution disagreement is actually ~0.4, the achievable effect is far larger than my band and this arm is BADLY UNDER-REGISTERED ON THE UPSIDE.' Recorded, never a verdict input. NOTE: ch3_r5_synthesis.md calls D-8 'blocking'; it is not, and A's own text makes it a recorded rider."
+placeholder_rows: "EXCLUDED from the dataset, the fit and every D-gate denominator. rl/search/agent.py:144-148 returns early on locked turns with no row_ev, so such a row has no teacher target; carrying them would also shift D-2's baseline toward ~100% agreement by construction. The realized placeholder-skip rate is recorded beside every number."
+run_time_voiding_gates: [F-A8_win_rate_identity, F-C_collection_search_integrity, F-P2_recorder_purity, F-R_target_provenance, F-L_no_leak, F-S_selection_audit]
+run_time_non_voiding_gates: [F-T_era_tripwire, F-P_pairing_window, F-D_mask_desyncs, F-U_username_disjointness, F-M_ms_band]
+f_c_leaves_expected: 353
+f_c_band: 0.25
+f_t_green_band: [0.689, 0.744]
+f_t_stop_band: [0.650, 0.770]
+f_t_is_void_gate: false
+f_t_disposition: "R4's F4 ADOPTED UNCHANGED: DISCLOSURE + STOP, NEVER VOID — the paired primary is era-immune by construction, stated before data so the opposite reflex cannot void a valid result. The upper STOP bound is DELIBERATELY ASYMMETRIC and sits below R2's search level 0.79283, which is what makes it an arm-swap / search-ran-on-X0 detector. The r1 draft reversed this without argument."
+f_p_min_overlap_frac: 0.80
+f_p_consequence: "the lane's d_i REMAINS IN the equal-weight mean (the primary is NEVER re-cut on a data-dependent lane subset); the pairing failure is disclosed beside the number and the by-construction era-immunity clause is struck for that lane. Re-run policy, R4 verbatim: 'either both-arms re-run for that lane or the disclosure, maintainer's pick AT THE TIME, disclosed either way.'"
+f_p2_rule: "the recorder path runs through the same `env.unwrapped._privileged is False` assert and chunk-0 battle2 sentinel as every other search arm; persisted obs width == 828; no `info` key outside the recorded whitelist is written; static grep transcript shows no data/fp_* path in the recorder or distiller sources. VIOLATION = PURITY INCIDENT, RETRACTION NOT CAVEAT."
+purity: "self-generated only: seat 2 in the Stage-2a collection is our own sha-pinned checkpoint; NO SH-generated state enters the dataset (breaks the R0-1b seam AND is train-on-test against the headline metric — design B's U8 reading, pending RULE-1b); data/fp_* never opened (static gate, F-P2); violation = PURITY INCIDENT, retraction not caveat."
+provenance_qualifier_mandatory: "every licensed sentence on every branch carries, verbatim: 'the actor was fitted offline to its own search's decisions, backed up through poke-engine from the checkpoint's own self-play.' Plus C7's model-bias disclosure and the vs-SH scope limit."
+placebo:
+  arm: PL
+  construction: "cross-BATTLE pairing within the same lane and the FIT split, restricted to partner rows with an IDENTICAL legal-action count, target index-aligned onto the current row's legal set; the target is the SAME temperature tau applied to the PARTNER's row_ev vector (a shuffled DISTRIBUTION — design A's shuffled-scalar analogue, so 'same temperature' is true and the target FORM matches the treatment's). Every target is LEGAL BY CONSTRUCTION; there is no illegal-target case."
+  dropped_rows_rule: "rows with no partner at their legal count are DROPPED; the dropped fraction is reported; >2% -> PL disclosed as ROW-MISMATCHED and the falsifier reported as WEAKENED."
+  information_claim: "NO STATE-CORRECT INFORMATION BEYOND THE LEGAL-ACTION-COUNT MARGINAL. Not 'zero information' — legal count is itself a weak function of state. The r1 draft's same-battle pairing preserved both teams, the usually-identical active Pokemon, slot semantics and strong temporal autocorrelation, and its 'ZERO state-correct information' claim was false."
+  fit: result_blind_prelaunch
+  battles_run_iff: "cell in {B1a, B1b, B2}"
+  comparator: "X0, paired by base lane, same larger-of-three se law"
+  dose_rule: "MEASURED, not asserted: flip(PL vs X0) on the GATE split, required flip(PL)/flip(X1) in [0.80, 1.25]; PL's step count adjusted result-blind until in band, search transcribed. UNMATCHABLE -> PL is DOSE-UNMATCHED and NON-BINDING (strikes nothing) and the a-fortiori branch is recorded UNREACHABLE — the D25-P sentence: 'a generic actor perturbation of matched size would move greedy play' survives UNTESTED."
+  cells:
+    PL-STRIKE: "delta(PL) >= 0.6*delta(X1) AND delta(PL) >= 2*se_gov(PL) -> information claim STRUCK IN FULL; licensed sentence 'any actor perturbation of this magnitude moves greedy play'"
+    PL-UNCONFIRMED: "delta(PL) >= 0.6*delta(X1) BUT < 2*se_gov(PL) -> information claim DISCLOSED AS UNCONFIRMED, not struck; both numbers and both se terms quoted"
+    PL-SURVIVE: "delta(PL) < 0.6*delta(X1) -> information claim STANDS; licensed sentence names delta(PL) and the construction"
+  false_strike_rate_precomputed: "under a TRULY NULL placebo at delta(X1)=+0.028 (threshold 0.0168), s_C=0.0199: P(PL-STRIKE) 0.003 / 0.006 / 0.015 and P(PL-UNCONFIRMED) 0.012 / 0.037 / 0.096 at sd_d = 0.010 / 0.016 / 0.025"
+anchors_run_iff: "cell in {B1a, B1b, B2} and no VOIDing gate fired"
+anchors_are_verdict_inputs: false
+anchor_lane: s65
+anchor_lane_rule: "pre-stated BY NAME for continuity with the entire anchor trail; co-occurrences disclosed BOTH directions (s65 carried the largest vs-SH search delta +0.0810, favourable; and the weaker E3 screen lane, conservative)"
+anchor_comparator: greedy_not_search
+anchor_comparator_rule: "GREEDY, because this lever's claim is about GREEDY play. Design B's U4, carried WITH ITS COST AND ITS FLAG (the r1 draft dropped both): 'this arm's clone anchor is not directly comparable to R4's. Overrulable.'"
+anchor_mde: {clone_1000: 0.031, clone_1000_p: 0.86, fp_250_pinned_literal: 0.087}
+anchor_mde_note: "the clone MDE 0.031 is a two-sample MDE at n=1000 AT p = 0.86 (it would be 0.028 at p = 0.894) — the p is named (review 2 MINOR-16). FA's 0.087 is PINNED AS A LITERAL so the threshold cannot move with the data."
+anchor_arms:
+  # CA/CB run through scripts/ch3_r4_anchors.py (kind greedy_h2h);
+  # explicit `chunks`, distinct output prefixes (ca / cb).
+  CA: {kind: greedy_h2h, seat1: d65, seat2: clone, battles: 1000, chunks: 10, role: treatment}
+  CB: {kind: greedy_h2h, seat1: s65, seat2: clone, battles: 1000, chunks: 10, role: fresh_comparator, era_anchor: 0.894, era_tolerance: 0.04}
+fp_anchor_arm:
+  # FA runs through scripts/ch3_fp_h2h.py (kind greedy_seat IS supported:
+  # ARM_KINDS at :49, with the "unknown kind must not silently run the
+  # greedy seat" assert at :161). It needs its own derived config —
+  # configs/eval/ch3_r5b_fp_anchor.yaml, schema-identical to
+  # ch3_r4_fp_anchor.yaml, generated at ratification, THE PRE-REG WINS on
+  # any disagreement — plus PREREG/ARM overrides on
+  # scripts/ch3_r4_fp_runner.sh, which defaults to the R4 file and FE3.
+  # Built in BI-7.
+  FA: {kind: greedy_seat, seat: d65, battles: 250, seat_username: r5banchorseat, fp_username: r5banchorfp, comparator: frozen_0.388}
+  fp: {search_time_ms: 100, search_parallelism: 1, format: gen1randombattle}
+  crash_forfeit: {max_relaunches: 30, void_marker: TOO_MANY_CRASHES}
+anchor_deviation_n1000: "RULED 2026-08-24 (evening) — U-B1 RE-APPROVED for R5: CA and CB run at n=1000 (a disclosed deviation from the 2026-08-23 standing n=500, same shape as R4's U2 approval; ~6 min extra, clone MDE 0.044 -> 0.031). Anchors remain descriptive, never verdict inputs."
+crash_forfeit_read_rule: "SESSION_LOGS.md:5509-5515, TRANSCRIBED (the r1 draft said 'VERBATIM' and quoted nothing — review 2 MINOR-13): 'READ RULE for the rerun, pre-stated: an FP crash forfeits the in-flight battle TO US server-side, so crash-forfeited battles are EXCLUDED from the FS number — n_eff = seat-finished minus crash-forfeits, our_wins reduced by the same count; G2 then requires the seat and FP tallies to agree on n_eff exactly, with the relaunch count and every crash point disclosed beside the number. Any TOO_MANY_CRASHES (>=30) outcome VOIDs the arm.'"
+anchor_transfer_cells:
+  ANCHOR-TRANSFER-POSITIVE: "(CA - CB) >= 0.031 AND (FA - 0.388) >= 0.087"
+  ANCHOR-TRANSFER-NEGATIVE: "(CA - CB) <= -0.031 OR (FA - 0.388) <= -0.087"
+  ANCHOR-AMBIGUOUS: "everything else — THE MODAL CELL BY CONSTRUCTION; the R2 SH-facing caveat travels STRENGTHENED on every cell except TRANSFER-POSITIVE"
+fm9_guard: "PRE-STATED: FA CANNOT resolve an effect of the pre-registered size (+0.028 is 3.1x below its 0.087 MDE). It is retained because a SURPRISE is still gradeable. Saying so up front is the point."
+kill_rule: "delta <= 0 AND d_i <= 0 on >= 3 of 4 lanes -> the ACTOR expert-iteration line is CLOSED WITHIN THIS CHAPTER (no policy+value, no multi-iteration, no temperature re-sweep, no larger-n retest) absent evidence from OUTSIDE this chapter; search@M recorded as an inference-time lever that does not compile into weights. On B3+KILL the closure sentence is the ONLY licensed narration. SCOPED TO THE ACTOR FAMILY: it does not close design A's critic-value family."
+null_meaning: "a B3 refutes 'one iteration of actor expert iteration at this dose clears the credit line over these four checkpoints', NOT 'expert iteration is dead' — SUPPRESSED when KILL co-fires."
+readme_status_obligation: "B1a + ANCHOR-TRANSFER-POSITIVE: headline row moves, caveat narrowed and naming both anchor deltas with n, provenance qualifier and C7 disclosure verbatim, no 'new best agent', no ladder-readiness. B1a + other anchor cell: headline number updates, R2 caveat VERBATIM AND STRENGTHENED, same qualifiers. B1b: additive row, 'new best' explicitly declined, F-T value quoted. B2: additive row, verdict phrase verbatim, governing se term named BY NAME, anchor cell as a descriptive column. B3/B4/B5: additive row, verdict phrase verbatim, headline unchanged (B3 quotes the power table and the non-exclusion clause with numbers). KILL: README records the closure sentence verbatim and STATUS records the line as closed for this chapter. PL-STRUCK: the information claim is removed from the README row in the same edit that lands the number, and the struck sentence is recorded in SESSION_LOGS. PL-UNCONFIRMED / PL-SURVIVE: the PL number and cell travel with the README row. ANY VOIDING GATE: STATUS ONLY, README UNTOUCHED (design B's standing rule). PURITY INCIDENT: retraction, not caveat. ALWAYS: M2 (D26 critic ctx srank99 49/51/35/52 of 384) recorded in STATUS and SESSION_LOGS independently of every branch — design B's U2, 'the highest value-per-minute item in the whole memo'."
+named_successor: "design A's iterated critic-value distillation is recorded ONLY AS A POINTER to results/design_critic/design_input_A.md (complete design: E2 bridge with its caveats, MG gates, roots-only, its own 1.00x placebo). **IT IS GRANTED NO STATUS BY THIS FILE, and no branch of this file opens or closes it — it requires its own pre-registration, its own ratification and its own build.** The r1 draft's conditional-launch clause ('runs only on [T-GATE pass AND B3 with headroom unresolved] or independent maintainer buy; T-GATE FAIL closes it too') is WITHDRAWN: 'B3 with headroom unresolved' was defined nowhere, it collided with KILL, and its two adjacent clauses contradicted each other on maintainer override. PRICES RECORDED, BOTH SIDES: A priced its lever at ~8-11 h offline build, ~2.8 h target CPU, ~1.3 h/round fitting, ~5.8 h of battles (+2.2 h anchors), and wrote 'IT DOES NOT FIT ONE EVENING AND I WILL NOT PRETEND IT DOES.' B REJECTED the family on the L5 ceiling ('a better critic changes nothing about greedy play, so the read moves to search@M, where the measured headroom is the committee's +0.0224 < floor') and rejected multi-iteration because 'each iteration costs a fresh 2.8 h collection because the teacher's state distribution moves.' A's escape is the round-2 extra-ply term, which A itself prices at only +0.006-0.012. Both positions stand; neither is adopted here."
+seconds_best_named: "design B's U1, carried verbatim: 'my named second-best is none, and I say so explicitly.'"
+code_change_policy: "design B's U6, carried verbatim: 'A code change here is a new lever and a new pre-reg. ... I recommend holding the line.'"
+ladder_consequence: "NONE on any branch — readiness is the maintainer's judgment (2026-08-23 ruling). Every number here is a vs-SH number and vs-SH is ~40% GXE territory."
+burns_training_seeds: false
+burns_training_seeds_basis: "the fit is offline supervised on .npz and never constructs a poke-env player or calls set_seed; ch3_eval.py / ch3_r4_anchors.py likewise never call set_seed (fact-checked 2026-08-23). 66/67, 75/76, 83/84, 93/94 ALL HELD. Verified anyway at every wave start by F-U."
+obs_dim_untouched: "OBS_DIM stays 828 by construction — actor-only fit, base cfg carried verbatim, 828-d obs recorded and replayed. No checkpoint is invalidated."
+execution_delegation: "eval execution is delegated to the agent by the 2026-08-23 R4 ratification ('you can run what you need yourself'); CLAUDE.md otherwise routes >5-minute runs to the maintainer's terminal. Every wall number is a maintainer-terminal-grade number either way. A STANDING DELEGATION, not a property of this design."
+build_items: [BI-1_recorder_1.5h, BI-2_distiller_2.0h, BI-3_offline_gate_harness_1.0h, BI-4_d7_d8_harness_1.0h, BI-5_placebo_builder_and_fit_0.5h, BI-6_grader_1.5h, BI-7_anchor_plumbing_and_pin_count_1.0h, BI-8_wave_runner_0.5h]
+build_hours_projected: 9.0
+driver_changes: "EXACTLY ONE, in BI-7(a): ch3_r4_anchors._preflight's hard `len(pins) == 5` becomes `len(pins) == prereg.get('expected_pins', 5)`. R4's file is unaffected (it has 5). ch3_r5a needs NO driver change at all."
+fit_cpu_hours_projected: 1.0
+battle_wall_hours_projected: "~3.1 (B3-B5) to ~4.5 (B1/B2): collection ~2.8 (floor 2.7) + X0/X1 0.27 + PL 0.13 + anchors 1.3"
+battle_wall_hours_cap: 6
+wall_hours_cap_counts: "BATTLE WALL ONLY. Offline build (9.0 h) and fit CPU (1.0 h) are tracked separately and are NOT charged against this cap. The r1 draft mixed them and violated its own cap by 3-4 h."
+ledger_days_projected: 0.19
+undecidables_for_ratification:
+  U-B1: "RULED 2026-08-24 (evening) — n=1000 RE-APPROVED; see anchor_deviation_n1000."
+  U-B2: "RULED 2026-08-24 (evening) — ACCEPTED explicitly with this file: 4 lanes x 3000 battles, quoted as a disclosed conservative DEVIATION from the locked 3x3000 (the D23+ pattern), not inherited."
+  U-B3: "the +0.028 point and the [+0.010, +0.045] band are design B's prior. RECOMMEND as written; overrulable AT RATIFICATION ONLY, never after data."
+temperature_grid_transcript: "PENDING — written here before any battle (B-10)"
+placebo_dose_search_transcript: "PENDING — written here before any battle (B-10)"
+a0_selfplay_measured: "PENDING — read from the GATE split at collection time and cross-checked against ch3_r5a's recorded self-play flip rate (B-10)"
+b7_fg4_transcript: "PENDING — recorded before launch (B-7)"
