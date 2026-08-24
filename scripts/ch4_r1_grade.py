@@ -16,7 +16,7 @@ from pathlib import Path
 
 import yaml
 
-OUT = Path("results/ch4_r1_offsh")
+OUT = Path("results/ch4_r1_offsh")   # --indir overrides (dry-run harness)
 CHI2_3DF_LOW_MULT = math.sqrt(3 / 9.3484)   # 0.5665: lower 95% CI multiplier
 CHI2_3DF_HIGH_MULT = math.sqrt(3 / 0.2158)  # 3.7285: upper
 
@@ -82,10 +82,15 @@ def load(tag):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--indir", help="read arms from here instead of results/ch4_r1_offsh "
+                                    "(dry-run harness only; never used for the real readout)")
     args = ap.parse_args()
     selftest()
     if args.selftest:
         return
+    if args.indir:
+        global OUT
+        OUT = Path(args.indir)
 
     pre = yaml.safe_load(open("configs/eval/ch4_r1_offsh_instrument.yaml"))
     arch = json.loads((OUT / "archaeology.json").read_text())
@@ -106,15 +111,24 @@ def main():
         seat = load(tag)
         if seat is None:
             continue
-        if "battles_finished" in seat:   # ch3_fp_h2h arms
-            n_seat, n_fp = seat["battles_finished"], rj["fp_completed_battles"]
-            cf = rj["crash_forfeits"]
-            R["gates"][f"G2_{tag}"] = {
-                "seat_finished": n_seat, "fp_completed": n_fp, "crash_forfeits": cf,
-                "n_eff": n_seat - cf, "pass": n_fp == n_seat - cf}
-            R["gates"][f"G3_{tag}"] = {"pass": seat["gate_all_challenges_resolved"]}
+        # Two seat drivers write two schemas: ch3_fp_h2h.py (L/C/S/E arms)
+        # stamps mask_desyncs + provenance; foulplay_vs_sh.py (H arms, reused
+        # so the hub stays commensurable with the banked numbers) does not.
+        # Gates read what each driver actually reports and say so.
+        n_seat, n_fp = seat["battles_finished"], rj["fp_completed_battles"]
+        cf = rj["crash_forfeits"]
+        R["gates"][f"G2_{tag}"] = {
+            "seat_finished": n_seat, "fp_completed": n_fp, "crash_forfeits": cf,
+            "n_eff": n_seat - cf, "pass": n_fp == n_seat - cf}
+        R["gates"][f"G3_{tag}"] = {"pass": bool(seat["gate_all_challenges_resolved"])}
+        if "mask_desyncs" in seat:
             R["gates"][f"G5_{tag}"] = {"mask_desyncs": seat["mask_desyncs"],
                                        "pass": True, "disclosed": seat["mask_desyncs"] != 0}
+        else:
+            R["gates"][f"G5_{tag}"] = {"mask_desyncs": "not_reported_by_this_driver",
+                                       "pass": True,
+                                       "note": "H arms seat SimpleHeuristics via foulplay_vs_sh.py, "
+                                               "which does not instrument the encoder mask path"}
         if rj.get("void_too_many_crashes"):
             R["gates"][f"VOID_{tag}"] = True
     # G6 tiered (H arms report FP's take)
@@ -255,19 +269,38 @@ def main():
 
     # ---- branch --------------------------------------------------------
     bt_fires = pr >= 0.03 and pr >= 2 * pse
+    # ORIGINAL r2 ordered partition — RECORDED FOREVER beside the amended
+    # verdicts (Amendment A1's grading obligation; the R5b precedent).
     if s_lo >= 0.05:
-        branch = "R1_instrument_infeasible"
+        orig = "R1_instrument_infeasible"
     elif s_lo < 0.05 <= s_hi:
-        branch = "R1b_instrument_unresolved"
+        orig = "R1b_instrument_unresolved"
     elif bt_fires and fired:
-        branch = f"R3_real_hole_route_{fired}"
+        orig = f"R3_real_hole_route_{fired}"
     elif bt_fires and not fired:
-        branch = "R3_NULL_mechanism_unlocated"
+        orig = "R3_NULL_mechanism_unlocated"
     elif fired:
-        branch = f"R3_real_hole_route_{fired}"
+        orig = f"R3_real_hole_route_{fired}"
     else:
-        branch = "R2_no_anomaly_DEFAULT"
-    R["branch"] = branch
+        orig = "R2_no_anomaly_DEFAULT"
+    # AMENDED (A1, result-blind): the two axes are ORTHOGONAL and both are
+    # always reported. No threshold moves.
+    verdict_i = ("INFEASIBLE" if s_lo >= 0.05
+                 else "FEASIBLE" if s_hi < 0.05 else "UNRESOLVED")
+    if bt_fires and fired:
+        verdict_a = f"REAL_HOLE_route_{fired}"
+    elif fired:
+        verdict_a = f"REAL_HOLE_route_{fired}_tape_only"
+    elif bt_fires:
+        verdict_a = "R3_NULL_mechanism_unlocated"
+    else:
+        verdict_a = "NO_ANOMALY"
+    R["verdict_instrument"] = verdict_i
+    R["verdict_anomaly"] = verdict_a
+    R["lever_proposable"] = verdict_a.startswith("REAL_HOLE") and verdict_i != "INFEASIBLE"
+    R["branch_original_r2_partition"] = orig
+    R["amendment_a1"] = "applied result-blind 2026-08-26; structure only, no threshold moved; both forms recorded"
+    R["branch"] = f"VERDICT-I={verdict_i} / VERDICT-A={verdict_a}"
     R["branch_inputs"] = {"s_T_ci_low": s_lo, "s_T_ci_high": s_hi,
                           "rho_pooled": pr, "rho_2se": 2 * pse,
                           "bt_fires": bt_fires, "p_cell_fired": fired}
@@ -290,7 +323,11 @@ def main():
     R["reads"]["p2_regrade"]["status"] = "RULED_MU-8_SUPERSEDE — supersedes 'the FP anchor carried ~no information'"
 
     (OUT / "r1_readout.json").write_text(json.dumps(R, indent=2, default=str) + "\n")
-    print(json.dumps({"branch": R["branch"], **R["branch_inputs"]}, indent=2))
+    print(json.dumps({"VERDICT_I": R["verdict_instrument"],
+                      "VERDICT_A": R["verdict_anomaly"],
+                      "lever_proposable": R["lever_proposable"],
+                      "original_r2_partition": R["branch_original_r2_partition"],
+                      **R["branch_inputs"]}, indent=2))
     print("gates:", {k: (v if isinstance(v, bool) else v.get("pass", v.get("tier", "info")))
                      for k, v in R["gates"].items() if not isinstance(v, dict) or "pass" in v or "tier" in v})
     print(f"wrote {OUT/'r1_readout.json'}")

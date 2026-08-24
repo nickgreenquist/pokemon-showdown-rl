@@ -1,8 +1,10 @@
 # =====================================================================
 # CH4 R1 — THE OFF-SH INSTRUMENT + DIAGNOSIS. Executable pre-registration.
-# STATUS: DRAFT r2 (post-adversarial-review) — NOT RATIFIED. Nothing
-#   launches without maintainer ratification of this file plus rulings
-#   MU-1..MU-11 (results/design_fp_gap/ch4_synthesis.md §5, revised).
+# STATUS: RATIFIED 2026-08-26 by maintainer delegation; brackets
+#   MU-1..MU-11b ruled (see bracket_rulings below and
+#   results/design_fp_gap/ch4_synthesis.md §7.3). AMENDMENT A1 applied
+#   result-blind 2026-08-26 (bottom of file): the instrument and anomaly
+#   verdicts are orthogonal and both are always reported.
 #   Provenance: 2-agent design cycle (design_input_A.md mechanism-first,
 #   design_input_B.md distribution-first) -> synthesis -> 2 adversarial
 #   reviews (draft_review_1.md technical: 4 BL + 18 MA; draft_review_2.md
@@ -571,3 +573,68 @@ build_items: [BI-1_bt_grader_selftest_p2regrade_pending_MU8, BI-2a_h1_h2_reuse_f
               BI-5_tape_parser_with_fixture_lead_faint_cant, BI-6_wave_runner_arm_scoped_markers,
               BI-7_per_battle_records_in_every_arm_json, BI-8_sp_baseline_recompute_committed_before_grading]
 readme_status_obligation: "licensed sentences are INLINE in Q6b. STATUS <=60 lines, same commit as the SESSION_LOGS append. 0.71825 and 0.79283 untouched on every branch. Chapter-3 sentence edits require MU-10. Mirroring per Q8."
+
+# =====================================================================
+# AMENDMENT A1 (2026-08-26, RESULT-BLIND) — THE TWO VERDICTS ARE
+#   ORTHOGONAL AND ARE REPORTED INDEPENDENTLY.
+# ---------------------------------------------------------------------
+# DEFECT FOUND (by a synthetic end-to-end dry run of the grader, BEFORE
+#   any off-SH datum existed): the r2 branch partition evaluates the
+#   INSTRUMENT axis first and lets it PREEMPT the ANOMALY axis. Because
+#   the s_T CI at 3 df is wide (multipliers 0.5665 / 3.7285), the
+#   "unresolved" cell spans s_T in [0.0134, 0.0883] — so R1b is the
+#   modal landing cell, and in that cell the rung would report "the
+#   instrument is unresolved" and NEVER STATE WHETHER AN ANOMALY EXISTS.
+#   That is the A-vs-B question the whole cycle was convened to settle.
+#   Verified on synthetic data: a NO-ANOMALY world and a FP-OVER-
+#   PERFORMS world both returned R1b, i.e. the partition was blind to
+#   the very axis it exists to read.
+# ---------------------------------------------------------------------
+# THE AMENDMENT (structure only — NO THRESHOLD MOVES):
+#   VERDICT-I (instrument), from the s_T 95% CI, thresholds UNCHANGED:
+#     FEASIBLE    upper95(s_T) <  0.05
+#     UNRESOLVED  CI straddles 0.05
+#     INFEASIBLE  lower95(s_T) >= 0.05
+#   VERDICT-A (anomaly), from rho + the ORDERED P-cells, thresholds
+#   UNCHANGED:
+#     REAL-HOLE(route)  rho_pooled >= +0.03 AND >= 2*se, or a P-cell
+#                       fires at threshold + 2 se -> the ordered map
+#     R3-NULL           the BT disjunct fires and NO P-cell fires
+#     NO-ANOMALY        otherwise (the DEFAULT, as in r2)
+#   BOTH VERDICTS ARE ALWAYS COMPUTED AND ALWAYS REPORTED, on every
+#   branch including VOID-D (where P-cells cannot fire and VERDICT-A is
+#   read on the BT axis alone, said so in the sentence).
+#   LEVER ROUTING (unchanged in substance): a lever becomes PROPOSABLE
+#   only if VERDICT-A = REAL-HOLE **and** VERDICT-I != INFEASIBLE (an
+#   ungradeable instrument cannot grade a lever). Every lever still
+#   needs its own pre-reg + ratification. MU-1's conditional ruling
+#   reads VERDICT-I; MU-4's pre-committed action reads VERDICT-A =
+#   NO-ANOMALY.
+# ---------------------------------------------------------------------
+# BLINDNESS ATTESTATION: at the time of writing, ZERO FP@20 lane results
+#   existed (arms L62-L65, C1, C1b, S1, E1 had not run; only the four
+#   vs-SH V arms had completed and H1 was in flight and unread). No
+#   off-SH number informed this amendment. The trigger was a synthetic
+#   fixture, not data.
+# CEILING: this rung is NON-CREDITING on every branch, so the amendment
+#   cannot manufacture a credit; it can only prevent an answer from
+#   being suppressed.
+# GRADING OBLIGATION: the grader emits BOTH forms — the ORIGINAL r2
+#   ordered partition (recorded forever, beside the amended verdicts)
+#   and the amended two-verdict form. Any quote of this rung carries
+#   the amendment's existence.
+# DISCLOSED REACHABILITY (stated before data, and it is demanding):
+#   VERDICT-I = FEASIBLE requires s_T < 0.0134 — TIGHTER THAN D26's OWN
+#   vs-SH s_T of 0.01118. UNRESOLVED is the a-priori likely outcome and
+#   is an honest result: it means 4 lanes cannot settle off-SH
+#   feasibility, and the maintainer menu (more lanes / descriptive
+#   forever / close) is exactly the decision it hands over.
+# =====================================================================
+amendment_a1:
+  status: RESULT_BLIND_APPLIED_2026-08-26
+  changes: structure_only_no_threshold_moves
+  verdict_i: {feasible: "upper95 < 0.05", unresolved: "CI straddles 0.05", infeasible: "lower95 >= 0.05"}
+  verdict_a: {real_hole: "rho >= +0.03 AND >= 2se, or ordered P-cell at thr+2se", r3_null: "BT fires, no P-cell", no_anomaly: DEFAULT}
+  lever_proposable_iff: "VERDICT-A == REAL_HOLE and VERDICT-I != INFEASIBLE"
+  both_forms_graded: true
+  blindness: "zero FP@20 lane results existed; trigger was a synthetic dry-run fixture"

@@ -6295,3 +6295,48 @@ entry by offset — never a broad keyword grep.
   Rulings recorded in the pre-reg's bracket_rulings block. EXECUTION BEGINS:
   BI-1..BI-8 build, then waves V -> A -> B -> C per the wave plan; unpushed
   commits stay unpushed (no push authorization given).
+
+- 2026-08-26 (execution block, **CH4 R1 AMENDMENT A1 — RESULT-BLIND
+  STRUCTURAL FIX, found by a synthetic dry run BEFORE any off-SH datum
+  existed**): while the battle wave ran, the grader was exercised
+  end-to-end against two SYNTHETIC complete datasets (a no-anomaly world
+  and an FP-over-performs world). Two defects surfaced, both fixed
+  blind: (1) a CRASH — H arms are seated by foulplay_vs_sh.py (reused so
+  the hub stays commensurable with the banked numbers) and that driver
+  does not stamp mask_desyncs, so the G5 gate KeyError'd; the grader now
+  reads what each driver actually reports and says which. (2) THE
+  PARTITION DEFECT: the r2 branch rule evaluated the INSTRUMENT axis
+  first and let it PREEMPT the ANOMALY axis. Because the s_T CI at 3 df
+  is wide (multipliers 0.5665/3.7285), the "unresolved" cell spans s_T
+  in [0.0134, 0.0883] and is the modal landing cell — and BOTH synthetic
+  worlds returned R1b, i.e. the partition was blind to the very A-vs-B
+  question the cycle exists to settle. AMENDMENT A1 (structure only, NO
+  THRESHOLD MOVED): VERDICT-I (instrument: FEASIBLE/UNRESOLVED/
+  INFEASIBLE from the s_T CI) and VERDICT-A (anomaly: NO-ANOMALY/
+  REAL-HOLE(route)/R3-NULL from rho + the ordered P-cells) are
+  ORTHOGONAL and BOTH ALWAYS REPORTED; a lever is proposable iff
+  VERDICT-A == REAL_HOLE and VERDICT-I != INFEASIBLE. The grader emits
+  BOTH forms (the original ordered partition recorded forever beside the
+  amended verdicts — the R5b Amendment A1 precedent). BLINDNESS
+  ATTESTATION: zero FP@20 lane results existed (L62-L65/C1/C1b/S1/E1 had
+  not run; only the four vs-SH V arms had completed and H1 was in flight
+  and unread); the trigger was a fixture, not data. CEILING: the rung is
+  non-crediting on every branch, so the amendment cannot manufacture a
+  credit — it can only stop an answer being suppressed. DISCLOSED
+  REACHABILITY, stated before data: VERDICT-I == FEASIBLE requires s_T <
+  0.0134, TIGHTER than D26's own vs-SH s_T of 0.01118, so UNRESOLVED is
+  the a-priori likely instrument outcome and is an honest result (it
+  hands the maintainer the more-lanes / descriptive-forever / close
+  menu). ALSO BANKED THIS BLOCK, all blind: V-arm SH-side era pin PASS
+  (in-session pooled 0.71508 vs banked 0.71825, diff -0.00317, band
+  +/-0.020; per-lane 0.7170/0.7057/0.7340/0.7037); the tape parser's
+  fixture passes and its FG turn total reproduces 6903 EXACTLY (250 x
+  the banked 27.612); the sw_FP heuristic agrees with FP's own "Choice:"
+  ground truth to <= 0.0012 on all four corpora (the pre-registered bar
+  was 0.02) after correcting the review's forced-request double-count —
+  protocol |request| lines appear ONCE, and choices 7819 - forced 916 =
+  6903 = the exact turn total, switch_choices 1915 - 916 = 999 = the
+  heuristic's voluntary count to the unit; BI-8 recomputed the self-play
+  switch baseline with force-switch rows excluded (true policy rate
+  0.0598-0.0965 by lane vs the banked D-9 0.143-0.197 — the ~+0.09
+  definitional artifact review 1 predicted is CONFIRMED at 0.084-0.109).
