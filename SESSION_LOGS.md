@@ -6013,3 +6013,75 @@ entry by offset — never a broad keyword grep.
   seeds. Expectation band [+0.010, +0.045] point +0.028, P(credit)
   ~0.35, B3 modal — pre-stated, not re-narrated. Push state: commits
   past e3bca48 remain unpushed (morning auth only); ask before push.
+
+- 2026-08-24 (evening/night, **R5b RESULT-BLIND BUILD COMPLETE — BI-1..BI-8
+  all landed, tested, smoke-validated end-to-end; NOTHING launched (the
+  pre-reg's own "STAGE 2 DOES NOT LAUNCH THE SAME EVENING IT IS RATIFIED"
+  holds)**): seven commits after ratification. Registered the ratified
+  pre-reg as configs/eval/ch3_r5b_exit.yaml (r5a pattern; results/ is
+  gitignored, B-2 needs it committed) — its arms resolve to exactly the
+  12 jobs through the UNMODIFIED ch3_eval driver (pinned in tests).
+  **BI-1** ch3_r5b_collect.py: recording proxy AROUND SearchAgent (the
+  registered _SearchEvalAdapter untouched), whitelist-exact npz per chunk
+  (obs/mask/row_ev NaN-off-support/chosen/policy_argmax/battle_id/
+  decision_index/lane), placeholder rows excluded at the recording site,
+  D-1 assert, F-P2/F-A8/F-C/F-M carried; live smokes: 4-battle then
+  100-battle (6,675 rows — **self-play yield ~67 searched decisions/
+  battle, ~2x the vs-SH 34.6; full collection projects ~800k rows**;
+  win 0.59, leaves 289, ms 57 in band). **BI-2** ch3_r5b_distill.py:
+  actor-only fit, tau grid {hard,.05,.10,.25,.50}, SEL selection rule
+  implemented as COMMON-REFERENCE CE vs search/chosen (own-target CE has
+  a tau-dependent floor and is not comparable — documented reading, both
+  recorded), canonical critic digest for D-5 (sorted-key name/shape/
+  dtype/bytes sha — torch.save bytes are not deterministic), optimizer/
+  updates/aux_head carried verbatim, no normalizers block, B-12 freeze/
+  rehydrate tripwire at save; smoke: full grid, hard won, bit-identical
+  rehydrate. **BI-3** ch3_r5b_gates.py: D-2/3/4/5/9 on GATE, F-R
+  independent 1e-9 recompute vs the f64 intermediate (float32 storage
+  rounds at ~1e-8 — the comparison target is pinned in tests), F-L
+  audit, B-8 replay read (smoke: stored policy_argmax reproduces 1.0000
+  from the base actor), PL dose block; smoke correctly D-2 STOP
+  (a0 0.4187, a1 0.4789 on 100 battles). **BI-5** ch3_r5b_placebo.py:
+  cross-battle legal-count-matched index-aligned shuffled-distribution
+  targets (all-legal by construction, pinned), dose search = ONE
+  fixed-seed 20-epoch run probing flip(PL vs X0) per epoch PLUS
+  quarter-epoch optimizer-step probes in epoch 1 — added because the
+  smoke measured a FULL EPOCH ALREADY OVERSHOOTING the [0.80,1.25] band
+  (ratio 1.39); with sub-epoch probes the smoke DOSE-MATCHED at
+  epoch1+6/13 batches, ratio 1.070. **BI-4** ch3_r5b_diag.py: D-7 via
+  d22_dormant_rank build/probe/srank99 on the 13,702 pooled harvest obs
+  (M2's probe, shape-asserted); D-8 |v_LOO - v_own| with the mean-of-3
+  loo combiner; **smoke D-8 = 0.0679 mean (p50 0.0514) on s62 real GATE
+  points — design A's ~0.06 side, NOT the 0.45 synthetic reading;
+  recorded-only, real read at collection**. **BI-6** ch3_r5b_grade.py:
+  r2 law reused UNMODIFIED (land/check_partition/se_terms_r2 +
+  CREDIT_LINE byte-assert), B1a/B1b split, PL cells (dose-unmatched
+  strikes nothing), anchor-transfer cells, refusals (non-RATIFIED /
+  unquoted bracket via the r4 negative-lookbehind scan / PENDING
+  transcripts / D-1 / dirty tree); --selftest green at 4k AND 20k reps,
+  pinning band boundaries + Q7 power cells + Q8 false-strike cells
+  REGENERATED from scripts/ch3_r5_power_sim.py (moved from
+  results/design_critic per its own ratification note, --placebo added:
+  reproduces 0.002/0.007/0.016 strike, 0.011/0.036/0.098 unconfirmed vs
+  the quoted 0.003/0.006/0.015, 0.012/0.037/0.096). **BI-7** the ONE
+  driver change (ch3_r4_anchors._preflight expected_pins, default 5,
+  R4 tests green), FA derived config configs/eval/ch3_r5b_fp_anchor.yaml
+  (greedy_seat d65, frozen 0.388, placeholder d65 sha), and
+  ch3_r5b_stamp.py (B-5/B-10: fills the 8 fit-time pin shas +
+  tau/placebo/a0/F-P2 transcripts into the pre-reg text with uniqueness
+  asserts; refuses if a checkpoint moved after its transcript).
+  **BI-8** ch3_r5b_run.sh: phased (collect/fits/read/pl_anchors),
+  bash-3.2-safe, F-U username grep per wave, mechanical F-T gate between
+  era-pin and paired waves, era-pin prereg derived results_dir-only.
+  ALSO: created results/ch3_r5a/t_gate_readout.json as a byte-copy of
+  r5a_readout.json (the pre-registered D-1 filename; the r5a grader
+  wrote the other name — naming reconciliation, no data change; both
+  mirrored). Usernames confirmed per-process entropy (no set_seed in any
+  eval path), so paired same-cfg lanes do not collide; F-U checks anyway.
+  Tests: 5 new r5b files (30 tests); FULL SUITE 493 passed / 17 skipped
+  BARE — note the encoder env vars must NOT be exported to the whole
+  suite (8 default-encoder tests fail by design under the flags; the
+  canonical B-3 run is bare `pytest tests/`, measured both ways).
+  Everything mirrored to the backup. NEXT SESSION (or maintainer tonight,
+  their call): PHASE=collect (~2.8 h) -> PHASE=fits (~1 h) -> commit
+  stamp -> PHASE=read (~24 min) -> grade -> conditional PHASE=pl_anchors.
