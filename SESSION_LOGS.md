@@ -5883,3 +5883,12 @@ entry by offset — never a broad keyword grep.
   determinization axis is not merely saturated but past the point
   where better inputs help a value function that cannot use them.
   §7-instrument row filled; nothing here changes any verdict or row.
+
+- 2026-08-24 (morning, **RULING: speed-feature coverage is SUFFICIENT** —
+  maintainer reviewed the encoder's speed handling (per-mon outspeed
+  scalar vs the opposing active for all six own mons, boosts/paralysis
+  applied; opponent active covered; opponent bench derivable from base
+  speed + level): the three critical cases are covered and a
+  precomputed opponent-BENCH speed edge is overkill ("the ones we have
+  are 99% more critical"). Do not propose the bench-edge encoder
+  extension.
