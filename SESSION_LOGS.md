@@ -6156,3 +6156,44 @@ entry by offset — never a broad keyword grep.
   text appended to configs/eval/ch3_r5b_exit.yaml as d2_rule_amended +
   provenance + disclosure obligations; gates harness re-grades both
   forms (original recorded forever beside the amended verdict).
+
+- 2026-08-25 (day, **R5b READ OUT: B5 + KILL — COMPILING SEARCH INTO THE
+  WEIGHTS MAKES THE AGENT WORSE. The actor expert-iteration line is
+  CLOSED within this chapter; search@M stands as an inference-time
+  lever that does not compile into weights**): under Amendment A1 all
+  four lanes cleared the amended D-2 (captures 0.218-0.378 vs the 0.20
+  broken-fit floor, gains 2.5-5x the 4-se significance bar; original
+  verdicts recorded beside), B-10 green, stamp committed, PHASE=read
+  ran: era-pin X0 first — F-T GREEN, pooled 0.71700 (0.7133-0.7243),
+  within noise of the frozen 0.71825 — then the paired waves. NUMBERS
+  (results/ch3_r5b/r5b_readout.json, sha-stamped): X0 fresh
+  0.7140/0.6953/0.7117/0.7073; X1 distilled 0.6513/0.6877/0.6757/
+  0.5957; d_i -0.0627/-0.0077/-0.0360/-0.1117; **delta equal-weight
+  -0.05450, bar 0.04424 (paired_clustered_sd_d 0.02212 governs) ->
+  B5**, the pre-named informative negative; **KILL fires** (delta <= 0,
+  4/4 lanes non-positive): no policy+value, no multi-iteration, no
+  temperature re-sweep, no larger-n retest absent outside-chapter
+  evidence; scoped to the ACTOR family (design A's critic-value family
+  untouched). PL battles and anchors NOT run (iff-B1/B2). GATES: zero
+  VOIDs; F-A8 exact everywhere; F-P DISCLOSED — pairing overlap
+  0.784-0.798 vs the 0.80 floor on all four lanes (the 30 s launch
+  stagger against ~6-min jobs), lanes REMAIN in the mean per the rule,
+  era-immunity clause struck per lane, and F-T GREEN makes the era
+  concern immaterial against a 4/4-negative 5.5-point signal; F-D 0.
+  MECHANISM COLOR: C7 materialized exactly as predicted — D-9 switch
+  rates 0.143->0.374 / 0.197->0.214 / 0.152->0.294 / 0.173->0.289; the
+  lane with the SMALLEST switch-rate inflation (s63, +0.017) has the
+  smallest loss (-0.0077) and the largest (s65-adjacent pattern) the
+  biggest — the uniform-switch-column optimism, harmless inside a
+  comparison at inference, is toxic once compiled. Read together with
+  the T-GATE: search's decisions genuinely beat greedy IN PLAY
+  (+0.1515 mirror) but hard-label BC onto them transfers the BIAS along
+  with the signal (C2 state mismatch + C3 hard labels + C7). The
+  chapter's mechanism story sharpens: search@M's value is REAL and
+  INFERENCE-ONLY. Runner ops note: the first read attempt false-fired
+  F-U (the check tokenized on spaces and flagged the shared
+  'ShowdownSing' prefix; fixed to compare full quoted usernames — real
+  usernames were pairwise-distinct throughout; era jobs unharmed,
+  resumed). README additive row landed (B5 verdict verbatim, all
+  disclosures, X1/X0 descriptive levels, headline untouched — 0.71825
+  and R2's 0.79283 both stand). Backed up.
