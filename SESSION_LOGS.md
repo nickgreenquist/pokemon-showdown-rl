@@ -5955,3 +5955,31 @@ entry by offset — never a broad keyword grep.
   agent's own draft introduced two of the six blockers — the two-review
   discipline caught what the single-synthesizer step created, which is
   the process working as designed and a reason to keep paying for it.
+
+- 2026-08-24 (afternoon, autonomous block, **T-GATE READ OUT: T-PASS,
+  DECISIVE — search@M beats its own greedy self in mirror play by mean
+  +0.1515 (3x the +0.05 threshold), all four lanes positive, zero
+  excluded; THE EXPERT-ITERATION FAMILY IS ALIVE and r5b is ELIGIBLE
+  for ratification**): configs/eval/ch3_r5a_tgate.yaml REGISTERED
+  ("run it now") and executed same-session: grader BI-A1
+  (scripts/ch3_r5a_grade.py, selftest green incl. a float-boundary
+  probe fix) + runner BI-A2 (TM-launches-at-TS-midpoint pairing teeth);
+  pre-launch gates A-0..A-7 green (suite 463/17, live mirror smoke,
+  sha x5). NUMBERS (results/ch3_r5a/r5a_readout.json, sha-stamped):
+  mirror controls TM (det seat-1 vs own sampling seat-2, n=1000/lane)
+  0.497/0.510/0.540/0.478; teacher arms TS (search@M seat-1, same
+  opponent) 0.660/0.685/0.649/0.637; per-lane margins m_i
+  +0.163/+0.175/+0.109/+0.159, mean +0.15150, 2*se_gov 0.03312
+  (unpaired governs), L +0.11838 / U +0.18462, kpos 4 -> **T-PASS**
+  (the licensed consequence verbatim: "r5b becomes ELIGIBLE for
+  ratification and build. Nothing else."). GATES: F-A8 exact all 60
+  chunks; F-C leaves in band all TS lanes; F-P overlap 1.00 x4 (the
+  midpoint rule worked); F-D desyncs 0 x8; relaunches 0. COLOR
+  (recorded-only): TS skip rates 8.5-10.4% (the off-SH elevated range,
+  consistent with the clone/FP trail); the mirror margin (+0.15) is
+  ~2x the vs-SH search increment (+0.069) — search's edge is LARGER
+  in self-play than vs SH, the opposite of what the P2 caveat feared
+  for this regime, and the single most encouraging number the ExIt
+  family has. NOT DONE, correctly: r5b is NOT ratified (7 open
+  maintainer brackets incl. RULE-1 purity) — no build, no collection,
+  nothing launched beyond the registered diagnostic. Backed up.
