@@ -5853,3 +5853,33 @@ entry by offset — never a broad keyword grep.
   4/4 lanes at n=24,000) but the screen's magnitude was optimistic —
   winner's curse behaved exactly as the pre-reg's PRIOR HONESTY block
   predicted.
+
+- 2026-08-24 (overnight cont., **ORACLE-TEAM DIAG RUN + READ (all numbers
+  BARRED from README/STATUS/headlines — D18-privileged discipline; they
+  live in this entry only): THE ORACLE IS WORSE — substituting the TRUE
+  opponent team into the determinization LOWERS search@M on s65 to
+  0.7330 (n=1000) vs the same-night RSD baseline 0.79400 (a1s_s65,
+  n=3000): gap -0.0610, ~2.2x the combined 2*se — resolved negative at
+  diagnostic grade**): scripts/ch3_oracle_diag.py, FG-4 disarmed with
+  the loud banner, separate binary, results/ch3_r3_oracle/ (every JSON
+  carries the BARRED stamp); 20-battle smoke 0.70 then 10x100 clean,
+  win_rate == wins_from_returns exact on all chunks, relaunches 0.
+  READING (design §4 R3 framing: "the gap bounds what determinization
+  error costs"): the expected sign was oracle >= RSD, gap = the price
+  of determinization error. Measured NEGATIVE: perfect team knowledge
+  does not help and actively hurts at this dose. Consistent
+  interpretation (color, not verdict): the policy/value heads were
+  trained under the set-prior observation distribution — true-team
+  leaf states are OFF-DISTRIBUTION for the critic, and the evaluator
+  (already the chapter's binding constraint per the VALUE-LIMITED
+  verdict) misprices them worse than it misprices the familiar
+  random-set determinizations. DVs stay EXPECTED_DVS max-model under
+  oracle (named in the script docstring) so a stat-level residual is
+  not excluded, but the headline reading stands: DETERMINIZATION ERROR
+  IS NOT THE BINDING CONSTRAINT — closing it to zero buys nothing on
+  this lane. This SEALS the chapter's mechanism story from the other
+  side: R3/R4 showed evaluator quality is where the wins live (E2
+  collapse, E3 screen, R4 B3 at +0.0224); the oracle shows the
+  determinization axis is not merely saturated but past the point
+  where better inputs help a value function that cannot use them.
+  §7-instrument row filled; nothing here changes any verdict or row.
