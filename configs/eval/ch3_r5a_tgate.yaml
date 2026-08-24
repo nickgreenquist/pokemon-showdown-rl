@@ -1,0 +1,595 @@
+# =====================================================================
+# CH3 R5a — THE T-GATE: DOES OUR SEARCH BEAT OUR OWN GREEDY SELF?
+# Executable pre-registration, STANDALONE. STATUS: REGISTERED 2026-08-24 —
+#   NOT RATIFIED. This file is SELF-CONTAINED: it registers one
+#   diagnostic measurement, it runs on scripts/ch3_r4_anchors.py WITH NO
+#   DRIVER CHANGE, it credits nothing, and it is ratifiable and runnable
+#   on its own. It is a PRE-CONDITION for ch3_r5b_exit_draft.yaml
+#   (Stage 2) but it does not depend on r5b in any way, and r5b's
+#   ratification is a separate decision.
+#
+# PROVENANCE. 2-agent independent design cycle (results/design_critic/
+#   design_input_A.md, design_input_B.md, synthesis ch3_r5_synthesis.md)
+#   + 2 adversarial reviews (draft_review_1.md methods / NOT-RATIFIABLE,
+#   draft_review_2.md conventions / RATIFIABLE-WITH-FIXES). This r2
+#   SPLITS the single ch3_r5_prereg_draft.yaml into r5a (this file) and
+#   r5b, and closes every BLOCKER and MAJOR from both reviews; the
+#   finding-by-finding disposition is results/design_critic/
+#   r2_changelog.md. The T-GATE itself is design B's instrument.
+#
+# WHERE A AND B DISAGREE — SURFACED, NOT SMOOTHED (review 1's closing
+#   structural remark). The r1 draft reported agreement its sources do
+#   not contain. Corrected here:
+#   (i)  PURITY. A raised the engine-into-weights seam (UD-0) and offered
+#        THREE options. B never mentions engine purity (verified: zero
+#        hits for poke-engine/UD-0 in design_input_B.md). There is NO
+#        two-agent consensus. See RULE-1.
+#   (ii) B separately asked for a ruling on SH-generated states (U8) —
+#        a DIFFERENT question from A's UD-0. See RULE-1b.
+#   (iii) THE T-GATE'S SCOPE. The r1 draft made this gate close A's
+#        critic-value family as well ("if T-GATE FAILS, BOTH families
+#        close"). A ASSERTED NO SUCH PREMISE: A's teacher is a VALUE
+#        BACKUP argued from E2/R2/T2b/R4, and A registered its own KILL
+#        rule on its own delta. Nothing about a mirror-play ACTION margin
+#        is a necessary condition for value distillation. **SCOPE,
+#        BINDING: this gate adjudicates the ACTOR expert-iteration family
+#        ONLY. No cell of this file opens or closes A's family, which
+#        needs its own pre-registration (see named_successor).**
+#   (iv) A's E2 bridge is a CEILING device, not a second point estimate,
+#        and A produced NO actor-path number. The "both priors point
+#        +0.028" sentence is deleted; it lives (correctly caveated) in
+#        r5b, not here.
+# ---------------------------------------------------------------------
+# Q0. WHAT THIS FILE ADJUDICATES — AND WHAT IT DOES NOT
+# ---------------------------------------------------------------------
+# THE QUESTION. R2 credited depth-1 search@M at +0.06925 vs
+#   SimpleHeuristicsPlayer as an INFERENCE-TIME lever, pooled over the
+#   four D26 lanes (results/ch3_r2/r2_readout.json:
+#   delta_equal_weight_mean 0.06925; per-lane 0.04967 / 0.07467 /
+#   0.07167 / 0.08100). Both OFF-SH anchors say the teacher is WORSE
+#   than the student: clone 0.860 search vs 0.894 greedy; Foul Play
+#   0.368 search vs 0.388 greedy (configs/eval/
+#   ch3_r4_ensemble_critic.yaml:658-659). And search overrides the
+#   policy on 59.82% of searched decisions (248,641 / 415,645 over the
+#   40 chunk files in **results/ch3_r4** — the directory is named
+#   because results/ch3_r2 has a second 40-chunk A1S arm reading
+#   0.60508, review 2 MINOR-11).
+#   THE REGIME WE WOULD ACTUALLY TRAIN IN — our agent vs itself — HAS
+#   NEVER BEEN MEASURED. A 60%-flip teacher with a 1-of-3 record is not
+#   distilled on faith. This file measures it.
+# WHAT THIS FILE IS NOT. It is NOT a credit test: no letter, no credit
+#   line, no headline movement on any cell. It re-adjudicates neither R2
+#   nor R4; R2's +0.06925 and R4's B3 FLAT stand on every cell.
+# NOVELTY FRAMING (standing memory item): THE NOVELTY IS THE LANE, NOT
+#   THE LEVER. Nothing here is a new technique; the point is that the
+#   teacher is our own weights.
+# ---------------------------------------------------------------------
+# Q1. THE INSTRUMENT
+# ---------------------------------------------------------------------
+# T_M  MIRROR CONTROL, per lane: greedy s6N seat-1 DETERMINISTIC vs
+#      greedy s6N seat-2 SAMPLING, 1000 battles. MANDATORY — the repo's
+#      measured seat asymmetry is ~0.198 (ch3_r4_ensemble_critic.yaml:
+#      658), so reading T_S against a nominal 0.5 would read the SEAT,
+#      not the teacher.
+# T_S  TEACHER, per lane: search@M, evaluator ABSENT (E0 — the exact
+#      R2-credited path), s6N seat-1 vs greedy s6N seat-2 SAMPLING,
+#      1000 battles.
+# TEACHER MARGIN  m_i = wr(T_S,i) - wr(T_M,i), same orientation, so the
+#      seat asymmetry differences out of every m_i by construction.
+#      Both reviews independently confirmed this is the correct
+#      instrument (review 2, "things the draft gets right").
+# SEAT1 == SEAT2 IS INTENTIONAL AND IS NOT BLOCKED BY THE DRIVER —
+#      verified by reading scripts/ch3_r4_anchors.py in full:
+#      * there is NO `assert seat1 != seat2` anywhere in the file; the
+#        only identity/exclusion asserts (:139-149) live inside
+#        `_resolve_evaluator` and fire ONLY for evaluator.kind == "loo".
+#        These arms declare NO evaluator, so those asserts never run.
+#      * seat 2 is resolved generically: `opp_spec =
+#        prereg["checkpoints"][opp_lane]` (:184) then
+#        `_opponent_from_checkpoint(opp_spec["path"], cfg.seed)` (:191),
+#        which loads a SECOND, INDEPENDENT copy of the file into a
+#        1-member SnapshotPool behind a sampling PoolPlayer. There is no
+#        clone-specific code path ("the clone" appears only in a
+#        docstring and one comment).
+#      * `checkpoint_seed=int(seat_lane.lstrip("s"))` (:208) resolves
+#        because every seat key here is a real lane key (s62..s65) — the
+#        r1 draft's literal placeholder "s6X" would have raised
+#        ValueError, which is why THIS FILE HAS NO PLACEHOLDERS: eight
+#        explicit per-arm entries, one per (arm, lane).
+# ---------------------------------------------------------------------
+# Q2. WHY +0.05, ON THE RIGHT NUMBER
+# ---------------------------------------------------------------------
+# THE THRESHOLD IS ARGUED FROM THE POOLED TEACHER EDGE, NOT FROM ONE
+#   LANE. **CORRECTION ON THE RECORD (review 1 BLOCKER 7): the r1 draft
+#   argued +0.05 against "+0.0746". +0.0746 is s63's SINGLE-LANE R2
+#   delta. The teacher's vs-SH edge is the POOLED +0.06925.** Every
+#   occurrence is corrected here and the ratio is restated honestly:
+#   **0.05 is 72% of the teacher's pooled vs-SH edge (0.05 / 0.06925 =
+#   0.722), NOT "~2/3".**
+# THE ARGUMENT. Distillation is lossy in three named ways: (a) the
+#   student is a 2-layer MLP fitting a search operator, (b) the fit is
+#   on self-play states while the read is on vs-SH states (a deliberate,
+#   purity-required mismatch that biases toward the null), (c) one
+#   iteration only. A teacher margin equal to the +0.025 credit floor
+#   would leave a lossy student with no headroom at all. +0.05 = 2x the
+#   floor, and simultaneously ~72% of the teacher's own measured vs-SH
+#   edge, is the smallest margin at which a lossy one-iteration student
+#   has a defensible shot at the floor. THE NUMBER IS A JUDGMENT, STATED
+#   BEFORE DATA, AND IT IS THE MAINTAINER'S TO OVERRULE AT RATIFICATION
+#   (U-A2 below) — but it is not moved after the data are seen.
+# ---------------------------------------------------------------------
+# Q3. THE CELL PARTITION AND ITS OPERATING CHARACTERISTICS
+# ---------------------------------------------------------------------
+# THE r1 DRAFT'S BINARY PASS/FAIL WAS A BLOCKER (review 1 finding 8):
+#   a near-miss (mean +0.045, 4/4 lanes positive) would have licensed,
+#   as the ONLY permitted narration, a sentence asserting search "does
+#   not hold against its own greedy self" — which that data contradicts.
+#   And the consequence was irreversible ("NO RE-TUNE, NO RETRY").
+# ALSO NEW (review 1 finding 9): the r1 gate had NO UNCERTAINTY
+#   TREATMENT at all. It is restored here, using the SAME se law the
+#   primary read uses on itself.
+#
+# STATISTICS, NAMED ONCE, BINDING EVERYWHERE:
+#   AGGREGATOR: the EQUAL-WEIGHT MEAN of the four per-lane margins m_i.
+#     Median and worst-lane are RECORDED and NEVER govern any cell.
+#   CLUSTERING UNIT: checkpoint-lane (n=4), PAIRED at cluster level.
+#   se_gov = the LARGER OF THREE, computed by
+#     scripts/ch3_r2_grade.se_terms_r2 UNMODIFIED on (T_S rates, T_M
+#     rates, n=1000): pooled-binomial two-sample, paired-clustered
+#     sd(m_i)/sqrt(4), unpaired two-sample clustered. The third term can
+#     only raise se, which pushes borderline data toward UNRESOLVED
+#     rather than toward the irreversible cell — the safe direction.
+#   L = mean(m_i) - 2*se_gov     U = mean(m_i) + 2*se_gov
+#   kpos = number of lanes with m_i > 0
+#
+# THREE CELLS — TOTAL, DISJOINT, EVALUATED IN THIS ORDER:
+#
+#   T-PASS        U >= 0.05  AND  L > 0  AND  kpos >= 3
+#     READING: the data are compatible with the pre-registered +0.05
+#     headroom AND exclude a zero margin AND the lanes agree.
+#     CONSEQUENCE: ch3_r5b_exit_draft.yaml becomes eligible to be
+#     ratified and built. NOTHING ELSE. No headline claim, no README
+#     row beyond the recorded number.
+#
+#   T-FAIL        U < 0.05
+#     READING: the pre-registered headroom is EXCLUDED at the same
+#     2*se bound the primary uses. THE ACTOR EXPERT-ITERATION FAMILY
+#     CLOSES FOR THIS CHAPTER. r5b does not run. NO RE-TUNE, NO RETRY
+#     AT LARGER n. Two licensed sentences, selected by a pre-stated
+#     numeric sub-rule so no narration freedom exists:
+#       T-FAIL/NULL  (mean(m_i) <= 0) — verbatim: "search@M's credited
+#         advantage is measured only against SimpleHeuristics; against
+#         the BC-FP clone, against Foul Play and against its own greedy
+#         self it does not hold. There is no expert to iterate on."
+#       T-FAIL/SHORT (mean(m_i) > 0) — verbatim: "search@M does beat its
+#         own greedy self in mirror play, by mean(m_i) = <value>
+#         (per-lane <m_62>/<m_63>/<m_64>/<m_65>, 2*se_gov = <value>),
+#         but the margin is bounded above the pre-registered +0.05
+#         headroom a lossy one-iteration student would need. The actor
+#         expert-iteration family closes for INSUFFICIENT TEACHER
+#         HEADROOM, not for absence of an edge." **THE "DOES NOT HOLD
+#         AGAINST ITS OWN GREEDY SELF" CLAUSE IS SUPPRESSED IN THIS
+#         CELL** and may not appear in README, STATUS or SESSION_LOGS.
+#
+#   T-UNRESOLVED  everything else (U >= 0.05 but L <= 0 or kpos <= 2)
+#     READING: the point estimate is compatible with the required
+#     headroom but zero is not excluded, or the four lanes disagree.
+#     THE FAMILY DOES NOT CLOSE AND r5b DOES NOT LAUNCH. Licensed
+#     sentence, verbatim: "the T-GATE did not resolve: mean(m_i) =
+#     <value>, 2*se_gov = <value>, lanes <m_62>/<m_63>/<m_64>/<m_65>.
+#     Neither the +0.05 headroom nor a zero margin is excluded. No
+#     conclusion about expert iteration is licensed from this run."
+#     NAMED, PRICED OPTION — the maintainer's call, not the agent's:
+#     RE-RUN BOTH ARMS AT n=1500/lane (+~1.0 h of battles at 4-wide;
+#     see Q4), which raises P(resolve) at a true +0.05 from 0.98 to
+#     0.999 with lane sd 0 and from 0.87 to 0.92 with lane sd 0.02.
+#     If the maintainer declines, the cell stands as UNRESOLVED and is
+#     recorded as such. **The re-run is pre-registered HERE, before
+#     data, as the ONLY permitted retry, and it re-runs BOTH arms —
+#     never T_S alone.**
+#
+# OPERATING CHARACTERISTICS, COMPUTED BEFORE DATA. Generated by
+#   results/design_critic/r5_power_sim.py --tgate (20,000 reps/cell,
+#   rng seed 20260824); the exact simulation rule is in that file's
+#   docstring and is restated here in one line: per rep, mu_i = mu +
+#   N(0, lane_sd); true T_M rate 0.50 (the variance-maximising, i.e.
+#   conservative, choice); true T_S rate 0.50 + mu_i; both arms observed
+#   as Binomial(n, .)/n; se_gov from se_terms_r2; cells as above. AT THE
+#   REGISTERED n = 1000:
+#
+#     true margin |  P(T-PASS)  P(T-UNRESOLVED)  P(T-FAIL)
+#     lane sd 0.00
+#       +0.00     |    0.007        0.023          0.970
+#       +0.03     |    0.559        0.124          0.317
+#       +0.05     |    0.965        0.020          0.015
+#       +0.07     |    1.000        0.000          0.000
+#     lane sd 0.02
+#       +0.00     |    0.020        0.131          0.849
+#       +0.03     |    0.431        0.317          0.252
+#       +0.05     |    0.837        0.134          0.029
+#       +0.07     |    0.982        0.017          0.001
+#
+#   THE TWO PRE-REGISTERED REQUIREMENTS ARE MET: a true +0.05 passes
+#   0.965 / 0.837 (required >= 0.75) and a true 0.00 passes 0.007 /
+#   0.020 (required <= 0.05). AND THE CELL WITH THE IRREVERSIBLE
+#   CONSEQUENCE IS THE PROTECTED ONE: at a true +0.05 the family closes
+#   with probability 0.015-0.029, against 0.74 under the r1 draft's
+#   binary rule at a true +0.04 (review 1's simulation).
+#
+# WHY n = 1000 AND NOT 500. At n=500, 2*se_gov ~ 0.032 > 0.025, so the
+#   "compatible with +0.05" and "excludes 0" bounds leave a systematic
+#   gap and the gate is INDECISIVE by construction: it lands
+#   T-UNRESOLVED on 20% of true nulls and 47% of true +0.03s (simulated
+#   above). At n=1000, 2*se_gov ~ 0.022 < 0.025, the bounds close, and
+#   T-UNRESOLVED fires only on genuine lane heterogeneity or an inflated
+#   clustered se — which is exactly when it should. n=1500 buys ~0.02
+#   more power at +0.05 for +1.0 h and is held in reserve as the
+#   T-UNRESOLVED re-run, not spent up front.
+# WHAT WE DO NOT CLAIM: the gate is a coin flip AT ITS OWN THRESHOLD by
+#   construction (that is what a threshold is). What the three-cell
+#   partition buys is that a near-miss no longer licenses a false
+#   sentence, and that a REAL edge is almost never destroyed.
+# ---------------------------------------------------------------------
+# Q4. SCHEDULE, PAIRING, AND THE HONEST PRICE
+# ---------------------------------------------------------------------
+# THROUGHPUT, MEASURED, WITH ITS PROVENANCE. From results/ch3_r4 chunk
+#   timestamps: greedy vs SH 20.8 battles/s per lane 4-wide (0.048
+#   s/battle); search@M vs SH 0.40 battles/s per lane 4-wide (2.5
+#   s/battle). PRICED HERE, CONSERVATIVELY: **0.16 s per greedy battle**
+#   (3.3x the measured rate) and **3.2 s per search battle** (1.28x the
+#   measured rate) — the search margin because seat 2 is a NETWORK
+#   opponent (extra forward passes per decision) rather than SH. These
+#   are planning numbers with margin, not point estimates.
+#   T_S: 1000 x 3.2 s = 53.3 min per lane. T_M: 1000 x 0.16 s = 2.7 min
+#   per lane.
+# WAVES — LANE-PAIRED, 4-WIDE, THE R4 PATTERN (review 1 finding 10: the
+#   r1 draft had NO pairing discipline on Stage 1 while its own headline
+#   argument prices session drift at 30% of the threshold):
+#     WAVE_T1 = {ts_s62, tm_s62, ts_s63, tm_s63}
+#     WAVE_T2 = {ts_s64, tm_s64, ts_s65, tm_s65}
+#   Each wave is 4 concurrent jobs, 30 s start stagger. Wall per wave =
+#   T_S's 53.3 min (T_M finishes inside it). TOTAL BATTLE WALL ~1.8 h.
+#   **T_M LAUNCH RULE, MECHANICAL: that lane's T_M starts when the same
+#   lane's ts_s6N.chunk04.json exists** — i.e. at the midpoint of T_S's
+#   window, so T_M's span sits inside T_S's span rather than at its
+#   edge. This is the pairing gate's teeth, not a preference.
+# THE MEASURED SESSION NUISANCE THIS IS PROTECTING AGAINST: R2's fresh
+#   A0 read 0.72358 vs R3's fresh A0 read 0.70875 — the SAME four
+#   checkpoints one day apart, -0.01483 = 59.3% of the 0.025 floor and
+#   30% of this gate's +0.05 threshold. Battles are SERVER-ROLLED
+#   (ch3_r4_ensemble_critic.yaml: "battle-level replay determinism is
+#   UNAVAILABLE in this env"), so cross-session comparison redraws the
+#   whole opponent-team distribution.
+# NOT PRICED AS "29 MINUTES". The r1 draft and the synthesis both sold
+#   this gate as "one 29-minute gate". THE HONEST PRICE IS ~1.8 h OF
+#   BATTLES PLUS ~1.5 h OF OFFLINE BUILD (Q6). Said here so it is not
+#   discovered at launch.
+# EXECUTION IS DELEGATED, NOT FREE (review 2 MAJOR-9). CLAUDE.md routes
+#   runs longer than ~5 minutes to the maintainer's terminal because
+#   agent-launched training measured ~10x slower; the 2026-08-23 R4
+#   ratification delegated EVAL execution to the agent ("you can run
+#   what you need yourself"), and every wall number above is a
+#   maintainer-terminal-grade number either way. **This is a STANDING
+#   DELEGATION, not a property of the design.** Handover blocks are
+#   pre-written in the ratification message, one command per fenced
+#   block, <command> sentinels, per CLAUDE.md.
+# ---------------------------------------------------------------------
+# Q5. GATES
+# ---------------------------------------------------------------------
+# PRE-LAUNCH (blocking; the R4 R4-0..R4-14 pattern, cut to this arm —
+#   review 1 finding 27, review 2 MAJOR-10):
+#   A-0 THIS FILE COMMITTED AND THE TREE CLEAN at the launch sha. The
+#       grader enforces both (the ch3_r2_grade.grade() precedent,
+#       :106-108). CLAUDE.md landmine: one untracked .md flips
+#       git_dirty; do not edit the tree while a launch may be running.
+#   A-1 OFFLINE SUITE GREEN at the launch sha, including the new
+#       tests for BI-A1/BI-A2.
+#   A-2 GRADER BUILT AND --selftest GREEN at the launch sha (BI-A1),
+#       committed with this file. The selftest pins the three cell
+#       landings at the boundaries AND the eight simulated operating-
+#       characteristic cells of Q3.
+#   A-3 CHECKPOINT sha256 PREFLIGHT on all five pins, EVERY job —
+#       driver-automatic (ch3_r4_anchors._preflight, :93-114, which
+#       asserts exactly five pins; this file carries exactly five, so
+#       NO DRIVER CHANGE IS NEEDED). simulator: 4 in
+#       showdown/config/config.js — same assert.
+#   A-4 ENCODER ENV VARS POKEMON_RL_ENCODER_V2=1 and
+#       POKEMON_RL_ENCODER_IDS=1 exported in EVERY job, including every
+#       offline one (design A's R5-6 scope, restored — review 1 finding
+#       41). Driver-asserted for the battle jobs (:100-101).
+#   A-5 FG-4 STATIC + LIVE and the SF-13 chunk-0 battle2 sentinel: the
+#       sentinel is DRIVER-AUTOMATIC on every search arm
+#       (ch3_r4_anchors.py:226-237) and the `env.unwrapped._privileged
+#       is False` assert fires at :199-201. Transcript recorded in
+#       a5_fg4_transcript before launch.
+#   A-6 USERNAME DISJOINTNESS at every wave start (R4-12 twin): the four
+#       concurrent jobs' printed "realized usernames:" lines pairwise
+#       distinct. Eval never calls set_seed (fact-checked 2026-08-23);
+#       verified anyway.
+#   A-7 SMOKE: `--arm TS_S62 --battles 4 --smoke` green, leaves and ms
+#       printed and inside band, before the first full wave.
+# RUN-TIME / READ-TIME (review 1 finding 31: the r1 draft filed
+#   run-time gates under a heading that said "ALL OFFLINE, ALL BEFORE
+#   ANY BATTLE"; they are separated here):
+#   F-A8 R2-5 TWIN, HARD: eval/win_rate == wins_from_returns EXACTLY on
+#       every chunk of every arm. **ALREADY A HARD ASSERT IN THE DRIVER**
+#       (ch3_r4_anchors.py:241-244) — the arm dies rather than records.
+#       VOIDING.
+#   F-C SEARCH INTEGRITY, VOIDING (review 1 finding 11 — the r1 draft
+#       had NO leaves gate anywhere, so a degenerate search would have
+#       produced a T-FAIL that closed the family and been narrated as
+#       "there is no expert to iterate on"): on EVERY T_S lane,
+#       |search/leaves_mean - 353| / 353 <= 0.25 AND every chunk file
+#       present. The driver already computes and writes
+#       `f_c_leaves_ok` and `search/leaves_mean` per chunk (:269-272),
+#       and records `search/timeouts` 0 with the honest note that
+#       rl/search has NO timeout counter — the node_cap watchdog RAISES,
+#       so a timeout manifests as a MISSING CHUNK, which is why chunk
+#       completeness is half of this gate. **IF F-C FIRES THE T-GATE IS
+#       NOT READ AND THE FAMILY DOES NOT CLOSE.**
+#   F-M MS BAND, RECORDED + STOP, NOT VOIDING: search/ms_mean per lane
+#       against the R4-8 band [54.9, 91.5] (the 73.2 ms/decision spike
+#       +/-25%). Outside -> the number is recorded, the run STOPS for
+#       diagnosis before the second wave, and any resumed run discloses
+#       it. Never silently re-doses.
+#   F-P PAIRING WINDOW (R4's F11, carried): per lane, the T_M and T_S
+#       chunk-time spans overlap >= 80% of the shorter (chunk
+#       started_at/finished_at exist in every chunk since R4,
+#       :258-259). BELOW -> that lane's m_i **REMAINS IN** the
+#       equal-weight mean (the read is never re-cut on a data-dependent
+#       lane subset) and is DISCLOSED AS UNPAIRED beside the number, the
+#       same-session protection struck for that lane. RE-RUN POLICY,
+#       carried from R4's F11 verbatim: "either both-arms re-run for
+#       that lane or the disclosure, maintainer's pick AT THE TIME,
+#       disclosed either way."
+#   F-D mask_desyncs reported per arm; nonzero -> DISCLOSED, not void.
+#   ALL CO-OCCURRING GATES ARE REPORTED, in this order, BEFORE the cell
+#   is read. VOIDING gates: F-A8, F-C. Non-voiding: F-M, F-P, F-D.
+# ---------------------------------------------------------------------
+# Q6. BUILD ITEMS OWED BEFORE LAUNCH — HONESTLY PRICED
+# ---------------------------------------------------------------------
+# BI-A0 DRIVER CHANGES: **NONE.** This is a claim, and here is its
+#       evidence, because the r1 draft's "MACHINERY: BUILT ... the only
+#       change is seat2 = the same lane" was FALSE in four ways (review
+#       1 finding 12 / review 2 BLOCKER-2) and all four are fixed by
+#       the SHAPE of this file, not by code: arms live under
+#       `anchor_arms` (the key `_arm_spec` reads, :154); every arm is an
+#       explicit per-(arm,lane) entry with real lane keys, so there is
+#       no "s6X" placeholder and no need for a lane loop the driver does
+#       not have; every arm declares `chunks` explicitly, so the two
+#       kinds cannot silently take different defaults (DEFAULT_GREEDY_
+#       CHUNKS = 5 vs the `else 10` branch); output prefixes are
+#       arm_name.lower() and are therefore already distinct per lane
+#       (tm_s62 ... ts_s65), so no two lanes can resume each other's
+#       chunks; and `--out-dir results/ch3_r5a` is an existing CLI flag
+#       (:352). `checkpoints:` carries exactly five pins so the
+#       `len(pins) == 5` assert (:103) passes unmodified.
+# BI-A1 STAGE-1 GRADER scripts/ch3_r5a_grade.py (review 1 finding 13:
+#       the r1 draft's gate was PROSE, with nothing computing m_i and
+#       nothing writing a machine-readable cell — the repo's own
+#       standard is mechanical). Reads the eight finals, reuses
+#       ch3_r2_grade.se_terms_r2 UNMODIFIED, evaluates F-A8/F-C/F-M/
+#       F-P/F-D first, then the three-cell partition, and writes
+#       results/ch3_r5a/t_gate_readout.json with: per-lane wr(T_S),
+#       wr(T_M), m_i, mean, the three se terms + se_gov + governing
+#       name, L, U, kpos, cell in {T-PASS, T-FAIL/NULL, T-FAIL/SHORT,
+#       T-UNRESOLVED}, every gate's status, and the RECORDED-ONLY block
+#       of Q7. REFUSES to grade a DRAFT status, a dirty tree, an
+#       uncommitted pre-reg, or any file containing a
+#       "[MAINTAINER RULING" bracket. --selftest per A-2.   ~1.0 h
+# BI-A2 WAVE RUNNER (bash-3.2-safe — no ${var,,}; liveness polls
+#       CHUNK-FILE PROGRESS, never directory existence; ~30 s start
+#       stagger for the torch lazy-init SIGSEGV landmine; implements
+#       the T_M-at-chunk04 launch rule).                     ~0.5 h
+# TOTAL OFFLINE BUILD ~1.5 h, all agent time, all result-blind.
+# ---------------------------------------------------------------------
+# Q7. WHAT ELSE THIS RUN BUYS — RECORDED ON EVERY CELL
+# ---------------------------------------------------------------------
+# These are FREE (the driver already aggregates them) and they are the
+# numbers r5b's gates must be calibrated against. **This closes review 1
+# finding 3 at the source: the 0.598 flip rate, the 40.2% base agreement
+# and the 34.6 searched-decisions/battle are all vs-SH measurements, and
+# r5b would apply them to a SELF-PLAY split. T_S measures all three in
+# the self-play regime, for free, before any build is spent.**
+#   * search/flip_rate per lane in SELF-PLAY -> the base actor/search
+#     disagreement a0_selfplay = 1 - flip_rate. r5b's D-2/D-3 are stated
+#     RELATIVE to this number, not to 0.402.
+#   * search/searched_decisions per battle -> r5b's dataset yield and
+#     its ~2.8 h collection estimate, re-derived rather than transferred.
+#   * search/placeholder_skip_rate -> the fraction of rows r5b EXCLUDES
+#     from its fit (review 2 MAJOR-8).
+#   * search/leaves_mean, search/ms_mean -> F-C, F-M and r5b's budget.
+#   * m_i, the per-lane teacher margin itself, is the first measurement
+#     of our search against our own weights in this repo.
+# INDEPENDENTLY OF EVERY CELL (design B's U2, "the highest value-per-
+#   minute item in the whole memo"): STATUS.md and SESSION_LOGS.md
+#   record M2 — D26's critic ctx srank99 is 49/51/35/52 of 384 on the
+#   calibrated probe, so D22's "7-11" is STALE for the headline and L2
+#   (regen-L2) and L4 (capacity) are dead on that number. Already landed
+#   at SESSION_LOGS.md:5896-5918; the obligation is registered here so
+#   it is not dropped.
+# ---------------------------------------------------------------------
+# Q8. THE PURITY RULINGS — OPEN, NOT RECOMMENDED, NOT CONSENSUS
+# ---------------------------------------------------------------------
+# RULE-1 (design A's UD-0). **THIS FILE DOES NOT NEED THE RULING AND IS
+#   NOT BLOCKED BY IT**: the T-GATE moves nothing into any weights — it
+#   plays two existing checkpoints against each other and records win
+#   rates. RULE-1 is reproduced here for the record because this file's
+#   T-PASS cell hands to r5b, WHICH IS BLOCKED ON IT. The blocking
+#   bracket lives in ch3_r5b_exit_draft.yaml, not here, which is why
+#   this file remains gradeable.
+#   THE QUESTION: distillation moves poke-engine-derived information
+#   (search ACTIONS in r5b; search VALUES in A's design) INTO THE
+#   WEIGHTS. R2 licensed inference-time engine use only.
+#   **WHO SAID WHAT, CORRECTED (review 1 BLOCKER 34): A raised this and
+#   recommended CLEAN-with-a-clause. B NEVER RAISED ENGINE PURITY AT ALL
+#   (verified: zero hits for poke-engine / poke_engine / UD-0 in
+#   design_input_B.md; A predicted exactly this at A §9.4). THE r1
+#   DRAFT'S "BOTH DESIGN AGENTS RECOMMEND RULING CLEAN" IS FALSE AND IS
+#   WITHDRAWN. One agent recommended; the other was silent.**
+#   A'S THREE OPTIONS, VERBATIM from design_input_A.md:1148, ALL THREE
+#   PUT TO THE MAINTAINER (the r1 draft deleted the third — the only one
+#   that bites r5b):
+#     (1) "CLEAN with a mandatory provenance clause"
+#     (2) "NOT CLEAN (kill the lever)"
+#     (3) "CLEAN only for the search-deployed agent, never for a greedy
+#          claim"
+#   CONSEQUENCE OF EACH, SPELLED OUT:
+#     (1) r5b is buildable and its greedy read is licensed, with A's
+#         qualifier mandatory in every licensed sentence: "the actor was
+#         fitted offline to its own search's decisions, backed up
+#         through poke-engine from the checkpoint's own self-play."
+#     (2) r5b dies. A's critic-value design dies with it. This file
+#         still runs and still yields Q7's measurements.
+#     (3) **r5b's GREEDY read is dead as designed** — the whole point of
+#         r5b is a greedy, zero-inference-cost artefact — and the only
+#         surviving shape is a SEARCH-DEPLOYED read, which is design A's
+#         successor (see named_successor). SAY IT PLAINLY: option 3 does
+#         not soften r5b, it replaces it.
+#   A'S OWN COUNTER-ARGUMENT, restored verbatim (the r1 draft dropped
+#   it): "*Not clean*: `poke-engine` is external software encoding game
+#   knowledge our agent never had to learn, and after distillation that
+#   knowledge is indistinguishable, in the weights, from something
+#   learned."
+#   A also made this "**BLOCKS THE BUILD**, not just the launch"; the r1
+#   draft softened it to a Stage-2 launch blocker. Restored in r5b.
+# RULE-1b (design B's U8 — A DIFFERENT QUESTION, un-merged; review 1
+#   finding 35). B: "I assert that recording search play against
+#   `SimpleHeuristicsPlayer` and then training on those states would
+#   break the R0-1b purity seam *and* be train-on-test against the
+#   headline metric. That reading is mine, not a ruling. **If the
+#   maintainer rules the other way, the design gets materially cheaper
+#   and materially more likely to credit — and materially less honest.**
+#   I have designed the expensive, honest version. **DECIDE EXPLICITLY,
+#   on the record, either way.**" The r1 draft folded U8 into UD-0 and
+#   thereby converted B's explicit request for a ruling into a settled
+#   premise. It is put back as its own question, and it is likewise not
+#   needed for THIS file (the T-GATE trains on nothing).
+# ---------------------------------------------------------------------
+# Q9. CONFOUNDS AND LIMITS, DISCLOSED
+# ---------------------------------------------------------------------
+# CA-1 SEAT-1-ONLY. The search seat exists only as seat-1 machinery
+#   (_SearchEvalAdapter), so both arms are SAME-ORIENTATION and the
+#   ~0.198 asymmetry cancels inside every m_i. The corollary is that
+#   this file measures the teacher's margin AS SEAT 1 ONLY; a
+#   seat-2 margin is unmeasured and unclaimed.
+# CA-2 MIRROR-PLAY REGIME != EVAL REGIME. m_i is measured in self-play;
+#   r5b's read is vs SH. This gate answers "is there a teacher in the
+#   regime the DATA would come from", which is the right question for a
+#   distillation, and NOT "does search beat greedy vs SH" (R2 already
+#   answered that: +0.06925).
+# CA-3 ONE DOSE, ONE DEPTH. Dose M, depth 1, evaluator ABSENT (E0).
+#   A T-FAIL refutes the teacher AT THIS DOSE AND DEPTH over these four
+#   checkpoints, not search in general. That clause is licensed in
+#   T-FAIL/SHORT and T-UNRESOLVED, and SUPPRESSED in T-FAIL/NULL only
+#   to the extent the closure sentence already scopes itself.
+# CA-4 n=4 CLUSTERS, df=3. t(3,.975) = 3.18, so "2*se" is ~86% coverage
+#   and P(the sd is underestimated by 2x) ~ 0.14. Stated before data.
+#   The three-cell partition, not the se, is the substantive protection.
+# CA-5 THE T_M RATE IS ITSELF UNMEASURED. Deterministic-seat-1 vs
+#   sampling-seat-2 in a true mirror has no recorded value in this repo;
+#   the power table assumes 0.50 because that maximises the binomial
+#   variance. If the realized T_M rate is far from 0.50 the gate is
+#   slightly MORE powerful than tabled, never less.
+# =====================================================================
+rung: 5
+stage: 1
+title: ch3_r5a_tgate
+status: "REGISTERED 2026-08-24 (maintainer: 'run it now', before a 9-h autonomous block). Standalone, non-crediting diagnostic; no dependency on ch3_r5b."
+results_dir: results/ch3_r5a
+driver: "scripts/ch3_r4_anchors.py --prereg <this file> --arm <ARM> --out-dir results/ch3_r5a   # UNMODIFIED; see BI-A0"
+grader: "scripts/ch3_r5a_grade.py (BI-A1; reuses ch3_r2_grade.se_terms_r2 UNMODIFIED)"
+credit_line_not_applicable: "THIS FILE REGISTERS NO CREDITED COMPARISON. There is no letter, no credit line, no headline movement on any cell. The credit line belongs to ch3_r5b_exit_draft.yaml, where it is restated verbatim including the larger-of clause."
+letter_bearing_comparisons: 0
+checkpoints:
+  # Byte-equal to configs/eval/ch3_r4_ensemble_critic.yaml's `checkpoints:`
+  # block. The clone pin is UNUSED by any arm here and is carried solely
+  # so ch3_r4_anchors._preflight's `len(pins) == 5` assert passes with NO
+  # DRIVER CHANGE (:103). Stated, not hidden.
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+  clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683}
+anchor_arms:
+  # ONE ENTRY PER (ARM, LANE) — the schema scripts/ch3_r4_anchors.py
+  # actually reads (`_arm_spec` -> prereg["anchor_arms"], :154). No
+  # `lanes` list, no "s6X" placeholder, no lane loop: the driver has none.
+  # seat1 == seat2 is INTENTIONAL (Q1) and is not blocked by the driver.
+  # `chunks` is explicit on every arm so the greedy/search defaults
+  # cannot diverge silently. Output prefix = arm_name.lower(), distinct
+  # per lane by construction.
+  TM_S62: {kind: greedy_h2h, seat1: s62, seat2: s62, battles: 1000, chunks: 5,  role: mirror_control, letter_bearing: false}
+  TM_S63: {kind: greedy_h2h, seat1: s63, seat2: s63, battles: 1000, chunks: 5,  role: mirror_control, letter_bearing: false}
+  TM_S64: {kind: greedy_h2h, seat1: s64, seat2: s64, battles: 1000, chunks: 5,  role: mirror_control, letter_bearing: false}
+  TM_S65: {kind: greedy_h2h, seat1: s65, seat2: s65, battles: 1000, chunks: 5,  role: mirror_control, letter_bearing: false}
+  TS_S62: {kind: search_h2h, seat1: s62, seat2: s62, dose: M, battles: 1000, chunks: 10, role: teacher, letter_bearing: false}
+  TS_S63: {kind: search_h2h, seat1: s63, seat2: s63, dose: M, battles: 1000, chunks: 10, role: teacher, letter_bearing: false}
+  TS_S64: {kind: search_h2h, seat1: s64, seat2: s64, dose: M, battles: 1000, chunks: 10, role: teacher, letter_bearing: false}
+  TS_S65: {kind: search_h2h, seat1: s65, seat2: s65, dose: M, battles: 1000, chunks: 10, role: teacher, letter_bearing: false}
+seat_identity_note: "seat1 == seat2 on every arm, INTENTIONAL: verified by code read that ch3_r4_anchors.py contains no `assert seat1 != seat2`, that the only identity asserts (:139-149) fire solely for evaluator.kind == 'loo' (no evaluator is declared here), and that seat 2 is resolved generically at :184/:191 into a second independent load behind a sampling PoolPlayer."
+n_per_arm_per_lane: 1000
+lanes: [s62, s63, s64, s65]           # OPERATOR DOCUMENTATION — no driver reads this key
+margin: "m_i = wr(TS_S6i) - wr(TM_S6i), same orientation, seat asymmetry differenced out"
+aggregator: equal_weight_mean_of_per_lane_margins
+recorded_never_governing: [per_lane_median_margin, worst_lane_margin]
+clustering_unit: "checkpoint-lane (n=4), PAIRED at cluster level"
+se_terms: [pooled_binomial_two_sample, paired_clustered_sd_m, unpaired_two_sample_clustered]
+se_rule: larger_of_three
+se_implementation: "scripts/ch3_r2_grade.se_terms_r2 UNMODIFIED, called on (T_S rates, T_M rates, n=1000)"
+threshold: 0.05
+threshold_basis: "0.05 = 2x the +0.025 credit floor AND 72% of the teacher's POOLED vs-SH edge +0.06925 (results/ch3_r2/r2_readout.json delta_equal_weight_mean). NOT +0.0746, which is s63's single-lane delta (review 1 BLOCKER 7)."
+cells:
+  T-PASS: "U >= 0.05 AND L > 0 AND kpos >= 3  ->  ch3_r5b becomes eligible for ratification and build. No other consequence, no headline claim."
+  T-FAIL: "U < 0.05  ->  the ACTOR expert-iteration family closes for this chapter; r5b does not run; no re-tune, no retry at larger n. Narration selected by a pre-stated numeric sub-rule: mean(m_i) <= 0 -> T-FAIL/NULL sentence verbatim; mean(m_i) > 0 -> T-FAIL/SHORT sentence verbatim, with the 'does not hold against its own greedy self' clause SUPPRESSED."
+  T-UNRESOLVED: "U >= 0.05 AND (L <= 0 OR kpos <= 2)  ->  nothing closes, r5b does not launch, the UNRESOLVED sentence is the only licensed narration; the ONE permitted retry is a BOTH-ARMS re-run at n=1500/lane (+~1.0 h), maintainer's call, pre-registered here before data."
+cell_partition_is_total: "cases on U: U < 0.05 -> T-FAIL; U >= 0.05 -> (L > 0 AND kpos >= 3) -> T-PASS else T-UNRESOLVED. Total and disjoint by construction; the grader asserts it on synthetic probes in --selftest."
+scope_binding: "THE ACTOR EXPERT-ITERATION FAMILY ONLY. No cell of this file opens or closes design A's critic-value distillation family, which asserted no mirror-play premise and registered its own KILL rule on its own delta (review 1 finding 36)."
+operating_characteristics:
+  source: "results/design_critic/r5_power_sim.py --tgate --reps 20000 (rng seed 20260824); exact simulation rule in that file's docstring; cells pinned in the grader --selftest"
+  n_1000_lane_sd_0.00: {"+0.00": {PASS: 0.007, UNRESOLVED: 0.023, FAIL: 0.970}, "+0.03": {PASS: 0.559, UNRESOLVED: 0.124, FAIL: 0.317}, "+0.05": {PASS: 0.965, UNRESOLVED: 0.020, FAIL: 0.015}, "+0.07": {PASS: 1.000, UNRESOLVED: 0.000, FAIL: 0.000}}
+  n_1000_lane_sd_0.02: {"+0.00": {PASS: 0.020, UNRESOLVED: 0.131, FAIL: 0.849}, "+0.03": {PASS: 0.431, UNRESOLVED: 0.317, FAIL: 0.252}, "+0.05": {PASS: 0.837, UNRESOLVED: 0.134, FAIL: 0.029}, "+0.07": {PASS: 0.982, UNRESOLVED: 0.017, FAIL: 0.001}}
+  requirements_met: "true +0.05 passes 0.965 / 0.837 (required >= 0.75); true 0.00 passes 0.007 / 0.020 (required <= 0.05); the irreversible cell fires on a true +0.05 with probability 0.015 / 0.029"
+  n_1500_reserve: "PASS at true +0.05 rises to 0.983 / 0.884 and UNRESOLVED falls to 0.002 / 0.082; +~1.0 h of battles; held as the T-UNRESOLVED re-run, not spent up front"
+waves:
+  WAVE_T1: [TS_S62, TM_S62, TS_S63, TM_S63]
+  WAVE_T2: [TS_S64, TM_S64, TS_S65, TM_S65]
+wave_discipline: "4-wide, 30 s start stagger. Per lane, T_M LAUNCHES WHEN THAT LANE'S ts_s6N.chunk04.json EXISTS (T_S midpoint), so T_M's span sits inside T_S's span. `waves` is OPERATOR DOCUMENTATION — no driver reads it; BI-A2 implements it."
+pre_launch_gates: [A-0_committed_clean_tree, A-1_offline_suite_green, A-2_grader_selftest_green, A-3_sha_preflight_x5_and_simulator4, A-4_encoder_env_vars_every_job_including_offline, A-5_fg4_static_live_plus_sf13_sentinel, A-6_username_disjointness_every_wave, A-7_search_smoke]
+voiding_gates: [F-A8_win_rate_identity, F-C_search_integrity]
+non_voiding_gates: [F-M_ms_band_stop, F-P_pairing_window, F-D_mask_desyncs]
+f_c_leaves_expected: 353
+f_c_band: 0.25
+f_c_consequence: "VOIDING — if any T_S lane's leaves_mean is out of band, or any chunk file is missing, THE T-GATE IS NOT READ AND THE FAMILY DOES NOT CLOSE. rl/search has no timeout counter (the node_cap watchdog RAISES), so chunk completeness is half this gate."
+f_m_band: [54.9, 91.5]
+f_p_min_overlap_frac: 0.80
+f_p_consequence: "the lane's m_i REMAINS IN the equal-weight mean and is DISCLOSED AS UNPAIRED; same-session protection struck for that lane. Re-run policy carried from R4's F11 verbatim: either both-arms re-run for that lane or the disclosure, maintainer's pick AT THE TIME, disclosed either way."
+recorded_only: [per_lane_wr_TS, per_lane_wr_TM, per_lane_margin, per_lane_median_margin, worst_lane_margin, search_flip_rate_selfplay, search_searched_decisions_per_battle, search_placeholder_skip_rate, search_leaves_mean, search_ms_mean, chunk_walls, realized_usernames]
+feeds_r5b: "search_flip_rate_selfplay -> a0_selfplay = 1 - flip_rate, the base against which r5b's D-2/D-3 are stated (r5b must NOT import the vs-SH 0.402 / 0.598); searched_decisions_per_battle -> r5b's yield and collection estimate; placeholder_skip_rate -> the row fraction r5b EXCLUDES from its fit"
+readme_status_obligation:
+  T-PASS: "STATUS.md updated with the cell, mean(m_i), the four m_i, 2*se_gov and the recorded self-play flip rate; SESSION_LOGS.md entry with the full readout; README gets ONE additive line recording that the teacher margin was measured in self-play and its value — NO headline row, NO claim about the agent's strength, NO ladder-readiness."
+  T-FAIL: "README records the closure with the licensed sentence for the firing sub-cell VERBATIM (NULL or SHORT — never both, never the NULL sentence on a SHORT cell); STATUS.md records the family as closed for this chapter; SESSION_LOGS.md carries the full readout, the gate table and the operating-characteristic table so the closure can be audited."
+  T-UNRESOLVED: "README untouched. STATUS.md and SESSION_LOGS.md record the UNRESOLVED sentence verbatim, the numbers, and whether the n=1500 re-run was taken or declined."
+  VOID: "STATUS.md only; README untouched (design B's standing rule: any VOIDing gate -> STATUS only). The cell is NOT read and no closure or pass is claimed."
+  ALWAYS: "M2 (D26 critic ctx srank99 49/51/35/52 of 384) recorded in STATUS.md and SESSION_LOGS.md independently of the cell."
+purity: "NOTHING IS TRAINED IN THIS FILE. No gradient step, no dataset, no weights written. Both seats are our own sha-pinned checkpoints; no SH-generated state is recorded; data/fp_* is never opened. RULE-1 and RULE-1b are reproduced in Q8 for the record and DO NOT BLOCK THIS FILE."
+rule_1: "OPEN — design A's UD-0, three options verbatim in Q8, no recommendation attributed to B (B never raised engine purity). Blocks ch3_r5b's BUILD, not this file."
+rule_1b: "OPEN — design B's U8 (SH-generated states), B's cost asymmetry quoted verbatim in Q8. Blocks ch3_r5b's data design, not this file."
+named_successor: "design A's iterated critic-value distillation is recorded here ONLY AS A POINTER to results/design_critic/design_input_A.md (complete design: E2 bridge with its own caveats, MG gates, roots-only, its own 1.00x placebo). IT IS NOT GRANTED ANY STATUS BY THIS FILE and no cell of this file opens or closes it: it requires its own pre-registration, its own ratification and its own build. Recorded prices, both sides: A priced its lever at ~8-11 h offline build, ~2.8 h target CPU, ~1.3 h/round fitting, ~5.8 h of battles (+2.2 h anchors), and wrote 'IT DOES NOT FIT ONE EVENING AND I WILL NOT PRETEND IT DOES.' B REJECTED the family on the L5 ceiling argument ('a better critic changes nothing about greedy play, so the read moves to search@M, where the measured headroom is the committee's +0.0224 < floor') and rejected multi-iteration on collection cost. Both positions stand; neither is adopted here."
+anchors_run_iff: "NEVER — this file runs no anchor battery. It credits nothing, so the 2026-08-23 anchor-battery ruling (which binds headline-grade results) does not attach. The battery belongs to ch3_r5b."
+anchors_are_verdict_inputs: false
+ladder_consequence: "NONE on any cell — readiness is the maintainer's judgment (2026-08-23 ruling)."
+burns_training_seeds: false
+burns_training_seeds_basis: "no training lane is launched; the eval drivers never call set_seed (fact-checked 2026-08-23), so the username-collision landmine cannot fire. Verified anyway at every wave start by A-6."
+execution_delegation: "Eval execution is delegated to the agent by the 2026-08-23 R4 ratification ('you can run what you need yourself'). CLAUDE.md's >5-minute rule otherwise routes these to the maintainer's terminal; every wall number here is a maintainer-terminal-grade number either way. This is a STANDING DELEGATION, not a property of this design."
+build_items: [BI-A0_no_driver_changes_evidenced, BI-A1_stage1_grader_1.0h, BI-A2_wave_runner_0.5h]
+build_hours_projected: 1.5
+battle_wall_hours_projected: "~1.8 (2 waves x ~53 min, T_S-dominated); T_S 1000 x 3.2 s/battle/lane, T_M 1000 x 0.16 s/battle/lane, both conservative against the R4-measured 2.5 s and 0.048 s"
+battle_wall_hours_cap: 3
+wall_hours_cap_counts: "BATTLE WALL ONLY. Offline build is tracked separately (build_hours_projected) and is not charged against this cap. The r1 draft's cap was violated by its own arithmetic because the two were mixed (review 1 finding 29)."
+ledger_days_projected: 0.08
+undecidables_for_ratification:
+  U-A1: "n = 1000/lane/arm. Alternatives priced: 500 (0.9 h, but INDECISIVE — 20% UNRESOLVED on a true null), 1500 (2.8 h, +0.02 power at +0.05). RECOMMEND 1000; the maintainer may overrule."
+  U-A2: "the +0.05 threshold. Argued in Q2 from the pooled +0.06925 and the floor. RECOMMEND as written; overrulable AT RATIFICATION ONLY, never after data."
+  U-A3: "the T-UNRESOLVED re-run at n=1500 is the maintainer's call at read time, not the agent's, and is the ONLY permitted retry. RECOMMEND leaving it as a maintainer call."
+a5_fg4_transcript: "PENDING — recorded before launch (A-5)"
