@@ -5892,3 +5892,27 @@ entry by offset — never a broad keyword grep.
   precomputed opponent-BENCH speed edge is overkill ("the ones we have
   are 99% more critical"). Do not propose the bench-edge encoder
   extension.
+
+- 2026-08-24 (day, **STANDING DIAGNOSIS CORRECTED — D26'S CRITIC IS NOT
+  RANK-COLLAPSED: critic ctx srank99 measured 49/51/35/52 of 384 on the
+  four headline finals; D22's "7-11 of 384" described D25-era nets and
+  is STALE as a premise**): measured during the critic-thread design
+  cycle (design_input_B.md M2) with D22's own probe
+  (scripts/d22_dormant_rank.py, float64 srank99) on one fixed probe set
+  (the 13,702 pooled harvest obs), CALIBRATED against the record: the
+  probe reproduces D23's logged control 11/17/16 as 11/16/17 and its
+  treatment 31/53/36 as 30/47/29. The ladder: D23 control mean 14.8 ->
+  D23 treatment 35.3 -> D25 12.6 -> **D26 46.8**. Consequences: (a) the
+  LR anneal delivered MORE critic de-collapse than D23's regenerative-L2
+  lever, free, while also winning +0.0998 — D26 MEETS D23's own
+  pre-registered de-collapse letter (srank99 >= 40 on >= 2/3 lanes) on
+  3 of 4 lanes, a letter D23's own treatment FAILED; (b) the
+  regen-L2-retest and critic-capacity levers are DEAD ON THIS NUMBER
+  (the manipulation target no longer exists; 88% of critic rank sits
+  idle); (c) any future doc quoting "critic srank99 7-11" must scope it
+  to D22/D25-era nets — this is the exact stale-pointer landmine
+  CLAUDE.md names (the D19 precedent). The critic's residual weakness
+  per the standing evidence is ALEATORIC fit limits (D18 zero-defect
+  audit) plus decision-ordering quality (E2/E3/R4), NOT representation
+  rank. Recorded regardless of any R5 branch, per both design agents'
+  recommendation.
