@@ -114,3 +114,19 @@ def test_refuses_failed_t_gate(monkeypatch, tmp_path):
 def test_prereg_credit_line_is_byte_equal_right_now():
     prereg = yaml.safe_load(PREREG.read_text())
     assert prereg["credit_line"] == grade.CREDIT_LINE
+
+
+def test_wave_runner_bash_syntax():
+    r = subprocess.run(["bash", "-n", str(REPO / "scripts/ch3_r5b_run.sh")],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
+def test_prereg_jobs_resolve_through_unmodified_driver():
+    import ch3_eval
+    prereg = yaml.safe_load(PREREG.read_text())
+    jobs = ch3_eval._jobs(prereg)
+    want = [f"x0_{l}" for l in grade.LANES] + \
+           [f"x1_d{l[1:]}" for l in grade.LANES] + \
+           [f"pl_p{l[1:]}" for l in grade.LANES]
+    assert sorted(jobs) == sorted(want)
