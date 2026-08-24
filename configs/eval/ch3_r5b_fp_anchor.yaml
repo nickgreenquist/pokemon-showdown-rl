@@ -37,7 +37,7 @@ checkpoints:
   s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
   s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
   clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683}
-  d65: {path: runs/exit_s65/checkpoint.pt, sha256: "<filled at fit time, before any battle>"}
+  d65: {path: runs/exit_s65/checkpoint.pt, sha256: 7aa66421df9f1135ef6529bd7ecd189f7f97961cceb579109c9fcea69ad503f5}
 arms:
   FA: {kind: greedy_seat, seat: d65, battles: 250,
        seat_username: r5banchorseat, fp_username: r5banchorfp,
