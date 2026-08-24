@@ -5802,3 +5802,54 @@ entry by offset — never a broad keyword grep.
   session. Order of execution: BI-1..BI-6 offline build, pre-launch
   gates R4-0..R4-14 with R4-13 numbers transcribed into the config, then
   A0 -> F4 read -> wave A -> wave B; anchors iff B1/B2.
+
+- 2026-08-24 (overnight autonomous block, maintainer asleep, delegated
+  "keep working, run things < 10 h", **R4 READ OUT: B3 FLAT — THE
+  ENSEMBLE-CRITIC INCREMENT DOES NOT CLEAR THE CREDIT LINE; +0.0224 vs
+  the 0.025 floor, all four lanes positive, zero F-gates; headline
+  unchanged**): the sweep ran exactly as registered — A0 4x3000 fresh
+  (pooled 0.72100: s62 0.73033 / s63 0.70167 / s64 0.73067 / s65
+  0.72133; F4 GREEN in [0.689, 0.744]), then lane-paired waves (wave A
+  19:53-22:01, wave B 22:01-00:10; ~4.3 h total search wall, faster
+  than the ~5.8 h price; F11 pairing overlap 0.996/0.996/0.996/1.000 —
+  the by-construction claim held). NUMBERS (results/ch3_r4/
+  r4_readout.json, prereg + git sha stamped): A1S fresh
+  0.77300/0.79667/0.79467/0.79400 (pooled 0.78958; F10 GREEN — offset
+  -0.00325 from R2's 0.79283, tonight's session drift ~nil, the fresh
+  comparator cost bought insurance that turned out not to be needed
+  THIS time); A1E 0.81867/0.81400/0.81200/0.80333 (pooled 0.81200);
+  per-lane paired deltas +0.04567/+0.01733/+0.01733/+0.00933,
+  equal-weight mean **+0.02242**; se terms binom 0.00515 / paired
+  0.00798 / unpaired 0.00642 -> PAIRED GOVERNS (first time; the lane
+  heterogeneity the power analysis warned about is real: sd(d_i)
+  0.01595), 2*se_gov 0.01595 < floor -> bar 0.025, B2_B4_empty True at
+  read. CELL **B3 FLAT**; KILL NOT fired (delta > 0); the pre-stated
+  null_meaning applies verbatim: this refutes "the LOO 3-critic
+  evaluator clears the credit line over these four checkpoints", NOT
+  "the evaluator axis is dead" — the realized +0.0224 sits at the low
+  edge of the pre-registered expectation band [0.020, 0.036] where
+  pre-stated power was 0.21-0.49 and B3 was named the modal outcome
+  BEFORE data. CI honesty as pre-written: normal-approx [+0.0068,
+  +0.0381] excludes 0 but at df=3 coverage (t3 = 3.18) does not
+  [-0.0029, +0.0478]; the screen's +0.036 is NOT excluded — a larger-k
+  test could still resolve it (U8, not bought). GATES ALL CLEAN: F5
+  provenance correct in all 80 A1E chunks (pool-minus-self, shas ==
+  pins), F7 leaf match max 5.6% (s65) inside 10%, F8 exact on all 120
+  chunk files, F9 desyncs 0 on all 12 jobs, R4-12 usernames pairwise
+  distinct both waves, relaunches 0. Recorded-only color: composed
+  A1E-A0 +0.0910 (descriptive); A1E flip_rate 0.55-0.58; A1E ms_mean
+  72.8-75.2 (+7-11% over A1S 66.4-68.3, the designed treatment cost;
+  R4-8 read the pre-launch smoke, no recompute). OBLIGATIONS EXECUTED
+  per the registered file: README additive row (verdict phrase
+  verbatim, both endpoints, both CIs, power quote, "screen +0.036 NOT
+  reproduced at credit grade", 0.8120 marked DESCRIPTIVE-never-a-best),
+  headline row and its caveat UNTOUCHED at 0.79283; anchors NOT run
+  (anchors_run_iff excludes B3 — U3 as ruled); STATUS rewritten. The
+  chapter's remaining pre-registered follow-on from B3: none fires
+  automatically; all-4/single-foreign-critic/larger-n stay OPEN (KILL
+  did not close the line) but need fresh pre-regs and maintainer
+  appetite. Sub-verdict for the chapter narrative: the evaluator axis
+  survived its screen (direction reproduced: +0.0224, sign positive in
+  4/4 lanes at n=24,000) but the screen's magnitude was optimistic —
+  winner's curse behaved exactly as the pre-reg's PRIOR HONESTY block
+  predicted.
