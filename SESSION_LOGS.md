@@ -6094,3 +6094,51 @@ entry by offset — never a broad keyword grep.
   agent (2026-08-23 standing delegation). Running: PHASE=collect ->
   PHASE=fits -> stamp commit -> PHASE=read -> grade -> conditional
   PHASE=pl_anchors, results ready for the maintainer's return.
+
+- 2026-08-25 (day, autonomous block, **R5b STAGE 2 EXECUTED TO ITS
+  PRE-REGISTERED STOP: D-2 FAILS ON 2 OF 4 LANES — B-10 NOT GREEN, NO
+  BATTLES, NO STAMP, NO CELL. The failure is reported as-is (Q5)**):
+  PHASE=collect ran clean (~2.7 h, 4-wide): 12,000 self-play search
+  battles, 494,603 recorded rows (36.9-46.1/battle), win rates
+  0.654-0.664 (T-GATE-consistent), skip 8.5-10.0%, F-C/F-M in band on
+  all 40 chunks, F-A8 exact, F-U green, mask_desyncs 0. PHASE=fits ran
+  the full grid on every lane — ALL FOUR SELECTED tau=hard (SEL CE
+  strictly monotone toward hard on every lane, so hard is also the
+  agreement-maximizing member: NO grid temperature passes D-2 where the
+  selected one fails). D-2 (a1 >= a0_gate + 0.20, absolute):
+    s62 a0 0.3331 a1 0.5523 gain +0.2192 PASS
+    s63 a0 0.4724 a1 0.5872 gain +0.1148 FAIL (-0.0852)
+    s64 a0 0.3754 a1 0.5695 gain +0.1942 FAIL (-0.0058)
+    s65 a0 0.3726 a1 0.6099 gain +0.2373 PASS
+  D-3/D-4/D-5/D-6/F-R/F-L/B-8 green on ALL lanes (replay 1.0 x4; no
+  entropy collapse, H 0.97-1.07 vs floors ~0.13-0.16). The runner
+  halted at the merge: "B-10 FAIL: D-gates not all green — STOP, no
+  battles." Per the registered d2_rule the consequence is STOP; only
+  D-4 carries a re-resolution clause, so nothing further is licensed
+  without a maintainer ruling. COLOR, all recorded-only: (1) a0 is
+  HETEROGENEOUS across lanes (0.333-0.472 GATE, 0.353-0.419 overall) —
+  the +0.20 absolute margin was calibrated on "a0 ~ 0.402" homogeneity;
+  s63's high a0 (its base already agrees with search 47% of the time)
+  made its bar 0.672, the hardest in the arm. (2) GATE-split a0 vs
+  collection-overall a0 differs by up to 0.054 in BOTH directions (s63
+  0.472 vs 0.418; s64 0.375 vs 0.419) — the 5% GATE split is ~150
+  battles and battle-clustered; s64's -0.0058 miss is within split
+  noise of its own bar, s63's -0.085 is not. The a0-vs-r5a cross-check
+  (0.02 tol) fired on all four lanes (diffs 0.03-0.08), disclosed,
+  GATE governs per the rule. (3) **D-8 SETTLED AT SCALE: mean
+  |v_LOO - v_own| = 0.047/0.072/0.047/0.068 on real GATE decision
+  points — design A's ~0.06 E2-bridge estimate is CONFIRMED and the
+  R4-13 synthetic ~0.45 reading is ~7x off on-distribution. A's
+  "badly under-registered on the upside" branch does NOT fire.** (4)
+  D-9: the C7 switch-bias compiles visibly but heterogeneously (s62
+  0.143->0.374, s63 0.197->0.214, s64 ->0.316, s65 ->0.297 approx).
+  (5) Placebos: s62/s64 DOSE-MATCHED (epochs 2/3), s63/s65 UNMATCHED
+  even at quarter-epoch granularity (min ratios ~1.3-1.4) — moot under
+  the stop, transcribed. Distilled + placebo checkpoints exist
+  (runs/exit_*, D-5-clean, B-12 bit-identical) but are UNSTAMPED and
+  unread — no X0/X1 battle ran, the frozen headline is untouched.
+  MAINTAINER DECISION SURFACE, not advocated: (a) accept the STOP as
+  the arm's recorded outcome (the pre-registered branch); (b) treat
+  the D-2 margin's absolute-vs-relative form + GATE-split noise as a
+  design defect and commission a re-registration (a new pre-reg per
+  U6; the 2-Opus process). Everything mirrored to the backup.

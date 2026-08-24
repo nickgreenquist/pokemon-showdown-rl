@@ -2,18 +2,16 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-24 night — **ch3_r5b RATIFIED (all 7
-brackets ruled: RULE-1 opt-1 CLEAN+provenance, RULE-1b NO, U-B1 n=1000,
-U-B2 4x3000) AND THE RESULT-BLIND BUILD IS COMPLETE: BI-1..BI-8 landed,
-30 new tests, suite 493/17, grader selftest green at 20k reps, pipeline
-smoke-validated live end-to-end on 100 battles. NOTHING LAUNCHED — the
-pre-reg's no-launch-on-ratification-evening line holds. Same day: R4 ensemble-critic B3 FLAT (+0.0224 <
-0.025, not credited); oracle diag (BARRED) showed true-team info HURTS
-search; standing diagnosis corrected — D26 critic srank99 49/51/35/52 of
-384, D22's "7-11" is STALE (regen-L2/capacity levers dead). Chapter
-mechanism story: the value function limits search, but the ACTOR path
-(distill search play into the policy) has the headroom (+0.069 vs SH,
-+0.15 mirror).**)
+## Where things stand (2026-08-25 — **R5b RAN TO ITS PRE-REGISTERED STOP:
+collection clean (12k battles, 494,603 rows, every run-time gate green),
+fits complete, but D-2 (a1 >= a0 + 0.20) FAILS on 2 of 4 lanes — s63
+-0.085, s64 -0.006 — so B-10 is NOT green: NO battles, NO stamp, NO
+cell; the frozen headline is untouched. All four lanes chose tau=hard
+(the agreement-maximizing member -> no grid tau passes where the chosen
+one fails). Durable color: D-8 |v_LOO-v_own| = 0.047-0.072 at scale —
+design A's ~0.06 CONFIRMED, the 0.45 synthetic reading is ~7x off.
+AWAITING MAINTAINER RULING: accept the STOP as the arm's outcome, or
+commission a re-registration on the D-2 margin's form.**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE, not the
 levers**; expert data excluded. **Recipe: entity arch + oppact aux + LR anneal =
 0.3996 -> 0.5509 -> 0.6185 -> 0.71825 (D26 12M, CREDITED HEADLINE).** R2 search@M
@@ -30,18 +28,16 @@ resume-from-checkpoint BUILT (`--resume RUN_DIR`).
 | s65 anchors: clone greedy/search 0.894/0.860 · FP@100 greedy/search 0.388/0.368 | — |
 
 ## Next actions
-1. **RUN ch3_r5b** (pre-reg configs/eval/ch3_r5b_exit.yaml, RATIFIED;
-   runner scripts/ch3_r5b_run.sh, phased+resumable): PHASE=collect
-   (~2.8 h, 4-wide) -> PHASE=fits (~1 h offline, ends in stamp; commit
-   the stamped pre-reg + fp-anchor config, B-2) -> PHASE=read (era-pin
-   X0, mechanical F-T, paired waves, ~24 min) -> ch3_r5b_grade.py ->
-   PHASE=pl_anchors iff B1a/B1b/B2. Zero training seeds. Band
-   [+0.010,+0.045] point +0.028, P(credit) ~0.35, B3 modal — pre-stated.
-   Smoke color: yield ~67 rows/battle; D-8 0.068 (A's ~0.06 side).
+1. **RULE ON THE R5b STOP** (see 2026-08-25 SESSION_LOGS entry): (a)
+   accept — the ExIt arm records "did not clear its own convergence
+   gate on 2/4 lanes; no vs-SH read taken"; or (b) commission a D-2
+   re-registration (absolute +0.20 margin vs measured a0 heterogeneity
+   0.333-0.472 and ~150-battle GATE-split noise; s64 missed by 0.006).
+   Distilled checkpoints exist (runs/exit_*, D-5-clean) but are
+   unstamped and unread; nothing else is licensed to run.
 2. Unpushed: commits past e3bca48 (morning auth only) — ask before push.
 3. Open: E2(σ=0.2) maintainer-buyable; U9 T2b contamination flag; FP h2h
    at stock budget is the readiness anchor; R4 follow-ups unproposed.
-
 ## Watch items
 - **Never quote 0.81200 as a best (B3, uncredited). Never quote T-GATE
   numbers as vs-SH strength — they are MIRROR-regime margins.**
