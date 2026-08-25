@@ -6389,3 +6389,81 @@ entry by offset — never a broad keyword grep.
   (~4.0 h) carry s_T and rho. Handed to the maintainer's terminal per
   their choice; CLAUDE.md's >5-min convention and the kill both favour
   it over another agent-launched background job.
+
+- 2026-08-25 (day, **CH4 R1 READ OUT: VERDICT-I = FEASIBLE, VERDICT-A =
+  NO ANOMALY. THE FOUL-PLAY GAP IS RAW STRENGTH, NOT AN OFF-DISTRIBUTION
+  HOLE; AND AN OFF-SH CREDIT LINE IS AFFORDABLE AFTER ALL. The off-anchor
+  thread CLOSES per the maintainer's pre-committed MU-4 action (a).**):
+  all 14 arms complete, ALL GATES GREEN, all three era pins PASS.
+  **VERDICT-A = NO_ANOMALY**: rho_pooled = **+0.00478** (se 0.01260 =
+  hub-common-mode 0.01088 (+) indep 0.00635; needs >= +0.03 AND >=
+  2*se = 0.02520). Per-lane rho +0.0130/-0.0122/+0.0194/-0.0011 — signs
+  MIXED. One-sided 95% upper bound on FP's excess take **+0.0255**, i.e.
+  FP over-performing its SH-relative strength by more than ~2.6 points is
+  EXCLUDED. The tape axis agrees independently: NO P-cell fires
+  (P-SHARP 0.0716 vs need 0.1106; P-MECH 0.0989/0.4837 vs 0.4768/0.5808;
+  P-COVER 0.2745 vs 0.5222; P-EVAL 0.0131 vs 0.4684). **VERDICT-I =
+  FEASIBLE** — the surprise: s_T off-SH = **0.00771**, 95% CI
+  [0.00437, 0.02874], upper limit BELOW 0.05, and TIGHTER than D26's own
+  vs-SH s_T of 0.01118. Off-SH strength is MORE seed-consistent than
+  vs-SH strength. So a future off-SH bar sits at the **0.025 floor**, not
+  the 0.042-0.071 that would have made it unusable; MU-1 resolves YES.
+  Lane FP@20 rates 0.3423/0.3550/0.3557/0.3417 (mean 0.3487, 12,000
+  battles). BOTH VERDICT FORMS AGREE — the amended two-verdict form AND
+  the ORIGINAL r2 ordered partition both land R2_no_anomaly_DEFAULT, so
+  Amendment A1 (result-blind) did NOT change this outcome; it was needed
+  for correctness in general and is neutral here. **R-4 THE CLONE
+  QUESTION, SETTLED AND IT RETIRES THE CYCLE'S PREMISE**: FP vs its OWN
+  clone, clone SAMPLING (form-matched to the banked anchors) = FP takes
+  0.9200, logit excess **+1.1188 +/- 0.2331** vs our +0.60 -> generic
+  brittleness CONFIRMED. But C1b (clone DETERMINISTIC, recorded-only)
+  = 0.7920, excess **+0.0135** — i.e. when the clone's POLICY FORM
+  MATCHES THE FORM OF ITS OWN vs-SH RATING (0.5503, measured
+  deterministically under the locked protocol), Bradley-Terry predicts
+  the result almost exactly and THE INTRANSITIVITY VANISHES. Sampling
+  costs that clone ~26 points of implied vs-SH rating (implied 0.2856
+  sampling vs 0.5503 deterministic). **The "clone intransitivity" that
+  motivated the whole style hypothesis is a POLICY-FORM MISMATCH IN THE
+  MEASUREMENT**, not style-robustness (memo A) and not BC fragility
+  (memo B's framing) — the board is simply transitive when like is
+  compared with like. STANDING LESSON, worth a convention line: an h2h
+  anchor must match the policy form of the rating it is compared
+  against, or the comparison manufactures an effect. R-5 (S1-S0):
+  sampled seat 0.3140 vs greedy 0.3320, delta -0.0180 against 2*se_diff
+  0.0418 -> UNRESOLVED; sampling does not help, recorded as an
+  inference-time observation only. P2-RIDER RE-GRADE (MU-8 SUPERSEDE):
+  z = **-2.80** (H2-measured hub) / -2.84 (banked hub) — the R2 search
+  increment's non-transfer is decisive against BT-COMMENSURATE transfer,
+  superseding "the FP anchor carried ~no information". GATES: G2 all
+  pass ON THE INDEPENDENT-TALLY TEST (FP's own log vs the seat, exact);
+  G3/G5 all pass (0 mask_desyncs everywhere); G6 **PASS** tier (FP@20 vs
+  SH 0.82133 n=3000, FP@100 0.84000 n=1000, |diff| 0.0187 inside the
+  0.02 bar and inside 2*se 0.0271); G6b PASS (style); G7 moot (k=1
+  serial throughout, so the concurrency confound is structurally
+  absent); G8 realized budget verified from FP's own Sampling lines on
+  all 10 FP arms + prereg-sha consistent. ERA PINS: V pooled 0.71508 vs
+  banked 0.71825 (PASS); L65 FP@20 0.3417 in [0.251,0.373] (PASS); E1
+  FP@100 0.3480 in [0.301,0.475] (PASS). CROSS-BUDGET BONUS, same
+  session same lane s65: FP@20 0.3417 vs FP@100 0.3480, diff +0.0063 —
+  budget equivalence confirmed from OUR side too, and the banked
+  ladder's 0.312/0.388/0.332 spread is retrospectively just n=250 noise.
+  INCIDENTS, both fixed and committed: (1) **s64 TERMINAL RACE** — the
+  runner logged FP's NORMAL exit as a crash (crash point == battles
+  requested), and the blind n_eff rule would have DELETED a real battle
+  and failed a clean arm; G2 is now implemented as the pre-registered
+  independent-tally test and terminal-race crashes are reclassified
+  (s64's tallies agree exactly, 1067/1927/6 = 3000). (2) **S1 USERNAME
+  DEADLOCK** — `( ... ) &` made $! the SUBSHELL's pid, so every kill
+  orphaned a live foul-play holding the websocket AND the username; 15
+  relaunches produced 14 orphans, every relaunch hit |nametaken| and
+  wrote nothing, burning 3.6 h at ZERO progress. Fixed with `exec` (so
+  the pid is real) + a username-deadlock detector that aborts fast +
+  a kill-by-username sweep; S1 re-ran CLEAN (1000 battles, 0 relaunches,
+  0 desyncs, 25 min). The first attempt produced no number and no
+  selection was made between results. Completed arms were never on the
+  orphan path. MU-2 EXECUTED separately (8da9193): the CLAUDE.md anchor
+  battery moves to FP@20 (5.1x cheaper) with both disclosures attached.
+  Suite GREEN 495 passed — including a PRE-EXISTING red test
+  (test_refuses_pending_transcript, broken since the R5b stamp b53e51a)
+  now rebuilt on its own fixture. Headline 0.71825 and R2 0.79283
+  UNTOUCHED; this rung credited nothing and moved no headline.

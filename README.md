@@ -64,6 +64,50 @@ the next chapter inherits: everything here is strong against SH-like play and
 still loses to Foul Play (0.39 h2h) — off-anchor strength, not more search, is
 the path to ladder readiness.
 
+## Chapter 4, R1 (2026-08-25): the off-anchor question, answered — and it supersedes the sentence above
+
+Chapter 3 closed by naming its inherited open problem: *"off-anchor strength,
+not more search, is the path to ladder readiness."* That sentence stands as
+written — it is what the evidence supported at the time — but **it is
+superseded by measurement, and the correction belongs here rather than in a
+rewrite of a closed chapter.** CH4 R1 was an eval-only, non-crediting rung
+(zero training, zero seeds burned, 14 arms, ~30,000 battles) built to ask one
+question: *is losing to Foul Play an off-distribution weakness, or is it just
+being weaker?*
+
+**It is just being weaker. There is no off-distribution hole to fix.**
+
+- **No anomaly.** Fitting a Bradley–Terry model on a fresh same-session SH hub,
+  Foul Play takes **+0.005 ± 0.013** more off the D26 lanes than their vs-SH
+  strength predicts, across 4 lanes × 3000 battles. FP over-performing by more
+  than **2.6 points is excluded at 95%**. Per-lane residuals are mixed in sign.
+- **No mechanism.** A pre-registered parse of ~1,000 banked Foul Play battles
+  fired **zero of four** mechanism cells (style, gen-1 mechanics, state
+  coverage, late-game evaluation), none close to threshold.
+- **The datum that motivated the whole hypothesis was a measurement artifact.**
+  The reasoning had been: *we beat Foul Play's behaviour clone 0.894 but lose to
+  Foul Play itself, so we lose to its search, not its style.* Foul Play beats
+  that same clone by **+1.12 logits** over prediction where we beat it by +0.60
+  — but when the clone plays in the **same policy form as its own published
+  rating** (deterministic, per the locked protocol), the excess is **+0.01** and
+  the intransitivity disappears entirely. Sampling costs that clone ~26 points
+  of implied rating. **The board is transitive when like is compared with like.**
+  Standing lesson: *an h2h anchor must match the policy form of the rating it is
+  compared against, or the comparison manufactures an effect.*
+- **The instrument turned out to be affordable, which was the surprise.**
+  Off-anchor strength varies across training seeds with sd **0.0077** (95% CI
+  0.0044–0.0287) — *tighter* than the same agents' vs-SH spread (0.0112). A
+  future off-anchor credit line therefore sits at the ordinary 0.025 floor
+  rather than the 0.042–0.071 that would have made one unaffordable. That
+  instrument did not exist before this rung.
+
+Consequences: the off-anchor thread **closes** (no robustness lever is
+warranted for a gap that is not a robustness gap), and the Foul Play anchor
+moves to `--search-time-ms 20` — measured equivalent to 100 ms in both strength
+and style, at **5.1× less wall clock**, with the disclosure that its point
+estimate is marginally *weaker*, the direction that flatters us. This rung
+credited nothing and moved no headline: **0.71825 and 0.7928 are untouched.**
+
 ## Results so far
 
 Win rate vs poke-env's `SimpleHeuristicsPlayer` (SH). Locked protocol: final

@@ -2,59 +2,61 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-26 — **CH4 R1 RATIFIED (by delegation),
-AMENDED RESULT-BLIND (A1), AND HALF-EXECUTED. 5 of 14 arms banked; the
-remaining 9 (~7.0 h) are HANDED TO THE MAINTAINER'S TERMINAL — one
-resume-safe command, below. Already settled and NOT dependent on the
-remaining battles: SH-side era pin PASS (in-session 0.71508 vs banked
-0.71825); the FRESH FP@20 HUB H1 = 0.82133 (n=3000); G6b style
-equivalence PASS (FP@20 plays like FP@100); NO P-CELL FIRES and none is
-close; E-b says our low-switch style is a POLICY property; and E-c
-resolved AGAINST the style story — our own search seat already switches
-MORE than FP (0.189 vs 0.137-0.146) and the h2h got WORSE (0.388 ->
-0.368). The tape half of VERDICT-A points at NO MECHANISM; the BT half
-(rho) needs the four L arms.**)
+## Where things stand (2026-08-25 — **CH4 R1 READ OUT AND CLOSED. The
+Foul-Play gap is RAW STRENGTH, not an off-distribution hole: BT residual
++0.00478 +/- 0.01260 (needs >=0.03 AND >=2se=0.0252), FP over-performing
+by >2.6 points EXCLUDED at 95%, and ZERO of four tape mechanism cells
+fire. The datum that motivated the whole style hypothesis — we beat the
+FP clone 0.894 — is a POLICY-FORM MISMATCH artifact: with the clone in
+the same form as its own rating, its BT excess is +0.01 and the
+intransitivity vanishes. SURPRISE UPSIDE: s_T off-SH = 0.00771 (CI
+0.0044-0.0287), TIGHTER than vs-SH's 0.01118, so an off-SH credit line
+IS affordable at the 0.025 floor (VERDICT-I = FEASIBLE, MU-1 = yes).
+Both verdict forms agree; Amendment A1 was neutral here. Off-anchor
+thread CLOSED per MU-4(a). Nothing credited, no headline moved.**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE.**
 D26 12M = 0.71825 (CREDITED HEADLINE). R2 search@M = 0.79283 (B1 CREDIT,
-SH-facing caveat). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3 CLOSED.
+SH-facing). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3 CLOSED.
 
 ## Results (vs SH; ties=loss; locked = final ckpt)
 | result | win rate |
 |---|---|
 | D26 12M HEADLINE 0.71825 · R0 ensemble 0.74633 · D29r2 50M 0.70222 | — |
-| **CH3 R2 search@M — B1 CREDIT, BEST (caveat: SH-facing, P2×2)** | **0.79283** |
-| R5b ExIt distill: B5+KILL (delta -0.0545, 4/4 neg); actor ExIt CLOSED | — |
+| **CH3 R2 search@M — B1 CREDIT, BEST (caveat: SH-facing)** | **0.79283** |
 | CH4 R1 V-arms in-session vs SH (era pin PASS) | 0.71508 |
-| CH4 R1 H1 — FP@20 vs SH, the fresh hub (n=3000) | 0.82133‡ |
-| s65 anchors: clone 0.894/0.860 · FP@100 0.388/0.368 · ladder 0.312/0.388/0.332 | — |
+| CH4 R1 our FP@20 rate, 4 lanes x 3000 (mean; s_T 0.0077) | 0.3487 |
+| CH4 R1 hubs: FP@20 vs SH 0.82133 · FP@100 vs SH 0.84000 (G6 PASS) | ‡ |
 ‡ FP's take, not ours. Never quote an anchor number as a "best".
 
 ## Next actions
-1. **RUN THE REMAINING WAVE** (maintainer's terminal; resume-safe —
-   re-invoke freely, completed arms are skipped):
-   `caffeinate -is bash /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/scripts/ch4_r1_wave.sh`
-   Needs the Showdown server up on :8000. Order: H2, L62-L65, C1, C1b,
-   S1, E1. ~7.0 h at H1's measured 1.20 s/battle; the four L arms
-   (~4.0 h) alone carry s_T and rho.
-2. Then: `python scripts/ch4_r1_grade.py` -> results/ch4_r1_offsh/
-   r1_readout.json (emits VERDICT-I + VERDICT-A + the original r2
-   partition). Then readout, README Chapter-4 note, mirror.
-3. `pytest tests/` is OWED — deferred while battles ran (CPU contention
-   would starve FP's time-budgeted search and bias the arms).
+1. **The off-anchor thread is CLOSED.** No robustness lever is warranted.
+   Shelved and NOT re-opened: tau-DIV, POOL-SPAN, the exploiter family
+   (design_input_A/B), the critic family. Actor ExIt stays KILLED.
+2. **Open question for the maintainer** (MU-4 option (c), deliberately
+   NOT auto-executed): "exhausted vs SH + FP" is now closer to
+   demonstrated than assumed — whether that re-opens the deferred LADDER
+   ruling (2026-08-23) is yours alone. Nothing proposes it meanwhile.
+3. An off-SH credit line is now AFFORDABLE (bar = 0.025 floor at 4
+   lanes) if a future lever ever wants one — that instrument is the
+   rung's durable deliverable.
 4. Commits after 60d73fc remain unpushed — ask before pushing.
 ## Watch items
-- **CH4 R1 is NON-CREDITING on every branch.** Amendment A1 (result-blind,
-  structure-only) travels with every quote: VERDICT-I (instrument) and
-  VERDICT-A (anomaly) are orthogonal and both are always reported.
-- Never quote 0.81200 as a best (B3); never quote T-GATE numbers as vs-SH
-  strength. Oracle-diag numbers BARRED (log-only).
-- The banked P2-rider sentence is PENDING SUPERSESSION (MU-8 ruled
-  SUPERSEDE; the grader emits it) — do not re-quote the old form.
-- R5b D-9 switch rates 0.143-0.197 include force-switch rows; the true
-  policy rate is 0.060-0.097 (BI-8, results/ch4_r1_offsh/sp_baseline.json).
-- Archaeology is SCREEN-GRADE: it may SELECT among pre-named levers only.
-- Named-file reads only; bash 3.2; encoder env vars NOT exported to the
-  whole suite; F-U compares FULL quoted usernames.
-- results/ dirs are the ONLY copies; design_fp_gap + ch4_r1_offsh JSONs
-  mirrored to ../pokemon-showdown-rl-d25-backup-20260815/. Seeds 66/67,
-  75/76, 83/84, 93/94 all HELD (CH4 R1 burns none). vs-SH ~40% GXE.
+- **CH4 R1 credited nothing.** Amendment A1 (result-blind, structure-only)
+  travels with every quote; both verdict forms agreed.
+- **FP anchor is now FP@20** (CLAUDE.md amended, MU-2): 5.1x cheaper,
+  strength AND style equivalent — but its point estimate is marginally
+  WEAKER than FP@100 (the direction that flatters us), so NAME THE BUDGET
+  in every quote and never mix FP@20 and FP@100 numbers.
+- **A clone h2h is NEVER style evidence**, and any anchor must match the
+  policy form of the rating it is compared against (the ~26-point
+  sampling gap is the whole historical "clone intransitivity").
+- Old P2 rider ("FP anchor carried ~no information") SUPERSEDED (MU-8):
+  non-transfer is z = -2.80 against BT-commensurate transfer.
+- R5b D-9 switch rates 0.143-0.197 include force-switch rows; true policy
+  rate is 0.060-0.097 (results/ch4_r1_offsh/sp_baseline.json).
+- Runner landmines FIXED (both committed): kill-by-subshell orphaned
+  foul-play -> |nametaken| deadlock (S1, 3.6 h lost); FP's normal exit
+  logged as a crash could delete a real battle (s64).
+- Suite GREEN 495 passed. results/ mirrored to
+  ../pokemon-showdown-rl-d25-backup-20260815/. Seeds 66/67, 75/76, 83/84,
+  93/94 ALL HELD (CH4 R1 burned none). vs-SH ~40% GXE.
