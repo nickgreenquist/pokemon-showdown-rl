@@ -6467,3 +6467,55 @@ entry by offset — never a broad keyword grep.
   (test_refuses_pending_transcript, broken since the R5b stamp b53e51a)
   now rebuilt on its own fixture. Headline 0.71825 and R2 0.79283
   UNTOUCHED; this rung credited nothing and moved no headline.
+
+- 2026-08-25 (evening, **ARCHITECTURE REVIEW (no code changed) + DOC
+  CLEANUP + HANDOFF; maintainer asked "are we too small, is the transformer
+  work already done, anything to push harder there?"**): MEASURED ours —
+  actor **626,059**, critic 494,849, aux 49,479 = **1,170,387 total, NO
+  attention anywhere** (DeepSets max-pool + one shared pointer scorer).
+  COMPARABLES (measured from the local ps-ppo clone; read for the rest):
+  ps-ppo HEAD `d_model 512/3 layers` = **14.49M** (12.9M at inference), but
+  the Elo-2102 screenshot commit `1b13ae0` is `d_model 1024/2 layers` =
+  **>=37.9M** — so "the published ps-ppo agent" is ~38M+, NOT 14.5M, and a
+  third config `9259a1c` is `256/4`; always name the commit. Metamon
+  15M/50M/200M. **Huang & Lee 1.33M, attention-free, per-entity MLP +
+  max-pool — literally our design — reached 72% GXE.** VERDICT: **we are
+  NOT undersized** (88% of the only same-family comparable); Metamon's 15M
+  floor was set to stop underfitting ~1M human battles and does not
+  transfer to a lane with no imitation data. **Attention is UNTESTED, NOT
+  REFUTED** — killed pre-launch on a 34.6x CPU train-step MICROBENCHMARK
+  (DESIGN ~line 313), never trained; the screen config and
+  entity_attention.py never existed. Evidence AGAINST pushing capacity, all
+  from our own ledger: the biggest credited win (+0.1513 entity structure)
+  came at *reduced* params (626,059 <= 681,994 ceiling); privileged critic
+  -0.0145; 12M->50M scale -0.016; ~88% of D26 critic rank idle; Metamon
+  itself says size tracks BC fit, not RL strength. Sharper gap than
+  attention: **temporal context** (ps-ppo 64-256 turns, Metamon 200; we are
+  single-snapshot Markov), then the **skipped middle rung** (explicit
+  two-tower/DCN crossing — absent from the record entirely). RECOMMENDATION
+  GIVEN: go to the ladder, do not re-open architecture. CLEANUP LANDED
+  (maintainer: "make updates you need, clean things up"): (1)
+  prior_work/README.md's ladder conversion REWRITTEN — the old "best RL
+  0.4607 -> ~38-40% GXE" was three chapters stale and would have
+  mis-calibrated the ladder; now states +163 Elo vs SH and refuses to
+  project in EITHER direction (SH-exploitation upward bias vs CH4 R1's
+  finding of no off-distribution deficit downward); (2) its consequence (1)
+  sentence "that gap is not a shaping/LR/step-count gap" CORRECTED — our own
+  LR anneal bought +0.0998, exactly the class it dismissed; (3) its
+  consequence (2) "a ladder buys confirmation only" CORRECTED — the
+  2026-08-23 deferral is now SATISFIED and the read is no longer predictable
+  from vs-SH; (4) ps-ppo entry gains the measured param counts + commit
+  disambiguation; (5) **DESIGN.md gains a top banner: HISTORICAL, largely
+  SPENT** (its queue is executed/killed/superseded and its attention ruling
+  is a COST ruling), and CLAUDE.md's Docs entry no longer calls it "the
+  roadmap — implement it" (this is the D19 dead-lever failure mode, now
+  closed at the source); (6) CLAUDE.md gains the Foul-Play runner ops
+  landmine block (orphan-on-kill/username deadlock, terminal-race
+  forfeits, G2 = independent tallies) and "a wall-clock ETA is not
+  progress". STATUS rewritten (60 lines), HANDOFF.md written for a
+  cleared-context session — including that **scripts/score_ladder.py is a
+  FALSE FRIEND** (Connect-4-era checkpoint-rung scorer, nothing to do with
+  the Showdown ladder) and that **nothing in the repo connects to the real
+  Showdown** (every path is localhost; real play needs account auth —
+  play.pokemonshowdown.com demands an assertion even in guest mode). Suite
+  GREEN 495 passed. No code changed in this block.

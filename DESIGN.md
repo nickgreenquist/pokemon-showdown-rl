@@ -1,5 +1,29 @@
 # DESIGN — the roadmap after the pivot
 
+> ## ⚠️ READ THIS BEFORE ACTING ON ANYTHING BELOW (banner added 2026-08-25)
+>
+> **This file is largely SPENT as a forward roadmap. It is retained as the historical
+> record of how the pivot was decided, not as a queue to work through.** Its decisions
+> were ratified in 2026-08-07 and most have since been executed, credited, killed, or
+> superseded by chapters this file predates:
+>
+> - **Chapter 2 (the recipe) — DONE.** entity structure + oppact aux + LR anneal ⇒ the
+>   credited headline **0.71825**.
+> - **Chapter 3 (search) — CLOSED 2026-08-25.** search@M is credited (0.79283) and is
+>   **inference-only**; expert iteration into the weights was B5+KILL. §8's D8/D9 are moot.
+> - **Chapter 4 R1 (off-anchor) — CLOSED 2026-08-25.** The Foul-Play gap is raw strength,
+>   not an off-distribution hole (BT residual +0.005 ± 0.013; 0/4 tape mechanism cells).
+> - **The attention/transformer ruling at §7 (~line 313) was a COST ruling, not a
+>   performance one** — 34.6× on a microbenchmark, never trained. Do not cite it as
+>   evidence that attention fails here.
+> - **Scale is dead** (50M flat vs 12M) and **critic-capacity is moot** (D22's "srank 7–11
+>   of 384" is STALE; D26 measures 49/51/35/52).
+>
+> **STATUS.md plus the newest SESSION_LOGS.md entry are authoritative and this file is
+> not** — it does not update itself. The 2026-08-16 incident where a stale DESIGN pointer
+> "sent a whole session down a dead lever" came from exactly this failure mode. Verify any
+> status line here against the newest log entry before acting on it.
+
 **Status: r7 RATIFIED 2026-08-07 (maintainer review, same day as drafted) — D10–D17 binding,
 all per the inline recommendations: D10(a) M3 is the success claim, D11(a), D12(b), D13(a)
 Stage-0 MUST_RECHARGE fix lands and the 0.3890 comparator re-baselines, D14(a), D15(b),

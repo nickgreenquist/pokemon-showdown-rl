@@ -71,17 +71,37 @@ previously carried (Gen1OU, ~0.21) is SH's *worst* row and comes from an OU tier
 (team-building removed), landing at **~40% GXE, Glicko-1 ≈ 1450–1500**. The GXE figures are
 exact bar labels; the Glicko band is read off the figure and should be quoted as approximate.
 
-**The conversion, worked for our own numbers.** Ties are non-wins under the locked protocol,
-so SH-mirror parity is **0.489, not 0.500**. Best RL (12M+LRA) = 0.4607; renormalizing the
-1.57% ties out gives ~46.8% head-to-head, i.e. **≈ −20 Elo vs SH**. So our best agent projects
-to **~38–40% GXE**, a couple of points under SH. The rule of thumb: *a vs-SH win rate near the
-0.489 parity mark means ~40% GXE, not "nearly solved."*
+**The conversion — REWRITTEN 2026-08-25; the old version was three chapters stale and
+would have mis-calibrated the ladder run.** Ties are non-wins under the locked protocol, so
+SH-mirror parity is **0.489, not 0.500**.
+
+- **SUPERSEDED (kept so the old number is recognisable):** the 12M+LRA era scored **0.4607**
+  vs SH ⇒ ≈ −20 Elo ⇒ a projection of ~38–40% GXE. **That agent is long gone.**
+- **CURRENT:** the credited headline is **0.71825** vs SH (D26 12M, 4 lanes × 3000), i.e.
+  **≈ +163 Elo vs SH**. Add inference-time search and it is 0.79283 (SH-facing caveat).
+
+**Do NOT convert that to a GXE projection, in either direction.** Two opposing biases, both
+measured in this project, make the extrapolation untrustworthy:
+
+1. *Upward-bias caution (the repo's own standing rule):* past parity, a vs-SH number
+   increasingly measures **SH-exploitation** rather than strength — SH is one fixed scripted
+   opponent and every number here comes from it.
+2. *Downward-bias caution (new, CH4 R1, 2026-08-25):* off-anchor strength is **not** a
+   separate axis. Against Foul Play, our take is exactly what Bradley–Terry predicts from
+   vs-SH strength (residual +0.005 ± 0.013), so there is no hidden off-distribution deficit
+   that a ladder would suddenly expose either.
+
+**The rule of thumb that replaces the old one:** *a vs-SH number near 0.489 means ~40% GXE;
+a vs-SH number far above it means the conversion has run out of road and only a ladder read
+settles it.* That is now the single largest unmeasured quantity in the project — and the
+argument for running the ladder rather than estimating it.
 
 Where that sits in the published randbats field:
 
 | agent | format | Glicko-1 | GXE |
 |---|---|---|---|
-| **ours (12M+LRA), projected** | gen1RB | ~1400–1450 | **~38–40%** |
+| ~~ours (12M+LRA), projected~~ **SUPERSEDED, 0.4607 era** | gen1RB | ~1400–1450 | ~38–40% |
+| **ours (D26 12M, 0.71825 vs SH)** | gen1RB | **UNMEASURED** | **UNMEASURED — see the conversion note above; do not project** |
 | poke-env SH | Gen7RB / Gen9RB | ~1450–1500 | 39.7% / 41.2% |
 | Huang & Lee 2019 — PPO self-play, **no search** (VERIFIED, see entry) | Gen7RB | 1677 (n=300) | 72%* |
 | ps-ppo — transformer PPO | Gen9RB | 1725 ± 25 | 76.7% |
@@ -92,12 +112,19 @@ Where that sits in the published randbats field:
 **Consequences, and the reason this is filed at the top of the index:**
 
 1. **SH parity is not the finish line — it is ~40% GXE.** The floor of the published
-   pure-policy randbats field is 72%. That gap is not a shaping/LR/step-count gap; it is the
-   size that BC-init (VGC-Bench: +25–30 pts at matched budget) and encoder work move.
-2. **A ladder eval is now PREDICTABLE from vs-SH, so it buys confirmation only.** Maintainer
-   decision 2026-08-06: D7(a) stands (ladder Elo/GXE remains the ratified success metric) but
-   its EXECUTION is deferred until an agent is clearly past SH. Metamon reports being accused
-   of botting in chat at exactly this rating band.
+   pure-policy randbats field is 72%. ~~That gap is not a shaping/LR/step-count gap; it is the
+   size that BC-init and encoder work move.~~ **CORRECTED 2026-08-25 — that second sentence is
+   contradicted by this project's own ledger and was actively misleading.** From 0.4607 the
+   agent reached 0.71825 with NO BC-init and NO encoder change: entity structure at *reduced*
+   parameter count (+0.1513), an opponent-action auxiliary loss (+0.0739), and **an LR anneal
+   (+0.0998) — a schedule change, exactly the class this sentence dismissed.** Whatever remains
+   of the gap, "shaping/LR/step-count cannot move it" is false.
+2. **A ladder eval was deferred until an agent was clearly past SH. IT NOW IS**
+   (0.71825, ≈ +163 Elo vs SH), and the 2026-08-23 ruling deferring execution until the models
+   were exhausted against the SH and Foul Play anchors is **satisfied as of CH4 R1
+   (2026-08-25)**. ~~It buys confirmation only~~ — **CORRECTED: it is no longer predictable
+   from vs-SH** (see the conversion note above; the extrapolation has run out of road in both
+   directions). Metamon reports being accused of botting in chat at this rating band.
 3. **PS Elo ≠ Glicko-1.** ps-ppo's own screenshot is Elo 2102 / Glicko-1 1725 for one agent,
    and Metamon calls PS Elo "intentionally noisy" and not comparable across game modes. Our
    corpus survey's ratings (median 1203, p90 1415) are PS **Elo** and cannot be read against
@@ -182,6 +209,33 @@ lossy by construction and the code has repeatedly contradicted the project's own
   `eval_policy_improvement.py` (`git show 7fb522c^:eval.py`).
   **Read the ps-ppo entry under Sources before citing anything from it** — several of its
   public claims do not survive contact with the code.
+
+  **ARCHITECTURE + SIZE, MEASURED FROM SOURCE 2026-08-25** (arithmetic re-derived from the
+  layer definitions, not read off a claim): genuine transformer — pre-norm self-attention
+  (fused QKV) × `n_layers` plus a cross-attention `FlexReadout`. **Two very different
+  configurations exist in the repo and the difference matters, so always name the commit:**
+  *HEAD* is `d_model 512 / 3 layers / 8 heads` = **14.49M params (12.9M at inference; the
+  JEPA predictor is train-only)**; the *Elo-2102 ladder screenshot* commit `1b13ae0` is
+  `d_model 1024 / 2 layers` = **≥37.9M excluding embeddings and subnets**. A third,
+  `7fb522c^` (= `9259a1c`), is `model_dim 256 / 4 layers`. **So "the published ps-ppo agent"
+  is ~38M+, not 14.5M** — an earlier phrasing in this index that said "d_model 1024, 2
+  layers" without a commit was ambiguous across all three. Also note `ff_expansion: 4.0` in
+  `config.py` is **DEAD at HEAD** — `FlexEncoderLayer` is constructed without it, so the real
+  feed-forward is 2.0 (d_ff 1024).
+
+  **OUR SIZE, for the side-by-side** (measured the same day): actor **626,059**, critic
+  494,849, aux head 49,479 = **1,170,387 total; no attention anywhere** (DeepSets max-pool +
+  one shared pointer scorer). The correct comparable is NOT ps-ppo/Metamon but **Huang & Lee
+  2019 at 1.33M, also attention-free, also pure self-play randbats, no search — which reached
+  72% GXE. We are at 88% of its parameter count.** Metamon's 15M floor was chosen to stop
+  underfitting ~1M human battles and does not transfer to a lane with no imitation data.
+  **Standing caution before anyone proposes "scale up":** in THIS project every
+  capacity-shaped lever read null (privileged critic −0.0145; 12M→50M scale −0.016; ~88% of
+  D26 critic rank idle), while the largest credited win came from adding structure at
+  *reduced* parameter count. Attention here is **untested, not refuted** — it was killed
+  pre-launch on a 34.6× CPU train-step microbenchmark (DESIGN.md:313-316), never trained.
+  The sharper architectural gap vs both large systems is **temporal context** (ps-ppo 64–256
+  turns, Metamon 200; we are single-snapshot Markov), not pooling-vs-attention.
 
 ## Datasets
 
