@@ -6596,3 +6596,86 @@ entry by offset — never a broad keyword grep.
   STATUS.md rewritten (60 lines) — and its stale item 4 ("commits after 60d73fc
   remain unpushed") CORRECTED, `git rev-list --count origin/main..HEAD` = 0,
   the tree is fully pushed. Headline 0.71825 and R2 0.79283 UNTOUCHED.
+
+- 2026-08-25 (evening cont., maintainer: "I agree with your rec. lets build and
+  get it out. account name will have 'bot' in it. something like
+  'nick_gen1randbats_rl_bot'" + "as for which agent to use: im honestly not
+  sure. I'm leaning towards the one with search that was best vs SH but tad
+  worse on foul play" — **LADDER BUILT, SMOKED END-TO-END, NOT LAUNCHED.
+  Blocked on three pre-registered maintainer decisions and one manual account
+  registration. Two corrections owed to the maintainer: the proposed username
+  is REFUSED by the server, and the evidence points AGAINST the search arm
+  they were leaning toward.**): **NAME BLOCKER** — the cap is **18 characters
+  on the USERID**, not the display name (`showdown/server/users.ts:745`, and
+  `toID` at `sim/dex-data.ts:22` lowercases and strips every non-alphanumeric).
+  `nick_gen1randbats_rl_bot` -> userid `nickgen1randbatsrlbot`, **21 chars,
+  REFUSED with |nametaken|** — which would have looked exactly like the S1
+  username deadlock. Underscores are STRIPPED, so they are free: proposed
+  **`nick_gen1rb_rl_bot`** -> userid `nickgen1rbrlbot`, 15 chars, keeps the
+  name, the format hint and the 'bot' declaration. `scripts/ladder.py`
+  enforces the rule BEFORE connecting. **AGENT CHOICE — RECOMMENDED AGAINST
+  THE MAINTAINER'S LEAN, with the numbers assembled in one place for the
+  first time:** vs SH / vs BC clone / vs FP@100 — greedy 0.71825 / 0.894 /
+  0.388; ensemble 0.74633 / unmeasured / unmeasured; search@M 0.79283 /
+  0.860 / 0.368. Search's +0.0746 vs SH is credited and real, but **BOTH
+  off-SH point estimates are negative** (clone **-0.034** +/- 0.021, FP
+  **-0.020** +/- 0.043 — neither individually significant; the case is the
+  consistent SIGN plus MU-8's transfer test at **z = -2.80**), and the ladder
+  IS off-SH. Search also runs battles **~40% longer** (38.5 vs 27.6 mean
+  turns vs FP), which costs games/hour on a thin ladder and patience per
+  human. RECOMMENDED **L2, the 4-lane ensemble**: +0.036 over the greedy mean
+  (R0, credited), NOT a post-hoc lane pick (it uses all four lanes, so no
+  selection happens on the metric we distrust), and its mechanism is
+  averaging rather than opponent-model exploitation, so it has no reason to
+  be SH-specific. HONEST GAP, disclosed in the pre-reg: the ensemble is
+  UNMEASURED off-SH — that is argument-from-mechanism, not evidence. Per-lane
+  greedy vs SH is 0.72967/0.71867/0.72167/0.70300 (s62..s65), so note that
+  the seat every CH3/CH4 anchor describes (s65) is our WEAKEST lane, and
+  picking s62 instead would be post-hoc selection on vs-SH. **BUILT:
+  `scripts/ladder.py`** — the one path in this repo that leaves localhost.
+  Reuses the Chapter-3 seat's encode/mask/convert trio but is deliberately
+  FORGIVING where that seat is strict (an exception in `choose_move` forfeits
+  a live rated game against a human, so it falls back to the default order
+  and COUNTS it as `decision_errors`); policy kind is a config line
+  (greedy/ensemble/search share one `act()`), so the arm choice never blocked
+  the build; loops **`ladder(1)`, never `ladder(n)`** — poke-env queues n
+  games with no seam, and the seam is what buys pacing, per-battle JSONL
+  resume and a rating-snapshot cadence; aborts loudly on `|nametaken|`
+  instead of retrying (the S1 lesson); gates on **two INDEPENDENT tallies**
+  (our JSONL vs poke-env's own counter, the G2 lesson). **SMOKE, on the local
+  server, all three arms:** a `SimpleHeuristicsPlayer` joins the ladder queue
+  in `--local-smoke` — a one-player ladder queue never matches and would hang
+  looking exactly like a deadlock — which makes the smoke a real exercise of
+  search_ladder_game -> match -> play -> |win|. Ensemble **3.3 ms/decision**,
+  greedy **1.7**, search@M **71.7** (independently reproduces the historical
+  58-75 band). 0 decision errors, tallies agree everywhere. **TWO BUGS THE
+  SMOKE CAUGHT, both day-two failures rather than day-one:** (1) a resumed
+  session looked its old battle tags up in `player.battles`, which belongs to
+  the PREVIOUS process -> KeyError on the first battle after a resume; counts
+  now come from our own records; (2) a no-op resume returned a short dict
+  that `main()` read as a FAILED tally gate — a false alarm that would have
+  been read as data corruption. **THIRD BUG, caught by the full suite:**
+  setting the encoder env flags at module IMPORT mutated the environment for
+  the whole pytest process and broke 10 tests in `test_zeroinfo.py`; the
+  flags now set in `main()` only. **VOID (c) CHECKED AND PASSES** — both
+  vendored gen1 randbats files (`data.json`, `teams.ts`) are **BYTE-IDENTICAL
+  to smogon/pokemon-showdown master** and upstream has **0 commits** touching
+  `data/random-battles/gen1` since we vendored 59da482; shas pinned in the
+  pre-reg and enforced by a test so a re-clone cannot drift it silently.
+  **PRE-REG `configs/eval/ladder_r1.yaml` is a DRAFT** carrying the board
+  measurement, the policy-choice table above, the etiquette/exposure ruling,
+  the credentials rule (PS_PASSWORD env var only — the pre-reg is a committed
+  file), and four VOID conditions; three `<< MAINTAINER n >>` decisions are
+  OPEN: (1) primary arm, (2) one arm vs a pre-registered two-arm A/B — the
+  only way to learn whether search transfers to humans, at the cost of
+  doubling the bot footprint on a 93-player/day ladder, and it MUST name its
+  primary in advance or it becomes post-hoc selection, (3) stopping rule,
+  proposed **Glicko rd <= 40 AND n >= 200** (rating is PATH-DEPENDENT —
+  matchmaking pairs by rating, so ladder games are NOT iid and "n battles"
+  loses its usual meaning; listed players sit at rd 27-38, a fresh account
+  near 130). A test asserts all three markers are still present, so the DRAFT
+  cannot quietly become a launched pre-reg. **STANDING NOTE: the ladder GXE
+  is DESCRIPTIVE, not a credit-line result** — no A/B, no 0.025 bar; calling
+  it "credited" would be a category error. Suite **519 passed** (495 baseline
+  + 24 new). Commits 71d3e40 (build) + this doc commit. NOT LAUNCHED, NOT
+  PUSHED. Headline 0.71825 and R2 0.79283 UNTOUCHED.
