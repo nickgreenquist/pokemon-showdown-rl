@@ -1,7 +1,18 @@
 """Play against a checkpoint yourself, in the browser.
 
+    python scripts/play_vs_agent.py --from-user <your-name> --arm L2
     python scripts/play_vs_agent.py --from-user <your-name> --battles 3
     python scripts/play_vs_agent.py --from-user <your-name> --mode search --battles 1
+
+**`--arm` is the one you want when sanity-checking the ladder.** It builds
+the policy through `ladder._build_policy` and plays it through
+`ladder.LadderPlayer` — the exact objects the live ladder run uses, with
+`accept_challenges` swapped in for `ladder()`. Anything else tests a cousin
+of the laddering agent rather than the agent itself, which for L2 matters:
+`--mode greedy` is ONE lane, the ladder primary is a FOUR-lane ensemble.
+
+This runs against the LOCAL server, so it neither touches the laddering
+account nor interrupts a live run.
 
 Then open the official client pointed at the local server:
 
@@ -25,7 +36,6 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from ch3_fp_h2h import SeatPlayer, _build_agent  # noqa: E402
 
 from poke_env.ps_client.account_configuration import AccountConfiguration  # noqa: E402
 
@@ -35,7 +45,33 @@ S65 = {
 }
 
 
+async def run_arm(args) -> None:
+    """The ladder's own policy, challenged instead of queued."""
+    import yaml
+
+    import ladder
+
+    prereg = yaml.safe_load(open(args.prereg))
+    arm_name = args.arm if args.arm != "PRIMARY" else prereg["primary_arm"]
+    act_fn, prov = ladder._build_policy(prereg, prereg["arms"][arm_name])
+    seat = ladder.LadderPlayer(
+        act_fn,
+        account_configuration=AccountConfiguration(args.username, None),
+    )
+    lanes = prov.get("lanes") or prov.get("lane")
+    print(f"'{args.username}' = ladder arm {arm_name} ({prov['kind']}, "
+          f"lanes {lanes}) — challenge it from '{args.from_user}' at "
+          f"https://play.pokemonshowdown.com/~~localhost:8000 "
+          f"([Gen 1] Random Battle, {args.battles} battle(s))")
+    await seat.accept_challenges(args.from_user, args.battles)
+    print(f"done: you {seat.n_lost_battles} — {seat.n_won_battles} bot "
+          f"(ties {seat.n_tied_battles}); decision_errors "
+          f"{seat.decision_errors}")
+
+
 async def run(args) -> None:
+    from ch3_fp_h2h import SeatPlayer, _build_agent
+
     if args.checkpoint is None:
         spec = S65
     else:
@@ -77,10 +113,19 @@ def main() -> None:
     parser.add_argument("--battles", type=int, default=1)
     parser.add_argument("--mode", choices=["greedy", "search"], default="greedy")
     parser.add_argument("--checkpoint", help="override the default s65 final")
+    parser.add_argument("--arm", nargs="?", const="PRIMARY",
+                        help="play a ladder pre-reg arm (L1/L2/L3, or bare "
+                             "--arm for the pre-reg's primary_arm). This is "
+                             "the option that tests what actually ladders.")
+    parser.add_argument("--prereg", default="configs/eval/ladder_r1.yaml")
     args = parser.parse_args()
-    for var in ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS"):
-        assert os.environ.get(var) == "1", f"{var}=1 required"
-    asyncio.run(run(args))
+    # Set rather than assert (ladder.py does the same, and for the same
+    # reason): this is a by-hand entry point, and a forgotten export would
+    # not fail loudly — it would build a different-width encoder and quietly
+    # play something other than the agent under test.
+    os.environ.setdefault("POKEMON_RL_ENCODER_V2", "1")
+    os.environ.setdefault("POKEMON_RL_ENCODER_IDS", "1")
+    asyncio.run(run_arm(args) if args.arm else run(args))
 
 
 if __name__ == "__main__":
