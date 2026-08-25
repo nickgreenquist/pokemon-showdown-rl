@@ -122,11 +122,13 @@
 # USERNAME LIMIT: the cap is 18 chars on the USERID (display name
 #   lowercased, non-alphanumerics stripped — server/users.ts:745).
 #   'nick_gen1randbats_rl_bot' is a 21-char userid and IS REFUSED.
-#   'nick_gen1rb_rl_bot' -> userid 'nickgen1rbrlbot', 15 chars, OK.
 #   scripts/ladder.py enforces this before connecting.
-# REGISTER THE NAME BY HAND FIRST (poke-env cannot): /register on
-#   play.pokemonshowdown.com. An unregistered name's rating belongs to
-#   whoever holds it next, which makes it unpublishable — VOID (d).
+# ACCOUNT: **nickgen1rbrlbot** — REGISTERED BY THE MAINTAINER 2026-08-25,
+#   so VOID (d) is satisfied. The display_name below is set to the exact
+#   registered string rather than a prettier punctuated variant: PS
+#   authenticates on the USERID, so 'nick_gen1rb_rl_bot' would resolve to
+#   the same account, but "would resolve" is not a thing to discover at
+#   3am against a live ladder. Use what was registered.
 # CREDENTIALS: PS_PASSWORD / PS_USERNAME env vars only. Never here.
 # =====================================================================
 primary_arm: L2                  # ratified; L1/L3 are defined but not launched
@@ -145,9 +147,9 @@ checkpoints:
   s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
 
 arms:
-  L1: {kind: greedy,   lane: s62,                          display_name: nick_gen1rb_rl_bot}
-  L2: {kind: ensemble, lanes: [s62, s63, s64, s65],        display_name: nick_gen1rb_rl_bot}
-  L3: {kind: search,   lane: s65, dose: M,                 display_name: nick_gen1rb_rl_bot}
+  L1: {kind: greedy,   lane: s62,                          display_name: nickgen1rbrlbot}
+  L2: {kind: ensemble, lanes: [s62, s63, s64, s65],        display_name: nickgen1rbrlbot}
+  L3: {kind: search,   lane: s65, dose: M,                 display_name: nickgen1rbrlbot}
 
 stopping_rule:
   glicko_rd_max: 40
