@@ -83,9 +83,15 @@ def test_refuses_unquoted_ruling_bracket(monkeypatch, tmp_path):
 
 
 def test_refuses_pending_transcript(monkeypatch, tmp_path):
+    """The guarded property is 'the grader refuses while a PENDING bracket
+    remains'. This used to read the LIVE pre-reg, which held PENDING only
+    until R5b was stamped (b53e51a) — after the stamp the test asserted a
+    state the workflow had legitimately moved past, and it went red for
+    reasons unrelated to the property. It now builds its own PENDING
+    fixture, so it tests the refusal at any point in a pre-reg's life."""
     _no_git_refusals(monkeypatch, tmp_path)
     prereg = yaml.safe_load(PREREG.read_text())
-    assert "PENDING" in str(prereg["temperature_grid_transcript"])
+    prereg["temperature_grid_transcript"] = "PENDING — stamped at fit time"
     with pytest.raises(AssertionError, match="PENDING"):
         grade.refuse_checks(prereg, str(PREREG))
 

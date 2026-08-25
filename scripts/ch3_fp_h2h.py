@@ -61,8 +61,9 @@ ARM_KINDS = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone")
 def _build_agent(spec: dict):
     """sha-assert then load THROUGH THE SHIM (eval_checkpoint's
     _load_showdown_agent): an 828 lane loads natively; the 808 clone gets
-    PrefixSliceActor — bit-for-bit its own encoding. Returns (agent,
-    native_dim) so G8 can stamp the realized width."""
+    PrefixSliceActor — bit-for-bit its own encoding. Returns the agent
+    (unchanged contract); the realized input width is read off the actor
+    at the call site via _native_dim() for the G8 stamp."""
     import hashlib
     import sys
 
@@ -81,10 +82,15 @@ def _build_agent(spec: dict):
     ckpt = load_checkpoint(spec["path"])
     cfg = Config(**ckpt["config"])
     torch.set_num_threads(1)
-    agent = _load_showdown_agent(ckpt, cfg)
-    native = getattr(getattr(agent, "actor", None), "in_dim", None)
+    return _load_showdown_agent(ckpt, cfg)
+
+
+def _native_dim(agent) -> int:
+    """Realized input width of a loaded agent: the shim's slice width when
+    a cross-encoder checkpoint was wrapped, else the process OBS_DIM."""
     from rl.envs.showdown import OBS_DIM
-    return agent, int(native) if native is not None else OBS_DIM
+    native = getattr(getattr(agent, "actor", None), "in_dim", None)
+    return int(native) if native is not None else OBS_DIM
 
 
 def _resolve_evaluator(prereg: dict, seat_lane: str, spec_eval, agent0):
@@ -105,7 +111,7 @@ def _resolve_evaluator(prereg: dict, seat_lane: str, spec_eval, agent0):
         assert len(pool) == 3, f"F5: loo pool resolved to {pool}"
         assert seat_lane not in pool, f"F5: own lane {seat_lane} in pool"
         evaluator["agents"] = [
-            _build_agent(prereg["checkpoints"][x])[0] for x in pool
+            _build_agent(prereg["checkpoints"][x]) for x in pool
         ]
         assert all(a is not agent0 for a in evaluator["agents"]), (
             "F5: the lane's own agent object is in the ensemble"
@@ -176,7 +182,8 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "kind must not silently run the greedy seat"
     )
     seat_lane = arm.get("seat", "s65")
-    agent, native_dim = _build_agent(prereg["checkpoints"][seat_lane])
+    agent = _build_agent(prereg["checkpoints"][seat_lane])
+    native_dim = _native_dim(agent)
     # CH4 R1 BI-3: a sampling seat (S1's whole point; C1's form-matching to
     # the banked pooled-orientation clone comparator) draws from torch's
     # RNG, so the arm must pin seat_rng_seed or it is irreproducible.

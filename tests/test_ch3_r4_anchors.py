@@ -61,8 +61,13 @@ def test_fp_unknown_kind_fails_loudly():
         asyncio.run(ch3_fp_h2h.run(prereg, "BAD", 1, "t"))
 
 
-def test_fp_registered_kinds_are_exactly_two():
-    assert ch3_fp_h2h.ARM_KINDS == ("greedy_seat", "search_seat")
+def test_fp_registered_kinds_are_the_registered_set():
+    """The R4-era contract is that an UNKNOWN kind fails loudly (tested in
+    test_fp_unknown_kind_fails_loudly), not that the set never grows. CH4 R1
+    registered two more via its ratified pre-reg: sampled_seat (arm S1) and
+    fp_vs_clone (arms C1/C1b). Update this tuple only alongside a pre-reg."""
+    assert ch3_fp_h2h.ARM_KINDS == (
+        "greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone")
 
 
 def test_fp_anchor_config_matches_the_prereg():
