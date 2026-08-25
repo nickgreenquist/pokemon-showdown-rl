@@ -8,8 +8,9 @@ gates; suite 519 passed. All three arms smoked end-to-end on the local server
 (ensemble 3.3 ms/decision, greedy 1.7, search@M 71.7). VOID (c) PASSES —
 vendored gen1 randbats files BYTE-IDENTICAL to upstream master, 0 commits
 since. Board measured first time: gen1RB top-500 = GXE 93.5 / 75.0 median /
-58.8 cutoff, 93 active in 24 h. BLOCKED ON THREE << MAINTAINER n >> DECISIONS
-plus REGISTERING THE ACCOUNT BY HAND. CH4 R1 stays CLOSED.**)
+58.8 cutoff, 93 active in 24 h. PRE-REG **RATIFIED** — PRIMARY = L2 ensemble
+(the maintainer's L3/search lean was argued down on off-SH evidence), ONE arm,
+stop at rd<=40 AND n>=200. ONE STEP LEFT: REGISTER THE ACCOUNT BY HAND.**)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE.**
 D26 12M = 0.71825 (CREDITED HEADLINE). R2 search@M = 0.79283 (B1 CREDIT,
 SH-facing). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3/CH4-R1 CLOSED.
@@ -25,15 +26,13 @@ SH-facing). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3/CH4-R1 CLOSED.
 ‡ FP's take, not ours. Never quote an anchor number as a "best".
 
 ## Next actions
-1. **LADDER — three decisions block launch** (<< MAINTAINER n >> in the
-   pre-reg): (1) PRIMARY ARM — **L2 ensemble RECOMMENDED**, not L3 search:
-   search's +0.075 vs SH is credited but BOTH off-SH point estimates are
-   NEGATIVE (clone -0.034, FP@100 -0.020) and MU-8's transfer test is
-   z = -2.80; the ladder IS off-SH. Ensemble is +0.036 (R0, credited), no
-   post-hoc lane pick, averages rather than exploits — but UNMEASURED off-SH,
-   disclosed as argument-from-mechanism; (2) one arm or a pre-registered
-   two-arm A/B (the only way to learn if search transfers to humans; doubles
-   the footprint); (3) stopping rule — proposed **rd <= 40 AND n >= 200**.
+1. **LADDER — RATIFIED, one manual step from launch.** PRIMARY = **L2, the
+   4-lane ensemble** (0.74633 vs SH, +0.036 R0-credited; not a post-hoc lane
+   pick; UNMEASURED off-SH — disclose that). **L3/search was argued down and
+   MUST NOT be quietly substituted**: +0.075 vs SH but NEGATIVE on both
+   off-SH opponents (clone -0.034, FP@100 -0.020), MU-8 transfer z = -2.80,
+   and ~40% longer battles. One arm; A/B deferred (needs its own pre-reg
+   naming a primary). Stop at **Glicko rd <= 40 AND n >= 200**.
 2. **REGISTER `nick_gen1rb_rl_bot` BY HAND** (poke-env cannot); then
    `export PS_PASSWORD=...` and launch. `nick_gen1randbats_rl_bot` is a
    21-char USERID and the server REFUSES it — the cap is 18 on the userid

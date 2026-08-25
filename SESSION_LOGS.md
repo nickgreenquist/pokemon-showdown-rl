@@ -6679,3 +6679,23 @@ entry by offset — never a broad keyword grep.
   it "credited" would be a category error. Suite **519 passed** (495 baseline
   + 24 new). Commits 71d3e40 (build) + this doc commit. NOT LAUNCHED, NOT
   PUSHED. Headline 0.71825 and R2 0.79283 UNTOUCHED.
+
+- 2026-08-25 (evening cont., maintainer resolved all three open decisions —
+  **LADDER PRE-REG RATIFIED: PRIMARY = L2 (4-lane ensemble), ONE ARM, STOP AT
+  Glicko rd <= 40 AND n >= 200. The L3/search lean was argued down and the
+  recommendation accepted. One manual step remains before launch: registering
+  the account.**): all three `<< MAINTAINER n >>` markers resolved in
+  `configs/eval/ladder_r1.yaml`, which flips from DRAFT to **RATIFIED**, and
+  the guard test that asserted the markers were still present flips WITH it
+  in the same commit (`test_no_unresolved_maintainer_markers` +
+  `test_primary_arm_is_named_and_real`) — that was the point of having the
+  guard. A `primary_arm: L2` key now exists so "which arm is primary" is
+  machine-checkable rather than prose: a ladder run with no named primary is
+  post-hoc selection waiting to happen, which is also why the two-arm A/B is
+  DEFERRED-not-killed and would need its own pre-reg naming its primary in
+  advance. L1 and L3 stay defined and tested but are explicitly NOT LAUNCHED.
+  The reason for choosing against search is recorded IN the config header so
+  a later reader does not re-open it: "tad worse on Foul Play" understates it
+  — search is worse on BOTH off-SH opponents we have ever measured, and the
+  ladder is off-SH. Suite **520 passed**. STATUS updated. Still NOT LAUNCHED
+  and NOT PUSHED; headline 0.71825 and R2 0.79283 UNTOUCHED.

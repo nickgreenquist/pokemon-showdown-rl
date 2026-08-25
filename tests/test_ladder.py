@@ -225,13 +225,22 @@ class TestPrereg:
         for banned in ("password:", "ps_password:", "secret:"):
             assert banned not in raw
 
-    def test_draft_markers_still_present(self, cfg):
-        """The config is a DRAFT. If these ever disappear it is because the
-        maintainer resolved them — at which point this test is updated in
-        the same commit, deliberately, rather than drifting."""
+    def test_no_unresolved_maintainer_markers(self, cfg):
+        """The DRAFT carried three `<< MAINTAINER n >>` decisions and this
+        test asserted they were still present, so the draft could not
+        quietly become a launched pre-reg. They were RESOLVED 2026-08-25
+        (L2 / one arm / rd<=40 AND n>=200), so the test flips in the same
+        commit — deliberately, which is the point of having had it."""
         raw = PREREG.read_text()
-        markers = re.findall(r"<< MAINTAINER \d+ >>", raw)
-        assert len(markers) == 3, markers
+        assert not re.findall(r"<< MAINTAINER \d+ >>", raw)
+        assert "Status: RATIFIED" in raw
+
+    def test_primary_arm_is_named_and_real(self, cfg):
+        """A ladder run with no named primary is post-hoc selection waiting
+        to happen — the whole reason the A/B was deferred."""
+        assert cfg["primary_arm"] == "L2"
+        assert cfg["primary_arm"] in cfg["arms"]
+        assert cfg["arms"][cfg["primary_arm"]]["kind"] == "ensemble"
 
     def test_stopping_rule_is_pre_stated(self, cfg):
         assert cfg["stopping_rule"]["glicko_rd_max"] == 40

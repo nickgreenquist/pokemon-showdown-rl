@@ -1,8 +1,12 @@
 # =====================================================================
 # LADDER R1 — THE FIRST REAL-LADDER MEASUREMENT OF THIS AGENT
 # Pre-registered 2026-08-25 BEFORE a single rated battle was played.
-# Status: DRAFT — three fields marked << MAINTAINER >> are unresolved.
-#   Do NOT launch until they are filled and this header is re-read.
+# Status: RATIFIED 2026-08-25 by the maintainer. All three open decisions
+#   were resolved BEFORE any rated battle: PRIMARY ARM = L2 (ensemble),
+#   ONE ARM (no A/B), STOPPING RULE = Glicko rd <= 40 AND n >= 200. The
+#   maintainer's initial lean was L3 (search); the recommendation against
+#   it, and the evidence, are recorded verbatim below and were accepted.
+#   Remaining pre-launch step is manual: REGISTER THE ACCOUNT.
 # Purity note: playing humans is purity-legal — no expert data enters
 #   training, and the lane's exclusion is BOOTSTRAPPING (the
 #   novelty-over-strength memory), the same footing as the Foul-Play
@@ -54,7 +58,13 @@
 #   it has no reason to be SH-specific. HONEST GAP: it is UNMEASURED
 #   off-SH — that is an argument-from-mechanism, not evidence, and it
 #   is disclosed as such wherever the ladder number is quoted.
-# << MAINTAINER 1 >>: pick the PRIMARY arm. L2 recommended.
+# RESOLVED 2026-08-25: **PRIMARY ARM = L2, the 4-lane ensemble.** The
+#   maintainer was leaning L3 (search) as "best vs SH but tad worse on
+#   foul play"; the recommendation against it was accepted. Recording the
+#   reason so a later reader does not re-open it: "tad worse on Foul Play"
+#   understates the case — search is worse on BOTH off-SH opponents we
+#   have ever measured, and the ladder is off-SH. L1 and L3 stay defined
+#   and tested below, but DO NOT LAUNCH: this pre-reg runs L2 only.
 # ---------------------------------------------------------------------
 # ARM STRUCTURE. ONE arm goes out. A two-arm A/B (say L2 and L3 on two
 #   accounts) is the ONLY way to learn whether search transfers to
@@ -64,7 +74,8 @@
 #   run, the primary MUST be named in advance; picking the better of
 #   two ladder numbers after the fact is exactly the post-hoc
 #   selection this repo's pre-reg culture exists to prevent.
-# << MAINTAINER 2 >>: one arm, or a pre-registered two-arm A/B?
+# RESOLVED 2026-08-25: **ONE ARM.** The A/B is deferred, not killed — if
+#   it is ever run it needs its own pre-reg naming its primary in advance.
 # ---------------------------------------------------------------------
 # STOPPING RULE. Rating is PATH-DEPENDENT — matchmaking pairs by
 #   rating, so ladder games are NOT iid and "n battles" does not have
@@ -76,7 +87,7 @@
 #   so a lucky-streak convergence cannot end it early. Sessions may
 #   span days; the JSONL is resumable and the rule is evaluated on the
 #   PUBLIC board, not on our own tally.
-# << MAINTAINER 3 >>: accept rd <= 40 AND n >= 200, or set your own.
+# RESOLVED 2026-08-25: **ACCEPTED AS WRITTEN — rd <= 40 AND n >= 200.**
 # ---------------------------------------------------------------------
 # PRIMARY READ (pre-stated, DESCRIPTIVE — this credits no lever):
 #   our GXE and Glicko-1 off the public top-500 JSON at the stopping
@@ -118,6 +129,7 @@
 #   whoever holds it next, which makes it unpublishable — VOID (d).
 # CREDENTIALS: PS_PASSWORD / PS_USERNAME env vars only. Never here.
 # =====================================================================
+primary_arm: L2                  # ratified; L1/L3 are defined but not launched
 results_dir: results/ladder
 save_replays: results/ladder/replays
 max_battles_total: 1000          # hard stop; the stopping rule should bite first
