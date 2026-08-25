@@ -6519,3 +6519,80 @@ entry by offset — never a broad keyword grep.
   Showdown** (every path is localhost; real play needs account auth —
   play.pokemonshowdown.com demands an assertion even in guest mode). Suite
   GREEN 495 passed. No code changed in this block.
+
+- 2026-08-25 (evening, maintainer: "handoff.md - go. if you think we are ready
+  to set up the showdown ladder and let it out, tell me yes/no. if no, tell me
+  what's confusing" — **LADDER READINESS ASSESSED. ANSWER: NO to letting it out
+  tonight, YES to building it. The blockers are DECISIONS, not code; and the
+  build turned out ~5x cheaper than HANDOFF.md priced it.** No code changed;
+  three docs updated): HANDOFF.md folded back to its stub on pickup.
+  **BUILD COST — HANDOFF's trap #2 ("real ladder play is new construction, not
+  a config change; price it honestly") is OVERPRICED, verified in-session:**
+  (i) poke-env 0.15.0 ships `ShowdownServerConfiguration`
+  (`wss://sim3.psim.us/showdown/websocket` + `play.pokemonshowdown.com/action.php`)
+  AND a native `Player.ladder(n_games)` — the assertion/auth problem
+  `scripts/foulplay_vs_sh.py:116` documents is poke-env's to solve, not ours,
+  given a registered account+password; (ii) `SeatPlayer`
+  (scripts/ch3_fp_h2h.py:126) is already a server-agnostic single-seat driver
+  — `embed_battle` + `SinglesEnv.get_action_mask` + `action_to_order` off the
+  poke-env Battle object, zero localhost coupling — so laddering is
+  `accept_challenges` -> `ladder` plus a server_configuration kwarg;
+  (iii) rating capture is native (`AbstractBattle.rating` /
+  `.opponent_rating`); (iv) search is self-contained (poke_engine in-process
+  via rl/search/bridge.py, NO second sim needed); (v) latency is a non-issue —
+  search@M measured 58-75 ms/decision across ch3_r2 (`search/ms_mean`), orders
+  under any ladder timer. What is genuinely NOT built: the runner script,
+  day-spanning resumability, and a results file. Estimate: one evening.
+  **THE BOARD, MEASURED FOR THE FIRST TIME IN THIS PROJECT** (banked in
+  prior_work/README.md, which previously said flatly "nobody has measured
+  gen1randombattle"): `https://pokemonshowdown.com/ladder/gen1randombattle.json`
+  is an UNAUTHENTICATED GET returning the top-500 with per-player GXE,
+  Glicko-1 (r/rd) and Elo — so GXE capture is free too. Pulled 2026-08-25:
+  **GXE 93.5 best / 82.3 p90 / 75.0 list-median / 58.8 at the 500th (the
+  cutoff to be listed at all)**; Glicko 2022/1794/1712/1568; Elo
+  1667/1510/1427/1358; median listed player has 386 games. ACTIVITY by
+  `last_played`: **93 players in the last 24 h**, 142 in 3 d, 173 in 7 d, 277
+  in 30 d. TWO REFRAMES: (1) the published field is MID-TOPLIST here, not a
+  ceiling — Huang & Lee 72% (gen7RB) and ps-ppo 76.7% (gen9RB) straddle this
+  list's 75.0 median, and the gen1RB ceiling is 93.5 (cross-format, so
+  calibration not comparison); (2) the ladder is ALIVE BUT THIN — queueing
+  will work, but over a few hundred games REPEAT OPPONENTS ARE CERTAIN, and a
+  repeat *adapting* opponent is an adversary class no anchor in this project
+  has ever tested (vs-SH is 3000 iid battles against a script that cannot
+  adapt). Caveat stated in the doc: top-500 is a LEADERBOARD, not the
+  ladder-wide distribution (ladder-wide median GXE is ~50 by construction).
+  **THE FIVE OPEN DECISIONS (all the maintainer's; this is the "what's
+  confusing" answer):** (a) **no pre-reg exists** and no gen1RB peer row
+  exists, so what the number MEANS — and what result changes what we do — is
+  undefined; every prior headline-grade rung here had a pre-registered credit
+  line, and laddering without one is off-doctrine. (b) **which policy ships,
+  and in which FORM** — search@M is our best (0.79283) but is the arm with the
+  strongest evidence its gain does NOT transfer off-SH (MU-8 re-grade z =
+  -2.80 vs BT-commensurate; the 2026-08-23 falsifier had it negative vs clone
+  AND vs Foul Play), while D26 12M deterministic (0.71825) is the credited
+  headline; separately deterministic-vs-sampling is now a LIVE question rather
+  than protocol boilerplate, because repeat opponents make a deterministic
+  gen1 policy memorisable — and CH4 R1 measured sampling as costly (clone
+  ~26 implied points; our own S1-S0 -0.0180). We have NO measurement of
+  repeat-opponent exploitability. (c) **ladder accounting is undefined** —
+  timer losses, disconnects, forfeits and ties all count and rating is
+  path-dependent (matchmaking pairs by rating, so games are NOT iid), which
+  the locked "3000 battles, ties as non-wins, 3 seeds pooled" protocol does
+  not map onto; need a stopping rule (n games? rd below X?), one account vs
+  per-seed alts, and what gets discarded. (d) **public exposure/etiquette is a
+  maintainer call** — PS's written rules do NOT ban bots (checked
+  pokemonshowdown.com/rules; nearest line is "Don't game the system"), but the
+  field norm has moved: Metamon's own repo now says they have become "a lot
+  more cautious about laddering," and prior_work already records that Metamon
+  was accused of botting in chat at this rating band; decisions needed on
+  disclosure in the account name, chat handling, and games/day. (e) **version
+  drift, cheap to close** — the vendored server is 59da482 (2026-07-30) and
+  both `rl/envs/randbats_prior.py` and the search determinizer are calibrated
+  to its teams.ts; if the live gen1 set pool moved, both are quietly
+  mis-specified. One diff answers it. RECOMMENDED ORDER (not executed): pre-reg
+  first (the maintainer's mandated 2-agent design process), then build + smoke
+  on a throwaway alt, then let it out. DOC UPDATES LANDED: HANDOFF.md -> stub;
+  prior_work/README.md gains the measured-board section under the four caveats;
+  STATUS.md rewritten (60 lines) — and its stale item 4 ("commits after 60d73fc
+  remain unpushed") CORRECTED, `git rev-list --count origin/main..HEAD` = 0,
+  the tree is fully pushed. Headline 0.71825 and R2 0.79283 UNTOUCHED.

@@ -136,6 +136,38 @@ Fig 17's Glicko "is possibly an overestimate" (slow convergence far below the me
 **nobody has measured gen1randombattle** — every randbats row above is gen4/7/9 and every
 gen1 row is OU, so this is a cross-format extrapolation, not a measurement of our board.
 
+### THE BOARD ITSELF — measured 2026-08-25, first time in this project
+
+The fourth caveat above said "nobody has measured gen1randombattle." Half of that is now
+fixed: no *agent* has been measured on it, but **the board is public and free to read** —
+an unauthenticated GET on `https://pokemonshowdown.com/ladder/gen1randombattle.json`
+returns the top-500 list with GXE, Glicko-1 (`r`/`rd`) and Elo per player. Pulled
+2026-08-25 (fetch it again before quoting; it moves):
+
+| gen1randombattle **top-500 list** | GXE | Glicko-1 | Elo |
+|---|---|---|---|
+| best | **93.5** | 2022 | 1667 |
+| p90 | 82.3 | 1794 | 1510 |
+| median **of the list** | **75.0** | 1712 | 1427 |
+| 500th = cutoff to be listed at all | 58.8 | 1568 | 1358 |
+
+**Read the row labels literally: this is the top-500 leaderboard, NOT the ladder-wide
+distribution** — ladder-wide median GXE is ~50 by construction, so "median 75.0" means
+median *among listed players*, and it is not a percentile of the playerbase.
+
+Two things it reframes:
+
+1. **The published field is mid-toplist here, not the ceiling.** Huang & Lee's 72% (gen7RB)
+   and ps-ppo's 76.7% (gen9RB) straddle this list's median of 75.0. The gen1RB ceiling is
+   93.5. Cross-format still, so this is calibration, not a comparison — but the field's
+   numbers are not a wall.
+2. **The ladder is alive but THIN.** Activity by `last_played`: **93 players in the last
+   24 h**, 173 in 7 d, 277 in 30 d; the median listed player has 386 games. Queueing will
+   work, but over a few hundred games **repeat opponents are certain**, and a repeat human
+   opponent is a kind of adversary no anchor in this project has ever tested — vs-SH is
+   3000 iid battles against a script that cannot adapt. Whether a deterministic policy is
+   memorisable over repeats is UNMEASURED here.
+
 ## Local code checkouts — READ THESE DIRECTLY
 
 Full source for the closest comparable system is on this machine, OUTSIDE the repo tree.
