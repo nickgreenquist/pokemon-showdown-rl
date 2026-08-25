@@ -111,14 +111,39 @@
 #   re-clone cannot drift this silently; (d) any battle played on an
 #   unregistered name.
 # ---------------------------------------------------------------------
-# ETIQUETTE AND EXPOSURE. The account name declares the bot ("bot" in
-#   the name, maintainer's ruling 2026-08-25). PS's written rules do
-#   NOT ban bots (pokemonshowdown.com/rules; nearest line is "Don't
-#   game the system"), but the field norm has moved — Metamon's repo
-#   now says they became "a lot more cautious about laddering", and
-#   prior_work records Metamon being accused of botting in chat at
-#   this rating band. Hence: serial play only (max_concurrent 1), a
-#   sleep between games, a hard total cap, and no chat.
+# ETIQUETTE AND EXPOSURE (re-checked against primary sources
+#   2026-08-25 — an earlier draft of this block overstated the case).
+#   The account name declares the bot (maintainer's ruling). Findings:
+#   (a) PS's written rules are FIVE items and bots/automation/scripts
+#   appear in NONE of them; the nearest is rule 4 "don't game the
+#   system", which is about intentionally losing and tricking
+#   opponents into forfeiting. (b) **Naming an account as a bot is NOT
+#   a documented safe harbor** — Smogon's own PS-bots article shows
+#   identifying names are a CONVENTION, not a requirement or a
+#   protection. Do not treat the name as what makes this legitimate.
+#   (c) The operative rule is #5, "Moderators have discretion...  even
+#   if it's not on this list", so this is governed by IMPACT, not by
+#   compliance with a checklist. (d) A claimed admin policy ("bots
+#   harming the human experience get permabanned") could NOT be
+#   confirmed at its source — the thread is community proposals plus
+#   an admin noting that verifying a user is a bot needs the site's
+#   most restricted permission set (4 people). Enforcement is rare and
+#   discretionary. (e) The main community objection in the 2024-25
+#   ladder-bot threads is usage-stat/tiering distortion, which LARGELY
+#   DOES NOT APPLY here: randbats has no team building and does not
+#   feed usage-based tiering. (f) The field norm has still moved —
+#   Metamon's repo says they became "a lot more cautious about
+#   laddering", and prior_work records Metamon being accused of
+#   botting in chat at this rating band.
+#   CONSEQUENCE — what actually keeps this legitimate is a SMALL
+#   BOUNDED FOOTPRINT, not the name: serial play only
+#   (max_concurrent 1), a sleep between games, a hard total cap, a
+#   stopping rule around 200 games, and no chat. **Anything that turns
+#   this from a bounded measurement into a persistent ladder presence
+#   — continuous running, multiple accounts, chasing a leaderboard
+#   placement — is a DIFFERENT decision and warrants a courtesy note
+#   to PS staff first.** If a moderator makes contact or players
+#   complain in chat: stop, then ask. Do not argue the rules.
 # USERNAME LIMIT: the cap is 18 chars on the USERID (display name
 #   lowercased, non-alphanumerics stripped — server/users.ts:745).
 #   'nick_gen1randbats_rl_bot' is a 21-char userid and IS REFUSED.
