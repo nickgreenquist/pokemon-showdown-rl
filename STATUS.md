@@ -29,9 +29,9 @@ SH-facing). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3 CLOSED.
 ‡ FP's take, not ours. Never quote an anchor number as a "best".
 
 ## Next actions
-1. **The off-anchor thread is CLOSED.** No robustness lever is warranted.
-   Shelved and NOT re-opened: tau-DIV, POOL-SPAN, the exploiter family
-   (design_input_A/B), the critic family. Actor ExIt stays KILLED.
+1. **The off-anchor thread is CLOSED** — no robustness lever is warranted.
+   Shelved, NOT re-opened: tau-DIV, POOL-SPAN, exploiter family, critic
+   family. Actor ExIt stays KILLED.
 2. **Open question for the maintainer** (MU-4 option (c), deliberately
    NOT auto-executed): "exhausted vs SH + FP" is now closer to
    demonstrated than assumed — whether that re-opens the deferred LADDER
