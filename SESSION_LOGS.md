@@ -6340,3 +6340,52 @@ entry by offset — never a broad keyword grep.
   switch baseline with force-switch rows excluded (true policy rate
   0.0598-0.0965 by lane vs the banked D-9 0.143-0.197 — the ~+0.09
   definitional artifact review 1 predicted is CONFIRMED at 0.084-0.109).
+
+- 2026-08-26 (execution block cont., **CH4 R1 WAVE PART 1: 5 OF 14 ARMS
+  BANKED, KILLED AT H2; REMAINDER HANDED TO THE MAINTAINER'S TERMINAL
+  (maintainer choice, offered four options)**): the agent-launched serial
+  wave completed V62-V65 (vs SH, locked form, 3000 ea) and H1 (FP@20 vs
+  SH, 3000) before being stopped ~2 h in, at 519/1000 of H2. Clean kill:
+  no orphaned seat/FP processes, no partial JSON, no VOID marker.
+  BANKED, BOTH PRE-REGISTERED DELIVERABLES: (1) SH-SIDE ERA PIN PASS —
+  in-session pooled vs-SH 0.71508 (0.7170/0.7057/0.7340/0.7037) vs the
+  banked 0.71825, diff -0.00317 inside the +/-0.020 band, so the D26
+  era travels and these in-session values (not the banked finals) are
+  rho's vs-SH inputs per review 1 MA-7; (2) **THE FRESH FP@20 HUB:
+  H1 = 0.82133 (FP takes 2464-528-8 of 3000, 1.20 s/battle)** — the
+  first in-session hub this project owns and the pin bt_hub_fp20 needs;
+  for scale the banked FP@100 hub is 0.8307 at n=7200 (a DIFFERENT
+  budget, so this is context, not a comparison, and G6's in-session
+  FP@100 arm H2 is what settles budget equivalence). TAPE-SIDE READS,
+  all on banked corpora and all settled independently of the wave:
+  **G6b STYLE EQUIVALENCE PASS** (FP switch rate @20 0.1370 vs @100
+  0.1456, diff 0.0086 vs bar 0.05; mean turns 26.10 vs 27.61, 5.5% vs
+  bar 15%; faints/battle 9.25 vs 9.25) — FP@20 PLAYS like FP@100, not
+  merely scores like it, which is the half of MU-2 that does not need
+  battles; **NO P-CELL FIRES AND NONE IS CLOSE** (P-SHARP delta_sw
+  0.0716 vs need 0.1106; P-MECH status swing 0.0989 vs 0.4768 and sweep
+  0.4837 vs 0.5808; P-COVER 0.2745 vs 0.5222; P-EVAL 0.0131 vs 0.4684)
+  — at pre-registered thresholds the tapes LOCATE NO MECHANISM;
+  **E-b RESOLVED**: our vs-FP switch rate 0.0741 sits INSIDE the
+  recomputed self-play policy band [0.0598, 0.0965] with no slack, so
+  the low-switch style is a POLICY property, not FP-induced; **E-c
+  (pre-registered GENUINELY UNCERTAIN) RESOLVED AGAINST THE STYLE
+  STORY**: our own search seat switches 0.1885 — MORE than FP's
+  0.1368-0.1456 — and lengthens games 27.6 -> 34.4 turns, yet the
+  banked outcome moved 0.388 -> 0.368, i.e. a configuration that
+  overshoots FP's switch rate is already available to us and does not
+  help (FS parsed 258 battles because the crashed attempt1 tape is
+  included per the pre-reg's tapes block — DISCLOSED; FS is a
+  RECORDED-ONLY contrast and bears no letters). Normalized hax
+  falsifier passes (crit/move 0.1329 vs 0.1440 on FG, ~1.6 se, and the
+  sign FLIPS on FP20 0.1446 vs 0.1401 — no systematic asymmetry, so the
+  parse is not manufacturing the style reads). SCOPE DISCIPLINE: the
+  archaeology is SCREEN-GRADE and may only SELECT among pre-named
+  levers; it cannot credit or refute, and the other half of VERDICT-A
+  (the BT residual) needs the L arms. Wave script made RESUME-SAFE (an
+  arm whose JSON exists and resolved every challenge is skipped; no
+  mid-arm resume is claimed or implied). Remaining 9 arms priced at
+  H1's MEASURED 1.20 s/battle: ~7.0 h total, of which the four L arms
+  (~4.0 h) carry s_T and rho. Handed to the maintainer's terminal per
+  their choice; CLAUDE.md's >5-min convention and the kill both favour
+  it over another agent-launched background job.
