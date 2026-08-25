@@ -110,9 +110,25 @@ log_bytes() {
     echo "$b"
 }
 
+# 2026-08-25 (S1 incident): `( ... ) &` makes $! the SUBSHELL's pid, so
+# every kill orphaned a live foul-play python that kept holding the
+# websocket AND the username. The relaunch then hit
+# "|nametaken|<user>|Someone is already using the name" and wrote nothing,
+# so the stall detector killed it and orphaned another — 15 relaunches, 14
+# orphans, zero progress. `exec` replaces the subshell with python, so
+# FP_PID is the real process; kill_fp() sweeps by username as belt-and-
+# braces and waits for the server to release the name before relaunching.
+kill_fp() {
+    kill "$FP_PID" 2>/dev/null
+    sleep 2
+    kill -9 "$FP_PID" 2>/dev/null
+    pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
+    sleep "${NAME_RELEASE_SECS:-15}"
+}
+
 start_fp() {
     remaining="$1"
-    ( cd "$FPDIR" && "$FPPY" run.py \
+    ( cd "$FPDIR" && exec "$FPPY" run.py \
         --websocket-uri "$WS" \
         --ps-username "$FP_USER" \
         --bot-mode challenge_user \
@@ -198,9 +214,20 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
     elif [ "$STALLED" -ge "$STALL_POLLS" ]; then
         FP_DEAD=1
         log "foul-play log stalled for $((STALLED * POLL_SECS))s -- killing pid $FP_PID"
-        kill "$FP_PID" 2>/dev/null
+        kill_fp
+    fi
+    # A relaunch that never logged in (username still held) is an OPS
+    # failure, not a battle crash: detect it and abort rather than burn
+    # the relaunch budget orphaning processes.
+    if tail -40 "$FP_LOG" 2>/dev/null | grep -q "nametaken"; then
+        log "USERNAME DEADLOCK: '$FP_USER' still registered after a kill; aborting arm (ops failure, NOT a data verdict)"
+        pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
+        date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.USERNAME_DEADLOCK"
+        kill "$SEAT_PID" 2>/dev/null
         sleep 2
-        kill -9 "$FP_PID" 2>/dev/null
+        kill -9 "$SEAT_PID" 2>/dev/null
+        write_runner_json false
+        exit 3
     fi
     [ "$FP_DEAD" -eq 0 ] && continue
 
