@@ -13,7 +13,7 @@
 >   **inference-only**; expert iteration into the weights was B5+KILL. §8's D8/D9 are moot.
 > - **Chapter 4 R1 (off-anchor) — CLOSED 2026-08-25.** The Foul-Play gap is raw strength,
 >   not an off-distribution hole (BT residual +0.005 ± 0.013; 0/4 tape mechanism cells).
-> - **The attention/transformer ruling at §7 (~line 313) was a COST ruling, not a
+> - **The attention/transformer ruling at §4 Rung 2 (lines 337-340) was a COST ruling, not a
 >   performance one** — 34.6× on a microbenchmark, never trained. Do not cite it as
 >   evidence that attention fails here.
 > - **Scale is dead** (50M flat vs 12M) and **critic-capacity is moot** (D22's "srank 7–11

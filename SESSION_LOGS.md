@@ -6699,3 +6699,68 @@ entry by offset — never a broad keyword grep.
   — search is worse on BOTH off-SH opponents we have ever measured, and the
   ladder is off-SH. Suite **520 passed**. STATUS updated. Still NOT LAUNCHED
   and NOT PUSHED; headline 0.71825 and R2 0.79283 UNTOUCHED.
+
+- 2026-08-25 (evening cont., maintainer: "use few sub agents to scan the repo and
+  find things to trim, summarize, remove, and generally clean up and polish this
+  repo. comedy waste is real" — **FOUR PARALLEL AUDITS (scripts / docs / code /
+  disk). THE HEADLINE FINDING INVERTS THE WHOLE CLEANUP: `results/`, `runs/` and
+  `data/` are ALL gitignored with ZERO tracked files, so a closed rung's grader
+  script is the ONLY committed provenance for the number it produced.** Verified:
+  `git ls-files results|wc -l` = 0, same for runs and data.): of 69 scripts,
+  exactly **two** are genuine delete candidates (`play_vs_agent.py`, `record.py`
+  — 215 of 18,577 lines, 1.2%); the ~60 others are dead BY DESIGN and deleting
+  them makes STATUS/RESULTS/README numbers unreproducible from the repo alone.
+  **FIXED THIS BLOCK.** (1) **Two live doc traps.** `README.md` told a reader to
+  evaluate with `scripts/score_ladder.py` — the Connect-4-era checkpoint-rung
+  FALSE FRIEND (400 episodes, every `ckpt_*.pt`, local anchors), not the locked
+  protocol; anyone following the README produced a wrong number. Now points at
+  `eval_checkpoint.py` (locked) and `ladder.py` (real ladder) and says what
+  score_ladder actually is. And **CLAUDE.md's ladder landmine still said "do not
+  propose it before then"** — the 2026-08-23 deferral that CH4 R1 SATISFIED and
+  that the maintainer has since RATIFIED; this is precisely the D19 dead-lever
+  failure mode CLAUDE.md itself warns about, one file away from sending the next
+  session backwards. Rewritten with the ratified state, the retired GXE rule of
+  thumb, and the measured board. (2) **Dangling pointers.** The attention ruling
+  was cited as "§7 / ~line 313" in THREE files; it is actually **§4 Rung 2, lines
+  337-340** (line 313 is inside the reward-shaping subsection) — corrected in
+  CLAUDE.md, DESIGN.md and prior_work/README.md. prior_work's five live "DESIGN
+  §11" pointers (a section r7 RETIRED, per CLAUDE.md) are now qualified as
+  retired. CLAUDE.md's "288 passed" was stale by 240. (3) **PROVENANCE HOLE
+  CLOSED:** the four CH4 R1 instruments (`ch4_r1_grade.py`, `ch4_fp_tape_parse.py`,
+  `ch4_sp_baseline.py`, `ch4_r1_wave.sh`, ~900 lines) had **zero references
+  anywhere in the repo** despite producing the entire chapter readout — they
+  looked exactly like orphans a reference-based cleanup deletes. Named in an
+  `instruments:` block in their own pre-reg, with a test that asserts every
+  declared instrument path exists. (4) **`scripts/README.md` written** — the
+  script→chapter→banked-output map, which existed nowhere; leads with the
+  gitignored-results fact and with the trap that **`ch3_*` is NOT all Chapter 3**
+  (`ch3_r4_fp_runner.sh` + `foulplay_vs_sh.py` + the FP patch are live
+  ladder-era anchor machinery; a naive "CH3 is closed" sweep destroys the FP
+  anchor). (5) **TWO PRE-LAUNCH LADDER FIXES.** A mask desync in `ladder.py` was
+  counted only in a private tally and was **INVISIBLE to `mask_desync_total()`**,
+  the counter every locked number in this project discloses; it now routes
+  through the shared `_recover_mask_desync` and falls back only when that
+  recovery hits its second-desync cap (which RAISES — correct for an eval that
+  should die, wrong for a live rated game). And **the pre-registered stopping
+  rule was prose no code read** — a human instruction an operator could overrun
+  by hundreds of public battles; `stopping_rule_met()` implements it (rd <= 40
+  AND n >= 200, board polled every 10 battles past the floor, **unlisted is NOT
+  a pass** since an unlisted account has no published rd), with 7 tests.
+  **DISK: 14 GB total** — `runs/` 6.1, `results/` 4.2, `data/` 3.3. The named
+  comedy waste: `results/ch4_r1_offsh/*.fp.stdout` is **3.72 GB of poke-env
+  DEBUG logging** (l62 alone is 674.8 MB / 4.9M lines) from which the grader
+  reads **3,000 `Winner:` lines**; 24.9 MB of signal in 3.72 GB, and it
+  compresses **18.2x**. **THE REAL DISK FINDING IS NOT SPACE:** the backup
+  `../pokemon-showdown-rl-d25-backup-20260815/` mirrored `results/` ONLY and
+  contained **ZERO `.pt` files** — the 13 sha256-pinned checkpoints behind every
+  pre-registered result existed in exactly ONE place on ONE disk. **FIXED: all 13
+  copied (+ config.yaml/meta.yaml) and each verified sha256-equal to its config
+  pin, 13/13 OK**; the 322 unmirrored `results/` files re-synced (including
+  `results/foulplay_vs_sh/`, which was absent entirely). Mirror 446 MB -> 674 MB.
+  Also swept caches and gzipped three unreferenced FP collection logs (302 MB ->
+  26 MB, reversible). **NOT done unattended, left as a costed menu:** gzip the
+  stdout tapes (-3.52 GB, needs a 2-line grader fallback), gzip `runs/*/history.csv`
+  (-2.16 GB, ONLY-COPY, 6+ readers need the suffix), `data/bc_p4_40k.npz`
+  (-2.08 GB, maintainer ruling), 116 non-pinned `best_checkpoint.pt` (-1.29 GB,
+  no pre-reg pins a `best_`). Suite **528 passed** (495 baseline + 33 ladder).
+  Headline 0.71825 and R2 0.79283 UNTOUCHED.

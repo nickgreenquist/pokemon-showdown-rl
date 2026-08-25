@@ -53,7 +53,7 @@ SH-facing). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3/CH4-R1 CLOSED.
 - Runner landmines FIXED: kill-by-subshell orphaned FP -> |nametaken| deadlock
   (S1, 3.6 h); FP's normal exit misread as a crash (s64). ladder.py aborts on
   |nametaken| rather than retrying, for the same reason.
-- Suite GREEN **519 passed** (495 baseline + 24 ladder). results/ mirrored to
+- Suite GREEN **528 passed** (495 baseline + 24 ladder). results/ mirrored to
   ../pokemon-showdown-rl-d25-backup-20260815/. Seeds 66/67, 75/76, 83/84, 93/94
   HELD. **The "vs-SH ~40% GXE" rule of thumb is RETIRED — do not project a ladder
   number; see prior_work/README.md's conversion note + new measured-board section.**

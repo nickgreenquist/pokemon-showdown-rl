@@ -196,6 +196,75 @@ class TestSummarize:
         assert ladder.summarize(p)["battles_total"] == 2
 
 
+class TestProvenanceLinks:
+    """`results/`, `runs/` and `data/` are gitignored with zero tracked
+    files, so a chapter's grader scripts are its ONLY committed provenance.
+    An audit on 2026-08-25 found the four CH4 R1 instruments had zero
+    references anywhere in the repo — they looked exactly like orphans a
+    reference-based cleanup would delete. They are named in the pre-reg's
+    `instruments:` block now, and this test keeps those paths honest."""
+
+    def test_every_declared_instrument_exists(self):
+        root = Path(__file__).resolve().parents[1]
+        found = 0
+        for cfg_path in sorted((root / "configs/eval").glob("*.yaml")):
+            block = (yaml.safe_load(cfg_path.read_text()) or {}).get(
+                "instruments"
+            )
+            if not block:
+                continue
+            for role, rel in block.items():
+                found += 1
+                assert (root / rel).exists(), (
+                    f"{cfg_path.name}: instruments.{role} -> {rel} is missing"
+                )
+        assert found, "no instruments: block found in any eval pre-reg"
+
+
+class TestStoppingRule:
+    """Until 2026-08-25 the pre-registered stop (rd <= 40 AND n >= 200) was
+    prose in a config header that no code read — a human instruction an
+    operator could overrun by hundreds of public battles. These pin it."""
+
+    CFG = {"stopping_rule": {"glicko_rd_max": 40, "min_battles": 200}}
+    LISTED = {"listed": True, "rd": 35.0}
+
+    def test_met_when_both_halves_hold(self):
+        met, why = ladder.stopping_rule_met(self.CFG, 200, self.LISTED)
+        assert met is True
+        assert "200" in why and "35" in why
+
+    def test_n_floor_blocks_an_early_lucky_convergence(self):
+        met, why = ladder.stopping_rule_met(self.CFG, 40, {"listed": True,
+                                                           "rd": 39.0})
+        assert met is False
+        assert "40 < 200" in why
+
+    def test_rd_bound_blocks_a_long_but_uncertain_run(self):
+        met, _ = ladder.stopping_rule_met(self.CFG, 900, {"listed": True,
+                                                          "rd": 41.0})
+        assert met is False
+
+    def test_unlisted_is_not_a_pass(self):
+        """An unlisted account has no published rd, so we cannot know it
+        converged. The absence of evidence must not read as convergence."""
+        met, why = ladder.stopping_rule_met(self.CFG, 5000, {"listed": False})
+        assert met is False
+        assert "not yet on the top-500" in why
+
+    def test_listed_without_rd_is_not_a_pass(self):
+        met, _ = ladder.stopping_rule_met(self.CFG, 5000, {"listed": True})
+        assert met is False
+
+    def test_no_rule_configured_never_stops(self):
+        met, why = ladder.stopping_rule_met({}, 10_000, self.LISTED)
+        assert met is False
+        assert "no stopping rule" in why
+
+    def test_the_real_prereg_values_are_the_ones_pinned_here(self, cfg):
+        assert cfg["stopping_rule"] == self.CFG["stopping_rule"]
+
+
 class TestPrereg:
 
     def test_every_arm_kind_is_supported(self, cfg):

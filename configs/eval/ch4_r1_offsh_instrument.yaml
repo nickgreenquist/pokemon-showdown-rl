@@ -572,6 +572,25 @@ build_items: [BI-1_bt_grader_selftest_p2regrade_pending_MU8, BI-2a_h1_h2_reuse_f
               BI-3_sampled_seat_with_pinned_seed_and_disclosure, BI-4_g7_timing_harness,
               BI-5_tape_parser_with_fixture_lead_faint_cant, BI-6_wave_runner_arm_scoped_markers,
               BI-7_per_battle_records_in_every_arm_json, BI-8_sp_baseline_recompute_committed_before_grading]
+# ---------------------------------------------------------------------
+# INSTRUMENTS — added 2026-08-25, after an audit found every one of these
+# had ZERO references anywhere in the repo. That matters more here than it
+# looks: `results/`, `runs/` and `data/` are ALL gitignored with zero
+# tracked files, so a grader script is not "spent" once its rung closes —
+# it is the ONLY committed provenance for the numbers it produced. These
+# four files generated the entire CH4 R1 readout quoted in STATUS.md
+# (rho +0.00478, s_T 0.00771, FP@20 vs SH 0.82133, MU-8 z = -2.80) and
+# they looked like orphans, which is exactly how a reference-based
+# cleanup deletes a closed chapter's evidence.
+instruments:
+  wave_runner: scripts/ch4_r1_wave.sh          # launches the 14 arms
+  seat: scripts/ch3_fp_h2h.py                  # our side of every FP arm
+  fp_side: scripts/foulplay_vs_sh.py           # driven by ch3_r4_fp_runner.sh
+  grader: scripts/ch4_r1_grade.py              # VERDICT-A / VERDICT-I
+  tape_parser: scripts/ch4_fp_tape_parse.py    # the four P-cells
+  sp_baseline: scripts/ch4_sp_baseline.py      # switch-rate baseline
+  readout: results/ch4_r1_offsh/r1_readout.json
+
 readme_status_obligation: "licensed sentences are INLINE in Q6b. STATUS <=60 lines, same commit as the SESSION_LOGS append. 0.71825 and 0.79283 untouched on every branch. Chapter-3 sentence edits require MU-10. Mirroring per Q8."
 
 # =====================================================================

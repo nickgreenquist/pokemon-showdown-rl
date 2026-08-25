@@ -226,8 +226,10 @@ search engine itself (0.8307) remains the open frontier.
 **Honest scoping.** SH parity ≈ 40% GXE in human-ladder terms; the strongest
 documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach
 ~80% GXE. This chase is a *purity-lane* first in a generation where it had not been
-shown — it is not a strength record and does not enter the published field. The
-roadmap is `DESIGN.md` (r7 ratified). §12's queue is now spent: the privileged critic
+shown — it is not a strength record and does not enter the published field. `DESIGN.md`
+(r7 ratified) is now a HISTORICAL record rather than a roadmap — its queue is
+executed, killed or superseded, and the authoritative "what next" is
+`STATUS.md` plus the newest `SESSION_LOGS.md` entry. §12's queue is spent: the privileged critic
 read NULL, the regenerative-L2 rung was letter-met but not credited, and the auxiliary
 opponent-TEAM head (D19) was **killed at zero lanes**. Not because gen-1 randbats teams
 are random — the generator's type and weakness caps of 2 bind hard, so there is real
@@ -267,11 +269,23 @@ Train:
 python -m rl.train --config configs/<run>.yaml --seed N --run-name <name>
 ```
 
-Evaluate a checkpoint against SH under the locked protocol:
+Evaluate a checkpoint against SH under the locked protocol (final checkpoint,
+3000 battles, deterministic, ties as non-wins):
 
 ```
-python scripts/score_ladder.py <run_dir>
+python scripts/eval_checkpoint.py <run_dir>/checkpoint.pt --episodes 3000
 ```
+
+Play the real Showdown ladder (needs a registered account and `PS_PASSWORD`):
+
+```
+python scripts/ladder.py --prereg configs/eval/ladder_r1.yaml --arm L2 --battles 20
+```
+
+`scripts/score_ladder.py` is **not** either of these — it is an inherited
+Connect-4-era *checkpoint-rung* scorer (every `ckpt_*.pt` against local anchors
+at 400 episodes) and has nothing to do with the locked protocol or the
+Showdown ladder. It is kept for the predecessor lineage only.
 
 W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` extracts
 `history.csv` from a run directory.
@@ -283,5 +297,5 @@ W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` extracts
 - `configs/` — run configs; headers carry each experiment's pre-registration
 - `tests/` — harness and env contract tests (`pytest tests/`)
 - `prior_work/` — verified index of external systems and papers (`prior_work/README.md`)
-- `DESIGN.md` — live design proposal (under review)
+- `DESIGN.md` — HISTORICAL record of how the pivot was decided; **spent as a roadmap**
 - `STATUS.md` — current state, next actions

@@ -24,7 +24,7 @@ re-download from the URLs below if one goes missing.
   session with NO repo access, so every formula must be verified against `baselines.py` and
   the Gen 1 damage formula before implementing — where it contradicts this repo's own audit,
   the audit wins.** Bears directly on DESIGN §7's parked STAB and boosts-one-hot items and on
-  §11's proposed architecture screen.
+  DESIGN's (retired) architecture-screen proposal — r7 removed §10-11; see §8.
 - **`DISTILLATION_OBJECTIVES.md`** (2026-08-07) — verified survey + in-repo measurements on
   the BC objective for the Foul-Play chapter. Verdict: soft-target CE stays; every
   weighted/filtered/offline-RL variant is measurably inert on our tapes (teacher advantage
@@ -176,8 +176,8 @@ questions should read it rather than reason from the summaries below — the sum
 lossy by construction and the code has repeatedly contradicted the project's own README.
 
 - **`/Users/nickgreenquist/Documents/Projects/foul-play`** — full clone of
-  https://github.com/pmariglia/foul-play at `25c976f` (the same commit DESIGN §11 audited).
-  The teacher candidate for §11 option (C). Read `fp/config.py` for the CLI surface
+  https://github.com/pmariglia/foul-play at `25c976f` (the same commit the retired DESIGN §10-11 audited; see §8).
+  The teacher candidate for the retired §11 option (C). Read `fp/config.py` for the CLI surface
   (`--bot-mode challenge_user`, `--user-to-challenge`, `--run-count`, `--search-time-ms`
   default 100, `--search-parallelism` default 1) and `Makefile` for the engine rebuild.
   **It is pinned to `poke-engine==0.0.48` built `--features poke-engine/terastallization`,
@@ -206,7 +206,7 @@ lossy by construction and the code has repeatedly contradicted the project's own
   than inferred.
 
   **CORRECTION, measured 2026-08-06 by RUNNING it — "Foul Play supports gen1randombattle" is
-  not true out of the box.** DESIGN §11 records that support as MEASURED FROM SOURCE (generic
+  not true out of the box.** The retired DESIGN §10-11 recorded that support as MEASURED FROM SOURCE (generic
   format parsing, a registered GEN1 mechanics entry, gen1 protocol handling, a live gen1 set
   file). Source-reading was right that nothing *rejects* the format, and wrong that the format
   works: Foul Play crashes out of a gen1 battle within ~12 turns of the first one. Showdown has
@@ -220,7 +220,7 @@ lossy by construction and the code has repeatedly contradicted the project's own
   fires constantly — Rest, Sleep Powder, Hypnosis, Sing, Lovely Kiss, Blizzard/Ice Beam freeze,
   Wrap/Bind/Fire Spin — not as an edge case. **This is the strongest available evidence that
   nobody has run Foul Play in gen1 randbats seriously**, which is worth weighing against
-  Metamon's "strongest open-source engine today" when pricing §11 option (C).
+  Metamon's "strongest open-source engine today" when pricing the retired §11 option (C).
 
   **Our patches are in `scripts/patches/foulplay_gen1_local.patch`** (7 files, applied to the
   clone; re-apply after any pull): local `--no-security` login; the synthetic `fight` move;
@@ -265,7 +265,7 @@ lossy by construction and the code has repeatedly contradicted the project's own
   capacity-shaped lever read null (privileged critic −0.0145; 12M→50M scale −0.016; ~88% of
   D26 critic rank idle), while the largest credited win came from adding structure at
   *reduced* parameter count. Attention here is **untested, not refuted** — it was killed
-  pre-launch on a 34.6× CPU train-step microbenchmark (DESIGN.md:313-316), never trained.
+  pre-launch on a 34.6× CPU train-step microbenchmark (DESIGN.md §4 Rung 2, lines 337-340), never trained.
   The sharper architectural gap vs both large systems is **temporal context** (ps-ppo 64–256
   turns, Metamon 200; we are single-snapshot Markov), not pooling-vs-attention.
 
@@ -334,7 +334,7 @@ lossy by construction and the code has repeatedly contradicted the project's own
   latest-checkpoint self-play arm underdelivered; post-paper, large diverse agent-vs-agent
   datasets became the main driver. Appendix A.1/A.2 also carry the randbats ladder anchors
   (Huang & Lee 1677/72%, Wang 1756/79.5%) and call Foul Play "the strongest open-source engine
-  today" — relevant to §11's ceiling argument, which rests on a competition placement instead.
+  today" — relevant to the retired §11's ceiling argument, which rests on a competition placement instead.
 - `karten2026_pokeagent_challenge.pdf` — Karten, Grigsby et al., *PokéAgent Challenge*
   (arXiv 2603.15563), NeurIPS 2025 competition report.
   https://arxiv.org/abs/2603.15563 · https://pokeagent.github.io

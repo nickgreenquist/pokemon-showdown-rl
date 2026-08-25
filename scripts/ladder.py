@@ -241,8 +241,18 @@ class LadderPlayer(Player):
         self.decision_errors = 0
         self.decision_ms: list[float] = []
 
+    def _fallback(self, exc) -> object:
+        self.decision_errors += 1
+        print(f"  ! decision fallback ({type(exc).__name__}: {exc})",
+              flush=True)
+        return self.choose_default_move()
+
     def choose_move(self, battle):
-        from rl.envs.showdown import SinglesEnv, embed_battle
+        from rl.envs.showdown import (
+            SinglesEnv,
+            _recover_mask_desync,
+            embed_battle,
+        )
 
         if battle.battle_tag != self._battle_tag:
             self._battle_tag = battle.battle_tag
@@ -255,12 +265,27 @@ class LadderPlayer(Player):
             action = self._act(
                 battle, obs, mask, self._battle_index, self._decision_index
             )
-            order = SinglesEnv.action_to_order(np.int64(action), battle)
         except Exception as exc:  # noqa: BLE001 — never forfeit a live game
-            self.decision_errors += 1
-            print(f"  ! decision fallback ({type(exc).__name__}: {exc})",
-                  flush=True)
-            order = self.choose_default_move()
+            order = self._fallback(exc)
+        else:
+            try:
+                order = SinglesEnv.action_to_order(np.int64(action), battle)
+            except ValueError as exc:
+                # A mask desync, and it goes through the SAME recovery every
+                # other seat uses so it lands in `mask_desync_total()`. Left
+                # to the generic fallback it would be counted only in this
+                # object's private tally and would be INVISIBLE to the
+                # counter every locked number in this project discloses.
+                try:
+                    order = _recover_mask_desync(battle, exc)
+                except Exception as inner:  # noqa: BLE001
+                    # Second desync in one battle: the shared recovery is
+                    # capped and RAISES, which is right for an eval that
+                    # should die rather than log a wrong number, and wrong
+                    # here — raising forfeits a live rated game.
+                    order = self._fallback(inner)
+            except Exception as exc:  # noqa: BLE001
+                order = self._fallback(exc)
         self._decision_index += 1
         self.decision_ms.append((time.perf_counter() - t0) * 1e3)
         return order
@@ -284,6 +309,36 @@ def summarize(out_path: Path) -> dict:
     }
 
 
+def stopping_rule_met(cfg: dict, n: int, snap: dict) -> tuple[bool, str]:
+    """The pre-registered stop: Glicko rd <= 40 AND n >= 200.
+
+    This lived only as prose in the pre-reg header until 2026-08-25, i.e. it
+    was a human instruction that a tired operator could overrun or undershoot
+    by hundreds of public battles. It is code now. Both halves must hold:
+    the rd bound is the real signal (rating is path-dependent, so a raw n is
+    not evidence of convergence) and the n floor stops a lucky early streak
+    from ending the run at rd 39 on 40 games.
+
+    Being UNLISTED is not a pass — an unlisted account has no published rd at
+    all, so we cannot know it converged. Keep playing.
+    """
+    rule = cfg.get("stopping_rule") or {}
+    rd_max = rule.get("glicko_rd_max")
+    n_min = rule.get("min_battles")
+    if rd_max is None or n_min is None:
+        return False, "no stopping rule configured"
+    if n < n_min:
+        return False, f"n {n} < {n_min}"
+    if not snap.get("listed"):
+        return False, f"n {n} >= {n_min} but not yet on the top-500 list"
+    rd = snap.get("rd")
+    if rd is None:
+        return False, f"n {n} >= {n_min} but no rd on the board row"
+    if rd > rd_max:
+        return False, f"n {n} >= {n_min}, rd {rd:.1f} > {rd_max}"
+    return True, f"n {n} >= {n_min} AND rd {rd:.1f} <= {rd_max}"
+
+
 def _record(battle, index: int) -> dict:
     return {
         "index": index,
@@ -301,6 +356,8 @@ def _record(battle, index: int) -> dict:
 
 async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
               local_smoke: bool) -> dict:
+    from rl.envs.showdown import mask_desync_total
+
     arm = prereg["arms"][arm_name]
     pacing = prereg.get("pacing", {})
     display_name = os.environ.get("PS_USERNAME") or arm["display_name"]
@@ -383,6 +440,10 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
     sleep_s = float(pacing.get("sleep_between_battles_sec", 5.0))
     seen = {r["tag"] for r in done}
     records = list(done)
+    _rule = prereg.get("stopping_rule") or {}
+    rule_n_min = int(_rule.get("min_battles", 10 ** 9))
+    poll_every = int(pacing.get("board_poll_every_battles", 10))
+    stopped_by_rule = False
     started = time.monotonic()
     fh = open(out_path, "a")
     try:
@@ -425,6 +486,20 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
                           f"{rec['opponent']} ({rec['turns']} turns) "
                           f"— running {wins}/{n} = {wins / n:.3f}",
                           flush=True)
+            # Evaluate the pre-registered stop. The board is polled every
+            # `poll_every` battles once past the n floor, not every battle:
+            # this is someone else's server and the rd we are waiting on
+            # moves on the scale of tens of games, not one.
+            if not local_smoke and len(records) >= rule_n_min:
+                if (len(records) - rule_n_min) % poll_every == 0:
+                    snap = ladder_snapshot(BATTLE_FORMAT, userid)
+                    met, why = stopping_rule_met(prereg, len(records), snap)
+                    print(f"  stopping rule: {why}", flush=True)
+                    if met:
+                        print("  STOPPING RULE MET — ending the run as "
+                              "pre-registered.", flush=True)
+                        stopped_by_rule = True
+                        break
             if i < remaining - 1 and sleep_s:
                 await asyncio.sleep(sleep_s)
     finally:
@@ -449,6 +524,9 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
         "tally_pokeenv": pokeenv_n,
         "gate_tallies_agree": jsonl_n == pokeenv_n,
         "decision_errors": player.decision_errors,
+        "mask_desyncs": mask_desync_total(),
+        "stopped_by_rule": stopped_by_rule,
+        "stopping_rule": prereg.get("stopping_rule"),
         "mean_decision_ms": (
             float(np.mean(player.decision_ms)) if player.decision_ms else None
         ),
@@ -486,6 +564,9 @@ def main() -> None:
     report_path.write_text(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
     print(f"\nbattles -> {jsonl}\nreport  -> {report_path}")
+    if report.get("stopped_by_rule"):
+        print("\nSTOPPING RULE MET — this run is complete as pre-registered. "
+              "Do not add battles to it.")
     if not report.get("gate_tallies_agree"):
         print("\nGATE FAILED: the two tallies disagree — do not use these "
               "numbers until it is explained.")
