@@ -53,9 +53,8 @@ SH-facing). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3 CLOSED.
   non-transfer is z = -2.80 against BT-commensurate transfer.
 - R5b D-9 switch rates 0.143-0.197 include force-switch rows; true rate
   0.060-0.097 (results/ch4_r1_offsh/sp_baseline.json).
-- Runner landmines FIXED (both committed): kill-by-subshell orphaned
-  foul-play -> |nametaken| deadlock (S1, 3.6 h lost); FP's normal exit
-  logged as a crash could delete a real battle (s64).
+- Runner landmines FIXED: kill-by-subshell orphaned FP -> |nametaken|
+  deadlock (S1, 3.6 h); FP's normal exit misread as a crash (s64).
 - Suite GREEN 495 passed. results/ mirrored to
   ../pokemon-showdown-rl-d25-backup-20260815/. Seeds 66/67, 75/76, 83/84,
   93/94 ALL HELD (CH4 R1 burned none). vs-SH ~40% GXE.
