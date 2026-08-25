@@ -1,0 +1,155 @@
+# =====================================================================
+# LADDER R1 — THE FIRST REAL-LADDER MEASUREMENT OF THIS AGENT
+# Pre-registered 2026-08-25 BEFORE a single rated battle was played.
+# Status: DRAFT — three fields marked << MAINTAINER >> are unresolved.
+#   Do NOT launch until they are filled and this header is re-read.
+# Purity note: playing humans is purity-legal — no expert data enters
+#   training, and the lane's exclusion is BOOTSTRAPPING (the
+#   novelty-over-strength memory), the same footing as the Foul-Play
+#   anchors. Ladder replays must never become training data.
+# ---------------------------------------------------------------------
+# QUESTION. Every number this project owns comes from three scripted
+#   or self-derived opponents (SH, Foul Play, our own BC clone). The
+#   real board has never been touched. prior_work/README.md's
+#   conversion note is explicit that vs-SH 0.71825 (~+163 Elo vs SH)
+#   CANNOT be projected to GXE in either direction — upward because
+#   past parity vs-SH increasingly measures SH-exploitation, downward
+#   because CH4 R1 excluded a hidden off-distribution deficit
+#   (BT residual +0.005 +/- 0.013). This is the project's largest
+#   unmeasured quantity and only the ladder settles it.
+# ---------------------------------------------------------------------
+# THE BOARD, measured 2026-08-25 (prior_work/README.md; re-pull before
+#   quoting, it moves). gen1randombattle TOP-500 list: GXE 93.5 best /
+#   82.3 p90 / 75.0 list-median / 58.8 at the 500th (= the cutoff to
+#   be listed at all); Glicko 2022/1794/1712/1568. ACTIVITY: 93
+#   players in 24 h, 173 in 7 d. Read "median 75.0" literally — it is
+#   the median OF THE LEADERBOARD, not of the playerbase (ladder-wide
+#   median GXE is ~50 by construction), so it is NOT a percentile.
+# ---------------------------------------------------------------------
+# POLICY CHOICE — the one decision with real evidence behind it, and
+#   the evidence points AGAINST our best-vs-SH arm. Three candidates,
+#   all deterministic, all sharing one act() interface:
+#
+#     arm  policy            vs SH      vs BC clone   vs Foul Play@100
+#     L1   greedy (1 lane)   0.71825*   0.894         0.388
+#     L2   ensemble (4-lane) 0.74633    unmeasured    unmeasured
+#     L3   search@M          0.79283    0.860         0.368
+#                                        (-0.034)      (-0.020)
+#   * pooled over 4 lanes x 3000; per-lane 0.72967/0.71867/0.72167/
+#     0.70300 for s62/s63/s64/s65.
+#
+#   SEARCH IS THE TRAP. Its +0.0746 vs SH is credited and real, but
+#   BOTH off-SH point estimates are NEGATIVE, and MU-8's formal
+#   transfer test is z = -2.80 against BT-commensurate transfer. The
+#   ladder is off-SH. Search also runs battles ~40% longer (38.5 vs
+#   27.6 mean turns vs FP), which on a thin ladder costs games per
+#   hour and patience per opponent. Neither off-SH delta is
+#   individually significant (clone -0.034 +/- 0.021, FP -0.020 +/-
+#   0.043) — the case is the CONSISTENT SIGN plus z = -2.80, not any
+#   one cell.
+#   THE ENSEMBLE IS THE RECOMMENDATION: +0.036 over the greedy mean
+#   (credited, R0), it is not a post-hoc lane pick (it uses all four
+#   lanes, so no selection happens on the metric we distrust), and its
+#   mechanism is averaging rather than opponent-model exploitation, so
+#   it has no reason to be SH-specific. HONEST GAP: it is UNMEASURED
+#   off-SH — that is an argument-from-mechanism, not evidence, and it
+#   is disclosed as such wherever the ladder number is quoted.
+# << MAINTAINER 1 >>: pick the PRIMARY arm. L2 recommended.
+# ---------------------------------------------------------------------
+# ARM STRUCTURE. ONE arm goes out. A two-arm A/B (say L2 and L3 on two
+#   accounts) is the ONLY way to learn whether search transfers to
+#   humans — a genuinely novel result, since nobody has measured it —
+#   but it doubles the bot footprint on a 93-player-a-day ladder and
+#   the two accounts can be matched against each other. If it is ever
+#   run, the primary MUST be named in advance; picking the better of
+#   two ladder numbers after the fact is exactly the post-hoc
+#   selection this repo's pre-reg culture exists to prevent.
+# << MAINTAINER 2 >>: one arm, or a pre-registered two-arm A/B?
+# ---------------------------------------------------------------------
+# STOPPING RULE. Rating is PATH-DEPENDENT — matchmaking pairs by
+#   rating, so ladder games are NOT iid and "n battles" does not have
+#   its usual meaning. Glicko rd is the honest stopping signal: the
+#   board's listed players sit at rd 27-38, and a fresh account starts
+#   near rd 130. PRE-STATED RULE: play until **rd <= 40 AND n >= 200**,
+#   then stop and report. Rationale: rd <= 40 puts our uncertainty
+#   inside the band the listed field occupies, and n >= 200 is a floor
+#   so a lucky-streak convergence cannot end it early. Sessions may
+#   span days; the JSONL is resumable and the rule is evaluated on the
+#   PUBLIC board, not on our own tally.
+# << MAINTAINER 3 >>: accept rd <= 40 AND n >= 200, or set your own.
+# ---------------------------------------------------------------------
+# PRIMARY READ (pre-stated, DESCRIPTIVE — this credits no lever):
+#   our GXE and Glicko-1 off the public top-500 JSON at the stopping
+#   rule, quoted WITH n, WITH the policy kind, and WITH the board
+#   percentile computed from the same pull. NOT a credit-line result:
+#   there is no A/B here and no 0.025 bar to clear. Reporting it as
+#   "credited" would be a category error.
+# SECONDARY (descriptive, never governing): raw win rate; mean turns;
+#   opponent rating distribution (this is the SH-matchmaking caveat in
+#   reverse — a low starting rating pairs us with weak players, so the
+#   early raw W-L is an UPPER bound and GXE is the number that
+#   corrects for it); decision_errors; mean decision ms.
+# VOID CONDITIONS: (a) the two tallies disagree (JSONL vs poke-env);
+#   (b) decision_errors / total decisions > 0.005; (c) the live gen1
+#   set pool no longer matches vendored 59da482 — the search
+#   determinizer and randbats_prior are calibrated to that teams.ts;
+#   **CHECKED 2026-08-25 AND IT PASSES**: both gen1 randbats files are
+#   BYTE-IDENTICAL to smogon/pokemon-showdown master, and upstream has
+#   0 commits touching data/random-battles/gen1 since we vendored. The
+#   shas are pinned below and enforced by tests/test_ladder.py, so a
+#   re-clone cannot drift this silently; (d) any battle played on an
+#   unregistered name.
+# ---------------------------------------------------------------------
+# ETIQUETTE AND EXPOSURE. The account name declares the bot ("bot" in
+#   the name, maintainer's ruling 2026-08-25). PS's written rules do
+#   NOT ban bots (pokemonshowdown.com/rules; nearest line is "Don't
+#   game the system"), but the field norm has moved — Metamon's repo
+#   now says they became "a lot more cautious about laddering", and
+#   prior_work records Metamon being accused of botting in chat at
+#   this rating band. Hence: serial play only (max_concurrent 1), a
+#   sleep between games, a hard total cap, and no chat.
+# USERNAME LIMIT: the cap is 18 chars on the USERID (display name
+#   lowercased, non-alphanumerics stripped — server/users.ts:745).
+#   'nick_gen1randbats_rl_bot' is a 21-char userid and IS REFUSED.
+#   'nick_gen1rb_rl_bot' -> userid 'nickgen1rbrlbot', 15 chars, OK.
+#   scripts/ladder.py enforces this before connecting.
+# REGISTER THE NAME BY HAND FIRST (poke-env cannot): /register on
+#   play.pokemonshowdown.com. An unregistered name's rating belongs to
+#   whoever holds it next, which makes it unpublishable — VOID (d).
+# CREDENTIALS: PS_PASSWORD / PS_USERNAME env vars only. Never here.
+# =====================================================================
+results_dir: results/ladder
+save_replays: results/ladder/replays
+max_battles_total: 1000          # hard stop; the stopping rule should bite first
+
+pacing:
+  sleep_between_battles_sec: 5
+  start_timer: true              # bounds a staller; standard for bots
+
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+
+arms:
+  L1: {kind: greedy,   lane: s62,                          display_name: nick_gen1rb_rl_bot}
+  L2: {kind: ensemble, lanes: [s62, s63, s64, s65],        display_name: nick_gen1rb_rl_bot}
+  L3: {kind: search,   lane: s65, dose: M,                 display_name: nick_gen1rb_rl_bot}
+
+stopping_rule:
+  glicko_rd_max: 40
+  min_battles: 200
+
+set_pool_pin:                    # VOID (c), checked 2026-08-25 -> PASS
+  vendored_commit: 59da482eabc87245eb62313593e468e81ca537d9
+  upstream_commits_since: 0      # touching data/random-battles/gen1
+  data_json_sha256: 85fc2743d9dba5a0dc996f8991be5ec07bcba4818555c3466d4da75eafe5380f
+  teams_ts_sha256: 277d5a375213b7b0e06f58a34058fb0576dc90d8a5e41eecf54d7339ea07c059
+  verdict: IDENTICAL_TO_UPSTREAM_MASTER
+
+board_2026_08_25:                # re-pull before quoting; this moves
+  toplist_size: 500
+  gxe: {best: 93.5, p90: 82.3, list_median: 75.0, cutoff_500th: 58.8}
+  glicko: {best: 2022, p90: 1794, list_median: 1712, cutoff_500th: 1568}
+  active_players: {d1: 93, d3: 142, d7: 173, d30: 277}
