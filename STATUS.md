@@ -36,24 +36,23 @@ SH-facing). Search is REAL and INFERENCE-ONLY (R5b B5+KILL). CH3 CLOSED.
    NOT auto-executed): "exhausted vs SH + FP" is now closer to
    demonstrated than assumed — whether that re-opens the deferred LADDER
    ruling (2026-08-23) is yours alone. Nothing proposes it meanwhile.
-3. An off-SH credit line is now AFFORDABLE (bar = 0.025 floor at 4
-   lanes) if a future lever ever wants one — that instrument is the
-   rung's durable deliverable.
+3. An off-SH credit line is now AFFORDABLE (0.025 floor at 4 lanes) if a
+   future lever wants one — the rung's durable deliverable.
 4. Commits after 60d73fc remain unpushed — ask before pushing.
 ## Watch items
-- **CH4 R1 credited nothing.** Amendment A1 (result-blind, structure-only)
-  travels with every quote; both verdict forms agreed.
+- **CH4 R1 credited nothing.** Amendment A1 (result-blind) travels with
+  every quote; both verdict forms agreed.
 - **FP anchor is now FP@20** (CLAUDE.md amended, MU-2): 5.1x cheaper,
   strength AND style equivalent — but its point estimate is marginally
   WEAKER than FP@100 (the direction that flatters us), so NAME THE BUDGET
   in every quote and never mix FP@20 and FP@100 numbers.
-- **A clone h2h is NEVER style evidence**, and any anchor must match the
-  policy form of the rating it is compared against (the ~26-point
-  sampling gap is the whole historical "clone intransitivity").
+- **A clone h2h is NEVER style evidence**; match an anchor's policy form
+  to the rating it is compared against (~26 pts = the whole historical
+  "clone intransitivity").
 - Old P2 rider ("FP anchor carried ~no information") SUPERSEDED (MU-8):
   non-transfer is z = -2.80 against BT-commensurate transfer.
-- R5b D-9 switch rates 0.143-0.197 include force-switch rows; true policy
-  rate is 0.060-0.097 (results/ch4_r1_offsh/sp_baseline.json).
+- R5b D-9 switch rates 0.143-0.197 include force-switch rows; true rate
+  0.060-0.097 (results/ch4_r1_offsh/sp_baseline.json).
 - Runner landmines FIXED (both committed): kill-by-subshell orphaned
   foul-play -> |nametaken| deadlock (S1, 3.6 h lost); FP's normal exit
   logged as a crash could delete a real battle (s64).
