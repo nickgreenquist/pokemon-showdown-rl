@@ -115,6 +115,25 @@
 #   Cross-check our battle count against the board row's own w+l+t
 #   before quoting n. (`save_replays` being on is what makes this
 #   recoverable — do not turn it off.)
+# READOUT OBLIGATION 2 — THE REMATCH TEST (added live at n=8,
+#   2026-08-25, BEFORE any rematch data could bias the design). The
+#   first repeat opponent appeared at battle 8: 7 distinct opponents in
+#   8 battles, and PJD90Three took both meetings (21 then 44 turns, the
+#   longest game of the run). At n=8 that is NOISE and is recorded as
+#   an observation, not a finding — but the pre-reg already names
+#   repeat-opponent memorisability as an UNMEASURED risk of shipping a
+#   DETERMINISTIC policy, and the ladder is the only instrument that
+#   can test it.
+#   PRE-STATED READ (descriptive, never governing, no lever attached):
+#   partition battles into FIRST ENCOUNTER vs REMATCH (2nd+ meeting
+#   with the same userid) and report win rate, mean turns and n for
+#   each. A materially lower rematch win rate is consistent with a
+#   deterministic policy being learnable across games; it is NOT proof
+#   (rematches are rating-matched by construction, so opponents met
+#   twice skew stronger — REPORT the opponent-rating distribution of
+#   each cell alongside, or the confound reads as the effect).
+#   If this cell is interesting it motivates a SEPARATE pre-registered
+#   sampling-vs-deterministic arm; it never retro-justifies one here.
 #   NOTE also that some battle tags carry a secret suffix
 #   (`battle-gen1randombattle-<id>-<token>`), so join replays to JSONL
 #   rows on the NUMERIC id, never on the last dash-separated field.
