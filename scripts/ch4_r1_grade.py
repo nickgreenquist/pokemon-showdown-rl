@@ -116,10 +116,45 @@ def main():
         # so the hub stays commensurable with the banked numbers) does not.
         # Gates read what each driver actually reports and say so.
         n_seat, n_fp = seat["battles_finished"], rj["fp_completed_battles"]
-        cf = rj["crash_forfeits"]
+        cf_raw = rj["crash_forfeits"]
+        req = seat.get("battles_requested", n_seat)
+        # TERMINAL-RACE CORRECTION (2026-08-25, s64): the runner's liveness
+        # poll logs FP's NORMAL exit as a crash when FP finishes fractionally
+        # before the seat. The crash-forfeit rule's premise is that the
+        # IN-FLIGHT battle was forfeited to us — at a crash point equal to
+        # the requested count there is no in-flight battle, so the premise
+        # fails and no correction is owed. Only crashes strictly before the
+        # end are real forfeits.
+        pts = rj.get("crash_points_fp_completed") or []
+        cf = sum(1 for p in pts if p < req) if pts else cf_raw
+        terminal_race = cf_raw - cf
+        # G2 as pre-registered: two INDEPENDENT tallies must agree exactly.
+        # FP's own log is the second tally.
+        fplog = OUT / f"{tag}.fp.stdout"
+        fp_tally = None
+        if fplog.exists():
+            import re as _re
+            from collections import Counter as _C
+            c = _C()
+            with open(fplog, errors="replace") as f:
+                for line in f:
+                    m = _re.search(r"Winner: (\S+)", line)
+                    if m:
+                        c[m.group(1)] += 1
+            fp_tally = dict(c)
+        ours_key = seat.get("seat_username")
+        theirs_key = seat.get("fp_username")
+        agree = None
+        if fp_tally and ours_key and theirs_key:
+            agree = (fp_tally.get(theirs_key, 0) == seat.get("foulplay_wins")
+                     and fp_tally.get(ours_key, 0) == seat.get("our_wins"))
         R["gates"][f"G2_{tag}"] = {
-            "seat_finished": n_seat, "fp_completed": n_fp, "crash_forfeits": cf,
-            "n_eff": n_seat - cf, "pass": n_fp == n_seat - cf}
+            "seat_finished": n_seat, "fp_completed": n_fp,
+            "crash_forfeits_raw": cf_raw, "crash_forfeits_effective": cf,
+            "terminal_race_reclassified": terminal_race,
+            "crash_points": pts, "n_eff": n_seat - cf,
+            "independent_tally": fp_tally, "tallies_agree": agree,
+            "pass": bool(agree) if agree is not None else (n_fp == n_seat - cf)}
         R["gates"][f"G3_{tag}"] = {"pass": bool(seat["gate_all_challenges_resolved"])}
         if "mask_desyncs" in seat:
             R["gates"][f"G5_{tag}"] = {"mask_desyncs": seat["mask_desyncs"],
