@@ -246,7 +246,7 @@ def test_act_batched_rank4_obs_returns_one_action_per_env():
 
 
 def test_kernel_size_knob_matches_the_preregistered_param_counts():
-    """Phase 4's receptive-field fork (PLAN.md): a Connect 4 win is a line of
+    """Phase 4's receptive-field fork (SESSION_LOGS_PREDECESSOR.md): a Connect 4 win is a line of
     FOUR, so kernel_size 4 lets one conv unit see a whole line where the
     inherited 3x3 sees at most three of it. The knob defaults to 3 — every
     existing config and checkpoint is untouched — and the counts pin PLAN's

@@ -1,6 +1,6 @@
 """Behavioral-cloning dataset: a scripted bot's own decisions, encoded
 through the Gen 1 observation encoder — the data half of the
-encoder-ceiling diagnostic (PLAN.md P4).
+encoder-ceiling diagnostic (SESSION_LOGS_PREDECESSOR.md P4).
 
     python scripts/make_bc_dataset.py --battles 4000
 

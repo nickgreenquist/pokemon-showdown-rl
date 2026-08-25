@@ -1,6 +1,6 @@
 """AgentOpponent + SnapshotPool probes (Phase 4 chunk 2).
 
-The probes PLAN.md mandates for the frozen-opponent machinery: the snapshot's
+The probes SESSION_LOGS_PREDECESSOR.md mandates for the frozen-opponent machinery: the snapshot's
 action distribution must be bit-identical after the learner's weights move,
 and no snapshot parameter may appear in the LEARNER's optimizer — asserting
 against the snapshot's own optimizer passes vacuously, because deepcopy
@@ -53,7 +53,7 @@ def probs(actor, obs, mask):
 
 def test_snapshot_shares_no_storage_with_the_learner():
     """The deepcopy-at-construction contract. state_dict() aliases the live
-    training tensors (probe-confirmed, PLAN.md), so storage identity is the
+    training tensors (probe-confirmed, SESSION_LOGS_PREDECESSOR.md), so storage identity is the
     thing to assert, not value equality."""
     agent = fresh_agent()
     pool = SnapshotPool(4, 0.8)
@@ -202,7 +202,7 @@ def test_eviction_is_span_preserving_and_keeps_the_anchor():
     """Span-preserving thinning (fixed 2026-08-06): the step-0 snapshot
     anchors the pool, the newest member is never evicted at push time, and
     the retained push ids stay ~uniform over [0, latest] — a plain recency
-    deque is the published-worst design (Bansal et al., PLAN.md). The old
+    deque is the published-worst design (Bansal et al., SESSION_LOGS_PREDECESSOR.md). The old
     rule deleted index 1 every time, which degenerated to anchor + recency
     window ({0,3,4} here) and flushed pre-seeded pools."""
     pool = SnapshotPool(3, 0.8)

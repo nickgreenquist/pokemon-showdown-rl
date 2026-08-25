@@ -1,7 +1,7 @@
 """Pokémon Showdown battling env (Phase 5): a poke-env `SinglesEnv` subclass
 plus the adapter presenting it through the harness's Gym + masking contract.
 
-Layering (PLAN.md Phase 5, API review of poke-env 0.15.0): poke-env's
+Layering (SESSION_LOGS_PREDECESSOR.md Phase 5, API review of poke-env 0.15.0): poke-env's
 `PokeEnv` is a two-seat PettingZoo `ParallelEnv` whose players talk to a
 local Showdown server over websockets; it has no opponent parameter — the
 opponent enters one level up via poke-env's `SingleAgentWrapper`, which holds

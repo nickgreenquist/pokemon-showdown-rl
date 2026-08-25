@@ -1,4 +1,4 @@
-"""Phase 5 pre-registered throughput measurements (a) and (b) — PLAN.md
+"""Phase 5 pre-registered throughput measurements (a) and (b) — SESSION_LOGS_PREDECESSOR.md
 hardware note. Needs the local Showdown server running:
 cd showdown && node pokemon-showdown start --no-security
 

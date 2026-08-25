@@ -8,7 +8,7 @@ one pool object is shared by every sub-env because caller kwargs are never
 deep-copied (see `rl/envs/make.py`).
 
 Where the copy happens is the load-bearing decision: `agent.state_dict()`
-ALIASES the live training tensors (probe-confirmed, PLAN.md), so a pool of
+ALIASES the live training tensors (probe-confirmed, SESSION_LOGS_PREDECESSOR.md), so a pool of
 state_dicts would hold references into the learner and every "frozen"
 opponent would silently track it — the Phase-3 log_alpha rebind failure
 class. `AgentOpponent.__init__` therefore deep-copies the whole agent at

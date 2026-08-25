@@ -3,7 +3,7 @@ Players that route battle decisions through it — the policy's (SeamPlayer)
 and, for the behavioral-cloning diagnostic, a scripted bot's
 (RecordingPlayer).
 
-This implements the Phase 5 structural contract (PLAN.md, decided
+This implements the Phase 5 structural contract (SESSION_LOGS_PREDECESSOR.md, decided
 2026-07-28, before the loop existed): battle coroutines never call the
 policy directly — they submit (obs, mask) to one seam and await an action.
 Batch-1 servicing is the initial implementation; micro-batched or
@@ -87,7 +87,7 @@ class SeamPlayer(Player):
 class RecordingPlayer(Player):
     """A scripted bot playing its own battles with every decision recorded as
     an (obs, mask, action) row — the behavioral-cloning data path for the
-    encoder-ceiling diagnostic (PLAN.md P4).
+    encoder-ceiling diagnostic (SESSION_LOGS_PREDECESSOR.md P4).
 
     The expert is held as a plain non-listening Player whose choose_move is
     called on OUR battle object (MixturePlayer's pattern, one level up): this

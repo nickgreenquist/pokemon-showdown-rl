@@ -31,7 +31,7 @@ exist because the failure modes are quiet:
   resampled as its own multinomial with its total fixed, preserving the
   campaign's exact colour balance; an i.i.d. bootstrap over pooled games
   destroys that balance and reports sd 0.021 where the truth is 0
-  (measured, PLAN.md). Resamples that fail the fit's preconditions
+  (measured, SESSION_LOGS_PREDECESSOR.md). Resamples that fail the fit's preconditions
   (anchor dropped, Ford violated) are FLAGGED AND SKIPPED, never fitted
   anyway — Hunter p. 402's trap: at B = 1000 assume at least one resample
   violates Assumption 1.
@@ -207,7 +207,7 @@ def intransitive_triples(counts) -> "tuple[float, int]":
     pair (equal scores) breaks any would-be cycle and counts transitive.
     The BARE fraction is not evidence of cycling — sampling noise on an
     acyclic ground truth yields 7.2-7.7% spurious cycles at the ~40-Elo
-    ladder spans late training produces (PLAN.md) — which is why
+    ladder spans late training produces (SESSION_LOGS_PREDECESSOR.md) — which is why
     `cycle_null_band` exists and the two are only ever reported together.
     """
     players = sorted({name for pair in counts for name in pair})
@@ -258,7 +258,7 @@ def regression_rate(counts, rungs: "list[str]") -> float:
     checkpoint loses the pooled pairwise majority to the earlier one
     (score < 0.5; an exact tie is no regression). SECONDARY measure,
     meaningless bare: a run that never learns reads ~48% because every
-    pair is a coin flip — worse than genuine forgetting's ~14% (PLAN.md)
+    pair is a coin flip — worse than genuine forgetting's ~14% (SESSION_LOGS_PREDECESSOR.md)
     — so it is only ever reported against `regression_null_band`."""
     pairs = [(i, j) for i in range(1, len(rungs)) for j in range(i)]
     regressed = sum(

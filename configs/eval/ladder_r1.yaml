@@ -100,6 +100,24 @@
 #   reverse — a low starting rating pairs us with weak players, so the
 #   early raw W-L is an UPPER bound and GXE is the number that
 #   corrects for it); decision_errors; mean decision ms.
+# KNOWN DEFECT, found live at n=5 (2026-08-25) and NOT patched mid-run:
+#   the per-battle `rating`/`opponent_rating` in the JSONL come from
+#   poke-env's `|player|` parsing and are SPORADICALLY LOST — battle 5
+#   recorded None for both while the replay shows the server sent 1184
+#   and 1111. It is NOT seat-dependent (three of the four successes
+#   were also p2), so it is a race, not a systematic bug. IMPACT: none
+#   on the PRIMARY read, which is server-computed GXE/Glicko off the
+#   public board and never touches this field. The JSONL rating column
+#   is therefore ADVISORY ONLY.
+#   READOUT OBLIGATION: reconstruct the rating trajectory from
+#   `results/ladder/replays/*.html`, which carry both players' true
+#   ratings on the `|player|` lines and are the authoritative source.
+#   Cross-check our battle count against the board row's own w+l+t
+#   before quoting n. (`save_replays` being on is what makes this
+#   recoverable — do not turn it off.)
+#   NOTE also that some battle tags carry a secret suffix
+#   (`battle-gen1randombattle-<id>-<token>`), so join replays to JSONL
+#   rows on the NUMERIC id, never on the last dash-separated field.
 # VOID CONDITIONS: (a) the two tallies disagree (JSONL vs poke-env);
 #   (b) decision_errors / total decisions > 0.005; (c) the live gen1
 #   set pool no longer matches vendored 59da482 — the search

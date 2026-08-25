@@ -10,13 +10,13 @@ otherwise identical random-trained one hit 0.978 vs random and dropped to
 recovers the vs-random number with no heuristic arm at all, which requires
 scoring every rung against both anchors regardless of which anchor the run's
 own eval used. If it does not recover, the specialization is stronger than
-the chunk-1 reading and the AlphaStar PFSP lever comes forward (PLAN.md).
+the chunk-1 reading and the AlphaStar PFSP lever comes forward (SESSION_LOGS_PREDECESSOR.md).
 
 Scores the numbered rungs (ckpt_*.pt) plus the final checkpoint.pt, standard
 eval protocol (fixed seeds, deterministic policy, same episode ladder as
 training-time eval). best_checkpoint.pt is deliberately NOT scored: it is
 max-selected over noisy evals so its score carries selection bias, and per
-PLAN.md it feeds no reported number — the chunk-3 tournament selects.
+SESSION_LOGS_PREDECESSOR.md it feeds no reported number — the chunk-3 tournament selects.
 """
 
 import argparse

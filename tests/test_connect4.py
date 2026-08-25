@@ -1,19 +1,23 @@
 """Connect 4 board and env fixtures.
 
-These are the phase's GATE (PLAN.md chunk 1): deterministic per-site probes,
+These are the phase's GATE (SESSION_LOGS_PREDECESSOR.md chunk 1): deterministic per-site probes,
 not a training run. The rejected alternative — "beats random >=90%" — caught
 0 of 4 seeded defects, because `RandomOpponent.move` ignores the observation
 entirely (so a wrong opponent perspective is a provable no-op) and both
 swapped learner planes and a dropped epoch mask scored *higher* than clean.
 
-Fixtures are hand-pinned semantics; `tests/test_connect4_oracle.py` fuzzes
-against open_spiel for the discrepancies nobody thought to name. The two are
-complementary and neither replaces the other, because the interesting mask
-states are rare.
+Fixtures are hand-pinned semantics. They ONCE had a complement —
+`tests/test_connect4_oracle.py`, which fuzzed against open_spiel for the
+discrepancies nobody thought to name — and this docstring still claimed the
+two were complementary long after that half was gone. **The oracle fuzzer no
+longer exists**: open_spiel went with the spine prune (see pyproject.toml),
+taking the file with it. So the hand-pinned fixtures below are now the ONLY
+check, and the coverage claim this paragraph used to make was false. The
+measurements that follow are still measured and still hold.
 
 Measured here over 42,725 real learner decision points under random play:
 the mask is all-True at **83.8%** of them and single-legal-column positions
-are **0.05%** (~1 in 2000). PLAN.md's locked figures are 63.8% and 0.53%,
+are **0.05%** (~1 in 2000). SESSION_LOGS_PREDECESSOR.md's locked figures are 63.8% and 0.53%,
 measured during the spec review; the gap is most likely the distribution
 rather than an error on either side — those came from trained self-play,
 where stronger blocking lengthens games and ~16% end in 42-ply draws, so
@@ -49,7 +53,7 @@ WIN_FIXTURES = {
 
 # Found by random search (scratch), not by hand: 809 games to the first draw,
 # 2603 to the first win on the 42nd disc. Draws are 0.27% of random games, so
-# this branch is otherwise never exercised — PLAN.md lists it as a named
+# this branch is otherwise never exercised — SESSION_LOGS_PREDECESSOR.md lists it as a named
 # degeneracy of this env.
 DRAW_42 = [5, 5, 5, 0, 5, 4, 4, 6, 6, 3, 5, 1, 3, 5, 2, 1, 2, 3, 0, 4, 1,
            4, 3, 0, 2, 2, 2, 1, 0, 0, 0, 2, 1, 6, 1, 3, 4, 4, 3, 6, 6, 6]

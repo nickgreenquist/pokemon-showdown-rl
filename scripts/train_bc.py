@@ -1,5 +1,5 @@
 """Behavioral cloning of a scripted bot through the Phase-5 stack — the
-training half of the encoder-ceiling diagnostic (PLAN.md P4).
+training half of the encoder-ceiling diagnostic (SESSION_LOGS_PREDECESSOR.md P4).
 
     python scripts/train_bc.py --data data/bc_heuristics_vs_heuristics.npz
 

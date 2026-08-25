@@ -221,6 +221,25 @@ class TestProvenanceLinks:
         assert found, "no instruments: block found in any eval pre-reg"
 
 
+class TestSetPoolIntegrity:
+    """`rl.envs.randbats_prior.verify_against_showdown()` had ZERO callers —
+    a public verifier that never ran. It checks the ENCODER's set-pool copy
+    against the vendored sim, which is a different and more load-bearing
+    check than the vendored-vs-upstream one done by hand for the ladder:
+    if the prior's copy drifts from the sim we actually play, our features
+    silently describe a different set pool, and the search determinizer
+    samples DVs from the wrong distribution."""
+
+    def test_encoder_set_pool_matches_the_vendored_sim(self):
+        root = Path(__file__).resolve().parents[1]
+        if not (root / "showdown/data/random-battles/gen1/data.json").exists():
+            pytest.skip("showdown/ not vendored in this checkout")
+        from rl.envs.randbats_prior import verify_against_showdown
+
+        ok, msg = verify_against_showdown(root / "showdown")
+        assert ok, msg
+
+
 class TestStoppingRule:
     """Until 2026-08-25 the pre-registered stop (rd <= 40 AND n >= 200) was
     prose in a config header that no code read — a human instruction an

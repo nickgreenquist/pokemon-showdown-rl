@@ -14,7 +14,7 @@ after the FC trunk (Q = V + A - mean(A); same identifiability argument).
 checkpoint was built with) exists for Phase 4's pre-registered probe: a
 Connect 4 win is a line of FOUR, so a 3x3 kernel sees at most three of it
 and leaves composition to the FC layer. Whether 4x4 helps is settled by
-measurement at the chunk-2 pathfinder, not by argument (PLAN.md).
+measurement at the chunk-2 pathfinder, not by argument (SESSION_LOGS_PREDECESSOR.md).
 """
 
 import torch

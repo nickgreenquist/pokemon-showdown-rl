@@ -69,7 +69,7 @@ SB3 all share one trunk between the heads. Separate stacks follow PureJaxRL,
 keep the value_coef/value-clip reasoning below intact, and cost noise-level
 duplicate compute at 16 filters.
 
-Deliberately omitted (locked 2026-07-25 after review, see PLAN.md):
+Deliberately omitted (locked 2026-07-25 after review, see SESSION_LOGS_PREDECESSOR.md):
 
 - Value-loss clipping: Engstrom et al. 2020 found no evidence it helps and
   Andrychowicz et al. 2021 found it can hurt. The omission rests on that

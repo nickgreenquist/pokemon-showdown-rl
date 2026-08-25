@@ -29,7 +29,7 @@ capstone will need:
 A note on why `move` takes an observation rather than a board: it makes the
 opponent's perspective testable. `RandomOpponent` ignores `obs` entirely,
 which is exactly why a "beats random >=90%" gate could not detect a wrong
-opponent perspective — 50 games came out bit-identical (PLAN.md). The
+opponent perspective — 50 games came out bit-identical (SESSION_LOGS_PREDECESSOR.md). The
 heuristic reads the planes, so it does detect one.
 """
 

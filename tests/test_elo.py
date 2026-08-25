@@ -10,7 +10,7 @@ The two tests that look odd are the two the spec singles out:
 - the all-draws matrix must bootstrap to CI width EXACTLY zero: each
   (pair, colour) cell resamples its own fixed total, so a degenerate cell
   is reproduced verbatim. An i.i.d. bootstrap over pooled games reports
-  sd 0.021 here (measured, PLAN.md) — nonzero width on this fixture means
+  sd 0.021 here (measured, SESSION_LOGS_PREDECESSOR.md) — nonzero width on this fixture means
   the stratification broke.
 """
 
@@ -272,7 +272,7 @@ def test_regression_null_band_semantics_on_flat_and_separated_ladders():
     """A well-separated monotone ladder leaves noise no room: the band
     pins to zero. A flat ladder (a run that never learns) makes every
     pair a coin flip, so ~50% regression sits INSIDE the band — the case
-    the bare rate misreads as the worst forgetter (PLAN.md 47.8%)."""
+    the bare rate misreads as the worst forgetter (SESSION_LOGS_PREDECESSOR.md 47.8%)."""
     rungs = [f"r{i}" for i in range(6)]
     counts = {(f"r{i}", f"r{j}"): (250, 0, 250) for i in range(6) for j in range(i)}
     separated = {name: 400.0 * i for i, name in enumerate(rungs)}

@@ -1,9 +1,14 @@
 """Thin logging seam: the train loop logs through `Logger`, never through a
 backend directly, and algorithm code never touches W&B (hard rule).
 
-Metric names are locked in CLAUDE.md — reuse exactly:
+Metric names are locked in CLAUDE.md — reuse exactly. The full locked set,
+which this docstring listed only half of until 2026-08-25 (an incomplete
+list under a "reuse exactly" instruction invites a wrong name, which is the
+one thing the lock exists to prevent):
 `rollout/episode_return`, `rollout/episode_length`, `eval/return_mean`,
-`eval/return_std`, `time/steps_per_sec`, plus `loss/*` per algorithm.
+`eval/return_std`, `eval/win_rate`, `time/steps_per_sec`,
+`time/collect_sec`, `time/update_sec`, `time/eval_sec`, plus `loss/*` and
+`selfplay/*`. CLAUDE.md is the source of truth; if these disagree, it wins.
 """
 
 import os
