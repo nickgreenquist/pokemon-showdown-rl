@@ -6764,3 +6764,82 @@ entry by offset — never a broad keyword grep.
   (-2.08 GB, maintainer ruling), 116 non-pinned `best_checkpoint.pt` (-1.29 GB,
   no pre-reg pins a `best_`). Suite **528 passed** (495 baseline + 33 ladder).
   Headline 0.71825 and R2 0.79283 UNTOUCHED.
+
+- 2026-08-25 (night, **FIRST REAL POKEMON SHOWDOWN LADDER RUN — 20 BATTLES,
+  14-6. THE AGENT HAS NOW PLAYED HUMANS. The primary read (GXE) is STILL
+  UNMEASURED and that is the honest headline: we finished ~17 Elo short of the
+  top-500 admission cutoff, and GXE only exists for listed accounts.**):
+  account `nickgen1rbrlbot`, arm L2 (4-lane ensemble), one battle at a time,
+  5 s between games. **RESULT: 14-6 raw (0.700); 13-6 = 0.684 on games
+  ACTUALLY PLAYED** — battle 17 was a 1-turn win by opponent inactivity.
+  PS Elo **1000 -> ~1340** over 20 games; top-500 admission is **Elo ~1357**.
+  17 distinct opponents; mean 30.2 turns; wall clock 4518.7 s = **3.8
+  min/battle**, so n=200 is ~12.5 h. **ALL GATES GREEN:** the two INDEPENDENT
+  tallies agree (JSONL 20 vs poke-env 20), **0 decision_errors**, **0
+  mask_desyncs**, 7.6 ms/decision mean. `stopped_by_rule: false` — correct,
+  the pre-registered stop needs n>=200 AND rd<=40. **THIS WAS A PLUMBING RUN,
+  NOT A MEASUREMENT; do not quote 0.700 as a ladder result.**
+  **TWO BUGS THE RUN EXPOSED, both introduced the same day, both now fixed and
+  test-pinned.** (1) `ladder_snapshot()` used a bare
+  `urllib.request.urlopen`, and **pokemonshowdown.com 403s urllib's default
+  `Python-urllib/3.x` User-Agent** — measured: curl 200, default UA 403,
+  browser-ish UA 200. So **every board call of the entire run failed
+  silently**; `ladder_before`/`ladder_after` in the report are both
+  `HTTPError 403`. The earlier successful checks were `curl`, which is exactly
+  why it went unnoticed. (2) **The worse one:** the error return had no
+  `listed` key, and `stopping_rule_met` tested `not snap.get("listed")` — so a
+  dead endpoint produced the SPECIFIC, PLAUSIBLE AND WRONG message "not yet on
+  the top-500 list", **and the stopping rule could never have fired.** Zero
+  effect on this run (bounded at `--battles 20`, and the rule needs n>=200)
+  and FATAL for the next one, where that rule is the termination condition.
+  Fixed with an explicit `ok:` flag so a fetch failure says BOARD UNREACHABLE
+  instead of impersonating a real negative. Standing lesson, and it is the
+  same one this repo already has for eval: **a failure that returns a
+  well-formed answer is worse than a crash.**
+  **A DOC ERROR OF OURS, SAME DAY, CORRECTED:** the afternoon's board
+  measurement was banked in prior_work/README.md and the pre-reg as "GXE 58.8
+  = the cutoff to be listed at all". **WRONG. The toplist is ELO-RANKED** —
+  verified against the live board: `elo` is monotone descending across all 500
+  rows, `gxe` and `glicko` are NOT. Admission is an **Elo threshold (~1357)**;
+  the lowest listed GXE is merely whoever holds it (the bottom ten listed span
+  GXE 66-76 against a list minimum of 58.8). Quote the Elo cutoff; **never
+  quote a "GXE cutoff"**.
+  **THREE LIVE FINDINGS, each pre-registered AS A READOUT OBLIGATION WHILE
+  STILL RESULT-BLIND** (the point being that they were written before the data
+  could shape them): (i) **poke-env sporadically drops `battle.rating`** —
+  battle 5 recorded None for both sides while the replay shows the server sent
+  1184/1111. NOT seat-dependent (three of four successes were also p2), so a
+  race, not a systematic bug. No impact on the primary read (GXE is
+  server-computed) and fully recoverable from `results/ladder/replays/*.html`.
+  **Join replays to JSONL rows on the NUMERIC battle id — some tags carry a
+  secret `-<token>` suffix that silently breaks a `rsplit("-")` join.**
+  (ii) **REPEAT OPPONENTS arrived at battle 8**, far earlier than expected on
+  a 93-active-player ladder: at n=20, first-encounter 14-3 (0.824, 27.1 turns)
+  vs **REMATCH 0-2 (41.0 turns)**. **n=2 IS NOISE AND NO CONCLUSION IS DRAWN**
+  — and the confound was named in advance: rematches are RATING-MATCHED by
+  construction, so opponents met twice skew stronger, which alone predicts a
+  lower rematch rate with zero memorisation. Read once, at n>=200, with each
+  cell's opponent-rating distribution beside it. (iii) **NON-GAMES:** battle
+  17 was decided by "lost due to inactivity". The server rates it so it counts
+  toward GXE (correct, primary untouched), but a 1-turn win is not evidence of
+  playing strength and must not inflate the descriptive rate — ~6% here, ~12
+  of 200 if it holds. Classify from REPLAY TEXT, not turn count. **This also
+  vindicates `pacing.start_timer: true`**: without it that battle hangs
+  forever against an absent opponent.
+  **OPS LESSON:** the first progress monitor cried STALLED after 5 min of no
+  completion. False alarm — the threshold was calibrated on FP@20's 1.2
+  s/battle, i.e. bot-vs-bot. **Against a human with up to 150 s banked per
+  turn the right unit is MINUTES per battle** (measured: 3.8). This is
+  CLAUDE.md's "a wall-clock ETA is not progress" landmine inverted: the
+  sanity-check-against-a-comparable-arm rule was followed, but with the wrong
+  comparable. Re-armed to watch PROCESS LIVENESS, which is the real failure
+  mode. **CONCURRENCY stays k=1** (`max_concurrent_battles=1`): CH4 R1
+  pre-registered a G7 concurrency-neutrality gate that ended up moot at k=1,
+  so nothing in this project has ever shown k>1 is neutral; here the confound
+  is sharper still, because matchmaking pairs by rating and k in-flight
+  battles are all matched against the same stale rating. It is also in the
+  ratified pre-reg's etiquette block. Changing k MID-RUN would be the worst
+  option — it splits one measurement across two protocols.
+  Suite **531 passed**; tree clean; NOT pushed. Headline 0.71825 and R2
+  0.79283 UNTOUCHED — the ladder credits nothing and is DESCRIPTIVE by
+  construction (no A/B, no 0.025 bar).
