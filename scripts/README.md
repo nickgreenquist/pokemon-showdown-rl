@@ -38,6 +38,12 @@ Foul-Play anchor machinery**. These three are current, not historical:
 
 - `ladder.py` — **the real Showdown ladder**. The only path that leaves
   localhost. Pre-reg `configs/eval/ladder_r1.yaml`.
+- `ladder_classify.py` — readout obligation (iii) for that pre-reg: played
+  games vs non-games. NOT optional and NOT reproducible by grep — the
+  pre-reg's own grep was falsified at n=26 (a 32-turn abandonment and a
+  1-turn no-show emit the SAME `lost due to inactivity` string). The ratified
+  instrument is "did the opponent ever submit a move". Pinned by
+  tests/test_ladder.py::TestGameClassification.
 - `eval_checkpoint.py` — **the locked protocol** (final ckpt, 3000 battles,
   deterministic, ties as non-wins). This is the vs-SH instrument.
 - `ch3_eval.py`, `ch3_fp_h2h.py`, `ch3_r4_fp_runner.sh`, `foulplay_vs_sh.py`

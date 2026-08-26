@@ -30,6 +30,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 import ladder  # noqa: E402
+import ladder_classify as lc  # noqa: E402
 
 PREREG = Path(__file__).resolve().parents[1] / "configs/eval/ladder_r1.yaml"
 
@@ -385,3 +386,76 @@ class TestPrereg:
                 f"{pin[key]}. VOID (c) — re-check against upstream before "
                 "laddering."
             )
+
+
+class TestGameClassification:
+    """Readout obligation (iii), as RATIFIED 2026-08-25 at n=26.
+
+    The pre-reg's own instrument — grep the replay for `lost due to
+    inactivity` / `forfeited` — was measured to be wrong twice over, and both
+    failures are pinned here so neither can come back:
+
+      1. `lost due to inactivity` is emitted for a turn-1 no-show AND for a
+         turn-32 abandonment. Text alone cannot separate them.
+      2. A forfeit at 28 turns is a concession, i.e. a game we won. Counting
+         it as a non-game cost 18 points of descriptive win rate at n=26.
+
+    The ratified instrument is "did the opponent ever submit a MOVE".
+    """
+
+    NAMES = "|player|p1|nickgen1rbrlbot|169|1300\n|player|p2|them|170|1250\n"
+
+    def _log(self, body: str) -> str:
+        return self.NAMES + body
+
+    def test_no_show_is_not_a_game(self):
+        # Both sides get a server-generated lead |switch|; nobody ever moved.
+        log = self._log("|switch|p1a: Tauros|Tauros|353/353\n"
+                        "|switch|p2a: Chansey|Chansey|703/703\n"
+                        "|-message|them lost due to inactivity.\n"
+                        "|win|nickgen1rbrlbot\n")
+        assert lc.classify(log, "nickgen1rbrlbot") == "no_show"
+
+    def test_midgame_timeout_is_a_game(self):
+        # SAME marker string as the no-show above — only the moves differ.
+        log = self._log("|switch|p1a: Tauros|Tauros|353/353\n"
+                        "|switch|p2a: Chansey|Chansey|703/703\n"
+                        "|move|p2a: Chansey|Ice Beam|p1a: Tauros\n"
+                        "|move|p1a: Tauros|Body Slam|p2a: Chansey\n"
+                        "|-message|them lost due to inactivity.\n"
+                        "|win|nickgen1rbrlbot\n")
+        assert lc.classify(log, "nickgen1rbrlbot") == "timeout_midgame"
+
+    def test_forfeit_is_a_game_not_a_non_game(self):
+        log = self._log("|move|p2a: Chansey|Ice Beam|p1a: Tauros\n"
+                        "|-message|them forfeited.\n"
+                        "|win|nickgen1rbrlbot\n")
+        assert lc.classify(log, "nickgen1rbrlbot") == "forfeit"
+
+    def test_switch_only_opponent_still_counts_as_no_show(self):
+        # A switch is not a submitted move for this purpose — the lead is
+        # server-generated, so switch>0 must not rescue a no-show.
+        log = self._log("|switch|p2a: Chansey|Chansey|703/703\n"
+                        "|-message|them lost due to inactivity.\n")
+        assert lc.classify(log, "nickgen1rbrlbot") == "no_show"
+
+    def test_seat_is_resolved_by_name_not_by_slot(self):
+        # We are p2 here; the opponent is p1. A hardcoded slot would invert.
+        log = ("|player|p1|them|169|1250\n"
+               "|player|p2|nickgen1rbrlbot|170|1300\n"
+               "|move|p1a: Chansey|Ice Beam|p2a: Tauros\n")
+        assert lc.opponent_moved(log, "nickgen1rbrlbot") is True
+
+    def test_unknown_seat_returns_none_rather_than_guessing(self):
+        log = "|player|p1|alice|1|1|\n|player|p2|bob|2|2|\n|move|p1a: X|Y|p2a: Z\n"
+        assert lc.opponent_moved(log, "nickgen1rbrlbot") is None
+
+    def test_real_ids_only_smoke_ids_excluded(self, tmp_path):
+        # Local smokes now share the real filename prefix; only id WIDTH
+        # separates them. An 8-digit id must not enter the readout.
+        (tmp_path / "nickgen1rbrlbot - battle-gen1randombattle-2670552813.html"
+         ).write_text("real")
+        (tmp_path / "nickgen1rbrlbot - battle-gen1randombattle-40887568.html"
+         ).write_text("smoke")
+        got = lc.load_replays(tmp_path)
+        assert set(got) == {"2670552813"}

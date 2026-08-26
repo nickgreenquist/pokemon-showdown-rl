@@ -140,6 +140,38 @@
 #   VINDICATES `pacing.start_timer: true` — without it this battle
 #   hangs indefinitely against an absent opponent. Do not turn it off.
 #
+# ** AMENDMENT to OBLIGATION 3, ruled by the maintainer 2026-08-25 at n=26.
+#   DISCLOSED AS POST-HOC: the rule above was written result-blind at n=17
+#   off ONE instance; this correction was made AFTER seeing more data, and
+#   that is stated wherever the number is quoted. Nothing above is deleted.
+#   WHAT THE DATA SHOWED, and it falsified the instrument twice over:
+#     (a) SEVEN of our wins were `|-message|<them> forfeited.` at 19-33
+#         turns. A concession from a losing position is the ordinary way a
+#         Pokemon game ends and IS evidence of playing strength. Classing
+#         them as non-games cost 18 points of descriptive win rate.
+#     (b) `lost due to inactivity` is emitted BOTH for the turn-1 no-show
+#         (battle 16, opponent made 0 moves) AND for a turn-32 abandonment
+#         (battle 25, cogslife: 21 moves, 9 switches, then timed out). So
+#         the REPLAY TEXT this obligation named as its instrument cannot
+#         separate a rage-quit from someone who never arrived. The original
+#         was right to reject turn counts and wrong to trust the marker.
+#   RULING: a mid-game timeout or disconnect IS a win, and `played only`
+#   is NOT to be strict — the official Elo/GXE is the real number either
+#   way, so the descriptive cut has no reason to be conservative.
+#   RATIFIED INSTRUMENT: **did the opponent ever submit a MOVE.** Zero
+#   moves = they never played = not a game; everything else is a game,
+#   however it ended. Behavioural, reads from the replay, and honours this
+#   obligation's own "not a turn-count threshold" constraint better than
+#   its own grep did. COUNT MOVES, NOT SWITCHES — the lead send-out is a
+#   server-generated `|switch|` on BOTH sides, so switch>0 means nothing.
+#   IMPLEMENTED in `scripts/ladder_classify.py`, pinned by
+#   tests/test_ladder.py::TestGameClassification (7 tests, incl. both
+#   falsifiers above). It reports THREE rates: all-rated (reconciles with
+#   the board), ratified played-only, and the SUPERSEDED pre-registered cut
+#   — the last is kept forever because it was the result-blind one.
+#   THE PRIMARY READ IS UNAFFECTED: the server rates all of these, so
+#   GXE/Glicko never touch this cut.
+#
 # READOUT OBLIGATION 2 — THE REMATCH TEST (added live at n=8,
 #   2026-08-25, BEFORE any rematch data could bias the design). The
 #   first repeat opponent appeared at battle 8: 7 distinct opponents in

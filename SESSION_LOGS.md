@@ -6899,3 +6899,52 @@ entry by offset — never a broad keyword grep.
   cannot be decomposed further from local artifacts. Not worth chasing.
   Nothing pushed. Headline 0.71825, R2 0.79283 and the n=20 ladder tally all
   UNTOUCHED — this session measured nothing about the agent.
+- 2026-08-25 (night cont., maintainer ruling: "a mid game timeout or disconnect
+  is a win. we should [not] be so strict with 'played only'. we will have an
+  official elo and gxe rating anyways"): **READOUT OBLIGATION 3 AMENDED — the
+  pre-registered non-game rule was FALSIFIED BY ITS OWN DATA at n=26, and the
+  amendment is disclosed as POST-HOC.** Ladder run live throughout (n=20 -> 27).
+  **HOW IT SURFACED.** The maintainer noticed an opponent disconnecting from a
+  losing position and said that should count as a win. Checking the replays
+  showed the problem was far larger than the one game: **SEVEN of our wins are
+  `|-message|<them> forfeited.` at 19-33 turns.** A concession from a losing
+  position is the ordinary way a Pokemon game ends and is plainly evidence of
+  playing strength. The pre-registered cut (non-game = inactivity + forfeit +
+  disconnect + tie) would have discarded all seven.
+  **THE INSTRUMENT WAS BROKEN TOO, which is the sharper finding.** The pre-reg
+  said "classify from REPLAY TEXT, not turn count". It was right about turn
+  counts and WRONG about text: `lost due to inactivity` is the SAME STRING for
+  battle 16 (turn 1, opponent made 0 moves, never arrived) and battle 25
+  (`cogslife`, turn 32, **21 moves and 9 switches** before timing out). So the
+  named instrument cannot separate a rage-quit from a no-show. Both the
+  category boundary AND the instrument were wrong; only the MOTIVATION ("a
+  1-turn win is not evidence of playing strength") survived, and it is what
+  the amendment is built on.
+  **RATIFIED INSTRUMENT: did the opponent ever submit a MOVE.** Zero moves =
+  never played = not a game; everything else is a game however it ended.
+  Behavioural, reads from the replay, and honours the obligation's own "not a
+  turn-count threshold" constraint better than its own grep did — note the
+  maintainer's proposed "filter turn-1 wins" would have reintroduced exactly
+  the instrument the pre-reg rejected, and gets the right answer here only by
+  luck. **COUNT MOVES, NOT SWITCHES:** the lead send-out is a server-generated
+  `|switch|` on BOTH sides, so battle 16 shows 1 switch / 0 moves per player.
+  **THE THREE RATES at n=27** (all descriptive; GXE/Glicko are server-computed
+  over ALL rated battles and untouched by any of this): all-rated **18/27 =
+  0.667**; ratified played-only **17/26 = 0.654**; the SUPERSEDED
+  pre-registered cut **9/18 = 0.500**. The pre-registered number would have
+  understated the agent by ~17 points. It is still reported, forever, because
+  it was the result-blind one — superseded, never deleted.
+  **BUILT:** `scripts/ladder_classify.py` (the readout must not be a 2am grep)
+  + `tests/test_ladder.py::TestGameClassification`, 7 tests pinning both
+  falsifiers and the smoke-id width filter. Suite **538 passed, 17 skipped**.
+  **A TEST CAUGHT A DEFECT IN THE NEW CODE, same failure mode as the day's
+  403 bug.** `opponent_moved` took "the slot that is not us" without first
+  confirming a slot IS us — so on any battle we did not play (renamed account,
+  `PS_USERNAME` override, a stray replay) it would pick an arbitrary player as
+  the opponent and return a confident WRONG classification. Now returns None.
+  Third instance today of "a well-formed answer is worse than a crash".
+  Pre-reg header amended in place with the ruling, the evidence and the
+  post-hoc disclosure; nothing deleted from it. Also mirrored results/ladder/
+  to ../pokemon-showdown-rl-d25-backup-20260815/ — a rated ladder game is
+  UNREPEATABLE and the replays were single-copy. Headline 0.71825 and R2
+  0.79283 UNTOUCHED.
