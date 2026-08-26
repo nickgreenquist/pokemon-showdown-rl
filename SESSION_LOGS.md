@@ -7063,3 +7063,60 @@ entry by offset — never a broad keyword grep.
   and only 55% at 2v2.
   Nothing acted on; no fix applied; ladder untouched throughout. Verification
   script kept at `scripts/replay_audit/verify_forceswitch.py`.
+- 2026-08-26 (morning, maintainer out; standing permission, priority stated as
+  "ensure all data from the ladder is saved and doesn't disappear"):
+  **LADDER R1 COMPLETE AT n=200. ALL GATES GREEN. THE PRE-REGISTERED PRIMARY
+  READ IS UNMEASURED AND THAT IS THE HONEST HEADLINE.** 95-105 raw (0.475);
+  played-only 91/196 (0.464) under the ratified cut; PS Elo 1000 -> 1311, peak
+  1348, against a top-500 admission cutoff of 1357.2; 141 distinct opponents;
+  mean 25.9 turns; 43,464 s = 12.07 h; mean decision 6.74 ms. Two INDEPENDENT
+  tallies agree 200/200, **0 decision_errors, 0 mask_desyncs**.
+  **`stopped_by_rule: false` IS CORRECT AND MUST BE QUOTED THAT WAY.** We never
+  reached the top-500, and Showdown publishes GXE/Glicko only for listed
+  accounts, so **GXE DOES NOT EXIST FOR THIS RUN.** The stop was the
+  pre-registered n floor, not the rule (which needs rd<=40 AND n>=200 AND
+  listing). Quote the Elo; never project a GXE in either direction.
+  **ALL THREE READOUT OBLIGATIONS DISCHARGED**, via a new
+  `scripts/ladder_readout.py` -> tracked `LADDER_R1_READOUT.md`.
+  (i) Rating trajectory rebuilt from the replays: poke-env recorded a rating on
+  198/200, the replay `|player|` lines carry the server's true value on
+  **200/200** — the pre-registered recovery path worked exactly as designed.
+  (ii) **THE REMATCH CELL RESOLVED AGAINST THE INTERESTING HYPOTHESIS.** First
+  encounter 74/141 = 0.525 at mean opponent Elo **1198**; rematch 21/59 = 0.356
+  at mean opponent Elo **1311**. Rematch opponents are ~113 Elo stronger, which
+  is precisely the confound the pre-reg named while still result-blind:
+  rematches are rating-matched by construction. The lower rematch rate is
+  OPPONENT SELECTION, not the deterministic policy being memorised, and no
+  sampling-vs-deterministic arm is motivated. (iii) Non-games: 4 no-shows, 29
+  forfeits, 6 mid-game timeouts, 161 played out — all rated 0.475, played-only
+  0.464. The two differ by 0.011, i.e. immaterially, so the amendment that
+  caused all the argument changed the answer by almost nothing. Worth knowing.
+  **DATA DURABILITY — the maintainer's stated priority.** `results/` is
+  gitignored with zero tracked files AND a rated ladder game is UNREPEATABLE,
+  so unlike a training run these files cannot be regenerated at any price.
+  Three copies, verified in sync at 200 rows / 217 replays, kept by a new
+  `scripts/backup_ladder.sh` that **exits non-zero if the mirror drifts**:
+  live `results/ladder/`, the d25-backup mirror, and dated tarballs in
+  `~/pokemon-showdown-rl-ladder-archive/`. **And the NUMBERS survive
+  independently of the FILES:** `ladder_readout.py` defaults to a TRACKED path,
+  so losing all three copies still leaves the readout in git and the method in
+  the script — `scripts/README.md`'s grader-script rule, applied harder.
+  **VALUE-HEAD DIAGNOSTIC (`scripts/diag_value_head.py`): BOTH HYPOTHESES I
+  OFFERED WERE FALSIFIED.** 40 local battles, 1057 states, lane s62. (A) The
+  critic does not degrade in the endgame — it SHARPENS: AUC for ranking a
+  won-episode state above a lost one runs 0.773 (6 mons) / 0.917 / 0.900 /
+  0.938 / 0.911 / **0.964 (1 mon)**. (B) It does not reward stalling:
+  corr(V, their faints) = 0.743 at high HP and 0.730 at <=2 mons, while
+  corr(V, our own HP mass) is 0.179 overall and **-0.232** at high HP — a
+  critic that liked "high HP, no progress" would show the opposite on both.
+  So the heal loops and the endgame collapse are NOT a value-shape problem and
+  the gamma/horizon lever has no support. **CAVEAT THAT LIMITS IT AND ARGUES
+  THE MAINTAINER'S POINT 5:** this ran against the heuristics opponent. A
+  critic well calibrated on SH-like play and miscalibrated on human play would
+  look exactly like this. Re-run vs Foul Play before believing it.
+  **PREP NOTE, unverified on purpose:** `ch3_fp_h2h.py` asserts
+  `arm["kind"] in ARM_KINDS` and refuses unknown kinds. L2 is `kind: ensemble`;
+  whether that is in ARM_KINDS was NOT checked, and a 3 h off-SH run would die
+  on the assert. Check before launching rather than guessing.
+  HANDOFF.md written for a fresh context, leading with where the data lives.
+  Headline 0.71825 and R2 0.79283 UNTOUCHED — the ladder credits nothing.
