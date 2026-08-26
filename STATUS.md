@@ -14,23 +14,23 @@ from-scratch self-play; THE NOVELTY IS THE LANE.** CH3+CH4-R1 CLOSED.
 n=200 DESCRIPTIVE, PS Elo 1311, 0.475, NO GXE** · off-FP@20 (12M lanes only)
 0.342/0.355/0.356/0.342. Ties=loss; locked = final ckpt.
 
-## Next actions — **`CHAPTER5.md` IS THE CHAPTER DOC (PROPOSED, NOT
-RATIFIED; it is the brief FOR the 2-Opus cycle, not its output).** Summary:
-1. **MEASURE BEFORE TRAINING. Three ZERO-TRAINING reads, all gated on the same
-   off-SH seat (item 2):** (a) **D29r2's 50M lanes s80/81/82 vs FP@20** — "50M
-   is FLAT" is vs-SH ONLY and no 50M stack lane was EVER measured off-SH;
+## Next actions — **`CHAPTER5.md` IS THE CHAPTER DOC. SHAPE RATIFIED
+2026-08-26; **50M IS THE HARD CEILING** (no 100M/120M/250M). Pre-regs NOT
+written and they owe the 2-Opus cycle. Summary:
+1. **MEASURE BEFORE TRAINING. Three ZERO-TRAINING reads, gated on the off-SH
+   seat (item 2):** (a) **D29r2's 50M lanes s80/81/82 vs FP@20** — "50M is
+   FLAT" is vs-SH ONLY and no 50M lane was EVER measured off-SH; **if it reads
+   positive the better model is ALREADY ON DISK and R2 training is optional;**
    (b) **search@M on the 50M checkpoints** — inference-only, ran only on
-   `recipe12m_s62..s65`; "it failed because the net wasn't saturated" is untested
-   and free to test; (c) **a wider ensemble** — 4 lanes now, 6 more idle.
+   `recipe12m_s62..s65`, so "it failed from under-training" is free to test;
+   (c) **a wider ensemble** — 4 lanes now, 6 more idle.
 2. **BUILD THE OFF-SH SEAT — the gate on all of item 1.** (a) `ch3_fp_h2h.py`'s
-   `ARM_KINDS` has no `ensemble` and asserts on it; (b)
-   `eval_checkpoint._opponent_from_checkpoint` seats a PoolPlayer that SAMPLES =
-   the A1 bias — use `SeatPlayer`. **Yardstick: FP@20 PRIMARY, vs-SH a guard.**
-3. **THEN pick the training lever, with item 1 in hand.** Candidates, none
-   ratified: more seeds (the 0.630-0.742 spread makes seed count a real lever);
-   longer runs; H&L `hl_shaping: 1.0` + `gamma: 0.95` on the entity trunk (never
-   tested there, but POST-HOC, ~1 in 4); attention / temporal context; the
-   encoder fork LAST (it invalidates every checkpoint).
+   `ARM_KINDS` has no `ensemble` and asserts on it; (b) `eval_checkpoint.
+   _opponent_from_checkpoint` SAMPLES = the A1 bias — use `SeatPlayer`.
+   **Yardstick: FP@20 PRIMARY, vs-SH a guard.**
+3. **THEN pick the training lever from CHAPTER5 §5's branch table.** The
+   maintainer's six stay first-class (§3 provenance table); assistant additions
+   (§3b) COMPETE, never displace. Encoder fork LAST — it invalidates every ckpt.
 ## Watch items
 - **"SCALE IS FLAT" IS A vs-SH-ONLY CLAIM — DO NOT QUOTE IT UNQUALIFIED.**
   D29r2 50M vs SH: 0.7423 / 0.7347 / **0.6297** -> pooled 0.70222, i.e. **2 of

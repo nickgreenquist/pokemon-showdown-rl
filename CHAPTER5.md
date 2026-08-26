@@ -1,9 +1,15 @@
 # CHAPTER 5 — from "one ladder number" to "a better model on the ladder"
 
-**STATUS: PROPOSED, NOT RATIFIED. Nothing launched, nothing trained, no
-tranche authorised.** Written 2026-08-26 after the maintainer challenged
-this session's "scale is flat / nothing here reaches the cutoff" framing
-and the challenge held on every count checked.
+**STATUS: THE SHAPE IS RATIFIED (maintainer, 2026-08-26 — §7 carries the
+rulings verbatim). The IMPLEMENTING PRE-REGISTRATIONS ARE NOT WRITTEN and
+still owe the 2-Opus cycle (§8). Nothing launched, nothing trained.**
+Written 2026-08-26 after the maintainer challenged this session's "scale
+is flat / nothing here reaches the cutoff" framing and the challenge held
+on every count checked.
+
+**HARD CEILING, ruled 2026-08-26: 50M IS THE LARGEST RUN IN THIS CHAPTER.**
+No 100M, no 120M, no 250M. See §7.4 for the reasoning, which also makes
+the old §7.3 moot.
 
 **WHAT THIS FILE IS:** the chapter decision document, in the role
 `DESIGN2.md` played for Chapter 2 — and, deliberately, **the evidence
@@ -80,17 +86,27 @@ budgets without naming both.**
 
 ## §3 — The six candidates
 
+**PROVENANCE, and it is load-bearing (maintainer, 2026-08-26: "you can try
+things you thought up. just dont lose track of what i proposed").**
+
+| | source | status |
+|---|---|---|
+| C1 longer run · C2 seeds/ensemble · C3 larger arch · C4 attention · C5 search-on-better-net · C6 encoder fix | **MAINTAINER** | **first-class. None may be dropped, deferred or merged away without an explicit maintainer ruling recorded here.** |
+| H&L shaping (§7.5) · both-seat harvest (§3b) · temporal context (§3b) | assistant | additions, licensed 2026-08-26. They COMPETE with the six; they never displace one. |
+
 Raised by the maintainer 2026-08-26. Each gets: the claim, what supports
 it, what argues against, cost, and what would settle it.
 
-### C1 — Longer run (100M+), and enough eval to prove "stalled"
+### C1 — Longer run, and enough eval to prove "stalled"
+**CAPPED AT 50M by the 2026-08-26 ruling (§7.4), and the two 50M fleets we
+need are already trained — so C1's first move is a MEASUREMENT, not a run.**
 - **For:** the flat verdict is one arm on one opponent at one era (§2.1).
   H&L's comparable ran ~19x our 12M in learner-consumed terms.
 - **Against:** D29r2 pooled -0.016 vs SH is real as far as it goes; the
   2026-08-23 big-run ruling reserves 120/250M for polish or a visibly
   climbing log.
-- **Cost:** 50M x 3 lanes was ~37.4 h wall / ~4.6 lane-days. 100M is
-  roughly double.
+- **Cost:** zero, if R1-A answers it — s80/81/82 exist. A *new* 50M fleet
+  is ~37.4 h wall / ~4.6 lane-days. Past 50M: out of chapter.
 - **Settles it:** R1-A first. **A longer run should not be bought before
   the 50M checkpoints we already own are measured off-SH.**
 
@@ -150,6 +166,29 @@ it, what argues against, cost, and what would settle it.
 - **Sequencing:** LAST. Doing it earlier destroys the baselines everything
   else is graded against.
 
+### §3b — Assistant additions (licensed 2026-08-26, SUBORDINATE to the six)
+
+These compete for R2's slot in §5's second row. None displaces a C-item.
+
+- **A1 — H&L dense zero-sum shaping** (`hl_shaping: 1.0` + `gamma: 0.95`).
+  Never tested on the entity trunk: `hl_shaping` is non-zero in exactly
+  three runs on disk, all `trunk: mlp`, and every entity-trunk run is gamma
+  1.0 / no shaping. It nulled on the flat MLP (+0.0135 n.s.). POST-HOC —
+  DESIGN's result-blind carry-forward was to SCALE, not to a new trunk at
+  12M. Cost: one overnight, zero code, no checkpoint invalidation. ~1 in 4.
+- **A2 — both-seat harvest.** We buffer agent1's transitions only; the
+  opponent seat is a `PoolPlayer` whose trajectory is discarded. H&L
+  consume both, and their per-battle batches are RETURN-BALANCED by
+  construction (one winner + one loser), which removes batch-level outcome
+  noise. **That is a variance property, not a data-volume one, so
+  50M-flat does not speak to it** — and gen 1 is unusually luck-heavy
+  (freeze, para, crits, 1/256). Needs real collection wiring.
+- **A3 — temporal context.** We are single-snapshot Markov; ps-ppo uses
+  64-256 turns, Metamon 200. Named by the 2026-08-25 architecture review as
+  a SHARPER structural gap than attention. Spec exists at
+  `prior_work/HISTORY_FEATURES_DESIGN.md` (unread this session). Changes
+  OBS_DIM, so it inherits C6's invalidation problem and its sequencing.
+
 ---
 
 ## §4 — Proposed shape: R1 (free) -> R2 (train) -> R3 (ladder)
@@ -202,9 +241,14 @@ n=200 cannot resolve a ~30-50 Elo difference between arms.
 Written 2026-08-26 before any R1 datum exists. Comparator throughout is
 the 12M greedy 0.34867 off FP@20 (n=12,000).
 
-| R1-A reads | interpretation | R2 |
+**THE SIMPLIFICATION THAT FALLS OUT OF THE 50M CEILING:** if R1-A is
+positive, **the better model is ALREADY ON DISK.** D29r2's s80/81/82 are
+trained. A positive R1-A does not buy a longer run — it buys a *deployment
+decision*, and R2 training becomes OPTIONAL rather than the point.
+
+| R1-A reads | interpretation | action |
 |---|---|---|
-| 50M **materially above** 12M | scale is alive; the flat verdict was an SH artifact | **C1** — longer run. Re-opening the 120/250M policy is the MAINTAINER'S call; this cell only supplies the evidence the 2026-08-23 ruling asked for |
+| 50M **materially above** 12M | scale is alive AND the model exists | **R3 uses the 50M lanes** (greedy or ensembled). R2 training is OPTIONAL — spend it on C2/C4 or skip it. **Anything past 50M is OUT OF CHAPTER** and needs its own pre-reg under the 2026-08-23 conditions |
 | 50M **within noise** of 12M | scale genuinely flat on both axes | **C2** (more seeds) unless R1-C already delivered; then a structure lever, C4's benchmark deciding attention vs temporal context |
 | 50M **materially below** 12M | scale actively hurts this recipe | **C2** — more 12M seeds + widest ensemble. Cheapest path to a better R3 model, and C1/C3 are closed for the chapter |
 
@@ -239,21 +283,37 @@ named (median vs worst-lane changed a verdict once).**
 
 ---
 
-## §7 — Open decisions for the maintainer
+## §7 — Maintainer rulings, 2026-08-26 (all five closed)
 
-1. **Ratify the shape** (R1 -> R2 -> R3) or reorder it.
-2. **The R2 lever is NOT chosen here** — §5 chooses it from R1's result.
-   Confirm that is acceptable, or name it now instead.
-3. **C1 re-opens the 2026-08-23 big-run ruling** on one branch. That
-   ruling is yours; §5 only supplies evidence to it.
-4. **Budget.** R1 is ~1 evening of build + ~4-6 h of agent-side battles
-   (R1-B unpriced until smoked). R2 is one overnight at 12M or several
-   days at 100M. R3 is ~12-20 h of unattended laddering.
-5. **H&L shaping** (`hl_shaping: 1.0` + `gamma: 0.95` on the entity trunk)
-   is a live R2 candidate not listed in the six: never tested on this
-   architecture — every entity-trunk run on disk is gamma 1.0 / no shaping
-   — but its 12M-vs-scale framing makes it POST-HOC, and its own author
-   puts it at ~1 in 4. It should compete in §5's second row, not lead.
+1. **SHAPE RATIFIED** — R1 -> R2 -> R3 as written. ("ratify")
+2. **R2's lever comes from §5's branch table**, not named in advance.
+   ("sure")
+3. **MOOT — dissolved by ruling 4, not decided.** It asked whether a
+   positive R1-A could re-open the 2026-08-23 ruling that reserves
+   120/250M runs for "polishing a ladder-ready model" or "a live run whose
+   training logs are still clearly climbing." With 50M as the chapter
+   ceiling, no run in Chapter 5 is large enough for that ruling to bind.
+   It stays in force, untouched, and nothing here re-opens it.
+4. **50M IS THE CEILING. 120-250M is overkill and is not proposed.**
+   ("days at 100M is too much. we can start with a 50M run.") The reason
+   is specific, not budgetary squeamishness: **we already own two 50M
+   fleets (struct50m, D29r2) and have never measured either off-SH.**
+   Extending a scaling curve whose existing points are unmeasured on the
+   axis that decides things is backwards. Measure what is on disk first.
+   Scale, for calibration only: 12M lane 9.8 h; 50M x3 lanes was 37.4 h
+   wall / 4.6 lane-days; 250M x3 would be ~a week of the box — against
+   H&L's comparable diet of roughly 230M in our currency, so the number is
+   not absurd in principle, just unaffordable and unmotivated now.
+5. **Assistant additions are LICENSED but SUBORDINATE.** ("you can try
+   things you thought up. just dont lose track of what i proposed") The
+   provenance table in §3 is the enforcement: the maintainer's six are
+   first-class and may not be dropped without an explicit ruling; H&L
+   shaping (`hl_shaping: 1.0` + `gamma: 0.95`, never tested on the entity
+   trunk, POST-HOC, its own author at ~1 in 4) competes in §5's second
+   row and never leads.
+
+**Still open, and the only thing blocking R1:** the pre-registrations that
+implement this shape are not written, and they owe the 2-Opus cycle (§8).
 
 ---
 

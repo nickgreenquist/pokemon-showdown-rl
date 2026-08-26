@@ -7431,3 +7431,41 @@ entry by offset — never a broad keyword grep.
   the designers must get the candidate SET rather than its ranking — the
   "synthesis hid the dispute" failure this repo has already paid for once.
   Suite green (538 / 17). Nothing launched, nothing trained.
+- 2026-08-26 (evening cont., maintainer rulings on CHAPTER5 §7, verbatim:
+  "1. ratify / 2. sure / 3. i dont understand this part / 4. days at 100M is
+  too much. we can start with a 50M run… 120-250M seems overkill right? /
+  5. agree, you can try things you thought up. just dont lose track of what i
+  proposed"): **CHAPTER 5's SHAPE IS RATIFIED. 50M IS A HARD CEILING.** All
+  five closed; nothing launched, nothing trained.
+  **§7.4 IS THE CONSEQUENTIAL ONE, AND IT SIMPLIFIES THE CHAPTER.** 50M caps
+  the chapter; 120/250M is not proposed. The reason recorded is not budget
+  squeamishness: **we already own TWO 50M fleets (struct50m, D29r2) and have
+  measured NEITHER off-SH.** Extending a scaling curve whose existing points
+  are unmeasured on the deciding axis is backwards. Calibration kept in the
+  doc: 12M lane 9.8 h; 50M x3 = 37.4 h wall / 4.6 lane-days; 250M x3 ~ a week
+  of the box against H&L's ~230M-in-our-currency diet — not absurd in
+  principle, unaffordable and unmotivated now.
+  **THE SIMPLIFICATION THAT FALLS OUT, folded into §5's branch table: if R1-A
+  reads positive, THE BETTER MODEL IS ALREADY ON DISK.** s80/81/82 are trained.
+  A positive R1-A buys a DEPLOYMENT decision, not a longer run — R2 training
+  becomes optional and R3 can proceed off existing weights. Anything past 50M
+  is explicitly OUT OF CHAPTER and needs its own pre-reg.
+  **§7.3 CLOSED AS MOOT, NOT DECIDED — the distinction matters.** It had asked
+  whether a positive R1-A could re-open the 2026-08-23 ruling reserving
+  120/250M for "polishing a ladder-ready model" or "a live run whose logs are
+  still clearly climbing." With 50M as the ceiling no Chapter-5 run is large
+  enough for that ruling to bind, so **it stays in force, untouched, and
+  nothing here re-opens it.** The maintainer said they did not understand the
+  item; the honest reading is that it was MY framing that was unclear — it
+  asked them to pre-authorise re-opening their own ruling on a branch that,
+  after ruling 4, cannot occur.
+  **§7.5 -> A PROVENANCE TABLE IN §3, because "don't lose track of what I
+  proposed" needs enforcement, not agreement.** C1-C6 are the MAINTAINER'S and
+  are first-class: **none may be dropped, deferred or merged away without an
+  explicit maintainer ruling recorded in the file.** Assistant additions are
+  now collected in a new §3b — A1 H&L shaping, A2 both-seat harvest, A3
+  temporal context — and are marked SUBORDINATE: they compete for R2's slot in
+  §5's second row and never displace a C-item. A2 and A3 were previously loose
+  in a session log; they are now tracked candidates with costs and objections.
+  STATUS updated (shape ratified, 50M ceiling, the on-disk simplification).
+  Suite green (538 / 17).
