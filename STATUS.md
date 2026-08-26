@@ -2,59 +2,59 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-26 — **LADDER R1 COMPLETE AT n=200; THE PRIMARY
-READ IS UNMEASURED.** 95-105 (0.475); played-only 91/196 (0.464); PS Elo 1000
--> **1311** (peak 1348) vs a top-500 cutoff of 1357; 141 opponents; 12.07 h.
-**NEVER LISTED, so GXE/Glicko DO NOT EXIST — quote the Elo, never project a
-GXE.** `stopped_by_rule: false` is CORRECT (the rule also needs listing).
-Gates green: 200/200 tallies, 0 decision_errors, 0 mask_desyncs, 6.74 ms.
-**All 3 readout obligations discharged -> `LADDER_R1_READOUT.md` (tracked);**
-obligation (ii) resolved AGAINST memorisation — rematch opponents are ~113
-Elo stronger (1311 vs 1198), the confound the pre-reg named in advance.**)
+## Where things stand (2026-08-26 — **LADDER R1 COMPLETE AT n=200; the
+pre-registered PRIMARY read is UNMEASURED.** 95-105 (0.475); played-only
+91/196 (0.464); PS Elo 1000 -> **1311** (peak 1348) vs a top-500 cutoff of
+1357; 141 opponents; 12.07 h. **NEVER LISTED, so GXE/Glicko DO NOT EXIST —
+quote the Elo, never project one.** Gates green: 200/200 tallies, 0
+decision_errors, 0 mask_desyncs; obligations -> `LADDER_R1_READOUT.md`.)
 **Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE.**
-D26 12M = 0.71825 (CREDITED HEADLINE). R2 search@M = 0.79283 (B1 CREDIT,
-SH-facing, INFERENCE-ONLY). CH3/CH4-R1 CLOSED. Suite 538 / 17 skipped.
+R2 search@M is a B1 CREDIT but SH-facing/INFERENCE-ONLY. CH3+CH4-R1 CLOSED.
 
 ## Results (vs SH; ties=loss; locked = final ckpt)
 | result | win rate |
 |---|---|
-| D26 12M HEADLINE 0.71825 · R0 ensemble 0.74633 · D29r2 50M 0.70222 | — |
+| D26 12M HEADLINE · R0 ensemble 0.74633 · D29r2 50M 0.70222 | **0.71825** |
 | **CH3 R2 search@M — B1 CREDIT, BEST (caveat: SH-facing)** | **0.79283** |
 | **LADDER R1 n=200 — DESCRIPTIVE, PS Elo 1311, NO GXE** | **0.475** |
-‡ FP's take, not ours. Never quote an anchor as a "best".
 
-## Next actions (maintainer-decided 2026-08-26)
-1. **L2 OFF-SH IS THE OUTSTANDING EVAL.** The arm that just played 200 ladder
-   games has NEVER been measured off-SH — the pre-reg's own table says
-   `unmeasured` vs both the BC clone and Foul Play. ~3 h. **Check first that
-   `ensemble` is in `ch3_fp_h2h.py`'s ARM_KINDS** (it asserts on unknown kinds;
-   a 3 h run would die on it). "Evaluate all finals" is otherwise near-empty:
-   132 ckpts on disk, only 13 sha-pinned, essentially all already graded.
-2. **ONE pre-reg covering BOTH the encoder fork and the yardstick change** —
-   split them and the first result is ungradeable and the second has no
-   baseline. 2-Opus-agents-plus-review per standing process. **Yardstick:
-   FP@20 becomes the PRIMARY credit line, vs-SH a non-regression guard.** CH4
-   R1 already paid for this (off-SH seed sd 0.0077 < vs-SH 0.0112 = "off-SH
-   credit line AFFORDABLE", never spent); FP@20 at 1.20 s/battle makes a full
-   3000x3 arm ~3 h. **Encoder: fixed-damage moves are the one defect to fix.**
-3. **Retrain 12M on the new encoder, graded on the new protocol. NOT longer:**
-   D29r2 at 50M read 0.70222, R-B FLAT vs 12M — the one lever with direct
-   evidence against it.
+## Next actions (assistant-decided 2026-08-26; DEVIATES from the 08-26 morning
+plan — the encoder fork is DEFERRED to round 2, reasons in that day's log)
+1. **ONE pre-reg = YARDSTICK CHANGE + THE H&L SIGNAL CARRY-FORWARD.** Needs
+   the 2-Opus-plus-reviews process; NOT yet written.
+   - **Lever: `hl_shaping: 1.0` + `gamma: 0.95` on `showdown_sp_recipe12m.yaml`
+     verbatim otherwise, 4 lanes x 12M** (~9.8 h/lane, one overnight), seeds
+     from the HELD set 66/67/75/76/83/84/93/94. Zero new code: `hl_shaping` is
+     a live env kwarg and DESIGN §4 Rung 1 already specifies its R0
+     antisymmetry gate. **Encoder-neutral -> invalidates no checkpoint.**
+     Rung 1 nulled (+0.0135 n.s.) but ONLY on `trunk: mlp`; EVERY entity-trunk
+     run on disk is gamma 1.0 / no shaping, and DESIGN pre-registered the
+     carry-forward result-blind.
+   - **Yardstick: FP@20 PRIMARY credit line, vs-SH a non-regression guard.**
+     Two real blockers: (a) `ch3_fp_h2h.py`'s `ARM_KINDS` has no `ensemble`
+     and asserts on it; (b) `eval_checkpoint._opponent_from_checkpoint` seats a
+     PoolPlayer that SAMPLES = the A1 bias — use `SeatPlayer`. Grade L2 AND the
+     new arm in the same window, or round 2 has no baseline.
+2. **Round 2: the encoder fork** (fixed-damage `basePower == 1`), graded on
+   the FP@20 baselines round 1 establishes.
+3. **NOT: more scale** (50M FLAT), **not attention/capacity** (08-25 review:
+   88% of a same-family 72%-GXE agent), **not a blunder filter** (dead, below),
+   **not a 2nd ladder arm to DISCRIMINATE proxies** (~4x n=200 for ~30-50 Elo).
 ## Watch items
+- **WE ARE IN THE STYLE TABLE (`scripts/replay_audit/our_style.py`, new).**
+  Sum-|delta| from the human field: **US 0.095, SH 0.095**, clone 0.124 — as
+  human-like as the closest anchor already. **Gross move errors: us 0.6% vs
+  humans 2.7%** (1.88 vs 7.20% given a known better move; exposure near-equal)
+  — nothing for a blunder mask to filter. Biggest gap left: status 18.0/23.0.
+- **"We under-switch" IS RECONCILED: TOTAL switch rate is at PARITY (27.2 vs
+  28.6); only the VOLUNTARY cut differs (6.9 vs 10.7) — ours are REACTIVE.**
+- **THE ENCODER DEFECT HAS A PARTIAL ROUTE-AROUND:** `move_emb` is a learned
+  `nn.Embedding(166, 64)` in every move token, so the sweep's "cannot route
+  around `basePower == 1`" is too strong — misleading, not unrepresentable, and
+  ~1% of decisions. Fix in round 2, ONE fork. Force-switch defect: INERT.
+- **THE CRITIC IS FINE, NOT SH-SPECIFIC** (n=300/opp): AUC 0.704 (6 mons) ->
+  0.891 (1 mon), BETTER vs the FP clone. (n=40 gave 0.964 — do not.)
 - **LADDER DATA IS UNREPEATABLE AND GITIGNORED.** 3 copies via
-  `scripts/backup_ladder.sh` (live / d25-backup mirror / ~/pokemon-showdown-rl-
-  ladder-archive; exits non-zero if the mirror drifts). The NUMBERS survive
-  separately in tracked `LADDER_R1_READOUT.md` + `ladder_readout.py`.
-- **ENCODER DEFECT, ACT ON IT:** fixed-damage moves have `basePower == 1` in
-  poke-env gen-1, so Seismic Toss encodes as 1/80th of a Thunderbolt. Measured
-  cost: **Super Fang 0/59 for us vs 36% for humans**; Seismic Toss 0.141 vs
-  0.289 (z=-3.39). Changing OBS_DIM invalidates every checkpoint — one fork.
-- **ENCODER DEFECT, INERT:** `bool([])` is False, so `_move_slots_aliased`
-  says "not aliased" on force-switch turns and 4 move blocks describe the
-  FAINTED mon at `known=1.0` (42/42). Zeroing them flips **0/42** choices and
-  fixing it moves checkpoints off-distribution. Not a win.
-- **THE CRITIC IS FINE, AND NOT SH-SPECIFIC** (n=300/opponent): AUC 0.704
-  (6 mons) -> 0.891 (1 mon) vs SH-like, BETTER vs the FP clone (0.756 ->
-  0.927). Tracks progress, not own-HP. NOT value-shape. (n=40 gave 0.964 —
-- `REPLAY_AUDIT.md` is n=39, SUPERSEDED by the n~175 sweep in SESSION_LOGS.
-  `score_ladder.py` is a FALSE FRIEND; real: `ladder{,_readout,_classify}.py`.
+  `scripts/backup_ladder.sh`; numbers survive in tracked `LADDER_R1_READOUT.md`.
+  `score_ladder.py` is a FALSE FRIEND; `REPLAY_AUDIT.md` is n=39, SUPERSEDED.
+  **13 commits UNPUSHED — ask before pushing.**

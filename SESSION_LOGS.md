@@ -7208,3 +7208,101 @@ entry by offset — never a broad keyword grep.
   both: the clone seat SAMPLES (pool contract), and FP PROPER WAS NOT TAPED —
   the external runner was judged not worth its S1-deadlock risk for a
   style-only read, so FP's own row here is inferred from G6b, not measured.
+- 2026-08-26 (evening, maintainer: "we have had our first successful ladder run
+  against 200 human games. now, its your job to decide on the best next
+  direction… what will do best against humans on ladder"): **DECISION: SWAP THE
+  ROUND-1 LEVER. The encoder fork is DEFERRED; round 1 is the YARDSTICK CHANGE
+  plus H&L'S SIGNAL TREATMENT CARRIED ONTO THE ENTITY TRUNK — a carry-forward
+  DESIGN pre-registered in 2026-08 and never executed.** Three new
+  measurements and one archaeology finding drove the swap; nothing was
+  launched, nothing trained, no headline moved.
+  **1. WE ARE IN THE STYLE TABLE NOW, AND IT KILLS A WHOLE LEVER CLASS.** Every
+  style number this project owned compared an ANCHOR to the human field; nobody
+  had ever profiled US. New grader `scripts/replay_audit/our_style.py` (human
+  row computed by `anchor_style.profile(..., target_is=None)` so it is
+  bit-identical to the committed anchor row):
+  | side | switch% | 0x% | domin% | hyperbeam% | boom% | status% |
+  | US (L2, 200 rated) | 27.2 | 1.0 | **0.6** | 4.1 | 1.0 | **18.0** |
+  | HUMANS (same 200) | 28.6 | 0.8 | **2.7** | 4.0 | 1.8 | **23.0** |
+  Sum of |delta| = **0.095 — EXACTLY SH's 0.095**, vs the clone's 0.124. **We
+  are already as close to the human field as the closest anchor is, and we make
+  GROSS MOVE ERRORS AT A QUARTER OF THE HUMAN RATE.** A dominated-action /
+  blunder-mask lever at inference has **nothing to filter** and is dead on
+  arrival. Pre-registered bias check, because `dominated` compares against
+  moves that mon has ALREADY REVEALED and a side that reveals fewer gets fewer
+  chances to be flagged: exposure is near-equal (34.3% of our damaging moves
+  had a known damaging alternative vs 37.2% of theirs; 1.84 vs 2.04 distinct
+  moves revealed per mon), and **conditioned on having an alternative the gap
+  is 1.88% vs 7.20%** — same 4x, so it is not an instrument artifact.
+  **2. THE UNDER-SWITCHING CLAIM IS RECONCILED, NOT REFUTED, AND IT SHARPENS.**
+  TOTAL switch rate is at parity (27.2 vs 28.6) while the overnight audit's
+  VOLUNTARY-only cut reads 6.9 vs 10.7. Both are true and the denominators
+  differ: `anchor_style` counts every `|switch|` line including post-faint
+  replacements. **The correct statement is therefore not "we switch too
+  little" but "we switch as often as humans and ours are REACTIVE" — same
+  budget, spent after a faint instead of before one.** Quote it that way.
+  **3. THE ENCODER DEFECT HAS A ROUTE-AROUND AND THE OVERNIGHT SWEEP'S
+  FRAMING WAS TOO STRONG.** That entry says of `basePower == 1` "the network
+  cannot route around it", reasoning from the 46-dim move BLOCK. But the
+  production trunk is `entity_deepsets` with `move_emb =
+  nn.Embedding(move_vocab=166, embed_dim=64)`, and `move_net` consumes
+  `[block || embedding]` — a LEARNED per-move vector sitting beside the wrong
+  scalar. The defect is real and its behavioural cost is measured, but the
+  right claim is "the block is actively misleading and the embedding only
+  partly overcame it", not "unrepresentable". Same correction applies to
+  switch scoring: bench mons carry no moveset, but they DO carry
+  `species_emb`, and gen1 randbats movesets are stereotyped per species.
+  **Both are a partial route-around, so the fork's expected effect is smaller
+  than the sweep implied. It also touches ~1% of decisions** (156 Seismic Toss
+  + 59 Super Fang opportunities over ~20k decisions).
+  **4. ARCHAEOLOGY, AND THIS IS THE ONE THAT DECIDED THE ROUND.** Verified
+  against `runs/*/config.yaml`, not against configs/: **`hl_shaping` is
+  non-zero in exactly THREE runs on this disk — `showdown_sp_signal12m_s23/24/
+  25` — and all three are `trunk: mlp`.** Every entity-trunk run in the repo,
+  including D26 and both 50M arms, is `gamma: 1.0` with `hl_shaping` ABSENT.
+  So H&L's 5-term antisymmetric zero-sum shaping + gamma 0.95 was tested ONLY
+  on the flat-MLP predecessor, where it nulled (+0.0135, n.s.) — and then
+  STRUCTURE landed +0.1513 and the treatment was never re-run on it. **DESIGN
+  §4 Rung 1 pre-registered exactly this carry-forward while result-blind**
+  ("record that H&L's shaping may be a 10^8-scale effect — a claim Rung 3 can
+  test later by carrying it forward regardless of the 12M read (pre-state that
+  carry-forward now, so it is not a post-hoc rescue)"). Rung 3 carried scale
+  and dropped the signal. **The mechanism is not a rescue either: shaping pays
+  per-event credit, and the flat MLP could not express "this action targets
+  this entity" — the very thing Rung 2 added. A per-action credit signal is
+  newly USABLE by the architecture that nulled it.**
+  **WHY THIS IS THE ROI PICK OVER THE ENCODER FORK.** (a) It is
+  ENCODER-NEUTRAL, so it does not invalidate the 132 checkpoints — and the
+  yardstick change exists precisely to build new off-SH baselines, which the
+  fork would destroy on contact. Do the fork SECOND, against baselines that
+  survive. (b) Zero new code for the lever: `hl_shaping` is a live env kwarg
+  with its antisymmetry gate already specified in DESIGN, `gamma` is a config
+  key. One overnight, 4 lanes (a 12M lane measured 35,204 s = 9.8 h in
+  `showdown_sp_recipe12m_s62/history.csv`). (c) It is the largest untested
+  delta against **the only VERIFIED same-architecture, same-lane, no-search
+  comparable that reached 72% GXE** (H&L 2019, 1.33M params to our 1.17M).
+  **HONEST TEMPERING, STATED BEFORE THE ARM RUNS:** four of H&L's five terms
+  (fail / supereffective / resisted / immune) reward behaviour measurement 1
+  says we ALREADY do better than humans. Only the faint term — the largest at
+  0.0125 — targets a measured deficit. The mechanism case rests on gamma +
+  dense credit assignment, not on the four error terms, and the pre-reg must
+  say so.
+  **WHAT WAS CONSIDERED AND REJECTED, with the reason:** more scale (50M read
+  0.70222, FLAT/negative vs 12M — the one lever with direct evidence against
+  it); attention or more capacity (the 2026-08-25 architecture review already
+  ruled we are not undersized, at 88% of a same-family 72%-GXE agent); a
+  blunder filter (killed by measurement 1 today); **a second ladder arm as a
+  DISCRIMINATION experiment (L3 search vs L2, whose proxies make opposite
+  predictions) — the idea is right and the power is not: the R1 trajectory
+  swung 1063-1348 within one run, so the se on a final Elo at n=200 is tens of
+  points and cannot resolve the ~30-50 Elo difference at issue. It needs ~4x
+  the n per arm. Named here so it is not re-proposed cheaply.**
+  **ALSO NOTED, NOT PROPOSED:** the learner consumes ONE seat (agent1's
+  transitions; the opponent seat is a `PoolPlayer` whose trajectory is never
+  buffered) while H&L consume BOTH, and their per-battle batches are
+  return-balanced by construction. On a collection-bound loop that is a ~1.8x
+  data multiplier at zero environment cost — but it is a THROUGHPUT win, and
+  50M-flat says more data alone does not move the number. File it as iteration
+  speed, not as a strength lever.
+  Suite green. `anchor_style.py` refactored only to guard its main block under
+  `__main__` so `profile()` imports; its CLI output is byte-identical.
