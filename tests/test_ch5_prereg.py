@@ -186,3 +186,41 @@ def test_the_primary_n_clears_the_s82_question():
     assert a["se_diff_at_n1000"] == pytest.approx(sed, abs=5e-4)
     assert 0.11 / sed > 5.0, "a vs-SH-sized collapse must be comfortably resolvable"
     assert a["role"] == "PRIMARY"
+
+
+def test_no_sub_threshold_number_enters_a_comparison():
+    """A-F6, adopted: 'no number with n_eff < 1000 enters any comparison,
+    ever, including in prose.' r3 violated it in its own Q4 by quoting an
+    n=250 FP@100 cell as a directional 'SIGN' -- which review 1 separately
+    measured at 0.46 se."""
+    floor = G["min_n_eff_for_any_comparison"]
+    for name, c in CFG["comparators"].items():
+        n = c.get("n")
+        if n is not None and n < floor:
+            assert c.get("role") == "BARRED_FROM_ALL_COMPARISONS", \
+                f"{name} has n={n} < {floor} and is not barred"
+    # The phrase survives once, in the note recording that r3's rule was
+    # DELETED. That is history, not an instruction — so assert on the live
+    # form instead: no uncommented line may license the barred cell.
+    live = [l for l in PREREG.read_text().split("\n")
+            if "SIGN" in l and not l.lstrip().startswith("#")]
+    assert not live, f"a live line still licenses the barred cell: {live}"
+
+
+def test_headline_protection_is_a_key_not_prose():
+    """A-§9b: without these the 'headline UNTOUCHED' sentence is unenforced."""
+    assert G["crediting"] is False and G["headline_may_move"] is False
+    joined = " ".join(G["on_every_branch"])
+    for n in ("0.71825", "0.74633", "0.79283", "1311"):
+        assert n in joined, f"{n} unprotected"
+
+
+def test_the_outlier_rule_protects_the_primary_read():
+    """A-§2.2c. The primary read IS the one-lane collapse, so a rule that
+    dropped outliers would delete the finding it exists to measure."""
+    assert "NO LANE IS EVER DROPPED" in G["outlier_rule"]
+
+
+def test_open_maintainer_escalations_are_recorded_not_assumed():
+    assert G["chapter5_s3c1_edit"]["status"] == "AWAITING_RETRO_RATIFICATION"
+    assert G["r1c_scope_escalation"]["status"] == "MAINTAINER_DECISION"

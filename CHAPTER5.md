@@ -111,7 +111,7 @@ need are already trained — so C1's first move is a MEASUREMENT, not a run.**
   weak claim, it is NOT A CLAIM.** The 50M lanes read 0.7423/0.7347/0.6297,
   giving sigma_seed = **0.0624**, 8.2x the 12M family's 0.0076. Clustered
   se_diff is then 0.0362 and the delta is **0.44 se** against a 2-se bar of
-  0.0724. The one lane at 0.6297 inflates the variance so far that nothing
+  0.0735 (r1 said 0.0724, from sigma_seed; the Q5-consistent value uses the TOTAL sd). The one lane at 0.6297 inflates the variance so far that nothing
   at this k is resolvable. **"Scale is flat" was never established even on
   its own axis** — a stronger correction than this file's earlier
   "it is a vs-SH-only claim".

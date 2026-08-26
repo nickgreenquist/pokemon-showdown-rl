@@ -112,8 +112,10 @@
 #     (was 1.86 h at n=1500; n does not bind this bar)      <- sweep: r3
 #     priced a GREEDY arm at the 1.60 ENSEMBLE rate, the exact error this
 #     file congratulates itself for catching. Greedy realized 1.485.
-#     R1-B 3 x 1000 = 2.23 h        R1-C  1 x 3000 = 1.33 h
-#     TOTAL ~6.9 h  (CHAPTER5 §4's full-power sketch said 13.8 h)
+#     R1-B 3 x 1000 = 2.23 h        R1-C  **2 x 3000 = 2.73 h**
+#     (designer B's disposition caught a LIVE LEDGER ERROR: the file
+#      declares TWO rule-fixed rosters, E3 and E7, and priced ONE.)
+#     TOTAL ~7.5 h  (CHAPTER5 §4's full-power sketch said 13.8 h)
 #   **C0/R1-C CORRECTED r1->r2 after review BL-3, and the r1 error is
 #   recorded because it is the exact failure this process exists to
 #   catch.** r1 set them to 1500 by applying R1-A's THREE-LANE POOLED
@@ -137,11 +139,18 @@
 #   **RECONCILIATION: ask a WITHIN-budget, WITHIN-era question instead.**
 #   R1-A already produces greedy-on-50M at FP@20. R1-B produces
 #   search-on-50M at FP@20 on the SAME lanes. Their difference is a
-#   clean paired search-vs-greedy delta at 50M that needs no cross-budget
-#   comparator. The 12M counterpart (0.368 vs 0.388 at FP@100, n=250,
-#   se_diff 0.043) is quoted ONLY as a same-budget SIGN, never
-#   differenced against the 50M delta. A's objection is fully honoured:
-#   no number crosses a budget.
+#   within-lane search-vs-greedy delta at 50M that needs no cross-budget
+#   comparator. **"paired" was the wrong word — the covariance is ZERO
+#   (different battles); the LEVEL seed term is what cancels.**
+#   **THE 12M COUNTERPART IS DELETED FROM THIS ARM, NOT SOFTENED.**
+#   r3 kept it "as a same-budget SIGN". Two independent objections kill
+#   that: designer A's F6 — **no number with n_eff < 1000 enters any
+#   comparison, ever, including in prose** — and review 1's arithmetic,
+#   which puts that cell at **0.46 se**, i.e. not a sign of anything.
+#   The 0.368-vs-0.388 FP@100 n=250 pair is therefore
+#   `role: BARRED_FROM_ALL_COMPARISONS`, and **R1-B takes NO 12M input at
+#   all.** Its question is answered entirely within the 50M fleet at one
+#   budget. A's objection is honoured by removal, not by relabelling.
 # ---------------------------------------------------------------------
 # Q5. GRADING — r3. **THE ACTION COLUMN IS THE POINT** (review 1 BL-1:
 #   r2 had nine verdict cells and zero actions).
@@ -242,8 +251,14 @@
 #   number is published.
 # ---------------------------------------------------------------------
 # Q7. GATES. Each VOIDs its arm unless stated.
-#   G2   TWO INDEPENDENT TALLIES: the seat's W/L and Foul Play's own
-#        `Winner:` lines must agree EXACTLY. Never a subtraction.
+#   G2   TWO INDEPENDENT TALLIES, **THREE-WAY AND EXHAUSTIVE** (designer
+#        B's G2b, adopted after verifying it on disk). r3's two-key form
+#        was blind to TIES — a third of the outcome space. **`Winner:
+#        None` in FP's log == the seat's `ties` EXACTLY on all ten banked
+#        CH4 arms** (l63 4, l64 6, l65 4, h1 8, rest 0), so ties are
+#        recoverable from FP's own output. Assert seat_wins, fp_wins and
+#        ties each against FP's log **and that the three sum to n_eff.**
+#        Never a subtraction.
 #   G-BUDGET — **REWRITTEN r1->r2 after review BL-1, which showed the r1
 #        version was a TAUTOLOGY.** The hazard is real:
 #        `ch3_r4_fp_runner.sh:39` is `SEARCH_TIME_MS="${SEARCH_TIME_MS:-100}"`
@@ -273,6 +288,20 @@
 #        battle from a clean arm. Never subtract without checking
 #        fp_completed against battles_requested.
 #   G-SERIAL   one arm at a time; assert non-overlapping arm wall clocks.
+#        **UNGRADEABLE UNTIL A CH5 WAVE SCRIPT EXISTS** (designer B's
+#        BI-2) — nothing currently writes the wave.log it would read.
+#        BLOCKS LAUNCH.
+#   G-RETAIN  **FP's stdout IS the G2 second tally, and `results/` is
+#        gitignored and single-copy.** The runner's `OUT` defaults to
+#        `results/ch3_r4_fp_anchor`, which would split the second tally
+#        from its arm JSON, so **`OUT` MUST equal `results_dir` on every
+#        arm.** fp/seat stdout may not be deleted, truncated or moved
+#        until the grader records `tallies_agree == true`; then gzip in
+#        place, never delete. **A scratch dir is never a retention
+#        location** — this session's calibration logs, which carry the
+#        2.68 s/battle marginal that re-priced R1-B, lived ONLY in an
+#        agent scratch dir until rescued into `results/ch5_r1_offsh/`
+#        (39 MB -> 2.1 MB gzipped, still greppable, mirrored to d25).
 #   G-SHA      every checkpoint sha256 == pin (the seat already asserts).
 #   G-DESYNC   **VOID at a desync RATE > 0.5%** (designer A's V8 and
 #        designer B's G5, both of whom specified a rate; r3 silently
@@ -345,7 +374,11 @@
 #         because it buys anything on the fleet mean. **Cost 1.24 h, down
 #         from 1.86 h, and the "extend to 3000" branch is deleted as
 #         incoherent rather than merely expensive.**
-#     (ii) **R1-C composition -> BOTH, in their proper roles.** B
+#     (ii) **R1-C composition -> BOTH, in their proper roles. Designer B's
+#         disposition sharpened the decline, and its reason is better than
+#         mine: R1's PRIMARY read IS "does s82's collapse reproduce
+#         off-FP?", so a roster that DROPS s82 on its vs-SH score
+#         PRE-ANSWERS the primary in its own construction.** B
 #         recommended CW-6 (drop s82, soft-AND mechanism); A's membership
 #         rules force s82 in; r4 ran A's side and recorded neither. They
 #         are not actually in conflict once this file's own
@@ -416,6 +449,37 @@ fp:
 # the comments above are commentary.
 grading:
   credit_floor: 0.025
+  # A-F6, adopted. NOTE the exemption: a literal F6 would self-void this
+  # file's own n=300 G-WIRING screen, so screens are exempted explicitly
+  # rather than by silence. Delete the exemption if G-WIRING is restored
+  # to designer A's n=3000 form.
+  min_n_eff_for_any_comparison: 1000
+  min_n_eff_rule: "no number with n_eff < 1000 enters any comparison, ever, including in prose"
+  min_n_eff_screen_exemption: [G-WIRING]
+  # A-§2.2c, and it is newly LOAD-BEARING: the primary read IS the
+  # one-lane collapse, so dropping the outlier would delete the finding.
+  outlier_rule: "NO LANE IS EVER DROPPED. A lane that reads far from its peers is the signal, not contamination."
+  # A-§9b. Without these two keys the "headline UNTOUCHED" sentence is
+  # unenforced prose.
+  crediting: false
+  headline_may_move: false
+  on_every_branch:
+    - "R1 credits no lever on any branch."
+    - "D26 12M 0.71825 is UNTOUCHED."
+    - "R0 ensemble 0.74633 is UNTOUCHED."
+    - "CH3 R2 search@M 0.79283 is UNTOUCHED."
+    - "LADDER R1 Elo 1311 / 0.475 is UNTOUCHED."
+    - "No FP@20 number is ever quoted without both budget disclosures."
+  # A-BR-4, escalated rather than assumed: CHAPTER5 §3 C1 was EDITED by
+  # this session (commit 25256b8) on designer A's finding. A reserved that
+  # edit to the maintainer. It stands as a factual correction and is
+  # flagged for retro-ratification.
+  chapter5_s3c1_edit: {status: AWAITING_RETRO_RATIFICATION, commit: 25256b8}
+  # Designer A's disposition, escalated: R1-C is UNDER-SCOPED. E3 and E7
+  # are declared in `ensembles:` but appear in no arm, nothing budgets
+  # them, and `r1c_delivered_iff` needs two compositions while Q3 priced
+  # one. Honest cost is ~5.3 h more, or a cut candidate list.
+  r1c_scope_escalation: {status: MAINTAINER_DECISION, options: [fund_both_rosters, cut_to_one, defer_r1c_to_r2]}
   aggregator: equal_weight_mean_of_lane_rates
   median_barred: true            # at k=3 the median IS one lane
   se_rule: max(binomial, clustered)
@@ -476,9 +540,13 @@ grading:
 comparators:
   greedy_12m_fp20: {value: 0.34867, n: 12000, lanes: 4, budget: "FP@20",
                     source: "results/ch4_r1_offsh/l6{2,3,4,5}.json"}
-  # SAME-BUDGET SIGN ONLY — never differenced against an FP@20 number.
+  # A-F6 + review 1 MA-8d: n=250 is below `min_n_eff_for_any_comparison`,
+  # and the pair is 0.46 se. Retained ONLY as provenance for why R1-B
+  # takes no 12M input; it may not enter any comparison or any sentence.
   search_vs_greedy_12m_fp100: {greedy: 0.388, search: 0.368, n: 250,
-                               se_diff: 0.043, budget: "FP@100"}
+                               se_diff: 0.043, budget: "FP@100",
+                               role: BARRED_FROM_ALL_COMPARISONS,
+                               separation_se: 0.46}
 
 checkpoints:
   s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
