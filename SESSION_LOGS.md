@@ -7342,3 +7342,61 @@ entry by offset — never a broad keyword grep.
   that is a plausible VARIANCE lever with a same-family precedent. It needs
   real collection wiring, so it stays behind the shaping arm, but it belongs on
   the candidate list, not in a footnote.
+- 2026-08-26 (evening cont., maintainer: "why do we not think a 50M run will
+  help? that got stale vs SH, but have we pushed a larger run vs FP… a claim
+  like 'nothing we have here will get us to top-500' is really presumptive"):
+  **THE CHALLENGE HOLDS ON EVERY COUNT I CHECKED, AND MY 'SCALE IS FLAT' LINE
+  WAS AN UNQUALIFIED vs-SH CLAIM. Retracted and corrected here.** Nothing run,
+  nothing trained.
+  **1. NO 50M STACK LANE HAS EVER BEEN MEASURED OFF-SH.** Verified by
+  enumerating every off-SH artifact on disk: `results/ch4_r1_offsh/l6{2,3,4,5}`
+  (3000 battles each) and `ch3_r2_fp_h2h/` all point at
+  `runs/showdown_sp_recipe12m_s6{2..5}` — the **12M** lanes. D29r2's s80/81/82
+  appear in NO off-SH result file. The "50M is FLAT" verdict is
+  `results/d29r2/` vs SH and nothing else.
+  **2. THE ONE 50M ARM EVER MEASURED OFF-FP MOVED THE OTHER WAY.**
+  `foulplay_vs_sh/fp_vs_struct.json` FP 206/250 -> **struct12M takes 0.176**;
+  `fp_vs_struct50m.json` FP 203/250 -> **struct50M takes 0.188**. Delta
+  **+0.012**, se_diff 0.035 — n.s., but POSITIVE, and the same scale step read
+  **+0.029 vs SH and CREDITED** (0.5509 -> 0.5802). At that era scale helped on
+  both axes; we simply never re-ran the FP side at the D26/D29r2 era. **So the
+  entire evidential basis for "scale is dead" is one arm, on one opponent, at
+  one era — on the exact yardstick this project has already caught being
+  SH-facing once (search: +0.081 vs SH, negative on both off-SH opponents).**
+  **3. 'FLAT' IS ALSO DOING VARIANCE WORK.** D29r2 lanes vs SH: **0.74233 /
+  0.73467 / 0.62967** -> pooled 0.70222. **TWO OF THREE 50M LANES BEAT the 12M
+  pooled headline of 0.71825**; one lane 0.10 low drags the mean. The
+  pre-declared 5-lane descriptive read says it outright — "one lane in five
+  landing ~0.10 low". That is a seed-variance statement, not a ceiling, and it
+  is direct support for the maintainer's "more seeds = higher chance of a good
+  model". Note the distinction that makes it legitimate: **selecting the best
+  lane for DEPLOYMENT (which model ladders) is not post-hoc selection on a
+  CREDIT claim** — the repo's anti-post-hoc rules govern credit, not which
+  checkpoint we ship.
+  **4. SEARCH HAS ONLY EVER RUN ON 12M CHECKPOINTS.** `ch3_rung2.yaml` names
+  `recipe12m_s6{2..5}` and nothing else. Search is INFERENCE-ONLY and the 50M
+  checkpoints are already on disk, so "search failed because the net was not
+  saturated" costs **zero training** to test and has never been tested.
+  **5. THE ATTENTION RULING IS NARROWER THAN I REPRESENTED.** The 34.6x was a
+  CPU train step against the FLAT [512,512] MLP — which has not been production
+  since Rung 2. Attention-vs-`entity_deepsets` at production config has never
+  been measured, and it is minutes of work. The 2026-08-25 architecture review
+  ruled on CAPACITY ("we are NOT undersized", 88% of a same-family 72%-GXE
+  agent) and said in terms "attention is UNTESTED, NOT REFUTED", naming
+  **temporal context** (single-snapshot Markov here vs ps-ppo 64-256 turns,
+  Metamon 200) as the SHARPER gap plus a two-tower/DCN middle rung "absent from
+  the record entirely". Compressing all of that to "not attention/capacity" in
+  STATUS was wrong; capacity is ruled, STRUCTURE is not.
+  **6. THE ENCODER FIX IS NOT DONE.** It is still the deferred item.
+  **RETRACTION: "none of these gets us the 46 Elo to the cutoff" is withdrawn.**
+  It generalized from a single vs-SH arm, and from style metrics that measure
+  BLUNDER RATE rather than strength — 0.6% vs 2.7% dominated moves says we do
+  not blunder, and says nothing about whether we can be much stronger.
+  **CONSEQUENT REORDER — MEASURE BEFORE TRAINING.** Three zero-training reads
+  (50M off-SH; search on 50M; a wider/cross-era ensemble) all gate on ONE piece
+  of work: the off-SH seat that the yardstick change was already going to
+  build. That convergence is the real finding of this exchange — the yardstick
+  half of the proposal survives and gets MORE important, while the shaping arm
+  drops from "round 1's lever" to one candidate among several, to be chosen
+  once we know whether scale is flat on the axis that matters. STATUS
+  reordered accordingly. Suite green (538 / 17).
