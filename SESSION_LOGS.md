@@ -7938,4 +7938,6 @@ entry by offset — never a broad keyword grep.
   **STILL OPEN FOR THE MAINTAINER: A-BR-1** (buy a 4th 50M lane? A says no)
   and **A-BR-5** (CHAPTER5 §1 motivation 2 still says one (proxy, ladder)
   pair where there are zero). Both are edits/purchases only the maintainer
-  may authorise. `CLEANUP.md` still needs rulings. 15 commits UNPUSHED.
+  may authorise. `CLEANUP.md` still needs rulings. main is UNPUSHED (count it with
+  `git log origin/main..HEAD --oneline | wc -l`; a fixed number here goes
+  stale on the next commit, which is how it went stale three times tonight).
