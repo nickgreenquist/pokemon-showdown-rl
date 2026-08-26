@@ -7166,3 +7166,45 @@ entry by offset — never a broad keyword grep.
   corrected. Standing lesson, freshly re-paid: n=40 is not enough to quote an
   AUC to three digits, and I did it anyway.
   Ladder untouched (complete at 200). Nothing fixed; no encoder change made.
+- 2026-08-26 (morning cont., maintainer: "FP is closer to human play than SH,
+  wouldn't you agree? and the end goal is: results vs human?"): **MEASURED IT
+  INSTEAD OF AGREEING, AND THE STYLE HALF OF THE PREMISE DOES NOT HOLD.**
+  Generated 150 battles of tape against each local anchor (both seats save, so
+  300 replay files each) and profiled the OPPONENT side with the same metrics
+  the overnight audit ran over the 200-battle human ladder field.
+  | opponent | switch% | 0x% | dominated% | hyperbeam% | boom% | status% |
+  | HUMANS (n=200) | **28.6** | 0.8 | 2.7 | 4.0 | 1.8 | 23.0 |
+  | SimpleHeuristics | 25.8 | 0.3 | 1.1 | 4.8 | 0.6 | 20.5 |
+  | BC clone of Foul Play | 20.7 | 0.7 | 2.4 | 3.9 | 0.9 | 20.0 |
+  **THE TWO ANCHORS ARE CLOSE TO HUMANS ON DIFFERENT AXES.** SH matches the
+  human field on TEMPO — switch rate 25.8 vs 28.6 — while the FP clone matches
+  it on ERROR PROFILE: dominated moves 2.4 vs 2.7 (SH is 1.1, i.e. SH makes
+  less than HALF the human rate of gross move errors), 0x moves 0.7 vs 0.8 (SH
+  0.3), Hyper Beam discipline 3.9 vs 4.0 (SH 4.8). On a crude unweighted sum of
+  absolute differences SH is nominally closer (0.095 vs 0.124), but that
+  aggregate is DOMINATED BY THE SINGLE SWITCH-RATE TERM and the weighting is
+  arbitrary, so it should not be quoted as a verdict.
+  **AND THE EXTRAPOLATION TO FP PROPER RUNS THE WRONG WAY.** The clone is a BC
+  distillation of Foul Play, not Foul Play. CH4 R1's G6b measured **FP's own
+  switch rate at 0.137** — barely half the human field's 0.286, and further
+  from humans than the clone's 0.207. So on the tempo axis FP proper is
+  plausibly a WORSE human proxy than SH, not a better one.
+  **CONSEQUENCE FOR THE PRE-REG, and it is a correction to the framing both the
+  maintainer and I were using:** the case for promoting FP@20 to the credit
+  line rests on **STRENGTH**, which is overwhelming and unchanged (we take
+  0.718 off SH, 0.349 off FP@20, and sit at Elo 1311 mid-field on the ladder),
+  and NOT on style, which this measurement does not support. The pre-reg must
+  say that plainly rather than asserting "FP is closer to human play" — the
+  style claim was an assumption, it was testable, and it did not survive.
+  **THE STANDING FRAME TO WRITE DOWN: the END GOAL IS ALWAYS THE SHOWDOWN
+  LADDER VS HUMANS. Every scripted opponent is a PROXY, chosen for being the
+  best available guess at what predicts human play, and none of them settles
+  it.** Only the ladder does, and answering "which anchor predicts ladder
+  rating" needs >=2 models with both anchor scores and ladder ratings — we have
+  exactly one. That is the concrete argument for putting the post-encoder-fork
+  model on the ladder as a second arm with its primary named in advance.
+  Tooling kept: `scripts/replay_audit/gen_tapes.py` (generate anchor tapes) and
+  `anchor_style.py` (profile any replay set against the human field). Caveat on
+  both: the clone seat SAMPLES (pool contract), and FP PROPER WAS NOT TAPED —
+  the external runner was judged not worth its S1-deadlock risk for a
+  style-only read, so FP's own row here is inferred from G6b, not measured.
