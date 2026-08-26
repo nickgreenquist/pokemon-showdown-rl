@@ -7120,3 +7120,49 @@ entry by offset — never a broad keyword grep.
   on the assert. Check before launching rather than guessing.
   HANDOFF.md written for a fresh context, leading with where the data lives.
   Headline 0.71825 and R2 0.79283 UNTOUCHED — the ladder credits nothing.
+- 2026-08-26 (morning cont., maintainer: "run all checks that are less than 1h
+  time"): **SIX CHECKS RUN. TWO BLOCKERS CONFIRMED THAT WOULD HAVE WASTED A 3 h
+  RUN, AND ONE OF MY OWN COMMITTED NUMBERS CORRECTED AS NOISE.**
+  **1. Suite GREEN: 538 passed, 17 skipped.**
+  **2. THE OFF-SH EVAL OF L2 CANNOT BE LAUNCHED AS-IS — two independent
+  blockers, both found in seconds.** (a) `ch3_fp_h2h.py` has
+  `ARM_KINDS = ("greedy_seat","search_seat","sampled_seat","fp_vs_clone")` and
+  asserts on anything else; L2 is `kind: ensemble`, and the ladder's own
+  vocabulary (`POLICY_KINDS = greedy/ensemble/search`) is a DIFFERENT namespace
+  entirely — there is no ensemble seat in the FP h2h path at all. (b) Worse and
+  subtler: `eval_checkpoint._opponent_from_checkpoint` seats the opponent in a
+  **PoolPlayer that SAMPLES** by pool contract. Building a clone h2h on it
+  reproduces **exactly the A1 bias** this project already diagnosed and banked
+  — the clone's published 0.5503 is a DETERMINISTIC rating, and sampling it is
+  worth ~26 points of implied rating, which was the entire "clone
+  intransitivity". **So the off-SH arm is not a check, it is code: it needs an
+  ensemble seat added to ch3_fp_h2h.py, whose SeatPlayer already runs
+  deterministic. That work belongs IN the pre-reg, not before it.**
+  **3-4. BOTH MINOR ENCODER CLAIMS VERIFIED INDEPENDENTLY.** Over the true
+  67-move gen1 randbats pool, the `_effect_block[12]` crit-ratio field takes
+  values {0.0: 62, 0.5: 1, 1.0: 3, **3.0: 1**} — Counter is the SOLE
+  out-of-family value, and it cannot crit in gen 1. Permanently-zero effect
+  dims are exactly **[5, 18, 21]** (tox, v_trap, v_seed), 3 of 23.
+  **5. MY OWN CAVEAT TESTED AND FALSIFIED.** I had disclosed that the value-head
+  probe ran only against SH-like play, and that a critic calibrated on SH and
+  miscalibrated on humans would look identical. Re-ran at matched **n=300 per
+  opponent** against the BC clone of Foul Play (a genuinely different, FP-like
+  distribution). Calibration AUC by our material, SH-like vs clone: 6 mons
+  0.704/**0.756**, 5 0.759/**0.851**, 4 0.839/**0.880**, 3 0.885/**0.894**,
+  2 0.879/**0.923**, 1 0.891/**0.927**. **The critic is BETTER off-SH at every
+  material level, not worse.** The caveat does not hold, and there is no
+  SH-specific value-calibration story. (Disclosure: the clone seat samples, per
+  blocker 2b — acceptable here because this measures OUR calibration and never
+  rates the clone, but it means the clone is playing slightly weaker than its
+  published form.) The stall-gradient result replicates against both opponents:
+  corr(V, their faints) 0.405-0.519 overall and 0.667 at high HP, while
+  corr(V, our own HP) is 0.115/0.006 and NEGATIVE at high HP.
+  **6. A NUMBER I COMMITTED YESTERDAY WAS NOISE, AND IS CORRECTED HERE.** The
+  first value-head run used **n=40 battles** and reported AUC rising to
+  **0.964** at one mon left. At n=300 the same measurement reads **0.891**, and
+  the whole curve is lower (0.773 -> 0.704 at six mons). The CONCLUSION survives
+  — the critic is well calibrated and sharpens as material falls — but the
+  specific figures were optimistic small-sample noise and STATUS.md has been
+  corrected. Standing lesson, freshly re-paid: n=40 is not enough to quote an
+  AUC to three digits, and I did it anyway.
+  Ladder untouched (complete at 200). Nothing fixed; no encoder change made.

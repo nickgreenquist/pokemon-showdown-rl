@@ -53,8 +53,8 @@ SH-facing, INFERENCE-ONLY). CH3/CH4-R1 CLOSED. Suite 538 / 17 skipped.
   says "not aliased" on force-switch turns and 4 move blocks describe the
   FAINTED mon at `known=1.0` (42/42). Zeroing them flips **0/42** choices and
   fixing it moves checkpoints off-distribution. Not a win.
-- **THE CRITIC IS FINE** — AUC 0.773 (6 mons) -> 0.964 (1 mon), tracks progress
-  not own-HP. Heal loops / endgame collapse are NOT value-shape and the gamma
-  lever has no support. Caveat: measured vs SH-like play only.
+- **THE CRITIC IS FINE, AND NOT SH-SPECIFIC** (n=300/opponent): AUC 0.704
+  (6 mons) -> 0.891 (1 mon) vs SH-like, BETTER vs the FP clone (0.756 ->
+  0.927). Tracks progress, not own-HP. NOT value-shape. (n=40 gave 0.964 —
 - `REPLAY_AUDIT.md` is n=39, SUPERSEDED by the n~175 sweep in SESSION_LOGS.
   `score_ladder.py` is a FALSE FRIEND; real: `ladder{,_readout,_classify}.py`.

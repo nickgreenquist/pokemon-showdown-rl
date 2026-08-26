@@ -46,6 +46,14 @@ def main():
     ap.add_argument("--battles", type=int, default=40)
     ap.add_argument("--seed", type=int, default=777,
                     help="must not collide with a live lane (username derivation)")
+    ap.add_argument("--opponent", default="heuristics",
+                    help="'heuristics' (SH-like) or a checkpoint path. The "
+                         "SH-like default is the whole caveat on the first "
+                         "run of this probe: a critic well calibrated on "
+                         "SH-like play and miscalibrated on human play would "
+                         "look identical. A checkpoint opponent samples (pool "
+                         "contract) -- fine for measuring OUR calibration, "
+                         "NOT fine for rating that opponent (the A1 lesson).")
     ap.add_argument("--out", default="results/diag/value_head.json")
     args = ap.parse_args()
     os.environ.setdefault("POKEMON_RL_ENCODER_V2", "1")
@@ -68,7 +76,14 @@ def main():
     print(f"lane {args.lane}  gamma={getattr(cfg,'gamma',None)}  "
           f"gae_lambda={getattr(cfg,'gae_lambda',None)}")
 
-    env = make_env("Showdown-v0", args.seed, env_kwargs={"opponent": "heuristics"})
+    if args.opponent.endswith(".pt"):
+        from eval_checkpoint import _opponent_from_checkpoint
+        opp = _opponent_from_checkpoint(args.opponent, args.seed)
+        print(f"opponent: checkpoint {args.opponent} (SAMPLING, pool contract)")
+    else:
+        opp = args.opponent
+        print(f"opponent: {opp}")
+    env = make_env("Showdown-v0", args.seed, env_kwargs={"opponent": opp})
     recs = []
     for b in range(args.battles):
         obs, info = env.reset(); done = False; ep = []
