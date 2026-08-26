@@ -57,5 +57,4 @@ SH-facing, INFERENCE-ONLY). CH3/CH4-R1 CLOSED. Suite 538 / 17 skipped.
   not own-HP. Heal loops / endgame collapse are NOT value-shape and the gamma
   lever has no support. Caveat: measured vs SH-like play only.
 - `REPLAY_AUDIT.md` is n=39, SUPERSEDED by the n~175 sweep in SESSION_LOGS.
-  `scripts/score_ladder.py` is a FALSE FRIEND; the real ones are `ladder.py`,
-  `ladder_readout.py`, `ladder_classify.py`, `eval_checkpoint.py`.
+  `score_ladder.py` is a FALSE FRIEND; real: `ladder{,_readout,_classify}.py`.
