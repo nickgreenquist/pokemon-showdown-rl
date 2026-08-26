@@ -149,11 +149,19 @@ returns the top-500 list with GXE, Glicko-1 (`r`/`rd`) and Elo per player. Pulle
 | best | **93.5** | 2022 | 1667 |
 | p90 | 82.3 | 1794 | 1510 |
 | median **of the list** | **75.0** | 1712 | 1427 |
-| 500th = cutoff to be listed at all | 58.8 | 1568 | 1358 |
+| 500th (lowest listed) | 58.8 | 1568 | 1358 |
 
 **Read the row labels literally: this is the top-500 leaderboard, NOT the ladder-wide
 distribution** — ladder-wide median GXE is ~50 by construction, so "median 75.0" means
 median *among listed players*, and it is not a percentile of the playerbase.
+
+**CORRECTION 2026-08-25 (same day, after the first ladder run):** an earlier version of
+this table called the 500th row "the cutoff to be listed at all" for GXE and Glicko. That
+is WRONG. **The toplist is ELO-RANKED** — verified against the live board: `elo` is
+monotone descending down all 500 rows, `gxe` and `glicko` are not. So admission is an
+**Elo threshold (≈1357)**, and the lowest GXE on the list is merely whoever happens to
+hold it, not a boundary. The bottom ten listed players span GXE 66–76 while the list
+minimum is 58.8. Quote the Elo cutoff; never quote a "GXE cutoff".
 
 Two things it reframes:
 

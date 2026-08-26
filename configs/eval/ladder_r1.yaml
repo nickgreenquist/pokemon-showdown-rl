@@ -24,8 +24,11 @@
 # ---------------------------------------------------------------------
 # THE BOARD, measured 2026-08-25 (prior_work/README.md; re-pull before
 #   quoting, it moves). gen1randombattle TOP-500 list: GXE 93.5 best /
-#   82.3 p90 / 75.0 list-median / 58.8 at the 500th (= the cutoff to
-#   be listed at all); Glicko 2022/1794/1712/1568. ACTIVITY: 93
+#   82.3 p90 / 75.0 list-median / 58.8 lowest-listed; Glicko
+#   2022/1794/1712/1568. **The list is ELO-RANKED, so admission is an
+#   ELO threshold (~1357) and there is NO "GXE cutoff"** — corrected
+#   2026-08-25 after the first run; the bottom ten listed span GXE
+#   66-76 while the list minimum is 58.8. ACTIVITY: 93
 #   players in 24 h, 173 in 7 d. Read "median 75.0" literally — it is
 #   the median OF THE LEADERBOARD, not of the playerbase (ladder-wide
 #   median GXE is ~50 by construction), so it is NOT a percentile.
@@ -248,6 +251,8 @@ set_pool_pin:                    # VOID (c), checked 2026-08-25 -> PASS
 
 board_2026_08_25:                # re-pull before quoting; this moves
   toplist_size: 500
-  gxe: {best: 93.5, p90: 82.3, list_median: 75.0, cutoff_500th: 58.8}
-  glicko: {best: 2022, p90: 1794, list_median: 1712, cutoff_500th: 1568}
+  ranked_by: elo                 # verified: elo monotone, gxe/glicko not
+  admission_cutoff_elo: 1357     # the ONLY real cutoff
+  gxe: {best: 93.5, p90: 82.3, list_median: 75.0, lowest_listed: 58.8}
+  glicko: {best: 2022, p90: 1794, list_median: 1712, lowest_listed: 1568}
   active_players: {d1: 93, d3: 142, d7: 173, d30: 277}

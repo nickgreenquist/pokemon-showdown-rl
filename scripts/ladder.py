@@ -118,16 +118,35 @@ def ladder_snapshot(fmt: str, userid: str) -> dict:
     Elo only). Absent from the list is NOT an error — the 500th place cutoff
     was GXE 58.8 on 2026-08-25, so an early run is legitimately unlisted."""
     url = LADDER_API.format(fmt=fmt)
+    # A User-Agent is REQUIRED: pokemonshowdown.com 403s urllib's default
+    # `Python-urllib/3.x`. Measured 2026-08-25 — curl 200, default UA 403,
+    # browser-ish UA 200 — after the first 20-battle run completed with
+    # EVERY board call silently failing.
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "pokemon-showdown-rl research bot"}
+    )
     try:
-        with urllib.request.urlopen(url, timeout=20) as fh:
+        with urllib.request.urlopen(req, timeout=20) as fh:
             board = json.load(fh)
     except Exception as exc:  # noqa: BLE001 — a scrape must never kill a run
-        return {"error": repr(exc), "url": url}
+        # `ok: False` is what keeps a FETCH FAILURE from impersonating a
+        # legitimate "not on the list yet". The first version returned a
+        # dict with no `listed` key, and the stopping rule's
+        # `not snap.get("listed")` read that as a real negative — so a dead
+        # endpoint reported the reassuring, specific and WRONG message
+        # "not yet on the top-500 list", and the rule could never fire.
+        return {"ok": False, "error": repr(exc), "url": url}
     rows = board.get("toplist", [])
     mine = next((r for r in rows if r.get("userid") == userid), None)
-    out = {"url": url, "listed": mine is not None, "toplist_size": len(rows)}
+    out = {"ok": True, "url": url, "listed": mine is not None,
+           "toplist_size": len(rows)}
     if rows:
-        out["cutoff_gxe"] = rows[-1].get("gxe")
+        # The toplist is ELO-RANKED (verified 2026-08-25: elo is monotone
+        # descending, gxe and glicko are not). So admission is an ELO
+        # threshold; the minimum GXE on the list is just whoever has the
+        # lowest GXE among those admitted and is NOT a cutoff.
+        out["cutoff_elo"] = rows[-1].get("elo")
+        out["min_listed_gxe"] = rows[-1].get("gxe")
     if mine:
         out.update(
             {k: mine.get(k) for k in ("gxe", "r", "rd", "elo", "w", "l", "t")}
@@ -329,6 +348,9 @@ def stopping_rule_met(cfg: dict, n: int, snap: dict) -> tuple[bool, str]:
         return False, "no stopping rule configured"
     if n < n_min:
         return False, f"n {n} < {n_min}"
+    if not snap.get("ok"):
+        return False, (f"BOARD UNREACHABLE ({snap.get('error')}) — cannot "
+                       "evaluate the stopping rule. This is NOT 'unlisted'.")
     if not snap.get("listed"):
         return False, f"n {n} >= {n_min} but not yet on the top-500 list"
     rd = snap.get("rd")

@@ -99,8 +99,15 @@ class TestLadderSnapshot:
                           self._fake_urlopen(self.BOARD)):
             snap = ladder.ladder_snapshot("gen1randombattle", "nobody")
         assert snap["listed"] is False
+        assert snap["ok"] is True
         assert "error" not in snap
-        assert snap["cutoff_gxe"] == 58.8
+        # Admission is an ELO threshold — the toplist is elo-ranked
+        # (verified against the live board 2026-08-25: elo is monotone
+        # descending, gxe and glicko are not). The lowest GXE on the list
+        # is whoever happens to have it, NOT a cutoff, and calling it one
+        # is the mistake this assertion now guards against.
+        assert snap["cutoff_elo"] == 1358.0
+        assert snap["min_listed_gxe"] == 58.8
 
     def test_network_failure_is_survivable(self):
         """A scrape must never take down a run mid-ladder."""
@@ -246,7 +253,7 @@ class TestStoppingRule:
     operator could overrun by hundreds of public battles. These pin it."""
 
     CFG = {"stopping_rule": {"glicko_rd_max": 40, "min_battles": 200}}
-    LISTED = {"listed": True, "rd": 35.0}
+    LISTED = {"ok": True, "listed": True, "rd": 35.0}
 
     def test_met_when_both_halves_hold(self):
         met, why = ladder.stopping_rule_met(self.CFG, 200, self.LISTED)
@@ -254,26 +261,46 @@ class TestStoppingRule:
         assert "200" in why and "35" in why
 
     def test_n_floor_blocks_an_early_lucky_convergence(self):
-        met, why = ladder.stopping_rule_met(self.CFG, 40, {"listed": True,
+        met, why = ladder.stopping_rule_met(self.CFG, 40, {"ok": True, "listed": True,
                                                            "rd": 39.0})
         assert met is False
         assert "40 < 200" in why
 
     def test_rd_bound_blocks_a_long_but_uncertain_run(self):
-        met, _ = ladder.stopping_rule_met(self.CFG, 900, {"listed": True,
+        met, _ = ladder.stopping_rule_met(self.CFG, 900, {"ok": True, "listed": True,
                                                           "rd": 41.0})
         assert met is False
+
+    def test_genuinely_unlisted_still_blocks(self):
+        met, why = ladder.stopping_rule_met(
+            self.CFG, 5000, {"ok": True, "listed": False}
+        )
+        assert met is False
+        assert "not yet on the top-500" in why
 
     def test_unlisted_is_not_a_pass(self):
         """An unlisted account has no published rd, so we cannot know it
         converged. The absence of evidence must not read as convergence."""
-        met, why = ladder.stopping_rule_met(self.CFG, 5000, {"listed": False})
+        met, why = ladder.stopping_rule_met(self.CFG, 5000, {"ok": True, "listed": False})
         assert met is False
         assert "not yet on the top-500" in why
 
     def test_listed_without_rd_is_not_a_pass(self):
-        met, _ = ladder.stopping_rule_met(self.CFG, 5000, {"listed": True})
+        met, _ = ladder.stopping_rule_met(self.CFG, 5000, {"ok": True, "listed": True})
         assert met is False
+
+    def test_a_dead_board_is_not_reported_as_unlisted(self):
+        """The bug this pins: the first version returned an error dict with
+        no `listed` key, so `not snap.get("listed")` read a 403 as a real
+        negative and answered "not yet on the top-500 list" — specific,
+        plausible, and wrong. Every board call of the first 20-battle run
+        failed that way (urllib's default UA is 403'd) and nothing said so."""
+        met, why = ladder.stopping_rule_met(
+            self.CFG, 500, {"ok": False, "error": "HTTPError 403"}
+        )
+        assert met is False
+        assert "UNREACHABLE" in why
+        assert "unlisted" not in why.lower().replace("not 'unlisted'", "")
 
     def test_no_rule_configured_never_stops(self):
         met, why = ladder.stopping_rule_met({}, 10_000, self.LISTED)
