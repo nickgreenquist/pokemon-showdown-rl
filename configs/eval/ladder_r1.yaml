@@ -115,6 +115,28 @@
 #   Cross-check our battle count against the board row's own w+l+t
 #   before quoting n. (`save_replays` being on is what makes this
 #   recoverable — do not turn it off.)
+# READOUT OBLIGATION 3 — SEPARATE PLAYED GAMES FROM NON-GAMES (rule
+#   stated at n=17 with ONE instance on the board, so it cannot be
+#   tuned to taste). Battle 17 was a 1-turn win: the replay says
+#   "let's play okay lost due to inactivity" and their player slot went
+#   empty — they queued, matched, and never moved.
+#   THE SERVER RATES IT and it therefore counts toward GXE, which is
+#   the PRIMARY read and stays untouched. But a 1-turn win is not
+#   evidence of playing strength and must not silently inflate the
+#   DESCRIPTIVE raw win rate. At 1/17 (~6%) that is ~12 of 200.
+#   RULE: classify each battle from its REPLAY, not from the turn
+#   count — grep the saved html for "lost due to inactivity" and for
+#   forfeit messages. A turn-count threshold is the wrong instrument
+#   (a genuine short game and a turn-3 forfeit are both possible).
+#   REPORT: raw win rate BOTH ways — all rated battles, and
+#   played-games-only — with the count of each non-game category
+#   (inactivity, forfeit, disconnect, tie) stated explicitly. If the
+#   two differ materially, the played-only number is the one that
+#   describes the AGENT and the all-battles number is the one that
+#   reconciles with the board.
+#   VINDICATES `pacing.start_timer: true` — without it this battle
+#   hangs indefinitely against an absent opponent. Do not turn it off.
+#
 # READOUT OBLIGATION 2 — THE REMATCH TEST (added live at n=8,
 #   2026-08-25, BEFORE any rematch data could bias the design). The
 #   first repeat opponent appeared at battle 8: 7 distinct opponents in
