@@ -12,6 +12,7 @@ n whose 2*se_diff silently breached the file's own credit floor.
 """
 
 import math
+import re
 from pathlib import Path
 
 import pytest
@@ -42,8 +43,31 @@ def test_every_verdict_cell_has_an_action():
             assert f"{s_}  x {p_}" in text or f"{s_} x {p_}" in text, f"{s_} x {p_} unrouted"
 
 
-def test_flat_is_licensed_in_exactly_one_cell():
-    assert G["flat_licensed_only_in"] == ["WITHIN x RESOLVING"]
+def test_no_cell_licenses_the_word_flat():
+    """RV1-MA-11 + r6's TOST arithmetic. r5 licensed "flat" in WITHIN x
+    RESOLVING and this test ENFORCED it. WITHIN is the complement of two
+    one-sided tests, and the TOST that would supply the missing construction
+    is UNREACHABLE at n=1000 (see the next test), so no cell licenses it."""
+    assert G["flat_licensed_in"] == []
+    assert "flat_licensed_only_in" not in G, "the old key must be gone, not shadowed"
+    assert G["flat_realized_bar_must_be_quoted"] is True
+
+
+def test_the_tost_is_unreachable_at_the_ratified_n():
+    """The arithmetic behind the maintainer's 2026-08-26 ruling, pinned so a
+    future n change re-opens the question deliberately rather than silently.
+    A TOST at margin 0.025 needs se_clustered <= 0.025/t(.95, 2df) = 0.00856,
+    i.e. s_50 <= 0.01324. At n=1000 the per-lane BINOMIAL sd alone is 0.01507
+    -- larger than the entire budget -- so no sigma_seed makes it fire."""
+    t = G["r1a_tost"]
+    n = G["arms"]["R1A"]["n_per_lane"]
+    assert t["requires_se_clustered_at_most"] == pytest.approx(0.025 / 2.920, abs=5e-5)
+    s50_max = math.sqrt((t["requires_se_clustered_at_most"] ** 2
+                         - G["comparator_total_sd_off_fp"] ** 2 / 4) * 3)
+    assert t["requires_s50_at_most"] == pytest.approx(s50_max, abs=5e-4)
+    assert se(P0, n) > s50_max, "if this ever fails the TOST became reachable -- re-rule it"
+    assert "UNREACHABLE" in t["reachability_at_the_ratified_n"]
+    assert G["flat_licensed_in"] == [], "an unreachable TOST cannot license 'flat'"
 
 
 def test_every_bar_obeys_the_files_own_max_rule():
@@ -137,11 +161,18 @@ def test_verdict_p_bands_do_not_overlap():
 def test_cliff_uses_the_off_fp_comparator_sd():
     """r3's cliff was built with the 12M vs-SH sd (0.01118) where the
     comparator is the 12M off-FP fleet (0.00771), stated in the same file."""
-    s_cmp = G["above_reachability_cliff_comparator_sd"] if False else G["comparator_total_sd_off_fp"]
+    s_cmp = G["comparator_total_sd_off_fp"]
     assert s_cmp == pytest.approx(0.00771, abs=1e-5)
-    seb = math.hypot(se(P0, 4500), se(P0, N0))
+    # R-5: r4 hardcoded 4500 (= 3 x 1500) while R1A.n_per_lane became 1000.
+    # DERIVE it, so the next n change moves the cliff instead of rotting it.
+    n = G["arms"]["R1A"]["n_per_lane"]
+    seb = math.hypot(se(P0, 3 * n), se(P0, N0))
+    assert G["above_reachability_cliff"]["n_per_lane"] == n, \
+        "the cliff was computed at a different n than the arm runs at"
+    assert G["above_reachability_cliff"]["se_binomial_of_the_difference"] == \
+        pytest.approx(seb, abs=5e-5)
     for key, row in G["above_reachability_cliff"].items():
-        if not isinstance(row, dict):
+        if not isinstance(row, dict) or not key.startswith("s50_"):
             continue
         s50 = float(key.split("_")[1])
         expect = max(G["credit_floor"], 2 * max(seb, math.sqrt(s50**2 / 3 + s_cmp**2 / 4)))
@@ -165,7 +196,7 @@ def test_reachability_cliff_is_internally_consistent():
     """O-4: each row's required fleet mean must equal comparator + bar."""
     cliff = G["above_reachability_cliff"]
     for key, row in cliff.items():
-        if not isinstance(row, dict):
+        if not isinstance(row, dict) or not key.startswith("s50_"):
             continue
         assert row["fleet_mean_above_needs"] == pytest.approx(P0 + row["bar"], abs=1e-3), key
 
@@ -174,7 +205,8 @@ def test_the_cliff_covers_the_vs_sh_spread_value():
     """The whole point: if off-FP spread resembles vs-SH (0.0624), is ABOVE
     reachable? The table must answer without anyone recomputing it."""
     cliff = G["above_reachability_cliff"]
-    worst = max(r["fleet_mean_above_needs"] for r in cliff.values() if isinstance(r, dict))
+    worst = max(r["fleet_mean_above_needs"] for k, r in cliff.items()
+                if isinstance(r, dict) and k.startswith("s50_"))
     assert worst > cliff["best_12m_lane_ever_off_fp20"], "cliff fails to show unreachability"
 
 
@@ -238,8 +270,10 @@ def test_no_sub_threshold_number_enters_a_comparison():
     # The phrase survives once, in the note recording that r3's rule was
     # DELETED. That is history, not an instruction — so assert on the live
     # form instead: no uncommented line may license the barred cell.
+    # NB the bare substring "SIGN" also matches "ROUTING SIGNAL" (the
+    # multiplicity rule), so match the phrase the rule actually bars.
     live = [l for l in PREREG.read_text().split("\n")
-            if "SIGN" in l and not l.lstrip().startswith("#")]
+            if re.search(r"\bSIGN\b", l) and not l.lstrip().startswith("#")]
     assert not live, f"a live line still licenses the barred cell: {live}"
 
 
@@ -257,6 +291,228 @@ def test_the_outlier_rule_protects_the_primary_read():
     assert "NO LANE IS EVER DROPPED" in G["outlier_rule"]
 
 
-def test_open_maintainer_escalations_are_recorded_not_assumed():
-    assert G["chapter5_s3c1_edit"]["status"] == "AWAITING_RETRO_RATIFICATION"
-    assert G["r1c_scope_escalation"]["status"] == "MAINTAINER_DECISION"
+def test_open_maintainer_escalations_are_ruled_not_silently_assumed():
+    """Both escalations r5 RECORDED were RULED on 2026-08-26. The point of the
+    test is unchanged: neither may be silently assumed. A ruling is recorded
+    with its date and its consequence; an unruled one keeps its OPEN status."""
+    edit = G["chapter5_s3c1_edit"]
+    assert edit["status"] == "RETRO_RATIFIED_2026_08_26" and edit["commit"] == "25256b8"
+    assert "0.0735" in edit["settles"]
+    esc = G["r1c_scope_escalation"]
+    assert esc["status"] == "RULED_2026_08_26"
+    assert esc["ruling"] in ("fund_both_rosters", "cut_to_one", "defer_r1c_to_r2")
+    assert esc["not_an_option"], "the option that was never available stays named"
+    # rev 2 BL-5c: the r5 maintainer list held four items of the assistant's
+    # own choosing and none of designer A's five brackets.
+    text = PREREG.read_text()
+    for bracket in ("A-BR-1", "A-BR-2", "A-BR-3", "A-BR-4", "A-BR-5"):
+        assert bracket in text, f"{bracket} is absent from OPEN FOR THE MAINTAINER"
+
+
+def test_the_cliff_keeps_its_decision_relevant_row():
+    """R-5's second half: r4's recomputation DELETED the row that decides
+    anything -- the s_50 at which the bar leaves the 0.025 floor. That value
+    is n-INDEPENDENT (it is where the clustered term alone reaches the floor)
+    and is designer A's number. Without it the table shows two rows at 0.0250
+    and jumps to 0.0355."""
+    s_cmp = G["comparator_total_sd_off_fp"]
+    lo, hi = 0.0, 0.06
+    for _ in range(80):
+        m = (lo + hi) / 2
+        lo, hi = (m, hi) if 2 * math.sqrt(m ** 2 / 3 + s_cmp ** 2 / 4) <= G["credit_floor"] else (lo, m)
+    assert f"s50_{lo:.4f}" in G["above_reachability_cliff"], \
+        f"the bar leaves the floor at s_50 = {lo:.4f} and that row is missing"
+
+
+def test_no_username_is_a_prefix_of_another():
+    """designer B §5.2 / rev 2 MA-5: kill_fp() sweeps
+    `pkill -9 -f "run.py .*--ps-username $FP_USER( |$)"`. The `( |$)` guard is
+    belt; non-prefixing names are braces. A prefix pair means one arm's sweep
+    kills its sibling -- the S1 shape, 3.6 h at zero progress that LOOKS like
+    slow progress."""
+    names = [u for pair in CFG["usernames"]["pairs"].values() for u in pair.values()]
+    assert len(names) == len(set(names)), "duplicate username"
+    for a in names:
+        for b in names:
+            assert a == b or not b.startswith(a), f"{a!r} is a prefix of {b!r}"
+    for arm, pair in CFG["usernames"]["pairs"].items():
+        assert CFG["arms"][arm]["seat_username"] == pair["seat"], arm
+        assert CFG["arms"][arm]["fp_username"] == pair["fp"], arm
+    assert set(CFG["usernames"]["pairs"]) == set(CFG["arms"]), \
+        "every arm needs a declared pair, and no pair may name a nonexistent arm"
+
+
+def test_every_arm_declares_its_battle_count():
+    """rev 2 BL-2b: BATTLES defaults to 250 in the runner and the export loop
+    emits the var only when the key is present, so an arm that omits it runs
+    250 battles and stamps battles_requested/finished 250 with
+    gate_all_challenges_resolved true -- passing every other gate."""
+    for name, arm in CFG["arms"].items():
+        assert isinstance(arm.get("battles"), int), f"{name} would silently run 250"
+
+
+def test_every_arm_kind_is_one_the_seat_accepts():
+    """An unrecognised kind used to run the GREEDY seat silently (CH3 R4
+    BI-5). It now fails loudly -- at LAUNCH. This fails it here instead."""
+    kinds = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone", "ensemble_seat")
+    for name, arm in CFG["arms"].items():
+        assert arm["kind"] in kinds, f"{name}: {arm['kind']!r} would assert at launch"
+        assert ("seat" in arm) ^ ("lanes" in arm), f"{name}: seat/lanes are exclusive"
+        assert (arm["kind"] == "ensemble_seat") == ("lanes" in arm), name
+        # rev 2 MI-8's neighbour: `sampled_seat` flips deterministic=True, and
+        # CLAUDE.md's landmine is that a policy-form mismatch manufactures an
+        # effect worth ~26 implied rating points.
+        assert arm["kind"] != "sampled_seat", f"{name}: barred by grading.sampled_seat_barred"
+    assert G["seat_policy"] == "deterministic" and G["sampled_seat_barred"] is True
+
+
+def test_c0_is_byte_identical_to_the_laddered_object():
+    """rev 1 MI-10 / designer B's G-ENS: C0's whole justification is that its
+    FP number and the ladder rating rate the SAME object. That is an IDENTITY
+    claim, and until r6 nothing re-verified it -- the pins happened to match,
+    which is a fact about the tree, not a gate."""
+    ladder = yaml.safe_load((PREREG.parent / "ladder_r1.yaml").read_text())
+    l2 = ladder["arms"]["L2"]["lanes"]
+    assert CFG["arms"]["C0"]["lanes"] == l2
+    assert CFG["ensembles"]["E4_ladder"] == l2, "rev 2 MI-6: two places to drift"
+    for lane in l2:
+        assert CFG["checkpoints"][lane]["sha256"] == ladder["checkpoints"][lane]["sha256"], lane
+        assert CFG["checkpoints"][lane]["path"] == ladder["checkpoints"][lane]["path"], lane
+
+
+def test_the_r1c_rosters_are_real_arms_not_dead_config():
+    """rev 2 MA-8: no script reads `ensembles:` -- ch5_seat_equiv.py reads
+    `arms.<X>.lanes` -- so a roster that is not an arm cannot be gated by
+    G-EQUIV or G-DECLARED, and nothing budgets it. r5 declared two rosters
+    and budgeted one; the maintainer funded both on 2026-08-26."""
+    assert CFG["arms"]["CE3"]["lanes"] == CFG["ensembles"]["E3_50m"]
+    assert CFG["arms"]["CE7"]["lanes"] == CFG["ensembles"]["E7_all"]
+    assert G["r1c_scope_escalation"]["ruling"] == "fund_both_rosters"
+    # r1c_delivered_iff is defined over max(E3, E7); both must be budgeted.
+    assert "max(E3, E7)" in G["r1c_delivered_iff"]
+    for arm in ("CE3", "CE7"):
+        assert CFG["arms"][arm]["battles"] == 3000
+
+
+def test_e7_rule_reproduces_its_own_list():
+    """rev 2 MA-8: "every 828-d lane on disk" selected THIRTEEN lanes while
+    the list had seven, because struct50m is 828-d too. A rule that does not
+    reproduce its own list is a menu wearing a rule's label. r5 replaced it
+    with a bare enumeration, which is the same defect."""
+    text = PREREG.read_text()
+    # The phrase may survive ONLY inside the passage that records it as wrong.
+    for line in text.split("\n"):
+        if "every 828-d lane on disk" in line:
+            assert "did NOT" in line or "WRONG" in line, \
+                f"the retired rule is stated as live: {line}"
+    assert "PRODUCTION-ERA" in text and "excluded on STRENGTH" in text
+    e7 = CFG["ensembles"]["E7_all"]
+    assert e7 == CFG["ensembles"]["E4_ladder"] + CFG["ensembles"]["E3_50m"]
+    assert set(e7) == set(CFG["checkpoints"])
+
+
+def test_the_prereg_self_reference_is_this_file():
+    """rev 2 MI-9: a dead self-reference read by nothing. One assert turns it
+    into the key that catches this file being copied to a new name without
+    being updated -- and it is what G0's prereg_sha256 hashes."""
+    assert CFG["prereg"] == "configs/eval/ch5_r1_offsh.yaml"
+    assert (PREREG.parents[2] / CFG["prereg"]).samefile(PREREG)
+    assert CFG["results_dir"] == "results/ch5_r1_offsh"
+
+
+def test_every_named_instrument_exists():
+    """rev 2 MA-2a: `results/`, `runs/` and `data/` are all gitignored with
+    zero tracked files, so a grader script is the ONLY committed provenance.
+    Naming a script that does not exist is worse than naming none."""
+    root = PREREG.parents[2]
+    # `instruments:` is role -> PATH ONLY. tests/test_ladder.py walks every
+    # key of every eval pre-reg's block and asserts the value is a file, so a
+    # command string or a list here breaks a repo-wide test (it did).
+    for role, rel in CFG["instruments"].items():
+        assert isinstance(rel, str) and (root / rel).exists(), f"{role} -> {rel}"
+    assert CFG["instrument_contract"]["build_items_still_owed"] == []
+    assert CFG["instrument_contract"]["grade_runs_before_any_number_is_quoted"] is True
+
+
+def test_the_runner_has_the_no_progress_abort():
+    """designer B §5.4c / BI-3. A hung SEAT stops FP writing too, so the stall
+    detector fires and kills the HEALTHY process -- burning the whole relaunch
+    budget at zero progress while looking exactly like slow progress."""
+    runner = (PREREG.parents[2] / "scripts/ch3_r4_fp_runner.sh").read_text()
+    assert "NO_PROGRESS_RELAUNCHES" in runner and "exit 4" in runner
+    assert 'date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.NO_PROGRESS"' in runner
+    assert "$TAG.NO_PROGRESS (runner exit 4" in " ".join(
+        CFG["disposition_of_a_broken_arm"]["OPS_FAILURE_rerun_never_graded"])
+
+
+def test_the_ops_failure_distinction_survives():
+    """designer B §6: an ops failure graded as data is how a clean arm becomes
+    a wrong number. Both sentinels are FILES, so the grader sees them without
+    inference, and neither is in the VOID list."""
+    d = CFG["disposition_of_a_broken_arm"]
+    ops = " ".join(d["OPS_FAILURE_rerun_never_graded"])
+    void = " ".join(d["VOID_arm_scoped"]) + " ".join(d["VOID_wave_scoped"])
+    assert "NO_PROGRESS" in ops and "USERNAME_DEADLOCK" in ops
+    assert "NO_PROGRESS" not in void and "USERNAME_DEADLOCK" not in void
+    assert "DOWNSTREAM" in " ".join(d["VOID_wave_scoped"])
+
+
+def test_the_winners_curse_is_quoted_at_the_n_of_the_score():
+    """rev 1 MA-7 residual: r4 quoted +0.0143 at n=1500 for candidates scored
+    at three different n. E[max of m standard normals] * se, per candidate,
+    at its REALIZED n."""
+    wc = CFG["r3_deployment_rule"]["winners_curse_at_the_n_of_the_score"]
+    e_max_5 = 1.16296
+    assert wc["m5_n3000"] == pytest.approx(e_max_5 * se(P0, 3000), abs=5e-4)
+    assert wc["m5_n1000"] == pytest.approx(e_max_5 * se(P0, 1000), abs=5e-4)
+    # best-k-of-7 is ~120 rosters, E[max] ~ 2.70 -- 94% of the credit floor.
+    assert wc["best_k_of_7_n3000"] == pytest.approx(2.70 * se(P0, 3000), abs=1e-3)
+    assert len(CFG["r3_deployment_rule"]["candidates"]) == 5
+    assert set(CFG["r3_deployment_rule"]["candidate_n_is_not_uniform"]) == \
+        set(CFG["r3_deployment_rule"]["candidates"])
+
+
+def test_the_ledger_reproduces_from_the_measured_marginals():
+    """Every arm priced from a MEASURED marginal, and the total recomputed
+    rather than transcribed -- three cost estimates in this chapter were
+    wrong, and one of them (n=1500 -> 1000) silently outlived its own n."""
+    rates = {"C0": (3000, 1.60), "A": (3 * 1000, 1.485), "B": (3 * 1000, 2.68),
+             "CE3": (3000, 1.56), "CE7": (3000, 1.72)}
+    total = sum(n * r for n, r in rates.values()) / 3600
+    assert total == pytest.approx(CFG["cost_ledger"]["agent_side_battle_hours"], abs=0.02)
+    assert "7.53" in PREREG.read_text(), "the header must carry the recomputed total"
+    mvp = (3000 * 1.60 + 3 * 1000 * 1.485) / 3600
+    assert f"{mvp:.2f}" in CFG["interrupt_policy"]["mvp"]
+
+
+def test_the_ceiling_on_r1b_is_present_and_names_mu8():
+    """rev 1 MA-8c: without it a positive R1-B reads as reversing a result
+    CLAUDE.md grades at z = -2.80, by implication rather than by claim."""
+    c = G["arms"]["R1B"]["ceiling_pre_committed"]
+    assert "z = -2.80" in c and "DEPLOYMENT CANDIDATE" in c
+    assert "may not be set beside the negative 12M cell" in c
+
+
+def test_the_k2_contradiction_is_ruled_not_left_open():
+    """sweep A-§3.3a was left as an UNRESOLVED CONTRADICTION: G-K permitted a
+    VERDICT-S at k=2 while designer A's own licensed sentence said no verdict
+    is licensed there. At 1 df the sd's 95% CI multipliers span 0.45x-31.9x --
+    a factor of 72 -- so the bar computed from it is not a bar."""
+    text = PREREG.read_text()
+    assert "k=2 RULED" in text and "0.45x-31.9x" in text
+    assert "at k_arm <= 2 the FLEET-MEAN read is DESCRIPTIVE ONLY" in text.replace("**", "")
+    assert "0.45x-31.9x" in CFG["licensed_sentences"]["DESCRIPTIVE_ONLY"]
+
+
+def test_the_grader_selftest_passes():
+    """designer B BI-4. --selftest runs entirely against BANKED CH4
+    artifacts, so the gate apparatus is exercisable before a single CH5
+    battle. If the artifacts are absent the test skips rather than lying."""
+    import subprocess, sys
+    root = PREREG.parents[2]
+    if not (root / "results/ch4_r1_offsh/l64.fp.stdout").exists():
+        pytest.skip("banked CH4 artifacts absent (results/ is gitignored)")
+    r = subprocess.run([sys.executable, str(root / "scripts/ch5_r1_grade.py"), "--selftest"],
+                       capture_output=True, text=True, cwd=root)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "SELFTEST PASS" in r.stdout

@@ -1,7 +1,8 @@
 # =====================================================================
 # CHAPTER 5 R1 — THE THREE ZERO-TRAINING OFF-SH READS
-# STATUS: **DRAFT r4 — NOT RATIFIED, NOT LAUNCHABLE. The grading gap is
-#   closed; the COMPLETENESS gap is not.** r3 closed the ten blockers'
+# STATUS: **DRAFT r6 — NOT RATIFIED. LAUNCHABLE ONCE THE MAINTAINER
+#   RATIFIES: every blocker below is closed, all five build items exist,
+#   and the arms are enumerated.** r3 closed the ten blockers'
 #   grading half (3x3 action table, per-arm bars, k-general clustered
 #   rule, reachability cliff). A mechanical completeness sweep over all
 #   four cycle documents then found **~70 distinct OPEN items** and, in
@@ -19,12 +20,18 @@
 #     * `R1A.sidedness: two_sided` contradicted `verdict_s`.
 #     * `verdict_p_bands` overlapped at 0.030 and 0.060.
 #     * the s82 primary published se 0.0166 / "6.6 se" by treating a
-#       TWO-LANE MEAN as one lane; correct is 0.0142 / 7.8 se.
+#       TWO-LANE MEAN as one lane. r4 called 0.0142 / 7.8 se "correct";
+#       IT WAS NOT — that is the n=1500 value, and it was alternative-
+#       referenced besides. The settled figures are **0.0185 / 5.9 se**
+#       at the ratified n=1000, null-referenced, in
+#       `grading.arms.R1A_PRIMARY_s82`. Four figures circulated for one
+#       read because each fix landed in one place; this line is the last
+#       of them.
 #     * R1-A was priced at the ENSEMBLE rate — the very error this file
 #       congratulates itself for catching elsewhere.
 #   **AND THE READ Q1 DECLARES PRIMARY HAD NO GRADING RULE AT ALL:** r3
-#   gave an action table to every read EXCEPT that one. Closed in r4.**
-#   **r5 (this revision): three OPUS DISPOSITION AGENTS graded the ~70
+#   gave an action table to every read EXCEPT that one. Closed in r4.
+#   **r5: three OPUS DISPOSITION AGENTS graded the ~70
 #   items the sweep left open — A 26 ADOPT / B 25 ADOPT / reviewers 36
 #   ADOPT — and the reviewer pass found SEVEN REGRESSIONS r4 introduced,
 #   two of them blocking. Both were in the PRIMARY read's own grading
@@ -33,6 +40,29 @@
 #   breached this file's own max(floor, 2*se) — the exact defect r4 had
 #   just fixed on R1C, reintroduced on the primary, and passed by a test
 #   that only checked `bar >= floor`.**
+#   **r6 (this revision): the ~70 dispositioned items r5 left unapplied
+#   are applied, and every stale n=1500 figure they carried was
+#   RECOMPUTED at the ratified n=1000 rather than pasted. Two findings
+#   came out of that recomputation, both material:**
+#     * **designer A's TOST (A-BR-3) is UNREACHABLE AT n=1000 AT ANY
+#       sigma_seed.** It needs s_50 <= 0.01324; the per-lane binomial sd
+#       ALONE is 0.01507 at n=1000. (At n=1500 the implied ceiling is
+#       sigma_seed <= 0.0049; at n=3000, <= 0.0100.) The one construction
+#       that would license "scale is flat off-FP" cannot fire at the
+#       ratified n. **MAINTAINER RULED 2026-08-26: keep n=1000, BAR THE
+#       WORD** — see `grading.r1a_tost` and `grading.flat_licensed_in`.
+#     * **the reachability cliff's crossover row was the n=1500 value.**
+#       At n=1000 the clustered term overtakes the binomial at s_50 =
+#       0.0155, not 0.0128 — and the decision-relevant row (the s_50 at
+#       which the bar LEAVES the 0.025 floor, **0.0206**, which is
+#       n-INDEPENDENT) had been deleted by r4's recomputation. Restored.
+#   Also in r6: all five build items now EXIST (`scripts/ch5_r1_wave.sh`,
+#   `scripts/ch5_r1_grade.py --selftest`, the runner's NO_PROGRESS abort,
+#   `scripts/ch5_preflight.sh`, the OUT == results_dir rule); the six 50M
+#   arms and the two R1-C compositions are ENUMERATED, behind the
+#   non-prefixing username scheme written first; and the maintainer ruled
+#   both escalations r5 recorded (R1-C: fund both rosters, E7 last;
+#   CHAPTER5 §3 C1: retro-ratified).
 #   Provenance: two independent Opus design memos (A = evidential
 #   validity, B = build/cost) per the standing 2026-08-12 process, plus
 #   measurements taken to adjudicate where they disagreed, then two
@@ -59,7 +89,12 @@
 #     12M vs SH      k=4  s_T 0.01118  binomial-only 0.00821 -> sigma_seed = 0.0076
 #     50M vs SH      k=3  s_T 0.06295  binomial-only 0.00835 -> sigma_seed = 0.0624
 #   **The 50M fleet's seed spread is 8.2x the 12M fleet's, driven by the
-#   one lane at 0.6297.** Consequences, both load-bearing:
+#   one lane at 0.6297.** The ratio survives a FORMAL heterogeneity test:
+#   F = s_50^2/s_12^2 = 0.06295^2/0.01118^2 = **31.7 on (2,3) df,
+#   p = 0.0096** (F_.99 = 30.8). The "8.2x" is a sigma_seed ratio and is
+#   DESCRIPTIVE; the F is the only statement about heterogeneity this
+#   design can license (review 1 BL-5e), and it is what should be quoted.
+#   Consequences, both load-bearing:
 #   (a) **"50M IS FLAT vs SH" IS NOT A WEAK CLAIM, IT IS NOT A CLAIM.**
 #       delta -0.01603 against a clustered 2-se bar of **0.0735** = 0.44
 #       se. (r1 said 0.0725 — computed from sigma_seed while Q5's stated
@@ -93,8 +128,12 @@
 #   read. Either answer is decisive; "estimate an sd from three points"
 #   is decisive on neither. sigma_seed is still REPORTED, as a screen with
 #   its CI attached, never as the primary.
-#   (Hopeful sign, not evidence: for the 12M family sigma_seed is SMALLER
-#   off-FP (0) than vs SH (0.0076).)
+#   (Hopeful sign, NOT evidence: for the 12M family sigma_seed is SMALLER
+#   off-FP (0) than vs SH (0.0076). **The 0 is a TRUNCATED estimate — the
+#   raw variance estimate is negative (-1.63e-5) — and at k=4 (3 df) the
+#   95% upper bound is sigma_seed <= 0.0274** (sd CI multiplier 3.73, then
+#   the 0.00870 binomial floor removed). "0" means "not resolvable from
+#   four lanes", never "zero". Review 1 MI-4's 0.048 does not reproduce.)
 # ---------------------------------------------------------------------
 # Q2. ARM ORDER — C0 RUNS FIRST. Both designers reached this
 #   independently and neither was told to.
@@ -111,6 +150,15 @@
 #   flatters us. Serial is mandatory, not preferred.
 #   Marginal s/battle vs FP@20, startup stripped, measured this session:
 #     ensemble 1.60   search@M 2.68   (realized greedy, banked: 1.44-1.53)
+#   **THE 2.68 IS A TRANSFERRED RATE (review 1 MI-5, review 2 MI-4):** it
+#   was calibrated on **s62, a 12M lane** (results/ch5_r1_offsh/cal_search.json,
+#   n=100, 33.52 turns/battle, searched share 0.896), while R1-B prices
+#   s80/81/82. Search cost tracks battle length and searched-decision
+#   share, both policy-dependent. It is NOT re-calibrated on s80: cost
+#   enters no bar, and R1-B's n is set by the credit floor, not by cost.
+#   **What it may NOT be used for is the stall check** — CLAUDE.md requires
+#   s/battle against a COMPARABLE COMPLETED ARM, and a transferred rate is
+#   not one. R1-B's own first 100 battles set its stall reference.
 #   **THREE COST ESTIMATES WERE WRONG AND ARE RECORDED SO THE HABIT
 #   ISN'T REPEATED:** CLAUDE.md's 1.20 s/battle greedy reference (the
 #   banked arms realized 1.44-1.53); the assistant's 3.51 s/battle for
@@ -118,6 +166,20 @@
 #   s/battle cost model (+70%). A 100-battle calibration settled it at
 #   2.84 realized / 2.68 marginal. **B's PROCESS advice was right while
 #   B's NUMBER was wrong: calibrate, never ratify hours off a model.**
+#   **AND THE MODEL FAILED ON THE CALIBRATION DATA — a separate finding
+#   from the number being wrong (review 1 MI-6).** B's model is ADDITIVE:
+#   our searched decisions x our per-decision cost PLUS FP's turns x FP's
+#   per-turn cost. Evaluated on the calibration arm's OWN counters (34.06
+#   searched decisions/battle x 68.38 ms + 33.52 turns x 52.5 ms) it
+#   predicts **4.09 s/battle against 2.68 realized, 53% high** — so the
+#   calibration did not merely correct B's inputs, it INVALIDATED B's
+#   functional form. The likely reason is structural: Showdown resolves
+#   both players' choices within a turn, so our search overlaps FP's think
+#   time. **Wherever our per-decision cost is comparable to FP's, the
+#   model is a `max`, not a sum.** Not bookkeeping: the same additive
+#   model is what would price a 7-member E7 arm, and it would over-price
+#   it the same way. Every remaining arm is priced from a MEASURED
+#   marginal.
 #   **n per lane. CORRECTED: "three independent power calculations that
 #   agreed" was never true** — they answered different questions. ~4800
 #   reproduces only under the assumption that the 50M fleet is
@@ -134,7 +196,21 @@
 #     R1-B 3 x 1000 = 2.23 h        R1-C  **2 x 3000 = 2.73 h**
 #     (designer B's disposition caught a LIVE LEDGER ERROR: the file
 #      declares TWO rule-fixed rosters, E3 and E7, and priced ONE.)
-#     TOTAL ~7.5 h  (CHAPTER5 §4's full-power sketch said 13.8 h)
+#     TOTAL **7.53 h**  (CHAPTER5 §4's full-power sketch said 13.8 h)
+#   **ARM COUNT, NOT WIDTH, PRICES R1-C** (designer B §1.2): the marginal
+#   cost of an ensemble member is ~0.04 s/battle (0.045 modelled, 0.038
+#   empirical against the 1.60 measured at M=4), so M=3 is 1.56 s/b and
+#   M=7 is 1.72 s/b — **a 133% wider object costs 10% more.** But each
+#   COMPOSITION is a separate 3000-battle arm: E3 1.30 h + E7 1.43 h =
+#   2.73 h. Width is nearly free; ARM COUNT is the entire cost driver.
+#   (B's own total was 8.15 h because B priced R1-A at n=1500. At the
+#   ratified n=1000 the same ledger is 1.33 + 1.24 + 2.23 + 2.73 = 7.53 h.
+#   Recomputed, not transcribed — the habit this file keeps paying for.)
+#   **MAINTAINER RULED 2026-08-26: FUND BOTH ROSTERS, E7 LAST.** The cut
+#   is only reversible in the wrong direction — an evening that runs short
+#   stops before E7 and loses nothing (the wave is skip-if-complete and
+#   arms are individually resumable), whereas an E7 that was never
+#   pre-registered cannot be added afterwards without being post-hoc.
 #   **C0/R1-C CORRECTED r1->r2 after review BL-3, and the r1 error is
 #   recorded because it is the exact failure this process exists to
 #   catch.** r1 set them to 1500 by applying R1-A's THREE-LANE POOLED
@@ -166,10 +242,23 @@
 #   that: designer A's F6 — **no number with n_eff < 1000 enters any
 #   comparison, ever, including in prose** — and review 1's arithmetic,
 #   which puts that cell at **0.46 se**, i.e. not a sign of anything.
+#   (Both cells are s65-only, FP@100, results/ch3_r2_fp_h2h/, so the
+#   pairing was at least same-lane — review 1 MA-8e. Recorded because the
+#   reason for barring it is n and se, not a lane mismatch.)
 #   The 0.368-vs-0.388 FP@100 n=250 pair is therefore
 #   `role: BARRED_FROM_ALL_COMPARISONS`, and **R1-B takes NO 12M input at
 #   all.** Its question is answered entirely within the 50M fleet at one
 #   budget. A's objection is honoured by removal, not by relabelling.
+#   **CEILING, PRE-COMMITTED (designer A §8; review 1 MA-8c calls it "the
+#   load-bearing half of the reconciliation"): R1-B POSITIVE DOES NOT
+#   REVERSE MU-8** (pooled transfer z = -2.80). R1-B licenses search as an
+#   R3 DEPLOYMENT CANDIDATE and nothing else. **A positive 50M delta may
+#   not be set beside the negative 12M cell in any sentence** — that is the
+#   difference-in-differences A's objection removed, returning by
+#   implication. The "why did search fail" archaeology is a separate,
+#   currently unaffordable question, named here and deferred so it is not
+#   answered by implication. Authoritative key:
+#   `grading.arms.R1B.ceiling_pre_committed`.
 # ---------------------------------------------------------------------
 # Q5. GRADING — r3. **THE ACTION COLUMN IS THE POINT** (review 1 BL-1:
 #   r2 had nine verdict cells and zero actions).
@@ -202,10 +291,32 @@
 #                                table). If it somehow fires, VOID and
 #                                re-examine the arm — it means the bar and
 #                                the delta were both enormous.
-#     WITHIN x RESOLVING      -> the ONLY cell licensing the word "flat".
-#                                Scale genuinely does nothing off-FP at
-#                                50M. R2 = C2 (more seeds) unless R1-C
-#                                already delivered; then a structure lever.
+#     WITHIN x RESOLVING      -> the only cell whose interval is tight
+#                                enough to say anything about SIZE. **THE
+#                                WORD "flat" IS BARRED ON EVERY BRANCH**
+#                                (RV1-MA-11): WITHIN is the COMPLEMENT of
+#                                two directional cells and asserts nothing
+#                                (designer A's D1). The LICENSED SENTENCE
+#                                is power-conditioned and quotes the
+#                                REALIZED bar — see
+#                                `grading.flat_licensed_sentence`.
+#                                Quoting the realized bar is MANDATORY: at
+#                                the 0.025 floor WITHIN can be declared
+#                                with 2*se as low as 0.0167, which does
+#                                not support "+/-0.030 was excluded".
+#                                The only construction that would license
+#                                "flat" is a TOST at margin 0.025, and
+#                                **it is UNREACHABLE at n=1000 at any
+#                                sigma_seed** (`grading.r1a_tost`): it
+#                                needs s_50 <= 0.01324 and the per-lane
+#                                binomial sd alone is 0.01507. Maintainer
+#                                ruled 2026-08-26: keep n, bar the word.
+#                                R2 = C2 (more seeds) UNLESS R1-C
+#                                DELIVERED as defined by
+#                                `grading.r1c_delivered_iff` — max(E3,E7)
+#                                - E4 >= +0.025, one-sided, incumbent wins
+#                                ties AND the middle; then a structure
+#                                lever.
 #     WITHIN x WEAK           -> no "flat" sentence. Report the interval.
 #                                R2 = C2, chosen on cost not on evidence,
 #                                and the readout says the scale question
@@ -245,27 +356,47 @@
 #   Whether ABOVE can fire depends on s_50(off-FP), which R1-A measures.
 #   So the cliff is stated now rather than discovered later (the D25-P
 #   lesson: an unreachable branch must be declared unreachable up front).
-#   At n=1500/lane x 3, comparator n=12,000:
-#     s_50(off-FP)   bar     fleet mean ABOVE needs
-#       0.0000     0.0250          0.3737
-#       0.0206     0.0263          0.3750     <- clustered overtakes binomial
-#       0.0300     0.0364          0.3851
-#       0.0450     0.0532          0.4018
-#       0.0650     0.0759          0.4246     <- the 50M vs-SH value
+#   **THE TABLE IS `grading.above_reachability_cliff` AND IS NOT REPEATED
+#   HERE.** Until r6 this comment carried a SECOND COPY, still computed at
+#   n=1500 after the arm moved to n=1000 — the same "each fix landed in one
+#   place" failure that put four different power figures in circulation for
+#   the s82 read. A pointer cannot rot; a copy did, four revisions running.
+#   The shape, at the ratified n=1000/lane x 3 against the comparator's
+#   n=12,000: the bar sits on the 0.025 floor until s_50 = 0.0206 (the
+#   clustered term overtakes the binomial earlier, at 0.0155, without yet
+#   moving the bar), and reaches 0.0755 at the 50M vs-SH value of 0.0650,
+#   which would require a fleet mean of 0.4241.
 #   Best 12M lane EVER measured off FP@20 is 0.3557; the fleet mean is
 #   0.34867. **So if the 50M fleet's off-FP spread resembles its vs-SH
 #   spread, ABOVE is UNREACHABLE and R1-A can only return WITHIN or
 #   BELOW.** That is not a reason to skip the arm — the PRIMARY read is
-#   the s82 question, which has 6.6 se of power regardless — but it must
+#   the s82 question, which has **5.9 se** of power regardless (the
+#   authoritative figure is `grading.arms.R1A_PRIMARY_s82`; the 6.6/6.3/7.8
+#   that circulated came from an alternative-referenced se) — but it must
 #   never be reported as "we tested for improvement and found none".
 # ---------------------------------------------------------------------
 # Q6. DEPLOYMENT vs CREDIT — the line, since R1-C invites crossing it.
 #   Selecting a checkpoint to DEPLOY is not a credit claim; quoting the
 #   selected score as a lever's effect is. Ensemble rosters are fixed by
-#   MEMBERSHIP RULE, declared below; **best-k-of-7 is BARRED.** (Winner's
-#   curse: designer A's +0.010 is for m=5 DEPLOYMENT CANDIDATES at n=3000.
-#   best-k-of-7 is ~120 rosters and is nearer **+0.024**, ~96% of the
-#   credit floor. r3 attached A's smaller number to the wrong quantity.)
+#   MEMBERSHIP RULE, declared below; **best-k-of-7 is BARRED** (see
+#   `barred_rosters`, which also names the escape hatch so it cannot be
+#   rediscovered at readout). **WINNER'S CURSE, QUOTED AT THE n OF THE
+#   SCORE BEING CORRECTED** — r3/r4 quoted one number for candidates
+#   scored at three different n: m=5 at n=3000 is **+0.0101**, m=5 at
+#   n=1000 is **+0.0175**, and best-k-of-7 (~120 rosters) at n=3000 is
+#   **+0.0235**, i.e. 94% of the credit floor. The candidate set is now
+#   NAMED (`r3_deployment_rule.candidates`), which is what makes any of
+#   these numbers refer to something.
+#   **MECHANISM, DISCLOSED BEFORE ANY DATUM (designer B §4.2; RV1-MA-12).**
+#   The ensemble aggregator averages members' MASKED LOG-SOFTMAX and
+#   argmaxes — a GEOMETRIC mean of probabilities, i.e. a **soft AND** in
+#   which a member assigning near-zero probability to a candidate
+#   effectively VETOES it. A wide roster containing a weak member can
+#   therefore score BELOW its own best member. E3_50m and E7_all both
+#   contain s82 BY MEMBERSHIP RULE. This is written here first so that a
+#   low E3/E7 read MAY name it — and so that naming it cannot then be
+#   followed by re-scoring an s82-excluding roster and quoting the result,
+#   which is selection on the read's own metric.
 #   Whatever is chosen for a ladder run is RE-SCORED fresh before any
 #   number is published.
 # ---------------------------------------------------------------------
@@ -307,9 +438,19 @@
 #        battle from a clean arm. Never subtract without checking
 #        fp_completed against battles_requested.
 #   G-SERIAL   one arm at a time; assert non-overlapping arm wall clocks.
-#        **UNGRADEABLE UNTIL A CH5 WAVE SCRIPT EXISTS** (designer B's
-#        BI-2) — nothing currently writes the wave.log it would read.
-#        BLOCKS LAUNCH.
+#        **CLOSED r6: `scripts/ch5_r1_wave.sh` EXISTS and writes
+#        $OUT/wave.log; `scripts/ch5_r1_grade.py` parses its start/done
+#        stamps and asserts no two arms overlap.** Until r6 the gate named
+#        no artifact and was ungradeable (designer B's BI-2).
+#        **THE PRICE OF CHANGING YOUR MIND (designer A §6.1 F4; designer B
+#        §5.1 asked for the same).** If concurrency is ever wanted, the ONLY
+#        valid form is: re-run ALL FOUR 12M lanes in the same wave at the
+#        same k and use the IN-SESSION values as the comparator (+3.7 h) —
+#        the banked 0.34867 was collected at k=1 and does not travel. AND
+#        G7 must run LIVE as a blocking timing gate (median FP per-decision
+#        wall clock, one-sided, <=5% relative slowdown), because CH4 R1
+#        SKIPPED G7 rather than passing it: its trigger (k>1) never fired.
+#        k=3 without the re-baseline is VOID-K, not a shortcut.
 #   G-RETAIN  **FP's stdout IS the G2 second tally, and `results/` is
 #        gitignored and single-copy.** The runner's `OUT` defaults to
 #        `results/ch3_r4_fp_anchor`, which would split the second tally
@@ -321,7 +462,41 @@
 #        2.68 s/battle marginal that re-priced R1-B, lived ONLY in an
 #        agent scratch dir until rescued into `results/ch5_r1_offsh/`
 #        (39 MB -> 2.1 MB gzipped, still greppable, mirrored to d25).
-#   G-SHA      every checkpoint sha256 == pin (the seat already asserts).
+#   G-SHA / G8  PROVENANCE, five asserts. Already stamped by the seat and
+#        merely ASSERTED by the grader: (i) every checkpoint sha256 == pin
+#        (the seat hard-asserts at load, so a break means the arm never
+#        started); (ii) encoder_env == {V2: "1", IDS: "1"}; (iii)
+#        process_obs_dim == 828. NOT stamped by the seat and captured by
+#        the wave script into $OUT/wave.provenance.json BEFORE arm #1 (a
+#        stamp taken after the fact is not a stamp): (iv) the FP patch
+#        sha256 (scripts/patches/foulplay_gen1_local.patch) and the
+#        foul-play working-tree git sha; (v) the Showdown server version
+#        (showdown/package.json "version" + git -C showdown rev-parse HEAD).
+#        **A G8 break VOIDS EVERYTHING DOWNSTREAM OF IT** — not just its arm.
+#        `seat_native_dim` CAVEAT (designer B §4.4, review 2 MI-5): it is
+#        only a real per-CHECKPOINT check for `trunk: mlp`.
+#        `_load_showdown_agent` detects width from `0.weight`; an
+#        `entity_deepsets` checkpoint has no such tensor and the field
+#        falls through to the process OBS_DIM. So on every CH5 candidate
+#        `seat_native_dim: 828` asserts THE PROCESS, not the checkpoint.
+#        Never quote it as evidence about a checkpoint. (The checkpoint
+#        evidence is the sha256 pin, which is asserted at load.)
+#   G-DECLARED (NEW, review 2 BL-2) — the runner exports a shell var only
+#        when the pre-reg key is present, so `ch3_r4_fp_runner.sh:38`
+#        `BATTLES="${BATTLES:-250}"` stands and a 3000-battle arm silently
+#        becomes a 250-battle arm: the seat then stamps
+#        `battles_requested: 250`, `battles_finished: 250` and
+#        `gate_all_challenges_resolved: true`, and passes every other gate.
+#        Assert on EVERY arm JSON, VOIDing its arm:
+#          battles_requested == arms.<X>.battles         (this file)
+#          battles_finished  == battles_requested        (CH4's G3)
+#          seat_lane         == arms.<X>.seat, or null iff ensemble_seat
+#          seat_lanes        == arms.<X>.lanes, IN ORDER
+#          seat_sha256       == the `checkpoints:` pins, in the same order
+#        and for C0 ADDITIONALLY: byte-equal to `ladder_r1.yaml`'s L2 lanes
+#        and shas — C0's entire claim is that its FP number and the ladder
+#        rating rate the SAME object, and nothing re-verified that at grade
+#        time (review 1 MI-10, designer B's G-ENS; see gates.G_IDENTITY).
 #   G-DESYNC   **VOID at a desync RATE > 0.5%** (designer A's V8 and
 #        designer B's G5, both of whom specified a rate; r3 silently
 #        tightened it to `== 0`). Any non-zero count is REPORTED.
@@ -342,8 +517,30 @@
 #        k_arm=1 there is no clustered term at all and the read is
 #        DESCRIPTIVE ONLY — it cannot return a VERDICT-S.** Say which k
 #        every quoted number was computed at.
+#        **k=2 RULED (assistant, flagged as such; sweep A-§3.3a was left as
+#        an UNRESOLVED CONTRADICTION and must not stay one).** r3-r5's G-K
+#        permits a VERDICT-S at k_arm=2 using a k=2 clustered term; designer
+#        A's own DESCRIPTIVE-ONLY sentence says "at k=2 the seed sd has ONE
+#        degree of freedom and no scale verdict is licensed". A is right on
+#        the statistics: at 1 df the sd's 95% CI multipliers are 0.45x-31.9x,
+#        **a factor of 72**, so the bar computed from it is not a bar. RULING:
+#        **at k_arm <= 2 the FLEET-MEAN read is DESCRIPTIVE ONLY and returns
+#        no VERDICT-S.** G-K's k_arm arithmetic still governs any number that
+#        IS quoted (it is what stops the 22% understatement), and the s82
+#        PRIMARY has its own `k_rule`, which is binomial and survives k=2.
+#   G-FLIP (designer A §5.3e; designer B's G-ENS asked for the same field,
+#        and BOTH reviews flagged its absence) — an ensemble arm whose
+#        in-play `ensemble/flip_rate` (vs the modal member) is < 0.02 is a
+#        MISLABELLED SINGLE-LANE READ. ONE-SIDED LOW: only collapse
+#        (flip -> 0) is a defect. **THIS GATE DISCLOSES, IT DOES NOT VOID**
+#        — the number stands and the low flip rate is printed beside it, so
+#        it never interacts with `grading.outlier_rule`. Reference, from
+#        this chapter's own artifacts: 0.0645 (smoke_ch5_ens.json) and
+#        0.0985 (price_ens.json). The 0.20 figure from random Gaussian
+#        states is OFF-DISTRIBUTION and `ch5_seat_equiv.py`'s own docstring
+#        warns it "must never be quoted as an in-play flip rate".
 # ---------------------------------------------------------------------
-# BLOCKERS — status at r3.
+# BLOCKERS — status at r6.
 #   O-1 CLOSED — Q5 now carries the full 3x3 action table; every cell
 #       routes, and WITHIN x NON-RESOLVING explicitly forecloses "just run
 #       more battles" (binomial is not what binds there).
@@ -364,10 +561,18 @@
 #       distinct OPEN** — raised by a designer or reviewer and then absent
 #       from the synthesis with no trace. **"9 of 10 blockers closed" was
 #       true of the ten BLOCKERS and covered a small fraction of the
-#       cycle.** The full table is the authoritative backlog:
-#       `design_ch5/disposition.md` in the d25 backup. **The pre-reg is
-#       NOT ratifiable until the OPEN list is dispositioned** — each item
-#       ADOPTED or DECLINED-WITH-REASON, never silently absent. Named
+#       cycle.** **CLOSED IN r6: THE OPEN LIST IS DISPOSITIONED AND THIS
+#       FILE IS NOW THE AUTHORITATIVE RECORD.** Every adoption is a key or a
+#       comment here; the declines are recorded with their reasons
+#       (`designer_splits`, `barred_rosters`, `grading.r1a_tost`,
+#       `objects_that_do_not_exist_yet`), never silently absent. **Review 2
+#       BL-5d is honoured by that relocation, not by the old pointer:** the
+#       six cycle memos live at `design_ch5/` in the d25 backup, which is
+#       UNTRACKED and OUTSIDE this repo, and CH4's own precedent path
+#       (`results/design_fp_gap/revision_log.md`) is untracked too because
+#       `results/` is gitignored. A tracked artifact is the only one that
+#       survives, so the disposition lives in the tracked pre-reg and the
+#       memos are cited as PROVENANCE, never as the live backlog. Named
 #       highlights: A's "NO LANE IS EVER DROPPED" outlier rule; A's F6
 #       ("no n_eff < 1000 number enters any comparison, ever" — which THIS
 #       FILE violates in Q4 by quoting an n=250 cell as a "SIGN"); A's
@@ -386,10 +591,12 @@
 #         same rule on the real costs gives 1343). **Then the deciding
 #         fact, which neither designer had and which the assistant nearly
 #         missed too: n DOES NOT BIND THIS BAR AT ALL.** 2*binomial falls
-#         below the 0.025 floor from ~750/lane up, and the clustered term
-#         has no n in it — so past ~750 no battle count can move the
+#         below the 0.025 floor from **552**/lane up (750 was read off a
+#         coarse table; the crossover is 552, and it is pinned by test), and
+#         the clustered term has no n in it — so past 552 no battle count can move the
 #         fleet-mean bar. What binds is s_50. n=1000 is chosen because it
-#         clears the s82 PRIMARY at 6.3 se (that read IS binomial), not
+#         clears the s82 PRIMARY at 5.9 se (that read IS binomial; 6.3 was
+#         the alternative-referenced figure, corrected in r5), not
 #         because it buys anything on the fleet mean. **Cost 1.24 h, down
 #         from 1.86 h, and the "extend to 3000" branch is deleted as
 #         incoherent rather than merely expensive.**
@@ -418,8 +625,7 @@
 #         0.5% RATE (A's V8, B's G5) and the tightening was never flagged
 #         as a change. VOID at > 0.5%; any non-zero count is REPORTED.
 #     ORIGINAL FINDING, kept for the record: Q4 claimed R1-B was "THE ONE
-#     PLACE THE DESIGNERS SPLIT". It was not. Q4 claims R1-B is "THE ONE PLACE THE DESIGNERS SPLIT".
-#       It is not. (i) R1-A's n: A wanted a staged 1000->3000, B wanted
+#     PLACE THE DESIGNERS SPLIT". It was not. (i) R1-A's n: A wanted a staged 1000->3000, B wanted
 #       1500; r3 took 1500 and called it "three power calculations that
 #       agreed" — and B's basis sqrt(3.51/1.485) DIED when the cost was
 #       recalibrated to 2.68, so the surviving number has no live
@@ -429,28 +635,111 @@
 #       reason. (iii) What R1-A IS: A says fleet-mean verdict, B says
 #       per-lane deployment read; r3 adopts B's premise and discards B's
 #       conclusion. Also `G-DESYNC == 0` tightened against BOTH designers,
-#       who each specified a 0.5% RATE. Each needs a recorded ruling. (rev 2 BL-4/BL-5) **gates ungradeable and designer items dropped
-#       without disposition.** G-SERIAL names no artifact (there is no CH5
-#       wave script); G-WIRING has no n, band or script; CH4's G0/G1/G3/G4
-#       and the base crash-forfeit read rule are absent; three of designer
-#       B's five gates (G-ENS, G-EQUIV, G-SEARCH) and designer A's era pin
-#       + VOID-E were dropped silently. **Every dropped item needs a
-#       recorded disposition, not an omission.**
-#   Also outstanding, from the MAJORs: the grading constants live only in
-#   YAML COMMENTS (CH4 duplicated every constant into real keys);
-#   `results/ch5*` does not exist, so the 1.60/2.68 marginals and the
-#   G2-exact smokes live only in an agent scratch dir; the runner's `OUT`
-#   defaults to `results/ch3_r4_fp_anchor`, which would split G2's second
-#   tally from the arm JSON; "paired" in Q4 is the wrong word (the
-#   covariance is zero — the benefit is that the LEVEL seed term cancels);
-#   winner's curse is +0.0143 at n=1500, not the +0.010 quoted; and the
-#   ledger omits gates, smokes and the promised re-score (~7.3 h, not 5.6).
+#       who each specified a 0.5% RATE. Each needs a recorded ruling.
+#   O-7 (rev 2 BL-4/BL-5) **GATES UNGRADEABLE AND DESIGNER ITEMS DROPPED
+#       WITHOUT DISPOSITION.** (This finding had been welded onto the end of
+#       the O-6 paragraph mid-sentence by r4's botched replace — the same
+#       corruption class as the duplicate `grading:` key. Separated in r6.)
+#       Status of each, at r6:
+#         G-SERIAL      CLOSED — `scripts/ch5_r1_wave.sh` exists and writes
+#                       $OUT/wave.log; the grader asserts non-overlap.
+#         G-WIRING      CLOSED for n and band (n=300/lane, one-sided, band =
+#                       banked -0.10, re-run once). It has no dedicated
+#                       script: it is a `scripts/eval_checkpoint.py` read,
+#                       run by the wave before each lane's FP arm.
+#         G0            CLOSED — `scripts/ch5_preflight.sh` refuses a dirty
+#                       tree and prints launch_git_sha + prereg_sha256.
+#         G1            OPEN, and NAMED rather than assumed: a 5-battle smoke
+#                       per ARM is not in the budget. The runner supports it
+#                       (`SMOKE_BATTLES`, which also forces a `smoke_` tag so
+#                       a smoke can never overwrite a real arm JSON). ~9
+#                       smokes x ~5 battles is minutes, not hours.
+#         G3            CLOSED — asserted by the grader, and folded into
+#                       G-DECLARED (evaluated on REQUESTED, not on finished).
+#         G4 / crash-forfeit base rule  CLOSED — the GENERAL per-point form
+#                       is implemented and selftested:
+#                       n_eff = seat_finished - |{p in crash_points : p <
+#                       battles_requested}|. Never `- relaunches`.
+#         G-ENS         CLOSED — split into `gates.G_IDENTITY` (byte-match to
+#                       ladder_r1.yaml's L2) and `gates.G_FLIP` (the
+#                       collapsed-ensemble read). Both were asked for by both
+#                       designers and dropped silently by r3.
+#         G-EQUIV       CLOSED as an instrument (`ch5_seat_equiv.py`, in
+#                       `instruments:` and in the VOID list); it must run at
+#                       the launch sha for every composition.
+#         G-SEARCH      **DECLINED FOR R1, with the reason recorded rather
+#                       than omitted.** designer B proposed a 0.85 searched-
+#                       decision-share floor; review 1 MA-5b showed that
+#                       threshold would have VOIDED `fs.json`, the very
+#                       comparator it was meant to protect. The constraint
+#                       for whoever restores it: 0.85 bites only the FP@100
+#                       cell (0.8206); both FP@20 arms measured this session
+#                       are 0.8956 / 0.9156, so 0.85 is safe for CH5's own
+#                       arms. And F6 removes the fs.json cell from this file
+#                       anyway, which dissolves the conflict. **Nothing
+#                       currently catches a search arm degrading to greedy on
+#                       ~1/3 of the budget; that is a DISCLOSED gap.**
+#         era pin       DECLINED for R1 — it is a vs-SH instrument and R1 is
+#                       an off-SH rung. Its absence is why `multiplicity`
+#                       counts 8 reads rather than 9.
+#         VOID-E        CLOSED — `grading.void_scoping` +
+#                       `disposition_of_a_broken_arm`, which also carries the
+#                       OPS-FAILURE-vs-VOID distinction B insisted on.
+#   Also outstanding, from the MAJORs — **ALL SIX CLOSED IN r6, listed with
+#   where they landed so the closure is checkable rather than asserted:**
+#     * grading constants living only in YAML COMMENTS -> every one is now a
+#       real key under `grading:`, and `tests/test_ch5_prereg.py` re-derives
+#       the bars from n rather than trusting them.
+#     * `results/ch5*` did not exist -> it does; the four calibration logs
+#       carrying the 1.60/2.68 marginals were rescued out of an agent scratch
+#       dir (see `artifacts.scratch_is_not_retention`, DISCHARGED).
+#     * the runner's `OUT` default -> `artifacts.out_dir_rule`, and
+#       `scripts/ch5_r1_wave.sh` ASSERTS OUT == results_dir before arm #1.
+#     * "paired" in Q4 -> corrected; the covariance is zero and the benefit
+#       is the cancelling LEVEL term.
+#     * winner's curse -> quoted AT THE n OF THE SCORE BEING CORRECTED
+#       (`r3_deployment_rule.winners_curse_at_the_n_of_the_score`): +0.0101
+#       at n=3000, +0.0175 at n=1000, +0.0235 for best-k-of-7. The single
+#       number was the defect, not its value.
+#     * the ledger -> `cost_ledger` + Q3, recomputed at the ratified n to
+#       7.53 h and pinned by test.
 #
 # OPEN FOR THE MAINTAINER
+#   (Review 2 BL-5c: the r5 list held four items of the ASSISTANT'S OWN
+#   CHOOSING and none of designer A's five brackets. All five are surfaced
+#   here. RULED items are kept, marked, so the record shows what was asked.)
 #   1. Ratify or move the thresholds in Q5.
-#   2. R1-B: accept the Q4 reconciliation, or take A's "cut it".
+#   2. **A-BR-2 / R1-B: accept the Q4 reconciliation, or take A's "cut
+#      it".** (k=1 serial vs k=3 was DECLINED in Q3; recorded for
+#      visibility. If A's one-arm form is taken,
+#      `grading.arms.R1B.object_selection_rule_if_one_arm` already fixes
+#      the object, so it cannot be chosen after C0 reads out.)
 #   3. R1-C's membership rule (below) — it is the deployment/credit line.
 #   4. Reviews are OWED on this draft before launch.
+#   5. **A-BR-4 — CHAPTER5 §3 C1 was EDITED by this process (25256b8).
+#      RULED 2026-08-26: RETRO-RATIFIED.** The 0.0724-vs-0.0735 conflict
+#      is settled at 0.0735 (the Q5-consistent value; 0.0724 was computed
+#      from sigma_seed while Q5's formula uses the total sd s_T).
+#   6. **A-BR-1 — buy a 4th D29r2 50M lane (~12.5 h training)? It is the
+#      only purchase that improves R1-A's INFERENTIAL quality (sd df 2->3)
+#      rather than its precision. A recommends NO: let WITHIN/WEAK route
+#      to C2, which buys the lane as the LEVER, not as a measurement tax.**
+#      STILL OPEN.
+#   7. **A-BR-3 — pre-register the TOST? RULED 2026-08-26: NO, and the
+#      reason is arithmetic rather than taste. At the ratified n=1000 the
+#      TOST is UNREACHABLE at any sigma_seed (it needs s_50 <= 0.01324;
+#      the per-lane binomial sd alone is 0.01507). It is recorded as
+#      pre-registered-and-unreachable in `grading.r1a_tost` — the D25-P
+#      lesson is that an unreachable branch is declared, not discovered —
+#      and the word "flat" is BARRED on every branch.**
+#   8. **A-BR-5 — CHAPTER5 §1 motivation 2 still needs its sentence fixed
+#      (ZERO complete (proxy, ladder) pairs on FP@20, not one). Same
+#      authority question as A-BR-4.** STILL OPEN.
+#   9. **R1-C SCOPE — RULED 2026-08-26: FUND BOTH ROSTERS, E7 LAST.**
+#      E3_50m and E7_all are now real `arms:` entries (CE3, CE7) with
+#      usernames and budget lines; R1-C is 2 x 3000 = 2.73 h and
+#      `r1c_delivered_iff`'s max(E3, E7) is defined over a fully budgeted
+#      set. See `grading.r1c_scope_escalation`.
 # =====================================================================
 
 results_dir: results/ch5_r1_offsh
@@ -458,9 +747,80 @@ prereg: configs/eval/ch5_r1_offsh.yaml
 
 fp:
   search_time_ms: 20        # G-BUDGET: never omit this key
+  # rev 2 MA-10 / BL-1b: CH4's `fp:` carried all four of these and CH5's
+  # dropped them, so each was silently supplied by a runner env default.
+  budget_source: this_file_never_environment
+  search_parallelism: 1
+  format: gen1randombattle
+  patch: scripts/patches/foulplay_gen1_local.patch
+  patch_sha256: 8234a15d7382cfeec0cb0129646af2701bd7a576ac0eedf55f1bd9a0ca775348
   budget_disclosures:
     - "FP@20's equivalence test is weakly powered: its PASS band is tighter than its own noise."
     - "The point estimate has FP@20 marginally WEAKER than FP@100 (1.9 points), i.e. the direction that flatters us."
+
+# designer B §7.7 + review 2 MA-3/MA-11. `results/` is GITIGNORED and
+# single-copy, and FP's stdout is not a log — it is G2's SECOND TALLY, the
+# only independent witness to every arm's W/L. Retention is an OBLIGATION.
+artifacts:
+  out_dir_rule: "OUT == results_dir on EVERY arm. The runner defaults OUT to
+    results/ch3_r4_fp_anchor; a CH5 arm that takes the default splits G2's
+    second tally from the arm JSON it must be checked against.
+    scripts/ch5_r1_wave.sh exports OUT explicitly AND asserts it equals this
+    file's results_dir; the grader asserts $OUT/$TAG.fp.stdout exists."
+  fp_stdout_is_evidence: true
+  retention_rule: "$TAG.fp.stdout, $TAG.seat.stdout, $TAG.runner.json and
+    $TAG.runner.log MAY NOT be deleted, truncated, rotated or moved until
+    scripts/ch5_r1_grade.py has recorded G2.tallies_agree == true for that
+    tag. After that the raw fp.stdout is gzip -9'd IN PLACE, never deleted:
+    the derived three-way tally in the grade JSON is a SUMMARY, and a summary
+    cannot re-adjudicate a disputed number. The grader reads .gz in place."
+  scratch_is_not_retention: "No CH5 number may be quoted whose fp.stdout lives
+    only in an agent scratch dir. DISCHARGED 2026-08-26: the four calibration
+    logs backing the 1.60/2.68 marginals and the G2-exact smokes
+    (smoke_ch5_ens, price_ens, price_search, cal_search) were rescued from a
+    scratch dir into results/ch5_r1_offsh/ (39 MB -> 2.1 MB gzipped, still
+    greppable) and mirrored to the d25 backup."
+  measured_kb_per_battle: {greedy_ensemble: 236, search: 275}
+  projected_wave_bytes: "16,000 battles ~= 3.9 GB; 174 GB free at pre-reg time"
+  mirroring: "results/ch5_r1_offsh/*.json (arm + runner + grade) mirror to
+    ../pokemon-showdown-rl-d25-backup-20260815/ at each readout and are NAMED
+    in the SESSION_LOGS entry — CH4's obligation,
+    ch4_r1_offsh_instrument.yaml:442. The gzipped fp.stdout files are NOT
+    mirrored (designer B: 'mirror the arm JSONs, not the 700 MB logs')."
+
+# rev 2 MA-2a: `results/`, `runs/` and `data/` are ALL gitignored with zero
+# tracked files, so a grader script is the ONLY committed provenance. CH5
+# named none until r6. Naming a script that does not exist is worse than
+# naming none, so anything unbuilt is flagged as owed.
+instruments:
+  wave: scripts/ch5_r1_wave.sh              # BI-2; G-SERIAL's artifact. BUILT r6.
+  grader: scripts/ch5_r1_grade.py           # BI-4; --selftest is a launch gate. BUILT r6.
+  preflight: scripts/ch5_preflight.sh       # BI-6. BUILT r6.
+  equivalence: scripts/ch5_seat_equiv.py    # G-EQUIV
+  runner: scripts/ch3_r4_fp_runner.sh       # NO_PROGRESS abort added r6
+  readout: SESSION_LOGS.md
+
+# `instruments:` is role -> PATH ONLY: tests/test_ladder.py's
+# test_every_declared_instrument_exists walks every key of every
+# configs/eval/*.yaml instruments block and asserts the value is a file on
+# disk. Everything else about the instruments lives here.
+instrument_contract:
+  equivalence_invocation: "scripts/ch5_seat_equiv.py --prereg configs/eval/ch5_r1_offsh.yaml"
+  build_items_still_owed: []
+  selftest_must_assert:
+    - "G-TERMINAL-RACE against results/ch4_r1_offsh/l64.runner.json: raw
+       crash_forfeits 1, crash_points [3000], battles_requested 3000 ->
+       effective forfeits 0, n_eff 3000. A grader that returns 2999 FAILS."
+    - "G2 three-way on results/ch4_r1_offsh/l64.{json,fp.stdout}: 1067 / 1927 / 6
+       summing to 3000, agreeing with our_wins / foulplay_wins / ties."
+    - "G-BUDGET on l64's own log: every `Sampling N battles at Mms each` line
+       satisfies N*M == 2*declared; an FP@100 log FAILS a declared-20 arm."
+    - "every bar in grading.arms is RE-DERIVED from n and the file's own
+       bar = max(0.025, 2*max(se_bin, se_clustered)); a stored constant that
+       does not reproduce is a FAIL, not a warning. (The r3 test asserted the
+       OPPOSITE — bar < credit_floor — and locked in a breach for a whole draft.)"
+    - "an UNGRADED gate returns pass: null and is never counted as passed."
+  grade_runs_before_any_number_is_quoted: true
 
 # Review 2 MAJOR: r2's entire grading apparatus lived in COMMENTS. CH4
 # duplicated every constant into real keys so a grader reads the file
@@ -468,6 +828,22 @@ fp:
 # the comments above are commentary.
 grading:
   credit_floor: 0.025
+  # designer A §2.4, ADOPTED VERBATIM. Without this the file reads as
+  # smuggling credit arithmetic into a rung that credits nothing; with it,
+  # the choice is principled.
+  bar_rationale: "R1 credits nothing. The credit-line arithmetic is used anyway because R1-A ROUTES R2, and a routing threshold looser than the credit threshold it routes to is a laundering path. 'Materially' therefore means 'would have credited, had this been a credit claim'."
+  # rev 2 MI-8. True by construction (our_win_rate = our_wins / finished);
+  # CH4 stated it anyway.
+  ties: non_wins_in_numerator_counted_in_denominator
+  tie_disclosure_band: 0.01     # 5x l64's banked 0.002; DISCLOSE, never void
+  # rev 2 MI-8's neighbour, which is worse: the file never stated the POLICY
+  # FORM either. CLAUDE.md's landmine is explicit — MATCH THE POLICY FORM to
+  # the rating you compare against, or the comparison manufactures an effect
+  # (~26 implied rating points in the clone case). ladder.py:203,215 and
+  # ch3_fp_h2h.py:154 are both deterministic=True, so they match TODAY — but
+  # `sampled_seat` is a live ARM_KIND that flips it.
+  seat_policy: deterministic
+  sampled_seat_barred: true     # assert kind != sampled_seat on every arm
   # A-F6, adopted. NOTE the exemption: a literal F6 would self-void this
   # file's own n=300 G-WIRING screen, so screens are exempted explicitly
   # rather than by silence. Delete the exemption if G-WIRING is restored
@@ -477,7 +853,12 @@ grading:
   min_n_eff_screen_exemption: [G-WIRING]
   # A-§2.2c, and it is newly LOAD-BEARING: the primary read IS the
   # one-lane collapse, so dropping the outlier would delete the finding.
-  outlier_rule: "NO LANE IS EVER DROPPED. A lane that reads far from its peers is the signal, not contamination."
+  outlier_rule: "NO LANE IS EVER DROPPED. Not for being 0.10 low, not for any reason short of a named VOID gate. The one-lane collapse is the finding, not contamination."
+  # Only a NAMED gate (G-SHA, G2, G3, G-WIRING after its one re-run,
+  # G-DESYNC) may remove a lane, and removal MOVES k_arm — it never "cleans"
+  # the data. r4 had two mechanisms that could launder a drop (G-WIRING can
+  # flag a lane; G-K silently accommodates k<3), so the rule has live surface.
+  lane_removal_requires: [G-SHA, G2, G3, G-WIRING_after_one_rerun, G-DESYNC]
   # A-§9b. Without these two keys the "headline UNTOUCHED" sentence is
   # unenforced prose.
   crediting: false
@@ -493,14 +874,43 @@ grading:
   # this session (commit 25256b8) on designer A's finding. A reserved that
   # edit to the maintainer. It stands as a factual correction and is
   # flagged for retro-ratification.
-  chapter5_s3c1_edit: {status: AWAITING_RETRO_RATIFICATION, commit: 25256b8}
+  chapter5_s3c1_edit: {status: RETRO_RATIFIED_2026_08_26, commit: 25256b8,
+                       settles: "0.0724 vs 0.0735 -> 0.0735, the Q5-consistent value (0.0724 was computed from sigma_seed while Q5's formula uses the total sd s_T)"}
   # Designer A's disposition, escalated: R1-C is UNDER-SCOPED. E3 and E7
   # are declared in `ensembles:` but appear in no arm, nothing budgets
   # them, and `r1c_delivered_iff` needs two compositions while Q3 priced
   # one. Honest cost is ~5.3 h more, or a cut candidate list.
-  r1c_scope_escalation: {status: MAINTAINER_DECISION, options: [fund_both_rosters, cut_to_one, defer_r1c_to_r2]}
+  r1c_scope_escalation:
+    status: RULED_2026_08_26
+    ruling: fund_both_rosters
+    consequence: "E3_50m and E7_all are real `arms:` entries (CE3, CE7) with usernames and budget lines. R1-C is 2 x 3000 = 2.73 h and `r1c_delivered_iff`'s max(E3, E7) is defined over a FULLY BUDGETED set. The alternative — leaving max() defined over a set with unbudgeted members — was the unnamed-cell defect the definition was adopted to fix, and is `not_an_option`."
+    rationale: "the cut is only reversible in the WRONG direction. CE7 runs LAST, so an evening that runs short stops before it and loses nothing (the wave is skip-if-complete and arms are individually resumable); an E7 that was never pre-registered cannot be added afterwards without being post-hoc. A's reverse-priority cut order, if one is ever needed, is E7 first, then R1-B, then E3 — NEVER E4/C0."
+    not_an_option: "leaving max(E3, E7) defined over a set with unbudgeted members."
+
   aggregator: equal_weight_mean_of_lane_rates
   median_barred: true            # at k=3 the median IS one lane
+  # designer A §2.2b, ADOPTED VERBATIM. CLAUDE.md pre-reg lesson 1 is "name
+  # the across-lane aggregator"; naming ONE is half the fix, naming what else
+  # is recorded (so it can never be swapped in at readout) is the other half.
+  recorded_never_governing: [pooled_over_battles_rate, per_lane_median, worst_lane, best_lane]
+  best_lane_note: "RECORDED because C2/deployment cares about the max; NEVER governing, because the max of k noisy scores is upward-biased (the winner's-curse arithmetic in Q6)."
+  # designer A §2.2e. Crash-forfeits are a LIVE mechanism here — l64.runner.json
+  # already carries one — so this is not hypothetical.
+  aggregator_note: "equal-weight mean and pooled-over-battles coincide ONLY when n_eff is equal across lanes. The crash-forfeit rule reduces n_eff per arm, so they WILL diverge. Equal-weight mean of lane rates governs; the pooled rate is recorded and never governs."
+  # designer A §3.3c. r4 mandated serial k=1 and named no cell for what
+  # happens when the rule breaks. The non-obvious half is ARMS SURVIVE.
+  void_k: "dose mismatch — any two arms entering a COMMON COMPARISON at different k. The COMPARISON is VOID; the arms survive and their numbers stand with their k disclosed. (A §3.3 / V4; CH4 R1 Q2b verbatim.)"
+  # designer A §3.3d. Q7's blanket "each VOIDs its arm unless stated" is half
+  # the rule and gets G-SHA wrong: a sha mismatch is NOT arm-scoped.
+  void_scoping:
+    default: "VOID-<gate> is PER-ARM: the arm's number is unusable, k_arm drops, and every quote says which k it was computed at."
+    exception_G_SHA: "a sha256 mismatch at load voids EVERYTHING DOWNSTREAM OF THE BREAK, not just its arm (A V1, inheriting CH4's G8 rule)."
+    wave_scope: "a VOID arm does NOT void the wave. Remaining arms are graded at the reduced k, and G-K governs whether a VERDICT-S may fire at all."
+    interaction_with_outlier_rule: "a lane leaves the fleet ONLY via a named gate. `outlier_rule` forbids every other removal."
+  # designer A §4b, count RE-DERIVED for this revision rather than
+  # transcribed: R1-A fleet-mean, the s82 primary, R1-B, two R1-C
+  # compositions, three G-WIRING lanes = 8.
+  multiplicity: "R1 takes 8 reads at a 2-se bar (R1-A fleet-mean, the s82 primary, R1-B, two R1-C compositions, three G-WIRING lanes) — 9 if the era pin is restored. At ~4.55% two-sided each, P(>=1 spurious fire) = 0.31 (0.34 at 9). DO NOT BONFERRONI: at k=3 it makes every directional cell unreachable and MANUFACTURES A NULL. The structural answer instead: A SINGLE FIRE IS A ROUTING SIGNAL, NEVER A FINDING; every route terminates in its own pre-registration and ratification. (A §4; CH4 R1 did this for its three era pins.)"
   se_rule: max(binomial, clustered)
   clustered_formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp)   # k-GENERAL
   clustered_undefined_at_k: 1    # one lane yields no sd -> descriptive only
@@ -514,22 +924,125 @@ grading:
   # of two one-sided tests — it is a failure to resolve, not evidence of
   # equivalence. The bare word is barred; only the power-conditioned
   # sentence may be written, and it must quote the REALIZED bar.
+  # designer A §5.4 / D8, ADOPTED VERBATIM. r3/r4 imported the phrase
+  # "unless R1-C already delivered" into the AUTHORITATIVE 3x3 table with NO
+  # definition — an unnamed trigger inside the grading apparatus, which is
+  # CLAUDE.md pre-reg lesson 2 (R-4's silent gap at (A1+0.02, A1+0.05]).
+  r1c_delivered_iff: "max(E3, E7) - E4 >= +0.025 AND >= 2*se_diff(3000,3000) = 0.0246 -> i.e. >= +0.025.  ONE-SIDED POSITIVE. Incumbent wins otherwise."
+  # These two look contradictory and are not. Stated so nobody adjudicates
+  # it at readout.
+  r1c_sidedness_reconciled: "arms.R1C.sidedness two_sided governs the READOUT — a composition may read materially WORSE than L2, and that is reportable and matters for deployment. DELIVERY, the routing trigger in WITHIN x RESOLVING, is ONE-SIDED POSITIVE and the incumbent wins ties AND the middle. Different questions, not a contradiction."
+  # designer A §5.4 / R5k, ADOPTED VERBATIM. Free — every input is banked or
+  # produced by R1-A — and it is the FIRST question anyone will ask of an
+  # ensemble number, so pre-registering it stops it being computed post-hoc
+  # and read as a verdict.
+  secondary_recorded_only: "roster score minus the equal-weight mean of its own members' single-lane greedy scores — the 'does combining beat a random member' question. DESCRIPTIVE; does not govern deployment."
+  # designer A §7b / R_AX, ADOPTED VERBATIM. It needs NO gate output: the
+  # statistic uses the BANKED Delta_vsSH, so shrinking G-WIRING to n=300 does
+  # not block it. The pre_stated_context is the guard that stops an off-SH
+  # ABOVE being written up as a dramatic axis disagreement when it is merely
+  # resolving an unresolved question.
+  R_AX_axis_disagreement:
+    statistic: "sign(Delta_offSH) vs sign(Delta_vsSH), where Delta_vsSH = 0.70222 - 0.71825 = -0.01603"
+    pre_stated_context: "Delta_vsSH is 0.44 se_seed_clustered against its own bar of 0.0735. The vs-SH side is NOT a resolved negative; it is UNRESOLVED. An off-SH ABOVE would therefore NOT constitute an axis disagreement — it would resolve an open question."
+    read: DESCRIPTIVE_ONLY
+    uses_banked_vs_sh: true
+  # designer A §3.4 / bracket A-BR-3. RECORDED AS PRE-REGISTERED-AND-
+  # UNREACHABLE rather than dropped: the D25-P lesson is that an unreachable
+  # branch is DECLARED up front, not discovered afterwards. The reachability
+  # was recomputed at the ratified n=1000 rather than pasted from A's n=3000.
+  r1a_tost:
+    status: "NOT PRE-REGISTERED AS A LIVE READ. Maintainer ruled 2026-08-26: keep n=1000 and bar the word 'flat'. Recorded here with its arithmetic so the ruling is reproducible."
+    margin: 0.025                    # the credit floor, pinned before data
+    test: "90% CI for Delta (t_{0.95,df_welch} * se_seed_clustered) lies entirely inside (-0.025, +0.025) -> EQUIVALENT at the credit-floor margin"
+    requires_se_clustered_at_most: 0.00856     # t_.95 at df=2 is 2.920
+    requires_s50_at_most: 0.01324
+    reachability_at_the_ratified_n: "UNREACHABLE AT n=1000 AT ANY sigma_seed. The per-lane binomial sd alone is 0.01507 at n=1000, which EXCEEDS the whole s_50 budget of 0.01324. The implied sigma_seed ceiling exists only at larger n: <= 0.0049 at n=1500, <= 0.0100 at n=3000 (designer A's figure, which assumed n=3000)."
+    consequence: "the ONLY construction that would license 'scale is flat off-FP' cannot fire at this arm's n. `flat_licensed_in: []` follows from arithmetic, not from taste."
   flat_bare_word_barred: true
   flat_licensed_sentence: "At the realized bar of <BAR>, no difference of that size or larger was detected between 50M and 12M off FP@20. This is a failure to resolve, not evidence of equivalence."
-  flat_licensed_only_in: [WITHIN x RESOLVING]
+  # RV1-MA-11 + r6's TOST arithmetic: NO cell licenses "flat". WITHIN is the
+  # COMPLEMENT of two one-sided tests — a failure to resolve, not evidence of
+  # equivalence — and the TOST that would supply the missing construction is
+  # unreachable at n=1000. The licensed sentence, which MUST quote the
+  # REALIZED bar, is the only thing that may be written.
+  flat_licensed_in: []
+  flat_realized_bar_must_be_quoted: true
   arms:
     # sweep: r3 said two_sided while verdict_s, Q5's prose and designer A's
     # §4 all say one-sided each. verdict_s governs.
     # O-6(i): n does not bind this bar. 2*binomial is under the 0.025 floor
-    # from ~750/lane and the clustered term has no n in it. 1000 is set by
-    # the s82 PRIMARY (6.3 se), not by the fleet mean.
+    # from 552/lane and the clustered term has no n in it. 1000 is set by
+    # the s82 PRIMARY (5.9 se, null-referenced), not by the fleet mean.
     R1A: {sidedness: one_sided_each_per_verdict_s, k_arm: 3, k_cmp: 4,
           n_per_lane: 1000, role: secondary_descriptive,
           # REGRESSION FIXED: 750 was where I read it off a coarse table;
           # the true crossover is 552 battles/lane.
           n_does_not_bind_above: 552, stage_2: none}
-    R1B: {sidedness: one_sided_positive, k_arm: 3, n_per_lane: 1000,
-          se_instrument: paired_clustered_sd_d, note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"}
+    # designer B §2.3 / rev 1 BL-5d, RESTORED: r3 adopted B's PREMISE (Q1b,
+    # "R1-A cannot be a credit-grade scale read") and dropped B's
+    # CONSTRUCTIVE replacement. The two reads answer different questions and
+    # neither substitutes for the other — A's fleet-mean read ROUTES the
+    # chapter (the 3x3 table), B's per-lane read PICKS THE R3 OBJECT.
+    # B wrote n=1500; the ratified n is 1000 and the note says so.
+    R1A_DEPLOYMENT:
+      question: "which single 50M lane, if any, is the best off-FP object on disk?"
+      construction: "per-lane rate at n=1000, binomial se only (0.01507), k=1"
+      grade: DESCRIPTIVE_ONLY
+      note: >-
+        k=1 has no clustered term (grading.clustered_undefined_at_k), so this
+        NEVER returns a VERDICT-S and never credits anything. It is what
+        CHAPTER5 §5's "the better model is already on disk" simplification
+        actually needs, and it is the only R1-A read the clustering cannot
+        veto. Selecting on it to DEPLOY is free; quoting the selected score as
+        a lever's effect is not (Q6). The max of k noisy lanes is
+        upward-biased — see best_lane_note, and the winner's-curse figure AT
+        THIS n, which for m=5 at n=1000 is +0.0175.
+    R1A_POOLED:
+      grade: DESCRIPTIVE
+      note: >-
+        the equal-weight fleet mean IS the 3x3 table's input. It carries the
+        clustered se, the k it was computed at, and the 82% coverage
+        disclosure.
+
+    R1B:
+      sidedness: one_sided_positive
+      k_arm: 3
+      n_per_lane: 1000
+      se_instrument: paired_clustered_sd_d
+      note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"
+      # binomial term at n=1000 both sides over 3 lanes = 0.0123, so
+      # 2*se = 0.0246 and the FLOOR governs at launch. The REALIZED bar is
+      # max(0.025, 2*sd(d_i)/sqrt(3)) and may be larger.
+      se_diff_at_n1000: 0.0123
+      bar: 0.025
+      bar_note: "floor-governed at launch; RE-DERIVE from sd(d_i) at readout and quote the realized value."
+      # designer A §8, ADOPTED VERBATIM but for "One arm" -> "R1-B" (this
+      # file runs three lanes, not A's single s80 arm). Review 1 MA-8c calls
+      # it the load-bearing half of the Q4 reconciliation: without it a
+      # positive R1-B reads as reversing a result graded at z = -2.80.
+      ceiling_pre_committed: >-
+        R1-B POSITIVE DOES NOT REVERSE MU-8 (pooled transfer z = -2.80). R1-B
+        licenses search as an R3 DEPLOYMENT CANDIDATE and nothing else. A
+        positive 50M delta may not be set beside the negative 12M cell in any
+        sentence. The "why did search fail" archaeology is a separate,
+        currently unaffordable question, named here and deferred so it is not
+        answered by implication.
+      # designer A §8, ADOPTED VERBATIM (sweep row A-R6e).
+      anchoring_disclosure: >-
+        the 2026-08-26 smoke read 0.650 on s62 at n=20 — 2.8 se ABOVE the
+        banked greedy value and in the direction this arm's hypothesis wants.
+        It is n=20, it is not a prior, and the arm is graded against the bar
+        above regardless.
+      # designer A §8 / R6b. CONDITIONAL: applies only if the maintainer takes
+      # A's one-arm form (OPEN FOR THE MAINTAINER #2). Recorded NOW so the
+      # object cannot be chosen after C0 reads out.
+      object_selection_rule_if_one_arm: >-
+        s80 — the 50M lane with the highest BANKED vs-SH final (0.74233),
+        fixed before any R1 datum. Selecting on an already-banked,
+        ORTHOGONAL-TO-THE-CONTRAST axis biases the LEVEL of both cells equally
+        and leaves the search-minus-greedy CONTRAST unbiased. This is not
+        selection on the outcome.
     # sweep: 0.0246 BREACHED this file's own bar = max(0.025, 2*se) — and
     # the r3 test ENFORCED the breach. Both fixed.
     R1C: {sidedness: two_sided, comparator: C0, n_per_arm: 3000,
@@ -559,23 +1072,245 @@ grading:
       # R1C, reintroduced on the PRIMARY. The test only checked
       # bar >= floor, so it passed. Test strengthened to equality.
       bar: 0.0369
+      se_diff_at_n1500: 0.0151              # reference only; n IS 1000
       separation_if_it_reproduces: 5.9      # 0.10883 / 0.0185
+      power: >-
+        a vs-SH-sized collapse (+0.10883) lands at 5.9 se at n=1000 and 7.2 se
+        at n=1500. This is the power OF THIS CONTRAST; review 1's "~9.6 se"
+        was for a DIFFERENT contrast (BT-predicted 0.2762 vs ~0.39) and does
+        not transfer to it.
+      # RV1-BL-5c: G-K is written for VERDICT-S and said nothing about THIS
+      # read, which is the one the file calls primary.
+      k_rule: >-
+        if s80 or s81 is VOID the pair becomes one lane, se rises to 0.0213
+        (bar 0.0426) and the read is DESCRIPTIVE ONLY per G-K. If s82 is VOID
+        the read DOES NOT EXIST and R1-A is secondary-only.
       verdicts:
         REPRODUCES: "d >= +bar: the 50M fleet has a genuine bad seed. k=3 cannot support a scale claim; report it, stop buying battles, route as WITHIN x NON-RESOLVING."
-        DOES_NOT: "d < +bar: the vs-SH spread was SH-specific and the off-FP fleet may be tight enough to read. Proceed to the 3x3 table."
+        DOES_NOT: >-
+          d < +bar: NO REPRODUCTION AT THIS POWER. This is NOT an equivalence
+          claim — the bar is 0.0369, so a real collapse of up to ~0.037 would
+          not have been detected. The vs-SH spread may have been SH-specific
+          and the off-FP fleet may be tight enough to read. Proceed to the 3x3
+          table.
   # sweep: r3's cliff used s_cmp = 0.01118, the 12M **vs-SH** sd, where the
   # comparator is the 12M **off-FP** fleet at 0.00771 — a number stated
   # three lines into Q1 of this same file. Recomputed; the crossover row
   # moves too: clustered overtakes binomial at s_50 = 0.0128, not 0.0206.
   comparator_total_sd_off_fp: 0.00771
+  # RECOMPUTED AT THE RATIFIED n=1000 (r6). r4 built this at n=1500 and its
+  # "true crossover" row was the n=1500 value. The bar COLUMN survives the n
+  # change (verified row by row); the annotation did not. r4's recomputation
+  # also DELETED the decision-relevant row — the s_50 at which the bar leaves
+  # the 0.025 floor, which is n-INDEPENDENT and is designer A's number.
   above_reachability_cliff:      # O-4, declared result-blind
+    n_per_lane: 1000
+    se_binomial_of_the_difference: 0.00973   # 3x1000 vs the comparator's 12000
     s50_0.0000: {bar: 0.0250, fleet_mean_above_needs: 0.3737}
-    s50_0.0128: {bar: 0.0250, fleet_mean_above_needs: 0.3737}   # true crossover
+    s50_0.0155: {bar: 0.0250, fleet_mean_above_needs: 0.3737}   # clustered overtakes binomial; n-DEPENDENT (0.0128 at n=1500)
+    s50_0.0206: {bar: 0.0250, fleet_mean_above_needs: 0.3737}   # the bar LEAVES the 0.025 floor here; n-INDEPENDENT
     s50_0.0300: {bar: 0.0355, fleet_mean_above_needs: 0.3842}
     s50_0.0450: {bar: 0.0525, fleet_mean_above_needs: 0.4012}
     s50_0.0650: {bar: 0.0755, fleet_mean_above_needs: 0.4241}
     best_12m_lane_ever_off_fp20: 0.3557
     note: "if s_50(off-FP) resembles its vs-SH 0.0624, ABOVE is UNREACHABLE"
+
+# designer A §2.5b, ADOPTED. A made the STAGING optional ("If B prefers the
+# simpler flat 3000x3, I do not object") and the ATTESTATION a REQUIREMENT
+# ("whichever design is chosen"). This file runs flat, so there is no interim
+# stop rule to protect — but the bar itself READS s_50 from data and the arms
+# run SEQUENTIALLY, so the hazard survives in a different and arguably worse
+# shape: nothing else stops the n, the roster or the cliff table from moving
+# after C0 reads out.
+blinding_attestation:
+  required_in_readout: true
+  precedent: "CH4 R1 Amendment A1"
+  attests:
+    - "no arm's n, roster, seat, sidedness or bar FORMULA changed after any off-FP datum was seen"
+    - "the grading block, the reachability cliff and the licensed sentences were frozen at launch_git_sha"
+    - "s_50 is read from data as a NUISANCE parameter only; the formula that consumes it was pre-committed"
+    - "who looked at which arm's result, and in what order"
+  forfeit_rule: "A's V11 form: an unattestable wave is NOT void. R1-A reports at whatever n it has, with the bar computed there, and the readout states that the attestation could not be made. Honest disclosure, not a void."
+
+# designer A §9, ADOPTED. CH4 R1 Q6b's rule: the deliverable is INLINE, never
+# a pointer into an untracked memo. A's sentences are carried verbatim EXCEPT
+# for the substitutions named below — A wrote them against HIS design and this
+# file runs a different one, so pasting verbatim would import wrong numbers
+# into the deliverable. [slots] fill at readout.
+licensed_sentences:
+  adaptations_from_A:
+    - "A wrote R1-A at n_eff=3000/lane and the disposition rewrote it to 1500. THE RATIFIED n IS 1000. Every n_eff in the R1-A sentences is 1000, and the per-lane binomial se is 0.01507."
+    - "A's WITHIN/NON-RESOLVING sentence hardcodes a fleet mean of 0.421 from his 0.0725 bar. The cliff was recomputed against the 12M OFF-FP sd 0.00771: quote the realized row of grading.above_reachability_cliff (0.4241 at s_50=0.0650), never 0.421."
+    - "A wrote R1-B as ONE arm on s80 at n=3000; this file runs three lanes at n=1000. The R1-B sentence is rewritten to the 3-lane within-lane form. The MU-8 ceiling clause is untouched and is the point of the sentence."
+    - "A's R1A_PRIMARY sentence quoted bar 0.025, se_diff 0.0142 and ONE-SIDED NEGATIVE. All three were wrong: the bar is 0.0369, the null-referenced se is 0.0185, and the sidedness is ONE-SIDED POSITIVE (a reproduced collapse is +0.10883)."
+    - "A's DESCRIPTIVE-ONLY sentence fires at k<3 and r4's G-K fired it at k=1. RESOLVED in favour of A at k<=2 for the FLEET-MEAN read (see G-K's k=2 ruling); the sentence below is A's, with the 1-df CI factor corrected to 0.45x-31.9x."
+    - "A's WITHIN x RESOLVING sentence offered an equivalence claim behind a TOST. The TOST is UNREACHABLE at n=1000, so the word 'flat' and the sentence 'the two fleets are equivalent' are BARRED on every branch (RV1-MA-11)."
+  R1A_ABOVE: >-
+    Across three D29r2 50M lanes at n_eff=1000 each, the equal-weight mean off Foul
+    Play@20 ("FP + our patches", --search-time-ms 20) is [X], against the D26 12M
+    four-lane mean of 0.34867 at n=12,000 — a difference of +[D], clearing the
+    pre-registered bar of [B] (max(0.025, 2*se_diff); governing term =
+    [binomial|seed-clustered]; se = [S]; at k=3 a 2*se band covers ~82%, not 95%).
+    This is the first evidence in this project that scale helps on the off-anchor
+    axis. It credits nothing; the routing action is [3x3 cell].
+  R1A_WITHIN_RESOLVING: >-
+    ...difference of [D], inside a REALIZED bar of [B] <= 0.030. At the realized bar
+    of [B], a fleet-mean effect of that size or larger would have been detected; none
+    was. THIS IS A FAILURE TO RESOLVE, NOT EVIDENCE OF EQUIVALENCE: WITHIN is the
+    complement of two directional cells and asserts nothing, and the TOST that would
+    license an equivalence claim is unreachable at this n. The word "flat" is not
+    used. Quoting the realized bar is mandatory — at the 0.025 floor, WITHIN can be
+    declared with 2*se as low as 0.0167, which does not support "+/-0.030 was excluded".
+  R1A_WITHIN_WEAK_OR_NON_RESOLVING: >-
+    ...difference of [D] against a bar of [B]. The 50M fleet's off-SH lane spread is
+    s_50 = [S], implying sigma_seed = [G]; at three seeds this gives a bar of [B], and
+    THE MEASUREMENT CANNOT DISTINGUISH "scale does nothing" FROM "scale helps by up to
+    [B]". [If NON-RESOLVING:] the "materially above" cell required a fleet mean of
+    [realized cliff row] against a best-ever single-lane 0.3557 and was not reachable.
+    THE WORD "FLAT" IS NOT LICENSED BY THIS RESULT, on any branch. The routing action
+    is C2 (more seeds), which is the correct response to the seed heterogeneity this
+    arm measured.
+  R1A_BELOW: >-
+    ...difference of -[D], clearing the bar of [B] on the negative side. Scale hurts
+    this recipe on the off-anchor axis as well; C1 and C3 are closed for the chapter.
+  DESCRIPTIVE_ONLY: >-
+    Fewer than three 50M lanes survived; at k=2 the seed sd has ONE degree of freedom
+    (95% CI multipliers 0.45x-31.9x, a factor of 72) and no scale verdict is licensed.
+    The surviving lane rates are [list] at n_eff [list].
+  R1A_PRIMARY_s82: >-
+    Across the three D29r2 50M lanes off Foul Play@20 at n_eff=1000 each,
+    mean{s80,s81} minus s82 is [d] against a pre-registered bar of 0.0369
+    (null-referenced se_diff 0.0185, ONE-SIDED POSITIVE; a reproduced collapse is
+    POSITIVE). [REPRODUCES:] the 0.11 vs-SH collapse reproduces off-FP; the 50M fleet
+    has a genuine bad seed and k=3 cannot support a scale claim. [DOES NOT:] no
+    reproduction at this power — a real collapse of up to ~0.037 would not have been
+    detected, so this is not an equivalence claim; the vs-SH spread may have been
+    SH-specific.
+  R1B: >-
+    On the three D29r2 50M lanes, search@M off Foul Play@20 reads [X] at n=1000/lane
+    against the SAME lanes' greedy [Y] at n=1000/lane — a within-lane mean delta of
+    [D] against a bar of [B] (one-sided positive; se = max(binomial 0.0123,
+    sd(d_i)/sqrt(3))). [HELPS:] search is licensed as an R3 deployment candidate. THIS
+    DOES NOT REVERSE MU-8's pooled transfer result (z = -2.80), which stands, and this
+    delta is not set beside the 12M cell in any sentence. [HURTS/NULL:] search is not
+    deployed.
+  R1C: >-
+    L2 (the ladder object, ensemble over s62-s65, deterministic, constructed through
+    the path proved identical to ladder.py by ch5_seat_equiv.py) scores [X] off Foul
+    Play@20 at n=3000. This is the first Foul Play number for the object that holds
+    this project's only ladder rating (PS Elo 1311, n=200, never listed, no GXE), and
+    the repo's first complete (proxy score, ladder rating) pair. [Roster comparisons.]
+    R1-C credits nothing: an ensemble is one object, k=1, so the seed-clustered term of
+    the credit line is unestimable. The deployed object's quoted score is a fresh
+    n=3000 re-score on new battles; its selection score was upward-biased by up to
+    +0.0101 over m=5 candidates at n=3000 and is recorded separately.
+  # designer A §9b, ADOPTED VERBATIM. This is the clause that protects the
+  # banked headline numbers from an EVAL-ONLY rung; four of its six items are
+  # independently mandated by CLAUDE.md.
+  on_every_branch:
+    - "every FP number is 'FP + our patches' with the budget named"
+    - "the two FP@20 disclosures travel (fp.budget_disclosures, both strings, verbatim)"
+    - "vs-SH numbers carry the 3-lane (50M) / 4-lane (12M) deviation from the locked 3-seed protocol"
+    - "no anchor number is quoted as a 'best'"
+    - "0.71825, 0.74633, 0.79283 and PS Elo 1311 are UNTOUCHED on every branch"
+    - "STATUS.md rewritten in place <= 60 lines in the same commit as the SESSION_LOGS append"
+
+# designer A §5.3b, ADOPTED VERBATIM. Pre-committed HERE because it is what
+# makes Q6's winner's-curse figure refer to anything: r3-r5 quoted a bias over
+# a candidate set the file never named.
+r3_deployment_rule:
+  candidates: [E4_incumbent, E3, E7, best_single_50M_greedy_from_R1A, R1B_search_object]
+  rule: "argmax of the R1 FP@20 equal-weight score"
+  default: "THE INCUMBENT (E4/L2) WINS TIES AND WINS THE MIDDLE CELL. A challenger replaces the incumbent only if it clears +0.025 AND 2*se_diff(3000,3000)=0.0246, i.e. +0.025."
+  rationale: "switching the deployed model on noise is the post-hoc hazard in its purest form. The default must be no-change."
+  # AMENDMENT (assistant, not A): A priced the m=5 winner's curse at +0.010
+  # assuming ALL FIVE candidates are scored at n=3000. They are scored at TWO
+  # different n here, so the per-candidate se differs and E[max]*se is not one
+  # number. The realized mix is stated so the bias can be recomputed.
+  candidate_n_is_not_uniform:
+    E4_incumbent: 3000                        # C0
+    E3: 3000                                  # CE3, funded 2026-08-26
+    E7: 3000                                  # CE7, funded 2026-08-26
+    best_single_50M_greedy_from_R1A: 1000
+    R1B_search_object: 1000
+  winners_curse_at_the_n_of_the_score: {m5_n3000: 0.0101, m5_n1000: 0.0175, best_k_of_7_n3000: 0.0235}
+  bias_recomputed_at_readout: "E[max of m standard normals] * se, with se per candidate at its REALIZED n_eff. Recorded beside the selection score, never subtracted from it."
+
+# designer A §5.3a, ADOPTED VERBATIM. Named so they cannot be smuggled in.
+barred_rosters:
+  best_k_of_7: "BARRED. Score-based roster construction is selection INSIDE the object; it contaminates even a fresh re-score, because the roster itself was fit to R1's scores. A held-out construction (build the roster on battles 0-1499, score on 1500-2999) is defensible and is a SEPARATE pre-registration. Named here so it is not smuggled in — and so the escape hatch is not rediscovered at readout and run inline."
+  any_roster_containing_the_BC_clone: "BARRED ON PURITY, not on statistics. The clone is trained on Foul Play data; a deployed ensemble containing it breaches the pure self-play lane, which is this project's entire novelty claim. Also 808-dim. THE RULE IS ON PURITY because a re-encoded clone would satisfy any shape rule."
+
+gates:
+  G_FLIP:
+    source: "designer A §5.3e; designer B's G-ENS asked for the same field; both reviews flagged its absence"
+    applies_to: [C0, CE3, CE7]
+    min_in_play_flip_rate: 0.02
+    field: ensemble/flip_rate
+    sidedness: one_sided_low
+    on_breach: DISCLOSE_BESIDE_THE_NUMBER      # NOT a void
+    reference_measured: {smoke_ch5_ens: 0.0645, price_ens: 0.0985}
+    not_quotable: "0.20 on random Gaussian states is OFF-DISTRIBUTION; ch5_seat_equiv.py's own docstring says it must never be quoted as an in-play flip rate"
+  G_IDENTITY:
+    source: "designer A §5.3c (same substance as designer B's G-ENS; both reviews flagged the drop)"
+    rule: "the R3 object's seat_lanes / seat_sha256 stamp in the FP arm JSON must BYTE-MATCH the ladder run's stamp. For C0 specifically, byte-identical to ladder_r1.yaml's L2 lanes and shas."
+    why: "C0's whole claim is that it creates the first (proxy score, ladder rating) pair. That is an IDENTITY claim, and nothing re-verified it at grade time — the pins happen to match today, which is a fact about the tree, not a gate."
+    on_breach: VOID_THAT_ARM
+
+# designer B §6. The distinction is the point: an ops failure graded as data
+# is how a clean arm becomes a wrong number. Both sentinels are FILES the
+# runner writes, so the grader sees them without inference.
+disposition_of_a_broken_arm:
+  VOID_arm_scoped:
+    - G2 three-way disagreement
+    - "G3 fail (battles_finished != battles_requested, evaluated on REQUESTED)"
+    - "relaunches >= MAX_RELAUNCHES ($TAG.TOO_MANY_CRASHES, runner exit 2)"
+    - "G-BUDGET mismatch (FP's own log invariant, or declared_search_time_ms != 20)"
+    - G-DECLARED fail
+    - G-EQUIV fail
+    - "checkpoint sha256 mismatch (hard-asserts at load; the arm never starts)"
+  VOID_wave_scoped:
+    - "a G8 provenance break VOIDS EVERYTHING DOWNSTREAM OF IT, not just its arm"
+  OPS_FAILURE_rerun_never_graded:
+    - "$TAG.USERNAME_DEADLOCK (runner exit 3)"
+    - "$TAG.NO_PROGRESS (runner exit 4, designer B §5.4, BUILT r6)"
+  ops_failure_rule: "An arm carrying either sentinel is RE-RUN under a FRESH username pair from the reserved ch5 space. Its partial JSON, if any, is renamed to $TAG.opsfail.json and never enters a comparison. The grader REFUSES to grade a tag whose sentinel file exists."
+
+# designer B §4.5/§4.6/§7.9: named HERE so R3 does not discover it at branch
+# time. Both verified in source this session.
+objects_that_do_not_exist_yet:
+  ensemble_plus_search: "NOT BUILDABLE TODAY — a CODE CHANGE, not a config change. Four independent blocks: rl/search/agent.py:68 asserts `agent.aux_head is not None` (EnsembleAgent has none); ch3_fp_h2h.py:270 does int(seat_lane.lstrip('s')) while ensemble_seat sets seat_lane = None (AttributeError, not a clean failure); ch3_fp_h2h.py:230 asserts `lanes` is ensemble_seat-only; and `kind` is single-valued with no combined member in ARM_KINDS. If any R1 branch routes to 'the R3 object is ensemble+search', the action is a BUILD, budgeted separately."
+  struct_era_search_seats: "IMPOSSIBLE, not merely unwise. s35/36/37 carry 4 agent keys (actor, critic, optimizer, updates) — no aux_head — so SearchAgent's assert fires at construction. Verified by torch.load. Only recipe12m and stack50m_r2 carry the aux head; R1-B on s80/81/82 is fine (5 keys incl. aux_head)."
+
+cost_ledger:                     # designer B §10 BI-7; rev 2 MA-9
+  maintainer_terminal_hours: 0
+  precedent: "eval waves have run agent-side since 2026-08-23; CH4 R1's MU-3 ruled it explicitly for a ~10.3 h serial wave. CLAUDE.md's >5-min rule is about TRAINING throughput (the measured 10x penalty), not eval waves."
+  lane_days: 0
+  training_seeds_burned: 0
+  checkpoints_invalidated: 0     # no encoder change; OBS_DIM untouched
+  agent_side_battle_hours: 7.53  # Q3's ledger at the ratified n
+  asymmetry: "R1 burns 0 seeds, 0 lane-days and invalidates 0 checkpoints. That asymmetry is the argument for the rung and was unstated until r6 (rev 2 MA-9)."
+
+# The sweep found this decided SILENTLY. It is recorded whichever way the
+# maintainer rules, so the record survives the ruling.
+designer_splits:
+  R1C_composition:
+    B_recommended: "CW-6 = [s62, s63, s64, s65, s80, s81] — drop s82, the 0.6297 lane. Mechanism: the ensemble aggregator is a masked log-prob MEAN = geometric mean of probabilities = a SOFT AND, so a weak member vetoes rather than being outvoted (B §4.2). CW-7 acceptable; CX-10 do not run."
+    A_required: "membership RULES fixed before data, no selection (A §5.3a) — which forces s82 in."
+    ruled: "A's side. R1's PRIMARY read is 'does s82's collapse reproduce off-FP?'; a roster that DROPS s82 on its vs-SH score PRE-ANSWERS that question in its own construction. B deferred the call to A's bar, so the decline is on B's own conditional, not over B's objection."
+    cost_of_the_ruling: "B's mechanism is ADOPTED as a pre-committed disclosure (ensembles.aggregator_mechanism), so a low E3/E7 read may name it. CW-6 is DEFERRED to R2/R3, where s82's off-FP status is KNOWN and dropping it is a deployment choice made on the read's own metric rather than on vs-SH."
+    if_the_maintainer_rules_the_other_way: "CW-6 replaces E7_all (not E3_50m — E3 is the whole 50M fleet and carries no selection), the drop is declared BEFORE any off-FP datum, and the readout states that CW-6's membership was chosen on a metric orthogonal to the read."
+  R1A_n:
+    A_wanted: "staged 1000 -> 3000, with a flat 3000x3 pre-conceded"
+    B_wanted: "1500, from sqrt(3.51/1.485) = 1.54"
+    ruled: "1000. B's basis DIED when the cost recalibrated to 2.68 (the same rule then gives 1343), and the deciding fact is that n DOES NOT BIND THIS BAR AT ALL: 2*binomial falls under the 0.025 floor from 552/lane and the clustered term contains no n. 1000 is set by the s82 PRIMARY (5.9 se), which IS binomial, and by nothing else."
+    cost_of_the_ruling: "designer A's TOST becomes UNREACHABLE at any sigma_seed (grading.r1a_tost). Ruled and disclosed 2026-08-26 rather than discovered at readout."
+  R1A_what_it_is:
+    A_wanted: "a fleet-mean verdict"
+    B_wanted: "a per-lane deployment read"
+    ruled: "BOTH, in their proper roles. The PRIMARY is per-lane by nature (the s82 question); the fleet-mean delta is SECONDARY and DESCRIPTIVE (R1A_POOLED); B's deployment read is restored as R1A_DEPLOYMENT. r4 took B's premise and A's conclusion and recorded neither."
+  G_DESYNC:
+    ruled: "reverted to the designers' rule. BOTH specified a 0.5% RATE (A's V8, B's G5) and r3 silently tightened it to == 0. VOID at > 0.5%; any non-zero count is REPORTED."
 
 comparators:
   greedy_12m_fp20: {value: 0.34867, n: 12000, lanes: 4, budget: "FP@20",
@@ -586,7 +1321,12 @@ comparators:
   search_vs_greedy_12m_fp100: {greedy: 0.388, search: 0.368, n: 250,
                                se_diff: 0.043, budget: "FP@100",
                                role: BARRED_FROM_ALL_COMPARISONS,
-                               separation_se: 0.46}
+                               separation_se: 0.46,
+                               # rev 1 MA-8e: both cells are s65-only
+                               # (results/ch3_r2_fp_h2h/), so the pairing was
+                               # at least same-lane. Recorded because the
+                               # reason for barring it is n and se, not lane.
+                               lanes: [s65], licenses: none}
 
 checkpoints:
   s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
@@ -597,14 +1337,85 @@ checkpoints:
   s81: {path: runs/showdown_sp_stack50m_r2_s81/checkpoint.pt, sha256: 47849ba0c559fb664b9ab65aa4988c3b893fc4fccdcfbd27d9bbbf5785e42890}
   s82: {path: runs/showdown_sp_stack50m_r2_s82/checkpoint.pt, sha256: c7cd5d8d9652db70e830784bb02a7b644fe15ba95a8d9a717ec15e6a85786ab7}
 
-# Membership RULES, fixed before any score is seen (Q6). Not a menu to
-# pick from after the fact.
+# Membership RULES, fixed before any score is seen (Q6). Not a menu to pick
+# from after the fact. **THE RULE IS: every lane of the two PRODUCTION-ERA
+# 828-dim fleets — D26-12M (s62-s65) and D29r2-50M (s80-s82).** That rule
+# reproduces the seven-lane list EXACTLY.
+#   r4's "every 828-d lane on disk" did NOT (rev 2 MA-8): struct50m s35-s37
+#   and stack50m s90-s92 are also entity_deepsets and also load and play at
+#   828 — OBS_DIM comes from the ENCODER FLAGS, not the checkpoint (designer
+#   B §4.1: `opp_action` only writes info["opp_choice"]/info["opp_member"]
+#   for aux supervision in SinglesEnv.step) — so that rule selected THIRTEEN
+#   lanes while the list had seven. r5 then replaced it with an ENUMERATION,
+#   which is a menu wearing a rule's label; this is the rule.
+# Exclusions, with reasons, declared before any off-FP datum:
+#   struct50m s35-s37 — excluded on STRENGTH (0.5087/0.5727/0.6593 vs SH),
+#     NOT on shape; they are obs-COMPATIBLE. Saying "shape" would have been a
+#     false reason for a right call. They also lack `aux_head`, so they could
+#     never be search seats (designer B §4.6, verified by torch.load).
+#   stack50m s90-s92 — the VOID D29r fleet; s90 stopped at 35M.
+# **`ensembles:` IS DOCUMENTATION ONLY — no script reads it**
+# (`ch5_seat_equiv.py:87` reads `arms.<X>.lanes`). Every roster that runs
+# becomes an ARM before it runs, or it cannot be gated by G-EQUIV or
+# G-DECLARED. As of r6 all three rosters ARE arms: E4->C0, E3->CE3, E7->CE7.
 ensembles:
   E4_ladder: [s62, s63, s64, s65]     # exactly L2, the object that laddered
   E3_50m:    [s80, s81, s82]          # the whole 50M fleet, no selection
-  E7_all:    [s62, s63, s64, s65, s80, s81, s82]   # the seven lanes PINNED
-    # above — NOT "every 828-d lane on disk", which the sweep showed
-    # selects far more and would make the roster a moving target.
+  E7_all:    [s62, s63, s64, s65, s80, s81, s82]
+  # designer B §4.2, pre-committed BEFORE any off-FP datum so the readout may
+  # invoke it without it looking retrofitted (RV1-MA-12).
+  aggregator: masked_logprob_mean
+  aggregator_mechanism: "A masked log-prob MEAN is a GEOMETRIC mean of probabilities — a SOFT AND. A member assigning near-zero probability to the ensemble's choice effectively VETOES it, so a weak member is worse here than in a vote, and a wide roster can score BELOW its own best member. E3_50m and E7_all both contain s82 (0.6297 vs SH, 0.06-0.11 below every other member) BY MEMBERSHIP RULE, not by oversight."
+  licensed_if_a_roster_reads_low: "If E3_50m or E7_all scores below C0 by >= its bar, the readout MAY name the soft-AND veto as a candidate explanation, because it was pre-registered here. It may NOT then re-score an s82-excluding roster and quote the result — that is selection on the read's own metric. The pre-registered follow-up is CW-6 as an R2/R3 arm (designer_splits.R1C_composition)."
+
+# designer B §5.2 + rev 2 MA-5. Written BEFORE the six arms were added,
+# because that is the only moment the rule can bind. kill_fp() sweeps
+# `run.py .*--ps-username $FP_USER( |$)`; the `( |$)` guard is belt,
+# non-prefixing names are braces, and the S1 deadlock (3.6 h at zero
+# progress, and it LOOKS like slow progress) is what happens when both fail.
+usernames:
+  scheme: "ch5<arm><role>, role in {seat, fp}, arm ids lowercase. FULL-STRING distinct, and NO name may be a prefix of any other — asserted pairwise by tests/test_ch5_prereg.py over all 18."
+  never_reuse: [c4, r4anchor, ch3, ch4]   # an orphan holding a name is the S1 shape
+  pairs:
+    C0:  {seat: ch5c0seat,  fp: ch5c0fp}
+    A80: {seat: ch5a80seat, fp: ch5a80fp}
+    A81: {seat: ch5a81seat, fp: ch5a81fp}
+    A82: {seat: ch5a82seat, fp: ch5a82fp}
+    B80: {seat: ch5b80seat, fp: ch5b80fp}
+    B81: {seat: ch5b81seat, fp: ch5b81fp}
+    B82: {seat: ch5b82seat, fp: ch5b82fp}
+    CE3: {seat: ch5ce3seat, fp: ch5ce3fp}
+    CE7: {seat: ch5ce7seat, fp: ch5ce7fp}
+
+# rev 2 §4-7: a KEY, not a sentence — G-SERIAL asserts wall clocks and
+# needs something to assert against.
+wave_plan:
+  k: 1
+  rule: "any two arms entering a common comparison must run at the same k, or the comparison is VOID (grading.void_k) and the ARMS SURVIVE. In CH5 EVERY arm enters one (A vs the banked 12M fleet; B vs A per lane; E3/E7 vs C0), so k=1 is not a preference."
+  comparator_wave: "ch4_r1_offsh, serial k=1 (wave.log: 'WAVE START serial k=1')"
+  serial_evidence: "$OUT/wave.log arm start/done timestamps must not overlap; scripts/ch5_r1_grade.py asserts it. THIS IS G-SERIAL'S ARTIFACT."
+  order: [C0, A80, A81, A82, B80, B81, B82, CE3, CE7]
+  order_rationale: "C0 first (both designers, independently): it creates the repo's FIRST complete (proxy score, ladder rating) pair and de-risks brand-new ensemble code at scale in hour one. CE7 last: widest and dearest, so an interrupt costs the least."
+  resume: "skip-if-complete on $OUT/<tag>.json with gate_all_challenges_resolved true. A partial arm re-runs WHOLE; there is no mid-arm resume and none is claimed."
+  retry_no_json_once: true          # designer B §7.3: torch lazy-init SIGSEGV
+  stall_polls: {greedy: 30, ensemble: 30, search: 60}
+  max_relaunches: 10                # CH4 base rate: 1 relaunch in 20,500 battles
+  no_progress_relaunches: 3         # BUILT r6 in ch3_r4_fp_runner.sh
+  progress_instrument: "grep -c 'Winner:' $OUT/$TAG.fp.stdout, measured as a RATE over the window [T+2min, T+12min] — NEVER a wall-clock ETA (the CLAUDE.md landmine: the S1 deadlock was invisible for hours because the projection was computed from elapsed time)."
+  expected_winners_per_min:      # 60 / s_per_battle, at THIS session's calibration
+    greedy: 40.4                 # 1.485 s/b, banked l62-l65
+    ensemble_m3: 38.5            # 1.56 modelled (designer B §1.2)
+    ensemble_m4: 37.5            # 1.60 MEASURED
+    ensemble_m7: 34.9            # 1.72 modelled
+    search_M: 22.4               # 2.68 MARGINAL, from the n=100 calibration --
+                                 # NOT designer B's 13-17, which used the
+                                 # 3.51-4.3 estimates the calibration killed
+  progress_rule: "< 50% of the row above -> investigate; < 20% -> treat as STALLED, not slow. Also asserted POST HOC: an arm whose realized sec_per_battle exceeds its row by >50% is disclosed in the readout. NOTE the search row is a TRANSFERRED rate (Q3) and may NOT be the stall threshold — R1-B's own first 100 battles set its reference."
+
+interrupt_policy:                # designer B §0.6 / §8
+  mvp: "C0 (n=3000) + A80/A81/A82 (n=1000 each) = 1.33 + 1.24 = 2.57 h of battles. Fully resolves CHAPTER5 §5's branch-table row: at 3x1000 against the banked 12M n=12,000, 2*se_binomial is 0.0195, already under the 0.025 credit floor, so nothing about the branch decision improves at a larger n."
+  standalone_floor: "C0 ALONE (1.33 h) is a complete, quotable, standalone result — the first off-FP number for the object that laddered, and the repo's FIRST complete (proxy score, ladder rating) pair. If the wave is interrupted after any completed arm, nothing is wasted."
+  what_an_interrupt_may_not_do: "A partially-completed WAVE never produces a fleet-mean read at k <= 2 that claims a VERDICT-S. See G-K's k=2 ruling."
 
 arms:
   C0:
@@ -614,7 +1425,81 @@ arms:
     search_time_ms: 20
     seat_username: ch5c0seat
     fp_username: ch5c0fp
-  # A1..A3 (greedy 50M) and B1..B3 (search 50M) and the R1-C
-  # compositions are DELIBERATELY NOT ENUMERATED in r1: they wait on the
-  # reviews and on the maintainer's Q5/Q6 calls. Adding them is a
-  # mechanical edit once those land.
+
+  # ---- R1-A: the 50M fleet, GREEDY, off FP@20. 3 x 1000 = 1.24 h. -------
+  # n=1000 is set by the s82 PRIMARY (5.9 se), not by the fleet mean: past
+  # 552 battles/lane no battle count moves the fleet-mean bar, because
+  # 2*binomial is under the floor and the clustered term has no n in it.
+  # Every arm declares `battles` and `search_time_ms` explicitly — the
+  # runner defaults them to 250 and 100 (G-DECLARED, G-BUDGET).
+  A80:
+    kind: greedy_seat
+    seat: s80
+    battles: 1000
+    search_time_ms: 20
+    seat_username: ch5a80seat
+    fp_username: ch5a80fp
+  A81:
+    kind: greedy_seat
+    seat: s81
+    battles: 1000
+    search_time_ms: 20
+    seat_username: ch5a81seat
+    fp_username: ch5a81fp
+  A82:
+    kind: greedy_seat
+    seat: s82
+    battles: 1000
+    search_time_ms: 20
+    seat_username: ch5a82seat
+    fp_username: ch5a82fp
+
+  # ---- R1-B: the SAME three lanes with search@M. 3 x 1000 = 2.23 h. -----
+  # The contrast is WITHIN-LANE (d_i = search_i - greedy_i on the same
+  # lane): the covariance is ZERO (different battles) and the benefit is
+  # that the LEVEL seed term cancels. NO 12M input enters this arm.
+  B80:
+    kind: search_seat
+    seat: s80
+    battles: 1000
+    search_time_ms: 20
+    seat_username: ch5b80seat
+    fp_username: ch5b80fp
+  B81:
+    kind: search_seat
+    seat: s81
+    battles: 1000
+    search_time_ms: 20
+    seat_username: ch5b81seat
+    fp_username: ch5b81fp
+  B82:
+    kind: search_seat
+    seat: s82
+    battles: 1000
+    search_time_ms: 20
+    seat_username: ch5b82seat
+    fp_username: ch5b82fp
+
+  # ---- R1-C: the two RULE-FIXED rosters. 2 x 3000 = 2.73 h. ------------
+  # Funded by the maintainer 2026-08-26 (grading.r1c_scope_escalation), so
+  # `r1c_delivered_iff`'s max(E3, E7) is defined over a fully budgeted set.
+  # n=3000 because these are UNPOOLED single arms: at 1500, 2*se_diff is
+  # 0.0261 and breaches this file's own 0.025 floor; at 3000 it is 0.0246.
+  # Both rosters contain s82 BY MEMBERSHIP RULE — see
+  # ensembles.aggregator_mechanism for the soft-AND consequence, disclosed
+  # before any datum.
+  CE3:
+    kind: ensemble_seat
+    lanes: [s80, s81, s82]           # == ensembles.E3_50m
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5ce3seat
+    fp_username: ch5ce3fp
+  CE7:
+    kind: ensemble_seat
+    lanes: [s62, s63, s64, s65, s80, s81, s82]   # == ensembles.E7_all
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5ce7seat
+    fp_username: ch5ce7fp
+    runs_last: "widest and dearest roster, so an interrupt costs the least (wave_plan.order_rationale)"
