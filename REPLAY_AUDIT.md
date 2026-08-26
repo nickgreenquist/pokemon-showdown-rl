@@ -168,18 +168,79 @@ real observation.
 
 ---
 
+## Issue 0 — the one that matters most: we collapse in the endgame
+
+This is the strongest result of the night and it is strategic, not
+per-decision. Measuring the **terminal run** — how many of the loser's mons
+faint consecutively at the very end:
+
+| | our losses | our wins |
+|---|---|---|
+| terminal run, mean | **2.41** | 1.57 |
+| runs of ≥3 | **9 / 17 (53%)** | 2 / 23 (9%) |
+
+Fisher exact, one-sided: **p = 0.0029.**
+
+**When we lose, we get swept at the end. When we win, we grind it out.**
+
+Two controls, because this is exactly the kind of asymmetry that turns out to
+be an artifact:
+
+1. **Is it just that losses are more one-sided?** No. Games are equally close
+   on faint count — we take 3.59 of their six in a loss, they take 3.33 of
+   ours in a win.
+2. **Do our wins end early because opponents forfeit?** Seven of them do, which
+   would truncate their faint sequence and shorten the terminal run
+   artificially. Restricting to **played-out wins only**: losses 9/17 vs wins
+   **1/11**, Fisher **p = 0.0219**. The finding survives.
+
+**What it is not.** I expected opposing setup sweepers, and the data says no.
+Boosts per battle: they got 1.48 in our wins vs 2.24 in our losses — and *we*
+got more too (0.87 vs 2.00), so that is just longer games, not a mechanism.
+Battles where they got ≥4 boosts: 4/23 wins vs 5/17 losses. And the mon that
+closed out each collapse was **different every time** — Pinsir, Meowth,
+Mr. Mime, Staryu, Nidoqueen, Mewtwo, Slowbro, Abra, Mew, one each. There is no
+single threat we fail to answer.
+
+So: a real, significant, general endgame weakness with no identified
+mechanism. That is the most valuable open question the replays produced.
+
+---
+
+## Status-move profile, for reference
+
+| | us | humans |
+|---|---|---|
+| Thunder Wave | 40 | 37 |
+| Sleep Powder | 26 | 18 |
+| Amnesia | 25 | 24 |
+| Recover | 22 | 10 |
+| Softboiled | 11 | 24 |
+| Hypnosis | 10 | 25 |
+| **total status moves** | **147** | **189** |
+
+We use fewer status moves overall and lean differently — more Sleep Powder and
+Recover, much less Hypnosis and Softboiled. Nothing here is obviously wrong; it
+is recorded because a style difference from the human field is worth knowing
+before anyone reads style into a ladder number.
+
+---
+
 ## What I would look at next, in order
 
-1. **Why a 0× matchup doesn't trigger a switch.** This is the one pattern
-   with a clear signature, a clear mechanism question, and a concrete
-   repro (Magneton vs any Ground type). It also subsumes several of the
-   "wrong move" cases, since for Magneton there was no right move.
-2. **Whether the critic is flat across those actions.** These are not states
+1. **The endgame collapse (Issue 0).** Significant, survives its controls,
+   no mechanism identified, and it is about *games* rather than *decisions* —
+   which is where the evidence says our losses actually come from.
+2. **Why a 0× matchup doesn't trigger a switch.** The one per-decision pattern
+   with a clear signature and a concrete repro (Magneton vs any Ground type).
+   It also subsumes several of the "wrong move" cases, since for Magneton
+   there was no right move.
+3. **Whether the critic is flat across those actions.** These are not states
    where the agent cannot see the type chart — the probe and the live
    diagnostic both say the feature is present and used. So the question is
    whether the value function distinguishes the outcomes at all, which is a
    different instrument than anything run so far.
-3. **Nothing about accuracy, base power, or the encoder's type features.**
+4. **Nothing about accuracy, base power, or the encoder's type features.**
    Three independent measurements now say those are working.
 
 ## Caveats that bound all of the above
@@ -194,3 +255,8 @@ real observation.
   comparisons are unaffected and are what the efficiency table uses.
 - **Both sides run through the same parser with the same bugs**, which is the
   point — the comparison is more trustworthy than either absolute number.
+- **Two of my own bugs were caught by plausibility-checking the output**, not
+  by the code: an early endgame pass reported "we took 9.59 of their 6 mons",
+  which traced to indexing the protocol field one position off. Any number
+  here that looks impossible probably is — the scripts are new tonight and
+  have not been through a review.
