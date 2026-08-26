@@ -46,12 +46,72 @@ def test_flat_is_licensed_in_exactly_one_cell():
     assert G["flat_licensed_only_in"] == ["WITHIN x RESOLVING"]
 
 
-def test_r1c_bar_follows_from_its_own_n():
-    """O-2. Each composition vs C0, both single arms at n=3000."""
-    a = G["arms"]["R1C"]
-    expect = 2 * math.sqrt(2) * se(P0, a["n_per_arm"])
-    assert a["bar"] == pytest.approx(expect, abs=5e-4)
-    assert a["bar"] < G["credit_floor"], "a bar above the credit floor cannot grade"
+def test_every_bar_obeys_the_files_own_max_rule():
+    """bar = max(credit_floor, 2*se). r3 set R1C's bar to 0.0246 — BELOW the
+    floor — and the r3 version of this test ENFORCED the breach with
+    `assert bar < credit_floor`. A test that asserts the bug is worse than
+    no test, so it is inverted here and applied to every graded arm."""
+    floor = G["credit_floor"]
+    for name, a in G["arms"].items():
+        if "bar" in a:
+            assert a["bar"] >= floor, f"{name} bar {a['bar']} is below the floor {floor}"
+    r1c = G["arms"]["R1C"]
+    assert r1c["two_se"] == pytest.approx(2 * math.sqrt(2) * se(P0, r1c["n_per_arm"]), abs=5e-4)
+    assert r1c["bar"] == max(floor, r1c["two_se"])
+
+
+def test_the_primary_read_is_actually_graded():
+    """The sweep's structural finding: r3 gave every read a rule EXCEPT the
+    one Q1 declares primary."""
+    a = G["arms"]["R1A_PRIMARY_s82"]
+    n = 1500
+    expect = math.hypot(math.sqrt(0.35 * 0.65 / (2 * n)), math.sqrt(0.25 * 0.75 / n))
+    assert a["se_diff_at_n1500"] == pytest.approx(expect, abs=5e-4)
+    assert set(a["verdicts"]) == {"REPRODUCES", "DOES_NOT"}
+    assert a["sidedness"] == "one_sided_negative"
+
+
+def test_no_duplicate_top_level_keys():
+    """The sweep found `grading:` and `comparators:` each defined TWICE — a
+    careless replace() broke a comment line out of its `#`. PyYAML takes the
+    last key, so the file parsed to the intended values BY LUCK and 11
+    passing tests saw nothing."""
+    import collections
+
+    class Dup(yaml.SafeLoader):
+        pass
+
+    def check(loader, node, deep=False):
+        counts = collections.Counter(
+            loader.construct_object(k, deep=True) for k, _ in node.value
+        )
+        dupes = [k for k, c in counts.items() if c > 1]
+        assert not dupes, f"duplicate keys parse by luck: {dupes}"
+        return yaml.SafeLoader.construct_mapping(loader, node, deep)
+
+    Dup.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, check)
+    yaml.load(PREREG.read_text(), Dup)
+
+
+def test_verdict_p_bands_do_not_overlap():
+    """r3 promoted a prose overlap at 0.030/0.060 into the authoritative keys."""
+    bands = G["verdict_p_bands"]
+    assert bands["resolving"].endswith("0.030]") and bands["weak"].startswith("(0.030")
+    assert bands["weak"].endswith("0.060]") and bands["non_resolving"].startswith("(0.060")
+
+
+def test_cliff_uses_the_off_fp_comparator_sd():
+    """r3's cliff was built with the 12M vs-SH sd (0.01118) where the
+    comparator is the 12M off-FP fleet (0.00771), stated in the same file."""
+    s_cmp = G["above_reachability_cliff_comparator_sd"] if False else G["comparator_total_sd_off_fp"]
+    assert s_cmp == pytest.approx(0.00771, abs=1e-5)
+    seb = math.hypot(se(P0, 4500), se(P0, N0))
+    for key, row in G["above_reachability_cliff"].items():
+        if not isinstance(row, dict):
+            continue
+        s50 = float(key.split("_")[1])
+        expect = max(G["credit_floor"], 2 * max(seb, math.sqrt(s50**2 / 3 + s_cmp**2 / 4)))
+        assert row["bar"] == pytest.approx(expect, abs=5e-4), key
 
 
 def test_c0_n_meets_the_credit_floor():

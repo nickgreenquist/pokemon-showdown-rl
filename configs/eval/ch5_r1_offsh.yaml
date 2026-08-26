@@ -1,19 +1,39 @@
 # =====================================================================
 # CHAPTER 5 R1 — THE THREE ZERO-TRAINING OFF-SH READS
-# STATUS: **DRAFT r3 — NOT RATIFIED. 10 BLOCKERS RAISED BY TWO REVIEWS;
-#   9 NOW CLOSED, 1 (O-5, dropped-item dispositions) PENDING a mechanical
-#   completeness sweep. Reviewer 1's "do not launch" was aimed at the r2
-#   GRADING GAP, which r3 closes: Q5 now has a full 3x3 action table,
-#   per-arm bars for R1-B and R1-C, a k-general clustered rule, and the
-#   ABOVE-reachability cliff declared result-blind.** Synthesis of
+# STATUS: **DRAFT r4 — NOT RATIFIED, NOT LAUNCHABLE. The grading gap is
+#   closed; the COMPLETENESS gap is not.** r3 closed the ten blockers'
+#   grading half (3x3 action table, per-arm bars, k-general clustered
+#   rule, reachability cliff). A mechanical completeness sweep over all
+#   four cycle documents then found **~70 distinct OPEN items** and, in
+#   r3's own AUTHORITATIVE keys, **a structural corruption plus five
+#   wrong numbers** — all listed under BLOCKERS and all fixed in r4:
+#     * `grading:` and `comparators:` were each defined TWICE (a careless
+#       replace() broke a comment line out of its `#`); the file parsed to
+#       the intended values ONLY because PyYAML takes the last key, and
+#       11 passing tests saw nothing. There is now a duplicate-key test.
+#     * the reachability cliff used the 12M **vs-SH** sd where the
+#       comparator is the 12M **off-FP** fleet — a number stated three
+#       lines into this file's own Q1.
+#     * `R1C.bar 0.0246` sat BELOW `credit_floor 0.025`, contradicting
+#       `bar = max(0.025, ...)` — **and the r3 test ENFORCED the breach.**
+#     * `R1A.sidedness: two_sided` contradicted `verdict_s`.
+#     * `verdict_p_bands` overlapped at 0.030 and 0.060.
+#     * the s82 primary published se 0.0166 / "6.6 se" by treating a
+#       TWO-LANE MEAN as one lane; correct is 0.0142 / 7.8 se.
+#     * R1-A was priced at the ENSEMBLE rate — the very error this file
+#       congratulates itself for catching elsewhere.
+#   **AND THE READ Q1 DECLARES PRIMARY HAD NO GRADING RULE AT ALL:** r3
+#   gave an action table to every read EXCEPT that one. Closed in r4.** Synthesis of
 #   two independent Opus design memos (A = evidential validity, B = build/
 #   cost) per the standing 2026-08-12 process, plus measurements taken
 #   this session to adjudicate where they disagreed, then two independent
 #   Opus reviews of the r1 synthesis.
 #   **PROCESS SLIP, disclosed: the assistant edited `ch3_fp_h2h.py` and
 #   its tests WHILE reviewer 1 was reading the tree** (fixing BL-2). The
-#   reviewer flagged the moving target itself. Reviews should read a
-#   frozen tree; this one did not.
+#   Reviews should read a frozen tree; this one did not. **CORRECTION: an
+#   earlier draft said "the reviewer flagged the moving target itself."
+#   NEITHER review says that** — review 2 §7 records the tree as CLEAN.
+#   The slip is real; the corroboration was invented.
 # Chapter shape ratified 2026-08-26 (CHAPTER5.md §7). 50M is the chapter
 #   ceiling. R1 is EVAL-ONLY and CREDITS NO LEVER.
 # ---------------------------------------------------------------------
@@ -88,7 +108,9 @@
 #   n per lane, from three independent power calculations that agreed:
 #   binomial governs to ~4800 battles/lane, and 2*se_diff reaches the
 #   0.025 credit floor at ~971. 3000/lane buys 0.0133 for 3x the time.
-#     C0   1 x 3000 = 1.33 h        R1-A  3 x 1500 = 2.00 h
+#     C0   1 x 3000 = 1.33 h        R1-A  3 x 1500 = 1.86 h  <- sweep: r3
+#     priced a GREEDY arm at the 1.60 ENSEMBLE rate, the exact error this
+#     file congratulates itself for catching. Greedy realized 1.485.
 #     R1-B 3 x 1000 = 2.23 h        R1-C  1 x 3000 = 1.33 h
 #     TOTAL ~6.9 h  (CHAPTER5 §4's full-power sketch said 13.8 h)
 #   **C0/R1-C CORRECTED r1->r2 after review BL-3, and the r1 error is
@@ -107,7 +129,10 @@
 #     under-trained" at any affordable n, because the 12M search cell is
 #     FP@100/n=250 and a cross-budget comparison is forbidden. Reduce to
 #     one arm.
-#   B: run it at 1000/lane; the question is worth 2.2 h.
+#   B: run it at 1000/lane. **CORRECTION: an earlier draft said B thought
+#     it "worth 2.2 h". B priced it at 3.58 h (§2.4) / "2.9-3.6 h" (§2.1);
+#     2.2 h is the assistant's own POST-calibration number put in B's
+#     mouth, making B's side of the split look cheaper than B argued.**
 #   **RECONCILIATION: ask a WITHIN-budget, WITHIN-era question instead.**
 #   R1-A already produces greedy-on-50M at FP@20. R1-B produces
 #   search-on-50M at FP@20 on the SAME lanes. Their difference is a
@@ -208,8 +233,10 @@
 # Q6. DEPLOYMENT vs CREDIT — the line, since R1-C invites crossing it.
 #   Selecting a checkpoint to DEPLOY is not a credit claim; quoting the
 #   selected score as a lever's effect is. Ensemble rosters are fixed by
-#   MEMBERSHIP RULE, declared below; **best-k-of-7 is BARRED** (winner's
-#   curse over m compositions is ~+0.010, 40% of the credit floor).
+#   MEMBERSHIP RULE, declared below; **best-k-of-7 is BARRED.** (Winner's
+#   curse: designer A's +0.010 is for m=5 DEPLOYMENT CANDIDATES at n=3000.
+#   best-k-of-7 is ~120 rosters and is nearer **+0.024**, ~96% of the
+#   credit floor. r3 attached A's smaller number to the wrong quantity.)
 #   Whatever is chosen for a ladder run is RE-SCORED fresh before any
 #   number is published.
 # ---------------------------------------------------------------------
@@ -257,36 +284,7 @@
 #        banked value is alarming — a high read is not a wiring failure);
 #        band = banked -0.10; and a flagged lane is RE-RUN ONCE at n=300
 #        before it can VOID anything. Non-blocking on a single flag.
-#        Banked # Review 2 MAJOR: r2's entire grading apparatus lived in COMMENTS. CH4
-# duplicated every constant into real keys so a grader reads the file
-# rather than a human paraphrase of it. These keys are AUTHORITATIVE and
-# the comments above are commentary.
-grading:
-  credit_floor: 0.025
-  aggregator: equal_weight_mean_of_lane_rates
-  median_barred: true            # at k=3 the median IS one lane
-  se_rule: max(binomial, clustered)
-  clustered_formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp)   # k-GENERAL
-  clustered_undefined_at_k: 1    # one lane yields no sd -> descriptive only
-  coverage_disclosure: "at k=3 Welch df ~2.2, so 2*se is ~82% coverage, not 95%"
-  verdict_p_bands: {resolving: [0.0, 0.030], weak: [0.030, 0.060], non_resolving: [0.060, .inf]}
-  verdict_s: {above: one_sided_positive, below: one_sided_negative, within: complement_not_equivalence}
-  flat_licensed_only_in: [WITHIN x RESOLVING]
-  arms:
-    R1A: {sidedness: two_sided, k_arm: 3, k_cmp: 4, n_per_lane: 1500}
-    R1B: {sidedness: one_sided_positive, k_arm: 3, n_per_lane: 1000,
-          se_instrument: paired_clustered_sd_d, note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"}
-    R1C: {sidedness: two_sided, comparator: C0, n_per_arm: 3000, bar: 0.0246}
-  above_reachability_cliff:      # O-4, declared result-blind
-    s50_0.0000: {bar: 0.0250, fleet_mean_above_needs: 0.3737}
-    s50_0.0206: {bar: 0.0263, fleet_mean_above_needs: 0.3750}
-    s50_0.0300: {bar: 0.0364, fleet_mean_above_needs: 0.3851}
-    s50_0.0450: {bar: 0.0532, fleet_mean_above_needs: 0.4018}
-    s50_0.0650: {bar: 0.0759, fleet_mean_above_needs: 0.4246}
-    best_12m_lane_ever_off_fp20: 0.3557
-    note: "if s_50(off-FP) resembles its vs-SH 0.0624, ABOVE is UNREACHABLE"
-
-comparators: s80 0.74233, s81 0.73467, s82 0.62967.
+#        Banked comparators: s80 0.74233, s81 0.73467, s82 0.62967.
 #   G-K       **the k<3 cell, unnamed in r2 and a ~13% event.** If any
 #        lane is lost, k drops and the clustered term MUST use k_arm, not
 #        3. At k_arm=2 the r2 formula understated the se by 22%. **At
@@ -309,7 +307,37 @@ comparators: s80 0.74233, s81 0.73467, s82 0.62967.
 #   O-4 CLOSED — the ABOVE-reachability cliff is tabulated result-blind in
 #       `grading.above_reachability_cliff`, including that ABOVE is
 #       UNREACHABLE if the off-FP spread resembles the vs-SH one.
-#   O-5 (rev 2 BL-4/BL-5) **gates ungradeable and designer items dropped
+#   O-5 **PARTIALLY CLOSED, AND THE SWEEP CHANGED THE PICTURE.** A
+#       mechanical completeness pass over all four cycle documents found
+#       **199 named items: 50 ADDRESSED, 48 PARTIAL, 4 DECLINED, and ~70
+#       distinct OPEN** — raised by a designer or reviewer and then absent
+#       from the synthesis with no trace. **"9 of 10 blockers closed" was
+#       true of the ten BLOCKERS and covered a small fraction of the
+#       cycle.** The full table is the authoritative backlog:
+#       `design_ch5/disposition.md` in the d25 backup. **The pre-reg is
+#       NOT ratifiable until the OPEN list is dispositioned** — each item
+#       ADOPTED or DECLINED-WITH-REASON, never silently absent. Named
+#       highlights: A's "NO LANE IS EVER DROPPED" outlier rule; A's F6
+#       ("no n_eff < 1000 number enters any comparison, ever" — which THIS
+#       FILE violates in Q4 by quoting an n=250 cell as a "SIGN"); A's
+#       blinding attestation; A's licensed-sentences-inline and the
+#       ON-EVERY-BRANCH clause protecting 0.71825 / 0.74633 / 0.79283 /
+#       Elo 1311; B's NO_PROGRESS abort and MAX_RELAUNCHES=10; B's
+#       retention obligation on FP's stdout (it IS the G2 second tally);
+#       B's grader `--selftest`; B's CW-6 roster recommendation.
+#   O-6 (NEW, from the sweep) **THREE MORE DESIGNER SPLITS WERE DECIDED
+#       SILENTLY.** Q4 claims R1-B is "THE ONE PLACE THE DESIGNERS SPLIT".
+#       It is not. (i) R1-A's n: A wanted a staged 1000->3000, B wanted
+#       1500; r3 took 1500 and called it "three power calculations that
+#       agreed" — and B's basis sqrt(3.51/1.485) DIED when the cost was
+#       recalibrated to 2.68, so the surviving number has no live
+#       derivation. (ii) R1-C composition: B recommended CW-6 dropping
+#       s82, with a soft-AND mechanism; A's membership rules force s82 in;
+#       r3 runs A's side and records neither B's recommendation nor its
+#       reason. (iii) What R1-A IS: A says fleet-mean verdict, B says
+#       per-lane deployment read; r3 adopts B's premise and discards B's
+#       conclusion. Also `G-DESYNC == 0` tightened against BOTH designers,
+#       who each specified a 0.5% RATE. Each needs a recorded ruling. (rev 2 BL-4/BL-5) **gates ungradeable and designer items dropped
 #       without disposition.** G-SERIAL names no artifact (there is no CH5
 #       wave script); G-WIRING has no n, band or script; CH4's G0/G1/G3/G4
 #       and the base crash-forfeit read rule are absent; three of designer
@@ -354,20 +382,46 @@ grading:
   clustered_formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp)   # k-GENERAL
   clustered_undefined_at_k: 1    # one lane yields no sd -> descriptive only
   coverage_disclosure: "at k=3 Welch df ~2.2, so 2*se is ~82% coverage, not 95%"
-  verdict_p_bands: {resolving: [0.0, 0.030], weak: [0.030, 0.060], non_resolving: [0.060, .inf]}
+  # sweep: r3's bands OVERLAPPED at 0.030 and 0.060, and r3 promoted that
+  # overlap out of prose into the AUTHORITATIVE keys. Half-open now.
+  verdict_p_bands: {resolving: "[0.000, 0.030]", weak: "(0.030, 0.060]", non_resolving: "(0.060, inf)"}
   verdict_s: {above: one_sided_positive, below: one_sided_negative, within: complement_not_equivalence}
   flat_licensed_only_in: [WITHIN x RESOLVING]
   arms:
-    R1A: {sidedness: two_sided, k_arm: 3, k_cmp: 4, n_per_lane: 1500}
+    # sweep: r3 said two_sided while verdict_s, Q5's prose and designer A's
+    # §4 all say one-sided each. verdict_s governs.
+    R1A: {sidedness: one_sided_each_per_verdict_s, k_arm: 3, k_cmp: 4, n_per_lane: 1500}
     R1B: {sidedness: one_sided_positive, k_arm: 3, n_per_lane: 1000,
           se_instrument: paired_clustered_sd_d, note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"}
-    R1C: {sidedness: two_sided, comparator: C0, n_per_arm: 3000, bar: 0.0246}
+    # sweep: 0.0246 BREACHED this file's own bar = max(0.025, 2*se) — and
+    # the r3 test ENFORCED the breach. Both fixed.
+    R1C: {sidedness: two_sided, comparator: C0, n_per_arm: 3000,
+          two_se: 0.0246, bar: 0.025}
+    # sweep: THE PRIMARY READ HAD NO GRADING RULE AT ALL. r3 closed "no
+    # action column" for the fleet-mean delta, R1-B and R1-C — i.e. for
+    # every read EXCEPT the one Q1 declares primary. Closed here.
+    R1A_PRIMARY_s82:
+      question: "does s82's collapse reproduce off-FP?"
+      construction: "mean{s80,s81} - s82; se = hypot(sqrt(p(1-p)/(2n)), sqrt(p(1-p)/n))"
+      se_diff_at_n1500: 0.0142
+      note: "r3 published se 0.0166 / 6.6 se by treating the TWO-LANE MEAN as one lane. Correct: 0.0142, and a vs-SH-sized collapse (0.11) lands at 7.8 se."
+      sidedness: one_sided_negative
+      bar: 0.025
+      verdicts:
+        REPRODUCES: "d <= -bar: the 50M fleet has a genuine bad seed. k=3 cannot support a scale claim; report it, stop buying battles, route as WITHIN x NON-RESOLVING."
+        DOES_NOT: "d > -bar: the vs-SH spread was SH-specific and the off-FP fleet may be tight enough to read. Proceed to the 3x3 table."
+
+  # sweep: r3's cliff used s_cmp = 0.01118, the 12M **vs-SH** sd, where the
+  # comparator is the 12M **off-FP** fleet at 0.00771 — a number stated
+  # three lines into Q1 of this same file. Recomputed; the crossover row
+  # moves too: clustered overtakes binomial at s_50 = 0.0128, not 0.0206.
+  comparator_total_sd_off_fp: 0.00771
   above_reachability_cliff:      # O-4, declared result-blind
     s50_0.0000: {bar: 0.0250, fleet_mean_above_needs: 0.3737}
-    s50_0.0206: {bar: 0.0263, fleet_mean_above_needs: 0.3750}
-    s50_0.0300: {bar: 0.0364, fleet_mean_above_needs: 0.3851}
-    s50_0.0450: {bar: 0.0532, fleet_mean_above_needs: 0.4018}
-    s50_0.0650: {bar: 0.0759, fleet_mean_above_needs: 0.4246}
+    s50_0.0128: {bar: 0.0250, fleet_mean_above_needs: 0.3737}   # true crossover
+    s50_0.0300: {bar: 0.0355, fleet_mean_above_needs: 0.3842}
+    s50_0.0450: {bar: 0.0525, fleet_mean_above_needs: 0.4012}
+    s50_0.0650: {bar: 0.0755, fleet_mean_above_needs: 0.4241}
     best_12m_lane_ever_off_fp20: 0.3557
     note: "if s_50(off-FP) resembles its vs-SH 0.0624, ABOVE is UNREACHABLE"
 

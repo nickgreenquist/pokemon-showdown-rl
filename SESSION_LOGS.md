@@ -7737,3 +7737,59 @@ entry by offset — never a broad keyword grep.
   -> ADDRESSED / PARTIAL / OPEN / DECLINED, plus undisclosed side-picking and
   misattribution). Design work stayed here; the exhaustive cross-referencing
   went to the agent.
+- 2026-08-26 (evening cont., **COMPLETENESS SWEEP -> r4. THE SWEEP FOUND A
+  STRUCTURAL CORRUPTION AND FIVE WRONG NUMBERS IN r3's OWN AUTHORITATIVE KEYS,
+  PLUS ~70 ITEMS THE SYNTHESIS DROPPED WITHOUT TRACE. All mine.**): an Opus
+  agent graded every named item across the two design memos and two reviews.
+  **199 rows: 50 ADDRESSED, 48 PARTIAL, 4 DECLINED, ~70 distinct OPEN.** My
+  "9 of 10 blockers closed" was true of the ten BLOCKERS and covered a small
+  fraction of the cycle. Table banked at `design_ch5/disposition.md` in the d25
+  backup; it is the authoritative backlog and **the pre-reg is NOT ratifiable
+  until the OPEN list is dispositioned.**
+  **THE STRUCTURAL DEFECT, verified and entirely my fault.** I inserted the
+  `grading:` block with `str.replace("comparators:", ...)` and no count. The
+  string also appears inside the G-WIRING comment ("Banked comparators: s80
+  0.74233..."), so the replace fired TWICE: `grading:` and `comparators:` each
+  ended up defined twice, and a comment line was broken out of its `#` into a
+  stray top-level key. **The file parsed to the intended values ONLY because
+  PyYAML takes the last duplicate key, and my 11 passing tests detected none of
+  it.** Repaired; there is now a duplicate-key test that fails loudly.
+  **FIVE WRONG NUMBERS IN THE KEYS I HAD JUST DECLARED AUTHORITATIVE.**
+  (1) The reachability cliff was built with s_cmp = 0.01118, the 12M **vs-SH**
+  sd, where the comparator is the 12M **off-FP** fleet at **0.00771** — stated
+  three lines into the same file's Q1. Recomputed; the crossover row moves from
+  s_50 = 0.0206 to **0.0128**. (2) `R1C.bar: 0.0246` sat BELOW `credit_floor:
+  0.025`, contradicting `bar = max(0.025, ...)` — **and my test ENFORCED the
+  breach** (`assert bar < credit_floor`). A test that asserts the bug is worse
+  than no test; inverted and generalised to every graded arm. (3)
+  `R1A.sidedness: two_sided` contradicted `verdict_s`. (4) `verdict_p_bands`
+  OVERLAPPED at 0.030/0.060 — a prose defect review 1 raised that I promoted
+  INTO the authoritative keys. (5) **The s82 primary's se was wrong: I treated
+  the TWO-LANE MEAN {s80,s81} as if it were one lane.** Correct se is 0.0142,
+  not 0.0166, and the separation is **7.8 se, not the 6.6 I published** — the
+  argument survives and is stronger, but the number was wrong.
+  **AND THE READ I DECLARED PRIMARY HAD NO GRADING RULE.** r3's whole point was
+  closing "no action column" — and it gave a rule to the fleet-mean delta,
+  R1-B and R1-C, i.e. every read EXCEPT the one Q1 calls primary. Now
+  `grading.arms.R1A_PRIMARY_s82` with construction, se, sidedness, bar and two
+  named verdicts.
+  **THREE MORE DESIGNER SPLITS WERE DECIDED SILENTLY** (recorded as O-6), when
+  Q4 claims R1-B is "THE ONE PLACE THE DESIGNERS SPLIT": R1-A's n (A wanted
+  staged 1000->3000, B wanted 1500; I took 1500 and called it "three power
+  calculations that agreed" — **and B's basis sqrt(3.51/1.485) DIED when the
+  cost recalibrated to 2.68**, so the surviving number has no live derivation);
+  R1-C's composition (B recommended CW-6 dropping s82 with a soft-AND
+  mechanism; I ran A's rosters and recorded neither); and what R1-A IS (I
+  adopted B's premise and discarded B's conclusion). `G-DESYNC == 0` was also
+  tightened against BOTH designers, who each specified a 0.5% RATE.
+  **THREE MISATTRIBUTIONS CORRECTED IN THE FILE.** (i) I wrote "the reviewer
+  flagged the moving target itself" — **neither review says that**; review 2
+  records the tree as CLEAN. The process slip was real; the corroboration was
+  invented. (ii) I put "worth 2.2 h" in designer B's mouth; **B priced R1-B at
+  3.58 h**, and 2.2 h was my own post-calibration number, which made B's side
+  of a split look cheaper than B argued. (iii) A's +0.010 winner's curse is for
+  m=5 deployment candidates; best-k-of-7 is ~120 rosters and nearer **+0.024**.
+  Also corrected: R1-A was priced at the ENSEMBLE rate (1.86 h not 2.00 h at
+  greedy's 1.485) — the exact error this file congratulates itself for
+  catching in CLAUDE.md.
+  Suite 565 / 17 (+4 structural gates). Nothing launched.
