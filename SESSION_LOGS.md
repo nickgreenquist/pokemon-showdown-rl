@@ -6996,3 +6996,70 @@ entry by offset — never a broad keyword grep.
   because a hand-typed live number rots by morning.
   Suite **538 passed, 17 skipped**. Headline 0.71825 and R2 0.79283 UNTOUCHED —
   no number changed, only where it is written down.
+- 2026-08-26 (overnight, maintainer: "do another sweep over replays. use 2 opus
+  subagents… see if anything is wrong in the encoder"): **TWO ENCODER DEFECTS
+  CONFIRMED BY INDEPENDENT VERIFICATION; ONE HAS MEASURED BEHAVIOURAL COST, THE
+  OTHER IS INERT.** Two Opus subagents swept ~175 real ladder replays (the run
+  reached 176 battles / 193 replays overnight, so every n=39 figure in
+  REPLAY_AUDIT.md is superseded). Both agents' headline claims were re-derived
+  here before being believed; one was materially tempered by doing so.
+  **DEFECT 1 — FIXED-DAMAGE MOVES ENCODE AS BASE POWER 1. Real, and the
+  network cannot route around it.** poke-env's gen-1 data gives seismictoss /
+  superfang / nightshade / dragonrage / sonicboom / counter `basePower == 1`,
+  so `_fill_move` writes `vec[o+1] = 0.01` where Thunderbolt gets 0.95 — and
+  NOTHING else in the 46-dim move block says "this move deals flat level
+  damage". The v2 effect block has no fixed-damage field, so it is all-zero.
+  A Seismic Toss from an L80 mon deals 80; the encoder describes it as ~1/80th
+  of a Thunderbolt. **BEHAVIOURAL SIGNATURE, verified here on guaranteed
+  holders only (so team composition is controlled): Seismic Toss 22/156 =
+  0.141 for us vs 67/232 = 0.289 for our human opponents, z = -3.39; SUPER
+  FANG 0/59 = 0.000 vs 17/47 = 0.362, z = -5.04 — we have NEVER used it, in 59
+  opportunities.** Nuance the sweep missed and this session added: the type
+  multiplier is NOT wholly spurious — gen-1 Seismic Toss really is blocked by
+  Ghost (Fighting -> Ghost = 0x), so the immunity is encoded correctly; what is
+  wrong is the 2x/0.5x and the 80x-too-small base power. **A pointed irony:
+  this repo's own overnight audit script hit the identical data quirk and
+  special-cased it (five false positives on Seismic Toss); the ENCODER has the
+  same bug and never did.**
+  **DEFECT 2 — ON FORCE-SWITCH TURNS THE MOVE BLOCKS DESCRIBE THE DEAD
+  POKEMON. Confirmed, and measured INERT.** `_move_slots_aliased` reads
+  `bool(avail) and len(avail)==1 and ...`; on a replacement request
+  `available_moves` is `[]`, so `bool([])` short-circuits to **False** = "not
+  aliased", and the fill branch runs against `battle.active_pokemon`, which
+  Showdown still reports as the fainted mon. Verified live against the local
+  server: **42/42 force-switch decisions (11.8% of all decisions) carry four
+  move blocks with `known = 1.0` and the corpse's PP and type multipliers,
+  while `vec[5]` — the flag whose entire job is to say the slots are not
+  meaningful — reads 0.** Same bug CLASS as the D13a Stage-0 fix, on the case
+  that fix did not cover. **BUT the pre-registered decisive test says it costs
+  nothing today: zeroing those blocks changes the replacement choice in 0 of
+  42 cases.** The most likely reason is that the defect has been present for
+  the entire training history, so the network had every opportunity to learn
+  those dims are noise when `vec[3]` is set — which also means "fixing" it
+  moves existing checkpoints OFF-distribution and could make them worse.
+  **AND IT IS A BLIND SPOT OF OUR OWN INSTRUMENT:** yesterday's
+  `diag_encoder_live.py` concluded "no encoder bug", but it gated every check
+  on `if legal_moves:` — which excludes force-switch turns exactly. The
+  diagnostic could not have found this. Scope a null result to what the
+  instrument actually looked at.
+  **MINOR, CONFIRMED:** `_effect_block[12] = 3.0` for Counter (poke-env gen-1
+  gives it critRatio 6; every other move in the 67-move pool is in {0,0.5,1.0},
+  and Counter cannot crit in gen 1). Transform leaves the Ditto id (132)
+  disagreeing with the copied base stats/types it writes. Dead dimensions:
+  3 of 7 volatile slots, 3 of 23 effect dims, `evasion`, and TOX never occur in
+  this format — `spd` duplicates `spa` 416/416 as documented.
+  **NOT ENCODER, AND BIGGER.** Heal loops: Recover/Soft-Boiled at >=99% HP
+  **13/147 for us vs 0/111 for humans** (p = 0.00076) — Starmie recovered 15
+  times in b2670710407, Mewtwo 14 times in b2670562209, both losses. Value-head
+  shape, not representation. **Under-switching is worse than this repo has been
+  quoting: separating VOLUNTARY switches from forced replacements gives 6.9%
+  vs 10.7% (p = 4.7e-9)** — the 22.3%-vs-25.7% figure banked yesterday mixed in
+  faint-dictated replacements and understated the gap ~2.5x. First faint of the
+  battle is ours **65.5%** excluding forfeits (p = 0.0003). Endgame collapse
+  REPLICATES at the larger n but weaker than the n=39 read: >=3-faint terminal
+  runs **30.1% of losses vs 12.2%, p = 0.0055** (was 53% vs 9%). Its mechanism
+  is HP CONVERSION, not HP management — we reach every equal material position
+  level or ahead on HP, but an HP lead is worth 82% of the next exchange at 4v4
+  and only 55% at 2v2.
+  Nothing acted on; no fix applied; ladder untouched throughout. Verification
+  script kept at `scripts/replay_audit/verify_forceswitch.py`.
