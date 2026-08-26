@@ -7793,3 +7793,64 @@ entry by offset — never a broad keyword grep.
   greedy's 1.485) — the exact error this file congratulates itself for
   catching in CLAUDE.md.
   Suite 565 / 17 (+4 structural gates). Nothing launched.
+- 2026-08-26 (evening cont., maintainer: "do the next pass. use more subagents…
+  they catch things you miss, so leverage them"): **THREE OPUS DISPOSITION
+  AGENTS GRADED THE ~70 OPEN ITEMS — A 26 ADOPT / B 25 ADOPT / REVIEWERS 36
+  ADOPT — AND THE REVIEWER PASS FOUND SEVEN REGRESSIONS r4 INTRODUCED, TWO
+  BLOCKING. BOTH WERE IN THE PRIMARY READ'S OWN GRADING RULE.** Pre-reg -> r5.
+  Nothing launched. Suite 573 / 17.
+  **BLOCKING REGRESSION 1 — A SIGN INVERSION IN THE PRIMARY READ.** r4 wrote
+  `construction: mean{s80,s81} - s82` with `sidedness: one_sided_negative` and
+  `REPRODUCES: d <= -bar`. **But a REPRODUCED collapse is POSITIVE:** the
+  banked lanes give d = 0.73850 - 0.62967 = **+0.10883**, so as written the
+  rule returned DOES_NOT on a genuine reproduction — the read the file calls
+  primary, graded backwards. Same class as the `rho` sign inversion CH4's own
+  review caught.
+  **BLOCKING REGRESSION 2 — THE BAR BREACHED THE FILE'S OWN RULE, AGAIN, AND
+  MY TEST PASSED IT.** `R1A_PRIMARY_s82.bar: 0.025` against 2*se = 0.0369.
+  **This is the exact defect r4 had just fixed on R1C, reintroduced on the
+  PRIMARY** — and `test_every_bar_obeys_the_files_own_max_rule` only asserted
+  `bar >= floor`, so the weak form waved it through. **Strengthened to
+  EQUALITY (`bar == max(floor, 2*se)`) for every arm publishing an se**; that
+  is the only form that catches this class, and three revisions of this file
+  have now broken the same rule three different ways.
+  **THE se WAS ALSO ALTERNATIVE-REFERENCED.** r4 mixed p=0.35 (the pair) with
+  p=0.25 (s82) to set a NULL bar. Under the null both sides sit at ~0.35:
+  se = **0.0185**, bar **0.0369**, separation **5.9 se** (not 6.3, not the
+  6.6 published earlier). **FOUR different power figures were circulating for
+  this one read** because each fix landed in one place; Q1 now points at the
+  authoritative key instead of restating numbers.
+  **OTHER REGRESSIONS FIXED:** `n_does_not_bind_above` was 750 (read off a
+  coarse table); the true crossover is **552**. "Three independent power
+  calculations that agreed" **was never true** — ~4800 assumes the 50M fleet
+  is seed-homogeneous off-FP (the very thing R1-A measures), ~971 is R1-B's
+  figure, and B's ratio gives 1343 at the corrected cost. And the status
+  banner had been mangled into a run-on by an earlier replace.
+  **RV1-MA-11, LIVE UNTIL NOW: "flat" was still licensed as a BARE
+  EQUIVALENCE CLAIM with TOST dropped.** WITHIN is the complement of two
+  one-sided tests — a failure to resolve, not evidence of equivalence. The
+  bare word is now barred and only a power-conditioned sentence quoting the
+  REALIZED bar may be written.
+  **ADOPTED FROM A, verified before belief:** F6 (`no number with n_eff < 1000
+  enters any comparison, ever, including in prose`) — **which this file
+  violated in its own Q4.** The 12M FP@100 n=250 cell is now
+  `BARRED_FROM_ALL_COMPARISONS` and **R1-B takes NO 12M input at all**;
+  deleted, not relabelled. Review 1 separately measured that cell at 0.46 se.
+  Also A's `NO LANE IS EVER DROPPED` (newly load-bearing — the primary read IS
+  the one-lane collapse) and the `on_every_branch` clause as real keys, so
+  "headline UNTOUCHED" is enforced rather than prose.
+  **ADOPTED FROM B, verified on disk:** G2 becomes a **THREE-WAY EXHAUSTIVE
+  tally** — r3's two-key form was blind to ties, and **FP's `Winner: None`
+  equals the seat's `ties` EXACTLY on all ten banked CH4 arms**, so ties are
+  recoverable and the three must sum to n_eff. And **G-RETAIN**: FP's stdout
+  IS the G2 second tally, `results/` is gitignored and single-copy, and the
+  runner's `OUT` defaults elsewhere — **this session's own calibration logs,
+  carrying the 2.68 s/battle marginal, existed ONLY in an agent scratch dir**
+  until rescued into `results/ch5_r1_offsh/` (39 MB -> 2.1 MB gzipped, still
+  greppable) and mirrored to d25.
+  **TWO ESCALATIONS RECORDED RATHER THAN ASSUMED:** the CHAPTER5 §3 C1 edit
+  was designer A's to reserve to the maintainer (and it had propagated 0.0724
+  into a ratified doc — corrected to 0.0735); and **R1-C is UNDER-SCOPED**,
+  declaring two rosters while budgeting one (~5.3 h more, or cut the list).
+  Ledger corrected again: R1-C is 2 x 3000 = 2.73 h; total ~7.5 h.
+  All six cycle documents mirrored to `design_ch5/` in the d25 backup.

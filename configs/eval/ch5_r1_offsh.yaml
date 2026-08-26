@@ -23,13 +23,23 @@
 #     * R1-A was priced at the ENSEMBLE rate — the very error this file
 #       congratulates itself for catching elsewhere.
 #   **AND THE READ Q1 DECLARES PRIMARY HAD NO GRADING RULE AT ALL:** r3
-#   gave an action table to every read EXCEPT that one. Closed in r4.** Synthesis of
-#   two independent Opus design memos (A = evidential validity, B = build/
-#   cost) per the standing 2026-08-12 process, plus measurements taken
-#   this session to adjudicate where they disagreed, then two independent
-#   Opus reviews of the r1 synthesis.
+#   gave an action table to every read EXCEPT that one. Closed in r4.**
+#   **r5 (this revision): three OPUS DISPOSITION AGENTS graded the ~70
+#   items the sweep left open — A 26 ADOPT / B 25 ADOPT / reviewers 36
+#   ADOPT — and the reviewer pass found SEVEN REGRESSIONS r4 introduced,
+#   two of them blocking. Both were in the PRIMARY read's own grading
+#   rule: a SIGN INVERSION (a reproduced collapse is POSITIVE, +0.10883,
+#   and the rule returned DOES_NOT on it) and a bar of 0.025 that
+#   breached this file's own max(floor, 2*se) — the exact defect r4 had
+#   just fixed on R1C, reintroduced on the primary, and passed by a test
+#   that only checked `bar >= floor`.**
+#   Provenance: two independent Opus design memos (A = evidential
+#   validity, B = build/cost) per the standing 2026-08-12 process, plus
+#   measurements taken to adjudicate where they disagreed, then two
+#   independent Opus reviews, a completeness sweep, and three disposition
+#   agents.
 #   **PROCESS SLIP, disclosed: the assistant edited `ch3_fp_h2h.py` and
-#   its tests WHILE reviewer 1 was reading the tree** (fixing BL-2). The
+#   its tests WHILE reviewer 1 was reading the tree** (fixing BL-2).
 #   Reviews should read a frozen tree; this one did not. **CORRECTION: an
 #   earlier draft said "the reviewer flagged the moving target itself."
 #   NEITHER review says that** — review 2 §7 records the tree as CLEAN.
@@ -72,9 +82,12 @@
 #   who named it a CONDITIONAL FALLBACK, not a primary.
 #   **PRIMARY (r2): does s82's collapse REPRODUCE off-FP?** The whole 50M
 #   variance story is one lane (0.6297 against 0.7423/0.7347). That is a
-#   sharp binary question with real power — at n=1500/lane, se_diff
-#   between {s80,s81} and s82 is 0.0166, so a vs-SH-sized collapse (0.11)
-#   lands at **6.6 se**. If it reproduces, the 50M fleet has a genuine bad
+#   sharp binary question with real power. **THE AUTHORITATIVE NUMBERS ARE
+#   IN `grading.arms.R1A_PRIMARY_s82`, NOT HERE** — r2/r3/r4 left FOUR
+#   different figures circulating for this one read (0.0166/6.6, 0.0142/
+#   7.8, 0.0174/6.3) because each fix landed in one place. At the ratified
+#   n=1000 with a NULL-referenced se: **se 0.0185, bar 0.0369, and a
+#   vs-SH-sized collapse (+0.10883) lands at 5.9 se.** If it reproduces, the 50M fleet has a genuine bad
 #   seed and k=3 cannot support a scale claim. If it does NOT, the vs-SH
 #   spread was SH-specific and the off-FP fleet may be tight enough to
 #   read. Either answer is decisive; "estimate an sd from three points"
@@ -105,9 +118,15 @@
 #   s/battle cost model (+70%). A 100-battle calibration settled it at
 #   2.84 realized / 2.68 marginal. **B's PROCESS advice was right while
 #   B's NUMBER was wrong: calibrate, never ratify hours off a model.**
-#   n per lane, from three independent power calculations that agreed:
-#   binomial governs to ~4800 battles/lane, and 2*se_diff reaches the
-#   0.025 credit floor at ~971. 3000/lane buys 0.0133 for 3x the time.
+#   **n per lane. CORRECTED: "three independent power calculations that
+#   agreed" was never true** — they answered different questions. ~4800
+#   reproduces only under the assumption that the 50M fleet is
+#   seed-homogeneous off-FP, which is the very thing R1-A measures; ~971
+#   is R1-B's figure; B's cost ratio gives 1343 at the corrected cost.
+#   **The governing fact is simpler and is pinned by test: 2*binomial
+#   falls under the 0.025 floor at 552 battles/lane, and the clustered
+#   term contains no n — so past 552 no battle count moves the
+#   fleet-mean bar.** n=1000 is set by the s82 PRIMARY, not by this read.
 #     C0   1 x 3000 = 1.33 h        R1-A  3 x 1000 = 1.24 h  <- O-6(i)
 #     (was 1.86 h at n=1500; n does not bind this bar)      <- sweep: r3
 #     priced a GREEDY arm at the 1.60 ENSEMBLE rate, the exact error this
@@ -490,6 +509,13 @@ grading:
   # overlap out of prose into the AUTHORITATIVE keys. Half-open now.
   verdict_p_bands: {resolving: "[0.000, 0.030]", weak: "(0.030, 0.060]", non_resolving: "(0.060, inf)"}
   verdict_s: {above: one_sided_positive, below: one_sided_negative, within: complement_not_equivalence}
+  # RV1-MA-11, a LIVE REGRESSION until now: r3/r4 licensed "flat" as a
+  # bare equivalence claim while TOST was dropped. WITHIN is the COMPLEMENT
+  # of two one-sided tests — it is a failure to resolve, not evidence of
+  # equivalence. The bare word is barred; only the power-conditioned
+  # sentence may be written, and it must quote the REALIZED bar.
+  flat_bare_word_barred: true
+  flat_licensed_sentence: "At the realized bar of <BAR>, no difference of that size or larger was detected between 50M and 12M off FP@20. This is a failure to resolve, not evidence of equivalence."
   flat_licensed_only_in: [WITHIN x RESOLVING]
   arms:
     # sweep: r3 said two_sided while verdict_s, Q5's prose and designer A's
@@ -499,7 +525,9 @@ grading:
     # the s82 PRIMARY (6.3 se), not by the fleet mean.
     R1A: {sidedness: one_sided_each_per_verdict_s, k_arm: 3, k_cmp: 4,
           n_per_lane: 1000, role: secondary_descriptive,
-          n_does_not_bind_above: 750, stage_2: none}
+          # REGRESSION FIXED: 750 was where I read it off a coarse table;
+          # the true crossover is 552 battles/lane.
+          n_does_not_bind_above: 552, stage_2: none}
     R1B: {sidedness: one_sided_positive, k_arm: 3, n_per_lane: 1000,
           se_instrument: paired_clustered_sd_d, note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"}
     # sweep: 0.0246 BREACHED this file's own bar = max(0.025, 2*se) — and
@@ -511,18 +539,30 @@ grading:
     # every read EXCEPT the one Q1 declares primary. Closed here.
     R1A_PRIMARY_s82:
       question: "does s82's collapse reproduce off-FP?"
-      construction: "mean{s80,s81} - s82; se = hypot(sqrt(p(1-p)/(2n)), sqrt(p(1-p)/n))"
       role: PRIMARY
       n_per_lane: 1000
-      se_diff_at_n1000: 0.0174     # a 0.11 collapse lands at 6.3 se
-      se_diff_at_n1500: 0.0142
-      note: "r3 published se 0.0166 / 6.6 se by treating the TWO-LANE MEAN as one lane. Correct: 0.0142, and a vs-SH-sized collapse (0.11) lands at 7.8 se."
-      sidedness: one_sided_negative
-      bar: 0.025
+      # REGRESSION FIXED (reviewer disposition): r4 wrote
+      # sidedness one_sided_NEGATIVE with REPRODUCES iff d <= -bar. But a
+      # REPRODUCED collapse is POSITIVE: mean{s80,s81} = 0.73850 and
+      # s82 = 0.62967, so d = +0.10883. As written the rule returned
+      # DOES_NOT on a genuine reproduction. Sign inverted in the PRIMARY
+      # read's own grading rule — the class this repo has been burned by.
+      construction: "d = mean{s80,s81} - s82"
+      sidedness: one_sided_positive
+      # REGRESSION FIXED: r4's se mixed p=0.35 (the pair) with p=0.25
+      # (s82) — an ALTERNATIVE-referenced se used to set a NULL bar. Under
+      # the null both sides sit at ~0.35, giving se = 0.0185 at n=1000.
+      se_reference: null_hypothesis_common_p
+      se_diff_at_n1000: 0.0185
+      # REGRESSION FIXED: r4 set bar 0.025, breaching this file's own
+      # bar = max(floor, 2*se) — the exact defect r4 had just fixed on
+      # R1C, reintroduced on the PRIMARY. The test only checked
+      # bar >= floor, so it passed. Test strengthened to equality.
+      bar: 0.0369
+      separation_if_it_reproduces: 5.9      # 0.10883 / 0.0185
       verdicts:
-        REPRODUCES: "d <= -bar: the 50M fleet has a genuine bad seed. k=3 cannot support a scale claim; report it, stop buying battles, route as WITHIN x NON-RESOLVING."
-        DOES_NOT: "d > -bar: the vs-SH spread was SH-specific and the off-FP fleet may be tight enough to read. Proceed to the 3x3 table."
-
+        REPRODUCES: "d >= +bar: the 50M fleet has a genuine bad seed. k=3 cannot support a scale claim; report it, stop buying battles, route as WITHIN x NON-RESOLVING."
+        DOES_NOT: "d < +bar: the vs-SH spread was SH-specific and the off-FP fleet may be tight enough to read. Proceed to the 3x3 table."
   # sweep: r3's cliff used s_cmp = 0.01118, the 12M **vs-SH** sd, where the
   # comparator is the 12M **off-FP** fleet at 0.00771 — a number stated
   # three lines into Q1 of this same file. Recomputed; the crossover row

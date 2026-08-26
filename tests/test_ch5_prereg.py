@@ -47,28 +47,62 @@ def test_flat_is_licensed_in_exactly_one_cell():
 
 
 def test_every_bar_obeys_the_files_own_max_rule():
-    """bar = max(credit_floor, 2*se). r3 set R1C's bar to 0.0246 — BELOW the
-    floor — and the r3 version of this test ENFORCED the breach with
-    `assert bar < credit_floor`. A test that asserts the bug is worse than
-    no test, so it is inverted here and applied to every graded arm."""
+    """bar = max(credit_floor, 2*se), as EQUALITY.
+
+    Three revisions of this file broke this rule in three different ways:
+    r3 set R1C's bar BELOW the floor and the test of the day ENFORCED the
+    breach (`assert bar < credit_floor`); r4 fixed R1C and then
+    reintroduced the identical defect on the PRIMARY read with bar 0.025
+    against 2*se = 0.0369. The weak form (`bar >= floor`) passed that.
+    Equality is the only form that catches it, so it is enforced for every
+    arm that publishes an se."""
     floor = G["credit_floor"]
     for name, a in G["arms"].items():
-        if "bar" in a:
-            assert a["bar"] >= floor, f"{name} bar {a['bar']} is below the floor {floor}"
+        if "bar" not in a:
+            continue
+        assert a["bar"] >= floor, f"{name} bar {a['bar']} is below the floor {floor}"
+        two_se = next((2 * a[k] for k in a if k.startswith("se_diff_at")), None)
+        if two_se is None:
+            two_se = a.get("two_se")
+        if two_se is not None:
+            assert a["bar"] == pytest.approx(max(floor, two_se), abs=5e-4), (
+                f"{name}: bar {a['bar']} != max({floor}, {two_se:.4f})"
+            )
     r1c = G["arms"]["R1C"]
     assert r1c["two_se"] == pytest.approx(2 * math.sqrt(2) * se(P0, r1c["n_per_arm"]), abs=5e-4)
     assert r1c["bar"] == max(floor, r1c["two_se"])
 
 
-def test_the_primary_read_is_actually_graded():
-    """The sweep's structural finding: r3 gave every read a rule EXCEPT the
-    one Q1 declares primary."""
+def test_the_primary_read_is_graded_with_the_right_sign():
+    """r4 wrote `sidedness: one_sided_negative` with `REPRODUCES: d <= -bar`
+    on `d = mean{s80,s81} - s82`. But a REPRODUCED collapse is POSITIVE —
+    the banked lanes give d = 0.73850 - 0.62967 = +0.10883 — so the rule
+    returned DOES_NOT on a genuine reproduction. A sign inversion in the
+    primary read's own grading rule."""
     a = G["arms"]["R1A_PRIMARY_s82"]
-    n = 1500
-    expect = math.hypot(math.sqrt(0.35 * 0.65 / (2 * n)), math.sqrt(0.25 * 0.75 / n))
-    assert a["se_diff_at_n1500"] == pytest.approx(expect, abs=5e-4)
+    d_if_it_reproduces = (0.7423333 + 0.7346667) / 2 - 0.6296667
+    assert d_if_it_reproduces > 0
+    assert a["sidedness"] == "one_sided_positive"
+    assert a["verdicts"]["REPRODUCES"].startswith("d >= +bar")
     assert set(a["verdicts"]) == {"REPRODUCES", "DOES_NOT"}
-    assert a["sidedness"] == "one_sided_negative"
+
+
+def test_the_primary_se_is_null_referenced():
+    """r4's se mixed p=0.35 (the pair) with p=0.25 (s82) — an ALTERNATIVE-
+    referenced se used to set a NULL bar. Under the null both sit at ~0.35."""
+    a = G["arms"]["R1A_PRIMARY_s82"]
+    n, p = a["n_per_lane"], 0.35
+    expect = math.sqrt(p * (1 - p) / (2 * n) + p * (1 - p) / n)
+    assert a["se_reference"] == "null_hypothesis_common_p"
+    assert a["se_diff_at_n1000"] == pytest.approx(expect, abs=5e-4)
+
+
+def test_flat_is_not_licensed_as_a_bare_equivalence_claim():
+    """RV1-MA-11: WITHIN is the complement of two one-sided tests — a
+    failure to resolve, not evidence of equivalence. TOST was dropped, so
+    the bare word must be too."""
+    assert G["flat_bare_word_barred"] is True
+    assert "failure to resolve, not evidence of equivalence" in G["flat_licensed_sentence"]
 
 
 def test_no_duplicate_top_level_keys():
@@ -180,11 +214,13 @@ def test_n_does_not_bind_the_fleet_mean_bar_above_the_stated_point():
 
 
 def test_the_primary_n_clears_the_s82_question():
+    """Power at the ratified n, on the NULL-referenced se (the alternative-
+    referenced form this test used to carry is what r4 got wrong)."""
     a = G["arms"]["R1A_PRIMARY_s82"]
-    n = a["n_per_lane"]
-    sed = math.hypot(math.sqrt(0.35 * 0.65 / (2 * n)), math.sqrt(0.25 * 0.75 / n))
-    assert a["se_diff_at_n1000"] == pytest.approx(sed, abs=5e-4)
-    assert 0.11 / sed > 5.0, "a vs-SH-sized collapse must be comfortably resolvable"
+    d_if_it_reproduces = (0.7423333 + 0.7346667) / 2 - 0.6296667
+    sep = d_if_it_reproduces / a["se_diff_at_n1000"]
+    assert a["separation_if_it_reproduces"] == pytest.approx(sep, abs=0.15)
+    assert sep > 5.0, "a vs-SH-sized collapse must be comfortably resolvable"
     assert a["role"] == "PRIMARY"
 
 
