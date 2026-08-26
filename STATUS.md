@@ -6,9 +6,8 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 pre-registered PRIMARY read is UNMEASURED.** 95-105 (0.475); PS Elo 1000 ->
 **1311** (peak 1348) vs a top-500 cutoff of 1357; 141 opponents; 12.07 h.
 **NEVER LISTED, so GXE/Glicko DO NOT EXIST — quote the Elo, never project
-one.** Gates green; obligations -> `LADDER_R1_READOUT.md`.)
-**Pure from-scratch self-play in gen1randombattle; THE NOVELTY IS THE LANE.**
-R2 search@M is a B1 CREDIT but SH-facing/INFERENCE-ONLY. CH3+CH4-R1 CLOSED.
+one.** Gates green; obligations -> `LADDER_R1_READOUT.md`.) **Pure
+from-scratch self-play; THE NOVELTY IS THE LANE.** CH3+CH4-R1 CLOSED.
 
 ## Results | D26 12M HEADLINE **0.71825** vs SH · R0 ensemble 0.74633 · D29r2
 50M 0.70222 · **R2 search@M 0.79283** (B1 CREDIT, SH-facing) · **LADDER R1
@@ -54,7 +53,8 @@ RATIFIED; it is the brief FOR the 2-Opus cycle, not its output).** Summary:
   `nn.Embedding(166, 64)` in every move token, so "cannot route around
   `basePower == 1`" is too strong — misleading, not unrepresentable, ~1% of
   decisions. NOT DONE; invalidates every checkpoint, so it goes LAST.
-- **THE CRITIC IS FINE, NOT SH-SPECIFIC** (n=300/opp): AUC 0.704 -> 0.891 by
-  material, BETTER vs the FP clone. NOT a value-shape problem.
+- **THE CRITIC IS FINE, NOT SH-SPECIFIC**: AUC 0.704 -> 0.891 by material,
+  BETTER vs the FP clone (n=300/opp). NOT a value-shape problem.
 - **LADDER DATA IS UNREPEATABLE AND GITIGNORED**; 3 copies via
-  `scripts/backup_ladder.sh`. **13 commits UNPUSHED — ask first.**
+  `scripts/backup_ladder.sh`. **5 commits UNPUSHED (this session only;
+  origin/main = 3bdb2a3, so the handoff's "13" is STALE). Ask before push.**
