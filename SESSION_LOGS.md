@@ -6843,3 +6843,59 @@ entry by offset — never a broad keyword grep.
   Suite **531 passed**; tree clean; NOT pushed. Headline 0.71825 and R2
   0.79283 UNTOUCHED — the ladder credits nothing and is DESCRIPTIVE by
   construction (no A/B, no 0.025 bar).
+- 2026-08-25 (evening cont., maintainer: "handoff.md - go … let me know how to
+  start getting more battles: its peak play time"): **HANDOFF FOLDED; LADDER R1
+  PRE-FLIGHTED AND CLEARED TO RESUME AT n=20 OF 200.** No battles played this
+  session. HANDOFF.md restored to its empty stub, its durable content folded
+  into STATUS.md (back at the 60-line cap).
+  **PRE-FLIGHT, all four checks green:** (1) the board scrape is **VERIFIED
+  LIVE** — `ladder_snapshot()` returns `ok: true`, which is the first
+  confirmation that this morning's 403 fix actually works against the real
+  endpoint rather than only against its test double; (2) `tests/test_ladder.py`
+  36 passed; (3) all four L2 checkpoint sha256 re-verified against the pre-reg
+  (f4b0ae82/5427a1a6/3efe09fe/09469e6a); (4) tree clean, nothing in flight.
+  **BOARD RE-PULL — IT MOVES FASTER THAN EXPECTED.** Elo cutoff essentially
+  unchanged at **1357.219** (morning: ~1357), but **lowest-listed GXE moved
+  58.8 -> 76.4 IN ONE DAY.** That is a 17.6-point swing in a number this repo
+  quoted as a "cutoff" less than 24 h ago, and it is the cleanest possible
+  demonstration of why that framing was wrong: on an ELO-ranked list the bottom
+  row's GXE is just whoever currently holds last place, so it is free to jump
+  around while the real admission threshold sits still. The correction banked
+  this morning now has an independent confirmation.
+  **THROUGHPUT ANALYSIS — the answer to "how do we get more battles" is that we
+  cannot, and it is worth knowing why.** Decomposed the 20-row JSONL by
+  consecutive `finished_at` gaps: mean **229.1 s/battle**, median **184 s**,
+  range 59-431 s, pooled **8.0 s/turn** at 28.4 mean turns. Our own decision
+  cost is 7.6 ms — **~0.1% of the wall clock.** The remaining 99.9% is the
+  human opponent's thinking time plus queue wait, neither of which we control.
+  Peak NA hours shorten the QUEUE component only; the per-turn component is
+  fixed by the opponent. Bounds the remaining 180 battles at **~9-11.5 h**
+  (median vs mean), unchanged from the 12.5 h estimate that came from the
+  cruder wall-clock/battles figure. **The only real throughput lever is
+  concurrency, and it is ratified shut at k=1** — restating so it is not
+  re-opened under time pressure: matchmaking pairs by rating, so k in-flight
+  battles are all matched against the same stale rating, and CH4 R1's G7
+  concurrency gate was moot at k=1, so nothing in this project has ever shown
+  k>1 is neutral. Raising it mid-run is strictly the worst option available.
+  Multiple accounts are likewise excluded — VOID (d) plus the pre-reg's
+  etiquette block, which names multi-account play as a DIFFERENT decision
+  warranting a courtesy note to PS staff first.
+  **ONE NEW JOIN TRAP, found while checking the readout obligations are still
+  satisfiable.** `results/ladder/replays/` holds 37 files: 22 with the
+  `nickgen1rbrlbot` prefix and 15 with `nick_gen1rb_rl_bot`. But **only 20 of
+  the 22 are real ladder battles** — ids 40887568/40887569 are LOCAL SMOKE
+  games that were saved after the display name was changed to the registered
+  one, so **the filename prefix no longer separates real from smoke.** Verified
+  by set difference against the JSONL: 20/20 real ids present, zero missing
+  replays, exactly those two extra. The discriminator that does work is ID
+  WIDTH — real ladder ids are 10-digit (267xxxxxxx), local are 8-digit
+  (408873xx). This sits directly beside the pre-reg's existing `-<token>`
+  suffix warning; both are ways the obvious join silently over-counts n.
+  Recorded in STATUS.md next to readout obligation (i).
+  Also confirmed the replays DO carry both true ratings on their `|player|`
+  lines (spot-checked battle 0: `|player|p1|Pokestop_Retro21|169|1286` vs
+  `|player|p2|nickgen1rbrlbot|170|1000`), so obligation (i) is recoverable as
+  promised — but they carry **no `|t:|` timestamps**, so queue-vs-play time
+  cannot be decomposed further from local artifacts. Not worth chasing.
+  Nothing pushed. Headline 0.71825, R2 0.79283 and the n=20 ladder tally all
+  UNTOUCHED — this session measured nothing about the agent.
