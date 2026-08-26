@@ -23,11 +23,11 @@ written and they owe the 2-Opus cycle. Summary:
    positive the better model is ALREADY ON DISK and R2 training is optional;**
    (b) **search@M on the 50M checkpoints** — inference-only, ran only on
    `recipe12m_s62..s65`, so "it failed from under-training" is free to test;
-   (c) **a wider ensemble** — 4 lanes now, 6 more idle.
-2. **BUILD THE OFF-SH SEAT — the gate on all of item 1.** (a) `ch3_fp_h2h.py`'s
-   `ARM_KINDS` has no `ensemble` and asserts on it; (b) `eval_checkpoint.
-   _opponent_from_checkpoint` SAMPLES = the A1 bias — use `SeatPlayer`.
-   **Yardstick: FP@20 PRIMARY, vs-SH a guard.**
+   (c) **a wider ensemble** — 4 lanes now, 6 idle.
+2. **OFF-SH SEAT: BUILT AND GATED 2026-08-26.** `ensemble_seat` is in
+   `ARM_KINDS`; `scripts/ch5_seat_equiv.py` proves **0 disagreements over 2000
+   states** vs `ladder.py`'s path, so an L2 off-SH number rates the object
+   that laddered. **Network smoke NOT run** (needs server + FP build).
 3. **THEN pick the training lever from CHAPTER5 §5's branch table.** The
    maintainer's six stay first-class (§3 provenance table); assistant additions
    (§3b) COMPETE, never displace. Encoder fork LAST — it invalidates every ckpt.

@@ -55,7 +55,16 @@ BATTLE_FORMAT = "gen1randombattle"
 #     BL-2 proved load_state_dict RuntimeErrors without it); clone_policy
 #     selects sampling (form-matched to the banked pooled comparator) or
 #     deterministic (C1b, recorded-only).
-ARM_KINDS = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone")
+#   * ensemble_seat (CH5 R1) — the 4-lane EnsembleAgent that actually played
+#     LADDER R1. It carries `lanes: [...]` instead of `seat:`, and the two
+#     keys are MUTUALLY EXCLUSIVE and asserted: `ladder.py`'s POLICY_KINDS
+#     ("greedy"/"ensemble"/"search") is a SEPARATE namespace, so an arm
+#     copied across from a ladder pre-reg must not half-resolve here.
+#     Construction is byte-equivalent to ladder.py's: same sha assert, same
+#     load_checkpoint/Config/_load_showdown_agent, same lane ORDER — the
+#     whole point of the arm is that it rates the object that laddered.
+ARM_KINDS = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
+             "ensemble_seat")
 
 
 def _build_agent(spec: dict):
@@ -87,8 +96,21 @@ def _build_agent(spec: dict):
 
 def _native_dim(agent) -> int:
     """Realized input width of a loaded agent: the shim's slice width when
-    a cross-encoder checkpoint was wrapped, else the process OBS_DIM."""
+    a cross-encoder checkpoint was wrapped, else the process OBS_DIM.
+
+    An EnsembleAgent has no `.actor`, so before CH5 it would have fallen
+    through to OBS_DIM and stamped 828 even over a wrapped 808 member. It
+    now recurses and asserts the members agree — a mixed-width ensemble is
+    a real possibility here (the clone is 808) and must not stamp silently."""
     from rl.envs.showdown import OBS_DIM
+    members = getattr(agent, "members", None)
+    if members is not None:
+        dims = {_native_dim(m) for m in members}
+        assert len(dims) == 1, (
+            f"ensemble members disagree on input width: {sorted(dims)} — "
+            "the G8 stamp would be a fiction"
+        )
+        return dims.pop()
     native = getattr(getattr(agent, "actor", None), "in_dim", None)
     return int(native) if native is not None else OBS_DIM
 
@@ -181,8 +203,35 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         f"{arm_name}: kind {arm['kind']!r} not in {ARM_KINDS} — an unknown "
         "kind must not silently run the greedy seat"
     )
-    seat_lane = arm.get("seat", "s65")
-    agent = _build_agent(prereg["checkpoints"][seat_lane])
+    # CH5 R1: `seat` and `lanes` are mutually exclusive, and BOTH directions
+    # are asserted. `seat` defaults to "s65", so an ensemble arm that forgot
+    # its lanes would otherwise have quietly rated ONE lane — the same silent
+    # -fallback class BI-5 closed for unknown kinds.
+    ensemble_lanes = None
+    if arm["kind"] == "ensemble_seat":
+        from rl.search.ensemble import EnsembleAgent
+
+        assert "seat" not in arm, (
+            f"{arm_name}: ensemble_seat takes `lanes`, not `seat` — a `seat` "
+            "key here would silently rate a single lane"
+        )
+        ensemble_lanes = list(arm["lanes"])
+        assert ensemble_lanes, f"{arm_name}: ensemble needs at least one lane"
+        assert len(ensemble_lanes) == len(set(ensemble_lanes)), (
+            f"{arm_name}: duplicate lane in {ensemble_lanes} — a repeated "
+            "member silently reweights the log-prob mean"
+        )
+        seat_lane = None
+        agent = EnsembleAgent(
+            [_build_agent(prereg["checkpoints"][x]) for x in ensemble_lanes]
+        )
+    else:
+        assert "lanes" not in arm, (
+            f"{arm_name}: `lanes` is ensemble_seat-only; kind {arm['kind']!r} "
+            "would ignore it and rate a single lane"
+        )
+        seat_lane = arm.get("seat", "s65")
+        agent = _build_agent(prereg["checkpoints"][seat_lane])
     native_dim = _native_dim(agent)
     # CH4 R1 BI-3: a sampling seat (S1's whole point; C1's form-matching to
     # the banked pooled-orientation clone comparator) draws from torch's
@@ -282,6 +331,18 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     if eval_provenance is not None:
         report["evaluator"] = eval_provenance   # F5, gradeable from disk
         report["seat_lane"] = seat_lane
+    if ensemble_lanes is not None:
+        # Provenance in the SAME shape ladder.py stamps, so an FP number and
+        # a ladder number for "L2" are checkably the same object.
+        report["seat_lanes"] = ensemble_lanes
+        report["seat_sha256"] = [
+            prereg["checkpoints"][x]["sha256"] for x in ensemble_lanes
+        ]
+        report["ensemble/decisions"] = agent.decisions
+        report["ensemble/flips"] = agent.flips
+        report["ensemble/flip_rate"] = (
+            agent.flips / agent.decisions if agent.decisions else None
+        )
     return report
 
 

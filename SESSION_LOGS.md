@@ -7469,3 +7469,49 @@ entry by offset — never a broad keyword grep.
   in a session log; they are now tracked candidates with costs and objections.
   STATUS updated (shape ratified, 50M ceiling, the on-disk simplification).
   Suite green (538 / 17).
+- 2026-08-26 (evening cont., maintainer: "push, then lets beging this new
+  chapter! onwards!"): **PUSHED (3bdb2a3..9345ef4, authorised). CHAPTER 5 R1
+  BUILD IS DONE AND GATED.** The build was taken first on purpose: it is
+  ENGINEERING, not design, it gates all three R1 reads, and doing it before
+  the pre-reg is what lets the pre-reg quote real costs instead of guesses
+  (CH4 R1's synthetic dry run found Amendment A1 the same way, result-blind).
+  **THE SEAT.** `ch3_fp_h2h.py` gains `ensemble_seat`, taking `lanes: [...]`
+  and building an `EnsembleAgent` through the same loader as every other arm.
+  Three guards, each closing a silent-wrong-answer path rather than a crash:
+  (1) **`seat` and `lanes` are mutually exclusive in BOTH directions** —
+  `seat` defaults to `"s65"`, so an ensemble arm that forgot its lanes would
+  have quietly rated ONE lane and reported it as the ensemble, the same class
+  BI-5 closed for unknown kinds; (2) **duplicate lanes refused** — a repeated
+  member reweights the log-prob mean without changing the arm's declared
+  identity; (3) **`_native_dim` now recurses into an ensemble.** An
+  `EnsembleAgent` has no `.actor`, so it previously fell through to `OBS_DIM`
+  and would have stamped 828 over a wrapped 808 member — reachable, since the
+  clone is 808 — i.e. the G8 provenance stamp could have been a fiction.
+  Report gains `seat_lanes`, `seat_sha256`, and `ensemble/{decisions,flips,
+  flip_rate}` in the same shape `ladder.py` stamps, so an FP number and a
+  ladder number for "L2" are checkably the same object.
+  **THE GATE, and it is the point of the whole build: `scripts/ch5_seat_equiv.
+  py`.** Two independent construction paths exist (`ladder.py::_load` vs
+  `ch3_fp_h2h::_build_agent`) and "they look the same in the source" is not a
+  measurement. Both were built from the ladder pre-reg's own pins and run
+  head-to-head: **E1 — 0 disagreements over 2000 random masked states**, and
+  **E2 — the ensemble differs from every single lane (29-43%), so the wrapper
+  is not collapsed.** The script re-implements `_load` VERBATIM instead of
+  importing it, deliberately: an edit to either path now surfaces here as a
+  disagreement rather than silently agreeing with itself. **CAVEAT CARRIED IN
+  THE SCRIPT'S OWN DOCSTRING: the states are random Gaussian vectors, which is
+  the RIGHT input for an identity check and the WRONG input to quote as a flip
+  rate.** The off-distribution flip-vs-modal-member reads 0.20; the in-play
+  number is the `ensemble/flip_rate` the seat now stamps, and only an arm
+  produces it.
+  Tests: `tests/test_ch5_ensemble_seat.py`, 9 new, all offline (one had to
+  patch `SeatPlayer` — the ctor opens a websocket and the first draft HUNG the
+  suite for 2 min). `test_ch3_r4_anchors.py`'s pinned kind tuple updated in
+  the same commit, per its own "update only alongside a pre-reg" note.
+  **Suite 547 passed / 17 skipped** (was 538). `scripts/README.md` registers
+  the new gate and `replay_audit/our_style.py`.
+  **STILL OWED BEFORE ANY ARM RUNS:** the R1 pre-registration (thresholds,
+  aggregator, "materially" as a number on the FP@20 scale) and its 2-Opus
+  cycle; and the network-side smoke, which needs the local server plus a
+  Foul Play build and has NOT been run — the seat is proven equivalent
+  offline, not proven to complete a battle.

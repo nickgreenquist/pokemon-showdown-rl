@@ -65,9 +65,12 @@ def test_fp_registered_kinds_are_the_registered_set():
     """The R4-era contract is that an UNKNOWN kind fails loudly (tested in
     test_fp_unknown_kind_fails_loudly), not that the set never grows. CH4 R1
     registered two more via its ratified pre-reg: sampled_seat (arm S1) and
-    fp_vs_clone (arms C1/C1b). Update this tuple only alongside a pre-reg."""
+    fp_vs_clone (arms C1/C1b); CH5 R1 registered ensemble_seat, whose own
+    gates live in tests/test_ch5_ensemble_seat.py. Update this tuple only
+    alongside a pre-reg."""
     assert ch3_fp_h2h.ARM_KINDS == (
-        "greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone")
+        "greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
+        "ensemble_seat")
 
 
 def test_fp_anchor_config_matches_the_prereg():

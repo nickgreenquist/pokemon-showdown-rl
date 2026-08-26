@@ -36,6 +36,17 @@ Foul-Play anchor machinery**. These three are current, not historical:
 
 ## Live machinery (reusable, not chapter-bound)
 
+- `ch5_seat_equiv.py` — **CH5 R1 BUILD gate.** Proves the ensemble seat added
+  to `ch3_fp_h2h.py` decides IDENTICALLY to `ladder.py`'s path, so an off-SH
+  number for "L2" rates the object that actually played the 200 rated games.
+  It re-implements `ladder.py::_load` verbatim rather than importing it, on
+  purpose: an edit to either path then shows up here as a disagreement. E2's
+  divergence percentages are OFF-DISTRIBUTION (random Gaussian obs) and are
+  never an in-play flip rate — that number is `ensemble/flip_rate`, stamped
+  into every ensemble arm's report.
+- `our_style.py` (in `replay_audit/`) — puts US in the style table the anchor
+  profiler built for SH and the clone. Its human row is bit-identical to
+  `anchor_style.py`'s by construction.
 - `ladder.py` — **the real Showdown ladder**. The only path that leaves
   localhost. Pre-reg `configs/eval/ladder_r1.yaml`.
 - `ladder_classify.py` — readout obligation (iii) for that pre-reg: played
