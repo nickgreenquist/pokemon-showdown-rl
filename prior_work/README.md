@@ -531,7 +531,47 @@ lossy by construction and the code has repeatedly contradicted the project's own
   n=300, one run, one fresh account, no error bar (±2.6pp binomial), possibly sampled rather
   than greedy (then a lower bound); "72% GXE" is 1677 pushed through Showdown's GXE formula
   (verified: 71.94%), NOT an independent measurement — quoting both is quoting one number
-  twice. Their bot table does NOT transfer: 0.829 is vs a max-damage-typed bot far weaker
+  twice. **PER-UPDATE BATCH SIZE — ADDED 2026-08-26, and it re-targets a number this
+  repo already carries.** Verified against the committed run config
+  (`expts/01.json` in the local metagrok clone), not the paper:
+  `num_iters 500`, `simulate_args.num_matches 7680`, `updater_args
+  {vbatch_size 8192, num_epochs 6, clip_param 0.1, opt_lr 2e-4,
+  weight_decay 2e-6}`, `reward_args {gamma 0.95, lam 0.9}`.
+  Both seats are harvested (see SEAT ACCOUNTING above), so **one H&L update
+  consumes 7,680 matches = 15,360 episodes.** Ours consumes rollout 128 x 8
+  envs = 1,024 steps ~= **34 episodes** at ~30 decisions/episode: a **~450x
+  gap in terminal signal per update**, and the regimes are inverted — they
+  take 500 enormous updates, we take ~11.7k (12M) / ~48.8k (50M) tiny ones.
+  **WHY THIS MATTERS MORE THAN THE ~40x ALREADY LOGGED (2026-08-08):** that
+  figure and the resulting **"~30 -> 100-300 episodes/update" target** were
+  calibrated against **Wang (~1,600) and ps-ppo (~1,500)**. This index
+  separately argues those are NOT our comparable — H&L is, being the only
+  pure-self-play randbats success on record and our own lane. **Against the
+  right comparable the recorded target is 50-150x too low, and the gap is
+  ~450x rather than ~40x.** Total experience is the SMALLER gap (3.84M
+  matches vs ~830k battles at 50M steps, ~4.6x), and cost is not the
+  binder at all (6 days, ~$91 on GCP). **This is a config change, not a
+  compute story** — and it is UNTESTED here, so it is a candidate, not a
+  finding. **CAUTION, and it is why this went in the index rather than
+  straight into a chapter: raising episodes/update at fixed total steps
+  buys fewer, better gradients — it trades update COUNT for update
+  QUALITY, and nothing here has measured which side binds.** Two
+  confounds travel with any H&L comparison and must not be copied
+  piecemeal: their `gamma 0.95` + 5-term dense shaping are COUPLED (we run
+  gamma 1.0, sparse, and our own shaping arm read NULL), and their batches
+  are exactly return-balanced per battle (one winner + one loser) while
+  our one-seat-vs-pool batches are not.
+  **PROVENANCE: an external expert review (2026-08-26) raised the
+  per-update framing; the numbers above were re-verified here before
+  being believed, and three of its claims did NOT survive that check** —
+  it described the shaping as two terms with `supereffective` POSITIVE
+  (the config has five terms and `supereffective: -0.0025`, `resisted:
+  +0.0025`), it missed `gamma 0.95` / `lam 0.9` entirely, and it quoted a
+  "~104 Glicko gap" that **cannot exist**: our ladder run was never
+  listed, so we have no Glicko and no GXE (see the ladder landmine). The
+  per-update finding stands on its own; those three do not.
+
+  Their bot table does NOT transfer: 0.829 is vs a max-damage-typed bot far weaker
   than SH, and their 0.612 is vs the 2019 ancestor of foul-play, pre-Rust. Negative results:
   randbats self-play never learned multi-turn setup (Trick Room 0.12-0.15), and 50 iters of
   fine-tuning on fixed teams collapsed randbats play to 15.4% vs its own parent

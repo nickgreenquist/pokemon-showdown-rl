@@ -7941,3 +7941,56 @@ entry by offset — never a broad keyword grep.
   may authorise. `CLEANUP.md` still needs rulings. main is UNPUSHED (count it with
   `git log origin/main..HEAD --oneline | wc -l`; a fixed number here goes
   stale on the next commit, which is how it went stale three times tonight).
+
+- 2026-08-26 (evening cont., maintainer pasted an EXTERNAL EXPERT REVIEW —
+  "what did Huang and Lee do with pure self play that i havent done?" — and
+  asked for it to be filed somewhere to come back to): **BANKED INTO
+  `prior_work/README.md`'s H&L entry. ONE OF ITS FINDINGS IS SHARP AND NEW;
+  THREE OF ITS CLAIMS DID NOT SURVIVE THE CHECK.** Nothing launched.
+  **THE FINDING THAT STANDS, AND IT RE-TARGETS A NUMBER WE ALREADY CARRY.**
+  Verified against the committed run config in our own metagrok clone
+  (`expts/01.json`), not the paper: `num_iters 500`, `num_matches 7680`,
+  `vbatch_size 8192`, `num_epochs 6`, `gamma 0.95`, `lam 0.9`. Both seats
+  are harvested, so **one H&L update consumes 15,360 episodes against our
+  ~34** (rollout 128 x 8 = 1024 steps at ~30 decisions/episode) — **~450x,
+  with the regimes INVERTED**: 500 enormous updates vs our ~48.8k tiny ones
+  at 50M. **THE REASON THIS IS NOT JUST THE ~40x WE LOGGED ON 2026-08-08:**
+  that gap, and the **"~30 -> 100-300 episodes/update" target** it produced,
+  were calibrated against **Wang (~1,600) and ps-ppo (~1,500)** — and
+  `prior_work` separately argues, at length, that **those are NOT our
+  comparable; H&L is**, being the only pure-self-play randbats success on
+  record and our own lane. So **the repo set its batch target against the
+  wrong reference: against the right one it is 50-150x too low.** Total
+  experience is the SMALLER gap (3.84M matches vs ~830k battles at 50M,
+  ~4.6x) and cost is no binder at all (6 days, ~$91 on GCP). **A config
+  change, not a compute story.**
+  **THE THREE THAT DID NOT SURVIVE, all checkable in the same config, and
+  two of them were ALREADY BANKED HERE more accurately than the review had
+  them:** (i) it described the shaping as two terms with `supereffective`
+  POSITIVE — the config has **five** terms, `zero_sum: true`, and
+  `supereffective: -0.0025` / `resisted: +0.0025`, i.e. the sign and the key
+  are both wrong; (ii) it missed `gamma 0.95` / `lam 0.9` entirely, which
+  matters because on ~30-turn episodes gamma 0.95 discounts a terminal
+  reward to ~0.21 — a different credit-assignment regime, and one COUPLED to
+  the dense shaping they run and we do not; (iii) it quoted a **"~104 Glicko
+  gap", which CANNOT EXIST** — our ladder run was never listed, so we have
+  no Glicko and no GXE, and projecting one is a standing landmine. (H&L's
+  1677 Glicko minus our PS Elo 1311 is 366, and those are different scales
+  anyway.) **The review's own framing of the rest was fair:** the shaping is
+  a TESTED deviation here (our arm read NULL), not a gap; and its
+  observation that H&L's two "key design decisions" — team max-pool and a
+  shared per-action scorer — are exactly what we arrived at independently is
+  correct and is already this index's architecture-convergence argument. The
+  shared scorer was our credited **+0.151** lever.
+  **WHY IT WENT IN `prior_work/` AND NOT INTO CHAPTER5.** CHAPTER5's shape
+  is RATIFIED with a 50M ceiling and §3's six levers are FIRST-CLASS ("None
+  may be dropped, deferred or merged away without an explicit maintainer
+  ruling"). Adding a seventh is symmetrically the maintainer's call, not
+  mine. Episodes-per-update is a **training-recipe lever, i.e. exactly what
+  R2 selects**, so it is filed as a verified candidate and raised for a
+  ruling rather than inserted. **It is UNTESTED here and is a candidate, not
+  a finding.** The honest caution, recorded with it: at fixed total steps,
+  raising episodes/update trades update COUNT for update QUALITY, and
+  nothing in this repo has measured which side binds — so this is not a free
+  win, and H&L's gamma/shaping/both-seat-balance confounds must not be
+  copied piecemeal.

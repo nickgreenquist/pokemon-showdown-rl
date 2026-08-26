@@ -18,10 +18,14 @@ n=12,000. Ties=loss; locked = final ckpt.
    k=1, **7.53 h**, agent-side (0 maintainer terminal hours), order C0,
    A80-82, B80-82, CE3, CE7. **C0 alone (1.33 h) is already a complete
    standalone result** — the repo's FIRST (proxy, ladder) pair.
-2. **OPEN FOR YOU: A-BR-1** (buy a 4th 50M lane, ~12.5 h? designer A says
-   NO — let WITHIN/WEAK route to C2, which buys the lane as the LEVER) and
-   **A-BR-5** (CHAPTER5 §1 still says ONE (proxy, ladder) pair; there are
-   ZERO — an edit to a ratified doc, so yours to make).
+2. **OPEN FOR YOU: A-BR-1** (buy a 4th 50M lane? designer A says NO — let
+   WITHIN/WEAK route to C2, which buys the lane as the LEVER); **A-BR-5**
+   (CHAPTER5 §1 still says ONE (proxy, ladder) pair; there are ZERO); and
+   **whether EPISODES/UPDATE becomes a 7th CHAPTER5 §3 lever** — verified
+   2026-08-26 off H&L's committed config: their update eats **15,360
+   episodes to our ~34 (~450x)**, and our recorded "100-300" target was
+   calibrated against Wang/ps-ppo, which `prior_work` says are the WRONG
+   comparable. A config change, not compute. UNTESTED; see prior_work.
 3. **THEN the training lever from CHAPTER5 §5.** Your six stay first-class
    (§3); §3b additions COMPETE; encoder fork LAST. **R1 may produce the R3
    model itself** — if CE7 or search-on-50M beats L2 off-FP, no retraining.
@@ -32,10 +36,7 @@ n=12,000. Ties=loss; locked = final ckpt.
   0.01324; the per-lane binomial sd ALONE is 0.01507), so **"flat" is BARRED
   on every branch** — arithmetic, not taste. RULED: keep n, bar the word.
 - **The cliff had a SECOND COPY in prose, still at n=1500** after the key was
-  recomputed — "each fix landed in one place", again. Now a pointer; the
-  missing n-INDEPENDENT row (s_50 = 0.0206) is restored.
-- Four more figures were stated LIVE and wrong: 6.3 se (5.9), ~750 (552),
-  "0.0142/7.8 se" (0.0185/5.9), one winner's curse for two n (+0.0101/+0.0175).
+  recomputed. Now a pointer; the missing row (s_50 = 0.0206) is restored.
 - **RULED: R1-C funds BOTH rosters, E7 last** (the cut is only reversible in
   the wrong direction). **CHAPTER5 §3 C1 RETRO-RATIFIED** at 0.0735. **And
   at k <= 2 the fleet-mean read is DESCRIPTIVE ONLY** (assistant's call,
@@ -53,8 +54,7 @@ n=12,000. Ties=loss; locked = final ckpt.
   **temporal context** is the sharper gap.
 - **STYLE IS NOT THE GAP**: sum-|delta| from humans US 0.095 / SH 0.095 /
   clone 0.124, gross move errors us 0.6% vs humans 2.7%; only the VOLUNTARY
-  switch cut differs (6.9/10.7) and ours are REACTIVE. The critic is fine too
-  (AUC 0.704 -> 0.891). Neither is the deficit.
+  switch cut differs (6.9/10.7), ours REACTIVE. Critic fine too (AUC 0.891).
 - **LADDER DATA IS UNREPEATABLE AND GITIGNORED** (3 copies via
   `scripts/backup_ladder.sh`). `results/` is single-copy and **FP stdout IS
   G2's second tally** — never delete it before the grader runs.
