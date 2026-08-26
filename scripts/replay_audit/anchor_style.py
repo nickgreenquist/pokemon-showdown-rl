@@ -65,22 +65,23 @@ def profile(paths, target_is=None, label=""):
                 status_share=f(status,mv), chain3=chains[3]+chains[4],
                 mean_turns=(max(turns) if turns else 0))
 
-T=pathlib.Path("/Users/nickgreenquist/.claude/jobs/62d4fa41/tmp")
-lad=[p for p in pathlib.Path("results/ladder/replays").glob("*.html")
-     if re.search(r"gen1randombattle-\d{9,}", p.name)]
-rows=[profile(lad, None, "HUMANS (ladder, n=200)"),
-      profile(sorted(T.glob("tapes_sh/*.html")), None, "SimpleHeuristics"),
-      profile(sorted(T.glob("tapes_clone/*.html")), None, "BC clone of Foul Play")]
-print(f"{'opponent':<26}{'decis':>7}{'switch%':>9}{'0x%':>7}{'domin%':>8}"
-      f"{'hyperbm%':>10}{'boom%':>7}{'status%':>9}{'chain3+':>9}")
-for r in rows:
-    print(f"  {r['label']:<24}{r['decisions']:>7}{r['switch_rate']:>8.1%}"
-          f"{r['zero_rate']:>7.1%}{r['dominated']:>8.1%}{r['hyperbeam']:>10.1%}"
-          f"{r['boom']:>7.1%}{r['status_share']:>9.1%}{r['chain3']:>9}")
-print("\nDISTANCE FROM THE HUMAN FIELD (sum of |anchor - human| over the rates):")
-h=rows[0]
-keys=["switch_rate","zero_rate","dominated","hyperbeam","boom","status_share"]
-for r in rows[1:]:
-    d=sum(abs(r[k]-h[k]) for k in keys)
-    per=", ".join(f"{k}:{abs(r[k]-h[k]):+.3f}" for k in keys)
-    print(f"  {r['label']:<24} total {d:.3f}   ({per})")
+if __name__ == "__main__":
+    T=pathlib.Path("/Users/nickgreenquist/.claude/jobs/62d4fa41/tmp")
+    lad=[p for p in pathlib.Path("results/ladder/replays").glob("*.html")
+         if re.search(r"gen1randombattle-\d{9,}", p.name)]
+    rows=[profile(lad, None, "HUMANS (ladder, n=200)"),
+          profile(sorted(T.glob("tapes_sh/*.html")), None, "SimpleHeuristics"),
+          profile(sorted(T.glob("tapes_clone/*.html")), None, "BC clone of Foul Play")]
+    print(f"{'opponent':<26}{'decis':>7}{'switch%':>9}{'0x%':>7}{'domin%':>8}"
+          f"{'hyperbm%':>10}{'boom%':>7}{'status%':>9}{'chain3+':>9}")
+    for r in rows:
+        print(f"  {r['label']:<24}{r['decisions']:>7}{r['switch_rate']:>8.1%}"
+              f"{r['zero_rate']:>7.1%}{r['dominated']:>8.1%}{r['hyperbeam']:>10.1%}"
+              f"{r['boom']:>7.1%}{r['status_share']:>9.1%}{r['chain3']:>9}")
+    print("\nDISTANCE FROM THE HUMAN FIELD (sum of |anchor - human| over the rates):")
+    h=rows[0]
+    keys=["switch_rate","zero_rate","dominated","hyperbeam","boom","status_share"]
+    for r in rows[1:]:
+        d=sum(abs(r[k]-h[k]) for k in keys)
+        per=", ".join(f"{k}:{abs(r[k]-h[k]):+.3f}" for k in keys)
+        print(f"  {r['label']:<24} total {d:.3f}   ({per})")
