@@ -25,7 +25,7 @@ n=12,000. Ties=loss; locked = final ckpt.
 3. **THEN the training lever from CHAPTER5 §5.** Your six stay first-class
    (§3); §3b additions COMPETE; encoder fork LAST. **R1 may produce the R3
    model itself** — if CE7 or search-on-50M beats L2 off-FP, no retraining.
-4. `CLEANUP.md` still needs rulings. **13 commits UNPUSHED — ask first.**
+4. `CLEANUP.md` still needs rulings. **15 commits UNPUSHED — ask first.**
 
 ## What r6 changed
 - **The TOST is UNREACHABLE at n=1000 at ANY sigma_seed** (needs s_50 <=

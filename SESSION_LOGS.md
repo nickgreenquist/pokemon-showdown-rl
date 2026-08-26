@@ -7938,4 +7938,4 @@ entry by offset — never a broad keyword grep.
   **STILL OPEN FOR THE MAINTAINER: A-BR-1** (buy a 4th 50M lane? A says no)
   and **A-BR-5** (CHAPTER5 §1 motivation 2 still says one (proxy, ladder)
   pair where there are zero). Both are edits/purchases only the maintainer
-  may authorise. `CLEANUP.md` still needs rulings. 12 commits UNPUSHED.
+  may authorise. `CLEANUP.md` still needs rulings. 15 commits UNPUSHED.
