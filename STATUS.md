@@ -17,17 +17,17 @@ n=200 DESCRIPTIVE, PS Elo 1311, 0.475, NO GXE** · off-FP@20 (12M lanes only)
 ## Next actions — **`CHAPTER5.md` IS THE CHAPTER DOC. SHAPE RATIFIED
 2026-08-26; **50M IS THE HARD CEILING** (no 100M/120M/250M). Pre-regs NOT
 written and they owe the 2-Opus cycle. Summary:
-1. **MEASURE BEFORE TRAINING. Three ZERO-TRAINING reads, gated on the off-SH
-   seat (item 2):** (a) **D29r2's 50M lanes s80/81/82 vs FP@20** — "50M is
-   FLAT" is vs-SH ONLY and no 50M lane was EVER measured off-SH; **if it reads
-   positive the better model is ALREADY ON DISK and R2 training is optional;**
+1. **MEASURE BEFORE TRAINING. Three ZERO-TRAINING reads, gated on the seat
+   (item 2):** (a) **D29r2's 50M lanes s80/81/82 vs FP@20** — "50M is FLAT" is
+   vs-SH ONLY and no 50M lane was EVER measured off-SH; **if it reads positive
+   the better model is ALREADY ON DISK and R2 training is optional;**
    (b) **search@M on the 50M checkpoints** — inference-only, ran only on
    `recipe12m_s62..s65`, so "it failed from under-training" is free to test;
    (c) **a wider ensemble** — 4 lanes now, 6 idle.
-2. **OFF-SH SEAT: BUILT AND GATED 2026-08-26.** `ensemble_seat` is in
-   `ARM_KINDS`; `scripts/ch5_seat_equiv.py` proves **0 disagreements over 2000
-   states** vs `ladder.py`'s path, so an L2 off-SH number rates the object
-   that laddered. **Network smoke NOT run** (needs server + FP build).
+2. **OFF-SH SEAT: BUILT, GATED AND SMOKED 2026-08-26.** `ch5_seat_equiv.py` =
+   0 disagreements/2000 states vs `ladder.py`; `ch5_seat_smoke.py` + a real
+   FP@20 run = 0 desyncs, 0 relaunches, **G2 exact**. **PRICED: ensemble 1.60
+   s/b, search 3.51 -> R1 at full power ~14 h, not the ~4-6 h I first wrote.**
 3. **THEN pick the training lever from CHAPTER5 §5's branch table.** The
    maintainer's six stay first-class (§3 provenance table); assistant additions
    (§3b) COMPETE, never displace. Encoder fork LAST — it invalidates every ckpt.

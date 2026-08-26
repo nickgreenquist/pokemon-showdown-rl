@@ -7515,3 +7515,46 @@ entry by offset — never a broad keyword grep.
   cycle; and the network-side smoke, which needs the local server plus a
   Foul Play build and has NOT been run — the seat is proven equivalent
   offline, not proven to complete a battle.
+- 2026-08-26 (evening cont., maintainer: "what do you recommend?" — smoke or
+  design cycle first): **RECOMMENDED THE SMOKE, RAN IT, AND IT IMMEDIATELY PAID
+  FOR ITSELF BY CATCHING MY OWN COST LEDGER LOW BY ~2.5x.** Three smokes, all
+  through the real hardened runner. Nothing trained; no arm is a result.
+  **SMOKE 1 (local, no FP): the ensemble seat COMPLETES BATTLES.** 6/6 finished,
+  all challenges resolved, **0 mask_desyncs**, `seat_lanes` stamped,
+  `seat_lane: null`, `seat_native_dim: 828`. Equivalence proved the seat
+  DECIDES right; only this proves it can PLAY (choose_move, mask/order
+  conversion, desync branch, report fields). Promoted to
+  `scripts/ch5_seat_smoke.py` as a CLI — run it for every future arm kind
+  BEFORE spending a Foul Play arm on it.
+  **SMOKE 2 (real Foul Play @20, through `ch3_r4_fp_runner.sh`): CLEAN, AND G2
+  SATISFIED ON EVERY RUN.** 0 relaunches, 0 crash-forfeits, 0 desyncs across
+  5 + 30 + 20 battles; the seat's tally and **Foul Play's own `Winner:` lines
+  agree exactly** every time — the two-independent-tallies rule, not a
+  subtraction. None of the S1 orphan/nametaken failure modes appeared.
+  **THE PRICE, WHICH IS THE WHOLE REASON THE SMOKE WENT FIRST.** CHAPTER5 §4
+  carried R1-B as **COST UNKNOWN**. Measured vs FP@20: **ensemble 1.60
+  s/battle** (marginal, startup stripped: (55.6-15.7)/(30-5)) and **search@M
+  3.51 s/battle** (n=20, startup NOT stripped, so a slight over-estimate).
+  Against the banked 1.20 s/battle for a GREEDY seat, the ensemble's four
+  forward passes cost ~33%; search costs **73.6 ms/decision over 727/794
+  searched decisions** and runs longer battles (35.6 vs 28.3 turns), which is
+  its 2.2x. Consequence: 3000x3 is **4.0 h for R1-A/C and 8.8 h for R1-B**, so
+  **R1 at full power is ~14 h, not the "~4-6 h" I wrote into §7.4** — low by
+  ~2.5x, the same axis on which CH4 R1's review caught a cost ledger wrong by
+  45%. §4 now carries the measured ledger and says the pre-reg must DECIDE
+  R1-B's lanes/battles explicitly rather than discover the cost mid-run.
+  **TWO SMOKE WIN RATES THAT MUST NOT BE QUOTED, AND THE REASON THEY ARE
+  RECORDED ANYWAY.** Ensemble 6/30 = **0.200 +/- 0.073** vs FP@20 (2.0 se
+  BELOW the banked greedy 0.34867); search@M on s62 13/20 = **0.650 +/- 0.107**
+  (2.8 se ABOVE it). **Two smokes, opposite directions, both 2-3 se off the
+  banked value — that is exactly what n=20-30 buys, and it is the cleanest
+  demonstration of the small-n landmine this repo has produced.** The 0.650 is
+  especially tempting because R1-B's whole hypothesis is that search does
+  better than banked; it is n=20 and it is not evidence.
+  **A NUMBER THE SMOKE PRODUCED THAT IS WORTH KEEPING:** the ensemble's IN-PLAY
+  `flip_rate` is **0.065-0.107** across the runs (0.098 at the largest, n=30 /
+  995 decisions), against the **0.20** that `ch5_seat_equiv.py` reports on
+  random Gaussian states. The off-distribution figure is ~2x the in-play one,
+  which is precisely the caveat written into that script's docstring before
+  either number existed.
+  Suite 547 / 17. `scripts/README.md` registers both new scripts.

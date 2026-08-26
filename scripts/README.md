@@ -44,6 +44,11 @@ Foul-Play anchor machinery**. These three are current, not historical:
   divergence percentages are OFF-DISTRIBUTION (random Gaussian obs) and are
   never an in-play flip rate — that number is `ensemble/flip_rate`, stamped
   into every ensemble arm's report.
+- `ch5_seat_smoke.py` — **does a seat actually PLAY?** Runs `ch3_fp_h2h.run()`
+  verbatim with a local `SimpleHeuristicsPlayer` standing in for Foul Play, so
+  it needs only the local server. Run it whenever a new arm kind is registered,
+  BEFORE spending a Foul Play arm on it — `ch5_seat_equiv.py` proves a seat
+  DECIDES right and cannot prove it can play. Its win rates are not results.
 - `our_style.py` (in `replay_audit/`) — puts US in the style table the anchor
   profiler built for SH and the clone. Its human row is bit-identical to
   `anchor_style.py`'s by construction.

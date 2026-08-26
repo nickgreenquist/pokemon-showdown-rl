@@ -209,13 +209,34 @@ deterministic one and is the right home.
 - **R1-A — the 50M lanes s80/81/82 off-SH.** Comparator: the 12M lanes'
   0.34867 (n=12,000). ~1 h/arm at 1.20 s/battle x 3000. **This is the read
   that adjudicates C1 and C3.**
-- **R1-B — search@M on the 50M checkpoints.** Adjudicates C5. **Cost
-  UNKNOWN: the search seat's s/battle against FP has never been measured.
-  Smoke it and read s/battle against a completed FP@20 arm before
-  projecting any ETA** (the S1 deadlock landmine: a wall-clock ETA is not
-  progress).
+- **R1-B — search@M on the 50M checkpoints.** Adjudicates C5. **PRICED
+  2026-08-26 (it was UNPRICED here, which is why the smoke went first).**
 - **R1-C — a wider / cross-era ensemble.** Adjudicates C2's free half.
   Requires the ensemble seat from BUILD, so it is the seat's own smoke.
+
+**R1 COST LEDGER — MEASURED 2026-08-26, not projected.** The seat was
+smoked against real Foul Play at `--search-time-ms 20` through the hardened
+runner (`ch3_r4_fp_runner.sh`), 0 relaunches, 0 crash-forfeits, 0
+mask-desyncs, and **G2 satisfied on every run** (the seat's tally and Foul
+Play's own `Winner:` lines agree exactly).
+
+| seat | measured s/battle vs FP@20 | 3000 battles | x3 lanes |
+|---|---|---|---|
+| ensemble | **1.60** (marginal, startup stripped: (55.6-15.7)/(30-5)) | 1.33 h | **4.0 h** |
+| search@M | **3.51** (n=20, startup NOT stripped -> slight over-estimate) | 2.92 h | **8.8 h** |
+
+Reference points: the banked FP@20 figure is 1.20 s/battle for a GREEDY
+seat, so the ensemble's 4 forward passes cost ~33%; search costs 73.6
+ms/decision over 727/794 searched decisions and runs longer battles (35.6
+vs 28.3 mean turns), which is where its 2.2x comes from.
+
+**CORRECTION TO §7.4's OWN BUDGET LINE.** It said R1 was "~4-6 h of
+agent-side battles". At full power (3000 x 3 lanes on A and B, one arm on
+C) R1 is **~14 h** — the estimate was low by ~2.5x, on the same axis CH4
+R1's review caught a cost ledger wrong by 45%. **R1-B is the expensive
+arm and the pre-reg must decide explicitly whether it runs at fewer lanes,
+fewer battles, or full power** — and say which, rather than discovering
+it mid-run.
 
 **R1 is eval-only and credits no lever** — same footing as CH4 R1.
 
