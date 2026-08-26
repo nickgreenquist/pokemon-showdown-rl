@@ -15,8 +15,8 @@ R2 search@M is a B1 CREDIT but SH-facing/INFERENCE-ONLY. CH3+CH4-R1 CLOSED.
 n=200 DESCRIPTIVE, PS Elo 1311, 0.475, NO GXE** · off-FP@20 (12M lanes only)
 0.342/0.355/0.356/0.342. Ties=loss; locked = final ckpt.
 
-## Next actions (2026-08-26 evening — REORDERED after the maintainer
-challenged "scale is flat"; the challenge held, see that day's log)
+## Next actions — **`CHAPTER5.md` IS THE CHAPTER DOC (PROPOSED, NOT
+RATIFIED; it is the brief FOR the 2-Opus cycle, not its output).** Summary:
 1. **MEASURE BEFORE TRAINING. Three ZERO-TRAINING reads, all gated on the same
    off-SH seat (item 2):** (a) **D29r2's 50M lanes s80/81/82 vs FP@20** — "50M
    is FLAT" is vs-SH ONLY and no 50M stack lane was EVER measured off-SH;

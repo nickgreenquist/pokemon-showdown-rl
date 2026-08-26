@@ -7400,3 +7400,34 @@ entry by offset — never a broad keyword grep.
   drops from "round 1's lever" to one candidate among several, to be chosen
   once we know whether scale is flat on the axis that matters. STATUS
   reordered accordingly. Suite green (538 / 17).
+- 2026-08-26 (evening cont., maintainer: "are your notes on the 6 things above
+  recorded anywhere? any design chapter… end goal is new 'better model' to do
+  ladder run #2"): **THEY WERE NOT — only in this log and a 60-line STATUS.
+  `CHAPTER5.md` now exists (279 lines, TRACKED, PROPOSED/NOT RATIFIED),** in
+  the role `DESIGN2.md` played for Chapter 2. Pointer added to CLAUDE.md's Docs
+  block and to STATUS. Deliberately NOT written into `DESIGN.md` — that file
+  carries the HISTORICAL/SPENT banner and extending it as a roadmap is the D19
+  dead-lever failure mode. Deliberately NOT written into `results/design_ch5/`
+  either: `results/` is gitignored, and "the r1 pre-reg was gitignored" was a
+  process BLOCKER in the FP-gap cycle's own review.
+  **SHAPE: R1 (three reads that cost ZERO training) -> R2 (one training arm,
+  chosen by a result-blind branch table) -> R3 (ladder run #2).** The structural
+  finding, and the reason the chapter is ordered this way: **all three R1 reads
+  gate on ONE build — the off-SH seat — and two of the three are DEPLOYMENT
+  candidates, not just diagnostics. If the wider ensemble or search-on-50M
+  beats L2 off-SH, ladder #2 can launch without retraining anything.**
+  **TWO MORE BANKED NUMBERS CORRECTED WHILE BUILDING THE §2 TABLE.** (1) The
+  "search is worse off Foul Play" cell is `fg` 97/250 = 0.388 vs `fs` 92/250 =
+  0.368 — delta -0.020 against **se_diff 0.043, i.e. 0.46 se, inside noise.**
+  The real weight in that case is the clone (-0.034 +/- 0.021) and MU-8's
+  pooled z = -2.80, NOT the FP cell; it has been quoted as though the FP cell
+  carried it. (2) **The banked FP numbers are not budget-commensurable and
+  differ in the direction FP@20's licence does NOT predict:** greedy reads
+  0.388 at FP@100 (n=250, ONE lane) and 0.34867 at FP@20 (n=12,000, four
+  lanes), yet FP@20 is the marginally WEAKER opponent. The reconciliation is n
+  — the 0.388 is a small single-lane read — and Chapter 5 forbids any
+  cross-budget comparison that does not name both budgets and both n.
+  Chapter doc's own §8 discloses that it has NOT had the 2-Opus cycle, and says
+  the designers must get the candidate SET rather than its ranking — the
+  "synthesis hid the dispute" failure this repo has already paid for once.
+  Suite green (538 / 17). Nothing launched, nothing trained.
