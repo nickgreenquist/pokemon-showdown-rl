@@ -17,32 +17,32 @@ n=200 DESCRIPTIVE, PS Elo 1311, 0.475, NO GXE** · off-FP@20 (12M lanes only)
 ## Next actions — **`CHAPTER5.md` IS THE CHAPTER DOC. SHAPE RATIFIED
 2026-08-26; **50M IS THE HARD CEILING** (no 100M/120M/250M). Pre-regs NOT
 written and they owe the 2-Opus cycle. Summary:
-1. **MEASURE BEFORE TRAINING. Three ZERO-TRAINING reads, gated on the seat
-   (item 2):** (a) **D29r2's 50M lanes s80/81/82 vs FP@20** — "50M is FLAT" is
-   vs-SH ONLY and no 50M lane was EVER measured off-SH; **if it reads positive
-   the better model is ALREADY ON DISK and R2 training is optional;**
-   (b) **search@M on the 50M checkpoints** — inference-only, ran only on
-   `recipe12m_s62..s65`, so "it failed from under-training" is free to test;
-   (c) **a wider ensemble** — 4 lanes now, 6 idle.
-2. **OFF-SH SEAT: BUILT, GATED AND SMOKED 2026-08-26.** `ch5_seat_equiv.py` =
-   0 disagreements/2000 states vs `ladder.py`; `ch5_seat_smoke.py` + a real
-   FP@20 run = 0 desyncs, 0 relaunches, **G2 exact**. **PRICED: ensemble 1.60
-   s/b, search 3.51 -> R1 at full power ~14 h, not the ~4-6 h I first wrote.**
-3. **THEN pick the training lever from CHAPTER5 §5's branch table.** The
-   maintainer's six stay first-class (§3 provenance table); assistant additions
-   (§3b) COMPETE, never displace. Encoder fork LAST — it invalidates every ckpt.
+1. **MEASURE BEFORE TRAINING, zero training. C0 = L2 off FP@20 RUNS FIRST**
+   (both designers, independently: **L2 has NO FP number at any budget**, so
+   the repo holds ZERO (proxy, ladder) pairs — CHAPTER5 §1 claimed one).
+   Then the 50M lanes off FP@20, search@M on 50M, a wider ensemble.
+   **"50M is FLAT" is not a weak claim, it is NOT A CLAIM — 0.44 se against a
+   0.0735 bar** (50M vs-SH sigma_seed 0.0624 = 8.2x the 12M 0.0076).
+2. **SEAT: BUILT, GATED, SMOKED.** `ch5_seat_equiv.py` 0 disagreements/2000
+   states vs `ladder.py`; real FP@20 runs 0 desyncs, 0 relaunches, **G2
+   exact**. **PRICED by calibration: ensemble 1.60 s/b, search 2.68 (my n=20
+   3.51 and a designer's 4.55 model were BOTH high) -> R1 ~6.9 h.**
+3. **R1 PRE-REG `configs/eval/ch5_r1_offsh.yaml` IS r2 AND NOT LAUNCHABLE.**
+   2 designers + 2 reviews; **10 blockers, 5 fixed, 5 OPEN** (its
+   BLOCKERS-OPEN block: Q5 has no action column; Q5 grades 1 of 3 reads;
+   k<3 unnamed; ABOVE may be unreachable; dropped gates undispositioned).
+4. **THEN the training lever from CHAPTER5 §5.** Maintainer's six stay
+   first-class (§3); assistant additions (§3b) COMPETE. Encoder fork LAST.
 ## Watch items
-- **"SCALE IS FLAT" IS A vs-SH-ONLY CLAIM — DO NOT QUOTE IT UNQUALIFIED.**
-  D29r2 50M vs SH: 0.7423 / 0.7347 / **0.6297** -> pooled 0.70222, i.e. **2 of
-  3 lanes BEAT the 12M pooled 0.71825**; one lane drags the mean. **The one 50M
-  arm ever measured off-FP went the OTHER WAY**: struct12M 0.176 off FP@100,
-  struct50M **0.188** (n=250 each, +0.012, se_diff 0.035 — n.s., sign positive)
-  while the same step read +0.029 vs SH and CREDITED. **No D29r2 lane has ANY
-  off-SH number.**
-- **ATTENTION: the 34.6x was measured against the FLAT [512,512] MLP**, no
-  longer production; attention-vs-`entity_deepsets` has NEVER been measured
-  (minutes to do). The 08-25 review ruled on CAPACITY, not structure, and named
-  **temporal context** (we are single-snapshot Markov) the SHARPER gap.
+- **"SCALE IS FLAT" WAS NEVER ESTABLISHED, ON EITHER AXIS.** 50M vs SH is
+  0.7423/0.7347/**0.6297** — **2 of 3 lanes BEAT the 12M pooled 0.71825** and
+  one drags the mean; the delta is 0.44 se. **The one 50M arm ever measured
+  off-FP went the OTHER WAY** (struct12M 0.176 -> struct50M 0.188 @FP100,
+  n=250, n.s.). **No D29r2 lane has ANY off-SH number.**
+- **ATTENTION: the 34.6x was vs the FLAT [512,512] MLP**, no longer
+  production; attention-vs-`entity_deepsets` has NEVER been measured. The 08-25
+  review ruled on CAPACITY, not structure, and named **temporal context** the
+  sharper gap.
 - **WE ARE IN THE STYLE TABLE (`scripts/replay_audit/our_style.py`).** Sum-
   |delta| from the human field: **US 0.095, SH 0.095**, clone 0.124. **Gross
   move errors: us 0.6% vs humans 2.7%** (1.88 vs 7.20% given a known better

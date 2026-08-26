@@ -208,6 +208,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     # its lanes would otherwise have quietly rated ONE lane — the same silent
     # -fallback class BI-5 closed for unknown kinds.
     ensemble_lanes = None
+    seat_lane_defaulted = False
     if arm["kind"] == "ensemble_seat":
         from rl.search.ensemble import EnsembleAgent
 
@@ -230,6 +231,16 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             f"{arm_name}: `lanes` is ensemble_seat-only; kind {arm['kind']!r} "
             "would ignore it and rate a single lane"
         )
+        # CH5 R1 review BL-2: this default is a live footgun. An arm that
+        # omits `seat` silently runs s65, and if s65 happens to be pinned in
+        # that pre-reg the sha assert PASSES — so three "50M" arms could all
+        # be one 12M lane and the JSONs would be indistinguishable from
+        # correct ones. The default CANNOT simply be removed: four banked
+        # arms depend on it (ch3_r2_fp_h2h FG/FS, fp_budget_ladder
+        # FP20/FP500) and their pre-regs must stay runnable. So it stays,
+        # and becomes SELF-DESCRIBING instead — `seat_lane_defaulted` is
+        # stamped into every report and a pre-reg gates on it being False.
+        seat_lane_defaulted = "seat" not in arm
         seat_lane = arm.get("seat", "s65")
         agent = _build_agent(prereg["checkpoints"][seat_lane])
     native_dim = _native_dim(agent)
@@ -314,6 +325,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "seat_policy": "sampled" if not deterministic else "deterministic",
         "seat_rng_seed": arm.get("seat_rng_seed"),
         "seat_lane": seat_lane,
+        "seat_lane_defaulted": seat_lane_defaulted,
         "seat_native_dim": native_dim,
         "declared_search_time_ms": arm.get("search_time_ms"),
     }

@@ -1,9 +1,16 @@
 # =====================================================================
 # CHAPTER 5 R1 — THE THREE ZERO-TRAINING OFF-SH READS
-# STATUS: **DRAFT r1, NOT RATIFIED. Nothing launched.** Synthesis of two
-#   independent Opus design memos (A = evidential validity, B = build/
+# STATUS: **DRAFT r2 — NOT RATIFIED AND NOT LAUNCHABLE. 10 BLOCKERS
+#   RAISED BY TWO REVIEWS; 5 FIXED HERE, 5 STILL OPEN (see BLOCKERS-OPEN).
+#   Reviewer 1's verdict is "do not launch" and it stands.** Synthesis of
+#   two independent Opus design memos (A = evidential validity, B = build/
 #   cost) per the standing 2026-08-12 process, plus measurements taken
-#   this session to adjudicate where they disagreed. REVIEWS OWED.
+#   this session to adjudicate where they disagreed, then two independent
+#   Opus reviews of the r1 synthesis.
+#   **PROCESS SLIP, disclosed: the assistant edited `ch3_fp_h2h.py` and
+#   its tests WHILE reviewer 1 was reading the tree** (fixing BL-2). The
+#   reviewer flagged the moving target itself. Reviews should read a
+#   frozen tree; this one did not.
 # Chapter shape ratified 2026-08-26 (CHAPTER5.md §7). 50M is the chapter
 #   ceiling. R1 is EVAL-ONLY and CREDITS NO LEVER.
 # ---------------------------------------------------------------------
@@ -21,19 +28,37 @@
 #   **The 50M fleet's seed spread is 8.2x the 12M fleet's, driven by the
 #   one lane at 0.6297.** Consequences, both load-bearing:
 #   (a) **"50M IS FLAT vs SH" IS NOT A WEAK CLAIM, IT IS NOT A CLAIM.**
-#       delta -0.01603 against a clustered 2-se bar of 0.0724 = 0.44 se.
+#       delta -0.01603 against a clustered 2-se bar of **0.0735** = 0.44
+#       se. (r1 said 0.0725 — computed from sigma_seed while Q5's stated
+#       formula uses the TOTAL sd s_T. Review 1 caught the file
+#       contradicting its own formula; 0.0735 is the Q5-consistent value
+#       and the verdict is unchanged either way.)
 #       CHAPTER5 §3 C1 has been corrected. Nobody may quote "scale is
 #       flat" from this repo, on either axis, until R1 reads out.
 #   (b) **R1-A CANNOT BE A CREDIT-GRADE SCALE READ AND MUST NOT CLAIM TO
 #       BE.** If the 50M family's off-FP sigma_seed resembles its vs-SH
 #       0.0624, the clustered bar is ~0.073 at k=3 and NO battle count
 #       fixes it — only more lanes would, and we have three.
-#   **SO R1-A's PRIMARY READ IS RESTATED, result-blind: measure the 50M
-#   family's off-FP sigma_seed.** That parameter is the one thing
-#   deciding whether a scale question is answerable here at all, it is
-#   unknown, and it is cheap. The win-rate delta is SECONDARY and
-#   DESCRIPTIVE. (Hopeful sign, not evidence: for the 12M family
-#   sigma_seed is SMALLER off-FP (0) than vs SH (0.0076).)
+#   **R1-A's PRIMARY READ — REPLACED r1->r2 BY REVIEW 1, whose version is
+#   better and is adopted.** r1 said "measure the 50M family's off-FP
+#   sigma_seed". **That is not well-posed at k=3:** an sd on 2 df carries
+#   a 95% CI spanning x[0.52, 6.28] — a factor of TWELVE — so 0.0624
+#   would come back as [0.033, 0.392]. In-repo proof it is not academic:
+#   re-measuring the SAME four 12M seeds gives sigma_seed 0.00758 vs
+#   0.01121, 48% apart at k=4. r1 also mis-attributed it to designer A,
+#   who named it a CONDITIONAL FALLBACK, not a primary.
+#   **PRIMARY (r2): does s82's collapse REPRODUCE off-FP?** The whole 50M
+#   variance story is one lane (0.6297 against 0.7423/0.7347). That is a
+#   sharp binary question with real power — at n=1500/lane, se_diff
+#   between {s80,s81} and s82 is 0.0166, so a vs-SH-sized collapse (0.11)
+#   lands at **6.6 se**. If it reproduces, the 50M fleet has a genuine bad
+#   seed and k=3 cannot support a scale claim. If it does NOT, the vs-SH
+#   spread was SH-specific and the off-FP fleet may be tight enough to
+#   read. Either answer is decisive; "estimate an sd from three points"
+#   is decisive on neither. sigma_seed is still REPORTED, as a screen with
+#   its CI attached, never as the primary.
+#   (Hopeful sign, not evidence: for the 12M family sigma_seed is SMALLER
+#   off-FP (0) than vs SH (0.0076).)
 # ---------------------------------------------------------------------
 # Q2. ARM ORDER — C0 RUNS FIRST. Both designers reached this
 #   independently and neither was told to.
@@ -60,9 +85,18 @@
 #   n per lane, from three independent power calculations that agreed:
 #   binomial governs to ~4800 battles/lane, and 2*se_diff reaches the
 #   0.025 credit floor at ~971. 3000/lane buys 0.0133 for 3x the time.
-#     C0   1 x 1500 = 0.67 h        R1-A  3 x 1500 = 2.00 h
-#     R1-B 3 x 1000 = 2.23 h        R1-C  1 x 1500 = 0.67 h
-#     TOTAL ~5.6 h  (CHAPTER5 §4's full-power sketch said 13.8 h)
+#     C0   1 x 3000 = 1.33 h        R1-A  3 x 1500 = 2.00 h
+#     R1-B 3 x 1000 = 2.23 h        R1-C  1 x 3000 = 1.33 h
+#     TOTAL ~6.9 h  (CHAPTER5 §4's full-power sketch said 13.8 h)
+#   **C0/R1-C CORRECTED r1->r2 after review BL-3, and the r1 error is
+#   recorded because it is the exact failure this process exists to
+#   catch.** r1 set them to 1500 by applying R1-A's THREE-LANE POOLED
+#   arithmetic to a ONE-ARM read. Unpooled, n=1500 gives 2*se_diff =
+#   **0.0261, which fails this file's own 0.025 floor**; n=3000 gives
+#   0.0195. **Both designers specified 3000 and the synthesis cut it to
+#   1500 without disclosing the cut** — "the synthesis hid the dispute",
+#   the named failure mode, committed by me. Restored, and the ladder
+#   arms are unresumable so the saving was never real.
 # ---------------------------------------------------------------------
 # Q4. R1-B — THE ONE PLACE THE DESIGNERS SPLIT, AND THE RECONCILIATION
 #   IS THE ASSISTANT'S, SO IT IS FLAGGED AS SUCH.
@@ -108,12 +142,28 @@
 # Q7. GATES. Each VOIDs its arm unless stated.
 #   G2   TWO INDEPENDENT TALLIES: the seat's W/L and Foul Play's own
 #        `Winner:` lines must agree EXACTLY. Never a subtraction.
-#   G-BUDGET (NEW, designer B, verified live) — `ch3_r4_fp_runner.sh:39`
-#        is `SEARCH_TIME_MS="${SEARCH_TIME_MS:-100}"` and the pre-reg
-#        override only fires when the key is present, so **an arm that
-#        omits `search_time_ms` SILENTLY RUNS FP@100** and stamps
-#        `declared_search_time_ms: null`. Assert == 20 and non-null on
-#        every arm JSON before grading.
+#   G-BUDGET — **REWRITTEN r1->r2 after review BL-1, which showed the r1
+#        version was a TAUTOLOGY.** The hazard is real:
+#        `ch3_r4_fp_runner.sh:39` is `SEARCH_TIME_MS="${SEARCH_TIME_MS:-100}"`
+#        and the pre-reg override only fires when the key is present. But
+#        `ch3_fp_h2h.py:318` stamps `declared_search_time_ms:
+#        arm.get("search_time_ms")` — the SEAT copies the same YAML the
+#        runner reads and never sees the runner's env, so if the runner's
+#        derivation fails (its python one-liner is `2>/dev/null ||`
+#        swallowed) FP really runs at 100 ms and the JSON still says 20.
+#        **Assert FP's OWN log instead**, as CH4's G8 did: every
+#        `Sampling <N> battles at <M>ms each` line must satisfy
+#        N*M == 2*declared, and max(M) == declared. Verified on this
+#        chapter's own calibration logs: at declared 20 the lines are
+#        exactly `2 battles at 20ms` and `4 battles at 10ms` (N*M = 40).
+#        At FP@100 they would read N*M = 200. Keep the YAML assert too,
+#        but it is a typo check, not a budget gate.
+#   G-SEAT (NEW, review BL-2, fixed in code this session) — an arm that
+#        omits `seat` silently ran s65, and where s65 is pinned in the same
+#        pre-reg the sha assert PASSES, so three "50M" arms could all have
+#        been one 12M lane. The default could not be removed (four banked
+#        arms depend on it), so the seat now stamps `seat_lane_defaulted`.
+#        **Assert `seat_lane_defaulted == false` on every CH5 arm.**
 #   G-TERMINAL-RACE (NEW, designer B, verified live) — `l64.runner.json`
 #        carries `crash_forfeits: 1` with `fp_completed == 3000 ==
 #        requested`. No in-flight battle existed, so NO FORFEIT IS OWED;
@@ -128,6 +178,41 @@
 #        and these checkpoints have never been loaded by this seat in a
 #        real battle. Compare against the banked 0.7423/0.7347/0.6297.
 # ---------------------------------------------------------------------
+# BLOCKERS-OPEN — these must close before launch. r2 does NOT close them.
+#   O-1 (rev 1 BL-1) **Q5 has no ACTION column.** Nine (VERDICT-S x
+#       VERDICT-P) cells, one stated consequence, zero actions.
+#       WITHIN x RESOLVING and WITHIN x NON-RESOLVING must route
+#       differently and currently do not.
+#   O-2 (rev 1 BL-2) **Q5 grades ONE of the three reads.** Its s_12^2/4
+#       term is R1-A-specific; R1-B and R1-C have no se, no bar, no
+#       partition, no sidedness.
+#   O-3 (rev 1 BL-3) **the k<3 cell is unnamed and is a ~13% event.**
+#       G-WIRING as drafted is blocking, per-lane and two-sided with no
+#       re-run rule (13.0% spurious block vs designer A's ~0.6%), and at
+#       k=2 Q5's hardcoded /3 understates the se by 22%.
+#   O-4 (rev 1 BL-4) **the unreachable-ABOVE disclosure is missing and
+#       ABOVE is plausibly unreachable.** BT transfer predicts
+#       s_50(off-FP) ~ 0.065 -> bar 0.075 -> ABOVE would need 0.4238
+#       against a best-ever lane of 0.3557. Even shrunk 1.61x the bar is
+#       0.047 and ABOVE needs 0.3956. **An unreachable branch must be
+#       declared unreachable up front (the D25-P lesson).**
+#   O-5 (rev 2 BL-4/BL-5) **gates ungradeable and designer items dropped
+#       without disposition.** G-SERIAL names no artifact (there is no CH5
+#       wave script); G-WIRING has no n, band or script; CH4's G0/G1/G3/G4
+#       and the base crash-forfeit read rule are absent; three of designer
+#       B's five gates (G-ENS, G-EQUIV, G-SEARCH) and designer A's era pin
+#       + VOID-E were dropped silently. **Every dropped item needs a
+#       recorded disposition, not an omission.**
+#   Also outstanding, from the MAJORs: the grading constants live only in
+#   YAML COMMENTS (CH4 duplicated every constant into real keys);
+#   `results/ch5*` does not exist, so the 1.60/2.68 marginals and the
+#   G2-exact smokes live only in an agent scratch dir; the runner's `OUT`
+#   defaults to `results/ch3_r4_fp_anchor`, which would split G2's second
+#   tally from the arm JSON; "paired" in Q4 is the wrong word (the
+#   covariance is zero — the benefit is that the LEVEL seed term cancels);
+#   winner's curse is +0.0143 at n=1500, not the +0.010 quoted; and the
+#   ledger omits gates, smokes and the promised re-score (~7.3 h, not 5.6).
+#
 # OPEN FOR THE MAINTAINER
 #   1. Ratify or move the thresholds in Q5.
 #   2. R1-B: accept the Q4 reconciliation, or take A's "cut it".

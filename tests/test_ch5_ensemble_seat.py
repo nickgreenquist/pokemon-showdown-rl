@@ -131,3 +131,43 @@ class TestNativeDim:
 
     def test_single_agent_path_unchanged(self):
         assert ch3_fp_h2h._native_dim(_FakeAgent("a", 808)) == 808
+
+
+class TestSeatLaneDefault:
+    """CH5 R1 review BL-2. `seat` defaults to s65, and if s65 is pinned in
+    the same pre-reg the sha assert PASSES — so an arm meant to rate a 50M
+    lane can silently rate a 12M one and produce a JSON indistinguishable
+    from a correct arm. Four banked arms depend on the default
+    (ch3_r2_fp_h2h FG/FS, fp_budget_ladder FP20/FP500), so it cannot be
+    removed; it is made SELF-DESCRIBING instead."""
+
+    def test_the_default_is_still_there_for_the_banked_arms(self):
+        """Removing it would break four pre-regs whose numbers are banked."""
+        import inspect
+        src = inspect.getsource(ch3_fp_h2h.run)
+        assert 'arm.get("seat", "s65")' in src
+
+    def test_omitting_seat_is_recorded_as_defaulted(self):
+        seen = {}
+
+        class _Stop(Exception):
+            pass
+
+        def fake_seat(*a, **kw):
+            raise _Stop
+
+        for arm_extra, expected in (({}, True), ({"seat": "s63"}, False)):
+            prereg = _arm(kind="greedy_seat", **arm_extra)
+            prereg["arms"]["A"].pop("lanes", None)
+            with patch.object(ch3_fp_h2h, "_build_agent",
+                              lambda spec: _FakeAgent(spec["path"])), \
+                 patch.object(ch3_fp_h2h, "SeatPlayer", fake_seat):
+                with pytest.raises(_Stop):
+                    asyncio.run(ch3_fp_h2h.run(prereg, "A", 1, "t"))
+            seen[expected] = True
+        assert seen == {True: True, False: True}
+
+    def test_report_field_exists_in_the_source(self):
+        import inspect
+        src = inspect.getsource(ch3_fp_h2h.run)
+        assert '"seat_lane_defaulted": seat_lane_defaulted' in src

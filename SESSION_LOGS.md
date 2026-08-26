@@ -7630,3 +7630,62 @@ entry by offset — never a broad keyword grep.
   coverage, not 95%.
   Arms A1-A3/B1-B3 and the R1-C compositions are deliberately NOT enumerated in
   r1 — they wait on the reviews and the maintainer's Q5/Q6 calls.
+- 2026-08-26 (evening cont., **CH5 R1 PRE-REG REVIEWED BY 2 OPUS REVIEWERS.
+  VERDICT: DO NOT LAUNCH. 10 BLOCKERS; 5 FIXED, 5 OPEN.** Draft is r2 at
+  `configs/eval/ch5_r1_offsh.yaml`. Nothing launched.): the reviews did their
+  job — the r1 synthesis was mine and most of what they hit was mine too.
+  **REVIEWER 2 (buildability), all verified against source before acceptance:**
+  **BL-1 — my G-BUDGET GATE WAS A TAUTOLOGY.** `ch3_fp_h2h.py:318` stamps
+  `declared_search_time_ms: arm.get("search_time_ms")` — the SEAT copies the
+  same YAML the runner reads and never sees the runner's env, so if the
+  runner's derivation fails (its python one-liner is `2>/dev/null ||`
+  swallowed) **FP really runs at 100 ms and the JSON still says 20.** Rewritten
+  to assert FP's OWN log as CH4's G8 did: every `Sampling <N> battles at <M>ms
+  each` line must satisfy N*M == 2*declared. Verified on this chapter's own
+  calibration log — at declared 20 the lines are exactly `2 battles at 20ms`
+  (3372x) and `4 battles at 10ms` (347x), N*M = 40 throughout.
+  **BL-2 — A LIVE CODE FOOTGUN, FIXED THIS SESSION.** `seat_lane =
+  arm.get("seat", "s65")`: an arm omitting `seat` silently runs s65, and where
+  s65 is pinned in the same pre-reg **the sha assert PASSES**, so three "50M"
+  arms could all have been one 12M lane with JSONs indistinguishable from
+  correct ones. It is the exact class I closed for `ensemble_seat` and left
+  open for the single-seat kinds. **The default CANNOT be removed — four banked
+  arms depend on it** (`ch3_r2_fp_h2h` FG/FS, `fp_budget_ladder` FP20/FP500),
+  verified by enumeration — so it is now SELF-DESCRIBING: the seat stamps
+  `seat_lane_defaulted` and CH5 gates on it being false. 3 tests added.
+  **BL-3 — I CUT C0 FROM 3000 TO 1500 WITHOUT DISCLOSING IT, AND THE CUT WAS
+  ALSO WRONG.** C0 is ONE arm; unpooled, n=1500 gives 2*se_diff = **0.0261,
+  failing this file's own 0.025 floor** (n=3000 gives 0.0195). My Q3
+  justification applied R1-A's THREE-LANE POOLED arithmetic to a one-arm read.
+  **Both designers specified 3000.** This is "the synthesis hid the dispute" —
+  the named failure this process exists to catch — committed by me. Restored.
+  **REVIEWER 1 (validity), verdict DO NOT LAUNCH, both checked:**
+  **BL — THE FILE CONTRADICTS ITS OWN FORMULA.** Q1 quoted a 0.0725 bar
+  (computed from sigma_seed) while Q5's stated formula uses the TOTAL sd and
+  gives **0.0735**. Verdict unchanged (0.44 se either way) but a pre-reg whose
+  headline number does not follow its own stated rule is not ratifiable.
+  **BL — MY RESTATED PRIMARY READ WAS NOT WELL-POSED, AND WAS ALSO NOT
+  DESIGNER A's.** "Measure the 50M family's off-FP sigma_seed" at k=3 is an sd
+  on 2 df: the 95% CI spans **x[0.52, 6.28], a factor of TWELVE** — 0.0624
+  returns as [0.033, 0.392]. In-repo proof it is not academic: re-measuring the
+  SAME four 12M seeds gives sigma_seed 0.00758 vs 0.01121, **48% apart at
+  k=4**. A had named it a CONDITIONAL FALLBACK and I promoted it to primary.
+  **REVIEWER 1's REPLACEMENT IS BETTER AND IS ADOPTED: "does s82's collapse
+  REPRODUCE off-FP?"** The entire 50M variance story is one lane (0.6297 vs
+  0.7423/0.7347); at n=1500/lane the se_diff between {s80,s81} and s82 is
+  0.0166, so a vs-SH-sized collapse lands at **6.6 se**. Sharp, binary, high
+  power — everything "estimate an sd from three points" is not.
+  **FIVE BLOCKERS REMAIN OPEN and are enumerated in the file's new
+  BLOCKERS-OPEN block**, chief among them that **Q5 has no ACTION column** (9
+  verdict cells, zero actions), that **Q5 grades only ONE of the three reads**,
+  and that **ABOVE may be UNREACHABLE** (BT transfer predicts a 0.075 bar
+  needing 0.4238 against a best-ever lane of 0.3557 — an unreachable branch
+  must be declared unreachable up front, the D25-P lesson).
+  **PROCESS SLIP, DISCLOSED IN THE FILE: I edited `ch3_fp_h2h.py` and its tests
+  WHILE reviewer 1 was reading the tree** (fixing BL-2 concurrently). The
+  reviewer flagged the moving target itself. Reviews should read a frozen tree.
+  **DURABILITY, per reviewer 2's MAJOR:** the four cycle docs are mirrored to
+  `../pokemon-showdown-rl-d25-backup-20260815/design_ch5/`, and the smoke and
+  calibration JSONs — which held the 1.60/2.68 marginals and the G2-exact
+  tallies and existed ONLY in an agent scratch dir — are now in
+  `results/ch5_r1_offsh/`. Suite 550 / 17.
