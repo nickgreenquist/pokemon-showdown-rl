@@ -163,3 +163,26 @@ def test_ensemble_rosters_are_membership_rules_not_menus():
     ens = CFG["ensembles"]
     assert ens["E4_ladder"] == ["s62", "s63", "s64", "s65"], "E4 must be exactly L2"
     assert set(ens["E7_all"]) == set(CFG["checkpoints"]), "E7 must be every pinned lane"
+
+
+def test_n_does_not_bind_the_fleet_mean_bar_above_the_stated_point():
+    """O-6(i). The deciding fact for R1-A's n: 2*binomial falls under the
+    credit floor from ~750/lane, and the clustered term has no n in it. So
+    past that point no battle count can move the bar, and any future edit
+    that "buys more power" with battles on this read is confused."""
+    a = G["arms"]["R1A"]
+    floor = G["credit_floor"]
+    for n in (a["n_does_not_bind_above"], a["n_per_lane"], 3000):
+        two_binom = 2 * math.hypot(se(P0, 3 * n), se(P0, N0))
+        assert two_binom <= floor, f"binomial still binds at n={n}"
+    assert a["stage_2"] == "none"
+    assert a["role"] == "secondary_descriptive"
+
+
+def test_the_primary_n_clears_the_s82_question():
+    a = G["arms"]["R1A_PRIMARY_s82"]
+    n = a["n_per_lane"]
+    sed = math.hypot(math.sqrt(0.35 * 0.65 / (2 * n)), math.sqrt(0.25 * 0.75 / n))
+    assert a["se_diff_at_n1000"] == pytest.approx(sed, abs=5e-4)
+    assert 0.11 / sed > 5.0, "a vs-SH-sized collapse must be comfortably resolvable"
+    assert a["role"] == "PRIMARY"

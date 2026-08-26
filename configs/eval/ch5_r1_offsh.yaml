@@ -108,7 +108,8 @@
 #   n per lane, from three independent power calculations that agreed:
 #   binomial governs to ~4800 battles/lane, and 2*se_diff reaches the
 #   0.025 credit floor at ~971. 3000/lane buys 0.0133 for 3x the time.
-#     C0   1 x 3000 = 1.33 h        R1-A  3 x 1500 = 1.86 h  <- sweep: r3
+#     C0   1 x 3000 = 1.33 h        R1-A  3 x 1000 = 1.24 h  <- O-6(i)
+#     (was 1.86 h at n=1500; n does not bind this bar)      <- sweep: r3
 #     priced a GREEDY arm at the 1.60 ENSEMBLE rate, the exact error this
 #     file congratulates itself for catching. Greedy realized 1.485.
 #     R1-B 3 x 1000 = 2.23 h        R1-C  1 x 3000 = 1.33 h
@@ -273,7 +274,9 @@
 #        fp_completed against battles_requested.
 #   G-SERIAL   one arm at a time; assert non-overlapping arm wall clocks.
 #   G-SHA      every checkpoint sha256 == pin (the seat already asserts).
-#   G-DESYNC   mask_desyncs == 0.
+#   G-DESYNC   **VOID at a desync RATE > 0.5%** (designer A's V8 and
+#        designer B's G5, both of whom specified a rate; r3 silently
+#        tightened it to `== 0`). Any non-zero count is REPORTED.
 #   G-WIRING   a short vs-SH read on each 50M lane before its FP arm
 #        (designer A): a sha pin proves the FILE, not the WIRING, and
 #        these checkpoints have never been loaded by this seat in a real
@@ -325,8 +328,45 @@
 #       Elo 1311; B's NO_PROGRESS abort and MAX_RELAUNCHES=10; B's
 #       retention obligation on FP's stdout (it IS the G2 second tally);
 #       B's grader `--selftest`; B's CW-6 roster recommendation.
-#   O-6 (NEW, from the sweep) **THREE MORE DESIGNER SPLITS WERE DECIDED
-#       SILENTLY.** Q4 claims R1-B is "THE ONE PLACE THE DESIGNERS SPLIT".
+#   O-6 **RULED. THREE MORE DESIGNER SPLITS HAD BEEN DECIDED SILENTLY;
+#       each now has a recorded ruling, and all three are the assistant's,
+#       flagged as such.**
+#     (i) **R1-A's n -> 1000/lane, and there is NO stage 2 for the
+#         fleet-mean read.** A wanted staged 1000->3000; B wanted 1500;
+#         r4 carried 1500, which followed from NEITHER designer once B's
+#         basis sqrt(3.51/1.485) died with the cost recalibration (the
+#         same rule on the real costs gives 1343). **Then the deciding
+#         fact, which neither designer had and which the assistant nearly
+#         missed too: n DOES NOT BIND THIS BAR AT ALL.** 2*binomial falls
+#         below the 0.025 floor from ~750/lane up, and the clustered term
+#         has no n in it — so past ~750 no battle count can move the
+#         fleet-mean bar. What binds is s_50. n=1000 is chosen because it
+#         clears the s82 PRIMARY at 6.3 se (that read IS binomial), not
+#         because it buys anything on the fleet mean. **Cost 1.24 h, down
+#         from 1.86 h, and the "extend to 3000" branch is deleted as
+#         incoherent rather than merely expensive.**
+#     (ii) **R1-C composition -> BOTH, in their proper roles.** B
+#         recommended CW-6 (drop s82, soft-AND mechanism); A's membership
+#         rules force s82 in; r4 ran A's side and recorded neither. They
+#         are not actually in conflict once this file's own
+#         deployment-vs-credit line is applied: **dropping s82 is
+#         selection on a score already seen, so CW-6 cannot be a
+#         pre-registered roster — but it CAN be a named DEPLOYMENT
+#         candidate, re-scored fresh before any number is published.**
+#         E3/E7 stay as the rule-fixed rosters; CW-6 is added as a
+#         deployment candidate with B's mechanism recorded.
+#     (iii) **What R1-A IS -> B's per-lane framing, adopted properly.**
+#         r4 took B's premise ("cannot be credit-grade") and A's
+#         conclusion (fleet-mean verdict). Now that the PRIMARY is the
+#         s82 question — per-lane by nature — B's per-lane read is what
+#         the primary actually needs. **PRIMARY = per-lane; the
+#         fleet-mean delta is SECONDARY and DESCRIPTIVE.**
+#     (iv) **G-DESYNC reverts to the designers' rule.** r3 set
+#         `mask_desyncs == 0` as a VOID; **both** designers specified a
+#         0.5% RATE (A's V8, B's G5) and the tightening was never flagged
+#         as a change. VOID at > 0.5%; any non-zero count is REPORTED.
+#     ORIGINAL FINDING, kept for the record: Q4 claimed R1-B was "THE ONE
+#     PLACE THE DESIGNERS SPLIT". It was not. Q4 claims R1-B is "THE ONE PLACE THE DESIGNERS SPLIT".
 #       It is not. (i) R1-A's n: A wanted a staged 1000->3000, B wanted
 #       1500; r3 took 1500 and called it "three power calculations that
 #       agreed" — and B's basis sqrt(3.51/1.485) DIED when the cost was
@@ -390,7 +430,12 @@ grading:
   arms:
     # sweep: r3 said two_sided while verdict_s, Q5's prose and designer A's
     # §4 all say one-sided each. verdict_s governs.
-    R1A: {sidedness: one_sided_each_per_verdict_s, k_arm: 3, k_cmp: 4, n_per_lane: 1500}
+    # O-6(i): n does not bind this bar. 2*binomial is under the 0.025 floor
+    # from ~750/lane and the clustered term has no n in it. 1000 is set by
+    # the s82 PRIMARY (6.3 se), not by the fleet mean.
+    R1A: {sidedness: one_sided_each_per_verdict_s, k_arm: 3, k_cmp: 4,
+          n_per_lane: 1000, role: secondary_descriptive,
+          n_does_not_bind_above: 750, stage_2: none}
     R1B: {sidedness: one_sided_positive, k_arm: 3, n_per_lane: 1000,
           se_instrument: paired_clustered_sd_d, note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"}
     # sweep: 0.0246 BREACHED this file's own bar = max(0.025, 2*se) — and
@@ -403,6 +448,9 @@ grading:
     R1A_PRIMARY_s82:
       question: "does s82's collapse reproduce off-FP?"
       construction: "mean{s80,s81} - s82; se = hypot(sqrt(p(1-p)/(2n)), sqrt(p(1-p)/n))"
+      role: PRIMARY
+      n_per_lane: 1000
+      se_diff_at_n1000: 0.0174     # a 0.11 collapse lands at 6.3 se
       se_diff_at_n1500: 0.0142
       note: "r3 published se 0.0166 / 6.6 se by treating the TWO-LANE MEAN as one lane. Correct: 0.0142, and a vs-SH-sized collapse (0.11) lands at 7.8 se."
       sidedness: one_sided_negative
@@ -446,7 +494,9 @@ checkpoints:
 ensembles:
   E4_ladder: [s62, s63, s64, s65]     # exactly L2, the object that laddered
   E3_50m:    [s80, s81, s82]          # the whole 50M fleet, no selection
-  E7_all:    [s62, s63, s64, s65, s80, s81, s82]   # every 828-d lane on disk
+  E7_all:    [s62, s63, s64, s65, s80, s81, s82]   # the seven lanes PINNED
+    # above — NOT "every 828-d lane on disk", which the sweep showed
+    # selects far more and would make the roster a moving target.
 
 arms:
   C0:
