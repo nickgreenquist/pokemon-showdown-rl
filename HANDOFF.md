@@ -1,98 +1,121 @@
-# Handoff — written 2026-08-26 (morning), for a fresh-context session
+# Handoff — written 2026-08-26, for a fresh-context session
 
-The first real ladder run is finishing at its pre-registered n=200 floor. This
-file exists mainly to answer one question the maintainer asked explicitly:
-**where does the ladder data live, and how do you get the numbers back if it
-is gone?** Fold this into STATUS.md / SESSION_LOGS.md on pickup and restore the
-empty stub.
+**Nothing is in flight. Tree is clean. Suite is green (538 passed, 17 skipped).
+LADDER R1 is COMPLETE at n=200.** Fold this into STATUS.md / SESSION_LOGS.md on
+pickup and restore the empty stub.
 
-## WHERE THE LADDER DATA IS — read this first
+## Read order
 
-`results/`, `runs/` and `data/` are **gitignored with zero tracked files**. The
-ladder JSONL and its 200+ replays are NOT in git and never will be. A rated
-ladder game is also **unrepeatable** — you cannot re-play it — so unlike a
-training run, losing these files loses the measurement permanently.
+1. `STATUS.md` — authoritative, 60-line cap.
+2. **`LADDER_R1_READOUT.md`** — generated, tracked, carries all three
+   pre-registered readout obligations. This is the ladder result.
+3. The newest SESSION_LOGS entries (2026-08-26). Index with
+   `grep -n '^- 20' SESSION_LOGS.md`, read by offset.
+4. **Do NOT read `DESIGN.md` for "what next"** — HISTORICAL/SPENT banner.
+5. `REPLAY_AUDIT.md` is **n=39 and SUPERSEDED** by the ~175-battle sweep in
+   SESSION_LOGS. Where they disagree, the sweep wins.
 
-Three copies, kept in sync by `scripts/backup_ladder.sh` (run it after any
-ladder session; it verifies the mirror matches and exits non-zero if not):
+## WHERE THE LADDER DATA IS — the maintainer asked for this explicitly
 
-1. `results/ladder/` — the live working copy
+`results/` is gitignored with zero tracked files, AND a rated ladder game is
+**unrepeatable** — unlike a training run it cannot be regenerated at any price.
+Three copies, verified in sync at **200 rows / 217 replays** by
+`scripts/backup_ladder.sh` (it exits non-zero if the mirror drifts — run it
+after any ladder session):
+
+1. `results/ladder/` — live working copy
 2. `../pokemon-showdown-rl-d25-backup-20260815/ladder/` — rsync mirror
 3. `~/pokemon-showdown-rl-ladder-archive/ladder_r1_*.tar.gz` — dated tarballs
 
-**The NUMBERS survive separately from the files.** `scripts/ladder_readout.py`
-writes **`LADDER_R1_READOUT.md`** to a TRACKED path in the repo, so even losing
-all three copies leaves the readout, and the script leaves the method. This is
-the same rule `scripts/README.md` records for grader scripts: a script is the
-committed provenance for its number.
+**The NUMBERS survive separately from the FILES.** `scripts/ladder_readout.py`
+writes to a TRACKED path, so losing all three copies still leaves the readout
+in git and the method in the script — `scripts/README.md`'s grader-script rule,
+applied harder. Regenerate with:
 
-To regenerate everything from the artifacts:
+    python scripts/ladder_readout.py
+    python scripts/ladder_classify.py
 
-    python scripts/ladder_readout.py      # all three obligations -> tracked md
-    python scripts/ladder_classify.py     # the played/non-game cut
+## What the ladder produced
 
-## What the run produced
+95–105 (0.475); played-only 91/196 (0.464); PS Elo 1000 → **1311** (peak 1348)
+against a top-500 cutoff of 1357; 141 distinct opponents; 12.07 h; 6.74
+ms/decision. Two independent tallies agree 200/200; **0 decision_errors, 0
+mask_desyncs**.
 
-Read **`LADDER_R1_READOUT.md`** — it is generated, current, and carries all
-three pre-registered readout obligations. The headline that must travel with
-every quote: **we never got listed on the top-500, so GXE and Glicko DO NOT
-EXIST for this run and the pre-registered PRIMARY READ IS UNMEASURED.** The run
-stopped at the n floor, not by the stopping rule (`stopped_by_rule: false` is
-correct — the rule also requires being listed). Quote the Elo and the
-descriptive rates; never project a GXE.
+**WE WERE NEVER LISTED, SO GXE AND GLICKO DO NOT EXIST FOR THIS RUN.** The
+pre-registered PRIMARY read is UNMEASURED. `stopped_by_rule: false` is CORRECT
+— the rule needs rd≤40 AND n≥200 AND being listed. **Quote the Elo; never
+project a GXE in either direction.**
 
-Obligation (ii) resolved cleanly and against the interesting hypothesis: the
-rematch cell's opponents are **~118 Elo stronger** than first-encounter
-opponents, which is the confound the pre-reg named in advance. The lower
-rematch win rate is opponent selection, not the agent being memorised.
+Obligation (ii) resolved AGAINST the interesting hypothesis: rematch opponents
+are **~113 Elo stronger** (1311 vs 1198), the confound the pre-reg named while
+result-blind. The lower rematch rate is opponent selection, not the
+deterministic policy being memorised.
 
-## What was decided this session (maintainer, 2026-08-26)
+## The next task, and it is ONE pre-registration
 
-1. **Ladder stops at 200.** Done — it was launched with `--battles 200`.
-2. **Evaluate all outstanding finals: yes.** Scoped and much smaller than it
-   looks — 132 checkpoints on disk but only 13 sha-pinned, and essentially all
-   already carry banked vs-SH numbers. **The one real hole: the L2 ensemble —
-   the exact arm that just played 200 ladder games — has never been measured
-   off-SH.** The pre-reg's own table says `unmeasured` vs both the BC clone and
-   Foul Play. That is the outstanding eval, and it is ~3 h.
-3. **Cheap value-head diagnostics: done, and both hypotheses FAILED** — see
-   `scripts/diag_value_head.py` and the session log. The critic is well
-   calibrated and gets *sharper* at low material (AUC 0.964 at 1 mon left), and
-   it tracks progress rather than own-HP. So neither the heal loops nor the
-   endgame collapse is a value-shape problem, and the gamma/horizon lever has
-   no support. **Caveat: that ran vs the heuristics opponent, i.e. SH-like
-   play. Re-run vs Foul Play before believing it applies to the ladder.**
-4. **Pre-register the encoder fork: approved.** Per standing process this is a
-   2-Opus-agents-plus-review design.
-5. **Retrain: WAIT.** The maintainer's call, and it is the important one:
-   *"only measuring vs SH is holding us back — we should also measure gain vs
-   FP, which is closer to real humans."* This is right and the project already
-   paid for the instrument (CH4 R1: off-SH seed sd 0.0077, TIGHTER than vs-SH
-   0.0112 — hence STATUS's long-standing "off-SH credit line AFFORDABLE",
-   never spent). FP@20 at 1.20 s/battle makes a full locked-protocol arm
-   (3000 x 3) about 3 hours. **Proposal on the table: promote FP@20 to the
-   PRIMARY credit line and demote vs-SH to a non-regression guard.** The
-   encoder fork and the protocol change must be ONE pre-reg — changing the
-   yardstick and the model separately leaves the first result ungradeable
-   against the old numbers and the second with no baseline.
+The maintainer approved (2026-08-26): stop the ladder at 200 ✅, evaluate
+outstanding finals, cheap value diagnostics ✅, pre-register the encoder fork,
+and **WAIT on retraining until the yardstick changes**.
 
-## Things that will bite you
+**Write ONE pre-reg covering the encoder fork AND the measurement change.**
+Split them and the first result is ungradeable against the old numbers and the
+second has no baseline. Per standing process this is a
+2-Opus-agents-plus-review design.
 
-- **`bool([])` is False.** `_move_slots_aliased` therefore returns "not
-  aliased" on force-switch turns, and the encoder fills 4 move blocks from the
-  FAINTED active with `known=1.0` while `vec[5]` reads 0. Confirmed 42/42.
-  **Measured inert** — zeroing those blocks flips 0/42 choices — and "fixing"
-  it moves existing checkpoints off-distribution. Do not treat it as a win.
-- **Fixed-damage moves encode as base power 1.** Seismic Toss / Super Fang /
-  Night Shade / Dragon Rage / Sonic Boom all have `basePower == 1` in poke-env
-  gen-1 data, so the encoder describes an 80-damage Seismic Toss as 1/80th of a
-  Thunderbolt. Measured cost: **Super Fang 0/59 for us vs 36% for humans.**
-  This is the one encoder finding worth acting on.
-- **Do NOT scope a null result wider than the instrument.** `diag_encoder_live`
+- **Yardstick: promote FP@20 to the PRIMARY credit line, vs-SH to a
+  non-regression guard.** CH4 R1 already paid for this — off-SH seed sd 0.0077
+  is TIGHTER than vs-SH 0.0112, which is why STATUS has carried "off-SH credit
+  line AFFORDABLE" for days without anyone spending it. FP@20 at 1.20 s/battle
+  makes a full 3000×3 arm ≈ 3 h. Rationale: search read +0.081 vs SH and
+  NEGATIVE on both off-SH opponents (MU-8 z = −2.80) — we have been fooled by
+  an SH-facing gain once already, and the ladder is off-SH.
+- **Encoder: the fixed-damage defect is the one worth acting on** (below).
+- **SCOPE IN A PREREQUISITE:** measuring L2 off-SH is currently IMPOSSIBLE, see
+  blockers below. The ensemble seat is part of this work, not before it.
+
+## Blockers and landmines — each already cost time or nearly did
+
+- **L2 CANNOT BE EVALUATED OFF-SH AS-IS. Two blockers.** (a)
+  `ch3_fp_h2h.py`'s `ARM_KINDS = (greedy_seat, search_seat, sampled_seat,
+  fp_vs_clone)` and it asserts on anything else; L2 is `kind: ensemble` from
+  `ladder.py`'s `POLICY_KINDS`, a different namespace — there is no ensemble
+  seat in the FP path at all. (b) `eval_checkpoint._opponent_from_checkpoint`
+  seats the opponent in a **PoolPlayer that SAMPLES** by contract; building a
+  clone h2h on it reproduces **exactly the A1 bias** (~26 points of implied
+  rating — the whole "clone intransitivity"). `ch3_fp_h2h.py`'s `SeatPlayer`
+  is the deterministic one and is the right home.
+- **ENCODER DEFECT WORTH FIXING: fixed-damage moves.** poke-env gen-1 gives
+  `seismictoss / superfang / nightshade / dragonrage / sonicboom`
+  `basePower == 1`, so `_fill_move` writes 0.01 where Thunderbolt gets 0.95,
+  and nothing in the 46-dim move block says "flat level damage". Measured cost
+  on guaranteed holders: **Super Fang 0/59 for us vs 36% for humans**; Seismic
+  Toss 0.141 vs 0.289 (z = −3.39). The multiplier is NOT wholly spurious —
+  gen-1 Seismic Toss really is Ghost-immune, so only the 2×/0.5× is wrong.
+- **ENCODER DEFECT THAT IS INERT — do not sell it as a win.** `bool([])` is
+  False, so `_move_slots_aliased` returns "not aliased" on force-switch turns
+  and four move blocks describe the FAINTED mon at `known=1.0` while `vec[5]`
+  reads 0 (42/42 confirmed). Zeroing them flips **0/42** choices, and fixing it
+  moves existing checkpoints OFF-distribution.
+- **"Retrain longer" is the one lever with direct evidence against it.** D29r2
+  at 50M read 0.70222 — R-B FLAT vs the 12M stack.
+- **Don't scope a null result wider than the instrument.** `diag_encoder_live`
   concluded "no encoder bug" while gating on `if legal_moves:` — which excludes
   force-switch turns, exactly where the bug was.
-- **"Retrain longer" has been measured and was flat.** D29r2 at 50M read
-  0.70222, R-B FLAT vs the 12M stack. More steps is the one lever with direct
-  evidence against it at the current recipe.
-- `REPLAY_AUDIT.md` was written at n=39 and its rates are **superseded** by the
-  n~175 sweep recorded in SESSION_LOGS. Where they disagree, the sweep wins.
+- **Small n was re-paid twice this session.** An n=40 value probe gave AUC
+  0.964; at n=300 it is 0.891. And a 10-battle probe suggested the critic was
+  worse off-SH; at n=300 it is BETTER at every material level. Do not quote an
+  AUC to three digits off tens of battles.
+- **Changing `OBS_DIM` invalidates every checkpoint** — one fork, and evaluate
+  what matters first. That list is small: 132 checkpoints on disk but only 13
+  sha-pinned, and essentially all already carry banked vs-SH numbers.
+
+## Open
+
+- **13 commits are UNPUSHED.** The maintainer must be asked before any push.
+  Worth raising early: the committed artifacts (readout, scripts, docs) exist
+  only in this machine's local git, which is a durability gap of the same kind
+  the ladder backups were built to close.
+- `CLEANUP.md` — the audit backlog needing rulings (RESULTS.md staleness was
+  fixed 2026-08-25; the rest stands).
+- Seeds 66/67, 75/76, 83/84, 93/94 remain HELD.
