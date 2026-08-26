@@ -7306,3 +7306,39 @@ entry by offset — never a broad keyword grep.
   speed, not as a strength lever.
   Suite green. `anchor_style.py` refactored only to guard its main block under
   `__main__` so `profile()` imports; its CLI output is byte-identical.
+  **CORRECTION TO THIS ENTRY, same session, before anything launched — the
+  pre-registration claim above was TOO STRONG and the commit message
+  (bfa7c82) carries the overstatement.** DESIGN §4 Rung 1's result-blind
+  branch-on-null reads: "record that H&L's shaping may be a 10^8-scale effect
+  — a claim **Rung 3** can test later by carrying it forward regardless of the
+  12M read". **Rung 3 is SCALE.** So what was pre-registered is a carry-forward
+  into a scale run, and its stated hypothesis is that shaping needs 10^8 steps
+  — which, read literally, PREDICTS a 12M re-run fails. Two separate true
+  statements, and only the first is a pre-registration: (a) a result-blind
+  carry-forward exists and was never executed (the 50M arms dropped it);
+  (b) running it at 12M on the entity trunk instead tests **my** claim that
+  ARCHITECTURE, not scale, was the binder — an argument formed AFTER seeing the
+  null. That is post-hoc, mechanism-backed but post-hoc, and the pre-reg must
+  present it that way rather than borrowing Rung 1's result-blindness.
+  Confidence stated accordingly: **~1 in 4 that it clears the +0.025 line.** It
+  is still the pick, on cost (one overnight, zero code, no checkpoint
+  invalidation), not on likelihood.
+  **TWO FURTHER SELF-CRITICISMS worth the lines.** (1) The arm is a BUNDLE
+  (shaping + gamma) against the ratified one-lever rule; the signal12m header's
+  justification — gamma 0.95 without dense shaping is a strict downgrade —
+  still holds, so it is defensible as ONE treatment, but a null is
+  unattributable between the two and so is a credit. Say so up front. (2) The
+  adversarial question I could not answer: **why not the faint term ALONE**
+  (the only one of the five with a measured deficit behind it)? `faint_shaping`
+  exists as a separate potential-based lever and is "the shape every run before
+  Arm B trained on" — that history was NOT read this session. Read it before
+  the pre-reg; it may already answer the question or may make the single-term
+  arm the better buy.
+  **UPGRADED, having under-sold it above: the one-seat/both-seat gap is not
+  purely throughput.** H&L's per-battle batches are RETURN-BALANCED by
+  construction (one winner + one loser trajectory), which removes batch-level
+  outcome noise — a different thing from having more data, and 50M-flat speaks
+  only to quantity. In a format this luck-heavy (freeze, para, crits, 1/256)
+  that is a plausible VARIANCE lever with a same-family precedent. It needs
+  real collection wiring, so it stays behind the shaping arm, but it belongs on
+  the candidate list, not in a footnote.

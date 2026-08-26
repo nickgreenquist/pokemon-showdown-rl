@@ -23,23 +23,23 @@ plan — the encoder fork is DEFERRED to round 2, reasons in that day's log)
 1. **ONE pre-reg = YARDSTICK CHANGE + THE H&L SIGNAL CARRY-FORWARD.** Needs
    the 2-Opus-plus-reviews process; NOT yet written.
    - **Lever: `hl_shaping: 1.0` + `gamma: 0.95` on `showdown_sp_recipe12m.yaml`
-     verbatim otherwise, 4 lanes x 12M** (~9.8 h/lane, one overnight), seeds
-     from the HELD set 66/67/75/76/83/84/93/94. Zero new code: `hl_shaping` is
-     a live env kwarg and DESIGN §4 Rung 1 already specifies its R0
-     antisymmetry gate. **Encoder-neutral -> invalidates no checkpoint.**
+     verbatim otherwise, 4 lanes x 12M** (~9.8 h/lane, one overnight), HELD
+     seeds 66/67/75/76/83/84/93/94. Zero new code: `hl_shaping` is a live env
+     kwarg, and DESIGN §4 Rung 1 already carries its R0 antisymmetry gate AND
+     its falsifier. **Encoder-neutral -> invalidates no checkpoint.**
      Rung 1 nulled (+0.0135 n.s.) but ONLY on `trunk: mlp`; EVERY entity-trunk
-     run on disk is gamma 1.0 / no shaping, and DESIGN pre-registered the
-     carry-forward result-blind.
+     run is gamma 1.0 / no shaping. **DESIGN's result-blind carry-forward was
+     to Rung 3 = SCALE, so 12M-on-the-new-trunk is a POST-HOC architecture
+     argument, NOT a pre-registration. Grade it so.**
    - **Yardstick: FP@20 PRIMARY credit line, vs-SH a non-regression guard.**
-     Two real blockers: (a) `ch3_fp_h2h.py`'s `ARM_KINDS` has no `ensemble`
-     and asserts on it; (b) `eval_checkpoint._opponent_from_checkpoint` seats a
+     Two blockers: (a) `ch3_fp_h2h.py`'s `ARM_KINDS` has no `ensemble` and
+     asserts on it; (b) `eval_checkpoint._opponent_from_checkpoint` seats a
      PoolPlayer that SAMPLES = the A1 bias — use `SeatPlayer`. Grade L2 AND the
      new arm in the same window, or round 2 has no baseline.
-2. **Round 2: the encoder fork** (fixed-damage `basePower == 1`), graded on
-   the FP@20 baselines round 1 establishes.
-3. **NOT: more scale** (50M FLAT), **not attention/capacity** (08-25 review:
-   88% of a same-family 72%-GXE agent), **not a blunder filter** (dead, below),
-   **not a 2nd ladder arm to DISCRIMINATE proxies** (~4x n=200 for ~30-50 Elo).
+2. **Round 2: the encoder fork**, graded on round 1's FP@20 baselines.
+3. **NOT: more scale** (50M FLAT); **not attention/capacity** (88% of a
+   same-family 72%-GXE agent); **not a blunder filter** (dead, below); **not a
+   2nd ladder arm to DISCRIMINATE proxies** (~4x n=200 for ~30-50 Elo).
 ## Watch items
 - **WE ARE IN THE STYLE TABLE (`scripts/replay_audit/our_style.py`, new).**
   Sum-|delta| from the human field: **US 0.095, SH 0.095**, clone 0.124 — as
