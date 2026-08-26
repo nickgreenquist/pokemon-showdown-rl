@@ -7689,3 +7689,51 @@ entry by offset — never a broad keyword grep.
   calibration JSONs — which held the 1.60/2.68 marginals and the G2-exact
   tallies and existed ONLY in an agent scratch dir — are now in
   `results/ch5_r1_offsh/`. Suite 550 / 17.
+- 2026-08-26 (evening cont., maintainer: "get to work. use opus agents if you
+  need help"): **CH5 R1 PRE-REG -> r3. FOUR OF THE FIVE OPEN BLOCKERS CLOSED;
+  O-5 (dropped-item dispositions) is out with a completeness agent.** Nothing
+  launched. Suite 561 / 17 (+11).
+  **O-1 CLOSED — Q5 NOW HAS THE 3x3 ACTION TABLE it lacked.** Nine
+  (VERDICT-S x VERDICT-P) cells, every one routing to a named action. The cell
+  that matters most is **WITHIN x NON-RESOLVING, which explicitly forecloses
+  "just run more battles"** — binomial is not what binds there, so the
+  pre-committed action is to buy LANES or drop the scale question, decided now
+  rather than under the temptation of a null. **ABOVE x NON-RESOLVING is
+  declared IMPOSSIBLE BY CONSTRUCTION** and VOIDs if it ever fires.
+  **O-2 CLOSED — r2 graded ONE of three reads.** R1-B and R1-C now carry their
+  own se construction, sidedness and bar. R1-B is a WITHIN-LANE difference
+  d_i = search_i - greedy_i on the same three lanes, so the seed LEVEL cancels;
+  the repo already owns that instrument (**R5b's `paired_clustered_sd_d`**).
+  **r2's word "paired" was wrong and is corrected: the covariance is ZERO**
+  (different battles) — the benefit is the cancelling level term, not pairing.
+  R1-C scores each composition against C0 at n=3000: bar 0.0246, inside the
+  0.025 floor.
+  **O-3 CLOSED — the clustered rule is now k-GENERAL.** r2 hardcoded `/3`,
+  which understates the se by **22% at k=2**, and a lost lane is a ~13% event.
+  **At k=1 there is NO clustered term at all** — one lane yields no sd — so a
+  k=1 read is declared DESCRIPTIVE and cannot return a verdict. G-WIRING
+  rebuilt: r2's form was blocking, per-lane and TWO-SIDED with no re-run rule
+  (**13.0% spurious block** vs designer A's ~0.6%); r3 is n=300, ONE-SIDED
+  (only a read materially BELOW banked is a wiring symptom), band -0.10,
+  re-run-once before it can void.
+  **O-4 CLOSED — THE REACHABILITY CLIFF IS TABULATED RESULT-BLIND.** Whether
+  ABOVE can fire depends on s_50(off-FP), which R1-A is measuring, so the cliff
+  is declared now: bar 0.0250 at s_50=0 rising to **0.0759 at s_50=0.0624**,
+  where ABOVE would need a fleet mean of **0.4246 against a best-12M-lane-ever
+  of 0.3557**. **So if the off-FP spread resembles the vs-SH spread, ABOVE is
+  UNREACHABLE and R1-A can only return WITHIN or BELOW** — which must never be
+  reported as "we tested for improvement and found none". The arm still runs:
+  its PRIMARY is the s82 question, which has 6.6 se of power either way.
+  **THE GRADING APPARATUS MOVED OUT OF COMMENTS INTO REAL KEYS** (review 2
+  MAJOR; CH4's precedent). New `grading:` block with the floor, aggregator,
+  k-general formula, verdict bands, per-arm parameters and the cliff table.
+  **AND THAT IMMEDIATELY EARNED ITSELF:** new `tests/test_ch5_prereg.py` (11
+  tests re-deriving the bars from the banked comparator rather than trusting
+  them) **caught that I had fixed C0's n=3000 in the ledger COMMENTS and left
+  `battles: 1500` in the actual arm** — the exact class of drift that made r1
+  quote a bar its own formula did not produce. Fixed.
+  Agent use, per the maintainer's licence: one Opus agent is running the
+  mechanical O-5 sweep (every named item across the two memos and two reviews
+  -> ADDRESSED / PARTIAL / OPEN / DECLINED, plus undisclosed side-picking and
+  misattribution). Design work stayed here; the exhaustive cross-referencing
+  went to the agent.

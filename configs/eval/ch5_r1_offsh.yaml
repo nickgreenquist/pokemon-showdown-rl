@@ -1,8 +1,11 @@
 # =====================================================================
 # CHAPTER 5 R1 — THE THREE ZERO-TRAINING OFF-SH READS
-# STATUS: **DRAFT r2 — NOT RATIFIED AND NOT LAUNCHABLE. 10 BLOCKERS
-#   RAISED BY TWO REVIEWS; 5 FIXED HERE, 5 STILL OPEN (see BLOCKERS-OPEN).
-#   Reviewer 1's verdict is "do not launch" and it stands.** Synthesis of
+# STATUS: **DRAFT r3 — NOT RATIFIED. 10 BLOCKERS RAISED BY TWO REVIEWS;
+#   9 NOW CLOSED, 1 (O-5, dropped-item dispositions) PENDING a mechanical
+#   completeness sweep. Reviewer 1's "do not launch" was aimed at the r2
+#   GRADING GAP, which r3 closes: Q5 now has a full 3x3 action table,
+#   per-arm bars for R1-B and R1-C, a k-general clustered rule, and the
+#   ABOVE-reachability cliff declared result-blind.** Synthesis of
 #   two independent Opus design memos (A = evidential validity, B = build/
 #   cost) per the standing 2026-08-12 process, plus measurements taken
 #   this session to adjudicate where they disagreed, then two independent
@@ -114,22 +117,93 @@
 #   differenced against the 50M delta. A's objection is fully honoured:
 #   no number crosses a budget.
 # ---------------------------------------------------------------------
-# Q5. GRADING (designer A's partition; thresholds are the maintainer's
-#   to ratify). bar = max(0.025, 2 * max(se_binomial, se_seed_clustered)),
-#   se_clustered = sqrt(s_50^2/3 + s_12^2/4). AGGREGATOR = EQUAL-WEIGHT
-#   MEAN of lane rates, BINDING. **MEDIAN IS EXPLICITLY BARRED**: at k=3
-#   the median IS a single lane, i.e. maximally robust to precisely the
-#   one-lane collapse that is the signal here.
-#   Partition of the whole real line, no unnamed cell:
-#     ABOVE   delta >= +bar   (one-sided)
-#     WITHIN  the complement — a FAILURE TO RESOLVE, never an equivalence
-#             claim. It licenses no "flat" sentence.
-#     BELOW   delta <= -bar   (one-sided)
-#   Orthogonal VERDICT-P, because a bar this wide can be uninformative:
+# Q5. GRADING — r3. **THE ACTION COLUMN IS THE POINT** (review 1 BL-1:
+#   r2 had nine verdict cells and zero actions).
+#   bar = max(0.025, 2 * max(se_binomial, se_clustered)), and
+#   **se_clustered = sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp) — k-GENERAL, not
+#   the hardcoded /3 of r2** (review 1 BL-3: at k=2 that understated the
+#   se by 22%). s_* are TOTAL lane sds, not sigma_seed; r2 quoted one and
+#   formula'd the other. **At k_arm = 1 there is NO clustered term** —
+#   one lane yields no sd — so a k=1 read is binomial-only and is
+#   DESCRIPTIVE, never a verdict. AGGREGATOR = EQUAL-WEIGHT MEAN of lane
+#   rates, BINDING; **MEDIAN IS BARRED** (at k=3 the median IS one lane,
+#   i.e. maximally robust to the very one-lane collapse that is the
+#   signal). Disclosure: at k=3 Welch df ~2.2, so "2 se" is ~82%
+#   coverage, not 95% — say 82% wherever the bar is quoted.
+#
+#   VERDICT-S (one-sided each; WITHIN is the COMPLEMENT, never an
+#   equivalence claim): ABOVE d >= +bar | WITHIN otherwise | BELOW d <= -bar.
+#   VERDICT-P (is the bar informative at all):
 #     RESOLVING bar <= 0.030 | WEAK 0.030-0.060 | NON-RESOLVING > 0.060.
-#   **"Flat" is licensed ONLY under RESOLVING+WITHIN.** Disclosure A
-#   raised and it stands: at k=3, Welch df ~ 2.2, so "2 se" is ~82%
-#   coverage, not 95%. Say 82% wherever the bar is quoted.
+#
+#   **THE 3x3 ACTION TABLE. Every cell routes; no cell is silent.**
+#     ABOVE  x RESOLVING      -> scale is alive AND the model is on disk.
+#                                R3 ladders the 50M fleet; R2 training is
+#                                OPTIONAL. Past-50M stays out of chapter.
+#     ABOVE  x WEAK           -> same direction, weaker warrant. R3 may
+#                                ladder 50M, but the readout says WEAK and
+#                                quotes the bar. No R2 lever is credited.
+#     ABOVE  x NON-RESOLVING  -> **CANNOT OCCUR BY CONSTRUCTION** at any
+#                                plausible fleet mean (see the O-4 cliff
+#                                table). If it somehow fires, VOID and
+#                                re-examine the arm — it means the bar and
+#                                the delta were both enormous.
+#     WITHIN x RESOLVING      -> the ONLY cell licensing the word "flat".
+#                                Scale genuinely does nothing off-FP at
+#                                50M. R2 = C2 (more seeds) unless R1-C
+#                                already delivered; then a structure lever.
+#     WITHIN x WEAK           -> no "flat" sentence. Report the interval.
+#                                R2 = C2, chosen on cost not on evidence,
+#                                and the readout says the scale question
+#                                is UNRESOLVED rather than answered.
+#     WITHIN x NON-RESOLVING  -> **k=3 CANNOT ANSWER THIS QUESTION.** The
+#                                action is NOT more battles (binomial is
+#                                not what binds here) and NOT "flat". It
+#                                is: stop buying battles, and either buy
+#                                LANES or drop the scale question for the
+#                                chapter. Pre-committed so the tempting
+#                                "just run more" is closed off in advance.
+#     BELOW  x RESOLVING      -> scale actively hurts this recipe. C1/C3
+#                                CLOSED for the chapter. R2 = C2 (more 12M
+#                                seeds + widest ensemble); R3 ladders the
+#                                best 12M-family object.
+#     BELOW  x WEAK           -> same action as above, stated as weak. Do
+#                                not publish "scale hurts".
+#     BELOW  x NON-RESOLVING  -> same as WITHIN x NON-RESOLVING: the
+#                                instrument, not the world, is the limit.
+#
+#   **R1-B's BAR (review 1 BL-2: r2 graded only R1-A).** R1-B is a
+#   WITHIN-LANE difference d_i = search_i - greedy_i on the SAME three
+#   lanes, so the seed LEVEL cancels. **"Paired" was the wrong word in r2
+#   — the covariance is zero (different battles); the benefit is the
+#   cancelling level term.** Governing se = max(binomial, sd(d_i)/sqrt(k))
+#   — the repo already has this instrument, R5b's `paired_clustered_sd_d`.
+#   At 1000/lane the binomial term is 0.0123, so bar = max(0.025, 0.0246,
+#   2*sd(d_i)/sqrt(3)). One-sided ABOVE only: the pre-registered question
+#   is "does search help on a better-trained net", and a NEGATIVE result
+#   reproduces the banked sign rather than discovering anything.
+#   **R1-C's BAR.** Each composition is scored against C0 (L2's own
+#   number), both new, both n=3000, single arms: se_diff 0.0123 -> bar
+#   0.0246, which meets the 0.025 floor. Two-sided (a composition may be
+#   worse than L2 and that matters for deployment).
+# ---------------------------------------------------------------------
+# O-4 RESOLVED — **THE REACHABILITY CLIFF, DECLARED BEFORE ANY DATUM.**
+#   Whether ABOVE can fire depends on s_50(off-FP), which R1-A measures.
+#   So the cliff is stated now rather than discovered later (the D25-P
+#   lesson: an unreachable branch must be declared unreachable up front).
+#   At n=1500/lane x 3, comparator n=12,000:
+#     s_50(off-FP)   bar     fleet mean ABOVE needs
+#       0.0000     0.0250          0.3737
+#       0.0206     0.0263          0.3750     <- clustered overtakes binomial
+#       0.0300     0.0364          0.3851
+#       0.0450     0.0532          0.4018
+#       0.0650     0.0759          0.4246     <- the 50M vs-SH value
+#   Best 12M lane EVER measured off FP@20 is 0.3557; the fleet mean is
+#   0.34867. **So if the 50M fleet's off-FP spread resembles its vs-SH
+#   spread, ABOVE is UNREACHABLE and R1-A can only return WITHIN or
+#   BELOW.** That is not a reason to skip the arm — the PRIMARY read is
+#   the s82 question, which has 6.6 se of power regardless — but it must
+#   never be reported as "we tested for improvement and found none".
 # ---------------------------------------------------------------------
 # Q6. DEPLOYMENT vs CREDIT — the line, since R1-C invites crossing it.
 #   Selecting a checkpoint to DEPLOY is not a credit claim; quoting the
@@ -173,29 +247,68 @@
 #   G-SERIAL   one arm at a time; assert non-overlapping arm wall clocks.
 #   G-SHA      every checkpoint sha256 == pin (the seat already asserts).
 #   G-DESYNC   mask_desyncs == 0.
-#   G-WIRING   a 6-minute vs-SH sanity read on each 50M lane before its
-#        FP arm (designer A): a sha pin proves the FILE, not the WIRING,
-#        and these checkpoints have never been loaded by this seat in a
-#        real battle. Compare against the banked 0.7423/0.7347/0.6297.
+#   G-WIRING   a short vs-SH read on each 50M lane before its FP arm
+#        (designer A): a sha pin proves the FILE, not the WIRING, and
+#        these checkpoints have never been loaded by this seat in a real
+#        battle. **REDESIGNED r2->r3 after review 1 BL-3, which showed the
+#        r2 form was blocking, per-lane and TWO-SIDED with no re-run rule
+#        — a 13.0% spurious-block rate against designer A's ~0.6%.**
+#        r3: n=300 per lane; ONE-SIDED (only a read materially BELOW the
+#        banked value is alarming — a high read is not a wiring failure);
+#        band = banked -0.10; and a flagged lane is RE-RUN ONCE at n=300
+#        before it can VOID anything. Non-blocking on a single flag.
+#        Banked # Review 2 MAJOR: r2's entire grading apparatus lived in COMMENTS. CH4
+# duplicated every constant into real keys so a grader reads the file
+# rather than a human paraphrase of it. These keys are AUTHORITATIVE and
+# the comments above are commentary.
+grading:
+  credit_floor: 0.025
+  aggregator: equal_weight_mean_of_lane_rates
+  median_barred: true            # at k=3 the median IS one lane
+  se_rule: max(binomial, clustered)
+  clustered_formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp)   # k-GENERAL
+  clustered_undefined_at_k: 1    # one lane yields no sd -> descriptive only
+  coverage_disclosure: "at k=3 Welch df ~2.2, so 2*se is ~82% coverage, not 95%"
+  verdict_p_bands: {resolving: [0.0, 0.030], weak: [0.030, 0.060], non_resolving: [0.060, .inf]}
+  verdict_s: {above: one_sided_positive, below: one_sided_negative, within: complement_not_equivalence}
+  flat_licensed_only_in: [WITHIN x RESOLVING]
+  arms:
+    R1A: {sidedness: two_sided, k_arm: 3, k_cmp: 4, n_per_lane: 1500}
+    R1B: {sidedness: one_sided_positive, k_arm: 3, n_per_lane: 1000,
+          se_instrument: paired_clustered_sd_d, note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"}
+    R1C: {sidedness: two_sided, comparator: C0, n_per_arm: 3000, bar: 0.0246}
+  above_reachability_cliff:      # O-4, declared result-blind
+    s50_0.0000: {bar: 0.0250, fleet_mean_above_needs: 0.3737}
+    s50_0.0206: {bar: 0.0263, fleet_mean_above_needs: 0.3750}
+    s50_0.0300: {bar: 0.0364, fleet_mean_above_needs: 0.3851}
+    s50_0.0450: {bar: 0.0532, fleet_mean_above_needs: 0.4018}
+    s50_0.0650: {bar: 0.0759, fleet_mean_above_needs: 0.4246}
+    best_12m_lane_ever_off_fp20: 0.3557
+    note: "if s_50(off-FP) resembles its vs-SH 0.0624, ABOVE is UNREACHABLE"
+
+comparators: s80 0.74233, s81 0.73467, s82 0.62967.
+#   G-K       **the k<3 cell, unnamed in r2 and a ~13% event.** If any
+#        lane is lost, k drops and the clustered term MUST use k_arm, not
+#        3. At k_arm=2 the r2 formula understated the se by 22%. **At
+#        k_arm=1 there is no clustered term at all and the read is
+#        DESCRIPTIVE ONLY — it cannot return a VERDICT-S.** Say which k
+#        every quoted number was computed at.
 # ---------------------------------------------------------------------
-# BLOCKERS-OPEN — these must close before launch. r2 does NOT close them.
-#   O-1 (rev 1 BL-1) **Q5 has no ACTION column.** Nine (VERDICT-S x
-#       VERDICT-P) cells, one stated consequence, zero actions.
-#       WITHIN x RESOLVING and WITHIN x NON-RESOLVING must route
-#       differently and currently do not.
-#   O-2 (rev 1 BL-2) **Q5 grades ONE of the three reads.** Its s_12^2/4
-#       term is R1-A-specific; R1-B and R1-C have no se, no bar, no
-#       partition, no sidedness.
-#   O-3 (rev 1 BL-3) **the k<3 cell is unnamed and is a ~13% event.**
-#       G-WIRING as drafted is blocking, per-lane and two-sided with no
-#       re-run rule (13.0% spurious block vs designer A's ~0.6%), and at
-#       k=2 Q5's hardcoded /3 understates the se by 22%.
-#   O-4 (rev 1 BL-4) **the unreachable-ABOVE disclosure is missing and
-#       ABOVE is plausibly unreachable.** BT transfer predicts
-#       s_50(off-FP) ~ 0.065 -> bar 0.075 -> ABOVE would need 0.4238
-#       against a best-ever lane of 0.3557. Even shrunk 1.61x the bar is
-#       0.047 and ABOVE needs 0.3956. **An unreachable branch must be
-#       declared unreachable up front (the D25-P lesson).**
+# BLOCKERS — status at r3.
+#   O-1 CLOSED — Q5 now carries the full 3x3 action table; every cell
+#       routes, and WITHIN x NON-RESOLVING explicitly forecloses "just run
+#       more battles" (binomial is not what binds there).
+#   O-2 CLOSED — R1-B and R1-C now have their own se construction,
+#       sidedness and bar. R1-B uses the repo's existing
+#       `paired_clustered_sd_d` instrument (R5b precedent); r2's word
+#       "paired" is corrected — the covariance is zero, the LEVEL term
+#       cancels.
+#   O-3 CLOSED — the clustered rule is k-GENERAL, k=1 is declared
+#       descriptive-only, and G-WIRING is rebuilt one-sided at n=300 with
+#       a re-run-once rule (r2's form spuriously blocked 13.0% of the time).
+#   O-4 CLOSED — the ABOVE-reachability cliff is tabulated result-blind in
+#       `grading.above_reachability_cliff`, including that ABOVE is
+#       UNREACHABLE if the off-FP spread resembles the vs-SH one.
 #   O-5 (rev 2 BL-4/BL-5) **gates ungradeable and designer items dropped
 #       without disposition.** G-SERIAL names no artifact (there is no CH5
 #       wave script); G-WIRING has no n, band or script; CH4's G0/G1/G3/G4
@@ -229,6 +342,35 @@ fp:
     - "FP@20's equivalence test is weakly powered: its PASS band is tighter than its own noise."
     - "The point estimate has FP@20 marginally WEAKER than FP@100 (1.9 points), i.e. the direction that flatters us."
 
+# Review 2 MAJOR: r2's entire grading apparatus lived in COMMENTS. CH4
+# duplicated every constant into real keys so a grader reads the file
+# rather than a human paraphrase of it. These keys are AUTHORITATIVE and
+# the comments above are commentary.
+grading:
+  credit_floor: 0.025
+  aggregator: equal_weight_mean_of_lane_rates
+  median_barred: true            # at k=3 the median IS one lane
+  se_rule: max(binomial, clustered)
+  clustered_formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp)   # k-GENERAL
+  clustered_undefined_at_k: 1    # one lane yields no sd -> descriptive only
+  coverage_disclosure: "at k=3 Welch df ~2.2, so 2*se is ~82% coverage, not 95%"
+  verdict_p_bands: {resolving: [0.0, 0.030], weak: [0.030, 0.060], non_resolving: [0.060, .inf]}
+  verdict_s: {above: one_sided_positive, below: one_sided_negative, within: complement_not_equivalence}
+  flat_licensed_only_in: [WITHIN x RESOLVING]
+  arms:
+    R1A: {sidedness: two_sided, k_arm: 3, k_cmp: 4, n_per_lane: 1500}
+    R1B: {sidedness: one_sided_positive, k_arm: 3, n_per_lane: 1000,
+          se_instrument: paired_clustered_sd_d, note: "within-lane d_i; covariance is ZERO, the LEVEL term cancels"}
+    R1C: {sidedness: two_sided, comparator: C0, n_per_arm: 3000, bar: 0.0246}
+  above_reachability_cliff:      # O-4, declared result-blind
+    s50_0.0000: {bar: 0.0250, fleet_mean_above_needs: 0.3737}
+    s50_0.0206: {bar: 0.0263, fleet_mean_above_needs: 0.3750}
+    s50_0.0300: {bar: 0.0364, fleet_mean_above_needs: 0.3851}
+    s50_0.0450: {bar: 0.0532, fleet_mean_above_needs: 0.4018}
+    s50_0.0650: {bar: 0.0759, fleet_mean_above_needs: 0.4246}
+    best_12m_lane_ever_off_fp20: 0.3557
+    note: "if s_50(off-FP) resembles its vs-SH 0.0624, ABOVE is UNREACHABLE"
+
 comparators:
   greedy_12m_fp20: {value: 0.34867, n: 12000, lanes: 4, budget: "FP@20",
                     source: "results/ch4_r1_offsh/l6{2,3,4,5}.json"}
@@ -256,7 +398,7 @@ arms:
   C0:
     kind: ensemble_seat
     lanes: [s62, s63, s64, s65]
-    battles: 1500
+    battles: 3000            # BL-3: 1500 gives 2*se_diff 0.0261 > the 0.025 floor
     search_time_ms: 20
     seat_username: ch5c0seat
     fp_username: ch5c0fp
