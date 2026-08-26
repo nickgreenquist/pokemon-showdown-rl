@@ -6948,3 +6948,51 @@ entry by offset — never a broad keyword grep.
   to ../pokemon-showdown-rl-d25-backup-20260815/ — a rated ladder game is
   UNREPEATABLE and the replays were single-copy. Headline 0.71825 and R2
   0.79283 UNTOUCHED.
+- 2026-08-25 (night cont., maintainer: "the readme is a mess... it should be a
+  polished highlight of this project. and the top thing to show is current
+  showdown elo etc"): **README REBUILT AS A FRONT DOOR; THE LOG CONTENT MOVED
+  TO RESULTS.md, NOT DELETED.** 301 lines / 22,915 chars -> **197 lines / 9,024
+  chars**. Ladder run live throughout (n=27 -> 30).
+  **THE DIAGNOSIS WAS ONE ROOT CAUSE: the README was append-only.** Every rung
+  wrote itself into the front door and nothing was ever compressed out.
+  Measured before touching it: 25 table rows with a **92-char median** and three
+  cells at **1714 / 1056 / 937 chars** (CH3 R2/R4/R5) — those three were **61%
+  of all table text**, and on GitHub they render as a horizontal smear that
+  destroys the table for the other 22 rows, so the headline was unfindable.
+  Plus a 6,146-char prose block with no paragraph break, and a Chapter 4 heading
+  that literally read "and it supersedes the sentence above" — the README
+  narrating its own edit history, i.e. session-log behaviour at the front door.
+  **TWO FACTUAL ERRORS FOUND AND FIXED, not style problems.** (1) "Honest
+  scoping" published **"SH parity ~= 40% GXE in human-ladder terms"** — the
+  rule of thumb this project RETIRED (calibrated at the 0.4607 era, does not
+  survive 0.71825; the standing rule is do not project a ladder number in
+  either direction). It was the most quotable sentence in the section and we
+  had disowned it. (2) Line 8 told every reader **"RESULTS.md is the account of
+  the chapter. Start there"** while RESULTS.md ended at Section 12 (D28,
+  2026-08-21) and never mentioned search, 0.79283, CH4 R1 or the ladder — the
+  README's own body carried two chapters NEWER than the file it deferred to.
+  The first instruction a reader got was a misdirection. Also the stale
+  `--battles 20` in Running (ratified target is 200).
+  **THE CONSTRAINT THAT SHAPED THE FIX:** the chapter sections could not simply
+  be cut, because RESULTS.md stopped before both — **the README was the ONLY
+  committed account of CH3 and CH4.** Same lesson `scripts/README.md` already
+  records for grader scripts: a thing is not spent because its rung closed. So
+  this was a MOVE, verbatim, not a rewrite: RESULTS.md gains Section 13
+  (Chapter 3, search), Section 14 (Chapter 4 R1, off-anchor) and Section 15
+  (the full 25-row vs-SH table plus the chapter narrative), unchanged except
+  for headings, with a note saying where they came from and why. RESULTS.md
+  522 -> 746 lines; its header now states that 13-15 are the sole account.
+  **WHAT THE README IS NOW:** ladder standing FIRST per the maintainer's brief
+  — PS Elo 1325 (peak 1348) against a 1358 admission cutoff, 19-11 over 30,
+  progress 30/200 — followed by the claim (purity of the training signal, and
+  that it is enforced rather than asserted), a 10-row results table where every
+  row fits on a line, five durable findings weighted toward the negative
+  results, setup/running, and a doc map. **THE ELO BLOCK IS WRITTEN SO IT
+  CANNOT BE MISREAD AS A RESULT:** three bullets under it say there is no GXE
+  yet and GXE is the pre-registered primary read; that the raw record is an
+  UPPER bound because a fresh account at Elo 1000 is matched with weak players
+  (mean opponent Elo 1258, range 1000-1515); and that the ladder rung credits
+  nothing by construction. It is date- and n-stamped with the refresh command,
+  because a hand-typed live number rots by morning.
+  Suite **538 passed, 17 skipped**. Headline 0.71825 and R2 0.79283 UNTOUCHED —
+  no number changed, only where it is written down.
