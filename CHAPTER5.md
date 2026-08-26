@@ -38,14 +38,17 @@ Two things make R2 worth more than a repeat of R1:
 
 1. **It is the first strength claim this project can make against humans.**
    R1 established the harness and a level (Elo 1311). R2 is the delta.
-2. **It creates the second (proxy score, ladder rating) pair.** With n=1 no
-   proxy in this repo is validated against the only ground truth we have.
-   With n=2 the question "does FP@20 predict ladder rating" becomes
-   answerable at all. Recorded as motivation 2026-08-26; still true.
+2. **It creates the FIRST (proxy score, ladder rating) pair — not the
+   second.** CORRECTED 2026-08-26 by designer A, verified: **L2 has no Foul
+   Play number at ANY budget** (`ladder_r1.yaml` line 42 says `unmeasured`
+   against both off-SH anchors). The one policy with a ladder rating has no
+   proxy score, so the repo holds **ZERO complete pairs**, not one. This
+   raises R1-C from "nice to have" to the arm that makes the pairing
+   possible at all.
 
-**Honest limit, pre-stated:** n=2 does not validate a proxy either. It
-gives the first datapoint that could *falsify* one. Do not oversell it in
-the readout.
+**Honest limit, pre-stated:** one pair does not validate a proxy, and two
+barely begin to. It gives the first datapoint that could *falsify* one. Do
+not oversell it in the readout.
 
 ---
 
@@ -102,9 +105,16 @@ it, what argues against, cost, and what would settle it.
 need are already trained — so C1's first move is a MEASUREMENT, not a run.**
 - **For:** the flat verdict is one arm on one opponent at one era (§2.1).
   H&L's comparable ran ~19x our 12M in learner-consumed terms.
-- **Against:** D29r2 pooled -0.016 vs SH is real as far as it goes; the
-  2026-08-23 big-run ruling reserves 120/250M for polish or a visibly
-  climbing log.
+- **Against:** the 2026-08-23 big-run ruling reserves 120/250M for polish or
+  a visibly climbing log. **NOT against: "D29r2 pooled -0.016 vs SH".
+  CORRECTED 2026-08-26 (designer A, verified independently) — that is not a
+  weak claim, it is NOT A CLAIM.** The 50M lanes read 0.7423/0.7347/0.6297,
+  giving sigma_seed = **0.0624**, 8.2x the 12M family's 0.0076. Clustered
+  se_diff is then 0.0362 and the delta is **0.44 se** against a 2-se bar of
+  0.0724. The one lane at 0.6297 inflates the variance so far that nothing
+  at this k is resolvable. **"Scale is flat" was never established even on
+  its own axis** — a stronger correction than this file's earlier
+  "it is a vs-SH-only claim".
 - **Cost:** zero, if R1-A answers it — s80/81/82 exist. A *new* 50M fleet
   is ~37.4 h wall / ~4.6 lane-days. Past 50M: out of chapter.
 - **Settles it:** R1-A first. **A longer run should not be bought before
@@ -225,10 +235,18 @@ Play's own `Winner:` lines agree exactly).
 | ensemble | **1.60** (marginal, startup stripped: (55.6-15.7)/(30-5)) | 1.33 h | **4.0 h** |
 | search@M | **3.51** (n=20, startup NOT stripped -> slight over-estimate) | 2.92 h | **8.8 h** |
 
-Reference points: the banked FP@20 figure is 1.20 s/battle for a GREEDY
-seat, so the ensemble's 4 forward passes cost ~33%; search costs 73.6
-ms/decision over 727/794 searched decisions and runs longer battles (35.6
-vs 28.3 mean turns), which is where its 2.2x comes from.
+Reference points, CORRECTED 2026-08-26 (designer A, verified): CLAUDE.md's
+1.20 s/battle is not what the banked arms actually cost — `l62..l65` realized
+**1.44 / 1.53 / 1.51 / 1.46**. So the ensemble's 1.60 is only ~**7%** over a
+realized greedy arm, not 33%. Search costs 73.6 ms/decision over 727/794
+searched decisions and runs longer battles (35.6 vs 28.3 turns) — that is
+its 2.2x.
+
+**EXECUTION CONSTRAINT the ledger must respect:** the comparator arms ran
+**strictly serial, k=1** (`results/ch4_r1_offsh/wave.log`: "WAVE START
+serial k=1"). Running R1's arms concurrently is an execution difference the
+comparator does not have; the pre-reg must either match it or pre-state why
+concurrency is safe. These hour figures assume serial.
 
 **CORRECTION TO §7.4's OWN BUDGET LINE.** It said R1 was "~4-6 h of
 agent-side battles". At full power (3000 x 3 lanes on A and B, one arm on

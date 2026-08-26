@@ -1,0 +1,181 @@
+# =====================================================================
+# CHAPTER 5 R1 — THE THREE ZERO-TRAINING OFF-SH READS
+# STATUS: **DRAFT r1, NOT RATIFIED. Nothing launched.** Synthesis of two
+#   independent Opus design memos (A = evidential validity, B = build/
+#   cost) per the standing 2026-08-12 process, plus measurements taken
+#   this session to adjudicate where they disagreed. REVIEWS OWED.
+# Chapter shape ratified 2026-08-26 (CHAPTER5.md §7). 50M is the chapter
+#   ceiling. R1 is EVAL-ONLY and CREDITS NO LEVER.
+# ---------------------------------------------------------------------
+# Q0. WHAT R1 ADJUDICATES
+#   Everything this project believes about scale rests on ONE vs-SH arm.
+#   No 50M lane has ever been measured off-SH. R1 measures what is
+#   already trained, on the axis that decides things.
+# ---------------------------------------------------------------------
+# Q1. THE CORRECTION THAT REORGANISED THIS PRE-REG (designer A, verified
+#   independently before being believed).
+#   Decompose every banked lane spread into binomial + seed:
+#     12M off FP@20  k=4  s_T 0.00771  binomial-only 0.00870 -> sigma_seed = 0
+#     12M vs SH      k=4  s_T 0.01118  binomial-only 0.00821 -> sigma_seed = 0.0076
+#     50M vs SH      k=3  s_T 0.06295  binomial-only 0.00835 -> sigma_seed = 0.0624
+#   **The 50M fleet's seed spread is 8.2x the 12M fleet's, driven by the
+#   one lane at 0.6297.** Consequences, both load-bearing:
+#   (a) **"50M IS FLAT vs SH" IS NOT A WEAK CLAIM, IT IS NOT A CLAIM.**
+#       delta -0.01603 against a clustered 2-se bar of 0.0724 = 0.44 se.
+#       CHAPTER5 §3 C1 has been corrected. Nobody may quote "scale is
+#       flat" from this repo, on either axis, until R1 reads out.
+#   (b) **R1-A CANNOT BE A CREDIT-GRADE SCALE READ AND MUST NOT CLAIM TO
+#       BE.** If the 50M family's off-FP sigma_seed resembles its vs-SH
+#       0.0624, the clustered bar is ~0.073 at k=3 and NO battle count
+#       fixes it — only more lanes would, and we have three.
+#   **SO R1-A's PRIMARY READ IS RESTATED, result-blind: measure the 50M
+#   family's off-FP sigma_seed.** That parameter is the one thing
+#   deciding whether a scale question is answerable here at all, it is
+#   unknown, and it is cheap. The win-rate delta is SECONDARY and
+#   DESCRIPTIVE. (Hopeful sign, not evidence: for the 12M family
+#   sigma_seed is SMALLER off-FP (0) than vs SH (0.0076).)
+# ---------------------------------------------------------------------
+# Q2. ARM ORDER — C0 RUNS FIRST. Both designers reached this
+#   independently and neither was told to.
+#   **L2 HAS NO FOUL PLAY NUMBER AT ANY BUDGET** (ladder_r1.yaml:42 says
+#   `unmeasured` against both off-SH anchors). So the repo holds ZERO
+#   complete (proxy score, ladder rating) pairs — CHAPTER5 §1 said one,
+#   and has been corrected. C0 creates the FIRST, and it de-risks
+#   brand-new ensemble code at scale in hour one.
+# ---------------------------------------------------------------------
+# Q3. BUDGET — MEASURED, NOT MODELLED. Serial k=1 throughout.
+#   The comparator arms ran strictly serial (`ch4_r1_offsh/wave.log`:
+#   "WAVE START serial k=1"); concurrency is an execution difference the
+#   comparator does not have, and FP is TIME-BUDGETED so contention
+#   flatters us. Serial is mandatory, not preferred.
+#   Marginal s/battle vs FP@20, startup stripped, measured this session:
+#     ensemble 1.60   search@M 2.68   (realized greedy, banked: 1.44-1.53)
+#   **THREE COST ESTIMATES WERE WRONG AND ARE RECORDED SO THE HABIT
+#   ISN'T REPEATED:** CLAUDE.md's 1.20 s/battle greedy reference (the
+#   banked arms realized 1.44-1.53); the assistant's 3.51 s/battle for
+#   search (n=20, startup not stripped, +31%); and designer B's 4.55
+#   s/battle cost model (+70%). A 100-battle calibration settled it at
+#   2.84 realized / 2.68 marginal. **B's PROCESS advice was right while
+#   B's NUMBER was wrong: calibrate, never ratify hours off a model.**
+#   n per lane, from three independent power calculations that agreed:
+#   binomial governs to ~4800 battles/lane, and 2*se_diff reaches the
+#   0.025 credit floor at ~971. 3000/lane buys 0.0133 for 3x the time.
+#     C0   1 x 1500 = 0.67 h        R1-A  3 x 1500 = 2.00 h
+#     R1-B 3 x 1000 = 2.23 h        R1-C  1 x 1500 = 0.67 h
+#     TOTAL ~5.6 h  (CHAPTER5 §4's full-power sketch said 13.8 h)
+# ---------------------------------------------------------------------
+# Q4. R1-B — THE ONE PLACE THE DESIGNERS SPLIT, AND THE RECONCILIATION
+#   IS THE ASSISTANT'S, SO IT IS FLAGGED AS SUCH.
+#   A: R1-B cannot answer "did search fail because the net was
+#     under-trained" at any affordable n, because the 12M search cell is
+#     FP@100/n=250 and a cross-budget comparison is forbidden. Reduce to
+#     one arm.
+#   B: run it at 1000/lane; the question is worth 2.2 h.
+#   **RECONCILIATION: ask a WITHIN-budget, WITHIN-era question instead.**
+#   R1-A already produces greedy-on-50M at FP@20. R1-B produces
+#   search-on-50M at FP@20 on the SAME lanes. Their difference is a
+#   clean paired search-vs-greedy delta at 50M that needs no cross-budget
+#   comparator. The 12M counterpart (0.368 vs 0.388 at FP@100, n=250,
+#   se_diff 0.043) is quoted ONLY as a same-budget SIGN, never
+#   differenced against the 50M delta. A's objection is fully honoured:
+#   no number crosses a budget.
+# ---------------------------------------------------------------------
+# Q5. GRADING (designer A's partition; thresholds are the maintainer's
+#   to ratify). bar = max(0.025, 2 * max(se_binomial, se_seed_clustered)),
+#   se_clustered = sqrt(s_50^2/3 + s_12^2/4). AGGREGATOR = EQUAL-WEIGHT
+#   MEAN of lane rates, BINDING. **MEDIAN IS EXPLICITLY BARRED**: at k=3
+#   the median IS a single lane, i.e. maximally robust to precisely the
+#   one-lane collapse that is the signal here.
+#   Partition of the whole real line, no unnamed cell:
+#     ABOVE   delta >= +bar   (one-sided)
+#     WITHIN  the complement — a FAILURE TO RESOLVE, never an equivalence
+#             claim. It licenses no "flat" sentence.
+#     BELOW   delta <= -bar   (one-sided)
+#   Orthogonal VERDICT-P, because a bar this wide can be uninformative:
+#     RESOLVING bar <= 0.030 | WEAK 0.030-0.060 | NON-RESOLVING > 0.060.
+#   **"Flat" is licensed ONLY under RESOLVING+WITHIN.** Disclosure A
+#   raised and it stands: at k=3, Welch df ~ 2.2, so "2 se" is ~82%
+#   coverage, not 95%. Say 82% wherever the bar is quoted.
+# ---------------------------------------------------------------------
+# Q6. DEPLOYMENT vs CREDIT — the line, since R1-C invites crossing it.
+#   Selecting a checkpoint to DEPLOY is not a credit claim; quoting the
+#   selected score as a lever's effect is. Ensemble rosters are fixed by
+#   MEMBERSHIP RULE, declared below; **best-k-of-7 is BARRED** (winner's
+#   curse over m compositions is ~+0.010, 40% of the credit floor).
+#   Whatever is chosen for a ladder run is RE-SCORED fresh before any
+#   number is published.
+# ---------------------------------------------------------------------
+# Q7. GATES. Each VOIDs its arm unless stated.
+#   G2   TWO INDEPENDENT TALLIES: the seat's W/L and Foul Play's own
+#        `Winner:` lines must agree EXACTLY. Never a subtraction.
+#   G-BUDGET (NEW, designer B, verified live) — `ch3_r4_fp_runner.sh:39`
+#        is `SEARCH_TIME_MS="${SEARCH_TIME_MS:-100}"` and the pre-reg
+#        override only fires when the key is present, so **an arm that
+#        omits `search_time_ms` SILENTLY RUNS FP@100** and stamps
+#        `declared_search_time_ms: null`. Assert == 20 and non-null on
+#        every arm JSON before grading.
+#   G-TERMINAL-RACE (NEW, designer B, verified live) — `l64.runner.json`
+#        carries `crash_forfeits: 1` with `fp_completed == 3000 ==
+#        requested`. No in-flight battle existed, so NO FORFEIT IS OWED;
+#        a blind `n_eff = seat - crash_forfeits` would delete a real
+#        battle from a clean arm. Never subtract without checking
+#        fp_completed against battles_requested.
+#   G-SERIAL   one arm at a time; assert non-overlapping arm wall clocks.
+#   G-SHA      every checkpoint sha256 == pin (the seat already asserts).
+#   G-DESYNC   mask_desyncs == 0.
+#   G-WIRING   a 6-minute vs-SH sanity read on each 50M lane before its
+#        FP arm (designer A): a sha pin proves the FILE, not the WIRING,
+#        and these checkpoints have never been loaded by this seat in a
+#        real battle. Compare against the banked 0.7423/0.7347/0.6297.
+# ---------------------------------------------------------------------
+# OPEN FOR THE MAINTAINER
+#   1. Ratify or move the thresholds in Q5.
+#   2. R1-B: accept the Q4 reconciliation, or take A's "cut it".
+#   3. R1-C's membership rule (below) — it is the deployment/credit line.
+#   4. Reviews are OWED on this draft before launch.
+# =====================================================================
+
+results_dir: results/ch5_r1_offsh
+prereg: configs/eval/ch5_r1_offsh.yaml
+
+fp:
+  search_time_ms: 20        # G-BUDGET: never omit this key
+  budget_disclosures:
+    - "FP@20's equivalence test is weakly powered: its PASS band is tighter than its own noise."
+    - "The point estimate has FP@20 marginally WEAKER than FP@100 (1.9 points), i.e. the direction that flatters us."
+
+comparators:
+  greedy_12m_fp20: {value: 0.34867, n: 12000, lanes: 4, budget: "FP@20",
+                    source: "results/ch4_r1_offsh/l6{2,3,4,5}.json"}
+  # SAME-BUDGET SIGN ONLY — never differenced against an FP@20 number.
+  search_vs_greedy_12m_fp100: {greedy: 0.388, search: 0.368, n: 250,
+                               se_diff: 0.043, budget: "FP@100"}
+
+checkpoints:
+  s62: {path: runs/showdown_sp_recipe12m_s62/checkpoint.pt, sha256: f4b0ae8270ad9614c67fa5773e3ce0241941168a9d7a7a0b9aca4da757d9d5e6}
+  s63: {path: runs/showdown_sp_recipe12m_s63/checkpoint.pt, sha256: 5427a1a6507c4a53676b7928583e4f02ed8037bcf1d2f88d0baa078a6bf6b571}
+  s64: {path: runs/showdown_sp_recipe12m_s64/checkpoint.pt, sha256: 3efe09fea96b51ca34556b0e30ebfe22fd86e6fe39ce3adf24c601ac01552672}
+  s65: {path: runs/showdown_sp_recipe12m_s65/checkpoint.pt, sha256: 09469e6a5f6c2c6bc9f6c1452955cdcde12f04d7b73e51f9e8ef2d77f8c667b7}
+  s80: {path: runs/showdown_sp_stack50m_r2_s80/checkpoint.pt, sha256: 8b6546e2b6ce950d2a5d210ff7bb915e32ff15b72321c8cd6d8fd94be3e078a7}
+  s81: {path: runs/showdown_sp_stack50m_r2_s81/checkpoint.pt, sha256: 47849ba0c559fb664b9ab65aa4988c3b893fc4fccdcfbd27d9bbbf5785e42890}
+  s82: {path: runs/showdown_sp_stack50m_r2_s82/checkpoint.pt, sha256: c7cd5d8d9652db70e830784bb02a7b644fe15ba95a8d9a717ec15e6a85786ab7}
+
+# Membership RULES, fixed before any score is seen (Q6). Not a menu to
+# pick from after the fact.
+ensembles:
+  E4_ladder: [s62, s63, s64, s65]     # exactly L2, the object that laddered
+  E3_50m:    [s80, s81, s82]          # the whole 50M fleet, no selection
+  E7_all:    [s62, s63, s64, s65, s80, s81, s82]   # every 828-d lane on disk
+
+arms:
+  C0:
+    kind: ensemble_seat
+    lanes: [s62, s63, s64, s65]
+    battles: 1500
+    search_time_ms: 20
+    seat_username: ch5c0seat
+    fp_username: ch5c0fp
+  # A1..A3 (greedy 50M) and B1..B3 (search 50M) and the R1-C
+  # compositions are DELIBERATELY NOT ENUMERATED in r1: they wait on the
+  # reviews and on the maintainer's Q5/Q6 calls. Adding them is a
+  # mechanical edit once those land.

@@ -7558,3 +7558,75 @@ entry by offset — never a broad keyword grep.
   which is precisely the caveat written into that script's docstring before
   either number existed.
   Suite 547 / 17. `scripts/README.md` registers both new scripts.
+- 2026-08-26 (evening cont., maintainer: "continue"): **CH5 R1 DESIGN CYCLE RUN
+  (2 Opus designers, per the standing 2026-08-12 process). EVERY CHECKABLE
+  CLAIM WAS RE-DERIVED HERE BEFORE BEING BELIEVED; three of them CORRECT
+  THINGS I WROTE, and one measurement refutes BOTH designers AND me.** Draft
+  pre-reg at `configs/eval/ch5_r1_offsh.yaml` (r1, NOT RATIFIED, reviews owed).
+  Designers were given the candidate SET and told to attack the ranking, per
+  CHAPTER5 §8 — not handed my conclusion.
+  **PREREQS CLEARED FIRST (things the memo-only designers could not do):** all
+  three D29r2 50M lanes verified **828-d / entity_deepsets / ids-on**, i.e. the
+  same encoder era as the 12M lanes, so R1-A is like-for-like; sha256 pins
+  computed; all seven checkpoints load through the seat loader and decide; and
+  **R1-C is feasible** — E4/E3/E7 all construct, none collapses onto a member,
+  and they differ from each other 17-40% on random states.
+  **A's HEADLINE, VERIFIED EXACTLY: decompose the banked lane spreads.**
+  12M off FP@20 s_T 0.00771 vs binomial-only 0.00870 -> **sigma_seed = 0**;
+  12M vs SH -> 0.0076; **50M vs SH -> 0.0624, 8.2x**, driven by the one lane at
+  0.6297. Two consequences. (a) **"50M IS FLAT vs SH" IS NOT A WEAK CLAIM, IT
+  IS NOT A CLAIM** — delta -0.01603 against a clustered 2-se bar of 0.0724 =
+  **0.44 se**. That is STRONGER than my own earlier correction ("it is a
+  vs-SH-only claim"); CHAPTER5 §3 C1's "real as far as it goes" was mine and is
+  now fixed. (b) **R1-A cannot be a credit-grade scale read at k=3 and must not
+  claim to be**, so its PRIMARY read is restated result-blind to *measure the
+  50M family's off-FP sigma_seed* — the one parameter that decides whether the
+  scale question is answerable at all — with the win-rate delta demoted to
+  descriptive.
+  **BOTH DESIGNERS INDEPENDENTLY PUT C0 FIRST, AND NEITHER WAS TOLD TO.**
+  **L2 HAS NO FOUL PLAY NUMBER AT ANY BUDGET** (`ladder_r1.yaml:42` =
+  `unmeasured`), so the repo holds **ZERO** complete (proxy, ladder-rating)
+  pairs — CHAPTER5 §1 claimed one and was wrong, also mine. C0 creates the
+  first and de-risks new ensemble code at scale in hour one.
+  **THE COST DISAGREEMENT, SETTLED BY MEASUREMENT RATHER THAN ARGUMENT — AND
+  EVERYONE WAS HIGH.** My n=20 read said search costs 3.51 s/battle; B's cost
+  model said 4.55; **a 100-battle calibration realized 2.84, marginal 2.68**
+  (G2 exact, 0 desyncs, 0 relaunches). B's *process* advice was right ("do not
+  ratify hours off a model, calibrate") while B's *number* was 70% high and
+  mine was 31% high. Also corrected: CLAUDE.md's 1.20 s/battle greedy reference
+  — the banked arms realized **1.44-1.53**, so the ensemble's 1.60 is ~7% over
+  a real greedy arm, not the 33% I wrote.
+  **THE SMALL-n LANDMINE DEMONSTRATED IN FLIGHT, ON THE EXACT NUMBER I FLAGGED
+  AS TEMPTING.** Search vs FP@20 read 13/20 = **0.650** at n=20; at n=100 it
+  reads 40/100 = **0.400 +/- 0.049**. I predicted it would not hold, and it did
+  not. Still not a result.
+  **TWO NEW LIVE FOOTGUNS FROM B, BOTH VERIFIED AGAINST SOURCE/DISK.**
+  **G-BUDGET:** `ch3_r4_fp_runner.sh:39` is `SEARCH_TIME_MS="${SEARCH_TIME_MS:-100}"`
+  and the pre-reg override only fires when the key is PRESENT, so an arm that
+  omits `search_time_ms` **silently runs FP@100** and stamps
+  `declared_search_time_ms: null`. **G-TERMINAL-RACE:** `l64.runner.json` really
+  does carry `crash_forfeits: 1` with `fp_completed == 3000 == requested` — no
+  in-flight battle existed, so no forfeit is owed, and a blind
+  `n_eff = seat - crash_forfeits` would delete a real battle from a clean arm.
+  Both are now gates in the draft. Also pre-registered: **serial k=1 is
+  MANDATORY** — the comparator ran serial (`ch4_r1_offsh/wave.log`) and FP is
+  time-budgeted, so contention flatters us.
+  **WHERE THE DESIGNERS SPLIT, AND THE RECONCILIATION IS MINE (flagged as
+  such):** A says R1-B cannot answer its question at any affordable n because
+  the 12M search cell is FP@100/n=250 and cross-budget comparison is forbidden;
+  B says run it at 1000/lane. Neither offered the third option: **ask a
+  within-budget, within-era question.** R1-A already produces greedy-on-50M at
+  FP@20; R1-B produces search-on-50M at FP@20 on the SAME lanes; their paired
+  difference needs no cross-budget comparator, and the 12M pair is quoted only
+  as a same-budget SIGN. A's objection is fully honoured — no number crosses a
+  budget.
+  **BUDGET, on measured marginals: ~5.6 h** (C0 0.67 + R1-A 2.00 + R1-B 2.23 +
+  R1-C 0.67) against CHAPTER5 §4's 13.8 h full-power sketch. Three independent
+  power calculations agreed: binomial governs to ~4800 battles/lane and 2*se_diff
+  hits the 0.025 floor at ~971, so 3000/lane buys little for 3x the clock.
+  A's aggregator ruling adopted: **equal-weight mean, median explicitly BARRED**
+  (at k=3 the median IS one lane, maximally robust to the very one-lane collapse
+  that is the signal). Disclosure kept: at k=3 Welch df ~2.2, so "2 se" is ~82%
+  coverage, not 95%.
+  Arms A1-A3/B1-B3 and the R1-C compositions are deliberately NOT enumerated in
+  r1 — they wait on the reviews and the maintainer's Q5/Q6 calls.
