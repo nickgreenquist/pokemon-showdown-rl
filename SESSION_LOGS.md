@@ -7854,3 +7854,88 @@ entry by offset — never a broad keyword grep.
   declaring two rosters while budgeting one (~5.3 h more, or cut the list).
   Ledger corrected again: R1-C is 2 x 3000 = 2.73 h; total ~7.5 h.
   All six cycle documents mirrored to `design_ch5/` in the d25 backup.
+
+- 2026-08-26 (evening cont., maintainer: "handoff.md - go"): **CH5 R1 PRE-REG
+  -> r6, ALL FIVE BUILD ITEMS BUILT, NINE ARMS ENUMERATED, AND THE ONE THING
+  THAT MATTERED WAS RECOMPUTING RATHER THAN PASTING.** The three disposition
+  memos' paste-ready text was written against **n=1500**; the ratified n is
+  **1000**. Recomputing every figure before applying it found two live
+  defects that a paste would have shipped. Suite **590 / 17**, up from 573.
+  Grader `--selftest` green against banked CH4 artifacts. Nothing launched.
+  **FINDING 1 — DESIGNER A's TOST IS UNREACHABLE AT n=1000 AT ANY sigma_seed.**
+  It needs `s_50 <= 0.01324`; the per-lane binomial sd **alone** is 0.01507.
+  So the ONLY construction that would license "scale is flat off-FP" cannot
+  fire at this arm's n. (At n=1500 the implied ceiling is sigma_seed <=
+  0.0049; at n=3000, <= 0.0100 — designer A's figure, which assumed n=3000.)
+  **This converged with RV1-MA-11 from the opposite direction**: the reviewer
+  wanted the bare word barred on principle, and the arithmetic bars it
+  independently. `flat_licensed_in: []` now follows from a computation, and
+  a test pins it so a future n change re-opens the question deliberately
+  rather than silently. **MAINTAINER RULED: keep n=1000, bar the word.**
+  **FINDING 2 — THE CLIFF HAD A SECOND COPY, AND IT ROTTED.** r5 recomputed
+  the cliff KEY at n=1000 and left O-4's **prose copy of the same table** at
+  n=1500. That is the exact "each fix landed in one place" failure that put
+  FOUR power figures in circulation for the s82 read. The prose table is now
+  a POINTER — a pointer cannot rot. r4's recomputation had also deleted the
+  decision-relevant row (the s_50 at which the bar leaves the 0.025 floor,
+  **0.0206**, which is n-INDEPENDENT), and the crossover row was the n=1500
+  value (at n=1000 it is 0.0155, not 0.0128). The test now DERIVES the
+  cliff's n from `R1A.n_per_lane` instead of hardcoding 4500 = 3x1500.
+  **FOUR MORE STALE FIGURES WERE STATED AS LIVE AND ARE FIXED:** "6.3 se" for
+  the primary (5.9), "~750/lane" for the n crossover (552), r4's claim that
+  "correct is 0.0142 / 7.8 se" (it was the n=1500 value AND
+  alternative-referenced; 0.0185 / 5.9 se), and the winner's curse, which is
+  now quoted **at the n of the score being corrected** — +0.0101 at n=3000,
+  +0.0175 at n=1000, +0.0235 for best-k-of-7 — because the SINGLE number was
+  the defect, not its value.
+  **TWO DEFECTS CAUGHT BY TESTS, NOT BY READING, and both would have failed
+  at launch:** I wrote `kind: single_seat` on the three R1-A arms and that is
+  not in `ARM_KINDS` — the seat asserts loudly, so three arms would have died
+  at the first `reset`. And `instruments:` has a REPO-WIDE contract
+  (`tests/test_ladder.py::test_every_declared_instrument_exists` walks every
+  key of every `configs/eval/*.yaml` block and requires a path on disk); my
+  `equivalence` value was a command string with args and broke it. Both are
+  arguments for the tests being value-checks rather than shape-checks.
+  **FIVE BUILD ITEMS, ALL BUILT.** `scripts/ch5_r1_wave.sh` (G-SERIAL's
+  artifact — the gate named NOTHING before; it also ASSERTS `OUT ==
+  results_dir` and stamps `wave.provenance.json` before arm #1);
+  `scripts/ch5_r1_grade.py --selftest` (**nothing in the tree applied a
+  single CH5 gate to an arm JSON** — Q7 was prose. Selftest pins l64's
+  terminal race at n_eff 3000, the three-way G2 at 1067/1927/6, G-BUDGET off
+  FP's own `Sampling` lines, and RE-DERIVES every stored bar from n);
+  the runner's NO_PROGRESS abort; `scripts/ch5_preflight.sh`; the OUT rule.
+  **NINE ARMS ENUMERATED** — C0, A80/81/82 (greedy, n=1000), B80/81/82
+  (search, n=1000), CE3, CE7 (n=3000) — behind the non-prefixing username
+  scheme, which was written FIRST because that is the only moment the rule
+  can bind. 18 names, 0 prefix collisions, asserted pairwise.
+  **MAINTAINER RULINGS.** (i) **R1-C: FUND BOTH ROSTERS, E7 LAST.** My
+  recommendation and its reason: the cut is only reversible in the WRONG
+  direction. Running E7 last costs nothing if an evening runs short (the wave
+  is skip-if-complete and arms are individually resumable), but an E7 that
+  was never pre-registered cannot be added afterwards without being post-hoc
+  — and the wider ensemble is one of the two routes by which R1 delivers the
+  R3 object with no training at all. (ii) **CHAPTER5 §3 C1: RETRO-RATIFIED**,
+  settled at 0.0735.
+  **ONE CONTRADICTION RULED RATHER THAN INHERITED (assistant's call, flagged).**
+  Sweep A-§3.3a: G-K permitted a VERDICT-S at k_arm=2 while designer A's own
+  DESCRIPTIVE-ONLY sentence said none is licensed there. A is right on the
+  statistics — at 1 df the sd's 95% CI multipliers span **0.45x-31.9x, a
+  factor of 72** — so at k <= 2 the FLEET-MEAN read is DESCRIPTIVE ONLY.
+  G-K's k_arm arithmetic still governs any number that IS quoted.
+  **O-7 SEPARATED FROM O-6.** r4's botched replace had welded the rev-2
+  BL-4/BL-5 finding onto the end of O-6 mid-sentence (same corruption class
+  as the duplicate `grading:` key). Split out, and every gate it named now
+  carries an r6 status. **Two remain OPEN and are named rather than assumed:
+  G1 (a 5-battle smoke per arm is still not in the budget) and G-SEARCH
+  (nothing catches a search arm degrading to greedy on ~1/3 of the budget —
+  a DISCLOSED gap; designer B's 0.85 threshold would have voided the very
+  comparator it protects).**
+  **RV2-BL-5d honoured by RELOCATION, not by the old pointer.** O-5 named
+  `design_ch5/disposition.md` in the d25 backup as "the authoritative
+  backlog" — untracked and outside the repo, and CH4's own precedent path is
+  untracked too because `results/` is gitignored. The disposition now lives
+  in the TRACKED pre-reg; the memos are cited as provenance only.
+  **STILL OPEN FOR THE MAINTAINER: A-BR-1** (buy a 4th 50M lane? A says no)
+  and **A-BR-5** (CHAPTER5 §1 motivation 2 still says one (proxy, ladder)
+  pair where there are zero). Both are edits/purchases only the maintainer
+  may authorise. `CLEANUP.md` still needs rulings. 12 commits UNPUSHED.
