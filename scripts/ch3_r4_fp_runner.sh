@@ -45,6 +45,13 @@ FP_USER="${FP_USER:-r4anchorfp}"
 MAX_RELAUNCHES="${MAX_RELAUNCHES:-30}"
 POLL_SECS="${POLL_SECS:-10}"
 STALL_POLLS="${STALL_POLLS:-60}"
+# CH5 B-5.4c / BI-3: a hung SEAT stops FP writing too (FP is waiting on our
+# move), so the stall detector fires and kills the HEALTHY process. That is
+# the S1 churn shape with a different root cause, and it burns the whole
+# relaunch budget at zero progress while LOOKING exactly like slow progress
+# (the CLAUDE.md landmine, verbatim). N relaunches that produce zero new
+# `Winner:` lines abort the arm as an OPS FAILURE, not a data verdict.
+NO_PROGRESS_RELAUNCHES="${NO_PROGRESS_RELAUNCHES:-3}"
 START_STAGGER="${START_STAGGER:-30}"
 
 export POKEMON_RL_ENCODER_V2=1
@@ -194,6 +201,8 @@ CRASH_POINTS=""
 CRASH_TIMES=""
 LAST_BYTES=0
 STALLED=0
+NO_PROGRESS=0
+LAST_CRASH_COMPLETED=-1
 
 start_fp "$BATTLES"
 
@@ -247,6 +256,27 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
         CRASH_TIMES="\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\""
     fi
     log "CRASH $RELAUNCHES/$MAX_RELAUNCHES at fp-completed $COMPLETED (that battle forfeits TO US and is EXCLUDED)"
+
+    # NO_PROGRESS abort (designer B §5.4 / BI-3). `set -u` is on, hence the
+    # ${LAST_CRASH_COMPLETED:--1} guard. Mirrors the nametaken abort below,
+    # including the sentinel-file convention; exit 4 is its own code so the
+    # wave and the grader can tell an ops failure from a VOID.
+    if [ "$COMPLETED" -eq "${LAST_CRASH_COMPLETED:--1}" ]; then
+        NO_PROGRESS=$((NO_PROGRESS + 1))
+    else
+        NO_PROGRESS=1
+    fi
+    LAST_CRASH_COMPLETED="$COMPLETED"
+    if [ "$NO_PROGRESS" -ge "$NO_PROGRESS_RELAUNCHES" ]; then
+        log "NO_PROGRESS: $NO_PROGRESS relaunches with zero new Winner: lines at fp-completed $COMPLETED -- aborting arm as an OPS FAILURE (not a data verdict; the SEAT is the suspect, not FP)"
+        pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
+        date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.NO_PROGRESS"
+        kill "$SEAT_PID" 2>/dev/null
+        sleep 2
+        kill -9 "$SEAT_PID" 2>/dev/null
+        write_runner_json false
+        exit 4
+    fi
 
     if [ "$RELAUNCHES" -ge "$MAX_RELAUNCHES" ]; then
         log "TOO_MANY_CRASHES: $RELAUNCHES >= $MAX_RELAUNCHES -- the arm is VOID"
