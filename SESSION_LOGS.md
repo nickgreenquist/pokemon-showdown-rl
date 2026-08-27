@@ -8399,3 +8399,60 @@ entry by offset — never a broad keyword grep.
   **GRADED SO FAR, all clean, zero voids, G2 exact on every arm:** A80 0.3960,
   A81 0.3430, A82 0.2730, **B80 0.4470**, **C0 0.3893** (flip 0.112),
   CE3 0.3623 (flip 0.116). G-SERIAL PASS.
+
+- 2026-08-27 (evening, **CH5 R1 COMPLETE — ALL NINE ARMS, ZERO VOIDS, G2 EXACT
+  ON EVERY ONE. R1 PRODUCED AN R3 DEPLOYMENT CANDIDATE WITHOUT ANY TRAINING,
+  WHICH IS THE OUTCOME THE CHAPTER SAID IT MIGHT.**)
+  **THE DEADLOCK FIX HELD.** B81 and B82 both completed 1000/1000 on the FIRST
+  attempt after `max_concurrent_battles=1 -> 2`, having previously hung at
+  639/611 and 57/699. `max_concurrent_live_battles` stamped **1** on both, so
+  the fix bought no concurrency and the within-lane R1-B contrast is not
+  confounded by the seat change. One ALERT in the whole run (a startup poll).
+  **ARMS (n_eff, rate, G2 seat/fp/tie — all three tallies agreeing exactly):**
+  A80 1000 **0.3960** 396/603/1 · A81 1000 **0.3430** 343/657/0 · A82 1000
+  **0.2730** 273/727/0 · B80 1000 **0.4470** 447/549/4 · B81 1000 **0.4470**
+  447/548/5 · B82 1000 **0.4210** 421/571/8 · C0 3000 **0.3893** 1168/1830/2 ·
+  CE3 3000 **0.3623** 1087/1910/3 · CE7 3000 **0.3827** 1148/1850/2.
+  G-SERIAL PASS.
+  **R1-A — PRIMARY REPRODUCES (5.2 se); FLEET WITHIN x NON-RESOLVING.**
+  Unchanged from the earlier readout: d = mean{s80,s81} - s82 = **+0.0965** vs
+  bar 0.0369. Fleet mean 0.33733 vs 12M 0.34867 = **-0.0113** against a
+  realized bar of **0.0717** (s_50 off-FP 0.0617 ~ its vs-SH 0.0629, so the
+  clustered term governs). **The O-4 cliff called this before any datum.**
+  Action taken verbatim: stop buying battles; buy LANES or drop the scale
+  question. "flat" stays BARRED; the realized 0.0717 travels with any sentence.
+  **R1-B — SEARCH HELPS, AND IT IS THE LARGEST EFFECT IN THE WAVE.**
+  Within-lane d: s80 **+0.0510**, s81 **+0.1040**, s82 **+0.1480**; mean
+  **+0.1010**, sd(d_i) 0.0486, se = max(binomial 0.0123, 0.0280) = **0.0280**,
+  bar **0.0561**, **3.6 se, one-sided positive -> HELPS.** Note the ordering:
+  **search helps MOST on the WORST lane** (s82 +0.148 vs s80 +0.051), i.e. it
+  partially rescues the bad seed — which is why the fleet's off-FP spread
+  narrows under search (0.0617 greedy -> 0.0149 searched).
+  **CEILING HONOURED, and it is the reason the ceiling was pre-committed:**
+  this licenses search as an **R3 DEPLOYMENT CANDIDATE and nothing else.** It
+  does NOT reverse MU-8 (pooled transfer z = -2.80), and the positive 50M
+  delta is NOT set beside the 12M cell in any sentence here.
+  **R1-C — NOT DELIVERED; THE INCUMBENT HOLDS.** vs C0 (L2's own number,
+  0.3893, n=3000, two-sided bar 0.0250): **E3_50m 0.3623 = -0.0270 -> BELOW**
+  (materially worse), **E7_all 0.3827 = -0.0066 -> WITHIN**.
+  `r1c_delivered_iff` needs max(E3,E7) - E4 >= +0.025; realized **-0.0066**,
+  so **NOT DELIVERED and L2 remains the deployment incumbent among ensembles.**
+  **The pre-registered soft-AND explanation is now licensed and is used:** both
+  rosters contain s82 by membership rule, the aggregator is a masked log-prob
+  mean (a geometric mean = soft AND), so a weak member VETOES rather than being
+  outvoted. E3 (3 members, one bad) is hurt most; E7 (7 members, one bad)
+  dilutes it. That ordering is exactly what the mechanism predicts, and it was
+  written down BEFORE any datum precisely so it could be invoked now.
+  **DEPLOYMENT — R1 HANDED US THE R3 OBJECT WITH ZERO TRAINING.**
+  `r3_deployment_rule` argmax over the five named candidates: **search-on-50M
+  at 0.4470** > s80 greedy 0.3960 > **C0/L2 0.3893** > CE7 0.3827 > CE3 0.3623.
+  Challenger clears the incumbent by **+0.0577**, and survives the m=5
+  winner's-curse adjustment at its own n (+0.0175 -> **+0.0402**), against the
+  +0.025 replacement threshold. **MANDATORY BEFORE ANY PUBLICATION: the
+  selected object is RE-SCORED FRESH at n=3000** (Q6; the selection score is
+  not the published score).
+  **C0 IS ALSO THE REPO'S FIRST COMPLETE (proxy score, ladder rating) PAIR:**
+  L2 = 0.3893 off FP@20 at n=3000, and GXE 59.6% / Glicko-1 1573+/-27 / Elo
+  1292 on the real ladder at n=200.
+  **HEADLINE NUMBERS UNTOUCHED, as `on_every_branch` requires:** 0.71825,
+  0.74633, 0.79283 and the ladder rating all stand. R1 CREDITS NOTHING.
