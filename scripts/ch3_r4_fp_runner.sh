@@ -126,10 +126,24 @@ log_bytes() {
 # FP_PID is the real process; kill_fp() sweeps by username as belt-and-
 # braces and waits for the server to release the name before relaunching.
 kill_fp() {
+    # 2026-08-26, MEASURED: foul-play spawns multiprocessing SEARCH WORKERS
+    # whose command lines read `... -c from multiprocessing.spawn import
+    # spawn_main ...` and therefore do NOT match the --ps-username sweep
+    # below. Killing the parent alone ORPHANS them. They survive, keep
+    # server-side battle state alive, and a relaunched seat/fp pair then
+    # DEADLOCKS AT 0% CPU on a battle neither side owns — the S1 shape with
+    # a new root cause, and it looks exactly like slow progress. Kill the
+    # CHILDREN FIRST, while $FP_PID is still their parent and `pkill -P` can
+    # still see them; once the parent dies they reparent to init and -P
+    # cannot find them.
+    pkill -9 -P "$FP_PID" 2>/dev/null
     kill "$FP_PID" 2>/dev/null
     sleep 2
     kill -9 "$FP_PID" 2>/dev/null
     pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
+    # Belt, for workers already reparented by an earlier bad kill. Arms are
+    # SERIAL (k=1), so there is never a second foul-play to hit by mistake.
+    pkill -9 -f "foul-play/bin/python -c from multiprocessing" 2>/dev/null
     sleep "${NAME_RELEASE_SECS:-15}"
 }
 
@@ -230,7 +244,9 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
     # the relaunch budget orphaning processes.
     if tail -40 "$FP_LOG" 2>/dev/null | grep -q "nametaken"; then
         log "USERNAME DEADLOCK: '$FP_USER' still registered after a kill; aborting arm (ops failure, NOT a data verdict)"
+        pkill -9 -P "$FP_PID" 2>/dev/null
         pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
+        pkill -9 -f "foul-play/bin/python -c from multiprocessing" 2>/dev/null
         date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.USERNAME_DEADLOCK"
         kill "$SEAT_PID" 2>/dev/null
         sleep 2
@@ -269,7 +285,9 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
     LAST_CRASH_COMPLETED="$COMPLETED"
     if [ "$NO_PROGRESS" -ge "$NO_PROGRESS_RELAUNCHES" ]; then
         log "NO_PROGRESS: $NO_PROGRESS relaunches with zero new Winner: lines at fp-completed $COMPLETED -- aborting arm as an OPS FAILURE (not a data verdict; the SEAT is the suspect, not FP)"
+        pkill -9 -P "$FP_PID" 2>/dev/null
         pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
+        pkill -9 -f "foul-play/bin/python -c from multiprocessing" 2>/dev/null
         date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.NO_PROGRESS"
         kill "$SEAT_PID" 2>/dev/null
         sleep 2
