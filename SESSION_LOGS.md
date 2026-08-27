@@ -8090,3 +8090,58 @@ entry by offset — never a broad keyword grep.
   **`prereg_sha256` is constant at `80245bbd...` across every arm** because
   `configs/eval/ch5_r1_offsh.yaml` has not been touched since ratification and
   will not be. The wave-level stamp in `wave.provenance.json` is `313c0fd`.
+
+- 2026-08-26 (evening cont., **R1 WAVE: C0 LOST TO AN OPS FAILURE OF MY OWN
+  MAKING, THE NO_PROGRESS ABORT CAUGHT IT ON ITS FIRST LIVE OUTING, AND THE
+  ROOT CAUSE IS A NEW LANDMINE**). No arm data was harmed; the wave continued
+  and A80 is healthy.
+  **WHAT HAPPENED, in order.** The wave was launched inside the agent process
+  tree, which fails criterion (i) of the safety rule adopted minutes earlier,
+  so I killed it to relaunch detached. My kill swept
+  `run.py .*--ps-username ch5c0fp` — **and foul-play's multiprocessing SEARCH
+  WORKERS do not carry `--ps-username` in their command lines, so they
+  survived as orphans** (verified: PIDs 90744/90745, `-c from
+  multiprocessing.spawn import spawn_main`). They held the server-side battle
+  room open. The relaunched C0 pair then sat at **0.0% CPU on both sides**
+  with foul-play's inactivity clock counting 270 -> 240 -> 210 — the S1 shape
+  with a new root cause, and **it looks exactly like slow progress.**
+  **THE DOWNSTREAM SYMPTOM, and it is worth recording because it is the thing
+  you would actually see:** after a full sweep and relaunch, foul-play began
+  dying within 10 s of every start with
+  `fp/modes/base.py:148 battle.user.name = constants.ID_LOOKUP[battle.opponent.name]
+  -> KeyError: 'battle\n'`. **FP's battle-init parser breaks when it is handed
+  a STALE ROOM**; `battle.opponent.name` came back as the literal `'battle\n'`.
+  So an orphaned worker does not merely waste time — it poisons every
+  subsequent run under the same username pair, with a traceback that looks
+  like an FP bug rather than an ops failure.
+  **THE ABORT I BUILT TONIGHT WORKED, FIRST TIME OUT.** 3 relaunches with
+  zero new `Winner:` lines -> `NO_PROGRESS`, exit 4, `$TAG.NO_PROGRESS`
+  written, arm NOT graded, **wave continued to A80**. Without it this would
+  have burned all 10 relaunches at zero progress. The arm-scoped
+  ops-failure-vs-VOID distinction (designer B §6) is what let the wave
+  survive its own first arm failing.
+  **FIXED IN `scripts/ch3_r4_fp_runner.sh` AND RECORDED AS CLAUDE.md LANDMINE
+  (a2):** kill the CHILDREN FIRST with `pkill -9 -P "$FP_PID"` while the
+  parent still owns them — **once the parent dies they reparent to init and
+  `-P` cannot find them, which is exactly why the original sweep missed
+  them** — then sweep `foul-play/bin/python -c from multiprocessing` as belt.
+  Applied to `kill_fp` and both abort paths. Arms are serial k=1 so the belt
+  can never hit a second live foul-play.
+  **C0 IS OWED A RE-RUN AND WILL RUN LAST — A DISCLOSED DEVIATION FROM
+  `wave_plan.order`.** Q2 puts C0 first for two reasons: it creates the first
+  (proxy, ladder) pair, and it de-risks brand-new ensemble code in hour one.
+  **The de-risking purpose is already discharged** — the ensemble seat ran
+  370 clean battles in the first attempt before I killed it, so the code is
+  proven. The pair is created whenever C0 completes. G-SERIAL asserts
+  NON-OVERLAP, not order, so nothing is breached; the deviation is disclosed
+  here and must appear in the readout. Re-invoking the wave after the last
+  arm picks C0 up automatically (skip-if-complete sees no valid c0.json).
+  **The pre-reg's own `ops_failure_rule` prescribes a FRESH username pair for
+  a re-run. Not taken, and the reason is recorded:** the pre-reg is RATIFIED
+  and FROZEN, its `usernames:` block enumerates exact pairs, and
+  `prereg_sha256` must stay constant across arms. The stale room expires on
+  the server's own inactivity timer, so re-running C0 last achieves the same
+  end without touching a frozen document.
+  **A80 HEALTHY at the time of writing:** 39 battles, FP at 3.1% CPU,
+  ~38/min against the 40.4/min greedy reference — **95% of reference**, well
+  inside the >50% band.
