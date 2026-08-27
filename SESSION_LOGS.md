@@ -8238,3 +8238,56 @@ entry by offset — never a broad keyword grep.
   close this.** The gap is a MODEL gap, which is exactly what R1 is measuring
   (is a better object already on disk?) and what R2 would train. R3's second
   ladder run is worth buying only against something that moves the 34%.
+
+- 2026-08-26 (evening cont., maintainer: "is this running?"): **YES. A80 IS
+  COMPLETE AND CLEAN; A81 IS LIVE. AND THE GRADER HAD A DEFECT THAT VOIDED A
+  GOOD ARM — FOUND, PROVEN A BUG RATHER THAN A VERDICT, FIXED, DISCLOSED.**
+  **THE DEFECT.** `ch5_r1_grade.py`'s G-DECLARED compared the arm JSON's
+  `seat_sha256` against the pin. **`report["seat_sha256"]` is set ONLY inside
+  the ensemble branch (`ch3_fp_h2h.py:350`), so it is `None` for every
+  `greedy_seat` and `search_seat` arm.** A80 therefore failed G-DECLARED and
+  was marked VOID on its first grade.
+  **WHY THIS IS A GRADER BUG AND NOT A DATA VERDICT, established WITHOUT
+  reference to A80's score:** the check was **UNSATISFIABLE BY CONSTRUCTION
+  for 6 of this wave's 9 arms** (A80/81/82, B80/81/82). It could never have
+  passed for any of them whatever they scored. **I am flagging this loudly
+  because fixing a gate after an arm fails it has exactly the shape of moving
+  a goalpost**, and the only thing that distinguishes the two is whether the
+  argument survives without the result — this one does.
+  **THE CHECKPOINT IDENTITY WAS NOT DROPPED TO MAKE THE ARM PASS.** It is now
+  enforced twice: (i) the seat HARD-ASSERTS the pin at load
+  (`ch3_fp_h2h.py:89`, "F-A FAIL: sha256 mismatch") for EVERY arm kind, so a
+  wrong file means the arm never starts — strictly stronger than comparing a
+  stamped field after the fact; and (ii) the grader now RE-HASHES the pinned
+  file at grade time, catching a checkpoint swapped between run and grade.
+  A80 re-graded: `rehashed_ok: true`.
+  **THE SELFTEST DID NOT CATCH IT, AND THAT HOLE IS NOW CLOSED.** `--selftest`
+  exercised the terminal race, three-way G2, G-BUDGET and the bar re-derivation
+  — but never G-DECLARED on a single-lane arm. It now builds a synthetic
+  greedy arm and asserts G-DECLARED PASSES it, and separately that it still
+  CATCHES the 250-battle silent default. **A gate that cannot pass 6 of 9 arms
+  must fail the selftest, not the wave.** (`ch5_r1_grade.py` is not invoked by
+  the wave, so editing it mid-wave is permitted under the rule-0 hazard
+  recorded earlier; the pre-reg and the runner/seat remain untouched.)
+  **A80 RE-GRADED, ALL GATES PASS, NOT VOID.** n_eff 1000; **G2 THREE-WAY
+  396 / 603 / 1 summing to 1000, both tallies agreeing exactly**; G-BUDGET
+  from FP's own log; G3, G-SEAT, G-TERMINAL-RACE, G-DESYNC, G8 all pass;
+  G-SERIAL passes across the wave.
+  **THE READ, and it is the FIRST off-SH number any 50M lane has ever had.**
+  s80 greedy off FP@20 = **0.3960**, n_eff 1000, binomial se 0.0155, 95% CI
+  [0.3657, 0.4263]. Against the banked 12M fleet 0.34867 (n=12,000) that is
+  **+0.0473, se_diff 0.0161, 2.9 se** — and it is **+0.0403 above the best 12M
+  lane ever measured off FP@20 (0.3557)**.
+  **WHAT IS NOT LICENSED, stated now rather than at readout.** k=1, so
+  `grading.clustered_undefined_at_k` applies and **NO VERDICT-S EXISTS**; this
+  is `R1A_DEPLOYMENT`, DESCRIPTIVE_ONLY, crediting nothing. The fleet read
+  needs A81 and A82, the PRIMARY read is the s82 question, and the O-4 cliff
+  says ABOVE may be unreachable at all if the 50M off-FP spread resembles its
+  vs-SH one — **which is precisely what the remaining two lanes measure.** One
+  lane at 2.9 se is a reason to finish the arm, not a result.
+  **BLINDING ATTESTATION, per `blinding_attestation.attests[3]` ("who looked at
+  which arm's result, and in what order"): the assistant looked at C0's gate
+  status, then A80's gates, then A80's rate, in that order, at 2026-08-27
+  ~01:35Z. No n, roster, seat, sidedness or bar formula has changed since
+  launch; the only post-launch edit is the G-DECLARED bug above, which is a
+  gate IMPLEMENTATION fix and is disclosed here.**

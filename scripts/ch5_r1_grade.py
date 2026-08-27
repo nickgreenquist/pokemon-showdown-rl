@@ -52,6 +52,7 @@ exercisable today, before a single CH5 battle:
 import argparse
 import collections
 import gzip
+import hashlib
 import json
 import math
 import re
@@ -243,10 +244,35 @@ def grade_arm(cfg, out_dir, arm_name, tag):
         checks.append(list(seat.get("seat_sha256") or [])
                       == [cfg["checkpoints"][l]["sha256"] for l in arm["lanes"]])
     else:
+        # DEFECT FIXED 2026-08-26, DISCLOSED because it was found by an arm
+        # FAILING the gate and the fix has the shape of moving a goalpost.
+        # It is not: `report["seat_sha256"]` is set ONLY inside the ensemble
+        # branch (ch3_fp_h2h.py:350), so it is None for every greedy_seat and
+        # search_seat arm. The original check required it and was therefore
+        # UNSATISFIABLE BY CONSTRUCTION for 6 of this wave's 9 arms — it could
+        # never have passed for A80/81/82 or B80/81/82, whatever they scored.
+        # That is what makes this a grader bug rather than a data verdict, and
+        # the proof does not depend on any arm's result.
+        # The checkpoint identity is NOT dropped. It is enforced two ways:
+        #   (i) the seat HARD-ASSERTS the pin at load (ch3_fp_h2h.py:89,
+        #       "F-A FAIL: sha256 mismatch"), for EVERY arm kind — a wrong
+        #       file means the arm never starts, which is strictly stronger
+        #       than a stamped field a grader compares after the fact; and
+        #   (ii) the grader re-hashes the pinned file HERE, so a checkpoint
+        #       swapped between the run and the grade is still caught.
         checks.append(seat.get("seat_lane") == arm.get("seat"))
         pin = cfg["checkpoints"][arm["seat"]]["sha256"]
         got = seat.get("seat_sha256")
-        checks.append(got == pin or (isinstance(got, list) and got == [pin]))
+        if got is not None:                      # ensembles, or a future seat
+            checks.append(got == pin or (isinstance(got, list) and got == [pin]))
+            decl["sha_source"] = "stamped by the seat"
+        else:
+            path = REPO / cfg["checkpoints"][arm["seat"]]["path"]
+            h = hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
+            checks.append(h == pin)
+            decl["sha_source"] = ("seat load-time assert (ch3_fp_h2h.py:89) plus a "
+                                  "grade-time re-hash of the pinned file")
+            decl["rehashed_ok"] = h == pin
     decl["pass"] = all(checks)
     R["gates"]["G-DECLARED"] = decl
     R["gates"]["G3"] = {"pass": bool(seat.get("gate_all_challenges_resolved"))
@@ -400,7 +426,38 @@ def selftest():
                         ("B", "2026-01-01T01:00:00Z", "2026-01-01T03:00:00Z")])
     assert bad["pass"] is False and bad["overlaps"], bad
 
-    # (6) an ungraded gate is NOT a passed gate.
+    # (6) G-DECLARED on a SINGLE-LANE arm. The 2026-08-26 defect shipped
+    #     because --selftest exercised the terminal race, G2 and G-BUDGET but
+    #     never G-DECLARED on a greedy arm, where `seat_sha256` is None. A
+    #     gate that cannot pass for 6 of 9 arms must fail the selftest, not
+    #     the wave.
+    import tempfile
+    lane = next(iter(cfg["checkpoints"]))
+    fake_cfg = {"checkpoints": cfg["checkpoints"], "grading": cfg["grading"],
+                "fp": cfg["fp"],
+                "arms": {"T": {"kind": "greedy_seat", "seat": lane, "battles": 7,
+                               "search_time_ms": 20}}}
+    fake_seat = {"battles_requested": 7, "battles_finished": 7,
+                 "seat_lane": lane, "seat_lane_defaulted": False,
+                 "seat_sha256": None, "gate_all_challenges_resolved": True,
+                 "our_wins": 4, "foulplay_wins": 3, "ties": 0,
+                 "seat_username": "t", "fp_username": "f",
+                 "encoder_env": {"POKEMON_RL_ENCODER_V2": "1",
+                                 "POKEMON_RL_ENCODER_IDS": "1"},
+                 "process_obs_dim": 828, "declared_search_time_ms": 20}
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        (d / "t.json").write_text(json.dumps(fake_seat))
+        r = grade_arm(fake_cfg, d, "T", "t")
+        gd = r["gates"]["G-DECLARED"]
+        assert gd["pass"], f"G-DECLARED must pass a well-formed GREEDY arm: {gd}"
+        # and must still fail if the declared battle count is not what ran
+        fake_seat["battles_requested"] = 250
+        (d / "t.json").write_text(json.dumps(fake_seat))
+        assert not grade_arm(fake_cfg, d, "T", "t")["gates"]["G-DECLARED"]["pass"], \
+            "G-DECLARED must still catch the 250-battle silent default"
+
+    # (7) an ungraded gate is NOT a passed gate.
     assert grade_budget(None, 20)["pass"] is None
     assert grade_serial(None)["pass"] is None
 
