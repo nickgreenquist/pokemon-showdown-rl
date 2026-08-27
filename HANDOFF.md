@@ -48,7 +48,7 @@ the tie on the off-FP score would be selection on the read's own metric.
 - **C0 = the repo's first complete (proxy, ladder) pair**: 0.3893 off FP@20
   at n=3000, alongside GXE 59.6% / Glicko-1 1573±27 / Elo 1292 at n=200.
 
-## 3b. MAINTAINER RULED 2026-08-27 — R3 NOW, THEN A RETRAIN THAT IS NOT OPTIONAL
+## 4. MAINTAINER RULED 2026-08-27 — R3 NOW, THEN A RETRAIN THAT IS NOT OPTIONAL
 
 Verbatim: *"assuming ladder is one night to get ~200 games, let's do it.
 BUT - i definitely want a retrain. that will not be optional. i only am
@@ -74,7 +74,7 @@ not the end goal (top500)"*
 - **A-BR-5**: CHAPTER5 §1 says ONE (proxy, ladder) pair. C0 now makes that
   exactly one, so the sentence may finally be TRUE — re-read before editing.
 
-## 3c. THE R2 LEVER — batch size, and the one thing that needs ruling
+## 5. THE R2 LEVER — batch size, and the one thing that needs ruling
 
 Maintainer asked whether the retrain uses the batch lever. **Assistant
 recommends YES**, and R1 strengthened the case from "H&L did it" to evidence
@@ -117,14 +117,14 @@ three extra lanes C2 wanted.
   distinct seeds or they collide on Showdown usernames.
 - Full detail: `CHAPTER5.md` §3b A4, and `prior_work/README.md`'s H&L entry.
 
-## 5. Amendments to a RATIFIED pre-reg, all disclosed in its banner
+## 6. Amendments to a RATIFIED pre-reg, all disclosed in its banner
 
 r7 added `dose: M` to the B arms (they were unlaunchable without it).
 r8 added the `RS80` re-score arm. Both are transcriptions of values the file
 already pre-registered in prose, not new choices. **`prereg_sha256` differs
 across arms: `80245bbd` (A80/A81/A82/CE3) → r7 → r8.** Nothing else moved.
 
-## 4. THE RATIFIED FOUR-STEP PLAN (maintainer, 2026-08-27)
+## 7. THE RATIFIED FOUR-STEP PLAN (maintainer, 2026-08-27)
 
 1. **Ladder now** with what we have (R3, the re-scored search object).
 2. **Retrain on BATCH — not scale.** 50M stays the chapter ceiling.
@@ -151,12 +151,12 @@ across arms: `80245bbd` (A80/A81/A82/CE3) → r7 → r8.** Nothing else moved.
      scale is STILL unmeasurable at k=3 and you would be buying an answer you
      cannot read.** Decide this in advance, not at readout — the D25-P lesson.
 
-## 6. Do NOT, while anything runs
+## 8. Do NOT, while anything runs
 
 Edit `configs/eval/ch5_r1_offsh.yaml`, `scripts/ch3_r4_fp_runner.sh` or
 `scripts/ch3_fp_h2h.py` — runner and seat are invoked FRESH PER ARM.
 Docs and `scripts/ch5_r1_grade.py` are safe.
 
-## 7. Open, unchanged
+## 9. Open, unchanged
 
 `CLEANUP.md` needs rulings. **main is UNPUSHED — ask before pushing.**

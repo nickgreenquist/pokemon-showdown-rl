@@ -40,7 +40,7 @@ Ties=loss; locked = final ckpt. **R1 CREDITS NOTHING; headlines UNTOUCHED.**
 3. **R2 — RETRAIN IS COMMITTED, NOT OPTIONAL.** Batch lever (~1,000
    episodes/update, 3 lanes, banked fleet as free control, ~37 h). **Ruling
    owed:** the branch table routes to C2 (more seeds, first-class); batch is
-   §3b A4 and cannot displace a C-item without your call. HANDOFF.md §4b.
+   §3b A4 and cannot displace a C-item without your call. HANDOFF.md §5.
 4. `CLEANUP.md` rulings. **main is UNPUSHED — ask before pushing.**
 
 ## Watch items
