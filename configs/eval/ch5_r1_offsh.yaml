@@ -1,8 +1,25 @@
 # =====================================================================
 # CHAPTER 5 R1 — THE THREE ZERO-TRAINING OFF-SH READS
-# STATUS: **RATIFIED 2026-08-26 BY THE MAINTAINER ("i ratify what you
-#   proposed before. get to work"). r6 IS THE RATIFIED TEXT AND IS
-#   LAUNCHED.** Every blocker closed, all five build items built, nine
+# STATUS: **RATIFIED 2026-08-26 ("i ratify what you proposed before. get to
+#   work"). r6 WAS THE RATIFIED TEXT. r7 IS AN AMENDMENT MADE AFTER OFF-FP
+#   DATA WAS SEEN, AND IT IS DISCLOSED HERE RATHER THAN FOLDED IN SILENTLY.**
+#   **AMENDMENT r7 (2026-08-27, maintainer-approved: "restart"): the three
+#   R1-B arms gain `dose: M`.** They had none, so all three died in 30 s with
+#   `KeyError: 'dose'` at `ch3_fp_h2h.py:268` — `search_seat` requires it and
+#   the assistant omitted it when enumerating the arms. **THIS IS A
+#   TRANSCRIPTION, NOT A CHOICE, and the distinction is the whole
+#   justification:** this file already says **"search@M" in four places**
+#   (Q3's cost line, `on_every_branch`, the R1-B licensed sentence, and the
+#   R1-B arm-block comment), CH3 R2's banked `search_seat` arm
+#   (`ch3_r2_fp_h2h.yaml:65` FS) uses `dose: M`, and M was the operating
+#   point of the credited 0.79283 result. No other dose was ever in scope.
+#   **CONSEQUENCE, DISCLOSED: `prereg_sha256` NOW DIFFERS between the four
+#   arms already run under r6 (A80/A81/A82/CE3) and anything run under r7.**
+#   The r6 hash is `80245bbd...`. Nothing else changed: no arm's n, roster,
+#   seat, sidedness or bar formula moved, which is what the blinding
+#   attestation actually protects. **R1-A IS ALREADY READ OUT AND IS
+#   UNAFFECTED** — it contains no B arm.
+#   The rest of r6 stands as ratified.** Every blocker closed, all five build items built, nine
 #   arms enumerated. Pre-flight green at launch: server up, simulator: 4
 #   set, tree clean, all seven checkpoint pins verified against sha256.
 #   **NOTHING IN THIS FILE MAY CHANGE FROM HERE** — the blinding
@@ -1467,6 +1484,7 @@ arms:
   B80:
     kind: search_seat
     seat: s80
+    dose: M                    # AMENDMENT r7, see the banner. NOT a new choice.
     battles: 1000
     search_time_ms: 20
     seat_username: ch5b80seat
@@ -1474,6 +1492,7 @@ arms:
   B81:
     kind: search_seat
     seat: s81
+    dose: M                    # AMENDMENT r7, see the banner. NOT a new choice.
     battles: 1000
     search_time_ms: 20
     seat_username: ch5b81seat
@@ -1481,6 +1500,7 @@ arms:
   B82:
     kind: search_seat
     seat: s82
+    dose: M                    # AMENDMENT r7, see the banner. NOT a new choice.
     battles: 1000
     search_time_ms: 20
     seat_username: ch5b82seat

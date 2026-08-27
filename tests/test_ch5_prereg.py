@@ -363,6 +363,15 @@ def test_every_arm_kind_is_one_the_seat_accepts():
         # CLAUDE.md's landmine is that a policy-form mismatch manufactures an
         # effect worth ~26 implied rating points.
         assert arm["kind"] != "sampled_seat", f"{name}: barred by grading.sampled_seat_barred"
+        # 2026-08-27: `search_seat` requires `dose` (ch3_fp_h2h.py:268 does
+        # DOSES[arm["dose"]]). All three R1-B arms omitted it and died in 30 s
+        # with KeyError: 'dose'. This test checked kind/seat/lanes/battles/
+        # budget and not this, so the wave found it instead of the suite.
+        if arm["kind"] == "search_seat":
+            assert arm.get("dose") in ("S", "M", "L"), \
+                f"{name}: search_seat needs a dose; KeyError at ch3_fp_h2h.py:268 otherwise"
+            assert arm["dose"] == "M", \
+                f"{name}: this chapter is search@M throughout; any other dose is a new pre-registration"
     assert G["seat_policy"] == "deterministic" and G["sampled_seat_barred"] is True
 
 
