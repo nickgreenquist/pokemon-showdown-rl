@@ -1409,6 +1409,7 @@ usernames:
     B82: {seat: ch5b82seat, fp: ch5b82fp}
     CE3: {seat: ch5ce3seat, fp: ch5ce3fp}
     CE7: {seat: ch5ce7seat, fp: ch5ce7fp}
+    RS80: {seat: ch5rs80seat, fp: ch5rs80fp}   # r8
 
 # rev 2 §4-7: a KEY, not a sentence — G-SERIAL asserts wall clocks and
 # needs something to assert against.
@@ -1417,7 +1418,7 @@ wave_plan:
   rule: "any two arms entering a common comparison must run at the same k, or the comparison is VOID (grading.void_k) and the ARMS SURVIVE. In CH5 EVERY arm enters one (A vs the banked 12M fleet; B vs A per lane; E3/E7 vs C0), so k=1 is not a preference."
   comparator_wave: "ch4_r1_offsh, serial k=1 (wave.log: 'WAVE START serial k=1')"
   serial_evidence: "$OUT/wave.log arm start/done timestamps must not overlap; scripts/ch5_r1_grade.py asserts it. THIS IS G-SERIAL'S ARTIFACT."
-  order: [C0, A80, A81, A82, B80, B81, B82, CE3, CE7]
+  order: [C0, A80, A81, A82, B80, B81, B82, CE3, CE7, RS80]
   order_rationale: "C0 first (both designers, independently): it creates the repo's FIRST complete (proxy score, ladder rating) pair and de-risks brand-new ensemble code at scale in hour one. CE7 last: widest and dearest, so an interrupt costs the least."
   resume: "skip-if-complete on $OUT/<tag>.json with gate_all_challenges_resolved true. A partial arm re-runs WHOLE; there is no mid-arm resume and none is claimed."
   retry_no_json_once: true          # designer B §7.3: torch lazy-init SIGSEGV
@@ -1521,6 +1522,30 @@ arms:
     search_time_ms: 20
     seat_username: ch5ce3seat
     fp_username: ch5ce3fp
+  # ---- AMENDMENT r8: THE MANDATORY FRESH RE-SCORE. -------------------
+  # Q6 and `r3_deployment_rule` both REQUIRE this and neither enumerated it:
+  # "Whatever is chosen for a ladder run is RE-SCORED fresh before any number
+  # is published." Same class of omission as r7's `dose` — the obligation was
+  # pre-registered, the ARM was not. Adding it is transcription.
+  # WHICH OBJECT: B80 and B81 tied EXACTLY at 0.4470, so the tie is broken by
+  # the pre-registered ORTHOGONAL rule
+  # (`grading.arms.R1B.object_selection_rule_if_one_arm`): s80, the lane with
+  # the highest BANKED vs-SH final (0.74233), fixed before any R1 datum.
+  # Breaking it on the off-FP score would be selection on the read's own
+  # metric, which Q6 forbids.
+  # n=3000 because a DEPLOYMENT score is published: at 3000, 2*se_diff is
+  # 0.0246, inside the 0.025 floor.
+  RS80:
+    kind: search_seat
+    seat: s80
+    dose: M
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5rs80seat
+    fp_username: ch5rs80fp
+    role: "FRESH RE-SCORE of the R1-B deployment candidate. Its SELECTION score
+      was 0.4470 at n=1000; that number may NOT be published as the object's
+      score. This arm's number is the publishable one."
   CE7:
     kind: ensemble_seat
     lanes: [s62, s63, s64, s65, s80, s81, s82]   # == ensembles.E7_all
