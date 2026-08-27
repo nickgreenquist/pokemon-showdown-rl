@@ -110,26 +110,51 @@ def main():
     A("mirrors. Everything below is reproducible by re-running that script")
     A("against those artifacts.\n")
     A("## Status of the primary read\n")
-    A(f"- Board reachable: **{snap.get('ok')}**")
+    A(f"- Profile reachable: **{snap.get('profile_ok')}**")
+    A(f"- Board reachable: **{snap.get('board_ok')}**")
     A(f"- Listed on the top-500: **{snap.get('listed')}**")
     A(f"- Top-500 admission cutoff: Elo **{snap.get('cutoff_elo')}**")
-    # CORRECTED 2026-08-26. The branch below asserted that GXE/Glicko exist
-    # only for LISTED accounts and that the pre-registered primary read
-    # therefore does not exist. **That is false.** The top-500 leaderboard
-    # JSON polled here contains only listed accounts, but the USER PROFILE
-    # (https://pokemonshowdown.com/users/<userid>) carries GXE and Glicko-1
-    # for ANY rated account. LADDER R1 was declared unmeasurable on this
-    # branch and its numbers were on the profile the whole time (GXE 59.6%,
-    # Glicko-1 1573 +/- 27). Being unlisted is a statement about the TOP-500
-    # BOARD, never about whether a rating exists.
-    if not snap.get("listed"):
-        A("\n**GXE AND GLICKO ARE UNMEASURED.** Showdown publishes them only for")
-        A("listed accounts. **THIS SENTENCE IS WRONG — see the comment above;")
-        A("read GXE/Glicko off the USER PROFILE, not the leaderboard.**")
-        A("The pre-registered primary read therefore does not")
-        A("exist for this run, and no GXE may be quoted or projected. The run")
-        A("stopped at the pre-registered n floor, NOT by the stopping rule")
-        A("(`rd <= 40 AND n >= 200` also requires being listed).\n")
+    # CORRECTED 2026-08-26, and the GENERATOR was fixed 2026-08-27. This
+    # block used to branch on `listed` from the TOP-500 LEADERBOARD and emit
+    # "GXE AND GLICKO ARE UNMEASURED. Showdown publishes them only for
+    # listed accounts. The pre-registered primary read therefore does not
+    # exist for this run." **That is false.** The leaderboard JSON contains
+    # only listed accounts, but the USER PROFILE
+    # (https://pokemonshowdown.com/users/<userid>.json) carries GXE and
+    # Glicko-1 for ANY rated account. LADDER R1 was declared unmeasurable on
+    # that branch and its numbers were on the profile the whole time
+    # (GXE 59.6%, Glicko-1 1573 +/- 27, Elo 1292). Being unlisted is a
+    # statement about the TOP-500 BOARD, never about whether a rating exists.
+    # `ladder.ladder_snapshot` now reads both sources, so the branch below
+    # keys on whether a RATING exists rather than on where it is ranked.
+    if snap.get("rd") is not None:
+        A(f"\n**PRIMARY READ (server-computed, via "
+          f"{snap.get('rating_source')}):** GXE **{snap.get('gxe')}%**, "
+          f"Glicko-1 **{snap['r']:.0f} +/- {snap['rd']:.0f}**, "
+          f"Elo **{snap['elo']:.0f}**, record "
+          f"**{snap.get('w')}-{snap.get('l')}**.")
+        A("Quoted WITH n, WITH the policy kind and WITH the board position,")
+        A("exactly as pre-registered. DESCRIPTIVE — the ladder credits no")
+        A("lever, and being unlisted is a fact about the board, not about")
+        A("whether this rating exists.\n")
+        rule = {"glicko_rd_max": 40, "min_battles": 200}
+        met = (snap["rd"] <= rule["glicko_rd_max"]) and (n >= rule["min_battles"])
+        A(f"- Stopping rule (`rd <= 40 AND n >= 200`): "
+          f"**{'SATISFIED' if met else 'NOT satisfied'}** "
+          f"at rd {snap['rd']:.1f}, n {n}.")
+        A("  (R1's `L2.report.json` says `stopped_by_rule: false`. That is an")
+        A("  ARTIFACT of the runner reading rd off the leaderboard it was not")
+        A("  on — not a statement that the rule failed. Fixed 2026-08-27.)\n")
+    elif snap.get("profile_ok") and snap.get("rated") is False:
+        A("\n**NO RATING YET** — the profile is reachable and reports no")
+        A("rated games in this format. A real negative, not a missing read.\n")
+    else:
+        A("\n**PRIMARY READ UNAVAILABLE — ENDPOINT FAILURE, NOT ABSENCE.**")
+        A(f"profile_ok={snap.get('profile_ok')} "
+          f"({snap.get('profile_error')}); "
+          f"board_ok={snap.get('board_ok')} ({snap.get('board_error')}).")
+        A("Do NOT read this as 'we have no rating' — that inversion is")
+        A("exactly what cost R1 two days.\n")
     A("## Headline (all DESCRIPTIVE — the ladder credits no lever)\n")
     A("| | |")
     A("|---|---|")
@@ -137,9 +162,23 @@ def main():
     A(f"| record | {w}–{n-w} (**{w/n:.3f}**) |")
     A(f"| played-only (ratified cut, excludes no-shows) | {pw}/{len(played)} "
       f"(**{pw/len(played):.3f}**) |")
+    # EVERY VALUE IN `traj` IS A **PRE-BATTLE** RATING — verified on 195/195
+    # consecutive pairs of the R1 run (sign(rating[i+1]-rating[i]) matches
+    # outcome[i] 100% of the time). So `traj[-1]` is the rating going INTO
+    # the last battle, not the rating after it. This generator used to label
+    # it "PS Elo, final" and that is the origin of the "Elo 1311" this repo
+    # quoted for two days; the true final was 1292, one loss later. The
+    # PROFILE is authoritative for the final value and is used when present.
     if traj:
-        A(f"| PS Elo, final | **{traj[-1][1]}** |")
-        A(f"| PS Elo, peak | {max(v for _, v in traj)} |")
+        if snap.get("elo") is not None:
+            A(f"| PS Elo, final (profile, authoritative) | "
+              f"**{snap['elo']:.0f}** |")
+            A(f"| PS Elo, last PRE-battle value | {traj[-1][1]} |")
+        else:
+            A(f"| PS Elo, last PRE-battle value (profile unreachable — "
+              f"NOT the final) | **{traj[-1][1]}** |")
+        A(f"| PS Elo, highest observed (pre-battle) | "
+          f"{max(v for _, v in traj)} |")
         A(f"| PS Elo, start | {traj[0][1]} |")
     A(f"| distinct opponents | {len({r['opponent'] for r in rows})} |")
     A(f"| mean turns | {statistics.mean(r['turns'] for r in rows):.1f} |")
@@ -149,8 +188,10 @@ def main():
     A("authoritative and the JSONL column is advisory, exactly as pre-registered.\n")
     if traj:
         step = max(1, len(traj) // 20)
-        A("Elo by battle index (every "
+        A("PRE-battle Elo by battle index (every "
           f"{step}): " + " → ".join(str(v) for i, v in traj[::step]) + "\n")
+        A("Every value above is the rating going INTO that battle. The final")
+        A("rating is one battle later and comes from the profile, not here.\n")
     A("## Obligation (ii) — the rematch cell\n")
     A("| cell | n | W | win rate | mean turns | opp Elo mean | opp Elo median |")
     A("|---|---|---|---|---|---|---|")

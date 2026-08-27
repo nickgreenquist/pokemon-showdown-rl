@@ -72,6 +72,8 @@ from poke_env.ps_client.server_configuration import ShowdownServerConfiguration
 
 BATTLE_FORMAT = "gen1randombattle"
 LADDER_API = "https://pokemonshowdown.com/ladder/{fmt}.json"
+# THE ENDPOINT THAT MAKES THE PRIMARY READ EXIST. See `profile_snapshot`.
+PROFILE_API = "https://pokemonshowdown.com/users/{userid}.json"
 POLICY_KINDS = ("greedy", "ensemble", "search")
 USERID_MAX = 18
 
@@ -112,30 +114,99 @@ def _check_username(display_name: str) -> str:
     return uid
 
 
-def ladder_snapshot(fmt: str, userid: str) -> dict:
-    """Our row off the PUBLIC top-500 leaderboard. Unauthenticated GET; no
-    login needed, and it is the only source of GXE (the battle stream carries
-    Elo only). Absent from the list is NOT an error — the 500th place cutoff
-    was GXE 58.8 on 2026-08-25, so an early run is legitimately unlisted."""
-    url = LADDER_API.format(fmt=fmt)
-    # A User-Agent is REQUIRED: pokemonshowdown.com 403s urllib's default
-    # `Python-urllib/3.x`. Measured 2026-08-25 — curl 200, default UA 403,
-    # browser-ish UA 200 — after the first 20-battle run completed with
-    # EVERY board call silently failing.
+def _get_json(url: str) -> dict:
+    """One GET, returning either the parsed body or an `ok: False` marker.
+
+    A User-Agent is REQUIRED: pokemonshowdown.com 403s urllib's default
+    `Python-urllib/3.x`. Measured 2026-08-25 — curl 200, default UA 403,
+    browser-ish UA 200 — after the first 20-battle run completed with EVERY
+    board call silently failing.
+
+    `ok: False` is what keeps a FETCH FAILURE from impersonating a real
+    negative. The first version returned a dict with no `listed` key, and the
+    stopping rule's `not snap.get("listed")` read that as a genuine "not on
+    the list" — so a dead endpoint reported the reassuring, specific and
+    WRONG message "not yet on the top-500 list", and the rule could never
+    fire.
+    """
     req = urllib.request.Request(
         url, headers={"User-Agent": "pokemon-showdown-rl research bot"}
     )
     try:
         with urllib.request.urlopen(req, timeout=20) as fh:
-            board = json.load(fh)
+            return {"ok": True, "body": json.load(fh)}
     except Exception as exc:  # noqa: BLE001 — a scrape must never kill a run
-        # `ok: False` is what keeps a FETCH FAILURE from impersonating a
-        # legitimate "not on the list yet". The first version returned a
-        # dict with no `listed` key, and the stopping rule's
-        # `not snap.get("listed")` read that as a real negative — so a dead
-        # endpoint reported the reassuring, specific and WRONG message
-        # "not yet on the top-500 list", and the rule could never fire.
-        return {"ok": False, "error": repr(exc), "url": url}
+        return {"ok": False, "error": repr(exc)}
+
+
+def profile_snapshot(fmt: str, userid: str) -> dict:
+    """OUR rating, off the USER PROFILE — the source that actually has it.
+
+    ADDED 2026-08-27, and it fixes a two-day error that cost LADDER R1 its
+    pre-registered primary read. `ladder_snapshot` below polls the TOP-500
+    LEADERBOARD, which by construction contains only listed accounts; R1
+    finished unlisted, so the tooling reported "GXE and Glicko are
+    UNMEASURED" and `stopped_by_rule: false`. **Both were false.** The
+    profile carries GXE and Glicko-1 for ANY RATED ACCOUNT, listed or not.
+    Being unlisted is a statement about the BOARD, never about whether a
+    rating exists. R1's numbers were on a public page the whole time.
+
+    Verified against R1's own account 2026-08-27 —
+    `https://pokemonshowdown.com/users/nickgen1rbrlbot.json` returns
+    `{"ratings": {"gen1randombattle": {"elo": 1292.25, "gxe": 59.6,
+      "rpr": 1573.04, "rprd": 26.57, "w": 95, "l": 105}}}` — which reproduces
+    every corrected R1 number (final Elo 1292, GXE 59.6%, Glicko-1 1573+/-27,
+    95-105 over 200) and shows the stopping rule was SATISFIED at rd 26.6,
+    not merely un-evaluated.
+
+    FIELD NAMES DIFFER FROM THE BOARD ROW and that is the whole trap: the
+    profile spells Glicko-1 `rpr`/`rprd` where the leaderboard spells it
+    `r`/`rd`. We normalise to the board's names so one stopping rule reads
+    either source. `t` (ties) is absent from the profile; it stays None
+    rather than being invented as 0.
+
+    THREE OUTCOMES, kept distinct because collapsing them is the original
+    bug in a new costume:
+      ok=False              -> fetch failed; we know NOTHING. Never a pass.
+      ok=True, rated=False  -> account reachable, no rated games in this
+                               format yet. A real negative, not an error.
+      ok=True, rated=True   -> the rating fields are present and usable.
+    """
+    url = PROFILE_API.format(userid=userid)
+    got = _get_json(url)
+    if not got["ok"]:
+        return {"ok": False, "error": got["error"], "url": url}
+    body = got["body"] or {}
+    row = (body.get("ratings") or {}).get(fmt)
+    out = {"ok": True, "url": url, "rated": bool(row),
+           "registertime": body.get("registertime")}
+    if row:
+        out.update({
+            "gxe": row.get("gxe"),
+            "r": row.get("rpr"),      # Glicko-1 rating
+            "rd": row.get("rprd"),    # Glicko-1 deviation — the stopping signal
+            "elo": row.get("elo"),
+            "w": row.get("w"),
+            "l": row.get("l"),
+            "t": row.get("t"),        # absent on the profile; stays None
+        })
+    return out
+
+
+def board_snapshot(fmt: str, userid: str) -> dict:
+    """Our row off the PUBLIC top-500 leaderboard. Unauthenticated GET.
+
+    THIS IS NOT THE SOURCE OF OUR RATING — `profile_snapshot` is. What only
+    the board can tell us is whether we are LISTED and where the admission
+    line sits, and both are descriptive. Absent from the list is NOT an
+    error: admission is an ELO threshold (~1357 on 2026-08-25), so an
+    unlisted run is the normal case for this project.
+    """
+    url = LADDER_API.format(fmt=fmt)
+    got = _get_json(url)
+    if not got["ok"]:
+        return {"ok": False, "error": got["error"], "url": url}
+    board = got["body"] or {}
     rows = board.get("toplist", [])
     mine = next((r for r in rows if r.get("userid") == userid), None)
     out = {"ok": True, "url": url, "listed": mine is not None,
@@ -151,6 +222,46 @@ def ladder_snapshot(fmt: str, userid: str) -> dict:
         out.update(
             {k: mine.get(k) for k in ("gxe", "r", "rd", "elo", "w", "l", "t")}
         )
+    return out
+
+
+def ladder_snapshot(fmt: str, userid: str) -> dict:
+    """Both sources, merged, with the PROFILE authoritative for our rating.
+
+    Order matters: the board row is written first so that when we are listed
+    the two agree, then the profile overwrites — the profile is the account's
+    own record and exists in every case, while the board row exists only
+    while we hold a top-500 slot. `listed` and `cutoff_elo` still come from
+    the board, because only the board knows them.
+
+    `ok` means "at least one source answered", so a single dead endpoint
+    does not blind the run. The per-source flags `board_ok` / `profile_ok`
+    are what a reader should check before trusting any individual field.
+    """
+    board = board_snapshot(fmt, userid)
+    prof = profile_snapshot(fmt, userid)
+
+    out = {"ok": bool(board.get("ok") or prof.get("ok")),
+           "board_ok": bool(board.get("ok")),
+           "profile_ok": bool(prof.get("ok"))}
+    if board.get("ok"):
+        out.update({k: v for k, v in board.items() if k != "ok"})
+    else:
+        out["board_error"] = board.get("error")
+        out["listed"] = None
+    if prof.get("ok"):
+        out["profile_url"] = prof.get("url")
+        out["rated"] = prof.get("rated")
+        # Only real values overwrite the board row — an unrated profile must
+        # not blank out a board row we successfully read.
+        for k in ("gxe", "r", "rd", "elo", "w", "l", "t"):
+            if prof.get(k) is not None:
+                out[k] = prof[k]
+        out["rating_source"] = "profile" if prof.get("rated") else None
+    else:
+        out["profile_error"] = prof.get("error")
+    if out.get("rating_source") is None and board.get("listed"):
+        out["rating_source"] = "leaderboard"
     return out
 
 
@@ -338,8 +449,19 @@ def stopping_rule_met(cfg: dict, n: int, snap: dict) -> tuple[bool, str]:
     not evidence of convergence) and the n floor stops a lucky early streak
     from ending the run at rd 39 on 40 games.
 
-    Being UNLISTED is not a pass — an unlisted account has no published rd at
-    all, so we cannot know it converged. Keep playing.
+    SUPERSEDED 2026-08-27, and the superseded text is kept because the error
+    was reasoned, not careless. This function used to read:
+
+        "Being UNLISTED is not a pass — an unlisted account has no published
+         rd at all, so we cannot know it converged. Keep playing."
+
+    **The premise is false.** An unlisted account HAS a published rd; it is
+    on the USER PROFILE (`profile_snapshot`), not on the top-500 leaderboard
+    this function was handed. LADDER R1 therefore ran to its n floor and
+    reported `stopped_by_rule: false` while sitting at **rd 26.6, n 200** —
+    the rule had been satisfied and nothing could see it. The `listed` gate
+    is REMOVED. What the rule needs is an rd from a source that answered,
+    and `listed` is descriptive from here on.
     """
     rule = cfg.get("stopping_rule") or {}
     rd_max = rule.get("glicko_rd_max")
@@ -349,16 +471,26 @@ def stopping_rule_met(cfg: dict, n: int, snap: dict) -> tuple[bool, str]:
     if n < n_min:
         return False, f"n {n} < {n_min}"
     if not snap.get("ok"):
-        return False, (f"BOARD UNREACHABLE ({snap.get('error')}) — cannot "
-                       "evaluate the stopping rule. This is NOT 'unlisted'.")
-    if not snap.get("listed"):
-        return False, f"n {n} >= {n_min} but not yet on the top-500 list"
+        err = snap.get("error") or snap.get("profile_error") or snap.get("board_error")
+        return False, (f"BOTH ENDPOINTS UNREACHABLE ({err}) — cannot "
+                       "evaluate the stopping rule. This is NOT 'unrated'.")
     rd = snap.get("rd")
     if rd is None:
-        return False, f"n {n} >= {n_min} but no rd on the board row"
+        # Distinguish the two ways rd can be missing, because they call for
+        # opposite responses: an unrated account keeps playing, a dead
+        # profile endpoint is an ops problem the operator must see.
+        if snap.get("profile_ok") and snap.get("rated") is False:
+            return False, (f"n {n} >= {n_min} but the account has no rated "
+                           "games in this format yet")
+        if not snap.get("profile_ok"):
+            return False, (f"n {n} >= {n_min} but the PROFILE is unreachable "
+                           f"({snap.get('profile_error')}) and the board row "
+                           "carries no rd — cannot evaluate the rule")
+        return False, f"n {n} >= {n_min} but no rd from either source"
     if rd > rd_max:
         return False, f"n {n} >= {n_min}, rd {rd:.1f} > {rd_max}"
-    return True, f"n {n} >= {n_min} AND rd {rd:.1f} <= {rd_max}"
+    src_name = snap.get("rating_source") or "unknown source"
+    return True, f"n {n} >= {n_min} AND rd {rd:.1f} <= {rd_max} (via {src_name})"
 
 
 def _record(battle, index: int) -> dict:
@@ -438,9 +570,17 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
     before = ladder_snapshot(BATTLE_FORMAT, userid) if not local_smoke else {}
     print(f"seat '{display_name}' (userid {userid}) kind={provenance['kind']} "
           f"-> {remaining} battles")
-    if before.get("listed"):
-        print(f"  starting board position: GXE {before['gxe']} "
-              f"Glicko {before['r']:.0f} Elo {before['elo']:.0f}")
+    # Print whenever a rating EXISTS — gating this on `listed` is the same
+    # leaderboard-vs-profile error that cost R1 its primary read.
+    if before.get("rd") is not None:
+        print(f"  starting rating ({before.get('rating_source')}): "
+              f"GXE {before.get('gxe')} "
+              f"Glicko-1 {before['r']:.0f} +/- {before['rd']:.0f} "
+              f"Elo {before.get('elo'):.0f} "
+              f"[listed={before.get('listed')}]")
+    elif before.get("profile_ok") and before.get("rated") is False:
+        print("  starting rating: none yet — account has no rated games in "
+              f"{BATTLE_FORMAT}")
 
     # LOCAL SMOKE ONLY: a ladder queue with one player in it never matches,
     # so the smoke would hang forever and look exactly like a deadlock. Put a

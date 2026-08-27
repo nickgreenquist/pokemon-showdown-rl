@@ -64,6 +64,14 @@ class TestUsername:
 
 
 class TestLadderSnapshot:
+    """Two sources now, and which one answers WHICH question is the point.
+
+    The leaderboard knows only `listed` and the admission line. The PROFILE
+    knows our rating, and knows it whether or not we are listed. Conflating
+    them cost LADDER R1 its pre-registered primary read for two days, so
+    these pin the separation rather than just the parsing.
+    """
+
     BOARD = {
         "toplist": [
             {"userid": "someone", "gxe": 84.3, "r": 1814.9, "rd": 28.3,
@@ -72,32 +80,56 @@ class TestLadderSnapshot:
              "elo": 1358.0, "w": 10, "l": 9, "t": 0},
         ]
     }
+    # Verbatim shape of the live response for our own account, fetched
+    # 2026-08-27. Note `rpr`/`rprd` where the board says `r`/`rd`.
+    PROFILE = {
+        "username": "nickgen1rbrlbot", "userid": "nickgen1rbrlbot",
+        "registertime": 1787616000, "group": 1,
+        "ratings": {"gen1randombattle": {
+            "elo": 1292.2541143813178, "gxe": 59.6,
+            "rpr": 1573.0409640158791, "rprd": 26.572951195067724,
+            "w": 95, "l": 105, "coil": None}},
+    }
+    UNRATED = {"username": "newbie", "userid": "newbie", "ratings": {}}
 
-    def _fake_urlopen(self, board):
-        class _Resp:
-            def __enter__(_s):
-                return _s
+    def _fake_urlopen(self, board=None, profile=None, board_boom=False,
+                      profile_boom=False):
+        """Routes by URL — the whole change is that there are two now."""
+        def _open(req, *_a, **_k):
+            url = req.full_url if hasattr(req, "full_url") else str(req)
+            is_profile = "/users/" in url
+            if (is_profile and profile_boom) or (not is_profile and board_boom):
+                raise OSError("no network")
+            payload = profile if is_profile else board
 
-            def __exit__(*_a):
-                return False
+            class _Resp:
+                def __enter__(_s):
+                    return _s
 
-            def read(_s):
-                return json.dumps(board).encode()
+                def __exit__(*_a):
+                    return False
 
-        return lambda *_a, **_k: _Resp()
+                def read(_s):
+                    return json.dumps(payload).encode()
+
+            return _Resp()
+
+        return _open
 
     def test_finds_our_row(self):
         with patch.object(ladder.urllib.request, "urlopen",
-                          self._fake_urlopen(self.BOARD)):
+                          self._fake_urlopen(self.BOARD, self.PROFILE)):
             snap = ladder.ladder_snapshot("gen1randombattle", "someone")
         assert snap["listed"] is True
-        assert snap["gxe"] == 84.3
-        assert snap["elo"] == 1667.0
+        # The PROFILE wins on the rating fields even when we are listed —
+        # it is the account's own record and always exists.
+        assert snap["gxe"] == 59.6
+        assert snap["rating_source"] == "profile"
 
     def test_unlisted_is_normal_not_an_error(self):
         """Early in a run we are legitimately below the 500th cutoff."""
         with patch.object(ladder.urllib.request, "urlopen",
-                          self._fake_urlopen(self.BOARD)):
+                          self._fake_urlopen(self.BOARD, self.PROFILE)):
             snap = ladder.ladder_snapshot("gen1randombattle", "nobody")
         assert snap["listed"] is False
         assert snap["ok"] is True
@@ -110,15 +142,62 @@ class TestLadderSnapshot:
         assert snap["cutoff_elo"] == 1358.0
         assert snap["min_listed_gxe"] == 58.8
 
+    def test_unlisted_still_has_a_rating(self):
+        """THE R1 BUG, pinned. Unlisted is a fact about the BOARD; the
+        profile carries GXE and Glicko-1 for any rated account. R1 reported
+        these as UNMEASURED while they sat on a public page."""
+        with patch.object(ladder.urllib.request, "urlopen",
+                          self._fake_urlopen(self.BOARD, self.PROFILE)):
+            snap = ladder.ladder_snapshot("gen1randombattle", "nickgen1rbrlbot")
+        assert snap["listed"] is False
+        assert snap["rated"] is True
+        assert snap["gxe"] == 59.6
+        # `rpr`/`rprd` are normalised onto the board's `r`/`rd` spelling so
+        # one stopping rule reads either source.
+        assert round(snap["r"]) == 1573
+        assert round(snap["rd"]) == 27
+        assert round(snap["elo"]) == 1292
+
+    def test_profile_with_no_rated_games_is_a_real_negative(self):
+        with patch.object(ladder.urllib.request, "urlopen",
+                          self._fake_urlopen(self.BOARD, self.UNRATED)):
+            snap = ladder.ladder_snapshot("gen1randombattle", "newbie")
+        assert snap["profile_ok"] is True
+        assert snap["rated"] is False
+        assert snap.get("rd") is None
+
     def test_network_failure_is_survivable(self):
         """A scrape must never take down a run mid-ladder."""
-        def _boom(*_a, **_k):
-            raise OSError("no network")
-
-        with patch.object(ladder.urllib.request, "urlopen", _boom):
+        with patch.object(ladder.urllib.request, "urlopen",
+                          self._fake_urlopen(board_boom=True,
+                                             profile_boom=True)):
             snap = ladder.ladder_snapshot("gen1randombattle", "someone")
-        assert "error" in snap
+        assert snap["ok"] is False
+        assert snap["board_error"] and snap["profile_error"]
         assert snap.get("listed") is None or snap.get("listed") is False
+
+    def test_a_dead_board_does_not_hide_the_rating(self):
+        """One endpoint down must not blind the other. The rating lives on
+        the profile, so a 403 on the leaderboard costs us `listed` and the
+        admission line — never the primary read."""
+        with patch.object(ladder.urllib.request, "urlopen",
+                          self._fake_urlopen(profile=self.PROFILE,
+                                             board_boom=True)):
+            snap = ladder.ladder_snapshot("gen1randombattle", "nickgen1rbrlbot")
+        assert snap["ok"] is True
+        assert snap["board_ok"] is False and snap["profile_ok"] is True
+        assert snap["listed"] is None
+        assert snap["gxe"] == 59.6
+
+    def test_a_dead_profile_falls_back_to_the_board_row(self):
+        with patch.object(ladder.urllib.request, "urlopen",
+                          self._fake_urlopen(board=self.BOARD,
+                                             profile_boom=True)):
+            snap = ladder.ladder_snapshot("gen1randombattle", "someone")
+        assert snap["ok"] is True
+        assert snap["profile_ok"] is False
+        assert snap["rd"] == 28.3
+        assert snap["rating_source"] == "leaderboard"
 
 
 class TestChooseMoveNeverRaises:
@@ -254,7 +333,8 @@ class TestStoppingRule:
     operator could overrun by hundreds of public battles. These pin it."""
 
     CFG = {"stopping_rule": {"glicko_rd_max": 40, "min_battles": 200}}
-    LISTED = {"ok": True, "listed": True, "rd": 35.0}
+    LISTED = {"ok": True, "profile_ok": True, "listed": True, "rated": True,
+              "rd": 35.0, "rating_source": "profile"}
 
     def test_met_when_both_halves_hold(self):
         met, why = ladder.stopping_rule_met(self.CFG, 200, self.LISTED)
@@ -272,22 +352,48 @@ class TestStoppingRule:
                                                           "rd": 41.0})
         assert met is False
 
-    def test_genuinely_unlisted_still_blocks(self):
+    def test_unlisted_with_an_rd_IS_a_pass(self):
+        """THE REGRESSION THAT COST R1 ITS PRIMARY READ, pinned in the
+        direction it actually failed.
+
+        Two tests used to live here — `test_genuinely_unlisted_still_blocks`
+        and `test_unlisted_is_not_a_pass` — both asserting that an unlisted
+        account blocks the rule, on the stated premise that "an unlisted
+        account has no published rd". **The premise was false**: the rd is
+        on the USER PROFILE. R1 finished at rd 26.6 / n 200 and reported
+        `stopped_by_rule: false`. The `listed` gate is gone; these are the
+        real R1 numbers and they must read MET."""
         met, why = ladder.stopping_rule_met(
-            self.CFG, 5000, {"ok": True, "listed": False}
+            self.CFG, 200,
+            {"ok": True, "profile_ok": True, "listed": False, "rated": True,
+             "rd": 26.572951195067724, "rating_source": "profile"},
+        )
+        assert met is True
+        assert "26.6" in why and "profile" in why
+
+    def test_unrated_account_blocks(self):
+        """The one case that genuinely has no rd: reachable profile, no
+        rated games in this format. A real negative — keep playing — and it
+        must not be confused with a dead endpoint."""
+        met, why = ladder.stopping_rule_met(
+            self.CFG, 5000,
+            {"ok": True, "profile_ok": True, "rated": False, "listed": False},
         )
         assert met is False
-        assert "not yet on the top-500" in why
+        assert "no rated games" in why
 
-    def test_unlisted_is_not_a_pass(self):
-        """An unlisted account has no published rd, so we cannot know it
-        converged. The absence of evidence must not read as convergence."""
-        met, why = ladder.stopping_rule_met(self.CFG, 5000, {"ok": True, "listed": False})
+    def test_dead_profile_is_not_confused_with_unrated(self):
+        met, why = ladder.stopping_rule_met(
+            self.CFG, 5000,
+            {"ok": True, "board_ok": True, "profile_ok": False,
+             "profile_error": "HTTPError 403", "listed": False},
+        )
         assert met is False
-        assert "not yet on the top-500" in why
+        assert "PROFILE is unreachable" in why
 
     def test_listed_without_rd_is_not_a_pass(self):
-        met, _ = ladder.stopping_rule_met(self.CFG, 5000, {"ok": True, "listed": True})
+        met, _ = ladder.stopping_rule_met(
+            self.CFG, 5000, {"ok": True, "profile_ok": True, "listed": True})
         assert met is False
 
     def test_a_dead_board_is_not_reported_as_unlisted(self):
