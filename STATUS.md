@@ -1,10 +1,11 @@
 # STATUS
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
-## Where things stand (2026-08-26 — **CH5 R1 PRE-REG IS r6. EVERY BLOCKER
-CLOSED; IT NEEDS YOUR RATIFICATION, THEN IT LAUNCHES.** Five build items
-BUILT, nine arms ENUMERATED, both escalations RULED. Suite **590 / 17** (was
-573); grader `--selftest` green off banked CH4 artifacts. Nothing launched.)
+## Where things stand (2026-08-26 — **CH5 R1 IS RATIFIED AND LAUNCHED.**
+r6 is the ratified text and is FROZEN (blinding attestation). Pre-flight
+green: server up, simulator: 4, tree clean, all 7 checkpoint pins verified.
+Nine arms, serial k=1, ~7.53 h. Suite **590 / 17**; grader `--selftest`
+green. **Episodes/update LICENSED as CHAPTER5 §3b A4**, R2 slot.)
 **Pure from-scratch self-play; THE NOVELTY IS THE LANE.** CH3 + CH4-R1
 CLOSED. LADDER R1 done at n=200: PS Elo 1311, 0.475, **NEVER LISTED so NO
 GXE EXISTS — quote the Elo, never project one.**
@@ -13,19 +14,14 @@ GXE EXISTS — quote the Elo, never project one.**
 n=200 DESCRIPTIVE, Elo 1311, NO GXE** · off-FP@20 (12M only) fleet **0.34867**
 n=12,000. Ties=loss; locked = final ckpt.
 ## Next actions
-1. **RATIFY `configs/eval/ch5_r1_offsh.yaml` (r6), then launch:**
-   `bash scripts/ch5_preflight.sh && bash scripts/ch5_r1_wave.sh` — serial
-   k=1, **7.53 h**, agent-side (0 maintainer terminal hours), order C0,
-   A80-82, B80-82, CE3, CE7. **C0 alone (1.33 h) is already a complete
-   standalone result** — the repo's FIRST (proxy, ladder) pair.
+1. **R1 IS RUNNING.** Watch `results/ch5_r1_offsh/wave.log`; progress is
+   `grep -c 'Winner:' results/ch5_r1_offsh/<tag>.fp.stdout` as a RATE, never
+   a wall-clock ETA. Expect ~37.5/min (ensemble), ~40/min (greedy), ~22/min
+   (search); <50% investigate, <20% stalled. Grade with
+   `python scripts/ch5_r1_grade.py` BEFORE quoting any number.
 2. **OPEN FOR YOU: A-BR-1** (buy a 4th 50M lane? designer A says NO — let
-   WITHIN/WEAK route to C2, which buys the lane as the LEVER); **A-BR-5**
-   (CHAPTER5 §1 still says ONE (proxy, ladder) pair; there are ZERO); and
-   **whether EPISODES/UPDATE becomes a 7th CHAPTER5 §3 lever** — verified
-   2026-08-26 off H&L's committed config: their update eats **15,360
-   episodes to our ~34 (~450x)**, and our recorded "100-300" target was
-   calibrated against Wang/ps-ppo, which `prior_work` says are the WRONG
-   comparable. A config change, not compute. UNTESTED; see prior_work.
+   WITHIN/WEAK route to C2, which buys the lane as the LEVER) and **A-BR-5**
+   (CHAPTER5 §1 still says ONE (proxy, ladder) pair; there are ZERO).
 3. **THEN the training lever from CHAPTER5 §5.** Your six stay first-class
    (§3); §3b additions COMPETE; encoder fork LAST. **R1 may produce the R3
    model itself** — if CE7 or search-on-50M beats L2 off-FP, no retraining.

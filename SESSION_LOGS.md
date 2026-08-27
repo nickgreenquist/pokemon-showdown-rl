@@ -7994,3 +7994,53 @@ entry by offset — never a broad keyword grep.
   nothing in this repo has measured which side binds — so this is not a free
   win, and H&L's gamma/shaping/both-seat-balance confounds must not be
   copied piecemeal.
+
+- 2026-08-26 (evening cont., maintainer: "ok, so, i ratify what you proposed
+  before. get to work"): **CH5 R1 RATIFIED AND LAUNCHED. Episodes/update
+  LICENSED as CHAPTER5 §3b A4.** Pre-reg r6 is the ratified text and is now
+  FROZEN — the blinding attestation covers exactly this: no arm's n, roster,
+  seat, sidedness or bar FORMULA may change from here.
+  **PRE-FLIGHT, all green before launch and all recorded because a launch
+  stamps `git_dirty`:** Showdown server up on :8000; `simulator: 4` set at
+  `showdown/config/config.js:111`; foul-play sibling present; tree CLEAN;
+  and **all seven checkpoint sha256 pins verified against the files on
+  disk** (s62 f4b0ae82, s63 5427a1a6, s64 3efe09fe, s65 09469e6a, s80
+  8b6546e2, s81 47849ba0, s82 c7cd5d8d). The seat hard-asserts these at
+  load, but verifying up front turns "the arm never started" into "we knew
+  before we started".
+  **THE WAVE.** Nine arms, serial k=1, ~7.53 h of battles, agent-side (0
+  maintainer terminal hours; CH4 R1's MU-3 precedent, and CLAUDE.md's
+  >5-min rule is about TRAINING throughput, not eval waves). Order C0 ->
+  A80/81/82 -> B80/81/82 -> CE3 -> CE7, with CE7 last because it is the
+  widest and dearest roster, so an interrupt costs the least.
+  **A4 — EPISODES/UPDATE, LICENSED AS AN R2 CANDIDATE (§3b, subordinate to
+  the maintainer's six; it COMPETES and displaces no C-item).** The dose is
+  bounded by the chapter's own 50M ceiling, and that bound is the useful
+  part: H&L bought their 15,360 episodes/update with 3.84M matches, so
+  copying it at 50M leaves **109 updates** and PPO from random init will not
+  learn in 109. **~1,000 episodes/update is the reachable dose — ~1,630
+  updates, still 3x more than H&L used at all (500), and ~30x of the ~450x
+  gap closed.** Mechanically `rollout_steps 128 -> ~3840` at `num_envs 8`:
+  nearly free in wall-clock (same collection, FEWER optimizer passes), ~100
+  MB more buffer, `minibatches: 4` held so minibatches land at ~7,680 —
+  near H&L's own `vbatch_size 8192`. **Cost is small because the CONTROL IS
+  ALREADY TRAINED**: s80/81/82 are a banked 3-seed 50M fleet on the current
+  recipe, so only the treatment fleet is bought (~37.4 h wall as 3
+  concurrent lanes, ~4.6 lane-days; held seeds 66/67, 75/76, 83/84, 93/94
+  are available and MUST be distinct across lanes).
+  **SEQUENCING RULED: R1 FIRST, AND NOT CONCURRENTLY — two ops reasons,
+  neither of them discipline.** (i) R1's wave is serial k=1 because **FP is
+  TIME-BUDGETED**: a training lane stealing CPU inflates FP's effective
+  thinking budget and flatters our numbers, which is a wave-scoped VOID.
+  (ii) **R1-A PRICES R2.** Whether ONE new 50M lane is readable depends on
+  the fleet's OFF-FP seed spread, which R1-A is measuring right now — the
+  12M fleet's sigma_seed is 0.0076 vs SH but **0 off-FP**, so if the 50M
+  fleet tightens the same way R2 is 1 lane (~12 h) and if it resembles its
+  own vs-SH 0.0624 it is 3 (~37 h). 7.5 h of eval prices a 25 h decision.
+  **RECORDED AGAINST A4 SO IT IS NOT LATER READ AS A FINDING: at fixed
+  total steps this trades update COUNT for update QUALITY and nothing here
+  has measured which side binds.** It is UNTESTED. H&L's `gamma 0.95` +
+  dense shaping + return-balanced both-seat batches are COUPLED — batch size
+  alone is the clean test; the recipe piecemeal is not. **A2 (both-seat
+  harvest) is the first free 2x** of the same quantity at identical
+  simulation cost, which makes A2 the obvious dose-matched placebo for A4.

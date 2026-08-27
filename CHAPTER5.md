@@ -95,7 +95,7 @@ things you thought up. just dont lose track of what i proposed").**
 | | source | status |
 |---|---|---|
 | C1 longer run · C2 seeds/ensemble · C3 larger arch · C4 attention · C5 search-on-better-net · C6 encoder fix | **MAINTAINER** | **first-class. None may be dropped, deferred or merged away without an explicit maintainer ruling recorded here.** |
-| H&L shaping (§7.5) · both-seat harvest (§3b) · temporal context (§3b) | assistant | additions, licensed 2026-08-26. They COMPETE with the six; they never displace one. |
+| H&L shaping (§7.5) · both-seat harvest (§3b) · temporal context (§3b) · **episodes/update (§3b A4)** | assistant | additions, licensed 2026-08-26. They COMPETE with the six; they never displace one. |
 
 Raised by the maintainer 2026-08-26. Each gets: the claim, what supports
 it, what argues against, cost, and what would settle it.
@@ -193,6 +193,51 @@ These compete for R2's slot in §5's second row. None displaces a C-item.
   noise. **That is a variance property, not a data-volume one, so
   50M-flat does not speak to it** — and gen 1 is unusually luck-heavy
   (freeze, para, crits, 1/256). Needs real collection wiring.
+- **A4 — EPISODES PER UPDATE (batch size). LICENSED 2026-08-26 by the
+  maintainer, on the same footing as A1-A3: it COMPETES for R2's slot and
+  displaces no C-item.** Verified off H&L's committed run config in our own
+  metagrok clone (`expts/01.json`: `num_iters 500`, `num_matches 7680`,
+  both seats harvested), so **one H&L update consumes 15,360 episodes
+  against our ~34** — rollout 128 x 8 envs = 1024 steps at ~30
+  decisions/episode. **~450x, with the regimes INVERTED**: 500 enormous
+  updates against our ~48.8k tiny ones at 50M.
+  **WHY IT IS NOT THE ~40x ALREADY LOGGED (2026-08-08).** That figure, and
+  the **"~30 -> 100-300 episodes/update" target** it produced, were
+  calibrated against **Wang (~1,600) and ps-ppo (~1,500)** — and
+  `prior_work/README.md` argues at length that those are NOT our comparable
+  because both use human data. **H&L is**: the only pure-self-play randbats
+  success on record, our exact lane. **Against the right reference the
+  recorded target is 50-150x too low.**
+  **THE DOSE IS BOUNDED BY THE 50M CEILING, AND THAT IS THE USEFUL PART.**
+  H&L bought their batch with 3.84M matches; we are capped at 50M steps. At
+  ~30 decisions/episode, copying their 15,360 leaves **109 updates**, and
+  PPO from random init will not learn in 109. **~1,000 episodes/update is
+  the reachable dose: ~1,630 updates, still 3x more updates than H&L used
+  at all (500), and ~30x of the gap closed.** Mechanically `rollout_steps
+  128 -> ~3840` at `num_envs 8`; nearly free in wall-clock (same collection,
+  FEWER optimizer passes), ~100 MB more buffer, `minibatches: 4` held so
+  minibatches land at ~7,680 — near H&L's own `vbatch_size 8192`.
+  **COST: the control is already trained.** s80/81/82 are a banked 3-seed
+  50M fleet on the current recipe, so only the treatment fleet is bought:
+  ~37.4 h wall as 3 concurrent lanes (~4.6 lane-days). Held seeds 66/67,
+  75/76, 83/84, 93/94 are available and MUST be distinct across lanes.
+  **AGAINST, and it is not small: at fixed total steps this trades update
+  COUNT for update QUALITY, and nothing in this repo has measured which
+  side binds.** It is UNTESTED here — a candidate, not a finding. H&L's
+  `gamma 0.95` + dense shaping + return-balanced both-seat batches are
+  COUPLED; copying batch size alone is the clean test, copying the recipe
+  piecemeal is not. **A2 (both-seat harvest) is the first free 2x** of this
+  same quantity at identical simulation cost, which makes A2+A4 natural
+  companions and A2 the obvious dose-matched placebo.
+  **SEQUENCING, RULED 2026-08-26: R1 FIRST, AND NOT CONCURRENTLY.** Two
+  reasons, neither of them discipline. (i) R1's wave is serial k=1 because
+  FP is TIME-BUDGETED — a training lane stealing CPU inflates FP's
+  effective thinking budget and flatters our numbers; that is a
+  wave-scoped VOID. (ii) **R1-A PRICES R2**: whether one new 50M lane is
+  readable depends on the fleet's OFF-FP seed spread, which R1-A measures.
+  The 12M fleet's sigma_seed is 0.0076 vs SH but 0 off-FP; if the 50M fleet
+  tightens the same way R2 is 1 lane, and if it looks like its vs-SH 0.0624
+  it is 3.
 - **A3 — temporal context.** We are single-snapshot Markov; ps-ppo uses
   64-256 turns, Metamon 200. Named by the 2026-08-25 architecture review as
   a SHARPER structural gap than attention. Spec exists at

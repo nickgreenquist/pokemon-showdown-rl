@@ -1,8 +1,14 @@
 # =====================================================================
 # CHAPTER 5 R1 — THE THREE ZERO-TRAINING OFF-SH READS
-# STATUS: **DRAFT r6 — NOT RATIFIED. LAUNCHABLE ONCE THE MAINTAINER
-#   RATIFIES: every blocker below is closed, all five build items exist,
-#   and the arms are enumerated.** r3 closed the ten blockers'
+# STATUS: **RATIFIED 2026-08-26 BY THE MAINTAINER ("i ratify what you
+#   proposed before. get to work"). r6 IS THE RATIFIED TEXT AND IS
+#   LAUNCHED.** Every blocker closed, all five build items built, nine
+#   arms enumerated. Pre-flight green at launch: server up, simulator: 4
+#   set, tree clean, all seven checkpoint pins verified against sha256.
+#   **NOTHING IN THIS FILE MAY CHANGE FROM HERE** — the blinding
+#   attestation covers exactly that (no arm's n, roster, seat, sidedness
+#   or bar formula moves after the first off-FP datum is seen).
+#   r3 closed the ten blockers'
 #   grading half (3x3 action table, per-arm bars, k-general clustered
 #   rule, reachability cliff). A mechanical completeness sweep over all
 #   four cycle documents then found **~70 distinct OPEN items** and, in
