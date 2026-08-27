@@ -2,59 +2,59 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-27 — **R1-A IS READ OUT. THE PRIMARY READ
-FIRED: s82's COLLAPSE REPRODUCES OFF-FP AT 5.2 se. The fleet read is
-WITHIN x NON-RESOLVING at a realized bar of 0.0717 — the cell the O-4 cliff
-declared unreachable BEFORE any datum.** CE3 also landed. **Five arms are
-re-running now** (C0, B80/81/82 after the r7 `dose` fix, CE7), watchdog live.)
-**Pure from-scratch self-play; THE NOVELTY IS THE LANE.** CH3 + CH4-R1 CLOSED.
+## Where things stand (2026-08-27 — **CH5 R1 IS COMPLETE: 9 arms, ZERO VOIDS,
+G2 exact on every one. R1 PRODUCED AN R3 DEPLOYMENT CANDIDATE WITH ZERO
+TRAINING.** One job still running: `RS80`, the mandatory fresh re-score.
+**HANDOFF.md IS NON-EMPTY — read it first.**) **Pure from-scratch self-play;
+THE NOVELTY IS THE LANE.** CH3 + CH4-R1 CLOSED.
 
-## Results | D26 12M HEADLINE **0.71825** vs SH · R0 ensemble 0.74633 · **R2
-search@M 0.79283** · **LADDER R1: GXE 59.6%, Glicko-1 1573+/-27, Elo 1292,
-0.475, n=200, not listed** · **R1-A off FP@20: s80 0.3960 · s81 0.3430 ·
-s82 0.2730, fleet 0.33733** vs the banked 12M fleet 0.34867 (n=12,000) ·
-**CE3 (50M ensemble) 0.3623, n=3000.** Ties=loss; locked = final ckpt.
+## Results | D26 12M **0.71825** vs SH · R0 ensemble 0.74633 · R2 search@M
+0.79283 · **LADDER R1: GXE 59.6%, Glicko-1 1573+/-27, Elo 1292, n=200** ·
+**R1 off FP@20 — greedy s80/s81/s82 0.3960/0.3430/0.2730 · search@M
+0.4470/0.4470/0.4210 · C0(L2) 0.3893 · CE3 0.3623 · CE7 0.3827.**
+Ties=loss; locked = final ckpt. **R1 CREDITS NOTHING; headlines UNTOUCHED.**
 
-## R1-A, graded by the pre-reg's own rules
-- **PRIMARY — REPRODUCES.** mean{s80,s81} − s82 = **+0.0965** vs a bar of
-  0.0369, one-sided positive = **5.2 se**. vs-SH the same contrast was
-  +0.10883, so the collapse carries off-FP at 89% of its vs-SH size.
-  **s82 is a genuinely bad seed, not an SH artifact.**
-- **FLEET — WITHIN x NON-RESOLVING.** delta **−0.0113**; s_50(off-FP)
-  **0.0617** ≈ its vs-SH 0.0629, so the CLUSTERED term governs and the bar
-  is **0.0717**. That is 0.32 se. **The cliff predicted this**: its 0.0650
-  row said bar 0.0755 and "ABOVE is UNREACHABLE".
-- **PRE-REGISTERED ACTION, both reads route here: stop buying battles. Buy
-  LANES, or drop the scale question.** "flat" is BARRED; quote 0.0717 always.
+## R1's three answers, graded by the pre-reg's own rules
+- **R1-A PRIMARY: s82's collapse REPRODUCES off-FP.** +0.0965 vs bar 0.0369
+  = **5.2 se**. A genuinely bad seed, not an SH artifact.
+- **R1-A FLEET: WITHIN x NON-RESOLVING.** −0.0113 vs a REALIZED BAR of
+  **0.0717** (s_50 off-FP 0.0617 ~ its vs-SH 0.0629, so clustered governs).
+  **The O-4 cliff predicted this before any datum.** Action taken verbatim:
+  stop buying battles; buy LANES or drop the scale question. **"flat" BARRED.**
+- **R1-B: SEARCH HELPS.** within-lane mean **+0.1010**, bar 0.0561, 3.6 se.
+  **Helps MOST on the WORST lane** (s82 +0.148 vs s80 +0.051). **CEILING:
+  licenses search as an R3 DEPLOYMENT CANDIDATE ONLY; does NOT reverse MU-8
+  (z=−2.80); never set beside the 12M cell.**
+- **R1-C: NOT DELIVERED.** E3 0.3623 BELOW C0; E7 0.3827 WITHIN. L2 holds as
+  ensemble incumbent. The pre-registered soft-AND mechanism explains it.
+- **C0 = the repo's FIRST complete (proxy, ladder) pair.**
 
-## Next actions
-0. **DO NOT EDIT `configs/eval/ch5_r1_offsh.yaml`, `ch3_r4_fp_runner.sh` or
-   `ch3_fp_h2h.py` WHILE THE WAVE RUNS** — runner and seat are invoked FRESH
-   PER ARM. Docs and `ch5_r1_grade.py` are safe.
-1. **WAVE RUNNING** (detached, PPID 1) — C0, B80/81/82, CE7. ~5.3 h.
-   `tail results/ch5_r1_offsh/watchdog.log` for rates and ALERT lines.
-   Grade with `python scripts/ch5_r1_grade.py` before quoting anything.
-2. **THEN R1-C** needs C0 to compare CE3/CE7 against. **R1-B** is a
-   WITHIN-LANE contrast, so the seed heterogeneity does NOT touch it and its
-   bar stays floor-governed at 0.025 — the most informative arm outstanding.
-3. **OPEN FOR YOU: A-BR-1** (buy a 4th 50M lane? R1-A's answer is now
-   evidence FOR it — "buy LANES" is the pre-registered action) and
-   **A-BR-5** (CHAPTER5 §1 says ONE (proxy, ladder) pair; there are ZERO).
+## Next actions — **PLAN RATIFIED 2026-08-27; R3 THEN R2, BOTH HAPPEN**
+1. **FINISH `RS80`** (search@M on s80, n=3000). The 0.4470 is a SELECTION
+   score and **MAY NOT BE PUBLISHED** (Q6). Grade with
+   `python scripts/ch5_r1_grade.py`. See HANDOFF.md §1.
+2. **R3 — LADDER #2 NOW**, ~200 battles, one night, **FRESH ACCOUNT** (reusing
+   `nickgen1rbrlbot` contaminates the rating with L2's history). Readout must
+   say top-500 needs Elo 1357 vs our implied true ~1232: **R3 MEASURES, it is
+   not an attempt on the list.**
+3. **R2 — RETRAIN IS COMMITTED, NOT OPTIONAL.** Batch lever (~1,000
+   episodes/update, 3 lanes, banked fleet as free control, ~37 h). **Ruling
+   owed:** the branch table routes to C2 (more seeds, first-class); batch is
+   §3b A4 and cannot displace a C-item without your call. HANDOFF.md §4b.
 4. `CLEANUP.md` rulings. **main is UNPUSHED — ask before pushing.**
 
 ## Watch items
-- **r7 AMENDED A FROZEN PRE-REG AFTER DATA WAS SEEN**, disclosed in its
-  banner: the B arms gained `dose: M`. `prereg_sha256` is `80245bbd` for
-  A80/A81/A82/CE3 and `afa4ef12` after. Nothing else moved; R1-A is unaffected.
-- **"NOT LISTED" NEVER MEANT "NO RATING"** — the leaderboard JSON holds only
-  listed accounts; the PROFILE carries GXE/Glicko for any rated one. And
-  `L2.battles.jsonl.rating` is PRE-BATTLE: "Elo 1311" was second-to-last.
-- **TOP-500 IS ~125 ELO AWAY, NOT 65.** We score 0.340 against the 1300-1400
-  band rank 500 lives in; implied true rating ~1232. A model gap, not a
-  battles gap.
-- **TWO GATES OPEN: G1** (per-arm smoke unbudgeted — it just caught the `dose`
-  bug) and **G-SEARCH**. **ATTENTION's 34.6x was vs the FLAT MLP**, not
-  production; **temporal context** is the sharper structural gap.
+- **NEVER re-run a killed arm IMMEDIATELY** — its Showdown room stays poisoned
+  for hours (`KeyError: 'battle\n'`). Restart the server to clear rooms fast.
+- **DO NOT edit the pre-reg, `ch3_r4_fp_runner.sh` or `ch3_fp_h2h.py` while a
+  wave runs** — runner and seat are invoked FRESH PER ARM.
+- **r7/r8 amended a RATIFIED pre-reg** (dose M; the RS80 arm), disclosed in its
+  banner. `prereg_sha256` differs across arms: `80245bbd` -> r7 -> r8.
+- **SEARCH PLAYS 32-47% LONGER BATTLES** (36.8-40.3 turns vs 25-28). That is
+  why only search arms hit the turn-1000 auto-tie, and it is a style/cost fact
+  for the readout.
+- **"NOT LISTED" NEVER MEANT "NO RATING"** — the profile carries GXE/Glicko for
+  any rated account. `L2.battles.jsonl.rating` is PRE-BATTLE; final Elo 1292.
+- **TOP-500 IS ~125 ELO AWAY, NOT 65** — we score 0.340 vs the 1300-1400 band.
 - **LADDER DATA IS UNREPEATABLE AND GITIGNORED** (3 copies via
-  `scripts/backup_ladder.sh`). `results/` is single-copy and **FP stdout IS
-  G2's second tally** — never delete it before the grader runs.
+  `scripts/backup_ladder.sh`). **FP stdout IS G2's second tally.**

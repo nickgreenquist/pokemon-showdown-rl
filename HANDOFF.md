@@ -124,6 +124,33 @@ r8 added the `RS80` re-score arm. Both are transcriptions of values the file
 already pre-registered in prose, not new choices. **`prereg_sha256` differs
 across arms: `80245bbd` (A80/A81/A82/CE3) → r7 → r8.** Nothing else moved.
 
+## 5. THE RATIFIED FOUR-STEP PLAN (maintainer, 2026-08-27)
+
+1. **Ladder now** with what we have (R3, the re-scored search object).
+2. **Retrain on BATCH — not scale.** 50M stays the chapter ceiling.
+3. **Check offline results, then perhaps ladder that.** NOT optional extras:
+   a headline-grade result owes the **ANCHOR BATTERY** before any README row —
+   vs-SH (locked protocol, 3000/seed, the credit line) PLUS BC-clone h2h PLUS
+   Foul Play h2h, anchors descriptive and never verdict inputs. And **FP@20 is
+   an INSTRUMENT, not a rung**: a fleet that beats FP@20 next faces **FP@100**
+   on `configs/eval/fp_budget_ladder.yaml`, then FP@500.
+4. **Then scale — TWO FLAGS, both raised 2026-08-27 and neither resolved.**
+   - **(a) IT LEAVES CHAPTER 5.** 50M is the RATIFIED hard ceiling (§7.4).
+     Going past it opens a new chapter and needs an explicit ruling; it is not
+     a next step inside the current plan.
+   - **(b) THE REASON IT MAKES SENSE IS STRONGER THAN "batch worked, stack
+     scale on it" — AND IT COMES WITH A PRE-COMMITTED SUCCESS CRITERION.**
+     R1-A did NOT find that scale fails; it found the scale question is
+     **currently UNANSWERABLE**: effect 0.011 against a bar of **0.0717**,
+     because sigma_seed = 0.0617 at k=3. More battles cannot fix that — the
+     clustered term contains no n. **So if batch shrinks sigma_seed, the scale
+     question becomes measurable FOR THE FIRST TIME, which makes batch a
+     PREREQUISITE for a meaningful scale test rather than a gain to compound.**
+     **CHECK THIS BEFORE BUYING SCALE: compute sigma_seed across the
+     batch-trained fleet and compare against 0.0617. If it did not shrink,
+     scale is STILL unmeasurable at k=3 and you would be buying an answer you
+     cannot read.** Decide this in advance, not at readout — the D25-P lesson.
+
 ## 6. Do NOT, while anything runs
 
 Edit `configs/eval/ch5_r1_offsh.yaml`, `scripts/ch3_r4_fp_runner.sh` or
