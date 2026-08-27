@@ -8291,3 +8291,70 @@ entry by offset — never a broad keyword grep.
   ~01:35Z. No n, roster, seat, sidedness or bar formula has changed since
   launch; the only post-launch edit is the G-DECLARED bug above, which is a
   gate IMPLEMENTATION fix and is disclosed here.**
+
+- 2026-08-27 (morning, maintainer: "run should be done right?"): **THE WAVE
+  COMPLETED. R1-A IS DONE AND ITS PRIMARY READ FIRED: s82's COLLAPSE
+  REPRODUCES OFF-FP AT 5.2 se. THE FLEET READ IS WITHIN x NON-RESOLVING, THE
+  EXACT CELL THE O-4 CLIFF DECLARED UNREACHABLE-IN-ADVANCE. 4 of 9 arms
+  landed; 5 are owed, one of them blocked on a maintainer call.**
+  **R1-A, ALL THREE LANES, ZERO VOIDS, G2 EXACT ON EVERY ONE:**
+  s80 **0.3960** (396/603/1), s81 **0.3430** (343/657/0), s82 **0.2730**
+  (273/727/0), each n_eff 1000.
+  **PRIMARY READ — REPRODUCES.** d = mean{s80,s81} - s82 = 0.3695 - 0.2730 =
+  **+0.09650** against a pre-registered bar of 0.0369, one-sided positive =
+  **5.2 se**. The vs-SH value of the same contrast was +0.10883. **The
+  collapse is not SH-specific: it reproduces off Foul Play at 89% of its
+  vs-SH magnitude.** s82 is a genuinely bad seed.
+  **FLEET READ — WITHIN x NON-RESOLVING.** Equal-weight mean **0.33733**
+  (median BARRED) against the banked 12M fleet 0.34867: delta **-0.01134**.
+  **s_50(off-FP) = 0.06170 — almost exactly its vs-SH 0.06295** — so the
+  CLUSTERED term governs (0.03583 vs binomial 0.00973) and the bar is
+  **0.0717**. The delta is **0.32 se**. VERDICT-P NON-RESOLVING (bar > 0.060).
+  **THE CLIFF, DECLARED BEFORE ANY DATUM, WAS RIGHT.** O-4's 0.0650 row
+  predicted bar 0.0755 and "ABOVE needs a fleet mean of 0.4241"; realized
+  s_50 0.0617 gives bar 0.0717. Its note fired verbatim: *"if s_50(off-FP)
+  resembles its vs-SH 0.0624, ABOVE is UNREACHABLE"*. **This is the D25-P
+  lesson paying off — the unreachable branch was declared up front, so the
+  null is not being discovered now and rationalised.**
+  **PRE-REGISTERED ACTION, taken verbatim, and both reads route here
+  independently:** *"k=3 CANNOT ANSWER THIS QUESTION. The action is NOT more
+  battles (binomial is not what binds here) and NOT 'flat'. It is: stop
+  buying battles, and either buy LANES or drop the scale question for the
+  chapter."* **The word "flat" is BARRED on every branch
+  (`flat_licensed_in: []`), and any sentence about this must quote the
+  REALIZED bar of 0.0717.** What may be said: at a realized bar of 0.0717,
+  no fleet-mean difference of that size or larger was detected between 50M
+  and 12M off FP@20. That is a failure to resolve, not evidence of
+  equivalence — and the reason it cannot resolve is one bad seed, which the
+  primary read identifies by name.
+  **CE3 LANDED CLEAN: 0.3623, n_eff 3000, G2 1087/1910/3 exact.** Its
+  `secondary_recorded_only` read: roster 0.3623 minus the equal-weight mean of
+  its own members (0.33733) = **+0.0250 — combining DOES beat a random
+  member**, and it does so while CONTAINING the bad seed. DESCRIPTIVE; R1-C's
+  actual comparator is C0, which has not run.
+  **FIVE ARMS OWED.**
+  (a) **B80/B81/B82 — MY ERROR, and the pre-reg is frozen.** All three died in
+  30 s with `KeyError: 'dose'` at `ch3_fp_h2h.py:268` (`DOSES[arm["dose"]]`).
+  **`search_seat` requires a `dose` key that I never put in the arms when I
+  enumerated them**, and `test_every_arm_kind_is_one_the_seat_accepts` checked
+  kind/seat/lanes/battles/search_time_ms but NOT `dose`. The wave's
+  retry-once fired and failed identically, which is correct behaviour for a
+  deterministic defect. **The value is not a free choice: this file says
+  "search@M" in four places** (Q3's cost line, the on-every-branch clause, the
+  R1-B licensed sentence, and the R1-B arm comment), and every banked search
+  arm in the repo uses `dose: M`. So adding it TRANSCRIBES an
+  already-pre-registered value rather than choosing one — **but it is still an
+  edit to a RATIFIED, FROZEN pre-reg after off-FP data has been seen, and
+  `prereg_sha256` will differ between the B arms and the four already run.
+  ESCALATED, not assumed.**
+  (b) **CE7 — ops failure at 2811/3000 (93.7%).** FP's log stalled 300 s, the
+  runner killed and relaunched, and three relaunches produced zero new
+  `Winner:` lines, so NO_PROGRESS aborted it. Not the orphan bug (that was
+  fixed before this wave); a genuine stall. Per `ops_failure_rule` it is
+  RE-RUN, never graded, and its partial is never entered into a comparison.
+  (c) **C0 — still owed** from the orphan incident.
+  **REMAINING COST: C0 1.33 h + CE7 ~1.7 h + B x3 2.23 h = ~5.3 h.**
+  **R1-B IS WORTH MORE NOW, NOT LESS.** It is a WITHIN-LANE search-minus-greedy
+  contrast, so the seed LEVEL term cancels — the very heterogeneity that made
+  the fleet read non-resolving does not touch it. Its bar stays floor-governed
+  at 0.025.
