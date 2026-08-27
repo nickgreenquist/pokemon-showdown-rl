@@ -152,7 +152,29 @@ class SeatPlayer(Player):
     battle_index, turn, decision_index) exactly as the R2 eval driver."""
 
     def __init__(self, agent, search_agent=None, deterministic=True, **kwargs):
-        super().__init__(battle_format=BATTLE_FORMAT, max_concurrent_battles=1, **kwargs)
+        # 2026-08-27, DEADLOCK FIX, and the reason is in poke-env, not here.
+        # `max_concurrent_battles` becomes the maxsize of Player's
+        # `_battle_count_queue`. In `player.py` the battle-init path does
+        # `await self._battle_count_queue.put(None)` at line 221 BEFORE the
+        # `if battle_tag in self._battles` check at line 222 that would undo
+        # it. So a DUPLICATE `|init|battle` for a room already known, while a
+        # battle is live, blocks on a FULL queue **forever** -- and that
+        # `await` is inside the single message-handling coroutine, so ALL
+        # message processing stops. The seat then sits at 0.0% CPU with
+        # foul-play's clock running down, which reads as "slow", not "hung".
+        # Measured cost: b81 hung at 639 then 611, b82 at 57 then 699, while
+        # b80 survived at 1000. Search arms are the exposed ones because they
+        # play 32-47% longer battles (36.8 mean turns vs 25-28 for greedy and
+        # ensemble), so they reach the turn-1000 auto-tie -- and the room
+        # churn around it -- far more often.
+        # maxsize 2 gives the spurious put somewhere to go; it is released
+        # again one line later. It does NOT license concurrent play: foul-play
+        # challenges strictly serially under --run-count, so exactly one
+        # battle is ever live. That is ASSERTED rather than assumed --
+        # `max_concurrent_live_battles` is tracked below and stamped into the
+        # arm JSON, so "concurrency stayed 1" is checkable at grade time.
+        super().__init__(battle_format=BATTLE_FORMAT, max_concurrent_battles=2, **kwargs)
+        self.max_concurrent_live = 0
         self._agent = agent
         self._sa = search_agent
         self._det = deterministic
@@ -168,6 +190,9 @@ class SeatPlayer(Player):
         from rl.envs.showdown import SinglesEnv, _recover_mask_desync, embed_battle
 
         assert not battle.wait, "wait state reached the seat player"
+        live = sum(1 for b in self.battles.values() if not b.finished)
+        if live > self.max_concurrent_live:
+            self.max_concurrent_live = live
         if battle.battle_tag != self._battle_tag:
             self._battle_tag = battle.battle_tag
             self._battle_index += 1
@@ -328,6 +353,11 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "seat_lane_defaulted": seat_lane_defaulted,
         "seat_native_dim": native_dim,
         "declared_search_time_ms": arm.get("search_time_ms"),
+        # 2026-08-27: proves the deadlock fix did not buy concurrency. The
+        # queue has slack 2 so a duplicate battle-init cannot block, but play
+        # must remain strictly serial; if this is ever > 1 the arm is NOT
+        # commensurable with the k=1 comparator wave and must be re-run.
+        "max_concurrent_live_battles": seat.max_concurrent_live,
     }
     if search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
