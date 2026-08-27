@@ -8358,3 +8358,44 @@ entry by offset — never a broad keyword grep.
   contrast, so the seed LEVEL term cancels — the very heterogeneity that made
   the fleet read non-resolving does not touch it. Its bar stays floor-governed
   at 0.025.
+
+- 2026-08-27 (midday, maintainer: "continue monitoring"): **THE WATCHDOG PAID
+  FOR ITSELF ON ITS FIRST DAY — it caught B81's stall in ~2 MINUTES where the
+  same failure went unnoticed for HOURS the night before. And the
+  kill-poisons-the-username landmine is now fully characterized across four
+  failures.**
+  **B81 STALLED at 639/1000.** Watchdog: `ALERT b81: 1% of reference --
+  STALLED, not slow` at 14:29:59Z, repeating. Diagnosis: **the SEAT hung** —
+  no log line for 31 minutes, 0.0% CPU on both sides — after a battle that
+  reached the **turn-1000 auto-tie ceiling**. **NOT the orphan landmine:** the
+  multiprocessing workers had PPID 25715, i.e. children of the LIVE foul-play,
+  so the 2026-08-26 fix held.
+  **NEW FINDING, and it explains WHY only search arms are exposed: SEARCH
+  PLAYS 32-47% LONGER BATTLES.** mean_turns — greedy a80/a81/a82
+  **27.79 / 26.61 / 25.04**, ensembles c0 **27.44** and ce3 **26.84**,
+  **search b80 36.82**. Auto-tie warnings follow exactly that split: **b80 96,
+  every greedy and ensemble arm ZERO.** So the 1000-turn ceiling is a
+  search-arm phenomenon, B80 survived 96 of them, and B81 happened to wedge on
+  one. This is a real behavioural difference and belongs in the readout: it is
+  a style/cost fact about search@M, not an artifact.
+  **LANDMINE (a3), NOW CHARACTERIZED — KILLING AN ARM MID-BATTLE POISONS ITS
+  USERNAME PAIR FOR HOURS.** I killed the hung B81 seat; the wave's
+  retry-once fired correctly (`produced NO JSON rc=137 -- retrying once`); and
+  the retry died in **82 seconds** with three foul-play crashes at
+  fp-completed 0, each `KeyError: 'battle\n'`. **Same signature as C0's two
+  failures.** The Showdown server keeps the killed battle room open, hands it
+  to the next login under those names, and FP's battle-init parser breaks on
+  it. **C0 recovered only after hours.** So the rule is: **a killed arm re-runs
+  LAST, never immediately** — which is precisely what `ops_failure_rule`'s
+  "fresh username pair" clause exists for. Recorded in CLAUDE.md as (a3).
+  **THE MACHINERY BEHAVED CORRECTLY THROUGHOUT, which is the point of having
+  built it:** watchdog alerted in 2 min; wave retried once; runner's
+  NO_PROGRESS bounded the retry storm at 82 s instead of burning 10
+  relaunches; the arm was scoped as an OPS FAILURE and NOT graded; and **the
+  wave moved on to B82 rather than dying.** B81's 639-battle partial is
+  preserved as `b81.*.hang1.*`.
+  **PLAN: B82 -> CE7 -> then B81 last**, by which time its room will have
+  expired. No pre-reg change needed; the frozen usernames stand.
+  **GRADED SO FAR, all clean, zero voids, G2 exact on every arm:** A80 0.3960,
+  A81 0.3430, A82 0.2730, **B80 0.4470**, **C0 0.3893** (flip 0.112),
+  CE3 0.3623 (flip 0.116). G-SERIAL PASS.
