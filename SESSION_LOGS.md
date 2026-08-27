@@ -8456,3 +8456,73 @@ entry by offset — never a broad keyword grep.
   1292 on the real ladder at n=200.
   **HEADLINE NUMBERS UNTOUCHED, as `on_every_branch` requires:** 0.71825,
   0.74633, 0.79283 and the ladder rating all stand. R1 CREDITS NOTHING.
+
+- 2026-08-27 (late evening, maintainer: "handoff.md - read it and go. you can
+  also push everything uncommited"): **THE LEADERBOARD-VS-PROFILE TRAP WAS
+  STILL LIVE IN THE RUNNER, AND R3 WOULD HAVE REPEATED R1'S FAILURE BATTLE FOR
+  BATTLE.** Also: 41 commits pushed (main was unpushed since 9345ef4); VOID (c)
+  re-verified for R3; RS80 still running at the time of writing.
+  **WHAT WAS ACTUALLY BROKEN.** The 2026-08-26 correction fixed the DOCS and
+  `scripts/ladder_readout.py`'s comment, but **`scripts/ladder.py` — the thing
+  that runs the ladder — was never touched.** `ladder_snapshot()` read only
+  `https://pokemonshowdown.com/ladder/gen1randombattle.json`, which by
+  construction lists only top-500 accounts. So `stopping_rule_met()` hit
+  `if not snap.get("listed"): return False` on every poll, R1 ran to its n
+  floor, and `L2.report.json` recorded `stopped_by_rule: false` — while R1 sat
+  at **rd 26.6, n 200**, i.e. the rule had been SATISFIED and no code could see
+  it. The function's own docstring stated the false premise outright ("an
+  unlisted account has no published rd at all"), and **two tests PINNED the
+  wrong behaviour** (`test_genuinely_unlisted_still_blocks`,
+  `test_unlisted_is_not_a_pass`). A green suite was defending the bug.
+  **THE FIX** (commit 055cf96). `https://pokemonshowdown.com/users/<userid>.json`
+  carries GXE and Glicko-1 for ANY rated account. Verified live against our own
+  account, and it reproduces every corrected R1 number independently:
+  `{"elo": 1292.25, "gxe": 59.6, "rpr": 1573.04, "rprd": 26.57, "w": 95,
+  "l": 105}`. Split `board_snapshot` (listed / admission line — the only things
+  the leaderboard uniquely knows) from `profile_snapshot` (our rating, which
+  exists whether or not we are listed); `ladder_snapshot` merges with the
+  PROFILE authoritative. The rule now reads
+  `n 200 >= 200 AND rd 26.6 <= 40 (via profile)`.
+  **THREE THINGS WORTH KEEPING.** (a) The profile spells Glicko-1 `rpr`/`rprd`
+  where the board says `r`/`rd` — normalised so one rule reads either source;
+  `t` is absent from the profile and stays None rather than being invented as
+  0. (b) Three outcomes are kept distinct because collapsing them is the
+  original bug in a new costume: endpoint failure / reachable-but-unrated /
+  rated — only the middle is a real negative, and `stopping_rule_met` now emits
+  a different message for each. (c) One dead endpoint no longer blinds the
+  other: a 403 on the leaderboard costs `listed`, never the primary read.
+  **A SECOND LIVE INSTANCE OF THE SAME CLASS, found while verifying the first.**
+  `ladder_readout.py` still labelled `traj[-1]` as "PS Elo, final" and emitted
+  **1311** — the exact number this repo spent two days quoting before finding
+  it was the second-to-last. Every value in that trajectory is the PRE-BATTLE
+  rating; the true final is 1292, one loss later. The table now takes the final
+  from the profile, labels 1311 as the last pre-battle value, and relabels
+  "peak" as "highest observed (pre-battle)" — which the 2026-08-26 entry
+  prescribed for the DOCS but never applied to the GENERATOR. The generator can
+  no longer re-emit "GXE AND GLICKO ARE UNMEASURED" either.
+  **THE TRACKED `LADDER_R1_READOUT.md` IS DELIBERATELY NOT REGENERATED** — its
+  hand-written correction-above-superseded-text is the provenance record, and
+  regenerating would replace a narrative of the error with a file that merely
+  lacks it. Verified by hand that a fresh generation now produces the right
+  numbers (n=200, final Elo 1292, GXE 59.6%, rule SATISFIED at rd 26.6).
+  Tests: 48 pass, including six new ones pinning the failure in the direction
+  it actually failed.
+  **VOID (c) RE-VERIFIED FOR R3, not copied forward** (it matters more for R3
+  than it did for R1, because R3's arm IS the search policy and the determinizer
+  is calibrated to that `teams.ts`). Our vendored
+  `showdown/data/random-battles/gen1/{data.json,teams.ts}` are BYTE-IDENTICAL
+  to smogon/pokemon-showdown master as of 2026-08-27 (`85fc2743d9db`,
+  `277d5a375213`, both unchanged), and **0 commits have touched
+  `data/random-battles/gen1` since our vendored `59da482` (2026-07-29)**.
+  Verdict IDENTICAL_TO_UPSTREAM_MASTER stands.
+  **R3 SCHEDULING FACT THE "ONE NIGHT" BUDGET DOES NOT COVER.** R1 played 200
+  battles in 12.07 h at 25.9 mean turns (217 s/battle). Search@M on s80 measured
+  **36.824 mean turns** off FP@20 (B80) against greedy s80's 27.791 — ~1.4x. If
+  ladder wall-clock scales with turns (it is dominated by the human opponent's
+  thinking time, which does), 200 battles is **~17 h, not ~12**. One night gets
+  ~140. Flagged to the maintainer rather than discovered at 3am.
+  **STILL BLOCKED ON THE MAINTAINER, both manual:** R3 needs a FRESHLY
+  REGISTERED account (poke-env cannot register; reusing `nickgen1rbrlbot`
+  contaminates the new rating with L2's history, and VOID (d) bars an
+  unregistered name) plus `PS_PASSWORD`. And the R2 lever ruling (batch A4 vs
+  C2 lanes) from the previous handoff is still owed.
