@@ -40,12 +40,26 @@ in it:**
   47.5% is not a contradiction: GXE estimates the win rate against an *average*
   ladder player, and this account's opponents averaged 1229 Elo. Quote GXE, not
   the raw rate, and never quote either without n.
-- **We are not on the top-500 list, and GXE does not put us there.** Admission
-  is on Elo (1292 against a 1357 cutoff). The run's own board reads recorded a
-  minimum *listed* GXE of 69.0 rising to 76.4 during the run, so 59.6% is well
-  short of the list on either axis. (`prior_work/README.md` separately banks a
-  "58.8 GXE cutoff" from 2026-08-25; that figure disagrees with this run's own
-  observation and is flagged there rather than used.)
+- **We are not on the top-500 list, and there is no "GXE cutoff" to clear.**
+  **The list is ELO-RANKED.** Ranks 490–500, read off the live board on
+  2026-08-26, sit at Elo 1357–1359 — a 2-point band — while their GXE spans
+  66.2–77.2% and their Glicko spans 1627–1729. So admission is an Elo
+  threshold (**1357**) and GXE is merely whatever the listed players happen to
+  hold. We are at Elo 1292.
+- **The gap to the top 500 is ~125 Elo of real strength, not the 65 the
+  profile suggests — and more battles will not close it.** Win rate by
+  opponent strength over the 200 rated battles: **0.688 vs sub-1100
+  (n=48), 0.488 vs 1100–1200 (n=43), 0.464 vs 1200–1300 (n=28), 0.340 vs
+  1300–1400 (n=47), 0.321 vs 1400+ (n=28).** Holding rank 500 means holding
+  ~50% against the 1300–1400 band, where we score 34%. Inverting Elo's
+  expected-score curve per band gives an implied true rating of **~1232**, so
+  the profile's 1292 is *above* our own equilibrium and was still falling —
+  the last battle took it 1311 → 1292, and the fresh-account start at 1000
+  inflated everything before it. *(Caveat: the per-band estimates trend
+  upward with opponent strength — 1154/1217/1245/1313 — which is either
+  logistic mis-specification or a real effect; at n=28–47 per band this
+  repo does not claim which. The aggregate direction is not in doubt.)*
+  **Closing it is a model problem, which is what Chapter 5 is for.**
 - **An earlier version of this table said GXE was unmeasurable, and that was
   wrong.** It claimed Showdown computes GXE only for listed accounts. It does
   not — the leaderboard *JSON* contains only listed accounts, but the **user

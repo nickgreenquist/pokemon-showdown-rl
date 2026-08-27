@@ -163,6 +163,18 @@ monotone descending down all 500 rows, `gxe` and `glicko` are not. So admission 
 hold it, not a boundary. The bottom ten listed players span GXE 66–76 while the list
 minimum is 58.8. Quote the Elo cutoff; never quote a "GXE cutoff".
 
+**RE-CONFIRMED 2026-08-26 by direct observation of ranks 490–500** (maintainer
+pull; this is the second independent check of the Elo-ranked finding, and it
+reproduces it cleanly): Elo **1357–1359**, a 2-point band, while GXE spans
+**66.2–77.2%** and Glicko-1 spans **1627–1729** with RD 25–90. A column that
+varies by 2 across eleven consecutive ranks is the sort key; columns that vary
+by 11pp and 102 points are not. **Our own account sits at Elo 1292 / GXE 59.6%
+/ Glicko-1 1573 ± 27, i.e. 65 Elo short of rank 500 on the displayed number —
+but ~125 short on measured strength**, since the 1292 is above our own
+equilibrium (implied ~1232 from win rate by opponent band; we score 0.340
+against the 1300–1400 band that rank 500 lives in). Recorded so nobody reads
+the 65 as the real distance.
+
 Two things it reframes:
 
 1. **The published field is mid-toplist here, not the ceiling.** Huang & Lee's 72% (gen7RB)

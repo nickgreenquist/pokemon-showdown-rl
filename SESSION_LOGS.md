@@ -8198,3 +8198,43 @@ entry by offset — never a broad keyword grep.
   banked 58.8 and well below both of our own observations — so **"we are above
   the top-500 GXE cutoff" is exactly the manufactured claim this repo guards
   against, and is not made.** Admission is on Elo anyway (1292 vs 1357).
+
+- 2026-08-26 (evening cont., maintainer pasted ranks 490-500 of the live
+  gen1randombattle top-500, "cracking top500 would be amazing"): **THE BOARD
+  TAIL RE-CONFIRMS THE ELO-RANKED FINDING, AND IT LETS US PRICE THE GAP
+  HONESTLY: ~125 ELO OF REAL STRENGTH, NOT THE 65 THE PROFILE SUGGESTS.**
+  **THE OBSERVATION.** Ranks 490-500: Elo **1357-1359** — a TWO-POINT BAND —
+  while GXE spans **66.2-77.2%** and Glicko-1 spans **1627-1729** (RD 25-90).
+  A column that varies by 2 across eleven consecutive ranks is the sort key;
+  columns varying by 11pp and 102 points are not. Second independent
+  confirmation that admission is an **Elo threshold (1357)** and that there is
+  no such thing as a "GXE cutoff".
+  **I OWE prior_work A CORRECTION.** Earlier tonight I wrote in README and in
+  the log that its "58.8" figure "disagrees with this run's own observation
+  and is flagged there rather than used". **That misrepresents it.**
+  `prior_work/README.md:154-164` already carries the 2026-08-25 correction in
+  full: the 58.8 is the **list MINIMUM** (whoever holds it, at any rank), the
+  toplist is ELO-ranked, and it says in terms "the bottom ten listed players
+  span GXE 66-76 while the list minimum is 58.8. Quote the Elo cutoff; never
+  quote a 'GXE cutoff'." The maintainer's pull (66.2-77.2) reproduces that
+  sentence almost exactly. **There was no conflict; I had not read far enough
+  before calling one.** README text corrected.
+  **PRICING THE GAP, and this is the part that matters for the chapter.** Win
+  rate by opponent strength over the 200 rated battles: **0.688 vs sub-1100
+  (n=48) · 0.488 vs 1100-1200 (n=43) · 0.464 vs 1200-1300 (n=28) · 0.340 vs
+  1300-1400 (n=47) · 0.321 vs 1400+ (n=28).** Rank 500 lives in the 1300-1400
+  band and holding it means holding ~50% there. **We score 34%.** Inverting
+  Elo's expected-score curve per band gives an implied true rating of **~1232**
+  — so the profile's 1292 is ABOVE our own equilibrium and was still falling
+  (the last battle took it 1311 -> 1292), and the fresh-account start at 1000
+  inflated everything before it. **The displayed 65-Elo gap is an artifact of
+  a rating that had not finished settling; the real distance is ~125 Elo.**
+  **CAVEAT STATED RATHER THAN BURIED:** the per-band implied ratings TREND
+  UPWARD with opponent strength (1154 / 1217 / 1245 / 1313). That is either
+  logistic mis-specification or a real effect (we may be relatively less
+  exploitable against stronger players), and at n=28-47 per band **this repo
+  does not claim which.** Only the aggregate direction is asserted.
+  **CONSEQUENCE FOR CH5, and it is a clean one: more ladder battles cannot
+  close this.** The gap is a MODEL gap, which is exactly what R1 is measuring
+  (is a better object already on disk?) and what R2 would train. R3's second
+  ladder run is worth buying only against something that moves the 34%.
