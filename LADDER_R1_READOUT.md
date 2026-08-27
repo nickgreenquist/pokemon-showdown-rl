@@ -12,6 +12,26 @@ against those artifacts.
 - Listed on the top-500: **False**
 - Top-500 admission cutoff: Elo **1357.219009199**
 
+**CORRECTED 2026-08-26: GXE AND GLICKO EXIST, AND THE PRIMARY READ IS
+MEASURED. GXE 59.6%, Glicko-1 1573 +/- 27, final Elo 1292.** The claim
+below was WRONG and is kept so the error is visible rather than
+silently overwritten: Showdown does NOT publish them "only for listed
+accounts". The top-500 leaderboard JSON that this run's tooling polled
+contains only listed accounts, but the **USER PROFILE**
+(`https://pokemonshowdown.com/users/nickgen1rbrlbot`) carries GXE and
+Glicko for any rated account. The tooling checked the wrong endpoint and
+concluded the read did not exist; it existed throughout.
+**THE STOPPING RULE WAS THEREFORE SATISFIED, not merely un-evaluated:**
+`rd <= 40 AND n >= 200` is met at rd 27, n 200. `stopped_by_rule: false`
+in `results/ladder/L2.report.json` is an artifact of not being able to
+read rd, not a statement that the rule failed.
+**AND THE FINAL ELO IS 1292, NOT 1311.** `L2.battles.jsonl`'s `rating`
+field is the PRE-BATTLE rating — verified on 195/195 consecutive pairs,
+where sign(rating[i+1] - rating[i]) matches outcome[i] every time. The
+last rated battle was a LOSS at pre-battle 1311, and the median loss
+delta is -19, giving 1292 — which is exactly what the profile reads.
+Every "Elo 1311" in this repo was the second-to-last rating.
+SUPERSEDED TEXT FOLLOWS.
 **GXE AND GLICKO ARE UNMEASURED.** Showdown publishes them only for
 listed accounts. The pre-registered primary read therefore does not
 exist for this run, and no GXE may be quoted or projected. The run

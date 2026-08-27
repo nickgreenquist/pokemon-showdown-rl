@@ -8145,3 +8145,56 @@ entry by offset — never a broad keyword grep.
   **A80 HEALTHY at the time of writing:** 39 battles, FP at 3.1% CPU,
   ~38/min against the 40.4/min greedy reference — **95% of reference**, well
   inside the >50% band.
+
+- 2026-08-26 (evening cont., maintainer pasted the Showdown profile —
+  "nickgen1rbrlbot ... Elo 1292, GXE 59.6%, Glicko-1 1573 +/- 27 ... should we
+  update readme with that?" — source
+  https://pokemonshowdown.com/users/nickgen1rbrlbot): **YES, AND IT OVERTURNS
+  TWO THINGS THIS REPO HAS BEEN ASSERTING FOR TWO DAYS. LADDER R1's
+  PRE-REGISTERED PRIMARY READ EXISTS AND ALWAYS DID; AND THE LONG-QUOTED
+  "Elo 1311" IS OFF BY ONE BATTLE.** Confirmed independently by fetching the
+  profile. Nothing about the running CH5 wave is affected.
+  **ERROR 1 — WE POLLED THE WRONG ENDPOINT AND DECLARED OUR OWN PRIMARY READ
+  IMPOSSIBLE.** `scripts/ladder_readout.py:116` branches on
+  `snap.get("listed")` from the TOP-500 LEADERBOARD JSON and emits "Showdown
+  publishes them only for listed accounts. The pre-registered primary read
+  therefore does not exist for this run." **That is false.** The leaderboard
+  JSON contains only listed accounts; the **USER PROFILE carries GXE and
+  Glicko-1 for ANY rated account.** Being unlisted is a statement about the
+  BOARD, never about whether a rating exists. **So the primary read was
+  sitting on a public page the whole time: GXE 59.6%, Glicko-1 1573 +/- 27.**
+  **AND THE STOPPING RULE WAS SATISFIED, not merely un-evaluated:**
+  `rd <= 40 AND n >= 200` is met at **rd 27, n 200**. `stopped_by_rule: false`
+  in `L2.report.json` is an artifact of not being able to read rd.
+  **ERROR 2 — "Elo 1311" WAS THE SECOND-TO-LAST RATING. The final is 1292.**
+  `L2.battles.jsonl`'s `rating` field is the **PRE-BATTLE** rating.
+  **Verified on 195/195 consecutive pairs (100%)**: sign(rating[i+1] -
+  rating[i]) matches outcome[i] every time. The last rated battle was a LOSS
+  at pre-battle 1311; the median loss delta is -19; 1311 - 19 = **1292**,
+  exactly the profile. Two independent routes agree, which also confirms no
+  battles were played after the run. "Peak 1348" is likewise the max PRE-battle
+  value and is now labelled "highest observed" rather than "peak".
+  **I WAS WRONG ABOUT THE EXPERT REVIEW AND IT WAS RIGHT.** Earlier tonight I
+  "corrected" its "~104 Glicko gap" as a number that **cannot exist**, on the
+  grounds that we had no Glicko. **1677 - 1573 = 104.** The reviewer had read
+  our Glicko off the profile — the very number we were telling ourselves did
+  not exist. The figure is still not a strength claim (H&L is gen7RB n=300, we
+  are gen1RB n=200, and different formats have different ladder populations, so
+  a cross-format Glicko difference is not a gap), but the arithmetic was
+  theirs and correct, and `prior_work` now records it that way.
+  **UPDATED, all five places the wrong claim had propagated to:** `README.md`
+  (the section was ALSO frozen at n=30 / Elo 1325 and never refreshed after the
+  run finished — now the completed table: GXE 59.6%, Glicko-1 1573+/-27, final
+  Elo 1292, 95-105 over 200, 141 opponents mean Elo 1229, stopping rule
+  satisfied, not listed at a 1357 cutoff); `LADDER_R1_READOUT.md` (correction
+  ABOVE the superseded text, which is kept visible rather than overwritten);
+  `CLAUDE.md` (the landmine now carries the measured result AND the
+  leaderboard-vs-profile trap); `STATUS.md`; `CHAPTER5.md` (both refs);
+  `prior_work/README.md`; and **`scripts/ladder_readout.py` at the source**, so
+  the generator cannot re-emit the false sentence.
+  **BOARD-NUMBER CONFLICT, FLAGGED NOT SMOOTHED.** `prior_work` banks a
+  "gen1RB top-500 GXE cutoff 58.8" from 2026-08-25. Our own run's board reads
+  recorded `min_listed_gxe` **69.0 before, 76.4 after**. Our 59.6% is above the
+  banked 58.8 and well below both of our own observations — so **"we are above
+  the top-500 GXE cutoff" is exactly the manufactured claim this repo guards
+  against, and is not made.** Admission is on Elo anyway (1292 vs 1357).

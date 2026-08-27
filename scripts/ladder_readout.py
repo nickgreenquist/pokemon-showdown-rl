@@ -113,9 +113,20 @@ def main():
     A(f"- Board reachable: **{snap.get('ok')}**")
     A(f"- Listed on the top-500: **{snap.get('listed')}**")
     A(f"- Top-500 admission cutoff: Elo **{snap.get('cutoff_elo')}**")
+    # CORRECTED 2026-08-26. The branch below asserted that GXE/Glicko exist
+    # only for LISTED accounts and that the pre-registered primary read
+    # therefore does not exist. **That is false.** The top-500 leaderboard
+    # JSON polled here contains only listed accounts, but the USER PROFILE
+    # (https://pokemonshowdown.com/users/<userid>) carries GXE and Glicko-1
+    # for ANY rated account. LADDER R1 was declared unmeasurable on this
+    # branch and its numbers were on the profile the whole time (GXE 59.6%,
+    # Glicko-1 1573 +/- 27). Being unlisted is a statement about the TOP-500
+    # BOARD, never about whether a rating exists.
     if not snap.get("listed"):
         A("\n**GXE AND GLICKO ARE UNMEASURED.** Showdown publishes them only for")
-        A("listed accounts. The pre-registered primary read therefore does not")
+        A("listed accounts. **THIS SENTENCE IS WRONG — see the comment above;")
+        A("read GXE/Glicko off the USER PROFILE, not the leaderboard.**")
+        A("The pre-registered primary read therefore does not")
         A("exist for this run, and no GXE may be quoted or projected. The run")
         A("stopped at the pre-registered n floor, NOT by the stopping rule")
         A("(`rd <= 40 AND n >= 200` also requires being listed).\n")

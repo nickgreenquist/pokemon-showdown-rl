@@ -6,40 +6,52 @@ A reinforcement-learning agent for **Pokémon Showdown Gen 1 random battles**
 cloning, no scripted opponent in the training loop. It plays through
 [poke-env](https://github.com/hsahovic/poke-env).
 
-As of 2026-08-25 it plays on the **real Showdown ladder, against humans.**
+As of 2026-08-25 it plays on the **real Showdown ladder, against humans** —
+LADDER R1 is complete at n=200 (GXE **59.6%**, Glicko-1 **1573 ± 27**).
 
-## On the ladder right now
+## On the ladder — LADDER R1, complete
 
-Account `nickgen1rbrlbot`, playing the 4-lane ensemble policy, one battle at a
-time. This is a **measurement in progress**, pre-registered in
+Account [`nickgen1rbrlbot`](https://pokemonshowdown.com/users/nickgen1rbrlbot),
+playing the 4-lane ensemble policy, one battle at a time. Pre-registered in
 [`configs/eval/ladder_r1.yaml`](configs/eval/ladder_r1.yaml) before the first
-rated battle was played.
+rated battle was played. **The run is finished and the pre-registered stopping
+rule was met.**
 
 | | |
 |---|---|
-| **PS Elo** | **1325** (peak 1348) |
-| Top-500 admission cutoff | 1358 |
-| Record | 19–11 over 30 rated battles |
-| **GXE — the pre-registered primary read** | **not yet measured** |
-| Progress toward the stopping rule | 30 / 200 battles, Glicko rd ≤ 40 |
+| **GXE — the pre-registered primary read** | **59.6%** |
+| **Glicko-1** | **1573 ± 27** |
+| **PS Elo, final** | **1292** (highest observed 1348) |
+| Record | 95–105 over **200** rated battles (0.475) |
+| Opponents | 141 distinct, mean Elo 1229 (range 1000–1538) |
+| Stopping rule `rd ≤ 40 AND n ≥ 200` | **satisfied** (rd 27, n 200) |
+| Top-500 admission cutoff | Elo 1357 — **we are not listed** |
 
-*Numbers as of 2026-08-25, n=30; the run is live and they move. Refresh with
-`python scripts/ladder_classify.py`.*
+*Ratings read from the Showdown profile 2026-08-26. Run executed 2026-08-25/26,
+12.07 h, 0 decision errors, 0 mask desyncs, both battle tallies agreeing at 200.*
 
-**Three things this table is careful about, and they matter more than the
-numbers in it:**
+**Four things this table is careful about, and they matter more than the numbers
+in it:**
 
-- **There is no GXE yet, and GXE is the thing we pre-committed to reporting.**
-  Showdown computes GXE only for accounts on the top-500 list, and we are ~33
-  Elo short of admission. Until that changes the primary read is *unmeasured*,
-  not *pending a good result*.
-- **The raw record is not a ladder result.** n=30 against a pre-registered stop
-  of 200, and a fresh account starts at Elo 1000, so early matchmaking pairs it
-  with weak opponents — the early win rate is an *upper* bound that GXE exists
-  to correct. Mean opponent Elo so far is 1258 (range 1000–1515).
 - **Nothing here credits anything.** The ladder rung is descriptive by
   construction: no A/B, no control arm, no threshold to clear. Calling a ladder
   number "credited" would be a category error in this repo's vocabulary.
+- **GXE is opponent-adjusted and the raw record is not.** 59.6% against a raw
+  47.5% is not a contradiction: GXE estimates the win rate against an *average*
+  ladder player, and this account's opponents averaged 1229 Elo. Quote GXE, not
+  the raw rate, and never quote either without n.
+- **We are not on the top-500 list, and GXE does not put us there.** Admission
+  is on Elo (1292 against a 1357 cutoff). The run's own board reads recorded a
+  minimum *listed* GXE of 69.0 rising to 76.4 during the run, so 59.6% is well
+  short of the list on either axis. (`prior_work/README.md` separately banks a
+  "58.8 GXE cutoff" from 2026-08-25; that figure disagrees with this run's own
+  observation and is flagged there rather than used.)
+- **An earlier version of this table said GXE was unmeasurable, and that was
+  wrong.** It claimed Showdown computes GXE only for listed accounts. It does
+  not — the leaderboard *JSON* contains only listed accounts, but the **user
+  profile carries GXE and Glicko for any rated account**, which is where these
+  numbers come from. The run's tooling checked the leaderboard and concluded the
+  primary read did not exist. It existed the whole time.
 
 Ladder replays are kept as evidence for the pre-registered readouts. **They are
 never training data** — see *The claim* below.

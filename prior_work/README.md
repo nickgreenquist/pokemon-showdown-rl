@@ -567,9 +567,19 @@ lossy by construction and the code has repeatedly contradicted the project's own
   it described the shaping as two terms with `supereffective` POSITIVE
   (the config has five terms and `supereffective: -0.0025`, `resisted:
   +0.0025`), it missed `gamma 0.95` / `lam 0.9` entirely, and it quoted a
-  "~104 Glicko gap" that **cannot exist**: our ladder run was never
-  listed, so we have no Glicko and no GXE (see the ladder landmine). The
-  per-update finding stands on its own; those three do not.
+  "~104 Glicko gap" that **still does not check out, though for a different
+  reason than I first gave.** I wrote on 2026-08-26 that we had no Glicko at
+  all because the account was never listed; **that was wrong and is corrected
+  above/elsewhere — the user profile carries Glicko and GXE for any rated
+  account, and ours reads Glicko-1 1573 +/- 27, GXE 59.6%.** The review's
+  figure is still unsupported: H&L's 1677 against our 1573 is a **104-point
+  Glicko gap**, which is arithmetically where its number came from, but the
+  two are not comparable — H&L is gen7RB at n=300 on one fresh account with no
+  error bar, ours is gen1RB at n=200 with rd 27, and **different formats have
+  different ladder populations, so a cross-format Glicko difference is not a
+  strength difference.** Quote it as a format-crossed coincidence of scale, not
+  a gap. The per-update finding stands on its own; the shaping and gamma errors
+  do not.
 
   Their bot table does NOT transfer: 0.829 is vs a max-damage-typed bot far weaker
   than SH, and their 0.612 is vs the 2019 ancestor of foul-play, pre-Rust. Negative results:

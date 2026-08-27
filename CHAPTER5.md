@@ -37,7 +37,9 @@ back on the real board.
 Two things make R2 worth more than a repeat of R1:
 
 1. **It is the first strength claim this project can make against humans.**
-   R1 established the harness and a level (Elo 1311). R2 is the delta.
+   R1 established the harness and a level (final Elo 1292, GXE 59.6%,
+   Glicko-1 1573 +/- 27; the long-quoted 1311 was the PRE-BATTLE rating of
+   the last game). R2 is the delta.
 2. **It creates the FIRST (proxy score, ladder rating) pair — not the
    second.** CORRECTED 2026-08-26 by designer A, verified: **L2 has no Foul
    Play number at ANY budget** (`ladder_r1.yaml` line 42 says `unmeasured`
@@ -57,7 +59,7 @@ not oversell it in the readout.
 | | vs SH | off FP | ladder |
 |---|---|---|---|
 | D26 12M greedy (s62-65) | **0.71825** | **0.34867** @20, n=12,000 | — |
-| D26 12M, 4-lane ensemble (L2) | 0.74633 | **unmeasured** | **Elo 1311**, 0.475, n=200 |
+| D26 12M, 4-lane ensemble (L2) | 0.74633 | **unmeasured** | **GXE 59.6%**, Glicko-1 1573+/-27, Elo 1292, 0.475, n=200 |
 | D26 12M + search@M (L3) | 0.79283 | 0.368 @100, **n=250** | — |
 | D29r2 stack @ 50M (s80/81/82) | 0.70222 | **unmeasured** | — |
 | struct 12M (earlier era) | 0.5509 | 0.176 @100, n=250 | — |
