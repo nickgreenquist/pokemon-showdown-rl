@@ -14,7 +14,12 @@ GXE EXISTS — quote the Elo, never project one.**
 n=200 DESCRIPTIVE, Elo 1311, NO GXE** · off-FP@20 (12M only) fleet **0.34867**
 n=12,000. Ties=loss; locked = final ckpt.
 ## Next actions
-1. **R1 IS RUNNING.** Watch `results/ch5_r1_offsh/wave.log`; progress is
+0. **DO NOT EDIT `configs/eval/ch5_r1_offsh.yaml`, `scripts/ch3_r4_fp_runner.sh`
+   or `scripts/ch3_fp_h2h.py` WHILE THE WAVE RUNS** — the runner and seat are
+   invoked FRESH PER ARM, so an edit changes the instrument mid-experiment and
+   no gate would catch it. Docs are fine to commit.
+1. **R1 IS RUNNING**, detached (PPID 1), resume-safe, rate-checkable.
+   Watch `results/ch5_r1_offsh/wave.log`; progress is
    `grep -c 'Winner:' results/ch5_r1_offsh/<tag>.fp.stdout` as a RATE, never
    a wall-clock ETA. Expect ~37.5/min (ensemble), ~40/min (greedy), ~22/min
    (search); <50% investigate, <20% stalled. Grade with
@@ -31,8 +36,8 @@ n=12,000. Ties=loss; locked = final ckpt.
 - **The TOST is UNREACHABLE at n=1000 at ANY sigma_seed** (needs s_50 <=
   0.01324; the per-lane binomial sd ALONE is 0.01507), so **"flat" is BARRED
   on every branch** — arithmetic, not taste. RULED: keep n, bar the word.
-- **The cliff had a SECOND COPY in prose, still at n=1500** after the key was
-  recomputed. Now a pointer; the missing row (s_50 = 0.0206) is restored.
+- **The cliff had a SECOND COPY in prose at n=1500**; now a pointer, and the
+  missing n-INDEPENDENT row (s_50 = 0.0206) is restored.
 - **RULED: R1-C funds BOTH rosters, E7 last** (the cut is only reversible in
   the wrong direction). **CHAPTER5 §3 C1 RETRO-RATIFIED** at 0.0735. **And
   at k <= 2 the fleet-mean read is DESCRIPTIVE ONLY** (assistant's call,

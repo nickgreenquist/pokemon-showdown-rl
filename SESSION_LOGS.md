@@ -8044,3 +8044,49 @@ entry by offset — never a broad keyword grep.
   alone is the clean test; the recipe piecemeal is not. **A2 (both-seat
   harvest) is the first free 2x** of the same quantity at identical
   simulation cost, which makes A2 the obvious dose-matched placebo for A4.
+
+- 2026-08-26 (evening cont., maintainer: "if job is under 2h, run it yourself.
+  if over 2h and under 5h, ask me. if over 5h, hand to me (for training runs
+  ... im fine with long eval runs like this one if you think its safe)"):
+  **JOB-OWNERSHIP RULE REPLACED IN CLAUDE.md, AND THE OLD ONE'S STATED REASON
+  WAS WRONG — the repo had already measured it wrong and never folded the
+  correction back in.** New rule: **TRAINING** under 2 h run it yourself, 2-5 h
+  ask, over 5 h hand over; **EVAL/analysis** any length agent-side if judged
+  safe.
+  **THE OLD RULE NAMED THE WRONG RISK.** It read "agent-launched training
+  measured ~10x slower". The 2026-08-14 entry in this very file records the
+  opposite: agent-launched training ran at **433 steps/s (100k steps in
+  231 s), i.e. NEAR-NATIVE, NOT the ~10x penalty the rule was written from**
+  — and that entry says so explicitly, calls it out "against the CLAUDE.md
+  landmine", and it sat uncorrected for 12 days. The same entry names the
+  risk that IS real: **"the binding risk there is JOB LIFETIME, not
+  throughput — which is why the lanes are in detached screens rather than in
+  the agent's process tree."**
+  **SO THE SAFETY TEST IS NOW EXPLICIT, and it is what "if you think its
+  safe" has to mean:** (i) DETACHED from the agent's process tree, (ii)
+  RESUME-SAFE so a death costs one unit of work and not the wave, (iii)
+  progress readable as a RATE against a comparable completed arm. All three,
+  or hand it over regardless of length.
+  **BY THAT TEST THE LIVE R1 WAVE WAS IN THE WRONG PLACE and was relaunched.**
+  It met (ii) and (iii) but not (i) — it was a child of the agent session and
+  would have died with it. Relaunched under `nohup` + `disown`; verified
+  **PPID 1**, i.e. reparented out of the agent's process tree. Cost: C0's
+  first 370 battles, discarded, because **a partial arm re-runs WHOLE — there
+  is no mid-arm resume and none is claimed.** The partial `c0.json` /
+  `c0.fp.stdout` / `c0.seat.stdout` were deleted before relaunch so a stale
+  partial could not be graded as an arm.
+  **NEW LANDMINE, found while reasoning about whether it was safe to commit
+  mid-wave — record it before it fires:** the wave script is read ONCE at
+  start, but **`scripts/ch3_r4_fp_runner.sh` is invoked FRESH PER ARM**, and
+  the seat `scripts/ch3_fp_h2h.py` likewise. **So editing the runner or the
+  seat while a wave is running silently changes the instrument mid-experiment
+  — later arms get different code than earlier ones, and nothing in the gate
+  block would catch it.** Docs may be committed mid-wave; the pre-reg and the
+  runner/seat scripts may NOT be touched until the wave completes.
+  **PROVENANCE DISCLOSURE for this wave:** committing docs mid-wave moves
+  HEAD, and the seat stamps `launch_git_sha` per arm at ITS start, so arms
+  will carry DIFFERENT launch shas. This is disclosed and gates nothing: what
+  the blinding attestation actually protects is the pre-reg, and
+  **`prereg_sha256` is constant at `80245bbd...` across every arm** because
+  `configs/eval/ch5_r1_offsh.yaml` has not been touched since ratification and
+  will not be. The wave-level stamp in `wave.provenance.json` is `313c0fd`.
