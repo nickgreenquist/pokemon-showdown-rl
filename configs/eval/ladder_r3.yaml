@@ -749,11 +749,26 @@ primary_arm: R3S                 # the ONLY declared arm; see ARM STRUCTURE
 # ** results_dir IS DECORATIVE — scripts/ladder.py NEVER READS IT. ** The JSONL
 # and report land in `--out-dir` (CLI, default results/ladder), while
 # `save_replays` IS read from this file. Two halves of one path set in two
-# different places: miss the CLI flag and R3's JSONL lands next to R1's. Every
-# command below passes --out-dir explicitly. The value here matches the
-# intended --out-dir so the two cannot drift.
-results_dir: results/ladder_r3
-save_replays: results/ladder_r3/replays
+# different places. The value here matches the intended --out-dir so the two
+# cannot drift, but ONLY THE CLI FLAG ACTUALLY DECIDES.
+#
+# ** WHY R3 SHARES R1'S ROOT INSTEAD OF TAKING ITS OWN. ** A separate
+# `results/ladder_r3/` reads cleaner and was the first choice here. It is the
+# WRONG choice, and the reason is backup. `scripts/backup_ladder.sh` does
+# `rsync -a results/ladder/ <mirror>/` and `tar czf ... -C results ladder` —
+# both operate on `results/ladder` WHOLESALE. Anything under that root gets
+# mirrored and archived with no code change; anything outside it gets NEITHER.
+# **LADDER DATA IS UNREPEATABLE AND GITIGNORED, and the 3-copy rule is
+# standing**, so a separate root would have left R3 with ONE copy until BI-3
+# landed — i.e. a build item standing between us and the only protection an
+# unrepeatable measurement has. Sharing the root gives R3 two of the three
+# copies for free, and reduces BI-3 to extending the VERIFICATION lines
+# (which count `L2.battles.jsonl` and `replays/` by name) rather than the
+# copying. Filenames do not collide: the arm is R3S, so the runner writes
+# `R3S.battles.jsonl` and `R3S.report.json` beside R1's `L2.*`, and the
+# replays go in a sibling directory.
+results_dir: results/ladder
+save_replays: results/ladder/replays_r3
 
 max_battles_total: 300           # R1's was 1000, which at ~300 s/battle is 83 h
                                  # and cannot bite. 300 is ~8 h of headroom past
@@ -855,7 +870,7 @@ launch_gates:
 build_items:
   BI1: "ladder.py: stamp decisions_this_session in the report. VOID (b)'s denominator is currently unreadable."
   BI2: "tests/test_ladder.py: parameterise PREREG over configs/eval/ladder_*.yaml. Today it hardcodes ladder_r1.yaml, so NONE of its pre-reg tests look at this file — including the set-pool pin VOID (c) depends on. Keep the marker test asserting markers are PRESENT while this file is a DRAFT."
-  BI3: "backup_ladder.sh: it hardcodes SRC=results/ladder and L2.battles.jsonl and would NOT back up results/ladder_r3 at all. LADDER DATA IS UNREPEATABLE AND GITIGNORED and the 3-copy rule is standing. Parameterise it. Run after every session."
+  BI3: "backup_ladder.sh COPIES R3 correctly already (rsync and tar both take results/ladder wholesale, which is why R3 shares that root). What it does NOT do is VERIFY R3: the row/replay counts are hardcoded to L2.battles.jsonl and replays/. Extend the verification to R3S.battles.jsonl and replays_r3. Lower severity than it first appears — two of the three copies work untouched — but an unverified backup is not a checked backup. Run after every session."
   BI4: "ladder_readout.py: add obligation (iv) the band table (from the REPLAYS, exhaustive, asserting sum(cell n) == n) and (v) the overlap cell. Already parameterised (--jsonl --replays --name --out)."
   BI5: "port ch3_fp_h2h.py's max_concurrent_live tracker into LadderPlayer and stamp it, so 'serial play only' is ASSERTED from the artifact rather than assumed from a config value."
   BI6: "<< MAINTAINER 3 >>: raise ladder.py's max_concurrent_battles 1 -> 2 (lines 364, 594) to close the poke-env deadlock. Does NOT license concurrent play — ladder(1) in a serial loop. Flagged rather than done silently because the etiquette block cites the literal 'max_concurrent 1'."
