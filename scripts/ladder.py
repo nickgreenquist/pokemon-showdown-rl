@@ -7,8 +7,10 @@ Everything else in this repo talks to `localhost:8000`; this is the one path
 that goes out. Read the disclosures below before running it in anger.
 
 CREDENTIALS NEVER LIVE IN THE CONFIG. The account password is read from the
-`PS_PASSWORD` env var (username from `PS_USERNAME`, or the arm's
-`display_name`). CLAUDE.md's "keep secrets out of committed files" is a
+`PS_PASSWORD` env var. The USERNAME comes from the arm's `display_name` in
+the pre-reg; `PS_USERNAME` may only CONFIRM it and the run aborts if the two
+disagree (see `_resolve_display_name`) — an env var must never silently
+redirect a rated run onto another account. CLAUDE.md's "keep secrets out of committed files" is a
 standing obligation and the pre-reg is a committed file.
 
 THE ACCOUNT MUST BE REGISTERED FIRST, BY HAND. poke-env can log in but
@@ -223,6 +225,62 @@ def board_snapshot(fmt: str, userid: str) -> dict:
             {k: mine.get(k) for k in ("gxe", "r", "rd", "elo", "w", "l", "t")}
         )
     return out
+
+
+def _resolve_display_name(arm: dict, arm_name: str) -> str:
+    """The PRE-REGISTERED name wins. `PS_USERNAME` may confirm it, never
+    silently replace it.
+
+    THE BUG THIS CLOSES, added 2026-08-27 after both design reviewers flagged
+    it independently. The line used to be:
+
+        display_name = os.environ.get("PS_USERNAME") or arm["display_name"]
+
+    so an env var SILENTLY OVERRODE the config. A stale
+    `PS_USERNAME=<previous run's account>` left in a shell, a `.env`, or a
+    shell profile would quietly ladder the new arm on the OLD account —
+    burning rated games on it and contaminating a published rating that
+    cannot be re-measured. The only symptom was one line of startup output.
+
+    THE FIX IS THE ONE THAT MAKES SIMPLE, SIMILAR NAMES SAFE. The alternative
+    on offer was a naming convention — pick names far apart in edit distance
+    so a mix-up is visible. That is not a mechanism, it is a habit, and it
+    fails exactly when someone is tired. Making the config authoritative means
+    `run2` / `run3` style names are fine forever: the runner cannot be pointed
+    somewhere the pre-registration did not name.
+
+    RESOLUTION ORDER:
+      * `PS_USERNAME` unset            -> use the arm's `display_name`.
+      * `PS_USERNAME` matches (by USERID, so punctuation and case are free)
+                                       -> use it, and say so.
+      * `PS_USERNAME` disagrees        -> **SystemExit.** Never the env var.
+    Comparison is on `to_id`, not on the raw string, because PS authenticates
+    on the userid: `nick_gen1rb_rl_bot2` and `nickgen1rbrlbot2` are the SAME
+    account and disagreeing about punctuation is not an error worth aborting
+    a 16-hour run over.
+    """
+    declared = arm.get("display_name")
+    if not declared:
+        raise SystemExit(f"arm {arm_name!r} declares no display_name")
+    env_name = os.environ.get("PS_USERNAME")
+    if not env_name:
+        return declared
+    if to_id(env_name) == to_id(declared):
+        if env_name != declared:
+            print(f"  PS_USERNAME {env_name!r} confirms arm's "
+                  f"{declared!r} (same userid {to_id(declared)!r})")
+        return declared
+    raise SystemExit(
+        f"PS_USERNAME={env_name!r} (userid {to_id(env_name)!r}) DISAGREES with "
+        f"arm {arm_name!r}'s pre-registered display_name {declared!r} (userid "
+        f"{to_id(declared)!r}).\n"
+        "REFUSING TO RUN. The pre-registration names the account; an "
+        "environment variable does not get to redirect it silently — that is "
+        "how a run lands on the wrong account and contaminates a rating that "
+        "cannot be re-measured.\n"
+        "Fix whichever is wrong: unset/correct PS_USERNAME, or change the "
+        "arm's display_name in the pre-reg (and re-ratify it)."
+    )
 
 
 def ladder_snapshot(fmt: str, userid: str) -> dict:
@@ -514,7 +572,7 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
 
     arm = prereg["arms"][arm_name]
     pacing = prereg.get("pacing", {})
-    display_name = os.environ.get("PS_USERNAME") or arm["display_name"]
+    display_name = _resolve_display_name(arm, arm_name)
     userid = _check_username(display_name)
     password = os.environ.get("PS_PASSWORD")
 

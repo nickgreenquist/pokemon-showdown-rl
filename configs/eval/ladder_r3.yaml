@@ -1,0 +1,952 @@
+# =====================================================================
+# LADDER R3 — THE SECOND REAL-LADDER MEASUREMENT, ON THE SEARCH OBJECT
+# Pre-registered 2026-08-27 BEFORE a single rated battle is played.
+#
+# STATUS: **DRAFT. DO NOT LAUNCH.** Six `<< MAINTAINER n >>` decisions are
+#   open, listed in `open_decisions:` at the foot of this file.
+#   tests/test_ladder.py's marker test asserts the markers are ABSENT once a
+#   config is ratified (it flipped for ladder_r1.yaml on 2026-08-25); BI-2
+#   must point that machinery at THIS file, because today it hardcodes
+#   ladder_r1.yaml and therefore checks NOTHING here.
+#
+# PROVENANCE OF THIS DRAFT. Written under the standing 2-Opus design cycle
+#   (maintainer instruction 2026-08-12): two independent Opus drafts from the
+#   same evidence brief under different framings — MEASUREMENT-VALIDITY and
+#   OPERATIONS — then synthesised, with every load-bearing claim re-verified
+#   against the source before it was written down. Where the two disagreed,
+#   the disagreement is recorded rather than smoothed. Ratification is the
+#   maintainer's; agents advise, never decide.
+#
+# SEQUENCE, ruled by the maintainer 2026-08-27, verbatim: *"assuming ladder is
+#   one night to get ~200 games, let's do it. BUT - i definitely want a
+#   retrain. that will not be optional. i only am saying we do ladder again
+#   now, then train next. breaking 500 is one goal, not the end goal
+#   (top500)"*. R3 (ladder #2) -> R2 (retrain). BOTH HAPPEN; R2 is committed
+#   regardless of what R3 reads, and R3 does not gate it.
+#   **THE PREMISE OF THAT RATIFICATION DOES NOT SURVIVE ARITHMETIC AND SAYING
+#   SO IS THE FIRST JOB OF THIS FILE: 200 battles with THIS object projects to
+#   ~16-19 h, not one night. << MAINTAINER 1 >>.**
+#
+# Purity note, carried from R1 unchanged: playing humans is purity-legal — no
+#   expert data enters training, and the lane's exclusion is BOOTSTRAPPING
+#   (the novelty-over-strength memory), the same footing as the Foul-Play
+#   anchors. **Ladder replays must never become training data.** R3 doubles
+#   the banked human corpus to ~400 games; the bar does not move because the
+#   corpus grew. The search wrapper is inference-time and trains nothing, so
+#   the purity argument is untouched by it.
+# ---------------------------------------------------------------------
+# THE OBJECT. search@M on lane s80 — a 50M-step pure-self-play lane with
+#   depth-1 matrix search at inference. Dose M is frozen in
+#   `rl/search/matrix.py`: n_det 4, top_branches 6, leaf_cap 1296,
+#   node_cap 1500. Checkpoint `runs/showdown_sp_stack50m_r2_s80/checkpoint.pt`,
+#   sha256 8b6546e2... — RE-VERIFIED ON DISK 2026-08-27, and `_build_policy`
+#   asserts it again before the seat connects.
+#   BUILD VERIFIED 2026-08-27: this exact arm loads and returns a policy —
+#   obs_dim 828, encoder_v2 "1", encoder_ids "1", dose M, checkpoint_seed 80
+#   (ladder.py derives `int(lane.lstrip("s"))`). `_set_encoder_flags()` is
+#   called from `main()`, so the operator does NOT need to export the encoder
+#   flags by hand; a direct `_build_policy` call outside main() WILL fail with
+#   "entity trunk needs the id suffix", which is a harness artifact and not a
+#   defect in the object.
+#
+#   HOW s80 WAS CHOSEN, AND THE PART THAT NEEDS DISCLOSING. CH5 R1-B scored
+#   search@M on three 50M lanes off Foul Play@20 at n=1000: **B80 and B81 tied
+#   EXACTLY at 0.4470.** The tie was broken by the PRE-REGISTERED ORTHOGONAL
+#   rule — highest BANKED vs-SH final, s80 at 0.74233 — because breaking it on
+#   the off-FP score would be selection on the read's own metric (Q6).
+#   **THE ORTHOGONAL RULE SELECTS ON vs-SH, THE VERY METRIC THIS REPO
+#   DISTRUSTS OFF-SH.** It is orthogonal to the READ, which is what the rule
+#   was for; it is not a neutral instrument in general. **s80 is NOT "the best
+#   50M lane" and may not be described as one.** It is the lane a
+#   pre-committed tie-break named.
+#   AND THE DIRECTION THAT CUTS AGAINST US, STATED: s80 is the lane search
+#   helped LEAST on (+0.051 against a +0.1010 within-lane mean; s82 +0.148,
+#   s81 +0.104). The deployed object is not the one that would flatter the
+#   search story. That is the correct consequence of an orthogonal tie-break.
+#
+#   **THE 0.4470 IS A SELECTION SCORE AND MAY NOT BE PUBLISHED** (Q6:
+#   "Whatever is chosen for a ladder run is RE-SCORED fresh before any number
+#   is published"). Arm RS80 — search@M on s80, n=3000, off FP@20 — is that
+#   re-score. It was RUNNING while this file was written. **LG-1 gates R3 on
+#   it landing clean.**
+# ---------------------------------------------------------------------
+# QUESTION. R1 measured the 12M ensemble on the real board: GXE 59.6%,
+#   Glicko-1 1573 +/- 27, final Elo 1292, 95-105 over n=200. Since then a 50M
+#   fleet exists and CH5 R1-B found search helping on it off Foul Play.
+#   **R3 ASKS EXACTLY ONE THING: where does the object we would deploy TODAY
+#   sit on the real board?** It does NOT ask whether search transfers to
+#   humans, whether 50M beats 12M, or whether MU-8 was wrong. It is
+#   structurally incapable of answering any of those — see WHAT R3 MAY CLAIM,
+#   which is the heart of this pre-reg.
+# ---------------------------------------------------------------------
+# THIS RUN CREDITS NOTHING. No A/B, no control arm, no paired comparator, no
+#   se_diff over anything, no 0.025 bar. Every number is DESCRIPTIVE. Calling
+#   any of it "credited" is a category error. Stated here rather than
+#   referenced, because the one place this repo has actually mis-stated a
+#   result is where a caveat lived somewhere else.
+# ---------------------------------------------------------------------
+# THE TENSION, STATED HEAD-ON AND NOT RESOLVED IN SEARCH'S FAVOUR.
+#   **ladder_r1.yaml RECOMMENDED AGAINST SEARCH FOR THE LADDER AND THE
+#   MAINTAINER ACCEPTED THAT RECOMMENDATION (2026-08-25).** Its reasoning,
+#   still on the record and still not refuted:
+#     - search's +0.0746 vs SimpleHeuristics is credited and real;
+#     - BOTH off-SH point estimates at 12M were NEGATIVE — vs BC clone
+#       -0.034 +/- 0.021, vs Foul Play@100 -0.020 +/- 0.043;
+#     - MU-8's formal transfer test is **z = -2.80** against BT-commensurate
+#       transfer;
+#     - **the ladder is off-SH.**
+#   WHAT CHANGED, AND ONLY THIS: CH5 R1-B (off FP@20, n=1000/lane) measured
+#   search HELPING on the **50M** fleet — within-lane mean +0.1010, bar
+#   0.0561, **3.6 se** — and helping most on the worst lane.
+#   **THE CEILING IS CARRIED VERBATIM FROM CLAUDE.md AND STATUS.md: R1-B
+#   "licenses search as an R3 DEPLOYMENT CANDIDATE and nothing else; does NOT
+#   reverse MU-8 (z = -2.80); never set beside the 12M cell."** All three
+#   clauses bind here.
+#   THE RESIDUAL RISK, NAMED. R1's negatives were off-SH at 12M; R1-B's
+#   positive is off-FP@20 at 50M. Different objects, and the ceiling forbids
+#   setting them side by side. R1's case rested on a CONSISTENT SIGN ACROSS
+#   TWO off-SH opponents (clone and Foul Play). **Only ONE of those two has
+#   been re-tested at 50M — the clone anchor for search-on-50M DOES NOT
+#   EXIST** (see ANCHOR BATTERY). So half of R1's evidence is untested at the
+#   new scale, not overturned.
+#   **PRE-REGISTERED, BOTH DIRECTIONS: A GOOD R3 NUMBER DOES NOT REVERSE MU-8.
+#   A BAD R3 NUMBER DOES NOT CONFIRM IT.** R3 is a deployment of a candidate
+#   an earlier pre-reg argued against, on evidence that is real but narrower
+#   than the evidence that argued against it. That sentence travels with the
+#   R3 number. << MAINTAINER 6 >> puts the reversal on the record as a
+#   decision rather than a side effect of picking an arm.
+# ---------------------------------------------------------------------
+# WHAT R3 MAY CLAIM — THE CENTRAL RULING, DECIDED RESULT-BLIND.
+#
+#   **THE R1 -> R3 COMPARISON MOVES AT LEAST SEVEN THINGS AT ONCE:**
+#     1. POLICY KIND     4-lane ensemble      ->  single lane + search@M
+#     2. TRAINING SCALE  12M steps            ->  50M steps
+#     3. TRAINING RECIPE recipe12m            ->  stack50m_r2
+#     4. ACCOUNT         nickgen1rbrlbot      ->  a fresh account; BOTH runs
+#                        start at Elo 1000 and climb, so both ratings are
+#                        path-dependent transients
+#     5. CALENDAR + POOL 2026-08-25/26        ->  2026-08-27+, a
+#                        non-stationary board of ~93 players/day
+#     6. OPPONENT MEMORY 141 humans have now played 200 games against a bot
+#                        from this project under a LINKED account name
+#     7. INSTRUMENTATION R1 could not read its own rd live; R3 can (055cf96)
+#   **NO CONTROL, NO RANDOMISATION, NO SHARED ANCHOR, k=1 IN EVERY DIRECTION.
+#   NO DIFFERENCE BETWEEN R1 AND R3 CAN BE ATTRIBUTED TO ANY ONE OF THE
+#   SEVEN.**
+#
+#   **RULING: R3 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1-vs-R3 DELTA
+#   MAY BE QUOTED AS AN EFFECT, IN EITHER DIRECTION.** << MAINTAINER 5 >>.
+#
+#   **WHY THE GLICKO-RD BAR IS REFUSED**, since it is the obvious one, it was
+#   floated during design, and it is wrong. R1 read 1573 +/- 27; a second run
+#   at +/- ~27 gives se_diff = sqrt(27^2 + 27^2) = 38, so 2*se_diff = **76
+#   Glicko points**. Available, arithmetically correct, and NOT AN HONEST BAR:
+#     (a) **RD is a WITHIN-SYSTEM posterior SD.** It quantifies uncertainty
+#         about a rating inside one pool at one moment. It contains NO term
+#         for pool drift between runs, and R1 and R3 are two accounts in a
+#         pool that moved.
+#     (b) **R1'S OWN DATA FALSIFIES THE ASSUMPTION THAT RD BOUNDS THE ERROR ON
+#         THE OBJECT'S STRENGTH.** R1's band analysis inverts Elo's
+#         expected-score curve to an implied TRUE rating of ~1232 against a
+#         displayed 1292 — the rating was ~60 points above its own equilibrium
+#         and still falling. RD measures uncertainty about the CURRENT VALUE
+#         of a moving quantity; it says nothing about the distance to the
+#         asymptote. A bar built from two RDs is therefore ANTI-CONSERVATIVE.
+#     (c) RD is a function of n, not of the object. Two runs stopped at the
+#         same n share it by construction, so such a bar mostly measures the
+#         stopping rule.
+#   **WHAT IS GIVEN UP, AND IT IS THE INTERESTING CLAIM: "search/50M is worth
+#   +N Elo on the real board" IS NOT AVAILABLE AT ANY n THIS DESIGN CAN BUY.
+#   This file does not manufacture it.**
+#
+#   THE ONE COMPARISON THAT IS LICENSED, AND IT IS STILL DESCRIPTIVE: **the
+#   win rate against the [1300, 1400) opponent band.** It is the only cell
+#   with a common, externally-fixed reference — rank 500 lives in that band,
+#   and holding rank 500 means holding ~0.50 there. R1 scored **0.340
+#   (16/47)**. It conditions on the OPPONENT rather than on our own climb, so
+#   it is far less path-dependent than the aggregate. **READ ONE-SIDED,
+#   UPWARD: is R3 at or above 0.50 in [1300, 1400)?** That is a question about
+#   the board, not about R1. Reporting R1's cell beside it is permitted;
+#   SUBTRACTING them is not an effect and the difference may not be called one.
+#   **AND ITS POWER IS DERISORY, STATED NOW SO IT CANNOT BE OVERSOLD LATER:**
+#   R1's cell had n=47, binomial se 0.069; a matched R3 cell gives se_diff
+#   0.098, so 2*se_diff is **~0.195 — roughly TWENTY POINTS of win rate.**
+#   This cell can only resolve a difference nobody would need statistics to
+#   see. Its n is set by matchmaking, not by us. **NO THRESHOLD ATTACHES TO
+#   IT AND NONE MAY BE ADDED LATER.**
+#
+#   THE HEADLINE SENTENCE R3 IS ALLOWED (template, fixed now):
+#     "Playing the real gen1randombattle ladder from a fresh rated account,
+#      search@M on lane s80 (50M steps, pure self-play) reached GXE X%,
+#      Glicko-1 Y +/- RD and final Elo Z over n rated battles against D
+#      distinct opponents. Against the 1300-1400 band — the band containing
+#      rank 500 — it scored W (n=k)."
+# ---------------------------------------------------------------------
+# BARRED LANGUAGE (the "flat is BARRED" pattern from CH5 R1-A). None of these
+#   may appear in any R3 sentence, README row, session log or commit message,
+#   whatever the numbers say: "improved" / "improvement" / "gain" / "better
+#   than R1" / "worse than R1" / "search transfers" / "search works on humans"
+#   / "50M beats 12M on the ladder" / "+N Elo from search" / "closer to
+#   top-500" / any arithmetic difference between R1's and R3's GXE, Glicko or
+#   Elo presented as a quantity.
+#   PERMITTED: a two-row table headed **CONFOUNDED — NOT AN EFFECT** with the
+#   seven-way confound list printed adjacent, and the sentence "these are two
+#   measurements of two different objects at two different times on a
+#   non-stationary board."
+# ---------------------------------------------------------------------
+# SCHEDULE. **R3 IS NOT ONE NIGHT**, and the arithmetic is done here rather
+#   than discovered at 4am.
+#
+#   (1) FIRST, A CORRECTION TO THE INHERITED RATE, because the number this
+#   repo has been quoting is wrong. "R1 ran 217 s/battle" divides
+#   `wall_clock_sec` 43464.6 by `battles_total` 200. **THOSE TWO FIELDS HAVE
+#   DIFFERENT SCOPES:** the report also says `battles_this_session: 180`, and
+#   `wall_clock_sec` starts at the loop, so it covers 180 battles, not 200.
+#   Recomputed 2026-08-27 from `L2.battles.jsonl`'s own `finished_at` column
+#   (present on 200/200):
+#       whole-run span 49054 s / 199 intervals  = **246.5 s/battle**
+#       session-consistent 43464.6 / 180        = **241.5 s/battle**
+#   **217 IS ~12% LOW. NEVER DIVIDE `wall_clock_sec` BY `battles_total`.**
+#   Derive s/battle from `finished_at` deltas. Now readout obligation (vi).
+#
+#   (2) THE COST MODEL, refit here on R1's own 198 within-session intervals
+#   (inter-session gap and >1200 s outliers dropped):
+#       sec_per_battle = 114.5 + 4.85 * turns
+#   It reproduces the observed mean exactly (240.2 predicted at 25.9 turns vs
+#   240.2 observed). Empirical bucket medians, model-free:
+#       turns [0,15)   n=10  median 174 s
+#       turns [15,25)  n=80  median 208 s
+#       turns [25,35)  n=78  median 254 s
+#       turns [35,45)  n=24  median 322 s   <-- search@M lives here
+#       turns [45,+)   n= 6  median 390 s
+#
+#   (3) OUR OWN COMPUTE IS ~1% AND IS NOT THE DRIVER. From `b80.json`:
+#   41315 decisions / 1000 battles = 41.3 per battle, `search/ms_mean` 64.84
+#   ms, `search/leaves_mean` 326.7 against a node_cap of 1500 (4.6x headroom).
+#   That is ~2.7 s/battle against ~290 s. R1's ensemble spent 6.74 ms/decision
+#   = 0.28 s/battle. **THE COST IS TURNS x THE HUMAN'S CLOCK** (the OLS slope
+#   is 4.85 s/turn; our compute is ~0.08 s/turn). **CUTTING THE DOSE IS RULED
+#   OUT NOW, RESULT-BLIND: it would buy ~1% of wall clock, change the object,
+#   and invalidate RS80 as its proxy score.**
+#
+#   (4) TURNS. Measured off FP@20 at n=1000: search@M s80 **36.824** turns
+#   against greedy s80's 27.791 (1.325x). Human-vs-FP calibration from the one
+#   (proxy, ladder) pair this repo owns — R1's object played 27.44 turns off
+#   FP as arm C0 and 25.9 against humans, ratio **0.944** — projects
+#   36.824 * 0.944 = **~34.8 turns** vs humans.
+#
+#   (5) PROJECTION for 200 battles, three ways, ALL REPORTED:
+#       calibrated OLS   34.76 turns -> 283.2 s/b -> **15.7 h**
+#       uncalibrated OLS 36.82 turns -> 293.2 s/b -> **16.3 h**
+#       empirical [35,45) bucket median 322 s/b   -> **17.9 h**
+#       (naive proportional, no intercept, 350 s/b -> 19.5 h — REJECTED: it
+#        ignores the ~115 s of queue/matchmaking that does not scale with
+#        turns, and is quoted only to show the spread.)
+#   **BUDGET 18 h AND PLAN ON 16-19 h.** The model-free bucket median sits
+#   ABOVE both OLS estimates, so the model is if anything optimistic; do not
+#   quote 15.7 h alone.
+#   **PLUS A NAMED TAIL: the turn-1000 auto-tie.** Tie counts from each arm's
+#   own tallies (wins + losses vs 1000): greedy a80/a81/a82 = **1 / 0 / 0**;
+#   search b80/b81/b82 = **4 / 5 / 8**. At n=200 that rate predicts **~1**
+#   such game, and at ~5-8 s/turn a 1000-turn game is HOURS on its own — for
+#   us and for one human opponent. The 16-19 h budget carries a +1 to +2 h
+#   tail from this.
+#
+#   (6) THE LEVERS, AND WHY THEY DO NOT RESCUE IT.
+#     * `sleep_between_battles_sec: 5` -> 0 saves 1000 s = 0.28 h, **1.6%**,
+#       and costs one of the four things the etiquette block names as what
+#       keeps this legitimate. **KEEP IT AT 5.** Decided result-blind.
+#     * `max_battles_total: 1000` cannot bite (at ~300 s/battle it is 83 h).
+#       **LOWERED TO 300** — ~8 h of headroom past the n floor, and no more,
+#       because "bounded footprint" IS the etiquette argument.
+#     * Two accounts in parallel halves wall clock and is BARRED.
+#     * n < 200 is the only lever that fits one night, and it costs the only
+#       licensed comparison. See << MAINTAINER 1 >>.
+#
+#   (7) RECOMMENDATION: **TWO SESSIONS, ~100 battles each, with EXPLICIT
+#   per-session `--battles` targets.** `--battles` is a CUMULATIVE target
+#   across resumes (argparse help: "TOTAL target across resumes"), so session
+#   2 passes 200 and the runner resumes from the JSONL.
+#   **WHY EXPLICIT TARGETS AND NOT "STOP WHEN TIRED": KILLING MID-BATTLE
+#   FORFEITS A LIVE RATED GAME AGAINST A HUMAN.** That is a real recorded loss
+#   that contaminates the rating this run exists to measure, and unlike the
+#   local-server room poisoning in CLAUDE.md's landmines it CANNOT BE UNDONE
+#   by waiting or by restarting a server. A per-session `--battles` value
+#   makes the process exit on a battle boundary by itself.
+#   **AND TWO SESSIONS IS NOT MERELY COMFORT: R1's etiquette block commits us
+#   to "If a moderator makes contact or players complain in chat: stop, then
+#   ask." A 17-hour unattended detached run CANNOT HONOUR THAT COMMITMENT.**
+#   CLAUDE.md rule 4 would otherwise permit a long detached eval; that
+#   permission is overridden here by the etiquette ruling, deliberately.
+# ---------------------------------------------------------------------
+# STOPPING RULE — INHERITED VERBATIM: **rd <= 40 AND n >= 200.**
+#   Rating is PATH-DEPENDENT (matchmaking pairs by rating, so ladder games are
+#   not iid and "n battles" does not have its usual meaning), which is why rd
+#   and not n is the honest convergence signal and why n is a floor.
+#   **WHY IT IS NOT CHANGED FOR R3:** n=200 is what makes R3 and R1
+#   commensurable at all, and being a second point next to R1 is R3's entire
+#   value. Cutting n to fit a night trades away the thing R3 is for.
+#   **WHICH HALF BINDS, PREDICTED RESULT-BLIND: the n FLOOR.** Glicko RD
+#   contracts ~n^(-1/2); R1's anchor is rd 26.57 at n=200, which extrapolates
+#   to rd 40 at **n ~ 88**. So rd is expected to be satisfied long before the
+#   floor, the first poll at n=200 is expected to find the rule already met,
+#   and the run is expected to be BOUNDED at ~200 — which is what makes the
+#   18 h budget a budget rather than an open commitment. (One anchor is one
+#   anchor: RD also depends on opponent RD and the server's rating-period
+#   handling. If rd > 40 at n=200 the rule keeps it running, bounded by
+#   `max_battles_total: 300`. If 300 is reached with rd still above 40, STOP
+#   AND REPORT with n and the observed rd stated. **Do not extend** — a fleet
+#   whose rd will not converge in 300 rated games is saying something
+#   structural, and the response is to think, not to grind 700 more games.)
+#
+#   **NEW IN R3, AND IT EXISTS ONLY BECAUSE OF A FIX LANDED TODAY: THE RULE
+#   CAN NOW ACTUALLY EVALUATE.** `scripts/ladder.py` (commit 055cf96,
+#   2026-08-27) previously read GXE/Glicko/rd ONLY from the top-500
+#   leaderboard JSON, which by construction contains listed accounts only. R1
+#   ran unlisted, so `stopping_rule_met` returned "not yet on the top-500
+#   list" on every poll and the report recorded `stopped_by_rule: false` —
+#   **while R1 sat at rd 26.57 / n 200 with the rule SATISFIED.** The runner
+#   now reads `https://pokemonshowdown.com/users/<userid>.json`, which carries
+#   gxe / rpr / rprd / elo / w / l for ANY rated account. Verified live
+#   against R1's own account: elo 1292.25, gxe 59.6, rpr 1573.04, rprd 26.57,
+#   w 95, l 105 — reproducing every corrected R1 number, and the rule now
+#   reads "n 200 >= 200 AND rd 26.6 <= 40 (via profile)".
+#
+#   **G-BLIND — OPTIONAL STOPPING IS THE SHARPEST NEW VALIDITY THREAT, AND IT
+#   IS CREATED BY THAT SAME FIX.** R1 was blind to its own rating for its
+#   whole run and could not have stopped on it. R3 is not blind. Closing it:
+#     - `ladder.py` polls ONLY at `len(records) >= min_battles`, so the
+#       primary read is STRUCTURALLY invisible before the floor.
+#     - **DO NOT open the profile, the replay list or the board before the
+#       floor.** This is an honour-system blind, not an enforced one, and it
+#       is disclosed as such.
+#     - The per-battle log line DOES print a running raw W-L. Unavoidable,
+#       disclosed, and not the primary read.
+#     - **THE ONLY LICENSED STOPS: (1) the pre-registered rule fires; (2)
+#       `max_battles_total`; (3) a VOID condition; (4) an operational abort —
+#       crash, ban, moderator contact — logged with its cause AND the battle
+#       index at which it happened.**
+#     - **BARRED: stopping because the number looks good, or continuing
+#       because it looks bad.** n is never trimmed to a round number and never
+#       extended after looking. A run ended any other way reports as
+#       **INCOMPLETE** and may not be quoted as R3's primary read.
+#
+#   IF THE PROFILE ENDPOINT IS UNREACHABLE — an OPERATIONAL case that must not
+#   be confused with a result. `stopping_rule_met` keeps three outcomes
+#   distinct (endpoint failure / reachable-but-unrated / rated) because
+#   collapsing them is the original R1 bug in a new costume. Pre-registered
+#   response, so it is not invented at 3am: (1) hand-pull the profile;
+#   (2) if the hand pull works and shows rd <= 40 at n >= 200, **the rule IS
+#   SATISFIED** — stop at the next battle boundary, record it, and archive the
+#   hand-pulled JSON as the evidence. A rating confirmable by hand is a fact
+#   about the account; the runner's inability to fetch it is a fact about our
+#   network, and conflating those is exactly what cost R1 its primary read.
+#   (3) If the hand pull ALSO fails, stop at the next battle boundary and
+#   wait — do not burn rated games you cannot evaluate.
+# ---------------------------------------------------------------------
+# PRIMARY READ (pre-stated, DESCRIPTIVE, credits nothing): our **GXE and
+#   Glicko-1 off the USER PROFILE** at the stopping rule, quoted WITH n, WITH
+#   the policy kind AND DOSE AND LANE, and WITH the board's admission line
+#   from the same-day pull. Elo alongside, because admission is an ELO
+#   threshold and Elo is the only number that speaks to it.
+# SECONDARY (descriptive, never governing): raw win rate (ties as non-wins —
+#   OUR convention, and NOT what GXE reflects, so quote both); mean turns and
+#   max turns; the count of games reaching or approaching the turn-1000
+#   ceiling; distinct opponents; opponent-rating distribution (the
+#   SH-matchmaking caveat in reverse — a low starting rating pairs us with
+#   weak players, so early raw W-L is an UPPER bound and GXE is what corrects
+#   for it); `decision_errors`; `mask_desyncs`; mean decision ms; wall clock.
+# **PEAK ELO IS NOT A RESULT, AND THIS IS PRE-REGISTERED BECAUSE IT IS THE
+#   MOST LIKELY WAY THIS RUN MANUFACTURES A FALSE CLAIM.** R1 peaked at
+#   **1348** — 9 points under the 1357 admission line — and finished at 1292
+#   with an implied true ~1232. A fresh account's Elo OVERSHOOTS on the way
+#   up. The reported Elo is the one AT THE STOPPING RULE, FROM THE PROFILE.
+#   Peak is a descriptive column labelled "transient, path-dependent, NOT a
+#   result", and it is the max PRE-BATTLE value, so it is "highest observed".
+# **IF R3 LISTS ON THE TOP-500**, the readout must say what that does and does
+#   not mean, and the sentence is written NOW so it is not written in the
+#   excitement: listing means the object's Elo was above the admission line at
+#   the moment of the pull. It does NOT retire the implied-true analysis, and
+#   the band table must be reported in the same breath. **A listing not
+#   accompanied by >= 0.50 in [1300, 1400) is a transient.**
+# ---------------------------------------------------------------------
+# THE TOP-500 EXPECTATION BLOCK — REQUIRED VERBATIM IN THE READOUT, WHATEVER
+#   R3 READS (maintainer framing, 2026-08-27):
+#     "Top-500 admission is an ELO threshold — 1357.2 on the 2026-08-26 pull,
+#      and ranks 490-500 span a two-point band of 1357-1359 while their GXE
+#      spans 66-77%, which is why there is no such thing as a GXE cutoff.
+#      Re-pull before quoting; it moves. LADDER R1's own band analysis puts
+#      this project's implied TRUE rating at ~1232, so the real distance to
+#      the list is ~125 Elo, not the ~65 the displayed rating suggested.
+#      Search bought +0.1010 within-lane off Foul Play@20; there is no mapping
+#      from that to Elo, and nothing in this project's evidence suggests it
+#      closes 125 points. R3 MEASURES where the deployed object sits. IT IS
+#      NOT AN ATTEMPT ON THE LIST. Breaking top-500 is A goal, not the end
+#      goal."
+#   CAVEAT CARRIED FORWARD RATHER THAN BURIED: R1's per-band implied ratings
+#   TREND UPWARD with opponent strength (1154 / 1217 / 1245 / 1313). That is
+#   either logistic mis-specification or a real effect, and at n=28-47 per
+#   band **this repo declines to resolve it.** Only the aggregate direction is
+#   asserted, and R3 inherits that restraint.
+# ---------------------------------------------------------------------
+# THE FIVE PRE-REG RULES (CLAUDE.md), ANSWERED EXPLICITLY.
+#   1. **ACROSS-LANE AGGREGATOR: THERE IS NONE, stated rather than omitted.**
+#      One lane, one arm, so no across-lane aggregation occurs. Across
+#      BATTLES: the server's own Glicko-1/GXE for the primary read (we do not
+#      compute it), and for every descriptive rate the **unweighted pooled
+#      proportion over all rated battles** — NOT a mean of per-session rates,
+#      which differs whenever sessions have unequal n.
+#   2. **NO UNNAMED CELLS.** Every partition here is exhaustive with half-open
+#      cells. **THIS RULE WAS ALREADY BREACHED ON THIS EXACT ANALYSIS: R1's
+#      published band table sums to n=194 of 200.** DIAGNOSED 2026-08-27 and
+#      it is not a mystery — **the six missing battles are exactly the six
+#      where the JSONL's `opponent_rating` is None (present on 194/200).** R1's
+#      bands were computed from the ADVISORY JSONL column instead of from the
+#      replays, which carry 200/200. R3's table is computed from the REPLAYS,
+#      carries an explicit `unrated_or_unknown` cell, and **asserts
+#      sum(cell n) == total rated battles.**
+#   3. **IS DOSE MATCHED, AND HOW WOULD WE KNOW.** Three senses:
+#      (a) SEARCH DOSE — **MATCHED.** M and only M: RS80's dose, R1-B's dose,
+#          CH3 R2's banked `search_seat` dose, and the operating point of the
+#          credited 0.79283 vs-SH arm. **HOW WE KNOW:** `ladder.py` stamps
+#          `policy.dose` and VOID (e) checks it is "M"; and because the
+#          node-cap watchdog RAISES rather than silently degrading, an
+#          effectively-smaller dose surfaces as `decision_errors` — so the
+#          trip rate IS the dose-fidelity instrument, and it is reported.
+#      (b) COMPUTE DOSE vs R1 — **NOT MATCHED AND NOT MATCHABLE** (64.84 ms
+#          vs 6.74). No equalisation attempted; this is confound #1 again.
+#      (c) OPPONENT DOSE vs R1 — **NOT MATCHED AND NOT MATCHABLE.**
+#   4. **CREDIT LINE: DOES NOT APPLY**, and it is restated rather than
+#      omitted. For the record: "a lever is credited iff pooled delta >=
+#      +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the
+#      pooled-binomial se_diff and the seed-clustered se_diff, the latter
+#      computed from the per-seed finals at read time." There is no A/B, no
+#      control and no comparator here, so it has nothing to operate on.
+#   5. **WHICH SIDE EACH BAND READS.** The band table is TWO-SIDED and purely
+#      descriptive; no threshold attaches to any cell. The single exception is
+#      the **[1300, 1400) cell, read ONE-SIDED UPWARD** against the ~0.50 that
+#      holding rank 500 requires — and even that is a statement about the
+#      board, not a credit.
+# ---------------------------------------------------------------------
+# READOUT OBLIGATIONS. (i)-(iii) INHERITED from R1; (iv)-(vi) NEW.
+#  (i)  RATING TRAJECTORY FROM THE REPLAYS. `save_replays` MUST STAY ON.
+#       poke-env's per-battle `rating`/`opponent_rating` are SPORADICALLY LOST
+#       (R1: 194/200 in the JSONL; the replays had 200/200), so the JSONL
+#       column is **ADVISORY ONLY** and the replays' `|player|` lines are
+#       authoritative. **EVERY VALUE IN THAT TRAJECTORY IS THE PRE-BATTLE
+#       RATING** — this repo quoted "Elo 1311" as R1's final for two days when
+#       1311 was the second-to-last value and the true final was 1292.
+#       **CHANGED FOR R3: the final rating is ARCHIVED, NOT RE-DERIVED.** The
+#       profile is a LIVE page that drifts the moment the account plays again.
+#       Pull and write to disk at n=0 (proving registered-and-unrated, and a
+#       clean baseline) and again at stop. Cross-check the archived w+l+t
+#       against the JSONL line count before quoting n.
+#  (ii) THE REMATCH CELL. First encounter vs 2nd+ meeting with the same
+#       userid: win rate, mean turns, n, AND each cell's opponent-rating
+#       distribution. **READ THE OPPONENT-RATING COLUMNS BEFORE THE WIN-RATE
+#       COLUMNS** — rematches are rating-matched by construction, so a lower
+#       rematch rate is predicted with ZERO memorisation. R1's committed
+#       readout: first 141 / 0.525 / opp mean 1198; rematch 59 / 0.356 / opp
+#       mean 1311. (A second version — 136 / 0.529 / 1193 — circulates; the
+#       committed readout governs, and it is also the only version whose
+#       partition is exhaustive: 141+59 = 200 while 136+59 = 195. Disclosed
+#       rather than silently reconciled.)
+#       **NEW, PRE-STATED, AND IT CUTS AGAINST THE INTERESTING READING:**
+#       search@M's RNG is keyed on `(checkpoint_seed, battle_index, turn,
+#       decision_index)`, so the same board state at a different battle index
+#       can produce a different action. **R3 is therefore LESS replayable
+#       across games than R1's fully state-determined ensemble**, and a low R3
+#       rematch rate is even less attributable to memorisation than R1's was.
+#       RESUME WRINKLE, DISCLOSED: `LadderPlayer._battle_index` resets on
+#       every process start, so across a two-session run the RNG stream
+#       restarts and battle indices repeat. Each decision stays deterministic
+#       given its key; the RUN is not one reproducible stream. No effect on
+#       the primary read.
+#       JOIN TRAP: battle tags may carry a secret `-<token>` suffix — join
+#       replays to JSONL on the **NUMERIC id**, never the last dash field.
+#  (iii) PLAYED GAMES vs NON-GAMES — RATIFIED INSTRUMENT, carried verbatim.
+#       The original result-blind rule (grep for "lost due to inactivity" /
+#       "forfeited") was falsified twice and amended by the maintainer
+#       2026-08-25 at n=26, disclosed as POST-HOC: (a) seven forfeits from
+#       losing positions at 19-33 turns ARE evidence of playing strength;
+#       (b) "lost due to inactivity" fires for BOTH a turn-1 no-show and a
+#       turn-32 abandonment, so the marker text cannot separate them.
+#       **RATIFIED INSTRUMENT: DID THE OPPONENT EVER SUBMIT A MOVE.** Zero
+#       moves = not a game; everything else IS a game however it ended.
+#       **COUNT MOVES, NOT SWITCHES** — the lead send-out is a
+#       server-generated `|switch|` on BOTH sides. `scripts/ladder_classify.py`,
+#       7 pinning tests including both falsifiers. **REPORT THREE RATES:**
+#       all-rated (reconciles with the board), ratified played-only, and the
+#       SUPERSEDED pre-registered cut (kept forever because it was the
+#       result-blind one). THE PRIMARY READ IS UNAFFECTED — the server rates
+#       all of these. R1 for reference: forfeit 29 / played_out 161 /
+#       no_show 4 / timeout_midgame 6 = 200; all-rated 0.475, played-only
+#       0.464.
+#  (iv) NEW — THE BAND TABLE. It is the ONLY licensed comparison, so it must
+#       be an INSTRUMENT and not an ad-hoc analysis (BI-4). Opponent Elo from
+#       the REPLAY `|player|` lines, never the JSONL column — that is what
+#       cost R1's table its six battles. Bands half-open and exhaustive:
+#       (-inf,1100) / [1100,1200) / [1200,1300) / [1300,1400) / [1400,+inf) /
+#       `unrated_or_unknown`. **ASSERT sum(cell n) == total rated battles.**
+#       Per cell: n, wins, rate, binomial se, opponent Elo mean and median.
+#       Then invert Elo's expected-score curve per band to an implied true
+#       rating; report per-band AND aggregate; repeat R1's upward-trend
+#       caveat. R1's cells for the permitted side-by-side: 0.688 (n=48) /
+#       0.488 (n=43) / 0.464 (n=28) / **0.340 (n=47)** / 0.321 (n=28).
+#  (v)  NEW — OPPONENT-POOL OVERLAP AND THE BEHAVIOURAL CHANNEL, named now so
+#       it cannot be discovered later as a convenient excuse. 141 humans have
+#       already played 200 games against a bot from this project, and R3's
+#       account shares R1's stem, so they can link the two. Both directions
+#       are real: they may have adapted to L2's style (not R3's object), and
+#       they may treat a recognisably-bot account differently. **R1 recorded
+#       29 forfeits in 200 battles — 14.5% — so this channel is large.**
+#       REPORT: the intersection size of R1's and R3's opponent-userid sets,
+#       R3's win rate on that intersection vs off it, and R3's forfeit /
+#       no_show / timeout_midgame counts beside R1's (29 / 4 / 6). **If R3's
+#       forfeit rate differs materially, that is a candidate explanation for a
+#       rating difference having nothing to do with the object, and the
+#       readout must say so.** Descriptive; attaches to no lever.
+#  (vi) NEW — REPORT s/BATTLE CORRECTLY. Derive from the JSONL `finished_at`
+#       deltas within each session; **never `wall_clock_sec / battles_total`**
+#       (different scopes — that division produced the wrong 217 s/battle).
+#       State per-session rates and the whole-run rate separately. Report mean
+#       turns beside R1's 25.9 and beside the 36.824 measured off FP@20, with
+#       the 0.944 calibration stated — this is the only new OBSERVABLE R3 buys
+#       beyond a rating, and it settles R1's own "search costs games per hour"
+#       argument against humans for the first time.
+# ---------------------------------------------------------------------
+# ANCHOR BATTERY — WHAT R3 OWES, AND THE HONEST ANSWER.
+#   CLAUDE.md: every headline-grade result reports vs-SH (locked protocol, the
+#   credit line) PLUS BC-clone h2h PLUS Foul Play h2h before its README row.
+#   Anchors are descriptive columns, NEVER verdict inputs.
+#   IS A LADDER NUMBER HEADLINE-GRADE? **YES** — R1's went into README.md as
+#   the project's lead result.
+#   STATE OF THE THREE ANCHORS FOR search@M ON s80, checked 2026-08-27:
+#     * Foul Play h2h — **IN FLIGHT** (arm RS80, FP@20, n=3000). Its number is
+#       the publishable one. Two disclosures travel with every FP@20 number,
+#       forever: the equivalence test behind it is weakly powered, and the
+#       point estimate has FP@20 marginally weaker than FP@100 — the direction
+#       that flatters us. **NAME THE BUDGET IN EVERY QUOTE.**
+#     * vs-SH at the locked protocol — **DOES NOT EXIST.** s80's 0.74233
+#       (2227/3000) is the GREEDY lane. Search has NEVER been scored vs SH on
+#       a 50M checkpoint; the 0.79283 in STATUS.md and README is search@M on
+#       the **12M** lanes, and the R1-B ceiling forbids setting it beside a
+#       50M cell.
+#     * BC-clone h2h — **DOES NOT EXIST** for any stack50m_r2 lane, greedy or
+#       search. The 0.860 is search@M on 12M s65 at n=500.
+#   **SO R3'S OBJECT WILL HAVE ONE OF THREE ANCHORS.** That is the honest
+#   statement and it goes in the readout in those words.
+#   DOES THIS BLOCK R3? **NO.** R1 laddered L2, which was itself UNMEASURED
+#   off-SH, and disclosed that as "an argument-from-mechanism, not evidence".
+#   The precedent for shipping with a disclosed gap exists.
+#   DOES IT BLOCK THE README ROW? **<< MAINTAINER 4 >>.** Recommendation: BUY
+#   THEM — roughly 2.2 h for vs-SH at n=3000 with search@M, ~0.5 h for a
+#   500-battle clone h2h. Both are eval/analysis, so CLAUDE.md rule 4 permits
+#   them agent-side. **DO NOT RUN THEM CONCURRENTLY WITH THE LADDER** — they
+#   need the local server and contend for CPU, and the search seat runs at
+#   `torch.set_num_threads(1)` while a LIVE RATED GAME has a timer running.
+#   Sequence them around the ladder, never beside it.
+#   ALSO OWED WHEN R3 IS RATIFIED: **README.md:117 currently says "The ladder
+#   therefore runs the *ensemble*, not search — argued and ratified in the
+#   pre-reg header before any rated battle." R3 reverses that sentence** and
+#   the README must be updated in the same commit.
+# ---------------------------------------------------------------------
+# VOID CONDITIONS. (a)-(d) inherited; (e)-(g) new.
+#   (a) THE TWO TALLIES DISAGREE — JSONL line count vs poke-env's
+#       `n_finished_battles`. **A SUBTRACTION IS NOT A CHECK**; the two must
+#       be independently produced and compared. `ladder.py` stamps
+#       `gate_tallies_agree` and exits non-zero. R1: 200 == 200.
+#   (b) `decision_errors / total_decisions > 0.005`. R1 scored 0 and 0 mask
+#       desyncs. **NEW EXPOSURE IN R3:** search is far more code (poke-engine
+#       bridge, determinizer, shadow battle) and the ladder presents states no
+#       self-play or Foul-Play distribution generated. `choose_move` catches
+#       EVERY exception and falls back to poke-env's default order rather than
+#       forfeiting a live game — correct, but it means a degraded policy is
+#       visible ONLY in this counter. Budget ~35 fallbacks over ~8,300
+#       decisions (41.3 x 200). PRIOR: 37,701 searched decisions at dose M
+#       produced ZERO watchdog raises in B80 (`search/leaves_mean` 326.7
+#       against the 1500 cap, 4.6x headroom), so expect 0-1.
+#       **THE DENOMINATOR IS NOT CURRENTLY STAMPED** (`ladder.py` records
+#       `mean_decision_ms` but not the count) and must be summed across
+#       sessions. BI-1 adds it. FALLBACK if BI-1 does not land: the sum of
+#       `turns` over the JSONL — an UNDERCOUNT (force-switch decisions are
+#       extra), which INFLATES the ratio and makes VOID EASIER to trip.
+#       Conservative in the right direction.
+#   (c) THE LIVE GEN1 SET POOL NO LONGER MATCHES VENDORED 59da482.
+#       **THIS MATTERS MORE FOR R3 THAN FOR R1, AND THE REASON IS THE OBJECT:**
+#       R1's ensemble never touched the determinizer, so the pin was
+#       precautionary. **R3's search samples DVs and sets from
+#       `randbats_prior`, calibrated to that `teams.ts`, while the real ladder
+#       runs UPSTREAM MASTER.** Divergence means the search optimises against
+#       a set pool the server is not using, silently.
+#       **RE-CHECKED 2026-08-27 IN FULL — NOT COPIED FROM R1 — AND IT PASSES.**
+#       Local: both files recomputed on disk, byte-identical to the pin.
+#       Upstream: both files fetched from smogon/pokemon-showdown master and
+#       hashed — **BYTE-IDENTICAL**; and the commits API for path
+#       `data/random-battles/gen1` since our vendored commit's own date
+#       (2026-07-29) returns **0 commits**. Verdict
+#       IDENTICAL_TO_UPSTREAM_MASTER. **Re-run the upstream half within 24 h
+#       of launch (LG-3)** — it is a live external dependency.
+#   (d) ANY BATTLE PLAYED ON AN UNREGISTERED NAME. **SATISFIED 2026-08-27:**
+#       `nickgen1rbrlbot2` is registered (profile HTTP 200, registertime set)
+#       and reports `ratings: {}` — zero rated games, so the fresh-rating
+#       requirement is genuinely met. See ACCOUNT for the naming concern that
+#       remains open.
+#   (e) THE OBJECT IS NOT THE ONE PRE-REGISTERED. VOID unless the report's
+#       `policy` block reads kind=search, lane=s80, dose=M,
+#       sha256=8b6546e2..., obs_dim=828, encoder_v2="1", encoder_ids="1".
+#   (f) A SECOND SEAT WAS LIVE. The etiquette ruling rests on strictly serial,
+#       single-account play. VOID if `nickgen1rbrlbot` — or any other account
+#       of this project — played a rated gen1randombattle game while R3 ran.
+#   (g) OPTIONAL STOPPING. The run ended for a reason not in G-BLIND's
+#       licensed list. **This voids the READ, not the data** — the battles
+#       stay on the record; the result reports as INCOMPLETE with n, rd and
+#       the reason, and may not be quoted as the primary read.
+# ---------------------------------------------------------------------
+# << MAINTAINER 3 >> — THE DEADLOCK THE LADDER SEAT IS STILL EXPOSED TO.
+#   **THIS IS THE MOST CONSEQUENTIAL OPERATIONAL FINDING IN THIS FILE.**
+#   `scripts/ch3_fp_h2h.py` was changed 2026-08-27 from
+#   `max_concurrent_battles=1` to `=2` to fix a poke-env deadlock. The
+#   mechanism, from that fix's own comment: `max_concurrent_battles` becomes
+#   the maxsize of `Player._battle_count_queue`; in poke-env's `player.py` the
+#   battle-init path does `await self._battle_count_queue.put(None)` BEFORE
+#   the `if battle_tag in self._battles` check that would undo it. **So a
+#   DUPLICATE `|init|battle` for a room already known, while a battle is live,
+#   blocks on a FULL queue forever — and that await is inside the single
+#   message-handling coroutine, so ALL message processing stops.** The seat
+#   then sits at **0.0% CPU**, which reads as "slow", not "hung".
+#   **MEASURED COST THERE: b81 hung at 639 then 611; b82 at 57 then 699.**
+#   **THAT FIX'S OWN COMMENT NAMES SEARCH AS THE EXPOSED POLICY**, because
+#   search plays 32-47% longer battles and therefore reaches the turn-1000
+#   auto-tie — and the room churn around it — far more often. Confirmed here
+#   from the arms' own tallies: greedy 1/0/0 auto-ties per 1000, search
+#   4/5/8.
+#   **`scripts/ladder.py` IS STILL `max_concurrent_battles=1` AT LINES 364
+#   AND 594.** R3 is a ~16-19 h SEARCH run on that seat.
+#   **ON THE LADDER THE CONSEQUENCE IS STRICTLY WORSE THAN IT WAS OFF FOUL
+#   PLAY:** the seat hangs silently at 0% CPU while a LIVE RATED GAME against
+#   a human times out. That forfeits a real rated battle and contaminates the
+#   very rating R3 exists to measure — and unlike the local-server room
+#   poisoning, it cannot be undone.
+#   **RECOMMENDATION: raise it to 2 (BI-6), and land BI-5 so observed
+#   concurrency is ASSERTED rather than assumed.** It does NOT license
+#   concurrent play: `ladder.py` calls `player.ladder(1)` in a serial loop, so
+#   exactly one battle is ever queued — the same argument the FP seat makes.
+#   **It is flagged rather than done silently because the ETIQUETTE block
+#   leans on the literal phrase "max_concurrent 1", and quietly changing a
+#   value that an etiquette argument cites is not a thing to do unilaterally.**
+#   With BI-5 the claim becomes "observed concurrency 1, asserted", which is
+#   strictly stronger than "configured 1, unverified".
+#   HONEST LIMIT: the deadlock is UNMEASURED on the ladder path. The mechanism
+#   is generic to poke-env's `Player` and the exposure factor (long
+#   search battles, auto-tie room churn) is present, but no ladder run has hit
+#   it. This is reasoning from mechanism, and it is labelled as such.
+# ---------------------------------------------------------------------
+# ETIQUETTE AND EXPOSURE. R1's findings (a)-(f) carry UNCHANGED; read
+#   ladder_r1.yaml's block in full. Operative points: PS's five written rules
+#   do not mention bots; **naming an account as a bot is NOT a documented safe
+#   harbor** (identifying names are a community convention, not a protection);
+#   rule 5 makes this governed by IMPACT, not checklist compliance; the
+#   usage-stat objection largely does not apply to randbats; and the field
+#   norm has moved (Metamon became "a lot more cautious about laddering").
+#   **What keeps this legitimate is a SMALL BOUNDED FOOTPRINT, not the name.**
+#
+#   << MAINTAINER 2 >> — **IS A SECOND, SEQUENTIAL ACCOUNT INSIDE THE LINE?**
+#   R1's block reserved to the maintainer: *"Anything that turns this from a
+#   bounded measurement into a persistent ladder presence — continuous
+#   running, multiple accounts, chasing a leaderboard placement — is a
+#   DIFFERENT decision and warrants a courtesy note to PS staff first."*
+#   R3 requires a fresh account, so this must be ruled on, not slid past.
+#   **DRAFT RULING: INSIDE THE LINE — and the SECOND AND LAST time that is
+#   true without a courtesy note.** Reasoning:
+#     1. The clause's three examples share ONE mechanism: each MULTIPLIES
+#        footprint or distorts the board. "Multiple accounts" in the
+#        ladder-bot literature means CONCURRENT alts. A strictly sequential
+#        second account does neither: instantaneous load is ONE seat, serial,
+#        5 s between games — **identical to R1's.**
+#     2. Total footprint DOES double, ~400 games instead of ~200, and this
+#        file does not pretend otherwise. Against 93 players/day and 173/week,
+#        200 more games over two nights is not a persistent presence. That is
+#        a judgement about magnitude, stated as one.
+#     3. The fresh account is REQUIRED by measurement validity, not an
+#        evasion — reusing `nickgen1rbrlbot` carries L2's 200-game history
+#        into the new object's number. The reason is on the record in advance,
+#        which is what distinguishes it from rating evasion.
+#     4. The readout is REQUIRED to disclaim any attempt on the list, so the
+#        third example is affirmatively excluded rather than merely unintended.
+#   **THE READING UNDER WHICH THIS LOOKS BAD, NOT HAND-WAVED:** a fresh
+#   account resets to Elo 1000 and puts a bot back into the band where the
+#   weakest humans are. **R1 won 0.688 against sub-1100 opponents (n=48).**
+#   Re-farming that band on a new account IS, behaviourally, the smurfing
+#   pattern the community objects to, and the objection does not depend on
+#   intent. **Doing it twice is not a pattern. Doing it every time we train a
+#   model IS** — and the pattern is what the clause is actually about.
+#   **PRE-COMMITTED TRIGGER, with a number in it so it cannot be argued away
+#   when R2's model is ready and everyone wants a number: A THIRD RATED
+#   ACCOUNT — i.e. ANY ladder run after R3 — REQUIRES A COURTESY NOTE TO PS
+#   STAFF BEFORE LAUNCH.** So does any concurrent two-account A/B, at any
+#   count.
+#
+#   **TWO THINGS ABOUT R3 THAT ARE STRICTLY WORSE THAN R1, DISCLOSED:**
+#     - **LONGER GAMES AND A THOUSAND-TURN TAIL.** ~34.8 projected turns
+#       against R1's 25.9 — **+34% of a human opponent's evening per game**,
+#       for the same number of games. And the tail is worse than the mean:
+#       search arms took 4/5/8 auto-ties per 1000 where greedy took 1/0/0. At
+#       n=200 expect ~1, and a 1000-turn game is an hours-long imposition on
+#       one person. **`pacing.start_timer: true` STAYS ON** — it bounds a
+#       staller and vindicated itself in R1 against an absent opponent.
+#     - **A LINKED NAME.** The registered account shares R1's stem, so the two
+#       are trivially connectable. Under a sequential-account ruling that is
+#       the right side to err on — transparency is the argument, and obscuring
+#       the link would be the smurf move. The cost is that it feeds obligation
+#       (v)'s behavioural channel, which is why (v) measures it.
+#   UNCHANGED: no chat; serial play only; sleep between games; hard total cap;
+#   stopping rule around 200. **If a moderator makes contact or players
+#   complain in chat: STOP AT THE NEXT BATTLE BOUNDARY, then ask. Do not argue
+#   the rules.** That commitment is what makes an unattended 17-hour run
+#   inadmissible.
+# ---------------------------------------------------------------------
+# ACCOUNT. **`nickgen1rbrlbot2`, REGISTERED BY THE MAINTAINER 2026-08-27** —
+#   profile returns HTTP 200 with a registertime, and `ratings: {}` confirming
+#   zero rated games. VOID (d) satisfied; the fresh-rating requirement is met.
+#   The 18-char USERID rule passes: `nickgen1rbrlbot2` is 16.
+#   **THE NAME IS NOT A CONTROL, AND THIS WAS RULED ON 2026-08-27.** Both
+#   design reviewers flagged that `nickgen1rbrlbot2` is one character from
+#   R1's `nickgen1rbrlbot` and recommended a more distinct name. **The
+#   maintainer rejected that framing, correctly: a naming convention is a
+#   habit, not a mechanism, and it fails exactly when someone is tired.** The
+#   requirement handed down was to make SIMPLE UNIQUE USERNAMES WORK GOING
+#   FORWARD. So the fix is in code, and near-identical names are now safe
+#   forever — `...bot`, `...bot2`, `...bot3` are fine.
+#
+#   **WHAT WAS DANGEROUS, AND WHAT CLOSED IT** (commit landed 2026-08-27).
+#   `scripts/ladder.py` used to resolve the seat as
+#   `os.environ.get("PS_USERNAME") or arm["display_name"]` — **an environment
+#   variable SILENTLY OVERRODE the pre-registration.** A stale
+#   `PS_USERNAME=nickgen1rbrlbot` in a shell, a `.env` or a shell profile
+#   would have laddered R3 on R1's account, burning rated games on it and
+#   permanently contaminating the project's only published ladder rating. The
+#   sole symptom was one line of startup output.
+#   **NOW: THE PRE-REGISTERED NAME WINS.** `_resolve_display_name` accepts
+#   `PS_USERNAME` only as a CONFIRMATION and **SystemExits if the two
+#   disagree**, so the runner cannot be pointed anywhere the pre-reg did not
+#   name. Comparison is on `to_id`, so punctuation and case are free
+#   (`nick_gen1rb_rl_bot2` == `nickgen1rbrlbot2` — the same account, and not
+#   worth aborting a 16-hour run over). Pinned by
+#   tests/test_ladder.py::TestDisplayNameResolution, including the exact
+#   one-character-apart case.
+#   **CONSEQUENCE FOR THIS PRE-REG: the account decision is CLOSED.**
+#   `nickgen1rbrlbot2` stands. The account identity is now enforced by the
+#   runner rather than by the operator noticing, which is strictly stronger
+#   than any name could be.
+#   CREDENTIALS: `PS_PASSWORD` / `PS_USERNAME` env vars ONLY, NEVER HERE. The
+#   maintainer stored them 2026-08-27 in a gitignored `.env` (mode 0600,
+#   `.gitignore:35`), sourced at launch. Verified present without printing:
+#   user=nickgen1rbrlbot2, pw_len=15, gitignored=YES.
+# =====================================================================
+primary_arm: R3S                 # the ONLY declared arm; see ARM STRUCTURE
+
+# ** results_dir IS DECORATIVE — scripts/ladder.py NEVER READS IT. ** The JSONL
+# and report land in `--out-dir` (CLI, default results/ladder), while
+# `save_replays` IS read from this file. Two halves of one path set in two
+# different places: miss the CLI flag and R3's JSONL lands next to R1's. Every
+# command below passes --out-dir explicitly. The value here matches the
+# intended --out-dir so the two cannot drift.
+results_dir: results/ladder_r3
+save_replays: results/ladder_r3/replays
+
+max_battles_total: 300           # R1's was 1000, which at ~300 s/battle is 83 h
+                                 # and cannot bite. 300 is ~8 h of headroom past
+                                 # the n floor and no more, because "bounded
+                                 # footprint" IS the etiquette argument.
+
+pacing:
+  sleep_between_battles_sec: 5   # worth 17 min of ~17 h; costs the footprint argument
+  start_timer: true              # bounds a staller; vindicated in R1 at n=17
+  board_poll_every_battles: 10   # polling starts ONLY at min_battles (G-BLIND)
+
+checkpoints:
+  s80: {path: runs/showdown_sp_stack50m_r2_s80/checkpoint.pt, sha256: 8b6546e2b6ce950d2a5d210ff7bb915e32ff15b72321c8cd6d8fd94be3e078a7}
+
+arms:
+  # ONE arm is DECLARED. R1 declared L1/L2/L3 and launched L2; disciplined,
+  # but it left three named objects in a file whose primary was chosen by
+  # prose. Declaring only the object we will play makes post-hoc arm selection
+  # inexpressible rather than merely forbidden.
+  R3S:
+    kind: search
+    lane: s80
+    dose: M                      # n_det 4, top_branches 6, leaf_cap 1296, node_cap 1500
+    display_name: nickgen1rbrlbot2      # REGISTERED 2026-08-27; identity ENFORCED
+                                        # by _resolve_display_name, not by the name
+
+stopping_rule:
+  glicko_rd_max: 40              # inherited unchanged; expected satisfied by n~88
+  min_battles: 200               # inherited unchanged; THE BINDING HALF
+  source: "profile endpoint (pokemonshowdown.com/users/<userid>.json)"
+
+set_pool_pin:                    # VOID (c) — RE-CHECKED IN FULL 2026-08-27 -> PASS
+  vendored_commit: 59da482eabc87245eb62313593e468e81ca537d9
+  data_json_sha256: 85fc2743d9dba5a0dc996f8991be5ec07bcba4818555c3466d4da75eafe5380f
+  teams_ts_sha256: 277d5a375213b7b0e06f58a34058fb0576dc90d8a5e41eecf54d7339ea07c059
+  local_recheck: "both files recomputed on disk 2026-08-27, byte-identical to the pin"
+  upstream_recheck: "both files fetched from smogon/pokemon-showdown master 2026-08-27 and hashed: BYTE-IDENTICAL. Commits API for data/random-battles/gen1 since 2026-07-29 (the vendored commit's date) returns 0 commits."
+  upstream_commits_since: 0
+  verdict: IDENTICAL_TO_UPSTREAM_MASTER
+  rerun_before_launch: "LG-3, within 24 h — this is a live external dependency"
+  why_it_matters_more_for_r3: "R1's ensemble never touched the determinizer; R3's search samples DVs and sets from randbats_prior, calibrated to this teams.ts, while the real ladder runs upstream master."
+
+schedule:
+  r1_reference_sec_per_battle: 246.5
+  r1_reference_note: "NOT 217. That divides a session-scoped wall_clock_sec (43464.6 s over 180 battles) by a cumulative battles_total (200). Never divide those two."
+  cost_model: "sec_per_battle = 114.5 + 4.85 * turns  (OLS, R1's 198 within-session intervals; reproduces the observed 240.2 s mean at 25.9 turns)"
+  our_compute_share: "~1% (41.3 decisions/battle x 64.84 ms = 2.7 s of ~290 s)"
+  turns_off_fp_at20: 36.824
+  turns_human_calibrated: 34.76        # x0.944, from the C0 (proxy, ladder) pair
+  projection_200_battles_h: {calibrated_ols: 15.7, uncalibrated_ols: 16.3, bucket_median: 17.9, naive_proportional_REJECTED: 19.5}
+  budget_h: 18
+  range_h: "16 - 19"
+  auto_tie_tail: "search arms took 4/5/8 auto-ties per 1000 vs greedy 1/0/0. At n=200 expect ~1, worth +1 to +2 h."
+  plan: TWO_SESSIONS
+  session_1_battles: 100
+  session_2_battles: 200               # CUMULATIVE target, not per-session
+  why_not_one_night: "n=200 does not fit; cutting n costs the only licensed comparison, which is what R3 is for."
+  why_not_unattended: "R1's etiquette commitment (stop on moderator contact) cannot be honoured while asleep."
+
+expected_instrument_values:            # pre-stated so a silent wrong-object run is visible
+  mean_decision_ms_band: [40, 100]     # b80 search/ms_mean 64.84
+  greedy_tell: 6.74                    # R1's L2. Seeing ~7 ms means SEARCH IS NOT RUNNING.
+  decisions_per_battle: 41.3
+  leaves_per_decision: 326.7           # against node_cap 1500 = 4.6x headroom
+  watchdog_raises_prior: "0 in 37701 searched decisions (B80)"
+  sec_per_battle_band: [250, 400]
+  mean_turns_band: [30, 40]
+
+comparison_ruling:                     # << MAINTAINER 5 >> ratifies this block
+  verdict: "R3 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1-vs-R3 DELTA MAY BE QUOTED AS AN EFFECT, IN EITHER DIRECTION."
+  confounds_moved_at_once: [policy_kind, training_scale, training_recipe, fresh_account_path_dependence, calendar_and_pool, opponent_memory, instrumentation]
+  glicko_rd_bar: {value_if_used: 76, unit: glicko_points, USED: false,
+    why_refused: "RD is a within-system posterior SD with no term for pool drift between runs; R1's own band analysis shows its rating sat ~60 points above equilibrium and still falling, so a bar built from two RDs is ANTI-CONSERVATIVE about the object's strength; and RD is a function of n, so two runs stopped at the same n share it by construction."}
+  what_was_given_up: "'search/50M is worth +N Elo on the real board' is not available at any n this design can buy. It is not manufactured here."
+  only_licensed_comparison: {cell: "[1300, 1400)", side: one_sided_upward, reference: "~0.50, the rate holding rank 500 requires", r1_value: 0.340, r1_n: 47, still_descriptive: true,
+    power_disclosure: "2*se_diff at matched n=47 is ~0.195 — about twenty points of win rate. This cell can only resolve differences nobody would need statistics to see. Its n is set by matchmaking. NO THRESHOLD ATTACHES AND NONE MAY BE ADDED LATER."}
+  cannot_answer: ["whether search transfers to humans (needs the deferred two-arm A/B)", "whether 50M beats 12M", "whether MU-8's z = -2.80 was wrong"]
+  mu8_ceiling: "CARRIED VERBATIM: R1-B 'licenses search as an R3 DEPLOYMENT CANDIDATE and nothing else; does NOT reverse MU-8 (z = -2.80); never set beside the 12M cell.' A good R3 number does not reverse MU-8. A bad R3 number does not confirm it."
+
+credit_line_not_applicable: "THIS FILE REGISTERS NO CREDITED COMPARISON. No A/B, no control, no paired comparator, no se_diff over anything. For the record the line reads: 'a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time.' Describing any R3 number as credited would be a category error. Stated rather than omitted."
+
+aggregators:
+  across_lanes: "NONE — one lane (s80), one arm. Stated rather than omitted."
+  primary: "server-computed Glicko-1 / GXE off the user profile. We do not compute it and cannot re-weight it."
+  descriptive_rates: "unweighted pooled proportion over ALL rated battles, NOT a mean of per-session rates (sessions will have unequal n)."
+  ties: "non-wins, this project's convention. The server scores a tie as neither, so our raw rate is not what GXE reflects. Quote both."
+
+barred_language: ["improved", "improvement", "gain", "better than R1", "worse than R1", "search transfers", "search works on humans", "50M beats 12M on the ladder", "+N Elo from search", "closer to top-500", "any arithmetic difference between R1's and R3's GXE, Glicko or Elo presented as a quantity"]
+
+launch_gates:
+  LG1: "RS80 has landed clean — results/ch5_r1_offsh/rs80.json exists and scripts/ch5_r1_grade.py passes every gate. Without it the object's only number is a SELECTION score (0.4470, n=1000) that may not be published (Q6)."
+  LG2: "pytest tests/test_ladder.py green, INCLUDING TestSetPoolIntegrity::test_encoder_set_pool_matches_the_vendored_sim — the encoder's set-pool copy against the vendored sim, which is the determinizer's actual input and a DIFFERENT check from VOID (c)'s vendored-vs-upstream one. Both are load-bearing for a search arm; only one was for R1's."
+  LG3: "VOID (c)'s upstream half re-run within 24 h of launch."
+  LG4: "--local-smoke run of >= 2 battles on THIS arm against localhost, asserting policy.kind=search, lane=s80, dose=M, the sha, obs_dim 828, and mean_decision_ms > 30. THE DECISION-MS CHECK IS THE ONE THAT MATTERS: ~7 ms means the search wrapper is not running and we are about to ladder GREEDY under a pre-reg that says SEARCH — invisible from outside and unrecoverable once rated games are played."
+  LG5: "clean tree, docs committed (CLAUDE.md rule 3), nothing else running on the machine (the search seat runs at torch.set_num_threads(1) and a live rated game has a timer)."
+  LG6: "(now BACKED BY CODE — _resolve_display_name aborts on a PS_USERNAME that disagrees with the arm; this gate is the belt to that brace.) read the startup lines: kind=search and the s80 sha; the userid character-by-character against the registered name; and 'starting rating: none yet' — an EXISTING rating means the wrong account (VOID f). Abort during the first 5-second sleep."
+  LG7: "BI-1..BI-6 landed, or each explicitly waived in writing with its fallback named."
+
+build_items:
+  BI1: "ladder.py: stamp decisions_this_session in the report. VOID (b)'s denominator is currently unreadable."
+  BI2: "tests/test_ladder.py: parameterise PREREG over configs/eval/ladder_*.yaml. Today it hardcodes ladder_r1.yaml, so NONE of its pre-reg tests look at this file — including the set-pool pin VOID (c) depends on. Keep the marker test asserting markers are PRESENT while this file is a DRAFT."
+  BI3: "backup_ladder.sh: it hardcodes SRC=results/ladder and L2.battles.jsonl and would NOT back up results/ladder_r3 at all. LADDER DATA IS UNREPEATABLE AND GITIGNORED and the 3-copy rule is standing. Parameterise it. Run after every session."
+  BI4: "ladder_readout.py: add obligation (iv) the band table (from the REPLAYS, exhaustive, asserting sum(cell n) == n) and (v) the overlap cell. Already parameterised (--jsonl --replays --name --out)."
+  BI5: "port ch3_fp_h2h.py's max_concurrent_live tracker into LadderPlayer and stamp it, so 'serial play only' is ASSERTED from the artifact rather than assumed from a config value."
+  BI6: "<< MAINTAINER 3 >>: raise ladder.py's max_concurrent_battles 1 -> 2 (lines 364, 594) to close the poke-env deadlock. Does NOT license concurrent play — ladder(1) in a serial loop. Flagged rather than done silently because the etiquette block cites the literal 'max_concurrent 1'."
+
+readout_scripts_default_to_r1: "** ALL THREE READOUT SCRIPTS DEFAULT TO R1 ** (--jsonl results/ladder/L2.battles.jsonl, --replays results/ladder/replays, --name nickgen1rbrlbot). Run bare they produce a readout OF R1 and it looks perfectly normal. Pass all three flags, always."
+
+r1_baseline:                     # source: LADDER_R1_READOUT.md (committed) + the profile
+  arm: L2
+  object: "4-lane ensemble of 12M lanes s62-s65, greedy/deterministic"
+  n: 200
+  gxe: 59.6
+  glicko1: {r: 1573.04, rd: 26.57}
+  elo: {final: 1292.25, highest_observed_pre_battle: 1348, start: 1000}
+  record: {w: 95, l: 105, t: 0, raw_win_rate: 0.475}
+  played_only_ratified: 0.464
+  distinct_opponents: 141
+  mean_turns: 25.9
+  mean_decision_ms: 6.74
+  decision_errors: 0
+  mask_desyncs: 0
+  wall_clock_hours: 12.07
+  sec_per_battle: 246.5
+  listed: false
+  implied_true_elo: 1232
+  bands: {"lt1100": {n: 48, rate: 0.688}, "1100_1200": {n: 43, rate: 0.488}, "1200_1300": {n: 28, rate: 0.464}, "1300_1400": {n: 47, rate: 0.340}, "ge1400": {n: 28, rate: 0.321},
+    RESIDUAL_DIAGNOSED: "the five cells sum to 194 of 200. The six missing battles are EXACTLY the six where the JSONL opponent_rating is None (present on 194/200): R1's table was built from the advisory JSONL column instead of the replays, which carry 200/200. R3's table is built from the replays and asserts exhaustiveness."}
+  implied_per_band: [1154, 1217, 1245, 1313]
+  implied_per_band_caveat: "trends UPWARD with opponent strength — logistic mis-specification or a real effect; at n=28-47 per band this repo declines to resolve it."
+  rematch_cell: {first: {n: 141, rate: 0.525, opp_elo_mean: 1198}, rematch: {n: 59, rate: 0.356, opp_elo_mean: 1311}}
+  game_categories: {forfeit: 29, played_out: 161, no_show: 4, timeout_midgame: 6}
+
+board_2026_08_27:                # re-pull before quoting; this moves
+  toplist_size: 500
+  ranked_by: elo                 # verified: elo monotone, gxe/glicko not
+  admission_cutoff_elo: 1358.998 # observed on the 2026-08-27 pull
+  ranks_490_500_2026_08_26: {elo: "1357-1359", gxe: "66.2-77.2", glicko: "1627-1729"}
+  no_such_thing_as_a_gxe_cutoff: true
+  active_players: {d1: 93, d3: 142, d7: 173, d30: 277}
+
+anchor_battery:
+  foul_play_at20: "IN FLIGHT — arm RS80, n=3000. The 0.4470 at n=1000 is a SELECTION score and may not be published (Q6)."
+  vs_sh_locked: "DOES NOT EXIST for search on any 50M lane. s80's 0.74233 is GREEDY; the 0.79283 is search@M on 12M."
+  bc_clone_h2h: "DOES NOT EXIST for any stack50m_r2 lane. The 0.860 is search@M on 12M s65 at n=500."
+  verdict: "R3's object will have ONE of three anchors. Stated in the readout in those words."
+  blocks_the_run: false
+  blocks_the_readme_row: "<< MAINTAINER 4 >>"
+  cost_to_close: "~2.2 h for vs-SH at n=3000 with search@M; ~0.5 h for a 500-battle clone h2h. Sequence AROUND the ladder, never beside it (CPU contention on a live rated game)."
+  readme_owed: "README.md:117 says 'The ladder therefore runs the ensemble, not search'. R3 reverses that; update it in the ratifying commit."
+
+instruments:
+  runner: scripts/ladder.py
+  classifier: scripts/ladder_classify.py
+  readout: scripts/ladder_readout.py
+  move_audit: scripts/ladder_move_audit.py
+  backup: scripts/backup_ladder.sh
+  tests: tests/test_ladder.py
+  r1_provenance: LADDER_R1_READOUT.md
+
+open_decisions:
+  D1_schedule:
+    marker: "<< MAINTAINER 1 >>"
+    question: "R3 was ratified on the premise 'assuming ladder is one night to get ~200 games'. THE PREMISE IS FALSE: 16-19 h, plus a +1-2 h auto-tie tail."
+    option_a: "TWO SESSIONS, ~100 battles each, explicit per-session --battles targets. RECOMMENDED. Keeps n=200, keeps the etiquette commitment executable, no mid-battle kills."
+    option_b: "One continuous ~17 h detached run. Meets CLAUDE.md rule 4's technical safety test but NOT the etiquette commitment, since nobody is awake to stop on moderator contact. NOT RECOMMENDED."
+    option_c: "Cut to n>=150 (~12 h, R1's own wall clock) to fit one night. Must be declared BEFORE the first battle and the larger rd disclosed with every quote. A true 8 h night buys ~100 battles, which would leave the [1300,1400) cell at n~23 and kill the only licensed comparison."
+    recommendation: option_a
+  D2_etiquette_second_account:
+    marker: "<< MAINTAINER 2 >>"
+    question: "Is a second, SEQUENTIAL account inside ladder_r1.yaml's 'multiple accounts' line?"
+    draft_ruling: "INSIDE THE LINE, and the second and last time without a courtesy note."
+    pre_committed_trigger: "A THIRD RATED ACCOUNT — any ladder run after R3 — REQUIRES A COURTESY NOTE TO PS STAFF BEFORE LAUNCH. So does any concurrent two-account A/B."
+  D3_concurrency_deadlock:
+    marker: "<< MAINTAINER 3 >>"
+    question: "Raise scripts/ladder.py max_concurrent_battles 1 -> 2 (BI-6), closing the poke-env deadlock that hung b81 and b82 twice each?"
+    why_not_done_silently: "the etiquette block cites the literal phrase 'max_concurrent 1'."
+    exposure: "search is the exposed policy per the FP fix's own comment; on the ladder a silent 0%-CPU hang forfeits a LIVE RATED GAME and contaminates the rating."
+    honest_limit: "UNMEASURED on the ladder path — reasoning from mechanism, labelled as such."
+    recommendation: "Raise to 2 AND land BI-5 so observed concurrency is asserted rather than assumed."
+  D4_anchor_battery:
+    marker: "<< MAINTAINER 4 >>"
+    question: "R3's object will have ONE of three anchors. Does the R3 README row wait on the other two?"
+    option_a: "BUY THEM (~2.7 h total, agent-side, sequenced around the ladder). RECOMMENDED."
+    option_b: "Land the row with the gap disclosed verbatim, as R1 did for L2's unmeasured off-SH cells."
+    recommendation: option_a
+  D5_comparison_ruling:
+    marker: "<< MAINTAINER 5 >>"
+    question: "Ratify the comparison_ruling block: R3 standalone-descriptive, no R1-vs-R3 delta as an effect, the 76-Glicko bar REFUSED, [1300,1400) the only licensed cell and with no threshold."
+    what_it_costs: "the interesting claim — '+N Elo from search on the real board' — is given up, permanently, at this n."
+  D6_search_reversal:
+    marker: "<< MAINTAINER 6 >>"
+    question: "R3 deploys the arm that ladder_r1.yaml's POLICY CHOICE argued against and whose argument you accepted on 2026-08-25. Confirm you are knowingly reversing that DEPLOYMENT call on R1-B's evidence, with the ceiling intact."
+    what_changed: "R1-B is off-FP@20 on the 50M fleet and positive (+0.1010, 3.6 se). R1's negatives were off-SH on the 12M lanes. Different objects, and the ceiling forbids setting them side by side."
+    what_did_not_change: "MU-8 stands at z = -2.80. And the BC-clone anchor for search-on-50M DOES NOT EXIST, so only HALF of R1's 'consistent sign across two off-SH opponents' has been re-tested at the new scale — the other half is untested, not overturned."
+    consequence: "Whatever R3 reads, it neither vindicates search nor confirms MU-8 (see comparison_ruling). This item exists so the reversal is a decision on the record rather than a side effect of picking an arm."

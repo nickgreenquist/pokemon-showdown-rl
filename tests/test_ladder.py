@@ -200,6 +200,56 @@ class TestLadderSnapshot:
         assert snap["rating_source"] == "leaderboard"
 
 
+class TestDisplayNameResolution:
+    """The pre-registered name wins; PS_USERNAME may only confirm it.
+
+    The old line was `os.environ.get("PS_USERNAME") or arm["display_name"]`,
+    so a stale env var SILENTLY redirected a rated run onto another account —
+    burning games on it and contaminating a published rating that cannot be
+    re-measured, with one line of startup output as the only symptom. These
+    pin the refusal, because the fix is what makes ordinary near-identical
+    names (`...bot`, `...bot2`) safe to use forever.
+    """
+
+    ARM = {"display_name": "nickgen1rbrlbot2"}
+
+    def test_unset_env_uses_the_prereg_name(self, monkeypatch):
+        monkeypatch.delenv("PS_USERNAME", raising=False)
+        assert ladder._resolve_display_name(self.ARM, "R3S") == "nickgen1rbrlbot2"
+
+    def test_matching_env_is_accepted(self, monkeypatch):
+        monkeypatch.setenv("PS_USERNAME", "nickgen1rbrlbot2")
+        assert ladder._resolve_display_name(self.ARM, "R3S") == "nickgen1rbrlbot2"
+
+    def test_punctuation_and_case_are_free(self, monkeypatch):
+        """PS authenticates on the USERID, so these are the same account and
+        disagreeing about punctuation must not abort a 16-hour run."""
+        monkeypatch.setenv("PS_USERNAME", "Nick_Gen1RB_RL_Bot2")
+        assert ladder._resolve_display_name(self.ARM, "R3S") == "nickgen1rbrlbot2"
+
+    def test_one_character_apart_is_REFUSED(self, monkeypatch):
+        """The exact scenario: last run's account still exported. One
+        character of difference, and it must not be resolved by luck."""
+        monkeypatch.setenv("PS_USERNAME", "nickgen1rbrlbot")
+        with pytest.raises(SystemExit) as e:
+            ladder._resolve_display_name(self.ARM, "R3S")
+        msg = str(e.value)
+        assert "REFUSING TO RUN" in msg
+        assert "nickgen1rbrlbot" in msg and "nickgen1rbrlbot2" in msg
+
+    def test_the_env_var_never_wins(self, monkeypatch):
+        """It may confirm; it may never replace. Nothing returns the env
+        value when it disagrees."""
+        monkeypatch.setenv("PS_USERNAME", "someothername")
+        with pytest.raises(SystemExit):
+            ladder._resolve_display_name(self.ARM, "R3S")
+
+    def test_arm_without_a_display_name_is_refused(self, monkeypatch):
+        monkeypatch.delenv("PS_USERNAME", raising=False)
+        with pytest.raises(SystemExit):
+            ladder._resolve_display_name({}, "R3S")
+
+
 class TestChooseMoveNeverRaises:
     """DEVIATION from scripts/ch3_fp_h2h.py's seat, and a deliberate one:
     there, an assert is correct (a controlled eval should die rather than
