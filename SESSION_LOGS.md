@@ -8757,3 +8757,61 @@ entry by offset — never a broad keyword grep.
   technique" was correct and is what produced everything above — and must be
   checked line-by-line against the repo before any of its PRESCRIPTIONS are
   costed.**
+
+- 2026-08-28 (03:10Z, maintainer: "im confused: why is not mimicing H&L batch
+  something critical to do ealrier rather than later? why did the ROI ranking
+  change?"): **THE MAINTAINER CAUGHT A RANKING DRIFT AND IT WAS MINE. BATCH IS
+  CORRECTED TO THE NEXT TRAINING ACTION — AND THE REASON I ORIGINALLY GAVE FOR
+  PROMOTING IT IS RETRACTED.**
+  **HOW THE DRIFT HAPPENED, MECHANICALLY.** Three advisory items were withdrawn
+  (promote-FP, bundle-then-decompose, lanes-as-variance-fix). The vacuum filled
+  with MEASUREMENT items — the s81/s82 rescore, the search-scope question, the
+  lambda fork — all of which I introduced. **Batch was never re-argued; it kept
+  its old slot number while everything around it moved.** I had explicitly
+  written "batch is not tactic #4, it IS the instrument work" and then did not
+  check that the promotion survived into the list. It did not. **Generalisable:
+  when items are withdrawn from a ranked list, the survivors' positions are
+  stale by default, not valid by default.**
+  **THE RETRACTION, WHICH IS THE SUBSTANTIVE HALF. `2*sigma_seed/sqrt(k)`
+  PROMOTED BATCH TO "THE INSTRUMENT WORK" ON AN ARGUMENT THAT ESTABLISHES
+  sigma_seed IS THE ONLY REMAINING TARGET, NOT THAT WE CAN DETECT HITTING IT.**
+  Comparing sigma_seed across two 3-lane groups is an **F-test on (2,2) df,
+  critical value 19.0 at alpha=0.05**. So batch must cut sigma_seed by
+  **sqrt(19) ~ 4.4x — from 0.0617 to ~0.014 — before the comparison can
+  register it at all.** That is the SAME 2-df wall that kills lanes (k~24) and
+  that keeps the search-equalisation result a hypothesis. **Batch as a VARIANCE
+  FIX is not measurable at k=3 and must not be sold as one.**
+  **BATCH AS A STRENGTH LEVER IS A DIFFERENT READ WITH DIFFERENT POWER, AND IT
+  IS FINE.** Bar 0.0717 at k=3; an 8x batch increase plausibly clears it. **So
+  batch belongs early for the boring reason — largest quantified gap against
+  the only comparable success, plausible large effect, and R2 is a committed
+  training run that is the natural vehicle — NOT for the instrument reason.**
+  **WHAT ACTUALLY GATES IT: ONE THING.** The s81/s82 rescore, because it
+  decides whether R2's arms are scored greedy or searched and the pre-reg
+  cannot be written without that. ~4.9 h of eval, and **the box is busy with R3
+  for ~16 h anyway, so it costs no wall clock we were not already spending.**
+  Nothing else gates it: the both-ways scoring literally CANNOT precede it
+  (it needs R2 to exist), and **curve-vs-win-rate does NOT gate batch either —
+  batch is worth having under both branches, since stronger lanes help a curve
+  as much as a win rate. Item 0 gates LANES AND SCALE, not batch.** The
+  previous entry's ordering overstated item 0's reach and is corrected here.
+  **CORRECTED ORDER (supersedes the 0-6 list in the 02:30Z entry):** (0)
+  rescore s81/s82 — eval, fits inside R3's window, sets the policy form. (1)
+  **R2 = BATCH**, 3 new 50M lanes, banked s80/s81/s82 as the free control;
+  **PRIMARY READ IS STRENGTH against the 0.0717 bar, with sigma_seed reported
+  as a DESCRIPTIVE SECONDARY carrying its (2,2)-df power disclosure**, so a
+  future session cannot read a null as "batch did not help variance". (2)
+  **lambda decided as a CONFIG CHOICE on the explained-variance diagnostic and
+  applied to BOTH arms — not spent as a separate arm** (testing it needs
+  training, so as a lever it competes with batch for the same budget). (3)
+  curve-vs-win-rate, gating lanes and scale. (4) anchors, cross-play,
+  both-ways scoring — descriptive, sequenced around the training.
+  **CAVEAT ON THE BATCH NUMBERS THEMSELVES.** The ~1,630-updates,
+  480-grad-steps and minibatch-count figures came from the ADVISORY, not from
+  this repo. `prior_work/README.md` exists precisely because widely-repeated
+  claims about these systems do not survive contact with their code. **Verify
+  H&L's 500-update figure against the source before the pre-reg cites it**, and
+  keep the two conditions that do not depend on it: hold minibatch at 256 and
+  scale the COUNT (otherwise batch size, minibatch size and effective
+  LR-per-step all move at once), and treat KL early-stopping as a
+  pre-registered tripwire, never a lever.

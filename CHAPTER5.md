@@ -364,11 +364,18 @@ named (median vs worst-lane changed a verdict once).**
 > many are bought.
 >
 > Two consequences, both live:
-> 1. **The only variance term that can still move is `sigma_seed` itself**,
->    which promotes the batch lever (§3b A4) from a candidate competing with
->    C2 to the instrument work. **It is a BET: nothing has measured a
->    batch -> sigma_seed link**, and cross-play cannot establish one (gradient
->    noise PRODUCES curriculum divergence, so they are not alternatives).
+> 1. **The only variance term that can still move is `sigma_seed` itself.**
+>    **THIS DOES NOT MAKE BATCH THE INSTRUMENT FIX, AND AN EARLIER DRAFT OF
+>    THIS NOTE SAID IT DID — CORRECTED 2026-08-28 03:10Z.** The argument
+>    establishes that `sigma_seed` is the only remaining TARGET, not that we
+>    can DETECT hitting it: comparing `sigma_seed` across two 3-lane groups is
+>    an **F-test on (2,2) df, critical value 19.0**, so batch would have to cut
+>    it **4.4x (0.0617 -> ~0.014)** before the comparison registers anything.
+>    That is the same 2-df wall as k~24. **Batch is a STRENGTH lever** — bar
+>    0.0717 at k=3, plausibly cleared by an 8x batch increase — and it is R2,
+>    gated only by the s81/s82 rescore that fixes the policy form. Its
+>    `sigma_seed` read is a DESCRIPTIVE SECONDARY carrying that disclosure, so
+>    a null is never readable as "batch did not help variance".
 > 2. **C2 is rehabilitated the moment the deliverable is a SCALING CURVE
 >    rather than a credited win rate**, because resolving 12M vs 50M vs 250M
 >    does not need +0.025 resolution and lanes shrink the error bar on every
