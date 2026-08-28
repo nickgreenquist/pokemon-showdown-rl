@@ -598,6 +598,43 @@ lossy by construction and the code has repeatedly contradicted the project's own
   randbats self-play never learned multi-turn setup (Trick Room 0.12-0.15), and 50 iters of
   fine-tuning on fixed teams collapsed randbats play to 15.4% vs its own parent
   (catastrophic forgetting).
+  **DEEP-READ ADDENDUM 2026-08-28** (teammate paper-only review,
+  `prior_work/HUANG_LEE_DEEP_READ.md`; every claim re-verified here against
+  the PDF and the local metagrok clone before being believed — the THIRD
+  external H&L review, and the verification discipline paid again).
+  **ADOPTED, now verified:** (1) **m = 7680 is the authors' own "(a
+  completely arbitrary choice)"** — verbatim, §III.B. So the ~450x
+  per-update gap above is a gap to an ARBITRARY point, not an optimum:
+  H&L is an EXISTENCE PROOF that enormous batches work in this lane,
+  never a target. Any batch pre-reg cites the gradient-noise argument as
+  its rationale and H&L as existence proof only. (2) **The 1677 is the
+  endpoint of a 5-point ladder TRAJECTORY** — 300 matches every 100
+  iterations (§IV.B): their protocol was a curve, not an endpoint read.
+  Relevant to the curve-vs-credited-win-rate decision. The paper does not
+  say whether the five evaluations shared an account. (3) **Their
+  footnote rejects Showdown Elo verbatim** ("their Elo rating is not a
+  true Elo system", citing Antar) — published support for this repo's
+  GXE/Glicko-primary choice. (4) Table I / Fig. 1 detail recorded for any
+  future encoder chapter: lastmove (731-cat), ppUsed, status 28,
+  volatiles 23, and "Possible Ability 1/2/3" embeddings — an explicit
+  belief state over unrevealed abilities, structurally our randbats set
+  prior arrived at independently. Also: their strongest scripted baseline
+  (most-damage-typed, 0.829) is far weaker than SH — the bot-table
+  non-transfer above now cuts BOTH ways: it removes "we are behind H&L"
+  as a framing, and most-damage-typed is trivial to implement if that
+  comparison ever needs to be measured rather than argued.
+  **REFUTED, for the third time:** the review read the paper's "For
+  example, we add a reward of -0.0125 ... +0.0025 ..." as the COMPLETE
+  shaping ("asymmetric, no opponent-faint term, not zero-sum") — that
+  sentence is an explicitly partial example list, and the committed
+  config is 5-term antisymmetric zero-sum (verified above, 2026-08-26).
+  Its companion claim ("reclassify our shaping arm null -> unmeasurable:
+  +0.0135 vs a 0.072 bar") applied the 50M-fleet clustered bar to a
+  12M-ERA read (0.4131 +/- 0.0052, binomial at 3x3000; clustered
+  2*se_diff ~0.018 at the 12M sd 0.01118): that instrument resolved the
+  0.025 floor and the recorded null STANDS. Also noted: the paper's
+  generic PPO description mentions an entropy bonus; the committed config
+  has none — paper text never overrides the config.
 
 Referenced but not archived: PokéChamp / PokeLLMon (LLM agents, no SH numbers); rlmon
 (results tables arithmetically impossible — do not cite).
