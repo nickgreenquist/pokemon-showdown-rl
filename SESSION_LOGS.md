@@ -8929,3 +8929,77 @@ entry by offset — never a broad keyword grep.
   `timeout_midgame` in R3 may be OUR socket dying rather than a human
   abandoning, which is a DIFFERENT thing from R1's six and must not be pooled
   with them silently. Count supervisor attempts in the readout.
+
+- 2026-08-28 (14:40Z, maintainer ruling on ladder accounts + BI-4 landed):
+  **ONE PERMANENT LADDER ACCOUNT FROM NOW ON, AND IT IS `nickgen1rbrlbot` —
+  THE NAME WITHOUT A SUFFIX.** Maintainer: *"an account with 'bot2' will more
+  likely tip off people who hate bots infesting a game (if this one is bot 2,
+  how many more are there???)"*. **That is a better reason than the one I gave
+  and it generalises: a suffixed name does not just identify a bot, it
+  ADVERTISES A FLEET**, and the inference "how many more are there" is exactly
+  the one that gets an account reported.
+  **THE MEASUREMENT ARGUMENT POINTS THE SAME WAY, FROM R1'S OWN DATA.** A
+  fresh account was chosen for R3 to avoid inheriting history, but R1's band
+  analysis shows a fresh account did NOT deliver a converged rating: it
+  finished ~60 Elo above its own equilibrium and still falling at n=200, after
+  spending its first ~50 games farming the sub-1100 band it did not belong in.
+  A persistent account starts near equilibrium, so RD contracts around a
+  stationary value instead of chasing a moving one — **fewer games, better
+  convergence, and a smaller footprint, which IS the etiquette argument.**
+  **CONSEQUENCES, ALL FOUR ON THE RECORD:**
+  1. **`nickgen1rbrlbot2` RETIRES after R3.** The project ends with exactly two
+     rated accounts ever, which is what D2 licensed ("the second and last time
+     without a courtesy note"). There is no third account, so that trigger goes
+     moot on a technicality while the concern it protects — a RECURRING
+     presence — grows. **RE-AIM IT: the courtesy note is owed on the third
+     ladder RUN, not the third account.** R4 is the third run.
+  2. **R3 STAYS A ONE-OFF.** Its number is on bot2 with no inherited history.
+     The start->end reporting convention BEGINS AT R4; do not chain R3 -> R4 as
+     though they were the same seat.
+  3. **`.env` HOLDS bot2's CREDENTIALS.** R4 needs `nickgen1rbrlbot`'s password,
+     which was set 2026-08-25. **Confirm it is still recoverable BEFORE writing
+     R4's pre-reg** — `_resolve_display_name` will abort on a PS_USERNAME that
+     disagrees with the pre-reg, which is the protection working, but it means
+     a missing password blocks the run at launch rather than at planning.
+  4. **VOID (f) INVERTS AND MUST BE REWRITTEN FOR R4.** It currently reads "an
+     EXISTING rating means the wrong account". On a persistent account an
+     existing rating is EXPECTED and its ABSENCE is the alarm. **The strictly
+     stronger check available: pre-register the expected STARTING rating (= the
+     previous run's final) and assert the observed start matches it.** That
+     identifies the account far more precisely than "has a rating".
+  **AND THE BLIND SURVIVES THIS UNCHANGED, WHICH IS WORTH STATING BECAUSE IT
+  LOOKS LIKE IT SHOULD NOT.** Under start->end reporting the STARTING rating is
+  a pre-registered INPUT, not the outcome, so reading it is required rather
+  than a breach; the OUTCOME is the end rating, and that stays blind until the
+  floor. `ladder.py` already draws exactly this line: it prints the rating on a
+  FRESH start (`done` empty = the start value = required) and suppresses it on
+  a RESUME (`done` non-empty = a mid-run value = a breach). No code change
+  needed; the distinction was built for the crash-resume and happens to be the
+  right one for persistent accounts too.
+  **BI-4 LANDED, AND IT CORRECTED TWO PUBLISHED R1 NUMBERS ON ITS FIRST RUN.**
+  `ladder_readout.py` now emits obligations (iv) band table, (v) opponent-pool
+  overlap, and (vi) s/battle, plus `--label` and `--compare-jsonl`. Run against
+  R1 the new table **sums to 200 = n, ASSERTED**, where R1's published table
+  summed to 194 because it was built from the JSONL's advisory
+  `opponent_rating` column instead of the replays. The six recovered battles
+  MOVE THE CELLS:
+    band        corrected (replays)   published (advisory column)
+    <1100        49, 0.694             48, 0.688
+    1100-1199    44, 0.477             43, 0.488
+    1200-1299    28, 0.464             28, 0.464
+    **1300-1399  47, 0.319             47, 0.340**
+    **>=1400     32, 0.375             28, 0.321**
+  **THE [1300,1400) CELL IS R3's ONLY LICENSED COMPARISON AND ITS REFERENCE
+  VALUE WAS WRONG: 0.319, not 0.340.** The >=1400 cell gained four battles and
+  moved +0.054. **Aggregate implied true rating is 1214, not the 1232 this repo
+  carries.** `ladder_r3.yaml` pins the DEFECTIVE cells as the side-by-side
+  reference; **R3's readout must compare against the corrected ones**, and the
+  pinned values in the pre-reg are superseded by this entry.
+  **ONE BUG IN MY OWN BI-4 WORK, CAUGHT BY TESTING IT ON R1 FIRST.** The
+  R3-specific disclosures were gated on `"timeout_midgame" in cats`, which is
+  true of R1 as well — so an R1 readout asserted that R1 had suffered websocket
+  disconnections, which is FALSE and would have been published as committed
+  provenance. Now gated on `--label`. **A disclosure that attaches itself to
+  the wrong run is worse than no disclosure**, and the only reason it was found
+  is that the new code was exercised against a COMPLETED run before the one it
+  was written for.
