@@ -18,17 +18,16 @@ one battle. Watch `results/ladder/R3S.run.log`; **`s/battle` is the only honest
 progress signal**, band **[250,400]**. **Do NOT open the profile, replays or
 board before n=200** (G-BLIND). After: `bash scripts/backup_ladder.sh`.
 
-## Results | D26 12M **0.71825** vs SH · R0 ensemble 0.74633 · R2 search@M
-0.79283 (**12M lanes**) · **LADDER R1: GXE 59.6%, Glicko-1 1573+/-27, Elo
-1292, n=200** · R1 off FP@20 — greedy s80/s81/s82 0.3960/0.3430/0.2730 ·
-search@M 0.4470/0.4470/0.4210 · C0(L2) 0.3893 · **RS80 (fresh, n=3000,
-PUBLISHABLE) 0.4390.** Ties=loss. **R1 CREDITS NOTHING.**
+## Results | D26 12M **0.71825** vs SH · R0 ensemble 0.74633 · search@M 0.79283
+(**12M**) · **LADDER R1: GXE 59.6%, Glicko-1 1573+/-27, Elo 1292, n=200** · R1
+off FP@20 — greedy s80/81/82 0.3960/0.3430/0.2730 · search@M 0.4470/0.4470/
+0.4210 · C0(L2) 0.3893 · **RS80 (fresh, n=3000) 0.4390.** **R1 CREDITS NOTHING.**
 
 ## The six R3 rulings — full record in `ladder_r3.yaml: ratified_decisions`
-Two that must not be re-litigated: **D1 unattended is legitimate because R1
-ITSELF RAN UNATTENDED OVERNIGHT** (SESSION_LOGS 2026-08-26) — the draft's
-"inadmissible" was a stricter new position dressed as the standing rule.
-**D2: a THIRD rated account requires a courtesy note to PS staff.**
+Two not to re-litigate: **D1 unattended is legitimate because R1 ITSELF RAN
+UNATTENDED OVERNIGHT** (SESSION_LOGS 2026-08-26) — the draft's "inadmissible"
+was a stricter new position dressed as the standing rule. **D2: a THIRD rated
+account requires a courtesy note to PS staff.**
 
 ## Next actions (revised 2026-08-28 — derivation in SESSION_LOGS 02:30Z)
 0. **DECIDE: SCALING CURVE or CREDITED WIN RATE.** A policy change, not a
