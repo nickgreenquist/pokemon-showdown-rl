@@ -64,9 +64,12 @@ UNKNOWN = "unrated_or_unknown"
 # R1's cells, for the ONE permitted side-by-side. [1300,1400) is the only
 # licensed comparison and it carries no threshold — see the pre-reg's
 # `comparison_ruling.only_licensed_comparison.power_disclosure`.
-R1_BANDS = {"<1100": (48, 0.688), "1100-1199": (43, 0.488),
-            "1200-1299": (28, 0.464), "1300-1399": (47, 0.340),
-            ">=1400": (28, 0.321)}
+# CORRECTED 2026-08-28 (BI-4): rebuilt from the replays, 200/200 asserted.
+# The superseded advisory-column cells (48/43/28/47/28, sum 194) sit beside
+# `bands_CORRECTED_2026_08_28` in ladder_r3.yaml; do not restore them.
+R1_BANDS = {"<1100": (49, 0.694), "1100-1199": (44, 0.477),
+            "1200-1299": (28, 0.464), "1300-1399": (47, 0.319),
+            ">=1400": (32, 0.375)}
 R1_CATS = {"forfeit": 29, "played_out": 161, "no_show": 4, "timeout_midgame": 6}
 
 
@@ -353,14 +356,38 @@ def main():
     # attaches itself to the wrong run is worse than no disclosure.
     if args.label.upper() == "R3":
         A("**R3 DISCLOSURE, and it does not apply to R1: real websocket")
-        A("disconnections occurred during this run (see the supervisor and")
-        A("watchdog logs for the count), so a `timeout_midgame` here may be OUR")
-        A("socket dying rather than a human abandoning. That is a DIFFERENT")
-        A("thing from R1's six and the two must not be pooled silently.**\n")
+        A("disconnections occurred during this run — 10 runner launches across")
+        A("2 supervisor generations (attempt numbering restarts at 04:01), 8")
+        A("SIGKILL terminations of a socket-less runner (7 recorded by the")
+        A("watchdog) at n = 16, 72 (x3), 126, 138, 178 (x2), plus the battle-10")
+        A("crash that predates the supervisor — all healed unattended. So a")
+        A("`timeout_midgame` here may be OUR socket dying rather than a human")
+        A("abandoning. That is a DIFFERENT thing from R1's six and the two")
+        A("must not be pooled silently.**\n")
+        pw_, pl_ = snap.get("w"), snap.get("l")
+        if pw_ is not None and pl_ is not None and (pw_, pl_) != (w, n - w):
+            wins_note = ("wins match exactly" if pw_ == w else
+                         "WINS DO NOT MATCH — investigate before quoting")
+            A(f"**Where the record differs: the profile says {pw_}-{pl_} "
+              f"({pw_ + pl_} rated games); this JSONL says {w}-{n - w} "
+              f"({n}). The {wins_note}; the {pl_ - (n - w)} extra "
+              "server-side losses are battles in flight when our socket "
+              "died — the server timed the seat out and scored the loss, "
+              "and the dead runner never logged the battle. THE PRIMARY "
+              "RATING INCLUDES THEM; the 200-battle tally does not. They "
+              "are our outages, not opponent behaviour.**\n")
         A("**R3 DISCLOSURE, blind breach: a crash-resume printed the live")
         A("rating into the run log at battle 10. It does not void the read --")
         A("the stopping rule is mechanical and cannot fire before n=200 -- but")
         A("it happened and is stated here rather than omitted.**\n")
+        A("**R3 DISCLOSURE, blind breach 2: the maintainer watched battle 200")
+        A("live on the public board — a Hitmonchan Counter-vs-Counter mirror")
+        A("that ended when the opponent forfeited. n=199 was already complete")
+        A("and the stopping rule is mechanical, so no stopping decision could")
+        A("attach to it; stated rather than omitted.**\n")
+        A("R3's object (search@M on s80) has **ONE of three anchors: FP@20")
+        A("only** — no vs-SH at the locked protocol and no BC-clone h2h")
+        A("exists for search on any 50M lane (pre-reg `anchor_battery`).\n")
         A("Both accounts share a stem, so opponents can link them; 141 humans")
         A("had already played 200 games against a bot from this project before")
         A("this run started.\n")
