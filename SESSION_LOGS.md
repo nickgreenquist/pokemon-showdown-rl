@@ -9127,3 +9127,45 @@ entry by offset — never a broad keyword grep.
   the r9 ratification entry below/above is headed "18:20Z / 14:20 EDT" —
   the ratifying commit was 17:25Z and the wave launch 17:32Z (13:25/13:32
   EDT); the entry's content is otherwise accurate.**
+
+- 2026-08-28 (22:25Z / 18:25 EDT, **BOTH r9 ARMS OPS-FAILED ONCE; RS82 IS ON
+  ITS RUNNER-NATIVE RETRY; RS81 RE-RUNS LAST ON ITS b-PAIR. Two NEW failure
+  signatures, both now characterized**):
+  **RS81 (17:32-18:54Z, died at fp-completed 1580 of 3000): the FIRST
+  Foul-Play RUST ENGINE PANIC this repo has seen — `Invalid
+  PokemonMoveIndex: 4` out of poke-engine** (twice: fp-completed 1548 and
+  1580; RS80 went 0-for-3000, so it is rare and possibly s81-reachable-state
+  specific). The second panic died mid-battle, the stale room then killed
+  same-pair relaunches 3 and 4 in <10 s with the documented a3 `KeyError:
+  'battle\n'` signature, and NO_PROGRESS bounded the storm in ~80 s. Arm
+  lost cleanly; nothing graded; crash battles excluded.
+  **RS82 (18:54-21:28Z, died at fp-completed 2999 of 3000): a TIE-CRASH
+  RACE, a NEW wedge.** Battle 3000 hit the turn-1000 AUTO-TIE; FP exited
+  during the tie's |deinit WITHOUT printing its Winner line; poke-env never
+  finalized the tie, so the seat blocked forever inside
+  `accept_challenges(fp, 3000)` at n_finished=2999, 0% CPU — and the driver,
+  with 0 battles remaining, waited on the seat forever. **RS80's 12 ties all
+  finalized fine — the wedge needs the tie AND the FP death to coincide.**
+  **INTERVENTIONS, disclosed:** (1) a manual single-battle FP challenge
+  under the same pair (appended to rs82.fp.stdout) to test whether the
+  seat's accept loop could still take battle #3000 — DELIVERED and sat
+  unaccepted, proving the block is inside the tie battle's completion wait;
+  the probe was killed children-first; the retry's log truncation later
+  wiped its trace, hence this record. (2) The wedged seat was then
+  SIGTERMed — no JSON is obtainable from it on any path, and without the
+  seat JSON G2 has one tally, so the attempt was ungradable BY THE
+  INSTRUMENT'S OWN RULES; killing it destroyed nothing gradable. The wave
+  runner read rc=143/no-JSON as its pre-registered retry case and is
+  re-running RS82 WHOLE (attempt 2, original pair — sound: the tie room
+  deinit'd and crash-1's battle finalized by forfeit, so the pair carries
+  no stale room; and the driver truncates $TAG.fp.stdout at arm start, so
+  G2's Winner count is clean). Attempt-1 forensics preserved at
+  rs82.attempt1.runner.json (crash points 2202, 2999).
+  **PLAN:** RS82 attempt 2 done ~00:40Z; then r10 micro-edit (RS81 ->
+  ch5rs81bseat/bfp in BOTH arms.RS81 and usernames.pairs.RS81, burned pair
+  annotated; config edits deferred until rs82.json lands because the seat
+  hashes the prereg AT WRITE-OUT), pytest, commit, preflight, ARMS=RS81
+  relaunch -> done ~03:10Z (23:10 EDT). Grade + policy_form_decision after.
+  **If RS81's re-run panics again, on_void/on_partial already answer:
+  GREEDY, no discretion.** The Rust panic goes to the R2 write-up as a watch
+  item either way.
