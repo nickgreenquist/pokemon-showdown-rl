@@ -30,7 +30,7 @@ LOG="$REPO/results/ladder/$ARM.run.log"
 count() { local n; n=$(wc -l < "$JSONL" 2>/dev/null | tr -d ' '); echo "${n:-0}"; }
 runner_pid() { pgrep -f "scripts/ladder.py .*--arm $ARM" | head -1; }
 
-last=$(count); last_t=$(date +%s); nosock=0
+last=$(count); last_t=$(date +%s); nosock=0; cur_pid=""; pid_since=$(date +%s)
 echo "WATCHDOG: armed for $ARM, stall=${STALL}s, starting n=$last"
 while true; do
   sleep 60
@@ -47,7 +47,14 @@ while true; do
   # absence is sufficient on its own and is checked far sooner.
   # `age` guards startup: torch import takes ~60-90 s with no socket yet, and
   # killing during that would be an infinite loop of our own making.
-  age=$(ps -p "$pid" -o etimes= 2>/dev/null | tr -d ' '); age=${age:-0}
+  # AGE IS TRACKED HERE RATHER THAN ASKED OF `ps`: macOS ps has NO `etimes`
+  # keyword (that is procps/Linux). `ps -o etimes=` does not error usefully --
+  # it prints the whole list of VALID KEYWORDS, which then made
+  # `[ "$age" -gt 240 ]` fail with "integer expression expected", so the fast
+  # path silently never ran and the old 900 s rule made the kill instead.
+  # Measured 2026-08-28. Watching the pid change is portable and exact.
+  if [ "$pid" != "$cur_pid" ]; then cur_pid=$pid; pid_since=$now; nosock=0; fi
+  age=$(( now - pid_since ))
   if lsof -a -p "$pid" -iTCP -sTCP:ESTABLISHED -n -P 2>/dev/null | grep -q ESTABLISHED; then
     nosock=0
   elif [ "$age" -gt 240 ]; then

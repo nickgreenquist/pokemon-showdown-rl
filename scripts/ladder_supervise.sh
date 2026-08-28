@@ -32,7 +32,12 @@ PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python
 JSONL="$REPO/results/ladder/$ARM.battles.jsonl"
 LOG="$REPO/results/ladder/$ARM.run.log"
 MAX_ATTEMPTS=50
-MAX_NOPROGRESS=5          # x 600 s = ~50 min of patience for a held username
+MAX_NOPROGRESS=12         # x 300 s = ~60 min. Raised from 5 on 2026-08-28: the
+                          # observed failure is a FLAPPING LOCAL LINK (keepalive timeouts,
+                          # [Errno 60] TCP read timeouts and [Errno 8] DNS failures, on a
+                          # link that curl finds healthy seconds later), not a held username.
+                          # Aborting after 5 would end a 200-battle run over a bad ten minutes.
+                          # The storm guard is the SLEEP, not the count.
 noprog=0
 
 count() { local n; n=$(wc -l < "$JSONL" 2>/dev/null | tr -d ' '); echo "${n:-0}"; }
@@ -72,7 +77,7 @@ for i in $(seq 1 "$MAX_ATTEMPTS"); do
     if [ "$noprog" -ge "$MAX_NOPROGRESS" ]; then
       echo "SUPERVISOR: $MAX_NOPROGRESS consecutive no-progress attempts — ABORTING rather than retry-storming (CLAUDE.md)" | tee -a "$LOG"; break
     fi
-    sleep 600
+    sleep 300
   else
     noprog=0
     sleep 30   # let the server drop the old session before re-using the name
