@@ -31,8 +31,9 @@ Ties=loss. **Ladders credit nothing.**
    detached + resume-safe + rate-checkable). The ONLY thing gating R2 — it
    sets the policy form. **Read s81, not s82** (s82 known-bad at 5.2 se).
 1. **R2 = BATCH.** 3 new 50M lanes, s80/81/82 the free control. **PRIMARY READ
-   IS STRENGTH** vs the 0.0717 bar; sigma_seed descriptive with its (2,2)-df
-   disclosure. Verify H&L's update count against SOURCE; minibatch stays 256,
+   IS STRENGTH vs the 0.1007 bar** (r9-corrected: BOTH sides carry the clustered
+   term; R1-A's 0.0717 had the near-zero-sd 12M comparator); sigma_seed
+   descriptive with its (2,2)-df disclosure. Verify H&L's update count against SOURCE; minibatch stays 256,
    scale the COUNT.
 2. lambda = a CONFIG choice on the explained-variance diagnostic, both arms —
    not an arm. Check EV is logged (absent from the locked metric names).

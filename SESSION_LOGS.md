@@ -9062,3 +9062,48 @@ entry by offset — never a broad keyword grep.
   implied 1214, gap to top-500 ~143 Elo, opponent mean 1231).
   **NEXT: rescore search@M on s81/s82 at n=3000 (~4.9 h, eval) — the only
   thing gating R2; read s81, not s82.**
+
+- 2026-08-28 (18:20Z / 14:20 EDT, **AMENDMENT r9 RATIFIED — RS81/RS82 + the
+  R2 policy-form rule; maintainer: "ratified"**): the full 2-Opus process ran:
+  two independent design memos (decision-first / power-first), synthesis with
+  adjudications, then two independent Opus reviews — adversarial arithmetic
+  (MC + analytic on every constant) and repo consistency (which MERGED the
+  amendment into a sandbox config and ran the real suite: 40/40, no test
+  edits needed). Six MUST-FIXes from each review applied before ratification.
+  **THE RULE: R2 is scored SEARCHED iff key_A (bar search buys <= 0.030, from
+  the three fresh lanes' sd) AND key_B (disattenuated transmission slope beta
+  >= bar_search/0.1007 — searched must TIE the greedy read even if the lever
+  transmits like seed noise). GREEDY is the default and wins every tie, VOID,
+  and partial.** The memos clashed on the core cell: power-first routed
+  SEARCHED on tight dispersion alone; decision-first proved that rule
+  mechanism-blind (signal and noise scale together, so MDE in greedy units is
+  invariant ~0.10, and the 0.025 floor makes OVER-compression strictly
+  destroy power — perfect equalisation is the strongest argument AGAINST
+  switching). key_B won the adjudication and survived review.
+  **TWO HEADLINE CORRECTIONS OUT OF REVIEW, both now in the repo:**
+  (1) **R2's greedy planning bar is 0.1007, NOT 0.0717** — R1-A's 0.0717 =
+  2*sqrt(0.0617^2/3 + 0.0077^2/4) had the near-zero-sd 12M comparator; R2's
+  control is s80/81/82, so both sides carry the clustered term. STATUS and
+  CHAPTER5 corrected in the ratifying commit. Worst case at s_batch=s_ctrl;
+  halved gives 0.0797.
+  (2) **The expected branch is GREEDY comfortably, not a knife edge** — the
+  draft's "miss by 0.008" had substituted B80's BARRED selection score
+  (0.4470) for the declared fresh x80=0.4390; on the declared inputs beta =
+  0.168 vs floor 0.248 (miss 0.080). MC P(SEARCHED): ~5% literal banked
+  prediction, ~21% if s81/s82 shrink the way RS80 did (-0.0080), ~0.1% at
+  exact equalisation. key_B binds in every scenario. Q6 carve-out added
+  (banked values enter as PREDICTION only, never comparators).
+  Other review catches now landed: EQ band = the 2*se_diff 0.0256 convention
+  band half-open on SIGNED d_i (the mislabeled 0.0252 corrected; floor-exit
+  is 0.0308 one-lane / 0.0178 opposite-sign); searched-branch bar floor
+  0.0339 (0.028 was BELOW its own routing threshold and could never bind);
+  key_A's asymmetric power disclosed with its H1 form named (0.6% / 10.8%
+  random-effects / ~0% fixed-spread); the runner ignores wave_plan.order so
+  the launch is the ARMS override; ch5_preflight named in ops; cost_ledger
+  left untouched (test-pinned); usernames.scheme's "all 18" was stale since
+  r8 (now 24 + 4 rerun names, all 28 verified pairwise no-prefix);
+  stall_polls_for patched B*|RS*) per r9-R (RS80 ran at 30 and survived; the
+  patch aligns code with the pre-registered 60). Suite green post-amendment:
+  40/40 by execution.
+  **LAUNCHING the 4.87 h serial wave (RS81 then RS82) detached tonight;**
+  readout against policy_form_decision when it lands.

@@ -372,7 +372,11 @@ named (median vs worst-lane changed a verdict once).**
 >    an **F-test on (2,2) df, critical value 19.0**, so batch would have to cut
 >    it **4.4x (0.0617 -> ~0.014)** before the comparison registers anything.
 >    That is the same 2-df wall as k~24. **Batch is a STRENGTH lever** — bar
->    0.0717 at k=3, plausibly cleared by an 8x batch increase — and it is R2,
+>    **0.1007** at k=3 (CORRECTED by r9, 2026-08-28: R2's control is
+>    s80/81/82, so BOTH sides carry the clustered term — 2*sqrt(2*0.0617^2/3);
+>    the 0.0717 was R1-A's bar against the near-zero-sd 12M fleet and
+>    understates R2's by sqrt(2); s_batch halved gives 0.0797), plausibly
+>    cleared by an 8x batch increase — and it is R2,
 >    gated only by the s81/s82 rescore that fixes the policy form. Its
 >    `sigma_seed` read is a DESCRIPTIVE SECONDARY carrying that disclosure, so
 >    a null is never readable as "batch did not help variance".

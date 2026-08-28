@@ -95,7 +95,7 @@ PYEOF
 # false-positive stall kill is 3x more expensive than it was under CH4's 30.
 stall_polls_for() {
     case "$1" in
-        B*) echo 60 ;;
+        B*|RS*) echo 60 ;;   # r9-R: RS* arms are search seats too
         *)  echo 30 ;;
     esac
 }

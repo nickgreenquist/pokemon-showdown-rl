@@ -1397,7 +1397,7 @@ ensembles:
 # non-prefixing names are braces, and the S1 deadlock (3.6 h at zero
 # progress, and it LOOKS like slow progress) is what happens when both fail.
 usernames:
-  scheme: "ch5<arm><role>, role in {seat, fp}, arm ids lowercase. FULL-STRING distinct, and NO name may be a prefix of any other — asserted pairwise by tests/test_ch5_prereg.py over all 18."
+  scheme: "ch5<arm><role>, role in {seat, fp}, arm ids lowercase. FULL-STRING distinct, and NO name may be a prefix of any other — asserted pairwise by tests/test_ch5_prereg.py over all 24 pair names (the '18' went stale when r8 added RS80; rerun_pairs_r9 adds 4 more, swept by the r9-T hardening)."
   never_reuse: [c4, r4anchor, ch3, ch4]   # an orphan holding a name is the S1 shape
   pairs:
     C0:  {seat: ch5c0seat,  fp: ch5c0fp}
@@ -1410,6 +1410,14 @@ usernames:
     CE3: {seat: ch5ce3seat, fp: ch5ce3fp}
     CE7: {seat: ch5ce7seat, fp: ch5ce7fp}
     RS80: {seat: ch5rs80seat, fp: ch5rs80fp}   # r8
+    RS81: {seat: ch5rs81seat, fp: ch5rs81fp}   # r9
+    RS82: {seat: ch5rs82seat, fp: ch5rs82fp}   # r9
+  # r9: ops_failure_rule re-run pairs. A plain suffix on the seat name
+  # would violate the no-prefix rule, hence the arm-id-suffix spelling.
+  # All 28 names verified pairwise clean (r9 repo review, 2026-08-28).
+  rerun_pairs_r9:
+    RS81: {seat: ch5rs81bseat, fp: ch5rs81bfp}
+    RS82: {seat: ch5rs82bseat, fp: ch5rs82bfp}
 
 # rev 2 §4-7: a KEY, not a sentence — G-SERIAL asserts wall clocks and
 # needs something to assert against.
@@ -1420,6 +1428,17 @@ wave_plan:
   serial_evidence: "$OUT/wave.log arm start/done timestamps must not overlap; scripts/ch5_r1_grade.py asserts it. THIS IS G-SERIAL'S ARTIFACT."
   order: [C0, A80, A81, A82, B80, B81, B82, CE3, CE7, RS80]
   order_rationale: "C0 first (both designers, independently): it creates the repo's FIRST complete (proxy score, ladder rating) pair and de-risks brand-new ensemble code at scale in hour one. CE7 last: widest and dearest, so an interrupt costs the least."
+  order_r9: [RS81, RS82]   # DOCUMENTATION ONLY — the runner ignores
+                           # wave_plan.order; launch is the ARMS override
+  ops_r9:
+    launch: 'bash scripts/ch5_preflight.sh && ARMS="RS81 RS82" nohup bash scripts/ch5_r1_wave.sh > results/ch5_r1_offsh/r9.nohup.log 2>&1 &'
+    preflight: "ch5_preflight.sh enforces: Showdown server on :8000, simulator: 4 in the gitignored showdown config, no stale fp seat, CLEAN TREE (G0) — so the amendment commits BEFORE launch (CLAUDE.md rule 3). Env: the runner hardcodes the pokemon-showdown-rl bin/python."
+    cost: "2 x 3000 x 2.92 s/battle (RS80 realized) = 4.87 h, serial."
+    progress: "grep -c 'Winner:' vs RS80's REALIZED 20.6/min (the plan row said 22.4; per progress_rule the transferred rate may not be the threshold). <50% investigate; <20% STALLED, not slow."
+    stall_polls_note: "BUILD ITEM r9-R (APPLIED in the ratifying commit): stall_polls_for() gave RS* the 30-poll default where stall_polls.search pre-registers 60; the case is now B*|RS*). RS80 ran at 30 and survived; the patch aligns code with the pre-reg."
+    killed_arm: "re-runs LAST or under its rerun_pairs_r9 pair, never immediately under the same pair (poisoned-room, a3). Kill FP's search-worker CHILDREN FIRST (pkill -9 -P), then sweep."
+    cost_ledger_note: "cost_ledger.agent_side_battle_hours (7.53) is test-pinned against a rate table that predates RS80 and is NOT touched; r9's 4.87 h is recorded here."
+    dose_evidence: "the YAML echo is a tautology (BL-1 class); the artifact evidence for dose M is search/leaves_mean vs node_cap 1500 and search/ms_mean (RS80: 322.79 leaves, 65.78 ms), stamped per arm."
   resume: "skip-if-complete on $OUT/<tag>.json with gate_all_challenges_resolved true. A partial arm re-runs WHOLE; there is no mid-arm resume and none is claimed."
   retry_no_json_once: true          # designer B §7.3: torch lazy-init SIGSEGV
   stall_polls: {greedy: 30, ensemble: 30, search: 60}
@@ -1546,6 +1565,46 @@ arms:
     role: "FRESH RE-SCORE of the R1-B deployment candidate. Its SELECTION score
       was 0.4470 at n=1000; that number may NOT be published as the object's
       score. This arm's number is the publishable one."
+  # ---- AMENDMENT r9: RS81 / RS82, THE POLICY-FORM RESCORE. -------------
+  # NOT deployment re-scores (R1-B's tie went to s80 on the orthogonal
+  # banked-vs-SH rule). They fix ONE parameter of R2's pre-reg: greedy vs
+  # searched scoring, via policy_form_decision below. n=3000: at n=1000
+  # the searched between-lane sd (0.01501) sat AT its binomial floor
+  # (0.01569) — sigma under search was inseparable from zero; at n=3000
+  # the floor is 0.00906. [Those n=1000 values enter as a POWER
+  # ARGUMENT/PREDICTION only, never as comparators — see
+  # policy_form_decision.prediction_license.]
+  # Dose matched (M / 20 ms / n=3000 / pinned shas) BY REQUIREMENT: the
+  # governing statistic is a dispersion ACROSS the three arms. A mismatch
+  # voids the DECISION (default GREEDY fires; the arms survive with dose
+  # disclosed). void_dose_note: grading.void_k's TEXT says "dose mismatch"
+  # while wave_plan.rule defines k as concurrency; r9 relies on the plain
+  # "dose mismatch" words and says so here rather than silently.
+  RS81:
+    kind: search_seat
+    seat: s81
+    dose: M
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5rs81seat
+    fp_username: ch5rs81fp
+    runs_first_of_r9: "02:30Z: the general equalisation claim rests on s80
+      and s81 (s82's collapse is confirmed at 5.2 se, so its rescue alone
+      is the narrow claim). A dead wave after one arm leaves the more
+      informative number — but NOT a decidable one (on_partial)."
+    role: "ROUTING INPUT for R2's policy form. B81's n=1000 0.4470 is
+      BARRED as a comparator (Q6). Fresh scores are unbiased regardless of
+      selection; no winner's-curse adjustment applies."
+  RS82:
+    kind: search_seat
+    seat: s82
+    dose: M
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5rs82seat
+    fp_username: ch5rs82fp
+    role: "ROUTING INPUT. B82's 0.4210 BARRED the same way. s82's confirmed
+      collapse (5.2 se) sets the DISCLOSURE in its cell, never the action."
   CE7:
     kind: ensemble_seat
     lanes: [s62, s63, s64, s65, s80, s81, s82]   # == ensembles.E7_all
@@ -1554,3 +1613,168 @@ arms:
     seat_username: ch5ce7seat
     fp_username: ch5ce7fp
     runs_last: "widest and dearest roster, so an interrupt costs the least (wave_plan.order_rationale)"
+
+# =========================================================================
+# AMENDMENT r9 (RATIFIED 2026-08-28): the R2 policy-form decision.
+# Process: two independent Opus design memos (decision-first / power-first),
+# synthesis, two independent Opus reviews (adversarial arithmetic; repo
+# consistency — ran the merged config against the suite, 40/40). All
+# MUST/SHOULD findings applied before ratification.
+policy_form_decision:
+  decides: "EXACTLY ONE thing: whether R2's (batch) arms are scored GREEDY
+    or SEARCHED at eval. Credits nothing; does not grade the equalisation
+    hypothesis (2-df wall: the sigma CI multiplier [0.52, 6.29] is n-free);
+    touches nothing about R3 or its deployed object."
+  credit_line_restated: "A lever is credited iff pooled delta >= +0.025 AND
+    >= 2*se_diff, where se_diff is the LARGER OF the binomial and the
+    seed-clustered term (grading.se_rule; clustered_formula
+    sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp)). These arms credit nothing; the
+    line is restated because a routing threshold looser than the credit
+    threshold it routes to is a laundering path (bar_rationale)."
+  # THE BAR R2 ACTUALLY FACES (verified twice, r9 reviews). R1-A's
+  # realized 0.0717 = 2*sqrt(0.0617^2/3 + 0.0077^2/4): its 12M
+  # comparator's clustered term (0.0039) was negligible. R2's control is
+  # s80/81/82 (k=3, s=0.0617), so BOTH sides carry it: planning bar at
+  # s_batch = s_ctrl is 2*sqrt(2*0.0617^2/3) = 0.1007. Sensitivity: that
+  # is the WORST case — s_batch halved gives 0.0797, s_batch=0 gives
+  # 0.0712. Realized sds govern at readout. STATUS.md and CHAPTER5.md's
+  # "0.0717 for R2" were corrected in the ratifying commit.
+  bar_R2_greedy_planning: 0.1007
+  aggregators:
+    governing: [sd_of_the_three_fresh_searched_lane_rates,
+                transmission_slope_beta_searched_on_greedy]
+    recorded_never_governing: [equal_weight_mean, pooled_rate, range,
+                               best_lane, worst_lane, per_lane_deltas]
+  inputs:
+    x80: 0.4390                          # RS80, fresh, n=3000, banked
+    x81: FROM_RS81
+    x82: FROM_RS82
+    greedy_x: {s80: 0.3960, s81: 0.3430, s82: 0.2730}   # A-arms, n=1000
+    se_bin_n3000: 0.00906
+    se_diff_two_n3000_arms: 0.0128
+  key_A:
+    statistic: "s3 = sample sd{x80,x81,x82} (ddof=1); s3_adj = sqrt(max(0,
+      s3^2 - 0.00906^2)); bar_search = max(0.025, 1.633 * s3_adj)"
+    threshold: "bar_search <= 0.030"
+    sidedness: ONE_SIDED_UPPER           # only a bar REDUCTION justifies
+    power: "ASYMMETRIC BY CONSTRUCTION, disclosed rather than tuned away
+      (MC 200k + analytic, review-verified): under H0-equalised (all true
+      rates 0.4390, binomial only) P(key_A fails) = 0.6%; under
+      H1-random-effects (true lane rates ~ N(0.4390, 0.0597), greedy's
+      dispersion net of its floor) P(key_A passes) = 10.8%; under
+      H1-fixed-spread (three rates AT sd 0.0597) ~0%. THE H1 FORM IS
+      NAMED because the answer depends on it. The error-equalizing cut
+      (0.0199 unfloored) sits BELOW the 0.025 credit floor and is
+      unreachable; 0.030 is kept because key_B binds in every scenario
+      (expected_branch) and a false key_A pass alone switches nothing."
+  key_B:
+    statistic: "beta = OLS slope of (x80,x81,x82) on greedy_x, k=3 (1 df),
+      DISATTENUATED for the x-axis n=1000 binomial noise: per-lane se
+      0.01547/0.01501/0.01409 (rms 0.01487), factor 1.0616. Closed form:
+      beta_raw = (0.05867*(x80-xbar) + 0.00567*(x81-xbar)
+      - 0.06433*(x82-xbar)) / 0.0076127; beta = 1.0616 * beta_raw. ALL
+      COMPARISONS AGAINST THE FLOOR USE THE DISATTENUATED beta."
+    threshold: "beta >= bar_search / bar_R2_greedy_planning   (0.2481 at
+      the floor bar_search = 0.025)"
+    sidedness: ONE_SIDED_LOWER
+    meaning: "switch only when searched TIES the greedy read under the
+      pessimistic reading (lever transmits like seed noise) and wins 3-4x
+      under the optimistic one (beta ~ 1 if batch acts on the policy
+      head). Switch only when it cannot lose."
+    disclosure: "beta is a 1-df plug-in from SEED variation; valid for
+      batch ONLY IF batch acts through the channel seed noise does. Quoted
+      as a plug-in, never a tested quantity."
+  rule: "SEARCHED iff key_A AND key_B. GREEDY otherwise. GREEDY is the
+    default and wins every tie, VOID, and ambiguity."
+  # ADJUDICATED between the design memos: routing SEARCHED on tight
+  # dispersion alone is mechanism-blind — signal and noise scale together
+  # under any transfer slope, so MDE in greedy units is invariant (~0.10)
+  # and the credit floor makes OVER-compression strictly destroy power.
+  # Perfect equalisation (beta ~ 0) argues AGAINST switching. key_B stays;
+  # dropping it is the named rejected alternative.
+  # Cells: computed EXPOSITION of the total keys-rule. Partition on SIGNED
+  # d_i = x_i - 0.4390, half-open: EQ is -0.0256 <= d < +0.0256 (the
+  # 2*se_diff(3000,3000) convention band, i.e. indistinguishable from
+  # RS80 — NOT the floor-exit point: bar_search leaves the 0.025 floor at
+  # |d| = 0.0308 one-lane / 0.0178 opposite-sign, stated so nobody
+  # rederives the band wrong). LOW is d < -0.0256; OVER is d >= +0.0256.
+  cells:
+    EQ_EQ: "GREEDY — grid-verified: NO point in the EQ box satisfies both
+      keys (max disattenuated beta where key_A holds is 0.246 vs floor
+      0.248; margin 0.002, so the FORMULA governs, not this sentence). THE
+      STRONGEST EQUALISATION RESULT IS THE STRONGEST ARGUMENT AGAINST
+      SWITCHING. Report the equalisation descriptively with its 2-df CI
+      (two-sided, descriptive only). The emptiness argument uses
+      bar >= 0.025 as a NECESSARY condition (bar is not constant inside
+      the cell)."
+    EQ81_LOW82_window: "THE LIVE CELL, the only region that can switch:
+      at x81 = 0.4390 both keys pass for x82 in ~[0.4035, 0.4113] (key_A
+      fails below 0.4035, key_B fails above 0.4113); the window shifts
+      with x81 and the formula decides."
+    EQ81_LOW82_below_window: "GREEDY (key_A fails on d82). Disclosure:
+      search did not close the collapsed lane — the narrow claim ('search
+      compensates a broken value head') survives; 'search removes seed
+      identity' does not."
+    LOW_LOW: "CONDITIONAL — keys decide (two lanes close together just
+      below x80 can pass both)."
+    d81_outlier: "condition |d81| >= 0.0256: GREEDY in every grid case
+      checked (bar rises; beta's x81 weight is ~11x smaller than x82's).
+      Disclosure: B80==B81's exact-0.4470 1-in-50 coincidence failing to
+      replicate — named before the data."
+    any_OVER: "condition any d_i >= +0.0256: GREEDY by formula (beta
+      falls or s3 rises). If the confirmed-worst greedy lane scores
+      HIGHEST under search, disclose the inversion beside the numbers."
+    equalised_but_low: "PROVED EMPTY: key_A with x80 = 0.4390 forces
+      mean(x) >= 0.4154 > greedy mean 0.3373 (closed form + SLSQP agree).
+      Named and proved rather than left unnamed (R-4 rule)."
+    totality: "every (x81,x82) maps to exactly one action via the keys;
+      the cells are exposition and can neither add nor subtract a case."
+  on_void:
+    either_arm_void_or_missing: "GREEDY — k=2 substitutes refused (a
+      |RS80-RS81| fallback has ~23% false-SEARCHED vs ~6%)."
+    dose_or_gate_break: "GREEDY (dose mismatch voids the comparison; arms
+      survive, numbers stand with dose/k disclosed)."
+    on_partial: "only RS81 done -> GREEDY; the statistic does not exist."
+  if_SEARCHED:
+    scope_change: "PRE-REGISTERED SCOPE CHANGE, travels with every R2
+      number: search substitutes engine rollouts for the value head, so A
+      LEVER THAT IMPROVES THE VALUE HEAD IS PRECISELY THE ONE SEARCH MASKS
+      — the variance win and the sensitivity loss are ONE mechanism. R2's
+      searched read is a LOWER BOUND for value-head channels; a searched
+      null may NEVER be written as 'batch did not help'. It is nonetheless
+      the deployment-relevant read (R3 deploys search)."
+    bar: "R2's searched bar = max(0.0339, bar from REALIZED searched sds
+      via clustered_formula). 0.0339 is the routing-threshold-implied
+      floor for the sd statistic (0.030 corrected for E[s] = 0.886*sigma
+      at k=3); it sits ABOVE the 0.030 gate by construction — a floor
+      below its own routing threshold could never bind, which is the
+      laundering path this clause closes (review-corrected from 0.028)."
+    control: "R2's searched control = RS80/81/82 at n=3000 (3x the n=1000
+      A-arms; a free side effect)."
+  if_GREEDY:
+    text: "R2 scored greedy, control A80/81/82; planning bar 0.1007 (NOT
+      0.0717), realized sds govern; no masking disclosure. The rescores
+      are reported as the fresh searched picture of the 50M fleet and
+      govern nothing else."
+  prediction_license: "Q6 CARVE-OUT, explicit: B81/B82's n=1000 values
+    (and the n=1000 sd-at-floor argument) enter this block as
+    PRIOR/PREDICTION only — no branch, bar, or verdict reads them, and
+    they never appear as comparators for any fresh number."
+  expected_branch_declared_before_data: "GREEDY, comfortably — NOT a knife
+    edge (the draft's 'miss by 0.008' substituted B80's barred selection
+    score for the declared x80 and was retracted in review). On the
+    declared inputs (x80 = 0.4390 fresh, banked B-values as the
+    prediction for s81/s82): beta = 0.168 vs floor 0.248, a miss of
+    0.080. MC P(SEARCHED): ~5% under the literal banked prediction; ~21%
+    if s81/s82 shrink the way RS80 did (-0.0080); ~0.1% under exact
+    equalisation. key_B is the binding key in every scenario. The 4.87 h
+    is owed anyway: R2's pre-reg cannot be written without the policy
+    form, and the arms also buy the fleet's only Q6-clean searched
+    picture and (if SEARCHED) R2's n=3000 control group."
+  quotation_rules:
+    - "FP@20 named in every quote; both standing FP@20 disclosures travel."
+    - "B81 0.4470 / B82 0.4210 BARRED as comparators (Q6); see
+       prediction_license for their only licensed use."
+    - "Never beside the 12M 0.79283; never called vs-SH; MU-8 unmoved."
+    - "Per-lane searched-minus-greedy deltas are DESCRIPTIVE, route
+       nothing."
