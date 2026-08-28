@@ -11,12 +11,11 @@ PS staff.** CH5 R1 CLOSED. Pure self-play; THE NOVELTY IS THE LANE.
 
 ## DO NOT KILL THE R3 RUN — it self-heals now
 `ladder_supervise.sh` relaunches on exit; `ladder_watchdog.sh` kills a seat that
-HANGS, because poke-env never reconnects — it tests the **socket, not the
-clock**, so a turn-1000 auto-tie is left alone. **Two crashes so far, both
-recovered.** Killing it yourself mid-battle **forfeits a live rated game**; an
-early stop is an operational abort under G-BLIND (4) — log cause AND battle
-index. Watch `R3S.run.log` / `.supervisor.log` / `.watchdog.log`. **`s/battle`
-is the only honest progress signal**, band [250,400]. **Do NOT open the profile,
+HANGS (poke-env never reconnects), testing the **socket not the clock** so a
+turn-1000 auto-tie is left alone. **Two crashes, both recovered.** Killing it
+yourself mid-battle **forfeits a live rated game**; an early stop is an
+operational abort under G-BLIND (4) — log cause AND battle index. Watch
+`R3S.run.log` / `.supervisor.log` / `.watchdog.log`. **Do NOT open the profile,
 replays or board before n=200.** After: `bash scripts/backup_ladder.sh`.
 
 ## Results | 12M **0.71825** vs SH · ensemble 0.74633 · search@M 0.79283 (**12M**)
@@ -25,9 +24,9 @@ replays or board before n=200.** After: `bash scripts/backup_ladder.sh`.
 (fresh, n=3000).** Ties=loss. **R1 CREDITS NOTHING.**
 
 ## Next actions (order CORRECTED 2026-08-28 03:10Z; SESSION_LOGS has both)
-0. **Read R3 out when it stops** (BI-4 first; pass every flag — all three readout
+0. **Read R3 out when it stops** (BI-4 first; pass every flag — the readout
    scripts default to R1's paths AND name). Then **rescore search@M on s81/s82 at
-   n=3000** (~4.9 h eval). **The ONLY thing gating R2**: it sets the policy form.
+   n=3000**, the ONLY thing gating R2: it sets the policy form.
 1. **R2 = BATCH.** 3 new 50M lanes, s80/81/82 as the free control. **PRIMARY
    READ IS STRENGTH** against the 0.0717 bar; sigma_seed a descriptive secondary
    with its **(2,2)-df disclosure**. Verify H&L's update count against SOURCE;
@@ -42,11 +41,10 @@ replays or board before n=200.** After: `bash scripts/backup_ladder.sh`.
 
 ## Watch items
 - **R3's READOUT OWES TWO DISCLOSURES.** (i) **BLIND BREACH at battle 10** — a
-  crash-resume printed the rating (GXE 56.4, Glicko 1550+/-85, Elo 1082). Does
+  crash-resume printed the rating (GXE 56.4, Glicko 1550+/-85, Elo 1082); does
   NOT void the read (the rule is mechanical, cannot fire before n=200) but must
   be stated. (ii) **Real disconnections happened**, so a `timeout_midgame` may be
-  OUR socket rather than a human abandoning — do NOT pool with R1's six. Count
-  supervisor attempts.
+  OUR socket, not a human abandoning — do NOT pool with R1's six.
 - **`lsof -p X -i...` NEEDS `-a`**, or it ORs the selections and returns other
   processes' sockets. It fails in the REASSURING direction; cost 35 min tonight.
 - **k ~ 24 kills lanes; (2,2) df kills the variance READ.** Bar =
