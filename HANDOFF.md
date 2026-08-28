@@ -1,162 +1,121 @@
-# Handoff — CH5 R1 COMPLETE, re-score running. Written 2026-08-27 ~22:35Z
+# Handoff — RS80 LANDED, CH5 R1 CLOSED, R3 PRE-REG IS A DRAFT AWAITING SIX
+# RULINGS. Written 2026-08-28 ~01:05Z, immediately before a Mac restart.
 
-**R1 is done: 9 arms, zero voids, G2 exact on every one.** One job is still
-running (`RS80`, the mandatory fresh re-score). Two maintainer decisions open.
+**NOTHING IS RUNNING.** The wave is `WAVE COMPLETE`, every process is gone,
+the tree is clean and pushed. The Showdown server was left up; it dies with
+the restart and just needs relaunching (`cd showdown && node pokemon-showdown
+start --no-security`) before anything touches the env.
 
-## 1. Is the re-score finished?
+## 1. What landed while you were away
 
-    tail -3 results/ch5_r1_offsh/wave.log
-    tail -3 results/ch5_r1_offsh/watchdog.log
+**RS80, the mandatory fresh re-score, is IN and CLEAN.** CH5 R1 is now
+complete end to end: **ten graded arms, ZERO VOIDS**, G2 exact on every one,
+G-SERIAL clean across 18 username pairs.
 
-`RS80` = search@M on s80, n=3000, launched 22:28Z, ETA ~2.3 h (~00:50Z).
-**If `WAVE COMPLETE` and `rs80.json` exists:**
+- **PUBLISHABLE: search@M on s80, off Foul Play@20, n=3000 -> `0.4390`**
+  (1317-1671-12). 2.43 h, 2.92 s/battle, mean_turns 37.015, mask_desyncs 0.
+- **The selection score was 0.4470 at n=1000. The fresh re-score is 0.4390 —
+  the WINNER'S-CURSE direction. Publishing 0.4470 would have overstated the
+  object; Q6 earned its place and the log records that it did.**
+- **vs the incumbent C0/L2 0.3893: +0.0497, 3.9 binomial se. DESCRIPTIVE —
+  R1 CREDITS NOTHING.** It is the pre-registered `r3_deployment_rule`
+  comparison and it clears the +0.025 replacement threshold on a FRESH score.
+  **The R3 deployment object stands: search@M on lane s80.**
+- **CEILING, and it travels with the number forever:** licenses search as an
+  R3 DEPLOYMENT CANDIDATE and nothing else; does NOT reverse MU-8
+  (z = -2.80); is not a vs-SH number; **never set beside the 12M cell
+  (0.79283)**. NAME THE BUDGET — this is FP@20.
 
-    python scripts/ch5_r1_grade.py --out results/ch5_r1_offsh/grade.json
+Grade artifact: `results/ch5_r1_offsh/grade.json`. Re-run any time with
+`python scripts/ch5_r1_grade.py --out results/ch5_r1_offsh/grade.json`.
 
-**If it died:** sweep, then relaunch. Never re-run a killed arm IMMEDIATELY —
-its Showdown room stays poisoned for hours (CLAUDE.md landmine a3); either
-wait, or restart the server (`kill` the `pokemon-showdown start` pid and
-relaunch from `showdown/`), which clears all rooms in seconds.
+## 2. Two live defects fixed in the ladder runner (both were going to bite R3)
 
-    pkill -9 -f 'run.py .*--ps-username ch5'; pkill -9 -f 'foul-play/bin/python -c from multiprocessing'
-    ARMS="RS80" nohup bash scripts/ch5_r1_wave.sh > results/ch5_r1_offsh/wave.driver.log 2>&1 &
+**(a) `ladder.py` read the rating off the TOP-500 LEADERBOARD, which by
+construction lists only ranked accounts.** R1 finished unlisted, so
+`stopping_rule_met` answered "not yet on the top-500 list" on every poll and
+the report says `stopped_by_rule: false` — **while R1 was sitting at rd 26.6 /
+n 200, i.e. the rule was SATISFIED.** Two tests PINNED the wrong behaviour, so
+a green suite was defending the bug. It now reads
+`https://pokemonshowdown.com/users/<userid>.json`, verified live against R1's
+own account (elo 1292.25, gxe 59.6, rpr 1573.04, rprd 26.57, w95/l105).
+Same class of error fixed in the readout generator, which still emitted the
+PRE-BATTLE "Elo 1311" as the final rating.
 
-## 2. What RS80 is for, and the rule that makes it mandatory
+**(b) `PS_USERNAME` silently overrode the pre-registered account name.** A
+stale export would have laddered R3 on R1's account and permanently
+contaminated the only published ladder rating we have. **The pre-reg is
+authoritative now** — `PS_USERNAME` may only CONFIRM it and the run aborts on
+disagreement, compared on the userid so punctuation and case are free. This is
+what makes ordinary `...bot2`-style names safe, per your ruling that a naming
+convention is a habit and not a mechanism. Six tests pin it; 54 pass.
 
-The R1-B search object scored **0.4470 at n=1000**. That is a SELECTION score
-and **may not be published**. Q6: "Whatever is chosen for a ladder run is
-RE-SCORED fresh before any number is published." RS80's number is the
-publishable one. s80 was picked by the pre-registered ORTHOGONAL rule (highest
-banked vs-SH, 0.74233) because B80 and B81 tied exactly at 0.4470 — breaking
-the tie on the off-FP score would be selection on the read's own metric.
+## 3. R3 IS READY EXCEPT FOR SIX RULINGS — `configs/eval/ladder_r3.yaml`
 
-## 3. R1's answers (all in SESSION_LOGS 2026-08-27 evening)
+Written under the standing 2-Opus cycle (validity framing + ops framing,
+synthesised, every load-bearing claim re-verified against source). It is a
+**DRAFT and must not be launched.** `open_decisions:` at the foot of the file:
 
-- **R1-A PRIMARY: s82's collapse REPRODUCES off-FP, +0.0965 vs bar 0.0369,
-  5.2 se.** A genuinely bad seed, not an SH artifact.
-- **R1-A FLEET: WITHIN x NON-RESOLVING.** −0.0113 vs a realized bar of
-  **0.0717**. The O-4 cliff predicted this before any datum. Action taken
-  verbatim: stop buying battles; buy LANES or drop the scale question.
-  **"flat" is BARRED; the realized 0.0717 travels with any sentence.**
-- **R1-B: search HELPS.** Within-lane mean **+0.1010**, bar 0.0561, 3.6 se.
-  Helps MOST on the worst lane (s82 +0.148 vs s80 +0.051). **CEILING: licenses
-  search as an R3 DEPLOYMENT CANDIDATE and nothing else; does NOT reverse
-  MU-8 (z = −2.80); never set beside the 12M cell.**
-- **R1-C: NOT DELIVERED.** E3 0.3623 BELOW C0 0.3893; E7 0.3827 WITHIN.
-  L2 remains the ensemble incumbent. The pre-registered soft-AND mechanism
-  explains it and IS licensed to be used.
-- **C0 = the repo's first complete (proxy, ladder) pair**: 0.3893 off FP@20
-  at n=3000, alongside GXE 59.6% / Glicko-1 1573±27 / Elo 1292 at n=200.
+- **D1 SCHEDULE — the big one. R3 IS NOT ONE NIGHT.** 200 battles projects to
+  **16-19 h** plus a +1-2 h auto-tie tail. Recommendation: two sessions of
+  ~100 with explicit `--battles` targets (it is a CUMULATIVE target across
+  resumes). Alternative if you want one night: declare an n>=150 floor
+  RESULT-BLIND, before the first battle.
+- **D2 ETIQUETTE** — is a second, sequential account inside R1's "multiple
+  accounts" line? Draft ruling: yes, and the second and last time without a
+  courtesy note to PS staff.
+- **D3 CONCURRENCY** — `ladder.py` is still `max_concurrent_battles=1` while
+  the FP seat went to 2 on 2026-08-27 to close a poke-env deadlock whose own
+  fix comment names SEARCH as the exposed policy (it hung b81 at 639 then 611,
+  b82 at 57 then 699). On a rated ladder that hang forfeits a live game
+  against a human. Recommend raising to 2. **Flagged rather than done
+  silently, because the etiquette argument cites the literal "max_concurrent
+  1".** UNMEASURED on the ladder path — reasoning from mechanism.
+- **D4 ANCHORS** — R3's object will have ONE of three. Recommend buying the
+  other two (~2.7 h), sequenced AROUND the ladder, never beside it.
+- **D5 COMPARISON RULING** — R3 is STANDALONE DESCRIPTIVE; no R1-vs-R3 delta
+  may be quoted as an effect. The 76-Glicko-point bar is REFUSED with reasons.
+  Cost: "+N Elo from search" is not available at any n this design can buy.
+- **D6 SEARCH REVERSAL** — R3 deploys the arm `ladder_r1.yaml` argued against
+  and you accepted the argument against. On the record as a decision.
 
-## 4. MAINTAINER RULED 2026-08-27 — R3 NOW, THEN A RETRAIN THAT IS NOT OPTIONAL
+**Already done for R3:** account `nickgen1rbrlbot2` registered (zero rated
+games), `.env` written 0600 and gitignored, checkpoint sha verified, the arm
+BUILDS (obs_dim 828, dose M), VOID (c) set-pool pin re-verified against
+upstream master (0 commits since we vendored).
 
-Verbatim: *"assuming ladder is one night to get ~200 games, let's do it.
-BUT - i definitely want a retrain. that will not be optional. i only am
-saying we do ladder again now, then train next. breaking 500 is one goal,
-not the end goal (top500)"*
+## 4. Numbers that were WRONG in this repo and are now corrected
 
-**SEQUENCE IS FIXED: R3 (ladder #2) -> R2 (retrain). Both happen.**
+- **"R1 ran 217 s/battle" is wrong.** It divides a session-scoped
+  `wall_clock_sec` (43464.6 s, covering 180 battles) by a cumulative
+  `battles_total` (200). True rate off the JSONL `finished_at` deltas is
+  **246.5**. Never divide those two fields.
+- **R1's band table sums to 194 of 200.** The six missing battles are exactly
+  the six where the JSONL `opponent_rating` is None — the table was built from
+  the ADVISORY column instead of the replays, which carry 200/200.
+- **Auto-tie counts, from each arm's own tallies:** search 4/5/8 per 1000,
+  greedy 1/0/0. RS80 re-confirms at n=3000: 12 ties, 0.4%.
 
-- **R3 NEXT, as soon as RS80 lands.** Ladder the re-scored search object,
-  ~200 rated battles, one night, per `configs/eval/ladder_r1.yaml`'s protocol
-  (run with `scripts/ladder.py`; `scripts/score_ladder.py` is a Connect-4-era false
-  friend). Use a FRESH account/username — do not reuse `nickgen1rbrlbot`, or
-  the new rating is contaminated by the old object's history.
-  **SET EXPECTATIONS IN THE READOUT: top-500 needs Elo 1357 and we sit at an
-  implied true ~1232 (we score 0.340 against the 1300-1400 band). Search
-  buying +0.058 off Foul Play will NOT close ~125 Elo.** R3 MEASURES the
-  improvement; it is not an attempt on the list. **Breaking top-500 is A
-  goal, not the end goal** — the maintainer said so explicitly.
-- **R2 RETRAIN IS COMMITTED, NOT CONDITIONAL.** It follows R3 regardless of
-  what R3 reads. Do not re-litigate whether to train.
-- **A-BR-1 (4th 50M lane, ~12.5 h)** — RECOMMEND **NO** standalone; it folds
-  into R2's seed count. Still the maintainer's call.
-- **A-BR-5**: CHAPTER5 §1 says ONE (proxy, ladder) pair. C0 now makes that
-  exactly one, so the sentence may finally be TRUE — re-read before editing.
+## 5. What is next, in order
 
-## 5. THE R2 LEVER — batch size, and the one thing that needs ruling
+1. **Rule on D1-D6**, then launch R3 per the file's own launch gates (LG-1 is
+   already satisfied: RS80 landed clean).
+2. **R2 retrain — COMMITTED, NOT CONDITIONAL.** The batch-lever ruling is
+   still owed: the R1-A branch table routes to **C2 (more lanes, first-class)**
+   while batch is an assistant **§3b A4** addition that competes but may not
+   displace a C-item without your explicit call. Recommended shape is in the
+   previous handoff and unchanged: drop the scale question for the chapter
+   (permitted verbatim), spend R2 on batch at ~1,000 episodes/update, 3 new
+   50M lanes, banked s80/s81/s82 as a free control.
+3. **Scale only after checking sigma_seed shrank below 0.0617.** If it did
+   not, scale is still unmeasurable at k=3 and you would be buying an answer
+   you cannot read. Decide before buying, not at readout.
+4. `CLEANUP.md` rulings.
 
-Maintainer asked whether the retrain uses the batch lever. **Assistant
-recommends YES**, and R1 strengthened the case from "H&L did it" to evidence
-from our own fleet:
+## 6. Do not
 
-- H&L consume **15,360 episodes per update**; we consume **~34** (rollout 128
-  x 8 envs = 1024 steps at ~30 decisions/episode). ~450x, regimes inverted.
-- **R1-A measured sigma_seed = 0.0617 across the 50M fleet, one lane 0.10
-  below its siblings. Noise-dominated updates are the textbook cause of
-  exactly that.** So the pathology A4 targets is one we have now MEASURED,
-  not one we imported.
-
-**THE RULING THAT IS OWED, and it is a real conflict:** R1-A routed to
-WITHIN x NON-RESOLVING, whose pre-registered action is *"stop buying battles,
-and either buy LANES or drop the scale question for the chapter."* Buying
-lanes is **C2**, a FIRST-CLASS maintainer lever. Batch is **A4**, an
-assistant §3b addition that COMPETES but may not displace a C-item without an
-explicit ruling. More seeds treats the symptom; bigger batches treat the
-cause.
-
-**RECOMMENDED SHAPE:** take the branch table's SECOND option — explicitly
-DROP the scale question for the chapter (permitted verbatim) — and spend R2
-on batch: **3 new 50M lanes at ~1,000 episodes/update, with the banked
-s80/s81/s82 as a FREE control.** ~37.4 h wall / ~4.6 lane-days; the control
-costs nothing. It is a clean one-lever test AND incidentally delivers the
-three extra lanes C2 wanted.
-
-**BOUNDS AND CONFOUNDS, so neither is discovered late:**
-- At the 50M ceiling the dose is bounded. Copying H&L's 15,360 leaves **109
-  updates** and PPO will not learn in 109. **~1,000 episodes/update is the
-  reachable dose**: ~1,630 updates, still 3x more than H&L used at all (500),
-  closing ~30x of the ~450x gap. Mechanically `rollout_steps 128 -> ~3840` at
-  `num_envs 8`; keep `minibatches: 4` (lands ~7,680, near H&L's vbatch 8192).
-- **CHANGE BATCH ALONE.** H&L's `gamma 0.95` + dense shaping + return-balanced
-  both-seat batches are COUPLED; our own shaping arm read NULL. Copying the
-  recipe piecemeal is not the test.
-- **UNTESTED:** at fixed total steps this trades update COUNT for update
-  QUALITY and nothing here has measured which side binds.
-- Seeds 66/67, 75/76, 83/84, 93/94 are HELD and available; lanes MUST use
-  distinct seeds or they collide on Showdown usernames.
-- Full detail: `CHAPTER5.md` §3b A4, and `prior_work/README.md`'s H&L entry.
-
-## 6. Amendments to a RATIFIED pre-reg, all disclosed in its banner
-
-r7 added `dose: M` to the B arms (they were unlaunchable without it).
-r8 added the `RS80` re-score arm. Both are transcriptions of values the file
-already pre-registered in prose, not new choices. **`prereg_sha256` differs
-across arms: `80245bbd` (A80/A81/A82/CE3) → r7 → r8.** Nothing else moved.
-
-## 7. THE RATIFIED FOUR-STEP PLAN (maintainer, 2026-08-27)
-
-1. **Ladder now** with what we have (R3, the re-scored search object).
-2. **Retrain on BATCH — not scale.** 50M stays the chapter ceiling.
-3. **Check offline results, then perhaps ladder that.** NOT optional extras:
-   a headline-grade result owes the **ANCHOR BATTERY** before any README row —
-   vs-SH (locked protocol, 3000/seed, the credit line) PLUS BC-clone h2h PLUS
-   Foul Play h2h, anchors descriptive and never verdict inputs. And **FP@20 is
-   an INSTRUMENT, not a rung**: a fleet that beats FP@20 next faces **FP@100**
-   on `configs/eval/fp_budget_ladder.yaml`, then FP@500.
-4. **Then scale — TWO FLAGS, both raised 2026-08-27 and neither resolved.**
-   - **(a) IT LEAVES CHAPTER 5.** 50M is the RATIFIED hard ceiling (§7.4).
-     Going past it opens a new chapter and needs an explicit ruling; it is not
-     a next step inside the current plan.
-   - **(b) THE REASON IT MAKES SENSE IS STRONGER THAN "batch worked, stack
-     scale on it" — AND IT COMES WITH A PRE-COMMITTED SUCCESS CRITERION.**
-     R1-A did NOT find that scale fails; it found the scale question is
-     **currently UNANSWERABLE**: effect 0.011 against a bar of **0.0717**,
-     because sigma_seed = 0.0617 at k=3. More battles cannot fix that — the
-     clustered term contains no n. **So if batch shrinks sigma_seed, the scale
-     question becomes measurable FOR THE FIRST TIME, which makes batch a
-     PREREQUISITE for a meaningful scale test rather than a gain to compound.**
-     **CHECK THIS BEFORE BUYING SCALE: compute sigma_seed across the
-     batch-trained fleet and compare against 0.0617. If it did not shrink,
-     scale is STILL unmeasurable at k=3 and you would be buying an answer you
-     cannot read.** Decide this in advance, not at readout — the D25-P lesson.
-
-## 8. Do NOT, while anything runs
-
-Edit `configs/eval/ch5_r1_offsh.yaml`, `scripts/ch3_r4_fp_runner.sh` or
-`scripts/ch3_fp_h2h.py` — runner and seat are invoked FRESH PER ARM.
-Docs and `scripts/ch5_r1_grade.py` are safe.
-
-## 9. Open, unchanged
-
-`CLEANUP.md` needs rulings. **main is UNPUSHED — ask before pushing.**
+- Quote 0.4470. It is a selection score (Q6).
+- Set RS80's 0.4390 beside the 12M search cell 0.79283, or read it as vs-SH.
+- Run the readout scripts bare — all three default to R1's paths AND R1's
+  account name and will emit a normal-looking readout OF R1.
+- Launch R3 before D1-D6 are ruled.

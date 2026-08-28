@@ -8526,3 +8526,47 @@ entry by offset — never a broad keyword grep.
   contaminates the new rating with L2's history, and VOID (d) bars an
   unregistered name) plus `PS_PASSWORD`. And the R2 lever ruling (batch A4 vs
   C2 lanes) from the previous handoff is still owed.
+
+- 2026-08-28 (00:55Z, `RS80` LANDED CLEAN — maintainer: "land the result, do
+  the all updates you need to do, then write handoff.md"): **THE MANDATORY
+  FRESH RE-SCORE IS IN AND IT CAME IN BELOW THE SELECTION SCORE, WHICH IS
+  EXACTLY WHY Q6 EXISTS.** CH5 R1 is now COMPLETE END TO END: ten graded arms,
+  **ZERO VOIDS**, G2 exact on every one, G-SERIAL clean over 18 username pairs.
+  **THE PUBLISHABLE NUMBER: search@M on s80, off Foul Play@20, n=3000 ->
+  `0.4390`** (1317-1671-12; ties counted in the denominator as non-wins).
+  Wall clock 8754.9 s = 2.43 h, 2.92 s/battle, mean_turns **37.015**,
+  mask_desyncs 0, `max_concurrent_live_battles` 1, all challenges resolved.
+  Search instrumentation: 124,583 decisions of which 113,702 searched (91.3%),
+  `search/ms_mean` 65.78, `search/leaves_mean` 322.79 against the node_cap of
+  1500 — 4.6x headroom, and ZERO watchdog raises across 113,702 searched
+  decisions. `prereg_sha256` 914516ba (r8). All eight gates PASS.
+  **THE SELECTION SCORE WAS 0.4470 AT n=1000; THE FRESH RE-SCORE IS 0.4390,
+  i.e. −0.0080 — THE WINNER'S-CURSE DIRECTION.** R1-B's object was chosen as
+  the argmax of five candidates, so its selection score was optimistically
+  biased by construction; the deployment rule's own m=5 winner's-curse
+  adjustment predicted +0.0175 of shrinkage on the CHALLENGER-MINUS-INCUMBENT
+  delta and the realised shrinkage on the raw score is about half that.
+  **Had we published 0.4470 we would have overstated the object.** Q6 earned
+  its place tonight; record that it did.
+  **AGAINST THE INCUMBENT: RS80 0.4390 vs C0/L2 0.3893 = +0.0497**, binomial
+  se_diff 0.0127, **3.9 se**. **DESCRIPTIVE — R1 CREDITS NOTHING** and this is
+  not a credit-line result; it is the pre-registered `r3_deployment_rule`
+  comparison, which asks only whether the challenger clears the incumbent by
+  the +0.025 replacement threshold. It does, on a FRESH score rather than a
+  selected one. **THE R3 DEPLOYMENT OBJECT STANDS: search@M on lane s80.**
+  **THE CEILING IS UNMOVED AND MUST TRAVEL WITH THE NUMBER:** this licenses
+  search as an R3 DEPLOYMENT CANDIDATE and nothing else. It does NOT reverse
+  MU-8 (z = −2.80), it is not a vs-SH number, and it is never set beside the
+  12M search cell (0.79283). **NAME THE BUDGET IN EVERY QUOTE — this is
+  FP@20**, and the two standing FP@20 disclosures still apply: the equivalence
+  test behind it is weakly powered, and the point estimate has FP@20
+  marginally weaker than FP@100, which is the direction that flatters us.
+  **MEAN TURNS 37.015 CONFIRMS THE R3 SCHEDULE INPUT** at n=3000 rather than
+  n=1000 (B80 read 36.824), so the ~16-19 h projection in `ladder_r3.yaml`
+  stands on the larger sample. **AND IT RE-CONFIRMS THE AUTO-TIE TAIL: 12 ties
+  in 3000 = 0.4%**, against greedy's 1/0/0 per 1000. At R3's n=200 that still
+  predicts ~1 thousand-turn game.
+  **ANCHOR STATE UNCHANGED AND STILL ONE OF THREE.** RS80 supplies the Foul
+  Play column for search-on-s80. vs-SH at the locked protocol and BC-clone
+  h2h **DO NOT EXIST** for search on any 50M lane; 0.79283 and 0.860 are both
+  12M. That gap does not block R3 but is `<< MAINTAINER 4 >>` for a README row.
