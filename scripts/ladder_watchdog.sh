@@ -40,7 +40,14 @@ while true; do
   if [ "$n" -gt "$last" ]; then last=$n; last_t=$now; continue; fi
   idle=$(( now - last_t ))
   [ "$idle" -lt "$STALL" ] && continue
-  if lsof -p "$pid" -iTCP -sTCP:ESTABLISHED -n -P 2>/dev/null | grep -q ESTABLISHED; then
+  # ** THE `-a` IS LOAD-BEARING. ** lsof combines its selection flags with a
+  # logical OR by default, so `lsof -p PID -iTCP` means "this PID *OR* any
+  # internet socket" and happily returns Chrome's connections. Measured
+  # 2026-08-27: the first version of this line matched 29 ESTABLISHED sockets
+  # for a runner that had NONE, so the watchdog reported a hung seat as a long
+  # game and sat out a 35-minute stall -- the exact failure it exists to catch.
+  # `-a` ANDs them: 29 matches -> 0.
+  if lsof -a -p "$pid" -iTCP -sTCP:ESTABLISHED -n -P 2>/dev/null | grep -q ESTABLISHED; then
     echo "WATCHDOG: ${idle}s with no battle at n=$n, but the socket is ESTABLISHED — a long game or matchmaking, NOT a hang. Leaving it." | tee -a "$LOG"
     last_t=$now
   else

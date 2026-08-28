@@ -446,6 +446,21 @@ class LadderPlayer(Player):
         # a config value.
         # HONEST LIMIT, carried from the pre-reg: the deadlock is UNMEASURED
         # on the ladder path. This is reasoning from mechanism.
+        # PING BUDGET. poke-env defaults to ping_interval=20 / ping_timeout=20,
+        # so twenty seconds without a pong closes the socket -- and because
+        # `listen()` does not reconnect, that ENDS THE RUN. Measured on R3:
+        # two `keepalive ping timeout` drops inside forty minutes on a link
+        # that curl finds healthy (profile endpoint, HTTP 200 in 0.10 s).
+        # THE COST OF A DROP IS NOT JUST WALL CLOCK: if it lands mid-battle the
+        # server times that game out, so a flaky link silently converts real
+        # rated games into forfeits and contaminates the rating this run
+        # exists to measure. A longer budget trades slower detection of a
+        # genuinely dead peer for far fewer spurious closes, which is the
+        # right trade here because the watchdog detects a dead seat by SOCKET
+        # STATE rather than by waiting for poke-env to notice.
+        kwargs.setdefault("ping_interval", 60.0)
+        kwargs.setdefault("ping_timeout", 120.0)
+        kwargs.setdefault("open_timeout", 60.0)
         super().__init__(
             battle_format=BATTLE_FORMAT, max_concurrent_battles=2, **kwargs
         )
