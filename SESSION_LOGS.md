@@ -8815,3 +8815,74 @@ entry by offset — never a broad keyword grep.
   scale the COUNT (otherwise batch size, minibatch size and effective
   LR-per-step all move at once), and treat KL early-stopping as a
   pre-registered tripwire, never a lever.
+
+- 2026-08-28 (02:25Z / 22:10 EDT, **LADDER R3 CRASHED AT n=10 AND IS RUNNING
+  AGAIN AT n=11+ UNDER A SUPERVISOR AND A WATCHDOG. THREE DEFECTS FOUND, ONE OF
+  THEM A G-BLIND LEAK THAT IS DISCLOSED RATHER THAN FIXED AWAY**):
+  **THE CRASH. `websockets.exceptions.ConnectionClosedError: sent 1011
+  (internal error) keepalive ping timeout; no close frame received` after
+  battle 10. THE IMPORTANT PART IS WHAT poke-env DOES NEXT, WHICH IS NOTHING:**
+  `ps_client.listen()` wraps its whole `async for message in websocket` loop in
+  `except Exception as e: self.logger.exception(e)` and then **RETURNS. There
+  is no reconnect.** The process stayed ALIVE with **no TCP connection at all**
+  (confirmed by `lsof`), hung forever on `await player.ladder(1)` at **0.0%
+  CPU**. **THAT IS THE SAME SYMPTOM AS THE poke-env DEADLOCK BI-6 CLOSED AND A
+  COMPLETELY DIFFERENT BUG** — do not confuse them; BI-6 is a full
+  `_battle_count_queue`, this is a dead socket nobody re-opens.
+  **NO RATED GAME WAS LOST, AND THIS WAS CHECKED BEFORE ANYTHING WAS KILLED.**
+  The popup 42 s before the drop — *"you tried to send /choose move psychic to
+  the room battle-gen1randombattle-2671687236 but it failed because you were
+  not in that room"* — names the room of battle **10, which was already
+  finished, WON, and replayed to disk**. So the seat was BETWEEN battles, there
+  was nothing in flight to forfeit and no stale live room to be handed on
+  relaunch. All 10 battles are in the JSONL with replays.
+  **DEFECT 1 -> `scripts/ladder_supervise.sh`.** `--battles` is cumulative and
+  the JSONL is the truth on resume, so relaunching with the SAME target was
+  already the correct recovery (CLAUDE.md rule 4 (ii)); the script just does it
+  automatically. **It is NOT the retry loop CLAUDE.md warns about:** every
+  attempt is checked for PROGRESS against the JSONL, a no-progress attempt
+  backs off 600 s and five consecutive ones ABORT, and the pre-registered stop
+  stays the runner's to declare.
+  **DEFECT 2 -> `scripts/ladder_watchdog.sh`, AND IT IS THE ONE THAT ACTUALLY
+  MATTERED. A SUPERVISOR ALONE DOES NOT SURVIVE THE FAILURE IT WAS WRITTEN
+  FOR**, because it only acts when its child EXITS and this child hangs
+  forever. The watchdog kills a stalled runner so the supervisor can relaunch.
+  **THE TEST IS THE SOCKET, NOT THE CLOCK, AND THAT IS THE WHOLE DESIGN:** "no
+  battle for N minutes" cannot tell a hang from the **turn-1000 auto-tie**,
+  which is a REAL game running for hours that search arms hit far more often
+  (4/5/8 per 1000 vs greedy's 1/0/0) — killing one forfeits a live rated game.
+  So a stall counts as a hang **only when the runner ALSO has no ESTABLISHED
+  TCP connection**: socket up means matchmaking or a long game and it is left
+  alone however long; socket gone means nothing is in flight and nothing can be
+  forfeited.
+  **DEFECT 3 -> STDOUT WAS BLOCK-BUFFERED AND IT COST THE DIAGNOSIS.** Python
+  block-buffers stdout to a FILE, and the only `flush=True` print is the
+  per-battle one, so a seat that hangs BEFORE its first battle writes **nothing
+  at all**. The first relaunch sat with an EMPTY log for 10 minutes and the
+  diagnosis had to come from `lsof`. **This also silently defeats LG-6, which
+  requires READING the startup lines.** `PYTHONUNBUFFERED=1` is now set in the
+  supervisor.
+  **G-BLIND LEAK — DISCLOSED, NOT SWALLOWED. THE RATING WAS OBSERVED AT n=10:
+  GXE 56.4, Glicko-1 1550 +/- 85, Elo 1082.** Cause: `ladder.py` prints the
+  startup rating snapshot on every launch. On a FRESH start that prints "none
+  yet" and is the VOID (f) check working. **On a RESUME the account
+  legitimately HAS a rating, so the same line dumps the PRIMARY READ into the
+  run log** — and a run that crashes ten times prints it ten times.
+  **ASSESSMENT: this does NOT void the read.** The stopping rule is MECHANICAL
+  (rd <= 40 AND n >= 200), evaluated in code, and cannot fire before n=200;
+  nothing about seeing 1082 at n=10 can influence it, and no stopping decision
+  was taken on it. But G-BLIND's own discipline is that operational events are
+  logged with cause and battle index, so it is recorded here as a **BLIND
+  BREACH AT BATTLE 10, CAUSE: CRASH-RESUME**, and the readout must repeat it.
+  **FIXED FORWARD:** the resume branch now suppresses the values, and the
+  check's MEANING is inverted with it — a fresh start wants NO rating (an
+  existing one means the wrong account), a resume wants one to EXIST (its
+  absence means the wrong account or lost history), so the resume branch
+  asserts presence and warns loudly if it is missing.
+  **ONE THING REMAINS UNEXPLAINED AND IS RECORDED AS SUCH.** The first relaunch
+  (22:12) came up with **no socket at all** and hung for ~11 minutes before it
+  was killed; the second (22:23) connected immediately and resumed. The likely
+  cause is the server still holding the session from the killed process — the
+  same class as CLAUDE.md's "killing an arm mid-battle poisons its username
+  pair" landmine, here surviving a clean SIGTERM. **If a relaunch comes up with
+  no ESTABLISHED socket, WAIT rather than hammer it.**

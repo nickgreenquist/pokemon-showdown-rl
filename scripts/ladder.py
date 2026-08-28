@@ -664,7 +664,31 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
           f"-> {remaining} battles")
     # Print whenever a rating EXISTS — gating this on `listed` is the same
     # leaderboard-vs-profile error that cost R1 its primary read.
-    if before.get("rd") is not None:
+    #
+    # ** BUT NOT ON A RESUME, AND THIS IS A G-BLIND FIX. ** Measured
+    # 2026-08-27 during R3's crash-resume at n=10: on a FRESH start this block
+    # prints "none yet", which is the VOID (f) check working as designed. On a
+    # RESUME the account legitimately HAS a rating, so the same line dumps
+    # GXE / Glicko / Elo into the run log — the exact primary read the
+    # pre-reg's G-BLIND says not to look at before the n floor. A run that
+    # crashes and resumes ten times would print it ten times, and every
+    # operator reading the log to check the run is alive sees it.
+    #
+    # The check's MEANING also inverts on resume: a fresh start wants NO
+    # rating (an existing one means the wrong account), while a resume wants
+    # one to EXIST (its absence means the wrong account or lost history). So
+    # the resume branch asserts presence and suppresses the values.
+    resuming = bool(done)
+    if resuming:
+        if before.get("rd") is not None:
+            print("  starting rating: PRESENT, values suppressed (G-BLIND — "
+                  "this is a resume; the rating is the primary read and is "
+                  "not looked at before the n floor)")
+        elif before.get("profile_ok") and before.get("rated") is False:
+            print("  !! RESUME WARNING: this account has NO rated games but "
+                  f"{len(done)} battles are on file. Wrong account, or the "
+                  "history was lost. STOP and check before continuing.")
+    elif before.get("rd") is not None:
         print(f"  starting rating ({before.get('rating_source')}): "
               f"GXE {before.get('gxe')} "
               f"Glicko-1 {before['r']:.0f} +/- {before['rd']:.0f} "
