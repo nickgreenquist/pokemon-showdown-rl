@@ -154,3 +154,32 @@ distinct live tools, not duplicates; repo root has no strays;
 `configs/showdown_sp_actpred12m.yaml.c4prereg` is a deliberate
 unlaunchable pre-reg record (invisible to `*.yaml` globs — remember it
 exists).
+
+## D. Structure (maintainer question 2026-08-28: "is the repo structure good?")
+
+Assessment: the LIVE-doc protocol is good and must not be touched (STATUS's
+60-line cap + rewrite-in-place; SESSION_LOGS append-only + grep-index;
+HANDOFF stub contract; pre-regs in config headers WITH TESTS — the best
+structural idea here). What rots is every free-form essay with no consumer
+and no cap: DESIGN, DESIGN2, RESEARCH_BRIEF, CHAPTER5 all decayed in place,
+compensated by hand-written trap warnings in CLAUDE.md that themselves
+drift (twice in this sweep). Root = 16 .md / ~15k lines; only ~7 are live;
+naming/location distinguish nothing.
+
+Ideas for the cleaning session (same disclaimer as the header):
+- `docs/archive/` for spent docs (DESIGN, DESIGN2, RESEARCH_BRIEF,
+  REPLAY_AUDIT; CHAPTER5 once §3/§6/§7 migrate into R2's pre-reg header).
+  The MOVE is the supersession marker (one tombstone line each); CLAUDE.md's
+  per-file trap warnings collapse to one rule: anything under docs/archive
+  is history, never "what next". git mv keeps history; budget a link pass.
+- `readouts/` for LADDER_*_READOUT.md — committed provenance for gitignored
+  data, one per run, will accumulate (R4 foreseeable).
+- ONE cleanup ledger: fold CLEANUP.md and this file together.
+- Root keeps only the always-live set: README, CLAUDE, STATUS, HANDOFF,
+  SESSION_LOGS(+predecessor, or archive it), RESULTS, current chapter.
+- Direction, already proven by the pre-regs: when doc content has a natural
+  artifact to live beside (config/script/test), migrate it there and delete
+  the essay — CHAPTER5's own lifecycle rule, just unexecuted.
+- Counterpoint, honestly: with CLAUDE.md as index, flatness is survivable;
+  the defect is LIFECYCLE. Moving files is merely the cheapest lifecycle
+  marker that cannot drift.
