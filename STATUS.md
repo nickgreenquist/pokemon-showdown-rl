@@ -2,59 +2,59 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## Where things stand (2026-08-28) — **CH5 R1 COMPLETE END TO END: TEN graded
-arms, ZERO VOIDS, G2 exact, G-SERIAL clean. `RS80` LANDED: the publishable
-re-score is 0.4390.** Also fixed two live ladder-runner defects and landed
-**`configs/eval/ladder_r3.yaml` as a DRAFT with 6 open decisions. HANDOFF.md
-is non-empty — read it first.** Pure self-play; THE NOVELTY IS THE LANE.
-CH3 + CH4-R1 CLOSED. **NOTHING IS RUNNING.**
+## Where things stand (2026-08-28) — **LADDER R3 IS RUNNING.** One continuous
+run to n=200, search@M on lane s80, account `nickgen1rbrlbot2`, launched
+2026-08-27 evening EDT, ETA **16-19 h + a 1-2 h auto-tie tail**. All six R3
+rulings taken, `configs/eval/ladder_r3.yaml` **RATIFIED**, BI-1/2/3/5/6
+landed, BI-4 waived with fallback, **all seven launch gates passed.**
+CH5 R1 CLOSED (ten arms, zero VOIDs). Pure self-play; THE NOVELTY IS THE LANE.
+
+## DO NOT KILL THE R3 RUN
+Killing mid-battle **forfeits a live rated game against a human** and
+contaminates the rating R3 exists to measure. Unlike a poisoned local room it
+**cannot be undone** by waiting or restarting a server. If it must stop, that
+is an operational abort under G-BLIND (4): log the cause AND the battle index.
+If the process dies on its own, relaunch with the **same `--battles 200`** —
+the JSONL is the truth and a death costs one battle, not the run.
+
+## Watching it
+- `tail -f results/ladder/R3S.run.log` — one line per battle with a running W/n.
+- **`s/battle` is the only honest progress signal**; a wall-clock ETA is not
+  progress. Band **[250, 400]**, expect ~283-322. A 10x discrepancy = stalled.
+- **G-BLIND: do NOT open the profile, replay list or board before n=200** — an
+  honour-system blind. After it finishes: `bash scripts/backup_ladder.sh`.
 
 ## Results | D26 12M **0.71825** vs SH · R0 ensemble 0.74633 · R2 search@M
 0.79283 (**12M lanes**) · **LADDER R1: GXE 59.6%, Glicko-1 1573+/-27, Elo
-1292, n=200** · **R1 off FP@20 — greedy s80/s81/s82 0.3960/0.3430/0.2730 ·
-search@M 0.4470/0.4470/0.4210 · C0(L2) 0.3893 · CE3 0.3623 · CE7 0.3827 ·
-**RS80 (fresh, n=3000, PUBLISHABLE) 0.4390.** Ties=loss. **R1 CREDITS
-NOTHING.**
+1292, n=200** · R1 off FP@20 — greedy s80/s81/s82 0.3960/0.3430/0.2730 ·
+search@M 0.4470/0.4470/0.4210 · C0(L2) 0.3893 · **RS80 (fresh, n=3000,
+PUBLISHABLE) 0.4390.** Ties=loss. **R1 CREDITS NOTHING.**
 
-## R1's answers (full detail in SESSION_LOGS 2026-08-27)
-- **R1-A PRIMARY:** s82's collapse REPRODUCES off-FP, +0.0965 vs bar 0.0369 =
-  **5.2 se** — a genuinely bad seed, not an SH artifact.
-- **R1-A FLEET: WITHIN x NON-RESOLVING**, −0.0113 vs a REALIZED bar of
-  **0.0717**. Buy LANES or drop the scale question. **"flat" is BARRED.**
-- **R1-B: SEARCH HELPS**, within-lane +0.1010, bar 0.0561, 3.6 se. **CEILING:
-  R3 DEPLOYMENT CANDIDATE ONLY; does NOT reverse MU-8 (z=−2.80); never set
-  beside the 12M cell.** **R1-C NOT DELIVERED**; L2 holds.
-- **RS80: 0.4390 fresh vs the 0.4470 SELECTION score — the winner's-curse
-  direction. Q6 earned its place; 0.4470 would have overstated it.** vs C0
-  0.3893 = **+0.0497 (3.9 se, descriptive)**, clearing the +0.025 replacement
-  threshold on a fresh score. **R3 object stands: search@M on s80.**
-
-## Landed tonight (committed + pushed)
-- **`ladder.py` read the rating off the LEADERBOARD (top-500 only).** R1 ran
-  unlisted so its rule could never fire — **while it sat at rd 26.6 / n 200,
-  SATISFIED.** Two tests PINNED the bug. Now reads the USER PROFILE. Same
-  class fixed in the readout (pre-battle "Elo 1311" emitted as final).
-- **`PS_USERNAME` silently overrode the pre-registered account name** — a
-  stale export would have laddered R3 on R1's account. **Config wins now.**
-- **R3 pre-reg DRAFT** (2-Opus cycle; every claim re-verified against source).
+## The six rulings (full record in `ladder_r3.yaml: ratified_decisions`)
+- **D1 ONE CONTINUOUS RUN, unattended.** The draft called this inadmissible on
+  R1's moderator-contact commitment. **R1 ITSELF RAN UNATTENDED OVERNIGHT**
+  (SESSION_LOGS 2026-08-26) — a new stricter position dressed as the standing
+  rule, declined. It is also *better*: a per-session `--battles` target is not
+  among G-BLIND's four licensed stops, so two sessions would have tripped VOID
+  (g) or forced a launch-night amendment.
+- **D2** sequential 2nd account inside the line; **a THIRD requires a courtesy
+  note to PS staff** (pre-committed). **D3** BI-6 **and** BI-5 landed — the
+  poke-env deadlock became load-bearing *because* D1 went unattended.
+- **D4 DEFERRED TO READOUT** (unclosable before launch — anchors contend for
+  CPU). **D5** ratified verbatim. **D6** search reversal on the record.
 
 ## Next actions
-1. **R3 needs 6 rulings** — `ladder_r3.yaml` `open_decisions`. Biggest is
-   **D1: it is NOT one night**, 200 battles = **16-19 h** (+1-2 h auto-tie
-   tail); recommend two sessions of ~100. `nickgen1rbrlbot2` registered,
-   `.env` set.
-2. **R2 retrain is COMMITTED, not optional.** Batch ruling owed (branch table
-   routes to C2; batch is §3b A4). Then `CLEANUP.md` rulings.
+1. **Read R3 out when it stops** — pass every flag; the three readout scripts
+   default to R1's paths AND R1's name. BI-4 (band table) is owed first.
+2. Then **D4's anchors** (~2.7 h) before any R3 README row.
+3. **R2 retrain is COMMITTED, not optional.** Batch ruling still owed (branch
+   table routes to C2; batch is §3b A4). Then `CLEANUP.md` rulings.
 
 ## Watch items
-- **R1's "217 s/battle" IS WRONG** (session-scoped numerator over cumulative
-  denominator). True **246.5**, from the JSONL `finished_at` deltas.
-- **`ladder.py` is still `max_concurrent_battles=1`** while the FP seat went
-  to 2 to close a poke-env deadlock its fix comment says SEARCH is exposed to.
-  On a rated ladder that hang forfeits a live game. `<< MAINTAINER 3 >>`.
 - **R3's object has ONE of three anchors**: vs-SH and BC-clone DO NOT EXIST
   for search on a 50M lane (0.79283/0.860 are 12M). RS80 gives FP@20 only.
-- **Ladder readout scripts default to R1's paths AND name**: run bare they
-  emit a normal-looking readout OF R1. Pass every flag.
-- **NEVER re-run a killed arm IMMEDIATELY** — poisoned Showdown room. **LADDER
-  DATA IS UNREPEATABLE AND GITIGNORED** (3 copies; R3 shares R1's root).
+- **Never quote an R1-vs-R3 delta as an effect** (D5); never set RS80's 0.4390
+  beside the 12M cell 0.79283 or read it as vs-SH. Name the budget: FP@20.
+- **R1's "217 s/battle" IS WRONG.** True **246.5**, from `finished_at` deltas.
+- **LADDER DATA IS UNREPEATABLE AND GITIGNORED** (3 copies; R3 shares R1's root
+  for exactly that reason). **NEVER re-run a killed arm IMMEDIATELY.**

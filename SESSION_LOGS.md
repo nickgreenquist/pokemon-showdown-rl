@@ -8570,3 +8570,76 @@ entry by offset — never a broad keyword grep.
   Play column for search-on-s80. vs-SH at the locked protocol and BC-clone
   h2h **DO NOT EXIST** for search on any 50M lane; 0.79283 and 0.860 are both
   12M. That gap does not block R3 but is `<< MAINTAINER 4 >>` for a README row.
+
+- 2026-08-28 (01:15Z / 2026-08-27 ~21:15 EDT, maintainer: "handoff.md - take
+  it. i want to start the ladder before i go to sleep, so let's focus on that
+  (push back if there are blocking items)"): **ALL SIX R3 RULINGS TAKEN,
+  `ladder_r3.yaml` RATIFIED, FIVE OF SIX BUILD ITEMS LANDED, ALL SEVEN LAUNCH
+  GATES PASSED, AND LADDER R3 IS RUNNING** as ONE continuous run to n=200 on
+  `nickgen1rbrlbot2`.
+  **THE PUSHBACK THAT MATTERED WAS AGAINST THIS REPO'S OWN DRAFT, NOT AGAINST
+  THE MAINTAINER.** The draft called a ~17 h unattended run "inadmissible"
+  because R1's etiquette block commits us to stopping on moderator contact,
+  and made that the blocking objection to launching before sleep.
+  **THE CLAIM DID NOT SURVIVE ONE GREP: R1 ITSELF RAN UNATTENDED OVERNIGHT** —
+  SESSION_LOGS 2026-08-26 records "the run reached 176 battles / 193 replays
+  overnight". So "inadmissible" was a NEW and stricter position introduced by
+  the draft author and presented as if it were the standing rule. Surfaced on
+  exactly those terms and **DECLINED**. Generalisable: a pre-reg written by an
+  agent can quietly promote its own preference to a project commitment, and
+  the check is to verify the commitment against what was actually DONE.
+  **AND ONE CONTINUOUS RUN IS BETTER ON THE MERITS THAN THE TWO SESSIONS THE
+  DRAFT PREFERRED, WHICH THE DRAFT DID NOT NOTICE.** G-BLIND licenses exactly
+  four stops and **a pre-declared per-session `--battles` target is not one of
+  them**, so the two-session plan would have ended session 1 for an unlicensed
+  reason and tripped VOID (g) as written — or forced an amendment to the
+  stopping section on the night of launch. One run also avoids a resume seam
+  and a second calendar day of pool drift.
+  **THE SIX RULINGS.** D1 -> one continuous run to n=200, unattended (above).
+  D2 -> draft adopted: a sequential second account is inside R1's "multiple
+  accounts" line, the second and last time without a courtesy note; a THIRD
+  rated account requires one, pre-committed with the number in it. D3 -> BI-6
+  **and** BI-5 (below). D4 -> DEFERRED TO READOUT, and it could not have been
+  closed tonight under any answer, because both missing anchors need the local
+  server and contend for CPU with a live rated game. D5 -> ratified verbatim,
+  including that "+N Elo from search" is given up rather than manufactured.
+  D6 -> the search reversal confirmed knowingly, MU-8's z = -2.80 intact.
+  **D1 AND D3 ARE NOT INDEPENDENT, AND THAT IS WHY D3 WENT THE WAY IT DID.**
+  Ruling D1 toward unattended is what turned the poke-env deadlock from
+  precautionary into load-bearing: a silent 0%-CPU hang now goes unnoticed for
+  hours while a live rated game times out.
+  **BUILD ITEMS.** BI-1 `decisions_this_session` stamped (VOID (b)'s
+  denominator was unreadable; it is PER SESSION, sum before dividing). BI-2
+  `tests/test_ladder.py` parameterised over `configs/eval/ladder_*.yaml` —
+  **it hardcoded `ladder_r1.yaml`, so every pre-reg test was green while
+  checking NOTHING about R3**, including the set-pool pin VOID (c) depends on;
+  two assertions had to be generalised (arm KIND, and `stopping_rule` whole-
+  dict equality, which R3 breaks by adding a documentation-only `source:`
+  key). BI-3 `backup_ladder.sh` now VERIFIES R3S/replays_r3 — the copying
+  always covered R3 (rsync and tar take `results/ladder` wholesale, which is
+  why R3 shares R1's root) but the count check was hardcoded to L2. BI-5
+  `max_concurrent_live_battles` stamped. BI-6 `max_concurrent_battles` 1 -> 2.
+  BI-4 (readout band table) WAIVED FOR LAUNCH with its fallback named — it is
+  a readout instrument and owed before the readout, not before the run.
+  **GATES, ALL SEVEN.** LG-1 RS80 clean (landed earlier). LG-2 66 tests green
+  (was 54; +12 from BI-2's parameterisation and BI-5's tracker test); full
+  suite **613 passed, 17 skipped**. LG-3 VOID (c) upstream half RE-RUN LIVE:
+  both gen1 files byte-identical to upstream master, **0 commits** to
+  `data/random-battles/gen1` since 2026-07-29. LG-4 smoke run TWICE, once
+  before the code changes and once after: kind=search, lane=s80, dose=M, sha
+  `8b6546e2`, obs_dim 828, **mean_decision_ms 81.4 then 87.2** — inside the
+  pre-stated [40,100] band and nowhere near the **6.74 ms greedy tell**, which
+  is the gate that actually mattered. `max_concurrent_live_battles: 1` on the
+  re-smoke, so serial play is now ASSERTED from the artifact rather than read
+  off a config value. LG-5 clean tree, `simulator: 4`, nothing else running.
+  LG-6 read live at launch. LG-7 satisfied.
+  **README.md:117 CORRECTED IN THE RATIFYING COMMIT** — it said "The ladder
+  therefore runs the ensemble, not search"; R3 reverses that, and the
+  reversal now carries its ceiling in the README text itself.
+  **WATCH ITEM FOR THE MORNING: `s/battle` IS THE ONLY HONEST PROGRESS
+  SIGNAL.** Band [250, 400]; a wall-clock ETA is not progress. Expect ~283-322
+  s/battle and ~1 turn-1000 auto-tie worth +1-2 h. **DO NOT `kill` THE RUN** —
+  killing mid-battle forfeits a live rated game against a human, contaminates
+  the rating R3 exists to measure, and cannot be undone by waiting or by
+  restarting a server. An early stop is an operational abort under G-BLIND (4)
+  and gets logged with its cause and battle index.
