@@ -41,7 +41,8 @@ Ties=loss. **Ladders credit nothing.**
    SCALE, not batch. k~24 needed for the +0.025 floor at current sigma_seed.
 4. Around the training: D4 anchors AMENDED to BC-clone h2h on ALL THREE lanes
    (free equalisation replication), cross-play, one R2 arm scored both ways.
-   Then `CLEANUP.md`.
+   Cleanup: `REPO_CLEANUP.md` (2026-08-28 sweep, ideas not a plan — a fresh
+   session does its own audit) + `CLEANUP.md`.
 
 ## Watch items
 - **SEARCH MAY EQUALISE THE LANES** — off FP@20 search-minus-greedy is
