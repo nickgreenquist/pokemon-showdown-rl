@@ -183,3 +183,33 @@ Ideas for the cleaning session (same disclaimer as the header):
 - Counterpoint, honestly: with CLAUDE.md as index, flatness is survivable;
   the defect is LIFECYCLE. Moving files is merely the cheapest lifecycle
   marker that cannot drift.
+
+### D2. The objective, sharpened (maintainer, 2026-08-28): TOKEN COST, not tidiness
+
+Every new session or agent wastes tokens reading things that should be
+archived and only re-read explicitly. Three cost channels, three fixes —
+success metric: "tokens before useful work" and "tokens an agent can waste
+by wandering" both go DOWN.
+
+1. **CLAUDE.md is the only unconditionally-loaded file** (every session,
+   every context-inheriting agent, ~180 dense lines) — and much of it is
+   war-story narrative around few-line rules (the FP ops landmine: ~30
+   lines of incident history for ~4 lines of rule). TOP-VALUE ITEM: diet
+   it to rules-with-one-clause-whys + pointers; move narratives to an
+   on-demand `docs/landmines.md`. Caution: the stories exist because bare
+   rules got violated — keep the one-clause why, cut the incident log.
+2. **Exploratory reads landing on dead docs** (DESIGN 905 lines,
+   predecessor logs 1,939, frozen readouts): `docs/archive/` fixes this
+   MECHANICALLY — default sweeps do not descend, and ONE CLAUDE.md line
+   ("nothing under docs/archive is read unless the maintainer names the
+   file") replaces every per-file trap warning. ~4k lines leave the
+   default surface. (D19 shows the cost is correctness, not just tokens.)
+3. **Agents re-reading the same reference material** (2026-08-28 sweep
+   agents: ~120k/~160k tokens each, mostly reads): structure helps less
+   than briefing discipline — write down the convention: subagent briefs
+   carry explicit file:line ranges; reference material lives in small
+   single-topic files so a targeted read is 50 lines, not 9,000.
+
+The repo already invented the right pattern twice: STATUS's 60-line cap
+and the SESSION_LOGS grep-index are pay-per-use designs. The rot is
+everything that grew outside those two mechanisms.
