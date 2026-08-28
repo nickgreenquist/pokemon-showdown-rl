@@ -9003,3 +9003,23 @@ entry by offset — never a broad keyword grep.
   the wrong run is worse than no disclosure**, and the only reason it was found
   is that the new code was exercised against a COMPLETED run before the one it
   was written for.
+
+- 2026-08-28 (15:05Z, maintainer refines the account ruling): **SCOPE IT BY
+  RUN KIND. ALL ITERATION RUNS SHARE ONE ACCOUNT (`nickgen1rbrlbot`).** A
+  possible FINAL account — fresh, for a long run of many thousands of games —
+  is **DEFERRED, not decided.**
+  **THE SPLIT IS PRINCIPLED AND IT REPAIRS MY OWN ARGUMENT.** I argued against
+  fresh accounts because R1 finished ~60 Elo above equilibrium and still
+  falling at n=200. **That objection is specific to n~200 and DISSOLVES at
+  large n:** a run of thousands of games converges from Elo 1000 on its own, so
+  the fresh-account costs (non-convergence, ~50 games farming the sub-1100
+  band) are amortised to nothing, while its benefit — a number with no
+  inherited history — is exactly what a headline result wants. **So: persistent
+  seat while iterating, where convergence is the binding constraint; fresh seat
+  for a final long run, where it is not.**
+  **CONSEQUENCE FOR THE TRIGGER, AND IT LANDS WELL.** A final fresh account
+  WOULD be the third rated account, so the courtesy note to PS staff falls
+  due exactly there — on the longest, most visible, most persistent-looking
+  run this project would ever do. That is the right place for it, and it means
+  the trigger does not need re-aiming after all: **"third account" and "the
+  final run" now coincide.**
