@@ -8886,3 +8886,46 @@ entry by offset — never a broad keyword grep.
   same class as CLAUDE.md's "killing an arm mid-battle poisons its username
   pair" landmine, here surviving a clean SIGTERM. **If a relaunch comes up with
   no ESTABLISHED socket, WAIT rather than hammer it.**
+
+- 2026-08-28 (03:30Z / 23:30 EDT, **SECOND R3 CRASH IN FORTY MINUTES, AND THE
+  WATCHDOG I HAD JUST WRITTEN MISSED IT BECAUSE OF A BUG IN ITS OWN CHECK**):
+  **`lsof` COMBINES SELECTION FLAGS WITH A LOGICAL *OR*, NOT AND.** So
+  `lsof -p PID -iTCP -sTCP:ESTABLISHED` means *"this PID **OR** any established
+  internet socket"* and cheerfully returns Chrome's connections. **Measured:
+  29 ESTABLISHED matches for a runner that had ZERO.** The watchdog therefore
+  classified a hung seat as "a long game or matchmaking, NOT a hang" and sat
+  out a **35-minute stall — the exact failure it exists to catch.** The fix is
+  one character of flag: `lsof -a -p PID -iTCP -sTCP:ESTABLISHED` -> 0 matches.
+  **GENERAL LANDMINE, WORTH A CLAUDE.md ENTRY: any `lsof -p X -i...` without
+  `-a` is a false positive waiting to happen, and it fails in the REASSURING
+  direction — it reports connectivity that is not there.**
+  **THE SEAT WAS THEN CONFIRMED HUNG BY TWO INDEPENDENT SIGNALS, NOT ONE**, per
+  the G2 discipline: no TCP under `lsof -a`, AND 0.0% CPU sampled three times
+  over fifteen seconds. A single signal would not have been enough to justify
+  killing something that might have been a live rated game.
+  **ROOT CAUSE OF THE DROPS: THE PING BUDGET WAS TOO TIGHT.** poke-env defaults
+  to `ping_interval=20 / ping_timeout=20`, so **twenty seconds without a pong
+  closes the socket** — and since `listen()` never reconnects, that ends the
+  run. The link is NOT down: curl gets HTTP 200 from the profile endpoint in
+  0.10 s and a bare websocket to `wss://sim3.psim.us` connects in 0.10 s and
+  receives `|challstr|`. Raised to `ping_interval=60 / ping_timeout=120 /
+  open_timeout=60` in `LadderPlayer`.
+  **WHY THAT IS A MEASUREMENT FIX AND NOT A THROUGHPUT FIX, WHICH IS THE PART
+  THAT MATTERS: A DROP THAT LANDS MID-BATTLE LETS THE SERVER TIME THAT GAME
+  OUT.** So a flaky link silently converts real rated games into FORFEITS and
+  contaminates the very rating R3 exists to measure. Crash 1 was verified to
+  have happened BETWEEN battles (no loss); crash 2's position is not
+  establishable after the fact and **must be assumed to have cost a forfeit.**
+  Slower detection of a genuinely dead peer is the right trade, because the
+  watchdog now finds a dead seat by SOCKET STATE rather than by waiting for
+  poke-env to notice.
+  **RECOVERED AND VERIFIED at 23:29: supervisor attempt 2 resumed from n=16,
+  the seat reconnected (1 established socket under `lsof -a`), and the G-BLIND
+  fix is live — the resume printed "starting rating: PRESENT, values
+  suppressed" instead of the rating.** Supervisor 15251, watchdog 19366,
+  runner 19613.
+  **STANDING WARNING FOR THE READOUT: R3's run log now contains real
+  disconnections.** `game_categories` must be read with that in mind — a
+  `timeout_midgame` in R3 may be OUR socket dying rather than a human
+  abandoning, which is a DIFFERENT thing from R1's six and must not be pooled
+  with them silently. Count supervisor attempts in the readout.
