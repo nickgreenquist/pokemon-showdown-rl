@@ -25,15 +25,36 @@ ARCHIVE="$HOME/pokemon-showdown-rl-ladder-archive"
 mkdir -p "$MIRROR" "$ARCHIVE"
 rsync -a "$SRC/" "$MIRROR/"
 STAMP="$(date +%Y%m%d_%H%M)"
-tar czf "$ARCHIVE/ladder_r1_$STAMP.tar.gz" -C "$REPO/results" ladder
+# The tarball takes results/ladder WHOLESALE, so it already covers every run
+# under that root. The name is no longer run-specific for the same reason.
+tar czf "$ARCHIVE/ladder_$STAMP.tar.gz" -C "$REPO/results" ladder
 
-rows=$(wc -l < "$SRC/L2.battles.jsonl" | tr -d ' ')
-reps=$(find "$SRC/replays" -name '*.html' | wc -l | tr -d ' ')
-mrows=$(wc -l < "$MIRROR/L2.battles.jsonl" | tr -d ' ')
-mreps=$(find "$MIRROR/replays" -name '*.html' | wc -l | tr -d ' ')
-echo "live   : $rows rows, $reps replays"
-echo "mirror : $mrows rows, $mreps replays"
-echo "archive: $ARCHIVE/ladder_r1_$STAMP.tar.gz"
-[ "$rows" = "$mrows" ] && [ "$reps" = "$mreps" ] \
-  && echo "OK - mirror matches live" \
-  || { echo "MISMATCH - do not trust the mirror"; exit 1; }
+# R3 BI-3. The COPYING always covered R3 -- rsync and tar both take
+# results/ladder wholesale, which is exactly why ladder_r3.yaml puts R3 under
+# R1's root instead of taking its own. The VERIFICATION did not: the counts
+# below were hardcoded to L2.battles.jsonl and replays/, so R3's files were
+# being mirrored and archived while the "OK - mirror matches live" line said
+# nothing whatsoever about them. An unverified backup is not a checked backup.
+# Each run is (jsonl, replay dir); a missing one is skipped, not an error,
+# because this script runs after R1 sessions too.
+RUNS=("L2:replays" "R3S:replays_r3")
+fail=0
+for entry in "${RUNS[@]}"; do
+  arm="${entry%%:*}"
+  repdir="${entry##*:}"
+  [ -f "$SRC/$arm.battles.jsonl" ] || { echo "$arm: not present, skipped"; continue; }
+  rows=$(wc -l < "$SRC/$arm.battles.jsonl" | tr -d ' ')
+  mrows=$(wc -l < "$MIRROR/$arm.battles.jsonl" | tr -d ' ')
+  reps=$(find "$SRC/$repdir" -name '*.html' 2>/dev/null | wc -l | tr -d ' ')
+  mreps=$(find "$MIRROR/$repdir" -name '*.html' 2>/dev/null | wc -l | tr -d ' ')
+  echo "$arm live   : $rows rows, $reps replays"
+  echo "$arm mirror : $mrows rows, $mreps replays"
+  if [ "$rows" = "$mrows" ] && [ "$reps" = "$mreps" ]; then
+    echo "$arm OK - mirror matches live"
+  else
+    echo "$arm MISMATCH - do not trust the mirror"
+    fail=1
+  fi
+done
+echo "archive: $ARCHIVE/ladder_$STAMP.tar.gz"
+[ "$fail" = 0 ] || exit 1

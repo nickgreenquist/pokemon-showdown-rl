@@ -111,8 +111,15 @@ battles/seed pooled across seeds.
 **Read the search row with its caveat.** The +0.069 that search adds over the
 same checkpoints played greedily is **SH-facing**: it does not transfer to
 either off-SH opponent measured (BC clone 0.894 → 0.860, Foul Play 0.388 →
-0.368). The ladder therefore runs the *ensemble*, not search — argued and
-ratified in the pre-reg header before any rated battle.
+0.368). **LADDER R1 therefore ran the *ensemble*, not search** — argued and
+ratified in the pre-reg header before any rated battle. **LADDER R3 REVERSES
+that deployment call and ladders search**, on different and narrower evidence:
+those numbers are 12M lanes off SH, while R1-B measured search on the 50M
+fleet off Foul Play@20 and found it *helps* there (+0.1010 within-lane, 3.6
+se). The reversal is recorded as a decision in
+[`configs/eval/ladder_r3.yaml`](configs/eval/ladder_r3.yaml) (D6), and the
+ceiling travels with it: it does **not** overturn the SH-facing finding above,
+and the two sets of numbers may not be set side by side.
 
 **A credit line, not a leaderboard.** A lever is credited here only if its
 pooled delta is ≥ +0.025 **and** ≥ 2·se_diff, where se_diff is the *larger* of

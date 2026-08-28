@@ -2,12 +2,24 @@
 # LADDER R3 — THE SECOND REAL-LADDER MEASUREMENT, ON THE SEARCH OBJECT
 # Pre-registered 2026-08-27 BEFORE a single rated battle is played.
 #
-# STATUS: **DRAFT. DO NOT LAUNCH.** Six `<< MAINTAINER n >>` decisions are
-#   open, listed in `open_decisions:` at the foot of this file.
+# Status: RATIFIED 2026-08-27 ~21:40 EDT by the maintainer. All six
+#   `<< MAINTAINER n >>` decisions are RULED; the record is in
+#   `ratified_decisions:` at the foot of this file. Rulings, in one line each:
+#     D1 SCHEDULE  -> **ONE CONTINUOUS RUN TO n=200**, launched the evening of
+#                     2026-08-27 and running unattended overnight. This is a
+#                     DEPARTURE from the draft's recommendation, and the
+#                     departure is better-founded than the draft was: see (7).
+#     D2 ETIQUETTE -> draft ruling ADOPTED. A sequential second account is
+#                     inside R1's line; a THIRD requires a courtesy note.
+#     D3 DEADLOCK  -> BI-6 **AND** BI-5. Both landed before launch.
+#     D4 ANCHORS   -> DEFERRED TO READOUT (it never gated the run, and it
+#                     cannot be closed before launch — see the block).
+#     D5 COMPARISON-> ratified as drafted, verbatim.
+#     D6 REVERSAL  -> confirmed on the record, ceiling intact.
 #   tests/test_ladder.py's marker test asserts the markers are ABSENT once a
-#   config is ratified (it flipped for ladder_r1.yaml on 2026-08-25); BI-2
-#   must point that machinery at THIS file, because today it hardcodes
-#   ladder_r1.yaml and therefore checks NOTHING here.
+#   config is ratified (it flipped for ladder_r1.yaml on 2026-08-25) and BI-2
+#   now points that machinery at EVERY `configs/eval/ladder_*.yaml`, so it is
+#   this file it flipped on today.
 #
 # PROVENANCE OF THIS DRAFT. Written under the standing 2-Opus design cycle
 #   (maintainer instruction 2026-08-12): two independent Opus drafts from the
@@ -24,8 +36,11 @@
 #   (top500)"*. R3 (ladder #2) -> R2 (retrain). BOTH HAPPEN; R2 is committed
 #   regardless of what R3 reads, and R3 does not gate it.
 #   **THE PREMISE OF THAT RATIFICATION DOES NOT SURVIVE ARITHMETIC AND SAYING
-#   SO IS THE FIRST JOB OF THIS FILE: 200 battles with THIS object projects to
-#   ~16-19 h, not one night. << MAINTAINER 1 >>.**
+#   SO WAS THE FIRST JOB OF THIS FILE: 200 battles with THIS object projects
+#   to ~16-19 h, not one night.** RULED 2026-08-27: the premise is withdrawn
+#   and the ~17 h is ACCEPTED as one continuous run started before sleep. The
+#   maintainer's sequencing intent — ladder now, retrain next — is unchanged
+#   and is what the ruling protects. See (7).
 #
 # Purity note, carried from R1 unchanged: playing humans is purity-legal — no
 #   expert data enters training, and the lane's exclusion is BOOTSTRAPPING
@@ -113,8 +128,10 @@
 #   A BAD R3 NUMBER DOES NOT CONFIRM IT.** R3 is a deployment of a candidate
 #   an earlier pre-reg argued against, on evidence that is real but narrower
 #   than the evidence that argued against it. That sentence travels with the
-#   R3 number. << MAINTAINER 6 >> puts the reversal on the record as a
-#   decision rather than a side effect of picking an arm.
+#   R3 number. **RULED 2026-08-27: the reversal is CONFIRMED, knowingly, on
+#   R1-B's evidence, with the MU-8 ceiling (z = -2.80) intact.** It is on the
+#   record as a decision rather than a side effect of picking an arm — which
+#   is the whole reason the item existed.
 # ---------------------------------------------------------------------
 # WHAT R3 MAY CLAIM — THE CENTRAL RULING, DECIDED RESULT-BLIND.
 #
@@ -135,7 +152,9 @@
 #   SEVEN.**
 #
 #   **RULING: R3 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1-vs-R3 DELTA
-#   MAY BE QUOTED AS AN EFFECT, IN EITHER DIRECTION.** << MAINTAINER 5 >>.
+#   MAY BE QUOTED AS AN EFFECT, IN EITHER DIRECTION.** RATIFIED AS DRAFTED,
+#   2026-08-27, INCLUDING WHAT IT COSTS: "+N Elo from search on the real
+#   board" is given up permanently at this n rather than manufactured.
 #
 #   **WHY THE GLICKO-RD BAR IS REFUSED**, since it is the obvious one, it was
 #   floated during design, and it is wrong. R1 read 1573 +/- 27; a second run
@@ -261,23 +280,45 @@
 #       because "bounded footprint" IS the etiquette argument.
 #     * Two accounts in parallel halves wall clock and is BARRED.
 #     * n < 200 is the only lever that fits one night, and it costs the only
-#       licensed comparison. See << MAINTAINER 1 >>.
+#       licensed comparison. NOT TAKEN — see (7).
 #
-#   (7) RECOMMENDATION: **TWO SESSIONS, ~100 battles each, with EXPLICIT
-#   per-session `--battles` targets.** `--battles` is a CUMULATIVE target
-#   across resumes (argparse help: "TOTAL target across resumes"), so session
-#   2 passes 200 and the runner resumes from the JSONL.
-#   **WHY EXPLICIT TARGETS AND NOT "STOP WHEN TIRED": KILLING MID-BATTLE
-#   FORFEITS A LIVE RATED GAME AGAINST A HUMAN.** That is a real recorded loss
-#   that contaminates the rating this run exists to measure, and unlike the
-#   local-server room poisoning in CLAUDE.md's landmines it CANNOT BE UNDONE
-#   by waiting or by restarting a server. A per-session `--battles` value
-#   makes the process exit on a battle boundary by itself.
-#   **AND TWO SESSIONS IS NOT MERELY COMFORT: R1's etiquette block commits us
-#   to "If a moderator makes contact or players complain in chat: stop, then
-#   ask." A 17-hour unattended detached run CANNOT HONOUR THAT COMMITMENT.**
-#   CLAUDE.md rule 4 would otherwise permit a long detached eval; that
-#   permission is overridden here by the etiquette ruling, deliberately.
+#   (7) **RULED 2026-08-27 (D1): ONE CONTINUOUS RUN TO n=200**, launched the
+#   evening of 2026-08-27 and running unattended overnight into the following
+#   afternoon. `--battles 200` is passed ONCE; the runner exits on its own
+#   when the pre-registered rule fires.
+#   **THIS OVERRIDES THE DRAFT'S OWN RECOMMENDATION (two sessions of ~100),
+#   AND THE REASON THE DRAFT WAS WRONG IS A FACT IT DID NOT CHECK: R1 ITSELF
+#   RAN UNATTENDED OVERNIGHT.** SESSION_LOGS 2026-08-26 records "the run
+#   reached 176 battles / 193 replays overnight". The draft's claim that "a
+#   17-hour unattended detached run CANNOT HONOUR" the moderator-contact
+#   commitment was therefore not a description of this project's practice but
+#   a NEW and stricter position introduced by the draft author, presented as
+#   if it were the standing rule. It was put to the maintainer as a decision
+#   on exactly those terms and DECLINED. The commitment is unchanged and is
+#   honoured on the same terms R1 honoured it: contact is answered when the
+#   operator is next at the machine, and the footprint stays bounded.
+#   **AND ONE CONTINUOUS RUN IS STRICTLY BETTER FOR VALIDITY THAN THE TWO
+#   SESSIONS THE DRAFT PREFERRED, WHICH THE DRAFT DID NOT NOTICE:**
+#     (i) G-BLIND licenses exactly four stops, and "a pre-declared per-session
+#         `--battles` target" IS NOT ONE OF THEM. The two-session plan would
+#         have ended session 1 for an unlicensed reason and tripped VOID (g)
+#         as written, or forced an amendment to the stopping section on the
+#         night of launch. One run ends only on a licensed stop.
+#     (ii) No resume seam: no second login, no re-entry into the matchmaking
+#         pool a day later, no split across two calendar days of a pool that
+#         `confounds_moved_at_once` already lists as a confound.
+#     (iii) The run still exits on a battle boundary by itself, so the thing
+#         the draft was actually protecting against is protected.
+#   **UNCHANGED AND STILL BINDING: KILLING MID-BATTLE FORFEITS A LIVE RATED
+#   GAME AGAINST A HUMAN.** That is a real recorded loss that contaminates the
+#   rating this run exists to measure, and unlike the local-server room
+#   poisoning in CLAUDE.md's landmines it CANNOT BE UNDONE by waiting or by
+#   restarting a server. **DO NOT `kill` THIS RUN TO STOP IT EARLY.** If it
+#   must be stopped, that is an operational abort under G-BLIND (4) and it is
+#   logged with its cause and the battle index.
+#   RESUME, if the process dies: relaunch with the SAME `--battles 200`. The
+#   JSONL is the truth, `run()` counts what is already in it, and a death
+#   costs one battle rather than the run (CLAUDE.md rule 4 (ii)).
 # ---------------------------------------------------------------------
 # STOPPING RULE — INHERITED VERBATIM: **rd <= 40 AND n >= 200.**
 #   Rating is PATH-DEPENDENT (matchmaking pairs by rating, so ladder games are
@@ -539,7 +580,12 @@
 #   DOES THIS BLOCK R3? **NO.** R1 laddered L2, which was itself UNMEASURED
 #   off-SH, and disclosed that as "an argument-from-mechanism, not evidence".
 #   The precedent for shipping with a disclosed gap exists.
-#   DOES IT BLOCK THE README ROW? **<< MAINTAINER 4 >>.** Recommendation: BUY
+#   DOES IT BLOCK THE README ROW? **RULED 2026-08-27: DEFERRED TO READOUT,
+#   and deliberately so — this decision CANNOT be closed before launch under
+#   any answer, because both anchors need the local server and contend for CPU
+#   with a live rated game, so buying them is only ever an AFTER. It never
+#   gated the run (`blocks_the_run: false`) and it does not gate it now.**
+#   Standing recommendation, to be ruled when the R3 row is written: BUY
 #   THEM — roughly 2.2 h for vs-SH at n=3000 with search@M, ~0.5 h for a
 #   500-battle clone h2h. Both are eval/analysis, so CLAUDE.md rule 4 permits
 #   them agent-side. **DO NOT RUN THEM CONCURRENTLY WITH THE LADDER** — they
@@ -603,7 +649,12 @@
 #       stay on the record; the result reports as INCOMPLETE with n, rd and
 #       the reason, and may not be quoted as the primary read.
 # ---------------------------------------------------------------------
-# << MAINTAINER 3 >> — THE DEADLOCK THE LADDER SEAT IS STILL EXPOSED TO.
+# THE DEADLOCK THE LADDER SEAT WAS EXPOSED TO — **RULED 2026-08-27: RAISE TO
+#   2 AND LAND BI-5. BOTH LANDED BEFORE LAUNCH** (`scripts/ladder.py`,
+#   `LadderPlayer.__init__` and `choose_move`; `max_concurrent_live_battles`
+#   is stamped in the report; `TestChooseMoveNeverRaises` pins the tracker).
+#   The finding is kept in full below because the REASONING is what licenses
+#   the change, and because the honest limit at the end of it still stands.
 #   **THIS IS THE MOST CONSEQUENTIAL OPERATIONAL FINDING IN THIS FILE.**
 #   `scripts/ch3_fp_h2h.py` was changed 2026-08-27 from
 #   `max_concurrent_battles=1` to `=2` to fix a poke-env deadlock. The
@@ -651,14 +702,16 @@
 #   norm has moved (Metamon became "a lot more cautious about laddering").
 #   **What keeps this legitimate is a SMALL BOUNDED FOOTPRINT, not the name.**
 #
-#   << MAINTAINER 2 >> — **IS A SECOND, SEQUENTIAL ACCOUNT INSIDE THE LINE?**
+#   **IS A SECOND, SEQUENTIAL ACCOUNT INSIDE THE LINE? RULED 2026-08-27: YES
+#   — THE DRAFT RULING BELOW IS ADOPTED IN FULL, INCLUDING ITS PRE-COMMITTED
+#   TRIGGER.**
 #   R1's block reserved to the maintainer: *"Anything that turns this from a
 #   bounded measurement into a persistent ladder presence — continuous
 #   running, multiple accounts, chasing a leaderboard placement — is a
 #   DIFFERENT decision and warrants a courtesy note to PS staff first."*
 #   R3 requires a fresh account, so this must be ruled on, not slid past.
-#   **DRAFT RULING: INSIDE THE LINE — and the SECOND AND LAST time that is
-#   true without a courtesy note.** Reasoning:
+#   **RULING (ADOPTED): INSIDE THE LINE — and the SECOND AND LAST time that
+#   is true without a courtesy note.** Reasoning:
 #     1. The clause's three examples share ONE mechanism: each MULTIPLIES
 #        footprint or distorts the board. "Multiple accounts" in the
 #        ladder-bot literature means CONCURRENT alts. A strictly sequential
@@ -822,11 +875,14 @@ schedule:
   budget_h: 18
   range_h: "16 - 19"
   auto_tie_tail: "search arms took 4/5/8 auto-ties per 1000 vs greedy 1/0/0. At n=200 expect ~1, worth +1 to +2 h."
-  plan: TWO_SESSIONS
-  session_1_battles: 100
-  session_2_battles: 200               # CUMULATIVE target, not per-session
-  why_not_one_night: "n=200 does not fit; cutting n costs the only licensed comparison, which is what R3 is for."
-  why_not_unattended: "R1's etiquette commitment (stop on moderator contact) cannot be honoured while asleep."
+  plan: ONE_CONTINUOUS_RUN               # RULED 2026-08-27 (D1)
+  battles_target: 200                    # passed ONCE as --battles 200; CUMULATIVE across any resume
+  launched: "2026-08-27 evening EDT, unattended overnight into the following afternoon"
+  why_not_two_sessions: "A pre-declared per-session --battles target is NOT among G-BLIND's four licensed stops, so ending session 1 at 100 would have tripped VOID (g) as written or forced a stopping-section amendment on the night of launch. One run ends only on a licensed stop, and avoids a resume seam across two calendar days of a pool already listed as a confound."
+  why_unattended_is_admissible: "The draft asserted a 17 h unattended run could not honour R1's moderator-contact commitment. R1 ITSELF RAN UNATTENDED OVERNIGHT (SESSION_LOGS 2026-08-26: 'the run reached 176 battles / 193 replays overnight'), so that was a NEW stricter position, not the standing rule. Put to the maintainer as a decision on those terms and DECLINED 2026-08-27."
+  why_not_cut_n: "n=200 is what makes R3 commensurable with R1 at all, and being a second point next to R1 is R3's entire value."
+  do_not_kill: "Killing mid-battle FORFEITS A LIVE RATED GAME against a human and contaminates the rating. Cannot be undone by waiting or restarting a server. An early stop is an operational abort under G-BLIND (4), logged with cause and battle index."
+  resume: "relaunch with the SAME --battles 200; the JSONL is the truth and a death costs one battle, not the run."
 
 expected_instrument_values:            # pre-stated so a silent wrong-object run is visible
   mean_decision_ms_band: [40, 100]     # b80 search/ms_mean 64.84
@@ -837,7 +893,7 @@ expected_instrument_values:            # pre-stated so a silent wrong-object run
   sec_per_battle_band: [250, 400]
   mean_turns_band: [30, 40]
 
-comparison_ruling:                     # << MAINTAINER 5 >> ratifies this block
+comparison_ruling:                     # RATIFIED AS DRAFTED 2026-08-27 (D5)
   verdict: "R3 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1-vs-R3 DELTA MAY BE QUOTED AS AN EFFECT, IN EITHER DIRECTION."
   confounds_moved_at_once: [policy_kind, training_scale, training_recipe, fresh_account_path_dependence, calendar_and_pool, opponent_memory, instrumentation]
   glicko_rd_bar: {value_if_used: 76, unit: glicko_points, USED: false,
@@ -865,15 +921,15 @@ launch_gates:
   LG4: "--local-smoke run of >= 2 battles on THIS arm against localhost, asserting policy.kind=search, lane=s80, dose=M, the sha, obs_dim 828, and mean_decision_ms > 30. THE DECISION-MS CHECK IS THE ONE THAT MATTERS: ~7 ms means the search wrapper is not running and we are about to ladder GREEDY under a pre-reg that says SEARCH — invisible from outside and unrecoverable once rated games are played."
   LG5: "clean tree, docs committed (CLAUDE.md rule 3), nothing else running on the machine (the search seat runs at torch.set_num_threads(1) and a live rated game has a timer)."
   LG6: "(now BACKED BY CODE — _resolve_display_name aborts on a PS_USERNAME that disagrees with the arm; this gate is the belt to that brace.) read the startup lines: kind=search and the s80 sha; the userid character-by-character against the registered name; and 'starting rating: none yet' — an EXISTING rating means the wrong account (VOID f). Abort during the first 5-second sleep."
-  LG7: "BI-1..BI-6 landed, or each explicitly waived in writing with its fallback named."
+  LG7: "BI-1..BI-6 landed, or each explicitly waived in writing with its fallback named. SATISFIED 2026-08-27: BI-1, BI-2, BI-3, BI-5, BI-6 LANDED; BI-4 WAIVED with its fallback named in build_items."
 
 build_items:
-  BI1: "ladder.py: stamp decisions_this_session in the report. VOID (b)'s denominator is currently unreadable."
-  BI2: "tests/test_ladder.py: parameterise PREREG over configs/eval/ladder_*.yaml. Today it hardcodes ladder_r1.yaml, so NONE of its pre-reg tests look at this file — including the set-pool pin VOID (c) depends on. Keep the marker test asserting markers are PRESENT while this file is a DRAFT."
+  BI1: "LANDED 2026-08-27. ladder.py stamps `decisions_this_session` (len(player.decision_ms)). It is PER SESSION — sum across reports before dividing for VOID (b). The JSONL-turns fallback is no longer needed."
+  BI2: "LANDED 2026-08-27. tests/test_ladder.py parameterises `prereg_path` over configs/eval/ladder_*.yaml, so every pre-reg test now runs once per file (ids ladder_r1 / ladder_r3) and a future ladder_r4.yaml is covered with no test edit. Two assertions had to be generalised in the process and both are noted in place: `test_primary_arm_is_named_and_real` no longer pins the arm KIND (R1 ensemble vs R3 search), and `test_the_real_prereg_values_are_the_ones_pinned_here` checks the two keys `stopping_rule_met` reads instead of whole-dict equality, because R3 legitimately adds a `source:` key the rule function never touches. The marker test flipped to ABSENT for this file in the ratifying commit."
   BI3: "backup_ladder.sh COPIES R3 correctly already (rsync and tar both take results/ladder wholesale, which is why R3 shares that root). What it does NOT do is VERIFY R3: the row/replay counts are hardcoded to L2.battles.jsonl and replays/. Extend the verification to R3S.battles.jsonl and replays_r3. Lower severity than it first appears — two of the three copies work untouched — but an unverified backup is not a checked backup. Run after every session."
-  BI4: "ladder_readout.py: add obligation (iv) the band table (from the REPLAYS, exhaustive, asserting sum(cell n) == n) and (v) the overlap cell. Already parameterised (--jsonl --replays --name --out)."
-  BI5: "port ch3_fp_h2h.py's max_concurrent_live tracker into LadderPlayer and stamp it, so 'serial play only' is ASSERTED from the artifact rather than assumed from a config value."
-  BI6: "<< MAINTAINER 3 >>: raise ladder.py's max_concurrent_battles 1 -> 2 (lines 364, 594) to close the poke-env deadlock. Does NOT license concurrent play — ladder(1) in a serial loop. Flagged rather than done silently because the etiquette block cites the literal 'max_concurrent 1'."
+  BI4: "WAIVED FOR LAUNCH 2026-08-27, OWED AT READOUT — it is a readout instrument and touches nothing the run depends on. FALLBACK if it does not land: the band table is built by hand from the replays, still asserting sum(cell n) == n, and the readout says so. ladder_readout.py: add obligation (iv) the band table (from the REPLAYS, exhaustive, asserting sum(cell n) == n) and (v) the overlap cell. Already parameterised (--jsonl --replays --name --out)."
+  BI5: "LANDED 2026-08-27 (D3). ch3_fp_h2h.py's max_concurrent_live tracker is in LadderPlayer.choose_move and stamped as `max_concurrent_live_battles`. EXPECTED 1; anything higher means the etiquette ruling's serial-play premise did not hold."
+  BI6: "LANDED 2026-08-27 (D3). ladder.py's LadderPlayer now passes max_concurrent_battles=2, closing the poke-env deadlock. Does NOT license concurrent play — run() calls player.ladder(1) in a serial loop — and BI-5 now ASSERTS that from the artifact. The etiquette block's literal 'max_concurrent 1' is superseded by BI-5's observed value, which is the stronger claim."
 
 readout_scripts_default_to_r1: "** ALL THREE READOUT SCRIPTS DEFAULT TO R1 ** (--jsonl results/ladder/L2.battles.jsonl, --replays results/ladder/replays, --name nickgen1rbrlbot). Run bare they produce a readout OF R1 and it looks perfectly normal. Pass all three flags, always."
 
@@ -916,7 +972,7 @@ anchor_battery:
   bc_clone_h2h: "DOES NOT EXIST for any stack50m_r2 lane. The 0.860 is search@M on 12M s65 at n=500."
   verdict: "R3's object will have ONE of three anchors. Stated in the readout in those words."
   blocks_the_run: false
-  blocks_the_readme_row: "<< MAINTAINER 4 >>"
+  blocks_the_readme_row: "DEFERRED TO READOUT (D4, 2026-08-27). Cannot be closed before launch under any answer — both anchors need the local server and contend for CPU with a live rated game. Standing recommendation: buy both, AFTER the ladder, before the row lands."
   cost_to_close: "~2.2 h for vs-SH at n=3000 with search@M; ~0.5 h for a 500-battle clone h2h. Sequence AROUND the ladder, never beside it (CPU contention on a live rated game)."
   readme_owed: "README.md:117 says 'The ladder therefore runs the ensemble, not search'. R3 reverses that; update it in the ratifying commit."
 
@@ -929,39 +985,36 @@ instruments:
   tests: tests/test_ladder.py
   r1_provenance: LADDER_R1_READOUT.md
 
-open_decisions:
+ratified_decisions:                    # ALL SIX RULED 2026-08-27 ~21:40 EDT
   D1_schedule:
-    marker: "<< MAINTAINER 1 >>"
     question: "R3 was ratified on the premise 'assuming ladder is one night to get ~200 games'. THE PREMISE IS FALSE: 16-19 h, plus a +1-2 h auto-tie tail."
-    option_a: "TWO SESSIONS, ~100 battles each, explicit per-session --battles targets. RECOMMENDED. Keeps n=200, keeps the etiquette commitment executable, no mid-battle kills."
-    option_b: "One continuous ~17 h detached run. Meets CLAUDE.md rule 4's technical safety test but NOT the etiquette commitment, since nobody is awake to stop on moderator contact. NOT RECOMMENDED."
-    option_c: "Cut to n>=150 (~12 h, R1's own wall clock) to fit one night. Must be declared BEFORE the first battle and the larger rd disclosed with every quote. A true 8 h night buys ~100 battles, which would leave the [1300,1400) cell at n~23 and kill the only licensed comparison."
-    recommendation: option_a
+    draft_recommendation: "TWO SESSIONS of ~100, on the ground that an unattended 17 h run cannot honour R1's moderator-contact commitment."
+    RULING: "ONE CONTINUOUS RUN TO n=200, launched the evening of 2026-08-27 and running unattended overnight. --battles 200 passed once; the runner exits on the pre-registered rule."
+    why_the_draft_was_overridden: "The draft's blocking objection rested on a claim it did not check. R1 ITSELF RAN UNATTENDED OVERNIGHT — SESSION_LOGS 2026-08-26, 'the run reached 176 battles / 193 replays overnight'. So 'inadmissible' was a new and stricter position introduced by the draft author and presented as the standing rule. Surfaced as such and DECLINED by the maintainer."
+    and_it_is_better_on_the_merits: "A per-session --battles target is not among G-BLIND's four licensed stops; the two-session plan would have tripped VOID (g) or forced a launch-night amendment. One run also avoids a resume seam and a second calendar day of pool drift."
+    what_is_unchanged: "Do not kill mid-battle. The etiquette commitment stands and is honoured on R1's terms."
   D2_etiquette_second_account:
-    marker: "<< MAINTAINER 2 >>"
     question: "Is a second, SEQUENTIAL account inside ladder_r1.yaml's 'multiple accounts' line?"
-    draft_ruling: "INSIDE THE LINE, and the second and last time without a courtesy note."
-    pre_committed_trigger: "A THIRD RATED ACCOUNT — any ladder run after R3 — REQUIRES A COURTESY NOTE TO PS STAFF BEFORE LAUNCH. So does any concurrent two-account A/B."
+    RULING: "ADOPTED AS DRAFTED. INSIDE THE LINE, and the second and last time that is true without a courtesy note."
+    pre_committed_trigger: "A THIRD RATED ACCOUNT — any ladder run after R3 — REQUIRES A COURTESY NOTE TO PS STAFF BEFORE LAUNCH. So does any concurrent two-account A/B, at any count. The number is in the ruling so it cannot be argued away when R2's model is ready and everyone wants a number."
+    disclosed_against_itself: "A fresh account resets to Elo 1000 and re-enters the band where the weakest humans are; R1 won 0.688 there at n=48. Doing it twice is not a pattern. Doing it every time we train a model IS, and that is what the trigger stops."
   D3_concurrency_deadlock:
-    marker: "<< MAINTAINER 3 >>"
     question: "Raise scripts/ladder.py max_concurrent_battles 1 -> 2 (BI-6), closing the poke-env deadlock that hung b81 and b82 twice each?"
-    why_not_done_silently: "the etiquette block cites the literal phrase 'max_concurrent 1'."
-    exposure: "search is the exposed policy per the FP fix's own comment; on the ladder a silent 0%-CPU hang forfeits a LIVE RATED GAME and contaminates the rating."
-    honest_limit: "UNMEASURED on the ladder path — reasoning from mechanism, labelled as such."
-    recommendation: "Raise to 2 AND land BI-5 so observed concurrency is asserted rather than assumed."
+    RULING: "RAISE TO 2 **AND** LAND BI-5. Both landed before launch, in the ratifying commit."
+    why_it_mattered_more_once_D1_was_ruled: "An unattended run means a silent 0%-CPU hang goes unnoticed for hours while a live rated game times out. D1 and D3 are not independent; ruling D1 toward unattended is what made D3 load-bearing rather than precautionary."
+    does_not_license_concurrency: "run() calls player.ladder(1) in a serial loop, so exactly one battle is ever queued. BI-5 stamps max_concurrent_live_battles so this is ASSERTED from the artifact, not read off a config value — strictly stronger than the 'max_concurrent 1' the etiquette block used to cite."
+    honest_limit: "UNMEASURED on the ladder path. Reasoning from mechanism, and it stays labelled as such."
   D4_anchor_battery:
-    marker: "<< MAINTAINER 4 >>"
     question: "R3's object will have ONE of three anchors. Does the R3 README row wait on the other two?"
-    option_a: "BUY THEM (~2.7 h total, agent-side, sequenced around the ladder). RECOMMENDED."
-    option_b: "Land the row with the gap disclosed verbatim, as R1 did for L2's unmeasured off-SH cells."
-    recommendation: option_a
+    RULING: "DEFERRED TO READOUT. It never gated the run (blocks_the_run: false) and it cannot be closed before launch under any answer — both anchors need the local server and contend for CPU with a live rated game, so buying them is only ever an AFTER."
+    standing_recommendation: "Buy both (~2.2 h vs-SH at n=3000 search@M, ~0.5 h for a 500-battle clone h2h), AFTER the ladder, before the row lands. The alternative — land the row with the gap disclosed verbatim, as R1 did for L2's unmeasured off-SH cells — remains open."
   D5_comparison_ruling:
-    marker: "<< MAINTAINER 5 >>"
     question: "Ratify the comparison_ruling block: R3 standalone-descriptive, no R1-vs-R3 delta as an effect, the 76-Glicko bar REFUSED, [1300,1400) the only licensed cell and with no threshold."
-    what_it_costs: "the interesting claim — '+N Elo from search on the real board' — is given up, permanently, at this n."
+    RULING: "RATIFIED AS DRAFTED, VERBATIM, including the barred_language list."
+    what_it_costs: "'+N Elo from search on the real board' is not available at any n this design can buy, and is given up rather than manufactured. Accepted with the ruling."
   D6_search_reversal:
-    marker: "<< MAINTAINER 6 >>"
-    question: "R3 deploys the arm that ladder_r1.yaml's POLICY CHOICE argued against and whose argument you accepted on 2026-08-25. Confirm you are knowingly reversing that DEPLOYMENT call on R1-B's evidence, with the ceiling intact."
+    question: "R3 deploys the arm that ladder_r1.yaml's POLICY CHOICE argued against and whose argument the maintainer accepted on 2026-08-25."
+    RULING: "CONFIRMED, KNOWINGLY, on R1-B's evidence, with the ceiling intact."
     what_changed: "R1-B is off-FP@20 on the 50M fleet and positive (+0.1010, 3.6 se). R1's negatives were off-SH on the 12M lanes. Different objects, and the ceiling forbids setting them side by side."
-    what_did_not_change: "MU-8 stands at z = -2.80. And the BC-clone anchor for search-on-50M DOES NOT EXIST, so only HALF of R1's 'consistent sign across two off-SH opponents' has been re-tested at the new scale — the other half is untested, not overturned."
-    consequence: "Whatever R3 reads, it neither vindicates search nor confirms MU-8 (see comparison_ruling). This item exists so the reversal is a decision on the record rather than a side effect of picking an arm."
+    what_did_not_change: "MU-8 stands at z = -2.80. The BC-clone anchor for search-on-50M DOES NOT EXIST, so only HALF of R1's 'consistent sign across two off-SH opponents' has been re-tested at the new scale — the other half is untested, not overturned."
+    consequence: "Whatever R3 reads, it neither vindicates search nor confirms MU-8 (see comparison_ruling)."
