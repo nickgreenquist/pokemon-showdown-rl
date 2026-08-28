@@ -13,9 +13,14 @@ silently republishes the wrong n. What is pinned here:
   case, which is NORMAL early and must not read as an error;
 * `choose_move`'s never-raise contract, which is a deliberate DEVIATION
   from the strict Chapter-3 seat;
-* the pre-reg's arms resolving against real checkpoint keys, and every
-  `<< MAINTAINER >>` marker still being present (the config is a DRAFT and
-  must not be launched until they are resolved).
+* the pre-reg's arms resolving against real checkpoint keys, and no
+  `<< MAINTAINER >>` marker surviving into a RATIFIED config (while a file
+  is a draft the assertion runs the other way, so a draft cannot quietly
+  become a launched pre-reg).
+
+Every pre-reg test runs once per `configs/eval/ladder_*.yaml` (R3 BI-2). It
+used to run only against R1's, which meant R3's pre-reg was unchecked while
+the suite looked green.
 """
 
 import json
@@ -32,7 +37,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import ladder  # noqa: E402
 import ladder_classify as lc  # noqa: E402
 
-PREREG = Path(__file__).resolve().parents[1] / "configs/eval/ladder_r1.yaml"
+# R3 BI-2. This was a single hardcoded path to `ladder_r1.yaml`, which meant
+# that when `ladder_r3.yaml` was written every pre-reg test in this file --
+# including the set-pool pin VOID (c) depends on and the unresolved-marker
+# test that is supposed to stop a draft becoming a launched pre-reg -- was
+# still checking R1 and looking green while checking NOTHING about R3. The
+# glob is the point: a future `ladder_r4.yaml` is covered the moment it lands,
+# with no test edit, so this cannot silently regress again.
+PREREG_FILES = sorted(
+    (Path(__file__).resolve().parents[1] / "configs/eval").glob("ladder_*.yaml")
+)
+assert PREREG_FILES, "no ladder pre-regs found — the glob is wrong"
 
 
 class TestUsername:
@@ -266,8 +281,29 @@ class TestChooseMoveNeverRaises:
         p._decision_index = 0
         p.decision_errors = 0
         p.decision_ms = []
+        # BI-5's observed-concurrency tracker reads `self.battles` on every
+        # decision, so the stub has to model it too. `battles` is a read-only
+        # property on poke-env's Player, so the backing dict is what we set.
+        p._battles = {}
+        p.max_concurrent_live = 0
         p.choose_default_move = lambda: "DEFAULT"
         return p
+
+    def test_observed_concurrency_is_tracked(self):
+        """BI-5. With BI-6 raising `max_concurrent_battles` to 2, "strictly
+        serial play" — the premise the etiquette ruling rests on — has to be
+        asserted from the artifact rather than read off a config value."""
+        p = self._player(lambda *_a: 0)
+        p._battles = {"battle-x-1": type("B", (), {"finished": False})()}
+        p.choose_move(type("B", (), {"battle_tag": "battle-x-1"})())
+        assert p.max_concurrent_live == 1
+        p._battles["battle-x-2"] = type("B", (), {"finished": False})()
+        p.choose_move(type("B", (), {"battle_tag": "battle-x-2"})())
+        assert p.max_concurrent_live == 2, "two live battles must be visible"
+        # Finished battles are not live and must not inflate the tracker.
+        p._battles["battle-x-1"].finished = True
+        p.choose_move(type("B", (), {"battle_tag": "battle-x-2"})())
+        assert p.max_concurrent_live == 2
 
     def test_policy_exception_falls_back_and_counts(self):
         def _boom(*_a):
@@ -293,9 +329,16 @@ class TestChooseMoveNeverRaises:
         assert p._battle_index == 1
 
 
+@pytest.fixture(scope="module", params=PREREG_FILES, ids=lambda p: p.stem)
+def prereg_path(request):
+    """Every ladder pre-reg, one at a time. `cfg` rides on this so the whole
+    TestPrereg suite runs once per file (BI-2)."""
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def cfg():
-    return yaml.safe_load(PREREG.read_text())
+def cfg(prereg_path):
+    return yaml.safe_load(prereg_path.read_text())
 
 
 class TestSummarize:
@@ -465,7 +508,13 @@ class TestStoppingRule:
         assert "no stopping rule" in why
 
     def test_the_real_prereg_values_are_the_ones_pinned_here(self, cfg):
-        assert cfg["stopping_rule"] == self.CFG["stopping_rule"]
+        """The two values `stopping_rule_met` actually reads, checked against
+        every pre-reg. Deliberately NOT dict equality: R3 adds a `source:`
+        key naming the profile endpoint, which is documentation the rule
+        function never touches, and an equality assertion would have made
+        adding it look like a rule change."""
+        for key in ("glicko_rd_max", "min_battles"):
+            assert cfg["stopping_rule"][key] == self.CFG["stopping_rule"][key]
 
 
 class TestPrereg:
@@ -492,27 +541,35 @@ class TestPrereg:
         for name, arm in cfg["arms"].items():
             assert "bot" in ladder.to_id(arm["display_name"]), name
 
-    def test_no_credentials_in_the_committed_config(self, cfg):
-        raw = PREREG.read_text().lower()
+    def test_no_credentials_in_the_committed_config(self, prereg_path):
+        raw = prereg_path.read_text().lower()
         for banned in ("password:", "ps_password:", "secret:"):
             assert banned not in raw
 
-    def test_no_unresolved_maintainer_markers(self, cfg):
-        """The DRAFT carried three `<< MAINTAINER n >>` decisions and this
-        test asserted they were still present, so the draft could not
-        quietly become a launched pre-reg. They were RESOLVED 2026-08-25
-        (L2 / one arm / rd<=40 AND n>=200), so the test flips in the same
-        commit — deliberately, which is the point of having had it."""
-        raw = PREREG.read_text()
+    def test_no_unresolved_maintainer_markers(self, prereg_path):
+        """A draft may not quietly become a launched pre-reg. While a file
+        carries `<< MAINTAINER n >>` markers this test asserted they were
+        PRESENT; it flips to asserting ABSENT in the same commit that
+        ratifies, deliberately, which is the point of having had it. R1's
+        three flipped 2026-08-25 (L2 / one arm / rd<=40 AND n>=200); R3's six
+        flipped 2026-08-27 (one continuous run to n=200 / sequential second
+        account inside the line / BI-6+BI-5 / anchors deferred to the README
+        row / standalone-descriptive / search reversal on the record).
+        Now runs over EVERY pre-reg (BI-2), not just R1's."""
+        raw = prereg_path.read_text()
         assert not re.findall(r"<< MAINTAINER \d+ >>", raw)
         assert "Status: RATIFIED" in raw
 
     def test_primary_arm_is_named_and_real(self, cfg):
         """A ladder run with no named primary is post-hoc selection waiting
-        to happen — the whole reason the A/B was deferred."""
-        assert cfg["primary_arm"] == "L2"
+        to happen — the whole reason the A/B was deferred. The arm's KIND is
+        deliberately not asserted here: R1 laddered the ensemble and R3
+        ladders search, and pinning a kind would just have to be edited every
+        time, which is not a check."""
         assert cfg["primary_arm"] in cfg["arms"]
-        assert cfg["arms"][cfg["primary_arm"]]["kind"] == "ensemble"
+        assert cfg["arms"][cfg["primary_arm"]]["kind"] in {
+            "ensemble", "search", "greedy"
+        }
 
     def test_stopping_rule_is_pre_stated(self, cfg):
         assert cfg["stopping_rule"]["glicko_rd_max"] == 40

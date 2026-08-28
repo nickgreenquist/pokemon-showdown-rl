@@ -418,9 +418,38 @@ class LadderPlayer(Player):
     forgiving where the Chapter-3 seat is strict."""
 
     def __init__(self, act_fn, **kwargs):
+        # R3 BI-6 (<< MAINTAINER 3 >>, RULED 2026-08-27: raise to 2 AND land
+        # BI-5). Was 1, which is the poke-env deadlock `scripts/ch3_fp_h2h.py`
+        # was raised to 2 to close on 2026-08-27; read that fix's comment for
+        # the mechanism. In short: `max_concurrent_battles` becomes the maxsize
+        # of `Player._battle_count_queue`, and poke-env's battle-init path does
+        # `await self._battle_count_queue.put(None)` BEFORE the
+        # `if battle_tag in self._battles` check that would undo it -- so a
+        # duplicate `|init|battle` for a room already known, while a battle is
+        # live, blocks forever on a full queue. That await is inside the single
+        # message-handling coroutine, so ALL message processing stops and the
+        # seat sits at 0.0% CPU, which reads as "slow", not "hung".
+        # ON THE LADDER THIS IS STRICTLY WORSE THAN IT WAS OFF FOUL PLAY: the
+        # hang times out a LIVE RATED GAME against a human, forfeiting it and
+        # contaminating the very rating R3 exists to measure, and unlike a
+        # poisoned local room it cannot be undone. Search is the exposed
+        # policy (long battles -> the turn-1000 auto-tie and its room churn:
+        # 4/5/8 auto-ties per 1000 vs greedy's 1/0/0), and R3 is a ~17 h
+        # search run on this seat.
+        # maxsize 2 gives the spurious put somewhere to go; it is released one
+        # line later. It does NOT license concurrent play -- `run()` calls
+        # `player.ladder(1)` in a serial loop, so exactly one battle is ever
+        # queued. That is now ASSERTED rather than assumed: BI-5's
+        # `max_concurrent_live` is tracked in `choose_move` and stamped into
+        # the report, so "serial play only" -- which the etiquette ruling
+        # leans on -- is checkable from the artifact instead of being read off
+        # a config value.
+        # HONEST LIMIT, carried from the pre-reg: the deadlock is UNMEASURED
+        # on the ladder path. This is reasoning from mechanism.
         super().__init__(
-            battle_format=BATTLE_FORMAT, max_concurrent_battles=1, **kwargs
+            battle_format=BATTLE_FORMAT, max_concurrent_battles=2, **kwargs
         )
+        self.max_concurrent_live = 0
         self._act = act_fn
         self._type_chart = GenData.from_format(BATTLE_FORMAT).type_chart
         self._battle_tag = None
@@ -442,6 +471,11 @@ class LadderPlayer(Player):
             embed_battle,
         )
 
+        # BI-5. Observed concurrency, so serial play is asserted from the
+        # artifact rather than assumed from BI-6's raised maxsize.
+        live = sum(1 for b in self.battles.values() if not b.finished)
+        if live > self.max_concurrent_live:
+            self.max_concurrent_live = live
         if battle.battle_tag != self._battle_tag:
             self._battle_tag = battle.battle_tag
             self._battle_index += 1
@@ -744,6 +778,22 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
         "tally_pokeenv": pokeenv_n,
         "gate_tallies_agree": jsonl_n == pokeenv_n,
         "decision_errors": player.decision_errors,
+        # BI-1. VOID (b) is `decision_errors / total_decisions > 0.005`, and
+        # until now only the numerator was stamped -- `mean_decision_ms` was
+        # recorded but not the count it was a mean over, so the denominator
+        # had to be approximated from the JSONL `turns` sum (an undercount,
+        # since force-switch decisions are extra). It is THIS SESSION's count:
+        # `decision_ms` belongs to this process's player, so on a resumed run
+        # it does NOT include earlier sessions. SUM IT ACROSS SESSION REPORTS
+        # before dividing.
+        "decisions_this_session": len(player.decision_ms),
+        # BI-5. Observed, not configured. With BI-6 raising the queue maxsize
+        # to 2, this is what keeps "strictly serial, single-account play" --
+        # the load-bearing premise of the etiquette ruling -- an assertion
+        # about the artifact rather than a claim about a config value.
+        # EXPECTED 1. Anything higher means the seat played concurrently and
+        # the etiquette ruling's premise did not hold.
+        "max_concurrent_live_battles": player.max_concurrent_live,
         "mask_desyncs": mask_desync_total(),
         "stopped_by_rule": stopped_by_rule,
         "stopping_rule": prereg.get("stopping_rule"),
