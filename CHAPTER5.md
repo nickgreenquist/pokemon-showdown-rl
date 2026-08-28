@@ -351,6 +351,41 @@ silent gap at (A1+0.02, A1+0.05]). "Materially" above MUST be given a
 number in the ratified header, on the FP@20 scale, with the aggregator
 named (median vs worst-lane changed a verdict once).**
 
+> ### SUPERSEDED IN PART — 2026-08-28. READ THIS BEFORE ACTING ON THE TABLE.
+>
+> R1-A read **WITHIN x NON-RESOLVING**, so the table above routes to **C2
+> (more seeds)**. **THAT ROUTING IS DEAD AS A ROUTE TO A CREDITED RESULT,
+> and the reason is arithmetic that was not done when the table was
+> written.** The realized R1-A bar is `2 * sigma_seed / sqrt(k)` — 0.0717 at
+> sigma_seed 0.0617, k=3. Reaching the credit line's own **+0.025 floor**
+> therefore needs **k >= 24 lanes**. k=6 buys 0.051, k=12 buys 0.036.
+> **No realistic k reaches the threshold this project has committed to**, so
+> buying seeds cannot credit a lever in the +0.02-0.05 band no matter how
+> many are bought.
+>
+> Two consequences, both live:
+> 1. **The only variance term that can still move is `sigma_seed` itself**,
+>    which promotes the batch lever (§3b A4) from a candidate competing with
+>    C2 to the instrument work. **It is a BET: nothing has measured a
+>    batch -> sigma_seed link**, and cross-play cannot establish one (gradient
+>    noise PRODUCES curriculum divergence, so they are not alternatives).
+> 2. **C2 is rehabilitated the moment the deliverable is a SCALING CURVE
+>    rather than a credited win rate**, because resolving 12M vs 50M vs 250M
+>    does not need +0.025 resolution and lanes shrink the error bar on every
+>    point regardless of what causes sigma_seed. **That scoping call is now
+>    the first decision of the next phase** — it is a POLICY change (it makes
+>    120M/250M runs first-class, against the 2026-08-23 ruling limiting them
+>    to ladder-ready polish or climbing logs), and it dissolves the owed
+>    C2-vs-batch ruling rather than answering it.
+>
+> Also live and not in the table: **search may EQUALISE the lanes** (off
+> FP@20 the search-minus-greedy gain is monotone in lane weakness, 3/3, and
+> collapses a 0.123 spread to 0.026). If it holds, levers become measurable
+> at k=3 with no new lanes — at the cost of a scope change, because the same
+> mechanism that buys the variance masks value-head improvements. **2 df,
+> p ~ 0.06, hypothesis not finding.** Full derivation, the case against it,
+> and the revised 0-6 ordering: SESSION_LOGS 2026-08-28 (02:30Z).
+
 ---
 
 ## §6 — Explicitly out of scope, with reasons

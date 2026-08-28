@@ -5,24 +5,21 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 ## Where things stand (2026-08-28) — **LADDER R3 IS RUNNING.** One continuous
 run to n=200, search@M on lane s80, account `nickgen1rbrlbot2`, launched
 2026-08-27 evening EDT, ETA **16-19 h + a 1-2 h auto-tie tail**. All six R3
-rulings taken, `configs/eval/ladder_r3.yaml` **RATIFIED**, BI-1/2/3/5/6
-landed, BI-4 waived with fallback, **all seven launch gates passed.**
-CH5 R1 CLOSED (ten arms, zero VOIDs). Pure self-play; THE NOVELTY IS THE LANE.
+rulings taken, `configs/eval/ladder_r3.yaml` **RATIFIED**, BI-1/2/3/5/6 landed,
+BI-4 waived with fallback, **all seven launch gates passed.** CH5 R1 CLOSED
+(ten arms, zero VOIDs). Pure self-play; THE NOVELTY IS THE LANE.
 
 ## DO NOT KILL THE R3 RUN
 Killing mid-battle **forfeits a live rated game against a human** and
-contaminates the rating R3 exists to measure. Unlike a poisoned local room it
-**cannot be undone** by waiting or restarting a server. If it must stop, that
-is an operational abort under G-BLIND (4): log the cause AND the battle index.
-If the process dies on its own, relaunch with the **same `--battles 200`** —
-the JSONL is the truth and a death costs one battle, not the run.
-
-## Watching it
-- `tail -f results/ladder/R3S.run.log` — one line per battle with a running W/n.
-- **`s/battle` is the only honest progress signal**; a wall-clock ETA is not
-  progress. Band **[250, 400]**, expect ~283-322. A 10x discrepancy = stalled.
-- **G-BLIND: do NOT open the profile, replay list or board before n=200** — an
-  honour-system blind. After it finishes: `bash scripts/backup_ladder.sh`.
+contaminates the rating R3 exists to measure; unlike a poisoned local room it
+**cannot be undone**. If it must stop, that is an operational abort under
+G-BLIND (4): log the cause AND the battle index. If it dies on its own,
+relaunch with the **same `--battles 200`** — the JSONL is the truth and a death
+costs one battle, not the run.
+- `tail -f results/ladder/R3S.run.log`. **`s/battle` is the only honest
+  progress signal**, band **[250,400]**; a wall-clock ETA is not progress.
+- **G-BLIND: do NOT open the profile, replays or board before n=200.** After it
+  finishes: `bash scripts/backup_ladder.sh`.
 
 ## Results | D26 12M **0.71825** vs SH · R0 ensemble 0.74633 · R2 search@M
 0.79283 (**12M lanes**) · **LADDER R1: GXE 59.6%, Glicko-1 1573+/-27, Elo
@@ -30,31 +27,42 @@ the JSONL is the truth and a death costs one battle, not the run.
 search@M 0.4470/0.4470/0.4210 · C0(L2) 0.3893 · **RS80 (fresh, n=3000,
 PUBLISHABLE) 0.4390.** Ties=loss. **R1 CREDITS NOTHING.**
 
-## The six rulings (full record in `ladder_r3.yaml: ratified_decisions`)
-- **D1 ONE CONTINUOUS RUN, unattended.** The draft called this inadmissible on
-  R1's moderator-contact commitment. **R1 ITSELF RAN UNATTENDED OVERNIGHT**
-  (SESSION_LOGS 2026-08-26) — a new stricter position dressed as the standing
-  rule, declined. It is also *better*: a per-session `--battles` target is not
-  among G-BLIND's four licensed stops, so two sessions would have tripped VOID
-  (g) or forced a launch-night amendment.
-- **D2** sequential 2nd account inside the line; **a THIRD requires a courtesy
-  note to PS staff** (pre-committed). **D3** BI-6 **and** BI-5 landed — the
-  poke-env deadlock became load-bearing *because* D1 went unattended.
-- **D4 DEFERRED TO READOUT** (unclosable before launch — anchors contend for
-  CPU). **D5** ratified verbatim. **D6** search reversal on the record.
+## The six R3 rulings (full record in `ladder_r3.yaml: ratified_decisions`)
+**D1 one continuous run, unattended** — the draft called that inadmissible on
+R1's moderator-contact commitment, but **R1 ITSELF RAN UNATTENDED OVERNIGHT**
+(SESSION_LOGS 2026-08-26): a stricter new position dressed as the standing
+rule, declined. Also *better* — a per-session `--battles` target is not among
+G-BLIND's four licensed stops. **D2** sequential 2nd account inside the line, a
+**THIRD needs a courtesy note to PS staff**. **D3** BI-6+BI-5 (load-bearing
+*because* D1 went unattended). **D4** deferred to readout. **D5** verbatim.
+**D6** search reversal on the record.
 
-## Next actions
-1. **Read R3 out when it stops** — pass every flag; the three readout scripts
-   default to R1's paths AND R1's name. BI-4 (band table) is owed first.
-2. Then **D4's anchors** (~2.7 h) before any R3 README row.
-3. **R2 retrain is COMMITTED, not optional.** Batch ruling still owed (branch
-   table routes to C2; batch is §3b A4). Then `CLEANUP.md` rulings.
+## Next actions (revised 2026-08-28 — derivation in SESSION_LOGS 02:30Z)
+0. **DECIDE: SCALING CURVE or CREDITED WIN RATE.** A policy change, not a
+   re-prioritisation — curve makes 120/250M runs first-class against the
+   2026-08-23 ruling, drops the resolution bar, and **dissolves the owed
+   C2-vs-batch ruling**. Everything below is downstream.
+1. **Read R3 out when it stops** — pass every flag; all three readout scripts
+   default to R1's paths AND name. BI-4 (band table) owed first.
+2. **D4's anchors, AMENDED: BC-clone h2h on ALL THREE lanes** (~+1.5 h on the
+   2.7 h) — a free independent replication of the equalisation test.
+3. **Rescore search@M on s81/s82 at n=3000** (~4.9 h, eval), owed BEFORE R2's
+   pre-reg: it sets the policy form. **R2 is COMMITTED** — score one arm BOTH
+   greedy and searched (eval-only). Then `CLEANUP.md`.
 
 ## Watch items
-- **R3's object has ONE of three anchors**: vs-SH and BC-clone DO NOT EXIST
-  for search on a 50M lane (0.79283/0.860 are 12M). RS80 gives FP@20 only.
-- **Never quote an R1-vs-R3 delta as an effect** (D5); never set RS80's 0.4390
-  beside the 12M cell 0.79283 or read it as vs-SH. Name the budget: FP@20.
-- **R1's "217 s/battle" IS WRONG.** True **246.5**, from `finished_at` deltas.
+- **k ~ 24.** Bar = `2*sigma_seed/sqrt(k)` = 0.0717 at k=3, so the +0.025
+  credit floor needs **k>=24 lanes** (k=6 buys 0.051). **C2 cannot credit a
+  +0.02-0.05 lever at any realistic k** — CHAPTER5 §5 has a supersession note.
+  Batch is now the instrument work AND **an unmeasured bet**.
+- **SEARCH MAY EQUALISE THE LANES** — off FP@20 the search-minus-greedy gain is
+  monotone in lane weakness 3/3 (+0.051/+0.104/+0.148), collapsing a 0.123
+  spread to 0.026. **2 df, p~0.06, CI contains greedy's 0.0617: HYPOTHESIS.**
+  Read the rescore for **s81, not s82** (s82 is the known-bad lane, 5.2 se).
+  Scoring levers under search is a **scope change** — the same mechanism that
+  buys the variance masks value-head gains.
+- **R3 has ONE of three anchors**; never quote an R1-vs-R3 delta as an effect
+  (D5); never set 0.4390 beside the 12M 0.79283 or read it as vs-SH. Name the
+  budget: FP@20. **R1's "217 s/battle" is wrong — 246.5.**
 - **LADDER DATA IS UNREPEATABLE AND GITIGNORED** (3 copies; R3 shares R1's root
   for exactly that reason). **NEVER re-run a killed arm IMMEDIATELY.**

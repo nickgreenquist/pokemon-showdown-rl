@@ -8643,3 +8643,117 @@ entry by offset — never a broad keyword grep.
   the rating R3 exists to measure, and cannot be undone by waiting or by
   restarting a server. An early stop is an operational abort under G-BLIND (4)
   and gets logged with its cause and battle index.
+
+- 2026-08-28 (02:30Z, R3 running at n=6; maintainer relayed an EXTERNAL
+  ADVISORY from a no-repo-access chat session and iterated it across three
+  rounds): **TWO DURABLE RESULTS, BOTH DERIVED FROM NUMBERS ALREADY ON DISK
+  AND NEITHER PREVIOUSLY WRITTEN DOWN: (1) THE CREDIT LINE IS UNREACHABLE BY
+  ADDING LANES AT ANY REALISTIC k, AND (2) SEARCH APPEARS TO EQUALISE THE
+  LANES.** No training or eval was spent; this is arithmetic over the R1 wave.
+  **(1) k ~ 24. THE NUMBER THAT KILLS C2 AS A CREDIT ROUTE.** The realized
+  R1-A bar was 0.0717, which is `2 * sigma_seed / sqrt(k)` at sigma_seed
+  0.0617, k=3 (2*0.0617/1.732 = 0.0712 — it reproduces). So the bar falls as
+  1/sqrt(k), and reaching the credit line's own **+0.025 floor** needs
+  `sqrt(k) >= 2*0.0617/0.025`, i.e. **k >= 24 lanes.** k=6 buys 0.051; k=12
+  buys 0.036. **NEITHER REACHES THE THRESHOLD THIS PROJECT HAS ALREADY
+  COMMITTED TO.** Consequences: the "buy LANES" half of R1-A FLEET's verdict
+  is DEAD as a route to crediting a +0.02-0.05 lever, and **§5's branch table
+  routes the WITHIN cell to exactly that dead route** (see the supersession
+  note appended to CHAPTER5.md §5). The only variance term that can still
+  move is **sigma_seed itself**, which promotes the batch lever from a
+  candidate to the instrument work — but see the label on it below.
+  **(2) SEARCH EQUALISES THE LANES — HYPOTHESIS, NOT FINDING.** Off FP@20,
+  n=1000, same lanes and same opponent:
+    lane | greedy | search@M | delta
+    s80  | 0.3960 | 0.4470   | +0.0510
+    s81  | 0.3430 | 0.4470   | +0.1040
+    s82  | 0.2730 | 0.4210   | +0.1480
+  **The gain is MONOTONE IN LANE WEAKNESS, 3 for 3, and it does not merely
+  rank-order — it nearly EQUALISES, collapsing a 0.123 spread to 0.026.**
+  Between-lane sd: greedy **0.0617**, search **0.0150**, against a binomial
+  floor of 0.0157 at n=1000. Greedy sits 4x above the floor; search sits AT
+  it. Mechanism: shallow search over a determinized model substitutes engine
+  rollouts for a deficient value head, so the worse the network the more
+  there is to substitute for. **IT ALSO RETRO-EXPLAINS MU-8** — if search's
+  contribution is inversely proportional to lane quality, its measured
+  benefit MUST be unstable across opponents and scales, which is a milder
+  reading of z = -2.80 than "search is SH-facing".
+  **WHY IT IS NOT A FINDING, STATED AGAINST MY OWN CLAIM.** The sd is 2 df;
+  the 95% CI for sigma given s=0.0150 is s*[0.52, 6.29] = **[0.008, 0.094],
+  which CONTAINS greedy's 0.0617.** The variance ratio is 17x at p ~ 0.06.
+  Two of the three search lanes read EXACTLY 0.4470 — identical integer win
+  counts at n=1000, roughly a 1-in-50 coincidence, so some of the contrast is
+  a lucky draw. And **the finding is subject to the same k problem it claims
+  to solve**: sigma under search at k=3 is 2 df however many battles are
+  bought. What n buys is separating sigma_seed from the binomial floor, which
+  is the specific claim at issue.
+  **ONE ARTIFACT CHECK CUTS FOR IT.** The obvious deflation is compression
+  toward p=0.5. It predicts the OPPOSITE SIGN: the win-rate slope is p(1-p),
+  so search's 0.42-0.45 band should show a slightly LARGER spread than
+  greedy's 0.27-0.40 for the same latent dispersion. Observed is 4x smaller.
+  **READ THE RESCORE FOR s81, NOT s82.** s82 is the lane whose collapse R1-A
+  PRIMARY established at 5.2 se, so the greedy spread is driven by one
+  confirmed-bad seed. If search only rescues it, the claim is the narrow
+  "search compensates for a broken value head", not "search removes seed
+  identity". **The general claim rests entirely on s80 and s81 both reading
+  0.4470, which is the thinnest possible evidence for it.**
+  **THE SCOPE COST, WHICH IS THE SAME MECHANISM AS THE PRIZE.** Scoring
+  levers under search changes the object — CLAUDE.md's own rule is to match
+  the policy form to the rating compared against. If search substitutes for
+  the value head then **a lever that improves the value head is precisely the
+  one search will mask. The variance win and the sensitivity loss are one
+  mechanism.** Not a reason to refuse it (R3 deploys search, so the searched
+  policy IS the object), but it must be PRE-REGISTERED as a scope change.
+  **REVISED NEXT-STEP ORDER (supersedes the ordering in STATUS's previous
+  "Next actions"):** **(0) CURVE vs WIN RATE — decide first, it is a POLICY
+  change, not a re-prioritisation**, because a scaling-curve deliverable
+  makes 120M/250M runs first-class rather than the "ladder-ready polish or
+  climbing logs" the 2026-08-23 ruling limits them to, and it drops the
+  resolution requirement so k~24 stops binding. (1) Score ONE R2 arm BOTH
+  greedy and searched — eval-only, doubles only the readout, converts masking
+  from a caveat into a measurement. (2) Rescore search@M on s81/s82 at
+  n=3000 (~4.9 h, eval) — owed BEFORE R2's pre-reg because it sets the policy
+  form; **HARD SEQUENCE: (2) precedes (1), since (1) needs R2 to exist.**
+  (3) The lambda fork. (4) Batch, **LABELLED as a bet on an UNMEASURED
+  batch -> sigma_seed link** — the promotion establishes it is the only
+  available target, not that it moves the target. (5) More lanes —
+  first-class if (0) lands on curve, dead if it lands on credit line.
+  (6) Cross-play the k=3 lanes: descriptive, free, NOT a gate (it cannot
+  separate gradient noise from curriculum divergence, because the former
+  produces the latter).
+  **FREE SECOND LEG, AND IT IS ALREADY IN THE QUEUE.** D4's owed BC-clone
+  h2h is the untested half of R1-B's "consistent sign across two off-SH
+  opponents" that D6 flagged as untested-not-overturned. **Run it on ALL
+  THREE lanes rather than only s80 (~+1.5 h on the 2.7 h already committed)
+  and it becomes an INDEPENDENT replication of the equalisation test against
+  a completely different opponent.** Recorded as an amendment to D4's
+  standing recommendation.
+  **THE LAMBDA FORK, WHICH IS NOT FREE.** At gamma=1 with terminal-only
+  reward the outcome enters A_t at lambda^(T-t-1); 0.95^29 = 0.226, so
+  **lambda=0.95 is functionally gamma=0.95 for credit assignment** and the
+  rest is critic bootstrapping. lambda->1.0 is exact MC, unbiased, variance
+  bounded by ~30-step episodes. **But testing it REQUIRES TRAINING, so it is
+  an R2 lever competing for the same arm budget as batch, not a cheap
+  standalone.** The cheap branch is to read value explained-variance and, if
+  the critic is weak, set lambda=1.0 in BOTH R2 arms as a design choice —
+  costs nothing, answers nothing, shifts the baseline. **CHECK FIRST WHETHER
+  EV IS EVEN LOGGED: it is not in the locked metric names**, so the "gate"
+  may itself cost a code change and a short run.
+  **WHAT THE ADVISORY GOT WRONG, KEPT BECAUSE THE PATTERN REPEATS.** Its
+  headline recommendation was "promote Foul Play to primary yardstick" —
+  **work completed 2026-08-23, with the whole ten-arm R1 wave already off
+  FP.** Its mechanism was also backwards: binomial SE PEAKS at p=0.5, so
+  0.72 -> 0.44 INCREASES it; the real signal-to-noise gain is
+  sqrt(p(1-p)) ~ **11%**, and it lands on the term that **loses to the
+  seed-clustered one anyway**. Refuted empirically too: **the three off-FP
+  greedy lanes have sd 0.0617**, i.e. changing opponent did not shrink the
+  term that binds. Also withdrawn: "bundle five levers, a null retires all
+  five" (**a one-point design retires the BUNDLE, not its members — levers
+  cancel**; the pre-registered SCREEN version survives), and a proposed
+  76-Glicko-point R1-vs-R3 bar, **which ladder_r3.yaml had already REFUSED
+  hours earlier** for reasons the advisory did not have. **THE LESSON IS
+  CHEAP AND GENERAL: an outside review with no repo access is worth having
+  for its DIAGNOSIS — "the constraint is the instrument, not a missing
+  technique" was correct and is what produced everything above — and must be
+  checked line-by-line against the repo before any of its PRESCRIPTIONS are
+  costed.**
