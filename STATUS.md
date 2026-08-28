@@ -19,9 +19,9 @@ operational abort under G-BLIND (4) — log cause AND battle index. Watch
 replays or board before n=200.** After: `bash scripts/backup_ladder.sh`.
 
 ## Results | 12M **0.71825** vs SH · ensemble 0.74633 · search@M 0.79283 (**12M**)
-· **LADDER R1: GXE 59.6%, Glicko 1573+/-27, Elo 1292, n=200** · off FP@20: greedy
+· **LADDER R1: GXE 59.6%, Glicko 1573+/-27, Elo 1292, n=200** · off FP@20 greedy
 0.3960/0.3430/0.2730 · search 0.4470/0.4470/0.4210 · C0 0.3893 · **RS80 0.4390
-(fresh, n=3000).** Ties=loss. **R1 CREDITS NOTHING.**
+fresh.** Ties=loss. **R1 CREDITS NOTHING.**
 
 ## Next actions (order CORRECTED 2026-08-28 03:10Z; SESSION_LOGS has both)
 0. **Read R3 out when it stops** (BI-4 first; pass every flag — the readout
@@ -45,8 +45,8 @@ replays or board before n=200.** After: `bash scripts/backup_ladder.sh`.
   NOT void the read (the rule is mechanical, cannot fire before n=200) but must
   be stated. (ii) **Real disconnections happened**, so a `timeout_midgame` may be
   OUR socket, not a human abandoning — do NOT pool with R1's six.
-- **`lsof -p X -i...` NEEDS `-a`**, or it ORs the selections and returns other
-  processes' sockets. It fails in the REASSURING direction; cost 35 min tonight.
+- **`lsof -p X -i...` NEEDS `-a`** or it ORs the selections and returns other
+  processes' sockets — it fails in the REASSURING direction. Cost 35 min.
 - **k ~ 24 kills lanes; (2,2) df kills the variance READ.** Bar =
   `2*sigma_seed/sqrt(k)` = 0.0717 at k=3, so the +0.025 floor needs **k>=24
   lanes**. **But sigma_seed across two 3-lane groups is F(2,2), crit 19.0 —
@@ -56,6 +56,5 @@ replays or board before n=200.** After: `bash scripts/backup_ladder.sh`.
   monotone in lane weakness 3/3 (+0.051/+0.104/+0.148), collapsing a 0.123 spread
   to 0.026. **2 df, p~0.06: HYPOTHESIS.** Read the rescore for **s81, not s82**;
   scoring levers under search is a **scope change**.
-- Never quote an R1-vs-R3 delta as an effect (D5); never set 0.4390 beside the 12M
-  0.79283 or read it as vs-SH; name the budget (FP@20). **"217 s/battle" is wrong
-  — 246.5. LADDER DATA IS UNREPEATABLE.**
+- No R1-vs-R3 delta as an effect (D5); never set 0.4390 beside the 12M 0.79283 or
+  read it as vs-SH; name the budget (FP@20). **"217 s/battle" is wrong — 246.5.**
