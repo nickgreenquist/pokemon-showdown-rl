@@ -30,14 +30,37 @@ LOG="$REPO/results/ladder/$ARM.run.log"
 count() { local n; n=$(wc -l < "$JSONL" 2>/dev/null | tr -d ' '); echo "${n:-0}"; }
 runner_pid() { pgrep -f "scripts/ladder.py .*--arm $ARM" | head -1; }
 
-last=$(count); last_t=$(date +%s)
+last=$(count); last_t=$(date +%s); nosock=0
 echo "WATCHDOG: armed for $ARM, stall=${STALL}s, starting n=$last"
 while true; do
   sleep 60
   pid=$(runner_pid)
-  [ -z "$pid" ] && { last_t=$(date +%s); continue; }   # between attempts
+  [ -z "$pid" ] && { last_t=$(date +%s); nosock=0; continue; }   # between attempts
   n=$(count); now=$(date +%s)
-  if [ "$n" -gt "$last" ]; then last=$n; last_t=$now; continue; fi
+  [ "$n" -gt "$last" ] && { last=$n; last_t=$now; }
+
+  # ---- FAST PATH: SOCKET ABSENCE, which needs no battle clock at all. ----
+  # Measured 2026-08-28: a seat died 4.5 min into attempt 3 and BEFORE its
+  # first battle, so the battle clock had nothing to measure from; it took the
+  # 900 s stall rule 15 MINUTES to notice. The stall rule only exists to avoid
+  # killing a live long game -- and a live long game HAS A SOCKET. So socket
+  # absence is sufficient on its own and is checked far sooner.
+  # `age` guards startup: torch import takes ~60-90 s with no socket yet, and
+  # killing during that would be an infinite loop of our own making.
+  age=$(ps -p "$pid" -o etimes= 2>/dev/null | tr -d ' '); age=${age:-0}
+  if lsof -a -p "$pid" -iTCP -sTCP:ESTABLISHED -n -P 2>/dev/null | grep -q ESTABLISHED; then
+    nosock=0
+  elif [ "$age" -gt 240 ]; then
+    nosock=$(( nosock + 1 ))
+    if [ "$nosock" -ge 3 ]; then
+      echo "WATCHDOG: NO ESTABLISHED SOCKET for 3 consecutive checks at n=$n (pid $pid, age ${age}s) — hung, poke-env does not reconnect. Killing so the supervisor relaunches." | tee -a "$LOG"
+      kill -9 "$pid" 2>/dev/null
+      nosock=0; last_t=$(date +%s)
+      continue
+    fi
+  fi
+
+  # ---- SLOW PATH: a stall WITH a socket. Informational only. ----
   idle=$(( now - last_t ))
   [ "$idle" -lt "$STALL" ] && continue
   # ** THE `-a` IS LOAD-BEARING. ** lsof combines its selection flags with a
