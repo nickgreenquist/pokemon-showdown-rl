@@ -6,8 +6,11 @@ A reinforcement-learning agent for **Pokémon Showdown Gen 1 random battles**
 cloning, no scripted opponent in the training loop. It plays through
 [poke-env](https://github.com/hsahovic/poke-env).
 
-As of 2026-08-25 it plays on the **real Showdown ladder, against humans** —
-LADDER R1 is complete at n=200 (GXE **59.6%**, Glicko-1 **1573 ± 27**).
+It plays on the **real Showdown ladder, against humans**. Two pre-registered
+runs are complete at n=200 each: LADDER R1 (2026-08-25, ensemble, GXE
+**59.6%**, Glicko-1 **1573 ± 27**) and LADDER R3 (2026-08-28, one-ply
+expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25**).
+The two runs are **not comparable** — see the R3 section.
 
 ## On the ladder — LADDER R1, complete
 
@@ -23,7 +26,7 @@ rule was met.**
 | **Glicko-1** | **1573 ± 27** |
 | **PS Elo, final** | **1292** (highest observed 1348) |
 | Record | 95–105 over **200** rated battles (0.475) |
-| Opponents | 141 distinct, mean Elo 1229 (range 1000–1538) |
+| Opponents | 141 distinct, mean Elo 1231 (range 1000–1538) |
 | Stopping rule `rd ≤ 40 AND n ≥ 200` | **satisfied** (rd 27, n 200) |
 | Top-500 admission cutoff | Elo 1357 — **we are not listed** |
 
@@ -46,19 +49,22 @@ in it:**
   66.2–77.2% and their Glicko spans 1627–1729. So admission is an Elo
   threshold (**1357**) and GXE is merely whatever the listed players happen to
   hold. We are at Elo 1292.
-- **The gap to the top 500 is ~125 Elo of real strength, not the 65 the
+- **The gap to the top 500 is ~143 Elo of real strength, not the 65 the
   profile suggests — and more battles will not close it.** Win rate by
-  opponent strength over the 200 rated battles: **0.688 vs sub-1100
-  (n=48), 0.488 vs 1100–1200 (n=43), 0.464 vs 1200–1300 (n=28), 0.340 vs
-  1300–1400 (n=47), 0.321 vs 1400+ (n=28).** Holding rank 500 means holding
-  ~50% against the 1300–1400 band, where we score 34%. Inverting Elo's
-  expected-score curve per band gives an implied true rating of **~1232**, so
-  the profile's 1292 is *above* our own equilibrium and was still falling —
-  the last battle took it 1311 → 1292, and the fresh-account start at 1000
-  inflated everything before it. *(Caveat: the per-band estimates trend
-  upward with opponent strength — 1154/1217/1245/1313 — which is either
-  logistic mis-specification or a real effect; at n=28–47 per band this
-  repo does not claim which. The aggregate direction is not in doubt.)*
+  opponent strength over the 200 rated battles *(cells CORRECTED 2026-08-28,
+  rebuilt from the replays with all 200 battles — the originally published
+  table was built from an advisory column that silently dropped six)*:
+  **0.694 vs sub-1100 (n=49), 0.477 vs 1100–1200 (n=44), 0.464 vs 1200–1300
+  (n=28), 0.319 vs 1300–1400 (n=47), 0.375 vs 1400+ (n=32).** Holding rank
+  500 means holding ~50% against the 1300–1400 band, where we score 32%.
+  Inverting Elo's expected-score curve over all 200 battles gives an implied
+  true rating of **~1214**, so the profile's 1292 is *above* our own
+  equilibrium and was still falling — the last battle took it 1311 → 1292,
+  and the fresh-account start at 1000 inflated everything before it.
+  *(Caveat: the per-band estimates — 1171/1147/1217/1227/1351 — broadly
+  rise with opponent strength, which is either logistic mis-specification
+  or a real effect; at n=28–49 per band this repo does not claim which.
+  The aggregate direction is not in doubt.)*
   **Closing it is a model problem, which is what Chapter 5 is for.**
 - **An earlier version of this table said GXE was unmeasurable, and that was
   wrong.** It claimed Showdown computes GXE only for listed accounts. It does
@@ -66,6 +72,41 @@ in it:**
   profile carries GXE and Glicko for any rated account**, which is where these
   numbers come from. The run's tooling checked the leaderboard and concluded the
   primary read did not exist. It existed the whole time.
+
+## On the ladder — LADDER R3, complete
+
+Account
+[`nickgen1rbrlbot2`](https://pokemonshowdown.com/users/nickgen1rbrlbot2),
+playing **one-ply expectation search (dose M) on the 50M lane s80** — the
+deployment reversal recorded as D6 in
+[`configs/eval/ladder_r3.yaml`](configs/eval/ladder_r3.yaml), pre-registered
+before the first rated battle. **The run is finished and the pre-registered
+stopping rule was met.**
+
+| | |
+|---|---|
+| **GXE — the pre-registered primary read** | **60.3%** |
+| **Glicko-1** | **1579 ± 25** |
+| **PS Elo, final** | **1232** (highest pre-battle observed 1383) |
+| Record | 106–94 over **200** rated battles (0.530); played-only 100/194 (0.515) |
+| Opponents | 116 distinct, mean Elo 1201 |
+| Stopping rule `rd ≤ 40 AND n ≥ 200` | **satisfied** (rd 25.4, n 200) |
+| Top-500 admission cutoff | Elo 1360 — **we are not listed** |
+
+**R3 is standalone descriptive, and it is not an R1 comparison.** Seven
+confounds moved between the runs (model, policy kind, account and opponent
+pool among them), so **no arithmetic difference between R1's and R3's GXE,
+Glicko or Elo is a quantity** — the pre-reg's ratified comparison ruling
+(D5) bars exactly that sentence, in both directions. R3's object carries
+**one of three anchors (FP@20 only)**: no vs-SH number at the locked
+protocol and no BC-clone h2h exists for search on any 50M lane.
+
+The full readout, including every owed disclosure (two blind breaches; real
+websocket disconnections, so some of its 19 mid-game timeouts are ours; the
+profile's 106–102 against the JSONL's 106–94, the 8 extra losses being
+battles our socket died under), is
+[`LADDER_R3_READOUT.md`](LADDER_R3_READOUT.md). The run self-healed through
+every outage unattended (supervisor + socket watchdog, 10 runner launches).
 
 Ladder replays are kept as evidence for the pre-registered readouts. **They are
 never training data** — see *The claim* below.
