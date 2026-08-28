@@ -951,6 +951,20 @@ r1_baseline:                     # source: LADDER_R1_READOUT.md (committed) + th
   sec_per_battle: 246.5
   listed: false
   implied_true_elo: 1232
+  # ** SUPERSEDED 2026-08-28 — DO NOT USE THE VALUES ON THE NEXT LINE. ** They
+  # are the PUBLISHED cells, built from the JSONL's advisory `opponent_rating`
+  # column, and they sum to 194 of 200. BI-4 rebuilt the table from the
+  # REPLAYS (200/200, asserted) and the six recovered battles MOVE THE CELLS:
+  #   <1100      49, 0.694   (was 48, 0.688)
+  #   1100-1200  44, 0.477   (was 43, 0.488)
+  #   1200-1300  28, 0.464   (unchanged)
+  #   1300-1400  47, 0.319   (was 47, 0.340)  <-- THE ONLY LICENSED COMPARISON
+  #   >=1400     32, 0.375   (was 28, 0.321)
+  # Aggregate implied true rating 1214, not 1232. **R3's readout compares
+  # against the CORRECTED cells.** Full derivation: SESSION_LOGS 2026-08-28.
+  # The line below is kept, unaltered, because it is what was pre-registered
+  # result-blind and deleting it would hide that the reference moved.
+  bands_CORRECTED_2026_08_28: {"lt1100": {n: 49, rate: 0.694}, "1100_1200": {n: 44, rate: 0.477}, "1200_1300": {n: 28, rate: 0.464}, "1300_1400": {n: 47, rate: 0.319}, "ge1400": {n: 32, rate: 0.375}, aggregate_implied_true_elo: 1214}
   bands: {"lt1100": {n: 48, rate: 0.688}, "1100_1200": {n: 43, rate: 0.488}, "1200_1300": {n: 28, rate: 0.464}, "1300_1400": {n: 47, rate: 0.340}, "ge1400": {n: 28, rate: 0.321},
     RESIDUAL_DIAGNOSED: "the five cells sum to 194 of 200. The six missing battles are EXACTLY the six where the JSONL opponent_rating is None (present on 194/200): R1's table was built from the advisory JSONL column instead of the replays, which carry 200/200. R3's table is built from the replays and asserts exhaustiveness."}
   implied_per_band: [1154, 1217, 1245, 1313]
