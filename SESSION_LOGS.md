@@ -9107,3 +9107,23 @@ entry by offset — never a broad keyword grep.
   40/40 by execution.
   **LAUNCHING the 4.87 h serial wave (RS81 then RS82) detached tonight;**
   readout against policy_form_decision when it lands.
+
+- 2026-08-28 (19:35Z / 15:35 EDT, repo staleness sweep -> REPO_CLEANUP.md):
+  while the RS81/RS82 wave runs, two subagent sweeps (docs truth-sweep;
+  scripts/configs deadwood) + main-session verification of the top ~8
+  findings. **Ranked findings filed in `REPO_CLEANUP.md`** per maintainer
+  instruction — explicitly ideas, not a plan; a fresh cleaning session does
+  its own audit. Headliners: `ch5_r1_offsh.yaml:1224` still LICENSES the
+  sentence "PS Elo 1311, never listed, no GXE" (wrong three ways, and
+  test_ch5_prereg.py:284 asserts the 1311 stays — fix is ⏸ until the wave
+  completes, sha consistency); `LADDER_R1_READOUT.md:48` headline still
+  says Elo 1311 against its own correction block; `ladder_readout.py`
+  emits R1-shaped rematch prose that in R3's readout contradicts the table
+  above it (rematch 0.548 > 0.517); `eval_checkpoint.py` defaults to 100
+  episodes on `best_` under a "locked protocol" billing; the retired ~40%
+  GXE conversion is live twice in RESULTS.md; prior_work/README.md:174
+  still carries 1232/0.340 (superseded 1214/0.319). Full list + verified-
+  clean register in the file. **TIMESTAMP CORRECTION owed by this session:
+  the r9 ratification entry below/above is headed "18:20Z / 14:20 EDT" —
+  the ratifying commit was 17:25Z and the wave launch 17:32Z (13:25/13:32
+  EDT); the entry's content is otherwise accurate.**
