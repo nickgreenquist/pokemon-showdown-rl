@@ -9023,3 +9023,42 @@ entry by offset — never a broad keyword grep.
   run this project would ever do. That is the right place for it, and it means
   the trigger does not need re-aiming after all: **"third account" and "the
   final run" now coincide.**
+
+- 2026-08-28 (17:05Z / 13:05 EDT, **LADDER R3 COMPLETE AND READ OUT — GXE
+  60.3%, Glicko-1 1579 ± 25, Elo 1232, 106-94 at n=200**): the run stopped
+  itself exactly as designed — STOPPING RULE MET at rd 25.4, n=200; the
+  supervisor (generation 2, attempt 5, rc=0) saw it and exited at 12:48 EDT.
+  Backup FIRST (mirror verified 200 rows / 204 replays, archive
+  `ladder_20260828_1249.tar.gz`), then the readout with every flag →
+  `LADDER_R3_READOUT.md`. The idle watchdog was killed in a verified
+  runner-free window. `nickgen1rbrlbot2` retires per the account ruling.
+  **THE LAST BATTLE WAS A HITMONCHAN COUNTER-VS-COUNTER MIRROR, probably vs
+  another bot, and the maintainer asked mid-battle whether to forfeit.** No:
+  Counter's PP is finite and a failed Counter still burns one, so the server
+  forces both seats off the move within ~10 turns — and a forfeit would inject
+  a deliberate loss into the final battle of the primary read. The opponent
+  forfeited first; battle 200 scored a WIN. The maintainer watching the live
+  board is BLIND BREACH 2 (n=199 complete, mechanical rule, no decision could
+  attach) and is disclosed in the readout beside the battle-10 breach.
+  **TWO FIXES TO `ladder_readout.py` BEFORE THE COMMITTED VERSION:**
+  (i) its hardcoded `R1_BANDS` comparison column carried the SUPERSEDED
+  advisory-column cells — R3's licensed [1300,1400) comparison would have been
+  quoted against 0.340, the exact number BI-4 corrected to 0.319 this morning.
+  Now the corrected 49/44/28/47/32 set, with a do-not-restore comment.
+  (ii) the R3 disclosure block now carries the CONCRETE outage counts (10
+  runner launches, 2 supervisor generations, 8 SIGKILLs of a socket-less
+  runner — 7 watchdog-recorded — at n = 16, 72 x3, 126, 138, 178 x2, plus the
+  battle-10 crash) and a COMPUTED record reconciliation. **NEW FINDING from
+  that reconciliation: the profile says 106-102 (208 rated games) against the
+  JSONL's 106-94 (200). Wins match exactly; the 8 extra server-side losses are
+  battles that were IN FLIGHT when our socket died — the server timed the seat
+  out and scored the loss, the dead runner never logged the battle. THE
+  PRIMARY RATING INCLUDES THEM; the 200-battle tally does not. They are our
+  outages, not opponent behaviour.** The anchor statement ("ONE of three
+  anchors: FP@20 only") is now in the readout in those words, per
+  `anchor_battery.verdict`.
+  README: R3 section landed (standalone-descriptive framing, D5 bar restated);
+  R1's band paragraph corrected per BI-4 (licensed cell 0.319, aggregate
+  implied 1214, gap to top-500 ~143 Elo, opponent mean 1231).
+  **NEXT: rescore search@M on s81/s82 at n=3000 (~4.9 h, eval) — the only
+  thing gating R2; read s81, not s82.**
