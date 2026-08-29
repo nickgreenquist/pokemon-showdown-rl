@@ -2,7 +2,7 @@
 
 Guide for Claude Code sessions on this repo.
 
-**Session start:** read `HANDOFF.md` if non-empty, then `STATUS.md` — the only mandatory read. Everything else on demand per "Docs".
+**Session start:** read `HANDOFF.md` if non-empty, then `STATUS.md` — the only mandatory read. Everything else on demand per "Docs". **STATUS's `JOURNEY POSITION` line is the arc: name the JOURNEY step any new work serves, or say why it is off-arc — off-arc work needs a maintainer ruling.**
 
 ## If you read nothing else
 
@@ -37,6 +37,7 @@ Standing obligations: **pin exact versions** in `pyproject.toml`; **name anythin
 - `STATUS.md` — **always read at session start.** Current state, last verdict with numbers, next actions, watch items. Rewritten in place, hard cap 60 lines; update it in the same commit that appends a session-log entry. On conflict, the newest session-log entry wins — say so and fix STATUS.md.
 - `HANDOFF.md` — read only if non-empty (mid-handoff). Fold anything durable into STATUS.md / SESSION_LOGS.md, then restore the empty stub. Written only when the maintainer explicitly asks.
 - `CHAPTER5.md` — **the current chapter document. The SHAPE is RATIFIED (2026-08-26, §7); the levers are PROPOSED.** Six candidate levers after LADDER R1, the R1(free reads) → R2(train) → R3(ladder #2) shape, and a result-blind branch table. It is the evidence brief for the standing 2-Opus cycle, not that cycle's output — §8 says what to attack. Same lifecycle as every pre-reg here: migrates into config headers, then is deleted.
+- `JOURNEY.md` — the multi-generation arc (gen1 → gen4 → gen9) and the only doc that says WHERE A WORK ITEM SITS. Read once per session at most: STATUS carries the current step. `tests/test_journey.py` keeps the two in sync and, once the maintainer's RATIFIED stamp lands, enforces that the arc stays arc-level (no bare decimals — a measurement in an arc doc is a staleness liability; its home is the chapter pre-reg that owns it).
 - `SESSION_LOGS.md` — dated entries (findings, decisions, run records); append as work lands. Index with `grep -n '^- 20' SESSION_LOGS.md`, then Read the chosen entry by offset/limit — never a broad keyword grep.
 - `SESSION_LOGS_PREDECESSOR.md` — 36 capstone-era entries recovered from the predecessor repo, plus its Phase-5 README/PLAN as appendices. Historical and frozen; SESSION_LOGS.md wins on conflict. Same read protocol.
 - `prior_work/README.md` — verified index of external material. **Read before citing any external result** — several widely-repeated claims about these systems do not survive contact with their code, and the index records which. Also points at a full local clone of the strongest comparable agent (`ps-ppo`, sibling directory); read that source directly for encoder / action-space / reward / PPO-hyperparameter questions.
@@ -57,7 +58,7 @@ Standing obligations: **pin exact versions** in `pyproject.toml`; **name anythin
 
 ## Conventions (they earned their place)
 
-- **Pre-register every experiment** in the config header before launching — pattern: `configs/showdown_r512_lra.yaml`. Arms, R0 sanity gates, PRIMARY read with explicit credit line, secondary reads, action on each branch.
+- **Pre-register every experiment** in the config header before launching — pattern: `configs/showdown_r512_lra.yaml`. **Every header names its `journey_step` and restates that step's exit condition verbatim.** Arms, R0 sanity gates, PRIMARY read with explicit credit line, secondary reads, action on each branch.
 - **Credit line:** a lever is credited iff pooled delta ≥ +0.025 **and** ≥ 2·se_diff. **The header must restate this verbatim, including the larger-of (binomial vs seed-clustered) se_diff clause.**
 - **Five pre-reg rules the D25/D25-P cycle paid for** (each cost a maintainer ruling — see SESSION_LOGS 2026-08-11 onward): name the across-lane aggregator; leave no unnamed cells in a partition (R-4's had a silent gap at (A1+0.02, A1+0.05] and a lane landed in it); decide up front whether dose is matched and how you'd know; restate the credit line verbatim; say which side each band reads (two-sided `|x|` is right for VOID screening, wrong for a residual cell).
 - **Locked eval protocol:** final checkpoint, **3000 battles/seed**, 3 seeds pooled, ties as non-wins, deterministic policy, vs `SimpleHeuristicsPlayer`. Every arm from D23 on has pooled **5×3000** — a disclosed DEVIATION (conservative, 5 ≥ 3), not the locked number; say so when quoting it.
