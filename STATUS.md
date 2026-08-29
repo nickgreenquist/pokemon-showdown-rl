@@ -19,8 +19,7 @@ Pure self-play; THE NOVELTY IS THE LANE.
 · **LADDER R1 (ensemble): GXE 59.6%, Glicko 1573±27, Elo 1292, n=200** ·
 **LADDER R3 (search@M, s80): GXE 60.3%, Glicko 1579±25, Elo 1232, 106-94,
 n=200 — STANDALONE; no R1-vs-R3 delta is a quantity (D5)** · off FP@20 greedy
-0.3960/0.3430/0.2730 · C0 0.3893 · **fresh searched n=3000: RS80 0.4390, RS81
-0.4487, RS82 0.454.**
+0.3960/0.3430/0.2730 · C0 0.3893 · **fresh searched: 0.4390/0.4487/0.454.**
 Ties=loss. **Ladders credit nothing.**
 
 ## Facts that travel with any R3 quote
