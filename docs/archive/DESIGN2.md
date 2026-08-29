@@ -1,5 +1,10 @@
 # DESIGN2 — Chapter 2 proposal: seal D25, then extend it
 
+> **ARCHIVED to docs/archive/ on 2026-08-29 (repo cleanup, maintainer-ruled).**
+> Nothing under docs/archive/ is "what next" — it is history, read only when
+> the maintainer names the file. STATUS.md + the newest SESSION_LOGS.md entry
+> are authoritative.
+
 **STATUS: DRAFT r2, PROPOSED (r1 2026-08-16; r2 2026-08-17 after the Stage-0
 measurements — see §0b: D30 KILLED at zero lanes; Z1-1 void as a screen, D28 moves to
 in-run-only dose certification). Never ratified AS A TRANCHE — but the

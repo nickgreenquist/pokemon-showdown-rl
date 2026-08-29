@@ -13,7 +13,7 @@ status block is wrong and is quoted below rather than deleted.**
   Play@20, **0.4390** at n=3000.
 - **CHAPTER R3 — ladder run #2 — RAN, AHEAD OF R2**: 2026-08-28, n=200,
   **GXE 60.3%, Glicko-1 1579 ± 25, Elo 1232**, on search@M over the 50M
-  lane s80. See `LADDER_R3_READOUT.md` and `configs/eval/ladder_r3.yaml`.
+  lane s80. See `readouts/LADDER_R3_READOUT.md` and `configs/eval/ladder_r3.yaml`.
 - **Still true: NOTHING HAS BEEN TRAINED IN THIS CHAPTER.** R1 was
   eval-only against existing checkpoints and R3 was a ladder run; **R2 is
   the training round and its pre-registration is not written.** That, not
@@ -376,7 +376,7 @@ Primary named in advance, one arm, its own pre-reg
 (`configs/eval/ladder_r3.yaml`). **Do not pick the better of two ladder
 numbers after the fact.** Result: **GXE 60.3%, Glicko-1 1579 ± 25, Elo
 1232, 106-94 at n=200**, on search@M over the 50M lane s80
-(`LADDER_R3_READOUT.md`).
+(`readouts/LADDER_R3_READOUT.md`).
 
 > **RETRACTED 2026-08-28 — the "open question for the design cycle" below
 > rested on a false premise, and the false premise is the interesting
@@ -392,7 +392,7 @@ numbers after the fact.** Result: **GXE 60.3%, Glicko-1 1579 ± 25, Elo
 > reported the rule as un-fired. The **user profile** carries GXE, Glicko
 > and `rd` for any rated account, and always did. Fixed 2026-08-27; same
 > root cause as the retracted "GXE is unmeasurable for unlisted accounts"
-> claim (`LADDER_R1_READOUT.md` correction block).
+> claim (`readouts/LADDER_R1_READOUT.md` correction block).
 >
 > R3 needed no new rule. It ran under `rd <= 40 AND n >= 200` and the rule
 > **fired on its own at rd 25.4, n 200** — the supervisor saw the exit and

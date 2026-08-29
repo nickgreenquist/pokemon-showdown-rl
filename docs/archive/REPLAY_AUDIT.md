@@ -1,5 +1,10 @@
 # Overnight replay audit — 2026-08-25
 
+> **ARCHIVED to docs/archive/ on 2026-08-29 (repo cleanup, maintainer-ruled).**
+> Nothing under docs/archive/ is "what next" — it is history, read only when
+> the maintainer names the file. STATUS.md + the newest SESSION_LOGS.md entry
+> are authoritative.
+
 Answering "look through real game logs, find obvious issues, find patterns."
 **Nothing was acted on.** No encoder change, no policy change, no config
 change. The ladder ran untouched throughout.

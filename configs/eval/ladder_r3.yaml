@@ -933,7 +933,7 @@ build_items:
 
 readout_scripts_default_to_r1: "** ALL THREE READOUT SCRIPTS DEFAULT TO R1 ** (--jsonl results/ladder/L2.battles.jsonl, --replays results/ladder/replays, --name nickgen1rbrlbot). Run bare they produce a readout OF R1 and it looks perfectly normal. Pass all three flags, always."
 
-r1_baseline:                     # source: LADDER_R1_READOUT.md (committed) + the profile
+r1_baseline:                     # source: readouts/LADDER_R1_READOUT.md (committed) + the profile
   arm: L2
   object: "4-lane ensemble of 12M lanes s62-s65, greedy/deterministic"
   n: 200
@@ -997,7 +997,7 @@ instruments:
   move_audit: scripts/ladder_move_audit.py
   backup: scripts/backup_ladder.sh
   tests: tests/test_ladder.py
-  r1_provenance: LADDER_R1_READOUT.md
+  r1_provenance: readouts/LADDER_R1_READOUT.md
 
 ratified_decisions:                    # ALL SIX RULED 2026-08-27 ~21:40 EDT
   D1_schedule:

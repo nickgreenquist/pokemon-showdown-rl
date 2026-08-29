@@ -12,7 +12,7 @@
 #   3. ~/pokemon-showdown-rl-ladder-archive/               dated tarballs
 #
 # The NUMBERS survive separately from the files: `scripts/ladder_readout.py`
-# writes LADDER_R1_READOUT.md to a TRACKED path, so even losing all three
+# writes readouts/LADDER_R1_READOUT.md to a TRACKED path, so even losing all three
 # copies leaves the readout in git. That is the same rule scripts/README.md
 # records for grader scripts.
 set -euo pipefail

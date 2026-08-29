@@ -105,7 +105,7 @@ The full readout, including every owed disclosure (two blind breaches; real
 websocket disconnections, so some of its 19 mid-game timeouts are ours; the
 profile's 106–102 against the JSONL's 106–94, the 8 extra losses being
 battles our socket died under), is
-[`LADDER_R3_READOUT.md`](LADDER_R3_READOUT.md). The run self-healed through
+[`readouts/LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md). The run self-healed through
 every outage unattended (supervisor + socket watchdog, 10 runner launches).
 
 Ladder replays are kept as evidence for the pre-registered readouts. **They are

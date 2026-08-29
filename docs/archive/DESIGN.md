@@ -1,5 +1,10 @@
 # DESIGN — the roadmap after the pivot
 
+> **ARCHIVED to docs/archive/ on 2026-08-29 (repo cleanup, maintainer-ruled).**
+> Nothing under docs/archive/ is "what next" — it is history, read only when
+> the maintainer names the file. STATUS.md + the newest SESSION_LOGS.md entry
+> are authoritative.
+
 > ## ⚠️ READ THIS BEFORE ACTING ON ANYTHING BELOW (banner added 2026-08-25)
 >
 > **This file is largely SPENT as a forward roadmap. It is retained as the historical

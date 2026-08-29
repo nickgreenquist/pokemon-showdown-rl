@@ -125,8 +125,8 @@ Where that sits in the published randbats field:
 | best human players | — | — | 74–90% |
 
 **The two "ours" rows that are MEASURED — added 2026-08-28, and everything below travels with
-them.** Committed provenance: [`LADDER_R1_READOUT.md`](../LADDER_R1_READOUT.md) and
-[`LADDER_R3_READOUT.md`](../LADDER_R3_READOUT.md); `results/ladder/` is gitignored.
+them.** Committed provenance: [`LADDER_R1_READOUT.md`](../readouts/LADDER_R1_READOUT.md) and
+[`LADDER_R3_READOUT.md`](../readouts/LADDER_R3_READOUT.md); `results/ladder/` is gitignored.
 
 - **R1** — account `nickgen1rbrlbot`, run 2026-08-25/26, n = 200, record 95–105, final PS Elo
   **1292**, not listed (Elo admission cutoff ≈ 1357). Stopping rule `rd ≤ 40 AND n ≥ 200`
