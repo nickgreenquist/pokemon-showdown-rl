@@ -97,6 +97,13 @@ def attest():
         ok = abs(y["rate"] - rate) < 5e-7 and y["n"] == n
         out["checks"].append({"yaml": f"control_offfp.{lane}", "pass": ok})
         out["pass"] &= ok
+    # r2_review_1 SF-5: the draft never compared the YAML's per-lane
+    # vs-SH rates to anything; a typo there passed every test.
+    for lane, rate in CTRL_VSSH.items():
+        y = g["control_vssh"][lane]
+        ok = abs(y["rate"] - rate) < 5e-6 and y["n"] == 3000
+        out["checks"].append({"yaml": f"control_vssh.{lane}", "pass": ok})
+        out["pass"] &= ok
     for name, want, got in (("mean", g["control_offfp"]["mean"], CTRL_MEAN),
                             ("sd", g["control_offfp"]["sd"], CTRL_SD),
                             ("mean_sh", g["control_vssh"]["mean"], CTRL_MEAN_SH),
@@ -225,6 +232,53 @@ def x_cell(p, sn):
     return "X4", "the primary cell governs; vs-SH reported descriptively with its bar."
 
 
+def _vs_sh_block(cell, t_rates, sh_rates, sh_n, k):
+    """The vs-SH axis + F1, at EVERY k. NEVER silent: a missing or
+    incomplete finals set emits the R1 UNGRADED idiom (r2_review_1 MF-3 /
+    r2_review_2 MF-1). At k <= 2 the axis is descriptive (cell XK,
+    r2_review_1 MF-2) and F1 still composes on the survivors' pooled
+    mean with k disclosed."""
+    out = {}
+    if not t_rates or sh_rates is None or set(sh_rates) != set(t_rates):
+        note = ("vs-SH finals missing/incomplete for the surviving lanes -- "
+                "UNGRADED (not passed). The SN letters, X cells and F1 "
+                "CANNOT be read; produce them per vssh_finals.produced_by "
+                "and re-grade.")
+        out["vs_sh"] = {"pass": None, "note": note}
+        out["F1_falsifier"] = {"pass": None, "note": note}
+        return out
+    ys = [sh_rates[l] for l in sorted(sh_rates)]
+    mean_sh = sum(ys) / k
+    if k < 3:
+        out["vs_sh"] = {
+            "per_lane": {l: sh_rates[l] for l in sorted(sh_rates)},
+            "pooled_survivors": mean_sh, "k": k,
+            "x_cell": "XK",
+            "x_verdict": ("at k <= 2 the vs-SH axis is DESCRIPTIVE TOO -- no "
+                          "SN letter fires; the same 1-df disclosure applies; "
+                          "lanes reported individually")}
+    else:
+        s_tsh = statistics.stdev(ys)
+        delta_sh = mean_sh - CTRL_MEAN_SH
+        se_bin_sh = math.sqrt(sum(y * (1 - y) / sh_n for y in ys) / k ** 2
+                              + sum(r * (1 - r) / 3000 for r in CTRL_VSSH.values()) / 9)
+        se_clus_sh = math.sqrt(s_tsh ** 2 / k + CTRL_SD_SH ** 2 / 3)
+        bar_sh = max(FLOOR, 2 * max(se_bin_sh, se_clus_sh))
+        sn, sn_verdict = sn_cell(delta_sh, bar_sh)
+        xc, x_verdict = x_cell(cell, sn)
+        out["vs_sh"] = {"mean_T": mean_sh, "delta": delta_sh, "s_T": s_tsh,
+                        "bar": bar_sh, "positive_side": "DESCRIPTIVE (ADJ-2)",
+                        "sn_cell": sn, "sn_verdict": sn_verdict,
+                        "x_cell": xc, "x_verdict": x_verdict}
+    out["F1_falsifier"] = {
+        "fires": mean_sh < F1_THRESHOLD, "k": k, "threshold": F1_THRESHOLD,
+        "sentence": ("FALSIFIER-CLASS: the dose destroyed the credited "
+                     "stack's entire 50M advantage; L3 the named suspect. "
+                     "Composes with the cell; both sentences recorded.")
+        if mean_sh < F1_THRESHOLD else None}
+    return out
+
+
 def grade_read(t_rates, t_ns, sh_rates=None, sh_n=3000):
     """The primary + composing conditions. t_rates: dict lane->rate on
     n_eff for SURVIVING lanes only (a VOIDed/failed lane is absent —
@@ -239,6 +293,9 @@ def grade_read(t_rates, t_ns, sh_rates=None, sh_n=3000):
             "is credited. Surviving lane rates reported individually at their own "
             "n_eff. At k=2 the seed sd has ONE degree of freedom; its 95% CI "
             "multipliers are 0.45x-31.9x.")
+        # r2_review_1 MF-2: the vs-SH axis and F1 must NOT go silent
+        # exactly when a lane has already died (cell XK).
+        R.update(_vs_sh_block("K", t_rates, sh_rates, sh_n, k))
         return R
     xs = [t_rates[l] for l in sorted(t_rates)]
     mean_t = sum(xs) / k
@@ -278,28 +335,15 @@ def grade_read(t_rates, t_ns, sh_rates=None, sh_n=3000):
                            "CREDIT per the governing credit line, with the "
                            "non-separation stated wherever the permutation would "
                            "have been quoted")
-    # vs-SH (ADJ-2): descriptive positive, letter-bearing negative + X
-    if sh_rates is not None and len(sh_rates) == k:
-        ys = [sh_rates[l] for l in sorted(sh_rates)]
-        mean_sh = sum(ys) / k
-        s_tsh = statistics.stdev(ys)
-        delta_sh = mean_sh - CTRL_MEAN_SH
-        se_bin_sh = math.sqrt(sum(y * (1 - y) / sh_n for y in ys) / k ** 2
-                              + sum(r * (1 - r) / 3000 for r in CTRL_VSSH.values()) / 9)
-        se_clus_sh = math.sqrt(s_tsh ** 2 / k + CTRL_SD_SH ** 2 / 3)
-        bar_sh = max(FLOOR, 2 * max(se_bin_sh, se_clus_sh))
-        sn, sn_verdict = sn_cell(delta_sh, bar_sh)
-        xc, x_verdict = x_cell(cell, sn)
-        R["vs_sh"] = {"mean_T": mean_sh, "delta": delta_sh, "s_T": s_tsh,
-                      "bar": bar_sh, "positive_side": "DESCRIPTIVE (ADJ-2)",
-                      "sn_cell": sn, "sn_verdict": sn_verdict,
-                      "x_cell": xc, "x_verdict": x_verdict}
-        R["F1_falsifier"] = {
-            "fires": mean_sh < F1_THRESHOLD, "threshold": F1_THRESHOLD,
-            "sentence": ("FALSIFIER-CLASS: the dose destroyed the credited "
-                         "stack's entire 50M advantage; L3 the named suspect. "
-                         "Composes with the cell; both sentences recorded.")
-            if mean_sh < F1_THRESHOLD else None}
+    if (fires and not tie) and cell != "P1":
+        # r2_review_1 MF-5: the mirror composite, reachable at
+        # delta in (0.0587, BAR) by a tight high fleet.
+        R["named_cell_mirror"] = (
+            "permutation separates, credit line does not -- the fleets "
+            "separate completely at the permutation's minimum p = 0.05 and "
+            "the read is STILL NOT CREDITED; separation is not size; the "
+            "credit line governs")
+    R.update(_vs_sh_block(R["cell"], t_rates, sh_rates, sh_n, k))
     return R
 
 
@@ -317,14 +361,22 @@ def selftest():
 
     # (3) D-A formula reproduces the BANKED CONTROL's final lr
     #     bit-for-bit with the control's own constant (1024).
-    import torch
-    d = torch.load(REPO / "runs/showdown_sp_stack50m_r2_s80/checkpoint.pt",
-                   map_location="cpu", weights_only=False)
-    u = d["agent"]["updates"]
-    want = 2.5e-4 * (1 - (u - 1) * 1024 / 50e6)
-    got = d["agent"]["optimizer"]["param_groups"][0]["lr"]
-    assert got == want, (got, want)
-    assert [len(g["params"]) for g in d["agent"]["optimizer"]["param_groups"]] == [29, 26, 6]
+    #     r2_review_2 SF-2: skip-with-note if the control checkpoint has
+    #     been pruned (the cleanup class already took its ckpt_* rungs);
+    #     the readout grader must not die on a file no R2 gate needs.
+    ctrl_ckpt = REPO / "runs/showdown_sp_stack50m_r2_s80/checkpoint.pt"
+    got = None
+    if ctrl_ckpt.exists():
+        import torch
+        d = torch.load(ctrl_ckpt, map_location="cpu", weights_only=False)
+        u = d["agent"]["updates"]
+        want = 2.5e-4 * (1 - (u - 1) * 1024 / 50e6)
+        got = d["agent"]["optimizer"]["param_groups"][0]["lr"]
+        assert got == want, (got, want)
+        assert [len(g["params"]) for g in d["agent"]["optimizer"]["param_groups"]] == [29, 26, 6]
+    else:
+        print("  NOTE: control checkpoint absent -- the bit-for-bit "
+              "reproduction was verified at draft time and cannot re-run")
     # and the treatment's four pre-computed rungs reproduce
     for lr, u2 in ((2.401696e-4, 65), (2.002336e-4, 325),
                    (1.202080e-4, 846), (2.464000e-7, 1627)):
@@ -364,6 +416,23 @@ def selftest():
     r = read((0.45, 0.44, MAX_CTRL_LANE))
     assert r["permutation"]["tie_reads_non_separation"] is True
     assert r["permutation"]["fires"] is False
+
+    # (6b) r2_review_1 MF-5: the MIRROR composite -- permutation
+    # separates, credit line does not (tight high fleet).
+    r = read((0.400, 0.398, 0.402))
+    assert r["cell"] == "P2" and r["permutation"]["fires"] is True
+    assert "named_cell_mirror" in r, "P2 with a firing permutation must emit the mirror cell"
+
+    # (6c) r2_review_1 MF-2: at k=2 the vs-SH axis and F1 must NOT go
+    # silent (cell XK); and a missing finals set is UNGRADED, not absent.
+    r = grade_read({"s66": 0.50, "s75": 0.50}, ns,
+                   sh_rates={"s66": 0.50, "s75": 0.49})
+    assert r["cell"] == "K" and r["vs_sh"]["x_cell"] == "XK"
+    assert r["F1_falsifier"]["fires"] is True and r["F1_falsifier"]["k"] == 2
+    r = read((0.37, 0.36, 0.38))
+    assert r["vs_sh"]["pass"] is None and "UNGRADED" in r["vs_sh"]["note"], \
+        "a missing vs-SH finals set must be UNGRADED, never silent (MF-3)"
+    assert r["F1_falsifier"]["pass"] is None
 
     # (7) sigma_seed and its disclosure are emitted TOGETHER.
     r = read((0.37, 0.36, 0.38))
@@ -411,8 +480,9 @@ def selftest():
           "frozen-control checks reproduce from disk and YAML")
     print(f"  R0-f: batch 30720 = 120 x 256, updates {EXPECTED_UPDATES}, "
           "grad 780960, 153600 steps/push, 325 pushes both arms")
-    print(f"  D-A: control final lr reproduces bit-for-bit ({got:.6e}); "
-          "four treatment rungs reproduce")
+    if got is not None:
+        print(f"  D-A: control final lr reproduces bit-for-bit ({got:.6e}); "
+              "four treatment rungs reproduce")
     print("  cells: P1-P6 + boundaries + K(k<=2) + permutation tie + X3 + F1 "
           "all exercised; G2 mismatch FAILS")
 
@@ -464,18 +534,40 @@ def main():
         if (out_dir / f"{tag}.json").exists():
             R["arms"][arm_name] = r1.grade_arm(prereg, out_dir, arm_name, tag)
 
+    # r2_review_1 MF-3 / r2_review_2 MF-1: the finals' home is DECLARED
+    # in the pre-reg (vssh_finals) and absence is UNGRADED, never silent
+    # (the UNGRADED emission happens inside grade_read's _vs_sh_block).
+    vf = prereg["vssh_finals"]
     sh_rates = {}
-    for s in (66, 75, 83):
-        p = REPO / f"results/ch5_r2/final_s{s}.json"
+    for lane in t_rates:
+        p = REPO / vf["dir"] / f"final_s{lane[1:]}.json"
         if p.exists():
             d = json.loads(p.read_text())
-            assert d["episodes"] == 3000, f"vs-SH final s{s} not at the locked count"
-            sh_rates[f"s{s}"] = d["eval/win_rate"]
+            assert d["episodes"] == 3000, f"vs-SH final {lane} not at the locked count"
+            sh_rates[lane] = d["eval/win_rate"]
 
     # THE PRIMARY VERDICT IS WRITTEN BEFORE ANY RIDER STATISTIC EXISTS
     # (R-Q4); riders are graded by their own tooling, later, never here.
     R["read"] = grade_read(t_rates, t_ns,
-                           sh_rates=sh_rates if len(sh_rates) == len(t_rates) and t_rates else None)
+                           sh_rates=sh_rates if t_rates and set(sh_rates) == set(t_rates) else None)
+
+    # r2_review_1 MF-4: HARD fleet-level gates gate the printed verdict.
+    # "Any failure voids as stated" (training half Q6) -- a CREDIT line
+    # must never print beside d_a.pass == false or a failed R0-f.
+    fleet_fail = []
+    if not R["r0f"]["pass"]:
+        fleet_fail.append("R0-f")
+    for da in R["d_a"]:
+        if da["pass"] is not True:
+            fleet_fail.append(f"D-A:{da['lane']}")
+    if fleet_fail:
+        R["read"]["void"] = True
+        R["read"]["void_reason"] = fleet_fail
+        R["read"]["verdict"] = ("VOID (fleet gate failure: "
+                                + ", ".join(fleet_fail) + ") -- the cell below "
+                                "is what WOULD have read and is not quotable: "
+                                + str(R["read"].get("verdict")))
+        R["read"]["cell"] = "VOID"
 
     txt = json.dumps(R, indent=2, default=float)
     if args.out:

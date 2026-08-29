@@ -57,7 +57,17 @@ wlog "WAVE START serial k=1, prereg sha $(shasum -a 256 $PREREG | cut -c1-12)"
 # not a stamp. The FP patch and the Showdown server are different
 # processes and are out of the seat's reach, so this is the only place
 # they are observable. A G8 break voids everything downstream of it.
-"$PY" - <<'PYEOF' > "$OUT/wave.provenance.json"
+# r2_review_2 SF-1: the wave is INVOKED MORE THAN ONCE by design (T arms,
+# then ARMS="R4S<seed>", plus any resume), and a truncating `>` would
+# stamp the T arms with a LATER launch's sha. The canonical
+# wave.provenance.json is written once (first invocation) and never
+# overwritten; every invocation also writes its own timestamped stamp.
+PROV="$OUT/wave.provenance.json"
+if [ -f "$PROV" ]; then
+    PROV="$OUT/wave.provenance.$(date -u +%Y%m%dT%H%M%SZ).json"
+    wlog "provenance already stamped; this invocation stamps $PROV"
+fi
+"$PY" - <<'PYEOF' > "$PROV"
 import hashlib, json, subprocess, pathlib
 def sh(*c, cwd=None):
     try:
@@ -77,7 +87,7 @@ print(json.dumps({
   "prereg_sha256": sha("configs/eval/ch5_r2_offsh.yaml"),
 }, indent=2))
 PYEOF
-wlog "provenance stamped -> $OUT/wave.provenance.json"
+wlog "provenance stamped -> $PROV"
 
 # RESUME-SAFE: an arm whose JSON exists AND resolved every challenge is
 # COMPLETE and is skipped, so the wave can be re-invoked freely. A partial

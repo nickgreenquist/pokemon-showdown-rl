@@ -34,6 +34,13 @@ if [ -n "$(git status --porcelain)" ]; then
     echo "FAIL (G0): tree is dirty -- launches stamp git_dirty, and one untracked .md flips it"; rc=1
 fi
 
+# r2_review_2 SF-3: refuse to LAUNCH a wave against un-attested pins.
+# (The failure downstream is loud and burns no pair, but it costs the
+# arm's single no-JSON retry; the grader already refuses to grade.)
+if grep -q "status: PENDING" configs/eval/ch5_r2_offsh.yaml; then
+    echo "FAIL: checkpoint_attestation.status is PENDING -- run the attestation commit first (checkpoint_attestation flow)"; rc=1
+fi
+
 echo "launch_git_sha $(git rev-parse HEAD)"
 echo "prereg_sha256  $(shasum -a 256 configs/eval/ch5_r2_offsh.yaml | cut -d' ' -f1)"
 exit $rc

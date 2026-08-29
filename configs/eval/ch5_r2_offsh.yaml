@@ -16,11 +16,23 @@
 # BLINDING ATTESTATION (r6's, carried): after ratification NOTHING in
 # this file may change; in particular no arm's n, roster, seat,
 # sidedness or bar formula moves after the FIRST treatment off-FP datum
-# is seen. The one licensed post-ratification edit is the checkpoint
-# sha attestation flip (PENDING -> ATTESTED, all lanes at once, its own
-# commit — see checkpoint_attestation). The readout records the ORDER
-# in which results were looked at; an unattestable order is DISCLOSED,
-# not a void.
+# is seen. EXACTLY TWO post-ratification edits are licensed, each its
+# own commit:
+#   (i) the checkpoint sha attestation flip (PENDING -> ATTESTED, all
+#       lanes at once — see checkpoint_attestation);
+#   (ii) THE PAIR FLIP (added in review — r2_review_2 MF-3: the rerun
+#       rule was otherwise inoperable, since the runner reads usernames
+#       ONLY from the arms block and R1 needed a full amendment for the
+#       same move): on an OPS FAILURE (.NO_PROGRESS or
+#       .USERNAME_DEADLOCK sentinel on an arm), that arm's
+#       seat_username/fp_username are flipped to its PRE-REGISTERED
+#       rerun_pairs pair. Nothing new is chosen — the pair is already
+#       registered below; the burned pair is recorded in a burned_pairs:
+#       block added in the same commit and is never re-issued; the flip
+#       is disclosed in the readout. No other key of the arm may move
+#       in that commit.
+# The readout records the ORDER in which results were looked at; an
+# unattestable order is DISCLOSED, not a void.
 #
 # ---------------------------------------------------------------------
 # Q1. THE PRIMARY READ — STRENGTH, off Foul Play@20, GREEDY (r9
@@ -147,7 +159,14 @@
 #   fires, permutation does not" — possible at low treatment spread
 #   with one lane <= 0.3960; recorded as CREDIT per the governing
 #   credit line, with the non-separation stated wherever the
-#   permutation would have been quoted.
+#   permutation would have been quoted. MIRROR CELL, ALSO NAMED (added
+#   in review — r2_review_1 MF-5; reachable at delta in (0.0587, BAR),
+#   the exact regime a tight high fleet produces): "permutation
+#   separates, credit line does not" — recorded as the primary cell
+#   that fired (typically P2), with the pre-written sentence: "the
+#   fleets separate completely at the permutation's minimum p = 0.05
+#   and the read is STILL NOT CREDITED — separation is not size; the
+#   credit line governs." The permutation never credits.
 #
 # ---------------------------------------------------------------------
 # Q3. THE vs-SH READ — ADJUDICATED ROLE (ADJ-2): DESCRIPTIVE on the
@@ -164,9 +183,12 @@
 #     s_TSH = 0       -> 0.0727   (pooled_T >= 0.7749 to letter)
 #     s_TSH = 0.06295 -> 0.1028   (pooled_T >= 0.8050)
 #   WHY THE POSITIVE SIDE BEARS NO LETTER (designer B, adjudicated in):
-#   a positive letter would require pooled >= 0.7749-0.8050 — ABOVE
-#   EVERY vs-SH NUMBER IN REPO HISTORY (best single lane 0.74233;
-#   4-lane ensemble 0.74633; search@M 0.79283). Pre-registering it
+#   a positive letter would require pooled >= 0.7749-0.8050 — above
+#   every GREEDY vs-SH number in repo history (best single lane
+#   0.74233; 4-lane ensemble 0.74633. Corrected in review, r2_review_1
+#   SF-2: the searched 0.79283 does exceed the s_TSH=0 row, but it is a
+#   DIFFERENT POLICY FORM, barred as a comparator by the policy-form
+#   rule, and still below the s_TSH = s_C row). Pre-registering it
 #   pre-writes a guaranteed "letter not met" at zero information; the
 #   positive/within side is reported DESCRIPTIVELY with this bar
 #   arithmetic shown so the non-declaration is visible, never silent.
@@ -190,6 +212,15 @@
 #         NUMBERS.
 #     X4: (P2..P6) and any vs-SH outcome -> the primary cell governs;
 #         the vs-SH number reported descriptively with its bar.
+#     XK: cell K (k_arm <= 2, Q2) and any vs-SH outcome — added in
+#         review (r2_review_1 MF-2; the draft's X-table conditioned on
+#         P1..P6 only and left K x vs-SH unnamed): at k <= 2 the vs-SH
+#         axis is DESCRIPTIVE TOO — no SN letter fires — and carries
+#         the same 1-df disclosure as the primary; the surviving lanes'
+#         vs-SH rates are reported individually. F1 STILL COMPOSES,
+#         computed on the surviving lanes' pooled vs-SH mean with its k
+#         disclosed — the falsifier sentence must not go silent exactly
+#         when a lane has already died.
 #   F1 (Q2) composes on this axis too and is the stronger sentence
 #   below 0.580222.
 #
@@ -198,8 +229,9 @@
 #   Report: s_T (raw); the ratio s_T/0.0617; the binomial-deconvolved
 #   sigma_hat_T = sqrt(max(0, s_T^2 - xbar(1-xbar)/3000)) (DESCRIPTIVE
 #   only — the BAR always uses raw s_T); F = s_T^2/0.0617^2. Reference:
-#   sigma_hat of the control = 0.0599 (96.9% of its observed spread is
-#   real seed spread at n=1000).
+#   sigma_hat of the control = 0.05986 — 97.0% of its observed spread
+#   in sd terms (94.1% in variance terms) is real seed spread at
+#   n=1000.
 #   DISCLOSURE, VERBATIM AND MANDATORY, EMITTED BY THE GRADER IN THE
 #   SAME PRINT AS THE NUMBER (designer B E1, adopted; the test asserts
 #   the pairing): "an F-test across two 3-lane groups has (2,2) degrees
@@ -242,8 +274,9 @@
 #       0.44-0.45, and the two WILL be juxtaposed unless barred here.
 #       Rider R4S is the only licensed searched-vs-greedy contrast, and
 #       it is WITHIN-LANE.
-#   Q-4 B81 0.4470 / B82 0.4210 (n=1000 searched) remain BARRED as
-#       comparators (R1's Q6 carve-out).
+#   Q-4 B80 0.4470 / B81 0.4470 / B82 0.4210 (n=1000 searched) remain
+#       BARRED as comparators (R1's Q6 carve-out named B81/B82; B80
+#       falls under the same rule and is named for completeness).
 #   Q-5 the 12M off-FP 0.34867 is NOT R2's control and enters no R2
 #       arithmetic; context only.
 #   Q-6 rider numbers are never compared to FP@20 or vs-SH numbers,
@@ -309,8 +342,9 @@
 #   R2t FREE LOG-SIDE TRACES, ZERO BATTLES: (a) per-lane loss/entropy
 #     against STEP, summarised on 500k-STEP BINS (MANDATORY — raw rows
 #     weight the control 30:1; C-CAD). Control reference, banked:
-#     3-lane median never below 0.1603 pre-25M; per-lane minima
-#     0.1375/0.1144/0.1542; finals 0.2037/0.1628/0.1660. (b)
+#     3-lane median never below 0.1603 pre-25M; per-lane PRE-25M
+#     minima 0.1375/0.1144/0.1542 (whole-run minima 0.1180/0.1144/
+#     0.1087 — the K6 quote); finals 0.2037/0.1628/0.1660. (b)
 #     checkpoint-to-checkpoint policy drift: mean symmetrised KL
 #     between consecutive 500k checkpoints over a FROZEN held-out state
 #     set S — built ONCE as the union of 2,500 obs sampled from a
@@ -367,8 +401,11 @@
 # ---------------------------------------------------------------------
 # Q8. SEQUENCING AND OPS (the wave itself)
 #   ORDER, BINDING: (1) training completes, all lanes; (2) vs-SH finals
-#   (eval_checkpoint.py --episodes 3000, serial, one lane at a time) —
-#   these double as the WIRING read: the FP seat loads through the same
+#   (eval_checkpoint.py --episodes 3000 --out
+#   results/ch5_r2/final_s<N>.json, serial, one lane at a time — the
+#   output path is DECLARED at vssh_finals: below; the grader refuses
+#   silence on a missing final) — these double as the WIRING read: the
+#   FP seat loads through the same
 #   eval_checkpoint shim, so the checkpoints have been loaded and
 #   battled before any FP arm (R1's G-WIRING intent at full n); (3) the
 #   sha ATTESTATION COMMIT (checkpoint_attestation below); (4) the FP
@@ -389,6 +426,16 @@
 # =====================================================================
 
 results_dir: results/ch5_r2_offsh
+
+# The vs-SH finals' DECLARED home (r2_review_1 MF-3 / r2_review_2 MF-1:
+# the draft grader read an undeclared path, and a missing file silently
+# deleted the letter-bearing vs-SH axis, X3 and F1 from the verdict).
+# The grader reads exactly this; a missing or short file is emitted as
+# "UNGRADED (not passed)", never silence.
+vssh_finals:
+  dir: results/ch5_r2
+  file_for_lane: "final_s<seed>.json"
+  produced_by: "scripts/eval_checkpoint.py runs/showdown_sp_batch50m_s<N>/checkpoint.pt --episodes 3000 --out results/ch5_r2/final_s<N>.json"
 
 fp:
   search_time_ms: 20
@@ -423,7 +470,12 @@ grading:
     lanes: [s66, s75, s83]
     n_per_lane_offfp: 3000
     n_per_lane_vssh: 3000
-  planning_bar: 0.1007          # 2*sqrt(2*0.0617^2/3); REALIZED sds govern
+  planning_bar: 0.1007          # 2*sqrt(2*0.0617^2/3) = 0.100756; printed
+                                # 0.1007 here (the settled ruling's own
+                                # spelling) and 0.1008 in the reachability
+                                # row — ONE quantity, two roundings, no
+                                # discrepancy (r2_review_1 SF-3).
+                                # REALIZED sds govern
   bar_floor_inert_min: 0.07124  # 2*sqrt(0.0617^2/3); test asserts > floor
   falsifier_F1_threshold: 0.580222   # frozen struct50m vs-SH pooled
   permutation:
@@ -500,11 +552,15 @@ wave_plan:
   progress_instrument: "grep -c 'Winner:' $OUT/$TAG.fp.stdout, as a RATE over [T+2min, T+12min] — never a wall-clock ETA"
   expected_winners_per_min:
     greedy: 40.4        # realized A-arms 1.56/1.49/1.39 s/b -> mean 1.48
-    search_M: 22.4      # RS80's realized 2.92 s/b class; own first 100
-                        # battles set the stall reference, never this row
+    search_M: 20.5      # 60 / RS80's realized 2.92 s/b (corrected in
+                        # review from the draft's 22.4 calibration
+                        # figure, which implied 2.68 s/b and disagreed
+                        # with cost_ledger.r4s_hours); the arm's own
+                        # first 100 battles set the stall reference,
+                        # never this row
   progress_rule: "< 50% of the row -> investigate; < 20% -> STALLED, not slow. Post hoc: an arm whose realized sec_per_battle exceeds its row's implied cost by >50% is disclosed in the readout."
-  killed_arm: "re-runs LAST or under its rerun_pairs pair, never immediately on the same pair (poisoned-room; a pair can stay poisoned for hours). Kill FP's search-worker CHILDREN FIRST (pkill -9 -P), then sweep. Watch item carried from R1: foul-play can PANIC mid-battle (Invalid PokemonMoveIndex: 4, Rust); the TIE-CRASH WEDGE hangs the seat with no JSON — retry_no_json_once and the NO_PROGRESS sentinel exist for exactly that."
-  ops_failure_rule: "a tag carrying .NO_PROGRESS or .USERNAME_DEADLOCK is an OPS FAILURE: re-run under the fresh rerun pair, LAST; partial JSON renamed <tag>.opsfail.json and never enters a comparison; the grader REFUSES the sentinel. .TOO_MANY_CRASHES is a VOID of the arm (data disposition) and drops k_arm."
+  killed_arm: "re-runs LAST or under its rerun_pairs pair via THE LICENSED PAIR-FLIP EDIT (blinding attestation, edit ii), never immediately on the same pair (poisoned-room; a pair can stay poisoned for hours). Kill FP's search-worker CHILDREN FIRST (pkill -9 -P), then sweep. Watch item carried from R1: foul-play can PANIC mid-battle (Invalid PokemonMoveIndex: 4, Rust); the TIE-CRASH WEDGE hangs the seat with no JSON — retry_no_json_once and the NO_PROGRESS sentinel exist for exactly that."
+  ops_failure_rule: "a tag carrying .NO_PROGRESS or .USERNAME_DEADLOCK is an OPS FAILURE: re-run under the fresh rerun pair (the licensed pair-flip edit, its own commit), LAST; partial JSON renamed <tag>.opsfail.json and never enters a comparison; the grader REFUSES the sentinel. .TOO_MANY_CRASHES is a VOID of the arm (data disposition) and drops k_arm."
 
 interrupt_policy:
   mvp: "T66+T75+T83 complete = the whole primary (3.70 h of battles at the realized 1.48 s/b). An interrupt mid-wave stops at an arm boundary and loses nothing; a partial wave at k<3 hits cell K exactly as a dead lane does and produces NO fleet verdict."

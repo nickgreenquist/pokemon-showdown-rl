@@ -68,8 +68,9 @@ def test_journey_step_and_scope_guard_verbatim():
     assert ECFG["journey_step"] == 1
     assert "journey_step: 1" in TTXT
     guard = ("a read inside the bar is information about the INSTRUMENT, not a "
-             "licence to queue another gen1 lever")
-    assert guard in TTXT.replace("\n# ", " "), "scope guard must be verbatim in the training header"
+             "licence to queue another gen1 lever — ladder anyway (step 2), then "
+             "step 3 (gen4).")
+    assert guard in TTXT.replace("\n# ", " "), "scope guard must be verbatim IN FULL (both clauses) in the training header"
 
 
 def test_credit_line_verbatim_including_larger_of():
@@ -161,10 +162,15 @@ def test_reachability_rows_in_header_match_the_formula():
     s = G["control_offfp"]["sd"]
     rows = {0.0000: 0.0712, 0.0088: 0.0720, 0.0155: 0.0735, 0.0250: 0.0769,
             0.0400: 0.0849, 0.0617: 0.1008, 0.0900: 0.1260, 0.1200: 0.1558}
+    mean_c = 0.3373333333
     for s_t, bar in rows.items():
         want = max(0.025, 2 * math.sqrt(s_t ** 2 / 3 + s ** 2 / 3))
         assert abs(want - bar) < 5e-4, (s_t, bar, want)
         assert f"{bar:.4f}" in ETXT, f"tabulated bar {bar} missing from the header"
+        # r2_review_1 SF-10(iv): the column a reader ACTS on
+        need = round(mean_c + want, 4)
+        assert f"{need:.4f}" in ETXT, \
+            f"'treatment mean must be >= {need}' missing for s_T={s_t}"
 
 
 def test_cells_partition_the_line_with_no_gap_or_overlap():
@@ -204,7 +210,7 @@ def test_vs_sh_role_is_the_adjudicated_one():
     v = G["vs_sh_role"]
     assert v["positive_side"] == "descriptive"
     assert v["negative_side"] == "letter_bearing"
-    assert "X3" in v["named_cell_X3"] or "maintainer" in v["named_cell_X3"]
+    assert "maintainer" in v["named_cell_X3"] and "README" in v["named_cell_X3"]
     # X3 fires only for P1 x SN-C, via the grader's own function
     assert grade.x_cell("P1", "SN-C")[0] == "X3"
     assert grade.x_cell("P1", "SN-L")[0] == "X2"
@@ -222,7 +228,6 @@ def test_sigma_seed_disclosure_is_emitted_with_the_number():
     assert blk["MANDATORY_DISCLOSURE"] == grade.SIGMA_DISCLOSURE
     assert "(2,2)" in grade.SIGMA_DISCLOSURE and "19.0" in grade.SIGMA_DISCLOSURE \
            and "4.4x" in grade.SIGMA_DISCLOSURE
-    assert grade.SIGMA_DISCLOSURE.replace("sigma_seed ~4.4x", "sigma_seed\n#   ~4.4x") or True
     assert "BATCH DID NOT HELP VARIANCE" in grade.SIGMA_DISCLOSURE
 
 
@@ -305,34 +310,36 @@ def test_seeds_are_window_disjoint_and_unused():
                                  f"for {a},{b}")
     for p in (REPO / "runs").glob("*/config.yaml"):
         s = yaml.safe_load(p.read_text()).get("seed")
-        assert s not in seeds, f"seed {s} already used by {p.parent.name}"
+        if s in seeds:
+            # r2_review_2 MF-2: the arm's OWN lanes stamp their seed at
+            # launch; only a FOREIGN run on 66/75/83 is a violation.
+            assert p.parent.name == f"showdown_sp_batch50m_s{s}", \
+                f"seed {s} already used by a foreign run {p.parent.name}"
 
 
 # ---------------------------------------------------------------------
 # yaml hygiene and cross-file consistency
 # ---------------------------------------------------------------------
 
-def test_no_duplicate_top_level_keys():
-    class Dup(yaml.SafeLoader):
-        pass
-
-    def check(node, deep=False):
-        seen = set()
-        for k_node, _ in node.value:
-            k = k_node.value
-            assert k not in seen, f"duplicate top-level key {k!r}"
-            seen.add(k)
-        return yaml.SafeLoader.construct_mapping(Dup._loader, node, deep)
+def test_no_duplicate_keys_at_any_depth():
+    """The R1 defect: a key defined twice parses to the LAST value under
+    PyYAML and 11 passing tests saw nothing. Checked at EVERY depth
+    (r2_review SF: the draft checked top level only)."""
+    def walk(node, path, name):
+        if isinstance(node, yaml.MappingNode):
+            seen = set()
+            for k_node, v_node in node.value:
+                k = getattr(k_node, "value", repr(k_node))
+                assert k not in seen, \
+                    f"{name}: duplicate key {'.'.join(path + [str(k)])!r}"
+                seen.add(k)
+                walk(v_node, path + [str(k)], name)
+        elif isinstance(node, yaml.SequenceNode):
+            for i, item in enumerate(node.value):
+                walk(item, path + [str(i)], name)
 
     for path in (TRAIN, EVAL):
-        loader = yaml.SafeLoader(path.read_text())
-        Dup._loader = loader
-        node = loader.get_single_node()
-        seen = set()
-        for k_node, _ in node.value:
-            assert k_node.value not in seen, \
-                f"{path.name}: duplicate top-level key {k_node.value!r}"
-            seen.add(k_node.value)
+        walk(yaml.compose(path.read_text()), [], path.name)
 
 
 def test_planning_bar_agrees_across_the_two_files():
@@ -373,6 +380,70 @@ def test_preflight_has_the_cosched_check_and_r2_sha():
         "the no-co-scheduled-training check (FP is time-budgeted)"
     assert "configs/eval/ch5_r2_offsh.yaml" in txt
     assert "simulator: *4" in txt and "git status --porcelain" in txt
+
+
+def test_vssh_finals_home_is_declared_and_consistent():
+    """r2_review_1 MF-3 / r2_review_2 MF-1: the finals' path must be
+    DECLARED, and the grader must read exactly it."""
+    vf = ECFG["vssh_finals"]
+    assert vf["dir"] == "results/ch5_r2"
+    assert "--out results/ch5_r2/final_s<N>.json" in vf["produced_by"]
+    assert "--episodes 3000" in vf["produced_by"]
+    gtxt = (REPO / "scripts/ch5_r2_grade.py").read_text()
+    assert 'prereg["vssh_finals"]' in gtxt, "the grader must read the DECLARED path"
+    # and absence must be UNGRADED, never silent
+    r = grade.grade_read({"s66": 0.37, "s75": 0.36, "s83": 0.38},
+                         {"s66": 3000, "s75": 3000, "s83": 3000})
+    assert r["vs_sh"]["pass"] is None and "UNGRADED" in r["vs_sh"]["note"]
+    assert r["F1_falsifier"]["pass"] is None
+
+
+def test_vs_sh_and_f1_survive_cell_k():
+    """r2_review_1 MF-2: the falsifier must not go silent exactly when a
+    lane has died."""
+    r = grade.grade_read({"s66": 0.50, "s75": 0.50},
+                         {"s66": 3000, "s75": 3000},
+                         sh_rates={"s66": 0.50, "s75": 0.49})
+    assert r["cell"] == "K"
+    assert r["vs_sh"]["x_cell"] == "XK"
+    assert r["F1_falsifier"]["fires"] is True and r["F1_falsifier"]["k"] == 2
+    assert "XK" in ETXT, "the XK cell must be named in the header's X-table"
+
+
+def test_the_mirror_permutation_cell_is_named():
+    """r2_review_1 MF-5: 'permutation separates, credit line does not'
+    is reachable at delta in (0.0587, BAR) and must carry a sentence."""
+    r = grade.grade_read({"s66": 0.400, "s75": 0.398, "s83": 0.402},
+                         {"s66": 3000, "s75": 3000, "s83": 3000})
+    assert r["cell"] == "P2" and r["permutation"]["fires"] is True
+    assert "named_cell_mirror" in r
+    assert "permutation" in ETXT and "MIRROR CELL" in ETXT
+
+
+def test_the_pair_flip_edit_is_licensed_and_scoped():
+    """r2_review_2 MF-3: the rerun rule needs a licensed mechanism or it
+    contradicts the blinding attestation."""
+    assert "THE PAIR FLIP" in ETXT
+    assert "PRE-REGISTERED" in ETXT and "rerun_pairs" in ETXT
+    assert "No other key of the arm may move" in ETXT
+
+
+def test_preflight_refuses_pending_attestation():
+    txt = PREFLIGHT.read_text()
+    assert "status: PENDING" in txt, "r2_review_2 SF-3: refuse to launch un-attested"
+
+
+def test_wave_provenance_is_never_truncated():
+    txt = WAVE.read_text()
+    assert 'if [ -f "$PROV" ]' in txt, \
+        "r2_review_2 SF-1: a second invocation must not overwrite the T arms' stamp"
+
+
+def test_fleet_gates_gate_the_verdict():
+    """r2_review_1 MF-4: a CREDIT line must never print beside a failed
+    D-A or R0-f."""
+    gtxt = (REPO / "scripts/ch5_r2_grade.py").read_text()
+    assert "void_reason" in gtxt and "fleet_fail" in gtxt
 
 
 def test_the_grader_selftest_passes():
