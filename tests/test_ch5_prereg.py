@@ -453,7 +453,11 @@ def test_the_runner_has_the_no_progress_abort():
     budget at zero progress while looking exactly like slow progress."""
     runner = (PREREG.parents[2] / "scripts/ch3_r4_fp_runner.sh").read_text()
     assert "NO_PROGRESS_RELAUNCHES" in runner and "exit 4" in runner
-    assert 'date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.NO_PROGRESS"' in runner
+    # The sentinel write moved behind $NO_PROGRESS_MARKER when the runner
+    # grew the stale-marker cleanup (2026-08-28); assert the definition and
+    # the write, not the pre-refactor literal.
+    assert 'NO_PROGRESS_MARKER="$OUT/$TAG.NO_PROGRESS"' in runner
+    assert 'date -u +%Y-%m-%dT%H:%M:%SZ > "$NO_PROGRESS_MARKER"' in runner
     assert "$TAG.NO_PROGRESS (runner exit 4" in " ".join(
         CFG["disposition_of_a_broken_arm"]["OPS_FAILURE_rerun_never_graded"])
 
