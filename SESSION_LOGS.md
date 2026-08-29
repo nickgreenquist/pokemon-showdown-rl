@@ -9403,3 +9403,72 @@ line numbers are not — grep the date, then read that region):
   broadcasts (B,) against (B,1) into a (B,B) log-prob matrix whose
   .sum(-1) is correctly shaped garbage — a Pendulum-only suite never
   notices.
+
+- 2026-08-29 (evening, maintainer: "handoff.md - take it" — **R2'S
+  PRE-REGISTRATION IS WRITTEN, FULL 2-OPUS CYCLE RUN, ALL REVIEW FINDINGS
+  APPLIED; STATUS: PROPOSED, AWAITING MAINTAINER RATIFICATION + LAUNCH**;
+  serves JOURNEY step 1): the handoff's task executed end to end in one
+  session. **The cycle:** shared brief (`results/design_ch5_r2/BRIEF_R2.md`,
+  settled rulings separated from open questions per CHAPTER5 §8's lesson) ->
+  two independent Opus design memos (A evidential validity, B build/ops/cost;
+  1,027 + 1,170 lines) -> synthesis with THREE runner adjudications
+  (`r2_synthesis.md`, losing arguments preserved) -> draft committed FROZEN at
+  1e66d53 (the R1 process-slip lesson) -> two independent Opus reviews
+  (adversarial arithmetic; repo consistency, which ran the live suite) ->
+  **8 MUST-FIX + 22 SHOULD/NOTE findings, every one applied** (0101656, each
+  fix tagged with its finding id in place).
+  **THE ARTIFACT, two halves + tooling, all committed:**
+  `configs/showdown_sp_batch50m.yaml` (training: one-diff vs the control =
+  exactly {seed, run_name, rollout_steps 128->3840, minibatches 4->120,
+  push_every_updates 150->5}; ~959 episodes/update at the measured 32.047
+  decisions/episode, 1,627 updates, grad-steps-per-env-step INVARIANT at
+  1/64; lambda 0.95 HELD under a pre-stated rule (control EV 0.58-0.59 final,
+  nowhere near the 0.25 trigger; a change would be a second lever vs a banked
+  control); dose-matching declared as M1-M7 identities + one lever L1-L3 +
+  disclosed non-matches incl. C-GAE (boundary-truncated advantage tails 25%
+  -> 0.83% — the named suspect on a POSITIVE read) and C-EV (explained
+  variance not cross-arm comparable); gates R0-a..h incl. the NEW R0-h memory
+  gate (peak RSS 2.68 GB/lane measured, ~8.1 GB fleet), D-A rungs
+  pre-computed, D-B rebased in review onto the control's own realized 370-372
+  steps/s, D-D unchanged-and-fair (equal grad steps at 4M; expectation
+  0.90-0.96 recorded beside it), K6 debounce 5->2 disclosed with its
+  invariant named, T1-T3 trust-region tripwires on the arm-independent
+  clip_frac; CHAPTER5 §3/§6/§7 migrated VERBATIM with two marked corrections)
+  and `configs/eval/ch5_r2_offsh.yaml` (the read: PRIMARY = strength off
+  FP@20 GREEDY, treatment n=3000/lane vs the banked A80/81/82 n=1000 control
+  0.3960/0.3430/0.2730, planning bar 0.1007, REALIZED sds govern, floor
+  proved inert; cells P1-P6 + boundaries + cell K (k<=2 descriptive, the
+  laundering path closed) + F1 falsifier (<0.580222 vs-SH) + exact 3v3
+  permutation with BOTH composites named; vs-SH per ADJ-2 descriptive-
+  positive/letter-bearing-negative with X1-X4+XK and the X3 maintainer cell;
+  sigma_seed descriptive grader-paired with the (2,2)-df disclosure; riders
+  R1i cross-play (Bradley-Terry + strongest 3-cycle; build item
+  ch5_r2_crossplay.py owed before the RIDER, not the launch), R1ii
+  forgetting (TREATMENT-ONLY — the cleanup deleted the control's rungs,
+  escalation E3 + retention obligation), R2t log traces + the EV-rank
+  prediction, R3c clone anchors, R4S one-arm-both-ways (lowest surviving
+  seed); 24 usernames verified no-prefix against all 28 ever issued; wave
+  serial k=1, no co-scheduling (preflight pgrep), pair-flip licensed as
+  post-ratification edit (ii)). Tooling: `scripts/ch5_r2_wave.sh` (copy, the
+  heredoc-sha trap fixed, provenance never truncated), `ch5_r2_preflight.sh`
+  (+training-running and PENDING-attestation refusals), `ch5_r2_grade.py`
+  (imports R1's arm gates; 16/16 attest checks; fleet gates VOID the printed
+  verdict; vs-SH/F1 emitted UNGRADED-never-silent), `tests/
+  test_ch5_r2_prereg.py` (37 tests). **Suite 612 passed / 17 skipped.**
+  **HONEST EXPECTATION, pre-stated (escalation E1, ratify with eyes open):**
+  P(CREDIT) ~ 6.5% under designer A's stated prior; the s_T = s_ctrl bar
+  demands the treatment fleet MEAN beat the control's best-ever lane by
+  +0.042; no purchase of lanes rescues it (control k=3 frozen). Both
+  designers endorse running anyway: control free, non-credit outputs real,
+  step 2 follows on every branch.
+  **RULINGS OWED AT RATIFICATION (training half Q10):** E1 eyes-open; E2
+  anchor/primary promotion; E3 checkpoint retention (+ the control's
+  irreversible loss disclosed); E4 marked corrections inside the verbatim
+  migration; E5 CLAUDE.md/RESULTS.md "5x3000" scoping fix (suggested, not
+  made); ADJ-1 n=3000; ADJ-2 vs-SH split letters; ADJ-3 clip_frac tripwires.
+  **ALSO THIS SESSION:** R0-g repair — `results/ch5_r1_offsh/a8*.json` were
+  MISSING from the d25 backup and were copied in (the D29r2 precedent).
+  **NOT DONE, by design:** CHAPTER5.md not yet archived (only with/after
+  ratification); no training launched (>5 h -> maintainer's; commands in
+  STATUS/handed over at ratification); crossplay driver not built (owed
+  before its rider runs).

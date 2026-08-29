@@ -8,13 +8,15 @@ read inside the bar is information about the INSTRUMENT, not a licence to
 queue another gen1 lever — ladder anyway (step 2), then step 3 (gen4).
 **Name the JOURNEY step every work item serves; off-arc work needs a ruling.**
 
-## Where things stand (2026-08-29) — **LADDER R3 COMPLETE** (readout committed,
-backup archived) and **THE r9 RESCORE IS COMPLETE: the rule routes GREEDY.**
-All twelve CH5 arms graded, zero voids, G-SERIAL clean. `nickgen1rbrlbot2`
-RETIRES; iteration shares `nickgen1rbrlbot`; a FINAL fresh account DEFERRED.
-CH5 R1 CLOSED. **R2 IS UNBLOCKED — nothing gates its pre-reg now.**
-Pure self-play; THE NOVELTY IS THE LANE. **PRE-R2 CLEANUP DONE 2026-08-29**
-(5 rulings; 21→13.7 GB; spine+dead levers out; docs/archive/, readouts/, ONE CLEANUP.md).
+## Where things stand (2026-08-29 evening) — **R2'S PRE-REG IS WRITTEN AND
+AWAITS RATIFICATION.** Full 2-Opus cycle ran (2 memos, 3 adjudications, 2
+reviews of a frozen draft; 8 MUST-FIX applied — SESSION_LOGS 2026-08-29
+evening). The pre-reg is TWO halves: `configs/showdown_sp_batch50m.yaml`
+(training; one-diff = {seed, run_name, rollout_steps 3840, minibatches 120,
+push_every_updates 5}; lambda HELD 0.95) + `configs/eval/ch5_r2_offsh.yaml`
+(read; cells, bars, riders, usernames). Tooling committed: ch5_r2_wave.sh /
+ch5_r2_preflight.sh / ch5_r2_grade.py (selftest green) / 37-test pre-reg
+suite. Suite 612 passed / 17 skipped. Pure self-play; THE NOVELTY IS THE LANE.
 
 ## Results | 12M **0.71825** vs SH · ensemble 0.74633 · search@M 0.79283 (**12M**)
 · **LADDER R1 (ensemble): GXE 59.6%, Glicko 1573±27, Elo 1292, n=200** ·
@@ -23,38 +25,33 @@ n=200 — STANDALONE; no R1-vs-R3 delta is a quantity (D5)** · off FP@20 greedy
 0.3960/0.3430/0.2730 · C0 0.3893 · **fresh searched: 0.4390/0.4487/0.454.**
 Ties=loss. **Ladders credit nothing.**
 
-## Facts that travel with any R3 quote
-- ONE of three anchors (FP@20 only); name the budget on every FP number.
-- Profile 106-102 vs JSONL 106-94: 8 extra losses are battles OUR socket died
-  under — IN the rating, not the tally; its 19 timeout_midgame are not R1's
-  six. Two blind breaches disclosed; neither voids the read.
-- R1 band cells: the CORRECTED (BI-4) set — cell 0.319, implied 1214.
-
 ## Next actions
-0. **DONE.** Rescore read: key_A passed (searched sd 0.0076 < the n=3000
-   binomial floor 0.00906), key_B failed (beta -0.127 vs floor 0.248) ->
-   **R2 IS SCORED GREEDY**, control A80/81/82, no masking disclosure owed.
-1. **R2 = BATCH** (JOURNEY step 1). 3 new 50M lanes, s80/81/82 the free
-   control. **PRIMARY READ IS STRENGTH vs the 0.1007 bar** (r9-corrected: BOTH
-   sides carry the clustered term). sigma_seed descriptive with its (2,2)-df
-   disclosure. H&L is VERIFIED, an EXISTENCE PROOF not a target (m=7680 was "a
-   completely arbitrary choice"); minibatch 256, scale the COUNT. Header carries
-   `journey_step: 1` + the scope guard verbatim.
-2. lambda = a CONFIG choice on the explained-variance diagnostic, both arms, not
-   an arm; `loss/explained_variance` IS logged (ppo.py:1189).
-3. THEN curve vs credited win rate — gates LANES AND SCALE, not batch.
-4. Descriptive: D4 anchors on all three lanes, cross-play, one R2 arm both ways.
-   Cleanup DONE (2026-08-29); the open residue lives in `CLEANUP.md`.
+1. **MAINTAINER: ratify R2** — read `configs/showdown_sp_batch50m.yaml` Q10
+   first: rulings owed = E1 (eyes-open: P(credit) ~6.5% pre-stated, both
+   designers endorse running anyway), E2 (FP@20 anchor→primary promotion),
+   E3 (checkpoint retention until D-A + forgetting rider), E4 (marked
+   corrections in the verbatim migration), E5 (CLAUDE.md "5×3000" scope fix,
+   suggested not made), ADJ-1/2/3 (n=3000; vs-SH split letters; clip_frac
+   tripwires). Ratifying word = ratified; then archive CHAPTER5.md.
+2. **MAINTAINER: launch** (>5 h training): server up + pre-launch gate chain,
+   then 3 lanes seeds 66/75/83, stagger ~60 s, verify by battle PROGRESS.
+   Command blocks: SESSION_LOGS 2026-08-29 evening entry / handed over at
+   ratification. ~35 h wall 3-wide alone; caffeinate; clean tree.
+3. After training: vs-SH finals (`--out results/ch5_r2/final_sN.json`,
+   the declared home) → sha attestation commit → FP wave (T66/T75/T83,
+   serial k=1) → R4S → riders. Build owed before the cross-play/forgetting
+   riders run: `scripts/ch5_r2_crossplay.py`.
+4. THEN curve vs credited win rate — gates LANES AND SCALE, not batch.
+   Cleanup residue: `CLEANUP.md` (post-R2).
 
 ## Watch items
-- **SEARCH EQUALISES THE LANES — supported at n=3000.** Greedy range 0.1230 →
-  searched 0.0150, and the searched sd 0.0076 is BELOW the binomial floor, so
-  the lanes are indistinguishable. **beta's SIGN is NOT interpretable** (no
-  resolvable spread in y); "search inverts lane quality" is barred.
-- **k~24 kills lanes; (2,2) df kills the variance READ** — batch is a STRENGTH
-  lever, NOT the instrument fix (RETRACTED; CH5 §5 superseded).
-- **NEW: foul-play can PANIC** (`Invalid PokemonMoveIndex: 4`, Rust) twice in
-  RS81 by 1580; a mid-battle death poisons the pair (`burned_pairs_r10`:
-  fresh pair, re-run LAST). TIE-CRASH WEDGE: auto-tie + FP death on one
-  battle hangs the seat with no JSON.
+- **The R2 bar is honest and brutal**: at s_T = s_ctrl the treatment fleet
+  MEAN must beat the control's best-ever lane by +0.042. A null is the modal
+  outcome and is PRE-STATED (E1); scope guard routes every cell to step 2.
+- **NEW failure mode = memory**: 2.68 GB/lane peak (R0-h gate, D-E watch);
+  the box must be otherwise idle for the ~35 h.
+- **SEARCH EQUALISES THE LANES** (n=3000; sd below binomial floor); beta's
+  SIGN is NOT interpretable; "search inverts lane quality" barred.
+- **foul-play can PANIC** (`Invalid PokemonMoveIndex: 4`); pair-flip to the
+  pre-registered rerun pair is licensed edit (ii); re-run LAST.
 - **R4:** `.env` holds bot2's creds; VOID (f) INVERTS on a persistent seat.
