@@ -23,11 +23,6 @@ exactly that (see do-not-relitigate below).
   `decide(battle, type_chart, act_fn, *, on_desync)` helper with the policy
   explicit. DEFERRED 2026-08-29: an 8-site refactor of live eval/collection
   paths directly before R2 is the wrong moment; revisit after R2 lands.
-- **Unlabelled predecessor figure** (`SESSION_LOGS_PREDECESSOR.md:1403`
-  embed): asserts ~0.4 vs SH on a 611-dim encoder against production
-  828-dim / 0.71825. The fix is a caveat line beside the embed, but the file
-  is frozen — needs the maintainer to approve that one-line edit. (The PNG
-  itself STAYS — see do-not-relitigate.)
 - **CHAPTER5.md migration** (its own lifecycle rule): §3 (C1–C6 provenance),
   §6 (out-of-scope), §7 (five rulings incl. the 50M ceiling) must survive
   into R2's pre-reg header; §1/§2/§4/§5/§8 are migrated/superseded already.
@@ -49,6 +44,10 @@ exactly that (see do-not-relitigate below).
 
 ## Decisions and deviations recorded 2026-08-29 (executed cleanup)
 
+- **Unlabelled predecessor figure — CLOSED 2026-08-29**: maintainer gave
+  blanket approval ("update what you think is best"); a dated caveat now
+  sits beside the embed in the otherwise-frozen file. (The PNG itself
+  STAYS — see do-not-relitigate.)
 - **Kept against the A4 strip list, on verification:** `TensorBoardLogger`
   (+ tensorboard pin) — "no test covers it" was FALSE, ~15 test files use it
   as the offline logger backend; `kernel_size` — PPO plumbs it and

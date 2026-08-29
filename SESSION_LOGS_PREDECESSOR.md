@@ -1402,6 +1402,11 @@ section and its PLAN.md Phase-5 spec (same source revision), which the strip als
 
 ![Milestone 3 on Pokémon Showdown: training curves for the fixed-bot run and three from-scratch self-play seeds converging to ~0.4 vs SimpleHeuristics, against the 0.5 bar, the extrapolated 0.42 asymptote and the BC-clone band; right panel, locked-protocol finals for every arm with 95% CIs](assets/showdown_milestone3.png)
 
+*[Caveat added 2026-08-29, maintainer-approved — the one permitted edit to
+this frozen file: the figure above is a PREDECESSOR-ERA snapshot — 611-dim
+encoder, ~0.4 vs SH. Production is the 828-dim encoder at 0.71825; do not
+read these curves as the current agent.]*
+
 The capstone is live: the same `PPOAgent`, rollout buffer and GAE that ran
 MinAtar and MuJoCo now play Pokémon Showdown Gen 1 random battles over a
 websocket to a local Node.js server, through a 611-dimensional
