@@ -10,7 +10,7 @@ Each generation answers a different question. Gen1 asks *has anyone done this* �
 
 ---
 
-## Before step 3 — one cheap add
+## Before step 3 — two cheap adds
 
 Implement `most-damage-typed` as a standing anchor. Highest-damage move with type awareness, nothing else. One afternoon. We already have MaxBasePowerPlayer (no type awareness); this is the stronger sibling.
 
@@ -18,24 +18,26 @@ Why it earns its place: it is the only anchor whose own strength doesn't drift a
 
 Secondary: H&L reported 0.829 against this bot in gen7. That's a cross-generation comparison and carries a confound (a pure damage bot is relatively weaker in gen7, where more mechanics exist for a good player to exploit), but it holds the opponent fixed, which no ladder comparison can.
 
+Next, a Search-depreciation check. Plot search gain against policy strength across the 12M and 50M checkpoints we already have. No training, no new runs. The hypothesis is that search substitutes for a deficient value head — the per-lane deltas were monotone in lane weakness (+0.051 / +0.104 / +0.148) and nearly equalized the lanes. If gains are already declining as the policy improves, the MCTS question closes here, before anything is spent on it.
+
 ---
 
 ## The journey
 
 ### 1. Gen1 retrain (batch lever). One retrain. The batch change is the lever; everything else stays fixed.
 
-Scope guard: if the offline read lands inside the 0.072 bar, that's information about the instrument, not the lever — and it is not a reason to queue another gen1 lever. Ladder anyway, then go to step 3. The trap is the retrain after this one.
+**Scope guard:**: if the offline read lands inside the 0.072 bar, that's information about the instrument, not the lever — and it is not a reason to queue another gen1 lever. Ladder anyway, then go to step 3. The trap is the retrain after this one.
 
 ### 2. Gen1 ladder #3 — record. Happens regardless of what step 1's offline read says.
 
-This is the capture of where the object stands on the format the novelty claim lives on, before the encoder rewrite. Exit condition: the run itself — not a rating, not top-500.
+This is the capture of where the object stands on the format the novelty claim lives on, before the encoder rewrite. **Exit condition: the run itself** — not a rating, not top-500.
 
 Top-500 admission is an Elo threshold set by other people's activity on a thin format. It is not a measurement of the agent, and chasing it can absorb weeks that belong to step 3. The novelty claim is already banked by the local benchmarks; the ladder is legibility, not proof. A mediocre run here does not mean the story failed.
 
 ### 3. Fable ultracode → gen4 encoder + model
 Full encoder rewrite: items, abilities, weather, hazards, SpA/SpD split. Note gen4 is where physical/special becomes a per-move field rather than type-determined — that branch changes here and does not carry back.
 
-Mine Wang's forks first. quadraticmuffin/poke-env is ~36 gen4 state-tracking fixes found the expensive way — Max PP, Sleep Talk double-decrementing, weather-from-abilities persistence, sleep counters, Trace base-ability parsing, maybe_trapped, _force_switch as a list. Diff it against our pinned 0.15.0 and check which survived upstreaming. A silently wrong observation field looks exactly like a training problem. His pokemon-showdown fork is MCTS infrastructure (>getstate/>load, constrained team regen) and is not needed unless we do search.
+**Mine Wang's forks first.** quadraticmuffin/poke-env is ~36 gen4 state-tracking fixes found the expensive way — Max PP, Sleep Talk double-decrementing, weather-from-abilities persistence, sleep counters, Trace base-ability parsing, maybe_trapped, _force_switch as a list. Diff it against our pinned 0.15.0 and check which survived upstreaming. A silently wrong observation field looks exactly like a training problem. His pokemon-showdown fork is MCTS infrastructure (>getstate/>load, constrained team regen) and is not needed unless we do search.
 
 Steal his observation design where it fits (Tables A.1/A.2): multi-turn effect durations as one-hot counters to restore Markovianity, HP binned, PP as floor(pp^(1/3)). Our encoder is ours, but these are solved problems.
 
@@ -58,10 +60,14 @@ This step is the real gen4 deliverable.
 ### 6. Gen4 ladder — one run
 **Exit condition: the run.**
 
-Lower value than it looks, and worth knowing why before spending on it: Wang's headline ladder result *includes MCTS at inference*. Ours will not. So this is not a like-for-like comparison — it is a data point for the complexity curve and a sanity check that the gen4 agent works against humans. Do not let it become a second gen4 chapter.
+Lower value than it looks, and worth knowing why before spending on it: Wang's headline ladder result includes MCTS at inference; ours will not. His rank 8 / 1693 Elo / 79.5% GXE is the searched agent. The comparison that matches our configuration is his network-alone 0.786 vs SimpleHeuristicsPlayer, and that is step 5.
+
+So this run is not a like-for-like ladder comparison. It is a point on the complexity curve and a sanity check that the gen4 agent works against humans. Do not let it become a second gen4 chapter.
 
 ### 7. Record results
 Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened**, or it becomes where the project lives. It is a borrowed instrument, not a home.
+
+No search experiments here. They belong after step 11, against our strongest gen1 policy — running them now would reopen gen1 mid-arc and would measure search against a weak critic, which we already know the answer to.
 
 ### 8. Back to gen1 — retrain with any special sauce
 Recipe findings are generation-agnostic: rollout size, minibatch structure, λ and γ, LR schedule, privileged critic, auxiliary heads, opponent-pool composition, entropy scheduling. None of those are gen4 facts. Port them home.
@@ -79,11 +85,21 @@ The big one, with a recipe validated somewhere the instrument works.
 ### 11. Final gen1 ladder
 The number the story ends on.
 
+Decide before launching whether the laddered object is greedy or searched. Depth-1 expectation search is currently deployed, so this is a live choice, not a default. It determines what the depth experiment below is measuring — the object we shipped, or one we didn't. This is the policy-form scope question that has been open since R2; step 11 is where it stops being deferrable.
+
+### 11.5  Depth-1 vs depth-2, on the strongest gen1 object we have.
+
+Why here and not earlier: if search substitutes for a deficient value head, the honest test is against our best critic, after the special sauce and the massive train. A large depth gain here means search depth genuinely pays even with a good value function. A small one means full MCTS is not worth building.
+
+**This gates the gen9 search decision.** It also feeds step 12 directly — "search's contribution declines as the policy improves" is a finding, and it is one only a multi-checkpoint study can make.
+
 ### 12. Wrap the story
 Novelty (gen1), validation (gen4), and the transfer result. Three points on a complexity curve, and a recipe developed where it could be seen and tested where it couldn't.
 
 ### 13. OPTIONAL — gen9 via ultracode, and live there
 Where the comparators are. Terastallization genuinely expands the action space rather than adding fields, so it is a capability test and not just a bigger encoder. Thick ladder means cheaper, less time-of-day-dependent evaluation. Poke-engine's best-vetted generation, so the Foul Play anchor improves too.
+
+If 11.5 says depth pays, build MCTS here — on poke-engine, not on a Showdown fork. pmariglia's Rust engine is purpose-built for AI use, well-vetted in gen9, and already does root-parallelized MCTS with decoupled UCT. Building search in gen4 would have meant forking Showdown for >getstate/>load plus gen4-specific constrained team regeneration — infrastructure that does not carry forward. Gen9 is where the effort compounds.
 
 If we only ever get two generations, make them gen1 and gen9 — trade the clean transfer claim for relevance.
 
