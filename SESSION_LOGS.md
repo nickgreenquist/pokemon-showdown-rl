@@ -9261,3 +9261,44 @@ entry by offset — never a broad keyword grep.
   failure marker that outlives its failure discards good data while looking
   like a real abort** — same family as the driver.log append that made my
   monitor report four phantom crashes earlier tonight.
+
+- 2026-08-29 (morning, **research reports consolidated -> `research_reports/CONSOLIDATED.md`;
+  R2 DESIGN UNCHANGED**; serves JOURNEY step 1): read all four AI deep-research
+  reports and cross-checked them against the repo. **Headline: nothing in the
+  four changes R2** — batch lever, greedy scoring, strength primary vs the
+  0.1007 bar all stand. The README's open ranking dispute is RESOLVED
+  (CONSOLIDATED §2): Claude's #1 (paired/CRN eval) does not touch the binding
+  σ_seed term for a large-delta lever — a ~30x episodes/update change
+  decorrelates paired trajectories (the report's own caveat), and eval-side
+  CRN attacks the 0.00906 binomial floor, not the 0.0617 seed term; Gemini's
+  #1 (EMAgnet+VRPO) is uncited end-to-end and blocked by the directory's
+  standing verification rule (GARIP/RHyVE match nothing placeable). **Two of
+  the four's headline recommendations were already done here before the
+  reports were commissioned, which they could not know:** the BR
+  exploitability probe (D22 Read 5, 2026-08-11: 0.4765 ± 0.0112, "robust at
+  probe budget") and the past-checkpoint opponent pool (production:
+  pool_size 20, latest_prob 0.8 — OpenAI Five's exact 80/20). A third
+  overlap: the privileged-critic warning (Baisero/Lyu, state-only critics
+  bias the gradient) supplies the mechanism for our measured −0.0145.
+  **Analytic correction to all four:** equating our σ_seed with cycling/JPC
+  is a hypothesis, not a finding — σ_seed is vs a fixed scripted third party,
+  and search@M equalizes the lanes below the binomial floor; the planned R2
+  cross-play descriptive is the discriminating read. **Proposed for the R2
+  pre-reg (through its own 2-Opus cycle, descriptive only):** (i) name the
+  two failure signatures on the already-planned cross-play — off-diagonal
+  JPC drop and within-lane late-vs-ancestor forgetting; (ii) free log-side
+  entropy + checkpoint-KL drift traces per lane. **Durable step-8 ledger**
+  (CONSOLIDATED §5, none licensed): re-run the BR probe against the current
+  best object (~3.6 h e2e, infra exists) as the gate; KL-to-reference
+  (MMD-style, verify Sokota 2206.05825 + Perolat first) only if the probe or
+  cross-play fires; A2 both-seat (already licensed); PFSP weighting only on a
+  forgetting signal; temporal context lands free at step 3's gen4 encoder
+  rewrite (invalidation already paid there); paired training seeds become the
+  right tool for future small-delta levers. Rejected with 3–4 of 4 reports
+  concurring: Deep CFR/DREAM/ESCHER, NFSP, full R-NaD, full PSRO/league,
+  antithetic sampling, state-only privileged critic. Novelty thesis
+  CONFIRMED by the best-sourced survey (Claude Q1/Q2 §4): no published
+  Showdown agent at any strong level via self-play without human data.
+  STATUS.md unchanged — nothing gates R2 differently. NOTE for the
+  maintainer: `RESEARCH_BRIEF.md` deletion is STAGED but uncommitted (not
+  this session's doing); left staged for an explicit call.
