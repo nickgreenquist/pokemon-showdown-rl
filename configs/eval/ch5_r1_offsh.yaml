@@ -1410,14 +1410,18 @@ usernames:
     CE3: {seat: ch5ce3seat, fp: ch5ce3fp}
     CE7: {seat: ch5ce7seat, fp: ch5ce7fp}
     RS80: {seat: ch5rs80seat, fp: ch5rs80fp}   # r8
-    RS81: {seat: ch5rs81seat, fp: ch5rs81fp}   # r9
+    RS81: {seat: ch5rs81bseat, fp: ch5rs81bfp}  # r10: b-pair promoted; r9 pair BURNED (engine panic + stale room)
     RS82: {seat: ch5rs82seat, fp: ch5rs82fp}   # r9
   # r9: ops_failure_rule re-run pairs. A plain suffix on the seat name
   # would violate the no-prefix rule, hence the arm-id-suffix spelling.
   # All 28 names verified pairwise clean (r9 repo review, 2026-08-28).
   rerun_pairs_r9:
-    RS81: {seat: ch5rs81bseat, fp: ch5rs81bfp}
-    RS82: {seat: ch5rs82bseat, fp: ch5rs82bfp}
+    # RS81's reserve was PROMOTED to the live pair at r10 and is no longer
+    # a reserve; listing it here too would double-issue the same names.
+    RS82: {seat: ch5rs82bseat, fp: ch5rs82bfp}   # unused; RS82 completed on its r9 pair
+  burned_pairs_r10:
+    # never re-issue: a poisoned room can outlive the process by hours (a2/a3)
+    RS81_r9: {seat: ch5rs81seat, fp: ch5rs81fp}
 
 # rev 2 §4-7: a KEY, not a sentence — G-SERIAL asserts wall clocks and
 # needs something to assert against.
@@ -1586,8 +1590,16 @@ arms:
     dose: M
     battles: 3000
     search_time_ms: 20
-    seat_username: ch5rs81seat
-    fp_username: ch5rs81fp
+    # r10 (2026-08-28): the ORIGINAL pair ch5rs81seat/ch5rs81fp is BURNED.
+    # Attempt 1 died of a foul-play RUST ENGINE PANIC (`Invalid
+    # PokemonMoveIndex: 4`) at fp-completed 1548 and again at 1580; the
+    # second death was mid-battle, so the stale room killed two same-pair
+    # relaunches in <10 s each with the a3 `KeyError: 'battle\n'`
+    # signature and NO_PROGRESS aborted the arm (NOT graded, no data
+    # verdict). ops_failure_rule prescribes exactly this: re-run LAST,
+    # under a fresh pair. This is rerun_pairs_r9.RS81 promoted in place.
+    seat_username: ch5rs81bseat
+    fp_username: ch5rs81bfp
     runs_first_of_r9: "02:30Z: the general equalisation claim rests on s80
       and s81 (s82's collapse is confirmed at 5.2 se, so its rescue alone
       is the narrow claim). A dead wave after one arm leaves the more
