@@ -98,8 +98,12 @@ def parse_args():
 
 
 def iter_events(path):
-    """Stream one tape file -- the corpus will not fit in RAM at target scale."""
-    with path.open() as fh:
+    """Stream one tape file -- the corpus will not fit in RAM at target scale.
+    Gzip-aware since 2026-08-29 (CLEANUP A5: the tranche tapes compress 12x
+    and were gzipped in place)."""
+    import gzip
+    opener = gzip.open(path, "rt") if path.suffix == ".gz" else path.open()
+    with opener as fh:
         for line in fh:
             line = line.strip()
             if line:
@@ -363,9 +367,9 @@ def main():
     args = parse_args()
     type_chart = GenData.from_format(BATTLE_FORMAT).type_chart
     counts = collections.Counter()
-    tapes = sorted(args.tapes.glob("run_*.jsonl"))
+    tapes = sorted(args.tapes.glob("run_*.jsonl")) + sorted(args.tapes.glob("run_*.jsonl.gz"))
     if not tapes:
-        raise SystemExit("No run_*.jsonl under " + str(args.tapes))
+        raise SystemExit("No run_*.jsonl(.gz) under " + str(args.tapes))
 
     pending = []
     next_id = 0

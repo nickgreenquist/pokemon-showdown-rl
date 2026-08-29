@@ -10,11 +10,25 @@ AND asserts the banked D26 numbers land in the NO-ANOMALY direction.
 """
 
 import argparse
+import gzip
 import json
 import math
 from pathlib import Path
 
 import yaml
+
+
+def _fp_log(path: Path):
+    """The FP stdout tape, gzipped-on-disk aware (CLEANUP A5, 2026-08-29:
+    the tapes compress 18x and were gzipped in place; the pre-reg reserves
+    them, so they are never deleted). Returns (path-that-exists, opener) or
+    (None, None)."""
+    if path.exists():
+        return path, lambda: open(path, errors="replace")
+    gz = path.with_suffix(path.suffix + ".gz")
+    if gz.exists():
+        return gz, lambda: gzip.open(gz, "rt", errors="replace")
+    return None, None
 
 OUT = Path("results/ch4_r1_offsh")   # --indir overrides (dry-run harness)
 CHI2_3DF_LOW_MULT = math.sqrt(3 / 9.3484)   # 0.5665: lower 95% CI multiplier
@@ -130,13 +144,13 @@ def main():
         terminal_race = cf_raw - cf
         # G2 as pre-registered: two INDEPENDENT tallies must agree exactly.
         # FP's own log is the second tally.
-        fplog = OUT / f"{tag}.fp.stdout"
+        fplog, opener = _fp_log(OUT / f"{tag}.fp.stdout")
         fp_tally = None
-        if fplog.exists():
+        if fplog is not None:
             import re as _re
             from collections import Counter as _C
             c = _C()
-            with open(fplog, errors="replace") as f:
+            with opener() as f:
                 for line in f:
                     m = _re.search(r"Winner: (\S+)", line)
                     if m:
@@ -188,14 +202,14 @@ def main():
     import re
     budgets = {}
     for tag in ("h1", "h2", "l62", "l63", "l64", "l65", "c1", "c1b", "s1", "e1"):
-        fplog = OUT / f"{tag}.fp.stdout"
-        if not fplog.exists():
+        fplog, opener = _fp_log(OUT / f"{tag}.fp.stdout")
+        if fplog is None:
             continue
         arm = pre["arms"][tag.upper() if tag != "c1b" else "C1b"]
         declared = arm["search_time_ms"]
         combos = set()
         ok = True
-        with open(fplog, errors="replace") as f:
+        with opener() as f:
             for line in f:
                 m = re.search(r"Sampling (\d+) battles at (\d+)ms each", line)
                 if m:
