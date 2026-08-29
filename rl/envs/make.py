@@ -27,9 +27,7 @@ def make_env(
     here keeps its identity across every sub-env of a vector env. That is
     what lets all N sub-envs share one opponent pool (Phase 4 chunk 2);
     registering the pool instead would silently give each its own copy."""
-    if env_id.startswith("MinAtar/"):
-        _ensure_minatar_registered()
-    elif env_id.startswith("Connect4"):
+    if env_id.startswith("Connect4"):
         _ensure_connect4_registered()
     elif env_id.startswith("Showdown"):
         _ensure_showdown_registered()
@@ -155,12 +153,3 @@ def _ensure_showdown_registered() -> None:
     # poke_env import to first use, so every other env pays nothing for it.
     if "Showdown-v0" not in gym.registry:
         gym.register(id="Showdown-v0", entry_point="rl.envs.showdown:ShowdownEnv")
-
-
-def _ensure_minatar_registered() -> None:
-    # MinAtar ships its env ids only via the `gymnasium.envs` entry point — a
-    # plugin mechanism gymnasium 1.0 removed — so registration is explicit.
-    if "MinAtar/Breakout-v0" not in gym.registry:
-        from minatar.gym import register_envs  # deferred: pulls in seaborn/matplotlib
-
-        register_envs()

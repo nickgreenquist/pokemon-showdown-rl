@@ -1,3 +1,6 @@
+# UNRUNNABLE SINCE 2026-08-29: the minatar dependency was retired with the
+# spine (CLEANUP A3, maintainer-ruled). Kept as provenance for the banked
+# MinAtar results (e.g. the anneal negative the showdown configs cite).
 # PPO on MinAtar/Asterix — Tier-1 benchmark game. Hyperparameters
 # identical to minatar_breakout_ppo.yaml (the annotated reference config,
 # which documents the 2026-07-25 relock to lr 1e-3 with the anneal off);

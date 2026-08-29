@@ -128,7 +128,7 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
     except (OSError, subprocess.CalledProcessError):
         sha, dirty = "unknown", False
     versions = {}
-    for pkg in ("torch", "gymnasium", "numpy", "minatar", "wandb"):
+    for pkg in ("torch", "gymnasium", "numpy", "wandb"):
         try:
             versions[pkg] = importlib.metadata.version(pkg)
         except importlib.metadata.PackageNotFoundError:

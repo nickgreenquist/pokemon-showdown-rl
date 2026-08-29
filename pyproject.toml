@@ -23,13 +23,14 @@ dependencies = [
     # Imported directly by scripts/record.py (frame annotation + GIF encode).
     "pillow==12.3.0",
     # --- Inherited from the predecessor repo (deep-rl-from-scratch) ---
-    # Spine pruned 2026-08-05 to what the capstone uses: classic-control
-    # (CartPole/Pendulum — PPO harness tests + DESIGN.md's Arm C spine gate)
-    # and MinAtar (same gate). DQN/SAC/MuJoCo/box2d/toy-text/open_spiel went
-    # with the spine; Connect 4 survives only as the two-player test fixture
-    # for the self-play harness tests.
+    # Spine pruned 2026-08-05, and again 2026-08-29 (maintainer-ruled,
+    # CLEANUP A3): MinAtar and the continuous-PPO track retired — Arm C is
+    # PARKED and DESIGN.md is SPENT, so the spine gate they served is dead.
+    # classic-control stays (CartPole is the cheap discrete harness fixture;
+    # Pendulum backs the normalize-wrapper tests); Connect 4 survives as the
+    # in-process two-player test fixture. The minatar_*.yaml configs are kept
+    # as provenance for the banked anneal negative but can no longer run here.
     "gymnasium[classic-control]==1.3.0",
-    "minatar==1.0.15",
 ]
 
 [project.optional-dependencies]

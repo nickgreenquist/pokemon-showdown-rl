@@ -1,3 +1,6 @@
+# UNRUNNABLE SINCE 2026-08-29: the minatar dependency was retired with the
+# spine (CLEANUP A3, maintainer-ruled). Kept as provenance for the banked
+# MinAtar results (e.g. the anneal negative the showdown configs cite).
 # PPO on MinAtar/Breakout — the annotated reference config for the discrete
 # track's headline: DQN vs PPO on all 5 games, same harness numbers, same 5M
 # budget, so only the algorithm varies. Rank-3 obs (10x10xC binary planes)
