@@ -11,9 +11,10 @@ queue another gen1 lever — ladder anyway (step 2), then step 3 (gen4).
 ## Where things stand (2026-08-29) — **LADDER R3 COMPLETE** (readout committed,
 backup archived) and **THE r9 RESCORE IS COMPLETE: the rule routes GREEDY.**
 All twelve CH5 arms graded, zero voids, G-SERIAL clean. `nickgen1rbrlbot2`
-RETIRES; iteration runs share `nickgen1rbrlbot`; a FINAL fresh account is
-DEFERRED. CH5 R1 CLOSED. **R2 IS UNBLOCKED — nothing gates its pre-reg now.**
-Pure self-play; THE NOVELTY IS THE LANE.
+RETIRES; iteration shares `nickgen1rbrlbot`; a FINAL fresh account DEFERRED.
+CH5 R1 CLOSED. **R2 IS UNBLOCKED — nothing gates its pre-reg now.**
+Pure self-play; THE NOVELTY IS THE LANE. **PRE-R2 CLEANUP DONE 2026-08-29**
+(5 rulings; 21→13.7 GB; spine+dead levers out; docs/archive/, readouts/, ONE CLEANUP.md).
 
 ## Results | 12M **0.71825** vs SH · ensemble 0.74633 · search@M 0.79283 (**12M**)
 · **LADDER R1 (ensemble): GXE 59.6%, Glicko 1573±27, Elo 1292, n=200** ·
@@ -27,8 +28,7 @@ Ties=loss. **Ladders credit nothing.**
 - Profile 106-102 vs JSONL 106-94: 8 extra losses are battles OUR socket died
   under — IN the rating, not the tally; its 19 timeout_midgame are not R1's
   six. Two blind breaches disclosed; neither voids the read.
-- R1 band cells: use the CORRECTED (BI-4) set — licensed cell 0.319, aggregate
-  implied 1214. The pre-reg pins the superseded ones (REPO_CLEANUP A1).
+- R1 band cells: the CORRECTED (BI-4) set — cell 0.319, implied 1214.
 
 ## Next actions
 0. **DONE.** Rescore read: key_A passed (searched sd 0.0076 < the n=3000
@@ -44,7 +44,7 @@ Ties=loss. **Ladders credit nothing.**
    an arm; `loss/explained_variance` IS logged (ppo.py:1189).
 3. THEN curve vs credited win rate — gates LANES AND SCALE, not batch.
 4. Descriptive: D4 anchors on all three lanes, cross-play, one R2 arm both ways.
-   Cleanup: `REPO_CLEANUP.md` (ideas only; audit first) + `CLEANUP.md`.
+   Cleanup DONE (2026-08-29); the open residue lives in `CLEANUP.md`.
 
 ## Watch items
 - **SEARCH EQUALISES THE LANES — supported at n=3000.** Greedy range 0.1230 →

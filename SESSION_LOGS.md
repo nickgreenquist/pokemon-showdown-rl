@@ -9314,3 +9314,92 @@ line numbers are not — grep the date, then read that region):
   STATUS.md unchanged — nothing gates R2 differently. NOTE for the
   maintainer: `RESEARCH_BRIEF.md` deletion is STAGED but uncommitted (not
   this session's doing); left staged for an explicit call.
+
+- 2026-08-29 (15:55Z, **PRE-R2 REPO CLEANUP EXECUTED — five rulings, 14 commits, repo 21 GB → 13.7 GB, suite green at the pre-cleanup baseline**)
+
+  Maintainer-ordered (HANDOFF), so the off-arc requirement is satisfied;
+  JOURNEY position unchanged (step 1; R2's pre-reg untouched, per the
+  handoff's explicit bar). The five rulings were taken in one message and
+  all granted as recommended: (a) delete `rl/selfplay/elo.py`+test,
+  (b) retire the MinAtar/continuous-PPO spine (Connect 4 stays),
+  (c) strip the UNREACHABLE killed levers, (d) delete `bc_p4_40k.npz` and
+  the 116 non-pinned `best_checkpoint.pt`, (e) full §D restructure +
+  CLAUDE.md diet. The reconciled single ledger is now `CLEANUP.md`
+  (REPO_CLEANUP.md deleted); still-open items live there.
+
+  **Executed, headline by headline.** CH5 pre-reg item 1 (wave constraint
+  expired): all licensed "Elo 1311" lines corrected to final 1292 with
+  dated CORRECTED notes; the headline-protection test now protects 1292
+  and REJECTS 1311 re-entering. ch5_watchdog gains the rs*=20.6/min
+  reference (item 8). Ladder/eval tooling now FAILS instead of defaulting
+  to R1 (items 4+9): ladder_readout/classify/move_audit inputs required,
+  ladder_supervise takes the pre-reg as a required 3rd argument,
+  eval_checkpoint requires --episodes. Deletions: elo.py (614 lines, zero
+  importers), MinAtar (dep, registration, test; the five minatar configs
+  STAY stamped UNRUNNABLE as provenance for the banked anneal negative),
+  the continuous-PPO track (GaussianActor + every `self.continuous`
+  branch; PPOAgent is Discrete-only; normalize smokes retargeted CartPole
+  with a sharper raw-units assertion), fixed_mix + pfsp_power (select()
+  proven byte-identical on the seeded stream by the retained pin test),
+  conv.py's dueling flag, scripts/record.py (+pillow pin). B2 landed:
+  selfplay.* rejects unknown keys. B1: gate_r012/rev1_check/
+  analyze_oppact/z1_1 vendored into scripts/. B4: the three d25 scripts
+  route through masked_logits. B6: four stale comments. B8: the d29
+  graders cross-reference each other. scripts/README covers the 27
+  missing scripts. README: opp Elo unified at 1231 (replay-derived), R3
+  invocation shown, where-written table gains CHAPTER5/readouts/archive.
+  Restructure: DESIGN/DESIGN2/REPLAY_AUDIT → docs/archive/ (tombstoned;
+  the move is the supersession marker), LADDER readouts → readouts/
+  (ladder_r3.yaml instruments path updated; test-verified), CLAUDE.md
+  dieted 17.2 KB → 11.9 KB with the incident narratives moved to
+  docs/landmines.md, and this file gained the date-keyed chapter index.
+
+  **Disk (A5):** deleted bc_p4_40k.npz (2.1 GB), 116 best_checkpoint.pt
+  (1.39 GB), 3 aborted-1M runs + relaunch_collision; gzipped the 13
+  ch4_r1_offsh FP stdout tapes (3.6 GB → 213 MB; ch4_r1_grade gained the
+  _fp_log gzip fallback, selftest PASS, G2 tally re-verified at 3000
+  Winner lines) and the fp_tranche tapes. **Trap found live:**
+  `data/fp_tapes_all/` is SYMLINKS into `fp_tranche*/` and the
+  pre-registered R0-5 gate reads them — gzipping made the gate SKIP as
+  "tapes absent". The six symlinked tapes (~600 MB) are restored
+  uncompressed; the gate passes. Net repo: 21 GB → 13.7 GB.
+
+  **Deviations from the rulings, both keep-direction, both verified:**
+  TensorBoardLogger stays (A4's "no test covers it" is false — ~15 test
+  files use it as the offline logger backend); kernel_size stays (PPO
+  plumbs it; test_ppo pins its param counts as the pre-registered probe).
+  Also skipped: history.csv compression (only-copies read by name from 5
+  frozen instruments incl. d22_trajectories — bad trade at 172 GB free).
+
+  **Already-executed sweep items, verified not re-done:** items 2, 3, 5,
+  6, 7, 10, 12 and 18's two in-file notes all landed 2026-08-28 (commits
+  122f655, c3e2e08 et al.). One pre-existing red fixed: the prereg test
+  asserting the runner's pre-refactor NO_PROGRESS literal.
+
+  **Item 14, the owed one-line correction:** the 2026-08-28 r9 entry is
+  stamped ~55 min late — it says 18:20Z; the ratifying commit/launch were
+  17:25Z/17:32Z.
+
+  **Preserved from deleted code, per the deletion rulings.**
+  `rl/selfplay/elo.py`'s degeneracy guards (Hunter 2004): Ford's
+  condition checked before every fit and it is NECESSARY, not merely
+  sufficient (Lemma 1(a)) — an undefeated player does not diverge
+  detectably but creeps at ~372 Elo per decade of iterations while the
+  step size decays 1/k, so successive-difference convergence tests return
+  a finite, wrong, tolerance-dependent number; hence fit_bt REFUSED
+  non-Ford matrices and the test asserted stability across 200/2k/20k
+  iterations, never finiteness. Perfect scorers were dropped ITERATIVELY
+  with a floor/ceiling (Ordo), pseudo-count priors rejected outright ("half
+  a virtual win and loss" is ambiguous by a factor of J between Glickman's
+  two readings). The bootstrap was stratified by (pair, colour) — an
+  i.i.d. bootstrap destroys colour balance and reports sd 0.021 where the
+  truth is 0 (measured); resamples failing the fit preconditions were
+  FLAGGED AND SKIPPED (Hunter p. 402: at B=1000 expect at least one
+  Assumption-1 violation). GaussianActor's notes: state-INDEPENDENT
+  log_std as a bare parameter (the SAC-comparison-hygiene choice; also
+  CleanRL/SB3's), log_std init 0 with std 0.5 as the pre-registered first
+  probe, deliberately unsquashed (log-prob of the RAW sample, clip in the
+  env), and the act_dim>=2 test-design trap: a length-1 action vector
+  broadcasts (B,) against (B,1) into a (B,B) log-prob matrix whose
+  .sum(-1) is correctly shaped garbage — a Pendulum-only suite never
+  notices.
