@@ -109,20 +109,39 @@ replace it; a cleaning session should reconcile the two.
 
 ## C. Trivial / deadwood
 
-15. **`scripts/score_ladder.py`** — the documented Connect-4-era false
-    friend has NO in-file warning and runs plausibly on a Showdown dir
-    before crashing (`--opponents heuristic` vs Showdown's `heuristics`).
-    Backs no banked number; delete outright (or warning header).
-16. **`assets/showdown_milestone3.png` (429 KB, "~0.4 vs SH / 611-dim") +
-    `scripts/make_showdown_figure.py`** — referenced by nothing; the
-    artifact most likely to be wrongly surfaced into the deferred README
-    rewrite. Delete both.
-17. **Orphans with zero references:** `ch3_r1_spike.py`,
-    `d22_trajectories.py`, `make_bc_dataset.py`, `p3_team_luck.py`,
-    `probe_type_multiplier.py` (superseded by diag_encoder_live.py) —
-    safe deletes. `record.py` stays CLEANUP.md B7's candidate (sole
-    reason imageio is pinned). Keep the three CH3 wave-runners
-    (provenance) but add them to scripts/README.md.
+15. ~~**`scripts/score_ladder.py`** — no in-file warning.~~ **DONE
+    2026-08-28 (warning header added; NOT deleted — deletion is a
+    maintainer call).** Correction to this item as originally filed: the
+    dangerous invocation is `--opponents random` ALONE, which prints a
+    full page of plausible numbers and exits 0. The `random heuristic`
+    default prints ONE row and then dies on the bad key, because the loop
+    flushes per row — so the original framing had the failure mode
+    backwards.
+16. **RETRACTED 2026-08-28 — DO NOT DELETE.** The claim "referenced by
+    nothing" was FALSE and checking cost nothing: the PNG is a RENDERED
+    MARKDOWN EMBED at `SESSION_LOGS_PREDECESSOR.md:1403` (deleting it
+    breaks an image in a frozen doc), it is described at `:818`, and
+    **`SESSION_LOGS.md:408` already RULED that it stays.** Proposing its
+    deletion was a live doc contradicting a recorded ruling — the D19
+    failure mode, committed by this very file. The real defect is that
+    the figure is UNLABELLED (it asserts ~0.4 vs SH and a 611-dim encoder
+    against production 828-dim / 0.71825); the fix is a caveat line beside
+    the embed, which needs the owner of that frozen file.
+17. **RETRACTED 2026-08-28 — ALL FIVE HAVE REFERENCES; NONE IS A SAFE
+    DELETE.** Verified individually: `ch3_r1_spike.py` backs live config
+    constants (`ch3_rung2.yaml:9,58,119` attribute `leaves_expected: 353`
+    to "the R1-0 spike"); `d22_trajectories.py` is the ONLY
+    implementation of the D23-WATCH record-only statistic pre-registered
+    in two live headers; `probe_type_multiplier.py` is quoted in
+    `diag_encoder_live.py:4-9`'s own rationale (it is cited BY its
+    claimed successor, not superseded by it); `make_bc_dataset.py` and
+    `p3_team_luck.py` are cited in the predecessor log as the
+    instruments behind a live anchor and a banked variance
+    decomposition. **The lesson, and it is the one `scripts/README.md`
+    already states: "nothing greps it" is not evidence a script is
+    dead** — provenance for a banked number is a reference. `record.py`
+    remains CLEANUP.md B7's candidate. The CH3 wave-runners are now in
+    scripts/README.md (done 2026-08-28).
 18. **`scripts/README.md` is 37 of 96 scripts short** — the gaps are the
     newest ladder-ops + CH5 tooling, exactly what a sweeper needs
     provenance for. **`tests/test_showdown_env.py:840`** — the known
