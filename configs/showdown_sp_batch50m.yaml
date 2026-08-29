@@ -1,0 +1,821 @@
+# =====================================================================
+# PRE-REGISTRATION — CH5 R2: THE BATCH LEVER (JOURNEY step 1),
+# DRAFTED 2026-08-29. STATUS: **PROPOSED — AWAITING MAINTAINER
+# RATIFICATION.** Nothing launches before the ratification word; the
+# launch itself is the maintainer's (>5 h training, CLAUDE.md rule 4).
+#
+# PROVENANCE — the standing 2-Opus cycle (maintainer process, 2026-08-12)
+# ran in full BEFORE this draft: shared brief
+# results/design_ch5_r2/BRIEF_R2.md; two independent Opus design memos —
+# A (evidential validity) results/design_ch5_r2/r2_design_A.md, B
+# (build/ops/cost) results/design_ch5_r2/r2_design_B.md; synthesis with
+# THREE RUNNER ADJUDICATIONS where the memos clashed (ADJ-1..3 below,
+# each recorded with the losing argument); then two independent Opus
+# reviews (adversarial arithmetic; repo consistency incl. the live
+# suite), findings applied before this text was declared final. The
+# designers were given the settled rulings and the OPEN questions, not a
+# preferred design (CHAPTER5 §8's lesson).
+#
+# journey_step: 1  (gen1 retrain, batch lever — STATUS "JOURNEY POSITION")
+# SCOPE GUARD, BINDING, VERBATIM: "a read inside the bar is information
+# about the INSTRUMENT, not a licence to queue another gen1 lever —
+# ladder anyway (step 2), then step 3 (gen4)." A null/failed read routes
+# to JOURNEY step 2 REGARDLESS. Every cell of the branch table routes to
+# step 2; the table changes what is WRITTEN, never where the project
+# goes next.
+#
+# CREDIT LINE, VERBATIM (appears in this header exactly once, here):
+# "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff,
+# where se_diff is the LARGER of the pooled-binomial se_diff and the
+# seed-clustered se_diff, the latter computed from the per-seed finals
+# at read time." Clustered formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp).
+# ACROSS-LANE AGGREGATOR, NAMED ONCE, BINDING EVERYWHERE: the
+# EQUAL-WEIGHT MEAN of per-seed finals, computed WITHIN each arm over
+# its own lanes. Pooled-over-battles rate, per-lane median (barred at
+# k=3 — the median IS one lane), best lane, worst lane and per-lane
+# deltas are RECORDED and NEVER govern.
+#
+# LADDER QUOTES in any R2 document: LADDER R1 = GXE 59.6%, Glicko-1
+# 1573 +/- 27, FINAL ELO 1292, n=200 — never 1311 (the pre-battle rating
+# of the last game). LADDER R3 is STANDALONE; ruling D5 bars any
+# arithmetic between R1's and R3's ladder numbers, either direction.
+# Ladders credit nothing. vs-SH numbers are NOT ladder numbers.
+#
+# ---------------------------------------------------------------------
+# Q0. WHAT R2 IS
+#   The ONLY training round of Chapter 5. ONE lever: EPISODES PER UPDATE
+#   (batch), on the credited D29r2 recipe, at the chapter's 50M ceiling.
+#   3 new 50M lanes (treatment, seeds 66/75/83) against the BANKED
+#   D29r2 fleet s80/81/82 (control — already trained, costs nothing).
+#   Scored GREEDY (amendment r9, ratified 2026-08-28; rescore complete
+#   2026-08-29: key_A passed s3=0.00760 < floor 0.00906, key_B failed
+#   beta=-0.127 vs floor 0.248 -> GREEDY; no masking disclosure owed).
+#   PRIMARY READ: strength off Foul Play@20 vs the banked A80/A81/A82
+#   control reads — full mechanics, bars and cells live in
+#   configs/eval/ch5_r2_offsh.yaml (committed in the same ratification;
+#   every read-side number lives THERE and only there — the R1 lesson
+#   about the same figure diverging across files).
+#
+#   ANCHOR/PRIMARY PROMOTION, STATED PLAINLY (designer A escalation E2,
+#   for ratification): the anchor battery's standing clause "anchors are
+#   descriptive, never verdict inputs" and this round's "the FP@20 h2h
+#   is the PRIMARY" cannot both be transcribed unamended. RESOLUTION:
+#   for R2 the FP@20 read is PROMOTED from anchor to PRIMARY by the r9
+#   policy-form decision and STATUS next-action 1; the "never verdict
+#   inputs" clause governs the REMAINING anchors — the BC-clone h2h,
+#   and vs-SH per its adjudicated role (ADJ-2 in the eval config).
+#
+# ---------------------------------------------------------------------
+# Q1. THE LEVER AND ITS DOSE (both designers, independently: same spelling)
+#   rollout_steps 128 -> 3840 at num_envs 8: 30,720 steps/update.
+#   MEASURED episodes/update = 30,720 / 32.047 = ~959, vs the control's
+#   ~32. (32.047 = the 3-lane mean of rollout/episode_length over the
+#   banked control runs: 32.119 / 32.539 / 31.498, 4.2M logged episodes.
+#   CHAPTER5 §3b A4's "~1,000" assumed ~30 decisions/episode; the
+#   realized dose is ~959 and is quoted as such.) Updates over 50M:
+#   1,627 (control 48,828). H&L reference: 15,360 episodes/update
+#   (both seats) — R2 closes 30.0x of the ~450x gap and leaves 16.0x.
+#   H&L is an EXISTENCE PROOF, not a target ("a completely arbitrary
+#   choice", verbatim §III.B, prior_work/HUANG_LEE_DEEP_READ.md:36).
+#
+#   WHY 3840 AND NOT MORE OR LESS (adjudicated across both memos):
+#   - Designer B's lattice: holding minibatch 256 (batch = 256k) AND the
+#     pool push cadence at exactly 153,600 steps/push (push_every
+#     integer) admits only k | 600: k in {75,100,120,150,200,300,600}.
+#     k=120 (3840) is the UNIQUE lattice point nearest the licensed
+#     ~1,000-episode dose (959 vs 799 and 1,198).
+#   - Designer A's ceiling: the cost axis is WITHIN-UPDATE STALENESS
+#     (L3 below) — 480 sequential grad steps per behaviour-policy
+#     snapshot vs H&L's 337.5. We are already ABOVE H&L there while 16x
+#     below on averaging; a bigger dose worsens the axis we are already
+#     worse on. 3840 keeps L3 within ~1.4x of the only working
+#     existence proof and keeps 1,627 updates (3.25x H&L's 500, clear
+#     of §3b A4's "will not learn in 109 updates" wall).
+#   - Build ceiling: measured peak RSS 2.68 GB/lane at 3840 (fleet ~8.1
+#     GB of 24 GiB); 7680 measured 4.70 GB/lane (~14.1 GB fleet) — not
+#     launchable unattended beside the node server. See R0-h / D-E.
+#   - Smaller (1920): closes 15x of a 450x gap; a strictly weaker
+#     version of the same read for the same 4.6 lane-days.
+#
+#   THE HONEST AGAINST, carried verbatim from §3b A4: at fixed total
+#   steps this trades update COUNT for update QUALITY, and nothing in
+#   this repo has measured which side binds. A candidate, not a finding.
+#
+# ---------------------------------------------------------------------
+# Q2. DOSE-MATCHING, DECLARED BEFORE LAUNCH (discharges the D25-era rule
+#   "decide up front whether dose is matched and how you'd know").
+#   "Dose" is ambiguous for a batch lever, so every candidate quantity
+#   is MATCHED, THE LEVER, or DISCLOSED — no third category, no unnamed
+#   quantity. Every M-item is an arithmetic identity asserted by
+#   tests/test_ch5_r2_prereg.py, not a claim.
+#
+#   MATCHED:
+#   M1 Environment steps: 50,000,000 both arms (train.py stops at
+#      step >= total_steps, step += num_envs, 8 | 50e6).
+#   M2 Gradient steps: control 48,828 x 16 = 781,248; treatment
+#      1,627 x 480 = 780,960 (-0.037%, entirely the discarded tail N6).
+#      GRAD STEPS PER ENV STEP IDENTICAL: 16/1024 = 480/30720 = 1/64.
+#   M3 Optimizer passes over each datum: epochs 4 both arms.
+#   M4 Minibatch SIZE: 256 both arms. LOAD-BEARING, not cosmetic:
+#      ppo.py:989 z-scores advantages PER MINIBATCH, so minibatch size
+#      is an effective-step-size knob; letting it grow to 7,680 would
+#      be a SECOND LEVER (see the marked correction beside §3b A4 in
+#      the migrated CHAPTER5 §3 below).
+#   M5 LR-anneal dose: ppo.py:965 computes steps_seen = updates *
+#      horizon * num_envs — STEP-indexed, moves with the lever free.
+#      lr at any step identical; granularity 1,024- -> 30,720-step
+#      ticks (max one-tick lr difference 1.54e-7).
+#   M6 Opponent-pool trajectory: push_every_updates 150 -> 5 holds
+#      153,600 steps/push and EXACTLY 325 pushes, identical fill step
+#      (pool_size 20 fills at the same env step); member generator
+#      seeds 0..324 and eviction structure identical (both are
+#      functions of the push index). Checkable worked example: both
+#      arms have taken 26 pushes at 4M steps.
+#   M7 Eval and checkpoint STEP GRID: train.py:677/682 test step
+#      thresholds at 8-step granularity OUTSIDE the rollout branch —
+#      200 evals at the 250k grid, 100 rungs at the 500k grid, both
+#      arms, byte-identical cadence (verified: 200 eval rows / 100
+#      rungs in the banked control). There is NO rollout quantization
+#      on eval or checkpoints. (Latent trap recorded for future
+#      levers: this safety rests on num_envs | eval_every.)
+#
+#   THE LEVER — one quantity, three inseparable mechanical consequences;
+#   R2 claims them AS ONE LEVER ("episodes per update") and does not
+#   attribute among them:
+#   L1 Episodes averaged into each gradient estimate: ~32 -> ~959.
+#   L2 Policy refreshes over the run: 48,828 -> 1,627.
+#   L3 Within-update staleness: grad steps per behaviour-policy
+#      snapshot 16 -> 480. PPO's clip is a trust region around pi_old;
+#      L3 is the axis an over-large dose fails on, measured by
+#      loss/clip_frac and loss/approx_kl (T1-T3 below).
+#
+#   DISCLOSED, NOT LEVERS:
+#   N4 push_every_updates 150 -> 5 (the M6 key; listed here because it
+#      IS a config diff — a lever-carrying key, not a second lever. At
+#      150 the treatment would get 10 pushes over the whole run and the
+#      pool would NEVER FILL: a different opponent curriculum, a
+#      confound bigger than the lever).
+#   N5/C-CAD LOGGING CADENCE: loss/* and time/* update rows fall
+#      48,828 -> 1,627. time/collect_sec and time/update_sec are
+#      per-rollout SUMS (30x larger per row); loss/* rows average 480
+#      grad steps not 16 (~5.5x less noisy). In-loop curves are NOT
+#      like-for-like vs the control; EVERY cross-arm log statistic in
+#      this pre-reg is computed on 500k-STEP BINS, never raw rows (a
+#      raw-row average weights the control 30:1). Eval numbers are
+#      unaffected (final-checkpoint protocol). W&B volume ~unchanged
+#      (97.4% of rows are per-episode; total rows fall ~3.3%).
+#   N6 Discarded tail experience: control 128 steps (0.0004%);
+#      treatment 18,560 steps (0.037%) — the named cause of M2's gap.
+#   N7/C-GAE BOUNDARY-TRUNCATED ADVANTAGE TAILS (designer B; the
+#      leading suspect on a POSITIVE read, the way C-1 was on a
+#      negative one in the control's header): GAE's recursion starts
+#      from A_T=0 at the rollout boundary, so the last episode per
+#      env-slice has a truncated tail. At 32.047 decisions/episode the
+#      control truncates 1 in 3.99 episodes = 25.0%; the treatment 1
+#      in 119.8 = 0.83%. NOT separable from the batch; part of any
+#      effect may be "30x fewer truncated tails", and the readout
+#      names it rather than claiming it away.
+#   C-EV EXPLAINED VARIANCE IS NOT CROSS-ARM COMPARABLE: EV's
+#      denominator is estimated from ~32 episode clusters (control) vs
+#      ~959 (treatment); the noisy-denominator bias inflates the
+#      treatment's EV. CONSEQUENCE, BINDING: the lambda ruling (Q4)
+#      reads the CONTROL's EV only and is NEVER reopened on the
+#      treatment's EV.
+#
+# ---------------------------------------------------------------------
+# Q3. ONE-DIFF, TWO DIRECTIONS (comment-stripped YAML dict diff;
+#   asserted by the test file BEFORE launch):
+#   vs configs/showdown_sp_stack50m_r2.yaml (the control's own config):
+#     exactly {seed, run_name, agent.rollout_steps, agent.minibatches,
+#     selfplay.push_every_updates}. The last three are the mechanical
+#     spelling of ONE quantity (Q1/Q2); a one-diff is one-diff in the
+#     EXPERIMENTAL QUANTITY, not the YAML key count — the precedent is
+#     the control's own R0-a, where the horizon lever moved four keys.
+#   lane-to-lane: the three lanes are THIS file plus --seed/--run-name
+#     overrides, so the stamped runs/*/config.yaml differ in exactly
+#     {seed, run_name} — asserted post-launch off the stamped configs.
+#   KEYS DELIBERATELY NOT CHANGED (auditable only if written):
+#     gae_lambda 0.95 (Q4); epochs 4 (H&L's 6 would be a second lever);
+#     num_envs 8 (moves collection + the sub-env seed window + the
+#     per-episode opponent draw — three confounds); eval_every /
+#     checkpoint_every (M7); lr, lr_anneal_steps, gamma, clip_eps,
+#     entropy_coef, value_coef, max_grad_norm, every aux_*, trunk +
+#     trunk_kwargs, hidden_sizes, pool_size 20, latest_prob 0.8,
+#     opponent: self, env_kwargs.opp_action, total_steps,
+#     eval_episodes, torch_threads, logger, eval_win_rate.
+#   ppo.py:954 critic_warmup_updates: absent -> 0 -> INERT. Recorded
+#     because it is the one update-indexed HYPERPARAMETER that would
+#     have had to move; it is off.
+#
+# ---------------------------------------------------------------------
+# Q4. LAMBDA: 0.95, HELD. A config choice on the explained-variance
+#   diagnostic (STATUS next-action 2), decided under a rule stated
+#   BEFORE the answer (designer A), and NOT an arm:
+#   RULE: lambda moves off 0.95 only if BOTH (R1) the CONTROL's
+#   bootstrap channel is broken — 3-lane mean of loss/explained_variance
+#   over the final 20% of the run <= 0.25, or any lane negative /
+#   collapsing in the final third — AND (R2) the change adds no second
+#   differing key vs the banked control. R1 FAILS: the control reads
+#   0.5913 / 0.5859 / 0.5824 (final-20% means; finals 0.6831 / 0.6438 /
+#   0.5687; peaks 0.82-0.87; never negative). R2 FAILS by construction:
+#   the control is banked, so a lambda change makes R2 a two-lever
+#   stack (D29r2's own disclosure verbatim), un-dischargeable against
+#   JOURNEY step 1's "the batch change is the lever; everything else
+#   stays fixed", and buying attribution back costs a second 50M fleet.
+#   HONEST COUNTER-ARGUMENT, RECORDED NOT SUPPRESSED: at gamma 1.0,
+#   terminal-only reward, T=32.047, lambda 0.95 puts weight 0.95^31 =
+#   0.203 on the actual outcome at t=0 — ~80% of early-turn advantage
+#   signal is critic bootstrap at EV ~0.59 — and lambda 1.0's variance
+#   cost is exactly what a 30x batch absorbs. Entered in the JOURNEY
+#   step-8 ledger as a ONE-LEVER follow-up against R2's own treatment
+#   as control; named now so it cannot be rediscovered post-hoc.
+#   DIAGNOSTIC CAVEATS, BOTH BINDING: (i) EV is computed against the
+#   lambda-return target (ppo.py:934) — a lambda-DEPENDENT statistic
+#   that can answer "is the incumbent broken?" but cannot rank 0.95 vs
+#   1.0; (ii) C-EV (Q2): the lambda call reads the CONTROL's EV and is
+#   never reopened on the treatment's. Note C-GAE already moves most of
+#   what a longer credit horizon would buy, free (designer B).
+#
+# ---------------------------------------------------------------------
+# Q5. THE PRIMARY READ — POINTER AND PLANNING BAR ONLY (the read's
+#   mechanics, bar tables, cells, riders, disclosures and quotation
+#   rules live in configs/eval/ch5_r2_offsh.yaml and ONLY there).
+#   Treatment fleet off FP@20, GREEDY, n=3000/lane, vs the BANKED
+#   control A80/A81/A82 (0.3960 / 0.3430 / 0.2730 at n=1000/lane,
+#   equal-weight mean 0.33733, NEVER re-scored per r9 if_GREEDY).
+#   PLANNING BAR at s_batch = s_ctrl = 0.0617: 2*sqrt(2*0.0617^2/3) =
+#   0.1007 (s_batch halved -> 0.0797; s_batch = 0 -> 0.0712). REALIZED
+#   sds govern at readout; both sides carry the clustered term.
+#
+#   HONEST EXPECTATION, PRE-STATED AT BOTH SPREAD REGIMES (designer A,
+#   MC 200k/cell, treatment n=3000, control fixed at banked values):
+#     true delta:      +0.025  +0.050  +0.075  +0.100  +0.150
+#     s_T = 0.00        0.000   0.000   0.717   1.000   1.000
+#     s_T = 0.02        0.000   0.027   0.489   0.966   1.000
+#     s_T = 0.0617      0.035   0.122   0.294   0.523   0.885
+#     s_T = 0.09        0.062   0.133   0.243   0.387   0.686
+#   False-positive rate under the null: 0.000-0.025 depending on s_T —
+#   conservative by construction (the bar's floor sits far above the
+#   sampling se); the conservatism is bought with power. MDE in lane
+#   terms at s_T = s_ctrl: the treatment fleet's WORST lane must
+#   roughly beat the control fleet's BEST lane. Under designer A's
+#   stated prior (in the memo, named so it can be attacked):
+#   P(CREDIT) ~ 0.065, P(credited negative) ~ 0.051, P(letter-met
+#   either side) ~ 0.505, P(WITHIN) ~ 0.38. THE PRE-DATA EXPECTATION IS
+#   "no credit, instrument-limited" — see ESCALATION E1: this is
+#   ratified with eyes open, not discovered at readout. No purchase of
+#   lanes rescues the read (k_arm=5 buys the bar down 10.5%; k_arm=inf
+#   29%; symmetric fleets need k ~ 49/arm — the frozen control's k=3
+#   supplies half the variance forever).
+#   sigma_seed of the treatment fleet: DESCRIPTIVE SECONDARY carrying
+#   the (2,2)-df disclosure VERBATIM in the eval config; the grader
+#   prints the two together mechanically (designer B escalation E1,
+#   adopted).
+#
+# ---------------------------------------------------------------------
+# Q6. GATES (any failure voids as stated; zero-lane gates BLOCK launch)
+# R0-a ONE-DIFF, TWO DIRECTIONS: Q3, asserted by the test file.
+# R0-b ANNEAL GUARD: lr_anneal_steps == total_steps == 50000000; the
+#   rl/train.py interval guard re-asserted.
+# R0-c ANNEAL x AUX GROUP: env POKEMON_RL_ENCODER_V2=1
+#   POKEMON_RL_ENCODER_IDS=1 pytest tests/test_anneal_aux_group.py —
+#   WITHOUT the env vars 9 of 10 SKIP silently. Expect 9 passed /
+#   1 skipped.
+# R0-d CARRIED SEAMS: actor 626,059 / actor+aux 675,538 / critic
+#   494,849; optimizer groups [29,26,6]; purity seam opponent: self;
+#   R0-4 (eval/win_rate == wins_from_returns) on every final.
+# R0-e GRADER COMMITTED BEFORE LAUNCH: scripts/ch5_r2_grade.py —
+#   selftest exercises every branch cell at synthetic cuts, the
+#   lane-failure path at k=2 and k=1, a G2 case that must FAIL, and
+#   attests both frozen control reads from disk (off-FP a8*.json and
+#   vs-SH final_s8*.json).
+# R0-f BATCH/POOL ARITHMETIC, re-derived at grade time from the stamped
+#   runs/*/config.yaml, never transcribed: batch 30,720 = 120 x 256
+#   exact; updates 1,627; grad steps 780,960; grad-steps-per-env-step
+#   1/64 both arms; 5 x 30,720 = 153,600 steps/push; 325 pushes;
+#   pool_size 20 caps pool memory (~420 MB/lane carried figure).
+# R0-g BACKUPS INTACT — the list protects what THIS arm reads:
+#   results/ch5_r1_offsh/a8{0,1,2}.json (off-FP control) and
+#   results/d29r2/final_s8{0,1,2}.json (vs-SH control), plus their
+#   copies in ../pokemon-showdown-rl-d25-backup-20260815/
+#   (ch5_r1_offsh/ and d29r2/ — the a8*.json copies were MISSING from
+#   the backup until 2026-08-29; repaired at draft time, the D29r2
+#   precedent exactly). The grader's attest() is the automated half.
+# R0-h MEMORY HEADROOM (NEW — the lever's one new failure mode; blocks
+#   launch): >= 12 GB free/reclaimable before lane 1, and a 60-second
+#   single-lane dry check confirming peak RSS <= 3.0 GB at
+#   rollout_steps 3840 (measured at draft time: 2.68 GB/lane; fleet
+#   ~8.1 GB of 24 GiB).
+# D-A LR TRACE, HARD, IN-RUN: realised lr off the 2M / 10M / 26M / 50M
+#   checkpoints (nearest 500k rung), EVERY lane conjunctively, all
+#   three param groups, frac = 1 - (updates-1)*30720/50e6 (Q3's
+#   PRE-increment convention; the SAME formula with 1024 reproduces the
+#   banked control's final checkpoint bit-for-bit, 5.76e-9). Expected:
+#   u=65 -> 2.401696e-4; u=325 -> 2.002336e-4; u=846 -> 1.202080e-4;
+#   u=1627 (final) -> 2.464000e-7. The only gate distinguishing "the
+#   anneal ran" from "the YAML said 50000000". Intermediate ckpt_*.pt
+#   are RETAINED until D-A has run and its output is committed — the
+#   control's rungs were deleted by the 2026-08-29 cleanup and D-A can
+#   never be re-run on it (ESCALATION E3).
+# D-B THROUGHPUT: warm effective steps/s = dStep/dWall >= 30 min after
+#   1M, NEVER time/steps_per_sec (overstates 14.5%). EXPECTED 400-430
+#   3-wide alone (grad steps are INVARIANT — "30x fewer optimizer
+#   passes" is wrong; the saving is amortized per-update overhead:
+#   measured update cost/collected-step falls 39%, collect unchanged,
+#   predicted +7.2% over the control's realized 387.6-398.1). RECORD
+#   below 385 (the prediction failed — informative, not a stop);
+#   RECORD below 330 / STOP and investigate below 275 (the control's
+#   own absolute floors, carried verbatim — a treatment lane under the
+#   CONTROL's floor is unambiguously sick). Runs ALONE 3-wide;
+#   co-scheduling costs +1.0 lane-day (measured).
+# D-C AUX HEALTH at every 5M, UNCHANGED: illegal_label_frac == 0,
+#   frame_collision_frac == 0, labelled_frac MEAN OVER THE 5M BIN in
+#   [0.78, 0.86] (162 readings/bin), all losses finite, aux/loss
+#   allowed to rise per the pool prediction. Per-rollout spread narrows
+#   ~5.5x; the bin-mean rule is kept verbatim for cross-arm continuity.
+# D-D LEARNING, UNCHANGED AND FAIR (both designers, independently):
+#   selfplay/winrate_anchor >= 0.75 by 4M, each lane individually.
+#   Why fair at 30x fewer updates: grad steps at 4M are EQUAL (62,400
+#   vs 62,496); the anchor is never evicted and the pool trajectory is
+#   step-identical (M6 — both arms have 26 pushes at 4M); the control
+#   sat at 0.9567/0.9511/0.9624 by update 130 on 1/30 the data. The
+#   residual early-window dilution is ~-0.05, so the PRE-STATED
+#   treatment expectation is 0.90-0.96 against the control's realized
+#   0.9716/0.9712/0.9742 at 4M — RECORDED beside the gate so a passing
+#   0.80 is visibly weak; the gate itself does not move. For a lane to
+#   FAIL, its first-153,600-step winrate would have to be ~0.58 vs the
+#   control's implied 0.959 — a real failure to beat random init, which
+#   is what the gate exists to catch. winrate_anchor is CUMULATIVE: any
+#   cross-arm CURVE comparison must window it at read time.
+# D-E MEMORY, in-run (NEW): per-lane RSS at each D-B reading. RECORD
+#   above 3.0 GB/lane; STOP and investigate above 4.5 GB/lane (the
+#   measured 7,680-rollout level — unreachable legitimately) or on
+#   sustained swap-out (a swapping box fires D-B's floor for a reason
+#   that has nothing to do with the learner).
+# K6 ENTROPY — threshold and horizon INVARIANT, debounce RECALIBRATED,
+#   a DISCLOSED DEVIATION in the control's own "horizon-scaled" form:
+#   3-lane median loss/entropy < 0.15 for 2 CONSECUTIVE rollout-
+#   boundary readings before 25M -> record and stop. 0.15 unchanged
+#   (per-minibatch estimator identical at 256; control minima 0.109-
+#   0.118, 3-lane median never below 0.1603 pre-25M). 25M unchanged —
+#   it is the lr >= 1.25e-4 point of THIS anneal, and the anneal is
+#   step-indexed: at the treatment boundary nearest 25M (update 813)
+#   realized lr = 1.2528e-4. Debounce 5 -> 2 BECAUSE the control's 5
+#   readings span 5,120 steps and ONE treatment reading spans 30,720 —
+#   no integer count reproduces the window; 2 readings (61,440 steps)
+#   carry ~11x the evidence of the control's 5 (each reading averages
+#   480 minibatch entropies vs 16) at 0.12% of the horizon. INVARIANT
+#   NAMED (the repo's recalibration rule): false-positive rate at fixed
+#   detection power, not reading count. Lanes share the rollout size so
+#   readings are step-aligned and the 3-lane median is well-defined.
+#   No mid-run changes, ever.
+# T1-T3 TRUST-REGION TRIPWIRES (ADJ-3, adjudicated to designer B's
+#   form: the control's approx_kl quantiles do NOT transfer — approx_kl
+#   averages a 480-step walk vs a 16-step walk, so a control-quantile
+#   tripwire fires on the lever's EXPECTED regime and would void
+#   healthy lanes; designer A's 0.10 stop is retired for exactly the
+#   gate-miscalibration failure A's own secondary opinion warned of):
+#   T1 RECORD-ONLY: loss/approx_kl per update vs the control's realized
+#      distribution (median 0.0059-0.0070, q90 0.0136-0.0147, q99
+#      0.0263-0.0293, worst 0.97). PRE-STATED: a treatment mean up to
+#      ~30x the control's is the lever's EXPECTED regime, not
+#      pathology. Reported beside the number; never a cell input.
+#   T2 STOP: 3-lane median loss/clip_frac >= 0.90 for 3 consecutive
+#      readings. clip_frac is per-SAMPLE on a 256-row minibatch in BOTH
+#      arms, so its scale transfers; control worst-ever reading 0.171;
+#      at >= 0.90 the surrogate feeds gradient to <10% of the batch and
+#      the trust region is gone. STOP AND REPORT, never adjust (KL
+#      early-stopping is a tripwire, never a lever; no target_kl code
+#      exists).
+#   T3 BACKSTOP: 3-lane median loss/approx_kl >= 0.5 for 3 consecutive
+#      readings (control q99.9 = 0.073; sustained 0.5 is outside any
+#      transient this regime produces), or ANY non-finite loss/* (one
+#      reading suffices).
+#   PRE-REGISTERED MECHANISM PREDICTION (record-only, never a verdict
+#   input): loss/clip_frac should RISE from the control's ~0.03 toward
+#   the healthy 0.1-0.3 band — 480 steps move the policy further from
+#   pi_old than 16. A treatment clip_frac that does NOT rise means the
+#   batch bought no extra policy movement per update — the lever inert
+#   at the optimizer, whatever the win rate says.
+# LANE-FAILURE RULE (D25's, VERBATIM): a lane that dies or is stopped
+#   by K6 is reported as-is and NEVER replaced; both se terms recompute
+#   at the surviving count; fewer than 3 surviving lanes VOIDS the
+#   primary (surviving finals recorded individually, never pooled into
+#   a headline). The grader implements it, including the k<=2
+#   DESCRIPTIVE-ONLY cell (see the eval config: at k=2 the seed sd has
+#   1 df, CI multipliers 0.45x-31.9x — a floor-bar credit off two lucky
+#   lanes is a laundering path, closed there). Held spares may replace
+#   a lane ONLY pre-D-D (the D29r2 precedent); after 4M the rule above
+#   governs and no replacement happens, ever.
+#
+# ---------------------------------------------------------------------
+# Q7. SEEDS: 66 / 75 / 83 (one from each held pair — verified unused:
+#   no run dir, no stamped config.yaml, ledger-only mentions). WHY NOT
+#   66/67/75: make_vec_env seeds sub-env i with seed+i, so a lane
+#   occupies the 8-wide window [seed, seed+7]; 66->[66,73],
+#   75->[75,82], 83->[83,90] are disjoint — paired seeds would overlap
+#   7 of 8 slots, and distinct seeds are what keep the poke-env-derived
+#   Showdown usernames distinct (CLAUDE.md rule 2). NOTE: s75's window
+#   contains 80/81/82 — no control lane may ever be relaunched
+#   concurrently with s75 (recorded so it cannot be discovered later).
+#   SPARES, ordered, pre-D-D only, REPLACEMENT never addition: 67 (for
+#   s66), 76 (for s75), 84 (for s83); 93/94 the reserve of last
+#   resort. A spare never runs concurrently with the lane it replaces;
+#   a dead lane never relaunches on its own seat.
+#
+# ---------------------------------------------------------------------
+# Q8. BUDGET/OPS: 3 lanes x 50M, 3-wide alone, EXPECTED 34-38 h wall
+#   (37.4 h measured on the control / 1.072 predicted speedup), ~4.4
+#   lane-days. >5 h training -> THE LAUNCH IS THE MAINTAINER'S; the
+#   handed-over blocks live in the ratification message and SESSION_LOGS
+#   (one command per fenced block; stagger ~60 s; verify each lane by
+#   battle PROGRESS before the next — a lane can SIGSEGV at startup
+#   before any log line). caffeinate; commit docs BEFORE launch; clean
+#   tree; server :8000 with simulator: 4. Disk ~6.9 GiB total (100
+#   rungs x 13.14 MiB x 3 = 3.85 GiB + finals + pool.pt 0.25 GiB + W&B
+#   ~2.2 GiB); 186 GiB free. Checkpoints invalidated by this arm: 0
+#   (no encoder change; OBS_DIM 828 untouched). Launch env reproduces
+#   the control's EXACTLY (no OMP_NUM_THREADS, no new env vars — a
+#   changed execution env is the C-5 class of silent diff).
+#   Per lane (N in 66/75/83), AFTER ratification and R0-a..h:
+#   caffeinate -is env POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+#     WANDB_MODE=offline nohup python -m rl.train \
+#     --config configs/showdown_sp_batch50m.yaml \
+#     --seed N --run-name showdown_sp_batch50m_sN
+#   RESUME (--resume runs/showdown_sp_batch50m_sN): discards the
+#   in-flight partial rollout, <= 30,720 steps (control: <= 1,024);
+#   updates_done and the anneal restore correctly (both checkpointed);
+#   recorded in meta.yaml resumes: and disclosed beside D-A and the
+#   updates == 1627 attestation (a resume can legitimately leave fewer).
+#   EVAL-SIDE ops (wave, usernames, serial k=1, no co-scheduling,
+#   progress rates, sha attestation): configs/eval/ch5_r2_offsh.yaml.
+#
+# ---------------------------------------------------------------------
+# Q9. STANDING OBLIGATIONS CARRIED
+#   PURITY: pure self-play — no expert data, no human replays, no
+#   teacher, no ladder replays as training data. opponent: self seam
+#   asserted by R0-d. The BC clone appears in R2 only as an OPPONENT.
+#   ANCHOR BATTERY (as amended by the Q0 promotion): any headline-grade
+#   R2 result reports vs-SH (locked protocol, 3x3000 — the LOCKED
+#   count; no 5-seed deviation is owed by THIS round) + BC-clone h2h
+#   (500) + the FP@20 primary, budget named in every FP quote, both
+#   standing FP@20 disclosures travelling, before its README row lands.
+#   Match the policy form to the rating compared against.
+#   JOURNEY STANDING NOTE, NAMED IN ADVANCE FOR STEP 2: any ladder read
+#   owes a pinned-settings FP h2h block — FP time budget, engine +
+#   poke-engine commit, sample size, greedy-vs-searched on our side —
+#   pinned BEFORE the first ladder run. R2 does not ladder; R3 (step 2)
+#   inherits this obligation from here.
+#   ARCHIVAL: CHAPTER5.md is archived to docs/archive/ only WITH/AFTER
+#   this file's ratification (its §3/§6/§7 are migrated below).
+#
+# ---------------------------------------------------------------------
+# Q10. ESCALATIONS — RULINGS OWED AT RATIFICATION (none silently assumed)
+#   E1 EYES-OPEN RATIFICATION (designer A): P(CREDIT) ~ 6.5% under an
+#      honest prior; even a true +0.05 credits at 3-13%; no lane
+#      purchase rescues it. The case for running anyway, endorsed by
+#      both designers: the control is free, the non-credit outputs are
+#      real (first batch datum, a second 50M fleet, the anchor battery,
+#      four riders, R3 object candidates), and step 2 follows on every
+#      branch. But it is a RULING, not an assumption.
+#   E2 ANCHOR/PRIMARY PROMOTION (Q0): ratify the resolution stated
+#      there, or the file forbids its own primary read.
+#   E3 CHECKPOINT RETENTION (both designers): the 2026-08-29 cleanup
+#      deleted the control's intermediate rungs — D-A and the
+#      forgetting rider are IMPOSSIBLE on the control forever. The
+#      header therefore carries: treatment intermediate checkpoints are
+#      retained until the grader has recorded D-A AND rider R1(ii)
+#      complete. Ratify the retention line.
+#   E4 VERBATIM-MIGRATION CORRECTION: CHAPTER5 §3b A4's "minibatches: 4
+#      held" is migrated below VERBATIM with a MARKED CORRECTION beside
+#      it (it contradicts the ruled minibatch-256 scaling; quoting the
+#      error beats deleting it — house style).
+#   E5 DOC FIX SUGGESTED, NOT MADE (touches CLAUDE.md): CLAUDE.md's
+#      "Every arm from D23 on has pooled 5x3000" misdescribes R2's
+#      control (D29r2 is 3x3000, the locked count exactly). Suggested
+#      one-line scope: "the D23-D28 12M arms". RESULTS.md:345 carries
+#      the same sentence.
+#   ADJ-1 (runner): treatment FP n=3000/lane, NOT designer B's 1000.
+#      Honest basis (the bar does NOT move with n): the realized-bar
+#      noise term and the tight-fleet power corner (P(credit) at
+#      +0.075/s_T=0: 0.569 -> 0.717), the sigma_seed descriptive's
+#      measurement floor (37% -> 16% of observed spread at
+#      sigma_seed ~ 0.02), anchor-grade per-lane numbers, and rider
+#      R4's free n-matching. Cost +2.5 h agent-side.
+#   ADJ-2 (runner): vs-SH read = DESCRIPTIVE on the positive side
+#      (designer B: a positive letter needs pooled >= 0.805, above
+#      every number in repo history — pre-registering a guaranteed
+#      failure sentence), LETTER-BEARING on the NEGATIVE side (designer
+#      A's X3 hazard is real and reachable: an FP credit beside a
+#      vs-SH credited-negative regression must force a maintainer
+#      ruling on the README row, not an editorial choice). Full cells
+#      in the eval config.
+#   ADJ-3 (runner): approx_kl tripwires = designer B's T1/T2/T3;
+#      designer A's control-quantile stop retired (fires on the
+#      expected regime — the exact miscalibration class A's own
+#      secondary opinion warned against).
+#
+# =====================================================================
+# MIGRATED FROM CHAPTER5.md §3 — VERBATIM (E4's marked correction is
+# interleaved at §3b A4). Provenance table and candidate ledger; the
+# maintainer's six are first-class and may not be dropped without an
+# explicit ruling recorded here.
+# =====================================================================
+# ## §3 — The six candidates
+#
+# **PROVENANCE, and it is load-bearing (maintainer, 2026-08-26: "you can try
+# things you thought up. just dont lose track of what i proposed").**
+#
+# | | source | status |
+# |---|---|---|
+# | C1 longer run · C2 seeds/ensemble · C3 larger arch · C4 attention · C5 search-on-better-net · C6 encoder fix | **MAINTAINER** | **first-class. None may be dropped, deferred or merged away without an explicit maintainer ruling recorded here.** |
+# | H&L shaping (§7.5) · both-seat harvest (§3b) · temporal context (§3b) · **episodes/update (§3b A4)** | assistant | additions, licensed 2026-08-26. They COMPETE with the six; they never displace one. |
+#
+# Raised by the maintainer 2026-08-26. Each gets: the claim, what supports
+# it, what argues against, cost, and what would settle it.
+#
+# ### C1 — Longer run, and enough eval to prove "stalled"
+# **CAPPED AT 50M by the 2026-08-26 ruling (§7.4), and the two 50M fleets we
+# need are already trained — so C1's first move is a MEASUREMENT, not a run.**
+# - **For:** the flat verdict is one arm on one opponent at one era (§2.1).
+#   H&L's comparable ran ~19x our 12M in learner-consumed terms.
+# - **Against:** the 2026-08-23 big-run ruling reserves 120/250M for polish or
+#   a visibly climbing log. **NOT against: "D29r2 pooled -0.016 vs SH".
+#   CORRECTED 2026-08-26 (designer A, verified independently) — that is not a
+#   weak claim, it is NOT A CLAIM.** The 50M lanes read 0.7423/0.7347/0.6297,
+#   giving sigma_seed = **0.0624**, 8.2x the 12M family's 0.0076. Clustered
+#   se_diff is then 0.0362 and the delta is **0.44 se** against a 2-se bar of
+#   0.0735 (r1 said 0.0724, from sigma_seed; the Q5-consistent value uses the TOTAL sd). The one lane at 0.6297 inflates the variance so far that nothing
+#   at this k is resolvable. **"Scale is flat" was never established even on
+#   its own axis** — a stronger correction than this file's earlier
+#   "it is a vs-SH-only claim".
+# - **Cost:** zero, if R1-A answers it — s80/81/82 exist. A *new* 50M fleet
+#   is ~37.4 h wall / ~4.6 lane-days. Past 50M: out of chapter.
+# - **Settles it:** R1-A first. **A longer run should not be bought before
+#   the 50M checkpoints we already own are measured off-SH.**
+#
+# ### C2 — More seeds; wider ensemble
+# - **For:** strongest of the six on existing evidence. The 0.630-0.742
+#   spread means seed count is a real lever on the MAX, not just the mean.
+#   Six trained checkpoints (3x D29r2 50M, 3x struct50m) sit idle while the
+#   ensemble uses four.
+# - **Against:** ensembling is inference cost per decision; the ladder does
+#   not care (we use 6.74 ms of an effectively unlimited budget).
+# - **Cost:** wider ensemble = **zero training**. More seeds = ~9.8 h/lane.
+# - **Note that makes it legitimate:** selecting the best lane to DEPLOY is
+#   not post-hoc selection on a credit claim. The repo's anti-post-hoc rules
+#   govern credit; which checkpoint we ship is a deployment decision.
+#
+# ### C3 — Larger architecture
+# - **For:** completeness; untested at this recipe.
+# - **Against:** the only candidate the ledger argues against directly —
+#   privileged critic -0.0145, ~88% of D26 critic rank idle, the biggest
+#   credited win (+0.1513) came at *reduced* params, and H&L reached 72% GXE
+#   at 1.33M to our 1.17M.
+# - **Cost:** build + full retrain.
+# - **Settles it:** hold until R1-A. Capacity is ruled; **structure is not.**
+#
+# ### C4 — Attention / transformer, graded off-SH this time
+# - **For:** never trained. The 34.6x kill was a CPU train step **against the
+#   flat [512,512] MLP**, which has not been production since Rung 2 —
+#   attention-vs-`entity_deepsets` has NEVER been measured, and that is
+#   minutes of work.
+# - **Against:** the 2026-08-25 architecture review named **temporal
+#   context** the sharper structural gap (we are single-snapshot Markov;
+#   ps-ppo 64-256 turns, Metamon 200) plus an untried two-tower/DCN middle
+#   rung. If a structure budget exists, those may outrank attention.
+# - **Cost:** re-benchmark = minutes. Build + train = a chapter of its own.
+# - **Settles it:** run the benchmark now; it is free and it either reopens
+#   the lever or closes it properly instead of on a stale ratio.
+#
+# ### C5 — Search, on a better-trained network
+# - **For:** cheapest of the six. Search is INFERENCE-ONLY, has only ever run
+#   on `recipe12m_s62..s65`, and the 50M checkpoints are on disk. The
+#   hypothesis "search failed because the leaf evaluator was not saturated"
+#   is coherent and has never been tested. And its off-FP evidence is n=250
+#   per side (§2.3).
+# - **Against:** MU-8's pooled transfer test is z = -2.80; battles run ~40%
+#   longer (38.5 vs 27.6 mean turns), which costs ladder games per hour.
+# - **Cost:** zero training. Battle time only.
+#
+# ### C6 — Fixed-damage encoder fix
+# - **For:** real and measured. `seismictoss / superfang / nightshade /
+#   dragonrage / sonicboom` get `basePower == 1`, so `_fill_move` writes 0.01
+#   where Thunderbolt gets 0.95. Super Fang 0/59 for us vs 36% for humans;
+#   Seismic Toss 0.141 vs 0.289 (z = -3.39).
+# - **Against:** `move_emb` is a learned `nn.Embedding(166, 64)` in every
+#   move token, so the block is *misleading*, not unrepresentable — a partial
+#   route-around. Touches ~1% of decisions.
+# - **Cost:** fork + full retrain, and **it invalidates every checkpoint.**
+# - **Sequencing:** LAST. Doing it earlier destroys the baselines everything
+#   else is graded against.
+#
+# ### §3b — Assistant additions (licensed 2026-08-26, SUBORDINATE to the six)
+#
+# These compete for R2's slot in §5's second row. None displaces a C-item.
+#
+# - **A1 — H&L dense zero-sum shaping** (`hl_shaping: 1.0` + `gamma: 0.95`).
+#   Never tested on the entity trunk: `hl_shaping` is non-zero in exactly
+#   three runs on disk, all `trunk: mlp`, and every entity-trunk run is gamma
+#   1.0 / no shaping. It nulled on the flat MLP (+0.0135 n.s.). POST-HOC —
+#   DESIGN's result-blind carry-forward was to SCALE, not to a new trunk at
+#   12M. Cost: one overnight, zero code, no checkpoint invalidation. ~1 in 4.
+# - **A2 — both-seat harvest.** We buffer agent1's transitions only; the
+#   opponent seat is a `PoolPlayer` whose trajectory is discarded. H&L
+#   consume both, and their per-battle batches are RETURN-BALANCED by
+#   construction (one winner + one loser), which removes batch-level outcome
+#   noise. **That is a variance property, not a data-volume one, so
+#   50M-flat does not speak to it** — and gen 1 is unusually luck-heavy
+#   (freeze, para, crits, 1/256). Needs real collection wiring.
+# - **A4 — EPISODES PER UPDATE (batch size). LICENSED 2026-08-26 by the
+#   maintainer, on the same footing as A1-A3: it COMPETES for R2's slot and
+#   displaces no C-item.** Verified off H&L's committed run config in our own
+#   metagrok clone (`expts/01.json`: `num_iters 500`, `num_matches 7680`,
+#   both seats harvested), so **one H&L update consumes 15,360 episodes
+#   against our ~34** — rollout 128 x 8 envs = 1024 steps at ~30
+#   decisions/episode. **~450x, with the regimes INVERTED**: 500 enormous
+#   updates against our ~48.8k tiny ones at 50M.
+#   **WHY IT IS NOT THE ~40x ALREADY LOGGED (2026-08-08).** That figure, and
+#   the **"~30 -> 100-300 episodes/update" target** it produced, were
+#   calibrated against **Wang (~1,600) and ps-ppo (~1,500)** — and
+#   `prior_work/README.md` argues at length that those are NOT our comparable
+#   because both use human data. **H&L is**: the only pure-self-play randbats
+#   success on record, our exact lane. **Against the right reference the
+#   recorded target is 50-150x too low.**
+#   **THE DOSE IS BOUNDED BY THE 50M CEILING, AND THAT IS THE USEFUL PART.**
+#   H&L bought their batch with 3.84M matches; we are capped at 50M steps. At
+#   ~30 decisions/episode, copying their 15,360 leaves **109 updates**, and
+#   PPO from random init will not learn in 109. **~1,000 episodes/update is
+#   the reachable dose: ~1,630 updates, still 3x more updates than H&L used
+#   at all (500), and ~30x of the gap closed.** Mechanically `rollout_steps
+#   128 -> ~3840` at `num_envs 8`; nearly free in wall-clock (same collection,
+#   FEWER optimizer passes), ~100 MB more buffer, `minibatches: 4` held so
+#   minibatches land at ~7,680 — near H&L's own `vbatch_size 8192`.
+#   **COST: the control is already trained.** s80/81/82 are a banked 3-seed
+#   50M fleet on the current recipe, so only the treatment fleet is bought:
+#   ~37.4 h wall as 3 concurrent lanes (~4.6 lane-days). Held seeds 66/67,
+#   75/76, 83/84, 93/94 are available and MUST be distinct across lanes.
+#   **AGAINST, and it is not small: at fixed total steps this trades update
+#   COUNT for update QUALITY, and nothing in this repo has measured which
+#   side binds.** It is UNTESTED here — a candidate, not a finding. H&L's
+#   `gamma 0.95` + dense shaping + return-balanced both-seat batches are
+#   COUPLED; copying batch size alone is the clean test, copying the recipe
+#   piecemeal is not. **A2 (both-seat harvest) is the first free 2x** of this
+#   same quantity at identical simulation cost, which makes A2+A4 natural
+#   companions and A2 the obvious dose-matched placebo.
+#   **SEQUENCING, RULED 2026-08-26: R1 FIRST, AND NOT CONCURRENTLY.** Two
+#   reasons, neither of them discipline. (i) R1's wave is serial k=1 because
+#   FP is TIME-BUDGETED — a training lane stealing CPU inflates FP's
+#   effective thinking budget and flatters our numbers; that is a
+#   wave-scoped VOID. (ii) **R1-A PRICES R2**: whether one new 50M lane is
+#   readable depends on the fleet's OFF-FP seed spread, which R1-A measures.
+#   The 12M fleet's sigma_seed is 0.0076 vs SH but 0 off-FP; if the 50M fleet
+#   tightens the same way R2 is 1 lane, and if it looks like its vs-SH 0.0624
+#   it is 3.
+# > **MARKED CORRECTION (E4, this pre-reg, 2026-08-29) — the quoted A4
+# > spelling "`minibatches: 4` held so minibatches land at ~7,680" is
+# > SUPERSEDED by the ruled scaling (minibatch SIZE held at 256, COUNT
+# > scaled to 120; STATUS next-action 1, "H&L m=7680 was 'a completely
+# > arbitrary choice'"). Holding the count and growing the minibatch to
+# > 7,680 changes the per-minibatch advantage-normalisation group 30x
+# > (ppo.py:989) — a SECOND LEVER on effective step size. The text above
+# > is kept verbatim so the error is visible rather than silently
+# > overwritten.**
+# - **A3 — temporal context.** We are single-snapshot Markov; ps-ppo uses
+#   64-256 turns, Metamon 200. Named by the 2026-08-25 architecture review as
+#   a SHARPER structural gap than attention. Spec exists at
+#   `prior_work/HISTORY_FEATURES_DESIGN.md` (unread this session). Changes
+#   OBS_DIM, so it inherits C6's invalidation problem and its sequencing.
+#
+# ---
+#
+
+# =====================================================================
+# MIGRATED FROM CHAPTER5.md §6 — VERBATIM.
+# =====================================================================
+# ## §6 — Explicitly out of scope, with reasons
+#
+# - **A blunder / dominated-action filter at inference.** Measured dead
+#   2026-08-26: we make gross move errors at 0.6% vs the human field's 2.7%
+#   (1.88% vs 7.20% conditioned on having a known better move). Nothing to
+#   filter.
+# - **A second ladder arm run to DISCRIMINATE proxies.** Right idea, wrong
+#   power: R1's own trajectory swung 1063-1348 within one run, so n=200/arm
+#   cannot resolve ~30-50 Elo. Needs ~4x the n.
+# - **Compiling search into the weights.** KILLED by R5b (B5, 4/4 lanes
+#   non-positive).
+# - **Expert data, human replays, teacher distillation, ladder replays as
+#   training data.** The lane's purity constraint. Unchanged.
+#
+# ---
+#
+# =====================================================================
+# MIGRATED FROM CHAPTER5.md §7 — VERBATIM (its own appended notes
+# included; the 50M ceiling in §7.4 binds THIS file: 50M is the
+# largest run in the chapter, and R2 spends it).
+# =====================================================================
+# ## §7 — Maintainer rulings, 2026-08-26 (all five closed)
+#
+# 1. **SHAPE RATIFIED** — R1 -> R2 -> R3 as written. ("ratify")
+# 2. **R2's lever comes from §5's branch table**, not named in advance.
+#    ("sure")
+# 3. **MOOT — dissolved by ruling 4, not decided.** It asked whether a
+#    positive R1-A could re-open the 2026-08-23 ruling that reserves
+#    120/250M runs for "polishing a ladder-ready model" or "a live run whose
+#    training logs are still clearly climbing." With 50M as the chapter
+#    ceiling, no run in Chapter 5 is large enough for that ruling to bind.
+#    It stays in force, untouched, and nothing here re-opens it.
+# 4. **50M IS THE CEILING. 120-250M is overkill and is not proposed.**
+#    ("days at 100M is too much. we can start with a 50M run.") The reason
+#    is specific, not budgetary squeamishness: **we already own two 50M
+#    fleets (struct50m, D29r2) and have never measured either off-SH.**
+#    Extending a scaling curve whose existing points are unmeasured on the
+#    axis that decides things is backwards. Measure what is on disk first.
+#    Scale, for calibration only: 12M lane 9.8 h; 50M x3 lanes was 37.4 h
+#    wall / 4.6 lane-days; 250M x3 would be ~a week of the box — against
+#    H&L's comparable diet of roughly 230M in our currency, so the number is
+#    not absurd in principle, just unaffordable and unmotivated now.
+#    > *Note appended 2026-08-28, ruling text above left VERBATIM and
+#    > unaltered: its premise "we already own two 50M fleets and have never
+#    > measured either off-SH" was true when ruled and is now half-spent —
+#    > R1-A measured all three D29r2 lanes off FP@20 (0.3960 / 0.3430 /
+#    > 0.2730, n=1000 each). "Measure what is on disk first" was followed.
+#    > The ceiling itself is untouched and still binds.*
+# 5. **Assistant additions are LICENSED but SUBORDINATE.** ("you can try
+#    things you thought up. just dont lose track of what i proposed") The
+#    provenance table in §3 is the enforcement: the maintainer's six are
+#    first-class and may not be dropped without an explicit ruling; H&L
+#    shaping (`hl_shaping: 1.0` + `gamma: 0.95`, never tested on the entity
+#    trunk, POST-HOC, its own author at ~1 in 4) competes in §5's second
+#    row and never leads.
+#
+# ~~**Still open, and the only thing blocking R1:** the pre-registrations that
+# implement this shape are not written, and they owe the 2-Opus cycle (§8).~~
+#
+# **UNBLOCKED AND SUPERSEDED, 2026-08-28.** R1's pre-registration was written
+# (`configs/eval/ch5_r1_offsh.yaml`), had the 2-Opus cycle on 2026-08-26 (two
+# designers given the candidate set, not the ranking) and again at amendment
+# r9, and now stands at **r10**. **R1 ran and is CLOSED — ten graded arms,
+# zero voids, G2 exact on every one.** Chapter R3, the ladder run, has also
+# executed (n=200, GXE 60.3%). **What is still open is R2's pre-registration**
+# — the training round, and the only round in this chapter that trains
+# anything. It is what owes the next 2-Opus cycle; §8's disclosure below now
+# attaches to R2, not to R1.
+#
+# ---
+#
+# =====================================================================
+env_id: Showdown-v0
+seed: 66                   # lane 1; lanes 2/3 via --seed 75 / 83 (Q7)
+total_steps: 50000000
+eval_every: 250000         # unchanged; step-grid, rollout-independent (M7)
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 500000   # unchanged; feeds D-A's 500k rungs (M7)
+run_name: showdown_sp_batch50m_s66   # lanes 2/3 via --run-name
+logger: wandb
+eval_win_rate: true
+env_kwargs:
+  opp_action: true         # D25's label seam, unchanged
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5    # LEVER-COUPLED (M6/N4): 5 x 30,720 = 153,600
+                           # steps/push and 325 pushes, IDENTICAL to the
+                           # control's 150 x 1,024. At 150 the pool would
+                           # get 10 pushes and NEVER FILL.
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1     # D25's credited value, frozen
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:            # byte-identical to the credited recipe
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512] # unused when trunk != mlp; kept for exactness
+  lr: 2.5e-4
+  lr_anneal_steps: 50000000   # full horizon, unchanged; R0-b re-asserts
+  gamma: 1.0
+  gae_lambda: 0.95         # HELD — the Q4 ruling; NOT a lever key
+  rollout_steps: 3840      # THE LEVER (Q1): 3840 x 8 = 30,720
+                           # steps/update = ~959 episodes/update at the
+                           # measured 32.047 decisions/episode
+  epochs: 4
+  minibatches: 120         # holds minibatch SIZE at 256 (M4):
+                           # 30,720 / 120 = 256 exact, no trailing minibatch
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

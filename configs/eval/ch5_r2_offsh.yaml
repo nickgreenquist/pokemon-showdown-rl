@@ -1,0 +1,567 @@
+# =====================================================================
+# CH5 R2 — THE READ HALF OF THE BATCH PRE-REGISTRATION (JOURNEY step 1)
+# STATUS: **PROPOSED — AWAITING MAINTAINER RATIFICATION**, jointly with
+# configs/showdown_sp_batch50m.yaml (the training half: identity, dose,
+# dose-matching, lambda, training gates, seeds, budget, the migrated
+# CHAPTER5 §3/§6/§7, and the escalation list E1-E5/ADJ-1..3). THIS file
+# is the single home of every READ-side number — bars, cells, riders,
+# disclosures, quotation rules, arms, usernames, wave ops. The R1 lesson
+# stands: one number, one home; the test file asserts the few
+# deliberately-shared constants agree across the two files.
+#
+# PROVENANCE: the same 2-Opus cycle as the training half (two design
+# memos, runner adjudications ADJ-1/ADJ-2/ADJ-3, two independent
+# reviews). Pattern parent: configs/eval/ch5_r1_offsh.yaml (r10).
+#
+# BLINDING ATTESTATION (r6's, carried): after ratification NOTHING in
+# this file may change; in particular no arm's n, roster, seat,
+# sidedness or bar formula moves after the FIRST treatment off-FP datum
+# is seen. The one licensed post-ratification edit is the checkpoint
+# sha attestation flip (PENDING -> ATTESTED, all lanes at once, its own
+# commit — see checkpoint_attestation). The readout records the ORDER
+# in which results were looked at; an unattestable order is DISCLOSED,
+# not a void.
+#
+# ---------------------------------------------------------------------
+# Q1. THE PRIMARY READ — STRENGTH, off Foul Play@20, GREEDY (r9
+#   policy_form_decision, if_GREEDY branch; rescored complete
+#   2026-08-29, verdict GREEDY).
+#
+#   TREATMENT: the three batch lanes' FINAL checkpoints, greedy
+#   deterministic seat, n=3000 battles/lane (ADJ-1 — see the training
+#   half Q10 for the honest basis; n does NOT move the bar and the
+#   header does not pretend it does).
+#   CONTROL: the BANKED A80/A81/A82 greedy reads at n=1000/lane —
+#   0.3960 / 0.3430 / 0.2730, equal-weight mean 0.33733, sd(ddof=1)
+#   0.0617 — NEVER RE-SCORED (r9 if_GREEDY). The n asymmetry
+#   (3000 vs 1000) is DISCLOSED in every quote of the delta (D4).
+#
+#   STATISTIC (aggregator: the EQUAL-WEIGHT MEAN of per-seed finals,
+#   named once in the training half, binding here):
+#     delta   = mean{x_T66, x_T75, x_T83} - 0.33733
+#     s_T     = sd(x_T., ddof=1)          # RAW, never deconvolved (the
+#                                         # deconvolved form shrinks the
+#                                         # bar — a laundering path)
+#     se_bin  = sqrt( sum_i x_Ti(1-x_Ti)/3000 / 9
+#                   + sum_j c_j(1-c_j)/1000 / 9 )   # ~0.0100 at x_T~0.37
+#     se_clus = sqrt( s_T^2/3 + 0.0617^2/3 )        # k-general clustered
+#     se_gov  = max(se_bin, se_clus)
+#     BAR     = max(0.025, 2*se_gov)
+#   SIDEDNESS: the READ is TWO-SIDED and reported as such; the CREDIT
+#   decision is ONE-SIDED POSITIVE (the credit line's own "+0.025");
+#   the negative side uses the same bar magnitude and yields "credited
+#   in reverse" — a finding about the lever, never a credit for it.
+#
+#   THE FLOOR IS INERT, PROVED AND TEST-ASSERTED: BAR >=
+#   2*sqrt(0.0617^2/3) = 0.07124 at every attainable s_T — 2.85x the
+#   0.025 floor; the clustered term governs on every row (the inverse
+#   of R1's bar-below-floor bug; the test asserts BAR > floor on every
+#   tabulated row).
+#
+#   REACHABILITY TABLE, DECLARED RESULT-BLIND (REALIZED s_T governs):
+#     s_T                       BAR       treatment mean must be >=
+#     0.0000                    0.0712    0.4086
+#     0.0088 (n=3000 bin floor) 0.0720    0.4093
+#     0.0155 (n=1000 bin floor) 0.0735    0.4108
+#     0.0250                    0.0769    0.4142
+#     0.0400                    0.0849    0.4222
+#     0.0617 (= s_ctrl)         0.1008    0.4381
+#     0.0900                    0.1260    0.4633
+#     0.1200                    0.1558    0.4931
+#   LANDMARKS for the last column: best control lane off FP@20 0.3960
+#   (s80); best 12M lane 0.3557; 12M 4-lane mean 0.34867 (n=12,000 —
+#   CONTEXT ONLY, enters no R2 arithmetic, Q5 below). The minimum
+#   attainable requirement (0.4086) already demands the treatment
+#   fleet's MEAN beat the control's BEST LANE by +0.013.
+#
+#   TOST/EQUIVALENCE IS UNREACHABLE, DECLARED UP FRONT (the D25-P
+#   lesson): equivalence at margin 0.025 needs se_clus <= 0.01173 (df
+#   4), but se_clus >= sqrt(0.0617^2/3) = 0.03562 at every n and every
+#   s_T — the control's sd alone defeats it, 3.04x over. Therefore
+#   flat_licensed_in: [] — the bare word "flat" is BARRED on every
+#   branch (Q7 of the quotation rules); only the licensed sentence
+#   quoting the REALIZED bar may be written.
+#
+#   COVERAGE DISCLOSURE (D5): with k=3 both sides the Welch df is ~4
+#   when the sds are comparable, degrading toward 2 as one side
+#   dominates; a 2*se band covers 88.4% (s_T = s_ctrl) to 81.6%
+#   (s_T -> 0), never 95%. Travels with the bar.
+#
+# ---------------------------------------------------------------------
+# Q2. PRIMARY CELLS — six, half-open, exhaustive; every boundary
+#   assigned; no unnamed cell (the R-4 landmine). EVERY cell routes to
+#   JOURNEY step 2 (scope guard, training half): the table changes what
+#   is WRITTEN, never where the project goes.
+#
+#   P1  delta >= +BAR         CREDIT — the batch lever is credited at
+#       this dose. README row lands only AFTER the complete anchor
+#       battery; RESULTS.md addendum; the treatment recipe joins the
+#       step-8 port-home list. Routing UNCHANGED: step 2.
+#   P2  +0.025 <= delta < +BAR   "letter-met POSITIVE, seed-fragile,
+#       NOT credited" (verbatim phrase). Per-seed detail published; no
+#       narrative use without the weakness named in the same sentence;
+#       no README row as a credit.
+#   P3  0 <= delta < +0.025   WITHIN, positive sign — non-resolving.
+#       The scope guard fires; licensed sentence only, quoting the
+#       realized bar.
+#   P4  -0.025 < delta < 0    WITHIN, negative sign — as P3. P3/P4
+#       report as one WITHIN paragraph; named separately because the
+#       sign is reported and a reader will ask.
+#   P5  -BAR < delta <= -0.025   "letter-met NEGATIVE, not credited".
+#       The 30x dose is not recommended; no narrative use without the
+#       weakness named.
+#   P6  delta <= -BAR         "NEGATIVE, credited in reverse" — the
+#       lever credits against itself at this dose. Record entropy /
+#       approx_kl / clip_frac / lr trajectories beside it (L3 the named
+#       suspect). A SMALLER dose is NOT licensed by this read and would
+#       be off-arc (scope guard).
+#   BOUNDARIES: delta == +BAR -> P1 (the credit line says ">=");
+#   delta == +0.025 -> P2 (BAR > 0.025 always); delta == 0 -> P3;
+#   delta == -0.025 -> P5; delta == -BAR -> P6. No tie case remains.
+#
+#   COMPOSING CONDITIONS (compose with whichever cell fires; both
+#   sentences recorded, neither suppressed — the D29r2 falsifier
+#   pattern):
+#   F1 FALSIFIER-CLASS (branch-preamble scope): pooled treatment vs-SH
+#      < 0.580222 (the FROZEN struct50m 50M comparator) — the dose
+#      destroyed the credited stack's entire 50M advantage. Named
+#      suspect: L3. Not defined as exclusive with any cell; if it and a
+#      cell both fire, both sentences are written.
+#   K  k_arm <= 2 FROM ANY CAUSE (lane death, K6 stop, or an eval-side
+#      arm VOID — removal MOVES k_arm, it never "cleans" the data): the
+#      primary is DESCRIPTIVE ONLY, no cell fires, nothing is credited.
+#      Surviving lane rates reported individually at their own n_eff
+#      with the 1-df disclosure verbatim: at k=2 the seed sd has ONE
+#      degree of freedom; its 95% CI multipliers are 0.45x-31.9x. WHY
+#      THE BARE LANE-FAILURE RULE IS NOT ENOUGH: two surviving lanes
+#      that land close give s_T ~ 0 and a FLOOR bar (0.0712) computed
+#      from a fleet whose true spread is unknown — a laundering path
+#      into a credit; cell K closes it (R1's G-K form).
+#   ASYMMETRY, DISCLOSED: the control is banked; only the treatment's k
+#      can move.
+#
+#   PERMUTATION SECONDARY (letter-bearing, NEVER credits): exact 3v3,
+#   direction +1, C(6,3) = 20, min attainable p = 1/20 = 0.050; FIRES
+#   iff EVERY treatment lane > 0.3960 (the max control lane). Ties at
+#   the boundary read as NON-separation. NAMED CELL: "credit line
+#   fires, permutation does not" — possible at low treatment spread
+#   with one lane <= 0.3960; recorded as CREDIT per the governing
+#   credit line, with the non-separation stated wherever the
+#   permutation would have been quoted.
+#
+# ---------------------------------------------------------------------
+# Q3. THE vs-SH READ — ADJUDICATED ROLE (ADJ-2): DESCRIPTIVE on the
+#   positive side, LETTER-BEARING on the NEGATIVE side.
+#   PROTOCOL (locked, exactly): final checkpoint, deterministic, ties
+#   as non-wins, vs SimpleHeuristicsPlayer, 3000 battles/seed, 3 seeds
+#   pooled = 9000 — THE LOCKED COUNT; R2 owes no 5-seed deviation
+#   disclosure (training half E5). Via scripts/eval_checkpoint.py
+#   --episodes 3000; eval/win_rate authoritative; wins_from_returns
+#   must agree (R0-4); nonzero mask_desyncs disclosed beside the number.
+#   CONTROL, banked (results/d29r2/final_s8*.json, attested): 0.74233 /
+#   0.73467 / 0.62967; equal-weight mean 0.70222; sd 0.06295.
+#   BAR_SH = max(0.025, 2*max(se_bin_SH, sqrt(s_TSH^2/3 + 0.06295^2/3)))
+#     s_TSH = 0       -> 0.0727   (pooled_T >= 0.7749 to letter)
+#     s_TSH = 0.06295 -> 0.1028   (pooled_T >= 0.8050)
+#   WHY THE POSITIVE SIDE BEARS NO LETTER (designer B, adjudicated in):
+#   a positive letter would require pooled >= 0.7749-0.8050 — ABOVE
+#   EVERY vs-SH NUMBER IN REPO HISTORY (best single lane 0.74233;
+#   4-lane ensemble 0.74633; search@M 0.79283). Pre-registering it
+#   pre-writes a guaranteed "letter not met" at zero information; the
+#   positive/within side is reported DESCRIPTIVELY with this bar
+#   arithmetic shown so the non-declaration is visible, never silent.
+#   WHY THE NEGATIVE SIDE BEARS LETTERS (designer A, adjudicated in):
+#   a credit on FP@20 beside a REGRESSION on the locked axis must not
+#   land silently. Cells, same boundary conventions as Q2:
+#     SN-L  -BAR_SH < delta_SH <= -0.025 : "letter-met NEGATIVE on the
+#           locked axis, not credited" — named beside every quote of
+#           any P-cell verdict.
+#     SN-C  delta_SH <= -BAR_SH : "vs-SH credited-negative".
+#   CROSS-AXIS RULES (exposition of "the primary governs credit; the
+#   vs-SH read adds sentences or forces X3"; totality: every pair maps
+#   to exactly one):
+#     X1: P1 and neither SN cell -> credit stands; the vs-SH number and
+#         its bar reported beside it.
+#     X2: P1 and SN-L -> credit stands; the locked-axis regression is
+#         named beside every quote of the credit.
+#     X3: P1 and SN-C -> NAMED CELL. Both sentences recorded, neither
+#         suppressed; R2 cannot say which axis is right; WHETHER THE
+#         README ROW LANDS AT ALL GOES TO THE MAINTAINER WITH THE
+#         NUMBERS.
+#     X4: (P2..P6) and any vs-SH outcome -> the primary cell governs;
+#         the vs-SH number reported descriptively with its bar.
+#   F1 (Q2) composes on this axis too and is the stronger sentence
+#   below 0.580222.
+#
+# ---------------------------------------------------------------------
+# Q4. sigma_seed — DESCRIPTIVE SECONDARY, NEVER A VERDICT INPUT.
+#   Report: s_T (raw); the ratio s_T/0.0617; the binomial-deconvolved
+#   sigma_hat_T = sqrt(max(0, s_T^2 - xbar(1-xbar)/3000)) (DESCRIPTIVE
+#   only — the BAR always uses raw s_T); F = s_T^2/0.0617^2. Reference:
+#   sigma_hat of the control = 0.0599 (96.9% of its observed spread is
+#   real seed spread at n=1000).
+#   DISCLOSURE, VERBATIM AND MANDATORY, EMITTED BY THE GRADER IN THE
+#   SAME PRINT AS THE NUMBER (designer B E1, adopted; the test asserts
+#   the pairing): "an F-test across two 3-lane groups has (2,2) degrees
+#   of freedom and critical value 19.0, so batch must cut sigma_seed
+#   ~4.4x before the comparison registers; A NULL IS NEVER READABLE AS
+#   'BATCH DID NOT HELP VARIANCE'. Batch is a STRENGTH lever, not the
+#   instrument fix."
+#
+# ---------------------------------------------------------------------
+# Q5. DISCLOSURES THAT TRAVEL WITH EVERY QUOTE
+#   D1 FP@20's two standing disclosures, VERBATIM, forever: "FP@20's
+#      equivalence test is weakly powered: its PASS band is tighter
+#      than its own noise." / "The point estimate has FP@20 marginally
+#      WEAKER than FP@100 (1.9 points), i.e. the direction that
+#      flatters us."
+#   D2 The BUDGET IS NAMED IN EVERY FP QUOTE ("FP + our patches",
+#      --search-time-ms 20). FP@20 is an INSTRUMENT, not a rung; the
+#      readiness gradient is configs/eval/fp_budget_ladder.yaml.
+#   D3 sigma_seed's (2,2)-df disclosure (Q4), verbatim.
+#   D4 n ASYMMETRY: treatment n=3000/lane vs control n=1000/lane
+#      (banked, never re-scored) — quoted with the delta, every time.
+#   D5 COVERAGE: the 2*se band covers 88.4%-81.6%, never 95% (Q1).
+#   D6 The vs-SH read is at the LOCKED 3x3000 count; no 5-seed
+#      deviation is claimed and none is owed.
+#   D7 LADDER R1 = GXE 59.6%, Glicko-1 1573 +/- 27, FINAL ELO 1292 —
+#      never 1311. D8 Ladders credit nothing; no R1-vs-R3 arithmetic
+#      (ruling D5, ladder_r3.yaml).
+#   D9 PURITY: pure self-play; the BC clone appears only as an OPPONENT.
+#   D10 Any nonzero mask_desyncs on a final is a disclosure item beside
+#      the number.
+#
+#   WHAT MAY NEVER BE COMPARED TO WHAT
+#   Q-1 vs-SH numbers are NOT ladder numbers; the ~40% GXE conversion
+#       is RETIRED. Q-2 no comparison across FP budgets without naming
+#       both.
+#   Q-3 R2's GREEDY numbers may NEVER be set beside the fresh SEARCHED
+#       rescores RS80/RS81/RS82 (0.4390 / 0.4487 / 0.454, n=3000) —
+#       different POLICY FORM. THIS IS THE LIVE HAZARD: the treatment
+#       greedy mean will land near 0.34-0.40 and the rescores near
+#       0.44-0.45, and the two WILL be juxtaposed unless barred here.
+#       Rider R4S is the only licensed searched-vs-greedy contrast, and
+#       it is WITHIN-LANE.
+#   Q-4 B81 0.4470 / B82 0.4210 (n=1000 searched) remain BARRED as
+#       comparators (R1's Q6 carve-out).
+#   Q-5 the 12M off-FP 0.34867 is NOT R2's control and enters no R2
+#       arithmetic; context only.
+#   Q-6 rider numbers are never compared to FP@20 or vs-SH numbers,
+#       never converted to Elo/GXE, never quoted beside a ladder number.
+#   Q-7 the bare word "flat" is BARRED on every branch (TOST
+#       unreachable, Q1); flat_licensed_in: [].
+#   Q-8 "batch did not help variance" is BARRED on every branch (D3).
+#   Q-9 "search removes seed identity" stays barred; beta's SIGN is not
+#       interpretable (r9 readout).
+#
+#   RIDER QUOTATION RULES — what keeps every rider out of the verdict:
+#   R-Q1 no rider number in the same SENTENCE as a credit verdict.
+#   R-Q2 no rider may change a cell, bar, n, aggregator or routing; a
+#        rider that appears to bear on the verdict is a finding about
+#        the NEXT pre-registration.
+#   R-Q3 every rider number carries its own n and the tag "DESCRIPTIVE,
+#        routes nothing".
+#   R-Q4 the grader writes the PRIMARY verdict JSON before any rider
+#        statistic is computed; the readout records the look order.
+#   R-Q5 barred sentences, named in advance: "batch reduced cycling";
+#        "the treatment forgets less" (no control counterpart exists —
+#        training half E3); "the lanes are equivalent"; any sentence
+#        converting a cross-play cell into a strength claim.
+#
+# ---------------------------------------------------------------------
+# Q6. DESCRIPTIVE RIDERS (all DESCRIPTIVE ONLY; specs are binding so
+#   they cannot be reshaped post-hoc). Battles budget and REVERSE-
+#   PRIORITY CUT ORDER at the end.
+#
+#   R1i CROSS-PLAY (CONSOLIDATED §4.1 signature i). OBJECTS: the 6
+#     FINAL checkpoints (3 treatment + s80/81/82). BATTLES: all
+#     C(6,2)=15 unordered pairs, n=300 each = 4,500, deterministic seat
+#     BOTH sides (never sampled), masks through rl/common/masking at
+#     eval, sha pins attested. RATE RULE: agent-vs-agent has NO banked
+#     s/battle — measure it on the FIRST pairing and use that as the
+#     progress reference; a wall-clock ETA is not progress. STATISTIC:
+#     Bradley-Terry fit to the 6x6 matrix; report (a) the fraction of
+#     the 15 pairwise outcomes mis-ordered by the fitted ratings, (b)
+#     the strongest 3-cycle max over triples of min(w_ij, w_jk, w_ki)
+#     - 0.5. FIRES if 3-cycle >= 0.10. WHY THIS FORM: the diagonal of a
+#     symmetric zero-sum cross-play matrix is 0.5 by construction — the
+#     "off-diagonal JPC drop" must be operationalised as
+#     INTRANSITIVITY. If the matrix is transitive and its BT ordering
+#     tracks the FP@20 lane rates, sigma_seed is a STRENGTH spread, not
+#     a cycling artifact (the CONSOLIDATED §3 discriminator).
+#     BUILD ITEM, OWED BEFORE THE RIDER RUNS (not before training
+#     launch): scripts/ch5_r2_crossplay.py — no agent-vs-agent h2h
+#     driver exists in the tree today; the rider is REGISTERED here and
+#     may not run until its driver is committed and smoke-tested.
+#   R1ii WITHIN-LANE LATE-vs-ANCESTOR FORGETTING — TREATMENT LANES
+#     ONLY: the control's intermediate checkpoints NO LONGER EXIST
+#     (deleted in the 2026-08-29 cleanup; verified — runs/…stack50m_r2*
+#     hold only checkpoint.pt, and the backup has no stack50m_r2 dir).
+#     RUNGS: each treatment final vs its own ckpt_010000000.pt and
+#     ckpt_030000000.pt (the 500k grid is arm-identical, M7), n=300 per
+#     rung, 3 lanes = 1,800 battles. FIRES if final-vs-ancestor <= 0.50
+#     at any rung. REPORTED AS AN ABSOLUTE READ ("does the final lose
+#     to its own ancestor"), NEVER as treatment-vs-control — there is
+#     no control counterpart and the readout must say why. RETENTION
+#     OBLIGATION (training half E3): treatment intermediate checkpoints
+#     are retained until the grader records D-A AND this rider complete.
+#     Same build item as R1i (the driver serves both).
+#   R2t FREE LOG-SIDE TRACES, ZERO BATTLES: (a) per-lane loss/entropy
+#     against STEP, summarised on 500k-STEP BINS (MANDATORY — raw rows
+#     weight the control 30:1; C-CAD). Control reference, banked:
+#     3-lane median never below 0.1603 pre-25M; per-lane minima
+#     0.1375/0.1144/0.1542; finals 0.2037/0.1628/0.1660. (b)
+#     checkpoint-to-checkpoint policy drift: mean symmetrised KL
+#     between consecutive 500k checkpoints over a FROZEN held-out state
+#     set S — built ONCE as the union of 2,500 obs sampled from a
+#     control lane + 2,500 from a treatment lane, FROZEN AND HASHED
+#     before any drift number is computed (stops the drift read being
+#     on-distribution for one arm only; residual asymmetry disclosed);
+#     masks through rl/common/masking, finite -1e8 sentinel. (c)
+#     PRE-REGISTERED DESCRIPTIVE PREDICTION, zero cost: in the banked
+#     control, final EV ranks exactly with lane strength on both axes
+#     (EV 0.6831>0.6438>0.5687; vs-SH 0.74233>0.73467>0.62967; FP@20
+#     0.3960>0.3430>0.2730). n=3: chance rank-match p = 1/6 — A
+#     PREDICTION, NOT A FINDING. If it holds in the treatment fleet it
+#     supports "lanes differ in value-head quality" over "phases of a
+#     cycle". Registered now so it cannot be computed post-hoc and read
+#     as a result.
+#   R3c BC-CLONE ANCHORS (D4's queued item + the anchor battery):
+#     n=500/lane, greedy deterministic seat, ALL SIX lanes (3 control —
+#     the queued item — and 3 treatment — required for any headline
+#     row). 3,000 battles. A clone number is never style evidence.
+#   R4S ONE R2 ARM SCORED BOTH WAYS (STATUS next-action 4; eval-only).
+#     ARM SELECTION RULE, FIXED NOW, ORTHOGONAL TO EVERY R2 READ: the
+#     LOWEST-NUMBERED SURVIVING TREATMENT SEED (every non-arbitrary
+#     axis available at selection time is one of R2's own reads; seed
+#     order is immune to the data). Exactly ONE of the three
+#     pre-registered R4S arms below runs; the other two never run.
+#     SCORING: search@M off FP@20, n=3000, same wave/gate rules as the
+#     primary arms; the greedy half is that lane's primary arm at the
+#     same n=3000, so the within-lane delta is n-MATCHED by
+#     construction. CEILING, VERBATIM FROM R1-B: a positive searched
+#     delta DOES NOT REVERSE MU-8 (pooled transfer z = -2.80); it
+#     licenses search as an R3 DEPLOYMENT CANDIDATE and nothing else,
+#     and it may never sit beside the 12M cell. ROUTES NOTHING.
+#
+#   RIDER BATTLES: 4,500 (R1i) + 1,800 (R1ii) + 3,000 (R3c) + 3,000
+#   (R4S). CUT ORDER IF TIME IS SHORT, in this order and no other
+#   (the R1-C precedent — a cut is only reversible in the wrong
+#   direction): 1. R1ii's 10M rung (-900); 2. R1i n 300->200 (-1,500);
+#   3. R3c's CONTROL half (-1,500); 4. R1ii entirely (-900); 5. R1i
+#   entirely. NEVER CUT: the primary FP arms, the vs-SH finals, R3c's
+#   TREATMENT half. R4S is cut only after 1-5 (it also answers the
+#   step-11 policy-form question).
+#
+# ---------------------------------------------------------------------
+# Q7. R3 (JOURNEY step 2) DEPLOYMENT-CANDIDATE SET, NAMED NOW so it
+#   cannot be built after the data. R2's primary DOES NOT SELECT the
+#   ladder object; R3 chooses under its own pre-reg with an
+#   incumbent-wins-ties rule and the winner's-curse bias recorded
+#   beside the selection score (R1's r3_deployment_rule pattern).
+#   CANDIDATES: {the banked L2 ensemble (incumbent); the best single
+#   control lane; the best single treatment lane; the searched object
+#   from R4S}. R3 inherits the JOURNEY standing note (pinned-settings
+#   FP h2h block named in the training half Q9).
+#
+# ---------------------------------------------------------------------
+# Q8. SEQUENCING AND OPS (the wave itself)
+#   ORDER, BINDING: (1) training completes, all lanes; (2) vs-SH finals
+#   (eval_checkpoint.py --episodes 3000, serial, one lane at a time) —
+#   these double as the WIRING read: the FP seat loads through the same
+#   eval_checkpoint shim, so the checkpoints have been loaded and
+#   battled before any FP arm (R1's G-WIRING intent at full n); (3) the
+#   sha ATTESTATION COMMIT (checkpoint_attestation below); (4) the FP
+#   wave — T66, T75, T83, serial k=1; (5) R4S; (6) riders R3c, R1i,
+#   R1ii. NOTHING overlaps: no FP arm runs beside training, another FP
+#   arm, a vs-SH eval, or a rider battle (FP is TIME-BUDGETED; stolen
+#   CPU inflates its effective thinking budget and flatters us —
+#   wave-scoped VOID). scripts/ch5_r2_preflight.sh enforces the
+#   no-training check mechanically (pgrep -f "rl\.train").
+#   AGENT-SIDE PERMISSION (CLAUDE.md rule 4): every eval stage above is
+#   DETACHED (nohup wave driver), RESUME-SAFE (skip-if-complete; a
+#   partial arm re-runs whole) and RATE-READABLE (progress_rule below)
+#   — all three conditions met, so length is not the issue.
+#
+# =====================================================================
+# MACHINE-READABLE SECTION (the grader and the test read these keys;
+# the prose above is the authority on meaning, these on values)
+# =====================================================================
+
+results_dir: results/ch5_r2_offsh
+
+fp:
+  search_time_ms: 20
+
+journey_step: 1
+
+grading:
+  credit_floor: 0.025
+  tie_disclosure_band: 0.01
+  aggregator: equal_weight_mean_of_lane_rates
+  recorded_never_governing: [pooled_rate, per_lane_median, best_lane,
+                             worst_lane, per_lane_deltas]
+  se_rule: "max(pooled_binomial, seed_clustered), the LARGER-OF clause"
+  clustered_formula: "sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp)"
+  credit_line_verbatim: "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time."
+  control_offfp:
+    s80: {rate: 0.3960, n: 1000, source: results/ch5_r1_offsh/a80.json}
+    s81: {rate: 0.3430, n: 1000, source: results/ch5_r1_offsh/a81.json}
+    s82: {rate: 0.2730, n: 1000, source: results/ch5_r1_offsh/a82.json}
+    mean: 0.33733
+    sd: 0.0617
+    k: 3
+    rescore: NEVER (r9 if_GREEDY)
+  control_vssh:
+    s80: {rate: 0.7423333, n: 3000, source: results/d29r2/final_s80.json}
+    s81: {rate: 0.7346667, n: 3000, source: results/d29r2/final_s81.json}
+    s82: {rate: 0.6296667, n: 3000, source: results/d29r2/final_s82.json}
+    mean: 0.70222
+    sd: 0.06295
+    k: 3
+  treatment:
+    lanes: [s66, s75, s83]
+    n_per_lane_offfp: 3000
+    n_per_lane_vssh: 3000
+  planning_bar: 0.1007          # 2*sqrt(2*0.0617^2/3); REALIZED sds govern
+  bar_floor_inert_min: 0.07124  # 2*sqrt(0.0617^2/3); test asserts > floor
+  falsifier_F1_threshold: 0.580222   # frozen struct50m vs-SH pooled
+  permutation:
+    kind: exact_3v3
+    combinations: 20
+    min_p: 0.050
+    fires_iff_every_treatment_lane_above: 0.3960
+    tie_rule: NON-separation
+    credits: never
+  flat_licensed_in: []
+  vs_sh_role:
+    positive_side: descriptive          # ADJ-2; bar arithmetic in Q3
+    negative_side: letter_bearing       # SN-L / SN-C cells in Q3
+    named_cell_X3: "P1 and SN-C -> both sentences recorded; README row question to the maintainer WITH the numbers"
+
+checkpoint_attestation:
+  status: PENDING
+  rule: final_checkpoint_pt_at_step_50000000
+  # The evaluated object is runs/showdown_sp_batch50m_s<N>/checkpoint.pt
+  # — the file the training loop writes on exit at step == 50,000,000;
+  # NOT best_checkpoint.pt, NOT any ckpt_*.pt rung (matches the
+  # control's own pin). At eval launch, per lane: assert
+  # ckpt["step"] == 50000000 (hard); RECORD ckpt agent updates
+  # (expected 1627; a shortfall means a resume discarded a partial
+  # rollout — disclosed, never failed); write the sha256, flip status
+  # to ATTESTED (ALL lanes at once — the test refuses a half-filled
+  # block), add attested_at/attested_git_sha, COMMIT before the wave
+  # (G0). The wave provenance then stamps the amended file's sha.
+
+checkpoints:
+  s66: {path: runs/showdown_sp_batch50m_s66/checkpoint.pt, sha256: PENDING}
+  s75: {path: runs/showdown_sp_batch50m_s75/checkpoint.pt, sha256: PENDING}
+  s83: {path: runs/showdown_sp_batch50m_s83/checkpoint.pt, sha256: PENDING}
+  # Control checkpoints are NOT listed: the control is banked NUMBERS
+  # (attested JSONs above), never re-scored, and no control checkpoint
+  # is loaded by any R2 arm. Rider R1i loads s80/81/82 through its own
+  # driver, whose pre-run pins live with the build item.
+
+usernames:
+  scheme: "ch5r2<armid><role>, role in {seat, fp}, arm ids lowercase; rerun pairs suffix the ARM ID (t66b), never the role (a role suffix would create a prefix violation). FULL-STRING distinct and NO name a prefix of any other, asserted pairwise by tests/test_ch5_r2_prereg.py over these 24 names PLUS all 28 names ever issued in ch5_r1_offsh.yaml (pairs, rerun_pairs_r9, burned_pairs_r10)."
+  never_reuse: [c4, r4anchor, ch3, ch4]
+  pairs:
+    T66:  {seat: ch5r2t66seat,  fp: ch5r2t66fp}
+    T75:  {seat: ch5r2t75seat,  fp: ch5r2t75fp}
+    T83:  {seat: ch5r2t83seat,  fp: ch5r2t83fp}
+    R4S66: {seat: ch5r2r4s66seat, fp: ch5r2r4s66fp}
+    R4S75: {seat: ch5r2r4s75seat, fp: ch5r2r4s75fp}
+    R4S83: {seat: ch5r2r4s83seat, fp: ch5r2r4s83fp}
+  rerun_pairs:
+    T66:  {seat: ch5r2t66bseat,  fp: ch5r2t66bfp}
+    T75:  {seat: ch5r2t75bseat,  fp: ch5r2t75bfp}
+    T83:  {seat: ch5r2t83bseat,  fp: ch5r2t83bfp}
+    R4S66: {seat: ch5r2r4s66bseat, fp: ch5r2r4s66bfp}
+    R4S75: {seat: ch5r2r4s75bseat, fp: ch5r2r4s75bfp}
+    R4S83: {seat: ch5r2r4s83bseat, fp: ch5r2r4s83bfp}
+
+wave_plan:
+  k: 1
+  rule: "any two arms entering a common comparison must run at the same k, or the comparison is VOID (void_k) and the ARMS SURVIVE with their k disclosed. All three T arms enter one comparison (each vs the banked A-arms), so k=1 is an obligation, not a preference."
+  comparator_wave: "ch5_r1_offsh, serial k=1 (its wave.log is the artifact)"
+  serial_evidence: "$OUT/wave.log arm start/done timestamps must not overlap; scripts/ch5_r2_grade.py asserts it (G-SERIAL)."
+  order: [T66, T75, T83]
+  order_r4s: "exactly one of R4S66/R4S75/R4S83, per the Q6 selection rule, AFTER the T arms"
+  no_coscheduling: "no training lane, vs-SH eval, rider battle or second FP arm beside any FP arm — wave-scoped VOID; enforced by scripts/ch5_r2_preflight.sh (pgrep -f rl.train) and serial ordering"
+  resume: "skip-if-complete on $OUT/<tag>.json with gate_all_challenges_resolved true and battles_finished > 0. A partial arm re-runs WHOLE; there is no mid-arm resume and none is claimed."
+  retry_no_json_once: true          # torch lazy-init SIGSEGV landmine
+  stall_polls: {greedy: 30, search: 60}
+  # ARM-ID NOTE: stall_polls_for() in the copied runner globs B*|RS* ->
+  # 60; T* correctly falls to 30; R4S* arms are search seats and are
+  # given 60 explicitly by the R2 wave script (the glob would MISS them
+  # — asserted by the test).
+  max_relaunches: 10
+  no_progress_relaunches: 3
+  progress_instrument: "grep -c 'Winner:' $OUT/$TAG.fp.stdout, as a RATE over [T+2min, T+12min] — never a wall-clock ETA"
+  expected_winners_per_min:
+    greedy: 40.4        # realized A-arms 1.56/1.49/1.39 s/b -> mean 1.48
+    search_M: 22.4      # RS80's realized 2.92 s/b class; own first 100
+                        # battles set the stall reference, never this row
+  progress_rule: "< 50% of the row -> investigate; < 20% -> STALLED, not slow. Post hoc: an arm whose realized sec_per_battle exceeds its row's implied cost by >50% is disclosed in the readout."
+  killed_arm: "re-runs LAST or under its rerun_pairs pair, never immediately on the same pair (poisoned-room; a pair can stay poisoned for hours). Kill FP's search-worker CHILDREN FIRST (pkill -9 -P), then sweep. Watch item carried from R1: foul-play can PANIC mid-battle (Invalid PokemonMoveIndex: 4, Rust); the TIE-CRASH WEDGE hangs the seat with no JSON — retry_no_json_once and the NO_PROGRESS sentinel exist for exactly that."
+  ops_failure_rule: "a tag carrying .NO_PROGRESS or .USERNAME_DEADLOCK is an OPS FAILURE: re-run under the fresh rerun pair, LAST; partial JSON renamed <tag>.opsfail.json and never enters a comparison; the grader REFUSES the sentinel. .TOO_MANY_CRASHES is a VOID of the arm (data disposition) and drops k_arm."
+
+interrupt_policy:
+  mvp: "T66+T75+T83 complete = the whole primary (3.70 h of battles at the realized 1.48 s/b). An interrupt mid-wave stops at an arm boundary and loses nothing; a partial wave at k<3 hits cell K exactly as a dead lane does and produces NO fleet verdict."
+  standalone_floor: "any single completed T arm is a quotable per-lane number at its own n (descriptive; no fleet read)."
+
+cost_ledger:
+  primary_fp_hours: 3.70          # 3 x 3000 x 1.48 s
+  r4s_hours: 2.43                 # 3000 x 2.92 s
+  vssh_hours: 0.15                # 3 x 3000 x ~0.051 s + startup
+  clone_hours: 0.2                # 6 x 500, no search either side
+  crossplay_hours: UNMEASURED     # rate set by the first pairing (Q6 R1i)
+
+arms:
+  T66:
+    kind: greedy_seat
+    seat: s66
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5r2t66seat
+    fp_username: ch5r2t66fp
+  T75:
+    kind: greedy_seat
+    seat: s75
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5r2t75seat
+    fp_username: ch5r2t75fp
+  T83:
+    kind: greedy_seat
+    seat: s83
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5r2t83seat
+    fp_username: ch5r2t83fp
+  # Exactly ONE R4S arm runs (Q6 selection rule: lowest-numbered
+  # surviving treatment seed); the other two are REGISTERED, never run.
+  R4S66:
+    kind: search_seat
+    seat: s66
+    dose: M
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5r2r4s66seat
+    fp_username: ch5r2r4s66fp
+  R4S75:
+    kind: search_seat
+    seat: s75
+    dose: M
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5r2r4s75seat
+    fp_username: ch5r2r4s75fp
+  R4S83:
+    kind: search_seat
+    seat: s83
+    dose: M
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5r2r4s83seat
+    fp_username: ch5r2r4s83fp
