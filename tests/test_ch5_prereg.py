@@ -281,8 +281,12 @@ def test_headline_protection_is_a_key_not_prose():
     """A-§9b: without these the 'headline UNTOUCHED' sentence is unenforced."""
     assert G["crediting"] is False and G["headline_may_move"] is False
     joined = " ".join(G["on_every_branch"])
-    for n in ("0.71825", "0.74633", "0.79283", "1311"):
+    # CORRECTED 2026-08-29: the protected ladder number is the FINAL rating
+    # 1292, not 1311 (the pre-battle value of the last battle). The test now
+    # protects the corrected value and rejects the retracted one.
+    for n in ("0.71825", "0.74633", "0.79283", "1292"):
         assert n in joined, f"{n} unprotected"
+    assert "1311" not in joined, "retracted pre-battle Elo 1311 re-entered the protected clause"
 
 
 def test_the_outlier_rule_protects_the_primary_read():

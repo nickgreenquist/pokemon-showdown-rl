@@ -601,7 +601,9 @@
 #       FILE violates in Q4 by quoting an n=250 cell as a "SIGN"); A's
 #       blinding attestation; A's licensed-sentences-inline and the
 #       ON-EVERY-BRANCH clause protecting 0.71825 / 0.74633 / 0.79283 /
-#       Elo 1311; B's NO_PROGRESS abort and MAX_RELAUNCHES=10; B's
+#       Elo 1311 [sic — CORRECTED 2026-08-29: 1311 was the pre-battle value
+#       of the last battle; the final rating is 1292]; B's NO_PROGRESS abort
+#       and MAX_RELAUNCHES=10; B's
 #       retention obligation on FP's stdout (it IS the G2 second tally);
 #       B's grader `--selftest`; B's CW-6 roster recommendation.
 #   O-6 **RULED. THREE MORE DESIGNER SPLITS HAD BEEN DECIDED SILENTLY;
@@ -891,7 +893,10 @@ grading:
     - "D26 12M 0.71825 is UNTOUCHED."
     - "R0 ensemble 0.74633 is UNTOUCHED."
     - "CH3 R2 search@M 0.79283 is UNTOUCHED."
-    - "LADDER R1 Elo 1311 / 0.475 is UNTOUCHED."
+    # CORRECTED 2026-08-29: this line originally read "Elo 1311" — the
+    # pre-battle rating of the last battle (L2.battles.jsonl trap, corrected
+    # 2026-08-26). The final rating is 1292; GXE/Glicko exist on the profile.
+    - "LADDER R1 final Elo 1292 (GXE 59.6%, Glicko-1 1573±27, n=200) / 0.475 is UNTOUCHED."
     - "No FP@20 number is ever quoted without both budget disclosures."
   # A-BR-4, escalated rather than assumed: CHAPTER5 §3 C1 was EDITED by
   # this session (commit 25256b8) on designer A's finding. A reserved that
@@ -1221,7 +1226,12 @@ licensed_sentences:
     L2 (the ladder object, ensemble over s62-s65, deterministic, constructed through
     the path proved identical to ladder.py by ch5_seat_equiv.py) scores [X] off Foul
     Play@20 at n=3000. This is the first Foul Play number for the object that holds
-    this project's only ladder rating (PS Elo 1311, n=200, never listed, no GXE), and
+    this project's first ladder rating (final PS Elo 1292, GXE 59.6%, Glicko-1
+    1573±27, n=200 — rated on the profile, never leaderboard-listed) [CORRECTED
+    2026-08-29: originally "PS Elo 1311, n=200, never listed, no GXE" — wrong three
+    ways: 1311 was the pre-battle value, the final is 1292; GXE and Glicko exist on
+    the user profile (corrected 2026-08-26); LADDER R3 means it is no longer the
+    only ladder rating], and
     the repo's first complete (proxy score, ladder rating) pair. [Roster comparisons.]
     R1-C credits nothing: an ensemble is one object, k=1, so the seed-clustered term of
     the credit line is unestimable. The deployed object's quoted score is a fresh
@@ -1235,7 +1245,9 @@ licensed_sentences:
     - "the two FP@20 disclosures travel (fp.budget_disclosures, both strings, verbatim)"
     - "vs-SH numbers carry the 3-lane (50M) / 4-lane (12M) deviation from the locked 3-seed protocol"
     - "no anchor number is quoted as a 'best'"
-    - "0.71825, 0.74633, 0.79283 and PS Elo 1311 are UNTOUCHED on every branch"
+    # CORRECTED 2026-08-29: 1311 → 1292 (1311 was the pre-battle value; see
+    # the 2026-08-26 LADDER R1 correction).
+    - "0.71825, 0.74633, 0.79283 and final PS Elo 1292 are UNTOUCHED on every branch"
     - "STATUS.md rewritten in place <= 60 lines in the same commit as the SESSION_LOGS append"
 
 # designer A §5.3b, ADOPTED VERBATIM. Pre-committed HERE because it is what
