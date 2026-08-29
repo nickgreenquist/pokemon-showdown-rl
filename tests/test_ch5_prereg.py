@@ -527,7 +527,11 @@ def test_the_grader_selftest_passes():
     battle. If the artifacts are absent the test skips rather than lying."""
     import subprocess, sys
     root = PREREG.parents[2]
-    if not (root / "results/ch4_r1_offsh/l64.fp.stdout").exists():
+    tape = root / "results/ch4_r1_offsh/l64.fp.stdout"
+    # Retention gzips the tapes in place (and the 2026-08-29 disk pass did
+    # exactly that); the grader's open_maybe_gz reads both forms, so the
+    # presence check must accept both too.
+    if not (tape.exists() or tape.with_suffix(tape.suffix + ".gz").exists()):
         pytest.skip("banked CH4 artifacts absent (results/ is gitignored)")
     r = subprocess.run([sys.executable, str(root / "scripts/ch5_r1_grade.py"), "--selftest"],
                        capture_output=True, text=True, cwd=root)
