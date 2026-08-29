@@ -2,8 +2,7 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## JOURNEY POSITION — step 1 of 13 (`JOURNEY.md`, arc gen1→gen4→gen9; SHAPE
-awaits a RATIFIED stamp — `tests/test_journey.py` syncs STATUS↔JOURNEY)
+## JOURNEY POSITION — step 1 of 13 (`JOURNEY.md`, the arc: gen1→gen4→gen9)
 **Step 1 = gen1 retrain, batch lever** (= R2 below). SCOPE GUARD, binding: a
 read inside the bar is information about the INSTRUMENT, not a licence to
 queue another gen1 lever — ladder anyway (step 2), then step 3 (gen4).
