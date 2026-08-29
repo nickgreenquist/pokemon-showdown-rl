@@ -10,6 +10,14 @@ Sections 13-15 were moved here from `README.md` on 2026-08-25 and cover
 Chapter 3 (search), Chapter 4 R1 (the off-anchor question), and the full vs-SH
 results table. For those three, this file is the only committed account.**
 
+> **HEADLINE RIDER, added 2026-08-28 — read before any number in §§1-8.** Those sections
+> were written when **0.6185** was the credited headline and they still quote it as such.
+> **It is superseded.** Current vs-SH standings under the locked protocol: **headline 0.7183**
+> (D26, LR anneal credited 2026-08-17, §9), ensemble 0.7463, **best measured 0.7928**
+> (one-ply search, CH3 R2 — carries an SH-facing caveat, §13). 0.6185 remains correct as
+> *what D25 measured*; it is wrong as *the current headline*. Nothing else in §§1-8 is
+> retracted by this rider — the levers, the nulls and the disclosures all stand.
+
 Everything below is measured against poke-env 0.15.0 and a locally vendored Showdown
 server, in `gen1randombattle`, battle phase only — no team building.
 
@@ -21,6 +29,12 @@ server, in `gen1randombattle`, battle phase only — no team building.
 > out of training entirely, reaches 0.6185 against `SimpleHeuristicsPlayer` in
 > `gen1randombattle` — up from a 0.3996 plateau — clearing all four pre-registered
 > milestones including parity with, and passage of, the scripted benchmark.**
+
+*Rider, 2026-08-28: **0.6185 is the number this claim was written on and is no longer the
+headline** — D26's LR anneal moved it to **0.7183** (§9), the ensemble to 0.7463, and
+one-ply search to **0.7928** (§13). The claim's load-bearing word survives the update
+intact: every one of those checkpoints is still pure from-scratch self-play. See the
+headline rider at the top of this file.*
 
 The interesting word is **pure**, not the number. The published Pokémon-RL systems that
 reach real strength are bootstrapped from human replays or distilled from a search
@@ -204,12 +218,23 @@ run.
 
 **This is not a strength record, and it does not enter the published field.**
 
-Converting to human-ladder terms (source facts from the Metamon paper's Table 2 and
-Fig 17; the conversion is ours): SH itself scores **39.7% GXE on Gen7RandomBattle and
-41.2% on Gen9RandomBattle** — in random battles, with team-building removed, SH is
-roughly twice the player it is in OU tiers. So **parity with SH is ~40% GXE, Glicko-1
-≈ 1450–1500**, and a vs-SH number near the 0.489 parity mark means ~40% GXE, not "nearly
-solved."
+Source facts, from the Metamon paper's Table 2 and Fig 17: SH itself scores **39.7% GXE on
+Gen7RandomBattle and 41.2% on Gen9RandomBattle** — in random battles, with team-building
+removed, SH is roughly twice the player it is in OU tiers, putting it at Glicko-1 ≈
+1450–1500. Those are measurements of SH, and they stand.
+
+> **RETIRED 2026-08-28 — the sentence that used to follow them, kept visible rather than
+> silently deleted.** It read: *"So **parity with SH is ~40% GXE**, and a vs-SH number near
+> the 0.489 parity mark means ~40% GXE, not 'nearly solved.'"* That conversion was **ours,
+> not Metamon's**, and the standing rule is now **never project a ladder number from a vs-SH
+> number, in either direction** (CLAUDE.md; `prior_work/README.md` retired its own successor
+> rule of thumb the same day). **The projection has been replaced by measurement — this
+> project laddered twice, n = 200 each:** LADDER R1 (2026-08-25/26, the 4-checkpoint
+> ensemble) read **GXE 59.6%, Glicko-1 1573 ± 27, final PS Elo 1292**; LADDER R3 (2026-08-28,
+> one-ply search on a 50M lane) read **GXE 60.3%, Glicko-1 1579 ± 25, Elo 1232**. Both are
+> DESCRIPTIVE — a ladder run credits no lever here — and **no arithmetic difference between
+> them may be presented as a quantity, in either direction** (ruling D5,
+> `configs/eval/ladder_r3.yaml`). See §16.
 
 Where the field sits:
 
@@ -229,9 +254,13 @@ that floor — a purity-lane first, not a leaderboard result.
 **Four caveats, all stated by the sources themselves, and they all cut the same way:**
 n is tiny for SH's rows (56 and 60 battles, ±6.5pp); SH's low rating skews matchmaking
 toward weak opponents, so its raw W–L is an **upper** bound; Fig 17's Glicko "is possibly
-an overestimate"; and — the big one — **nobody has measured `gen1randombattle` on a human
-ladder at all.** Every randbats row above is gen4/7/9 and every gen1 row is OU. This is a
-cross-format extrapolation, not a measurement of our board. Note in particular that the
+an overestimate"; and — the big one — **no PUBLISHED agent has been measured on
+`gen1randombattle`.** Every randbats row above is gen4/7/9 and every gen1 row is OU, so the
+table is a cross-format extrapolation, not a measurement of our board. *(Fourth caveat
+NARROWED 2026-08-28: it read "nobody has measured `gen1randombattle` on a human ladder at
+all", and that is no longer true of this project — R1 and R3 are direct gen1RB reads at
+n = 200 each, §16. It remains true of every external row in the table, which is all it was
+ever entitled to claim.)* Note in particular that the
 ~80% Metamon figure is **Gen1OU — a different format from ours**, with team-building
 present. Read all of it as scale-setting, not as a score.
 
@@ -368,6 +397,15 @@ these systems do not survive contact with their source, and it records which.
 - **The frontier.** 0.6185 against a search engine's 0.8307, in a lane that started at
   0.3996.
 
+*Rider, 2026-08-28 — this section is a snapshot, and two of its three items moved.* The
+frontier line is stale in the agent's favour: the headline is **0.7183** and best-measured
+**0.7928** vs SH, against the same 0.8307 (§§9, 13). **Scale** was carried to 50M and read
+out (§§10-11: the stack transfers intact, R-A CREDIT; scale saturates, R-B FLAT).
+**Matched dose** got its structured zero-information control — D28, graded **A1: the control
+does NOT reproduce D25** (perm 1/252, strict separation), though its dose-sustainment
+condition failed, so the caveat is **downgraded, not closed** (§12). The whole section is
+superseded as a to-do list; kept as the record of what was open in August. Current "what next" is `STATUS.md` plus the newest `SESSION_LOGS.md` entry.
+
 ## 9. Addendum, 2026-08-17 — D26 (LR anneal) CREDITED; the headline moves to 0.7183
 
 Written at readout, same morning. The pre-registration
@@ -398,8 +436,11 @@ the "structure beat signal, inputs, and scale" epitaph gains a rider: *optimizat
 schedule* beat all of them per lane-day. Why the effect is 3.6× its horizon-matched
 estimate is NOT explained by this read; the honest candidates (the D21 estimate was a
 6M-horizon transfer; anneal × aux-head interaction, C6's untested fifth transfer) are
-recorded as open, not adjudicated. vs-SH 0.7183 is still far from ladder-strong; the
-GXE caveat at the top of `prior_work/README.md` stands unchanged.
+recorded as open, not adjudicated. vs-SH 0.7183 is still far from ladder-strong. *(Pointer
+repaired 2026-08-28: this line used to end "the GXE caveat at the top of
+`prior_work/README.md` stands unchanged." That caveat has since been rewritten twice and the
+vs-SH → GXE conversion it carried is **retired** — do not project in either direction. The
+ladder question it stood in for is now measured, not projected: §16.)*
 
 ## 10. Addendum, 2026-08-19 — D29r (the credited stack at 50M): PRIMARY VOID by lane
 loss; two surviving finals recorded individually
@@ -732,10 +773,15 @@ pooled over the clone, an edge that moved with the vs-SH number rather than
 staying flat). M1–M4 are now all claimed on pure from-scratch self-play; the
 search engine itself (0.8307) remains the open frontier.
 
-**Honest scoping.** SH parity ≈ 40% GXE in human-ladder terms; the strongest
-documented Gen 1 agents (Metamon-family, human-replay-bootstrapped offline RL) reach
-~80% GXE. This chase is a *purity-lane* first in a generation where it had not been
-shown — it is not a strength record and does not enter the published field. `DESIGN.md`
+**Honest scoping.** ~~SH parity ≈ 40% GXE in human-ladder terms~~ — **that conversion is
+RETIRED (2026-08-28); never project a ladder number from a vs-SH number, in either
+direction.** What is measured instead: SH's *own* GXE is 39.7%/41.2% in gen7/gen9 randbats
+(Metamon Fig 17), the strongest documented Gen 1 agents (Metamon-family,
+human-replay-bootstrapped offline RL) reach ~80% GXE in **Gen1OU**, and this project's two
+gen1RB ladder reads are **GXE 59.6% (R1, n=200)** and **GXE 60.3% (R3, n=200)** — descriptive,
+non-comparable to each other (D5), §16. This chase is a *purity-lane* first in a generation
+where it had not been shown — it is not a strength record and does not enter the published
+field. `DESIGN.md`
 (r7 ratified) is now a HISTORICAL record rather than a roadmap — its queue is
 executed, killed or superseded, and the authoritative "what next" is
 `STATUS.md` plus the newest `SESSION_LOGS.md` entry. §12's queue is spent: the privileged critic
@@ -746,6 +792,25 @@ structure — but because of its *shape*: 88–90% of it is a deterministic cap 
 closed-form function of what the opponent has already revealed, leaving a genuine belief
 residual of ~0.03 nats against a 4.955-nat target (measurement and controls in
 `results/d19_closeout/`). It was re-targeted to opponent
-*action* prediction, which became D25 and is the one lever that credited. What remains
-is an open maintainer call on whether to spend the chase's last ~2 lane-days or close
-the chapter here.
+*action* prediction, which became D25 and is the one lever that credited.
+
+~~What remains is an open maintainer call on whether to spend the chase's last ~2 lane-days
+or close the chapter here.~~ **ANSWERED, and this closing line is rewritten 2026-08-28
+because it predates three chapters.** The chapter was not closed there. The lane-days were
+spent and then some: **Chapter 3** added one-ply expectation search (0.7928 vs SH,
+SH-facing caveat, §13), **Chapter 4 R1** settled the off-anchor question against Foul Play
+(§14), **Chapter 5 R1** is CLOSED (ten graded arms, zero voids, G2 exact on every one; its
+publishable number is search@M on s80 off Foul Play@20, **0.4390** at n=3000), and the agent
+has been rated against humans **twice** on the real board (§16). What
+remains open now lives in `STATUS.md` and the newest `SESSION_LOGS.md` entry, which are the
+authoritative "what next"; this file is the account, not the queue.
+
+## 16. The ladder — PLACEHOLDER, chapter deferred
+
+**This section is a stub, deliberately.** RESULTS.md is designated the account of record and
+it has no ladder chapter yet; writing one (R1 + R3 + the D5 non-comparability ruling + the
+corrected band tables + the ops disclosures) is deferred to a session with the maintainer.
+Until then the committed provenance is
+[`LADDER_R3_READOUT.md`](LADDER_R3_READOUT.md) and
+[`LADDER_R1_READOUT.md`](LADDER_R1_READOUT.md) — `results/ladder/` is gitignored, so those
+two files are the only copies in git — with current state in `STATUS.md`.

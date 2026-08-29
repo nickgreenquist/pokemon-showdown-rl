@@ -1,8 +1,28 @@
 # CHAPTER 5 — from "one ladder number" to "a better model on the ladder"
 
-**STATUS: THE SHAPE IS RATIFIED (maintainer, 2026-08-26 — §7 carries the
-rulings verbatim). The IMPLEMENTING PRE-REGISTRATIONS ARE NOT WRITTEN and
-still owe the 2-Opus cycle (§8). Nothing launched, nothing trained.**
+**STATUS — REWRITTEN 2026-08-28. The shape is still RATIFIED (maintainer,
+2026-08-26 — §7 carries the rulings verbatim), but the rest of the old
+status block is wrong and is quoted below rather than deleted.**
+
+- **R1's pre-registration EXISTS and had the 2-Opus cycle**:
+  `configs/eval/ch5_r1_offsh.yaml`, designed 2026-08-26 (2 Opus designers,
+  candidate set not conclusion), now at amendment **r10**; amendment r9
+  ran the full cycle again (two design memos, two independent reviews).
+- **R1 LAUNCHED, RAN AND IS CLOSED**: ten graded arms, **zero voids**, G2
+  exact on every one. Publishable number: search@M on s80 off Foul
+  Play@20, **0.4390** at n=3000.
+- **CHAPTER R3 — ladder run #2 — RAN, AHEAD OF R2**: 2026-08-28, n=200,
+  **GXE 60.3%, Glicko-1 1579 ± 25, Elo 1232**, on search@M over the 50M
+  lane s80. See `LADDER_R3_READOUT.md` and `configs/eval/ladder_r3.yaml`.
+- **Still true: NOTHING HAS BEEN TRAINED IN THIS CHAPTER.** R1 was
+  eval-only against existing checkpoints and R3 was a ladder run; **R2 is
+  the training round and its pre-registration is not written.** That, not
+  R1's, is what still owes the next design cycle.
+
+> SUPERSEDED TEXT, kept so the error is visible rather than silently
+> overwritten: *"The IMPLEMENTING PRE-REGISTRATIONS ARE NOT WRITTEN and
+> still owe the 2-Opus cycle (§8). Nothing launched, nothing trained."*
+
 Written 2026-08-26 after the maintainer challenged this session's "scale
 is flat / nothing here reaches the cutoff" framing and the challenge held
 on every count checked.
@@ -48,29 +68,67 @@ Two things make R2 worth more than a repeat of R1:
    raises R1-C from "nice to have" to the arm that makes the pairing
    possible at all.
 
+   > **OVERTAKEN BY EVENTS, 2026-08-28 — the "ZERO complete pairs" count is
+   > no longer true, and R1 is what closed it.** Arm C0 measured L2 itself
+   > off Foul Play@20 at n=3000: **0.3893**. That plus R1's ladder read
+   > makes **(0.3893 off FP@20, GXE 59.6%) a complete pair** — the first.
+   > Chapter R3 then made a second: its object, search@M on s80, scores
+   > **0.4390** off FP@20 at n=3000 (arm RS80) and read **GXE 60.3%** on
+   > the board. **So the repo holds TWO complete pairs, not zero.** The
+   > paragraph above is kept because it is the reasoning that made R1-C
+   > look load-bearing, and because C0 — not R1-C — is what actually
+   > delivered the pairing.
+   >
+   > **What does NOT follow from two pairs:** the two are on different
+   > objects, different accounts and different opponent pools, and ruling
+   > D5 (`configs/eval/ladder_r3.yaml`) bars presenting any arithmetic
+   > difference between R1's and R3's ladder numbers as a quantity, in
+   > either direction. Two pairs are two points, not a slope.
+
 **Honest limit, pre-stated:** one pair does not validate a proxy, and two
 barely begin to. It gives the first datapoint that could *falsify* one. Do
-not oversell it in the readout.
+not oversell it in the readout. *(That limit is now live rather than
+hypothetical — the two pairs exist and the sentence applies to them.)*
 
 ---
 
 ## §2 — Where we actually are, on BOTH axes
 
+*Off-FP and ladder cells UPDATED 2026-08-28 — CH5 R1 and chapter R3 filled
+four of the cells this table wrote as `unmeasured` / `—`, and added a row
+for R3's actual object. Every new value below is measured, not projected;
+the cells still blank are still genuinely unmeasured.*
+
 | | vs SH | off FP | ladder |
 |---|---|---|---|
 | D26 12M greedy (s62-65) | **0.71825** | **0.34867** @20, n=12,000 | — |
-| D26 12M, 4-lane ensemble (L2) | 0.74633 | **unmeasured** | **GXE 59.6%**, Glicko-1 1573+/-27, Elo 1292, 0.475, n=200 |
-| D26 12M + search@M (L3) | 0.79283 | 0.368 @100, **n=250** | — |
-| D29r2 stack @ 50M (s80/81/82) | 0.70222 | **unmeasured** | — |
+| D26 12M, 4-lane ensemble (L2) | 0.74633 | ~~unmeasured~~ **0.3893** @20, n=3000 (R1 arm C0) | **GXE 59.6%**, Glicko-1 1573+/-27, Elo 1292, 0.475, n=200 |
+| D26 12M + search@M (L3) | 0.79283 | 0.368 @100, **n=250** | — (never laddered; the ladder ran search on the **50M** lane, next row but one) |
+| D29r2 stack @ 50M (s80/81/82), **greedy** | 0.70222 | ~~unmeasured~~ **0.3960 / 0.3430 / 0.2730** @20, n=1000 each (R1 arms A80/A81/A82) | — |
+| D29r2 s80 + search@M — **chapter R3's object** | unmeasured (no vs-SH at the locked protocol for search on any 50M lane) | **0.4390** @20, n=3000 (arm RS80) | **GXE 60.3%**, Glicko-1 1579+/-25, Elo 1232, 106-94, n=200 |
 | struct 12M (earlier era) | 0.5509 | 0.176 @100, n=250 | — |
 | struct 50M (earlier era) | 0.5802 | 0.188 @100, n=250 | — |
 
+**Two rules travel with the two ladder cells.** They are DESCRIPTIVE — a
+ladder run credits no lever here — and **no arithmetic difference between
+them may be presented as a quantity, in either direction** (ruling D5,
+`configs/eval/ladder_r3.yaml`): different objects, different accounts,
+different opponent pools. R3's object also carries **one of three anchors
+(FP@20 only)**.
+
 **Three things this table says that the project has been quoting wrong.**
 
-1. **"Scale is flat" is a vs-SH-only claim.** No D29r2 lane has any off-SH
-   number. The one 50M arm ever measured off-FP read **+0.012** over its
-   12M sibling (n=250 each, se_diff 0.035 — n.s., but the sign is
-   positive) while the same step read +0.029 vs SH and CREDITED.
+1. ~~**"Scale is flat" is a vs-SH-only claim.** No D29r2 lane has any
+   off-SH number.~~ **ANSWERED 2026-08-28 by R1-A, and the sentence above
+   is only history now.** All three D29r2 lanes were measured off FP@20 at
+   n=1000 each — **0.3960 / 0.3430 / 0.2730** — against the 12M greedy
+   comparator's 0.34867. **R1-A read WITHIN × NON-RESOLVING** (§5's
+   post-hoc block): 50M is not materially above or below 12M off-FP, and
+   the fleet's seed spread is what makes the read non-resolving rather
+   than any point estimate. The pre-R1 evidence, kept for provenance: the
+   one 50M arm then measured off-FP read **+0.012** over its 12M sibling
+   (n=250 each, se_diff 0.035 — n.s., positive sign) while the same step
+   read +0.029 vs SH and CREDITED.
 2. **"Flat" is also a variance statement.** D29r2's lanes are 0.74233 /
    0.73467 / **0.62967**. Two of three 50M lanes BEAT the 12M pooled
    headline of 0.71825; one lane 0.10 low drags the mean. The pre-declared
@@ -313,12 +371,39 @@ redesign of it.
 
 ### R2 — one training arm, chosen by R1's branch table (§5)
 
-### R3 — ladder run #2
-Primary named in advance, one arm, its own pre-reg. **Do not pick the
-better of two ladder numbers after the fact.** Open question for the
-design cycle: R1's stopping rule (`rd <= 40 AND n >= 200`) never fired
-because we were never listed — R3 needs a rule that can actually fire, and
-n=200 cannot resolve a ~30-50 Elo difference between arms.
+### R3 — ladder run #2 — **EXECUTED 2026-08-28, ahead of R2**
+Primary named in advance, one arm, its own pre-reg
+(`configs/eval/ladder_r3.yaml`). **Do not pick the better of two ladder
+numbers after the fact.** Result: **GXE 60.3%, Glicko-1 1579 ± 25, Elo
+1232, 106-94 at n=200**, on search@M over the 50M lane s80
+(`LADDER_R3_READOUT.md`).
+
+> **RETRACTED 2026-08-28 — the "open question for the design cycle" below
+> rested on a false premise, and the false premise is the interesting
+> part.** It read: *"R1's stopping rule (`rd <= 40 AND n >= 200`) never
+> fired because we were never listed — R3 needs a rule that can actually
+> fire."*
+>
+> **R1's rule was SATISFIED**, at **rd 27, n 200**. Both readouts now
+> record it that way. `stopped_by_rule: false` in
+> `results/ladder/L2.report.json` is a **TOOLING ARTIFACT**: the runner
+> read `rd` off the top-500 leaderboard JSON, which contains only listed
+> accounts, so on an unlisted account it could not read `rd` at all and
+> reported the rule as un-fired. The **user profile** carries GXE, Glicko
+> and `rd` for any rated account, and always did. Fixed 2026-08-27; same
+> root cause as the retracted "GXE is unmeasurable for unlisted accounts"
+> claim (`LADDER_R1_READOUT.md` correction block).
+>
+> R3 needed no new rule. It ran under `rd <= 40 AND n >= 200` and the rule
+> **fired on its own at rd 25.4, n 200** — the supervisor saw the exit and
+> stopped.
+>
+> **What survives from the retracted paragraph, and it survives in a
+> stronger form:** "n=200 cannot resolve a ~30-50 Elo difference between
+> arms" was right, and ruling **D5** now goes further — **no arithmetic
+> difference between R1's and R3's ladder numbers may be presented as a
+> quantity, in either direction**, at any n, because the two runs differ in
+> object, account and opponent pool. R3 is standalone descriptive.
 
 ---
 
@@ -436,6 +521,12 @@ named (median vs worst-lane changed a verdict once).**
    wall / 4.6 lane-days; 250M x3 would be ~a week of the box — against
    H&L's comparable diet of roughly 230M in our currency, so the number is
    not absurd in principle, just unaffordable and unmotivated now.
+   > *Note appended 2026-08-28, ruling text above left VERBATIM and
+   > unaltered: its premise "we already own two 50M fleets and have never
+   > measured either off-SH" was true when ruled and is now half-spent —
+   > R1-A measured all three D29r2 lanes off FP@20 (0.3960 / 0.3430 /
+   > 0.2730, n=1000 each). "Measure what is on disk first" was followed.
+   > The ceiling itself is untouched and still binds.*
 5. **Assistant additions are LICENSED but SUBORDINATE.** ("you can try
    things you thought up. just dont lose track of what i proposed") The
    provenance table in §3 is the enforcement: the maintainer's six are
@@ -444,8 +535,18 @@ named (median vs worst-lane changed a verdict once).**
    trunk, POST-HOC, its own author at ~1 in 4) competes in §5's second
    row and never leads.
 
-**Still open, and the only thing blocking R1:** the pre-registrations that
-implement this shape are not written, and they owe the 2-Opus cycle (§8).
+~~**Still open, and the only thing blocking R1:** the pre-registrations that
+implement this shape are not written, and they owe the 2-Opus cycle (§8).~~
+
+**UNBLOCKED AND SUPERSEDED, 2026-08-28.** R1's pre-registration was written
+(`configs/eval/ch5_r1_offsh.yaml`), had the 2-Opus cycle on 2026-08-26 (two
+designers given the candidate set, not the ranking) and again at amendment
+r9, and now stands at **r10**. **R1 ran and is CLOSED — ten graded arms,
+zero voids, G2 exact on every one.** Chapter R3, the ladder run, has also
+executed (n=200, GXE 60.3%). **What is still open is R2's pre-registration**
+— the training round, and the only round in this chapter that trains
+anything. It is what owes the next 2-Opus cycle; §8's disclosure below now
+attaches to R2, not to R1.
 
 ---
 

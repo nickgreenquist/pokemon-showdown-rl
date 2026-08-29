@@ -56,6 +56,14 @@ re-download from the URLs below if one goes missing.
 **Read this before proposing a ladder eval, or before treating vs-SH parity as "done."**
 Source facts are Metamon's (Table 2 + Figure 17, see its entry below); the conversion is ours.
 
+> **STATUS BANNER, 2026-08-28 — read it before the section it heads.** The conversion this
+> section derives is **RETIRED**: never project a ladder number from a vs-SH number, in either
+> direction (CLAUDE.md). The ladder is **no longer an unmeasured quantity** — LADDER R1
+> (2026-08-25/26, n = 200) and LADDER R3 (2026-08-28, n = 200) both ran to their stopping
+> rule, and their measured rows are in the field table below. What survives here is the
+> *external* calibration — Metamon's numbers for SH, the published field, and the board
+> itself — plus the record of why the projection was withdrawn.
+
 SH's own measured record against humans, by format — note that the ONE number this index
 previously carried (Gen1OU, ~0.21) is SH's *worst* row and comes from an OU tier, not randbats:
 
@@ -91,23 +99,47 @@ measured in this project, make the extrapolation untrustworthy:
    vs-SH strength (residual +0.005 ± 0.013), so there is no hidden off-distribution deficit
    that a ladder would suddenly expose either.
 
-**The rule of thumb that replaces the old one:** *a vs-SH number near 0.489 means ~40% GXE;
-a vs-SH number far above it means the conversion has run out of road and only a ladder read
-settles it.* That is now the single largest unmeasured quantity in the project — and the
-argument for running the ladder rather than estimating it.
+**The rule of thumb that replaced the old one is ITSELF RETIRED — 2026-08-28, per CLAUDE.md.**
+It read: *a vs-SH number near 0.489 means ~40% GXE; a vs-SH number far above it means the
+conversion has run out of road and only a ladder read settles it.* The second clause survives
+and is now the whole rule: **never project a ladder number from a vs-SH number, in either
+direction.** The first clause is withdrawn — not falsified (no agent of this project was ever
+laddered anywhere near 0.489), but it licensed exactly the arithmetic the standing rule
+forbids, and a directional exemption is how a projection habit survives its own retirement.
+The ladder was run instead of estimated — **twice, n = 200 each** — so this is no longer the
+largest unmeasured quantity in the project; it is a measurement, and the rows are below.
 
 Where that sits in the published randbats field:
 
 | agent | format | Glicko-1 | GXE |
 |---|---|---|---|
 | ~~ours (12M+LRA), projected~~ **SUPERSEDED, 0.4607 era** | gen1RB | ~1400–1450 | ~38–40% |
-| **ours (D26 12M, 0.71825 vs SH)** | gen1RB | **UNMEASURED** | **UNMEASURED — see the conversion note above; do not project** |
+| **ours (D26 12M greedy, 0.71825 vs SH)** | gen1RB | **UNMEASURED** | **UNMEASURED — never laddered; see the conversion note above, do not project** |
+| **ours — LADDER R1 object: 4-ckpt log-prob ensemble, 12M (0.74633 vs SH)** | **gen1RB** | **1573 ± 27** | **59.6%** |
+| **ours — LADDER R3 object: one-ply search@M on 50M lane s80** | **gen1RB** | **1579 ± 25** | **60.3%** |
 | poke-env SH | Gen7RB / Gen9RB | ~1450–1500 | 39.7% / 41.2% |
 | Huang & Lee 2019 — PPO self-play, **no search** (VERIFIED, see entry) | Gen7RB | 1677 (n=300) | 72%* |
 | ps-ppo — transformer PPO | Gen9RB | 1725 ± 25 | 76.7% |
 | Wang 2024 — PPO + test-time MCTS | Gen4RB | 1756 | 79.5% |
 | Metamon SynRL-V2 — offline RL on human data | Gen1OU | 1761 ± 35 | 79.9% |
 | best human players | — | — | 74–90% |
+
+**The two "ours" rows that are MEASURED — added 2026-08-28, and everything below travels with
+them.** Committed provenance: [`LADDER_R1_READOUT.md`](../LADDER_R1_READOUT.md) and
+[`LADDER_R3_READOUT.md`](../LADDER_R3_READOUT.md); `results/ladder/` is gitignored.
+
+- **R1** — account `nickgen1rbrlbot`, run 2026-08-25/26, n = 200, record 95–105, final PS Elo
+  **1292**, not listed (Elo admission cutoff ≈ 1357). Stopping rule `rd ≤ 40 AND n ≥ 200`
+  **satisfied** at rd 27.
+- **R3** — account `nickgen1rbrlbot2`, run 2026-08-28, n = 200, record 106–94, final PS Elo
+  **1232**, not listed (cutoff ≈ 1360). Stopping rule satisfied at rd 25.4. R3's object has
+  **one of the three anchors (FP@20 only)** — no vs-SH at the locked protocol and no BC-clone
+  h2h exists for search on any 50M lane.
+- **NO ARITHMETIC DIFFERENCE BETWEEN THOSE TWO ROWS MAY BE PRESENTED AS A QUANTITY, IN EITHER
+  DIRECTION** — ruling D5, `configs/eval/ladder_r3.yaml`. Different objects, different
+  accounts, different opponent pools. R3 is standalone descriptive.
+- Both rows are **DESCRIPTIVE**: a ladder run credits no lever in this repo, and neither row
+  reopens the vs-SH → GXE conversion in the other direction.
 
 **Consequences, and the reason this is filed at the top of the index:**
 
@@ -119,12 +151,15 @@ Where that sits in the published randbats field:
    parameter count (+0.1513), an opponent-action auxiliary loss (+0.0739), and **an LR anneal
    (+0.0998) — a schedule change, exactly the class this sentence dismissed.** Whatever remains
    of the gap, "shaping/LR/step-count cannot move it" is false.
-2. **A ladder eval was deferred until an agent was clearly past SH. IT NOW IS**
-   (0.71825, ≈ +163 Elo vs SH), and the 2026-08-23 ruling deferring execution until the models
-   were exhausted against the SH and Foul Play anchors is **satisfied as of CH4 R1
-   (2026-08-25)**. ~~It buys confirmation only~~ — **CORRECTED: it is no longer predictable
-   from vs-SH** (see the conversion note above; the extrapolation has run out of road in both
-   directions). Metamon reports being accused of botting in chat at this rating band.
+2. ~~**A ladder eval was deferred until an agent was clearly past SH.**~~ **NO LONGER
+   DEFERRED, AND NO LONGER PENDING — IT RAN, TWICE (updated 2026-08-28).** The 2026-08-23
+   ruling deferring execution until the models were exhausted against the SH and Foul Play
+   anchors was satisfied as of CH4 R1 (2026-08-25); **R1 executed 2026-08-25/26 and R3
+   executed 2026-08-28**, both to n = 200 with the stopping rule met. The rows are in the
+   field table above. ~~It buys confirmation only~~ — **CORRECTED: it was never predictable
+   from vs-SH** (see the conversion note above; the extrapolation ran out of road in both
+   directions, and that projection is now retired outright). Metamon reports being accused of
+   botting in chat at this rating band.
 3. **PS Elo ≠ Glicko-1.** ps-ppo's own screenshot is Elo 2102 / Glicko-1 1725 for one agent,
    and Metamon calls PS Elo "intentionally noisy" and not comparable across game modes. Our
    corpus survey's ratings (median 1203, p90 1415) are PS **Elo** and cannot be read against
@@ -133,13 +168,19 @@ Where that sits in the published randbats field:
 **Four caveats, all stated by the source itself:** n is tiny (56 and 60 battles → ±6.5pp);
 SH's low rating skews matchmaking toward weak opponents, so **raw W–L is an upper bound**;
 Fig 17's Glicko "is possibly an overestimate" (slow convergence far below the mean); and
-**nobody has measured gen1randombattle** — every randbats row above is gen4/7/9 and every
-gen1 row is OU, so this is a cross-format extrapolation, not a measurement of our board.
+**no PUBLISHED agent has been measured on gen1randombattle** — every randbats row above is
+gen4/7/9 and every gen1 row is OU, so every *external* row is a cross-format extrapolation,
+not a measurement of our board. *(Fourth caveat NARROWED 2026-08-28: as originally written it
+said "nobody has measured gen1randombattle", and that is now false of this project — our own
+two rows are direct gen1RB measurements at n = 200 each. It remains true of the published
+field, which is the only thing it was ever entitled to say.)*
 
 ### THE BOARD ITSELF — measured 2026-08-25, first time in this project
 
-The fourth caveat above said "nobody has measured gen1randombattle." Half of that is now
-fixed: no *agent* has been measured on it, but **the board is public and free to read** —
+The fourth caveat above said "nobody has measured gen1randombattle." **Both halves are now
+fixed** *(the second half closed 2026-08-28 — this paragraph used to end "no agent has been
+measured on it", and two of ours now have been: R1 and R3, n = 200 each, rows in the field
+table above)*. The first half: **the board is public and free to read** —
 an unauthenticated GET on `https://pokemonshowdown.com/ladder/gen1randombattle.json`
 returns the top-500 list with GXE, Glicko-1 (`r`/`rd`) and Elo per player. Pulled
 2026-08-25 (fetch it again before quoting; it moves):
@@ -168,12 +209,31 @@ pull; this is the second independent check of the Elo-ranked finding, and it
 reproduces it cleanly): Elo **1357–1359**, a 2-point band, while GXE spans
 **66.2–77.2%** and Glicko-1 spans **1627–1729** with RD 25–90. A column that
 varies by 2 across eleven consecutive ranks is the sort key; columns that vary
-by 11pp and 102 points are not. **Our own account sits at Elo 1292 / GXE 59.6%
+by 11pp and 102 points are not. **Our R1 account sits at Elo 1292 / GXE 59.6%
 / Glicko-1 1573 ± 27, i.e. 65 Elo short of rank 500 on the displayed number —
-but ~125 short on measured strength**, since the 1292 is above our own
-equilibrium (implied ~1232 from win rate by opponent band; we score 0.340
+but ~143 short on measured strength**, since the 1292 is above our own
+equilibrium (implied **~1214** from win rate by opponent band; we score **0.319**
 against the 1300–1400 band that rank 500 lives in). Recorded so nobody reads
 the 65 as the real distance.
+
+**CORRECTED 2026-08-28 (BI-4). The superseded numbers are named rather than
+overwritten, and one of them has to be named because it now collides with a live
+one.** The paragraph above read *"implied ~1232 ... we score 0.340"*. Both came from
+R1's originally published band table, which was built from `L2.battles.jsonl`'s
+**advisory** `opponent_rating` column and silently dropped the six battles where
+that column is null — its cells summed to 194 of 200. BI-4 rebuilt the table from
+the **replays** (200/200, sum asserted against n): the [1300,1400) cell moves
+**0.340 → 0.319**, the aggregate implied true rating **1232 → 1214**, and the gap to
+rank 500 **~125 → ~143 Elo**. **The stale 1232 is a specific trap: it is also LADDER
+R3's actual final PS Elo** — a different run, a different account, a different object
+— so a reader meeting the old figure here would mistake a superseded R1 *estimate*
+for a current R3 *measurement*. Corrected R1 cells: 0.694 (n=49) / 0.477 (44) / 0.464
+(28) / **0.319** (47) / 0.375 (32), mean opponent Elo 1231; per-band implied
+1171/1147/1217/1227/1351, which trend upward with opponent strength — logistic
+mis-specification or a real effect, and at n = 28–49 per band this repo declines to
+resolve it. The aggregate direction is not in doubt. Derivation: SESSION_LOGS
+2026-08-28 (14:40Z); the corrected cells sit beside the superseded ones in
+`configs/eval/ladder_r3.yaml` (`bands_CORRECTED_2026_08_28`).
 
 Two things it reframes:
 
@@ -185,8 +245,14 @@ Two things it reframes:
    24 h**, 173 in 7 d, 277 in 30 d; the median listed player has 386 games. Queueing will
    work, but over a few hundred games **repeat opponents are certain**, and a repeat human
    opponent is a kind of adversary no anchor in this project has ever tested — vs-SH is
-   3000 iid battles against a script that cannot adapt. Whether a deterministic policy is
-   memorisable over repeats is UNMEASURED here.
+   3000 iid battles against a script that cannot adapt. The prediction held — repeats were
+   certain (R1: 59 of 200 rematches over 141 distinct opponents; R3: 84 of 200 over 116).
+   **Whether a deterministic policy is memorisable over repeats is still UNRESOLVED**
+   *(updated 2026-08-28)*: both readouts now carry a rematch cell — R1 first 0.525 / rematch
+   0.356, R3 first 0.517 / rematch 0.548 — but rematch opponents are rating-matched by
+   construction (they skew stronger), the two runs point opposite ways, and the cells are
+   descriptive and attach to no lever. Read the opponent-Elo columns before the win-rate
+   columns; see the readouts' obligation (ii).
 
 ## Local code checkouts — READ THESE DIRECTLY
 
