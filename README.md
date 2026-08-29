@@ -41,7 +41,9 @@ in it:**
   number "credited" would be a category error in this repo's vocabulary.
 - **GXE is opponent-adjusted and the raw record is not.** 59.6% against a raw
   47.5% is not a contradiction: GXE estimates the win rate against an *average*
-  ladder player, and this account's opponents averaged 1229 Elo. Quote GXE, not
+  ladder player, and this account's opponents averaged 1231 Elo (the replay
+  `|player|` lines, which are authoritative — the JSONL column is advisory and
+  the 1229 previously quoted here came from it). Quote GXE, not
   the raw rate, and never quote either without n.
 - **We are not on the top-500 list, and there is no "GXE cutoff" to clear.**
   **The list is ELO-RANKED.** Ranks 490–500, read off the live board on
@@ -230,8 +232,14 @@ Play the real Showdown ladder (needs a registered account and `PS_PASSWORD`;
 `--battles` is a total across resumes, and the run resumes per-battle):
 
 ```
-python scripts/ladder.py --prereg configs/eval/ladder_r1.yaml --arm L2 --battles 200
+python scripts/ladder.py --prereg configs/eval/ladder_r3.yaml --arm R3S --battles 200
 ```
+
+(That is R3's invocation; R1's used `ladder_r1.yaml --arm L2`. Every ladder
+run gets its own pre-reg — `ladder_r3.yaml` is the one whose stopping rule
+reads the user profile and can actually fire. Long runs go through
+`scripts/ladder_supervise.sh <arm> <target> <prereg>`, which survives
+websocket drops.)
 
 W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` writes
 `history.csv`.
@@ -246,7 +254,9 @@ W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` writes
 | `configs/*.yaml` | each experiment's pre-registration, in the config header |
 | `prior_work/README.md` | verified index of external systems — several widely-repeated claims about them do not survive contact with their code |
 | `scripts/README.md` | why almost nothing in `scripts/` is safe to delete |
-| `DESIGN.md` | **historical.** How the pivot was decided; spent as a roadmap |
+| `CHAPTER5.md` | the current chapter brief (shape ratified, levers proposed); migrates into R2's pre-reg header, then is deleted |
+| [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md) |
+| `docs/archive/` | **history, never "what next"** — spent roadmaps (DESIGN, DESIGN2) and frozen audits, read only when named |
 
 ## Provenance
 
