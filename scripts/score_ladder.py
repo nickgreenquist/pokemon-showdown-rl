@@ -1,4 +1,37 @@
-"""Score a self-play run's checkpoint ladder against fixed anchor opponents.
+"""FALSE FRIEND — NOT the Showdown ladder, NOT the locked protocol. READ THIS FIRST.
+
+    ##########################################################################
+    # This is a CONNECT-4-ERA CHECKPOINT-RUNG scorer, kept for predecessor
+    # lineage. "Ladder" here means the run's own ckpt_*.pt rungs, NOT the
+    # real Showdown human ladder.
+    #
+    # IT BACKS NO BANKED NUMBER IN THIS REPO. Nothing it prints has ever been
+    # quoted, and nothing it prints may be.
+    #
+    # Two ways it misleads on a Showdown run dir, both silent:
+    #   1. Its default `--opponents random heuristic` is WRONG FOR SHOWDOWN —
+    #      the env's key is `heuristics` (OPPONENT_PLAYERS, showdown.py:61-65),
+    #      so the vs-SH half never runs. It prints the rung's `random` row
+    #      first, flushed, and only then dies on the bad key; and if you
+    #      "fix" the crash by passing `--opponents random`, it prints a full
+    #      page of plausible per-rung win rates and exits 0. Lines that look
+    #      exactly like results, against the weakest anchor, at the wrong n.
+    #   2. It scores INTERMEDIATE checkpoints at 400 episodes. The locked
+    #      protocol is the FINAL checkpoint, 3000 battles/seed, 3 seeds
+    #      pooled, ties as non-wins, deterministic, vs SimpleHeuristicsPlayer.
+    #      400 episodes on a rung is ~2.5x the se and the wrong checkpoint.
+    #
+    # USE INSTEAD:
+    #   vs-SH, locked protocol .... scripts/eval_checkpoint.py
+    #   the real Showdown ladder .. scripts/ladder.py (pre-reg
+    #                               configs/eval/ladder_r*.yaml)
+    #
+    # Deleting this file is a maintainer call, not an agent's. Header added
+    # 2026-08-28; the same warning is in scripts/README.md and CLAUDE.md.
+    ##########################################################################
+
+Original purpose, unchanged below: score a self-play run's checkpoint ladder
+against fixed anchor opponents.
 
     python scripts/score_ladder.py runs/connect4_pool_s0 --episodes 400
 

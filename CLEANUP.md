@@ -14,20 +14,14 @@ is dead. Of 69 scripts, exactly **two** are genuine delete candidates.
 
 ---
 
+> **This file is no longer the live cleanup list.** `REPO_CLEANUP.md`
+> (2026-08-28 sweep) holds the current one; read it first and reconcile
+> against this file, which is kept for the items below that it does not
+> restate (A2–A5, B1–B4, B6–B9).
+
 ## A. Needs a maintainer ruling
 
-### A1. `RESULTS.md` is two chapters behind, and README calls it canonical
-`README.md:8` says "`RESULTS.md` is the account of the chapter... Start
-there." `RESULTS.md` ends at D28 (2026-08-21) and contains **zero** mentions
-of search, Chapter 3, or Chapter 4 — including **0.79283**, the best number
-in the repo. A reader who follows the README's own pointer gets a
-two-chapter-stale story. Meanwhile `README.md:32-109` carries the current
-prose, so the doc designated canonical is the stale one.
-
-**Proposed fix:** append `## 13` (Chapter 3 / search) and `## 14` (Chapter 4
-R1 / off-anchor) to `RESULTS.md`, following its existing `## 9`–`## 12`
-addendum pattern, then shrink README's prose to a pointer. **This is the
-highest-value doc item outstanding.**
+*(A1 was here. It was executed 2026-08-25 — moved to §C.)*
 
 ### A2. `rl/selfplay/elo.py` — 332 lines + 282 lines of test, imported by nothing
 Bradley-Terry/Hunter-MM tournament rating fit, from the predecessor's
@@ -186,6 +180,17 @@ a `rsplit("-")` join.
 
 ## C. Done 2026-08-25 (do not re-audit)
 
+- **A1 (was "the highest-value doc item outstanding"): `RESULTS.md` was two
+  chapters behind — EXECUTED 2026-08-25, verified closed 2026-08-28.**
+  `RESULTS.md` now carries `## 13` (Chapter 3 / search, closed), `## 14`
+  (Chapter 4 R1 / off-anchor) and `## 15` (the full vs-SH table + chapter
+  narrative), in the `## 9`–`## 12` addendum pattern A1 proposed; §15 carries
+  **0.79283**, whose absence was A1's headline complaint. A1's own citation
+  is now dangling: `README.md:8` no longer says "start there" — the README
+  opens on the ladder result and points at `RESULTS.md` from `:123`, `:170`
+  and the where-written-down table at `:243`. **Not a successor item** — the
+  live list is `REPO_CLEANUP.md`, whose item 10 (RESULTS has no ladder
+  chapter; wants a §16) is the next thing in this area.
 - **README told readers to evaluate with `score_ladder.py`** — the Connect-4
   false friend, not the locked protocol. Now points at `eval_checkpoint.py`
   and `ladder.py`.

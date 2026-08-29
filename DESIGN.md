@@ -18,6 +18,21 @@
 >   evidence that attention fails here.
 > - **Scale is dead** (50M flat vs 12M) and **critic-capacity is moot** (D22's "srank 7–11
 >   of 384" is STALE; D26 measures 49/51/35/52).
+> - **Chapter 5 R1 — CLOSED** (added 2026-08-28). A chapter this file predates entirely.
+> - **THE LADDER HAS BEEN RUN — TWICE, and §1's ladder paragraph (lines ~85-92) is the
+>   part of this file most likely to be read as live. It is not** (added 2026-08-28).
+>   LADDER R1 (2026-08-25, n=200): **GXE 59.6%, Glicko-1 1573 ± 27, final Elo 1292**, not
+>   listed. LADDER R3 (2026-08-28, n=200, 106-94): **GXE 60.3%, Glicko-1 1579 ± 25**, final
+>   Elo 1232 — standalone-descriptive, **not comparable to R1**. Three consequences for the
+>   text below: (i) **D7(a)'s "EXECUTION deferred until an agent is clearly past SH" is
+>   DISCHARGED** — the deferral was satisfied and the maintainer ratified the run; (ii) the
+>   **"0.489 parity ≈ 40% GXE" conversion is RETIRED** — do not project a ladder number from
+>   a vs-SH number in either direction (CLAUDE.md's vs-SH landmine); (iii) **"nobody has
+>   measured `gen1randombattle` on a human ladder" is false as of 2026-08-25** — we have,
+>   twice. Current ladder state is in STATUS.md; the readouts are `LADDER_*_READOUT.md`.
+>
+> **This list enumerates, so read it as complete only to its date.** Anything that happened
+> after 2026-08-28 will not be here, and the file will not add it.
 >
 > **STATUS.md plus the newest SESSION_LOGS.md entry are authoritative and this file is
 > not** — it does not update itself. The 2026-08-16 incident where a stale DESIGN pointer

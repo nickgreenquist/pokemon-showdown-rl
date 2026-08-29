@@ -3,6 +3,13 @@
 Written 2026-08-25 after an audit of all 69 scripts. Read this before any
 cleanup sweep of this directory.
 
+**Extended 2026-08-28.** The directory is now **94 `.py`/`.sh` files** (84 at
+this level, 10 under `replay_audit/`); the 69-script counts below are as
+written and are not re-derived. The additions are the ladder-ops chain, the
+CH5 R1 instrument and the wave runners — the three newest groups, and exactly
+the ones a sweeper finds with no provenance. Everything the 2026-08-25 audit
+said still holds, including the governing fact immediately below.
+
 ## The one fact that governs everything here
 
 **`results/`, `runs/` and `data/` are ALL gitignored, with zero tracked
@@ -68,12 +75,82 @@ Foul-Play anchor machinery**. These three are current, not historical:
 - `ch3_r2_grade.py`, `d25_grade.py`, `d25_gates.py` — imported unmodified by
   later graders; these are the shared statistical law, not one-offs.
 
+## The ladder-ops chain (added 2026-08-28)
+
+Everything that runs, supervises or reads a **real rated ladder run**. A rated
+game is **unrepeatable** — you cannot re-play it — so this group is the one
+place where losing an artifact loses a measurement permanently.
+
+| file | what it is |
+|---|---|
+| `ladder.py` | the runner — the only path that leaves localhost. All inputs required (correct; do not add defaults). Pre-regs `configs/eval/ladder_r1.yaml` (R1), `ladder_r3.yaml` (R3, and the one whose stopping rule can fire) |
+| `ladder_supervise.sh` | relaunch across websocket drops — poke-env's `ps_client.listen()` catches `ConnectionClosedError`, logs it and RETURNS, with **no reconnect**, leaving a live process at 0% CPU and no socket. `--battles` is a cumulative target, so relaunch-with-same-target is the resume |
+| `ladder_watchdog.sh` | kills the HUNG runner the supervisor cannot see (the supervisor only acts when its child EXITS). **Its test is socket absence, not the clock** — a turn-1000 auto-tie is a real multi-hour game and killing one forfeits a rated match |
+| `ladder_readout.py` | the R1/R3 readout: all three pre-registered obligations in one pass (rating trajectory from replays, the rematch cell with its opponent-rating confound, played-vs-non-games). Writes `LADDER_*_READOUT.md` to a **tracked** path — that markdown is the only provenance that survives losing `results/ladder/` |
+| `ladder_classify.py` | obligation (iii), and **not reproducible by grep**: the pre-reg's own grep was falsified at n=26 (a 32-turn abandonment and a 1-turn no-show emit the SAME `lost due to inactivity` string). Ratified rule: "did the opponent ever submit a move". Pinned by `tests/test_ladder.py::TestGameClassification` |
+| `ladder_move_audit.py` | descriptive: did we pick a materially worse damaging move when a better one was available? Gen-1 damage model, three disclosed approximations that set its error bars (no PP, no Atk/Def ratio, lower-bound movesets). The same-category count is the defensible number |
+| `backup_ladder.sh` | the three-copy arrangement for `results/ladder/` (live / rsync mirror / dated tarballs). Run after any ladder session |
+
+**⚠ THE THREE READOUT TOOLS DEFAULT TO LADDER R1 — PASS EVERY FLAG, ALWAYS.**
+`ladder_readout.py` and `ladder_classify.py` default `--jsonl` and `--replays`
+to `results/ladder/L2.battles.jsonl` / `results/ladder/replays`, `--name` to
+**`nickgen1rbrlbot`** (R1's account), `--label` to `R1` and `--out` to
+`LADDER_R1_READOUT.md`; `ladder_move_audit.py` has **no argparse at all** and
+hardcodes both (`US = "nickgen1rbrlbot"`, `results/ladder/replays`).
+`ladder_supervise.sh` takes the arm as an argument but **hardcodes
+`ladder_r3.yaml`** — an R4 driven through it silently runs under R3's rules.
+The failure is quiet, not loud: forget only `--name` on an R3 readout and you
+fetch R1's profile into an R3-labelled file, `load()` nulls `_true_rating` on
+every row, and the exhaustiveness assert still passes. Treat every default
+here as R1-specific until the inputs are made required (`REPO_CLEANUP.md`
+item 9).
+
+## CH5 R1 — the live instrument (added 2026-08-28)
+
+The current chapter's machinery. `ch5_seat_equiv.py` and `ch5_seat_smoke.py`
+are described under "Live machinery" above; the wave chain is:
+
+| file | what it is |
+|---|---|
+| `ch5_preflight.sh` | run IMMEDIATELY before the wave; exits non-zero on anything that would make it unquotable. Includes two CLAUDE.md landmine checks: `showdown/config/config.js` `simulator: 4` (gitignored, silently resets on re-clone, worth +81% collection throughput) and the G0 clean-tree check (one untracked `.md` stamps `git_dirty` on every arm) |
+| `ch5_r1_wave.sh` | the wave driver, **strictly serial, k=1** — every CH5 arm enters a comparison, so overlapping arms contend and void it. It is also G-SERIAL's artifact: it writes the `wave.log` start/done timestamps that `ch5_r1_grade.py` asserts do not overlap |
+| `ch5_r1_grade.py` | the off-SH gate/grade instrument. Before it existed the pre-reg's whole Q7 gate block was PROSE that nothing in the tree applied. Implements G2 as a **three-way exhaustive tally** against FP's own stdout — never a subtraction, and `Winner: None` IS the tie |
+| `ch5_watchdog.sh` | polls the wave, appends `ALERT` lines, **never kills anything** (the runner owns that). Written after a wave where three arms died in 30 s each and a fourth stalled at 93%, unnoticed for hours |
+
+## Wave runners — provenance for banked waves, not deadwood (added 2026-08-28)
+
+Each is the committed record of HOW a closed wave was actually executed —
+launch order, gates, stagger, relaunch policy — which the grader does not
+capture. Keep them for the same reason the graders are kept.
+
+| file | wave |
+|---|---|
+| `ch3_r4_run_sweep.sh` | CH3 R4 ensemble-critic sweep (`configs/eval/ch3_r4_ensemble_critic.yaml` SCHEDULE): A0 → F4 band read → WAVE_A → WAVE_B, chunk-file liveness, max 2 relaunches |
+| `ch3_r5a_run_tgate.sh` | CH3 R5a T-GATE wave (`ch3_r5a_tgate.yaml`): per lane, T_M launches at T_S's midpoint chunk so its span nests inside T_S's |
+| `ch3_r5b_run.sh` | CH3 R5b exit wave (`ch3_r5b_exit.yaml`), three resumable phases: `collect` → `fits` → `read` |
+| `ch4_r1_wave.sh` | CH4 R1 — also named in that pre-reg's `instruments:` block (see the chapter table) |
+
+All four are **bash-3.2-safe on purpose** (no `${var,,}`, no associative
+arrays, no `mapfile`) and all stagger starts ~30 s: liveness is **chunk-file
+progress, never directory existence**, and a cold start can SIGSEGV in torch
+lazy static init before any log line exists. Both are CLAUDE.md landmines.
+
 ## `score_ladder.py` is a FALSE FRIEND
 
 Connect-4-era *checkpoint-rung* scorer: every `ckpt_*.pt` against local
 anchors at 400 episodes. It is **not** the locked protocol and has **nothing
 to do with the Showdown ladder**. Kept for predecessor lineage only. Use
 `eval_checkpoint.py` (locked protocol) or `ladder.py` (real ladder).
+
+**It backs no banked number here**, and as of 2026-08-28 it says so itself —
+the same warning now heads the file, so a reader who never opens this README
+still gets it. Two specifics worth knowing before you run it on a Showdown
+run dir: its default `--opponents random heuristic` is wrong for Showdown
+(the env key is `heuristics`), so it prints the `random` row, flushed, and
+then dies — and "fixing" that by passing `--opponents random` alone prints a
+full page of plausible per-rung numbers and exits 0. It also scores
+INTERMEDIATE checkpoints at 400 episodes, both of which the locked protocol
+forbids. **Deleting it is a maintainer call, not an agent's.**
 
 ## Chapter → grader → banked output
 

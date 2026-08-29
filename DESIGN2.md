@@ -2,8 +2,17 @@
 
 **STATUS: DRAFT r2, PROPOSED (r1 2026-08-16; r2 2026-08-17 after the Stage-0
 measurements — see §0b: D30 KILLED at zero lanes; Z1-1 void as a screen, D28 moves to
-in-run-only dose certification). NOT RATIFIED. Nothing launched; no tranche
-authorised.**
+in-run-only dose certification). Never ratified AS A TRANCHE — but the
+"nothing launched" half is now false, corrected 2026-08-28.**
+
+**STATUS CORRECTION, 2026-08-28: D28, D29r and D29r2 all LAUNCHED, RAN and were
+graded** — D29r PRIMARY VOID by lane (`RESULTS.md` §10), D29r2 R-A CREDIT / R-B FLAT,
+50M scale dead at 0.70222 (§11), D28 the zero-information dose control, A1 (§12).
+Read this file's decision list as the record of what was proposed, and `RESULTS.md`
+§10-12 for what actually happened; where they disagree, RESULTS wins. This file is
+also **invisible to CLAUDE.md's read protocol** while being cited from production code
+(`rl/agents/ppo.py:522`, `rl/envs/zeroinfo.py:1`) and three configs — so it is reachable
+by a reader who has been given no warning banner, which is why this note is here.
 
 **READOUT NOTE, 2026-08-17 morning (after r2): D26 CREDITED — B1, pooled 0.71825,
 delta +0.0998 (RESULTS.md §9).** This file's 0.6185-era narrative framing is stale;

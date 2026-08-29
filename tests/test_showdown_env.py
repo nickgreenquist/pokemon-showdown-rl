@@ -837,6 +837,12 @@ def _server_up() -> bool:
 
 
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
+# KNOWN FLAKE (recorded here 2026-08-28; CLAUDE.md was the only record). This
+# test fails when the WHOLE suite runs with a server up, and passes when run
+# alone. Cause not diagnosed — suspected cross-test interference (poke-env's
+# singleton POKE_LOOP and account naming are process-global), not a contract
+# violation. A red here is not evidence of a real failure until you have
+# re-run this test BY ITSELF and seen it fail too.
 def test_full_episode_contract_against_live_server():
     env = make_env("Showdown-v0", seed=0, env_kwargs={"opponent": "random"})
     obs, info = env.reset(seed=0)

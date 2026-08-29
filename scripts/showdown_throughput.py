@@ -48,6 +48,16 @@ misreads): `mlp512` = [512, 512] (the spec's patch target), `entity` = the
 Rung 2 entity_deepsets actor+critic at the credited trunk_kwargs (needs
 both encoder env vars — refuses to run below OBS_DIM 828). Every output
 header carries the net; quote nothing without it.
+
+SECOND DISCLOSURE, EQUALLY BINDING (added 2026-08-28; the [64,64] caveat
+above is only half of what CLAUDE.md records about this script). **Every
+number here is COLLECTION-ONLY — server-side decisions/s.** It measures the
+env/inference seam and nothing else: no PPO update, no eval, no checkpoint
+I/O. So a speedup measured here OVERSTATES the full-loop gain by roughly 7x.
+`simulator: 4`'s "+81% collection throughput" is a collection number in
+exactly this sense. Any quote from this script must name BOTH the network
+width and the fact that it is collection-only; the full-loop counterpart is
+`time/steps_per_sec` from a real run.
 """
 
 import argparse
