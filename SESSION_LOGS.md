@@ -3,6 +3,18 @@
 Dated entries, append-only. Index: `grep -n '^- 20' SESSION_LOGS.md`, then Read the
 entry by offset — never a broad keyword grep.
 
+Chapter boundaries by DATE (added 2026-08-29; dates are stable under append,
+line numbers are not — grep the date, then read that region):
+- 2026-08-04 → 08-05: bootstrap, port verification, spine prune, env split
+- 2026-08-05 → 08-07 (afternoon): pre-pivot — BC clone, encoder v2, tranche probes
+- 2026-08-07 (afternoon): **THE PIVOT — pure self-play becomes the main chase**
+- 2026-08-07 → 08-17: Chapter 2, the recipe — rungs, D18–D26; 0.6185 then 0.71825
+- 2026-08-17 → 08-21: the 50M tranche — D29r VOID, D29r2 R-A CREDIT/R-B FLAT, D28
+- 2026-08-22 → 08-25: Chapter 3 (search, closed: 0.79283) and Chapter 4 R1 (off-anchor)
+- 2026-08-25 → 08-26: LADDER R1 (GXE 59.6%) + the profile/pre-battle corrections
+- 2026-08-26 → 08-29: Chapter 5 R1 — the off-SH wave, r9 rescore, LADDER R3 (GXE 60.3%)
+- 2026-08-29: pre-R2 repo cleanup (maintainer-ruled)
+
 - 2026-08-05 — Old repo's cleanup VERIFIED; dedicated conda env `pokemon-showdown-rl` created
 
   Final sweep of deep-rl-from-scratch after its close-out push (6 commits, tip

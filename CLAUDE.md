@@ -91,6 +91,8 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   (gen1 → gen4 → gen9); the only doc that says WHERE A WORK ITEM SITS. Read
   once per session at most: STATUS carries the current step. NOT a pre-reg —
   intent, not claims; no gates, figures not authoritative.
+- `RESULTS.md` — **the account**: the claim, the evidence, what failed, every
+  disclosure. Addenda accrue as chapters close; §16 is the ladder.
 - `SESSION_LOGS.md` — dated entries; append as work lands. Index with
   `grep -n '^- 20' SESSION_LOGS.md`, then Read the chosen entry by
   offset/limit — never a broad keyword grep.
