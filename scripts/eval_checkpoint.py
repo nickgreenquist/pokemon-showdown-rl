@@ -1,6 +1,12 @@
 """Re-evaluate a checkpointed policy under the standard eval protocol.
 
-    python scripts/eval_checkpoint.py runs/<run>/best_checkpoint.pt --episodes 100
+    python scripts/eval_checkpoint.py runs/<run>/checkpoint.pt --episodes 3000
+
+--episodes is REQUIRED (REPO_CLEANUP item 4, 2026-08-29): it used to default
+to 100 — 3% of the locked protocol (FINAL checkpoint, 3000 battles/seed) —
+and the bare output was indistinguishable from a real number at se≈0.05.
+Anything below 3000 is a smoke read, not a protocol number; say so when
+quoting it.
 
 Why: best_checkpoint.pt is selected as the max over ~50 noisy training-time
 evals, so its recorded score carries selection bias (the max of noisy
@@ -106,7 +112,9 @@ def _opponent_from_checkpoint(path: str, seed: int):
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("checkpoint", help="path to a checkpoint .pt")
-    parser.add_argument("--episodes", type=int, default=100)
+    parser.add_argument("--episodes", type=int, required=True,
+                        help="locked protocol is 3000/seed; anything less "
+                             "is a smoke read, not a protocol number")
     parser.add_argument(
         "--opponent",
         help="override the checkpoint config's eval_opponent. Needed for a "

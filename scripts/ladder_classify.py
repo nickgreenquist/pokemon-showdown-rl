@@ -82,9 +82,12 @@ def classify(text: str, our_name: str) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--jsonl", default="results/ladder/L2.battles.jsonl")
-    ap.add_argument("--replays", default="results/ladder/replays")
-    ap.add_argument("--name", default="nickgen1rbrlbot")
+    # Required, not defaulted (REPO_CLEANUP item 9, 2026-08-29): the old R1
+    # defaults meant a forgotten flag silently classified the wrong run.
+    ap.add_argument("--jsonl", required=True)
+    ap.add_argument("--replays", required=True)
+    ap.add_argument("--name", required=True,
+                    help="the ladder account this run actually played under")
     ap.add_argument("--json", action="store_true", help="machine-readable only")
     args = ap.parse_args()
 

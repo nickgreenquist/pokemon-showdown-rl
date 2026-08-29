@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Supervise a ladder run across websocket drops. Usage:
-#   source .env && scripts/ladder_supervise.sh <arm> <target_battles>
+#   source .env && scripts/ladder_supervise.sh <arm> <target_battles> <prereg_yaml>
+# The pre-reg is a REQUIRED argument (REPO_CLEANUP item 9, 2026-08-29): it
+# used to be hardcoded to ladder_r3.yaml while <arm> was an argument, so an
+# R4 run through this script would have executed under R3's rules.
 #
 # WHY THIS EXISTS, measured 2026-08-27 at n=10 of LADDER R3. The run died with
 #   `websockets.exceptions.ConnectionClosedError: sent 1011 (internal error)
@@ -28,6 +31,7 @@ set -u
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ARM="${1:?arm, e.g. R3S}"
 TARGET="${2:?cumulative battle target, e.g. 200}"
+PREREG="${3:?prereg yaml, e.g. configs/eval/ladder_r3.yaml}"
 PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python
 JSONL="$REPO/results/ladder/$ARM.battles.jsonl"
 LOG="$REPO/results/ladder/$ARM.run.log"
@@ -58,7 +62,7 @@ for i in $(seq 1 "$MAX_ATTEMPTS"); do
   # the diagnosis had to come from `lsof` instead. LG-6 also requires READING
   # the startup lines, which is impossible if they are buffered.
   PYTHONUNBUFFERED=1 "$PY" "$REPO/scripts/ladder.py" \
-        --prereg "$REPO/configs/eval/ladder_r3.yaml" \
+        --prereg "$REPO/$PREREG" \
         --arm "$ARM" --battles "$TARGET" --out-dir "$REPO/results/ladder" >> "$LOG" 2>&1
   rc=$?
   n1=$(count)

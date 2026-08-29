@@ -21,13 +21,22 @@ THREE APPROXIMATIONS, disclosed because they set the error bars:
 Net: the same-category count is the defensible number; the total is an upper
 bound on one side and a lower bound on the other.
 """
-import re, pathlib, collections
+import argparse, re, pathlib, collections
 from poke_env.data import GenData
 from poke_env.battle.pokemon_type import PokemonType
 
+# Required, not hardcoded (REPO_CLEANUP item 9, 2026-08-29): this used to pin
+# R1's account name and replay directory at module level, so an R3 audit run
+# as-is silently audited R1's replays.
+_ap = argparse.ArgumentParser(description=__doc__)
+_ap.add_argument("--replays", required=True, help="e.g. results/ladder/replays")
+_ap.add_argument("--name", required=True,
+                 help="the ladder account this run actually played under")
+_args = _ap.parse_args()
+
 G = GenData.from_gen(1)
 TC, DEX, MOVES = G.type_chart, G.pokedex, G.moves
-US = "nickgen1rbrlbot"
+US = _args.name
 FIXED = {"seismictoss": "L", "nightshade": "L", "dragonrage": 40,
          "sonicboom": 20, "psywave": "L/2"}
 
@@ -56,7 +65,7 @@ def damage(move_name, at, ft, level):
 
 MARGIN = 2.0
 flags, decisions = [], 0
-for p in sorted(pathlib.Path("results/ladder/replays").glob("*.html")):
+for p in sorted(pathlib.Path(_args.replays).glob("*.html")):
     bid = re.search(r"gen1randombattle-(\d{9,})", p.name)
     if not bid: continue
     txt = p.read_text(errors="ignore")

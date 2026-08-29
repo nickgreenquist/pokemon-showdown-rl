@@ -100,16 +100,24 @@ def binom_se(rate, n):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--jsonl", default="results/ladder/L2.battles.jsonl")
-    ap.add_argument("--replays", default="results/ladder/replays")
-    ap.add_argument("--name", default="nickgen1rbrlbot")
-    ap.add_argument("--label", default="R1",
-                    help="run label for headings, e.g. R3")
-    ap.add_argument("--compare-jsonl", default="results/ladder/L2.battles.jsonl",
+    # ALL REQUIRED (REPO_CLEANUP item 9, 2026-08-29). These used to default
+    # to R1's paths and R1's account name; forgetting only --name on an R3
+    # readout fetched bot1's profile into an R3-labelled file, and load()
+    # then nulled _true_rating on every row while the exhaustiveness assert
+    # still passed. Fail loudly instead of defaulting to the wrong run.
+    ap.add_argument("--jsonl", required=True,
+                    help="e.g. results/ladder/L2.battles.jsonl (R1)")
+    ap.add_argument("--replays", required=True,
+                    help="e.g. results/ladder/replays")
+    ap.add_argument("--name", required=True,
+                    help="the ladder account this run actually played under")
+    ap.add_argument("--label", required=True,
+                    help="run label for headings, e.g. R1 / R3")
+    ap.add_argument("--compare-jsonl", default=None,
                     help="the OTHER run's JSONL, for obligation (v)'s "
-                         "opponent-pool overlap. Skipped if absent or if it "
-                         "is the same file as --jsonl.")
-    ap.add_argument("--out", default="LADDER_R1_READOUT.md",
+                         "opponent-pool overlap. Omit to skip; also skipped "
+                         "if absent or if it is the same file as --jsonl.")
+    ap.add_argument("--out", required=True,
                     help="TRACKED path on purpose: results/ is "
                          "gitignored, so the readout must land in "
                          "the repo to survive losing results/")
@@ -365,8 +373,8 @@ def main():
     A("## Obligation (v) — opponent-pool overlap and the behavioural channel\n")
     from ladder import to_id
     mine = [to_id(r["opponent"]) for r in rows]
-    cmp_path = Path(args.compare_jsonl)
-    if cmp_path.exists() and cmp_path.resolve() != Path(args.jsonl).resolve():
+    cmp_path = Path(args.compare_jsonl) if args.compare_jsonl else None
+    if cmp_path and cmp_path.exists() and cmp_path.resolve() != Path(args.jsonl).resolve():
         other = {to_id(json.loads(l)["opponent"])
                  for l in open(cmp_path) if l.strip()}
         inter = set(mine) & other
@@ -382,7 +390,8 @@ def main():
                 A(f"| {lbl} | {len(rs)} | {cw} | {cw/len(rs):.3f} |")
         A(f"\nDistinct-opponent intersection: **{len(inter)}**.\n")
     else:
-        A(f"Overlap SKIPPED — `{cmp_path}` is absent or identical to --jsonl.")
+        A("Overlap SKIPPED — " + (f"`{cmp_path}` is absent or identical to --jsonl."
+                                  if cmp_path else "no --compare-jsonl was given."))
         A("State this in the readout rather than omitting the obligation.\n")
     A("Game categories beside R1's:\n")
     A("| category | this run | R1 |")
