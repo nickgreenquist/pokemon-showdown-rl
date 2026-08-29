@@ -8,18 +8,19 @@ read inside the bar is information about the INSTRUMENT, not a licence to
 queue another gen1 lever — ladder anyway (step 2), then step 3 (gen4).
 **Name the JOURNEY step every work item serves; off-arc work needs a ruling.**
 
-## Where things stand (2026-08-29) — **LADDER R3 COMPLETE at n=200**, readout
-committed, backup archived. `nickgen1rbrlbot2` RETIRES; iteration runs share
-`nickgen1rbrlbot`; a FINAL fresh account is DEFERRED (courtesy note to PS staff
-falls due there). CH5 R1 CLOSED. **r9 rescore IN FLIGHT: RS82 landed 0.454 (G2
-exact); RS81 re-running on its r10 b-pair after an FP panic burned the first.**
+## Where things stand (2026-08-29) — **LADDER R3 COMPLETE** (readout committed,
+backup archived) and **THE r9 RESCORE IS COMPLETE: the rule routes GREEDY.**
+All twelve CH5 arms graded, zero voids, G-SERIAL clean. `nickgen1rbrlbot2`
+RETIRES; iteration runs share `nickgen1rbrlbot`; a FINAL fresh account is
+DEFERRED. CH5 R1 CLOSED. **R2 IS UNBLOCKED — nothing gates its pre-reg now.**
 Pure self-play; THE NOVELTY IS THE LANE.
 
 ## Results | 12M **0.71825** vs SH · ensemble 0.74633 · search@M 0.79283 (**12M**)
 · **LADDER R1 (ensemble): GXE 59.6%, Glicko 1573±27, Elo 1292, n=200** ·
 **LADDER R3 (search@M, s80): GXE 60.3%, Glicko 1579±25, Elo 1232, 106-94,
 n=200 — STANDALONE; no R1-vs-R3 delta is a quantity (D5)** · off FP@20 greedy
-0.3960/0.3430/0.2730 · C0 0.3893 · **fresh n=3000: RS80 0.4390, RS82 0.454.**
+0.3960/0.3430/0.2730 · C0 0.3893 · **fresh searched n=3000: RS80 0.4390, RS81
+0.4487, RS82 0.454.**
 Ties=loss. **Ladders credit nothing.**
 
 ## Facts that travel with any R3 quote
@@ -31,9 +32,9 @@ Ties=loss. **Ladders credit nothing.**
   implied 1214. The pre-reg pins the superseded ones (REPO_CLEANUP A1).
 
 ## Next actions
-0. **FINISH THE RESCORE** — RS81 lands ~03:15Z; then `ch5_r1_grade.py` on both
-   arms and apply `policy_form_decision` MECHANICALLY (two keys; GREEDY on any
-   void/partial). It sets R2's policy form and nothing else.
+0. **DONE.** Rescore read: key_A passed (searched sd 0.0076 < the n=3000
+   binomial floor 0.00906), key_B failed (beta -0.127 vs floor 0.248) ->
+   **R2 IS SCORED GREEDY**, control A80/81/82, no masking disclosure owed.
 1. **R2 = BATCH** (JOURNEY step 1). 3 new 50M lanes, s80/81/82 the free
    control. **PRIMARY READ IS STRENGTH vs the 0.1007 bar** (r9-corrected: BOTH
    sides carry the clustered term). sigma_seed descriptive with its (2,2)-df
@@ -47,9 +48,10 @@ Ties=loss. **Ladders credit nothing.**
    Cleanup: `REPO_CLEANUP.md` (ideas only; audit first) + `CLEANUP.md`.
 
 ## Watch items
-- **SEARCH MAY EQUALISE THE LANES** — off FP@20 search-minus-greedy monotone in
-  lane weakness 3/3, spread 0.123 → 0.026. **2 df, p~0.06: HYPOTHESIS**; scoring
-  levers under search is a SCOPE CHANGE.
+- **SEARCH EQUALISES THE LANES — supported at n=3000.** Greedy range 0.1230 →
+  searched 0.0150, and the searched sd 0.0076 is BELOW the binomial floor, so
+  the lanes are indistinguishable. **beta's SIGN is NOT interpretable** (no
+  resolvable spread in y); "search inverts lane quality" is barred.
 - **k~24 kills lanes; (2,2) df kills the variance READ** — batch is a STRENGTH
   lever, NOT the instrument fix (RETRACTED; CH5 §5 superseded).
 - **NEW: foul-play can PANIC** (`Invalid PokemonMoveIndex: 4`, Rust) twice in
