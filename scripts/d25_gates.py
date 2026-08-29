@@ -49,7 +49,6 @@ from rl.common.masking import masked_logits  # noqa: E402
 from rl.networks.opp_action import N_CLASSES, OTHER_MOVE, SWITCH  # noqa: E402
 
 D25 = REPO / "results" / "d25"
-NEG = -1e8
 NSPL = 8
 LAM = 1e-2
 MAX_ITER = 2000
@@ -133,7 +132,7 @@ def fit_eval(C, groups, ncls, Y, M, fit, ev, lam, tag, conv):
             for k, cc in enumerate(cls_idx):
                 out[cc] = v[:, k]
         lg = torch.stack(out, 1) + bb
-        return torch.where(M[idx], lg, torch.full_like(lg, NEG))
+        return masked_logits(lg, M[idx])
 
     def closure():
         opt.zero_grad()

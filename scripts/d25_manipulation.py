@@ -49,7 +49,7 @@ from rl.common.config import Config  # noqa: E402
 LANES = (52, 53, 54, 55, 56)
 STEPS = (3_000_000, 6_000_000, 12_000_000)
 BAR = 0.3286          # R0-13(b): 0.80 x L6 mean frozen-probe g 0.4108
-NEG = -1e8
+from rl.common.masking import masked_logits  # B4 2026-08-29: the harness sentinel, not a hand-rolled copy
 
 
 def head_nll_rows(agent, obs1, y6, m6):
@@ -58,7 +58,7 @@ def head_nll_rows(agent, obs1, y6, m6):
         _, ctx, opp_moves, bench = agent.actor(
             torch.as_tensor(obs1, dtype=torch.float32), return_features=True)
         lg = agent.aux_head(ctx, opp_moves, bench)
-        lg = torch.where(torch.as_tensor(m6), lg, torch.full_like(lg, NEG))
+        lg = masked_logits(lg, torch.as_tensor(m6))
         return torch.nn.functional.cross_entropy(
             lg, torch.as_tensor(y6), reduction="none").numpy()
 

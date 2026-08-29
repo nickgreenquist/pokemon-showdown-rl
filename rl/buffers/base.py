@@ -1,7 +1,8 @@
-"""Buffer interface. Deliberately thin: the two buffer patterns share only
-writing and size — a replay buffer (off-policy: DQN, SAC) is sampled from
-forever, a rollout buffer (on-policy: PPO) is filled, drained whole, and
-cleared — so each subclass adds its own read method (`sample` vs `get`).
+"""Buffer interface. Deliberately thin. RolloutBuffer is the only
+implementer left (the off-policy replay buffer went with the predecessor's
+DQN/SAC spine); the ABC survives as the write/size contract its tests pin,
+not as speculative generality — collapse it into rollout.py if it ever
+grows a second method.
 """
 
 from abc import ABC, abstractmethod

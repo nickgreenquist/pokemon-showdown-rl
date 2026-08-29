@@ -1,5 +1,9 @@
 """D29r2 readout grader — the 50M stack RE-RUN after D29r's lane-loss VOID (configs/showdown_sp_stack50m_r2.yaml). Bars, comparators, and rules are D29r's verbatim; only seeds/paths differ.
 
+DELIBERATE NEAR-DUPLICATE of scripts/d29_grade.py — see the note there:
+both are attestation records, so a bug fix lands in BOTH files, and neither
+is parameterised away. (CLEANUP B8, 2026-08-29.)
+
 Committed BEFORE launch per R0-e (the R0-I lesson). Two reads under the credit
 line with the larger-of clause:
   R-A PRIMARY   vs the frozen struct50m comparator (aux-off, anneal-off).

@@ -1,5 +1,11 @@
 """D29r readout grader — the credited stack at 50M (configs/showdown_sp_stack50m.yaml).
 
+DELIBERATE NEAR-DUPLICATE of scripts/d29r2_grade.py (191/197 lines shared;
+only the seed tuple and two paths differ). Kept as-is, not parameterised:
+RESULTS.md §10 cites THIS file by path as the attestation record for the
+D29r VOID verdict, a published negative result — editing it would edit
+provenance. Fix a bug in BOTH files. (CLEANUP B8, 2026-08-29.)
+
 Committed BEFORE launch per R0-e (the R0-I lesson). Two reads under the credit
 line with the larger-of clause:
   R-A PRIMARY   vs the frozen struct50m comparator (aux-off, anneal-off).

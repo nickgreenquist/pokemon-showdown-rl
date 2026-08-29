@@ -58,11 +58,11 @@ GaussianActor design notes (state-independent log_std, unsquashed samples,
 the act_dim>=2 shape trap) live in git history and today's SESSION_LOGS
 entry if the track ever returns.
 
-Rank-3 observations (MinAtar's binary planes) select a conv trunk instead
-of the MLP, by the same no-config-key rule DQN uses. Both heads get their
-own `ConvQNet` — the DQN campaign's exact architecture, so the discrete
-track's DQN-vs-PPO headline holds the net fixed and varies only the
-algorithm. Note this *departs* from the conv-PPO lineage: CleanRL, ppo2 and
+Rank-3 observations (binary planes — today only Connect 4's) select a conv
+trunk instead of the MLP, by the same no-config-key rule the predecessor's
+DQN used. Both heads get their own `ConvQNet` — the predecessor DQN
+campaign's exact architecture, kept so its banked numbers stay comparable.
+Note this *departs* from the conv-PPO lineage: CleanRL, ppo2 and
 SB3 all share one trunk between the heads. Separate stacks follow PureJaxRL,
 keep the value_coef/value-clip reasoning below intact, and cost noise-level
 duplicate compute at 16 filters.

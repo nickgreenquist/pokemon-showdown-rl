@@ -1,6 +1,6 @@
-"""Checkpoint save/load. Phase 0 stub: agent state + step + config, enough to
-restore a policy for eval; optimizer state joins when the first gradient-based
-agent lands."""
+"""Checkpoint save/load: agent state (optimizer included, via the agent's own
+state_dict) + step + config + any extras the train loop registers (normalizer
+statistics, pool state)."""
 
 from dataclasses import asdict
 from pathlib import Path

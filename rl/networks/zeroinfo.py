@@ -36,8 +36,9 @@ head carries a scalar slot_bias per slot, so a constant per-slot offset is
 exactly representable (Z1-2's criterion text carries the same argument).
 
 Provenance: construction ported from the Stage-0 reference implementation
-(results/design_ch2/scripts/z1_1.py, executed 2026-08-17); constants frozen
-by Z1-2 (results/design_ch2/z1_2_frozen.json).
+(scripts/z1_1.py — vendored 2026-08-29 from the gitignored, executed
+results/design_ch2/scripts/z1_1.py original); constants frozen by Z1-2
+(results/design_ch2/z1_2_frozen.json, gitignored).
 """
 
 from __future__ import annotations

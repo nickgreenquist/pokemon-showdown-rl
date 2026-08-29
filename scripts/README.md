@@ -174,15 +174,32 @@ Each closed rung's grader is the committed provenance for its number.
 | CH3 R5a/R5b | `ch3_r5a_grade.py`, `ch3_r5b_*.py`, `ch3_r5_power_sim.py` | B5 + KILL (search does not compile into weights) |
 | CH4 R1 | `ch4_r1_grade.py`, `ch4_fp_tape_parse.py`, `ch4_sp_baseline.py`, `ch4_r1_wave.sh` | off-anchor NO_ANOMALY; **these four are named in the pre-reg's `instruments:` block** because they had zero references and looked like orphans |
 
-## Known reproducibility gaps (not fixed, recorded)
+## Known reproducibility gaps — CLOSED 2026-08-29 (CLEANUP B1)
 
-- `d25_atoms.py` imports `rev1_check` / `gate_r012` from `results/d25/scripts/`
-  — a **gitignored, untracked** directory. `d25_gates.py` deliberately
-  re-implemented those rather than import them, for exactly this reason;
-  `d25_atoms.py` did not get that treatment.
-- `tests/test_opp_action.py` names `scripts/gate_r012.py` and
-  `rl/networks/zeroinfo.py` names `scripts/z1_1.py`. Neither is in `scripts/`;
-  both live under gitignored `results/`. A fresh clone cannot resolve either.
+Both gaps recorded here are fixed by vendoring: `gate_r012.py`,
+`rev1_check.py`, `analyze_oppact.py` (the d25_atoms import chain) and
+`z1_1.py` (zeroinfo's construction reference) now live in `scripts/` as
+byte-identical tracked copies of the gitignored `results/*/scripts/`
+originals, each stamped with its origin. `d25_atoms.py` resolves the
+vendored copies first; the originals remain the executed artifacts.
+
+## The rest of the index (added 2026-08-29 — the 27 files the sweeps had no provenance for)
+
+| group | files | provenance / banked output |
+|---|---|---|
+| CH3 R5b instrument chain | `ch3_r5b_collect.py`, `ch3_r5b_distill.py`, `ch3_r5b_gates.py`, `ch3_r5b_grade.py`, `ch3_r5b_placebo.py`, `ch3_r5b_diag.py`, `ch3_r5b_stamp.py` | the B5+KILL verdict's committed instruments (collection, distiller, offline gates, grader, placebo builder, diagnostics, pre-reg stamper) |
+| CH3 R1 spike | `ch3_r1_spike.py` | backs `ch3_rung2.yaml`'s config constants (`leaves_expected: 353` is attributed to it) — a live-config citation, not deadwood |
+| D22 instruments | `d22_collect_obs.py`, `d22_trajectories.py` | reads 1+2+4; `d22_trajectories.py` is the ONLY implementation of the D23-WATCH record-only statistic pre-registered in two live headers |
+| D25/D25-P manipulation | `d25_manipulation.py`, `d25p_manipulation.py` | §6 manipulation check on treatment and placebo arms (banked in RESULTS §12's scope) |
+| vendored provenance modules | `gate_r012.py`, `rev1_check.py`, `analyze_oppact.py`, `z1_1.py` | tracked copies of the gitignored D25 / Stage-0 fit machinery (CLEANUP B1) — see the closed-gaps section |
+| BC / expert-data machinery | `train_bc.py`, `make_bc_dataset.py`, `tape_to_dataset.py` | the clone anchor's pipeline: the BC clone (a live anchor) was trained through these; `tape_to_dataset.py` reads the (now gzipped) fp_tranche tapes |
+| corpus | `corpus_survey.py` | priced the human-replay corpus (prior_work's corpus figures); needs the `[corpus]` extra |
+| diagnostics (banked reads) | `diag_encoder_live.py`, `diag_value_head.py`, `probe_type_multiplier.py`, `obs_fidelity_check.py`, `p3_team_luck.py` | `probe_type_multiplier.py` is cited by `diag_encoder_live.py`'s own rationale; `p3_team_luck.py` backs the banked team-luck variance decomposition; `obs_fidelity_check.py` proved offline tape replay == live obs |
+| throughput / profiling | `showdown_throughput.py`, `profile_collect.py` | the simulator:4 +81% and D12b measurements — BOTH disclosures in `showdown_throughput.py`'s docstring travel with any quote |
+| figures / smokes | `make_showdown_figure.py`, `hl_shaping_live_smoke.py` | the Phase-5 milestone figure; signal12m's live R0-2(b) gate |
+
+(`analyze_oppact.py`, `rev1_check.py` above make the earlier "69 scripts"
+counts drift by design — vendored copies, not new instruments.)
 
 ## Genuine delete candidates
 
@@ -197,3 +214,6 @@ Each closed rung's grader is the committed provenance for its number.
 only in a seed tuple and two paths. Do **not** just delete one —
 `RESULTS.md` cites `d29_grade.py` by path as the attestation record for the
 D29r VOID verdict, a published negative result.
+
+RESOLVED 2026-08-29 (CLEANUP B8): kept as deliberate near-duplicates, each
+now carrying a header note pointing at the other — a bug fix lands in BOTH.

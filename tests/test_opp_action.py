@@ -47,7 +47,8 @@ def test_the_class_order_is_the_pre_registered_one():
     it numerically: its realised s26 frequencies are 43.6/27.3/13.6/5.2/3.0/
     **7.2**%, and s26's measured tape switch fraction is 0.0719 — so the LAST
     class is SWITCH. The design cycle's own probe code (`y12_to_y6` in
-    results/d25/scripts/gate_r012.py) uses the same order.
+    scripts/gate_r012.py — vendored 2026-08-29 from the gitignored
+    results/d25/scripts/ original) uses the same order.
 
     Nothing cross-references these indices between the head and the probe, so
     the ordering is not load-bearing for the loss. It is load-bearing for the

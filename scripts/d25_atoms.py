@@ -13,11 +13,13 @@ lambda frozen at 0.01, LBFGS convergence asserted at the letter's ||g|| <
 1e-3 on every fit. Writes results/d25/treatment_atoms.json in
 scripts/d25_grade.py's input schema, plus a full per-split detail file.
 
-PROVENANCE, DISCLOSED: this imports the fit/build machinery from
-results/d25/scripts/ (rev1_check.build, gate_r012.prep/split) — the SAME
-gitignored code path that produced the FROZEN control atoms
-(refreeze_ref.py, 2026-08-13), so treatment and control go through
-byte-identical fits. results/d25/ is already the only copy of the frozen
+PROVENANCE, DISCLOSED: this imports the fit/build machinery
+(rev1_check.build, gate_r012.prep/split, analyze_oppact.ctx_features) —
+the SAME code path that produced the FROZEN control atoms (refreeze_ref.py,
+2026-08-13), so treatment and control go through byte-identical fits.
+Since 2026-08-29 (CLEANUP B1) those three modules are VENDORED byte-identical
+into scripts/, so a fresh clone resolves them; the gitignored
+results/d25/scripts/ originals remain the executed artifacts. results/d25/ is already the only copy of the frozen
 tapes; the mechanism co-primary is unreproducible without it either way.
 The committed d25_gates.py `verify` independently reproduces the L6-native
 control atoms to < 2e-4 with its own re-implementation, which is the
@@ -39,16 +41,21 @@ import torch
 REPO = Path(__file__).resolve().parents[1]
 D25 = REPO / "results" / "d25"
 sys.path.insert(0, str(REPO))
-sys.path.insert(0, str(REPO / "scripts"))
+# Vendored copies in scripts/ take precedence (CLEANUP B1, 2026-08-29):
+# gate_r012 / rev1_check / analyze_oppact are tracked there now; the
+# gitignored results/d25/scripts/ originals remain only as fallback on
+# the machine that ran D25.
 sys.path.insert(0, str(D25 / "scripts"))
+sys.path.insert(0, str(REPO / "scripts"))
 
-import gate_r012 as G  # noqa: E402  (gitignored, provenance above)
+import gate_r012 as G  # noqa: E402  (vendored, provenance above)
 from analyze_oppact import ctx_features  # noqa: E402
 from rev1_check import build  # noqa: E402
 
 from eval_checkpoint import _load_showdown_agent  # noqa: E402
 from rl.common.checkpoint import load_checkpoint  # noqa: E402
 from rl.common.config import Config  # noqa: E402
+from rl.common.masking import masked_logits  # noqa: E402  (B4 2026-08-29: harness sentinel)
 
 NSPL = 8
 LAM = 1e-2                       # FROZEN. No per-lane selection (§5).
@@ -85,7 +92,7 @@ def fit_eval(C, Gr, ncls, Y, M, fit, ev, lam, tag):
             for k, cc in enumerate(cls_idx):
                 out[cc] = v[:, k]
         lg = torch.stack(out, 1) + bb
-        return torch.where(M[idx], lg, torch.full_like(lg, -1e8))
+        return masked_logits(lg, M[idx])
 
     def cl():
         opt.zero_grad()
