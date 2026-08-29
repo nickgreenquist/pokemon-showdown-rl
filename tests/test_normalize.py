@@ -197,8 +197,8 @@ def _smoke_cfg(tmp_path, **overrides):
     from rl.common.config import Config
 
     base = dict(
-        env_id="Pendulum-v1", seed=0, total_steps=160, eval_every=80, eval_episodes=1,
-        run_name="test_pendulum_ppo", logger="tensorboard", num_envs=2,
+        env_id="CartPole-v1", seed=0, total_steps=160, eval_every=80, eval_episodes=1,
+        run_name="test_normalize_ppo", logger="tensorboard", num_envs=2,
         normalize_obs=True, normalize_reward=True,
         agent={
             "algo": "ppo", "hidden_sizes": [16], "lr": 3.0e-4, "gamma": 0.99,
@@ -210,9 +210,11 @@ def _smoke_cfg(tmp_path, **overrides):
     return Config(**base)
 
 
-def test_pendulum_ppo_smoke_checkpoints_live_statistics(tmp_path, monkeypatch):
-    """The continuous track through the real train loop, both normalizers on,
-    sized to force at least one full rollout fill and one eval pass.
+def test_normalize_ppo_smoke_checkpoints_live_statistics(tmp_path, monkeypatch):
+    """Both normalizers through the real train loop (CartPole since the
+    continuous track's retirement, CLEANUP A3 2026-08-29 — the wrappers are
+    track-agnostic), sized to force at least one full rollout fill and one
+    eval pass.
 
     The load-bearing assertion is the last one: it catches a forgotten or
     mismatched eval-side wrapper, which is otherwise invisible — evaluation
@@ -225,49 +227,54 @@ def test_pendulum_ppo_smoke_checkpoints_live_statistics(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     train(_smoke_cfg(tmp_path))
 
-    run = tmp_path / "runs" / "test_pendulum_ppo"
+    run = tmp_path / "runs" / "test_normalize_ppo"
     ckpt = load_checkpoint(run / "best_checkpoint.pt")
     assert ckpt["agent"]["updates"] >= 1  # 160 steps / 2 envs = 80 rows > 32-row horizon
 
     stats = ckpt["normalizers"]
     assert set(stats) == {"obs", "reward"}
     assert stats["obs"]["count"] > 1  # statistics were actually accumulated
-    assert stats["obs"]["mean"].shape == (3,)
+    assert stats["obs"]["mean"].shape == (4,)
 
     # A frozen wrapper rebuilt from the checkpoint must reproduce the training
     # transform exactly on the same raw observation.
-    restored = RunningMeanStd((3,))
+    restored = RunningMeanStd((4,))
     restored.load_state_dict(stats["obs"])
-    raw = np.array([0.3, -0.4, 1.2])
+    raw = np.array([0.3, -0.4, 1.2, 0.05])
     np.testing.assert_array_equal(normalize_obs(raw, restored), normalize_obs(raw, restored))
     assert normalize_obs(raw, restored).dtype == np.float32
 
 
 def test_episode_return_is_logged_in_raw_units(tmp_path, monkeypatch):
-    """Nothing else proves the loop consumes info["raw_reward"]. Pendulum
-    rewards are large and negative (~-8/step at rest) while normalized ones
-    settle near +/-1, so a normalized return is unmistakable: over 200 steps
-    the true return is <= -100, a scaled one would be far closer to zero."""
+    """Nothing else proves the loop consumes info["raw_reward"]. CartPole's
+    raw reward is exactly +1 per step, so a raw return EQUALS its episode
+    length; scaled rewards shrink toward r/std(G) well below 1 once the
+    return statistics accumulate, so a normalized return is unmistakably
+    smaller than the length logged beside it."""
     from rl.common.logging import Logger
     from rl.train import train
 
-    logged: list[float] = []
+    logged: list[tuple[float, float]] = []
 
     class Capture(Logger):
         def log(self, metrics, step):
             if "rollout/episode_return" in metrics:
-                logged.append(metrics["rollout/episode_return"])
+                logged.append((metrics["rollout/episode_return"],
+                               metrics["rollout/episode_length"]))
 
         def close(self):
             pass
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("rl.train.make_logger", lambda cfg: Capture())
-    # 420 steps / 2 envs = 210 rows: past Pendulum's 200-step truncation.
+    # 420 steps / 2 envs = 210 rows: dozens of episodes at CartPole's
+    # untrained ~10-30 step lengths.
     train(_smoke_cfg(tmp_path, total_steps=420, eval_every=400))
 
     assert logged, "no episode completed"
-    assert all(r < -100.0 for r in logged), f"returns look normalized: {logged}"
+    assert all(r == pytest.approx(length) for r, length in logged), (
+        f"returns look normalized (return != length): {logged}"
+    )
 
 
 def test_normalize_flags_reject_a_scalar_path_algorithm(tmp_path, monkeypatch):
@@ -282,11 +289,11 @@ def test_normalize_flags_reject_a_scalar_path_algorithm(tmp_path, monkeypatch):
         train(cfg)
 
 
-def test_box_envs_get_clipaction_and_no_action_mask():
-    """Missing ClipAction is nearly silent — MuJoCo clamps ctrl internally and
-    Pendulum clips in its own step — so the wrapper chain is asserted directly.
-    The restored action-space bounds are the real ones, not ClipAction's
-    +/-inf declaration, because SAC will need them in Phase 3."""
+def test_box_envs_pass_through_bare_and_discrete_get_action_mask():
+    """Since the continuous track's retirement (CLEANUP A3, 2026-08-29)
+    Box-action envs pass through make_env bare — no ClipAction, no mask —
+    surviving only as the normalize-wrapper test fixture; PPOAgent rejects
+    them at construction. Discrete envs take the mask wrapper."""
     from rl.envs.make import make_env
 
     def wrapper_chain(env):
@@ -297,17 +304,12 @@ def test_box_envs_get_clipaction_and_no_action_mask():
         return names
 
     env = make_env("Pendulum-v1", 0)
-    assert "ClipAction" in wrapper_chain(env)
+    assert "ClipAction" not in wrapper_chain(env)
     assert "ActionMask" not in wrapper_chain(env)
     np.testing.assert_array_equal(env.action_space.low, [-2.0])
     np.testing.assert_array_equal(env.action_space.high, [2.0])
-    # The clip still bites despite the honest bounds declaration.
-    env.reset(seed=0)
-    env.step(np.array([1e6], dtype=np.float32))
     env.close()
 
-    # Discrete envs take the mask wrapper and never the clip.
     discrete = make_env("CartPole-v1", 0)
     assert "ActionMask" in wrapper_chain(discrete)
-    assert "ClipAction" not in wrapper_chain(discrete)
     discrete.close()

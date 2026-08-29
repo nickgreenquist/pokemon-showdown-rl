@@ -50,15 +50,13 @@ The other components, each replacing a REINFORCE compromise:
   critic is never masked: V(s) is a property of the state, not the
   action set.
 
-Box action spaces select a diagonal Gaussian policy (see GaussianActor)
-instead of a Categorical, by the same no-config-key rule the obs rank uses.
-That is the entire algorithmic difference between the two tracks: GAE, the
-clipped surrogate, the epoch/minibatch loop, the advantage normalization and
-the grad clip are shared verbatim, because PPO's objective is written over
-log-probabilities and never cares which distribution produced them. What
-changes around it is the env stack — unbounded continuous observations and
-returns need normalizing (rl/envs/normalize.py), where MinAtar's binary
-planes and 0/1 rewards did not.
+The continuous track (Box action spaces -> a diagonal Gaussian policy) was
+RETIRED 2026-08-29 (CLEANUP A3, maintainer-ruled): Arm C is PARKED, no config
+here could run it, and its dead branch in the production learner was worse
+than its absence. PPOAgent now accepts Discrete action spaces only. The
+GaussianActor design notes (state-independent log_std, unsquashed samples,
+the act_dim>=2 shape trap) live in git history and today's SESSION_LOGS
+entry if the track ever returns.
 
 Rank-3 observations (MinAtar's binary planes) select a conv trunk instead
 of the MLP, by the same no-config-key rule DQN uses. Both heads get their
@@ -82,11 +80,9 @@ Deliberately omitted (locked 2026-07-25 after review, see SESSION_LOGS_PREDECESS
 - Observation normalization: MinAtar planes are already binary 0/1; the
   37-details item targets unbounded continuous observations.
 
-Both normalization omissions are scoped to the DISCRETE track and are lifted
-on the continuous one, where the configs turn them on: MuJoCo observations
-are unbounded and its returns grow with the policy. They live in the env
-stack (rl/envs/normalize.py), not in here, so Phase 3's SAC comparison can
-hold them fixed.
+Both normalization omissions were scoped to the DISCRETE track; the wrappers
+that lifted them on the (now retired) continuous one live on in the env
+stack (rl/envs/normalize.py), config-reachable and tested, not in here.
 
 Note on value_coef: with disjoint actor/critic parameters and Adam, scaling
 the value loss barely changes the critic's own updates (Adam renormalizes
@@ -106,7 +102,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.distributions import Categorical, Normal
+from torch.distributions import Categorical
 
 from rl.agents.base import Agent
 from rl.buffers.rollout import RolloutBuffer, compute_gae
@@ -215,38 +211,6 @@ def _ln_free_blocks(net: nn.Module) -> list[str]:
     return blocks + [name for name, _ in net.named_parameters(recurse=False)]
 
 
-class GaussianActor(nn.Module):
-    """Diagonal Gaussian policy for Box action spaces: an MLP mean, plus a
-    state-INDEPENDENT log standard deviation.
-
-    The scale is a bare parameter rather than a second network head, and that
-    choice is load-bearing for Phase 3 rather than incidental. A
-    state-dependent scale head is exactly what SAC uses (where it also needs
-    the tanh log-det-Jacobian correction), so adopting one here would make
-    the PPO-vs-SAC comparison differ in more than the algorithm — the same
-    hold-everything-fixed discipline that made the discrete headline clean.
-    It is also the reference choice (CleanRL, SB3), and Andrychowicz et al.
-    2021 found no clear benefit either way.
-
-    log_std init 0 (std 1) follows the CleanRL recipe. Note the published
-    evidence mildly favours std 0.5: that is the pre-registered first probe
-    lever if MuJoCo curves stall, not a silent default change.
-
-    Deliberately unsquashed: actions are sampled from an unbounded Normal and
-    clipped to the action space by the env wrapper, while the log-prob is
-    always taken of the RAW sample. Squashing with tanh is SAC's machinery.
-    """
-
-    def __init__(self, mean_net: nn.Module, act_dim: int):
-        super().__init__()
-        self.mean = mean_net
-        self.log_std = nn.Parameter(torch.zeros(act_dim))
-
-    def forward(self, obs: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        mean = self.mean(obs)
-        return mean, self.log_std.exp().expand_as(mean)
-
-
 class PPOAgent(Agent):
     vectorized = True
 
@@ -287,20 +251,14 @@ class PPOAgent(Agent):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
             raise TypeError("PPOAgent requires a flat or channel-first image Box observation space")
-        # Action-space type picks the policy distribution, fixed here at
-        # construction — algorithm code below branches on `self.continuous`
-        # and never on a runtime value, so the discrete path stays
-        # unconditionally masked (see rl/common/masking.py).
-        if isinstance(action_space, gym.spaces.Box):
-            if len(action_space.shape) != 1:
-                raise TypeError("continuous PPOAgent requires a flat Box action space")
-            self.continuous = True
-        elif isinstance(action_space, gym.spaces.Discrete):
-            self.continuous = False
-        else:
-            raise TypeError("PPOAgent requires a Discrete or flat Box action space")
-        if self.continuous and len(observation_space.shape) != 1:
-            raise TypeError("continuous PPOAgent requires a flat observation space")
+        # Discrete only: the continuous track (Box -> Gaussian) was retired
+        # 2026-08-29 (CLEANUP A3), so the policy is always a masked
+        # Categorical (see rl/common/masking.py) with no runtime branching.
+        if not isinstance(action_space, gym.spaces.Discrete):
+            raise TypeError(
+                "PPOAgent requires a Discrete action space — the continuous "
+                "track was retired 2026-08-29 (CLEANUP A3)"
+            )
         self.device = torch.device(device)
         self.gamma = gamma
         self.gae_lambda = gae_lambda
@@ -348,8 +306,6 @@ class PPOAgent(Agent):
         # unchanged.
         if bc_kl_coef < 0.0:
             raise ValueError(f"bc_kl_coef must be >= 0, got {bc_kl_coef}")
-        if bc_kl_coef > 0.0 and self.continuous:
-            raise TypeError("bc_kl_coef requires a discrete action space")
         self.bc_kl_coef = bc_kl_coef
         self._bc_anchor: "nn.Module | None" = None
         # D23 regenerative regularization: after every optimizer step each
@@ -372,8 +328,8 @@ class PPOAgent(Agent):
         # Gaussian track keep their existing shapes.
         if trunk not in ("mlp", "entity_deepsets"):
             raise ValueError(f"unknown trunk {trunk!r}; expected 'mlp' or 'entity_deepsets'")
-        if trunk != "mlp" and (self.obs_rank == 3 or self.continuous):
-            raise TypeError(f"trunk {trunk!r} requires a flat obs and a Discrete action space")
+        if trunk != "mlp" and self.obs_rank == 3:
+            raise TypeError(f"trunk {trunk!r} requires a flat observation space")
         self.trunk = trunk
         # D18 privileged critic: the CRITIC's input is obs ‖ the env's
         # info["privileged"] block; the actor never widens and the obs space
@@ -381,8 +337,8 @@ class PPOAgent(Agent):
         # emitting the block.
         if privileged_dim < 0:
             raise ValueError(f"privileged_dim must be >= 0, got {privileged_dim}")
-        if privileged_dim and (self.obs_rank == 3 or self.continuous):
-            raise TypeError("privileged_dim requires a flat obs and a Discrete action space")
+        if privileged_dim and self.obs_rank == 3:
+            raise TypeError("privileged_dim requires a flat observation space")
         self.privileged_dim = privileged_dim
         # D25 auxiliary OPPONENT-ACTION head (configs/showdown_sp_actpred12m
         # .yaml, ratified r2 2026-08-13). The head predicts, from the agent's
@@ -444,17 +400,7 @@ class PPOAgent(Agent):
             def build(out_dim: int) -> nn.Module:
                 return mlp(observation_space.shape[0], hidden_sizes, out_dim, activation=nn.Tanh)
 
-        if self.continuous:
-            # The mean trunk is the same `build` the discrete head uses, so
-            # architecture, activation and init are shared; GaussianActor only
-            # adds the scale parameter. _orthogonal_init still sees the mean
-            # head as the last Linear in module order (log_std is a Parameter,
-            # not a module, so the Linear/Conv2d filter skips it) and the
-            # 0.01 head gain lands where it should.
-            act_dim = int(action_space.shape[0])
-            self.actor = GaussianActor(build(act_dim), act_dim)
-        else:
-            self.actor = build(int(action_space.n))
+        self.actor = build(int(action_space.n))
         if not privileged_dim:
             self.critic = build(1)
         elif trunk == "entity_deepsets":
@@ -605,10 +551,9 @@ class PPOAgent(Agent):
         self._l2_init_blocks: list[tuple[str, list[nn.Parameter], list[torch.Tensor]]] = []
         if self.l2_init_decay > 0.0:
             self._capture_theta0()
-        action_storage = (
-            {"action_shape": (act_dim,), "action_dtype": np.float32} if self.continuous
-            else {"action_shape": (), "action_dtype": np.int64, "n_actions": int(action_space.n)}
-        )
+        action_storage = {
+            "action_shape": (), "action_dtype": np.int64, "n_actions": int(action_space.n)
+        }
         self.buffer = RolloutBuffer(
             rollout_steps,
             num_envs,
@@ -725,18 +670,6 @@ class PPOAgent(Agent):
         single = obs_t.ndim == self.obs_rank
         if single:
             obs_t = obs_t.unsqueeze(0)
-        if self.continuous:
-            # Before any mask handling: Box envs carry no mask at all, and
-            # torch.as_tensor(None) raises.
-            with torch.no_grad():
-                mean, std = self.actor(obs_t)
-                # The mode of a Gaussian is its mean — the eval-time policy.
-                # Unbounded on purpose: the env's ClipAction wrapper bounds
-                # what the simulator sees, while what the policy DREW is what
-                # gets stored and log-prob'd.
-                actions = mean if deterministic else Normal(mean, std).sample()
-            out = actions.cpu().numpy()
-            return out[0] if single else out  # (act_dim,) or (N, act_dim)
         mask_t = torch.as_tensor(action_mask, dtype=torch.bool, device=self.device)
         with torch.no_grad():
             logits = masked_logits(self.actor(obs_t), mask_t)
@@ -757,20 +690,15 @@ class PPOAgent(Agent):
     ) -> tuple[torch.Tensor, torch.Tensor, tuple[torch.Tensor, ...] | None]:
         """log pi(a|s), H(pi(.|s)) — both (B,) — and D25's aux features.
 
-        The one place the two action spaces fork during optimization, so the
-        surrogate, the recompute and the entropy bonus cannot drift apart.
-        A diagonal Gaussian's components are independent, so its joint
-        log-prob and entropy are sums over the action dimensions — the sum
-        that turns (B, act_dim) into the (B,) the surrogate needs.
+        The one place the acted distribution is rebuilt during optimization,
+        so the surrogate, the recompute and the entropy bonus cannot drift
+        apart.
 
         `features` is D25's seam: the aux head reads ctx and the opponent
         entity tokens off the SAME forward the surrogate already makes (B9),
         rather than paying a second actor pass at ~+25% update time. The extra
         tensors do not enter the policy logits, so the surrogate is unchanged.
         """
-        if self.continuous:
-            dist = Normal(*self.actor(obs))
-            return dist.log_prob(actions).sum(-1), dist.entropy().sum(-1), None
         if features:
             logits, *feats = self.actor(obs, return_features=True)
         else:
@@ -887,17 +815,8 @@ class PPOAgent(Agent):
         flat_next_obs = torch.as_tensor(
             buf.next_obs, dtype=torch.float32, device=self.device
         ).flatten(0, 1)
-        # flatten(0, 1), never reshape(-1): discrete actions are (T, N) and
-        # both spellings agree, but continuous actions are (T, N, act_dim) and
-        # reshape(-1) would silently collapse them to 1-D. Normal.log_prob
-        # then broadcasts that vector against the (T*N, act_dim) mean — at
-        # act_dim 1 into a square matrix whose .sum(-1) is correctly shaped
-        # garbage, so a Pendulum-only test suite would never notice.
         flat_actions = torch.as_tensor(buf.actions, device=self.device).flatten(0, 1)
-        flat_masks = (
-            None if self.continuous
-            else torch.as_tensor(buf.masks, device=self.device).flatten(0, 1)  # (T*N, A) bool
-        )
+        flat_masks = torch.as_tensor(buf.masks, device=self.device).flatten(0, 1)  # (T*N, A) bool
         # D25's labels, canonicalised ONCE PER ROLLOUT (B12) — done inside the
         # epoch x minibatch loop this is the same work 16 times over and
         # surfaces only as an unexplained update-time regression. The frame is
@@ -1072,8 +991,7 @@ class PPOAgent(Agent):
                 # exactly like the pi_old above, or the ratio is silently
                 # wrong (all-True leaves the logits bitwise untouched).
                 new_logp, entropies, feats = self._logp_entropy(
-                    flat_obs[idx], flat_actions[idx],
-                    None if self.continuous else flat_masks[idx],
+                    flat_obs[idx], flat_actions[idx], flat_masks[idx],
                     features=self.aux_head is not None,
                 )
                 policy_loss, approx_kl, clip_frac = clipped_surrogate_loss(
@@ -1172,12 +1090,6 @@ class PPOAgent(Agent):
                 sums["loss/clip_frac"] += float(clip_frac.item())
                 sums["loss/grad_norm"] += float(grad_norm.item())
                 sums["loss/grad_clip_frac"] += float(grad_norm.item() > self.max_grad_norm)
-                if self.continuous:
-                    # The exploration readout on this track: with a free
-                    # log_std the entropy bonus is off (ent_coef 0 on MuJoCo),
-                    # so the scale is what exploration actually rides on, and
-                    # an early collapse toward 0 is the failure signature.
-                    sums["loss/policy_std"] += float(self.actor.log_std.exp().mean().item())
                 grad_steps += 1
 
         self.buffer.clear()

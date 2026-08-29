@@ -18,7 +18,8 @@ class Agent(ABC):
         legality mask (bool [n_actions], True = legal), supplied by the
         harness on every call for Discrete-action envs — all-True when
         nothing is illegal, batched [N, n_actions] on the vector path; None
-        only for continuous action spaces, which have no mask concept.
+        only for Box action spaces, which have no mask concept (the
+        continuous track was retired 2026-08-29, CLEANUP A3).
         `deterministic=True` is the eval-time policy (e.g. argmax instead of
         sampling)."""
 

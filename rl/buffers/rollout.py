@@ -54,9 +54,10 @@ class RolloutBuffer(Buffer):
         # pi_old must see identically masked distributions or the importance
         # ratio is silently wrong on every sample. (No next-state masks: the
         # critic is the only next_obs reader, and values are never masked.)
-        # Allocated only for Discrete spaces: continuous actions have no
-        # legality concept, so `masks is None` here means "Box", a fact fixed
-        # at construction — never a runtime branch inside algorithm code.
+        # Allocated only for Discrete spaces: Box actions have no legality
+        # concept, so `masks is None` here means "Box", a fact fixed at
+        # construction — never a runtime branch inside algorithm code. (The
+        # continuous track was retired 2026-08-29; the buffer stays generic.)
         self.masks = (
             None if n_actions is None
             else np.zeros((horizon, num_envs, n_actions), dtype=bool)

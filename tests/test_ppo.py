@@ -527,7 +527,9 @@ def test_bc_kl_coef_validates_and_requires_an_anchor():
     penalty on is a config error and must fail loudly, not train un-anchored."""
     with pytest.raises(ValueError, match="bc_kl_coef"):
         _agent(bc_kl_coef=-0.1)
-    with pytest.raises(TypeError, match="discrete"):
+    # Box action spaces are rejected outright since the continuous track's
+    # retirement (CLEANUP A3, 2026-08-29) — bc_kl or not.
+    with pytest.raises(TypeError, match="Discrete action space"):
         PPOAgent(
             observation_space=gym.spaces.Box(-1.0, 1.0, (3,), np.float32),
             action_space=gym.spaces.Box(-1.0, 1.0, (2,), np.float32),

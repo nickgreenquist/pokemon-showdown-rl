@@ -23,7 +23,8 @@ class Config:
     # the train loop picks the collection path from the agent class, not
     # from this value. Scalar agents ignore it.
     num_envs: int = 1
-    # Env-stack normalization (continuous track). Harness fields rather than
+    # Env-stack normalization (built for the retired continuous track;
+    # track-agnostic and config-reachable). Harness fields rather than
     # agent hparams: they are properties of the env wrapper chain, and their
     # statistics are checkpointed alongside the policy. Default off, so every
     # discrete-track config and checkpoint predating them is untouched — the

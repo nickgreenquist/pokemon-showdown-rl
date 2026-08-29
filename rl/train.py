@@ -450,7 +450,7 @@ def _scalar_loop(
 ) -> None:
     """One env, one transition per update() call — random/tabular/DQN/REINFORCE."""
     obs, info = env.reset(seed=cfg.seed)
-    mask = info.get("action_mask")  # None only for continuous-action envs
+    mask = info.get("action_mask")  # None only for Box-action envs (no live track)
     best_eval = float("-inf")
     ep_return, ep_length = 0.0, 0
     # Per-episode loss/* sums and per-key report counts: each key is averaged
@@ -563,7 +563,7 @@ def _vector_loop(
     """
     num_envs = envs.num_envs
     obs, infos = envs.reset(seed=cfg.seed)  # gymnasium seeds sub-env i with seed + i
-    masks = infos.get("action_mask")  # (N, A); None only for continuous envs
+    masks = infos.get("action_mask")  # (N, A); None only for Box-action envs (no live track)
     privs = infos.get("privileged")  # (N, PRIV_DIM); None unless the env emits it (D18)
     # Resume (resume_state from the run's own checkpoint.pt): the loop picks
     # up at the saved step; eval/checkpoint thresholds re-derive from it; a
