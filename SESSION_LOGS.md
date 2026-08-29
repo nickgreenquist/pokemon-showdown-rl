@@ -9208,3 +9208,56 @@ entry by offset — never a broad keyword grep.
   carrying the raw Rust panic was truncated by the re-run's own driver, so
   the panic signature survives only in the 22:25Z entry above — verbatim
   there on purpose.
+
+- 2026-08-29 (03:35Z / 2026-08-28 23:35 EDT, **r9 RESCORE COMPLETE — THE RULE
+  ROUTES GREEDY, AND IT ROUTES GREEDY FOR THE REASON THE DESIGN CYCLE
+  PREDICTED**): RS81 (b-pair re-run) landed 3000/3000 with **ZERO crashes**,
+  rc=0, relaunches 0. **RS81 = 0.4487** (1346-1638-16), **RS82 = 0.454**
+  (1362-1623-15), against RS80's banked **0.4390**. **G2 EXACT on both** —
+  FP's own `Winner:` lines and the seat JSON agree three-way and sum to 3000.
+  Grader: **all twelve arms, zero voids, zero refusals, G-SERIAL clean over 21
+  arm-runs.**
+  **THE READ, computed mechanically from `policy_form_decision`:**
+  key_A PASSES — s3 = 0.00760 across the three fresh searched lanes, which is
+  **BELOW the n=3000 binomial floor of 0.00906**, so s3_adj = 0 and bar_search
+  sits on the 0.025 credit floor. key_B FAILS — beta = **-0.127** against a
+  floor of 0.248. Rule is SEARCHED iff BOTH; **verdict GREEDY.** Cell EQ_EQ
+  (d81 +0.0097, d82 +0.0150, both inside the 0.0256 band), which the pre-reg
+  had already grid-verified as containing no SEARCHED point.
+  **THE EQUALISATION HYPOTHESIS IS NOW STRONGLY SUPPORTED, AND IT IS THE
+  REASON WE DO NOT SWITCH.** Greedy range 0.1230 -> searched range 0.0150. At
+  n=1000 the searched sd (0.01501) sat AT its floor (0.01569); tripling n
+  moves the floor to 0.00906 and the sd is **still below it** — the three
+  searched lanes are not distinguishable from each other, and their true
+  spread is not distinguishable from ZERO. This is the stronger version of the
+  02:30Z test and it came out for the hypothesis.
+  **BUT THE SIGN OF beta IS NOT A FINDING, AND MUST NOT BE READ AS ONE.**
+  beta = -0.127 says the worst greedy lane (s82, 0.2730) scored highest under
+  search and the best (s80, 0.3960) lowest. **With the searched spread below
+  the binomial floor, the y-variable has no resolvable signal, so beta's SIGN
+  is arbitrary — an artifact of noise, not evidence that search inverts lane
+  quality.** What is supported is indistinguishability; "search inverts" is
+  barred language for this readout. Pre-registered expectation was GREEDY at
+  beta 0.168; realized -0.127, same branch, and the miss is in the direction
+  that makes the branch safer.
+  **THE ADJUDICATION HELD UP EMPIRICALLY.** The two design memos split on
+  exactly this: route SEARCHED on tight dispersion alone (power-first) vs also
+  require a transmission floor (decision-first). Tight dispersion is precisely
+  what we got, and routing on it alone would have switched R2 to a scoring
+  regime whose slope is indistinguishable from zero — i.e. a regime in which a
+  batch effect could not show up at all. **key_B is the whole reason this
+  read is safe, and it earned its place on live data.**
+  **CONSEQUENCE FOR R2:** arms scored GREEDY, control A80/A81/A82 at n=1000,
+  planning bar **0.1007**, no masking disclosure owed. The searched
+  scope-change branch does not fire.
+  **OPS BUG FOUND AND FIXED, AND IT WOULD HAVE THROWN OUT A CLEAN ARM.** The
+  wave logged `RS81 OPS FAILURE (NO_PROGRESS) rc=0 -- NOT graded` on an arm
+  that had just finished 3000/3000 cleanly. Cause: `ch3_r4_fp_runner.sh`
+  cleared the `TOO_MANY_CRASHES` sentinel at arm start but **not**
+  `NO_PROGRESS`, so the re-run inherited attempt 1's 14:54 marker.
+  `ch5_r1_grade.py` reads the same sentinel at :213 and :500 and would have
+  REFUSED the arm on it. Stale file removed (attempt-1 copy preserved as
+  `rs81.attempt1.NO_PROGRESS`), and the runner now clears BOTH markers. **A
+  failure marker that outlives its failure discards good data while looking
+  like a real abort** — same family as the driver.log append that made my
+  monitor report four phantom crashes earlier tonight.

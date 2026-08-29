@@ -93,8 +93,16 @@ RUNNER_JSON="$OUT/$TAG.runner.json"
 # BI-6: arm-scoped VOID marker — concurrent arms in one OUT dir must not
 # share a crash sentinel (review 1 MA-18).
 VOID_MARKER="$OUT/$TAG.TOO_MANY_CRASHES"
+# BOTH sentinels must be cleared at arm start, not just the crash one. The
+# NO_PROGRESS marker was left behind (2026-08-28) and a CLEAN re-run of the
+# same tag inherited it: rs81 finished 3000/3000 with rc=0, relaunches 0 and
+# G2 exact, and the wave still logged "OPS FAILURE ... NOT graded" while
+# ch5_r1_grade.py would have REFUSED the arm on the stale file. A failure
+# marker that outlives the failure discards good data and looks like a real
+# abort while doing it.
+NO_PROGRESS_MARKER="$OUT/$TAG.NO_PROGRESS"
 
-rm -f "$VOID_MARKER"
+rm -f "$VOID_MARKER" "$NO_PROGRESS_MARKER"
 : > "$FP_LOG"
 
 log() {
@@ -288,7 +296,7 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
         pkill -9 -P "$FP_PID" 2>/dev/null
         pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
         pkill -9 -f "foul-play/bin/python -c from multiprocessing" 2>/dev/null
-        date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.NO_PROGRESS"
+        date -u +%Y-%m-%dT%H:%M:%SZ > "$NO_PROGRESS_MARKER"
         kill "$SEAT_PID" 2>/dev/null
         sleep 2
         kill -9 "$SEAT_PID" 2>/dev/null
