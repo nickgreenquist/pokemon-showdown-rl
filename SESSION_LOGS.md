@@ -9169,3 +9169,42 @@ entry by offset — never a broad keyword grep.
   **If RS81's re-run panics again, on_void/on_partial already answer:
   GREEDY, no discretion.** The Rust panic goes to the R2 write-up as a watch
   item either way.
+
+- 2026-08-29 (00:55Z / 2026-08-28 20:55 EDT, **RS82 LANDED CLEAN ON ATTEMPT 2;
+  RS81 RE-RUNNING ON ITS b-PAIR (r10)**): RS82 attempt 2 ran 3000/3000 with
+  **ZERO crashes** (attempt 1 had two by the same point) — the tie-crash wedge
+  did not recur, which is consistent with it needing the auto-tie AND an FP
+  death to coincide rather than being a property of the arm.
+  **RS82 = 0.454** (1362-1623-15, ties as non-wins in the denominator).
+  **G2 PASSES EXACTLY, three-way and by two independent tallies:** FP's own
+  `Winner:` lines give seat 1362 / fp 1623 / None 15, summing to 3000, and the
+  seat JSON agrees on all three. mask_desyncs 0, max_concurrent_live_battles
+  1, process_obs_dim 828, declared_search_time_ms 20, mean_turns 37.97,
+  sec_per_battle 3.06 (vs RS80's 2.92), wall 9179.9 s.
+  **THE prereg_sha256 STAMP CONFIRMS THE SEQUENCING RULE WAS RIGHT:** rs82.json
+  carries 32920d74, the same hash preflight stamped at launch, proving the
+  config was untouched across the arm. Worth recording WHY that mattered: the
+  seat hashes the pre-reg AT WRITE-OUT, not at launch (`ch3_fp_h2h.py` main(),
+  after `asyncio.run`), so a config edit mid-arm would have been stamped as
+  though it had been in force the whole time. The r9 ⏸ discipline is
+  load-bearing, not bookkeeping.
+  **r10 (committed de81955):** RS81's original pair is BURNED and recorded
+  under a new `usernames.burned_pairs_r10` so it can never be re-issued;
+  `rerun_pairs_r9.RS81` is PROMOTED IN PLACE to the live pair
+  (ch5rs81bseat/ch5rs81bfp) in BOTH `arms.RS81` and `usernames.pairs.RS81`
+  (the test asserts they match). The reserve entry was then REMOVED rather
+  than annotated — leaving it would have double-issued the same two names,
+  which a stricter local check caught after the first write. 28 names, no
+  duplicates, no prefixes; suite 40/40.
+  **G0 note:** preflight failed first pass on a dirty tree — the maintainer's
+  new `JOURNEY.md` was untracked. Committed VERBATIM (d43a512), unedited; the
+  open question about its altitude (it mixes arc-level story with
+  execution-level detail, and its standing note still cites the **0.072 bar
+  that r9 corrected to 0.1007**) belongs to the grill-me session, not to a
+  launch-unblocking commit.
+  RS81 re-run launched 00:48:51Z, ETA ~03:15Z (23:15 EDT). Attempt-1
+  forensics preserved as `rs81.attempt1.runner.json` (crash points 1548,
+  1580, 1580, 1580) and `rs81.attempt1.NO_PROGRESS`; the 475 MB fp.stdout
+  carrying the raw Rust panic was truncated by the re-run's own driver, so
+  the panic signature survives only in the 22:25Z entry above — verbatim
+  there on purpose.
