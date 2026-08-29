@@ -7,8 +7,10 @@ a linear Q head. Deliberately tiny next to the Mnih et al. Atari net —
 MinAtar strips the vision problem, so one conv layer to exploit the spatial
 structure is enough.
 
-`dueling=True` replaces the head with DuelingMLP-style V/A streams split
-after the FC trunk (Q = V + A - mean(A); same identifiability argument).
+(The `dueling` flag — DuelingMLP-style V/A streams from the DQN era — was
+removed 2026-08-29, CLEANUP A4: PPO never passed it and no test covered it.
+Its removal also simplifies _orthogonal_init's head-last-in-module-order
+premise, which dueling would have broken.)
 
 `kernel_size` (default 3, the MinAtar-paper value every existing config and
 checkpoint was built with) exists for Phase 4's pre-registered probe: a
@@ -27,7 +29,6 @@ class ConvQNet(nn.Module):
         in_shape: tuple[int, int, int],
         hidden_sizes: list[int],
         out_dim: int,
-        dueling: bool = False,
         kernel_size: int = 3,
     ):
         super().__init__()
@@ -43,16 +44,7 @@ class ConvQNet(nn.Module):
             layers += [nn.Linear(in_dim, size), nn.ReLU()]
             in_dim = size
         self.trunk = nn.Sequential(*layers)
-        self.dueling = dueling
-        if dueling:
-            self.value = nn.Linear(in_dim, 1)
-            self.advantage = nn.Linear(in_dim, out_dim)
-        else:
-            self.head = nn.Linear(in_dim, out_dim)
+        self.head = nn.Linear(in_dim, out_dim)
 
     def forward(self, x):
-        z = self.trunk(x)
-        if self.dueling:
-            adv = self.advantage(z)
-            return self.value(z) + adv - adv.mean(dim=-1, keepdim=True)
-        return self.head(z)
+        return self.head(self.trunk(x))

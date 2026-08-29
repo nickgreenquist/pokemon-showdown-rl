@@ -94,6 +94,20 @@ def selfplay_env_kwargs(cfg, key: str) -> dict:
             f"env_kwargs may not set {sorted(reserved)}; opponents are configured "
             "under `selfplay`, which keeps the training and eval opponents separate"
         )
+    # Strict selfplay.* keys (2026-08-29, CLEANUP B2). Every selfplay read is
+    # a .get(), and train.py checks only for MISSING required keys — so a
+    # typo'd knob used to load clean and train a full run with no error and
+    # no metric that looks wrong. Unknown keys fail here, the same choke
+    # point the reserved-key check uses (both env constructions route
+    # through this function before any training work starts).
+    known = {"opponent", "eval_opponent", "pool_size", "latest_prob",
+             "push_every_updates"}
+    unknown = cfg.selfplay.keys() - known
+    if unknown:
+        raise ValueError(
+            f"unknown selfplay key(s) {sorted(unknown)}; known: {sorted(known)}. "
+            "(pfsp_power and fixed_mix were removed 2026-08-29, CLEANUP A4)"
+        )
     kwargs = dict(cfg.env_kwargs)
     if not cfg.selfplay:
         return kwargs

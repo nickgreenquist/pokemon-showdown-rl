@@ -49,7 +49,7 @@ import numpy as np
 import torch
 
 from rl.common.masking import masked_logits
-from rl.selfplay.opponents import HeuristicOpponent, Opponent, RandomOpponent
+from rl.selfplay.opponents import Opponent
 
 
 class AgentOpponent(Opponent):
@@ -98,47 +98,30 @@ class SnapshotPool(Opponent):
     per-episode stream — the pinned draw order (flip, select, opponent
     moves) is unchanged, the select slot just consumes draws now.
 
-    The two chunk-4 probe levers live here, inert at their defaults:
-    `pfsp_power` turns the flat historical draw into AlphaStar's
-    f_hard(x) = (1-x)^p over the learner's tracked win rate per member
-    (fed by `report()`, snapshotted by `refresh()` at rollout boundaries),
-    and `fixed_mix` routes that fraction of episodes to the random or
-    heuristic anchor instead of the pool — the one lever aimed directly at
-    the vs-random decline.
+    The two chunk-4 probe levers (`pfsp_power`, `fixed_mix`) were REMOVED
+    2026-08-29 (CLEANUP A4, maintainer-ruled): both sat at their inert
+    defaults in every config ever run — fixed_mix was additionally
+    hard-rejected for Showdown and its Connect4 path had no config — so
+    select() here IS the pre-lever draw, byte-identical on the seeded
+    stream (the compatibility contract test_selfplay_pool pins). `report()`
+    and the per-member stats STAY: they feed the live selfplay/* metrics.
 
     The pool must be non-empty before the first env reset: `rl/train.py`
     pushes the step-0 snapshot before entering the loop, and `select()` on
     an empty pool raises rather than papering over a broken push order.
     """
 
-    def __init__(self, pool_size: int, latest_prob: float,
-                 pfsp_power: float = 0.0, fixed_mix: float = 0.0):
+    def __init__(self, pool_size: int, latest_prob: float):
         if pool_size < 1:
             raise ValueError(f"pool_size must be >= 1, got {pool_size}")
         if not 0.0 <= latest_prob <= 1.0:
             raise ValueError(f"latest_prob must be a probability, got {latest_prob}")
-        if pfsp_power < 0.0:
-            raise ValueError(f"pfsp_power must be >= 0, got {pfsp_power}")
-        if not 0.0 <= fixed_mix <= 1.0:
-            raise ValueError(f"fixed_mix must be a probability, got {fixed_mix}")
         self.pool_size = pool_size
         self.latest_prob = latest_prob
-        # The two chunk-4 probe levers, both inert at their defaults — at
-        # pfsp_power 0 and fixed_mix 0 every rng draw and every selection
-        # is byte-identical to the pre-lever pool (the one-key-diff
-        # discipline extends to the seeded stream: the guards below
-        # short-circuit before consuming a draw).
-        self.pfsp_power = float(pfsp_power)
-        self.fixed_mix = float(fixed_mix)
         self.members: list[AgentOpponent] = []
-        # Per-member [learner score sum, games] fed by report(); x = the
-        # learner's win rate vs the member, AlphaStar's f_hard(x) = (1-x)^p.
+        # Per-member [learner score sum, games] fed by report(); read by the
+        # train loop's selfplay/winrate_anchor / winrate_latest metrics.
         self.stats: list[list[float]] = []
-        self._weights: "np.ndarray | None" = None  # set by refresh()
-        # The fixed-mix pool: the two cheap anchors, per the diagnostics
-        # entry ("a few percent of fixed-bot games keeps external coverage
-        # alive by construction"). Rule-based, so freeze() is a no-op.
-        self._fixed = (RandomOpponent(), HeuristicOpponent())
         self.pushes = 0  # lifetime count; also seeds each member's generator
         self.push_ids: list[int] = []  # per-member push counter, for retention
 
@@ -159,9 +142,6 @@ class SnapshotPool(Opponent):
             del self.members[evict]
             del self.stats[evict]
             del self.push_ids[evict]
-        # Membership only ever changes here, so weights recomputed here can
-        # never be stale against the member list.
-        self.refresh()
 
     def _evict_index(self) -> int:
         """Span-preserving thinning (module docstring). Never the step-0
@@ -175,8 +155,8 @@ class SnapshotPool(Opponent):
         return min(range(1, len(ids) - 1), key=lambda i: (ids[i + 1] - ids[i - 1], i))
 
     def member_id(self, played: Opponent) -> int:
-        """The push id of the member that played, or -1 for a fixed anchor or
-        one evicted mid-episode. Identity match, same rule as `report`.
+        """The push id of the member that played, or -1 for one evicted
+        mid-episode. Identity match, same rule as `report`.
 
         Push ids and not list indices: indices shift under eviction, while a
         push id names the checkpoint that generated a decision for the run's
@@ -193,45 +173,22 @@ class SnapshotPool(Opponent):
 
     def report(self, played: Opponent, outcome: int) -> None:
         """Accumulate the learner's result vs the member that played.
-        Identity match on purpose: a fixed-mix opponent or a member evicted
-        while its last episode was in flight is silently not a member, and
-        neither should move any weight."""
+        Identity match on purpose: a member evicted while its last episode
+        was in flight is silently not a member and should not move any
+        count."""
         for member, stat in zip(self.members, self.stats):
             if member is played:
                 stat[0] += (outcome + 1) / 2  # learner score: win 1, draw 0.5
                 stat[1] += 1
                 return
 
-    def refresh(self) -> None:
-        """Snapshot the PFSP weights over the historical members from the
-        counts accumulated so far. Called from the training loop at ROLLOUT
-        boundaries (and from push), never per episode: within a rollout the
-        opponent distribution must stay fixed — the same invariant that
-        pins the push cadence — so counts accumulate live but the draw only
-        sees them from the next rollout on. An unplayed member scores the
-        0.5 prior; if every historical member is fully beaten the weights
-        all collapse to 0 and the draw falls back to uniform."""
-        if len(self.members) <= 1:
-            self._weights = None
-            return
-        x = np.array([
-            stat[0] / stat[1] if stat[1] else 0.5 for stat in self.stats[:-1]
-        ])
-        weights = (1.0 - x) ** self.pfsp_power
-        total = weights.sum()
-        self._weights = weights / total if total > 0 else np.full(len(x), 1.0 / len(x))
-
     def select(self, rng: np.random.Generator) -> Opponent:
         if not self.members:
             raise IndexError("empty pool: push a snapshot before the first reset")
-        if self.fixed_mix > 0.0 and rng.random() < self.fixed_mix:
-            return self._fixed[int(rng.integers(2))]
         if len(self.members) == 1:
             return self.members[0]
         if rng.random() < self.latest_prob:
             return self.members[-1]
-        if self.pfsp_power > 0.0:
-            return self.members[int(rng.choice(len(self.members) - 1, p=self._weights))]
         return self.members[int(rng.integers(len(self.members) - 1))]
 
     def move(self, obs: np.ndarray, mask: np.ndarray, rng: np.random.Generator) -> int:
@@ -242,13 +199,12 @@ class SnapshotPool(Opponent):
         member networks (actor + critic — a member's play reads only the
         actor, the critic rides so a member restores to what push() froze),
         per-member torch generator STATE (not just its seed: draws already
-        consumed must not replay), PFSP stats, push ids, lifetime counter.
-        The learner's own weights are the checkpoint's job, not the pool's."""
+        consumed must not replay), per-member stats, push ids, lifetime
+        counter. The learner's own weights are the checkpoint's job, not
+        the pool's."""
         return {
             "pool_size": self.pool_size,
             "latest_prob": self.latest_prob,
-            "pfsp_power": self.pfsp_power,
-            "fixed_mix": self.fixed_mix,
             "pushes": self.pushes,
             "push_ids": list(self.push_ids),
             "stats": [list(s) for s in self.stats],
@@ -265,9 +221,10 @@ class SnapshotPool(Opponent):
     def load_state_dict(self, state: dict, agent_factory) -> None:
         """Rebuild members via `agent_factory` (a zero-arg callable returning
         a freshly constructed learner-shaped agent). Restores membership,
-        stats, weights and generator streams; refresh() re-derives the PFSP
-        weights from the restored counts."""
-        for key in ("pool_size", "latest_prob", "pfsp_power", "fixed_mix"):
+        stats and generator streams. Checkpoints written before 2026-08-29
+        carry pfsp_power/fixed_mix keys (both always 0.0, levers removed);
+        they are simply not read."""
+        for key in ("pool_size", "latest_prob"):
             got, want = getattr(self, key), state[key]
             assert got == want, (
                 f"pool {key} mismatch on resume: constructed {got}, "
@@ -285,7 +242,6 @@ class SnapshotPool(Opponent):
             member.freeze()
             self.members.append(member)
         self.stats = [list(s) for s in state["stats"]]
-        self.refresh()
 
     def freeze(self) -> None:
         """No-op on purpose: members are frozen one by one at push(), which

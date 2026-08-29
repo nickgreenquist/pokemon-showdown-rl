@@ -582,18 +582,27 @@ def test_init_from_rearms_the_critic_warmup(tmp_path, monkeypatch):
     assert all(p.requires_grad for p in captured["agent"].critic_params)
 
 
-def test_showdown_selfplay_rejects_fixed_mix():
-    """The pool's fixed anchors decode a Connect 4 board from the obs; on a
-    612-dim Showdown obs HeuristicOpponent crashes but RandomOpponent
-    silently plays uniform-random, unreported — so the combination must
-    refuse to construct. Fires before any env (or server) is touched."""
+def test_unknown_selfplay_keys_are_rejected_before_any_env():
+    """CLEANUP B2 (2026-08-29): every selfplay read is a .get() and train()
+    checks only for MISSING required keys, so a typo'd knob used to load
+    clean and train a full run with no error and no wrong-looking metric.
+    fixed_mix doubles as the regression pin for the removed chunk-4 levers
+    (CLEANUP A4) — a config still setting one must refuse to construct.
+    Fires before any env (or server) is touched."""
     cfg = connect4_config(
         env_id="Showdown-v0",
         selfplay={"opponent": "self", "eval_opponent": "heuristics",
                   "pool_size": 4, "latest_prob": 0.8,
                   "push_every_updates": 1, "fixed_mix": 0.05},
     )
-    with pytest.raises(ValueError, match="Connect4-only"):
+    with pytest.raises(ValueError, match="unknown selfplay key"):
+        train(cfg)
+    cfg = connect4_config(
+        selfplay={"opponent": "self", "eval_opponent": "heuristics",
+                  "pool_size": 4, "latest_prob": 0.8,
+                  "push_every_updates": 1, "pfsp_pow": 1.0},  # the B2 typo
+    )
+    with pytest.raises(ValueError, match="unknown selfplay key"):
         train(cfg)
 
 

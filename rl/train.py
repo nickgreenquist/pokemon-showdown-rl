@@ -272,21 +272,14 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     # is admissible only because the teacher is us. Raised here, where the
     # config is visible, and raised loudly with the reason in the message.
     #
-    # The hazard is in fact DOUBLY FORECLOSED in source already — `fixed_mix`
-    # is rejected outright for Showdown envs below, and `pfsp_power` reweights
-    # only among AgentOpponent members and can never reach the pool's fixed
-    # anchors. This is cheap belt-and-braces, not a real find.
+    # (The fixed_mix/pfsp_power half of this guard was removed with the
+    # levers themselves, 2026-08-29 CLEANUP A4 — the strict selfplay key
+    # check in selfplay_env_kwargs now rejects those keys outright.)
     if cfg.agent.get("aux_oppact_coef", 0.0) > 0.0:
-        offending = {
-            key: cfg.selfplay.get(key, 0.0)
-            for key in ("fixed_mix", "pfsp_power")
-            if cfg.selfplay.get(key, 0.0)
-        }
-        if cfg.selfplay.get("opponent") != "self" or offending:
+        if cfg.selfplay.get("opponent") != "self":
             raise ValueError(
-                "aux_oppact_coef > 0 requires selfplay.opponent 'self' with "
-                f"fixed_mix and pfsp_power at zero (got opponent="
-                f"{cfg.selfplay.get('opponent')!r}, {offending or 'both zero'}): the "
+                "aux_oppact_coef > 0 requires selfplay.opponent 'self' (got "
+                f"opponent={cfg.selfplay.get('opponent')!r}): the "
                 "opponent-action label is only pure self-play while the labelled "
                 "opponent is a snapshot of this agent"
             )
@@ -304,22 +297,7 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         push_every = cfg.selfplay["push_every_updates"]
         if push_every < 1:
             raise ValueError(f"push_every_updates must be >= 1, got {push_every}")
-        if cfg.env_id.startswith("Showdown") and cfg.selfplay.get("fixed_mix", 0.0) > 0.0:
-            # The pool's fixed anchors are Connect 4 Opponents that read a
-            # board out of the obs. On a 611-dim Showdown obs HeuristicOpponent
-            # crashes but RandomOpponent silently plays a legal uniform-random
-            # move, unreported (measured) — half the fixed draws would corrupt
-            # the run without an error. Showdown anchor bots need the battle
-            # object and so must enter at the Player level if ever wanted.
-            raise ValueError(
-                "fixed_mix > 0 is Connect4-only: the pool's fixed anchors "
-                "decode a board from the obs and cannot drive a Showdown battle"
-            )
-        pool = SnapshotPool(
-            cfg.selfplay["pool_size"], cfg.selfplay["latest_prob"],
-            pfsp_power=cfg.selfplay.get("pfsp_power", 0.0),
-            fixed_mix=cfg.selfplay.get("fixed_mix", 0.0),
-        )
+        pool = SnapshotPool(cfg.selfplay["pool_size"], cfg.selfplay["latest_prob"])
         train_env_kwargs["opponent"] = pool
     elif str(train_env_kwargs.get("opponent", "")).endswith(".pt"):
         # Frozen-checkpoint opponent (best-response/exploiter lanes). `pool`
@@ -653,12 +631,6 @@ def _vector_loop(
                 # selfplay/* is logged from here, never from pool code
                 # (locked metric-namespace rule, CLAUDE.md).
                 logger.log({"selfplay/pool_size": len(pool)}, step)
-            if pool is not None:
-                # PFSP weights snapshot at the same boundary the push
-                # cadence uses: counts accumulate during the rollout, the
-                # draw only sees them from the next rollout on, so the
-                # opponent distribution stays fixed within a rollout.
-                pool.refresh()
         # Episode returns are always accumulated in TRUE env units. With
         # reward normalization on, `rewards` is scaled by a running statistic
         # that itself moves during training, so logging it would make

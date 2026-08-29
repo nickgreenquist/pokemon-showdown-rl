@@ -250,21 +250,17 @@ def test_pool_rejects_degenerate_parameters():
         SnapshotPool(0, 0.8)
     with pytest.raises(ValueError, match="latest_prob"):
         SnapshotPool(4, 1.5)
-    with pytest.raises(ValueError, match="pfsp_power"):
-        SnapshotPool(4, 0.8, pfsp_power=-1.0)
-    with pytest.raises(ValueError, match="fixed_mix"):
-        SnapshotPool(4, 0.8, fixed_mix=1.5)
 
 
-# ------------------------------------------------- probe levers (chunk 4)
-
-def test_defaults_consume_the_pre_lever_rng_stream():
-    """The one-key-diff contract extends to the seeded stream: at
-    pfsp_power 0 and fixed_mix 0 every select() must draw from the env's
-    rng EXACTLY as the pre-lever pool did, or every existing seeded pool
-    run changes under the new code. This deliberately asserts exact stream
-    consumption — the thing the C5 control says tests must not do for
-    DISTRIBUTIONAL properties — because here the stream itself is the
+def test_select_consumes_the_pre_lever_rng_stream():
+    """The seeded-stream compatibility contract: select() must draw from the
+    env's rng EXACTLY as the pre-lever pool did, or every existing seeded
+    pool run changes under the new code. Written when the chunk-4 probe
+    levers (pfsp_power/fixed_mix) sat inert at their defaults; the levers
+    were removed 2026-08-29 (CLEANUP A4) and this pin is what proves their
+    removal left the stream untouched. This deliberately asserts exact
+    stream consumption — the thing the C5 control says tests must not do
+    for DISTRIBUTIONAL properties — because here the stream itself is the
     documented compatibility contract, not an implementation detail."""
     pool = SnapshotPool(8, 0.8)
     for seed in range(5):
@@ -279,82 +275,8 @@ def test_defaults_consume_the_pre_lever_rng_stream():
     assert all(pool.select(live) is pre_lever_select(twin) for _ in range(300))
 
 
-def test_pfsp_weights_favor_the_members_still_winning():
-    """f_hard(x) = (1-x)^p over the learner's win rate x per member: a
-    fully-beaten member (x=1) is never drawn, a never-beaten one (x=0)
-    dominates, an unplayed one sits at the 0.5 prior. With p=2 the
-    weights are (0, 1, 0.25) -> fractions (0, 0.8, 0.2)."""
-    pool = SnapshotPool(8, 0.0, pfsp_power=2.0)  # latest_prob 0: all draws historical
-    for seed in range(4):
-        pool.push(fresh_agent(seed))
-    beaten, unbeaten, unplayed = pool.members[0], pool.members[1], pool.members[2]
-    for _ in range(10):
-        pool.report(beaten, 1)     # learner always wins  -> x = 1
-        pool.report(unbeaten, -1)  # learner always loses -> x = 0
-    pool.refresh()
-    rng = np.random.default_rng(0)
-    counts = {id(m): 0 for m in pool.members}
-    for _ in range(5000):
-        counts[id(pool.select(rng))] += 1
-    assert counts[id(beaten)] == 0
-    assert 0.77 <= counts[id(unbeaten)] / 5000 <= 0.83
-    assert 0.17 <= counts[id(unplayed)] / 5000 <= 0.23
 
 
-def test_pfsp_all_beaten_falls_back_to_uniform():
-    """Every historical member at x=1 collapses every weight to 0; the
-    draw must fall back to uniform rather than divide by zero."""
-    pool = SnapshotPool(8, 0.0, pfsp_power=2.0)
-    for seed in range(4):
-        pool.push(fresh_agent(seed))
-    for member in pool.members[:-1]:
-        for _ in range(5):
-            pool.report(member, 1)
-    pool.refresh()
-    rng = np.random.default_rng(0)
-    counts = {id(m): 0 for m in pool.members[:-1]}
-    for _ in range(3000):
-        counts[id(pool.select(rng))] += 1
-    assert all(0.28 <= c / 3000 <= 0.39 for c in counts.values())
-
-
-def test_pfsp_weights_are_fixed_until_the_next_refresh():
-    """The rollout-boundary invariant: counts reported after a refresh()
-    must not move the draw until the NEXT refresh — within a rollout the
-    opponent distribution is fixed, which is what PPO's importance ratios
-    require (the same invariant that pins the push cadence)."""
-    pool = SnapshotPool(8, 0.0, pfsp_power=2.0)
-    for seed in range(3):
-        pool.push(fresh_agent(seed))
-    dormant, active = pool.members[0], pool.members[1]
-    for _ in range(10):
-        pool.report(dormant, 1)   # x = 1 -> weight 0
-        pool.report(active, -1)   # x = 0 -> weight 1
-    pool.refresh()
-    rng = np.random.default_rng(0)
-    for _ in range(300):
-        assert pool.select(rng) is active
-    # New results arrive mid-rollout: the learner starts losing to the
-    # dormant member. Until refresh(), the draw must not notice.
-    for _ in range(30):
-        pool.report(dormant, -1)
-    for _ in range(300):
-        assert pool.select(rng) is active
-    pool.refresh()  # the next rollout boundary
-    draws = sum(pool.select(rng) is dormant for _ in range(500))
-    assert draws > 50
-
-
-def test_fixed_mix_routes_its_fraction_to_the_anchors():
-    pool = SnapshotPool(8, 0.8, fixed_mix=0.2)
-    for seed in range(3):
-        pool.push(fresh_agent(seed))
-    rng = np.random.default_rng(0)
-    picks = [pool.select(rng) for _ in range(5000)]
-    fixed = [p for p in picks if isinstance(p, (RandomOpponent, HeuristicOpponent))]
-    assert 0.17 <= len(fixed) / 5000 <= 0.23
-    randoms = sum(isinstance(p, RandomOpponent) for p in fixed)
-    assert 0.35 <= randoms / len(fixed) <= 0.65  # 50/50 between the two anchors
 
 
 def test_report_ignores_opponents_that_are_not_members():
@@ -388,25 +310,6 @@ def test_env_reports_every_terminal_outcome_to_the_pool():
     assert sum(stat[0] for stat in pool.stats) == pytest.approx(expected)
     assert expected != len(outcomes) / 2  # the ledger must be sign-sensitive
 
-
-def test_pool_with_levers_plays_full_games_through_the_env():
-    """Both levers on at once, driven through the real env: fixed-mix
-    episodes hand the board to a rule-based anchor whose fallback draws
-    from the env stream, PFSP draws consult the snapshot weights — and
-    every episode must still complete with a legal game and an outcome."""
-    pool = SnapshotPool(4, 0.5, pfsp_power=2.0, fixed_mix=0.3)
-    pool.push(fresh_agent(0))
-    pool.push(fresh_agent(1))
-    pool.refresh()
-    env = Connect4Env(opponent=pool)
-    rng = np.random.default_rng(0)
-    for episode in range(15):
-        obs, info = env.reset(seed=episode)
-        done = False
-        while not done:
-            legal = np.flatnonzero(info["action_mask"])
-            obs, _, done, _, info = env.step(int(rng.choice(legal)))
-        assert info["outcome"] in (-1, 0, 1)
 
 
 # ------------------------------------------------------- through the env

@@ -161,9 +161,9 @@ def _orthogonal_init(net: nn.Module, head_gain: float) -> None:
 
     Iterates `net.modules()` rather than the module itself: ConvQNet is not a
     Sequential, so `for m in net` raises TypeError. Module order puts the
-    head last for both nets — which is also why ConvQNet's dueling flag must
-    stay off here: with dueling the last Linear in module order is
-    `advantage`, so `value` would silently take the head gain.
+    head last for both nets. (ConvQNet's old dueling flag would have broken
+    that premise — `advantage` last, `value` silently taking the head gain —
+    which is one reason it was removed, CLEANUP A4 2026-08-29.)
     """
     layers = [m for m in net.modules() if isinstance(m, (nn.Linear, nn.Conv2d))]
     for layer in layers:
@@ -376,9 +376,9 @@ class PPOAgent(Agent):
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
         if self.obs_rank == 3:
-            # Rank-3 obs (MinAtar planes) select the conv net — DQN's rule, no
-            # config key. ConvQNet hardcodes ReLU, which is what every conv-PPO
-            # reference uses; dueling stays off (see _orthogonal_init).
+            # Rank-3 obs (binary planes, today only Connect 4's) select the
+            # conv net — DQN's rule, no config key. ConvQNet hardcodes ReLU,
+            # which is what every conv-PPO reference uses.
             # kernel_size default 3 is the value every existing config ran;
             # 4 is Phase 4's pre-registered receptive-field probe arm.
             def build(out_dim: int) -> nn.Module:

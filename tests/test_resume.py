@@ -54,12 +54,11 @@ class _TinyAgent:
 
 
 def test_pool_state_roundtrip():
-    pool = SnapshotPool(pool_size=3, latest_prob=0.8, pfsp_power=1.0)
+    pool = SnapshotPool(pool_size=3, latest_prob=0.8)
     for i in range(4):  # 4 pushes into size 3 -> one eviction exercised
         pool.push(_TinyAgent(seed=i))
     pool.stats[0][:] = [2.0, 4]
     pool.stats[-1][:] = [1.0, 2]
-    pool.refresh()
     # consume some generator draws so restored streams differ from fresh
     rng = np.random.default_rng(0)
     obs, mask = np.zeros(4, dtype=np.float32), np.ones(3, dtype=bool)
@@ -67,7 +66,7 @@ def test_pool_state_roundtrip():
         pool.select(rng).move(obs, mask, rng)
 
     state = pool.state_dict()
-    restored = SnapshotPool(pool_size=3, latest_prob=0.8, pfsp_power=1.0)
+    restored = SnapshotPool(pool_size=3, latest_prob=0.8)
     restored.load_state_dict(copy.deepcopy(state), agent_factory=_TinyAgent)
 
     assert restored.push_ids == pool.push_ids
