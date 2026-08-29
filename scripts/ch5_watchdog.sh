@@ -18,8 +18,11 @@ OUT="results/ch5_r1_offsh"
 LOG="$OUT/watchdog.log"
 POLL="${POLL:-60}"
 
-# 60 / s_per_battle, from wave_plan.expected_winners_per_min
-ref_for() { case "$1" in b*) echo 22.4 ;; ce7) echo 34.9 ;; ce3) echo 38.5 ;; c0) echo 37.5 ;; *) echo 40.4 ;; esac; }
+# 60 / s_per_battle, from wave_plan.expected_winners_per_min.
+# rs*) added 2026-08-29 (REPO_CLEANUP item 8): search arms realize ~20.6/min;
+# without the case they fell to the 40.4 greedy reference and a HEALTHY
+# search arm read ~51% -> false alert. r9 patched the wave runner only.
+ref_for() { case "$1" in rs*) echo 20.6 ;; b*) echo 22.4 ;; ce7) echo 34.9 ;; ce3) echo 38.5 ;; c0) echo 37.5 ;; *) echo 40.4 ;; esac; }
 
 say() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" >> "$LOG"; }
 
