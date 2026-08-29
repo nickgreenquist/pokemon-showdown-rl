@@ -87,11 +87,17 @@ The number the story ends on.
 
 Decide before launching whether the laddered object is greedy or searched. Depth-1 expectation search is currently deployed, so this is a live choice, not a default. It determines what the depth experiment below is measuring — the object we shipped, or one we didn't. This is the policy-form scope question that has been open since R2; step 11 is where it stops being deferrable.
 
-### 11.5  Depth-1 vs depth-2, on the strongest gen1 object we have.
+### 11.5  Depth-1 vs depth-2, on the strongest gen1 object we have
 
 Why here and not earlier: if search substitutes for a deficient value head, the honest test is against our best critic, after the special sauce and the massive train. A large depth gain here means search depth genuinely pays even with a good value function. A small one means full MCTS is not worth building.
 
 **This gates the gen9 search decision.** It also feeds step 12 directly — "search's contribution declines as the policy improves" is a finding, and it is one only a multi-checkpoint study can make.
+
+**Exit condition: one comparison, then the chapter closes.** Depth-2 credits over depth-1 iff the pooled delta clears the standing credit line. Report decisions/sec for both arms — a gain that costs 5× is a different finding than the same gain at 1.5×.
+
+Credits at acceptable cost → build MCTS in gen9. Doesn't credit → the MCTS question closes permanently; write up the substitution result and move on.
+
+No depth-3. If depth-2 is ambiguous, that is the answer.
 
 ### 12. Wrap the story
 Novelty (gen1), validation (gen4), and the transfer result. Three points on a complexity curve, and a recipe developed where it could be seen and tested where it couldn't.
