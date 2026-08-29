@@ -257,9 +257,46 @@ def main():
               else f"| {lbl} | {c['n']} | {c['w']} | {c['rate']:.3f} | "
                    f"{c['turns']:.1f} | — | — |")
     A("\n**Read the opponent-rating columns before the win-rate columns.**")
+    # GATED ON THE OBSERVED SIGN, for the same reason the websocket block
+    # below is gated on the label: a disclosure that attaches itself to the
+    # wrong run is worse than no disclosure. This prose used to end
+    # "...so a lower rematch win rate is predicted with zero memorisation"
+    # UNCONDITIONALLY. It was written for R1, where the rematch rate really
+    # was lower (0.356 vs 0.525). R3's is HIGHER (0.548 vs 0.517), so in
+    # R3's committed readout that sentence sat directly under a table
+    # showing the opposite. The confound itself is the POINT of the cell and
+    # is stated in BOTH branches -- only the claim about which way this
+    # run's numbers came out is conditional.
     A("Rematches are rating-matched by construction — opponents met twice skew")
-    A("stronger — so a lower rematch win rate is predicted with zero")
-    A("memorisation. This cell is descriptive and attaches to no lever.\n")
+    A("stronger, and the opponent-Elo columns above are where you check that —")
+    A("so the two cells are NOT like-for-like, and a lower rematch win rate is")
+    A("predicted by the confound alone, with zero memorisation.")
+    if fc and rc:
+        d = rc["rate"] - fc["rate"]
+        both_opp = fc["opp_mean"] is not None and rc["opp_mean"] is not None
+        pool = (f" (opp Elo mean {rc['opp_mean']:.0f} vs {fc['opp_mean']:.0f})"
+                if both_opp else "")
+        if d < 0:
+            A(f"**This run came out that way:** rematch {rc['rate']:.3f} "
+              f"(n={rc['n']}) vs first encounter {fc['rate']:.3f} "
+              f"(n={fc['n']}){pool},")
+            A(f"a gap of {d:+.3f} in exactly the direction the confound alone")
+            A("predicts. It is evidence of nothing beyond the confound.")
+        elif d > 0:
+            A(f"**This run came out the OTHER way:** rematch {rc['rate']:.3f} "
+              f"(n={rc['n']}) vs first encounter {fc['rate']:.3f} "
+              f"(n={fc['n']}),")
+            A(f"i.e. {d:+.3f} AGAINST the stronger pool{pool}. The confound")
+            A("predicts the opposite sign, so it cannot explain this cell")
+            A("away — and the cell is nowhere near powered to establish the")
+            A("reverse either. Do not read it as opponents failing to adapt,")
+            A("and do not read it as us adapting.")
+        else:
+            A(f"**This run split it exactly:** both cells at "
+              f"{fc['rate']:.3f} (n={fc['n']} vs {rc['n']}){pool}, so the")
+            A("confound's predicted gap did not show up. Underpowered either")
+            A("way; read nothing into the tie.")
+    A("This cell is descriptive and attaches to no lever.\n")
     # ---------------- obligation (iv): THE BAND TABLE ----------------
     cells = collections.OrderedDict((lbl, []) for lbl, _, _ in BANDS)
     cells[UNKNOWN] = []
@@ -306,9 +343,18 @@ def main():
         A(f"Aggregate implied true rating (all {len(agg_opp)} rated-opponent "
           f"battles, mean opp Elo {statistics.mean(agg_opp):.0f}): "
           f"**{agg_imp:.0f}**.\n")
+    # The "n = 28-47" here was hardcoded from R1's PRE-BI-4 band table and
+    # then carried into R3's readout unchanged, so it described neither
+    # table it was printed under (R1 corrected is 28-49, R3 is 20-59). Same
+    # defect class as the rematch prose above: read it off the table
+    # directly overhead. Empty bands are excluded -- "n = 0-59 per band"
+    # would understate the cells that exist.
+    band_ns = [len(cells[lbl]) for lbl, _, _ in BANDS if cells[lbl]]
+    span = (f"{min(band_ns)}-{max(band_ns)}" if len(set(band_ns)) > 1
+            else (f"{band_ns[0]}" if band_ns else "the n shown above"))
     A("**CAVEAT, carried verbatim from R1: the per-band implied rating trends")
     A("UPWARD with opponent strength.** That is either logistic")
-    A("mis-specification or a real effect, and at n = 28-47 per band this repo")
+    A(f"mis-specification or a real effect, and at n = {span} per band this repo")
     A("declines to resolve it. **Only the [1300,1400) cell is a licensed")
     A("comparison, it is one-sided upward against ~0.50, and NO THRESHOLD")
     A("ATTACHES TO IT — 2*se_diff at matched n is ~0.195, about twenty points")

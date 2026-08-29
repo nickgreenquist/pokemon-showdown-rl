@@ -11,7 +11,7 @@ against those artifacts.
 - Profile reachable: **True**
 - Board reachable: **True**
 - Listed on the top-500: **False**
-- Top-500 admission cutoff: Elo **1359.9773318825**
+- Top-500 admission cutoff: Elo **1359.0884124340625**
 
 **PRIMARY READ (server-computed, via profile):** GXE **60.3%**, Glicko-1 **1579 +/- 25**, Elo **1232**, record **106-102**.
 Quoted WITH n, WITH the policy kind and WITH the board position,
@@ -58,8 +58,16 @@ rating is one battle later and comes from the profile, not here.
 
 **Read the opponent-rating columns before the win-rate columns.**
 Rematches are rating-matched by construction — opponents met twice skew
-stronger — so a lower rematch win rate is predicted with zero
-memorisation. This cell is descriptive and attaches to no lever.
+stronger, and the opponent-Elo columns above are where you check that —
+so the two cells are NOT like-for-like, and a lower rematch win rate is
+predicted by the confound alone, with zero memorisation.
+**This run came out the OTHER way:** rematch 0.548 (n=84) vs first encounter 0.517 (n=116),
+i.e. +0.030 AGAINST the stronger pool (opp Elo mean 1240 vs 1173). The confound
+predicts the opposite sign, so it cannot explain this cell
+away — and the cell is nowhere near powered to establish the
+reverse either. Do not read it as opponents failing to adapt,
+and do not read it as us adapting.
+This cell is descriptive and attaches to no lever.
 
 ## Obligation (iv) — the band table (BI-4)
 
@@ -83,7 +91,7 @@ Aggregate implied true rating (all 200 rated-opponent battles, mean opp Elo 1201
 
 **CAVEAT, carried verbatim from R1: the per-band implied rating trends
 UPWARD with opponent strength.** That is either logistic
-mis-specification or a real effect, and at n = 28-47 per band this repo
+mis-specification or a real effect, and at n = 20-59 per band this repo
 declines to resolve it. **Only the [1300,1400) cell is a licensed
 comparison, it is one-sided upward against ~0.50, and NO THRESHOLD
 ATTACHES TO IT — 2*se_diff at matched n is ~0.195, about twenty points

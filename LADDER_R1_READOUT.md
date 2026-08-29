@@ -8,35 +8,21 @@ against those artifacts.
 
 ## Status of the primary read
 
+- Profile reachable: **True**
 - Board reachable: **True**
 - Listed on the top-500: **False**
-- Top-500 admission cutoff: Elo **1357.219009199**
+- Top-500 admission cutoff: Elo **1359.0884124340625**
 
-**CORRECTED 2026-08-26: GXE AND GLICKO EXIST, AND THE PRIMARY READ IS
-MEASURED. GXE 59.6%, Glicko-1 1573 +/- 27, final Elo 1292.** The claim
-below was WRONG and is kept so the error is visible rather than
-silently overwritten: Showdown does NOT publish them "only for listed
-accounts". The top-500 leaderboard JSON that this run's tooling polled
-contains only listed accounts, but the **USER PROFILE**
-(`https://pokemonshowdown.com/users/nickgen1rbrlbot`) carries GXE and
-Glicko for any rated account. The tooling checked the wrong endpoint and
-concluded the read did not exist; it existed throughout.
-**THE STOPPING RULE WAS THEREFORE SATISFIED, not merely un-evaluated:**
-`rd <= 40 AND n >= 200` is met at rd 27, n 200. `stopped_by_rule: false`
-in `results/ladder/L2.report.json` is an artifact of not being able to
-read rd, not a statement that the rule failed.
-**AND THE FINAL ELO IS 1292, NOT 1311.** `L2.battles.jsonl`'s `rating`
-field is the PRE-BATTLE rating — verified on 195/195 consecutive pairs,
-where sign(rating[i+1] - rating[i]) matches outcome[i] every time. The
-last rated battle was a LOSS at pre-battle 1311, and the median loss
-delta is -19, giving 1292 — which is exactly what the profile reads.
-Every "Elo 1311" in this repo was the second-to-last rating.
-SUPERSEDED TEXT FOLLOWS.
-**GXE AND GLICKO ARE UNMEASURED.** Showdown publishes them only for
-listed accounts. The pre-registered primary read therefore does not
-exist for this run, and no GXE may be quoted or projected. The run
-stopped at the pre-registered n floor, NOT by the stopping rule
-(`rd <= 40 AND n >= 200` also requires being listed).
+**PRIMARY READ (server-computed, via profile):** GXE **59.6%**, Glicko-1 **1573 +/- 27**, Elo **1292**, record **95-105**.
+Quoted WITH n, WITH the policy kind and WITH the board position,
+exactly as pre-registered. DESCRIPTIVE — the ladder credits no
+lever, and being unlisted is a fact about the board, not about
+whether this rating exists.
+
+- Stopping rule (`rd <= 40 AND n >= 200`): **SATISFIED** at rd 26.6, n 200.
+  (R1's `L2.report.json` says `stopped_by_rule: false`. That is an
+  ARTIFACT of the runner reading rd off the leaderboard it was not
+  on — not a statement that the rule failed. Fixed 2026-08-27.)
 
 ## Headline (all DESCRIPTIVE — the ladder credits no lever)
 
@@ -45,8 +31,9 @@ stopped at the pre-registered n floor, NOT by the stopping rule
 | rated battles | 200 |
 | record | 95–105 (**0.475**) |
 | played-only (ratified cut, excludes no-shows) | 91/196 (**0.464**) |
-| PS Elo, final | **1311** |
-| PS Elo, peak | 1348 |
+| PS Elo, final (profile, authoritative) | **1292** |
+| PS Elo, last PRE-battle value | 1311 |
+| PS Elo, highest observed (pre-battle) | 1348 |
 | PS Elo, start | 1000 |
 | distinct opponents | 141 |
 | mean turns | 25.9 |
@@ -57,7 +44,10 @@ poke-env recorded a rating on **198/200** battles; the replays
 carry the server's true value on **200/200**. The replays are
 authoritative and the JSONL column is advisory, exactly as pre-registered.
 
-Elo by battle index (every 10): 1000 → 1150 → 1321 → 1308 → 1281 → 1194 → 1199 → 1172 → 1136 → 1159 → 1179 → 1149 → 1154 → 1097 → 1164 → 1063 → 1074 → 1209 → 1273 → 1308
+PRE-battle Elo by battle index (every 10): 1000 → 1150 → 1321 → 1308 → 1281 → 1194 → 1199 → 1172 → 1136 → 1159 → 1179 → 1149 → 1154 → 1097 → 1164 → 1063 → 1074 → 1209 → 1273 → 1308
+
+Every value above is the rating going INTO that battle. The final
+rating is one battle later and comes from the profile, not here.
 
 ## Obligation (ii) — the rematch cell
 
@@ -68,8 +58,84 @@ Elo by battle index (every 10): 1000 → 1150 → 1321 → 1308 → 1281 → 119
 
 **Read the opponent-rating columns before the win-rate columns.**
 Rematches are rating-matched by construction — opponents met twice skew
-stronger — so a lower rematch win rate is predicted with zero
-memorisation. This cell is descriptive and attaches to no lever.
+stronger, and the opponent-Elo columns above are where you check that —
+so the two cells are NOT like-for-like, and a lower rematch win rate is
+predicted by the confound alone, with zero memorisation.
+**This run came out that way:** rematch 0.356 (n=59) vs first encounter 0.525 (n=141) (opp Elo mean 1311 vs 1198),
+a gap of -0.169 in exactly the direction the confound alone
+predicts. It is evidence of nothing beyond the confound.
+This cell is descriptive and attaches to no lever.
+
+## Obligation (iv) — the band table (BI-4)
+
+Opponent Elo comes from the replay `|player|` lines, **never** the
+JSONL's advisory `opponent_rating` column — building R1's table from
+that column is what silently dropped six of its 200 battles. Bands are
+half-open, exhaustive, and the sum is ASSERTED against n.
+
+| band | n | W | win rate | binom se | opp Elo mean | opp Elo med | implied true rating | R1 (n, rate) |
+|---|---|---|---|---|---|---|---|---|
+| <1100 | 49 | 34 | 0.694 | 0.066 | 1029 | 1000 | 1171 | 49, 0.694 |
+| 1100-1199 | 44 | 21 | 0.477 | 0.075 | 1163 | 1170 | 1147 | 44, 0.477 |
+| 1200-1299 | 28 | 13 | 0.464 | 0.094 | 1242 | 1237 | 1217 | 28, 0.464 |
+| 1300-1399 | 47 | 15 | 0.319 | 0.068 | 1359 | 1364 | 1227 | 47, 0.319 |
+| >=1400 | 32 | 12 | 0.375 | 0.086 | 1440 | 1430 | 1351 | 32, 0.375 |
+| unrated_or_unknown | 0 | — | — | — | — | — | — | —, — |
+
+**Cells sum to 200 = n. Asserted, not eyeballed.**
+
+Aggregate implied true rating (all 200 rated-opponent battles, mean opp Elo 1231): **1214**.
+
+**CAVEAT, carried verbatim from R1: the per-band implied rating trends
+UPWARD with opponent strength.** That is either logistic
+mis-specification or a real effect, and at n = 28-49 per band this repo
+declines to resolve it. **Only the [1300,1400) cell is a licensed
+comparison, it is one-sided upward against ~0.50, and NO THRESHOLD
+ATTACHES TO IT — 2*se_diff at matched n is ~0.195, about twenty points
+of win rate, so this cell can only resolve differences nobody would
+need statistics to see.**
+
+## Obligation (v) — opponent-pool overlap and the behavioural channel
+
+Compared against `results/ladder/R3S.battles.jsonl` (116 distinct opponents).
+
+| cell | n | W | win rate |
+|---|---|---|---|
+| opponents ALSO faced in the other run | 43 | 16 | 0.372 |
+| opponents faced only in this run | 157 | 79 | 0.503 |
+
+Distinct-opponent intersection: **24**.
+
+Game categories beside R1's:
+
+| category | this run | R1 |
+|---|---|---|
+| forfeit | 29 | 29 |
+| played_out | 161 | 161 |
+| no_show | 4 | 4 |
+| timeout_midgame | 6 | 6 |
+
+Forfeit rate **0.145** vs R1's **0.145**.
+**If these differ materially that is a candidate explanation for a
+rating difference having NOTHING to do with the object**, and it is
+named here in advance so it cannot be discovered later as a convenient
+excuse. Descriptive; attaches to no lever.
+
+## Obligation (vi) — seconds per battle
+
+- whole-run mean of `finished_at` deltas: **246.5** s
+- MEDIAN (robust to outage gaps): **230.0** s
+- median excluding gaps > 900 s (n=198 of 199): **229.5** s
+
+**Never `wall_clock_sec / battles_total`** — those have different
+scopes (session vs cumulative) and that division is the origin of
+the wrong '217 s/battle' this repo quoted for R1. The true R1 value
+is 246.5.
+
+Mean turns **25.9**, against R1's **25.9** and the **36.824**
+measured off Foul Play@20, with the 0.944 (proxy -> ladder)
+calibration that predicted ~34.8. This is the only new OBSERVABLE
+this run buys beyond a rating.
 
 ## Obligation (iii) — played games vs non-games
 
@@ -80,3 +146,58 @@ Categories: `{'forfeit': 29, 'played_out': 161, 'no_show': 4, 'timeout_midgame':
   (a no-show — opponent submitted zero moves — is not a game; a forfeit
   or a mid-game timeout IS a win, per the 2026-08-25 amendment)
 
+
+---
+
+## Appendix — hand-written history (NOT generated; preserved 2026-08-28)
+
+**Everything above this line was REGENERATED on 2026-08-28** by
+`scripts/ladder_readout.py` at its current revision, from
+`results/ladder/L2.battles.jsonl` and `results/ladder/replays`. Why it had
+to be: the previously committed body was produced before three fixes to
+the generator, and it had gone self-contradicting. Its headline table read
+`PS Elo, final | 1311` while the correction block reproduced below — added
+by hand, ~15 lines above that table — said the final was 1292. It also
+promised the file was "reproducible by re-running that script", which by
+then was false. Regeneration makes that promise true again, replaces 1311
+with 1292 in the headline (1311 is now labelled as what it is, the last
+PRE-battle value), and gives R1's BI-4-corrected band cells their first
+committed provenance — until now they existed only as README prose.
+
+Nothing below is emitted by the generator. It is kept verbatim so the
+error and its correction stay visible rather than being silently
+overwritten, and so a future regeneration knows to re-attach it. **If you
+regenerate this file again, preserve this appendix.**
+
+### Correction block, as written 2026-08-26
+
+> **CORRECTED 2026-08-26: GXE AND GLICKO EXIST, AND THE PRIMARY READ IS
+> MEASURED. GXE 59.6%, Glicko-1 1573 +/- 27, final Elo 1292.** The claim
+> below was WRONG and is kept so the error is visible rather than
+> silently overwritten: Showdown does NOT publish them "only for listed
+> accounts". The top-500 leaderboard JSON that this run's tooling polled
+> contains only listed accounts, but the **USER PROFILE**
+> (`https://pokemonshowdown.com/users/nickgen1rbrlbot`) carries GXE and
+> Glicko for any rated account. The tooling checked the wrong endpoint and
+> concluded the read did not exist; it existed throughout.
+> **THE STOPPING RULE WAS THEREFORE SATISFIED, not merely un-evaluated:**
+> `rd <= 40 AND n >= 200` is met at rd 27, n 200. `stopped_by_rule: false`
+> in `results/ladder/L2.report.json` is an artifact of not being able to
+> read rd, not a statement that the rule failed.
+> **AND THE FINAL ELO IS 1292, NOT 1311.** `L2.battles.jsonl`'s `rating`
+> field is the PRE-BATTLE rating — verified on 195/195 consecutive pairs,
+> where sign(rating[i+1] - rating[i]) matches outcome[i] every time. The
+> last rated battle was a LOSS at pre-battle 1311, and the median loss
+> delta is -19, giving 1292 — which is exactly what the profile reads.
+> Every "Elo 1311" in this repo was the second-to-last rating.
+
+### SUPERSEDED TEXT FOLLOWS
+
+The paragraph below is the original, WRONG "Status of the primary read"
+conclusion. It is false. It is retained only as the record of the error.
+
+> **GXE AND GLICKO ARE UNMEASURED.** Showdown publishes them only for
+> listed accounts. The pre-registered primary read therefore does not
+> exist for this run, and no GXE may be quoted or projected. The run
+> stopped at the pre-registered n floor, NOT by the stopping rule
+> (`rd <= 40 AND n >= 200` also requires being listed).
