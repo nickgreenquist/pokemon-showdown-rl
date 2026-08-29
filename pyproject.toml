@@ -20,8 +20,6 @@ dependencies = [
     "wandb==0.28.1",       # default logger (offline by default)
     "tensorboard==2.21.0", # offline fallback logger
     "pyyaml==6.0.3",
-    # Imported directly by scripts/record.py (frame annotation + GIF encode).
-    "pillow==12.3.0",
     # --- Inherited from the predecessor repo (deep-rl-from-scratch) ---
     # Spine pruned 2026-08-05, and again 2026-08-29 (maintainer-ruled,
     # CLEANUP A3): MinAtar and the continuous-PPO track retired — Arm C is

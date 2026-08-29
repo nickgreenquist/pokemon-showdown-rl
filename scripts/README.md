@@ -205,8 +205,9 @@ counts drift by design — vendored copies, not new instruments.)
 
 - `play_vs_agent.py` — human-play toy. Its own docstring: "nothing here
   writes to `results/`". Zero references, no number depends on it.
-- `record.py` — MinAtar GIF renderer; this repo has been Showdown-only since
-  Phase 5. It is the sole reason `imageio` is pinned in `pyproject.toml`.
+- ~~`record.py`~~ — **DELETED 2026-08-29 with the MinAtar spine (CLEANUP
+  A3/B7):** a MinAtar-era GIF renderer whose default input was the (also
+  deleted) best_checkpoint.pt; the `pillow` pin went with it.
 
 ## One true duplicate
 
