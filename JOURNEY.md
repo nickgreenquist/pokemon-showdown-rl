@@ -114,5 +114,6 @@ If we only ever get two generations, make them gen1 and gen9 — trade the clean
 ## Standing notes
 
 - **The binding constraint is not time.** It is that gen1 measurements are currently uninterpretable at k=3 with σ_seed ≈ 0.062 against a 0.072 bar. Every sequencing decision above follows from that.
+- **"Ladder" always means ladder + Foul Play**: Any checkpoint good enough to ladder gets a full FP head-to-head at pinned settings in the same pass. FP is the incumbent and the reproducible one; the ladder is legibility. Pinned before the first run: FP time budget, engine + poke-engine commit, sample size, and greedy-vs-searched on our side. Unpinned FP numbers are incomparable to each other.
 - **Weights never transfer between generations** — only recipe. Wang tried a bootstrapping variant and reported no significant improvement (§5.1.3); H&L's specialized agent won 77/500 against its own predecessor after a short fine-tune. Mechanics differ too much and the observation space changes anyway.
 - **Gen 5+ introduces team preview**, which *removes* the hidden-team problem. Gens 1–4 keep it. Worth stating in any writeup that gen1 is harder than gen9 on partial observability even as gen9 is harder on mechanics.
