@@ -805,12 +805,215 @@ has been rated against humans **twice** on the real board (§16). What
 remains open now lives in `STATUS.md` and the newest `SESSION_LOGS.md` entry, which are the
 authoritative "what next"; this file is the account, not the queue.
 
-## 16. The ladder — PLACEHOLDER, chapter deferred
+## 16. The ladder — two descriptive measurements against humans
 
-**This section is a stub, deliberately.** RESULTS.md is designated the account of record and
-it has no ladder chapter yet; writing one (R1 + R3 + the D5 non-comparability ruling + the
-corrected band tables + the ops disclosures) is deferred to a session with the maintainer.
-Until then the committed provenance is
-[`LADDER_R3_READOUT.md`](LADDER_R3_READOUT.md) and
-[`LADDER_R1_READOUT.md`](LADDER_R1_READOUT.md) — `results/ladder/` is gitignored, so those
-two files are the only copies in git — with current state in `STATUS.md`.
+Every other number in this file comes from an opponent we control: SH, Foul Play, or our
+own behaviour clone of Foul Play. The public `gen1randombattle` ladder is the only place
+this agent has been measured against people, and it has been run twice — **LADDER R1**
+(`configs/eval/ladder_r1.yaml`, played 2026-08-25/26) and **LADDER R3**
+(`configs/eval/ladder_r3.yaml`, played 2026-08-27/28) — 200 rated battles each, two
+registered accounts, one arm apiece. **Why: legibility, not proof.** The novelty claim in
+§1–§2 is banked by the local benchmarks under the locked protocol; nothing on the ladder
+adds to it or subtracts from it. What a ladder run buys is a number a Pokémon player can
+read — a GXE and a Glicko — for an agent whose other numbers only mean something inside
+this repo.
+
+**A ladder run credits nothing, and calling a ladder number "credited" is a category error
+in this repo's vocabulary.** The credit line (quoted verbatim in §15) is an A/B instrument:
+a ladder run has no A/B, no control arm, no comparator and no se_diff for it to operate on.
+Both runs are DESCRIPTIVE by pre-registration, decided before either launched.
+
+**GXE and the raw record are different quantities, and neither may be quoted without n.**
+GXE is the server's opponent-adjusted estimate; the raw W–L is what happened against
+whoever matchmaking supplied. Both are reported below and they are not interchangeable.
+And the old "SH parity ≈ 40% GXE" conversion is **RETIRED** (§15): no ladder number may be
+projected from a vs-SH number, or a vs-SH number from a ladder number, in either direction.
+
+### 16.1 LADDER R1 — the four-lane ensemble
+
+**Design, pre-registered before a rated battle was played.** One arm, no A/B: **L2**, a
+4-lane ensemble over the 12M lanes s62–s65, deterministic. Primary read: the
+server-computed GXE and Glicko-1 at the stopping rule, quoted with n, with the policy kind
+and with the board position. Stopping rule: **rd ≤ 40 AND n ≥ 200**. The maintainer's
+initial lean was the search arm; the recommendation against it was accepted on the record,
+because search was worse on both off-SH opponents then measured and the ladder is off-SH.
+
+**PRIMARY READ (server-computed, off the user profile): GXE 59.6%, Glicko-1 1573 ± 27,
+final Elo 1292, record 95–105, at n = 200.** Not listed on the top-500. Secondary and
+descriptive: raw win rate 0.475, played-only under the ratified cut 91/196 = 0.464, highest
+observed pre-battle Elo 1348, 141 distinct opponents, mean turns 25.9, mean decision 6.74
+ms, 230.0 s/battle (median of `finished_at` deltas; whole-run mean 246.5).
+
+**Stopping rule: SATISFIED, at rd 26.6 and n 200.** The run's own
+`results/ladder/L2.report.json` says `stopped_by_rule: false`; that is an artifact of the
+runner reading rd off a leaderboard the account was not on, not a statement that the rule
+failed. Fixed 2026-08-27.
+
+**Two corrections to R1, content rather than footnotes, with one root cause.** poke-env's
+per-battle `rating` column in the JSONL is sporadically lost and is ADVISORY; the saved
+replays carry the server's true values on 200/200 and are authoritative. That was known
+and pre-registered as a readout obligation, and it was still got wrong twice.
+
+1. **The band table.** The published cells were built from the JSONL's advisory
+   `opponent_rating` column, present on only 194 of 200 battles, so the published table
+   **summed to 194, not 200** — a silent unnamed cell in an analysis whose pre-reg required
+   exhaustiveness. BI-4 rebuilt it from the replays with `sum(cell n) == n` asserted, and
+   the six recovered battles move the cells, including the only licensed one:
+   **[1300,1400) was published as 0.340; the replay-built value is 0.319.**
+2. **The final Elo.** `L2.battles.jsonl`'s `rating` field is the **pre-battle** rating,
+   verified on 195/195 consecutive pairs. The last rated battle was a loss entered at
+   1311, so **1311 was the second-to-last value; the final is 1292**, which is what the
+   profile reads. Every "Elo 1311" this repo quoted for two days was that off-by-one.
+
+**R1 band table (BI-4, replay-built, corrected 2026-08-28):**
+
+| band | n | W | win rate | binom se | opp Elo mean | implied true rating |
+|---|---|---|---|---|---|---|
+| <1100 | 49 | 34 | 0.694 | 0.066 | 1029 | 1171 |
+| 1100–1199 | 44 | 21 | 0.477 | 0.075 | 1163 | 1147 |
+| 1200–1299 | 28 | 13 | 0.464 | 0.094 | 1242 | 1217 |
+| 1300–1399 | 47 | 15 | 0.319 | 0.068 | 1359 | 1227 |
+| ≥1400 | 32 | 12 | 0.375 | 0.086 | 1440 | 1351 |
+| unrated_or_unknown | 0 | — | — | — | — | — |
+
+Cells sum to 200 = n, asserted. **Aggregate implied true rating over all 200 battles (mean
+opponent Elo 1231): 1214**, superseding the 1232 first published. (1232 also happens to be
+an unrelated R3 value below; the collision is numerical only and is not a comparison.)
+
+### 16.2 LADDER R3 — one-ply expectation search on a 50M lane
+
+**The object: search@M on lane s80** — a 50M-step pure-self-play lane with one-ply
+expectation (depth-1 matrix) search at inference. Dose M is frozen in `rl/search/matrix.py`
+(`n_det` 4, `top_branches` 6, `leaf_cap` 1296, `node_cap` 1500); checkpoint sha
+`8b6546e2…`, asserted before the seat connects. Same pre-registered shape as R1 — one arm,
+no A/B, primary read off the profile, stopping rule **rd ≤ 40 AND n ≥ 200** — run as one
+continuous unattended session to n = 200 (ruling D1). **How s80 was chosen, disclosed
+because it cuts against the flattering reading:** two 50M lanes tied exactly on the
+off-Foul-Play selection score (which is not publishable, Q6) and the tie went to the
+pre-registered orthogonal rule, highest banked vs-SH final. **s80 is NOT "the best 50M
+lane" and may not be described as one** — it is the lane a pre-committed tie-break named,
+and it is also the lane search helped least on off **Foul Play@20**.
+
+**PRIMARY READ (server-computed, off the user profile): GXE 60.3%, Glicko-1 1579 ± 25,
+final Elo 1232, record 106–102, at n = 200.** Not listed on the top-500. **Stopping rule:
+SATISFIED, at rd 25.4 and n 200.** Secondary and descriptive: the run's own 200-battle
+tally is 106–94 = 0.530 (see the record disclosure below), played-only under the ratified
+cut 100/194 = 0.515, highest observed pre-battle Elo 1383, 116 distinct opponents, mean
+turns 28.6, 218.0 s/battle (median; whole-run mean 277.5).
+
+**R3 band table (replay-built, exhaustive, `sum(cell n) == n` asserted):**
+
+| band | n | W | win rate | binom se | opp Elo mean | implied true rating |
+|---|---|---|---|---|---|---|
+| <1100 | 59 | 36 | 0.610 | 0.063 | 1038 | 1116 |
+| 1100–1199 | 45 | 28 | 0.622 | 0.072 | 1151 | 1238 |
+| 1200–1299 | 40 | 22 | 0.550 | 0.079 | 1250 | 1285 |
+| 1300–1399 | 36 | 16 | 0.444 | 0.083 | 1343 | 1304 |
+| ≥1400 | 20 | 4 | 0.200 | 0.089 | 1442 | 1201 |
+| unrated_or_unknown | 0 | — | — | — | — | — |
+
+Cells sum to 200 = n, asserted. **Aggregate implied true rating over all 200 battles (mean
+opponent Elo 1201): 1222.**
+
+**R3's disclosures, in the words the pre-reg requires:**
+
+- **The anchor battery is incomplete.** R3's object (search@M on s80) has **ONE of three
+  anchors: FP@20 only** — **no vs-SH at the locked protocol and no BC-clone h2h exists for
+  search on any 50M lane.** The Foul Play anchor is the **FP@20** figure recorded in §15
+  (arm RS80, n = 3000); the n = 1000 score that broke the lane tie is a selection score and
+  is not published. Two disclosures travel with every **FP@20** number, forever: the
+  equivalence test backing the 20 ms budget is weakly powered, and the point estimate has
+  FP@20 marginally weaker than FP@100 — the direction that flatters us.
+- **Real websocket disconnections occurred during this run, and R1 had none:** ten runner
+  launches across two supervisor generations, eight SIGKILL terminations of a socket-less
+  runner (seven caught by the watchdog) at n = 16, 72 (×3), 126, 138, 178 (×2), plus a
+  battle-10 crash predating the supervisor — all healed unattended. **So a
+  `timeout_midgame` here may be our socket dying rather than a human abandoning. That is a
+  different thing from R1's six and the two must not be pooled.** Categories: R3 forfeit
+  35 / played_out 140 / no_show 6 / timeout_midgame 19, against R1's 29 / 161 / 4 / 6.
+  Forfeit rate 0.175 against R1's 0.145 — named in advance as a candidate explanation for
+  a rating difference having nothing to do with either object.
+- **The profile and the JSONL disagree on the record, and the explanation is ours.** The
+  profile says 106–102 (208 rated games); the JSONL says 106–94 (200). The wins match
+  exactly; the eight extra server-side losses are battles in flight when our socket died —
+  the server timed the seat out and scored the loss, and the dead runner never logged the
+  battle. **The primary rating includes them; the 200-battle tally does not.** They are our
+  outages, not opponent behaviour.
+- **Two breaches of the result-blind protocol, stated rather than omitted.** A crash-resume
+  printed the live rating into the run log at battle 10, and the maintainer watched battle
+  200 live on the public board (a Hitmonchan Counter-vs-Counter mirror ending in an
+  opponent forfeit). Neither voids the read — the stopping rule is mechanical and cannot
+  fire before n = 200, and n = 199 was already complete in the second case.
+- **Opponent memory.** The two accounts share a stem, so opponents can link them, and 141
+  humans had already played 200 games against a bot from this project before R3 started.
+
+### 16.3 The two runs are not a before/after
+
+**Ruling D5, ratified 2026-08-27 as drafted and result-blind: R3 is a standalone
+descriptive measurement, and no R1-vs-R3 delta may be quoted as an effect, in either
+direction.** No arithmetic difference between R1's and R3's GXE, Glicko or Elo appears
+anywhere in this section, as a quantity or otherwise, and none may be added later.
+
+The reason is that **at least seven things moved between the two runs at once**: policy
+kind (4-lane ensemble → single lane + search@M), training scale (12M → 50M), training
+recipe (`recipe12m` → `stack50m_r2`), account (both fresh, so both ratings are
+path-dependent transients climbing from Elo 1000), calendar and opponent pool (a
+non-stationary board of ~93 players a day), opponent memory (above), and instrumentation.
+There is no control, no randomisation, no shared anchor, and k = 1 in every direction.
+**These are two measurements of two different objects at two different times on a
+non-stationary board.**
+
+The obvious bar — both runs report a Glicko RD, so combine them into an se_diff — was
+floated in design and **refused**: RD is a within-system posterior SD with no term for pool
+drift between runs; R1's own band analysis puts its rating well above its own equilibrium
+and still falling, so a bar built from two RDs is *anti-conservative* about the object's
+strength; and RD is a function of n, so two runs stopped at the same n share it by
+construction and such a bar mostly measures the stopping rule. What that costs is the
+interesting claim — **"search/50M is worth +N Elo on the real board" is not available at
+any n this design can buy, and it is given up rather than manufactured.** Whether search
+carries over to human opponents needs the deferred two-arm A/B; R3 answers it in neither
+direction, and a good R3 number does not reverse MU-8's z = −2.80 any more than a bad one
+would confirm it.
+
+One comparison is licensed and still descriptive: **the [1300,1400) cell, read one-sided
+upward against ~0.50** — the rate holding rank 500 requires, since rank 500 lives in that
+band. That is a question about the board, not about the other run. **No threshold attaches
+to it and none may be added later:** 2·se_diff at matched n is ~0.195, about twenty points
+of win rate, so the cell can only resolve differences nobody would need statistics to see,
+and its n is set by matchmaking rather than by us.
+
+### 16.4 What neither run establishes
+
+- **The per-band implied ratings trend upward with opponent strength** in both tables.
+  That is either logistic mis-specification or a real effect; at n = 20–59 per band this
+  repo declines to resolve it, and only the aggregate direction is asserted.
+- **Neither run is an attempt on the top-500, and being unlisted is a fact about the
+  board.** Admission is an **Elo threshold** — the top-500 pull taken with these readouts
+  put it at Elo ~1359 — it moves with field activity and must be re-pulled before quoting. Ranks 490–500 span a two-point Elo band while
+  their GXE spans 66–77%, which is why **there is no such thing as a GXE cutoff**. That
+  threshold is set by how hard the other 500 accounts are pushing on a thin format — 93
+  players in 24 h, 173 in 7 d, 277 in 30 d — so it measures the field's activity, not this
+  agent.
+- **Peak Elo is not a result.** A fresh account overshoots on the way up, and the reported
+  figure is the one at the stopping rule, from the profile. R1's highest observed
+  pre-battle value was 1348, nine points under the admission line at the time; it finished
+  at 1292 with an implied true rating of 1214.
+- **The remaining distance to the list is a model problem, not an operations problem.** The
+  expectation block, written result-blind, put the real distance at ~125 Elo against the
+  ~65 the displayed rating suggested; it was written against the pre-BI-4 implied 1232, and
+  the corrected 1214 does not make that distance smaller. Search bought +0.1010 within-lane
+  off **Foul Play@20** (that budget's two standing disclosures, above, travel with it);
+  there is no mapping from that to Elo and nothing here suggests it closes a gap of that
+  size. Breaking the top-500 is *a* goal, not the end goal.
+- **Never set a ladder number beside a vs-SH number.** The project's best vs-SH figure is
+  search@M on a *12M* lane (§15) — a different object, measured against a scripted
+  opponent — and s80's own banked vs-SH final is a *greedy* number. A ladder number is not
+  a vs-SH number and none in this section may be described as one.
+
+**Provenance.** `results/ladder/` is gitignored, so the JSONL and the replays exist only on
+disk and in mirrors. The committed provenance for every number above is
+[`LADDER_R1_READOUT.md`](LADDER_R1_READOUT.md) and
+[`LADDER_R3_READOUT.md`](LADDER_R3_READOUT.md), both regenerated by
+`scripts/ladder_readout.py` from those artifacts; the pre-registrations are
+`configs/eval/ladder_r1.yaml` and `configs/eval/ladder_r3.yaml`. Current state is in
+`STATUS.md`.
