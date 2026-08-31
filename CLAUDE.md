@@ -118,6 +118,20 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 - Concurrent lanes: distinct `--seed`s (rule 2).
 - Launcher liveness checks battle PROGRESS, not artifacts; lanes can SIGSEGV
   at startup before any log line — stagger and verify individually.
+- **A lane can STALL MID-RUN with the process ALIVE and ZERO CPU** — every
+  `pgrep` check passes forever (twice in R2, ~10 h apart, at 68.9% and
+  94.3%). Confirm in 15 s with CPU-time deltas (`ps -o time=` twice), not by
+  waiting on step counts; recover with `--resume runs/<dir>`.
+- **A resume SPLITS the wandb history** into two offline runs with
+  OVERLAPPING steps: `extract_history.py <run_dir>` then HARD-FAILS, and
+  merging means pre-resume rows `_step < from_step` + the whole post-resume
+  run. `checkpoint.pt` lags the last logged step by MUCH more than one update
+  (R2 lost 190,776 and 170,680 steps) — read the real `from_step` from
+  `meta.yaml`, and expect `updates_done` one short per resume.
+- **Resource gates are calibrated at a FLEET WIDTH**: R2's D-E (STOP > 4.5 GB)
+  came from 2.68 GB/lane 3-wide, and a lane running ALONE legitimately hit
+  5.87 GB with the box 85% free — disclose, don't kill. Likewise a throughput
+  window that straddles startup invents records; use the conforming window.
 - A wall-clock ETA is not progress — check s/battle against a comparable
   completed arm (FP@20 ≈ 1.2–1.5 s, FP@100 ≈ 6–7 s); 10× off means stalled.
 - Changing `OBS_DIM` invalidates every checkpoint — evaluate outstanding

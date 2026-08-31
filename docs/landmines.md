@@ -148,3 +148,78 @@ because the file is not self-updating; r7 retired §10–11, so any
 COST ruling — a 34.6× microbenchmark, never trained — not evidence that
 attention fails. All of this is why `docs/archive/` exists: nothing under
 it is read unless the maintainer names the file.
+
+## THE SILENT LANE STALL (2026-08-31, R2 — the expensive one)
+
+Two of three R2 lanes stalled mid-run **~10 h apart** with an identical
+signature: s66 at 68.9 % (step 34,440,776) and s75 at 94.3 % (step
+47,170,680). In both cases the training process stayed **ALIVE**, held its
+~18 TCP sockets open, and burned **ZERO CPU** — 0.01 s over a 20 s sample
+against ~14 s for a healthy lane. Logging went stale and RSS bled away as
+the OS paged the idle process out (down to 0.08 GB from 2.3 GB). Both
+followed a burst of Showdown `bigerror` turn-1000 auto-tie messages, which
+is suggestive of a battle hitting the turn cap and leaving the lane waiting
+on a socket that never resolves — suggestive, not proven.
+
+**Why this is worse than a crash.** Every `pgrep -f "rl\.train"` check
+passes forever. A dead lane announces itself; a stalled one does not. s75
+sat frozen for **5.2 h** waiting on a maintainer ruling, and had the run
+been unattended overnight it would have burned the whole night.
+
+**Detection, in order of speed.** A step count is the ground truth but needs
+two polls 20–30 min apart to be conclusive. **CPU-time deltas settle it in
+15 seconds** — sample `ps -o time= -p <pid>` twice and diff:
+
+    ps -o pid=,time= -p <pid>; sleep 15; ps -o pid=,time= -p <pid>
+
+Identical CPU time on a training process means stalled, full stop. Cheap
+corroborators: last history row age vs wall clock, `.wandb` file mtime,
+and RSS falling instead of holding.
+
+**Recovery is cheap and it works.** `--resume runs/<dir>` restores step,
+loop state, optimizer and `pool.pt` (the pool snapshot exists, so the
+"pool reseeded" disclosure path is NOT hit). Kill the hung pid, confirm the
+sockets are released, then resume — the seed-derived usernames are reclaimed
+cleanly once the process is gone.
+
+## `checkpoint.pt` lags the last logged step by MORE than one update
+
+The R2 handoff claimed a resume "discards <= 30,720 steps" (one update).
+Measured: **s66 lost 190,776 steps** (from_step 34,250,000 vs last logged
+34,440,776) and **s75 lost 170,680** (47,000,000 vs 47,170,680) — 5–6× the
+quoted figure. `checkpoint.pt` is written on a coarser cadence than every
+update. Still small against 50M (~0.4 %), but quote the REAL from_step out
+of `meta.yaml`'s `resumes:` block, never the one-update assumption. Each
+resume also costs one update in the ledger: both resumed lanes finished at
+`updates_done` 1626 against the clean lane's 1627 (DISCLOSED by the
+attestation rule, never a failure).
+
+## A resume SPLITS the run's wandb history
+
+Every resume starts a SECOND wandb offline run, and its step range OVERLAPS
+the first (the re-run steps). Consequences:
+
+- **`scripts/extract_history.py <run_dir>` HARD-FAILS** on a resumed lane —
+  "expected exactly one offline run, found 2 — pass the .wandb file
+  explicitly". This is the safe failure (an error, not a wrong answer), but
+  the documented incantation simply stops working on those dirs.
+- **Merging is not concatenation.** The overlapping steps were re-run with
+  different data and the RESUMED run is authoritative over them. Rule: keep
+  pre-resume rows with `_step < from_step` (from `meta.yaml`), then append
+  the whole post-resume run. Verify monotonic in `_step` and check the seam.
+- The **verdict path never reads history** — grader, wave, preflight and
+  `eval_checkpoint.py` all work off `checkpoint.pt` and results JSON — so a
+  mishandled merge corrupts curves and readouts, not the credit decision.
+
+## Gate thresholds are calibrated at a FLEET WIDTH (2026-08-31)
+
+R2's D-E memory gate (record > 3.0 GB, STOP > 4.5 GB) was set against a
+measured 2.68 GB/lane **3-wide**. When the resumed s75 finished alone it
+reached **5.87 GB** — over the STOP line — with the box 85 % free and swap
+FALLING. Killing a lane at 94 % to satisfy a number calibrated under
+different conditions would have been the error; the breach was DISCLOSED
+and the run continued (maintainer ruling). Before acting on a resource gate,
+check whether the fleet width it was measured at still holds. The reverse
+also bit: early D-B windows that straddled startup read 366–373 st/s and
+produced three spurious sub-371 "records"; the conforming window (post-1M,
+>= 30 min) read 375–380 and no record stood.
