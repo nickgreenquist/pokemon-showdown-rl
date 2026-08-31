@@ -9472,3 +9472,117 @@ line numbers are not — grep the date, then read that region):
   ratification); no training launched (>5 h -> maintainer's; commands in
   STATUS/handed over at ratification); crossplay driver not built (owed
   before its rider runs).
+
+- 2026-08-31 (maintainer: "handoff.md - take it. and im ready to start the runs
+  right now" → 35 h monitor session — **CH5 R2 RAN, GRADED, AND CREDITED: cell
+  P1, off-FP delta +0.13722 vs a 0.07181 bar**; two lane stalls resumed, R4S66
+  lost to an ops failure)
+
+  **RATIFICATION.** Launching completed ratification of the R2 pre-reg (the
+  D29r2 precedent), including Q10's E1–E5/ADJ-1..3. The maintainer ran block 1
+  and then launched lane 1 directly; the gate chain was re-run agent-side
+  immediately after and was green in full (`simulator: 4` at config.js:111,
+  port 8000, clean tree, 37 pre-reg tests, anneal-aux 9 passed/1 skipped,
+  grader SELFTEST PASS). All three lanes stamped `git_dirty: false`, sha
+  b659438, obs_dim 828, encoder v2 + ids.
+
+  **TRAINING.** Seeds 66/75/83, staggered ~60 s, each verified by battle
+  PROGRESS (not artifacts). ~35 h wall. Throughput settled at **375–379
+  steps/s/lane 3-wide** on the conforming D-B window (post-1M, ≥30 min).
+  EARLY MISREAD, corrected in-session: windows that straddled startup read
+  366–373 and produced three spurious "D-B RECORD" flags; the conforming
+  post-1M window cleared 371 and no D-B record stands from that period. Later
+  genuine records: s66 dipped to 368.1–370.8 across ticks 64–69 (Chrome
+  running), s83 to 370.1–370.8 early — all record-only, never within 40 of
+  the 330 line.
+
+  **GATES.** D-D at 4M PASSED all three (anchor 0.8584 / 0.8422 / 0.8607 vs
+  the 0.75 floor) but **BELOW the pre-stated 0.90–0.96 band** and well below
+  the control's 0.9716/0.9712/0.9742 — recorded, not actionable. K6 never
+  fired: 3-lane median entropy never went below 0.598 before 25M (floor 0.15).
+  T2 (clip_frac 0.90) and T3 (approx_kl 0.50) never approached. Final anchors
+  0.9561 / 0.9514 / 0.9574.
+
+  **D-E BREACH, DISCLOSED.** Per-lane RSS tracked the pre-reg's predicted
+  2.68 GB/lane while 3-wide. After s66/s83 finished, the resumed s75 ran alone
+  and reached **5.87 GB — above the 4.5 GB STOP threshold**. Raised as an
+  escalation; the maintainer ruled continue, and the reasoning is recorded:
+  the 2.68 GB figure was measured 3-wide, s75 had the box to itself, system
+  memory was 85 % free and swap FELL during the climb. Killing a lane at 94 %
+  to satisfy a threshold calibrated under different conditions would have been
+  the error. Peak 5.87 GB travels as a disclosure.
+  Separately, mid-run swap growth (0 → 2,256 MB) was escalated and proved to
+  be OTHER APPS: it collapsed to 428 MB the moment they were closed, fleet RSS
+  being only 2.2 GB at the time.
+
+  **TWO LANE STALLS — a reproducible failure mode, not bad luck.** s66 at
+  68.9 % (step 34,440,776) and s75 at 94.3 % (step 47,170,680), ~10 h apart,
+  with an identical signature: process ALIVE, **zero CPU over a sampled
+  interval**, logging stale, RSS bleeding out (to 0.08 GB and 0.26 GB), TCP
+  sockets still held. Detected by CPU-delta sampling, not by liveness. Both
+  escalated, not auto-fixed; the maintainer authorised each resume.
+  `--resume` restored step/loop/optimizer and `pool.pt` (never the
+  reseeded-pool path). Losses: **s66 190,776 steps** (from_step 34,250,000),
+  **s75 170,680 steps** (from_step 47,000,000) — NOT the ≤30,720 the handoff
+  quoted; `checkpoint.pt` lags the last logged step by more than one update,
+  and that correction was made in-session.
+
+  **SPLIT HISTORIES (durable gotcha).** Each resume creates a SECOND wandb
+  offline run with an OVERLAPPING step range, so `extract_history.py <run_dir>`
+  hard-fails on s66 and s75 ("expected exactly one offline run, found 2") —
+  a safe failure, not a wrong answer. Merge rule used: keep pre-resume rows
+  with `_step < from_step`, then append the whole post-resume run (the resumed
+  run is authoritative over the overlap). Verified monotonic 0 → 50M, seams
+  clean (34,249,944 → 34,250,000; 46,999,984 → 47,000,000); written to
+  `history_merged.csv` per lane. **The verdict path never reads history** —
+  grader/wave/preflight/eval_checkpoint work off checkpoint.pt and results
+  JSON. Both resumed lanes carry `updates_done` 1626 vs s83's 1627.
+
+  **ATTESTATION** (commit 3a31755, its own commit, all lanes at once): every
+  checkpoint asserted `step == 50000000`; shas 8f9d6712… / 46f64ed7… /
+  a6ef4e8b…; the 1-update shortfalls DISCLOSED per the attestation rule.
+
+  **vs-SH FINALS** (locked protocol, n=3000/lane, serial): 0.7813333 /
+  0.7946667 / 0.7833333, mean **0.78644** sd 0.00719 vs control 0.70222 sd
+  0.06295 → delta **+0.08422**, bar 0.07316. `eval/win_rate` ==
+  `wins_from_returns` on all three; 0 mask desyncs. Six minutes total, not the
+  hours estimated.
+
+  **FP WAVE** (T66/T75/T83, serial k=1, FP@20, greedy, n=3000/lane, ~1.55 s/b):
+  **0.4740 / 0.4827 / 0.4670**, mean **0.47456**, s_T 0.00785, vs control
+  0.33733 sd 0.0617 → delta **+0.13722**, se_gov 0.03591 (clustered, the
+  larger-of), bar 0.07181. Every arm above every control lane.
+
+  **GRADE — CELL P1, CREDIT.** All gates green: G2 two independent tallies
+  agreeing on every arm (never a subtraction), G-SERIAL 3 arms 0 overlaps,
+  G-BUDGET max 20 ms, G-TERMINAL-RACE 0 forfeits n_eff 3000, attest 16/16,
+  R0-f all true, D-A lr bit-for-bit at every rung including both resumed
+  lanes. vs-SH secondary → X1, credit stands. F1 falsifier does not fire.
+  MANDATORY DISCLOSURES carried: (i) s_T 0.0078 vs control 0.0617 is **NOT a
+  variance result** — the F-test has (2,2) df, critical value 19.0, batch must
+  cut sigma_seed ~4.4× before it registers, and a null is never readable as
+  "batch did not help variance"; (ii) the permutation test fires at min_p 0.05
+  and credits nothing by construction; (iii) FP@20's two standing disclosures
+  (weakly powered equivalence, point estimate flatters us) travel with every
+  number here; FP@20 is an instrument, not a rung.
+
+  **R4S66 — OPS FAILURE, NOT GRADED.** Selected by the pre-registered rule
+  (LOWEST-NUMBERED surviving seed, orthogonal to the data — NOT the
+  lowest-scoring lane; checked before launching). Ran to 2,675/3,000 at
+  ~2.7 s/b, then took two distinct foul-play PANICs (`Invalid
+  PokemonMoveIndex: 4`), the driver relaunched fp, and the seat WEDGED — the
+  documented tie-crash wedge. Diagnosed agent-side by zero file growth + 0 %
+  CPU on a 2h39m seat beside a 7-minute fp; the driver reached the same
+  conclusion 20 min later and wrote `r4s66.NO_PROGRESS`, rc=4. The partial is
+  NOT a result and no rate is quoted from it. Re-running needs the LICENSED
+  PAIR-FLIP EDIT (ii) + a `burned_pairs:` block, re-run LAST — left for the
+  maintainer. **R4S routes nothing**, so the R2 verdict stands without it.
+
+  **NOT DONE, deliberately:** riders R3c / R1i / R1ii — they need
+  `scripts/ch5_r2_crossplay.py`, which does not exist; building it is a
+  maintainer decision.
+
+  **NOTED FOR RECONCILIATION (off-arc):** STATUS quotes LADDER R3 as "106-94,
+  n=200"; `readouts/LADDER_R3_READOUT.md` says "record 106-102". 106+94=200,
+  106+102=208. The readout is the committed provenance and also says n=200.
+  Not chased — flagged before either is quoted again.
