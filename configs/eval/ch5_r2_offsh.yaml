@@ -492,7 +492,9 @@ grading:
     named_cell_X3: "P1 and SN-C -> both sentences recorded; README row question to the maintainer WITH the numbers"
 
 checkpoint_attestation:
-  status: PENDING
+  status: ATTESTED
+  attested_at: '2026-08-31T12:50:45Z'
+  attested_git_sha: b6594389a4026fadee6b87b9d994affea6739652
   rule: final_checkpoint_pt_at_step_50000000
   # The evaluated object is runs/showdown_sp_batch50m_s<N>/checkpoint.pt
   # — the file the training loop writes on exit at step == 50,000,000;
@@ -506,9 +508,9 @@ checkpoint_attestation:
   # (G0). The wave provenance then stamps the amended file's sha.
 
 checkpoints:
-  s66: {path: runs/showdown_sp_batch50m_s66/checkpoint.pt, sha256: PENDING}
-  s75: {path: runs/showdown_sp_batch50m_s75/checkpoint.pt, sha256: PENDING}
-  s83: {path: runs/showdown_sp_batch50m_s83/checkpoint.pt, sha256: PENDING}
+  s66: {path: runs/showdown_sp_batch50m_s66/checkpoint.pt, sha256: 8f9d67127c6cf9acad8bac53c59ef6b91865f90bb31a98045715caa7dd4a2d38, step: 50000000, updates_done: 1626}
+  s75: {path: runs/showdown_sp_batch50m_s75/checkpoint.pt, sha256: 46f64ed79770fa6d69249199421553e118091b77bca0a721857af16d185142be, step: 50000000, updates_done: 1626}
+  s83: {path: runs/showdown_sp_batch50m_s83/checkpoint.pt, sha256: a6ef4e8b2fdbd22cc5627739857bfb22bdff4b4ab02cad8769a6581c5a7e86e2, step: 50000000, updates_done: 1627}
   # Control checkpoints are NOT listed: the control is banked NUMBERS
   # (attested JSONs above), never re-scored, and no control checkpoint
   # is loaded by any R2 arm. Rider R1i loads s80/81/82 through its own
