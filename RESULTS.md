@@ -688,6 +688,7 @@ a verdict input.
 | CH3 R0: log-prob ensemble of the four D26 checkpoints (inference-only, zero training) — **B1 CREDIT** vs their fresh greedy mean 0.7103; licenses "ensembling THESE four checkpoints", never "ensembling helps" (one committee, no seed replication, floor-governed) | 0.7463 ± 0.0046 |
 | **CH3 R2: one-ply expectation search over a validated gen-1 forward model (transition agreement FG-2 = 0.9092 per the accept-with-named-strata ruling; ko_disagreement 0.092 on raw average-damage leaves, 0.0075 after the pre-registered 2-point roll expansion; average-damage approximation named; search inactive on ~5.0% of decisions — the gen-1 placeholder stratum), using only our own self-play policy/value/opponent-action heads — B1 CREDIT 2026-08-22, new best: +0.0693 over the identical checkpoints played greedily (fresh A0 0.7236, same session), all four lanes positive (worst +0.0497), operative bar 0.025 (floor-governed; largest se term 0.0069 unpaired-clustered). CAVEAT (pre-registered falsifier P2, ruled 2026-08-23): the search increment is SH-FACING on the anchors available — on the tested lane (s65) it does not transfer to the BC-clone anchor (greedy 0.894 → search 0.860; transfer > +0.008 excluded at ~95%) nor to Foul Play (0.388 → 0.368, n=250/arm); the D26 policy's own strength DOES transfer (rows below)** | **0.7928 ± 0.0037** |
 | ↳ h2h vs the FP behaviour clone, s65 lane (falsifier anchor): greedy det-seat / search@M det-seat / greedy pooled-both-orientations | 0.894* / 0.860* / 0.795* |
+| **CH5 R2: the batch lever at 50M (rollout_steps 128→3840 = 30,720-step batch; push_every_updates 150→5), 3 seeds — CREDITED 2026-08-31, cell P1.** Primary is OFF-FP@20 (delta +0.13722 vs a 0.07181 bar, treatment 0.47456 vs control 0.33733); this vs-SH column is the SECONDARY read, cell X1, delta +0.08422 vs a 0.07316 bar — it clears by 0.011 and the binding term is the CONTROL's spread (s82 0.62967). s_T 0.00719 vs the control's 0.06295 is NOT a variance result ((2,2) df, crit 19.0, needs ~4.4×). Two of three lanes stalled mid-run and were resumed (190,776 / 170,680 steps re-run; updates_done 1626 vs 1627). NO README ROW YET — the anchor battery's BC-clone half (R3c) did not run | **0.78644 ± 0.0043** |
 | ↳ h2h vs Foul Play itself, s65 lane, n=250/arm ("FP + our patches"): greedy / search@M — our take off the teacher-class bot across generations: 0.124 → 0.172 → 0.388 | 0.388* / 0.368* |
 | CH3 R4: LOO 3-critic ensemble evaluator inside search@M (pure inference-time, zero training; pre-registered credit test, REGISTERED 2026-08-23) — **verdict FLAT (B3), NOT credited, headline unchanged**: fresh same-session A1S (E0) 0.7896 → A1E (ensemble critic) 0.8120, paired delta **+0.0224** vs the 0.025 floor, ALL FOUR lanes positive (+0.0457/+0.0173/+0.0173/+0.0093), governing se paired-clustered 0.0080; normal-approx CI [+0.0068, +0.0381] — does not exclude the screen's +0.036, and at df=3 coverage (t₃ 3.18) does not exclude 0. Pre-registered power at the realized effect size was 0.21–0.49 ("a B3 is the modal outcome over much of the pre-registered band" — stated before data); the R3 screen's +0.036 did NOT reproduce at credit grade. Zero F-gates; era green (fresh A1S within 0.0033 of R2's 0.79283); anchors not run (iff-B1/B2, ruled). The 0.8120 level is DESCRIPTIVE — never quote it as a best | 0.8120* (uncredited) |
 | CH3 R5: expert iteration — does the credited search advantage COMPILE INTO WEIGHTS? Stage 1 (r5a T-GATE, mirror diagnostic, n=1000/lane): search@M beats its own greedy self in SELF-PLAY by mean +0.1515 (4/4 lanes, 2·se 0.033) — mirror-regime margin, never a vs-SH number. Stage 2 (r5b, actor-only offline distillation of 494,603 own-search decisions, self-play collection, frozen critic): **verdict B5 + KILL 2026-08-25 — compiling search into the weights makes the agent WORSE vs SH: paired delta −0.0545 (bar 0.0442, paired-clustered governs), ALL FOUR lanes negative (−0.0077…−0.1117); the actor expert-iteration line is CLOSED for this chapter; search@M stands recorded as an inference-time lever that does not compile into weights (one iteration, this dose, these checkpoints)**. Disclosures that travel: the actor was fitted offline to its own search's decisions, backed up through poke-engine from the checkpoint's own self-play (RULE-1 provenance); the pre-registered D-2 gate (absolute +0.20) fired on 2/4 lanes and was amended result-blind-on-win-rates to a capture-fraction form before any evaluation battle ran (headline was capped regardless of outcome); C7 materialized — distilled switch rates roughly doubled (0.14–0.20 → 0.21–0.37), the search's uniform-switch-column optimism made permanent; F-P pairing overlap 0.78–0.80 vs the 0.80 floor (30 s stagger), era-immunity clause struck per lane, F-T GREEN (era-pin X0 0.7170). Anchors/placebo not run (iff-B1/B2, ruled). Durable rider: on-distribution critic disagreement |v_LOO−v_own| = 0.047–0.072 at 500k real decision points — design A's ~0.06 estimate confirmed, the 0.45 synthetic reading ~7× off | X1 0.6526* (X0 0.7071, both descriptive) |
@@ -1017,3 +1018,124 @@ disk and in mirrors. The committed provenance for every number above is
 `scripts/ladder_readout.py` from those artifacts; the pre-registrations are
 `configs/eval/ladder_r1.yaml` and `configs/eval/ladder_r3.yaml`. Current state is in
 `STATUS.md`.
+
+## 17. Addendum, 2026-08-31 — CH5 R2 (the batch lever at 50M): **CREDIT**, cell P1 — the first lever credited on the off-Foul-Play axis
+
+Written at readout, Sunday afternoon, immediately after the grader ran. JOURNEY
+step 1. The lever: `rollout_steps` 128 → 3840 at `num_envs` 8, i.e. a **30,720-step
+batch** (120 minibatches × 256, holding minibatch SIZE fixed), with the coupled
+pool-push cadence `push_every_updates` 150 → 5 to hold 153,600 steps/push. Lambda
+HELD at 0.95. One-diff against the banked D29r2 control: `{seed, run_name,
+rollout_steps, minibatches, push_every_updates}`. Three lanes, seeds 66/75/83,
+50M steps each, ~35 h wall 3-wide, pure self-play.
+
+**This was the ~6.5% outcome.** The pre-reg (E1, eyes-open) put P(credit) at about
+6.5% and both designers endorsed running anyway; a null was the pre-stated modal
+result. It credited. That asymmetry is why every disclosure below travels with the
+number rather than being filed as an appendix.
+
+### The primary read — off Foul Play@20, greedy, n=3000/lane
+
+| | s66 / s75 / s83 | mean | s_T |
+|---|---|---|---|
+| **treatment (batch)** | 0.4740 / 0.4827 / 0.4670 | **0.47456** | 0.00785 |
+| control (banked, n=1000/lane) | 0.3960 / 0.3430 / 0.2730 | 0.33733 | 0.0617 |
+
+**delta +0.13722**, against an operative bar of **0.07181** — `se_diff` 0.03591,
+the **seed-clustered** term governing under the larger-of clause (pooled-binomial
+0.01007). **CELL P1: "the batch lever is credited at this dose."** Every treatment
+lane beats every control lane, including the control's best.
+
+### The secondary read — vs SH, locked protocol, n=3000/lane
+
+**s66 0.78133, s75 0.79467, s83 0.78333 → mean 0.78644** (s_T 0.00719) against the
+control's 0.70222 (sd 0.06295). **Delta +0.08422 against a 0.07316 bar → cell X1,
+"credit stands; the vs-SH number and its bar reported beside it."** `eval/win_rate`
+== `wins_from_returns` on all three lanes; `mask_desyncs` 0 across all 9,000 battles.
+F1 falsifier (frozen struct50m 0.580222): does not fire.
+
+**The vs-SH margin is the thin one** — it clears by 0.011, and the binding constraint
+is the CONTROL's spread, inflated by s82's 0.62967 against its siblings' 0.742/0.735.
+The off-FP margin does not depend on that.
+
+### Disclosures — all three are mandatory and travel with any quote
+
+1. **s_T 0.0078 vs the control's 0.0617 is NOT a variance result.** It is an 8×
+   tightening by eye, and the statistics cannot see it: an F-test across two 3-lane
+   groups has (2,2) df and critical value 19.0, so batch must cut sigma_seed **~4.4×**
+   before the comparison registers at all. Verbatim from the grader: *a null is never
+   readable as "batch did not help variance."* Batch is a STRENGTH lever, not the
+   instrument fix.
+2. **The permutation test fires and credits nothing.** Exact 3v3 bottoms out at
+   min_p = 0.05 by construction.
+3. **FP@20's two standing disclosures apply**, forever and in every quote: the
+   equivalence test is weakly powered, and the point estimate flatters us. **Name the
+   budget.** FP@20 is an instrument, not a rung.
+
+Also recorded, not governing: pooled_rate 0.47456, best lane 0.4827, worst 0.4670.
+
+### Gates and provenance
+
+All green. **G2** — the two independent tallies agree exactly on every arm (T66
+1422/1571/7 from the FP log AND from the seat), never a subtraction. **G-SERIAL** —
+3 arms, zero wall-clock overlaps. **G-BUDGET** — max sampling 20 ms, no violations.
+**G-TERMINAL-RACE** — 0 crash forfeits, n_eff 3000 per arm. **attest** 16/16
+frozen-control checks reproduce from disk. **R0-f** all true (batch 30720 = 120×256,
+1627 updates, 780,960 grad steps, 325 pushes both arms). **D-A** — final lr reproduces
+bit-for-bit at every rung, including both resumed lanes against their OWN update
+counts. Checkpoint attestation commit **3a31755**; launch sha 3a31755, prereg sha
+a6fbdfc3f70f; foul-play 25c976f0, Showdown 0.11.11.
+
+### What failed — part of the result
+
+- **Two of three lanes STALLED mid-training**, ~10 h apart: s66 at 68.9% (step
+  34,440,776) and s75 at 94.3% (47,170,680). Identical signature — process ALIVE,
+  sockets held, **zero CPU**, logging stale, RSS paged away. `pgrep`-based liveness
+  passes forever on this failure. Both were resumed from their own `checkpoint.pt`
+  (+`pool.pt`, so never the reseeded-pool path), losing **190,776 and 170,680 steps**
+  respectively — far more than the "≤30,720" the handoff assumed, because
+  `checkpoint.pt` lags the last logged step by more than one update. Both resumed
+  lanes finished at `updates_done` **1626** against s83's 1627; DISCLOSED under the
+  attestation rule, never a failure. Each resume also split the lane's wandb history
+  into two overlapping offline runs (`history_merged.csv` is the merged read; the
+  verdict path never reads history).
+- **D-E memory gate BREACHED and disclosed.** Per-lane RSS tracked the predicted
+  2.68 GB while 3-wide; the resumed s75, running ALONE, peaked at **5.87 GB** against
+  a 4.5 GB STOP line. Maintainer ruling: continue — the threshold was calibrated
+  3-wide, the box was 85% free and swap FELL during the climb. Peak travels as a
+  disclosure.
+- **D-D passed but LOW.** Anchors at 4M were 0.8584 / 0.8422 / 0.8607: above the 0.75
+  floor, but BELOW the pre-stated 0.90–0.96 band and well below the control's
+  0.9716 / 0.9712 / 0.9742. Recorded; unexplained.
+- **R4S66 — OPS FAILURE, not graded.** The one licensed searched-vs-greedy contrast,
+  selected by the pre-registered rule (LOWEST-NUMBERED surviving seed, deliberately
+  orthogonal to the data). It reached 2,675/3,000 at ~2.7 s/b, took two distinct
+  foul-play PANICs (`Invalid PokemonMoveIndex: 4`), and the seat WEDGED — the
+  documented tie-crash wedge. The driver wrote `r4s66.NO_PROGRESS`, rc=4, and refused
+  to grade the partial. **No rate is quoted from those 2,675 battles.** A re-run needs
+  the licensed pair-flip edit (ii) + a `burned_pairs:` block, LAST. **R4S ROUTES
+  NOTHING**, so the verdict stands without it.
+- **Riders R3c / R1i / R1ii NOT RUN** — `scripts/ch5_r2_crossplay.py` does not exist;
+  it is a registered build item and no agent-vs-agent h2h driver is in the tree.
+
+### What this does NOT establish
+
+- **No README row is licensed yet.** The anchor battery requires vs-SH **plus two**
+  descriptive anchors — BC-clone h2h AND Foul Play h2h — before a headline row lands.
+  We have vs-SH and FP@20; the **BC-clone anchor is R3c, which did not run**. The row
+  is BLOCKED until it does.
+- **Not a ladder number.** vs-SH and off-FP are never ladder numbers in either
+  direction; the ~40% GXE conversion is RETIRED. Nothing here may be set beside
+  LADDER R1 or R3 (§16), and R2's primary explicitly DOES NOT SELECT the ladder object
+  — R3 chooses under its own pre-reg with incumbent-wins-ties.
+- **One lever, one dose.** The credit is "at this dose". It says nothing about whether
+  a larger batch, or the next scale-up, pays.
+- **The scope guard is binding**: a read inside the bar is information about the
+  INSTRUMENT, not a licence to queue another gen1 lever. Next is step 2 (ladder).
+
+**Provenance.** `results/` is gitignored. Numbers above are reproducible via
+`scripts/ch5_r2_grade.py` against `results/ch5_r2/final_s{66,75,83}.json` and
+`results/ch5_r2_offsh/t{66,75,83}.json`; the pre-registrations are
+`configs/showdown_sp_batch50m.yaml` (training half) and
+`configs/eval/ch5_r2_offsh.yaml` (read half, carrying the attestation block). The
+session narrative is SESSION_LOGS 2026-08-31.
