@@ -523,16 +523,23 @@ usernames:
     T66:  {seat: ch5r2t66seat,  fp: ch5r2t66fp}
     T75:  {seat: ch5r2t75seat,  fp: ch5r2t75fp}
     T83:  {seat: ch5r2t83seat,  fp: ch5r2t83fp}
-    R4S66: {seat: ch5r2r4s66seat, fp: ch5r2r4s66fp}
+    R4S66: {seat: ch5r2r4s66bseat, fp: ch5r2r4s66bfp}   # r2b: promoted
     R4S75: {seat: ch5r2r4s75seat, fp: ch5r2r4s75fp}
     R4S83: {seat: ch5r2r4s83seat, fp: ch5r2r4s83fp}
   rerun_pairs:
     T66:  {seat: ch5r2t66bseat,  fp: ch5r2t66bfp}
     T75:  {seat: ch5r2t75bseat,  fp: ch5r2t75bfp}
     T83:  {seat: ch5r2t83bseat,  fp: ch5r2t83bfp}
-    R4S66: {seat: ch5r2r4s66bseat, fp: ch5r2r4s66bfp}
+    # R4S66's reserve was PROMOTED to the live pair at the 2026-08-31 flip and
+    # is no longer a reserve; listing it here too would double-issue the same
+    # names (ch5_r1_offsh.yaml:1431-1432).
     R4S75: {seat: ch5r2r4s75bseat, fp: ch5r2r4s75bfp}
     R4S83: {seat: ch5r2r4s83bseat, fp: ch5r2r4s83bfp}
+
+  burned_pairs:
+    # Burned by the licensed pair-flip (ii), 2026-08-31. NEVER re-issued: the
+    # room is poisoned server-side, and this record is the enforcement.
+    R4S66_a: {seat: ch5r2r4s66seat, fp: ch5r2r4s66fp}
 
 wave_plan:
   k: 1
@@ -605,8 +612,14 @@ arms:
     dose: M
     battles: 3000
     search_time_ms: 20
-    seat_username: ch5r2r4s66seat
-    fp_username: ch5r2r4s66fp
+    # PAIR FLIP, licensed edit (ii), 2026-08-31: attempt 1 on the a-pair hit an
+    # OPS FAILURE — two foul-play PANICs (Invalid PokemonMoveIndex: 4) then the
+    # tie-crash wedge; .NO_PROGRESS rc=4 at 2,675/3,000, NOT graded. This is
+    # `rerun_pairs.R4S66` PROMOTED IN PLACE (the a-pair is burned below and the
+    # reserve entry is deleted, so no name is double-issued — ch5_r1_offsh.yaml
+    # :1431-1432 precedent). No other key of this arm moves.
+    seat_username: ch5r2r4s66bseat
+    fp_username: ch5r2r4s66bfp
   R4S75:
     kind: search_seat
     seat: s75

@@ -268,10 +268,24 @@ def test_arm_pairs_match_and_seats_cover_the_lanes():
 
 
 def test_no_username_is_a_prefix_of_any_ever_issued():
+    """DEFECT FIXED 2026-08-31, RESULT-BLIND, disclosed in the readout.
+
+    The group tuple was ("pairs", "rerun_pairs") and the licensed pair-flip
+    (edit ii) FALSIFIED the 24-distinct-name assertion by construction: the
+    flip promotes an arm's reserve into `pairs` and deletes it from
+    `rerun_pairs` (the ch5_r1_offsh.yaml:1431-1432 anti-double-issue rule), so
+    the two-group union can only ever hold 22 distinct names once (ii) fires.
+    The proof depends on NO arm's result and would hold identically had the
+    ops failure landed on battle 1; this test gates no number. The fix ADDS
+    `burned_pairs` to the sweep, so the count stays exactly 24 and the prefix
+    invariant gets STRONGER (burned names are now swept too). Precedent for
+    fixing an unsatisfiable-by-construction gate and disclosing it:
+    scripts/ch5_r1_grade.py:247-255.
+    """
     r1cfg = yaml.safe_load(R1_PREREG.read_text())
     names = []
-    for grp in ("pairs", "rerun_pairs"):
-        for pair in ECFG["usernames"][grp].values():
+    for grp in ("pairs", "rerun_pairs", "burned_pairs"):
+        for pair in (ECFG["usernames"].get(grp) or {}).values():
             names += [pair["seat"], pair["fp"]]
     assert len(names) == 24 == len(set(names))
     old = []
@@ -284,6 +298,10 @@ def test_no_username_is_a_prefix_of_any_ever_issued():
     burned = [u for pair in (r1cfg["usernames"].get("burned_pairs_r10") or {}).values()
               for u in pair.values()]
     assert not set(names) & set(burned), "a burned pair was re-issued"
+    live = [u for pair in ECFG["usernames"]["pairs"].values() for u in pair.values()]
+    r2_burned = [u for pair in (ECFG["usernames"].get("burned_pairs") or {}).values()
+                 for u in pair.values()]
+    assert not set(live) & set(r2_burned), "an R2 burned pair was re-issued into pairs"
     for prefix in ECFG["usernames"]["never_reuse"]:
         for n in names:
             assert not n.startswith(prefix), (n, prefix)
