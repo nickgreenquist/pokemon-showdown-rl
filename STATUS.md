@@ -32,29 +32,29 @@ ties=loss. **Ladders credit nothing; vs-SH/off-FP are NEVER ladder numbers.**
    12.002s · mps 10.449s (1.15×) · cpu@6 14.195s (0.85×) → **~2.5% end to end**;
    numerics agree (argmax 512/512, `-1e8` sentinel intact).
 
-## Next actions — **`HANDOFF.md` is EMPTY; no handoff pending.**
-- **RULINGS OWED (3):** (a) CLAUDE.md's MPS wording — proposal: keep CPU-only,
-  replace "flaky" with the measured reason (**not edited; yours**); (b) fix
-  `pool.py:88` at all, given the 2.5% prize?; (c) may a stall-kill that
-  forfeited no battle keep counting as a `crash_forfeit` (a READ-RULE question
-  against a frozen pre-reg)?
-- **RESULTS disclosure line OWED** with the next headline number — the wire
-  differs from every pre-2026-08-31 arm's. **R4S66 re-run now unblocked**
-  (~2.4 h, `ARMS="R4S66" bash scripts/ch5_r2_wave.sh`): optional, routes nothing.
-- **`ch5_r2_crossplay.py` STILL UNBUILT** — blocks riders R3c/R1i/R1ii and the
-  README row. A 100M run stays credit-seeking: own pre-reg, 2-Opus cycle.
+## Next actions — **`HANDOFF.md` IS NON-EMPTY. READ IT.**
+**GOAL (maintainer, 2026-08-31): a 100M run, as fast as possible. Build the
+speedups FIRST, then run it.** CHAPTER5 §7 ruling 4 is SUPERSEDED — say so in
+the 100M header. MPS is dead (measured; crashes; ~2.5%). Do not relitigate.
+- **RUNNING NOW: R4S66**, launched 01:40:48Z from clean `ce4c38e`, 3.21
+  s/battle measured, ETA ~04:00-04:30Z. First real workload for the timer fix.
+- **STAGE 1 SHIPPED (`ce4c38e`): +8.1% end to end**, collect 50.547 -> 45.827.
+  72 h -> 66.2 h at 100M.
+- **STAGE 2 (async collector) is the job.** Honest gain on the CURRENT recipe
+  is **~1.55x**, not the spec's 2.6x — the batch lever tripled the update
+  share (5.2% -> 19.4%). **Re-base G8 and G9 BEFORE writing code**; G9's
+  control side is already on disk (all three lanes' clean 12M rungs).
+- RULINGS OWED (4) and the 100M pre-reg's requirements: HANDOFF §5 and §2.
 
 ## Watch items
-- **ONE vs-SH RUNG IS WORTH ±0.02, NOT ±0.008** — three re-draws of the SAME
-  50M checkpoint gave 0.76467 / 0.78467 / 0.78333 (spread 0.0200 vs binomial
-  se 0.0077). Read curve SHAPE, never one rung against its neighbour.
+- **ONE vs-SH RUNG IS WORTH ±0.02, NOT ±0.008** — three re-draws of ONE 50M
+  checkpoint gave 0.76467/0.78467/0.78333. Read SHAPE, never rung vs neighbour.
 - **LANE STALLS** (s66 @68.9%, s75 @94.3%): root cause fixed, but **CPU-time
   deltas remain the only instrument** — `pgrep` never catches this shape. The
   LADDER is the timer's tight path (150 s/turn, not a challenge's 300).
 - **RESUME SPLITS HISTORY:** `extract_history.py` HARD-FAILS on s66/s75 — use
-  `history_merged.csv`. **D-D passed but LOW** (0.8584/0.8422/0.8607: over the
-  0.75 floor, under the pre-stated 0.90–0.96), and **s_T 0.0078 vs 0.0617 is
-  NOT a variance result**.
+  `history_merged.csv`. **D-D passed but LOW** (0.8584/0.8422/0.8607), and
+  **s_T 0.0078 vs 0.0617 is NOT a variance result**.
 - **foul-play PANICs on Struggle** — open whether the FP anchor runs at n=3000
   for SEARCH seats; the timer bounds it, it is not a cure. **RECONCILE:** LADDER
   R3 — STATUS said 106-94 (n=200), readout says 106-102 (208).
