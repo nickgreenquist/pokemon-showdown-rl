@@ -173,7 +173,31 @@ class SeatPlayer(Player):
         # battle is ever live. That is ASSERTED rather than assumed --
         # `max_concurrent_live_battles` is tracked below and stamped into the
         # arm JSON, so "concurrency stayed 1" is checkable at grade time.
-        super().__init__(battle_format=BATTLE_FORMAT, max_concurrent_battles=2, **kwargs)
+        # 2026-08-31, THE ORPHANED-ROOM DEADLOCK (docs/landmines.md). The
+        # note above diagnosed the SPURIOUS PUT; the wedge that killed R4S66
+        # twice was a different and larger one -- LEAKED ROOMS. poke-env
+        # returns a slot only on `|win|`/`|tie|` (player.py:311), and a
+        # turn-1000 auto-tie makes both sides Struggle (move index 4), which
+        # panics foul-play's Rust engine and leaves a room we still hold.
+        # Showdown never ends that room on its own: `nextRequest`/`nextTick`/
+        # `checkActivity` all return early on `!this.timerRequesters.size`
+        # (showdown/server/room-battle.ts:320/345/410), so with no timer
+        # requester a dead opponent never times out. MEASURED: both R4S66
+        # attempts wedged at EXACTLY 4 orphans against this 2-slot queue,
+        # against 0 orphans in 9,000 greedy battles -- search arms reach turn
+        # 1000, greedy ones do not.
+        # `start_timer_on_battle_start` attacks the cause (the room now
+        # resolves by timeout). maxsize 8 is pure slack behind it: 4 orphans
+        # < 8 would have carried BOTH attempts to completion. Neither
+        # licenses concurrent play -- foul-play challenges strictly serially
+        # under --run-count -- and that stays ASSERTED, not assumed, by
+        # `max_concurrent_live_battles` in the arm JSON.
+        super().__init__(
+            battle_format=BATTLE_FORMAT,
+            max_concurrent_battles=8,
+            start_timer_on_battle_start=True,
+            **kwargs,
+        )
         self.max_concurrent_live = 0
         self._agent = agent
         self._sa = search_agent

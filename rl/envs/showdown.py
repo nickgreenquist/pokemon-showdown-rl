@@ -1075,17 +1075,39 @@ class ShowdownEnv(Env):
         hl_shaping: float = 0.0,
         privileged: bool = False,
         opp_action: bool = False,
+        start_timer_on_battle_start: bool = True,
     ):
         # save_replays (False | True | directory) is poke-env's native replay
         # dump: each finished battle is written as a Showdown replay HTML
         # (the official animated viewer; needs internet to load its JS).
         # Both seats save, so every battle yields two near-identical files.
         self.render_mode = render_mode
+        # THE ORPHANED-ROOM DEADLOCK (docs/landmines.md, 2026-08-31): a room
+        # that never resolves never returns its slot to poke-env's
+        # `_battle_count_queue`, and the next `|init|battle` then blocks
+        # FOREVER at player.py:221 inside the single message-handling
+        # coroutine -- the lane sits ALIVE at ZERO CPU with no crash. Training
+        # is the exposed path because PokeEnv hardcodes
+        # `max_concurrent_battles=1` as a LITERAL (poke_env/environment/env.py
+        # 273/292/355/375), so ONE leaked room is fatal and no slack is
+        # forwardable. `/timer on` is the only fix available here: it attacks
+        # the cause, because Showdown's `nextRequest`/`nextTick`/`checkActivity`
+        # all return early on `!this.timerRequesters.size`
+        # (showdown/server/room-battle.ts:320/345/410), so WITHOUT a timer
+        # requester a disconnected or dead opponent NEVER times out and the
+        # room NEVER ends. Cost of not having it: 190,776 + 170,680 re-run
+        # steps, a 5.2 h freeze and two dead R4S66 attempts.
+        # Wire-visible, hence a knob: these are CHALLENGE battles, so the
+        # server allows 300 s/turn + 60 s grace (STARTING_TIME_CHALLENGE /
+        # MAX_TURN_TIME_CHALLENGE) against a measured max `time/update_sec` of
+        # 15.3 s on the 50M batch lanes -- a 20x margin, but the argument is
+        # ops, not a claim, and setting this False restores the pre-fix wire.
         inner = ShowdownSingles(
             battle_format=battle_format,
             save_replays=save_replays,
             faint_shaping=faint_shaping,
             hl_shaping=hl_shaping,
+            start_timer_on_battle_start=start_timer_on_battle_start,
         )
         player = opponent_player(opponent, battle_format)
         # isinstance, not getattr: a pool-backed opponent gets outcome

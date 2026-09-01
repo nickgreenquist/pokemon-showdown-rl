@@ -166,6 +166,13 @@ def _checkpoint_player(ckpt_path: str, username: str):
         battle_format=BATTLE_FORMAT,
         account_configuration=AccountConfiguration(username, None),
         max_concurrent_battles=1,
+        # THE ORPHANED-ROOM DEADLOCK (docs/landmines.md), maintainer ruling
+        # 2026-08-31: every seat that plays foul-play sends /timer on, or an
+        # opponent that panics leaves a room that never resolves and never
+        # returns its queue slot. At max_concurrent_battles=1 ONE leak is
+        # fatal. Showdown ends an abandoned room only when a timer requester
+        # exists (showdown/server/room-battle.ts:320/345/410).
+        start_timer_on_battle_start=True,
     )
 
 
@@ -219,6 +226,12 @@ async def run(args: argparse.Namespace) -> dict:
             account_configuration=AccountConfiguration(args.username, None),
             battle_format=BATTLE_FORMAT,
             max_concurrent_battles=1,
+            # 2026-08-31, THE ORPHANED-ROOM DEADLOCK (docs/landmines.md),
+            # maintainer ruling: every seat that plays foul-play sends the
+            # timer, or an opponent that panics leaves a room that never
+            # resolves. At max_concurrent_battles=1 ONE leak is fatal, so this
+            # seat is strictly MORE exposed than the h2h seat that died twice.
+            start_timer_on_battle_start=True,
         )
     else:
         sh = _checkpoint_player(args.seat, args.username)
