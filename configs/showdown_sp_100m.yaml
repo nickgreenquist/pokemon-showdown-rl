@@ -1,10 +1,12 @@
 # =====================================================================
 # PRE-REGISTRATION — THE 100M RUN (C1 "longer run"), DRAFTED 2026-09-01.
-# STATUS: **DRAFT — PROPOSED, AWAITING MAINTAINER RATIFICATION.** Nothing
-# launches before the ratification word AND every [G8-FILL]/[G9-FILL]
-# cell below is filled from the Stage-2 acceptance wave's realized
-# numbers (logs/ch5_g9_wave.log). The launch itself is the maintainer's
-# (>5 h training, CLAUDE.md rule 4).
+# STATUS: **PROPOSED — AWAITING MAINTAINER RATIFICATION. ALL ACCEPTANCE
+# FILLS COMPLETE (2026-09-01 wave, logs/ch5_g9_wave.log): G9 PASS, G8
+# CREDITED** — every former fill cell below carries its realized number,
+# tagged [FILLED 2026-09-01]; two bands were RE-BASED under the
+# G9-VALIDATION RULE with the violations disclosed. What remains before
+# launch: the maintainer's ratification word on E1-E7. The launch itself
+# is the maintainer's (>5 h training, CLAUDE.md rule 4).
 #
 # PROVENANCE — the standing 2-Opus cycle (maintainer process, 2026-08-12):
 # shared brief results/design_ch5_100m/BRIEF_100M.md; two independent
@@ -93,7 +95,11 @@
 #           and on the vs-SH axis, not the credit axis. THEREFORE: every
 #           credit sentence carries G9's SIGNED delta, and on cell P1 the
 #           A-COLL cell fires (below). A bare "G9 passed" is not an
-#           attribution.
+#           attribution. G9 REALIZED [FILLED 2026-09-01]: PASS at SIGNED
+#           delta +0.02322 (pooled_T 0.67211 = mean of 0.65933/0.68367/
+#           0.67333, seed sd 0.0122, vs basis 0.64889) — inside the band
+#           but 93% of it, POSITIVE side; this number rides every credit
+#           sentence verbatim.
 #   N-TIMER /timer on from every seat (9a0e54d, post-dates the control's
 #           training). DISCLOSED, not celled: both seats are ours and
 #           answer in ms; the longest collector pause is the eval+
@@ -167,9 +173,9 @@
 # floor at k=3 (E[bar] at sigma 0.008: k=3 0.02521 -> k=6 0.02500) —
 # buying seeds buys nothing the credit line can see; and no 50M fleet at
 # any k answers anything about 100M. HONEST WEAKNESS: if the true delta
-# is ~+0.010 this run returns P(credit)=0.025 and the fleet's wall clock
-# [G8-FILL] bought "not resolvable" [M8: no wall-clock number appears in
-# this header before the fill], where 50M x 6 would have bought a 5-df
+# is ~+0.010 this run returns P(credit)=0.025 and the fleet's ~48 h/lane
+# [FILLED 2026-09-01] bought "not resolvable", where 50M x 6 would have
+# bought a 5-df
 # sigma_seed (the number every future bar depends on) and a best-of-six
 # ladder candidate. The maintainer's choice is made (S1); the cost is
 # recorded here so it is not rediscovered at readout.
@@ -295,13 +301,18 @@
 # Restated for the peeker: one vs-SH rung at n=3000 is worth ±0.02.
 #
 # ---------------------------------------------------------------------
-# LAUNCH BRANCH (S2; fills come from logs/ch5_g9_wave.log). The G8
-# gate's own thresholds are the acceptance header's (median
-# time/steps_per_sec estimator on BOTH sides — internally coherent);
-# every WALL-CLOCK hour in ops planning derives instead from REALIZED
-# dStep/dWall, which the sps estimator overstates by 18.3% on the R2
-# fleet's own record (444.2 vs 375.4 median; [S1/SF-12: the two
-# estimators are named wherever either appears]).
+# LAUNCH BRANCH (S2) — REALIZED [FILLED 2026-09-01]: **G9 PASS + G8
+# CREDITED -> THE TOP ROW FIRES; this file launches on ratification.**
+# G8 on its own pre-registered estimator (median time/steps_per_sec,
+# same estimator both sides): 901.2 / 907.6 / 901.3 vs basis 444 — all
+# three lanes >= 620. REALIZED dStep/dWall (whole-lane, 12M/wall):
+# 573.5 / 574.1 / 574.6 vs the control's realized 375.4 = **1.53x at
+# fleet width**; solo on/off bench 1.49x end-to-end (collect 45.83 ->
+# 28.26 s, update 11.00 -> 9.78 s). ESTIMATOR DISCLOSURE [S1/SF-12]:
+# the sps estimator overstates realized by ~57% on the async loop
+# (bursty per-drain logging) vs 18.3% on sync (444.2 vs 375.4) — the
+# two are never mixed; G8's cell is estimator-vs-estimator, every
+# wall-clock hour is realized-vs-realized.
 #   G9 PASS + G8 credited (>=620)  -> launch async (THIS FILE), A-COLL armed.
 #   G9 PASS + G8 short (500-620)   -> launch async AFTER the solo on/off
 #                                     bench names the gap's owner; no
@@ -382,8 +393,12 @@
 #        KILL FLEET.
 #   R0-6 eval/win_rate present, in (0,1) (control's first 1M: 0.28->0.53
 #        / 0.31->0.52 / 0.31->0.42).
-#   R0-7 aux/labelled_frac in [0.78, 0.88] provisional [G9-FILL]
-#        (control first-250k 0.827-0.857).
+#   R0-7 aux/labelled_frac in [0.74, 0.88] — RE-BASED [FILLED 2026-09-01]:
+#        the acceptance fleet's own first-250k realized [0.757, 0.856];
+#        the provisional [0.78, 0.88] would have FALSE-KILLED s83 at
+#        0.757 (the G9-VALIDATION RULE firing as designed). Sync
+#        control's first-250k was 0.827-0.857 — the async join runs a
+#        touch lower early, disclosed.
 #   R0-8 ops deadline [M4]: the first ckpt_*.pt with step >= 500,000 on
 #        disk within 30 min of that lane's own launch (async rungs are
 #        named at the CROSSING step, never the grid literal), else kill
@@ -394,8 +409,8 @@
 #
 # IN-RUN GATES (G9-VALIDATION RULE governs: a gate calibrated on the sync
 # control may kill/void an async lane ONLY if the three G9 acceptance
-# lanes sat inside it; every [G9-FILL] is read from those lanes before
-# ratification, re-based or demoted on violation — disclosed):
+# lanes sat inside it; every fill was read from those lanes 2026-09-01,
+# re-based on violation — disclosed in place):
 #   D-A anneal liveness at the crossing rungs nearest >= 4M/25M/50M/100M
 #       [M4], every lane, all param groups. EXACT FORM [M2, review 1's
 #       construction]: from history_merged.csv, basis = the step of the
@@ -404,18 +419,24 @@
 #       optimizer lr == 2.5e-4 * max(0, 1 - basis/1e8) (x actor_lr_scale
 #       for groups 0/2) to 1e-12. Checkpoint-only fallback (history
 #       unavailable): the WIDE band [f(step - 30,720),
-#       f(step - 61,440 - eps_max)], eps_max [G9-FILL] from the G9
-#       fleet's realized batch overshoots. Breach -> STOP that lane.
+#       f(step - 61,440 - eps_max)], eps_max = 200 [FILLED 2026-09-01:
+#       fleet realized overshoot median ~20, max 142 over all three
+#       lanes' 1,170 updates]. Breach -> STOP that lane.
 #       On the sync fallback D-A is the closed form, spelled [SF-11]:
 #       lr == 2.5e-4 * max(0, 1 - (updates*30,720)/1e8) exactly.
 #   D-B throughput: REALIZED dStep/dWall over >=30-min conforming
 #       windows post-1M [SF-12: this estimator, never time/steps_per_sec,
 #       which overstates realized by 18.3% on the R2 fleet]. Expected
-#       [G9-FILL] = G9 fleet's realized ±8%; provisional 480-610. RECORD
-#       <0.90x expected or <330 (R2's carried floor); STOP-AND-
-#       INVESTIGATE <275 sustained 2 windows.
-#   D-C aux health every 5M: illegal==0, collision==0 (STOP that lane);
-#       labelled_frac bin-mean in [0.78, 0.86] [G9-FILL] RECORD.
+#       = 574 ± 8% -> [528, 620] [FILLED 2026-09-01: fleet realized
+#       573.5/574.1/574.6 whole-lane]. RECORD <0.90x expected (<517) or
+#       <330 (R2's carried floor); STOP-AND-INVESTIGATE <275 sustained
+#       2 windows.
+#   D-C aux health every 5M: illegal==0, collision==0 (STOP that lane;
+#       fleet realized 0 and 0 throughout); labelled_frac bin-mean in
+#       [0.65, 0.86] RECORD — RE-BASED [FILLED 2026-09-01]: the fleet's
+#       0-12M minima are 0.655/0.719/0.781 and the SYNC control itself
+#       runs [0.717, 0.856] over the matched window; the provisional
+#       [0.78, 0.86] was a first-250k number misapplied to a full run.
 #   D-D selfplay/winrate_anchor >= 0.75 by 4M each lane (STOP); RECORD
 #       <0.83; the batch fleet's own realized, LAST READING <= 4M (step
 #       3,993,600; the metric is cumulative — the side is named [S2]):
@@ -423,7 +444,9 @@
 #   D-E memory: per-lane peak RSS RECORD-ONLY at every D-B reading, no
 #       per-lane threshold at ANY width (the D-E landmine: lanes finish
 #       hours apart and the last runs solo); RECORD any lane > 3.5 GB
-#       [G9-FILL]. The only STOP is box-level: free+inactive < 2 GiB AND
+#       [FILLED 2026-09-01: fleet peaks 2.50/2.59/2.67 GB 3-wide, bench
+#       solo 2.31 GB — the 3.5 GB RECORD line stands with ~30% headroom].
+#       The only STOP is box-level: free+inactive < 2 GiB AND
 #       non-zero swapouts, 3 consecutive 5-min polls -> STOP ALL,
 #       disclose, resume after. Suspended below 3 live lanes.
 #   D-F disk: RECORD < 30 GiB; STOP ALL < 15 GiB (a full disk corrupts a
@@ -481,10 +504,11 @@
 # next (SIGSEGV-at-start landmine); CPU-delta stall watch (ps -o time=
 # twice, 15 s apart — pgrep NEVER catches alive-at-zero-CPU) with
 # bounded auto-resume (3 consecutive zero-deltas -> resume, 3 retries);
-# RSS + box sampler beside the fleet (the ch5_g9 pattern). WALL CLOCK:
-# [G8-FILL] from the G9 fleet's REALIZED dStep/dWall only — formulas:
-# 1e8/rate/3600 h per lane + ~15.2 h post-fleet eval; no hour figure
-# appears anywhere in this header before the fill [M8].
+# RSS + box sampler beside the fleet (the ch5_g9 pattern). WALL CLOCK
+# [FILLED 2026-09-01, realized-only per M8]: 1e8 / 574 steps/s =
+# **48.4 h/lane** (lanes concurrent) + ~15.2 h post-fleet eval (7.5 h
+# if not P1) = **~64 h ≈ 2.7 days end to end** on the credited async
+# branch.
 # CHECKPOINT RETENTION (ratification item E2): all ~200 rungs x 3 lanes
 # (8.3 GB) RETAINED until S-SHAPE, S-ANNEAL and D-A are recorded and
 # committed — the E3 precedent (a cleanup once deleted a fleet's rungs
@@ -494,9 +518,11 @@
 # promotion for THIS round; E2 rung retention (both fleets); E3 A-COLL's
 # conditional 7.75 h; E4 N-TIMER disclosed-not-celled + the joint-
 # coverage sentence + the RESULTS line (pre-drafted above, NOT yet
-# discharged [MF-3]); E5 K6 horizon rescale; E6 the [G9-FILL]/[G8-FILL]
-# cells (launch-blocking); E7 [SF-17] the off-arc/step-10 labeling of
-# this run's journey_step.
+# discharged [MF-3]); E5 K6 horizon rescale; E6 the acceptance fills —
+# ALL COMPLETE 2026-09-01, tagged [FILLED 2026-09-01] in place; two
+# bands RE-BASED under the G9-VALIDATION RULE (R0-7, D-C) with the
+# violations that forced them disclosed; E7 [SF-17] the off-arc/step-10
+# labeling of this run's journey_step.
 # =====================================================================
 env_id: Showdown-v0
 seed: 104                  # lanes 2/3 via --seed 112 / 120 (ADJ-1)

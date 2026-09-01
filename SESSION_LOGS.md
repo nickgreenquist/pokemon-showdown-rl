@@ -9827,3 +9827,64 @@ line numbers are not — grep the date, then read that region):
   this** — 934/3000 at 02:28Z, orphans steady at 1 (the battle in flight),
   3.1-4.4 s/battle under shared load, no wedge. Grading happens when it
   completes (a separate entry).
+- 2026-09-01 (morning, autonomous, cont.) — **STAGE 2 ACCEPTED: G9 PASS,
+  G8 CREDITED. R4S66 COMPLETE AND CLEAN. The 100M pre-reg ran its full
+  2-Opus cycle, every review finding applied, all acceptance cells filled —
+  PROPOSED, awaiting ratification (E1-E7).**
+  **THE ACCEPTANCE WAVE (scripts/ch5_g9_wave.sh, fully automated):** waited
+  out R4S66, ran the solo bench, three async lanes 04:21-10:11Z, killed each
+  at its 12M crossing rung (ckpt_0120000{13,09,41}.pt — the glob fix landed
+  pre-launch after review 2 caught the exact-filename bug), evals, verdict.
+  **G9 (null-expected, vs-SH locked, pooled 3 seeds): PASS — treatment
+  0.67211 (0.65933/0.68367/0.67333, sd 0.0122) vs basis 0.64889, SIGNED
+  delta +0.02322** — inside |d|<0.025 but 93% of the band, positive side;
+  the signed number now rides every future credit sentence (the 100M
+  header's N-COLL). **G8: CREDITED — median sps 901.2/907.6/901.3, all >>
+  620** on the pre-registered estimator (basis 444, same estimator).
+  **THE HONEST SPEEDUP, realized-vs-realized: 573.5/574.1/574.6 steps/s/lane
+  3-wide (12M / wall) vs the control fleet's realized 375.4 = 1.53x AT FLEET
+  WIDTH; solo on/off bench 1.49x end-to-end** (collect 45.827 -> 28.257 s,
+  update 10.996 -> 9.778 s — the update fell because per-episode GAE deleted
+  the second critic pass and the recorded old_logp deleted the recompute
+  forward). 100M at the realized rate: **48.4 h/lane** (was ~74 h at the
+  control's realized rate). ESTIMATOR DISCLOSURE, new: the sps estimator
+  overstates realized by ~57% on the ASYNC loop (bursty per-drain logging)
+  vs 18.3% on sync — never mix them; wall clocks are realized-only.
+  Fleet health: lag_max exactly 1 all 12M x3; discards 0 in 1.17M episodes;
+  aux hard gates 0/0 throughout; anchor@4M 0.8727/0.8561/0.8601; peak RSS
+  2.50/2.59/2.67 GB/lane; batch overshoot median ~20, max 142; NO stalls,
+  NO retries, NO wedges. Gate re-bases forced by the fleet's own values
+  (the G9-VALIDATION RULE working): R0-7 labelled first-250k [0.78,0.88] ->
+  [0.74,0.88] (would have false-killed s83 at 0.757); D-C labelled RECORD
+  band -> [0.65,0.86] (the sync control itself runs [0.717,0.856] over the
+  matched window — the old band was a first-250k number misapplied).
+  **R4S66 (search@20 on batch-lane s66 vs foul-play, 3000 battles, the
+  timer fix's first real workload): 0.38067 off-FP (1142W-1836L-22T,
+  n_eff read 1141/2999 = 0.38046 after the one crash_forfeit)** vs the SAME
+  lane's greedy 0.4740 — **search@20 HURTS the batch lane by ~0.093 (~10
+  se)**; the arm answers its question: search does NOT stack on the batch
+  recipe at the 20 ms budget; the ladder object question routes to the
+  maintainer with this number. OPS CLEAN: 3.15 s/battle, 2.6 h, ONE
+  relaunch = foul-play died (fp_found_dead 2, seat_frozen_at_kill 0 — NOT
+  our seat; the §5.3 read-rule question is not triggered), timer fix held
+  across 3000 battles + a recovery. G2: 1142+1836+22 = 3000, two tallies
+  agree.
+  **THE 100M PRE-REG CYCLE (results/design_ch5_100m/, all on disk):** brief
+  -> two Opus design memos (A evidential, B ops/cost) -> synthesis with six
+  adjudications -> draft fa450c2 (+ sync fallback + R0-a one-diff tests) ->
+  two Opus reviews (12 MUST-FIX, 27 SHOULD-FIX total) -> ALL applied and
+  tagged (722a31c), incl.: primary = pooled off-FP@20 greedy final-vs-final
+  vs the banked batch fleet (0.4745556, floor-governed bar, marginalized
+  power table); own-run 50M rungs BARRED (507.8x lr); A-COLL collector-
+  attribution cell conditional on P1; N-TIMER pre-drafts (NOT discharges)
+  the owed RESULTS line; K6/T2 re-based to the batch fleet's own realized;
+  D-A exact-form via history basis; seeds 104/112/120; no peeking, no
+  extension, realized-only wall clocks. Grader scripts/ch5_100m_grade.py
+  committed (R0-e): attest 12/12 + every cell/boundary/composition/lane-
+  failure path selftested. Review 2 also caught the wave's rung-literal bug
+  BEFORE any lane launched (0410f10) — the cycle paid for itself twice.
+  All acceptance fills now in the header, tagged [FILLED 2026-09-01].
+  **AWAITING MAINTAINER: ratification of E1-E7 in configs/showdown_sp_100m
+  .yaml, then launch (48.4 h/lane fleet + ~15 h eval ≈ 2.7 days).** Plus
+  the standing HANDOFF §5 rulings (4, unchanged) and the R4S66-informed
+  ladder-object question. Suite green: 648 passed / 17 skipped.

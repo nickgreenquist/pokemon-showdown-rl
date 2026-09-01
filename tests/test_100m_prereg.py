@@ -91,8 +91,10 @@ def test_header_carries_the_load_bearing_verbatims():
     assert "SUPERSESSION" in TXT and "ruling 4" in TXT and "ruling 3" in TXT
     # The control numbers the primary reads against.
     assert "0.4745556" in TXT and "0.7864444" in TXT
-    # Launch-blocking fills still present at DRAFT stage (removed only at
-    # ratification, together with this assertion's inversion).
-    assert "[G9-FILL]" in TXT and "[G8-FILL]" in TXT
+    # Acceptance fills complete (2026-09-01 wave): no unfilled cell may
+    # remain, and the realized G9/G8 numbers are carried.
+    assert "[G9-FILL]" not in TXT and "[G8-FILL]" not in TXT
+    assert "[FILLED 2026-09-01]" in TXT
+    assert "+0.02322" in TXT and "901.2" in TXT and "574.1" in TXT
     # The barred words appear only inside the barring sentences.
     assert TXT.count('"flat"') >= 1 and TXT.count('"plateau"') >= 1
