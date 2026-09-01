@@ -52,7 +52,10 @@ else
 fi
 
 # --- 2. the fleet --------------------------------------------------------
-declare -A PID STALLS RETRIES
+# bash 3.2 (macOS) has no associative arrays: per-lane state lives in
+# eval-mangled scalars (PID_66, STALLS_66, RETRIES_66).
+getv() { eval "echo \${$1:-}"; }
+setv() { eval "$1=\"$2\""; }
 launch() {  # $1 seed, $2 fresh|resume
   local d; d="$(run_dir "$1")"
   if [ "$2" = resume ]; then
@@ -62,17 +65,17 @@ launch() {  # $1 seed, $2 fresh|resume
       --seed "$1" --run-name "showdown_sp_batch50m_async_s$1" \
       >> "logs/ch5_g9_lane_s$1.log" 2>&1 &
   fi
-  PID[$1]=$!
-  STALLS[$1]=0
-  say "lane s$1: launched ($2) pid ${PID[$1]}"
+  setv "PID_$1" $!
+  setv "STALLS_$1" 0
+  say "lane s$1: launched ($2) pid $(getv "PID_$1")"
 }
 
 for s in $SEEDS; do
   d="$(run_dir "$s")"
-  RETRIES[$s]=0
+  setv "RETRIES_$s" 0
   if [ -f "$d/$RUNG" ]; then
     say "lane s$s: rung already on disk, skipping"
-    PID[$s]=""
+    setv "PID_$s" ""
     continue
   fi
   if [ -f "$d/checkpoint.pt" ]; then launch "$s" resume; else launch "$s" fresh; fi
@@ -83,21 +86,21 @@ done
 while :; do
   alive=0
   for s in $SEEDS; do
-    d="$(run_dir "$s")"; p="${PID[$s]}"
+    d="$(run_dir "$s")"; p="$(getv "PID_$s")"
     [ -n "$p" ] || continue
     if [ -f "$d/$RUNG" ]; then
       say "lane s$s: 12M rung landed — stopping pid $p"
       kill "$p" 2>/dev/null; sleep 20; kill -9 "$p" 2>/dev/null
-      PID[$s]=""
+      setv "PID_$s" ""
       continue
     fi
     if ! kill -0 "$p" 2>/dev/null; then
-      if [ "${RETRIES[$s]}" -ge 3 ]; then
+      if [ "$(getv "RETRIES_$s")" -ge 3 ]; then
         say "lane s$s: DEAD and out of retries — manual attention needed"
-        PID[$s]=""
+        setv "PID_$s" ""
       else
-        RETRIES[$s]=$((RETRIES[$s] + 1))
-        say "lane s$s: died (retry ${RETRIES[$s]}/3); resuming"
+        setv "RETRIES_$s" $(( $(getv "RETRIES_$s") + 1 ))
+        say "lane s$s: died (retry $(getv "RETRIES_$s")/3); resuming"
         tail -3 "logs/ch5_g9_lane_s$s.log" >> "$LOG" 2>/dev/null
         if [ -f "$d/checkpoint.pt" ]; then launch "$s" resume; else launch "$s" fresh; fi
       fi
@@ -112,16 +115,16 @@ while :; do
     latest=$(ls -t "$d"/ckpt_0*.pt 2>/dev/null | head -1 | xargs -n1 basename 2>/dev/null)
     say "lane s$s: alive cpu=$t1->$t2 latest=${latest:-none}"
     if [ -n "$t2" ] && [ "$t1" = "$t2" ]; then
-      STALLS[$s]=$((STALLS[$s] + 1))
-      say "lane s$s: ALERT zero CPU delta (${STALLS[$s]} consecutive)"
-      if [ "${STALLS[$s]}" -ge 3 ] && [ "${RETRIES[$s]}" -lt 3 ]; then
-        RETRIES[$s]=$((RETRIES[$s] + 1))
-        say "lane s$s: STALLED — killing and resuming (retry ${RETRIES[$s]}/3)"
+      setv "STALLS_$s" $(( $(getv "STALLS_$s") + 1 ))
+      say "lane s$s: ALERT zero CPU delta ($(getv "STALLS_$s") consecutive)"
+      if [ "$(getv "STALLS_$s")" -ge 3 ] && [ "$(getv "RETRIES_$s")" -lt 3 ]; then
+        setv "RETRIES_$s" $(( $(getv "RETRIES_$s") + 1 ))
+        say "lane s$s: STALLED — killing and resuming (retry $(getv "RETRIES_$s")/3)"
         kill -9 "$p" 2>/dev/null; sleep 5
         launch "$s" resume
       fi
     else
-      STALLS[$s]=0
+      setv "STALLS_$s" 0
     fi
   done
   [ "$alive" = 0 ] && break
