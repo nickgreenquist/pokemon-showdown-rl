@@ -902,9 +902,12 @@ class MixturePlayer(Player):
     """Per-battle mixture over the scripted opponents (training-distribution
     lever, 2026-07-31): each NEW battle is assigned one sub-player, sampled
     by weight, that drives it to the end — a battle is never a mid-game
-    chimera. The training env holds one MixturePlayer per sub-env and each
-    sub-env runs one battle at a time, so only the current battle's
-    assignment is kept. Weights are normalized at construction; sampling
+    chimera. Assignments are keyed by battle tag (Stage 2): the old single
+    latch assumed one battle at a time, and under K interleaved battles it
+    re-drew the sub-player on every alternation, silently destroying the
+    per-battle boundary (THROUGHPUT_SPEC risk table; G6). Finished battles
+    are swept from the map when a new one is assigned, which bounds it at
+    the in-flight count. Weights are normalized at construction; sampling
     uses a private RNG so the choice stream is independent of global
     seeding (battles are server-rolled and non-reproducible anyway).
     """
@@ -929,31 +932,44 @@ class MixturePlayer(Player):
             for name in self._names
         }
         self._rng = random.Random(0)
-        self._battle_tag: str | None = None
-        self._current: Player | None = None
+        # battle_tag -> (battle, assigned sub-player). The battle object
+        # rides along so the sweep can test `finished` on the real thing —
+        # an entry may only be dropped once its battle cannot come back.
+        self._by_tag: dict[str, tuple[object, Player]] = {}
 
     def choose_move(self, battle):
-        if battle.battle_tag != self._battle_tag:
-            self._battle_tag = battle.battle_tag
-            self._current = self._players[
-                self._rng.choices(self._names, weights=self._weights)[0]
-            ]
-        return self._current.choose_move(battle)
+        entry = self._by_tag.get(battle.battle_tag)
+        if entry is None:
+            for tag, (done, _) in list(self._by_tag.items()):
+                if getattr(done, "finished", False):
+                    del self._by_tag[tag]
+            entry = (
+                battle,
+                self._players[self._rng.choices(self._names, weights=self._weights)[0]],
+            )
+            self._by_tag[battle.battle_tag] = entry
+        return entry[1].choose_move(battle)
 
 
 class PoolPlayer(Player):
     """Seat-2 adapter driving battles from the shared SnapshotPool
     (milestone 3): each NEW battle draws one frozen snapshot via
     pool.select() — the per-episode swap boundary the pool contract pins —
-    and that member plays the battle to the end. One PoolPlayer per sub-env
-    (per-battle tracking assumes one battle at a time), all wrapping the ONE
-    pool object that arrives through the caller-kwargs identity seam
+    and that member plays the battle to the end. Assignments are keyed by
+    battle tag (Stage 2): the old single latch assumed one battle at a
+    time, and under K interleaved battles it re-selected per DECISION,
+    destroying the per-episode swap boundary AND crediting outcomes to the
+    wrong member — PFSP corruption with no metric that looks wrong
+    (THROUGHPUT_SPEC risk table; G6a). The sync path (one PoolPlayer per
+    sub-env, one battle at a time) holds at most one live entry, so its
+    call order and rng consumption are unchanged. All instances wrap the
+    ONE pool object that arrives through the caller-kwargs identity seam
     (rl/envs/make.py).
 
     choose_move is SYNC on purpose: SingleAgentWrapper.step calls it on the
     caller thread and asserts the result is not awaitable. SeamPlayer
     (rl/collect.py) is the precedent for the encode/mask/convert trio only,
-    NOT for its async signature. Battle tracking uses our own attribute,
+    NOT for its async signature. Battle tracking uses our own attributes,
     never Player._battles — SingleAgentWrapper.reset calls reset_battles()
     on the opponent at every battle boundary.
     """
@@ -970,18 +986,31 @@ class PoolPlayer(Player):
         # scripted bots) would have every sub-env draw the SAME member
         # sequence, collapsing the pool's opponent diversity 8-fold.
         self._rng = np.random.default_rng(0)
-        self._battle_tag: str | None = None
-        self._current = None
+        # battle_tag -> (battle, member, push id). Entries leave through
+        # report_outcome (the sync path's terminal step, or the async
+        # collector's finalize); the finished-sweep on new-tag assignment is
+        # the backstop for battles that end without a report.
+        self._by_tag: dict[str, tuple[object, Any, int]] = {}
         # D25: the identity of the action this seat chose on the CURRENT inner
         # step, or the sentinel. Read by ShowdownEnv.step; see clear_choice.
+        # A single latch is correct ONLY on the sync one-battle path; the
+        # async collector reads the per-tag record below instead.
         self._choice = _OPP_CHOICE_NONE
-        # Which pool member is playing this battle, as a push id (§6): the
-        # oracle floor A3 must be evaluated on the member that actually
-        # generated each label. Per-BATTLE, so it is not cleared per step.
-        self._member = -1
+        # Stage 2 label capture (off unless the collector opts in): every
+        # decision's identity keyed (battle_tag, turn, nth-decision-this-
+        # turn), so the learner's rows can be joined to the opponent's
+        # simultaneous choices after the fact — the async replacement for
+        # ShowdownEnv.step reading the latch synchronously.
+        self._record_choices = False
+        self._choices: dict[str, dict[tuple[int, int], tuple[int, int, int]]] = {}
+        self._turn_counts: dict[str, dict[int, int]] = {}
 
     def take_member(self) -> int:
-        return self._member
+        """Push id of the member playing the sync path's single live battle
+        (-1 before the first selection) — ShowdownEnv.step's D25 read."""
+        if len(self._by_tag) == 1:
+            return next(iter(self._by_tag.values()))[2]
+        return -1
 
     def clear_choice(self) -> None:
         """Reset to the sentinel — called before EVERY inner env.step (B2).
@@ -997,13 +1026,32 @@ class PoolPlayer(Player):
     def seed_rng(self, seed: int) -> None:
         self._rng = np.random.default_rng(seed)
 
-    def report_outcome(self, outcome: int) -> None:
+    def record_choices(self, on: bool = True) -> None:
+        """Opt in to per-(tag, turn, index) choice capture — the async
+        collector's label path. Off by default: the sync path reads the
+        latch synchronously and must not accumulate a record nobody pops."""
+        self._record_choices = on
+
+    def take_choices(self, battle_tag: str) -> dict[tuple[int, int], tuple[int, int, int]]:
+        """Pop and return one battle's recorded choices (empty if none)."""
+        self._turn_counts.pop(battle_tag, None)
+        return self._choices.pop(battle_tag, {})
+
+    def report_outcome(self, outcome: int, battle_tag: str | None = None) -> None:
         """Learner-perspective outcome of the battle that just finished,
         credited to the member that played it — the pool's PFSP stats feed.
-        Called by ShowdownEnv.step at the terminal step, which is always
-        before the NEXT battle's first choose_move can re-select."""
-        if self._current is not None:
-            self._pool.report(self._current, outcome)
+        The sync caller (ShowdownEnv.step, at the terminal step and always
+        before the NEXT battle's first choose_move can re-select) passes no
+        tag and resolves to its single live battle; the async collector
+        names the battle. Popping the entry here is what keeps the map
+        bounded on the sync path."""
+        if battle_tag is None:
+            if not self._by_tag:
+                return
+            battle_tag = next(iter(self._by_tag))
+        entry = self._by_tag.pop(battle_tag, None)
+        if entry is not None:
+            self._pool.report(entry[1], outcome)
 
     def choose_move(self, battle):
         # Wrapper contract: wait states never reach the opponent
@@ -1012,13 +1060,19 @@ class PoolPlayer(Player):
         # decision poke-env then discards — the seat-2 twin of
         # ShowdownEnv.step's discarded-action assert.
         assert not battle.wait, "wait state reached the pool opponent"
-        if battle.battle_tag != self._battle_tag:
-            self._battle_tag = battle.battle_tag
-            self._current = self._pool.select(self._rng)
-            self._member = self._pool.member_id(self._current)
+        entry = self._by_tag.get(battle.battle_tag)
+        if entry is None:
+            for tag, (done, _, _) in list(self._by_tag.items()):
+                if getattr(done, "finished", False):
+                    del self._by_tag[tag]
+                    self._choices.pop(tag, None)
+                    self._turn_counts.pop(tag, None)
+            member = self._pool.select(self._rng)
+            entry = (battle, member, self._pool.member_id(member))
+            self._by_tag[battle.battle_tag] = entry
         obs = embed_battle(battle, self._type_chart)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
-        action = self._current.move(obs, mask, self._rng)
+        action = entry[1].move(obs, mask, self._rng)
         # strict, with counted recovery: an out-of-mask action raises unless
         # it is the listener-thread request race (SeamPlayer precedent for
         # the raise; _recover_mask_desync for why the race is survivable).
@@ -1030,13 +1084,30 @@ class PoolPlayer(Player):
             # frame_collision_frac == 0 hard gates, and canonicalise's
             # policy is drop, never zero-fill.
             self._choice = _OPP_CHOICE_NONE
+            self._record_choice(battle, _OPP_CHOICE_NONE)
             return _recover_mask_desync(battle, exc)
         # D25 (B1/B2): record the chosen action's IDENTITY off the SAME
         # decision, before it becomes a protocol message. Costs no inference —
         # `action` was computed above regardless — and is unconditional
         # because the label carries no cost worth branching on.
         self._choice = _order_identity(order, battle)
+        self._record_choice(battle, self._choice)
         return order
+
+    def _record_choice(self, battle, identity: tuple[int, int, int]) -> None:
+        """Stage 2 label capture: one record per decision, keyed by (turn,
+        nth-decision-this-turn). The learner keys its own rows the same way,
+        and the join reproduces the sync path's semantics exactly: first
+        decisions of a turn pair (the simultaneous move choice), a forced
+        replacement pairs only when BOTH seats replaced that turn, and any
+        unmatched key resolves to the sentinel — which is what the sync
+        path's clear-before-every-inner-step gives those rows today."""
+        if not self._record_choices:
+            return
+        counts = self._turn_counts.setdefault(battle.battle_tag, {})
+        idx = counts.get(battle.turn, 0)
+        counts[battle.turn] = idx + 1
+        self._choices.setdefault(battle.battle_tag, {})[(battle.turn, idx)] = identity
 
 
 def _parse_mix(spec: str) -> dict[str, float]:

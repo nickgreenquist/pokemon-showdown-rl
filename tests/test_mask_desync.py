@@ -129,9 +129,9 @@ def test_pool_player_recovery_drops_label(monkeypatch):
     battle = _battle(orders=["fallback-order"])
     battle.wait = False
     player = PoolPlayer.__new__(PoolPlayer)
-    player._battle_tag = battle.battle_tag  # skip pool member selection
-    player._current = SimpleNamespace(move=lambda obs, mask, rng: 3)
-    player._member = 1
+    member = SimpleNamespace(move=lambda obs, mask, rng: 3)
+    player._by_tag = {battle.battle_tag: (battle, member, 1)}  # skip selection
+    player._record_choices = False
     player._rng = np.random.default_rng(0)
     player._type_chart = {}
     player._choice = (1, 2, 3)  # stale value that must not survive
