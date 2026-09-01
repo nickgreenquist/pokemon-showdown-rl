@@ -1,0 +1,94 @@
+# CH5 MPS BENCHMARK (HANDOFF item 3, 2026-08-31) — AN OPS MEASUREMENT, NOT AN
+# EXPERIMENT. No arms, no bar, no credit line: it produces a number and a
+# proposal, and the maintainer rules on the CLAUDE.md:71 change.
+#
+# journey_step: 1 (gen1 retrain / batch lever). Exit condition, verbatim from
+# STATUS: "Step 1 = gen1 retrain, batch lever (R2) — DONE AND CREDITED
+# 2026-08-31." This is the maintainer's IN-ARC ruling for the two queued
+# probes (STATUS, 2026-08-31): they inform WHICH OBJECT WE LADDER, and this
+# one informs it by pricing the learner's device.
+#
+# "CPU only for the RL loop; MPS is flaky here" (CLAUDE.md:71,
+# rl/common/config.py:21, docs/archive/DESIGN.md:548) has NEVER BEEN
+# MEASURED: no session-log entry, no benchmark, and — unlike every other rule
+# in CLAUDE.md — no docs/landmines.md narrative. DESIGN.md calls it "a repo
+# convention". Re-testing is newly motivated because the batch lever moved us
+# from ~1k to 30,720-step rollouts at [512,512], the regime that favours a
+# GPU.
+#
+# WHAT IS MEASURED: `time/update_sec` — the LEARNER — at REAL width
+# (hidden_sizes [512,512], entity_deepsets trunk) and REAL batch
+# (rollout_steps 3840 x num_envs 8 = 30,720 steps, 4 epochs x 120
+# minibatches = 480 gradient steps of 256). Every hyperparameter below is
+# s83's, unchanged, so the number is comparable to the banked lanes' own
+# `time/update_sec` (mean 12.954 s, max 15.340 s over 1,627 updates).
+#
+# WHAT IS NOT MEASURED, BY CONSTRUCTION: collection. It is Node-bound — the
+# Showdown server does the work — so MPS cannot help it, and any headline
+# "N x faster" that folds collection in is wrong by construction.
+# scripts/showdown_throughput.py is NOT used here: collection-only, ~7x
+# overstated, and hardcoded [64,64].
+#
+# total_steps = 122,880 = FOUR rollouts. The first is discarded as warm-up
+# (torch lazy init, first-touch allocation, and on MPS the first-run kernel
+# compile); the estimate is over updates 2-4.
+env_id: Showdown-v0
+seed: 9001
+total_steps: 122880
+eval_every: 1000000
+eval_episodes: 100
+run_name: ch5_mps_bench
+device: cpu
+num_envs: 8
+normalize_obs: false
+normalize_reward: false
+torch_threads: 1
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+eval_win_rate: true
+env_kwargs:
+  opp_action: true
+init_from: ''
+checkpoint_every: 1000000
+logger: wandb
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes:
+  - 96
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes:
+    - 384
+    - 384
+    scorer_sizes:
+    - 256
+    value_sizes:
+    - 384
+    - 384
+  hidden_sizes:
+  - 512
+  - 512
+  lr: 0.00025
+  lr_anneal_steps: 50000000
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
