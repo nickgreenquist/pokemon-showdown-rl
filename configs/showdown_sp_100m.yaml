@@ -1,0 +1,432 @@
+# =====================================================================
+# PRE-REGISTRATION — THE 100M RUN (C1 "longer run"), DRAFTED 2026-09-01.
+# STATUS: **DRAFT — PROPOSED, AWAITING MAINTAINER RATIFICATION.** Nothing
+# launches before the ratification word AND every [G8-FILL]/[G9-FILL]
+# cell below is filled from the Stage-2 acceptance wave's realized
+# numbers (logs/ch5_g9_wave.log). The launch itself is the maintainer's
+# (>5 h training, CLAUDE.md rule 4).
+#
+# PROVENANCE — the standing 2-Opus cycle (maintainer process, 2026-08-12)
+# ran in full BEFORE this draft: shared brief results/design_ch5_100m/
+# BRIEF_100M.md; two independent Opus design memos — A (evidential
+# validity) mem_A.md, B (build/ops/cost) mem_B.md; synthesis with SIX
+# RUNNER ADJUDICATIONS (ADJ-1..6, each recorded with the losing argument;
+# synthesis_100m.md); then two independent Opus reviews of the frozen
+# draft — review_1.md (adversarial arithmetic), review_2.md (repo
+# consistency) — findings applied in place before the draft was declared
+# final. The designers were given the settled rulings and the OPEN
+# questions, not a preferred design (CHAPTER5 §8's lesson).
+#
+# journey_step: the maintainer's standing order of 2026-08-31 — "I want a
+# 100M run, and I want it done as fast as possible" — which **explicitly
+# SUPERSEDES CHAPTER5 §7 ruling 4** ("days at 100M is too much"): that
+# ruling was made believing no speedup existed and priced three days as
+# too much; the speedup now exists (Stage 1 shipped ce38c94, +8.1%;
+# Stage 2 landed f055f06, acceptance pending) and three days is
+# acceptable. Exit condition, verbatim from HANDOFF §2: "Launch is the
+# maintainer's." The run produces (a) the strongest checkpoint the
+# project has and (b) a creditable read on C1 from §7's maintainer-owned
+# next-options table. **The arc position is unchanged: step 1 is done and
+# credited; step 2 (ladder) is next on EVERY branch of the table below.**
+#
+# CREDIT LINE, VERBATIM (appears in this header exactly once, here):
+# "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff,
+# where se_diff is the LARGER of the pooled-binomial se_diff and the
+# seed-clustered se_diff, the latter computed from the per-seed finals
+# at read time." Clustered formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp).
+# BAR = max(0.025, 2*se_gov).
+#
+# ---------------------------------------------------------------------
+# ARMS
+#   T: 3 lanes x 100M, THIS FILE, seeds 104 / 112 / 120 (--seed/--run-name
+#      overrides; spares 128/136/144, ORDERED, pre-D-D REPLACEMENT only,
+#      never addition, never concurrent with the seat they replace).
+#   C: the banked R2 batch fleet — runs/showdown_sp_batch50m_s{66,75,83}
+#      FINALS. No control compute is spent. Control numbers, verified from
+#      disk by both designers independently:
+#        off-FP@20 greedy finals: 0.4740 / 0.4826667 / 0.4670
+#          -> pooled 0.4745556, s_C 0.0078479  (results/ch5_r2_offsh/t*.json)
+#        vs-SH locked finals: 0.7813333 / 0.7946667 / 0.7833333
+#          -> pooled 0.7864444, sd 0.0071908   (results/ch5_r2/final_s*.json)
+#      Both backed up to ../pokemon-showdown-rl-d25-backup-20260815/
+#      (R0-g, done 2026-09-01).
+#
+# THE LEVER (L1): total_steps 50M -> 100M. LEVER-COUPLED: lr_anneal_steps
+# 100M (the recipe's own full-horizon-anneal convention, R0-b — the
+# schedule is CONSTITUTIVE of "a longer run" under this recipe, not a
+# bundled delta; see N-ANNEAL). DOSE: deliberately dose-UNMATCHED in data
+# (that IS the lever); optimizer passes per datum MATCHED — epochs 4,
+# grad-steps-per-env-step 1/64 in both arms, minibatch 256 exact,
+# 153,600 steps/push identical (re-derived at grade time from the stamped
+# configs, never transcribed — R0-f).
+#
+# NON-LEVERS THAT DIFFER FROM THE CONTROL'S WIRE, EACH NAMED:
+#   N-COLL  the async collector (Stage 2). Declared a non-lever backed by
+#           G9's null (basis 0.64889, band |d|<0.025) — and G9's band is
+#           exactly the size of the credit floor, G9 is measured at 12M,
+#           and on the vs-SH axis, not the credit axis. THEREFORE: every
+#           credit sentence carries G9's SIGNED delta, and on cell P1 the
+#           A-COLL cell fires (below). A bare "G9 passed" is not an
+#           attribution.
+#   N-TIMER /timer on from every seat (9a0e54d, post-dates the control's
+#           training). DISCLOSED, not celled: both seats are ours and
+#           answer in ms against 300 s/turn (max time/update_sec 15.34 s
+#           over s83's 1,627 updates, ~20x margin); honest limit — never
+#           measured as a training-data effect. G9's acceptance fleet is
+#           post-fix vs pre-fix control rungs, so **G9 tests async AND
+#           timer jointly**; A-COLL bounds the pair on the primary axis.
+#           This line discharges the RESULTS disclosure owed since
+#           2026-08-31 (HANDOFF §5.4).
+#   N-ANNEAL on a POSITIVE read the leading alternative mechanism is "the
+#           anneal, not the data": a 100M run trains hotter at every
+#           matched step (25M: 1.876e-4 vs 1.253e-4) and integrates 2x
+#           the lr. NAMED, not celled (the separating arm — 100M under a
+#           50M anneal — is not run and is named as not run); S-ANNEAL
+#           below is its cheapest partial measurement.
+#
+# ---------------------------------------------------------------------
+# PRIMARY READ — pooled off-FP@20 greedy, FINAL vs FINAL.
+#   Aggregator, named once, binding everywhere: the EQUAL-WEIGHT MEAN of
+#   per-seed finals, computed WITHIN each arm over its own lanes. Pooled-
+#   over-battles, per-lane median (k=3: the median IS one lane), best/
+#   worst lane and per-lane deltas are RECORDED and NEVER govern.
+#   Protocol: each T lane's ckpt at completion (step in [1e8, 1e8+8000],
+#   realized step recorded — ADJ-5), n=3000/lane vs Foul Play at
+#   --search-time-ms 20, GREEDY seat (the R2-r9 protocol), serial k=1, no
+#   co-scheduling. delta = pooled_T - 0.4745556.
+#   WHY THIS AXIS (ruled by designer A, adjudicated): at p~0.47 vs 0.79,
+#   vs-SH needs ~1.56x more true improvement to clear the same absolute
+#   floor; at a matched logit gain of 0.10, P(credit) is 0.488 off-FP vs
+#   0.067 vs-SH. Ratification item E1: this promotes the FP@20 anchor to
+#   the verdict axis FOR THIS ROUND (S8's "anchors are descriptive" is
+#   amended here exactly as R2 amended it for its own primary, and does
+#   not carry itself forward). Every FP@20 quote names the budget and
+#   carries the two standing disclosures (weakly-powered equivalence;
+#   flattering point estimate).
+#   PLANNING SE (inputs shown): se_bin = sqrt(2*0.47456*0.52544/9000)
+#   = 0.007448 pooled-binomial across 3x3000/arm at p=0.4746; se_clus at
+#   s_T = s_C = 0.0078: sqrt(2*0.0078^2/3) = 0.006410; 2*se_gov = 0.0149
+#   < 0.025 -> THE FLOOR GOVERNS for any realized s_T <= ~0.0202.
+#   HONEST POWER (A's marginalized table, 2-df posterior on sigma_seed
+#   from the batch fleet's own s_T; the sigma interval is [0.521, 6.285]
+#   x s = [0.00409, 0.04932] — a factor of 12, quoted wherever s_T is):
+#     true delta:   0     +0.010  +0.025  +0.050  +0.100
+#     P(credit):    0.007  0.025   0.466   0.958   0.990
+#   Fixed-sigma rows for the reader: at sigma=0.008 P(credit|+0.025)=0.49;
+#   at sigma=0.0617 it is 0.203 and P(false credit|0) = 0.080 — the fat
+#   tail of a 2-df clustered se, disclosed. Robust to F3-style eval
+#   overdispersion (1.47x: 0.466 -> ~0.46).
+#   NO POINT PRIOR on the true delta is stated (S5): the scale-shape read
+#   cannot distinguish plateau from noise at one seed and is not load-
+#   bearing in either direction.
+#
+# WHY 100M x 3 BEATS 50M x 6 (S6, stated with its honest weakness): the
+# credit floor is ABSOLUTE and the bar is already AT the floor at k=3
+# (E[bar] at sigma 0.008: k=3 0.02521 -> k=6 0.02500) — buying seeds buys
+# nothing the credit line can see; and no 50M fleet at any k answers
+# anything about 100M. HONEST WEAKNESS: if the true delta is ~+0.010 this
+# run returns P(credit)=0.025 and ~2 days bought "not resolvable", where
+# 50M x 6 would have bought a 5-df sigma_seed (the number every future
+# bar depends on) and a best-of-six ladder candidate. The maintainer's
+# choice is made (S1); the cost is recorded here so it is not
+# rediscovered at readout.
+#
+# PRIMARY CELLS (six, half-open, exhaustive; boundaries: delta=+BAR->P1,
+# =-BAR->P6, =+0.025->P1 when BAR=0.025 else P2, =-0.025->P5 when
+# BAR>0.025 else P6):
+#   P1  delta >= +BAR      CREDIT C1 on the off-FP@20 axis. Carries
+#                          N-ANNEAL named; G9's signed delta + A-COLL.
+#   P2  +0.025<=delta<+BAR letter-met positive, seed-fragile, NOT
+#                          credited. EMPTY BY CONSTRUCTION when BAR=floor
+#                          (~87% of draws) — named so the emptiness is
+#                          not discovered at readout.
+#   P3  0<=delta<+0.025    WITHIN, positive — non-resolving.
+#   P4  -0.025<delta<0     WITHIN, negative — non-resolving.
+#   P5  -BAR<delta<=-0.025 letter-met negative, not credited.
+#   P6  delta <= -BAR      NEGATIVE, credited in reverse: the horizon HURT.
+#   K   k_arm <= 2         DESCRIPTIVE ONLY, no cell fires (1-df seed sd:
+#                          CI multipliers 0.45x-31.9x, disclosed).
+#   EVERY cell routes to JOURNEY step 2 (ladder). The table changes what
+#   is WRITTEN, never where the project goes next.
+#
+# vs-SH SECONDARY (locked protocol; descriptive positive, letter-bearing
+# negative — a positive letter would need pooled >= 0.81144, above every
+# number in repo history, so pre-registering it as a verdict axis would
+# pre-register a guaranteed failure sentence):
+#   SN-N delta_sh > -0.025          no letter; descriptive.
+#   SN-L -BAR_sh<delta_sh<=-0.025   letter-met NEGATIVE on the locked axis.
+#   SN-C delta_sh <= -BAR_sh        credited NEGATIVE on the locked axis.
+#   F1   pooled vs-SH < 0.580222    FALSIFIER-CLASS (the frozen struct50m
+#        pooled): the horizon destroyed the credited stack's entire 50M
+#        advantage. Composes with the cell; both sentences recorded.
+#   COMPOSITION (total): X1 P1&SN-N credit stands; X2 P1&SN-L credit
+#   stands, regression stated in the same paragraph; X3 P1&SN-C NAMED
+#   CELL — both sentences recorded, README row question to the maintainer
+#   WITH the numbers, never an editorial choice; X4 (P2..P6)&any; XK k<=2.
+#
+# A-COLL — collector attribution, fires IFF P1 and the async branch ran:
+#   pooled off-FP@20 greedy at the 12M rungs, async acceptance fleet vs
+#   banked sync fleet (matched seeds 66/75/83, n=3000/lane, serial k=1).
+#   6 arms x 3000 x ~1.55 s = 7.75 h, agent-side, post-fleet, NEVER on
+#   the critical path; descriptive, can only weaken a credit.
+#   A-COLL-0 sync branch: VOID by construction. A-COLL-1 |d|<0.010: wire
+#   effect <40% of floor, credit stands, number disclosed. A-COLL-2
+#   0.010<=|d|<0.025: material fraction, disclosed with sign in every
+#   quote. A-COLL-3 |d|>=0.025: NAMED CELL — the wire alone clears the
+#   floor at 12M; the C1 credit is NOT separable from the collector;
+#   README row question to the maintainer with the numbers. Boundaries:
+#   =0.010 -> A-COLL-2; =0.025 -> A-COLL-3.
+#
+# S-SHAPE (descriptive, never a verdict input): rungs 5M..100M step 5M
+# (20) x 3 lanes x n=3000 vs-SH = 2.0 h. Pooled-rung precision ~±0.008
+# (1 se). The read is the CURVE. The words "flat" and "plateau" are
+# BARRED on every branch (no TOST is run); permitted forms: "climbs
+# through X", "within ±k se", "not distinguishable from flat at this n
+# and k". Cells: SS-CLIMB last four pooled rungs (85-100M) rise >= 0.016
+# over 70-85M -> enters the step-2 ladder-object discussion and any
+# future horizon pre-reg's case; SS-NULL |change|<0.016; SS-FALL fall >=
+# 0.016 -> L3/over-training named as suspects. MANDATORY SENTENCE on
+# every S-SHAPE quote: the treatment's sub-100M rungs are on the 100M
+# anneal and are NOT comparable to a finished run at the same step
+# (507.8x in lr at 50M). No branch moves a cell, bar, n, aggregator or
+# routing.
+#
+# S-ANNEAL (descriptive): the control fleet's own 5M..50M rungs (verified
+# on disk, 10/lane) at n=3000 = 1.0 h -> a 3-seed 50M curve overlaid on
+# the treatment's first half. Measures anneal AND wire jointly and says
+# so in the same sentence, always; A-COLL is the wire's own bound.
+# "flat"/"plateau" barred here too.
+#
+# sigma_seed DESCRIPTIVE: carries the standing SIGMA_DISCLOSURE verbatim
+# (ch5_r2_grade.py:64-68 — (2,2) df, F crit 19.0, a null is NEVER
+# readable as "the horizon did not help variance") PLUS the exact 2-df
+# 95% interval [0.521*s, 6.285*s] printed beside every sigma_seed.
+#
+# ANCHOR BATTERY (S8): vs-SH and FP@20 are bought by the schedule; the
+# BC-clone h2h (500/lane) is the remaining anchor and lands BEFORE any
+# README row; measure its rate at n=20 first. Anchors never verdict
+# inputs (E1 amends FP@20 for this round's primary only). vs-SH/off-FP
+# are NEVER ladder numbers.
+#
+# POST-FLEET EVAL SCHEDULE, ORDER FROZEN (all agent-side, detached,
+# resume-safe, rate-readable; NOTHING runs while any lane trains):
+#   1 vs-SH finals 3x3000 (6 min, ~120 s/lane) -> 2 PRIMARY off-FP@20
+#   3x3000 serial (3.9 h, 1.53-1.55 s/battle) -> 3 S-SHAPE (2.0 h) ->
+#   4 S-ANNEAL (1.0 h) -> 5 BC-clone (est 0.5 h) -> 6 A-COLL iff P1
+#   (7.75 h). Total ~15.2 h (7.4 h if not P1).
+#   FREEZE RULE, verbatim in effect: no cell, bar, bar formula, n,
+#   aggregator, sidedness, comparator or barred-sentence list moves after
+#   the FIRST treatment datum on the primary axis lands.
+#
+# PEEKING / STOPPING POLICY (ruled): NO outcome-based early stop,
+# extension, restart, lr change, config change or lane replacement (ops
+# kills and the ORDERED spare protocol excepted). BARRED OUTRIGHT: any
+# checkpoint evaluation — any n, any opponent, any lane — between launch
+# and the last lane's end (steals CPU from the throughput read; an FP
+# eval inflates a time-budgeted opponent's thinking budget; peeks the
+# verdict axis). BARRED: extending past 100M mid-run even on a climbing
+# log — that is a NEW pre-registration and a maintainer decision; this
+# header does not license it. In-loop eval/win_rate (n=100, se 0.040,
+# 400 readings/lane — the named temptation), episode_return and
+# explained_variance are logged, visible, and NOT ACTIONABLE; no mid-run
+# curve appears in the readout except through S-SHAPE at n=3000.
+# Restated for the peeker: one vs-SH rung at n=3000 is worth ±0.02.
+#
+# ---------------------------------------------------------------------
+# LAUNCH BRANCH (S2; fills come from logs/ch5_g9_wave.log):
+#   G9 PASS + G8 credited (>=620)  -> launch async (THIS FILE), A-COLL armed.
+#   G9 PASS + G8 short (500-620)   -> launch async AFTER the solo on/off
+#                                     bench names the gap's owner; no
+#                                     wall-clock quoted until then.
+#   G9 PASS + G8 STOP (<500)       -> NO 100M on async -> the sync
+#                                     fallback file (below), collector
+#                                     block absent; A-COLL VOID; async-
+#                                     only gates drop; D-A/completion
+#                                     revert to exact forms.
+#   G9 FAIL (either direction)     -> NO 100M on async. Bisect per the
+#                                     acceptance header; sync-now vs
+#                                     fix-then-re-gate is the
+#                                     maintainer's call.
+#   Sync fallback file: configs/showdown_sp_100m_sync.yaml — committed
+#   WITH this one so the FAIL branch needs no launch-time edit.
+#
+# R0 — ZERO-LANE GATES (all pass before lane 1):
+#   R0-a one-diff both directions: this file vs showdown_sp_batch50m_
+#        async.yaml differs in exactly {total_steps, agent.lr_anneal_
+#        steps, seed, run_name} — asserted by a committed test.
+#   R0-b lr_anneal_steps == total_steps == 100000000.
+#   R0-c anneal x aux group: POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_
+#        IDS=1 pytest tests/test_anneal_aux_group.py -> 9 passed/1 skip
+#        (without the env vars 9 of 10 skip SILENTLY).
+#   R0-d carried seams: actor 626,059 / +aux 675,538 / critic 494,849;
+#        optimizer groups [29,26,6]; opponent self; collector.mode async.
+#   R0-e grader scripts/ch5_100m_grade.py committed BEFORE launch with a
+#        selftest exercising every cell above at synthetic cuts, the
+#        k=2/k=1 lane-failure path, and attest() on the frozen control.
+#   R0-f derived arithmetic re-derived from stamped configs at grade
+#        time, never transcribed: updates 3255; grad steps 1,562,400;
+#        pushes 651 (+1 seed push = pool.pushes 652); 8|1e8, 8|250k,
+#        8|500k; discarded tail 6,400 steps.
+#   R0-g control backups intact (DONE 2026-09-01: final_s*.json,
+#        t*.json + runner provenance copied to the d25 backup dir) AND
+#        retention: the control's 300 rungs are RETAINED until S-ANNEAL
+#        and this run's D-A are recorded and committed.
+#   R0-h disk >= 40 GiB free (2.4x the measured 16.6 GiB need; now 173).
+#   R0-i memory >= 12 GB free/reclaimable before lane 1.
+#   R0-j Showdown server restarted CLEAN immediately before launch;
+#        simulator: 4 re-verified at config.js:~111 (gitignored); server
+#        start time recorded in the launch log.
+#   R0-k clean tree, docs committed, suite green.
+#   R0-l seeds 104/112/120 verified unused (no run dir, no stamped
+#        config; highest seed on disk 99) — ADJ-1; windows [104,111]/
+#        [112,119]/[120,127] disjoint and clean on BOTH branches. BARRED,
+#        pre-registered: no per-seed pairing between this fleet and the
+#        50M control may be computed or quoted, on any branch (the
+#        clustered formula is an independent-arms formula; S7).
+#
+# R0 — PER-LANE, FIRST 200K STEPS (~6 min; hair-trigger, breach = build
+# fault): R0-1 loss/entropy in [1.3, 2.0] (control's own first-250k
+# 1.81 -> 1.52/1.59/1.57) KILL FLEET; R0-2 loss/clip_frac != 0.0 on every
+# update (exactly 0.0 = recorded-old_logp not wired; control 0.030-0.130)
+# KILL FLEET; R0-3 lag_p99 <= 1 KILL FLEET; R0-4 discards < 1% KILL
+# FLEET; R0-5 aux/illegal_label_frac == 0 AND frame_collision_frac == 0
+# KILL FLEET; R0-6 eval/win_rate present in (0,1); R0-7 aux/labelled_frac
+# in [0.78, 0.88] provisional [G9-FILL] (control first-250k 0.827-0.857);
+# R0-8 ops deadline: ckpt_000500000.pt within 30 min of that lane's
+# launch, else kill THAT lane, investigate, relaunch fresh (a startup
+# wedge, not a result). NO THROUGHPUT CELL IN R0 (startup windows invent
+# records); rate is D-B's on conforming windows only.
+#
+# IN-RUN GATES (G9-VALIDATION RULE governs: a gate calibrated on the sync
+# control may kill/void an async lane ONLY if the three G9 acceptance
+# lanes sat inside it; every [G9-FILL] is read from those lanes before
+# ratification, re-based or demoted on violation — disclosed):
+#   D-A anneal liveness at the 4M/25M/50M/100M rungs, every lane, all
+#       param groups: lr within [f(step), f(step-61440)], f(s)=2.5e-4*
+#       max(0,1-s/1e8) (x actor_lr_scale for groups 0/2) — BAND form on
+#       async (the optimizer's lr reflects the LAST update's anneal
+#       basis; ADJ-4); any lane outside the band -> STOP. On sync
+#       fallback: the closed form verbatim.
+#   D-B realized dStep/dWall over >=30-min conforming windows post-1M —
+#       NEVER time/steps_per_sec (overstates realized by 17.4% on the R2
+#       fleet's own record). Expected [G9-FILL] = G9 fleet's realized
+#       ±8%; provisional 480-610. RECORD <0.90x expected or <330 (R2's
+#       carried floor); STOP-AND-INVESTIGATE <275 sustained 2 windows.
+#   D-C aux health every 5M: illegal==0, collision==0 (STOP that lane);
+#       labelled_frac bin-mean in [0.78, 0.86] [G9-FILL] RECORD.
+#   D-D selfplay/winrate_anchor >= 0.75 by 4M each lane (STOP); RECORD
+#       <0.83; batch fleet's own realized at 4M: 0.8548/0.8418/0.8605.
+#       Cumulative metric — window it for any curve comparison.
+#   D-E memory: per-lane peak RSS RECORD-ONLY at every D-B reading, no
+#       per-lane threshold at ANY width (the D-E landmine: lanes finish
+#       hours apart and the last runs solo); RECORD any lane > 3.5 GB
+#       [G9-FILL]. The only STOP is box-level: free+inactive < 2 GiB AND
+#       non-zero swapouts, 3 consecutive 5-min polls -> STOP ALL,
+#       disclose, resume after. Suspended below 3 live lanes.
+#   D-F disk: RECORD < 30 GiB; STOP ALL < 15 GiB (a full disk corrupts a
+#       checkpoint write).
+#   D-G lag_p99: RECORD >= 2 any rollout (lag_max RECORD-only — a slow
+#       battle legitimately spans 2 updates); STOP that lane at p99 >= 2
+#       for 3 consecutive rollouts (the update fence is what makes
+#       old_logp exact; without it G9 no longer covers the run).
+#   D-H discards: RECORD > 0.2%; ALERT+DISCLOSE > 1%; STOP that lane at
+#       > 5% sustained (length bias in the training distribution).
+#   D-I collect/rooms_tracked > 2x its own first-hour steady state ->
+#       RECORD (the orphan-leak early warning).
+#   K6  loss/entropy: 3-lane median < 0.15 for 2 consecutive readings
+#       BEFORE 50M -> STOP that lane. Threshold and debounce unchanged
+#       from R2; horizon 25M -> 50M because R2 named the invariant as
+#       "the lr >= 1.25e-4 point of this run's own anneal" (frac 0.5 at
+#       100M = step 50M exactly). Control minima 0.109-0.118; 3-lane
+#       median never below 0.1603 pre-25M.
+#   T1  loss/approx_kl RECORD-only vs control's first-250k median
+#       0.0077-0.0082 — never a cell input.
+#   T2  3-lane median clip_frac >= 0.90 x3 consecutive -> STOP AND
+#       REPORT, never adjust (control worst 0.171).
+#   T3  3-lane median approx_kl >= 0.5 x3, or ANY non-finite loss/* (one
+#       reading suffices) -> STOP.
+#   COMPLETION: step in [100,000,000, 100,008,000], realized step
+#       recorded (ADJ-5; == 1e8 is false by construction on async).
+#
+# LANE-FAILURE RULE: lanes are independent; the fleet does NOT wait. A
+# dead lane resumes with --resume runs/<dir> (read the REAL from_step
+# from meta.yaml — checkpoint.pt lags by far more than one update; R2
+# lost 190,776 and 170,680 steps; expect updates_done one short per
+# resume). A resume SPLITS the wandb history and extract_history.py
+# HARD-FAILS: merge (pre-resume rows _step < from_step + the whole
+# post-resume run, verify monotonicity) into history_merged.csv before
+# quoting ANY history statistic. A lane that cannot be resumed is
+# reported as-is; at k <= 2 the primary VOIDS to cell K.
+#
+# OPS (maintainer launches; agent-side monitoring detached, resume-safe,
+# rate-readable): clean tree, docs committed, caffeinate, stagger 40 s
+# (async) / 60 s (sync), verify each lane by battle PROGRESS before the
+# next (SIGSEGV-at-start landmine); CPU-delta stall watch (ps -o time=
+# twice, 15 s apart — pgrep NEVER catches alive-at-zero-CPU) with
+# bounded auto-resume (3 consecutive zero-deltas -> resume, 3 retries);
+# RSS + box sampler beside the fleet (the ch5_g9 pattern). WALL CLOCK:
+# [G8-FILL] from the G9 fleet's REALIZED dStep/dWall only — formulas:
+# 1e8/rate/3600 h per lane + ~15.2 h post-fleet eval; no number is
+# quoted in this header before the fill (refusal A-9 / B-1).
+# CHECKPOINT RETENTION (ratification item E2): all 200 rungs x 3 lanes
+# (8.3 GB) RETAINED until S-SHAPE, S-ANNEAL and D-A are recorded and
+# committed — the E3 precedent (a cleanup once deleted a fleet's rungs
+# and made its D-A impossible forever).
+#
+# RULINGS OWED AT RATIFICATION (none silently assumed): E1 FP@20-primary
+# promotion for THIS round; E2 rung retention (both fleets); E3 A-COLL's
+# conditional 7.75 h; E4 N-TIMER disclosed-not-celled + the joint-
+# coverage sentence added to the acceptance header's record; E5 K6
+# horizon rescale; E6 the [G9-FILL]/[G8-FILL] cells (launch-blocking).
+# =====================================================================
+env_id: Showdown-v0
+seed: 104                  # lanes 2/3 via --seed 112 / 120 (ADJ-1)
+total_steps: 100000000     # THE LEVER (L1)
+eval_every: 250000         # unchanged (S3); 400 evals ~ 0.58 h/lane
+eval_episodes: 100
+num_envs: 8                # x rollout_steps = the 30,720-step update budget
+torch_threads: 1
+checkpoint_every: 500000   # unchanged (S4); 200 rungs/lane
+run_name: showdown_sp_100m_s104   # lanes 2/3 via --run-name
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: async              # N-COLL; absent on the sync fallback file
+  concurrency: 8
+env_kwargs:
+  opp_action: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 100000000  # LEVER-COUPLED (R0-b: == total_steps)
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

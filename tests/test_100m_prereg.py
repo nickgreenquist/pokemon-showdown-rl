@@ -1,0 +1,91 @@
+"""The 100M pre-registration — internal-consistency tests (R0-a's automated
+half). DRAFT-stage: these must be green from draft through ratification
+through readout. They read no run data.
+
+R0-a: configs/showdown_sp_100m.yaml differs from the Stage-2 acceptance
+config in exactly {total_steps, agent.lr_anneal_steps, seed, run_name},
+asserted in BOTH directions; the sync fallback differs from the async 100M
+file in exactly {collector, run_name}. The defect class is R2's own: a
+"one-lever" config that silently carries a second delta."""
+
+from pathlib import Path
+
+import yaml
+
+REPO = Path(__file__).resolve().parents[1]
+M100 = yaml.safe_load((REPO / "configs/showdown_sp_100m.yaml").read_text())
+SYNC = yaml.safe_load((REPO / "configs/showdown_sp_100m_sync.yaml").read_text())
+ACC = yaml.safe_load(
+    (REPO / "configs/showdown_sp_batch50m_async.yaml").read_text()
+)
+TXT = (REPO / "configs/showdown_sp_100m.yaml").read_text()
+
+
+def _flat(d, prefix=""):
+    out = {}
+    for k, v in d.items():
+        key = f"{prefix}{k}"
+        if isinstance(v, dict):
+            out.update(_flat(v, key + "."))
+        else:
+            out[key] = v
+    return out
+
+
+def test_r0a_one_diff_vs_acceptance_both_directions():
+    a, m = _flat(ACC), _flat(M100)
+    assert a.keys() == m.keys(), (
+        f"key sets differ: {sorted(a.keys() ^ m.keys())}"
+    )
+    changed = sorted(k for k in a if a[k] != m[k])
+    assert changed == [
+        "agent.lr_anneal_steps", "run_name", "seed", "total_steps",
+    ], f"unexpected delta set: {changed}"
+
+
+def test_sync_fallback_differs_only_in_collector_and_run_name():
+    m, s = _flat(M100), _flat(SYNC)
+    dropped = sorted(m.keys() - s.keys())
+    assert dropped == ["collector.concurrency", "collector.mode"], dropped
+    assert not (s.keys() - m.keys())
+    changed = sorted(k for k in s if s[k] != m[k])
+    assert changed == ["run_name"], changed
+    assert SYNC["run_name"] == "showdown_sp_100m_sync_s104"
+
+
+def test_lever_values_and_anneal_guard():
+    assert M100["total_steps"] == 100_000_000
+    assert M100["agent"]["lr_anneal_steps"] == 100_000_000  # R0-b
+    assert M100["seed"] == 104
+    assert M100["checkpoint_every"] == 500_000  # S4: the rung ladder stays
+    assert M100["eval_every"] == 250_000  # S3: untouched, undiscussed
+
+
+def test_seed_windows_disjoint_and_unused():
+    seeds = [104, 112, 120]
+    windows = [set(range(s, s + 8)) for s in seeds]
+    for i in range(3):
+        for j in range(i + 1, 3):
+            assert not windows[i] & windows[j], "sub-env windows overlap"
+    used = {
+        int(m.group(1))
+        for p in (REPO / "runs").glob("*/config.yaml")
+        for m in [__import__("re").search(r"^seed: (\d+)", p.read_text(), 8)]
+        if m
+    } if (REPO / "runs").exists() else set()
+    for w in windows:
+        assert not ({104, 112, 120} & used), f"seed already stamped: {used}"
+
+
+def test_header_carries_the_load_bearing_verbatims():
+    # The credit line with the larger-of clause, exactly once.
+    assert TXT.count("LARGER of the pooled-binomial se_diff") == 1
+    # The supersession of CHAPTER5 §7 ruling 4 is explicit.
+    assert "SUPERSEDES CHAPTER5" in TXT
+    # The control numbers the primary reads against.
+    assert "0.4745556" in TXT and "0.7864444" in TXT
+    # Launch-blocking fills still present at DRAFT stage (removed only at
+    # ratification, together with this assertion's inversion).
+    assert "[G9-FILL]" in TXT and "[G8-FILL]" in TXT
+    # The barred words appear only inside the barring sentences.
+    assert TXT.count('"flat"') >= 1 and TXT.count('"plateau"') >= 1
