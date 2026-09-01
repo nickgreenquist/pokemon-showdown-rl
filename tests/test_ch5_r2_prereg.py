@@ -331,8 +331,14 @@ def test_seeds_are_window_disjoint_and_unused():
         if s in seeds:
             # r2_review_2 MF-2: the arm's OWN lanes stamp their seed at
             # launch; only a FOREIGN run on 66/75/83 is a violation.
-            assert p.parent.name == f"showdown_sp_batch50m_s{s}", \
-                f"seed {s} already used by a foreign run {p.parent.name}"
+            # 2026-09-01: the Stage-2 acceptance fleet (configs/
+            # showdown_sp_batch50m_async.yaml, G9's pre-registered
+            # matched-seed treatment) deliberately reuses 66/75/83 AFTER
+            # R2 closed and credited — its dirs are the second legal owner.
+            assert p.parent.name in (
+                f"showdown_sp_batch50m_s{s}",
+                f"showdown_sp_batch50m_async_s{s}",
+            ), f"seed {s} already used by a foreign run {p.parent.name}"
 
 
 # ---------------------------------------------------------------------
