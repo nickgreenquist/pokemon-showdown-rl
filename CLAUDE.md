@@ -121,7 +121,16 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 - **A lane can STALL MID-RUN with the process ALIVE and ZERO CPU** — every
   `pgrep` check passes forever (twice in R2, ~10 h apart, at 68.9% and
   94.3%). Confirm in 15 s with CPU-time deltas (`ps -o time=` twice), not by
-  waiting on step counts; recover with `--resume runs/<dir>`.
+  waiting on step counts; recover with `--resume runs/<dir>`. **Root cause
+  found and FIXED 2026-08-31 — the ORPHANED-ROOM DEADLOCK; the CPU-delta
+  check stays the instrument, because nothing else catches this shape.**
+- **Every connecting seat sends `/timer on`** (`start_timer_on_battle_start`;
+  2026-08-31, maintainer-ruled, WIRE-VISIBLE) — without a timer requester
+  Showdown NEVER ends an abandoned room, the queue slot never returns and the
+  lane wedges forever. Do not remove it. Verified live by
+  `scripts/ch5_timer_smoke.py` and `scripts/ch5_orphan_demo.py`; a RESULTS
+  disclosure line is OWED with the next headline number. The LADDER is the
+  tight path (150 s/turn, not the 300 s a challenge gets).
 - **A resume SPLITS the wandb history** into two offline runs with
   OVERLAPPING steps: `extract_history.py <run_dir>` then HARD-FAILS, and
   merging means pre-resume rows `_step < from_step` + the whole post-resume
@@ -136,6 +145,9 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   completed arm (FP@20 ≈ 1.2–1.5 s, FP@100 ≈ 6–7 s); 10× off means stalled.
 - Changing `OBS_DIM` invalidates every checkpoint — evaluate outstanding
   finals first.
+- **One vs-SH rung at n=3000 is worth ±0.02, not the binomial ±0.008** — three
+  re-draws of ONE checkpoint spread 0.0200 (2026-08-31). Read a curve's SHAPE
+  over tens of millions of steps; never one rung against its neighbour.
 - `eval/win_rate` is env-supplied outcome, never return-sign;
   `wins_from_returns` exists only as the cross-check and the two must agree.
 - **vs-SH numbers are NOT ladder numbers** — never project in either

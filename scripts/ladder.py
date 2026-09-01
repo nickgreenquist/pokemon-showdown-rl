@@ -461,24 +461,30 @@ class LadderPlayer(Player):
         kwargs.setdefault("ping_interval", 60.0)
         kwargs.setdefault("ping_timeout", 120.0)
         kwargs.setdefault("open_timeout", 60.0)
-        # 2026-08-31, THE ORPHANED-ROOM DEADLOCK (docs/landmines.md): a room
+        # THE ORPHANED-ROOM DEADLOCK (docs/landmines.md, 2026-08-31): a room
         # that never resolves never returns its queue slot, and the next
-        # `|init|battle` then blocks forever at player.py:221. Showdown ends
-        # an abandoned room only when a timer requester exists
+        # `|init|battle` then blocks forever at player.py:221. Showdown ends an
+        # abandoned room only when a timer requester exists
         # (room-battle.ts:320/345/410 all return early on
-        # `!this.timerRequesters.size`), so this is the fix for the cause.
-        # HONEST LIMIT, unchanged from the note above: the deadlock is
-        # UNMEASURED on the ladder path -- this is reasoning from mechanism.
-        # `max_concurrent_battles` stays at 2 DELIBERATELY where the seats got
-        # 8: ladder games are RATED and matchmade, so extra slots would put
+        # `!this.timerRequesters.size`).
+        #
+        # THE LADDER PATH ALREADY HAD THE FIX and predates the incident: the
+        # caller passes `start_timer_on_battle_start` from the pre-reg's
+        # `pacing.start_timer` (default true; ladder_r1.yaml:260 and
+        # ladder_r3.yaml:833 both set it, and R1 records it VINDICATED at n=17
+        # against a staller). So every banked LADDER number was produced with
+        # the timer on -- which is the strongest evidence in the repo that it
+        # is inert for a bot answering in milliseconds. A `setdefault`, NOT a
+        # hardcoded True: an explicit kwarg here would collide with the
+        # caller's and raise `got multiple values for keyword argument`.
+        kwargs.setdefault("start_timer_on_battle_start", True)
+        # `max_concurrent_battles` stays at 2 DELIBERATELY where the h2h seat
+        # got 8: ladder games are RATED and matchmade, so extra slots would put
         # several rated games in flight at once and change the very thing a
         # ladder run exists to measure. Slack is free on a serial h2h seat and
         # is not free here.
         super().__init__(
-            battle_format=BATTLE_FORMAT,
-            max_concurrent_battles=2,
-            start_timer_on_battle_start=True,
-            **kwargs,
+            battle_format=BATTLE_FORMAT, max_concurrent_battles=2, **kwargs
         )
         self.max_concurrent_live = 0
         self._act = act_fn

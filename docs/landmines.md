@@ -52,6 +52,23 @@ its own detector (measured). `scripts/score_ladder.py` and
 `wins_from_returns` is kept only as the sign-bug cross-check, and the two
 must agree.
 
+## ONE vs-SH RUNG IS WORTH +/- 0.02, NOT +/- 0.008 (2026-08-31)
+
+The binomial se at n=3000 is 0.0077 and it UNDERSTATES what a re-run actually
+moves. Measured on the CH5 scale-shape read: three independent n=3000 passes
+over the SAME 50M checkpoint (`ckpt_050000000.pt`, s83) scored **0.76467,
+0.78467 and 0.78333** — a spread of **0.0200**, 2.6x the binomial se, and the
+two extremes are 1.9 se apart on the paired-se arithmetic that would have
+called them a difference.
+
+Showdown comparisons are UNPAIRED by construction (the server rolls teams and
+damage, so the episode seed ladder buys nothing — `rl/common/evaluation.py`),
+which is exactly why buying precision means buying BATTLES. The consequence for
+any checkpoint-ladder read: **a curve's SHAPE over tens of millions of steps is
+readable; one rung against its neighbour is not.** A single-rung dip or spike
+of 0.02 is the instrument, not the policy. `scripts/ch5_scale_shape_report.py`
+prints this re-draw check beside the curve so no one has to remember.
+
 ## vs-SH numbers are NOT ladder numbers
 
 vs-SH gains can be SH-facing (measured 2026-08-23: +0.081 vs SH, negative vs
@@ -130,6 +147,60 @@ collection-only numbers overstate full-loop gains ~7×, and it hardcodes
 `[64,64]` where production is `[512,512]`. Anything quoted from it must
 carry its network width. (Both disclosures are also in the script's own
 docstring.)
+
+## MPS: MEASURED at last (2026-08-31) — 1.15x on the learner, and it CRASHES
+
+"CPU only for the RL loop; MPS is flaky here" (CLAUDE.md, `rl/common/config.py`,
+`docs/archive/DESIGN.md:548`) had NO benchmark, no session-log entry and no
+narrative here — DESIGN.md called it "a repo convention". It now has all three.
+**The wording of the CLAUDE.md rule is the maintainer's to change; this section
+records only what was measured.**
+
+**IT DOES NOT RUN.** `device: mps` dies on the FIRST opponent decision:
+`rl/selfplay/pool.py:88` samples with
+`torch.multinomial(probs, 1, generator=self.generator)`, where `probs` follows
+`agent.device` but `self.generator` is always a CPU generator —
+`RuntimeError: Expected a 'mps' device type for generator but found 'cpu'`.
+So every self-play lane is affected, which is every lane. It is a ONE-SITE
+defect, not a backend limitation, and it is why the three-arm training bench
+returned one arm.
+
+**WHAT A FIX WOULD BUY, priced on the learner in isolation**
+(`scripts/ch5_mps_update_bench.py`, s83's exact recipe: `[512,512]`
+entity-deepsets, 30,720-step rollout, 4 epochs x 120 minibatches of 256):
+
+| arm | `update_sec` | vs cpu1 |
+|---|---|---|
+| cpu, `torch_threads: 1` | **12.002** (11.934–12.070) | 1.00x |
+| mps | **10.449** (10.436–10.461) | **1.15x** |
+| cpu, `torch_threads: 6` | **14.195** (13.869–14.520) | **0.85x** |
+
+The proxy is validated: its cpu arm reads 12.002 s against **11.285 s** logged
+by a real training run of the same config and **12.954 s** banked over s83's
+1,627 rollouts.
+
+**1.15x ON THE LEARNER IS ~2.5% END TO END.** Collection is Node-bound and
+cannot benefit: a rollout on this box is 50.5 s collect + 11.3 s update, so the
+whole prize is ~1.55 s in ~62 s. **Any headline "N x faster" that folds
+collection in is wrong by construction** — and `scripts/showdown_throughput.py`
+is not the instrument either (collection-only, ~7x overstated, hardcoded
+`[64,64]`).
+
+**`torch_threads: 6` IS SLOWER THAN 1** — 0.85x, on a 14-core box. Minibatches
+are 256 rows wide; the threads spend their time on barriers. The existing
+`torch_threads: 1` is not a leftover, it is the fast setting, and that is now
+measured rather than assumed.
+
+**NUMERICS ARE FINE, AND THAT IS NOT THE SAME AS REPRODUCIBLE.**
+`scripts/ch5_mps_numerics.py` over 512 real observations: max abs diff on raw
+logits 1.8e-4, on masked logits 1.8e-4, on masked entropy 2.0e-5, on values
+1.1e-5; the `-1e8` sentinel is preserved on both devices, illegal actions carry
+EXACTLY 0.0 probability mass on both, no NaN or Inf anywhere, and the
+deterministic argmax agreed on 512 of 512. So the harness's masking contract
+survives the backend. But 1.8e-4 on logits means an MPS lane is NOT
+bit-comparable with a CPU one, and neither is the opponent sampler's RNG stream
+once its generator moves device — a switch is a new lane, not a faster copy of
+an old one.
 
 ## Job lifetime, not throughput (2026-08-26 correction)
 
@@ -275,16 +346,74 @@ charged to fp. On a graded arm the crash-forfeit rule would have credited us
 **4 phantom forfeits**. The wave's printed remedy ("re-run under a FRESH
 username pair") is therefore the WRONG remedy for this failure.
 
-**The fix, not yet applied (needs a maintainer ruling — it is wire-visible):**
-`start_timer_on_battle_start=True`. It attacks the cause (rooms that never
-resolve) and is the ONLY fix available to the training env, whose
-`max_concurrent_battles` is a hardcoded literal. Forwardable at
-`scripts/ch3_fp_h2h.py:176` (SeatPlayer), `scripts/ladder.py:465`
-(LadderPlayer), and `ShowdownSingles(...)` via `**kwargs`. Secondary: raise the
-seats' `max_concurrent_battles` 2 → 8 (pure slack; 4 orphans < 8 would have
-carried both R4S66 attempts to completion), make the watchdog read the SEAT log
-too, and call `kill_fp` on the `pid is gone` branch (:241-244) so search-worker
-children are always reaped.
+**Fixed 2026-08-31 (commit `fc3066d`), but NOT the obvious way.**
+Summing the SEAT log's bytes into `log_bytes()` was considered and REJECTED:
+`ch3_fp_h2h.py` prints at start and at end and NOTHING per battle, so that log
+does not grow during a healthy run and the sum would change no decision — it
+would only give a growing FP log a way to hide a dead seat. The seat's real
+liveness signal is CPU TIME (the instrument CLAUDE.md already mandates for this
+signature), so the FP-log trigger stays and a 15 s CPU-delta probe ATTRIBUTES
+at the moment of the kill. Attribution is RECORDED, NOT ACTED ON:
+`fp_found_dead` / `fp_killed_while_alive` / `seat_frozen_at_kill` land in the
+arm JSON while `crash_forfeits` keeps its frozen pre-reg meaning (= relaunches).
+Whether a stall-kill forfeited a real in-flight battle is a READ-RULE question
+against a frozen pre-reg and is the maintainer's to answer. Separately, the
+`pid is gone` branch now calls `kill_fp`, so search-worker children are reaped
+on the one path where the parent dies by itself.
+
+**THE FIX, APPLIED 2026-08-31 (commit `9a0e54d`) under the maintainer's
+"ship everywhere, disclose" ruling.** `start_timer_on_battle_start=True` on
+every connecting seat: `rl/envs/showdown.py` (ShowdownEnv → ShowdownSingles →
+PokeEnv — a knob, default True), `scripts/ch3_fp_h2h.py`, `scripts/ladder.py`,
+`scripts/foulplay_vs_sh.py`. It attacks the CAUSE and is the ONLY fix available
+to the training env, whose `max_concurrent_battles` is a hardcoded literal.
+Secondary: the h2h seat's `max_concurrent_battles` 2 → 8 (pure slack; 4 orphans
+< 8 would have carried both R4S66 attempts). **The ladder seat stays at 2 on
+purpose** — its games are rated and matchmade, so extra slots would change the
+very thing a ladder run measures.
+
+**THE LADDER ALREADY HAD IT, AND THAT IS THE BEST EVIDENCE WE HAVE.**
+`scripts/ladder.py` has forwarded `start_timer_on_battle_start` from the
+pre-reg's `pacing.start_timer` since R1 (`ladder_r1.yaml:260`,
+`ladder_r3.yaml:833`, both true; R1 records it VINDICATED at n=17 against a
+staller). So **every banked LADDER number was produced with the timer on** —
+the strongest evidence in the repo that it is inert for a bot answering in
+milliseconds. Two consequences: the handoff's premise that `ladder.py:465`
+needed the fix was wrong, and hardcoding it there raises `got multiple values
+for keyword argument` on the real ladder path — it must be a
+`kwargs.setdefault`. Nothing in the test suite covers that constructor, so the
+first sign would have been a dead ladder run.
+
+**IT IS WIRE-VISIBLE AND THE DISCLOSURE TRAVELS WITH IT.** Every battle from
+here carries a timer; each seat receives ~25 extra inbound `|inactive|Time
+left:` lines per battle (measured: 302 over 6 battles, against 0 before). The
+accepted trade is that a process pause past the turn budget now becomes a
+VISIBLE LOSS instead of an unbounded silent hang. The margin is 20x: these are
+CHALLENGE battles, so 300 s/turn + 60 s grace (`STARTING_TIME_CHALLENGE` /
+`MAX_TURN_TIME_CHALLENGE`, room-battle.ts:47-49) against a measured **max
+`time/update_sec` of 15.34 s** over s83's 1,627 updates. **The LADDER is the
+tighter path** — a ladder game is not a challenge, so it gets 150 s, not 300.
+A RESULTS disclosure line is OWED with the next headline number.
+
+**VERIFIED LIVE, TWICE — do not accept a code read here** (the two scripts are
+the standing regression):
+- `scripts/ch5_timer_smoke.py` — on the REAL training env: 12 `/timer on` sends
+  over 6 battles, one per seat per battle, with 12 SERVER acknowledgements
+  (`|inactive|Battle timer is ON`); the knob-False control sends 0 and sees 0.
+- `scripts/ch5_orphan_demo.py` — the incident in miniature. A room whose
+  opponent vanishes at turn 1 **RESOLVED after 300.0 s** (=
+  `DISCONNECTION_BANK_TIME`) and RETURNED ITS QUEUE SLOT (0/1 held); the
+  identical room without the timer was **still open at the 420 s cap, holding
+  1/1 slots** — which at the training env's hardcoded
+  `max_concurrent_battles=1` is the deadlock itself. So an orphan now costs
+  ~5 minutes, not the lane.
+  Writing that demo cost two false starts worth remembering: poke-env runs every
+  player on its own background `POKE_LOOP` and only the wrapped entry points
+  (`battle_against`, `stop_listening`) marshal across it, so awaiting
+  `send_challenges` from your own loop hangs silently; and a local
+  heuristics-vs-heuristics battle runs END TO END IN ~40 ms, so you cannot
+  react to `|init|` from outside — mute the opponent's
+  `_handle_battle_request` first, then drop its socket.
 
 **Open question for the maintainer:** whether the FP anchor is runnable AT ALL
 for search seats at n=3000 while foul-play panics on Struggle. Options — patch

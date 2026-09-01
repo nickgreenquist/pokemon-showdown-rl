@@ -9636,3 +9636,127 @@ line numbers are not — grep the date, then read that region):
   amendment owed; (b) a fresh session takes the fix + both probes via HANDOFF,
   Opus/high; (c) that session REPORTS AND PROPOSES on the CLAUDE.md MPS rule —
   the maintainer rules on the doc change.
+
+- 2026-08-31 (evening, maintainer: "handoff.md - take it" — **THE TIMER FIX
+  SHIPPED AND IS VERIFIED CAUSALLY; the scale-shape curve read; MPS MEASURED
+  for the first time and it CRASHES**). All four handoff items closed. Nothing
+  here credits anything: no bar, no comparator, no arm graded.
+
+  **1. THE ORPHANED-ROOM DEADLOCK — FIXED (`9a0e54d`), under a maintainer
+  ruling taken mid-session ("ship everywhere, disclose"; scope = the three
+  handoff sites PLUS `scripts/foulplay_vs_sh.py`).**
+  `start_timer_on_battle_start=True` now travels from every connecting seat:
+  `rl/envs/showdown.py` (ShowdownEnv → ShowdownSingles → PokeEnv, as a knob
+  defaulting True), `ch3_fp_h2h.py`, `ladder.py`, `foulplay_vs_sh.py`. The h2h
+  seat's `max_concurrent_battles` went 2 → 8; **the ladder seat stayed at 2 on
+  purpose** — its games are rated and matchmade, so extra in-flight slots would
+  change the thing a ladder run measures.
+
+  **VERIFIED LIVE, TWICE — the handoff's "VERIFY, do not assume" was the right
+  order and a code read would have been wrong.**
+  - `scripts/ch5_timer_smoke.py` (new): on the REAL training env, **12
+    `/timer on` sends over 6 battles** — one per seat per battle — with **12
+    SERVER acknowledgements** (`|inactive|Battle timer is ON`). The knob-False
+    control sends 0 and sees 0, so the recorder is not inventing a message.
+  - `scripts/ch5_orphan_demo.py` (new): the incident in miniature. A room whose
+    opponent vanishes at turn 1 **RESOLVED after 300.0 s** (=
+    `DISCONNECTION_BANK_TIME`) and **returned its queue slot (0/1 held)**; the
+    identical room without the timer was **still open at the 420 s cap holding
+    1/1** — which at the training env's hardcoded `max_concurrent_battles=1`
+    IS the deadlock. An orphan now costs ~5 minutes, not the lane.
+  - Mechanism, confirmed in the vendored server rather than assumed:
+    `nextRequest`, `nextTick` and `checkActivity` all return early on
+    `!this.timerRequesters.size` (`room-battle.ts:320/345/410`), so with no
+    timer requester a dead opponent NEVER times out.
+
+  **CORRECTION TO THE HANDOFF, and it would have broken the ladder.** The
+  handoff listed `ladder.py:465` as needing the fix. It did not: the caller
+  already passes `start_timer_on_battle_start` from the pre-reg's
+  `pacing.start_timer` (`ladder_r1.yaml:260`, `ladder_r3.yaml:833`, both true;
+  R1 records it VINDICATED at n=17 against a staller). Hardcoding it in the
+  constructor raises `got multiple values for keyword argument` on the real
+  ladder path — caught by reading the call site, NOT by the suite, which never
+  constructs `LadderPlayer`. It is a `kwargs.setdefault` now. The upside is
+  large: **every banked LADDER number was already produced with the timer on**,
+  which is the strongest evidence in the repo that the change is inert for a
+  bot answering in milliseconds.
+
+  **THE DISCLOSURE THAT TRAVELS WITH IT.** Wire-visible: ~25 extra inbound
+  `|inactive|Time left:` lines per seat per battle (302 over 6 battles, vs 0).
+  The accepted trade is that a process pause past the turn budget becomes a
+  VISIBLE LOSS instead of an unbounded silent hang. Margin ~20x on the
+  challenge path (300 s/turn + 60 s grace vs a measured max `time/update_sec`
+  of 15.34 s over s83's 1,627 updates); **the LADDER is the tight path at
+  150 s, not 300**. A RESULTS disclosure line is OWED with the next headline
+  number.
+
+  **RUNNER (`fc3066d`).** Two fixes the incident exposed. The `pid is gone`
+  branch never called `kill_fp`, so foul-play's multiprocessing search workers
+  were unreaped on the one path where the parent dies by itself. And the stall
+  detector blamed foul-play for a wedged SEAT — but **summing the seat log into
+  `log_bytes()` was considered and REJECTED**: `ch3_fp_h2h.py` prints nothing
+  per battle, so that log does not grow during a healthy run and the sum would
+  change no decision. A 15 s CPU-delta probe attributes at the moment of the
+  kill instead, and the result is RECORDED, NOT ACTED ON — `fp_found_dead` /
+  `fp_killed_while_alive` / `seat_frozen_at_kill` land in the arm JSON while
+  `crash_forfeits` keeps its frozen pre-reg meaning. **Whether a stall-kill
+  forfeited a real in-flight battle is a READ-RULE question against a frozen
+  pre-reg and is escalated, not answered here.**
+
+  **2. SCALE-SHAPE READ (`ac0af47`, `1b7e7f1`) — DESCRIPTIVE, one seed, credits
+  nothing.** s83's rungs only (s66/s75 carry resume seams). Went to **ten rungs
+  at 5M spacing and n=3000 each** rather than the handoff's four at n=1000: the
+  box turns a rung in ~120 s, so the precision was nearly free.
+
+  | 5M | 10M | 15M | 20M | 25M | 30M | 35M | 40M | 45M | 50M |
+  |---|---|---|---|---|---|---|---|---|---|
+  | .6657 | .6703 | .6920 | .6987 | .7287 | .7073 | .7413 | .7637 | .7710 | .7647 |
+
+  5M → 45M is **+0.105**, far outside noise. The TAIL is not: 40M → 50M is
+  **+0.0010 (0.1 se)**, i.e. NOT distinguishable from flat.
+
+  **THE READ IS WEAKER THAN THE TABLE LOOKS, and the session measured why.**
+  Three independent n=3000 passes over the SAME 50M checkpoint scored
+  **0.76467 / 0.78467 / 0.78333** (the third is R2's banked s83 number) — a
+  spread of **0.0200, 2.6x the binomial se of 0.0077**. So a single rung is
+  worth ±0.02 and the 30M dip (−0.021) is the instrument, not the policy. New
+  landmine, and `ch5_scale_shape_report.py` prints the re-draw check beside the
+  curve so nobody has to remember. **Honest verdict: the curve clearly climbs
+  through ~45M; whether it has plateaued cannot be settled at one seed and this
+  n.** STOPPED THERE, as ordered — no 100M projection, nothing queued.
+
+  **3. MPS — MEASURED FOR THE FIRST TIME (`43e3854`, `927f7a9`), and the
+  headline is that IT DOES NOT RUN.** `device: mps` dies on the FIRST opponent
+  decision: `rl/selfplay/pool.py:88` samples with
+  `torch.multinomial(probs, 1, generator=self.generator)` where `probs` follows
+  `agent.device` but the generator is always a CPU one →
+  `RuntimeError: Expected a 'mps' device type for generator but found 'cpu'`.
+  Every self-play lane is affected, which is every lane. **A one-site defect,
+  not a backend limitation** — so the never-measured rule turns out to have a
+  real referent.
+
+  Priced anyway, on the learner in isolation (new
+  `scripts/ch5_mps_update_bench.py`, s83's exact recipe, one `update()` call per
+  env step so the 3,839 buffer appends are timed too):
+  **cpu@1 thread 12.002 s · mps 10.449 s (1.15x) · cpu@6 threads 14.195 s
+  (0.85x)**. The proxy is validated — its cpu arm reads 12.002 s against
+  **11.285 s** logged by a real training run of the same config and **12.954 s**
+  banked over s83's 1,627 rollouts.
+  **1.15x on the learner is ~2.5% END TO END**: a rollout is 50.5 s collect +
+  11.3 s update and collection is Node-bound. And **`torch_threads: 6` is
+  SLOWER than 1** on a 14-core box (minibatches are 256 rows; the threads buy
+  barriers), so that setting is now measured rather than assumed.
+  Numerics PASS (`scripts/ch5_mps_numerics.py`, 512 real observations): max abs
+  diff 1.8e-4 on logits, 2.0e-5 on masked entropy, `-1e8` sentinel preserved,
+  illegal mass EXACTLY 0.0 on both devices, no NaN/Inf, argmax agreed 512/512.
+  But 1.8e-4 means an MPS lane is **not bit-comparable** with a CPU one, and
+  neither is the opponent sampler's RNG stream once its generator changes
+  device. **PROPOSAL (the maintainer rules, CLAUDE.md untouched on this
+  point): keep CPU-only, and rewrite the rule from "MPS is flaky here" to the
+  measured reason — it crashes at `pool.py:88`, and the prize behind that crash
+  is ~2.5%.**
+
+  **NOT DONE, deliberately.** R4S66 re-run (optional, routes nothing) not
+  started. No 100M run, no ladder, `scripts/ch5_r2_crossplay.py` still unbuilt
+  — riders R3c/R1i/R1ii and the README row stay blocked on it. Suite green
+  throughout (612 passed, 17 skipped).
