@@ -6,7 +6,8 @@
 #   1. Solo on/off bench: configs/ch5_stage2_bench.yaml (~5 min), the
 #      async side of HANDOFF §1's "measure it on/off, both directions".
 #   2. Three async lanes, seeds 66/75/83, staggered 40 s, detached.
-#      Each lane is killed once ckpt_012000000.pt lands (the G9 stop; the
+#      Each lane is killed once its 12M crossing rung (ckpt_0120*.pt)
+#      lands (the G9 stop; the
 #      config keeps the control's own 50M schedule).
 #   3. Locked-protocol eval of each lane's 12M rung (n=3000, serial), then
 #      the pooled G9 read against the banked basis 0.64889 and per-lane
@@ -27,7 +28,13 @@ export POKEMON_RL_ENCODER_IDS=1
 PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python
 LOG=logs/ch5_g9_wave.log
 SEEDS="66 75 83"
-RUNG=ckpt_012000000.pt
+# The async loop names rungs at the CROSSING step (rl/train.py: threshold
+# crossing, step advances by whole episodes — smoke2 wrote ckpt_000005105
+# .pt), so the 12M rung is ckpt_0120?????.pt, never the exact literal the
+# vector path writes. Post-update drain backlogs put the overshoot as high
+# as ~15k steps; the glob covers 12.0M-12.1M. (Found by the 100M draft's
+# repo-consistency review, 2026-09-01, before any lane launched.)
+rung_of() { ls "$1"/ckpt_0120*.pt 2>/dev/null | head -1; }
 BASIS=0.6488888888888889
 
 say() { echo "[$(date -u +%FT%TZ)] $*" >> "$LOG"; }
@@ -73,7 +80,7 @@ launch() {  # $1 seed, $2 fresh|resume
 for s in $SEEDS; do
   d="$(run_dir "$s")"
   setv "RETRIES_$s" 0
-  if [ -f "$d/$RUNG" ]; then
+  if [ -n "$(rung_of "$d")" ]; then
     say "lane s$s: rung already on disk, skipping"
     setv "PID_$s" ""
     continue
@@ -88,8 +95,8 @@ while :; do
   for s in $SEEDS; do
     d="$(run_dir "$s")"; p="$(getv "PID_$s")"
     [ -n "$p" ] || continue
-    if [ -f "$d/$RUNG" ]; then
-      say "lane s$s: 12M rung landed — stopping pid $p"
+    if [ -n "$(rung_of "$d")" ]; then
+      say "lane s$s: 12M rung landed ($(basename "$(rung_of "$d")")) — stopping pid $p"
       kill "$p" 2>/dev/null; sleep 20; kill -9 "$p" 2>/dev/null
       setv "PID_$s" ""
       continue
@@ -137,10 +144,11 @@ for s in $SEEDS; do
   d="$(run_dir "$s")"
   out="$d/g9_treat/rung_12M_n3000.json"
   if [ -f "$out" ]; then say "eval s$s: already done"; continue; fi
-  if [ ! -f "$d/$RUNG" ]; then say "eval s$s: NO RUNG — skipped"; continue; fi
+  ckpt="$(rung_of "$d")"
+  if [ -z "$ckpt" ]; then say "eval s$s: NO RUNG — skipped"; continue; fi
   mkdir -p "$d/g9_treat"
-  say "eval s$s: START (locked protocol, n=3000)"
-  "$PY" scripts/eval_checkpoint.py "$d/$RUNG" --episodes 3000 --out "$out.tmp" >/dev/null 2>>"$LOG"
+  say "eval s$s: START (locked protocol, n=3000, rung $(basename "$ckpt"))"
+  "$PY" scripts/eval_checkpoint.py "$ckpt" --episodes 3000 --out "$out.tmp" >/dev/null 2>>"$LOG"
   mv "$out.tmp" "$out" 2>/dev/null
   say "eval s$s: DONE"
 done

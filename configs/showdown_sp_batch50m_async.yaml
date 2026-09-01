@@ -23,7 +23,11 @@
 # 8}` — the Stage-2 async collection loop (rl/envs/showdown_async.py,
 # commit f055f06). Three lanes, seeds 66/75/83, concurrent, staggered,
 # one server. Each lane is KILLED by the wave runner once
-# ckpt_012000000.pt lands. total_steps and lr_anneal_steps stay 50M so
+# its 12M rung lands. AMENDED 2026-09-01 pre-launch (repo-consistency
+# review of the 100M draft): the async loop names rungs at the CROSSING
+# step (ckpt_0120*.pt, realized step recorded; overshoot <= ~15k steps =
+# 0.13% of the rung), never the vector path's exact literal.
+# total_steps and lr_anneal_steps stay 50M so
 # the treatment trains under the CONTROL'S OWN schedule and simply stops
 # at 12M — running a 12M-annealed config instead would compare
 # learning-rate schedules, not collection loops (handoff caveat, verbatim
@@ -71,7 +75,7 @@
 # G9 — LEARNING EQUIVALENCE, NULL-EXPECTED, RE-BASED. The only gate that
 # catches a silent correctness break (staleness, length bias, label-join
 # corruption, pool mis-credit) no throughput metric shows.
-#   PRIMARY READ: each T lane's ckpt_012000000.pt under the LOCKED
+#   PRIMARY READ: each T lane's 12M crossing rung (ckpt_0120*.pt) under the LOCKED
 #   protocol (n=3000/seed, deterministic policy, vs SimpleHeuristics,
 #   ties as non-wins, eval_checkpoint.py); aggregator: EQUAL-WEIGHT MEAN
 #   of the three per-seed win rates (the R2 aggregator).
