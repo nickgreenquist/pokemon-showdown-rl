@@ -9903,3 +9903,29 @@ line numbers are not — grep the date, then read that region):
   disk 171 GiB; reclaimable memory read 9.8 GB minutes after the fleet
   exited — below the 12 GB gate, expected to clear after the R0-j server
   restart; the preflight enforces it either way.
+- 2026-09-01 (evening, autonomous) — **100M FLEET RUNNING; AUDIT A1 LANDED.**
+  Fleet launched by the maintainer 10:58–10:59:50Z (seeds 104/112/120; wave
+  auto-babysits). The first, zsh-suspended launch attempt was still stopped
+  in the maintainer's terminal (pids 68741/68742) — killed with maintainer
+  permission; if ever foregrounded it would have `--resume`d live lanes.
+  R0-8 PASS all lanes (ckpt_000500014/000500003/000500025). Health ticks
+  14:06/17:06/20:07/23:07Z all in band (entropy med 1.31→0.61, clip ≤0.25,
+  kl ≤0.047, lag_p99 0, discards 0, labelled ~0.80–0.81, disk ≥168 GiB).
+  Realized whole-lane rates at ~24M: 562.7/549.0/537.6 steps/s → FLEET DONE
+  ETA ~2026-09-03 14:40Z (a Thursday; the handoff's "Wed ~11:00Z" was 2–6%
+  optimistic on rate and mislabeled the weekday). NO eval of any kind has
+  run — the peeking bar holds.
+  AUDIT A1 (maintainer-ruled today; source: the 2026-09-01 read-only audit
+  at ~/Downloads/20260826_114242.md): the five design docs cited as
+  ratified authority by 16 tracked files but living in gitignored results/
+  are now TRACKED IN PLACE via a prior_work-style .gitignore whitelist —
+  results/design_ch3/ch3_search_design_r2.md, results/d25/
+  d25_amendment_r010b.md, results/design_critic/r2_changelog.md,
+  results/design_fp_gap/{ch4_synthesis,revision_log}.md. Tracked in place
+  rather than moved: the citing paths appear verbatim in immutable pre-reg
+  headers. Secret-scan clean. A2–A5 and the audit's rejected list are
+  SHELVED until the 100M readout is recorded — the wave's auto-resume
+  relaunches rl.train from the working tree (mid-run code edits could
+  contaminate a resumed lane), A2 touches the very env vars the wave
+  exports, A5 touches frozen eval instruments, and CPU headroom over D-B's
+  517 RECORD line is thin. CLEANUP.md gains the audit-backlog pointer.

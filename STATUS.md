@@ -8,7 +8,7 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 ruling 4): a 100M run, as fast as possible — speedups FIRST, then the run.**
 The 100M run is OFF-ARC under that explicit ruling (≈ step 10 pulled forward).
 
-## Where things stand (2026-09-01) — STAGE 2 ACCEPTED; 100M AWAITS RATIFICATION
+## Where things stand (2026-09-01) — STAGE 2 ACCEPTED; 100M FLEET RUNNING
 - **STAGE 2 (async collector) BUILT, LANDED, AND ACCEPTED. G9 PASS** (null
   holds: pooled 0.67211 vs basis 0.64889, signed Δ +0.02322 — 93% of the
   band, positive; rides every future credit sentence). **G8 CREDITED**
@@ -24,16 +24,16 @@ The 100M run is OFF-ARC under that explicit ruling (≈ step 10 pulled forward).
   foul-play died (seat_frozen_at_kill 0 — §5.3 question not triggered).
 - **100M PRE-REG: full 2-Opus cycle done** (brief → memos → synthesis →
   draft → 2 reviews → 12 MUST-FIX + 27 SHOULD-FIX ALL applied → acceptance
-  fills complete). `configs/showdown_sp_100m.yaml` is **PROPOSED**; sync
+  fills complete). `configs/showdown_sp_100m.yaml` **RATIFIED 2026-09-01**; sync
   fallback + grader (selftested) + one-diff tests committed. Review 2
   caught the wave's rung-literal bug BEFORE launch — cycle paid twice.
 
 ## Next actions — **MAINTAINER, in order**
-1. **RATIFIED 2026-09-01** ("commit, push, ratify"; E1–E7 as written).
-   **LAUNCH** (his call, >5 h): restart the Showdown server fresh (R0-j),
-   then `nohup caffeinate -dims bash scripts/ch5_100m_wave.sh &` — the
-   preflight enforces the launch-time R0 gates and refuses loudly.
-   3 lanes, seeds 104/112/120, ~48.4 h/lane + ~15 h eval ≈ 2.7 days.
+1. **100M FLEET RUNNING** (ratified and launched 2026-09-01 ~10:58Z; seeds
+   104/112/120). Monitored per HANDOFF; all gates in band at ~24M; realized
+   538–563 steps/s → FLEET DONE ETA ~2026-09-03 14:40Z (Thu), then frozen
+   eval schedule → grade → record. Peeking bar HOLDS (no evals till done).
+   Audit A1 landed (5 design docs tracked in place); A2–A5: CLEANUP.md.
 2. **Ladder-object ruling now has R4S66's number**: search@20 hurts the
    batch lane — greedy batch-lane object leads on today's evidence.
 3. Standing HANDOFF §5 rulings (4): MPS wording; pool.py:88 fix; stall-kill

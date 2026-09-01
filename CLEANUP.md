@@ -97,3 +97,17 @@ exactly that (see do-not-relitigate below).
 - The 2026-08-25 same-day fixes and the 2026-08-28/29 executed items are
   recorded in SESSION_LOGS (2026-08-25, -28, -29 entries); do not re-audit
   them from scratch — spot-check against those entries instead.
+
+## 2026-09-01 read-only audit (backlog pointer)
+
+Source: `~/Downloads/20260826_114242.md` (produced env-less — tree reads
+only, never test results; counts at d82f7fe). **A1 EXECUTED 2026-09-01,
+maintainer-ruled**: the five `results/` design docs cited by tracked code
+are tracked in place via prior_work-style whitelist. **SHELVED until the
+100M readout is recorded:** A2 (encoder env-var default flip → assert
+`OBS_DIM==828`/fingerprint instead; pure default flip only), A3
+(`normalize.py` spine residue + `_scalar_loop` — "ask, not delete"), A4
+(`update()`'s variadic tuple; lands with A3), A5 (eight dangling
+`REPO_CLEANUP.md` citations + `scripts/README.md` stale headline). Its
+do-not-relitigate finds (no scripts/ helper dedupe, no scripts/ subdirs, no
+config-header prose dedupe, B3 deferral re-confirmed) match this file.
