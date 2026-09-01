@@ -9586,3 +9586,53 @@ line numbers are not — grep the date, then read that region):
   n=200"; `readouts/LADDER_R3_READOUT.md` says "record 106-102". 106+94=200,
   106+102=208. The readout is the committed provenance and also says n=200.
   Not chased — flagged before either is quoted again.
+
+- 2026-08-31 (evening, continued — **R4S66 FAILED TWICE AND IS NOT GRADED;
+  ROOT CAUSE FOUND: the orphaned-room deadlock, which is very likely ALSO the
+  training-lane stall**)
+
+  **R4S66 attempt 2** (on the flipped b-pair, commit 956b909) aborted at
+  `2026-08-31T23:28:46Z` with `.NO_PROGRESS` rc=4 at 1,536/3,000, after two
+  `Invalid PokemonMoveIndex: 4` panics and a crash-loop that advanced 2 battles
+  in ~40 min. Partials renamed `r4s66.opsfail2.*`; the sentinel is
+  `.NO_PROGRESS.burned2`. **No rate is quoted from either attempt.** Re-graded
+  with both sentinels present: arms graded T66/T75/T83 only, **cell P1, CREDIT,
+  delta 0.13722 vs bar 0.07181 — UNCHANGED.** R4S routes nothing.
+
+  **ROOT CAUSE** (subagent review + my own verification; full narrative in
+  `docs/landmines.md`, "THE ORPHANED-ROOM DEADLOCK"). Search seats reach the
+  turn-1000 Endless Battle Clause; Struggle is move index 4; foul-play's Rust
+  engine panics (`src/state.rs:106`); the dead opponent leaves a room we still
+  hold; `start_timer_on_battle_start` defaults False so no `/timer on` is sent
+  and the room NEVER resolves; poke-env frees a queue slot only on `|win|`/
+  `|tie|`; leaked rooms fill `_battle_count_queue` and the next battle blocks
+  forever at `player.py:221`. Verified counts: greedy arms 3000 inits / 3000
+  winners / **0 orphans / 0 auto-ties**; BOTH search attempts 4 orphans against
+  a 2-slot queue (240 and 264 auto-ties). **The pair-flip could not have
+  helped — the poisoned room was never the cause.**
+
+  **THE SAME BUG VERY LIKELY EXPLAINS s66 AND s75.** Last activity before both
+  training hangs is a turn-1000 auto-tie burst (s66 01:29:16, s75 07:54:33),
+  and `poke_env/environment/env.py` hardcodes `max_concurrent_battles=1`
+  (lines 273/292/355/375, a literal, NOT forwardable), so ONE leaked room
+  wedges a lane forever. Cost so far: 190,776 + 170,680 re-run steps and a
+  5.2 h freeze. **HONEST LIMIT, checked by me against the reviewer's stronger
+  claim: s83 hit turn 1000 482 times — MORE than s66 (192) or s75 (400) — and
+  never stalled. Turn 1000 is NECESSARY, NOT SUFFICIENT; this is probabilistic.**
+
+  **THE WATCHDOG BLAMES THE WRONG PROCESS.** `ch3_r4_fp_runner.sh` `log_bytes()`
+  (:122-126) reads the FP log only, so a wedged SEAT starves fp of output, fp is
+  killed for "stalling", and RELAUNCHES is charged to fp. On a graded arm the
+  crash-forfeit rule would have credited us 4 PHANTOM FORFEITS. The wave's
+  printed remedy ("fresh username pair") is the wrong remedy for this failure.
+
+  **FIX NOT APPLIED — deliberately left to a fresh session with a maintainer
+  ruling**, because `start_timer_on_battle_start=True` is a WIRE-VISIBLE
+  protocol change (it makes us send `/timer on` in every battle thereafter) and
+  needs a live smoke test plus a comparability judgement against banked arms.
+
+  **MAINTAINER RULINGS this session:** (a) the scale-shape read and the MPS
+  benchmark are IN-ARC step-1 work (choosing the ladder object), no JOURNEY
+  amendment owed; (b) a fresh session takes the fix + both probes via HANDOFF,
+  Opus/high; (c) that session REPORTS AND PROPOSES on the CLAUDE.md MPS rule —
+  the maintainer rules on the doc change.

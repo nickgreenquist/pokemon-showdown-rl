@@ -223,3 +223,72 @@ check whether the fleet width it was measured at still holds. The reverse
 also bit: early D-B windows that straddled startup read 366–373 st/s and
 produced three spurious sub-371 "records"; the conforming window (post-1M,
 >= 30 min) read 375–380 and no record stood.
+
+## THE ORPHANED-ROOM DEADLOCK (2026-08-31) — one bug, three hangs, ~360k lost steps
+
+**This is almost certainly the same bug as "THE SILENT LANE STALL" above.** Read
+both together; that section describes the symptom, this one the mechanism.
+
+**The chain.** A long game reaches Showdown's turn-1000 Endless Battle Clause.
+Both sides are out of PP and use Struggle — **move index 4** — which panics
+foul-play's Rust engine (`src/state.rs:106`, `Invalid PokemonMoveIndex: 4`).
+The dead opponent leaves a battle room our client still holds. poke-env
+releases a room's queue slot ONLY on `|win|`/`|tie|` (`player.py:311`), and
+because `start_timer_on_battle_start` defaults to **False** we never send
+`/timer on` — so that room never resolves and its slot is never returned. Once
+leaked rooms fill `_battle_count_queue` (maxsize = `max_concurrent_battles`),
+the next `|init|battle` blocks forever at `player.py:221`
+`await self._battle_count_queue.put(None)`. The cycle is closed:
+`accept_challenges` parks on the semaphore released only AFTER that put; the
+put is woken only by a `get()` that only a finishing room performs.
+
+**Measured, R2's FP wave** (`Initialized battle-` vs `INFO Winner:` in each
+arm's `fp.stdout`, and `on turn 1000` in each `seat.stdout`):
+
+| arm | inits | winners | ORPHANS | turn-1000 auto-ties |
+|---|---|---|---|---|
+| t66 / t75 / t83 (GREEDY) | 3000 | 3000 | **0** | **0** |
+| r4s66 attempt 1 (SEARCH) | 2679 | 2675 | **4** | 240 |
+| r4s66 attempt 2 (SEARCH) | 1540 | 1536 | **4** | 264 |
+
+Both search attempts wedged at exactly 4 orphans against a 2-slot queue. Zero
+orphans in 9,000 greedy battles. **The search policy plays long enough to reach
+turn 1000; greedy never does** — which is why this arm failed twice and the
+greedy arms never did. The pair-flip did NOT help and could not: the poisoned
+room was never the cause.
+
+**TRAINING IS STRICTLY WORSE.** `poke_env/environment/env.py` hardcodes
+`max_concurrent_battles=1` as a LITERAL at lines 273/292/355/375 — it is not
+forwardable from `rl/envs/showdown.py`. **One** leaked room wedges a lane
+forever. The last activity before BOTH training hangs is a turn-1000 auto-tie
+burst: s66 at `2026-08-31 01:29:16`, s75 at `07:54:33`. Cost: 190,776 + 170,680
+re-run steps and a 5.2 h freeze.
+
+**IT IS PROBABILISTIC, NOT DETERMINISTIC — do not over-claim.** s83 hit turn
+1000 **482** times (more than s66's 192 or s75's 400) and never stalled. Turn
+1000 is necessary, not sufficient; the room must actually orphan.
+
+**The watchdog blames the wrong process.** `scripts/ch3_r4_fp_runner.sh`'s
+`log_bytes()` (:122-126) reads `$FP_LOG` ONLY. A wedged SEAT starves foul-play
+of anything to log, so fp is killed for "stalling" and `RELAUNCHES++` is
+charged to fp. On a graded arm the crash-forfeit rule would have credited us
+**4 phantom forfeits**. The wave's printed remedy ("re-run under a FRESH
+username pair") is therefore the WRONG remedy for this failure.
+
+**The fix, not yet applied (needs a maintainer ruling — it is wire-visible):**
+`start_timer_on_battle_start=True`. It attacks the cause (rooms that never
+resolve) and is the ONLY fix available to the training env, whose
+`max_concurrent_battles` is a hardcoded literal. Forwardable at
+`scripts/ch3_fp_h2h.py:176` (SeatPlayer), `scripts/ladder.py:465`
+(LadderPlayer), and `ShowdownSingles(...)` via `**kwargs`. Secondary: raise the
+seats' `max_concurrent_battles` 2 → 8 (pure slack; 4 orphans < 8 would have
+carried both R4S66 attempts to completion), make the watchdog read the SEAT log
+too, and call `kill_fp` on the `pid is gone` branch (:241-244) so search-worker
+children are always reaped.
+
+**Open question for the maintainer:** whether the FP anchor is runnable AT ALL
+for search seats at n=3000 while foul-play panics on Struggle. Options — patch
+foul-play (precedent: `scripts/patches/foulplay_gen1_local.patch` is already
+sha-stamped in `wave.provenance.json`), accept lower n for search arms, or
+pre-register exclusion of turn-1000 battles. All three touch a frozen pre-reg
+and/or the G8 provenance stamp.
