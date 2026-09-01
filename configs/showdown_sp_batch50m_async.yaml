@@ -1,0 +1,161 @@
+# =====================================================================
+# STAGE-2 ACCEPTANCE FLEET — G8 (throughput) + G9 (learning equivalence),
+# DRAFTED 2026-09-01. This EXECUTES the pre-registered acceptance gates of
+# prior_work/THROUGHPUT_SPEC.md §4 with both gates RE-BASED onto the batch
+# recipe, as ordered in HANDOFF.md 2026-08-31 §1 ("re-base G8 and G9
+# BEFORE writing code"; parameters — pool the three seeds, name the anneal
+# caveat, name the noise floor — are the handoff's, restated below). It is
+# NOT a new experiment design: no lever is credit-seeking here. G9 is
+# NULL-EXPECTED, and G8 is an ops read on an instrument. The 100M run gets
+# its OWN pre-registration with the full 2-Opus cycle; nothing here
+# licenses it.
+#
+# journey_step: maintainer ruling 2026-08-31 ("I want a 100M run, and I
+# want it done as fast as possible. Build the speedups FIRST, then run
+# 100M") — which explicitly SUPERSEDES CHAPTER5 §7 ruling 4; the original
+# arc position (STATUS: step 1 done, step 2 ladder next) is unchanged by
+# this fleet, which credits nothing and routes nothing. Exit condition for
+# this build item, verbatim from the handoff: "Land it green or not at
+# all" + pass G8/G9 before any 100M launch.
+#
+# WHAT RUNS: configs/showdown_sp_batch50m.yaml BYTE-IDENTICAL below the
+# collector block (diff it), plus `collector: {mode: async, concurrency:
+# 8}` — the Stage-2 async collection loop (rl/envs/showdown_async.py,
+# commit f055f06). Three lanes, seeds 66/75/83, concurrent, staggered,
+# one server. Each lane is KILLED by the wave runner once
+# ckpt_012000000.pt lands. total_steps and lr_anneal_steps stay 50M so
+# the treatment trains under the CONTROL'S OWN schedule and simply stops
+# at 12M — running a 12M-annealed config instead would compare
+# learning-rate schedules, not collection loops (handoff caveat, verbatim
+# obligation).
+#
+# ARMS
+#   T (this file): 3 lanes async, seeds 66/75/83, killed at the 12M rung.
+#   C (banked): runs/showdown_sp_batch50m_s{66,75,83} — the credited R2
+#     fleet's own clean 12M rungs (both resume seams are far after 12M).
+#     No control compute is spent.
+#
+# R0 SANITY (first 200k steps, each lane; kill the fleet on breach):
+#   - loss/entropy in [1.3, 2.0] — RE-BASED: the spec's [0.2, 1.0] band
+#     predates the entity trunk; the control's own first-250k entropy runs
+#     1.81 -> 1.57 (s83 history).
+#   - loss/clip_frac != 0.0 on every update (G5's recorded-logp liveness;
+#     exactly 0.0 in epoch 1 means the recorded-old_logp path is not
+#     wired — kill).
+#   - collect/policy_version_lag_p99 <= 1 (G5 staleness gate).
+#   - collect/episodes_discarded / episodes_finished < 1% (G4).
+#   - aux/illegal_label_frac == 0 and aux/frame_collision_frac == 0 (the
+#     D25 hard gates, now fed by the async (turn, index) label join).
+#   - eval/win_rate present and in (0, 1).
+#   (G2b needs no read: an in-mask action failing conversion crashes the
+#   lane by design — collector.check asserts convert_errors == 0.)
+#
+# G8 — THROUGHPUT, RE-BASED. Metric: median time/steps_per_sec per lane,
+# excluding the first 200k steps and eval ticks, from extract_history.py.
+# Basis, MEASURED: the control fleet's own 3-wide median is 444 steps/s
+# per lane (s83 history, n=1.4M readings; per-rollout arithmetic gives
+# 402 — the G8 read uses the median-sps estimator, so 444 is the basis).
+# Stage 1 alone (+8.1%, ce38c94 measured solo) projects ~480 3-wide,
+# unmeasured. Async projection: 1.55-1.7x end-to-end (re-derived this
+# session from runs/ch5_stage1_after: collect 45.83 s / update 11.00 s,
+# so update share 19.4%; E4b collection 670 -> 1240 dec/s = 1.85x;
+# Amdahl -> 1.59x solo) -> lands ~620-750 at 3-wide.
+#   - CREDITED: median >= 620 on ALL THREE lanes (>= 1.40x the measured
+#     basis; 100M x3 <= ~45 h/lane).
+#   - CREDITED BUT SHORT: 500-620 on any lane — above Stage-1-alone,
+#     below projection; run the solo on/off bench decomposition and name
+#     the gap's owner before the 100M pre-reg quotes any wall-clock.
+#   - STOP: < 500 on any lane — indistinguishable from Stage 1 alone;
+#     the async mechanism failed at fleet width. No 100M on async.
+#
+# G9 — LEARNING EQUIVALENCE, NULL-EXPECTED, RE-BASED. The only gate that
+# catches a silent correctness break (staleness, length bias, label-join
+# corruption, pool mis-credit) no throughput metric shows.
+#   PRIMARY READ: each T lane's ckpt_012000000.pt under the LOCKED
+#   protocol (n=3000/seed, deterministic policy, vs SimpleHeuristics,
+#   ties as non-wins, eval_checkpoint.py); aggregator: EQUAL-WEIGHT MEAN
+#   of the three per-seed win rates (the R2 aggregator).
+#   BASIS (this session, scripts/ch5_g9_basis.sh, logs/ch5_g9_basis.log):
+#   pooled 0.64889 = mean(s66 0.62900, s75 0.65700, s83 0.66067),
+#   seed sd 0.0173.
+#   PASS: |pooled_T - 0.64889| < 0.025.
+#   DISCLOSURES THAT TRAVEL WITH ANY QUOTE OF THIS GATE:
+#   (1) one vs-SH rung re-draws at ±0.02 (three re-draws of ONE 50M
+#       checkpoint spread 0.0200) — hence POOLED basis and pooled read; a
+#       single-rung band would be nearly untestable;
+#   (2) se_diff of two 3-seed pooled means at sigma_seed 0.0173 is
+#       ~0.014, so the 0.025 band is ~1.8 se — adequate for a NULL gate,
+#       never for a credit claim in either direction;
+#   (3) the anneal caveat above (identical 50M schedule both sides, by
+#       construction).
+#   ON FAIL (either direction): do NOT launch 100M on async. Bisect in
+#   this order: recorded-old_logp path (G5 reads), label join
+#   (aux/label_present_frac vs control's), episode-length trajectories vs
+#   the control lanes' at matched steps (the no-barrier length-bias
+#   read — the trained-regime band is ~30 by 12M, not the spec's 24-25
+#   which predates the batch recipe), pool member credit (G6).
+#
+# SECONDARY (descriptive, no gates): collect/update share shift;
+# rollout/episode_length trajectory overlay vs control; per-lane core
+# usage (HANDOFF §3's free measurement:
+#   ps -A -o %cpu,command | grep -E "rl\.train|pokemon-showdown")
+# read late in the run, %cpu is a lifetime average.
+#
+# OPS: launch via scripts/ch5_g9_wave.sh (staggered starts, per-lane
+# progress-by-RATE lines, CPU-delta stall detection — pgrep never catches
+# the alive-at-zero-CPU shape). Lanes are detached and resume-safe
+# (--resume runs/<dir>). Both seats send /timer on (9a0e54d); account
+# pair per lane is as2s{seed}a/b, derived, collision-free by seed.
+# Commit docs before launching; launch from a clean tree.
+# =====================================================================
+env_id: Showdown-v0
+seed: 66                   # lanes 2/3 via --seed 75 / 83
+total_steps: 50000000      # the control's own horizon; killed at the 12M rung
+eval_every: 250000
+eval_episodes: 100
+num_envs: 8                # x rollout_steps = the 30,720-step update budget
+torch_threads: 1
+checkpoint_every: 500000
+run_name: showdown_sp_batch50m_async_s66   # lanes 2/3 via --run-name
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: async              # THE ONLY DELTA vs showdown_sp_batch50m.yaml
+  concurrency: 8           # E4b: the knee is K=8 (1218 of ~1240 dec/s)
+env_kwargs:
+  opp_action: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 50000000
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

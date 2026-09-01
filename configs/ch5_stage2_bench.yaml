@@ -1,0 +1,71 @@
+# CH5 STAGE-2 SOLO ON/OFF BENCH (2026-09-01) — AN OPS MEASUREMENT, NOT AN
+# EXPERIMENT. ch5_mps_bench.yaml (s83's recipe cut to four rollouts, first
+# discarded as warm-up) plus the Stage-2 collector block — the "on"
+# direction of the measurement HANDOFF §1 asks for in both directions.
+# Compare time/collect_sec + time/update_sec from history.csv against
+# runs/ch5_stage1_after (sync post-Stage-1) and runs/ch5_mps_bench_cpu1
+# (sync pre-Stage-1). NEVER scripts/showdown_throughput.py (collection-only,
+# ~7x overstated). Run on a QUIET box or the number is garbage.
+env_id: Showdown-v0
+collector:
+  mode: async
+  concurrency: 8
+seed: 9001
+total_steps: 122880
+eval_every: 1000000
+eval_episodes: 100
+run_name: ch5_stage2_bench
+device: cpu
+num_envs: 8
+normalize_obs: false
+normalize_reward: false
+torch_threads: 1
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+eval_win_rate: true
+env_kwargs:
+  opp_action: true
+init_from: ''
+checkpoint_every: 1000000
+logger: wandb
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes:
+  - 96
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes:
+    - 384
+    - 384
+    scorer_sizes:
+    - 256
+    value_sizes:
+    - 384
+    - 384
+  hidden_sizes:
+  - 512
+  - 512
+  lr: 0.00025
+  lr_anneal_steps: 50000000
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
