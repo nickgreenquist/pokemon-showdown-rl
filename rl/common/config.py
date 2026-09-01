@@ -70,6 +70,13 @@ class Config:
     # num_envs 6 or 12.
     checkpoint_every: int = 0
     logger: str = "wandb"  # "wandb" | "tensorboard"
+    # Collection path (THROUGHPUT_SPEC Stage 2). Empty = the sync vector
+    # loop, bit-identical for every existing config. {mode: async,
+    # concurrency: K} runs the async collector (rl/envs/showdown_async.py):
+    # K concurrent battles, recorded old_logp, per-episode GAE. Keys are
+    # strict-checked in rl/train.py (the selfplay precedent: a typo'd knob
+    # must fail at launch, not train a full run silently).
+    collector: dict = field(default_factory=dict)
     agent: dict = field(default_factory=dict)
 
 

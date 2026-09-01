@@ -311,7 +311,24 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         train_env_kwargs["opponent"] = _frozen_checkpoint_pool(
             train_env_kwargs["opponent"]
         )
-    if vectorized:
+    async_collect = _async_collector_mode(cfg, vectorized)
+    if async_collect:
+        # No training env is constructed at all: the async collector builds
+        # its own two Players (rl/envs/showdown_async.py), and opening a
+        # SyncVectorEnv here would cost 16 idle websockets. The agent builds
+        # against faked spaces at the process OBS_DIM — the
+        # _frozen_checkpoint_pool precedent.
+        from types import SimpleNamespace
+
+        from rl.envs.showdown import OBS_DIM
+
+        env = SimpleNamespace(
+            observation_space=gym.spaces.Box(-1.0, 4.0, (OBS_DIM,), np.float32),
+            action_space=gym.spaces.Discrete(10),
+            num_envs=cfg.num_envs,
+            close=lambda: None,
+        )
+    elif vectorized:
         env = make_vec_env(cfg.env_id, cfg.seed, cfg.num_envs, env_kwargs=train_env_kwargs)
     else:
         env = make_env(cfg.env_id, cfg.seed, env_kwargs=train_env_kwargs)
@@ -412,7 +429,10 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         pool.push(agent)
         logger.log({"selfplay/pool_size": len(pool)}, 0)
 
-    if vectorized:
+    if async_collect:
+        _async_loop(cfg, eval_env, agent, logger, out_dir, pool, push_every,
+                    resume_state, train_env_kwargs.get("opponent"))
+    elif vectorized:
         _vector_loop(cfg, env, eval_env, agent, logger, out_dir, normalizers, pool,
                      push_every, resume_state)
     else:
@@ -421,6 +441,218 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     logger.close()
     env.close()
     eval_env.close()
+
+
+def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
+    """Strict launch-time validation of the Stage-2 collector block — the
+    selfplay-keys rule: a typo'd knob or an unsupported combination must
+    fail HERE, not train a 50M run silently wrong."""
+    unknown = cfg.collector.keys() - {"mode", "concurrency"}
+    if unknown:
+        raise ValueError(f"unknown collector key(s) {sorted(unknown)}; known: "
+                         "['concurrency', 'mode']")
+    mode = cfg.collector.get("mode", "sync")
+    if mode not in ("sync", "async"):
+        raise ValueError(f"collector.mode must be 'sync' or 'async', got {mode!r}")
+    if mode == "sync":
+        if "concurrency" in cfg.collector:
+            raise ValueError("collector.concurrency is async-only")
+        return False
+    concurrency = cfg.collector.get("concurrency", 8)
+    if not isinstance(concurrency, int) or not 1 <= concurrency <= 64:
+        raise ValueError(f"collector.concurrency must be an int in [1, 64], "
+                         f"got {concurrency!r} (E4b: the knee is K=8)")
+    if not cfg.env_id.startswith("Showdown"):
+        raise ValueError("collector.mode 'async' is Showdown-only")
+    if not vectorized:
+        raise ValueError("collector.mode 'async' needs a vectorized algorithm "
+                         "(the episode batches enter PPO's _optimize)")
+    if cfg.normalize_obs or cfg.normalize_reward:
+        raise ValueError("collector.mode 'async' is incompatible with the "
+                         "vector-level normalizers")
+    extra = cfg.env_kwargs.keys() - {"opp_action"}
+    if extra:
+        # faint_shaping / hl_shaping / privileged / save_replays all live in
+        # the env stack the async path does not run; accepting them here
+        # would stamp a config whose knobs silently did nothing.
+        raise ValueError(f"collector.mode 'async' supports env_kwargs "
+                         f"{{'opp_action'}} only; got {sorted(extra)} — the "
+                         "async path emits terminal outcome rewards only")
+    if cfg.agent.get("privileged_dim"):
+        raise ValueError("collector.mode 'async' does not collect the "
+                         "privileged block (D18) — the wide critic would "
+                         "train on zeros")
+    return True
+
+
+def _async_loop(
+    cfg: Config,
+    eval_env: gym.Env,
+    agent: Agent,
+    logger: Logger,
+    out_dir: Path,
+    pool: SnapshotPool | None,
+    push_every: int,
+    resume_state: dict | None,
+    opponent_spec,
+) -> None:
+    """The Stage-2 collection loop: K concurrent battles serviced on
+    POKE_LOOP (rl/envs/showdown_async.py), whole finished episodes
+    accumulated here, stop-the-world updates through
+    agent.update_episodes. Mirrors _vector_loop's cadences on the same step
+    counter — eval, checkpoint ladder, pool pushes, locked metric names —
+    so a run reads identically downstream (extract_history, the graders).
+
+    Timing semantics: `time/collect_sec` is the wall time the collector was
+    live (gate open) per rollout, `time/update_sec` the update call — the
+    same split the vector loop reports, with eval excluded from both.
+    Everything that mutates state the loop thread reads (pool pushes, pool
+    stat reads) is fenced through collector.run_in_loop; the update itself
+    needs no fence because pause() guarantees no decision is in flight.
+    """
+    from rl.buffers.episode import EpisodeDataset
+    from rl.envs.showdown_async import AsyncCollector
+
+    # The construction-time rollout buffer is the vector path's; this loop
+    # feeds update_episodes and must never touch it — None makes any stray
+    # update() call fail loudly instead of training on a phantom rollout.
+    agent.buffer = None
+    budget = cfg.agent["rollout_steps"] * cfg.num_envs
+    collector = AsyncCollector(
+        agent.act_logp,
+        opponent_spec,
+        seed=cfg.seed,
+        concurrency=cfg.collector.get("concurrency", 8),
+        opp_action=bool(cfg.env_kwargs.get("opp_action", False)),
+    )
+    dataset = EpisodeDataset()
+    rs = resume_state or {}
+    best_eval = rs.get("best_eval", float("-inf"))
+    step = rs.get("step", 0)
+    updates_done = rs.get("updates_done", 0)
+    anneal_basis = step  # env steps consumed before the batch being trained
+    next_eval = (step // cfg.eval_every + 1) * cfg.eval_every
+    next_ckpt = 0
+    if cfg.checkpoint_every:
+        next_ckpt = (step // cfg.checkpoint_every + 1) * cfg.checkpoint_every
+    last_step, last_time = step, time.perf_counter()
+    collect_sec, update_sec = 0.0, 0.0
+    collect_mark = time.perf_counter()
+
+    def pause() -> None:
+        nonlocal collect_sec
+        collector.pause()
+        collect_sec += time.perf_counter() - collect_mark
+
+    def resume() -> None:
+        nonlocal collect_mark
+        collector.resume(version=agent.updates)
+        collect_mark = time.perf_counter()
+
+    def save_latest() -> None:
+        extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
+        save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, extras=extras)
+        if pool is not None:
+            tmp = out_dir / "pool.pt.tmp"
+            torch.save(collector.run_in_loop(pool.state_dict), tmp)
+            tmp.replace(out_dir / "pool.pt")
+
+    collector.seam.version = agent.updates  # a resume starts at the restored count
+    collector.start(n_battles=cfg.total_steps)
+    try:
+        while step < cfg.total_steps:
+            collector.check()
+            episodes = collector.poll()
+            if not episodes:
+                time.sleep(0.02)
+                continue
+            now = time.perf_counter()
+            for episode in episodes:
+                step += len(episode["actions"])
+                dataset.append(episode)
+            sps = (step - last_step) / (now - last_time)
+            for episode in episodes:
+                logger.log(
+                    {
+                        "rollout/episode_return": float(episode["rewards"][-1]),
+                        "rollout/episode_length": len(episode["actions"]),
+                        "time/steps_per_sec": sps,
+                    },
+                    step,
+                )
+            last_step, last_time = step, now
+
+            if dataset.steps >= budget:
+                pause()
+                batch = dataset.drain()
+                # G5's staleness read: update-count lag per row, at drain.
+                lag = agent.updates - batch["version"]
+                mark = time.perf_counter()
+                metrics = agent.update_episodes(batch, steps_seen=anneal_basis)
+                update_sec += time.perf_counter() - mark
+                anneal_basis = step
+                updates_done += 1
+                logger.log(
+                    {
+                        **metrics,
+                        "time/collect_sec": collect_sec,
+                        "time/update_sec": update_sec,
+                        "collect/policy_version_lag_p99": float(
+                            np.percentile(lag, 99)
+                        ),
+                        "collect/policy_version_lag_max": float(lag.max()),
+                        **collector.stats(),
+                    },
+                    step,
+                )
+                collect_sec, update_sec = 0.0, 0.0
+                if pool is not None:
+                    sp_metrics = {}
+                    stats0, stats_last = collector.run_in_loop(
+                        lambda: (list(pool.stats[0]), list(pool.stats[-1]))
+                    )
+                    score, games = stats0
+                    if games:
+                        sp_metrics["selfplay/winrate_anchor"] = score / games
+                        sp_metrics["selfplay/anchor_games"] = games
+                    score, games = stats_last
+                    if games:
+                        sp_metrics["selfplay/winrate_latest"] = score / games
+                    if sp_metrics:
+                        logger.log(sp_metrics, step)
+                    if updates_done % push_every == 0:
+                        collector.run_in_loop(pool.push, agent)
+                        logger.log({"selfplay/pool_size": len(pool)}, step)
+                resume()
+
+            if cfg.checkpoint_every and step >= next_ckpt:
+                pause()
+                save_checkpoint(out_dir / f"ckpt_{step:09d}.pt", agent, step, cfg)
+                while next_ckpt <= step:
+                    next_ckpt += cfg.checkpoint_every
+                resume()
+
+            if step >= next_eval:
+                next_eval += cfg.eval_every
+                pause()
+                mark = time.perf_counter()
+                metrics = evaluate(
+                    agent, eval_env, cfg.eval_episodes, win_rate=cfg.eval_win_rate
+                )
+                metrics["time/eval_sec"] = time.perf_counter() - mark
+                if hasattr(agent, "l2_init_metrics"):
+                    metrics.update(agent.l2_init_metrics())
+                logger.log(metrics, step)
+                if metrics["eval/return_mean"] > best_eval:
+                    best_eval = metrics["eval/return_mean"]
+                    save_checkpoint(out_dir / "best_checkpoint.pt", agent, step, cfg)
+                save_latest()
+                resume()
+
+        pause()
+        save_latest()
+    finally:
+        collector.close()
 
 
 def _scalar_loop(
