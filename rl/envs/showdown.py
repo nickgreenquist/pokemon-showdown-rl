@@ -765,9 +765,23 @@ class ShowdownSingles(SinglesEnv):
         battle_format: str = "gen1randombattle",
         faint_shaping: float = 0.0,
         hl_shaping: float = 0.0,
+        discard_seat2_obs: bool = False,
         **kwargs,
     ):
         super().__init__(battle_format=battle_format, **kwargs)
+        # THROUGHPUT_SPEC Stage 1. PokeEnv.step encodes BOTH seats' battles,
+        # and under SingleAgentWrapper seat 2's observation is thrown away
+        # unread -- the wrapper returns only seat 1's and asks the opponent
+        # for a move via `opponent.choose_move(battle2)`, which does its OWN
+        # encode. Encoding is 133 us/decision of a ~1850 us vector step (E3),
+        # so the discarded half is pure waste.
+        # OFF BY DEFAULT, and that is the whole safety argument:
+        # ShowdownSingles is a real two-seat PettingZoo env (16 test sites
+        # construct it directly), and zeroing seat 2 unconditionally would
+        # make it silently lie. Only ShowdownEnv -- which is definitionally
+        # single-agent -- turns it on.
+        self._discard_seat2_obs = discard_seat2_obs
+        self._seat2_zeros = np.zeros(OBS_DIM, dtype=np.float32)
         self._type_chart = GenData.from_format(battle_format).type_chart
         self.faint_shaping = faint_shaping
         self.hl_shaping = hl_shaping
@@ -866,6 +880,12 @@ class ShowdownSingles(SinglesEnv):
         return reward + potential - previous
 
     def embed_battle(self, battle) -> np.ndarray:
+        # Identity, not equality: the two seats share a battle_tag, and
+        # `battle2` is seat 2's own object (the same reason _faint_potential
+        # keys by object). Seat 1 never takes this branch, so its encoding is
+        # bitwise unchanged -- asserted in tests, not assumed.
+        if self._discard_seat2_obs and battle is self.battle2:
+            return self._seat2_zeros
         return embed_battle(battle, self._type_chart)
 
 
@@ -1108,6 +1128,13 @@ class ShowdownEnv(Env):
             faint_shaping=faint_shaping,
             hl_shaping=hl_shaping,
             start_timer_on_battle_start=start_timer_on_battle_start,
+            # Seat 2's observation is discarded by SingleAgentWrapper before
+            # anything reads it; skipping the encode is Stage 1 of
+            # THROUGHPUT_SPEC. Safe HERE and only here -- see ShowdownSingles.
+            # The privileged block (D18) is unaffected: _emit_privileged calls
+            # the module-level embed_battle on battle2 directly, not this
+            # method.
+            discard_seat2_obs=True,
         )
         player = opponent_player(opponent, battle_format)
         # isinstance, not getattr: a pool-backed opponent gets outcome

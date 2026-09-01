@@ -140,6 +140,39 @@ def test_embed_battle_empty_battle_is_zeros(offline_env):
     assert not vec.any()
 
 
+def test_seat2_encode_is_skipped_only_when_the_wrapper_will_discard_it():
+    """THROUGHPUT_SPEC Stage 1: ShowdownEnv skips the seat-2 encode that
+    SingleAgentWrapper throws away. Two properties, both load-bearing:
+
+    - SEAT 1 IS BITWISE UNCHANGED. The optimisation must be invisible to
+      every observation anything actually reads, or it is an encoder change
+      and invalidates checkpoints.
+    - THE TWO-SEAT ENV STILL TELLS THE TRUTH. ShowdownSingles is a real
+      PettingZoo env; the skip is opt-in and off by default, so a direct
+      construction gets both seats encoded.
+    """
+    plain = ShowdownSingles(start_listening=False)
+    fast = ShowdownSingles(start_listening=False, discard_seat2_obs=True)
+    # A battle with CONTENT: an empty one encodes to zeros anyway (see
+    # test_embed_battle_empty_battle_is_zeros), which would make the
+    # discarded-vs-real assertion vacuous.
+    mine = _stub_mon(current_hp_fraction=1.0, level=100, species="stubmon")
+    theirs = _stub_mon(current_hp_fraction=0.5, level=100, species="stubfoe")
+    b1 = _stub_battle(active_pokemon=mine, opponent_active_pokemon=theirs,
+                      team={"p1a": mine}, opponent_team={"p2a": theirs}, turn=3)
+    b2 = _stub_battle(active_pokemon=theirs, opponent_active_pokemon=mine,
+                      team={"p2a": theirs}, opponent_team={"p1a": mine}, turn=3)
+    for env in (plain, fast):
+        env.battle1, env.battle2 = b1, b2
+
+    np.testing.assert_array_equal(fast.embed_battle(b1), plain.embed_battle(b1))
+    assert plain.embed_battle(b2).any(), "the fixture must not encode to zeros"
+
+    skipped = fast.embed_battle(b2)
+    assert not skipped.any()
+    assert skipped.shape == (OBS_DIM,) and skipped.dtype == np.float32
+
+
 def test_global_block(offline_env):
     dead = _stub_mon(fainted=True, status=Status.FNT)
     battle = _stub_battle(

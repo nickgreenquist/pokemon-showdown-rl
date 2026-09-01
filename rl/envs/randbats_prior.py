@@ -64,8 +64,21 @@ def _sets() -> dict:
         return json.load(fh)
 
 
-def known_species() -> set:
-    return set(_sets())
+@lru_cache(maxsize=1)
+def known_species() -> frozenset:
+    """The ~140 species with a randbats set, memoised.
+
+    THROUGHPUT_SPEC Stage 1: this rebuilt the set from the already-cached
+    `_sets()` dict on EVERY call, and `_opponent_move_slots` calls it once per
+    encode at ~3 encodes per env step -- the only uncached function in a file
+    where `_sets`, `_samples` and `conditional_move_probs` are all lru_cached.
+
+    A FROZENset, not a set: a cached mutable container shared by every caller
+    is one stray `.add()` away from corrupting the prior for the rest of the
+    process. All three call sites are read-only and frozenset serves them
+    unchanged -- `in` (showdown.py:564), `- seen` (determinize.py:188, which
+    builds a new set anyway) and `not in` (ch3_fidelity_check.py:840)."""
+    return frozenset(_sets())
 
 
 def _sample_set(entry: dict, rng: random.Random) -> frozenset:
