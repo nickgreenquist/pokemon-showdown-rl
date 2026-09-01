@@ -125,6 +125,47 @@ log_bytes() {
     echo "$b"
 }
 
+# 2026-08-31, THE ORPHANED-ROOM DEADLOCK (docs/landmines.md): "the watchdog
+# blames the wrong process". A wedged SEAT starves foul-play of anything to
+# log, so the FP-log stall detector above fires and charges the RELAUNCH -- and
+# therefore a CRASH FORFEIT -- to a foul-play that was doing nothing wrong.
+# Both R4S66 attempts died that way.
+#
+# The obvious fix, summing the SEAT log's bytes into log_bytes(), was
+# CONSIDERED AND REJECTED: ch3_fp_h2h.py prints at start and at end and
+# NOTHING per battle, so the seat log does not grow during a healthy run --
+# summing changes no decision and would only give a growing FP log a way to
+# hide a dead seat. The seat's real liveness signal is CPU TIME, which is the
+# instrument CLAUDE.md already mandates for the stall signature (process
+# ALIVE, zero CPU, `pgrep` never catches it; confirm in 15 s with two
+# samples). So: keep the FP-log trigger, and ATTRIBUTE at the moment of the
+# kill.
+#
+# Attribution is RECORDED, NOT ACTED ON. Whether a relaunch that killed a
+# LIVE foul-play forfeited a real in-flight battle is an accounting question
+# against a FROZEN pre-reg ("n_eff = seat_finished - crash_forfeits"), and
+# that is the maintainer's to answer -- so `crash_forfeits` keeps its exact
+# meaning (= relaunches) and the evidence lands beside it in the arm JSON.
+
+# CPU-seconds for a pid, or empty if it is gone. macOS `ps -o time=` prints
+# MM:SS.ss with minutes UNBOUNDED (108:34.43 is real), so parse from the right.
+cpu_secs() {
+    ps -o time= -p "$1" 2>/dev/null | tr -d ' ' | awk -F: '
+        NF==0 { exit }
+        { s = $NF; if (NF >= 2) s += $(NF-1) * 60; if (NF >= 3) s += $(NF-2) * 3600;
+          printf "%.2f\n", s }'
+}
+
+# 1 if the pid burned no CPU across the probe window -- the stall signature.
+seat_frozen() {
+    a="$(cpu_secs "$1")"
+    [ -n "$a" ] || return 1
+    sleep "${WEDGE_PROBE_SECS:-15}"
+    b="$(cpu_secs "$1")"
+    [ -n "$b" ] || return 1
+    [ "$a" = "$b" ]
+}
+
 # 2026-08-25 (S1 incident): `( ... ) &` makes $! the SUBSHELL's pid, so
 # every kill orphaned a live foul-play python that kept holding the
 # websocket AND the username. The relaunch then hit
@@ -185,6 +226,10 @@ write_runner_json() {
   "fp_completed_battles": $completed,
   "crash_points_fp_completed": [$CRASH_POINTS],
   "crash_points_utc": [$CRASH_TIMES],
+  "fp_found_dead": $FP_FOUND_DEAD,
+  "fp_killed_while_alive": $FP_KILLED_ALIVE,
+  "seat_frozen_at_kill": $SEAT_FROZEN_AT_KILL,
+  "attribution_note": "crash_forfeits keeps its pre-reg meaning (= relaunches). fp_found_dead is an unambiguous FP death; fp_killed_while_alive is a log-stall kill; seat_frozen_at_kill is the subset of those where OUR seat burned zero CPU too (the orphaned-room signature) and is the count a grader should question before believing a forfeit.",
   "void_too_many_crashes": $void_flag,
   "liveness_rule": "foul-play log byte/battle progress; directory existence never consulted",
   "read_rule": "n_eff = seat_finished - crash_forfeits; our_wins reduced by the same count (2026-08-23, verbatim in the R4 pre-reg)"
@@ -214,6 +259,9 @@ if ! kill -0 "$SEAT_PID" 2>/dev/null; then
     RELAUNCHES=0
     CRASH_POINTS=""
     CRASH_TIMES=""
+    FP_FOUND_DEAD=0
+    FP_KILLED_ALIVE=0
+    SEAT_FROZEN_AT_KILL=0
     write_runner_json false
     exit 1
 fi
@@ -225,6 +273,13 @@ LAST_BYTES=0
 STALLED=0
 NO_PROGRESS=0
 LAST_CRASH_COMPLETED=-1
+# Attribution counters (see cpu_secs/seat_frozen above). FOUND_DEAD is an
+# unambiguous foul-play death; KILLED_ALIVE is us killing a live process on a
+# log stall; SEAT_FROZEN_AT_KILL is the subset of those where OUR seat was
+# burning no CPU either, i.e. the orphaned-room signature.
+FP_FOUND_DEAD=0
+FP_KILLED_ALIVE=0
+SEAT_FROZEN_AT_KILL=0
 
 start_fp "$BATTLES"
 
@@ -241,9 +296,26 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
     FP_DEAD=0
     if ! kill -0 "$FP_PID" 2>/dev/null; then
         FP_DEAD=1
+        FP_FOUND_DEAD=$((FP_FOUND_DEAD + 1))
         log "foul-play pid $FP_PID is gone"
+        # 2026-08-31: this branch used to set FP_DEAD and fall straight
+        # through to the relaunch WITHOUT calling kill_fp, so foul-play's
+        # multiprocessing SEARCH WORKERS were never reaped here -- the exact
+        # orphaned-children failure the 2026-08-26 note above documents, left
+        # open on the one path where the parent dies by itself. kill_fp is
+        # safe on a dead parent (`pkill -P` is a no-op) and still sweeps by
+        # username and by the multiprocessing pattern, and it holds the
+        # username-release wait the relaunch needs.
+        kill_fp
     elif [ "$STALLED" -ge "$STALL_POLLS" ]; then
         FP_DEAD=1
+        FP_KILLED_ALIVE=$((FP_KILLED_ALIVE + 1))
+        if seat_frozen "$SEAT_PID"; then
+            SEAT_FROZEN_AT_KILL=$((SEAT_FROZEN_AT_KILL + 1))
+            log "ATTRIBUTION: the SEAT burned ZERO CPU across a ${WEDGE_PROBE_SECS:-15}s probe while foul-play's log was stalled -- the ORPHANED-ROOM signature (docs/landmines.md). Relaunching FP is unlikely to help and this relaunch is NOT evidence that foul-play crashed."
+        else
+            log "ATTRIBUTION: the seat is burning CPU; foul-play is the stalled side."
+        fi
         log "foul-play log stalled for $((STALLED * POLL_SECS))s -- killing pid $FP_PID"
         kill_fp
     fi
