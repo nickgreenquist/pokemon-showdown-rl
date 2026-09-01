@@ -62,26 +62,33 @@ def test_lever_values_and_anneal_guard():
 
 
 def test_seed_windows_disjoint_and_unused():
+    """R0-l as claimed [review-1 S10 / review-2 SF-15]: the three lanes'
+    8-wide sub-env windows are pairwise disjoint, and NO seed in any window
+    appears in a stamped run config on disk — both branches safe."""
+    import re
+
     seeds = [104, 112, 120]
     windows = [set(range(s, s + 8)) for s in seeds]
     for i in range(3):
         for j in range(i + 1, 3):
             assert not windows[i] & windows[j], "sub-env windows overlap"
-    used = {
-        int(m.group(1))
-        for p in (REPO / "runs").glob("*/config.yaml")
-        for m in [__import__("re").search(r"^seed: (\d+)", p.read_text(), 8)]
-        if m
-    } if (REPO / "runs").exists() else set()
+    used = set()
+    if (REPO / "runs").exists():
+        for p in (REPO / "runs").glob("*/config.yaml"):
+            m = re.search(r"^seed: (\d+)", p.read_text(), re.M)
+            if m:
+                used.add(int(m.group(1)))
     for w in windows:
-        assert not ({104, 112, 120} & used), f"seed already stamped: {used}"
+        assert not (w & used), f"window {sorted(w)} hits stamped seeds {w & used}"
 
 
 def test_header_carries_the_load_bearing_verbatims():
     # The credit line with the larger-of clause, exactly once.
     assert TXT.count("LARGER of the pooled-binomial se_diff") == 1
-    # The supersession of CHAPTER5 §7 ruling 4 is explicit.
-    assert "SUPERSEDES CHAPTER5" in TXT
+    # The supersession of CHAPTER5 §7 ruling 4 is explicit, on both of the
+    # ruling's own grounds (review-2 SF-5), and ruling 3's un-mooting is
+    # addressed (SF-6).
+    assert "SUPERSESSION" in TXT and "ruling 4" in TXT and "ruling 3" in TXT
     # The control numbers the primary reads against.
     assert "0.4745556" in TXT and "0.7864444" in TXT
     # Launch-blocking fills still present at DRAFT stage (removed only at

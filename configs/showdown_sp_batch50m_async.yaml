@@ -46,8 +46,16 @@
 #   - loss/clip_frac != 0.0 on every update (G5's recorded-logp liveness;
 #     exactly 0.0 in epoch 1 means the recorded-old_logp path is not
 #     wired — kill).
-#   - collect/policy_version_lag_p99 <= 1 (G5 staleness gate).
-#   - collect/episodes_discarded / episodes_finished < 1% (G4).
+#   - collect/policy_version_lag_p99 <= 1 (G5 staleness gate) — AMENDED
+#     2026-09-01 (100M review 1, S11): breach = 3 CONSECUTIVE rollouts;
+#     one reading of 2 is RECORDED (a >8,000-action episode spanning two
+#     pauses legitimately reads 2; the control holds 12 such in 150M).
+#   - collect/episodes_discarded / episodes_finished < 1% (G4) — AMENDED
+#     2026-09-01 (100M review 2, MF-2): the counter only increments after
+#     the 3600 s builder age, so inside the first 200k steps the honest
+#     liveness read is battles_in_flight == concurrency with
+#     episodes_finished advancing; the <1% discard gate reads over the
+#     WHOLE run.
 #   - aux/illegal_label_frac == 0 and aux/frame_collision_frac == 0 (the
 #     D25 hard gates, now fed by the async (turn, index) label join).
 #   - eval/win_rate present and in (0, 1).
@@ -59,7 +67,7 @@
 # Basis, MEASURED: the control fleet's own 3-wide median is 444 steps/s
 # per lane (s83 history, n=1.4M readings; per-rollout arithmetic gives
 # 402 — the G8 read uses the median-sps estimator, so 444 is the basis).
-# Stage 1 alone (+8.1%, ce38c94 measured solo) projects ~480 3-wide,
+# Stage 1 alone (+8.1%, ce4c38e measured solo) projects ~480 3-wide,
 # unmeasured. Async projection: 1.55-1.7x end-to-end (re-derived this
 # session from runs/ch5_stage1_after: collect 45.83 s / update 11.00 s,
 # so update share 19.4%; E4b collection 670 -> 1240 dec/s = 1.85x;
