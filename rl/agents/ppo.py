@@ -105,6 +105,7 @@ from torch import nn
 from torch.distributions import Categorical
 
 from rl.agents.base import Agent
+from rl.buffers.episode import episode_gae
 from rl.buffers.rollout import RolloutBuffer, compute_gae
 from rl.common.masking import masked_entropy, masked_logits
 from rl.networks.conv import ConvQNet
@@ -681,6 +682,28 @@ class PPOAgent(Agent):
             return int(actions.item())  # (1,) -> the scalar the scalar loop wants
         return actions.cpu().numpy()
 
+    def act_logp(self, obs: Any, action_mask: Any) -> tuple[Any, Any]:
+        """Batched sample PLUS its log-prob — the async collector's act path.
+
+        Under async collection the policy can change between a row's decision
+        and its update (an in-flight battle straddles the update boundary),
+        so old_logp must be recorded here, where the action is drawn, not
+        recomputed at update start (THROUGHPUT_SPEC risk table; G5). Same
+        masked-Categorical construction as _logp_entropy, so the recorded
+        value is what the first epoch's recompute would produce — up to
+        batch-size-dependent kernel reduction order, which is exactly why
+        G5's health read is mean |ratio - 1| > 0, never == 0.
+
+        Always batched: (B, *obs_shape) in, ((B,) actions, (B,) logp) out.
+        """
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device)
+        mask_t = torch.as_tensor(action_mask, dtype=torch.bool, device=self.device)
+        with torch.no_grad():
+            dist = Categorical(logits=masked_logits(self.actor(obs_t), mask_t))
+            actions = dist.sample()
+            logp = dist.log_prob(actions)
+        return actions.cpu().numpy(), logp.cpu().numpy()
+
     def _logp_entropy(
         self,
         obs: torch.Tensor,
@@ -765,6 +788,56 @@ class PPOAgent(Agent):
         # coefficient entering at torch.autograd.grad above).
         return float(loss.item()), total, trunk, trunk * scale, scale
 
+    def _prepare_aux(
+        self, flat_obs: torch.Tensor, flat_opp_choice: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict[str, float]]:
+        """D25's labels, canonicalised ONCE PER UPDATE (B12) — done inside
+        the epoch x minibatch loop this is the same work 16 times over and
+        surfaces only as an unexplained update-time regression. The frame is
+        each row's OWN id suffix, so the label can only ever name entities
+        the actor could see (B4, the structural anti-leak property). Shared
+        by both collection paths — the (T, N) rollout and the episode batch
+        flatten their own labels and call here."""
+        aux_target, aux_allow, aux_valid, aux_stats = canonicalise(
+            flat_obs, flat_opp_choice, self.actor.tokenizer
+        )
+        if self.aux_shuffle_labels:
+            # D25-P (placebo config P1/P4): ONE permutation per rollout,
+            # drawn here and reused by all epochs x minibatches via
+            # aux_target[idx] — the treatment's label structure exactly.
+            # aux/marginal_nll is the shuffled task's exact floor; both
+            # keys exist only on placebo lanes (P5).
+            aux_stats["aux/marginal_nll"] = marginal_nll(
+                aux_target, aux_allow, aux_valid
+            )
+            aux_target, shuf_stats = shuffle_within_allow(
+                aux_target, aux_allow, aux_valid, self._shuffle_gen
+            )
+            aux_stats.update(shuf_stats)
+        if self.aux_synthetic:
+            # D28: the REAL labels' only surviving role is the row filter
+            # — aux_allow/aux_valid pass through untouched so trained
+            # rows match D25's exactly; the target is the frozen-task
+            # draw, a function of the observation alone (zero opponent-
+            # action information; rl/networks/zeroinfo.py). ONE draw per
+            # rollout, reused by all epochs x minibatches via
+            # aux_target[idx] — the treatment's label structure exactly.
+            aux_target, synth_stats = synthetic_labels(
+                flat_obs, aux_allow, aux_valid,
+                self.actor.tokenizer, self._synth_gen,
+            )
+            aux_stats.update(synth_stats)
+            # The manipulation check's A1 term, on the SYNTHETIC target
+            # (the trained task's own mask-renormalised marginal floor;
+            # review MF-1a/MF-4 — without it B-VOID-TASK cannot fire).
+            # Own name, not aux/marginal_nll: that key means "the
+            # SHUFFLED task's floor" on placebo lanes and the two must
+            # never be conflated by a cross-arm reader.
+            aux_stats["aux/synth_marginal_nll"] = marginal_nll(
+                aux_target, aux_allow, aux_valid
+            )
+        return aux_target, aux_allow, aux_valid, aux_stats
+
     def update(self, batch: Any) -> dict[str, float]:
         # The vector loop hands one batched (N-wide) transition row per env
         # step; accumulate until the horizon fills, then train on the rollout.
@@ -817,54 +890,15 @@ class PPOAgent(Agent):
         ).flatten(0, 1)
         flat_actions = torch.as_tensor(buf.actions, device=self.device).flatten(0, 1)
         flat_masks = torch.as_tensor(buf.masks, device=self.device).flatten(0, 1)  # (T*N, A) bool
-        # D25's labels, canonicalised ONCE PER ROLLOUT (B12) — done inside the
-        # epoch x minibatch loop this is the same work 16 times over and
-        # surfaces only as an unexplained update-time regression. The frame is
-        # each row's OWN id suffix, so the label can only ever name entities
-        # the actor could see (B4, the structural anti-leak property).
+        # D25's labels, canonicalised ONCE PER ROLLOUT (B12) — the shared
+        # helper below; both collection paths call it.
         aux_target = aux_allow = aux_valid = None
         aux_stats: dict[str, float] = {}
         if self.aux_head is not None:
-            aux_target, aux_allow, aux_valid, aux_stats = canonicalise(
+            aux_target, aux_allow, aux_valid, aux_stats = self._prepare_aux(
                 flat_obs,
                 torch.as_tensor(buf.opp_choice, device=self.device).flatten(0, 1),
-                self.actor.tokenizer,
             )
-            if self.aux_shuffle_labels:
-                # D25-P (placebo config P1/P4): ONE permutation per rollout,
-                # drawn here and reused by all epochs x minibatches via
-                # aux_target[idx] — the treatment's label structure exactly.
-                # aux/marginal_nll is the shuffled task's exact floor; both
-                # keys exist only on placebo lanes (P5).
-                aux_stats["aux/marginal_nll"] = marginal_nll(
-                    aux_target, aux_allow, aux_valid
-                )
-                aux_target, shuf_stats = shuffle_within_allow(
-                    aux_target, aux_allow, aux_valid, self._shuffle_gen
-                )
-                aux_stats.update(shuf_stats)
-            if self.aux_synthetic:
-                # D28: the REAL labels' only surviving role is the row filter
-                # — aux_allow/aux_valid pass through untouched so trained
-                # rows match D25's exactly; the target is the frozen-task
-                # draw, a function of the observation alone (zero opponent-
-                # action information; rl/networks/zeroinfo.py). ONE draw per
-                # rollout, reused by all epochs x minibatches via
-                # aux_target[idx] — the treatment's label structure exactly.
-                aux_target, synth_stats = synthetic_labels(
-                    flat_obs, aux_allow, aux_valid,
-                    self.actor.tokenizer, self._synth_gen,
-                )
-                aux_stats.update(synth_stats)
-                # The manipulation check's A1 term, on the SYNTHETIC target
-                # (the trained task's own mask-renormalised marginal floor;
-                # review MF-1a/MF-4 — without it B-VOID-TASK cannot fire).
-                # Own name, not aux/marginal_nll: that key means "the
-                # SHUFFLED task's floor" on placebo lanes and the two must
-                # never be conflated by a cross-arm reader.
-                aux_stats["aux/synth_marginal_nll"] = marginal_nll(
-                    aux_target, aux_allow, aux_valid
-                )
         # The critic's input: obs ‖ privileged when the block is carried,
         # plain obs otherwise (aliases, no copy). Every critic forward below
         # reads these two and only these two.
@@ -914,6 +948,109 @@ class PPOAgent(Agent):
         flat_advantages = advantages_t.reshape(-1)
         flat_old_logp = old_logp.reshape(-1)
 
+        metrics = self._optimize(
+            flat_obs, flat_actions, flat_masks, flat_critic_obs,
+            flat_advantages, flat_targets, flat_old_logp,
+            steps_seen=self.updates * horizon * num_envs,
+            aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
+            aux_stats=aux_stats,
+        )
+        self.buffer.clear()
+        return metrics
+
+    def update_episodes(self, batch: dict[str, Any], steps_seen: int) -> dict[str, float]:
+        """The async collector's update entry (THROUGHPUT_SPEC Stage 2): a
+        flat batch of WHOLE finished episodes (rl/buffers/episode.py's drain
+        format) instead of a (T, N) rollout. Three deliberate differences
+        from update(), each the honest version of what the sync path gets
+        for free from lockstep collection:
+
+        - old_logp arrives RECORDED AT ACT TIME (act_logp), never recomputed
+          — under async collection the policy may have changed since a row
+          acted, and a recompute would silently reference the wrong policy
+          (ratio exactly 1.0, clip_frac 0, vanilla PG on stale rows).
+        - GAE is per-episode with terminal bootstrap 0 — bit-for-bit the
+          sync semantics (ShowdownEnv forces every decided finish terminal),
+          via the same audited compute_gae kernel.
+        - ONE critic pass: within an episode V(s') is V(s) shifted, so the
+          sync path's second forward over 30k next_obs rows is gone.
+
+        `steps_seen` is the train loop's env-step counter (checkpointed, so
+        a resume keeps the lr anneal on schedule). Privileged critics are
+        refused loudly: the async collector has no seat-2 battle object to
+        emit the block, and a silently blind wide critic is the exact
+        failure the sync path's seam check exists to prevent."""
+        if self.privileged_dim:
+            raise ValueError(
+                "privileged critics are not supported on the async collection "
+                "path: no privileged block is collected, and training the "
+                "wide critic on zeros would be silent"
+            )
+        opp_choice = batch.get("opp_choice")
+        if (opp_choice is None) == (self.aux_head is not None):
+            raise ValueError(
+                f"opponent-action mismatch: agent aux_oppact_coef="
+                f"{self.aux_oppact_coef} but the collector "
+                f"{'did not record' if opp_choice is None else 'recorded'} "
+                "opp_choice labels — the collector flag and the agent hparam "
+                "must be set together"
+            )
+        flat_obs = torch.as_tensor(batch["obs"], dtype=torch.float32, device=self.device)
+        flat_actions = torch.as_tensor(batch["actions"], device=self.device)
+        flat_masks = torch.as_tensor(batch["masks"], device=self.device)
+        flat_old_logp = torch.as_tensor(
+            batch["old_logp"], dtype=torch.float32, device=self.device
+        )
+        aux_target = aux_allow = aux_valid = None
+        aux_stats: dict[str, float] = {}
+        if self.aux_head is not None:
+            aux_target, aux_allow, aux_valid, aux_stats = self._prepare_aux(
+                flat_obs, torch.as_tensor(opp_choice, device=self.device)
+            )
+        with torch.no_grad():
+            values = self.critic(flat_obs).squeeze(-1)
+        advantages = episode_gae(
+            batch["rewards"],
+            values.cpu().numpy(),
+            batch["lengths"],
+            self.gamma,
+            self.gae_lambda,
+        )
+        advantages_t = torch.as_tensor(advantages, device=self.device)
+        flat_targets = advantages_t + values
+        metrics = self._optimize(
+            flat_obs, flat_actions, flat_masks, flat_obs,
+            advantages_t, flat_targets, flat_old_logp,
+            steps_seen=steps_seen,
+            aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
+            aux_stats=aux_stats,
+        )
+        return metrics
+
+    def _optimize(
+        self,
+        flat_obs: torch.Tensor,
+        flat_actions: torch.Tensor,
+        flat_masks: torch.Tensor,
+        flat_critic_obs: torch.Tensor,
+        flat_advantages: torch.Tensor,
+        flat_targets: torch.Tensor,
+        flat_old_logp: torch.Tensor,
+        steps_seen: int,
+        aux_target: torch.Tensor | None = None,
+        aux_allow: torch.Tensor | None = None,
+        aux_valid: torch.Tensor | None = None,
+        aux_stats: dict[str, float] | None = None,
+    ) -> dict[str, float]:
+        """The epoch x minibatch optimization on a prepared flat batch, plus
+        its diagnostics — everything downstream of advantage computation,
+        factored out (Stage 2) so the async path's episode batches enter the
+        SAME optimization the (T, N) rollout runs; neither path's numbers
+        move. `steps_seen` feeds the lr anneal: update() passes
+        updates * horizon * num_envs (bit-identical to the pre-factor code);
+        update_episodes passes the loop's actual env-step counter, which is
+        what that product approximates."""
+        aux_stats = dict(aux_stats or {})
         # Mechanism diagnostics, computed ONCE per update on the whole batch
         # (DESIGN.md §5: without them a null result cannot distinguish "the
         # lever did nothing" from "the lever never changed the learning
@@ -962,7 +1099,6 @@ class PPOAgent(Agent):
         # group 1 critic): reading each group's own lr back and scaling it
         # would compound the fraction every update.
         if self.lr_anneal_steps:
-            steps_seen = self.updates * horizon * num_envs
             frac = max(0.0, 1.0 - steps_seen / self.lr_anneal_steps)
             self.optimizer.param_groups[0]["lr"] = self.base_lr * self.actor_lr_scale * frac
             self.optimizer.param_groups[1]["lr"] = self.base_lr * frac
@@ -1092,7 +1228,6 @@ class PPOAgent(Agent):
                 sums["loss/grad_clip_frac"] += float(grad_norm.item() > self.max_grad_norm)
                 grad_steps += 1
 
-        self.buffer.clear()
         self.updates += 1
         # sums are per-grad-step and averaged; the two batch-level reads are
         # already single numbers for this update and must not be divided.
