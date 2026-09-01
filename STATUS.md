@@ -29,9 +29,10 @@ The 100M run is OFF-ARC under that explicit ruling (≈ step 10 pulled forward).
   caught the wave's rung-literal bug BEFORE launch — cycle paid twice.
 
 ## Next actions — **MAINTAINER, in order**
-1. **Ratify E1–E7** in `configs/showdown_sp_100m.yaml` (FP@20-primary
-   promotion; rung retention; A-COLL 7.75 h; N-TIMER + RESULTS line; K6
-   rescale; fills; off-arc labeling). Then **launch** (his call, >5 h):
+1. **RATIFIED 2026-09-01** ("commit, push, ratify"; E1–E7 as written).
+   **LAUNCH** (his call, >5 h): restart the Showdown server fresh (R0-j),
+   then `nohup caffeinate -dims bash scripts/ch5_100m_wave.sh &` — the
+   preflight enforces the launch-time R0 gates and refuses loudly.
    3 lanes, seeds 104/112/120, ~48.4 h/lane + ~15 h eval ≈ 2.7 days.
 2. **Ladder-object ruling now has R4S66's number**: search@20 hurts the
    batch lane — greedy batch-lane object leads on today's evidence.

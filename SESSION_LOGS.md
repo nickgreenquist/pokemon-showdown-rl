@@ -9888,3 +9888,18 @@ line numbers are not — grep the date, then read that region):
   .yaml, then launch (48.4 h/lane fleet + ~15 h eval ≈ 2.7 days).** Plus
   the standing HANDOFF §5 rulings (4, unchanged) and the R4S66-informed
   ladder-object question. Suite green: 648 passed / 17 skipped.
+- 2026-09-01 (maintainer, morning) — **THE 100M PRE-REG IS RATIFIED.**
+  Maintainer's word, verbatim: "commit, push, ratify" — given with the full
+  acceptance results, fills and E1-E7 in front of him; E1-E7 ratified AS
+  WRITTEN in configs/showdown_sp_100m.yaml (STATUS block updated in place).
+  Launch remains the maintainer's: `scripts/ch5_100m_wave.sh` committed —
+  ch5_g9_wave pattern with the launch-time R0 gates as a fatal PREFLIGHT
+  (clean tree, prereg tests, grader selftest, disk >= 40 GiB, reclaimable
+  memory >= 12 GB, FRESH server <= 15 min old with simulator: 4, R0-l);
+  lanes run to their own completion (ckpt_1000*.pt crossing rung), stall
+  watch + bounded auto-resume, NO eval starts while any lane trains. Repo
+  pushed to the remote at the maintainer's instruction (first push of the
+  session). Launch-time reads at ratification: R0-c 9 passed/1 skipped;
+  disk 171 GiB; reclaimable memory read 9.8 GB minutes after the fleet
+  exited — below the 12 GB gate, expected to clear after the R0-j server
+  restart; the preflight enforces it either way.

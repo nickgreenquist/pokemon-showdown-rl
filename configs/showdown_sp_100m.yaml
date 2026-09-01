@@ -1,12 +1,16 @@
 # =====================================================================
 # PRE-REGISTRATION — THE 100M RUN (C1 "longer run"), DRAFTED 2026-09-01.
-# STATUS: **PROPOSED — AWAITING MAINTAINER RATIFICATION. ALL ACCEPTANCE
+# STATUS: **RATIFIED 2026-09-01** — maintainer's word, verbatim: "commit,
+# push, ratify" (given with the full acceptance results, fills and E1-E7
+# in front of him; E1-E7 ratified AS WRITTEN below). ALL ACCEPTANCE
 # FILLS COMPLETE (2026-09-01 wave, logs/ch5_g9_wave.log): G9 PASS, G8
-# CREDITED** — every former fill cell below carries its realized number,
+# CREDITED — every former fill cell below carries its realized number,
 # tagged [FILLED 2026-09-01]; two bands were RE-BASED under the
-# G9-VALIDATION RULE with the violations disclosed. What remains before
-# launch: the maintainer's ratification word on E1-E7. The launch itself
-# is the maintainer's (>5 h training, CLAUDE.md rule 4).
+# G9-VALIDATION RULE with the violations disclosed. The launch itself
+# is the maintainer's (>5 h training, CLAUDE.md rule 4):
+# scripts/ch5_100m_wave.sh, whose preflight enforces the R0 zero-lane
+# gates that can only be read at launch time (R0-i memory, R0-j fresh
+# server, R0-k clean tree).
 #
 # PROVENANCE — the standing 2-Opus cycle (maintainer process, 2026-08-12):
 # shared brief results/design_ch5_100m/BRIEF_100M.md; two independent
@@ -514,7 +518,8 @@
 # committed — the E3 precedent (a cleanup once deleted a fleet's rungs
 # and made its D-A impossible forever).
 #
-# RULINGS OWED AT RATIFICATION (none silently assumed): E1 FP@20-primary
+# RULINGS RATIFIED 2026-09-01, AS WRITTEN (were owed; none silently
+# assumed): E1 FP@20-primary
 # promotion for THIS round; E2 rung retention (both fleets); E3 A-COLL's
 # conditional 7.75 h; E4 N-TIMER disclosed-not-celled + the joint-
 # coverage sentence + the RESULTS line (pre-drafted above, NOT yet
