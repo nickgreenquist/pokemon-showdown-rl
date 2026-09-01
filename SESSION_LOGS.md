@@ -9760,3 +9760,70 @@ line numbers are not — grep the date, then read that region):
   started. No 100M run, no ladder, `scripts/ch5_r2_crossplay.py` still unbuilt
   — riders R3c/R1i/R1ii and the README row stay blocked on it. Suite green
   throughout (612 passed, 17 skipped).
+- 2026-09-01 (overnight, autonomous) — **STAGE 2 (THE ASYNC COLLECTOR) BUILT,
+  LANDED GREEN, AND SMOKE-VERIFIED LIVE; G8/G9 RE-BASED; acceptance fleet
+  queued behind R4S66.** Per HANDOFF 2026-08-31 §1, gates first, then code.
+  **G9 BASIS RE-BASED (scripts/ch5_g9_basis.sh, logs/ch5_g9_basis.log):
+  pooled 0.64889 = mean(s66 0.62900, s75 0.65700, s83 0.66067), n=3000/seed
+  locked protocol on the three clean 12M rungs, seed sd 0.0173, ~120 s/rung.**
+  The 0.3890 basis is retired (predates the entity trunk AND the batch
+  recipe). **G8 RE-BASED on the control fleet's own measured 3-wide median —
+  444 steps/s/lane (s83 history, n=1.4M sps readings; per-rollout arithmetic
+  gives 402)**: credited >= 620 all lanes / short 500-620 / stop < 500; the
+  handoff's 1.55x was re-derived from runs/ch5_stage1_after before quoting
+  (collect 45.827 s / update 10.996 s -> update share 19.4%; 670 -> 1240
+  dec/s collection = 1.85x; Amdahl 1.59x solo). R0 entropy band re-based to
+  [1.3, 2.0] from the control's own first-250k trajectory (1.81 -> 1.57) —
+  the spec's [0.2, 1.0] predates the trunk.
+  **THE BUILD (ca37aa7, 7f06cb7, ee656cc, f055f06, 15719d9, e6630f3):**
+  `rl/buffers/episode.py` (EpisodeDataset + per-episode GAE as a REDUCTION to
+  the audited compute_gae — one (B,1) column, terminals cut the chain;
+  cross-tested against a reference recursion and the vector kernel);
+  `ppo.act_logp` (old_logp recorded AT ACT TIME — kills the silent-recompute
+  bug class), `_optimize` factored out of update() (vector path bit-identical
+  in order and steps_seen; suite-pinned), `update_episodes` (one critic pass,
+  V(s') by shift, loud privileged/label seams); per-battle-tag member maps in
+  PoolPlayer/MixturePlayer (G6a — the latch re-selected PER DECISION under K
+  battles and mis-credited PFSP) + opt-in (battle, turn, nth-decision) choice
+  capture whose join reproduces the sync label semantics (forced replacements
+  pair only when BOTH seats replaced); `rl/envs/showdown_async.py` +
+  `_async_loop` + strict `collector:` config block.
+  **DELIBERATE DEVIATION FROM THE SPEC'S §2 DESIGN, disclosed:** built the
+  MEASURED E4b shape — ONE account pair (`as2s{seed}a/b`, derived, never
+  seeded-random), `max_concurrent_battles=K=8`, batch-1 servicing inline on
+  POKE_LOOP — not the cross-thread batched-drain seam. E4b priced exactly
+  this shape at 879->1218->~1240 dec/s (knee K=8); poke-env dispatches each
+  message as its own task so batch-1 awaits do not serialize battles; the
+  seam contract keeps batched servicing an internals-only upgrade. Update
+  pause is gate-clear + a sleep(0) round-trip through POKE_LOOP: after it
+  returns no decision can straddle a weight change (the post-gate decision
+  path has no await), and the loop thread itself is never blocked, so
+  websocket keepalive survives 11 s updates. Rooms pruned on a 300 s grace;
+  builders on 3600 s (orphans counted, G4).
+  **LIVE SMOKES (server shared with R4S66):** smoke1/2 — lag p99 = max =
+  exactly 1 (G5), clip_frac 0.044-0.088 (recorded-logp path live), 0
+  discards, aux/illegal_label_frac 0 AND frame_collision_frac 0 through the
+  new join, label_present ~0.93, pool pushes on cadence, rung ladder by
+  threshold crossing, episode length 60.9 vs the sync bench's own 64.3 at
+  the same scratch phase (the 24-25 band is trained-regime, not scratch).
+  **smoke3 CAUGHT A REAL BUG the vector path can never hit**: async batches
+  are not multiples of `minibatches`; a trailing 1-ROW minibatch's advantage
+  std is NaN and silently poisons the weights (crash surfaces one forward
+  later, in act_logp). Fixed with a <2-row slice guard + regression test
+  (15719d9). **Kill + resume verified end-to-end**: SIGKILL after the first
+  checkpoint, `--resume` picked up from step 7,020, completed to 15,541,
+  meta.resumes appended, pool restored (5 members, 5 pushes).
+  **QUEUED (scripts/ch5_g9_wave.sh, detached): waits for R4S66's wave to
+  release the box, runs the solo on/off bench (configs/ch5_stage2_bench.yaml
+  = ch5_mps_bench + collector block), then 3 async lanes seeds 66/75/83
+  staggered 40 s, killed at ckpt_012000000.pt, stall-watched by CPU-time
+  deltas with bounded auto-resume, then the three locked evals and the
+  pooled G9 + per-lane G8 reads printed to logs/ch5_g9_wave.log.** The
+  pre-reg header is configs/showdown_sp_batch50m_async.yaml (executes
+  THROUGHPUT_SPEC §4 re-based; credits nothing; null-expected G9; anneal
+  caveat honored by running the control's own 50M schedule and stopping at
+  the rung). Suite green throughout: **643 passed, 17 skipped.**
+  **R4S66 (the timer fix's first real workload): ran clean beside all of
+  this** — 934/3000 at 02:28Z, orphans steady at 1 (the battle in flight),
+  3.1-4.4 s/battle under shared load, no wedge. Grading happens when it
+  completes (a separate entry).
