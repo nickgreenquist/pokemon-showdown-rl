@@ -1119,6 +1119,16 @@ class PPOAgent(Agent):
             perm = torch.randperm(batch_size, device=self.device)
             for start in range(0, batch_size, minibatch_size):
                 idx = perm[start : start + minibatch_size]
+                if idx.numel() < 2:
+                    # A trailing 1-row slice: async episode batches are not
+                    # multiples of `minibatches` (whole episodes overshoot
+                    # the budget), and a single row has no advantage std —
+                    # the NaN would poison the weights with no error until
+                    # the next forward (caught live by smoke3, 2026-09-01).
+                    # Skipped, not folded: the row still trains under the
+                    # other epochs' permutations. The vector path divides
+                    # exactly and never takes this branch.
+                    continue
                 # Per-minibatch advantage normalization; the 1e-8 keeps a
                 # zero-variance minibatch at zero instead of NaN.
                 mb_adv = flat_advantages[idx]

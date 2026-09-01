@@ -150,3 +150,26 @@ def test_vector_update_unchanged_by_the_factor_out():
     # builds) but the structural reads are exact.
     assert metrics["loss/clip_frac"] < 0.5
     assert math.isfinite(metrics["loss/policy"])
+
+
+def test_trailing_one_row_minibatch_is_skipped_not_nan():
+    """Async batches are not multiples of `minibatches`; a trailing 1-row
+    slice has no advantage std, and before the guard its NaN silently
+    poisoned the weights (caught live 2026-09-01: the crash surfaced one
+    forward LATER, in act_logp). Batch of 5 at minibatches=2 slices 2/2/1."""
+    agent = _agent(minibatches=2, epochs=1)
+    batch = _episodes([3, 2])
+    with torch.no_grad():
+        batch["old_logp"] = (
+            agent._logp_entropy(
+                torch.as_tensor(batch["obs"]),
+                torch.as_tensor(batch["actions"]),
+                torch.as_tensor(batch["masks"]),
+            )[0]
+            .numpy()
+            .astype(np.float32)
+        )
+    metrics = agent.update_episodes(batch, steps_seen=0)
+    assert math.isfinite(metrics["loss/policy"])
+    for p in agent.actor.parameters():
+        assert torch.isfinite(p).all(), "NaN reached the weights"
