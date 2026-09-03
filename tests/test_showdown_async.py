@@ -409,6 +409,7 @@ def test_stats_keys_and_values(trio):
         "collect/episodes_discarded": 1.0,
         "collect/battles_in_flight": 1.0,
         "collect/rooms_tracked": 2.0,
+        "collect/rerequests": 0.0,
     }
     assert all(isinstance(v, float) for v in stats.values())
 
@@ -608,3 +609,43 @@ def test_start_resets_the_clock_and_the_dead_drive_check_still_wins(trio, clock)
     col._drive.set_exception(OSError("socket gone"))
     with pytest.raises(RuntimeError, match="battle stream ended early"):
         col.check()
+
+
+# --- `[Invalid choice]` re-requests (F-19) ----------------------------------
+
+
+def test_invalid_choice_rerequests_are_counted_and_keyed_as_a_second_row(trio):
+    col = _collector()
+    player = col.learner
+    tag = "battle-gen1randombattle-77"
+    b = _battle(tag, turn=3)
+    player._battles[tag] = b  # what _get_battle() resolves the room to
+    player.DEFAULT_CHOICE_CHANCE = 0.0  # never the 1/1000 default-order branch
+    sent = []
+
+    async def send_message(message, room=""):
+        sent.append((message, room))
+
+    player.ps_client.send_message = send_message
+
+    _on_loop(player.choose_move(b))  # the decision the server then rejects
+    assert col.rerequests == 0 and col.seam.requests == 1
+    # The server's rejection, as PSClient splits it: room line, then the
+    # error line poke-env branches on (player.py:318-325).
+    _on_loop(player._handle_battle_message([
+        [f">{tag}"],
+        ["", "error", "[Invalid choice] Can't switch: You can't switch to a fainted Pokémon"],
+    ]))
+    assert col.rerequests == 1
+    assert col.seam.requests == 2  # poke-env re-asked choose_move
+    assert sent == [("/choose 0", tag)]  # and sent the retry to the room
+    # Both rows stay in the episode; the retry is keyed (turn, 1).
+    assert col.builders[tag].keys == [(3, 0), (3, 1)]
+    assert col.stats()["collect/rerequests"] == 1.0
+    # Other errors are not re-requests and are not counted.
+    _on_loop(player._handle_battle_message([
+        [f">{tag}"],
+        ["", "error", "[Unavailable choice] Can't switch: The active Pokémon is trapped"],
+        ["", "bigerror", "The battle has reached turn 1000"],
+    ]))
+    assert col.rerequests == 1 and col.seam.requests == 2

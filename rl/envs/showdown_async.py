@@ -189,6 +189,30 @@ class CollectPlayer(Player):
             col.convert_errors += 1
             raise
 
+    async def _handle_battle_message(self, split_messages):
+        # F-19: count the server's `[Invalid choice]` rejections before
+        # delegating. In poke-env 0.15.0 this method is what every battle
+        # message reaches — Player.__init__ binds `on_battle_message=
+        # self._handle_battle_message` (player.py:155), resolved through the
+        # MRO at construction, and PSClient._handle_message dispatches each
+        # `>battle-…` payload to it (ps_client.py:114/174). The predicate
+        # below is poke-env's own (player.py:318-325): that branch is the
+        # ONLY caller of `_handle_battle_request(maybe_default_order=True)`,
+        # which re-asks choose_move (a second learner row for the same turn,
+        # keyed (turn, 1) — the rejected first decision stays in the episode)
+        # or, with DEFAULT_CHOICE_CHANCE, sends a default order and calls
+        # nothing. Counting the message counts both. The rate is the
+        # server-side race's (~0 on this path); a poke-env or server bump
+        # that raises it becomes visible in `collect/rerequests`.
+        for split_message in split_messages[1:]:
+            if (
+                len(split_message) > 2
+                and split_message[1] == "error"
+                and split_message[2].startswith("[Invalid choice]")
+            ):
+                self._collector.rerequests += 1
+        await super()._handle_battle_message(split_messages)
+
     def _battle_finished_callback(self, battle):
         self._collector._finish(battle)
 
@@ -219,6 +243,7 @@ class AsyncCollector:
         self.episodes_finished = 0
         self.episodes_discarded = 0
         self.convert_errors = 0
+        self.rerequests = 0  # `[Invalid choice]` re-requests on the learner seat (F-19)
         self._drive = None
         # Liveness (F-03). `_last_progress` is written on the loop thread
         # (request completed, battle finished) and by start()/resume() on the
@@ -431,6 +456,7 @@ class AsyncCollector:
             "collect/episodes_discarded": float(self.episodes_discarded),
             "collect/battles_in_flight": float(len(self.builders)),
             "collect/rooms_tracked": float(started),
+            "collect/rerequests": float(self.rerequests),
         }
 
     def close(self) -> None:
