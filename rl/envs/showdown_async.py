@@ -191,6 +191,7 @@ class AsyncCollector:
         concurrency: int,
         opp_action: bool = False,
         battle_format: str = "gen1randombattle",
+        seat_kwargs_override: dict | None = None,
     ):
         self.seam = GatedSeam(policy)
         self.builders: dict[str, _EpisodeBuilder] = {}
@@ -209,6 +210,17 @@ class AsyncCollector:
             # ends and its queue slot never returns.
             start_timer_on_battle_start=True,
         )
+        if seat_kwargs_override:
+            # Test seam only (F-02): the unit tests build the collector with
+            # `start_listening=False` — the repo's established offline Player
+            # construction — so the bookkeeping runs with no websocket. The
+            # timer is not overridable through it: it is the orphaned-room
+            # fix, maintainer-ruled and wire-visible, never a test knob.
+            if "start_timer_on_battle_start" in seat_kwargs_override:
+                raise ValueError(
+                    "seat_kwargs_override may not touch start_timer_on_battle_start"
+                )
+            seat_kwargs.update(seat_kwargs_override)
         self.learner = CollectPlayer(
             self,
             account_configuration=AccountConfiguration(f"as2s{seed}a", None),
