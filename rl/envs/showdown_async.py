@@ -340,9 +340,12 @@ class AsyncCollector:
         return asyncio.run_coroutine_threadsafe(call(), POKE_LOOP).result()
 
     def stats(self) -> dict[str, float]:
-        started = len(self.learner._battles) + len(
-            [t for t, _ in self._ended]
-        )  # bounded: _ended is pruned to the grace window
+        # len() of both containers is atomic under the GIL; iterating _ended
+        # here (main thread) raced _finish's append (loop thread) — CPython's
+        # "deque mutated during iteration" — and stats() runs in the paused
+        # block, which the battle-end callback does not respect. Bounded:
+        # _ended is pruned to the grace window.
+        started = len(self.learner._battles) + len(self._ended)
         return {
             "collect/seam_requests": float(self.seam.requests),
             "collect/inference_seconds": self.seam.inference_seconds,
