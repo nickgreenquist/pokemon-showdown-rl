@@ -212,6 +212,51 @@ def _ln_free_blocks(net: nn.Module) -> list[str]:
     return blocks + [name for name, _ in net.named_parameters(recurse=False)]
 
 
+MINIBATCH_TAILS = ("keep", "drop", "fold")
+
+
+def _minibatch_slices(
+    batch_size: int, minibatch_size: int, tail: str
+) -> tuple[list[tuple[int, int]], int]:
+    """One epoch's minibatch plan under the F-04 tail policy: the (start,
+    stop) slices of the permutation, and the row FLOOR a slice must meet to
+    take a step. Async episode batches are not multiples of `minibatches`
+    (whole episodes overshoot the budget), so `range(0, B, mbs)` leaves a
+    trailing slice of B mod mbs rows — and because B = m*mbs + r with
+    r < m, that tail IS r once mbs >= m: uniform on 0..minibatches-1 (0..119
+    at the 100M recipe), never a function of the minibatch width.
+
+      keep  today's wire: every slice trains, floor 2 — a 1-row slice has
+            no advantage std and its NaN reached the weights (smoke3,
+            2026-09-01). So ~0.8% of gradient steps at minibatches 120 are
+            a 2..119-row slice z-scored over itself and taking a full Adam
+            step at the 256-row lr (audit F-04, 2026-09-02).
+      drop  a trailing slice under mbs // 2 is skipped: floor max(2,
+            mbs // 2). `perm` is fresh per epoch, so different rows sit out
+            each epoch — expected loss ~0.2% of rows per epoch.
+      fold  a trailing slice under mbs // 2 is appended to the slice before
+            it, so every row still trains exactly once per epoch and the
+            widest slice stays under 1.5 x mbs.
+
+    `keep` returns exactly the slices the pre-F-04 loop iterated (a stop
+    clamped to B slices the same tensor `start + mbs` did), so the default
+    is bit-identical by construction and regression-tested."""
+    slices = [
+        (start, min(start + minibatch_size, batch_size))
+        for start in range(0, batch_size, minibatch_size)
+    ]
+    if tail == "keep":
+        return slices, 2
+    half = minibatch_size // 2
+    if tail == "drop":
+        return slices, max(2, half)
+    # fold: merge a short tail into its predecessor; a lone slice has nothing
+    # to fold into and keeps the 2-row floor.
+    if len(slices) > 1 and slices[-1][1] - slices[-1][0] < half:
+        slices[-2:] = [(slices[-2][0], batch_size)]
+    return slices, 2
+
+
 class PPOAgent(Agent):
     vectorized = True
 
@@ -248,6 +293,7 @@ class PPOAgent(Agent):
         aux_max_grad_norm: float = 0.5,
         aux_shuffle_labels: bool = False,
         aux_synthetic: bool = False,
+        minibatch_tail: str = "keep",
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -269,6 +315,18 @@ class PPOAgent(Agent):
         self.entropy_coef = entropy_coef
         self.value_coef = value_coef
         self.max_grad_norm = max_grad_norm
+        # F-04 minibatch tail policy (audit 2026-09-02): what the epoch loop
+        # does with the trailing partial slice an async episode batch leaves.
+        # UNRULED by the maintainer, so the default is today's wire
+        # bit-for-bit and 'keep' adds no metric key; see _minibatch_slices
+        # for the three policies and docs/proposals/F04_minibatch_tail_prereg
+        # .md for the draft pre-reg that would license a change.
+        if minibatch_tail not in MINIBATCH_TAILS:
+            raise ValueError(
+                f"unknown minibatch_tail {minibatch_tail!r}; expected one of "
+                f"{list(MINIBATCH_TAILS)}"
+            )
+        self.minibatch_tail = minibatch_tail
         # act() distinguishes a single obs from a batched one by rank, so the
         # env's own obs rank has to be remembered.
         self.obs_rank = len(observation_space.shape)
@@ -1113,22 +1171,36 @@ class PPOAgent(Agent):
 
         batch_size = flat_actions.shape[0]
         minibatch_size = batch_size // self.minibatches
+        slices, min_rows = _minibatch_slices(
+            batch_size, minibatch_size, self.minibatch_tail
+        )
         sums: dict[str, float] = defaultdict(float)
         grad_steps = 0
+        # F-04 tail diagnostics: the narrowest minibatch that took a step and
+        # the rows the floor left out. Plain ints, no tensor op, so they
+        # cannot move a number; REPORTED UNDER drop/fold ONLY, so 'keep'
+        # adds no metric key (the l2_init_decay / bc_kl_coef precedent).
+        rows_min, rows_dropped = batch_size, 0
         for _ in range(self.epochs):
             perm = torch.randperm(batch_size, device=self.device)
-            for start in range(0, batch_size, minibatch_size):
-                idx = perm[start : start + minibatch_size]
-                if idx.numel() < 2:
-                    # A trailing 1-row slice: async episode batches are not
-                    # multiples of `minibatches` (whole episodes overshoot
-                    # the budget), and a single row has no advantage std —
-                    # the NaN would poison the weights with no error until
-                    # the next forward (caught live by smoke3, 2026-09-01).
+            for start, stop in slices:
+                idx = perm[start:stop]
+                if idx.numel() < min_rows:
+                    # Under the floor. At 'keep' (floor 2) this is a trailing
+                    # 1-row slice: async episode batches are not multiples
+                    # of `minibatches` (whole episodes overshoot the
+                    # budget), and a single row has no advantage std — the
+                    # NaN would poison the weights with no error until the
+                    # next forward (caught live by smoke3, 2026-09-01).
                     # Skipped, not folded: the row still trains under the
-                    # other epochs' permutations. The vector path divides
-                    # exactly and never takes this branch.
+                    # other epochs' permutations. 'drop' raises the floor to
+                    # mbs // 2 (F-04); 'fold' has already merged its short
+                    # tail and only reaches here on a degenerate batch. The
+                    # vector path divides exactly and never takes this
+                    # branch.
+                    rows_dropped += idx.numel()
                     continue
+                rows_min = min(rows_min, idx.numel())
                 # Per-minibatch advantage normalization; the 1e-8 keeps a
                 # zero-variance minibatch at zero instead of NaN.
                 mb_adv = flat_advantages[idx]
@@ -1239,12 +1311,22 @@ class PPOAgent(Agent):
                 grad_steps += 1
 
         self.updates += 1
+        # Update-level reads, present only when a non-default tail policy is
+        # on: rows_min over every executed minibatch this update; rows the
+        # floor dropped, per epoch (exactly 0 under 'fold' on a real batch).
+        tail_stats: dict[str, float] = {}
+        if self.minibatch_tail != "keep":
+            tail_stats = {
+                "loss/minibatch_rows_min": float(rows_min),
+                "loss/minibatch_rows_dropped": rows_dropped / self.epochs,
+            }
         # sums are per-grad-step and averaged; the two batch-level reads are
         # already single numbers for this update and must not be divided.
         return {
             **{name: total / grad_steps for name, total in sums.items()},
             "loss/explained_variance": explained_variance,
             "loss/adv_std": adv_std,
+            **tail_stats,
             # Rollout-level label diagnostics; already single numbers for this
             # update and must not be divided. Empty unless the lever is on.
             **aux_stats,
