@@ -41,6 +41,18 @@ ALGOS: dict[str, type[Agent]] = {
     "ppo": PPOAgent,
 }
 
+# checkpoint.pt cadence, in UPDATE boundaries (F-05, 2026-09-03). The latest
+# checkpoint used to ride the eval cadence: at the 100M recipe that is one
+# save per ~250k steps, and the R2 resumes lost 170k-190k steps each
+# (docs/landmines.md, "checkpoint.pt lags the last logged step"). Every 4
+# updates is ~123k steps, ~2-4 min of wall at 574 steps/s, so a killed lane
+# now loses <= 4 updates — and any future change to eval_every no longer
+# silently changes resume granularity. A module constant and NOT a Config
+# field on purpose: the resume path asserts ckpt["config"] == asdict(cfg), so
+# a new field would make every existing run dir un-resumable and the frozen
+# 100M configs would stop loading as written.
+SAVE_LATEST_EVERY_UPDATES = 4
+
 
 def make_agent(cfg: Config, env: gym.Env) -> Agent:
     algo = cfg.agent.get("algo")
@@ -207,6 +219,82 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
             "to a fresh init"
         )
     torch.save(agent.theta0_state(), path)
+
+
+def _save_latest(
+    out_dir: Path,
+    agent: Agent,
+    step: int,
+    cfg: Config,
+    normalizers: dict | None,
+    best_eval: float,
+    updates_done: int,
+    pool_state: dict | None,
+) -> None:
+    """The ONE resume artifact (F-05): checkpoint.pt carries the learner, the
+    loop counters and — on a self-play run — the pool, in a single
+    write-then-rename. Until 2026-09-03 the pool went to a second file
+    (pool.pt) through a second rename, so a SIGKILL between the two left a
+    learner at step S beside a pool from the previous save, and nothing
+    checked the pair; the `step` stamp inside the pool entry is what the
+    loader asserts against ckpt["step"] now. pool.pt is no longer written.
+
+    `pool_state` is read by the CALLER, not here, because the read has a
+    thread-safety shape only the caller knows: on the async path it must come
+    through collector.run_in_loop — the PoolPlayer keeps moving members and
+    consuming their generator draws on POKE_LOOP even while the learner is
+    paused (pause() gates the learner's decisions, not the opponent's) — while
+    the vector loop reads it inline. The one thing every site shares is this
+    payload shape, so the shape lives in one place."""
+    extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
+    if pool_state is not None:
+        extras["pool"] = {"step": step, "state": pool_state}
+    save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers, extras=extras)
+
+
+def _restore_pool(pool: SnapshotPool, ckpt: dict, resume_dir: Path, agent: Agent,
+                  agent_factory) -> str:
+    """Rebuild a resumed run's pool from the best source on disk and return
+    which one it was — the meta.yaml `resumes` entry records it as
+    `pool_source`, so a readout can tell a verified pair from a legacy or
+    reseeded one without re-reading the run dir.
+
+    Preference order:
+      "checkpoint.pt" — the pool rides inside the payload (F-05 format); its
+        step stamp MUST equal the checkpoint's step, or the resume is refused
+        (a torn pair cannot happen with one file, so a mismatch means the
+        checkpoint was edited, and continuing would silently train against
+        the wrong opponent curriculum).
+      "pool.pt" — a pre-F-05 run dir (the live 100M fleet's format): the
+        pool restores as it always did, with a printed DISCLOSURE that the
+        pairing could not be verified.
+      "reseeded" — no pool snapshot at all: the pre-resume-era approximation,
+        disclosed as before — the pool restarts seeded with the RESUMED
+        weights (not the step-0 init): training stays sane, but the
+        winrate_anchor series restarts against a new anchor.
+    """
+    payload = ckpt.get("pool")
+    if payload is not None:
+        assert payload["step"] == ckpt["step"], (
+            f"checkpoint.pt pool stamp {payload['step']} != step {ckpt['step']}: "
+            "the pool/checkpoint pair is torn (the single-file payload cannot "
+            "produce this — the checkpoint was edited); refusing to resume "
+            "against an unverified opponent curriculum"
+        )
+        pool.load_state_dict(payload["state"], agent_factory=agent_factory)
+        return "checkpoint.pt"
+    pool_path = resume_dir / "pool.pt"
+    if pool_path.exists():
+        print("RESUME: legacy pool.pt (pre-F-05 run dir) — pool/checkpoint "
+              "pairing not verifiable")
+        pool.load_state_dict(
+            torch.load(pool_path, weights_only=False), agent_factory=agent_factory
+        )
+        return "pool.pt"
+    print("RESUME: no pool.pt — pool reseeded from the resumed "
+          "weights (winrate_anchor restarts; disclosed)")
+    pool.push(agent)
+    return "reseeded"
 
 
 def train(cfg: Config, resume_dir: Path | None = None) -> None:
@@ -385,14 +473,24 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             if "normalizers" in ckpt and name in ckpt["normalizers"]:
                 rms.load_state_dict(ckpt["normalizers"][name])
         resume_state = {"step": ckpt["step"], **ckpt.get("loop", {})}
+        stamp = {
+            "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "from_step": int(ckpt["step"]),
+        }
+        if pool is not None:
+            # Before the meta stamp: a refused pair (torn stamp) must leave
+            # no trace of a resume that never happened. Nothing between here
+            # and the old restore point (theta0 guard, logger) drew from any
+            # RNG, so moving the rebuild earlier changes no stream.
+            stamp["pool_source"] = _restore_pool(
+                pool, ckpt, Path(resume_dir), agent,
+                agent_factory=lambda: make_agent(cfg, env),
+            )
         # Provenance: append to meta.yaml rather than rewriting it — the
         # original stamp (started_at, launch sha) must survive the seam.
         meta_path = out_dir / "meta.yaml"
         meta = yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
-        meta.setdefault("resumes", []).append({
-            "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "from_step": int(ckpt["step"]),
-        })
+        meta.setdefault("resumes", []).append(stamp)
         meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
         print(f"RESUME: {cfg.run_name} from step {ckpt['step']} "
               f"(best_eval {resume_state.get('best_eval')})")
@@ -404,22 +502,9 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     _ensure_theta0(agent, out_dir, cfg)
     logger = make_logger(cfg)
     if pool is not None and resume_dir is not None:
-        pool_path = Path(resume_dir) / "pool.pt"
-        if pool_path.exists():
-            pool.load_state_dict(
-                torch.load(pool_path, weights_only=False),
-                agent_factory=lambda: make_agent(cfg, env),
-            )
-            logger.log({"selfplay/pool_size": len(pool)}, resume_state["step"])
-        else:
-            # Pre-resume-era run dir: no pool snapshot exists. DISCLOSED
-            # approximation — the pool restarts seeded with the RESUMED
-            # weights (not the step-0 init): training stays sane, but the
-            # winrate_anchor series restarts against a new anchor.
-            print("RESUME: no pool.pt — pool reseeded from the resumed "
-                  "weights (winrate_anchor restarts; disclosed)")
-            pool.push(agent)
-            logger.log({"selfplay/pool_size": len(pool)}, resume_state["step"])
+        # The pool itself was rebuilt above (before the meta stamp); only the
+        # series point waits for the logger.
+        logger.log({"selfplay/pool_size": len(pool)}, resume_state["step"])
     elif pool is not None:
         # Before the loop: _vector_loop's first statement is envs.reset(),
         # which draws an opponent per sub-env, and select() on an empty pool
@@ -549,12 +634,14 @@ def _async_loop(
         collect_mark = time.perf_counter()
 
     def save_latest() -> None:
-        extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
-        save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, extras=extras)
-        if pool is not None:
-            tmp = out_dir / "pool.pt.tmp"
-            torch.save(collector.run_in_loop(pool.state_dict), tmp)
-            tmp.replace(out_dir / "pool.pt")
+        # Called ONLY inside a paused window (update boundary, end of run).
+        # The fence is load-bearing: pause() gates the LEARNER's decisions,
+        # not the opponent's, so the PoolPlayer keeps moving members and
+        # consuming their generator draws on POKE_LOOP while we sit here — an
+        # unfenced state_dict() would read generator states mid-draw. The
+        # learner's own state needs no fence (no decision is in flight).
+        pool_state = None if pool is None else collector.run_in_loop(pool.state_dict)
+        _save_latest(out_dir, agent, step, cfg, None, best_eval, updates_done, pool_state)
 
     collector.seam.version = agent.updates  # a resume starts at the restored count
     collector.start(n_battles=cfg.total_steps)
@@ -622,6 +709,12 @@ def _async_loop(
                     if updates_done % push_every == 0:
                         collector.run_in_loop(pool.push, agent)
                         logger.log({"selfplay/pool_size": len(pool)}, step)
+                if updates_done % SAVE_LATEST_EVERY_UPDATES == 0:
+                    # Still paused, after this boundary's push, before
+                    # resume(): learner, counters and pool in the payload all
+                    # describe this one instant, and the rename completes
+                    # before any battle can move again.
+                    save_latest()
                 resume()
 
             if cfg.checkpoint_every and step >= next_ckpt:
@@ -645,7 +738,12 @@ def _async_loop(
                 if metrics["eval/return_mean"] > best_eval:
                     best_eval = metrics["eval/return_mean"]
                     save_checkpoint(out_dir / "best_checkpoint.pt", agent, step, cfg)
-                save_latest()
+                # checkpoint.pt no longer rides the eval cadence (F-05): the
+                # update-boundary save above owns it. best_eval reaches the
+                # payload at the next boundary save, so a kill inside that
+                # window resumes with a best_eval up to one eval stale —
+                # best_checkpoint.pt may then be rewritten once by a lower
+                # draw (descriptive only; no grader reads it, F-06).
                 resume()
 
         pause()
@@ -862,6 +960,12 @@ def _vector_loop(
                 # selfplay/* is logged from here, never from pool code
                 # (locked metric-namespace rule, CLAUDE.md).
                 logger.log({"selfplay/pool_size": len(pool)}, step)
+            if updates_done % SAVE_LATEST_EVERY_UPDATES == 0:
+                # The async loop's cadence, mirrored: after this boundary's
+                # push, so learner, counters and pool describe one instant.
+                # This loop is single-threaded — the pool read needs no fence.
+                _save_latest(out_dir, agent, step, cfg, normalizers, best_eval,
+                             updates_done, None if pool is None else pool.state_dict())
         # Episode returns are always accumulated in TRUE env units. With
         # reward normalization on, `rewards` is scaled by a running statistic
         # that itself moves during training, so logging it would make
@@ -924,24 +1028,13 @@ def _vector_loop(
             if metrics["eval/return_mean"] > best_eval:
                 best_eval = metrics["eval/return_mean"]
                 save_checkpoint(out_dir / "best_checkpoint.pt", agent, step, cfg, normalizers)
-            loop_extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
-            save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers,
-                            extras=loop_extras)
-            if pool is not None:
-                # The pool snapshot pairs with checkpoint.pt (same boundary,
-                # same write-then-rename discipline): a resume needs both or
-                # it silently restarts the opponent curriculum.
-                tmp = out_dir / "pool.pt.tmp"
-                torch.save(pool.state_dict(), tmp)
-                tmp.replace(out_dir / "pool.pt")
+            # checkpoint.pt no longer rides the eval cadence (F-05): the
+            # update-boundary save above owns it, and the pool rides inside
+            # that payload instead of a second file. Same best_eval
+            # staleness caveat as the async loop.
 
-    loop_extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
-    save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers,
-                    extras=loop_extras)
-    if pool is not None:
-        tmp = out_dir / "pool.pt.tmp"
-        torch.save(pool.state_dict(), tmp)
-        tmp.replace(out_dir / "pool.pt")
+    _save_latest(out_dir, agent, step, cfg, normalizers, best_eval, updates_done,
+                 None if pool is None else pool.state_dict())
 
 
 def main() -> None:

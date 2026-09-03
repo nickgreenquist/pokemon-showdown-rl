@@ -23,9 +23,12 @@ def save_checkpoint(
     just quietly scores badly.
 
     `extras` (resume-from-checkpoint): loop-level bookkeeping merged into the
-    payload under keys the eval loaders never read — today {"loop":
-    {"best_eval", "updates_done"}}. Absent in every pre-2026-08-23
-    checkpoint; readers must .get() it."""
+    payload under keys the eval loaders never read — {"loop": {"best_eval",
+    "updates_done"}} since 2026-08-23, and since 2026-09-03 (F-05) {"pool":
+    {"step", "state"}} so the self-play pool and the learner it pairs with
+    land in ONE write-then-rename (pool.pt was a second rename a kill could
+    split). Every key is absent from older checkpoints; readers must .get()
+    it — rl/train.py's resume path is the reference reader."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {"agent": agent.state_dict(), "step": step, "config": asdict(cfg)}

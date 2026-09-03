@@ -7,11 +7,18 @@ Covers the three layers separately and end to end:
   them still load;
 - a vectorized self-play run KILLED mid-flight (simulated at an eval
   boundary after a save) resumes from its own dir, continues to
-  total_steps, restores the pool from pool.pt, and appends a resume
-  stamp to meta.yaml without losing the original one.
+  total_steps, restores the pool from the checkpoint payload, and appends
+  a resume stamp to meta.yaml without losing the original one;
+- F-05 (2026-09-03): checkpoint.pt is the ONE resume artifact — the pool
+  rides inside it stamped with the step it pairs with, written every
+  SAVE_LATEST_EVERY_UPDATES update boundaries rather than at evals; a
+  pre-F-05 run dir (checkpoint.pt without a pool key + pool.pt — the live
+  100M fleet's format) still resumes exactly as before, with a disclosure;
+  a torn stamp is refused.
 """
 
 import copy
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -124,15 +131,18 @@ def _selfplay_config(tmp_path, monkeypatch, total_steps):
     )
 
 
-def test_killed_selfplay_run_resumes_to_completion(tmp_path, monkeypatch, capsys):
-    cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
-
+def _run_and_kill_at_second_eval(cfg, monkeypatch) -> Path:
+    """A 384-step self-play run killed at its SECOND eval. Updates land every
+    64 steps (4 envs x 16 rollout_steps); the first eval (step 128) completes,
+    the update-cadence save at update 4 (step 256) completes, then the eval
+    at 256 raises — so the dir holds a mid-run checkpoint.pt at step 256 and
+    nothing past it. Returns the run dir."""
     real_evaluate = train_mod.evaluate
     calls = {"n": 0}
 
     def killing_evaluate(*a, **k):
         calls["n"] += 1
-        if calls["n"] >= 2:  # first eval+save completes; the kill lands later
+        if calls["n"] >= 2:
             raise KeyboardInterrupt("simulated kill")
         return real_evaluate(*a, **k)
 
@@ -140,25 +150,111 @@ def test_killed_selfplay_run_resumes_to_completion(tmp_path, monkeypatch, capsys
     with pytest.raises(KeyboardInterrupt):
         train(cfg)
     monkeypatch.setattr(train_mod, "evaluate", real_evaluate)
+    return Path.cwd() / "runs" / cfg.run_name
 
-    run = tmp_path / "runs" / "test_resume_c4"
-    ckpt = load_checkpoint(run / "checkpoint.pt")
-    assert 0 < ckpt["step"] < 384
-    assert (run / "pool.pt").exists()
-    assert "loop" in ckpt
 
+def _resume(run: Path) -> None:
     cfg2 = Config(**yaml.safe_load((run / "config.yaml").read_text()))
     train(cfg2, resume_dir=run)
+
+
+def test_killed_selfplay_run_resumes_to_completion(tmp_path, monkeypatch, capsys):
+    cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
+    run = _run_and_kill_at_second_eval(cfg, monkeypatch)
+
+    ckpt = load_checkpoint(run / "checkpoint.pt")
+    assert 0 < ckpt["step"] < 384
+    assert "loop" in ckpt
+    # F-05: the pool rides INSIDE the payload, stamped with the step it pairs
+    # with, and the second file is gone — one rename, one atomic pair.
+    assert ckpt["pool"]["step"] == ckpt["step"]
+    assert ckpt["pool"]["state"]["pushes"] == 1 + 4  # step-0 push + one per update
+    assert not (run / "pool.pt").exists()
+
+    _resume(run)
     out = capsys.readouterr().out
     assert "RESUME: test_resume_c4 from step" in out
     assert "no pool.pt" not in out  # the pool restored, not reseeded
+    assert "legacy pool.pt" not in out  # ...and from the payload, not a fallback
 
     final = load_checkpoint(run / "checkpoint.pt")
     assert final["step"] >= 384
+    assert final["pool"]["step"] == final["step"]
     meta = yaml.safe_load((run / "meta.yaml").read_text())
     assert len(meta["resumes"]) == 1
     assert meta["resumes"][0]["from_step"] == ckpt["step"]
+    assert meta["resumes"][0]["pool_source"] == "checkpoint.pt"
     assert "started_at" in meta  # the original stamp survived the seam
+
+
+def test_legacy_pool_pt_run_dir_resumes_with_disclosure(tmp_path, monkeypatch, capsys):
+    """The live fleet's format — checkpoint.pt WITHOUT a pool key beside a
+    pool.pt — must resume exactly as it did before F-05: pool restored (not
+    reseeded), the unverifiable pairing disclosed, the source recorded."""
+    cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
+    run = _run_and_kill_at_second_eval(cfg, monkeypatch)
+    # Rewrite the dir into the pre-F-05 layout.
+    ckpt = load_checkpoint(run / "checkpoint.pt")
+    legacy_pool = ckpt.pop("pool")["state"]
+    torch.save(ckpt, run / "checkpoint.pt")
+    torch.save(legacy_pool, run / "pool.pt")
+    capsys.readouterr()  # drop the killed run's output
+
+    _resume(run)
+    out = capsys.readouterr().out
+    assert ("RESUME: legacy pool.pt (pre-F-05 run dir) — pool/checkpoint "
+            "pairing not verifiable") in out
+    assert "no pool.pt" not in out
+    meta = yaml.safe_load((run / "meta.yaml").read_text())
+    assert meta["resumes"][0]["pool_source"] == "pool.pt"
+    # Restored, not reseeded: the lifetime push counter continues from the
+    # legacy snapshot through the two remaining updates (push_every 1); a
+    # reseed would have restarted it at 1. The step-0 anchor is still there.
+    final = load_checkpoint(run / "checkpoint.pt")
+    assert final["pool"]["state"]["pushes"] == legacy_pool["pushes"] + 2
+    assert final["pool"]["state"]["push_ids"][0] == legacy_pool["push_ids"][0] == 0
+
+
+def test_torn_pool_stamp_refuses_to_resume(tmp_path, monkeypatch):
+    """The pair check: a pool stamped with another step than the learner's
+    is exactly the silent mismatch F-05 exists to rule out."""
+    cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
+    run = _run_and_kill_at_second_eval(cfg, monkeypatch)
+    ckpt = load_checkpoint(run / "checkpoint.pt")
+    ckpt["pool"]["step"] = ckpt["step"] - 64  # a pool from the previous boundary
+    torch.save(ckpt, run / "checkpoint.pt")
+
+    with pytest.raises(AssertionError, match="pool/checkpoint pair is torn"):
+        _resume(run)
+    # A refused resume leaves no trace of a resume that never happened.
+    meta = yaml.safe_load((run / "meta.yaml").read_text())
+    assert "resumes" not in meta
+
+
+def test_checkpoint_rides_update_boundaries_not_evals(tmp_path, monkeypatch):
+    """F-05 cadence: checkpoint.pt is written every SAVE_LATEST_EVERY_UPDATES
+    update boundaries (64 steps each here) plus once at the end, and never
+    from the eval block — with eval_every at 8 updates the first save lands
+    strictly between evals, which the old eval-coupled cadence could not do."""
+    cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=512)
+    cfg.eval_every = 512
+    real_save = train_mod.save_checkpoint
+    saves: list[tuple[str, int]] = []
+
+    def recording_save(path, agent, step, *a, **k):
+        saves.append((Path(path).name, step))
+        return real_save(path, agent, step, *a, **k)
+
+    monkeypatch.setattr(train_mod, "save_checkpoint", recording_save)
+    train(cfg)
+
+    per_update = cfg.num_envs * cfg.agent["rollout_steps"]
+    k = train_mod.SAVE_LATEST_EVERY_UPDATES
+    latest = [step for name, step in saves if name == "checkpoint.pt"]
+    assert latest == [k * per_update, 2 * k * per_update, 512]  # cadence x2, then end
+    names = [name for name, _ in saves]
+    assert names.index("checkpoint.pt") < names.index("best_checkpoint.pt")
+    assert not (Path.cwd() / "runs" / cfg.run_name / "pool.pt").exists()
 
 
 def test_resume_refuses_config_drift(tmp_path, monkeypatch):
