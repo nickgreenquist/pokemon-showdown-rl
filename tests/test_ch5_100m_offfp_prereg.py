@@ -49,14 +49,26 @@ def test_arms_match_ratified_protocol():
         assert arm["battles"] == 3000
         assert arm["search_time_ms"] == 20
         assert arm["seat"] == f"s{arm_name[1:]}"
+    for arm_name in ("A66", "A75", "A83", "Y66", "Y75", "Y83"):
+        arm = SPEC["arms"][arm_name]
+        assert arm["kind"] == "greedy_seat"
+        assert arm["battles"] == 3000
+        assert arm["search_time_ms"] == 20
+    for arm_name in ("CA104", "CA112", "CA120"):
+        arm = SPEC["anchor_arms"][arm_name]
+        assert arm["kind"] == "greedy_h2h"
+        assert arm["seat2"] == "clone"
+        assert arm["battles"] == 500
 
 
-def test_checkpoints_are_the_crossing_rungs_on_disk():
+def test_checkpoints_on_disk_and_finals_are_crossing_rungs():
     for lane, spec in SPEC["checkpoints"].items():
         p = ROOT / spec["path"]
         assert p.exists(), f"{lane}: {p} missing"
-        assert spec["step"] >= 100_000_000
-        assert p.name == f"ckpt_{spec['step']:09d}.pt"
+        if "step" in spec:
+            assert p.name == f"ckpt_{spec['step']:09d}.pt"
+    for lane in ("s104", "s112", "s120"):
+        assert SPEC["checkpoints"][lane]["step"] >= 100_000_000
 
 
 def test_results_dir_matches_grader_input():
