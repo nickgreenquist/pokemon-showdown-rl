@@ -44,9 +44,15 @@ were not touched by this branch.
   isolation each call). Expanded:
 
       cd <worktree> && PYTHONPATH=<worktree>:<scratchpad> PYTHONDONTWRITEBYTECODE=1 \
-        OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 nice -n 19 \
-        /opt/anaconda3/envs/pokemon-showdown-rl/bin/python -m pytest -q \
+        nice -n 19 /opt/anaconda3/envs/pokemon-showdown-rl/bin/python -m pytest -q \
         -p no:cacheprovider -p noserver_plugin -m "not live_server" tests/<file>.py
+
+  Torch threads are deliberately left at the box default (10): the wrapper first
+  pinned `OMP_NUM_THREADS=1`, which is what exposed F-22 (below), and the repo's
+  goldens were captured at default threading. The wrapper also holds a
+  machine-wide semaphore (at most 3 concurrent pytest processes, `mkdir`-atomic
+  slots in the scratchpad) so any number of agents cannot stack test load on the
+  fleet's box; callers wait for a slot.
 
 - `data/` (tapes, gitignored) exists only in the main tree. Where a tape gate had to
   run (F-08 bit-identity), a transient `data -> <main tree>/data` symlink was placed
