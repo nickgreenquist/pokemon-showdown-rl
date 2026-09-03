@@ -201,7 +201,7 @@ def solve_decision(
                     continue
                 try:  # max-damage rolls for the 2-point expansion (§2.1)
                     dmg = calculate_damage(state, a_str, b_str, True)
-                except BaseException:
+                except Exception:  # engine faults only — interrupts propagate (F-14)
                     dmg = None
                 for br in kept:
                     leaf = state.apply_instructions(br)

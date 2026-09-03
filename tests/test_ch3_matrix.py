@@ -100,6 +100,22 @@ def test_watchdog_raises_never_falls_back():
         )
 
 
+def test_interrupt_inside_calculate_damage_propagates(monkeypatch):
+    # F-14: the damage-attribution guard degrades engine errors to "no
+    # attribution", never an interrupt — a Ctrl-C mid-search must stop it.
+    def interrupted(*args):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("rl.search.matrix.calculate_damage", interrupted)
+    b = _two_mon_battle()
+    rng = decision_rng(62, 0, b.turn, 0)
+    with pytest.raises(KeyboardInterrupt):
+        solve_decision(
+            b, _mask(switches=[1]), _uniform_q(), np.full(10, 0.1),
+            DOSES["S"], rng, _zero_critic, _TYPE_CHART,
+        )
+
+
 def test_force_switch_single_none_column():
     b = _two_mon_battle()
     b.force_switch = True
