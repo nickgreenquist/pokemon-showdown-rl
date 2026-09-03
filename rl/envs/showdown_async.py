@@ -44,6 +44,13 @@ Ops notes (the landmines this shape walks past):
 - Finished Battle objects are pruned from both players' _battles maps after
   a grace window — a 50M-step lane plays ~2M battles and poke-env never
   forgets one on its own.
+- A wedged stream is a LOUD failure, not an idle process (F-03): check()
+  raises once no decision or finish has landed for _LIVENESS_S while the
+  gate is open and the drive is alive. THE SILENT LANE STALL (landmines)
+  is exactly the shape this loop otherwise produces — alive, zero CPU,
+  sockets open, `poll()` empty forever — and only the wave's external
+  CPU-delta probe saw it. Dying with a traceback is the desired outcome:
+  the wave supervisor resumes dead lanes, the lane log carries the cause.
 """
 
 import asyncio
@@ -77,6 +84,15 @@ _ROOM_GRACE_S = 300.0
 # A builder this old whose battle never finished belongs to a room that died
 # without a |win| (orphan). Discarded and counted (G4: rate < 1%).
 _BUILDER_MAX_AGE_S = 3600.0
+# In-loop liveness budget (F-03): the longest gap between two progress marks
+# (a seam request completing, a battle finishing) a healthy open-gate lane
+# can show. A lane makes ~500+ decisions/s, so the legitimate gap is
+# milliseconds; 900 s is > 30x the longest gap ever observed and, more to
+# the point, longer than the 300 s/turn + 60 s grace challenge timer that
+# resolves an orphaned room — if every one of K rooms orphaned at once, the
+# timer forfeits them all inside ~360 s and finishes land as progress. What
+# is left past 900 s is a wedged stream, which is what we want to die on.
+_LIVENESS_S = 900.0
 
 
 class GatedSeam:
@@ -155,6 +171,7 @@ class CollectPlayer(Player):
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         assert mask.any(), "empty action mask (G2a)"
         action, logp = await seam.request(obs, mask)
+        col._mark_progress()  # loop thread: the liveness clock (F-03)
         builder = col.builders.get(battle.battle_tag)
         if builder is None:
             builder = col.builders[battle.battle_tag] = _EpisodeBuilder()
@@ -192,6 +209,7 @@ class AsyncCollector:
         opp_action: bool = False,
         battle_format: str = "gen1randombattle",
         seat_kwargs_override: dict | None = None,
+        liveness_s: float | None = _LIVENESS_S,
     ):
         self.seam = GatedSeam(policy)
         self.builders: dict[str, _EpisodeBuilder] = {}
@@ -202,6 +220,14 @@ class AsyncCollector:
         self.episodes_discarded = 0
         self.convert_errors = 0
         self._drive = None
+        # Liveness (F-03). `_last_progress` is written on the loop thread
+        # (request completed, battle finished) and by start()/resume() on the
+        # main thread; a float store is atomic under the GIL and both sides
+        # write "now", so the race is benign. `_paused` is main-thread-only.
+        # None / 0 disables the check.
+        self._liveness_s = float(liveness_s) if liveness_s else None
+        self._last_progress = time.monotonic()
+        self._paused = False
         seat_kwargs = dict(
             battle_format=battle_format,
             max_concurrent_battles=concurrency,
@@ -259,6 +285,7 @@ class AsyncCollector:
     # ---- battle lifecycle (loop thread) -----------------------------------
 
     def _finish(self, battle) -> None:
+        self._mark_progress()
         tag = battle.battle_tag
         builder = self.builders.pop(tag, None)
         if self._pool_player is not None:
@@ -290,6 +317,9 @@ class AsyncCollector:
         self._ended.append((tag, time.monotonic()))
         self._prune()
 
+    def _mark_progress(self) -> None:
+        self._last_progress = time.monotonic()
+
     def _prune(self) -> None:
         now = time.monotonic()
         while self._ended and now - self._ended[0][1] > _ROOM_GRACE_S:
@@ -307,6 +337,10 @@ class AsyncCollector:
     # ---- main-thread API ---------------------------------------------------
 
     def start(self, n_battles: int) -> None:
+        # The clock starts here, not at construction: login, the challenge
+        # handshake and the first request all count against the budget and
+        # take seconds, not minutes.
+        self._last_progress = time.monotonic()
         self._drive = asyncio.run_coroutine_threadsafe(
             self.learner.battle_against(self.opponent, n_battles=n_battles),
             POKE_LOOP,
@@ -322,23 +356,55 @@ class AsyncCollector:
                 return episodes
 
     def check(self) -> None:
-        """Fail loudly instead of collecting forever on a dead stream."""
+        """Fail loudly instead of collecting forever on a dead OR wedged
+        stream. A dead drive is the specific diagnosis and comes first; the
+        liveness budget catches the stall shape a live drive can still
+        produce (battle_against parked on a queue slot that never returns).
+        """
         assert self.convert_errors == 0, (
             f"{self.convert_errors} in-mask actions failed conversion (G2b) — "
             "a masking bug, not a recoverable hiccup"
         )
-        if self._drive is not None and self._drive.done():
+        if self._drive is None:
+            return
+        if self._drive.done():
             exc = self._drive.exception()  # raises CancelledError if cancelled
             raise RuntimeError(f"battle stream ended early: {exc!r}")
+        # Liveness (F-03). Only while the gate is open: no progress is
+        # expected during a pause (updates and evals are pauses) and resume()
+        # restarts the clock. False positives considered: startup/login
+        # latency (the clock starts at start(); seconds, not minutes); all K
+        # rooms orphaned at once (the challenge timer forfeits each within
+        # ~360 s and every |win| is a finish, so progress resumes well inside
+        # the budget); a process-wide freeze longer than the budget (SIGSTOP,
+        # the box thrashing) — that one trips it, and dying is the RIGHT
+        # answer there too: the wave supervisor resumes dead lanes, and the
+        # CPU-delta watch stays the outer layer for everything this cannot
+        # see (a wedged main thread never reaches this line).
+        if self._liveness_s is not None and not self._paused:
+            idle = time.monotonic() - self._last_progress
+            if idle > self._liveness_s:
+                raise RuntimeError(
+                    f"collector: no decision for {idle:.0f} s with "
+                    f"{len(self.builders)} battles in flight "
+                    f"({len(self.learner._battles)} rooms held, "
+                    f"{self.episodes_finished} episodes finished, "
+                    f"{self.seam.requests} requests served) — the battle "
+                    f"stream is wedged (THE SILENT LANE STALL shape); dying "
+                    f"so the lane can be resumed instead of idling forever"
+                )
 
     def pause(self) -> None:
         """Stop the world for an update/eval. After this returns, no decision
         is between the gate and its row append, so the policy may change."""
+        self._paused = True  # liveness is not judged while the gate is shut
         POKE_LOOP.call_soon_threadsafe(self.seam.gate.clear)
         asyncio.run_coroutine_threadsafe(asyncio.sleep(0), POKE_LOOP).result()
 
     def resume(self, version: int) -> None:
         self.seam.version = version
+        self._last_progress = time.monotonic()  # the pause was not idleness
+        self._paused = False
         POKE_LOOP.call_soon_threadsafe(self.seam.gate.set)
 
     def run_in_loop(self, fn, *args):

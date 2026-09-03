@@ -496,3 +496,115 @@ def test_pause_returns_only_once_in_flight_decisions_have_settled(trio):
         # one that carries the new version the new — never a mix.
         assert builder.versions in ([0], [1])
         assert builder.logps == [-1.0 if builder.versions == [0] else -2.0]
+
+
+# --- in-loop liveness (F-03) ------------------------------------------------
+
+
+def _pending():
+    return concurrent.futures.Future()  # a live drive stand-in
+
+
+def test_liveness_budget_default_and_override(trio):
+    assert sa._LIVENESS_S == 900.0
+    assert _collector()._liveness_s == 900.0
+    assert _collector(liveness_s=30)._liveness_s == 30.0
+    assert _collector(liveness_s=None)._liveness_s is None
+    assert _collector(liveness_s=0)._liveness_s is None
+
+
+def test_check_raises_after_the_budget_only_with_a_live_drive_and_an_open_gate(
+    trio, clock
+):
+    col = _collector()
+    col.learner._battles["battle-gen1randombattle-40"] = _battle("battle-gen1randombattle-40")
+    col.builders["battle-gen1randombattle-40"] = _EpisodeBuilder()
+    col.builders["battle-gen1randombattle-41"] = _EpisodeBuilder()
+    clock(sa._LIVENESS_S + 1.0)
+    col.check()  # not started: nothing to judge
+    col._drive = _pending()
+    with pytest.raises(RuntimeError, match=r"no decision for 901 s with 2 battles in flight"):
+        col.check()
+    with pytest.raises(RuntimeError, match=r"1 rooms held, 0 episodes finished"):
+        col.check()
+    # Paused: no progress is expected, so no verdict.
+    col.pause()
+    col.check()
+    # Resume restarts the clock; the budget is judged from the resume.
+    col.resume(version=1)
+    col.check()
+    clock(sa._LIVENESS_S - 1.0)
+    col.check()
+    clock(2.0)
+    with pytest.raises(RuntimeError, match="no decision for 901 s"):
+        col.check()
+
+
+def test_liveness_disabled_never_raises(trio, clock):
+    col = _collector(liveness_s=None)
+    col._drive = _pending()
+    clock(10 * sa._LIVENESS_S)
+    col.check()
+
+
+def test_a_completed_request_and_a_finish_mark_progress(trio, clock):
+    col = _collector()
+    col._drive = _pending()
+    clock(sa._LIVENESS_S - 1.0)
+    _on_loop(col.learner.choose_move(_battle("battle-gen1randombattle-42")))
+    clock(sa._LIVENESS_S - 1.0)
+    col.check()  # 899 s since the request completed, not 1798 since start
+    col._finish(_battle("battle-gen1randombattle-42", finished=True, won=True))
+    clock(sa._LIVENESS_S - 1.0)
+    col.check()
+    clock(2.0)
+    with pytest.raises(RuntimeError, match="no decision for 901 s"):
+        col.check()
+
+
+def test_a_gated_request_does_not_count_as_progress(trio, clock):
+    col = _collector()
+    col._drive = _pending()
+    col.pause()
+    fut = asyncio.run_coroutine_threadsafe(
+        col.learner.choose_move(_battle("battle-gen1randombattle-43")), POKE_LOOP
+    )
+    try:
+        with pytest.raises(TimeoutError):
+            fut.result(timeout=0.2)
+        col.resume(version=0)
+        resumed_at = clock(0.0)
+        fut.result(timeout=5.0)
+        # The mark is the completion on the loop thread, at or after resume.
+        assert col._last_progress >= resumed_at
+        clock(sa._LIVENESS_S + 1.0)
+        with pytest.raises(RuntimeError, match="no decision for 901 s"):
+            col.check()
+    finally:
+        fut.cancel()
+
+
+def test_start_resets_the_clock_and_the_dead_drive_check_still_wins(trio, clock):
+    col = _collector()
+    parked = {"n": 0}
+
+    async def fake_battle_against(opponent, n_battles):
+        parked["n"] = n_battles
+        await asyncio.sleep(3600)
+
+    col.learner.battle_against = fake_battle_against
+    clock(5 * sa._LIVENESS_S)  # construction-to-start latency is not idleness
+    col.start(n_battles=17)
+    try:
+        assert parked["n"] == 0 or parked["n"] == 17  # scheduled, may not have run
+        col.check()
+        clock(sa._LIVENESS_S + 1.0)
+        with pytest.raises(RuntimeError, match="no decision for 901 s"):
+            col.check()
+    finally:
+        col._drive.cancel()
+    # Once the drive has ended, that is the diagnosis — not the budget.
+    col._drive = _pending()
+    col._drive.set_exception(OSError("socket gone"))
+    with pytest.raises(RuntimeError, match="battle stream ended early"):
+        col.check()
