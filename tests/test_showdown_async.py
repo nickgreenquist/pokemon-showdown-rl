@@ -14,6 +14,7 @@ so nothing leaks into later tests. No test here opens a socket."""
 
 import asyncio
 import concurrent.futures
+import socket
 import threading
 import time
 from types import SimpleNamespace
@@ -649,3 +650,101 @@ def test_invalid_choice_rerequests_are_counted_and_keyed_as_a_second_row(trio):
         ["", "bigerror", "The battle has reached turn 1000"],
     ]))
     assert col.rerequests == 1 and col.seam.requests == 2
+
+
+# --- the live contract (server-required; deselected while a fleet runs) -----
+
+
+def _server_up() -> bool:
+    try:
+        socket.create_connection(("127.0.0.1", 8000), timeout=0.5).close()
+        return True
+    except OSError:
+        return False
+
+
+@pytest.mark.live_server
+@pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
+def test_async_pause_resume_live_contract():
+    """K=4 real battles vs SimpleHeuristicsPlayer through a REAL collector
+    (listening seats, the tests' own seed). The gate invariant on the wire:
+    pause() from the main thread freezes seam.requests until resume(); every
+    finished row's version is <= the seam version at its episode's finish;
+    and no row mixes a version with another version's weights — the policy's
+    logp is a weight stamp that changes ONLY between pause() and resume(), so
+    a row recorded with version v must carry stamp v (the plan's parameter-
+    hash check, with a scalar). NEVER run this while a training fleet owns
+    the server: the audit wrapper deselects live_server for exactly that."""
+    rng = np.random.default_rng(0)
+    stamp = {"w": 0}
+
+    def policy(obs, mask):
+        legal = np.flatnonzero(mask[0])
+        return (
+            np.array([rng.choice(legal)]),
+            np.array([-float(stamp["w"])], dtype=np.float32),
+        )
+
+    col = AsyncCollector(policy, "heuristics", seed=_SEED, concurrency=4)
+    # Stamp each KEPT episode with the seam version at its own finish. The
+    # learner seat calls through the collector attribute, so wrapping the
+    # instance is enough.
+    finish_versions = []
+    inner_finish = col._finish
+
+    def stamped_finish(battle):
+        before = len(col._finished)
+        inner_finish(battle)
+        if len(col._finished) > before:
+            finish_versions.append(col.seam.version)
+
+    col._finish = stamped_finish
+
+    def ended():
+        return col.episodes_finished + col.episodes_discarded
+
+    def wait_until(pred, timeout, what, *, check=True):
+        deadline = time.monotonic() + timeout
+        while not pred():
+            if check:
+                col.check()
+            if time.monotonic() > deadline:
+                pytest.fail(f"timed out after {timeout} s waiting for {what}")
+            time.sleep(0.02)
+
+    episodes = []
+    try:
+        col.start(n_battles=4)
+        for cycle in range(3):
+            seen = col.seam.requests
+            # Decisions in flight: another request lands, or the battles ran out.
+            wait_until(lambda: col.seam.requests > seen or ended() == 4, 60,
+                       "a decision on the wire")
+            if ended() == 4:
+                break
+            col.pause()
+            frozen = col.seam.requests
+            time.sleep(0.5)
+            assert col.seam.requests == frozen, "a request completed while paused"
+            stamp["w"] = cycle + 1  # the world is stopped: the weights may move
+            col.resume(version=cycle + 1)
+            episodes.extend(col.poll())
+        # The drive ENDING is expected once the fourth room finishes, so
+        # check() is not consulted here (it would report the stream ending).
+        wait_until(lambda: ended() == 4, 300, "four battles to end", check=False)
+        episodes.extend(col.poll())
+    finally:
+        col.close()
+
+    assert col.convert_errors == 0
+    assert col.episodes_finished >= 1 and len(episodes) == col.episodes_finished
+    assert len(finish_versions) == len(episodes)  # FIFO on both sides
+    for ep, version_at_finish in zip(episodes, finish_versions):
+        version = ep["version"]
+        assert version.max() <= version_at_finish
+        assert np.all(np.diff(version) >= 0)  # never rolls back inside an episode
+        for v, logp in zip(version.tolist(), ep["old_logp"].tolist()):
+            assert logp == -float(v), "a row carried another version's weights"
+        assert ep["obs"].shape == (len(version), OBS_DIM)
+        assert ep["rewards"][-1] in (-1.0, 0.0, 1.0)
+    assert col.seam.version >= 1  # at least one pause/resume cycle happened
