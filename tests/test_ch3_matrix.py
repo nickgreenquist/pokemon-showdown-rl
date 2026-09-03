@@ -116,6 +116,36 @@ def test_interrupt_inside_calculate_damage_propagates(monkeypatch):
         )
 
 
+def test_engine_panic_inside_calculate_damage_degrades_to_no_attribution(monkeypatch):
+    # F-14 twin: poke_engine is PyO3, so a Rust panic surfaces as
+    # pyo3_runtime.PanicException — a BaseException that is NOT an Exception
+    # (verified in this env: MRO [PanicException, BaseException, object]; the
+    # module is created lazily on first panic and cannot be imported, hence
+    # the stand-in class). The guard must degrade it to dmg=None exactly as
+    # the pre-F-14 `except BaseException` did — never let it kill the decision.
+    # Do not "simplify" the guard back to `except Exception`.
+    class PanicException(BaseException):
+        pass
+
+    def panicked(*args):
+        raise PanicException("index out of bounds: the len is 1 but the index is 8")
+
+    b = _two_mon_battle()
+    args = (b, _mask(switches=[1]), _uniform_q(), np.full(10, 0.1), DOSES["S"])
+
+    monkeypatch.setattr("rl.search.matrix.calculate_damage", panicked)
+    got_a, got_s = solve_decision(
+        *args, decision_rng(62, 0, b.turn, 0), _zero_critic, _TYPE_CHART
+    )
+    monkeypatch.setattr("rl.search.matrix.calculate_damage", lambda *a: None)
+    want_a, want_s = solve_decision(
+        *args, decision_rng(62, 0, b.turn, 0), _zero_critic, _TYPE_CHART
+    )
+    assert got_a == want_a
+    for k in ("search/leaves", "search/expanded_leaves", "search/row_ev", "search/ev_matrix"):
+        assert got_s[k] == want_s[k], k
+
+
 def test_force_switch_single_none_column():
     b = _two_mon_battle()
     b.force_switch = True
