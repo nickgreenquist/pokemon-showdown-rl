@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from rl.buffers.episode import EpisodeDataset, episode_gae
+from rl.buffers.episode import EpisodeDataset, _episode_gae_reference, episode_gae
 from rl.buffers.rollout import compute_gae
 
 
@@ -128,3 +128,42 @@ def test_episode_gae_agrees_with_vector_gae_on_aligned_columns():
         lam=0.95,
     )
     np.testing.assert_allclose(flat.reshape(N, T).T, vector, rtol=1e-6)
+
+
+def test_episode_gae_is_bit_identical_to_the_column_reduction():
+    # F-10 pin: the vectorized (Lmax, E) layout against the original (B, 1)
+    # column reduction, kept as _episode_gae_reference. EXACT equality, no
+    # tolerance — both run the same compute_gae recurrence over the same
+    # float32 operands in the same op order; only the vector width differs,
+    # and IEEE add/sub/mul round identically at any width (each ufunc call
+    # is one rounded op, so nothing is fused or reassociated). The bitwise
+    # view makes even the sign of an exact-zero advantage part of the pin
+    # (the terminal-row carry is killed by (1 - done) = 0.0 on both paths;
+    # see the episode_gae docstring). Achieved: bit-identical on every case
+    # below on numpy 2.5.1, so np.array_equal is the assertion, not allclose.
+    rng = np.random.default_rng(2)
+    cases = [
+        np.array([1], dtype=np.int64),  # one episode, one row
+        np.array([7], dtype=np.int64),  # a single episode
+        np.ones(9, dtype=np.int64),  # every episode length 1 (Lmax = 1)
+        np.array([1, 4, 1, 7, 2, 1, 30, 3], dtype=np.int64),
+        rng.integers(1, 60, size=400, endpoint=True).astype(np.int64),  # many
+    ]
+    for lengths in cases:
+        total = int(lengths.sum())
+        ends = np.cumsum(lengths) - 1
+        values = rng.normal(size=total).astype(np.float32)
+        values[rng.random(total) < 0.1] = 0.0  # exact zeros occur; pin their sign
+        # Two reward shapes: the data path's (0 everywhere, +-1 at the
+        # terminal) and dense noise with a seeded share of exact zeros.
+        outcome = np.zeros(total, dtype=np.float32)
+        outcome[ends] = rng.choice([-1.0, 1.0], size=len(ends))
+        dense = rng.normal(size=total).astype(np.float32)
+        dense[rng.random(total) < 0.3] = 0.0
+        for rewards in (outcome, dense):
+            for gamma, lam in [(1.0, 0.95), (0.99, 0.9), (1.0, 1.0)]:
+                got = episode_gae(rewards, values, lengths, gamma, lam)
+                want = _episode_gae_reference(rewards, values, lengths, gamma, lam)
+                assert got.dtype == np.float32 and got.shape == (total,)
+                assert np.array_equal(got, want)
+                assert np.array_equal(got.view(np.int32), want.view(np.int32))

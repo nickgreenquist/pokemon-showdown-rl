@@ -94,24 +94,14 @@ class EpisodeDataset:
         return batch
 
 
-def episode_gae(
-    rewards: np.ndarray,
-    values: np.ndarray,
-    lengths: np.ndarray,
-    gamma: float,
-    lam: float,
-) -> np.ndarray:
-    """GAE over a flat batch of whole episodes. All per-row inputs (B,);
-    `lengths` (E,) with sum B; returns advantages (B,).
-
-    Implemented as a reduction to `compute_gae` over a single (B, 1) column
-    rather than a new backward loop: each episode's last row is marked
-    terminated (zero bootstrap — every finish the collector keeps is a
-    decided game), which also cuts the recursion so no episode's advantage
-    chains into the one concatenated before it, and next_values is V shifted
-    up one row (0 at terminals). Bit-for-bit the audited GAE on the layout
-    the async path produces, with no second implementation to drift.
-    """
+def _episode_boundaries(
+    rewards: np.ndarray, values: np.ndarray, lengths: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """The per-row `terminated` and `next_values` both GAE layouts share:
+    each episode's last row is marked terminated (zero bootstrap — every
+    finish the collector keeps is a decided game), which also cuts the
+    recursion so no episode's advantage chains into the one concatenated
+    before it, and next_values is V shifted up one row (0 at terminals)."""
     assert int(np.sum(lengths)) == len(rewards), "lengths do not tile the batch"
     ends = np.cumsum(lengths) - 1
     terminated = np.zeros(len(rewards), dtype=np.float32)
@@ -119,6 +109,22 @@ def episode_gae(
     next_values = np.zeros_like(values)
     next_values[:-1] = values[1:]
     next_values[ends] = 0.0
+    return terminated, next_values
+
+
+def _episode_gae_reference(
+    rewards: np.ndarray,
+    values: np.ndarray,
+    lengths: np.ndarray,
+    gamma: float,
+    lam: float,
+) -> np.ndarray:
+    """The original per-episode GAE: `compute_gae` over ONE (B, 1) column
+    (only the boundary rows moved into the shared helper above). Kept as the
+    equality pin's target for `episode_gae` (tests/test_episode_buffer.py) —
+    training never calls it. Its cost was the finding (F-10): the kernel's
+    Python loop ran B (~30k) iterations of 1-element NumPy ops per update."""
+    terminated, next_values = _episode_boundaries(rewards, values, lengths)
     return compute_gae(
         rewards[:, None],
         terminated[:, None],
@@ -128,3 +134,61 @@ def episode_gae(
         gamma,
         lam,
     )[:, 0]
+
+
+def episode_gae(
+    rewards: np.ndarray,
+    values: np.ndarray,
+    lengths: np.ndarray,
+    gamma: float,
+    lam: float,
+) -> np.ndarray:
+    """GAE over a flat batch of whole episodes. All per-row inputs (B,);
+    `lengths` (E,) with sum B; returns advantages (B,) in rewards' dtype
+    (float32 on the data path).
+
+    Still `compute_gae` — the audited (T, N) kernel stays the only
+    recurrence, so there is no second implementation to drift — but laid
+    out (Lmax, E) instead of as a (B, 1) column: every episode is a column,
+    RIGHT-aligned so its terminal row sits on the last scan row, and the
+    zero padding above a short episode is scanned and then discarded by the
+    gather. The kernel's Python loop therefore runs Lmax times (the longest
+    episode, hundreds) rather than B times (~30k), each iteration an E-wide
+    NumPy op instead of a 1-element one (F-10).
+
+    Bit-identical to the column reduction (`_episode_gae_reference`, pinned
+    with np.array_equal AND a bitwise view in tests/test_episode_buffer.py):
+    every row sees the same float32 operands through the same op order, and
+    the one thing the layout changes — the carry entering a terminal row
+    (the NEXT episode's first advantage in the column form, the scan's
+    +0.0 init here) — is multiplied by (1 - done) = 0.0 on both paths. A
+    finite carry makes that product ±0.0, a terminal row's delta is never
+    -0.0 (it is `(r + 0.0) - v`), so the sum is the same bits either way.
+    The sole behavioural difference is for NON-finite critic outputs: the
+    column form leaked a NaN/inf backward across an episode boundary through
+    0.0 * carry; a column per episode cannot.
+    """
+    lengths = np.asarray(lengths, dtype=np.int64)
+    terminated, next_values = _episode_boundaries(rewards, values, lengths)
+    n_rows, n_eps = len(rewards), len(lengths)
+    longest = int(lengths.max(initial=0))
+    # Flat row i -> (scan row t_i, column e_i), right-aligned in its column.
+    col = np.repeat(np.arange(n_eps), lengths)
+    starts = np.cumsum(lengths) - lengths
+    row = np.arange(n_rows) - starts[col] + (longest - lengths[col])
+
+    def padded(flat: np.ndarray) -> np.ndarray:
+        out = np.zeros((longest, n_eps), dtype=flat.dtype)
+        out[row, col] = flat
+        return out
+
+    advantages = compute_gae(
+        padded(rewards),
+        padded(terminated),
+        np.zeros((longest, n_eps), dtype=np.float32),
+        padded(values),
+        padded(next_values),
+        gamma,
+        lam,
+    )
+    return advantages[row, col]
