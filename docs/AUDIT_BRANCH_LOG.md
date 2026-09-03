@@ -93,7 +93,11 @@ test_opp_action 19 — all passed.
   (`-23.334520053290372` vs golden `-23.33452005329038`). The forward-pass goldens
   may share the sensitivity. Proposed ride-along: keep the exact-equality intent but
   compare the two parameter sums with `abs_tol=1e-9` (a real init change moves them
-  by O(1)), and note the thread dependence in the docstring. Not yet landed.
+  by O(1)), and note the thread dependence in the docstring. **Landed** (commit
+  `F-22:`; measured: only `csum` moves between 1 and 10 threads — `asum`, the logits
+  sum and the three value goldens are identical, so those stay exact). Verified:
+  `audit_pytest.sh tests/test_entity_deepsets.py` → 5 passed at default threads AND
+  under `OMP_NUM_THREADS=1`.
 
 ## Findings — one section per landed finding
 
