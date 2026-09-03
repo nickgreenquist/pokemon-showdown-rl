@@ -113,6 +113,7 @@ def _server_up() -> bool:
         return False
 
 
+@pytest.mark.live_server
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
 def test_live_emission_is_fuller_than_the_actor_view():
     env = ShowdownEnv(opponent="max_power", privileged=True)
