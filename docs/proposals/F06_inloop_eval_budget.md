@@ -65,9 +65,11 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
    readout except through S-SHAPE at n=3000". Its only gate use is R0-6,
    "eval/win_rate present, in (0,1)" (`:398-399`) — existence plus a sanity
    band, read once, early. The grader `scripts/ch5_100m_grade.py` reads
-   `eval/win_rate` ONLY from `results/ch5_100m/final_s{seed}.json` — the
-   n=3000 `eval_checkpoint.py` finals — at `:248-250` (control attest) and
-   `:374-376` (treatment); never from history, never the in-loop value.
+   `eval/win_rate` ONLY from n=3000 `eval_checkpoint.py` finals JSON —
+   `results/ch5_r2/final_s*.json` (the banked R2 control attest,
+   `:246-250`) and `results/ch5_100m/final_s{seed}.json` (treatment,
+   `:373-376`; `base = REPO / args.dir`, default `results/ch5_100m`,
+   `:355,363`); never from history, never the in-loop value.
 2. `best_checkpoint.pt`: the argmax over 400 draws of `eval/return_mean`
    at n=100 (returns are +-1/0, so se ~0.08 per draw) — a noise-max.
    `scripts/eval_checkpoint.py:11-13` documents the selection bias;
@@ -75,9 +77,11 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
    reads the 100M crossing rung `ckpt_1000*.pt` (HANDOFF §2 item 1;
    `configs/eval/ch5_r2_offsh.yaml:501`: "NOT best_checkpoint.pt"). No 100M
    script references it (`grep best_checkpoint scripts/ch5_100m_*` is
-   empty). Ten earlier pre-reg headers disclaim it in their own words
-   (`configs/showdown_sp6m.yaml:62`, `showdown_warmrl_v2.yaml:35`,
-   `showdown_sp_l2init12m.yaml:239`, ...).
+   empty). Seven earlier training pre-reg headers disclaim it in their own
+   words (`configs/showdown_sp6m.yaml:62`, `showdown_warmrl_v2.yaml:35`,
+   `showdown_sp_l2init12m.yaml:239`, plus `scratch12m`, `sp_actpred12m`,
+   `sp_priv12m`, `sp_recipe12m`; `grep -rli 'best.checkpoint\|best_ckpt'
+   configs/` = 8 files, the eighth being `ch5_r2_offsh.yaml` above).
 3. The `save_latest()` cadence (F-05) — the one load-bearing consumer, and
    load-bearing by placement, not by design.
 4. A shape read during the run (health reads, HANDOFF §1). At se 0.04 the

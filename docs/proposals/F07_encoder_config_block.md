@@ -83,8 +83,12 @@ encoder:            # ABSENT = today's behaviour (env vars decide; deprecated pa
 - ABSENT block = BIT-IDENTICAL to today: env vars read at import as now,
   `asdict(cfg)["encoder"] == {}`. Every existing YAML — including the
   frozen `showdown_sp_100m.yaml`, which cannot be edited — loads and
-  behaves unchanged; `tests/test_100m_prereg.py`'s one-diff assertions see
-  `{}` on both sides.
+  behaves unchanged. The one-diff tests compare the raw YAML dicts
+  (`yaml.safe_load` + `_flat`, `tests/test_100m_prereg.py:16-19, 24-43`;
+  they never construct `Config`), so an absent block is absent on both
+  sides and the key sets stay equal; `asdict(cfg)["encoder"] == {}` is
+  what the Config-level round-trip (`config.yaml`, `payload["config"]`,
+  the resume drift assert) sees.
 - PRESENT block = the config is the source of truth.
 
 ### 3.2 Binding the block to the process (the hard part)
