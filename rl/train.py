@@ -683,6 +683,9 @@ def _async_loop(
     Timing semantics: `time/collect_sec` is the wall time the collector was
     live (gate open) per rollout, `time/update_sec` the update call — the
     same split the vector loop reports, with eval excluded from both.
+    `time/steps_per_sec` is the poll-cadence estimator (it overstates);
+    `time/realized_steps_per_sec` (F-16) is dStep/dWall between consecutive
+    update-boundary logs, so nothing is excluded from its denominator.
     Everything that mutates state the loop thread reads (pool pushes, pool
     stat reads) is fenced through collector.run_in_loop; the update itself
     needs no fence because pause() guarantees no decision is in flight.
@@ -713,6 +716,16 @@ def _async_loop(
     if cfg.checkpoint_every:
         next_ckpt = (step // cfg.checkpoint_every + 1) * cfg.checkpoint_every
     last_step, last_time = step, time.perf_counter()
+    # F-16: the second, honest throughput series. The `time/steps_per_sec` this
+    # loop logs is a POLL-CADENCE estimator — it divides by the wall between two
+    # polls that RETURNED episodes, so an update pause lands in one denominator
+    # and is missing from the rest, and the series overstates throughput by
+    # ~57% (disclosed in the 100M pre-reg). These two marks span consecutive
+    # update-boundary logs instead, so the windows TILE the run: collection,
+    # the update itself, evals, checkpoint writes and every pause are inside a
+    # denominator exactly once, and dStep/dWall is the rate a lane really ran
+    # at. Both keys are logged; downstream never has to pick an estimator.
+    last_update_step, last_update_time = step, time.perf_counter()
     collect_sec, update_sec = 0.0, 0.0
     collect_mark = time.perf_counter()
 
@@ -771,11 +784,17 @@ def _async_loop(
                 update_sec += time.perf_counter() - mark
                 anneal_basis = step
                 updates_done += 1
+                # Sampled at the log, and carried forward as the next window's
+                # start, so consecutive windows tile without gap or overlap.
+                now_update = time.perf_counter()
                 logger.log(
                     {
                         **metrics,
                         "time/collect_sec": collect_sec,
                         "time/update_sec": update_sec,
+                        "time/realized_steps_per_sec": (
+                            (step - last_update_step) / (now_update - last_update_time)
+                        ),
                         "collect/policy_version_lag_p99": float(
                             np.percentile(lag, 99)
                         ),
@@ -784,6 +803,7 @@ def _async_loop(
                     },
                     step,
                 )
+                last_update_step, last_update_time = step, now_update
                 collect_sec, update_sec = 0.0, 0.0
                 if pool is not None:
                     sp_metrics = {}
@@ -976,6 +996,13 @@ def _vector_loop(
     next_eval = (step // cfg.eval_every + 1) * cfg.eval_every
     updates_done = rs.get("updates_done", 0)
     last_step, last_time = step, time.perf_counter()
+    # F-16, the async loop's marks mirrored: consecutive update-boundary logs
+    # bound a window that TILES the run, so time/realized_steps_per_sec counts
+    # evals and every other pause in its denominator. On this path
+    # time/steps_per_sec rides the episode boundary rather than a poll, so the
+    # two series read close together — the point of logging both is that a
+    # consumer reads ONE key with the same meaning on either path.
+    last_update_step, last_update_time = step, time.perf_counter()
     # Loop split, accumulated per step and flushed per rollout: act+step vs
     # update. steps_per_sec says how fast the loop runs; these say where the
     # time goes, which is the thing a throughput decision needs.
@@ -1017,10 +1044,19 @@ def _vector_loop(
         if update_metrics:
             # A truthy report is the rollout boundary, so the accumulators
             # cover exactly one rollout.
+            now_update = time.perf_counter()
             logger.log(
-                {**update_metrics, "time/collect_sec": collect_sec, "time/update_sec": update_sec},
+                {
+                    **update_metrics,
+                    "time/collect_sec": collect_sec,
+                    "time/update_sec": update_sec,
+                    "time/realized_steps_per_sec": (
+                        (step - last_update_step) / (now_update - last_update_time)
+                    ),
+                },
                 step,
             )
+            last_update_step, last_update_time = step, now_update
             collect_sec, update_sec = 0.0, 0.0
             if pool is not None:
                 # Pool-health series, read positionally BEFORE this
