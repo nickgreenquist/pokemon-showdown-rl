@@ -3,50 +3,50 @@
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
 ## JOURNEY POSITION — step 1 of 13 (`JOURNEY.md`: gen1→gen4→gen9)
-**Step 1 DONE AND CREDITED 2026-08-31.** NEXT IS STEP 2 (ladder), then step 3
-(gen4). **Standing maintainer order (2026-08-31, supersedes CHAPTER5 §7
-ruling 4): a 100M run, as fast as possible — speedups FIRST, then the run.**
-The 100M run is OFF-ARC under that explicit ruling (≈ step 10 pulled forward).
+Step 1 DONE AND CREDITED. The 2026-08-31 off-arc order (100M run) is
+**DISCHARGED** — run done, graded, readout committed 2026-09-04.
+**NEXT IS STEP 2 (ladder) — every cell of the 100M table routes there.**
 
-## Where things stand (2026-09-01) — STAGE 2 ACCEPTED; 100M FLEET RUNNING
-- **STAGE 2 (async collector) BUILT, LANDED, AND ACCEPTED. G9 PASS** (null
-  holds: pooled 0.67211 vs basis 0.64889, signed Δ +0.02322 — 93% of the
-  band, positive; rides every future credit sentence). **G8 CREDITED**
-  (median sps 901.2/907.6/901.3 vs basis 444, all ≫ 620).
-- **HONEST SPEEDUP (realized-vs-realized): 1.53× at fleet width** (574 vs
-  375.4 steps/s/lane) · **1.49× solo end-to-end** (bench: collect 45.83→
-  28.26 s, update 11.00→9.78 s). 100M = **48.4 h/lane** (was ~74 h).
-  NEW LANDMINE-CLASS DISCLOSURE: sps overstates realized ~57% on async
-  (18.3% on sync) — wall clocks are realized-only, never the sps estimator.
-- **R4S66 COMPLETE, CLEAN (timer fix's first real workload — held):**
-  search@20 on batch-lane s66 off-FP **0.38067** vs the lane's greedy
-  0.4740 → **search@20 HURTS the batch recipe (~10 se)**. One relaunch =
-  foul-play died (seat_frozen_at_kill 0 — §5.3 question not triggered).
-- **100M PRE-REG: full 2-Opus cycle done** (brief → memos → synthesis →
-  draft → 2 reviews → 12 MUST-FIX + 27 SHOULD-FIX ALL applied → acceptance
-  fills complete). `configs/showdown_sp_100m.yaml` **RATIFIED 2026-09-01**; sync
-  fallback + grader (selftested) + one-diff tests committed. Review 2
-  caught the wave's rung-literal bug BEFORE launch — cycle paid twice.
+## Where things stand (2026-09-04) — 100M GRADED: P3, NON-RESOLVING
+- **100M (C1) COMPLETE AND GRADED — CELL P3.** Primary off-FP@20 greedy
+  pooled **0.49844** vs control 0.47456: **delta +0.02389 vs floor 0.025**
+  (se_gov clustered 0.00774; NOT credited; A-COLL void). vs-SH secondary
+  pooled **0.79589** (+0.00944, SN-N descriptive). BC-clone 0.9233.
+  **S-SHAPE: SS-CLIMB** — still climbing at 100M (+0.029, 4.6× threshold;
+  sub-100M rungs are on the 100M anneal — never compare to finished runs).
+  Fleet ops spotless: 0 stalls/resumes, 562.8/558.2/557.5 steps/s realized,
+  D-A 12/12, R0-f all bands. Full account: RESULTS.md §18; README row
+  landed (full anchor battery). N-TIMER RESULTS line DISCHARGED.
+- **E2 rung retention DISCHARGED** — S-SHAPE/S-ANNEAL/D-A recorded and
+  committed; deleting the ~600 treatment + 300 control rungs is now
+  permitted (keep completion + 12M rungs; maintainer call).
+- **Two worktree branches await post-readout review/merge** (gate now
+  OPEN): `audit-fixes` (F-01..F-20 per docs/AUDIT_ACTION_PLAN.md on that
+  branch; run full suite + R0-3b bit-identity pins before merge; consider
+  /code-review ultra) and `gen4-design` (docs only).
 
 ## Next actions — **MAINTAINER, in order**
-1. **100M FLEET RUNNING** (ratified and launched 2026-09-01 ~10:58Z; seeds
-   104/112/120). Monitored per HANDOFF; all gates in band at ~24M; realized
-   538–563 steps/s → FLEET DONE ETA ~2026-09-03 14:40Z (Thu), then frozen
-   eval schedule → grade → record. Peeking bar HOLDS (no evals till done).
-   Audit A1 landed (5 design docs tracked in place); A2–A5: CLEANUP.md.
-2. **Ladder-object ruling now has R4S66's number**: search@20 hurts the
-   batch lane — greedy batch-lane object leads on today's evidence.
-3. Standing HANDOFF §5 rulings (4): MPS wording; pool.py:88 fix; stall-kill
-   crash_forfeit read rule; RESULTS timer line (pre-drafted in the 100M
-   header, discharges with its headline number).
+1. **JOURNEY step 2: the ladder-object ruling.** Candidates with today's
+   numbers: the 100M final greedy (off-FP 0.4984 pooled, vs-SH 0.7959,
+   clone 0.9233 — supersedes per HANDOFF §4.4) vs the batch-lane greedy
+   (off-FP 0.4746 pooled). search@20 HURTS the batch lane (R4S66: 0.38067
+   vs 0.4740, ~10 se) — greedy leads on today's evidence. Then a ladder
+   pre-reg (ladder_r3.yaml is the template that can fire).
+2. **Review/merge the audit-fixes branch** (suite + bit-identity gates),
+   then gen4-design docs; fold their logs into SESSION_LOGS at merge.
+3. Standing rulings (3 left): CLAUDE.md:71 MPS wording; pool.py:88 fix
+   (~2.5% prize; RNG stream changes = new lane); stall-kill crash_forfeit
+   read rule (R4S66 did not trigger it). — The RESULTS timer line is DONE.
+4. IDEAS_POST_100M re-rank per its §1: SS-CLIMB means "more steps"
+   competes with every per-step lever; any horizon extension is a NEW
+   pre-reg under the un-mooted 2026-08-23 big-runs ruling (120/250M).
 
 ## Watch items
 - **ONE vs-SH RUNG IS WORTH ±0.02** — pool 3 seeds; read SHAPE, never rungs.
-- **Async fleet health was spotless** (lag exactly ≤1, 0 discards in 1.17M
-  episodes, 0 stalls) — but CPU-delta remains the only stall instrument.
-- **Gate re-bases forced by the fleet's own values** (R0-7, D-C labelled
-  bands): the provisional band would have false-killed s83 — never carry a
-  first-250k band onto a full run, and never a sync band onto async unproven.
-- **RESUME SPLITS HISTORY** (none occurred this fleet; rule stands).
+- **RESUME SPLITS HISTORY** (0 resumes this fleet; rule stands).
+- vs-SH/off-FP are NEVER ladder numbers; FP@20 quotes carry budget + the
+  two standing disclosures, forever.
 - **RECONCILE (unchanged):** LADDER R3 STATUS 106-94 (n=200) vs readout
-  106-102 (208). foul-play Struggle PANIC open (it died once in R4S66).
+  106-102 (208). foul-play Struggle PANIC open (died once in R4S66).
+- Showdown server pid 68702 is ~2.5 days old; restart before the next
+  training run (R0-j-class hygiene), not urgent for evals.
