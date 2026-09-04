@@ -109,9 +109,20 @@ own them:
   config's flags. One top-level import on the eval path must move:
   `scripts/eval_checkpoint.py:46` (`mask_desync_total`) binds the flags
   before `ckpt["config"]` is readable — deferring it makes the loader
-  config-first too. `rl/collect.py:34`, `rl/search/matrix.py:49` and
-  `rl/envs/showdown_async.py:61` import at top but are themselves imported
-  after the config on the training path (`rl/train.py:514`).
+  config-first too. `rl/envs/showdown_async.py:61` also imports at top but is
+  itself imported after the config on the training path (`rl/train.py:514`,
+  inside `_async_loop`). `rl/collect.py:34` and `rl/search/matrix.py:49`
+  likewise import at top, but they are NOT on the training path at all:
+  nothing under `rl/` imports `rl.collect` (only
+  `scripts/make_bc_dataset.py:40`, `scripts/obs_fidelity_check.py:49`,
+  `scripts/showdown_throughput.py:83`, `tests/test_collect.py:19`), and
+  `rl.search.matrix` is reached only from `rl/search/agent.py:37` and from
+  scripts (`scripts/ladder.py:388`,
+  `scripts/play_vs_agent.py:89`, the `ch3_*` family, `tests/test_ch3_*`) —
+  so `rl/train.py:514` does not cover them, and each of THOSE entry points
+  needs its own config-first handling (the `eval_checkpoint.py` treatment) if
+  it is ever to be driven by the block. Until then they would keep the env-var
+  exports as their only source, which §3.5's deprecated-override rule permits.
 - **Option 2 — object, with F-08.** The flags become fields of an
   `EncoderSpec` instance selected by the block; env, tokenizer and
   fingerprint take the spec; the module globals remain as the gen-1 default
@@ -207,8 +218,8 @@ to the block.
 2. STATUS at this draft: the `EncoderSpec` seam is being built in a sibling
    worktree on the `audit-fixes` branch family. At this draft's base (all
    audit branches at 5d3c6b7) no `EncoderSpec` exists in the tree
-   (`grep -rn EncoderSpec` hits only the plan). Nothing here describes
-   landed code.
+   (`grep -rln EncoderSpec` hits only `docs/AUDIT_ACTION_PLAN.md` and this
+   file — no code). Nothing here describes landed code.
 3. Fit: the block's `spec` key SELECTS the spec; `v2`, `ids`, `set_prior`
    are gen-1 spec parameters. Under Option 2 the fingerprint becomes
    `spec.fingerprint()`, `OBS_DIM` becomes `spec.obs_dim`, and the refusal
