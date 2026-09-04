@@ -1139,3 +1139,131 @@ a6fbdfc3f70f; foul-play 25c976f0, Showdown 0.11.11.
 `configs/showdown_sp_batch50m.yaml` (training half) and
 `configs/eval/ch5_r2_offsh.yaml` (read half, carrying the attestation block). The
 session narrative is SESSION_LOGS 2026-08-31.
+
+## 18. Addendum, 2026-09-04 — CH5 100M (C1 "the longer run"): **cell P3** — within, positive, non-resolving
+
+Written at readout, immediately after `scripts/ch5_100m_grade.py` ran (attest
+PASS on the frozen control). Off-arc work under the explicit 2026-08-31
+maintainer order, ≈ JOURNEY step 10 pulled forward; pre-reg
+`configs/showdown_sp_100m.yaml`, RATIFIED 2026-09-01, E1–E7 as written. The
+lever L1: `total_steps` 50M → 100M with `lr_anneal_steps` lever-coupled to
+100M (the recipe's full-horizon-anneal convention — the schedule is
+constitutive of "a longer run", not a bundled delta). One-diff against the
+async acceptance config: `{total_steps, lr_anneal_steps, seed, run_name}`.
+Three lanes, seeds 104/112/120, launched by the maintainer 2026-09-01
+10:58–11:00Z; **zero stalls, zero resumes, zero gate breaches over ~49.5 h**;
+realized whole-lane dStep/dWall **562.8 / 558.2 / 557.5 steps/s** (D-B band
+[528, 620]; realized-only — never the sps estimator, which overstates ~57%
+on async); completion overshoots +27/+8/+80 steps; realized updates
+3250/3250/3251, pushes 650 — every R0-f band met.
+
+### The primary read — off Foul Play@20, greedy, n=3000/lane
+
+| | s104 / s112 / s120 | mean | s_T |
+|---|---|---|---|
+| **treatment (100M)** | 0.48633 / 0.50167 / 0.50733 | **0.49844** | 0.01086 |
+| control (R2 batch 50M finals) | 0.4740 / 0.4827 / 0.4670 | 0.47456 | 0.00785 |
+
+**delta +0.02389** against **BAR 0.025** (the floor governs: se_gov =
+seed-clustered 0.00774 under the larger-of clause, binomial 0.00745;
+2·se_gov = 0.01548 < 0.025). **CELL P3: "WITHIN, positive sign —
+non-resolving."** The point estimate is 95.6% of the credit floor and
+3.1·se_gov above zero, and neither fact changes the cell: the pre-reg's
+table is the verdict. Recorded, never governing: best lane 0.50733, worst
+0.48633; every treatment lane sits above the control's pooled mean. **The
+100M horizon is NOT credited at this dose.** P2 was empty by construction
+(BAR = floor); K did not fire (k=3).
+
+### The secondary read — vs SH, locked protocol, n=3000/lane
+
+Finals 0.7913 / 0.8000 / 0.7967, **pooled 0.79589** (deviation disclosure
+inherited from D23 onward does not apply: this is 3×3000 exactly). delta_sh
++0.00944 → **SN-N** (no letter; the positive side is descriptive — a letter
+would need pooled ≥ 0.81144). F1 (falsifier, < 0.580222): clear by +0.2157.
+**Composition X4** (non-P1 primary and SN-N): no credit stands, no
+regression sentence owed.
+
+### S-SHAPE — **SS-CLIMB: still climbing at 100M**
+
+W_hi (pooled rungs 85/90/95/100M) 0.77764 vs W_lo (65/70/75/80M) 0.74839:
+**+0.02925 ≥ se_W 0.00633** (2·se of the tested difference; 4.6× the
+threshold). MANDATORY SENTENCE: the treatment's sub-100M rungs are on the
+100M anneal and are NOT comparable to a finished run at the same step
+(507.8× in lr at 50M). Full pooled curve (n=9000/rung, 1 se ≈ ±0.005):
+0.652 (5M) → 0.724 (50M) → 0.758 (75M) → 0.792 (100M). This cell enters the
+JOURNEY step-2 ladder-object discussion and any future horizon pre-reg's
+case; it moves no cell, bar, n, aggregator or routing.
+
+### S-ANNEAL — the 50M control's own curve (measures anneal AND wire jointly)
+
+The sync control's 5M..50M rungs at n=3000, pooled: 0.652 → 0.697 (25M) →
+0.783 (50M). At every matched mid-run step the finished-schedule control
+sits above the treatment (50M: 0.783 vs 0.724) and the treatment passes it
+only as its own anneal completes (0.792–0.796 at 100M vs the control's
+0.786 final). This curve measures the anneal and the async wire JOINTLY —
+per-step comparisons here attribute nothing; A-COLL was the wire's own
+bound and did not fire (below). On the P3 read, **N-ANNEAL remains the
+named leading alternative for the positive sign**: a 100M run trains hotter
+at every matched step and integrates 2× the lr; the separating arm (100M
+under a 50M anneal) was not run.
+
+### Anchors (descriptive, never verdict inputs)
+
+- **BC-clone h2h, 500/lane**: 0.912 / 0.930 / 0.928, pooled **0.9233**
+  (deterministic seat 1 vs the sampling clone, BI-5 machinery, clone sha
+  = the ch3_r4 pin). A clone number is never style evidence.
+- **FP@20** is the primary axis this round (E1 promotion, this round only).
+  **Budget: --search-time-ms 20.** The two standing disclosures travel with
+  every FP@20 number, forever: the equivalence test is weakly powered, and
+  the point estimate flatters us. FP@20 is an instrument, not a rung.
+
+### Disclosures — all travel with any quote
+
+- **A-COLL VOID** (fires iff P1): the async wire's contribution on the
+  primary axis at 12M remains unmeasured; the only wire bound is **G9's
+  vs-SH null with SIGNED delta +0.02322** (93% of its band, positive, at
+  12M, on the vs-SH axis) — G9 tested the async collector AND the timer fix
+  jointly. A bare "G9 passed" is not an attribution.
+- **N-TIMER, owed since 2026-08-31, discharged here beside this run's
+  headline numbers:** every connecting seat sends `/timer on` (9a0e54d,
+  wire-visible, post-dates the 50M control's training). Both seats are ours
+  and answer in ms; the longest collector pause is the eval+checkpoint
+  block, fleet-max `time/eval_sec` 26.18 s — an ~11× margin against the
+  300 s/turn challenge budget. Honest limit: never measured as a
+  training-data effect; the acceptance fleet is post-fix vs pre-fix control
+  rungs, so G9 covers async and timer jointly (above).
+- **sigma_seed descriptive**: s_T 0.01086, 2-df 95% interval
+  [0.00566, 0.06828]. An F-test across two 3-lane groups has (2,2) df and
+  critical value 19.0, so the horizon must cut sigma_seed ~4.4× before the
+  comparison registers; a null is NEVER readable as "the horizon did not
+  help variance".
+- **D-A anneal liveness**: exact form (history basis), 12/12 cells PASS to
+  1e-12 across 4M/25M/50M/100M rungs, all param groups, all lanes; final
+  lrs 1.1e-7/7.8e-8/1.3e-7 (the schedule ran to ~0 as constituted).
+- vs-SH and off-FP are **never ladder numbers**, in either direction.
+- Eval schedule started ~9.8 h after FLEET DONE (session usage window);
+  order and protocol unaffected — nothing ran early, nothing ran while any
+  lane trained.
+
+### What this does NOT establish
+
+- **No credit.** P3 changes what is written, not where the project goes:
+  **JOURNEY step 2 (ladder) is next on every branch**, and it is next here.
+- P3 is not "almost P1": at s_T 0.01086 the honest power table gave
+  P(credit | true +0.025) ≈ 0.47 — a within-band point estimate at k=3 is
+  exactly the pre-stated modal outcome for an advisory-scale true effect.
+- SS-CLIMB is descriptive. It does not license an extension (barred
+  mid-run and after: a new pre-reg, a maintainer decision, the un-mooted
+  2026-08-23 big-runs ruling's territory).
+- The 100M final vs the CH3 search number (0.7959 vs 0.7928 vs-SH) are
+  different policy forms measured in different sessions; they may not be
+  ranked against each other.
+
+**Provenance.** Reproducible via `scripts/ch5_100m_grade.py` against
+`results/ch5_100m/{t104,t112,t120}.json` and `final_s{104,112,120}.json`;
+S-SHAPE/S-ANNEAL JSONs under `results/ch5_100m/{sshape,sanneal}/`; BC-clone
+under `results/ch5_100m/bcclone/`; wave provenance
+`results/ch5_100m/wave.provenance.json`. Pre-regs:
+`configs/showdown_sp_100m.yaml` (training + read, ratified) and
+`configs/eval/ch5_100m_offfp.yaml` (runner-facing spec). Session narrative:
+SESSION_LOGS 2026-09-01 → 2026-09-04.
