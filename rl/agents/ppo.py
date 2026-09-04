@@ -234,9 +234,27 @@ def _minibatch_slices(
       drop  a trailing slice under mbs // 2 is skipped: floor max(2,
             mbs // 2). `perm` is fresh per epoch, so different rows sit out
             each epoch — expected loss ~0.2% of rows per epoch.
-      fold  a trailing slice under mbs // 2 is appended to the slice before
-            it, so every row still trains exactly once per epoch and the
-            widest slice stays under 1.5 x mbs.
+      fold  a trailing slice under max(2, mbs // 2) is appended to the slice
+            before it, so every row still trains exactly once per epoch and
+            the widest slice stays under 1.5 x mbs. The max() is why that
+            claim is unconditional: the returned floor is a hard 2, so
+            comparing against `mbs // 2` ALONE left a 1-row tail at
+            mbs <= 3 neither folded nor executed — silently dropped by the
+            one policy whose whole contract is that no row sits out (audit
+            review round 3, 2026-09-04; reachable from this file's own
+            `minibatches: 2` test default and from any small smoke config).
+            At mbs >= 4 the max() is inert (`max(2, mbs // 2) == mbs // 2`),
+            so nothing at the 256-row production width moves, and `drop`'s
+            floor was already written this way. The invariant is exact for
+            mbs >= 2 (every non-tail slice is exactly mbs >= the floor, and
+            the tail is merged iff it is under it). TWO degenerate shapes
+            are OUT OF CONTRACT and no tail policy can rescue either, so
+            they are documented rather than special-cased: a 1-ROW BATCH is
+            its own only slice with nothing to fold into, and mbs == 1
+            (batch_size < 2*minibatches) makes the whole plan singletons of
+            which only the last is merged. Both are pinned by
+            tests/test_ppo_episodes.py::test_minibatch_slices_plan_out_of_
+            contract_at_a_one_row_minibatch.
 
     `keep` returns exactly the slices the pre-F-04 loop iterated (a stop
     clamped to B slices the same tensor `start + mbs` did), so the default
@@ -251,8 +269,9 @@ def _minibatch_slices(
     if tail == "drop":
         return slices, max(2, half)
     # fold: merge a short tail into its predecessor; a lone slice has nothing
-    # to fold into and keeps the 2-row floor.
-    if len(slices) > 1 and slices[-1][1] - slices[-1][0] < half:
+    # to fold into and keeps the 2-row floor. The gate is max(2, half), NOT
+    # half, so it always covers the returned floor — see the docstring.
+    if len(slices) > 1 and slices[-1][1] - slices[-1][0] < max(2, half):
         slices[-2:] = [(slices[-2][0], batch_size)]
     return slices, 2
 
@@ -1195,7 +1214,10 @@ class PPOAgent(Agent):
                     # Skipped, not folded: the row still trains under the
                     # other epochs' permutations. 'drop' raises the floor to
                     # mbs // 2 (F-04); 'fold' has already merged its short
-                    # tail and only reaches here on a degenerate batch. The
+                    # tail — since the gate is max(2, half) it merges every
+                    # tail this floor would reject, so 'fold' reaches here
+                    # only on the one degenerate batch that is a SINGLE
+                    # 1-row slice (nothing to fold into). The
                     # vector path divides exactly and never takes this
                     # branch.
                     rows_dropped += idx.numel()

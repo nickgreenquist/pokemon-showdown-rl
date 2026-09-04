@@ -197,6 +197,17 @@ from rl.agents.ppo import _minibatch_slices
 
 _M = 8
 _TAILS = [1, 2, 3, 4, 7]  # 1, 2, mbs//2 - 1, mbs//2, mbs - 1 at mbs = 8
+# (minibatches, tail) shapes for the pure-plan test, B = m*m + tail so mbs = m.
+# m = 8 is the row-level regime the e2e tests use; m in 2..4 is the NARROW one
+# review round 3 found unpinned — at mbs <= 3 the fold gate `mbs // 2` does not
+# reach the hard 2-row floor, and `_agent_kwargs` defaults to minibatches=2, so
+# this is the shape the next `_agent(minibatch_tail='fold')` written here gets.
+_PLAN_SHAPES = (
+    [(_M, t) for t in [0] + _TAILS]
+    + [(2, 0), (2, 1), (3, 0), (3, 1), (3, 2), (4, 1), (4, 2), (4, 3)]
+)
+# Same shapes end to end, minus the exact divisions (nothing to fold there).
+_SMALL_E2E = [(2, 1), (3, 1), (3, 2), (4, 1), (4, 3)]
 # The PRODUCTION shape (configs/showdown_sp_100m.yaml): agent.minibatches 120
 # and an update budget of num_envs 8 x rollout_steps 3840 = 30,720 steps that
 # whole episodes overshoot by eps, so B = 30,720 + eps and mbs = 256 + eps//120.
@@ -489,14 +500,30 @@ def test_minibatch_tail_default_is_keep_and_bit_identical():
     ), "the negative control did not diverge — the identity test is vacuous"
 
 
-@pytest.mark.parametrize("tail_rows", [0] + _TAILS)
-def test_minibatch_slices_plan(tail_rows):
+@pytest.mark.parametrize("minibatches,tail_rows", _PLAN_SHAPES)
+def test_minibatch_slices_plan(minibatches, tail_rows):
     """The pure plan, all three policies, at every named tail (and the exact
-    division the vector path always has)."""
-    batch = _M * _M + tail_rows
-    mbs = batch // _M
-    assert mbs == _M and batch % mbs == tail_rows
+    division the vector path always has) — now across WIDTHS, not just at
+    mbs = 8.
+
+    Review round 3: at mbs = 8 the fold gate `< mbs // 2` happens to cover the
+    2-row floor the helper returns, so `fold`'s documented invariant ("every
+    row trains exactly once per epoch") was asserted only in the regime where
+    it held. At mbs <= 3 the gate did NOT cover the floor and a 1-row tail was
+    neither folded nor executed — `_minibatch_slices(5, 2, 'fold')` planned
+    [(0,2),(2,4),(4,5)] and the 1-row slice then failed `< min_rows`, so 4 of
+    5 rows trained under the one policy that promises all of them. That regime
+    is one keystroke away in this file (`_agent_kwargs` defaults to
+    minibatches=2), so the widths that reach it are parametrized here: the
+    fold gate is now `max(2, mbs // 2)` and `assert all(rows(sl) >= fold_floor
+    ...)` below is the assertion that fails if it regresses."""
+    batch = minibatches * minibatches + tail_rows
+    mbs = batch // minibatches
+    assert mbs == minibatches and batch % mbs == tail_rows
     half = mbs // 2
+    # The gate `fold` merges on, and the floor every executed slice must meet.
+    # They are the SAME number by construction; that is the round-3 fix.
+    gate = max(2, half)
 
     def rows(sl):
         return sl[1] - sl[0]
@@ -514,7 +541,7 @@ def test_minibatch_slices_plan(tail_rows):
     assert keep == legacy and keep_floor == 2
 
     drop, drop_floor = _minibatch_slices(batch, mbs, "drop")
-    assert drop == legacy and drop_floor == max(2, half)
+    assert drop == legacy and drop_floor == gate
     got = covered(drop, drop_floor)
     assert len(got) == len(set(got))
     missing = batch - len(got)
@@ -523,12 +550,37 @@ def test_minibatch_slices_plan(tail_rows):
 
     fold, fold_floor = _minibatch_slices(batch, mbs, "fold")
     assert fold_floor == 2
+    # THE contract, asserted at every width: no planned slice is under the
+    # floor (so none is silently skipped downstream), hence no row is lost.
+    assert all(rows(sl) >= fold_floor for sl in fold), "fold planned a skipped slice"
     assert sorted(covered(fold, fold_floor)) == list(range(batch)), "fold lost a row"
     assert all(rows(sl) >= half for sl in fold)
-    if 0 < tail_rows < half:
+    if 0 < tail_rows < gate:
         assert len(fold) == len(legacy) - 1 and rows(fold[-1]) == mbs + tail_rows
     else:
         assert fold == legacy
+
+
+@pytest.mark.parametrize("batch", [1, 3])
+def test_minibatch_slices_plan_out_of_contract_at_a_one_row_minibatch(batch):
+    """The two degenerate shapes `fold` CANNOT rescue, pinned so the code and
+    the docstring agree instead of the docstring over-claiming (review round
+    3). A 1-row BATCH is its own only slice with nothing to fold into; mbs == 1
+    (batch_size < 2*minibatches) makes the plan all singletons and only the
+    LAST one is merged. Both lose rows under every policy including `fold` —
+    a 1-row minibatch has no advantage std, which is the smoke3 NaN guard, so
+    the floor is right and the shape is what is wrong. Documented, not
+    special-cased: mbs == 1 means the per-minibatch z-score is meaningless
+    anyway, and production runs mbs = 256."""
+    mbs = max(1, batch // 2)  # minibatches=2, the `_agent_kwargs` default
+    for policy in ("keep", "drop", "fold"):
+        slices, floor = _minibatch_slices(batch, mbs, policy)
+        trained = sum(b - a for a, b in slices if b - a >= floor)
+        assert trained < batch, f"{policy} unexpectedly covers this shape"
+    # And exactly WHAT fold does here, so a future generalisation is a visible
+    # change and not a silent one.
+    assert _minibatch_slices(1, 1, "fold") == ([(0, 1)], 2)
+    assert _minibatch_slices(3, 1, "fold") == ([(0, 1), (1, 3)], 2)
 
 
 @pytest.mark.parametrize("eps", [1, 2, 60, 119, 120, 250])
@@ -653,6 +705,107 @@ def test_minibatch_tail_policies_on_async_shaped_batches(policy, tail_rows):
     else:
         assert metrics["loss/minibatch_rows_dropped"] == 0.0
         assert max(sizes) == (mbs + tail_rows if tail_rows < half else mbs)
+
+
+@pytest.mark.parametrize("minibatches,tail_rows", _SMALL_E2E)
+def test_minibatch_tail_fold_loses_no_row_at_narrow_minibatches(minibatches, tail_rows):
+    """`fold`'s invariant through update_episodes at NARROW widths, where
+    review round 3 found it violated: mbs in 2..4, so the 1-row tail at
+    mbs <= 3 is the case the old `< mbs // 2` gate left neither folded nor
+    executed. The wire's own diagnostic is the witness — under `fold`
+    `loss/minibatch_rows_dropped` must read exactly 0.0, which is what the
+    draft pre-reg's DOSE paragraph and gate R0-3 assert of it — plus the
+    spied rows, which say the same thing without trusting the counter.
+    mbs = 4 (tail 1 and 3) is the control: it folded correctly before the fix
+    too, so these params must not move."""
+    epochs = 2
+    total = minibatches * minibatches + tail_rows
+    agent = _agent(minibatches=minibatches, epochs=epochs, minibatch_tail="fold")
+    batch = _recorded_batch(agent, total)
+    mbs = total // minibatches
+    assert mbs == minibatches  # B = m*m + tail keeps the width at m
+    planned, floor = _minibatch_slices(total, mbs, "fold")
+    seen = _spy_minibatches(agent, batch)
+    metrics = agent.update_episodes(batch, steps_seen=0)
+
+    assert math.isfinite(metrics["loss/policy"])
+    for p in agent.actor.parameters():
+        assert torch.isfinite(p).all()
+    assert len(seen) == epochs * len(planned), "a planned fold slice did not run"
+    per_epoch = len(seen) // epochs
+    for e in range(epochs):
+        rows = [i for mb in seen[e * per_epoch:(e + 1) * per_epoch] for i in mb]
+        assert sorted(rows) == list(range(total)), "fold lost a row at a narrow mbs"
+    assert metrics["loss/minibatch_rows_dropped"] == 0.0
+    assert metrics["loss/minibatch_rows_min"] == float(min(len(mb) for mb in seen))
+    assert min(len(mb) for mb in seen) >= floor
+
+
+def test_minibatch_tail_keep_is_bit_identical_at_the_production_shape():
+    """The bit-identity pin AT THE WIDTH EVERY RUN USES (review round 3): the
+    other pin runs the real loop only at minibatches=8 / mbs=8, so "no run's
+    numerics move" was verified width-agnostic at exactly one width — a
+    width-RELATIVE floor written into the LOOP (`idx.numel() < max(min_rows,
+    minibatch_size // 4)`) is inert at mbs=8 and invisible to the drop/fold
+    100M test (whose floors already exceed every tail), yet at mbs=256 it
+    would stop training every 2..63-row tail: 120 steps instead of 121.
+
+    So: today's default agent and the PRE-F-04 agent, side by side at
+    minibatches=120 / B = 30,720 + 60 / mbs = 256, one epoch — equal weights,
+    equal Adam state, equal metrics INCLUDING keys, equal RNG left behind, and
+    the same per-minibatch WIDTH SEQUENCE. Two witnesses of the 121st step are
+    asserted independently of each other: the `_logp_entropy` spy's size list,
+    and Adam's own per-parameter `step` counter (which owes the spy nothing).
+    Tiny obs/net, so the cost is the batch, not the model."""
+    eps = 60
+    total = _B_100M + eps
+    mbs = total // _M_100M
+    assert mbs == 256 and total % mbs == eps  # the production tail
+    new = _agent(minibatches=_M_100M, epochs=1)
+    old = _pre_f04_agent(minibatches=_M_100M, epochs=1)
+    assert new.minibatch_tail == "keep"
+    _assert_same_weights_and_optimizer(new, old)  # same starting point
+
+    batch = _recorded_batch(new, total)
+
+    def sizes_spy(agent):
+        """Widths only: `_spy_minibatches` would hash 30,780 obs rows to
+        identify them and the claim here is about widths and step COUNT — the
+        row-level oracle runs at minibatches=8 where it is cheap."""
+        sizes: list[int] = []
+        orig = agent._logp_entropy
+
+        def count(obs, actions, masks, **kw):
+            sizes.append(int(obs.shape[0]))
+            return orig(obs, actions, masks, **kw)
+
+        agent._logp_entropy = count
+        return sizes
+
+    sizes_new, sizes_old = sizes_spy(new), sizes_spy(old)
+    torch.manual_seed(7)
+    m_new = new.update_episodes(batch, steps_seen=0)
+    rng_new = torch.get_rng_state()
+    torch.manual_seed(7)
+    m_old = old.update_episodes(batch, steps_seen=0)
+    rng_old = torch.get_rng_state()
+
+    _assert_same_weights_and_optimizer(new, old)
+    assert set(m_new) == set(m_old), "'keep' changed the metric keys at mbs=256"
+    assert m_new == m_old
+    assert torch.equal(rng_new, rng_old), "'keep' consumed different RNG at mbs=256"
+
+    # The production step count, from the spy...
+    assert sizes_new == sizes_old, "'keep' executed different widths than the pre-F-04 loop"
+    assert len(sizes_new) == _M_100M + 1 == 121, "keep must take the 121st (60-row) step"
+    assert sizes_new[:-1] == [mbs] * _M_100M and sizes_new[-1] == eps
+    assert sum(sizes_new) == total, "keep trains every row"
+    assert not {k for k in m_new if k.startswith("loss/minibatch_")}
+    # ...and from Adam, which the spy cannot reach: one step per minibatch,
+    # every parameter, both agents. This is what a loop-level floor would move.
+    for agent in (new, old):
+        steps = {int(s["step"]) for s in agent.optimizer.state_dict()["state"].values()}
+        assert steps == {121}, f"Adam took {steps} steps, not 121"
 
 
 @pytest.mark.parametrize("policy", ["drop", "fold"])
