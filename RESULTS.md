@@ -1176,7 +1176,7 @@ table is the verdict. Recorded, never governing: best lane 0.50733, worst
 
 ### The secondary read — vs SH, locked protocol, n=3000/lane
 
-Finals 0.7913 / 0.8000 / 0.7967, **pooled 0.79589** (deviation disclosure
+Finals 0.7910 / 0.8000 / 0.7967, **pooled 0.79589** [CORRECTED 2026-09-04: this triple originally read 0.7913 for s104; final_s104.json is exactly 2373/3000 = 0.7910 (ladder R4 review 1, F1) — the pooled value was always computed from the correct figures] (deviation disclosure
 inherited from D23 onward does not apply: this is 3×3000 exactly). delta_sh
 +0.00944 → **SN-N** (no letter; the positive side is descriptive — a letter
 would need pooled ≥ 0.81144). F1 (falsifier, < 0.580222): clear by +0.2157.
