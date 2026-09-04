@@ -1,0 +1,135 @@
+# =====================================================================
+# CH5 100M PRIMARY — RUNNER-FACING SPEC (ops file, NOT a new pre-reg).
+# AUTHORITY: configs/showdown_sp_100m.yaml (RATIFIED 2026-09-01) — the
+# PRIMARY READ is frozen there: pooled off-FP@20 greedy, FINAL vs FINAL,
+# each T lane's completion checkpoint (>=1e8 crossing rung), n=3000/lane,
+# GREEDY seat (R2-r9 protocol), serial k=1, no co-scheduling; delta =
+# pooled_T - 0.4745556; equal-weight mean of per-seed finals. This file
+# adds ONLY what the wave/runner/seat need to execute that read:
+# checkpoint paths+shas (the seat sha-asserts before loading), fresh
+# username pairs, and the results_dir the grader reads. No cell, bar, n,
+# aggregator, sidedness, comparator or barred sentence is (re)defined
+# here; on any conflict the ratified header wins.
+# Every FP@20 quote carries the budget name and the two standing
+# disclosures (weakly-powered equivalence; flattering point estimate).
+# Wave: scripts/ch5_100m_offfp_wave.sh (ch5_r2_wave.sh copied, deltas in
+# its header). Grade: scripts/ch5_100m_grade.py.
+# =====================================================================
+
+results_dir: results/ch5_100m
+
+# ch3_r4_anchors.py preflight (R5b BI-7a knob): sha-assert all pins below.
+expected_pins: 10
+
+checkpoints:
+  s104: {path: runs/showdown_sp_100m_s104/ckpt_100000027.pt, sha256: 16a6f02064e4c71ddecec08122a60f2ba363cea237761c9cda01a1c2ce5914ff, step: 100000027}
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
+  s120: {path: runs/showdown_sp_100m_s120/ckpt_100000080.pt, sha256: db5d07d2096e021cb74deaf86c1feb2134954a35e042392680d568a185320287, step: 100000080}
+  # STEP 5 (BC-clone h2h): the anchor-battery clone, sha identical to the
+  # ch3_r4 pin (BI-5 machinery reused; ch3_r4_anchors.py --out-dir
+  # results/ch5_100m/bcclone).
+  clone: {path: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt, sha256: 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683}
+  # STEP 6 (A-COLL, fires IFF P1): 12M crossing rungs, async acceptance
+  # fleet (a*) vs banked sync fleet (y*), matched seeds.
+  a66: {path: runs/showdown_sp_batch50m_async_s66/ckpt_012000013.pt, sha256: 244764751f483af7eed59461009e2f63e78be13f1a1b88e46a44c7be69c33bd0, step: 12000013}
+  a75: {path: runs/showdown_sp_batch50m_async_s75/ckpt_012000009.pt, sha256: f650b079dfd40ea852cd3b0d0360267dc89c7f7f0a97512252c3f7f679b79c74, step: 12000009}
+  a83: {path: runs/showdown_sp_batch50m_async_s83/ckpt_012000041.pt, sha256: 9dbf51f335b0fac2d7b526e1ed824b498ba748af668260e2b94a91fb67b4e1cc, step: 12000041}
+  y66: {path: runs/showdown_sp_batch50m_s66/ckpt_012000000.pt, sha256: a0a68d689aa2a01c29379a715eb42c34243a74751d3ce67b71aa88c0d8b21707, step: 12000000}
+  y75: {path: runs/showdown_sp_batch50m_s75/ckpt_012000000.pt, sha256: a531556c3ebecdec86613f01261b8af6772747d621f8b1dd471f9ceb20c228a4, step: 12000000}
+  y83: {path: runs/showdown_sp_batch50m_s83/ckpt_012000000.pt, sha256: ee03ea1077c79b06c55fededf2136603e35526d6ac8c0f2d268a3517b7f79b3f, step: 12000000}
+
+usernames:
+  scheme: "ch5c1<armid><role>, role in {seat, fp}, arm ids lowercase; rerun pairs suffix the ARM ID (t104b), never the role. FULL-STRING distinct and NO name a prefix of any other, asserted (with every name issued in ch5_r1_offsh.yaml and ch5_r2_offsh.yaml) by tests/test_ch5_100m_offfp_prereg.py."
+  never_reuse: [c4, r4anchor, ch3, ch4, ch5r1, ch5r2]
+  pairs:
+    T104: {seat: ch5c1t104seat, fp: ch5c1t104fp}
+    T112: {seat: ch5c1t112seat, fp: ch5c1t112fp}
+    T120: {seat: ch5c1t120seat, fp: ch5c1t120fp}
+    A66: {seat: ch5c1a66seat, fp: ch5c1a66fp}
+    A75: {seat: ch5c1a75seat, fp: ch5c1a75fp}
+    A83: {seat: ch5c1a83seat, fp: ch5c1a83fp}
+    Y66: {seat: ch5c1y66seat, fp: ch5c1y66fp}
+    Y75: {seat: ch5c1y75seat, fp: ch5c1y75fp}
+    Y83: {seat: ch5c1y83seat, fp: ch5c1y83fp}
+  rerun_pairs:
+    T104: {seat: ch5c1t104bseat, fp: ch5c1t104bfp}
+    T112: {seat: ch5c1t112bseat, fp: ch5c1t112bfp}
+    T120: {seat: ch5c1t120bseat, fp: ch5c1t120bfp}
+    A66: {seat: ch5c1a66bseat, fp: ch5c1a66bfp}
+    A75: {seat: ch5c1a75bseat, fp: ch5c1a75bfp}
+    A83: {seat: ch5c1a83bseat, fp: ch5c1a83bfp}
+    Y66: {seat: ch5c1y66bseat, fp: ch5c1y66bfp}
+    Y75: {seat: ch5c1y75bseat, fp: ch5c1y75bfp}
+    Y83: {seat: ch5c1y83bseat, fp: ch5c1y83bfp}
+
+arms:
+  T104:
+    kind: greedy_seat
+    seat: s104
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1t104seat
+    fp_username: ch5c1t104fp
+  T112:
+    kind: greedy_seat
+    seat: s112
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1t112seat
+    fp_username: ch5c1t112fp
+  T120:
+    kind: greedy_seat
+    seat: s120
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1t120seat
+    fp_username: ch5c1t120fp
+  A66:
+    kind: greedy_seat
+    seat: a66
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1a66seat
+    fp_username: ch5c1a66fp
+  A75:
+    kind: greedy_seat
+    seat: a75
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1a75seat
+    fp_username: ch5c1a75fp
+  A83:
+    kind: greedy_seat
+    seat: a83
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1a83seat
+    fp_username: ch5c1a83fp
+  Y66:
+    kind: greedy_seat
+    seat: y66
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1y66seat
+    fp_username: ch5c1y66fp
+  Y75:
+    kind: greedy_seat
+    seat: y75
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1y75seat
+    fp_username: ch5c1y75fp
+  Y83:
+    kind: greedy_seat
+    seat: y83
+    battles: 3000
+    search_time_ms: 20
+    seat_username: ch5c1y83seat
+    fp_username: ch5c1y83fp
+
+# STEP 5 arms (ch3_r4_anchors.py BI-5 machinery; DESCRIPTIVE anchors, never
+# verdict inputs; rate measured at n=20 before the 500s launch per pre-reg).
+anchor_arms:
+  CA104: {kind: greedy_h2h, seat1: s104, seat2: clone, battles: 500}
+  CA112: {kind: greedy_h2h, seat1: s112, seat2: clone, battles: 500}
+  CA120: {kind: greedy_h2h, seat1: s120, seat2: clone, battles: 500}

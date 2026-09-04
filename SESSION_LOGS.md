@@ -9929,3 +9929,72 @@ line numbers are not — grep the date, then read that region):
   contaminate a resumed lane), A2 touches the very env vars the wave
   exports, A5 touches frozen eval instruments, and CPU headroom over D-B's
   517 RECORD line is thin. CLEANUP.md gains the audit-backlog pointer.
+- 2026-09-04 (overnight, autonomous) — **THE 100M RUN IS DONE AND GRADED:
+  CELL P3 (within, positive, non-resolving); readout committed.**
+  FLEET DONE 2026-09-03 12:50:04Z: s104 ckpt_100000027 (12:22:33Z), s112
+  ckpt_100000008, s120 ckpt_100000080 — zero stalls, zero resumes, zero
+  gate breaches in ~49.5 h; realized whole-lane 562.8/558.2/557.5 steps/s
+  (D-B band [528,620]); updates 3250/3250/3251, pushes 650 (all R0-f
+  bands); D-A exact form 12/12 PASS to 1e-12. The FROZEN eval schedule ran
+  in order, all agent-side detached (start delayed ~9.8 h by the session
+  usage window — nothing ran early, nothing while lanes trained):
+  (1) vs-SH finals 0.7913/0.8000/0.7967 → pooled 0.79589 (~120 s/lane);
+  (2) PRIMARY off-FP@20 greedy 3×3000 serial via
+  scripts/ch5_100m_offfp_wave.sh (ch5_r2_wave.sh copied, 4 diff-verified
+  literal deltas; runner spec configs/eval/ch5_100m_offfp.yaml with fresh
+  ch5c1 pairs; all three arms rc=0 first attempt, ~78-82 min each):
+  0.48633/0.50167/0.50733 → pooled 0.49844; (3) S-SHAPE 60 evals and
+  (4) S-ANNEAL 30 evals (auto-chained on wave completion); (5) BC-clone
+  h2h 500/lane via ch3_r4_anchors.py (rate measured at n=20 first: ~0.15
+  s/battle; expected_pins: 10 — the sanctioned R5b knob):
+  0.912/0.930/0.928 → pooled 0.9233. GRADER (attest PASS): **delta
+  +0.02389 vs BAR 0.025 (floor governs; se_clus 0.00774 > se_bin 0.00745)
+  → P3**; vs-SH delta +0.00944 → SN-N; composition X4; F1 clear; A-COLL
+  VOID (iff P1) — wire attribution on the primary axis unmeasured, G9's
+  signed +0.02322 the only wire bound. **S-SHAPE: SS-CLIMB** (W_hi 0.77764
+  − W_lo 0.74839 = +0.02925 ≥ se_W 0.00633; mandatory anneal sentence in
+  RESULTS §18). S-ANNEAL overlay recorded (joint anneal+wire, control
+  0.783 at its 50M vs treatment 0.724 at 50M). sigma_seed s_T 0.01086,
+  2-df CI [0.00566, 0.06828], grader disclosure verbatim. RECORDS:
+  RESULTS.md §18 (incl. the owed **N-TIMER line — DISCHARGED**), README
+  row landed with the FULL anchor battery (vs-SH + FP@20 + BC-clone; the
+  CH3 search row retagged neutral — different policy forms, not rankable),
+  STATUS rewritten, HANDOFF folded to stub. Deferred wave-script stdin
+  fix applied (< /dev/null on the launch line). **E2 SATISFIED**: S-SHAPE,
+  S-ANNEAL and D-A are recorded and committed — rung retention obligation
+  discharged; cleanup of ~200×3 treatment rungs + the control's 300 is now
+  PERMITTED (maintainer's call; keep the completion rungs and 12M rungs
+  regardless — A-COLL could still be run descriptively one day).
+  Mid-babysit work, separately committed: audit A1 (five design docs
+  tracked in place); two parallel worktree sessions launched by the
+  maintainer (audit-fixes; gen4-design) — their branches merge only
+  post-readout, gate now OPEN. EVERY CELL ROUTES TO JOURNEY STEP 2
+  (LADDER) — and P3 routes there too.
+- 2026-09-04 (day, autonomous + maintainer rulings) — **LADDER R4
+  PRE-REG RATIFIED (launch HELD).** Full 2-Opus cycle: brief → mem_A
+  (validity) / mem_B (ops) → synthesis (6 adjudications, losing arguments
+  recorded) → 578-line draft → review_1 (10 MF + 21 SF) + review_2 (6 MF
+  + 13 SF) → ALL 50 findings applied → maintainer ruled M1-M9 →
+  `configs/eval/ladder_r4.yaml` (git mv per BI-R4-4; Status: RATIFIED;
+  markers cleared; rulings in ratified_decisions). Chain tracked under
+  results/design_ladder_r4/ (A1-pattern whitelist). THE OBJECT: 100M
+  final, GREEDY, lane s112 (median-of-3 on the off-FP primary — ruled
+  2026-09-04 with the numbers already published, stated honestly per
+  review_2 MF-2; Q6 discharged in writing, NO re-score). **M6 OVERRIDDEN
+  BY THE MAINTAINER: REUSE nickgen1rbrlbot** ("multiple accounts are
+  against the rules and could get my ip banned") — supersedes R3's D2
+  sequential-accounts framing; consequences applied: warm-started rating
+  disclosed in the headline, cumulative-profile denominators, VOID (d)
+  asserts the parked R1 end state, Elo(R4)-Elo(R1) barred by name,
+  LG-9's empty-rating tell inverted, courtesy note rewritten for reuse
+  (drafted UNSENT at readouts/LADDER_R4_COURTESY_NOTE.md). Build items
+  BI-R4-1 (backup RUNS), BI-R4-3 (watchdog escalation counter, resets on
+  progress) and BI-R4-7 (startup sha/obs_dim print) LANDED; BI-R4-2/5/6
+  owed at readout with named fallbacks; B9 = carry the disclosure.
+  review_1 F1 also caught a RESULTS §18 transcription error — vs-SH
+  s104 triple corrected 0.7913 → 0.7910 with disclosure. README
+  readme_owed discharged (R4 paragraph + example line). Suite: 663
+  passed / 17 skipped (bare pytest). **LAUNCH HELD, maintainer-ordered:
+  wait for the audit worktree to finish and merge; ladder after. The
+  pre-reg does not expire; LG-1 (courtesy note ≥24 h) keys off the real
+  launch date.**

@@ -31,6 +31,15 @@ results/design_critic/*
 results/design_fp_gap/*
 !results/design_fp_gap/ch4_synthesis.md
 !results/design_fp_gap/revision_log.md
+!results/design_ladder_r4/
+results/design_ladder_r4/*
+!results/design_ladder_r4/BRIEF.md
+!results/design_ladder_r4/mem_A.md
+!results/design_ladder_r4/mem_B.md
+!results/design_ladder_r4/synthesis_r4.md
+!results/design_ladder_r4/review_1.md
+!results/design_ladder_r4/review_2.md
+!results/design_ladder_r4/ladder_r4.draft.yaml
 checkpoints/
 runs/
 wandb/

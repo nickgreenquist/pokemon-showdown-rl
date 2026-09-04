@@ -73,8 +73,16 @@ def test_seed_windows_disjoint_and_unused():
         for j in range(i + 1, 3):
             assert not windows[i] & windows[j], "sub-env windows overlap"
     used = set()
+    # LEGAL OWNERS (the ec368a1 precedent): once launched, the 100M fleet's
+    # own run dirs stamp these seeds; R0-l's "unused" claim was a LAUNCH-time
+    # gate (it passed in the wave preflight, logs/ch5_100m_wave.log
+    # 2026-09-01T10:58Z) and the fleet is the first legal owner of
+    # 104/112/120. Any OTHER stamped run in a window still fails.
+    legal = {f"showdown_sp_100m_s{s}" for s in (104, 112, 120)}
     if (REPO / "runs").exists():
         for p in (REPO / "runs").glob("*/config.yaml"):
+            if p.parent.name in legal:
+                continue
             m = re.search(r"^seed: (\d+)", p.read_text(), re.M)
             if m:
                 used.add(int(m.group(1)))

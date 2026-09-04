@@ -37,7 +37,7 @@ tar czf "$ARCHIVE/ladder_$STAMP.tar.gz" -C "$REPO/results" ladder
 # nothing whatsoever about them. An unverified backup is not a checked backup.
 # Each run is (jsonl, replay dir); a missing one is skipped, not an error,
 # because this script runs after R1 sessions too.
-RUNS=("L2:replays" "R3S:replays_r3")
+RUNS=("L2:replays" "R3S:replays_r3" "R4G:replays_r4")   # BI-R4-1 (ladder_r4): without this the OK line says nothing about R4
 fail=0
 for entry in "${RUNS[@]}"; do
   arm="${entry%%:*}"

@@ -699,6 +699,11 @@ async def run(prereg: dict, arm_name: str, battles: int, out_path: Path,
     before = ladder_snapshot(BATTLE_FORMAT, userid) if not local_smoke else {}
     print(f"seat '{display_name}' (userid {userid}) kind={provenance['kind']} "
           f"-> {remaining} battles")
+    # BI-R4-7 (ladder_r4 LG-9): the last human gate reads these lines; the
+    # sha was asserted but never SHOWN, so the operator learned nothing
+    # about which lane loaded.
+    print(f"provenance: lane={provenance.get('lane')} sha256={provenance.get('sha256')} "
+          f"obs_dim={provenance.get('obs_dim')}")
     # Print whenever a rating EXISTS — gating this on `listed` is the same
     # leaderboard-vs-profile error that cost R1 its primary read.
     #

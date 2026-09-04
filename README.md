@@ -146,7 +146,8 @@ battles/seed pooled across seeds.
 | + opponent-action auxiliary loss — **credited** | 0.6185 |
 | **+ LR anneal (D26) — credited, the headline** | **0.7183** |
 | 4-checkpoint log-prob ensemble (inference-only) | 0.7463 |
-| **+ one-ply expectation search (CH3 R2) — best measured** | **0.7928** |
+| + one-ply expectation search (CH3 R2) | 0.7928 |
+| **batch recipe at 100M steps (CH5 C1, greedy) — current top training number** | **0.7959** |
 | *reference:* behaviour clone of SH | 0.4657 |
 | *reference:* SH vs SH mirror (parity point) | 0.489 |
 | *reference:* Foul Play engine (search bot) vs SH | 0.8307 |
@@ -162,7 +163,25 @@ fleet off Foul Play@20 and found it *helps* there (+0.1010 within-lane, 3.6
 se). The reversal is recorded as a decision in
 [`configs/eval/ladder_r3.yaml`](configs/eval/ladder_r3.yaml) (D6), and the
 ceiling travels with it: it does **not** overturn the SH-facing finding above,
-and the two sets of numbers may not be set side by side.
+and the two sets of numbers may not be set side by side. **LADDER R4
+(pre-registered and ratified 2026-09-04,
+[`configs/eval/ladder_r4.yaml`](configs/eval/ladder_r4.yaml)) returns to a
+greedy deployment** — the 100M final on lane s112 — on R4S66's evidence
+(search@20 hurt the batch recipe); the MU-8 ceiling still travels, and no
+run-to-run delta is an effect.
+
+**The 100M row is not a credit.** Its pre-registered primary axis was off
+Foul Play@20 (budget named; the equivalence test is weakly powered and the
+point estimate flatters us), where it read **0.4984 vs the 50M control's
+0.4746 — delta +0.0239 against a +0.025 floor: cell P3, within-band
+positive, non-resolving**. The vs-SH row above is the locked-protocol
+secondary (SN-N, descriptive), with the full anchor battery: BC-clone h2h
+0.9233 pooled, FP@20 0.4984 pooled. The search row (0.7928) and the 100M
+greedy row are different policy forms from different sessions and may not
+be ranked against each other. S-SHAPE read: still climbing at 100M
+(+0.029 over the last-20M vs prior-20M windows, ≥ 4× its threshold) — on
+the 100M anneal, not comparable to a finished run at the same step. Full
+table with every disclosure: [`RESULTS.md` §18](RESULTS.md).
 
 **A credit line, not a leaderboard.** A lever is credited here only if its
 pooled delta is ≥ +0.025 **and** ≥ 2·se_diff, where se_diff is the *larger* of
@@ -232,7 +251,7 @@ Play the real Showdown ladder (needs a registered account and `PS_PASSWORD`;
 `--battles` is a total across resumes, and the run resumes per-battle):
 
 ```
-python scripts/ladder.py --prereg configs/eval/ladder_r3.yaml --arm R3S --battles 200
+python scripts/ladder.py --prereg configs/eval/ladder_r4.yaml --arm R4G --battles 200
 ```
 
 (That is R3's invocation; R1's used `ladder_r1.yaml --arm L2`. Every ladder
