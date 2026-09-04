@@ -27,6 +27,21 @@ def _two_mon_battle():
     return b
 
 
+def _straddle_battle():
+    # A fixture where `dmg` is LOAD-BEARING. At 25% HP the opponent straddles
+    # the KO threshold on some branch, so expand_leaf's 2-point roll expansion
+    # splits it and the leaf set depends on the damage rolls (measured on this
+    # tree: real engine dmg -> search/leaves 103, search/expanded_leaves 12;
+    # dmg=None -> 97 / 0). On the full-HP _two_mon_battle() NO branch straddles,
+    # so every dmg (real, None, or wrong) yields the identical leaf set, EVs and
+    # action — any dmg-handling test built on it is vacuous (F-14 review).
+    b = _two_mon_battle()
+    theirs = _mon("chansey", ["softboiled"], level=76, hp_frac=0.25)
+    b.opponent_active_pokemon = theirs
+    b.opponent_team = {"p2: Chansey": theirs}
+    return b
+
+
 def _mask(moves=True, switches=()):
     m = np.zeros(10, dtype=bool)
     if moves:
@@ -42,6 +57,13 @@ def _uniform_q():
 
 def _zero_critic(batch):
     return np.zeros(batch.shape[0])
+
+
+def _obs_critic(batch):
+    # Non-zero and obs-dependent, so two DIFFERENT leaf sets give different
+    # EVs: under _zero_critic every row EV is exactly 0.0, which leaves
+    # search/row_ev and search/ev_matrix blind to the leaf set (F-14 review).
+    return np.tanh(batch.sum(axis=1) / 100.0)
 
 
 def test_our_action_str_mapping():
@@ -100,16 +122,21 @@ def test_watchdog_raises_never_falls_back():
         )
 
 
-def test_interrupt_inside_calculate_damage_propagates(monkeypatch):
+@pytest.mark.parametrize("exc", [KeyboardInterrupt, SystemExit])
+def test_interrupt_inside_calculate_damage_propagates(monkeypatch, exc):
     # F-14: the damage-attribution guard degrades engine errors to "no
     # attribution", never an interrupt — a Ctrl-C mid-search must stop it.
+    # BOTH members of the guard's re-raise tuple are covered on purpose:
+    # narrowing it to `except KeyboardInterrupt`, or reordering so SystemExit
+    # falls into the `except BaseException` arm, restores half the defect
+    # (a `sys.exit()` in a search seat would degrade to dmg=None and run on).
     def interrupted(*args):
-        raise KeyboardInterrupt
+        raise exc
 
     monkeypatch.setattr("rl.search.matrix.calculate_damage", interrupted)
     b = _two_mon_battle()
     rng = decision_rng(62, 0, b.turn, 0)
-    with pytest.raises(KeyboardInterrupt):
+    with pytest.raises(exc):
         solve_decision(
             b, _mask(switches=[1]), _uniform_q(), np.full(10, 0.1),
             DOSES["S"], rng, _zero_critic, _TYPE_CHART,
@@ -127,23 +154,56 @@ def test_engine_panic_inside_calculate_damage_degrades_to_no_attribution(monkeyp
     class PanicException(BaseException):
         pass
 
+    calls = []
+
     def panicked(*args):
+        calls.append(args[1:3])  # (our action str, their action str)
         raise PanicException("index out of bounds: the len is 1 but the index is 8")
 
-    b = _two_mon_battle()
+    # _straddle_battle, not _two_mon_battle: dmg must be load-bearing or the
+    # comparisons below hold for ANY dmg handling and prove nothing.
+    b = _straddle_battle()
     args = (b, _mask(switches=[1]), _uniform_q(), np.full(10, 0.1), DOSES["S"])
 
+    def solve():
+        return solve_decision(
+            *args, decision_rng(62, 0, b.turn, 0), _obs_critic, _TYPE_CHART
+        )
+
+    # Record what the guard actually hands the expansion. "Degrades to
+    # dmg=None" is the claim, and a wrong-but-plausible dmg can be
+    # behaviourally identical to None on any one fixture (measured: a mutant
+    # guard setting dmg=([999,999],[999,999]) passes the stats pin below), so
+    # the stats comparison alone does not pin the value.
+    from rl.search.expansion import expand_leaf
+
+    seen_dmg = []
+
+    def recording_expand_leaf(state, leaf, dmg):
+        seen_dmg.append(dmg)
+        return expand_leaf(state, leaf, dmg)
+
+    real_a, real_s = solve()  # unpatched: the engine's real max-damage rolls
+    monkeypatch.setattr("rl.search.matrix.expand_leaf", recording_expand_leaf)
     monkeypatch.setattr("rl.search.matrix.calculate_damage", panicked)
-    got_a, got_s = solve_decision(
-        *args, decision_rng(62, 0, b.turn, 0), _zero_critic, _TYPE_CHART
-    )
+    got_a, got_s = solve()
+    assert calls, "the guarded calculate_damage call was never reached"
+    panic_dmg = list(seen_dmg)
+    assert panic_dmg and all(d is None for d in panic_dmg)
     monkeypatch.setattr("rl.search.matrix.calculate_damage", lambda *a: None)
-    want_a, want_s = solve_decision(
-        *args, decision_rng(62, 0, b.turn, 0), _zero_critic, _TYPE_CHART
-    )
+    want_a, want_s = solve()
+
+    keys = ("search/leaves", "search/expanded_leaves", "search/row_ev", "search/ev_matrix")
     assert got_a == want_a
-    for k in ("search/leaves", "search/expanded_leaves", "search/row_ev", "search/ev_matrix"):
+    for k in keys:
         assert got_s[k] == want_s[k], k
+    # ...and the pin has power: on this fixture the real rolls DO split
+    # branches, so a guard that swallowed the panic with a wrong dmg (rather
+    # than None) would land on the real-dmg side of these inequalities.
+    assert real_s["search/expanded_leaves"] > 0 and got_s["search/expanded_leaves"] == 0
+    for k in keys:
+        if k != "search/expanded_leaves":
+            assert real_s[k] != got_s[k], k
 
 
 def test_force_switch_single_none_column():

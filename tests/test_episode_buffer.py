@@ -104,6 +104,32 @@ def test_episode_gae_never_chains_across_episodes():
     np.testing.assert_allclose(both[:3], alone)
 
 
+def test_episode_gae_does_not_leak_a_nonfinite_value_across_a_boundary():
+    # The ONE behavioural difference F-10's layout introduces (episode_gae's
+    # docstring, last paragraph): a non-finite critic output no longer crosses
+    # an episode boundary. The (B, 1) column form cut the chain by multiplying
+    # the carry by (1 - done) = 0.0, and 0.0 * nan/inf = nan, so ONE bad row in
+    # episode 2 poisoned every advantage in episode 1; a column per episode
+    # cannot chain at all.
+    #
+    # _episode_gae_reference INTENTIONALLY differs here, so the pin is against
+    # the single-episode call, never the reference — and it is why the
+    # bit-identity test below must keep its cases finite. Do not "fix" this by
+    # widening those cases.
+    rewards = np.array([0, 0, 1, 0, -1], dtype=np.float32)
+    lengths = np.array([3, 2], dtype=np.int64)
+    one = np.array([3], dtype=np.int64)
+    for bad in (np.nan, np.inf, -np.inf):
+        values = np.array([0.1, 0.2, 0.3, bad, 0.5], dtype=np.float32)
+        with np.errstate(invalid="ignore"):  # 0.0 * inf in the reference below
+            got = episode_gae(rewards, values, lengths, gamma=1.0, lam=0.95)
+            alone = episode_gae(rewards[:3], values[:3], one, gamma=1.0, lam=0.95)
+            leaked = _episode_gae_reference(rewards, values, lengths, 1.0, 0.95)
+        assert np.isfinite(got[:3]).all(), bad
+        assert np.array_equal(got[:3], alone), bad
+        assert not np.isfinite(leaked[:3]).any(), bad  # the form F-10 replaced
+
+
 def test_episode_gae_agrees_with_vector_gae_on_aligned_columns():
     # The sync loop's compute_gae on a (T, N) rollout where every column is
     # one whole episode ending at T-1 is the same computation — the two
