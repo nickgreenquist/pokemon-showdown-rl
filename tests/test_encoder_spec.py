@@ -16,8 +16,17 @@ expected lines were captured on the pre-refactor encoder (commit d546228)
 and are pinned verbatim. A changed hash is a changed encoding — fix the
 code, never the golden. Tapes are local collection artifacts (gitignored);
 the gate skips loudly where they are absent.
+
+Two things the hash gate CANNOT see, covered separately below:
+  - a helper that ignores its `spec` argument and reads the module literal
+    emits identical gen-1 bytes. The `_GEN2_SKETCH` tests are that class's
+    cover — one assertion per spec-threaded helper.
+  - `ENCODER_FINGERPRINT`, the third invariant of the ONE RULE and the only
+    record of WHICH semantics a checkpoint carries, is pinned per flag combo
+    in `FINGERPRINTS`.
 """
 
+import ast
 import dataclasses
 import os
 import subprocess
@@ -28,6 +37,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 from gymnasium import spaces
+from poke_env.battle.move import Move
 from poke_env.battle.pokemon_type import PokemonType
 from poke_env.environment import SinglesEnv
 
@@ -167,8 +177,25 @@ print(f"OBS_DIM={OBS_DIM} decisions={decisions} sha256={h.hexdigest()}")
 
 _DIMS_CHILD = r"""
 from rl.envs import showdown as sd
-print(sd.OBS_DIM, sd.MON_DIM, sd.MOVE_DIM, sd.ID_DIM, sd.ENCODER_FINGERPRINT["encoder"], sd.ENCODER_FINGERPRINT["ids"])
+print(sd.OBS_DIM, sd.MON_DIM, sd.MOVE_DIM, sd.ID_DIM)
+print(sorted(sd.ENCODER_FINGERPRINT.items()))
 """
+
+# The fingerprint each flag combo above must stamp into meta.yaml
+# (rl/train.py) and the BC metrics (scripts/train_bc.py). Same keys as ORACLE
+# on purpose: the hash gate pins the BYTES a combo emits, this pins the record
+# of WHICH semantics those bytes are, and nothing else in the suite asserts
+# `set_prior` / `recharge_fix` / the fingerprint's own `obs_dim` at all. An
+# edit that dropped or inverted a key would otherwise leave every test green
+# and make checkpoints unattributable — the incident the fingerprint's own
+# comment in rl/envs/showdown.py cites.
+FINGERPRINTS = {
+    (): {"obs_dim": 612, "encoder": "v1", "set_prior": True, "recharge_fix": True, "ids": False},
+    ("POKEMON_RL_ENCODER_V2",): {"obs_dim": 808, "encoder": "v2", "set_prior": True, "recharge_fix": True, "ids": False},
+    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS"): {"obs_dim": 828, "encoder": "v2", "set_prior": True, "recharge_fix": True, "ids": True},
+    ("POKEMON_RL_NO_SET_PRIOR",): {"obs_dim": 612, "encoder": "v1", "set_prior": False, "recharge_fix": True, "ids": False},
+    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_NO_SET_PRIOR"): {"obs_dim": 828, "encoder": "v2", "set_prior": False, "recharge_fix": True, "ids": True},
+}
 
 
 def _child_env(*flags: str) -> dict[str, str]:
@@ -270,8 +297,29 @@ def test_gen1_tables_are_the_literals_they_replaced():
 
 
 def test_bare_process_is_612_v1():
-    out = _run_child(_DIMS_CHILD).split()
-    assert out == ["612", "32", "23", "0", "v1", "False"], out
+    dims, _ = _run_child(_DIMS_CHILD).splitlines()
+    assert dims.split() == ["612", "32", "23", "0"], dims  # OBS/MON/MOVE/ID
+
+
+@pytest.mark.parametrize(
+    "flags", list(FINGERPRINTS),
+    ids=["bare", "v2", "v2+ids", "bare+noprior", "v2+ids+noprior"],
+)
+def test_fingerprint_records_the_semantics_the_hash_gate_pins(flags):
+    dims, fingerprint = _run_child(_DIMS_CHILD, flags=flags).splitlines()
+    stamped = dict(ast.literal_eval(fingerprint))
+    assert stamped == FINGERPRINTS[flags], (flags, stamped)
+    assert stamped["obs_dim"] == int(dims.split()[0])  # the stamp is the truth
+
+
+def test_every_hashed_combo_is_distinguishable():
+    # bare vs bare+noprior (and v2+ids vs v2+ids+noprior) share an OBS_DIM and
+    # differ only in obs SEMANTICS: different bytes, and — the part nothing
+    # asserted before — a different fingerprint, so a checkpoint's meta.yaml
+    # says which of the two it trained under.
+    assert set(FINGERPRINTS) == set(ORACLE), "a hashed combo with no fingerprint"
+    stamps = [tuple(sorted(fp.items())) for fp in FINGERPRINTS.values()]
+    assert len(set(stamps)) == len(stamps) == len(set(ORACLE.values()))
 
 
 # --- (iv) the encoding-hash gate --------------------------------------------
@@ -306,15 +354,28 @@ def test_fake_spaces_shapes():
         sd.fake_spaces("gen9randombattle")
 
 
-# A sketch of what a second spec does to the layout — 17 types and a real
-# Special Defense. NOT a gen-2 encoder (no items, no gen-2 volatiles, no
-# prior); it exists to prove the fill helpers read the spec's table lengths
-# rather than gen 1's literals.
+# A sketch of what a second spec does to the layout — 17 types, a real Special
+# Defense, gen-2 id ranges, and two SYNTHETIC boost slots whose only job is to
+# push the volatile block off gen 1's offset (poke-env exposes the same seven
+# boost keys in every generation, so nothing real moves that block). NOT a
+# gen-2 encoder: no items, no gen-2 volatiles, no side-condition block, no
+# prior.
+#
+# WHY IT EXISTS: the tape hash gate above is structurally BLIND to a helper
+# that ignores its `spec` argument and reads the module literal instead — at
+# gen 1 the two agree bit-for-bit, so the gen-1 digest cannot move. Every
+# helper that gained a `spec` parameter therefore gets one assertion here that
+# a "kept the gen-1 literal" implementation fails. That silent-wrong-number
+# class (e.g. _species_id mapping every gen-2+ species to 0 = unknown) is
+# exactly what the gen-4 chapter would hit first.
 _GEN2_SKETCH = dataclasses.replace(
     GEN1,
     gen=2,
     types=GEN1.types + (PokemonType.DARK, PokemonType.STEEL),
     base_stat_keys=("hp", "atk", "def", "spa", "spd", "spe"),
+    boost_keys=GEN1.boost_keys + ("_probe1", "_probe2"),
+    species_num_range=(1, 251),
+    move_num_range=(1, 251),
 )
 
 
@@ -336,6 +397,62 @@ def test_fill_mon_offsets_follow_the_spec_not_the_module():
     assert vec[GEN1.mon_types_off + normal] == 0.0
     # The sixth base stat occupies gen 1's first type slot.
     assert vec[GEN1.mon_types_off] == 1.0 and vec[_GEN2_SKETCH.mon_level_off] == 1.0
+
+
+def test_fill_active_offsets_follow_the_spec_not_the_module():
+    # Two extra boost slots push the volatile block from 7..13 to 9..15 and the
+    # counter/preparing pair from 14/15 to 16/17.
+    assert (_GEN2_SKETCH.active_volatiles_off, _GEN2_SKETCH.active_counter_off,
+            _GEN2_SKETCH.active_dim) == (9, 16, 18)
+    mon = SimpleNamespace(
+        boosts={k: 6 for k in _GEN2_SKETCH.boost_keys},  # 6/6 -> 1.0 each
+        effects={},          # no Effect volatile set...
+        must_recharge=True,  # ...but the D13(a) bool is, at volatiles[3]
+        status_counter=8,    # /16 (the toxic cap) -> 0.5
+        preparing=True,
+    )
+    vec = np.zeros(_GEN2_SKETCH.active_dim + 2, dtype=np.float32)
+    sd._fill_active(vec, 0, mon, spec=_GEN2_SKETCH)
+    # A _BOOST_KEYS / _VOLATILES literal writes the boosts at 0..6, this
+    # MUST_RECHARGE bit at 10 and the counter/preparing pair at 14/15 — none of
+    # which is this vector.
+    assert vec.tolist() == [1.0] * 9 + [0, 0, 0, 1.0, 0, 0, 0] + [0.5, 1.0, 0, 0]
+
+
+def test_fill_move_type_onehot_follows_the_spec_not_the_module():
+    crunch = Move("crunch", gen=2)  # DARK — and SPECIAL in gen-2 move data
+    vec = np.zeros(_GEN2_SKETCH.move_dim_v1 + sd.EFFECT_DIM, dtype=np.float32)
+    sd._fill_move(vec, 0, crunch, None, None, spec=_GEN2_SKETCH)
+    dark = _GEN2_SKETCH.type_index[PokemonType.DARK]
+    assert (_GEN2_SKETCH.move_type_off, dark, _GEN2_SKETCH.move_dim_v1) == (8, 15, 25)
+    # THE DISCRIMINATOR: a `_TYPE_INDEX` literal has no DARK key, so `.get`
+    # returns None and the one-hot is never written at all.
+    assert vec[8 + dark] == vec[23] == 1.0
+    assert not vec[8:23].any()  # gen 1's 15-wide window, empty either way
+    # physical/special is per-move from poke-env, never gen 1's type rule.
+    assert vec[5] == 0.0 and vec[6] == 0.0
+
+
+def test_id_lookups_follow_the_spec_not_the_module():
+    crunch = Move("crunch", gen=2)
+    # The spec supplies BOTH the dex/move table generation and the valid range.
+    assert sd._species_id("chikorita", _GEN2_SKETCH) == 152
+    assert sd._move_id(crunch, _GEN2_SKETCH) == 242
+    # Under the pre-F-08 literals (GenData.from_gen(1); 1..151 / 1..165) both
+    # are 0 = unknown — a silent wrong number, not an error.
+    assert sd._species_id("chikorita", GEN1) == 0
+    assert sd._move_id(crunch, GEN1) == 0
+    # ...and gen 1's own ids do not move under the wider range.
+    assert sd._species_id("bulbasaur", GEN1) == sd._species_id("bulbasaur", _GEN2_SKETCH) == 1
+
+
+def test_move_slots_aliased_reads_the_specs_special_moves():
+    battle = SimpleNamespace(available_moves=[SimpleNamespace(id="fight")])
+    assert sd._move_slots_aliased(battle, spec=GEN1) is True
+    # poke-env's SPECIAL_MOVES are per-gen data too: with none declared, the
+    # same battle is NOT an aliased turn.
+    no_special = dataclasses.replace(_GEN2_SKETCH, special_move_ids=frozenset())
+    assert sd._move_slots_aliased(battle, spec=no_special) is False
 
 
 def test_embed_battle_refuses_a_non_gen1_spec():
