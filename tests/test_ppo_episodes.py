@@ -2,6 +2,7 @@
 update_episodes (whole-episode batches through the factored _optimize)."""
 
 import functools
+import hashlib
 import inspect
 import math
 import pathlib
@@ -259,34 +260,90 @@ def _legacy_minibatch_plan(total, mbs, epochs):
     return plan, torch.get_rng_state()
 
 
-_PRE_F04_COMMIT = "5d3c6b7"  # parent of the F-04 wire commit 650a8e6
+# FULL sha, not the abbreviation: an abbreviation stops resolving the moment
+# it stops being unique, and `git show` then exits non-zero for a reason that
+# has nothing to do with F-04.
+_PRE_F04_COMMIT = "5d3c6b7c841c008b0e70e916e3d8242ef3166bb5"  # parent of wire commit 650a8e6
+_PRE_F04_FIXTURE = pathlib.Path(__file__).resolve().parent / "fixtures" / "ppo_pre_f04.py.txt"
+# sha256 of that commit's rl/agents/ppo.py (72,626 bytes), so the vendored copy
+# is self-checking even where git cannot corroborate it.
+_PRE_F04_SHA256 = "307ad4a140f8fff08f2c619fdd326cbf915d9ad2dfd6c2111fc5b3acf02be1b7"
+
+
+def _pre_f04_source():
+    """`rl/agents/ppo.py` as of the commit BEFORE F-04, read from the VENDORED
+    FIXTURE and only CROSS-CHECKED against the object store.
+
+    Review round 2 rejected a git-only loader, correctly: it resolved an
+    abbreviated sha and turned every git failure into `pytest.skip`, so a
+    squash-merge (5d3c6b7 gc'd), an abbreviation that stopped being unique, or
+    a run from a non-git export would each have reduced the whole weight-level
+    bit-identity pin to skips indistinguishable from the suite's nine
+    documented ones — the pin would stop pinning and nothing would say so.
+    So the fixture is the source of truth and git is corroboration:
+
+      * the fixture is REQUIRED and its sha256 is pinned here: missing or
+        edited FAILS, and no code path skips;
+      * when git can reach `_PRE_F04_COMMIT`, `<sha>:rl/agents/ppo.py` must be
+        byte-identical to the fixture — that is what keeps the vendored copy
+        honest, and it fails if someone regenerates the fixture from HEAD;
+      * a commit that resolves but whose `ppo.py` does not is a broken repo,
+        not a merge, and FAILS; only a genuinely unreachable object (post
+        squash-merge, or no `git` at all) is tolerated, and it drops the
+        CROSS-CHECK, never the pin.
+
+    (`tests/fixtures/`, not `tests/data/`: `.gitignore:40` ignores every `data/`
+    directory — the F-21 landmine — and a bit-identity baseline that a fresh
+    clone does not get is no baseline.)"""
+    try:
+        src = _PRE_F04_FIXTURE.read_text()
+    except OSError as exc:  # not a skip: this file IS the pin's baseline
+        pytest.fail(f"pre-F-04 fixture {_PRE_F04_FIXTURE} unreadable: {exc}")
+    digest = hashlib.sha256(src.encode()).hexdigest()
+    assert digest == _PRE_F04_SHA256, (
+        f"{_PRE_F04_FIXTURE.name} is no longer the pre-F-04 blob "
+        f"({digest[:12]} != {_PRE_F04_SHA256[:12]})"
+    )
+    root = pathlib.Path(__file__).resolve().parents[1]
+    try:
+        reachable = subprocess.run(
+            ["git", "-C", str(root), "cat-file", "-e", f"{_PRE_F04_COMMIT}^{{commit}}"],
+            capture_output=True,
+        ).returncode == 0
+    except OSError:  # no git binary, or no checkout at all
+        reachable = False
+    if reachable:
+        blob = subprocess.run(
+            ["git", "-C", str(root), "show", f"{_PRE_F04_COMMIT}:rl/agents/ppo.py"],
+            capture_output=True, text=True,
+        )
+        assert blob.returncode == 0, (
+            f"{_PRE_F04_COMMIT[:12]} resolves but its rl/agents/ppo.py does not: "
+            f"{blob.stderr.strip()}"
+        )
+        assert blob.stdout == src, (
+            f"{_PRE_F04_FIXTURE.name} drifted from {_PRE_F04_COMMIT[:12]}:rl/agents/ppo.py"
+        )
+    return src
 
 
 @functools.lru_cache(maxsize=1)
 def _pre_f04_ppo():
-    """`rl/agents/ppo.py` AS OF THE COMMIT BEFORE F-04, exec'd as a throwaway
-    module so the pre-change `update_episodes` can be RUN, not paraphrased.
-    Every import in that file is absolute (`rl.agents.base`, `rl.buffers.*`,
-    ...) and F-04 touched no other file, so the old module binds to today's
-    tree and the ONLY difference on the wire is the minibatch loop itself.
-    Nothing is written to disk and nothing is registered in `sys.modules`.
+    """That source exec'd as a throwaway module so the pre-change
+    `update_episodes` can be RUN, not paraphrased. Every import in the file is
+    absolute (`rl.agents.base`, `rl.buffers.*`, ...) and F-04 touched no other
+    file, so the old module binds to today's tree and the ONLY difference on
+    the wire is the minibatch loop itself. Nothing is written to disk and
+    nothing is registered in `sys.modules`.
 
-    The two identity assertions are the point: without them a blob that
-    resolved to HEAD would turn this test back into the tautology review
-    round 1 rejected (new code vs new code). A missing commit or a missing
-    `git` SKIPS — gate R0-1 requires this test to RUN, not to skip."""
-    root = pathlib.Path(__file__).resolve().parents[1]
-    try:
-        src = subprocess.run(
-            ["git", "-C", str(root), "show", f"{_PRE_F04_COMMIT}:rl/agents/ppo.py"],
-            capture_output=True, text=True, check=True,
-        ).stdout
-    except (OSError, subprocess.CalledProcessError) as exc:  # no git / no history
-        pytest.skip(f"pre-F-04 blob {_PRE_F04_COMMIT} unreachable: {exc}")
+    The two identity assertions are the point: without them a source that had
+    been regenerated from HEAD would turn this test back into the tautology
+    review round 1 rejected (new code vs new code)."""
+    src = _pre_f04_source()
     mod = types.ModuleType("_ppo_pre_f04")
-    mod.__file__ = f"<git {_PRE_F04_COMMIT}:rl/agents/ppo.py>"
+    mod.__file__ = f"<pre-F-04 {_PRE_F04_COMMIT[:12]}:rl/agents/ppo.py>"
     exec(compile(src, mod.__file__, "exec"), mod.__dict__)
-    assert not hasattr(mod, "_minibatch_slices"), "that blob already has F-04"
+    assert not hasattr(mod, "_minibatch_slices"), "that source already has F-04"
     assert "minibatch_tail" not in inspect.signature(mod.PPOAgent.__init__).parameters
     return mod
 
@@ -318,6 +375,24 @@ def _assert_same_weights_and_optimizer(new, old):
                 assert torch.equal(value, other), f"opt state {key}.{name} moved"
             else:
                 assert value == other, f"opt state {key}.{name} moved"
+
+
+def test_pre_f04_baseline_is_present_and_pinned():
+    """The bit-identity pin's baseline exists, hashes to the pre-F-04 blob, and
+    really is pre-F-04 — asserted as its OWN test so losing it is a red run and
+    not a quieter test suite. Review round 2's whole point: the pin must not be
+    able to become a no-op without failing, so this has no skip branch either.
+    The `_pre_f04_source` docstring says what the git cross-check adds."""
+    assert _PRE_F04_FIXTURE.is_file(), "the pre-F-04 baseline is not in the tree"
+    src = _pre_f04_source()  # fails on a hash mismatch or a drifted fixture
+    assert hashlib.sha256(src.encode()).hexdigest() == _PRE_F04_SHA256
+    # The content guards are the last line of defence in the one future the git
+    # cross-check cannot reach (no object store AND a re-pinned hash): a
+    # baseline regenerated from HEAD carries F-04 and would restore the
+    # tautology, so refuse it on its text alone.
+    assert "_minibatch_slices" not in src, "the baseline carries F-04's helper"
+    assert "minibatch_tail" not in src, "the baseline carries F-04's kwarg"
+    assert "class PPOAgent" in src and "def update_episodes" in src, "not ppo.py"
 
 
 def test_minibatch_tail_rejects_unknown_policy():

@@ -7,15 +7,23 @@ wire shipped in commit `650a8e6` (`PPOAgent(minibatch_tail=...)`, values
 `keep | drop | fold`) with the default `keep` = today's behaviour bit-for-bit.
 THE PIN (rewritten after review round 1, which found the original compared the
 new loop to ITSELF): `tests/test_ppo_episodes.py::test_minibatch_tail_keep_is_
-bit_identical_to_the_pre_f04_agent` loads `rl/agents/ppo.py` AS OF `5d3c6b7`
-(the commit before the wire) into a throwaway module and RUNS that agent
-beside today's — same seed, same kwargs, same batch, every async tail —
-asserting equal weights, equal Adam state, an equal metrics dict INCLUDING
-its keys, and an equal torch RNG state afterwards. Four mutations of the
-`keep` path (floor 2 -> 3, an extra RNG draw, a moved slice boundary, the
-diagnostics leaking under `keep`) were each verified to FAIL it. Its
-git-independent companion `test_minibatch_tail_default_is_keep_and_bit_
-identical` reimplements the pre-F-04 loop in-file as a row-and-RNG oracle.
+bit_identical_to_the_pre_f04_agent` loads `rl/agents/ppo.py` AS OF
+`5d3c6b7c841c008b0e70e916e3d8242ef3166bb5` (the commit before the wire) into a
+throwaway module and RUNS that agent beside today's — same seed, same kwargs,
+same batch, every async tail — asserting equal weights, equal Adam state, an
+equal metrics dict INCLUDING its keys, and an equal torch RNG state afterwards.
+Four mutations of the `keep` path (floor 2 -> 3, an extra RNG draw, a moved
+slice boundary, the diagnostics leaking under `keep`) were each verified to
+FAIL it. Review round 2 asked that the pin be unable to stop pinning quietly,
+so its baseline is VENDORED at `tests/fixtures/ppo_pre_f04.py.txt` (72,626
+bytes, sha256 `307ad4a1…` pinned in the test) and the object store is only a
+cross-check: a missing or edited baseline FAILS, a baseline that disagrees with
+`<sha>:rl/agents/ppo.py` FAILS, and an unreachable commit — the post-squash-
+merge future — drops the cross-check while the pin keeps running. Nothing in
+the loader skips. Its companion `test_minibatch_tail_default_is_keep_and_bit_
+identical` reimplements the pre-F-04 loop in-file as a row-and-RNG oracle, and
+`test_pre_f04_baseline_is_present_and_pinned` asserts the baseline separately
+so losing it is a red run.
 The production-shape arithmetic below is pinned by
 `test_minibatch_slices_plan_at_the_100m_recipe` (B = 30,720 + eps,
 minibatches 120, eps in 1/2/60/119/120/250) and the R0-3 read by
@@ -199,11 +207,14 @@ DOSE paragraph.
 **R0 SANITY GATES (zero-lane, at launch; any failure is STOP before the
 first step).**
 - R0-1 `tests/test_ppo_episodes.py` green at the launch commit, in the launch
-  env, AND `-rs` shows `test_minibatch_tail_keep_is_bit_identical_to_the_pre_
-  f04_agent` RAN — it skips (loudly, with the reason) when commit `5d3c6b7`
-  is not in the object store, and a skipped bit-identity pin is a STOP, not a
-  pass. The five tests R0-1 covers: that one, `..._default_is_keep_and_bit_
-  identical`, `..._policies_on_async_shaped_batches`,
+  env, AND `-rs` shows ZERO skips in it — the bit-identity pin has no skip
+  branch left (its baseline is the vendored `tests/fixtures/ppo_pre_f04.py.txt`,
+  not the object store), so a skip anywhere in this file means the pin was
+  edited and is a STOP, not a pass. The six tests R0-1 covers:
+  `..._keep_is_bit_identical_to_the_pre_f04_agent`,
+  `test_pre_f04_baseline_is_present_and_pinned`,
+  `..._default_is_keep_and_bit_identical`,
+  `..._policies_on_async_shaped_batches`,
   `test_minibatch_slices_plan_at_the_100m_recipe` and
   `..._metrics_at_the_100m_shape`.
 - R0-2 `diff` of the T config against `showdown_sp_batch50m_async.yaml` is
