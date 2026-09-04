@@ -7,6 +7,13 @@ doc's errors are corrected in §7. **Not a pre-registration.** Every fleet
 item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
 
+**Round 2 — 2026-09-04.** The sequencing floor below is DISCHARGED: fleet
+done, frozen schedule run, graded **P3**, recorded (RESULTS §18; S-SHAPE
+**SS-CLIMB**). Step 2 is in progress (ladder R4 on the 100M final s112,
+`configs/eval/ladder_r4.yaml`). This round adds 2.7, two §3 firewall
+entries, 4.5–4.6 (appended, UNRANKED — the re-rank is the maintainer's,
+STATUS next-action 3), a §5 amendment and §7 round 2. Still not a pre-reg.
+
 **Sequencing floor (binding):** nothing below runs before FLEET DONE → the
 frozen eval schedule → grade → record (HANDOFF §§1–3; the peeking bar covers
 *any* checkpoint eval until the last lane ends). After the record lands,
@@ -29,8 +36,13 @@ mechanism-primary design (the D23/carry lesson, SESSION_LOGS 2026-08-13).
 
 The 100M grade re-ranks §4: if S-SHAPE is still rising at 100M (quote it
 with the mandatory anneal sentence), "more steps" competes with every lever
-and the standing fewer-bigger-runs order favors it; if it is bending, the
-per-step levers below rise. Write the §4 pre-reg *after* the grade.
+and the 2026-08-23 big-runs ruling's second re-trigger — "a live run whose
+training logs are still clearly climbing" — is met by measurement (it still
+needs a maintainer decision and a pre-reg; RESULTS §18); if it is bending,
+the per-step levers below rise. Write the §4 pre-reg *after* the grade.
+[2026-09-04: it read SS-CLIMB, +0.02925 at 4.6× the threshold — see 4.5.
+The phrase "standing fewer-bigger-runs order" that stood here named no
+ruling on the record; §7 #20.]
 
 ## 2. Tier 0 — instrument work and free reads (no fleet; after the frozen schedule completes)
 
@@ -104,6 +116,50 @@ JOURNEY's own item).** The only anchor whose strength doesn't drift across
 generations; H&L report 0.829 against it in gen7. Sibling of
 MaxBasePowerPlayer with type awareness.
 
+**2.7 Zero-init encoder expansion ("model surgery") — a TOOL, not a
+lever; build only when an OBS_DIM change is actually scheduled (C6 as a new
+bit, or temporal context). ~a day, zero training. Added 2026-09-04.**
+The claim, verified against the paper (neither OpenAI Five nor AlphaStar is
+in `prior_work/README.md`, so this is the verification of record): Berner
+et al. 2019, *Dota 2 with Large Scale Deep RL* (arXiv:1912.06680), §3.3
+"Continual Transfer via Surgery" + Appendix B "Changing the Observation
+Space" — new input weights are initialized as Ŵ = [W 0], "the output is
+unchanged (ŷ = y)", the zero weights leave zero only where the new
+observations carry gradient, and it is "a special case of Net2Net-style
+function preserving transformations". So a checkpoint survives an encoder
+widening with its policy bit-identical at step 0 (PPO ratio exactly 1;
+optimizer moments zero-padded for the new rows). Where it lands here:
+every observation feature enters through the first `nn.Linear` of a
+per-entity subnet (`_subnet` → `mon_net` / `move_net` / `field_net`,
+`rl/networks/entity_deepsets.py:151-156,196-199`) after the tokenizer
+slices the flat vector by block stride; the id embeddings are untouched. A
+new slot in a block = one zero row in the affected first-layer matrix, in
+the actor AND the critic (separate nets, `ppo.py:418-419`); a loader path
+that expands instead of refusing (`train.py:103-113` refuses a width
+mismatch by design; the `init_from` path at `:515` dies on the same size
+mismatch); the
+old→new slot map — post-F-08 a function of two `EncoderSpec`s' `*_off`
+properties instead of hand-kept offsets; and the gen-1 tape hash gate
+(`tests/test_encoder_spec.py`, 612/808/828) extended to the new width,
+never bypassed. **What it buys: deployment continuity only** — a ladder
+object can carry an encoder fix without a from-scratch fleet. **What it
+does not buy: credit.** The continued run is a chain off a finished
+checkpoint (§3: re-heated lr IS the N-ANNEAL confound; dormancy), the
+un-surgeried parent stays incomparable under the new encoder, and both
+encoders must stay loadable side by side (the cross-encoder eval shim
+precedent). **The limit the external summary omitted, from the same paper
+(§4.2, "Rerun"):** OpenAI's from-scratch re-train in the final environment
+— 2 months, 150 PFlops/s·days — reached over 98% win rate against the
+final surgery-trained model; "the model ultimately plateaued at a weaker
+skill level than the from-scratch model was able to achieve." Surgery paid
+for a 10-month run they could not restart. Our fleets are 2–5 days,
+weights never transfer between generations (JOURNEY standing note), and a
+mid-run encoder change inside a long run is a bundle the one-diff rule
+refuses — so the honest use here is narrow: a fix-carrying deployment
+object, or a very long run that must not restart. The same summary's other
+claim, that OpenAI Five used an asymmetric critic, is not in the paper
+(§7 #17).
+
 ## 3. Ruled out / answered — do not re-propose
 
 - **KO / status / HP-differential potential shaping.** Inert by algebra:
@@ -136,6 +192,63 @@ MaxBasePowerPlayer with type awareness.
   idleness (D22: dormant 27→84–88% on s35/s36, critic ctx srank99 7–11/384;
   search-era lanes ~47/384). CNN is a category error (`rl/networks/conv.py`
   is MinAtar's DQN net).
+- **PFSP / league exploiters** (AlphaStar's league — main agents on
+  prioritized fictitious self-play, main exploiters, league exploiters;
+  Vinyals et al. 2019, verified against the paper text 2026-09-04, not in
+  `prior_work/README.md`). **ANSWERED BY MEASUREMENT — not banned, not
+  motivated.** A league fixes exploitability and cycling; three reads say
+  neither is what limits us. (i) D22 read 5 (2026-08-11): a fresh 6M-step
+  best-responder trained against the frozen struct50m final pooled
+  **0.4765 ± 0.0112** (two orientations, 1000 each) against the 0.55 line,
+  plateaued by ~1M and never reached parity; entropy 0.21–0.32. The routing
+  sentence stands verbatim — "the plateau is a REPRESENTATION/CRITIC
+  ceiling ... not an exploitability ceiling" — and RESULTS §4 records it as
+  "why opponent-sampling work was never run". (ii) The board is
+  transitive: memo B of the 2026-08-25/26 design cycle fit Bradley–Terry
+  through the SH hub to every banked h2h — transitive to ±0.03 except the
+  clone — and CH4 R1 (fresh same-session hub, 14 arms, ~30,000 battles)
+  dissolved the clone exception into a policy-form mismatch (rho +0.005 ±
+  0.013; "the board is transitive when like is compared with like"). No
+  cycles for a league to cover. (iii) The pool: the predecessor's sp6m pool
+  (2026-08-01, recovered record) measured strength-homogeneous
+  (winrate_latest 0.4986–0.5013), "killing latest_prob/PFSP retuning at
+  this rung by measurement"; every credited result since rode the
+  production pool (20 snapshots, latest_prob 0.8 — OpenAI Five's 80/20).
+  `pfsp_power` and `fixed_mix` were stripped 2026-08-29 (commit 4e5f5cf,
+  CLEANUP.md's strip list) as UNREACHABLE killed levers — `select()`
+  byte-identical on the seeded stream; no run config on this disk (178
+  runs) ever carried either key; `fixed_mix 0.05` ran only in the
+  predecessor's Phase 4 (coverage by construction, zero strength gain,
+  worse forgetting proxies). Purity is not the bar: an RL exploiter is
+  in-family (MU-5, 2026-08-26) and the X-PROBE was declined as unneeded,
+  not as impure. **Re-open only on** (a) a best-response probe against the
+  CURRENT best object reaching parity — ~3.6 h end to end, the probe
+  `research_reports/CONSOLIDATED.md` §5 names as the step-8 gate — or (b)
+  the cross-play forgetting read (CONSOLIDATED §4.1.ii) firing. Without one
+  of those, "add PFSP / exploiters" re-proposes a measured null.
+- **Asymmetric / privileged critic. RUN AND KILLED — D18 (2026-08-12):
+  12M × 5 seeds, pooled 0.5364 vs 0.5509 (Δ −0.0145, clustered se 0.0221,
+  z −0.65); its own falsifier fired (EV rose on every lane, win rate did
+  not); the 2026-08-16 post-hoc implementation audit found zero defects —
+  "do not re-run a 'corrected' D18: there is no correction to make."** It
+  was the SOUND form — V(actor-obs ‖ privileged), Baisero & Amato 2022's
+  unbiased construction, not the privileged-only V(s) the theory warns
+  against — so "wrong form" is pre-empted; Lyu et al.'s centralized-critic
+  variance critique is the recorded residual, and a λ=1 pure-baseline
+  variant was judged not worth a lane. The magnitude, measured: handed the
+  ENTIRE hidden team the critic gained **~+0.045 EV** of return variance
+  against the hoped-for ~0.40; the rest is aleatoric (crits, rolls, 1/256
+  miss, sampled opponent actions), which no privileged state explains.
+  Corroborated by D19's closeout: 88–90% of the hidden team is a
+  deterministic cap mask, belief residual 0.024–0.034 nats of 4.955. The
+  only critic-side item still open is 2.3 (own-move routing), which is not
+  privileged information. Provenance for outside advisories: the
+  privileged value function in the literature is AlphaStar's ("during
+  training only, the value function is estimated using information from
+  both the player's and the opponent's perspectives"; Methods: "we also
+  use the opponent's observations as input to the value functions") —
+  OpenAI Five's is not (its value head is a projection of the same LSTM
+  state as the policy, Berner et al. 2019 §3.1; §7 #17).
 
 ## 4. Tier 1 — training levers (each its own pre-reg; step 8 unless pulled forward; 50M async recipe, ~1 day/fleet at 574 steps/s/lane)
 
@@ -227,6 +340,103 @@ variant — on an inert term annealing anneals nothing, per the source doc
 itself). Zero code; one overnight at 12M is NOT readable (D23's comparator
 finding) — this too is a 50M-recipe question now.
 
+**4.5–4.6 appended 2026-09-04, UNRANKED.** The ordering of §4 is the
+maintainer's (STATUS next-action 3); these rows sit at the end because they
+were missing, not because they rank last.
+
+**4.5 More steps — a longer full-horizon run (the row §1 promised; the
+100M's own successor). Confound named in the row: N-ANNEAL.**
+Trigger, met: S-SHAPE read **SS-CLIMB** — W_hi (pooled rungs 85/90/95/100M)
+0.77764 vs W_lo (65/70/75/80M) 0.74839, **+0.02925 ≥ se_W 0.00633**, 4.6×
+the threshold; pooled curve 0.652 (5M) → 0.724 (50M) → 0.758 (75M) → 0.792
+(100M) vs-SH at n=9000/rung. MANDATORY SENTENCE: the treatment's sub-100M
+rungs are on the 100M anneal and are NOT comparable to a finished run at
+the same step (507.8× in lr at 50M). It moves no cell and licenses no
+extension (RESULTS §18); the 2026-08-23 big-runs ruling's second re-trigger
+("training logs still clearly climbing") is now met by measurement, and
+that ruling still requires a maintainer decision plus a pre-reg. **What it
+is:** a FRESH fleet from scratch at a new `total_steps` with
+`lr_anneal_steps == total_steps` (the recipe's full-horizon-anneal
+convention, R0-b; `train.py:407-413` refuses any anneal shorter than the
+run — the anneal trap), one-diff against `configs/showdown_sp_100m.yaml` in
+exactly {total_steps, lr_anneal_steps, seed, run_name} (its own R0-a
+pattern), control = the 100M finals (frozen comparator; the E2 exemption
+holds until the R4 readout lands). **What it is not:** a resume or a warm
+start. §3's chaining bullet binds — the 100M lanes finished at lr 1.1e-7 /
+7.8e-8 / 1.3e-7 (D-A, "ran to ~0 as constituted"); `--resume` rebuilds from
+the run's own config and cannot move the horizon; `init_from` re-arms the
+anneal (`begin_warm_start`) and is legal in code, but it is the N-ANNEAL
+confound in its purest form and is barred for credit. **The confound:** a
+2×-horizon run trains hotter at every matched step and integrates 2× the lr
+(the 100M header's own words); on any positive read it is the leading
+alternative mechanism, and it stays NAMED, NOT CELLED at any horizon,
+because the separating arm (2H under an H anneal) is exactly what the
+anneal-trap guard refuses — running it means a deliberate, pre-registered
+schedule-prefix arm, not a config edit. S-ANNEAL at 100M already showed the
+shape: the finished 50M control sat above the treatment at every matched
+mid-run step (50M: 0.783 vs 0.724) and the treatment passed it only as its
+own anneal completed. **Honest prior for the read:** the 100M itself landed
+P3 at +0.02389 vs BAR 0.025 (se_gov 0.00774; P(credit | true +0.025) ≈ 0.47
+at s_T 0.01086), and the finished-to-finished vs-SH gain from the last
+doubling was +0.00944 (SN-N). Unless the next doubling's effect is LARGER
+than the last, k=3 unpaired lands in P3 again — the pre-reg must pair seeds
+(2.2) or pre-commit a descriptive read; §1 is the constraint, not the
+anneal. Dose: horizon is dose-unmatched by construction (that IS the
+lever); optimizer passes per datum matched in configuration, as the 100M
+header states. **Cost at 200M** (≈ H&L's ~230M-in-our-currency diet,
+CHAPTER5 §7.4's calibration): ~100 h fleet wall at the 100M's realized
+557.5–562.8 steps/s/lane 3-wide, plus the 100M's post-fleet eval schedule
+(~7.5–15 h) with S-SHAPE doubled (40 rungs × 3 lanes × n=3000, +2 h),
+≈ 5 days end to end; rung retention ≈ 2 × 8.3 GB (E2). Over the 5 h line:
+maintainer launches, agent babysits. JOURNEY: ≈ step 10 pulled forward, as
+the 100M was (RESULTS §18) — off-arc without the same explicit order. Reads
+to carry: S-SHAPE with disjoint windows, S-ANNEAL against the 100M curve,
+D-A liveness, sigma_seed descriptive, the anchor battery.
+
+**4.6 C6 — fixed-damage encoder fix (MAINTAINER C-item, CHAPTER5 §3;
+first-class, unrun, unruled — it may not be dropped, deferred or merged
+away without a recorded maintainer ruling). Sequenced LAST, and F-08 did
+not change that.**
+The defect, re-verified live in the env 2026-09-04: poke-env's gen-1 data
+gives `base_power == 1` for seismictoss, superfang, nightshade, dragonrage,
+sonicboom, counter and psywave (the vendored gen1 mod sets `basePower: 1`
+on all seven; base data has 0), and `_fill_move` writes
+`move.base_power / 100.0` = 0.01 (`showdown.py:251`) beside Thunderbolt's
+0.95; the v2 effect block has no fixed-damage field. In the gen-1 randbats
+pool (`data.json`, 146 species) only four occur: Seismic Toss (26 species),
+Counter (24), Night Shade (3), Super Fang (2) — Dragon Rage, Sonic Boom and
+Psywave never do. The type multiplier is right for the immunity (Ghost
+blocks Seismic Toss) and spurious for 2×/0.5×. **Measured behavioural
+cost** (2026-08-26 replay sweep, ~175 ladder-R1 replays, guaranteed
+holders only): Seismic Toss 22/156 = 0.141 for us vs 67/232 = 0.289 for
+humans (z −3.39); Super Fang 0/59 vs 17/47 = 0.362 (z −5.04). ~1% of
+decisions (156 + 59 opportunities over ~20k). Route-around correction, same
+day: `move_emb` is a learned `nn.Embedding(166, 64)` in every move token,
+so the block is misleading, not unrepresentable — the fork's expected
+effect is smaller than the sweep implied. The sweep's second defect
+(force-switch corpse blocks) measured INERT (0/42) and is not part of C6.
+**Two shapes, both invalidate:** (a) constant-OBS_DIM semantic fix — an
+effective power in the bp slot (level-scaled for Seismic Toss / Night
+Shade; Super Fang and Counter are state-dependent and need a flag or a
+live estimate) — same width, changed semantics: the ENCODER_V2-flag
+precedent (`train.py:178`: a checkpoint is interpretable only with its
+fingerprint), so it must be flagged and fingerprinted, and old checkpoints
+see off-distribution values (the sweep's own warning about "fixing" defect
+2); (b) a "variable-damage" bit — the gen4 design's choice
+(`docs/design_gen4/encoder_requirements.md` §3.6: nine BP-0 damaging moves
+get the bit) — an OBS_DIM change, which 2.7 can carry forward for a
+deployment object. Either way the gen-1 tape hash gate changes by design
+and is re-pinned at the new fingerprint. **Read:** not a credit candidate
+at k=3 (~1% of decisions, partial route-around) — mechanism-primary (the
+sweep's own statistic: Seismic Toss / Super Fang usage on guaranteed
+holders, replay-measured), win rate secondary. **Sequencing:** LAST
+(CHAPTER5 C6: "runs after R2 and before nothing") because it destroys the
+baselines everything else is graded against; the seam did not change the
+cost (§5). The gen4 chapter pays the invalidation anyway (CONSOLIDATED
+§5), so the two honest homes are the step-3 rewrite's gen1 back-port (step
+8) or the last gen1 training change before step 10. Cost: fork ~half a day
++ a full fleet.
+
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
 - **Attention re-benchmark — DO (minutes-to-an-hour, no training).** The
@@ -242,12 +452,24 @@ finding) — this too is a 50M-recipe question now.
   Both *validated* comparables are single-snapshot: the 2102-Elo ps-ppo is
   the `7fb522c`-era system (KV-cache/temporal is HEAD-only, no logs or
   checkpoints anywhere in its history), and H&L is single-snapshot +
-  lastmove. It changes OBS_DIM — invalidating every checkpoint including
-  the 100M finals right when step 2 needs them. The gen4 encoder rewrite
-  (JOURNEY step 3, Wang's one-hot duration counters,
+  lastmove. It changes OBS_DIM — invalidating every checkpoint as a
+  comparable object, the 100M finals included (they are the step-2 object:
+  ladder R4 pins s112 at obs_dim 828, frozen until that readout lands). The
+  gen4 encoder rewrite (JOURNEY step 3, Wang's one-hot duration counters,
   prior_work/HISTORY_FEATURES_DESIGN.md) is where Markovianity gets
-  redesigned for free.
-- **Width — SKIP** (§3, last bullet).
+  redesigned for free — and it now has a landing zone:
+  `docs/design_gen4/encoder_requirements.md` (2026-09-04) is designed
+  against the landed F-08 seam. **F-08 did not change the cost above**
+  (checked 2026-09-04): `rl/envs/encoder_spec.py` owns the per-gen tables
+  and the intra-block offsets, its own docstring restates the landmine (a
+  new field is an OBS_DIM change; every checkpoint invalidated), and
+  OBS_DIM and the block strides are still derived at import in
+  `showdown.py`, with `train.py` refusing a width mismatch. What the seam
+  changed: the old→new slot map for 2.7 is now a function of two specs
+  instead of hand-kept offsets. 2.7 can carry a checkpoint across the
+  change as a DEPLOYMENT object; it cannot make the change free for credit
+  (§3, chaining).
+- **Width — SKIP** (§3, width/capacity bullet).
 
 ## 6. Ops hygiene (from the 2026-09-01 auto-mode review; sequenced)
 
@@ -306,3 +528,51 @@ After FLEET DONE + frozen schedule + grade are recorded:
 12. Missing entirely: the built, letter-met, uncredited regenerative-L2
     family (§4.3) — arguably better-evidenced than the shaping retry it
     ranks above.
+
+**Round 2 — 2026-09-04, the remote re-read's four gap claims, verified here
+against the record before anything above was added:**
+
+13. "C6 is the only measured encoder defect" — the 2026-08-26 sweep
+    confirmed TWO (fixed-damage: measured behavioural cost; force-switch
+    corpse blocks: measured INERT, 0/42) plus minor finds (Counter
+    critRatio 3.0, Ditto id). C6 is the only one with a measured cost.
+14. C6's move list: poke-env gen-1 `base_power == 1` covers seven moves
+    (seismictoss, superfang, nightshade, dragonrage, sonicboom, counter,
+    psywave); only four are in the gen-1 pool (Seismic Toss, Counter,
+    Night Shade, Super Fang). CHAPTER5's list names two moves that never
+    occur (Dragon Rage, Sonic Boom) and omits Counter.
+15. "CH4 R1 fit Bradley–Terry ... to every h2h on disk, transitive to
+    ±0.03" — that fit was memo B's, on BANKED data, in the 2026-08-25/26
+    design cycle; CH4 R1 fit a fresh same-session hub (rho +0.005 ±
+    0.013; FP excess > 2.6 points excluded) and dissolved the clone
+    exception. Same conclusion, wrong attribution.
+16. "pfsp_power and fixed_mix removed 2026-08-29 as inert (CLEANUP A4)" —
+    removed as UNREACHABLE killed levers (commit 4e5f5cf; CLEANUP.md
+    "Stripped as ruled"; `select()` byte-identical on the seeded stream).
+    "A4" in CLEANUP.md is also the label of a shelved audit item
+    (`update()`'s variadic tuple) — cite the strip list, not "A4" (the
+    trap 4.1 already flags for "A2"). Neither key appears in any of the
+    178 run configs on disk.
+17. "OpenAI Five used an asymmetric critic" (the external summary) — not
+    in Berner et al. 2019: "The LSTM state is projected to obtain the
+    policy outputs (actions and value function)" (§3.1, Fig. 1); no
+    privileged input anywhere in the text. The privileged value function
+    is AlphaStar's (main text and Methods, quoted in §3). The remote
+    session's doubt was correct.
+18. "Zero-init surgery leaves the policy unchanged" — verified (App. B,
+    Ŵ = [W 0], ŷ = y; Net2Net cited), but the summary omitted the same
+    paper's Rerun (§4.2): from scratch, 2 months, 150 PFlops/s·days,
+    > 98% vs the final surgery-trained model — "plateaued at a weaker
+    skill level than the from-scratch model". Continuity at a strength
+    cost (2.7).
+19. "F-08 makes §5's OBS_DIM cost reasoning stale" — false. The seam
+    restates the landmine in its own docstring; OBS_DIM and the strides
+    are still import-time globals in `showdown.py`; the loader still
+    refuses a width mismatch. F-08 changed table ownership and made the
+    intra-block layout derivable (a slot map for 2.7), not the cost. §5
+    amended for accuracy, not cost.
+20. This doc's own §1 (2026-09-01) cited "the standing fewer-bigger-runs
+    order" — no such order is on the record. The governing texts are the
+    2026-08-23 big-runs ruling (huge runs only for a ladder-ready model, or
+    logs still clearly climbing; CHAPTER5 §7.3 kept it in force) and the
+    explicit 2026-08-31 100M off-arc order (RESULTS §18). Fixed in place.
