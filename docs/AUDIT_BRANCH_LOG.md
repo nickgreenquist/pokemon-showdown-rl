@@ -394,14 +394,32 @@ Open questions for the maintainer:
   `808:273cd675b190cb7e4ca2a1253430f92a0474649e96c1da588f805bc97908a13e`,
   `828:0be192a8711def10cff546a12271156e006c982f7a739d16161da34c4d961ef6`.
 
+- **Final verification after merging `main` into the branch (2026-09-04, commit
+  `5ecc510`, box idle, fleet and post-fleet evals finished).** Bare suite, NO guard,
+  server up, default threads: **767 passed, 31 skipped, 4 failed** — the 4 are the
+  artifact readers (`test_ch5_100m_offfp_prereg::test_checkpoints_on_disk_and_finals_are_crossing_rungs`,
+  the two `test_ch5_r2_prereg` attest/selftest tests, `test_ladder::TestProvenanceLinks`),
+  which need `runs/` and `results/` from the main tree. With READ-ONLY symlinks to those
+  dirs placed temporarily in the worktree the three files ran **114 passed, 4 skipped**;
+  links removed afterwards. **The seven `live_server` tests ran for the first time and
+  passed (7 passed in 4.2 s)**, including the new `test_async_pause_resume_live_contract`
+  (K=4 battles, pause from the main thread, `seam.requests` frozen until resume, every
+  row's version <= its finish version). The one extra skip vs the guarded run is
+  `test_encoder_spec`'s tape hash gate (no `data/` here; it executed earlier via the
+  symlink: 13 passed).
+
 ## Merge notes for the maintainer
 
-1. `main` moved 60c1225 → 9fdf1fa while this branch was worked (100M eval runners,
-   readout, STATUS). The delta is new files plus 8 lines in `tests/test_100m_prereg.py`;
-   no `rl/` file changed, so `git rebase main` from `audit-fixes` should be clean.
-2. Then the bare suite IN MAIN (`pytest tests/`, no encoder env vars, server up so the
-   `live_server` tests run — including the NEW `test_async_pause_resume_live_contract`,
-   which has never executed) and the R0-3b pins.
+1. `main` (9fdf1fa, 11 commits past the branch point: 100M eval runners, readout,
+   RESULTS §18, STATUS, HANDOFF stub, ladder R4 design docs) was MERGED INTO the branch
+   at `5ecc510` (merge commit; `.gitignore` auto-merged — main whitelisted
+   `results/design_ladder_r4/`, F-21 whitelisted `rl/envs/data/`). No `rl/` file changed
+   on main since 60c1225. Merging (rather than rebasing) keeps every SHA cited in this
+   log valid. `audit-fixes` is therefore a strict descendant of `main` and lands with
+   `git merge --ff-only audit-fixes` from the main tree.
+2. The suite above ran on exactly that tree. The only tests not exercised in the
+   worktree itself were the four artifact readers, which passed against the main tree's
+   `runs/`/`results/` through read-only links.
 3. **Behaviour changes to know about at merge:** (a) F-05 — new run dirs write the pool
    INSIDE `checkpoint.pt` every 4 updates and no longer write `pool.pt`; old dirs still
    resume (legacy fallback prints a disclosure and stamps `pool_source`); (b) F-03 — a
@@ -417,9 +435,8 @@ Open questions for the maintainer:
 
 ## Deferred to post-fleet (status at branch end)
 
-- The full suite was RUN post-fleet on the branch (above). Still deferred to the
-  maintainer's main-tree run: the 7 `live_server` tests, and the 3 artifact-reading
-  tests that need `results/` and `runs/`.
+- Nothing remains deferred: the full suite, the 7 `live_server` tests and the 4
+  artifact-reading tests have all run green on the merged tree (verification record).
 - Any `profile_collect.py` / throughput number (F-10's speedup and F-11 are unmeasured;
   benchmarks were barred while the fleet ran and were not run afterwards).
 
