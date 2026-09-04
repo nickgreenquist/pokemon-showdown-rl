@@ -18,6 +18,9 @@
 
 results_dir: results/ch5_100m
 
+# ch3_r4_anchors.py preflight (R5b BI-7a knob): sha-assert all pins below.
+expected_pins: 10
+
 checkpoints:
   s104: {path: runs/showdown_sp_100m_s104/ckpt_100000027.pt, sha256: 16a6f02064e4c71ddecec08122a60f2ba363cea237761c9cda01a1c2ce5914ff, step: 100000027}
   s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
