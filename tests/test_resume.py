@@ -19,6 +19,18 @@ Covers the three layers separately and end to end:
   and are restored just before the loop, so a resume continues them instead
   of replaying step 0's minibatch permutations and action draws; a pre-F-18
   run dir resumes as it did, with a printed line.
+
+The (pool, rng) key combinations a checkpoint.pt can show, and which ones a
+released version actually wrote — `_save_latest` writes both keys or neither,
+so only two of them exist on disk:
+
+- both keys — REAL, what HEAD writes: `test_killed_selfplay_run_resumes_to_completion`,
+  `test_resume_restores_the_rng_state`.
+- neither key, beside a pool.pt — REAL, what the three live 100M lanes hold
+  right now: `test_legacy_pool_pt_run_dir_resumes_with_disclosure`.
+- pool but no rng — SYNTHETIC, never written by anything:
+  `test_pre_f18_run_dir_resumes_with_the_replay_disclosure` keeps it anyway to
+  isolate the rng-absent branch from the pool-absent one (see its docstring).
 """
 
 import copy
@@ -216,25 +228,64 @@ def test_killed_selfplay_run_resumes_to_completion(tmp_path, monkeypatch, capsys
 
 
 def test_legacy_pool_pt_run_dir_resumes_with_disclosure(tmp_path, monkeypatch, capsys):
-    """The live fleet's format — checkpoint.pt WITHOUT a pool key beside a
-    pool.pt — must resume exactly as it did before F-05: pool restored (not
-    reseeded), the unverifiable pairing disclosed, the source recorded."""
+    """The live 100M fleet's REAL on-disk shape — checkpoint.pt with NEITHER a
+    pool nor an rng key, beside a pool.pt — must resume exactly as it did
+    before F-05 and F-18: pool restored (not reseeded), the unverifiable
+    pairing disclosed, the source recorded, and the streams replayed from
+    set_seed(seed) with that said out loud.
+
+    Dropping BOTH keys is the point, not tidiness: `_save_latest` writes them
+    together, so "pool absent, rng present" was never on disk anywhere — and
+    leaving "rng" in would have `_restore_rng` overwrite the torch stream at
+    loop entry, masking the one thing F-05 could have perturbed on this path,
+    since the pool rebuild moved above `_ensure_theta0` / `make_logger`."""
     cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
     run = _run_and_kill_at_second_eval(cfg, monkeypatch)
-    # Rewrite the dir into the pre-F-05 layout.
+    # Rewrite the dir into the pre-F-05/pre-F-18 layout.
     ckpt = load_checkpoint(run / "checkpoint.pt")
     legacy_pool = ckpt.pop("pool")["state"]
+    ckpt.pop("rng")
     torch.save(ckpt, run / "checkpoint.pt")
     torch.save(legacy_pool, run / "pool.pt")
     capsys.readouterr()  # drop the killed run's output
+
+    # Two probes: the stream position right after the pool rebuild, and the
+    # position the loop actually starts on. On this path — the only one with
+    # no restore in between — they must be equal.
+    seen: dict[str, dict] = {}
+    restores: list = []
+    real_restore_pool, real_loop = train_mod._restore_pool, train_mod._vector_loop
+
+    def spying_restore_pool(*a, **k):
+        source = real_restore_pool(*a, **k)
+        seen["after_pool_rebuild"] = _rng_snapshot()
+        return source
+
+    def spying_loop(*a, **k):
+        seen["at_loop_entry"] = _rng_snapshot()
+        return real_loop(*a, **k)
+
+    monkeypatch.setattr(train_mod, "_restore_pool", spying_restore_pool)
+    monkeypatch.setattr(train_mod, "_vector_loop", spying_loop)
+    monkeypatch.setattr(train_mod, "_restore_rng", lambda state: restores.append(state))
 
     _resume(run)
     out = capsys.readouterr().out
     assert ("RESUME: legacy pool.pt (pre-F-05 run dir) — pool/checkpoint "
             "pairing not verifiable") in out
     assert "no pool.pt" not in out
+    assert "RESUME: no rng state in checkpoint.pt (pre-F-18 run dir)" in out
+    assert restores == []  # nothing to continue: the streams replay, as before
     meta = yaml.safe_load((run / "meta.yaml").read_text())
     assert meta["resumes"][0]["pool_source"] == "pool.pt"
+    assert meta["resumes"][0]["rng_restored"] is False
+    # F-05 moved the pool rebuild above _ensure_theta0 / make_logger, which is
+    # stream-neutral ONLY because nothing between the rebuild and the loop's
+    # first draw touches a global stream (the theta0 guard hashes and torch.loads,
+    # make_logger and the pool_size log draw nothing). Pinned here, on the one
+    # resume path where no rng restore hides a violation.
+    _assert_same_streams(seen["at_loop_entry"], seen["after_pool_rebuild"],
+                         "moved between the pool rebuild and loop entry")
     # Restored, not reseeded: the lifetime push counter continues from the
     # legacy snapshot through the two remaining updates (push_every 1); a
     # reseed would have restarted it at 1. The step-0 anchor is still there.
@@ -348,8 +399,16 @@ def test_resume_restores_the_rng_state(tmp_path, monkeypatch, capsys):
 
 
 def test_pre_f18_run_dir_resumes_with_the_replay_disclosure(tmp_path, monkeypatch, capsys):
-    """A checkpoint written before F-18 has no rng key: it must still resume,
-    printing the line that says the streams restart from set_seed(seed)."""
+    """A checkpoint with no rng key must still resume, printing the line that
+    says the streams restart from set_seed(seed) — and must run to completion.
+
+    SYNTHETIC shape, labelled: pool key present, rng key absent is not
+    something any version wrote (`_save_latest` writes both), and the REAL
+    pre-F-18 dir is the legacy one above, with neither key. Kept deliberately
+    all the same, because it is the only row that isolates the rng-absent
+    branch from the pool-absent one: a change that couples them — handling "no
+    rng" only inside the legacy pool fallback, say — fails here and nowhere
+    else."""
     cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
     run = _run_and_kill_at_second_eval(cfg, monkeypatch)
     ckpt = load_checkpoint(run / "checkpoint.pt")
