@@ -22,8 +22,12 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
    `best_checkpoint.pt` when `eval/return_mean` improves (`:646-648`), calls
    `save_latest()` (`:649`; the resume pair `checkpoint.pt` + `pool.pt`,
    `:552-558`), then `resume()`s (`:650`). The sync path runs the same block
-   without pause/resume (no async collector to pause): `:913-937`, with the
-   latest-checkpoint save written inline at `:927-937`.
+   without pause/resume (no async collector to pause): `:914-937` (`if step
+   >= next_eval:` at `:914`), with the latest-checkpoint save
+   (`checkpoint.pt` + `pool.pt`) written inline at `:928-937`; the
+   best-checkpoint save is `:927`. Those two writes stay distinguished
+   throughout this file — `:927` is the noise-max artifact §3 item 2 argues
+   against, `:928-937` is the resume pair F-05 moves onto its own cadence.
 2. Config: `eval_every: 250000`, `eval_episodes: 100`
    (`configs/showdown_sp_100m.yaml:535-536`), `eval_win_rate: true` (`:542`).
    1e8 / 250k = 400 evals per lane.
@@ -80,10 +84,22 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
    at n=100 (returns are +-1/0, so se ~0.08 per draw) — a noise-max.
    `scripts/eval_checkpoint.py:11-13` documents the selection bias;
    `scripts/score_ladder.py:50` refuses to score it; the frozen schedule
-   reads the 100M crossing rung `ckpt_1000*.pt` (HANDOFF §2 item 1;
-   `configs/eval/ch5_r2_offsh.yaml:501`: "NOT best_checkpoint.pt"). No 100M
-   script references it (`grep best_checkpoint scripts/ch5_100m_*` is
-   empty). Seven earlier training pre-reg headers disclaim it in their own
+   reads the 100M crossing rung `ckpt_1000*.pt` — `HANDOFF.md:72` (§2 item
+   1) is the whole of the source for the 100M object. No 100M script
+   references it (`grep best_checkpoint scripts/ch5_100m_*` is empty).
+   A DIFFERENT fleet's pin says the same thing about a different object: the
+   R2 read-side pre-reg (`configs/eval/ch5_r2_offsh.yaml`, header line 2:
+   "CH5 R2 — THE READ HALF OF THE BATCH PRE-REGISTRATION (JOURNEY step 1)")
+   pins the 50M SYNC CONTROL's evaluated object in its
+   `checkpoint_attestation` — `rule: final_checkpoint_pt_at_step_50000000`,
+   i.e. `runs/showdown_sp_batch50m_s<N>/checkpoint.pt`, "the file the
+   training loop writes on exit at step == 50,000,000; NOT
+   best_checkpoint.pt, NOT any `ckpt_*.pt` rung (matches the control's own
+   pin)" (`:498-501`). Quote that pin for the control only, and in full: its
+   second clause excludes exactly the class of object the 100M schedule DOES
+   read (a `ckpt_*.pt` crossing rung), so it is evidence that
+   `best_checkpoint.pt` is refused project-wide, never evidence about the
+   100M rung. Seven earlier training pre-reg headers disclaim it in their own
    words (`configs/showdown_sp6m.yaml:62`, `showdown_warmrl_v2.yaml:35`,
    `showdown_sp_l2init12m.yaml:239`, plus `scratch12m`, `sp_actpred12m`,
    `sp_priv12m`, `sp_recipe12m`; `grep -rli 'best.checkpoint\|best_ckpt'
