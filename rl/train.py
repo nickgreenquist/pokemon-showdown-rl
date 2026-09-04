@@ -130,14 +130,34 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
             ["git", "rev-parse", "HEAD"],
             capture_output=True, text=True, check=True, cwd=repo_root,
         ).stdout.strip()
-        dirty = bool(
+        porcelain = subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True, text=True, check=True, cwd=repo_root,
+        ).stdout
+        # git_dirty keeps its EXACT semantics (tracked changes OR untracked
+        # files): scripts/ch5_preflight.sh and scripts/ch5_r2_preflight.sh
+        # gate G0 on the same `git status --porcelain` being empty, and the
+        # attestation path quotes this field, so narrowing it would silently
+        # re-interpret every run record ever stamped.
+        dirty = bool(porcelain.strip())
+        # F-13: the two halves, separately, so provenance is exact without
+        # CLAUDE.md rule 3's launch-time trap (one stray .md marked every run
+        # dirty and there was no way to tell that from an edited tree).
+        dirty_tracked = bool(
             subprocess.run(
-                ["git", "status", "--porcelain"],
+                ["git", "status", "--porcelain", "--untracked-files=no"],
                 capture_output=True, text=True, check=True, cwd=repo_root,
             ).stdout.strip()
         )
+        # `?? ` lines only. Paths are as git prints them: an untracked
+        # DIRECTORY collapses to one `dir/` entry, and a path with unusual
+        # bytes comes back C-quoted (core.quotePath) — fine for a provenance
+        # record, which needs to name what was there, not re-open it.
+        untracked = [
+            line[3:] for line in porcelain.splitlines() if line.startswith("?? ")
+        ]
     except (OSError, subprocess.CalledProcessError):
-        sha, dirty = "unknown", False
+        sha, dirty, dirty_tracked, untracked = "unknown", False, False, []
     versions = {}
     for pkg in ("torch", "gymnasium", "numpy", "wandb"):
         try:
@@ -148,6 +168,8 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
         "started_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_sha": sha,
         "git_dirty": dirty,
+        "git_dirty_tracked": dirty_tracked,
+        "untracked_files": untracked,
         "versions": versions,
     }
     if cfg.env_id.startswith("Showdown"):
