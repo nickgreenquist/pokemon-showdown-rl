@@ -208,13 +208,21 @@ to the block.
 
 ## 5. Interaction with F-08's `EncoderSpec` (PLANNED, NOT landed)
 
-1. F-08 (plan §3 F-08, §5 item 5): the gen-1 tables — 15 types,
-   type-determined physical/special, no items/abilities/weather, gen-1
-   volatiles (`showdown.py:81-168`, per the plan) — go behind an
+1. F-08 (plan §3 F-08, §5 item 5): the gen-1 tables — 15 types, 7 boosts,
+   `GEN1_TYPES`, gen-1 volatiles, and no items/abilities/weather anywhere
+   in them (`showdown.py:81-168`, the plan's F-08 Location) — go behind an
    `EncoderSpec` chosen by format; the 828-dim gen-1 encoding stays
    bit-identical under regression tapes; the action space stays 10 through
    gen 5 (poke-env `get_action_space_size`), so the spec is the gen-4
-   blocker and the action-space derivation a gen-9 need.
+   blocker and the action-space derivation a gen-9 need. The plan's other
+   gen-4 breakage, physical/special, is NOT one of those tables. [MEASURED,
+   today's tree] the flag is written at `showdown.py:251` (`vec[o + 5] =
+   move.category == MoveCategory.PHYSICAL`, with `MoveCategory` imported
+   from poke-env at `:41`), i.e. straight off poke-env's per-gen move data —
+   nothing under `:81-168` encodes the gen-1..3 type-determines-category
+   rule. So gen 4's per-move split is a property of the data poke-env hands
+   us: the spec selects the gen, it does not carry a physical/special table
+   for this repo to port.
 2. STATUS at this draft: the `EncoderSpec` seam is being built in a sibling
    worktree on the `audit-fixes` branch family. At this draft's base (all
    audit branches at 5d3c6b7) no `EncoderSpec` exists in the tree
