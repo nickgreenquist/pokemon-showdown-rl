@@ -21,8 +21,9 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
    `:338` through `make_eval_env` — logs `time/eval_sec` (`:642`), writes
    `best_checkpoint.pt` when `eval/return_mean` improves (`:646-648`), calls
    `save_latest()` (`:649`; the resume pair `checkpoint.pt` + `pool.pt`,
-   `:552-558`), then `resume()`s (`:650`). The sync path has the same shape
-   at `:915-927`.
+   `:552-558`), then `resume()`s (`:650`). The sync path runs the same block
+   without pause/resume (no async collector to pause): `:913-937`, with the
+   latest-checkpoint save written inline at `:927-937`.
 2. Config: `eval_every: 250000`, `eval_episodes: 100`
    (`configs/showdown_sp_100m.yaml:535-536`), `eval_win_rate: true` (`:542`).
    1e8 / 250k = 400 evals per lane.
@@ -42,10 +43,15 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
    Collection between evals at the realized 574 steps/s is 250k / 574 =
    ~435 s, so the pause is 1-6% of each cycle: 0.6-2.9 h of a 48 h lane.
    The audit plan quotes the prize as **1-6%** (plan §3 F-06, re-verified
-   note); the 100M lanes' `time/eval_sec` was NOT read (lane logs carry no
-   eval timings; `extract_history.py` writes into the run dir and was
-   barred agent-side while the fleet ran). See §8 for the read that
-   settles it.
+   note); the 100M lanes' own `time/eval_sec` was NOT read here, for two
+   reasons and NEITHER is a fleet rule: the lane logs carry no eval timings,
+   and `extract_history.py` is barred to THIS workstream by the
+   audit-worktree protocol ("no reads of `runs/` or `logs/`, no
+   `extract_history.py`", `docs/AUDIT_BRANCH_LOG.md:16-18`; plan header). The
+   fleet's own monitoring rules say the opposite — HANDOFF §1 prescribes
+   periodic health reads "all from `scripts/extract_history.py <run_dir>` →
+   history.csv, which works on a live run" (`HANDOFF.md:53-55`). See §8 for
+   the read that settles it.
 2. Timer exposure: the eval+checkpoint block is the longest collector
    pause; during it K=8 battles sit mid-turn against the 300 s/turn
    challenge budget (~11x margin at 26 s; `showdown_sp_100m.yaml:109-112`;
@@ -93,8 +99,15 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
 
 1. Plan §5 item 3 orders F-05 BEFORE F-06: fold `pool.state_dict()` into
    `checkpoint.pt`'s `extras`, one rename, a `stamp: step` asserted on
-   resume, and `save_latest()` on its own cadence (e.g. every 4 updates,
-   ~2 min at 574 steps/s).
+   resume, and `save_latest()` on its own cadence. The plan's example cadence
+   is "every 4 updates, ~2 min at 574 steps/s"; the arithmetic gives 3.6 min,
+   not 2 — one update is `rollout_steps` 3840 x `num_envs` 8 = 30,720 env
+   steps (`configs/showdown_sp_100m.yaml:537, 576`; `rl/train.py:520`), so
+   4 updates = 122,880 steps = **214 s ≈ 3.6 min** at 574 steps/s (2 updates
+   would be ~1.8 min). Whoever quotes the run-loss window under F-05 must
+   quote 3.6 min for a 4-update cadence, or pick 2 updates if ~2 min was the
+   intent. [MEASURED: the config lines and `train.py:520`; the plan's "~2
+   min" is a slip and is corrected here, not in the plan.]
 2. STATUS at this draft: F-05 is being implemented in a sibling worktree on
    the `audit-fixes` branch family. At this draft's base (every audit branch
    at 5d3c6b7) no F-05 commit exists; nothing in this file may be read as
@@ -142,7 +155,9 @@ exposure are real.
    control's first 1M" (`:398-399`). At a 1M cadence the first reading
    lands AT 1M. The next header must state R0-6's window explicitly
    (PROPOSED wording: "the first reading, wherever the cadence places it").
-2. Locked metric names; `eval_win_rate: true` (`rl/common/config.py:48`);
+2. Locked metric names; `eval_win_rate` stays ON in the Showdown config
+   (`configs/showdown_sp_100m.yaml:542`; the `Config` field itself defaults
+   to `False`, `rl/common/config.py:48`, and that default does not move);
    the `eval/win_rate` provenance rule (env-supplied outcome).
 3. The frozen post-fleet read (`eval_checkpoint.py` at n=3000 on the
    crossing rung) — untouched; the in-loop eval never fed it.
@@ -170,13 +185,22 @@ exposure are real.
 
 ## 8. Post-fleet evidence that sharpens the 1-6% range (MEASURED, to be produced)
 
-1. After FLEET DONE and after the frozen schedule has run (never before —
-   the extractor writes into the run dir): `scripts/extract_history.py
+1. After FLEET DONE and after the frozen schedule's PRIMARY — the ordering is
+   NOT a bar on the extractor (HANDOFF §1 has it running on a LIVE run,
+   `HANDOFF.md:53-55`; `runs/` is gitignored, `.gitignore:35`, the default
+   output is `<run_dir>/history.csv` and `-o` redirects it,
+   `scripts/extract_history.py:63, 68`). The reasons are that the numbers
+   need FINISHED lanes (the 400-row per-lane total and the realized
+   dStep/dWall) and that the off-FP@20 primary is time-budgeted and runs with
+   "no co-scheduling" (HANDOFF §2 item 2), so nothing else should take CPU
+   beside it. The read: `scripts/extract_history.py
    runs/showdown_sp_100m_s{104,112,120}` → `history.csv`; sum
    `time/eval_sec` per lane (expect 400 rows) over the REALIZED wall clock
    (dStep/dWall from rung mtimes). That ratio replaces "1-6%". A resumed
    lane needs the merge protocol first (`docs/landmines.md:268-283`; none
-   had been resumed at the 2026-09-02 19:32Z read, plan header).
+   had been resumed at the 2026-09-02 19:32Z read, plan header). Whoever
+   schedules this is NOT this audit worktree, which may not run the
+   extractor at all (`docs/AUDIT_BRANCH_LOG.md:16-18`).
 2. Distribution, not mean: the max and p99 of `time/eval_sec` are the
    timer-exposure numbers; compare against the acceptance max 26.18 s.
 3. In-loop `eval/win_rate` (400 points/lane) against the S-SHAPE n=3000
