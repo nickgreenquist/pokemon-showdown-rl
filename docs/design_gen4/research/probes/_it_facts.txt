@@ -1,0 +1,220 @@
+### Insect Plate | insectplate
+  base /items.ts:3026-3045 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:192-195 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Bug-type attacks have 1.2x power. Judgment is Bug type.
+  msgs_base= []
+  msgs_gen4= []
+### Dread Plate | dreadplate
+  base /items.ts:1572-1591 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:122-125 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Dark-type attacks have 1.2x power. Judgment is Dark type.
+  msgs_base= []
+  msgs_gen4= []
+### Draco Plate | dracoplate
+  base /items.ts:1450-1469 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:118-121 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Dragon-type attacks have 1.2x power. Judgment is Dragon type.
+  msgs_base= []
+  msgs_gen4= []
+### Zap Plate | zapplate
+  base /items.ts:7789-7808 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:466-469 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Electric-type attacks have 1.2x power. Judgment is Electric type.
+  msgs_base= []
+  msgs_gen4= []
+### Fist Plate | fistplate
+  base /items.ts:2118-2137 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:134-137 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Fighting-type attacks have 1.2x power. Judgment is Fighting type.
+  msgs_base= []
+  msgs_gen4= []
+### Flame Plate | flameplate
+  base /items.ts:2153-2172 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:143-146 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Fire-type attacks have 1.2x power. Judgment is Fire type.
+  msgs_base= []
+  msgs_gen4= []
+### Sky Plate | skyplate
+  base /items.ts:5784-5803 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:407-410 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Flying-type attacks have 1.2x power. Judgment is Flying type.
+  msgs_base= []
+  msgs_gen4= []
+### Spooky Plate | spookyplate
+  base /items.ts:5946-5965 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:415-418 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Ghost-type attacks have 1.2x power. Judgment is Ghost type.
+  msgs_base= []
+  msgs_gen4= []
+### Meadow Plate | meadowplate
+  base /items.ts:3841-3860 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:299-302 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Grass-type attacks have 1.2x power. Judgment is Grass type.
+  msgs_base= []
+  msgs_gen4= []
+### Earth Plate | earthplate
+  base /items.ts:1637-1656 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:126-129 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Ground-type attacks have 1.2x power. Judgment is Ground type.
+  msgs_base= []
+  msgs_gen4= []
+### Icicle Plate | icicleplate
+  base /items.ts:2974-2993 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:188-191 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Ice-type attacks have 1.2x power. Judgment is Ice type.
+  msgs_base= []
+  msgs_gen4= []
+### Toxic Plate | toxicplate
+  base /items.ts:6353-6372 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:453-456 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Poison-type attacks have 1.2x power. Judgment is Poison type.
+  msgs_base= []
+  msgs_gen4= []
+### Mind Plate | mindplate
+  base /items.ts:4111-4130 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:356-359 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Psychic-type attacks have 1.2x power. Judgment is Psychic type.
+  msgs_base= []
+  msgs_gen4= []
+### Stone Plate | stoneplate
+  base /items.ts:6130-6149 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:436-439 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Rock-type attacks have 1.2x power. Judgment is Rock type.
+  msgs_base= []
+  msgs_gen4= []
+### Iron Plate | ironplate
+  base /items.ts:3064-3083 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:200-203 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Steel-type attacks have 1.2x power. Judgment is Steel type.
+  msgs_base= []
+  msgs_gen4= []
+### Splash Plate | splashplate
+  base /items.ts:5926-5945 handlers= ['onBasePower', 'onBasePowerPriority', 'onPlate', 'onTakeItem']
+  gen4 /mods/gen4/items.ts:411-414 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: Holder's Water-type attacks have 1.2x power. Judgment is Water type.
+  msgs_base= []
+  msgs_gen4= []
+### Griseous Orb | griseousorb
+  base /items.ts:2676-2691 handlers= ['onBasePower', 'onBasePowerPriority']
+  gen4 /mods/gen4/items.ts:174-183 handlers= ['onBasePower', 'onSetAbility', 'onTakeItem'] REMOVED= []
+  desc[gen4]: Can only be held by Giratina. Its Ghost- & Dragon-type attacks have 1.2x power.
+  msgs_base= []
+  msgs_gen4= []
+### Soul Dew | souldew
+  base /items.ts:5879-5897 handlers= ['onBasePower', 'onBasePowerPriority']
+  desc[gen6]: If held by a Latias or a Latios, its Sp. Atk and Sp. Def are 1.5x.
+  msgs_base= []
+### Thick Club | thickclub
+  base /items.ts:6288-6304 handlers= ['onModifyAtk', 'onModifyAtkPriority']
+  gen4 /mods/gen4/items.ts:440-447 handlers= ['onModifyAtk'] REMOVED= []
+  desc[base]: If held by a Cubone or a Marowak, its Attack is doubled.
+  msgs_base= []
+  msgs_gen4= []
+### Light Ball | lightball
+  base /items.ts:3417-3439 handlers= ['onModifyAtk', 'onModifyAtkPriority', 'onModifySpA', 'onModifySpAPriority']
+  gen4 /mods/gen4/items.ts:265-274 handlers= ['onBasePower', 'onModifyAtk', 'onModifySpA'] REMOVED= ['onModifyAtk', 'onModifySpA']
+  desc[gen4]: If held by a Pikachu, its attacks have their power doubled.
+  msgs_base= []
+  msgs_gen4= []
+### Focus Sash | focussash
+  base /items.ts:2265-2281 handlers= ['onDamage', 'onDamagePriority']
+  gen4 /mods/gen4/items.ts:147-168 handlers= ['condition', 'onDamage', 'onTryHit'] REMOVED= ['onDamage']
+  desc[gen4]: If holder's HP is full, survives all hits of one attack with at least 1 HP. Single use.
+  msgs_base= []
+  msgs_gen4= []
+### Custap Berry | custapberry
+  base /items.ts:1235-1260 handlers= ['onEat', 'onFractionalPriority', 'onFractionalPriorityPriority']
+  gen4 /mods/gen4/items.ts:73-101 handlers= ['onBeforeTurn', 'onCustap', 'onFractionalPriority'] REMOVED= ['onFractionalPriority']
+  desc[base]: Holder moves first in its priority bracket when at 1/4 max HP or less. Single use.
+  msgs_base= [('-activate', ('item: Custap Berry', '[consumed]'))]
+  msgs_gen4= [('-activate', ('item: Custap Berry', '[consumed]'))]
+### Choice Scarf | choicescarf
+  base /items.ts:983-1005 handlers= ['onModifyMove', 'onModifySpe', 'onStart']
+  gen4 /mods/gen4/items.ts:41-48 handlers= ['onAfterMove', 'onModifyMove', 'onStart'] REMOVED= ['onModifyMove', 'onStart']
+  desc[base]: Holder's Speed is 1.5x, but it can only select the first move it executes.
+  msgs_base= []
+  msgs_gen4= []
+### Quick Powder | quickpowder
+  base /items.ts:5002-5017 handlers= ['onModifySpe']
+  desc[base]: If held by a Ditto that hasn't Transformed, its Speed is doubled.
+  msgs_base= []
+### Sitrus Berry | sitrusberry
+  base /items.ts:5740-5761 handlers= ['onEat', 'onTryEatItem', 'onUpdate']
+  desc[base]: Restores 1/4 max HP when at 1/2 max HP or less. Single use.
+  msgs_base= []
+### Choice Band | choiceband
+  base /items.ts:959-982 handlers= ['onModifyAtk', 'onModifyAtkPriority', 'onModifyMove', 'onStart']
+  gen4 /mods/gen4/items.ts:33-40 handlers= ['onAfterMove', 'onModifyMove', 'onStart'] REMOVED= ['onModifyMove', 'onStart']
+  desc[base]: Holder's Attack is 1.5x, but it can only select the first move it executes.
+  msgs_base= []
+  msgs_gen4= []
+### Choice Specs | choicespecs
+  base /items.ts:1006-1029 handlers= ['onModifyMove', 'onModifySpA', 'onModifySpAPriority', 'onStart']
+  gen4 /mods/gen4/items.ts:49-56 handlers= ['onAfterMove', 'onModifyMove', 'onStart'] REMOVED= ['onModifyMove', 'onStart']
+  desc[base]: Holder's Sp. Atk is 1.5x, but it can only select the first move it executes.
+  msgs_base= []
+  msgs_gen4= []
+### Life Orb | lifeorb
+  base /items.ts:3400-3416 handlers= ['onAfterMoveSecondarySelf', 'onModifyDamage']
+  gen4 /mods/gen4/items.ts:242-264 handlers= ['condition', 'onAfterMoveSecondarySelf', 'onBasePower', 'onModifyDamage'] REMOVED= ['onAfterMoveSecondarySelf', 'onModifyDamage']
+  desc[base]: Holder's attacks do 1.3x damage, and it loses 1/10 its max HP after the attack.
+  msgs_base= []
+  msgs_gen4= []
+### Leftovers | leftovers
+  base /items.ts:3334-3347 handlers= ['onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/items.ts:233-237 handlers= ['onResidualOrder', 'onResidualSubOrder'] REMOVED= []
+  desc[base]: At the end of every turn, holder restores 1/16 of its max HP.
+  msgs_base= []
+  msgs_gen4= []
+### Toxic Orb | toxicorb
+  base /items.ts:6338-6352 handlers= ['onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/items.ts:448-452 handlers= ['onResidualOrder', 'onResidualSubOrder'] REMOVED= []
+  desc[base]: At the end of every turn, this item attempts to badly poison the holder.
+  msgs_base= []
+  msgs_gen4= []
+### Light Clay | lightclay
+  base /items.ts:3440-3449 handlers= []
+  desc[gen6]: Holder's use of Light Screen or Reflect lasts 8 turns instead of 5.
+  msgs_base= []
+### Damp Rock | damprock
+  base /items.ts:1261-1269 handlers= []
+  desc[base]: Holder's use of Rain Dance lasts 8 turns instead of 5.
+  msgs_base= []
+### Chesto Berry | chestoberry
+  base /items.ts:877-897 handlers= ['onEat', 'onUpdate']
+  desc[base]: Holder wakes up if it is asleep. Single use.
+  msgs_base= []
+### Black Glasses | blackglasses
+  base /items.ts:523-537 handlers= ['onBasePower', 'onBasePowerPriority']
+  desc[base]: Holder's Dark-type attacks have 1.2x power.
+  msgs_base= []
+### Silk Scarf | silkscarf
+  base /items.ts:5710-5724 handlers= ['onBasePower', 'onBasePowerPriority']
+  desc[base]: Holder's Normal-type attacks have 1.2x power.
+  msgs_base= []
+### Lustrous Orb | lustrousorb
+  base /items.ts:3612-3627 handlers= ['onBasePower', 'onBasePowerPriority']
+  gen4 /mods/gen4/items.ts:291-298 handlers= ['onBasePower'] REMOVED= []
+  desc[base]: If held by a Palkia, its Water- and Dragon-type attacks have 1.2x power.
+  msgs_base= []
+  msgs_gen4= []
+### Stick | stick
+  base /items.ts:6092-6107 handlers= ['onModifyCritRatio']
+  gen4 /mods/gen4/items.ts:423-430 handlers= ['onModifyCritRatio'] REMOVED= []
+  desc[base]: If held by a Farfetch’d, its critical hit ratio is raised by 2 stages.
+  msgs_base= []
+  msgs_gen4= []
+### Lum Berry | lumberry
+  base /items.ts:3533-3556 handlers= ['onAfterSetStatus', 'onAfterSetStatusPriority', 'onEat', 'onUpdate']
+  desc[base]: Holder cures itself if it has a non-volatile status or is confused. Single use.
+  msgs_base= []
+### Expert Belt | expertbelt
+  base /items.ts:1897-1910 handlers= ['onModifyDamage']
+  desc[base]: Holder's attacks that are super effective against the target do 1.2x damage.
+  msgs_base= []
+### Black Sludge | blacksludge
+  base /items.ts:538-555 handlers= ['onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/items.ts:19-23 handlers= ['onResidualOrder', 'onResidualSubOrder'] REMOVED= []
+  desc[base]: Each turn, if holder is a Poison type, restores 1/16 max HP; loses 1/8 if not.
+  msgs_base= []
+  msgs_gen4= []

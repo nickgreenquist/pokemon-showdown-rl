@@ -1,0 +1,498 @@
+{
+ "N": 2000,
+ "nMon": 12000,
+ "teamSize": {
+  "6": 2000
+ },
+ "nMoves": {
+  "1": 32,
+  "4": 11968
+ },
+ "natures": {
+  "undefined": 12000
+ },
+ "shinyRate": 0.0009166666666666666,
+ "level100PerTeam": {
+  "0": 1557,
+  "1": 443
+ },
+ "evsHp": {
+  "81": 40,
+  "85": 11960
+ },
+ "ivsAtk": {
+  "0": 3081,
+  "2": 856,
+  "3": 490,
+  "30": 299,
+  "31": 7274
+ },
+ "ivsSpe": {
+  "0": 33,
+  "30": 642,
+  "31": 11325
+ },
+ "gender": {
+  "": 9003,
+  "F": 473,
+  "N": 2119,
+  "M": 405
+ },
+ "nDistinctItems": 39,
+ "items": {
+  "Leftovers": 5513,
+  "Life Orb": 2676,
+  "Choice Band": 992,
+  "Black Sludge": 544,
+  "Choice Specs": 495,
+  "Choice Scarf": 429,
+  "Toxic Orb": 229,
+  "Silk Scarf": 122,
+  "Focus Sash": 114,
+  "Lum Berry": 104,
+  "Sitrus Berry": 103,
+  "Expert Belt": 102,
+  "Soul Dew": 70,
+  "Chesto Berry": 68,
+  "Custap Berry": 51,
+  "Light Ball": 47,
+  "Thick Club": 46,
+  "Damp Rock": 34,
+  "Stick": 34,
+  "Griseous Orb": 32,
+  "Black Glasses": 29,
+  "Lustrous Orb": 26,
+  "Stone Plate": 14,
+  "Toxic Plate": 13,
+  "Insect Plate": 12,
+  "Iron Plate": 11,
+  "Quick Powder": 10,
+  "Fist Plate": 10,
+  "Draco Plate": 9,
+  "Sky Plate": 9,
+  "Mind Plate": 8,
+  "Icicle Plate": 8,
+  "Flame Plate": 7,
+  "Dread Plate": 6,
+  "Earth Plate": 6,
+  "Splash Plate": 5,
+  "Spooky Plate": 5,
+  "Zap Plate": 4,
+  "Meadow Plate": 3
+ },
+ "nDistinctSpecies": 296,
+ "nDistinctAbilities": 101,
+ "nDistinctMoves": 181,
+ "roles": {
+  "Fast Attacker": 2306,
+  "Bulky Attacker": 2199,
+  "Bulky Support": 2035,
+  "Setup Sweeper": 1544,
+  "Wallbreaker": 1294,
+  "Staller": 1276,
+  "Bulky Setup": 865,
+  "Fast Support": 481
+ },
+ "levels": {
+  "67": 37,
+  "68": 94,
+  "69": 239,
+  "70": 275,
+  "71": 19,
+  "72": 88,
+  "73": 96,
+  "74": 93,
+  "75": 288,
+  "76": 314,
+  "77": 260,
+  "78": 439,
+  "79": 722,
+  "80": 605,
+  "81": 467,
+  "82": 549,
+  "83": 813,
+  "84": 737,
+  "85": 602,
+  "86": 723,
+  "87": 485,
+  "88": 802,
+  "89": 197,
+  "90": 566,
+  "91": 383,
+  "92": 420,
+  "93": 214,
+  "94": 151,
+  "95": 243,
+  "96": 148,
+  "97": 273,
+  "98": 128,
+  "99": 87,
+  "100": 443
+ },
+ "speciesTop15": [
+  [
+   "Tangrowth",
+   66
+  ],
+  [
+   "Primeape",
+   64
+  ],
+  [
+   "Raikou",
+   63
+  ],
+  [
+   "Roserade",
+   63
+  ],
+  [
+   "Cherrim",
+   62
+  ],
+  [
+   "Rapidash",
+   59
+  ],
+  [
+   "Hippowdon",
+   59
+  ],
+  [
+   "Dusknoir",
+   59
+  ],
+  [
+   "Chimecho",
+   59
+  ],
+  [
+   "Bronzong",
+   59
+  ],
+  [
+   "Hariyama",
+   58
+  ],
+  [
+   "Skuntank",
+   58
+  ],
+  [
+   "Gallade",
+   58
+  ],
+  [
+   "Tyranitar",
+   57
+  ],
+  [
+   "Pachirisu",
+   56
+  ]
+ ],
+ "speciesBottom15": [
+  [
+   "Arceus-Steel",
+   11
+  ],
+  [
+   "Arceus-Fighting",
+   10
+  ],
+  [
+   "Wormadam",
+   9
+  ],
+  [
+   "Arceus-Dragon",
+   9
+  ],
+  [
+   "Arceus-Flying",
+   9
+  ],
+  [
+   "Wormadam-Sandy",
+   8
+  ],
+  [
+   "Arceus-Psychic",
+   8
+  ],
+  [
+   "Arceus-Ice",
+   8
+  ],
+  [
+   "Arceus-Fire",
+   7
+  ],
+  [
+   "Arceus-Dark",
+   6
+  ],
+  [
+   "Arceus-Ground",
+   6
+  ],
+  [
+   "Arceus-Water",
+   5
+  ],
+  [
+   "Arceus-Ghost",
+   5
+  ],
+  [
+   "Arceus-Electric",
+   4
+  ],
+  [
+   "Arceus-Grass",
+   3
+  ]
+ ],
+ "movesTop20": [
+  [
+   "earthquake",
+   2873
+  ],
+  [
+   "toxic",
+   2397
+  ],
+  [
+   "icebeam",
+   1529
+  ],
+  [
+   "stoneedge",
+   1446
+  ],
+  [
+   "psychic",
+   1169
+  ],
+  [
+   "thunderbolt",
+   1162
+  ],
+  [
+   "roost",
+   1135
+  ],
+  [
+   "surf",
+   1111
+  ],
+  [
+   "uturn",
+   997
+  ],
+  [
+   "swordsdance",
+   942
+  ],
+  [
+   "fireblast",
+   852
+  ],
+  [
+   "protect",
+   848
+  ],
+  [
+   "return",
+   817
+  ],
+  [
+   "calmmind",
+   724
+  ],
+  [
+   "substitute",
+   701
+  ],
+  [
+   "suckerpunch",
+   694
+  ],
+  [
+   "closecombat",
+   644
+  ],
+  [
+   "explosion",
+   640
+  ],
+  [
+   "recover",
+   613
+  ],
+  [
+   "thunderwave",
+   597
+  ]
+ ],
+ "hpMoves": [
+  [
+   "hiddenpowerfire",
+   175
+  ],
+  [
+   "hiddenpowerfighting",
+   376
+  ],
+  [
+   "hiddenpowerice",
+   555
+  ],
+  [
+   "hiddenpowerground",
+   152
+  ],
+  [
+   "hiddenpowerelectric",
+   19
+  ],
+  [
+   "hiddenpowergrass",
+   315
+  ],
+  [
+   "hiddenpowerrock",
+   91
+  ],
+  [
+   "hiddenpowerflying",
+   110
+  ]
+ ],
+ "formeSpecies": [
+  [
+   "Wormadam-Sandy",
+   8
+  ],
+  [
+   "Arceus-Bug",
+   12
+  ],
+  [
+   "Rotom-Fan",
+   15
+  ],
+  [
+   "Gastrodon-East",
+   19
+  ],
+  [
+   "Arceus-Electric",
+   4
+  ],
+  [
+   "Deoxys-Defense",
+   31
+  ],
+  [
+   "Rotom-Frost",
+   21
+  ],
+  [
+   "Arceus-Water",
+   5
+  ],
+  [
+   "Arceus-Fire",
+   7
+  ],
+  [
+   "Shaymin-Sky",
+   15
+  ],
+  [
+   "Wormadam-Trash",
+   25
+  ],
+  [
+   "Arceus-Dark",
+   6
+  ],
+  [
+   "Arceus-Poison",
+   13
+  ],
+  [
+   "Deoxys-Speed",
+   16
+  ],
+  [
+   "Deoxys-Attack",
+   19
+  ],
+  [
+   "Arceus-Ghost",
+   5
+  ],
+  [
+   "Rotom-Mow",
+   14
+  ],
+  [
+   "Arceus-Psychic",
+   8
+  ],
+  [
+   "Porygon-Z",
+   36
+  ],
+  [
+   "Arceus-Steel",
+   11
+  ],
+  [
+   "Giratina-Origin",
+   32
+  ],
+  [
+   "Rotom-Wash",
+   14
+  ],
+  [
+   "Arceus-Fighting",
+   10
+  ],
+  [
+   "Arceus-Rock",
+   14
+  ],
+  [
+   "Ho-Oh",
+   45
+  ],
+  [
+   "Arceus-Dragon",
+   9
+  ],
+  [
+   "Arceus-Flying",
+   9
+  ],
+  [
+   "Arceus-Ice",
+   8
+  ],
+  [
+   "Arceus-Ground",
+   6
+  ],
+  [
+   "Rotom-Heat",
+   15
+  ],
+  [
+   "Arceus-Grass",
+   3
+  ]
+ ]
+}

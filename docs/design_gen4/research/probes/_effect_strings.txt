@@ -1,0 +1,185 @@
+ability: 
+ability: Battle Bond
+ability: Commander
+ability: Cud Chew
+ability: Dancer
+ability: Disguise
+ability: Emergency Exit
+ability: Flash Fire
+ability: Forewarn
+ability: Guard Dog
+ability: Hadron Engine
+ability: Healer
+ability: Hydration
+ability: Ice Face
+ability: Immunity
+ability: Insomnia
+ability: Lightning Rod
+ability: Limber
+ability: Magma Armor
+ability: Mega Sol
+ability: Mimicry
+ability: Neutralizing Gas
+ability: Oblivious
+ability: Orichalcum Pulse
+ability: Own Tempo
+ability: Pastel Veil
+ability: Persistent
+ability: Power Construct
+ability: Protosynthesis
+ability: Quark Drive
+ability: Quick Draw
+ability: Ripen
+ability: Screen Cleaner
+ability: Shed Skin
+ability: Slow Start
+ability: Sticky Hold
+ability: Storm Drain
+ability: Suction Cups
+ability: Supreme Overlord
+ability: Symbiosis
+ability: Synchronize
+ability: Telepathy
+ability: Tera Shell
+ability: Tera Shift
+ability: Thermal Exchange
+ability: Toxic Debris
+ability: Vital Spirit
+ability: Water Bubble
+ability: Water Veil
+ability: Wimp Out
+ability: Zero to Hero
+Aqua Ring
+Attract
+Autotomize
+Charge
+confusion
+Crafty Shield
+Curse
+Destiny Bond
+Disable
+Doom Desire
+Dynamax
+Embargo
+Encore
+Foresight
+Future Sight
+Glaive Rush
+Grudge
+healreplacement
+Helping Hand
+Illusion
+item: Custap Berry
+item: Leppa Berry
+item: Mystery Berry
+item: Protective Pads
+item: Quick Claw
+item: Safety Goggles
+Leech Seed
+Magnet Rise
+Mat Block
+Max Guard
+Mimic
+Miracle Eye
+move: 
+move: After You
+move: Aromatherapy
+move: Attract
+move: Beak Blast
+move: Beat Up
+move: Bide
+move: Celebrate
+move: Court Change
+move: Crafty Shield
+move: Destiny Bond
+move: Dragon Cheer
+move: Eerie Spell
+move: Electric Terrain
+move: Electrify
+move: Endure
+move: Feint
+move: Fickle Beam
+move: Focus Energy
+move: Focus Punch
+move: Follow Me
+move: Future Sight
+move: G-Max Chi Strike
+move: Gravity
+move: Grudge
+move: Guard Split
+move: Happy Hour
+move: Heal Bell
+move: Heal Block
+move: Imprison
+move: Ingrain
+move: Instruct
+move: Laser Focus
+move: Leech Seed
+move: Lock-On
+move: Magic Coat
+move: Magnitude
+move: Mat Block
+move: Max Guard
+move: Mimic
+move: Mind Reader
+move: Mist
+move: Misty Terrain
+move: No Retreat
+move: Octolock
+move: Poltergeist
+move: Powder
+move: Power Split
+move: Protect
+move: Psychic Terrain
+move: Quash
+move: Quick Guard
+move: Rage Powder
+move: Roost
+move: Safeguard
+move: Shell Trap
+move: Sketch
+move: Snatch
+move: Speed Swap
+move: Spotlight
+move: Sticky Web
+move: Struggle
+move: Substitute
+move: Taunt
+move: Tidy Up
+move: Trick
+move: Wide Guard
+move: Yawn
+Nightmare
+Octolock
+Orichalcum Pulse
+perish0
+perish3
+Powder
+Power Shift
+Power Trick
+Protect
+protosynthesis
+Protosynthesis
+Quark Drive
+quarkdrive
+Quick Guard
+Rage
+Salt Cure
+Skill Swap
+Sky Drop
+Slow Start
+Smack Down
+Snatch
+stockpile
+Stockpile
+Substitute
+Syrup Bomb
+Tar Shot
+Telekinesis
+Throat Chop
+Torment
+trapped
+typeadd
+typechange
+Uproar
+Wide Guard

@@ -1,0 +1,496 @@
+### Adaptability | adaptability
+  base /abilities.ts:43-56 handlers= ['flags', 'onModifySTAB']
+  desc[base]: This Pokemon's same-type attack bonus (STAB) is 2 instead of 1.5.
+  msgs_base= []
+### Aftermath | aftermath
+  base /abilities.ts:78-89 handlers= ['flags', 'onDamagingHit', 'onDamagingHitOrder']
+  desc[base]: If this Pokemon is KOed with a contact move, that move's user loses 1/4 its max HP.
+  msgs_base= []
+### Air Lock | airlock
+  base /abilities.ts:90-109 handlers= ['flags', 'onEnd', 'onStart', 'onSwitchIn', 'suppressWeather']
+  gen4 /mods/gen4/abilities.ts:2-8 handlers= ['onStart', 'onSwitchIn'] REMOVED= ['onSwitchIn']
+  desc[base]: While this Pokemon is active, the effects of weather conditions are disabled.
+  msgs_base= [('-ability', ('Air Lock',))]
+  msgs_gen4= []
+### Anticipation | anticipation
+  base /abilities.ts:174-195 handlers= ['flags', 'onStart']
+  desc[base]: On switch-in, this Pokemon shudders if any foe has a supereffective or OHKO move.
+  msgs_base= [('-ability', ('Anticipation',))]
+### Arena Trap | arenatrap
+  base /abilities.ts:196-214 handlers= ['flags', 'onFoeMaybeTrapPokemon', 'onFoeTrapPokemon']
+  desc[base]: Prevents opposing Pokemon from choosing to switch out unless they are airborne.
+  msgs_base= []
+### Bad Dreams | baddreams
+  base /abilities.ts:310-325 handlers= ['flags', 'onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/abilities.ts:20-24 handlers= ['onResidualOrder', 'onResidualSubOrder'] REMOVED= []
+  desc[gen4]: Causes sleeping foes to lose 1/8 of their max HP at the end of each turn.
+  msgs_base= []
+  msgs_gen4= []
+### Battle Armor | battlearmor
+  base /abilities.ts:345-351 handlers= ['flags', 'onCriticalHit']
+  desc[base]: This Pokemon cannot be struck by a critical hit.
+  msgs_base= []
+### Blaze | blaze
+  base /abilities.ts:450-469 handlers= ['flags', 'onModifyAtk', 'onModifyAtkPriority', 'onModifySpA', 'onModifySpAPriority']
+  gen4 /mods/gen4/abilities.ts:25-36 handlers= ['onBasePower', 'onBasePowerPriority', 'onModifyAtk', 'onModifySpA'] REMOVED= ['onModifyAtk', 'onModifySpA']
+  desc[gen4]: At 1/3 or less of its max HP, this Pokemon's Fire-type attacks have 1.5x power.
+  msgs_base= []
+  msgs_gen4= []
+### Chlorophyll | chlorophyll
+  base /abilities.ts:502-512 handlers= ['flags', 'onModifySpe']
+  desc[base]: If Sunny Day is active, this Pokemon's Speed is doubled.
+  msgs_base= []
+### Clear Body | clearbody
+  base /abilities.ts:513-532 handlers= ['flags', 'onTryBoost']
+  desc[base]: Prevents other Pokemon from lowering this Pokemon's stat stages.
+  msgs_base= []
+### Cloud Nine | cloudnine
+  base /abilities.ts:533-552 handlers= ['flags', 'onEnd', 'onStart', 'onSwitchIn', 'suppressWeather']
+  gen4 /mods/gen4/abilities.ts:37-43 handlers= ['onStart', 'onSwitchIn'] REMOVED= ['onSwitchIn']
+  desc[base]: While this Pokemon is active, the effects of weather conditions are disabled.
+  msgs_base= [('-ability', ('Cloud Nine',))]
+  msgs_gen4= []
+### Color Change | colorchange
+  base /abilities.ts:553-577 handlers= ['flags', 'onAfterMoveSecondary']
+  gen4 /mods/gen4/abilities.ts:44-55 handlers= ['onAfterMoveSecondary', 'onDamagingHit'] REMOVED= ['onAfterMoveSecondary']
+  desc[base]: This Pokemon's type changes to the type of a move it's hit by, unless it has the type.
+  msgs_base= [('-start', ('typechange', '[from] ability: Color Change'))]
+  msgs_gen4= [('-start', ('typechange', '[from] ability: Color Change'))]
+### Compound Eyes | compoundeyes
+  base /abilities.ts:656-667 handlers= ['flags', 'onSourceModifyAccuracy', 'onSourceModifyAccuracyPriority']
+  gen4 /mods/gen4/abilities.ts:56-64 handlers= ['onSourceModifyAccuracy', 'onSourceModifyAccuracyPriority'] REMOVED= []
+  desc[base]: This Pokemon's moves have their accuracy multiplied by 1.3.
+  msgs_base= []
+  msgs_gen4= []
+### Cute Charm | cutecharm
+  base /abilities.ts:788-800 handlers= ['flags', 'onDamagingHit']
+  gen4 /mods/gen4/abilities.ts:65-74 handlers= ['onDamagingHit'] REMOVED= []
+  desc[base]: 30% chance of infatuating Pokemon of the opposite gender if they make contact.
+  msgs_base= []
+  msgs_gen4= []
+### Download | download
+  base /abilities.ts:1007-1025 handlers= ['flags', 'onStart']
+  gen4 /mods/gen4/abilities.ts:75-91 handlers= ['onStart'] REMOVED= []
+  desc[base]: On switch-in, Attack or Sp. Atk is raised 1 stage based on the foes' weaker Defense.
+  msgs_base= []
+  msgs_gen4= []
+### Drizzle | drizzle
+  base /abilities.ts:1068-1077 handlers= ['flags', 'onStart']
+  desc[base]: On switch-in, this Pokemon summons Rain Dance.
+  msgs_base= []
+### Drought | drought
+  base /abilities.ts:1078-1087 handlers= ['flags', 'onStart']
+  desc[base]: On switch-in, this Pokemon summons Sunny Day.
+  msgs_base= []
+### Dry Skin | dryskin
+  base /abilities.ts:1088-1115 handlers= ['flags', 'onSourceBasePower', 'onSourceBasePowerPriority', 'onTryHit', 'onWeather']
+  desc[base]: This Pokemon is healed 1/4 by Water, 1/8 by Rain; is hurt 1.25x by Fire, 1/8 by Sun.
+  msgs_base= [('-immune', ('[from] ability: Dry Skin',))]
+### Early Bird | earlybird
+  base /abilities.ts:1116-1122 handlers= ['flags']
+  desc[base]: This Pokemon's sleep counter drops by 2 instead of 1.
+  msgs_base= []
+### Filter | filter
+  base /abilities.ts:1273-1284 handlers= ['flags', 'onSourceModifyDamage']
+  desc[base]: This Pokemon receives 3/4 damage from supereffective attacks.
+  msgs_base= []
+### Flame Body | flamebody
+  base /abilities.ts:1306-1318 handlers= ['flags', 'onDamagingHit']
+  gen4 /mods/gen4/abilities.ts:101-110 handlers= ['onDamagingHit'] REMOVED= []
+  desc[base]: 30% chance a Pokemon making contact with this Pokemon will be burned.
+  msgs_base= []
+  msgs_gen4= []
+### Flash Fire | flashfire
+  base /abilities.ts:1331-1371 handlers= ['condition', 'flags', 'onEnd', 'onTryHit']
+  gen4 /mods/gen4/abilities.ts:111-135 handlers= ['condition', 'onTryHit'] REMOVED= []
+  desc[base]: This Pokemon's Fire attacks do 1.5x damage if hit by one Fire move; Fire immunity.
+  msgs_base= [('-end', ('ability: Flash Fire', '[silent]')), ('-immune', ('[from] ability: Flash Fire',)), ('-start', ('ability: Flash Fire',))]
+  msgs_gen4= [('-immune', ('[from] ability: Flash Fire',))]
+### Flower Gift | flowergift
+  base /abilities.ts:1372-1408 handlers= ['flags', 'onAllyModifyAtk', 'onAllyModifyAtkPriority', 'onAllyModifySpD', 'onAllyModifySpDPriority', 'onStart', 'onSwitchInPriority', 'onWeatherChange']
+  gen4 /mods/gen4/abilities.ts:136-149 handlers= ['flags', 'onAllyModifyAtk', 'onAllyModifySpD'] REMOVED= []
+  desc[gen4]: If Sunny Day is active, Attack and Sp. Def of this Pokemon and its allies are 1.5x.
+  msgs_base= []
+  msgs_gen4= []
+### Forecast | forecast
+  base /abilities.ts:1460-1493 handlers= ['flags', 'onStart', 'onSwitchInPriority', 'onWeatherChange']
+  gen4 /mods/gen4/abilities.ts:150-153 handlers= ['flags'] REMOVED= []
+  desc[base]: Castform's type changes to the current weather condition's type, except Sandstorm.
+  msgs_base= []
+  msgs_gen4= []
+### Forewarn | forewarn
+  base /abilities.ts:1494-1522 handlers= ['flags', 'onStart']
+  gen4 /mods/gen4/abilities.ts:154-178 handlers= ['onStart'] REMOVED= []
+  desc[base]: On switch-in, this Pokemon is alerted to the foes' move with the highest power.
+  msgs_base= [('-activate', ('ability: Forewarn',))]
+  msgs_gen4= [('-activate', ('ability: Forewarn',))]
+### Gluttony | gluttony
+  base /abilities.ts:1608-1619 handlers= ['flags', 'onDamage', 'onStart']
+  desc[base]: This Pokemon eats Berries at 1/2 max HP or less instead of their usual 1/4 max HP.
+  msgs_base= []
+### Guts | guts
+  base /abilities.ts:1760-1771 handlers= ['flags', 'onModifyAtk', 'onModifyAtkPriority']
+  desc[base]: If this Pokemon is statused, its Attack is 1.5x; ignores burn halving physical damage.
+  msgs_base= []
+### Huge Power | hugepower
+  base /abilities.ts:1876-1885 handlers= ['flags', 'onModifyAtk', 'onModifyAtkPriority']
+  desc[base]: This Pokemon's Attack is doubled.
+  msgs_base= []
+### Hydration | hydration
+  base /abilities.ts:1915-1929 handlers= ['flags', 'onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/abilities.ts:197-206 handlers= ['onResidual', 'onWeather'] REMOVED= ['onResidual']
+  desc[base]: This Pokemon has its status cured at the end of each turn if Rain Dance is active.
+  msgs_base= [('-activate', ('ability: Hydration',))]
+  msgs_gen4= [('-activate', ('ability: Hydration',))]
+### Hyper Cutter | hypercutter
+  base /abilities.ts:1930-1944 handlers= ['flags', 'onTryBoost']
+  desc[base]: Prevents other Pokemon from lowering this Pokemon's Attack stat stage.
+  msgs_base= []
+### Immunity | immunity
+  base /abilities.ts:2086-2104 handlers= ['flags', 'onSetStatus', 'onUpdate']
+  desc[base]: This Pokemon cannot be poisoned. Gaining this Ability while poisoned cures it.
+  msgs_base= [('-activate', ('ability: Immunity',)), ('-immune', ('[from] ability: Immunity',))]
+### Inner Focus | innerfocus
+  base /abilities.ts:2143-2157 handlers= ['flags', 'onTryAddVolatile', 'onTryBoost']
+  desc[gen7]: This Pokemon cannot be made to flinch.
+  msgs_base= [('-fail', ('unboost', 'Attack'))]
+### Insomnia | insomnia
+  base /abilities.ts:2158-2182 handlers= ['flags', 'onSetStatus', 'onTryAddVolatile', 'onUpdate']
+  gen4 /mods/gen4/abilities.ts:207-210 handlers= [] REMOVED= []
+  desc[base]: This Pokemon cannot fall asleep. Gaining this Ability while asleep cures it.
+  msgs_base= [('-activate', ('ability: Insomnia',)), ('-immune', ('[from] ability: Insomnia',))]
+  msgs_gen4= []
+### Intimidate | intimidate
+  base /abilities.ts:2183-2202 handlers= ['flags', 'onStart']
+  gen4 /mods/gen4/abilities.ts:211-234 handlers= ['onStart'] REMOVED= []
+  desc[gen4]: On switch-in, this Pokemon lowers the Attack of opponents by 1 stage.
+  msgs_base= [('-ability', ('Intimidate', 'boost')), ('-immune', ())]
+  msgs_gen4= [('-ability', ('Intimidate', 'boost')), ('-immune', ())]
+### Iron Fist | ironfist
+  base /abilities.ts:2226-2238 handlers= ['flags', 'onBasePower', 'onBasePowerPriority']
+  desc[base]: This Pokemon's punch-based attacks have 1.2x power. Sucker Punch is not boosted.
+  msgs_base= []
+### Keen Eye | keeneye
+  base /abilities.ts:2250-2267 handlers= ['flags', 'onModifyMove', 'onTryBoost']
+  desc[gen5]: Prevents other Pokemon from lowering this Pokemon's accuracy stat stage.
+  msgs_base= []
+### Leaf Guard | leafguard
+  base /abilities.ts:2281-2300 handlers= ['flags', 'onSetStatus', 'onTryAddVolatile']
+  gen4 /mods/gen4/abilities.ts:235-244 handlers= ['onSetStatus'] REMOVED= []
+  desc[gen4]: If Sunny Day is active, this Pokemon cannot be statused, but Rest works normally.
+  msgs_base= [('-immune', ('[from] ability: Leaf Guard',))]
+  msgs_gen4= []
+### Levitate | levitate
+  base /abilities.ts:2301-2307 handlers= ['flags']
+  desc[gen4]: This Pokemon is immune to Ground; Gravity/Ingrain/Iron Ball nullify it.
+  msgs_base= []
+### Limber | limber
+  base /abilities.ts:2358-2376 handlers= ['flags', 'onSetStatus', 'onUpdate']
+  desc[base]: This Pokemon cannot be paralyzed. Gaining this Ability while paralyzed cures it.
+  msgs_base= [('-activate', ('ability: Limber',)), ('-immune', ('[from] ability: Limber',))]
+### Liquid Ooze | liquidooze
+  base /abilities.ts:2392-2405 handlers= ['flags', 'onSourceTryHeal']
+  gen4 /mods/gen4/abilities.ts:250-260 handlers= ['onSourceTryHeal'] REMOVED= []
+  desc[base]: This Pokemon damages those draining HP from it for as much as they would heal.
+  msgs_base= []
+  msgs_gen4= []
+### Magic Guard | magicguard
+  base /abilities.ts:2455-2466 handlers= ['flags', 'onDamage']
+  gen4 /mods/gen4/abilities.ts:261-269 handlers= ['onSetStatus'] REMOVED= []
+  desc[gen4]: This Pokemon can only be damaged by direct attacks, and can't be fully paralyzed.
+  msgs_base= [('-activate', ('ability: ',))]
+  msgs_gen4= []
+### Magnet Pull | magnetpull
+  base /abilities.ts:2506-2523 handlers= ['flags', 'onFoeMaybeTrapPokemon', 'onFoeTrapPokemon']
+  desc[gen4]: Prevents opposing Steel-type Pokemon from choosing to switch out.
+  msgs_base= []
+### Marvel Scale | marvelscale
+  base /abilities.ts:2524-2535 handlers= ['flags', 'onModifyDef', 'onModifyDefPriority']
+  desc[base]: If this Pokemon has a non-volatile status condition, its Defense is multiplied by 1.5.
+  msgs_base= []
+### Minus | minus
+  base /abilities.ts:2633-2646 handlers= ['flags', 'onModifySpA', 'onModifySpAPriority']
+  gen4 /mods/gen4/abilities.ts:270-280 handlers= ['onModifySpA', 'onModifySpAPriority'] REMOVED= ['onModifySpAPriority']
+  desc[gen4]: If an active ally has the Plus Ability, this Pokemon's Sp. Atk is 1.5x.
+  msgs_base= []
+  msgs_gen4= []
+### Mold Breaker | moldbreaker
+  base /abilities.ts:2679-2690 handlers= ['flags', 'onModifyMove', 'onStart']
+  desc[base]: This Pokemon's moves and their effects ignore the Abilities of other Pokemon.
+  msgs_base= [('-ability', ('Mold Breaker',))]
+### Motor Drive | motordrive
+  base /abilities.ts:2725-2738 handlers= ['flags', 'onTryHit']
+  desc[base]: This Pokemon's Speed is raised 1 stage if hit by an Electric move; Electric immunity.
+  msgs_base= [('-immune', ('[from] ability: Motor Drive',))]
+### Multitype | multitype
+  base /abilities.ts:2762-2768 handlers= ['flags']
+  gen4 /mods/gen4/abilities.ts:281-285 handlers= ['onSetAbility', 'onTakeItem'] REMOVED= []
+  desc[gen4]: If this Pokemon is an Arceus, its type changes to match its held Plate. This Pokemon cannot lose its held item due to another Pokemon's attack.
+  msgs_base= []
+  msgs_gen4= []
+### Natural Cure | naturalcure
+  base /abilities.ts:2801-2883 handlers= ['flags', 'onCheckShow', 'onSwitchOut']
+  gen4 /mods/gen4/abilities.ts:286-298 handlers= ['onCheckShow', 'onSwitchOut'] REMOVED= ['onCheckShow']
+  desc[base]: This Pokemon has its non-volatile status condition cured when it switches out.
+  msgs_base= [('-curestatus', ('[from] ability: Natural Cure', '[silent]')), ('-message', ())]
+  msgs_gen4= [('-curestatus', ('[from] ability: Natural Cure', '[silent]'))]
+### No Guard | noguard
+  base /abilities.ts:2960-2975 handlers= ['flags', 'onAnyAccuracy', 'onAnyInvulnerability', 'onAnyInvulnerabilityPriority']
+  desc[base]: Every move used by or against this Pokemon will always hit.
+  msgs_base= []
+### Overgrow | overgrow
+  base /abilities.ts:3114-3133 handlers= ['flags', 'onModifyAtk', 'onModifyAtkPriority', 'onModifySpA', 'onModifySpAPriority']
+  gen4 /mods/gen4/abilities.ts:307-318 handlers= ['onBasePower', 'onBasePowerPriority', 'onModifyAtk', 'onModifySpA'] REMOVED= ['onModifyAtk', 'onModifySpA']
+  desc[gen4]: At 1/3 or less of its max HP, this Pokemon's Grass-type attacks have 1.5x power.
+  msgs_base= []
+  msgs_gen4= []
+### Own Tempo | owntempo
+  base /abilities.ts:3134-3159 handlers= ['flags', 'onHit', 'onTryAddVolatile', 'onTryBoost', 'onUpdate']
+  desc[gen7]: This Pokemon cannot be confused.
+  msgs_base= [('-activate', ('ability: Own Tempo',)), ('-fail', ('unboost', 'Attack')), ('-immune', ('confusion', '[from] ability: Own Tempo'))]
+### Pickup | pickup
+  base /abilities.ts:3252-3271 handlers= ['flags', 'onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/abilities.ts:319-324 handlers= ['onResidual'] REMOVED= ['onResidual']
+  desc[gen4]: No competitive use.
+  msgs_base= [('-item', ('[from] ability: Pickup',))]
+  msgs_gen4= []
+### Plus | plus
+  base /abilities.ts:3307-3320 handlers= ['flags', 'onModifySpA', 'onModifySpAPriority']
+  gen4 /mods/gen4/abilities.ts:325-335 handlers= ['onModifySpA', 'onModifySpAPriority'] REMOVED= ['onModifySpAPriority']
+  desc[gen4]: If an active ally has the Minus Ability, this Pokemon's Sp. Atk is 1.5x.
+  msgs_base= []
+  msgs_gen4= []
+### Poison Heal | poisonheal
+  base /abilities.ts:3321-3333 handlers= ['flags', 'onDamage', 'onDamagePriority']
+  desc[base]: This Pokemon is healed by 1/8 of its max HP each turn when poisoned; no HP loss.
+  msgs_base= []
+### Poison Point | poisonpoint
+  base /abilities.ts:3334-3346 handlers= ['flags', 'onDamagingHit']
+  gen4 /mods/gen4/abilities.ts:336-345 handlers= ['onDamagingHit'] REMOVED= []
+  desc[base]: 30% chance a Pokemon making contact with this Pokemon will be poisoned.
+  msgs_base= []
+  msgs_gen4= []
+### Pressure | pressure
+  base /abilities.ts:3427-3439 handlers= ['flags', 'onDeductPP', 'onStart']
+  gen4 /mods/gen4/abilities.ts:346-353 handlers= ['onDeductPP'] REMOVED= []
+  desc[gen4]: If this Pokemon is the target of a move, that move loses one additional PP.
+  msgs_base= [('-ability', ('Pressure',))]
+  msgs_gen4= []
+### Pure Power | purepower
+  base /abilities.ts:3598-3607 handlers= ['flags', 'onModifyAtk', 'onModifyAtkPriority']
+  desc[base]: This Pokemon's Attack is doubled.
+  msgs_base= []
+### Quick Feet | quickfeet
+  base /abilities.ts:3738-3748 handlers= ['flags', 'onModifySpe']
+  desc[base]: If this Pokemon is statused, its Speed is 1.5x; ignores Speed drop from paralysis.
+  msgs_base= []
+### Rock Head | rockhead
+  base /abilities.ts:3896-3907 handlers= ['flags', 'onDamage']
+  desc[base]: This Pokemon does not take recoil damage besides Struggle/Life Orb/crash damage.
+  msgs_base= []
+### Rough Skin | roughskin
+  base /abilities.ts:3928-3939 handlers= ['flags', 'onDamagingHit', 'onDamagingHitOrder']
+  gen4 /mods/gen4/abilities.ts:354-361 handlers= ['onDamagingHit'] REMOVED= []
+  desc[base]: Pokemon making contact with this Pokemon lose 1/8 of their max HP.
+  msgs_base= []
+  msgs_gen4= []
+### Run Away | runaway
+  base /abilities.ts:3940-3945 handlers= ['flags']
+  desc[base]: No competitive use.
+  msgs_base= []
+### Sand Stream | sandstream
+  base /abilities.ts:3987-3995 handlers= ['flags', 'onStart']
+  desc[base]: On switch-in, this Pokemon summons Sandstorm.
+  msgs_base= []
+### Sand Veil | sandveil
+  base /abilities.ts:3996-4012 handlers= ['flags', 'onImmunity', 'onModifyAccuracy', 'onModifyAccuracyPriority']
+  gen4 /mods/gen4/abilities.ts:362-372 handlers= ['onModifyAccuracy', 'onModifyAccuracyPriority'] REMOVED= []
+  desc[base]: If Sandstorm is active, this Pokemon's evasiveness is 1.25x; immunity to Sandstorm.
+  msgs_base= []
+  msgs_gen4= []
+### Scrappy | scrappy
+  base /abilities.ts:4069-4088 handlers= ['flags', 'onModifyMove', 'onModifyMovePriority', 'onTryBoost']
+  desc[gen7]: This Pokemon can hit Ghost types with Normal- and Fighting-type moves.
+  msgs_base= [('-fail', ('unboost', 'Attack'))]
+### Serene Grace | serenegrace
+  base /abilities.ts:4118-4133 handlers= ['flags', 'onModifyMove', 'onModifyMovePriority']
+  gen4 /mods/gen4/abilities.ts:373-383 handlers= ['onModifyMove'] REMOVED= []
+  desc[base]: This Pokemon's moves have their secondary effect chance doubled.
+  msgs_base= []
+  msgs_gen4= []
+### Shadow Tag | shadowtag
+  base /abilities.ts:4146-4163 handlers= ['flags', 'onFoeMaybeTrapPokemon', 'onFoeTrapPokemon']
+  desc[gen4]: Prevents foes from choosing to switch unless they also have this Ability.
+  msgs_base= []
+### Shed Skin | shedskin
+  base /abilities.ts:4177-4191 handlers= ['flags', 'onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/abilities.ts:384-388 handlers= ['onResidualOrder', 'onResidualSubOrder'] REMOVED= []
+  desc[base]: This Pokemon has a 33% chance to have its status cured at the end of each turn.
+  msgs_base= [('-activate', ('ability: Shed Skin',))]
+  msgs_gen4= []
+### Shell Armor | shellarmor
+  base /abilities.ts:4212-4218 handlers= ['flags', 'onCriticalHit']
+  desc[base]: This Pokemon cannot be struck by a critical hit.
+  msgs_base= []
+### Shield Dust | shielddust
+  base /abilities.ts:4219-4228 handlers= ['flags', 'onModifySecondaries']
+  desc[base]: This Pokemon is not affected by the secondary effect of another Pokemon's attack.
+  msgs_base= []
+### Simple | simple
+  base /abilities.ts:4274-4286 handlers= ['flags', 'onChangeBoost']
+  gen4 /mods/gen4/abilities.ts:389-398 handlers= ['onChangeBoost', 'onModifyBoost'] REMOVED= ['onChangeBoost']
+  desc[gen4]: This Pokemon's stat stages are considered doubled during stat calculations.
+  msgs_base= []
+  msgs_gen4= []
+### Skill Link | skilllink
+  base /abilities.ts:4287-4300 handlers= ['flags', 'onModifyMove']
+  desc[base]: This Pokemon's multi-hit attacks always hit the maximum number of times.
+  msgs_base= []
+### Slow Start | slowstart
+  base /abilities.ts:4301-4336 handlers= ['flags', 'onEnd', 'onModifyAtk', 'onModifyAtkPriority', 'onModifySpe', 'onResidual', 'onResidualOrder', 'onResidualSubOrder', 'onStart']
+  desc[base]: On switch-in, this Pokemon's Attack and Speed are halved for 5 turns.
+  msgs_base= [('-end', ('Slow Start',)), ('-end', ('Slow Start', '[silent]')), ('-start', ('ability: Slow Start',))]
+### Sniper | sniper
+  base /abilities.ts:4348-4359 handlers= ['flags', 'onModifyDamage']
+  desc[base]: If this Pokemon strikes with a critical hit, the damage is multiplied by 1.5.
+  msgs_base= []
+### Snow Cloak | snowcloak
+  base /abilities.ts:4360-4376 handlers= ['flags', 'onImmunity', 'onModifyAccuracy', 'onModifyAccuracyPriority']
+  gen4 /mods/gen4/abilities.ts:399-409 handlers= ['onModifyAccuracy', 'onModifyAccuracyPriority'] REMOVED= []
+  desc[base]: If Snow is active, this Pokemon's evasiveness is 1.25x.
+  msgs_base= []
+  msgs_gen4= []
+### Snow Warning | snowwarning
+  base /abilities.ts:4377-4385 handlers= ['flags', 'onStart']
+  desc[base]: On switch-in, this Pokemon summons Snow.
+  msgs_base= []
+### Solid Rock | solidrock
+  base /abilities.ts:4404-4415 handlers= ['flags', 'onSourceModifyDamage']
+  desc[base]: This Pokemon receives 3/4 damage from supereffective attacks.
+  msgs_base= []
+### Soundproof | soundproof
+  base /abilities.ts:4426-4442 handlers= ['flags', 'onAllyTryHitSide', 'onTryHit']
+  desc[gen4]: This Pokemon is immune to sound-based moves, including Heal Bell.
+  msgs_base= [('-immune', ('[from] ability: Soundproof',))]
+### Speed Boost | speedboost
+  base /abilities.ts:4443-4455 handlers= ['flags', 'onResidual', 'onResidualOrder', 'onResidualSubOrder']
+  gen4 /mods/gen4/abilities.ts:410-414 handlers= ['onResidualOrder', 'onResidualSubOrder'] REMOVED= []
+  desc[base]: This Pokemon's Speed is raised 1 stage at the end of each full turn on the field.
+  msgs_base= []
+  msgs_gen4= []
+### Static | static
+  base /abilities.ts:4528-4540 handlers= ['flags', 'onDamagingHit']
+  gen4 /mods/gen4/abilities.ts:422-431 handlers= ['onDamagingHit'] REMOVED= []
+  desc[base]: 30% chance a Pokemon making contact with this Pokemon will be paralyzed.
+  msgs_base= []
+  msgs_gen4= []
+### Steadfast | steadfast
+  base /abilities.ts:4541-4549 handlers= ['flags', 'onFlinch']
+  desc[base]: If this Pokemon flinches, its Speed is raised by 1 stage.
+  msgs_base= []
+### Sticky Hold | stickyhold
+  base /abilities.ts:4614-4627 handlers= ['flags', 'onTakeItem']
+  gen4 /mods/gen4/abilities.ts:438-446 handlers= ['onTakeItem'] REMOVED= []
+  desc[base]: This Pokemon cannot lose its held item due to another Pokemon's Ability or attack.
+  msgs_base= [('-activate', ('ability: Sticky Hold',))]
+  msgs_gen4= [('-activate', ('ability: Sticky Hold',))]
+### Sturdy | sturdy
+  base /abilities.ts:4665-4683 handlers= ['flags', 'onDamage', 'onDamagePriority', 'onTryHit']
+  gen4 /mods/gen4/abilities.ts:452-456 handlers= ['onDamage'] REMOVED= ['onDamage']
+  desc[gen4]: OHKO moves fail when used against this Pokemon.
+  msgs_base= [('-ability', ('Sturdy',)), ('-immune', ('[from] ability: Sturdy',))]
+  msgs_gen4= []
+### Suction Cups | suctioncups
+  base /abilities.ts:4684-4694 handlers= ['flags', 'onDragOut', 'onDragOutPriority']
+  desc[base]: This Pokemon cannot be forced to switch out by another Pokemon's attack or item.
+  msgs_base= [('-activate', ('ability: Suction Cups',))]
+### Super Luck | superluck
+  base /abilities.ts:4695-4703 handlers= ['flags', 'onModifyCritRatio']
+  desc[base]: This Pokemon's critical hit ratio is raised by 1 stage.
+  msgs_base= []
+### Swarm | swarm
+  base /abilities.ts:4758-4777 handlers= ['flags', 'onModifyAtk', 'onModifyAtkPriority', 'onModifySpA', 'onModifySpAPriority']
+  gen4 /mods/gen4/abilities.ts:457-468 handlers= ['onBasePower', 'onBasePowerPriority', 'onModifyAtk', 'onModifySpA'] REMOVED= ['onModifyAtk', 'onModifySpA']
+  desc[gen4]: At 1/3 or less of its max HP, this Pokemon's Bug-type attacks have 1.5x power.
+  msgs_base= []
+  msgs_gen4= []
+### Swift Swim | swiftswim
+  base /abilities.ts:4800-4810 handlers= ['flags', 'onModifySpe']
+  desc[base]: If Rain Dance is active, this Pokemon's Speed is doubled.
+  msgs_base= []
+### Synchronize | synchronize
+  base /abilities.ts:4849-4863 handlers= ['flags', 'onAfterSetStatus']
+  gen4 /mods/gen4/abilities.ts:469-479 handlers= ['onAfterSetStatus'] REMOVED= []
+  desc[base]: If another Pokemon burns/poisons/paralyzes this Pokemon, it also gets that status.
+  msgs_base= [('-activate', ('ability: Synchronize',))]
+  msgs_gen4= []
+### Tangled Feet | tangledfeet
+  base /abilities.ts:4882-4895 handlers= ['flags', 'onModifyAccuracy', 'onModifyAccuracyPriority']
+  gen4 /mods/gen4/abilities.ts:480-490 handlers= ['onModifyAccuracy', 'onModifyAccuracyPriority'] REMOVED= []
+  desc[base]: This Pokemon's evasiveness is doubled as long as it is confused.
+  msgs_base= []
+  msgs_gen4= []
+### Technician | technician
+  base /abilities.ts:4908-4922 handlers= ['flags', 'onBasePower', 'onBasePowerPriority']
+  desc[gen4]: This Pokemon's moves of 60 power or less have 1.5x power, except Struggle.
+  msgs_base= []
+### Thick Fat | thickfat
+  base /abilities.ts:5006-5025 handlers= ['flags', 'onSourceModifyAtk', 'onSourceModifyAtkPriority', 'onSourceModifySpA', 'onSourceModifySpAPriority']
+  gen4 /mods/gen4/abilities.ts:491-501 handlers= ['onSourceBasePower', 'onSourceBasePowerPriority', 'onSourceModifyAtk', 'onSourceModifySpA'] REMOVED= ['onSourceModifyAtk', 'onSourceModifySpA']
+  desc[gen4]: The power of Fire- and Ice-type attacks against this Pokemon is halved.
+  msgs_base= []
+  msgs_gen4= []
+### Tinted Lens | tintedlens
+  base /abilities.ts:5026-5037 handlers= ['flags', 'onModifyDamage']
+  desc[base]: This Pokemon's attacks that are not very effective on a target deal double damage.
+  msgs_base= []
+### Torrent | torrent
+  base /abilities.ts:5038-5057 handlers= ['flags', 'onModifyAtk', 'onModifyAtkPriority', 'onModifySpA', 'onModifySpAPriority']
+  gen4 /mods/gen4/abilities.ts:502-513 handlers= ['onBasePower', 'onBasePowerPriority', 'onModifyAtk', 'onModifySpA'] REMOVED= ['onModifyAtk', 'onModifySpA']
+  desc[gen4]: At 1/3 or less of its max HP, this Pokemon's Water-type attacks have 1.5x power.
+  msgs_base= []
+  msgs_gen4= []
+### Trace | trace
+  base /abilities.ts:5110-5143 handlers= ['flags', 'onStart', 'onUpdate']
+  gen4 /mods/gen4/abilities.ts:514-525 handlers= ['flags', 'onUpdate'] REMOVED= []
+  desc[base]: On switch-in, or when it can, this Pokemon copies a random adjacent foe's Ability.
+  msgs_base= [('-block', ('item: Ability Shield',))]
+  msgs_gen4= []
+### Truant | truant
+  base /abilities.ts:5173-5193 handlers= ['condition', 'flags', 'onBeforeMove', 'onBeforeMovePriority', 'onStart']
+  gen4 /mods/gen4/abilities.ts:526-539 handlers= ['onBeforeMove', 'onResidual'] REMOVED= []
+  desc[base]: This Pokemon skips every other turn instead of using a move.
+  msgs_base= [('cant', ('ability: Truant',))]
+  msgs_gen4= [('cant', ('ability: Truant',))]
+### Unburden | unburden
+  base /abilities.ts:5227-5249 handlers= ['condition', 'flags', 'onAfterUseItem', 'onEnd', 'onTakeItem']
+  desc[base]: Speed is doubled on held item loss; boost is lost if it switches, gets new item/Ability.
+  msgs_base= []
+### Vital Spirit | vitalspirit
+  base /abilities.ts:5307-5331 handlers= ['flags', 'onSetStatus', 'onTryAddVolatile', 'onUpdate']
+  gen4 /mods/gen4/abilities.ts:540-543 handlers= [] REMOVED= []
+  desc[base]: This Pokemon cannot fall asleep. Gaining this Ability while asleep cures it.
+  msgs_base= [('-activate', ('ability: Vital Spirit',)), ('-immune', ('[from] ability: Vital Spirit',))]
+  msgs_gen4= []
+### Volt Absorb | voltabsorb
+  base /abilities.ts:5332-5345 handlers= ['flags', 'onTryHit']
+  desc[base]: This Pokemon heals 1/4 of its max HP when hit by Electric moves; Electric immunity.
+  msgs_base= [('-immune', ('[from] ability: Volt Absorb',))]
+### Water Absorb | waterabsorb
+  base /abilities.ts:5355-5368 handlers= ['flags', 'onTryHit']
+  desc[base]: This Pokemon heals 1/4 of its max HP when hit by Water moves; Water immunity.
+  msgs_base= [('-immune', ('[from] ability: Water Absorb',))]
+### Water Veil | waterveil
+  base /abilities.ts:5421-5439 handlers= ['flags', 'onSetStatus', 'onUpdate']
+  desc[base]: This Pokemon cannot be burned. Gaining this Ability while burned cures it.
+  msgs_base= [('-activate', ('ability: Water Veil',)), ('-immune', ('[from] ability: Water Veil',))]
+### White Smoke | whitesmoke
+  base /abilities.ts:5465-5484 handlers= ['flags', 'onTryBoost']
+  desc[base]: Prevents other Pokemon from lowering this Pokemon's stat stages.
+  msgs_base= []
+### Wonder Guard | wonderguard
+  base /abilities.ts:5545-5563 handlers= ['flags', 'onTryHit']
+  gen4 /mods/gen4/abilities.ts:544-558 handlers= ['onTryHit'] REMOVED= []
+  desc[gen4]: This Pokemon is only damaged by Fire Fang, supereffective moves, indirect damage.
+  msgs_base= [('-immune', ('[from] ability: Wonder Guard',))]
+  msgs_gen4= [('-immune', ('[from] ability: Wonder Guard',))]
