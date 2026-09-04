@@ -164,6 +164,28 @@ def _resume(run: Path) -> None:
     train(cfg2, resume_dir=run)
 
 
+def _rng_snapshot() -> dict:
+    """The three global streams as the tests compare them. Same reads as
+    `train._rng_state`, but the torch tensor is CLONED: the assertions below
+    hold a snapshot across a whole `train()` call, and an aliased state tensor
+    would silently track the live generator and make every comparison pass."""
+    return {
+        "torch": torch.get_rng_state().clone(),
+        "numpy": np.random.get_state(),
+        "python": random.getstate(),
+    }
+
+
+def _assert_same_streams(got: dict, want: dict, what: str) -> None:
+    """Position-level equality for all three streams. numpy's state is a tuple
+    (name, key array, pos, has_gauss, cached); the key array and pos are what
+    fix the next draw."""
+    assert torch.equal(got["torch"], want["torch"]), f"torch stream {what}"
+    assert np.array_equal(got["numpy"][1], want["numpy"][1]), f"numpy keys {what}"
+    assert got["numpy"][2] == want["numpy"][2], f"numpy pos {what}"
+    assert got["python"] == want["python"], f"python stream {what}"
+
+
 def test_killed_selfplay_run_resumes_to_completion(tmp_path, monkeypatch, capsys):
     cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
     run = _run_and_kill_at_second_eval(cfg, monkeypatch)
@@ -291,16 +313,35 @@ def test_rng_state_round_trips_the_three_global_streams():
 
 
 def test_resume_restores_the_rng_state(tmp_path, monkeypatch, capsys):
-    """F-18 end to end: the payload carries the three streams and the resume
-    records that it used them, so a readout can tell a continued stream from a
-    replayed one without re-reading the checkpoint."""
+    """F-18 end to end: the payload carries the three streams, the LOOP STARTS
+    ON THEM, and the resume records that it used them — so a readout can tell a
+    continued stream from a replayed one without re-reading the checkpoint.
+
+    The loop-entry probe is the pin on WHERE `_restore_rng` fires, which is the
+    whole property and the only line of F-18 that takes any judgement. A
+    resumed self-play run rebuilds one agent per pool member through
+    `make_agent` inside `_restore_pool` (3 members here) and each rebuild moves
+    the torch stream, so a restore hoisted above that rebuild — or above the
+    learner's own `make_agent`, 45 lines further up — leaves the loop replaying
+    step 0's streams while every other assertion in this file still passes."""
     cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
     run = _run_and_kill_at_second_eval(cfg, monkeypatch)
-    ckpt = load_checkpoint(run / "checkpoint.pt")
-    assert set(ckpt["rng"]) == {"torch", "numpy", "python"}
+    want = load_checkpoint(run / "checkpoint.pt")["rng"]
+    assert set(want) == {"torch", "numpy", "python"}
     capsys.readouterr()  # drop the killed run's output
 
+    seen: dict[str, dict] = {}
+    real_loop = train_mod._vector_loop
+
+    def spying_loop(*a, **k):
+        seen["at_loop_entry"] = _rng_snapshot()
+        return real_loop(*a, **k)
+
+    monkeypatch.setattr(train_mod, "_vector_loop", spying_loop)
     _resume(run)
+
+    _assert_same_streams(seen["at_loop_entry"], want,
+                         "at loop entry != the checkpoint's (restore misplaced?)")
     assert "no rng state" not in capsys.readouterr().out
     meta = yaml.safe_load((run / "meta.yaml").read_text())
     assert meta["resumes"][0]["rng_restored"] is True
