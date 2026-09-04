@@ -48,17 +48,25 @@ class _Policy:
     """act_logp stand-in with the seam's contract: (obs [1, D], mask [1, A])
     -> ([1] actions, [1] logps). `logp` doubles as a weight stamp — the
     pause/resume tests change it between pause() and resume() and read it
-    back off the rows."""
+    back off the rows.
+
+    `entered` is the loop-thread handshake the settle test needs: it is set
+    INSIDE the policy call, i.e. past the gate and before the row append, so a
+    main thread that waits on it knows a decision is genuinely in the fenced
+    region rather than parked (see
+    test_pause_returns_only_once_in_flight_decisions_have_settled)."""
 
     def __init__(self, action=0, logp=-0.5):
         self.action = action
         self.logp = logp
         self.calls = 0
+        self.entered = threading.Event()
 
     def __call__(self, obs, mask):
         assert obs.shape == (1, OBS_DIM) and obs.dtype == np.float32
         assert mask.shape == (1, 10) and mask.dtype == np.bool_
         self.calls += 1
+        self.entered.set()
         return np.array([self.action]), np.array([self.logp], dtype=np.float32)
 
 
@@ -504,6 +512,21 @@ def test_pause_returns_only_once_in_flight_decisions_have_settled(trio):
         for b in battles
     ]
     try:
+        # HANDSHAKE, not a race: without it this test was vacuous most runs.
+        # pause()'s queued gate.clear and the loop thread's first step of these
+        # tasks are both pending when the main thread reaches pause(), and the
+        # clear usually wins — every decision then parks at the gate and the
+        # equality below degenerates to 0 == 0 == 0 == 0, which a decision that
+        # STRADDLES the gate (an await between seam.request() and the row
+        # append — exactly the bug this test exists to catch) also satisfies.
+        # Measured offline on the real CollectPlayer, 6 trials each: without
+        # this wait pristine reads 0/0/0/0 (nothing asserted) and the straddling
+        # mutant PASSES about half its runs — 3/6 here, 4/6 in the review; with
+        # it, pristine reads 4/4/4/4 and PASSES 6/6 while the mutant reads
+        # 0/4/0/4 and FAILS 6/6 on this very equality. The policy sets
+        # `entered` from inside the call, so once it fires at least one decision
+        # is past the gate with its row append still ahead of it.
+        assert policy.entered.wait(5.0), "no decision ever reached the policy"
         col.pause()
         # The docstring's invariant, made concrete: after pause() returns
         # every decision has either completed (request counted AND row
@@ -511,6 +534,9 @@ def test_pause_returns_only_once_in_flight_decisions_have_settled(trio):
         # the gate having done neither.
         settled = sum(f.done() for f in futs)
         rows = sum(len(b.actions) for b in col.builders.values())
+        # Non-degeneracy: a future ordering change must not silently return
+        # this to the all-zeros reading that asserts nothing.
+        assert col.seam.requests >= 1, "no decision got past the gate"
         assert settled == col.seam.requests == rows == policy.calls
         policy.logp = -2.0
         col.resume(version=1)
