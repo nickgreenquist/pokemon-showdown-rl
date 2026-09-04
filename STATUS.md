@@ -32,10 +32,10 @@ Step 1 DONE AND CREDITED. The 2026-08-31 off-arc order (100M run) is
    account nickgen1rbrlbot REUSED (M6). **LG-2 PRE-CHECK PASSED
    2026-09-04:** profile == R1 banked end state (Elo 1292.25, GXE 59.6,
    Glicko-1 1573.04, rd 26.57, 95-105 = n 200; zero games since
-   2026-08-26). **Critical path is LG-1: send the courtesy note ≥24 h
-   before launch** (draft: readouts/LADDER_R4_COURTESY_NOTE.md; agent
-   stamps sent_utc/channel/recipient). Maintainer acts: send the note;
-   update .env (PS_USERNAME AND PS_PASSWORD — currently bot2). Then
+   2026-08-26). **LG-1 courtesy note WAIVED (M10, maintainer, 2026-09-04
+   evening: not a tournament, not a high-traffic room) — start whenever.**
+   Maintainer act: update .env (PS_USERNAME AND PS_PASSWORD — currently
+   bot2). Then
    agent-side: official LG-2 capture into the readout dir, LG-4, LG-5
    (set-pool re-check within 24 h), LG-6 smoke on a FRESHLY restarted local
    server (finalize VOID (e) threshold), LG-7 (server STOPPED, tree clean),

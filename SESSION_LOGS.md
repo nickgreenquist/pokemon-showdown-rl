@@ -10062,3 +10062,22 @@ line numbers are not — grep the date, then read that region):
   (LG-3 owed to the maintainer). Critical path: LG-1 courtesy note ≥24 h
   before launch — earliest launch is the evening after it is sent. STATUS
   rewritten (hold lifted, gate order, gen4-design state).
+
+- 2026-09-04 (evening, maintainer ruling) — **M10: COURTESY NOTE WAIVED;
+  launch gated by LG-2..LG-9 only.** Maintainer, verbatim: "skip the
+  courtesy note: can remove any claude.md mentions of this being needed and
+  the note itself. This is not a tournament, and not a high played room. we
+  can start whenever." Applied: `configs/eval/ladder_r4.yaml` gains
+  ratified_decisions M10 (supersedes M5 and M8's "sends the note" clause;
+  LG-1 block rewritten as WAIVED with the M5 record kept below it as
+  superseded provenance; blind-breach licence re-keyed to UNSOLICITED staff
+  contact; second-attempt sentence and the amendment-licensing line
+  de-noted; header now says M1-M10 — "Status: RATIFIED" literal untouched);
+  `readouts/LADDER_R4_COURTESY_NOTE.md` git-rm'd (text survives in
+  results/design_ladder_r4/mem_B.md §4 and history); HANDOFF §0/§1/§4 and
+  STATUS updated. CLAUDE.md and README never mentioned the note — nothing
+  to remove there; ladder_r3.yaml's D2 trigger and the design-chain docs
+  are history and stay. The readout OWES one disclosure: no staff notice
+  was sent for R4. Verified: YAML re-parses with ten rulings;
+  `tests/test_ladder.py` 77 passed. Launch now waits only on LG-3 (.env)
+  and the agent-side gates LG-2/4/5/6/7.

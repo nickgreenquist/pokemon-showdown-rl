@@ -1,6 +1,6 @@
 # =====================================================================
 # LADDER R4 — GEN1 LADDER #3, ON THE 100M FINAL, GREEDY (JOURNEY STEP 2)
-# Status: RATIFIED 2026-09-04 — maintainer's rulings M1-M9 recorded in ratified_decisions at the foot; M6 OVERRIDDEN to account reuse (the maintainer's own ruling).
+# Status: RATIFIED 2026-09-04 — maintainer's rulings M1-M10 recorded in ratified_decisions at the foot; M6 OVERRIDDEN to account reuse (the maintainer's own ruling); M10 (2026-09-04 evening) WAIVES the courtesy note.
 #   This file lives OUTSIDE configs/eval/ until ratification (BI-R4-4:
 #   tests/test_ladder.py:48 globs configs/eval/ladder_*.yaml; :549-561
 #   asserts markers ABSENT and the literal "Status: RATIFIED" PRESENT — a
@@ -273,15 +273,16 @@
 #   before launch, the readout reports n and rd at that stop, and a run
 #   stopped by the box REPORTS AS INCOMPLETE per the carried sentence
 #   (review_1 F19) — the box is an ops mercy, never a read.
-#   NEW BLIND-BREACH LICENCE (the courtesy note creates the path):
+#   NEW BLIND-BREACH LICENCE (unsolicited staff contact creates the path;
+#   the courtesy note itself is WAIVED — M10):
 #   answering staff contact may require opening the profile mid-run;
 #   doing so is a LICENSED operational view, logged with battle index
 #   and reason; it changes no stopping decision because the rule is
 #   mechanical.
 #   THE ONE-RUN RULE: R4 is ONE run. A VOID or INCOMPLETE read does NOT
 #   license a quiet re-run — that is optional stopping at the level of
-#   runs; any second attempt is a NEW pre-reg, a FOURTH rated account,
-#   and a SECOND courtesy note under D2's trigger.
+#   runs; any second attempt is a NEW pre-reg with its own account and
+#   staff-notice rulings (M6 / M10 govern only this run).
 # ---------------------------------------------------------------------
 # VOID CONDITIONS (adapted from R3; each names its evidence):
 #   (a) wrong format/rated-flag — every JSONL row asserts
@@ -368,7 +369,14 @@
 #   honest uncertainty is the outage tail (R1 0.41 h, R3 2.87 h).
 #   Auto-tie tail DROPPED (greedy 1/0/0 per 1000). No post-ladder anchor
 #   buying — the battery exists.
-#   LAUNCH GATES, in order: LG-1 courtesy note — D2's trigger (a THIRD
+#   LAUNCH GATES, in order: LG-1 WAIVED — RULED 2026-09-04 evening
+#   (ratified_decisions M10): NO courtesy note; the maintainer's reason:
+#   not a tournament, not a high-traffic room; launch whenever the other
+#   gates pass. The note file readouts/LADDER_R4_COURTESY_NOTE.md is
+#   DELETED (text survives in results/design_ladder_r4/mem_B.md §4 and
+#   git history); the readout DISCLOSES that no note was sent. The M5
+#   record below is SUPERSEDED, kept for provenance:
+#   [M5, superseded] LG-1 courtesy note — D2's trigger (a THIRD
 #   account) does NOT fire under reuse, but M5 is ratified and the note
 #   GOES ANYWAY, corrected: same account as the first run, reused
 #   deliberately to comply with the multi-account rules; it still
@@ -391,8 +399,8 @@
 #   the rating is WARM-STARTED from R1's parked end state (headline
 #   discloses it); the profile record is CUMULATIVE R1+R4 (denominators
 #   below); VOID (d) asserts the PARKED R1 STATE, not an empty rating;
-#   Elo(R4 end) - Elo(R1 end) is barred by name; the courtesy note says
-#   the reuse is deliberate compliance. LG-2 becomes: capture the parked
+#   Elo(R4 end) - Elo(R1 end) is barred by name; the (waived, M10) note
+#   would have said the reuse is deliberate compliance. LG-2 becomes: capture the parked
 #   profile BEFORE launch and assert it EQUALS R1's banked end state
 #   (GXE 59.6, Glicko-1 1573, Elo 1292, n=200 total games; rd will have
 #   GROWN with inactivity — assert the rating values and n, record rd as
@@ -486,7 +494,7 @@
 #   one-line reason before it takes effect: readout/analysis instruments
 #   and their tests (BI-R4-2/3/5/6/7); backup verification lines;
 #   board/profile PULLS (data, not decisions); the courtesy-note text
-#   until sent; resume relaunches per the pre-committed paths; the (e)
+#   until sent (moot — waived, M10); resume relaunches per the pre-committed paths; the (e)
 #   decision-ms threshold finalization from the LG-6 smoke; operational
 #   parameters appearing nowhere in the READ. BARRED after ratification:
 #   object, lane, sha, policy kind; the stopping rule and both
@@ -605,7 +613,7 @@ instruments:
   r1_provenance: readouts/LADDER_R1_READOUT.md
   r3_provenance: readouts/LADDER_R3_READOUT.md
 
-ratified_decisions:                  # ALL NINE RULED 2026-09-04 (maintainer, in-session)
+ratified_decisions:                  # M1-M9 RULED 2026-09-04 (maintainer, in-session); M10 RULED 2026-09-04 evening
   M1_q6_rescore:
     RULING: "NO RE-SCORE, as recommended. The written Q6 discharge above is the record; the R-a replace branch is moot."
   M2_band_reference:
@@ -624,3 +632,5 @@ ratified_decisions:                  # ALL NINE RULED 2026-09-04 (maintainer, in
     RULING: "As recommended: maintainer sends the note, updates .env, launches and reads LG-9; agent owns babysitting, mid-run backup, readout, docs."
   M9_build_items:
     RULING: "BI-R4-1 (backup RUNS line), BI-R4-3 (watchdog escalation counter) and BI-R4-7 (startup sha/obs_dim print) LANDED in the ratifying commit. BI-R4-2 (readout two-prior support), BI-R4-5 (un-gate the reconciliation block) and BI-R4-6 (docs W-L grep test) are OWED AT READOUT with their named fallbacks. B9: carry R3's rating-loss disclosure verbatim; no live-path patch before a rated run."
+  M10_courtesy_note_waived:
+    RULING: "WAIVED — maintainer, 2026-09-04 evening, verbatim: 'skip the courtesy note: can remove any claude.md mentions of this being needed and the note itself. This is not a tournament, and not a high played room. we can start whenever'. Supersedes M5 and the 'sends the note' clause of M8. No note is sent; readouts/LADDER_R4_COURTESY_NOTE.md is deleted (text survives in results/design_ladder_r4/mem_B.md §4 and git history); the readout DISCLOSES that no staff notice was sent; the blind-breach licence for UNSOLICITED staff contact stands unchanged; LG-1 is a no-op and launch is gated by LG-2..LG-9 only."

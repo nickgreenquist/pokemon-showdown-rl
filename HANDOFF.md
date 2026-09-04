@@ -1,15 +1,15 @@
 # Handoff — LADDER R4: run the pre-launch gates, launch (maintainer's hands), babysit, read out, record
 Written 2026-09-04, maintainer-ordered ("resume the sequence"). Read STATUS.md,
 then this, then **`configs/eval/ladder_r4.yaml` IN FULL — it is the RATIFIED
-governing document** (2026-09-04, rulings M1-M9 in its ratified_decisions foot).
+governing document** (2026-09-04, rulings M1-M10 in its ratified_decisions foot).
 
 ## 0. WHERE THINGS STAND
 - 100M run: DONE, graded **P3** (non-resolving), fully recorded (RESULTS §18,
   README row, SESSION_LOGS 2026-09-04). Nothing left there.
-- **LADDER R4: RATIFIED, LAUNCH HELD** by maintainer order until HE merges the
-  two worktree branches (audit-fixes, gen4-design). THE MERGES ARE HIS TASK —
-  do not touch the worktrees, do not merge, do not review unless asked. Your
-  work starts when he says the hold is lifted.
+- **LADDER R4: RATIFIED, HOLD LIFTED 2026-09-04 evening** (audit-fixes merged
+  and closed; gen4-design PAUSED by the maintainer, not a blocker — do not
+  touch that worktree). **LG-1 WAIVED (M10)** — launch whenever the gates
+  below pass.
 - The object: 100M final, lane s112, ckpt_100000008.pt (sha in the pre-reg),
   GREEDY. Account: **REUSE nickgen1rbrlbot** (M6, maintainer-ruled — multi-
   account rules; R1's account, parked since 2026-08-26). This run plays ~200
@@ -19,11 +19,11 @@ governing document** (2026-09-04, rulings M1-M9 in its ratified_decisions foot).
   0.9233. s112 is NOT "the best lane" — the median rule named it.
 
 ## 1. WHEN THE HOLD LIFTS — pre-launch gates, IN ORDER (pre-reg LG-1..9)
-1. **LG-1 courtesy note** — MAINTAINER SENDS (his act). Text is drafted at
-   `readouts/LADDER_R4_COURTESY_NOTE.md`; he picks channel (ask PS Help room
-   who to tell → PM them), sends **>=24 h before launch**, then you stamp
-   sent_utc/channel/recipient into that file and commit. NON-REPLY IS NOT A
-   BLOCK; objection = do not launch; conditions = his ruling.
+1. **LG-1 WAIVED** — RULED 2026-09-04 evening (pre-reg M10): no courtesy
+   note (not a tournament, not a high-traffic room); the note file is
+   deleted. Nothing to send, nothing to stamp. The readout discloses that no
+   staff notice was sent. Unsolicited staff contact still carries the
+   pre-reg's blind-breach licence and the stop-at-boundary rule.
 2. **LG-2 parked-profile capture** — pull
    pokemonshowdown.com/users/nickgen1rbrlbot.json; assert it equals R1's
    banked end state (GXE 59.6, Glicko-1 1573, Elo 1292, n=200 games); rd will
@@ -91,7 +91,8 @@ Launch (two blocks, his zsh, from the repo root; battles target 200):
 
 ## 4. AFTER — next arc work (STATUS carries it)
 Step 2 discharges with the run (M4: even VOID/INCOMPLETE discharges it).
-Then step 3 (gen4) — gen4-design docs + audit branch will have merged;
+Then step 3 (gen4) — audit branch merged; gen4-design PAUSED (maintainer
+resumes it at will; its branch has no commits yet — rebase onto main first);
 standing rulings (MPS wording, pool.py:88, crash_forfeit) still open.
 
 ## 5. Rules that cost hours (unchanged)
