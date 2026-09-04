@@ -61,9 +61,7 @@ def _load_showdown_agent(ckpt, cfg):
     no exact map exists on current code."""
     from types import SimpleNamespace
 
-    import gymnasium as gym
-
-    from rl.envs.showdown import ID_DIM, OBS_DIM
+    from rl.envs.showdown import ID_DIM, OBS_DIM, fake_spaces
     from rl.networks.mlp import PrefixSliceActor
 
     native = OBS_DIM
@@ -79,11 +77,9 @@ def _load_showdown_agent(ckpt, cfg):
             "the POKEMON_RL_ENCODER_V2 / POKEMON_RL_ENCODER_IDS env vars."
         )
     # Spaces only — a real env here would open websockets just to read
-    # shapes. Bounds mirror ShowdownSingles.observation_spaces.
-    spaces = SimpleNamespace(
-        observation_space=gym.spaces.Box(-1.0, 4.0, (native,), np.float32),
-        action_space=gym.spaces.Discrete(10),
-    )
+    # shapes; the checkpoint's own width goes in for the shim above.
+    obs_space, act_space = fake_spaces(obs_dim=native)
+    spaces = SimpleNamespace(observation_space=obs_space, action_space=act_space)
     agent = make_agent(cfg, spaces)
     agent.load_state_dict(ckpt["agent"])
     if native != OBS_DIM:

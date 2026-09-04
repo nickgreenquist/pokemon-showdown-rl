@@ -9929,3 +9929,199 @@ line numbers are not — grep the date, then read that region):
   contaminate a resumed lane), A2 touches the very env vars the wave
   exports, A5 touches frozen eval instruments, and CPU headroom over D-B's
   517 RECORD line is thin. CLEANUP.md gains the audit-backlog pointer.
+- 2026-09-04 (overnight, autonomous) — **THE 100M RUN IS DONE AND GRADED:
+  CELL P3 (within, positive, non-resolving); readout committed.**
+  FLEET DONE 2026-09-03 12:50:04Z: s104 ckpt_100000027 (12:22:33Z), s112
+  ckpt_100000008, s120 ckpt_100000080 — zero stalls, zero resumes, zero
+  gate breaches in ~49.5 h; realized whole-lane 562.8/558.2/557.5 steps/s
+  (D-B band [528,620]); updates 3250/3250/3251, pushes 650 (all R0-f
+  bands); D-A exact form 12/12 PASS to 1e-12. The FROZEN eval schedule ran
+  in order, all agent-side detached (start delayed ~9.8 h by the session
+  usage window — nothing ran early, nothing while lanes trained):
+  (1) vs-SH finals 0.7913/0.8000/0.7967 → pooled 0.79589 (~120 s/lane);
+  (2) PRIMARY off-FP@20 greedy 3×3000 serial via
+  scripts/ch5_100m_offfp_wave.sh (ch5_r2_wave.sh copied, 4 diff-verified
+  literal deltas; runner spec configs/eval/ch5_100m_offfp.yaml with fresh
+  ch5c1 pairs; all three arms rc=0 first attempt, ~78-82 min each):
+  0.48633/0.50167/0.50733 → pooled 0.49844; (3) S-SHAPE 60 evals and
+  (4) S-ANNEAL 30 evals (auto-chained on wave completion); (5) BC-clone
+  h2h 500/lane via ch3_r4_anchors.py (rate measured at n=20 first: ~0.15
+  s/battle; expected_pins: 10 — the sanctioned R5b knob):
+  0.912/0.930/0.928 → pooled 0.9233. GRADER (attest PASS): **delta
+  +0.02389 vs BAR 0.025 (floor governs; se_clus 0.00774 > se_bin 0.00745)
+  → P3**; vs-SH delta +0.00944 → SN-N; composition X4; F1 clear; A-COLL
+  VOID (iff P1) — wire attribution on the primary axis unmeasured, G9's
+  signed +0.02322 the only wire bound. **S-SHAPE: SS-CLIMB** (W_hi 0.77764
+  − W_lo 0.74839 = +0.02925 ≥ se_W 0.00633; mandatory anneal sentence in
+  RESULTS §18). S-ANNEAL overlay recorded (joint anneal+wire, control
+  0.783 at its 50M vs treatment 0.724 at 50M). sigma_seed s_T 0.01086,
+  2-df CI [0.00566, 0.06828], grader disclosure verbatim. RECORDS:
+  RESULTS.md §18 (incl. the owed **N-TIMER line — DISCHARGED**), README
+  row landed with the FULL anchor battery (vs-SH + FP@20 + BC-clone; the
+  CH3 search row retagged neutral — different policy forms, not rankable),
+  STATUS rewritten, HANDOFF folded to stub. Deferred wave-script stdin
+  fix applied (< /dev/null on the launch line). **E2 SATISFIED**: S-SHAPE,
+  S-ANNEAL and D-A are recorded and committed — rung retention obligation
+  discharged; cleanup of ~200×3 treatment rungs + the control's 300 is now
+  PERMITTED (maintainer's call; keep the completion rungs and 12M rungs
+  regardless — A-COLL could still be run descriptively one day).
+  Mid-babysit work, separately committed: audit A1 (five design docs
+  tracked in place); two parallel worktree sessions launched by the
+  maintainer (audit-fixes; gen4-design) — their branches merge only
+  post-readout, gate now OPEN. EVERY CELL ROUTES TO JOURNEY STEP 2
+  (LADDER) — and P3 routes there too.
+- 2026-09-04 (day, autonomous + maintainer rulings) — **LADDER R4
+  PRE-REG RATIFIED (launch HELD).** Full 2-Opus cycle: brief → mem_A
+  (validity) / mem_B (ops) → synthesis (6 adjudications, losing arguments
+  recorded) → 578-line draft → review_1 (10 MF + 21 SF) + review_2 (6 MF
+  + 13 SF) → ALL 50 findings applied → maintainer ruled M1-M9 →
+  `configs/eval/ladder_r4.yaml` (git mv per BI-R4-4; Status: RATIFIED;
+  markers cleared; rulings in ratified_decisions). Chain tracked under
+  results/design_ladder_r4/ (A1-pattern whitelist). THE OBJECT: 100M
+  final, GREEDY, lane s112 (median-of-3 on the off-FP primary — ruled
+  2026-09-04 with the numbers already published, stated honestly per
+  review_2 MF-2; Q6 discharged in writing, NO re-score). **M6 OVERRIDDEN
+  BY THE MAINTAINER: REUSE nickgen1rbrlbot** ("multiple accounts are
+  against the rules and could get my ip banned") — supersedes R3's D2
+  sequential-accounts framing; consequences applied: warm-started rating
+  disclosed in the headline, cumulative-profile denominators, VOID (d)
+  asserts the parked R1 end state, Elo(R4)-Elo(R1) barred by name,
+  LG-9's empty-rating tell inverted, courtesy note rewritten for reuse
+  (drafted UNSENT at readouts/LADDER_R4_COURTESY_NOTE.md). Build items
+  BI-R4-1 (backup RUNS), BI-R4-3 (watchdog escalation counter, resets on
+  progress) and BI-R4-7 (startup sha/obs_dim print) LANDED; BI-R4-2/5/6
+  owed at readout with named fallbacks; B9 = carry the disclosure.
+  review_1 F1 also caught a RESULTS §18 transcription error — vs-SH
+  s104 triple corrected 0.7913 → 0.7910 with disclosure. README
+  readme_owed discharged (R4 paragraph + example line). Suite: 663
+  passed / 17 skipped (bare pytest). **LAUNCH HELD, maintainer-ordered:
+  wait for the audit worktree to finish and merge; ladder after. The
+  pre-reg does not expire; LG-1 (courtesy note ≥24 h) keys off the real
+  launch date.**
+
+- 2026-09-04 (day, autonomous; maintainer-ordered merge + close) — **AUDIT
+  BRANCH MERGED AND CLOSED (main ff → bd8484d, 46 commits).** Worked in an
+  isolated worktree under `docs/archive/AUDIT_WORKTREE_PROMPT.md` while the
+  100M fleet and its eval schedule ran; hard bars held (main tree untouched,
+  no pip, no server contact, no process signalled, no evals, single-file
+  nice'd tests behind a port-8000 guard and a 3-slot semaphore). `main` was
+  merged INTO the branch (keeps every cited SHA), the suite run on that tree,
+  then fast-forwarded. LANDED per docs/archive/AUDIT_ACTION_PLAN.md §5: F-01
+  nets-only pool snapshots (~205 MB/member freed; ~4 GB/lane on sync and on
+  every async resume); F-02 offline seam + 30 unit tests for the async
+  collector + the live pause/resume contract test (ran post-fleet, passed);
+  F-03 in-loop liveness (900 s idle, un-paused, drive alive → RuntimeError;
+  the wave's resume branch is the catcher); F-09 `len(_ended)`; F-19
+  `collect/rerequests`; F-05 pool INSIDE checkpoint.pt (step-stamped, every
+  4 updates, legacy pool.pt fallback disclosed + `pool_source` stamped; old
+  dirs still resume); F-18 RNG streams checkpointed and restored at loop
+  entry; F-13 `git_dirty_tracked` + `untracked_files` (`git_dirty`
+  unchanged); F-16 `time/realized_steps_per_sec`; F-04 opt-in
+  `minibatch_tail` keep|drop|fold with DEFAULT keep pinned bit-identical
+  end-to-end at the 100M shape against the vendored pre-F-04 loop; F-08
+  `EncoderSpec` per-gen seam, gen-1 encoding sha256-pinned identical on 6000
+  tape decisions at 612/808/828, `Discrete(10)` derived from the format (10
+  through gen 5, 26 at gen 9); F-10 vectorized per-episode GAE (exact
+  equality pin); F-14 matrix.py re-raises interrupts only (PyO3 panics are
+  BaseException — a reviewer catch). BRANCH-DISCOVERED: F-21 the encoder's
+  set prior `rl/envs/data/gen1_randbats_sets.json` was never tracked (the
+  `data/` ignore rule) — a fresh clone or worktree failed 20+ tests; now
+  whitelisted (ruling owed: borrowed content vs a setup-script copy); F-22
+  the R0-3 goldens were thread-count dependent (csum reduction order) — 1e-9
+  tolerance on the two parameter sums, forward goldens exact. NOT DONE:
+  F-11/12/15/17 (each needs a measurement or a ruling), F-20 (skip, per the
+  plan). PROPOSALS (unruled, docs/proposals/): F-04 pre-reg draft, F-06
+  in-loop eval budget, F-07 encoder config block. VERIFICATION: 785 passed /
+  17 skipped bare in main, live and artifact tests included. PROCESS: three
+  usage-limit cut-offs killed agents mid-flight; every kill was recovered
+  from worktree state; the last reviewer pass did not complete for
+  F-02/F-04/F-05-cluster/F-08/F-06+07 (their final fixes are covered by
+  the test runs and orchestrator diff reads — weight accordingly at review);
+  maintainer rule from it: subagents run on Opus. Plan, branch log and work
+  order archived under docs/archive/ with CLOSED banners; the Downloads
+  copies are redundant. Ladder R4 hold: the audit half is lifted
+  (gen4-design still pending).
+
+- 2026-09-04 (evening, maintainer + agent) — **LADDER R4 HOLD LIFTED.**
+  Maintainer: "audit worktree is done, gen4-design is paused (i can resume
+  it later at any time, its not a blocker for our ladder work here)."
+  Agent confirmed the audit close on main @3d8fd19: tree clean, main ==
+  origin/main, `audit-fixes` branch and worktree gone, plan/log/work order
+  under docs/archive/ with CLOSED banners, bare suite re-run **785 passed /
+  17 skipped in 49 s** (local server pid 68702 up, so live tests ran; the
+  known single-test flake did not fire). `gen4-design` as found: branch tip
+  60c1225 is an ANCESTOR of main (zero commits of its own), worktree
+  `pokemon-showdown-rl-gen4design/docs/design_gen4` is EMPTY, base is 58
+  commits behind main — rebase when resumed; nothing to fold into logs.
+  **LG-2 pre-check (read-only pull of pokemonshowdown.com/users/
+  nickgen1rbrlbot.json, 2026-09-04 evening): PASSED** — gen1randombattle
+  elo 1292.254, gxe 59.6, rpr 1573.041, rprd 26.573, w 95 / l 105 (n 200);
+  equals R1's banked end state, zero games since 2026-08-26; rd recorded
+  as found (did not grow measurably). The official LG-2 capture repeats at
+  launch and lands in the readout dir. .env still carries bot2's username
+  (LG-3 owed to the maintainer). Critical path: LG-1 courtesy note ≥24 h
+  before launch — earliest launch is the evening after it is sent. STATUS
+  rewritten (hold lifted, gate order, gen4-design state).
+
+- 2026-09-04 (evening, maintainer ruling) — **M10: COURTESY NOTE WAIVED;
+  launch gated by LG-2..LG-9 only.** Maintainer, verbatim: "skip the
+  courtesy note: can remove any claude.md mentions of this being needed and
+  the note itself. This is not a tournament, and not a high played room. we
+  can start whenever." Applied: `configs/eval/ladder_r4.yaml` gains
+  ratified_decisions M10 (supersedes M5 and M8's "sends the note" clause;
+  LG-1 block rewritten as WAIVED with the M5 record kept below it as
+  superseded provenance; blind-breach licence re-keyed to UNSOLICITED staff
+  contact; second-attempt sentence and the amendment-licensing line
+  de-noted; header now says M1-M10 — "Status: RATIFIED" literal untouched);
+  `readouts/LADDER_R4_COURTESY_NOTE.md` git-rm'd (text survives in
+  results/design_ladder_r4/mem_B.md §4 and history); HANDOFF §0/§1/§4 and
+  STATUS updated. CLAUDE.md and README never mentioned the note — nothing
+  to remove there; ladder_r3.yaml's D2 trigger and the design-chain docs
+  are history and stay. The readout OWES one disclosure: no staff notice
+  was sent for R4. Verified: YAML re-parses with ten rulings;
+  `tests/test_ladder.py` 77 passed. Launch now waits only on LG-3 (.env)
+  and the agent-side gates LG-2/4/5/6/7.
+
+- 2026-09-04 (evening, agent; maintainer did LG-3) — **LADDER R4 PRE-LAUNCH
+  GATES LG-2..LG-8 ALL PASSED; launch blocks handed over.** LG-2 official
+  capture `results/ladder/R4G.lg2_parked_profile.20260904T175840Z.json`:
+  elo 1292.254, gxe 59.6, rpr 1573.041, rprd 26.573, w 95 / l 105 (n 200)
+  == R1's banked end state, zero games since 2026-08-26 (rd recorded as
+  found). LG-3: maintainer rewrote .env to bot1 (username + 24-char
+  password; the smoke's seat line reads nickgen1rbrlbot). LG-4:
+  tests/test_ladder.py 77 passed (re-run after the band edit). LG-5:
+  smogon master data/random-battles/gen1/{data.json,teams.ts} sha256 ==
+  the pin == the vendored copy (59da482) — no set-pool drift. LG-6: local
+  server restarted fresh (old pid 68702 killed; new pid 87247), smoke
+  `--arm R4G --local-smoke --battles 2` rc=0, 2/2 wins vs the smoke
+  opponent, provenance EXACTLY the six greedy keys (kind greedy, obs_dim
+  828, encoder_v2 "1", encoder_ids "1", lane s112, sha256 2ec16f…), no dose
+  key, decision_errors 0, 42 decisions, **mean_decision_ms 3.036** ->
+  `mean_decision_ms_band` FINALIZED [1, 15] (5x the smoke mean as load
+  margin; R3 search 93.44 / R1 ensemble 6.74 both still outside; the
+  licensed ADJ-5 edit, committed here with its reason inline). Smoke
+  artifacts are the `.smoke.*` files — the real `R4G.battles.jsonl` does
+  not pre-exist. LG-7: server pid 87247 stopped, port 8000 free, tree
+  clean at this commit. LG-8: nothing owed pre-launch. n=0 admission pull
+  archived `results/ladder/R4G.board_n0.20260904T180119Z.json`: cutoff_elo
+  1359.98, inside [1300,1400) -> M2 branch 1, the rank-500 clause STANDS;
+  min_listed_gxe 67.2; unlisted, rating_source profile. Launch line hands
+  the supervisor to `caffeinate -is` (operational, appears nowhere in the
+  READ) so the run does not depend on the week-old bare caffeinate.
+
+- 2026-09-04 (evening, maintainer launched; agent babysits) — **LADDER R4
+  LAUNCHED 18:03:12Z (14:03 local), attempt 1 from n=0.** LG-9 read at the
+  maintainer's terminal, verbatim: "seat 'nickgen1rbrlbot' (userid
+  nickgen1rbrlbot) kind=greedy -> 200 battles / provenance: lane=s112
+  sha256=2ec16fbf… obs_dim=828 / starting rating (profile): GXE 59.6
+  Glicko-1 1573 +/- 27 Elo 1292 [listed=False]" — the parked R1 values,
+  not an empty rating (the inverted tell passes). Processes: supervisor
+  (bash 87689 under caffeinate -is 87690), runner 87702 with one
+  ESTABLISHED socket, watchdog 87704 armed (stall=900 s). First rated
+  battle logged within the first minute. The supervisor log's one "No such
+  file" line is its pre-launch count of a JSONL that did not yet exist —
+  benign. Babysit: a persistent monitor emits supervisor/watchdog events,
+  runner tracebacks, and a 30-min summary (n, last-30-min count, median
+  s/battle excluding gaps > 900 s, runner + socket liveness); nothing is
+  killed by hand; the run is BLIND until n=200 (no profile, board or
+  replay opens); backup once mid-run and once at end.

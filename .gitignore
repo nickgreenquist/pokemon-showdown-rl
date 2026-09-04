@@ -31,6 +31,15 @@ results/design_critic/*
 results/design_fp_gap/*
 !results/design_fp_gap/ch4_synthesis.md
 !results/design_fp_gap/revision_log.md
+!results/design_ladder_r4/
+results/design_ladder_r4/*
+!results/design_ladder_r4/BRIEF.md
+!results/design_ladder_r4/mem_A.md
+!results/design_ladder_r4/mem_B.md
+!results/design_ladder_r4/synthesis_r4.md
+!results/design_ladder_r4/review_1.md
+!results/design_ladder_r4/review_2.md
+!results/design_ladder_r4/ladder_r4.draft.yaml
 checkpoints/
 runs/
 wandb/
@@ -38,6 +47,15 @@ wandb/
 # Downloaded benchmark data (Pons position sets — repo license is null,
 # so they are fetched by scripts/pons_benchmark.py and never committed)
 data/
+# EXCEPTION (audit-fixes F-21, 2026-09-02): the encoder's vendored set prior.
+# `rl/envs/randbats_prior.py` hard-requires `rl/envs/data/gen1_randbats_sets.json`
+# (a 25 KB byte copy of showdown/data/random-battles/gen1/data.json, provenance in
+# that module's docstring), and the `data/` rule above was silently swallowing it:
+# the file existed only in the maintainer's working tree, so a fresh clone or a
+# git worktree failed 20+ tests and could not encode a battle. Borrowed content,
+# named in the module docstring and README per the standing obligation.
+!rl/envs/data/
+!rl/envs/data/gen1_randbats_sets.json
 
 # Local Pokémon Showdown server checkout (Phase 5) — cloned at a pinned
 # commit by scripts/setup_showdown.sh, never committed

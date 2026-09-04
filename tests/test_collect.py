@@ -168,6 +168,7 @@ def _server_up() -> bool:
         return False
 
 
+@pytest.mark.live_server
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
 def test_seam_player_battles_against_live_server():
     from poke_env.player import RandomPlayer
@@ -189,6 +190,7 @@ def test_seam_player_battles_against_live_server():
     assert seam.inference_seconds > 0.0
 
 
+@pytest.mark.live_server
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
 def test_recording_player_battles_against_live_server():
     """The offline tests pin one hand-built position; this is the proof over

@@ -201,7 +201,13 @@ def solve_decision(
                     continue
                 try:  # max-damage rolls for the 2-point expansion (§2.1)
                     dmg = calculate_damage(state, a_str, b_str, True)
-                except BaseException:
+                except (KeyboardInterrupt, SystemExit):
+                    raise  # interrupts propagate (F-14)
+                except BaseException:  # engine faults INCLUDING Rust panics: poke_engine is
+                    # PyO3, and a panic surfaces as pyo3_runtime.PanicException, which derives
+                    # from BaseException, not Exception (F-14 review). The module is created
+                    # lazily on first panic and is not importable, so it cannot be named here;
+                    # `except Exception` would let a panic kill the search seat's battle.
                     dmg = None
                 for br in kept:
                     leaf = state.apply_instructions(br)

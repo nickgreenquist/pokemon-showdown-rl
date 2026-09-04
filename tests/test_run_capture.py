@@ -9,10 +9,12 @@ import subprocess
 import sys
 from dataclasses import asdict
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
 
+import rl.train as train_mod
 from rl.common.config import Config, load_config
 from rl.common.evaluation import eval_returns
 from rl.envs.make import make_env
@@ -56,12 +58,58 @@ def test_run_dir_is_self_describing(trained_run):
     # can be reproduced from its run dir alone.
     assert asdict(load_config(run_dir / "config.yaml")) == asdict(cfg)
     meta = yaml.safe_load((run_dir / "meta.yaml").read_text())
-    assert {"started_at", "git_sha", "git_dirty", "versions"} <= meta.keys()
+    assert {"started_at", "git_sha", "git_dirty", "git_dirty_tracked",
+            "untracked_files", "versions"} <= meta.keys()
+    # F-13: the two halves of dirtiness are stamped separately, and git_dirty
+    # keeps its EXACT old semantics — their disjunction — because preflight G0
+    # and the attestation path read that field. Pinned as an identity so a
+    # future narrowing of git_dirty fails here and not in a readout.
+    assert isinstance(meta["git_dirty_tracked"], bool)
+    assert isinstance(meta["untracked_files"], list)
+    assert meta["git_dirty"] == (
+        meta["git_dirty_tracked"] or bool(meta["untracked_files"])
+    )
+    # Paths, not porcelain lines: the `?? ` prefix is stripped.
+    assert all(isinstance(p, str) and not p.startswith("?") for p in meta["untracked_files"])
     assert "torch" in meta["versions"]
     assert (run_dir / "checkpoint.pt").exists()
     assert (run_dir / "best_checkpoint.pt").exists()
     # Atomic checkpoint writes leave no temp residue.
     assert not list(run_dir.rglob("*.tmp"))
+
+
+def test_git_dirty_splits_tracked_from_untracked(tmp_path, monkeypatch):
+    """F-13, the case the real tree cannot stage on demand: an edited file AND
+    two untracked entries. `git status` is canned so the split itself is under
+    test — a stray .md must land in untracked_files and leave
+    git_dirty_tracked False, while git_dirty stays the disjunction preflight
+    G0 and the attestation path expect."""
+    canned = {
+        ("rev-parse", "HEAD"): "deadbeef\n",
+        ("status", "--porcelain"): " M rl/train.py\n?? notes.md\n?? scratch/\n",
+        ("status", "--porcelain", "--untracked-files=no"): " M rl/train.py\n",
+    }
+    fake = SimpleNamespace(
+        run=lambda cmd, **kw: SimpleNamespace(stdout=canned[tuple(cmd[1:])]),
+        CalledProcessError=subprocess.CalledProcessError,
+    )
+    monkeypatch.setattr(train_mod, "subprocess", fake)
+    run_dir = tmp_path / "runs" / "split"
+    train_mod._write_run_metadata(run_dir, tiny_cfg())
+    meta = yaml.safe_load((run_dir / "meta.yaml").read_text())
+    assert meta["git_sha"] == "deadbeef"
+    assert meta["git_dirty_tracked"] is True
+    assert meta["untracked_files"] == ["notes.md", "scratch/"]
+    assert meta["git_dirty"] is True
+
+    # The trap CLAUDE.md rule 3 exists for: a clean tree plus one stray file.
+    canned[("status", "--porcelain")] = "?? notes.md\n"
+    canned[("status", "--porcelain", "--untracked-files=no")] = ""
+    train_mod._write_run_metadata(run_dir, tiny_cfg())
+    meta = yaml.safe_load((run_dir / "meta.yaml").read_text())
+    assert meta["git_dirty_tracked"] is False
+    assert meta["untracked_files"] == ["notes.md"]
+    assert meta["git_dirty"] is True  # unchanged semantics: G0 still fails
 
 
 class _NeverEndingEnv:

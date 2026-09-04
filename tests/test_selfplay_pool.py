@@ -2,12 +2,16 @@
 
 The probes SESSION_LOGS_PREDECESSOR.md mandates for the frozen-opponent machinery: the snapshot's
 action distribution must be bit-identical after the learner's weights move,
-and no snapshot parameter may appear in the LEARNER's optimizer — asserting
-against the snapshot's own optimizer passes vacuously, because deepcopy
-carries one. Everything else here pins the locked pool mechanics: the 80/20
-draw, second-oldest eviction, the pool_size-1 naive arm replacing rather
-than retaining, freeze-at-push, and the own-generator replay contract.
+and no snapshot parameter may appear in the LEARNER's optimizer — the
+snapshot has no optimizer of its own to assert against (it did until F-01,
+2026-09-02, when the whole-agent deepcopy carried one, and asserting against
+that copy passed vacuously). Everything else here pins the locked pool
+mechanics: the 80/20 draw, second-oldest eviction, the pool_size-1 naive arm
+replacing rather than retaining, freeze-at-push, the own-generator replay
+contract, and (F-01) that a member holds its nets and nothing else.
 """
+
+import pickle
 
 import numpy as np
 import pytest
@@ -30,13 +34,15 @@ EMPTY_OBS = np.zeros((2, 6, 7), dtype=bool)
 ALL_LEGAL = np.ones(7, dtype=bool)
 
 
-def fresh_agent(seed=0):
+def fresh_agent(seed=0, num_envs=1, **overrides):
     """A real conv-trunk PPO agent on the Connect 4 spaces — the snapshots
-    must exercise the exact nets the pool will hold in training."""
+    must exercise the exact nets the pool will hold in training. `overrides`
+    replace HPARAMS entries (the F-01 size test widens the rollout buffer)."""
     torch.manual_seed(seed)
     env = make_env("Connect4-v0", seed=0)
     agent = PPOAgent(
-        env.observation_space, env.action_space, num_envs=1, device="cpu", **HPARAMS
+        env.observation_space, env.action_space, num_envs=num_envs, device="cpu",
+        **{**HPARAMS, **overrides},
     )
     env.close()
     return agent
@@ -86,6 +92,39 @@ def test_snapshot_distribution_is_bit_identical_after_the_learner_moves():
     # this, a no-op perturbation would pass the snapshot assertion vacuously.
     assert not torch.equal(learner_before, probs(agent.actor, EMPTY_OBS, ALL_LEGAL))
     assert torch.equal(member_before, probs(member.agent.actor, EMPTY_OBS, ALL_LEGAL))
+
+
+def test_snapshot_keeps_only_the_nets():
+    """F-01 (2026-09-02): the pre-fix whole-agent deepcopy cloned the
+    learner's RolloutBuffer (obs + next_obs at the batch recipe:
+    2 x 3840 x 8 x 828 x 4 B = 203.5 MB) and its Adam moments into every
+    member — ~4 GB per lane at pool_size 20 on the sync path and on every
+    async --resume. A member built from a REAL PPOAgent keeps actor, critic
+    and device, and nothing else can be hung on it.
+
+    The size bound is DERIVED, not picked: every parameter is float32 (asserted),
+    so the weights pickle to exactly 4 B x n_params; a torch module's pickle
+    adds per-tensor framing (storage header, shape, stride, requires_grad) and
+    the module tree's own dicts — measured at ~6.7 KB for these two conv nets,
+    allowed 64 KiB. The learner is built with a buffer wide enough (1024 steps
+    x 8 envs of (2, 6, 7) bool obs, ~1.4 MB for obs + next_obs alone) that the
+    pre-fix copy cannot fit under the bound — asserted as the control, so the
+    bound is not vacuous at the test recipe."""
+    agent = fresh_agent(rollout_steps=1024, num_envs=8)
+    member = AgentOpponent(agent, seed=0)
+    assert not isinstance(member.agent, PPOAgent)
+    assert not hasattr(member.agent, "buffer")
+    assert not hasattr(member.agent, "optimizer")
+    assert member.agent.device == agent.device
+    with pytest.raises(AttributeError):
+        member.agent.buffer = agent.buffer  # the surface is closed, by design
+    params = list(member.agent.actor.parameters()) + list(member.agent.critic.parameters())
+    assert params and all(p.dtype == torch.float32 for p in params)
+    n_params = sum(p.numel() for p in params)
+    bound = 4 * n_params + 64 * 1024
+    assert len(pickle.dumps(member.agent)) < bound
+    # Control: the whole learner, buffer included, does not fit under it.
+    assert len(pickle.dumps(agent)) > bound
 
 
 def test_push_freezes_the_snapshot_and_leaves_the_learner_trainable():

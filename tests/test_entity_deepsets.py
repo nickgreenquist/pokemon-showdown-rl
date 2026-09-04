@@ -59,8 +59,16 @@ def test_r03_mlp_trunk_bit_identical_to_pre_seam_goldens():
     assert sum(p.numel() for p in agent.actor.parameters()) == 681_994
     asum = torch.cat([p.detach().flatten() for p in agent.actor.parameters()]).double().sum().item()
     csum = torch.cat([p.detach().flatten() for p in agent.critic.parameters()]).double().sum().item()
-    assert asum == 38.545732003828235, asum
-    assert csum == -23.33452005329038, csum
+    # The two PARAMETER sums are reduction-order sensitive: torch's CPU sum
+    # over ~700k doubles splits by intra-op thread count, and the goldens were
+    # captured at this box's default (10). Under OMP_NUM_THREADS=1 csum lands
+    # at -23.334520053290372 — the same weights, a different summation tree
+    # (audit F-22, 2026-09-02). 1e-9 is ~10^5x that noise and ~10^9x below
+    # what any real init change moves the sum by, so the pin keeps its teeth.
+    # The forward-pass goldens below stay EXACT: they were measured identical
+    # at 1 and 10 threads.
+    assert abs(asum - 38.545732003828235) < 1e-9, asum
+    assert abs(csum - -23.33452005329038) < 1e-9, csum
     g = torch.Generator().manual_seed(123)
     x = torch.rand(3, 808, generator=g) * 2 - 0.5
     with torch.no_grad():

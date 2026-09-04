@@ -1,144 +1,102 @@
-# Handoff — babysit the 100M fleet, then run the frozen eval schedule, grade, record
-Written 2026-09-01 ~11:30Z, maintainer-ordered. Read `STATUS.md` first, then this.
+# Handoff — LADDER R4: run the pre-launch gates, launch (maintainer's hands), babysit, read out, record
+Written 2026-09-04, maintainer-ordered ("resume the sequence"). Read STATUS.md,
+then this, then **`configs/eval/ladder_r4.yaml` IN FULL — it is the RATIFIED
+governing document** (2026-09-04, rulings M1-M10 in its ratified_decisions foot).
 
-**A 2-DAY JOB IS RUNNING RIGHT NOW — §0.** Your work splits cleanly:
-(1) light monitoring until ~Wed 2026-09-03 ~11:00Z; (2) on FLEET DONE, the
-frozen post-fleet eval schedule; (3) grade; (4) record everywhere. The
-GOVERNING DOCUMENT for all of it is `configs/showdown_sp_100m.yaml` —
-**RATIFIED 2026-09-01** ("commit, push, ratify"), every cell/bar/disclosure
-frozen. Read its header in full before doing anything. The freeze rule is in
-effect: no cell, bar, n, aggregator, sidedness, comparator or barred-sentence
-list moves, ever.
+## 0. WHERE THINGS STAND
+- 100M run: DONE, graded **P3** (non-resolving), fully recorded (RESULTS §18,
+  README row, SESSION_LOGS 2026-09-04). Nothing left there.
+- **LADDER R4: RATIFIED, HOLD LIFTED 2026-09-04 evening** (audit-fixes merged
+  and closed; gen4-design PAUSED by the maintainer, not a blocker — do not
+  touch that worktree). **LG-1 WAIVED (M10)** — launch whenever the gates
+  below pass.
+- The object: 100M final, lane s112, ckpt_100000008.pt (sha in the pre-reg),
+  GREEDY. Account: **REUSE nickgen1rbrlbot** (M6, maintainer-ruled — multi-
+  account rules; R1's account, parked since 2026-08-26). This run plays ~200
+  RATED games vs humans on play.pokemonshowdown.com, overnight, 12-16 h.
+- Anchor quotes for this object are PAIRED (lane + fleet pooled), rule named:
+  off-FP@20 0.50167 / pooled 0.49844; vs-SH 0.8000 / 0.79589; clone 0.930 /
+  0.9233. s112 is NOT "the best lane" — the median rule named it.
 
-## 0. RUNNING NOW
+## 1. WHEN THE HOLD LIFTS — pre-launch gates, IN ORDER (pre-reg LG-1..9)
+1. **LG-1 WAIVED** — RULED 2026-09-04 evening (pre-reg M10): no courtesy
+   note (not a tournament, not a high-traffic room); the note file is
+   deleted. Nothing to send, nothing to stamp. The readout discloses that no
+   staff notice was sent. Unsolicited staff contact still carries the
+   pre-reg's blind-breach licence and the stop-at-boundary rule.
+2. **LG-2 parked-profile capture** — pull
+   pokemonshowdown.com/users/nickgen1rbrlbot.json; assert it equals R1's
+   banked end state (GXE 59.6, Glicko-1 1573, Elo 1292, n=200 games); rd will
+   have GROWN with inactivity — record as found. ANY games since 2026-08-26 =
+   VOID (d), stop and report. Save the pull into the readout dir.
+3. **LG-3 .env** — MAINTAINER updates BOTH `PS_USERNAME=nickgen1rbrlbot` AND
+   `PS_PASSWORD` (currently bot2's; smoke can't check the password — first
+   verified at live login). Launch shell must also export
+   `POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1` (.env lacks them;
+   supervisor exports nothing; bare = loud OBS_DIM 612 death that burns
+   relaunches).
+4. **LG-4** `pytest tests/test_ladder.py` green (77 passed as of ratification).
+5. **LG-5** set-pool upstream re-check within 24 h of launch (pin block in the
+   pre-reg; fetch both files from smogon master, hash, compare).
+6. **LG-6 local smoke** — needs the LOCAL server UP (it is old, pid 68702
+   from 2026-09-01 — restart it fresh for the smoke):
+   `python scripts/ladder.py --prereg configs/eval/ladder_r4.yaml --arm R4G
+   --local-smoke --battles 2` style (see ladder.py). Assert: kind=greedy,
+   lane=s112, the sha (BI-R4-7 now PRINTS sha+obs_dim at startup), obs_dim
+   828, NO dose key, and the stamped mean_decision_ms — **FINALIZE the VOID
+   (e) threshold from it** (provisional band [1,20); licensed pre-launch edit,
+   commit with one-line reason).
+7. **LG-7** clean tree, docs committed, **LOCAL SERVER STOPPED**, nothing else
+   heavy on the box (a live rated game has a timer).
+8. **LG-8** build items: BI-R4-1/3/7 LANDED at ratification. BI-R4-2/5/6 are
+   OWED AT READOUT with named fallbacks (ruled, M9) — nothing to do now.
+9. **LG-9 LAUNCH — MAINTAINER AT THE TERMINAL (~90 s)**, reading startup
+   lines: kind=greedy, userid character-by-character, printed sha/obs_dim, and
+   the starting-rating line MUST SHOW R1's parked values — an EMPTY "none
+   yet" rating means WRONG ACCOUNT (the tell is INVERTED under reuse).
 
-    nohup caffeinate -dims bash scripts/ch5_100m_wave.sh   # log: logs/ch5_100m_wave.log
+Launch (two blocks, his zsh, from the repo root; battles target 200):
+    cd <repo> && source .env && export POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 && nohup scripts/ladder_supervise.sh R4G 200 configs/eval/ladder_r4.yaml >> results/ladder/R4G.supervisor.log 2>&1 < /dev/null &
+    nohup scripts/ladder_watchdog.sh R4G 900 >> results/ladder/R4G.watchdog.log 2>&1 < /dev/null &
 
-- 3 lanes, seeds 104/112/120, launched fresh 10:58-10:59:50Z (pids at launch
-  69144/69525/69635 — reread from `ps`, never trust these), run names
-  `showdown_sp_100m_s{104,112,120}`. total_steps 1e8; each lane EXITS ITSELF
-  at its 100M crossing rung (`ckpt_1000*.pt` — async rungs are named at the
-  crossing step, never grid literals; same for every rung you'll touch).
-- Preflight passed on the record: fresh server pid 68702 (age 176 s,
-  simulator: 4 verified), disk 171 GiB, reclaimable mem 19 GB.
-- The wave babysits: CPU-delta stall watch (3 consecutive zero-deltas →
-  kill + `--resume`, 3 retries/lane), progress lines every ~5 min. An RSS/box
-  sampler (D-E's read) appends to `logs/ch5_100m_rss.log` every 5 min.
-- **Expected rate: ~574 steps/s/lane realized** (the acceptance fleet's own
-  3-wide number) → one 500k rung every ~14.5 min per lane → **~48.4 h/lane,
-  done ~2026-09-03 11:00Z**. Rungs are the progress read:
-  `ls -t runs/showdown_sp_100m_s104/ | head -3`.
-- **The stall signature: ALIVE, ZERO CPU, stale log. `pgrep` never catches
-  it.** `ps -o time= -p <pid>` twice, 15 s apart. The wave auto-recovers;
-  you only act if a lane is DEAD AND OUT OF RETRIES in the wave log — then
-  the LANE-FAILURE RULE (pre-reg): `--resume runs/<dir>`, real from_step
-  from meta.yaml, fleet does NOT wait, k<=2 → cell K.
-- **DO NOT edit `scripts/ch5_100m_wave.sh` while it runs** (bash reads
-  scripts incrementally; editing a live script corrupts the instance). After
-  FLEET DONE, one deferred fix: its header's launch line should gain
-  `< /dev/null` (zsh job control suspended the maintainer's launch because
-  nohup leaves stdin on the tty; this relaunch detached it — SESSION_LOGS).
+## 2. BABYSIT (yours; 12-16 h, budget 17, hard ceiling ~22)
+- NEVER kill anything mid-battle (forfeits a live rated game). The watchdog
+  kills ONLY on socket absence; trust it. Supervisor relaunches; a death
+  costs <=1 battle (JSONL is the truth; --battles is cumulative).
+- Watch: `results/ladder/R4G.run.log`, supervisor/watchdog logs, JSONL line
+  count. Rate read: median s/battle vs refs (R1 230.0 / R3 218.0; band
+  [190,300] on median-excl-gaps; bands are DIAGNOSTIC except decision-ms).
+- BLIND until n=200: no profile, replay list or board opens. The pre-reg has
+  the licensed stops (four), the staff-contact breach licence, the
+  profile-unreachable 3-step procedure, and the rule-unmet-at-200 → TARGET
+  300 relaunch path. Read them from the pre-reg, not from memory.
+- Run `scripts/backup_ladder.sh` ONCE mid-run and once at end.
+- Moderator contact => stop at next battle boundary, do not argue.
 
-## 1. MONITORING RULES (the pre-reg's, not suggestions)
+## 3. READOUT AND RECORD (yours)
+- Land BI-R4-2/5/6 (or execute their named fallbacks, saying so): readout
+  two-prior support; un-gate the reconciliation block from label=="R3";
+  the committed-docs W-L grep test.
+- **ALL THREE READOUT SCRIPTS DEFAULT TO R1 — pass every flag, always.**
+- Reconciliation is CUMULATIVE: profile total == R1's 200 + R4 jsonl +
+  unlogged (replay-diff names them). R4's OWN record comes from the JSONL,
+  never the profile; the profile record (incl. R1) is quoted as cumulative.
+- Write readouts/LADDER_R4_READOUT.md (headline sentence is FIXED in the
+  pre-reg — includes the reuse/warm-start disclosure and the s112-not-best
+  sentence adjacent); RESULTS §16.5 (+16.3 re-scoped to three runs); README
+  row in the SAME commit; STATUS rewrite + SESSION_LOGS entry (same commit).
+  Barred-language list is a YAML key in the pre-reg — respect it verbatim;
+  NO cross-run delta is an effect; Elo(R4)-Elo(R1) is barred BY NAME.
+- E2 exemption: ckpt_100000008.pt is FROZEN until this readout lands.
 
-- **BARRED OUTRIGHT: any checkpoint evaluation — any n, any opponent, any
-  lane — until the last lane ends.** This is the biggest trap for an eager
-  monitor. It corrupts the throughput record, inflates a time-budgeted FP
-  opponent later, and peeks the verdict axis. The R0/D gates diagnose a sick
-  lane without an eval; that is what they are for.
-- BARRED: extending past 100M, any config/lr change, lane replacement
-  outside the ordered-spare protocol (spares 128/136/144, REPLACEMENT only,
-  pre-D-D only).
-- In-loop `eval/win_rate` (n=100) is visible and NOT ACTIONABLE.
-- Periodic health reads (every few hours is plenty; all from
-  `scripts/extract_history.py <run_dir>` → history.csv, which works on a
-  live run): K6 entropy (STOP a lane only if 3-lane median < 0.15 twice
-  consecutively BEFORE 50M), T2 clip_frac (median >= 0.90 x3 → STOP AND
-  REPORT), T3 approx_kl (>= 0.5 x3, or ANY non-finite loss/*), D-G lag_p99
-  (>= 2 x3 consecutive → STOP that lane), D-H discards (>1% disclose, >5%
-  STOP), D-C aux gates (illegal/collision must be exactly 0 — STOP that
-  lane otherwise). The acceptance fleet ran all of these spotless; a breach
-  is news, not noise. Full table with numbers: the pre-reg header.
-- First 200k steps are already past R0's window by the time you read this;
-  the fleet launched clean.
+## 4. AFTER — next arc work (STATUS carries it)
+Step 2 discharges with the run (M4: even VOID/INCOMPLETE discharges it).
+Then step 3 (gen4) — audit branch merged; gen4-design PAUSED (maintainer
+resumes it at will; its branch has no commits yet — rebase onto main first);
+standing rulings (MPS wording, pool.py:88, crash_forfeit) still open.
 
-## 2. ON "FLEET DONE" — the FROZEN eval schedule, in this exact order
-
-All agent-side (detached, resume-safe, rate-readable). Costs and rates are
-pre-registered; outputs go where `scripts/ch5_100m_grade.py` reads them
-(`results/ch5_100m/`). NOTHING was allowed to run early.
-
-1. **vs-SH finals** (~6 min): for each seed,
-   `eval_checkpoint.py runs/showdown_sp_100m_sN/ckpt_1000*.pt --episodes
-   3000 --out results/ch5_100m/final_sN.json` with
-   POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1. ~120 s each
-   (ch5_g9_basis.sh is the pattern, incl. resume-safety).
-2. **THE PRIMARY — off-FP@20 greedy, 3x3000, serial k=1** (~3.9 h at
-   1.53-1.55 s/battle): adapt the R2 greedy-arm pattern
-   (`scripts/ch5_r2_wave.sh` / `ch3_fp_h2h.py` — deterministic seat, FRESH
-   username pair per arm, `--search-time-ms 20`, no co-scheduling; output
-   t104/t112/t120.json into results/ch5_100m/, ch3_fp_h2h format). All four
-   FP-runner incident fixes stay (CLAUDE.md landmine): kill search workers
-   first, poisoned pairs re-run LAST on fresh pairs, no forfeit at clean
-   boundaries, G2 = two tallies agreeing.
-3. **S-SHAPE** (2.0 h): rungs nearest >= 5M..100M step 5M x 3 lanes,
-   n=3000 vs-SH. Descriptive; "flat"/"plateau" BARRED; the anneal sentence
-   is MANDATORY on every quote (pre-reg wording).
-4. **S-ANNEAL** (1.0 h): the SYNC control's own 5M..50M rungs
-   (runs/showdown_sp_batch50m_s{66,75,83}/ckpt_0*.pt), n=3000 — overlay.
-5. **BC-clone h2h 500/lane** (rate unmeasured — measure at n=20 first).
-   Must land before any README row.
-6. **A-COLL, IFF the primary lands P1** (7.75 h): 6 arms off-FP@20 at the
-   12M rungs — async fleet `runs/showdown_sp_batch50m_async_s*/ckpt_0120*
-   .pt` vs sync fleet `runs/showdown_sp_batch50m_s*/ckpt_012000000.pt`,
-   matched seeds, n=3000, serial. Write `results/ch5_100m/acoll.json` as
-   `{"async_12m": <pooled>, "sync_12m": <pooled>}`.
-
-## 3. GRADE AND RECORD
-
-- `python scripts/ch5_100m_grade.py` (attest runs first and hard-stops on
-  control drift; `--selftest` if in doubt). Cells P1..P6/K, SN/X
-  composition, F1, A-COLL, sigma disclosure — all in the grader, all
-  transcribed from the ratified header.
-- **Every credit sentence carries: G9's signed delta +0.02322, the A-COLL
-  number (at P1), N-ANNEAL as the named leading alternative, the FP@20
-  budget + its two standing disclosures.** vs-SH/off-FP are NEVER ladder
-  numbers; wall clocks are REALIZED dStep/dWall only (sps overstates ~57%
-  on async — never mix estimators).
-- Record: SESSION_LOGS entry + STATUS rewrite (same commit); **RESULTS.md
-  gets the headline number AND discharges the owed N-TIMER line (it is
-  pre-drafted in the pre-reg header — copy it beside the number)**; the
-  README row only after the full anchor battery (steps 1/2/5 above).
-  Rung retention: all ~200 rungs x 3 lanes + the sync control's 300 stay
-  on disk until S-SHAPE, S-ANNEAL and D-A are recorded and committed (E2).
-- D-A anneal check at grade time: exact form via history basis (pre-reg
-  wording); expect a resume-free run's extract_history to just work — a
-  resumed lane needs the merge protocol FIRST (landmine: hard-fail).
-
-## 4. Standing maintainer items (unchanged, escalate not answer)
-
-1. CLAUDE.md:71 MPS wording (proposal on the table). 2. Fix
-   rl/selfplay/pool.py:88 at all (~2.5% prize)? 3. Stall-kill
-   crash_forfeit read rule (R4S66 did NOT trigger it — seat_frozen 0).
-4. NEW, with R4S66's number: the ladder-object question — **search@20
-   HURTS the batch lane (0.38067 vs greedy 0.4740, ~10 se)**, so greedy
-   batch-lane leads on today's evidence; the 100M final supersedes both
-   as the candidate when it lands. JOURNEY step 2 (ladder) is next on
-   every branch.
-
-## 5. Context you'd otherwise have to dig for
-
-- STAGE 2 acceptance: G9 PASS (+0.02322 signed), G8 CREDITED (901/908/901
-  median-sps vs 444). Speedup realized: 1.53x fleet-width, 1.49x solo.
-  All in SESSION_LOGS 2026-09-01 (two entries) + the acceptance header
-  `configs/showdown_sp_batch50m_async.yaml`.
-- The 2-Opus cycle artifacts live in `results/design_ch5_100m/` (gitignored,
-  on disk): brief, mem_A/B, synthesis (6 adjudications), review_1/2.
-- Suite: 648 passed / 17 skipped, bare `pytest tests/` (8 encoder-default
-  tests fail BY DESIGN under forced V2/IDS env vars — R0-k names the bare
-  invocation; only test_anneal_aux_group runs env-var'd, 9/1).
-- Everything through the wave launch is pushed (origin/main = 2a21b9a +
-  this handoff commit). Rules that cost hours: conda env
-  `pokemon-showdown-rl` never base; distinct seeds everywhere; commit docs
-  before launching; launch from a clean tree; `showdown/config/config.js`
-  simulator: 4 (gitignored — re-set after any re-clone).
+## 5. Rules that cost hours (unchanged)
+conda env pokemon-showdown-rl, never base; commit docs before launching;
+one command per fenced block for the maintainer, `<command>` sentinels;
+zsh vs bash; never push without asking; SESSION_LOGS 2026-09-04 entries
+carry this cycle's full narrative if anything here reads ambiguous.

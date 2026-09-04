@@ -869,6 +869,7 @@ def _server_up() -> bool:
         return False
 
 
+@pytest.mark.live_server
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
 # KNOWN FLAKE (recorded here 2026-08-28; CLAUDE.md was the only record). This
 # test fails when the WHOLE suite runs with a server up, and passes when run
@@ -1149,6 +1150,7 @@ def test_hl_cursor_cleared_on_reset(monkeypatch):
     assert not env._event_cursor
 
 
+@pytest.mark.live_server
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
 def test_shaped_return_equals_the_outcome_on_live_battles():
     """The R0 gate on real battles, random policy: per-episode shaped return
@@ -1176,6 +1178,7 @@ def test_shaped_return_equals_the_outcome_on_live_battles():
     env.close()
 
 
+@pytest.mark.live_server
 @pytest.mark.skipif(not _server_up(), reason="no local Showdown server on :8000")
 def test_wait_states_are_absorbed_over_many_battles():
     # Wait states (opponent faint-replacements) occur in ~6.4% of raw steps

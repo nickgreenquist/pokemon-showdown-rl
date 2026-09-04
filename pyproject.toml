@@ -45,3 +45,12 @@ corpus = [
 
 [tool.setuptools.packages.find]
 include = ["rl*"]
+
+[tool.pytest.ini_options]
+# `live_server`: the test opens a websocket to the local Showdown server on
+# :8000 (each such test also carries the skipif(_server_up()) guard, so it
+# skips without one). Deselect the whole class with `-m "not live_server"` —
+# needed whenever a server is up for a training fleet that must not be touched.
+markers = [
+    "live_server: needs a Showdown server on localhost:8000 (skips without one)",
+]

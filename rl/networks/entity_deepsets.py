@@ -157,10 +157,10 @@ def _subnet(in_dim: int, width: int) -> nn.Sequential:
 
 
 class EntityDeepSetsNet(nn.Module):
-    """One head of the Rung 2 architecture: out_dim 10 builds the pointer
-    policy (shared per-action scorer + slot bias), out_dim 1 the value stack
-    (same trunk shape over `value_sizes`, scalar head). PPOAgent constructs
-    one of each — separate stacks, nothing shared between them."""
+    """One head of the Rung 2 architecture: out_dim N_ACTIONS (10 at gen 1)
+    builds the pointer policy (shared per-action scorer + slot bias), out_dim
+    1 the value stack (same trunk shape over `value_sizes`, scalar head).
+    PPOAgent constructs one of each — separate stacks, nothing shared."""
 
     def __init__(
         self,
@@ -177,11 +177,20 @@ class EntityDeepSetsNet(nn.Module):
         privileged_dim: int = 0,
     ):
         super().__init__()
-        if out_dim not in (10, 1):
-            raise ValueError(f"out_dim must be 10 (policy) or 1 (value), got {out_dim}")
+        # Deferred import, as the tokenizer does: only entity-trunk
+        # construction pays for poke_env. N_ACTIONS is the format's (10 at
+        # gen 1); the pointer head below scores exactly 6 + 4 entities, so a
+        # gimmick generation (14..26 actions) needs a new head, not a wider
+        # slot_bias.
+        from rl.envs.showdown import N_ACTIONS
+
+        if out_dim not in (N_ACTIONS, 1):
+            raise ValueError(
+                f"out_dim must be {N_ACTIONS} (policy) or 1 (value), got {out_dim}"
+            )
         if pool != "max":
             raise ValueError(f"only DeepSets max-pool is implemented (H&L's choice), got {pool!r}")
-        self.is_policy = out_dim == 10
+        self.is_policy = out_dim == N_ACTIONS
         self.tokenizer = EntityTokenizer(in_dim, species_vocab, move_vocab)
         self.species_emb = nn.Embedding(species_vocab, embed_dim)
         self.move_emb = nn.Embedding(move_vocab, embed_dim)
