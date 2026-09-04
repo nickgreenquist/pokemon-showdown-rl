@@ -84,14 +84,12 @@ def _frozen_checkpoint_pool(path: str) -> SnapshotPool:
     opponent would corrupt a run without an error."""
     from types import SimpleNamespace
 
-    from rl.envs.showdown import OBS_DIM
+    from rl.envs.showdown import OBS_DIM, fake_spaces
 
     ckpt = load_checkpoint(path)
     cfg = Config(**ckpt["config"])
-    spaces = SimpleNamespace(
-        observation_space=gym.spaces.Box(-1.0, 4.0, (OBS_DIM,), np.float32),
-        action_space=gym.spaces.Discrete(10),
-    )
+    obs_space, act_space = fake_spaces()
+    spaces = SimpleNamespace(observation_space=obs_space, action_space=act_space)
     agent = make_agent(cfg, spaces)
     try:
         agent.load_state_dict(ckpt["agent"])
@@ -320,11 +318,12 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         # _frozen_checkpoint_pool precedent.
         from types import SimpleNamespace
 
-        from rl.envs.showdown import OBS_DIM
+        from rl.envs.showdown import fake_spaces
 
+        obs_space, act_space = fake_spaces()
         env = SimpleNamespace(
-            observation_space=gym.spaces.Box(-1.0, 4.0, (OBS_DIM,), np.float32),
-            action_space=gym.spaces.Discrete(10),
+            observation_space=obs_space,
+            action_space=act_space,
             num_envs=cfg.num_envs,
             close=lambda: None,
         )
