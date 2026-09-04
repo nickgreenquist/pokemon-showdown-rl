@@ -24,10 +24,12 @@ def save_checkpoint(
 
     `extras` (resume-from-checkpoint): loop-level bookkeeping merged into the
     payload under keys the eval loaders never read — {"loop": {"best_eval",
-    "updates_done"}} since 2026-08-23, and since 2026-09-03 (F-05) {"pool":
+    "updates_done"}} since 2026-08-23; since 2026-09-03 (F-05) {"pool":
     {"step", "state"}} so the self-play pool and the learner it pairs with
     land in ONE write-then-rename (pool.pt was a second rename a kill could
-    split). Every key is absent from older checkpoints; readers must .get()
+    split); and (F-18) {"rng": {"torch", "numpy", "python"}} so a resume
+    continues the global streams instead of replaying the run's first
+    sequence. Every key is absent from older checkpoints; readers must .get()
     it — rl/train.py's resume path is the reference reader."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

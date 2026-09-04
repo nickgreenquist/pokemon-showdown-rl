@@ -14,10 +14,15 @@ Covers the three layers separately and end to end:
   SAVE_LATEST_EVERY_UPDATES update boundaries rather than at evals; a
   pre-F-05 run dir (checkpoint.pt without a pool key + pool.pt — the live
   100M fleet's format) still resumes exactly as before, with a disclosure;
-  a torn stamp is refused.
+  a torn stamp is refused;
+- F-18 (2026-09-03): the three GLOBAL rng streams ride in the same payload
+  and are restored just before the loop, so a resume continues them instead
+  of replaying step 0's minibatch permutations and action draws; a pre-F-18
+  run dir resumes as it did, with a printed line.
 """
 
 import copy
+import random
 from pathlib import Path
 
 import numpy as np
@@ -28,6 +33,7 @@ import yaml
 import rl.train as train_mod
 from rl.common.checkpoint import load_checkpoint, save_checkpoint
 from rl.common.config import Config
+from rl.common.seeding import set_seed
 from rl.selfplay.pool import SnapshotPool
 from rl.train import train
 
@@ -255,6 +261,67 @@ def test_checkpoint_rides_update_boundaries_not_evals(tmp_path, monkeypatch):
     names = [name for name, _ in saves]
     assert names.index("checkpoint.pt") < names.index("best_checkpoint.pt")
     assert not (Path.cwd() / "runs" / cfg.run_name / "pool.pt").exists()
+
+
+def test_rng_state_round_trips_the_three_global_streams():
+    """F-18 unit: the saved state must reproduce the NEXT draws exactly, even
+    though the resumed process re-seeds and then makes construction-time draws
+    of its own (make_agent for the learner, one per pool member) before the
+    restore lands. Both halves matter — a restore that ran too early would be
+    overwritten by those draws."""
+    set_seed(1234)
+    for _ in range(3):  # advance all three off their seeded start
+        torch.rand(2)
+        np.random.random()
+        random.random()
+    state = train_mod._rng_state()
+    want = (torch.rand(3), np.random.random(), random.random())
+
+    set_seed(1234)  # what train() does unconditionally, resume or not
+    for _ in range(7):  # stand in for the construction-time draws
+        torch.rand(2)
+        np.random.random()
+        random.random()
+    train_mod._restore_rng(state)
+    got = (torch.rand(3), np.random.random(), random.random())
+
+    assert torch.equal(got[0], want[0])
+    assert got[1] == want[1]
+    assert got[2] == want[2]
+
+
+def test_resume_restores_the_rng_state(tmp_path, monkeypatch, capsys):
+    """F-18 end to end: the payload carries the three streams and the resume
+    records that it used them, so a readout can tell a continued stream from a
+    replayed one without re-reading the checkpoint."""
+    cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
+    run = _run_and_kill_at_second_eval(cfg, monkeypatch)
+    ckpt = load_checkpoint(run / "checkpoint.pt")
+    assert set(ckpt["rng"]) == {"torch", "numpy", "python"}
+    capsys.readouterr()  # drop the killed run's output
+
+    _resume(run)
+    assert "no rng state" not in capsys.readouterr().out
+    meta = yaml.safe_load((run / "meta.yaml").read_text())
+    assert meta["resumes"][0]["rng_restored"] is True
+
+
+def test_pre_f18_run_dir_resumes_with_the_replay_disclosure(tmp_path, monkeypatch, capsys):
+    """A checkpoint written before F-18 has no rng key: it must still resume,
+    printing the line that says the streams restart from set_seed(seed)."""
+    cfg = _selfplay_config(tmp_path, monkeypatch, total_steps=384)
+    run = _run_and_kill_at_second_eval(cfg, monkeypatch)
+    ckpt = load_checkpoint(run / "checkpoint.pt")
+    ckpt.pop("rng")
+    torch.save(ckpt, run / "checkpoint.pt")
+    capsys.readouterr()
+
+    _resume(run)
+    out = capsys.readouterr().out
+    assert "RESUME: no rng state in checkpoint.pt (pre-F-18 run dir)" in out
+    meta = yaml.safe_load((run / "meta.yaml").read_text())
+    assert meta["resumes"][0]["rng_restored"] is False
+    assert load_checkpoint(run / "checkpoint.pt")["step"] >= 384
 
 
 def test_resume_refuses_config_drift(tmp_path, monkeypatch):

@@ -4,6 +4,7 @@ Every algorithm plugs in here; the loop stays algorithm-agnostic.
 
 import argparse
 import importlib.metadata
+import random
 import subprocess
 import time
 from collections import defaultdict
@@ -221,6 +222,42 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
     torch.save(agent.theta0_state(), path)
 
 
+def _rng_state() -> dict:
+    """The three GLOBAL streams `set_seed` seeds (F-18): torch's CPU
+    generator, NumPy's legacy global, Python's `random`. CPU torch only — the
+    RL loop is CPU-only (CLAUDE.md) and no accelerator generator is in play;
+    if that ever changes, this is the one place to add its state.
+
+    Deliberately NOT in scope, so the disclosure is exact:
+    - per-object generators. Each pool member's `torch.Generator` already
+      travels inside the pool state; PPO's `_shuffle_gen` / `_synth_gen` are
+      re-derived from `torch.initial_seed()` at construction and their
+      consumed draws are NOT restored — a resume replays those two label
+      streams from their start (both levers are off in every frozen config).
+    - the ENV streams. gymnasium reseeds each sub-env from `cfg.seed` at
+      `envs.reset(seed=...)`, so a resumed vector loop replays them exactly as
+      it did before F-18; the async collector's battles are server-rolled.
+    """
+    return {
+        "torch": torch.get_rng_state(),
+        "numpy": np.random.get_state(),
+        "python": random.getstate(),
+    }
+
+
+def _restore_rng(state: dict) -> None:
+    """Inverse of `_rng_state`, called from ONE place (see the call site in
+    `train`): after `set_seed(cfg.seed)` and after every construction-time
+    draw — the learner's init in `make_agent` (draws the killed run also made,
+    so the saved state already accounts for them) and the pool's per-member
+    `agent_factory` rebuilds (resume-ONLY draws the killed run never made) —
+    and before the loop's first draw, so neither kind can shift the continued
+    stream."""
+    torch.set_rng_state(state["torch"])
+    np.random.set_state(state["numpy"])
+    random.setstate(state["python"])
+
+
 def _save_latest(
     out_dir: Path,
     agent: Agent,
@@ -249,6 +286,16 @@ def _save_latest(
     extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
     if pool_state is not None:
         extras["pool"] = {"step": step, "state": pool_state}
+    # F-18: the global streams ride in the same payload, so a resume continues
+    # them instead of replaying step 0's (the restore point is in `train`, just
+    # before the loop). Read HERE, on the main thread, inside the same
+    # quiescent window as the learner: the two global-stream consumers —
+    # act_logp's Categorical sampling (behind the collector gate on the async
+    # path, inline on the vector path) and the update's minibatch randperm —
+    # are both idle at every call site, so the state saved is the state the
+    # next draw would have used. Only the resume artifact carries it: the
+    # ladder rungs and best_checkpoint.pt are eval inputs, never resumed from.
+    extras["rng"] = _rng_state()
     save_checkpoint(out_dir / "checkpoint.pt", agent, step, cfg, normalizers, extras=extras)
 
 
@@ -451,6 +498,7 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         agent.begin_warm_start()
     out_dir = run_dir(cfg)
     resume_state: dict | None = None
+    resume_rng: dict | None = None
     if resume_dir is not None:
         # RESUME (2026-08-23, the 24h run-loss bar): pick a killed run back
         # up from its own dir. Constructed from the run's OWN config.yaml
@@ -473,9 +521,13 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             if "normalizers" in ckpt and name in ckpt["normalizers"]:
                 rms.load_state_dict(ckpt["normalizers"][name])
         resume_state = {"step": ckpt["step"], **ckpt.get("loop", {})}
+        resume_rng = ckpt.get("rng")  # restored just before the loop, below
         stamp = {
             "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "from_step": int(ckpt["step"]),
+            # Provenance for the streams: False means this resume replayed
+            # step 0's minibatch permutations and action draws (F-18).
+            "rng_restored": resume_rng is not None,
         }
         if pool is not None:
             # Before the meta stamp: a refused pair (torn stamp) must leave
@@ -512,6 +564,25 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         # opponent and the strided pool's permanent anchor.
         pool.push(agent)
         logger.log({"selfplay/pool_size": len(pool)}, 0)
+
+    if resume_dir is not None:
+        # THE restore point (F-18), last thing before the loop. Every
+        # construction-time draw is behind us — the learner's init above and,
+        # in _restore_pool, one make_agent per pool member — so the restore
+        # cannot be undone by a draw the killed run never made. And nothing
+        # between here and the loop's first sample touches the global streams:
+        # every poke-env seat was already built (make_vec_env / make_eval_env
+        # above, and the async collector names its pair `as2s<seed>a/b`
+        # explicitly), which is what keeps this off the username-collision
+        # landmine — poke-env's SinglesEnv derives a seat name from global
+        # `random` (AccountConfiguration.generate(rand=True)), so a restore
+        # placed BEFORE env construction would hand a resumed lane different
+        # usernames than the run it continues.
+        if resume_rng is not None:
+            _restore_rng(resume_rng)
+        else:
+            print("RESUME: no rng state in checkpoint.pt (pre-F-18 run dir) — "
+                  "torch/numpy/random streams restart from set_seed(seed), as before")
 
     if async_collect:
         _async_loop(cfg, eval_env, agent, logger, out_dir, pool, push_every,
