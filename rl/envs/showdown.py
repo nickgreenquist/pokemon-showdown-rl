@@ -40,7 +40,6 @@ from poke_env.battle.effect import Effect
 from poke_env.battle.move import Move
 from poke_env.battle.move_category import MoveCategory
 from poke_env.battle.pokemon import Pokemon
-from poke_env.battle.pokemon_type import PokemonType
 from poke_env.battle.status import Status
 from poke_env.battle.target import Target
 from poke_env.data import GenData
@@ -54,6 +53,7 @@ from poke_env.player import (
     SimpleHeuristicsPlayer,
 )
 
+from rl.envs.encoder_spec import GEN1, EncoderSpec, spec_for_format
 from rl.envs.randbats_prior import conditional_move_probs, known_species
 from rl.selfplay.pool import SnapshotPool
 
@@ -76,53 +76,24 @@ OPPONENT_PLAYERS: dict[str, type[Player]] = {
 # decision-relevant scalar (sample efficiency under terminal-only reward),
 # the one-hots let the net learn what the scalar can't express.
 
-# The 15 Gen 1 types, alphabetical. Fixed here (not from PokemonType, which
-# carries all 20 modern members) so the one-hot layout is stable.
-GEN1_TYPES = (
-    PokemonType.BUG, PokemonType.DRAGON, PokemonType.ELECTRIC,
-    PokemonType.FIGHTING, PokemonType.FIRE, PokemonType.FLYING,
-    PokemonType.GHOST, PokemonType.GRASS, PokemonType.GROUND,
-    PokemonType.ICE, PokemonType.NORMAL, PokemonType.POISON,
-    PokemonType.PSYCHIC, PokemonType.ROCK, PokemonType.WATER,
-)
-_TYPE_INDEX = {t: i for i, t in enumerate(GEN1_TYPES)}
+# The per-gen tables (types, statuses, boost/base-stat keys, volatiles,
+# poke-env's SPECIAL_MOVES, the id ranges) live in rl/envs/encoder_spec.py
+# (F-08): the fill helpers read them off a `spec` argument that defaults to
+# GEN1, and the names below are GEN1's — the same objects, in the same
+# order — kept for the importers that pin layout against them (tests,
+# scripts, the tokenizer). The tables' whys travel with them.
+GEN1_TYPES = GEN1.types
+_TYPE_INDEX = GEN1.type_index
+_STATUS_INDEX = GEN1.status_index
+_BOOST_KEYS = GEN1.boost_keys
+_BASE_STAT_KEYS = GEN1.base_stat_keys
+_VOLATILES = GEN1.volatiles  # incl. the D13(a) MUST_RECHARGE why, at GEN1
+_SPECIAL_MOVE_IDS = GEN1.special_move_ids
 
-# FNT is excluded: the fainted flag carries it.
-_STATUS_INDEX = {
-    s: i
-    for i, s in enumerate(
-        (Status.BRN, Status.FRZ, Status.PAR, Status.PSN, Status.SLP, Status.TOX)
-    )
-}
-
-# All 7 poke-env boost keys, sorted. Gen 1 has one Special stat — the server
-# mirrors spa/spd — so one of the pair is redundant but harmless.
-_BOOST_KEYS = ("accuracy", "atk", "def", "evasion", "spa", "spd", "spe")
-
-# spd is dropped: Gen 1 base data mirrors it from spa (one Special stat).
-_BASE_STAT_KEYS = ("hp", "atk", "def", "spa", "spe")
-
-# Gen 1 volatiles poke-env can represent. Light Screen is MISSING by
-# necessity, not oversight: the Gen 1 sim emits it as a per-mon volatile
-# ("|-start|...|Light Screen") and poke-env 0.15.0 has no LIGHT_SCREEN
-# Effect member, so it parses to Effect.UNKNOWN — ambiguous, not worth a
-# parser fork for one uncommon move. Reflect (its physical twin) parses.
-_VOLATILES = (
-    Effect.CONFUSION, Effect.FOCUS_ENERGY, Effect.LEECH_SEED,
-    Effect.MUST_RECHARGE, Effect.PARTIALLY_TRAPPED, Effect.REFLECT,
-    Effect.SUBSTITUTE,
-)
-# The MUST_RECHARGE slot is filled from `mon.must_recharge`, not effect
-# membership: poke-env routes |-mustrecharge| to that bool and never starts
-# the Effect (measured 0/2,427 decisions vs 185 with the bool set), so the
-# Effect test would leave the slot structurally dead — Stage-0 fix, D13(a).
-
-# poke-env's SPECIAL_MOVES (battle/move.py): when one of these is the only
-# legal move-action, poke-env re-bases the move index onto `available_moves`,
-# so move slot i stops meaning "the mon's move i". gen1's `fight` placeholder
-# is the common case (~1.5% of decisions); struggle and recharge alias the
-# same way.
-_SPECIAL_MOVE_IDS = frozenset({"fight", "struggle", "recharge"})
+# poke-env's Discrete size for the generation the encoder serves: 6 switches
+# + 4 moves, no gimmick slots through gen 5 (singles_env.py). The sites that
+# build an agent without opening a websocket read it through fake_spaces().
+N_ACTIONS = GEN1.n_actions
 
 # --- Encoder v2 (2026-08-06, BC-chapter screen), behind POKEMON_RL_ENCODER_V2=1.
 # Appends (a) a 23-dim per-move EFFECT block — what the move DOES beyond damage:
@@ -156,9 +127,15 @@ ID_SCALE = 256.0
 # Block layouts (offsets documented in the fill helpers below).
 GLOBAL_DIM = 6
 EFFECT_DIM = 23  # v2 only: appended to each move block
-MON_DIM = 33 if _ENCODER_V2 else 32  # hp, fainted, active, status(6), level, stats(5), types(15), off/def matchup [, v2 speed edge]
-ACTIVE_DIM = 16  # boosts(7), volatiles(7), status_counter, preparing
-MOVE_DIM = (23 + EFFECT_DIM) if _ENCODER_V2 else 23  # known, bp, acc, pp, matchup, physical, status, priority, type(15) [, v2 effect block]
+# Block widths at GEN1: 33/32 mon (hp, fainted, active, status(6), level,
+# stats(5), types(15), off/def matchup [, v2 speed edge]), 16 active
+# (boosts(7), volatiles(7), status_counter, preparing), 46/23 move (known,
+# bp, acc, pp, matchup, physical, status, priority, type(15) [, v2 effect
+# block]). The v1 widths are the spec's (they follow its table lengths); the
+# v2 extras are process flags, appended here.
+MON_DIM = (GEN1.mon_dim_v1 + 1) if _ENCODER_V2 else GEN1.mon_dim_v1
+ACTIVE_DIM = GEN1.active_dim
+MOVE_DIM = (GEN1.move_dim_v1 + EFFECT_DIM) if _ENCODER_V2 else GEN1.move_dim_v1
 
 # Layout: global | our 6 team blocks (switch-action order) | our active
 # extras | our active's 4 move blocks (move-action order) | opponent's 6
@@ -182,6 +159,26 @@ ENCODER_FINGERPRINT = {
 }
 
 
+def fake_spaces(
+    battle_format: str = "gen1randombattle", obs_dim: int | None = None
+) -> tuple[spaces.Box, spaces.Discrete]:
+    """(observation_space, action_space) for the sites that build an agent
+    WITHOUT opening a websocket just to read shapes — train.py's frozen
+    opponent pool and async path, eval_checkpoint.py's loader (which passes
+    the checkpoint's own width as `obs_dim` for its cross-encoder shim).
+    Bounds mirror ShowdownSingles.observation_spaces. The action count is
+    the FORMAT's, through poke-env (10 through gen 5, then 14/18/22/26), and
+    spec_for_format refuses every generation the encoder cannot serve, so a
+    gen-9 format fails here by name instead of as a silent Discrete(10)
+    shape bug (F-08)."""
+    n_actions = spec_for_format(battle_format).n_actions
+    width = OBS_DIM if obs_dim is None else obs_dim
+    return (
+        spaces.Box(low=-1.0, high=4.0, shape=(width,), dtype=np.float32),
+        spaces.Discrete(n_actions),
+    )
+
+
 def _best_multiplier(attacker, defender, type_chart) -> float:
     """Best type multiplier among the attacker's types vs the defender — the
     type-only switch-value proxy (ignores actual movesets by design)."""
@@ -191,47 +188,56 @@ def _best_multiplier(attacker, defender, type_chart) -> float:
     )
 
 
-def _fill_mon(vec, o, mon, foe, active, type_chart):
+def _fill_mon(vec, o, mon, foe, active, type_chart, spec: EncoderSpec = GEN1):
     """[o] hp | [+1] fainted | [+2] is-active | [+3..8] status one-hot |
     [+9] level | [+10..14] base stats | [+15..29] types | [+30] best
     multiplier of mon's types vs foe | [+31] of foe's types vs mon |
-    v2 only: [+32] speed edge vs foe in (-1, 1)."""
+    v2 only: [+32] speed edge vs foe in (-1, 1). Offsets quoted at GEN1;
+    they are the spec's `mon_*_off` properties."""
     vec[o] = mon.current_hp_fraction
     vec[o + 1] = mon.fainted
     vec[o + 2] = mon is active
-    status = _STATUS_INDEX.get(mon.status)
+    status = spec.status_index.get(mon.status)
     if status is not None:
-        vec[o + 3 + status] = 1.0
-    vec[o + 9] = mon.level / 100.0
-    for i, key in enumerate(_BASE_STAT_KEYS):
-        vec[o + 10 + i] = mon.base_stats[key] / 255.0
+        vec[o + spec.mon_status_off + status] = 1.0
+    vec[o + spec.mon_level_off] = mon.level / 100.0
+    o_st = o + spec.mon_stats_off
+    for i, key in enumerate(spec.base_stat_keys):
+        vec[o_st + i] = mon.base_stats[key] / 255.0
+    o_ty = o + spec.mon_types_off
     for t in mon.types:
-        idx = _TYPE_INDEX.get(t)
+        idx = spec.type_index.get(t)
         if idx is not None:
-            vec[o + 15 + idx] = 1.0
+            vec[o_ty + idx] = 1.0
     if foe is not None:
-        vec[o + 30] = _best_multiplier(mon, foe, type_chart)
-        vec[o + 31] = _best_multiplier(foe, mon, type_chart)
+        o_mu = o + spec.mon_matchup_off
+        vec[o_mu] = _best_multiplier(mon, foe, type_chart)
+        vec[o_mu + 1] = _best_multiplier(foe, mon, type_chart)
         if _ENCODER_V2:
-            vec[o + 32] = _speed_edge(mon, foe, mon is active)
+            vec[o_mu + 2] = _speed_edge(mon, foe, mon is active)
 
 
-def _fill_active(vec, o, mon):
+def _fill_active(vec, o, mon, spec: EncoderSpec = GEN1):
     """[o..6] boosts/6 | [+7..13] volatile flags (MUST_RECHARGE at +10 from
     the bool, see _VOLATILES) | [+14] status counter (sleep/toxic turns,
-    /16 = the toxic cap) | [+15] preparing (two-turn move charging)."""
-    for i, key in enumerate(_BOOST_KEYS):
+    /16 = the toxic cap) | [+15] preparing (two-turn move charging).
+    Offsets quoted at GEN1 (the spec's `active_*_off`)."""
+    for i, key in enumerate(spec.boost_keys):
         vec[o + i] = mon.boosts[key] / 6.0
-    for i, effect in enumerate(_VOLATILES):
-        vec[o + 7 + i] = (
+    o_v = o + spec.active_volatiles_off
+    for i, effect in enumerate(spec.volatiles):
+        vec[o_v + i] = (
             mon.must_recharge if effect is Effect.MUST_RECHARGE
             else effect in mon.effects
         )
-    vec[o + 14] = mon.status_counter / 16.0
-    vec[o + 15] = bool(mon.preparing)
+    o_c = o + spec.active_counter_off
+    vec[o_c] = mon.status_counter / 16.0
+    vec[o_c + 1] = bool(mon.preparing)
 
 
-def _fill_move(vec, o, move, foe, type_chart, prob: float = 1.0):
+def _fill_move(
+    vec, o, move, foe, type_chart, prob: float = 1.0, spec: EncoderSpec = GEN1
+):
     """[o] slot known -- for the OPPONENT this is P(the mon has this move),
     read from the vendored randbats set prior, so an unrevealed but near-certain
     move is encoded as such instead of as a block of zeros. 1.0 for our own
@@ -239,7 +245,8 @@ def _fill_move(vec, o, move, foe, type_chart, prob: float = 1.0):
     a probability is what makes the set prior cost ZERO extra dimensions.
     | [+1] base power/100 | [+2] accuracy | [+3] PP left |
     [+4] type multiplier vs foe | [+5] physical | [+6] status move |
-    [+7] priority/5 | [+8..22] move type one-hot."""
+    [+7] priority/5 | [+8..22] move type one-hot (at the spec's
+    `move_type_off`; the v2 effect block follows at `move_dim_v1`)."""
     vec[o] = prob
     vec[o + 1] = move.base_power / 100.0
     vec[o + 2] = move.accuracy
@@ -251,17 +258,24 @@ def _fill_move(vec, o, move, foe, type_chart, prob: float = 1.0):
     vec[o + 5] = move.category == MoveCategory.PHYSICAL
     vec[o + 6] = move.category == MoveCategory.STATUS
     vec[o + 7] = move.priority / 5.0
-    idx = _TYPE_INDEX.get(move.type)
+    idx = spec.type_index.get(move.type)
     if idx is not None:
-        vec[o + 8 + idx] = 1.0
+        vec[o + spec.move_type_off + idx] = 1.0
     if _ENCODER_V2:
-        vec[o + 23 : o + 23 + EFFECT_DIM] = _effect_block(move.id)
+        o_e = o + spec.move_dim_v1
+        vec[o_e : o_e + EFFECT_DIM] = _effect_block(move.id)
 
 
-def embed_battle(battle, type_chart) -> np.ndarray:
+def embed_battle(battle, type_chart, spec: EncoderSpec = GEN1) -> np.ndarray:
     """Gen 1 observable-state encoder. Module-level so the asyncio
     collection path (rl/collect.py) encodes identically to the Gym path
     without an env instance.
+
+    `spec` supplies the per-gen tables the FILL HELPERS read
+    (rl/envs/encoder_spec.py). Everything around them is still gen 1's, so
+    only the GEN1 singleton is accepted here — refused loudly rather than
+    mis-encoded; the refusal message is the list of what a second spec must
+    lift first.
 
     Slot alignment is load-bearing, pinned by poke-env's action mapping
     (singles_env.py): switch action i resolves to list(battle.team.values())
@@ -271,6 +285,14 @@ def embed_battle(battle, type_chart) -> np.ndarray:
     action attached and sit in reveal order, zero-padded, behind a
     revealed flag.
     """
+    if spec is not GEN1:
+        raise NotImplementedError(
+            f"embed_battle serves the GEN1 spec only, got gen {spec.gen}: the "
+            "block strides (MON_DIM / ACTIVE_DIM / MOVE_DIM) and OBS_DIM are "
+            "module-level GEN1 values, _effect_block builds Move(id, gen=1), "
+            "and _opponent_move_slots reads the gen-1 randbats prior — "
+            "rl/envs/encoder_spec.py lists what a second spec must lift"
+        )
     vec = np.zeros(OBS_DIM, dtype=np.float32)
     ours = battle.active_pokemon
     theirs = battle.opponent_active_pokemon
@@ -284,13 +306,13 @@ def embed_battle(battle, type_chart) -> np.ndarray:
     # recharge and partial trap carried NOTHING (battle.trapped stays False on
     # nearly all of them, 1,262/1,273 measured). This flag states outright
     # that the move slots are aliased to poke-env's re-based single action.
-    vec[5] = _move_slots_aliased(battle)
+    vec[5] = _move_slots_aliased(battle, spec=spec)
     o = GLOBAL_DIM
     for i, mon in enumerate(list(battle.team.values())[:6]):
-        _fill_mon(vec, o + i * MON_DIM, mon, theirs, ours, type_chart)
+        _fill_mon(vec, o + i * MON_DIM, mon, theirs, ours, type_chart, spec=spec)
     o += 6 * MON_DIM
     if ours is not None:
-        _fill_active(vec, o, ours)
+        _fill_active(vec, o, ours, spec=spec)
         # ALIASING FIX. On a gen1 placeholder turn (active asleep/frozen/
         # partially trapped) Showdown replaces the move list with a single
         # `Fight`, and poke-env maps it to move-action slot 0 -- but these
@@ -302,29 +324,29 @@ def embed_battle(battle, type_chart) -> np.ndarray:
         # / _fill_active say why, so the state stays fully described. (Before
         # the Stage-0 fix that last claim was FALSE for recharge and partial
         # trap — those turns encoded as all-zero move blocks with no cause.)
-        if not _move_slots_aliased(battle):
+        if not _move_slots_aliased(battle, spec=spec):
             for i, move in enumerate(list(ours.moves.values())[:4]):
-                _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, theirs, type_chart)
+                _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, theirs, type_chart, spec=spec)
     o += ACTIVE_DIM + 4 * MOVE_DIM
     for i, mon in enumerate(list(battle.opponent_team.values())[:6]):
         base = o + i * (MON_DIM + 1)
         vec[base] = 1.0  # revealed
-        _fill_mon(vec, base + 1, mon, ours, theirs, type_chart)
+        _fill_mon(vec, base + 1, mon, ours, theirs, type_chart, spec=spec)
     o += 6 * (MON_DIM + 1)
     if theirs is not None:
-        _fill_active(vec, o, theirs)
+        _fill_active(vec, o, theirs, spec=spec)
         # Opponent blocks carry NO action, so unlike our own they are free to
         # be filled from the set prior. Revealed moves first at p=1.0, then the
         # most likely unrevealed candidates. This is the information Foul Play
         # determinizes over and that we were discarding as zeros.
         for i, (move, prob) in enumerate(_opponent_move_slots(theirs)):
-            _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, ours, type_chart, prob)
+            _fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, move, ours, type_chart, prob, spec=spec)
     if _ENCODER_IDS:
-        _fill_ids(vec, battle, ours, theirs)
+        _fill_ids(vec, battle, ours, theirs, spec=spec)
     return vec
 
 
-def _fill_ids(vec, battle, ours, theirs) -> None:
+def _fill_ids(vec, battle, ours, theirs, spec: EncoderSpec = GEN1) -> None:
     """The 20-dim identity suffix at [OBS_DIM - ID_DIM:], each value id/256.0:
     [+0..5] own team species (switch-action order) | [+6..11] opponent species
     (reveal order, zero-padded) | [+12..15] own active's moves (move-action
@@ -337,39 +359,42 @@ def _fill_ids(vec, battle, ours, theirs) -> None:
     slot assignment the block fill used."""
     o = OBS_DIM - ID_DIM
     for i, mon in enumerate(list(battle.team.values())[:6]):
-        vec[o + i] = _species_id(mon.species) / ID_SCALE
+        vec[o + i] = _species_id(mon.species, spec) / ID_SCALE
     for i, mon in enumerate(list(battle.opponent_team.values())[:6]):
-        vec[o + 6 + i] = _species_id(mon.species) / ID_SCALE
-    if ours is not None and not _move_slots_aliased(battle):
+        vec[o + 6 + i] = _species_id(mon.species, spec) / ID_SCALE
+    if ours is not None and not _move_slots_aliased(battle, spec=spec):
         for i, move in enumerate(list(ours.moves.values())[:4]):
-            vec[o + 12 + i] = _move_id(move) / ID_SCALE
+            vec[o + 12 + i] = _move_id(move, spec) / ID_SCALE
     if theirs is not None:
         for i, (move, _) in enumerate(_opponent_move_slots(theirs)):
-            vec[o + 16 + i] = _move_id(move) / ID_SCALE
+            vec[o + 16 + i] = _move_id(move, spec) / ID_SCALE
 
 
 @lru_cache(maxsize=1024)
-def _species_id(species: str) -> int:
-    """Gen-1 pokedex number in 1..151 — the species embedding row index.
-    0 (= unknown) for anything outside gen 1's dex, including the negative
-    nums poke-env's dex carries for CAP/custom entries."""
-    entry = GenData.from_gen(1).pokedex.get(species)
+def _species_id(species: str, spec: EncoderSpec = GEN1) -> int:
+    """Pokedex number inside the spec's range (gen 1: 1..151) — the species
+    embedding row index. 0 (= unknown) for anything outside it, including
+    the negative nums poke-env's dex carries for CAP/custom entries."""
+    entry = GenData.from_gen(spec.gen).pokedex.get(species)
     num = entry["num"] if entry else 0
-    return num if 1 <= num <= 151 else 0
+    lo, hi = spec.species_num_range
+    return num if lo <= num <= hi else 0
 
 
-def _move_id(move) -> int:
-    """Gen-1 move number in 1..165 — the move embedding row index. 0 for
-    synthetic/non-gen1 entries (recharge is num -3 in poke-env's table)."""
+def _move_id(move, spec: EncoderSpec = GEN1) -> int:
+    """Move number inside the spec's range (gen 1: 1..165) — the move
+    embedding row index. 0 for synthetic/out-of-gen entries (recharge is
+    num -3 in poke-env's table)."""
     num = move.entry.get("num", 0)
-    return num if 1 <= num <= 165 else 0
+    lo, hi = spec.move_num_range
+    return num if lo <= num <= hi else 0
 
 
-def _move_slots_aliased(battle) -> bool:
+def _move_slots_aliased(battle, spec: EncoderSpec = GEN1) -> bool:
     """True when the only legal move-action is one of poke-env's SPECIAL_MOVES
     (fight / struggle / recharge), so move slot i no longer means move i."""
     avail = getattr(battle, "available_moves", None)
-    return bool(avail) and len(avail) == 1 and avail[0].id in _SPECIAL_MOVE_IDS
+    return bool(avail) and len(avail) == 1 and avail[0].id in spec.special_move_ids
 
 
 # --- D25 opponent-action labels (configs/showdown_sp_actpred12m.yaml, B1/B2) --
