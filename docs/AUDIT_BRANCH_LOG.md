@@ -113,6 +113,10 @@ The plan's F-11 (encoder vectorization; needs a profile number), F-12 (per-episo
 volume), F-15 (turn feature; an OBS_DIM change), F-17 (MPS generator; standing ruling)
 and F-20 (module splits) were NOT attempted — F-20 by the plan's own "do them last or
 skip", the others because each needs a measurement or a ruling this branch could not take.
+Also not added, from the plan's test-coverage map (informational, not in the §5 work
+order): a gradient test of `masked_entropy` at the sentinel, the gradient-isolation
+assertions (policy loss puts no grad on the critic; aux grads never reach
+`scorer`/`slot_bias`), and a Mimic/Transform slot-alignment test on a real request.
 
 ### F-01 — pool snapshots hold only the nets
 
@@ -147,6 +151,42 @@ Commits (newest first):
 - `b4aba9b` F-03: in-loop liveness budget turns a silent stall into a resumable crash
 - `f1cf9b3` F-02: offline construction seam + unit tests for the async collector
 - `4f089f5` F-09: stats() reads len(self._ended) instead of iterating the deque
+
+**What changed** (orchestrator's account from the five original commits — the
+implementing agent's structured report was lost to a usage-limit cut-off after it
+committed; the "implementer's account" below is the FIX agent's):
+- F-09 (`4f089f5`): `stats()` reads `len(self._ended)`; the old list comprehension
+  iterated a deque the loop thread appends to from the battle-end callback, which does
+  not respect the gate — a microsecond "deque mutated during iteration" window. Same
+  number, no behaviour change.
+- F-02 (`f1cf9b3`): an optional `seat_kwargs_override` dict merged into both seats'
+  kwargs so tests build the collector with `start_listening=False` (no websocket);
+  `None` leaves `seat_kwargs` byte-identical and the override refuses to touch
+  `start_timer_on_battle_start`. New `tests/test_showdown_async.py` (now 30 tests, no
+  sockets): construction/wiring, `_finish` kept/discarded/tie-0/pool report/label join
+  incl. forced replacements and the sentinel, `choose_move` keys and conversion-failure
+  counting on POKE_LOOP, `_prune` under a module-local fake clock, `check()` against
+  pending/done/failed futures, `stats()` exact dict, `poll()` FIFO, `run_in_loop`,
+  offline `close()`, and the gate invariant (decisions parked under `pause()` neither
+  request nor record until `resume()`; rows carry the post-resume version and weights;
+  after `pause()` returns, completed == requested == rows).
+- F-03 (`b4aba9b`): `_last_progress` (monotonic) marked on the loop thread at seam-request
+  completion and in `_finish`; `start()`/`resume()` reset it; `pause()` marks paused.
+  `check()` raises `RuntimeError("collector: no decision for N s with K battles in
+  flight ...")` iff un-paused, drive alive, and idle past `_LIVENESS_S = 900.0`
+  (kwarg `liveness_s`, None/0 disables) — longer than the ~360 s challenge timer that
+  forfeits an orphaned room, so K orphaned rooms still finish inside the budget. The
+  dead-drive check keeps priority. `rl/train.py` needed no change. Dying with a traceback
+  is the intended outcome (the wave supervisor's resume branch; the CPU-delta watch stays
+  the outer layer).
+- F-19 (`f8ca6f7`): `CollectPlayer._handle_battle_message` counts messages matching
+  poke-env's own `[Invalid choice]` predicate (the sole caller of the re-request path,
+  player.py:318-325) and delegates to super → `collect/rerequests` in `stats()`. Test
+  drives the real poke-env dispatch with a synthetic message.
+- F-02 live test (`98aaa02`): `test_async_pause_resume_live_contract`, K=4 vs
+  SimpleHeuristicsPlayer on seed 990001, gated by `@pytest.mark.live_server` +
+  `skipif(not _server_up())`; deselected throughout the fleet, executed post-fleet
+  (passed, see the verification record).
 
 **What changed** (implementer's account, abridged): All five reviewer issues addressed; every fix is in tests/test_showdown_async.py and rl/envs/showdown_async.py is byte-identical to f490b7c (production semantics were judged correct).\n\n(1) test_a_gated_request_does_not_count_as_progress rewritten so it actually discriminates. The reviewer was right that the frozen clock made construction, pause(), resume() and the completing request all stamp 1000.0, so `_last_progress >= resumed_at` held wherever _mark_progress() sat. The clock now moves at two distinct instants: it advances 100 s BEFORE the coroutine is scheduled (an entry-time mark then stamps 1100 against a parked expectation of 1000), and the gate is opened DIRECTLY via POKE_LOOP.call_soon_threadsafe(seam.gate.set) at 1200 rather than via resume() — resume() marks progress itself, so bypassing it leaves the completion as the only remaining writer and a deleted mark leaves 1000. re…
 
