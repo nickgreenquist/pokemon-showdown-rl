@@ -2,7 +2,7 @@
 
 **STATUS: PROPOSAL.** This is a draft pre-registration paragraph for a
 NON-LEVER WIRE CHANGE, written 2026-09-02 on the audit branch (finding F-04,
-`docs/AUDIT_ACTION_PLAN.md` §3/§4). Nothing here is in force. The opt-in
+`docs/archive/AUDIT_ACTION_PLAN.md` §3/§4). Nothing here is in force. The opt-in
 wire shipped in commit `650a8e6` (`PPOAgent(minibatch_tail=...)`, values
 `keep | drop | fold`) with the default `keep` = today's behaviour bit-for-bit.
 THE PIN (rewritten after review round 1, which found the original compared the

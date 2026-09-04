@@ -1,3 +1,9 @@
+> **CLOSED 2026-09-04.** Executed on the `audit-fixes` branch and merged into
+> `main` (fast-forward) at bd8484d. What landed, what was skipped and what is
+> still owed: `docs/archive/AUDIT_BRANCH_LOG.md`; the open rulings are in
+> STATUS.md. History only — do not work from it. One edit was made during
+> execution: the F-14 "Fix" sentence in §4 (PyO3 panics are BaseException).
+
 # AUDIT_ACTION_PLAN.md - read-only audit of pokemon-showdown-rl
 
 Audit date: 2026-09-02 (fleet at ~57.5M steps/lane at the original read; seeds 104/112/120).

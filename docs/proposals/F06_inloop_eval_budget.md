@@ -4,7 +4,7 @@
 60c1225, the tree the 100M fleet runs on). Nothing in this file is landed
 behaviour; nothing here touches the running fleet or its ratified pre-reg
 (`configs/showdown_sp_100m.yaml`, FREEZE RULE `:288-290`). Source finding:
-`docs/AUDIT_ACTION_PLAN.md` §3 F-06 (with F-05) and §5 item 3.
+`docs/archive/AUDIT_ACTION_PLAN.md` §3 F-06 (with F-05) and §5 item 3.
 
 Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
 **MEASURED** = a number read from the tree/logs, with its source;
@@ -51,7 +51,7 @@ Tags used below: **RULED** = a maintainer ruling or ratified pre-reg text;
    reasons and NEITHER is a fleet rule: the lane logs carry no eval timings,
    and `extract_history.py` is barred to THIS workstream by the
    audit-worktree protocol ("no reads of `runs/` or `logs/`, no
-   `extract_history.py`", `docs/AUDIT_BRANCH_LOG.md:16-18`; plan header). The
+   `extract_history.py`", `docs/archive/AUDIT_BRANCH_LOG.md:21-23`; plan header). The
    fleet's own monitoring rules say the opposite — HANDOFF §1 prescribes
    periodic health reads "all from `scripts/extract_history.py <run_dir>` →
    history.csv, which works on a live run" (`HANDOFF.md:53-55`). See §8 for
@@ -216,7 +216,7 @@ exposure are real.
    lane needs the merge protocol first (`docs/landmines.md:268-283`; none
    had been resumed at the 2026-09-02 19:32Z read, plan header). Whoever
    schedules this is NOT this audit worktree, which may not run the
-   extractor at all (`docs/AUDIT_BRANCH_LOG.md:16-18`).
+   extractor at all (`docs/archive/AUDIT_BRANCH_LOG.md:21-23`).
 2. Distribution, not mean: the max and p99 of `time/eval_sec` are the
    timer-exposure numbers; compare against the acceptance max 26.18 s.
 3. In-loop `eval/win_rate` (400 points/lane) against the S-SHAPE n=3000

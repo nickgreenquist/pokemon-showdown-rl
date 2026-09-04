@@ -1,3 +1,8 @@
+> **CLOSED 2026-09-04.** The branch this log describes was merged into `main`
+> (fast-forward) at bd8484d — 46 commits; 785 passed / 17 skipped bare in main,
+> live and artifact tests included. Worktree and branch removed. Still owed: the
+> maintainer rulings listed under "Open questions". History from here.
+
 # AUDIT_BRANCH_LOG.md — the `audit-fixes` branch, worked while the 100M fleet ran
 
 Branch started 2026-09-02 ~20:40Z from `main` @ 60c1225 in the isolated worktree

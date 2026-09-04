@@ -2,7 +2,7 @@
 
 **DRAFT, UNRULED.** Written 2026-09-02 on `audit/DOCS` @ 5d3c6b7 (main @
 60c1225). Nothing in this file exists in the tree; nothing here touches the
-running 100M fleet. Sources: `docs/AUDIT_ACTION_PLAN.md` §3 F-07 and F-08,
+running 100M fleet. Sources: `docs/archive/AUDIT_ACTION_PLAN.md` §3 F-07 and F-08,
 §5 item 5; `CLEANUP.md` "2026-09-01 read-only audit" (item A2).
 
 Tags: **RULED** = a maintainer ruling; **MEASURED** = read from the tree with
@@ -226,7 +226,7 @@ to the block.
 2. STATUS at this draft: the `EncoderSpec` seam is being built in a sibling
    worktree on the `audit-fixes` branch family. At this draft's base (all
    audit branches at 5d3c6b7) no `EncoderSpec` exists in the tree
-   (`grep -rln EncoderSpec` hits only `docs/AUDIT_ACTION_PLAN.md` and this
+   (`grep -rln EncoderSpec` hits only `docs/archive/AUDIT_ACTION_PLAN.md` and this
    file — no code). Nothing here describes landed code.
 3. Fit: the block's `spec` key SELECTS the spec; `v2`, `ids`, `set_prior`
    are gen-1 spec parameters. Under Option 2 the fingerprint becomes

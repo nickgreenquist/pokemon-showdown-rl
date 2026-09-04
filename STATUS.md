@@ -20,16 +20,19 @@ Step 1 DONE AND CREDITED. The 2026-08-31 off-arc order (100M run) is
 - **E2 rung retention DISCHARGED** — S-SHAPE/S-ANNEAL/D-A recorded and
   committed; deleting the ~600 treatment + 300 control rungs is now
   permitted (keep completion + 12M rungs; maintainer call).
-- **Two worktree branches await post-readout review/merge** (gate now
-  OPEN): `audit-fixes` (F-01..F-20 per docs/AUDIT_ACTION_PLAN.md on that
-  branch; run full suite + R0-3b bit-identity pins before merge; consider
-  /code-review ultra) and `gen4-design` (docs only).
+- **`audit-fixes` MERGED 2026-09-04 (ff, main @ bd8484d, 46 commits).**
+  Landed F-01/02/03/04/05/08/09/10/13/14/16/18/19 + branch-discovered F-21
+  (encoder set prior was untracked) and F-22; F-04 pre-reg, F-06, F-07 are
+  PROPOSALS under docs/proposals/ (unruled). Suite in main 785 passed /
+  17 skipped (live tests incl.). Record: docs/archive/AUDIT_BRANCH_LOG.md
+  (CLOSED). `gen4-design` (docs only) still awaits review/merge.
 
 ## Next actions — **MAINTAINER, in order**
-1. **Merge the worktree branches** (maintainer's own task, in progress):
-   audit-fixes first (suite + R0-3b bit-identity gates), then gen4-design
-   docs; fold their logs into SESSION_LOGS at merge.
-2. **LADDER R4 — RATIFIED 2026-09-04, LAUNCH HELD until the merges land**
+1. **Merge gen4-design docs** (maintainer's own task); fold its log into
+   SESSION_LOGS at merge. Audit rulings now owed (AUDIT_BRANCH_LOG §Open
+   questions): F-21 keep the borrowed set prior tracked?; F-04 fold/drop/
+   neither + routing; F-06/F-07 options; F-05 cadence (4 updates); F-03 900 s.
+2. **LADDER R4 — RATIFIED 2026-09-04, LAUNCH HELD until gen4-design lands**
    (maintainer-ordered). Object: 100M final s112, GREEDY, account
    nickgen1rbrlbot REUSED (M6, maintainer-ruled — multi-account rules).
    Pre-launch acts when unheld, in order: send the courtesy note (≥24 h

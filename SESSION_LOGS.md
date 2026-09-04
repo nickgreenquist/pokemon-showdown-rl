@@ -9998,3 +9998,46 @@ line numbers are not — grep the date, then read that region):
   wait for the audit worktree to finish and merge; ladder after. The
   pre-reg does not expire; LG-1 (courtesy note ≥24 h) keys off the real
   launch date.**
+
+- 2026-09-04 (day, autonomous; maintainer-ordered merge + close) — **AUDIT
+  BRANCH MERGED AND CLOSED (main ff → bd8484d, 46 commits).** Worked in an
+  isolated worktree under `docs/archive/AUDIT_WORKTREE_PROMPT.md` while the
+  100M fleet and its eval schedule ran; hard bars held (main tree untouched,
+  no pip, no server contact, no process signalled, no evals, single-file
+  nice'd tests behind a port-8000 guard and a 3-slot semaphore). `main` was
+  merged INTO the branch (keeps every cited SHA), the suite run on that tree,
+  then fast-forwarded. LANDED per docs/archive/AUDIT_ACTION_PLAN.md §5: F-01
+  nets-only pool snapshots (~205 MB/member freed; ~4 GB/lane on sync and on
+  every async resume); F-02 offline seam + 30 unit tests for the async
+  collector + the live pause/resume contract test (ran post-fleet, passed);
+  F-03 in-loop liveness (900 s idle, un-paused, drive alive → RuntimeError;
+  the wave's resume branch is the catcher); F-09 `len(_ended)`; F-19
+  `collect/rerequests`; F-05 pool INSIDE checkpoint.pt (step-stamped, every
+  4 updates, legacy pool.pt fallback disclosed + `pool_source` stamped; old
+  dirs still resume); F-18 RNG streams checkpointed and restored at loop
+  entry; F-13 `git_dirty_tracked` + `untracked_files` (`git_dirty`
+  unchanged); F-16 `time/realized_steps_per_sec`; F-04 opt-in
+  `minibatch_tail` keep|drop|fold with DEFAULT keep pinned bit-identical
+  end-to-end at the 100M shape against the vendored pre-F-04 loop; F-08
+  `EncoderSpec` per-gen seam, gen-1 encoding sha256-pinned identical on 6000
+  tape decisions at 612/808/828, `Discrete(10)` derived from the format (10
+  through gen 5, 26 at gen 9); F-10 vectorized per-episode GAE (exact
+  equality pin); F-14 matrix.py re-raises interrupts only (PyO3 panics are
+  BaseException — a reviewer catch). BRANCH-DISCOVERED: F-21 the encoder's
+  set prior `rl/envs/data/gen1_randbats_sets.json` was never tracked (the
+  `data/` ignore rule) — a fresh clone or worktree failed 20+ tests; now
+  whitelisted (ruling owed: borrowed content vs a setup-script copy); F-22
+  the R0-3 goldens were thread-count dependent (csum reduction order) — 1e-9
+  tolerance on the two parameter sums, forward goldens exact. NOT DONE:
+  F-11/12/15/17 (each needs a measurement or a ruling), F-20 (skip, per the
+  plan). PROPOSALS (unruled, docs/proposals/): F-04 pre-reg draft, F-06
+  in-loop eval budget, F-07 encoder config block. VERIFICATION: 785 passed /
+  17 skipped bare in main, live and artifact tests included. PROCESS: three
+  usage-limit cut-offs killed agents mid-flight; every kill was recovered
+  from worktree state; the last reviewer pass did not complete for
+  F-02/F-04/F-05-cluster/F-08/F-06+07 (their final fixes are covered by
+  the test runs and orchestrator diff reads — weight accordingly at review);
+  maintainer rule from it: subagents run on Opus. Plan, branch log and work
+  order archived under docs/archive/ with CLOSED banners; the Downloads
+  copies are redundant. Ladder R4 hold: the audit half is lifted
+  (gen4-design still pending).
