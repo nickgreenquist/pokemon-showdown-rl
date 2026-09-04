@@ -10041,3 +10041,24 @@ line numbers are not — grep the date, then read that region):
   order archived under docs/archive/ with CLOSED banners; the Downloads
   copies are redundant. Ladder R4 hold: the audit half is lifted
   (gen4-design still pending).
+
+- 2026-09-04 (evening, maintainer + agent) — **LADDER R4 HOLD LIFTED.**
+  Maintainer: "audit worktree is done, gen4-design is paused (i can resume
+  it later at any time, its not a blocker for our ladder work here)."
+  Agent confirmed the audit close on main @3d8fd19: tree clean, main ==
+  origin/main, `audit-fixes` branch and worktree gone, plan/log/work order
+  under docs/archive/ with CLOSED banners, bare suite re-run **785 passed /
+  17 skipped in 49 s** (local server pid 68702 up, so live tests ran; the
+  known single-test flake did not fire). `gen4-design` as found: branch tip
+  60c1225 is an ANCESTOR of main (zero commits of its own), worktree
+  `pokemon-showdown-rl-gen4design/docs/design_gen4` is EMPTY, base is 58
+  commits behind main — rebase when resumed; nothing to fold into logs.
+  **LG-2 pre-check (read-only pull of pokemonshowdown.com/users/
+  nickgen1rbrlbot.json, 2026-09-04 evening): PASSED** — gen1randombattle
+  elo 1292.254, gxe 59.6, rpr 1573.041, rprd 26.573, w 95 / l 105 (n 200);
+  equals R1's banked end state, zero games since 2026-08-26; rd recorded
+  as found (did not grow measurably). The official LG-2 capture repeats at
+  launch and lands in the readout dir. .env still carries bot2's username
+  (LG-3 owed to the maintainer). Critical path: LG-1 courtesy note ≥24 h
+  before launch — earliest launch is the evening after it is sent. STATUS
+  rewritten (hold lifted, gate order, gen4-design state).
