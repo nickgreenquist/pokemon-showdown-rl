@@ -10108,3 +10108,20 @@ line numbers are not — grep the date, then read that region):
   min_listed_gxe 67.2; unlisted, rating_source profile. Launch line hands
   the supervisor to `caffeinate -is` (operational, appears nowhere in the
   READ) so the run does not depend on the week-old bare caffeinate.
+
+- 2026-09-04 (evening, maintainer launched; agent babysits) — **LADDER R4
+  LAUNCHED 18:03:12Z (14:03 local), attempt 1 from n=0.** LG-9 read at the
+  maintainer's terminal, verbatim: "seat 'nickgen1rbrlbot' (userid
+  nickgen1rbrlbot) kind=greedy -> 200 battles / provenance: lane=s112
+  sha256=2ec16fbf… obs_dim=828 / starting rating (profile): GXE 59.6
+  Glicko-1 1573 +/- 27 Elo 1292 [listed=False]" — the parked R1 values,
+  not an empty rating (the inverted tell passes). Processes: supervisor
+  (bash 87689 under caffeinate -is 87690), runner 87702 with one
+  ESTABLISHED socket, watchdog 87704 armed (stall=900 s). First rated
+  battle logged within the first minute. The supervisor log's one "No such
+  file" line is its pre-launch count of a JSONL that did not yet exist —
+  benign. Babysit: a persistent monitor emits supervisor/watchdog events,
+  runner tracebacks, and a 30-min summary (n, last-30-min count, median
+  s/battle excluding gaps > 900 s, runner + socket liveness); nothing is
+  killed by hand; the run is BLIND until n=200 (no profile, board or
+  replay opens); backup once mid-run and once at end.

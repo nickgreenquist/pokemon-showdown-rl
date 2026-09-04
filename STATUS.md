@@ -27,8 +27,8 @@ Step 1 DONE AND CREDITED. The 2026-08-31 off-arc order (100M run) is
   EMPTY, base 58 commits behind main — rebase onto main when resumed.
 
 ## Next actions — **MAINTAINER, in order**
-1. **LADDER R4 — ALL PRE-LAUNCH GATES PASSED 2026-09-04 evening; LAUNCH
-   BLOCKS HANDED OVER.** Object: 100M final s112, GREEDY, account
+1. **LADDER R4 — LAUNCHED 2026-09-04 18:03Z (attempt 1, n=0); RUNNING,
+   BLIND until n=200; agent babysits.** Object: 100M final s112, GREEDY, account
    nickgen1rbrlbot REUSED (M6); LG-1 WAIVED (M10). LG-2 official capture
    == R1 end state (Elo 1292.25, GXE 59.6, Glicko-1 1573.04, rd 26.57,
    95-105, zero games since 2026-08-26). LG-3 .env = bot1 (smoke seat
@@ -38,8 +38,8 @@ Step 1 DONE AND CREDITED. The 2026-08-31 off-arc order (100M run) is
    server STOPPED, tree clean. n=0 board pull archived: admission cutoff
    1359.98 (inside [1300,1400) -> M2 rank-500 clause STANDS). Artifacts:
    results/ladder/R4G.{lg2_parked_profile,board_n0}.*.json (gitignored).
-   LG-9: maintainer launches (~90 s, reads kind/userid/sha/rating lines);
-   agent babysits 12-16 h, then reads out. Pre-reg: configs/eval/ladder_r4.yaml.
+   LG-9 READ CLEAN by the maintainer: greedy / nickgen1rbrlbot / sha /
+   parked rating shown. Readout after n=200. Pre-reg: configs/eval/ladder_r4.yaml.
 2. Audit rulings owed (AUDIT_BRANCH_LOG §Open questions): F-21 keep the
    borrowed set prior tracked?; F-04 fold/drop/neither + routing; F-06/F-07
    options; F-05 cadence (4 updates); F-03 900 s. None gate the ladder.
