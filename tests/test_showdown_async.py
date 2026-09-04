@@ -10,13 +10,23 @@ regression surfaces as a gate breach hours into a run.
 
 Coroutines are driven on poke-env's process-global POKE_LOOP exactly as
 production does; every test that schedules one waits for it or cancels it,
-so nothing leaks into later tests. No test here opens a socket."""
+so nothing leaks into later tests.
+
+Sockets, exactly: every OFFLINE test above the `live_server` marker builds its
+seats with start_listening=False and never touches the network. Two things in
+this file do: `_server_up()` opens and closes one probe connection to
+127.0.0.1:8000 at COLLECTION time (it is the skipif predicate, so it runs even
+when the marker is deselected), and `test_async_pause_resume_live_contract`
+logs two accounts into that server and plays four real battles. Never run the
+live test while a training fleet owns the server — the audit wrapper deselects
+`live_server` for exactly that reason."""
 
 import asyncio
 import concurrent.futures
 import socket
 import threading
 import time
+from collections import deque
 from types import SimpleNamespace
 
 import numpy as np
@@ -415,6 +425,24 @@ def test_stats_keys_and_values(trio):
     assert all(isinstance(v, float) for v in stats.values())
 
 
+def test_stats_never_iterates_the_ended_deque(trio):
+    """F-09 pin. `_ended` is appended to by the loop thread (_finish) while the
+    main thread calls stats() inside the paused block — which the battle-end
+    callback does not respect — so an iteration there can hit CPython's "deque
+    mutated during iteration". The race is not reproducible on demand; the
+    STRUCTURAL fix is (len(), never iteration), and that is what this pins: the
+    pre-fix expression `len([t for t, _ in self._ended])` iterates and fails
+    here, `len(self._ended)` does not."""
+
+    class _NoIter(deque):
+        def __iter__(self):
+            raise RuntimeError("deque mutated during iteration")
+
+    col = _collector()
+    col._ended = _NoIter([("battle-gen1randombattle-16", 0.0)])
+    assert col.stats()["collect/rooms_tracked"] == 1.0
+
+
 def test_poll_drains_fifo_and_never_blocks(trio):
     col = _collector()
     assert col.poll() == []
@@ -565,20 +593,34 @@ def test_a_completed_request_and_a_finish_mark_progress(trio, clock):
 
 
 def test_a_gated_request_does_not_count_as_progress(trio, clock):
+    """A request PARKED at the gate is not progress; only its completion is.
+
+    The clock must move at two distinct instants for the assertions to
+    discriminate — with it frozen, "parked", "resumed" and "completed" all read
+    the same value and the test passes no matter where _mark_progress() sits.
+    So: advance BEFORE scheduling (a mark taken on entry, above the gate wait,
+    would stamp the advanced time), then advance again before opening the gate
+    (a missing mark leaves the parked time behind)."""
     col = _collector()
     col._drive = _pending()
     col.pause()
+    at_pause = col._last_progress
+    clock(100.0)
     fut = asyncio.run_coroutine_threadsafe(
         col.learner.choose_move(_battle("battle-gen1randombattle-43")), POKE_LOOP
     )
     try:
         with pytest.raises(TimeoutError):
             fut.result(timeout=0.2)
-        col.resume(version=0)
-        resumed_at = clock(0.0)
+        assert col.seam.requests == 0  # really parked, not merely slow
+        assert col._last_progress == at_pause, "a gated request marked progress"
+        # Open the gate WITHOUT resume(): resume() marks progress itself, so
+        # the completion on the loop thread must be the only writer left.
+        opened_at = clock(100.0)
+        POKE_LOOP.call_soon_threadsafe(col.seam.gate.set)
         fut.result(timeout=5.0)
-        # The mark is the completion on the loop thread, at or after resume.
-        assert col._last_progress >= resumed_at
+        assert col._last_progress == opened_at  # the mark IS the completion
+        col.resume(version=0)  # clears _paused; the clock is already opened_at
         clock(sa._LIVENESS_S + 1.0)
         with pytest.raises(RuntimeError, match="no decision for 901 s"):
             col.check()
@@ -688,14 +730,19 @@ def test_async_pause_resume_live_contract():
     col = AsyncCollector(policy, "heuristics", seed=_SEED, concurrency=4)
     # Stamp each KEPT episode with the seam version at its own finish. The
     # learner seat calls through the collector attribute, so wrapping the
-    # instance is enough.
+    # instance is enough. "Kept" is read off episodes_finished, NOT off
+    # len(col._finished): the deque is the handoff, and the main thread's
+    # poll() below drains it concurrently, so a before/after length comparison
+    # can miss a kept episode (append then drain inside the window) and
+    # misalign the FIFO zip. episodes_finished is written only here, on the
+    # loop thread, and never decremented.
     finish_versions = []
     inner_finish = col._finish
 
     def stamped_finish(battle):
-        before = len(col._finished)
+        before = col.episodes_finished
         inner_finish(battle)
-        if len(col._finished) > before:
+        if col.episodes_finished > before:
             finish_versions.append(col.seam.version)
 
     col._finish = stamped_finish
@@ -703,11 +750,28 @@ def test_async_pause_resume_live_contract():
     def ended():
         return col.episodes_finished + col.episodes_discarded
 
-    def wait_until(pred, timeout, what, *, check=True):
+    def wait_until(pred, timeout, what):
         deadline = time.monotonic() + timeout
+        check = True  # dropped for the rest of THIS wait once the drive ends
         while not pred():
             if check:
-                col.check()
+                try:
+                    col.check()
+                except RuntimeError:
+                    # The stream ENDING is expected once the fourth room
+                    # finishes, and it can land between pred() and check():
+                    # poke-env releases `_battle_count_queue.join()` from the
+                    # same message task that ran our finish callback
+                    # (player.py:311-315), so the drive future can resolve one
+                    # GIL switch after pred() read ended() == 3. A drive that
+                    # finished CLEANLY is not the "ended early" death check()
+                    # is for — stop consulting it and let pred()/the deadline
+                    # decide, so a real death still fails with its own cause.
+                    if (col._drive.done() and not col._drive.cancelled()
+                            and col._drive.exception() is None):
+                        check = False
+                    else:
+                        raise
             if time.monotonic() > deadline:
                 pytest.fail(f"timed out after {timeout} s waiting for {what}")
             time.sleep(0.02)
@@ -729,9 +793,10 @@ def test_async_pause_resume_live_contract():
             stamp["w"] = cycle + 1  # the world is stopped: the weights may move
             col.resume(version=cycle + 1)
             episodes.extend(col.poll())
-        # The drive ENDING is expected once the fourth room finishes, so
-        # check() is not consulted here (it would report the stream ending).
-        wait_until(lambda: ended() == 4, 300, "four battles to end", check=False)
+        # check() stays on: wait_until now tolerates the clean end of the
+        # stream, so a genuine stream death here fails with its own cause
+        # instead of a 300 s timeout.
+        wait_until(lambda: ended() == 4, 300, "four battles to end")
         episodes.extend(col.poll())
     finally:
         col.close()
