@@ -735,7 +735,9 @@ def test_async_pause_resume_live_contract():
     # poll() below drains it concurrently, so a before/after length comparison
     # can miss a kept episode (append then drain inside the window) and
     # misalign the FIFO zip. episodes_finished is written only here, on the
-    # loop thread, and never decremented.
+    # loop thread, and never decremented. Keep the append LAST in the callback:
+    # the settle wait before the final poll() uses it as the marker that this
+    # finish is fully committed (see the comment there).
     finish_versions = []
     inner_finish = col._finish
 
@@ -797,6 +799,25 @@ def test_async_pause_resume_live_contract():
         # stream, so a genuine stream death here fails with its own cause
         # instead of a 300 s timeout.
         wait_until(lambda: ended() == 4, 300, "four battles to end")
+        # ended() bumps INSIDE the finish callback — episodes_finished at
+        # showdown_async.py:340, ahead of `self._finished.append` (:341),
+        # `self._ended.append` (:342), `_prune()` (:343) and, back here, the
+        # version stamp. So the wait above can return with the loop thread
+        # still inside the fourth callback, and the poll() below would then see
+        # either no fourth episode (the `len(episodes) == col.episodes_finished`
+        # assertion below reading 3 == 4) or a fourth episode whose version is
+        # not recorded yet (the `len(finish_versions) == len(episodes)` one) —
+        # and a spurious red on this, the pre-reg's live gate-invariant test,
+        # reads as "the collector lost an episode".
+        # finish_versions.append is the callback's LAST statement, so waiting
+        # for it to catch up with episodes_finished closes both windows at
+        # once; only the newest callback can be in flight, since _finish never
+        # awaits and the loop thread runs each one to completion. A DISCARDED
+        # fourth appends to neither side, so the equality already holds and
+        # there is correspondingly nothing pending. The mid-loop poll() above
+        # needs none of this: it asserts nothing and the totals converge here.
+        wait_until(lambda: len(finish_versions) == col.episodes_finished, 10,
+                   "the last finish callback to settle")
         episodes.extend(col.poll())
     finally:
         col.close()
