@@ -26,20 +26,20 @@ Step 1 DONE AND CREDITED. The 2026-08-31 off-arc order (100M run) is
   /code-review ultra) and `gen4-design` (docs only).
 
 ## Next actions — **MAINTAINER, in order**
-1. **JOURNEY step 2: the ladder-object ruling.** Candidates with today's
-   numbers: the 100M final greedy (off-FP 0.4984 pooled, vs-SH 0.7959,
-   clone 0.9233 — supersedes per HANDOFF §4.4) vs the batch-lane greedy
-   (off-FP 0.4746 pooled). search@20 HURTS the batch lane (R4S66: 0.38067
-   vs 0.4740, ~10 se) — greedy leads on today's evidence. Then a ladder
-   pre-reg (ladder_r3.yaml is the template that can fire).
-2. **Review/merge the audit-fixes branch** (suite + bit-identity gates),
-   then gen4-design docs; fold their logs into SESSION_LOGS at merge.
-3. Standing rulings (3 left): CLAUDE.md:71 MPS wording; pool.py:88 fix
-   (~2.5% prize; RNG stream changes = new lane); stall-kill crash_forfeit
-   read rule (R4S66 did not trigger it). — The RESULTS timer line is DONE.
-4. IDEAS_POST_100M re-rank per its §1: SS-CLIMB means "more steps"
-   competes with every per-step lever; any horizon extension is a NEW
-   pre-reg under the un-mooted 2026-08-23 big-runs ruling (120/250M).
+1. **Merge the worktree branches** (maintainer's own task, in progress):
+   audit-fixes first (suite + R0-3b bit-identity gates), then gen4-design
+   docs; fold their logs into SESSION_LOGS at merge.
+2. **LADDER R4 — RATIFIED 2026-09-04, LAUNCH HELD until the merges land**
+   (maintainer-ordered). Object: 100M final s112, GREEDY, account
+   nickgen1rbrlbot REUSED (M6, maintainer-ruled — multi-account rules).
+   Pre-launch acts when unheld, in order: send the courtesy note (≥24 h
+   ahead; drafted at readouts/LADDER_R4_COURTESY_NOTE.md), update .env
+   (bot1 username AND password), LG-2 parked-profile capture, LG-4..7
+   gates, then launch (~90 s at the terminal; agent babysits). Plan
+   12-16 h overnight. Pre-reg: configs/eval/ladder_r4.yaml.
+3. Standing rulings (3 left): CLAUDE.md:71 MPS wording; pool.py:88 fix;
+   stall-kill crash_forfeit read rule. IDEAS_POST_100M re-rank per its
+   §1 (SS-CLIMB: "more steps" competes; extensions need a new pre-reg).
 
 ## Watch items
 - **ONE vs-SH RUNG IS WORTH ±0.02** — pool 3 seeds; read SHAPE, never rungs.

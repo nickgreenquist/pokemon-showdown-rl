@@ -163,7 +163,12 @@ fleet off Foul Play@20 and found it *helps* there (+0.1010 within-lane, 3.6
 se). The reversal is recorded as a decision in
 [`configs/eval/ladder_r3.yaml`](configs/eval/ladder_r3.yaml) (D6), and the
 ceiling travels with it: it does **not** overturn the SH-facing finding above,
-and the two sets of numbers may not be set side by side.
+and the two sets of numbers may not be set side by side. **LADDER R4
+(pre-registered and ratified 2026-09-04,
+[`configs/eval/ladder_r4.yaml`](configs/eval/ladder_r4.yaml)) returns to a
+greedy deployment** — the 100M final on lane s112 — on R4S66's evidence
+(search@20 hurt the batch recipe); the MU-8 ceiling still travels, and no
+run-to-run delta is an effect.
 
 **The 100M row is not a credit.** Its pre-registered primary axis was off
 Foul Play@20 (budget named; the equivalence test is weakly powered and the
@@ -246,7 +251,7 @@ Play the real Showdown ladder (needs a registered account and `PS_PASSWORD`;
 `--battles` is a total across resumes, and the run resumes per-battle):
 
 ```
-python scripts/ladder.py --prereg configs/eval/ladder_r3.yaml --arm R3S --battles 200
+python scripts/ladder.py --prereg configs/eval/ladder_r4.yaml --arm R4G --battles 200
 ```
 
 (That is R3's invocation; R1's used `ladder_r1.yaml --arm L2`. Every ladder

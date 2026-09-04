@@ -9970,3 +9970,31 @@ line numbers are not — grep the date, then read that region):
   maintainer (audit-fixes; gen4-design) — their branches merge only
   post-readout, gate now OPEN. EVERY CELL ROUTES TO JOURNEY STEP 2
   (LADDER) — and P3 routes there too.
+- 2026-09-04 (day, autonomous + maintainer rulings) — **LADDER R4
+  PRE-REG RATIFIED (launch HELD).** Full 2-Opus cycle: brief → mem_A
+  (validity) / mem_B (ops) → synthesis (6 adjudications, losing arguments
+  recorded) → 578-line draft → review_1 (10 MF + 21 SF) + review_2 (6 MF
+  + 13 SF) → ALL 50 findings applied → maintainer ruled M1-M9 →
+  `configs/eval/ladder_r4.yaml` (git mv per BI-R4-4; Status: RATIFIED;
+  markers cleared; rulings in ratified_decisions). Chain tracked under
+  results/design_ladder_r4/ (A1-pattern whitelist). THE OBJECT: 100M
+  final, GREEDY, lane s112 (median-of-3 on the off-FP primary — ruled
+  2026-09-04 with the numbers already published, stated honestly per
+  review_2 MF-2; Q6 discharged in writing, NO re-score). **M6 OVERRIDDEN
+  BY THE MAINTAINER: REUSE nickgen1rbrlbot** ("multiple accounts are
+  against the rules and could get my ip banned") — supersedes R3's D2
+  sequential-accounts framing; consequences applied: warm-started rating
+  disclosed in the headline, cumulative-profile denominators, VOID (d)
+  asserts the parked R1 end state, Elo(R4)-Elo(R1) barred by name,
+  LG-9's empty-rating tell inverted, courtesy note rewritten for reuse
+  (drafted UNSENT at readouts/LADDER_R4_COURTESY_NOTE.md). Build items
+  BI-R4-1 (backup RUNS), BI-R4-3 (watchdog escalation counter, resets on
+  progress) and BI-R4-7 (startup sha/obs_dim print) LANDED; BI-R4-2/5/6
+  owed at readout with named fallbacks; B9 = carry the disclosure.
+  review_1 F1 also caught a RESULTS §18 transcription error — vs-SH
+  s104 triple corrected 0.7913 → 0.7910 with disclosure. README
+  readme_owed discharged (R4 paragraph + example line). Suite: 663
+  passed / 17 skipped (bare pytest). **LAUNCH HELD, maintainer-ordered:
+  wait for the audit worktree to finish and merge; ladder after. The
+  pre-reg does not expire; LG-1 (courtesy note ≥24 h) keys off the real
+  launch date.**

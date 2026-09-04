@@ -37,7 +37,7 @@ while true; do
   pid=$(runner_pid)
   [ -z "$pid" ] && { last_t=$(date +%s); nosock=0; continue; }   # between attempts
   n=$(count); now=$(date +%s)
-  [ "$n" -gt "$last" ] && { last=$n; last_t=$now; }
+  [ "$n" -gt "$last" ] && { last=$n; last_t=$now; stall_notices=0; }   # BI-R4-3: progress resets the notice counter
 
   # ---- FAST PATH: SOCKET ABSENCE, which needs no battle clock at all. ----
   # Measured 2026-08-28: a seat died 4.5 min into attempt 3 and BEFORE its
@@ -79,8 +79,17 @@ while true; do
   # `-a` ANDs them: 29 matches -> 0.
   if lsof -a -p "$pid" -iTCP -sTCP:ESTABLISHED -n -P 2>/dev/null | grep -q ESTABLISHED; then
     echo "WATCHDOG: ${idle}s with no battle at n=$n, but the socket is ESTABLISHED — a long game or matchmaking, NOT a hang. Leaving it." | tee -a "$LOG"
+    # BI-R4-3 (ladder_r4): a COUNTER beside the reset — no clock change, no
+    # kill-path change. Two consecutive socket-up stall notices on a ~230 s
+    # object has no explanation but matchmaking famine; make the morning
+    # log-read tell it from a long game without reconstruction.
+    stall_notices=$(( ${stall_notices:-0} + 1 ))
+    if [ "$stall_notices" -ge 2 ]; then
+      echo "WATCHDOG: ESCALATION — $stall_notices consecutive socket-up stall notices (~$((idle * stall_notices))s span): matchmaking famine likely (board ~93 active/day), not a hang. Observation only." | tee -a "$LOG"
+    fi
     last_t=$now
   else
+    stall_notices=0
     echo "WATCHDOG: ${idle}s with no battle at n=$n AND NO ESTABLISHED SOCKET — hung (poke-env does not reconnect). Killing $pid so the supervisor relaunches." | tee -a "$LOG"
     kill -9 "$pid" 2>/dev/null
     last_t=$(date +%s)

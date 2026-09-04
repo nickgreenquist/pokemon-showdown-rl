@@ -1,6 +1,6 @@
 # =====================================================================
 # LADDER R4 — GEN1 LADDER #3, ON THE 100M FINAL, GREEDY (JOURNEY STEP 2)
-# Status: DRAFT — carries << MAINTAINER n >> markers M1..M9. NOT ratified.
+# Status: RATIFIED 2026-09-04 — maintainer's rulings M1-M9 recorded in ratified_decisions at the foot; M6 OVERRIDDEN to account reuse (the maintainer's own ruling).
 #   This file lives OUTSIDE configs/eval/ until ratification (BI-R4-4:
 #   tests/test_ladder.py:48 globs configs/eval/ladder_*.yaml; :549-561
 #   asserts markers ABSENT and the literal "Status: RATIFIED" PRESENT — a
@@ -29,7 +29,7 @@
 #   lives on, before the encoder rewrite. Exit condition: the run itself —
 #   not a rating, not top-500." Top-500 chasing is named a trap by the
 #   step itself. A mediocre run does not mean the story failed.
-#   << MAINTAINER 4 >> M4: does a VOID or INCOMPLETE run DISCHARGE step
+#   RULED 2026-09-04 (ratified_decisions M4). M4: does a VOID or INCOMPLETE run DISCHARGE step
 #   2? RECOMMENDED YES — the step asks for the capture, and a captured
 #   failure is a capture. THE NO BRANCH, stated (review_1 F19): if NO, a
 #   VOID/INCOMPLETE run leaves step 2 OPEN while the one-run rule below
@@ -92,7 +92,7 @@
 #   toward the fleet centre relative to its own true value — sign
 #   UNKNOWN, magnitude under the instrument's own 0.0200 re-draw
 #   spread. The anchor is not unconditioned and is never quoted as if
-#   it were. << MAINTAINER 1 >> M1: NO re-score (recommended). If
+#   it were. RULED 2026-09-04 (ratified_decisions M1). M1: NO re-score (recommended). If
 #   overridden, branch R-a binds — the fresh n=3000 REPLACES 0.50167
 #   everywhere, pre-committed BEFORE it runs; choosing after seeing the
 #   number is BARRED. (Cost either way ~1.3 h; cost is no argument —
@@ -167,7 +167,7 @@
 #   the same way. If the two archived pulls fall in DIFFERENT bands, the
 #   rank-500 clause is struck and both cutoffs are reported. The
 #   referenced band is never silently re-based.
-#   << MAINTAINER 2 >> M2: ratify the two-branch rule as drafted, OR
+#   RULED 2026-09-04 (ratified_decisions M2). M2: ratify the two-branch rule as drafted, OR
 #   strike the rank-500 clause outright now (the cell then reads as pure
 #   description in every branch — the alternative, review_1 F19).
 #   BARRED whatever the numbers say: anything about the 100M horizon
@@ -179,7 +179,10 @@
 #   ladder) pair — C0/L2 0.3893<->1292, RS80 0.4390<->1232, t112
 #   0.50167<->R4 — and the first two already run the wrong way; fitting,
 #   eyeballing or narrating a mapping through three k=1 points is the
-#   retired 40%-GXE conversion in new clothes;
+#   retired 40%-GXE conversion in new clothes; **Elo(R4 end) - Elo(R1
+#   end) quoted as "the improvement since R1"** — one account now spans
+#   both runs and the subtraction is a button on the profile page; it is
+#   a CONFOUNDED NON-EFFECT like every other cross-run delta;
 #   **any three-run figure, plot or fitted line** — multi-run numbers
 #   appear ONLY as columns in tables headed CONFOUNDED — NOT AN EFFECT
 #   with the ten-confound list adjacent (this includes the readout's own
@@ -188,13 +191,17 @@
 #   (review_1 F22 / review_2 F11); the amendment clause protects THAT
 #   key, not this prose.
 #   THE HEADLINE SENTENCE, fixed now (denominators labelled — review_1
-#   F6): "Playing the real gen1randombattle ladder from a fresh rated
-#   account, the 100M final on lane s112 — 100M steps, pure self-play,
+#   F6): "Playing the real gen1randombattle ladder on the project's
+#   ORIGINAL rated account, reused under the multi-account rules (it
+#   carries R1's 200 games; the rating is warm-started from R1's parked
+#   end state, not a fresh measurement of this object alone), the 100M
+#   final on lane s112 — 100M steps, pure self-play,
 #   greedy/deterministic, the lane a maintainer-ruled MEDIAN-of-three
 #   rule named on the off-Foul-Play@20 primary — reached GXE X%,
-#   Glicko-1 Y +/- RD and final Elo Z over n_profile = N rated battles
-#   (server profile record W-L; runner-logged subset n_jsonl = M)
-#   against D distinct opponents. Against the 1300-1400 band[, the band
+#   Glicko-1 Y +/- RD and final Elo Z over N rated battles THIS RUN
+#   (runner-logged n_jsonl = M, plus U unlogged server-scored games
+#   identified by replay diff; the profile's CUMULATIVE record including
+#   R1's 200 games is W-L) against D distinct opponents this run. Against the 1300-1400 band[, the band
 #   containing rank 500 on the n=0 pull,] it scored V (n=k of n_jsonl =
 #   M). This run credits nothing." The s112-is-not-the-best sentence is
 #   required ADJACENT, not by reference.
@@ -207,10 +214,14 @@
 #     the training-side timer fix; the training-side /timer on fix
 #     9a0e54d itself, which post-dates R3's object's training; and the
 #     100M horizon+anneal, P3 — review_1 F23);
-#   4 ACCOUNT (third fresh transient from Elo 1000); 5 CALENDAR+POOL
+#   4 ACCOUNT (REUSED — warm-started from R1's parked ~1292 instead of
+#     a fresh climb from 1000: less path-dependence through the weak
+#     bands, but the cumulative rating blends R1's history in; neither
+#     prior run shares this shape); 5 CALENDAR+POOL
 #     (~93 active players/day, weeks apart); 6 OPPONENT MEMORY (two
-#     linked accounts, ~400 rated games already; R4 adds a third linked
-#     name); 7 INSTRUMENTATION/OPS (R3 took 10 runner launches and 8
+#     linked accounts, ~400 rated games already; R4 plays under the
+#     SAME NAME as R1's 200 — humans may remember the account itself,
+#     the strongest memory exposure of the three runs); 7 INSTRUMENTATION/OPS (R3 took 10 runner launches and 8
 #     unlogged server-side losses; R4 expected clean — that changes what
 #     the rating measures, not only its precision); 8 SELECTION RULE
 #     (vs-SH tie-break -> off-FP median, ruled post-publication);
@@ -257,7 +268,7 @@
 #   SATISFIES the rule; (3) if the hand pull ALSO fails, stop at the
 #   next battle boundary and WAIT — do not burn rated games you cannot
 #   evaluate.
-#   << MAINTAINER 3 >> M3: a fifth licensed stop (a declared wall-clock
+#   RULED 2026-09-04 (ratified_decisions M3). M3: a fifth licensed stop (a declared wall-clock
 #   box) — NONE recommended. If wanted: its clock time is declared here
 #   before launch, the readout reports n and rd at that stop, and a run
 #   stopped by the box REPORTS AS INCOMPLETE per the carried sentence
@@ -279,8 +290,10 @@
 #       pin below re-checked within 24 h of launch (LG-5); the reason is
 #       the ENCODER's set-pool copy feeding embed_battle (greedy has no
 #       determinizer — restated, not copied); (d) account contamination
-#       — profile shows ratings: {} before launch; spans THREE project
-#       accounts now; (e) WRONG OBJECT — stamped provenance must be
+#       — the parked profile captured at LG-2 must EQUAL R1's banked end
+#       state (n=200; any games since 2026-08-26 = contamination); the
+#       WRONG-ACCOUNT tell INVERTS: an EMPTY rating now means the wrong
+#       account (a fresh one), not a clean one; (e) WRONG OBJECT — stamped provenance must be
 #       EXACTLY the six greedy keys {kind, obs_dim 828, encoder_v2 "1",
 #       encoder_ids "1", lane s112, sha256 2ec16f...}; a `dose` key
 #       means a search arm was pasted in and half-edited;
@@ -294,9 +307,10 @@
 #       concurrent project account; (g) an unlicensed stop.
 # ---------------------------------------------------------------------
 # READOUT OBLIGATIONS (i)-(vi) carry from R3 (replays saved; replay-
-#   built band table asserting sum==n_jsonl; three denominators named in
-#   order n_profile / n_jsonl / n_played, band table asserts against
-#   n_jsonl; corrected-cells convention; hand-written appendices
+#   built band table asserting sum==n_jsonl; denominators named in
+#   order — n_profile_cum (the account's cumulative total incl. R1),
+#   n_run (this run's rated battles = n_jsonl + unlogged), n_jsonl, and
+#   n_played (ratified cut) — the band table asserts against n_jsonl; corrected-cells convention; hand-written appendices
 #   preserved on regeneration; the readout is the committed provenance).
 #   THE R1-DEFAULT TRAP, carried in capitals (review_1 F8): ALL THREE
 #   READOUT SCRIPTS DEFAULT TO R1 (--jsonl L2.battles.jsonl, --replays
@@ -304,8 +318,9 @@
 #   R1 AND IT LOOKS PERFECTLY NORMAL. PASS EVERY FLAG, ALWAYS. R4 grows
 #   the flag surface (two priors), so (vii) adds the machine check.
 #   NEW:
-#   (vii) RECORD RECONCILIATION, machine-checked at stop:
-#        profile_w+profile_l+profile_t == jsonl_rows, else the readout
+#   (vii) RECORD RECONCILIATION, machine-checked at stop (CUMULATIVE
+#        form under account reuse): profile_w+profile_l+profile_t ==
+#        R1_end_total (200) + jsonl_rows + unlogged_delta, else the readout
 #        emits a mandatory block naming the gap, its sign and cause;
 #        classification instrument: diff the account's server-side
 #        replay index against save_replays — the difference set NAMES
@@ -338,7 +353,7 @@
 #   recur); STATUS quotes the profile record only.
 # ---------------------------------------------------------------------
 # OPS (mem_B, adjudicated; reviews applied).
-#   SCHEDULE (M7): << MAINTAINER 7 >> ONE CONTINUOUS RUN to n=200 (D1
+#   SCHEDULE (M7): RULED 2026-09-04 (ratified_decisions M7). ONE CONTINUOUS RUN to n=200 (D1
 #   precedent: R1 and R3 both ran unattended overnight), RECOMMENDED —
 #   the alternative (two sessions) was REJECTED for R3 on grounds that
 #   carry verbatim (a per-session target is not a licensed stop; a
@@ -353,28 +368,38 @@
 #   honest uncertainty is the outage tail (R1 0.41 h, R3 2.87 h).
 #   Auto-tie tail DROPPED (greedy 1/0/0 per 1000). No post-ladder anchor
 #   buying — the battery exists.
-#   LAUNCH GATES, in order: LG-1 courtesy note SENT >=24 h prior,
+#   LAUNCH GATES, in order: LG-1 courtesy note — D2's trigger (a THIRD
+#   account) does NOT fire under reuse, but M5 is ratified and the note
+#   GOES ANYWAY, corrected: same account as the first run, reused
+#   deliberately to comply with the multi-account rules; it still
+#   discloses bot2's R3 run. SENT >=24 h prior,
 #   archived tracked at readouts/LADDER_R4_COURTESY_NOTE.md (the note
 #   TEXT is inlined there and M5 binds THAT file — review_1 F20) with
 #   timestamp/channel/recipient; branches pre-registered: no reply ->
 #   PROCEED and the readout discloses it; objection -> DO NOT LAUNCH;
 #   conditions -> maintainer ruling. NON-REPLY IS NOT A BLOCK.
-#   << MAINTAINER 5 >> M5: the note text (drafted in mem_B §4, to be
+#   RULED 2026-09-04 (ratified_decisions M5). M5: the note text (drafted in mem_B §4, to be
 #   inlined at readouts/LADDER_R4_COURTESY_NOTE.md at ratification),
 #   channel (RECOMMENDED: ask in the Help room who to tell, then PM that
 #   staff member — confirm the channel on the site first), and send time
 #   (RECOMMENDED: the evening before launch day, >=24 h ahead).
-#   LG-2 account registered BY HAND by the maintainer; profile HTTP 200,
-#   registertime set, ratings: {} captured. << MAINTAINER 6 >> M6:
-#   RECOMMENDED nickgen1rbrlbot3 (linked stem; the note discloses the
-#   link explicitly, stronger than any naming convention; identity
-#   enforced in code — _resolve_display_name SystemExits on a
-#   disagreeing PS_USERNAME). ALTERNATIVE (review_1 F19): an unlinked
-#   name — REJECTED by both memos because obligation (v) and the
-#   opponent-memory confound need the pool to be able to identify the
-#   project's seats; choosing it anyway requires rewriting confound 6
-#   and the courtesy note.
-#   LG-3 .env updated to bot3 — BOTH PS_USERNAME and PS_PASSWORD (the
+#   LG-2 ACCOUNT — RULED (M6, maintainer 2026-09-04, supersedes the
+#   draft's bot3 recommendation AND R3's D2 sequential-accounts framing):
+#   **REUSE nickgen1rbrlbot, R1's account.** Reason, the maintainer's:
+#   Showdown/community guidelines — multiple accounts are against the
+#   rules and risk an IP ban. Consequences, all applied in this file:
+#   the rating is WARM-STARTED from R1's parked end state (headline
+#   discloses it); the profile record is CUMULATIVE R1+R4 (denominators
+#   below); VOID (d) asserts the PARKED R1 STATE, not an empty rating;
+#   Elo(R4 end) - Elo(R1 end) is barred by name; the courtesy note says
+#   the reuse is deliberate compliance. LG-2 becomes: capture the parked
+#   profile BEFORE launch and assert it EQUALS R1's banked end state
+#   (GXE 59.6, Glicko-1 1573, Elo 1292, n=200 total games; rd will have
+#   GROWN with inactivity — assert the rating values and n, record rd as
+#   found); ANY activity on the account since R1's stop (2026-08-26) is
+#   VOID (d) contamination. No registration needed; the password exists.
+#   LG-3 .env updated to nickgen1rbrlbot (bot1) — BOTH PS_USERNAME and
+#   PS_PASSWORD (currently bot2's; the
 #   smoke catches only the username: it sets password=None, ladder.py
 #   :655; the password is verified for the first time at LG-9's live
 #   login — review_2 MF-6) — AND the encoder env vars exported in the
@@ -390,14 +415,16 @@
 #   SERVER STOPPED, nothing else on the box. LG-8 build items: BI-R4-1
 #   IS BLOCKING AND MAY NOT BE WAIVED (review_1 F18); BI-R4-2/3/5/6/7
 #   landed or waived in writing WITH THEIR NAMED FALLBACKS (each in the
-#   build-items block); B9 ruled (review_2 F12). << MAINTAINER 9 >>
+#   build-items block); B9 ruled (review_2 F12). RULED 2026-09-04 (ratified_decisions M9).
 #   LG-9 maintainer at the terminal ~90 s reading startup lines:
-#   kind=greedy, the userid character-by-character, "starting rating:
-#   none yet" (an existing rating = wrong account), and — once BI-R4-7
+#   kind=greedy, the userid character-by-character, and the starting
+#   rating line: it must show R1's PARKED values (an EMPTY "none yet"
+#   rating = WRONG ACCOUNT — the fresh-account tell inverts under
+#   reuse), and — once BI-R4-7
 #   lands — the printed sha256/obs_dim (the runner does not currently
 #   print the sha; the assert at ladder.py:346 covers correctness, the
 #   gate covers the operator having checked — review_1 F16).
-#   << MAINTAINER 8 >> M8: RECOMMENDED — maintainer sends/registers/
+#   RULED 2026-09-04 (ratified_decisions M8). M8: RECOMMENDED — maintainer sends/registers/
 #   updates .env/launches (LG-9 needs a human ~90 s); agent owns
 #   babysitting (CPU-delta + socket checks), MID-RUN BACKUP (once; R3
 #   ran 15.34 h with no snapshot), the readout, the docs commit.
@@ -450,7 +477,7 @@
 #       PRE-LAUNCH, or carry R3's rating-loss disclosure verbatim and
 #       read trajectories from replays. RECOMMENDED: carry the
 #       disclosure (a live-path patch days before a rated run is the
-#       wrong trade). Folded into << MAINTAINER 9 >> M9.
+#       wrong trade). Folded into RULED 2026-09-04 (ratified_decisions M9). M9.
 #   E2 EXEMPTION (review_2 F13): the pinned checkpoint
 #   ckpt_100000008.pt is FROZEN until the R4 readout lands — explicitly
 #   EXEMPT from the rung deletion STATUS permits.
@@ -494,10 +521,11 @@ arms:
   R4G:
     kind: greedy
     lane: s112
-    display_name: nickgen1rbrlbot3   # M6; registered by hand; identity enforced in code
+    display_name: nickgen1rbrlbot   # M6 RULED: REUSE R1's account (multi-account rules); identity enforced in code
 stopping_rule:
   glicko_rd_max: 40              # cross-run invariant; hardcoded in tests/test_ladder.py
-  min_battles: 200               # THE BINDING HALF (rd extrapolates <=40 by n~88)
+  min_battles: 200               # THE BINDING HALF; n counts THIS RUN's logged battles
+  warm_start_note: "the account rd starts from R1 parked state grown by inactivity, not a fresh ~350; it converges under 40 well before n=200 either way; GXE/Glicko/Elo at stop are ACCOUNT properties carrying R1 200 games - the headline disclosure owns this" 
   source: "profile endpoint (pokemonshowdown.com/users/<userid>.json)"
 credit_line_not_applicable: "R4 credits nothing and contains no arm pair a credit could attach to. For the record the line reads: 'a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time.' No R4 number may be described as credited; doing so is a category error. Stated rather than omitted."
 aggregators:                     # review_1 F5 / review_2 MF-3 — named, R3's four keys
@@ -576,3 +604,23 @@ instruments:
   tests: tests/test_ladder.py
   r1_provenance: readouts/LADDER_R1_READOUT.md
   r3_provenance: readouts/LADDER_R3_READOUT.md
+
+ratified_decisions:                  # ALL NINE RULED 2026-09-04 (maintainer, in-session)
+  M1_q6_rescore:
+    RULING: "NO RE-SCORE, as recommended. The written Q6 discharge above is the record; the R-a replace branch is moot."
+  M2_band_reference:
+    RULING: "The two-branch admission-cutoff rule ADOPTED AS DRAFTED, keyed to the n=0 pull."
+  M3_fifth_stop:
+    RULING: "NONE. The four G-BLIND stops are the only stops; a wall-clock box was declined."
+  M4_step2_discharge:
+    RULING: "YES — a VOID or INCOMPLETE run discharges JOURNEY step 2. A captured failure is a capture."
+  M5_courtesy_note:
+    RULING: "The note GOES despite D2's trigger not firing under reuse (footprint transparency). Text inlined at readouts/LADDER_R4_COURTESY_NOTE.md (reuse version); channel: ask in the PS Help room who to tell, then PM that staff member — confirm the channel on the site first; send >=24 h before launch; NON-REPLY IS NOT A BLOCK. Sending is the maintainer's act; the sent timestamp/channel/recipient are stamped into that file."
+  M6_account:
+    RULING: "OVERRIDDEN BY THE MAINTAINER, verbatim reason: 'we decided based on showdown and community guidelines: we must reuse nickgen1rbrlbot. multiple accounts are against the rules and could get my ip banned.' REUSE nickgen1rbrlbot (R1's account). Supersedes the draft's bot3 recommendation AND R3's D2 sequential-accounts framing for this and future runs. All consequences applied in this file: warm-started rating disclosed in the headline; cumulative-profile denominators; VOID (d) asserts the parked R1 state; Elo(R4)-Elo(R1) barred by name; LG-9's empty-rating tell inverted."
+  M7_schedule:
+    RULING: "ONE CONTINUOUS RUN to n=200 as drafted; plan 12-16 h, budget 17 h, hard ceiling ~22 h."
+  M8_ownership:
+    RULING: "As recommended: maintainer sends the note, updates .env, launches and reads LG-9; agent owns babysitting, mid-run backup, readout, docs."
+  M9_build_items:
+    RULING: "BI-R4-1 (backup RUNS line), BI-R4-3 (watchdog escalation counter) and BI-R4-7 (startup sha/obs_dim print) LANDED in the ratifying commit. BI-R4-2 (readout two-prior support), BI-R4-5 (un-gate the reconciliation block) and BI-R4-6 (docs W-L grep test) are OWED AT READOUT with their named fallbacks. B9: carry R3's rating-loss disclosure verbatim; no live-path patch before a rated run."
