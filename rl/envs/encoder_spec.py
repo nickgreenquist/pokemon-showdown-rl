@@ -53,9 +53,12 @@ class EncoderSpec:
       - items and abilities: absent in gen 1, so there is no block for
         them. New per-mon fields are a MON_DIM change, i.e. an OBS_DIM
         change — every existing checkpoint is invalidated (landmine).
-      - weather, terrain and SIDE conditions (Spikes, Stealth Rock, Toxic
-        Spikes; Reflect / Light Screen are side conditions from gen 3, not
-        the per-mon volatiles gen 1's sim emits): new global blocks.
+      - weather (gen 2+) and SIDE conditions (Spikes at gen 2; Stealth Rock
+        and Toxic Spikes at gen 4; and note Reflect / Light Screen become
+        5-turn SIDE conditions at GEN 2 — in gen 1 they are per-mon and die
+        on switch-out, which is why `volatiles` carries REFLECT below, so a
+        gen-2+ spec must MOVE them out of `volatiles` into the side block
+        rather than inherit them): new global blocks. Terrain is gen 6.
       - `statuses` stays the same six (poke-env's `Status` minus FNT — no
         new major status through gen 9), but `volatiles` grows (Taunt,
         Encore, Yawn, Perish Song, Ingrain, ...): a new ACTIVE_DIM. The
@@ -224,6 +227,8 @@ GEN1 = EncoderSpec(
     # ("|-start|...|Light Screen") and poke-env 0.15.0 has no LIGHT_SCREEN
     # Effect member, so it parses to Effect.UNKNOWN — ambiguous, not worth a
     # parser fork for one uncommon move. Reflect (its physical twin) parses.
+    # Both are per-mon HERE because that is gen 1's mechanic; from gen 2 they
+    # are 5-turn SIDE conditions and belong in a side block, not this tuple.
     # The MUST_RECHARGE slot is filled from `mon.must_recharge`, not effect
     # membership: poke-env routes |-mustrecharge| to that bool and never
     # starts the Effect (measured 0/2,427 decisions vs 185 with the bool
@@ -262,7 +267,7 @@ def spec_for_format(battle_format: str) -> EncoderSpec:
     missing = [
         "a per-gen type table (17 types from gen 2, 18 from gen 6)",
         "items and abilities blocks (absent in gen 1)",
-        "weather / terrain / side-condition blocks",
+        "weather and side-condition blocks (terrain from gen 6)",
         "the gen-2+ volatile set",
         f"species and move `num` ranges for gen {gen}",
         f"a set prior for the format ({battle_format!r}; randbats_prior.py is gen 1)",
