@@ -301,9 +301,9 @@
 #       mean_decision_ms INVERTED TELL with ONE threshold (review_1 F7):
 #       a stamped mean_decision_ms >= mean_decision_ms_band[1] is VOID
 #       (e) — the band's upper bound IS the VOID threshold, there is no
-#       unowned interval; the provisional bound is 20 ms and the LG-6
-#       smoke FINALIZES that one number as a licensed pre-launch edit
-#       (ADJ-5; R1's 4-lane ensemble stamped 6.74 ms, R3's search 93.44
+#       unowned interval; the provisional bound was 20 ms; the LG-6
+#       smoke FINALIZED it at 15 ms = 5x its stamped 3.036 ms (2026-09-04,
+#       licensed pre-launch edit, ADJ-5; R1's 4-lane ensemble stamped 6.74 ms, R3's search 93.44
 #       ms — a single greedy pass lands ~1-3 ms); (f) a second
 #       concurrent project account; (g) an unlicensed stop.
 # ---------------------------------------------------------------------
@@ -587,7 +587,7 @@ schedule:                        # M7 — mem_B, adjudicated (ADJ-2), reviews ap
   do_not_kill: "Killing mid-battle FORFEITS A LIVE RATED GAME against a human. An early stop is an operational abort under G-BLIND, logged with cause and battle index."
   resume: "relaunch with the SAME --battles; the JSONL is the truth; a death costs one battle"
 expected_instrument_values:      # pre-stated so a silent wrong-object run is visible
-  mean_decision_ms_band: [1, 20] # upper bound IS the VOID (e) threshold (review_1 F7); FINALIZED from the LG-6 smoke (ADJ-5)
+  mean_decision_ms_band: [1, 15] # upper bound IS the VOID (e) threshold (review_1 F7); FINALIZED 2026-09-04 from the LG-6 smoke (ADJ-5): stamped 3.036 ms (2 battles, 42 decisions, greedy, box idle) -> bound = 5x the smoke mean, rounded to 15 ms as load margin; R3's search stamped 93.44, R1's 4-lane ensemble 6.74
   provenance_keys_exact: [kind, obs_dim, encoder_v2, encoder_ids, lane, sha256]  # a `dose` key = search arm pasted in
   max_concurrent_live_battles_expected: 1   # BI-5's artifact-side assertion; the etiquette premise leans on it (review_2 F16)
   sec_per_battle_band: [190, 300]  # applies to the MEDIAN EXCLUDING GAPS > 900 s (review_1 F28)

@@ -10081,3 +10081,30 @@ line numbers are not — grep the date, then read that region):
   was sent for R4. Verified: YAML re-parses with ten rulings;
   `tests/test_ladder.py` 77 passed. Launch now waits only on LG-3 (.env)
   and the agent-side gates LG-2/4/5/6/7.
+
+- 2026-09-04 (evening, agent; maintainer did LG-3) — **LADDER R4 PRE-LAUNCH
+  GATES LG-2..LG-8 ALL PASSED; launch blocks handed over.** LG-2 official
+  capture `results/ladder/R4G.lg2_parked_profile.20260904T175840Z.json`:
+  elo 1292.254, gxe 59.6, rpr 1573.041, rprd 26.573, w 95 / l 105 (n 200)
+  == R1's banked end state, zero games since 2026-08-26 (rd recorded as
+  found). LG-3: maintainer rewrote .env to bot1 (username + 24-char
+  password; the smoke's seat line reads nickgen1rbrlbot). LG-4:
+  tests/test_ladder.py 77 passed (re-run after the band edit). LG-5:
+  smogon master data/random-battles/gen1/{data.json,teams.ts} sha256 ==
+  the pin == the vendored copy (59da482) — no set-pool drift. LG-6: local
+  server restarted fresh (old pid 68702 killed; new pid 87247), smoke
+  `--arm R4G --local-smoke --battles 2` rc=0, 2/2 wins vs the smoke
+  opponent, provenance EXACTLY the six greedy keys (kind greedy, obs_dim
+  828, encoder_v2 "1", encoder_ids "1", lane s112, sha256 2ec16f…), no dose
+  key, decision_errors 0, 42 decisions, **mean_decision_ms 3.036** ->
+  `mean_decision_ms_band` FINALIZED [1, 15] (5x the smoke mean as load
+  margin; R3 search 93.44 / R1 ensemble 6.74 both still outside; the
+  licensed ADJ-5 edit, committed here with its reason inline). Smoke
+  artifacts are the `.smoke.*` files — the real `R4G.battles.jsonl` does
+  not pre-exist. LG-7: server pid 87247 stopped, port 8000 free, tree
+  clean at this commit. LG-8: nothing owed pre-launch. n=0 admission pull
+  archived `results/ladder/R4G.board_n0.20260904T180119Z.json`: cutoff_elo
+  1359.98, inside [1300,1400) -> M2 branch 1, the rank-500 clause STANDS;
+  min_listed_gxe 67.2; unlisted, rating_source profile. Launch line hands
+  the supervisor to `caffeinate -is` (operational, appears nowhere in the
+  READ) so the run does not depend on the week-old bare caffeinate.
