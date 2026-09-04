@@ -19,7 +19,9 @@
 #      NOTHING evaluates while any lane trains, and this script starts
 #      no eval.
 # Launch (the maintainer's, >5 h rule):
-#   nohup caffeinate -dims bash scripts/ch5_100m_wave.sh > /dev/null 2>&1 &
+#   nohup caffeinate -dims bash scripts/ch5_100m_wave.sh > /dev/null 2>&1 < /dev/null &
+#   (< /dev/null REQUIRED: nohup leaves stdin on the tty and zsh job
+#   control SUSPENDS the launch — it bit the 2026-09-01 launch, SESSION_LOGS)
 # RESUME-SAFE: re-running skips finished lanes and --resumes started ones.
 # Per-lane RSS/box sampling: run scripts alongside per the D-E gate (the
 # ch5_g9 rss sampler pattern, keyed to ch5_100m_wave.sh).
