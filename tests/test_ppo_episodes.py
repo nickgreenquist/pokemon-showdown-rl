@@ -1,7 +1,12 @@
 """The Stage-2 PPO surface: act_logp (old_logp recorded at act time) and
 update_episodes (whole-episode batches through the factored _optimize)."""
 
+import functools
+import inspect
 import math
+import pathlib
+import subprocess
+import types
 
 import gymnasium as gym
 import numpy as np
@@ -13,8 +18,7 @@ from rl.agents.ppo import PPOAgent
 OBS_D, N_ACT = 3, 4
 
 
-def _agent(**over):
-    torch.manual_seed(0)
+def _agent_kwargs(**over):
     kwargs = dict(
         observation_space=gym.spaces.Box(-1.0, 1.0, (OBS_D,), np.float32),
         action_space=gym.spaces.Discrete(N_ACT),
@@ -33,7 +37,12 @@ def _agent(**over):
         hidden_sizes=[8],
     )
     kwargs.update(over)
-    return PPOAgent(**kwargs)
+    return kwargs
+
+
+def _agent(**over):
+    torch.manual_seed(0)
+    return PPOAgent(**_agent_kwargs(**over))
 
 
 def _episodes(lengths, seed=0):
@@ -187,6 +196,11 @@ from rl.agents.ppo import _minibatch_slices
 
 _M = 8
 _TAILS = [1, 2, 3, 4, 7]  # 1, 2, mbs//2 - 1, mbs//2, mbs - 1 at mbs = 8
+# The PRODUCTION shape (configs/showdown_sp_100m.yaml): agent.minibatches 120
+# and an update budget of num_envs 8 x rollout_steps 3840 = 30,720 steps that
+# whole episodes overshoot by eps, so B = 30,720 + eps and mbs = 256 + eps//120.
+_M_100M = 120
+_B_100M = 30_720
 
 
 def _recorded_batch(agent, total, seed=0):
@@ -224,27 +238,165 @@ def _spy_minibatches(agent, batch):
     return seen
 
 
+def _legacy_minibatch_plan(total, mbs, epochs):
+    """The PRE-F-04 minibatch loop (commit 5d3c6b7, ppo.py update loop),
+    replayed from the CURRENT torch RNG state as an oracle that owes nothing
+    to the new code: per epoch ONE `randperm(total)`, slices
+    `perm[start:start + mbs]` for `start in range(0, total, mbs)`, a slice
+    under 2 rows skipped. Returns the executed row lists in order and the
+    RNG state the loop leaves behind — 'keep' must match on BOTH, which is
+    what makes it a pin against the old loop rather than against itself:
+    an extra draw, a moved slice boundary or a changed skip each fail here
+    while passing an absent-vs-'keep' comparison of the new loop."""
+    plan: list[list[int]] = []
+    for _ in range(epochs):
+        perm = torch.randperm(total, device="cpu")
+        for start in range(0, total, mbs):
+            idx = perm[start : start + mbs]
+            if idx.numel() < 2:
+                continue
+            plan.append(idx.tolist())
+    return plan, torch.get_rng_state()
+
+
+_PRE_F04_COMMIT = "5d3c6b7"  # parent of the F-04 wire commit 650a8e6
+
+
+@functools.lru_cache(maxsize=1)
+def _pre_f04_ppo():
+    """`rl/agents/ppo.py` AS OF THE COMMIT BEFORE F-04, exec'd as a throwaway
+    module so the pre-change `update_episodes` can be RUN, not paraphrased.
+    Every import in that file is absolute (`rl.agents.base`, `rl.buffers.*`,
+    ...) and F-04 touched no other file, so the old module binds to today's
+    tree and the ONLY difference on the wire is the minibatch loop itself.
+    Nothing is written to disk and nothing is registered in `sys.modules`.
+
+    The two identity assertions are the point: without them a blob that
+    resolved to HEAD would turn this test back into the tautology review
+    round 1 rejected (new code vs new code). A missing commit or a missing
+    `git` SKIPS — gate R0-1 requires this test to RUN, not to skip."""
+    root = pathlib.Path(__file__).resolve().parents[1]
+    try:
+        src = subprocess.run(
+            ["git", "-C", str(root), "show", f"{_PRE_F04_COMMIT}:rl/agents/ppo.py"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:  # no git / no history
+        pytest.skip(f"pre-F-04 blob {_PRE_F04_COMMIT} unreachable: {exc}")
+    mod = types.ModuleType("_ppo_pre_f04")
+    mod.__file__ = f"<git {_PRE_F04_COMMIT}:rl/agents/ppo.py>"
+    exec(compile(src, mod.__file__, "exec"), mod.__dict__)
+    assert not hasattr(mod, "_minibatch_slices"), "that blob already has F-04"
+    assert "minibatch_tail" not in inspect.signature(mod.PPOAgent.__init__).parameters
+    return mod
+
+
+def _pre_f04_agent(**over):
+    """The pre-F-04 PPOAgent under the SAME seed and kwargs `_agent` uses, so
+    the two agents start bit-identical (asserted, not assumed)."""
+    torch.manual_seed(0)
+    return _pre_f04_ppo().PPOAgent(**_agent_kwargs(**over))
+
+
+def _assert_same_weights_and_optimizer(new, old):
+    for net in ("actor", "critic"):
+        a, b = getattr(new, net).state_dict(), getattr(old, net).state_dict()
+        assert a.keys() == b.keys()
+        for name in a:
+            assert torch.equal(a[name], b[name]), f"{net}.{name} moved"
+    # Adam's moments and step counts too: a changed number of gradient steps
+    # or a changed step ORDER moves these even when the weights happen to
+    # land close, and it is the tail slice's step that F-04 is about.
+    sa, sb = new.optimizer.state_dict(), old.optimizer.state_dict()
+    assert sa["param_groups"] == sb["param_groups"]
+    assert sa["state"].keys() == sb["state"].keys()
+    for key, entry in sa["state"].items():
+        assert entry.keys() == sb["state"][key].keys()
+        for name, value in entry.items():
+            other = sb["state"][key][name]
+            if isinstance(value, torch.Tensor):
+                assert torch.equal(value, other), f"opt state {key}.{name} moved"
+            else:
+                assert value == other, f"opt state {key}.{name} moved"
+
+
 def test_minibatch_tail_rejects_unknown_policy():
     with pytest.raises(ValueError, match="minibatch_tail"):
         _agent(minibatch_tail="skip")
 
 
+@pytest.mark.parametrize("tail_rows", _TAILS)
+def test_minibatch_tail_keep_is_bit_identical_to_the_pre_f04_agent(tail_rows):
+    """THE bit-identity pin (review round 1: the absent-vs-'keep' comparison
+    was new-code-vs-new-code). Today's default is run side by side with the
+    PRE-F-04 agent itself — same seed, same kwargs, same batch, same
+    `manual_seed` before the update — at every async tail the plan can
+    produce: weights, Adam state, the metrics dict (KEYS included, so a
+    stray `loss/minibatch_*` under 'keep' fails here) and the torch RNG state
+    left behind must all be identical. Any drift in the 'keep' path — an
+    extra draw before `randperm`, `< min_rows` becoming `<=`, a moved slice
+    boundary, a tensor op added to the bookkeeping — fails this test."""
+    total = _M * _M + tail_rows
+    new, old = _agent(minibatches=_M), _pre_f04_agent(minibatches=_M)
+    assert new.minibatch_tail == "keep"
+    _assert_same_weights_and_optimizer(new, old)  # same starting point
+
+    batch = _recorded_batch(new, total)
+    torch.manual_seed(7)
+    m_new = new.update_episodes(batch, steps_seen=0)
+    rng_new = torch.get_rng_state()
+    torch.manual_seed(7)
+    m_old = old.update_episodes(batch, steps_seen=0)
+    rng_old = torch.get_rng_state()
+
+    _assert_same_weights_and_optimizer(new, old)
+    assert set(m_new) == set(m_old), "'keep' changed the metric keys"
+    assert m_new == m_old
+    assert torch.equal(rng_new, rng_old), "'keep' consumed different RNG"
+
+
 def test_minibatch_tail_default_is_keep_and_bit_identical():
-    """The kwarg is UNRULED: absent must equal 'keep' bit-for-bit — same seed,
-    same async-shaped batch (tail 3 < mbs//2, exactly where 'drop'/'fold'
-    WOULD diverge), torch.equal on every actor/critic tensor and identical
-    metrics. 'fold' on the same seed is the negative control that shows the
-    comparison has teeth."""
+    """The kwarg is UNRULED, so the default must BE the pre-F-04 loop. The
+    GIT-INDEPENDENT companion to
+    test_minibatch_tail_keep_is_bit_identical_to_the_pre_f04_agent: that test
+    runs the old agent and is the stronger pin, but it needs the pre-F-04 blob
+    in the object store, so the structural half is asserted here too from a
+    loop reimplemented in this file. Same seed, an async-shaped batch (tail 3
+    < mbs//2, exactly where 'drop'/'fold' WOULD diverge), three pins:
+      1. LEGACY ORACLE (review round 1): the rows every executed minibatch
+         received — content AND order — equal a replay of the pre-F-04 loop
+         from the same seed, and the torch RNG state afterwards equals the
+         state after exactly `epochs` randperm draws: no extra draw, no
+         moved boundary, no changed skip. It does not compare the new loop
+         to itself.
+      2. absent kwarg == 'keep': torch.equal on every actor/critic tensor,
+         identical metrics, and 'keep' adds no metric key.
+      3. 'fold' on the same seed diverges — the negative control that shows
+         the tensor comparison has teeth."""
+    total, epochs = _M * _M + 3, 2
+    mbs = total // _M
+
     def run(**over):
-        agent = _agent(minibatches=_M, epochs=2, **over)
-        batch = _recorded_batch(agent, _M * _M + 3)
+        agent = _agent(minibatches=_M, epochs=epochs, **over)
+        batch = _recorded_batch(agent, total)
+        seen = _spy_minibatches(agent, batch)
         torch.manual_seed(7)
         metrics = agent.update_episodes(batch, steps_seen=0)
-        return agent, metrics
+        return agent, metrics, seen, torch.get_rng_state()
 
-    absent, m_absent = run()
-    keep, m_keep = run(minibatch_tail="keep")
+    absent, m_absent, seen_absent, rng_absent = run()
     assert absent.minibatch_tail == "keep"
+
+    # 1. the legacy oracle, replayed from the same seed the update ran under
+    torch.manual_seed(7)
+    legacy, rng_legacy = _legacy_minibatch_plan(total, mbs, epochs)
+    assert len(legacy) == epochs * (_M + 1), "8 full slices + the 3-row tail per epoch"
+    assert seen_absent == legacy, "the default executed different rows/order than the pre-F-04 loop"
+    assert torch.equal(rng_absent, rng_legacy), "the default consumed RNG the pre-F-04 loop did not"
+
+    # 2. absent == 'keep', tensor for tensor
+    keep, m_keep, seen_keep, _ = run(minibatch_tail="keep")
+    assert seen_keep == legacy
     for net in ("actor", "critic"):
         a, k = getattr(absent, net).state_dict(), getattr(keep, net).state_dict()
         assert a.keys() == k.keys()
@@ -252,7 +404,10 @@ def test_minibatch_tail_default_is_keep_and_bit_identical():
             assert torch.equal(a[name], k[name]), f"{net}.{name} moved"
     assert m_absent == m_keep
     assert "loss/minibatch_rows_min" not in m_keep, "'keep' must add no metric key"
-    fold, _ = run(minibatch_tail="fold")
+
+    # 3. negative control
+    fold, _, seen_fold, _ = run(minibatch_tail="fold")
+    assert seen_fold != legacy and len(seen_fold) == epochs * _M
     assert any(
         not torch.equal(p, q)
         for p, q in zip(fold.actor.state_dict().values(), keep.actor.state_dict().values())
@@ -301,6 +456,63 @@ def test_minibatch_slices_plan(tail_rows):
         assert fold == legacy
 
 
+@pytest.mark.parametrize("eps", [1, 2, 60, 119, 120, 250])
+def test_minibatch_slices_plan_at_the_100m_recipe(eps):
+    """The pure plan at the PRODUCTION shape the F-04 proposal's arithmetic
+    and its R0-3 gate rest on (review round 1: every other test runs at
+    mbs == minibatches, the boundary of the `mbs >= m` assumption). B =
+    30,720 + eps, minibatches 120: mbs = 256 + eps//120 >= 256 > 120, so the
+    trailing slice is eps mod 120 — never a function of the width; the floor
+    mbs//2 >= 128 exceeds every possible tail (<= 119), so 'drop' sits out
+    ANY 1..119-row tail and 'fold' appends it to slice 119. Exact division
+    (eps % 120 == 0) leaves all three plans equal to the legacy one. The
+    optimizer-step count per epoch is 'keep' 120 + [tail >= 2] vs 'drop' /
+    'fold' exactly 120 — the DOSE paragraph's 121 vs 120."""
+    batch = _B_100M + eps
+    mbs = batch // _M_100M
+    tail = eps % _M_100M
+    assert mbs == 256 + eps // _M_100M and batch % mbs == tail
+    half = mbs // 2
+    assert half >= 128 > tail
+
+    def rows(sl):
+        return sl[1] - sl[0]
+
+    legacy = [(s, min(s + mbs, batch)) for s in range(0, batch, mbs)]
+    assert len(legacy) == _M_100M + (1 if tail else 0)
+    if tail:
+        assert rows(legacy[-1]) == tail
+
+    keep, keep_floor = _minibatch_slices(batch, mbs, "keep")
+    assert keep == legacy and keep_floor == 2
+    keep_exec = [sl for sl in keep if rows(sl) >= keep_floor]
+    assert len(keep_exec) == _M_100M + (1 if tail >= 2 else 0)
+    assert sum(map(rows, keep_exec)) == batch - (1 if tail == 1 else 0)
+
+    drop, drop_floor = _minibatch_slices(batch, mbs, "drop")
+    assert drop == legacy and drop_floor == half
+    drop_exec = [sl for sl in drop if rows(sl) >= drop_floor]
+    assert len(drop_exec) == _M_100M, "drop must leave exactly 120 steps"
+    assert sum(map(rows, drop_exec)) == batch - tail, "drop sits out exactly the tail"
+    assert all(rows(sl) == mbs for sl in drop_exec)
+
+    fold, fold_floor = _minibatch_slices(batch, mbs, "fold")
+    assert fold_floor == 2
+    assert len(fold) == _M_100M, "fold must leave exactly 120 steps"
+    assert fold[0][0] == 0 and fold[-1][1] == batch
+    assert all(a[1] == b[0] for a, b in zip(fold, fold[1:])), "fold slices must tile B"
+    assert rows(fold[-1]) == mbs + tail
+    assert all(rows(sl) == mbs for sl in fold[:-1])
+    # The action plan's fix line (>= mbs // 2 rows in every executed
+    # minibatch) and gate R0-3's `loss/minibatch_rows_min >= 256`, on the plan.
+    assert min(map(rows, fold)) == mbs and mbs >= max(256, half)
+    assert max(map(rows, fold)) < 1.5 * mbs
+    if tail == 0:
+        assert fold == drop == keep == legacy
+    else:
+        assert fold != legacy
+
+
 @pytest.mark.parametrize("tail_rows", _TAILS)
 @pytest.mark.parametrize("policy", ["keep", "drop", "fold"])
 def test_minibatch_tail_policies_on_async_shaped_batches(policy, tail_rows):
@@ -308,7 +520,9 @@ def test_minibatch_tail_policies_on_async_shaped_batches(policy, tail_rows):
     minibatch actually received: under 'drop' and 'fold' every executed
     minibatch has >= mbs//2 rows; 'fold' trains every row exactly once per
     epoch; 'drop' drops at most one slice per epoch; 'keep' is today's wire
-    (only the 1-row slice sits out) and reports no tail key."""
+    — the executed rows, their order and the RNG consumption equal the
+    pre-F-04 loop's replay (_legacy_minibatch_plan) at EVERY named tail —
+    and reports no tail key."""
     epochs = 2
     agent = _agent(minibatches=_M, epochs=epochs, minibatch_tail=policy)
     batch = _recorded_batch(agent, _M * _M + tail_rows)
@@ -316,7 +530,9 @@ def test_minibatch_tail_policies_on_async_shaped_batches(policy, tail_rows):
     mbs = total // _M
     half = mbs // 2
     seen = _spy_minibatches(agent, batch)
+    rng_before = torch.get_rng_state()
     metrics = agent.update_episodes(batch, steps_seen=0)
+    rng_after = torch.get_rng_state()
     assert math.isfinite(metrics["loss/policy"])
     for p in agent.actor.parameters():
         assert torch.isfinite(p).all()
@@ -342,6 +558,13 @@ def test_minibatch_tail_policies_on_async_shaped_batches(policy, tail_rows):
         assert per_epoch == n_full + (1 if tail_rows >= 2 else 0)
         assert min(sizes) == (tail_rows if tail_rows >= 2 else mbs)
         assert not {k for k in metrics if k.startswith("loss/minibatch_")}
+        # The legacy oracle: replay the pre-F-04 loop from the RNG state the
+        # update started at; rows, order and the RNG state left behind must
+        # all agree (an absent-vs-'keep' comparison cannot see any of these).
+        torch.set_rng_state(rng_before)
+        legacy, rng_legacy = _legacy_minibatch_plan(total, mbs, epochs)
+        assert seen == legacy, "keep executed different rows/order than the pre-F-04 loop"
+        assert torch.equal(rng_after, rng_legacy), "keep consumed RNG the pre-F-04 loop did not"
         return
 
     assert min(sizes) >= half, f"a {min(sizes)}-row minibatch took a step"
@@ -355,3 +578,41 @@ def test_minibatch_tail_policies_on_async_shaped_batches(policy, tail_rows):
     else:
         assert metrics["loss/minibatch_rows_dropped"] == 0.0
         assert max(sizes) == (mbs + tail_rows if tail_rows < half else mbs)
+
+
+@pytest.mark.parametrize("policy", ["drop", "fold"])
+def test_minibatch_tail_metrics_at_the_100m_shape(policy):
+    """update_episodes at the PRODUCTION shape (B = 30,720 + 60, minibatches
+    120, mbs = 256, one epoch; tiny net, so it is cheap): the draft pre-reg's
+    R0-3 launch read taken from the metrics the wire reports —
+    loss/minibatch_rows_min >= 256 and loss/minibatch_rows_dropped == 0
+    ('fold') / 60 ('drop') — plus exactly 120 gradient steps and the widest
+    slice 316 ('fold', 256 + 60) / 256 ('drop'). The action plan's fix line
+    asks for exactly this: every executed minibatch >= mbs // 2 on an
+    async-shaped 30,721..30,839-row batch."""
+    eps = 60
+    mbs = (_B_100M + eps) // _M_100M
+    agent = _agent(minibatches=_M_100M, epochs=1, minibatch_tail=policy)
+    batch = _recorded_batch(agent, _B_100M + eps)
+    sizes: list[int] = []
+    orig = agent._logp_entropy
+
+    # Sizes only, not row indices: `_spy_minibatches` would hash 30,780 obs
+    # rows to identify them and the claim here is about WIDTHS, not order —
+    # the row-level oracle runs at minibatches=8 where it is cheap.
+    def count(obs, actions, masks, **kw):
+        sizes.append(int(obs.shape[0]))
+        return orig(obs, actions, masks, **kw)
+
+    agent._logp_entropy = count
+    metrics = agent.update_episodes(batch, steps_seen=0)
+    assert math.isfinite(metrics["loss/policy"])
+    assert len(sizes) == _M_100M, "exactly 120 gradient steps per epoch"
+    assert mbs == 256 and min(sizes) >= mbs // 2, "the action plan's fix line"
+    assert metrics["loss/minibatch_rows_min"] == float(min(sizes)) == float(mbs)
+    if policy == "fold":
+        assert metrics["loss/minibatch_rows_dropped"] == 0.0
+        assert sum(sizes) == _B_100M + eps and max(sizes) == 256 + eps
+    else:
+        assert metrics["loss/minibatch_rows_dropped"] == float(eps)
+        assert sum(sizes) == _B_100M and max(sizes) == 256

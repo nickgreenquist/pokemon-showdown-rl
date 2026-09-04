@@ -4,11 +4,25 @@
 NON-LEVER WIRE CHANGE, written 2026-09-02 on the audit branch (finding F-04,
 `docs/AUDIT_ACTION_PLAN.md` §3/§4). Nothing here is in force. The opt-in
 wire shipped in commit `650a8e6` (`PPOAgent(minibatch_tail=...)`, values
-`keep | drop | fold`) with the default `keep` = today's behaviour bit-for-bit
-(pinned by `tests/test_ppo_episodes.py::test_minibatch_tail_default_is_keep_
-and_bit_identical`). No fleet runs, no config flips and no default moves on
-this text. It has NOT been through the 2-Opus design cycle; that cycle is
-owed if and when this becomes the ratified header of a run.
+`keep | drop | fold`) with the default `keep` = today's behaviour bit-for-bit.
+THE PIN (rewritten after review round 1, which found the original compared the
+new loop to ITSELF): `tests/test_ppo_episodes.py::test_minibatch_tail_keep_is_
+bit_identical_to_the_pre_f04_agent` loads `rl/agents/ppo.py` AS OF `5d3c6b7`
+(the commit before the wire) into a throwaway module and RUNS that agent
+beside today's — same seed, same kwargs, same batch, every async tail —
+asserting equal weights, equal Adam state, an equal metrics dict INCLUDING
+its keys, and an equal torch RNG state afterwards. Four mutations of the
+`keep` path (floor 2 -> 3, an extra RNG draw, a moved slice boundary, the
+diagnostics leaking under `keep`) were each verified to FAIL it. Its
+git-independent companion `test_minibatch_tail_default_is_keep_and_bit_
+identical` reimplements the pre-F-04 loop in-file as a row-and-RNG oracle.
+The production-shape arithmetic below is pinned by
+`test_minibatch_slices_plan_at_the_100m_recipe` (B = 30,720 + eps,
+minibatches 120, eps in 1/2/60/119/120/250) and the R0-3 read by
+`test_minibatch_tail_metrics_at_the_100m_shape`. No fleet runs, no config
+flips and no default moves on this text. It has NOT been through the 2-Opus
+design cycle; that cycle is owed if and when this becomes the ratified header
+of a run.
 
 **journey_step: NOT ASSIGNED — off-arc until ruled** (CLAUDE.md's off-arc
 clause: "off-arc work needs a maintainer ruling"). It is learner-wire
@@ -24,8 +38,13 @@ until then this file licenses nothing.
 ---
 
 **THE CHANGE (a wire, not a lever).** On the async path an update's batch is
-30,720 + eps rows of whole episodes (`configs/showdown_sp_100m.yaml` DOSE
-paragraph discloses "a trailing partial slice"). `minibatch_size = B //
+30,720 + eps rows of whole episodes (`configs/showdown_sp_100m.yaml:88` DOSE
+paragraph discloses "a trailing partial slice"). THE SHAPE IS THE SAME IN
+BOTH ARMS' FILE AND THE 100M FILE, which is why one test shape covers both:
+`num_envs: 8` x `rollout_steps: 3840` = the 30,720-step update budget,
+`epochs: 4`, `minibatches: 120`
+(`configs/showdown_sp_batch50m_async.yaml:128, :167-169` ==
+`configs/showdown_sp_100m.yaml:537, :576-578`). `minibatch_size = B //
 120` and `range(0, B, mbs)` leave a final slice of B mod mbs rows; because
 B = 120·mbs + r with r < 120, that tail IS r — uniform on 0..119 and never a
 function of the 256-row width. Today (`keep`) a 1-row tail is skipped
@@ -50,30 +69,49 @@ the learner's numerics is pre-registered before it touches a headline run —
 not because a credit is expected.
 
 **DOSE (decided now, not at read time).** Data dose MATCHED: same
-`total_steps`, same collector, same batches, same `perm` draws. Optimizer
-dose differs by construction and is stated: gradient steps per epoch
+`total_steps` AND same `lr_anneal_steps` — BOTH 50M in BOTH arms, the
+comparator's own schedule (`configs/showdown_sp_batch50m_async.yaml:125,
+:164`), every lane KILLED by the wave runner at its 12M crossing rung, so
+the two arms see the same lr at every step they train; same collector, same
+batches, same `perm` draws. A 12M-annealed T config is FORBIDDEN by the
+comparator's own header (it would compare learning-rate schedules, not tail
+policies) and is a STOP at R0-2. Optimizer dose differs by construction and
+is stated: gradient steps per epoch
 `keep` 121 (whenever tail >= 2) vs `fold`/`drop` 120 (-0.8%); rows trained
 per epoch `keep` = all, `fold` = all, `drop` = all minus the tail (-0.19%).
 HOW WE WOULD KNOW: the two diagnostics that exist ONLY under a non-default
 policy — `loss/minibatch_rows_min` (must read >= 256 at every update under
 either policy; a smaller value means the floor logic is not the one
 described here) and `loss/minibatch_rows_dropped` (exactly 0 under `fold`;
-in 2..119 under `drop`) — are RECORDED at grade time, never asserted. GAP,
+in 0..119 under `drop` — it is the tail width, so 0 only when the batch
+divides exactly) — are RECORDED at grade time, never asserted. GAP,
 named: no `loss/grad_steps` key exists; the realized per-update step count
 is derived from batch sizes, not logged. Adding it under the same
 non-default gating is ruling item 4 below.
 
 **ARMS.**
-- T: 3 lanes x 12M, the Stage-2 acceptance config
+- T: 3 lanes of the Stage-2 acceptance config
   (`configs/showdown_sp_batch50m_async.yaml`) with `agent: minibatch_tail:
   fold` as the ONLY delta — the config diff against the comparator's file is
-  recorded in the ratified header (R0-2). `fold` is proposed over `drop`
+  recorded in the ratified header (R0-2). STOP MECHANISM, pinned:
+  `total_steps: 50000000` and `lr_anneal_steps: 50000000` STAY (the
+  comparator's own schedule, `configs/showdown_sp_batch50m_async.yaml:125`
+  and `:164`); each lane is KILLED once its 12M crossing rung lands, by the
+  same runner and the same glob the comparator's lanes were —
+  `scripts/ch5_g9_wave.sh:37` `rung_of() { ls "$1"/ckpt_0120*.pt ... }`,
+  polled at `:83`/`:98`. "12M" names where a lane is STOPPED and READ, never
+  a config horizon; the comparator's own header states the reason verbatim
+  ("running a 12M-annealed config instead would compare learning-rate
+  schedules, not collection loops", `:30-34`). `fold` is proposed over `drop`
   because it keeps every row in every epoch; `drop` is the alternative NOT
   RUN and is named as not run.
-- C: the banked G9 acceptance fleet — `keep`, async, seeds 66/75/83, 12M
-  — per-seed vs-SH finals 0.65933 / 0.68367 / 0.67333, pooled 0.67211, seed
-  sd 0.0122 (`configs/showdown_sp_100m.yaml`, N-COLL [FILLED 2026-09-01]).
-  NO CONTROL COMPUTE IS SPENT.
+- C: the banked G9 acceptance fleet — the SAME FILE with the default `keep`,
+  async, seeds 66/75/83, `runs/showdown_sp_batch50m_async_s{66,75,83}`, each
+  lane killed by that runner at its 12M crossing rung (realized
+  `ckpt_0120000{13,09,41}.pt`, i.e. 9-41 steps of overshoot) — per-seed
+  vs-SH finals 0.65933 / 0.68367 / 0.67333, pooled 0.67211, seed sd 0.0122
+  (SESSION_LOGS 2026-09-01; restated as the 100M header's N-COLL disclosure,
+  `configs/showdown_sp_100m.yaml:96-103`). NO CONTROL COMPUTE IS SPENT.
 - SEEDS: matched 66/75/83 is the clean paired read, and those seeds have
   TWO legal owners today (`tests/test_ch5_r2_prereg.py::test_seeds_are_
   window_disjoint_and_unused`: R2's fleet and the acceptance fleet). A third
@@ -87,10 +125,14 @@ non-default gating is ruling item 4 below.
   (CLAUDE.md rule 4). Eval: vs-SH 3 x 3000 ~6 min. Off-FP@20 descriptive
   3 x 3000 serial ~3.9 h, agent-side, detached, resume-safe.
 
-**PRIMARY READ — pooled vs-SH, locked protocol, FINAL vs FINAL.** Final
-checkpoint at step >= 12M (the realized step is RECORDED; async overshoots
-by the last drained batch), 3000 battles/seed, 3 seeds, deterministic
-policy, ties as non-wins, vs `SimpleHeuristicsPlayer`. ACROSS-LANE
+**PRIMARY READ — pooled vs-SH, locked protocol, RUNG vs RUNG.** Each T
+lane's 12M CROSSING-RUNG checkpoint (`ckpt_0120*.pt`; the async loop names
+rungs at the crossing step, so the glob and not the vector path's exact
+literal — bounded overshoot ~15k steps, 9-41 realized in the comparator,
+realized step RECORDED per lane) — the SAME object the comparator's per-seed
+finals were read from, never a "final" of a 12M config, and the T config's
+own `total_steps` is 50M — 3000 battles/seed, 3 seeds,
+deterministic policy, ties as non-wins, vs `SimpleHeuristicsPlayer`. ACROSS-LANE
 AGGREGATOR, named once and binding everywhere: the EQUAL-WEIGHT MEAN of
 per-seed finals, computed WITHIN each arm over its own lanes. Pooled-over-
 battles, per-lane median, best/worst lane and per-lane deltas are RECORDED
@@ -156,11 +198,20 @@ DOSE paragraph.
 
 **R0 SANITY GATES (zero-lane, at launch; any failure is STOP before the
 first step).**
-- R0-1 the bit-identity test and the tail-policy tests are green at the
-  launch commit, in the launch env.
+- R0-1 `tests/test_ppo_episodes.py` green at the launch commit, in the launch
+  env, AND `-rs` shows `test_minibatch_tail_keep_is_bit_identical_to_the_pre_
+  f04_agent` RAN — it skips (loudly, with the reason) when commit `5d3c6b7`
+  is not in the object store, and a skipped bit-identity pin is a STOP, not a
+  pass. The five tests R0-1 covers: that one, `..._default_is_keep_and_bit_
+  identical`, `..._policies_on_async_shaped_batches`,
+  `test_minibatch_slices_plan_at_the_100m_recipe` and
+  `..._metrics_at_the_100m_shape`.
 - R0-2 `diff` of the T config against `showdown_sp_batch50m_async.yaml` is
   exactly the `minibatch_tail: fold` line (plus seeds/run-names if the
-  fallback seeds are ruled).
+  fallback seeds are ruled); in particular `total_steps: 50000000` and
+  `lr_anneal_steps: 50000000` are UNCHANGED — a T file reading 12M on
+  either is the learning-rate-schedule confound the comparator's header
+  forbids, and is STOP.
 - R0-3 the FIRST logged update of every lane reads
   `loss/minibatch_rows_dropped` == 0 and `loss/minibatch_rows_min` >= 256;
   a lane whose first update reads otherwise is running the wrong wire.
