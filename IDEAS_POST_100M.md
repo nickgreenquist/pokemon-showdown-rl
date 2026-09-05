@@ -13,6 +13,13 @@ done, frozen schedule run, graded **P3**, recorded (RESULTS §18; S-SHAPE
 `configs/eval/ladder_r4.yaml`). This round adds 2.7, two §3 firewall
 entries, 4.5–4.6 (appended, UNRANKED — the re-rank is the maintainer's,
 STATUS next-action 3), a §5 amendment and §7 round 2. Still not a pre-reg.
+**Citations note (2026-09-04):** `CHAPTER5.md` was archived to
+`docs/archive/CHAPTER5.md` under a 13-line banner, so a `CHAPTER5:N` line
+cite below resolves at N+13 there; its §3 (the C1–C6 provenance table,
+C6 at `:624`), §6 and §7 live verbatim in
+`configs/showdown_sp_batch50m.yaml` (lines ~542–793) — the live location
+for the C-items; §7 ruling 4 (the 50M ceiling) is superseded by name in
+the 100M header.
 
 **Sequencing floor (binding):** nothing below runs before FLEET DONE → the
 frozen eval schedule → grade → record (HANDOFF §§1–3; the peeking bar covers
@@ -393,10 +400,11 @@ the 100M was (RESULTS §18) — off-arc without the same explicit order. Reads
 to carry: S-SHAPE with disjoint windows, S-ANNEAL against the 100M curve,
 D-A liveness, sigma_seed descriptive, the anchor battery.
 
-**4.6 C6 — fixed-damage encoder fix (MAINTAINER C-item, CHAPTER5 §3;
-first-class, unrun, unruled — it may not be dropped, deferred or merged
-away without a recorded maintainer ruling). Sequenced LAST, and F-08 did
-not change that.**
+**4.6 C6 — fixed-damage encoder fix (MAINTAINER C-item; CHAPTER5 §3,
+whose verbatim home since 2026-08-31 is
+`configs/showdown_sp_batch50m.yaml:554,624`; first-class, unrun, unruled —
+it may not be dropped, deferred or merged away without a recorded
+maintainer ruling). Sequenced LAST, and F-08 did not change that.**
 The defect, re-verified live in the env 2026-09-04: poke-env's gen-1 data
 gives `base_power == 1` for seismictoss, superfang, nightshade, dragonrage,
 sonicboom, counter and psywave (the vendored gen1 mod sets `basePower: 1`
