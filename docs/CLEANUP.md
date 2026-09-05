@@ -84,6 +84,11 @@ survive only as removal comments (`rl/envs/make.py:109`,
 `rl/selfplay/pool.py:136`, `rl/networks/conv.py:10`); `TensorBoardLogger` and
 `kernel_size` are still carried, as ruled.
 
+**Label warning:** the `A<n>` below are the **2026-08-25** audit's numbering
+and do NOT mean the 2026-09-01 `A1-A5` in the last section. Here A4 is the
+strip list and A5 was the disk pass — which is why commit 0634937 ("Disk
+hygiene (CLEANUP A5)") names something entirely different from today's A5.
+
 - **Unlabelled predecessor figure — CLOSED 2026-08-29**: maintainer gave
   blanket approval ("update what you think is best"); a dated caveat now
   sits beside the embed in the otherwise-frozen file. (The PNG itself
