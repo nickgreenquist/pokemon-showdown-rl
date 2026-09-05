@@ -117,8 +117,10 @@ worse with longer games, not better.
 > **STATUS 2026-09-05: BUILT** as specified below (`rl/envs/most_damage_typed.py`,
 > registry key `most_damage_typed`, `tests/test_most_damage_typed.py`,
 > `scripts/anchor_h2h.py`). Gen-1 placement, bot-vs-bot, n = 300 each, sanity only:
-> 0.983 vs random, 0.777 vs MaxBasePower, 0.330 vs SimpleHeuristics. It joins the
-> battery only on the maintainer's say-so (§9 A2); no README row.
+> 0.983 vs random, 0.777 vs MaxBasePower, 0.330 vs SimpleHeuristics. **RULED
+> 2026-09-05: it JOINS the battery as the third descriptive anchor (h2h 500) from
+> gen4 on** (§9 A2; `open_questions.md` §0.5). No README row until a headline
+> gen4 number exists.
 
 **Why** `[tree]`: JOURNEY's pre-step-3 item ("the only anchor whose own strength
 doesn't drift across generations … the right denominator for a gen1 → gen4 → gen9
@@ -216,6 +218,11 @@ anchor because the budget ladder found FP **flat in budget** (FP@20 0.312 / FP@1
 (`configs/eval/fp_budget_ladder.yaml`, 20 ms and 500 ms, n ≥ 250) must be re-run
 against the gen4 build before a gen4 budget is pinned; until then any gen4 FP number
 names its budget and carries the two disclosures, as every FP number does.
+**RULED 2026-09-05 (Q38):** the gen4 budget is NOT pinned from FP-vs-SH (§12: flat
+at 226-24 / 228-22 for 20 / 500 ms, and a ceiling of the SH seat as much as of the
+search); the two-rung ladder runs ONCE against the first trained gen4 checkpoint
+(the 50M pure self-play run), then the budget is pinned. Both budgets are quoted
+until then.
 
 **Wang's MCTS is not an anchor candidate** `[src]` `[tree]`: it is test-time search
 over his own network with 20 workers and 10 s/decision, needs `>getstate`/`>load`

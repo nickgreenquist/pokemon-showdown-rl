@@ -46,6 +46,35 @@
   did not touch.
 - **R-items** (§10) are refusals: things this cycle deliberately does not decide.
 
+## 0.5 Rulings GIVEN 2026-09-05 (maintainer: "agree with all"; SESSION_LOGS 2026-09-05 midday)
+
+Seven decisions closed in one sitting, in the order they run:
+
+1. **Step 3 exit condition** (JOURNEY.md step 3): a PURE self-play gen4 agent on
+   the frozen layout v0.1 scores ≥ 0.60 vs SimpleHeuristics under the locked
+   protocol (pooled 3×3000), with the three descriptive anchors reported.
+2. **Freeze layout v0.1 AS BUILT, the ~90 pool-unreachable dims KEPT**
+   (`encoder_requirements.md` §13): a relayout kills every checkpoint; relayout
+   only on a measured defect. The freeze lives in the first gen4 pre-reg header.
+3. **Pinned gen4 hash gate** right after the freeze (Q19 discharged by the tapes;
+   mechanical — fixture + local tapes, reference sha in §13).
+4. **Entity trunk layout argument** before the first real run: parameterise
+   `rl/networks/entity_deepsets.py` on a layout object, add item / ability id
+   embeddings, the gen1 bit-identity tests as the guard (R-item architecture
+   question unchanged: this is plumbing, not a trunk choice).
+5. **First run: 50M pure self-play** on the frozen layout mirroring the gen1
+   batch config (`configs/showdown_sp_batch50m.yaml` is the header template),
+   pre-registered with ruling 1 as its exit condition; > 5 h → hand-over launch;
+   nothing larger until it reads out.
+6. **FP budget (Q38):** NOT pinned from FP-vs-SH (flat and a ceiling of the SH
+   seat); the two-rung ladder runs once against the first trained checkpoint,
+   then the budget is pinned; both budgets quoted meanwhile.
+7. **Most-damage-typed JOINS the battery** as the third descriptive anchor
+   (h2h 500) from gen4 on (§5 A2).
+
+The pre-reg header itself is pre-reg-grade: it goes through the 2-Opus design
+review before it is committed as a pre-registration.
+
 ## 1. Chapter-level rulings
 
 **Q1 — Fresh net, or transfer from the gen1 final?** Recommendation: **fresh net**;
@@ -204,6 +233,8 @@ spec is `anchors_and_eval.md` §2; it costs a registry key and a test edit
 **Q37 — AUTHORISED AND DONE 2026-09-05** (`anchors_and_eval.md` §12; `scripts/setup_foulplay_gen4.sh`): a second env `foul-play-gen4` with poke-engine 0.0.48 built for gen 4 (functionally pinned by `calculate_damage`: Steel resistances, Explosion's Defense halving, crit ×2 at 1/16), the set file fetched, sha-pinned and pre-placed in the cache, the six-way comparison against the vendored pool (same realised set space; 40 species differ by ±1–2 levels — disclose), the smoke and the eval-bot path run. Carried to the gen-4 pre-reg: the pin sha and the level-drift disclosure; the budget-ladder re-run (Q38) against a REAL agent; the runner's stall window re-sized to gen-4 rates (FP@500 measured 26.6 s/battle vs SH over n=250, `fp2`; a real agent's games run longer). A4.
 **Q38** Re-run the FP budget ladder (20 ms, 500 ms, n ≥ 250) in gen4 before pinning
 a gen4 FP budget; the gen1 flatness finding is explicitly gen1-specific. A5.
+**RULED 2026-09-05 (§0.5 item 6):** against the FIRST TRAINED gen4 checkpoint,
+not against SH (FP-vs-SH is flat at 226-24 / 228-22 and a ceiling of the SH seat).
 **Q39** The BC-clone leg: rebuilt from a gen4 Foul Play after tapes exist, or
 dropped for the chapter's first readout (§4 of the anchors doc).
 **Q40** One ladder run (step 6): pin FP budget, engine commit, n, and greedy vs
@@ -394,7 +425,8 @@ verification (1,650 recorded seat-battles; every `[live]` claim in §8's list
 that a local server can settle is settled — the four docs' final sections).
 Not built: the entity trunk's vocab arguments, eval / async / collect format
 threading, F-07 selection, the pinned hash gate, the gen-4 pre-reg. The
-learner loop closed once (16 updates, a smoke; no number).
+learner loop closed once (16 updates, a smoke; no number). **The order of
+the rest was RULED 2026-09-05 — §0.5.**
 
 ## 12. Rulings the build surfaced (new Q-items)
 

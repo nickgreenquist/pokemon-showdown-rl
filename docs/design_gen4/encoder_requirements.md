@@ -458,6 +458,9 @@ distinguishability.
 5. Gen4 set prior from `sets.json` + item rule table (medium).
 6. Post-ladder: collect gen4 tapes, land the hash gate, run the `[live]` checks in
    `pokeenv_gen4_survey.md` §8, then freeze the tuples in the gen4 pre-reg header.
+   Tapes and live checks DONE 2026-09-05. **RULED 2026-09-05: freeze v0.1 AS BUILT
+   (unreachable dims kept) → hash gate → entity trunk layout argument → 50M pure
+   self-play run** (`open_questions.md` §0.5).
 
 ## 10. Adjudications (single-writer; recommendation, then the losing argument)
 
@@ -584,7 +587,8 @@ CURSE / FOCUS_ENERGY / trapped-by-move / perish flags and the perish counter, an
 seven effect slots (drain, attract, partial trap, focus energy, screen, other
 side condition, trap) × 8 move slots. Kept deliberately: they are the FORMAT's
 mechanics and the pool moves with every Showdown commit (this one has zero
-Stealth Rock sets; the format's history does not). A v1.0 freeze may drop them;
+Stealth Rock sets; the format's history does not). **RULED 2026-09-05: KEPT in
+the v0.1 freeze** — a relayout kills every checkpoint; relayout only on a measured defect;
 `spec.py`'s layout docstring records the same list.
 
 **Deviations from §3–4, each measured (`mechanics_delta.md` §18,
@@ -596,7 +600,10 @@ folded side conditions into three classes and added trapping / variable
 damage / item swap / team cure / defrost bits); `-ability` announcers are six
 (Speed Boost and Download announce).
 
-**Not built (next):** the entity trunk's vocab arguments (`entity_deepsets.py`
+**Not built (next) — RULED ORDER 2026-09-05 (`open_questions.md` §0.5): (1) the
+pre-reg header that freezes v0.1 as built (2-Opus review first), (2) the pinned
+hash gate, (3) the entity trunk's layout argument, (4) the 50M pure self-play run
+(hand-over launch).** The items: the entity trunk's vocab arguments (`entity_deepsets.py`
 must take `VOCAB.n_species / n_moves` and the two new id tables — today it
 clamps at 152 / 166 and cannot serve gen 4); `scripts/eval_checkpoint.py` and
 `rl/collect.py` / `showdown_async.py` format threading (the smoke ran the sync

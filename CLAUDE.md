@@ -196,16 +196,19 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   Every arm from D23 on has pooled **5×3000** — a disclosed DEVIATION
   (conservative, 5 ≥ 3); say so when quoting it.
 - **Anchor battery** (2026-08-23; FP budget amended 2026-08-26 per MU-2):
-  every headline-grade result reports vs-SH (locked protocol) **plus** two
-  descriptive anchors — BC-clone h2h (500) and Foul Play h2h — before its
-  README row lands. Anchors are descriptive, **never verdict inputs**.
+  every headline-grade result reports vs-SH (locked protocol) **plus** the
+  descriptive anchors — BC-clone h2h (500), Foul Play h2h, and from gen 4 on
+  the most-damage-typed h2h (500; ruled 2026-09-05) — before its README row
+  lands. Anchors are descriptive, **never verdict inputs**.
   - **Match the policy form to the rating you compare against** — a clone
     number is never style evidence.
-  - FP anchor at `--search-time-ms 20`. **Two disclosures travel with every
-    FP@20 number, forever:** the equivalence test is weakly powered, and the
-    point estimate flatters us. **Name the budget in every quote.** FP@20 is
-    an instrument, not a rung — the readiness gradient is the FP budget
-    ladder (`configs/eval/fp_budget_ladder.yaml`).
+  - FP anchor at `--search-time-ms 20` (gen 1). **Two disclosures travel with
+    every FP@20 number, forever:** the equivalence test is weakly powered, and
+    the point estimate flatters us. **Name the budget in every quote.** FP@20
+    is an instrument, not a rung — the readiness gradient is the FP budget
+    ladder (`configs/eval/fp_budget_ladder.yaml`). **Gen 4's budget is UNPINNED
+    until that ladder runs against the first trained gen-4 checkpoint (ruled
+    2026-09-05); quote 20 and 500 ms both meanwhile.**
 - **Locked metric names:** `rollout/episode_return`, `rollout/episode_length`,
   `eval/return_mean`, `eval/return_std`, `eval/win_rate`,
   `time/steps_per_sec`, `time/collect_sec`, `time/update_sec`,

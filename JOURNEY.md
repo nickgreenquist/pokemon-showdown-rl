@@ -37,6 +37,8 @@ Top-500 admission is an Elo threshold set by other people's activity on a thin f
 ### 3. Fable ultracode → gen4 encoder + model
 Full encoder rewrite: items, abilities, weather, hazards, SpA/SpD split. Note gen4 is where physical/special becomes a per-move field rather than type-determined — that branch changes here and does not carry back.
 
+**Exit condition (ruled 2026-09-05):** a PURE self-play gen4 agent on the frozen encoder layout v0.1 scores **≥ 0.60 vs SimpleHeuristics under the locked protocol** (pooled 3×3000; SH is stronger at gen4 — its hazard branches are live — so this is deliberately not gen1's 0.80), with the three descriptive anchors reported: most-damage-typed h2h, FP@20 h2h, FP@500 h2h. Groundwork (encoder v0.1, env, eval bots) merged 2026-09-05; the ruled build order is in STATUS.
+
 **Mine Wang's forks first.** quadraticmuffin/poke-env is ~36 gen4 state-tracking fixes found the expensive way — Max PP, Sleep Talk double-decrementing, weather-from-abilities persistence, sleep counters, Trace base-ability parsing, maybe_trapped, _force_switch as a list. Diff it against our pinned 0.15.0 and check which survived upstreaming. A silently wrong observation field looks exactly like a training problem. His pokemon-showdown fork is MCTS infrastructure (>getstate/>load, constrained team regen) and is not needed unless we do search.
 
 Steal his observation design where it fits (Tables A.1/A.2): multi-turn effect durations as one-hot counters to restore Markovianity, HP binned, PP as floor(pp^(1/3)). Our encoder is ours, but these are solved problems.
@@ -65,7 +67,7 @@ Lower value than it looks, and worth knowing why before spending on it: Wang's h
 So this run is not a like-for-like ladder comparison. It is a point on the complexity curve and a sanity check that the gen4 agent works against humans. Do not let it become a second gen4 chapter.
 
 ### 7. Record results
-Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened**, or it becomes where the project lives. It is a borrowed instrument, not a home.
+Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened** (done 2026-09-05 — see step 3), or it becomes where the project lives. It is a borrowed instrument, not a home.
 
 No search experiments here. They belong after step 11, against our strongest gen1 policy — running them now would reopen gen1 mid-arc and would measure search against a weak critic, which we already know the answer to.
 

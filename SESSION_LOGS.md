@@ -10499,3 +10499,31 @@ line numbers are not — grep the date, then read that region):
   3 in progress (60 lines); README and CLAUDE.md gained gen-4 pointers. The
   worktree `../pokemon-showdown-rl-gen4` stays (branch `gen4-build`, fully
   merged); nothing pushed.
+- 2026-09-05 (midday, maintainer: "agree with all, update whatever md needs
+  those so when i clear this context and start fresh: we hit the ground
+  running") — **SEVEN GEN-4 RULINGS.** Asked for each open decision with a
+  recommendation; every recommendation was adopted as the ruling. (1) Step 3
+  exit condition: a PURE self-play gen4 agent on the frozen layout v0.1 scores
+  ≥ 0.60 vs SimpleHeuristics under the locked protocol (pooled 3×3000), the
+  three descriptive anchors reported — not gen1's 0.80, SH is stronger at gen4
+  (hazard branches live). (2) Freeze layout v0.1 AS BUILT, the ~90
+  pool-unreachable dims KEPT: dropping them saves 6 % width and a relayout
+  kills every checkpoint; relayout only on a measured defect. (3) Build the
+  pinned gen4 hash gate right after the freeze (mechanical; fixture + local
+  tapes; reference sha bbcf9f60…). (4) Entity trunk layout argument BEFORE the
+  first real run: `rl/networks/entity_deepsets.py` parameterised on a layout
+  object, item / ability id embeddings added, the gen1 bit-identity tests as
+  the guard; the MLP trunk is fit for smokes only. (5) FP budget (Q38): not
+  pinned from FP-vs-SH (flat at 226-24 / 228-22 and a ceiling of the SH seat);
+  the two-rung ladder runs once against the first trained checkpoint, then the
+  budget is pinned; both budgets quoted meanwhile. (6) Most-damage-typed JOINS
+  the anchor battery as the third descriptive anchor (h2h 500) from gen4 on.
+  (7) First training run: one 50M pure self-play run mirroring the gen1 batch
+  config, pre-registered with ruling 1 as its exit condition, handed over to
+  launch (> 5 h); nothing larger until it reads out. Recorded: JOURNEY.md step
+  3 (exit condition; line 68's owed item closed), STATUS (the ruled order as
+  next actions), `docs/design_gen4/open_questions.md` §0.5 (+ Q38, §11),
+  `anchors_and_eval.md` §2 / §3, `encoder_requirements.md` §9.6 / §13,
+  CLAUDE.md anchor-battery convention (MDT from gen4 on; gen4 FP budget
+  unpinned until the ladder). The pre-reg header itself (item 1 in STATUS) is
+  pre-reg-grade and goes through the 2-Opus design review before commit.
