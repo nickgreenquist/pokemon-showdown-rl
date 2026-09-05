@@ -459,8 +459,9 @@ distinguishability.
 6. Post-ladder: collect gen4 tapes, land the hash gate, run the `[live]` checks in
    `pokeenv_gen4_survey.md` §8, then freeze the tuples in the gen4 pre-reg header.
    Tapes and live checks DONE 2026-09-05. **RULED 2026-09-05: freeze v0.1 AS BUILT
-   (unreachable dims kept) → hash gate → entity trunk layout argument → 50M pure
-   self-play run** (`open_questions.md` §0.5).
+   (unreachable dims kept) → hash gate → entity trunk layout argument → the 50M
+   Wang-recipe run (his Table A.3, mirror self-play, on our encoder)**
+   (`open_questions.md` §0.5).
 
 ## 10. Adjudications (single-writer; recommendation, then the losing argument)
 
@@ -602,8 +603,9 @@ damage / item swap / team cure / defrost bits); `-ability` announcers are six
 
 **Not built (next) — RULED ORDER 2026-09-05 (`open_questions.md` §0.5): (1) the
 pre-reg header that freezes v0.1 as built (2-Opus review first), (2) the pinned
-hash gate, (3) the entity trunk's layout argument, (4) the 50M pure self-play run
-(hand-over launch).** The items: the entity trunk's vocab arguments (`entity_deepsets.py`
+hash gate, (3) the entity trunk's layout argument, (4) the 50M Wang-recipe run —
+his Table A.3 and mirror self-play on our encoder; our pool / league / batch
+machinery held back as later levers (hand-over launch).** The items: the entity trunk's vocab arguments (`entity_deepsets.py`
 must take `VOCAB.n_species / n_moves` and the two new id tables — today it
 clamps at 152 / 166 and cannot serve gen 4); `scripts/eval_checkpoint.py` and
 `rl/collect.py` / `showdown_async.py` format threading (the smoke ran the sync

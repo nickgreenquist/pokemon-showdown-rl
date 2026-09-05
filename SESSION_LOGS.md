@@ -10527,3 +10527,27 @@ line numbers are not — grep the date, then read that region):
   CLAUDE.md anchor-battery convention (MDT from gen4 on; gen4 FP budget
   unpinned until the ladder). The pre-reg header itself (item 1 in STATUS) is
   pre-reg-grade and goes through the 2-Opus design review before commit.
+- 2026-09-05 (midday, maintainer: "you can rewrite for the FIRST work to be
+  match his recipe etc, but you can keep your stuff for later (see if it
+  boosts any metrics) ... we can start with Wang's steps first as foundation")
+  — **RULINGS 1 AND 7 AMENDED.** Asked why decisions were needed when the
+  recipe is copied; the answer stands (the rulings were about OUR instruments —
+  freeze, hash gate, battery, budget — not the recipe) but two of mine were
+  off-arc against JOURNEY steps 4–5 and are corrected: (7) the FIRST gen4 run
+  is Wang's recipe as he ran it — Table A.3 + his LR schedule, pure mirror
+  self-play latest-vs-latest, both seats harvested, NO opponent pool — on our
+  frozen encoder, 50M per-seat decisions as a disclosed fraction of his ≈ 75M;
+  our gen1 machinery (opponent pool / league play, the batch config, the
+  privileged critic) is HELD BACK as levers for later pre-registered runs
+  against that baseline, credited by the standing credit line (the maintainer
+  expects latest-only → league play to pay first). (1) ≥ 0.60 vs SH is step 3's
+  MILESTONE (the pipeline learns), not the chapter's exit; the chapter's exit
+  is JOURNEY step 5 with a WORKING PIN recorded there: target 0.786 (Table 4.1,
+  his full agent), matched = pooled 3×3000 vs-SH within 0.03, SB3 and scale
+  disclosed; then ONE step-6 ladder run closes the chapter (JOURNEY line 68's
+  chapter exit written accordingly). Recorded in JOURNEY steps 3–5 and 7,
+  STATUS items 1 and 4, open_questions.md §0.5, encoder_requirements.md §9.6 /
+  §13, anchors_and_eval.md §3. Facts behind the answer, from
+  `docs/design_gen4/research/wang_thesis.md`: Wang 2024 is gen4RB, PURE mirror
+  self-play, SB3 PPO, 150M learner steps ≈ 75M per-seat over 4 days on 78
+  workers, validated as win rate over 200 games vs SimpleHeuristics; H&L was gen 7.

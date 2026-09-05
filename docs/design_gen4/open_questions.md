@@ -50,9 +50,12 @@
 
 Seven decisions closed in one sitting, in the order they run:
 
-1. **Step 3 exit condition** (JOURNEY.md step 3): a PURE self-play gen4 agent on
-   the frozen layout v0.1 scores ≥ 0.60 vs SimpleHeuristics under the locked
-   protocol (pooled 3×3000), with the three descriptive anchors reported.
+1. **Step 3 milestone** (JOURNEY.md step 3; AMENDED the same day — it is a
+   milestone, not the chapter's exit): the step-4 Wang-recipe run on the frozen
+   layout v0.1 LEARNS — ≥ 0.60 vs SimpleHeuristics under the locked protocol
+   (pooled 3×3000) at its final, the three descriptive anchors reported. The
+   chapter's exit is JOURNEY step 5: match Wang's pinned 0.786 (matched =
+   within 0.03, pooled 3×3000; SB3 confound disclosed), then ONE ladder run.
 2. **Freeze layout v0.1 AS BUILT, the ~90 pool-unreachable dims KEPT**
    (`encoder_requirements.md` §13): a relayout kills every checkpoint; relayout
    only on a measured defect. The freeze lives in the first gen4 pre-reg header.
@@ -62,10 +65,17 @@ Seven decisions closed in one sitting, in the order they run:
    `rl/networks/entity_deepsets.py` on a layout object, add item / ability id
    embeddings, the gen1 bit-identity tests as the guard (R-item architecture
    question unchanged: this is plumbing, not a trunk choice).
-5. **First run: 50M pure self-play** on the frozen layout mirroring the gen1
-   batch config (`configs/showdown_sp_batch50m.yaml` is the header template),
-   pre-registered with ruling 1 as its exit condition; > 5 h → hand-over launch;
-   nothing larger until it reads out.
+5. **First run: Wang's recipe as he ran it** (AMENDED the same day — the
+   maintainer: "match his recipe first as foundation"): Table A.3 hyperparameters,
+   his LR schedule, pure mirror self-play latest-vs-latest, both seats harvested,
+   NO opponent pool, on our frozen encoder, 50M per-seat decisions as a disclosed
+   fraction of his ≈ 75M; the pre-reg header (template
+   `configs/showdown_sp_batch50m.yaml` for FORM only) carries ruling 1 as its
+   milestone and JOURNEY step 5's pinned target; > 5 h → hand-over launch;
+   nothing larger until it reads out. **Our gen1 machinery — opponent pool /
+   league play, the batch config, the privileged critic — is held back as
+   LEVERS for later pre-registered runs against this baseline** (the maintainer
+   expects latest-only → league play to be the first to pay).
 6. **FP budget (Q38):** NOT pinned from FP-vs-SH (flat and a ceiling of the SH
    seat); the two-rung ladder runs once against the first trained checkpoint,
    then the budget is pinned; both budgets quoted meanwhile.

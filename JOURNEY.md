@@ -37,7 +37,7 @@ Top-500 admission is an Elo threshold set by other people's activity on a thin f
 ### 3. Fable ultracode → gen4 encoder + model
 Full encoder rewrite: items, abilities, weather, hazards, SpA/SpD split. Note gen4 is where physical/special becomes a per-move field rather than type-determined — that branch changes here and does not carry back.
 
-**Exit condition (ruled 2026-09-05):** a PURE self-play gen4 agent on the frozen encoder layout v0.1 scores **≥ 0.60 vs SimpleHeuristics under the locked protocol** (pooled 3×3000; SH is stronger at gen4 — its hazard branches are live — so this is deliberately not gen1's 0.80), with the three descriptive anchors reported: most-damage-typed h2h, FP@20 h2h, FP@500 h2h. Groundwork (encoder v0.1, env, eval bots) merged 2026-09-05; the ruled build order is in STATUS.
+**Step-3 milestone (ruled 2026-09-05, amended the same day):** the step-4 run — Wang's recipe on our frozen encoder layout v0.1 — LEARNS: ≥ 0.60 vs SimpleHeuristics under the locked protocol at its final (pooled 3×3000), the three descriptive anchors reported (most-damage-typed h2h, FP@20 h2h, FP@500 h2h). A milestone that the pipeline works, not the chapter's exit — that is step 5's. Groundwork (encoder v0.1, env, eval bots) merged 2026-09-05; the ruled build order is in STATUS.
 
 **Mine Wang's forks first.** quadraticmuffin/poke-env is ~36 gen4 state-tracking fixes found the expensive way — Max PP, Sleep Talk double-decrementing, weather-from-abilities persistence, sleep counters, Trace base-ability parsing, maybe_trapped, _force_switch as a list. Diff it against our pinned 0.15.0 and check which survived upstreaming. A silently wrong observation field looks exactly like a training problem. His pokemon-showdown fork is MCTS infrastructure (>getstate/>load, constrained team regen) and is not needed unless we do search.
 
@@ -48,12 +48,16 @@ Use his hyperparameters as the starting config, not a from-scratch guess (Table 
 
 This is a config, not a teacher — it stays inside the purity lane. He ran SB3, so any residual gap partly measures SB3's implementation against ours. State it in step 5 rather than let a reader find it.
 
+**Ruled 2026-09-05: the FIRST gen4 run is this recipe as he ran it** — Table A.3, his LR schedule, pure mirror self-play latest-vs-latest with both seats harvested, no opponent pool — on our encoder, at a disclosed fraction of his scale (his 150M learner steps ≈ 75M per-seat decisions; a 50M per-seat run is the first cut). **Our gen1 machinery is held back as LEVERS for later runs against this baseline** — opponent pool / league play (latest-only is the obvious weakness), the batch config, the privileged critic — each its own pre-reg, credited by the standing credit line, and each a candidate for step 8's "special sauce".
+
 Consider the 3v3 surrogate for tuning. He ran Bayesian optimization on 3v3 battles — half the episode length, most of the complexity, far cheaper per trial. That's how hyperparameter search becomes affordable, and we have never been able to afford it.
 
 ### 5. Gen4 offline evals vs Wang
 **Exit condition: "close enough" to his offline numbers.**
 
 **Pin the target before starting.** His Table 4.1 says 0.786 vs `SimpleHeuristicsPlayer`; his Figure 4.1 reads closer to 0.85. Our own prior-work index flags this as unreconciled. Choose which one we are matching, in writing, and define what "matched" means numerically — deciding afterward is how a comparison becomes a rationalization.
+
+**Working pin (2026-09-05, agent-recommended, adopted with the rewrite; change it before the pre-reg is committed if you disagree):** the target is **0.786** (Table 4.1, his full agent, the number he published as the result); **matched = our pooled 3×3000 vs-SH final within 0.03 of it** (about one standard error of his 200-game number); the SB3 confound and our scale fraction disclosed beside the read.
 
 **Disclose the confound:** he ran Stable-Baselines3 with its defaults. Any gap partly measures SB3's tuned recipe against our from-scratch PPO, not only architecture and scale. Legible, but say it rather than let a reader find it.
 
@@ -67,7 +71,7 @@ Lower value than it looks, and worth knowing why before spending on it: Wang's h
 So this run is not a like-for-like ladder comparison. It is a point on the complexity curve and a sanity check that the gen4 agent works against humans. Do not let it become a second gen4 chapter.
 
 ### 7. Record results
-Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened** (done 2026-09-05 — see step 3), or it becomes where the project lives. It is a borrowed instrument, not a home.
+Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened** (written 2026-09-05: the chapter closes here after ONE step-5 comparison against the pinned 0.786 — matched or not — any pre-registered lever runs against that baseline, and ONE step-6 ladder run; no second ladder, no unregistered lever), or it becomes where the project lives. It is a borrowed instrument, not a home.
 
 No search experiments here. They belong after step 11, against our strongest gen1 policy — running them now would reopen gen1 mid-arc and would measure search against a weak critic, which we already know the answer to.
 

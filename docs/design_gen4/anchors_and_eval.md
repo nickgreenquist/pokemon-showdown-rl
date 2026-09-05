@@ -221,7 +221,7 @@ names its budget and carries the two disclosures, as every FP number does.
 **RULED 2026-09-05 (Q38):** the gen4 budget is NOT pinned from FP-vs-SH (§12: flat
 at 226-24 / 228-22 for 20 / 500 ms, and a ceiling of the SH seat as much as of the
 search); the two-rung ladder runs ONCE against the first trained gen4 checkpoint
-(the 50M pure self-play run), then the budget is pinned. Both budgets are quoted
+(the 50M Wang-recipe run), then the budget is pinned. Both budgets are quoted
 until then.
 
 **Wang's MCTS is not an anchor candidate** `[src]` `[tree]`: it is test-time search
