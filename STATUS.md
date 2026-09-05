@@ -51,8 +51,7 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
 4. Housekeeping: local Showdown server UP (fresh, pid 50440); rung deletion per E2.
 
 ## Watch items
-- **ONE vs-SH RUNG IS WORTH ±0.02** — pool 3 seeds; read SHAPE, never rungs.
-- **RESUME SPLITS HISTORY** (0 resumes in the 100M fleet; rule stands).
+- **ONE vs-SH RUNG IS WORTH ±0.02** (pool 3 seeds; read SHAPE); **RESUME SPLITS HISTORY**.
 - vs-SH/off-FP are NEVER ladder numbers; FP@20 quotes carry budget + the
   two standing disclosures, forever. Three (off-FP@20, ladder) k=1 pairs
   now exist; fitting or narrating a mapping through them is barred by name.
