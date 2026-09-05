@@ -10208,3 +10208,45 @@ line numbers are not — grep the date, then read that region):
   pre-reg that freezes the layout; Q37 (foul-play gen4 build) needs
   authorisation; D4 (literature cross-check) and D5 (search_depreciation.md)
   still not produced.
+- 2026-09-05 (morning, autonomous; maintainer authorised Q37 — "you can
+  start"; branch `gen4-build`) — **FOUL PLAY IS UP AS A GEN-4 EVAL BOT.**
+  Less work than gen 1, as predicted: no rewrite. A SECOND conda env
+  `foul-play-gen4` (the gen-1 engine build in `foul-play` untouched — one env
+  per engine build), poke-engine 0.0.48 compiled with `--features
+  poke-engine/gen4 --no-default-features` (recipe: `scripts/setup_foulplay_
+  gen4.sh`), sharing the patched foul-play clone read-only. The build is
+  FUNCTIONALLY pinned as gen 4 via `calculate_damage`: Ghost→Steel and
+  Dark→Steel ×0.50 (gen 2–5 chart), Explosion/Double-Edge 4.14 (gen ≤ 4
+  halves Defense; gen 5+ 2.08), crit ×2.01 at 6.2 % (1/16); the gen-1 build
+  reads 3.33 and 21.6 % speed-based crits on the same probes; module tree
+  `src/genx/` vs the gen-1 build's `src/gen1/` (the `src/gen4/` discriminator
+  the docs proposed does not exist — genx is shared). Set file: upstream
+  `gen4randombattle.json` fetched, sha-pinned (`research/live/fp_gen4_set_
+  pin.json`, f742b0d9…, 125,866 B) and pre-placed in FP's cache (a non-200
+  caches `{}` permanently); six-way comparison vs the vendored pool: same 295
+  species, every item/ability/move inside our vocab, 1736/1743 set keys shared
+  with our generator sample (weighted 1.000 — the same realised set space,
+  600,000 counted sets each), **40 species differ by ±1–2 levels** (upstream
+  generated at a nearby commit) — the one FP-vs-server divergence, to be
+  disclosed in every gen-4 FP quote. **Runs** (my worktree server on port 8001;
+  the main checkout's server was up on 8000, untouched): FP@20 vs SH 5-0
+  smoke (`fp0`), then **FP@20 vs SH n=250: 226-24-0 (0.904), 1.18 s/battle,
+  0 panics / tracebacks / "More than 4 moves", 0 poke-env warnings, 7
+  `[Unavailable choice]` on the SH seat** (`fp1`, bot-vs-bot, descriptive);
+  FP@500 vs SH n=250 (`fp2`, ≈ 60 s/battle, ~4 h) LEFT RUNNING detached at
+  12/250 (W 10 L 2); its log `data/gen4_fp/fp2_sh_250_t500.foulplay.log`
+  carries a per-battle `W: x L: y` line and the summary lands beside it when
+  done. **Eval-bot path** `scripts/gen4_fp_h2h.py`: FP@20 vs OUR gen-4
+  checkpoint through `Gen4PoolPlayer` (encoder + tracker on the seat's own
+  battle) — 20 battles vs the untrained learner-smoke checkpoint, 0-20 as
+  expected, 1.35 s/battle, 0 mask desyncs, one `[Unavailable choice]`. FP's
+  gen-9 bookkeeping lines (neutralizinggas / boosterenergy / airballoon marked
+  impossible, ~5,300 per 250 battles) are noise. D3's Regenerator teacher
+  defect is NOT live in randbats: FP samples whole opponent sets from the
+  pinned file (101 abilities, the pool's); `grep -ci regenerator` = 0 over all
+  logs. Docs: anchors_and_eval §0/§3/§12, open_questions Q37 DONE (carried to
+  the pre-reg: the pin sha, the level-drift disclosure, Q38's budget ladder
+  against a REAL agent, the runner's stall window re-sized to ≈ 60 s/battle at
+  500 ms). Not done: `scripts/ch3_fp_h2h.py`'s pre-reg-arm harness is still
+  gen-1-hardcoded (`BATTLE_FORMAT`) — the gen-4 h2h script is its twin, to be
+  folded in when a gen-4 pre-reg names arms.
