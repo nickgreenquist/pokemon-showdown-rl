@@ -56,6 +56,9 @@ data/
 # named in the module docstring and README per the standing obligation.
 !rl/envs/data/
 !rl/envs/data/gen1_randbats_sets.json
+# gen-4 twin (rl/envs/gen4/{vocab,prior}.py hard-require these three stamped files)
+!rl/envs/gen4/data/
+!rl/envs/gen4/data/*.json
 
 # Local Pokémon Showdown server checkout (Phase 5) — cloned at a pinned
 # commit by scripts/setup_showdown.sh, never committed
