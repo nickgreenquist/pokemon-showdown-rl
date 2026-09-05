@@ -10314,5 +10314,17 @@ line numbers are not — grep the date, then read that region):
   all seven local tapes: 42,191 decisions, 0 NaN / 0 out of Box(-1,4) / 0
   poisoned, 193 µs/decision (166 before the two new reads), sha256
   bbcf9f60… over `vec.tobytes()` per decision in tape order (supersedes
-  8acdc50a…; a record, not a pin). Commits 130aee5, 091b7b4, 8ef40fd,
-  ce4adb7, b9a8859, b2ee298.
+  8acdc50a…; a record, not a pin). **Merge preview against main (read-only,
+  `git merge-tree`):** main had landed its OWN most-damage-typed anchor the
+  same day (`rl/envs/most_damage_typed.py`, 5b36f5f, gen-1 placement
+  0.983 / 0.777 / 0.330 n=300) while this branch carried a twin in
+  `rl/envs/players.py` — same rule, two files. The branch CONVERGED on main's
+  module: main's file and its tests copied in byte-identical, the twin
+  removed, the showdown.py import / registry and test_showdown_env hunks made
+  identical to main's, `scripts/gen4_smoke.py` and the gen-4 test repointed,
+  the reset-time seeding hook now targets main's class (`_rng.seed`; a
+  `seed_rng` method on that class is the post-merge cleanup). The gen-4
+  placements t5 / t6 / t7 were recorded with the twin (same rule; descriptive).
+  Remaining conflict at merge time: SESSION_LOGS.md only (both sides appended
+  entries — keep both). Commits 130aee5, 091b7b4, 8ef40fd, ce4adb7, b9a8859,
+  b2ee298, 58fdda3 and the convergence commit.

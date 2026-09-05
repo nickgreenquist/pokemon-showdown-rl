@@ -321,7 +321,7 @@ build's 1,448 is a record, not a commitment. The original list, for the record:
 **M1 — Merge.** The docs landed on main on 2026-09-04 (commits 32f6239..df3fe8f; the
 `gen4-design` worktree is gone). The 2026-09-05 work is branch **`gen4-build`** in the
 worktree `../pokemon-showdown-rl-gen4`, based on main @ 62242bd: the code under
-`rl/envs/gen4/`, `rl/envs/players.py`, the four research notes, `research/live/`, the
+`rl/envs/gen4/`, main's `rl/envs/most_damage_typed.py` (the branch's twin `players.py` was removed at the review pass), the four research notes, `research/live/`, the
 doc revisions, one registry key in `rl/envs/showdown.py`, one gym registration in
 `rl/envs/make.py`, the gen-4 fingerprint branch in `rl/train.py`, the M3 corrections
 (below) and a SESSION_LOGS entry. Merge into main after the ladder R4 readout lands

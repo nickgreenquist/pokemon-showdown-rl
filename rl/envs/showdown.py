@@ -54,7 +54,7 @@ from poke_env.player import (
 )
 
 from rl.envs.encoder_spec import GEN1, EncoderSpec, spec_for_format
-from rl.envs.players import MostDamageTypedPlayer
+from rl.envs.most_damage_typed import MostDamageTypedPlayer
 from rl.envs.randbats_prior import conditional_move_probs, known_species
 from rl.selfplay.pool import SnapshotPool
 
@@ -63,10 +63,9 @@ OPPONENT_PLAYERS: dict[str, type[Player]] = {
     "random": RandomPlayer,
     "max_power": MaxBasePowerPlayer,
     "heuristics": SimpleHeuristicsPlayer,
-    # JOURNEY's pre-step-3 anchor (rl/envs/players.py): H&L's most-damage-typed
-    # bot, the cross-generation denominator. Descriptive only; it joins the
-    # anchor battery by maintainer ruling (open_questions.md Q36), not by
-    # being registered here.
+    # JOURNEY's pre-step-3 anchor (2026-09-05): H&L's most-damage-typed rule,
+    # the one denominator that means the same thing in gen 1, 4 and 9.
+    # Descriptive only; see rl/envs/most_damage_typed.py for the deviations.
     "most_damage_typed": MostDamageTypedPlayer,
 }
 
@@ -1287,11 +1286,12 @@ class ShowdownEnv(Env):
             # decorrelate on.
             if self._pool_player is not None:
                 self._pool_player.seed_rng(seed)
-            elif hasattr(self._opponent, "seed_rng"):
-                # a scripted opponent with a private tie-break stream
-                # (MostDamageTypedPlayer): unseeded, every sub-env and every
-                # lane would draw the identical Random(0) sequence
-                self._opponent.seed_rng(seed)
+            elif isinstance(self._opponent, MostDamageTypedPlayer):
+                # the scripted anchor's private tie-break stream: unseeded,
+                # every sub-env and every lane would draw the identical
+                # Random(0) sequence (rl/envs/most_damage_typed.py seeds it
+                # once at construction; a seed_rng hook there is the cleanup)
+                self._opponent._rng.seed(seed)
         obs, info = self._env.reset(seed=seed, options=options)
         assert self._env.env.agent1_to_move, "reset returned a wait state"
         info["action_mask"] = obs["action_mask"].astype(bool)

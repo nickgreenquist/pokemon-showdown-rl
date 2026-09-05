@@ -345,7 +345,7 @@ ladder-object question is decided before the run (JOURNEY step 11). Detail:
 
 ## 12. Live verification and what was built (2026-09-04/05, branch `gen4-build`)
 
-- **§2 most-damage-typed is BUILT** — `rl/envs/players.py::MostDamageTypedPlayer`,
+- **§2 most-damage-typed is BUILT** — built independently on BOTH branches on 2026-09-05 (main: `rl/envs/most_damage_typed.py`, the §2 status box above; this branch: a twin under `rl/envs/players.py`, since REMOVED — the branch converged on main's module, same rule); the gen-4 placements below were recorded with the twin —
   registered as `most_damage_typed` in `OPPONENT_PLAYERS` (H&L's rule verbatim,
   the Return override and the typed Hidden Power id disclosed in its docstring;
   it is generation-agnostic by rule and reads the per-format type chart).

@@ -404,6 +404,8 @@ def test_opponent_spec_factory():
     assert isinstance(opponent_player("random", fmt), RandomPlayer)
     assert isinstance(opponent_player("max_power", fmt), MaxBasePowerPlayer)
     assert isinstance(opponent_player("heuristics", fmt), SimpleHeuristicsPlayer)
+    from rl.envs.most_damage_typed import MostDamageTypedPlayer
+    assert isinstance(opponent_player("most_damage_typed", fmt), MostDamageTypedPlayer)
     live = RandomPlayer(battle_format=fmt, start_listening=False)
     assert opponent_player(live, fmt) is live  # instances pass through
     with pytest.raises(ValueError, match="unknown opponent"):

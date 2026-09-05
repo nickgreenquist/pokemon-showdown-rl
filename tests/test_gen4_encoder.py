@@ -414,33 +414,34 @@ def test_gen4_pool_player_trackers_are_bounded():
     assert set(player._by_tag) == {"battle-c"} == set(player._trackers)
 
 
-def test_most_damage_typed_rule_and_seeding():
-    """H&L's rule: base power x type chart against the foe, STATUS 0, OHKO
-    120, Return 102; forced switch = least summed type weakness; ties from a
-    PRIVATE seeded stream that ShowdownEnv.reset seeds per sub-env."""
+def test_most_damage_typed_at_gen4_and_reseeding():
+    """main's rl/envs/most_damage_typed.py (the branch converged on it) at
+    gen 4: base power x chart, STATUS 0, OHKO 120, Return 102; forced switch =
+    least summed type weakness; the private tie-break stream ShowdownEnv.reset
+    reseeds per sub-env reproduces under the same seed and moves under another."""
     from types import SimpleNamespace
 
     from poke_env.battle.pokemon import Pokemon
 
-    from rl.envs.players import MostDamageTypedPlayer
+    from rl.envs.most_damage_typed import MostDamageTypedPlayer, move_score, switch_weakness
 
-    p = MostDamageTypedPlayer(battle_format="gen4randombattle", start_listening=False, seed=0)
     magnezone = Pokemon(gen=4, species="magnezone")  # Electric / Steel
     gyarados = Pokemon(gen=4, species="gyarados")    # Water / Flying
-    assert p._score(Move("earthquake", gen=4), magnezone) == 100 * 4
-    assert p._score(Move("toxic", gen=4), magnezone) == 0.0
-    assert p._score(Move("fissure", gen=4), magnezone) == 120.0
-    assert p._score(Move("return", gen=4), magnezone) == 102 * 0.5
-    assert p._weakness(gyarados, magnezone) == 4.0 + 0.5  # Electric 2x2, Steel 0.5x1
+    assert move_score(Move("earthquake", gen=4), magnezone) == 100 * 4
+    assert move_score(Move("toxic", gen=4), magnezone) == 0.0
+    assert move_score(Move("fissure", gen=4), magnezone) == 120.0
+    assert move_score(Move("return", gen=4), magnezone) == 102 * 0.5
+    assert switch_weakness(gyarados, magnezone) == 4.0 + 0.5  # Electric 2x2, Steel 0.5x1
     # ties: Thunderbolt and Flamethrower are both 95 BP neutral into a Normal type
     foe = Pokemon(gen=4, species="snorlax")
     moves = [Move("thunderbolt", gen=4), Move("flamethrower", gen=4)]
     battle = SimpleNamespace(opponent_active_pokemon=foe, available_moves=moves, available_switches=[])
+    p = MostDamageTypedPlayer(battle_format="gen4randombattle", start_listening=False, seed=0)
     picks = [p.choose_move(battle).order.id for _ in range(16)]
     assert set(picks) == {"thunderbolt", "flamethrower"}
     q = MostDamageTypedPlayer(battle_format="gen4randombattle", start_listening=False, seed=0)
     assert [q.choose_move(battle).order.id for _ in range(16)] == picks
-    q.seed_rng(1)
+    q._rng.seed(1)  # what ShowdownEnv.reset does per sub-env
     assert [q.choose_move(battle).order.id for _ in range(16)] != picks
 
 
