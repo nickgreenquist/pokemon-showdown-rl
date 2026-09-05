@@ -6,7 +6,9 @@ The tape gate here pins SHAPE and BOUNDS, not bytes: the gen-4 layout is
 v0.1 and becomes a pre-registered artifact only when a gen-4 header freezes
 it (docs/design_gen4/encoder_requirements.md §4.7). Tapes are local
 collection artifacts (data/gen4_tapes/, gitignored; recorded by
-scripts/gen4_smoke.py) — the replay tests skip loudly without them.
+scripts/gen4_smoke.py); the first two battles of t0 are committed gzipped
+under tests/fixtures/ so the replay gate runs on every clone, and the full
+local tape is checked too when present.
 """
 
 import logging
@@ -37,6 +39,7 @@ from rl.envs.gen4.vocab import VOCAB
 
 _ROOT = Path(__file__).resolve().parents[1]
 _TAPE = _ROOT / "data/gen4_tapes/t0_rnd_sh.jsonl"
+_FIXTURE = _ROOT / "tests/fixtures/gen4_tape_t0_2battles.jsonl.gz"  # t0's first two rooms, 4 seat-battles
 _SHOWDOWN_COMMIT = "59da482eabc87245eb62313593e468e81ca537d9"
 
 
@@ -84,7 +87,7 @@ def test_vocab_is_the_pinned_pool():
     assert VOCAB.species_id("arceusghost") != VOCAB.species_id("arceuswater") != 0
     assert VOCAB.move_id("hiddenpowerfire") != VOCAB.move_id("hiddenpowerice") != 0
     assert VOCAB.move_id("struggle") and VOCAB.move_id("return") and VOCAB.move_id("recharge") == 0
-    assert VOCAB.move_id("return102") == VOCAB.move_id("return")  # the request's happiness suffix
+    assert VOCAB.move_id("return102") == VOCAB.move_id("return")  # the RAW request id; poke-env's Move.id is already `return`
     assert VOCAB.move_id("hiddenpowerfire70") == 0 and VOCAB.move_id("hiddenpowerfire") != 0  # poke-env strips HP's digits itself
     assert VOCAB.item_id("unknown_item") == VOCAB.item_id("") == VOCAB.item_id(None) == 0
     assert VOCAB.item_id("Choice Band") == VOCAB.item_id("choiceband") != 0
@@ -444,8 +447,17 @@ def test_most_damage_typed_rule_and_seeding():
 # --- (v) the offline tape replay ----------------------------------------------
 
 
-@pytest.mark.skipif(not _TAPE.exists(), reason="local gen-4 tape absent (scripts/gen4_smoke.py records it)")
-def test_tape_replay_shape_and_bounds():
+@pytest.mark.parametrize(
+    "tape, min_decisions",
+    [
+        pytest.param(_FIXTURE, 60, id="fixture"),
+        pytest.param(
+            _TAPE, 200, id="local-t0",
+            marks=pytest.mark.skipif(not _TAPE.exists(), reason="local gen-4 tape absent (scripts/gen4_smoke.py records it)"),
+        ),
+    ],
+)
+def test_tape_replay_shape_and_bounds(tape, min_decisions):
     tc = GenData.from_gen(4).type_chart
     trackers = {}
     seen = {"n": 0}
@@ -458,6 +470,6 @@ def test_tape_replay_shape_and_bounds():
         assert vec.min() >= -1.0 and vec.max() <= 4.0, (vec.min(), vec.max())
         seen["n"] += 1
 
-    r = replay_tape(_TAPE, on_decision)
+    r = replay_tape(tape, on_decision)
     assert r["poisoned"] == 0 and not r["errors"], r
-    assert r["decisions"] == seen["n"] > 200
+    assert r["decisions"] == seen["n"] > min_decisions

@@ -20,6 +20,7 @@ every count is a plain grep over the tape, so a reader can re-run it.
 
 from __future__ import annotations
 
+import gzip
 import json
 import logging
 from collections import Counter, defaultdict
@@ -35,7 +36,10 @@ _LOGGER.addHandler(logging.NullHandler())
 
 
 def iter_tape(path: Path | str) -> Iterator[dict]:
-    with open(path) as fh:
+    """One event per line; `.gz` tapes (the committed test fixture) open
+    transparently."""
+    opener = gzip.open if str(path).endswith(".gz") else open
+    with opener(path, "rt") as fh:
         for line in fh:
             line = line.strip()
             if line:
