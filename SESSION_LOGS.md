@@ -10237,10 +10237,8 @@ line numbers are not — grep the date, then read that region):
   as with every FP@20 number the two standing disclosures travel with it —
   the equivalence test is weakly powered and the point estimate flatters us —
   plus the gen-4 level-drift caveat above);
-  FP@500 vs SH n=250 (`fp2`, ≈ 60 s/battle, ~4 h) LEFT RUNNING detached at
-  12/250 (W 10 L 2); its log `data/gen4_fp/fp2_sh_250_t500.foulplay.log`
-  carries a per-battle `W: x L: y` line and the summary lands beside it when
-  done. **Eval-bot path** `scripts/gen4_fp_h2h.py`: FP@20 vs OUR gen-4
+  FP@500 vs SH n=250 (`fp2`, first estimated ≈ 60 s/battle) LEFT RUNNING
+  detached at 12/250 (W 10 L 2); COMPLETED 09:28 — see the midday entry. **Eval-bot path** `scripts/gen4_fp_h2h.py`: FP@20 vs OUR gen-4
   checkpoint through `Gen4PoolPlayer` (encoder + tracker on the seat's own
   battle) — 20 battles vs the untrained learner-smoke checkpoint, 0-20 as
   expected, 1.35 s/battle, 0 mask desyncs, one `[Unavailable choice]`. FP's
@@ -10326,5 +10324,16 @@ line numbers are not — grep the date, then read that region):
   `seed_rng` method on that class is the post-merge cleanup). The gen-4
   placements t5 / t6 / t7 were recorded with the twin (same rule; descriptive).
   Remaining conflict at merge time: SESSION_LOGS.md only (both sides appended
-  entries — keep both). Commits 130aee5, 091b7b4, 8ef40fd, ce4adb7, b9a8859,
-  b2ee298, 58fdda3 and the convergence commit.
+  entries — keep both). **`fp2` landed 09:28 EDT: FP@500 vs SH n=250 —
+  Foul Play 228-22-0 (0.912), 26.6 s/battle (wall 6,657 s), FP exit 0, 0
+  panics / tracebacks / "More than 4 moves", 0 poke-env warnings, 2
+  `[Unavailable choice]` on the SH seat, pinned sets on all 250 loads, turns
+  mean 21.8 / max 117** (`research/live/fp2_sh_250_t500.summary.json`;
+  descriptive, budget named, the two disclosures + level drift travel with
+  it). FP@20 0.904 vs FP@500 0.912 against SH: flat in budget within noise,
+  and a ceiling of the SH seat as much as of the search — the ladder that
+  matters is against a real agent (Q38). Landmines' pre-flight denominator
+  is now the 525 recorded FP battles. My worktree server (port 8001) stopped
+  at the end; the main checkout's server (8000) untouched throughout.
+  Commits 130aee5, 091b7b4, 8ef40fd, ce4adb7, b9a8859, b2ee298, 58fdda3,
+  7dd5791 and this one.
