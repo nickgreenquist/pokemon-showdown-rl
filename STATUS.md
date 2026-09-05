@@ -40,10 +40,11 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
 2. **JOURNEY step 3 (gen4).** Its first cheap add is DONE: the
    most-damage-typed anchor (registry key `most_damage_typed`; H&L's rule;
    sanity 0.983 vs random / 0.777 vs MaxBasePower / 0.330 vs SH, n=300
-   bot-vs-bot) — joins the battery only on your say-so. Next: the
-   search-depreciation check (decision rule written in the script header
-   BEFORE plotting; no training), then the gen4 encoder/model per
-   docs/design_gen4/ (46 open_questions rulings first; then a pre-reg).
+   bot-vs-bot) — joins the battery only on your say-so. Second add
+   ASSEMBLED: docs/proposals/search_depreciation_check.md — table from the
+   eval JSONs (gain declines with greedy strength, zero-crossing ≈0.42;
+   s66 −0.093 at −7.3 se) + a 3-branch rule AWAITING YOUR RATIFICATION
+   (no verdict written). Then gen4 per docs/design_gen4/ (46 rulings first).
 3. Audit rulings owed (AUDIT_BRANCH_LOG §Open questions): F-21, F-04
    routing, F-06/F-07, F-05 cadence, F-03 900 s. Standing rulings (3):
    CLAUDE.md MPS wording; pool.py:88; stall-kill crash_forfeit read rule.

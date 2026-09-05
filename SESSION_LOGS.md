@@ -10246,3 +10246,23 @@ line numbers are not — grep the date, then read that region):
   ordering the index predicts ("far weaker than SH"). NOT in the battery, NO
   README row: the design doc's §9 A2 leaves that to the maintainer. Local
   Showdown server restarted fresh (pid 50440, simulator: 4 confirmed).
+
+- 2026-09-05 (late morning, autonomous) — **SEARCH-DEPRECIATION CHECK
+  ASSEMBLED AS A PROPOSAL (JOURNEY's second pre-step-3 add); rule unruled.**
+  `scripts/search_depreciation_table.py` rebuilds the table from the eval
+  JSONs on disk (no new runs): matched-axis points off FP@20 at dose M —
+  s82 greedy 0.2730 → search 0.4540 (+0.181, +10.8 se), s81 0.3430 → 0.4487
+  (+0.106, +6.0 se), s80 0.3960 → 0.4390 (+0.043, +2.4 se), s66 (batch)
+  0.4740 → 0.3807 (−0.093, −7.3 se); 100M lanes 0.486/0.502/0.507 with
+  search NEVER measured; 12M s65 (FP@100, n=250) −0.020 shown for context
+  and excluded. OLS slope of gain on greedy −1.36 (k=4), zero-crossing
+  0.415; stack-recipe-only −1.12, zero-crossing 0.435 (below s66's 0.474,
+  so the batch point's sign is what the within-recipe trend predicts).
+  `docs/proposals/search_depreciation_check.md` carries the table, the
+  three-branch rule (CLOSED iff slope<0 and top gain ≤ −2 se; OPEN → one
+  2.5 h measurement, search@M on s112 off FP@20 n=3000; LIVE iff slope ≥ 0),
+  the disclosure that the rule postdates the public numbers, and the
+  confounds (recipe moves with strength; greedy A-arms n=1000; dose M only).
+  NO VERDICT WRITTEN — ratification is the maintainer's. Flagged: RESULTS
+  §17's R4S66 paragraph is stale ("not graded") vs the 2026-09-01 log
+  (b-pair re-run graded 0.38067); owes a one-line correction.
