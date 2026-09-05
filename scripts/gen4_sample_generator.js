@@ -18,7 +18,8 @@ const seedArg = process.argv[5] || '1,2,3,4';
 
 const sim = require(path.resolve(root, 'dist/sim'));
 const {Teams, Dex} = sim;
-const commit = fs.readFileSync(path.resolve(root, '.git/HEAD'), 'utf8').trim();
+// the sha, not `ref: refs/heads/...` (rl/envs/gen4/prior.py compares it to the vocab's stamp)
+const commit = require('child_process').execSync('git rev-parse HEAD', {cwd: path.resolve(root)}).toString().trim();
 
 const seed = seedArg.split(',').map(Number);
 const gen = Teams.getGenerator('gen4randombattle', seed);

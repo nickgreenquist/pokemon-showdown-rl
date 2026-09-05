@@ -15,9 +15,10 @@
 # from pkmn.github.io on first use and caches it; a non-200 response caches
 # `{}` PERMANENTLY (fp/data/sets/base.py). The file fetched 2026-09-05 is
 # pinned by sha256 in docs/design_gen4/research/live/fp_gen4_set_pin.json and
-# copied into the cache so the bot never fetches. Its 295 species, 40 items,
-# 101 abilities and 181 moves are exactly the vendored pool's (59da482e); 40
-# species differ by +/-1..2 levels (a nearby upstream commit) — disclosed.
+# copied into the cache so the bot never fetches. Its 295 species, 39 items
+# (of our 40 vocab rows — Light Clay is unreachable in both), 101 abilities
+# and 181 moves are exactly the vendored pool's (59da482e); 40 species differ
+# by +/-1..2 levels (a nearby upstream commit) — disclosed.
 #
 # HOW THE BUILD WAS VERIFIED (scripts/gen4_fp_smoke.py; the .so):
 #   - maturin was invoked with `--features poke-engine/gen4 --no-default-features`
@@ -46,7 +47,8 @@ echo "3/4 poke-engine 0.0.48 compiled with the gen4 feature (needs cargo; ~1 min
 
 echo "4/4 pinned gen4 set file into foul-play's cache (verify the sha first)"
 TMP="$(mktemp)"
-curl -sSL -o "$TMP" "$SETS_URL"
+trap 'rm -f "$TMP"' EXIT
+curl -fsSL -o "$TMP" "$SETS_URL"
 GOT="$(shasum -a 256 "$TMP" | cut -d' ' -f1)"
 if [ "$GOT" != "$PIN_SHA" ]; then
     echo "UPSTREAM SET FILE CHANGED: sha $GOT != pinned $PIN_SHA — do not install; re-run the six-way comparison first" >&2
@@ -54,6 +56,5 @@ if [ "$GOT" != "$PIN_SHA" ]; then
 fi
 mkdir -p "$FPDIR/fp/data/pkmn_sets_cache"
 cp "$TMP" "$FPDIR/fp/data/pkmn_sets_cache/gen4randombattle.json"
-rm -f "$TMP"
 
 echo "smoke: python scripts/gen4_fp_smoke.py --battles 5 --seat heuristics --search-time-ms 20 --port <local server port>"

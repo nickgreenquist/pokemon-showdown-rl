@@ -21,9 +21,12 @@ DATA_DIR = Path(__file__).with_name("data")
 VOCAB_PATH = DATA_DIR / "gen4_vocab.json"
 
 _NON_ID = re.compile(r"[^a-z0-9]")
-# The request names Return / Frustration with their happiness base power
-# ("Return 102" -> poke-env id `return102`; measured on 18,535 request moves);
-# Hidden Power's digits are stripped by poke-env itself, these are not.
+# The RAW request names Return / Frustration with their happiness base power
+# ("Return 102" -> `return102` in `side.pokemon[].moves`; measured on 18,535
+# request moves). poke-env's own Move objects already read `return`
+# (Move.retrieve_id strips the suffix, as it strips Hidden Power's type), so
+# this normaliser matters for raw ids only: the vocab builder, the tape
+# statistics and anything else reading the request JSON directly.
 _HAPPINESS_MOVE = re.compile(r"^(return|frustration)\d+$")
 
 
@@ -33,9 +36,9 @@ def to_id(name: str | None) -> str:
 
 
 def canonical_move_id(move_id: str | None) -> str:
-    """poke-env's move id with the happiness power suffix removed
-    (`return102` -> `return`), the key the vocab, the prior and the effect
-    block use."""
+    """A move id with the happiness power suffix removed (`return102` ->
+    `return`), the key the vocab, the prior and the effect block use. A no-op
+    on poke-env's Move.id (already stripped); load-bearing on raw request ids."""
     mid = to_id(move_id)
     m = _HAPPINESS_MOVE.match(mid)
     return m.group(1) if m else mid

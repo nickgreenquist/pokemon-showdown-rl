@@ -97,10 +97,22 @@ class Gen4Layout:
     """Every gen-4 block width and offset, derived from the tables once.
 
     Block order (the gen-1 order, so the 21-token tokenizer reshape and the
-    pointer head over 6 + 4 entities carry over):
+    pointer head over 6 + 4 entities carry over once the tokenizer takes a
+    layout argument — today it is gen-1-bound):
       global | own mons x6 | own active | own moves x4 |
       opp mons x6 (each prefixed by a `revealed` flag) | opp active |
       opp moves x4 | id suffix.
+
+    Deliberately wider than the PINNED pool reaches (2026-09-05 review: ~90
+    of the 1,448 dims never left zero over 41,908 recorded decisions —
+    Stealth Rock / screens / Safeguard / Mist / Tailwind / Lucky Chant on
+    both sides, Gravity, the CURSE / FOCUS_ENERGY / trapped-by-move / perish
+    flags and counter, and the drain / attract / partial-trap / focus-energy
+    / screen / other-side / trap effect slots x8). They are the FORMAT's
+    mechanics, not this commit's set list: the pool changes with every
+    Showdown commit (this one has zero Stealth Rock sets; the format's
+    history does not), and a retrain is cheaper than a relayout. A v1.0
+    freeze may still drop them — encoder_requirements.md §13.
     """
 
     spec: EncoderSpec = GEN4

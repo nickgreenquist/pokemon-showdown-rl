@@ -2,11 +2,16 @@
 
 Additive beside the gen-1 encoder in rl/envs/showdown.py: same block ORDER
 (global | own mons x6 | own active | own moves x4 | opp mons x6 with a
-revealed flag | opp active | opp moves x4 | id suffix), so the entity
-tokenizer's 21-token reshape and the 6 + 4 pointer head carry over, but
-its own fill helpers — the gen-1 ones read gen-1 process flags (v2 / ids),
-build `Move(id, gen=1)` and scale priority by 5, none of which holds at
-gen 4. Widths and offsets come from rl/envs/gen4/spec.py::LAYOUT; the
+revealed flag | opp active | opp moves x4 | id suffix), so a tokenizer
+parameterised on this layout can keep the 21-token reshape and the 6 + 4
+pointer head. TODAY's rl/networks/entity_deepsets.py is gen-1-bound: it
+reads the gen-1 widths and vocab sizes as module constants, refuses any
+other obs width and slices a 20-wide id tail (ours is 44) — a gen-4 entity
+trunk is a build item (docs/design_gen4/encoder_requirements.md §13); the
+smoke config trains the MLP trunk. The fill helpers are this module's own —
+the gen-1 ones read gen-1 process flags (v2 / ids), build `Move(id, gen=1)`
+and scale priority by 5, none of which holds at gen 4. Widths and offsets
+come from rl/envs/gen4/spec.py::LAYOUT; the
 tables from GEN4, the vocabs, the class taxonomies, the exact set prior and
 the per-battle tracker. Design: docs/design_gen4/encoder_requirements.md
 §3–4 (deviations recorded inline where the local tapes contradicted it).
