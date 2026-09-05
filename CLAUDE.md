@@ -83,10 +83,10 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 - `HANDOFF.md` — read only if non-empty (mid-handoff). Fold anything durable
   into STATUS/SESSION_LOGS, then restore the empty stub. Written only when the
   maintainer explicitly asks.
-- `CHAPTER5.md` — the current chapter brief. **The SHAPE is RATIFIED
-  (2026-08-26, §7); R1 is CLOSED and R3 laddered; R2 (batch, JOURNEY step 1)
-  is the next arc work.** Its §3/§6/§7 must migrate into R2's pre-reg header
-  before the file can be archived — never before.
+- `IDEAS_POST_100M.md` — the live lever list, re-ranked after the 100M
+  read; every entry needs its own pre-reg before it runs. (The Chapter 5
+  brief is ARCHIVED at `docs/archive/CHAPTER5.md`, 2026-09-04; its §3/§6/§7
+  live verbatim in `configs/showdown_sp_batch50m.yaml`.)
 - `JOURNEY.md` — the maintainer's high-level goals, chapter by chapter
   (gen1 → gen4 → gen9); the only doc that says WHERE A WORK ITEM SITS. Read
   once per session at most: STATUS carries the current step. NOT a pre-reg —

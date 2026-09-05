@@ -1,3 +1,16 @@
+> **ARCHIVED 2026-09-04 — history, never "what next".** The chapter this
+> file briefed is over: R1 closed, R3 laddered, R2 (batch, 50M) ran and was
+> CREDITED 2026-08-31 (RESULTS.md §17), the 100M run graded P3 (RESULTS.md
+> §18) and its final is on the ladder as R4. §3/§6/§7 survive VERBATIM in
+> `configs/showdown_sp_batch50m.yaml` (lines ~542–793, with E4's marked
+> correction); §7 ruling 4 (the 50M ceiling) is SUPERSEDED by name in
+> `configs/showdown_sp_100m.yaml`. The live "what next" document is
+> `IDEAS_POST_100M.md`; the arc is `JOURNEY.md` via `STATUS.md`. Body
+> moved verbatim with this 13-line banner prepended, so a `CHAPTER5.md:N`
+> citation elsewhere resolves at line N+13 here. Its own "deleted once fully
+> migrated" line below is overridden by the later archive rule (CLEANUP.md;
+> house style).
+
 # CHAPTER 5 — from "one ladder number" to "a better model on the ladder"
 
 **STATUS — REWRITTEN 2026-08-28. The shape is still RATIFIED (maintainer,

@@ -10125,3 +10125,23 @@ line numbers are not — grep the date, then read that region):
   s/battle excluding gaps > 900 s, runner + socket liveness); nothing is
   killed by hand; the run is BLIND until n=200 (no profile, board or
   replay opens); backup once mid-run and once at end.
+
+- 2026-09-04 (late evening, maintainer asked "do we need CHAPTER5.md";
+  agent) — **CHAPTER5.md ARCHIVED to `docs/archive/CHAPTER5.md`, verbatim
+  `git mv` plus a status banner.** The lifecycle rule (CLEANUP.md: archive
+  WITH or AFTER R2's pre-reg, once §3/§6/§7 survive there) was met on
+  2026-08-31 when `configs/showdown_sp_batch50m.yaml` was ratified and ran
+  with §3/§6/§7 migrated verbatim (lines ~542-793, E4's marked correction);
+  the 2026-08-31 entry above lists the archive as the one deferred item and
+  it was never done. §7 ruling 4 (50M ceiling) is superseded by name in the
+  100M header; §1/§2/§4/§5/§8 were superseded already; no script or test
+  opens the file (two tests cite it in comments only). Archive, not the
+  file's own "deleted once migrated" line — the later rule and house style
+  (DESIGN/DESIGN2) win. Body moved verbatim under a 13-line banner, so a
+  `CHAPTER5.md:N` citation (IDEAS_POST_100M.md, docs/design_gen4/research/
+  project_record.md) resolves at N+13; those paths were NOT rewritten (gen4
+  research notes are a frozen record; IDEAS_POST_100M has an unmerged
+  round-2 branch). CLAUDE.md docs
+  entry and the README docs table now name `IDEAS_POST_100M.md` as the live
+  lever list; CLEANUP.md item marked DISCHARGED. Docs-only; ladder R4 is live
+  and untouched.
