@@ -28,11 +28,9 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
   rung deletion is fully permitted (keep completion + 12M rungs; your call).
 - 100M (C1) GRADED P3: off-FP@20 0.49844 vs 0.47456 (+0.02389 < 0.025, NOT
   credited); vs-SH 0.79589; SS-CLIMB. RESULTS §18.
-- Audit branch MERGED AND CLOSED (docs/archive/AUDIT_BRANCH_LOG.md). The
-  maintainer's other session landed docs/design_gen4/ (encoder requirements,
-  anchors, mechanics delta, open_questions with 46 rulings owed, research
-  notes), IDEAS_POST_100M round 2, and moved CLEANUP / IDEAS_POST_100M /
-  prior_work / research_reports under docs/. CHAPTER5 is archived.
+- Audit branch MERGED AND CLOSED (docs/archive/AUDIT_BRANCH_LOG.md). Other
+  session landed docs/design_gen4/ (46 rulings owed), IDEAS_POST_100M round
+  2, and moved CLEANUP/IDEAS/prior_work/research_reports under docs/.
 
 ## Next actions — **MAINTAINER, in order**
 1. **Read the R4 readout and RESULTS §16.5; rule on anything to change.**
@@ -44,7 +42,9 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
    ASSEMBLED: docs/proposals/search_depreciation_check.md — table from the
    eval JSONs (gain declines with greedy strength, zero-crossing ≈0.42;
    s66 −0.093 at −7.3 se) + a 3-branch rule AWAITING YOUR RATIFICATION
-   (no verdict written). Then gen4 per docs/design_gen4/ (46 rulings first).
+   (no verdict written). **STEP 3 (gen4) IS IN PROGRESS IN ANOTHER
+   WORKTREE/SESSION (maintainer, 2026-09-05): it merges main into itself,
+   then back. DO NOT touch docs/design_gen4/ or gen4 code on main meanwhile.**
 3. Rulings owed, yours: search-depreciation rule (item 2); audit F-21, F-04
    routing, F-06/F-07, F-05 cadence, F-03 900 s; the stall-kill crash_forfeit
    READ rule (landmines.md). MPS wording + pool.py:88 DONE 2026-09-05.

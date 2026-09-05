@@ -10283,3 +10283,11 @@ line numbers are not — grep the date, then read that region):
   read-rule question against a frozen pre-reg (landmines.md), not a chore.
   Standing rulings now 1 (was 3). Memory saved: housekeeping is done, not
   escalated; rulings / pushes / deletions / published-number values still are.
+
+- 2026-09-05 (afternoon, maintainer) — **STEP 3 (gen4 encoder + model) is
+  being built by another agent in a separate worktree.** Maintainer: when it
+  is done he asks it to merge main into itself, then merges back to main.
+  This session stays off docs/design_gen4/ and gen4 code on main to keep
+  that merge clean. Remaining here: the search-depreciation rule (unruled),
+  the R4 screenshots (placeholder), audit rulings, the crash_forfeit read
+  rule. Pushed through 69c5fbe.
