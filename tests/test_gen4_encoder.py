@@ -11,6 +11,7 @@ under tests/fixtures/ so the replay gate runs on every clone, and the full
 local tape is checked too when present.
 """
 
+import hashlib
 import logging
 from pathlib import Path
 
@@ -553,3 +554,70 @@ def test_set_prior_data_is_pinned_to_the_vendored_sim():
     vendored = root / "showdown/data/random-battles/gen4/sets.json"
     if vendored.exists():
         assert hashlib.sha256(vendored.read_bytes()).hexdigest() == sha
+
+
+# ---- BI-G4-3: THE PINNED GEN-4 HASH GATE (layout v0.1 FROZEN by configs/gen4_wang50m.yaml) ----
+#
+# The gen-1 gate's rule (tests/test_encoder_spec.py): sha256 over
+# `vec.tobytes()` per decision, in tape order, one BattleTracker per (seat,
+# room). A changed digest is a changed encoding — fix the code, never the
+# golden. Two pins: the committed fixture (runs on every clone) and the
+# local t0–t6 corpus (42,191 decisions; skips loudly where the tapes are
+# absent). Both recorded on main at 1d3ffea (2026-09-05 evening, after the
+# post-merge review fixes); the corpus digest is encoder_requirements.md §13's
+# reference replay, re-run by scripts/gen4_reference_replay.py.
+
+_GEN4_TAPE_DIR = _ROOT / "data/gen4_tapes"
+_GEN4_CORPUS = [_GEN4_TAPE_DIR / f for f in (
+    "t0_rnd_sh.jsonl", "t1_rnd_sh_300.jsonl", "t2_sh_sh_200.jsonl", "t3_mbp_sh_200.jsonl",
+    "t4_strict_60.jsonl", "t5_mdt_rnd.jsonl", "t6_mdt_sh.jsonl",
+)]
+GEN4_FIXTURE_SHA = "16eb40c7d2850799d5913361f52e5fbd36f566f5000f2920469c684a1672b7b8"  # 130 decisions
+GEN4_CORPUS_SHA = "b72dcbc7e4b7a706967d8811f7ac3d05dd63e40cb01b624800807db1a308c1f4"  # 42,191 decisions
+GEN4_FINGERPRINT = {
+    "gen": 4, "spec": "gen4", "layout": "v0.1", "obs_dim": 1448,
+    "encoder": "gen4-v0.1", "set_prior": True, "ids": True,
+}
+
+
+def _gen4_encoding_sha(tapes) -> tuple[str, int]:
+    tc = GenData.from_gen(4).type_chart
+    h = hashlib.sha256()
+    n = 0
+    for tape in tapes:
+        trackers = {}
+
+        def on_decision(battle, request, seat):
+            nonlocal n
+            tr = trackers.setdefault((seat, battle.battle_tag), BattleTracker())
+            vec = embed_battle_gen4(battle, tc, tr)
+            assert vec.dtype == np.float32 and vec.shape == (OBS_DIM_GEN4,)
+            h.update(vec.tobytes())
+            n += 1
+
+        r = replay_tape(tape, on_decision)
+        assert r["poisoned"] == 0 and not r["errors"], (tape.name, r)
+    return h.hexdigest(), n
+
+
+def test_gen4_encoding_hash_is_pinned_on_the_fixture():
+    sha, n = _gen4_encoding_sha([_FIXTURE])
+    assert n == 130, n
+    assert sha == GEN4_FIXTURE_SHA, f"gen-4 encoding changed (fixture): {sha}"
+
+
+@pytest.mark.skipif(
+    not all(t.exists() for t in _GEN4_CORPUS),
+    reason="local gen-4 tapes t0–t6 absent — the corpus gate runs on the training box",
+)
+def test_gen4_encoding_hash_is_pinned_on_the_local_corpus():
+    sha, n = _gen4_encoding_sha(_GEN4_CORPUS)
+    assert n == 42_191, n
+    assert sha == GEN4_CORPUS_SHA, f"gen-4 encoding changed (corpus): {sha}"
+
+
+def test_gen4_fingerprint_is_pinned():
+    from rl.envs.gen4.spec import ENCODER_FINGERPRINT_GEN4
+
+    assert dict(ENCODER_FINGERPRINT_GEN4) == GEN4_FINGERPRINT
+    assert OBS_DIM_GEN4 == 1448
