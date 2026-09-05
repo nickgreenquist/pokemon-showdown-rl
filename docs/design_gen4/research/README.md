@@ -41,9 +41,7 @@ vendored sim; deferral D4) and `search_depreciation.md` (D5).
 **Live evidence (`live/`, 2026-09-04/05):** the protocol-tally summaries of the
 eight local tape runs (`scripts/gen4_smoke.py`; the tapes themselves are
 gitignored under `data/gen4_tapes/`) and the generator sample
-(`scripts/gen4_sample_generator.js`, 100,000 teams). Each doc's final section
-cites them; `rl/envs/gen4/tape.py::protocol_stats` is the code that produced
-every count, so a reader can re-run it on a new tape.
+(`scripts/gen4_sample_generator.js`, 100,000 teams). Each doc's final section cites them; `rl/envs/gen4/tape.py::protocol_stats` is the code that produced every count, so a reader can re-run it on a new tape. The `fp*` / `h2h*` summaries are the Foul Play gen-4 runs (`scripts/gen4_fp_smoke.py`, `scripts/gen4_fp_h2h.py`); `fp_gen4_set_pin.json` pins Foul Play's opponent-model file.
 
 ## Known errors in the notes, corrected in the docs
 

@@ -1,0 +1,24 @@
+{
+ "url": "https://pkmn.github.io/randbats/data/full/gen4randombattle.json",
+ "fetched": "2026-09-05",
+ "sha256": "f742b0d9d015e0679175a46999dd06db0aeec79c820e32366d0f01f8e3f197d0",
+ "bytes": 125866,
+ "species": 295,
+ "distinct_keys": 1743,
+ "counted_sets": 600000,
+ "schema": "{species: {'level,item,ability,m1,m2,m3,m4': count}}",
+ "cache_path": "foul-play/fp/data/pkmn_sets_cache/gen4randombattle.json",
+ "note": "Foul Play's gen4 opponent model input; pre-placed in the cache so the bot never fetches (a non-200 caches {} permanently). Compared against the vendored pool (59da482e) and our generator sample: see SESSION_LOGS 2026-09-05.",
+ "vs_vendored_59da482e": {
+  "species_same": true,
+  "items_abilities_moves_within_vocab": true,
+  "species_with_different_level": 40,
+  "level_delta_range": [
+   -2,
+   2
+  ],
+  "distinct_set_keys_shared_with_our_generator_sample": "1736/1743 (weighted 1.000)",
+  "our_realised_triples_absent_upstream": "5/1743",
+  "reading": "upstream was generated at a nearby but different Showdown commit: the set space coincides, levels drift by +/-1..2 on a fifth of the pool"
+ }
+}

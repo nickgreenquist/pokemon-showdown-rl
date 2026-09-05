@@ -51,7 +51,7 @@ pinned settings; vs-SH and off-FP numbers are never ladder numbers.
 |---|---|---|---|
 | **vs-SH, locked protocol** | stock poke-env 0.15.0 `SimpleHeuristicsPlayer` | **keeps its place, as a weaker and different instrument** (§1) | same stock bot (comparability with Wang's 0.786 depends on it); the disclosure list grows; no gen1 bar or σ_seed is inherited |
 | **BC-clone h2h 500** | Foul-Play clone at OBS_DIM 808 (`runs/bc_fp_v2r_soft_180k_s0`) | **must be rebuilt** — gen4 obs, gen4 teacher, gen4 tapes | blocked on a gen4 Foul Play and on tapes; `[live]` |
-| **Foul Play h2h @20** | foul-play + our gen1 patch, poke-engine 0.0.48 gen1 build | **feasible: foul-play has first-class gen4 mechanics; needs a gen4 engine build, pinned gen4 set data, a re-run budget ladder** (§3) | the FP@20 licence rests on a gen1-specific flatness finding; re-measure |
+| **Foul Play h2h @20** | foul-play + our gen1 patch, poke-engine 0.0.48 gen1 build | **BUILT 2026-09-05 (§12): the `foul-play-gen4` env (poke-engine 0.0.48, `--features poke-engine/gen4`, functionally pinned as gen 4), the set file pinned by sha, the eval-bot path run end to end vs a gen-4 checkpoint** | the FP@20 licence rests on a gen1-specific flatness finding; the budget ladder still has to be re-run against a REAL gen-4 agent |
 | **most-damage-typed** (JOURNEY's pre-step-3 add) | not built; `MaxBasePowerPlayer` is the weaker sibling in the registry | **spec below** (§2); one afternoon; registry + test edit | the cross-generation denominator; descriptive only |
 | **ladder (step 6, one run)** | R1/R3/R4 on gen1randombattle | one run, exit = the run; 150 s/turn timer path | pin FP budget, engine commit, n, greedy-vs-searched first (JOURNEY's pairing rule) |
 
@@ -183,29 +183,15 @@ not re-verified here; no Rust checkout is on disk). **A gen4 anchor is therefore
 `make poke_engine GEN=gen4` in the foul-play env** (Rust toolchain; the gen1 build took
 ~9 s), plus the module-path check `src/gen4/ > 0`.
 
-**Set data is fetched, not cached** `[src]` (`fp/data/sets/randbats.py:24-31`):
-`https://pkmn.github.io/randbats/data/full/gen4randombattle.json`, cached on first
-use under `fp/data/pkmn_sets_cache/`, which today holds only `gen1randombattle.json`.
-Two consequences: the first gen4 run needs network access (barred now), and the
-fetched file reflects **upstream's current generator**, not our vendored 59da482
-`sets.json` — Foul Play's opponent model and our server's pool can disagree
-(Stealth Rock being on no vendored set is the obvious case). The pre-reg must pin the
-cached JSON, hash it, and diff it against the vendored pool, the same way LG-5 pinned
-the gen1 set pool for ladder R4.
+**Set data is fetched, not cached — now PINNED** `[tree]` (`fp/data/sets/randbats.py:24-31`; `research/live/fp_gen4_set_pin.json`): `gen4randombattle.json` fetched 2026-09-05 (sha256 `f742b0d9…`, 125,866 bytes) and pre-placed in `fp/data/pkmn_sets_cache/` so the bot never fetches (a non-200 caches `{}` permanently, `fp/data/sets/base.py:38-52`). Its schema is `{species: {"level,item,ability,m1..m4": count}}` — counted 4-move sets, not the vendored roles-plus-movepools — so the LG-5-style check is a six-way comparison, done: the same 295 species; every item, ability and move inside our 40 / 101 / 182 vocab; 1,736 of its 1,743 distinct set keys are realised by OUR generator sample and 5 of ours are absent upstream (weighted overlap 1.000 — the two files describe the same realised set space, 600,000 counted sets each); **40 species differ by ±1–2 levels** (upstream was generated at a nearby Showdown commit) — the one divergence between Foul Play's opponent model and our server, disclosed in every gen-4 FP quote. Stealth Rock is on no set in either.
 
 **Our patch** `[tree]` (`scripts/patches/foulplay_gen1_local.patch`): the gen1
 `Fight` placeholder handling (`fp/data/__init__.py`, `fp/modes/base.py`) is gen1-only
 and inert in gen4; the local `--no-security` login, the persistent process pool, the
 tape writer, the switch guard and the engine pin carry over (the pin changes to gen4).
 
-**Risks to verify** `[live]`:
-- a 5-battle gen4 smoke vs SH at `--search-time-ms 20`, then the FP-h2h G1–G5 gates;
-- **the Struggle panic** (`Invalid PokemonMoveIndex: 4`, poke-engine `src/state.rs`,
-  hit when both sides are out of PP at the turn cap): gen4 randbats has **no Endless
-  Battle Clause** and a turn-1000 auto-tie (`mechanics_delta.md` §12), and Pressure is
-  on 32 sets, so PP exhaustion is more reachable than in gen1 — whether the gen4
-  engine module has the same index hole is unknown; the check is a forced-Struggle
-  battle in the smoke;
+**Risks to verify** (`[live]` when written; §12 records what the 2026-09-05 build settled): - a 5-battle gen4 smoke vs SH at `--search-time-ms 20` — DONE, 5-0 for FP, no panic (§12), then the FP-h2h G1–G5 gates (with a real agent);
+- **the Struggle panic** (`Invalid PokemonMoveIndex: 4`): the "both sides out of PP" mechanism recorded here and in `landmines.md` does not survive the source — Struggle is never added to a move list and the bot's list is rebuilt from the request; the hole is an unbounded `move:{i}` index in the engine bridge (`fp/search/poke_engine_helpers.py:117-126`, `research/foulplay_pokejax_audit.md` §2), no 5-move path is reachable in the vendored gen4 pool, and the gen-1 trigger stays unresolved. The pre-flight is `grep "More than 4 moves on pokemon"` over the FP log (0 hits in the 2026-09-05 runs, §12);
 - game length: the FP-runner rate references (FP@20 ≈ 1.2–1.5 s/battle, FP@100 ≈ 6–7 s)
   are gen1 numbers and every stall-watch threshold derived from them must be
   re-measured; the four incident fixes in `scripts/ch3_r4_fp_runner.sh` carry over
@@ -371,8 +357,7 @@ ladder-object question is decided before the run (JOURNEY step 11). Detail:
 - **§5 ties** are live at 1–3.5 % between bots (simultaneous KOs, never the turn
   cap; longest game 147 turns) — the gen4 pre-reg's tie rule (Q33) has a measured
   base rate to disclose against.
-- **§3 the FP gen4 build was NOT attempted** (Q37 needs authorisation, the
-  foul-play env and a network fetch). `research/foulplay_pokejax_audit.md`
+- **§3 the FP gen4 build — DONE 2026-09-05 (Q37 authorised that morning; recipe: `scripts/setup_foulplay_gen4.sh`).** A SECOND conda env `foul-play-gen4` (the gen-1 build in `foul-play` stays untouched — one env per engine build), poke-engine 0.0.48 compiled with `--features poke-engine/gen4 --no-default-features` (maturin log), sharing the patched foul-play clone read-only. `[tree]` The binary is functionally gen 4: `calculate_damage` gives Ghost→Steel and Dark→Steel ×0.50 (the gen 2–5 chart), Explosion / Double-Edge 4.14 (gen ≤ 4 halves the target's Defense; gen 5+ would read 2.08), crit ×2.01 at 6.2 % (the 1/16 stage table); the gen-1 build on the same probes reads 3.33 and 21.6 % speed-based crits. Module tree `src/genx/` (the gen-1 build carries `src/gen1/`). **Smoke** (`scripts/gen4_fp_smoke.py`, `research/live/fp0_sh_5.summary.json`): FP@20 vs SH 5-0, 2.5 s/battle, 0 panics / tracebacks / `More than 4 moves`, sets loaded from the pinned cache, 0 poke-env warnings on our seat. **Eval-bot path** (`scripts/gen4_fp_h2h.py`, `h2h0_smokeckpt_20.summary.json`): FP@20 vs OUR gen-4 checkpoint (the learner-smoke checkpoint, untrained) through `Gen4PoolPlayer` — 20 battles, 0-20 as expected, 1.35 s/battle, 0 mask desyncs, one `[Unavailable choice]` (a sampled switch into a hidden trapper — the G1 rate). **Rates**: FP@20 ≈ 1.4–2.5 s/battle, FP@500 ≈ 60 s/battle (both seats on one box); the 250-battle FP-vs-SH runs at 20 ms and 500 ms are `research/live/fp1_sh_250_t20.summary.json` and `fp2_sh_250_t500` (see SESSION_LOGS 2026-09-05 for the numbers). FP's log carries thousands of gen-9 bookkeeping lines (`neutralizinggas` / `boosterenergy` / `airballoon` marked impossible) — noise, not a defect. **Regenerator (D3's teacher defect) is not live in randbats**: FP samples whole opponent sets from the pinned set file, whose 101 abilities are the pool's; `grep -ci regenerator` over every FP log is 0. `research/foulplay_pokejax_audit.md`
   (deferral D3, now read) replaces the Struggle-panic mechanism in §3: the hole
   is an unbounded `move:{i}` index in the engine bridge, no 5-move path exists in
   the vendored gen4 pool, and the cheap pre-flight is a grep for `"More than 4
