@@ -19,14 +19,24 @@ embeddings + rescaled final layer (ps-ppo's `_reset_parameters` recipe, per
 the config's INIT HAZARD note — `_orthogonal_init` must never run over this
 net, K4).
 
+THE LAYOUT ARGUMENT (JOURNEY step 3, build item BI-G4-2, 2026-09-05): the
+tokenizer reads its block widths and id tail from a `TrunkLayout` — `gen1`
+(today's path: the `rl.envs.showdown` constants, bit-identical, the goldens in
+tests/test_entity_deepsets.py are the proof) or `gen4` (rl/envs/gen4/spec.py's
+frozen v0.1 layout, plus item and ability id tables from the wider id tail).
+The gen-4 net is the SAME architecture with two more entity embeddings on
+the mon token; nothing else changes shape by generation. The gen-1 branch
+constructs no new module, so its RNG construction order — and therefore
+every gen-1 checkpoint and golden — is untouched.
+
 The TOKENIZER is shared with the attention screen (ARCH_SCREEN_SPEC,
-verbatim): a reshape layer over the flat obs, slices derived from
-`rl.envs.showdown` constants and asserted at construction. If the constants
-disagree with the obs the env produced — most likely a forgotten
-POKEMON_RL_ENCODER_V2 / POKEMON_RL_ENCODER_IDS env var — construction fails
-loudly (the R0-1 seam). The DeepSets trunk consumes the field token, the 12
-mon tokens and the 4 own-move tokens; the 4 opponent-move tokens exist for
-the attention screen and are not run through the subnet here (the ratified
+verbatim): a reshape layer over the flat obs, slices derived from the layout
+and asserted at construction. If the layout disagrees with the obs the env
+produced — most likely a forgotten POKEMON_RL_ENCODER_V2 /
+POKEMON_RL_ENCODER_IDS env var at gen 1 — construction fails loudly (the
+R0-1 seam). The DeepSets trunk consumes the field token, the 12 mon tokens
+and the 4 own-move tokens; the 4 opponent-move tokens exist for the
+attention screen and are not run through the subnet here (the ratified
 context is field + pools + actives, 640-d — opponent-threat information
 reaches the policy through the mon tokens' matchup and speed-edge features).
 
@@ -36,26 +46,123 @@ stack, never masked, no shared trunk (repo contract, ppo.py — H&L DO share;
 deliberate deviation, recorded).
 """
 
+from dataclasses import dataclass
+
 import torch
 from torch import nn
 
 # R0-2 HARD CEILING: the flat [512,512] MLP actor on v2/808 — 808*512+512
 # + 512*512+512 + 512*10+10, verified against a live construction 2026-08-08.
-# Over it, the rung tests capacity and not structure (K2).
+# Over it, the rung tests capacity and not structure (K2). A GEN-1 rule: the
+# gen-4 actor has no flat-MLP comparator at 1,448 dims (that MLP would be
+# ~1.0M), so the ceiling is asserted on the gen-1 layout only and the gen-4
+# count is STAMPED (rl/train.py meta.yaml `params`) rather than gated.
 ACTOR_PARAM_CEILING = 681_994
 
 # The identity suffix: 6 own + 6 opp species, then 4 own + 4 opp moves,
-# each emitted as id/256.0 (rl/envs/showdown.py::_fill_ids).
+# each emitted as id/256.0 (rl/envs/showdown.py::_fill_ids). Gen 4 appends
+# 6 own + 6 opp items and 6 own + 6 opp abilities in the same order
+# (rl/envs/gen4/encoder.py, the id tail after `ids_off`).
 _N_SPECIES_IDS = 12
 _N_MOVE_IDS = 8
+_N_ITEM_IDS = 12
+_N_ABILITY_IDS = 12
+
+TRUNK_LAYOUTS = ("gen1", "gen4")
+
+
+@dataclass(frozen=True)
+class TrunkLayout:
+    """Everything the tokenizer needs to slice a flat obs: block widths, the
+    id tail's composition, the vocab sizes the embedding tables must be
+    built with, and the privileged block's id tail. `id_items == 0` means the
+    layout carries no item / ability ids (gen 1) and the net builds neither
+    table."""
+
+    name: str
+    global_dim: int
+    mon_dim: int
+    active_dim: int
+    move_dim: int
+    id_species: int
+    id_moves: int
+    id_items: int
+    id_abilities: int
+    priv_id_dim: int
+    species_vocab: int
+    move_vocab: int
+    item_vocab: int
+    ability_vocab: int
+    n_actions: int = 10
+
+    @property
+    def id_dim(self) -> int:
+        return self.id_species + self.id_moves + self.id_items + self.id_abilities
+
+    @property
+    def obs_dim(self) -> int:
+        return (
+            self.global_dim + 6 * self.mon_dim + self.active_dim + 4 * self.move_dim
+            + 6 * (self.mon_dim + 1) + self.active_dim + 4 * self.move_dim + self.id_dim
+        )
+
+    @property
+    def priv_dim(self) -> int:
+        return 6 * self.mon_dim + self.active_dim + 4 * self.move_dim + self.priv_id_dim
+
+    @property
+    def has_item_ids(self) -> bool:
+        return self.id_items > 0
+
+
+def resolve_layout(layout: "TrunkLayout | str") -> TrunkLayout:
+    """`gen1` reads the process's gen-1 encoder constants (deferred import:
+    only entity-trunk construction pays for poke_env, and the flags are read
+    at that module's import); `gen4` reads the frozen v0.1 layout and the
+    pinned vocab. A TrunkLayout passes through."""
+    if isinstance(layout, TrunkLayout):
+        return layout
+    if layout == "gen1":
+        from rl.envs import showdown as sd
+
+        if sd.ID_DIM == 0:
+            raise ValueError(
+                "entity trunk needs the id suffix: set POKEMON_RL_ENCODER_IDS=1 "
+                "(and POKEMON_RL_ENCODER_V2=1) in the process environment"
+            )
+        return TrunkLayout(
+            name="gen1", global_dim=sd.GLOBAL_DIM, mon_dim=sd.MON_DIM,
+            active_dim=sd.ACTIVE_DIM, move_dim=sd.MOVE_DIM,
+            id_species=_N_SPECIES_IDS, id_moves=_N_MOVE_IDS, id_items=0, id_abilities=0,
+            priv_id_dim=sd.PRIV_ID_DIM,
+            # The gen-1 tables' sizes are the config's (152 / 166 ratified);
+            # nothing here asserts them — the gen-1 vocab is `num`-indexed.
+            species_vocab=0, move_vocab=0, item_vocab=0, ability_vocab=0,
+            n_actions=sd.N_ACTIONS,
+        )
+    if layout == "gen4":
+        from rl.envs.gen4.spec import LAYOUT, N_ACTIONS_GEN4
+        from rl.envs.gen4.vocab import VOCAB
+
+        return TrunkLayout(
+            name="gen4", global_dim=LAYOUT.global_dim, mon_dim=LAYOUT.mon_dim,
+            active_dim=LAYOUT.active_dim, move_dim=LAYOUT.move_dim,
+            id_species=LAYOUT.n_id_species, id_moves=LAYOUT.n_id_moves,
+            id_items=LAYOUT.n_id_items, id_abilities=LAYOUT.n_id_abilities,
+            priv_id_dim=6 + 4 + 6 + 6,
+            species_vocab=VOCAB.n_species, move_vocab=VOCAB.n_moves,
+            item_vocab=VOCAB.n_items, ability_vocab=VOCAB.n_abilities,
+            n_actions=N_ACTIONS_GEN4,
+        )
+    raise ValueError(f"unknown trunk layout {layout!r}; expected one of {list(TRUNK_LAYOUTS)}")
 
 
 class EntityTokenizer(nn.Module):
     """Reshape layer over the flat encoder obs: 21 tokens + id indices.
 
-    Stateless (no parameters). Layout is derived from `rl.envs.showdown`
-    constants at construction and asserted against the declared obs width,
-    so a flag/encoder mismatch dies here rather than mis-slicing silently.
+    Stateless (no parameters). Layout is derived from the TrunkLayout at
+    construction and asserted against the declared obs width, so a
+    flag/encoder mismatch dies here rather than mis-slicing silently.
 
     Tokens (ARCH_SCREEN_SPEC, verbatim):
       field  (B, GLOBAL_DIM)      the global block
@@ -68,43 +175,48 @@ class EntityTokenizer(nn.Module):
                                   prior-filled 4
       species_ids (B, 12) long    embedding rows, own 6 then opp 6
       move_ids    (B, 8)  long    embedding rows, own 4 then opp 4
+      item_ids    (B, 12) long    gen 4 only: own 6 then opp 6
+      ability_ids (B, 12) long    gen 4 only: own 6 then opp 6
       own_active / opp_active (B, 6)  the is-active bits, for pooling the
                                   active mon's vector out of the subnet
     """
 
-    def __init__(self, in_dim: int, species_vocab: int, move_vocab: int):
+    def __init__(
+        self,
+        in_dim: int,
+        species_vocab: int,
+        move_vocab: int,
+        layout: TrunkLayout | str = "gen1",
+        item_vocab: int = 0,
+        ability_vocab: int = 0,
+    ):
         super().__init__()
-        # Deferred import (train.py's ENCODER_FINGERPRINT precedent): only
-        # entity-trunk construction pays for poke_env.
-        from rl.envs import showdown as sd
-
-        if sd.ID_DIM == 0:
-            raise ValueError(
-                "entity trunk needs the id suffix: set POKEMON_RL_ENCODER_IDS=1 "
-                "(and POKEMON_RL_ENCODER_V2=1) in the process environment"
-            )
-        expected = sd.OBS_DIM
+        lay = resolve_layout(layout)
+        expected = lay.obs_dim
         if in_dim != expected:
             raise ValueError(
-                f"obs width {in_dim} != encoder OBS_DIM {expected}: the env "
-                "and the tokenizer disagree on the encoder flags"
+                f"obs width {in_dim} != encoder OBS_DIM {expected} ({lay.name} layout): "
+                "the env and the tokenizer disagree on the encoder flags / layout"
             )
-        self.global_dim = sd.GLOBAL_DIM
-        self.mon_dim = sd.MON_DIM
-        self.active_dim = sd.ACTIVE_DIM
-        self.move_dim = sd.MOVE_DIM
+        self.layout = lay
+        self.global_dim = lay.global_dim
+        self.mon_dim = lay.mon_dim
+        self.active_dim = lay.active_dim
+        self.move_dim = lay.move_dim
         self.species_vocab = species_vocab
         self.move_vocab = move_vocab
-        self.own_mon_off = sd.GLOBAL_DIM
-        self.own_act_off = self.own_mon_off + 6 * sd.MON_DIM
-        self.own_move_off = self.own_act_off + sd.ACTIVE_DIM
-        self.opp_mon_off = self.own_move_off + 4 * sd.MOVE_DIM
-        self.opp_act_off = self.opp_mon_off + 6 * (sd.MON_DIM + 1)
-        self.opp_move_off = self.opp_act_off + sd.ACTIVE_DIM
-        self.id_off = self.opp_move_off + 4 * sd.MOVE_DIM
-        assert self.id_off + sd.ID_DIM == expected, "layout drifted from OBS_DIM"
+        self.item_vocab = item_vocab
+        self.ability_vocab = ability_vocab
+        self.own_mon_off = lay.global_dim
+        self.own_act_off = self.own_mon_off + 6 * lay.mon_dim
+        self.own_move_off = self.own_act_off + lay.active_dim
+        self.opp_mon_off = self.own_move_off + 4 * lay.move_dim
+        self.opp_act_off = self.opp_mon_off + 6 * (lay.mon_dim + 1)
+        self.opp_move_off = self.opp_act_off + lay.active_dim
+        self.id_off = self.opp_move_off + 4 * lay.move_dim
+        assert self.id_off + lay.id_dim == expected, "layout drifted from OBS_DIM"
         # Token width: flag/const 1 + mon block + gated active extras.
-        self.mon_token_dim = 1 + sd.MON_DIM + sd.ACTIVE_DIM
+        self.mon_token_dim = 1 + lay.mon_dim + lay.active_dim
 
     def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         batch = x.shape[0]
@@ -116,7 +228,8 @@ class EntityTokenizer(nn.Module):
         opp_flag, opp_block = opp[:, :, :1], opp[:, :, 1:]
         opp_extras = x[:, self.opp_act_off : self.opp_move_off]
         opp_moves = x[:, self.opp_move_off : self.id_off].view(batch, 4, self.move_dim)
-        # [+2] of the mon block is that mon's own is-active bit (_fill_mon).
+        # [+2] of the mon block is that mon's own is-active bit (_fill_mon;
+        # gen 4's block opens hp, fainted, is-active the same way).
         own_active, opp_active = own[:, :, 2], opp_block[:, :, 2]
         mons = torch.cat(
             [
@@ -136,15 +249,21 @@ class EntityTokenizer(nn.Module):
         # id/256.0 -> row index; exact in float32, clamp is belt-and-braces
         # against out-of-table dirt, never a semantic remap.
         ids = (x[:, self.id_off :] * 256.0).round().long()
-        return {
+        out = {
             "field": field,
             "mons": mons,
             "moves": torch.cat([own_moves, opp_moves], dim=1),
             "species_ids": ids[:, :_N_SPECIES_IDS].clamp(0, self.species_vocab - 1),
-            "move_ids": ids[:, _N_SPECIES_IDS:].clamp(0, self.move_vocab - 1),
+            "move_ids": ids[:, _N_SPECIES_IDS:_N_SPECIES_IDS + _N_MOVE_IDS].clamp(0, self.move_vocab - 1),
             "own_active": own_active,
             "opp_active": opp_active,
         }
+        if self.layout.has_item_ids:
+            o = _N_SPECIES_IDS + _N_MOVE_IDS
+            out["item_ids"] = ids[:, o:o + _N_ITEM_IDS].clamp(0, self.item_vocab - 1)
+            o += _N_ITEM_IDS
+            out["ability_ids"] = ids[:, o:o + _N_ABILITY_IDS].clamp(0, self.ability_vocab - 1)
+        return out
 
 
 def _subnet(in_dim: int, width: int) -> nn.Sequential:
@@ -157,10 +276,17 @@ def _subnet(in_dim: int, width: int) -> nn.Sequential:
 
 
 class EntityDeepSetsNet(nn.Module):
-    """One head of the Rung 2 architecture: out_dim N_ACTIONS (10 at gen 1)
-    builds the pointer policy (shared per-action scorer + slot bias), out_dim
-    1 the value stack (same trunk shape over `value_sizes`, scalar head).
-    PPOAgent constructs one of each — separate stacks, nothing shared."""
+    """One head of the Rung 2 architecture: out_dim N_ACTIONS (10 at gen 1
+    and gen 4) builds the pointer policy (shared per-action scorer + slot
+    bias), out_dim 1 the value stack (same trunk shape over `value_sizes`,
+    scalar head). PPOAgent constructs one of each — separate stacks, nothing
+    shared.
+
+    `layout` selects the tokenizer's slicing and, at gen 4, adds the item
+    and ability embedding tables to the mon token (the only shape change by
+    generation). At gen 4 the four vocab sizes MUST equal the pinned vocab's
+    (rl/envs/gen4/vocab.py, row 0 = unknown): a config carrying gen 1's
+    152 / 166 into a gen-4 run fails here, not in a silent clamp."""
 
     def __init__(
         self,
@@ -175,48 +301,67 @@ class EntityDeepSetsNet(nn.Module):
         scorer_sizes: list[int] = (256,),
         value_sizes: list[int] = (384, 384),
         privileged_dim: int = 0,
+        layout: TrunkLayout | str = "gen1",
+        item_vocab: int = 0,
+        ability_vocab: int = 0,
     ):
         super().__init__()
-        # Deferred import, as the tokenizer does: only entity-trunk
-        # construction pays for poke_env. N_ACTIONS is the format's (10 at
-        # gen 1); the pointer head below scores exactly 6 + 4 entities, so a
-        # gimmick generation (14..26 actions) needs a new head, not a wider
-        # slot_bias.
-        from rl.envs.showdown import N_ACTIONS
-
-        if out_dim not in (N_ACTIONS, 1):
+        lay = resolve_layout(layout)
+        n_actions = lay.n_actions
+        if out_dim not in (n_actions, 1):
             raise ValueError(
-                f"out_dim must be {N_ACTIONS} (policy) or 1 (value), got {out_dim}"
+                f"out_dim must be {n_actions} (policy) or 1 (value), got {out_dim}"
             )
         if pool != "max":
             raise ValueError(f"only DeepSets max-pool is implemented (H&L's choice), got {pool!r}")
-        self.is_policy = out_dim == N_ACTIONS
-        self.tokenizer = EntityTokenizer(in_dim, species_vocab, move_vocab)
+        if lay.has_item_ids:
+            want = (lay.species_vocab, lay.move_vocab, lay.item_vocab, lay.ability_vocab)
+            got = (species_vocab, move_vocab, item_vocab, ability_vocab)
+            if got != want:
+                raise ValueError(
+                    f"{lay.name} layout: (species, move, item, ability) vocab sizes "
+                    f"{got} != the pinned vocab's {want} (row 0 = unknown; "
+                    "rl/envs/gen4/vocab.py) — set trunk_kwargs to the pinned sizes"
+                )
+        elif item_vocab or ability_vocab:
+            raise ValueError(f"{lay.name} layout carries no item / ability ids")
+        self.is_policy = out_dim == n_actions
+        self.layout = lay
+        self.tokenizer = EntityTokenizer(
+            in_dim, species_vocab, move_vocab, lay, item_vocab, ability_vocab
+        )
         self.species_emb = nn.Embedding(species_vocab, embed_dim)
         self.move_emb = nn.Embedding(move_vocab, embed_dim)
-        self.mon_net = _subnet(self.tokenizer.mon_token_dim + embed_dim, entity_dim)
+        # Gen 4 only — constructed AFTER the two gen-1 tables so the gen-1
+        # branch's module order (and its RNG stream) is exactly the old one.
+        n_mon_embeds = 1
+        if lay.has_item_ids:
+            self.item_emb = nn.Embedding(item_vocab, embed_dim)
+            self.ability_emb = nn.Embedding(ability_vocab, embed_dim)
+            n_mon_embeds = 3
+        else:
+            self.item_emb = self.ability_emb = None
+        self.mon_net = _subnet(self.tokenizer.mon_token_dim + n_mon_embeds * embed_dim, entity_dim)
         self.move_net = _subnet(self.tokenizer.move_dim + embed_dim, entity_dim)
         self.field_net = _subnet(self.tokenizer.global_dim, entity_dim)
         # D18 privileged critic: the value stack may take the opponent seat's
-        # own-side block (rl/envs/showdown.py::privileged_block) appended
-        # AFTER the obs. Value-only — the actor's input never widens (the
-        # Baisero & Amato V(h,s) construction, and the locked eval protocol,
-        # both live on that asymmetry). The privileged tokens go through the
-        # SAME mon/move subnets and embeddings as the observed ones — the
-        # entity space is shared, only the pooling slots widen.
+        # own-side block (rl/envs/showdown.py::privileged_block, and gen 4's
+        # privileged_block_gen4) appended AFTER the obs. Value-only — the
+        # actor's input never widens (the Baisero & Amato V(h,s)
+        # construction, and the locked eval protocol, both live on that
+        # asymmetry). The privileged tokens go through the SAME mon/move
+        # subnets and embeddings as the observed ones — the entity space is
+        # shared, only the pooling slots widen.
         if privileged_dim:
             if self.is_policy:
                 raise ValueError("privileged_dim is critic-only: the actor never widens")
-            expected = (
-                6 * self.tokenizer.mon_dim + self.tokenizer.active_dim
-                + 4 * self.tokenizer.move_dim + 10
-            )
+            expected = lay.priv_dim
             if privileged_dim != expected:
                 raise ValueError(
-                    f"privileged_dim {privileged_dim} != encoder PRIV_DIM {expected}: "
-                    "the env and the critic disagree on the privileged layout "
-                    "(check the POKEMON_RL_ENCODER_V2 / POKEMON_RL_ENCODER_IDS "
-                    "env vars — the id tail is required)"
+                    f"privileged_dim {privileged_dim} != encoder PRIV_DIM {expected} "
+                    f"({lay.name} layout): the env and the critic disagree on the "
+                    "privileged layout (at gen 1 check the POKEMON_RL_ENCODER_V2 / "
+                    "POKEMON_RL_ENCODER_IDS env vars — the id tail is required)"
                 )
         self.privileged_dim = privileged_dim
         # context: field || own pool || opp pool || own active || opp active
@@ -241,8 +386,8 @@ class EntityDeepSetsNet(nn.Module):
             self.head = nn.Linear(ctx_in, 1)
         self.param_count = sum(p.numel() for p in self.parameters())
         # R0-2, asserted at construction: over the flat MLP actor's count the
-        # rung tests capacity, not structure.
-        if self.is_policy:
+        # rung tests capacity, not structure. Gen 1 only (see the constant).
+        if self.is_policy and lay.name == "gen1":
             assert self.param_count <= ACTOR_PARAM_CEILING, (
                 f"actor {self.param_count} params > ceiling {ACTOR_PARAM_CEILING} (K2)"
             )
@@ -265,29 +410,43 @@ class EntityDeepSetsNet(nn.Module):
         with torch.no_grad():
             final.weight.mul_(gain)
 
+    def _mon_embeds(self, species_ids, item_ids=None, ability_ids=None) -> torch.Tensor:
+        """The per-mon embedding block: species alone at gen 1; species ||
+        item || ability at gen 4 (ids already clamped to their tables)."""
+        emb = self.species_emb(species_ids)
+        if self.item_emb is None:
+            return emb
+        return torch.cat([emb, self.item_emb(item_ids), self.ability_emb(ability_ids)], dim=-1)
+
     def _priv_features(self, priv: torch.Tensor) -> list[torch.Tensor]:
         """Pooled entity features from the opponent seat's own-side block —
         tokenized by the SAME rules the tokenizer applies to our own side
         (constant flag 1, extras gated by the is-active bit at mon offset
-        +2, ids recovered as round(x*256))."""
+        +2, ids recovered as round(x*256)). The id tail is 6 species + 4
+        moves at gen 1, plus 6 items + 6 abilities at gen 4."""
         batch = priv.shape[0]
-        md, ad, vd = self.tokenizer.mon_dim, self.tokenizer.active_dim, self.tokenizer.move_dim
+        tk = self.tokenizer
+        md, ad, vd = tk.mon_dim, tk.active_dim, tk.move_dim
         mons = priv[:, : 6 * md].view(batch, 6, md)
         extras = priv[:, 6 * md : 6 * md + ad]
         moves = priv[:, 6 * md + ad : 6 * md + ad + 4 * vd].view(batch, 4, vd)
-        ids = (priv[:, -10:] * 256.0).round().long()
+        ids = (priv[:, -self.layout.priv_id_dim:] * 256.0).round().long()
         active = mons[:, :, 2]
         tokens = torch.cat(
             [priv.new_ones(batch, 6, 1), mons,
              extras.unsqueeze(1) * active.unsqueeze(-1)],
             dim=-1,
         )
+        species = ids[:, :6].clamp(0, tk.species_vocab - 1)
+        items = abilities = None
+        if self.item_emb is not None:
+            items = ids[:, 10:16].clamp(0, tk.item_vocab - 1)
+            abilities = ids[:, 16:22].clamp(0, tk.ability_vocab - 1)
         pmons = self.mon_net(torch.cat(
-            [tokens, self.species_emb(ids[:, :6].clamp(0, self.tokenizer.species_vocab - 1))],
-            dim=-1,
+            [tokens, self._mon_embeds(species, items, abilities)], dim=-1,
         ))
         pmoves = self.move_net(torch.cat(
-            [moves, self.move_emb(ids[:, 6:].clamp(0, self.tokenizer.move_vocab - 1))],
+            [moves, self.move_emb(ids[:, 6:10].clamp(0, tk.move_vocab - 1))],
             dim=-1,
         ))
         return [
@@ -349,7 +508,11 @@ class EntityDeepSetsNet(nn.Module):
             x, priv = x[:, : -self.privileged_dim], x[:, -self.privileged_dim :]
         tok = self.tokenizer(x)
         mons = self.mon_net(
-            torch.cat([tok["mons"], self.species_emb(tok["species_ids"])], dim=-1)
+            torch.cat(
+                [tok["mons"],
+                 self._mon_embeds(tok["species_ids"], tok.get("item_ids"), tok.get("ability_ids"))],
+                dim=-1,
+            )
         )  # (B, 12, entity_dim)
         own_moves = self.move_net(
             torch.cat(
