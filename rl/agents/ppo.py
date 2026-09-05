@@ -213,6 +213,9 @@ def _ln_free_blocks(net: nn.Module) -> list[str]:
 
 
 MINIBATCH_TAILS = ("keep", "drop", "fold")
+# LR anneal shapes over lr_anneal_steps: `linear` (1 - x), `power` (Wang 2024
+# §3.1.4: (a x + 1)^-b). Selected by the `lr_schedule` hparam.
+LR_SCHEDULES = ("linear", "power")
 
 
 def _minibatch_slices(
@@ -313,6 +316,10 @@ class PPOAgent(Agent):
         aux_shuffle_labels: bool = False,
         aux_synthetic: bool = False,
         minibatch_tail: str = "keep",
+        value_clip_eps: float = 0.0,
+        lr_schedule: str = "linear",
+        lr_power_a: float = 8.0,
+        lr_power_b: float = 1.5,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -351,6 +358,31 @@ class PPOAgent(Agent):
         self.obs_rank = len(observation_space.shape)
         self.base_lr = lr
         self.lr_anneal_steps = lr_anneal_steps
+        # JOURNEY step 4 (Wang 2024, gen4randombattle; the ONLY controlled LR-
+        # anneal ablation in this literature, thesis §3.1.4): lr(x) =
+        # lr0 / (a x + 1)^b over training progress x in [0, 1], a = 8, b = 1.5
+        # as he ran it. `linear` is today's wire, bit-identical: the schedule
+        # select adds no arithmetic on that branch. Both shapes ride
+        # lr_anneal_steps (x = steps_seen / lr_anneal_steps, clamped at 1).
+        if lr_schedule not in LR_SCHEDULES:
+            raise ValueError(
+                f"unknown lr_schedule {lr_schedule!r}; expected one of {list(LR_SCHEDULES)}"
+            )
+        if lr_schedule == "power" and not lr_anneal_steps:
+            raise ValueError("lr_schedule 'power' needs lr_anneal_steps > 0 (progress x needs a horizon)")
+        if lr_power_a < 0.0 or lr_power_b < 0.0:
+            raise ValueError(f"lr_power_a/b must be >= 0, got {lr_power_a}/{lr_power_b}")
+        self.lr_schedule = lr_schedule
+        self.lr_power_a = float(lr_power_a)
+        self.lr_power_b = float(lr_power_b)
+        # SB3's `clip_range_vf` (Wang's Table A.3: 0.0184), in SB3's exact
+        # form — the critic's prediction is clamped to old_value ± eps and
+        # the MSE is taken against the returns from there; NO max() with the
+        # unclipped loss (that is the OpenAI-baselines form, not SB3's). 0.0
+        # is today's wire: no clamp, no extra tensor on that branch.
+        if value_clip_eps < 0.0:
+            raise ValueError(f"value_clip_eps must be >= 0, got {value_clip_eps}")
+        self.value_clip_eps = float(value_clip_eps)
         # Staged unfreeze, for warm starts from a checkpoint whose critic is
         # untrained — a behaviour-cloned policy is the case that matters (a BC
         # clone has no critic at all). Naive PPO from there computes every
@@ -1030,7 +1062,7 @@ class PPOAgent(Agent):
             flat_advantages, flat_targets, flat_old_logp,
             steps_seen=self.updates * horizon * num_envs,
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
-            aux_stats=aux_stats,
+            aux_stats=aux_stats, flat_old_values=values.reshape(-1),
         )
         self.buffer.clear()
         return metrics
@@ -1100,7 +1132,7 @@ class PPOAgent(Agent):
             advantages_t, flat_targets, flat_old_logp,
             steps_seen=steps_seen,
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
-            aux_stats=aux_stats,
+            aux_stats=aux_stats, flat_old_values=values,
         )
         return metrics
 
@@ -1118,6 +1150,7 @@ class PPOAgent(Agent):
         aux_allow: torch.Tensor | None = None,
         aux_valid: torch.Tensor | None = None,
         aux_stats: dict[str, float] | None = None,
+        flat_old_values: torch.Tensor | None = None,
     ) -> dict[str, float]:
         """The epoch x minibatch optimization on a prepared flat batch, plus
         its diagnostics — everything downstream of advantage computation,
@@ -1128,6 +1161,8 @@ class PPOAgent(Agent):
         update_episodes passes the loop's actual env-step counter, which is
         what that product approximates."""
         aux_stats = dict(aux_stats or {})
+        if self.value_clip_eps > 0.0 and flat_old_values is None:
+            raise ValueError("value_clip_eps > 0 needs the pre-update values (flat_old_values)")
         # Mechanism diagnostics, computed ONCE per update on the whole batch
         # (DESIGN.md §5: without them a null result cannot distinguish "the
         # lever did nothing" from "the lever never changed the learning
@@ -1176,7 +1211,14 @@ class PPOAgent(Agent):
         # group 1 critic): reading each group's own lr back and scaling it
         # would compound the fraction every update.
         if self.lr_anneal_steps:
-            frac = max(0.0, 1.0 - steps_seen / self.lr_anneal_steps)
+            if self.lr_schedule == "power":
+                # Wang's schedule: x is progress in [0, 1]; past the horizon the
+                # lr holds at its floor (a x + 1)^-b evaluated at x = 1, which is
+                # what SB3 does when total_timesteps is overshot.
+                x = min(1.0, steps_seen / self.lr_anneal_steps)
+                frac = (self.lr_power_a * x + 1.0) ** (-self.lr_power_b)
+            else:
+                frac = max(0.0, 1.0 - steps_seen / self.lr_anneal_steps)
             self.optimizer.param_groups[0]["lr"] = self.base_lr * self.actor_lr_scale * frac
             self.optimizer.param_groups[1]["lr"] = self.base_lr * frac
             if self.aux_head is not None:
@@ -1237,9 +1279,15 @@ class PPOAgent(Agent):
                 policy_loss, approx_kl, clip_frac = clipped_surrogate_loss(
                     new_logp, flat_old_logp[idx], mb_adv, self.clip_eps
                 )
-                value_loss = F.mse_loss(
-                    self.critic(flat_critic_obs[idx]).squeeze(-1), flat_targets[idx]
-                )
+                v_pred = self.critic(flat_critic_obs[idx]).squeeze(-1)
+                if self.value_clip_eps > 0.0:
+                    # SB3 clip_range_vf: the prediction may move at most eps from
+                    # the value the batch's advantages were computed against.
+                    old_v = flat_old_values[idx]
+                    v_pred = old_v + torch.clamp(
+                        v_pred - old_v, -self.value_clip_eps, self.value_clip_eps
+                    )
+                value_loss = F.mse_loss(v_pred, flat_targets[idx])
                 entropy = entropies.mean()
                 loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
                 if self.bc_kl_coef > 0.0:
