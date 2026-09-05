@@ -22,9 +22,8 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
   attempt 1, 0 relaunches, 0 kills; VOID (a)-(g) clear; NO courtesy note
   (M10). **No cross-run delta is an effect; Elo(R4)-Elo(R1) and "on track
   for top-500" are barred by name.**
-- **Record propagation (obligation viii):** 104-96 is quoted ONLY as the
-  runner-logged subset, 199-201 ONLY as the cumulative profile record;
-  tests/test_ladder_docs.py greps README/STATUS/RESULTS and fails otherwise.
+- **Record propagation (obligation viii):** 104-96 = runner-logged subset,
+  199-201 = cumulative profile record; tests/test_ladder_docs.py enforces it.
 - **E2 exemption LIFTED** (ckpt_100000008.pt was frozen until this readout):
   rung deletion is fully permitted (keep completion + 12M rungs; your call).
 - 100M (C1) GRADED P3: off-FP@20 0.49844 vs 0.47456 (+0.02389 < 0.025, NOT
@@ -38,16 +37,17 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
 ## Next actions — **MAINTAINER, in order**
 1. **Read the R4 readout and RESULTS §16.5; rule on anything to change.**
    Nothing is pushed. Bare suite green at this commit.
-2. **JOURNEY step 3 (gen4)** — first its "two cheap adds" (the
-   most-damage-typed anchor; the search-depreciation check over existing
-   12M/50M checkpoints, no training), then the gen4 encoder/model per
-   docs/design_gen4/. Each needs its own pre-reg; the 46 open_questions
-   rulings come first.
+2. **JOURNEY step 3 (gen4).** Its first cheap add is DONE: the
+   most-damage-typed anchor (registry key `most_damage_typed`; H&L's rule;
+   sanity 0.983 vs random / 0.777 vs MaxBasePower / 0.330 vs SH, n=300
+   bot-vs-bot) — joins the battery only on your say-so. Next: the
+   search-depreciation check (decision rule written in the script header
+   BEFORE plotting; no training), then the gen4 encoder/model per
+   docs/design_gen4/ (46 open_questions rulings first; then a pre-reg).
 3. Audit rulings owed (AUDIT_BRANCH_LOG §Open questions): F-21, F-04
    routing, F-06/F-07, F-05 cadence, F-03 900 s. Standing rulings (3):
    CLAUDE.md MPS wording; pool.py:88; stall-kill crash_forfeit read rule.
-4. Housekeeping: local Showdown server is STOPPED (restart before any local
-   eval/test); rung deletion per E2 above.
+4. Housekeeping: local Showdown server UP (fresh, pid 50440); rung deletion per E2.
 
 ## Watch items
 - **ONE vs-SH RUNG IS WORTH ±0.02** — pool 3 seeds; read SHAPE, never rungs.

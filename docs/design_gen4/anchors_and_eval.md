@@ -109,6 +109,12 @@ worse with longer games, not better.
 
 ## 2. The most-damage-typed anchor — specification
 
+> **STATUS 2026-09-05: BUILT** as specified below (`rl/envs/most_damage_typed.py`,
+> registry key `most_damage_typed`, `tests/test_most_damage_typed.py`,
+> `scripts/anchor_h2h.py`). Gen-1 placement, bot-vs-bot, n = 300 each, sanity only:
+> 0.983 vs random, 0.777 vs MaxBasePower, 0.330 vs SimpleHeuristics. It joins the
+> battery only on the maintainer's say-so (§9 A2); no README row.
+
 **Why** `[tree]`: JOURNEY's pre-step-3 item ("the only anchor whose own strength
 doesn't drift across generations … the right denominator for a gen1 → gen4 → gen9
 comparison", JOURNEY.md:15-19; IDEAS_POST_100M §2.6). Record status: **no pre-reg,

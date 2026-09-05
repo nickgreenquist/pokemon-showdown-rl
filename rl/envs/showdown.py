@@ -54,6 +54,7 @@ from poke_env.player import (
 )
 
 from rl.envs.encoder_spec import GEN1, EncoderSpec, spec_for_format
+from rl.envs.most_damage_typed import MostDamageTypedPlayer
 from rl.envs.randbats_prior import conditional_move_probs, known_species
 from rl.selfplay.pool import SnapshotPool
 
@@ -62,6 +63,10 @@ OPPONENT_PLAYERS: dict[str, type[Player]] = {
     "random": RandomPlayer,
     "max_power": MaxBasePowerPlayer,
     "heuristics": SimpleHeuristicsPlayer,
+    # JOURNEY's pre-step-3 anchor (2026-09-05): H&L's most-damage-typed rule,
+    # the one denominator that means the same thing in gen 1, 4 and 9.
+    # Descriptive only; see rl/envs/most_damage_typed.py for the deviations.
+    "most_damage_typed": MostDamageTypedPlayer,
 }
 
 # --- Gen 1 observation encoder (designed 2026-07-30, replaces the 10-dim

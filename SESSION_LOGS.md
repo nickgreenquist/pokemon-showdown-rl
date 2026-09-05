@@ -10220,3 +10220,29 @@ line numbers are not — grep the date, then read that region):
   Appendix A preserved; RESULTS §16.5 paragraph; README top paragraph + R4
   section + the forward sentence; STATUS bullet. "Reached the line, did not
   hold it" is the sanctioned phrasing everywhere.
+
+- 2026-09-05 (morning, autonomous; maintainer ruled "no pre-reg for code") —
+  **MOST-DAMAGE-TYPED ANCHOR BUILT (JOURNEY's first pre-step-3 add).**
+  Maintainer pushed back on the agent's "each needs a pre-reg": pre-regs are
+  for experiments/evals/ladder runs, not code — accepted; the
+  search-depreciation check keeps a written decision rule (it has a decision
+  attached) but no cycle. Built to the gen4 design spec (anchors_and_eval.md
+  §2), which is H&L's `MostDamageMovePlayer(type_aware=True)` verbatim: score
+  = base_power × effectiveness vs the defender's types, OHKO = 120, nothing
+  else, ties uniform (seeded), never switch voluntarily, forced switch = the
+  bench mon minimising the sum of the opponent's types' effectiveness.
+  Deviations disclosed in the module docstring: Return at 102 (gen 4+),
+  poke-env's per-gen chart via Pokemon.damage_multiplier, seeded ties.
+  Files: rl/envs/most_damage_typed.py; registry key `most_damage_typed` in
+  rl/envs/showdown.py OPPONENT_PLAYERS (reachable from eval_checkpoint.py
+  --opponent and every collector path); tests/test_most_damage_typed.py (6
+  tests on real poke-env Move/Pokemon objects at gen 1 + Return at gen 4;
+  one test's own type arithmetic was wrong and fixed — Exeggutor takes
+  flying 2x, not 4x); tests/test_showdown_env.py registry list updated;
+  scripts/anchor_h2h.py (two registry bots on the local server, /timer on,
+  explicit distinct usernames). Placement, bot-vs-bot, n=300 each, seed 11,
+  SANITY ONLY: 0.983 ± 0.007 vs random, 0.777 ± 0.024 vs MaxBasePower,
+  0.330 ± 0.027 vs SimpleHeuristics (SH beats it 0.640) — exactly the
+  ordering the index predicts ("far weaker than SH"). NOT in the battery, NO
+  README row: the design doc's §9 A2 leaves that to the maintainer. Local
+  Showdown server restarted fresh (pid 50440, simulator: 4 confirmed).
