@@ -10598,3 +10598,17 @@ line numbers are not — grep the date, then read that region):
   817 passed / 17 skipped (server up); gen4 env smoke 8 battles 0 desyncs;
   tape smoke; FP@20 smoke 2 battles fp_exit 0, tape streamed, no FP process
   left. Nothing pushed.
+
+- 2026-09-05 (evening, maintainer) — **GEN-4 BATTERY RULED; CLAUDE.md IS THE
+  PER-GENERATION LIST.** Maintainer: "i prefer more 'eval opponents' than
+  less. SH, most damaged, FP20, FP500, BC clone, etc." and "shouldn't we
+  update claude.md's battery if its misleading agents?" — yes. CLAUDE.md's
+  anchor-battery convention now states the legs per generation (gen 1:
+  BC-clone + FP@20; gen 4: MDT + FP@20 + FP@500 until Q38 pins + BC-clone),
+  that a missing leg reads PENDING and the README row WAITS (legs are never
+  dropped to land a readout), and that random / MaxBasePower are sanity rows,
+  not legs. JOURNEY's step-3 milestone line lists all four gen-4 legs; anchors
+  §10 item 6 closed. The gen-4 clone is built ALONGSIDE the 50M Wang-recipe run
+  (FP@20 teacher tapes — ~2.5 h for 7,200 battles vs ~2 days at 500 ms, budget
+  disclosed with the clone; make_bc_dataset.py threaded to gen 4; the banked
+  BC recipe re-run) so it is ready by the readout and gates nothing.

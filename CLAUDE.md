@@ -195,11 +195,17 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   pooled, ties as non-wins, deterministic policy, vs `SimpleHeuristicsPlayer`.
   Every arm from D23 on has pooled **5×3000** — a disclosed DEVIATION
   (conservative, 5 ≥ 3); say so when quoting it.
-- **Anchor battery** (2026-08-23; FP budget amended 2026-08-26 per MU-2):
-  every headline-grade result reports vs-SH (locked protocol) **plus** the
-  descriptive anchors — BC-clone h2h (500), Foul Play h2h, and from gen 4 on
-  the most-damage-typed h2h (500; ruled 2026-09-05) — before its README row
-  lands. Anchors are descriptive, **never verdict inputs**.
+- **Anchor battery** (2026-08-23; FP budget amended 2026-08-26 per MU-2; per-gen
+  list ruled 2026-09-05): every headline-grade result reports vs-SH (locked
+  protocol, the ONLY verdict input) **plus every descriptive leg for its
+  generation** before its README row lands. **Gen 1:** BC-clone h2h (500),
+  Foul Play h2h @20. **Gen 4:** most-damage-typed h2h (500), Foul Play h2h at
+  BOTH 20 and 500 ms until Q38 pins one, BC-clone h2h (500; a gen-4 clone of
+  FP@20 tapes — built alongside the first gen-4 run, ready by its readout). A
+  leg that does not exist yet is reported as PENDING and the README row WAITS
+  for it — legs are never dropped to make a readout land. Random / MaxBasePower
+  may print as sanity rows; they are not legs. Anchors are descriptive,
+  **never verdict inputs**.
   - **Match the policy form to the rating you compare against** — a clone
     number is never style evidence.
   - FP anchor at `--search-time-ms 20` (gen 1). **Two disclosures travel with

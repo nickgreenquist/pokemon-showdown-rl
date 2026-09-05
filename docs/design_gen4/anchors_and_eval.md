@@ -344,8 +344,11 @@ ladder-object question is decided before the run (JOURNEY step 11). Detail:
 4. Authorise the gen4 Foul Play build (`make poke_engine GEN=gen4` in the foul-play
    env, a network fetch of the gen4 set file, its pin and diff) when the box is free.
 5. The gen4 tie / turn-cap rule for collection and eval.
-6. Whether the BC-clone leg waits for a gen4 Foul Play or is dropped for the chapter's
-   first readout.
+6. ~~Whether the BC-clone leg waits for a gen4 Foul Play or is dropped for the chapter's
+   first readout.~~ RULED 2026-09-05 evening: KEPT — a gen-4 clone (FP@20 tapes, the
+   banked BC recipe) is built alongside the first gen-4 run and reported at its
+   readout; a missing leg reads PENDING and the README row waits. CLAUDE.md is the
+   per-generation battery list.
 7. ~~The gen4 chapter's written exit condition (JOURNEY.md:68 — still unwritten).~~
    WRITTEN 2026-09-05 (JOURNEY.md:74).
 
