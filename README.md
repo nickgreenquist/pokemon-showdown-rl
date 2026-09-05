@@ -275,6 +275,7 @@ W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` writes
 | `scripts/README.md` | why almost nothing in `scripts/` is safe to delete |
 | `docs/IDEAS_POST_100M.md` | the live lever list, re-ranked after the 100M read; each entry owes its own pre-reg |
 | [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md) |
+| `docs/` | the written record: `prior_work/` and `research_reports/` (external evidence), `IDEAS_POST_100M.md`, `CLEANUP.md`, `landmines.md`, `proposals/`, `design_gen4/` |
 | `docs/archive/` | **history, never "what next"** — spent roadmaps (DESIGN, DESIGN2), the Chapter 5 brief and frozen audits, read only when named |
 
 ## Provenance

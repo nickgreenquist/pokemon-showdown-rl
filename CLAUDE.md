@@ -103,11 +103,12 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 - `docs/prior_work/README.md` — verified index of external material. **Read
   before citing any external result** — several widely-repeated claims about
   these systems do not survive contact with their code, and the index records
-  which.
-  Also points at a full local clone of `ps-ppo` (sibling directory) for
+  which. Also points at a full local clone of `ps-ppo` (sibling directory) for
   encoder / action-space / reward / PPO-hyperparameter questions.
 - `docs/CLEANUP.md` — the single cleanup ledger (audit backlog +
   do-not-relitigate record).
+- `docs/` — everything else written down: `prior_work/`,
+  `research_reports/`, `proposals/`, `design_gen4/`.
 - `docs/archive/` — **history, never "what next"; nothing under it is read
   unless the maintainer names the file.** Spent roadmaps (DESIGN, DESIGN2)
   and frozen audits live there; their known traps are recorded in
