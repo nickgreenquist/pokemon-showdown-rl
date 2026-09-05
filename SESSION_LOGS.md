@@ -10152,8 +10152,9 @@ line numbers are not — grep the date, then read that region):
   gen4 groundwork starts NOW, ahead of step 2's readout, on its own branch;
   training beyond a smoke is out of scope; gen-4 numbers stay out of the gen-1
   chapter's STATUS / README / RESULTS. (Also the M2 entry never appended:
-  the five design docs LANDED ON MAIN 2026-09-04, commits 32f6239..df3fe8f,
-  research notes at b12b362.) Server: a FRESH clone of pokemon-showdown @
+  the five design docs LANDED ON MAIN 2026-09-04, commits 32f6239..df3fe8f —
+  the research notes at df3fe8f; b12b362 later moved everything under docs/
+  and rewrote their citation paths.) Server: a FRESH clone of pokemon-showdown @
   59da482e inside the worktree (gitignored), simulator 4, port 8000 (free —
   the ladder plays on the official server; the main checkout's server stayed
   stopped per LG-7); killed at the end of the session. Nothing under the main
@@ -10232,7 +10233,10 @@ line numbers are not — grep the date, then read that region):
   the main checkout's server was up on 8000, untouched): FP@20 vs SH 5-0
   smoke (`fp0`), then **FP@20 vs SH n=250: 226-24-0 (0.904), 1.18 s/battle,
   0 panics / tracebacks / "More than 4 moves", 0 poke-env warnings, 7
-  `[Unavailable choice]` on the SH seat** (`fp1`, bot-vs-bot, descriptive);
+  `[Unavailable choice]` on the SH seat** (`fp1`, bot-vs-bot, descriptive;
+  as with every FP@20 number the two standing disclosures travel with it —
+  the equivalence test is weakly powered and the point estimate flatters us —
+  plus the gen-4 level-drift caveat above);
   FP@500 vs SH n=250 (`fp2`, ≈ 60 s/battle, ~4 h) LEFT RUNNING detached at
   12/250 (W 10 L 2); its log `data/gen4_fp/fp2_sh_250_t500.foulplay.log`
   carries a per-battle `W: x L: y` line and the summary lands beside it when
@@ -10241,7 +10245,7 @@ line numbers are not — grep the date, then read that region):
   battle) — 20 battles vs the untrained learner-smoke checkpoint, 0-20 as
   expected, 1.35 s/battle, 0 mask desyncs, one `[Unavailable choice]`. FP's
   gen-9 bookkeeping lines (neutralizinggas / boosterenergy / airballoon marked
-  impossible, ~5,300 per 250 battles) are noise. D3's Regenerator teacher
+  impossible — 7,686 lines in the fp1 log, 2,562 each) are noise. D3's Regenerator teacher
   defect is NOT live in randbats: FP samples whole opponent sets from the
   pinned file (101 abilities, the pool's); `grep -ci regenerator` = 0 over all
   logs. Docs: anchors_and_eval §0/§3/§12, open_questions Q37 DONE (carried to

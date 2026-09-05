@@ -360,7 +360,7 @@ Sleep Talk is handled; the one Ditto set uses Transform, handled structurally), 
 | G3 | sleep counter double-bumps on Sleep Talk | `abstract_battle.py:726-741`; `pokemon.py:482-483` | 2× sleep clock on Rest/Sleep Talk sets | suppress the bump on the `overridden_move` call | `[src]`, `[live]` parse test |
 | G4 | no `original_item`; consumed / knocked-off / none collapse | `pokemon.py:405-410, 1108-1112` | item inference thrown away on use | wrapper-side item memory + `is_consumed` flag | `[src]` |
 | G5 | Encore / Disable move name dropped | `abstract_battle.py` `-start` branch | cannot see which move is locked | read from `_replay_data` | `[src]` |
-| G6 | Flash Fire cleared after one use | `pokemon.py:498-503` | Fire boost feature wrong after first use (6 species) | post-process | `[src]` `[tree]` |
+| G6 | Flash Fire cleared after one use | `pokemon.py:498-503` | Fire boost feature wrong after first use (5 species, 8 sets) | post-process | `[src]` `[tree]` |
 | G7 | `Return` BP 0; nine BP-0 damaging moves | `move.py:104-112` | a 102-BP STAB move reads as powerless on 39 species | per-move override table | `[src]` |
 | G8 | Hidden Power `num` 237 for all types | `gen4moves.json` | num-keyed ids alias 8 pool variants | key move ids on the typed `move.id` string | `[src]` |
 | G9 | `num` not injective over formes | `gen4pokedex.json` | Arceus formes share an embedding row | key species on the forme id | `[src]` `[tree]` |
@@ -470,9 +470,9 @@ the action head does **not** change; `move.category` is now live data.
 - `[lit]` in this doc: the gen4 2–5-hit distribution (3/8, 3/8, 1/8, 1/8) behind
   G13; the gen4 crit multiplier as quoted for the gen9 calculator comparison
   (`mechanics_delta.md` §2 verifies it as 2× from the sim).
-- The ps-ppo / Metamon observation-design comparison and the literature
-  cross-check were not produced this cycle (`open_questions.md` deferrals
-  D2, D4); nothing here depends on them.
+- The ps-ppo / Metamon observation-design comparison landed 2026-09-05
+  (`research/psppo_metamon_obs.md`; deferral D2 discharged); the literature
+  cross-check (D4) is still open. Nothing here depends on either.
 
 ## 12. Live verification (2026-09-04/05, branch `gen4-build`)
 
@@ -484,7 +484,7 @@ tapes through poke-env's own parser (`rl/envs/gen4/tape.py`).
 
 | gap / claim | result |
 |---|---|
-| G1 `maybe_trapped` ignored | random seat: 55 decisions with `maybe_trapped and not trapped` out of 9,091 → **28 `[Unavailable choice]` rejections** (0.3 % of decisions); SH seat: 67 → 4. The corrected request arrives with an `update` key (`('active', 'update')` shape, 28). The re-query never looped: 0 handler exceptions, every battle ended. |
+| G1 `maybe_trapped` ignored | random seat: 55 decisions with `maybe_trapped and not trapped` out of 9,091 → **28 `[Unavailable choice]` rejections** (0.3 % of decisions); the SH seat of the same run: 67 flags → 0 rejections; SH-vs-SH (`t2`): 37 flags → 4 rejections (1 + 3). The corrected request arrives with an `update` key (`('active', 'update')` shape, 28). The re-query never looped: 0 handler exceptions, every battle ended. |
 | G2 weather stamp | stamp age 0 or 1 at every one of 4,350 weather decisions; `[from] ability:` on the set line (dropped by poke-env, read by the tracker). |
 | G3 Sleep Talk counter | `status_counter` reads **4 after two sleeping turns** when one was a Sleep Talk turn (17 decisions): the bump is the `cant` PLUS both `\|move\|` lines — +3 on that turn, not +2. Pinned by `tests/test_gen4_encoder.py::test_tracker_counts_sleep_attempts_where_pokeenv_counts_lines` (parse-only). |
 | G4 item memory | own item reads `""` after consumption (261 / 282 decisions per seat in 300 battles); opponent `None` after `-enditem` (3,269 mon-decisions); `-enditem` causes: `[eat]`, `move: Knock Off` 28 (6 fields, with `[of]`), `stealeat` 1 (7 fields). |

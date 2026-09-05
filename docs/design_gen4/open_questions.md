@@ -313,7 +313,7 @@ build's 1,448 is a record, not a commitment. The original list, for the record:
 5. Two cross-note disagreements were reconciled in the docs (item vocabulary 40 vs
    ≈ 26; the sleep reset) — a third reader should look for more, especially between
    the abilities note's set-derived counts and the battle-state note's dex-derived
-   counts (101 assignable vs 122 possible; 277/295 unique-by-set vs 161/134
+   counts (101 assignable vs 122 possible; 278/295 unique-by-set — the note said 277, the critic pass recounted — vs 161/134
    auto-known-by-dex — both are stated as distinct facts, not conflicts).
 
 ## 9. Merge checklist

@@ -2,7 +2,7 @@
 
 **Status: EVIDENCE, NOT AUTHORITY.** These are the research notes the five
 docs in `docs/design_gen4/` were distilled from (2026-09-04, gen4-design
-worktree, docs-only). Where a note and a doc disagree, **the doc wins**; two
+worktree, docs-only). Where a note and a doc disagree, **the doc wins**; the
 known errors in the notes were corrected in the docs and are listed below.
 Nothing here is a pre-registration, a measurement, or a verdict input. Kept
 because the docs deliberately compressed implementer-grade detail (per-ability
@@ -15,7 +15,7 @@ and a `file:line` or page citation. Repo line numbers are `main@2738025`
 (the snapshot the agents read); `showdown/` numbers are the vendored
 pokemon-showdown 0.11.11 @ 59da482; `poke_env/` is the pinned 0.15.0.
 
-## The notes (one per source family; the four the brief named that never landed are listed after)
+## The notes (one per source family; the four written from the gen4-build session on 2026-09-04/05 follow the first ten)
 
 | note | source family | feeds |
 |---|---|---|
@@ -29,7 +29,6 @@ pokemon-showdown 0.11.11 @ 59da482; `poke_env/` is the pinned 0.15.0.
 | `wang_thesis.md` | Wang 2024 read in full: Tables A.1–A.3, Fig 4.1 digitized, MCTS, the γ/λ discrepancy resolved | `encoder_requirements.md` §5, `anchors_and_eval.md` §6 |
 | `huang_lee_metagrok.md` | H&L 2019 + the metagrok clone: observation as the code builds it, the most-damage-typed bot verbatim, recipe facts | `encoder_requirements.md` §5, `anchors_and_eval.md` §2 |
 | `project_record.md` | the repo's own record: Wang verification entries, the anchor-battery convention verbatim, the search-depreciation data set with provenance (incl. the IDEAS §2.5 "12M" error), standing rulings, the 2-Opus house style | `anchors_and_eval.md`, `open_questions.md` |
-
 | `wang_showdown_fork.md` | Wang's pokemon-showdown fork, `wang_fork_diffs.md` §1 (2026-09-05, Opus agent, gen4-build): `>getstate`/`>load` is a full perfect-information dump; the determinizer's exact constraints; the fork samples the SAME curated role-table generator family we vendor; only `/offertie`'s turn-100 gate changes a rule | `encoder_requirements.md` §3.5, `open_questions.md` Q12 / D1, `anchors_and_eval.md` §6 |
 | `psppo_metamon_obs.md` | ps-ppo's obs_*.py in full + Metamon's tokenisation appendix (2026-09-05): items / abilities / stat ranges / counters / weather / sentinels, and the comparison table against our proposal | `encoder_requirements.md` §5, `open_questions.md` Q11 / Q13 / Q29 / Q43 / D2 |
 | `foulplay_pokejax_audit.md` | foul-play's search core, request parsing and hidden-state bookkeeping for gen 4; the Struggle panic re-diagnosed; the upstream set-file schema; pokejax's bug list as an audit checklist (2026-09-05) | `anchors_and_eval.md` §3, `encoder_requirements.md` §9, `open_questions.md` Q37 / D3 |
@@ -98,7 +97,7 @@ died at the session usage limit; 14 in flight at once) and `sweep3_opus_waves.js
 (2026-09-04, `model: 'opus'`, three sequential waves of five: 10/14 notes landed
 before the next limit; the reconcile critic and follow-ups never ran). The four
 2026-09-05 notes were one wave of four Opus agents launched by hand from the
-`gen4-build` session (prompts in SESSION_LOGS 2026-09-05), while the orchestrator
+`gen4-build` session (the four prompts were given in-session and are not in a committed file; each note's header states its task), while the orchestrator
 built the encoder — all four landed. The exact
 task text each note answers is the `T[...]` entry in the script; the PREAMBLE is the
 hard-bar and tagging contract every agent worked under. The lesson is recorded in

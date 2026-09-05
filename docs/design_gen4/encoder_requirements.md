@@ -307,7 +307,9 @@ closed-form estimate for the opponent — survey §3.3; the feature INVERTS unde
 ### 4.2 Active extras (×2)
 boosts (7) · volatile flags (§3.2, 18) · counters (6) · `first_turn` (1) ·
 `preparing` (1) · `choice_locked` (own side from `disabled`; opponent inferred) (1).
-≈ **33**.
+≈ **33**. Built v0.1: **15** flags, not 18 — three §3.2 rows (Destiny Bond, a
+Protect flag, Roost) are not flags in the layout (Protect rides its counter; Roost
+is never visible at a decision) — so the active block is **31** (§13).
 
 ### 4.3 Move block (×8; own 4 in move-action order, opponent 4 prior-filled)
 known, bp, acc, pp, matchup, physical, status, priority/7, **crit stage** (9) ·
@@ -540,9 +542,10 @@ classes taxonomy is pre-registered as data or left to the implementer.
   the aliasing and mask-desync rates at gen 4 (`_move_slots_aliased` true-rate;
   `mask_desync_total()` against steps); the empirical (ability, item) frequencies of
   the generator (the universe is exact, the marginal is not).
-- Deferred (`open_questions.md` D1–D4): ps-ppo / Metamon observation design, Wang's
-  Showdown-fork set constraints as a second source for the prior, foul-play's gen4
-  calc as a damage-feature source, the literature cross-check.
+- Deferred, then DISCHARGED 2026-09-05 (`open_questions.md` D1–D3; the notes are
+  under `research/`): ps-ppo / Metamon observation design, Wang's Showdown-fork set
+  constraints as a second source for the prior, foul-play's gen4 calc as a
+  damage-feature source. Still open: the literature cross-check (D4).
 
 ## 13. Build status — layout v0.1 (branch `gen4-build`, 2026-09-05)
 
@@ -555,11 +558,11 @@ tuples become a commitment only in a gen-4 pre-registration header (§4.7).
 | vocabularies | `rl/envs/gen4/vocab.py`, `data/gen4_vocab.json` | 300 species rows (295 + Gastrodon-East + Castform ×3 + Cherrim-Sunshine), 182 moves (typed Hidden Power), 101 abilities, 40 items; stamped with the Showdown commit and the `sets.json` sha256; `return102` canonicalised (§18 of `mechanics_delta.md`); **tracked in git** (Q20 — the F-21 precedent, ruling still owed) |
 | class taxonomies | `rl/envs/gen4/classes.py` | 12 ability / 5 item classes as data-as-code with an import-time partition check against the vocab (Q21); the ability type-modifier table (A5) |
 | set prior | `rl/envs/gen4/prior.py`, `data/gen4_set_samples.json` | **exact, not a marginal**: rejection over the 1,743 realised (moves, ability, item) triples the vendored generator emitted over 600,000 sets, conditioned on revealed moves / known ability / known item — a stronger form than A6's role-conditioned marginals AND than gen 1's port, because the samples come from whole teams (team weather, move pairs, item rules integrated). Monte-Carlo counts (~2,000 draws per species) — disclosed |
-| tracker | `rl/envs/gen4/tracker.py` | §9 step 3, built and extended (weather set turn + indefinite, exact sleep attempts, item memory + consumed, Encore target, Substitute hits, Choice lock, Flash Fire, every `[from] ability:` reveal, Wish / Healing Wish per side) |
-| encoder | `rl/envs/gen4/encoder.py` | `embed_battle_gen4`; the gen-1 block order; item / ability id + class bits + reveal state (expected class vectors under the prior when unknown); ability-aware matchups as EXPECTATIONS under the ability belief, capped at 4.0 (Dry Skin ×1.25 on a 4× hit reads 5.0 otherwise); closed-form opponent Speed (EV 85 / IV 31 / no nature), inverted under Trick Room; `privileged_block_gen4` (703 dims) |
+| tracker | `rl/envs/gen4/tracker.py` | §9 step 3, built and extended (weather set turn + indefinite, exact sleep attempts, item memory + consumed, Encore target, Substitute hits, Choice lock, Flash Fire, every `[from] ability:` reveal, Wish / Healing Wish per side; the Outrage / Thrash / Petal Dance lock — poke-env never attaches `Effect.LOCKED_MOVE`, review pass 2026-09-05) |
+| encoder | `rl/envs/gen4/encoder.py` | `embed_battle_gen4`; the gen-1 block order; an opponent's UNTYPED Hidden Power (`hiddenpower`, what poke-env stores) resolved to the typed variant through the set prior — before the 2026-09-05 review fix it voided the prior for 5.6 % of opponent-mon reads; self stat drops read from Showdown's `self.boosts`; item / ability id + class bits + reveal state (expected class vectors under the prior when unknown); ability-aware matchups as EXPECTATIONS under the ability belief, capped at 4.0 (Dry Skin ×1.25 on a 4× hit reads 5.0 otherwise); closed-form opponent Speed (EV 85 / IV 31 / no nature), inverted under Trick Room; `privileged_block_gen4` (703 dims) |
 | env | `rl/envs/gen4/env.py`, `rl/envs/make.py` | `Gen4ShowdownSingles`, `Gen4ShowdownEnv`, `Gen4PoolPlayer`; `ShowdownGen4-v0` registered; reward, timer, mask-desync recovery and the wait pump inherited from gen 1 unchanged |
 | run metadata | `rl/train.py` | `ENCODER_FINGERPRINT_GEN4` (gen stamped) for `ShowdownGen4-*` env ids |
-| tests | `tests/test_gen4_encoder.py` | 11 offline tests: layout arithmetic, tables, vocab/classes/prior, the effect block, the tracker fed poke-env's own parser (incl. the Sleep Talk counter test), a hand-built battle, and the tape replay gate (shape + bounds) |
+| tests | `tests/test_gen4_encoder.py` | 17 offline tests: layout arithmetic, tables, vocab/classes/prior, the effect block (incl. self drops), Hidden Power resolution, the tracker fed poke-env's own parser (the Sleep Talk counter and rampage-lock tests), the most-damage-typed rule and its seeding, `Gen4PoolPlayer` bookkeeping, a hand-built battle, and the tape replay gate (shape + bounds) on the COMMITTED fixture `tests/fixtures/gen4_tape_t0_2battles.jsonl.gz` (t0's first two battles, 13 KB) and on the local t0 tape when present |
 | instruments | `rl/envs/gen4/tape.py`, `scripts/gen4_smoke.py`, `scripts/gen4_env_smoke.py`, `scripts/gen4_sample_generator.js`, `scripts/gen4_build_vocab.py` | tape record / replay / tallies; the live smokes; the generator sampler; the vocab builder |
 
 **Reference replay (not a pinned gate):** every recorded tape (t0–t6, 1,650
@@ -568,7 +571,18 @@ value inside `Box(-1, 4)`, 0 poisoned battles, **166 µs/decision** (gen 1:
 ~133), sha256 `8acdc50a5ff09444275c50a7c9372b6d04c4dce2e8b3a8a03576910ef7ff0731`.
 The gen-4 hash gate (§8, Q19) is buildable now — the tapes exist — and lands
 the moment a pre-reg freezes the tuples; until then the reference hash is a
-record, not a pin.
+record, not a pin (and that record predates the 2026-09-05 review fixes,
+which change bytes, not shape or bounds — re-record when the gate lands).
+
+**Unreachable at the pinned pool (2026-09-05 review):** ~90 of the 1,448 dims
+never left zero over 41,908 recorded decisions — Stealth Rock / Reflect / Light
+Screen / Safeguard / Mist / Tailwind / Lucky Chant on both sides, Gravity, the
+CURSE / FOCUS_ENERGY / trapped-by-move / perish flags and the perish counter, and
+seven effect slots (drain, attract, partial trap, focus energy, screen, other
+side condition, trap) × 8 move slots. Kept deliberately: they are the FORMAT's
+mechanics and the pool moves with every Showdown commit (this one has zero
+Stealth Rock sets; the format's history does not). A v1.0 freeze may drop them;
+`spec.py`'s layout docstring records the same list.
 
 **Deviations from §3–4, each measured (`mechanics_delta.md` §18,
 `pokeenv_gen4_survey.md` §12):** Substitute HP is unobservable → a hits

@@ -571,7 +571,9 @@ seen in randbats.
 Every claim below is `[tree]` against the tape summaries under
 `docs/design_gen4/research/live/` (recorded by `scripts/gen4_smoke.py` on a
 fresh local clone of the vendored server at 59da482e; 1,530 recorded
-seat-battles over eight runs, both seats' views; the tapes themselves are
+seat-battles over the five first-wave runs t0–t4 — 765 battles including the
+5-battle smoke; 1,650 over all seven gen-4 runs — both seats' views; the
+tapes themselves are
 gitignored under `data/gen4_tapes/`) and against
 `research/live/generator_sample_100k.json` (`scripts/gen4_sample_generator.js`,
 100,000 generated teams, fixed seed). Counts are one seat's view per room.
@@ -588,8 +590,10 @@ gitignored under `data/gen4_tapes/`) and against
   `-status ... [from] ability:` Static / Flame Body / Poison Point / Synchronize;
   `-start|X|ability: Flash Fire` paired with `-end` on switch-out; `-start ...
   typechange ... [from] ability: Color Change` 17; `-start|ability: Slow Start` 29.
-  (`t1_rnd_sh_300.summary.json` `from_causes`, `effects`; the `-ability` name
-  histogram is in SESSION_LOGS 2026-09-05.)
+  (`t1_rnd_sh_300.summary.json` `from_causes`, `effects`; the `-ability`
+  announcer histogram was tallied over the t1–t6 tapes with
+  `rl/envs/gen4/tape.py::protocol_stats` and is re-derivable from them — it is
+  not in a committed file.)
 - **§6 sleep.** Attempts lost before waking, from `cant|slp` counts between
   `-status|slp` and `-curestatus|slp` (111 wakes): {0: 8, 1: 4, 2: 90, 3: 2, 4: 7}.
   Rest (`time = 3`, two attempts) dominates; the eight zeros are Heal Bell /
@@ -597,9 +601,10 @@ gitignored under `data/gen4_tapes/`) and against
   `mods/gen4/conditions.ts:32`. Sleep Clause never fired in 760 battles; three
   requests showed two own mons asleep (Rest + an inflicted sleep — §17 of
   `pokeenv_gen4_survey.md`).
-- **§12 ties and the turn cap.** Ties 10 of 760 bot battles (SH-vs-SH 7/200,
-  max-power-vs-SH 2/200, random-vs-SH 0/300) plus 1/30 in each most-damage-typed
-  run — simultaneous KOs, never the turn-1000 cap: longest game 147 turns, per-
+- **§12 ties and the turn cap.** Ties 9 of 760 first-wave bot battles (SH-vs-SH
+  7/200, max-power-vs-SH 2/200, random-vs-SH 0/300, strict 0/60) plus 1/30 in the
+  most-damage-typed-vs-SH run (0/30 vs random) — 10 of 825 gen-4 battles in all —
+  simultaneous KOs, never the turn-1000 cap: longest game 147 turns, per-
   matchup means 17.6–25.8, medians 16–23. The tie rule (Q33) is live at ~1–3 %.
 - **§9 weather.** 4,195 of 4,350 weather-present decisions were under ability-set
   (indefinite) weather; a move weather ends with `-weather|none` (10 lines).
@@ -630,5 +635,6 @@ gitignored under `data/gen4_tapes/`) and against
   more than one sampled item; **1,743 distinct realised (moves, ability, item)
   triples** (median 4 per species, max 41 — Qwilfish), 13 singletons in 600,000
   draws.
-- **Not checked live:** the gen-1 Hyper-Beam-on-KO rule (§13); the foul-play
-  gen-4 engine build (needs authorisation, Q37).
+- **Not checked live:** the gen-1 Hyper-Beam-on-KO rule (§13). (The foul-play
+  gen-4 engine build, listed here until Q37 was authorised, is DONE 2026-09-05 —
+  `anchors_and_eval.md` §12.)

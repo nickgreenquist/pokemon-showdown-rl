@@ -569,7 +569,7 @@ lossy by construction and the code has repeatedly contradicted the project's own
   2026-08-03. The thesis's missing infrastructure layer: `>getstate`/`>load` stream commands +
   constrained team regen (the MCTS determinization — serialization itself is upstream Showdown),
   36 poke-env state-tracking fixes (30 distinct: 15 upstreamed by 0.15.0, 1 partial, 9
-  absent — of which FOUR are encoder-relevant and gen4-live and are NOT upstreamed: the
+  absent, 5 N/A (instrumentation / MCTS-only) — of the absent, FOUR are encoder-relevant and gen4-live and are NOT upstreamed: the
   weather stamp, the Sleep Talk counter, `maybe_trapped` guards x2;
   docs/design_gen4/pokeenv_gen4_survey.md §6, amended 2026-09-05), SB3
   instrumentation only. Read + verified against our tree in the 2026-08-03 log entries.
