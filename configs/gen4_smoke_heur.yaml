@@ -1,0 +1,39 @@
+# SMOKE, NOT A PRE-REGISTRATION. Proves the gen-4 learner loop closes end to end
+# (ShowdownGen4-v0 -> rollout -> PPO update -> eval -> checkpoint) in minutes on
+# one lane. Produces NO number anyone may quote: 16 updates of 512 steps
+# against SimpleHeuristicsPlayer, hidden [64, 64], no arm, no gate, no read.
+# Maintainer ruling 2026-09-04 (evening): gen-4 training beyond a trivial
+# smoke is out of scope on this branch.
+#
+# Needs the local Showdown server (the worktree's clone at 59da482e):
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# journey_step: 3 (gen4 encoder + model) — bring-up only; the step's exit
+# condition (JOURNEY.md:68) is still unwritten and this run does not touch it.
+env_id: ShowdownGen4-v0
+seed: 1
+total_steps: 8192
+eval_every: 4096
+eval_episodes: 10
+num_envs: 4
+torch_threads: 1
+checkpoint_every: 4096
+run_name: gen4_smoke_heur_s1
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: heuristics
+  eval_opponent: heuristics
+agent:
+  algo: ppo
+  hidden_sizes: [64, 64]
+  lr: 2.5e-4
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 128
+  epochs: 4
+  minibatches: 4
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

@@ -41,11 +41,13 @@ from poke_env.player import (  # noqa: E402
 from poke_env.ps_client import AccountConfiguration, LocalhostServerConfiguration  # noqa: E402
 
 from rl.envs.gen4.tape import protocol_stats  # noqa: E402
+from rl.envs.players import MostDamageTypedPlayer  # noqa: E402
 
 PLAYERS = {
     "random": RandomPlayer,
     "max_power": MaxBasePowerPlayer,
     "heuristics": SimpleHeuristicsPlayer,
+    "most_damage_typed": MostDamageTypedPlayer,
 }
 
 

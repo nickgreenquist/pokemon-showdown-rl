@@ -151,3 +151,6 @@ def _ensure_showdown_registered() -> None:
     # poke_env import to first use, so every other env pays nothing for it.
     if "Showdown-v0" not in gym.registry:
         gym.register(id="Showdown-v0", entry_point="rl.envs.showdown:ShowdownEnv")
+    # gen-4 twin (rl/envs/gen4/env.py); same lazy entry-point idiom.
+    if "ShowdownGen4-v0" not in gym.registry:
+        gym.register(id="ShowdownGen4-v0", entry_point="rl.envs.gen4.env:Gen4ShowdownEnv")

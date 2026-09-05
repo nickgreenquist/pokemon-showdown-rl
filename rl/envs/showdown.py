@@ -54,6 +54,7 @@ from poke_env.player import (
 )
 
 from rl.envs.encoder_spec import GEN1, EncoderSpec, spec_for_format
+from rl.envs.players import MostDamageTypedPlayer
 from rl.envs.randbats_prior import conditional_move_probs, known_species
 from rl.selfplay.pool import SnapshotPool
 
@@ -62,6 +63,11 @@ OPPONENT_PLAYERS: dict[str, type[Player]] = {
     "random": RandomPlayer,
     "max_power": MaxBasePowerPlayer,
     "heuristics": SimpleHeuristicsPlayer,
+    # JOURNEY's pre-step-3 anchor (rl/envs/players.py): H&L's most-damage-typed
+    # bot, the cross-generation denominator. Descriptive only; it joins the
+    # anchor battery by maintainer ruling (open_questions.md Q36), not by
+    # being registered here.
+    "most_damage_typed": MostDamageTypedPlayer,
 }
 
 # --- Gen 1 observation encoder (designed 2026-07-30, replaces the 10-dim
