@@ -646,6 +646,14 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
                          f"got {concurrency!r} (E4b: the knee is K=8)")
     if not cfg.env_id.startswith("Showdown"):
         raise ValueError("collector.mode 'async' is Showdown-only")
+    if not cfg.env_id.startswith("Showdown-"):
+        # ShowdownGen4-v0 passes the check above but the async path builds
+        # fake_spaces() at the gen-1 OBS_DIM and encodes with the gen-1
+        # embed_battle (battle_format is not threaded — encoder_requirements
+        # §13); it would train gen 1 while stamping a gen-4 fingerprint and
+        # die at the first eval (2026-09-05 review).
+        raise ValueError(f"collector.mode 'async' is gen-1 only (env_id {cfg.env_id!r}); "
+                         "use collector.mode 'sync' for ShowdownGen4-v0")
     if not vectorized:
         raise ValueError("collector.mode 'async' needs a vectorized algorithm "
                          "(the episode batches enter PPO's _optimize)")

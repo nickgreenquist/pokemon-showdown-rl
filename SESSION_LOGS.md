@@ -10551,3 +10551,50 @@ line numbers are not — grep the date, then read that region):
   `docs/design_gen4/research/wang_thesis.md`: Wang 2024 is gen4RB, PURE mirror
   self-play, SB3 PPO, 150M learner steps ≈ 75M per-seat over 4 days on 78
   workers, validated as win rate over 200 games vs SimpleHeuristics; H&L was gen 7.
+
+- 2026-09-05 (evening, maintainer + agent) — **GEN-4 MERGE REVIEWED (three
+  Opus reviewers: encoder correctness, training-path integration, claims vs
+  artifacts); ONE RULING; BLOCKER + MAJORS FIXED ON MAIN.** RULING (maintainer:
+  "I agree with A"): the step-5 "matched" is ONE-SIDED — pooled 3×3000 vs-SH
+  ≥ 0.756 (0.786 minus one se of Wang's n=200), no ceiling; the anchors doc's
+  lower-2·se-bound test (Q5/A3) is superseded and marked so in JOURNEY step 5,
+  open_questions §0.5/Q5, anchors §6/§9/§10, STATUS, the smoke config.
+  CLAIMS AUDIT: every reachable number reproduced (FP 226-24-0 / 228-22-0,
+  42,191 = Σ t0–t6, vocab 300/182/101/40, 600,000 sets, 17 tests, F-21
+  whitelist works, no secrets, no new deps); stale text fixed (anchors §0
+  battery + "not built" row, "still unwritten" ×3, 1,530 vs 1,650, 41,908 vs
+  42,191 denominators, STATUS layout arithmetic 6×61+6×62, JOURNEY line
+  anchors :68→:74 / :116→:122); README credits now name Wang and Huang & Lee;
+  tape.py carries the purity sentence; scripts/README indexes the 9 new
+  scripts. OPEN for the maintainer: the BC-clone leg for the first gen4
+  readout (JOURNEY's milestone vs CLAUDE.md's battery — anchors §10 item 6).
+  ENCODER REVIEW: BLOCKER — tracker._reveal_from_cause filed `[from]
+  ability: X` on the `[of]` mon; Showdown's `[of]` is the effect's SOURCE, so
+  Water/Volt Absorb/Dry Skin landed on the attacker and Trace on the traced
+  mon → false immunities for the rest of the battle. FIXED (holder = subject
+  for -heal/-ability, Trace reveals both; `[of]` otherwise). MAJORS FIXED:
+  Hidden Power variant slot carries P(variant) not 1.0 (bellossom .503/.497);
+  Curse encoded as the stat form (pool has no Ghost Curse user); Castform
+  formes / Cherrim-Sunshine → base species in the prior (it went EMPTY on a
+  Forecast flip); Wish 0.5 / Healing Wish 0; 2–5-hit at the gen-4 3.0 (§3.6);
+  own unknown item = state 0; `-fail|TARGET|par` keeps the target's lock. Not
+  fixed, recorded in §13: dead tracker fields, Frisk wire format, p≥0.999
+  "known" bit, sleep-counter fallback, `_move_slots_aliased`. NO value-level
+  gate exists yet (the ruled hash gate is item 2) — the fixes are pinned by 8
+  new tests and the reference replay re-recorded: 42,191 decisions, 0 NaN /
+  OOB / poisoned, 183.7 µs/decision, sha b72dcbc7… (scripts/
+  gen4_reference_replay.py, new). INTEGRATION REVIEW: gen 1 is untouched for
+  every configured opponent (F-08 hash gate live; registry/fingerprint changes
+  additive) — the one behaviour change is ShowdownEnv.reset reseeding a
+  most_damage_typed env opponent (now via a seed_rng hook; tested; no
+  committed config selects it; `mix:` deliberately not reseeded); async
+  collector accepted ShowdownGen4-v0 and would have trained gen 1 under a
+  gen-4 fingerprint → now REFUSED at launch (test); FP gen4 scripts buffered
+  60 MB tapes in RAM and killed only the FP parent → TapeWriter streams per
+  batch, FP runs in its own process group and is SIGTERM/SIGKILL'd as a
+  group, a per-minute progress line prints (rule 4 ii/iii); setup script
+  gains requirements-search.txt's mandatory pip flags and an executed .so
+  discriminator (gen4 env: src/genx/ 7, src/gen1/ 0). VERIFIED: bare suite
+  817 passed / 17 skipped (server up); gen4 env smoke 8 battles 0 desyncs;
+  tape smoke; FP@20 smoke 2 battles fp_exit 0, tape streamed, no FP process
+  left. Nothing pushed.

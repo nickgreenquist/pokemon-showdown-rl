@@ -25,6 +25,7 @@ import json
 import logging
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -35,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from poke_env.ps_client import AccountConfiguration, ServerConfiguration  # noqa: E402
 
-from rl.envs.gen4.tape import protocol_stats  # noqa: E402
+from rl.envs.gen4.tape import TapeWriter, protocol_stats  # noqa: E402
 from scripts.gen4_smoke import PLAYERS, TapeMixin, _WarningTally  # noqa: E402
 
 FP_DIR = Path(os.environ.get("FPDIR", Path(__file__).resolve().parents[2] / "foul-play"))
@@ -54,6 +55,44 @@ _GREPS = {
 }
 
 
+def _launch_fp(cmd: list[str], log_fh) -> subprocess.Popen:
+    """Foul Play in its OWN process group, so a stop reaches its search workers."""
+    return subprocess.Popen(cmd, cwd=str(FP_DIR), stdout=log_fh, stderr=subprocess.STDOUT,
+                            start_new_session=True)
+
+
+def _stop_fp(fp: subprocess.Popen, grace_s: float = 60.0) -> None:
+    """Reap Foul Play AND its `--search-parallelism` workers (scripts/ch3_r4_fp_runner.sh
+    :177-195 exists because killing only the parent orphaned live workers that kept
+    the room and poisoned the username pair for hours). The whole process group gets
+    SIGTERM, then SIGKILL; the parent is waited so fp.returncode is the signal."""
+    try:
+        fp.wait(timeout=grace_s)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    for sig, wait_s in ((signal.SIGTERM, 15.0), (signal.SIGKILL, 15.0)):
+        try:
+            os.killpg(fp.pid, sig)
+        except ProcessLookupError:
+            break
+        try:
+            fp.wait(timeout=wait_s)
+            break
+        except subprocess.TimeoutExpired:
+            continue
+
+
+async def _progress(seat, t0: float, total: int, every_s: float = 60.0) -> None:
+    """One line a minute — the RATE a babysitter reads (CLAUDE.md rule 4(iii))."""
+    while True:
+        await asyncio.sleep(every_s)
+        n = seat.n_finished_battles
+        el = time.time() - t0
+        print(f"progress: {n}/{total} battles, W-L-T {seat.n_won_battles}-{seat.n_lost_battles}-"
+              f"{seat.n_tied_battles}, {el / max(n, 1):.1f} s/battle, {el / 60:.0f} min", flush=True)
+
+
 def _server(port: int) -> ServerConfiguration:
     return ServerConfiguration(
         f"ws://localhost:{port}/showdown/websocket",
@@ -62,7 +101,10 @@ def _server(port: int) -> ServerConfiguration:
 
 
 async def _run(args) -> dict:
-    tape: list = []
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    tape_path = out / f"{args.tag}.jsonl"
+    tape = TapeWriter(tape_path)  # streamed per batch, never buffered in RAM
     stats: Counter = Counter()
     pid = os.getpid() % 10000
     seat_name = f"g4fp{args.tag[:4]}s{pid}"[:18]
@@ -79,8 +121,6 @@ async def _run(args) -> dict:
         tape=tape,
         stats=stats,
     )
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     fp_log = out / f"{args.tag}.foulplay.log"
     cmd = [
         str(FP_PY), "run.py",
@@ -99,23 +139,18 @@ async def _run(args) -> dict:
     accept = asyncio.create_task(seat.accept_challenges(fp_name, args.battles))
     await asyncio.sleep(3.0)
     timed_out = False
+    ticker = asyncio.create_task(_progress(seat, t0, args.battles))
     with fp_log.open("w") as fh:
-        fp = subprocess.Popen(cmd, cwd=str(FP_DIR), stdout=fh, stderr=subprocess.STDOUT)
+        fp = _launch_fp(cmd, fh)
         try:
             await asyncio.wait_for(accept, timeout=args.timeout)
         except asyncio.TimeoutError:
             timed_out = True  # the seat stops accepting; the tape and summary below still land
         finally:
-            try:
-                fp.wait(timeout=60)
-            except subprocess.TimeoutExpired:
-                fp.kill()
-                fp.wait()  # reap, so fp_exit_code is the signal, not None
+            ticker.cancel()
+            _stop_fp(fp)
     wall = time.time() - t0
-    tape_path = out / f"{args.tag}.jsonl"
-    with tape_path.open("w") as fh:
-        for ev in tape:
-            fh.write(json.dumps(ev) + "\n")
+    tape.close()
     text = fp_log.read_text(errors="replace")
     greps = {k: len(p.findall(text)) for k, p in _GREPS.items()}
     m = _GREPS["loaded_from_cache"].search(text)

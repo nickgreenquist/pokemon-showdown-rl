@@ -4,8 +4,10 @@
 # not meant to be re-run blindly: it creates a conda env, compiles a Rust
 # extension and pre-places a pinned data file in the shared foul-play clone.
 #
-# WHY A SECOND ENV. poke-engine is compiled PER GENERATION (Cargo features,
-# default = []). The `foul-play` env holds the gen1 build that every gen-1
+# WHY A SECOND ENV. poke-engine is compiled PER GENERATION (Cargo features;
+# both recipes pass --no-default-features, so the crate's default set is
+# irrelevant here — requirements-search.txt's "default build is GEN 4" and an
+# earlier "default = []" in this header were never verified against Cargo.toml). The `foul-play` env holds the gen1 build that every gen-1
 # FP number was measured with; rebuilding it for gen4 would silently retire
 # the gen-1 anchor. One env per engine build; the foul-play SOURCE clone
 # (../foul-play, with our gen-1 patch applied) is shared read-only, and the
@@ -42,8 +44,26 @@ echo "2/4 foul-play's pinned requirements EXCEPT poke-engine (its line carries t
 "$PIP" install -q requests==2.33.0 websockets==14.1 python-dateutil==2.8.0
 
 echo "3/4 poke-engine 0.0.48 compiled with the gen4 feature (needs cargo; ~1 min)"
-(cd "$FPDIR" && "$PIP" install -v --no-cache-dir "poke-engine==0.0.48" \
+# EXACTLY requirements-search.txt's flags: pip's wheel cache ignores
+# --config-settings, so without --no-binary/--force-reinstall a re-run can
+# install a cached wheel of the WRONG generation and still exit 0.
+(cd "$FPDIR" && "$PIP" install -v --no-cache-dir --force-reinstall --no-binary poke-engine \
+    "poke-engine==0.0.48" \
     --config-settings="build-args=--features poke-engine/gen4 --no-default-features")
+
+echo "3b/4 verify the build (the .so discriminator; gen 1 automates the same check as FG-5)"
+"/opt/anaconda3/envs/$ENV_NAME/bin/python" - << 'PYEOF'
+import glob, sys
+so = glob.glob("/opt/anaconda3/envs/" + sys.argv[0] if False else "/opt/anaconda3/envs/*/lib/python3.11/site-packages/poke_engine/poke_engine*.so")
+so = [p for p in so if "/foul-play-gen4/" in p]
+assert so, "no poke_engine .so in the gen4 env"
+b = open(so[0], "rb").read()
+genx, gen1, spc = b.count(b"src/genx/"), b.count(b"src/gen1/"), b.count(b"used for spc")
+print(f"{so[0]}: src/genx/ {genx}, src/gen1/ {gen1}, 'used for spc' {spc}")
+if not (genx >= 1 and gen1 == 0 and spc == 0):
+    print("WRONG-GENERATION BUILD: expected src/genx/ >= 1, src/gen1/ == 0, 'used for spc' == 0", file=sys.stderr)
+    sys.exit(3)
+PYEOF
 
 echo "4/4 pinned gen4 set file into foul-play's cache (verify the sha first)"
 TMP="$(mktemp)"

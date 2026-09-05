@@ -82,3 +82,41 @@ def test_forced_switch_minimises_the_opponents_type_pressure():
     assert switch_weakness(exeggutor, zapdos) == 0.5 + 2  # grass/psychic: resists electric, weak to flying
     order = player().choose_move(battle(None, zapdos, [], switches=[starmie, golem, exeggutor]))
     assert order.order.species == "golem"
+
+
+def test_showdown_env_reset_reseeds_the_anchor_through_the_hook():
+    """ShowdownEnv.reset(seed=k) latches the anchor's private stream to Random(k)
+    (the gen-4 merge widened the hook past PoolPlayer); a later reset with no
+    seed leaves it alone; a stock bot without the hook is a no-op."""
+    import random
+    from types import SimpleNamespace
+    from rl.envs.showdown import ShowdownEnv
+    from poke_env.player import RandomPlayer
+
+    class _ResetStub:
+        def __init__(self):
+            self.env = SimpleNamespace(agent1_to_move=True, battle1=None)
+
+        def reset(self, *, seed=None, options=None):
+            import numpy as np
+            from rl.envs.showdown import OBS_DIM
+            return {"observation": np.zeros(OBS_DIM, np.float32),
+                    "action_mask": np.array([1] + [0] * 9, np.int64)}, {}
+
+    def env_with(opponent):
+        env = ShowdownEnv.__new__(ShowdownEnv)
+        env._env = _ResetStub()
+        env._privileged = False
+        env.waits_absorbed = 0
+        env._pool_player = None
+        env._opponent = opponent
+        return env
+
+    mdt = player()
+    env = env_with(mdt)
+    env.reset(seed=123)
+    assert mdt._rng.getstate() == random.Random(123).getstate()
+    draw = mdt._rng.random()
+    env.reset()  # unseeded: must not reseed
+    assert mdt._rng.getstate() != random.Random(123).getstate()
+    env_with(RandomPlayer(battle_format=FMT, start_listening=False)).reset(seed=5)  # no hook: no-op

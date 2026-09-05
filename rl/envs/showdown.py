@@ -1286,12 +1286,16 @@ class ShowdownEnv(Env):
             # decorrelate on.
             if self._pool_player is not None:
                 self._pool_player.seed_rng(seed)
-            elif isinstance(self._opponent, MostDamageTypedPlayer):
-                # the scripted anchor's private tie-break stream: unseeded,
-                # every sub-env and every lane would draw the identical
-                # Random(0) sequence (rl/envs/most_damage_typed.py seeds it
-                # once at construction; a seed_rng hook there is the cleanup)
-                self._opponent._rng.seed(seed)
+            elif hasattr(self._opponent, "seed_rng"):
+                # a scripted anchor's private tie-break stream (today only
+                # MostDamageTypedPlayer exposes the hook): unseeded, every
+                # sub-env and every lane would draw the identical Random(0)
+                # sequence. MixturePlayer and the stock poke-env bots are
+                # deliberately NOT reseeded — historical `mix:` configs keep
+                # their pre-2026-09-05 streams. Landed with the gen-4 merge;
+                # it changes gen-1 behaviour ONLY for a most_damage_typed
+                # env opponent, which no committed config selects.
+                self._opponent.seed_rng(seed)
         obs, info = self._env.reset(seed=seed, options=options)
         assert self._env.env.agent1_to_move, "reset returned a wait state"
         info["action_mask"] = obs["action_mask"].astype(bool)

@@ -51,3 +51,10 @@ def test_bad_blocks_fail_at_launch(over, match):
 def test_scalar_algorithms_are_refused():
     with pytest.raises(ValueError, match="vectorized"):
         _async_collector_mode(_cfg(), vectorized=False)
+
+
+def test_async_mode_refuses_a_gen4_env_id():
+    # The async collector's format is not threaded: it would train gen 1 under a
+    # gen-4 fingerprint and die at the first eval (2026-09-05 review).
+    with pytest.raises(ValueError, match="gen-1 only"):
+        _async_collector_mode(_cfg(env_id="ShowdownGen4-v0"), vectorized=True)

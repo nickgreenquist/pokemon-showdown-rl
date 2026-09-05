@@ -13,7 +13,10 @@ player runs — and call back at every decision point with the battle object
 and the request. That is what lets an encoder be exercised offline on real
 gen-4 states with no server, and what the gen-4 tape hash gate will pin.
 
-Recorded by scripts/gen4_smoke.py (the design_gen4 [live] checks). The
+PURITY: tapes are bring-up instruments and eval evidence — they are NEVER
+training data, and no training path imports this module (the pure self-play
+lane admits no expert or replay data; RESULTS §1). Recorded by
+scripts/gen4_smoke.py (the design_gen4 [live] checks). The
 protocol tallies below are the instrument for the docs' [live] claims:
 every count is a plain grep over the tape, so a reader can re-run it.
 """
@@ -23,6 +26,35 @@ from __future__ import annotations
 import gzip
 import json
 import logging
+
+
+class TapeWriter:
+    """List-shaped sink that streams each batch to disk as it arrives.
+
+    The recorders used to accumulate every batch in a Python list and write
+    once at the end — a 300-battle tape is ~60 MB of JSON held live, and a
+    death at 90 % lost the whole arm (CLAUDE.md rule 4(ii): a death costs one
+    unit of work). `append` writes one line and flushes; `len()` still works.
+    """
+
+    def __init__(self, path):
+        from pathlib import Path
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._fh = self.path.open("w")
+        self._n = 0
+
+    def append(self, ev) -> None:
+        self._fh.write(json.dumps(ev) + "\n")
+        self._fh.flush()
+        self._n += 1
+
+    def __len__(self) -> int:
+        return self._n
+
+    def close(self) -> None:
+        if not self._fh.closed:
+            self._fh.close()
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Callable, Iterator

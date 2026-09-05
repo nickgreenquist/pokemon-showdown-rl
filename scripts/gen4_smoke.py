@@ -40,7 +40,7 @@ from poke_env.player import (  # noqa: E402
 )
 from poke_env.ps_client import AccountConfiguration, LocalhostServerConfiguration  # noqa: E402
 
-from rl.envs.gen4.tape import protocol_stats  # noqa: E402
+from rl.envs.gen4.tape import TapeWriter, protocol_stats  # noqa: E402
 from rl.envs.most_damage_typed import MostDamageTypedPlayer  # noqa: E402
 
 PLAYERS = {
@@ -144,7 +144,10 @@ def _make(cls_name: str, username: str, tape: list, stats: Counter, fmt: str, co
 
 
 async def _run(args) -> dict:
-    tape: list = []
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    tape_path = out / f"{args.tag}.jsonl"
+    tape = TapeWriter(tape_path)  # streamed, not buffered
     stats_a: Counter = Counter()
     stats_b: Counter = Counter()
     pid = os.getpid() % 10000
@@ -155,12 +158,7 @@ async def _run(args) -> dict:
     t0 = time.time()
     await p_a.battle_against(p_b, n_battles=args.battles)
     wall = time.time() - t0
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
-    tape_path = out / f"{args.tag}.jsonl"
-    with tape_path.open("w") as fh:
-        for ev in tape:
-            fh.write(json.dumps(ev) + "\n")
+    tape.close()
     summary = {
         "format": args.format,
         "player": args.player,

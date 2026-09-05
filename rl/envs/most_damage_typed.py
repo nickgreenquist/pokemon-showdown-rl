@@ -70,6 +70,12 @@ class MostDamageTypedPlayer(Player):
         super().__init__(*args, **kwargs)
         self._rng = random.Random(seed)
 
+    def seed_rng(self, seed: int) -> None:
+        """Reseed the private tie-break stream (ShowdownEnv.reset's per-sub-env
+        hook, the same shape as PoolPlayer.seed_rng). Never touches the global
+        `random` stream poke-env derives usernames from."""
+        self._rng.seed(seed)
+
     def choose_move(self, battle):
         if self.format_is_doubles:
             return self.choose_random_move(battle)

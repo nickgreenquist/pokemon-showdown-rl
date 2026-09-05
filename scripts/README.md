@@ -218,3 +218,21 @@ D29r VOID verdict, a published negative result.
 
 RESOLVED 2026-08-29 (CLEANUP B8): kept as deliberate near-duplicates, each
 now carrying a header note pointing at the other — a bug fix lands in BOTH.
+
+## Additions 2026-09-05 (ladder R4 readout, the gen-1 anchor, gen-4 bring-up)
+
+The directory is now **114 `.py`/`.sh`/`.js` files at this level** (plus
+`replay_audit/`). Same rule as above: each of these is the only committed
+provenance for a gitignored number or artifact.
+
+| script | what it is the provenance for |
+|---|---|
+| `anchor_h2h.py` | two REGISTRY bots head-to-head on the local server; the most-damage-typed gen-1 placement (0.983 / 0.777 / 0.330 vs random / MaxBasePower / SH, n=300, sanity only) |
+| `search_depreciation_table.py` | rebuilds the search-gain-vs-greedy-strength table from the eval JSONs (`docs/proposals/search_depreciation_check.md`); prints no verdict |
+| `gen4_smoke.py` | local gen4randombattle bot-vs-bot smoke + the tape recorder; the design docs' `[live]` tallies (t0–t7 under `docs/design_gen4/research/live/`) |
+| `gen4_env_smoke.py` | `ShowdownGen4-v0` + the gen-4 encoder through a learner loop; the "smoke closes" claim |
+| `gen4_build_vocab.py` | builds `rl/envs/gen4/data/{gen4_vocab,gen4_set_samples,gen4_randbats_sets}.json` from the vendored sim's generator (stamps sha, seed, counts) |
+| `gen4_sample_generator.js` | the 100k-team generator sample the vocab and the exact set prior are derived from |
+| `setup_foulplay_gen4.sh` | the recorded recipe for the `foul-play-gen4` conda env (poke-engine 0.0.48 gen-4 build, pinned set file, .so check) |
+| `gen4_fp_smoke.py` | Foul Play (gen-4 build) vs a scripted seat on the local server; the FP@20 / FP@500 vs SH n=250 placements (bot-vs-bot, descriptive) |
+| `gen4_fp_h2h.py` | Foul Play (gen-4 build) vs OUR gen-4 checkpoint — the eval-bot path; no protocol number until a gen-4 pre-reg names it |

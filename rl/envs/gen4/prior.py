@@ -43,6 +43,19 @@ HIDDEN_POWER = "hiddenpower"
 # (moves, ability, item, count)
 SetSample = tuple[frozenset[str], str, str, int]
 
+# Battle-only formes poke-env writes into `mon.species` mid-battle (Forecast,
+# Flower Gift). The generator never emits them, so their set table is the base
+# species' (2026-09-05 review: the prior went EMPTY for an opponent Castform
+# the turn its weather flipped — no predicted moves, no item classes).
+_BASE_FORME = {
+    "castformrainy": "castform", "castformsnowy": "castform",
+    "castformsunny": "castform", "cherrimsunshine": "cherrim",
+}
+
+
+def base_species(species: str) -> str:
+    return _BASE_FORME.get(species, species)
+
 
 @lru_cache(maxsize=1)
 def _raw() -> dict:
@@ -64,7 +77,7 @@ def _sets() -> dict[str, tuple[SetSample, ...]]:
 
 @lru_cache(maxsize=1)
 def known_species() -> frozenset:
-    return frozenset(_sets())
+    return frozenset(_sets()) | frozenset(_BASE_FORME)
 
 
 def stamp() -> dict:
@@ -75,7 +88,7 @@ def stamp() -> dict:
 def _consistent(
     species: str, revealed: frozenset, ability: str | None, item: str | None
 ) -> list[SetSample]:
-    rows = _sets().get(species, ())
+    rows = _sets().get(base_species(species), ())
     keep = [
         r for r in rows
         if revealed <= r[0]
@@ -141,6 +154,25 @@ def item_probs(
 
 
 @lru_cache(maxsize=16384)
+def hidden_power_variant_probs(
+    species: str, revealed: frozenset = frozenset(), ability: str | None = None, item: str | None = None
+) -> dict[str, float]:
+    """P(typed Hidden Power variant) over the rows consistent with the OTHER
+    revealed moves, the known ability and item. Empty when none carries one.
+    12 of the 63 HP-carrying pool species have more than one variant and 8 of
+    those are ~50/50 (2026-09-05 review) — the chosen variant's probability,
+    not 1.0, is what the move slot must carry."""
+    rows = _consistent(species, revealed - {HIDDEN_POWER}, ability, item)
+    acc: dict[str, int] = {}
+    for moves, _, _, count in rows:
+        for m in moves:
+            if m.startswith(HIDDEN_POWER):
+                acc[m] = acc.get(m, 0) + count
+    total = sum(acc.values())
+    return {m: c / total for m, c in acc.items()} if total else {}
+
+
+@lru_cache(maxsize=16384)
 def hidden_power_variant(
     species: str, revealed: frozenset = frozenset(), ability: str | None = None, item: str | None = None
 ) -> str | None:
@@ -163,7 +195,8 @@ def hidden_power_variant(
 
 
 def species_level(species: str) -> int | None:
-    return VOCAB.levels.get(to_id(species))
+    sid = to_id(species)
+    return VOCAB.levels.get(sid, VOCAB.levels.get(base_species(sid)))
 
 
 def verify_against_vocab() -> tuple[bool, str]:

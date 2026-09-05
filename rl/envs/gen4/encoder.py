@@ -127,6 +127,14 @@ def effect_block(move_id: str) -> np.ndarray:
     if self_boost:
         v[7] += sum(self_boost.values()) / 4.0
     vol = entry.get("volatileStatus")
+    if move_id == "curse":
+        # Showdown keys the GHOST form (volatileStatus 'curse'); the stat form
+        # (+1 Atk +1 Def -1 Spe, applied in onHit so `boosts` is None) is what
+        # every Curse user in the gen4randombattle pool runs — no Ghost in the
+        # pool carries it (2026-09-05 review; pool-conditioned, disclosed in
+        # encoder_requirements §13)
+        v[7] = 1.0 / 4.0
+        vol = None
     if vol in _MOVE_VOL_INDEX:
         v[16 + _MOVE_VOL_INDEX[vol]] = 1.0
     for sec in m.secondary or []:
@@ -143,10 +151,18 @@ def effect_block(move_id: str) -> np.ndarray:
         svol = sec.get("volatileStatus")
         if svol in _MOVE_VOL_INDEX:
             v[16 + _MOVE_VOL_INDEX[svol]] = chance
-    v[9] = m.heal if m.heal else (1.0 if "heal" in m.flags else 0.0)
+    if move_id == "wish":
+        v[9] = 0.5  # half HP, one turn LATER (tracker.wish_pending carries the timing)
+    elif move_id == "healingwish":
+        v[9] = 0.0  # heals the REPLACEMENT; the user faints (v[13] below)
+    else:
+        v[9] = m.heal if m.heal else (1.0 if "heal" in m.flags else 0.0)
     v[10] = m.drain
     v[11] = m.recoil
-    v[12] = (m.expected_hits - 1.0) / 2.0
+    # gen 4 multi-hit: 3/8, 3/8, 1/8, 1/8 over 2-5 hits = 3.0 expected, not
+    # poke-env's gen-5+ 3.167 (encoder_requirements §3.6)
+    expected_hits = 3.0 if m.n_hit == (2, 5) else m.expected_hits
+    v[12] = (expected_hits - 1.0) / 2.0
     v[13] = bool(m.self_destruct)
     v[14] = "recharge" in m.flags
     v[15] = "charge" in m.flags
@@ -233,11 +249,13 @@ def _known_item(mon) -> str | None:
 def _item_belief(mon, own: bool) -> tuple[int, dict[str, float]]:
     """(state, P(item)): state 0 unknown | 1 known held | 2 known none."""
     item = mon.item
-    if item == UNKNOWN_ITEM and not own:
+    if item == UNKNOWN_ITEM:
+        if own:
+            return 0, {}  # never "known none": the request normally fills it
         ability = to_id(mon.ability) if mon.ability else None
         probs = prior.item_probs(to_id(mon.species), _revealed(mon), ability)
         return 0, {k: p for k, p in probs.items() if k != "(none)"}
-    if not item or item == UNKNOWN_ITEM:
+    if not item:
         return 2, {}
     return 1, {to_id(item): 1.0}
 
@@ -437,11 +455,18 @@ def opponent_move_slots(theirs) -> list[tuple[object, float]]:
     seen = _revealed(theirs)
     slots = []
     for m in list(theirs.moves.values())[:4]:
+        p = 1.0
         if canonical_move_id(m.id) == prior.HIDDEN_POWER:
             variant = next((s for s in seen if s.startswith(prior.HIDDEN_POWER)), None)
             if variant:
                 m = _typed_hidden_power(m, variant)  # the set prior's type, its PP
-        slots.append((m, 1.0))
+                # the TYPE is a guess: carry its probability, not certainty
+                # (bellossom rock .503 / fire .497 — 2026-09-05 review)
+                p = prior.hidden_power_variant_probs(
+                    to_id(theirs.species), seen - {variant},
+                    to_id(theirs.ability) if theirs.ability else None, _known_item(theirs),
+                ).get(variant, 1.0)
+        slots.append((m, p))
     if len(slots) >= 4:
         return slots[:4]
     species = to_id(theirs.species)

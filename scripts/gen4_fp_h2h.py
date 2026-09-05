@@ -24,7 +24,6 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 import sys
 import time
 from collections import Counter
@@ -41,11 +40,11 @@ from rl.common.checkpoint import load_checkpoint  # noqa: E402
 from rl.common.config import Config  # noqa: E402
 from rl.envs.gen4.env import GEN4_FORMAT, Gen4PoolPlayer, fake_spaces_gen4  # noqa: E402
 from rl.envs.gen4.spec import OBS_DIM_GEN4  # noqa: E402
-from rl.envs.gen4.tape import protocol_stats  # noqa: E402
+from rl.envs.gen4.tape import TapeWriter, protocol_stats  # noqa: E402
 from rl.envs.showdown import mask_desync_total  # noqa: E402
 from rl.selfplay.pool import SnapshotPool  # noqa: E402
 from rl.train import make_agent  # noqa: E402
-from scripts.gen4_fp_smoke import _GREPS, FP_DIR, FP_PY, _server  # noqa: E402
+from scripts.gen4_fp_smoke import _GREPS, FP_PY, _launch_fp, _progress, _server, _stop_fp  # noqa: E402
 from scripts.gen4_smoke import TapeMixin, _WarningTally  # noqa: E402
 
 
@@ -79,14 +78,15 @@ def _seat(ckpt_path: str, username: str, port: int, tape: list, stats: Counter, 
 
 
 async def _run(args) -> dict:
-    tape: list = []
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    tape_path = out / f"{args.tag}.jsonl"
+    tape = TapeWriter(tape_path)  # streamed per batch, never buffered in RAM
     stats: Counter = Counter()
     pid = os.getpid() % 10000
     seat_name = f"g4h2h{args.tag[:3]}s{pid}"[:18]
     fp_name = f"g4h2h{args.tag[:3]}f{pid}"[:18]
     seat = _seat(args.checkpoint, seat_name, args.port, tape, stats, args.seed)
-    out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
     fp_log = out / f"{args.tag}.foulplay.log"
     cmd = [
         str(FP_PY), "run.py",
@@ -104,23 +104,18 @@ async def _run(args) -> dict:
     accept = asyncio.create_task(seat.accept_challenges(fp_name, args.battles))
     await asyncio.sleep(3.0)
     timed_out = False
+    ticker = asyncio.create_task(_progress(seat, t0, args.battles))
     with fp_log.open("w") as fh:
-        fp = subprocess.Popen(cmd, cwd=str(FP_DIR), stdout=fh, stderr=subprocess.STDOUT)
+        fp = _launch_fp(cmd, fh)
         try:
             await asyncio.wait_for(accept, timeout=args.timeout)
         except asyncio.TimeoutError:
             timed_out = True  # the seat stops accepting; the tape and summary below still land
         finally:
-            try:
-                fp.wait(timeout=60)
-            except subprocess.TimeoutExpired:
-                fp.kill()
-                fp.wait()  # reap, so fp_exit_code is the signal, not None
+            ticker.cancel()
+            _stop_fp(fp)
     wall = time.time() - t0
-    tape_path = out / f"{args.tag}.jsonl"
-    with tape_path.open("w") as fh:
-        for ev in tape:
-            fh.write(json.dumps(ev) + "\n")
+    tape.close()
     text = fp_log.read_text(errors="replace")
     return {
         "checkpoint": args.checkpoint,

@@ -131,8 +131,14 @@ class BattleTracker:
             self.encored_move.pop(ident, None)
             self.locked_move.pop(ident, None)
             # sleep_attempts deliberately kept: gen-4 sleep does not reset on switch
-        elif tag in ("faint", "-miss", "-fail"):
+        elif tag in ("faint", "-miss"):
             self.locked_move.pop(norm_ident(sm[2]), None)  # `-miss|SOURCE|TARGET`
+        elif tag == "-fail":
+            # `-fail|USER` (the user's move failed) ends a rampage; but
+            # `-fail|TARGET|par` (a status the target already has) names the
+            # TARGET, whose own lock must survive (2026-09-05 review)
+            if len(sm) == 3 or sm[3] not in _STATUS_TOKENS:
+                self.locked_move.pop(norm_ident(sm[2]), None)
         elif tag == "move":
             if len(sm) < 4:
                 return
@@ -235,11 +241,27 @@ class BattleTracker:
             self.weather_indefinite = any(f.startswith("[from] ability:") for f in rest)
 
     def _reveal_from_cause(self, sm: list[str]) -> None:
-        """Any `[from] ability: X` names X as the ability of the `[of]` mon if
-        one is given, else of the message's subject — Natural Cure on
-        `-curestatus`, Static on `-status`, Sand Stream on `-weather`, Rough
-        Skin on `-damage`, Clear Body on `-fail`, ... poke-env drops the cause
-        on most of these (survey §3.2)."""
+        """Any `[from] ability: X` reveals X — but WHO holds X depends on the
+        message, because Showdown's `[of]` names the EFFECT'S SOURCE, not the
+        ability's owner (2026-09-05 review, BLOCKER):
+
+        * `-damage` / `-status` / `-boost` / `-unboost` / `-weather` / `-item`
+          with `[of]`: the holder is the `[of]` mon — Rough Skin, Aftermath,
+          Liquid Ooze, Static, Effect Spore, Synchronize, Intimidate, Sand
+          Stream / Drought, Frisk (`sim/battle.ts` damage/boost/weather paths);
+        * `-heal`: the holder is the SUBJECT — Water Absorb / Volt Absorb /
+          Dry Skin heal the target and `[of]` is the ATTACKER
+          (`sim/battle.ts` heal(): `[of] ${source}` when source != target);
+        * `-ability|TRACER|NewAbility|[from] ability: Trace|[of] TRACED`: the
+          subject holds Trace and the `[of]` mon holds NewAbility
+          (`sim/pokemon.ts` setAbility) — two reveals;
+        * no `[of]`: the subject — Natural Cure on `-curestatus`, Levitate on
+          `-immune`, Speed Boost on `-boost`, Clear Body on `-fail`, Forecast
+          on `-formechange`, Solar Power / Dry Skin sun damage on `-damage`.
+
+        The pre-fix rule ("`[of]` if given, else the subject") filed Water
+        Absorb on the attacker and Trace on the traced mon — a FALSE IMMUNITY
+        in the matchup block for the rest of the battle."""
         cause = ""
         of = ""
         for field in sm[3:]:
@@ -249,9 +271,23 @@ class BattleTracker:
                 of = field[5:]
         if not cause:
             return
-        subject = of if of else (sm[2] if sm[1] != "-weather" else "")
-        if subject.startswith("p") and ":" in subject:
-            self.revealed_ability[norm_ident(subject)] = to_id(cause)
+        tag = sm[1]
+        if tag in ("-heal", "-ability"):
+            holder = sm[2]
+            if tag == "-ability" and of and to_id(cause) == "trace":
+                traced_ability = sm[3] if len(sm) > 3 and not sm[3].startswith("[") else ""
+                if traced_ability and self._is_ident(of):
+                    self.revealed_ability[norm_ident(of)] = to_id(traced_ability)
+        elif tag == "-weather":
+            holder = of
+        else:
+            holder = of if of else sm[2]
+        if self._is_ident(holder):
+            self.revealed_ability[norm_ident(holder)] = to_id(cause)
+
+    @staticmethod
+    def _is_ident(s: str) -> bool:
+        return bool(s) and s.startswith("p") and ":" in s
 
     # --- reads --------------------------------------------------------------
     def weather_elapsed(self, turn: int) -> int:
@@ -272,4 +308,5 @@ class BattleTracker:
 
 
 _CHOICE = frozenset({"choiceband", "choicespecs", "choicescarf"})
+_STATUS_TOKENS = frozenset({"par", "slp", "brn", "frz", "psn", "tox", "confusion"})
 _RAMPAGE = frozenset({"outrage", "thrash", "petaldance"})

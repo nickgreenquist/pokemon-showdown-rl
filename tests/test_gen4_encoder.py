@@ -474,3 +474,82 @@ def test_tape_replay_shape_and_bounds(tape, min_decisions):
     r = replay_tape(tape, on_decision)
     assert r["poisoned"] == 0 and not r["errors"], r
     assert r["decisions"] == seen["n"] > min_decisions
+
+
+# ---- 2026-09-05 review fixes: pinned as tests so the hash gate freezes the fixes ----
+
+def test_reveal_from_cause_files_the_ability_on_its_holder():
+    from rl.envs.gen4.tracker import BattleTracker
+    t = BattleTracker.__new__(BattleTracker)
+    t.revealed_ability = {}
+    # Water Absorb heals the TARGET; `[of]` is the attacker
+    t._reveal_from_cause(["", "-heal", "p1a: Vaporeon", "100/100", "[from] ability: Water Absorb", "[of] p2a: Kingdra"])
+    assert t.revealed_ability == {"p1: Vaporeon": "waterabsorb"}
+    # Rough Skin damages the ATTACKER; `[of]` is the holder
+    t._reveal_from_cause(["", "-damage", "p2a: Kingdra", "88/100", "[from] ability: Rough Skin", "[of] p1a: Garchomp"])
+    assert t.revealed_ability["p1: Garchomp"] == "roughskin"
+    assert "p2: Kingdra" not in t.revealed_ability or t.revealed_ability["p2: Kingdra"] != "roughskin"
+    # Trace: the subject holds Trace, the `[of]` mon holds the traced ability
+    t._reveal_from_cause(["", "-ability", "p1a: Gardevoir", "Thick Fat", "[from] ability: Trace", "[of] p2a: Snorlax"])
+    assert t.revealed_ability["p1: Gardevoir"] == "trace"
+    assert t.revealed_ability["p2: Snorlax"] == "thickfat"
+    # no `[of]`: the subject
+    t._reveal_from_cause(["", "-immune", "p2a: Bronzong", "[from] ability: Levitate"])
+    assert t.revealed_ability["p2: Bronzong"] == "levitate"
+    # weather names the setter through `[of]`
+    t._reveal_from_cause(["", "-weather", "Sandstorm", "[from] ability: Sand Stream", "[of] p2a: Tyranitar"])
+    assert t.revealed_ability["p2: Tyranitar"] == "sandstream"
+
+
+def test_fail_on_the_target_keeps_the_rampage_lock():
+    from rl.envs.gen4.tracker import BattleTracker
+    t = BattleTracker.__new__(BattleTracker)
+    t.revealed_ability = {}
+    t.locked_move = {"p2: Salamence": ("outrage", 3)}
+    t._apply(["", "-fail", "p2a: Salamence", "par"])  # Thunder Wave into a paralysed mon: TARGET named
+    assert t.is_locked("p2: Salamence")
+    t._apply(["", "-fail", "p2a: Salamence"])  # the user's own move failed
+    assert not t.is_locked("p2: Salamence")
+
+
+def test_effect_block_curse_wish_and_multihit_corrections():
+    from rl.envs.gen4.encoder import effect_block
+    curse = effect_block("curse")
+    assert curse[7] == 0.25 and curse[16:] .sum() == 0.0  # stat Curse, no Ghost residual
+    assert effect_block("wish")[9] == 0.5
+    hw = effect_block("healingwish")
+    assert hw[9] == 0.0 and hw[13] == 1.0
+    assert abs(effect_block("rockblast")[12] - 1.0) < 1e-9  # (3.0 - 1) / 2
+
+
+def test_hidden_power_slot_carries_the_variant_probability():
+    from rl.envs.gen4 import prior
+    probs = prior.hidden_power_variant_probs("bellossom")
+    assert set(probs) and abs(sum(probs.values()) - 1.0) < 1e-9
+    if len(probs) > 1:
+        assert max(probs.values()) < 0.999  # a coin flip is not a certainty
+    v = prior.hidden_power_variant("bellossom")
+    assert v in probs
+
+
+def test_battle_only_formes_share_the_base_species_prior():
+    from rl.envs.gen4 import prior
+    assert "castformsunny" in prior.known_species()
+    assert prior.ability_probs("castformsunny") == prior.ability_probs("castform") != {}
+    assert prior.conditional_move_probs("cherrimsunshine", frozenset()) == prior.conditional_move_probs("cherrim", frozenset())
+    assert prior.species_level("castformrainy") == prior.species_level("castform")
+
+
+def test_set_prior_data_is_pinned_to_the_vendored_sim():
+    """The exact set prior's sets file must be the vendored checkout's, byte for
+    byte, and the vocab's stamp must agree (2026-09-05 review: nothing gated it)."""
+    import hashlib, json
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    ours = root / "rl/envs/gen4/data/gen4_randbats_sets.json"
+    vocab = json.loads((root / "rl/envs/gen4/data/gen4_vocab.json").read_text())
+    sha = hashlib.sha256(ours.read_bytes()).hexdigest()
+    assert sha == vocab["sets_sha256"]
+    vendored = root / "showdown/data/random-battles/gen4/sets.json"
+    if vendored.exists():
+        assert hashlib.sha256(vendored.read_bytes()).hexdigest() == sha
