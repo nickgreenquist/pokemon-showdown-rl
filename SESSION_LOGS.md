@@ -10145,3 +10145,48 @@ line numbers are not — grep the date, then read that region):
   entry and the README docs table now name `IDEAS_POST_100M.md` as the live
   lever list; CLEANUP.md item marked DISCHARGED. Docs-only; ladder R4 is live
   and untouched.
+
+- 2026-09-05 (early morning, autonomous; maintainer asleep) — **LADDER R4
+  COMPLETE, VALID, READ OUT — JOURNEY STEP 2 DISCHARGED.** The run stopped by
+  the rule at 06:39:00Z (n=200, rd 25.0), attempt 1, 0 supervisor relaunches,
+  0 watchdog kills, 0 socket losses, 0 gaps > 900 s, 12.57 h realized span,
+  runner wall 12.60 h. End backup at n=200 (mirror verified; tarball
+  ladder_20260905_0240.tar.gz). **PRIMARY READ off the profile: GXE 65.2%,
+  Glicko-1 1618 +/- 25, Elo 1354**; the profile record is the CUMULATIVE
+  199-201 over 400 (R1's 95-105 + this run); this run's runner-logged subset
+  is 104-96 = 0.520, played-only 97/193 = 0.503; **reconciliation closes at
+  zero unlogged games** (400 == 200 + 200, wins and losses both match). Not
+  listed; admission cutoff 1359.98 at n=0 and 1359.68 at stop — same band,
+  the M2 rank-500 clause stands; the licensed [1300,1400) cell reads 0.423
+  (22/52, replay-built), printed beside R1 0.319 / R3 0.444, never subtracted.
+  Highest pre-battle Elo 1431 (peak is not a result), 122 distinct opponents,
+  mean opponent Elo 1283, aggregate implied 1297, mean turns 26.6 (ratio 0.938
+  to the t112 proxy, inside the 22.0-26.9 projection), 220.0 s/battle median,
+  forfeit 38 / played_out 150 / no_show 7 / timeout_midgame 5, rematch 0.474
+  (n=78) vs first 0.549 (n=122) in the confound's own direction. VOID (a)-(g)
+  all clear: six provenance keys exactly, mean_decision_ms 3.204 vs the 15 ms
+  bound, max_concurrent 1, tallies 200/200. Disclosures carried: account reuse
+  + warm start (Elo(R4)-Elo(R1) barred by name), NO courtesy note (M10),
+  blindness held (the per-battle W/L print is the disclosed leak and was read
+  via the 30-min babysit summary and two maintainer asks), confound 9 did not
+  fire, the RNG-resume wrinkle does not apply. **BUILD ITEMS LANDED, no
+  fallback used:** BI-R4-2 (repeatable --compare-jsonl, one table per prior;
+  R3 reference column + R3 categories column), BI-R4-5 (obligation (vii)
+  reconciliation un-gated from label=="R3", cumulative form via
+  --prior-account-games / --prior-account-record, mandatory gap block with
+  cause or "UNCLASSIFIED"), BI-R4-6 (tests/test_ladder_docs.py: greps
+  README/STATUS/RESULTS ladder lines for W-L pairs outside the headline set),
+  plus the obligation (vii) identity check (--prereg: refuses to render under
+  the wrong --name/--jsonl — verified refusing nickgen1rbrlbot2), the R4
+  headline/disclosure/ledger/VOID blocks (--report, --board-n0), an
+  object-specific turn-calibration line, and a hand-written-appendix
+  preservation marker. Barred-language scan: three literal hits, all inside
+  the pre-reg's own carried text (recorded in the readout's appendix).
+  **RECORDED:** readouts/LADDER_R4_READOUT.md (generated + Appendix A),
+  RESULTS §16 header/intro re-scoped to three runs, §16.3 re-scoped with the
+  R4 comparison ruling verbatim, NEW §16.5 (16.4 unchanged), README top
+  paragraph + a LADDER R4 section + the Results-paragraph pointer, STATUS
+  rewritten (step 2 DONE; next is step 3), HANDOFF restored to the stub.
+  E2 exemption on ckpt_100000008.pt LIFTED with this readout. STATUS's
+  gen4-design line was stale for a few hours (the maintainer's other session
+  landed docs/design_gen4/ on main mid-run); corrected here. Nothing pushed.
