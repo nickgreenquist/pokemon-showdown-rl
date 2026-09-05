@@ -22,6 +22,7 @@ Step 1 DONE AND CREDITED. The 2026-08-31 off-arc order (100M run) is
   @3d8fd19: bare suite **785 passed / 17 skipped**, tree clean, main ==
   origin/main, branch + worktree gone. F-04 pre-reg / F-06 / F-07 are
   PROPOSALS under docs/proposals/ (unruled).
+- `CHAPTER5.md` ARCHIVED to docs/archive/ (2026-09-04; lifecycle rule met).
 - **`gen4-design` PAUSED (maintainer, 2026-09-04 evening) — NOT a ladder
   blocker.** As found: ZERO commits of its own, worktree `docs/design_gen4`
   EMPTY, base 58 commits behind main — rebase onto main when resumed.

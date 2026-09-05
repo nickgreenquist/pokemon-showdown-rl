@@ -23,10 +23,12 @@ exactly that (see do-not-relitigate below).
   `decide(battle, type_chart, act_fn, *, on_desync)` helper with the policy
   explicit. DEFERRED 2026-08-29: an 8-site refactor of live eval/collection
   paths directly before R2 is the wrong moment; revisit after R2 lands.
-- **CHAPTER5.md migration** (its own lifecycle rule): §3 (C1–C6 provenance),
-  §6 (out-of-scope), §7 (five rulings incl. the 50M ceiling) must survive
-  into R2's pre-reg header; §1/§2/§4/§5/§8 are migrated/superseded already.
-  Archive the file WITH or AFTER R2's pre-reg — never before.
+- **CHAPTER5.md migration — DISCHARGED 2026-09-04.** §3/§6/§7 survived
+  verbatim into R2's pre-reg header (`configs/showdown_sp_batch50m.yaml`,
+  ratified and run 2026-08-31); §1/§2/§4/§5/§8 were superseded already; §7
+  ruling 4 superseded by the 100M header. File archived to
+  `docs/archive/CHAPTER5.md` (body verbatim under a 13-line banner: `:N` cites
+  resolve at N+13).
 - **B9 — poke-env sporadically drops `battle.rating`** (race in the
   `|player|` parse; found live at n=5). ACCEPTED, not fixed: the readouts
   read the replays, which are authoritative, and the primary read is
