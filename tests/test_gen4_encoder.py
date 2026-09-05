@@ -375,6 +375,72 @@ def test_tracker_rampage_lock():
     assert not tr.is_locked("p2: Tyranitar")
 
 
+def test_gen4_pool_player_trackers_are_bounded():
+    """A tracker per battle TAG, popped exactly when PoolPlayer pops the
+    `_by_tag` entry: at report_outcome (sync training path) and at the
+    finished sweep (listening / async paths)."""
+    from types import SimpleNamespace
+
+    from rl.envs.gen4.env import Gen4PoolPlayer
+
+    class _Pool:
+        reports: list = []
+
+        def freeze(self):
+            pass
+
+        def select(self, rng):
+            return "m"
+
+        def member_id(self, m):
+            return 0
+
+        def report(self, m, outcome):
+            self.reports.append(outcome)
+
+    player = Gen4PoolPlayer(_Pool(), battle_format="gen4randombattle", start_listening=False)
+    player._by_tag["battle-a"] = (SimpleNamespace(finished=False), "m", 0)
+    player._trackers["battle-a"] = BattleTracker()
+    player.report_outcome(1)  # the sync caller names no battle
+    assert not player._by_tag and not player._trackers and _Pool.reports == [1]
+    player._by_tag["battle-b"] = (SimpleNamespace(finished=True), "m", 0)
+    player._trackers["battle-b"] = BattleTracker()
+    player._by_tag["battle-c"] = (SimpleNamespace(finished=False), "m", 0)
+    player._trackers["battle-c"] = BattleTracker()
+    player._sweep_finished()
+    assert set(player._by_tag) == {"battle-c"} == set(player._trackers)
+
+
+def test_most_damage_typed_rule_and_seeding():
+    """H&L's rule: base power x type chart against the foe, STATUS 0, OHKO
+    120, Return 102; forced switch = least summed type weakness; ties from a
+    PRIVATE seeded stream that ShowdownEnv.reset seeds per sub-env."""
+    from types import SimpleNamespace
+
+    from poke_env.battle.pokemon import Pokemon
+
+    from rl.envs.players import MostDamageTypedPlayer
+
+    p = MostDamageTypedPlayer(battle_format="gen4randombattle", start_listening=False, seed=0)
+    magnezone = Pokemon(gen=4, species="magnezone")  # Electric / Steel
+    gyarados = Pokemon(gen=4, species="gyarados")    # Water / Flying
+    assert p._score(Move("earthquake", gen=4), magnezone) == 100 * 4
+    assert p._score(Move("toxic", gen=4), magnezone) == 0.0
+    assert p._score(Move("fissure", gen=4), magnezone) == 120.0
+    assert p._score(Move("return", gen=4), magnezone) == 102 * 0.5
+    assert p._weakness(gyarados, magnezone) == 4.0 + 0.5  # Electric 2x2, Steel 0.5x1
+    # ties: Thunderbolt and Flamethrower are both 95 BP neutral into a Normal type
+    foe = Pokemon(gen=4, species="snorlax")
+    moves = [Move("thunderbolt", gen=4), Move("flamethrower", gen=4)]
+    battle = SimpleNamespace(opponent_active_pokemon=foe, available_moves=moves, available_switches=[])
+    picks = [p.choose_move(battle).order.id for _ in range(16)]
+    assert set(picks) == {"thunderbolt", "flamethrower"}
+    q = MostDamageTypedPlayer(battle_format="gen4randombattle", start_listening=False, seed=0)
+    assert [q.choose_move(battle).order.id for _ in range(16)] == picks
+    q.seed_rng(1)
+    assert [q.choose_move(battle).order.id for _ in range(16)] != picks
+
+
 # --- (v) the offline tape replay ----------------------------------------------
 
 

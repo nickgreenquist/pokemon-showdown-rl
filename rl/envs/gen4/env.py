@@ -76,26 +76,44 @@ class Gen4ShowdownSingles(sd.ShowdownSingles):
 
 class Gen4PoolPlayer(sd.PoolPlayer):
     """PoolPlayer whose members see gen-4 encodings (they were trained on
-    them). Trackers are per battle object, swept with the battle."""
+    them). One BattleTracker per battle TAG, popped exactly when the
+    `_by_tag` entry is: at `report_outcome` (the sync training path, which
+    pops the entry before the next battle's first choose_move can sweep it)
+    and at the finished-battle sweep (the listening / async paths). Keying
+    by object and pruning only in the sweep leaked one tracker per battle
+    on the training path (2026-09-05 review)."""
 
     def __init__(self, pool: SnapshotPool, *, battle_format: str = GEN4_FORMAT, **kwargs):
         super().__init__(pool, battle_format=battle_format, **kwargs)
-        self._trackers: dict[object, BattleTracker] = {}
+        self._trackers: dict[str, BattleTracker] = {}
+
+    def _sweep_finished(self) -> None:
+        for tag, (done, _, _) in list(self._by_tag.items()):
+            if getattr(done, "finished", False):
+                del self._by_tag[tag]
+                self._choices.pop(tag, None)
+                self._turn_counts.pop(tag, None)
+                self._trackers.pop(tag, None)
+
+    def report_outcome(self, outcome: int, battle_tag: str | None = None) -> None:
+        if battle_tag is None and self._by_tag:
+            battle_tag = next(iter(self._by_tag))  # PoolPlayer's sync-path resolution
+        super().report_outcome(outcome, battle_tag)
+        if battle_tag is not None:
+            self._trackers.pop(battle_tag, None)
 
     def choose_move(self, battle):
         assert not battle.wait, "wait state reached the pool opponent"
-        entry = self._by_tag.get(battle.battle_tag)
+        tag = battle.battle_tag
+        entry = self._by_tag.get(tag)
         if entry is None:
-            for tag, (done, _, _) in list(self._by_tag.items()):
-                if getattr(done, "finished", False):
-                    del self._by_tag[tag]
-                    self._choices.pop(tag, None)
-                    self._turn_counts.pop(tag, None)
-                    self._trackers = {b: t for b, t in self._trackers.items() if b is not done}
+            self._sweep_finished()
             member = self._pool.select(self._rng)
             entry = (battle, member, self._pool.member_id(member))
-            self._by_tag[battle.battle_tag] = entry
-        tracker = self._trackers.setdefault(battle, BattleTracker())
+            self._by_tag[tag] = entry
+        tracker = self._trackers.get(tag)
+        if tracker is None:
+            tracker = self._trackers[tag] = BattleTracker()
         obs = embed_battle_gen4(battle, self._type_chart, tracker)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         action = entry[1].move(obs, mask, self._rng)
@@ -147,6 +165,7 @@ class Gen4ShowdownEnv(Env):
             discard_seat2_obs=True,
         )
         player = opponent_player_gen4(opponent, battle_format)
+        self._opponent = player
         self._pool_player = player if isinstance(player, sd.PoolPlayer) else None
         self._env = SingleAgentWrapper(inner, player)
         self.action_space = self._env.action_space

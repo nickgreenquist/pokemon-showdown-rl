@@ -98,15 +98,19 @@ async def _run(args) -> dict:
     # give the seat a moment to log in before the challenge arrives
     accept = asyncio.create_task(seat.accept_challenges(fp_name, args.battles))
     await asyncio.sleep(3.0)
+    timed_out = False
     with fp_log.open("w") as fh:
         fp = subprocess.Popen(cmd, cwd=str(FP_DIR), stdout=fh, stderr=subprocess.STDOUT)
         try:
             await asyncio.wait_for(accept, timeout=args.timeout)
+        except asyncio.TimeoutError:
+            timed_out = True  # the seat stops accepting; the tape and summary below still land
         finally:
             try:
                 fp.wait(timeout=60)
             except subprocess.TimeoutExpired:
                 fp.kill()
+                fp.wait()  # reap, so fp_exit_code is the signal, not None
     wall = time.time() - t0
     tape_path = out / f"{args.tag}.jsonl"
     with tape_path.open("w") as fh:
@@ -124,6 +128,7 @@ async def _run(args) -> dict:
         "fp_env_python": str(FP_PY),
         "fp_dir": str(FP_DIR),
         "fp_exit_code": fp.returncode,
+        "timed_out": timed_out,
         "wall_s": round(wall, 1),
         "s_per_battle": round(wall / max(args.battles, 1), 2),
         "seat_record": [seat.n_won_battles, seat.n_lost_battles, seat.n_tied_battles],

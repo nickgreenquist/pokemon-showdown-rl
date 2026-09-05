@@ -1245,6 +1245,7 @@ class ShowdownEnv(Env):
         # disabled report path would corrupt PFSP forever without a metric
         # that looks wrong.
         self._pool_player = player if isinstance(player, PoolPlayer) else None
+        self._opponent = player
         self._env = SingleAgentWrapper(inner, player)
         self.action_space = self._env.action_space
         self.observation_space = self._env.observation_space["observation"]
@@ -1278,13 +1279,19 @@ class ShowdownEnv(Env):
         )
 
     def reset(self, *, seed=None, options=None):
-        if seed is not None and self._pool_player is not None:
+        if seed is not None:
             # The vector loop's first reset fans out seed + i per sub-env;
             # every later reset passes None. Latch it here: ShowdownEnv
             # never seeds gymnasium's np_random (episodes are server-rolled),
             # so this is the only per-sub-env stream the member draw can
             # decorrelate on.
-            self._pool_player.seed_rng(seed)
+            if self._pool_player is not None:
+                self._pool_player.seed_rng(seed)
+            elif hasattr(self._opponent, "seed_rng"):
+                # a scripted opponent with a private tie-break stream
+                # (MostDamageTypedPlayer): unseeded, every sub-env and every
+                # lane would draw the identical Random(0) sequence
+                self._opponent.seed_rng(seed)
         obs, info = self._env.reset(seed=seed, options=options)
         assert self._env.env.agent1_to_move, "reset returned a wait state"
         info["action_mask"] = obs["action_mask"].astype(bool)
