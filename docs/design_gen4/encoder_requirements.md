@@ -567,12 +567,15 @@ tuples become a commitment only in a gen-4 pre-registration header (§4.7).
 
 **Reference replay (not a pinned gate):** every recorded tape (t0–t6, 1,650
 seat-battles, **42,191 decisions**) through `embed_battle_gen4` → 0 NaN, every
-value inside `Box(-1, 4)`, 0 poisoned battles, **166 µs/decision** (gen 1:
-~133), sha256 `8acdc50a5ff09444275c50a7c9372b6d04c4dce2e8b3a8a03576910ef7ff0731`.
+value inside `Box(-1, 4)`, 0 poisoned battles, **193 µs/decision** (gen 1:
+~133; 166 before the Hidden Power resolution and the rampage lock), sha256
+`bbcf9f601c412a24ee7382fb654bb22c76e8ed39df0137a8b82ebbf77a4ff905` — sha256
+over `vec.tobytes()` per decision in tape order, the gen-1 gate's rule
+(`tests/test_encoder_spec.py`); re-recorded at the branch head after the
+2026-09-05 review fixes (the pre-review record was `8acdc50a…`).
 The gen-4 hash gate (§8, Q19) is buildable now — the tapes exist — and lands
 the moment a pre-reg freezes the tuples; until then the reference hash is a
-record, not a pin (and that record predates the 2026-09-05 review fixes,
-which change bytes, not shape or bounds — re-record when the gate lands).
+record, not a pin.
 
 **Unreachable at the pinned pool (2026-09-05 review):** ~90 of the 1,448 dims
 never left zero over 41,908 recorded decisions — Stealth Rock / Reflect / Light

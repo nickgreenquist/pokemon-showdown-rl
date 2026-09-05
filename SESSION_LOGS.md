@@ -10310,4 +10310,9 @@ line numbers are not — grep the date, then read that region):
   live"; §4.2's ≈33 reconciled to the built 31; the research index header and
   its broken table; the setup-script header's 39 of 40 items; `__init__` lists
   classes / prior. Tests: 17 gen-4 offline tests; pool / showdown / gen-4
-  suites green (78). Commits 130aee5, 091b7b4, 8ef40fd, ce4adb7, b9a8859.
+  suites green (78). Reference replay re-recorded at the branch head over
+  all seven local tapes: 42,191 decisions, 0 NaN / 0 out of Box(-1,4) / 0
+  poisoned, 193 µs/decision (166 before the two new reads), sha256
+  bbcf9f60… over `vec.tobytes()` per decision in tape order (supersedes
+  8acdc50a…; a record, not a pin). Commits 130aee5, 091b7b4, 8ef40fd,
+  ce4adb7, b9a8859, b2ee298.
