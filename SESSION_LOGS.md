@@ -10145,3 +10145,66 @@ line numbers are not — grep the date, then read that region):
   entry and the README docs table now name `IDEAS_POST_100M.md` as the live
   lever list; CLEANUP.md item marked DISCHARGED. Docs-only; ladder R4 is live
   and untouched.
+- 2026-09-05 (overnight, autonomous; maintainer ruling 2026-09-04 evening,
+  branch `gen4-build` in worktree `../pokemon-showdown-rl-gen4`, ladder R4
+  untouched) — **GEN4 GROUNDWORK STARTED: the design docs finished against a
+  live server and the gen-4 encoder built to layout v0.1.** Ruling recorded:
+  gen4 groundwork starts NOW, ahead of step 2's readout, on its own branch;
+  training beyond a smoke is out of scope; gen-4 numbers stay out of the gen-1
+  chapter's STATUS / README / RESULTS. (Also the M2 entry never appended:
+  the five design docs LANDED ON MAIN 2026-09-04, commits 32f6239..df3fe8f,
+  research notes at b12b362.) Server: a FRESH clone of pokemon-showdown @
+  59da482e inside the worktree (gitignored), simulator 4, port 8000 (free —
+  the ladder plays on the official server; the main checkout's server stayed
+  stopped per LG-7); killed at the end of the session. Nothing under the main
+  checkout was read or written except `data/` tapes for one aborted symlink.
+  Three commits: (1) bring-up instruments + vocab/prior data; (2) encoder v0.1
+  + env + most-damage-typed anchor; (3) docs revised + four research notes +
+  fixes. **Live checks:** 760 bot battles (random / SH / max-power vs SH, 60
+  under strict tracking) + 90 with most-damage-typed, every message of both
+  seats recorded as replayable tapes (`data/gen4_tapes/`, gitignored;
+  summaries tracked under `docs/design_gen4/research/live/`): 0 poke-env
+  UNKNOWN warnings, 0 handler exceptions, strict tracking survives;
+  `maybe_trapped` rejections 28/9,091 random-seat decisions (0.3 %), never a
+  loop; force-switch requests never carry `active`; weather stamp age always
+  0/1; poke-env's sleep counter reads 4 after two sleeping turns (cant + both
+  Sleep Talk move lines); Encore's move is never on the wire; Substitute
+  damage carries no amount; Roost's type change is never visible at a
+  decision; `-ability` announcers are SIX (Speed Boost, Download too); ties
+  1–3.5 % (simultaneous KOs, longest game 147 turns, no turn-cap game);
+  Sleep Clause exempts Rest (seen). Generator sampled offline: 600k sets,
+  296 species ids, 101 abilities, 39/40 items (Light Clay unreachable), 181
+  moves, Stealth Rock 0, 1,743 realised (moves, ability, item) triples
+  (unseen mass ~0) — the EXACT set prior, no sampler port. **Built:**
+  `rl/envs/gen4/` (spec/layout v0.1: global 36 | mon 61 | active 31 | move 71
+  | ids 44 → OBS_DIM 1,448; forme-keyed vocabs 300/182/101/40 stamped with
+  the sets.json sha; 12+5 class taxonomies as data-as-code; tracker for the
+  state poke-env lacks; `embed_battle_gen4`; `ShowdownGen4-v0`), the
+  most-damage-typed anchor registered (`most_damage_typed`; gen4 29-1-0 vs
+  random, 14-15-1 vs SH, gen1 24-5-1 vs max-power, 30 each, descriptive),
+  `rl/train.py` stamps the gen-4 fingerprint. Reference replay over all tapes:
+  42,191 decisions, 0 NaN, 0 out of Box(-1,4), 166 us/decision, sha256
+  8acdc50a... (a record, not a pin). Learner smoke closed end to end
+  (`configs/gen4_smoke_heur.yaml`, 16 updates, 127 steps/s at 4 envs; no
+  number). Suite on the branch: 793 passed, 27 skipped, 4 failed — all four
+  are artifact-on-disk tests (gitignored `runs/` / `results/` absent from the
+  worktree). **Research wave:** four Opus agents in ONE wave (D1 Wang's
+  Showdown fork, D2 ps-ppo/Metamon obs, D3 foul-play/pokejax audit, the
+  critic pass), all landed (~1.04M agent tokens); the critic checked 131
+  citations (111 verified, 20 wrong/drifted — corrected inline). Findings
+  that change earlier records: D1 — Wang's fork samples the SAME generator
+  family we vendor (the "≤3 sets" reading counted table rows); `>getstate` is
+  a perfect-information dump; only `/offertie`'s turn-100 gate changes a rule.
+  D3 — the Struggle-panic mechanism in landmines/anchors does not survive the
+  source (unbounded `move:{i}` in the engine bridge; `grep "More than 4 moves
+  on pokemon"` is the pre-flight); foul-play's GEN4 has Regenerator-on-switch
+  enabled while 219/295 pool species keep a hidden ability; the upstream set
+  file and the vendored pool are different schemas. D2 — ps-ppo's stat range
+  is over item/ability, not EVs/IVs; nobody in the literature scalarises a
+  duration (Q13 weaker); Metamon dropped PP and paid for it. **Open (§12 of
+  open_questions.md, Q47–Q56)** and next: merge after the R4 readout (SESSION
+  _LOGS append is the only expected conflict); entity-trunk vocab arguments;
+  eval/async/collect format threading; the pinned hash gate + the gen-4
+  pre-reg that freezes the layout; Q37 (foul-play gen4 build) needs
+  authorisation; D4 (literature cross-check) and D5 (search_depreciation.md)
+  still not produced.
