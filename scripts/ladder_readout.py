@@ -681,12 +681,50 @@ def main():
           "n=200 by the agent or the runner (the runner polls the profile only from "
           "n>=200). The known, disclosed leak — the per-battle running W/L print — "
           "was read: the babysit monitor summarized the JSONL W-L every 30 min and "
-          "the maintainer asked for it twice mid-run. No stopping decision could "
-          "attach to it: the rule is mechanical and fired at n=200.")
+          "the maintainer asked for it twice mid-run. **The maintainer watched the "
+          "public board mid-run to collect screenshots** (the account listed, at one "
+          "point around rank 350) — stated rather than omitted, as R3's board-watch "
+          "was; no stopping decision attached to any of it: the rule is mechanical "
+          "and fired at n=200 exactly.")
         A("- **THE RNG-STREAM RESUME WRINKLE DOES NOT APPLY** (greedy act() ignores "
           "battle_index), and no resume happened anyway.")
         A("- **CONFOUND 9 DID NOT FIRE** (no staff contact before or during the run); "
           "the list is kept at ten, never shrunk.")
+        # ---- top-500 exposure during the run: DESCRIPTIVE, from the replay-derived
+        # pre-battle ratings against the n=0 cutoff (M2: the n=0 pull decides) ----
+        pre = [r["_true_rating"] for r in rows]
+        line = n0_cut if n0_cut is not None else 1360
+        listed_idx = [i + 1 for i, v in enumerate(pre) if v is not None and v >= line]
+        exc, prev = 0, False
+        for pv in pre:
+            a = pv is not None and pv >= line
+            exc += int(a and not prev); prev = a
+        cell_rows = [r for r in rows if band_of(r["_true_opp"]) == "1300-1399"]
+        cell_n = len(cell_rows)
+        cell_rate = (sum(1 for r in cell_rows if r["outcome"] == "win") / cell_n
+                     if cell_n else float("nan"))
+        lw = sum(1 for i in listed_idx if rows[i - 1]["outcome"] == "win")
+        peak = max(pv for pv in pre if pv) if any(pre) else None
+        peak_at = pre.index(peak) + 1 if peak else None
+        min_gxe = (rep.get("ladder_after") or {}).get("min_listed_gxe", snap.get("min_listed_gxe"))
+        se_cell = binom_se(cell_rate, cell_n) if cell_n else None
+        A("\n## Top-500 exposure during the run (DESCRIPTIVE — peak Elo is not a result)\n")
+        A(f"From the replay-derived PRE-battle ratings against the n=0 admission "
+          f"cutoff {line}: the account entered **{len(listed_idx)} of {n}** battles "
+          f"({100 * len(listed_idx) / n:.0f}%) at or above the line, in **{exc}** "
+          f"separate excursions; peak pre-battle Elo **{peak}** before battle "
+          f"{peak_at}; record while listed **{lw}-{len(listed_idx) - lw}**; final "
+          f"Elo {snap['elo']:.0f} against {stop_cut} at stop "
+          f"(**{(stop_cut or 0) - snap['elo']:.1f}** under, inside one game's swing); "
+          f"GXE {snap.get('gxe')} against the lowest listed GXE at stop, {min_gxe}. "
+          f"The licensed cell ({cell_rate:.3f}, n={cell_n}, se {se_cell:.3f}) cannot distinguish "
+          "this object from a 0.50 player in the band containing rank 500.")
+        A("**Pure self-play reached the top-500 line repeatedly; it did not hold it.** "
+          "Peak Elo is not a result (RESULTS §16.4, carried since R1); the "
+          "stopping-rule figure is the read. Evidence for the rank seen: the "
+          "maintainer's screenshots of the public board, filed under "
+          "`readouts/ladder_r4_evidence/` (placeholder until filed).")
+        A("Battle indices entered while listed: " + ", ".join(map(str, listed_idx)) + ".")
         A("\n## Obligation (ix) — realized-cost ledger\n")
         A(f"- runner launches **1**; supervisor relaunches **0**; watchdog kills **0**; "
           f"socket losses **0**; unlogged server-scored games **{recon['gap'] if recon else '?'}**.")

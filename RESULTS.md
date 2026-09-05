@@ -1088,6 +1088,18 @@ R1's 200 games is 199-201) against 122 distinct opponents this run. Against the 
 band, the band containing rank 500 on the n=0 pull, it scored 0.423 (n=52 of n_jsonl =
 200). This run credits nothing."
 
+**Top-500 exposure during the run (descriptive; peak Elo is not a result, §16.4).** From
+the replay-derived pre-battle ratings against the n = 0 admission cutoff (1359.98): the
+account entered **42 of its 200 battles (21%) at or above the line, in 13 separate
+excursions**, peaking at pre-battle Elo **1431** before battle 176 — about rank 350 by the
+maintainer's screenshots of the public board, taken to collect evidence (no stopping
+decision attached; filed under `readouts/ladder_r4_evidence/`, a placeholder until
+added). Its record while listed was **18–24**; it finished at 1354 against 1359.7 at stop,
+**5.7 Elo under, inside one game's swing**; its GXE of 65.2 sits against a lowest listed
+GXE of 67.1 at stop. The licensed cell (0.423, n = 52, se 0.069) cannot distinguish this
+object from a 0.50 player in the band containing rank 500. **Pure self-play reached the
+top-500 line repeatedly; it did not hold it.** The stopping-rule figure is the read.
+
 **R4 band table (replay-built, exhaustive, `sum(cell n) == n` asserted; the R1/R3 reference
 columns live in the readout under its CONFOUNDED heading, not here):**
 

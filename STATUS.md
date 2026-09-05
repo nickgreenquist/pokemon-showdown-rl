@@ -14,12 +14,14 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
   Glicko-1 1618 ± 25, Elo 1354, n=200 this run.** Profile record is the
   CUMULATIVE 199-201 over 400 (R1's 200 + R4's 200); this run's
   runner-logged subset 104-96 = 0.520; reconciled exactly, 0 unlogged.
-  Not listed: cutoff 1359.7 at stop. Licensed cell [1300,1400): 0.423
-  (n=52); references printed, never subtracted (R1 0.319, R3 0.444).
-  Rule met at rd 25.0; attempt 1, 0 relaunches, 0 watchdog kills, 220 s/
-  battle median, 12.57 h span. VOID (a)-(g) all clear (mean_decision_ms
-  3.204 vs bound 15). NO courtesy note (M10). **No cross-run delta is an
-  effect; Elo(R4)-Elo(R1) is barred by name.**
+  Not listed at stop (cutoff 1359.7, 5.7 under). **Listed on the top-500
+  for 42/200 battles, 13 excursions, peak 1431 ≈ rank 350 (screenshots
+  owed to readouts/ladder_r4_evidence/); 18-24 while listed — reached the
+  line, did not hold it.** Licensed cell [1300,1400): 0.423 (n=52, se
+  0.069); refs R1 0.319 / R3 0.444, never subtracted. Rule met at rd 25.0;
+  attempt 1, 0 relaunches, 0 kills; VOID (a)-(g) clear; NO courtesy note
+  (M10). **No cross-run delta is an effect; Elo(R4)-Elo(R1) and "on track
+  for top-500" are barred by name.**
 - **Record propagation (obligation viii):** 104-96 is quoted ONLY as the
   runner-logged subset, 199-201 ONLY as the cumulative profile record;
   tests/test_ladder_docs.py greps README/STATUS/RESULTS and fails otherwise.

@@ -11,7 +11,7 @@ against those artifacts.
 - Profile reachable: **True**
 - Board reachable: **True**
 - Listed on the top-500: **False**
-- Top-500 admission cutoff: Elo **1359.6802683148**
+- Top-500 admission cutoff: Elo **1358.9992435577**
 
 **PRIMARY READ (server-computed, via profile):** GXE **65.2%**, Glicko-1 **1618 +/- 25**, Elo **1354**, record **199-201** (CUMULATIVE account record — it carries 200 rated games from before this run; this run's own record is the runner-logged subset in obligation (vii)).
 Quoted WITH n, WITH the policy kind and WITH the board position,
@@ -32,7 +32,7 @@ Playing the real gen1randombattle ladder on the project's ORIGINAL rated account
 
 R4 is the first ladder measurement here whose object is drawn from a fleet carrying all three anchors at locked protocols; the lane values quoted are single-seed components of those protocols, never the protocols themselves. (A claim about the RECORD, never about the rating.)
 
-Board pulls, both archived: n=0 admission cutoff Elo **1359.9801846821** (`results/ladder/R4G.board_n0.20260904T180119Z.json`); at stop **1359.6802683148** (the runner's `ladder_after`); this readout's own pull **1359.6802683148**. M2 branch: both inside [1300,1400) and in the same band — the rank-500 clause STANDS.
+Board pulls, both archived: n=0 admission cutoff Elo **1359.9801846821** (`results/ladder/R4G.board_n0.20260904T180119Z.json`); at stop **1359.6802683148** (the runner's `ladder_after`); this readout's own pull **1358.9992435577**. M2 branch: both inside [1300,1400) and in the same band — the rank-500 clause STANDS.
 
 ## Headline (all DESCRIPTIVE — the ladder credits no lever)
 
@@ -180,9 +180,15 @@ Mean turns **26.6**, against this object's OWN off-Foul-Play@20 proxy **28.403**
 
 - **ACCOUNT REUSE / WARM START (M6, maintainer-ruled).** This run played on nickgen1rbrlbot, R1's account, because multiple accounts are against Showdown's rules. GXE, Glicko-1 and Elo at stop are ACCOUNT properties carrying R1's 200 games; the profile record is cumulative; the rating started from R1's parked end state (Elo 1292, GXE 59.6, Glicko-1 1573 +/- 27, captured at LG-2 and asserted equal to R1's banked end state — zero games on the account between 2026-08-26 and launch). **Elo(R4 end) - Elo(R1 end) is barred by name**: one account now spans both runs and that subtraction is a confounded non-effect like every other cross-run delta.
 - **NO COURTESY NOTE WAS SENT (M10, maintainer-ruled 2026-09-04 evening: not a tournament, not a high-traffic room).** The pre-reg's staff notice (M5) was waived before launch; no staff contact of any kind occurred during the run; the blind-breach licence for unsolicited contact was never used.
-- **BLINDNESS.** Profile, replay list and board were NOT opened before n=200 by the agent or the runner (the runner polls the profile only from n>=200). The known, disclosed leak — the per-battle running W/L print — was read: the babysit monitor summarized the JSONL W-L every 30 min and the maintainer asked for it twice mid-run. No stopping decision could attach to it: the rule is mechanical and fired at n=200.
+- **BLINDNESS.** Profile, replay list and board were NOT opened before n=200 by the agent or the runner (the runner polls the profile only from n>=200). The known, disclosed leak — the per-battle running W/L print — was read: the babysit monitor summarized the JSONL W-L every 30 min and the maintainer asked for it twice mid-run. **The maintainer watched the public board mid-run to collect screenshots** (the account listed, at one point around rank 350) — stated rather than omitted, as R3's board-watch was; no stopping decision attached to any of it: the rule is mechanical and fired at n=200 exactly.
 - **THE RNG-STREAM RESUME WRINKLE DOES NOT APPLY** (greedy act() ignores battle_index), and no resume happened anyway.
 - **CONFOUND 9 DID NOT FIRE** (no staff contact before or during the run); the list is kept at ten, never shrunk.
+
+## Top-500 exposure during the run (DESCRIPTIVE — peak Elo is not a result)
+
+From the replay-derived PRE-battle ratings against the n=0 admission cutoff 1359.9801846821: the account entered **42 of 200** battles (21%) at or above the line, in **13** separate excursions; peak pre-battle Elo **1431** before battle 176; record while listed **18-24**; final Elo 1354 against 1359.6802683148 at stop (**5.7** under, inside one game's swing); GXE 65.2 against the lowest listed GXE at stop, 67.1. The licensed cell (0.423, n=52, se 0.069) cannot distinguish this object from a 0.50 player in the band containing rank 500.
+**Pure self-play reached the top-500 line repeatedly; it did not hold it.** Peak Elo is not a result (RESULTS §16.4, carried since R1); the stopping-rule figure is the read. Evidence for the rank seen: the maintainer's screenshots of the public board, filed under `readouts/ladder_r4_evidence/` (placeholder until filed).
+Battle indices entered while listed: 22, 111, 114, 115, 122, 123, 124, 125, 126, 127, 128, 130, 132, 143, 144, 145, 164, 165, 166, 167, 169, 173, 174, 175, 176, 177, 178, 179, 180, 182, 183, 184, 185, 186, 187, 188, 189, 194, 195, 196, 197, 199.
 
 ## Obligation (ix) — realized-cost ledger
 

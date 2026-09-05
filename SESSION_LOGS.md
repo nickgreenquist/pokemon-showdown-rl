@@ -10190,3 +10190,33 @@ line numbers are not — grep the date, then read that region):
   E2 exemption on ckpt_100000008.pt LIFTED with this readout. STATUS's
   gen4-design line was stale for a few hours (the maintainer's other session
   landed docs/design_gen4/ on main mid-run); corrected here. Nothing pushed.
+
+- 2026-09-05 (morning, maintainer + agent) — **TOP-500 EXPOSURE RECORDED;
+  the wording ruled.** Maintainer: the account "bounced in and out of" the
+  top-500 during R4, was seen around rank 350 (screenshots, to be filed),
+  and "for all intents and purposes we DID ladder"; asked for pushback.
+  Agent's pushback, accepted: the FACT is real and goes in prominently, the
+  claim "pure self-play reaches top-500 play" does not — while listed the
+  record was 18-24, the licensed cell is 0.423 vs the rank-500 band, peak
+  Elo is not a result (§16.4, result-blind since R1), the licensed-claims
+  list was fixed result-blind and "on track for top-500" is barred by name
+  (the barred list is unamendable after ratification). Warm-start point
+  answered: a fresh account starts at 1000; the early dip to 1182 was the
+  agent's own results; Elo has no memory of the start after 200 games.
+  RULED: facts in RESULTS/readout as descriptive secondaries; the
+  forward-looking sentence in the README ONLY ("the data does not exclude a
+  pure self-play policy that holds the list; the gap at stop is inside the
+  measurement's resolution"); the maintainer's mid-run board watching is
+  NOT labelled a breach (no stopping decision attached; the rule fired at
+  200) but is STATED in the readout, as R3's was; screenshots later
+  (placeholder readouts/ladder_r4_evidence/README.md). Numbers, from the
+  replay-derived pre-battle ratings vs the n=0 cutoff 1359.98: listed for
+  42/200 battles (21%), 13 excursions, first crossing at battle 22, peak
+  1431 before battle 176, 18-24 while listed, final 1354 vs 1359.7 at stop
+  (5.7 under), GXE 65.2 vs lowest listed 67.1, cell se 0.069 (cannot
+  distinguish from 0.50). Generator gained the "Top-500 exposure" block
+  (reproducible on regeneration; a k/v shadowing bug caught and fixed
+  before it wrote) and the board-watch sentence; readout regenerated with
+  Appendix A preserved; RESULTS §16.5 paragraph; README top paragraph + R4
+  section + the forward sentence; STATUS bullet. "Reached the line, did not
+  hold it" is the sanctioned phrasing everywhere.

@@ -11,8 +11,10 @@ runs are complete at n=200 each: LADDER R1 (2026-08-25, ensemble, GXE
 **59.6%**, Glicko-1 **1573 ± 27**), LADDER R3 (2026-08-28, one-ply
 expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25**) and
 LADDER R4 (2026-09-04/05, the 100M final greedy, on R1's account reused and
-warm-started, GXE **65.2%**, Glicko-1 **1618 ± 25**). The runs are **not
-comparable** in any direction — see the R3 and R4 sections.
+warm-started, GXE **65.2%**, Glicko-1 **1618 ± 25**). During R4 the account was
+**listed on the global top-500 for 42 of its 200 battles**, peaking near rank 350,
+and finished one game's swing under the line. The runs are **not comparable** in
+any direction — see the R3 and R4 sections.
 
 ## On the ladder — LADDER R1, complete
 
@@ -135,6 +137,18 @@ stopping rule was met.**
 | Opponents | 122 distinct, mean Elo 1283 |
 | Stopping rule `rd ≤ 40 AND n ≥ 200` | **satisfied** (rd 25.0, n 200), attempt 1, no relaunch |
 | Top-500 admission cutoff | Elo 1359.7 at stop — **we are not listed** |
+
+**It reached the global top-500 during the run.** By the replay-derived pre-battle
+ratings the account was listed for **42 of its 200 battles, across 13 excursions**,
+peaking at Elo 1431 (about rank 350 by the maintainer's screenshots, to be filed
+under [`readouts/ladder_r4_evidence/`](readouts/ladder_r4_evidence/)), and finished
+at 1354 against an admission line of 1359.7 — 5.7 Elo under, inside one game's
+swing. **It did not hold the list**: 18–24 while listed, and 0.423 against the band
+containing rank 500. Peak Elo is not a result; the stopping-rule figure is the
+read. **The data does not exclude a pure self-play policy that holds the list**:
+the gap at stop is inside the measurement's resolution (the licensed cell's se is
+0.069 at n = 52), and closing it is what the gen1 return in
+[`JOURNEY.md`](JOURNEY.md) (steps 8–11) is for.
 
 **R4 is standalone descriptive, and it is not an R1 or R3 comparison.** Ten
 confounds moved between the runs at once (policy kind, training scale and
