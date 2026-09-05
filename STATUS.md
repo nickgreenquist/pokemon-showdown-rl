@@ -2,59 +2,59 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## JOURNEY POSITION — step 2 of 13 DONE (`JOURNEY.md`: gen1→gen4→gen9)
+## JOURNEY POSITION — step 3 of 13 IN PROGRESS (`JOURNEY.md`: gen1→gen4→gen9)
 Step 1 DONE AND CREDITED (batch, RESULTS §17). Step 2 (gen1 ladder #3)
-DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
-**NEXT IS STEP 3 (gen4 encoder + model), after JOURNEY's "two cheap adds".**
+DISCHARGED 2026-09-05 by LADDER R4. **Step 3 (gen4 encoder + model):
+GROUNDWORK MERGED 2026-09-05 (branch gen4-build, 17 commits) — encoder
+layout v0.1, env, eval bots; NO gen-4 model trained beyond a smoke; step 3
+still has no written exit condition (JOURNEY.md:68).**
 
-## Where things stand (2026-09-05, early morning) — LADDER R4 COMPLETE, VALID
+## Where things stand (2026-09-05, midday)
 - **LADDER R4 — COMPLETE AND READ OUT** (readouts/LADDER_R4_READOUT.md;
-  RESULTS §16.5; README section). Object: 100M final s112, GREEDY, on R1's
-  account REUSED and warm-started (M6). **PRIMARY READ: GXE 65.2%,
-  Glicko-1 1618 ± 25, Elo 1354, n=200 this run.** Profile record is the
-  CUMULATIVE 199-201 over 400 (R1's 200 + R4's 200); this run's
-  runner-logged subset 104-96 = 0.520; reconciled exactly, 0 unlogged.
-  Not listed at stop (cutoff 1359.7, 5.7 under). **Listed on the top-500
-  for 42/200 battles, 13 excursions, peak 1431 ≈ rank 350 (screenshots
-  owed to readouts/ladder_r4_evidence/); 18-24 while listed — reached the
-  line, did not hold it.** Licensed cell [1300,1400): 0.423 (n=52, se
-  0.069); refs R1 0.319 / R3 0.444, never subtracted. Rule met at rd 25.0;
-  attempt 1, 0 relaunches, 0 kills; VOID (a)-(g) clear; NO courtesy note
-  (M10). **No cross-run delta is an effect; Elo(R4)-Elo(R1) and "on track
-  for top-500" are barred by name.**
-- **Record propagation (obligation viii):** 104-96 = runner-logged subset,
-  199-201 = cumulative profile record; tests/test_ladder_docs.py enforces it.
-- **E2 exemption LIFTED** (ckpt_100000008.pt was frozen until this readout):
-  rung deletion is fully permitted (keep completion + 12M rungs; your call).
-- 100M (C1) GRADED P3: off-FP@20 0.49844 vs 0.47456 (+0.02389 < 0.025, NOT
-  credited); vs-SH 0.79589; SS-CLIMB. RESULTS §18.
-- Audit branch MERGED AND CLOSED (docs/archive/AUDIT_BRANCH_LOG.md). Other
-  session landed docs/design_gen4/ (46 rulings owed), IDEAS_POST_100M round
-  2, and moved CLEANUP/IDEAS/prior_work/research_reports under docs/.
+  RESULTS §16.5; README). GXE 65.2%, Glicko-1 1618 ± 25, Elo 1354, n=200;
+  cumulative profile 199-201 over 400; runner subset 104-96. Listed on the
+  top-500 for 42/200 battles (peak 1431), not listed at stop (5.7 under).
+  **No cross-run delta is an effect; Elo(R4)-Elo(R1) and "on track for
+  top-500" are barred by name.** Screenshots owed to readouts/ladder_r4_evidence/.
+- **GEN 4 GROUNDWORK (rl/envs/gen4/, docs/design_gen4/):** the five design
+  docs verified against 1,650 recorded seat-battles on a local gen4 server
+  (replayable tapes, rl/envs/gen4/tape.py); encoder v0.1, OBS_DIM 1,448
+  (36 | 61×12 | 31×2 | 71×8 | 44), an EXACT set prior (the vendored
+  generator's 600,000 realised sets), forme-keyed vocabs 300/182/101/40,
+  12+5 ability/item classes, a per-battle tracker for what poke-env drops
+  (weather duration, sleep attempts, items, Encore, Substitute, Choice lock,
+  Flash Fire, Wish, the Outrage lock); `ShowdownGen4-v0`; learner smoke
+  closes (16 updates, no number). Replay of 42,191 decisions: 0 NaN, in-Box;
+  17 offline tests + a committed tape fixture; two Opus reviews folded in
+  (SESSION_LOGS 09-05 midday); tapes / FP logs / smoke ckpt under gitignored data/, runs/.
+- **Foul Play gen 4 eval bot UP** (Q37): conda env `foul-play-gen4`, pinned
+  set file (sha in docs/design_gen4/research/live/fp_gen4_set_pin.json; 40
+  species drift ±1–2 levels — disclosed with every quote). vs SH n=250:
+  FP@20 226-24-0, FP@500 228-22-0, clean logs. Descriptive only, budget named.
+- most-damage-typed anchor BUILT (gen 1 sanity 0.983/0.777/0.330 vs
+  random/MBP/SH, n=300) — joins the battery only on your say-so. Search-
+  depreciation check ASSEMBLED (docs/proposals/). 100M (C1) graded P3 (RESULTS §18).
 
 ## Next actions — **MAINTAINER, in order**
-1. **Read the R4 readout and RESULTS §16.5; rule on anything to change.**
-   Nothing is pushed. Bare suite green at this commit.
-2. **JOURNEY step 3 (gen4).** Its first cheap add is DONE: the
-   most-damage-typed anchor (registry key `most_damage_typed`; H&L's rule;
-   sanity 0.983 vs random / 0.777 vs MaxBasePower / 0.330 vs SH, n=300
-   bot-vs-bot) — joins the battery only on your say-so. Second add
-   ASSEMBLED: docs/proposals/search_depreciation_check.md — table from the
-   eval JSONs (gain declines with greedy strength, zero-crossing ≈0.42;
-   s66 −0.093 at −7.3 se) + a 3-branch rule AWAITING YOUR RATIFICATION
-   (no verdict written). **STEP 3 (gen4) IS IN PROGRESS IN ANOTHER
-   WORKTREE/SESSION (maintainer, 2026-09-05): it merges main into itself,
-   then back. DO NOT touch docs/design_gen4/ or gen4 code on main meanwhile.**
-3. Rulings owed, yours: search-depreciation rule (item 2); audit F-21, F-04
-   routing, F-06/F-07, F-05 cadence, F-03 900 s; the stall-kill crash_forfeit
-   READ rule (landmines.md). MPS wording + pool.py:88 DONE 2026-09-05.
-4. Housekeeping: local Showdown server UP (fresh, pid 50440); rung deletion per E2.
+1. **Read the R4 readout / RESULTS §16.5 and the gen-4 review entry; rule on
+   anything to change.** Nothing is pushed. Suite: 794 passed, 4 failed =
+   gitignored artifacts absent locally (results/ch4_r1_offsh, runs/ rungs).
+2. **Gen-4 build items needing a ruling before they run** (encoder_requirements
+   §13): the entity trunk's layout argument (rl/networks/entity_deepsets.py is
+   gen-1-bound); the pinned gen-4 hash gate + the pre-reg that FREEZES layout
+   v0.1 (and decides the ~90 dims unreachable at this pool); the FP budget
+   ladder against a REAL gen-4 agent (Q38); step 3's exit condition. The 46
+   design rulings are indexed in docs/design_gen4/open_questions.md.
+3. Rulings owed, yours: search-depreciation rule; audit F-21, F-04 routing,
+   F-06/F-07, F-05 cadence, F-03 900 s; stall-kill crash_forfeit READ rule.
+4. Housekeeping: Showdown server UP (pid 50440, port 8000); rung deletion per E2; the gen4-build worktree can go when done.
 
 ## Watch items
 - **ONE vs-SH RUNG IS WORTH ±0.02** (pool 3 seeds; read SHAPE); **RESUME SPLITS HISTORY**.
-- vs-SH/off-FP are NEVER ladder numbers; FP@20 quotes carry budget + the
-  two standing disclosures, forever. Three (off-FP@20, ladder) k=1 pairs
-  now exist; fitting or narrating a mapping through them is barred by name.
-- foul-play Struggle PANIC open (died once in R4S66). R3's 106-94 vs 106-102
-  is explained in RESULTS §16.2 and guarded by tests/test_ladder_docs.py.
+- vs-SH/off-FP are NEVER ladder numbers; FP@<ms> quotes carry budget + the two
+  standing disclosures, forever (gen 4 adds the level-drift caveat). Three
+  (off-FP@20, ladder) k=1 pairs exist; fitting a mapping through them is barred.
+- foul-play Struggle PANIC: symptom chain + `/timer on` rule stand; the MECHANISM
+  was corrected 2026-09-05 (landmines.md); 0 hits in 525 gen-4 FP battles.
 - Ladder account parked at 199-201 / Elo 1354 (2026-09-05); any future run is a NEW pre-reg.
+- Every gen-4 number so far is a smoke or bot-vs-bot placement; none is a claim.

@@ -10483,3 +10483,19 @@ line numbers are not — grep the date, then read that region):
   at the end; the main checkout's server (8000) untouched throughout.
   Commits 130aee5, 091b7b4, 8ef40fd, ce4adb7, b9a8859, b2ee298, 58fdda3,
   7dd5791 and this one.
+- 2026-09-05 (late morning, maintainer: "merge main into this worktree branch
+  etc, then merge this back into main ... pretend this gen4 work was after the
+  ladder writeup") — **GEN4-BUILD MERGED INTO MAIN.** main merged into the
+  branch first (bfde637; the one conflict, SESSION_LOGS, resolved by keeping
+  main's entries first and the three gen4-build entries after — those ran in
+  parallel with the ladder-readout entries above them and sit after them by
+  the maintainer's instruction); main fast-forwarded to bfde637 (17 commits).
+  Suite on the merged tree: 794 passed, 27 skipped, 4 failed = gitignored
+  artifacts absent locally (`results/ch4_r1_offsh/`, `runs/` rungs). The
+  worktree's gitignored gen-4 artifacts copied into this checkout
+  (`data/gen4_tapes/` 149 MB, `data/gen4_fp/` 73 MB, `runs/gen4_smoke_heur_s1/`
+  9 MB) so the local-tape test runs here and the FP eval-bot path has its
+  checkpoint; 22 gen-4 + anchor tests pass on main. STATUS rewritten for step
+  3 in progress (60 lines); README and CLAUDE.md gained gen-4 pointers. The
+  worktree `../pokemon-showdown-rl-gen4` stays (branch `gen4-build`, fully
+  merged); nothing pushed.

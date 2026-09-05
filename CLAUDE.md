@@ -72,6 +72,11 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   one-site CPU-generator defect (`pool.py`, fixed 2026-09-05) and the prize
   behind it is ~2.5% — not worth an unvalidated backend. A GPU is permitted
   for supervised/offline arms if worth renting.
+- **Gen 4 (JOURNEY step 3; groundwork merged 2026-09-05):** env
+  `ShowdownGen4-v0` (`rl/envs/gen4/`; `configs/gen4_smoke_heur.yaml` is a
+  SMOKE, not a pre-reg); Foul Play's gen-4 engine build lives in conda env
+  `foul-play-gen4` (`scripts/setup_foulplay_gen4.sh`) — the gen-1 `foul-play`
+  env stays untouched, one env per engine build. Design: `docs/design_gen4/`.
 - **Tests:** `pytest tests/` from the repo root. Known flake (documented
   in-file): `test_full_episode_contract_against_live_server` fails only when
   the whole suite runs with a server up; passes alone.

@@ -331,7 +331,8 @@ W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` writes
 | `docs/prior_work/README.md` | verified index of external systems — several widely-repeated claims about them do not survive contact with their code |
 | `scripts/README.md` | why almost nothing in `scripts/` is safe to delete |
 | `docs/IDEAS_POST_100M.md` | the live lever list, re-ranked after the 100M read; each entry owes its own pre-reg |
-| [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md) |
+| [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md), [`LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md) |
+| `rl/envs/gen4/`, `docs/design_gen4/` | gen 4 groundwork (JOURNEY step 3, merged 2026-09-05): the design docs verified against recorded protocol tapes, encoder layout v0.1, `ShowdownGen4-v0`, the Foul Play gen-4 eval bot. No gen-4 model has been trained beyond a smoke; nothing there is a claim |
 | `docs/` | the written record: `prior_work/` and `research_reports/` (external evidence), `IDEAS_POST_100M.md`, `CLEANUP.md`, `landmines.md`, `proposals/`, `design_gen4/` |
 | `docs/archive/` | **history, never "what next"** — spent roadmaps (DESIGN, DESIGN2), the Chapter 5 brief and frozen audits, read only when named |
 
