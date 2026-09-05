@@ -1,11 +1,20 @@
 # open_questions.md — every maintainer ruling the gen4 design needs, with a recommendation and the losing argument
 
-> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design`,
+> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design` (landed on
+> main the same day); **revised 2026-09-05 on branch `gen4-build`** after the local live
+> checks (research/live/, 1,530 recorded seat-battles) and the critic pass
+> (research/critic_pass.md) — corrections are applied inline with a `critic_pass.md`
+> or `research/live/` citation, and each doc ends with a dated live-verification
+> section.
 > DOCS ONLY — nothing under `rl/` changed. **Arc position:** the target is
 > JOURNEY step 3 (gen4 encoder + model). This design work is **maintainer-ruled
 > PREPARATION running AHEAD of step 2 (gen1 ladder #3)**, written while ladder
 > R4 is live; it is not a pre-registration and it launches nothing. **Read this
 > file first**; the other four docs in this directory are its evidence.
+> **2026-09-05 revision (branch `gen4-build`):** the three research deferrals D1–D3
+> and the critic pass D6 are DISCHARGED (§7), the merge checklist is rewritten for
+> the branch that actually exists (§9), the encoder is BUILT to layout v0.1 with
+> the live checks behind it (§11), and the rulings the build surfaced are §12.
 >
 > **Method, recorded honestly.** The brief asked for a parallel research sweep,
 > two independent design memos plus an adversarial synthesis, and a completeness
@@ -226,24 +235,47 @@ should not lean on "50M was enough in gen1".
 
 Stated plainly so nothing here is mistaken for covered.
 
-**D1 — Wang's Showdown fork** (`docs/prior_work/wang_fork_diffs.md` §1, lines 13–3408:
-`>getstate`/`>load`, the constrained set regeneration, hallucinated-move disabling).
-Covered only through the thesis's description and the index. What it would add: a
-second source for a gen4 set prior and the exact set constraints his MCTS assumed.
-Its importance dropped: the vendored pool is a curated table (≤ 3 sets per
-species), not the 2023 procedural generator he sampled.
+**D1 — Wang's Showdown fork — DISCHARGED 2026-09-05** (`research/wang_showdown_fork.md`).
+The closing sentence this item carried ("the vendored pool is a curated table (≤ 3
+sets per species), not the 2023 procedural generator he sampled") was wrong on the
+architecture: his fork samples the SAME curated role-table generator family we vendor
+(`randomSets[species].sets` → `cullMovePool` → `getAbility` → `getItem`); what differs
+is the ability source (dex vs per-set list) and the table contents (2023 vs 59da482e),
+and "≤ 3 sets" counts table rows, not realised sets — the realised (moves, ability,
+item) space per species is median 4, max 41 (`mechanics_delta.md` §18). `>getstate` is a
+full perfect-information dump (interface leak; whether his search read it is unsettled,
+his client code is private); his determinizer's constraints are species, revealed
+moves, Hidden Power type-blind, item, ability, lead slot — not level / stats / PP; only
+`/offertie`'s turn-100 gate changes a battle rule. What it changed: the prior is now the
+generator's OWN output (`rl/envs/gen4/prior.py`), which makes Q12's candidate-set
+filter and weather caveat moot by construction.
 
-**D2 — ps-ppo and Metamon observation design** (`obs_abilities.py`, `obs_pokemon.py`,
-`obs_global.py`, `obs_transitions.py`; the Metamon tokenisation appendix). Only
-index-level facts were used (`encoder_requirements.md` §5). What it would add: how
-the two largest pure-policy systems encode items, abilities and stat belief ranges
-— the direct comparators for Q11 and Q29.
+**D2 — ps-ppo and Metamon observation design — DISCHARGED 2026-09-05**
+(`research/psppo_metamon_obs.md`). ps-ppo's (min, est, max) stat range is over ITEM and
+ABILITY multipliers, not EVs/IVs (which randbats pins) — the prior-work index and
+`encoder_requirements.md` §5 both said otherwise; its item-unknown test is inverted
+(`not bool("unknown_item")` is False), so its "fog of war" flag is an item-consumed bit
+— the three-state item design we chose, by accident; it discards poke-env's per-effect
+counters and clips one shared status counter at 8; its weather-duration block reads an
+attribute 0.15.0 lacks (dead code — precedent for Q28). Metamon encodes the opponent
+ACTIVE only, no durations, no PP — and reports PP stalls as its leading cause of
+invalid actions (the one negative-evidence datum: keep PP). **Q13 is weaker now**: no
+comparator scalarises a duration (Wang one-hots with a rationale; ps-ppo discards;
+Metamon has none) and none ablated it.
 
-**D3 — A full foul-play / poke-engine / pokejax audit.** Replaced by the cheap subset
-verified directly (`anchors_and_eval.md` §3: gen4 mechanics table present, gen1
-engine build installed, set data fetched at runtime). Not done: the foul-play
-search core's gen4 paths, its tests, and pokejax's bridge-bug list turned into an
-audit checklist for our gen4 bridge.
+**D3 — foul-play / poke-engine / pokejax audit — DISCHARGED 2026-09-05**
+(`research/foulplay_pokejax_audit.md`). The Struggle-panic mechanism recorded in
+`landmines.md` and `anchors_and_eval.md` §3 does not survive the source: Struggle is
+never added to a move list, the hole is an unbounded `move:{i}` index in the engine
+bridge (`fp/search/poke_engine_helpers.py:117-126`), no 5-move path is reachable in
+the vendored gen4 pool, and the gen-1 trigger is unresolved — the cheap pre-flight is
+`grep "More than 4 moves on pokemon"`. New gen4 teacher defect: Regenerator heals on
+switch-out for GEN4 while 219/295 pool species keep a Dream-World hidden ability after
+the gen-4 mods. The upstream set file and the vendored pool are different schemas
+(counted 4-move sets with items vs roles + movepools without items) — the pin is a
+six-way comparison, and a non-200 fetch caches `{}` permanently. Four of §9 step 3's
+wrapper items have a foul-play implementation to copy; Encore's move name is stored
+by neither library. Not verified: poke-engine's Rust (no checkout on disk).
 
 **D4 — The literature cross-check** (Bulbapedia / Smogon vs the vendored sim). The
 sim is the authority for what we run, so the docs lose nothing on that axis; the
@@ -260,10 +292,18 @@ plus decision-ordering", narrower than JOURNEY's "deficient value head". Ladder 
 already deployed greedy on R4S66's evidence, so the write-up no longer feeds a live
 ruling; recommend writing it beside Q44's arm.
 
-**D6 — The completeness-critic pass** the brief's method (c) required did not run.
-§8 is the reader's substitute.
+**D6 — The completeness-critic pass — DISCHARGED 2026-09-05** (`research/critic_pass.md`):
+131 citations checked, 111 verified, 20 wrong or drifted — every one corrected inline
+in the docs with a `critic_pass.md` citation; the three "dist-only" move tables
+reproduce exactly from the `.ts`; every vocab count is exact; two cross-doc
+contradictions (sleep range / wake law; Sleep Clause vs Rest) fixed; the 23-row live
+checklist was then run against the local server — results in each doc's final section.
 
-## 8. Checks a reader should still make (the critic pass this cycle could not afford)
+## 8. Checks a reader should still make — STATUS 2026-09-05
+
+Items 1, 2, 3 and 5 are done (`critic_pass.md` §1; `tests/test_gen4_encoder.py`; the
+live sections). Item 4 stands: nothing quotes §4's widths as a spec, and the v0.1
+build's 1,448 is a record, not a commitment. The original list, for the record:
 
 1. Every `showdown/` line number in `mechanics_delta.md` came from one research
    note's read; numbers quoted only from the compiled `dist/` move table should be
@@ -282,16 +322,16 @@ ruling; recommend writing it beside Q44's arm.
 
 ## 9. Merge checklist
 
-**M1 — Rebase.** The branch has only new files under `docs/design_gen4/` and is 62
-commits behind main; the rebase is a pure fast-forward and was blocked here by the
-tool classifier. Maintainer's zsh, from any directory:
-<command>
-```
-git -C /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-gen4design rebase main
-```
-</command>
-then merge or cherry-pick into main at the maintainer's discretion; nothing here
-touches STATUS, SESSION_LOGS, HANDOFF, README or RESULTS.
+**M1 — Merge.** The docs landed on main on 2026-09-04 (commits 32f6239..df3fe8f; the
+`gen4-design` worktree is gone). The 2026-09-05 work is branch **`gen4-build`** in the
+worktree `../pokemon-showdown-rl-gen4`, based on main @ 62242bd: the code under
+`rl/envs/gen4/`, `rl/envs/players.py`, the four research notes, `research/live/`, the
+doc revisions, one registry key in `rl/envs/showdown.py`, one gym registration in
+`rl/envs/make.py`, the gen-4 fingerprint branch in `rl/train.py`, the M3 corrections
+(below) and a SESSION_LOGS entry. Merge into main after the ladder R4 readout lands
+(the only expected conflict is the SESSION_LOGS append). The full suite on the branch:
+793 passed, 27 skipped, 4 failed — the four are artifact-on-disk tests (`runs/`,
+`results/` are gitignored and absent from the worktree), not code.
 
 **M2 — SESSION_LOGS entry text** (to append at merge; STATUS gains one line pointing
 here under "Next actions"):
@@ -320,13 +360,17 @@ here under "Next actions"):
 > landed; docs written single-writer by maintainer ruling; no memo cycle, no
 > critic pass. Research notes are on disk only (scratchpad), not committed.
 
-**M3 — Corrections owed to main-tree files, not applied here** (Q41, Q43, Q46): the
-IDEAS §2.5 "12M" → "50M off-FP" line; the prior-work index's ps-ppo comment
-direction and its "upstreamed" amendment; `make_bc_dataset.py`'s 611-dim docstring.
+**M3 — Corrections to main-tree files — APPLIED on `gen4-build` 2026-09-05** (Q41, Q43,
+Q46): the IDEAS §2.5 "12M" → "50M off-FP" line; the prior-work index's ps-ppo
++1-boost direction and its "upstreamed" amendment (four gen4-live fixes are not);
+`make_bc_dataset.py`'s 611-dim docstring. Still owed from D2 (`psppo_metamon_obs.md`
+§8 item 7): the index's "belief range over hidden EVs/IVs" phrasing, the tera-STAB
+attribute-name defect, and HEAD's faint-reward index 125; from D3: the pokejax entry's
+"Perish Song appears regularly" (0 of 464 vendored sets).
 
-**M4 — Memory.** `subagents-use-opus.md` already records the Opus rule; add its
-how-to-apply: fan out in sequential waves of ≤ 5 so completed agents are banked
-before a limit hit (14-wide fan-outs lost everything twice).
+**M4 — Memory.** `subagents-use-opus.md` already carries the waves-of-≤5 rule. The
+2026-09-05 wave (four Opus research agents in parallel while the orchestrator built
+the encoder; ~1.04M agent tokens, all four landed) is the pattern that worked.
 
 **M5 — Overlap with the audit's open rulings** (`docs/archive/AUDIT_BRANCH_LOG.md`
 §Open questions): F-07 (encoder config block) and F-21 (tracking the borrowed set
@@ -342,3 +386,64 @@ prior) are both re-raised here as Q16 and Q20; ruling them once covers both list
 - Anything gen9.
 - The searched 100M endpoint (Q44): pre-registration is the maintainer's; this cycle
   only records that the endpoint is missing.
+
+## 11. Build status (branch `gen4-build`, 2026-09-05) — read with `encoder_requirements.md` §13
+
+The maintainer ruled 2026-09-04 (evening) that gen-4 groundwork starts now, on
+its own branch, ahead of step 2's readout, with training beyond a smoke out of
+scope. Built and committed: the gen-4 encoder to layout v0.1 (OBS_DIM 1,448),
+the exact set prior, the tracker, the env (`ShowdownGen4-v0`), the
+most-damage-typed anchor, the tape instruments, and the docs' live
+verification (1,650 recorded seat-battles; every `[live]` claim in §8's list
+that a local server can settle is settled — the four docs' final sections).
+Not built: the entity trunk's vocab arguments, eval / async / collect format
+threading, F-07 selection, the pinned hash gate, the gen-4 pre-reg. The
+learner loop closed once (16 updates, a smoke; no number).
+
+## 12. Rulings the build surfaced (new Q-items)
+
+**Q47 — Ability-aware matchup scalars (encoder A5) are IN the v0.1 vector**, as
+expectations under the ability belief, capped at 4.0. Ruling wanted because it
+changes the vector. Losing: the class bits already carry the immunity classes
+and the net can learn the product; two extra dims per mon is cheap either way.
+
+**Q48 — `priority_scale = 7.0` (encoder A14) is IN v0.1.** Losing: widening the
+Box is one line and generation-independent.
+
+**Q49 — Counters as scalars (Q13) is now the ONLY unsupported choice in the
+literature**: Wang one-hots durations with a rationale, ps-ppo discards them,
+Metamon has none; nobody ablated it (`research/psppo_metamon_obs.md` §8). v0.1
+keeps scalars. Recommendation: keep for the first fleet, pre-register the
+one-hot form as the first encoder arm. Losing: change it now while OBS_DIM is
+free.
+
+**Q50 — Substitute HP → Substitute HITS** (the amount is never sent). No ruling
+needed beyond noting A10 is superseded by measurement.
+
+**Q51 — Wish / Healing Wish pending per side (2 dims)**: poke-env tracks no
+slot conditions; the tracker does. Losing: 23 sets, and the net can infer a
+pending Wish from the `|move|` it just saw only if history is carried, which
+v1 refuses (A11) — so the dims stay.
+
+**Q52 — Opponent Choice-lock inference**: the item never self-reveals; v0.1
+fires `choice_locked` only for a KNOWN Choice item (own side, or after a
+Trick), and carries P(choice) through the item class bits. Ruling: whether a
+repeated-move heuristic (the same move twice with three known others) should
+set a "probably locked" bit. Recommendation: no — it is a temporal feature
+(A11's territory).
+
+**Q53 — The `gen4_set_samples.json` prior data (121 KB) is tracked in git**,
+stamped with the generator script, seed, team count and Showdown commit
+(the F-21 / Q20 precedent). Ruling: keep tracked, or regenerate at install.
+Recommendation: tracked — the prior is an INPUT to every encoding and must be
+byte-stable across machines.
+
+**Q54 — Speed edge inverts under Trick Room** (1 pool set). In v0.1; disclose.
+
+**Q55 — `-ability` announcers are six** (Pressure, Intimidate, Mold Breaker,
+Anticipation, Speed Boost, Download), so `mechanics_delta.md` §11's four is
+corrected; no design consequence (the tracker reads every reveal path).
+
+**Q56 — The critic's five poke-env / three Showdown line-number corrections and
+the three count corrections** are applied inline; the docs' `[tree]` / `[src]`
+tags on those lines are now re-verified at 59da482e and 0.15.0.

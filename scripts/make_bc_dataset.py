@@ -8,7 +8,7 @@ Needs the local Showdown server running:
   cd showdown && node pokemon-showdown start --no-security
 
 One row per decision the EXPERT faced in battles it played itself: the
-611-dim observation a learner would have seen at that decision, the
+OBS_DIM-wide observation (612 / 808 / 828 by encoder flag) a learner would have seen at that decision, the
 legal-action mask, the expert's action index, and the battle the row came
 from. Written to a gitignored data/ .npz — like the Phase-4 solver
 dataset, collected data is never committed.

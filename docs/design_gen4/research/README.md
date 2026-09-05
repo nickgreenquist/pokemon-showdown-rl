@@ -30,13 +30,30 @@ pokemon-showdown 0.11.11 @ 59da482; `poke_env/` is the pinned 0.15.0.
 | `huang_lee_metagrok.md` | H&L 2019 + the metagrok clone: observation as the code builds it, the most-damage-typed bot verbatim, recipe facts | `encoder_requirements.md` §5, `anchors_and_eval.md` §2 |
 | `project_record.md` | the repo's own record: Wang verification entries, the anchor-battery convention verbatim, the search-depreciation data set with provenance (incl. the IDEAS §2.5 "12M" error), standing rulings, the 2-Opus house style | `anchors_and_eval.md`, `open_questions.md` |
 
-**Never produced** (agents lost to the usage limit; recorded as deferrals D1–D4 in
-`open_questions.md` §7): Wang's Showdown fork (`wang_fork_diffs.md` §1),
-ps-ppo/Metamon observation design, a full foul-play/pokejax audit (a cheap
-subset was verified directly in `anchors_and_eval.md` §3), the literature
-cross-check. No reconcile/critic pass ran.
+| `wang_showdown_fork.md` | Wang's pokemon-showdown fork, `wang_fork_diffs.md` §1 (2026-09-05, Opus agent, gen4-build): `>getstate`/`>load` is a full perfect-information dump; the determinizer's exact constraints; the fork samples the SAME curated role-table generator family we vendor; only `/offertie`'s turn-100 gate changes a rule | `encoder_requirements.md` §3.5, `open_questions.md` Q12 / D1, `anchors_and_eval.md` §6 |
+| `psppo_metamon_obs.md` | ps-ppo's obs_*.py in full + Metamon's tokenisation appendix (2026-09-05): items / abilities / stat ranges / counters / weather / sentinels, and the comparison table against our proposal | `encoder_requirements.md` §5, `open_questions.md` Q11 / Q13 / Q29 / Q43 / D2 |
+| `foulplay_pokejax_audit.md` | foul-play's search core, request parsing and hidden-state bookkeeping for gen 4; the Struggle panic re-diagnosed; the upstream set-file schema; pokejax's bug list as an audit checklist (2026-09-05) | `anchors_and_eval.md` §3, `encoder_requirements.md` §9, `open_questions.md` Q37 / D3 |
+| `critic_pass.md` | the completeness-critic pass (2026-09-05): 131 citations checked, 111 verified, 20 wrong or drifted (corrected inline in the docs), cross-doc inconsistencies, completeness gaps, the 23-row live checklist | all five docs |
+
+**Still not produced:** the literature cross-check (Bulbapedia / Smogon vs the
+vendored sim; deferral D4) and `search_depreciation.md` (D5).
+
+**Live evidence (`live/`, 2026-09-04/05):** the protocol-tally summaries of the
+eight local tape runs (`scripts/gen4_smoke.py`; the tapes themselves are
+gitignored under `data/gen4_tapes/`) and the generator sample
+(`scripts/gen4_sample_generator.js`, 100,000 teams). Each doc's final section
+cites them; `rl/envs/gen4/tape.py::protocol_stats` is the code that produced
+every count, so a reader can re-run it on a new tape.
 
 ## Known errors in the notes, corrected in the docs
+
+0. `critic_pass.md` §1 lists 20 wrong or drifted citations across the five docs
+   (line numbers, three counts, the sleep range and wake law, Sleep Clause vs
+   Rest); all are corrected inline in the docs with a `critic_pass.md` citation.
+   `wang_thesis.md:580-593` ("the generator he measured is not the generator we
+   would run") overstates the difference: `wang_showdown_fork.md` §4 shows the
+   same generator family; what differs is the ability source and the table
+   contents at 2023 vs 59da482e.
 
 1. `showdown_gen4_mechanics.md` §7 says gen5's `onSwitchIn` sleep reset "applies to
    gen4". It does not: gen4's `slp` entry has no `inherit: true`, so it replaces the
@@ -81,7 +98,10 @@ digitization), `extract_block.sh`.
 `sweep1_fable_14wide.js` (2026-09-02/03, two runs: 0/14 and 0/14 — every agent
 died at the session usage limit; 14 in flight at once) and `sweep3_opus_waves.js`
 (2026-09-04, `model: 'opus'`, three sequential waves of five: 10/14 notes landed
-before the next limit; the reconcile critic and follow-ups never ran). The exact
+before the next limit; the reconcile critic and follow-ups never ran). The four
+2026-09-05 notes were one wave of four Opus agents launched by hand from the
+`gen4-build` session (prompts in SESSION_LOGS 2026-09-05), while the orchestrator
+built the encoder — all four landed. The exact
 task text each note answers is the `T[...]` entry in the script; the PREAMBLE is the
 hard-bar and tagging contract every agent worked under. The lesson is recorded in
 the maintainer's memory (fan out in waves of ≤ 5).

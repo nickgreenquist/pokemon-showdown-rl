@@ -1,6 +1,11 @@
 # gen1 → gen4 mechanics delta — what changes for an encoder and a policy
 
-> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design`,
+> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design` (landed on
+> main the same day); **revised 2026-09-05 on branch `gen4-build`** after the local live
+> checks (research/live/, 1,530 recorded seat-battles) and the critic pass
+> (research/critic_pass.md) — corrections are applied inline with a `critic_pass.md`
+> or `research/live/` citation, and each doc ends with a dated live-verification
+> section.
 > DOCS ONLY — nothing under `rl/` changed. **Arc position:** the target is
 > JOURNEY step 3 (gen4 encoder + model). This design work is **maintainer-ruled
 > PREPARATION running AHEAD of step 2 (gen1 ladder #3)**; it is not a
@@ -40,7 +45,7 @@
 |---|---|---|---|
 | 1 | **Move category is a per-move field.** The type→category rule lives in the gen3 mod (`showdown/data/mods/gen3/scripts.ts:4-14`) and does not apply to gen4; gen4 reads `category` off `showdown/data/moves.ts` via `Battle#getCategory` (`showdown/sim/battle.ts:2384-2386`). 97 gen4-legal moves would be mis-categorised by type (§3). | No new table — poke-env's `move.category` is already per-move. But **Special Defence must enter the mon block**: `rl/envs/encoder_spec.py:224` drops `spd` for gen1's single Special stat. That is a MON_DIM change and therefore an OBS_DIM change. | `[tree]` |
 | 2 | **17 types.** Dark and Steel are live; Fairy is `isNonstandard: 'Future'` at gen4 (`showdown/data/mods/gen5/typechart.ts:93-96`). Four cells among the 15 shared types differ from gen1 (§4). | A 17-entry `types` tuple listed explicitly (poke-env's `gen4typechart.json` carries an 18th `fairy` key that `GenData` does not filter — §4). Matchup scalars recomputed off the gen4 chart. | `[tree]` `[src]` |
-| 3 | **Items and abilities exist.** The randbats pool reaches 101 abilities and exactly 40 items (§11). ~51 of the 101 abilities are never announced; type-immunity abilities sit on ≈68 of 464 sets. | Two new per-mon blocks, plus a hidden-information model for silent abilities and un-revealed items. | `[tree]` |
+| 3 | **Items and abilities exist.** The randbats pool reaches 101 abilities and exactly 40 items (§11). ~51 of the 101 abilities are never announced; type-immunity abilities sit on 69 of 464 sets. | Two new per-mon blocks, plus a hidden-information model for silent abilities and un-revealed items. | `[tree]` |
 | 4 | **Global state exists.** Four weathers (indefinite when ability-set), entry hazards (only Spikes and Toxic Spikes actually occur; Stealth Rock is on no set — §8), Trick Room (1 set). Reflect/Light Screen are side conditions from gen2, not per-mon volatiles. | New global blocks: weather one-hot + turns (with an "indefinite" value), per-side hazard layers, field flags. Move `Effect.REFLECT` out of `volatiles`. | `[tree]` |
 | 5 | **Status and volatile semantics change, and the turn cap is live.** Sleep 1–4 turns and the mon acts on the wake turn; freeze thaws 20 %/turn; Toxic resets on switch; Substitute is a resource; Protect floors at 1/8; Roost rewrites the type list for a turn; U-turn/Pursuit/Sucker Punch are pool staples. gen4 randbats has **no Endless Battle Clause**, so turn 1000 auto-ties (§12). | Counter slots (sleep turns, toxic stage, protect count, lock turns, sub HP); a live type list; an explicit tie/turn-budget policy for training and eval. | `[tree]` |
 
@@ -64,7 +69,7 @@ Consequences that a grep of `mods/gen4/` alone gets wrong:
 ## 2. Damage, critical hits, STAB, accuracy
 
 **Damage.** `[tree]` Base damage is computed once
-(`showdown/sim/battle-actions.ts:1712-1717`,
+(`showdown/sim/battle-actions.ts:1715-1718`,
 `tr(tr(tr(tr(2*level/5+2)*basePower*attack)/defense)/50)`), then **gen4 replaces
 `modifyDamage` wholesale** (`showdown/data/mods/gen4/scripts.ts:57-137`). Order in
 gen4: burn halving for physical moves (:65-67, Guts-exempt) → `ModifyDamagePhase1`
@@ -87,7 +92,7 @@ effectiveness is applied per target type (:932-947), and the random factor is
 | high-crit move | ×4 → ≈ 4× base rate | `critRatio: 2` → **1/8** |
 | Focus Energy | **halves** the rate (`mods/gen1/scripts.ts:821-823`; the modern handler is nulled in `mods/gen1/moves.ts`) | +2 stages → 1/4; with a high-crit move → 1/3 |
 | multiplier | level doubled inside the formula (≈ 1.95× at L100) | ×2 (`mods/gen4/scripts.ts:86`) |
-| ignores | attacker's and defender's boosts and screens | attacker's negative offensive boosts and defender's positive defensive boosts (`battle-actions.ts:1682-1691`), plus Reflect/Light Screen (`mods/gen4/moves.ts:1108`, `:1164`) |
+| ignores | attacker's and defender's boosts and screens | attacker's negative offensive boosts and defender's positive defensive boosts (`battle-actions.ts:1682-1691`), plus Reflect/Light Screen (`mods/gen4/moves.ts:1108`, `:731-748`) |
 | suppressed by | — | Lucky Chant, Battle Armor / Shell Armor |
 
 High-crit moves in the gen4 randbats pool `[tree]`: aeroblast, crabhammer, crosschop,
@@ -184,7 +189,7 @@ keys are absent from the gen1 chart). gen4 Ghosts **can** be trapped (no `trappe
 3`; `mods/gen5/typechart.ts:24-45`) and gen4 Grass types **are** hit by powder moves
 (no `powder: 3`; `:46-67`).
 
-**Two poke-env traps** `[src]`: (1) `GenData.load_type_chart` builds the chart from
+**Three poke-env traps** `[src]`: (1) `GenData.load_type_chart` builds the chart from
 every key in the JSON with no `isNonstandard` filter (`poke_env/data/gen_data.py:
 73-109`), so `GenData.from_gen(4).type_chart` is 18×18 with a live `FAIRY` row whose
 column is internally inconsistent — a gen4 spec must list its 17 types explicitly,
@@ -244,7 +249,7 @@ All `[tree]`; "gen4 file" is where the value comes from after the inherit chain.
 
 | mechanic | gen1 | gen4 | encoder should carry | pool |
 |---|---|---|---|---|
-| **Substitute** | HP `floor(maxhp/4)+1`, blocks a hardcoded list (`mods/gen1/moves.ts` substitute) | HP `floor(maxhp/4)`, fails at `hp <= maxhp/4`, blocks by the `bypasssub` flag (`mods/gen4/moves.ts:1280-1316`); sets `substitutebroken` on break (`mods/gen4/scripts.ts:51`) | **sub HP as a scalar**, not only a flag | 44; generator pairs it with Leech Seed and Focus Punch (`gen4/teams.ts:30-36`) |
+| **Substitute** | HP `floor(maxhp/4)+1`, blocks a hardcoded list (`mods/gen1/moves.ts` substitute) | HP `floor(maxhp/4)`, fails at `hp <= maxhp/4`, blocks by the `bypasssub` flag (`mods/gen4/moves.ts:1280-1316`); the `substitutebroken` volatile (`mods/gen4/conditions.ts:99`) is cleared from every foe when a mon switches in (`mods/gen4/scripts.ts:49-53`; critic_pass.md W4) | **sub HP as a scalar**, not only a flag | 44; generator pairs it with Leech Seed and Focus Punch (`gen4/teams.ts:30-36`) |
 | **Protect / Detect** | absent | priority **+3** (gen5+ is +4; `mods/gen4/moves.ts:293-296, 1026-1044`); success counter doubles from 2 (`mods/gen5/conditions.ts:24-46`) with `counterMax: 8` (`mods/gen4/conditions.ts:134-139`) → 100 %, 50 %, 25 %, 12.5 %, then **12.5 % forever** | consecutive-protect counter | 45 |
 | **Encore** | — | **4–8 turns** (`mods/gen4/moves.ts:401-404`; base 3) | remaining turns + the encored move | 24 |
 | **Taunt** | — | **3–5 turns** (`:1381-1383`; base 3) | remaining turns | 13 |
@@ -268,7 +273,7 @@ All `[tree]`; "gen4 file" is where the value comes from after the inherit chain.
 | **Rapid Spin** | — | 20 BP; clears hazards, Leech Seed, trapping **only if it connects** (`:1080-1098`) | — | 13 (vs 14 Spikes + 14 Toxic Spikes sets) |
 | **Roar / Whirlwind** | priority 0, no `forceSwitch` | −6, `forceSwitch`; Roar is `sound` + `bypasssub` in gen4 (`:1143-1146`) | — | 7 / 6 |
 | **Haze** | `target: 'self'` with gen1 quirks | `target: 'all'`, clears boosts and Focus Energy (`:600-609`) | — | 5 |
-| **Explosion / Selfdestruct** | halves defence inside gen1's formula (`mods/gen1/scripts.ts:912-915`) | `battle-actions.ts:1706-1708`: defence halved for gen ≤ 4 → effectively double gen5+'s damage | — | **37** / 3 — a first-order threat |
+| **Explosion / Selfdestruct** | halves defence inside gen1's formula (`mods/gen1/scripts.ts:912-915`) | `battle-actions.ts:1711-1713`: defence halved for gen ≤ 4 → effectively double gen5+'s damage | — | **37** / 3 — a first-order threat |
 | **Struggle** | recoil = half the damage dealt, Normal-typed (`mods/gen1/moves.ts` struggle) | **1/4 max HP** recoil (`mods/gen4/scripts.ts:205-220`); typeless (`mods/gen4/moves.ts:1270-1279`): no STAB, no effectiveness, hits Ghosts | — | always available |
 | Encore-class extras absent from the pool | — | Disable (80 acc, 4–7 turns), Torment, Perish Song, Ingrain, Aqua Ring, Magnet Rise, Bide, Uproar (3–6 turns, 50 BP), Rollout/Ice Ball, Charge, Stockpile, Grudge, Embargo, Heal Block, Gastro Acid, Power Trick, Lock-On (Baton-Passable in gen4), Foresight/Odor Sleuth/Miracle Eye, Nightmare, Minimize (+1 evasion in gen4), Future Sight/Doom Desire, Baton Pass, Mean Look/Block/Spider Web (Ghosts not immune) | implemented, unreachable in this pool | 0 |
 
@@ -330,8 +335,7 @@ snatch; **+3 detect, protect** (gen5+ is +4), followme; +2 feint; **+1 aquajet, 
 bulletpunch, extremespeed (gen5+ is +2), fakeout (gen5+ is +3), iceshard,
 machpunch, quickattack, shadowsneak, suckerpunch, vacuumwave**; −1 vitalthrow; −3
 focuspunch; −4 avalanche, revenge; −5 counter, mirrorcoat; −6 roar, whirlwind; −7
-trickroom. +1 moves sit on 77 of 464 pool sets (eight distinct ones) against
-essentially one in gen1. **Note for the encoder:** `move.priority / 5.0` in the gen1
+trickroom. +1 moves sit on **95 of 464** pool sets (ten distinct: suckerpunch 31, extremespeed 16, quickattack 9, shadowsneak 9, aquajet 8, fakeout 8, bulletpunch 7, iceshard 7, machpunch 5, vacuumwave 1; critic_pass.md W5) against essentially one in gen1. **Note for the encoder:** `move.priority / 5.0` in the gen1
 move block leaves the declared `Box(low=-1)` at gen4 (trickroom −1.4, roar −1.2) —
 see `encoder_requirements.md`.
 
@@ -361,7 +365,7 @@ From `showdown_gen4_abilities_items.md` (all `[tree]` unless marked):
   Chlorophyll 16, Swift Swim 16, Water Absorb 13, Thick Fat 12, Torrent 12, Clear
   Body 11, Natural Cure 10, Own Tempo 10, Synchronize 9, Rock Head 9. Type-immunity
   abilities (Levitate, Water/Volt Absorb, Flash Fire, Dry Skin, Motor Drive, Wonder
-  Guard) total ≈ 68 sets — a policy blind to abilities is systematically wrong
+  Guard) total 69 sets — a policy blind to abilities is systematically wrong
   about effectiveness.
 - **gen4-specific ability semantics** worth carrying: Sturdy is OHKO-immunity only;
   Lightning Rod / Storm Drain are redirect-only, no immunity (`mods/gen4/
@@ -393,7 +397,7 @@ From `showdown_gen4_abilities_items.md` (all `[tree]` unless marked):
     Rock Head, Battle/Shell Armor, Huge/Pure Power, Poison Heal, Scrappy, Early
     Bird, Inner Focus, **Arena Trap, Shadow Tag, Magnet Pull**, Flower Gift,
     Multitype, Unburden, Liquid Ooze, and more. This is the largest new
-    hidden-information surface gen4 adds; 277 of 295 pool species have a unique
+    hidden-information surface gen4 adds; 278 of 295 pool species have a unique
     ability, so a species→ability prior collapses most of it.
   - items: Life Orb, Leftovers/Black Sludge, Toxic Orb, berries, Focus Sash, Custap
     self-reveal within a turn or two of relevance; the three Choice items, Expert
@@ -561,3 +565,70 @@ seen in randbats.
   agent was lost to the usage limit — `open_questions.md` deferral D4). Where the
   vendored sim is the authority this costs nothing; it would have caught
   sim-vs-cartridge divergences, which this doc does not claim to cover.
+
+## 18. Live verification (2026-09-04/05, branch `gen4-build`)
+
+Every claim below is `[tree]` against the tape summaries under
+`docs/design_gen4/research/live/` (recorded by `scripts/gen4_smoke.py` on a
+fresh local clone of the vendored server at 59da482e; 1,530 recorded
+seat-battles over eight runs, both seats' views; the tapes themselves are
+gitignored under `data/gen4_tapes/`) and against
+`research/live/generator_sample_100k.json` (`scripts/gen4_sample_generator.js`,
+100,000 generated teams, fixed seed). Counts are one seat's view per room.
+
+- **§11 reveal model, corrected.** `-ability` announcements observed (300 + 200
+  + 200 + 60 + 30 + 30 battles): Pressure 825, Intimidate 548, Mold Breaker 80,
+  **Speed Boost 73, Download 49**, Anticipation 16 — six announcers, not four;
+  the long tail (Levitate 8, Own Tempo 4, Swarm 3, ...) is Trace's copy line
+  `-ability|X|<copied>|[from] ability: Trace|[of] Y` (7 fields). `-immune ...
+  [from] ability:` Levitate / Water Absorb / Wonder Guard / Immunity / Dry Skin /
+  Volt Absorb; `-activate ... ability:` Sticky Hold 14, Forewarn 8, Hydration 1;
+  `-weather ... [from] ability:` all four setters with `[of]`; `-curestatus ...
+  [from] ability: Natural Cure` 7 (the cause IS on the wire; poke-env drops it);
+  `-status ... [from] ability:` Static / Flame Body / Poison Point / Synchronize;
+  `-start|X|ability: Flash Fire` paired with `-end` on switch-out; `-start ...
+  typechange ... [from] ability: Color Change` 17; `-start|ability: Slow Start` 29.
+  (`t1_rnd_sh_300.summary.json` `from_causes`, `effects`; the `-ability` name
+  histogram is in SESSION_LOGS 2026-09-05.)
+- **§6 sleep.** Attempts lost before waking, from `cant|slp` counts between
+  `-status|slp` and `-curestatus|slp` (111 wakes): {0: 8, 1: 4, 2: 90, 3: 2, 4: 7}.
+  Rest (`time = 3`, two attempts) dominates; the eight zeros are Heal Bell /
+  Natural Cure cures; the maximum is 4 — `random(2, 6)` as read from
+  `mods/gen4/conditions.ts:32`. Sleep Clause never fired in 760 battles; three
+  requests showed two own mons asleep (Rest + an inflicted sleep — §17 of
+  `pokeenv_gen4_survey.md`).
+- **§12 ties and the turn cap.** Ties 10 of 760 bot battles (SH-vs-SH 7/200,
+  max-power-vs-SH 2/200, random-vs-SH 0/300) plus 1/30 in each most-damage-typed
+  run — simultaneous KOs, never the turn-1000 cap: longest game 147 turns, per-
+  matchup means 17.6–25.8, medians 16–23. The tie rule (Q33) is live at ~1–3 %.
+- **§9 weather.** 4,195 of 4,350 weather-present decisions were under ability-set
+  (indefinite) weather; a move weather ends with `-weather|none` (10 lines).
+  Upkeep restamps every turn (`Sandstorm|upkeep` 431 vs 35 `[from] ability`
+  set lines in 300 battles).
+- **§8 hazards.** `-sidestart` Spikes 51 / Toxic Spikes 62 per 300 random-vs-SH
+  battles; Toxic Spikes absorbed by a grounded Poison type (`-sideend|move: Toxic
+  Spikes` 10); Rapid Spin `-sideend` 4; **Stealth Rock 0**, as the pool read says.
+- **§7 volatiles.** Roost arrives as `-singleturn|move: Roost` (92): its type
+  change lives inside the turn and is never visible at a decision point, so the
+  live-type read matters for Color Change, not Roost (17 `-start|typechange`).
+  Encore's `-start` names no move (42 lines, all 4 fields). Substitute's
+  `-activate|Substitute|[damage]` carries no amount (12 lines) — sub HP is
+  unobservable; hits are countable. `-fieldstart|move: Trick Room|[of]` 1.
+- **§5 request shape.** The active list names `Return 102` and `Hidden Power
+  <Type> 70` (`request_move_names_nonplain`: 916 / 2,122 in 300 battles);
+  `side.pokemon[].moves` carries `return102` and `hiddenpowerfire`; poke-env's
+  `Move.retrieve_id` collapses both to `return` / `hiddenpower` for the active
+  list and keeps the typed Hidden Power id in `mon.moves`. Own `baseAbility` and
+  `item` keys on every request (1,872/1,872); no gen-7 `ability` key.
+- **§14 pool closure.** All 295 pool species appeared in requests, none outside
+  the vocab; every request move id is a vocab row except the placeholder
+  `recharge` (25) and `return102` (normalised). The generator's 600,000 sets:
+  296 species ids (295 + `gastrodoneast`), 101 abilities, **39 of the 40 items**
+  (Light Clay never — its rule needs Reflect and Light Screen, both absent from
+  the pool), 181 moves, Stealth Rock 0, no nature field, every team 6 mons, one
+  level per species, 17 species with more than one sampled ability, 145 with
+  more than one sampled item; **1,743 distinct realised (moves, ability, item)
+  triples** (median 4 per species, max 41 — Qwilfish), 13 singletons in 600,000
+  draws.
+- **Not checked live:** the gen-1 Hyper-Beam-on-KO rule (§13); the foul-play
+  gen-4 engine build (needs authorisation, Q37).

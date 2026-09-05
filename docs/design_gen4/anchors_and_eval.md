@@ -1,6 +1,11 @@
 # anchors_and_eval.md — what the gen1 anchor battery becomes in gen4
 
-> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design`,
+> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design` (landed on
+> main the same day); **revised 2026-09-05 on branch `gen4-build`** after the local live
+> checks (research/live/, 1,530 recorded seat-battles) and the critic pass
+> (research/critic_pass.md) — corrections are applied inline with a `critic_pass.md`
+> or `research/live/` citation, and each doc ends with a dated live-verification
+> section.
 > DOCS ONLY — nothing under `rl/` changed. **Arc position:** the target is
 > JOURNEY step 3 (gen4 encoder + model), and this doc also serves steps 5
 > (offline evals vs Wang) and 6 (one gen4 ladder run). This design work is
@@ -65,7 +70,7 @@ moves score 0). In gen 1 four of those six do not exist; in gen 4 all six do.
 |---|---|---|---|
 | hazard setting | inert (no such move exists) | partially live: Spikes + Toxic Spikes (14 + 14 sets); Stealth Rock never — the dict key is the typo `"stealhrock"` (`:134-141`), and SR is on no vendored set anyway | `[src]` `[tree]` |
 | hazard removal | inert | live (Rapid Spin, 13 sets); misfires on its own screens (the guard is bare `battle.side_conditions`) | `[src]` |
-| setup moves | **dead** — `move.target == "self"` compares an enum to a string, always False (`:317`) | dead | `[src]` |
+| setup moves | **dead** — `move.target == "self"` compares an enum to a string, always False (`:314`) | dead | `[src]` |
 | `_stat_estimation` +1 bug | live, low dose | live, higher dose: Swords Dance 48, Calm Mind 44, Nasty Plot 20, Dragon Dance 13, Curse 11 sets — a +1 boost is valued as +2 (`:249-256`); no level or EV term either | `[src]` `[tree]` |
 | physical/special ratio | type-derived (correct by definition in gen1) | per-move — SH's one genuine improvement in gen4 | `[src]` |
 | `expected_hits` | gen5+ value 3.17 (true 3.0) | same | `[src]` `[lit]` |
@@ -351,3 +356,39 @@ ladder-object question is decided before the run (JOURNEY step 11). Detail:
   Showdown-fork determinizer in the diff (only its thesis description and the index).
 - Deferred (`open_questions.md` D3): a full foul-play/pokejax audit was the lost
   agent's task; the facts above are the cheap subset I could verify directly.
+
+## 12. Live verification and what was built (2026-09-04/05, branch `gen4-build`)
+
+- **§2 most-damage-typed is BUILT** — `rl/envs/players.py::MostDamageTypedPlayer`,
+  registered as `most_damage_typed` in `OPPONENT_PLAYERS` (H&L's rule verbatim,
+  the Return override and the typed Hidden Power id disclosed in its docstring;
+  it is generation-agnostic by rule and reads the per-format type chart).
+  Battery admission is still Q36's ruling. `[tree]` live, 30 battles each,
+  descriptive and far below any protocol n: gen4 vs random **29-1-0**, gen4 vs
+  SH **14-15-1**, gen1 vs max-power **24-5-1**
+  (`research/live/t5_mdt_rnd`, `t6_mdt_sh`, `t7_mdt_mbp_gen1`). SH vs SH in gen4
+  was 93-100-7 over 200 (`t2_sh_sh_200`).
+- **§5 ties** are live at 1–3.5 % between bots (simultaneous KOs, never the turn
+  cap; longest game 147 turns) — the gen4 pre-reg's tie rule (Q33) has a measured
+  base rate to disclose against.
+- **§3 the FP gen4 build was NOT attempted** (Q37 needs authorisation, the
+  foul-play env and a network fetch). `research/foulplay_pokejax_audit.md`
+  (deferral D3, now read) replaces the Struggle-panic mechanism in §3: the hole
+  is an unbounded `move:{i}` index in the engine bridge, no 5-move path exists in
+  the vendored gen4 pool, and the cheap pre-flight is a grep for `"More than 4
+  moves on pokemon"`; it also finds a gen4-specific teacher defect (Regenerator
+  healing on switch-out is enabled for GEN4 while 219 / 295 pool species keep a
+  Dream-World hidden ability after the gen-4 mods) and that the upstream set file
+  and the vendored pool are different schemas (counted 4-move sets with items vs
+  roles with movepools and no items), so the LG-5-style pin is a six-way
+  comparison, not a diff. Both go into Q37's pre-reg items.
+- **The learner loop closes end to end** (`configs/gen4_smoke_heur.yaml`, 16
+  updates of 512 steps, 4 envs, [64, 64], vs SH): rollout → PPO update → eval →
+  checkpoint → `meta.yaml` with the gen-4 fingerprint (`rl/train.py` stamps
+  `ENCODER_FINGERPRINT_GEN4` for `ShowdownGen4-*` env ids). Its eval win rate is
+  0/10 at 8,192 steps, which measures nothing and is quoted nowhere.
+- **§6 Wang's comparability:** `research/wang_showdown_fork.md` (deferral D1, now
+  read) finds nothing in his Showdown fork that changes gen4 battle rules for
+  training or evaluation (only the `/offertie` turn-100 gate is removed), so the
+  0.786 is not confounded by a modified simulator; the open confound stays "which
+  SH" (`[lit]`).

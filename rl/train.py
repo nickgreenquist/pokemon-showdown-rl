@@ -177,7 +177,12 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
         # and only they have encoder semantics to stamp (the set prior and
         # v2 flags change the obs at constant OBS_DIM — a checkpoint is only
         # interpretable together with this record).
-        from rl.envs.showdown import ENCODER_FINGERPRINT
+        if cfg.env_id.startswith("ShowdownGen4"):
+            # The gen-4 env has its own encoder and fingerprint (gen stamped);
+            # the gen-1 module's would record obs_dim 612 for a 1448-wide run.
+            from rl.envs.gen4.spec import ENCODER_FINGERPRINT_GEN4 as ENCODER_FINGERPRINT
+        else:
+            from rl.envs.showdown import ENCODER_FINGERPRINT
 
         meta["encoder"] = dict(ENCODER_FINGERPRINT)
     if agent is not None and hasattr(agent, "actor") and hasattr(agent, "critic"):

@@ -111,8 +111,10 @@ way — teams are server-rolled — this is bookkeeping hygiene.
 `scripts/p3_team_luck.py` is do-not-relitigate-protected: extend, don't edit.
 
 **2.5 Search-depreciation write-up — DO IT (mostly free; JOURNEY's own
-pre-step-3 item).** The points exist: 12M per-lane search deltas
-+0.051/+0.104/+0.148 (monotone in lane weakness), 50M batch-lane R4S66
+pre-step-3 item).** The points exist: **50M** per-lane search deltas
++0.051/+0.104/+0.148 (the CH5 R1-B lanes s80/s81/s82, off Foul Play@20 at
+n=1000 — not 12M; corrected 2026-09-05 per docs/design_gen4/open_questions.md
+Q41) (monotone in lane weakness), 50M batch-lane R4S66
 search@20 **0.38067 vs greedy 0.4740 (~10 se — search hurts)**, and the
 100M primary adds the endpoint. Formalize the curve, feed the step-2
 ladder-object ruling (greedy leads on today's evidence, HANDOFF §4.4) and

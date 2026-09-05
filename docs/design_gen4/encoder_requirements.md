@@ -1,6 +1,11 @@
 # encoder_requirements.md — the gen4 `EncoderSpec`, designed against the landed F-08 seam
 
-> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design`,
+> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design` (landed on
+> main the same day); **revised 2026-09-05 on branch `gen4-build`** after the local live
+> checks (research/live/, 1,530 recorded seat-battles) and the critic pass
+> (research/critic_pass.md) — corrections are applied inline with a `critic_pass.md`
+> or `research/live/` citation, and each doc ends with a dated live-verification
+> section.
 > DOCS ONLY — nothing under `rl/` changed. **Arc position:** the target is
 > JOURNEY step 3 (gen4 encoder + model). This design work is **maintainer-ruled
 > PREPARATION running AHEAD of step 2 (gen1 ladder #3)**; it is not a
@@ -49,13 +54,13 @@
 | types | 15 | **17**, listed explicitly (poke-env's chart has 18 keys) |
 | base stats | 5 (spd mirrored) | **6** |
 | statuses / boosts | 6 / 7 | 6 / 7 — unchanged |
-| volatiles | 7 flags + 1 counter + preparing | ~16 flags + **6 counters** (sleep, toxic, protect, encore/taunt/lock, sub HP, perish) |
+| volatiles | 7 flags + 1 counter + preparing | **18** flags + **6 counters** (sleep, toxic, protect, encore/taunt/lock, sub HP, perish) |
 | items / abilities | none | **two new per-mon fields each**: id (embedding index) + class bits + reveal state |
 | global | 6 scalars | 6 + weather (4 + turns + indefinite) + fields (2 + turns) + two side blocks (9 each, layers vs elapsed) + `maybe_trapped` |
 | move block | 8 scalars + 15 types + v2 effect block (23) | 9 scalars (+crit stage) + 17 types + a gen4 effect block (~32 extractors) |
 | set prior | gen1 `data.json` sampler | a gen4 `sets.json` role-conditioned prior (moves + ability + level); items by generator rule |
 | ids | dex `num`, `/256`, vocab 152 / 166 | **forme-id strings, pool-local**: species 300, moves 182, abilities 101, items 40; `/256` kept |
-| OBS_DIM (v2+ids) | 828 | ≈ **1,180** (illustrative, §4.7) — every existing checkpoint invalidated, by design |
+| OBS_DIM (v2+ids) | 828 | ≈ **1,183–1,376** (illustrative; §4.7 gives the full-width and the lean sketch; the v0.1 build lands at **1,448** — §13) — every existing checkpoint invalidated, by design |
 
 Three facts drive everything: **(1)** the seam already parameterizes 11 data fields and 12 derived offsets and refuses gen 4 with an eight-item list (§1); **(2)** the four gen4 additions that change the vector's width (SpD, items, abilities, global state) are unavoidable, so the gen4 encoder is a **clean break** with no gen1 checkpoint compatibility (§10 A12); **(3)** no gen4 tape can be collected until the ladder run ends, so the gen4 bit-identity gate — the seam's own safety instrument — cannot exist before then (§8).
 
@@ -181,7 +186,7 @@ and a separate counter tuple, both spec fields.
 | ATTRACT | `Effect.ATTRACT` | Cute Charm 7 | |
 | FOCUS_ENERGY | `Effect.FOCUS_ENERGY` | 0 (Haze-relevant only) | cheap; keep for the crit model |
 | LOCKED_MOVE | `Effect.LOCKED_MOVE` | Outrage 13 | |
-| FLASH_FIRE | `Effect.FLASH_FIRE` | 6 species | poke-env clears it one use early (survey G6) — post-process |
+| FLASH_FIRE | `Effect.FLASH_FIRE` | 5 species (8 sets) | poke-env clears it one use early (survey G6) — post-process |
 | SLOW_START | `Effect.SLOW_START` (turn-countable) | Regigigas | |
 | TRAPPED_BY_MOVE | OR of `BIND, WRAP, FIRE_SPIN, CLAMP, WHIRLPOOL, SAND_TOMB` | 0 | carried for robustness; one bit |
 | PERISH | which of `PERISH0..3` is present → the counter below | 0 | |
@@ -252,7 +257,7 @@ over the union movepool** plus the set-listed ability list and level, harvested 
 `getItem`/`getPriorityItem` (40 items, conditions known). The prior fills the same
 four probability-weighted opponent move slots `_opponent_move_slots` fills today
 (`showdown.py:582-599`), plus one ability-prior slot and one item-prior slot per
-opponent mon. 277 of 295 species have a single set-listed ability, so the ability
+opponent mon. 278 of 295 species have a single set-listed ability, so the ability
 prior collapses to a one-hot for 94 % of the pool `[tree]`. A faithful port of the
 sampler is §10 A6's losing side. `verify_against_showdown` gets the gen4 path.
 
@@ -297,10 +302,10 @@ carried) · off/def matchup from the chart (2) · **ability-aware off/def matchu
 **item state** (unknown / held / consumed: 3) · item class bits (I1–I5: 5) ·
 `is_choice`, `is_consumed` (2) · **ability state** (unknown / known: 2) · ability
 class bits (A1–A12: 12) · v2 speed edge (1, from `mon.stats["spe"]` for own mons, the
-closed-form estimate for the opponent — survey §3.3). ≈ **62**.
+closed-form estimate for the opponent — survey §3.3; the feature INVERTS under Trick Room, critic_pass.md §3). ≈ **62**.
 
 ### 4.2 Active extras (×2)
-boosts (7) · volatile flags (§3.2, ~17) · counters (6) · `first_turn` (1) ·
+boosts (7) · volatile flags (§3.2, 18) · counters (6) · `first_turn` (1) ·
 `preparing` (1) · `choice_locked` (own side from `disabled`; opponent inferred) (1).
 ≈ **33**.
 
@@ -446,10 +451,7 @@ distinguishability.
    proven by the existing gate (small).
 2. Vocab tables generated from the vendored pool by a script with the Showdown commit
    stamped (small); tokenizer assertions.
-3. Wrapper-side state poke-env lacks: item memory / consumed, weather start + `[from]`,
-   Encore/Disable move, Substitute HP, `-activate` ability recovery, the Sleep Talk
-   counter fix, Flash Fire persistence — all from `_replay_data` (medium; each `[live]`
-   until a gen4 log exists).
+3. Wrapper-side state poke-env lacks — BUILT as `rl/envs/gen4/tracker.py` (§13): item memory / consumed, weather start + `[from] ability:` (indefinite), the Encore target (the sim never sends the move name; it is the target's last `|move|` line), Substitute HITS (no amount is sent, so sub HP is unobservable — A10 corrected), every `[from] ability:` reveal (Natural Cure, Static, Sand Stream, Rough Skin, Clear Body, ... — the `-activate` six included), the exact sleep-attempt count, Flash Fire persistence, Choice lock (a known Choice item + a move since switch-in; the OPPONENT's Choice item never self-reveals, so its lock is inferred only after a Trick — critic_pass.md §3), and Wish / Healing Wish pending per side (poke-env tracks no slot conditions; 23 sets). Each item is `[tree]` against research/live/ now that gen4 tapes exist.
 4. New fill helpers and the gen4 effect block (medium).
 5. Gen4 set prior from `sets.json` + item rule table (medium).
 6. Post-ladder: collect gen4 tapes, land the hash gate, run the `[live]` checks in
@@ -541,3 +543,47 @@ classes taxonomy is pre-registered as data or left to the implementer.
 - Deferred (`open_questions.md` D1–D4): ps-ppo / Metamon observation design, Wang's
   Showdown-fork set constraints as a second source for the prior, foul-play's gen4
   calc as a damage-feature source, the literature cross-check.
+
+## 13. Build status — layout v0.1 (branch `gen4-build`, 2026-09-05)
+
+What exists in code, `[tree]` at the branch head. Nothing here is frozen: the
+tuples become a commitment only in a gen-4 pre-registration header (§4.7).
+
+| piece | file | note |
+|---|---|---|
+| GEN4 spec + layout | `rl/envs/gen4/spec.py` | `EncoderSpec` filled for gen 4 (17 types listed, 6 stats, 13 single-Effect volatiles + 2 composite, `{struggle, recharge}`); `Gen4Layout` with every offset derived; **global 36 \| mon 61 \| active 31 \| move 71 (9 scalars + 17 types + 45 effect) \| ids 44 → OBS_DIM 1,448**; `priority_scale` 7, `turn_scale` 100, `ID_SCALE` 256 (A2, A14) |
+| vocabularies | `rl/envs/gen4/vocab.py`, `data/gen4_vocab.json` | 300 species rows (295 + Gastrodon-East + Castform ×3 + Cherrim-Sunshine), 182 moves (typed Hidden Power), 101 abilities, 40 items; stamped with the Showdown commit and the `sets.json` sha256; `return102` canonicalised (§18 of `mechanics_delta.md`); **tracked in git** (Q20 — the F-21 precedent, ruling still owed) |
+| class taxonomies | `rl/envs/gen4/classes.py` | 12 ability / 5 item classes as data-as-code with an import-time partition check against the vocab (Q21); the ability type-modifier table (A5) |
+| set prior | `rl/envs/gen4/prior.py`, `data/gen4_set_samples.json` | **exact, not a marginal**: rejection over the 1,743 realised (moves, ability, item) triples the vendored generator emitted over 600,000 sets, conditioned on revealed moves / known ability / known item — a stronger form than A6's role-conditioned marginals AND than gen 1's port, because the samples come from whole teams (team weather, move pairs, item rules integrated). Monte-Carlo counts (~2,000 draws per species) — disclosed |
+| tracker | `rl/envs/gen4/tracker.py` | §9 step 3, built and extended (weather set turn + indefinite, exact sleep attempts, item memory + consumed, Encore target, Substitute hits, Choice lock, Flash Fire, every `[from] ability:` reveal, Wish / Healing Wish per side) |
+| encoder | `rl/envs/gen4/encoder.py` | `embed_battle_gen4`; the gen-1 block order; item / ability id + class bits + reveal state (expected class vectors under the prior when unknown); ability-aware matchups as EXPECTATIONS under the ability belief, capped at 4.0 (Dry Skin ×1.25 on a 4× hit reads 5.0 otherwise); closed-form opponent Speed (EV 85 / IV 31 / no nature), inverted under Trick Room; `privileged_block_gen4` (703 dims) |
+| env | `rl/envs/gen4/env.py`, `rl/envs/make.py` | `Gen4ShowdownSingles`, `Gen4ShowdownEnv`, `Gen4PoolPlayer`; `ShowdownGen4-v0` registered; reward, timer, mask-desync recovery and the wait pump inherited from gen 1 unchanged |
+| run metadata | `rl/train.py` | `ENCODER_FINGERPRINT_GEN4` (gen stamped) for `ShowdownGen4-*` env ids |
+| tests | `tests/test_gen4_encoder.py` | 11 offline tests: layout arithmetic, tables, vocab/classes/prior, the effect block, the tracker fed poke-env's own parser (incl. the Sleep Talk counter test), a hand-built battle, and the tape replay gate (shape + bounds) |
+| instruments | `rl/envs/gen4/tape.py`, `scripts/gen4_smoke.py`, `scripts/gen4_env_smoke.py`, `scripts/gen4_sample_generator.js`, `scripts/gen4_build_vocab.py` | tape record / replay / tallies; the live smokes; the generator sampler; the vocab builder |
+
+**Reference replay (not a pinned gate):** every recorded tape (t0–t6, 1,650
+seat-battles, **42,191 decisions**) through `embed_battle_gen4` → 0 NaN, every
+value inside `Box(-1, 4)`, 0 poisoned battles, **166 µs/decision** (gen 1:
+~133), sha256 `8acdc50a5ff09444275c50a7c9372b6d04c4dce2e8b3a8a03576910ef7ff0731`.
+The gen-4 hash gate (§8, Q19) is buildable now — the tapes exist — and lands
+the moment a pre-reg freezes the tuples; until then the reference hash is a
+record, not a pin.
+
+**Deviations from §3–4, each measured (`mechanics_delta.md` §18,
+`pokeenv_gen4_survey.md` §12):** Substitute HP is unobservable → a hits
+counter (A10); Encore's move is never sent → the last `|move|` line; Roost's
+type change is never visible at a decision (the live-type read serves Color
+Change); two slot dims for Wish; the effect block is 45 wide (the 32 sketch
+folded side conditions into three classes and added trapping / variable
+damage / item swap / team cure / defrost bits); `-ability` announcers are six
+(Speed Boost and Download announce).
+
+**Not built (next):** the entity trunk's vocab arguments (`entity_deepsets.py`
+must take `VOCAB.n_species / n_moves` and the two new id tables — today it
+clamps at 152 / 166 and cannot serve gen 4); `scripts/eval_checkpoint.py` and
+`rl/collect.py` / `showdown_async.py` format threading (the smoke ran the sync
+path through `make_env`); F-07 selection; the pinned hash gate; the gen-4
+pre-reg that freezes the layout. Q13 (counters as scalars) should be re-read
+with `research/psppo_metamon_obs.md` §8 in hand: no comparator scalarises a
+duration, and none ablated it.

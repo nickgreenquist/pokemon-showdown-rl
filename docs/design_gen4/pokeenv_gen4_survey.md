@@ -1,6 +1,11 @@
 # poke-env 0.15.0 for gen4randombattle — what the pinned library supports, and where it is wrong
 
-> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design`,
+> **design_gen4 status header.** Written 2026-09-04 on branch `gen4-design` (landed on
+> main the same day); **revised 2026-09-05 on branch `gen4-build`** after the local live
+> checks (research/live/, 1,530 recorded seat-battles) and the critic pass
+> (research/critic_pass.md) — corrections are applied inline with a `critic_pass.md`
+> or `research/live/` citation, and each doc ends with a dated live-verification
+> section.
 > DOCS ONLY — nothing under `rl/` changed. **Arc position:** the target is
 > JOURNEY step 3 (gen4 encoder + model). This design work is **maintainer-ruled
 > PREPARATION running AHEAD of step 2 (gen1 ladder #3)**; it is not a
@@ -153,7 +158,7 @@ Three-valued: `"unknown_item"` (born state, `poke_env/data/gen_data.py:14`;
 Own side: overwritten each request; Showdown sends `""` for no item, so an
 itemless own mon reads `""` — three falsy-but-distinct cases. Opponent side:
 revealed by `-item`, `-enditem`, `-damage`/`-heal [from] item:` sniffing, Trick
-(`abstract_battle.py:889-892, 1193-1199`), Frisk. **Knock Off, a consumed berry
+(`abstract_battle.py:889-892`; `-item` at `:949`, `-enditem` at `:934` — critic_pass.md W7/W8), Frisk. **Knock Off, a consumed berry
 and a confirmed-itemless opponent are indistinguishable afterwards** (all
 `end_item` → `None`, `pokemon.py:405-410`); `_check_heal_message_for_item`
 deliberately refuses to assign anything containing "berry"/"herb" after the fact.
@@ -169,7 +174,7 @@ have one dex ability (auto-known), 134 have two**; `gen4pokedex.json` has no `"H
 slot, so never three. **Two vocabularies, both real:** the dex-derived
 `possible_abilities` strings over the pool number **122**, while the abilities the
 generator can actually assign number **101** (`showdown/data/random-battles/gen4/
-sets.json`), and **277 of 295 species have a unique set-listed ability** — so a
+sets.json`), and **278 of 295 species have a unique set-listed ability** — so a
 set prior collapses far more ability uncertainty than poke-env's dex list does.
 Reveal paths: `-ability`, `move … [from] ability:`, `-damage`/`-heal [from]
 ability:`, `-immune … [from] ability:`, `-endability`, Frisk, Skill Swap; Trace has
@@ -210,8 +215,7 @@ and SLEEP" (`pokemon.py:1302-1308`): sleep bumps on `cant_move()` (from
 resets on `cure_status`. Toxic bumps once per turn in `end_turn()` (`:412-415`)
 and **resets on `switch_out`** (`:613-615`), the correct gen-3+ rule. `[tree]`
 gen4 sleep is `random(2,6)` decremented per move attempt
-(`showdown/data/mods/gen4/conditions.ts:23-52`), so `status_counter ∈ {0..3}`
-while asleep and P(wake on the next attempt) = 1/(4 − counter): **a sleep-turn
+(`showdown/data/mods/gen4/conditions.ts:23-52`), so `status_counter ∈ {0..4}` while asleep and P(wake on the next attempt) = 1/(5 − counter) for counter ≥ 1, and 0 at counter 0 (a sleeping mon always loses at least one attempt; critic_pass.md W9): **a sleep-turn
 feature is well-defined in gen 4.** Two defects, reconciled across the notes:
 1. **Sleep Talk double-bump.** `[src]` Showdown emits two `|move|` lines for a
    Sleep Talk turn; `abstract_battle.py:726-741` calls `moved()` for both (the
@@ -227,8 +231,7 @@ feature is well-defined in gen 4.** Two defects, reconciled across the notes:
    (`pokemon.py:1298-1300, 534-541`) do not reset `_status_counter`, so Rest on a
    toxiced mon starts its sleep clock at the toxic stage.
 
-Sleep Clause Mod is on for the format `[tree]`, so at most one opponent mon is
-asleep at a time.
+Sleep Clause Mod is on `[tree]`, but it exempts self-inflicted sleep (`showdown/data/rulesets.ts:1386-1398` returns early when `source.isAlly(target)`), so a Rest user (35 sets) and an opponent-slept mon can be asleep simultaneously — measured: 3 requests with two own mons asleep over 1,530 seat-battles (critic_pass.md W10; research/live/).
 
 ### 3.6 `effects` — coverage of the `Effect` enum `[src]`
 224 members; `Effect.from_showdown_message` falls back to `Effect.UNKNOWN` with a
@@ -247,7 +250,7 @@ a lower bound (single-quoted literal forms only). Specifics an encoder must know
 | CONFUSION / CURSE / YAWN / ATTRACT / LEECH_SEED / INGRAIN / AQUA_RING / DESTINY_BOND / FOCUS_ENERGY | yes | Yawn is ended silently when the sleep lands |
 | Perish Song | no `PERISH_SONG`; `PERISH0..3` | the countdown is readable from which member is present |
 | partial trapping | `PARTIALLY_TRAPPED` only via `from_data`; gen4 sends `-activate … move: Wrap/Bind/Fire Spin/Clamp/Whirlpool/Sand Tomb` → six per-move members, each turn-countable | OR them into one bit; none of these moves is in the pool |
-| FLASH_FIRE | yes | **bug:** `moved()` ends it after one Fire move (`pokemon.py:498-503`); in Showdown it persists until switch-out (`showdown/data/abilities.ts:1331-1367` `[tree]`). Six pool species carry Flash Fire |
+| FLASH_FIRE | yes | **bug:** `moved()` ends it after one Fire move (`pokemon.py:498-503`); in Showdown it persists until switch-out (`showdown/data/abilities.ts:1331-1367` `[tree]`). Five pool species (eight sets) carry Flash Fire |
 | MUST_RECHARGE | yes, but the live signal is the bool `must_recharge` | see §3.7 |
 | LIGHT_SCREEN / REFLECT | no `Effect.LIGHT_SCREEN`; `Effect.REFLECT` is the gen1 legacy | in gen 4 both arrive as `-sidestart` → `SideCondition`; the gen1 spec's `Effect.REFLECT` slot must move to the side block |
 
@@ -363,7 +366,7 @@ Sleep Talk is handled; the one Ditto set uses Transform, handled structurally), 
 | G9 | `num` not injective over formes | `gen4pokedex.json` | Arceus formes share an embedding row | key species on the forme id | `[src]` `[tree]` |
 | G10 | 18-key chart with Fairy | `gen_data.py:73-109` | a derived type tuple silently gains a dead slot | enumerate 17 types | `[src]` |
 | G11 | no opponent stats, no ability/item tables, no gen4 damage calc | §5 | encoder must supply them | closed-form stats; frozen vocabs; own damage proxy | `[src]` `[tree]` |
-| G12 | `-item` 6-field `ValueError` on an unknown `[from]` cause | `abstract_battle.py:1148-1200` | crash path; gen4-legal causes (Frisk, Thief, Covet) are handled | none expected | `[src]` `[live]` grep of logs |
+| G12 | `-item` 6-field: an unknown `[from]` cause falls to the `NotImplementedError` at `:1187-1188` | `abstract_battle.py:949` | crash path; Frisk, Thief and Covet are on **0** pool sets, so the only live causes are Trick / Switcheroo — measured: every `-item` line 5-field, causes Trick 18 / Switcheroo 10 over 300 battles | none expected | `[src]` `[tree]` research/live/t1_rnd_sh_300.summary.json |
 | G13 | `expected_hits` is the gen5+ distribution | `move.py:321-342` | SH's move score ~5.6 % high on 17 multi-hit moves | none (SH is the anchor as shipped) | `[src]` `[lit]` |
 | G14 | `base_format` `@@@` custom-rule strings never match | `player.py:191` | only if a modded format is ever used (e.g. determinized search) | wrapper | `[src]` |
 | G15 | no `/offertie` (`TieBattleOrder`) | whole package | stall wars end only at the turn cap or the timer | design question | `[src]` |
@@ -388,7 +391,7 @@ SB3 PPO (`docs/prior_work/wang_fork_diffs.md:3993-4213`).
 (a) `ENTRY_HAZARDS` contains the typo `"stealhrock"` (`:134-139`), so SH never
 recognises Stealth Rock — moot in this pool, where no set has it; (b) the
 setup-move branch tests `move.target == "self"`, a `Target` enum against a
-string, always `False` — **dead in every generation** (`:317`); (c)
+string, always `False` — **dead in every generation** (`:314`); (c)
 `_stat_estimation` is `((2*base + 31) + 5) * boost` with no level and no EVs
 (`:249-256`), and it double-counts a +1 boost; (d) `expected_hits` is gen5+
 (G13); (e) Return scores 0 (G7) and Explosion scores at BP 250 with no
@@ -470,3 +473,35 @@ the action head does **not** change; `move.category` is now live data.
 - The ps-ppo / Metamon observation-design comparison and the literature
   cross-check were not produced this cycle (`open_questions.md` deferrals
   D2, D4); nothing here depends on them.
+
+## 12. Live verification (2026-09-04/05, branch `gen4-build`)
+
+`[tree]` against `docs/design_gen4/research/live/*.summary.json`
+(`scripts/gen4_smoke.py`; 760 bot battles in the first wave — random / SH /
+max-power vs SH at 300 / 200 / 200, plus 60 under `strict_battle_tracking=True`
+— then 30 + 30 with the most-damage-typed bot) and the offline replay of those
+tapes through poke-env's own parser (`rl/envs/gen4/tape.py`).
+
+| gap / claim | result |
+|---|---|
+| G1 `maybe_trapped` ignored | random seat: 55 decisions with `maybe_trapped and not trapped` out of 9,091 → **28 `[Unavailable choice]` rejections** (0.3 % of decisions); SH seat: 67 → 4. The corrected request arrives with an `update` key (`('active', 'update')` shape, 28). The re-query never looped: 0 handler exceptions, every battle ended. |
+| G2 weather stamp | stamp age 0 or 1 at every one of 4,350 weather decisions; `[from] ability:` on the set line (dropped by poke-env, read by the tracker). |
+| G3 Sleep Talk counter | `status_counter` reads **4 after two sleeping turns** when one was a Sleep Talk turn (17 decisions): the bump is the `cant` PLUS both `\|move\|` lines — +3 on that turn, not +2. Pinned by `tests/test_gen4_encoder.py::test_tracker_counts_sleep_attempts_where_pokeenv_counts_lines` (parse-only). |
+| G4 item memory | own item reads `""` after consumption (261 / 282 decisions per seat in 300 battles); opponent `None` after `-enditem` (3,269 mon-decisions); `-enditem` causes: `[eat]`, `move: Knock Off` 28 (6 fields, with `[of]`), `stealeat` 1 (7 fields). |
+| G5 Encore move | never on the wire (42 `-start\|Encore`, 4 fields) — recover from the target's last `\|move\|` line. |
+| G7 Return | the active list's id is `return` with name `Return 102`; the team list's id is `return102` (18,535 entries). |
+| G12 `-item` | only 5-field lines; causes Trick 18 / Switcheroo 10 per 300 battles. |
+| §2 force-switch request | 2,256 force-switch requests, **none with `active`**; the `wait` twin is 2,018. |
+| §3.3 opponent stats | `stats` never populated for an opponent (0 / 39,081 decisions). |
+| §3.6 UNKNOWN strings | **0 poke-env warnings over 760 battles** (Effect / SideCondition / Weather / Field). |
+| §3.8 strict tracking | 60 battles, 0 assertion errors. |
+| §1.3 aliasing | 102 / 39,081 decisions (0.26 %) — Struggle and Giga Impact's recharge. |
+| §1 mask desync | 0 recoveries over 641 harness steps (`scripts/gen4_env_smoke.py`). |
+| rates | scripted-vs-scripted 0.01 s/battle at two concurrent; the gym env 0.05 s/battle; the learner smoke 127 steps/s at 4 envs, [64, 64] (inference-bound). Decisions per seat-battle: 30 (random vs SH), 23 (SH vs SH), 22 (max-power vs SH) — inside gen 1's 26–32. |
+
+**Corrections these force in this doc** are applied inline above (§3.5 sleep
+range and wake law; §3.5 Sleep Clause vs Rest; G12; the `-item` / `-enditem`
+lines). `strict_battle_tracking=True` survived (Q30 can proceed to a bring-up
+fleet). The `maybe_trapped` recommendation (Q27: encode a bit, keep the mask
+permissive, count rejections) is what `rl/envs/gen4/encoder.py` does; the
+0.3 % rejection rate is the number to disclose.

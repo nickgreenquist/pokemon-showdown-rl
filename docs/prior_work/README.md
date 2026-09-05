@@ -497,7 +497,9 @@ lossy by construction and the code has repeatedly contradicted the project's own
   **Confirmed as published:** reward `terminal_win/loss ±1.0`, `faint_self −0.1`,
   `faint_opp +0.1`; BC-from-SH via `SyncBridgePlayer(SimpleHeuristicsPlayer)` (`worker.py:200`)
   with the poke-env `_stat_estimation` +1-boost bug patched at `worker.py:76` (so their SH
-  numbers are vs a PATCHED bot — comparability caveat); BC-fit-to-the-heuristic as an
+  numbers are vs a PATCHED bot — comparability caveat; note the bug's DIRECTION: stock
+  poke-env values a +1 boost like +2, not like +0 — `baselines.py:249-256`, amended
+  2026-09-05 per docs/design_gen4/open_questions.md Q43); BC-fit-to-the-heuristic as an
   architecture screen ("configurations that failed to imitate perfectly were discarded").
 
   **Other hyperparameters** (`config.py`, all at HEAD): `gamma` 0.999, `gae_lambda` 0.75,
@@ -566,7 +568,10 @@ lossy by construction and the code has repeatedly contradicted the project's own
   (`quadraticmuffin`: pokemon-showdown, poke-env, stable-baselines3), maintainer-extracted
   2026-08-03. The thesis's missing infrastructure layer: `>getstate`/`>load` stream commands +
   constrained team regen (the MCTS determinization — serialization itself is upstream Showdown),
-  36 poke-env state-tracking fixes (encoder-relevant ones upstreamed by 0.15.0), SB3
+  36 poke-env state-tracking fixes (30 distinct: 15 upstreamed by 0.15.0, 1 partial, 9
+  absent — of which FOUR are encoder-relevant and gen4-live and are NOT upstreamed: the
+  weather stamp, the Sleep Talk counter, `maybe_trapped` guards x2;
+  docs/design_gen4/pokeenv_gen4_survey.md §6, amended 2026-09-05), SB3
   instrumentation only. Read + verified against our tree in the 2026-08-03 log entries.
 
 - `huang_lee_2019_selfplay_pokemon.pdf` — Huang & Lee, *A Self-Play Policy Optimization

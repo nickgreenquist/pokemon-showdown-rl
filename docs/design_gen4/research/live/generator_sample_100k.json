@@ -1,0 +1,3601 @@
+{
+ "showdown_commit": "59da482eabc87245eb62313593e468e81ca537d9",
+ "seed": [
+  7,
+  7,
+  7,
+  7
+ ],
+ "n_teams": 100000,
+ "n_sets": 600000,
+ "team_sizes": {
+  "6": 100000
+ },
+ "distinct": {
+  "species": 296,
+  "forme_strings": 0,
+  "abilities": 101,
+  "items": 39,
+  "moves": 181,
+  "levels": 34,
+  "roles": 8
+ },
+ "stealth_rock_sets": 0,
+ "shiny_sets": 613,
+ "sets_with_nature_field": 0,
+ "species": {
+  "banette": 2596,
+  "dusknoir": 2557,
+  "mismagius": 2489,
+  "machamp": 2487,
+  "hitmontop": 2481,
+  "hitmonlee": 2468,
+  "medicham": 2463,
+  "marowak": 2448,
+  "swalot": 2446,
+  "primeape": 2443,
+  "electivire": 2442,
+  "espeon": 2439,
+  "donphan": 2436,
+  "electrode": 2436,
+  "hariyama": 2430,
+  "hitmonchan": 2422,
+  "uxie": 2418,
+  "pikachu": 2414,
+  "raikou": 2411,
+  "minun": 2408,
+  "sandslash": 2407,
+  "azelf": 2402,
+  "dugtrio": 2398,
+  "ampharos": 2397,
+  "torkoal": 2395,
+  "raichu": 2393,
+  "weezing": 2389,
+  "sableye": 2389,
+  "flareon": 2388,
+  "plusle": 2386,
+  "groudon": 2378,
+  "alakazam": 2377,
+  "grumpig": 2373,
+  "mew": 2372,
+  "absol": 2372,
+  "scizor": 2370,
+  "umbreon": 2362,
+  "latias": 2359,
+  "muk": 2358,
+  "drapion": 2352,
+  "kyogre": 2352,
+  "gardevoir": 2350,
+  "illumise": 2345,
+  "pachirisu": 2343,
+  "ninetales": 2343,
+  "carnivine": 2342,
+  "sunflora": 2342,
+  "hippowdon": 2341,
+  "venomoth": 2337,
+  "camerupt": 2336,
+  "arbok": 2335,
+  "pinsir": 2335,
+  "jolteon": 2335,
+  "luxray": 2332,
+  "mewtwo": 2332,
+  "skuntank": 2331,
+  "victreebel": 2330,
+  "lickilicky": 2330,
+  "porygonz": 2329,
+  "arcanine": 2328,
+  "darkrai": 2327,
+  "sceptile": 2326,
+  "chimecho": 2326,
+  "armaldo": 2325,
+  "forretress": 2325,
+  "magmortar": 2323,
+  "infernape": 2322,
+  "gallade": 2319,
+  "rapidash": 2317,
+  "cresselia": 2313,
+  "roserade": 2312,
+  "mesprit": 2311,
+  "hypno": 2311,
+  "shuckle": 2310,
+  "wobbuffet": 2310,
+  "blissey": 2308,
+  "beedrill": 2304,
+  "bellossom": 2301,
+  "shedinja": 2296,
+  "latios": 2295,
+  "spiritomb": 2295,
+  "feraligatr": 2295,
+  "tauros": 2294,
+  "cradily": 2293,
+  "linoone": 2293,
+  "seviper": 2292,
+  "breloom": 2292,
+  "blaziken": 2292,
+  "manectric": 2291,
+  "meganium": 2290,
+  "octillery": 2287,
+  "milotic": 2284,
+  "volbeat": 2280,
+  "tangrowth": 2279,
+  "leafeon": 2275,
+  "claydol": 2274,
+  "ambipom": 2273,
+  "politoed": 2273,
+  "clefable": 2272,
+  "ursaring": 2272,
+  "snorlax": 2270,
+  "entei": 2269,
+  "wailord": 2268,
+  "mrmime": 2268,
+  "vigoroth": 2267,
+  "huntail": 2266,
+  "kingdra": 2266,
+  "phione": 2266,
+  "heracross": 2265,
+  "typhlosion": 2264,
+  "wigglytuff": 2263,
+  "slaking": 2262,
+  "raticate": 2261,
+  "exploud": 2260,
+  "mightyena": 2259,
+  "cherrim": 2257,
+  "girafarig": 2257,
+  "rampardos": 2255,
+  "regirock": 2245,
+  "lumineon": 2244,
+  "dialga": 2243,
+  "azumarill": 2241,
+  "dunsparce": 2237,
+  "sudowoodo": 2234,
+  "smeargle": 2231,
+  "gengar": 2231,
+  "kangaskhan": 2229,
+  "gorebyss": 2229,
+  "nidoqueen": 2227,
+  "toxicroak": 2226,
+  "glaceon": 2225,
+  "flygon": 2222,
+  "venusaur": 2222,
+  "blastoise": 2222,
+  "garchomp": 2221,
+  "porygon2": 2219,
+  "regice": 2218,
+  "purugly": 2218,
+  "palkia": 2218,
+  "vileplume": 2215,
+  "zangoose": 2214,
+  "lucario": 2213,
+  "suicune": 2212,
+  "floatzel": 2212,
+  "jirachi": 2211,
+  "furret": 2209,
+  "persian": 2209,
+  "houndoom": 2209,
+  "lopunny": 2207,
+  "golduck": 2207,
+  "nidoking": 2206,
+  "regigigas": 2204,
+  "shiftry": 2204,
+  "heatran": 2200,
+  "kecleon": 2199,
+  "glalie": 2198,
+  "kingler": 2197,
+  "mawile": 2195,
+  "ludicolo": 2194,
+  "bronzong": 2193,
+  "bastiodon": 2189,
+  "salamence": 2188,
+  "registeel": 2187,
+  "celebi": 2185,
+  "weavile": 2183,
+  "jynx": 2180,
+  "granbull": 2179,
+  "mamoswine": 2176,
+  "lanturn": 2173,
+  "cacturne": 2160,
+  "solrock": 2158,
+  "honchkrow": 2151,
+  "steelix": 2148,
+  "castform": 2148,
+  "skarmory": 2147,
+  "vaporeon": 2146,
+  "exeggutor": 2145,
+  "manaphy": 2141,
+  "dodrio": 2138,
+  "dragonite": 2136,
+  "seaking": 2136,
+  "pelipper": 2134,
+  "magnezone": 2134,
+  "stantler": 2132,
+  "poliwrath": 2129,
+  "lunatone": 2125,
+  "noctowl": 2123,
+  "aggron": 2119,
+  "starmie": 2117,
+  "froslass": 2117,
+  "miltank": 2113,
+  "metagross": 2109,
+  "empoleon": 2102,
+  "zapdos": 2102,
+  "tentacruel": 2096,
+  "qwilfish": 2090,
+  "rayquaza": 2090,
+  "quagsire": 2089,
+  "lugia": 2089,
+  "whiscash": 2087,
+  "dustox": 2087,
+  "aerodactyl": 2085,
+  "tyranitar": 2085,
+  "slowbro": 2084,
+  "kricketune": 2082,
+  "jumpluff": 2078,
+  "xatu": 2077,
+  "delcatty": 2077,
+  "cloyster": 2076,
+  "swampert": 2073,
+  "swellow": 2072,
+  "slowking": 2071,
+  "drifblim": 2070,
+  "parasect": 2067,
+  "torterra": 2067,
+  "walrein": 2061,
+  "altaria": 2057,
+  "abomasnow": 2056,
+  "mantine": 2049,
+  "togekiss": 2049,
+  "sharpedo": 2046,
+  "yanmega": 2044,
+  "masquerain": 2039,
+  "ariados": 2039,
+  "tropius": 2036,
+  "probopass": 2030,
+  "chatot": 2029,
+  "magcargo": 2028,
+  "gliscor": 2023,
+  "gyarados": 2022,
+  "crobat": 2021,
+  "ditto": 2017,
+  "crawdaunt": 2011,
+  "golem": 2005,
+  "spinda": 2005,
+  "staraptor": 2003,
+  "moltres": 2002,
+  "butterfree": 1999,
+  "pidgeot": 1998,
+  "scyther": 1992,
+  "dewgong": 1988,
+  "bibarel": 1984,
+  "fearow": 1974,
+  "articuno": 1971,
+  "luvdisc": 1970,
+  "rhyperior": 1956,
+  "corsola": 1954,
+  "charizard": 1950,
+  "lapras": 1950,
+  "ninjask": 1904,
+  "vespiquen": 1892,
+  "hooh": 1887,
+  "delibird": 1878,
+  "farfetchd": 1874,
+  "relicanth": 1874,
+  "mothim": 1862,
+  "kabutops": 1858,
+  "omastar": 1858,
+  "beautifly": 1812,
+  "ledian": 1766,
+  "deoxysspeed": 1249,
+  "giratinaorigin": 1197,
+  "giratina": 1197,
+  "deoxys": 1192,
+  "shaymin": 1175,
+  "deoxysattack": 1172,
+  "deoxysdefense": 1166,
+  "gastrodoneast": 1045,
+  "shayminsky": 1015,
+  "gastrodon": 989,
+  "rotomfrost": 835,
+  "rotomheat": 796,
+  "rotomwash": 795,
+  "rotomfan": 780,
+  "rotommow": 774,
+  "rotom": 773,
+  "wormadamtrash": 772,
+  "wormadamsandy": 709,
+  "wormadam": 640,
+  "arceusdragon": 443,
+  "arceusghost": 442,
+  "arceus": 432,
+  "arceuselectric": 426,
+  "arceuspoison": 424,
+  "arceusbug": 424,
+  "arceusground": 417,
+  "arceusice": 416,
+  "arceuspsychic": 411,
+  "arceusfighting": 408,
+  "arceusgrass": 408,
+  "arceusrock": 405,
+  "arceussteel": 398,
+  "arceuswater": 383,
+  "arceusdark": 378,
+  "arceusfire": 372,
+  "arceusflying": 348
+ },
+ "forme_strings": {},
+ "abilities": {
+  "levitate": 42797,
+  "pressure": 40724,
+  "intimidate": 28787,
+  "swiftswim": 17089,
+  "chlorophyll": 16709,
+  "naturalcure": 14108,
+  "thickfat": 12901,
+  "rockhead": 12828,
+  "innerfocus": 12699,
+  "waterabsorb": 12636,
+  "static": 11931,
+  "synchronize": 11627,
+  "flashfire": 11457,
+  "swarm": 11328,
+  "keeneye": 10853,
+  "owntempo": 10721,
+  "insomnia": 10232,
+  "clearbody": 9779,
+  "guts": 8956,
+  "overgrow": 8905,
+  "technician": 8844,
+  "blaze": 8828,
+  "torrent": 8692,
+  "serenegrace": 7512,
+  "sturdy": 6950,
+  "multitype": 6935,
+  "sandveil": 6788,
+  "vitalspirit": 6588,
+  "cutecharm": 6547,
+  "snowcloak": 6518,
+  "battlearmor": 6493,
+  "poisonpoint": 6486,
+  "hypercutter": 6231,
+  "earlybird": 6093,
+  "tintedlens": 5704,
+  "hydration": 5368,
+  "gluttony": 4603,
+  "moldbreaker": 4590,
+  "voltabsorb": 4508,
+  "limber": 4485,
+  "sandstream": 4426,
+  "stickyhold": 4392,
+  "flamebody": 4351,
+  "dryskin": 4293,
+  "solidrock": 4292,
+  "anticipation": 4208,
+  "magnetpull": 4164,
+  "tangledfeet": 4027,
+  "sniper": 3755,
+  "liquidooze": 3522,
+  "trace": 3417,
+  "leafguard": 3307,
+  "speedboost": 2926,
+  "immunity": 2617,
+  "shellarmor": 2523,
+  "noguard": 2487,
+  "purepower": 2463,
+  "motordrive": 2442,
+  "ironfist": 2422,
+  "minus": 2408,
+  "arenatrap": 2398,
+  "whitesmoke": 2395,
+  "plus": 2386,
+  "drought": 2378,
+  "superluck": 2372,
+  "drizzle": 2352,
+  "download": 2332,
+  "aftermath": 2331,
+  "baddreams": 2327,
+  "steadfast": 2319,
+  "shadowtag": 2310,
+  "wonderguard": 2296,
+  "suctioncups": 2293,
+  "shedskin": 2292,
+  "poisonheal": 2292,
+  "marvelscale": 2284,
+  "magicguard": 2272,
+  "waterveil": 2268,
+  "filter": 2268,
+  "truant": 2262,
+  "soundproof": 2260,
+  "flowergift": 2257,
+  "hugepower": 2241,
+  "scrappy": 2229,
+  "cloudnine": 2207,
+  "slowstart": 2204,
+  "colorchange": 2199,
+  "forewarn": 2180,
+  "forecast": 2148,
+  "airlock": 2090,
+  "shielddust": 2087,
+  "unburden": 2070,
+  "snowwarning": 2056,
+  "roughskin": 2046,
+  "compoundeyes": 1999,
+  "simple": 1984,
+  "runaway": 1205,
+  "adaptability": 1149,
+  "pickup": 1138,
+  "quickfeet": 1102,
+  "skilllink": 450
+ },
+ "items": {
+  "leftovers": 269931,
+  "lifeorb": 135150,
+  "choiceband": 48407,
+  "blacksludge": 29139,
+  "choicespecs": 25122,
+  "choicescarf": 21929,
+  "toxicorb": 11187,
+  "focussash": 6729,
+  "lumberry": 6078,
+  "silkscarf": 6031,
+  "sitrusberry": 5506,
+  "expertbelt": 5037,
+  "souldew": 4654,
+  "chestoberry": 3505,
+  "thickclub": 2448,
+  "lightball": 2414,
+  "custapberry": 2310,
+  "damprock": 2110,
+  "blackglasses": 1493,
+  "stick": 1398,
+  "griseousorb": 1197,
+  "lustrousorb": 1088,
+  "quickpowder": 634,
+  "dracoplate": 443,
+  "spookyplate": 442,
+  "zapplate": 426,
+  "toxicplate": 424,
+  "insectplate": 424,
+  "earthplate": 417,
+  "icicleplate": 416,
+  "mindplate": 411,
+  "fistplate": 408,
+  "meadowplate": 408,
+  "stoneplate": 405,
+  "ironplate": 398,
+  "splashplate": 383,
+  "dreadplate": 378,
+  "flameplate": 372,
+  "skyplate": 348
+ },
+ "moves": {
+  "earthquake": 144654,
+  "toxic": 120949,
+  "icebeam": 77833,
+  "stoneedge": 71189,
+  "roost": 59229,
+  "psychic": 58300,
+  "thunderbolt": 57081,
+  "surf": 54663,
+  "uturn": 49576,
+  "swordsdance": 47902,
+  "protect": 43202,
+  "return": 42099,
+  "fireblast": 42081,
+  "calmmind": 36421,
+  "suckerpunch": 33334,
+  "explosion": 32533,
+  "substitute": 31970,
+  "recover": 30422,
+  "waterfall": 30376,
+  "closecombat": 29756,
+  "thunderwave": 29697,
+  "rest": 28055,
+  "sludgebomb": 26567,
+  "shadowball": 26459,
+  "hiddenpowerice": 26325,
+  "focusblast": 26115,
+  "superpower": 25461,
+  "crunch": 25242,
+  "nastyplot": 22519,
+  "doubleedge": 21890,
+  "hydropump": 21875,
+  "toxicspikes": 21218,
+  "icepunch": 21016,
+  "nightslash": 20474,
+  "sleeptalk": 20130,
+  "energyball": 19761,
+  "airslash": 19418,
+  "encore": 19385,
+  "spikes": 19264,
+  "hiddenpowerfighting": 18540,
+  "wish": 17624,
+  "payback": 16497,
+  "hiddenpowergrass": 16482,
+  "synthesis": 16440,
+  "bravebird": 16417,
+  "seismictoss": 16191,
+  "xscissor": 16055,
+  "bugbuzz": 15690,
+  "healbell": 15014,
+  "dragondance": 14763,
+  "earthpower": 14155,
+  "rapidspin": 13774,
+  "extremespeed": 13703,
+  "raindance": 12583,
+  "outrage": 12540,
+  "seedbomb": 12086,
+  "shadowclaw": 11928,
+  "pursuit": 11876,
+  "sleeppowder": 11835,
+  "dracometeor": 11812,
+  "leafstorm": 11662,
+  "taunt": 11603,
+  "rockpolish": 11473,
+  "poisonjab": 11455,
+  "shadowsneak": 11075,
+  "trick": 11046,
+  "darkpulse": 10458,
+  "bulkup": 10367,
+  "willowisp": 10311,
+  "bodyslam": 10030,
+  "signalbeam": 9912,
+  "brickbreak": 9544,
+  "flareblitz": 9200,
+  "facade": 9164,
+  "zenheadbutt": 9057,
+  "ironhead": 8966,
+  "hiddenpowerfire": 8789,
+  "megahorn": 8687,
+  "curse": 8488,
+  "quickattack": 8274,
+  "leechseed": 8190,
+  "lavaplume": 8082,
+  "hiddenpowerground": 7918,
+  "heatwave": 7762,
+  "iceshard": 7719,
+  "fakeout": 7691,
+  "slackoff": 7362,
+  "aquajet": 7095,
+  "bulletpunch": 7059,
+  "grassknot": 6826,
+  "aquatail": 6632,
+  "spore": 6590,
+  "roar": 6452,
+  "morningsun": 6320,
+  "aerialace": 6317,
+  "firepunch": 6105,
+  "woodhammer": 5792,
+  "leafblade": 5744,
+  "aurasphere": 5721,
+  "hiddenpowerflying": 5702,
+  "lowkick": 5457,
+  "judgment": 5429,
+  "machpunch": 5365,
+  "powerwhip": 5195,
+  "painsplit": 5129,
+  "headsmash": 5119,
+  "whirlwind": 5063,
+  "hiddenpowerrock": 4856,
+  "softboiled": 4595,
+  "switcheroo": 4557,
+  "triattack": 4548,
+  "discharge": 4303,
+  "stunspore": 4246,
+  "destinybond": 4025,
+  "knockoff": 3905,
+  "yawn": 3871,
+  "focuspunch": 3814,
+  "bugbite": 3675,
+  "psychoboost": 3613,
+  "superfang": 3594,
+  "moonlight": 3562,
+  "overheat": 3511,
+  "crosschop": 3432,
+  "solarbeam": 3422,
+  "sunnyday": 3422,
+  "bellydrum": 3396,
+  "flamethrower": 3372,
+  "rockslide": 3355,
+  "bite": 3317,
+  "agility": 3301,
+  "eruption": 3022,
+  "aromatherapy": 2979,
+  "counter": 2946,
+  "hypnosis": 2840,
+  "haze": 2754,
+  "powergem": 2679,
+  "selfdestruct": 2644,
+  "dragonpulse": 2497,
+  "dynamicpunch": 2487,
+  "highjumpkick": 2463,
+  "volttackle": 2414,
+  "blizzard": 2385,
+  "gunkshot": 2358,
+  "waterspout": 2350,
+  "darkvoid": 2327,
+  "mirrorcoat": 2310,
+  "gigaimpact": 2262,
+  "skyuppercut": 2207,
+  "crabhammer": 2197,
+  "seedflare": 2190,
+  "tailglow": 2141,
+  "milkdrink": 2113,
+  "meteormash": 2109,
+  "aeroblast": 2089,
+  "hypervoice": 2029,
+  "transform": 2017,
+  "drillpeck": 1974,
+  "irontail": 1897,
+  "sacredfire": 1887,
+  "firefang": 1869,
+  "flashcannon": 1862,
+  "dragonclaw": 1850,
+  "thunder": 1802,
+  "spacialrend": 1669,
+  "healingwish": 1659,
+  "weatherball": 1152,
+  "headbutt": 1129,
+  "metalburst": 1116,
+  "hiddenpowerelectric": 1102,
+  "nightshade": 1031,
+  "glare": 1015,
+  "chatter": 1014,
+  "lovelykiss": 942,
+  "thunderfang": 875,
+  "hammerarm": 825,
+  "psychocut": 606,
+  "icefang": 588,
+  "vacuumwave": 458,
+  "rockblast": 450,
+  "refresh": 433,
+  "trickroom": 400
+ },
+ "hidden_power_types": {
+  "hiddenpowerice": 26325,
+  "hiddenpowerfighting": 18540,
+  "hiddenpowergrass": 16482,
+  "hiddenpowerfire": 8789,
+  "hiddenpowerground": 7918,
+  "hiddenpowerflying": 5702,
+  "hiddenpowerrock": 4856,
+  "hiddenpowerelectric": 1102
+ },
+ "levels": {
+  "67": 2352,
+  "68": 4539,
+  "69": 11040,
+  "70": 14605,
+  "71": 1172,
+  "72": 4566,
+  "73": 5528,
+  "74": 4432,
+  "75": 12950,
+  "76": 15429,
+  "77": 13387,
+  "78": 21146,
+  "79": 36284,
+  "80": 31255,
+  "81": 22757,
+  "82": 27185,
+  "83": 40371,
+  "84": 38207,
+  "85": 29693,
+  "86": 35219,
+  "87": 24226,
+  "88": 39529,
+  "89": 8923,
+  "90": 26939,
+  "91": 20244,
+  "92": 22581,
+  "93": 11030,
+  "94": 6750,
+  "95": 11667,
+  "96": 8725,
+  "97": 13377,
+  "98": 6527,
+  "99": 4409,
+  "100": 22956
+ },
+ "roles": {
+  "Fast Attacker": 114588,
+  "Bulky Attacker": 106723,
+  "Bulky Support": 101668,
+  "Setup Sweeper": 77785,
+  "Wallbreaker": 65826,
+  "Staller": 64714,
+  "Bulky Setup": 43064,
+  "Fast Support": 25632
+ },
+ "ability_by_species": {
+  "huntail": {
+   "swiftswim": 2266
+  },
+  "dugtrio": {
+   "arenatrap": 2398
+  },
+  "kecleon": {
+   "colorchange": 2199
+  },
+  "leafeon": {
+   "leafguard": 2275
+  },
+  "weezing": {
+   "levitate": 2389
+  },
+  "gliscor": {
+   "hypercutter": 2023
+  },
+  "dialga": {
+   "pressure": 2243
+  },
+  "umbreon": {
+   "synchronize": 2362
+  },
+  "ludicolo": {
+   "swiftswim": 2194
+  },
+  "mew": {
+   "synchronize": 2372
+  },
+  "victreebel": {
+   "chlorophyll": 2330
+  },
+  "hariyama": {
+   "thickfat": 1242,
+   "guts": 1188
+  },
+  "qwilfish": {
+   "poisonpoint": 2053,
+   "swiftswim": 37
+  },
+  "infernape": {
+   "blaze": 2322
+  },
+  "chatot": {
+   "tangledfeet": 2029
+  },
+  "slowking": {
+   "owntempo": 2071
+  },
+  "exeggutor": {
+   "chlorophyll": 2145
+  },
+  "plusle": {
+   "plus": 2386
+  },
+  "raikou": {
+   "pressure": 2411
+  },
+  "manaphy": {
+   "hydration": 2141
+  },
+  "steelix": {
+   "rockhead": 2148
+  },
+  "charizard": {
+   "blaze": 1950
+  },
+  "quagsire": {
+   "waterabsorb": 2089
+  },
+  "dunsparce": {
+   "serenegrace": 2237
+  },
+  "glaceon": {
+   "snowcloak": 2225
+  },
+  "clefable": {
+   "magicguard": 2272
+  },
+  "uxie": {
+   "levitate": 2418
+  },
+  "vaporeon": {
+   "waterabsorb": 2146
+  },
+  "regigigas": {
+   "slowstart": 2204
+  },
+  "shuckle": {
+   "gluttony": 2310
+  },
+  "swampert": {
+   "torrent": 2073
+  },
+  "probopass": {
+   "magnetpull": 2030
+  },
+  "flygon": {
+   "levitate": 2222
+  },
+  "venusaur": {
+   "overgrow": 2222
+  },
+  "aerodactyl": {
+   "pressure": 2085
+  },
+  "whiscash": {
+   "anticipation": 2087
+  },
+  "cloyster": {
+   "shellarmor": 1626,
+   "skilllink": 450
+  },
+  "dusknoir": {
+   "pressure": 2557
+  },
+  "heracross": {
+   "guts": 2265
+  },
+  "raticate": {
+   "guts": 2261
+  },
+  "luxray": {
+   "intimidate": 2332
+  },
+  "dodrio": {
+   "earlybird": 2138
+  },
+  "masquerain": {
+   "intimidate": 2039
+  },
+  "scizor": {
+   "technician": 2370
+  },
+  "miltank": {
+   "thickfat": 2113
+  },
+  "golem": {
+   "rockhead": 2005
+  },
+  "luvdisc": {
+   "swiftswim": 1970
+  },
+  "suicune": {
+   "pressure": 2212
+  },
+  "sudowoodo": {
+   "rockhead": 2234
+  },
+  "shaymin": {
+   "naturalcure": 1175
+  },
+  "arceuspoison": {
+   "multitype": 424
+  },
+  "volbeat": {
+   "swarm": 2280
+  },
+  "ariados": {
+   "swarm": 988,
+   "insomnia": 1051
+  },
+  "latios": {
+   "levitate": 2295
+  },
+  "drifblim": {
+   "unburden": 2070
+  },
+  "giratinaorigin": {
+   "levitate": 1197
+  },
+  "kangaskhan": {
+   "scrappy": 2229
+  },
+  "scyther": {
+   "technician": 1992
+  },
+  "deoxysspeed": {
+   "pressure": 1249
+  },
+  "beedrill": {
+   "swarm": 2304
+  },
+  "zangoose": {
+   "immunity": 2214
+  },
+  "sableye": {
+   "keeneye": 2389
+  },
+  "primeape": {
+   "vitalspirit": 2443
+  },
+  "smeargle": {
+   "owntempo": 2231
+  },
+  "mismagius": {
+   "levitate": 2489
+  },
+  "sceptile": {
+   "overgrow": 2326
+  },
+  "wailord": {
+   "waterveil": 2268
+  },
+  "toxicroak": {
+   "dryskin": 2226
+  },
+  "latias": {
+   "levitate": 2359
+  },
+  "porygonz": {
+   "download": 1180,
+   "adaptability": 1149
+  },
+  "kingdra": {
+   "sniper": 1468,
+   "swiftswim": 798
+  },
+  "gallade": {
+   "steadfast": 2319
+  },
+  "spinda": {
+   "owntempo": 2005
+  },
+  "empoleon": {
+   "torrent": 2102
+  },
+  "regirock": {
+   "clearbody": 2245
+  },
+  "regice": {
+   "clearbody": 2218
+  },
+  "furret": {
+   "keeneye": 2209
+  },
+  "rapidash": {
+   "flashfire": 2317
+  },
+  "lunatone": {
+   "levitate": 2125
+  },
+  "jynx": {
+   "forewarn": 2180
+  },
+  "noctowl": {
+   "insomnia": 2123
+  },
+  "azumarill": {
+   "hugepower": 2241
+  },
+  "persian": {
+   "technician": 2209
+  },
+  "pikachu": {
+   "static": 2414
+  },
+  "venomoth": {
+   "tintedlens": 2337
+  },
+  "fearow": {
+   "keeneye": 1974
+  },
+  "lumineon": {
+   "swiftswim": 2244
+  },
+  "sharpedo": {
+   "roughskin": 2046
+  },
+  "skarmory": {
+   "keeneye": 2147
+  },
+  "grumpig": {
+   "thickfat": 2373
+  },
+  "phione": {
+   "hydration": 2266
+  },
+  "purugly": {
+   "thickfat": 2218
+  },
+  "entei": {
+   "pressure": 2269
+  },
+  "bellossom": {
+   "chlorophyll": 2301
+  },
+  "cradily": {
+   "suctioncups": 2293
+  },
+  "magcargo": {
+   "flamebody": 2028
+  },
+  "floatzel": {
+   "swiftswim": 2212
+  },
+  "electivire": {
+   "motordrive": 2442
+  },
+  "houndoom": {
+   "flashfire": 2209
+  },
+  "mantine": {
+   "waterabsorb": 2049
+  },
+  "aggron": {
+   "rockhead": 2119
+  },
+  "jumpluff": {
+   "leafguard": 1032,
+   "chlorophyll": 1046
+  },
+  "tentacruel": {
+   "liquidooze": 1076,
+   "clearbody": 1020
+  },
+  "nidoqueen": {
+   "poisonpoint": 2227
+  },
+  "machamp": {
+   "noguard": 2487
+  },
+  "octillery": {
+   "sniper": 2287
+  },
+  "parasect": {
+   "dryskin": 2067
+  },
+  "porygon2": {
+   "trace": 1067,
+   "download": 1152
+  },
+  "camerupt": {
+   "solidrock": 2336
+  },
+  "dewgong": {
+   "thickfat": 1027,
+   "hydration": 961
+  },
+  "lanturn": {
+   "voltabsorb": 2173
+  },
+  "ampharos": {
+   "static": 2397
+  },
+  "azelf": {
+   "levitate": 2402
+  },
+  "cresselia": {
+   "levitate": 2313
+  },
+  "celebi": {
+   "naturalcure": 2185
+  },
+  "starmie": {
+   "naturalcure": 2117
+  },
+  "pidgeot": {
+   "tangledfeet": 1998
+  },
+  "mamoswine": {
+   "snowcloak": 2176
+  },
+  "togekiss": {
+   "serenegrace": 2049
+  },
+  "groudon": {
+   "drought": 2378
+  },
+  "mothim": {
+   "swarm": 1862
+  },
+  "drapion": {
+   "battlearmor": 2352
+  },
+  "tangrowth": {
+   "chlorophyll": 2279
+  },
+  "solrock": {
+   "levitate": 2158
+  },
+  "seviper": {
+   "shedskin": 2292
+  },
+  "spiritomb": {
+   "pressure": 2295
+  },
+  "milotic": {
+   "marvelscale": 2284
+  },
+  "rampardos": {
+   "moldbreaker": 2255
+  },
+  "gengar": {
+   "levitate": 2231
+  },
+  "donphan": {
+   "sturdy": 2436
+  },
+  "raichu": {
+   "static": 2393
+  },
+  "manectric": {
+   "static": 2291
+  },
+  "gastrodon": {
+   "stickyhold": 989
+  },
+  "stantler": {
+   "intimidate": 2132
+  },
+  "mesprit": {
+   "levitate": 2311
+  },
+  "bronzong": {
+   "levitate": 2193
+  },
+  "banette": {
+   "insomnia": 2596
+  },
+  "gorebyss": {
+   "swiftswim": 2229
+  },
+  "chimecho": {
+   "levitate": 2326
+  },
+  "meganium": {
+   "overgrow": 2290
+  },
+  "espeon": {
+   "synchronize": 2439
+  },
+  "rhyperior": {
+   "solidrock": 1956
+  },
+  "armaldo": {
+   "battlearmor": 2325
+  },
+  "breloom": {
+   "poisonheal": 2292
+  },
+  "swalot": {
+   "liquidooze": 2446
+  },
+  "forretress": {
+   "sturdy": 2325
+  },
+  "alakazam": {
+   "synchronize": 2377
+  },
+  "jirachi": {
+   "serenegrace": 2211
+  },
+  "slaking": {
+   "truant": 2262
+  },
+  "kabutops": {
+   "battlearmor": 1816,
+   "swiftswim": 42
+  },
+  "illumise": {
+   "tintedlens": 2345
+  },
+  "deoxysdefense": {
+   "pressure": 1166
+  },
+  "torkoal": {
+   "whitesmoke": 2395
+  },
+  "butterfree": {
+   "compoundeyes": 1999
+  },
+  "beautifly": {
+   "swarm": 1812
+  },
+  "crawdaunt": {
+   "hypercutter": 2011
+  },
+  "snorlax": {
+   "thickfat": 1867,
+   "immunity": 403
+  },
+  "xatu": {
+   "synchronize": 2077
+  },
+  "mightyena": {
+   "intimidate": 2259
+  },
+  "heatran": {
+   "flashfire": 2200
+  },
+  "vileplume": {
+   "chlorophyll": 2215
+  },
+  "arcanine": {
+   "intimidate": 2328
+  },
+  "articuno": {
+   "pressure": 1971
+  },
+  "muk": {
+   "stickyhold": 2358
+  },
+  "giratina": {
+   "pressure": 1197
+  },
+  "salamence": {
+   "intimidate": 2188
+  },
+  "cherrim": {
+   "flowergift": 2257
+  },
+  "staraptor": {
+   "intimidate": 2003
+  },
+  "skuntank": {
+   "aftermath": 2331
+  },
+  "altaria": {
+   "naturalcure": 2057
+  },
+  "tauros": {
+   "intimidate": 2294
+  },
+  "bibarel": {
+   "simple": 1984
+  },
+  "dragonite": {
+   "innerfocus": 2136
+  },
+  "typhlosion": {
+   "blaze": 2264
+  },
+  "absol": {
+   "superluck": 2372
+  },
+  "blaziken": {
+   "blaze": 2292
+  },
+  "hippowdon": {
+   "sandstream": 2341
+  },
+  "vespiquen": {
+   "pressure": 1892
+  },
+  "hitmontop": {
+   "intimidate": 2481
+  },
+  "exploud": {
+   "soundproof": 2260
+  },
+  "rotomfrost": {
+   "levitate": 835
+  },
+  "corsola": {
+   "naturalcure": 1954
+  },
+  "blastoise": {
+   "torrent": 2222
+  },
+  "froslass": {
+   "snowcloak": 2117
+  },
+  "yanmega": {
+   "tintedlens": 1022,
+   "speedboost": 1022
+  },
+  "farfetchd": {
+   "innerfocus": 1874
+  },
+  "granbull": {
+   "intimidate": 2179
+  },
+  "wobbuffet": {
+   "shadowtag": 2310
+  },
+  "pachirisu": {
+   "runaway": 1205,
+   "pickup": 1138
+  },
+  "abomasnow": {
+   "snowwarning": 2056
+  },
+  "ledian": {
+   "earlybird": 1766
+  },
+  "poliwrath": {
+   "waterabsorb": 2129
+  },
+  "hitmonchan": {
+   "ironfist": 2422
+  },
+  "kricketune": {
+   "swarm": 2082
+  },
+  "mawile": {
+   "intimidate": 2195
+  },
+  "ambipom": {
+   "technician": 2273
+  },
+  "carnivine": {
+   "levitate": 2342
+  },
+  "nidoking": {
+   "poisonpoint": 2206
+  },
+  "lopunny": {
+   "cutecharm": 2207
+  },
+  "shiftry": {
+   "earlybird": 2189,
+   "chlorophyll": 15
+  },
+  "pelipper": {
+   "keeneye": 2134
+  },
+  "ursaring": {
+   "quickfeet": 1102,
+   "guts": 1170
+  },
+  "hooh": {
+   "pressure": 1887
+  },
+  "politoed": {
+   "waterabsorb": 2273
+  },
+  "ditto": {
+   "limber": 2017
+  },
+  "weavile": {
+   "pressure": 2183
+  },
+  "delibird": {
+   "vitalspirit": 1878
+  },
+  "walrein": {
+   "thickfat": 2061
+  },
+  "dustox": {
+   "shielddust": 2087
+  },
+  "hitmonlee": {
+   "limber": 2468
+  },
+  "feraligatr": {
+   "torrent": 2295
+  },
+  "wormadamtrash": {
+   "anticipation": 772
+  },
+  "sunflora": {
+   "chlorophyll": 2342
+  },
+  "kingler": {
+   "hypercutter": 2197
+  },
+  "seaking": {
+   "swiftswim": 2136
+  },
+  "honchkrow": {
+   "insomnia": 2151
+  },
+  "lickilicky": {
+   "owntempo": 2330
+  },
+  "rayquaza": {
+   "airlock": 2090
+  },
+  "rotommow": {
+   "levitate": 774
+  },
+  "zapdos": {
+   "pressure": 2102
+  },
+  "relicanth": {
+   "rockhead": 1874
+  },
+  "garchomp": {
+   "sandveil": 2221
+  },
+  "castform": {
+   "forecast": 2148
+  },
+  "electrode": {
+   "static": 2436
+  },
+  "mewtwo": {
+   "pressure": 2332
+  },
+  "darkrai": {
+   "baddreams": 2327
+  },
+  "gardevoir": {
+   "trace": 2350
+  },
+  "torterra": {
+   "overgrow": 2067
+  },
+  "arceusfighting": {
+   "multitype": 408
+  },
+  "shedinja": {
+   "wonderguard": 2296
+  },
+  "claydol": {
+   "levitate": 2274
+  },
+  "vigoroth": {
+   "vitalspirit": 2267
+  },
+  "registeel": {
+   "clearbody": 2187
+  },
+  "magmortar": {
+   "flamebody": 2323
+  },
+  "arceus": {
+   "multitype": 432
+  },
+  "cacturne": {
+   "sandveil": 2160
+  },
+  "palkia": {
+   "pressure": 2218
+  },
+  "marowak": {
+   "rockhead": 2448
+  },
+  "arbok": {
+   "intimidate": 2335
+  },
+  "pinsir": {
+   "moldbreaker": 2335
+  },
+  "golduck": {
+   "cloudnine": 2207
+  },
+  "metagross": {
+   "clearbody": 2109
+  },
+  "roserade": {
+   "naturalcure": 2312
+  },
+  "hypno": {
+   "insomnia": 2311
+  },
+  "arceusghost": {
+   "multitype": 442
+  },
+  "omastar": {
+   "shellarmor": 897,
+   "swiftswim": 961
+  },
+  "crobat": {
+   "innerfocus": 2021
+  },
+  "rotomwash": {
+   "levitate": 795
+  },
+  "swellow": {
+   "guts": 2072
+  },
+  "blissey": {
+   "naturalcure": 2308
+  },
+  "rotomfan": {
+   "levitate": 780
+  },
+  "gastrodoneast": {
+   "stickyhold": 1045
+  },
+  "delcatty": {
+   "cutecharm": 2077
+  },
+  "arceuspsychic": {
+   "multitype": 411
+  },
+  "sandslash": {
+   "sandveil": 2407
+  },
+  "magnezone": {
+   "magnetpull": 2134
+  },
+  "kyogre": {
+   "drizzle": 2352
+  },
+  "arceusice": {
+   "multitype": 416
+  },
+  "ninjask": {
+   "speedboost": 1904
+  },
+  "arceusground": {
+   "multitype": 417
+  },
+  "gyarados": {
+   "intimidate": 2022
+  },
+  "bastiodon": {
+   "sturdy": 2189
+  },
+  "flareon": {
+   "flashfire": 2388
+  },
+  "deoxys": {
+   "pressure": 1192
+  },
+  "arceusdark": {
+   "multitype": 378
+  },
+  "tyranitar": {
+   "sandstream": 2085
+  },
+  "lapras": {
+   "waterabsorb": 1950
+  },
+  "jolteon": {
+   "voltabsorb": 2335
+  },
+  "minun": {
+   "minus": 2408
+  },
+  "wigglytuff": {
+   "cutecharm": 2263
+  },
+  "deoxysattack": {
+   "pressure": 1172
+  },
+  "arceuselectric": {
+   "multitype": 426
+  },
+  "slowbro": {
+   "owntempo": 2084
+  },
+  "linoone": {
+   "gluttony": 2293
+  },
+  "medicham": {
+   "purepower": 2463
+  },
+  "girafarig": {
+   "innerfocus": 2257
+  },
+  "mrmime": {
+   "filter": 2268
+  },
+  "lucario": {
+   "innerfocus": 2213
+  },
+  "arceusrock": {
+   "multitype": 405
+  },
+  "rotom": {
+   "levitate": 773
+  },
+  "tropius": {
+   "chlorophyll": 2036
+  },
+  "ninetales": {
+   "flashfire": 2343
+  },
+  "arceussteel": {
+   "multitype": 398
+  },
+  "shayminsky": {
+   "serenegrace": 1015
+  },
+  "wormadamsandy": {
+   "anticipation": 709
+  },
+  "glalie": {
+   "innerfocus": 2198
+  },
+  "lugia": {
+   "pressure": 2089
+  },
+  "arceusbug": {
+   "multitype": 424
+  },
+  "arceusgrass": {
+   "multitype": 408
+  },
+  "moltres": {
+   "pressure": 2002
+  },
+  "rotomheat": {
+   "levitate": 796
+  },
+  "arceuswater": {
+   "multitype": 383
+  },
+  "wormadam": {
+   "anticipation": 640
+  },
+  "arceusflying": {
+   "multitype": 348
+  },
+  "arceusfire": {
+   "multitype": 372
+  },
+  "arceusdragon": {
+   "multitype": 443
+  }
+ },
+ "item_by_species": {
+  "huntail": {
+   "lifeorb": 2266
+  },
+  "dugtrio": {
+   "choiceband": 2398
+  },
+  "kecleon": {
+   "leftovers": 2199
+  },
+  "leafeon": {
+   "lifeorb": 1518,
+   "leftovers": 757
+  },
+  "weezing": {
+   "blacksludge": 2389
+  },
+  "gliscor": {
+   "leftovers": 2023
+  },
+  "dialga": {
+   "leftovers": 2052,
+   "choicespecs": 102,
+   "choicescarf": 89
+  },
+  "umbreon": {
+   "leftovers": 2362
+  },
+  "ludicolo": {
+   "lifeorb": 1066,
+   "choicespecs": 1128
+  },
+  "mew": {
+   "lifeorb": 2372
+  },
+  "victreebel": {
+   "lifeorb": 2330
+  },
+  "hariyama": {
+   "choiceband": 398,
+   "leftovers": 844,
+   "toxicorb": 1188
+  },
+  "qwilfish": {
+   "focussash": 407,
+   "blacksludge": 1478,
+   "lifeorb": 205
+  },
+  "infernape": {
+   "lifeorb": 1658,
+   "choiceband": 541,
+   "choicescarf": 123
+  },
+  "chatot": {
+   "lifeorb": 1041,
+   "choicespecs": 833,
+   "choicescarf": 155
+  },
+  "slowking": {
+   "lifeorb": 671,
+   "leftovers": 984,
+   "choicespecs": 416
+  },
+  "exeggutor": {
+   "leftovers": 2145
+  },
+  "plusle": {
+   "leftovers": 1199,
+   "lifeorb": 1187
+  },
+  "raikou": {
+   "leftovers": 1243,
+   "choicespecs": 1168
+  },
+  "manaphy": {
+   "leftovers": 2141
+  },
+  "steelix": {
+   "leftovers": 2025,
+   "choiceband": 123
+  },
+  "charizard": {
+   "lifeorb": 1318,
+   "choicescarf": 299,
+   "choicespecs": 333
+  },
+  "quagsire": {
+   "leftovers": 2089
+  },
+  "dunsparce": {
+   "leftovers": 2237
+  },
+  "glaceon": {
+   "leftovers": 2225
+  },
+  "clefable": {
+   "lifeorb": 2272
+  },
+  "uxie": {
+   "leftovers": 2418
+  },
+  "vaporeon": {
+   "leftovers": 2146
+  },
+  "regigigas": {
+   "leftovers": 2204
+  },
+  "shuckle": {
+   "leftovers": 2310
+  },
+  "swampert": {
+   "leftovers": 1400,
+   "choicescarf": 338,
+   "choiceband": 335
+  },
+  "probopass": {
+   "leftovers": 2030
+  },
+  "flygon": {
+   "choiceband": 197,
+   "leftovers": 1122,
+   "choicescarf": 164,
+   "lifeorb": 739
+  },
+  "venusaur": {
+   "blacksludge": 2222
+  },
+  "aerodactyl": {
+   "choiceband": 703,
+   "lifeorb": 1382
+  },
+  "whiscash": {
+   "lifeorb": 2087
+  },
+  "cloyster": {
+   "leftovers": 2076
+  },
+  "dusknoir": {
+   "leftovers": 2557
+  },
+  "heracross": {
+   "lifeorb": 417,
+   "toxicorb": 1102,
+   "choiceband": 349,
+   "choicescarf": 397
+  },
+  "raticate": {
+   "toxicorb": 2261
+  },
+  "luxray": {
+   "leftovers": 2332
+  },
+  "dodrio": {
+   "lifeorb": 1427,
+   "choiceband": 711
+  },
+  "masquerain": {
+   "leftovers": 2039
+  },
+  "scizor": {
+   "lifeorb": 1170,
+   "choiceband": 1200
+  },
+  "miltank": {
+   "leftovers": 2113
+  },
+  "golem": {
+   "lifeorb": 1013,
+   "choiceband": 328,
+   "leftovers": 664
+  },
+  "luvdisc": {
+   "leftovers": 1970
+  },
+  "suicune": {
+   "leftovers": 1644,
+   "chestoberry": 568
+  },
+  "sudowoodo": {
+   "leftovers": 1163,
+   "choiceband": 1071
+  },
+  "shaymin": {
+   "leftovers": 597,
+   "lifeorb": 578
+  },
+  "arceuspoison": {
+   "toxicplate": 424
+  },
+  "volbeat": {
+   "leftovers": 2280
+  },
+  "ariados": {
+   "blacksludge": 2039
+  },
+  "latios": {
+   "souldew": 2295
+  },
+  "drifblim": {
+   "chestoberry": 684,
+   "sitrusberry": 1386
+  },
+  "giratinaorigin": {
+   "griseousorb": 1197
+  },
+  "kangaskhan": {
+   "leftovers": 1116,
+   "silkscarf": 844,
+   "choiceband": 269
+  },
+  "scyther": {
+   "lifeorb": 981,
+   "choiceband": 1011
+  },
+  "deoxysspeed": {
+   "leftovers": 1054,
+   "focussash": 195
+  },
+  "beedrill": {
+   "lifeorb": 598,
+   "blacksludge": 950,
+   "choiceband": 565,
+   "focussash": 191
+  },
+  "zangoose": {
+   "choiceband": 744,
+   "lifeorb": 1470
+  },
+  "sableye": {
+   "leftovers": 2389
+  },
+  "primeape": {
+   "lifeorb": 1952,
+   "choiceband": 253,
+   "choicescarf": 238
+  },
+  "smeargle": {
+   "focussash": 2231
+  },
+  "mismagius": {
+   "leftovers": 1233,
+   "lifeorb": 427,
+   "choicespecs": 829
+  },
+  "sceptile": {
+   "expertbelt": 1155,
+   "leftovers": 1171
+  },
+  "wailord": {
+   "choicescarf": 1146,
+   "leftovers": 1122
+  },
+  "toxicroak": {
+   "lifeorb": 1662,
+   "blacksludge": 564
+  },
+  "latias": {
+   "souldew": 2359
+  },
+  "porygonz": {
+   "choicespecs": 350,
+   "choicescarf": 1169,
+   "lifeorb": 810
+  },
+  "kingdra": {
+   "chestoberry": 382,
+   "lifeorb": 761,
+   "leftovers": 761,
+   "lumberry": 362
+  },
+  "gallade": {
+   "choiceband": 861,
+   "lifeorb": 980,
+   "choicescarf": 478
+  },
+  "spinda": {
+   "leftovers": 1342,
+   "silkscarf": 663
+  },
+  "empoleon": {
+   "leftovers": 1428,
+   "lifeorb": 674
+  },
+  "regirock": {
+   "leftovers": 2245
+  },
+  "regice": {
+   "leftovers": 1393,
+   "lifeorb": 825
+  },
+  "furret": {
+   "choiceband": 2209
+  },
+  "rapidash": {
+   "leftovers": 2317
+  },
+  "lunatone": {
+   "leftovers": 2125
+  },
+  "jynx": {
+   "choicescarf": 524,
+   "leftovers": 387,
+   "lifeorb": 1269
+  },
+  "noctowl": {
+   "leftovers": 2123
+  },
+  "azumarill": {
+   "choiceband": 1138,
+   "sitrusberry": 1103
+  },
+  "persian": {
+   "lifeorb": 1148,
+   "silkscarf": 862,
+   "choiceband": 199
+  },
+  "pikachu": {
+   "lightball": 2414
+  },
+  "venomoth": {
+   "blacksludge": 2192,
+   "focussash": 145
+  },
+  "fearow": {
+   "choiceband": 1974
+  },
+  "lumineon": {
+   "choicespecs": 1159,
+   "lifeorb": 1085
+  },
+  "sharpedo": {
+   "lifeorb": 1025,
+   "choiceband": 331,
+   "expertbelt": 690
+  },
+  "skarmory": {
+   "leftovers": 2147
+  },
+  "grumpig": {
+   "leftovers": 1802,
+   "choicescarf": 571
+  },
+  "phione": {
+   "leftovers": 1117,
+   "damprock": 1149
+  },
+  "purugly": {
+   "silkscarf": 1481,
+   "choiceband": 737
+  },
+  "entei": {
+   "choiceband": 1152,
+   "lifeorb": 1117
+  },
+  "bellossom": {
+   "leftovers": 2301
+  },
+  "cradily": {
+   "leftovers": 2293
+  },
+  "magcargo": {
+   "leftovers": 2028
+  },
+  "floatzel": {
+   "choiceband": 1132,
+   "lifeorb": 525,
+   "leftovers": 555
+  },
+  "electivire": {
+   "expertbelt": 2442
+  },
+  "houndoom": {
+   "lifeorb": 2209
+  },
+  "mantine": {
+   "leftovers": 2049
+  },
+  "aggron": {
+   "lifeorb": 1436,
+   "choiceband": 683
+  },
+  "jumpluff": {
+   "leftovers": 2078
+  },
+  "tentacruel": {
+   "blacksludge": 2096
+  },
+  "nidoqueen": {
+   "blacksludge": 2227
+  },
+  "machamp": {
+   "choiceband": 1233,
+   "leftovers": 1254
+  },
+  "octillery": {
+   "leftovers": 1530,
+   "choicespecs": 757
+  },
+  "parasect": {
+   "leftovers": 2067
+  },
+  "porygon2": {
+   "leftovers": 2219
+  },
+  "camerupt": {
+   "leftovers": 1152,
+   "lifeorb": 1184
+  },
+  "dewgong": {
+   "leftovers": 1027,
+   "damprock": 961
+  },
+  "lanturn": {
+   "leftovers": 2173
+  },
+  "ampharos": {
+   "leftovers": 1959,
+   "choicespecs": 438
+  },
+  "azelf": {
+   "choicespecs": 903,
+   "lifeorb": 1499
+  },
+  "cresselia": {
+   "leftovers": 2313
+  },
+  "celebi": {
+   "lifeorb": 1638,
+   "choicespecs": 547
+  },
+  "starmie": {
+   "lifeorb": 1406,
+   "choicespecs": 711
+  },
+  "pidgeot": {
+   "lifeorb": 1521,
+   "choiceband": 477
+  },
+  "mamoswine": {
+   "choiceband": 731,
+   "lifeorb": 1445
+  },
+  "togekiss": {
+   "leftovers": 1344,
+   "choicescarf": 705
+  },
+  "groudon": {
+   "leftovers": 2378
+  },
+  "mothim": {
+   "choicespecs": 1475,
+   "choicescarf": 387
+  },
+  "drapion": {
+   "blacksludge": 1212,
+   "lifeorb": 483,
+   "choiceband": 657
+  },
+  "tangrowth": {
+   "leftovers": 2279
+  },
+  "solrock": {
+   "choiceband": 722,
+   "lifeorb": 1436
+  },
+  "seviper": {
+   "lifeorb": 1528,
+   "choicescarf": 764
+  },
+  "spiritomb": {
+   "leftovers": 1920,
+   "blackglasses": 375
+  },
+  "milotic": {
+   "leftovers": 2284
+  },
+  "rampardos": {
+   "choicescarf": 1126,
+   "lifeorb": 1129
+  },
+  "gengar": {
+   "lifeorb": 1320,
+   "blacksludge": 445,
+   "choicespecs": 466
+  },
+  "donphan": {
+   "leftovers": 2436
+  },
+  "raichu": {
+   "choicespecs": 735,
+   "lifeorb": 1658
+  },
+  "manectric": {
+   "choicespecs": 2291
+  },
+  "gastrodon": {
+   "leftovers": 989
+  },
+  "stantler": {
+   "lifeorb": 1920,
+   "choiceband": 212
+  },
+  "mesprit": {
+   "leftovers": 1149,
+   "choicescarf": 652,
+   "lifeorb": 275,
+   "choicespecs": 235
+  },
+  "bronzong": {
+   "choiceband": 379,
+   "leftovers": 1814
+  },
+  "banette": {
+   "lifeorb": 2596
+  },
+  "gorebyss": {
+   "lifeorb": 2229
+  },
+  "chimecho": {
+   "leftovers": 2326
+  },
+  "meganium": {
+   "leftovers": 2290
+  },
+  "espeon": {
+   "lifeorb": 1397,
+   "leftovers": 628,
+   "choicespecs": 414
+  },
+  "rhyperior": {
+   "leftovers": 1310,
+   "choiceband": 646
+  },
+  "armaldo": {
+   "leftovers": 2114,
+   "choiceband": 211
+  },
+  "breloom": {
+   "toxicorb": 2292
+  },
+  "swalot": {
+   "blacksludge": 2446
+  },
+  "forretress": {
+   "leftovers": 2325
+  },
+  "alakazam": {
+   "choicespecs": 606,
+   "lifeorb": 879,
+   "leftovers": 892
+  },
+  "jirachi": {
+   "leftovers": 1955,
+   "choicescarf": 256
+  },
+  "slaking": {
+   "choiceband": 1182,
+   "choicescarf": 1080
+  },
+  "kabutops": {
+   "lifeorb": 1262,
+   "choiceband": 596
+  },
+  "illumise": {
+   "leftovers": 2345
+  },
+  "deoxysdefense": {
+   "leftovers": 1166
+  },
+  "torkoal": {
+   "leftovers": 2395
+  },
+  "butterfree": {
+   "leftovers": 1999
+  },
+  "beautifly": {
+   "choicespecs": 1812
+  },
+  "crawdaunt": {
+   "lifeorb": 1351,
+   "choiceband": 660
+  },
+  "snorlax": {
+   "chestoberry": 730,
+   "leftovers": 1540
+  },
+  "xatu": {
+   "lifeorb": 536,
+   "leftovers": 1073,
+   "choicespecs": 187,
+   "choicescarf": 281
+  },
+  "mightyena": {
+   "leftovers": 2155,
+   "choiceband": 104
+  },
+  "heatran": {
+   "leftovers": 1442,
+   "choicescarf": 758
+  },
+  "vileplume": {
+   "lifeorb": 1105,
+   "blacksludge": 1110
+  },
+  "arcanine": {
+   "leftovers": 1189,
+   "lifeorb": 560,
+   "choiceband": 579
+  },
+  "articuno": {
+   "leftovers": 1971
+  },
+  "muk": {
+   "chestoberry": 681,
+   "blacksludge": 648,
+   "choiceband": 1029
+  },
+  "giratina": {
+   "leftovers": 1197
+  },
+  "salamence": {
+   "lumberry": 2188
+  },
+  "cherrim": {
+   "leftovers": 2257
+  },
+  "staraptor": {
+   "choiceband": 899,
+   "leftovers": 986,
+   "choicescarf": 118
+  },
+  "skuntank": {
+   "blacksludge": 1467,
+   "blackglasses": 562,
+   "choiceband": 302
+  },
+  "altaria": {
+   "lumberry": 1047,
+   "leftovers": 1010
+  },
+  "tauros": {
+   "choiceband": 2294
+  },
+  "bibarel": {
+   "leftovers": 1024,
+   "lifeorb": 960
+  },
+  "dragonite": {
+   "choiceband": 1095,
+   "lumberry": 1041
+  },
+  "typhlosion": {
+   "choicespecs": 1108,
+   "choicescarf": 1156
+  },
+  "absol": {
+   "lifeorb": 1210,
+   "blackglasses": 556,
+   "choiceband": 606
+  },
+  "blaziken": {
+   "choicescarf": 185,
+   "lifeorb": 1901,
+   "choiceband": 206
+  },
+  "hippowdon": {
+   "leftovers": 2341
+  },
+  "vespiquen": {
+   "leftovers": 1892
+  },
+  "hitmontop": {
+   "leftovers": 2466,
+   "choiceband": 15
+  },
+  "exploud": {
+   "lifeorb": 2260
+  },
+  "rotomfrost": {
+   "leftovers": 679,
+   "choicescarf": 156
+  },
+  "corsola": {
+   "leftovers": 1954
+  },
+  "blastoise": {
+   "leftovers": 2222
+  },
+  "froslass": {
+   "leftovers": 1755,
+   "focussash": 362
+  },
+  "yanmega": {
+   "choicespecs": 1022,
+   "lifeorb": 1022
+  },
+  "farfetchd": {
+   "choiceband": 476,
+   "stick": 1398
+  },
+  "granbull": {
+   "leftovers": 2179
+  },
+  "wobbuffet": {
+   "custapberry": 2310
+  },
+  "pachirisu": {
+   "leftovers": 2343
+  },
+  "abomasnow": {
+   "leftovers": 2056
+  },
+  "ledian": {
+   "leftovers": 1766
+  },
+  "poliwrath": {
+   "leftovers": 2129
+  },
+  "hitmonchan": {
+   "choiceband": 1229,
+   "leftovers": 1193
+  },
+  "kricketune": {
+   "lifeorb": 2082
+  },
+  "mawile": {
+   "leftovers": 2195
+  },
+  "ambipom": {
+   "choiceband": 868,
+   "silkscarf": 1405
+  },
+  "carnivine": {
+   "leftovers": 2342
+  },
+  "nidoking": {
+   "lifeorb": 2206
+  },
+  "lopunny": {
+   "leftovers": 1100,
+   "choiceband": 1107
+  },
+  "shiftry": {
+   "lifeorb": 2204
+  },
+  "pelipper": {
+   "leftovers": 2134
+  },
+  "ursaring": {
+   "toxicorb": 2272
+  },
+  "hooh": {
+   "leftovers": 1887
+  },
+  "politoed": {
+   "leftovers": 1702,
+   "choicespecs": 57,
+   "chestoberry": 460,
+   "choicescarf": 54
+  },
+  "ditto": {
+   "quickpowder": 634,
+   "sitrusberry": 724,
+   "choicescarf": 659
+  },
+  "weavile": {
+   "choiceband": 1280,
+   "lifeorb": 903
+  },
+  "delibird": {
+   "focussash": 636,
+   "leftovers": 1242
+  },
+  "walrein": {
+   "leftovers": 2061
+  },
+  "dustox": {
+   "blacksludge": 2087
+  },
+  "hitmonlee": {
+   "choiceband": 1188,
+   "lifeorb": 1280
+  },
+  "feraligatr": {
+   "lifeorb": 1499,
+   "choiceband": 796
+  },
+  "wormadamtrash": {
+   "leftovers": 772
+  },
+  "sunflora": {
+   "lifeorb": 1165,
+   "choicespecs": 1177
+  },
+  "kingler": {
+   "choicescarf": 176,
+   "leftovers": 1096,
+   "choiceband": 184,
+   "lifeorb": 741
+  },
+  "seaking": {
+   "lifeorb": 2136
+  },
+  "honchkrow": {
+   "lifeorb": 2151
+  },
+  "lickilicky": {
+   "leftovers": 2330
+  },
+  "rayquaza": {
+   "lifeorb": 1399,
+   "lumberry": 691
+  },
+  "rotommow": {
+   "leftovers": 644,
+   "choicescarf": 130
+  },
+  "zapdos": {
+   "leftovers": 1064,
+   "lifeorb": 675,
+   "choicespecs": 363
+  },
+  "relicanth": {
+   "leftovers": 938,
+   "lifeorb": 495,
+   "choiceband": 441
+  },
+  "garchomp": {
+   "leftovers": 1134,
+   "lumberry": 749,
+   "choicescarf": 159,
+   "choiceband": 179
+  },
+  "castform": {
+   "leftovers": 2148
+  },
+  "electrode": {
+   "lifeorb": 2436
+  },
+  "mewtwo": {
+   "lifeorb": 2332
+  },
+  "darkrai": {
+   "leftovers": 1115,
+   "lifeorb": 1212
+  },
+  "gardevoir": {
+   "lifeorb": 766,
+   "choicescarf": 1136,
+   "leftovers": 345,
+   "choicespecs": 103
+  },
+  "torterra": {
+   "leftovers": 2067
+  },
+  "arceusfighting": {
+   "fistplate": 408
+  },
+  "shedinja": {
+   "focussash": 2296
+  },
+  "claydol": {
+   "leftovers": 2274
+  },
+  "vigoroth": {
+   "leftovers": 1535,
+   "lifeorb": 732
+  },
+  "registeel": {
+   "leftovers": 2187
+  },
+  "magmortar": {
+   "expertbelt": 750,
+   "lifeorb": 1148,
+   "choicescarf": 200,
+   "choicespecs": 225
+  },
+  "arceus": {
+   "lifeorb": 432
+  },
+  "cacturne": {
+   "lifeorb": 2160
+  },
+  "palkia": {
+   "lustrousorb": 1088,
+   "choicescarf": 563,
+   "choicespecs": 567
+  },
+  "marowak": {
+   "thickclub": 2448
+  },
+  "arbok": {
+   "lifeorb": 1015,
+   "choicescarf": 954,
+   "choiceband": 366
+  },
+  "pinsir": {
+   "lifeorb": 1552,
+   "choiceband": 390,
+   "choicescarf": 393
+  },
+  "golduck": {
+   "lifeorb": 1532,
+   "choicespecs": 339,
+   "choicescarf": 336
+  },
+  "metagross": {
+   "lifeorb": 1065,
+   "choicescarf": 82,
+   "leftovers": 519,
+   "choiceband": 443
+  },
+  "roserade": {
+   "focussash": 266,
+   "blacksludge": 1546,
+   "lifeorb": 500
+  },
+  "hypno": {
+   "leftovers": 2311
+  },
+  "arceusghost": {
+   "spookyplate": 442
+  },
+  "omastar": {
+   "leftovers": 928,
+   "lifeorb": 930
+  },
+  "crobat": {
+   "blacksludge": 2021
+  },
+  "rotomwash": {
+   "choicescarf": 110,
+   "leftovers": 685
+  },
+  "swellow": {
+   "toxicorb": 2072
+  },
+  "blissey": {
+   "leftovers": 2308
+  },
+  "rotomfan": {
+   "leftovers": 780
+  },
+  "gastrodoneast": {
+   "leftovers": 1045
+  },
+  "delcatty": {
+   "leftovers": 1301,
+   "silkscarf": 776
+  },
+  "arceuspsychic": {
+   "mindplate": 411
+  },
+  "sandslash": {
+   "leftovers": 2407
+  },
+  "magnezone": {
+   "leftovers": 1044,
+   "choicescarf": 1090
+  },
+  "kyogre": {
+   "choicescarf": 1204,
+   "leftovers": 1148
+  },
+  "arceusice": {
+   "icicleplate": 416
+  },
+  "ninjask": {
+   "lifeorb": 1469,
+   "choiceband": 435
+  },
+  "arceusground": {
+   "earthplate": 417
+  },
+  "gyarados": {
+   "lifeorb": 476,
+   "leftovers": 1546
+  },
+  "bastiodon": {
+   "leftovers": 2189
+  },
+  "flareon": {
+   "leftovers": 2388
+  },
+  "deoxys": {
+   "lifeorb": 1192
+  },
+  "arceusdark": {
+   "dreadplate": 378
+  },
+  "tyranitar": {
+   "leftovers": 1870,
+   "choiceband": 170,
+   "choicescarf": 45
+  },
+  "lapras": {
+   "leftovers": 1950
+  },
+  "jolteon": {
+   "leftovers": 1182,
+   "choicespecs": 1153
+  },
+  "minun": {
+   "leftovers": 1171,
+   "lifeorb": 1237
+  },
+  "wigglytuff": {
+   "leftovers": 2263
+  },
+  "deoxysattack": {
+   "lifeorb": 1172
+  },
+  "arceuselectric": {
+   "zapplate": 426
+  },
+  "slowbro": {
+   "leftovers": 2084
+  },
+  "linoone": {
+   "sitrusberry": 2293
+  },
+  "medicham": {
+   "choicescarf": 805,
+   "choiceband": 1658
+  },
+  "girafarig": {
+   "leftovers": 1111,
+   "lifeorb": 1146
+  },
+  "mrmime": {
+   "lifeorb": 1512,
+   "leftovers": 756
+  },
+  "lucario": {
+   "lifeorb": 1463,
+   "choiceband": 750
+  },
+  "arceusrock": {
+   "stoneplate": 405
+  },
+  "rotom": {
+   "leftovers": 386,
+   "choicescarf": 387
+  },
+  "tropius": {
+   "lifeorb": 1011,
+   "leftovers": 1025
+  },
+  "ninetales": {
+   "lifeorb": 2343
+  },
+  "arceussteel": {
+   "ironplate": 398
+  },
+  "shayminsky": {
+   "leftovers": 542,
+   "choicespecs": 473
+  },
+  "wormadamsandy": {
+   "leftovers": 709
+  },
+  "glalie": {
+   "leftovers": 2198
+  },
+  "lugia": {
+   "leftovers": 2089
+  },
+  "arceusbug": {
+   "insectplate": 424
+  },
+  "arceusgrass": {
+   "meadowplate": 408
+  },
+  "moltres": {
+   "leftovers": 2002
+  },
+  "rotomheat": {
+   "leftovers": 665,
+   "choicescarf": 131
+  },
+  "arceuswater": {
+   "splashplate": 383
+  },
+  "wormadam": {
+   "choicespecs": 640
+  },
+  "arceusflying": {
+   "skyplate": 348
+  },
+  "arceusfire": {
+   "flameplate": 372
+  },
+  "arceusdragon": {
+   "dracoplate": 443
+  }
+ },
+ "level_by_species": {
+  "huntail": {
+   "91": 2266
+  },
+  "dugtrio": {
+   "82": 2398
+  },
+  "kecleon": {
+   "93": 2199
+  },
+  "leafeon": {
+   "85": 2275
+  },
+  "weezing": {
+   "90": 2389
+  },
+  "gliscor": {
+   "80": 2023
+  },
+  "dialga": {
+   "70": 2243
+  },
+  "umbreon": {
+   "84": 2362
+  },
+  "ludicolo": {
+   "85": 2194
+  },
+  "mew": {
+   "77": 2372
+  },
+  "victreebel": {
+   "90": 2330
+  },
+  "hariyama": {
+   "85": 2430
+  },
+  "qwilfish": {
+   "83": 2090
+  },
+  "infernape": {
+   "76": 2322
+  },
+  "chatot": {
+   "90": 2029
+  },
+  "slowking": {
+   "87": 2071
+  },
+  "exeggutor": {
+   "88": 2145
+  },
+  "plusle": {
+   "90": 2386
+  },
+  "raikou": {
+   "75": 2411
+  },
+  "manaphy": {
+   "76": 2141
+  },
+  "steelix": {
+   "84": 2148
+  },
+  "charizard": {
+   "79": 1950
+  },
+  "quagsire": {
+   "89": 2089
+  },
+  "dunsparce": {
+   "93": 2237
+  },
+  "glaceon": {
+   "86": 2225
+  },
+  "clefable": {
+   "83": 2272
+  },
+  "uxie": {
+   "76": 2418
+  },
+  "vaporeon": {
+   "83": 2146
+  },
+  "regigigas": {
+   "83": 2204
+  },
+  "shuckle": {
+   "98": 2310
+  },
+  "swampert": {
+   "80": 2073
+  },
+  "probopass": {
+   "88": 2030
+  },
+  "flygon": {
+   "81": 2222
+  },
+  "venusaur": {
+   "82": 2222
+  },
+  "aerodactyl": {
+   "76": 2085
+  },
+  "whiscash": {
+   "87": 2087
+  },
+  "cloyster": {
+   "86": 2076
+  },
+  "dusknoir": {
+   "85": 2557
+  },
+  "heracross": {
+   "79": 2265
+  },
+  "raticate": {
+   "86": 2261
+  },
+  "luxray": {
+   "86": 2332
+  },
+  "dodrio": {
+   "83": 2138
+  },
+  "masquerain": {
+   "95": 2039
+  },
+  "scizor": {
+   "76": 2370
+  },
+  "miltank": {
+   "82": 2113
+  },
+  "golem": {
+   "86": 2005
+  },
+  "luvdisc": {
+   "100": 1970
+  },
+  "suicune": {
+   "79": 2212
+  },
+  "sudowoodo": {
+   "92": 2234
+  },
+  "shaymin": {
+   "79": 1175
+  },
+  "arceuspoison": {
+   "69": 424
+  },
+  "volbeat": {
+   "97": 2280
+  },
+  "ariados": {
+   "100": 2039
+  },
+  "latios": {
+   "70": 2295
+  },
+  "drifblim": {
+   "82": 2070
+  },
+  "giratinaorigin": {
+   "70": 1197
+  },
+  "kangaskhan": {
+   "84": 2229
+  },
+  "scyther": {
+   "78": 1992
+  },
+  "deoxysspeed": {
+   "80": 1249
+  },
+  "beedrill": {
+   "95": 2304
+  },
+  "zangoose": {
+   "85": 2214
+  },
+  "sableye": {
+   "96": 2389
+  },
+  "primeape": {
+   "84": 2443
+  },
+  "smeargle": {
+   "86": 2231
+  },
+  "mismagius": {
+   "81": 2489
+  },
+  "sceptile": {
+   "83": 2326
+  },
+  "wailord": {
+   "88": 2268
+  },
+  "toxicroak": {
+   "84": 2226
+  },
+  "latias": {
+   "70": 2359
+  },
+  "porygonz": {
+   "80": 2329
+  },
+  "kingdra": {
+   "79": 2266
+  },
+  "gallade": {
+   "82": 2319
+  },
+  "spinda": {
+   "100": 2005
+  },
+  "empoleon": {
+   "79": 2102
+  },
+  "regirock": {
+   "84": 2245
+  },
+  "regice": {
+   "80": 2218
+  },
+  "furret": {
+   "92": 2209
+  },
+  "rapidash": {
+   "83": 2317
+  },
+  "lunatone": {
+   "92": 2125
+  },
+  "jynx": {
+   "82": 2180
+  },
+  "noctowl": {
+   "94": 2123
+  },
+  "azumarill": {
+   "83": 2241
+  },
+  "persian": {
+   "89": 2209
+  },
+  "pikachu": {
+   "91": 2414
+  },
+  "venomoth": {
+   "82": 2337
+  },
+  "fearow": {
+   "83": 1974
+  },
+  "lumineon": {
+   "91": 2244
+  },
+  "sharpedo": {
+   "84": 2046
+  },
+  "skarmory": {
+   "75": 2147
+  },
+  "grumpig": {
+   "88": 2373
+  },
+  "phione": {
+   "91": 2266
+  },
+  "purugly": {
+   "87": 2218
+  },
+  "entei": {
+   "78": 2269
+  },
+  "bellossom": {
+   "94": 2301
+  },
+  "cradily": {
+   "87": 2293
+  },
+  "magcargo": {
+   "97": 2028
+  },
+  "floatzel": {
+   "82": 2212
+  },
+  "electivire": {
+   "82": 2442
+  },
+  "houndoom": {
+   "80": 2209
+  },
+  "mantine": {
+   "88": 2049
+  },
+  "aggron": {
+   "86": 2119
+  },
+  "jumpluff": {
+   "88": 2078
+  },
+  "tentacruel": {
+   "80": 2096
+  },
+  "nidoqueen": {
+   "84": 2227
+  },
+  "machamp": {
+   "80": 2487
+  },
+  "octillery": {
+   "90": 2287
+  },
+  "parasect": {
+   "99": 2067
+  },
+  "porygon2": {
+   "86": 2219
+  },
+  "camerupt": {
+   "90": 2336
+  },
+  "dewgong": {
+   "90": 1988
+  },
+  "lanturn": {
+   "84": 2173
+  },
+  "ampharos": {
+   "87": 2397
+  },
+  "azelf": {
+   "77": 2402
+  },
+  "cresselia": {
+   "79": 2313
+  },
+  "celebi": {
+   "79": 2185
+  },
+  "starmie": {
+   "78": 2117
+  },
+  "pidgeot": {
+   "87": 1998
+  },
+  "mamoswine": {
+   "79": 2176
+  },
+  "togekiss": {
+   "76": 2049
+  },
+  "groudon": {
+   "72": 2378
+  },
+  "mothim": {
+   "93": 1862
+  },
+  "drapion": {
+   "83": 2352
+  },
+  "tangrowth": {
+   "90": 2279
+  },
+  "solrock": {
+   "90": 2158
+  },
+  "seviper": {
+   "92": 2292
+  },
+  "spiritomb": {
+   "85": 2295
+  },
+  "milotic": {
+   "81": 2284
+  },
+  "rampardos": {
+   "86": 2255
+  },
+  "gengar": {
+   "77": 2231
+  },
+  "donphan": {
+   "84": 2436
+  },
+  "raichu": {
+   "86": 2393
+  },
+  "manectric": {
+   "83": 2291
+  },
+  "gastrodon": {
+   "88": 989
+  },
+  "stantler": {
+   "87": 2132
+  },
+  "mesprit": {
+   "81": 2311
+  },
+  "bronzong": {
+   "79": 2193
+  },
+  "banette": {
+   "93": 2596
+  },
+  "gorebyss": {
+   "88": 2229
+  },
+  "chimecho": {
+   "94": 2326
+  },
+  "meganium": {
+   "91": 2290
+  },
+  "espeon": {
+   "81": 2439
+  },
+  "rhyperior": {
+   "78": 1956
+  },
+  "armaldo": {
+   "83": 2325
+  },
+  "breloom": {
+   "80": 2292
+  },
+  "swalot": {
+   "92": 2446
+  },
+  "forretress": {
+   "79": 2325
+  },
+  "alakazam": {
+   "79": 2377
+  },
+  "jirachi": {
+   "74": 2211
+  },
+  "slaking": {
+   "82": 2262
+  },
+  "kabutops": {
+   "83": 1858
+  },
+  "illumise": {
+   "91": 2345
+  },
+  "deoxysdefense": {
+   "80": 1166
+  },
+  "torkoal": {
+   "85": 2395
+  },
+  "butterfree": {
+   "91": 1999
+  },
+  "beautifly": {
+   "100": 1812
+  },
+  "crawdaunt": {
+   "88": 2011
+  },
+  "snorlax": {
+   "77": 2270
+  },
+  "xatu": {
+   "87": 2077
+  },
+  "mightyena": {
+   "95": 2259
+  },
+  "heatran": {
+   "73": 2200
+  },
+  "vileplume": {
+   "90": 2215
+  },
+  "arcanine": {
+   "79": 2328
+  },
+  "articuno": {
+   "78": 1971
+  },
+  "muk": {
+   "89": 2358
+  },
+  "giratina": {
+   "68": 1197
+  },
+  "salamence": {
+   "72": 2188
+  },
+  "cherrim": {
+   "95": 2257
+  },
+  "staraptor": {
+   "77": 2003
+  },
+  "skuntank": {
+   "84": 2331
+  },
+  "altaria": {
+   "85": 2057
+  },
+  "tauros": {
+   "79": 2294
+  },
+  "bibarel": {
+   "92": 1984
+  },
+  "dragonite": {
+   "73": 2136
+  },
+  "typhlosion": {
+   "80": 2264
+  },
+  "absol": {
+   "84": 2372
+  },
+  "blaziken": {
+   "84": 2292
+  },
+  "hippowdon": {
+   "79": 2341
+  },
+  "vespiquen": {
+   "96": 1892
+  },
+  "hitmontop": {
+   "85": 2481
+  },
+  "exploud": {
+   "91": 2260
+  },
+  "rotomfrost": {
+   "78": 835
+  },
+  "corsola": {
+   "98": 1954
+  },
+  "blastoise": {
+   "85": 2222
+  },
+  "froslass": {
+   "80": 2117
+  },
+  "yanmega": {
+   "76": 2044
+  },
+  "farfetchd": {
+   "100": 1874
+  },
+  "granbull": {
+   "88": 2179
+  },
+  "wobbuffet": {
+   "87": 2310
+  },
+  "pachirisu": {
+   "97": 2343
+  },
+  "abomasnow": {
+   "81": 2056
+  },
+  "ledian": {
+   "100": 1766
+  },
+  "poliwrath": {
+   "88": 2129
+  },
+  "hitmonchan": {
+   "85": 2422
+  },
+  "kricketune": {
+   "100": 2082
+  },
+  "mawile": {
+   "97": 2195
+  },
+  "ambipom": {
+   "80": 2273
+  },
+  "carnivine": {
+   "97": 2342
+  },
+  "nidoking": {
+   "83": 2206
+  },
+  "lopunny": {
+   "88": 2207
+  },
+  "shiftry": {
+   "88": 2204
+  },
+  "pelipper": {
+   "90": 2134
+  },
+  "ursaring": {
+   "83": 2272
+  },
+  "hooh": {
+   "69": 1887
+  },
+  "politoed": {
+   "88": 2273
+  },
+  "ditto": {
+   "100": 2017
+  },
+  "weavile": {
+   "75": 2183
+  },
+  "delibird": {
+   "100": 1878
+  },
+  "walrein": {
+   "84": 2061
+  },
+  "dustox": {
+   "100": 2087
+  },
+  "hitmonlee": {
+   "84": 2468
+  },
+  "feraligatr": {
+   "82": 2295
+  },
+  "wormadamtrash": {
+   "95": 772
+  },
+  "sunflora": {
+   "99": 2342
+  },
+  "kingler": {
+   "88": 2197
+  },
+  "seaking": {
+   "93": 2136
+  },
+  "honchkrow": {
+   "80": 2151
+  },
+  "lickilicky": {
+   "86": 2330
+  },
+  "rayquaza": {
+   "70": 2090
+  },
+  "rotommow": {
+   "79": 774
+  },
+  "zapdos": {
+   "75": 2102
+  },
+  "relicanth": {
+   "84": 1874
+  },
+  "garchomp": {
+   "74": 2221
+  },
+  "castform": {
+   "96": 2148
+  },
+  "electrode": {
+   "87": 2436
+  },
+  "mewtwo": {
+   "70": 2332
+  },
+  "darkrai": {
+   "68": 2327
+  },
+  "gardevoir": {
+   "86": 2350
+  },
+  "torterra": {
+   "85": 2067
+  },
+  "arceusfighting": {
+   "69": 408
+  },
+  "shedinja": {
+   "96": 2296
+  },
+  "claydol": {
+   "84": 2274
+  },
+  "vigoroth": {
+   "89": 2267
+  },
+  "registeel": {
+   "81": 2187
+  },
+  "magmortar": {
+   "81": 2323
+  },
+  "arceus": {
+   "69": 432
+  },
+  "cacturne": {
+   "91": 2160
+  },
+  "palkia": {
+   "69": 2218
+  },
+  "marowak": {
+   "88": 2448
+  },
+  "arbok": {
+   "92": 2335
+  },
+  "pinsir": {
+   "82": 2335
+  },
+  "golduck": {
+   "87": 2207
+  },
+  "metagross": {
+   "77": 2109
+  },
+  "roserade": {
+   "81": 2312
+  },
+  "hypno": {
+   "92": 2311
+  },
+  "arceusghost": {
+   "69": 442
+  },
+  "omastar": {
+   "86": 1858
+  },
+  "crobat": {
+   "78": 2021
+  },
+  "rotomwash": {
+   "79": 795
+  },
+  "swellow": {
+   "78": 2072
+  },
+  "blissey": {
+   "80": 2308
+  },
+  "rotomfan": {
+   "78": 780
+  },
+  "gastrodoneast": {
+   "88": 1045
+  },
+  "delcatty": {
+   "100": 2077
+  },
+  "arceuspsychic": {
+   "69": 411
+  },
+  "sandslash": {
+   "88": 2407
+  },
+  "magnezone": {
+   "81": 2134
+  },
+  "kyogre": {
+   "67": 2352
+  },
+  "arceusice": {
+   "69": 416
+  },
+  "ninjask": {
+   "86": 1904
+  },
+  "arceusground": {
+   "69": 417
+  },
+  "gyarados": {
+   "75": 2022
+  },
+  "bastiodon": {
+   "97": 2189
+  },
+  "flareon": {
+   "92": 2388
+  },
+  "deoxys": {
+   "73": 1192
+  },
+  "arceusdark": {
+   "69": 378
+  },
+  "tyranitar": {
+   "75": 2085
+  },
+  "lapras": {
+   "83": 1950
+  },
+  "jolteon": {
+   "78": 2335
+  },
+  "minun": {
+   "90": 2408
+  },
+  "wigglytuff": {
+   "98": 2263
+  },
+  "deoxysattack": {
+   "71": 1172
+  },
+  "arceuselectric": {
+   "69": 426
+  },
+  "slowbro": {
+   "85": 2084
+  },
+  "linoone": {
+   "83": 2293
+  },
+  "medicham": {
+   "86": 2463
+  },
+  "girafarig": {
+   "92": 2257
+  },
+  "mrmime": {
+   "88": 2268
+  },
+  "lucario": {
+   "79": 2213
+  },
+  "arceusrock": {
+   "69": 405
+  },
+  "rotom": {
+   "83": 773
+  },
+  "tropius": {
+   "95": 2036
+  },
+  "ninetales": {
+   "83": 2343
+  },
+  "arceussteel": {
+   "69": 398
+  },
+  "shayminsky": {
+   "68": 1015
+  },
+  "wormadamsandy": {
+   "100": 709
+  },
+  "glalie": {
+   "86": 2198
+  },
+  "lugia": {
+   "70": 2089
+  },
+  "arceusbug": {
+   "69": 424
+  },
+  "arceusgrass": {
+   "69": 408
+  },
+  "moltres": {
+   "78": 2002
+  },
+  "rotomheat": {
+   "78": 796
+  },
+  "arceuswater": {
+   "69": 383
+  },
+  "wormadam": {
+   "100": 640
+  },
+  "arceusflying": {
+   "69": 348
+  },
+  "arceusfire": {
+   "69": 372
+  },
+  "arceusdragon": {
+   "69": 443
+  }
+ }
+}
