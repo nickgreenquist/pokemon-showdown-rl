@@ -10622,3 +10622,18 @@ line numbers are not — grep the date, then read that region):
   §16.5, README, STATUS, the readout generator and the evidence README now
   quote rank 369; the "recalled peak near 350" wording is gone — the recalled
   rank is evidenced.
+
+- 2026-09-05 (evening, maintainer) — **THREE RULINGS TAKEN AS RECOMMENDED;
+  HANDOFF WRITTEN.** Maintainer: "put the answers to those 3 'huhs' in the
+  handoff.md and the next runner can take them as 'decided'". (a) Search-
+  depreciation rule RATIFIED as written → CLOSED (no MCTS spend on gen 1 before
+  the return; JOURNEY 11.5 re-framed as a value-head diagnostic). (b) Audit:
+  F-21 set prior stays TRACKED; F-04 default `keep` stands, proposal ARCHIVED
+  to docs/archive/; F-06 / F-07 DEFERRED to the gen-4 header; F-05 cadence 4;
+  F-03 900 s. (c) crash_forfeit: the frozen meaning stands, no retroactive
+  re-reads, future pre-regs define n_eff. HANDOFF.md written for the next
+  session: state, the eleven decided items, the work in order (the Wang-recipe
+  pre-reg header and its five build items — both-seat harvest, entity-trunk
+  layout argument, pinned hash gate, format threading, the gen-4 BC clone —
+  then the 50M hand-over run, the FP budget ladder, the five-leg readout),
+  fresh-session state and the rules that cost hours. STATUS item 6 cleared.

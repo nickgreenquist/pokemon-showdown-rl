@@ -1,3 +1,5 @@
+> **ARCHIVED 2026-09-05 (maintainer ruling): the default `keep` policy stands; this pre-reg draft is not scheduled. History, not "what next".**
+
 # F-04 minibatch tail policy — DRAFT PRE-REGISTRATION (PROPOSAL, NOT RATIFIED; the default stays `keep` until the maintainer rules)
 
 **STATUS: PROPOSAL.** This is a draft pre-registration paragraph for a

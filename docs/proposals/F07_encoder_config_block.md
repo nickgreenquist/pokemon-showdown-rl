@@ -1,3 +1,5 @@
+> **DEFERRED 2026-09-05 (maintainer ruling): re-opened only if the gen-4 pre-reg header needs this block.**
+
 # F-07 proposal — an `encoder:` config block
 
 **DRAFT, UNRULED.** Written 2026-09-02 on `audit/DOCS` @ 5d3c6b7 (main @

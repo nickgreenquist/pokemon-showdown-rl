@@ -1,6 +1,6 @@
 # Search-depreciation check — data assembled, decision rule PROPOSED (unruled)
 
-**Status: PROPOSAL, 2026-09-05.** JOURNEY's second pre-step-3 add ("Plot search
+**Status: RATIFIED 2026-09-05 evening (maintainer) — the rule as written; under §1's data it reads CLOSED: S < 0 and G = −7.3 se. Consequences per §2 CLOSED. Originally:** JOURNEY's second pre-step-3 add ("Plot search
 gain against policy strength across the 12M and 50M checkpoints we already have.
 No training, no new runs. … If gains are already declining as the policy
 improves, the MCTS question closes here, before anything is spent on it",

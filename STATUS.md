@@ -47,9 +47,9 @@ pooled 3×3000 vs-SH ≥ 0.756, ONE-SIDED (0.786 − 1 se of his n=200; ruled
    (pool / league first, then batch config, privileged critic), each its own pre-reg.
 5. **FP budget (Q38):** two-rung ladder (20/500 ms, n ≥ 250) ONCE against the
    item-4 checkpoint, then pin; quote both budgets meanwhile.
-6. Rulings still yours: search-depreciation rule; audit F-21/F-04/F-06/F-07/
-   F-05/F-03; crash_forfeit READ rule. RULED: gen-4 battery = MDT + FP@20 +
-   FP@500 + BC-clone (CLAUDE.md lists it); the gen-4 clone is built ALONGSIDE item 4.
+6. ALL RULED 2026-09-05 evening (HANDOFF.md §1 is the list): search-depreciation
+   CLOSED; audit F-21 tracked / F-04 default keep, proposal archived / F-06+F-07
+   deferred to the gen-4 header / F-05 4 / F-03 900 s; crash_forfeit meaning stands.
 7. Housekeeping: server UP (pid 50440); rung deletion per E2; stale worktrees removable. NOT PUSHED since 69c5fbe.
 
 ## Watch items
