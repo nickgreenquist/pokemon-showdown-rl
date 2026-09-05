@@ -313,6 +313,8 @@ the next `|init|battle` blocks forever at `player.py:221`
 `accept_challenges` parks on the semaphore released only AFTER that put; the
 put is woken only by a `get()` that only a finishing room performs.
 
+**Correction 2026-09-05 (gen4-build; `docs/design_gen4/research/foulplay_pokejax_audit.md` §2).** The "both sides out of PP → Struggle → move index 4" MECHANISM above does not survive foul-play's source: Struggle is never added to a move list (`fp/battle/protocol.py:766-768`) and the bot's list is rebuilt from the request every turn (`fp/battle/state.py:357-368`). The index hole is an unbounded `move:{i}` in `fp/search/poke_engine_helpers.py:117-126` (the 4-move truncation lives in a different function called later); no source-reachable 5-move path exists in gen 1 or in the vendored gen4 pool, so WHAT fired in RS81 / R4S66 is unresolved. Pre-flight detector: `grep "More than 4 moves on pokemon"` over the foul-play log (0 hits over 505 gen-4 battles, 2026-09-05). The SYMPTOM chain — a dead opponent leaving a room we hold, and `/timer on` as the fix — stands unchanged.
+
 **Measured, R2's FP wave** (`Initialized battle-` vs `INFO Winner:` in each
 arm's `fp.stdout`, and `on turn 1000` in each `seat.stdout`):
 
