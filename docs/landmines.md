@@ -86,7 +86,7 @@ LADDER R1's measured result: GXE 59.6%, Glicko-1 1573 ± 27, final Elo 1292
 at n=200, not listed. Run a ladder with `scripts/ladder.py` per its own
 pre-reg (`ladder_r3.yaml` is the template whose stopping rule reads the
 profile and can actually fire); `scripts/score_ladder.py` is a
-Connect-4-era false friend. Conversion caveats: top of `prior_work/README.md`.
+Connect-4-era false friend. Conversion caveats: top of `docs/prior_work/README.md`.
 
 ## Foul-Play runner ops — four incidents, all fixed in `scripts/ch3_r4_fp_runner.sh`
 

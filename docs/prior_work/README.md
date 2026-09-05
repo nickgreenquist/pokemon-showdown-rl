@@ -1,4 +1,4 @@
-# prior_work — external sources for the Phase 5 capstone
+# docs/prior_work — external sources for the Phase 5 capstone
 
 Local archive of the papers and project write-ups that informed Phase 5 design, collected
 during the 2026-08-03 prior-work verification dig (full findings: the "prior-work
@@ -665,7 +665,7 @@ lossy by construction and the code has repeatedly contradicted the project's own
   fine-tuning on fixed teams collapsed randbats play to 15.4% vs its own parent
   (catastrophic forgetting).
   **DEEP-READ ADDENDUM 2026-08-28** (teammate paper-only review,
-  `prior_work/HUANG_LEE_DEEP_READ.md`; every claim re-verified here against
+  `docs/prior_work/HUANG_LEE_DEEP_READ.md`; every claim re-verified here against
   the PDF and the local metagrok clone before being believed — the THIRD
   external H&L review, and the verification discipline paid again).
   **ADOPTED, now verified:** (1) **m = 7680 is the authors' own "(a

@@ -4,7 +4,7 @@
 Huang & Lee's network, minus the parts gen 1 does not have (no items, no
 abilities): entity embeddings for species and moves, a shared per-Pokemon
 subnet, DeepSets max-pooling over each team, and a shared PER-ACTION scoring
-head replacing the flat [512,512] MLP readout. Source: prior_work/README.md's
+head replacing the flat [512,512] MLP readout. Source: docs/prior_work/README.md's
 H&L entry and the yuzeh/metagrok clone (MIT); the pointer head is
 ARCH_SCREEN_SPEC's minus the attention that feeds it. The sharing IS the
 hypothesis: what the net learns about "how good is switching to a Rhydon"

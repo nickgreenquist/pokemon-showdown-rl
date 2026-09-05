@@ -3,7 +3,7 @@
 **DRAFT, UNRULED.** Written 2026-09-02 on `audit/DOCS` @ 5d3c6b7 (main @
 60c1225). Nothing in this file exists in the tree; nothing here touches the
 running 100M fleet. Sources: `docs/archive/AUDIT_ACTION_PLAN.md` §3 F-07 and F-08,
-§5 item 5; `CLEANUP.md` "2026-09-01 read-only audit" (item A2).
+§5 item 5; `docs/CLEANUP.md` "2026-09-01 read-only audit" (item A2).
 
 Tags: **RULED** = a maintainer ruling; **MEASURED** = read from the tree with
 its source; **PROPOSED** = this draft's suggestion, which needs a ruling.
@@ -39,7 +39,7 @@ its source; **PROPOSED** = this draft's suggestion, which needs a ruling.
    - Resume: `rl/train.py:380-383` asserts `ckpt["config"] == asdict(cfg)`,
      which cannot see env vars — a resume under different exports continues
      the run on a different obs at constant width.
-4. RULED (CLEANUP.md A2, 2026-09-01; SHELVED until the 100M readout is
+4. RULED (docs/CLEANUP.md A2, 2026-09-01; SHELVED until the 100M readout is
    recorded): "encoder env-var default flip → assert `OBS_DIM==828`/
    fingerprint instead; pure default flip only". A2 makes v2+ids the
    default and asserts it. It does NOT make the layout a config property

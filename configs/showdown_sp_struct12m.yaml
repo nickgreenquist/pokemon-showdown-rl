@@ -29,7 +29,7 @@
 # "this action targets this entity" in every weight column, rather than
 # being handed that structure.
 #
-# EXPLICITLY NOT THE TRANSFORMER. prior_work/ARCH_SCREEN_SPEC.md's entity-
+# EXPLICITLY NOT THE TRANSFORMER. docs/prior_work/ARCH_SCREEN_SPEC.md's entity-
 # attention trunk measured 34.6x the MLP train step on this machine and
 # projects ~205-220 steps/s/lane vs ~570 — its OWN pre-registered gate
 # ("> 2.5x RL throughput loss kills the RL adoption regardless of the
@@ -64,7 +64,7 @@
 # ---------------------------------------------------------------------
 # THE ARCHITECTURE (H&L's, minus the parts gen 1 does not have)
 # ---------------------------------------------------------------------
-# Source: prior_work/README.md's H&L entry (VERIFIED 2026-08-07) and the
+# Source: docs/prior_work/README.md's H&L entry (VERIFIED 2026-08-07) and the
 # `yuzeh/metagrok` clone (MIT) at
 # /Users/nickgreenquist/Documents/Projects/metagrok, whose committed
 # config reproduces the paper's 1,327,618 params exactly. Their stack:

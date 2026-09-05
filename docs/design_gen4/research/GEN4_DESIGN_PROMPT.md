@@ -31,7 +31,7 @@ constraint; correctness and completeness are.
 
 Read first, in the worktree: CLAUDE.md (binding), JOURNEY.md (gen4 is step 3;
 this design work is maintainer-ruled preparation running ahead of step 2 —
-say so in every doc header), prior_work/README.md IN FULL (the verified
+say so in every doc header), docs/prior_work/README.md IN FULL (the verified
 index — read it before citing ANY external result; several popular claims
 about these systems are recorded there as wrong), docs/landmines.md.
 Read-only reference: ../pokemon-showdown-rl-audit — the audit branch is
@@ -39,7 +39,7 @@ building the EncoderSpec per-gen seam (its docs/AUDIT_ACTION_PLAN.md, finding
 F-08). Design AGAINST that interface; if the seam isn't written yet, design
 the interface you need and record it as a proposal to reconcile at merge.
 
-## PRIOR WORK — anchor the sweep here (all indexed in prior_work/README.md)
+## PRIOR WORK — anchor the sweep here (all indexed in docs/prior_work/README.md)
 
 - **Wang 2024 (MIT thesis) is THE closest prior work for gen4**: PPO +
   test-time MCTS on gen4randombattles, Elo 1756 / GXE 79.5%, ladder rank 8.
@@ -84,7 +84,7 @@ the interface you need and record it as a proposal to reconcile at merge.
    untouchable (bit-identical constraint, OBS_DIM landmine).
 4. anchors_and_eval.md — what SH is worth in gen4RB (its Gen4OU row is
    weak), what replaces/joins it (the most-damage-typed anchor from
-   IDEAS_POST_100M.md §2.6 is JOURNEY's own pre-step-3 item — spec it here),
+   docs/IDEAS_POST_100M.md §2.6 is JOURNEY's own pre-step-3 item — spec it here),
    what Foul Play equivalent exists for gen4 (Wang's MCTS? note the index's
    poke-engine gen-feature-flag landmine), and how the gen1 anchor-battery
    convention translates.
@@ -92,7 +92,7 @@ the interface you need and record it as a proposal to reconcile at merge.
    your recommendation and the losing argument (the 2-Opus-synthesis house
    style): e.g. gen4 as fresh net vs transfer from the gen1 final; shared
    vs per-gen action head; whether step 3 starts before/after ladder #3.
-6. OPTIONAL STRETCH (only after 1–5 are committed): IDEAS_POST_100M.md §2.5
+6. OPTIONAL STRETCH (only after 1–5 are committed): docs/IDEAS_POST_100M.md §2.5
    search-depreciation write-up (free, feeds the step-2 ladder-object
    ruling) as docs/design_gen4/search_depreciation.md.
 

@@ -1,7 +1,7 @@
 # =====================================================================
 # STAGE-2 ACCEPTANCE FLEET — G8 (throughput) + G9 (learning equivalence),
 # DRAFTED 2026-09-01. This EXECUTES the pre-registered acceptance gates of
-# prior_work/THROUGHPUT_SPEC.md §4 with both gates RE-BASED onto the batch
+# docs/prior_work/THROUGHPUT_SPEC.md §4 with both gates RE-BASED onto the batch
 # recipe, as ordered in HANDOFF.md 2026-08-31 §1 ("re-base G8 and G9
 # BEFORE writing code"; parameters — pool the three seeds, name the anneal
 # caveat, name the noise floor — are the handoff's, restated below). It is

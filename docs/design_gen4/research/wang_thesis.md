@@ -19,13 +19,13 @@
 
 | Source | What I read |
 |---|---|
-| `scratchpad/research/_wang_thesis_paged.txt` (pdftotext of `prior_work/wang2024_mit_thesis_randbats_rl.pdf`) | **the whole file, 1,440 lines = thesis pp. 1–47.** Line→page map: lines 1–199 = pp. 1–12 (front matter/TOC), 200–400 = pp. 13–17 (ch. 1), 400–604 = pp. 18–22 (ch. 2), 605–827 = pp. 23–28 (ch. 3), 828–1025 = pp. 29–35 (ch. 4), 1026–1193 = pp. 36–39 (ch. 5), 1194–1337 = pp. 40–43 (Appendix A + Tables A.1/A.2/A.3), 1338–1440 = pp. 44–46 (references). |
+| `scratchpad/research/_wang_thesis_paged.txt` (pdftotext of `docs/prior_work/wang2024_mit_thesis_randbats_rl.pdf`) | **the whole file, 1,440 lines = thesis pp. 1–47.** Line→page map: lines 1–199 = pp. 1–12 (front matter/TOC), 200–400 = pp. 13–17 (ch. 1), 400–604 = pp. 18–22 (ch. 2), 605–827 = pp. 23–28 (ch. 3), 828–1025 = pp. 29–35 (ch. 4), 1026–1193 = pp. 36–39 (ch. 5), 1194–1337 = pp. 40–43 (Appendix A + Tables A.1/A.2/A.3), 1338–1440 = pp. 44–46 (references). |
 | `scratchpad/research/_wang_fig41_crop-29.png` | Figure 4.1 (thesis p. 29), viewed, then **digitized** — see "Figure 4.1 digitization" below. Helper scripts written by me this session: `scratchpad/research/_fig41_probe.py` and `_fig41_read.py`, operating on `_fig41.bmp` (a `sips -s format bmp` conversion of the PNG). |
-| `prior_work/README.md` | lines 110–135 (ladder-comparison table), 385–500 (Sources: Wang / VGC-Bench / Metamon / ps-ppo entries), 555–640 (`wang_fork_diffs.md` entry, H&L entry). |
-| `prior_work/wang_fork_diffs.md` | lines 1–35 (header + PS commit log), 3409–3460 (poke-env commit log + start of cumulative diff), 3560–3590 and 3676–3700 (weather / `Move.reveal` / `_base_ability` hunks), 3930–3992 (Player `maybe_trapped`, `base_format`, server-URL hunks), 3993–4030 (SB3 commit log + first hunks); grepped the whole file for `getstate`/`>load`/`randomConstrainedSet`/`maxpp`/`maybe_trapped`. |
+| `docs/prior_work/README.md` | lines 110–135 (ladder-comparison table), 385–500 (Sources: Wang / VGC-Bench / Metamon / ps-ppo entries), 555–640 (`wang_fork_diffs.md` entry, H&L entry). |
+| `docs/prior_work/wang_fork_diffs.md` | lines 1–35 (header + PS commit log), 3409–3460 (poke-env commit log + start of cumulative diff), 3560–3590 and 3676–3700 (weather / `Move.reveal` / `_base_ability` hunks), 3930–3992 (Player `maybe_trapped`, `base_format`, server-URL hunks), 3993–4030 (SB3 commit log + first hunks); grepped the whole file for `getstate`/`>load`/`randomConstrainedSet`/`maxpp`/`maybe_trapped`. |
 | poke-env 0.15.0 (`PE`) | `battle/abstract_battle.py:752–772`, `grep` for `from_showdown_message(weather)` and `maybe_trapped` across the package, `player/baselines.py` `available_switches` sites. |
 | Vendored Showdown (`SD`, PS 0.11.11 @59da482) | `data/conditions.ts:640–700` (sandstorm/hail weather conditions), `grep '-weather'` over `data/conditions.ts`, `data/mods/gen4/conditions.ts:146–160`, `data/random-battles/gen4/teams.ts:1–45,636`, `data/random-battles/gen4/sets.json` (counted with a 3-line stdlib-json script), `sim/battle-stream.ts` (case list), `sim/battle.ts:318–323`. |
-| SNAP `main@2738025` | `JOURNEY.md` lines 36–62 (steps 3–5) and 118; `grep -n -i wang JOURNEY.md IDEAS_POST_100M.md`. |
+| SNAP `main@2738025` | `JOURNEY.md` lines 36–62 (steps 3–5) and 118; `grep -n -i wang JOURNEY.md docs/IDEAS_POST_100M.md`. |
 
 **Not read / out of scope for this note:** the thesis PDF's figure pages 26 (Fig 3.1, LR schedule),
 31 (Fig 4.2, losses), 32 (Fig 4.3, Elo progression), 33–34 (Figs 4.4/4.5, game logs) — I read their
@@ -74,7 +74,7 @@ patches, or Stable-Baselines3.** Grepping the full text for `fork`, `bug`, `poke
 `SimpleHeuristicsPlayer`) and reference [6] (Pokémon Showdown). The only repo he links is
 `https://github.com/quadraticmuffin/pkmn-thesis-replays` (p. 35), which holds replay HTML. **The
 whole infrastructure layer is undocumented in the thesis** and exists only in
-`prior_work/wang_fork_diffs.md`.
+`docs/prior_work/wang_fork_diffs.md`.
 
 **(source-verified, from the fork diffs, not the thesis)** What the forks actually contain
 (`wang_fork_diffs.md:1–35`): `pokemon-showdown` 13 non-merge commits touching
@@ -99,7 +99,7 @@ reseed, tiebreak, chat-inputlogonly, chat, eval, editbattle, requestlog, request
 show-openteamsheets, version`). Re-adding Wang's two commands is a small, well-scoped port if we
 ever do search. This corroborates the prior-work index's line "(`>getstate`/`>load` stream commands
 + constrained team regen (the MCTS determinization — serialization itself is upstream Showdown)"
-(`prior_work/README.md:567–569`).
+(`docs/prior_work/README.md:567–569`).
 
 ---
 
@@ -244,7 +244,7 @@ index 0 doubles as a null in each vocabulary (plausible, unstated) or partial kn
 randbats set frequencies, damage-roll ranges, stat estimates, type effectiveness, STAB, base power,
 or move category. Every derived quantity our gen1 encoder precomputes is absent; the network sees
 raw identities plus embeddings. (Contrast ps-ppo's `obs_pokemon.py` `stats_int` = 5 stats ×
-(min, est, max), per `prior_work/README.md:472–474` — literature-only, I did not re-read ps-ppo.)
+(min, est, max), per `docs/prior_work/README.md:472–474` — literature-only, I did not re-read ps-ppo.)
 
 **(source-verified) Slot semantics.** 12 slots × 300, each carrying its own `active` (2) and
 `is opponent` (2) flags — so slot order is presumably [our 6 | their 6] with redundant flags, and
@@ -265,7 +265,7 @@ switches); the rest get masked out (see subsection 3.1.3)."
 `{0,…,494}` is **495** actions; `199 + 295` = **494**; and p. 27 refers to "a length-496
 distribution over actions". Most likely reading: 199 move ids + 296 switch targets (one per species,
 matching the 296-species pool) = 495 = |{0,…,494}|, and "295" on p. 23 is a typo. **The prior-work
-index's "494-way identity space" (`prior_work/README.md:490–493`) is the sum of the two stated
+index's "494-way identity space" (`docs/prior_work/README.md:490–493`) is the sum of the two stated
 components; it is defensible but the thesis's own set notation says 495.** Quote it as "≈495-way,
 identity-based (thesis internally inconsistent: 494 / 495 / 496)".
 
@@ -286,7 +286,7 @@ every turn, `-inf` is the risky choice, not the safe one.
 **(source-verified)** Verbatim (p. 23): "r ∈ {−1, 0, 1}: The reward is 1 on a turn where the agent
 wins (causes all opposing Pokémon to faint), -1 on a loss, and 0 on any other turn (including ties)."
 **Terminal-only, zero-sum, ties scored 0. No shaping of any kind** — no faint bonus (contrast H&L's
-5-term shaping, `prior_work/README.md`), no HP-delta term. With γ = 0.9999 over ~25-turn / ~50-step
+5-term shaping, `docs/prior_work/README.md`), no HP-delta term. With γ = 0.9999 over ~25-turn / ~50-step
 episodes this is effectively undiscounted (0.9999^50 ≈ 0.995).
 
 ---
@@ -353,7 +353,7 @@ descent over the batched data." So the *effective* batch per update is somewhere
 
 Derived, at face value: 150M / 39,936 ≈ **3,756 updates**; 39,936 / 1024 ≈ 39 minibatches × 7 epochs
 = **273 gradient steps per update**; at ~25 steps per seat-episode, **≈1,597 seat-episodes ≈ 799
-battles per update**. **Cross-ref:** this reproduces the "~1,600" in `prior_work/README.md`'s
+battles per update**. **Cross-ref:** this reproduces the "~1,600" in `docs/prior_work/README.md`'s
 episodes-per-update discussion (H&L 15,360 ≫ Wang ~1,600 ≈ ps-ppo ~1,500 ≫ ours ~34).
 
 ---
@@ -458,7 +458,7 @@ column. Reading the **smoothed** line:
 |---|---|---|---|---|---|---|---|---|---|
 | winrate | .786 | .797 | .814 | .821 | .837 | .837 | **.849** | .835 | .836 |
 
-**This exactly reproduces the prior-work index's "~0.575 at 6M steps"** (`prior_work/README.md:396`)
+**This exactly reproduces the prior-work index's "~0.575 at 6M steps"** (`docs/prior_work/README.md:396`)
 — that number is a Figure 4.1 digitization, and it is right. Two further facts fall out:
 - The curve's **endpoint is ≈0.836, its peak ≈0.849 near 120M**. The prose's "roughly 85%" is the
   peak, not the endpoint; the honest Fig-4.1 final number is **~0.836**.
@@ -610,7 +610,7 @@ all that different from π₃ except for the size of their state spaces; strateg
 3 Pokémon are seldom employed".
 
 **This is NOT an opponent-pool curriculum, and the thesis contains no curriculum experiment of any
-kind.** The index's "Curriculum negative result (§5.1.3)" (`prior_work/README.md:399`) and JOURNEY's
+kind.** The index's "Curriculum negative result (§5.1.3)" (`docs/prior_work/README.md:399`) and JOURNEY's
 "Wang tried a bootstrapping variant and reported no significant improvement (§5.1.3)"
 (`JOURNEY.md:118`) are **the same experiment described two different ways** — a hierarchical /
 value-bootstrapping transfer scheme across team sizes. Neither wording is wrong, but reading them as
@@ -632,7 +632,7 @@ at all** — no win rates, no curves, no seeds. Treat as an anecdote, not a meas
 
 **(source-verified)** The thesis never mentions a poke-env bug, patch, or fork. `poke-env` appears
 once, as reference [22] (p. 45), cited only as the provenance of `SimpleHeuristicsPlayer`. Everything
-we know about his 36 fixes comes from `prior_work/wang_fork_diffs.md:3411–3450`.
+we know about his 36 fixes comes from `docs/prior_work/wang_fork_diffs.md:3411–3450`.
 
 **(source-verified) The gen4-relevant fixes in his poke-env fork**, commit-log verbatim:
 `2b407c3 gen 4 moves Max PP` · `aa8acaf Fix Sleep Talk PP subtracted twice per use` ·
@@ -700,7 +700,7 @@ and check which survived upstreaming") is the right one and is **not yet done**;
 **(source-verified) That is wrong on all three numbers, and the first two belong to a different
 paper.** Table A.3 (p. 43) says **`gamma 0.9999`**, **`gae_lambda 0.754`**, **`n_steps 78 · 512 =
 39,936`**. γ = 1.0 / λ = 0.95 is **VGC-Bench's** recipe, recorded in our own index as such:
-`prior_work/README.md:406–409`, verbatim — "Their recipe (Table 7): gamma 1.0, lambda 0.95, ~3k
+`docs/prior_work/README.md:406–409`, verbatim — "Their recipe (Table 7): gamma 1.0, lambda 0.95, ~3k
 steps/update — **OUR gamma/lambda, not Wang/ps-ppo's 0.75**". No quantity anywhere in the thesis is
 128k; the nearest is 39,936 steps per update (upper bound; §5.1 above explains the "half the buffers"
 ambiguity). I could not find any source for "128k".
@@ -709,12 +709,12 @@ ambiguity). I could not find any source for "128k".
 |---|---|---|
 | session brief | γ 1.0, λ 0.95, 128k steps/update | **WRONG** — γ/λ are VGC-Bench's (index line 406–409); 128k is unsourced. Thesis: γ 0.9999, λ 0.754, 39,936 steps/update (Table A.3, p. 43). |
 | `JOURNEY.md:47` (step 4) | γ 0.9999, λ 0.754, 7 epochs, clip 0.0829, value clip 0.0184, ent 0.0588, vf 0.4375, grad-norm 0.543, n_steps 78×512, batch 1024, hidden 256, features 896, LR 10^-4.23/(8x+1)^1.5 | **CORRECT, every value, verbatim against Table A.3 + §3.1.4.** |
-| `IDEAS_POST_100M.md:180` | "ps-ppo 0.75 and Wang 0.754 sit against VGC-Bench at γ1.0/λ0.95" | **CORRECT** for Wang's λ. |
-| `prior_work/README.md:396` | "~0.575 at 6M steps" | **CORRECT** — reproduced by my Figure 4.1 digitization (0.575 at 6M). |
-| `prior_work/README.md:395–396` | "Pure network 0.786 vs SimpleHeuristics (Table 4.1; Fig 4.1 says ~0.85 — unreconciled)" | **CORRECT and still unreconciled**; refine "~0.85" to "peak 0.849 at ~120M, endpoint ~0.836". |
-| `prior_work/README.md:490–493` | "Wang's 494-way identity space" | **Substantively correct** (identity-based, ~500-way) but the thesis says `A = {0,…,494}` = 495 and once "length-496"; quote with the inconsistency. |
-| `prior_work/README.md:399` + `JOURNEY.md:118` | "Curriculum negative result (§5.1.3)" / "bootstrapping variant… no significant improvement (§5.1.3)" | **Both refer to the SAME single experiment** (hierarchical team-size transfer). Do not count as two. |
-| `prior_work/README.md:123` (ladder table) | "Wang 2024 · Gen4RB · 1756 · 79.5%" | **Correct numbers, but they are a PEAK** (rank-8 moment), not an endpoint; his 200-game average was ~1615 Elo. |
+| `docs/IDEAS_POST_100M.md:180` | "ps-ppo 0.75 and Wang 0.754 sit against VGC-Bench at γ1.0/λ0.95" | **CORRECT** for Wang's λ. |
+| `docs/prior_work/README.md:396` | "~0.575 at 6M steps" | **CORRECT** — reproduced by my Figure 4.1 digitization (0.575 at 6M). |
+| `docs/prior_work/README.md:395–396` | "Pure network 0.786 vs SimpleHeuristics (Table 4.1; Fig 4.1 says ~0.85 — unreconciled)" | **CORRECT and still unreconciled**; refine "~0.85" to "peak 0.849 at ~120M, endpoint ~0.836". |
+| `docs/prior_work/README.md:490–493` | "Wang's 494-way identity space" | **Substantively correct** (identity-based, ~500-way) but the thesis says `A = {0,…,494}` = 495 and once "length-496"; quote with the inconsistency. |
+| `docs/prior_work/README.md:399` + `JOURNEY.md:118` | "Curriculum negative result (§5.1.3)" / "bootstrapping variant… no significant improvement (§5.1.3)" | **Both refer to the SAME single experiment** (hierarchical team-size transfer). Do not count as two. |
+| `docs/prior_work/README.md:123` (ladder table) | "Wang 2024 · Gen4RB · 1756 · 79.5%" | **Correct numbers, but they are a PEAK** (rank-8 moment), not an endpoint; his 200-game average was ~1615 Elo. |
 | `JOURNEY.md:53` | "he ran Stable-Baselines3 with its defaults" | **Half-right.** SB3 is source-verified from the fork, not the thesis — but "with its defaults" is wrong: Table A.3's 13 values are Bayesian-tuned, not SB3 defaults (SB3 PPO defaults are lr 3e-4, n_epochs 10, γ 0.99, λ 0.95, clip 0.2, ent 0.0, vf 0.5, grad-norm 0.5). The honest disclosure is "he ran SB3's PPO *implementation*", which is the real confound. |
 
 ---
@@ -785,7 +785,7 @@ Our gen1 encoder is 828-d with a frozen `EncoderSpec` seam (`rl/envs/encoder_spe
 8. **The opponent-set belief is tractable in gen4.** ≤3 sets per species (tree-verified) means the
    "what set is that?" posterior is a small categorical — cheap to featurize, unlike gen1's
    movepool-style uncertainty. Our gen1 D19 finding ("the genuine belief residual is 0.024–0.034
-   nats", `prior_work/README.md:110–113`, literature-only here) does **not** transfer: the gen4
+   nats", `docs/prior_work/README.md:110–113`, literature-only here) does **not** transfer: the gen4
    belief object is a different shape.
 9. **`-inf` masking.** Wang masks with `-float("inf")` (p. 25) over ~486 dead logits out of ~495; our
    contract mandates `-1e8`. If we ever copy his action space, the sentinel choice becomes
@@ -810,7 +810,7 @@ Our gen1 encoder is 828-d with a frozen `EncoderSpec` seam (`rl/envs/encoder_spe
    claiming parity could read as matching the weaker of his two numbers.
 2. **Do we copy his action space at all?** Our whole ladder history is positional (14-way ps-ppo,
    9-way Metamon, ours). Wang's ~495-way identity space is the outlier **and his headline needed
-   MCTS** (`prior_work/README.md:490–493`). His *pure-network* 0.786 is the identity space's
+   MCTS** (`docs/prior_work/README.md:490–493`). His *pure-network* 0.786 is the identity space's
    unaided score. Recommendation: **stay positional**; treat the identity space as a rejected
    alternative with a named reason.
 3. **Do we adopt his batch shape along with his γ/λ?** λ = 0.754 was tuned at ~1,600 seat-episodes
@@ -822,7 +822,7 @@ Our gen1 encoder is 828-d with a frozen `EncoderSpec` seam (`rl/envs/encoder_spe
 5. **Which SH is the gen4 anchor?** Wang's numbers are against a **patched** `SimpleHeuristicsPlayer`
    (his fork patches it 4 times: Curse "???" type, `opp_remaining_mons`, `maybe_trapped` ×2). Ours
    would be against stock 0.15.0. Same comparability caveat we already carry for ps-ppo
-   (`prior_work/README.md`: "their SH numbers are vs a PATCHED bot"). Decide whether to patch, and
+   (`docs/prior_work/README.md`: "their SH numbers are vs a PATCHED bot"). Decide whether to patch, and
    disclose either way.
 6. **Does the weather bug get fixed in the encoder or in a poke-env patch?** If `battle.weather` is
    restamped every turn (§10), the choices are: parse the raw message stream ourselves in the env

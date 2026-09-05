@@ -271,9 +271,9 @@ W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` writes
 | `STATUS.md` | current state and next actions, rewritten in place |
 | `SESSION_LOGS.md` | the dated record: every number, every correction |
 | `configs/*.yaml` | each experiment's pre-registration, in the config header |
-| `prior_work/README.md` | verified index of external systems — several widely-repeated claims about them do not survive contact with their code |
+| `docs/prior_work/README.md` | verified index of external systems — several widely-repeated claims about them do not survive contact with their code |
 | `scripts/README.md` | why almost nothing in `scripts/` is safe to delete |
-| `IDEAS_POST_100M.md` | the live lever list, re-ranked after the 100M read; each entry owes its own pre-reg |
+| `docs/IDEAS_POST_100M.md` | the live lever list, re-ranked after the 100M read; each entry owes its own pre-reg |
 | [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md) |
 | `docs/archive/` | **history, never "what next"** — spent roadmaps (DESIGN, DESIGN2), the Chapter 5 brief and frozen audits, read only when named |
 

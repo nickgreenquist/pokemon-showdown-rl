@@ -1,12 +1,12 @@
-# research_reports
+# docs/research_reports
 
-AI deep-research reports commissioned for this project. **Not `prior_work/`** —
+AI deep-research reports commissioned for this project. **Not `docs/prior_work/`** —
 that index holds *verified* external material, read before citing any external
 result. These are raw model output: useful for orientation and for finding
 papers worth reading, and **not evidence until checked against source.**
 
 Standing rule, and it has already been earned three times over on the H&L
-entry in `prior_work/README.md`: a claim in one of these files may not enter a
+entry in `docs/prior_work/README.md`: a claim in one of these files may not enter a
 pre-registration, a config header, or a README row until someone has verified
 it against the actual paper or code. Round numbers with no citation
 ("12–25% win rate", "62.3% in Tron") are the ones to check first.

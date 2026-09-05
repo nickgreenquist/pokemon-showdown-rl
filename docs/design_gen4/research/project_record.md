@@ -39,11 +39,11 @@ Snapshot root
 | `CHAPTER5.md` | section index; 239–310 (§3b), 487–572 (§6/§7/§8) |
 | `JOURNEY.md` | 1–120 (whole file, 119 lines) |
 | `STATUS.md` | 1–59 (whole file) |
-| `IDEAS_POST_100M.md` | section index; 1–140 (§1–§3, incl. 2.5/2.6); 175–190 (λ block); 276–308 (§7 corrections) |
-| `CLEANUP.md` | 1–60 |
+| `docs/IDEAS_POST_100M.md` | section index; 1–140 (§1–§3, incl. 2.5/2.6); 175–190 (λ block); 276–308 (§7 corrections) |
+| `docs/CLEANUP.md` | 1–60 |
 | `CLAUDE.md` | 160–215 (landmines tail + Conventions) |
 | `README.md` | 160–185 |
-| `prior_work/README.md` | 100–140 (ladder table + retired conversion), 385–430, 460–500, 560–575, 618–632, 655–700 |
+| `docs/prior_work/README.md` | 100–140 (ladder table + retired conversion), 385–430, 460–500, 560–575, 618–632, 655–700 |
 | `readouts/LADDER_R1_READOUT.md` | 1–35 |
 | `configs/eval/fp_budget_ladder.yaml` | 1–32 (whole file) |
 | `configs/eval/ch3_r4_fp_anchor.yaml` | 1–40 |
@@ -62,7 +62,7 @@ MAIN (gitignored, allowed): `results/design_ch5_100m/synthesis_100m.md` (1–85,
 
 **NOT read** (per the hard bars or out of scope): `configs/eval/ladder_r4.yaml`, anything
 under `results/ladder`, `MAIN/runs`, `MAIN/logs`, the Wang/H&L/Metamon PDFs and their text
-dumps, `prior_work/wang_fork_diffs.md`, the ps-ppo / foul-play / metagrok clones,
+dumps, `docs/prior_work/wang_fork_diffs.md`, the ps-ppo / foul-play / metagrok clones,
 `mem_A.md` / `mem_B.md` / `review_1.md` / `review_2.md` of the 100M cycle (only the
 synthesis and brief were in scope), `rl/envs/encoder_spec.py` itself (its landing record
 only).
@@ -129,7 +129,7 @@ Four corrections, all load-bearing for gen4:
 2. **The 0.786-vs-0.85 discrepancy is UNRECONCILED IN THE THESIS.** Table 4.1 = 0.786;
    Fig 4.1 ≈ 0.85. This is *Wang's* inconsistency, not ours. The record repeats it in the
    sources index: "Pure network 0.786 vs SimpleHeuristics (Table 4.1; Fig 4.1 says ~0.85 —
-   unreconciled)" (`prior_work/README.md:396-397`), and the DESIGN r6 fact-check hedged it
+   unreconciled)" (`docs/prior_work/README.md:396-397`), and the DESIGN r6 fact-check hedged it
    further: "Wang 0.786 provenance hedged (no step count in our index; Fig 4.1 ~0.85
    unreconciled)" (`SESSION_LOGS.md:279-280`, entry 2026-08-05).
 3. **The env-stepping bottleneck is about MCTS rollouts, not training collection.** Do not
@@ -142,7 +142,7 @@ sets Wang's 494-way space against ps-ppo's 14 and Metamon's 9 and calls Wang the
 > "**Action space: 14, positional** … Same family as ours. With Metamon's 9 (4 move + 5
 > switch) this is the evidence that closed the action-space question on 2026-08-04: the
 > strongest pure policies are positional; Wang's 494-way identity space is the outlier and
-> his headline needed MCTS." (`prior_work/README.md:467-471`)
+> his headline needed MCTS." (`docs/prior_work/README.md:467-471`)
 
 **Consequence for gen4:** we should NOT copy Wang's action space. The seam already derives
 ours from the format — F-08 landed `Discrete(10)` "derived from the format (10 through gen
@@ -179,7 +179,7 @@ here), not the thesis's numbers. It is the natural target curve for JOURNEY step
 ## 1.6 The forks: what is upstream, what Wang actually added, and the poke-env claim
 
 **source-verified** — maintainer-supplied full fork diffs, archived as
-`prior_work/wang_fork_diffs.md`, read and checked against our tree
+`docs/prior_work/wang_fork_diffs.md`, read and checked against our tree
 (`SESSION_LOGS_PREDECESSOR.md:1066-1111`).
 
 **Headline correction, verified at file:line in our own checkout:**
@@ -235,7 +235,7 @@ of the fixes, i.e. more than the two ever checked:
 > wrong observation field looks exactly like a training problem."
 
 The prior-work index compresses the same thing to "36 poke-env state-tracking fixes
-(encoder-relevant ones upstreamed by 0.15.0)" (`prior_work/README.md:568-570`) — **that
+(encoder-relevant ones upstreamed by 0.15.0)" (`docs/prior_work/README.md:568-570`) — **that
 parenthetical is the sentence most likely to be over-read.** "Encoder-relevant" there means
 *gen1*-encoder-relevant, and the population checked was two.
 
@@ -271,17 +271,17 @@ Gen9 is where the effort compounds."
 
 | where | what it says |
 |---|---|
-| `prior_work/README.md:123` | Ladder board row: "Wang 2024 — PPO + test-time MCTS \| Gen4RB \| **1756** \| **79.5%**" (Glicko-1 / GXE). Sourced from Metamon's appendix, not from Wang. |
+| `docs/prior_work/README.md:123` | Ladder board row: "Wang 2024 — PPO + test-time MCTS \| Gen4RB \| **1756** \| **79.5%**" (Glicko-1 / GXE). Sourced from Metamon's appendix, not from Wang. |
 | `RESULTS.md:246` | The same row in the published-field table (GXE only). |
-| `prior_work/README.md:405-411` | VGC-Bench correction: "Their recipe (Table 7): gamma 1.0, lambda 0.95, ~3k steps/update — OUR gamma/lambda, **not Wang/ps-ppo's 0.75**, so the 'convergent recipe' prior has a third system on the other side." |
-| `prior_work/README.md:420-424` | Metamon appendix A.1/A.2 is the *source* of the 1756/79.5% row. |
-| `prior_work/README.md:490-493` | ps-ppo's "Wang MLP replication plateaued ~1100 Elo" has **ZERO code support** — no MLP anywhere in ps-ppo's history. "Treat as anecdote." |
-| `prior_work/README.md:625-628` / `CHAPTER5.md:266` | The "~30 → 100–300 episodes/update" target was calibrated against Wang (~1,600) and ps-ppo (~1,500), and the index argues **those are not our comparable** (both use human data); H&L is, at ~15,360 episodes/update. |
+| `docs/prior_work/README.md:405-411` | VGC-Bench correction: "Their recipe (Table 7): gamma 1.0, lambda 0.95, ~3k steps/update — OUR gamma/lambda, **not Wang/ps-ppo's 0.75**, so the 'convergent recipe' prior has a third system on the other side." |
+| `docs/prior_work/README.md:420-424` | Metamon appendix A.1/A.2 is the *source* of the 1756/79.5% row. |
+| `docs/prior_work/README.md:490-493` | ps-ppo's "Wang MLP replication plateaued ~1100 Elo" has **ZERO code support** — no MLP anywhere in ps-ppo's history. "Treat as anecdote." |
+| `docs/prior_work/README.md:625-628` / `CHAPTER5.md:266` | The "~30 → 100–300 episodes/update" target was calibrated against Wang (~1,600) and ps-ppo (~1,500), and the index argues **those are not our comparable** (both use human data); H&L is, at ~15,360 episodes/update. |
 | `SESSION_LOGS.md:1991,1995` | "Wang's numbers match our verified index (0.575@6M, LR ablation 0.55→0.80)"; "~38 completed episodes per update vs Wang's ~1,600 and ps-ppo's ~1,500". |
 | `SESSION_LOGS.md:2277` | "Wang's 36 poke-env commits verified 2026-08-03 — both encoder-relevant fixes …" (the two-fix reading confirmed in a later triage). |
 | `SESSION_LOGS.md:2334-2336` | Architecture survey: "H&L/Wang symmetric PPO"; "Wang gen4 AND test-time MCTS". |
-| `IDEAS_POST_100M.md:180` | λ: "ps-ppo 0.75 and Wang 0.754 sit against **VGC-Bench at γ1.0/λ0.95 (our exact values)** and H&L at λ0.9/γ0.95" — the external field is **split, not convergent**. |
-| `IDEAS_POST_100M.md:247` | "JOURNEY step 3, Wang's one-hot duration counters" — cited as an encoder idea for step 3. |
+| `docs/IDEAS_POST_100M.md:180` | λ: "ps-ppo 0.75 and Wang 0.754 sit against **VGC-Bench at γ1.0/λ0.95 (our exact values)** and H&L at λ0.9/γ0.95" — the external field is **split, not convergent**. |
+| `docs/IDEAS_POST_100M.md:247` | "JOURNEY step 3, Wang's one-hot duration counters" — cited as an encoder idea for step 3. |
 | `JOURNEY.md:9,40,42,44-45,51-58,63,118` | The gen4 chapter's whole Wang program (below). |
 
 **tree-verified — the encoder items JOURNEY says to steal** (`JOURNEY.md:42`): "Steal his
@@ -527,7 +527,7 @@ build and see whether the ordering separates.
   > FP numbers are incomparable to each other."
 - **Never project between the two boards** (`CLAUDE.md` landmine; `RESULTS.md:1252`):
   "vs-SH and off-FP are **never ladder numbers**, in either direction." The full retirement
-  is at `prior_work/README.md:102-110`: "**never project a ladder number from a vs-SH
+  is at `docs/prior_work/README.md:102-110`: "**never project a ladder number from a vs-SH
   number, in either direction.** … a directional exemption is how a projection habit
   survives its own retirement." The ~40% GXE conversion is RETIRED (2026-08-28).
 
@@ -562,7 +562,7 @@ never-a-ladder-number line.
 
 ## 3.1 THE PROVENANCE ERROR IN THE CURRENT DOCS (fix before writing search_depreciation.md)
 
-**tree-verified.** `IDEAS_POST_100M.md:95-97` says:
+**tree-verified.** `docs/IDEAS_POST_100M.md:95-97` says:
 
 > "The points exist: 12M per-lane search deltas +0.051/+0.104/+0.148 (monotone in lane
 > weakness), 50M batch-lane R4S66 search@20 **0.38067 vs greedy 0.4740 (~10 se — search
@@ -650,7 +650,7 @@ anchors."
   helped LEAST on (+0.051 against a +0.1010 within-lane mean; s82 +0.148, s81 +0.104). The
   deployed object is not the one that would flatter the search story."
   (`configs/eval/ladder_r3.yaml:77-81`)
-- **RESULTS §16 rows** (`prior_work/README.md:118-122`, the field table): "ours — LADDER R1
+- **RESULTS §16 rows** (`docs/prior_work/README.md:118-122`, the field table): "ours — LADDER R1
   object: 4-ckpt log-prob ensemble, 12M (0.74633 vs SH) | gen1RB | **1573 ± 27** | **59.6%**"
   and "ours — LADDER R3 object: one-ply search@M on 50M lane s80 | gen1RB | **1579 ± 25** |
   **60.3%**", with the standing bar directly under them: "**NO ARITHMETIC DIFFERENCE BETWEEN
@@ -717,9 +717,9 @@ search, is the path to ladder readiness."
 | D22-era srank — **STALE, do not quote** | "D26'S CRITIC IS NOT RANK-COLLAPSED: critic ctx srank99 measured 49/51/35/52 of 384 on the four headline finals; D22's '7-11 of 384' described D25-era nets and is STALE as a premise"; ladder "D23 control mean 14.8 -> D23 treatment 35.3 -> D25 12.6 -> **D26 46.8**" | `SESSION_LOGS.md:5908-5917` |
 | the residual diagnosis | "The critic's residual weakness per the standing evidence is ALEATORIC fit limits (D18 zero-defect audit) plus decision-ordering quality (E2/E3/R4), NOT representation rank." | `SESSION_LOGS.md:5926-5929` |
 | **Brier / Murphy decomposition (CH3 R0, Z1)** | "Z1: Brier 0.1567 = reliability 0.0117 (well calibrated) + resolution 0.0594 vs uncertainty 0.2050; aleatoric floor of EV 0.290 (V-bins explain ~29% of outcome variance — first-ever decomposition)" | `SESSION_LOGS.md:5049-5052` |
-| what Z1 is and is not | "'Reliability 0.0117' is CH3 R0's Murphy decomposition of the *search* value head vs SH (Brier 0.1567 = 0.0117 + resolution 0.0594 / uncertainty 0.2050) — not a fleet-R0 read." | `IDEAS_POST_100M.md:284-287` |
-| the deficit's shape | "the deficit is resolution" (reliability 0.0117 = calibrated; resolution 0.0594 vs uncertainty 0.2050) | `IDEAS_POST_100M.md:88-90` |
-| hidden-information ceiling | "D18 says the outcome residual is largely aleatoric (entire hidden team worth +0.045 EV) and the value head is calibrated (Z1 reliability 0.0117)" | `IDEAS_POST_100M.md:176-178` |
+| what Z1 is and is not | "'Reliability 0.0117' is CH3 R0's Murphy decomposition of the *search* value head vs SH (Brier 0.1567 = 0.0117 + resolution 0.0594 / uncertainty 0.2050) — not a fleet-R0 read." | `docs/IDEAS_POST_100M.md:284-287` |
+| the deficit's shape | "the deficit is resolution" (reliability 0.0117 = calibrated; resolution 0.0594 vs uncertainty 0.2050) | `docs/IDEAS_POST_100M.md:88-90` |
+| hidden-information ceiling | "D18 says the outcome residual is largely aleatoric (entire hidden team worth +0.045 EV) and the value head is calibrated (Z1 reliability 0.0117)" | `docs/IDEAS_POST_100M.md:176-178` |
 
 **Reading:** the value head is **calibrated but low-resolution**, and the record's own
 standing diagnosis is that the residual is *aleatoric + decision-ordering*, not
@@ -735,7 +735,7 @@ arm of any 100M lane.** The only search mention is the non-comparability line
 different policy forms measured in different sessions; they may not be ranked against each
 other." The frozen eval schedule as executed (`SESSION_LOGS.md:9946-9958`) has five items —
 vs-SH finals, the off-FP primary greedy, S-SHAPE, S-ANNEAL, BC-clone h2h — and no search arm.
-`IDEAS_POST_100M.md:97-98` says "the 100M primary adds the endpoint", which is true only for
+`docs/IDEAS_POST_100M.md:97-98` says "the 100M primary adds the endpoint", which is true only for
 the *greedy* curve; **the searched endpoint of the depreciation curve does not exist.**
 
 **So: search_depreciation.md must state that its own endpoint is missing.** The curve today
@@ -768,10 +768,10 @@ deferrable."
 ## 4.1 There is NO ruling or spec beyond JOURNEY and IDEAS §2.6
 
 **tree-verified.** A repo-wide grep for `most-damage|most_damage|damage-typed` over `*.md`,
-`*.py`, `*.yaml` returns exactly six hits: `JOURNEY.md:15,17`, `IDEAS_POST_100M.md:102`,
+`*.py`, `*.yaml` returns exactly six hits: `JOURNEY.md:15,17`, `docs/IDEAS_POST_100M.md:102`,
 `SESSION_LOGS_PREDECESSOR.md:404` and `configs/showdown_heur_512_s0.yaml:13` (both quoting
 Metamon's "929/1000 vs most-damage" model-size datapoint, unrelated), and
-`prior_work/README.md:662,688-690`. **No pre-reg, no config, no script, no maintainer ruling,
+`docs/prior_work/README.md:662,688-690`. **No pre-reg, no config, no script, no maintainer ruling,
 no session-log entry.** It is an unbuilt proposal.
 
 ## 4.2 What the two proposal texts say
@@ -791,13 +791,13 @@ no session-log entry.** It is an unbuilt proposal.
 > more mechanics exist for a good player to exploit), but it holds the opponent fixed, which
 > no ladder comparison can."
 
-`IDEAS_POST_100M.md:102-104`, verbatim: "**2.6 most-damage-typed anchor — BUILD BEFORE STEP
+`docs/IDEAS_POST_100M.md:102-104`, verbatim: "**2.6 most-damage-typed anchor — BUILD BEFORE STEP
 3 (one afternoon; JOURNEY's own item).** The only anchor whose strength doesn't drift across
 generations; H&L report 0.829 against it in gen7. Sibling of MaxBasePowerPlayer with type
 awareness."
 
 **The H&L 0.829 provenance and its caveat — tree-verified**,
-`prior_work/README.md:661-663` and `:687-690`: "Their bot table does NOT transfer: 0.829 is
+`docs/prior_work/README.md:661-663` and `:687-690`: "Their bot table does NOT transfer: 0.829 is
 vs a max-damage-typed bot **far weaker than SH**, and their 0.612 is vs the 2019 ancestor of
 foul-play, pre-Rust." … "their strongest scripted baseline (most-damage-typed, 0.829) is far
 weaker than SH — the bot-table non-transfer above now cuts BOTH ways: it removes 'we are
@@ -960,7 +960,7 @@ pool.py:88 fix; stall-kill crash_forfeit read rule. **IDEAS_POST_100M re-rank pe
 (SS-CLIMB: 'more steps' competes; extensions need a new pre-reg).** gen4-design resume:
 maintainer's call, off the ladder critical path."
 
-The §1 rule it points at (`IDEAS_POST_100M.md:29-33`): "The 100M grade re-ranks §4: **if
+The §1 rule it points at (`docs/IDEAS_POST_100M.md:29-33`): "The 100M grade re-ranks §4: **if
 S-SHAPE is still rising at 100M** (quote it with the mandatory anneal sentence), **'more
 steps' competes with every lever and the standing fewer-bigger-runs order favors it**; if it
 is bending, the per-step levers below rise. Write the §4 pre-reg *after* the grade." SS-CLIMB
@@ -1019,7 +1019,7 @@ updates?), F-03 900 s liveness. **None gate the ladder** (`STATUS.md:43-45`).
 
 ## 5.7 The lifecycle rule that blocks archiving CHAPTER5
 
-**tree-verified.** `CLEANUP.md:26-30`: "**CHAPTER5.md migration** (its own lifecycle rule):
+**tree-verified.** `docs/CLEANUP.md:26-30`: "**CHAPTER5.md migration** (its own lifecycle rule):
 §3 (C1–C6 provenance), §6 (out-of-scope), §7 (five rulings incl. the 50M ceiling) must
 survive into R2's pre-reg header; §1/§2/§4/§5/§8 are migrated/superseded already. Archive the
 file WITH or AFTER R2's pre-reg — never before." R2 has since run and been credited
@@ -1179,9 +1179,9 @@ another agent's family) that stop holding at gen4.
 11. **σ_seed ≈ 0.062 and the ~0.07 bar are gen1 constants.**
     `JOURNEY.md:116`: "gen1 measurements are currently uninterpretable at k=3 with σ_seed ≈
     0.062 against a 0.072 bar. Every sequencing decision above follows from that." (That 0.072
-    is itself stale — r9 corrected it to 0.1007, `IDEAS_POST_100M.md:22-24`.) Gen4's noise
+    is itself stale — r9 corrected it to 0.1007, `docs/IDEAS_POST_100M.md:22-24`.) Gen4's noise
     floor is **unmeasured**; no gen4 pre-reg may inherit these numbers.
-12. **Episode length ~25–32 decisions.** `IDEAS_POST_100M.md:298-299`: "self-play measures
+12. **Episode length ~25–32 decisions.** `docs/IDEAS_POST_100M.md:298-299`: "self-play measures
     26–32 by era (R2: 32.047); 27.2 is decisions *vs SH*". `JOURNEY.md:75` already flags the
     consequence: "λ especially, since its effect scales as λ^(T−t), and that is a different
     regime at T≈25 than at T≈100."
@@ -1200,7 +1200,7 @@ another agent's family) that stop holding at gen4.
    leg needs a gen4-capable Foul Play and a re-run budget ladder. Recommend the battery's
    *shape* is preserved and every leg is re-derived with disclosure.
 3. **Is most-damage-typed built, and does it become a battery leg or stay descriptive?**
-   Never ruled; only proposed (`JOURNEY.md:15-19`, `IDEAS_POST_100M.md:102-104`). Note it
+   Never ruled; only proposed (`JOURNEY.md:15-19`, `docs/IDEAS_POST_100M.md:102-104`). Note it
    costs a `tests/test_showdown_env.py:411` edit (the registry key list is asserted).
 4. **Does "weights never transfer between generations" bind as a ruling, or is it intent?**
    It is a maintainer-authored JOURNEY standing note in a file CLAUDE.md calls "NOT a
@@ -1220,7 +1220,7 @@ another agent's family) that stop holding at gen4.
 9. **Gen4 chapter exit condition.** `JOURNEY.md:68`: "**Give gen4 a written exit condition
    when the chapter is opened**, or it becomes where the project lives. It is a borrowed
    instrument, not a home." Unwritten.
-10. **`IDEAS_POST_100M.md:96` says "12M per-lane search deltas" and they are 50M off-FP
+10. **`docs/IDEAS_POST_100M.md:96` says "12M per-lane search deltas" and they are 50M off-FP
     deltas** (§3.1). Correct the file, or record the correction only in the gen4 notes?
 
 ---
@@ -1234,7 +1234,7 @@ another agent's family) that stop holding at gen4.
 - **Wang's Table A.1/A.2/A.3 digits** (`JOURNEY.md:42,45`) are literature-only at digit
   granularity. Someone should re-check γ 0.9999 / λ 0.754 / the LR formula
   10^-4.23/(8x+1)^1.5 against the thesis text dump before a gen4 config header quotes them.
-- **`prior_work/wang_fork_diffs.md` itself** (2,362 lines, untracked) — not read. My account
+- **`docs/prior_work/wang_fork_diffs.md` itself** (2,362 lines, untracked) — not read. My account
   of the fork contents is the 2026-08-03 log entry's account.
 - **`rl/envs/encoder_spec.py`** — not read; only its landing record
   (`docs/archive/AUDIT_BRANCH_LOG.md:303-345`) and the audit-close log entry.

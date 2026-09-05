@@ -88,13 +88,13 @@ SH "equivalent in skill to a beginner Pokémon player" and notes the in-training
 win rate "never surpassed 90%". Metamon's ladder row for SH is Gen4**OU** 21–36
 (36.8 % raw, 31.6 % GXE) — an OU tier with team building, not randbats; the randbats
 rows (gen7RB 39.7 %, gen9RB 41.2 % GXE) are the ones that apply to our family, and
-**no gen4RB SH ladder number exists anywhere** (`prior_work/README.md`). SH's
+**no gen4RB SH ladder number exists anywhere** (`docs/prior_work/README.md`). SH's
 gen4RB strength against humans is unmeasured.
 
 **Three SimpleHeuristicsPlayers are now in play** `[src]` `[tree]`: stock 0.15.0
 (ours, and Wang's validation harness as far as the thesis says), Wang's fork's SH
 (patched four times: Curse `???` type, `opp_remaining_mons`, `maybe_trapped` ×2 —
-`prior_work/wang_fork_diffs.md`), and ps-ppo's (`_stat_estimation` patched). Wang's
+`docs/prior_work/wang_fork_diffs.md`), and ps-ppo's (`_stat_estimation` patched). Wang's
 0.786 is comparable to a stock-SH number **only if the number he reports was
 measured against stock SH, which the thesis does not state** (`wang_thesis.md` §7.2).
 

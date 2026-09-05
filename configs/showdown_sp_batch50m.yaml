@@ -83,7 +83,7 @@
 #   (30.0 x 16.0 = 480 at the measured 32.047; §3b A4's "~450x" used the
 #   superseded ~34-episodes/update figure and is corrected here).
 #   H&L is an EXISTENCE PROOF, not a target ("a completely arbitrary
-#   choice", verbatim §III.B, prior_work/HUANG_LEE_DEEP_READ.md:36).
+#   choice", verbatim §III.B, docs/prior_work/HUANG_LEE_DEEP_READ.md:36).
 #
 #   WHY 3840 AND NOT MORE OR LESS (adjudicated across both memos):
 #   - Designer B's lattice: holding minibatch 256 (batch = 256k) AND the
@@ -661,7 +661,7 @@
 #   **WHY IT IS NOT THE ~40x ALREADY LOGGED (2026-08-08).** That figure, and
 #   the **"~30 -> 100-300 episodes/update" target** it produced, were
 #   calibrated against **Wang (~1,600) and ps-ppo (~1,500)** — and
-#   `prior_work/README.md` argues at length that those are NOT our comparable
+#   `docs/prior_work/README.md` argues at length that those are NOT our comparable
 #   because both use human data. **H&L is**: the only pure-self-play randbats
 #   success on record, our exact lane. **Against the right reference the
 #   recorded target is 50-150x too low.**
@@ -710,7 +710,7 @@
 # - **A3 — temporal context.** We are single-snapshot Markov; ps-ppo uses
 #   64-256 turns, Metamon 200. Named by the 2026-08-25 architecture review as
 #   a SHARPER structural gap than attention. Spec exists at
-#   `prior_work/HISTORY_FEATURES_DESIGN.md` (unread this session). Changes
+#   `docs/prior_work/HISTORY_FEATURES_DESIGN.md` (unread this session). Changes
 #   OBS_DIM, so it inherits C6's invalidation problem and its sequencing.
 #
 # ---

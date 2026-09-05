@@ -2,7 +2,7 @@
 supplied). UNVERIFIED: citations and quotes have NOT been independently checked
 against sources by this repo — treat as leads and search coverage, not evidence.
 The prior-art NOT-REFUTED verdicts are recorded in SESSION_LOGS 2026-08-10 with
-their scope; prior_work/README.md remains the verified index. -->
+their scope; docs/prior_work/README.md remains the verified index. -->
 
 # State-of-the-Art RL Techniques for a Pure Self-Play Gen 1 Pokémon Agent — Technical Assessment & Adversarial Prior-Art Verification
 

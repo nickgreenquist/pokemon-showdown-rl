@@ -47,7 +47,7 @@
 #   2. hl_shaping 0.0 -> 1.0: the 5-term ZERO-SUM event shaping, applied
 #      per seat from protocol events, antisymmetric by construction.
 #
-# Provenance: `prior_work/README.md` H&L entry (VERIFIED 2026-08-07) and
+# Provenance: `docs/prior_work/README.md` H&L entry (VERIFIED 2026-08-07) and
 # the code it names — `yuzeh/metagrok`, cloned at
 # /Users/nickgreenquist/Documents/Projects/metagrok, MIT. The constants
 # are `expts/01.json` verbatim; the attribution rule is
@@ -96,7 +96,7 @@
 #       (abstract_battle.py:146) is appended as the FIRST line of
 #       `parse_message` (:566), BEFORE the ignore filter, so all four are
 #       in it. This is the core finding of
-#       prior_work/HISTORY_FEATURES_DESIGN.md, and this rung is its first
+#       docs/prior_work/HISTORY_FEATURES_DESIGN.md, and this rung is its first
 #       consumer. `|faint|` is not ignored, but reading it from the same
 #       log keeps ONE code path and one attribution rule.
 #   (b) BOTH SEATS ARE SCORED EVERY STEP. poke-env's PokeEnv.step calls

@@ -300,5 +300,5 @@ Per the directory's standing rule; the round-numbers-first heuristic.
   Liar's Poker cite (2511.03724), and the PokéAgent report ID
   (2603.15563). Metamon quotes (GXE 74–90% human ceiling; SynRL-V2
   Gen1OU 79.9%/#31) should be checked against the local copy indexed in
-  `prior_work/README.md` before entering any doc — that index is the
+  `docs/prior_work/README.md` before entering any doc — that index is the
   authority, not these reports.

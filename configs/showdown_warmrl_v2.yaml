@@ -31,7 +31,7 @@
 #   selection caveat) are NOT the bar. Swapping in the P4-scale (~900k)
 #   refit as donor is the one legal pre-launch edit besides bc_kl_coef;
 #   if made, re-run (a)-(c) on the new donor (with early stopping per
-#   prior_work/DISTILLATION_OBJECTIVES.md, so final == best). Use
+#   docs/prior_work/DISTILLATION_OBJECTIVES.md, so final == best). Use
 #   checkpoint.pt, never best_checkpoint.pt.
 #
 # D-2. OPPONENT — mirror self-play; SH is EVAL ANCHOR ONLY. Training never

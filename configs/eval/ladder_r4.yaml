@@ -480,7 +480,7 @@
 #     BI-R4-7 print provenance sha256 + obs_dim in the runner's startup
 #       lines (review_1 F16). Fallback: LG-9 drops the sha read and
 #       relies on the ladder.py:346 assert, stated in the gate.
-#     B9 RULING REQUIRED (review_2 F12; CLEANUP.md:29-34 names R4 as the
+#     B9 RULING REQUIRED (review_2 F12; docs/CLEANUP.md:29-34 names R4 as the
 #       decision point): patch ladder.py's sporadic battle.rating drop
 #       PRE-LAUNCH, or carry R3's rating-loss disclosure verbatim and
 #       read trajectories from replays. RECOMMENDED: carry the

@@ -206,12 +206,12 @@ searched first; one unauthenticated pull of the gen4RB board before the run.
 
 ## 6. Record hygiene (`project_record.md` §3.1, §5, §8)
 
-**Q41** `IDEAS_POST_100M.md` §2.5 calls the +0.051 / +0.104 / +0.148 deltas "12M";
+**Q41** `docs/IDEAS_POST_100M.md` §2.5 calls the +0.051 / +0.104 / +0.148 deltas "12M";
 they are the CH5 R1-B **50M** lanes s80/s81/s82 off Foul Play@20 at n=1000.
 Recommendation: a one-line correction at merge (M4).
 **Q42** `JOURNEY.md:116` still cites the 0.072 bar that r9 corrected to 0.1007 — the
 maintainer's own file; flag, do not edit.
-**Q43** `prior_work/README.md`: ps-ppo's in-code comment on the +1-boost bug is wrong
+**Q43** `docs/prior_work/README.md`: ps-ppo's in-code comment on the +1-boost bug is wrong
 in direction (+1 acts like +2, not +0), and "encoder-relevant fixes upstreamed by
 0.15.0" needs the amendment "four are not" (`pokeenv_gen4_survey.md` §6).
 **Q44** The searched endpoint of the search-depreciation curve does not exist (no
@@ -226,7 +226,7 @@ should not lean on "50M was enough in gen1".
 
 Stated plainly so nothing here is mistaken for covered.
 
-**D1 — Wang's Showdown fork** (`prior_work/wang_fork_diffs.md` §1, lines 13–3408:
+**D1 — Wang's Showdown fork** (`docs/prior_work/wang_fork_diffs.md` §1, lines 13–3408:
 `>getstate`/`>load`, the constrained set regeneration, hallucinated-move disabling).
 Covered only through the thesis's description and the index. What it would add: a
 second source for a gen4 set prior and the exact set constraints his MCTS assumed.

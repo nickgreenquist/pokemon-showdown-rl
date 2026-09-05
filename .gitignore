@@ -15,7 +15,7 @@ venv/
 # Experiment outputs
 # results/ is gitignored BY DEFAULT (run data, gitignored artifacts). Whitelisted
 # below: design docs whose CONTENT is ours and which tracked code/configs cite as
-# ratified authority (audit A1, maintainer-ruled 2026-09-01) — same rule as prior_work/.
+# ratified authority (audit A1, maintainer-ruled 2026-09-01) — same rule as docs/prior_work/.
 !results/
 results/*
 !results/d25/
@@ -69,19 +69,20 @@ showdown/
 # Local environment
 .env
 
-# prior_work/ is gitignored BY DEFAULT (third-party copyright + repo size). The rule for
+# docs/prior_work/ is gitignored BY DEFAULT (third-party copyright + repo size). The rule for
 # whitelisting, settled 2026-08-05: track a file iff its CONTENT is ours — the index and
 # our own written analyses. A file we generated but whose content is someone else's stays
 # ignored, which is why wang_fork_diffs.md does not appear below: it is 2,362 lines of
 # another author's source diffs wrapped in a thin layer of our commentary.
-prior_work/*
-!prior_work/README.md
-!prior_work/PHASE5_PRIOR_WORK_BRIEFING.md
-!prior_work/CROSS_FEATURES_AND_ARCHITECTURE.md
-!prior_work/LLM_IN_RL_REPORT.md
-!prior_work/DISTILLATION_OBJECTIVES.md
-!prior_work/ARCH_SCREEN_SPEC.md
-!prior_work/HISTORY_FEATURES_DESIGN.md
-!prior_work/THROUGHPUT_SPEC.md
-!prior_work/RESEARCH_2026-08-10_prior_art_and_levers.md
+docs/prior_work/*
+!docs/prior_work/README.md
+!docs/prior_work/PHASE5_PRIOR_WORK_BRIEFING.md
+!docs/prior_work/CROSS_FEATURES_AND_ARCHITECTURE.md
+!docs/prior_work/LLM_IN_RL_REPORT.md
+!docs/prior_work/DISTILLATION_OBJECTIVES.md
+!docs/prior_work/ARCH_SCREEN_SPEC.md
+!docs/prior_work/HISTORY_FEATURES_DESIGN.md
+!docs/prior_work/HUANG_LEE_DEEP_READ.md
+!docs/prior_work/THROUGHPUT_SPEC.md
+!docs/prior_work/RESEARCH_2026-08-10_prior_art_and_levers.md
 logs/

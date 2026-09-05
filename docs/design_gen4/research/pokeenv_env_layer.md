@@ -56,7 +56,7 @@ Vendored Showdown 0.11.11 at
 Repo snapshot `SNAP = .../scratchpad/main_snapshot` (`main@2738025`):
 `rl/envs/encoder_spec.py` 1–60, 80–150, 255–290; `rl/envs/showdown.py` 238–290, 385–420,
 840–880, 1195–1240; `rl/envs/showdown_async.py` (grep index only);
-`prior_work/README.md` 480–505; `/Users/nickgreenquist/Documents/Projects/ps-ppo/worker.py` 40–80.
+`docs/prior_work/README.md` 480–505; `/Users/nickgreenquist/Documents/Projects/ps-ppo/worker.py` 40–80.
 
 Programmatic probes (all offline, `nice -n 19`, no player/env constructed, no network):
 `GenData` / `Move` / `SinglesEnv.get_action_space_size` reads, and `json` parses of the two
@@ -615,14 +615,14 @@ The guard should be `>= 1`, not `> 1`. Exact effect, evaluated:
 So **a +1 boost is valued exactly as if it were +2** — a 33% over-estimate of the boosted
 stat, on both the numerator (our attack) and the denominator (their defence).
 
-**Correction to the prior-work index (source-verified).** `prior_work/README.md:499` records
+**Correction to the prior-work index (source-verified).** `docs/prior_work/README.md:499` records
 "the poke-env `_stat_estimation` +1-boost bug patched at `worker.py:76`", which is accurate.
 But ps-ppo's own in-code comment
 (`/Users/nickgreenquist/Documents/Projects/ps-ppo/worker.py:52`) says
 *"Original bug checked `> 1` which made +1 act like +0, and +2 act like +2"* — **that
 characterisation is wrong**: with `> 1`, +1 takes the `else` branch and yields `2.0`, i.e. +1
 acts like **+2**, not like +0. The patch itself (`worker.py:53-57`) is correct; only the
-comment is not. Worth a one-line correction in `prior_work/README.md` when it is next touched.
+comment is not. Worth a one-line correction in `docs/prior_work/README.md` when it is next touched.
 
 Note also the formula body: `((2 * base + 31) + 5) * boost` is a level-100 / 0-EV / neutral-
 nature stat with no level term at all. Random battles set levels per tier —

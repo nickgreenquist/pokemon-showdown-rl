@@ -2,7 +2,7 @@
 
 Source: `~/Downloads/pokemon_rl_ideas.md` (a 2026-09-01 env-less code audit),
 re-audited this session against the code, the committed record, and
-`prior_work/README.md`; verified claims are cited in place and the source
+`docs/prior_work/README.md`; verified claims are cited in place and the source
 doc's errors are corrected in §7. **Not a pre-registration.** Every fleet
 item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
@@ -127,7 +127,7 @@ MaxBasePowerPlayer with type awareness.
 lever; build only when an OBS_DIM change is actually scheduled (C6 as a new
 bit, or temporal context). ~a day, zero training. Added 2026-09-04.**
 The claim, verified against the paper (neither OpenAI Five nor AlphaStar is
-in `prior_work/README.md`, so this is the verification of record): Berner
+in `docs/prior_work/README.md`, so this is the verification of record): Berner
 et al. 2019, *Dota 2 with Large Scale Deep RL* (arXiv:1912.06680), §3.3
 "Continual Transfer via Surgery" + Appendix B "Changing the Observation
 Space" — new input weights are initialized as Ŵ = [W 0], "the output is
@@ -202,7 +202,7 @@ claim, that OpenAI Five used an asymmetric critic, is not in the paper
 - **PFSP / league exploiters** (AlphaStar's league — main agents on
   prioritized fictitious self-play, main exploiters, league exploiters;
   Vinyals et al. 2019, verified against the paper text 2026-09-04, not in
-  `prior_work/README.md`). **ANSWERED BY MEASUREMENT — not banned, not
+  `docs/prior_work/README.md`). **ANSWERED BY MEASUREMENT — not banned, not
   motivated.** A league fixes exploitability and cycling; three reads say
   neither is what limits us. (i) D22 read 5 (2026-08-11): a fresh 6M-step
   best-responder trained against the frozen struct50m final pooled
@@ -222,7 +222,7 @@ claim, that OpenAI Five used an asymmetric critic, is not in the paper
   this rung by measurement"; every credited result since rode the
   production pool (20 snapshots, latest_prob 0.8 — OpenAI Five's 80/20).
   `pfsp_power` and `fixed_mix` were stripped 2026-08-29 (commit 4e5f5cf,
-  CLEANUP.md's strip list) as UNREACHABLE killed levers — `select()`
+  docs/CLEANUP.md's strip list) as UNREACHABLE killed levers — `select()`
   byte-identical on the seeded stream; no run config on this disk (178
   runs) ever carried either key; `fixed_mix 0.05` ran only in the
   predecessor's Phase 4 (coverage by construction, zero strength gain,
@@ -230,9 +230,9 @@ claim, that OpenAI Five used an asymmetric critic, is not in the paper
   in-family (MU-5, 2026-08-26) and the X-PROBE was declined as unneeded,
   not as impure. **Re-open only on** (a) a best-response probe against the
   CURRENT best object reaching parity — ~3.6 h end to end, the probe
-  `research_reports/CONSOLIDATED.md` §5 names as the step-8 gate — or (b)
-  the cross-play forgetting read (CONSOLIDATED §4.1.ii) firing. Without one
-  of those, "add PFSP / exploiters" re-proposes a measured null.
+  `docs/research_reports/CONSOLIDATED.md` §5 names as the step-8 gate —
+  or (b) the cross-play forgetting read (CONSOLIDATED §4.1.ii) firing.
+  Without one of those, "add PFSP / exploiters" re-proposes a measured null.
 - **Asymmetric / privileged critic. RUN AND KILLED — D18 (2026-08-12):
   12M × 5 seeds, pooled 0.5364 vs 0.5509 (Δ −0.0145, clustered se 0.0221,
   z −0.65); its own falsifier fired (EV rose on every lane, win rate did
@@ -264,7 +264,7 @@ Ranked. Build 2.2 first — at k=3 unpaired, only an R2-sized effect credits
 mechanism co-primary (D23 lesson).
 
 **4.1 Both-seat harvest — the repo's licensed A2 (CHAPTER5 §3, licensed
-2026-08-26; do not confuse with CLEANUP.md's audit item "A2"). STRONGEST.**
+2026-08-26; do not confuse with docs/CLEANUP.md's audit item "A2"). STRONGEST.**
 Seat 2's trajectory is discarded (`showdown.py:1208`,
 `discard_seat2_obs=True`); in the async collector the opponent is a
 listening Player that already encodes its own obs to move. Harvest = ~2×
@@ -272,7 +272,7 @@ episodes/update (~959 → ~1,700 at the 80% rule below) at zero extra
 simulation and — unlike R2 — **without** reducing update count. Precedent is
 as strong as this lane has: H&L, the only verified pure-self-play randbats
 success, consumes both seats (Algorithm 1's "2m matches"; verified to the
-line in prior_work/README.md), with exactly return-balanced batches — one
+line in docs/prior_work/README.md), with exactly return-balanced batches — one
 winner + one loser per battle — which matters at γ=1 terminal-only. The
 recorded blocker (2026-08-08 advisory: "seat 2 is ALWAYS a frozen snapshot
 ... needs behavioral-logp storage") has a clean answer: harvest only rows
@@ -464,7 +464,7 @@ cost (§5). The gen4 chapter pays the invalidation anyway (CONSOLIDATED
   comparable object, the 100M finals included (they are the step-2 object:
   ladder R4 pins s112 at obs_dim 828, frozen until that readout lands). The
   gen4 encoder rewrite (JOURNEY step 3, Wang's one-hot duration counters,
-  prior_work/HISTORY_FEATURES_DESIGN.md) is where Markovianity gets
+  docs/prior_work/HISTORY_FEATURES_DESIGN.md) is where Markovianity gets
   redesigned for free — and it now has a landing zone:
   `docs/design_gen4/encoder_requirements.md` (2026-09-04) is designed
   against the landed F-08 seam. **F-08 did not change the cost above**
@@ -499,7 +499,7 @@ After FLEET DONE + frozen schedule + grade are recorded:
   D-A are committed) and after checking resume metadata for embedded paths.
 - `npm ci --ignore-scripts` as the habit for any `showdown/` reinstall
   (then re-set `simulator: 4` — standing landmine).
-- CLEANUP.md shelf unshelves at the readout per its own terms (audit items
+- docs/CLEANUP.md shelf unshelves at the readout per its own terms (audit items
   A2–A5); B3 (decide()-helper refactor) became legal when R2 landed but
   waits until the frozen eval paths are done being load-bearing.
 
@@ -514,7 +514,7 @@ After FLEET DONE + frozen schedule + grade are recorded:
 3. "Reliability 0.0117" is CH3 R0's Murphy decomposition of the *search*
    value head vs SH (Brier 0.1567 = 0.0117 + resolution 0.0594 /
    uncertainty 0.2050) — not a fleet-R0 read.
-4. Omitted: VGC-Bench runs γ1.0/λ0.95 (prior_work:407-411) — the
+4. Omitted: VGC-Bench runs γ1.0/λ0.95 (docs/prior_work:407-411) — the
    "convergent 0.75" prior has a third system on the other side; and
    steps_per_update 32,768 / λ0.75-flat belong to commit `7fb522c` (HEAD:
    36,864, plus an undocumented dynamic-λ 0.55–0.95).
@@ -555,9 +555,9 @@ against the record before anything above was added:**
     0.013; FP excess > 2.6 points excluded) and dissolved the clone
     exception. Same conclusion, wrong attribution.
 16. "pfsp_power and fixed_mix removed 2026-08-29 as inert (CLEANUP A4)" —
-    removed as UNREACHABLE killed levers (commit 4e5f5cf; CLEANUP.md
+    removed as UNREACHABLE killed levers (commit 4e5f5cf; docs/CLEANUP.md
     "Stripped as ruled"; `select()` byte-identical on the seeded stream).
-    "A4" in CLEANUP.md is also the label of a shelved audit item
+    "A4" in docs/CLEANUP.md is also the label of a shelved audit item
     (`update()`'s variadic tuple) — cite the strip list, not "A4" (the
     trap 4.1 already flags for "A2"). Neither key appears in any of the
     178 run configs on disk.

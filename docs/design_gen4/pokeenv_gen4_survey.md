@@ -15,7 +15,7 @@
 >   (main@2738025) or the vendored `showdown/` (0.11.11 @ 59da482).
 > - `[src]` **source-verified** — checked against the installed poke-env 0.15.0
 >   source (`poke_env/...`, `/opt/anaconda3/envs/pokemon-showdown-rl/lib/python3.13/site-packages/poke_env`)
->   or Wang's fork diffs (`prior_work/wang_fork_diffs.md`, gitignored).
+>   or Wang's fork diffs (`docs/prior_work/wang_fork_diffs.md`, gitignored).
 > - `[lit]` **literature-only** — not re-checked against a primary here.
 > - `[live]` **needs-live-verification** — only a running server or battle can
 >   confirm it; BARRED until the live ladder run and any later fleet complete;
@@ -101,7 +101,7 @@ The action space is **identical to gen 1** (`Discrete(10)`). The consequences:
   re-queries the policy on the same mask (`poke_env/player/player.py:318-325`;
   `poke_env/environment/env.py:432-446`), so the agent can re-pick the same
   illegal switch. Wang's fork guarded both SH and the random helper on this
-  (`prior_work/wang_fork_diffs.md:3824-3830, 3941-3949`); 0.15.0 has neither.
+  (`docs/prior_work/wang_fork_diffs.md:3824-3830, 3941-3949`); 0.15.0 has neither.
   `[live]` the actual rejection rate in gen4randombattle: count
   `battle.maybe_trapped and not battle.trapped` at decision time and
   `[Unavailable choice]` lines over a few hundred self-play games. `maybeDisabled`
@@ -287,7 +287,7 @@ Sleep Talk is handled; the one Ditto set uses Transform, handled structurally), 
   (`showdown/data/conditions.ts:507, 539, 585, 621, 656, 681`), so `turn − stamp` is
   always 0–1 and **carries no duration information**, and `[from] ability:` is
   dropped so permanent ability weather looks like a 5-turn move. Wang's fork
-  handled both (`prior_work/wang_fork_diffs.md:3563-3573`, #9) — ABSENT in 0.15.0.
+  handled both (`docs/prior_work/wang_fork_diffs.md:3563-3573`, #9) — ABSENT in 0.15.0.
   Members reachable in gen 4: SANDSTORM, RAINDANCE, SUNNYDAY, HAIL.
 - **`fields`** `[src]` stores the genuine start turn (`abstract_battle.py:437-448`);
   gen4-reachable: TRICK_ROOM, GRAVITY. Mud/Water Sport are per-mon volatiles in
@@ -378,9 +378,9 @@ and gen1-dead** (G2, G3, G1 ×2 for SH and the random helper) and five are
 lower-stakes (`base_format`, `TieBattleOrder`, `Move._revealed`, a switch-dedup
 that 0.15.0 makes unnecessary by design, a stricter `-weather` else-branch); 5
 N/A. The index's line "encoder-relevant ones upstreamed by 0.15.0"
-(`prior_work/README.md`) is therefore amended: four encoder-relevant fixes are
+(`docs/prior_work/README.md`) is therefore amended: four encoder-relevant fixes are
 **not** upstreamed. The SB3 fork is instrumentation only — Wang's PPO is stock
-SB3 PPO (`prior_work/wang_fork_diffs.md:3993-4213`).
+SB3 PPO (`docs/prior_work/wang_fork_diffs.md:3993-4213`).
 
 ## 7. `SimpleHeuristicsPlayer` in gen 4 (summary; the anchor question is `anchors_and_eval.md`)
 

@@ -14,7 +14,7 @@ applied in-process before calling rl.train.main() — the production loop is
 byte-identical when this script is not running (supersedes the spec's plan
 of a POKEMON_RL_PROFILE block inside _vector_loop; same read, no seam).
 
-Decision criteria live in prior_work/THROUGHPUT_SPEC.md §1c:
+Decision criteria live in docs/prior_work/THROUGHPUT_SPEC.md §1c:
   E1 flat in N -> serialization confirmed (Stage 2 is the whole answer).
   E2 reset > 20% of collect -> matchmaking is first-class; < 5% -> ignore.
   E3 race_get > 70% of sub-env step -> idle wait, concurrency converts 1:1;

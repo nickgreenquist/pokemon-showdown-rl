@@ -227,7 +227,7 @@ removed, SH is roughly twice the player it is in OU tiers, putting it at Glicko-
 > silently deleted.** It read: *"So **parity with SH is ~40% GXE**, and a vs-SH number near
 > the 0.489 parity mark means ~40% GXE, not 'nearly solved.'"* That conversion was **ours,
 > not Metamon's**, and the standing rule is now **never project a ladder number from a vs-SH
-> number, in either direction** (CLAUDE.md; `prior_work/README.md` retired its own successor
+> number, in either direction** (CLAUDE.md; `docs/prior_work/README.md` retired its own successor
 > rule of thumb the same day). **The projection has been replaced by measurement — this
 > project laddered twice, n = 200 each:** LADDER R1 (2026-08-25/26, the 4-checkpoint
 > ensemble) read **GXE 59.6%, Glicko-1 1573 ± 27, final PS Elo 1292**; LADDER R3 (2026-08-28,
@@ -375,13 +375,13 @@ is bought with battles, not with seeds or pairing machinery.
 |---|---|
 | current state, next actions, watch items | `STATUS.md` |
 | dated record — every number, every correction | `SESSION_LOGS.md` |
-| verified index of external work, with corrections | `prior_work/README.md` |
+| verified index of external work, with corrections | `docs/prior_work/README.md` |
 | the credited arm's pre-registration | `configs/showdown_sp_actpred12m.yaml` |
 | its placebo control | `configs/showdown_sp_actpred12m_placebo.yaml` |
 | D19's kill, measurement and controls | `results/d19_closeout/` |
 | frozen tapes and grade artifacts | `results/d25/`, `results/d25p/` |
 
-`prior_work/README.md` is worth its own mention: several widely repeated claims about
+`docs/prior_work/README.md` is worth its own mention: several widely repeated claims about
 these systems do not survive contact with their source, and it records which.
 
 ---
@@ -438,7 +438,7 @@ estimate is NOT explained by this read; the honest candidates (the D21 estimate 
 6M-horizon transfer; anneal × aux-head interaction, C6's untested fifth transfer) are
 recorded as open, not adjudicated. vs-SH 0.7183 is still far from ladder-strong. *(Pointer
 repaired 2026-08-28: this line used to end "the GXE caveat at the top of
-`prior_work/README.md` stands unchanged." That caveat has since been rewritten twice and the
+`docs/prior_work/README.md` stands unchanged." That caveat has since been rewritten twice and the
 vs-SH → GXE conversion it carried is **retired** — do not project in either direction. The
 ladder question it stood in for is now measured, not projected: §16.)*
 

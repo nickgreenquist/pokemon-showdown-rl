@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------
 # QUESTION. Every number this project owns comes from three scripted
 #   or self-derived opponents (SH, Foul Play, our own BC clone). The
-#   real board has never been touched. prior_work/README.md's
+#   real board has never been touched. docs/prior_work/README.md's
 #   conversion note is explicit that vs-SH 0.71825 (~+163 Elo vs SH)
 #   CANNOT be projected to GXE in either direction — upward because
 #   past parity vs-SH increasingly measures SH-exploitation, downward
@@ -22,7 +22,7 @@
 #   (BT residual +0.005 +/- 0.013). This is the project's largest
 #   unmeasured quantity and only the ladder settles it.
 # ---------------------------------------------------------------------
-# THE BOARD, measured 2026-08-25 (prior_work/README.md; re-pull before
+# THE BOARD, measured 2026-08-25 (docs/prior_work/README.md; re-pull before
 #   quoting, it moves). gen1randombattle TOP-500 list: GXE 93.5 best /
 #   82.3 p90 / 75.0 list-median / 58.8 lowest-listed; Glicko
 #   2022/1794/1712/1568. **The list is ELO-RANKED, so admission is an
@@ -227,7 +227,7 @@
 #   DOES NOT APPLY here: randbats has no team building and does not
 #   feed usage-based tiering. (f) The field norm has still moved —
 #   Metamon's repo says they became "a lot more cautious about
-#   laddering", and prior_work records Metamon being accused of
+#   laddering", and docs/prior_work records Metamon being accused of
 #   botting in chat at this rating band.
 #   CONSEQUENCE — what actually keeps this legitimate is a SMALL
 #   BOUNDED FOOTPRINT, not the name: serial play only

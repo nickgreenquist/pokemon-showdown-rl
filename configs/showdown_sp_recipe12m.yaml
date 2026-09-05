@@ -58,9 +58,9 @@
 #  (b) **THE LEVERS ARE NOT SYMMETRIC IN STANDING.** The anneal has
 #      been credited twice in-repo. lambda has NEVER EXECUTED HERE —
 #      all 39 configs pin gae_lambda: 0.95 — and its only support is
-#      Alpha-Mini in prior_work/RESEARCH_2026-08-10..., a memo whose
+#      Alpha-Mini in docs/prior_work/RESEARCH_2026-08-10..., a memo whose
 #      own header says "UNVERIFIED: citations and quotes have NOT been
-#      independently checked". ZERO hits in prior_work/README.md, the
+#      independently checked". ZERO hits in docs/prior_work/README.md, the
 #      designated verified index CLAUDE.md requires reading first.
 #  (c) **THE MECHANISM POINTS THE WRONG WAY.** D22 closed on a
 #      REPRESENTATION/CRITIC ceiling (flat EV 0.56-0.59, critic srank99

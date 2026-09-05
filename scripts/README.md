@@ -193,7 +193,7 @@ vendored copies first; the originals remain the executed artifacts.
 | D25/D25-P manipulation | `d25_manipulation.py`, `d25p_manipulation.py` | §6 manipulation check on treatment and placebo arms (banked in RESULTS §12's scope) |
 | vendored provenance modules | `gate_r012.py`, `rev1_check.py`, `analyze_oppact.py`, `z1_1.py` | tracked copies of the gitignored D25 / Stage-0 fit machinery (CLEANUP B1) — see the closed-gaps section |
 | BC / expert-data machinery | `train_bc.py`, `make_bc_dataset.py`, `tape_to_dataset.py` | the clone anchor's pipeline: the BC clone (a live anchor) was trained through these; `tape_to_dataset.py` reads the (now gzipped) fp_tranche tapes |
-| corpus | `corpus_survey.py` | priced the human-replay corpus (prior_work's corpus figures); needs the `[corpus]` extra |
+| corpus | `corpus_survey.py` | priced the human-replay corpus (docs/prior_work's corpus figures); needs the `[corpus]` extra |
 | diagnostics (banked reads) | `diag_encoder_live.py`, `diag_value_head.py`, `probe_type_multiplier.py`, `obs_fidelity_check.py`, `p3_team_luck.py` | `probe_type_multiplier.py` is cited by `diag_encoder_live.py`'s own rationale; `p3_team_luck.py` backs the banked team-luck variance decomposition; `obs_fidelity_check.py` proved offline tape replay == live obs |
 | throughput / profiling | `showdown_throughput.py`, `profile_collect.py` | the simulator:4 +81% and D12b measurements — BOTH disclosures in `showdown_throughput.py`'s docstring travel with any quote |
 | figures / smokes | `make_showdown_figure.py`, `hl_shaping_live_smoke.py` | the Phase-5 milestone figure; signal12m's live R0-2(b) gate |

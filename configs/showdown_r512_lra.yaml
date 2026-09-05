@@ -5,7 +5,7 @@
 # Needs the local Showdown server running:
 #   cd showdown && node pokemon-showdown start --no-security
 #
-# Motivation: Wang 2024 (prior_work/wang2024_mit_thesis_randbats_rl.pdf,
+# Motivation: Wang 2024 (docs/prior_work/wang2024_mit_thesis_randbats_rl.pdf,
 # §3.1.4) is the only controlled LR ablation in this literature — constant
 # lr stuck ~0.55 vs SimpleHeuristics on gen4randombattles, annealed ~0.80 —
 # and every Showdown run here has trained at flat 2.5e-4. The in-repo

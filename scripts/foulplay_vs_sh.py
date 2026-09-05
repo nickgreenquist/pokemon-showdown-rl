@@ -25,7 +25,7 @@ short. Our best RL policy is 0.4607, i.e. level with that clone and ~20 Elo
 below SH itself. So a teacher only modestly stronger than SH distils into a
 student that lands roughly where we already are, and the chapter buys nothing.
 Meanwhile the published pure-policy randbats field starts at 72% GXE against
-SH's ~40% (see the ladder-translation section at the top of prior_work/README).
+SH's ~40% (see the ladder-translation section at the top of docs/prior_work/README).
 Expert iteration is worth a chapter only if the teacher is a big step up.
 
 PRIMARY READ, with the decision rule fixed in advance

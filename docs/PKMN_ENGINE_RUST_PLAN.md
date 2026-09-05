@@ -46,7 +46,7 @@ vs `SimpleHeuristicsPlayer` on the Showdown server and is not touched here.
   instead of 3, which is the only thing that shrinks σ_seed.
 - **New capability:** every battle is reproducible from a 64-bit seed (teams and
   rolls). Paired evaluation with common random numbers becomes possible
-  (research_reports Q1/Q2 §2.7); it is impossible on the server path.
+  (docs/research_reports Q1/Q2 §2.7); it is impossible on the server path.
 - **What it costs.** A Rust crate + a PyO3 extension, a Zig toolchain, a
   re-implementation of the 828-dim encoder against an *observable-state
   tracker* that must reproduce poke-env's information boundary exactly, and an
@@ -1227,9 +1227,9 @@ This repo: `rl/envs/showdown.py` (layout :128-145, `_fill_*` :191-268,
 surface); `rl/train.py::_async_collector_mode/_async_loop` :623-865;
 `rl/buffers/episode.py`; `rl/selfplay/pool.py`; `rl/search/bridge.py` and
 `shadow_battle.py` (the engine↔encoder mapping precedent); `requirements-search.txt`
-(the Rust-dependency precedent); `prior_work/THROUGHPUT_SPEC.md` (the measured
+(the Rust-dependency precedent); `docs/prior_work/THROUGHPUT_SPEC.md` (the measured
 budget); `docs/landmines.md` §Throughput numbers; `RESULTS.md` §18 (realized
-steps/s); `IDEAS_POST_100M.md` §1 (why seeds are the lever).
+steps/s); `docs/IDEAS_POST_100M.md` §1 (why seeds are the lever).
 
 poke-env 0.15.0 (installed): `environment/singles_env.py` (`action_to_order`
 :77, `get_action_mask` :233); `battle/abstract_battle.py`

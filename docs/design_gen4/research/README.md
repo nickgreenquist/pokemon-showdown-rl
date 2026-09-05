@@ -69,8 +69,8 @@ digitization), `extract_block.sh`.
 ## Not tracked, and how to regenerate
 
 - pdftotext dumps of the Wang, H&L and Metamon PDFs and page images (third-party
-  content; `pdftotext -layout prior_work/<pdf>`, PDFs are gitignored under
-  `prior_work/`).
+  content; `pdftotext -layout docs/prior_work/<pdf>`, PDFs are gitignored under
+  `docs/prior_work/`).
 - `_gen4_dexdump.json` (645 KB of Showdown data): `nice -n 19 node probes/gen4dump.js`.
 - `_base_abilities_pool.txt` / `_base_items_pool.txt` (Showdown data extracts).
 - `psppo_1b13ae0/`: `git -C ../ps-ppo show 1b13ae0:<file>` for the obs files.

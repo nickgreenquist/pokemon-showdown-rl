@@ -610,7 +610,7 @@ def _opponent_move_slots(theirs):
 # so `battle._replay_data` (appended BEFORE the ignore filter) is the only
 # place they survive; |faint| is not ignored but is read from the same log
 # to keep ONE code path and one attribution rule
-# (prior_work/HISTORY_FEATURES_DESIGN.md).
+# (docs/prior_work/HISTORY_FEATURES_DESIGN.md).
 #
 # The |-fail| quirk is reproduced on purpose: Showdown names the Pokemon the
 # failed action was AIMED AT, so our status move failing against an already-

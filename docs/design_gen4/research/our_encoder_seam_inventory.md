@@ -769,5 +769,5 @@ property (proven by `_GEN2_SKETCH`).
   calibration; (d) the gen-4 tapes needed for a hash gate (§5.3 item 1); (e) `SimpleHeuristicsPlayer`'s
   gen-4 competence (owned by `anchors_and_eval.md`, not by me).
 - **literature-only, flagged as such:** nothing in this note rests on a secondary source.
-  I did not consult `prior_work/README.md`, the Wang/H&L/Metamon texts, or any web page —
+  I did not consult `docs/prior_work/README.md`, the Wang/H&L/Metamon texts, or any web page —
   every claim above is tied to a file on this disk.

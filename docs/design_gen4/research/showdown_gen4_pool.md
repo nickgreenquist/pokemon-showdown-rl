@@ -911,7 +911,7 @@ Each is **tree-verified** against `SNAP rl/envs/showdown.py` / `encoder_spec.py`
   `normalize_obs` z-scores and clips at ±10σ) is ever applied to the id suffix, which would break the
   `round(x*256)` recovery. This is a gen-agnostic question about the existing gen-1 stack; I did not
   trace which wrappers wrap which runs.
-- **not read** — Wang's thesis, Huang & Lee, Metamon, ps-ppo, foul-play, metagrok, `prior_work/README.md`.
+- **not read** — Wang's thesis, Huang & Lee, Metamon, ps-ppo, foul-play, metagrok, `docs/prior_work/README.md`.
   I stayed inside my source family (vendored Showdown + poke-env + the repo snapshot) as instructed,
   so **this note contains no `source-verified` claim about any external RL system and no
   `literature-only` claims at all.**

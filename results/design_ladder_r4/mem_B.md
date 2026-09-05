@@ -145,7 +145,7 @@ COURTESY NOTE TO PS STAFF BEFORE LAUNCH"* (`ladder_r3.yaml:1013`). R4 is #3.
 **Sending it is the maintainer's act** (BRIEF:62).
 
 **Recipient.** I cannot verify from this repo which channel PS staff currently
-prefer, and `prior_work/README.md`'s check-before-citing rule applies. By
+prefer, and `docs/prior_work/README.md`'s check-before-citing rule applies. By
 auditability: (a) the **`Help` room** on play.pokemonshowdown.com — staff-
 attended, public, fast, leaves a public record; (b) a **PM to a Global Staff
 member** from `/staff` — conventional, not archived by us; (c) the **Smogon

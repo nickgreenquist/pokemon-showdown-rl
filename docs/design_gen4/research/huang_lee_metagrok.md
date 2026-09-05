@@ -15,9 +15,9 @@ Note path: `/private/tmp/claude-501/-Users-nickgreenquist-Documents-Projects-pok
 
 | Source | What I read |
 |---|---|
-| `prior_work/README.md` | lines 121, 240, 346, 422, 560–706 (the full `huang_lee_2019_selfplay_pokemon.pdf` entry incl. the 2026-08-26 per-update addendum, the 2026-08-28 deep-read addendum, and the "REFUTED, for the third time" block) |
-| `prior_work/HUANG_LEE_DEEP_READ.md` | all 104 lines |
-| `scratchpad/research/_huanglee_paged.txt` (converted from `prior_work/huang_lee_2019_selfplay_pokemon.pdf`) | p1 L1–62, p2 L63–130 (Table I, §III.A/B, Algorithm 1), p3 L131–279 (Fig. 1, Table II, §IV.A/B, footnotes 3–4), p4 L280–357 (Tables III/IV, §V, §VI, references) |
+| `docs/prior_work/README.md` | lines 121, 240, 346, 422, 560–706 (the full `huang_lee_2019_selfplay_pokemon.pdf` entry incl. the 2026-08-26 per-update addendum, the 2026-08-28 deep-read addendum, and the "REFUTED, for the third time" block) |
+| `docs/prior_work/HUANG_LEE_DEEP_READ.md` | all 104 lines |
+| `scratchpad/research/_huanglee_paged.txt` (converted from `docs/prior_work/huang_lee_2019_selfplay_pokemon.pdf`) | p1 L1–62, p2 L63–130 (Table I, §III.A/B, Algorithm 1), p3 L131–279 (Fig. 1, Table II, §IV.A/B, footnotes 3–4), p4 L280–357 (Tables III/IV, §V, §VI, references) |
 | metagrok clone `/Users/nickgreenquist/Documents/Projects/metagrok` | `expts/01.json` (whole); `metagrok/pkmn/models/v3_capacity.py` (whole); `metagrok/pkmn/models/v2_repro.py` lines 1–461 (whole); `metagrok/pkmn/dex.py` (whole); `metagrok/pkmn/formulae.py` (whole); `metagrok/pkmn/reward_shaper.py` (whole); `metagrok/pkmn/actions.py` (whole); `metagrok/pkmn/parser.py` (whole); `metagrok/pkmn/engine/baselines.py` (whole); `metagrok/pkmn/engine/player.py` (whole); `metagrok/pkmn/engine/navigation.py` (whole); `metagrok/pkmn/engine/core.py` lines 1–220; `metagrok/exe/simulate_worker.py` lines 1–80; `metagrok/exe/smogon_eval.py` lines 1–155; `metagrok/exe/head2head.py` lines 1–90; `metagrok/methods/ppo.py` (whole); `metagrok/methods/updater.py` (grepped lines 36–51, 86, 127–258); `metagrok/methods/learner.py` (grepped); `metagrok/integrated_rl.py` lines 315–340 + grep for `epsilon`/`num_matches`; `metagrok/torch_utils/masked_softmax.py` lines 1–60; `metagrok/formats.py` (whole); `metagrok/utils.py` line 37–39 (`to_id`); `js/engine.js`, `js/predef.js`; `dex/*.json` key counts via `jq` |
 | `SNAP/rl/envs/encoder_spec.py` | lines 1–250 (module docstring, `EncoderSpec`, the gen-4 work list, `GEN1`, `spec_for_format`) |
 | `SNAP/rl/envs/showdown.py` | lines 105–150 (dims), 600–690 (`hl_event_sum`), grep of block/offset names |
@@ -206,7 +206,7 @@ Consequences, all source-verified:
 
 Wins + losses = 1000 in every row, so **ties are folded into non-wins** — the same convention as our locked eval protocol. Confirmed in code: `head2head.py:60-63` increments `wins[j]` only on `'winner'` and asserts the alternative is `'loser'` or `'tie'`.
 
-**What the index says about the bot table not transferring — literature-of-record, quoted from `prior_work/README.md`:**
+**What the index says about the bot table not transferring — literature-of-record, quoted from `docs/prior_work/README.md`:**
 
 > "Their bot table does NOT transfer: 0.829 is vs a max-damage-typed bot far weaker than SH, and their 0.612 is vs the 2019 ancestor of foul-play, pre-Rust."
 
