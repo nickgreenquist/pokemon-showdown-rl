@@ -3,7 +3,7 @@
 # tests/test_gen4_prereg.py asserts every value here against the training
 # file and the header text. Ratification writes `ratified_decisions`.
 prereg_for: configs/gen4_wang50m.yaml
-status: DRAFT — 2-Opus review applied, awaiting maintainer ratification
+status: DRAFT — 2-Opus review PENDING (not yet run), then maintainer ratification
 journey_step: "3 -> 4"
 credits_nothing: true
 primary:

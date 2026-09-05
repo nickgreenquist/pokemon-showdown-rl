@@ -89,3 +89,10 @@ docs/prior_work/*
 !docs/prior_work/THROUGHPUT_SPEC.md
 !docs/prior_work/RESEARCH_2026-08-10_prior_art_and_levers.md
 logs/
+# gen-4 Wang-recipe pre-reg design chain (2026-09-05; the A1 pattern)
+!results/design_gen4_wang50m/
+results/design_gen4_wang50m/*
+!results/design_gen4_wang50m/BRIEF.md
+!results/design_gen4_wang50m/review_1.md
+!results/design_gen4_wang50m/review_2.md
+!results/design_gen4_wang50m/gen4_wang50m.draft.yaml
