@@ -34,6 +34,11 @@ from pathlib import Path
 from rl.envs.gen4.vocab import VOCAB, to_id
 
 DATA = Path(__file__).with_name("data") / "gen4_set_samples.json"
+# poke-env's id for an OPPONENT's revealed Hidden Power: Showdown never names
+# the type (`|move|p2a: X|Hidden Power`), so the stored id is untyped and
+# matches no set row (every row carries `hiddenpowerfire`, ...). Resolved by
+# `hidden_power_variant` before any conditioning; own mons carry typed ids.
+HIDDEN_POWER = "hiddenpower"
 
 # (moves, ability, item, count)
 SetSample = tuple[frozenset[str], str, str, int]
@@ -133,6 +138,28 @@ def item_probs(
     for _, _, item, count in rows:
         acc[item] = acc.get(item, 0) + count
     return {it: c / total for it, c in acc.items()}
+
+
+@lru_cache(maxsize=16384)
+def hidden_power_variant(
+    species: str, revealed: frozenset = frozenset(), ability: str | None = None, item: str | None = None
+) -> str | None:
+    """The typed Hidden Power id the realised sets favour for a mon that has
+    shown an untyped `hiddenpower`: the most-counted `hiddenpower*` over the
+    rows consistent with the OTHER revealed moves, the known ability and item
+    (ties broken alphabetically). None when no consistent row carries one.
+    Without this every prior read for such a mon fell back to the
+    unconditional table — 5.6 % of opponent-mon observations on t1+t2
+    (2026-09-05 review)."""
+    rows = _consistent(species, revealed - {HIDDEN_POWER}, ability, item)
+    acc: dict[str, int] = {}
+    for moves, _, _, count in rows:
+        for m in moves:
+            if m.startswith(HIDDEN_POWER):
+                acc[m] = acc.get(m, 0) + count
+    if not acc:
+        return None
+    return max(sorted(acc), key=acc.__getitem__)
 
 
 def species_level(species: str) -> int | None:

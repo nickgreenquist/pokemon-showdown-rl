@@ -35,6 +35,15 @@ filter) — docs/design_gen4/pokeenv_gen4_survey.md §6 gaps G2–G6, plus what 
   abilities    `-activate|X|ability: Y` reveals Sticky Hold, Forewarn,
                Synchronize, Shed Skin, Hydration, Suction Cups without poke-env
                setting `mon.ability` (survey §3.2).
+  rampage lock Outrage / Thrash / Petal Dance lock the user for 2–3 turns.
+               Showdown announces neither start nor end of `lockedmove`
+               (continuation turns carry `|move|X|Outrage|Y|[from]lockedmove`,
+               which poke-env strips, so Effect.LOCKED_MOVE is never set —
+               0 hits over 41,908 decisions). Derived here: set on the move
+               line, cleared by the `[fatigue]` confusion, a switch, a faint,
+               a `cant`, a `-miss` / `-fail` by the user, a different move,
+               or three turns (the sim's cap; the gen-4 mod drops the lock
+               of a sleeping user, so a Sleep Talk-called rampage never locks).
 
 Idents are normalised to poke-env's team keys ('p1a: Name' -> 'p1: Name').
 `update(battle)` is idempotent per line (a cursor), so calling it at every
@@ -68,7 +77,7 @@ class BattleTracker:
         "_cursor", "turn", "weather", "weather_start", "weather_indefinite",
         "first_move_since_switch", "last_move", "sleep_attempts", "sub_hits",
         "flash_fire", "original_item", "consumed", "encored_move", "revealed_ability",
-        "wish_pending",
+        "wish_pending", "locked_move",
     )
 
     def __init__(self):
@@ -90,6 +99,8 @@ class BattleTracker:
         # tracks no slot conditions (Move.slot_condition exists, the battle
         # holds no dict), so the pending heal is invisible without this
         self.wish_pending: dict[str, int] = {}
+        # ident -> (rampage move, turn it started)
+        self.locked_move: dict[str, tuple[str, int]] = {}
 
     def update(self, battle) -> None:
         log = battle._replay_data
@@ -108,6 +119,9 @@ class BattleTracker:
             for side, t in list(self.wish_pending.items()):
                 if self.turn > t + 1:
                     del self.wish_pending[side]
+            for ident, (_, t0) in list(self.locked_move.items()):
+                if self.turn > t0 + 2:  # a rampage is at most three turns
+                    del self.locked_move[ident]
         elif tag in ("switch", "drag"):
             ident = norm_ident(sm[2])
             self.first_move_since_switch.pop(ident, None)
@@ -115,7 +129,10 @@ class BattleTracker:
             self.sub_hits.pop(ident, None)
             self.flash_fire.discard(ident)
             self.encored_move.pop(ident, None)
+            self.locked_move.pop(ident, None)
             # sleep_attempts deliberately kept: gen-4 sleep does not reset on switch
+        elif tag in ("faint", "-miss", "-fail"):
+            self.locked_move.pop(norm_ident(sm[2]), None)  # `-miss|SOURCE|TARGET`
         elif tag == "move":
             if len(sm) < 4:
                 return
@@ -131,12 +148,17 @@ class BattleTracker:
                 return
             self.last_move[ident] = move
             self.first_move_since_switch.setdefault(ident, move)
+            if move in _RAMPAGE and not any(f in ("[miss]", "[still]", "[notarget]") for f in sm[4:]):
+                self.locked_move.setdefault(ident, (move, self.turn))  # continuation lines keep the start
+            elif ident in self.locked_move and self.locked_move[ident][0] != move:
+                del self.locked_move[ident]
         elif tag == "-status":
             if len(sm) > 3 and sm[3] == "slp":
                 self.sleep_attempts[norm_ident(sm[2])] = 0
         elif tag == "cant":
+            ident = norm_ident(sm[2])
+            self.locked_move.pop(ident, None)  # sleep / paralysis / flinch end a rampage
             if len(sm) > 3 and sm[3] == "slp":
-                ident = norm_ident(sm[2])
                 self.sleep_attempts[ident] = self.sleep_attempts.get(ident, 0) + 1
         elif tag == "-curestatus":
             if len(sm) > 3 and sm[3] == "slp":
@@ -147,6 +169,8 @@ class BattleTracker:
             ident, effect = norm_ident(sm[2]), sm[3]
             if effect == "Substitute":
                 self.sub_hits[ident] = 0
+            elif effect == "confusion" and "[fatigue]" in sm[4:]:
+                self.locked_move.pop(ident, None)
             elif effect == "Encore":
                 last = self.last_move.get(ident)
                 if last:
@@ -238,5 +262,14 @@ class BattleTracker:
     def choice_locked(self, ident: str, item: str | None) -> bool:
         return bool(item) and to_id(item) in _CHOICE and ident in self.first_move_since_switch
 
+    def is_locked(self, ident: str) -> bool:
+        return ident in self.locked_move
+
+    def lock_elapsed(self, ident: str) -> int:
+        """Turns since the rampage started (0 when not locked)."""
+        entry = self.locked_move.get(ident)
+        return max(self.turn - entry[1], 0) if entry else 0
+
 
 _CHOICE = frozenset({"choiceband", "choicespecs", "choicescarf"})
+_RAMPAGE = frozenset({"outrage", "thrash", "petaldance"})

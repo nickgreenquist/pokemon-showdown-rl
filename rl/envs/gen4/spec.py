@@ -63,7 +63,7 @@ GEN4_VOLATILES = (
     Effect.CURSE,          # 11 (ghost curse residual; the boost form is in boosts)
     Effect.ATTRACT,        # Cute Charm 7
     Effect.FOCUS_ENERGY,   # crit model; Haze-relevant
-    Effect.LOCKED_MOVE,    # Outrage 13
+    Effect.LOCKED_MOVE,    # Outrage 13 — read from the TRACKER (poke-env never sets it)
     Effect.FLASH_FIRE,     # 6 species; poke-env clears it one use early (survey G6)
     Effect.SLOW_START,     # Regigigas (turn-countable)
 )

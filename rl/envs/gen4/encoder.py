@@ -48,7 +48,7 @@ UNKNOWN_ITEM = "unknown_item"  # poke-env's born state (poke_env/data/gen_data.p
 # unset in randbats, so Return is 102 BP on all 39 users and the request
 # names it "Return 102"; poke-env reports 0.
 _BASE_POWER_OVERRIDE = {"return": 102.0}
-_ITEM_MOVES = frozenset({"trick", "switcheroo", "knockoff", "thief", "covet", "embargo"})
+_ITEM_MOVES = frozenset({"trick", "switcheroo", "knockoff", "thief", "covet"})
 _TEAM_CURE_MOVES = frozenset({"healbell", "aromatherapy"})
 _HAZARDS = frozenset({"spikes", "toxicspikes", "stealthrock"})
 _SCREENS = frozenset({"reflect", "lightscreen"})
@@ -115,7 +115,10 @@ def effect_block(move_id: str) -> np.ndarray:
             v[7] = sum(boosts.values()) / 4.0
         else:
             v[8] = sum(boosts.values()) / 4.0
-    self_boost = entry.get("selfBoost", {}).get("boosts") if isinstance(entry.get("selfBoost"), dict) else None
+    # Showdown keys the user's own stat drops as `self: {boosts: ...}`
+    # (Overheat, Draco Meteor, Superpower, Close Combat, Hammer Arm, ...)
+    self_effect = entry.get("self")
+    self_boost = self_effect.get("boosts") if isinstance(self_effect, dict) else None
     if self_boost:
         v[7] += sum(self_boost.values()) / 4.0
     vol = entry.get("volatileStatus")
@@ -156,7 +159,7 @@ def effect_block(move_id: str) -> np.ndarray:
     v[35] = "sound" in m.flags
     v[36] = ("bypasssub" in m.flags) or ("authentic" in m.flags)
     v[37] = "punch" in m.flags
-    v[38] = bool(m.is_protect_move) or move_id == "endure"
+    v[38] = bool(m.is_protect_move)  # poke-env counts Endure in
     v[39] = move_id == "rapidspin"
     v[40] = vol == "trapped" or move_id in ("meanlook", "block", "spiderweb")
     v[41] = (
@@ -171,6 +174,34 @@ def effect_block(move_id: str) -> np.ndarray:
 # --- beliefs -----------------------------------------------------------------
 
 
+def _revealed(mon) -> frozenset[str]:
+    """Canonical ids of the moves a mon has shown. An opponent's Hidden
+    Power arrives UNTYPED (`hiddenpower`, prior.HIDDEN_POWER) and is resolved
+    to the typed variant the set prior favours given everything else known,
+    so it conditions the prior instead of voiding it; one no set explains is
+    dropped from the conditioning set (the other revealed moves still
+    condition; the slot keeps the untyped stand-in). Own mons carry typed
+    ids from the request (`hiddenpowergrass`)."""
+    ids = {canonical_move_id(m.id) for m in mon.moves.values()}
+    if prior.HIDDEN_POWER in ids:
+        ids.discard(prior.HIDDEN_POWER)
+        variant = prior.hidden_power_variant(
+            to_id(mon.species), frozenset(ids),
+            to_id(mon.ability) if mon.ability else None, _known_item(mon),
+        )
+        if variant:
+            ids.add(variant)
+    return frozenset(ids)
+
+
+def _typed_hidden_power(untyped, variant: str):
+    """A fresh gen-4 Move for the resolved variant carrying the untyped
+    object's PP (the cached `_move_obj` instances are shared — never mutated)."""
+    typed = Move(variant, gen=4)
+    typed._current_pp = untyped.current_pp
+    return typed
+
+
 def _ability_belief(mon, ident: str, own: bool, tracker: BattleTracker | None) -> dict[str, float]:
     """P(ability) for a mon: certain for own mons and revealed opponents, the
     set prior conditioned on revealed moves otherwise, poke-env's dex
@@ -179,10 +210,7 @@ def _ability_belief(mon, ident: str, own: bool, tracker: BattleTracker | None) -
         return {to_id(mon.ability): 1.0} if mon.ability else {}
     if tracker is not None and ident in tracker.revealed_ability:
         return {tracker.revealed_ability[ident]: 1.0}
-    item = _known_item(mon)
-    probs = prior.ability_probs(
-        to_id(mon.species), frozenset(canonical_move_id(m.id) for m in mon.moves.values()), item
-    )
+    probs = prior.ability_probs(to_id(mon.species), _revealed(mon), _known_item(mon))
     if probs:
         return probs
     cands = [to_id(a) for a in mon.possible_abilities]
@@ -202,9 +230,7 @@ def _item_belief(mon, own: bool) -> tuple[int, dict[str, float]]:
     item = mon.item
     if item == UNKNOWN_ITEM and not own:
         ability = to_id(mon.ability) if mon.ability else None
-        probs = prior.item_probs(
-            to_id(mon.species), frozenset(canonical_move_id(m.id) for m in mon.moves.values()), ability
-        )
+        probs = prior.item_probs(to_id(mon.species), _revealed(mon), ability)
         return 0, {k: p for k, p in probs.items() if k != "(none)"}
     if not item or item == UNKNOWN_ITEM:
         return 2, {}
@@ -338,6 +364,10 @@ def _fill_active(vec, o, mon, ident, tracker, L: Gen4Layout) -> None:
             vec[o_v + i] = mon.must_recharge
         elif effect is Effect.FLASH_FIRE and tracker is not None:
             vec[o_v + i] = ident in tracker.flash_fire  # poke-env ends it one use early (G6)
+        elif effect is Effect.LOCKED_MOVE and tracker is not None:
+            # poke-env drops `[from]lockedmove` (abstract_battle.py) and never
+            # attaches the Effect — measured 0 hits over 41,908 decisions
+            vec[o_v + i] = tracker.is_locked(ident) or effect in effects
         else:
             vec[o_v + i] = effect in effects
     n = GEN4.n_volatiles
@@ -352,9 +382,11 @@ def _fill_active(vec, o, mon, ident, tracker, L: Gen4Layout) -> None:
         vec[o_c + 1] = min(mon.status_counter, 16) / 16.0
     vec[o_c + 2] = min(mon.protect_counter, 4) / 4.0
     elapsed = max(
-        (effects.get(e, 0) for e in (Effect.ENCORE, Effect.TAUNT, Effect.LOCKED_MOVE, Effect.SLOW_START)),
+        (effects.get(e, 0) for e in (Effect.ENCORE, Effect.TAUNT, Effect.SLOW_START)),
         default=0,
     )
+    if tracker is not None:
+        elapsed = max(elapsed, tracker.lock_elapsed(ident))
     vec[o_c + 3] = min(int(elapsed), 8) / 8.0
     if tracker is not None:
         vec[o_c + 4] = min(tracker.sub_hits.get(ident, 0), 3) / 3.0
@@ -372,13 +404,16 @@ def _fill_move(vec, o, move, foe, foe_belief, type_chart, L: Gen4Layout, prob: f
     vec[o + 1] = move_base_power(move) / 100.0
     vec[o + 2] = move.accuracy
     vec[o + 3] = move.current_pp / move.max_pp if move.max_pp else 0.0
-    if foe is not None:
+    # an opponent's Hidden Power the prior could not type: poke-env's stand-in
+    # is Normal, which is never the truth — leave the type and matchup unknown
+    untyped = canonical_move_id(move.id) == prior.HIDDEN_POWER
+    if foe is not None and not untyped:
         vec[o + 4] = _expected_type_multiplier(move.type, foe, foe_belief or {}, type_chart)
     vec[o + 5] = move.category == MoveCategory.PHYSICAL
     vec[o + 6] = move.category == MoveCategory.STATUS
     vec[o + 7] = move.priority / L.priority_scale
     vec[o + 8] = move.crit_ratio / 2.0
-    idx = GEN4.type_index.get(move.type)
+    idx = None if untyped else GEN4.type_index.get(move.type)
     if idx is not None:
         vec[o + L.move_type_off + idx] = 1.0
     o_e = o + L.move_effect_off
@@ -394,14 +429,19 @@ def opponent_move_slots(theirs) -> list[tuple[object, float]]:
     """Up to 4 (Move, probability): revealed first at 1.0, then the prior's
     most likely unrevealed moves conditioned on the revealed ones, the known
     ability and the known item."""
-    revealed = list(theirs.moves.values())[:4]
-    slots = [(m, 1.0) for m in revealed]
+    seen = _revealed(theirs)
+    slots = []
+    for m in list(theirs.moves.values())[:4]:
+        if canonical_move_id(m.id) == prior.HIDDEN_POWER:
+            variant = next((s for s in seen if s.startswith(prior.HIDDEN_POWER)), None)
+            if variant:
+                m = _typed_hidden_power(m, variant)  # the set prior's type, its PP
+        slots.append((m, 1.0))
     if len(slots) >= 4:
         return slots[:4]
     species = to_id(theirs.species)
     if species not in prior.known_species():
         return slots
-    seen = frozenset(canonical_move_id(m.id) for m in revealed)
     ability = to_id(theirs.ability) if theirs.ability else None
     for move_id, p in prior.conditional_move_probs(species, seen, ability, _known_item(theirs)):
         if len(slots) >= 4:

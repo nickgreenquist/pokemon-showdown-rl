@@ -268,6 +268,113 @@ def test_embed_on_a_hand_built_battle():
     assert vec[L.ids_off + 38] == VOCAB.ability_id("sandstream") / L.id_scale
 
 
+def test_prior_resolves_an_untyped_hidden_power():
+    """Showdown never names the type of an opponent's Hidden Power; poke-env
+    stores the untyped `hiddenpower`, which matches no set row, so every prior
+    read for such a mon fell back to the unconditional table (5.6 % of
+    opponent-mon observations on t1+t2, 2026-09-05 review). The resolver picks
+    the typed variant the realised sets favour and the encoder conditions on
+    it; a species with no Hidden Power set keeps the stand-in and encodes NO
+    type (poke-env's Normal is never the truth)."""
+    from poke_env.battle.pokemon import Pokemon
+    from rl.envs.gen4.encoder import _fill_move, _revealed, opponent_move_slots
+
+    variants = {
+        sp: sorted({m for r in rows for m in r[0] if m.startswith("hiddenpower")})
+        for sp, rows in prior._sets().items()
+    }
+    single = sorted(sp for sp, v in variants.items() if len(v) == 1)[0]
+    assert prior.hidden_power_variant(single) == variants[single][0]
+    assert len(variants["magnezone"]) == 3 and prior.hidden_power_variant("magnezone") in variants["magnezone"]
+    assert not variants.get("tyranitar") and prior.hidden_power_variant("tyranitar") is None
+
+    mon = Pokemon(gen=4, species=single)
+    mon._add_move("hiddenpower")
+    assert mon.moves["hiddenpower"].id == "hiddenpower"  # poke-env's untyped stand-in
+    seen = _revealed(mon)
+    assert prior.HIDDEN_POWER not in seen and variants[single][0] in seen
+    (move, p), *rest = opponent_move_slots(mon)
+    assert move.id == variants[single][0] and p == 1.0 and move.base_power == 70
+    assert all(not m.id.startswith("hiddenpower") for m, _ in rest)  # conditioned, not fallen back
+
+    tc = GenData.from_gen(4).type_chart
+    tyr = Pokemon(gen=4, species="tyranitar")
+    tyr._add_move("hiddenpower")
+    assert _revealed(tyr) == frozenset()  # dropped from the conditioning set, not a fallback trigger
+    (move, _), *_ = opponent_move_slots(tyr)
+    assert move.id == "hiddenpower"  # the slot keeps the untyped stand-in
+    vec = np.zeros(LAYOUT.move_dim, dtype=np.float32)
+    _fill_move(vec, 0, move, mon, {}, tc, LAYOUT)
+    assert vec[LAYOUT.move_type_off:LAYOUT.move_type_off + 17].sum() == 0.0 and vec[4] == 0.0
+    assert vec[1] == pytest.approx(move_base_power(move) / 100.0)
+
+
+def test_effect_block_self_boosts_use_showdowns_self_key():
+    """User stat drops live under `self: {boosts}` in Showdown's move data
+    (not `selfBoost`); slot 7 is the chance-weighted self-boost sum / 4."""
+    assert effect_block("overheat")[7] == pytest.approx(-0.5)
+    assert effect_block("dracometeor")[7] == pytest.approx(-0.5)
+    assert effect_block("closecombat")[7] == pytest.approx(-0.5)
+    assert effect_block("superpower")[7] == pytest.approx(-0.5)
+    assert effect_block("swordsdance")[7] == pytest.approx(0.5)
+    assert effect_block("metalclaw")[7] == pytest.approx(0.1 / 4.0)  # 10 % +1 Atk
+
+
+def test_tracker_rampage_lock():
+    """Outrage locks for 2-3 turns; Showdown announces neither start nor end
+    and poke-env strips `[from]lockedmove`, so the tracker derives it."""
+    from poke_env.battle.effect import Effect
+
+    b = _battle()
+    tr = BattleTracker()
+    for sm in (
+        ["", "turn", "1"],
+        ["", "move", "p2a: Tyranitar", "Outrage", "p1a: Rotom"],
+        ["", "turn", "2"],
+    ):
+        b.parse_message(sm)
+    tr.update(b)
+    assert tr.is_locked("p2: Tyranitar") and tr.lock_elapsed("p2: Tyranitar") == 1
+    vec = embed_battle_gen4(b, GenData.from_gen(4).type_chart, tr)
+    slot = LAYOUT.opp_active_off + LAYOUT.active_volatiles_off + GEN4.volatiles.index(Effect.LOCKED_MOVE)
+    assert vec[slot] == 1.0
+    assert vec[LAYOUT.opp_active_off + LAYOUT.active_counters_off + 3] == pytest.approx(1 / 8)
+    for sm in (
+        ["", "move", "p2a: Tyranitar", "Outrage", "p1a: Rotom", "[from]lockedmove"],
+        ["", "-start", "p2a: Tyranitar", "confusion", "[fatigue]"],
+        ["", "turn", "3"],
+    ):
+        b.parse_message(sm)
+    tr.update(b)
+    assert not tr.is_locked("p2: Tyranitar") and tr.lock_elapsed("p2: Tyranitar") == 0
+    # a miss ends it
+    b.parse_message(["", "move", "p2a: Tyranitar", "Outrage", "p1a: Rotom"])
+    b.parse_message(["", "-miss", "p2a: Tyranitar", "p1a: Rotom"])
+    tr.update(b)
+    assert not tr.is_locked("p2: Tyranitar")
+    # a Sleep Talk-called rampage never locks (the gen-4 mod drops a sleeper's lock)
+    b.parse_message(["", "move", "p2a: Tyranitar", "Sleep Talk", "p2a: Tyranitar"])
+    b.parse_message(["", "move", "p2a: Tyranitar", "Outrage", "p1a: Rotom", "[from] move: Sleep Talk"])
+    tr.update(b)
+    assert not tr.is_locked("p2: Tyranitar")
+    # three turns is the cap even when every end message is missed
+    b.parse_message(["", "move", "p2a: Tyranitar", "Outrage", "p1a: Rotom"])
+    tr.update(b)
+    assert tr.is_locked("p2: Tyranitar")
+    for t in ("4", "5"):
+        b.parse_message(["", "turn", t])
+    tr.update(b)
+    assert tr.is_locked("p2: Tyranitar") and tr.lock_elapsed("p2: Tyranitar") == 2
+    b.parse_message(["", "turn", "6"])
+    tr.update(b)
+    assert not tr.is_locked("p2: Tyranitar")
+    # a switch clears it
+    b.parse_message(["", "move", "p2a: Tyranitar", "Outrage", "p1a: Rotom"])
+    b.parse_message(["", "switch", "p2a: Tyranitar", "Tyranitar, L74", "100/100"])
+    tr.update(b)
+    assert not tr.is_locked("p2: Tyranitar")
+
+
 # --- (v) the offline tape replay ----------------------------------------------
 
 
