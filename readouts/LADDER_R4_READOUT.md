@@ -187,7 +187,7 @@ Mean turns **26.6**, against this object's OWN off-Foul-Play@20 proxy **28.403**
 ## Top-500 exposure during the run (DESCRIPTIVE — peak Elo is not a result)
 
 From the replay-derived PRE-battle ratings against the n=0 admission cutoff 1359.9801846821: the account entered **42 of 200** battles (21%) at or above the line, in **13** separate excursions; peak pre-battle Elo **1431** before battle 176; record while listed **18-24**; final Elo 1354 against 1359.6802683148 at stop (**5.7** under, inside one game's swing); GXE 65.2 against the lowest listed GXE at stop, 67.1. The licensed cell (0.423, n=52, se 0.069) cannot distinguish this object from a 0.50 player in the band containing rank 500.
-**Pure self-play reached the top-500 line repeatedly; it did not hold it.** Peak Elo is not a result (RESULTS §16.4, carried since R1); the stopping-rule figure is the read. Evidence for the rank seen: the maintainer's screenshots of the public board, filed under `readouts/ladder_r4_evidence/` (placeholder until filed).
+**Pure self-play reached the top-500 line repeatedly; it did not hold it.** Peak Elo is not a result (RESULTS §16.4, carried since R1); the stopping-rule figure is the read. Evidence for the rank seen: the maintainer's screenshot of the public board, filed under `readouts/ladder_r4_evidence/` (2026-09-04 21:11 local, ≈ battle 116: rank 470, Elo 1368, GXE 62.9, Glicko-1 1599 ± 25; a recalled peak near rank 350 has no screenshot).
 Battle indices entered while listed: 22, 111, 114, 115, 122, 123, 124, 125, 126, 127, 128, 130, 132, 143, 144, 145, 164, 165, 166, 167, 169, 173, 174, 175, 176, 177, 178, 179, 180, 182, 183, 184, 185, 186, 187, 188, 189, 194, 195, 196, 197, 199.
 
 ## Obligation (ix) — realized-cost ledger

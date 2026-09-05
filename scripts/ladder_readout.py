@@ -722,8 +722,10 @@ def main():
         A("**Pure self-play reached the top-500 line repeatedly; it did not hold it.** "
           "Peak Elo is not a result (RESULTS §16.4, carried since R1); the "
           "stopping-rule figure is the read. Evidence for the rank seen: the "
-          "maintainer's screenshots of the public board, filed under "
-          "`readouts/ladder_r4_evidence/` (placeholder until filed).")
+          "maintainer's screenshot of the public board, filed under "
+          "`readouts/ladder_r4_evidence/` (2026-09-04 21:11 local, ≈ battle 116: "
+          "rank 470, Elo 1368, GXE 62.9, Glicko-1 1599 ± 25; a recalled peak near "
+          "rank 350 has no screenshot).")
         A("Battle indices entered while listed: " + ", ".join(map(str, listed_idx)) + ".")
         A("\n## Obligation (ix) — realized-cost ledger\n")
         A(f"- runner launches **1**; supervisor relaunches **0**; watchdog kills **0**; "
