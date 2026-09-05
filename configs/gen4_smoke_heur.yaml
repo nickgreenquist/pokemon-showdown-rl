@@ -8,8 +8,9 @@
 # Needs the local Showdown server (the worktree's clone at 59da482e):
 #   cd showdown && node pokemon-showdown start --no-security
 #
-# journey_step: 3 (gen4 encoder + model) — bring-up only; the step's exit
-# condition (JOURNEY.md:68) is still unwritten and this run does not touch it.
+# journey_step: 3 (gen4 encoder + model) — bring-up only. The step's milestone
+# (≥ 0.60 vs SH) and the chapter's exit (step 5: pooled 3×3000 vs-SH ≥ 0.756,
+# one-sided) are written at JOURNEY.md step 3 / step 5; this run touches neither.
 env_id: ShowdownGen4-v0
 seed: 1
 total_steps: 8192

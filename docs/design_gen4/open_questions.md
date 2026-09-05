@@ -55,7 +55,9 @@ Seven decisions closed in one sitting, in the order they run:
    layout v0.1 LEARNS — ≥ 0.60 vs SimpleHeuristics under the locked protocol
    (pooled 3×3000) at its final, the three descriptive anchors reported. The
    chapter's exit is JOURNEY step 5: match Wang's pinned 0.786 (matched =
-   within 0.03, pooled 3×3000; SB3 confound disclosed), then ONE ladder run.
+   pooled 3×3000 vs-SH ≥ 0.756, ONE-SIDED, no ceiling — 0.786 minus one se of
+   his n=200; RULED 2026-09-05 evening, superseding Q5/A3's lower-2·se-bound
+   test; SB3 + dose disclosed), then ONE ladder run.
 2. **Freeze layout v0.1 AS BUILT, the ~90 pool-unreachable dims KEPT**
    (`encoder_requirements.md` §13): a relayout kills every checkpoint; relayout
    only on a measured defect. The freeze lives in the first gen4 pre-reg header.
@@ -118,8 +120,8 @@ exactly the kind of collision the hard bars exist to prevent; the honest sequenc
 is R4 readout → merge this branch → gen4 code. Flips if: the readout slips by
 days and the box is idle.
 
-**Q4 — The gen4 chapter's written exit condition** (JOURNEY.md:68, still
-unwritten). Recommendation: completion-shaped, like the 100M header's: "the step-5
+**Q4 — The gen4 chapter's written exit condition** (JOURNEY.md:74 — WRITTEN
+2026-09-05; kept for the record). Recommendation: completion-shaped, like the 100M header's: "the step-5
 offline read at the locked protocol against the pinned Wang target, the full anchor
 battery, and one gen4 ladder run, all recorded — the chapter closes on the record
 whatever the numbers say." Losing argument: a numeric exit ("matched" defined by a
@@ -131,7 +133,10 @@ maintainer wants gen4 to be a gate on step 8 rather than a measurement.
 Recommendation: **pin Table 4.1's 0.786 as the exit bar, quote the Figure 4.1
 endpoint ≈ 0.836 (peak ≈ 0.849) as the stretch, and define "matched" as the pooled
 3 × 3000 final whose lower 2·se_gov bound reaches 0.786** (`anchors_and_eval.md`
-§6, A3). Losing argument: "roughly 85 %" is the number he headlines and the one a
+§6, A3). **SUPERSEDED — RULED 2026-09-05 evening (maintainer: "I agree with A"):
+matched = pooled 3×3000 vs-SH ≥ 0.756, one-sided, no ceiling; the 0.03 is one se
+of Wang's 200-game number, not a tolerance. The lower-bound test is the shape of
+a strength claim and is reserved for lever runs under the credit line.** Losing argument: "roughly 85 %" is the number he headlines and the one a
 reader remembers; matching 0.786 reads as matching the weaker of his two numbers.
 Disclosures that travel regardless: stock SH with the +1-boost bug on both sides
 (comparable only if his harness was stock — the thesis does not say), SB3's PPO
@@ -255,7 +260,7 @@ searched first; one unauthenticated pull of the gen4RB board before the run.
 **Q41** `docs/IDEAS_POST_100M.md` §2.5 calls the +0.051 / +0.104 / +0.148 deltas "12M";
 they are the CH5 R1-B **50M** lanes s80/s81/s82 off Foul Play@20 at n=1000.
 Recommendation: a one-line correction at merge (M4).
-**Q42** `JOURNEY.md:116` still cites the 0.072 bar that r9 corrected to 0.1007 — the
+**Q42** `JOURNEY.md:122` (was :116 before the 2026-09-05 ruling lines) still cites the 0.072 bar that r9 corrected to 0.1007 — the
 maintainer's own file; flag, do not edit.
 **Q43** `docs/prior_work/README.md`: ps-ppo's in-code comment on the +1-boost bug is wrong
 in direction (+1 acts like +2, not +0), and "encoder-relevant fixes upstreamed by
@@ -431,7 +436,8 @@ its own branch, ahead of step 2's readout, with training beyond a smoke out of
 scope. Built and committed: the gen-4 encoder to layout v0.1 (OBS_DIM 1,448),
 the exact set prior, the tracker, the env (`ShowdownGen4-v0`), the
 most-damage-typed anchor, the tape instruments, and the docs' live
-verification (1,650 recorded seat-battles; every `[live]` claim in §8's list
+verification (1,650 recorded seat-battles = t0–t6; the docs' headers say 1,530 =
+t0–t4, the set that existed when they were verified; every `[live]` claim in §8's list
 that a local server can settle is settled — the four docs' final sections).
 Not built: the entity trunk's vocab arguments, eval / async / collect format
 threading, F-07 selection, the pinned hash gate, the gen-4 pre-reg. The

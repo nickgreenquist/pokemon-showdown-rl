@@ -41,9 +41,9 @@
 `[tree]` The standing convention (CLAUDE.md, 2026-08-23 ruling, MU-2 amendment
 2026-08-26): every headline-grade result reports **vs-SH at the locked protocol**
 (final checkpoint, 3000 battles/seed, 3 seeds pooled, ties as non-wins,
-deterministic policy) **plus two descriptive anchors** — BC-clone h2h (500) and
-Foul Play h2h at `--search-time-ms 20` with its two standing disclosures — before a
-README row lands; anchors are descriptive, never verdict inputs; match the policy
+deterministic policy) **plus the descriptive anchors** — BC-clone h2h (500), Foul
+Play h2h at `--search-time-ms 20` with its two standing disclosures, and from gen 4
+on the most-damage-typed h2h (500; ruled 2026-09-05) — before a README row lands; anchors are descriptive, never verdict inputs; match the policy
 form to the rating you compare against; ladder always means ladder + Foul Play at
 pinned settings; vs-SH and off-FP numbers are never ladder numbers.
 
@@ -52,7 +52,7 @@ pinned settings; vs-SH and off-FP numbers are never ladder numbers.
 | **vs-SH, locked protocol** | stock poke-env 0.15.0 `SimpleHeuristicsPlayer` | **keeps its place, as a weaker and different instrument** (§1) | same stock bot (comparability with Wang's 0.786 depends on it); the disclosure list grows; no gen1 bar or σ_seed is inherited |
 | **BC-clone h2h 500** | Foul-Play clone at OBS_DIM 808 (`runs/bc_fp_v2r_soft_180k_s0`) | **must be rebuilt** — gen4 obs, gen4 teacher, gen4 tapes | blocked on a gen4 Foul Play and on tapes; `[live]` |
 | **Foul Play h2h @20** | foul-play + our gen1 patch, poke-engine 0.0.48 gen1 build | **BUILT 2026-09-05 (§12): the `foul-play-gen4` env (poke-engine 0.0.48, `--features poke-engine/gen4`, functionally pinned as gen 4), the set file pinned by sha, the eval-bot path run end to end vs a gen-4 checkpoint** | the FP@20 licence rests on a gen1-specific flatness finding; the budget ladder still has to be re-run against a REAL gen-4 agent |
-| **most-damage-typed** (JOURNEY's pre-step-3 add) | not built; `MaxBasePowerPlayer` is the weaker sibling in the registry | **spec below** (§2); one afternoon; registry + test edit | the cross-generation denominator; descriptive only |
+| **most-damage-typed** (JOURNEY's pre-step-3 add) | BUILT 2026-09-05 (§2, §12); `MaxBasePowerPlayer` is the weaker sibling in the registry | **in the battery from gen 4 on** (ruling 6, 2026-09-05) | the cross-generation denominator; descriptive only |
 | **ladder (step 6, one run)** | R1/R3/R4 on gen1randombattle | one run, exit = the run; 150 s/turn timer path | pin FP budget, engine commit, n, greedy-vs-searched first (JOURNEY's pairing rule) |
 
 ## 1. What SimpleHeuristicsPlayer is worth in gen4
@@ -237,8 +237,8 @@ sets per species. Foul Play is the reproducible incumbent in gen4 as in gen1.
 battles / 180,440 decisions, MLP 512/512, soft targets; 0.5490 / 0.5777 vs SH), not
 portable to a gen4 encoder or a gen4 teacher. A gen4 clone needs: a working gen4
 Foul Play (§3), gen4 tapes through the gen4 encoder, and the banked recipe re-run.
-`scripts/make_bc_dataset.py` still documents 611-dim obs and defaults to SH as the
-expert — a stale docstring to fix when it is next touched. Purity: the clone is an
+`scripts/make_bc_dataset.py`'s 611-dim docstring was fixed 2026-09-05 (M3); it still
+defaults to SH as the expert (`--expert heuristics`), which a gen4 clone run overrides. Purity: the clone is an
 anchor, never training input (CHAPTER5 §6). Order of work: encoder → gen4 FP → tapes
 → clone; the clone lands last and is `[live]` throughout.
 
@@ -277,7 +277,9 @@ endpoints; footnote it wherever the table is reused.
 **Recommendation (§9 A3): pin 0.786 as the step-5 exit bar and quote ≈ 0.836 as the
 stretch**, with "matched" defined as the pooled 3 × 3000 locked-protocol final whose
 lower 2·se_gov bound reaches 0.786 (se_gov the larger of binomial and seed-clustered,
-as the credit line says). Disclosures that travel with the comparison: stock SH with
+as the credit line says). **SUPERSEDED 2026-09-05 evening (maintainer ruling, Option
+A): matched = pooled 3 × 3000 vs-SH ≥ 0.756, one-sided, no ceiling — 0.786 minus one
+se of his n = 200; JOURNEY step 5 carries the ruled text.** Disclosures that travel with the comparison: stock SH with
 the +1-boost bug on both sides (comparable iff Wang's harness was stock — unstated);
 SB3's PPO **implementation** (his 13 hyperparameters are Bayesian-tuned on a 3v3
 surrogate, not SB3 defaults — JOURNEY's "with its defaults" is wrong `[src]`); his
@@ -316,7 +318,8 @@ ladder-object question is decided before the run (JOURNEY step 11). Detail:
   Losing: the 2026-08-23 ruling capped the battery at three legs; a never-switching
   bot will be beaten so badly the number carries no gradient; it is one more n=500
   run per readout.
-- **A3 Pin 0.786 as the exit bar, 0.836 as the stretch.** Losing: "roughly 85 %" is the
+- **A3 Pin 0.786 as the exit bar, 0.836 as the stretch** (its "matched" definition
+  SUPERSEDED 2026-09-05 evening by the one-sided ≥ 0.756 ruling — §6). Losing: "roughly 85 %" is the
   number Wang headlines and the one a reader remembers; matching 0.786 and claiming
   parity reads as matching the weaker of his two numbers.
 - **A4 Foul Play (gen4 build) is the FP leg; Wang's MCTS is not an alternative.**
@@ -336,13 +339,15 @@ ladder-object question is decided before the run (JOURNEY step 11). Detail:
 1. Patch SH for gen4, or disclose (A1)?
 2. Does most-damage-typed join the battery (A2), and is it built before step 3 as
    JOURNEY schedules it?
-3. The step-5 target: 0.786 vs ≈ 0.836, and the numeric definition of "matched" (A3).
+3. ~~The step-5 target: 0.786 vs ≈ 0.836, and the numeric definition of "matched" (A3).~~
+   RULED 2026-09-05: 0.786; matched = pooled 3 × 3000 vs-SH ≥ 0.756, one-sided.
 4. Authorise the gen4 Foul Play build (`make poke_engine GEN=gen4` in the foul-play
    env, a network fetch of the gen4 set file, its pin and diff) when the box is free.
 5. The gen4 tie / turn-cap rule for collection and eval.
 6. Whether the BC-clone leg waits for a gen4 Foul Play or is dropped for the chapter's
    first readout.
-7. The gen4 chapter's written exit condition (JOURNEY.md:68 — still unwritten).
+7. ~~The gen4 chapter's written exit condition (JOURNEY.md:68 — still unwritten).~~
+   WRITTEN 2026-09-05 (JOURNEY.md:74).
 
 ## 11. Sources, verification, deferrals
 

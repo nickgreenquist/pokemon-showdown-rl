@@ -571,18 +571,20 @@ tuples become a commitment only in a gen-4 pre-registration header (§4.7).
 
 **Reference replay (not a pinned gate):** every recorded tape (t0–t6, 1,650
 seat-battles, **42,191 decisions**) through `embed_battle_gen4` → 0 NaN, every
-value inside `Box(-1, 4)`, 0 poisoned battles, **193 µs/decision** (gen 1:
-~133; 166 before the Hidden Power resolution and the rampage lock), sha256
-`bbcf9f601c412a24ee7382fb654bb22c76e8ed39df0137a8b82ebbf77a4ff905` — sha256
+value inside `Box(-1, 4)`, 0 poisoned battles, **184 µs/decision** (gen 1:
+~133), sha256
+`b72dcbc7e4b7a706967d8811f7ac3d05dd63e40cb01b624800807db1a308c1f4` — sha256
 over `vec.tobytes()` per decision in tape order, the gen-1 gate's rule
-(`tests/test_encoder_spec.py`); re-recorded at the branch head after the
-2026-09-05 review fixes (the pre-review record was `8acdc50a…`).
+(`tests/test_encoder_spec.py`), recorded by `scripts/gen4_reference_replay.py`.
+Re-recorded 2026-09-05 evening on `main` after the post-merge review fixes
+below (the branch-head record was `bbcf9f60…`; the pre-review record `8acdc50a…`).
 The gen-4 hash gate (§8, Q19) is buildable now — the tapes exist — and lands
 the moment a pre-reg freezes the tuples; until then the reference hash is a
 record, not a pin.
 
 **Unreachable at the pinned pool (2026-09-05 review):** ~90 of the 1,448 dims
-never left zero over 41,908 recorded decisions — Stealth Rock / Reflect / Light
+never left zero over 41,908 recorded decisions (t1–t6; t0's 283 predate the
+review fixes — the 42,191 above is t0–t6) — Stealth Rock / Reflect / Light
 Screen / Safeguard / Mist / Tailwind / Lucky Chant on both sides, Gravity, the
 CURSE / FOCUS_ENERGY / trapped-by-move / perish flags and the perish counter, and
 seven effect slots (drain, attract, partial trap, focus energy, screen, other
@@ -600,6 +602,28 @@ Change); two slot dims for Wish; the effect block is 45 wide (the 32 sketch
 folded side conditions into three classes and added trapping / variable
 damage / item swap / team cure / defrost bits); `-ability` announcers are six
 (Speed Boost and Download announce).
+
+**Post-merge review fixes on `main` (2026-09-05 evening; three Opus reviewers;
+each pinned by a test in `tests/test_gen4_encoder.py`):** (1) BLOCKER — the
+tracker filed `[from] ability: X` on the `[of]` mon, but Showdown's `[of]` is the
+EFFECT'S SOURCE: Water/Volt Absorb and Dry Skin were filed on the ATTACKER and
+Trace on the TRACED mon, a false immunity in the matchup block; the holder is now
+the subject for `-heal` / `-ability` (Trace reveals both mons), the `[of]` mon
+otherwise. (2) A resolved opponent Hidden Power carries the variant's PROBABILITY
+in its slot, not 1.0 (8 pool species are ~50/50). (3) Curse is encoded as the
+STAT form (+1/4 self-boost, no Ghost residual) — pool-conditioned: no Ghost in the
+gen4randombattle pool carries it. (4) Castform's weather formes and
+Cherrim-Sunshine map to the base species' set table (the prior went empty the
+turn Forecast fired). (5) Wish heals 0.5 (delayed), Healing Wish 0 (the
+replacement heals); 2–5-hit moves at the gen-4 3.0 (§3.6 now landed); an own
+mon's `unknown_item` is state 0, not "known none"; `-fail|TARGET|<status>` no
+longer clears the target's rampage lock. Recorded, not fixed: `original_item` /
+`encored_move` are tracked but unread by the encoder; the Frisk `-item` branch
+describes the gen-5+ wire format (Frisk is not in the pool); a prior-derived
+p ≥ 0.999 ability is encoded as "known"; the sleep counter's poke-env fallback
+mixes scales; `_move_slots_aliased` tests the special-move set rather than
+poke-env's exact re-basing condition (inherited from gen 1). The set-prior data
+file is now pinned to the vendored checkout by test.
 
 **Not built (next) — RULED ORDER 2026-09-05 (`open_questions.md` §0.5): (1) the
 pre-reg header that freezes v0.1 as built (2-Opus review first), (2) the pinned

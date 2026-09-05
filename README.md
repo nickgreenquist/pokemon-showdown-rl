@@ -355,5 +355,8 @@ it is a scientific claim rather than an engineering preference — see *The clai
 Notable external components: [poke-env](https://github.com/hsahovic/poke-env)
 (environment), [Pokémon Showdown](https://github.com/smogon/pokemon-showdown)
 (simulator, vendored), [Foul Play](https://github.com/pmariglia/foul-play)
-(search-bot eval anchor, run with our patches), and a poke-engine-derived
-forward model used inside search.
+(search-bot eval anchor, run with our patches), a poke-engine-derived
+forward model used inside search, **Wang (2024)** — the gen-4 PPO recipe the first
+gen-4 run copies as its foundation, and his poke-env fork's state-tracking fixes
+(`docs/prior_work/README.md`, `docs/design_gen4/research/`) — and **Huang & Lee's
+metagrok** most-damage-typed rule (`rl/envs/most_damage_typed.py`).
