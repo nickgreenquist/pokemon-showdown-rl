@@ -10254,3 +10254,60 @@ line numbers are not — grep the date, then read that region):
   500 ms). Not done: `scripts/ch3_fp_h2h.py`'s pre-reg-arm harness is still
   gen-1-hardcoded (`BATTLE_FORMAT`) — the gen-4 h2h script is its twin, to be
   folded in when a gen-4 pre-reg names arms.
+- 2026-09-05 (midday, autonomous; maintainer instruction at compaction: "finish
+  the remaining work; spawn 2 opus subagents when you think you're done to
+  review all the work; act on what you agree with") — **REVIEW PASS ON
+  `gen4-build`: two Opus reviewers (code; docs / claims), 15 + 15 findings,
+  all but two acted on.** Code review (ran the gen-4 tests, replayed all seven
+  local tapes, read poke-env 0.15.0 for every API claim): (1) an opponent's
+  Hidden Power is stored UNTYPED by poke-env (`hiddenpower` — Showdown never
+  names the type on the wire), matched no set row and so VOIDED the prior for
+  5.6 % of opponent-mon reads while the move slot encoded Normal/60 with vocab
+  id 0 → `prior.hidden_power_variant` + `encoder._revealed` resolve it to the
+  typed variant the realised sets favour (168/168 sightings on t0+t5+t6;
+  fallback 19/2,097 prior calls, none from Hidden Power; an unresolvable one
+  encodes NO type); (2) `effect_block` read `selfBoost` — Showdown's key is
+  `self.boosts` — so Overheat / Draco Meteor / Superpower / Close Combat /
+  Hammer Arm / Psycho Boost encoded no self drop; (3) `Effect.LOCKED_MOVE` is
+  never attached by poke-env (it strips `[from]lockedmove`; 0 hits over 41,908
+  decisions) → the tracker derives the rampage lock (13 opp / 8 own firings
+  over 3,393 replayed decisions); (4) `Gen4PoolPlayer` leaked one tracker per
+  battle on the sync training path (`report_outcome` pops `_by_tag` before the
+  finished sweep can see the battle) → trackers keyed by tag, popped with the
+  entry; (5) a `MostDamageTypedPlayer` in every sub-env drew the same
+  `Random(0)` tie-break stream → `ShowdownEnv.reset` seeds any scripted
+  opponent exposing `seed_rng` (pool path unchanged); (6) FP scripts:
+  `fp.kill()` without `wait()` (zombie, `fp_exit_code` None) and a seat timeout
+  that lost the tape → fixed, summaries carry `timed_out`; (7) the encoder
+  docstring claimed the entity tokenizer "carries over" — it is gen-1-bound
+  (module constants, refuses other widths, slices a 20-wide id tail) →
+  docstrings corrected, build item stands; (8) ~90 of 1,448 dims never left
+  zero at the pinned pool → recorded in `spec.py` and encoder_requirements §13,
+  KEPT on purpose (the format's mechanics; the pool moves per Showdown commit);
+  (9) the tape replay gate skipped silently on any clone without the gitignored
+  tapes → t0's first two battles committed gzipped (13 KB, 446 events) under
+  `tests/fixtures/`, the test parametrized over fixture + local tape; (10)
+  `return102` never reaches poke-env's `Move.id` (`retrieve_id` strips it) →
+  comments corrected, the normaliser kept for RAW request ids; nits: `embargo`
+  out of the item-swap set, dead `endure` clause, the JS sampler stamps `git
+  rev-parse HEAD` (was `.git/HEAD`, a ref name on a branch), `curl -f` + a trap
+  in the setup script. NOT acted on: dropping the unreachable dims (a relayout
+  is the pre-reg's call); a per-block write-containment test (the replay gate
+  pins bounds). Docs review (12+ numeric spot-checks all matched — 1,448 =
+  36/61/31/71/44, vocab 300/182/101/40, 1,743 triples, the set-pin sha and
+  125,866 B, the 40-species level drift, fp1 226-24-0 / 1.18 s, 42,191
+  decisions, poke-env 0.15.0 / poke-engine 0.0.48 / 59da482e; no gen-4 number
+  in STATUS / README / RESULTS): ties 9/760 first wave + 1/30 MDT-vs-SH (the
+  doc said 10/760 + 1/30 "each"); the G1 row split by run (SH seat 67 flags → 0
+  rejections in t1; 37 → 4 in t2); 1,530 seat-battles = t0–t4, not "eight
+  runs"; Flash Fire 5 species / 8 sets in the G6 row; 278/295 unique-by-set
+  (recounted); research notes landed at df3fe8f, not b12b362; the Wang tally
+  15 + 1 + 9 + 5 N/A; fp1's gen-9 noise 7,686 lines, not ~5,300; two dead
+  pointers into SESSION_LOGS (the `-ability` histogram and the agent prompts
+  are not committed anywhere — said so); the FP@20 n=250 quotes now carry the
+  two standing disclosures + the level-drift caveat; D1–D3 marked discharged
+  where two docs still said "deferred"; Q37's build no longer "not checked
+  live"; §4.2's ≈33 reconciled to the built 31; the research index header and
+  its broken table; the setup-script header's 39 of 40 items; `__init__` lists
+  classes / prior. Tests: 17 gen-4 offline tests; pool / showdown / gen-4
+  suites green (78). Commits 130aee5, 091b7b4, 8ef40fd, ce4adb7, b9a8859.
