@@ -1249,6 +1249,13 @@ a6fbdfc3f70f; foul-play 25c976f0, Showdown 0.11.11.
   to grade the partial. **No rate is quoted from those 2,675 battles.** A re-run needs
   the licensed pair-flip edit (ii) + a `burned_pairs:` block, LAST. **R4S ROUTES
   NOTHING**, so the verdict stands without it.
+  **CORRECTION 2026-09-05 (SESSION_LOGS 2026-09-01 wins on conflict):** the pair-flip
+  re-run on the promoted b-pair COMPLETED and GRADED — search@M on batch-lane s66 off
+  Foul Play@20 read **0.38067** (1142W–1836L–22T, n = 3000; n_eff 0.38046 after one
+  crash_forfeit) against the same lane's greedy 0.4740: search HURTS the batch recipe by
+  ~0.093 (~10 se). Descriptive; it routes nothing here, and it is the evidence the R4
+  ladder pre-reg cites for its greedy deployment. The stale "not graded" above
+  described attempt 1 only.
 - **Riders R3c / R1i / R1ii NOT RUN** — `scripts/ch5_r2_crossplay.py` does not exist;
   it is a registered build item and no agent-vs-agent h2h driver is in the tree.
 

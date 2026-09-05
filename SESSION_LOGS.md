@@ -10266,3 +10266,20 @@ line numbers are not — grep the date, then read that region):
   NO VERDICT WRITTEN — ratification is the maintainer's. Flagged: RESULTS
   §17's R4S66 paragraph is stale ("not graded") vs the 2026-09-01 log
   (b-pair re-run graded 0.38067); owes a one-line correction.
+
+- 2026-09-05 (midday, autonomous; maintainer: "just do what you think needs to
+  be done") — **HOUSEKEEPING BATCH, no rulings taken.** (1) RESULTS §17's
+  R4S66 paragraph corrected in place: the promoted b-pair re-run completed
+  and graded 0.38067 (the 2026-09-01 log wins on conflict; the stale "not
+  graded" described attempt 1). (2) STATUS's R3 106-94/106-102 watch item
+  retired — explained in RESULTS §16.2, guarded by tests/test_ladder_docs.py.
+  (3) `rl/selfplay/pool.py` AgentOpponent.move: `torch.multinomial(probs.cpu(),
+  …)` — the one-site MPS crash measured 2026-09-01 ("Expected a 'mps' device
+  type for generator but found 'cpu'"); `.cpu()` is the identity on the CPU
+  path so draws are bit-identical (26 pool/run-capture tests pass); the RL
+  loop stays CPU-only by rule. (4) CLAUDE.md's "MPS is flaky here" replaced
+  with the measured fact (one-site defect, fixed; prize ~2.5%). (5) The
+  stall-kill crash_forfeit READ rule stays with the maintainer — it is a
+  read-rule question against a frozen pre-reg (landmines.md), not a chore.
+  Standing rulings now 1 (was 3). Memory saved: housekeeping is done, not
+  escalated; rulings / pushes / deletions / published-number values still are.

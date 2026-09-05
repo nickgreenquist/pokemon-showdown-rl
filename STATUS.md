@@ -45,9 +45,9 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
    eval JSONs (gain declines with greedy strength, zero-crossing ≈0.42;
    s66 −0.093 at −7.3 se) + a 3-branch rule AWAITING YOUR RATIFICATION
    (no verdict written). Then gen4 per docs/design_gen4/ (46 rulings first).
-3. Audit rulings owed (AUDIT_BRANCH_LOG §Open questions): F-21, F-04
-   routing, F-06/F-07, F-05 cadence, F-03 900 s. Standing rulings (3):
-   CLAUDE.md MPS wording; pool.py:88; stall-kill crash_forfeit read rule.
+3. Rulings owed, yours: search-depreciation rule (item 2); audit F-21, F-04
+   routing, F-06/F-07, F-05 cadence, F-03 900 s; the stall-kill crash_forfeit
+   READ rule (landmines.md). MPS wording + pool.py:88 DONE 2026-09-05.
 4. Housekeeping: local Showdown server UP (fresh, pid 50440); rung deletion per E2.
 
 ## Watch items
@@ -55,6 +55,6 @@ DISCHARGED 2026-09-05 by LADDER R4 — the run itself was the exit condition.
 - vs-SH/off-FP are NEVER ladder numbers; FP@20 quotes carry budget + the
   two standing disclosures, forever. Three (off-FP@20, ladder) k=1 pairs
   now exist; fitting or narrating a mapping through them is barred by name.
-- **RECONCILE (unchanged):** LADDER R3 STATUS 106-94 (n=200) vs readout
-  106-102 (208). foul-play Struggle PANIC open (died once in R4S66).
+- foul-play Struggle PANIC open (died once in R4S66). R3's 106-94 vs 106-102
+  is explained in RESULTS §16.2 and guarded by tests/test_ladder_docs.py.
 - Ladder account parked at 199-201 / Elo 1354 (2026-09-05); any future run is a NEW pre-reg.

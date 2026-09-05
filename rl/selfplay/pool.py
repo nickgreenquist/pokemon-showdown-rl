@@ -120,7 +120,12 @@ class AgentOpponent(Opponent):
         mask_t = torch.as_tensor(mask, dtype=torch.bool, device=self.agent.device)
         with torch.no_grad():
             probs = torch.softmax(masked_logits(self.agent.actor(obs_t), mask_t), dim=-1)
-        return int(torch.multinomial(probs, 1, generator=self.generator).item())
+        # `self.generator` is a CPU generator, so the draw happens on CPU: on the
+        # CPU path `.cpu()` is the identity (same tensor, same stream, bit-identical
+        # draws), and on `device: mps` it is the one-site fix for the measured crash
+        # "Expected a 'mps' device type for generator but found 'cpu'" (SESSION_LOGS
+        # 2026-09-01; fixed 2026-09-05). The RL loop stays CPU-only by rule.
+        return int(torch.multinomial(probs.cpu(), 1, generator=self.generator).item())
 
 
 class SnapshotPool(Opponent):

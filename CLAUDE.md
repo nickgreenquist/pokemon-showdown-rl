@@ -68,8 +68,10 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   --run-name <name>` (resume: `--resume RUN_DIR`).
 - **Metrics:** W&B defaults to offline; `scripts/extract_history.py <run_dir>`
   writes `history.csv`.
-- **CPU only** for the RL loop; MPS is flaky here. A GPU is permitted for
-  supervised/offline arms if worth renting.
+- **CPU only** for the RL loop. MPS was MEASURED 2026-09-01: it crashed on a
+  one-site CPU-generator defect (`pool.py`, fixed 2026-09-05) and the prize
+  behind it is ~2.5% — not worth an unvalidated backend. A GPU is permitted
+  for supervised/offline arms if worth renting.
 - **Tests:** `pytest tests/` from the repo root. Known flake (documented
   in-file): `test_full_episode_contract_against_live_server` fails only when
   the whole suite runs with a server up; passes alone.
