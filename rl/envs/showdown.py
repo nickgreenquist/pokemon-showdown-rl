@@ -1004,6 +1004,10 @@ class PoolPlayer(Player):
     on the opponent at every battle boundary.
     """
 
+    # Class-level default so a PoolPlayer built around __init__ (the
+    # mask-desync tests' __new__ pattern) still reads "no harvest".
+    _harvest = None
+
     def __init__(self, pool: SnapshotPool, *, battle_format: str, harvest=None, **kwargs):
         super().__init__(battle_format=battle_format, **kwargs)
         self._pool = pool

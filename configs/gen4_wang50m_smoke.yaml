@@ -1,0 +1,59 @@
+# SMOKE, NOT A PRE-REGISTRATION — the one-diff partner of configs/gen4_wang50m.yaml
+# (R0-a: differs in exactly {total_steps, eval_every, eval_episodes,
+# checkpoint_every, agent.lr_anneal_steps, seed, run_name}; asserted by
+# tests/test_gen4_prereg.py). Three updates of the FULL recipe — entity trunk
+# at the gen-4 layout, both-seat harvest, the power schedule, value clipping —
+# against the mirror, then one 10-battle eval vs SH. Produces NO number anyone
+# may quote; its readings fill the PROVISIONAL R0 bands in the pre-reg header.
+# Run from a scratch cwd (it writes runs/<run_name> under the cwd):
+#   python -m rl.train --config <repo>/configs/gen4_wang50m_smoke.yaml --seed 999 --run-name gen4_wang_smoke_s999
+# journey_step: 3 -> 4, bring-up only; touches neither the milestone nor step 5's exit.
+env_id: ShowdownGen4-v0
+seed: 999
+total_steps: 59904
+eval_every: 59904
+eval_episodes: 10
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 0
+run_name: gen4_wang_smoke_s999
+logger: wandb
+eval_win_rate: true
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 1
+  push_every_updates: 1
+  latest_prob: 1.0
+  harvest_both_seats: true
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  trunk_kwargs:
+    layout: gen4
+    species_vocab: 301
+    move_vocab: 183
+    item_vocab: 41
+    ability_vocab: 102
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 5.8884e-5
+  lr_anneal_steps: 59904
+  lr_schedule: power
+  lr_power_a: 8.0
+  lr_power_b: 1.5
+  gamma: 0.9999
+  gae_lambda: 0.754
+  rollout_steps: 2496
+  epochs: 7
+  minibatches: 39
+  clip_eps: 0.0829
+  value_clip_eps: 0.0184
+  entropy_coef: 0.0588
+  value_coef: 0.4375
+  max_grad_norm: 0.543

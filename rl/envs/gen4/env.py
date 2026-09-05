@@ -24,6 +24,7 @@ from poke_env.data import GenData
 from poke_env.environment import SingleAgentWrapper
 from poke_env.player import Player
 
+from rl.collect import RecordingPlayer
 from rl.envs import showdown as sd
 from rl.envs.gen4.encoder import embed_battle_gen4, privileged_block_gen4
 from rl.envs.gen4.spec import ENCODER_FINGERPRINT_GEN4, N_ACTIONS_GEN4, OBS_DIM_GEN4
@@ -95,6 +96,25 @@ class Gen4PoolPlayer(sd.PoolPlayer):
         tracker = self._trackers.get(tag)
         if tracker is None:
             tracker = self._trackers[tag] = BattleTracker()
+        return embed_battle_gen4(battle, self._type_chart, tracker)
+
+
+class Gen4RecordingPlayer(RecordingPlayer):
+    """rl/collect.py's RecordingPlayer with the gen-4 encoder — the BC-clone
+    leg's in-process data path (scripts/make_bc_dataset.py --format
+    gen4randombattle). One tracker per battle tag; battles are never
+    revisited after they finish, so the map only grows with the run (a
+    dataset run is bounded by --battles)."""
+
+    def __init__(self, expert: str = "heuristics", *, battle_format: str = GEN4_FORMAT, **kwargs):
+        assert GenData.from_format(battle_format).gen == 4, battle_format
+        super().__init__(expert, battle_format=battle_format, **kwargs)
+        self._trackers: dict[str, BattleTracker] = {}
+
+    def _encode(self, battle) -> np.ndarray:
+        tracker = self._trackers.get(battle.battle_tag)
+        if tracker is None:
+            tracker = self._trackers[battle.battle_tag] = BattleTracker()
         return embed_battle_gen4(battle, self._type_chart, tracker)
 
 

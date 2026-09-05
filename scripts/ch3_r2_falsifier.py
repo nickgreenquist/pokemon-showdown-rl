@@ -82,7 +82,7 @@ def run_sa(prereg: dict, battles: int | None, smoke: bool) -> None:
     cfg = Config(**ckpt["config"])
     torch.set_num_threads(cfg.torch_threads)
 
-    opponent = _opponent_from_checkpoint(clone_spec["path"], cfg.seed)
+    opponent, _ = _opponent_from_checkpoint(clone_spec["path"], cfg.seed)
     env = make_env(cfg.env_id, cfg.seed, env_kwargs={"opponent": opponent})
     agent0 = _load_showdown_agent(ckpt, cfg)
 

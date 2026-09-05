@@ -37,6 +37,8 @@ from pathlib import Path
 
 import numpy as np
 
+from poke_env.data import GenData
+
 from rl.collect import RecordingPlayer
 from rl.envs.showdown import OPPONENT_PLAYERS
 
@@ -54,10 +56,20 @@ def main() -> None:
     parser.add_argument("--out", default=None,
                         help="default data/bc_<expert>_vs_<opponent>.npz")
     args = parser.parse_args()
-    out = Path(args.out or f"data/bc_{args.expert}_vs_{args.opponent}.npz")
+    gen = GenData.from_format(args.format).gen
+    tag = "" if gen == 1 else f"gen{gen}_"
+    out = Path(args.out or f"data/bc_{tag}{args.expert}_vs_{args.opponent}.npz")
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    player = RecordingPlayer(
+    # BI-G4-4: the recorder is chosen by the format's generation — gen 4's
+    # subclass encodes through the gen-4 encoder + tracker (OBS_DIM 1,448).
+    if gen == 4:
+        from rl.envs.gen4.env import Gen4RecordingPlayer as Recorder
+    elif gen == 1:
+        Recorder = RecordingPlayer
+    else:
+        raise SystemExit(f"no encoder for gen {gen} ({args.format})")
+    player = Recorder(
         expert=args.expert,
         battle_format=args.format,
         max_concurrent_battles=args.concurrency,
@@ -80,6 +92,7 @@ def main() -> None:
         expert=args.expert,
         opponent=args.opponent,
         battle_format=args.format,
+        gen=np.int64(gen),
         **data,
     )
     print(f"{args.battles} battles, {rows} decisions, wall {wall:.1f}s "

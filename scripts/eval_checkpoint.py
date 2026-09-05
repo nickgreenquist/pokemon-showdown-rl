@@ -61,8 +61,20 @@ def _load_showdown_agent(ckpt, cfg):
     no exact map exists on current code."""
     from types import SimpleNamespace
 
-    from rl.envs.showdown import ID_DIM, OBS_DIM, fake_spaces
     from rl.networks.mlp import PrefixSliceActor
+
+    if cfg.env_id.startswith("ShowdownGen4"):
+        # BI-G4-4: one gen-4 width (1,448, layout v0.1 frozen by the pre-reg);
+        # no id-suffix shim exists or is needed. The env vars are gen-1 only.
+        from rl.envs.gen4.env import fake_spaces_gen4
+
+        obs_space, act_space = fake_spaces_gen4()
+        spaces = SimpleNamespace(observation_space=obs_space, action_space=act_space)
+        agent = make_agent(cfg, spaces)
+        agent.load_state_dict(ckpt["agent"])
+        return agent
+
+    from rl.envs.showdown import ID_DIM, OBS_DIM, fake_spaces
 
     native = OBS_DIM
     if cfg.agent.get("trunk", "mlp") == "mlp":
@@ -92,7 +104,6 @@ def _opponent_from_checkpoint(path: str, seed: int):
     seat 2 for cross-play. Seat 1 plays deterministically (the locked eval
     protocol); the pool member samples (the pool contract) — asymmetric by
     protocol, so run both orientations of a pairing for a symmetric read."""
-    from rl.envs.showdown import PoolPlayer
     from rl.selfplay.pool import SnapshotPool
 
     ckpt = load_checkpoint(path)
@@ -100,9 +111,18 @@ def _opponent_from_checkpoint(path: str, seed: int):
     agent = _load_showdown_agent(ckpt, cfg)
     pool = SnapshotPool(pool_size=1, latest_prob=1.0)
     pool.push(agent)
-    player = PoolPlayer(pool, battle_format="gen1randombattle", start_listening=False)
+    if cfg.env_id.startswith("ShowdownGen4"):
+        # BI-G4-4: the gen-4 pool adapter encodes seat 2 with the gen-4
+        # encoder + tracker (rl/envs/gen4/env.py); the format follows.
+        from rl.envs.gen4.env import GEN4_FORMAT, Gen4PoolPlayer
+
+        player = Gen4PoolPlayer(pool, battle_format=GEN4_FORMAT, start_listening=False)
+    else:
+        from rl.envs.showdown import PoolPlayer
+
+        player = PoolPlayer(pool, battle_format="gen1randombattle", start_listening=False)
     player.seed_rng(seed)
-    return player
+    return player, cfg.env_id
 
 
 def main() -> None:
@@ -157,7 +177,12 @@ def main() -> None:
         # eval_opponent can express. The doctrine protects the fixed-anchor
         # read; this mode is explicitly not that read.
         assert cfg.env_id.startswith("Showdown"), "--opponent-checkpoint is Showdown-only"
-        opponent = _opponent_from_checkpoint(args.opponent_checkpoint, cfg.seed)
+        opponent, opp_env_id = _opponent_from_checkpoint(args.opponent_checkpoint, cfg.seed)
+        # A gen-1 seat in a gen-4 room (or the reverse) would encode a battle
+        # its encoder cannot read: same env family both seats, asserted.
+        assert opp_env_id.startswith("ShowdownGen4") == cfg.env_id.startswith("ShowdownGen4"), (
+            f"cross-play across generations: seat 1 {cfg.env_id!r}, seat 2 {opp_env_id!r}"
+        )
         env = make_env(cfg.env_id, cfg.seed, env_kwargs={"opponent": opponent})
         # Seat 1 through the same shim seam as seat 2: orientation B of a
         # cross-encoder pairing puts the narrower checkpoint in this seat.

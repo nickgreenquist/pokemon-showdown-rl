@@ -49,10 +49,29 @@ import torch.nn.functional as F
 from rl.common.checkpoint import save_checkpoint
 from rl.common.config import Config
 from rl.common.masking import masked_logits
-from rl.envs.showdown import (
-    ACTIVE_DIM, ENCODER_FINGERPRINT, GLOBAL_DIM, MON_DIM, MOVE_DIM, OBS_DIM,
-)
 from rl.train import make_agent
+
+
+def _encoder_for(data: dict) -> dict:
+    """BI-G4-4: the dataset's `gen` stamp (1 if absent — every pre-2026-09-05
+    shard is gen 1) selects env_id, OBS_DIM, the fingerprint and the offsets of
+    the opponent-mon revealed flags the reveal read uses."""
+    gen = int(data["gen"]) if "gen" in data else 1
+    if gen == 1:
+        from rl.envs.showdown import (
+            ACTIVE_DIM, ENCODER_FINGERPRINT, GLOBAL_DIM, MON_DIM, MOVE_DIM, OBS_DIM,
+        )
+
+        base = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM
+        return dict(gen=1, env_id="Showdown-v0", obs_dim=OBS_DIM, fingerprint=ENCODER_FINGERPRINT,
+                    reveal_offsets=[base + i * (MON_DIM + 1) for i in range(6)])
+    if gen == 4:
+        from rl.envs.gen4.spec import ENCODER_FINGERPRINT_GEN4, LAYOUT, OBS_DIM_GEN4
+
+        return dict(gen=4, env_id="ShowdownGen4-v0", obs_dim=OBS_DIM_GEN4,
+                    fingerprint=ENCODER_FINGERPRINT_GEN4,
+                    reveal_offsets=[LAYOUT.opp_mons_off + i * (LAYOUT.mon_dim + 1) for i in range(6)])
+    raise SystemExit(f"no encoder for gen {gen}")
 
 # The milestone-3 capstone hparams (configs/showdown_heur_512_s0.yaml).
 # Only the net shape matters for a supervised fit; the PPO-specific values
@@ -182,13 +201,15 @@ def main() -> None:
 
     data = load_dataset(args.data)
     expert = str(data["expert"])
+    enc = _encoder_for(data)
+    OBS_DIM, ENCODER_FINGERPRINT = enc["obs_dim"], enc["fingerprint"]
     hidden = "x".join(str(h) for h in args.hidden)
     run_name = args.run_name or f"bc_{expert}_{hidden}_s{args.seed}"
 
     torch.set_num_threads(1)
     torch.manual_seed(args.seed)
     cfg = Config(
-        env_id="Showdown-v0", seed=args.seed, total_steps=0, eval_every=0,
+        env_id=enc["env_id"], seed=args.seed, total_steps=0, eval_every=0,
         # eval_episodes is not used here (no training-time eval), but it is
         # what eval_checkpoint.py starts its seed ladder from: 100 puts the
         # clone's re-eval on the same rung the campaign's 1000-battle finals
@@ -224,9 +245,8 @@ def main() -> None:
         raise SystemExit("--value-coef needs a `value` column; this dataset has none")
     # How much of the opponent's team is revealed, straight off the encoder's
     # own per-mon revealed flags.
-    base = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM
     reveal = torch.stack(
-        [torch.as_tensor(data["obs"][:, base + i * (MON_DIM + 1)]) for i in range(6)]
+        [torch.as_tensor(data["obs"][:, off]) for off in enc["reveal_offsets"]]
     ).sum(0).to(torch.int64)
     train_idx, val_idx, n_val_battles = battle_split(
         data["battle_ids"], args.val_frac, args.seed
@@ -236,7 +256,8 @@ def main() -> None:
     free = masks[val_idx].sum(dim=1) > 1
     chance_free = float((1.0 / masks[val_idx].sum(dim=1)[free].float()).mean())
     print(f"{run_name}: {len(train_idx)} train / {len(val_idx)} val decisions "
-          f"({n_battles - n_val_battles}/{n_val_battles} battles), expert {expert}",
+          f"({n_battles - n_val_battles}/{n_val_battles} battles), expert {expert}, "
+          f"gen {enc['gen']} ({enc['env_id']}, OBS_DIM {OBS_DIM})",
           flush=True)
     print(f"val multi-choice rows {float(free.float().mean()):.3f}, "
           f"uniform-over-legal agreement on them {chance_free:.3f}", flush=True)

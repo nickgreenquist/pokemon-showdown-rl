@@ -67,6 +67,7 @@ import argparse
 import collections
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 
@@ -77,9 +78,15 @@ from poke_env.data import GenData
 from poke_env.environment import SinglesEnv
 from poke_env.player import SingleBattleOrder
 
-from rl.envs.showdown import OBS_DIM, embed_battle
+from rl.envs.gen4.vocab import canonical_move_id
 
 MESSAGES_TO_IGNORE = {"t:", "expire", "uhtmlchange"}
+# BI-G4-4 (2026-09-05): the generation is a flag. Gen 4 replays the same
+# Foul Play tape format (the FP source clone is shared by both engine builds;
+# FP_TAPE_DIR enables the writer) through the gen-4 encoder with one
+# BattleTracker per room; the gen-1 `Fight` placeholder never occurs at gen 4,
+# so its G5 gate is skipped there. Every shard stamps `gen` and
+# `battle_format` so scripts/train_bc.py builds the matching agent.
 GEN = 1
 BATTLE_FORMAT = "gen1randombattle"
 LOGGER = logging.getLogger("tape_replay")
@@ -94,7 +101,22 @@ def parse_args():
     p.add_argument("--gates-only", action="store_true")
     p.add_argument("--drop-trap", action="store_true",
                    help="Exclude partial-trap rows (poke-engine models them wrong).")
+    p.add_argument("--gen", type=int, choices=(1, 4), default=1,
+                   help="the tape's generation: 1 (default) or 4 (gen4randombattle, the gen-4 encoder)")
     return p.parse_args()
+
+
+def _encoder(gen: int):
+    """(obs_dim, encode(battle, type_chart, tracker), new_tracker()) for a generation."""
+    if gen == 1:
+        from rl.envs.showdown import OBS_DIM, embed_battle
+
+        return OBS_DIM, (lambda battle, tc, tracker: embed_battle(battle, tc)), (lambda: None)
+    from rl.envs.gen4.encoder import embed_battle_gen4
+    from rl.envs.gen4.spec import OBS_DIM_GEN4
+    from rl.envs.gen4.tracker import BattleTracker
+
+    return OBS_DIM_GEN4, embed_battle_gen4, BattleTracker
 
 
 def iter_events(path):
@@ -184,6 +206,22 @@ def request_legal_set(request):
     return legal
 
 
+_HP_POWER = re.compile(r"^(hiddenpower[a-z]+)\d+$")
+
+
+def teacher_move_id(choice: str) -> str:
+    """Foul Play's move name as poke-env's Move.id. Two teacher-side
+    conventions differ from the request ids poke-env stores: gen 4's Hidden
+    Power carries its base power (`hiddenpowerfighting70` for poke-env's
+    `hiddenpowerfighting`; measured on the first gen-4 FP tape, 2026-09-05 —
+    3 of 53 decisions unresolved before this), and Return / Frustration carry
+    their happiness power (`return102`; rl/envs/gen4/vocab.py's rule). Gen-1
+    names are untouched (no HP, no Return in the pool)."""
+    mid = canonical_move_id(choice)
+    m = _HP_POWER.match(mid)
+    return m.group(1) if m else mid
+
+
 def teacher_order(battle, choice, placeholder):
     """Foul Play's choice as a poke-env order, plus which branch resolved it.
 
@@ -197,8 +235,9 @@ def teacher_order(battle, choice, placeholder):
                 return SingleBattleOrder(mon), "switch"
         return None, "switch"
 
+    want = teacher_move_id(choice)
     for mv in battle.available_moves:
-        if mv.id == choice:
+        if mv.id == choice or canonical_move_id(mv.id) == want:
             return SingleBattleOrder(mv), "move"
 
     if placeholder:
@@ -269,7 +308,7 @@ def soft_policy(battle, policy, n_actions, placeholder, counts):
     return vec
 
 
-def process_file(path, type_chart, counts, drop_trap, id_base=0):
+def process_file(path, type_chart, counts, drop_trap, id_base=0, gen=1):
     """id_base keeps battle_ids globally unique across shards: an honest
     holdout splits on BATTLES, and per-file ids restarting at 0 would merge
     lane-0-battle-7 with lane-3-battle-7 and split on a fiction."""
@@ -278,8 +317,9 @@ def process_file(path, type_chart, counts, drop_trap, id_base=0):
         counts["no_username"] += 1
         return None
 
-    battles, states, index_of = {}, {}, {}
+    battles, states, index_of, trackers = {}, {}, {}, {}
     rows = collections.defaultdict(list)
+    _, encode, new_tracker = _encoder(gen)
 
     for ev in iter_events(path):
         if ev["k"] == "m":
@@ -287,7 +327,8 @@ def process_file(path, type_chart, counts, drop_trap, id_base=0):
             if room is None:
                 continue
             if room not in battles:
-                battles[room] = Battle(room, username, LOGGER, gen=GEN)
+                battles[room] = Battle(room, username, LOGGER, gen=gen)
+                trackers[room] = new_tracker()
                 states[room] = {"request": None, "winner": None, "tie": False, "errors": []}
                 index_of[room] = id_base + len(index_of)
             try:
@@ -338,7 +379,7 @@ def process_file(path, type_chart, counts, drop_trap, id_base=0):
             counts["dropped_trap"] += 1
             continue
 
-        rows["obs"].append(embed_battle(battle, type_chart))
+        rows["obs"].append(encode(battle, type_chart, trackers[tag]))
         rows["masks"].append(mask)
         rows["actions"].append(action)
         rows["battle_ids"].append(index_of[tag])
@@ -365,6 +406,10 @@ def process_file(path, type_chart, counts, drop_trap, id_base=0):
 
 def main():
     args = parse_args()
+    global GEN, BATTLE_FORMAT
+    GEN = args.gen
+    BATTLE_FORMAT = f"gen{GEN}randombattle"
+    OBS_DIM = _encoder(GEN)[0]
     type_chart = GenData.from_format(BATTLE_FORMAT).type_chart
     counts = collections.Counter()
     tapes = sorted(args.tapes.glob("run_*.jsonl")) + sorted(args.tapes.glob("run_*.jsonl.gz"))
@@ -374,7 +419,7 @@ def main():
     pending = []
     next_id = 0
     for path in tapes:
-        rows = process_file(path, type_chart, counts, args.drop_trap, id_base=next_id)
+        rows = process_file(path, type_chart, counts, args.drop_trap, id_base=next_id, gen=GEN)
         next_id = counts["battles"]
         if rows and rows["obs"] and not args.gates_only:
             pending.append((path, rows))
@@ -405,6 +450,8 @@ def main():
                 placeholder=np.asarray(rows["placeholder"], dtype=bool),
                 trap_kind=np.asarray(rows["trap_kind"]),
                 obs_dim=np.int64(OBS_DIM),
+                gen=np.int64(GEN),
+                battle_format=np.str_(BATTLE_FORMAT),
             )
             shards.append((shard, len(rows["obs"])))
 
@@ -448,7 +495,7 @@ def report(counts, args):
         fail.append("G3")
     if b and counts["outcome_ok"] != b:
         fail.append("G4")
-    if b and counts["placeholder"] == 0:
+    if b and counts["placeholder"] == 0 and GEN == 1:
         fail.append("G5(no placeholder turns seen; sample may be small)")
     if counts["protocol_errors"] or counts["battle_exceptions"]:
         fail.append("G6")

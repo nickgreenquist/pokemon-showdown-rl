@@ -127,10 +127,16 @@ class RecordingPlayer(Player):
         self.actions: list[int] = []
         self.battle_ids: list[int] = []
 
+    def _encode(self, battle) -> np.ndarray:
+        """The recorded observation — gen 1's encoder here; the gen-4 recorder
+        (rl/envs/gen4/env.py::Gen4RecordingPlayer) overrides with its
+        tracker-backed encoder. The only generation-bound line in this class."""
+        return embed_battle(battle, self._type_chart)
+
     def choose_move(self, battle):
         # Sync, like PoolPlayer and unlike SeamPlayer: nothing here awaits.
         assert not battle.wait, "wait state reached the recording player"
-        obs = embed_battle(battle, self._type_chart)
+        obs = self._encode(battle)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         order = self._expert.choose_move(battle)
         action = int(SinglesEnv.order_to_action(order, battle))

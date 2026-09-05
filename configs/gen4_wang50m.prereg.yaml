@@ -1,0 +1,73 @@
+# SIDECAR of configs/gen4_wang50m.yaml — the machine-readable half of the
+# pre-registration (a training Config accepts no extra top-level keys).
+# tests/test_gen4_prereg.py asserts every value here against the training
+# file and the header text. Ratification writes `ratified_decisions`.
+prereg_for: configs/gen4_wang50m.yaml
+status: DRAFT — 2-Opus review applied, awaiting maintainer ratification
+journey_step: "3 -> 4"
+credits_nothing: true
+primary:
+  axis: "vs SimpleHeuristicsPlayer, locked protocol: final checkpoint, 3000 battles/lane, 3 lanes, deterministic policy, ties as non-wins"
+  aggregator: "EQUAL-WEIGHT MEAN of the three per-lane finals"
+  instrument: "scripts/eval_checkpoint.py <ckpt> --episodes 3000"
+  milestone_threshold: 0.60        # JOURNEY step 3 (M-YES iff pooled >= 0.60)
+  step5_threshold: 0.756           # JOURNEY step 5 AS RULED; arithmetic 0.786 - 0.0290 = 0.757 (RW-1)
+  step5_target: 0.786              # Wang Table 4.1, n = 200
+  wang_se: 0.0290
+  sidedness: one-sided, no ceiling
+  k_min_for_a_branch: 3
+wang_recipe:                       # Table A.3 + §3.1.4, verified against the thesis text 2026-09-05
+  learning_rate: 5.8884e-5         # 10^-4.23
+  lr_schedule: "lr0 / (8x + 1)^1.5"
+  n_epochs: 7
+  gamma: 0.9999
+  gae_lambda: 0.754
+  clip_range: 0.0829
+  clip_range_vf: 0.0184
+  entropy_coef: 0.0588
+  value_coef: 0.4375
+  max_grad_norm: 0.543
+  n_steps_total_rows: 39936        # 78 x 512
+  batch_size: 1024
+  per_seat_dose: 75000000          # his 150M learner steps, both seats harvested
+update_arithmetic:
+  seat1_rows_per_update: 19968     # num_envs 8 x rollout_steps 2496
+  union_rows_per_update_nominal: 39936
+  minibatches: 39
+  minibatch_width_nominal: 1024
+  updates: 2504                    # floor(5e7 / 19,968); last update at step 49,999,872
+  rungs_per_lane: 100
+  lr_floor_factor: 27.0            # (8 + 1)^1.5
+seeds:
+  lanes: [200, 208, 216]
+  spares: [224, 232, 240]
+  window: 8
+freeze:
+  obs_dim: 1448
+  priv_dim: 703
+  layout: v0.1
+  corpus_sha256: b72dcbc7e4b7a706967d8811f7ac3d05dd63e40cb01b624800807db1a308c1f4
+  fixture_sha256: 16eb40c7d2850799d5913361f52e5fbd36f566f5000f2920469c684a1672b7b8
+  showdown_commit: 59da482eabc87245eb62313593e468e81ca537d9
+  sets_sha256: eacca5f3217721667dc49ab4f9832e9c8a14adf07b1eb12bad06c0679d96708c
+  vocab_tables: [301, 183, 41, 102]   # species, moves, items, abilities incl. row 0
+  params: {actor: 674763, critic: 543553}
+battery:                           # CLAUDE.md's gen-4 list; descriptive, never verdict inputs
+  L1: {leg: most_damage_typed_h2h, n_per_lane: 500}
+  L2: {leg: foulplay_h2h, search_time_ms: 20, n_per_lane: 250, seat_form: samples}
+  L3: {leg: foulplay_h2h, search_time_ms: 500, n_per_lane: 250, seat_form: samples}
+  L4: {leg: bc_clone_h2h, n_per_lane: 500, teacher: "FP@20", status: PENDING}
+  sanity_rows: [random, max_power, "FP@20 vs SH 226-24-0 (n=250)", "FP@500 vs SH 228-22-0 (n=250)"]
+disclosures: [D-NET, D-ACT, D-ENC, D-IMPL, D-COLL, D-SH, D-TIE, D-DOSE]
+barred_language:
+  - "beats Wang"
+  - "matches Wang"
+  - "credited (of any number in this run)"
+  - "any ladder projection from vs-SH, in either direction"
+  - "flat"
+  - "plateau"
+  - "the pipeline failed (of M-NO without the ordered cause list)"
+  - "our best gen-4 lane"
+  - "on track for Wang's 0.786"
+rulings_wanted: [RW-1, RW-2, RW-3, RW-4, RW-5]
+ratified_decisions: {}             # written at ratification, the maintainer's
