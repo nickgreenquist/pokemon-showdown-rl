@@ -13,7 +13,7 @@ expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25**) and
 LADDER R4 (2026-09-04/05, the 100M final greedy, on R1's account reused and
 warm-started, GXE **65.2%**, Glicko-1 **1618 ± 25**). During R4 the account was
 **listed on the global top-500 for 42 of its 200 battles** (a filed screenshot shows
-rank 470 mid-run), and finished one game's swing under the line. The runs are **not comparable** in
+rank 369 mid-run), and finished one game's swing under the line. The runs are **not comparable** in
 any direction — see the R3 and R4 sections.
 
 ## On the ladder — LADDER R1, complete
@@ -141,7 +141,7 @@ stopping rule was met.**
 **It reached the global top-500 during the run.** By the replay-derived pre-battle
 ratings the account was listed for **42 of its 200 battles, across 13 excursions**,
 peaking at Elo 1431 (the filed screenshot in
-[`readouts/ladder_r4_evidence/`](readouts/ladder_r4_evidence/) shows rank 470 at Elo 1368
+[`readouts/ladder_r4_evidence/`](readouts/ladder_r4_evidence/) shows rank 369 at Elo 1394
 mid-run), and finished
 at 1354 against an admission line of 1359.7 — 5.7 Elo under, inside one game's
 swing. **It did not hold the list**: 18–24 while listed, and 0.423 against the band

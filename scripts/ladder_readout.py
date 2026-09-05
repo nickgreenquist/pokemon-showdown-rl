@@ -723,9 +723,9 @@ def main():
           "Peak Elo is not a result (RESULTS §16.4, carried since R1); the "
           "stopping-rule figure is the read. Evidence for the rank seen: the "
           "maintainer's screenshot of the public board, filed under "
-          "`readouts/ladder_r4_evidence/` (2026-09-04 21:11 local, ≈ battle 116: "
-          "rank 470, Elo 1368, GXE 62.9, Glicko-1 1599 ± 25; a recalled peak near "
-          "rank 350 has no screenshot).")
+          "`readouts/ladder_r4_evidence/` (2026-09-04 21:16 local, between battles "
+          "114 and 115: rank 369, Elo 1394, GXE 63.2, Glicko-1 1602 ± 25; the JSONL's "
+          "pre-battle rating there is 1393).")
         A("Battle indices entered while listed: " + ", ".join(map(str, listed_idx)) + ".")
         A("\n## Obligation (ix) — realized-cost ledger\n")
         A(f"- runner launches **1**; supervisor relaunches **0**; watchdog kills **0**; "

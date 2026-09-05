@@ -1092,10 +1092,10 @@ band, the band containing rank 500 on the n=0 pull, it scored 0.423 (n=52 of n_j
 the replay-derived pre-battle ratings against the n = 0 admission cutoff (1359.98): the
 account entered **42 of its 200 battles (21%) at or above the line, in 13 separate
 excursions**, peaking at pre-battle Elo **1431** before battle 176. The filed screenshot
-(`readouts/ladder_r4_evidence/`, 2026-09-04 21:11 local, ≈ battle 116) shows the account
-at **rank 470, Elo 1368, GXE 62.9, Glicko-1 1599 ± 25**; the maintainer recalls a peak
-near rank 350 for which no screenshot exists. The board was viewed to collect evidence;
-no stopping decision attached. Its record while listed was **18–24**; it finished at 1354 against 1359.7 at stop,
+(`readouts/ladder_r4_evidence/`, 2026-09-04 21:16 local, between battles 114 and 115) shows
+the account at **rank 369, Elo 1394, GXE 63.2, Glicko-1 1602 ± 25** — the run's own JSONL
+puts the pre-battle rating at 1393 there. The board was viewed to collect evidence; no
+stopping decision attached. Its record while listed was **18–24**; it finished at 1354 against 1359.7 at stop,
 **5.7 Elo under, inside one game's swing**; its GXE of 65.2 sits against a lowest listed
 GXE of 67.1 at stop. The licensed cell (0.423, n = 52, se 0.069) cannot distinguish this
 object from a 0.50 player in the band containing rank 500. **Pure self-play reached the

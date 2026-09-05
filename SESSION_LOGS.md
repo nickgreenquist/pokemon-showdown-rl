@@ -10612,3 +10612,13 @@ line numbers are not — grep the date, then read that region):
   (FP@20 teacher tapes — ~2.5 h for 7,200 battles vs ~2 days at 500 ms, budget
   disclosed with the clone; make_bc_dataset.py threaded to gen 4; the banked
   BC recipe re-run) so it is ready by the readout and gates nothing.
+
+- 2026-09-05 (evening, correction) — the screenshot filed in the previous
+  entry was the WRONG one (maintainer: "wrong screenshot. delete the other,
+  use that"). Replaced by the 21:16 local shot: **rank 369, Elo 1394, GXE
+  63.2, Glicko-1 1602 ± 25**, taken between battles 114 and 115 — matched to
+  the JSONL, whose pre-battle rating for battle 115 is 1393 (the 21:11 shot
+  had caught the account one battle earlier at 1367 / rank 470). RESULTS
+  §16.5, README, STATUS, the readout generator and the evidence README now
+  quote rank 369; the "recalled peak near 350" wording is gone — the recalled
+  rank is evidenced.

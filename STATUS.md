@@ -14,7 +14,7 @@ pooled 3×3000 vs-SH ≥ 0.756, ONE-SIDED (0.786 − 1 se of his n=200; ruled
 - **LADDER R4 — COMPLETE AND READ OUT** (readouts/LADDER_R4_READOUT.md;
   RESULTS §16.5; README). GXE 65.2%, Glicko-1 1618 ± 25, Elo 1354, n=200;
   cumulative profile 199-201 over 400; on the top-500 for 42/200 battles (peak
-  1431; screenshot: rank 470), not listed at stop. **No cross-run delta is an effect; Elo(R4)-Elo(R1)
+  1431; screenshot: rank 369), not listed at stop. **No cross-run delta is an effect; Elo(R4)-Elo(R1)
   and "on track for top-500" are barred by name.** Screenshot FILED in
   readouts/ladder_r4_evidence/. 100M (C1) graded P3 (RESULTS §18).
 - **GEN 4 GROUNDWORK (rl/envs/gen4/, docs/design_gen4/):** encoder v0.1, OBS_DIM
