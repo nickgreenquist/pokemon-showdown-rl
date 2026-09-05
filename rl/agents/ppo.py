@@ -674,6 +674,22 @@ class PPOAgent(Agent):
             opp_choice_dim=CHOICE_DIM if self.aux_head is not None else None,
         )
         self.updates = 0  # completed fill -> epochs cycles
+        # BI-G4-1: the both-seat harvest sink, attached by rl/train.py under
+        # selfplay.harvest_both_seats (rl/selfplay/harvest.py). None is
+        # today's wire: update() drains nothing and concatenates nothing.
+        self._harvest = None
+
+    def attach_harvest(self, harvest) -> None:
+        """Seat-2 episodes join the seat-1 rollout at every update. Refused
+        with the privileged critic (seat 2's privileged block would be seat
+        1's own side — not collected) and with the D25 aux head (seat 2's
+        opponent-action labels are not collected); both are held-back
+        levers for the gen-4 baseline anyway."""
+        if self.privileged_dim:
+            raise ValueError("harvest_both_seats does not collect seat 2's privileged block")
+        if self.aux_head is not None:
+            raise ValueError("harvest_both_seats does not collect seat 2's opponent-action labels")
+        self._harvest = harvest
 
     def _set_actor_trainable(self, trainable: bool) -> None:
         """The staged unfreeze's switch. requires_grad=False is a TRUE freeze:
@@ -1056,16 +1072,53 @@ class PPOAgent(Agent):
         flat_targets = (advantages_t + values).reshape(-1)
         flat_advantages = advantages_t.reshape(-1)
         flat_old_logp = old_logp.reshape(-1)
+        flat_old_values = values.reshape(-1)
+
+        harvest_stats: dict[str, float] = {}
+        if self._harvest is not None and len(self._harvest):
+            # Seat 2's finished episodes join the batch here (BI-G4-1). Their
+            # old_logp is the member's, recorded at act time; their advantages
+            # come from per-episode GAE with terminal bootstrap 0 (the async
+            # path's kernel) over ONE critic pass; the critic input is the
+            # plain obs (attach_harvest refused the privileged critic). The
+            # minibatch plan below is over the UNION, so `minibatches` sizes
+            # against seat-1 + seat-2 rows and the trailing partial slice
+            # follows minibatch_tail exactly as on the async path.
+            batch, harvest_stats = self._harvest.drain()
+            h_obs = torch.as_tensor(batch["obs"], dtype=torch.float32, device=self.device)
+            h_actions = torch.as_tensor(batch["actions"], device=self.device)
+            h_masks = torch.as_tensor(batch["masks"], device=self.device)
+            h_old_logp = torch.as_tensor(batch["old_logp"], dtype=torch.float32, device=self.device)
+            with torch.no_grad():
+                h_values = self.critic(h_obs).squeeze(-1)
+            h_adv = torch.as_tensor(
+                episode_gae(batch["rewards"], h_values.cpu().numpy(), batch["lengths"],
+                            self.gamma, self.gae_lambda),
+                device=self.device,
+            )
+            flat_obs = torch.cat([flat_obs, h_obs])
+            flat_critic_obs = torch.cat([flat_critic_obs, h_obs])
+            flat_actions = torch.cat([flat_actions, h_actions])
+            flat_masks = torch.cat([flat_masks, h_masks])
+            flat_advantages = torch.cat([flat_advantages, h_adv])
+            flat_targets = torch.cat([flat_targets, h_adv + h_values])
+            flat_old_logp = torch.cat([flat_old_logp, h_old_logp])
+            flat_old_values = torch.cat([flat_old_values, h_values])
+            harvest_stats["harvest/rows_this_update"] = float(len(h_actions))
+            harvest_stats["harvest/seat1_rows"] = float(horizon * num_envs)
+            harvest_stats["harvest/version_lag_max"] = float(
+                self.updates - int(batch["version"].min())
+            )
 
         metrics = self._optimize(
             flat_obs, flat_actions, flat_masks, flat_critic_obs,
             flat_advantages, flat_targets, flat_old_logp,
             steps_seen=self.updates * horizon * num_envs,
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
-            aux_stats=aux_stats, flat_old_values=values.reshape(-1),
+            aux_stats=aux_stats, flat_old_values=flat_old_values,
         )
         self.buffer.clear()
-        return metrics
+        return {**metrics, **harvest_stats}
 
     def update_episodes(self, batch: dict[str, Any], steps_seen: int) -> dict[str, float]:
         """The async collector's update entry (THROUGHPUT_SPEC Stage 2): a

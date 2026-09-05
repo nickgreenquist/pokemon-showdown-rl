@@ -21,7 +21,7 @@ from __future__ import annotations
 import numpy as np
 from gymnasium import Env, spaces
 from poke_env.data import GenData
-from poke_env.environment import SingleAgentWrapper, SinglesEnv
+from poke_env.environment import SingleAgentWrapper
 from poke_env.player import Player
 
 from rl.envs import showdown as sd
@@ -87,52 +87,22 @@ class Gen4PoolPlayer(sd.PoolPlayer):
         super().__init__(pool, battle_format=battle_format, **kwargs)
         self._trackers: dict[str, BattleTracker] = {}
 
-    def _sweep_finished(self) -> None:
-        for tag, (done, _, _) in list(self._by_tag.items()):
-            if getattr(done, "finished", False):
-                del self._by_tag[tag]
-                self._choices.pop(tag, None)
-                self._turn_counts.pop(tag, None)
-                self._trackers.pop(tag, None)
+    def _forget(self, tag: str) -> None:
+        self._trackers.pop(tag, None)
 
-    def report_outcome(self, outcome: int, battle_tag: str | None = None) -> None:
-        if battle_tag is None and self._by_tag:
-            battle_tag = next(iter(self._by_tag))  # PoolPlayer's sync-path resolution
-        super().report_outcome(outcome, battle_tag)
-        if battle_tag is not None:
-            self._trackers.pop(battle_tag, None)
-
-    def choose_move(self, battle):
-        assert not battle.wait, "wait state reached the pool opponent"
+    def _encode(self, battle) -> np.ndarray:
         tag = battle.battle_tag
-        entry = self._by_tag.get(tag)
-        if entry is None:
-            self._sweep_finished()
-            member = self._pool.select(self._rng)
-            entry = (battle, member, self._pool.member_id(member))
-            self._by_tag[tag] = entry
         tracker = self._trackers.get(tag)
         if tracker is None:
             tracker = self._trackers[tag] = BattleTracker()
-        obs = embed_battle_gen4(battle, self._type_chart, tracker)
-        mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
-        action = entry[1].move(obs, mask, self._rng)
-        try:
-            order = SinglesEnv.action_to_order(np.int64(action), battle)
-        except ValueError as exc:
-            self._choice = sd._OPP_CHOICE_NONE
-            self._record_choice(battle, sd._OPP_CHOICE_NONE)
-            return sd._recover_mask_desync(battle, exc)
-        self._choice = sd._order_identity(order, battle)
-        self._record_choice(battle, self._choice)
-        return order
+        return embed_battle_gen4(battle, self._type_chart, tracker)
 
 
-def opponent_player_gen4(spec, battle_format: str = GEN4_FORMAT) -> Player:
+def opponent_player_gen4(spec, battle_format: str = GEN4_FORMAT, harvest=None) -> Player:
     """rl/envs/showdown.py::opponent_player with the gen-4 pool adapter."""
     if isinstance(spec, SnapshotPool):
-        return Gen4PoolPlayer(spec, battle_format=battle_format, start_listening=False)
-    return sd.opponent_player(spec, battle_format)
+        return Gen4PoolPlayer(spec, battle_format=battle_format, start_listening=False, harvest=harvest)
+    return sd.opponent_player(spec, battle_format, harvest=harvest)
 
 
 class Gen4ShowdownEnv(Env):
@@ -154,6 +124,7 @@ class Gen4ShowdownEnv(Env):
         privileged: bool = False,
         opp_action: bool = False,
         start_timer_on_battle_start: bool = True,
+        harvest=None,
     ):
         self.render_mode = render_mode
         inner = Gen4ShowdownSingles(
@@ -164,7 +135,7 @@ class Gen4ShowdownEnv(Env):
             start_timer_on_battle_start=start_timer_on_battle_start,
             discard_seat2_obs=True,
         )
-        player = opponent_player_gen4(opponent, battle_format)
+        player = opponent_player_gen4(opponent, battle_format, harvest=harvest)
         self._opponent = player
         self._pool_player = player if isinstance(player, sd.PoolPlayer) else None
         self._env = SingleAgentWrapper(inner, player)

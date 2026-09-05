@@ -1004,9 +1004,17 @@ class PoolPlayer(Player):
     on the opponent at every battle boundary.
     """
 
-    def __init__(self, pool: SnapshotPool, *, battle_format: str, **kwargs):
+    def __init__(self, pool: SnapshotPool, *, battle_format: str, harvest=None, **kwargs):
         super().__init__(battle_format=battle_format, **kwargs)
         self._pool = pool
+        # BI-G4-1: the both-seat harvest sink (rl/selfplay/harvest.py). None
+        # is today's wire — no row is recorded, the member's draw is move().
+        # With a sink, every decision this seat makes is recorded with the
+        # member's own log-prob and closed at report_outcome with seat 2's
+        # outcome. Injected by rl/train.py through the caller-kwargs seam
+        # (the pool's route), never from cfg.env_kwargs, so eval envs never
+        # carry one.
+        self._harvest = harvest
         # Installer contract (SnapshotPool.freeze docstring): every
         # installer calls freeze(), even though members freeze at push.
         pool.freeze()
@@ -1082,6 +1090,36 @@ class PoolPlayer(Player):
         entry = self._by_tag.pop(battle_tag, None)
         if entry is not None:
             self._pool.report(entry[1], outcome)
+            self._forget(battle_tag)
+            if self._harvest is not None:
+                # Seat 2's own outcome is the learner's, negated (ties 0).
+                self._harvest.finish(battle_tag, -outcome)
+
+    def _forget(self, tag: str) -> None:
+        """Per-battle state a subclass keeps beyond `_by_tag` (gen 4's
+        tracker). Called at report_outcome and at the finished sweep; the
+        base class keeps nothing else per tag on those paths (the D25
+        choice records are popped by their own consumer, take_choices, or
+        by the sweep)."""
+
+    def _sweep_finished(self) -> None:
+        """Drop entries of battles that ended without an outcome report (the
+        listening / async paths' backstop; the sync path reports every
+        terminal before the next battle's first choose_move)."""
+        for tag, (done, _, _) in list(self._by_tag.items()):
+            if getattr(done, "finished", False):
+                del self._by_tag[tag]
+                self._choices.pop(tag, None)
+                self._turn_counts.pop(tag, None)
+                self._forget(tag)
+                if self._harvest is not None:
+                    self._harvest.discard(tag)
+
+    def _encode(self, battle) -> np.ndarray:
+        """This seat's observation of its own battle — the member's input and,
+        under the harvest, the recorded row. Gen 4 overrides with its
+        tracker-backed encoder."""
+        return embed_battle(battle, self._type_chart)
 
     def choose_move(self, battle):
         # Wrapper contract: wait states never reach the opponent
@@ -1092,17 +1130,16 @@ class PoolPlayer(Player):
         assert not battle.wait, "wait state reached the pool opponent"
         entry = self._by_tag.get(battle.battle_tag)
         if entry is None:
-            for tag, (done, _, _) in list(self._by_tag.items()):
-                if getattr(done, "finished", False):
-                    del self._by_tag[tag]
-                    self._choices.pop(tag, None)
-                    self._turn_counts.pop(tag, None)
+            self._sweep_finished()
             member = self._pool.select(self._rng)
             entry = (battle, member, self._pool.member_id(member))
             self._by_tag[battle.battle_tag] = entry
-        obs = embed_battle(battle, self._type_chart)
+        obs = self._encode(battle)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
-        action = entry[1].move(obs, mask, self._rng)
+        if self._harvest is None:
+            action = entry[1].move(obs, mask, self._rng)
+        else:
+            action, logp = entry[1].move_logp(obs, mask, self._rng)
         # strict, with counted recovery: an out-of-mask action raises unless
         # it is the listener-thread request race (SeamPlayer precedent for
         # the raise; _recover_mask_desync for why the race is survivable).
@@ -1115,7 +1152,11 @@ class PoolPlayer(Player):
             # policy is drop, never zero-fill.
             self._choice = _OPP_CHOICE_NONE
             self._record_choice(battle, _OPP_CHOICE_NONE)
+            if self._harvest is not None:
+                self._harvest.drop_row(battle.battle_tag)
             return _recover_mask_desync(battle, exc)
+        if self._harvest is not None:
+            self._harvest.record(battle.battle_tag, obs, mask, action, logp, entry[2])
         # D25 (B1/B2): record the chosen action's IDENTITY off the SAME
         # decision, before it becomes a protocol message. Costs no inference —
         # `action` was computed above regardless — and is unconditional
@@ -1151,7 +1192,7 @@ def _parse_mix(spec: str) -> dict[str, float]:
     return weights
 
 
-def opponent_player(spec: str | Player | SnapshotPool, battle_format: str) -> Player:
+def opponent_player(spec: str | Player | SnapshotPool, battle_format: str, harvest=None) -> Player:
     """Resolve a config opponent spec to a poke-env Player. The opponent's
     choose_move is called directly on the second seat's battle object, so it
     never needs its own server connection (start_listening=False). A
@@ -1164,7 +1205,9 @@ def opponent_player(spec: str | Player | SnapshotPool, battle_format: str) -> Pl
     if isinstance(spec, Player):
         return spec
     if isinstance(spec, SnapshotPool):
-        return PoolPlayer(spec, battle_format=battle_format, start_listening=False)
+        return PoolPlayer(spec, battle_format=battle_format, start_listening=False, harvest=harvest)
+    if harvest is not None:
+        raise ValueError("the both-seat harvest needs a pool opponent (selfplay.opponent 'self')")
     if isinstance(spec, str) and spec.startswith("mix:"):
         return MixturePlayer(
             _parse_mix(spec), battle_format=battle_format, start_listening=False
@@ -1197,6 +1240,7 @@ class ShowdownEnv(Env):
         privileged: bool = False,
         opp_action: bool = False,
         start_timer_on_battle_start: bool = True,
+        harvest=None,
     ):
         # save_replays (False | True | directory) is poke-env's native replay
         # dump: each finished battle is written as a Showdown replay HTML
@@ -1237,7 +1281,7 @@ class ShowdownEnv(Env):
             # method.
             discard_seat2_obs=True,
         )
-        player = opponent_player(opponent, battle_format)
+        player = opponent_player(opponent, battle_format, harvest=harvest)
         # isinstance, not getattr: a pool-backed opponent gets outcome
         # reports and per-sub-env seeding, and a renamed hook must fail
         # loudly — nothing cross-checks the pool's stats, so a silently

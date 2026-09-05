@@ -32,6 +32,7 @@ from rl.envs.normalize import (
     NormalizeReward,
     RunningMeanStd,
 )
+from rl.selfplay.harvest import SeatHarvest
 from rl.selfplay.pool import SnapshotPool
 
 
@@ -443,7 +444,9 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
                 "opponent-action label is only pure self-play while the labelled "
                 "opponent is a snapshot of this agent"
             )
-    pool, push_every = None, 0
+    pool, push_every, harvest = None, 0, None
+    if cfg.selfplay.get("harvest_both_seats", False) and cfg.selfplay.get("opponent") != "self":
+        raise ValueError("selfplay.harvest_both_seats needs selfplay.opponent 'self'")
     if train_env_kwargs.get("opponent") == "self":
         if not vectorized:
             raise ValueError(
@@ -459,6 +462,18 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             raise ValueError(f"push_every_updates must be >= 1, got {push_every}")
         pool = SnapshotPool(cfg.selfplay["pool_size"], cfg.selfplay["latest_prob"])
         train_env_kwargs["opponent"] = pool
+        if cfg.selfplay.get("harvest_both_seats", False):
+            # BI-G4-1 (JOURNEY step 4, Wang's both-seat harvest). The sink
+            # rides the caller-kwargs seam like the pool — NEVER cfg.env_kwargs,
+            # which feeds every eval env too — and is attached to the agent
+            # below, after construction. Sync Showdown only: the async
+            # collector has no seat-2 PoolPlayer hook (refused in
+            # _async_collector_mode), and Connect 4's opponent is not a
+            # PoolPlayer.
+            if not cfg.env_id.startswith("Showdown"):
+                raise ValueError("selfplay.harvest_both_seats is Showdown-only")
+            harvest = SeatHarvest()
+            train_env_kwargs["harvest"] = harvest
     elif str(train_env_kwargs.get("opponent", "")).endswith(".pt"):
         # Frozen-checkpoint opponent (best-response/exploiter lanes). `pool`
         # stays None on purpose: the learner is never pushed, so the frozen
@@ -579,6 +594,10 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     # No-op unless l2_init_decay > 0; raises before a single step is collected
     # if the run dir's anchors disagree with this construction.
     _ensure_theta0(agent, out_dir, cfg)
+    if harvest is not None:
+        # After construction and any resume load: the agent refuses the
+        # privileged / aux combinations here, before a single battle.
+        agent.attach_harvest(harvest)
     logger = make_logger(cfg)
     if pool is not None and resume_dir is not None:
         # The pool itself was rebuilt above (before the meta stamp); only the
@@ -672,6 +691,9 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
         raise ValueError("collector.mode 'async' does not collect the "
                          "privileged block (D18) — the wide critic would "
                          "train on zeros")
+    if cfg.selfplay.get("harvest_both_seats", False):
+        raise ValueError("collector.mode 'async' has no seat-2 harvest hook "
+                         "(BI-G4-1 is the sync path's); use collector.mode 'sync'")
     return True
 
 

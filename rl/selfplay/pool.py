@@ -127,6 +127,22 @@ class AgentOpponent(Opponent):
         # 2026-09-01; fixed 2026-09-05). The RL loop stays CPU-only by rule.
         return int(torch.multinomial(probs.cpu(), 1, generator=self.generator).item())
 
+    def move_logp(self, obs: np.ndarray, mask: np.ndarray, rng: np.random.Generator) -> tuple[int, float]:
+        """`move()` plus log pi_member(a|s) — the both-seat harvest's act path
+        (rl/selfplay/harvest.py). SAME draw as move(): one multinomial on the
+        same probabilities from the same generator, so a harvesting run's
+        member plays exactly the battles a non-harvesting run's would (the
+        harvest adds rows, never changes play). The log-prob is read off the
+        masked softmax the draw came from, so it is what PPO's first-epoch
+        recompute would produce under the member's weights."""
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.agent.device).unsqueeze(0)
+        mask_t = torch.as_tensor(mask, dtype=torch.bool, device=self.agent.device)
+        with torch.no_grad():
+            probs = torch.softmax(masked_logits(self.agent.actor(obs_t), mask_t), dim=-1)
+        probs = probs.cpu()
+        action = int(torch.multinomial(probs, 1, generator=self.generator).item())
+        return action, float(torch.log(probs[0, action]).item())
+
 
 class SnapshotPool(Opponent):
     """A population of `AgentOpponent` snapshots, itself an `Opponent`.

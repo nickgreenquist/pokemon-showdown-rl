@@ -101,7 +101,7 @@ def selfplay_env_kwargs(cfg, key: str) -> dict:
     # point the reserved-key check uses (both env constructions route
     # through this function before any training work starts).
     known = {"opponent", "eval_opponent", "pool_size", "latest_prob",
-             "push_every_updates"}
+             "push_every_updates", "harvest_both_seats"}
     unknown = cfg.selfplay.keys() - known
     if unknown:
         raise ValueError(
