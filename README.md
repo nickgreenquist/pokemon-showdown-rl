@@ -6,11 +6,15 @@ A reinforcement-learning agent for **Pokémon Showdown Gen 1 random battles**
 cloning, no scripted opponent in the training loop. It plays through
 [poke-env](https://github.com/hsahovic/poke-env).
 
-It plays on the **real Showdown ladder, against humans**. Two pre-registered
+It plays on the **real Showdown ladder, against humans**. Three pre-registered
 runs are complete at n=200 each: LADDER R1 (2026-08-25, ensemble, GXE
-**59.6%**, Glicko-1 **1573 ± 27**) and LADDER R3 (2026-08-28, one-ply
-expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25**).
-The two runs are **not comparable** — see the R3 section.
+**59.6%**, Glicko-1 **1573 ± 27**), LADDER R3 (2026-08-28, one-ply
+expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25**) and
+LADDER R4 (2026-09-04/05, the 100M final greedy, on R1's account reused and
+warm-started, GXE **65.2%**, Glicko-1 **1618 ± 25**). During R4 the account was
+**listed on the global top-500 for 42 of its 200 battles**, peaking near rank 350,
+and finished one game's swing under the line. The runs are **not comparable** in
+any direction — see the R3 and R4 sections.
 
 ## On the ladder — LADDER R1, complete
 
@@ -113,6 +117,58 @@ every outage unattended (supervisor + socket watchdog, 10 runner launches).
 Ladder replays are kept as evidence for the pre-registered readouts. **They are
 never training data** — see *The claim* below.
 
+## On the ladder — LADDER R4, complete
+
+Account [`nickgen1rbrlbot`](https://pokemonshowdown.com/users/nickgen1rbrlbot)
+— **R1's account, reused** (multiple accounts are against Showdown's rules, a
+maintainer ruling) — playing **the 100M final on lane s112, greedy**, the lane a
+maintainer-ruled median-of-three rule named on the off-Foul-Play@20 primary.
+Pre-registered in [`configs/eval/ladder_r4.yaml`](configs/eval/ladder_r4.yaml)
+before the first rated battle. **The run is finished and the pre-registered
+stopping rule was met.**
+
+| | |
+|---|---|
+| **GXE — the pre-registered primary read** | **65.2%** |
+| **Glicko-1** | **1618 ± 25** |
+| **PS Elo, final** | **1354** (highest pre-battle observed 1431; started at R1's parked 1292) |
+| Record, this run (runner-logged) | 104–96 over **200** rated battles (0.520); played-only 97/193 (0.503) |
+| Record, the account (cumulative, incl. R1's 200) | 199–201 over 400 — reconciles exactly, zero unlogged games |
+| Opponents | 122 distinct, mean Elo 1283 |
+| Stopping rule `rd ≤ 40 AND n ≥ 200` | **satisfied** (rd 25.0, n 200), attempt 1, no relaunch |
+| Top-500 admission cutoff | Elo 1359.7 at stop — **we are not listed** |
+
+**It reached the global top-500 during the run.** By the replay-derived pre-battle
+ratings the account was listed for **42 of its 200 battles, across 13 excursions**,
+peaking at Elo 1431 (about rank 350 by the maintainer's screenshots, to be filed
+under [`readouts/ladder_r4_evidence/`](readouts/ladder_r4_evidence/)), and finished
+at 1354 against an admission line of 1359.7 — 5.7 Elo under, inside one game's
+swing. **It did not hold the list**: 18–24 while listed, and 0.423 against the band
+containing rank 500. Peak Elo is not a result; the stopping-rule figure is the
+read. **The data does not exclude a pure self-play policy that holds the list**:
+the gap at stop is inside the measurement's resolution (the licensed cell's se is
+0.069 at n = 52), and closing it is what the gen1 return in
+[`JOURNEY.md`](JOURNEY.md) (steps 8–11) is for.
+
+**R4 is standalone descriptive, and it is not an R1 or R3 comparison.** Ten
+confounds moved between the runs at once (policy kind, training scale and
+recipe, the reused warm-started account, opponent memory under the same name
+among them), so **no arithmetic difference between any two runs' GXE, Glicko
+or Elo is a quantity** — the pre-reg's ratified comparison ruling bars exactly
+that sentence in every direction, and bars **Elo(R4) − Elo(R1)** by name now
+that one account spans both runs. The rating is a property of an account
+carrying R1's 200 games, warm-started from R1's parked end state, not a fresh
+measurement of this object alone. **s112 is not "the best 100M lane"**; its
+anchors are quoted as pairs with the fleet pooled values (vs-SH 0.8000 /
+0.79589, off-FP@20 0.50167 / 0.49844, BC-clone 0.930 / 0.9233).
+
+The full readout — the pre-registered headline sentence, the band table with
+its licensed [1300,1400) cell at 0.423 (n = 52, read one-sided against ~0.50,
+no threshold), the exact record reconciliation, every VOID condition against
+its evidence, and the disclosures (no courtesy note was sent, by ruling; the
+run was blind; ops were clean: one launch, zero kills, zero unlogged games) —
+is [`readouts/LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md).
+
 ## The claim
 
 The interesting property of this agent is not its strength; it is **where its
@@ -168,7 +224,8 @@ and the two sets of numbers may not be set side by side. **LADDER R4
 [`configs/eval/ladder_r4.yaml`](configs/eval/ladder_r4.yaml)) returns to a
 greedy deployment** — the 100M final on lane s112 — on R4S66's evidence
 (search@20 hurt the batch recipe); the MU-8 ceiling still travels, and no
-run-to-run delta is an effect.
+run-to-run delta is an effect. **R4 ran 2026-09-04/05 and is complete — see the
+LADDER R4 section above.**
 
 **The 100M row is not a credit.** Its pre-registered primary axis was off
 Foul Play@20 (budget named; the equivalence test is weakly powered and the

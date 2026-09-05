@@ -806,14 +806,15 @@ has been rated against humans **twice** on the real board (§16). What
 remains open now lives in `STATUS.md` and the newest `SESSION_LOGS.md` entry, which are the
 authoritative "what next"; this file is the account, not the queue.
 
-## 16. The ladder — two descriptive measurements against humans
+## 16. The ladder — three descriptive measurements against humans
 
 Every other number in this file comes from an opponent we control: SH, Foul Play, or our
 own behaviour clone of Foul Play. The public `gen1randombattle` ladder is the only place
-this agent has been measured against people, and it has been run twice — **LADDER R1**
-(`configs/eval/ladder_r1.yaml`, played 2026-08-25/26) and **LADDER R3**
-(`configs/eval/ladder_r3.yaml`, played 2026-08-27/28) — 200 rated battles each, two
-registered accounts, one arm apiece. **Why: legibility, not proof.** The novelty claim in
+this agent has been measured against people, and it has been run three times — **LADDER R1**
+(`configs/eval/ladder_r1.yaml`, played 2026-08-25/26), **LADDER R3**
+(`configs/eval/ladder_r3.yaml`, played 2026-08-27/28) and **LADDER R4**
+(`configs/eval/ladder_r4.yaml`, played 2026-09-04/05, on R1's account reused — §16.5) — 200
+rated battles each, two registered accounts, one arm apiece. **Why: legibility, not proof.** The novelty claim in
 §1–§2 is banked by the local benchmarks under the locked protocol; nothing on the ladder
 adds to it or subtracts from it. What a ladder run buys is a number a Pokémon player can
 read — a GXE and a Glicko — for an agent whose other numbers only mean something inside
@@ -948,7 +949,7 @@ opponent Elo 1201): 1222.**
 - **Opponent memory.** The two accounts share a stem, so opponents can link them, and 141
   humans had already played 200 games against a bot from this project before R3 started.
 
-### 16.3 The two runs are not a before/after
+### 16.3 The runs are not a before/after (re-scoped to three runs, 2026-09-05)
 
 **Ruling D5, ratified 2026-08-27 as drafted and result-blind: R3 is a standalone
 descriptive measurement, and no R1-vs-R3 delta may be quoted as an effect, in either
@@ -982,6 +983,24 @@ band. That is a question about the board, not about the other run. **No threshol
 to it and none may be added later:** 2·se_diff at matched n is ~0.195, about twenty points
 of win rate, so the cell can only resolve differences nobody would need statistics to see,
 and its n is set by matchmaking rather than by us.
+
+**Re-scoped to three runs, 2026-09-05 (LADDER R4, `configs/eval/ladder_r4.yaml`
+`comparison_ruling`, ratified result-blind 2026-09-04): "R4 IS A STANDALONE DESCRIPTIVE
+MEASUREMENT. NO R1/R3/R4 DELTA MAY BE QUOTED AS AN EFFECT, IN ANY DIRECTION, BETWEEN ANY
+PAIR OR ACROSS ALL THREE."** Ten things moved between R3 and R4 at once — policy kind,
+training scale, training recipe (four bundled deltas), account (reused and warm-started,
+a shape neither prior run has), calendar and pool, opponent memory (the same name as R1's
+200 games), instrumentation and ops (R3's ten launches against R4's one), the selection
+rule, the staff-notice status, and determinism — and the list may grow but never shrink.
+Two consequences are barred by name: **Elo(R4 end) − Elo(R1 end)**, which one reused
+account now makes a button on the profile page and which is a confounded non-effect like
+every other cross-run delta; and **any three-run figure, plot or fitted line**, including
+a (proxy, ladder) mapping through the three (off-FP@20, ladder) pairs this repo now holds
+— the retired 40%-GXE conversion in new clothes. Multi-run numbers appear only as columns
+in tables headed CONFOUNDED — NOT AN EFFECT with the ten-confound list adjacent, which is
+how the R4 readout prints its R1 and R3 reference columns. The licensed cell now has three
+printed values — R1 corrected 0.319 (n = 47), R3 0.444 (n = 36), R4 0.423 (n = 52) — and
+they are printed, never subtracted.
 
 ### 16.4 What neither run establishes
 
@@ -1018,6 +1037,121 @@ disk and in mirrors. The committed provenance for every number above is
 `scripts/ladder_readout.py` from those artifacts; the pre-registrations are
 `configs/eval/ladder_r1.yaml` and `configs/eval/ladder_r3.yaml`. Current state is in
 `STATUS.md`.
+
+### 16.5 LADDER R4 — the 100M final, greedy, on the original account reused
+
+**The object: the 100M final on lane s112, played greedy (deterministic)** —
+`runs/showdown_sp_100m_s112/ckpt_100000008.pt`, sha `2ec16fbf…`, asserted at launch and
+stamped on the report with exactly the six greedy provenance keys. Pre-registered and ratified
+2026-09-04 (`configs/eval/ladder_r4.yaml`, rulings M1–M10), played 2026-09-04/05 as one
+continuous unattended run to n = 200 under the same shape as R1 and R3: one arm, no A/B,
+primary read off the profile, stopping rule **rd ≤ 40 AND n ≥ 200**. **Two things about
+this run differ from both priors and are disclosed in the headline itself.** The account is
+**nickgen1rbrlbot, R1's account, reused** — the maintainer ruled that multiple accounts are
+against Showdown's rules — so the rating is **warm-started from R1's parked end state** (Elo
+1292, GXE 59.6, Glicko-1 1573 ± 27, captured before launch and asserted equal to R1's banked
+end state with zero games on the account since 2026-08-26), and the profile record is the
+account's cumulative record. And **no courtesy note was sent** (M10, maintainer-ruled the
+evening of launch: not a tournament, not a high-traffic room). **How s112 was chosen,
+disclosed because it cuts against the flattering reading:** a maintainer-ruled MEDIAN-of-three
+rule on the off-Foul-Play@20 primary (0.48633 / 0.50167 / 0.50733), ruled with all three lane
+numbers already published in §18. **s112 is NOT "the best 100M lane" and may not be
+described as one**; it happens to be the highest of the three on both descriptive anchors,
+which is incidental to a selection on a different axis and means the battery quoted for this
+object sits at the flattering end of a ±0.02 instrument. Every anchor quote is the pair
+{lane, fleet pooled}: vs-SH 0.8000 (s112; pooled 0.79589, n = 3×3000); off-FP@20 0.50167
+(s112; pooled 0.49844; budget named; the two standing FP@20 disclosures travel with it);
+BC-clone 0.930 (s112; pooled 0.9233; never style evidence).
+
+**PRIMARY READ (server-computed, off the user profile): GXE 65.2%, Glicko-1 1618 ± 25,
+final Elo 1354, at n = 200 this run.** The profile's record is the **cumulative** 199–201
+over 400 rated games (R1's 200 + this run's 200; **reconciled exactly, zero unlogged
+games**); **this run's own record is the runner-logged 104–96 = 0.520**, played-only under
+the ratified cut 97/193 = 0.503. Not listed on the top-500: the admission cutoff was Elo
+1359.98 on the n = 0 pull and 1359.68 at stop, both inside [1300,1400) and in the same
+band, so the licensed cell's rank-500 clause stands (M2). **Stopping rule: SATISFIED at
+rd 25.0 and n 200**, attempt 1, no relaunch, no watchdog kill. Descriptive secondaries:
+highest observed pre-battle Elo 1431 (peak is not a result), 122 distinct opponents, mean
+opponent Elo 1283, aggregate implied true rating 1297, mean turns 26.6 (against this
+object's own off-FP@20 proxy of 28.403 — ratio 0.938, inside the pre-registered 22.0–26.9
+projection), 220.0 s/battle (median; whole-run mean 227.3; no gap over 900 s).
+
+**The pre-registered headline sentence, verbatim from the readout:** "Playing the real
+gen1randombattle ladder on the project's ORIGINAL rated account, reused under the
+multi-account rules (it carries R1's 200 games; the rating is warm-started from R1's parked
+end state, not a fresh measurement of this object alone), the 100M final on lane s112 — 100M
+steps, pure self-play, greedy/deterministic, the lane a maintainer-ruled MEDIAN-of-three rule
+named on the off-Foul-Play@20 primary — reached GXE 65.2%, Glicko-1 1618 +/- 25 and final
+Elo 1354 over 200 rated battles THIS RUN (runner-logged n_jsonl = 200, plus 0 unlogged
+server-scored games identified by replay diff; the profile's CUMULATIVE record including
+R1's 200 games is 199-201) against 122 distinct opponents this run. Against the 1300-1400
+band, the band containing rank 500 on the n=0 pull, it scored 0.423 (n=52 of n_jsonl =
+200). This run credits nothing."
+
+**Top-500 exposure during the run (descriptive; peak Elo is not a result, §16.4).** From
+the replay-derived pre-battle ratings against the n = 0 admission cutoff (1359.98): the
+account entered **42 of its 200 battles (21%) at or above the line, in 13 separate
+excursions**, peaking at pre-battle Elo **1431** before battle 176 — about rank 350 by the
+maintainer's screenshots of the public board, taken to collect evidence (no stopping
+decision attached; filed under `readouts/ladder_r4_evidence/`, a placeholder until
+added). Its record while listed was **18–24**; it finished at 1354 against 1359.7 at stop,
+**5.7 Elo under, inside one game's swing**; its GXE of 65.2 sits against a lowest listed
+GXE of 67.1 at stop. The licensed cell (0.423, n = 52, se 0.069) cannot distinguish this
+object from a 0.50 player in the band containing rank 500. **Pure self-play reached the
+top-500 line repeatedly; it did not hold it.** The stopping-rule figure is the read.
+
+**R4 band table (replay-built, exhaustive, `sum(cell n) == n` asserted; the R1/R3 reference
+columns live in the readout under its CONFOUNDED heading, not here):**
+
+| band | n | W | win rate | binom se | opp Elo mean | implied true rating |
+|---|---|---|---|---|---|---|
+| <1100 | 20 | 14 | 0.700 | 0.102 | 1051 | 1198 |
+| 1100–1199 | 40 | 28 | 0.700 | 0.072 | 1149 | 1296 |
+| 1200–1299 | 42 | 21 | 0.500 | 0.077 | 1244 | 1244 |
+| 1300–1399 | 52 | 22 | 0.423 | 0.069 | 1355 | 1301 |
+| ≥1400 | 46 | 19 | 0.413 | 0.073 | 1457 | 1395 |
+| unrated_or_unknown | 0 | — | — | — | — | — |
+
+Cells sum to 200 = n, asserted. **The licensed cell, [1300,1400), read one-sided upward
+against ~0.50: 0.423 (n = 52).** The references are printed, never subtracted: R1 corrected
+0.319 (n = 47), R3 0.444 (n = 36). No threshold attaches and none may be added; 2·se_diff at
+these n's is ~0.19–0.22, about twenty points of win rate.
+
+**R4's disclosures, in the words the pre-reg requires:**
+
+- **Account reuse and warm start.** GXE, Glicko-1 and Elo at stop are properties of an
+  account carrying R1's 200 games, not a fresh measurement of this object alone. **Elo(R4
+  end) − Elo(R1 end) is barred by name**: one account now spans both runs and that
+  subtraction is a confounded non-effect like every other cross-run delta.
+- **No courtesy note was sent** (M10); no staff contact of any kind occurred; the
+  blind-breach licence for unsolicited contact was never used. Confound 9 ("first run after
+  staff contact") therefore did not fire; the list is kept at ten, never shrunk.
+- **Blindness held.** Profile, replay list and board were not opened before n = 200 by the
+  agent or the runner. The known, disclosed leak — the per-battle running W/L print — was
+  read (a 30-minute babysit summary, and the maintainer asked for it twice mid-run); no
+  stopping decision could attach to it, the rule being mechanical.
+- **Ops were clean, and that is itself a confound against R3** (confound 7): one runner
+  launch, zero supervisor relaunches, zero watchdog kills, zero socket losses, zero unlogged
+  server-scored games, no gap over 900 s in a 12.57 h realized span, compute share 0.043%
+  (6090 decisions at 3.20 ms). Game categories: forfeit 38 / played_out 150 / no_show 7 /
+  timeout_midgame 5, forfeit rate 0.190 (R1 0.145, R3 0.175) — named as a candidate
+  explanation for a rating difference having nothing to do with the object.
+- **VOID conditions (a)–(g) all clear**, each against its evidence in the readout; in
+  particular (e): exactly the six greedy provenance keys, no `dose` key, and a stamped
+  mean_decision_ms of 3.204 against the 15 ms bound finalized from the LG-6 smoke.
+- **The rematch cell came out the way the confound alone predicts** (rematch 0.474 at
+  n = 78 vs first encounter 0.549 at n = 122, opponent Elo mean 1317 vs 1261) and is
+  evidence of nothing beyond it. Greedy is fully state-determined, so R4 is the most
+  memorisation-exposed of the three runs.
+- **The RNG-stream resume wrinkle does not apply** (greedy ignores the battle index), and
+  no resume happened.
+
+**Verdict: COMPLETE and VALID as pre-registered; the primary read stands; JOURNEY step 2
+is discharged (M4).** It discharges the step by being the capture the step asked for, not
+by any rating. **Provenance:** [`readouts/LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md),
+regenerated by `scripts/ladder_readout.py` with every flag passed (the script's obligation
+(vii) identity check now refuses to render under the wrong account or arm); the
+pre-registration is `configs/eval/ladder_r4.yaml`.
 
 ## 17. Addendum, 2026-08-31 — CH5 R2 (the batch lever at 50M): **CREDIT**, cell P1 — the first lever credited on the off-Foul-Play axis
 
@@ -1115,6 +1249,13 @@ a6fbdfc3f70f; foul-play 25c976f0, Showdown 0.11.11.
   to grade the partial. **No rate is quoted from those 2,675 battles.** A re-run needs
   the licensed pair-flip edit (ii) + a `burned_pairs:` block, LAST. **R4S ROUTES
   NOTHING**, so the verdict stands without it.
+  **CORRECTION 2026-09-05 (SESSION_LOGS 2026-09-01 wins on conflict):** the pair-flip
+  re-run on the promoted b-pair COMPLETED and GRADED — search@M on batch-lane s66 off
+  Foul Play@20 read **0.38067** (1142W–1836L–22T, n = 3000; n_eff 0.38046 after one
+  crash_forfeit) against the same lane's greedy 0.4740: search HURTS the batch recipe by
+  ~0.093 (~10 se). Descriptive; it routes nothing here, and it is the evidence the R4
+  ladder pre-reg cites for its greedy deployment. The stale "not graded" above
+  described attempt 1 only.
 - **Riders R3c / R1i / R1ii NOT RUN** — `scripts/ch5_r2_crossplay.py` does not exist;
   it is a registered build item and no agent-vs-agent h2h driver is in the tree.
 

@@ -120,7 +120,7 @@ search@20 **0.38067 vs greedy 0.4740 (~10 se — search hurts)**, and the
 ladder-object ruling (greedy leads on today's evidence, HANDOFF §4.4) and
 pre-frame JOURNEY 11.5. No training.
 
-**2.6 most-damage-typed anchor — BUILD BEFORE STEP 3 (one afternoon;
+**2.6 most-damage-typed anchor — BUILT 2026-09-05 (`rl/envs/most_damage_typed.py`;
 JOURNEY's own item).** The only anchor whose strength doesn't drift across
 generations; H&L report 0.829 against it in gen7. Sibling of
 MaxBasePowerPlayer with type awareness.

@@ -10145,6 +10145,152 @@ line numbers are not — grep the date, then read that region):
   entry and the README docs table now name `IDEAS_POST_100M.md` as the live
   lever list; CLEANUP.md item marked DISCHARGED. Docs-only; ladder R4 is live
   and untouched.
+
+- 2026-09-05 (early morning, autonomous; maintainer asleep) — **LADDER R4
+  COMPLETE, VALID, READ OUT — JOURNEY STEP 2 DISCHARGED.** The run stopped by
+  the rule at 06:39:00Z (n=200, rd 25.0), attempt 1, 0 supervisor relaunches,
+  0 watchdog kills, 0 socket losses, 0 gaps > 900 s, 12.57 h realized span,
+  runner wall 12.60 h. End backup at n=200 (mirror verified; tarball
+  ladder_20260905_0240.tar.gz). **PRIMARY READ off the profile: GXE 65.2%,
+  Glicko-1 1618 +/- 25, Elo 1354**; the profile record is the CUMULATIVE
+  199-201 over 400 (R1's 95-105 + this run); this run's runner-logged subset
+  is 104-96 = 0.520, played-only 97/193 = 0.503; **reconciliation closes at
+  zero unlogged games** (400 == 200 + 200, wins and losses both match). Not
+  listed; admission cutoff 1359.98 at n=0 and 1359.68 at stop — same band,
+  the M2 rank-500 clause stands; the licensed [1300,1400) cell reads 0.423
+  (22/52, replay-built), printed beside R1 0.319 / R3 0.444, never subtracted.
+  Highest pre-battle Elo 1431 (peak is not a result), 122 distinct opponents,
+  mean opponent Elo 1283, aggregate implied 1297, mean turns 26.6 (ratio 0.938
+  to the t112 proxy, inside the 22.0-26.9 projection), 220.0 s/battle median,
+  forfeit 38 / played_out 150 / no_show 7 / timeout_midgame 5, rematch 0.474
+  (n=78) vs first 0.549 (n=122) in the confound's own direction. VOID (a)-(g)
+  all clear: six provenance keys exactly, mean_decision_ms 3.204 vs the 15 ms
+  bound, max_concurrent 1, tallies 200/200. Disclosures carried: account reuse
+  + warm start (Elo(R4)-Elo(R1) barred by name), NO courtesy note (M10),
+  blindness held (the per-battle W/L print is the disclosed leak and was read
+  via the 30-min babysit summary and two maintainer asks), confound 9 did not
+  fire, the RNG-resume wrinkle does not apply. **BUILD ITEMS LANDED, no
+  fallback used:** BI-R4-2 (repeatable --compare-jsonl, one table per prior;
+  R3 reference column + R3 categories column), BI-R4-5 (obligation (vii)
+  reconciliation un-gated from label=="R3", cumulative form via
+  --prior-account-games / --prior-account-record, mandatory gap block with
+  cause or "UNCLASSIFIED"), BI-R4-6 (tests/test_ladder_docs.py: greps
+  README/STATUS/RESULTS ladder lines for W-L pairs outside the headline set),
+  plus the obligation (vii) identity check (--prereg: refuses to render under
+  the wrong --name/--jsonl — verified refusing nickgen1rbrlbot2), the R4
+  headline/disclosure/ledger/VOID blocks (--report, --board-n0), an
+  object-specific turn-calibration line, and a hand-written-appendix
+  preservation marker. Barred-language scan: three literal hits, all inside
+  the pre-reg's own carried text (recorded in the readout's appendix).
+  **RECORDED:** readouts/LADDER_R4_READOUT.md (generated + Appendix A),
+  RESULTS §16 header/intro re-scoped to three runs, §16.3 re-scoped with the
+  R4 comparison ruling verbatim, NEW §16.5 (16.4 unchanged), README top
+  paragraph + a LADDER R4 section + the Results-paragraph pointer, STATUS
+  rewritten (step 2 DONE; next is step 3), HANDOFF restored to the stub.
+  E2 exemption on ckpt_100000008.pt LIFTED with this readout. STATUS's
+  gen4-design line was stale for a few hours (the maintainer's other session
+  landed docs/design_gen4/ on main mid-run); corrected here. Nothing pushed.
+
+- 2026-09-05 (morning, maintainer + agent) — **TOP-500 EXPOSURE RECORDED;
+  the wording ruled.** Maintainer: the account "bounced in and out of" the
+  top-500 during R4, was seen around rank 350 (screenshots, to be filed),
+  and "for all intents and purposes we DID ladder"; asked for pushback.
+  Agent's pushback, accepted: the FACT is real and goes in prominently, the
+  claim "pure self-play reaches top-500 play" does not — while listed the
+  record was 18-24, the licensed cell is 0.423 vs the rank-500 band, peak
+  Elo is not a result (§16.4, result-blind since R1), the licensed-claims
+  list was fixed result-blind and "on track for top-500" is barred by name
+  (the barred list is unamendable after ratification). Warm-start point
+  answered: a fresh account starts at 1000; the early dip to 1182 was the
+  agent's own results; Elo has no memory of the start after 200 games.
+  RULED: facts in RESULTS/readout as descriptive secondaries; the
+  forward-looking sentence in the README ONLY ("the data does not exclude a
+  pure self-play policy that holds the list; the gap at stop is inside the
+  measurement's resolution"); the maintainer's mid-run board watching is
+  NOT labelled a breach (no stopping decision attached; the rule fired at
+  200) but is STATED in the readout, as R3's was; screenshots later
+  (placeholder readouts/ladder_r4_evidence/README.md). Numbers, from the
+  replay-derived pre-battle ratings vs the n=0 cutoff 1359.98: listed for
+  42/200 battles (21%), 13 excursions, first crossing at battle 22, peak
+  1431 before battle 176, 18-24 while listed, final 1354 vs 1359.7 at stop
+  (5.7 under), GXE 65.2 vs lowest listed 67.1, cell se 0.069 (cannot
+  distinguish from 0.50). Generator gained the "Top-500 exposure" block
+  (reproducible on regeneration; a k/v shadowing bug caught and fixed
+  before it wrote) and the board-watch sentence; readout regenerated with
+  Appendix A preserved; RESULTS §16.5 paragraph; README top paragraph + R4
+  section + the forward sentence; STATUS bullet. "Reached the line, did not
+  hold it" is the sanctioned phrasing everywhere.
+
+- 2026-09-05 (morning, autonomous; maintainer ruled "no pre-reg for code") —
+  **MOST-DAMAGE-TYPED ANCHOR BUILT (JOURNEY's first pre-step-3 add).**
+  Maintainer pushed back on the agent's "each needs a pre-reg": pre-regs are
+  for experiments/evals/ladder runs, not code — accepted; the
+  search-depreciation check keeps a written decision rule (it has a decision
+  attached) but no cycle. Built to the gen4 design spec (anchors_and_eval.md
+  §2), which is H&L's `MostDamageMovePlayer(type_aware=True)` verbatim: score
+  = base_power × effectiveness vs the defender's types, OHKO = 120, nothing
+  else, ties uniform (seeded), never switch voluntarily, forced switch = the
+  bench mon minimising the sum of the opponent's types' effectiveness.
+  Deviations disclosed in the module docstring: Return at 102 (gen 4+),
+  poke-env's per-gen chart via Pokemon.damage_multiplier, seeded ties.
+  Files: rl/envs/most_damage_typed.py; registry key `most_damage_typed` in
+  rl/envs/showdown.py OPPONENT_PLAYERS (reachable from eval_checkpoint.py
+  --opponent and every collector path); tests/test_most_damage_typed.py (6
+  tests on real poke-env Move/Pokemon objects at gen 1 + Return at gen 4;
+  one test's own type arithmetic was wrong and fixed — Exeggutor takes
+  flying 2x, not 4x); tests/test_showdown_env.py registry list updated;
+  scripts/anchor_h2h.py (two registry bots on the local server, /timer on,
+  explicit distinct usernames). Placement, bot-vs-bot, n=300 each, seed 11,
+  SANITY ONLY: 0.983 ± 0.007 vs random, 0.777 ± 0.024 vs MaxBasePower,
+  0.330 ± 0.027 vs SimpleHeuristics (SH beats it 0.640) — exactly the
+  ordering the index predicts ("far weaker than SH"). NOT in the battery, NO
+  README row: the design doc's §9 A2 leaves that to the maintainer. Local
+  Showdown server restarted fresh (pid 50440, simulator: 4 confirmed).
+
+- 2026-09-05 (late morning, autonomous) — **SEARCH-DEPRECIATION CHECK
+  ASSEMBLED AS A PROPOSAL (JOURNEY's second pre-step-3 add); rule unruled.**
+  `scripts/search_depreciation_table.py` rebuilds the table from the eval
+  JSONs on disk (no new runs): matched-axis points off FP@20 at dose M —
+  s82 greedy 0.2730 → search 0.4540 (+0.181, +10.8 se), s81 0.3430 → 0.4487
+  (+0.106, +6.0 se), s80 0.3960 → 0.4390 (+0.043, +2.4 se), s66 (batch)
+  0.4740 → 0.3807 (−0.093, −7.3 se); 100M lanes 0.486/0.502/0.507 with
+  search NEVER measured; 12M s65 (FP@100, n=250) −0.020 shown for context
+  and excluded. OLS slope of gain on greedy −1.36 (k=4), zero-crossing
+  0.415; stack-recipe-only −1.12, zero-crossing 0.435 (below s66's 0.474,
+  so the batch point's sign is what the within-recipe trend predicts).
+  `docs/proposals/search_depreciation_check.md` carries the table, the
+  three-branch rule (CLOSED iff slope<0 and top gain ≤ −2 se; OPEN → one
+  2.5 h measurement, search@M on s112 off FP@20 n=3000; LIVE iff slope ≥ 0),
+  the disclosure that the rule postdates the public numbers, and the
+  confounds (recipe moves with strength; greedy A-arms n=1000; dose M only).
+  NO VERDICT WRITTEN — ratification is the maintainer's. Flagged: RESULTS
+  §17's R4S66 paragraph is stale ("not graded") vs the 2026-09-01 log
+  (b-pair re-run graded 0.38067); owes a one-line correction.
+
+- 2026-09-05 (midday, autonomous; maintainer: "just do what you think needs to
+  be done") — **HOUSEKEEPING BATCH, no rulings taken.** (1) RESULTS §17's
+  R4S66 paragraph corrected in place: the promoted b-pair re-run completed
+  and graded 0.38067 (the 2026-09-01 log wins on conflict; the stale "not
+  graded" described attempt 1). (2) STATUS's R3 106-94/106-102 watch item
+  retired — explained in RESULTS §16.2, guarded by tests/test_ladder_docs.py.
+  (3) `rl/selfplay/pool.py` AgentOpponent.move: `torch.multinomial(probs.cpu(),
+  …)` — the one-site MPS crash measured 2026-09-01 ("Expected a 'mps' device
+  type for generator but found 'cpu'"); `.cpu()` is the identity on the CPU
+  path so draws are bit-identical (26 pool/run-capture tests pass); the RL
+  loop stays CPU-only by rule. (4) CLAUDE.md's "MPS is flaky here" replaced
+  with the measured fact (one-site defect, fixed; prize ~2.5%). (5) The
+  stall-kill crash_forfeit READ rule stays with the maintainer — it is a
+  read-rule question against a frozen pre-reg (landmines.md), not a chore.
+  Standing rulings now 1 (was 3). Memory saved: housekeeping is done, not
+  escalated; rulings / pushes / deletions / published-number values still are.
+
+- 2026-09-05 (afternoon, maintainer) — **STEP 3 (gen4 encoder + model) is
+  being built by another agent in a separate worktree.** Maintainer: when it
+  is done he asks it to merge main into itself, then merges back to main.
+  This session stays off docs/design_gen4/ and gen4 code on main to keep
+  that merge clean. Remaining here: the search-depreciation rule (unruled),
+  the R4 screenshots (placeholder), audit rulings, the crash_forfeit read
+  rule. Pushed through 69c5fbe.
 - 2026-09-05 (overnight, autonomous; maintainer ruling 2026-09-04 evening,
   branch `gen4-build` in worktree `../pokemon-showdown-rl-gen4`, ladder R4
   untouched) — **GEN4 GROUNDWORK STARTED: the design docs finished against a
