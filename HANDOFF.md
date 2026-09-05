@@ -1,3 +1,50 @@
+# PAUSED 2026-09-05 (late) — USAGE LIMIT. Resume from here; the §0–§4 handoff below is the plan this session executed.
+Everything landed is COMMITTED on main (tree clean at pause; not pushed). Read STATUS.md
+(still the 2026-09-05 evening text — item order there is now stale: items 1–3 and most of 4's
+build are DONE), then this block, then §2 below for what remains.
+
+## DONE this session (commits, newest last)
+- 3a5df5b BI-G4-3 pinned gen-4 hash gate (fixture 16eb40c7…, corpus b72dcbc7…, fingerprint).
+- 526f839 PPO knobs for Wang's recipe: `lr_schedule: power` (lr0/(8x+1)^1.5 over lr_anneal_steps)
+  and `value_clip_eps` (SB3 clip_range_vf, SB3's exact form). Defaults = today's wire. tests/test_wang_recipe.py.
+- ec39268 BI-G4-2 entity trunk `layout: gen4` (TrunkLayout; item/ability id tables; PRIV_DIM 703;
+  gen-1 bit-identity pinned against pre-change goldens). tests/test_entity_trunk_gen4.py.
+- 66746dc BI-G4-1 both-seat harvest `selfplay.harvest_both_seats: true` (rl/selfplay/harvest.py;
+  PoolPlayer records seat 2 with the member's own logp; PPO.update joins whole seat-2 episodes via
+  per-episode GAE). Off = bit-identical. tests/test_harvest.py incl. 2 LIVE tests (gen 1 + gen 4, passed).
+- 8afa069 BI-G4-4 clone-leg threading (make_bc_dataset / tape_to_dataset --gen 4 / train_bc /
+  eval_checkpoint gen-4). The clone chain ran END TO END on a 3-battle FP@20 gen-4 tape:
+  `FP_TAPE_DIR=<dir> python scripts/gen4_fp_smoke.py --battles N --search-time-ms 20 --port 8000 --seat heuristics`
+  records FP's OWN seat (the shared ../foul-play clone's tape hook); tape_to_dataset --gen 4 → 53/53 rows,
+  GATES PASS; train_bc → eval_checkpoint on ShowdownGen4-v0 worked. tests/test_bc_gen4_threading.py.
+- 1546472 the pre-reg DRAFT: configs/gen4_wang50m.yaml (+ .prereg.yaml sidecar, _smoke.yaml one-diff
+  partner, tests/test_gen4_prereg.py 8/8 green, scripts/gen4_wang50m_wave.sh, results/design_gen4_wang50m/
+  BRIEF.md + frozen draft copy). **UNREVIEWED: the 2-Opus review was launched and STOPPED on the usage
+  limit before either reviewer wrote a line. NOT ratified. Do not launch the run from it.**
+- SMOKE (not a number anyone quotes; scratch cwd, deleted with the session): 3 updates of the full
+  recipe, ~290 seat-1 steps/s solo (suite running beside it), harvest ratio 0.99–1.01, entropy 1.81,
+  clip_frac 0.02–0.05, RSS 2.4 GB, ckpt 19 MB, eval 10 SH battles in 0.47 s. Readings are in the header's R0-e.
+
+## REMAINING, in order
+1. Full suite: `pytest tests/` (bare) — it was NOT completed this session (twice interrupted; ~76% green
+   with 0 failures at the interruption; the first pass stalled inside a live-server test after my smoke
+   competed for the server — restart the server first). Fix anything red before anything else.
+2. Run the 2-Opus review of the frozen draft (Opus, never Fable; the prompts are in this session's
+   log — the brief is results/design_gen4_wang50m/BRIEF.md; reviewers write review_1.md / review_2.md,
+   whitelisted in .gitignore). Apply findings in place, tag [R1-n]/[R2-n], re-freeze the draft copy.
+3. Maintainer ratification: rulings RW-1..RW-5 at the header's foot (RW-1: 0.756 as ruled vs the
+   arithmetic 0.757; RW-2 trunk widths ours; RW-3 update size = total rows; RW-4 FP@500 on all lanes;
+   RW-5 hand-over launch). Record in `ratified_decisions` (sidecar) and flip both STATUS lines.
+4. Launch (maintainer, > 5 h): restart the server fresh, `simulator: 4`, clean tree, then
+   `nohup caffeinate -dims bash scripts/gen4_wang50m_wave.sh > /dev/null 2>&1 < /dev/null &`.
+   Seeds 200/208/216. Plan 2–3 days. No encoder env vars.
+5. Alongside: the clone's tapes (7,200 FP@20 vs SH battles ≈ 2.4 h at 1.18 s/battle, FP_TAPE_DIR set,
+   ONE FP process, detached) → tape_to_dataset --gen 4 → train_bc soft 20 epochs → validate vs SH n=1000.
+6. After the fleet: the frozen post-fleet schedule in the header; the five-leg readout; STATUS /
+   SESSION_LOGS / RESULTS / README in one commit. STATUS.md and SESSION_LOGS.md were NOT updated this
+   session (the pause came first) — the first thing after the suite is a SESSION_LOGS entry for
+   2026-09-05 (late) summarising the commits above, and STATUS items 1–4 re-ordered to this list.
+
 # Handoff — JOURNEY STEP 3/4: the Wang-recipe pre-reg, its build items, the 50M hand-over run
 Written 2026-09-05 evening, maintainer-ordered ("ready for handoff.md, make it
 comprehensive"). Read STATUS.md, then this. Everything in §1 is DECIDED — do not
