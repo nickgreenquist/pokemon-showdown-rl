@@ -3,14 +3,13 @@
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
 ## JOURNEY POSITION — step 3 of 13 IN PROGRESS (`JOURNEY.md`: gen1→gen4→gen9)
-Steps 1–2 DONE (batch credited, RESULTS §17; LADDER R4 discharged step 2: GXE
-65.2 / Glicko-1 1618 ± 25 / Elo 1354, n=200; readouts/LADDER_R4_READOUT.md).
-**Step 3 (gen4 encoder + model): groundwork MERGED + REVIEWED; the FIRST RUN
-(WANG'S RECIPE on our frozen encoder, step 4 as ruled) is TRAINING — launched
-agent-side under a chat waiver of rule 4 (2026-09-06) at the header's recommended
-defaults. Step-3 milestone = it learns (≥ 0.60 vs SH, locked protocol); the
-CHAPTER's exit is step 5: pooled 3×3000 vs-SH ≥ 0.756, ONE-SIDED (ruled; the
-arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
+Steps 1–2 DONE (batch credited, RESULTS §17; LADDER R4 discharged step 2: GXE 65.2 /
+Glicko-1 1618 ± 25 / Elo 1354, n=200; readouts/LADDER_R4_READOUT.md).
+**Step 3 (gen4 encoder + model): groundwork MERGED + REVIEWED; the FIRST RUN (WANG'S
+RECIPE on our frozen encoder, step 4 as ruled) is TRAINING — launched agent-side under a
+chat waiver of rule 4 at the header's recommended defaults. Step-3 milestone = it learns
+(≥ 0.60 vs SH, locked protocol); the CHAPTER's exit is step 5: pooled 3×3000 vs-SH
+≥ 0.756, ONE-SIDED (ruled; arithmetic 0.757 — RW-1). No gen4 number is a claim yet.**
 
 ## Where things stand (2026-09-06, ~02:00 UTC)
 - **GEN-4 GROUNDWORK** (rl/envs/gen4/): layout v0.1, OBS_DIM 1,448, exact set
@@ -25,8 +24,8 @@ arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
   finding tagged in place. Not formally ratified: launched on chat authorization at the
   RECOMMENDED DEFAULTS (RW-2/3/6 baked in; RW-1/RW-4 later ruled at the defaults, see 1).
 - **Foul Play gen4 eval bot UP**; vs SH n=250: FP@20 226-24-0, FP@500 228-22-0
-  (bot-vs-bot). Clone tapes 6 × 1,200 at 1.12–1.16 s/battle; a weather-forme bench
-  name failed the gates on 4 of 84,046 rows — fixed cba9458, PASS. NOT PUSHED.
+  (bot-vs-bot). Clone tapes 6 × 1,200 at 1.12–1.16 s/battle; weather-forme bench-name
+  gate failure fixed cba9458, PASS. Pushed through 33fa136 (2026-09-06).
 
 ## Next actions
 1. **FLEET: attempt 1 (03:08Z) OPS-KILLED 03:21Z** — gen-4 pool-seat mask desyncs
@@ -49,10 +48,11 @@ arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
 5. Then gen-4 levers against this baseline, each its own pre-reg — **NOT the pool
    (ruled 2026-09-06: league stays on, no ablation)**; step 6 = ONE gen-4 ladder,
    NEW pre-reg, **RULED CONDITIONAL 2026-09-06** on a matched step-5 read (miss → none).
-6. **2026-09-06 rulings, docs only (fleet untouched):** JOURNEY **7.5** = switch gen-1
-   training off Node onto pkmn/engine BEFORE step 8 (ONE collector for steps 8–11, gated
-   on A-1); IDEAS §3 classifies every kill + indexes the re-opened (4.7, 2.8, 4.3,
-   attention, search); **§4 RE-RANKED, Q45 CLOSED: 4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4**.
+6. **2026-09-06 rulings (docs only):** JOURNEY **7.5** = gen-1 training off Node onto
+   pkmn/engine, **P0 once the gen-4 chapter CLOSES** (one collector for steps 8–11, gated
+   on A-1, parity time-boxed, keep-the-server branch pre-decided); IDEAS §3 classifies
+   every kill + indexes the re-opened (4.7, 2.8, 4.3, attention, search); **§4 RANKED,
+   Q45 CLOSED: 4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4**.
 
 ## Watch items
 - **ONE vs-SH RUNG IS WORTH ±0.02** (read SHAPE); resumes SPLIT history: use `merge_history.py`.

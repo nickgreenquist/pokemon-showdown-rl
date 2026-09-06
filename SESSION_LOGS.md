@@ -11067,3 +11067,19 @@ line numbers are not — grep the date, then read that region):
   and every arm downstream of JOURNEY 7.5, because at k=3 the bar is what
   swallowed D18 and D23. Commits: 46 pushed to origin/main at the maintainer's
   word (1d3ffea..ea92208) before these three.
+  (7) **The collector port is P0 for the return to gen 1 (maintainer, late evening),**
+  starting the moment the gen-4 chapter closes at step 7 (step-5 read written up, plus
+  the conditional step-6 ladder if it fires); nothing in steps 8–11 precedes it. The
+  case is measured, not projected: `ps` on the live fleet gives python 204% CPU / 3
+  lanes and the Node server 306% — **60% of a lane's CPU is the simulator the port
+  deletes** — with 2.7 GB/lane RSS against a 24 GB box already 1.5 GB into swap (so RAM,
+  not cores, is what caps us at 3 lanes). Filed as a THROUGHPUT_SPEC addendum (ff8bc4f)
+  with the sizing rule: per-lane CPU tracks DECISIONS/s, so gen-1's 560 steps/s implies
+  ~4.4 cores/lane and k=8 gen-1 needs ~32–36 fast cores — an 8-core rental is a k=2
+  machine, which is why the rented-hardware research's top pick was undersized 3–4×.
+  Post-port a lane wants ~1.5–2 cores, so k=3 → 5–6 on this laptop or **k=8 at full
+  speed on one ~€105/month 16-core box**, 50M fleets in hours. Two guard rails written
+  into 7.5: the parity work (P-1/P-2) gets a block budget up front, and if two diagnosis
+  rounds cannot bring A-1 inside |Δ| < 0.025 we KEEP the server path and bank the parity
+  harness as tests. Renting stays optional and is a workflow fix (fleets off the laptop,
+  the Mac free for evals), never the noise-floor fix.

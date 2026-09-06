@@ -85,6 +85,10 @@ Everything from here on is gen1, and gen1's bottleneck is not ideas — it is th
 
 What it does not touch: the locked eval protocol and the ladder stay on the Showdown server, so eval schedules do not get faster, and CRN pairing is an additional read beside the locked one, never a replacement. And it does nothing for gen4 or gen9 — that engine implements RBY completely, GSC is a WIP, DPP is not implemented.
 
+**PRIORITY (maintainer, 2026-09-06): this is P0 for the return to gen1.** It starts the moment the gen4 chapter CLOSES at step 7 — the step-5 read committed and written up, plus the conditional step-6 ladder if it fired — and nothing in steps 8–11 starts before it. Why P0 rather than merely next, measured on the running fleet (`docs/prior_work/THROUGHPUT_SPEC.md`, addendum 2026-09-06): **60% of a lane's CPU is the Node simulator**, and a gen1 lane costs ~4.4 cores at 560 steps/s. The port cuts a lane to ~1.5–2 cores *and* multiplies its speed ~4.2×, which is k=3 → 5–6 on this laptop, or **k=8 at full speed on one ~€105/month 16-core box** with a 50M fleet landing in hours instead of days. Every §4 lever is downstream of that, and two of them have already died on k=3.
+
+Two guard rails, because this is infrastructure and infrastructure slips. (i) **Time-box the parity work.** The encoder and mask gates — 828 floats bitwise outside declared families, poke-env's information boundary reproduced exactly — are where a 16-block project becomes a 40-block one. Set a block budget before starting and reassess at it rather than grinding. (ii) **Pre-decided failure branch.** If two diagnosis rounds cannot bring A-1's 12M read inside |Δ| < 0.025, we KEEP the server path; the sunk cost is then the parity harness, which survives as a test suite.
+
 ### 8. Back to gen1 — retrain with any special sauce
 Recipe findings are generation-agnostic: rollout size, minibatch structure, λ and γ, LR schedule, privileged critic, auxiliary heads, opponent-pool composition, entropy scheduling. None of those are gen4 facts. Port them home.
 
