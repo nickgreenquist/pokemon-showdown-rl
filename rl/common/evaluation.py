@@ -21,10 +21,14 @@ correlation <= 0.04 across all 21 run-pairs — so nothing is lost. Pairing
 remains real on the seeded envs (CartPole, MinAtar, Connect 4).
 """
 
+import logging
+
 import gymnasium as gym
 import numpy as np
 
 from rl.agents.base import Agent
+
+LOGGER = logging.getLogger(__name__)
 
 # Fixed base for eval episode seeds; large so they stay disjoint from
 # plausible training seeds.
@@ -61,7 +65,27 @@ def _run_eval_episodes(
         returns.append(ep_return)
         outcomes.append(info.get("outcome") if done else None)
         faints.append(info.get("faints") if done else None)
+        if not done:
+            # 2026-09-06, gen-4 lane s216 at 5.43M: ONE in-loop eval episode
+            # ran to max_steps without a terminal and the all-or-nothing
+            # guard in eval_metrics killed the lane (then the immediate
+            # resume died on the still-open rooms). A capped-out episode is
+            # scored as a NON-WIN by eval_metrics; this line is the
+            # diagnostic — the shape of the spin is what the next one tells.
+            LOGGER.warning(
+                "eval episode %d hit max_steps=%d without a terminal — scored as a "
+                "non-win (return %.3f, battle %s, last info keys %s)",
+                episode, max_steps, ep_return, _battle_tag_of(env), sorted(info.keys()),
+            )
     return returns, outcomes, faints
+
+
+def _battle_tag_of(env: gym.Env) -> str:
+    """Best-effort: the Showdown env's seat-1 battle tag, for the cap-out log."""
+    try:
+        return str(env.unwrapped._env.env.battle1.battle_tag)  # type: ignore[attr-defined]
+    except Exception:
+        return "<unknown>"
 
 
 def eval_returns(
@@ -140,12 +164,20 @@ def eval_metrics(
         metrics["eval/loss_faint_lead_frac"] = float(np.mean([d > 0 for d in differential]))
     if win_rate:
         missing = sum(outcome is None for outcome in outcomes)
-        if missing:
-            # Silently scoring these as non-wins would report a plausible,
-            # wrong number — the failure mode this metric exists to avoid.
+        if missing and missing * 2 > len(outcomes):
+            # The plumbing failure this guard exists for: an env that supplies
+            # no outcome at all (every env before Phase 4) would otherwise
+            # report a plausible, wrong number. A MINORITY of missing
+            # outcomes is a different thing — an episode cut at max_steps
+            # (2026-09-06: one in 100 on a gen-4 lane, which the old
+            # all-or-nothing raise turned into a dead lane) — and is scored
+            # as a NON-WIN, counted, and disclosed through eval/no_outcome.
             raise ValueError(
                 f"eval_win_rate is on but {missing}/{len(outcomes)} eval episodes "
                 f'supplied no info["outcome"]'
             )
         metrics["eval/win_rate"] = float(np.mean([outcome == 1 for outcome in outcomes]))
+        if missing:
+            metrics["eval/no_outcome"] = float(missing)
+            metrics["eval/no_outcome_frac"] = float(missing / len(outcomes))
     return metrics
