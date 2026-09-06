@@ -45,9 +45,9 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
 3. Agent: the clone chain (`tape_to_dataset --gen 4` → `train_bc --target soft`
    → vs-SH n=1000 → MDT-vs-SH 300 sanity row) is detached and resume-safe;
    results in `results/gen4_wang50m/clone_vs_sh.json`, log `logs/gen4_clone_chain.log`.
-4. After the fleet: the FROZEN post-fleet schedule in the header (vs-SH 3×3000 →
-   FP@20 → MDT → S-SHAPE → FP@500 chunks → clone h2h → Q38 pin → five-leg readout;
-   RESULTS + README row + STATUS + SESSION_LOGS in ONE commit).
+4. After the fleet: `scripts/gen4_wang50m_postfleet.sh` (the FROZEN order, resume-safe;
+   refuses while a lane trains) → author the five-leg readout (RESULTS + README row
+   + STATUS + SESSION_LOGS in ONE commit). In-run gates: `scripts/gen4_wang50m_gates.py`.
 5. Then our gen-1 machinery as LEVERS against this baseline (pool / league
    first), each its own pre-reg; step 6 = ONE gen-4 ladder run under a NEW pre-reg.
 

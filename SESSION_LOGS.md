@@ -10805,3 +10805,10 @@ line numbers are not — grep the date, then read that region):
   ladder ≈ 6 days after R4 if the 0.756 check passes (compute-bound: 68 h fleet
   + 8 h eval + a ladder day), ≈ +5 days on the dose branch; the harvest doubles
   rows per battle (≈ 100M rows = 2/3 of Wang's 150M), not battles per hour.
+  (7) Built while waiting, no ruling needed: `scripts/gen4_wang50m_gates.py` (the
+  agent-owned metric gates over a lane's history + rungs; D-A's closed form
+  verified on the smoke checkpoint, u=3, x=2/3, both groups 3.694441e-06;
+  ec15fb3), `scripts/gen4_wang50m_postfleet.sh` (the frozen schedule as a
+  detached resume-safe runner; DRY=1 listed every unit against the header's
+  L1–L4 forms; 84dfa13), `tests/test_gen4_gates.py` (3), IDEAS status tally +
+  Q46 closed (e205956).
