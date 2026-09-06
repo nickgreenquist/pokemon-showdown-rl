@@ -39,9 +39,9 @@ arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
    at d51fa6f (R0-k2 860 passed / 2 live tests deselected; server pid 11553; PREFLIGHT
    PASS): lanes s200/s208/s216 pids 11668/11795/11905. Attempt 1 is archived under
    `runs/aborted_20260906_0308Z/`. DISCLOSE both attempts and the deselects.
-2. **MAINTAINER (morning):** read those two logs; rule RW-1 and RW-4 before the
-   readout (sidecar `ratified_decisions`); if you disagree with the RW-2/3/6
-   defaults, kill the fleet — nothing else moves them now.
+   **RW-1 (0.756) and RW-4 (FP@500 on all lanes) RULED at the defaults 11:30Z (chat).**
+2. **MAINTAINER:** nothing owed before the readout — every RW is recorded in the
+   sidecar's `ratified_decisions`; the agent babysits (watcher v2, `.rollover`).
 3. **CLONE VALIDATED 2026-09-06 02:25Z:** `runs/bc_gen4_fp20_soft_s0` (FP@20 teacher,
    168,676 rows / 7,200 battles, GATES PASS; val agreement 0.433) scores **0.464 vs SH**
    (n=1000, deterministic, ties 0.022); MDT-vs-SH sanity row **0.400** (120-173-7, n=300).

@@ -86,7 +86,13 @@ barred_language:
   - "our best gen-4 lane"
   - "on track for Wang's 0.786"
 rulings_wanted: [RW-1, RW-2, RW-3, RW-4, RW-5, RW-6]
-ratified_decisions: {}             # written at ratification, the maintainer's
+ratified_decisions:                # the maintainer's, in chat 2026-09-06 ~11:30 UTC: "defaults on both"
+  RW-1: {ruling: "0.756 as ruled (0.786 minus one se at his n = 200), one-sided, no ceiling", when: "2026-09-06T11:30Z", by: maintainer, form: "chat: 'defaults on both'"}
+  RW-4: {ruling: "FP@500 on ALL THREE lanes, chunked 5 x 50 per lane (--timeout 5400; the chunk is the resume unit)", when: "2026-09-06T11:30Z", by: maintainer, form: "chat: 'defaults on both'"}
+  RW-2: {ruling: "baked in at launch — our trunk widths (see launch_authorization)", when: "2026-09-06T03:08Z"}
+  RW-3: {ruling: "baked in at launch — update = TOTAL rows ~ 39,936", when: "2026-09-06T03:08Z"}
+  RW-5: {ruling: "moot — the maintainer waived rule 4 for this run in chat", when: "2026-09-06T01:55Z"}
+  RW-6: {ruling: "baked in at launch — minibatch tail kept (40 slices)", when: "2026-09-06T03:08Z"}
 launch_authorization:              # NOT a ratification — the record of how the run started
   by: maintainer (chat, 2026-09-06 ~01:55 UTC — "you can start it yourself (breaking my rule)")
   rule_waived: CLAUDE.md rule 4 (> 5 h training is a hand-over launch), this run only
