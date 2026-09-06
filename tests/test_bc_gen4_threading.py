@@ -43,6 +43,35 @@ def test_teacher_move_id_strips_fp_power_suffixes_only():
     assert teacher_move_id("v-create") == "vcreate"
 
 
+def test_teacher_order_resolves_battle_only_weather_formes_to_the_benched_base():
+    """Foul Play names a benched Castform / Cherrim by the weather forme it
+    saw (`switch castformsunny`, `switch cherrimsunshine`); poke-env's
+    forme_change never stores the forme, so the bench carries the base name.
+    Measured 2026-09-06 on the first 3,600-battle gen-4 corpus: the only G2 /
+    soft-policy failures (1 label, 3 policy rows in 84,046) were these two."""
+    from tape_to_dataset import teacher_order
+
+    def mon(species, base=None):
+        return SimpleNamespace(species=species, base_species=base or species)
+
+    bench = [mon("omastar"), mon("castform"), mon("cherrim"), mon("arceusdragon", "arceus")]
+    battle = SimpleNamespace(available_switches=bench, available_moves=[])
+    for choice, want in (
+        ("switch castformsunny", "castform"),
+        ("switch castformrainy", "castform"),
+        ("switch cherrimsunshine", "cherrim"),
+        ("switch castform", "castform"),        # the exact path still wins
+        ("switch arceusdragon", "arceusdragon"),  # forme ids are exact, not folded
+        ("switch arceus", "arceusdragon"),        # base_species still matches
+    ):
+        order, kind = teacher_order(battle, choice, False)
+        assert kind == "switch"
+        assert order is not None and order.order.species == want, choice
+    # A name that is neither on the bench nor a battle-only forme stays unresolved.
+    order, kind = teacher_order(battle, "switch shayminsky", False)
+    assert order is None and kind == "switch"
+
+
 def test_gen4_recording_player_encodes_through_the_tracker():
     player = Gen4RecordingPlayer(expert="heuristics", start_listening=False)
     assert player._trackers == {}

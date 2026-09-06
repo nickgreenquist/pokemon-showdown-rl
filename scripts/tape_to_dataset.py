@@ -78,6 +78,7 @@ from poke_env.data import GenData
 from poke_env.environment import SinglesEnv
 from poke_env.player import SingleBattleOrder
 
+from rl.envs.gen4.prior import base_species as _battle_base_species
 from rl.envs.gen4.vocab import canonical_move_id
 
 MESSAGES_TO_IGNORE = {"t:", "expire", "uhtmlchange"}
@@ -233,6 +234,19 @@ def teacher_order(battle, choice, placeholder):
         for mon in battle.available_switches:
             if mon.species == target or mon.base_species == target:
                 return SingleBattleOrder(mon), "switch"
+        # Battle-only weather formes (Forecast / Flower Gift): Foul Play keeps
+        # naming the benched mon by the forme it saw (`switch castformsunny`,
+        # `switch cherrimsunshine`) while poke-env's forme_change never stores
+        # the forme (`store_species=False`), so `mon.species` stays the base.
+        # Measured on the first 3,600-battle gen-4 corpus (2026-09-06): the
+        # ONLY G2 / soft-policy failures were these two names in two battles.
+        # Exact match above wins; this is the fallback, and it maps only the
+        # names in rl/envs/gen4/prior.py's table (gen-1 names pass through).
+        base = _battle_base_species(target)
+        if base != target:
+            for mon in battle.available_switches:
+                if mon.species == base or mon.base_species == base:
+                    return SingleBattleOrder(mon), "switch"
         return None, "switch"
 
     want = teacher_move_id(choice)
