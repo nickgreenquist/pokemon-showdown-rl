@@ -34,11 +34,11 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
   Cherrim-Sunshine bench names) — fixed cba9458, 84,046/84,046 PASS. NOT PUSHED.
 
 ## Next actions
-1. **FLEET (agent-launched, 2026-09-06):** the sequencer runs clone chain → fresh
-   server → R0-k2 bare suite (40-min deadline; a stall re-runs with the two live
-   tests deselected, DISCLOSED) → fresh server → `scripts/gen4_wang50m_wave.sh`.
-   Logs: `logs/gen4_launch_seq.log`, `logs/gen4_wang50m_wave.log`. A rate watch
-   posts per-lane steps/s every 30 min and ALERTS in chat below 173 (D-B).
+1. **FLEET LAUNCHED 2026-09-06 03:08:42Z (agent-side, authorized):** lanes s200/s208/
+   s216 pids 5952/6148/6202 at sha 8858393, tree clean, fresh server pid 5756,
+   PREFLIGHT PASS (167 GiB, 11 GB). R0-k2: the bare suite STALLED at 40 min (the
+   live-test landmine), re-run GREEN with the two documented live tests deselected
+   (856 passed) — DISCLOSE. Logs: `logs/gen4_wang50m_wave.log`; rate watch alerts.
 2. **MAINTAINER (morning):** read those two logs; rule RW-1 and RW-4 before the
    readout (sidecar `ratified_decisions`); if you disagree with the RW-2/3/6
    defaults, kill the fleet — nothing else moves them now.

@@ -10824,3 +10824,24 @@ line numbers are not — grep the date, then read that region):
   training data. Sanity row: MDT vs SH **0.400** (120-173-7, n=300, `a_record`,
   `data/gen4_sanity/`); the clone sits above MDT's placement and far below its
   teacher (FP@20 vs SH 0.904 at n=250). L4 reads READY for the post-fleet h2h.
+  (9) **THE FLEET LAUNCHED 03:08:42Z, agent-side under the chat authorization.**
+  Sequence as logged (`logs/gen4_launch_seq.log`): the chain finished 02:25:42Z;
+  server restarted fresh (pid 4211); R0-k2 bare `pytest tests/` STALLED at the
+  40-min deadline (the alive-at-zero-CPU live-test landmine; the stalled log was
+  overwritten by the re-run — the sequencer should have kept it, noted); fresh
+  server (pid 5263); re-run with `test_privileged_block::test_live_emission_is_
+  fuller_than_the_actor_view` and the documented whole-suite flake deselected:
+  **856 passed, 17 skipped, 2 deselected in 61 s** (DISCLOSE); fresh server for
+  R0-j (pid 5756, 31 s old at preflight); clean tree; `caffeinate -dims
+  scripts/gen4_wang50m_wave.sh` (pid 5887). PREFLIGHT PASS (disk 167 GiB, mem
+  11 GB, simulator: 4). Lanes s200 / s208 / s216 = pids 5952 / 6148 / 6202,
+  launched 03:08:42 / 03:09:42 / 03:10:42Z; every meta.yaml stamps sha
+  **8858393**, `git_dirty: false`; no error lines; CPU advancing on all three
+  (RSS 2.2 / 1.1 / 2.3 GB at +3 min). Two orphaned `foul-play-gen4` search
+  workers from the first (killed) tape-driver launch — ppid 1 since 20:02 local,
+  the landmine exactly — were found and killed before launch. Live history READS
+  mid-run (`extract_history.py` on lane s200 at 2 updates: entropy 1.820 →
+  1.801, clip_frac 0.090 / 0.080 — above the smoke's 0.05, as the T2 note
+  expected; harvest ratio 0.99–1.01, version_lag_max 0–1), so the in-run metric
+  gates are readable without waiting for the run to end. Next: R0-1..6 at 250k
+  per lane, R0-5 first rung by 04:08Z, D-B from the first conforming windows.
