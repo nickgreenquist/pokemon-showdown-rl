@@ -15,7 +15,10 @@ Violating any of these costs hours, and each already has.
 
 1. **Activate the `pokemon-showdown-rl` conda env.** Never `base`, never shared
    with `deep-rl-from-scratch` — both ship a top-level `rl` package and the
-   loser imports silently from the wrong tree.
+   loser imports silently from the wrong tree. **Exception while a fleet is
+   running: a session following `docs/engine_port_session_brief.md` uses its OWN
+   env per that brief's §1.1 and must never install into this one — the live
+   lanes resume into it and a half-resolved dependency kills them at import.**
 2. **Concurrent lanes need distinct `--seed`s, including across arms** —
    same-seed lanes collide on Showdown usernames (poke-env derives them from
    globally-seeded `random`) and die with a misleading `TimeoutError`.
