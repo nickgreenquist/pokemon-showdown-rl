@@ -5,13 +5,12 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 ## JOURNEY POSITION — step 3 of 13 IN PROGRESS (`JOURNEY.md`: gen1→gen4→gen9)
 Steps 1–2 DONE (batch credited, RESULTS §17; LADDER R4 discharged step 2: GXE
 65.2 / Glicko-1 1618 ± 25 / Elo 1354, n=200; readouts/LADDER_R4_READOUT.md).
-**Step 3 (gen4 encoder + model): groundwork MERGED + REVIEWED; the FIRST RUN's
-build items are LANDED, its pre-reg is DRAFTED AND REVIEWED, and an AGENT-SIDE
-LAUNCH WAS AUTHORIZED in chat (2026-09-06 ~02:00 UTC, rule 4 waived once) at
-the header's recommended defaults. First run = WANG'S RECIPE on our frozen
-encoder (step 4, ruled); step-3 milestone = it learns (≥ 0.60 vs SH, locked
-protocol); the CHAPTER's exit is step 5: pooled 3×3000 vs-SH ≥ 0.756,
-ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
+**Step 3 (gen4 encoder + model): groundwork MERGED + REVIEWED; the FIRST RUN
+(WANG'S RECIPE on our frozen encoder, step 4 as ruled) is TRAINING — launched
+agent-side under a chat waiver of rule 4 (2026-09-06) at the header's recommended
+defaults. Step-3 milestone = it learns (≥ 0.60 vs SH, locked protocol); the
+CHAPTER's exit is step 5: pooled 3×3000 vs-SH ≥ 0.756, ONE-SIDED (ruled; the
+arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
 
 ## Where things stand (2026-09-06, ~02:00 UTC)
 - **GEN-4 GROUNDWORK** (rl/envs/gen4/): layout v0.1, OBS_DIM 1,448, exact set
