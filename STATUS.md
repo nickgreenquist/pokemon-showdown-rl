@@ -55,7 +55,7 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
 ## Watch items
 - **ONE vs-SH RUNG IS WORTH ±0.02** (read SHAPE); **RESUME SPLITS HISTORY** and
   LOSES the open seat-2 harvested rows (disclosed).
-- vs-SH/off-FP are NEVER ladder numbers; FP quotes carry budget + the disclosures.
-- Every gen4 number so far is a smoke or bot-vs-bot placement; none is a claim.
+- vs-SH/off-FP are NEVER ladder numbers; FP quotes carry budget + the disclosures;
+  every gen4 number so far is a smoke, a clone or a bot-vs-bot placement — no claim.
 - 0.786 is Wang's NETWORK-ALONE and WEAKER number (Fig 4.1 ≈ 0.836/0.849); dose
   is named first as ruled, but his curve crossed 0.786 at ≈ 30% of our per-seat dose.
