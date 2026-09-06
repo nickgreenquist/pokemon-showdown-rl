@@ -197,6 +197,60 @@ fn smoke_random_battles(py: Python<'_>, n: u64, seed: u64, block: bool) -> PyRes
     Ok(d.into())
 }
 
+/// Gate P-2, engine leg: the §7.2 mapping table measured on real battles.
+///
+/// `teams` is a list of `(p1_records, p2_records)` pairs from the team bank;
+/// battles cycle through them. Releases the GIL.
+#[pyfunction]
+#[pyo3(signature = (n, seed, teams))]
+#[allow(clippy::type_complexity)]
+fn mask_table_split(
+    py: Python<'_>,
+    n: u64,
+    seed: u64,
+    teams: Vec<(Vec<Vec<u8>>, Vec<Vec<u8>>)>,
+) -> PyResult<Py<PyDict>> {
+    let conv = |team: &Vec<Vec<u8>>| -> PyResult<Vec<[u8; layout::POKEMON_SIZE]>> {
+        team.iter()
+            .map(|m| {
+                <[u8; layout::POKEMON_SIZE]>::try_from(m.as_slice())
+                    .map_err(|_| PyValueError::new_err("a Pokemon record must be 24 bytes"))
+            })
+            .collect()
+    };
+    let pairs = teams
+        .iter()
+        .map(|(a, b)| Ok((conv(a)?, conv(b)?)))
+        .collect::<PyResult<Vec<_>>>()?;
+    let sp = py
+        .detach(|| smoke::mask_table_split(n, seed, &pairs))
+        .map_err(PyRuntimeError::new_err)?;
+    let d = PyDict::new(py);
+    for (k, v) in [
+        ("decisions", sp.decisions),
+        ("switch_requests", sp.switch_requests),
+        ("recharging", sp.recharging),
+        ("thrashing", sp.thrashing),
+        ("charging", sp.charging),
+        ("rage", sp.rage),
+        ("forced", sp.forced),
+        ("bide_user", sp.bide_user),
+        ("binding_user", sp.binding_user),
+        ("limited", sp.limited),
+        ("binding_victim", sp.binding_victim),
+        ("asleep", sp.asleep),
+        ("frozen", sp.frozen),
+        ("struggle", sp.struggle),
+        ("forced_not_single_move1", sp.forced_not_single_move1),
+        ("forced_offered_switch", sp.forced_offered_switch),
+        ("limited_not_one_move", sp.limited_not_one_move),
+        ("limited_missing_switches", sp.limited_missing_switches),
+    ] {
+        d.set_item(k, v)?;
+    }
+    Ok(d.into())
+}
+
 /// A single engine battle. Thin by design: the batched collector surface
 /// (`BatchEnv`) arrives with the later gates; this exists so the B-0/B-1 gate
 /// scripts can drive the engine from Python.
@@ -323,6 +377,7 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_info, m)?)?;
     m.add_function(wrap_pyfunction!(verify, m)?)?;
     m.add_function(wrap_pyfunction!(smoke_random_battles, m)?)?;
+    m.add_function(wrap_pyfunction!(mask_table_split, m)?)?;
     m.add_function(wrap_pyfunction!(species_names, m)?)?;
     m.add_function(wrap_pyfunction!(move_names, m)?)?;
     m.add_function(wrap_pyfunction!(type_names, m)?)?;
@@ -330,7 +385,15 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(set_stats, m)?)?;
     m.add_function(wrap_pyfunction!(pokemon_record, m)?)?;
     m.add_class::<PyBattle>()?;
+    m.add_class::<crate::pyencode::Tables>()?;
+    m.add("OBS_DIM", crate::encoder::OBS_DIM)?;
     m.add("__engine_sha__", ffi::ENGINE_SHA)?;
+    // Bump whenever the ObservableState dict schema changes. A stale editable
+    // install is otherwise INVISIBLE: `cargo build` writes target/, but the
+    // importable .so only changes on `pip install -e`, and an old parser that
+    // ignores a new key degrades silently instead of raising. That cost a
+    // debugging cycle at P-1 (a transformed Ditto kept its original types).
+    m.add("__state_schema__", 2u32)?;
     m.add("BATTLE_SIZE", layout::BATTLE_SIZE)?;
     Ok(())
 }

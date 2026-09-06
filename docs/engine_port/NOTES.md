@@ -28,13 +28,20 @@ at 10–12 evening blocks. Declared budget, by gate:
 | gate | budget | actual |
 |---|---|---|
 | B-0 build | 2 | 1.0 |
-| B-1 loop smoke | 1 | |
-| P-4 stats | 1 | |
-| P-3 teams | 1 | |
-| P-1 encoder parity | **3** | |
-| P-2 mask parity | **1** | |
-| slack | 1 | |
-| total | **10** | |
+| B-1 loop smoke | 1 | 0.4 |
+| P-4 stats | 1 | 0.5 |
+| P-3 teams | 1 | 0.6 |
+| P-1 encoder parity | **3** | 1.2 |
+| P-2 mask parity | **1** | 0.8 |
+| slack | 1 | 0 |
+| total | **10** | **4.5** |
+
+Well inside the box. The P-1/P-2 grind the brief warned about did not
+materialise, and the reason is structural rather than luck: P-1 as the plan
+specifies it compares the two encoders GIVEN IDENTICAL OBSERVABLE STATE, which
+takes the whole reveal-by-diff problem out of scope (see the P-1 disclosure
+below). What is left is arithmetic, and arithmetic either matches bitwise or
+points straight at the line that differs.
 
 **P-1 + P-2 hard stop at 5 blocks combined.** On reaching it: stop and write up
 what is blocking, with evidence, rather than grinding (brief §4).
@@ -143,3 +150,344 @@ watcher was touched.
 - `requirements-engine.txt`: written on this branch (plan §4.5), but its "install
   into `pokemon-showdown-rl`" wording is deliberately NOT followed here — this
   session installs into its own env per the brief.
+
+---
+
+## Gate B-1 — loop smoke — **PASS** (2026-09-06)
+
+10,000 random-policy battles twice: once with the engine's own fuzz moveset
+configuration (`helpers.zig::blocked` excludes Mimic / Metronome / Mirror Move /
+Transform) and once with all 164 non-Struggle moves, because real randbats teams
+carry Mimic and Transform.
+
+| | blocked | all 164 |
+|---|---|---|
+| P1 wins / P2 wins / ties | 5079 / 4903 / 18 | 5018 / 4959 / 23 |
+| of which 1000-turn or EBC ties | 0 | 0 |
+| mean turns | 104.0 | 104.9 |
+| min / max turns | 25 / 576 | 21 / 649 |
+| mean updates per battle | 113.3 | 114.2 |
+| learner decisions (forced) | 2,165,654 (108,674) | 2,182,939 (109,505) |
+
+No `Error` outcome, no battle past turn 1000, no illegal choice, no empty choice
+list, every outcome in `{Win, Lose, Tie}`. All 41 ties were double KOs.
+
+Mean turns of ~104 is a random-policy artifact; with real bank teams (P-3's
+round-trip leg) it is **60.3**, which is the right order for gen-1 randbats.
+
+**The battles/s the script prints is NOT a T-1 number** and the script says so
+in its own output. It includes team generation and the wrapper's per-update
+legality check, it is a random policy with no encoder, and it was measured next
+to three training lanes. T-1 is out of scope while the fleet runs.
+
+### A build-time bug worth remembering
+
+The first codegen of the engine's tables **alphabetised** them: `serde_json`'s
+default `Map` is a `BTreeMap`, so `data.json`'s dex-ordered species came out with
+Abra at index 1. Caught by a spot-check assertion, not by anything downstream.
+Fixed with the `preserve_order` feature, and `build.rs` now pins the ends of both
+tables (`Bulbasaur`..`Mew`, `Pound`..`Struggle`) so it cannot recur silently.
+
+## Gate P-4 — stats — **PASS, exact** (2026-09-06)
+
+Our §5.5 stats against the `|request|` `stats` + `maxhp` on the full tape corpus
+(all 9 tapes, ~700 MB, 54 s):
+
+| | |
+|---|---|
+| own-side mon checks | **1,304,243**, mismatched **0** |
+| distinct (room, mon) sets | **44,100** |
+| checks with a max-HP reading | 996,569 |
+| max-PP slots checked | **625,433**, mismatched **0** |
+| skipped: transformed | 805 mons / 552 PP reads |
+| skipped: fainted (no max HP) | 307,674 |
+
+The arithmetic goes through the RUST code (`pkmn_gen1.set_stats` /
+`pokemon_record`), not a Python re-implementation. Passing also required
+reproducing the randbats IV/EV rules, since the request's numbers are not
+reachable without them: IVs 30 / EVs 255, minus the Substitute HP-divisibility
+walk and the "minimize confusion damage" `evs.atk = 0, ivs.atk = 2` rule
+(`showdown/data/random-battles/gen1/teams.ts:271-292`).
+
+### Two findings from P-4 that bear on everything downstream
+
+1. **THE CATEGORY TRAP.** In gen 1-3 a move's category comes from its TYPE, not
+   from the modern dex: PS rewrites it in `data/mods/gen3/scripts.ts:5-14`
+   (Fire/Water/Grass/Ice/Electric/Dark/Psychic/Dragon → Special, everything else
+   → Physical) and gen 1 inherits that. poke-env serves BOTH readings: the raw
+   `GenData.from_gen(1).moves[id]` dict keeps the MODERN category (Hyper Beam
+   Special, Razor Leaf Physical), while the `Move(id, gen=1)` CLASS applies the
+   gen fix. Reading the raw dict made a Swords-Dance Tentacruel look like an
+   all-special set and cost it 67 Attack. **The encoder uses the `Move` class, so
+   it is correct** — and `engine_tables.py` uses it too, deliberately.
+2. **TRANSFORM CHANGES WHAT A REQUEST MEANS.** `showdown/sim/pokemon.ts:1310-1330`
+   copies `storedStats` from the target, and gives each copied slot
+   `pp = min(5, base)` and, for gen < 5, `maxpp = calculatePP(move, ppUps=0)` —
+   the BASE PP, with no PP Ups. So after Transform the request's `stats` stop
+   describing the set and its `maxpp` stops being the PP-Upped max. Transformed
+   mons are retired from both P-4 legs. (poke-env models this differently again —
+   see the P-1 section.)
+
+## Gate P-3 — teams — **PASS** (2026-09-06)
+
+The bank is generated by Showdown itself at the pinned commit `59da482e`
+(`dist/sim` only: no server started, no socket opened; `git status` in the
+`showdown/` tree was clean before and after). 50,000 pairs in 99 s.
+
+| | |
+|---|---|
+| pairs / teams / mons | 50,000 / **100,000** / 600,000 |
+| per-team constraint violations | **0** |
+| pairs containing a Ditto | 5,379 |
+| pairs containing TWO Dittos | **0** |
+| Ditto in team 1 / team 2 | 2,780 / 2,599 |
+| distinct species drawn | 146 |
+| species χ², even vs odd pairs | 140.2 on dof 145, p = 0.60 |
+| move marginals vs `randbats_prior` | 366 stochastic cells over 110 species; **max \|z\| 3.15** against a Bonferroni threshold of **3.81**; 0 cells over |
+| deterministic cells agreeing exactly | 433 |
+| round trip | 500 bank battles played through the engine, mean **60.3** turns |
+
+Constraints checked per team: exactly 6 mons, Species Clause, ≤2 sharing a type,
+≤2 weak to each of the six spammable attack types, ≤1 level-100, every species
+present in `randbats_prior`, and the level equal to the prior's.
+
+The move-marginal leg is the one with teeth: `rl/envs/randbats_prior.py` is a
+Python re-implementation of `randomSet` that the ENCODER reads at inference time
+(`_opponent_move_slots`), and this is the first time it has been checked against
+what PS actually generates.
+
+**Statistics note.** No per-species χ² over move presence: the four slots of a
+set are dependent (exactly four are drawn), so summing per-move 2×2 tables would
+have the wrong degrees of freedom and a meaningless p-value. A two-sample z per
+cell with a Bonferroni threshold says the same thing honestly. Likewise the
+species self-consistency test splits by PAIR PARITY, not by team-within-pair —
+the Ditto rule makes the second team of a pair a genuinely different distribution
+(by design), so first-vs-second would flag a feature as a bug.
+
+### PLAN CORRECTION — the bank's unit is a BATTLE, not a team
+
+Plan §6.2 stores single teams and re-draws the second when both contain Ditto.
+That is a **different distribution**. `battleHasDitto` is a field on the team
+GENERATOR; PS creates exactly one generator per `Battle` and calls `getTeam()`
+twice (`sim/battle.ts:3171-3177`); and the rule is enforced by SKIPPING Ditto
+while picking the second team — it resamples ONE SLOT, not the whole team.
+Reusing one generator across many teams would also silence Ditto after its first
+appearance. So the bank stores PAIRS. The asymmetry is visible and in the
+predicted direction: Ditto appears in 2,780 first teams and 2,599 second teams
+(a difference of 2.5 se).
+
+## Gate P-1 — encoder parity — **PASS, bitwise** (2026-09-06)
+
+**100,000 tape decisions across 8 tapes. 828 floats each — 82,800,000 float
+comparisons — 0 bitwise mismatches, 0 decisions in any family.**
+Tables fingerprint `21c386ca4140414d`. 92 s.
+
+### What P-1 tests, and what it does NOT
+
+The plan's P-1 replays tapes through poke-env, **rebuilds the engine-side
+observable state from the resulting poke-env `Battle`**, runs the Rust encoder
+and compares bitwise. So it answers exactly one question: *given identical
+observable state, do the two encoders agree?*
+
+**It therefore does not exercise the engine→state path at all**, and the two
+families plan §7.1.1 declares — Metronome / Mirror Move reveal, and the Struggle
+slot — live entirely on that path. Their absence from this result is not
+evidence that they are small; they are **untested until D-1/A-1**. Saying so is
+the point: the 0 above is a real and useful zero, but it is a zero about
+arithmetic and table semantics, not about reveal-by-diff.
+
+### How bitwise equality was achieved (the rule the code follows)
+
+The Python encoder computes in Python floats (f64) and rounds exactly once, when
+numpy stores into the float32 array. `encoder.rs` does the same: every derived
+value is computed in f64 and cast with a single `as f32` at the store. Values
+Python stores verbatim from a table — `accuracy`, the 23-float v2 effect block,
+the set-prior probabilities — travel as data and are never recomputed
+(`_effect_block` is IMPORTED by `engine_tables.py`, not reimplemented). Without
+that rule a `(base as f32) / 255.0f32` would differ from Python by 1 ulp on some
+entries and "bitwise" would have been unreachable.
+
+### Three things the design had to get right, each of which was wrong first
+
+1. **A mono-type defender takes ONE chart lookup.** poke-env's
+   `damage_multiplier` returns `chart[type_1][atk]` alone when `type_2 is None`;
+   repeating the type would square it (2× becomes 4×). `MonView.type_2` is
+   therefore `Option<u8>` and the P-1 extractor emits `-1`, not a repeat.
+2. **Base stats and types are carried EXPLICITLY, not looked up from the
+   species.** Transform separates identity from stats: poke-env replaces
+   `_temporary_base_stats` / `_temporary_types` and leaves `_species` alone
+   (`pokemon.py:625-636`); the engine writes the copied species into
+   `ActivePokemon.species` while `Pokemon.species` keeps the original. Making
+   the PRODUCER state which stats apply removes a whole class of silent
+   disagreement — and it removed the Transform family from P-1 outright.
+3. **`pp/maxpp` uses the MOVE's `max_pp`, not the table's.** They part company
+   after Transform, where poke-env builds the copied `Move` with
+   `from_transform=True`.
+
+### A trap that cost a debugging cycle, now guarded
+
+`cargo build` refreshes `target/`, but the IMPORTABLE extension only changes on
+`pip install --no-build-isolation -e engine/pkmn_gen1`. A stale editable install
+is invisible: the old parser ignored the new state keys and silently used the
+untransformed species, producing 61 "transform-family" mismatches that were
+entirely an artifact of not reinstalling. `pkmn_gen1.__state_schema__` now exists
+and the P-1 harness refuses to run against the wrong one.
+
+### PLAN CORRECTION — poke-env's move dict IS transform-aware
+
+Plan §7.2's Transform row says "poke-env's `[:4]` still names the ORIGINAL dict
+entries" and declares a non-parity family on that basis. In poke-env 0.15.0 it is
+false: `Pokemon.moves` returns `_moves.moves`, which resolves to the
+`_transform_moves` set when transformed (`move.py:974-975`). poke-env and the
+engine therefore agree on the live slots, and the family does not exist.
+
+## Gate P-2 — mask parity — **PASS** (2026-09-06)
+
+Three legs, because "engine-derived mask == `get_action_mask`" decomposes into
+three separable claims and mixing them would hide which one broke.
+
+### Leg A — mask parity, 100,000 tape decisions, **0 mismatches**
+
+The mask is derived from the RAW `|request|` JSON — what Showdown itself sent,
+which is what the engine's `-Dshowdown` mode is defined to reproduce — through
+§7.2's table, and compared to poke-env's `get_action_mask` on the parsed
+`Battle`. Two independent readings of the same protocol.
+
+**This leg CONFIRMED plan §7.2's load-bearing ordering claim by first
+falsifying the alternative.** Showdown's `side.pokemon` is the CURRENT order and
+puts the active mon first, so it re-permutes on every switch; poke-env's
+`battle.team` is filled from the FIRST request and never reordered. Indexing by
+the live request order gave **3,744 mismatches in 6,000 decisions**; indexing by
+the first-request order gives **0 in 100,000**. Switch action *i* really does mean
+party index *i* for the whole battle.
+
+### Leg B — the §7.2 rows, read off the wire (100,000 decisions)
+
+| row | n | request `trapped` | poke-env `trapped` |
+|---|---|---|---|
+| normal | 84,983 | 0 | 0 |
+| force_switch | 12,626 | 0 | 0 |
+| placeholder (`[Fight]`) | 1,648 | 0 | 0 |
+| recharge (`[Recharge]`) | 540 | **540** | **540** |
+| hard_lock (one real move + trapped) | 65 | **65** | **65** |
+| one_move_set | 138 | 0 | 0 |
+| semi_lock (Bide / Wrap user) | **0** | — | — |
+
+**The two readings of `trapped` agree in every row.** That settles plan §7.2's
+own open question ("the encoder's own measurement that `battle.trapped` is False
+on 1,262 of 1,273 recharge/partial-trap turns … P-2 must confirm the split before
+this table is trusted"): the split is exactly as §7.2 predicts, and the earlier
+1,262/1,273 reading was of a category that pooled the `[Fight]` placeholder —
+never trapped — with recharge, which always is.
+
+Causes behind the locked rows, from poke-env's state: the placeholder is
+**asleep 1,178 / frozen 469** and nothing else; every hard lock is a two-turn
+charge (62, plus 3 also frozen); every recharge row is `must_recharge`.
+
+`one_move_set` is a row plan §7.2 does not have: a mon whose SET has one move
+(Ditto knows only Transform) produces a one-entry request that is
+indistinguishable from a semi-lock unless the stored move list is consulted. All
+138 are that; none is a lock.
+
+### Leg C — the engine half of the table, 20,000 bank battles, 2,453,224 decisions
+
+The tapes cannot test the engine's own `choices()` shape, so this leg plays the
+BANK's teams in the engine and reads its volatiles directly.
+
+| | |
+|---|---|
+| hard locks (`isForced`) | 29,057 — recharging 26,713, charging 2,344, thrashing 0, rage 0 |
+| semi-locks (`limited` = Bide or Binding) | **0** |
+| binding VICTIM turns | 0 |
+| asleep / frozen turns | 155,303 / 31,324 |
+| Struggle-only turns | 912 |
+| **hard lock not a single `Move(1)`** | **0** |
+| **hard lock offered a switch** | **0** |
+| **semi-lock not exactly one move** | **0** |
+| **semi-lock dropped a switch** | **0** |
+
+### The finding that simplifies §7.2: three of its rows are UNREACHABLE in this format
+
+`rl/envs/data/gen1_randbats_sets.json` (a byte copy of Showdown's own gen-1
+randbats pool) contains **no** Wrap, Bind, Clamp, Fire Spin, Thrash, Petal Dance,
+Rage or Bide — zero species offer any of them. So in `gen1randombattle`:
+
+- the **Wrap-user**, **Wrap-victim** and **Bide** rows of §7.2 cannot occur;
+- `Effect.PARTIALLY_TRAPPED` can never be set, which makes the encoder's
+  `PARTIALLY_TRAPPED` volatile slot **structurally dead in this format** — the
+  same shape of defect the D13a `MUST_RECHARGE` fix addressed, though here the
+  cause is the format's set pool, not a parser gap;
+- `LEECH_SEED` and `FOCUS_ENERGY` are dead for the same reason (neither move is
+  in the pool);
+- `Metronome` is not in the pool either, so plan §7.1.1's "Metronome / Mirror
+  Move" reveal family reduces to **Mirror Move alone** (4 species offer it).
+
+The engine mapping still implements all of them — other gen-1 formats and the
+search line need them, and leg C verifies the hard-lock shape directly — but the
+randbats collector will never exercise them, and no A-1 number can be attributed
+to them.
+
+**Volatile-slot census** over 100,000 decisions (the seven encoder slots, per
+active decision), reported with its caveat: these tapes are Foul Play (our seat)
+versus a scripted opponent, so the own/opp asymmetries below are POLICY
+asymmetries of the corpus, not properties of the format or of poke-env.
+
+| slot | own | opp |
+|---|---|---|
+| CONFUSION | 0 | 1,684 |
+| FOCUS_ENERGY | **0** | **0** |
+| LEECH_SEED | **0** | **0** |
+| MUST_RECHARGE | 1,646 | 6,860 |
+| PARTIALLY_TRAPPED | **0** | **0** |
+| REFLECT | 129 | 25 |
+| SUBSTITUTE | 107 | 0 |
+
+(Verified in the raw protocol: in `run_4106` only `p2a` is ever confused and only
+`p1a` ever puts up a Substitute. The three bolded zeros are the format-level
+finding above and do not depend on the corpus.)
+
+---
+
+## Fleet impact, whole session (brief §2)
+
+`scripts/engine_port_fleet_guard.sh`, dStep/dWall between the two newest
+checkpoints of each lane:
+
+| window | s200 | s208 | s216 |
+|---|---|---|---|
+| before any build (22:45Z) | 203.4 | 190.2 | 201.3 |
+| after B-0 (22:58Z) | 202.3 | 200.6 | 201.3 |
+| after P-3 (23:24Z) | 202.3 | 200.6 | 194.4 |
+| after P-2 (23:54Z) | 195.1 | 194.9 | 195.0 |
+
+Never below **194.9**; the band's STOP line is 180 and its RECORD line is 180.
+Every lane stayed `alive` in the wave log throughout, all three moved together in
+the last window (which is not the shape single-core Python load produces), and no
+build ran wider than `-j2` or outside `taskpolicy -b`. Peak observed box load 5.7
+of 14 cores. Nothing owned by the fleet was started, stopped or written to; the
+only main-tree access was read-only, by absolute path (`data/fp_tapes*`,
+`showdown/`, `runs/*/ckpt_*.pt` mtimes, `logs/gen4_wang50m_wave.log`).
+
+## Where this stops
+
+**P-2 is the last gate in scope.** D-1 (dynamics smoke — needs a server), T-1
+(throughput — needs an idle box) and A-1 (acceptance fleet) are out of scope while
+the gen-4 fleet runs, per brief §3, and nothing here should be read as a
+throughput or strength claim.
+
+## Owed / open when this branch merges
+
+1. **README provenance for pkmn/engine** (MIT, © 2021-2024 pkmn contributors,
+   commit `9b88fd6c…`) — the repo rule requires it; brief §1.6 forbids me to edit
+   `README.md`. Code-level provenance IS in place (`Cargo.toml`, `src/lib.rs`,
+   `.gitmodules`, `engine_tables.py`, `engine_team_bank.py`/`.js`).
+2. `requirements-engine.txt` is NOT written: plan §4.5's version of it says
+   "install into the `pokemon-showdown-rl` env", which is exactly what this
+   session must not do. It should be written by whoever merges, against whatever
+   env policy holds then.
+3. The plan corrections above (§6.2 pairs, §7.2 Transform row, §7.2's three dead
+   rows, §4.3's pyo3 feature) are recorded here rather than edited into
+   `docs/PKMN_ENGINE_RUST_PLAN.md`, because that file is on `main`.
+4. The D-1 band should be revisited with the P-2 finding in hand: with no
+   binding, Bide, Thrash or Rage in the format, the mechanics D-1 can actually
+   discriminate are a smaller set than plan §10 assumes.

@@ -205,3 +205,145 @@ mod tests {
         assert_eq!(a.updates, b.updates);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Gate P-2, engine leg: the §7.2 mapping table, measured on real battles.
+// ---------------------------------------------------------------------------
+
+/// Counts of the situations plan §7.2 tabulates, taken from the ENGINE's own
+/// volatiles at every decision, together with the shape of `choices()` in each.
+///
+/// The table claims two things about the engine that can be checked directly:
+/// a HARD LOCK (`isForced` = Recharging | Rage | Thrashing | Charging) offers
+/// exactly one choice and it is `Move(1)` with no switches; a SEMI-LOCK (Bide or
+/// Binding on the user) offers switches plus exactly one move slot. Everything
+/// else offers the normal list.
+#[derive(Clone, Debug, Default)]
+pub struct MaskSplit {
+    pub decisions: u64,
+    pub switch_requests: u64,
+    /// Hard locks, by cause (a mon can carry more than one bit; counted per bit).
+    pub recharging: u64,
+    pub thrashing: u64,
+    pub charging: u64,
+    pub rage: u64,
+    /// Any hard lock at all.
+    pub forced: u64,
+    /// Semi-locks on the USER.
+    pub bide_user: u64,
+    pub binding_user: u64,
+    pub limited: u64,
+    /// The VICTIM of Wrap/Bind/Clamp/Fire Spin -- the FOE active carries Binding.
+    pub binding_victim: u64,
+    pub asleep: u64,
+    pub frozen: u64,
+    /// Turns where the only move choice offered is `Move(0)` (Struggle).
+    pub struggle: u64,
+    /// Violations of the table, which is what the gate reads.
+    pub forced_not_single_move1: u64,
+    pub forced_offered_switch: u64,
+    pub limited_not_one_move: u64,
+    pub limited_missing_switches: u64,
+}
+
+/// Plays `n` battles with a uniform policy and tallies the §7.2 split.
+pub fn mask_table_split(
+    n: u64,
+    seed: u64,
+    teams: &[(Vec<[u8; crate::layout::POKEMON_SIZE]>, Vec<[u8; crate::layout::POKEMON_SIZE]>)],
+) -> Result<MaskSplit, String> {
+    use crate::layout::PokemonView;
+    let mut sp = MaskSplit::default();
+    if teams.is_empty() {
+        return Err("no teams supplied".into());
+    }
+    for i in 0..n {
+        let (p1, p2) = &teams[(i as usize) % teams.len()];
+        let bseed = splitmix64(seed.wrapping_add(i));
+        let mut battle = Battle::new(bseed, p1, p2);
+        let mut rng = bseed;
+        let mut next = move || {
+            rng = splitmix64(rng);
+            rng
+        };
+        let mut r = battle
+            .update(Request::Pass, Choice::Pass, Request::Pass, Choice::Pass)
+            .map_err(|e| e.to_string())?;
+        let mut updates = 0u64;
+        while !r.over() && updates < MAX_UPDATES {
+            let mut picked = [Choice::Pass; 2];
+            for (k, p) in [Player::P1, Player::P2].iter().enumerate() {
+                let req = r.request(*p);
+                let cs = battle.choices(*p, req);
+                if cs.is_empty() {
+                    return Err(format!(
+                        "engine offered no choices to {p:?} under {req:?}; showdown \
+                         mode guarantees >= 1 (after {} decisions)",
+                        sp.decisions
+                    ));
+                }
+                if req == Request::Switch {
+                    sp.switch_requests += 1;
+                }
+                if req == Request::Move {
+                    sp.decisions += 1;
+                    let side = battle.side(*p);
+                    let foe = battle.side(p.foe());
+                    let v = side.active().volatiles();
+                    let fv = foe.active().volatiles();
+                    let stored: PokemonView = side.party(side.active_party_index());
+                    let st = stored.status();
+
+                    let forced = v.recharging() || v.rage() || v.thrashing() || v.charging();
+                    let limited = v.bide() || v.binding();
+                    if v.recharging() { sp.recharging += 1; }
+                    if v.thrashing() { sp.thrashing += 1; }
+                    if v.charging() { sp.charging += 1; }
+                    if v.rage() { sp.rage += 1; }
+                    if v.bide() { sp.bide_user += 1; }
+                    if v.binding() { sp.binding_user += 1; }
+                    if fv.binding() { sp.binding_victim += 1; }
+                    if st.asleep() { sp.asleep += 1; }
+                    if st.frz() { sp.frozen += 1; }
+
+                    let moves: Vec<Choice> =
+                        cs.iter().filter(|c| matches!(c, Choice::Move(_))).collect();
+                    let switches = cs.iter().filter(|c| matches!(c, Choice::Switch(_))).count();
+                    if moves.len() == 1 && moves[0] == Choice::Move(0) {
+                        sp.struggle += 1;
+                    }
+                    if forced {
+                        sp.forced += 1;
+                        if cs.len() != 1 || cs.get(0) != Choice::Move(1) {
+                            sp.forced_not_single_move1 += 1;
+                        }
+                        if switches != 0 {
+                            sp.forced_offered_switch += 1;
+                        }
+                    } else if limited {
+                        sp.limited += 1;
+                        if moves.len() != 1 {
+                            sp.limited_not_one_move += 1;
+                        }
+                        // Every alive, non-active party slot must still be offered.
+                        let alive = (1..6)
+                            .filter(|&s| {
+                                let id = side.order()[s] as usize;
+                                id != 0 && side.party(id - 1).hp() > 0
+                            })
+                            .count();
+                        if switches != alive {
+                            sp.limited_missing_switches += 1;
+                        }
+                    }
+                }
+                picked[k] = cs.get((next() % cs.len() as u64) as usize);
+            }
+            r = battle
+                .update(r.p1, picked[0], r.p2, picked[1])
+                .map_err(|e| e.to_string())?;
+            updates += 1;
+        }
+    }
+    Ok(sp)
+}

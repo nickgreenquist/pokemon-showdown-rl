@@ -256,6 +256,206 @@ def cmd_p3(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_tape_gate(gate: str, args) -> dict:
+    """Both tape gates run in a SUBPROCESS: the encoder flags are read at import
+    (`POKEMON_RL_ENCODER_V2` / `POKEMON_RL_ENCODER_IDS`), the same shape
+    tests/test_encoder_ids_tapes.py uses."""
+    import os
+    import subprocess
+
+    here = pathlib.Path(__file__).resolve().parent
+    cmd = [
+        sys.executable,
+        str(here / "engine_p1_run.py"),
+        "--gate", gate,
+        "--target", str(args.target),
+    ]
+    if args.tapes_root:
+        cmd += ["--tapes-root", args.tapes_root]
+    r = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        env={**os.environ, "POKEMON_RL_ENCODER_V2": "1", "POKEMON_RL_ENCODER_IDS": "1"},
+    )
+    if r.returncode != 0:
+        raise RuntimeError(r.stderr[-4000:])
+    return json.loads(r.stdout)
+
+
+def cmd_p1(args: argparse.Namespace) -> int:
+    """P-1: 828 floats, bitwise, outside the declared families."""
+    t0 = time.perf_counter()
+    d = _run_tape_gate("p1", args)
+    dt = time.perf_counter() - t0
+    fams = d["families"]
+    declared = {"transform", "struggle_slot", "metronome_reveal"}
+    undeclared = fams.get("undeclared", 0)
+    print(f"[P-1] tapes read: {d['tapes_read']}   tables fingerprint {d['tables_fingerprint'][:16]}")
+    _print_kv(
+        {
+            "decisions replayed": d["decisions"],
+            "floats compared": d["decisions"] * 828,
+            "decisions mismatched": d["mismatched_decisions"],
+            "  as a fraction": d["mismatched_decisions"] / max(d["decisions"], 1),
+            "declared families": {k: v for k, v in fams.items() if k in declared},
+            "UNDECLARED mismatches": undeclared,
+            "wall seconds": dt,
+        }
+    )
+    for f, c in d["top_fields"][:10]:
+        print(f"    {f}: {c}")
+    for e in d["examples"][:5]:
+        print(f"    example ({e['family']}, turn {e['turn']}, {e['n_fields']} fields): {e['fields'][:3]}")
+
+    budget = args.family_budget * d["decisions"]
+    reasons = []
+    if undeclared:
+        reasons.append(f"{undeclared} UNDECLARED mismatches (a bug, not a family)")
+    fam_total = sum(v for k, v in fams.items() if k in declared)
+    if fam_total > budget:
+        reasons.append(f"declared families {fam_total} over the {args.family_budget:.1%} budget ({budget:.0f})")
+    if d["decisions"] < args.min_decisions:
+        reasons.append(f"only {d['decisions']} decisions < {args.min_decisions}")
+    if reasons:
+        print(f"\n[P-1] FAIL: {'; '.join(reasons)}")
+        return 1
+    print("\n[P-1] PASS")
+    return 0
+
+
+def cmd_p2(args: argparse.Namespace) -> int:
+    """P-2: mask parity, the §7.2 split, and the engine half of the table."""
+    t0 = time.perf_counter()
+    d = _run_tape_gate("p2", args)
+    dt = time.perf_counter() - t0
+    r = d["report"]
+
+    print(f"[P-2] leg A -- mask parity on {d['tapes_read']} tapes")
+    _print_kv(
+        {
+            "decisions": r.get("decisions", 0),
+            "mismatched": r.get("mismatched", 0),
+            "  transform family": r.get("mismatch_family:transform", 0),
+            "  UNDECLARED": r.get("mismatch_family:undeclared", 0),
+            "skipped (wait)": r.get("skipped_wait", 0),
+            "wall seconds": dt,
+        }
+    )
+    for f in d["failures"][:5]:
+        print(f"    MISMATCH {f}")
+
+    print("\n[P-2] leg B -- the §7.2 rows, read off the wire")
+    rows = sorted({k.split(":")[1] for k in r if k.startswith("reqtrap:")})
+    print(f"    {'row':16s} {'n':>8s}  {'request trapped':>16s}  {'poke-env trapped':>17s}")
+    for k in rows:
+        n = r.get(f"kind:{k}", 0)
+        rt = r.get(f"reqtrap:{k}:1", 0)
+        pt = r.get(f"pokeenvtrap:{k}:1", 0)
+        print(f"    {k:16s} {n:8d}  {rt:16d}  {pt:17d}")
+    print("    causes behind the locked rows (poke-env state):")
+    for k in sorted(x for x in r if x.startswith("cause:")):
+        print(f"      {k[6:]:44s} {r[k]}")
+    print("    volatile-slot census (the 7 encoder slots, per active decision):")
+    for e in engine_p2_volatiles():
+        print(
+            f"      {e:18s} own={r.get(f'vol:own:{e}', 0):7d}  opp={r.get(f'vol:opp:{e}', 0):7d}"
+        )
+
+    split = None
+    if args.engine_battles:
+        split = _p2_engine_leg(args)
+
+    reasons = []
+    if r.get("mismatch_family:undeclared", 0):
+        reasons.append(f"{r['mismatch_family:undeclared']} UNDECLARED mask mismatches")
+    if r.get("decisions", 0) < args.min_decisions:
+        reasons.append(f"only {r.get('decisions', 0)} decisions < {args.min_decisions}")
+    if split is not None:
+        bad = {
+            k: split[k]
+            for k in (
+                "forced_not_single_move1",
+                "forced_offered_switch",
+                "limited_not_one_move",
+                "limited_missing_switches",
+            )
+            if split[k]
+        }
+        if bad:
+            reasons.append(f"engine leg violates §7.2: {bad}")
+    if reasons:
+        print(f"\n[P-2] FAIL: {'; '.join(reasons)}")
+        return 1
+    print("\n[P-2] PASS")
+    return 0
+
+
+def engine_p2_volatiles():
+    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+    import engine_p2
+
+    return engine_p2.ENCODER_VOLATILES
+
+
+def _p2_engine_leg(args) -> dict:
+    """Leg C: §7.2's claims about the ENGINE, measured on real bank teams.
+
+    The tapes cannot test these -- a hard lock offers exactly `Move(1)` and no
+    switches, a semi-lock offers switches plus one move -- because the tapes have
+    no engine state. Here the engine plays the bank's own teams and the
+    situations are counted directly from its volatiles.
+    """
+    import engine_team_bank as bank
+
+    path = pathlib.Path(args.bank)
+    if not path.exists():
+        print(f"\n[P-2] leg C SKIPPED: no team bank at {path}")
+        return None
+    _header, payload = bank.read_bank(path)
+    teams = []
+    for i, (t1, t2) in enumerate(bank.iter_pairs(payload)):
+        if i >= args.engine_teams:
+            break
+        teams.append(
+            tuple(
+                [
+                    pkmn_gen1.pokemon_record(m["species"], m["level"], m["moves"], m["ivs"], m["evs"])
+                    for m in team
+                ]
+                for team in (t1, t2)
+            )
+        )
+    t0 = time.perf_counter()
+    split = pkmn_gen1.mask_table_split(args.engine_battles, 0x9E3779B1, teams)
+    dt = time.perf_counter() - t0
+    print(f"\n[P-2] leg C -- the §7.2 table on the ENGINE ({args.engine_battles} bank battles)")
+    _print_kv(
+        {
+            "move decisions": split["decisions"],
+            "switch requests": split["switch_requests"],
+            "hard locks (isForced)": split["forced"],
+            "  recharging": split["recharging"],
+            "  thrashing": split["thrashing"],
+            "  charging": split["charging"],
+            "  rage": split["rage"],
+            "semi-locks (limited)": split["limited"],
+            "  bide (user)": split["bide_user"],
+            "  binding (user)": split["binding_user"],
+            "binding VICTIM turns": split["binding_victim"],
+            "asleep turns": split["asleep"],
+            "frozen turns": split["frozen"],
+            "struggle-only turns": split["struggle"],
+            "VIOLATION forced not a single Move(1)": split["forced_not_single_move1"],
+            "VIOLATION forced offered a switch": split["forced_offered_switch"],
+            "VIOLATION semi-lock not exactly 1 move": split["limited_not_one_move"],
+            "VIOLATION semi-lock dropped a switch": split["limited_missing_switches"],
+            "wall seconds": dt,
+        }
+    )
+    return split
+
+
 def _not_yet(name: str):
     def run(args: argparse.Namespace) -> int:
         print(f"[{name}] not implemented yet", file=sys.stderr)
@@ -288,12 +488,21 @@ def main(argv: list[str] | None = None) -> int:
     p3.add_argument("--round-trip", type=int, default=500)
     p3.set_defaults(func=cmd_p3)
 
-    for gate, helptext in (
-        ("p1", "828-float encoder parity"),
-        ("p2", "mask parity"),
-    ):
-        p = sub.add_parser(gate, help=helptext)
-        p.set_defaults(func=_not_yet(gate.upper()))
+    p1 = sub.add_parser("p1", help="828-float encoder parity, bitwise")
+    p1.add_argument("--target", type=int, default=100_000)
+    p1.add_argument("--min-decisions", type=int, default=5000)
+    p1.add_argument("--family-budget", type=float, default=0.01)
+    p1.add_argument("--tapes-root", default=None)
+    p1.set_defaults(func=cmd_p1)
+
+    p2 = sub.add_parser("p2", help="mask parity and the §7.2 table")
+    p2.add_argument("--target", type=int, default=100_000)
+    p2.add_argument("--min-decisions", type=int, default=5000)
+    p2.add_argument("--tapes-root", default=None)
+    p2.add_argument("--bank", default="data/engine/teams_59da482e_e0e0_50000.bin")
+    p2.add_argument("--engine-battles", type=int, default=20_000)
+    p2.add_argument("--engine-teams", type=int, default=5000)
+    p2.set_defaults(func=cmd_p2)
 
     args = ap.parse_args(argv)
     return args.func(args)

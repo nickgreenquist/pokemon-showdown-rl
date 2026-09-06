@@ -1,0 +1,132 @@
+"""Static tables for the engine collector's Rust encoder (plan §7.4).
+
+Borrowed: the engine itself is pkmn/engine (MIT, (c) 2021-2024 pkmn
+contributors), vendored at `engine/pkmn_gen1/vendor/pkmn-engine`. This module
+borrows nothing -- it exists so the Rust encoder holds NO game data of its own.
+
+Everything the Rust encoder reads about species, moves and type effectiveness is
+built HERE, from poke-env, because poke-env is the single source
+`rl/envs/showdown.py::embed_battle` reads. `_effect_block` is IMPORTED from that
+module rather than reimplemented, so the 23 v2 effect floats are the very same
+float32 values, bit for bit.
+
+The bundle is fingerprinted (sha256 over the concatenated arrays) so a run can
+record which tables produced its transitions, next to ENCODER_FINGERPRINT.
+"""
+
+from __future__ import annotations
+
+import hashlib
+from functools import lru_cache
+
+import numpy as np
+from poke_env.battle.move import Move
+from poke_env.battle.move_category import MoveCategory
+from poke_env.data import GenData
+
+from rl.envs.encoder_spec import GEN1, EncoderSpec
+from rl.envs.showdown import _effect_block, _move_obj
+
+# Index 0 in every table is the "unknown / absent" row, so table index == the
+# encoder's id (dex number for species, move number for moves).
+UNKNOWN = 0
+
+
+def _species_rows(spec: EncoderSpec) -> tuple[list[list[int]], list[tuple[int, int]]]:
+    gd = GenData.from_gen(spec.gen)
+    lo, hi = spec.species_num_range
+    n = hi + 1
+    base = [[0] * len(spec.base_stat_keys) for _ in range(n)]
+    types: list[tuple[int, int]] = [(-1, -1)] * n
+    by_num = {}
+    for entry in gd.pokedex.values():
+        num = entry.get("num", 0)
+        if lo <= num <= hi and num not in by_num:
+            by_num[num] = entry
+    for num, entry in by_num.items():
+        base[num] = [entry["baseStats"][k] for k in spec.base_stat_keys]
+        ts = entry["types"]
+        # type_2 is -1 (= None) for a mono-type species. poke-env's
+        # `damage_multiplier` takes ONE chart lookup when type_2 is None, so a
+        # repeated type would square the multiplier -- 2x would become 4x.
+        idx = [spec.type_index.get(_pokemon_type(t), -1) for t in ts]
+        types[num] = (idx[0], idx[1] if len(idx) > 1 else -1)
+    return base, types
+
+
+@lru_cache(maxsize=64)
+def _pokemon_type(name: str):
+    from poke_env.battle.pokemon_type import PokemonType
+
+    return PokemonType.from_name(name)
+
+
+def _move_rows(spec: EncoderSpec):
+    gd = GenData.from_gen(spec.gen)
+    lo, hi = spec.move_num_range
+    rows = [
+        (0, 0.0, 0, 0, False, False, -1, [0.0] * 23)
+        for _ in range(hi + 1)
+    ]
+    seen: set[int] = set()
+    for move_id, entry in gd.moves.items():
+        num = entry.get("num", 0)
+        if not (lo <= num <= hi) or num in seen:
+            continue
+        seen.add(num)
+        try:
+            m = _move_obj(move_id) if spec.gen == 1 else Move(move_id, gen=spec.gen)
+        except Exception:  # pragma: no cover - a dex entry poke-env cannot build
+            continue
+        rows[num] = (
+            m.base_power,
+            float(np.float32(m.accuracy)),
+            m.max_pp,
+            m.priority,
+            m.category == MoveCategory.PHYSICAL,
+            m.category == MoveCategory.STATUS,
+            spec.type_index.get(m.type, -1),
+            [float(x) for x in _effect_block(move_id)],
+        )
+    return rows
+
+
+def _type_chart(spec: EncoderSpec) -> list[list[float]]:
+    """`chart[defender][attacker]`, matching poke-env's
+    `type_chart[type_1.name][self.name]` indexing."""
+    chart = GenData.from_gen(spec.gen).type_chart
+    return [
+        [float(chart[d.name][a.name]) for a in spec.types]
+        for d in spec.types
+    ]
+
+
+def build_tables(spec: EncoderSpec = GEN1):
+    """A `pkmn_gen1.Tables` for the Rust encoder, plus its fingerprint."""
+    import pkmn_gen1
+
+    base, types = _species_rows(spec)
+    moves = _move_rows(spec)
+    chart = _type_chart(spec)
+    tables = pkmn_gen1.Tables(base, types, moves, chart)
+    return tables, fingerprint(spec)
+
+
+@lru_cache(maxsize=4)
+def fingerprint(spec: EncoderSpec = GEN1) -> str:
+    """sha256 over the concatenated tables -- stamped into run metadata so a run
+    records exactly which data produced its observations."""
+    base, types = _species_rows(spec)
+    moves = _move_rows(spec)
+    chart = _type_chart(spec)
+    h = hashlib.sha256()
+    h.update(np.asarray(base, dtype=np.int32).tobytes())
+    h.update(np.asarray(types, dtype=np.int32).tobytes())
+    for row in moves:
+        bp, acc, pp, prio, phys, stat, ty, eff = row
+        h.update(np.asarray([bp, pp, prio, ty], dtype=np.int32).tobytes())
+        h.update(np.asarray([acc], dtype=np.float32).tobytes())
+        h.update(bytes([phys, stat]))
+        h.update(np.asarray(eff, dtype=np.float32).tobytes())
+    h.update(np.asarray(chart, dtype=np.float64).tobytes())
+    return h.hexdigest()
