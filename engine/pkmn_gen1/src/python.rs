@@ -9,9 +9,11 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
 use crate::battle::{Battle, Choice, Outcome, Player, Request};
+use crate::data;
 use crate::ffi;
 use crate::layout;
 use crate::smoke;
+use crate::team::PokemonSet;
 
 fn player(p: &str) -> PyResult<Player> {
     match p {
@@ -95,6 +97,74 @@ fn build_info(py: Python<'_>) -> PyResult<Py<PyDict>> {
 fn verify(py: Python<'_>) -> PyResult<Py<PyDict>> {
     ffi::verify_options().map_err(PyRuntimeError::new_err)?;
     build_info(py)
+}
+
+/// The engine's own species names, index 0 = "None" (its `Species` enum order).
+#[pyfunction]
+fn species_names() -> Vec<&'static str> {
+    data::SPECIES_NAMES.to_vec()
+}
+
+/// The engine's own move names, index 0 = "None" (its `Move` enum order).
+#[pyfunction]
+fn move_names() -> Vec<&'static str> {
+    data::MOVE_NAMES.to_vec()
+}
+
+/// The engine's 15 types in CARTRIDGE order (the encoder's one-hot is alphabetical).
+#[pyfunction]
+fn type_names() -> Vec<&'static str> {
+    data::TYPE_NAMES.to_vec()
+}
+
+/// Max PP with 3 PP Ups for an engine move id.
+#[pyfunction]
+fn max_pp(move_id: u8) -> PyResult<u8> {
+    if move_id == 0 || move_id > 165 {
+        return Err(PyValueError::new_err(format!("move id {move_id} out of range")));
+    }
+    Ok(data::max_pp(move_id))
+}
+
+fn build_set(species: u8, level: u8, moves: Vec<u8>, ivs: [u8; 5], evs: [u8; 5]) -> PyResult<PokemonSet> {
+    if species == 0 || species > 151 {
+        return Err(PyValueError::new_err(format!("species {species} out of range")));
+    }
+    if level == 0 || level > 100 {
+        return Err(PyValueError::new_err(format!("level {level} out of range")));
+    }
+    if moves.is_empty() || moves.len() > 4 {
+        return Err(PyValueError::new_err("a Pokemon has 1..4 moves"));
+    }
+    let mut m = [0u8; 4];
+    for (i, &mv) in moves.iter().enumerate() {
+        if mv == 0 || mv > 165 {
+            return Err(PyValueError::new_err(format!("move id {mv} out of range")));
+        }
+        m[i] = mv;
+    }
+    Ok(PokemonSet { species, level, moves: m, ivs, evs })
+}
+
+/// Gate P-4: the crate's §5.5 stats for a set, as `(hp, atk, def, spe, spc)`.
+///
+/// `ivs`/`evs` are in the ENGINE's stat order (hp, atk, def, spe, spc); PS's
+/// `spa` and `spd` are the same number in gen 1 and both map to `spc`.
+#[pyfunction]
+fn set_stats(species: u8, level: u8, ivs: [u8; 5], evs: [u8; 5]) -> PyResult<[u16; 5]> {
+    Ok(build_set(species, level, vec![1], ivs, evs)?.stats())
+}
+
+/// The 24-byte engine `Pokemon` record for a set (plan §6.4).
+#[pyfunction]
+fn pokemon_record(
+    species: u8,
+    level: u8,
+    moves: Vec<u8>,
+    ivs: [u8; 5],
+    evs: [u8; 5],
+) -> PyResult<Vec<u8>> {
+    Ok(build_set(species, level, moves, ivs, evs)?.to_bytes().to_vec())
 }
 
 /// Gate B-1: `n` random-policy battles, engine-only. Releases the GIL.
@@ -253,6 +323,12 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_info, m)?)?;
     m.add_function(wrap_pyfunction!(verify, m)?)?;
     m.add_function(wrap_pyfunction!(smoke_random_battles, m)?)?;
+    m.add_function(wrap_pyfunction!(species_names, m)?)?;
+    m.add_function(wrap_pyfunction!(move_names, m)?)?;
+    m.add_function(wrap_pyfunction!(type_names, m)?)?;
+    m.add_function(wrap_pyfunction!(max_pp, m)?)?;
+    m.add_function(wrap_pyfunction!(set_stats, m)?)?;
+    m.add_function(wrap_pyfunction!(pokemon_record, m)?)?;
     m.add_class::<PyBattle>()?;
     m.add("__engine_sha__", ffi::ENGINE_SHA)?;
     m.add("BATTLE_SIZE", layout::BATTLE_SIZE)?;

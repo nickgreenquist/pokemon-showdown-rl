@@ -21,8 +21,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import pathlib
 import sys
 import time
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import pkmn_gen1
 
@@ -87,6 +90,72 @@ def cmd_b1(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def cmd_p4(args: argparse.Namespace) -> int:
+    """P-4: exact, 100%, over >= 1,000 own-side mons."""
+    from collections import Counter
+
+    import engine_p4
+    from engine_tapes import tape_paths
+
+    paths = tape_paths(pathlib.Path(args.tapes_root) if args.tapes_root else None)
+    if not paths:
+        print("no tapes found -- pass --tapes-root", file=sys.stderr)
+        return 2
+
+    report: Counter = Counter()
+    failures: list[str] = []
+    seen: set = set()
+    read = 0
+    for path in paths:
+        engine_p4.check_tape(path, report, failures, seen)
+        read += 1
+        print(
+            f"  {path.name}: {len(seen)} distinct own-side mons, "
+            f"{report['mismatched']} mismatched",
+            flush=True,
+        )
+        # The gate counts DISTINCT mons: a mon reappears in every request of its
+        # battle, and 7,200 repeats of 240 sets is not 7,200 sets.
+        if len(seen) >= args.min_distinct and report["pp_checked"] >= args.min_mons:
+            break
+
+    print(f"[P-4] tapes read: {read} of {len(paths)}")
+    _print_kv(
+        {
+            "own-side mons checked": report["mons_checked"],
+            "  distinct (room, mon)": len(seen),
+            "  with a max-HP reading": report["hp_checked"],
+            "  mismatched": report["mismatched"],
+            "skipped: transformed": report["skipped_transformed"],
+            "skipped: fainted (no maxhp)": report["skipped_hp_fainted"],
+            "skipped: no stats block": report["skipped_no_stats"],
+            "engine records built": report["records_built"],
+            "max-PP slots checked": report["pp_checked"],
+            "  max-PP mismatched": report["pp_mismatched"],
+            "  max-PP skipped: transformed": report["pp_skipped_transformed"],
+        }
+    )
+    for f in failures[:25]:
+        print(f"  MISMATCH {f}")
+
+    reasons = []
+    if report["mismatched"]:
+        reasons.append(f"{report['mismatched']} stat mismatches")
+    if report["pp_mismatched"]:
+        reasons.append(f"{report['pp_mismatched']} max-PP mismatches")
+    if failures:
+        reasons.append(f"{len(failures)} reported failures")
+    if len(seen) < args.min_distinct:
+        reasons.append(f"only {len(seen)} distinct mons < --min-distinct {args.min_distinct}")
+    if report["pp_checked"] < args.min_mons:
+        reasons.append(f"only {report['pp_checked']} PP slots < --min-mons {args.min_mons}")
+    if reasons:
+        print(f"\n[P-4] FAIL: {'; '.join(reasons)}")
+        return 1
+    print("\n[P-4] PASS")
+    return 0
+
+
 def _not_yet(name: str):
     def run(args: argparse.Namespace) -> int:
         print(f"[{name}] not implemented yet", file=sys.stderr)
@@ -105,8 +174,13 @@ def main(argv: list[str] | None = None) -> int:
     b1.add_argument("--json", action="store_true")
     b1.set_defaults(func=cmd_b1)
 
+    p4 = sub.add_parser("p4", help="stats vs the |request| stats on the tapes")
+    p4.add_argument("--tapes-root", default=None)
+    p4.add_argument("--min-mons", type=int, default=1000)
+    p4.add_argument("--min-distinct", type=int, default=1000)
+    p4.set_defaults(func=cmd_p4)
+
     for gate, helptext in (
-        ("p4", "stats vs the |request| stats on the tapes"),
         ("p3", "team-bank constraints and species marginals"),
         ("p1", "828-float encoder parity"),
         ("p2", "mask parity"),
