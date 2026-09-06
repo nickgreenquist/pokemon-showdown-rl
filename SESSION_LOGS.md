@@ -10936,3 +10936,18 @@ line numbers are not — grep the date, then read that region):
   0.31 / 0.32 / 0.47 at 250k. Desync instrument through 05:38Z: 0 / 0 / 0
   re-decisions and desyncs over ≈ 4.9M combined lane-steps (attempt 1's rate
   would have produced ≈ 150).
+  (14) **5M READ at 10:31Z (~5.24–5.27M steps, 262–263 updates/lane): ALL
+  PASS on every lane.** D-A at the 5M rung (`ckpt_005000000.pt`, u = 250, x =
+  0.099441): stored lr **2.447429e-05** on both groups == the (u − 1) closed
+  form to 1e-12 on s200 / s208 / s216 — the anneal is live and exact. D-B: 11 /
+  11 / 10 conforming 30-min windows, min 211, median 213–214, last 214–215
+  steps/s; whole post-1M 213 on every lane; zero non-conforming. R0-2 / R0-3 /
+  H1 (0 of 11 rung buckets breached) / R0-6 / T3 (approx_kl ≤ 0.0023) clean.
+  RE-BASING AT 5M, disclosed as the header requires: K6 — the fleet's own
+  entropy minima are 0.916 / 0.932 / 0.966 (from 1.8 at start); the floor
+  STAYS 0.15 (a collapse detector, not a band — nothing to re-base toward);
+  T2 — clip_frac max 0.175 / 0.177 / 0.189, last 0.135–0.141: the fleet does
+  NOT sit above 0.5, so 0.90 stands. D-C (n = 100, NOT ACTIONABLE, record
+  only): 0.81–0.87 / 0.84–0.85 / 0.80–0.85 at 4.8–5.2M. Desync instrument
+  through 10:08Z: 0 / 0 / 0 over ≈ 15M combined lane-steps. Next scheduled
+  read: D-A at the 25M rung (≈ 2026-09-07 12:30Z).
