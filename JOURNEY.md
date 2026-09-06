@@ -75,6 +75,14 @@ Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is op
 
 No search experiments here. They belong after step 11, against our strongest gen1 policy — running them now would reopen gen1 mid-arc and would measure search against a weak critic, which we already know the answer to.
 
+### 7.5  Switch the gen1 collector off Node — pkmn/engine (maintainer, 2026-09-06: critical)
+
+Everything from here on is gen1, and gen1's bottleneck is not ideas — it is that a fleet-day buys 3 seeds against a σ_seed ≈ 0.062 noise floor, so advisory-scale levers cannot be seen at all (IDEAS_POST_100M §1). `docs/PKMN_ENGINE_RUST_PLAN.md` is the fix: an in-process collector on **`pkmn/engine`** (not `poke-engine`, which is the chapter-3 search dependency we already ship), ~4.2× full-loop per lane once the learner owns ~90% of wall, 8 lanes per fleet-day instead of 3, and paired evaluation with **common random numbers** — impossible on the server path, and the only thing on the table that shrinks the bar instead of buying more n. Build it in the gen4 chapter's evening blocks; it needs no fleet until acceptance. It also makes the both-seat harvest, the re-opened privileged-critic arm (IDEAS 4.7), and the depth-2 question cheap (plan §8.4).
+
+**Switch HERE, not mid-gen1.** Steps 8–11 must sit on ONE collector: if the special sauce is credited on the server path and the massive train runs on the engine, no disclosure untangles it afterwards. A-1 acceptance is the gate — 3 seeds × 12M inside |Δ| < 0.025 of the async acceptance fleet, with the signed delta travelling forever after as N-COLL's does; outside the band we diagnose parity and do NOT switch.
+
+What it does not touch: the locked eval protocol and the ladder stay on the Showdown server, so eval schedules do not get faster, and CRN pairing is an additional read beside the locked one, never a replacement. And it does nothing for gen4 or gen9 — that engine implements RBY completely, GSC is a WIP, DPP is not implemented.
+
 ### 8. Back to gen1 — retrain with any special sauce
 Recipe findings are generation-agnostic: rollout size, minibatch structure, λ and γ, LR schedule, privileged critic, auxiliary heads, opponent-pool composition, entropy scheduling. None of those are gen4 facts. Port them home.
 
