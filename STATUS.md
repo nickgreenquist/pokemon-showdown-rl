@@ -34,11 +34,12 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
   Cherrim-Sunshine bench names) — fixed cba9458, 84,046/84,046 PASS. NOT PUSHED.
 
 ## Next actions
-1. **FLEET LAUNCHED 2026-09-06 03:08:42Z (agent-side, authorized):** lanes s200/s208/
-   s216 pids 5952/6148/6202 at sha 8858393, tree clean, fresh server pid 5756,
-   PREFLIGHT PASS (167 GiB, 11 GB). R0-k2: the bare suite STALLED at 40 min (the
-   live-test landmine), re-run GREEN with the two documented live tests deselected
-   (856 passed) — DISCLOSE. Logs: `logs/gen4_wang50m_wave.log`; rate watch alerts.
+1. **FLEET: attempt 1 (03:08Z) OPS-KILLED at 03:21Z** — gen-4 mask desyncs on the
+   pool seat (~3e-5/step; U-turn / Baton Pass / choice-lock traffic) tripped the
+   gen-1 recovery cap (3 per 100k) nine minutes in. FIXED e37a7fc (re-decide on the
+   fresh request; no phantom seat-2 decisions); post-fix smoke 0 desyncs / 0
+   re-decisions in 60k steps. **Attempt 2 relaunched ~03:45Z** from a clean tree;
+   attempt-1 run dirs archived under `runs/aborted_20260906_0308Z/`. DISCLOSE both.
 2. **MAINTAINER (morning):** read those two logs; rule RW-1 and RW-4 before the
    readout (sidecar `ratified_decisions`); if you disagree with the RW-2/3/6
    defaults, kill the fleet — nothing else moves them now.

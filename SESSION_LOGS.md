@@ -10845,3 +10845,42 @@ line numbers are not — grep the date, then read that region):
   expected; harvest ratio 0.99–1.01, version_lag_max 0–1), so the in-run metric
   gates are readable without waiting for the run to end. Next: R0-1..6 at 250k
   per lane, R0-5 first rung by 04:08Z, D-B from the first conforming windows.
+  (10) **ATTEMPT 1 OPS-KILLED 03:21Z; ROOT CAUSE FIXED; ATTEMPT 2.** Lane s200
+  died at 03:17Z (9 min, ~80k steps): `MaskDesyncCapExceeded: 4 mask desyncs
+  within 100000 env steps (cap 3)` — the 2026-08-18 gen-1 guard (D29r) that
+  makes a SYSTEMIC mask/valid-orders divergence loud. The wave's immediate
+  `--resume` then crashed at reset ("Can not reset player's battles while they
+  are still running": the dead process's rooms were still open under the
+  seed-derived usernames — the poisoned-pair landmine in resume form). Across
+  the three lanes: 7 desyncs in ~250k lane steps (≈ 3e-5/step vs gen 1's
+  ≈ 2.5e-9; the three 100M lanes logged ZERO), EVERY ONE on the POOL SEAT
+  (`PoolPlayer.choose_move`), in two shapes: a move masked legal while the
+  fresh request allowed only switches (4) or only `/choose default` (3) — the
+  request MOVED between the mask and the strict conversion. Gen-4 traffic gen 1
+  never had: U-turn / Baton Pass mid-turn switch requests, Roar, and
+  choice-lock / Taunt / Encore re-requests. The fleet as launched could not
+  complete (each lane would die every ~100k steps and exhaust its 3 retries),
+  so the agent killed the wave + lanes at 03:21Z under the peeking policy's
+  ops-kill exception — attempt 1 read nothing (≤ ~100k steps/lane); run dirs
+  archived under `runs/aborted_20260906_0308Z/`, lane logs renamed
+  `logs/gen4_wang50m_attempt1_lane_s*.log`. **Fix e37a7fc** (rl/envs/showdown.py,
+  4 tests in tests/test_mask_desync.py): (i) a failed conversion PROVES the
+  fresh request is in, so the pool seat re-encodes, re-masks and decides
+  AGAIN on it — a real member decision, recorded and harvested from the fresh
+  state, logged as a RE-DECISION (`mask_redecide_total`), never a desync; the
+  counted random recovery (and the cap) remain for a state that moves twice;
+  (ii) `ShowdownEnv.step` tells the pool player before every inner step
+  whether PokeEnv will send seat 2's order (`agent2_to_move`) — when it will
+  not, the player answers with a default order: no PHANTOM forward, no phantom
+  harvest row (a purity fix for BI-G4-1: `SingleAgentWrapper.step` asks the
+  opponent on every step and `PokeEnv.step` discards the order when seat 2 is
+  not to move). Verification: 62 tests green (desync, harvest incl. the two
+  live ones, encoder gates, trunk, pre-reg); post-fix smoke (59,904 steps):
+  **0 desyncs, 0 re-decisions, 0 tracebacks**, harvest ratio 0.996–1.005,
+  dropped 0.00%, R0-1..4 PASS, D-A PASS — weakly powered against 3e-5/step
+  (expected ≈ 1.8 events pre-fix; P(0) ≈ 0.17), so attempt 2's lane logs carry
+  the real read (`re-decided` lines are the instrument). The header is
+  byte-pinned to its review copy and untouched; the sidecar's
+  `launch_authorization.attempts` records both attempts. Attempt 2: fresh
+  server → deselected suite → fresh server → clean tree → wave (same seeds,
+  same authorization).
