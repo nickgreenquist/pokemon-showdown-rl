@@ -280,3 +280,40 @@ Central: **1,400/lane at 3-wide (4.2k aggregate); 1,750 solo.** Corroborated in 
 **Uncounted upside**: at K=64 and `rollout_steps=128` the buffer is 8192 rows; at `minibatches: 4` that is 2048/minibatch versus today's 256. The forward measured 3.58 µs/sample at B=512 vs 21.30 at B=8 — so per-step *update* cost should fall materially, and the 96 µs/step term above is conservative.
 
 **Not in scope, priced for completeness**: a 1-learner / 3-collector layout (ps-ppo's model) would put ~5-6k steps/s behind a *single* run → 250M in 12-14 h. It costs the on-policyness guarantee (transitions one weight version stale) and a shared-memory transport. **Stage 5, only if a single 250M run must finish in under a day.** Stage 2 at 3-wide already clears the stated target.
+
+---
+
+## Addendum 2026-09-06 — MEASURED BOX SIZING: what one lane actually costs
+
+Measured live on the `gen4_wang50m` fleet (3 lanes, gen 4, ~214 steps/s/lane) on
+the project box (MacBook Pro, 14 cores = 10 P + 4 E, **24 GB** RAM):
+
+| component | measured | per lane |
+|---|---|---|
+| Python training processes (3) | 204% CPU | **0.68 cores** |
+| Node Showdown server, one instance, `simulator: 4` | 306% CPU | **~1.0 core** |
+| **fleet total** | **510% CPU**, load avg 5.5 / 14 | **~1.7 cores** |
+| RSS, fleet + server | 8.0 GB | 2.7 GB (matches R2's 2.68) |
+
+Two facts that change how a box is sized:
+
+1. **RAM is the local ceiling, not cores.** At 3-wide the box sits at 5.1 of 14
+   cores but 0.4 GB free / 7.7 GB inactive with 1.5 GB of swap already in use.
+   More lanes swap before they starve for CPU. On any box with ≥ 64 GB, RAM
+   stops being a constraint entirely and cores become the only question.
+2. **60% of the fleet's CPU is the Node simulator** (306 of 510%). That is
+   exactly what the in-process collector (JOURNEY 7.5,
+   `docs/PKMN_ENGINE_RUST_PLAN.md`) deletes — so the port roughly halves the
+   cores needed per lane before counting its per-lane speedup.
+
+**Sizing rule: per-lane CPU tracks DECISIONS/s, not lanes.** The gen-1 100M
+recipe realized 560 steps/s/lane — ~2.6× the gen-4 decision rate — so budget
+**≈ 4–4.5 cores/lane at gen-1 rates** (INFERENCE by scaling, not a measurement;
+it implies 3 gen-1 lanes ≈ 13 cores, i.e. this box at saturation, which is
+consistent with 557–563 steps/s being the realized ceiling there). Therefore:
+
+- k=8 **gen-1** lanes ≈ **32–36 fast cores**, ~24 GB.
+- k=8 **gen-4** lanes ≈ **14 fast cores**, ~24 GB.
+- An 8-core box is a k=2 machine for gen 1, whatever its single-thread score.
+
+Quote cores/lane with the generation and the decision rate, never bare.
