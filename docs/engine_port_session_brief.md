@@ -163,6 +163,30 @@ ten blocks of silent effort.
 If an undeclared mismatch appears in P-1, it is a bug, not a family. Fix it or
 declare it with a written reason (plan §9).
 
+## 4b. Agents: no ultracode, read-only subagents only
+
+**Do not run a workflow / ultracode fan-out for this.** Three reasons:
+
+1. A fan-out means several agents compiling at once, and CPU contention is
+   exactly what §2 forbids — light doc work from another session already moved
+   lane rates 12% today.
+2. The gates are strictly sequential; nothing downstream of a failed gate runs,
+   so there is little to parallelise in the first place.
+3. Bitwise parity across 828 fields against poke-env's information boundary
+   needs ONE coherent mental model. Parallel agents each holding a partial model
+   produce an inconsistent encoder, and the cost surfaces as debugging later.
+
+**Do** use read-only subagents for bounded extraction that produces documents,
+not code — `layout.json` offsets plus the two showdown-mode overrides; the
+poke-env action-order / mask table §7.2 needs; an 828-field checklist derived
+from `rl/envs/encoder_spec.py` and `rl/envs/showdown.py`; a catalogue of the tape
+corpus. And one adversarial reviewer at the end, asking whether the parity
+harness actually compares what it claims to compare.
+
+**Every agent is model `opus`** (standing maintainer rule — Fable fan-outs
+burned the usage limit twice). Keep the count small; each one costs tokens the
+maintainer is watching.
+
 ## 5. Handing back
 
 - Small, single-purpose commits on `pkmn-engine-port`. Never push.
