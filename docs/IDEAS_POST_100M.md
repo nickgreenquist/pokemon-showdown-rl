@@ -70,6 +70,23 @@ the per-step levers below rise. Write the §4 pre-reg *after* the grade.
 The phrase "standing fewer-bigger-runs order" that stood here named no
 ruling on the record; §7 #20.]
 
+**The instrument itself is on the table — pointer added 2026-09-06.**
+`docs/PKMN_ENGINE_RUST_PLAN.md` (DESIGN ONLY; implementing it needs a
+maintainer ruling) is the one item that attacks this section's constraint at
+the root instead of paying it: an in-process gen-1 collector on pkmn/engine,
+projecting ~4.2x FULL-LOOP per lane (collection-only >= 25k steps/s at K=256,
+after which the learner owns ~90% of wall — the 50x numbers are
+collection-only), 8 lanes per fleet-day instead of 3, and the part that
+matters most here: **paired evaluation with COMMON RANDOM NUMBERS**, which is
+impossible on the server path and is the only route to shrinking se_diff
+rather than buying more n. Its §8.4 names 4.1, the D18 privileged block
+(seat 2's own-side block is a slice of an obs the collector already builds —
+so 4.7 lands there cheaply), CRN pairing and the depth-2 question as things
+the path makes cheap. **Nothing in §4's ranking is priced against it yet — do
+not re-rank this list without reading it.** It does NOTHING for gen 4 or gen 9
+(RBY complete, GSC WIP, no DPP at the pin), so it is gen-1-lane
+infrastructure: JOURNEY steps 8 / 10 / 11 / 11.5.
+
 ## 2. Tier 0 — instrument work and free reads (no fleet; after the frozen schedule completes)
 
 **2.1 Re-measure eval overdispersion — RUN IT (~20 min agent-side).**
