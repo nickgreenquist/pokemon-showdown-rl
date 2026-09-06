@@ -79,3 +79,19 @@ def test_harvest_absence_after_update_one_is_a_kill(tmp_path):
         w = csv.DictWriter(fh, fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
     rc, out = _run(run, hist)
     assert "R0-3   KILL" in out and rc == 2, out
+
+
+def test_d_b_windows_containing_a_resume_gap_are_non_conforming(tmp_path):
+    run = tmp_path / "gen4_wang50m_s200"; run.mkdir()
+    hist = tmp_path / "h.csv"; _history(hist, 200.0, minutes=120)
+    rows = list(csv.DictReader(hist.open()))
+    # Shift the second half by 20 min of wall clock with no rows (a resume).
+    for r in rows[60:]:
+        r["_timestamp"] = str(float(r["_timestamp"]) + 1200.0)
+    with hist.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
+    rc, out = _run(run, hist)
+    assert "D-B    PASS" in out and "1 resume gap(s)" in out and rc == 0, out
+    # The naive whole-span rate is dragged down by the gap; the conforming windows are not.
+    line = [l for l in out.splitlines() if l.startswith("D-B")][0]
+    assert "min 200" in line or "min 199" in line, line

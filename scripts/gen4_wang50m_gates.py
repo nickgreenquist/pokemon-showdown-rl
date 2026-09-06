@@ -86,6 +86,8 @@ def main() -> int:
     ap.add_argument("--db-window-min", type=float, default=30.0)
     ap.add_argument("--nonconforming", action="append", default=[],
                     help="START,END epoch seconds of a non-conforming interval (repeatable)")
+    ap.add_argument("--gap-sec", type=float, default=300.0,
+                    help="a gap between consecutive update rows longer than this marks the windows containing it non-conforming (a resume's downtime)")
     ap.add_argument("--da-checkpoint", type=Path, action="append", default=[],
                     help="also run the D-A closed-form check on this checkpoint (e.g. the live checkpoint.pt; repeatable)")
     ap.add_argument("--json", type=Path)
@@ -226,6 +228,12 @@ def main() -> int:
             a_, b_ = (float(v) for v in spec.split(","))
             nc.append((a_, b_))
         w = args.db_window_min * 60.0
+        # A resume leaves a wall-clock GAP with no rows (the dead process, the
+        # room wait, the restart): any window containing a gap > --gap-sec is
+        # NON-CONFORMING by construction (dStep/dWall would read the downtime
+        # as slowness). Gaps are found between consecutive update rows.
+        gaps = [(float(t[k]), float(t[k + 1])) for k in range(len(t) - 1) if t[k + 1] - t[k] > args.gap_sec]
+        nc = nc + gaps
         rates, flags = [], []
         t0 = t[0]
         while t0 + w <= t[-1]:
@@ -242,7 +250,7 @@ def main() -> int:
             stop = consecutive(np.array(below_stop), 2)
             record = any(r < BANDS["d_b_record_below"] for r in conf)
             v = "STOP" if stop else ("RECORD" if record else "PASS")
-            gate("D-B", v, f"{len(conf)} conforming {args.db_window_min:.0f}-min windows (of {len(rates)}; {sum(flags)} non-conforming excluded): "
+            gate("D-B", v, f"{len(conf)} conforming {args.db_window_min:.0f}-min windows (of {len(rates)}; {sum(flags)} non-conforming excluded, {len(gaps)} resume gap(s) > {args.gap_sec:.0f} s): "
                           f"min {min(conf):.0f} median {float(np.median(conf)):.0f} last {conf[-1]:.0f} steps/s; whole post-{args.db_min_step/1e6:.0f}M {whole:.0f}; "
                           f"expected {BANDS['d_b_expected']}, RECORD < 173, STOP < 102 x2 (PROVISIONAL band)")
         else:
