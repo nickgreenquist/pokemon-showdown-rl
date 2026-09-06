@@ -10990,3 +10990,59 @@ line numbers are not — grep the date, then read that region):
   0.756 as ruled, RW-4 = FP@500 on all three lanes chunked; every RW is now
   in the sidecar's `ratified_decisions` (ed0996d). Watches re-armed on the
   merged histories (25M read 2026-09-07 12:45Z).
+
+- 2026-09-06 (evening, agent; compact + model switch to Opus, then "which ideas
+  were killed too early") — **THE KILL-RECORD AUDIT, THE COLLECTOR PORT, AND TWO
+  MAINTAINER RULINGS. Docs only: the fleet was untouched throughout (10.5M/50M on
+  all three lanes at 210–216 steps/s, zero desyncs, four session watches alive).**
+  (1) **Ruling — league play stays on; NO pool-vs-latest-only ablation** (the agent
+  had proposed one as the strongest gen-4 pull-forward; withdrawn). `pool_size: 20`
+  / `latest_prob: 0.8` / `push_every_updates: 5` is in all 30 gen-1 configs, and
+  `pool_size: 1` exists only in `gen4_wang50m.yaml` + its smoke as Wang-match
+  fidelity. Filed in IDEAS §3; memory `league-play-stays-on`.
+  (2) **Ruling — a small-run null does not close an axis.** The D18 privileged-critic
+  kill is VACATED AS FINAL (12M × 5 seeds, Δ −0.0145, clustered se 0.0221 cannot
+  exclude +0.02) and returns as **IDEAS 4.7**: explicitly not "D18 with more steps"
+  (audited 2026-08-16, no correction to make) but the channel D18 never measured — a
+  both-seat critic as a VARIANCE REDUCER at large batch and long horizon, mechanism
+  co-primary, D18's falsifier pre-committed as a NULL branch. The information leg
+  still binds (whole hidden team ≈ +0.045 EV; D19's 88–90% cap mask). §3 now opens
+  with the classification rule: MECHANISM-BOUNDED (final) vs DOSE-LIMITED NULL
+  (closes nothing) — the ledger's own proof is that the LR anneal credited at 12M
+  only because it was +0.0998. Memory `kills-need-mechanism-not-dose`.
+  (3) **The audit, on "what else was killed too early".** Classified in place with the
+  dose named: shaping / chaining = mechanism-bounded, final; survivor bonus = domain
+  argument, never measured; paired-eval-via-seed = final and the CRN reconciliation
+  point; width/capacity = mechanism-bounded but CONTINGENT (killed on measured
+  IDLENESS — dormancy 27→84–88%, srank99 7–11/384 — so a plasticity fix re-opens it);
+  PFSP = mixed legs, the transitivity fit (14 arms, ~30k battles) carries it, and the
+  league ruling moots it. New §3 entry: **D19's aux opponent-TEAM head is final for
+  GEN 1 ONLY** — its bound is a gen-1 format fact, so nobody cites it at gen 4 (gens
+  5+ have team preview anyway). Re-opened with one home each, never a second copy:
+  **2.8 GPU/MPS for the UPDATE** (the ~2.5% was a whole-loop prize measured while
+  collection owned the wall; the update is ~12.0 s per 30,720-step rollout and the
+  learner owns ~90% of wall after the port — bench legal now, ADOPTING it is a
+  CLAUDE.md change and needs a ruling), **4.3 repriced** (+0.0451 sits above the k=8
+  shared-control bar ~0.044), **attention** (killed on a throughput microbenchmark;
+  never measured on win rate at any dose), **search** (the curve licenses "depth-1 at
+  20 ms stops paying", not "search does not pay" — Wang's own headline is his
+  MCTS-at-inference agent). §4's ORDER left alone: the re-rank is the maintainer's.
+  (4) **JOURNEY 7.5 — the collector port.** `docs/PKMN_ENGINE_RUST_PLAN.md` was
+  ORPHANED (no reference in IDEAS / JOURNEY / STATUS / CLEANUP), so every sequencing
+  argument was written as if it did not exist. Now: a pointer in IDEAS §1, a half-step
+  7.5 between the gen-4 close and step 8 (one collector across steps 8–11, gated on
+  A-1: 3 seeds × 12M inside |Δ| < 0.025, signed delta disclosed forever as N-COLL's
+  is), and the consequences wired into steps 8 / 10 / 11.5 + two standing notes
+  (250M ≈ 30 h a lane vs ≈ 124 h; the collector is part of the instrument and the two
+  paths are never pooled). **Correction the agent made to its own claim:** the
+  instrument win is FLEET WIDTH, not common random numbers — bars scale as 1/√k, so
+  k=3 → k=8 takes the two-fleet bar 0.1007 → ≈0.062 and the shared-control bar
+  0.0717 → ≈0.044; paired EVALUATION under CRN was already answered in §3 as a small
+  prize that "cannot touch σ_seed" (eval noise at n=3000 is ±0.008 binomial).
+  (5) Strategy answer on record: the R4 near-miss (Elo 1354 vs a 1359.68 cutoff,
+  **18–24 while listed**) argues for finishing gen 4, not for going home — grind
+  cannot hold a line the policy sits under, search is measured negative at strength
+  (0.381 vs greedy 0.474), and the last doubling bought +0.00944 finished-to-finished.
+  The top-500 ending belongs to step 10's dose on the engine path. Recommended (the
+  maintainer's call, not taken): make step 6's gen-4 ladder CONDITIONAL on a matched
+  step-5 read. Commits: 16cf1bf, b6a87bf, 33841c3, 97b97a1, a708538, b2554df.
