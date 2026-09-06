@@ -10884,3 +10884,24 @@ line numbers are not — grep the date, then read that region):
   `launch_authorization.attempts` records both attempts. Attempt 2: fresh
   server → deselected suite → fresh server → clean tree → wave (same seeds,
   same authorization).
+  (11) **ATTEMPT 2 LAUNCHED 03:40:18Z.** The first relaunch preflight caught a
+  defect in the fix — the pool-expectation hook was called on the tests' stub
+  players and `Gen4ShowdownEnv` (which borrows `ShowdownEnv.step` by assignment)
+  did not carry it: 4 red in tests/test_showdown_env.py, NOT LAUNCHED (the
+  sequencer's R0-k2 gate did its job). Follow-up d51fa6f: `ShowdownEnv.
+  _tell_pool_expectation` (tolerant of scripted opponents and stubs) and the
+  borrow line in `Gen4ShowdownEnv`; 123 targeted tests green, then the
+  sequencer's suite: **860 passed, 17 skipped, 2 live tests deselected** (63 s).
+  Fresh server pid 11553; PREFLIGHT PASS (disk 166 GiB, mem 14 GB); lanes s200 /
+  s208 / s216 = pids 11668 / 11795 / 11905 at 03:40:18 / 03:41:18 / 03:42:18Z,
+  every meta.yaml at sha **d51fa6f**, `git_dirty: false`; at +3–5 min all three
+  alive with advancing CPU (RSS 1.8 / 2.3 / 1.4 GB), 0 tracebacks, 0
+  re-decisions, 0 desyncs. Watches armed: rate watch (per-lane rung-cadence
+  steps/s every 30 min; alerts < 173 / < 102; first-rung deadline), the R0
+  read at ~250k (04:08Z), D-B's first conforming windows (05:50Z), and a
+  desync instrument (re-decided / desync / traceback counts per lane every
+  30 min; any surviving desync ALERTS — the cap is 3 per 100k per lane).
+  Expected fleet end ≈ 2026-09-08 ~23:40Z at 203 steps/s. Ops notes for the
+  sequencer pattern: a `pgrep -f "rl.train"` guard matches the monitor shells
+  that mention it (use `"python -m rl.train"`); a watch's stop condition must
+  read only lines after its own start; keep the stalled suite's log.

@@ -38,8 +38,10 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
    pool seat (~3e-5/step; U-turn / Baton Pass / choice-lock traffic) tripped the
    gen-1 recovery cap (3 per 100k) nine minutes in. FIXED e37a7fc (re-decide on the
    fresh request; no phantom seat-2 decisions); post-fix smoke 0 desyncs / 0
-   re-decisions in 60k steps. **Attempt 2 relaunched ~03:45Z** from a clean tree;
-   attempt-1 run dirs archived under `runs/aborted_20260906_0308Z/`. DISCLOSE both.
+   re-decisions in 60k steps. **ATTEMPT 2 LAUNCHED 03:40:18Z** at sha d51fa6f (clean;
+   R0-k2 860 passed / 2 live tests deselected; fresh server pid 11553; PREFLIGHT PASS
+   166 GiB / 14 GB): lanes s200/s208/s216 pids 11668/11795/11905. Attempt-1 run dirs
+   are under `runs/aborted_20260906_0308Z/`. DISCLOSE both attempts + the deselects.
 2. **MAINTAINER (morning):** read those two logs; rule RW-1 and RW-4 before the
    readout (sidecar `ratified_decisions`); if you disagree with the RW-2/3/6
    defaults, kill the fleet — nothing else moves them now.
