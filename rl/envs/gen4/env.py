@@ -179,6 +179,7 @@ class Gen4ShowdownEnv(Env):
     # class so `self._env` / `self._pool_player` resolve here).
     reset = sd.ShowdownEnv.reset
     step = sd.ShowdownEnv.step
+    _tell_pool_expectation = sd.ShowdownEnv._tell_pool_expectation  # step's pre-inner-step hook (2026-09-06)
     close = sd.ShowdownEnv.close
 
 

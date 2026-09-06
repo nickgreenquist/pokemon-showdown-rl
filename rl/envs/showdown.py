@@ -1409,6 +1409,16 @@ class ShowdownEnv(Env):
         self._emit_privileged(info)
         return obs["observation"], info
 
+    def _tell_pool_expectation(self, poke) -> None:
+        """Before EVERY inner step: tell the pool seat whether PokeEnv will send
+        its order (agent2_to_move). SingleAgentWrapper.step asks the opponent
+        regardless and PokeEnv.step discards the order when seat 2 is not to
+        move — a phantom decision otherwise (2026-09-06). Tolerant of scripted
+        opponents and the tests' stubs, which carry neither attribute."""
+        tell = getattr(self._pool_player, "expect_decision", None)
+        if tell is not None:
+            tell(getattr(poke, "agent2_to_move", True))
+
     def step(self, action):
         # The mask-desync rate window is denominated in env steps; one
         # module-global counter across this process's instances (train env
@@ -1424,8 +1434,7 @@ class ShowdownEnv(Env):
         if self._opp_action:
             self._pool_player.clear_choice()
         # np.int64, not int: poke-env's action_to_order calls action.item().
-        if self._pool_player is not None:
-            self._pool_player.expect_decision(poke.agent2_to_move)
+        self._tell_pool_expectation(poke)
         obs, reward, terminated, truncated, info = self._env.step(np.int64(action))
         # D25 (B3): TRANSITION-TIME info. The opponent's action is produced
         # DURING this call and belongs to row t — like info["outcome"], and
@@ -1450,8 +1459,7 @@ class ShowdownEnv(Env):
         while not (terminated or truncated) and not poke.agent1_to_move:
             if self._opp_action:
                 self._pool_player.clear_choice()
-            if self._pool_player is not None:
-                self._pool_player.expect_decision(poke.agent2_to_move)
+            self._tell_pool_expectation(poke)
             obs, reward, terminated, truncated, info = self._env.step(np.int64(0))
             total_reward += float(reward)
             self.waits_absorbed += 1
