@@ -10905,3 +10905,17 @@ line numbers are not — grep the date, then read that region):
   sequencer pattern: a `pgrep -f "rl.train"` guard matches the monitor shells
   that mention it (use `"python -m rl.train"`); a watch's stop condition must
   read only lines after its own start; keep the stalled suite's log.
+  (12) **R0 PER-LANE READ at 04:08Z (~345–368k steps, 17–18 updates/lane; the
+  gate reader with `--extract` on the live histories): ALL PASS on all three
+  lanes.** R0-1 entropy on ≤ 250k: s200 1.757–1.810, s208 1.773–1.813, s216
+  1.770–1.821 (band [1.3, 2.1]); R0-2 clip_frac > 0 on every update, first-250k
+  bands 0.065–0.124 / 0.053–0.148 / 0.033–0.136 (T2's re-basing input: above
+  the smoke's 0.05, as the header expected at the hotter lr; nowhere near 0.90);
+  R0-3 harvest ratio 0.986–1.008 / 0.987–1.018 / 0.990–1.008, version_lag_max
+  ≤ 1, dropped 0.00%, discarded 0, empty 0.00%; R0-4 first eval/win_rate 0.310
+  / 0.320 / 0.470 at 250k (n = 100, not actionable); R0-6 no non-finite; K6/T2/T3
+  clear (approx_kl ≤ 0.0018); D-A on the live checkpoint.pt (u = 16, x =
+  0.005990): stored lr 5.489125e-05 both groups == the (u − 1) closed form to
+  1e-12 on every lane. R0-5 pending (no rung yet at 26–28 min; deadline 60).
+  Startup-window pace ≈ 218–221 seat-1 steps/s/lane (NOT a D-B number: D-B
+  reads ≥ 30-min windows post-1M). Desync instrument at +28 min: 0 / 0 / 0.
