@@ -88,6 +88,8 @@ Recipe findings are generation-agnostic: rollout size, minibatch structure, λ a
 
 **Pre-register the gen1 re-test as part of the gen4 chapter, before running it.** Anything tuned against episode length may not survive the trip — λ especially, since its effect scales as λ^(T−t), and that is a different regime at T≈25 than at T≈100.
 
+These re-tests are the first work on the new collector (step 7.5), so they are also the first arms that can PAIR seeds under common random numbers — use it, because at k=3 unpaired most of this list is invisible. Two items on it are no longer where they were: the privileged critic is re-opened as IDEAS 4.7 (the D18 kill was a 12M null, vacated 2026-09-06; the engine makes seat 2's own-side block nearly free), and opponent-pool composition is NOT an ablation here — league play stays on, and `pool_size: 1` exists only as gen4 Wang-match fidelity.
+
 **A null here is a finding, not a failure:** a lever that helps in gen4 but not gen1 is evidence it is episode-length- or complexity-sensitive. That is a claim only a multi-generation study can make, and it is more interesting than either number alone. But it only reads that way if the test was pre-registered.
 
 ### 9. Check whether offline evals moved
@@ -95,6 +97,8 @@ The honest checkpoint. Did the borrowed recipe actually transfer?
 
 ### 10. Massive gen1 train
 The big one, with a recipe validated somewhere the instrument works.
+
+Step 7.5 is what makes "massive" mean something new: ≈ 30 h a lane for 250M instead of ≈ 124 h on the Node path, so the horizon that was a 5-day fleet becomes an overnight one and 500M is thinkable. S-SHAPE read SS-CLIMB at 100M and the last doubling bought +0.00944 finished-to-finished vs SH, so dose is the only lever here with a measured monotone curve — and it is now the cheap one. The anneal trap still binds: a fresh full-horizon run with `lr_anneal_steps == total_steps`, never a warm start off a finished checkpoint.
 
 ### 11. Final gen1 ladder
 The number the story ends on.
@@ -106,6 +110,8 @@ Decide before launching whether the laddered object is greedy or searched. Depth
 Why here and not earlier: if search substitutes for a deficient value head, the honest test is against our best critic, after the special sauce and the massive train. A large depth gain here means search depth genuinely pays even with a good value function. A small one means full MCTS is not worth building.
 
 **This gates the gen9 search decision.** It also feeds step 12 directly — "search's contribution declines as the policy improves" is a finding, and it is one only a multi-checkpoint study can make.
+
+Step 7.5 also changes what this costs: the engine clones a battle in 384 bytes and has `-Dchance`/`-Dcalc` builds for exact chance enumeration (plan §8.4), so depth-2 stops being an expensive bespoke harness. Today's evidence points at a null — search@20 read 0.381 against greedy 0.474 on the 50M batch lane, and the per-lane deltas were monotone in lane weakness — so the honest framing is a cheap confirmation, not a hoped-for lever.
 
 **Exit condition: one comparison, then the chapter closes.** Depth-2 credits over depth-1 iff the pooled delta clears the standing credit line. Report decisions/sec for both arms — a gain that costs 5× is a different finding than the same gain at 1.5×.
 
@@ -127,7 +133,8 @@ If we only ever get two generations, make them gen1 and gen9 — trade the clean
 
 ## Standing notes
 
-- **The binding constraint is not time.** It is that gen1 measurements are currently uninterpretable at k=3 with σ_seed ≈ 0.062 against a 0.072 bar. Every sequencing decision above follows from that.
+- **The binding constraint is not time.** It is that gen1 measurements are currently uninterpretable at k=3 with σ_seed ≈ 0.062 against a 0.072 bar. Every sequencing decision above follows from that. **Step 7.5 is the answer to it** — 8 seeds a fleet-day and common-random-number pairing attack the bar itself rather than buying more n; until it lands, every gen1 lever read is bounded by this line.
+- **The collector is part of the instrument.** From step 8 on, every gen1 number names the collector it came from and carries A-1's signed delta, the way N-COLL's does. Numbers from the Node path and the engine path are never pooled and never differenced without that disclosure.
 - **"Ladder" always means ladder + Foul Play**: Any checkpoint good enough to ladder gets a full FP head-to-head at pinned settings in the same pass. FP is the incumbent and the reproducible one; the ladder is legibility. Pinned before the first run: FP time budget, engine + poke-engine commit, sample size, and greedy-vs-searched on our side. Unpinned FP numbers are incomparable to each other.
 - **Weights never transfer between generations** — only recipe. Wang tried a bootstrapping variant and reported no significant improvement (§5.1.3); H&L's specialized agent won 77/500 against its own predecessor after a short fine-tune. Mechanics differ too much and the observation space changes anyway.
 - **Gen 5+ introduces team preview**, which *removes* the hidden-team problem. Gens 1–4 keep it. Worth stating in any writeup that gen1 is harder than gen9 on partial observability even as gen9 is harder on mechanics.
