@@ -1,5 +1,6 @@
 """Behavioral-cloning dataset: a scripted bot's own decisions, encoded
-through the Gen 1 observation encoder — the data half of the
+through the Gen 1 observation encoder (or the gen-4 encoder with
+`--format gen4randombattle`, BI-G4-4) — the data half of the
 encoder-ceiling diagnostic (SESSION_LOGS_PREDECESSOR.md P4).
 
     python scripts/make_bc_dataset.py --battles 4000

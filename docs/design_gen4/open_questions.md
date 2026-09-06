@@ -285,7 +285,7 @@ n=3000 off FP@20 (~2.6 h, eval-only, post-ladder), or ship the depreciation
 write-up with an admitted hole. See D5.
 **Q45** The IDEAS §1 re-rank under SS-CLIMB is owed and not done; gen4 sequencing
 should not lean on "50M was enough in gen1".
-**Q46** `scripts/make_bc_dataset.py`'s docstring still says 611-dim obs — stale.
+**Q46** `scripts/make_bc_dataset.py`'s docstring still says 611-dim obs — stale. CLOSED 2026-09-06: the docstring already reads 612 / 808 / 828 by encoder flag, and now names the gen-4 path.
 
 ## 7. Deferrals — source families the brief named that this cycle did NOT read
 

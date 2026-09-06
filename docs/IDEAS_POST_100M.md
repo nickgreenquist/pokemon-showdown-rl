@@ -7,6 +7,18 @@ doc's errors are corrected in §7. **Not a pre-registration.** Every fleet
 item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
 
+**Status tally — 2026-09-06 (agent, on the maintainer's question).** Of the
+17 actionable rows: DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
+gen-4 baseline's mechanism, unrun as a gen-1 lever); ABSORBED by the gen-4
+design 2 (temporal context in §5; C6's defect via the variable-damage bit —
+neither credited, both no longer open at gen 4); BUILT-UNRUN 1 (4.3); NOT
+STARTED 11 (2.1–2.4, 4.2 as an arm, 4.4–4.6, the attention re-benchmark, §6
+except the branch-protection click). Q45's §1 re-rank is still owed. Nothing
+here precedes the first gen-4 run (ruled: Wang's recipe, levers held back);
+2.2's pairing comes free SEQUENTIALLY by seed reuse — the tag matters only
+for concurrent same-seed arms. 2.1 and the §6 ops items are the two cheap
+agent-side slots once no babysitter session is mid-schedule.
+
 **Round 2 — 2026-09-04.** The sequencing floor below is DISCHARGED: fleet
 done, frozen schedule run, graded **P3**, recorded (RESULTS §18; S-SHAPE
 **SS-CLIMB**). Step 2 is in progress (ladder R4 on the 100M final s112,
