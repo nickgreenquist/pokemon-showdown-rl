@@ -29,19 +29,17 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
   baked into the run; RW-1 and RW-4 are readout-side and STILL OWED.** Smoke:
   ~290 seat-1 steps/s solo, harvest ratio 0.99–1.01 (no number quoted).
 - **Foul Play gen4 eval bot UP**; vs SH n=250: FP@20 226-24-0, FP@500 228-22-0
-  (bot-vs-bot, descriptive). **Clone tapes:** 6 × 1,200 FP@20-vs-SH battles at
-  1.12–1.16 s/battle; the first 3,600 FAILED the gates on 4 rows (Castform-Sunny /
-  Cherrim-Sunshine bench names) — fixed cba9458, 84,046/84,046 PASS. NOT PUSHED.
+  (bot-vs-bot). Clone tapes 6 × 1,200 at 1.12–1.16 s/battle; a weather-forme bench
+  name failed the gates on 4 of 84,046 rows — fixed cba9458, PASS. NOT PUSHED.
 
 ## Next actions
-1. **FLEET: attempt 1 (03:08Z) OPS-KILLED at 03:21Z** — gen-4 mask desyncs on the
-   pool seat (~3e-5/step; U-turn / Baton Pass / choice-lock traffic) tripped the
-   gen-1 recovery cap (3 per 100k) nine minutes in. FIXED e37a7fc (re-decide on the
-   fresh request; no phantom seat-2 decisions); post-fix smoke 0 desyncs / 0
-   re-decisions in 60k steps. **ATTEMPT 2 LAUNCHED 03:40:18Z** at sha d51fa6f (clean;
-   R0-k2 860 passed / 2 live tests deselected; fresh server pid 11553; PREFLIGHT PASS
-   166 GiB / 14 GB): lanes s200/s208/s216 pids 11668/11795/11905. Attempt-1 run dirs
-   are under `runs/aborted_20260906_0308Z/`. DISCLOSE both attempts + the deselects.
+1. **FLEET: attempt 1 (03:08Z) OPS-KILLED 03:21Z** — gen-4 pool-seat mask desyncs
+   (~3e-5/step; U-turn / Baton Pass / choice-lock traffic) tripped the gen-1 recovery
+   cap (3 per 100k). FIXED e37a7fc + d51fa6f (re-decide on the fresh request; no
+   phantom seat-2 decisions); smoke 0 desyncs in 60k. **ATTEMPT 2 LAUNCHED 03:40:18Z**
+   at d51fa6f (R0-k2 860 passed / 2 live tests deselected; server pid 11553; PREFLIGHT
+   PASS): lanes s200/s208/s216 pids 11668/11795/11905. Attempt 1 is archived under
+   `runs/aborted_20260906_0308Z/`. DISCLOSE both attempts and the deselects.
 2. **MAINTAINER (morning):** read those two logs; rule RW-1 and RW-4 before the
    readout (sidecar `ratified_decisions`); if you disagree with the RW-2/3/6
    defaults, kill the fleet — nothing else moves them now.
