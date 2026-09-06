@@ -39,6 +39,14 @@ they would have been if you had never run.**
    env.** The lanes resume into it after any death; a half-resolved dependency
    there kills them at import. You get your own env (§2). This mirrors the
    existing `foul-play-gen4` precedent: one env per engine build.
+   **This OVERRIDES CLAUDE.md's rule 1 ("Activate the `pokemon-showdown-rl`
+   conda env") and the `pip install -e ".[dev]"` line under "Development
+   environment", for this session only** — those are written for a session that
+   owns the box, and you do not. CLAUDE.md is otherwise binding. The env rule
+   behind rule 1 still holds in its real form: one env per repo, never `base`,
+   never shared — yours is `pkmn-engine-port` (§2). If you have already
+   activated the fleet's env, that alone is harmless; `conda deactivate` and do
+   not install, and say so in your handoff.
 2. **Never start a Showdown server, and never let anything connect to the
    running one.** poke-env derives usernames from a globally-seeded `random`, so
    a stray connection collides with a lane's seat and the lane dies with a
