@@ -57,5 +57,4 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
   LOSES the open seat-2 harvested rows (disclosed).
 - vs-SH/off-FP are NEVER ladder numbers; FP quotes carry budget + the disclosures;
   every gen4 number so far is a smoke, a clone or a bot-vs-bot placement — no claim.
-- 0.786 is Wang's NETWORK-ALONE and WEAKER number (Fig 4.1 ≈ 0.836/0.849); dose
-  is named first as ruled, but his curve crossed 0.786 at ≈ 30% of our per-seat dose.
+- 0.786 is Wang's NETWORK-ALONE, WEAKER number (Fig 4.1 ≈ 0.84); dose is named first.
