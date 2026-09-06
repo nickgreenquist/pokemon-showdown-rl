@@ -28,6 +28,13 @@ serde_json = "=1.0.151"
 
 [build-dependencies]
 bindgen = { version = "=0.72.1", optional = true }
+# Codegens the engine's own species/move tables from the pinned data.json into
+# OUT_DIR, so the simulator's data comes from the engine and needs no runtime
+# JSON parser. Build-time only: not linked into the extension.
+# `preserve_order` is REQUIRED: data.json's species/moves objects are ordered
+# by dex/index number, and serde_json's default Map is a BTreeMap, which
+# silently alphabetises them (caught at B-0: species 1 came out as Abra).
+serde_json = { version = "=1.0.151", features = ["preserve_order"] }
 
 [features]
 default = []

@@ -11,6 +11,7 @@ use pyo3::types::PyDict;
 use crate::battle::{Battle, Choice, Outcome, Player, Request};
 use crate::ffi;
 use crate::layout;
+use crate::smoke;
 
 fn player(p: &str) -> PyResult<Player> {
     match p {
@@ -94,6 +95,36 @@ fn build_info(py: Python<'_>) -> PyResult<Py<PyDict>> {
 fn verify(py: Python<'_>) -> PyResult<Py<PyDict>> {
     ffi::verify_options().map_err(PyRuntimeError::new_err)?;
     build_info(py)
+}
+
+/// Gate B-1: `n` random-policy battles, engine-only. Releases the GIL.
+///
+/// Raises on anything the gate forbids -- an illegal choice, an `Error` outcome,
+/// a battle past turn 1000, an empty choice list.
+#[pyfunction]
+#[pyo3(signature = (n, seed=0, block=true))]
+fn smoke_random_battles(py: Python<'_>, n: u64, seed: u64, block: bool) -> PyResult<Py<PyDict>> {
+    let stats = py
+        .detach(|| smoke::random_battles(n, seed, block))
+        .map_err(PyRuntimeError::new_err)?;
+    let d = PyDict::new(py);
+    d.set_item("battles", stats.battles)?;
+    d.set_item("p1_wins", stats.p1_wins)?;
+    d.set_item("p2_wins", stats.p2_wins)?;
+    d.set_item("ties", stats.ties)?;
+    d.set_item("long_ties", stats.long_ties)?;
+    d.set_item("updates", stats.updates)?;
+    d.set_item("decisions", stats.decisions)?;
+    d.set_item("switch_requests", stats.switch_requests)?;
+    d.set_item("forced_decisions", stats.forced_decisions)?;
+    d.set_item("turns_total", stats.turns_total)?;
+    d.set_item("max_turns", stats.max_turns)?;
+    d.set_item("min_turns", stats.min_turns)?;
+    d.set_item("mean_turns", stats.mean_turns())?;
+    d.set_item("mean_updates", stats.mean_updates())?;
+    d.set_item("tie_rate", stats.tie_rate())?;
+    d.set_item("p1_win_rate", stats.p1_win_rate())?;
+    Ok(d.into())
 }
 
 /// A single engine battle. Thin by design: the batched collector surface
@@ -221,6 +252,7 @@ impl PyBattle {
 fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_info, m)?)?;
     m.add_function(wrap_pyfunction!(verify, m)?)?;
+    m.add_function(wrap_pyfunction!(smoke_random_battles, m)?)?;
     m.add_class::<PyBattle>()?;
     m.add("__engine_sha__", ffi::ENGINE_SHA)?;
     m.add("BATTLE_SIZE", layout::BATTLE_SIZE)?;

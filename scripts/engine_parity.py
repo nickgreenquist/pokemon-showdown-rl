@@ -1,0 +1,122 @@
+#!/usr/bin/env python
+"""Gate driver for the pkmn/engine collector port (docs/PKMN_ENGINE_RUST_PLAN.md §9).
+
+Subcommands, in gate order:
+
+    b1   10,000 random-policy battles, engine-only. No server, no encoder.
+    p4   §5.5 stats vs the |request| `stats` + `maxhp` on the Foul-Play tapes.
+    p3   team-bank constraints and species marginals.
+    p1   828-float encoder parity against poke-env, replayed from the tapes.
+    p2   mask parity against poke-env's `get_action_mask`.
+
+D-1 (dynamics smoke), T-1 (throughput) and A-1 (acceptance) are NOT here: they
+need the Showdown server and/or an idle box, and are out of scope while a
+training fleet is running (docs/engine_port_session_brief.md §3).
+
+Borrowed: pkmn/engine (https://github.com/pkmn/engine), MIT,
+(c) 2021-2024 pkmn contributors, vendored at the pinned commit.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+
+import pkmn_gen1
+
+
+def _print_kv(d: dict, indent: str = "  ") -> None:
+    width = max(len(k) for k in d)
+    for k, v in d.items():
+        if isinstance(v, float):
+            print(f"{indent}{k:<{width}}  {v:.6g}")
+        else:
+            print(f"{indent}{k:<{width}}  {v}")
+
+
+def cmd_b1(args: argparse.Namespace) -> int:
+    """B-1: no panic, no `Error` outcome, outcomes in {Win, Lose, Tie}, turns <= 1000.
+
+    `smoke_random_battles` raises on every one of those, so reaching the report
+    IS the pass; mean turns and tie rate are recorded as descriptive numbers.
+    """
+    info = pkmn_gen1.verify()
+    print(f"engine {info['engine_sha'][:12]}  zig {info['zig']}  options {info['options']}")
+
+    ok = True
+    for block, label in ((True, "blocked (engine's own fuzz config)"), (False, "all 164 moves")):
+        t0 = time.perf_counter()
+        s = pkmn_gen1.smoke_random_battles(args.n, args.seed, block)
+        dt = time.perf_counter() - t0
+        print(f"\n[B-1] {args.n} random-policy battles -- movesets: {label}")
+        assert s["battles"] == args.n
+        assert s["p1_wins"] + s["p2_wins"] + s["ties"] == args.n, "an outcome escaped {W,L,T}"
+        if s["max_turns"] > 1000:
+            print(f"  FAIL: max_turns {s['max_turns']} > 1000")
+            ok = False
+        _print_kv(
+            {
+                "p1_wins": s["p1_wins"],
+                "p2_wins": s["p2_wins"],
+                "ties": s["ties"],
+                "  of which turn-1000/EBC": s["long_ties"],
+                "tie_rate": s["tie_rate"],
+                "p1_win_rate": s["p1_win_rate"],
+                "mean_turns": s["mean_turns"],
+                "min/max turns": f"{s['min_turns']} / {s['max_turns']}",
+                "mean_updates/battle": s["mean_updates"],
+                "learner decisions": s["decisions"],
+                "  forced (1 choice)": s["forced_decisions"],
+                "switch requests": s["switch_requests"],
+                "wall seconds": dt,
+                "battles/s (NOT a T-1 number)": args.n / dt if dt else float("inf"),
+            }
+        )
+        if args.json:
+            print(json.dumps({"block": block, **s}))
+
+    print(
+        "\n  battles/s above is INCIDENTAL: it includes team generation and the\n"
+        "  wrapper's per-update legality check, it is a random policy with no\n"
+        "  encoder, and it was measured next to other load. It is not a T-1\n"
+        "  number and must not be quoted as one."
+    )
+    print(f"\n[B-1] {'PASS' if ok else 'FAIL'}")
+    return 0 if ok else 1
+
+
+def _not_yet(name: str):
+    def run(args: argparse.Namespace) -> int:
+        print(f"[{name}] not implemented yet", file=sys.stderr)
+        return 2
+
+    return run
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="gate", required=True)
+
+    b1 = sub.add_parser("b1", help="loop smoke: N random-policy battles, engine-only")
+    b1.add_argument("-n", type=int, default=10_000)
+    b1.add_argument("--seed", type=int, default=0xB1B1_B1B1)
+    b1.add_argument("--json", action="store_true")
+    b1.set_defaults(func=cmd_b1)
+
+    for gate, helptext in (
+        ("p4", "stats vs the |request| stats on the tapes"),
+        ("p3", "team-bank constraints and species marginals"),
+        ("p1", "828-float encoder parity"),
+        ("p2", "mask parity"),
+    ):
+        p = sub.add_parser(gate, help=helptext)
+        p.set_defaults(func=_not_yet(gate.upper()))
+
+    args = ap.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

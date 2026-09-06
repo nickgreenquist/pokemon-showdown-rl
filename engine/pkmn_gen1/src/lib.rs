@@ -14,7 +14,10 @@ compile_error!("pkmn/engine stores its battle state in native endianness; \
                 this crate decodes little-endian only");
 
 pub mod battle;
+pub mod data;
 pub mod ffi;
 pub mod layout;
+pub mod smoke;
+pub mod team;
 
 mod python;
