@@ -48,11 +48,11 @@ arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
    PASS, D-B 211–215 steps/s; next read 25M ≈ 09-07 12:30Z).
 5. Then gen-4 levers against this baseline, each its own pre-reg — **NOT the pool
    (ruled 2026-09-06: league stays on, no ablation)**; step 6 = ONE gen-4 ladder,
-   NEW pre-reg, and the maintainer wants it CONDITIONAL on a matched step-5 read.
+   NEW pre-reg, **RULED CONDITIONAL 2026-09-06** on a matched step-5 read (miss → none).
 6. **2026-09-06 rulings, docs only (fleet untouched):** JOURNEY **7.5** = switch gen-1
    training off Node onto pkmn/engine BEFORE step 8 (ONE collector for steps 8–11, gated
-   on A-1); IDEAS §3 classifies every kill and indexes what re-opened (4.7 privileged
-   critic, 2.8 GPU-for-update, 4.3 repriced at k=8, attention/search re-framed).
+   on A-1); IDEAS §3 classifies every kill + indexes the re-opened (4.7, 2.8, 4.3,
+   attention, search); **§4 RE-RANKED, Q45 CLOSED: 4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4**.
 
 ## Watch items
 - **ONE vs-SH RUNG IS WORTH ±0.02** (read SHAPE); resumes SPLIT history: use `merge_history.py`.

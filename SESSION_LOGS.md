@@ -11046,3 +11046,24 @@ line numbers are not — grep the date, then read that region):
   The top-500 ending belongs to step 10's dose on the engine path. Recommended (the
   maintainer's call, not taken): make step 6's gen-4 ladder CONDITIONAL on a matched
   step-5 read. Commits: 16cf1bf, b6a87bf, 33841c3, 97b97a1, a708538, b2554df.
+  (6) **Three more rulings, later the same evening.** (a) **3v3 surrogate NOT
+  PURSUED** — the agent had floated it as prep for a bigger gen-4 run; the
+  maintainer pushed back and is right: it was Wang's HYPERPARAMETER-SEARCH
+  surrogate, never part of any parity claim, and gen 4 is a bug-check, not a
+  tuning target. JOURNEY step 4's line struck with the reason, and the note that
+  cheap tuning (if ever wanted) comes from 7.5's speed, not a shortened format.
+  (b) **Step 6's gen-4 ladder is CONDITIONAL** on a matched step-5 read (pooled
+  ≥ 0.756): on a miss there is no gen-4 ladder and the chapter closes on the
+  offline comparison; if it runs, it ladders the strongest gen-4 object available
+  then (the baseline if no lever fleet ran). Step 7's written exit condition
+  amended in place. (c) **Q45 CLOSED — §4 RE-RANKED** (delegated: "just do what
+  you recommend"): **4.1 both-seat harvest → 4.5 more steps → 4.3 regenerative
+  L2 → 4.7 privileged critic at scale → 4.2 λ → 4.4 shaping**, with 4.6 held out
+  as a scheduling item (it destroys comparability) and 2.8 as infrastructure, and
+  the attention win-rate arm entering at 3½ only if its free re-benchmark returns
+  a tolerable ratio. Ranking principle recorded: cost-adjusted expected credit
+  under the **k=8** bar, built/zero-build first, then the one measured monotone
+  effect, then hypotheses by whether their mechanism instruments already exist —
+  and every arm downstream of JOURNEY 7.5, because at k=3 the bar is what
+  swallowed D18 and D23. Commits: 46 pushed to origin/main at the maintainer's
+  word (1d3ffea..ea92208) before these three.

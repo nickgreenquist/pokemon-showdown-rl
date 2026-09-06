@@ -50,7 +50,7 @@ This is a config, not a teacher — it stays inside the purity lane. He ran SB3,
 
 **Ruled 2026-09-05: the FIRST gen4 run is this recipe as he ran it** — Table A.3, his LR schedule, pure mirror self-play latest-vs-latest with both seats harvested, no opponent pool — on our encoder, at a disclosed fraction of his scale (his 150M learner steps ≈ 75M per-seat decisions; a 50M per-seat run is the first cut). **Our gen1 machinery is held back as LEVERS for later runs against this baseline** — opponent pool / league play (latest-only is the obvious weakness), the batch config, the privileged critic — each its own pre-reg, credited by the standing credit line, and each a candidate for step 8's "special sauce".
 
-Consider the 3v3 surrogate for tuning. He ran Bayesian optimization on 3v3 battles — half the episode length, most of the complexity, far cheaper per trial. That's how hyperparameter search becomes affordable, and we have never been able to afford it.
+~~Consider the 3v3 surrogate for tuning.~~ He ran Bayesian optimization on 3v3 battles — half the episode length, most of the complexity, far cheaper per trial. **Ruled 2026-09-06: NOT PURSUED.** Gen4 is a bug-check, not a tuning target: "close enough that we know the pipeline has no bug" is the whole job, and 3v3 was his HYPERPARAMETER-SEARCH surrogate, never part of any parity claim — nothing in step 5's read depends on it. Cheap tuning, if we ever want it, comes from step 7.5's speed (8 lanes a day, 4.2× a lane), not from a shortened format.
 
 ### 5. Gen4 offline evals vs Wang
 **Exit condition: "close enough" to his offline numbers.**
@@ -70,8 +70,10 @@ Lower value than it looks, and worth knowing why before spending on it: Wang's h
 
 So this run is not a like-for-like ladder comparison. It is a point on the complexity curve and a sanity check that the gen4 agent works against humans. Do not let it become a second gen4 chapter.
 
+**Ruled 2026-09-06: CONDITIONAL.** It runs only if step 5 reads MATCHED (pooled 3×3000 vs-SH ≥ 0.756); if step 5 misses, there is no gen4 ladder and the chapter closes on the offline comparison, because a ladder number on a policy we already know missed its target is legibility nobody can interpret. If it does run, ladder the strongest gen4 object we have at that moment — the baseline if no lever fleet ran. This is legibility, never validation: it does not gate step 7.
+
 ### 7. Record results
-Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened** (written 2026-09-05: the chapter closes here after ONE step-5 comparison against the pinned 0.786 — matched or not — any pre-registered lever runs against that baseline, and ONE step-6 ladder run; no second ladder, no unregistered lever), or it becomes where the project lives. It is a borrowed instrument, not a home.
+Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened** (written 2026-09-05: the chapter closes here after ONE step-5 comparison against the pinned 0.786 — matched or not — any pre-registered lever runs against that baseline, and ONE step-6 ladder run; no second ladder, no unregistered lever; **amended 2026-09-06: that ladder run is CONDITIONAL on a matched step-5 read — on a miss the chapter closes without it**), or it becomes where the project lives. It is a borrowed instrument, not a home.
 
 No search experiments here. They belong after step 11, against our strongest gen1 policy — running them now would reopen gen1 mid-arc and would measure search against a weak critic, which we already know the answer to.
 

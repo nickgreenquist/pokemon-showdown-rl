@@ -13,7 +13,8 @@ gen-4 baseline's mechanism, unrun as a gen-1 lever); ABSORBED by the gen-4
 design 2 (temporal context in §5; C6's defect via the variable-damage bit —
 neither credited, both no longer open at gen 4); BUILT-UNRUN 1 (4.3); NOT
 STARTED 13 (2.1–2.4, 2.8, 4.2 as an arm, 4.4–4.7, the attention re-benchmark, §6
-except the branch-protection click). Q45's §1 re-rank is still owed. Nothing
+except the branch-protection click). **Q45 CLOSED 2026-09-06: §4 is ranked
+4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4, all downstream of JOURNEY 7.5.** Nothing
 here precedes the first gen-4 run (ruled: Wang's recipe, levers held back);
 2.2's pairing comes free SEQUENTIALLY by seed reuse — the tag matters only
 for concurrent same-seed arms. 2.1 and the §6 ops items are the two cheap
@@ -419,6 +420,41 @@ never-killed item is repriced by the collector plan: **4.3** (see its own note).
 Ranked. Build 2.2 first — at k=3 unpaired, only an R2-sized effect credits
 (§1), so every arm below should either pair seeds or pre-commit a
 mechanism co-primary (D23 lesson).
+
+**RANKED ORDER — 2026-09-06. Q45 CLOSED** (the maintainer delegated the
+re-rank: "just do what you recommend"). Principle: cost-adjusted expected
+credit under the **k=8** bar (§1), with built / zero-build items first, then
+the one measured monotone effect, then hypotheses ordered by whether their
+mechanism instruments already exist. **Everything here is downstream of
+JOURNEY 7.5** — run these before the collector switch and they face the same
+≈0.10 bar that already swallowed two of them.
+
+1. **4.1 both-seat harvest.** Built, tested, live in gen 4, zero build cost;
+   a ~2× sample-efficiency change — a dose multiplier, not a hypothesis. One
+   arm to validate it (seat-2 rows are version-lagged ≤ 2 and do change the
+   data distribution), then it stays on for good.
+2. **4.5 more steps.** The only measured monotone curve we own (SS-CLIMB), and
+   7.5 takes 250M from ≈124 h to ≈30 h a lane. Composes with 4.1's doubling.
+   N-ANNEAL stays NAMED; fresh full-horizon only, never a warm start.
+3. **4.3 regenerative L2.** Built (14 tests), +0.0451 already measured above
+   the k=8 shared-control bar, mechanism co-primary that reads independent of
+   the bar, and it decides whether §3's width kill stays factual.
+4. **4.7 privileged critic at scale.** Maintainer-directed and cheap on the
+   engine path (plan §8.4), but its information leg is bounded, so the live
+   channel is variance reduction — real, second-order. After 4.3: it wants the
+   same srank / dormancy instruments.
+5. **4.2 gae_lambda 0.75.** One key, but the gen-4 run will already have said
+   something about λ at T≈100 and R2's large updates bought much of the same
+   averaging. Rides as the second arm of a paired fleet; it does not own one.
+6. **4.4 H&L 5-term shaping.** Unchanged: LAST, gated on 4.1 / 4.3 / 4.5
+   reading null.
+
+Deliberately NOT in the order: **4.6** (C6) is a SCHEDULING item — it
+invalidates comparability, so it lands last before step 10 or inside the
+step-8 back-port, per its own entry. **2.8** (GPU for the update) is
+infrastructure measured after 7.5, not a lever. The **attention win-rate arm**
+(§5) enters at rank 3½ if and only if the free re-benchmark returns a
+tolerable ratio.
 
 **4.1 Both-seat harvest — the repo's licensed A2 (CHAPTER5 §3, licensed
 2026-08-26; do not confuse with docs/CLEANUP.md's audit item "A2"). STRONGEST.**
