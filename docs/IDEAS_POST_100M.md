@@ -76,10 +76,23 @@ maintainer ruling) is the one item that attacks this section's constraint at
 the root instead of paying it: an in-process gen-1 collector on pkmn/engine,
 projecting ~4.2x FULL-LOOP per lane (collection-only >= 25k steps/s at K=256,
 after which the learner owns ~90% of wall — the 50x numbers are
-collection-only), 8 lanes per fleet-day instead of 3, and the part that
-matters most here: **paired evaluation with COMMON RANDOM NUMBERS**, which is
-impossible on the server path and is the only route to shrinking se_diff
-rather than buying more n. Its §8.4 names 4.1, the D18 privileged block
+collection-only), and the part that matters most here: **8 seeds a fleet-day
+instead of 3**. That is the bar itself: bars scale as 1/sqrt(k), so k=3 -> k=8
+takes the two-fleet form 0.1007 to ~0.062 and the shared-control form 0.0717
+to ~0.044 — at which point D23's +0.0451 regenerative-L2 read would clear the
+bar it missed instead of reading "letter-met, seed-fragile" (whether the effect
+replicates at 8 seeds is what the run would test). Per-battle seeds also make 2.2's
+arm-paired TRAINING seeds exact (same battle sequence for treatment and
+control), which is the part of sigma_seed that pairing can actually remove.
+**Do not quote the plan's CRN framing as the instrument win:** paired
+EVALUATION with common random numbers is already answered in this section's
+own list — feasible, small prize, and it "cannot touch sigma_seed", because
+eval noise at n=3000 is +/-0.008 binomial while sigma_seed is across-TRAINING-
+seed variance. The port also expires one kill's premise: MPS/GPU for the
+UPDATE was measured 2026-09-01 at a ~2.5% whole-loop prize while collection
+dominated; with the learner at ~90% of wall the same acceleration is worth
+multiples of that, and CLAUDE.md's CPU-only rule wants a maintainer ruling
+once 7.5 lands. Its §8.4 names 4.1, the D18 privileged block
 (seat 2's own-side block is a slice of an obs the collector already builds —
 so 4.7 lands there cheaply), CRN pairing and the depth-2 question as things
 the path makes cheap. **Nothing in §4's ranking is priced against it yet — do
@@ -222,23 +235,31 @@ entry here names the dose that produced it, and where a kill rests on both
 legs it says which leg is load-bearing. Vacating a dose-limited null needs
 no ruling; vacating a mechanism-bounded kill does.
 
-- **KO / status / HP-differential potential shaping.** Inert by algebra:
+- **KO / status / HP-differential potential shaping.** [MECHANISM-BOUNDED —
+  final: an algebraic identity, and potential-based shaping is
+  policy-invariant by construction.] Inert by algebra:
   Φ = 0.6·(obs[2]−obs[1]) exactly (SESSION_LOGS :803), linear in emitted
   features. Measured null: Δ −0.0004, se 0.0074 (z −0.06) over 9,000
   battles; the 639,409-episode figure is the *invariance gate* (returns
   stayed {−1,0,+1}), not the null read. Standing rule binds: state your
   potential and show it is not already obs-representable.
-- **Chaining runs off finished checkpoints.** lr_anneal ends at ≈0 (the
+- **Chaining runs off finished checkpoints.** [MECHANISM-BOUNDED — final:
+  a fact about the schedule, not a measured effect.] lr_anneal ends at ≈0 (the
   pre-reg cycle barred own-run 50M rungs at "507.8× lr"); re-heating *is*
   the N-ANNEAL confound the 100M header names as the leading alternative;
   dormancy makes a collapsed representation a bad restart point.
-- **Survivor bonus on a win.** The docstring argument at
+- **Survivor bonus on a win.** [DOMAIN ARGUMENT, never measured — the ±1.6
+  uncancelled span is arithmetic, the "sacrifice a mon to absorb sleep"
+  reading is gen-1 domain knowledge. Not a dose-limited null; not a
+  measurement either.] The docstring argument at
   `rl/envs/showdown.py:740-745` is the ruling: uncancelled shaping spans
   ±1.6 and a sweeping 48%-win policy outscores a trading 50%-win one; in
   gen1, sacrificing a mon to absorb sleep is correct play. (Citation note:
   this lives in code, not in a named record entry.)
 - **Paired eval via server battle seed — ANSWERED 2026-09-01, feasible,
-  small prize, don't build now.** `RoomBattleOptions.seed` exists
+  small prize, don't build now.** [MECHANISM-BOUNDED — final, and it is the
+  reconciliation point for the engine plan's CRN framing (§1): the engine
+  makes CRN *exact* but cannot make the shared-variance share larger.] `RoomBattleOptions.seed` exists
   (`showdown/server/room-battle.ts:490`, passed at :575); only the wire path
   from the challenge command is missing (patch precedent: the timer knob;
   ps-ppo's rlspawn.ts). But CRN shares only the team draw + pre-divergence
@@ -246,7 +267,11 @@ no ruling; vacating a mechanism-bounded kill does.
   lower-bound). It cannot touch σ_seed. Revisit only if 2.1 finds real
   overdispersion traceable to team draws. Patch would live in
   `scripts/patches/` (server is gitignored).
-- **Width/capacity scaling.** The ledger argues directly against: the
+- **Width/capacity scaling.** [MECHANISM-BOUNDED but CONTINGENT — the read is
+  measured IDLENESS (dormancy 27→84–88%, critic ctx srank99 7–11/384), i.e.
+  capacity is unused rather than scarce. If a plasticity lever (4.3) restores
+  srank at scale, the width question re-opens on new evidence — that is not
+  re-proposing, it is a changed premise.] The ledger argues directly against: the
   biggest credited win came at *reduced* params (626,059 actor under the
   681,994 K2 ceiling, +0.1513); H&L reached 72% GXE at 1.33M; measured
   idleness (D22: dormant 27→84–88% on s35/s36, critic ctx srank99 7–11/384;
@@ -257,7 +282,11 @@ no ruling; vacating a mechanism-bounded kill does.
   Vinyals et al. 2019, verified against the paper text 2026-09-04, not in
   `docs/prior_work/README.md`). **ANSWERED BY MEASUREMENT — not banned, not
   motivated.** A league fixes exploitability and cycling; three reads say
-  neither is what limits us. (i) D22 read 5 (2026-08-11): a fresh 6M-step
+  neither is what limits us. [Mixed legs: (i) is a 6M best-responder, which is
+  dose-limited on its own; (ii)'s transitivity fit (14 arms, ~30,000 battles)
+  is the load-bearing leg and is not dose-limited. Also moot for gen 1 by the
+  2026-09-06 ruling that league play stays on and is not ablated.] (i) D22
+  read 5 (2026-08-11): a fresh 6M-step
   best-responder trained against the frozen struct50m final pooled
   **0.4765 ± 0.0112** (two orientations, 1000 each) against the 0.55 line,
   plateaued by ~1M and never reached parity; entropy 0.21–0.32. The routing
@@ -286,6 +315,16 @@ no ruling; vacating a mechanism-bounded kill does.
   `docs/research_reports/CONSOLIDATED.md` §5 names as the step-8 gate —
   or (b) the cross-play forgetting read (CONSOLIDATED §4.1.ii) firing.
   Without one of those, "add PFSP / exploiters" re-proposes a measured null.
+- **Auxiliary opponent-TEAM prediction (D19) — KILLED AT ZERO LANES.**
+  [MECHANISM-BOUNDED — final FOR GEN 1, and the bound is a format fact, not a
+  measured effect: 88–90% of gen-1 randbats team structure is a deterministic
+  cap MASK (closed form over what is already revealed) and the belief residual
+  is 0.024–0.034 nats of 4.955. It shares its bound with the privileged critic
+  (§4.7).] **Does NOT transfer:** the cap-mask argument is a property of the
+  gen-1 randbats generator. Gen 4's generator has not been re-derived, and gens
+  5+ have team preview, which removes the hidden-team problem outright — so
+  "belief over the opponent's team" is an open question at gen 4 and would need
+  its own read before anyone cites D19 there. Record: RESULTS §4.
 - **Pool-vs-latest-only ablation — NOT WANTED (maintainer, 2026-09-06).**
   League play STAYS ON in gen 1 — `pool_size: 20`, `latest_prob: 0.8`,
   `push_every_updates: 5`, in all 30 gen-1 configs — because the published
@@ -553,8 +592,11 @@ so JOURNEY wants an amendment at the next maintainer pass.
 
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
-- **Attention re-benchmark — DO (minutes-to-an-hour, no training).** The
-  34.6× kill was a CPU train-step microbenchmark vs the flat [512,512] MLP
+- **Attention re-benchmark — DO (minutes-to-an-hour, no training).**
+  [THROUGHPUT-PROXY kill — the weakest class on the list: no attention arm has
+  ever been measured on WIN RATE here, at any dose. Industry-standard
+  architecture killed on a speed microbenchmark against a different trunk.]
+  The 34.6× kill was a CPU train-step microbenchmark vs the flat [512,512] MLP
   (2026-08-07, pre-entity-production); "attention-vs-entity_deepsets has
   NEVER been measured" (CHAPTER5:207). Re-run ARCH_SCREEN_SPEC's step
   against the current trunk; an honest ratio either re-opens or re-closes
