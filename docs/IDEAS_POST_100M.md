@@ -8,11 +8,11 @@ item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
 
 **Status tally — 2026-09-06 (agent, on the maintainer's question).** Of the
-18 actionable rows: DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
+19 actionable rows: DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
 gen-4 baseline's mechanism, unrun as a gen-1 lever); ABSORBED by the gen-4
 design 2 (temporal context in §5; C6's defect via the variable-damage bit —
 neither credited, both no longer open at gen 4); BUILT-UNRUN 1 (4.3); NOT
-STARTED 12 (2.1–2.4, 4.2 as an arm, 4.4–4.7, the attention re-benchmark, §6
+STARTED 13 (2.1–2.4, 2.8, 4.2 as an arm, 4.4–4.7, the attention re-benchmark, §6
 except the branch-protection click). Q45's §1 re-rank is still owed. Nothing
 here precedes the first gen-4 run (ruled: Wang's recipe, levers held back);
 2.2's pairing comes free SEQUENTIALLY by seed reuse — the tag matters only
@@ -25,6 +25,15 @@ the evidence stays in §3 and the live item is **4.7** (a 100M+ arm, mechanism
 co-primary). (ii) A pool-vs-latest-only ablation is **NOT WANTED**: league
 play stays on in gen 1, and `pool_size: 1` is Wang-fidelity only (§3). The
 agent's pull-forward suggestion of the same evening is withdrawn.
+**Kill-record audit, same evening (on the maintainer's question "what else was
+killed too early").** §3 now classifies every entry as mechanism-bounded,
+dose-limited, contingent or mixed-legs, and carries a STATUS CHANGES index of
+what moved and where the live item lives — pointers, never second homes.
+New row: **2.8** (GPU/MPS for the update, the kill whose premise expires with
+the collector port). Repriced rather than resurrected: **4.3** (its +0.0451
+sits above the k=8 shared-control bar) and the **attention** rung (§5 — killed
+on a throughput microbenchmark, never measured on win rate). §4's ORDER is
+untouched: the re-rank is the maintainer's and is still owed.
 
 **Round 2 — 2026-09-04.** The sequencing floor below is DISCHARGED: fleet
 done, frozen schedule run, graded **P3**, recorded (RESULTS §18; S-SHAPE
@@ -168,6 +177,15 @@ search@20 **0.38067 vs greedy 0.4740 (~10 se — search hurts)**, and the
 100M primary adds the endpoint. Formalize the curve, feed the step-2
 ladder-object ruling (greedy leads on today's evidence, HANDOFF §4.4) and
 pre-frame JOURNEY 11.5. No training.
+**Name the budget confound when quoting this (added 2026-09-06).** Every point
+on the curve is depth-1 EXPECTATION search through poke-engine at **20 ms**
+against a critic D22 calls the weak component. What the curve licenses is
+"depth-1 at a 20 ms budget stops paying as the policy improves" — not "search
+does not pay in Pokémon". The external field says the opposite at real budgets:
+Wang's own headline (rank 8, Elo 1693, GXE 79.5) is his MCTS-at-inference
+agent against the 0.786 network-alone we are matching in step 5, and PokéChamp
+is search-based. JOURNEY 11.5 is the test; the honest framing there is
+budget-limited, not mechanism-bounded.
 
 **2.6 most-damage-typed anchor — BUILT 2026-09-05 (`rl/envs/most_damage_typed.py`;
 JOURNEY's own item).** The only anchor whose strength doesn't drift across
@@ -218,6 +236,23 @@ object, or a very long run that must not restart. The same summary's other
 claim, that OpenAI Five used an asymmetric critic, is not in the paper
 (§7 #17).
 
+**2.8 GPU/MPS for the UPDATE — the kill whose premise expires with the
+collector port. Added 2026-09-06; needs a maintainer ruling (CLAUDE.md says
+CPU only for the RL loop).** What was measured 2026-09-01: MPS crashed on a
+one-site CPU-generator defect (`pool.py`, fixed 2026-09-05) and the prize
+behind it was **~2.5%** — but that was a WHOLE-LOOP prize while collection
+owned most of the wall. The engine plan's §0 changes the denominator: the PPO
+update already costs ~12.0 s per 30,720-step rollout, and once collection is
+~1 s the learner owns **~90% of wall**, so accelerating the update is worth
+multiples of 2.5% instead of a rounding error. **Read (free, no fleet):**
+re-run `scripts/ch5_mps_update_bench.py` on the current recipe with the
+`pool.py` fix in, at the 100M `trunk_kwargs`, and quote update-only s/rollout
+CPU vs MPS with the width named — then the whole-loop share follows from the
+engine's measured collection time (T-1c). **Sequencing:** the read is legal
+now (it is a bench, not a training run); ADOPTING it is a CLAUDE.md change and
+waits for the maintainer, and it should not precede 7.5 — a 4× on 10% of wall
+is worth ~2.5%, which is exactly the number that killed it the first time.
+
 ## 3. Ruled out / answered — do not re-propose
 
 **How to read this section (maintainer ruling, 2026-09-06).** Two verdicts
@@ -234,6 +269,24 @@ advisory band at that dose reads as a null whatever the truth is. So every
 entry here names the dose that produced it, and where a kill rests on both
 legs it says which leg is load-bearing. Vacating a dose-limited null needs
 no ruling; vacating a mechanism-bounded kill does.
+
+**STATUS CHANGES, 2026-09-06 — an index, not a second home.** Each item below
+lives in exactly ONE place; §3 keeps the evidence and points forward. Nothing
+here is "unkilled" wholesale.
+
+| §3 entry | what changed | live item |
+|---|---|---|
+| privileged critic | 12M A/B is dose-limited; information leg still binds | **4.7** |
+| width / capacity | contingent on the idleness read surviving a plasticity fix | stays here |
+| PFSP / exploiters | 6M leg thin, transitivity leg carries it; league ruling moots it | stays here |
+| paired eval via server seed | unchanged, and it is the CRN reconciliation point (§1) | stays here |
+| D19 aux team head | final for GEN 1 only — format fact, not measured effect | open at gen 4 |
+| shaping / chaining / survivor bonus | nothing changed | stay here |
+
+Two kills with no §3 entry also moved: the **attention trunk** (killed on a
+throughput microbenchmark — §5) and **MPS/GPU for the update** (killed at a
+~2.5% whole-loop prize measured while collection dominated — **2.8**). And one
+never-killed item is repriced by the collector plan: **4.3** (see its own note).
 
 - **KO / status / HP-differential potential shaping.** [MECHANISM-BOUNDED —
   final: an algebraic identity, and potential-based shaping is
@@ -447,6 +500,15 @@ reading collapsed on the 100M finals (probe is cheap, D22 instruments
 exist — with the D24 float64-svdvals fix; srank99=1 is a NaN sentinel).
 PokéAgent finalists' plasticity levers (Kron, AID) are the same family;
 this repo's own lever has local evidence and zero build cost.
+**Repriced 2026-09-06 (not re-ranked — §4's order is the maintainer's):** the
+NO-GO-as-scoped was priced against a 3-seed fleet. Its measured **+0.0451**
+sits above the k=8 shared-control bar (~0.044) and just under the k=8
+two-fleet bar (~0.062), so on the collector path (§1, JOURNEY 7.5) this is the
+one banked effect whose SIZE the instrument can newly resolve — and its
+mechanism co-primary (norms + srank) reads independent of the bar either way.
+It is also the read that decides whether the width kill in §3 stays factual:
+if the regularizer restores srank at scale, "capacity is idle" stops being
+true.
 
 **4.4 H&L 5-term shaping on the entity trunk — LAST, gated.** Factual base
 verified: `hl_shaping` non-zero in exactly three runs on disk (signal12m
@@ -600,7 +662,11 @@ so JOURNEY wants an amendment at the next maintainer pass.
   (2026-08-07, pre-entity-production); "attention-vs-entity_deepsets has
   NEVER been measured" (CHAPTER5:207). Re-run ARCH_SCREEN_SPEC's step
   against the current trunk; an honest ratio either re-opens or re-closes
-  the rung with a live number.
+  the rung with a live number. **The live item, 2026-09-06:** the re-benchmark
+  is Tier-0 free work and settles only THROUGHPUT; if it clears, the actual
+  question — attention vs entity-deepsets on WIN RATE, never measured here at
+  any dose — is a §4-class fleet arm and needs its own pre-reg, mechanism
+  co-primary, on the collector path where k=8 makes it readable.
 - **DCN / two-tower explicit crossing — PARK for step 8.** The unbuilt
   middle rung (CROSS_FEATURES ladder). Only with a mechanism-read design;
   12M win-rate primaries are dead (§1).
