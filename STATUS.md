@@ -6,45 +6,45 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 Steps 1–2 DONE (batch credited, RESULTS §17; LADDER R4 discharged step 2: GXE
 65.2 / Glicko-1 1618 ± 25 / Elo 1354, n=200; readouts/LADDER_R4_READOUT.md).
 **Step 3 (gen4 encoder + model): groundwork MERGED + REVIEWED; the FIRST RUN's
-build items are LANDED and its pre-reg is DRAFTED AND REVIEWED, AWAITING
-RATIFICATION (2026-09-05 late). First run = WANG'S RECIPE on our frozen
+build items are LANDED, its pre-reg is DRAFTED AND REVIEWED, and an AGENT-SIDE
+LAUNCH WAS AUTHORIZED in chat (2026-09-06 ~02:00 UTC, rule 4 waived once) at
+the header's recommended defaults. First run = WANG'S RECIPE on our frozen
 encoder (step 4, ruled); step-3 milestone = it learns (≥ 0.60 vs SH, locked
 protocol); the CHAPTER's exit is step 5: pooled 3×3000 vs-SH ≥ 0.756,
 ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
 
-## Where things stand (2026-09-05, late)
+## Where things stand (2026-09-06, ~02:00 UTC)
 - **GEN-4 GROUNDWORK** (rl/envs/gen4/): layout v0.1, OBS_DIM 1,448, exact set
   prior, tracker, `ShowdownGen4-v0`; replay sha **b72dcbc7…** is a PINNED GATE.
-- **BUILD ITEMS LANDED 2026-09-05 (six commits, all tested):** BI-G4-3 hash gate
-  (3a5df5b); PPO `lr_schedule: power` + `value_clip_eps` (526f839, Wang's
-  §3.1.4 / SB3 clip_range_vf); BI-G4-2 entity trunk `layout: gen4` (ec39268,
-  gen-1 bit-identity pinned; actor 674,763 / critic 543,553); BI-G4-1 both-seat
-  harvest `selfplay.harvest_both_seats` (66746dc, live-verified gen 1 + gen 4);
-  BI-G4-4 clone-leg threading (8afa069; the FP-tape → dataset → clone → eval
-  chain ran end to end at gen 4 via `FP_TAPE_DIR`).
+- **BUILD ITEMS LANDED 2026-09-05 (all tested; shas in SESSION_LOGS):** BI-G4-3
+  hash gate; PPO `lr_schedule: power` + `value_clip_eps`; BI-G4-2 entity trunk
+  `layout: gen4` (gen-1 bit-identity pinned; actor 674,763 / critic 543,553);
+  BI-G4-1 both-seat harvest (live-verified); BI-G4-4 clone-leg threading.
 - **THE PRE-REG `configs/gen4_wang50m.yaml`** (+ `.prereg.yaml` sidecar,
   `_smoke.yaml` one-diff partner, `tests/test_gen4_prereg.py` 9 gates,
   `scripts/gen4_wang50m_wave.sh`): 2-Opus review APPLIED (review_1 9 MUST / 17
   SHOULD; review_2 7 MUST / 16 SHOULD — results/design_gen4_wang50m/), every
-  finding tagged in place. **NOT RATIFIED; do not launch from it.** Smoke (3
-  updates, no number quoted): ~290 seat-1 steps/s solo, harvest ratio 0.99–1.01.
+  finding tagged in place. **Not formally ratified: launched on the maintainer's
+  chat authorization at the RECOMMENDED DEFAULTS — RW-2/RW-3/RW-6 are thereby
+  baked into the run; RW-1 and RW-4 are readout-side and STILL OWED.** Smoke:
+  ~290 seat-1 steps/s solo, harvest ratio 0.99–1.01 (no number quoted).
 - **Foul Play gen4 eval bot UP**; vs SH n=250: FP@20 226-24-0, FP@500 228-22-0
-  (bot-vs-bot, descriptive). Suite 856 passed / 16 skipped (known live flake
-  deselected; a live-test stall cleared with a FRESH server, pid 92980). NOT PUSHED.
+  (bot-vs-bot, descriptive). **Clone tapes:** 6 × 1,200 FP@20-vs-SH battles at
+  1.12–1.16 s/battle; the first 3,600 FAILED the gates on 4 rows (Castform-Sunny /
+  Cherrim-Sunshine bench names) — fixed cba9458, 84,046/84,046 PASS. NOT PUSHED.
 
 ## Next actions
-1. **MAINTAINER: ratify `configs/gen4_wang50m.yaml`** — rulings RW-1..RW-6 at its
-   foot (RW-1 threshold 0.756 as ruled / 0.757 / 0.773 at Table 4.1's implied
-   n=1000; RW-2 trunk widths ours; RW-3 update size = total rows ≈ 39,936; RW-4
-   FP@500 on all lanes, chunked; RW-5 hand-over launch; RW-6 minibatch tail keep
-   vs fold). Record in the sidecar's `ratified_decisions`, flip both STATUS lines.
-2. **MAINTAINER: launch** (> 5 h): bare `pytest tests/` green (R0-k2), restart the
-   server fresh, close other apps (R0-i ≥ 8 GB), clean tree, then
-   `nohup caffeinate -dims bash scripts/gen4_wang50m_wave.sh > /dev/null 2>&1 < /dev/null &`
-   Seeds 200/208/216; plan 2–3 days; no encoder env vars; agent babysits.
-3. Alongside (agent): the gen-4 BC clone — 7,200 FP@20-vs-SH tapes in 1,200-battle
-   chunks (`scripts/gen4_clone_tapes.sh`, `FP_TAPE_DIR`, detached) →
-   `tape_to_dataset.py --gen 4` → `train_bc.py --target soft` → validate vs SH.
+1. **FLEET (agent-launched, 2026-09-06):** the sequencer runs clone chain → fresh
+   server → R0-k2 bare suite (40-min deadline; a stall re-runs with the two live
+   tests deselected, DISCLOSED) → fresh server → `scripts/gen4_wang50m_wave.sh`.
+   Logs: `logs/gen4_launch_seq.log`, `logs/gen4_wang50m_wave.log`. A rate watch
+   posts per-lane steps/s every 30 min and ALERTS in chat below 173 (D-B).
+2. **MAINTAINER (morning):** read those two logs; rule RW-1 and RW-4 before the
+   readout (sidecar `ratified_decisions`); if you disagree with the RW-2/3/6
+   defaults, kill the fleet — nothing else moves them now.
+3. Agent: the clone chain (`tape_to_dataset --gen 4` → `train_bc --target soft`
+   → vs-SH n=1000 → MDT-vs-SH 300 sanity row) is detached and resume-safe;
+   results in `results/gen4_wang50m/clone_vs_sh.json`, log `logs/gen4_clone_chain.log`.
 4. After the fleet: the FROZEN post-fleet schedule in the header (vs-SH 3×3000 →
    FP@20 → MDT → S-SHAPE → FP@500 chunks → clone h2h → Q38 pin → five-leg readout;
    RESULTS + README row + STATUS + SESSION_LOGS in ONE commit).

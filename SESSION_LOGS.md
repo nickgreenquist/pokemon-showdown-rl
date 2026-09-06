@@ -10760,3 +10760,48 @@ line numbers are not — grep the date, then read that region):
   legs; the 100M/ladder_r4 form template), encoder_requirements §13 freeze
   pointer + landed list, IDEAS §4.1 marked BUILT (and how it differs from the
   sketch). HANDOFF restored to the stub. Not pushed.
+
+- 2026-09-06 (~02:00 UTC, agent; "continue with monitor", then "you can start it
+  yourself") — **CLONE TAPES, A GATE FAILURE AT SCALE FIXED, AND THE FLEET LAUNCH
+  HANDED TO THE AGENT.** (1) Clone tapes: `scripts/gen4_clone_tapes.sh` ran 6 ×
+  1,200 FP@20-vs-SH battles at 1.12–1.16 s/battle (chunk 4 overlapped two dry
+  conversions). (2) A dry `tape_to_dataset.py --gen 4 --gates-only` on chunks 1–3
+  FAILED: G2 84,045/84,046 (1 unresolved switch) + soft-policy mass-dropped 3.
+  An instrumented replay found ONE cause — Foul Play names a benched Castform /
+  Cherrim by the weather forme it saw (`switch castformsunny`, `switch
+  cherrimsunshine`) while poke-env's `forme_change` uses `store_species=False`,
+  so the bench carries the base name. `teacher_order` now falls back to
+  rl/envs/gen4/prior.py's battle-only-forme table (exact match first; gen-1
+  names untouched); re-run 84,046/84,046, GATES PASS; regression test added
+  (cba9458). The 53-row smoke could never have hit this — a 3,600-battle dry
+  run before the full corpus is the habit to keep. (3) The clone chain
+  (dataset → `train_bc --target soft --epochs 20 --seed 0 --run-name
+  bc_gen4_fp20_soft_s0` → vs-SH n=1000 → MDT-vs-SH 300 sanity row) is detached,
+  resume-safe and logged (`logs/gen4_clone_chain.log`); it waits for the driver.
+  (4) **The maintainer waived CLAUDE.md rule 4 for this run in chat** ("if you
+  get to the point of starting a large run (even over 5 hours) you can start it
+  yourself (breaking my rule). just make sure you monitor it, and if its going
+  slower than expected: alert me in this chat"). The pre-reg is NOT formally
+  ratified: the run starts at the header's RECOMMENDED DEFAULTS — RW-2 / RW-3 /
+  RW-6 are thereby baked in; RW-1 and RW-4 are readout-side and still owed;
+  RW-5 moot. Recorded in the sidecar as `launch_authorization` (not
+  `ratified_decisions`). (5) The launch SEQUENCER (scratch, logged to
+  `logs/gen4_launch_seq.log`): wait for the clone chain (a server user; a
+  restart under the tape driver would poison an FP username pair) → fresh
+  server → R0-k2 bare `pytest tests/` with a 40-min deadline (a stall = the
+  alive-at-zero-CPU live-test landmine → fresh server, re-run with the staller
+  `test_privileged_block::test_live_emission_is_fuller_than_the_actor_view`
+  and the documented flake deselected, DISCLOSED; any real red = NO LAUNCH) →
+  fresh server (R0-j ≤ 15 min) → clean tree → `caffeinate -dims
+  scripts/gen4_wang50m_wave.sh`. Gates readable now: reclaimable memory 11 GB
+  (R0-i ≥ 8), disk 167 GiB (R0-h ≥ 40), `simulator: 4` set. (6) The RATE WATCH
+  (a persistent monitor): per-lane steps/s from rung cadence (500k-step rungs
+  ≈ 41 min at the expected 203) every 30 min; chat ALERT below 173 (D-B
+  RECORD) and below 102 (D-B STOP band), plus no-first-rung / no-new-rung
+  after 60 min; it kills nothing — the wave script owns stall recovery.
+  Chat answers on the record: IDEAS_POST_100M is 3 of 17 rows done (2.5, 2.6,
+  4.1-build) with two absorbed by the gen-4 design; nothing there precedes
+  this run (2.2 pairing comes free sequentially by seed reuse); first gen-4
+  ladder ≈ 6 days after R4 if the 0.756 check passes (compute-bound: 68 h fleet
+  + 8 h eval + a ladder day), ≈ +5 days on the dose branch; the harvest doubles
+  rows per battle (≈ 100M rows = 2/3 of Wang's 150M), not battles per hour.

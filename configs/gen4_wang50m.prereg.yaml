@@ -3,7 +3,7 @@
 # tests/test_gen4_prereg.py asserts every value here against the training
 # file and the header text. Ratification writes `ratified_decisions`.
 prereg_for: configs/gen4_wang50m.yaml
-status: DRAFT — 2-Opus review APPLIED 2026-09-05 late (review_1 9 MUST / 17 SHOULD; review_2 7 MUST / 16 SHOULD; all applied), awaiting maintainer ratification (RW-1..RW-6)
+status: DRAFT, LAUNCH AUTHORIZED — 2-Opus review APPLIED 2026-09-05 late (review_1 9 MUST / 17 SHOULD; review_2 7 MUST / 16 SHOULD; all applied); agent-side launch authorized by the maintainer in chat 2026-09-06 ~02:00 UTC at the recommended defaults (see launch_authorization); RW-1/RW-4 still owed
 journey_step: "3 -> 4"
 credits_nothing: true
 primary:
@@ -87,3 +87,9 @@ barred_language:
   - "on track for Wang's 0.786"
 rulings_wanted: [RW-1, RW-2, RW-3, RW-4, RW-5, RW-6]
 ratified_decisions: {}             # written at ratification, the maintainer's
+launch_authorization:              # NOT a ratification — the record of how the run started
+  by: maintainer (chat, 2026-09-06 ~01:55 UTC — "you can start it yourself (breaking my rule)")
+  rule_waived: CLAUDE.md rule 4 (> 5 h training is a hand-over launch), this run only
+  form: the header's RECOMMENDED DEFAULTS for every RW — RW-2 (trunk widths ours), RW-3 (update = total rows ≈ 39,936) and RW-6 (minibatch tail kept, 40 slices) are baked into the run; RW-1 (threshold) and RW-4 (FP@500 scope) are readout-side and remain open; RW-5 is moot
+  sequencer: clone chain -> fresh server -> R0-k2 bare suite (40-min deadline; a stall re-runs with the two documented live tests deselected, disclosed in logs/gen4_launch_seq.log) -> fresh server -> scripts/gen4_wang50m_wave.sh
+  alert_rule: per-lane rung-cadence steps/s every 30 min; chat ALERT below 173 (D-B RECORD) and below 102 (D-B STOP band); nothing is killed by the watch
