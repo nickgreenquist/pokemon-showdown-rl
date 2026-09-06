@@ -42,9 +42,10 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
 2. **MAINTAINER (morning):** read those two logs; rule RW-1 and RW-4 before the
    readout (sidecar `ratified_decisions`); if you disagree with the RW-2/3/6
    defaults, kill the fleet — nothing else moves them now.
-3. Agent: the clone chain (`tape_to_dataset --gen 4` → `train_bc --target soft`
-   → vs-SH n=1000 → MDT-vs-SH 300 sanity row) is detached and resume-safe;
-   results in `results/gen4_wang50m/clone_vs_sh.json`, log `logs/gen4_clone_chain.log`.
+3. **CLONE VALIDATED 2026-09-06 02:25Z:** `runs/bc_gen4_fp20_soft_s0` (FP@20 teacher,
+   168,676 rows / 7,200 battles, GATES PASS; val agreement 0.433) scores **0.464 vs SH**
+   (n=1000, deterministic, ties 0.022); MDT-vs-SH sanity row **0.400** (120-173-7, n=300).
+   L4 is no longer PENDING; its h2h runs in the post-fleet schedule.
 4. After the fleet: `scripts/gen4_wang50m_postfleet.sh` (the FROZEN order, resume-safe;
    refuses while a lane trains) → author the five-leg readout (RESULTS + README row
    + STATUS + SESSION_LOGS in ONE commit). In-run gates: `scripts/gen4_wang50m_gates.py`.

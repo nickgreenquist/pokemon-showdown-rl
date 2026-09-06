@@ -10812,3 +10812,15 @@ line numbers are not — grep the date, then read that region):
   detached resume-safe runner; DRY=1 listed every unit against the header's
   L1–L4 forms; 84dfa13), `tests/test_gen4_gates.py` (3), IDEAS status tally +
   Q46 closed (e205956).
+  (8) **THE GEN-4 BC CLONE VALIDATED (BI-G4-5 LANDED, 02:25Z):** all six tapes
+  → `tape_to_dataset --gen 4`: 7,200 battles, 168,676 decisions, G1–G4/G6
+  100.00%, soft-policy/value clean, 6 shards; `train_bc --target soft --epochs
+  20 --seed 0 --run-name bc_gen4_fp20_soft_s0` (MLP 512/512; 151,763 train /
+  16,913 held-out decisions over 720 held-out battles; final val agreement
+  0.433, best free-agreement 0.461, chance 0.155); vs SH n=1000 deterministic:
+  **0.464** (`wins_from_returns` 0.464 agrees; ties 0.022; mask desyncs 0) —
+  `results/gen4_wang50m/clone_vs_sh.json`. Teacher budget FP@20, named in every
+  quote; a clone number is never style evidence; the clone is an anchor, never
+  training data. Sanity row: MDT vs SH **0.400** (120-173-7, n=300, `a_record`,
+  `data/gen4_sanity/`); the clone sits above MDT's placement and far below its
+  teacher (FP@20 vs SH 0.904 at n=250). L4 reads READY for the post-fleet h2h.
