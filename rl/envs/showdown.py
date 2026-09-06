@@ -31,6 +31,7 @@ headline metric budgets >=1000 battles per matchup), not by fixed seeds.
 import logging
 import os
 import random
+import time
 from collections import deque
 
 import numpy as np
@@ -44,6 +45,7 @@ from poke_env.battle.status import Status
 from poke_env.battle.target import Target
 from poke_env.data import GenData
 from poke_env.environment import SingleAgentWrapper, SinglesEnv
+from poke_env.player.battle_order import DefaultBattleOrder
 from functools import lru_cache
 
 from poke_env.player import (
@@ -681,6 +683,7 @@ _MASK_DESYNC_WINDOW = 100_000  # env steps
 _MASK_DESYNC_CAP = 3  # recoveries allowed inside one window
 
 _mask_desync_total = 0
+_mask_redecide_total = 0  # requests that moved under a pool-seat decision, re-decided (never a desync)
 _mask_desync_steps: "deque[int]" = deque()
 _mask_desync_battles: set = set()
 _env_step_counter = 0
@@ -697,10 +700,30 @@ def mask_desync_total() -> int:
     return _mask_desync_total
 
 
+def mask_redecide_total() -> int:
+    """Lifetime count of pool-seat decisions re-made because the request moved
+    under them (2026-09-06). A re-decision is a REAL decision on the fresh
+    request — recorded, harvested, never counted as a desync."""
+    return _mask_redecide_total
+
+
+def _note_redecision(battle, stale_exc: ValueError, order) -> None:
+    global _mask_redecide_total
+    _mask_redecide_total += 1
+    logger = getattr(battle, "logger", None) or logging.getLogger(__name__)
+    logger.warning(
+        "request moved under the pool seat's decision #%d in %s turn %s — "
+        "re-decided on the fresh request: %s (stale: %s)",
+        _mask_redecide_total, getattr(battle, "battle_tag", "<unknown>"),
+        getattr(battle, "turn", "?"), order, stale_exc,
+    )
+
+
 def _reset_mask_desync_state() -> None:
     """Test hook: module-level counters would otherwise leak across cases."""
-    global _mask_desync_total, _env_step_counter
+    global _mask_desync_total, _env_step_counter, _mask_redecide_total
     _mask_desync_total = 0
+    _mask_redecide_total = 0
     _env_step_counter = 0
     _mask_desync_steps.clear()
     _mask_desync_battles.clear()
@@ -1007,6 +1030,14 @@ class PoolPlayer(Player):
     # Class-level default so a PoolPlayer built around __init__ (the
     # mask-desync tests' __new__ pattern) still reads "no harvest".
     _harvest = None
+    # ShowdownEnv.step sets this before EVERY inner step from PokeEnv's
+    # agent2_to_move: SingleAgentWrapper.step asks the opponent on every step
+    # and PokeEnv.step discards the order when seat 2 is not to move. A
+    # forward on such a step is a PHANTOM decision (2026-09-06).
+    _expect_decision = True
+
+    def expect_decision(self, flag: bool) -> None:
+        self._expect_decision = bool(flag)
 
     def __init__(self, pool: SnapshotPool, *, battle_format: str, harvest=None, **kwargs):
         super().__init__(battle_format=battle_format, **kwargs)
@@ -1132,6 +1163,15 @@ class PoolPlayer(Player):
         # decision poke-env then discards — the seat-2 twin of
         # ShowdownEnv.step's discarded-action assert.
         assert not battle.wait, "wait state reached the pool opponent"
+        if not self._expect_decision:
+            # Seat 2 is NOT to move on this inner step (ShowdownEnv.step read
+            # PokeEnv.agent2_to_move): the wrapper asks anyway and PokeEnv.step
+            # discards whatever comes back. A forward here would advance the
+            # member's generator, harvest an (s, a) row that was never played,
+            # and hold a window open for the request to move under it. Answer
+            # with the default the wrapper itself sends on a wait turn.
+            self._choice = _OPP_CHOICE_NONE
+            return DefaultBattleOrder()
         entry = self._by_tag.get(battle.battle_tag)
         if entry is None:
             self._sweep_finished()
@@ -1144,21 +1184,40 @@ class PoolPlayer(Player):
             action = entry[1].move(obs, mask, self._rng)
         else:
             action, logp = entry[1].move_logp(obs, mask, self._rng)
-        # strict, with counted recovery: an out-of-mask action raises unless
-        # it is the listener-thread request race (SeamPlayer precedent for
-        # the raise; _recover_mask_desync for why the race is survivable).
+        # strict, with a RE-DECISION and then the counted recovery: an out-
+        # of-mask action at conversion means the request MOVED under the
+        # decision (a listener-thread parse landing between the mask and the
+        # conversion). Gen 1 saw it ~2.5e-9/step; gen 4 ~3e-5/step
+        # (2026-09-06: seven in ~250k lane steps, every one on THIS seat —
+        # U-turn / Baton Pass mid-turn switches and choice-lock re-requests
+        # are gen-4 traffic gen 1 never had — and the gen-1 cap of 3 per
+        # 100k killed the first fleet nine minutes in). The failed conversion
+        # PROVES the fresh request is in, so decide AGAIN on it: a real
+        # decision by the member, recorded from the fresh state. The counted
+        # random recovery is only for a state that moves twice.
         try:
             order = SinglesEnv.action_to_order(np.int64(action), battle)
-        except ValueError as exc:
-            # Drop the label: a fallback order scored against the stale
-            # buffered frame could flip the aux/illegal_label_frac == 0 and
-            # frame_collision_frac == 0 hard gates, and canonicalise's
-            # policy is drop, never zero-fill.
-            self._choice = _OPP_CHOICE_NONE
-            self._record_choice(battle, _OPP_CHOICE_NONE)
-            if self._harvest is not None:
-                self._harvest.drop_row(battle.battle_tag)
-            return _recover_mask_desync(battle, exc)
+        except ValueError as stale_exc:
+            time.sleep(0.002)  # let the listener finish repopulating the lists
+            obs = self._encode(battle)
+            mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
+            if self._harvest is None:
+                action = entry[1].move(obs, mask, self._rng)
+            else:
+                action, logp = entry[1].move_logp(obs, mask, self._rng)
+            try:
+                order = SinglesEnv.action_to_order(np.int64(action), battle)
+            except ValueError as exc:
+                # Drop the label: a fallback order scored against the stale
+                # buffered frame could flip the aux/illegal_label_frac == 0 and
+                # frame_collision_frac == 0 hard gates, and canonicalise's
+                # policy is drop, never zero-fill.
+                self._choice = _OPP_CHOICE_NONE
+                self._record_choice(battle, _OPP_CHOICE_NONE)
+                if self._harvest is not None:
+                    self._harvest.drop_row(battle.battle_tag)
+                return _recover_mask_desync(battle, exc)
+            _note_redecision(battle, stale_exc, order)
         if self._harvest is not None:
             self._harvest.record(battle.battle_tag, obs, mask, action, logp, entry[2])
         # D25 (B1/B2): record the chosen action's IDENTITY off the SAME
@@ -1365,6 +1424,8 @@ class ShowdownEnv(Env):
         if self._opp_action:
             self._pool_player.clear_choice()
         # np.int64, not int: poke-env's action_to_order calls action.item().
+        if self._pool_player is not None:
+            self._pool_player.expect_decision(poke.agent2_to_move)
         obs, reward, terminated, truncated, info = self._env.step(np.int64(action))
         # D25 (B3): TRANSITION-TIME info. The opponent's action is produced
         # DURING this call and belongs to row t — like info["outcome"], and
@@ -1389,6 +1450,8 @@ class ShowdownEnv(Env):
         while not (terminated or truncated) and not poke.agent1_to_move:
             if self._opp_action:
                 self._pool_player.clear_choice()
+            if self._pool_player is not None:
+                self._pool_player.expect_decision(poke.agent2_to_move)
             obs, reward, terminated, truncated, info = self._env.step(np.int64(0))
             total_reward += float(reward)
             self.waits_absorbed += 1
