@@ -15,7 +15,8 @@
 set -u
 cd "$(dirname "$0")/.."
 PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python
-export FP_TAPE_DIR="${FP_TAPE_DIR:-data/gen4_fp_tapes}"
+# ABSOLUTE: Foul Play runs with cwd = ../foul-play, so a relative dir lands there.
+export FP_TAPE_DIR="${FP_TAPE_DIR:-$(pwd)/data/gen4_fp_tapes}"
 OUT="${OUT:-data/gen4_fp_clone}"
 CHUNKS="${CHUNKS:-6}"
 PER="${PER:-1200}"
