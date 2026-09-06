@@ -39,7 +39,8 @@ arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
    at d51fa6f (R0-k2 860 passed / 2 live tests deselected; server pid 11553; PREFLIGHT
    PASS): lanes s200/s208/s216 pids 11668/11795/11905. Attempt 1 is archived under
    `runs/aborted_20260906_0308Z/`. DISCLOSE both attempts and the deselects.
-   **RW-1 (0.756) and RW-4 (FP@500 on all lanes) RULED at the defaults 11:30Z (chat).**
+   **RW-1/RW-4 RULED at the defaults 11:30Z.** Incident 2 (10:55Z, an eval guard) FIXED
+   07f587d; watcher v2 (`gen4_wang50m_watch.sh`); all lanes rolled over by 11:32Z.
 2. **MAINTAINER:** nothing owed before the readout — every RW is recorded in the
    sidecar's `ratified_decisions`; the agent babysits (watcher v2, `.rollover`).
 3. **CLONE VALIDATED 2026-09-06 02:25Z:** `runs/bc_gen4_fp20_soft_s0` (FP@20 teacher,
@@ -54,7 +55,6 @@ arithmetic gives 0.757 — RW-1). No gen4 number is a claim until the readout.**
    first), each its own pre-reg; step 6 = ONE gen-4 ladder run under a NEW pre-reg.
 
 ## Watch items
-- **ONE vs-SH RUNG IS WORTH ±0.02** (read SHAPE); **RESUME SPLITS HISTORY**, loses open seat-2 rows.
-- vs-SH/off-FP are NEVER ladder numbers; FP quotes carry budget + the disclosures;
-  every gen4 number so far is a smoke, a clone or a bot-vs-bot placement — no claim.
+- **ONE vs-SH RUNG IS WORTH ±0.02** (read SHAPE); resumes SPLIT history: use `merge_history.py`.
+- vs-SH/off-FP are NEVER ladder numbers; FP quotes carry budget + disclosures; no gen4 claim yet.
 - 0.786 is Wang's NETWORK-ALONE, WEAKER number (Fig 4.1 ≈ 0.84); dose is named first.

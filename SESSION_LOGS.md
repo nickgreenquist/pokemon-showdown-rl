@@ -10951,3 +10951,42 @@ line numbers are not — grep the date, then read that region):
   only): 0.81–0.87 / 0.84–0.85 / 0.80–0.85 at 4.8–5.2M. Desync instrument
   through 10:08Z: 0 / 0 / 0 over ≈ 15M combined lane-steps. Next scheduled
   read: D-A at the 25M rung (≈ 2026-09-07 12:30Z).
+  (15) **INCIDENT 2 — lane s216 died at 10:55Z (5.43M): the in-loop eval's
+  all-or-nothing outcome guard; FIXED, WATCHER v2, ALL LANES ROLLED OVER;
+  RW-1 / RW-4 RULED.** Cause: `ValueError: eval_win_rate is on but 1/100
+  eval episodes supplied no info["outcome"]` — one eval episode ran to the
+  loop's max_steps (10,000) without a terminal (the env sets `outcome` on
+  every terminal, so only a cap-out yields None; the spin's shape is still
+  unknown — no `[Invalid choice]` lines in any lane log — and the next one
+  will be logged with its battle tag). The v1 watch loop's IMMEDIATE resume
+  then died at reset on the still-open rooms (the seed-derived usernames;
+  the same shape as attempt 1's resume), burning retry 1; its retry 2 at
+  11:00:42Z (5.5 min later) lived. **Fix 07f587d** (rl/common/evaluation.py,
+  4 tests): a MINORITY of outcome-less episodes is scored as NON-WINS and
+  disclosed through `eval/no_outcome` / `eval/no_outcome_frac`; a majority
+  still raises (the plumbing failure the guard was written for); cap-outs
+  log the battle tag. Training semantics untouched. **Watcher v2 bc6f697**
+  (`scripts/gen4_wang50m_watch.sh`, same log and line formats): ADOPTS
+  running lanes, waits 300 s for a dead lane's rooms to close before
+  resuming, verifies the resume survives 60 s (a crash-at-reset is retried
+  without charging the lane's 3-death budget), and honours a per-lane
+  `.rollover` flag. v1's loop was killed at 11:02:09Z (lanes untouched); v2
+  adopted pids 11668 / 11795 / 36501. **Rollovers onto the fixed code**, one
+  lane at a time through the safe path: s216 11:02→11:07:49Z (pid 37426),
+  s200 11:13→11:18:59Z (pid 38262), s208 11:25→11:30:54Z (pid 39762); every
+  resume alive at +60 s. Resume ledger (each SPLITS the wandb history and
+  loses ≤ one rollout of open seat-2 rows — disclosed per the lane-failure
+  rule): s216 ×3 (all from step 5,431,296 — the two short-lived ones left
+  1 and 616 overlap rows, dropped by the merge), s200 ×1 (from 5,750,784),
+  s208 ×1 (from 5,910,528). Wall clock lost ≈ 19 / 6 / 6 min. **Tooling b8c276d:**
+  `scripts/merge_history.py` (segments in time order, cut at each resume's
+  from_step, monotone asserted → `history_merged.csv`; s216's four segments
+  → 149,724 rows) and the gate reader now marks any D-B window containing a
+  resume gap (> 300 s between rows) NON-CONFORMING (s216: 11 of 12 windows,
+  min 211 / median 214 / last 215 steps/s). The rate watch's one "ALERT SLOW
+  s216 139 steps/s" at 11:20Z was this downtime inside a rung interval, not
+  a throughput drop. The in-run and post-fleet reads use the MERGED history
+  from here on. **Rulings (chat, ~11:30Z): "defaults on both"** — RW-1 =
+  0.756 as ruled, RW-4 = FP@500 on all three lanes chunked; every RW is now
+  in the sidecar's `ratified_decisions` (ed0996d). Watches re-armed on the
+  merged histories (25M read 2026-09-07 12:45Z).
