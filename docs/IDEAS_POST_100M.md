@@ -8,16 +8,23 @@ item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
 
 **Status tally — 2026-09-06 (agent, on the maintainer's question).** Of the
-17 actionable rows: DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
+18 actionable rows: DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
 gen-4 baseline's mechanism, unrun as a gen-1 lever); ABSORBED by the gen-4
 design 2 (temporal context in §5; C6's defect via the variable-damage bit —
 neither credited, both no longer open at gen 4); BUILT-UNRUN 1 (4.3); NOT
-STARTED 11 (2.1–2.4, 4.2 as an arm, 4.4–4.6, the attention re-benchmark, §6
+STARTED 12 (2.1–2.4, 4.2 as an arm, 4.4–4.7, the attention re-benchmark, §6
 except the branch-protection click). Q45's §1 re-rank is still owed. Nothing
 here precedes the first gen-4 run (ruled: Wang's recipe, levers held back);
 2.2's pairing comes free SEQUENTIALLY by seed reuse — the tag matters only
 for concurrent same-seed arms. 2.1 and the §6 ops items are the two cheap
 agent-side slots once no babysitter session is mid-schedule.
+
+**Two rulings, 2026-09-06 evening.** (i) The privileged critic's D18 kill is
+VACATED AS FINAL — a 12M A/B on the pre-batch recipe does not close an axis;
+the evidence stays in §3 and the live item is **4.7** (a 100M+ arm, mechanism
+co-primary). (ii) A pool-vs-latest-only ablation is **NOT WANTED**: league
+play stays on in gen 1, and `pool_size: 1` is Wang-fidelity only (§3). The
+agent's pull-forward suggestion of the same evening is withdrawn.
 
 **Round 2 — 2026-09-04.** The sequencing floor below is DISCHARGED: fleet
 done, frozen schedule run, graded **P3**, recorded (RESULTS §18; S-SHAPE
@@ -183,6 +190,21 @@ claim, that OpenAI Five used an asymmetric critic, is not in the paper
 
 ## 3. Ruled out / answered — do not re-propose
 
+**How to read this section (maintainer ruling, 2026-09-06).** Two verdicts
+live here and they are NOT interchangeable. A **mechanism-bounded** kill
+measured the effect's ceiling — shaping's algebraic inertness, the
+hidden-team EV bound, the best-responder's exploitability read — and is
+final. A **dose-limited null** is an A/B at a dose whose se cannot exclude
+an advisory-scale effect (§1: at k=3–5 unpaired, bars run 0.065–0.10, so
++0.02..0.05 lands in the recording band); it closes nothing at 100M+ on a
+changed recipe. The asymmetry is visible in our own ledger: the LR anneal
+credited at 12M ONLY because it was +0.0998 on the headline (0.6185 →
+0.7183, RESULTS §9, aux+anneal stack disclaimer), while anything in the
+advisory band at that dose reads as a null whatever the truth is. So every
+entry here names the dose that produced it, and where a kill rests on both
+legs it says which leg is load-bearing. Vacating a dose-limited null needs
+no ruling; vacating a mechanism-bounded kill does.
+
 - **KO / status / HP-differential potential shaping.** Inert by algebra:
   Φ = 0.6·(obs[2]−obs[1]) exactly (SESSION_LOGS :803), linear in emitted
   features. Measured null: Δ −0.0004, se 0.0074 (z −0.06) over 9,000
@@ -247,7 +269,19 @@ claim, that OpenAI Five used an asymmetric critic, is not in the paper
   `docs/research_reports/CONSOLIDATED.md` §5 names as the step-8 gate —
   or (b) the cross-play forgetting read (CONSOLIDATED §4.1.ii) firing.
   Without one of those, "add PFSP / exploiters" re-proposes a measured null.
-- **Asymmetric / privileged critic. RUN AND KILLED — D18 (2026-08-12):
+- **Pool-vs-latest-only ablation — NOT WANTED (maintainer, 2026-09-06).**
+  League play STAYS ON in gen 1 — `pool_size: 20`, `latest_prob: 0.8`,
+  `push_every_updates: 5`, in all 30 gen-1 configs — because the published
+  field supports it; the maintainer declines to spend a fleet re-deriving
+  that. `pool_size: 1` exists in exactly two files (`configs/gen4_wang50m.
+  yaml` and its smoke) and ONLY as fidelity to Wang's naive latest-vs-latest
+  arm: it is not an ablation arm, and no pool-on counterfactual is owed at
+  gen 4 or anywhere else. Distinct from the PFSP entry above (that one is
+  about prioritized sampling + exploiters, which we do not run).
+- **Asymmetric / privileged critic. RUN AND KILLED AT 12M — D18 (2026-08-12);
+  the KILL'S FINALITY IS VACATED (maintainer, 2026-09-06) and the live item
+  is 4.7. The A/B leg below is dose-limited; the INFORMATION leg is the
+  mechanism-bounded one and still binds. Evidence, unchanged:
   12M × 5 seeds, pooled 0.5364 vs 0.5509 (Δ −0.0145, clustered se 0.0221,
   z −0.65); its own falsifier fired (EV rose on every lane, win rate did
   not); the 2026-08-16 post-hoc implementation audit found zero defects —
@@ -469,6 +503,36 @@ cost (§5). The gen4 chapter pays the invalidation anyway (CONSOLIDATED
 §5), so the two honest homes are the step-3 rewrite's gen1 back-port (step
 8) or the last gen1 training change before step 10. Cost: fork ~half a day
 + a full fleet.
+
+**4.7 Privileged critic AT SCALE — RE-OPENED 2026-09-06 (maintainer). The
+D18 kill's FINALITY is vacated; §3 keeps every number.** The ruling: an axis
+is not closed by trivial old runs. D18 was 12M × 5 seeds on the pre-batch
+recipe and its A/B leg (Δ −0.0145, clustered se 0.0221, z −0.65) cannot
+exclude +0.02 — a dose-limited null, not a ceiling. **What the vacatur does
+NOT touch:** the information leg. The ENTIRE hidden team was worth ~+0.045
+EV of return variance against a hoped-for ~0.40, and D19 found 88–90% of it
+recoverable as a deterministic cap mask (belief residual 0.024–0.034 nats of
+4.955). So this is NOT "D18 with more steps" — that framing was audited
+2026-08-16 (zero defects, "there is no correction to make") and the form was
+already the sound one (V(actor-obs ‖ privileged), Baisero & Amato 2022).
+**The live hypothesis is the channel D18 never measured:** a both-seat
+critic as a VARIANCE REDUCER at large batch and long horizon. Lyu et al.'s
+centralized-critic variance critique is the recorded residual, and the λ=1
+pure-baseline variant was "judged not worth a lane" at 12M — at 100M+ with
+the batch config it is worth a lane. **Design sketch (needs its own
+pre-reg):** a fresh full-horizon 100M+ fleet, one diff against the current
+recipe, seeds paired (2.2); MECHANISM CO-PRIMARY — value-loss and EV
+trajectory plus critic srank against the control, win rate secondary
+(§1: a win-rate primary at this bar is how D18 became unreadable);
+D18's falsifier restated verbatim (EV rose on every lane, win rate did not)
+and pre-committed as a NULL branch this time, never a kill. **Cost:** the
+4.5-class expense (~100 h fleet wall + eval schedule), so it competes with
+4.5 for the same slot and the two are inseparable if bundled — one or the
+other, pre-registered. **JOURNEY:** step 10 territory, or step 8's
+back-port; NOT gen 4. Step 4's held-back-lever list names the privileged
+critic, which predates this ruling and reads as a gen-4 candidate — the
+maintainer's scope here is a large gen-1-scale run with the batch changes,
+so JOURNEY wants an amendment at the next maintainer pass.
 
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
