@@ -97,9 +97,21 @@ main tree by **absolute path**, never by writing through a symlink:
 - tapes for parity gates: `/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/data/fp_tapes*/run_*.jsonl`
 - team data for the teams gate: `/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/showdown/data/random-battles/gen1/`
 
-Resource discipline: `cargo build -j2` and `zig build -j2`, nothing wider. Check
-`vm_stat` before anything heavy; keep your own footprint under ~2 GB. Before and
-after any build, confirm you did no harm:
+Resource discipline: `cargo build -j2` and `zig build -j2`, nothing wider, and
+run every build and test **under background QoS** so the lanes keep priority:
+
+```
+taskpolicy -b cargo build -j2
+```
+
+This is not theoretical. MEASURED 2026-09-06: light doc-and-git work from
+another session on this box moved lane rates 216 → 190–206 steps/s, a 5–12%
+dip, recovering as soon as it stopped. A compile will cost more. The band's
+RECORD line is 180, so an unthrottled build can push a lane's window out of
+conformance and put a disclosure into someone else's readout.
+
+Check `vm_stat` before anything heavy; keep your own footprint under ~2 GB.
+Before and after any build, confirm you did no harm:
 
 ```
 tail -3 /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/logs/gen4_wang50m_wave.log
