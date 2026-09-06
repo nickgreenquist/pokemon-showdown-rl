@@ -47,9 +47,10 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
    168,676 rows / 7,200 battles, GATES PASS; val agreement 0.433) scores **0.464 vs SH**
    (n=1000, deterministic, ties 0.022); MDT-vs-SH sanity row **0.400** (120-173-7, n=300).
    L4 is no longer PENDING; its h2h runs in the post-fleet schedule.
-4. After the fleet: `scripts/gen4_wang50m_postfleet.sh` (the FROZEN order, resume-safe;
-   refuses while a lane trains) → author the five-leg readout (RESULTS + README row
-   + STATUS + SESSION_LOGS in ONE commit). In-run gates: `scripts/gen4_wang50m_gates.py`.
+4. `scripts/gen4_wang50m_postfleet.sh` (FROZEN order, resume-safe; refuses while a lane
+   trains) AUTO-CHAINS on FLEET DONE (a session watch; ≈ 2026-09-08 21:30Z) → author the
+   five-leg readout in ONE commit. In-run gates: `scripts/gen4_wang50m_gates.py` (5M: all
+   PASS, D-B 211–215 steps/s; next read 25M ≈ 09-07 12:30Z).
 5. Then our gen-1 machinery as LEVERS against this baseline (pool / league
    first), each its own pre-reg; step 6 = ONE gen-4 ladder run under a NEW pre-reg.
 
