@@ -156,6 +156,106 @@ def cmd_p4(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_p3(args: argparse.Namespace) -> int:
+    """P-3: the bank is Showdown's generator, not a guess."""
+    from collections import Counter
+
+    import engine_p3
+    import engine_team_bank as bank
+
+    path = pathlib.Path(args.bank)
+    if not path.exists():
+        print(f"no bank at {path} -- build one with scripts/engine_team_bank.py", file=sys.stderr)
+        return 2
+
+    header, payload = bank.read_bank(path)   # verifies the payload sha256
+    print(f"[P-3] bank {path.name}")
+    _print_kv(
+        {
+            "ps_commit": header["ps_commit"],
+            "engine_sha": header["engine_sha"],
+            "pairs": header["pairs"],
+            "payload sha256": header["sha256"][:16] + "...",
+        }
+    )
+    if not header["ps_commit"].startswith(args.ps_commit):
+        print(f"  FAIL: PS commit is not {args.ps_commit}")
+        return 1
+
+    report: Counter = Counter()
+    failures: list[str] = []
+    t0 = time.perf_counter()
+    stats = engine_p3.analyse(bank.iter_pairs(payload), report, failures)
+    dt = time.perf_counter() - t0
+
+    mm = stats["move_marginals"]
+    _print_kv(
+        {
+            "pairs checked": report["pairs"],
+            "teams checked": report["teams"],
+            "mons checked": report["mons"],
+            "constraint violations": len(failures),
+            "pairs with a Ditto": report["pairs_with_ditto"],
+            "  pairs with TWO Dittos": report["pairs_with_two_dittos"],
+            "  Ditto in team 1 / team 2": f"{stats['ditto_teams_first']} / {stats['ditto_teams_second']}",
+            "distinct species drawn": stats["distinct_species"],
+            "species chi2 (even vs odd pairs)": stats["species_halves_chi2"],
+            "  dof": stats["species_halves_dof"],
+            "  p": stats["species_halves_p"],
+            "move-marginal cells (stochastic)": mm["cells"],
+            "  deterministic cells agreeing": mm["deterministic_cells_agreeing"],
+            "  species covered": mm["species"],
+            "  max |z| vs the prior": mm["max_abs_z"],
+            "  Bonferroni |z| threshold": mm["bonferroni_threshold"],
+            "  cells over threshold": mm["cells_over_threshold"],
+            "wall seconds": dt,
+        }
+    )
+    if stats["levels_multi_valued"]:
+        print(f"  species with >1 level in the bank: {stats['levels_multi_valued']}")
+    if mm["moves_in_bank_not_in_prior"]:
+        print(f"  moves in the bank the prior never draws: {mm['moves_in_bank_not_in_prior']}")
+    for w in mm["worst"][:5]:
+        print(
+            f"  worst cell: {w['species']}/{w['move']} bank={w['p_bank']:.4f} "
+            f"prior={w['p_prior']:.4f} z={w['z']:+.2f}"
+        )
+    for f in failures[:20]:
+        print(f"  VIOLATION {f}")
+
+    rt = engine_p3.round_trip_battles(bank.iter_pairs(payload), args.round_trip, 0x9E3779B9)
+    print(
+        f"  round trip: {rt['battles']} bank battles played through the engine "
+        f"({rt['win']}W/{rt['lose']}L/{rt['tie']}T, mean {rt['mean_turns']:.1f} turns)"
+    )
+
+    reasons = []
+    if rt["battles"] != args.round_trip:
+        reasons.append("round-trip battles did not all complete")
+    if failures:
+        reasons.append(f"{len(failures)} constraint violations")
+    if report["pairs_with_two_dittos"]:
+        reasons.append(f"{report['pairs_with_two_dittos']} pairs with two Dittos")
+    if stats["levels_multi_valued"]:
+        reasons.append("a species appeared at more than one level")
+    if mm["moves_in_bank_not_in_prior"]:
+        reasons.append("the bank draws moves the prior never does")
+    if report["teams"] < args.min_teams:
+        reasons.append(f"only {report['teams']} teams < --min-teams {args.min_teams}")
+    if mm["cells_over_threshold"] > args.max_outlier_cells:
+        reasons.append(
+            f"{mm['cells_over_threshold']} move-marginal cells past the Bonferroni "
+            f"threshold (allowed {args.max_outlier_cells})"
+        )
+    if stats["species_halves_p"] < 0.001:
+        reasons.append(f"species halves disagree (p={stats['species_halves_p']:.2g})")
+    if reasons:
+        print(f"\n[P-3] FAIL: {'; '.join(reasons)}")
+        return 1
+    print("\n[P-3] PASS")
+    return 0
+
+
 def _not_yet(name: str):
     def run(args: argparse.Namespace) -> int:
         print(f"[{name}] not implemented yet", file=sys.stderr)
@@ -180,8 +280,15 @@ def main(argv: list[str] | None = None) -> int:
     p4.add_argument("--min-distinct", type=int, default=1000)
     p4.set_defaults(func=cmd_p4)
 
+    p3 = sub.add_parser("p3", help="team-bank constraints and species marginals")
+    p3.add_argument("--bank", default="data/engine/teams_59da482e_e0e0_50000.bin")
+    p3.add_argument("--ps-commit", default="59da482e")
+    p3.add_argument("--min-teams", type=int, default=100_000)
+    p3.add_argument("--max-outlier-cells", type=int, default=0)
+    p3.add_argument("--round-trip", type=int, default=500)
+    p3.set_defaults(func=cmd_p3)
+
     for gate, helptext in (
-        ("p3", "team-bank constraints and species marginals"),
         ("p1", "828-float encoder parity"),
         ("p2", "mask parity"),
     ):
