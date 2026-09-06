@@ -54,8 +54,7 @@ ONE-SIDED (ruled; the arithmetic gives 0.757 — RW-1). No gen4 model trained.**
    first), each its own pre-reg; step 6 = ONE gen-4 ladder run under a NEW pre-reg.
 
 ## Watch items
-- **ONE vs-SH RUNG IS WORTH ±0.02** (read SHAPE); **RESUME SPLITS HISTORY** and
-  LOSES the open seat-2 harvested rows (disclosed).
+- **ONE vs-SH RUNG IS WORTH ±0.02** (read SHAPE); **RESUME SPLITS HISTORY**, loses open seat-2 rows.
 - vs-SH/off-FP are NEVER ladder numbers; FP quotes carry budget + the disclosures;
   every gen4 number so far is a smoke, a clone or a bot-vs-bot placement — no claim.
 - 0.786 is Wang's NETWORK-ALONE, WEAKER number (Fig 4.1 ≈ 0.84); dose is named first.
