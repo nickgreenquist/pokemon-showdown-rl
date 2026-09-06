@@ -218,7 +218,9 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 - **Locked metric names:** `rollout/episode_return`, `rollout/episode_length`,
   `eval/return_mean`, `eval/return_std`, `eval/win_rate`,
   `time/steps_per_sec`, `time/collect_sec`, `time/update_sec`,
-  `time/eval_sec`, plus `loss/*` and `selfplay/*`.
+  `time/eval_sec`, plus `loss/*`, `selfplay/*` and (2026-09-05, the
+  both-seat harvest) `harvest/*` — logged from PPO's update, never from
+  env or pool code.
 - **Action masking is a harness contract.** Discrete envs always emit
   `info["action_mask"]`; algorithms mask through `rl/common/masking` with a
   finite `-1e8` sentinel, never `-inf`; no `mask is None` branches; the value

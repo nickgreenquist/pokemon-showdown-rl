@@ -553,8 +553,11 @@ classes taxonomy is pre-registered as data or left to the implementer.
 
 ## 13. Build status — layout v0.1 (branch `gen4-build`, 2026-09-05)
 
-What exists in code, `[tree]` at the branch head. Nothing here is frozen: the
-tuples become a commitment only in a gen-4 pre-registration header (§4.7).
+What exists in code, `[tree]` at the branch head. **FROZEN as layout v0.1 by the
+first gen-4 pre-registration header, `configs/gen4_wang50m.yaml` (drafted
+2026-09-05, 2-Opus review applied; ratification pending — the tuples are a
+commitment from that file's ratification on; the pinned hash gate
+`tests/test_gen4_encoder.py::test_gen4_encoding_hash_is_pinned_*` enforces it).**
 
 | piece | file | note |
 |---|---|---|
@@ -625,7 +628,16 @@ mixes scales; `_move_slots_aliased` tests the special-move set rather than
 poke-env's exact re-basing condition (inherited from gen 1). The set-prior data
 file is now pinned to the vendored checkout by test.
 
-**Not built (next) — RULED ORDER 2026-09-05 (`open_questions.md` §0.5): (1) the
+**UPDATE 2026-09-05 (late): items (1)–(3) below LANDED — the pre-reg header
+(`configs/gen4_wang50m.yaml`, draft reviewed, ratification pending), the
+pinned hash gate (3a5df5b), the entity trunk's layout argument (ec39268,
+`layout: gen4`, item/ability id tables, PRIV_DIM 703), the both-seat harvest
+(66746dc) and the clone-leg threading (8afa069: `eval_checkpoint.py`,
+`make_bc_dataset.py`, `tape_to_dataset.py --gen 4`, `train_bc.py`); F-07
+selection is deferred to a later header. The tests count is now 26 offline
+(+ the two hash gates). The paragraph is kept for the record.**
+
+**Not built (as of the 2026-09-05 merge) — RULED ORDER 2026-09-05 (`open_questions.md` §0.5): (1) the
 pre-reg header that freezes v0.1 as built (2-Opus review first), (2) the pinned
 hash gate, (3) the entity trunk's layout argument, (4) the 50M Wang-recipe run —
 his Table A.3 and mirror self-play on our encoder; our pool / league / batch

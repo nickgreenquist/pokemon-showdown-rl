@@ -267,7 +267,18 @@ mechanism co-primary (D23 lesson).
 
 **4.1 Both-seat harvest — the repo's licensed A2 (CHAPTER5 §3, licensed
 2026-08-26; do not confuse with docs/CLEANUP.md's audit item "A2"). STRONGEST.**
-Seat 2's trajectory is discarded (`showdown.py:1208`,
+**BUILT 2026-09-05 (commit 66746dc, `selfplay.harvest_both_seats`,
+`rl/selfplay/harvest.py`) for the gen-4 Wang-recipe baseline — and built
+DIFFERENTLY from the sketch below: EVERY seat-2 row is harvested (no
+"latest-only" filter) with the acting MEMBER's own log-prob recorded and the
+member's push id carried as `version`, so staleness is a logged metric
+(`harvest/version_lag_max`) rather than a filter; at the gen-4 recipe
+(pool_size 1 / latest_prob 1.0 / push_every 1) the member IS the learner and
+the lag is 0–1. On the SYNC path only (the async collector refuses it). As a
+GEN-1 LEVER it remains UNRUN and un-credited: a gen-1 pre-reg would pair it
+with the pool (latest_prob 0.8 / push_every 5) exactly as sketched, and the
+filter question below becomes that pre-reg's first design decision.**
+Seat 2's trajectory WAS discarded (`discard_seat2_obs=True` in `ShowdownEnv`;
 `discard_seat2_obs=True`); in the async collector the opponent is a
 listening Player that already encodes its own obs to move. Harvest = ~2×
 episodes/update (~959 → ~1,700 at the 80% rule below) at zero extra

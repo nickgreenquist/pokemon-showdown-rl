@@ -1,10 +1,12 @@
 # =====================================================================
 # PRE-REGISTRATION — THE FIRST GEN-4 RUN: WANG'S RECIPE AS HE RAN IT, ON
 # OUR FROZEN ENCODER LAYOUT v0.1, 50M PER-SEAT DECISIONS x 3 LANES.
-# Drafted 2026-09-05 (evening). STATUS: DRAFT — 2-Opus review PENDING (NOT YET RUN; launched then stopped 2026-09-05 late on the usage limit)
-# (review_1: evidential validity / arithmetic; review_2: repo consistency
-# / executability; both under results/design_gen4_wang50m/), AWAITING
-# MAINTAINER RATIFICATION. Ratification records rulings in
+# Drafted 2026-09-05 (evening). STATUS: DRAFT — 2-Opus review APPLIED
+# 2026-09-05 (late): review_1 (evidential validity / arithmetic: 9 MUST-FIX,
+# 17 SHOULD-FIX) and review_2 (repo consistency / executability: 7 MUST-FIX,
+# 16 SHOULD-FIX), both under results/design_gen4_wang50m/, ALL findings
+# applied in place and tagged [R1-n] / [R2-Mn|Sn]; AWAITING MAINTAINER
+# RATIFICATION (RW-1..RW-6 at the foot). Ratification records rulings in
 # `ratified_decisions` at the foot and replaces this STATUS line. The
 # launch is the maintainer's (> 5 h training, CLAUDE.md rule 4):
 # scripts/gen4_wang50m_wave.sh, whose preflight enforces the zero-lane
@@ -47,12 +49,29 @@
 #   the later lever runs under the credit line); the SB3 confound and our
 #   scale fraction disclosed beside the read, and the failure branch names
 #   DOSE (50M per seat vs his ≈ 75M) before it fires."
-#   ARITHMETIC NOTE [R1-1]: sqrt(0.786·0.214/200) = 0.0290, and 0.786 −
-#   0.0290 = 0.7570. The RULED threshold is 0.756 (JOURNEY step 5,
+#   ARITHMETIC NOTE [R1-1, R1-4]: sqrt(0.786·0.214/200) = 0.0290, and
+#   0.786 − 0.0290 = 0.7570. The RULED threshold is 0.756 (JOURNEY step 5,
 #   STATUS, open_questions §0.5 all carry 0.756); it is carried AS RULED
-#   and the 0.001 gap is disclosed here, not corrected — the maintainer
-#   may re-pin it at ratification (ruling wanted, RW-1 below). Nothing in
-#   the read is sensitive to it at this n (one pooled-3×3000 se ≈ 0.0044).
+#   and the 0.001 gap is disclosed here, not corrected. PROVENANCE OF THE
+#   se [R1-4]: n = 200 is thesis §3.1.2's in-training VALIDATION metric
+#   ("winrate over 200 games"); Table 4.1 states no n at all, and its
+#   digit grid is inconsistent with 200 (0.786 × 200 = 157.2) while every
+#   cell is consistent with n = 1000 (0.786/0.206 + 8 ties; 0.809/0.191;
+#   0.908/0.088 + 4), where one se is 0.0130 and a one-se floor would be
+#   0.773. The maintainer decides against this evidence at ratification
+#   (RW-1 below: 0.756 as ruled / 0.757 / 0.773). Nothing in the read is
+#   sensitive to the 0.001 at this n (one pooled-3×3000 se ≈ 0.0043–0.0045
+#   at p 0.786 → 0.756 [R1-11]); the 0.773 option is a different bar.
+#   CORRECTION [R1-3]: Table 4.1's 0.786 is his NETWORK ALONE (row NN vs
+#   Heuristic); "MCTS + NN" vs Heuristic is 0.908. The network-alone row is
+#   the right comparator — we do not search — so the threshold is
+#   unaffected, but JOURNEY's "his full agent" is wrong and must not
+#   propagate to the readout. AND [R1-9] 0.786 is his WEAKER published
+#   number: Figure 4.1 digitizes to ≈ 0.836 at the endpoint and ≈ 0.849
+#   near 120M, unreconciled from the text (prior_work/README.md,
+#   anchors_and_eval.md §6). The exit bar is deliberately the lower one; a
+#   pooled read between 0.756 and 0.836 is "matched" under this pre-reg
+#   and must not be quoted as reproducing his curve.
 #
 # CREDIT LINE, VERBATIM (appears in this header exactly once, here):
 # "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff,
@@ -97,7 +116,9 @@
 #   his key           his value        ours (this file)             note
 #   learning_rate     10^-4.23         agent.lr 5.8884e-5           = 10^-4.23 to 5 s.f.
 #   LR schedule       lr0/(8x+1)^1.5   lr_schedule power, a 8, b 1.5, x = steps_seen/lr_anneal_steps,
-#                                      lr_anneal_steps 50,000,000 (= total_steps; train.py refuses less)
+#                                      lr_anneal_steps 50,000,000 (= total_steps; train.py refuses less); floor lr0/27
+#                                      asymptotically — the run's REALIZED minimum is lr0/26.99 = 2.1821e-6 at the last
+#                                      update (x = 2,503 × 19,968 / 5e7 = 0.99960) [R1-10]
 #   n_epochs          7                epochs 7
 #   gamma             0.9999           gamma 0.9999
 #   gae_lambda        0.754            gae_lambda 0.754
@@ -109,8 +130,10 @@
 #   n_steps           78 × 512         rollout_steps 2496 × num_envs 8 = 19,968 SEAT-1 rows per update, plus seat 2's
 #                                      harvested rows (≈ 19,968 ± a few %: seat 2 decides about as often — forced
 #                                      replacements differ by a handful per battle) -> ≈ 39,936 rows per update = his 39,936
-#   batch_size        1024             minibatches 39 over the UNION: floor(rows/39) ≈ 1,024 ± ~30 per minibatch; the
-#                                      trailing partial slice follows minibatch_tail 'keep' (F-04 default, ruled)
+#   batch_size        1024             minibatches 39 over the UNION: floor(rows/39) ≈ 1,024 ± ~30 per minibatch, PLUS a
+#                                      trailing slice of (rows mod 39) = 0–38 rows that trains under minibatch_tail 'keep'
+#                                      (F-04 default, ruled) — 40 slices per epoch on ~38/39 of updates [R1-2, R2-M3];
+#                                      his 39,936 / 1,024 divided exactly, so SB3 saw NO partial minibatch (D-IMPL; RW-6)
 #   reward            terminal ±1      the env's default: no faint/hl shaping (env_kwargs empty), ties 0
 #   self-play         both seats use the most recent policy; both record   selfplay: opponent self, pool_size 1,
 #                                      latest_prob 1.0, push_every_updates 1 (the member during rollout k IS the
@@ -136,7 +159,11 @@
 #   D-IMPL  he ran Stable-Baselines3 (MaskablePPO); ours is our PPO (rl/agents/ppo.py). Known differences beyond
 #           D-NET: our old_logp for seat 1 is recomputed at update start (exact, lockstep), seat 2's is recorded;
 #           our minibatch advantage normalisation is per minibatch (SB3's default, same); our −1e8 mask sentinel vs
-#           his −inf; our critic is a separate stack (his shares a backbone). Disclosed, never modelled.
+#           his −inf; our critic is a separate stack (his shares a backbone); ours takes ~2.5% of its gradient
+#           steps on a ≤38-row trailing slice at the full lr (the 40th slice, [R1-2]) where his batch divided exactly.
+#           AND [R1-9]: his 13 hyperparameters were BAYESIAN-TUNED ON A 3v3 SURROGATE (thesis A.0.3) against HIS
+#           encoder, action space and network — so "his recipe as he ran it" on our trunk is a recipe TRANSPLANT,
+#           not a controlled reproduction. Disclosed, never modelled.
 #   D-COLL  his collection is non-lockstep per-worker buffers; ours is the lockstep sync vector loop (8 envs) with
 #           seat-2 episodes joined whole at each update. Within-rollout staleness: a seat-2 battle spanning two
 #           rollouts was acted, in its second half, by a member one push behind — the ratio corrects it, and
@@ -145,7 +172,14 @@
 #           harness is unstated (anchors_and_eval.md §6). Comparable iff his was stock; disclosed.
 #   D-TIE   gen 4 has no Endless Battle Clause; the sim auto-ties at turn > 1000. Ties are non-wins (locked
 #           protocol) and the tie RATE is reported beside every vs-SH number (mechanics_delta.md §16 Q2).
-#   D-DOSE  50M vs ≈ 75M per seat (2/3). Named first on the failure branch.
+#   D-DOSE  50M vs ≈ 75M per seat (2/3). Named first on the failure branch. The dose is also an UPDATE-count
+#           dose [R1-15]: the value clip caps a row's prediction move at 0.0184 per update (all 7 epochs clamp
+#           against the same pre-update values, and a saturated clamp passes no gradient), so 2,504 updates vs his
+#           ≈ 3,756 (150M / 39,936) is 2/3 of the critic's clipped-increment budget too.
+#   HIS CURVE [R1-5]: thesis §4.1 reports "most of its progress within the first 40M steps ... quickly reaching
+#           80%", and Figure 4.1 digitizes to 0.786 at ≈ 30M of his 150M TOTAL steps (both seats) ≈ 15M per
+#           seat ≈ 30% of our planned 50M per seat. Dose is named FIRST on the failure branches AS RULED, but it
+#           is NOT the cause his own curve supports; the candidates it supports are D-ENC and D-NET.
 #
 # ---------------------------------------------------------------------
 # ARMS. ONE arm, THREE lanes, THIS FILE: seeds 200 / 208 / 216 (--seed
@@ -163,8 +197,11 @@
 #   Aggregator, named once, binding everywhere: the EQUAL-WEIGHT MEAN of
 #   the three per-lane finals (each: the completion checkpoint's win rate
 #   over 3000 battles vs SimpleHeuristicsPlayer, deterministic policy,
-#   ties as non-wins, `scripts/eval_checkpoint.py <ckpt> --episodes 3000`,
-#   no --no-shaping needed: nothing is shaped). Per-lane values, the
+#   ties as non-wins, `scripts/eval_checkpoint.py <ckpt> --episodes 3000
+#   --out results/gen4_wang50m/vs_sh_s<seed>.json` [R2-S13] — the JSON
+#   carries win_rate, wins_from_returns, ties_from_returns and
+#   mask_desyncs, all four owed at readout; no --no-shaping needed:
+#   nothing is shaped). Per-lane values, the
 #   pooled-over-battles proportion, best/worst lane and the tie rate are
 #   RECORDED and never govern. k = 3; at k <= 2 (lane-failure rule) the
 #   primary is DESCRIPTIVE ONLY and neither branch fires (cell K).
@@ -176,29 +213,53 @@
 #            milestone met; the README row lands once every leg is in.
 #     M-NO   pooled <  0.60   the pipeline did not learn to the milestone;
 #            the readout names, IN THIS ORDER, the candidate causes it can
-#            and cannot separate: D-DOSE (named first), the harvest ratio
-#            (H1), the LR floor (lr0/27 at x = 1), the trunk (D-NET), the
-#            encoder (D-ENC) — and routes to a MAINTAINER RULING on the
-#            next run (a lever pre-reg against this baseline, or a re-run
-#            at his dose). No config is changed by this header.
+#            and cannot separate: D-DOSE (named first, AS RULED — with HIS
+#            CURVE's sentence above adjacent [R1-5]), the encoder (D-ENC —
+#            Q49, the one unsupported choice), the trunk (D-NET), the value
+#            clip's per-update ceiling (0.0184; 2,504 vs his ≈ 3,756
+#            updates [R1-15]), the harvest ratio (H1), the LR schedule
+#            (realized minimum lr0/26.99 [R1-10]) — and routes to a
+#            MAINTAINER RULING on the next run (a lever pre-reg against this
+#            baseline, or a re-run at his dose). No config is changed by
+#            this header.
 #   STEP-5 BRANCH (the chapter's exit; boundary = 0.756 -> S5-MATCHED):
-#     S5-MATCHED  pooled >= 0.756   "matched Wang's 0.786 (one-sided, his
-#                 1-se floor)" — with EVERY deviation (D-DOSE, D-IMPL,
-#                 D-NET, D-ACT, D-ENC, D-COLL, D-SH, D-TIE) printed in the
-#                 SAME sentence. The chapter proceeds to step 6
+#     S5-MATCHED  pooled >= 0.756   "matched Wang's NETWORK-ALONE 0.786
+#                 (one-sided, the ruled floor; his weaker number)" — with
+#                 EVERY deviation (D-DOSE, D-IMPL, D-NET, D-ACT, D-ENC,
+#                 D-COLL, D-SH, D-TIE) printed in the SAME sentence and the
+#                 0.836/0.849 caveat adjacent [R1-3, R1-9]. The chapter
+#                 proceeds to step 6
 #                 (ONE gen-4 ladder run, a NEW pre-reg).
 #     S5-SHORT    pooled <  0.756   "did not match"; the sentence NAMES
-#                 DOSE FIRST ("at 2/3 of his per-seat dose"), then the
-#                 deviations in the same order (D-IMPL, D-NET, D-ACT,
-#                 D-ENC, D-COLL, D-SH, D-TIE), and states the gap in se
-#                 units. The chapter
+#                 DOSE FIRST ("at 2/3 of his per-seat dose") AND, in the
+#                 same sentence, HIS CURVE's caveat (his 0.786 at ≈ 30% of
+#                 our per-seat dose, so dose is not the cause his curve
+#                 supports [R1-5]), then the deviations in the same order
+#                 (D-IMPL, D-NET, D-ACT, D-ENC, D-COLL, D-SH, D-TIE), and
+#                 states the gap in units of the LARGER of the two printed
+#                 ses [R1-24]. The chapter
 #                 does NOT re-run on this header: the follow-up is a
 #                 pre-registered LEVER run (pool / league first, per the
 #                 maintainer's expectation) or a dose-matched run, a
 #                 maintainer decision.
 #   COMPOSITION: M-NO implies S5-SHORT; M-YES & S5-SHORT is the expected
 #   outcome at this dose and is written as such, never as a failure of
-#   the milestone; M-YES & S5-MATCHED closes both.
+#   the milestone; M-YES & S5-MATCHED closes both. CELL K ROUTE [R1-23]:
+#   at k <= 2 the milestone is UNDECIDED and the cell routes to a
+#   MAINTAINER RULING (re-run the dead lane on the next ORDERED spare seed,
+#   or accept a k = 2 descriptive readout); the README row WAITS either way.
+#   N_EFF [R1-6; ruling 10]: (a) PRIMARY — n_eff per lane = battles with an
+#   env-supplied info["outcome"]; an eval that dies mid-way is RE-RUN FROM
+#   ZERO, never merged; every lane's primary needs n_eff = 3000 exactly or
+#   that lane's primary reads PENDING. (b) L2/L3 — n_eff = seat_finished −
+#   crash_forfeits, crash_forfeits = FP relaunches (ruling 10: recorded, not
+#   acted on); a leg VOIDS above 5 relaunches per lane. (c) `mask_desyncs`
+#   (eval_checkpoint's report) is disclosed beside every number. (d) THE
+#   SIGN-INVERSION CROSS-CHECK [R1-18]: nothing is shaped, so `win_rate ==
+#   wins_from_returns` EXACTLY on every primary and every leg, or the number
+#   is not quoted. AGGREGATOR NOTE [R1-24]: the equal-weight mean of per-lane
+#   finals equals the pooled-over-battles proportion iff every lane's n_eff
+#   is equal — which (a) guarantees; the legs and S-SHAPE pool the same way.
 #   FREEZE RULE, verbatim in effect: no threshold, n, aggregator,
 #   sidedness, leg list or barred-sentence list moves after the FIRST
 #   final-checkpoint battle on the primary axis lands.
@@ -207,38 +268,56 @@
 # list). Descriptive, NEVER verdict inputs; each reported per lane AND
 # pooled; a leg not yet run reads PENDING and the README row WAITS.
 #   L1 most-damage-typed h2h, 500/lane: `scripts/eval_checkpoint.py
-#      <ckpt> --episodes 500 --opponent most_damage_typed` (deterministic
-#      seat 1 vs the anchor; its tie-break stream reseeded per env).
-#      Sanity reference: gen-1 MDT vs SH 0.330 (n=300); gen-4 placement
-#      MEASURED FROM THE TAPES, not assumed (a sanity row).
-#   L2 Foul Play h2h at --search-time-ms 20, n = 250/lane:
-#      `scripts/gen4_fp_h2h.py --checkpoint <ckpt> --battles 250
-#      --search-time-ms 20 --port 8000` (the seat SAMPLES — PoolPlayer's
-#      form; NAMED in every quote). Two disclosures ride every FP@20
-#      number, forever: the equivalence test is weakly powered, and the
-#      point estimate flatters us. Plus gen 4's third: FP's pinned set
-#      file drifts ±1–2 levels on 40 species. Rate reference 1.18 s/battle
-#      (n=250 vs SH).
-#   L3 Foul Play h2h at --search-time-ms 500, n = 250/lane (26.6 s/battle
-#      -> 1.85 h/lane, 5.5 h total, detached, resume-safe per lane). Both
-#      budgets are quoted until Q38 pins one; L2+L3 on this fleet's finals
-#      ARE the two-rung FP budget ladder ruling 6 asks for, run ONCE.
+#      <ckpt> --episodes 500 --opponent most_damage_typed --out
+#      results/gen4_wang50m/mdt_s<seed>.json` (deterministic seat 1 vs the
+#      anchor; its tie-break stream reseeded per env) [R2-S13]. Sanity
+#      reference: gen-1 MDT vs SH 0.330 (n=300); the gen-4 MDT-vs-SH
+#      placement is a sanity row MEASURED by `scripts/gen4_smoke.py
+#      --player most_damage_typed --opponent heuristics --battles 300 --tag
+#      mdt_vs_sh` (its a_record W-L-T; anchor_h2h.py is gen-1-bound)
+#      [R2-S12].
+#   L2 Foul Play h2h at --search-time-ms 20, n = 250/lane, SEQUENTIAL, one
+#      FP process at a time: `scripts/gen4_fp_h2h.py --checkpoint <ckpt>
+#      --battles 250 --search-time-ms 20 --port 8000 --seed <lane seed>
+#      --tag gen4w50m_s<seed>_fp20 --out results/gen4_wang50m/fp/` (the
+#      tag and out are REQUIRED: the defaults overwrite each other across
+#      the six runs [R2-M6]; the seat SAMPLES — PoolPlayer's form; NAMED in
+#      every quote). Three disclosures ride every gen-4 FP number, at BOTH
+#      budgets: the equivalence test is weakly powered, the point estimate
+#      flatters us, and FP's pinned set file drifts ±1–2 levels on 40
+#      species [R1-20]. Rate reference 1.18 s/battle (n=250 vs SH).
+#   L3 Foul Play h2h at --search-time-ms 500, n = 250/lane, run as FIVE
+#      CHUNKS of `--battles 50` per lane (`--tag gen4w50m_s<seed>_fp500_c<k>`,
+#      `--timeout 5400` each; the script has no resume, so THE CHUNK IS THE
+#      RESUME UNIT and a death costs ≤ 50 battles [R2-M5]); a re-run gets
+#      a fresh username pair automatically (pid-derived), so the poisoned-
+#      pair landmine does not apply. The leg's tally is the SUM of the
+#      chunk W-L-T records, never a subtraction (G2's rule). 26.6 s/battle
+#      -> 1.85 h/lane, 5.5 h sequential, detached. Both budgets are quoted
+#      until Q38 pins one; L2+L3 on this fleet's finals ARE the two-rung FP
+#      budget ladder ruling 6 asks for, run ONCE.
 #      Q38 PIN RULE, pre-committed: the pinned budget is the LOWER rung
-#      whose pooled h2h differs from the other rung's by < 2·se_diff (the
-#      budgets are equivalent at our n) — else 500 ms is pinned and 20 ms
-#      is retired for gen 4; either way both numbers print in this
-#      readout and the pin governs LATER runs only.
+#      whose pooled h2h differs from the other rung's by < 2·se_diff — at
+#      3 × 250 per rung, 2·se_diff ≈ 2·sqrt(2·p(1−p)/750) ≈ 0.052 at p ≈ 0.5,
+#      so "equivalent" means "not distinguishable at ±5 points", the
+#      standing FP@20 weakness stated as a number [R1-19] — else 500 ms is
+#      pinned and 20 ms is retired for gen 4; either way both numbers
+#      print in this readout and the pin governs LATER runs only.
 #   L4 BC-clone h2h, 500/lane: the gen-4 clone of FP@20 (BI-G4-5, built
 #      ALONGSIDE this run — see CLONE below), `scripts/eval_checkpoint.py
-#      <ckpt> --episodes 500 --opponent-checkpoint runs/<clone>/checkpoint.pt`
-#      (seat 1 deterministic, the clone samples — the gen-1 form). A clone
-#      number is never style evidence. PENDING until the clone validates.
-#   L5 (primary axis, descriptive use) vs-SH per lane and the tie rate.
+#      <ckpt> --episodes 500 --opponent-checkpoint runs/<clone>/checkpoint.pt
+#      --out results/gen4_wang50m/clone_s<seed>.json` (seat 1
+#      deterministic, the clone samples — the gen-1 form). A clone number
+#      is never style evidence. PENDING until the clone validates.
+#   L5 (primary axis, descriptive use) vs-SH per lane and the tie rate
+#      (`ties_from_returns` in the primary's JSON — D-TIE's number).
 #   SANITY ROWS (printed, not legs): random and MaxBasePower h2h 300/lane
 #   if cheap; FP@20 vs SH 226-24-0 and FP@500 vs SH 228-22-0 (n=250,
 #   bot-vs-bot, 2026-09-05) as the FP seat's placement.
 #   S-SHAPE (descriptive; never a verdict input): rungs 5M..50M step 5M
-#   (10) × 3 lanes × n = 1000 vs-SH, pooled per rung. The read is the
+#   (10) × 3 lanes × n = 1000 vs-SH, pooled per rung the primary's way
+#   (equal-weight over lanes at equal n) [R1-24]; ≈ 1.25 h at the final-
+#   checkpoint battle length [R1-17]. The read is the
 #   CURVE; "flat" and "plateau" are BARRED (no TOST is run); permitted
 #   forms: "climbs through X", "within ±k se", "not distinguishable from
 #   flat at this n and k". ONE vs-SH RUNG IS WORTH ±0.02.
@@ -274,10 +353,12 @@
 #        1e-4 relative; lr_schedule power, a 8.0, b 1.5.
 #   R0-c the layout freeze: the two hash gates green (bare `pytest
 #        tests/test_gen4_encoder.py`), fingerprint pinned.
-#   R0-d carried seams: actor 674,763 / critic 543,553 params (asserted
-#        at construction by tests/test_entity_trunk_gen4.py and stamped in
-#        meta.yaml); pool_size 1 / latest_prob 1.0 / push_every 1; harvest
-#        attached (the agent refuses privileged / aux with it).
+#   R0-d carried seams: actor 674,763 / critic 543,553 params — PINNED by
+#        tests/test_gen4_prereg.py::test_agent_constructs_with_the_stamped_
+#        param_counts (constructs the agent from THIS file over
+#        fake_spaces_gen4 [R2-M2]) and stamped in meta.yaml; pool_size 1 /
+#        latest_prob 1.0 / push_every 1; harvest attached (the agent refuses
+#        privileged / aux with it).
 #   R0-e the smoke (configs/gen4_wang50m_smoke.yaml, 3 updates, run
 #        2026-09-05 from a scratch cwd, never a number anyone quotes)
 #        closed the loop end to end. READINGS (solo lane, the test suite
@@ -292,31 +373,53 @@
 #        collect 40–51 s + update 19–20 s per update; seat-1 episode
 #        length mean 62.9 (max 202); eval 10 battles vs SH in 0.47 s
 #        (win_rate 0.1 at 60k steps — a number nobody quotes); RSS 2.38 GB
-#        at 100 s; checkpoint.pt 19.2 MB (with the pool member).
+#        at 100 s; checkpoint.pt 19.2 MB (with the pool member; a ladder
+#        RUNG without it is 14.7 MB measured [R2-S2]). The whole-run rate
+#        is the harmonic mean 296; "290" below is that rounded DOWN as a
+#        lower bound [R1-12]. LR REGIME CAVEAT [R2-S9]: the smoke's
+#        lr_anneal_steps == its total_steps, so its three updates ran at
+#        x = 0, 1/3, 2/3 (lr0, ≈ lr0/7, ≈ lr0/16) where the fleet's first
+#        three all sit at ≈ lr0 — the R0-1 / T2 bands below come from a
+#        colder regime than the one they police and are re-based on that
+#        account too.
 #   R0-f derived arithmetic (sync, exact): 8 | 50,000,000 (loop ends at
 #        step 50,000,000 exactly); updates = floor(5e7 / 19,968) = 2,504,
 #        the last at step 49,999,872 (the trailing 128 steps never fill
 #        the buffer); rungs: the crossing-step ladder at 500k writes
 #        ckpt_000500000.pt … ckpt_050000000.pt = 100 rungs/lane (8 | 500k
 #        -> every rung lands on its grid literal); pushes 2,504 (+ the
-#        step-0 push); grad steps ≈ 2,504 × 7 × 39 ≈ 683,592 (the union
-#        batch size varies with the harvest, so the minibatch count is
-#        exactly 39 per epoch and the width floats around 1,024).
-#   R0-g rung retention: EVERY rung (100/lane × ~19 MB ≈ 1.9 GB/lane)
+#        step-0 push); minibatches [R1-2, R2-M3]: `_minibatch_slices`
+#        plans range(0, B, B // 39), so a union batch B = 39·mbs + r has 39
+#        full slices PLUS a trailing slice of r = B mod 39 (0–38) rows that
+#        trains under `keep` (floor 2) — 40 slices per epoch on ~38/39 of
+#        updates, the width floating around 1,024; grad steps ≈ 2,504 × 7
+#        × 39.95 ≈ 700,000 (≈ 2.5% of them on the ≤ 38-row tail at the
+#        full lr — D-IMPL names it; RW-6 asks whether `fold` should replace
+#        `keep` for this run).
+#   R0-g rung retention: EVERY rung (100/lane × 14.7 MB ≈ 1.5 GB/lane,
+#        fleet ≈ 4.5 GB [R2-S2])
 #        RETAINED until the readout (S-SHAPE) is committed; the E2 rule
 #        (keep completion + one mid rung + checkpoint.pt / best /
 #        pool) applies after.
-#   R0-h disk >= 40 GiB free (need ≈ 6 GB; 162 GiB at draft time).
-#   R0-i memory >= 12 GB reclaimable before lane 1 (the smoke's lane RSS
-#        2.4 GB at 100 s; three lanes ≈ 7.5 GB + the server must fit a
-#        24 GB box with headroom — the D-E landmine: the last lane runs
-#        solo and may legitimately grow).
+#   R0-h disk >= 40 GiB free (need ≈ 5 GB; 162 GiB at draft time).
+#   R0-i memory >= 8 GB reclaimable before lane 1 [R2-S1: the script's
+#        own expression measured 9–10 GB on the IDLE box with only the
+#        server up, so 12 GB would fail preflight by construction; the bar
+#        is set at the smoke's basis — three lanes ≈ 7.5 GB at the smoke's
+#        2.4 GB/lane — and the named pre-launch action is: close the
+#        browser and every other app, then re-run preflight]. The D-E
+#        landmine: the last lane runs solo and may legitimately grow.
 #   R0-j Showdown server restarted CLEAN immediately before launch;
 #        `simulator: 4` re-verified at showdown/config/config.js:~111; the
 #        server's start time recorded in the launch log.
-#   R0-k clean tree, docs committed, suite green — NAMED INVOCATION: bare
-#        `pytest tests/` (no encoder env vars; the gen-4 path reads none).
-#   R0-l seeds 200/208/216 unused (the test) and windows disjoint.
+#   R0-k1 clean tree, docs committed (the SCRIPT checks) [R2-S6].
+#   R0-k2 suite green — NAMED INVOCATION: bare `pytest tests/` (no encoder
+#        env vars; the gen-4 path reads none) — the MAINTAINER's check
+#        before launch; the script runs only the offline pre-reg, hash-gate
+#        and trunk files and asserts the hash gates PASSED, not skipped
+#        [R2-S4, R2-S5].
+#   R0-l seeds 200/208/216 unused (the test) and windows disjoint; an
+#        existing run dir means RESUME, never a fatal (the script logs it).
 #
 # R0 — PER-LANE, FIRST 250K STEPS (PROVISIONAL BANDS — every number below
 # is a smoke reading at 3 updates, RE-BASED from lane 1's own first 250k
@@ -327,14 +430,22 @@
 #        entropy is of the MASKED distribution, so ~1.8 is near-uniform
 #        over the ~7 legal actions; the ent coef 0.0588 holds it high
 #        early). Breach -> INVESTIGATE before re-basing.
-#   R0-2 loss/clip_frac > 0.0 on every update (exactly 0.0 = recorded
-#        old_logp / recompute not wired) KILL LANE.
+#   R0-2 loss/clip_frac > 0.0 on every update (a bit-exact 0.0 across
+#        7 × 40 minibatches means a frozen actor, a zero lr or a broken
+#        ratio — epoch 1's seat-1 ratio is exactly 1 by construction, the
+#        other six epochs and seat 2's recorded old_logp are not [R1-14])
+#        KILL LANE.
 #   R0-3 harvest/rows_this_update / harvest/seat1_rows in [0.7, 1.3] on
 #        every update after the first (the first update's harvest is
 #        short: only battles that finished inside it); harvest/version_
 #        lag_max <= 2; harvest/rows_dropped / rows < 1%; harvest/discarded
-#        == 0. Breach -> KILL LANE (the mirror is broken).
-#   R0-4 eval/win_rate present, in (0, 1) at the first eval.
+#        == 0; harvest/empty RECORD, investigate above 1% of episodes
+#        [R1-16]. The harvest keys are ABSENT (not zero) on an update with
+#        no finished seat-2 episode [R2-S11]: absence after update 1 is
+#        itself a KILL. Breach -> KILL LANE (the mirror is broken).
+#   R0-4 eval/win_rate present, in [0, 1) at the first eval; breach ->
+#        INVESTIGATE, never KILL (a 0.00 first reading is a weak policy,
+#        not a broken lane) [R2-S3].
 #   R0-5 ops deadline: the first ckpt_*.pt (step 500,000) on disk within
 #        60 min of that lane's launch (500k / 290 steps/s = 29 min solo;
 #        3-wide slower), else kill THAT lane,
@@ -345,44 +456,53 @@
 #
 # IN-RUN GATES:
 #   D-A anneal liveness at the rungs nearest >= 5M / 25M / 50M, every
-#       lane, both param groups. EXACT FORM (sync, closed): with u the
-#       number of completed updates at that rung, x = (u × 19,968) /
-#       5e7, lr == 5.8884e-5 × (8x + 1)^-1.5 to 1e-12 relative (the
-#       schedule is applied at the START of update u+1 from steps_seen =
-#       u × 19,968; the checkpoint's optimizer param_groups carry the
-#       last applied value). Breach -> STOP that lane.
+#       lane, both param groups. EXACT FORM (sync, closed) [R1-1]: with u
+#       the checkpoint's own `updates` field (PPOAgent.state_dict), the
+#       last schedule applied was from steps_seen = (u − 1) × 19,968 —
+#       `_optimize` reads self.updates BEFORE incrementing it at the end
+#       of the update — so x = ((u − 1) × 19,968) / 5e7 and the stored
+#       optimizer lr == 5.8884e-5 × (8x + 1)^-1.5 to 1e-12 relative (the
+#       u × 19,968 form is off by one update: −0.27% at 5M, −0.05% at 50M,
+#       and would STOP every lane). Breach -> STOP that lane.
 #   D-B throughput: REALIZED dStep/dWall (seat-1 steps) over >= 30-min
-#       conforming windows post-1M. Expected ≈ 290 steps/s ± 15% ->
-#       [245, 335] PROVISIONAL (the solo smoke's whole-run rate at 3
-#       updates with the suite running beside it; 3-wide is UNKNOWN and
-#       the gen-1 sync precedent lost ~30% at fleet width -> the band is
-#       re-based from the fleet's first conforming windows, disclosed). RECORD
-#       < 0.85× expected; STOP-AND-INVESTIGATE < 0.5× sustained 2
-#       windows. Progress is a RATE, never an ETA.
+#       conforming windows post-1M. TWO references [R1-7]: solo 296 (the
+#       smoke, suite running beside it — a lower bound) and FLEET-WIDTH
+#       expected ≈ 0.7 × 290 ≈ 203 steps/s (the gen-1 sync precedent lost
+#       ~30% 3-wide) -> PROVISIONAL band [173, 234]; RECORD < 0.85 × 203
+#       = 173; STOP-AND-INVESTIGATE < 0.5 × 203 = 102 sustained 2 windows;
+#       re-based from the fleet's first conforming windows, disclosed.
+#       Progress is a RATE, never an ETA.
 #   D-C in-loop eval/win_rate (n = 100, se 0.05, 200 readings/lane): logged,
 #       visible, NOT ACTIONABLE; no mid-run curve appears in the readout
 #       except through S-SHAPE at n = 1000.
-#   D-D selfplay/winrate_latest: at pool_size 1 the sole member IS the
-#       previous update's policy, so the series reads ~0.5 by construction
-#       — RECORD-only, named so nobody reads a plateau into it.
+#   D-D selfplay/winrate_latest, selfplay/winrate_anchor and
+#       selfplay/anchor_games: at pool_size 1 push() replaces the sole
+#       member, so stats[0] IS stats[-1] — all three series describe the
+#       previous update's policy and read ~0.5 by construction; the
+#       forgetting detector DOES NOT EXIST on this arm [R2-S10]. RECORD-only,
+#       named so nobody reads a plateau into it.
 #   D-E memory: per-lane peak RSS RECORD-ONLY; no per-lane threshold at
 #       any width (lanes finish hours apart and the last runs solo). The
-#       only STOP is box-level: free+inactive < 2 GiB AND non-zero
-#       swapouts, 3 consecutive 5-min polls -> STOP ALL, disclose, resume.
+#       only STOP is box-level: free+inactive < 2 GiB AND swapouts DELTA
+#       > 0 between consecutive polls (vm_stat's counter is cumulative —
+#       the script logs the delta [R2-M7]), 3 consecutive 5-min polls ->
+#       STOP ALL, disclose, resume.
 #   D-F disk: RECORD < 30 GiB; STOP ALL < 15 GiB.
 #   H1  harvest health every rung: rows ratio in [0.7, 1.3], version_lag_max
 #       <= 2, dropped < 1%, discarded == 0 — RECORD a breach; STOP that
 #       lane at 3 consecutive rungs outside.
-#   K6  loss/entropy: 3-lane median < 0.15 for 2 consecutive readings
-#       BEFORE 25M -> STOP that lane (carried from R2/100M; gen 4 has no
-#       floor of its own — PROVISIONAL, re-based at 5M from the fleet's
-#       own minima, disclosed).
-#   T2  3-lane median clip_frac >= 0.90 ×3 consecutive -> STOP AND REPORT,
-#       never adjust (clip 0.0829 is 2.4× tighter than 0.2; expect a
-#       higher clip_frac than gen 1's 0.03–0.28 — RECORD its first-250k
-#       band and re-base T2 only if the fleet sits above 0.5 healthily).
-#   T3  3-lane median approx_kl >= 0.5 ×3, or ANY non-finite loss/* ->
-#       STOP.
+#   K6  loss/entropy: EACH LANE'S OWN < 0.15 for 2 consecutive readings
+#       BEFORE 25M -> STOP that lane [R1-8: a fleet median cannot select a
+#       lane] (carried from R2/100M; gen 4 has no floor of its own —
+#       PROVISIONAL, re-based at 5M from the fleet's own minima, disclosed).
+#   T2  EACH LANE'S OWN clip_frac >= 0.90 ×3 consecutive -> STOP that lane
+#       AND REPORT, never adjust (clip 0.0829 is 2.4× tighter than 0.2;
+#       expect a higher clip_frac than gen 1's 0.03–0.28 — RECORD its
+#       first-250k band and re-base T2 only if the fleet sits above 0.5
+#       healthily; the smoke's 0.05 → 0.02 was read in a colder lr regime,
+#       R2-S9).
+#   T3  EACH LANE'S OWN approx_kl >= 0.5 ×3, or ANY non-finite loss/* (one
+#       reading suffices) -> STOP that lane [R1-8].
 #   COMPLETION: step == 50,000,000 exactly (sync); ckpt_050000000.pt IS
 #       the completion rung and the PRIMARY's checkpoint.
 #
@@ -412,8 +532,17 @@
 # at k <= 2 the primary is DESCRIPTIVE ONLY (cell K).
 #
 # OPS (maintainer launches; agent babysits, reads out):
+#   GATE OWNERSHIP [R2-S8]: the SCRIPT owns preflight (R0-a/c/d/h/i/j/k1/l),
+#   the CPU-delta stall check, auto-resume, the RSS / box / swapouts-delta
+#   / disk sampling and the completion rung; the AGENT owns every METRIC
+#   gate (R0-1..6, H1, K6, T2, T3, D-A, D-B, D-C, D-D) by reading each
+#   lane's offline wandb history (scripts/extract_history.py; after a
+#   resume, through history_merged.csv) and R0-5 from the watch log's
+#   `latest=` field. A "launched pid N" line is NOT liveness (the launcher-
+#   liveness landmine): the next `kill -0` five minutes later is, and the
+#   retry counter bounds a dying launch [R2-S16].
 #   scripts/gen4_wang50m_wave.sh — the ch5_100m_wave.sh pattern: preflight
-#   (R0-h..l), three SYNC lanes staggered 60 s, `nohup caffeinate -dims …
+#   (R0-a..d, h..l), three SYNC lanes staggered 60 s, `nohup caffeinate -dims …
 #   < /dev/null &` (stdin REQUIRED: zsh job control suspends the launch
 #   otherwise), per-lane logs logs/gen4_wang50m_lane_s<seed>.log, watch
 #   loop with the CPU-DELTA stall check (`ps -o time=` twice, 15 s apart —
@@ -428,11 +557,13 @@
 # POST-FLEET SCHEDULE, ORDER FROZEN (agent-side, detached, resume-safe,
 # rate-readable; NOTHING evaluates while any lane trains):
 #   1 vs-SH finals 3 × 3000 (PRIMARY; the smoke's eval ran 10 battles in
-#     0.47 s -> ≈ 0.05 s/battle -> ≈ 3 min/lane; re-read at n = 20 first)
-#     -> 2 L2 FP@20 3 × 250 (15
-#     min) -> 3 L1 MDT 3 × 500 -> 4 S-SHAPE 10 rungs × 3 × 1000 -> 5 L3
-#     FP@500 3 × 250 (5.5 h) -> 6 L4 clone h2h 3 × 500 (iff the clone
-#     validated; else PENDING) -> 7 the Q38 pin -> 8 readout: RESULTS
+#     0.47 s, but those were ~20-decision losing battles — a final
+#     checkpoint plays 40–70 decisions, so budget 8–10 min/lane [R1-17];
+#     re-read at n = 20 first) -> 2 L2 FP@20 3 × 250 (15 min, sequential)
+#     -> 3 L1 MDT 3 × 500 -> 4 S-SHAPE 10 rungs × 3 × 1000 (≈ 1.25 h)
+#     -> 5 L3 FP@500 3 × 5 chunks × 50 (5.5 h sequential) -> 6 L4 clone
+#     h2h 3 × 500 (iff the clone validated; else PENDING) -> 7 the Q38
+#     pin -> 8 readout: RESULTS
 #     addendum + README row (WAITS for every leg) + STATUS + SESSION_LOGS
 #     in ONE commit; the milestone and step-5 branches read off THIS
 #     header, never decided after.
@@ -458,7 +589,10 @@
 # decides, agents advise):
 #   RW-1 the step-5 threshold: carry 0.756 AS RULED (recommended — it is
 #        what three docs say and the read is insensitive at 0.001), or
-#        re-pin to the arithmetic 0.757.
+#        re-pin to the arithmetic 0.757 (one se of the §3.1.2 validation
+#        n = 200), or re-pin to 0.773 (one se at Table 4.1's implied
+#        n = 1000 — the evidence the [R1-4] note lays out; a materially
+#        higher bar).
 #   RW-2 the trunk widths: OURS at the ratified gen-1 widths (recommended
 #        — one architecture across the gen-1 return and the gen-4
 #        chapter; Wang's 256/896 do not map onto an entity trunk), or a
@@ -470,6 +604,15 @@
 #        one lane.
 #   RW-5 launch ownership: hand-over (> 5 h; recommended per rule 4) —
 #        the agent babysits and reads out.
+#   RW-6 the minibatch tail [R1-2, R2-M3]: KEEP `minibatch_tail: keep`
+#        (the F-04 ruling — "DEFAULT (keep) stands" — was given for the
+#        gen-1 arms at minibatches 120, where the tail was 0.8% of steps;
+#        here it is ~2.5%, on ≤ 38-row slices at the full lr, 7 epochs
+#        deep), or set `minibatch_tail: fold` for THIS run (every row
+#        trains once per epoch, no sub-width step; recommended — it is the
+#        closer match to SB3's exactly-divisible batch, and it is a
+#        one-key config change with its own tests). Not a lever either way:
+#        there is no control to credit against.
 # =====================================================================
 env_id: ShowdownGen4-v0
 seed: 200                   # lanes 2/3 via --seed 208 / 216; spares 224/232/240

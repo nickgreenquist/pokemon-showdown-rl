@@ -3,10 +3,13 @@
 # file is only ops — scripts/ch5_100m_wave.sh's pattern on the SYNC path):
 #   0. PREFLIGHT: the zero-lane gates readable only at launch time — clean
 #      tree (R0-k), the pre-reg test + the hash gates (R0-a/R0-c), disk
-#      >= 40 GiB (R0-h), memory >= 12 GB reclaimable (R0-i), FRESH Showdown
+#      >= 40 GiB (R0-h), memory >= 8 GB reclaimable (R0-i), FRESH Showdown
 #      server (R0-j: started within the last 15 min, simulator: 4 verified;
 #      restart it yourself first — this script never kills a server),
-#      seeds' run dirs absent (R0-l).
+#      seeds' run dirs: an existing one is logged and RESUMED, never fatal
+#      (R0-l is the seed-window test, run in the pytest line). R0-k2 (the
+#      bare full suite) is the MAINTAINER's check before launch — this
+#      script runs only the offline pre-reg / hash-gate / trunk files.
 #   1. Three SYNC lanes, seeds 200/208/216, staggered 60 s, detached, run to
 #      completion (the loop exits itself at step 50,000,000; the completion
 #      rung is ckpt_050000000.pt exactly — 8 | 50M).
@@ -45,16 +48,22 @@ say "WAVE START (pre-reg: $CONFIG)"
 fail() { say "PREFLIGHT FAIL: $*"; echo "PREFLIGHT FAIL: $*" >&2; exit 1; }
 
 [ -z "$(git status --porcelain)" ] || fail "tree not clean (R0-k)"
-"$PY" -m pytest tests/test_gen4_prereg.py tests/test_gen4_encoder.py -q >/dev/null 2>&1 \
-  || fail "pre-reg / hash-gate tests red (R0-a / R0-c)"
+"$PY" -m pytest tests/test_gen4_prereg.py tests/test_gen4_encoder.py tests/test_entity_trunk_gen4.py -q >/dev/null 2>&1 \
+  || fail "pre-reg / hash-gate / trunk tests red (R0-a / R0-c / R0-d)"
+# R0-c: both hash gates must PASS, not skip (the corpus gate skips when the
+# local tapes are absent, and -q >/dev/null hides a skip).
+"$PY" -m pytest tests/test_gen4_encoder.py -q -k "hash_is_pinned" 2>&1 | grep -q "2 passed" \
+  || fail "hash gates not both GREEN (R0-c: a skip is not a pass)"
 free_gib=$(df -g . | tail -1 | awk '{print $4}')
 [ "$free_gib" -ge 40 ] || fail "disk ${free_gib}GiB < 40GiB (R0-h)"
 mem_gb=$(vm_stat | awk -F': *' '/free|inactive|purgeable|speculative/ \
   {gsub(/\./,"",$2); s+=$2} END {printf "%d", s*16384/1e9}')
-[ "$mem_gb" -ge 12 ] || fail "reclaimable memory ${mem_gb}GB < 12GB (R0-i)"
+[ "$mem_gb" -ge 8 ] || fail "reclaimable memory ${mem_gb}GB < 8GB (R0-i: close the browser and other apps, re-run)"
 node_pid=$(pgrep -f "node pokemon-showdown start" | head -1)
 [ -n "$node_pid" ] || fail "no Showdown server running (R0-j)"
-node_age=$(( $(date +%s) - $(ps -p "$node_pid" -o lstart= | xargs -I{} date -j -f "%a %b %d %T %Y" "{}" +%s) ))
+node_start=$(ps -p "$node_pid" -o lstart= | xargs -I{} date -j -f "%a %b %d %T %Y" "{}" +%s 2>/dev/null)
+[ -n "$node_start" ] || fail "could not read the server's start time (R0-j)"
+node_age=$(( $(date +%s) - node_start ))
 [ "$node_age" -le 900 ] || fail "server pid $node_pid is ${node_age}s old — restart it fresh first (R0-j)"
 grep -q "simulator: 4" showdown/config/config.js || fail "simulator: 4 missing (R0-j / rule 5)"
 [ -z "${POKEMON_RL_ENCODER_V2:-}${POKEMON_RL_ENCODER_IDS:-}" ] || say "note: gen-1 encoder env vars are set; the gen-4 path ignores them"
@@ -120,7 +129,8 @@ while :; do
     t1=$(ps -o time= -p "$p" | tr -d ' ')
     sleep 15
     t2=$(ps -o time= -p "$p" 2>/dev/null | tr -d ' ')
-    rss_mb=$(( $(ps -o rss= -p "$p" 2>/dev/null | tr -d ' ' || echo 0) / 1024 ))
+    rss_kb=$(ps -o rss= -p "$p" 2>/dev/null | tr -d ' ')
+    rss_mb=$(( ${rss_kb:-0} / 1024 ))
     latest=$(ls -t "$d"/ckpt_*.pt 2>/dev/null | head -1 | xargs -n1 basename 2>/dev/null)
     say "lane s$s: alive cpu=$t1->$t2 rss=${rss_mb}MB latest=${latest:-none}"
     if [ -n "$t2" ] && [ "$t1" = "$t2" ]; then
@@ -130,7 +140,7 @@ while :; do
         setv "RETRIES_$s" $(( $(getv "RETRIES_$s") + 1 ))
         say "lane s$s: STALLED — killing and resuming (retry $(getv "RETRIES_$s")/3)"
         kill -9 "$p" 2>/dev/null; sleep 5
-        launch "$s" resume
+        if [ -f "$d/checkpoint.pt" ]; then launch "$s" resume; else launch "$s" fresh; fi
       fi
     else
       setv "STALLS_$s" 0
@@ -138,7 +148,9 @@ while :; do
   done
   box_free=$(vm_stat | awk -F': *' '/free|inactive/ {gsub(/\./,"",$2); s+=$2} END {printf "%.1f", s*16384/1e9}')
   swapouts=$(vm_stat | awk -F': *' '/Swapouts/ {gsub(/\./,"",$2); print $2}')
-  say "box: free+inactive ${box_free}GB swapouts ${swapouts:-?} disk $(df -g . | tail -1 | awk '{print $4}')GiB"
+  # D-E reads the swapouts DELTA between polls: vm_stat's counter is cumulative.
+  swap_delta=$(( ${swapouts:-0} - ${SWAP_PREV:-${swapouts:-0}} )); SWAP_PREV=${swapouts:-0}
+  say "box: free+inactive ${box_free}GB swapouts_delta ${swap_delta} (cum ${swapouts:-?}) disk $(df -g . | tail -1 | awk '{print $4}')GiB"
   [ "$alive" = 0 ] && break
   sleep 300
 done

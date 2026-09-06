@@ -10637,3 +10637,126 @@ line numbers are not — grep the date, then read that region):
   layout argument, pinned hash gate, format threading, the gen-4 BC clone —
   then the 50M hand-over run, the FP budget ladder, the five-leg readout),
   fresh-session state and the rules that cost hours. STATUS item 6 cleared.
+
+- 2026-09-05 (late, agent; HANDOFF "go") — **THE FIVE GEN-4 BUILD ITEMS AND THE
+  TWO WANG-RECIPE KNOBS LANDED; THE PRE-REG DRAFTED.** Six commits, each with its
+  tests, all green in isolation (the full suite ran later — see the next entry):
+  (1) 3a5df5b BI-G4-3 the pinned gen-4 hash gate: fixture sha 16eb40c7… (130
+  decisions), local t0–t6 corpus sha b72dcbc7… (42,191), fingerprint v0.1/1448.
+  (2) 526f839 PPO `lr_schedule: power` (thesis §3.1.4, lr0/(8x+1)^1.5 over
+  lr_anneal_steps, held at the floor lr0/27 past x=1) and `value_clip_eps`
+  (SB3's clip_range_vf in SB3's exact form — the prediction clamped to old_v ±
+  eps, MSE vs returns, no max); both default to today's wire, six closed-form
+  tests. (3) ec39268 BI-G4-2 the entity trunk takes `layout: gen1|gen4`
+  (`TrunkLayout`, `resolve_layout`); gen 4 adds item + ability id embeddings
+  from the 44-wide id tail, PRIV_DIM 703, and a pinned-vocab guard
+  (301/183/41/102); the gen-1 branch constructs no new module and is pinned
+  bit-identical against construction + forward goldens captured on 526f839;
+  actor 674,763 / critic 543,553 params at gen 4 (the K2 ceiling is gen-1-only).
+  (4) 66746dc BI-G4-1 the both-seat harvest: `selfplay.harvest_both_seats: true`
+  → `rl/selfplay/harvest.py`; `PoolPlayer` records every seat-2 decision (obs,
+  mask, action, the MEMBER's own log-prob via `AgentOpponent.move_logp` — the
+  same multinomial draw as `move()`, so play is unchanged — and the push id),
+  closes each battle at `report_outcome` with seat 2's own outcome, drops the
+  mask-desync row (counted), discards a swept battle (counted); `PPOAgent.update`
+  drains the finished episodes at the rollout boundary, gives them per-episode
+  GAE (one critic pass) and concatenates them onto the seat-1 flat batch before
+  `_optimize` (the minibatch plan is over the UNION); `harvest/*` metrics.
+  Refused with the privileged critic, the aux head, non-`self` opponents and the
+  async collector. Off = bit-identical (tested). Two LIVE tests (gen 1 and gen 4)
+  passed against the server: terminal reward = −outcome, rows ≈ seat-1 steps.
+  (5) 8afa069 BI-G4-4 the clone-leg threading: `Gen4RecordingPlayer`
+  (`make_bc_dataset.py --format gen4randombattle`), `tape_to_dataset.py --gen 4`
+  (one tracker per room; FP's `hiddenpowerfighting70` / `return102` teacher ids
+  normalised by `teacher_move_id` — 3/53 rows were unresolved before; G5 is
+  gen-1-only; `gen` / `battle_format` stamped), `train_bc.py` dispatches on the
+  gen stamp, `eval_checkpoint.py` loads gen-4 checkpoints and pairs a
+  `Gen4PoolPlayer` for cross-play (same-generation asserted). **The clone chain
+  ran END TO END at gen 4:** `FP_TAPE_DIR` set, `gen4_fp_smoke.py --battles 3
+  --search-time-ms 20` recorded FP's OWN seat (the shared `../foul-play` clone's
+  tape hook — the gen-4 engine build runs the same source); tape_to_dataset →
+  53/53 rows, GATES PASS; train_bc (2 epochs) → eval_checkpoint on
+  ShowdownGen4-v0. (6) 1546472 the PRE-REG DRAFT `configs/gen4_wang50m.yaml`:
+  the eleven rulings restated (JOURNEY step 3 / step 5 verbatim; the credit line
+  verbatim; THIS RUN CREDITS NOTHING), the freeze (tuples, vocab stamps, both
+  shas, the gate), Wang's Table A.3 keyed to ours with EIGHT named deviations
+  (D-NET, D-ACT, D-ENC, D-IMPL, D-COLL, D-SH, D-TIE, D-DOSE), one arm × 3 lanes
+  seeds 200/208/216 (spares 224/232/240), the primary read with the milestone
+  branch (M-YES/M-NO at 0.60) and the step-5 branch (S5-MATCHED/S5-SHORT at
+  0.756, dose named first), the five-leg battery L1–L5 + S-SHAPE, the clone plan,
+  R0 zero-lane gates, PROVISIONAL per-lane bands, in-run gates (D-A closed-form
+  anneal liveness, D-B, H1 harvest health, K6, T2, T3), peeking policy, the
+  lane-failure rule (a resume loses the open seat-2 rows), ops, the frozen
+  post-fleet schedule, build items with commits, five rulings wanted (RW-1: the
+  ruled 0.756 vs the arithmetic 0.757; RW-2 trunk widths ours; RW-3 update size
+  = total rows ≈ 39,936; RW-4 FP@500 on all lanes; RW-5 hand-over launch). The
+  machine-readable half is the sidecar `configs/gen4_wang50m.prereg.yaml` (a
+  training Config accepts no extra keys); `configs/gen4_wang50m_smoke.yaml` is
+  the one-diff partner; `tests/test_gen4_prereg.py` (8 gates) is green;
+  `scripts/gen4_wang50m_wave.sh` is the launch/watch script (sync lanes, 60 s
+  stagger, CPU-delta stall watch, no encoder env vars). **Update-size design:**
+  rollout 2496 × 8 envs = 19,968 seat-1 rows + ≈ the same from seat 2 ≈ 39,936
+  = his 78 × 512, over 39 minibatches ≈ 1,024 = his batch_size; 2,504 updates,
+  100 rungs/lane. **The smoke** (`gen4_wang50m_smoke.yaml`, 3 updates, scratch
+  cwd, the suite running beside it — every rate a lower bound, no number quoted):
+  realized 320/275/296 seat-1 steps/s, harvest rows 19,686/20,119/19,898 vs
+  19,968 (ratio 0.986/1.008/0.996), version_lag_max 0/1/1, dropped 0/0/1,
+  entropy 1.821→1.806, clip_frac 0.050/0.025/0.018, approx_kl ~0.001,
+  collect 40–51 s + update 19–20 s per update, eval 10 SH battles in 0.47 s,
+  RSS 2.4 GB, checkpoint 19 MB. Plan: ≈ 48 h/lane solo, 2–3 days 3-wide.
+  **Not done at the pause (usage limit):** the 2-Opus review (launched, stopped
+  before a line was written), the full suite, STATUS. HANDOFF.md carries the
+  PAUSED block with the resume order. Nothing pushed.
+
+- 2026-09-05 (late, cont., agent; "usage is back, continue") — **2-OPUS REVIEW OF
+  THE PRE-REG APPLIED; SUITE GREEN ON A FRESH SERVER; DOCS MOVED.** Two Opus
+  reviewers on the frozen draft (results/design_gen4_wang50m/review_1.md —
+  evidential validity / arithmetic, 9 MUST + 17 SHOULD; review_2.md — repo
+  consistency / executability, 7 MUST + 16 SHOULD); ALL findings applied in
+  `configs/gen4_wang50m.yaml` + sidecar + test + wave script, tagged [R1-n] /
+  [R2-Mn|Sn]. The ones that mattered: (R1-1) the D-A anneal-liveness closed form
+  was off by ONE UPDATE — `_optimize` reads `self.updates` before incrementing
+  it, so a checkpoint whose `updates` field is u carries lr from (u−1)×19,968;
+  at 1e-12 the old form would have STOPPED every lane at 5M (−0.27%); fixed
+  and pinned in the test. (R1-2 / R2-M3) the union batch is not a multiple of
+  39: `_minibatch_slices` plans 39 full slices + a 0–38-row tail under `keep`
+  (40 slices on ~38/39 of updates, ~2.5% of grad steps on ≤38 rows at the full
+  lr; grad steps ≈ 700k not 683,592) — disclosed under D-IMPL, RW-6 asks keep
+  vs fold. (R1-3) Table 4.1's 0.786 is Wang's NETWORK ALONE (MCTS+NN vs
+  Heuristic is 0.908) — JOURNEY's "his full agent" is wrong; the comparator is
+  unaffected, the wording corrected in the header. (R1-4) the n=200 behind the
+  0.029 se is thesis §3.1.2's VALIDATION metric; Table 4.1 states no n and its
+  digit grid fits n=1000 (0.786×200 = 157.2), where one se is 0.0130 and the
+  floor would be 0.773 — carried AS RULED 0.756, RW-1 widened to
+  0.756/0.757/0.773. (R1-5) thesis §4.1 + Figure 4.1 put his 0.786 crossing at
+  ≈ 30M of 150M TOTAL steps ≈ 30% of our per-seat dose — dose stays named first
+  as ruled, with HIS CURVE's sentence adjacent on both failure branches and
+  D-ENC / D-NET named as the causes his curve supports. (R1-6) n_eff defined
+  (ruling 10). (R1-7) D-B's band re-centred at fleet width (203, [173, 234]).
+  (R1-8) K6/T2/T3 per lane. (R1-9) the 3v3 Bayesian-tuning and the
+  weaker-number (0.836/0.849) disclosures added. (R2-M1) the wave script died on
+  a fatal arithmetic error the moment a lane exited inside the 15 s CPU-delta
+  window (`$(( / 1024 ))`) — fixed, plus the node_age guard, the stall-relaunch
+  guard, the swapouts DELTA, R0-i lowered to 8 GB with its idle basis (the box
+  measures 9–10 GB idle), the hash gates asserted PASSED-not-skipped and the
+  trunk file added to preflight. (R2-M2) the stamped param counts are now
+  pinned by constructing the agent from the pre-reg's own config. (R2-M5/M6)
+  L3 chunked 5×50 with `--timeout 5400`, every FP leg tagged/seeded/out-dir'd so
+  the six runs stop overwriting each other. (R2-M7) D-E on the swapouts delta.
+  Plus ~30 SHOULD-FIX text/number corrections (rung 14.7 MB, harmonic 296,
+  realized lr floor lr0/26.99, R0-4's action, harvest keys absent = KILL,
+  D-D's three keys, L1's gen-4 instrument, `--out` on every instrument, the
+  S9 lr-regime caveat on the smoke's bands, cell K's route, the sign-inversion
+  cross-check as a gate, FP drift on L3, Q38's 2·se_diff ≈ 0.052 stated,
+  `harvest/*` added to CLAUDE.md's locked metric names). Neither reviewer found
+  a correctness bug in the harvest path; every config key, guard, metric and
+  instrument flag verified against source. **Suite:** the first full run STALLED
+  alive-at-zero-CPU inside `test_privileged_block::test_live_emission…` (the
+  server had served a killed smoke) — killed, server RESTARTED fresh (pid
+  92980), the remaining files re-run: 673 + 183 passed / 16 skipped, 0 failed
+  (known live flake deselected). **Docs moved (R2-S15):** STATUS rewritten
+  (items 1–3 done; the two maintainer items are ratification and launch),
+  open_questions §0.5 status + two supersessions recorded (four descriptive
+  legs; the 100M/ladder_r4 form template), encoder_requirements §13 freeze
+  pointer + landed list, IDEAS §4.1 marked BUILT (and how it differs from the
+  sketch). HANDOFF restored to the stub. Not pushed.

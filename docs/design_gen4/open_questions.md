@@ -87,6 +87,20 @@ Seven decisions closed in one sitting, in the order they run:
 The pre-reg header itself is pre-reg-grade: it goes through the 2-Opus design
 review before it is committed as a pre-registration.
 
+**Status 2026-09-05 (late):** items 2–5 are BUILT (hash gate 3a5df5b, trunk
+layout ec39268, both-seat harvest 66746dc) and the header is DRAFTED as
+`configs/gen4_wang50m.yaml` with the 2-Opus review applied, awaiting
+ratification (RW-1..RW-6 at its foot). Two supersessions of this section's
+wording, recorded here because this file outranks HANDOFF: (a) item 1's "the
+three descriptive anchors" and item 7's "the third descriptive anchor" are
+superseded by the same evening's battery ruling — CLAUDE.md's gen-4 list is
+FOUR descriptive legs (MDT h2h 500, FP@20 h2h, FP@500 h2h, BC-clone h2h 500)
+beside the vs-SH primary; (b) item 5's FORM template
+(`configs/showdown_sp_batch50m.yaml`) is superseded by HANDOFF §2.1's pattern —
+`configs/showdown_sp_100m.yaml` (the last ratified training header) plus
+`configs/eval/ladder_r4.yaml` (build items / barred_language), which is what
+the draft follows.
+
 ## 1. Chapter-level rulings
 
 **Q1 — Fresh net, or transfer from the gen1 final?** Recommendation: **fresh net**;

@@ -72,8 +72,22 @@ def test_r0f_update_arithmetic():
     assert MAIN["total_steps"] % MAIN["num_envs"] == 0  # the loop ends at 50M exactly
     assert MAIN["total_steps"] // MAIN["checkpoint_every"] == u["rungs_per_lane"] == 100
     assert MAIN["checkpoint_every"] % MAIN["num_envs"] == 0  # rungs land on their grid literal
-    assert MAIN["total_steps"] * 2 / 3 <= 2 * SIDE["wang_recipe"]["per_seat_dose"] / 3 * 1.0 + 1  # dose 2/3 (documented)
     assert math.isclose(MAIN["total_steps"] / SIDE["wang_recipe"]["per_seat_dose"], 2 / 3, rel_tol=1e-9)
+    # [R1-2 / R2-M3]: the union batch is not a multiple of 39, so the plan is
+    # 39 full slices plus a 0–38-row tail under `keep` — 40 on ~38/39 of updates.
+    from rl.agents.ppo import _minibatch_slices
+
+    for rows in (39_936, 39_654, 40_087):
+        slices, floor = _minibatch_slices(rows, rows // 39, "keep")
+        assert len(slices) == (39 if rows % 39 == 0 else 40) and floor == 2
+    assert u["minibatch_slices_per_epoch"] == 40
+    # [R1-1]: the anneal is applied from steps_seen = (u - 1) x 19,968 at a
+    # checkpoint whose `updates` field reads u — the D-A closed form.
+    lr0 = MAIN["agent"]["lr"]
+    for u_field in (250, 1252, 2504):
+        x = ((u_field - 1) * 19_968) / 5e7
+        assert 0 < x < 1 and math.isclose(lr0 * (8 * x + 1) ** -1.5, lr0 / (8 * x + 1) ** 1.5)
+    assert math.isclose(lr0 / (8 * (2503 * 19_968 / 5e7) + 1) ** 1.5, 2.1821e-6, rel_tol=1e-4)
 
 
 def test_mirror_selfplay_and_harvest_are_on():
@@ -133,6 +147,29 @@ def test_seed_windows_disjoint_and_unused():
         assert not (win & used), f"window {sorted(win)} hits stamped seeds {win & used}"
 
 
+def test_agent_constructs_with_the_stamped_param_counts():
+    """[R2-M2] R0-d: the pre-reg's own config builds the gen-4 entity trunk at
+    exactly the stamped widths — a trunk-width, vocab-table or layout change
+    fails here, not silently at launch."""
+    from types import SimpleNamespace
+
+    import torch
+
+    from rl.common.config import load_config
+    from rl.envs.gen4.env import fake_spaces_gen4
+    from rl.train import make_agent
+
+    cfg = load_config(REPO / "configs/gen4_wang50m.yaml")
+    obs, act = fake_spaces_gen4()
+    torch.manual_seed(0)
+    agent = make_agent(cfg, SimpleNamespace(observation_space=obs, action_space=act, num_envs=cfg.num_envs))
+    actor = sum(p.numel() for p in agent.actor.parameters())
+    critic = sum(p.numel() for p in agent.critic.parameters())
+    assert (actor, critic) == (674_763, 543_553)
+    assert (actor, critic) == (SIDE["freeze"]["params"]["actor"], SIDE["freeze"]["params"]["critic"])
+    assert agent.lr_schedule == "power" and agent.value_clip_eps == 0.0184 and agent.minibatch_tail == "keep"
+
+
 def test_header_carries_the_load_bearing_verbatims():
     assert FLAT.count("LARGER of the pooled-binomial se_diff") == 1
     assert "THIS RUN CREDITS NOTHING" in FLAT
@@ -142,13 +179,27 @@ def test_header_carries_the_load_bearing_verbatims():
     assert TXT.count("[SMOKE-FILL") == 0, "unfilled smoke cells remain"
     for d in SIDE["disclosures"]:
         assert TXT.count(d) >= 2, f"disclosure {d} named fewer than twice"
-    for leg in ("L1", "L2", "L3", "L4"):
-        assert f"#   {leg} " in TXT
+    for leg in ("L1", "L2", "L3", "L4", "L5"):
+        assert f"#   {leg} " in TXT and leg in SIDE["battery"]  # [R1-21]
+    # [R2-M4] the barred phrases (minus their parenthetical rules) must not
+    # appear in the header as assertions — only inside the barring sentences,
+    # which all carry the word BARRED or the barred_language pointer.
     for phrase in SIDE["barred_language"]:
         head = phrase.split(" (")[0]
-        # The barred words appear in the header only inside barring sentences.
-        assert head in ("flat", "plateau") or head not in TXT.replace("BARRED", "") or True
+        if head in ("flat", "plateau"):
+            continue  # the S-SHAPE sentence enumerates the permitted forms
+        exempt = ("BARRED", "barred", "only \"matched\"", "credited iff", "called credited",
+                  'carries "credited"')
+        for line in TXT.splitlines():
+            if head in line:
+                assert any(e in line for e in exempt), (head, line)
     assert '"flat" and "plateau" are BARRED' in TXT
+    assert "NETWORK ALONE" in TXT and "3v3" in TXT and "0.836" in TXT  # [R1-3, R1-9]
+    assert "(u − 1) × 19,968" in TXT  # [R1-1]
+    assert "[173, 234]" in TXT  # [R1-7]
+    assert "N_EFF" in TXT and "CELL K ROUTE" in TXT  # [R1-6, R1-23]
+    # [R2-S14] the frozen review copy is byte-identical to the config.
+    assert (REPO / "results/design_gen4_wang50m/gen4_wang50m.draft.yaml").read_text() == TXT
     for rw in SIDE["rulings_wanted"]:
         assert rw in TXT
     assert SIDE["prereg_for"] == "configs/gen4_wang50m.yaml"

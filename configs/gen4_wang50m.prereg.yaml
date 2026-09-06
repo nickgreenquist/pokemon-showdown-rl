@@ -3,7 +3,7 @@
 # tests/test_gen4_prereg.py asserts every value here against the training
 # file and the header text. Ratification writes `ratified_decisions`.
 prereg_for: configs/gen4_wang50m.yaml
-status: DRAFT — 2-Opus review PENDING (not yet run), then maintainer ratification
+status: DRAFT — 2-Opus review APPLIED 2026-09-05 late (review_1 9 MUST / 17 SHOULD; review_2 7 MUST / 16 SHOULD; all applied), awaiting maintainer ratification (RW-1..RW-6)
 journey_step: "3 -> 4"
 credits_nothing: true
 primary:
@@ -12,10 +12,16 @@ primary:
   instrument: "scripts/eval_checkpoint.py <ckpt> --episodes 3000"
   milestone_threshold: 0.60        # JOURNEY step 3 (M-YES iff pooled >= 0.60)
   step5_threshold: 0.756           # JOURNEY step 5 AS RULED; arithmetic 0.786 - 0.0290 = 0.757 (RW-1)
-  step5_target: 0.786              # Wang Table 4.1, n = 200
-  wang_se: 0.0290
+  step5_target: 0.786              # Wang Table 4.1, row NN (network ALONE; MCTS+NN vs Heuristic is 0.908) [R1-3]
+  step5_target_is_his_weaker_number: "Figure 4.1 digitizes to ~0.836 endpoint / ~0.849 peak near 120M, unreconciled [R1-9]"
+  wang_se: 0.0290                  # one se at n = 200 — thesis §3.1.2's VALIDATION n; Table 4.1 states no n [R1-4]
+  wang_table41_implied_n: 1000     # every Table 4.1 cell fits n = 1000 (0.786*200 = 157.2 does not); se 0.0130, floor 0.773
   sidedness: one-sided, no ceiling
   k_min_for_a_branch: 3
+  n_eff:                           # ruling 10 [R1-6]
+    primary: "battles with an env-supplied info['outcome']; a dead eval is re-run from zero, never merged; n_eff = 3000 per lane or that lane's primary is PENDING"
+    fp_legs: "seat_finished - crash_forfeits, crash_forfeits = FP relaunches (recorded, not acted on); VOID above 5 relaunches per lane"
+    cross_check: "win_rate == wins_from_returns exactly on every number (nothing is shaped); mask_desyncs disclosed beside each"
 wang_recipe:                       # Table A.3 + §3.1.4, verified against the thesis text 2026-09-05
   learning_rate: 5.8884e-5         # 10^-4.23
   lr_schedule: "lr0 / (8x + 1)^1.5"
@@ -36,8 +42,13 @@ update_arithmetic:
   minibatches: 39
   minibatch_width_nominal: 1024
   updates: 2504                    # floor(5e7 / 19,968); last update at step 49,999,872
+  minibatch_slices_per_epoch: 40   # 39 full + a 0-38-row tail under minibatch_tail keep on ~38/39 of updates [R1-2, R2-M3]
+  grad_steps_approx: 700000        # 2,504 x 7 x ~39.95
   rungs_per_lane: 100
-  lr_floor_factor: 27.0            # (8 + 1)^1.5
+  rung_mb: 14.7                    # a ladder rung (no pool member); checkpoint.pt with the member is 19.6 MB [R2-S2]
+  lr_floor_factor: 27.0            # (8 + 1)^1.5 asymptotically; realized minimum lr0/26.99 at the last update [R1-10]
+  d_a_form: "x = ((u - 1) * 19968) / 5e7 with u the checkpoint's `updates` field; lr == 5.8884e-5 * (8x + 1)^-1.5 to 1e-12 [R1-1]"
+  d_b_fleet_expected_sps: 203      # 0.7 x 290 (solo smoke 296 harmonic, rounded down); band [173, 234] provisional [R1-7]
 seeds:
   lanes: [200, 208, 216]
   spares: [224, 232, 240]
@@ -57,17 +68,22 @@ battery:                           # CLAUDE.md's gen-4 list; descriptive, never 
   L2: {leg: foulplay_h2h, search_time_ms: 20, n_per_lane: 250, seat_form: samples}
   L3: {leg: foulplay_h2h, search_time_ms: 500, n_per_lane: 250, seat_form: samples}
   L4: {leg: bc_clone_h2h, n_per_lane: 500, teacher: "FP@20", status: PENDING}
-  sanity_rows: [random, max_power, "FP@20 vs SH 226-24-0 (n=250)", "FP@500 vs SH 228-22-0 (n=250)"]
+  L5: {leg: vs_sh_per_lane_and_tie_rate, n_per_lane: 3000, note: "primary axis, descriptive use"}  # [R1-21]
+  sanity_rows: [random, max_power, "FP@20 vs SH 226-24-0 (n=250)", "FP@500 vs SH 228-22-0 (n=250)", "gen-4 MDT vs SH via gen4_smoke.py (to measure)"]
+  L3_chunking: "5 chunks x 50 battles per lane, --timeout 5400, tally = SUM of chunk W-L-T [R2-M5]"
+  fp_tags: "gen4w50m_s<seed>_fp20 / gen4w50m_s<seed>_fp500_c<k>, --out results/gen4_wang50m/fp/, --seed <lane seed> [R2-M6]"
+  q38_two_se_diff_at_750: 0.052    # equivalence means 'not distinguishable at +-5 points' [R1-19]
 disclosures: [D-NET, D-ACT, D-ENC, D-IMPL, D-COLL, D-SH, D-TIE, D-DOSE]
+fp_disclosures: ["equivalence test weakly powered", "point estimate flatters us", "pinned set file drifts +-1-2 levels on 40 species (gen 4)"]  # ride L2 AND L3 [R1-20]
 barred_language:
   - "beats Wang"
   - "matches Wang"
   - "credited (of any number in this run)"
   - "any ladder projection from vs-SH, in either direction"
-  - "flat"
-  - "plateau"
+  - "flat (as an unqualified description of the S-SHAPE curve; the permitted forms are enumerated in the header)"
+  - "plateau (same rule)"
   - "the pipeline failed (of M-NO without the ordered cause list)"
   - "our best gen-4 lane"
   - "on track for Wang's 0.786"
-rulings_wanted: [RW-1, RW-2, RW-3, RW-4, RW-5]
+rulings_wanted: [RW-1, RW-2, RW-3, RW-4, RW-5, RW-6]
 ratified_decisions: {}             # written at ratification, the maintainer's
