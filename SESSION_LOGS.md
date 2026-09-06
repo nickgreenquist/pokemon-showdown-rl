@@ -10919,3 +10919,20 @@ line numbers are not — grep the date, then read that region):
   1e-12 on every lane. R0-5 pending (no rung yet at 26–28 min; deadline 60).
   Startup-window pace ≈ 218–221 seat-1 steps/s/lane (NOT a D-B number: D-B
   reads ≥ 30-min windows post-1M). Desync instrument at +28 min: 0 / 0 / 0.
+  (13) **D-B FIRST CONFORMING WINDOWS + in-run gates at 05:50Z (~1.64–1.66M
+  steps, 81–83 updates/lane): ALL PASS.** D-B realized dStep/dWall on the
+  first conforming 30-min window post-1M: **212 / 212 / 211 steps/s** (s200 /
+  s208 / s216; whole post-1M 211 on every lane; 0 non-conforming windows — the
+  clone chain ended before launch). Per the header, the PROVISIONAL band
+  [173, 234] around 203 is now RE-BASED from the fleet's own first windows,
+  DISCLOSED: expected 212 → RECORD < 0.85 × 212 = 180, STOP-AND-INVESTIGATE
+  < 0.5 × 212 = 106 sustained 2 windows (the rate watch's thresholds moved to
+  180 / 106). At 211 steps/s the fleet ends ≈ 2026-09-08 ~21:30Z. R0-5 PASS
+  (first rungs at +37 min on every lane). Gates: R0-2/R0-3/H1/R0-6/K6/T2/T3
+  clean on every lane (harvest ratio 0.986–1.018, lag ≤ 1, dropped 0.00%;
+  clip_frac max 0.175–0.189; approx_kl ≤ 0.0022; entropy min 1.01–1.09, off
+  the 1.8 start — K6's floor is 0.15). D-C in-loop eval (n = 100, NOT
+  ACTIONABLE, printed only as a record): 0.66 / 0.76 / 0.75 at 1.5M after
+  0.31 / 0.32 / 0.47 at 250k. Desync instrument through 05:38Z: 0 / 0 / 0
+  re-decisions and desyncs over ≈ 4.9M combined lane-steps (attempt 1's rate
+  would have produced ≈ 150).
