@@ -2,9 +2,13 @@
 //! `Tables.encode(state)` for one decision (plan §7.4, §7.6).
 //!
 //! `ObservableState` arrives as a plain nested dict so gate P-1 can fill it from
-//! a poke-env `Battle` with no shared code between the reference encoder and
-//! this one. When `env.rs` fills the same struct by diffing the engine's bytes,
-//! it will build the Rust struct directly and never touch this path.
+//! a poke-env `Battle`. What the harness shares with the reference encoder is
+//! the STATIC TABLES and nothing else -- plan §7.4 requires the tables to be
+//! poke-env's; the per-decision rules (the aliasing test, the opponent slot
+//! assignment, the set-prior conditioning) are implemented on this side and are
+//! falsifiable, which `scripts/engine_p1_run.py --mutate` demonstrates. When
+//! `env.rs` fills the same struct by diffing the engine's bytes, it will build
+//! the Rust struct directly and never touch this path.
 
 use numpy::{PyArray1, PyArrayMethods};
 use pyo3::exceptions::PyValueError;
@@ -14,7 +18,7 @@ use crate::encoder::{self, OBS_DIM};
 use crate::observe::{ActiveView, MonView, MoveView, ObservableState, SeatState};
 use crate::tables::{
     EFFECT_DIM, MoveEntry, N_BASE_STATS, N_BOOSTS, N_TYPES, N_VOLATILES, SpeciesEntry,
-    StaticTables,
+    SpeciesPrior, StaticTables,
 };
 
 fn type_index(v: i64, what: &str) -> PyResult<Option<u8>> {
@@ -40,12 +44,15 @@ impl Tables {
     /// Built by `rl/envs/engine_tables.py` from poke-env -- the same source the
     /// Python encoder reads. Nothing here is derived from the engine's own data.
     #[new]
-    #[pyo3(signature = (species_base_stats, species_types, moves, type_chart))]
+    #[pyo3(signature = (species_base_stats, species_types, moves, type_chart, prior, set_prior=true))]
+    #[allow(clippy::type_complexity)]
     fn new(
         species_base_stats: Vec<[u16; N_BASE_STATS]>,
         species_types: Vec<(i64, i64)>,
         moves: Vec<(u16, f32, u16, i16, bool, bool, i64, Vec<f32>)>,
         type_chart: Vec<Vec<f64>>,
+        prior: Vec<(u8, Vec<u8>, Vec<Vec<u8>>)>,
+        set_prior: bool,
     ) -> PyResult<Self> {
         if species_base_stats.len() != species_types.len() {
             return Err(PyValueError::new_err("species tables have different lengths"));
@@ -101,11 +108,29 @@ impl Tables {
         if species.is_empty() || moves.is_empty() {
             return Err(PyValueError::new_err("species and move tables must be non-empty"));
         }
+
+        let mut priors: Vec<Option<SpeciesPrior>> = (0..species.len()).map(|_| None).collect();
+        for (sid, ids, draws) in prior {
+            if sid as usize >= priors.len() {
+                return Err(PyValueError::new_err(format!(
+                    "prior for species {sid} outside the species table"
+                )));
+            }
+            if draws.iter().any(|d| d.iter().any(|&j| j as usize >= ids.len())) {
+                return Err(PyValueError::new_err(format!(
+                    "prior for species {sid} indexes past its candidate list"
+                )));
+            }
+            priors[sid as usize] = Some(SpeciesPrior::new(ids, &draws));
+        }
+
         Ok(Tables {
             inner: StaticTables {
                 species,
                 moves,
                 type_chart: chart,
+                prior: priors,
+                set_prior,
             },
         })
     }
@@ -123,6 +148,21 @@ impl Tables {
     #[getter]
     fn n_moves(&self) -> usize {
         self.inner.moves.len()
+    }
+
+    #[getter]
+    fn n_prior_species(&self) -> usize {
+        self.inner.prior.iter().filter(|p| p.is_some()).count()
+    }
+
+    /// `conditional_move_probs(species, revealed)`, exposed so the P-1 harness
+    /// can compare the Rust prior against the reference directly rather than
+    /// only through the encoder.
+    fn conditional_move_probs(&self, species: u8, revealed: Vec<u8>) -> Vec<(u8, f64)> {
+        match self.inner.prior.get(species as usize).and_then(|p| p.as_ref()) {
+            Some(p) => p.conditional(&revealed),
+            None => Vec::new(),
+        }
     }
 
     /// Encode one decision. `state` is the nested dict `observe.rs` documents.

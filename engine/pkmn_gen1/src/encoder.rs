@@ -174,6 +174,50 @@ fn fill_move(
     vec[o + MOVE_DIM_V1..o + MOVE_DIM_V1 + EFFECT_DIM].copy_from_slice(&e.effect);
 }
 
+/// `_opponent_move_slots`: up to four (move, probability) pairs for the
+/// opponent's active mon -- REVEALED moves first at p = 1.0 in reveal order,
+/// then the likeliest unrevealed candidates from the set prior.
+///
+/// This rule lives here, not in the harness that feeds the encoder. It decides
+/// 188 of the 828 columns (the opponent move blocks and their ids), and a
+/// harness that imported it from the reference encoder could not falsify it --
+/// which is exactly what an adversarial review of P-1 demonstrated by mutating
+/// the shared function and watching the mismatch count stay at zero.
+pub fn opponent_move_slots(t: &StaticTables, seat: &SeatState) -> [crate::observe::MoveView; 4] {
+    let mut out = [crate::observe::MoveView::default(); 4];
+    let mut n = 0usize;
+    let mut revealed: Vec<u8> = Vec::with_capacity(4);
+    for mv in seat.moves.iter() {
+        if !mv.present || n >= 4 {
+            break;
+        }
+        out[n] = *mv;
+        revealed.push(mv.id);
+        n += 1;
+    }
+    if n >= 4 || seat.active().is_none() {
+        return out;
+    }
+    let Some(active) = seat.active() else { return out };
+    let Some(prior) = t.prior_for(active.species) else { return out };
+    for (id, p) in prior.conditional(&revealed) {
+        if n >= 4 {
+            break;
+        }
+        let max_pp = t.mov(id).max_pp;
+        out[n] = crate::observe::MoveView {
+            id,
+            prob: p,
+            // A prior fill is a freshly constructed Move: full PP, hence 1.0.
+            pp: max_pp,
+            max_pp,
+            present: true,
+        };
+        n += 1;
+    }
+    out
+}
+
 /// `embed_battle`, in Rust. Writes `OBS_DIM` floats into `vec`.
 pub fn encode(vec: &mut [f32], t: &StaticTables, s: &ObservableState) {
     assert_eq!(vec.len(), OBS_DIM);
@@ -247,13 +291,10 @@ pub fn encode(vec: &mut [f32], t: &StaticTables, s: &ObservableState) {
     }
     o += 6 * (MON_DIM + 1);
 
+    let opp_slots = opponent_move_slots(t, &s.opp);
     if theirs.is_some() {
         fill_active(vec, o, &s.opp);
-        // Opponent blocks carry no action, so they are free to be filled from
-        // the set prior: revealed moves at p = 1.0, then the likeliest
-        // unrevealed candidates.
-        for i in 0..4 {
-            let mv = &s.opp.moves[i];
+        for (i, mv) in opp_slots.iter().enumerate() {
             if mv.present {
                 fill_move(vec, o + ACTIVE_DIM + i * MOVE_DIM, t, mv, ours);
             }
@@ -280,9 +321,11 @@ pub fn encode(vec: &mut [f32], t: &StaticTables, s: &ObservableState) {
         }
     }
     if theirs.is_some() {
-        for i in 0..4 {
-            if s.opp.moves[i].present {
-                vec[idb + 16 + i] = (s.opp.moves[i].id as f64 / ID_SCALE) as f32;
+        // The same slot assignment the blocks used: a slot and its id must
+        // describe the same move.
+        for (i, mv) in opp_slots.iter().enumerate() {
+            if mv.present {
+                vec[idb + 16 + i] = (mv.id as f64 / ID_SCALE) as f32;
             }
         }
     }
@@ -326,6 +369,8 @@ mod tests {
             species: vec![],
             moves: vec![],
             type_chart: chart,
+            prior: vec![],
+            set_prior: true,
         };
         assert_eq!(t.multiplier(7, Some(3), None), 2.0);
         assert_eq!(t.multiplier(7, Some(3), Some(3)), 4.0);

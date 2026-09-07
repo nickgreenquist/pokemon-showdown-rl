@@ -86,6 +86,44 @@ def apply_message(battle, raw, state):
             battle.parse_message(sm)
 
 
+def mutate_reference(which: str) -> None:
+    """Corrupt one rule in `rl.envs.showdown` ONLY (never in the Rust path or in
+    `engine_p1.py`), so a gate that cannot see the corruption is proved blind.
+
+    The rules chosen are the two an adversarial review showed were previously
+    shared with the harness and therefore unfalsifiable.
+    """
+    import rl.envs.showdown as sd
+
+    if which == "alias":
+        sd._move_slots_aliased = lambda battle, spec=None: False
+    elif which == "opp_order":
+        original = sd._opponent_move_slots
+        sd._opponent_move_slots = lambda theirs: list(reversed(original(theirs)))
+    elif which == "prior":
+        original = sd._opponent_move_slots
+        sd._opponent_move_slots = lambda theirs: [(m, 0.5) for m, _ in original(theirs)]
+
+
+def exposure(battle) -> list[str]:
+    """Which declared families this decision is EXPOSED to, whether or not it
+    mismatches. Without this the family counts are zero by construction."""
+    out = []
+    ours = battle.active_pokemon
+    theirs = battle.opponent_active_pokemon
+    if (ours is not None and ours.transformed) or (theirs is not None and theirs.transformed):
+        out.append("transform")
+    for mon in (ours, theirs):
+        if mon is not None and any(m.id == "struggle" for m in mon.moves.values()):
+            out.append("struggle_slot")
+            break
+    for mon in (ours, theirs):
+        if mon is not None and any(m.id == "mirrormove" for m in mon.moves.values()):
+            out.append("mirror_move")
+            break
+    return out
+
+
 def classify(battle, idxs) -> str:
     """Which declared non-parity family (plan §7.1.1 / §7.2), if any, a
     mismatching decision belongs to. 'undeclared' is a BUG, not a family."""
@@ -109,7 +147,17 @@ def main() -> int:
     ap.add_argument("--tapes-root", default=None)
     ap.add_argument("--max-examples", type=int, default=12)
     ap.add_argument("--gate", choices=("p1", "p2"), default="p1")
+    ap.add_argument(
+        "--mutate",
+        choices=("none", "alias", "opp_order", "prior"),
+        default="none",
+        help="POSITIVE CONTROL: corrupt one per-decision rule in the REFERENCE "
+        "encoder only. A gate that still reports 0 mismatches is blind to that "
+        "rule -- which is how the first version of this harness was caught.",
+    )
     args = ap.parse_args()
+    if args.mutate != "none":
+        mutate_reference(args.mutate)
 
     tables, fingerprint = build_tables()
     assert tables.obs_dim == OBS_DIM
@@ -118,6 +166,7 @@ def main() -> int:
     decisions = 0
     mismatched = 0
     families: Counter = Counter()
+    families_seen: Counter = Counter()
     field_counts: Counter = Counter()
     examples: list[dict] = []
     tapes_read = 0
@@ -166,8 +215,13 @@ def main() -> int:
                 decisions += 1
                 continue
 
+            # Family EXPOSURE, counted on EVERY decision -- not only on
+            # mismatching ones, where a zero would be true by construction.
+            for fam in exposure(battle):
+                families_seen[fam] += 1
+
             ref = embed_battle(battle, TYPE_CHART)
-            state = engine_p1.state_from_battle(battle)
+            state = engine_p1.state_from_battle(battle, req)
             ours = np.asarray(tables.encode(state))
             idxs = engine_p1.compare(ref, ours)
             decisions += 1
@@ -215,6 +269,7 @@ def main() -> int:
                 "decisions": decisions,
                 "mismatched_decisions": mismatched,
                 "families": dict(families),
+                "family_exposure": dict(families_seen),
                 "top_fields": field_counts.most_common(20),
                 "examples": examples,
                 "tables_fingerprint": fingerprint,

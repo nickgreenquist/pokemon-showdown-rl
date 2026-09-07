@@ -24,8 +24,9 @@ from poke_env.battle.move import Move
 from poke_env.battle.move_category import MoveCategory
 from poke_env.data import GenData
 
+from rl.envs import randbats_prior
 from rl.envs.encoder_spec import GEN1, EncoderSpec
-from rl.envs.showdown import _effect_block, _move_obj
+from rl.envs.showdown import _effect_block, _move_obj, _species_id
 
 # Index 0 in every table is the "unknown / absent" row, so table index == the
 # encoder's id (dex number for species, move number for moves).
@@ -101,14 +102,63 @@ def _type_chart(spec: EncoderSpec) -> list[list[float]]:
     ]
 
 
-def build_tables(spec: EncoderSpec = GEN1):
+def _prior_rows(spec: EncoderSpec = GEN1):
+    """The vendored set prior as DATA: per species, its candidate move ids and
+    the 4,000 sampled sets `randbats_prior` draws from Showdown's `randomSet`.
+
+    Only the draws travel. The conditioning, the ordering and the slot
+    assignment are done in Rust (`tables.rs::SpeciesPrior`,
+    `encoder.rs::opponent_move_slots`), because those are per-decision RULES the
+    engine side must reproduce -- plan §7.3 calls the opponent slot assignment
+    load-bearing, and a parity harness that imported the rule from the reference
+    encoder could not falsify it.
+
+    `ids` keeps the reference's own ordering (`sorted()` over the move ID
+    STRINGS), which a stable sort by probability then preserves exactly as
+    Python's stable sort does.
+    """
+    if spec.gen != 1:
+        raise NotImplementedError("the set prior is gen-1 randbats data")
+    move_num = {}
+    gd = GenData.from_gen(spec.gen)
+    lo, hi = spec.move_num_range
+    for move_id, entry in gd.moves.items():
+        num = entry.get("num", 0)
+        if lo <= num <= hi:
+            move_num[move_id] = num
+
+    rows = []
+    for species in sorted(randbats_prior.known_species()):
+        sid = _species_id(species, spec)
+        if not sid:
+            continue
+        ids, mat = randbats_prior._samples(species)
+        if not ids:
+            continue
+        # A candidate poke-env cannot map is dropped here, matching the
+        # reference's own `except: continue` when it cannot build the Move.
+        keep = [(j, move_num[m]) for j, m in enumerate(ids) if m in move_num]
+        col_of = {j: k for k, (j, _) in enumerate(keep)}
+        draws = [
+            [col_of[j] for j in np.flatnonzero(row) if j in col_of]
+            for row in mat
+        ]
+        rows.append((sid, [num for _, num in keep], draws))
+    return rows
+
+
+def build_tables(spec: EncoderSpec = GEN1, set_prior: bool | None = None):
     """A `pkmn_gen1.Tables` for the Rust encoder, plus its fingerprint."""
+    import os
+
     import pkmn_gen1
 
+    if set_prior is None:
+        set_prior = not bool(os.environ.get("POKEMON_RL_NO_SET_PRIOR"))
     base, types = _species_rows(spec)
     moves = _move_rows(spec)
     chart = _type_chart(spec)
-    tables = pkmn_gen1.Tables(base, types, moves, chart)
+    tables = pkmn_gen1.Tables(base, types, moves, chart, _prior_rows(spec), set_prior)
     return tables, fingerprint(spec)
 
 
@@ -129,4 +179,9 @@ def fingerprint(spec: EncoderSpec = GEN1) -> str:
         h.update(bytes([phys, stat]))
         h.update(np.asarray(eff, dtype=np.float32).tobytes())
     h.update(np.asarray(chart, dtype=np.float64).tobytes())
+    for sid, ids, draws in _prior_rows(spec):
+        h.update(np.asarray([sid, *ids], dtype=np.int32).tobytes())
+        h.update(np.asarray([len(d) for d in draws], dtype=np.int32).tobytes())
+        for d in draws:
+            h.update(bytes(d))
     return h.hexdigest()

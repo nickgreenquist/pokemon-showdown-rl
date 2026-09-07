@@ -289,7 +289,7 @@ def cmd_p1(args: argparse.Namespace) -> int:
     d = _run_tape_gate("p1", args)
     dt = time.perf_counter() - t0
     fams = d["families"]
-    declared = {"transform", "struggle_slot", "metronome_reveal"}
+    declared = {"transform", "struggle_slot"}
     undeclared = fams.get("undeclared", 0)
     print(f"[P-1] tapes read: {d['tapes_read']}   tables fingerprint {d['tables_fingerprint'][:16]}")
     _print_kv(
@@ -298,7 +298,8 @@ def cmd_p1(args: argparse.Namespace) -> int:
             "floats compared": d["decisions"] * 828,
             "decisions mismatched": d["mismatched_decisions"],
             "  as a fraction": d["mismatched_decisions"] / max(d["decisions"], 1),
-            "declared families": {k: v for k, v in fams.items() if k in declared},
+            "declared families (MISMATCHING)": {k: v for k, v in fams.items() if k in declared},
+            "family EXPOSURE (all decisions)": d.get("family_exposure", {}),
             "UNDECLARED mismatches": undeclared,
             "wall seconds": dt,
         }
@@ -363,27 +364,34 @@ def cmd_p2(args: argparse.Namespace) -> int:
         )
 
     split = None
+    locked = None
     if args.engine_battles:
         split = _p2_engine_leg(args)
+        locked = _p2_locked_leg(args)
 
     reasons = []
     if r.get("mismatch_family:undeclared", 0):
         reasons.append(f"{r['mismatch_family:undeclared']} UNDECLARED mask mismatches")
     if r.get("decisions", 0) < args.min_decisions:
         reasons.append(f"only {r.get('decisions', 0)} decisions < {args.min_decisions}")
-    if split is not None:
+    for name, sp in (("randbats", split), ("locked-move", locked)):
+        if sp is None:
+            continue
         bad = {
-            k: split[k]
+            k: sp[k]
             for k in (
                 "forced_not_single_move1",
                 "forced_offered_switch",
                 "limited_not_one_move",
                 "limited_missing_switches",
             )
-            if split[k]
+            if sp[k]
         }
         if bad:
-            reasons.append(f"engine leg violates §7.2: {bad}")
+            reasons.append(f"engine {name} leg violates §7.2: {bad}")
+    if locked is not None and locked["limited"] == 0:
+        reasons.append("the locked-move leg produced no semi-locks, so its two "
+                       "semi-lock assertions are vacuous")
     if reasons:
         print(f"\n[P-2] FAIL: {'; '.join(reasons)}")
         return 1
@@ -456,6 +464,62 @@ def _p2_engine_leg(args) -> dict:
     return split
 
 
+# Moves gen1randombattle does not contain, so the §7.2 semi-lock and
+# Thrash/Rage rows can never be exercised by the bank. Engine ids.
+LOCKED_MOVES = {
+    "wrap": 35, "bind": 20, "clamp": 128, "firespin": 83,
+    "thrash": 37, "petaldance": 80, "rage": 99, "bide": 117,
+}
+
+
+def _p2_locked_leg(args) -> dict:
+    """Leg C', the falsification leg.
+
+    The bank cannot produce a Bide or a Wrap user -- the randbats set pool has
+    none of those moves -- so leg C's two semi-lock counters are VACUOUSLY zero
+    there. This leg builds synthetic teams that carry them, so the assertions
+    "a semi-lock offers exactly one move" and "a semi-lock keeps every switch"
+    have something to be wrong about. It is a check on the ENGINE mapping, not a
+    claim about gen1randombattle.
+    """
+    ids = list(LOCKED_MOVES.values())
+    teams = []
+    for k in range(24):
+        team = []
+        for i in range(6):
+            mv = ids[(k + i) % len(ids)]
+            # Pair the locking move with a plain attack so battles progress.
+            team.append(
+                pkmn_gen1.pokemon_record(
+                    1 + ((k * 6 + i) % 151), 100, [mv, 33, 55, 85], [30] * 5, [255] * 5
+                )
+            )
+        teams.append((team[:3] + team[:3], team[3:] + team[3:]))
+    t0 = time.perf_counter()
+    sp = pkmn_gen1.mask_table_split(args.engine_locked_battles, 0xB1DE, teams)
+    dt = time.perf_counter() - t0
+    print(
+        f"\n[P-2] leg C' -- FALSIFICATION: synthetic teams carrying the eight moves"
+        f" gen1randombattle lacks ({args.engine_locked_battles} battles)"
+    )
+    _print_kv(
+        {
+            "move decisions": sp["decisions"],
+            "hard locks": sp["forced"],
+            "  thrashing / rage": f"{sp['thrashing']} / {sp['rage']}",
+            "semi-locks (limited)": sp["limited"],
+            "  bide (user) / binding (user)": f"{sp['bide_user']} / {sp['binding_user']}",
+            "binding VICTIM turns": sp["binding_victim"],
+            "VIOLATION forced not a single Move(1)": sp["forced_not_single_move1"],
+            "VIOLATION forced offered a switch": sp["forced_offered_switch"],
+            "VIOLATION semi-lock not exactly 1 move": sp["limited_not_one_move"],
+            "VIOLATION semi-lock dropped a switch": sp["limited_missing_switches"],
+            "wall seconds": dt,
+        }
+    )
+    return sp
+
+
 def _not_yet(name: str):
     def run(args: argparse.Namespace) -> int:
         print(f"[{name}] not implemented yet", file=sys.stderr)
@@ -502,6 +566,7 @@ def main(argv: list[str] | None = None) -> int:
     p2.add_argument("--bank", default="data/engine/teams_59da482e_e0e0_50000.bin")
     p2.add_argument("--engine-battles", type=int, default=20_000)
     p2.add_argument("--engine-teams", type=int, default=5000)
+    p2.add_argument("--engine-locked-battles", type=int, default=5000)
     p2.set_defaults(func=cmd_p2)
 
     args = ap.parse_args(argv)

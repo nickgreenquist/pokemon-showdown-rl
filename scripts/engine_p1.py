@@ -7,9 +7,24 @@ floats bitwise against `embed_battle`. So it tests exactly one thing -- given
 identical observable state, do the two encoders agree? -- and leaves "does the
 engine produce that state" to the later gates, where it belongs.
 
-Nothing here imports the Rust encoder's inputs from the Python encoder except
-the static tables (plan §7.4 requires that: the tables ARE poke-env). The
-per-decision state is read off the poke-env `Battle` by this file alone.
+WHAT IS SHARED WITH THE REFERENCE, AND WHY. Plan §7.4 requires the STATIC TABLES
+to be poke-env's, so `engine_tables.py` imports `_effect_block` and `_move_obj`
+by design, and this file uses `_species_id` / `_move_id` -- pure name-to-dex-num
+lookups, which are tables in everything but spelling. Nothing else is shared.
+
+In particular the two PER-DECISION rules are NOT imported, and that is a
+deliberate correction: an adversarial review of the first version of this gate
+proved that importing `_move_slots_aliased` and `_opponent_move_slots` made them
+unfalsifiable -- mutating either function in BOTH modules left the mismatch
+count at zero while it governed 377 of the 828 columns. So:
+
+  * `aliased` is derived here from the RAW `|request|` JSON (a single offered
+    move whose id is one of poke-env's SPECIAL_MOVES), independently of
+    `_move_slots_aliased`; and
+  * the opponent's move slots are NOT assigned here at all. This file passes the
+    REVEALED moves only, and `encoder.rs::opponent_move_slots` does the prior
+    conditioning, ordering and slot filling in Rust from the sampled sets that
+    `engine_tables.py` hands over as data.
 """
 
 from __future__ import annotations
@@ -18,12 +33,11 @@ import numpy as np
 from poke_env.battle.effect import Effect
 
 from rl.envs.encoder_spec import GEN1
-from rl.envs.showdown import (
-    _move_id,
-    _move_slots_aliased,
-    _opponent_move_slots,
-    _species_id,
-)
+from rl.envs.showdown import _move_id, _species_id
+
+# poke-env's SPECIAL_MOVES (battle/move.py). When one of these is the only legal
+# move-action, poke-env re-bases the move index onto `available_moves`.
+SPECIAL_MOVES = frozenset({"fight", "struggle", "recharge"})
 
 # The encoder's own orderings; read from the spec so a spec edit cannot leave
 # this harness silently comparing different things.
@@ -88,11 +102,28 @@ def _seat_state(team, active, moves) -> dict:
     }
 
 
-def state_from_battle(battle) -> dict:
+def aliased_from_request(req: dict) -> bool:
+    """poke-env's `_move_slots_aliased`, re-derived from the raw request.
+
+    Showdown sends a locked or placeholder turn a ONE-entry move list whose id is
+    `fight`, `struggle` or `recharge`; poke-env's `available_moves` then holds
+    exactly that one move and the encoder zeroes the own-move blocks. Reading it
+    off the wire keeps the rule falsifiable here.
+    """
+    if (req.get("forceSwitch") or [False])[0] or req.get("wait"):
+        return False
+    block = (req.get("active") or [None])[0]
+    if block is None:
+        return False
+    offered = block.get("moves") or []
+    return len(offered) == 1 and offered[0].get("id", "") in SPECIAL_MOVES
+
+
+def state_from_battle(battle, req: dict) -> dict:
     """The `ObservableState` for the seat this `Battle` belongs to."""
     ours = battle.active_pokemon
     theirs = battle.opponent_active_pokemon
-    aliased = _move_slots_aliased(battle)
+    aliased = aliased_from_request(req)
 
     own_moves = []
     if ours is not None:
@@ -105,13 +136,15 @@ def state_from_battle(battle) -> dict:
                     "max_pp": int(mv.max_pp),
                 }
             )
+    # REVEALED opponent moves only, in reveal order. The prior fills are Rust's
+    # job (see the module docstring).
     opp_moves = []
     if theirs is not None:
-        for mv, prob in _opponent_move_slots(theirs):
+        for mv in list(theirs.moves.values())[:4]:
             opp_moves.append(
                 {
                     "id": _move_id(mv),
-                    "prob": float(prob),
+                    "prob": 1.0,
                     "pp": int(mv.current_pp),
                     "max_pp": int(mv.max_pp),
                 }
