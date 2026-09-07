@@ -22,6 +22,7 @@ pub mod observe;
 pub mod smoke;
 pub mod tables;
 pub mod team;
+pub mod track;
 
 mod pyencode;
 mod python;
