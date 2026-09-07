@@ -464,7 +464,7 @@ mod tests {
             let mut env = Gen1Env::new(1234, &p1, &p2, learner, 0).unwrap();
             let mut rng = 42u64;
             while !env.done() {
-                let mut act = |p: Player, rng: &mut u64| -> Option<usize> {
+                let act = |p: Player, rng: &mut u64| -> Option<usize> {
                     let pd = env.pending(p, &t)?;
                     let legal: Vec<usize> = (0..N_ACTIONS).filter(|&a| pd.mask[a]).collect();
                     *rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);

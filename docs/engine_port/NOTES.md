@@ -661,23 +661,81 @@ Holding the tracker fixed is the point: everything it carries (reveal order,
 revealed moves, observed sleep turns) comes from HISTORY, so what is being asked
 is precisely "does the encoder read the hidden byte DIRECTLY?".
 
-**Result: 56 perturbations across both seats, 0 leaks, 0 inert controls.**
-Covered as HIDDEN: the RNG seed, `last_damage`, `last_moves`,
-`last_selected_move`, `last_used_move`, the foe's live and stored PP, the foe's
-exact HP *within one percent bucket*, an unrevealed foe party member, and the
-whole hidden-counter family — confusion turns, attacks left, Bide damage,
-Substitute HP, Disable duration and slot, Transform target, and sleep turns
-remaining on both sides. Covered as VISIBLE: turn, our own exact HP and PP, the
-foe's HP *across* a bucket, its active species, boosts, toxic counter, and the
-Substitute/Reflect/Leech Seed presence flags.
+**Result: 68 cases, 136 perturbations across both seats (every case fires on
+both), 0 leaks, 0 inert controls.**
+
+The first version had 29 cases and 56 perturbations, and a second adversarial
+review found it materially incomplete — roughly 28 of ~88 leaf fields, with four
+holes that hid plausible leaks. All are now closed; the details are worth
+keeping because they are the shape of hole a perturbation audit grows:
+
+1. **No case perturbed a MOVE ID.** Only PP bytes moved. An implementation that
+   built the foe's slots from the engine's move ids *while correctly forcing
+   `pp = max_pp`* — the likelier half-right version — would leak all four of the
+   opponent's moves, which is the single most valuable hidden quantity in gen 1,
+   and every case stayed green. Now covered on the foe's live and stored slots,
+   with our own live ids as the VISIBLE control.
+2. **`Pokemon.stats` and `ActivePokemon.stats` were never perturbed** — ten u16
+   fields. The encoder must read the species TABLE, not the engine's computed
+   stats; reading the bytes that are right there is the easier mistake, and for
+   the foe those stats are hidden. Now covered.
+3. **14 of 18 volatile flag bits had no case**, including `Binding` — the
+   trickiest read in `track.rs`, since PARTIALLY_TRAPPED is the victim's slot fed
+   by the *user's* bit. All 18 are now covered, and Thrash/Rage are covered as a
+   discriminating pair: VISIBLE on our own side (they set `trapped`) and HIDDEN
+   on the foe's (no slot).
+4. **`Side.order[]`, a revealed foe's species/level/status, and the unrevealed
+   member's HP** were uncovered; the last would have hidden a `fainted_count`
+   that walked all six party slots instead of the revealed ones.
+
+Two structural weaknesses, also fixed:
+
+- **Four hidden counters were tested with their gating flag OFF**, so a leak of
+  the form `if vol.thrashing() { encode(attacks) }` passed vacuously. Every
+  gated counter now sets its flag in `prepare`.
+- **Six cases could silently no-op** and the `checked >= 40` assertion did not
+  notice; 58 attempted vs 56 reported meant two unattributed drops. The audit now
+  records which cases FIRED and asserts every one did. That assertion
+  immediately earned itself twice: it caught `played()` revealing a whole foe
+  party (so the unrevealed-member cases tested nothing) and the same-bucket HP
+  case finding no alternative at full HP. Both are now set up deterministically
+  rather than by search.
+
+The classifier itself is now tested. A passing audit leaves both buckets empty,
+so **swapping the two classification arms left every test green**. `run()` is
+separated from the case list and a deliberately MISLABELLED pair — the RNG seed
+declared VISIBLE, the foe's active species declared HIDDEN — is required to fill
+each bucket exactly once.
+
+The fixture gained a live set prior. With `prior: None` everywhere, the
+opponent's prior-filled move slots — 188 of the 828 columns — were structurally
+zero, so a leak into them could not have moved anything.
+
+Covered as HIDDEN: the RNG seed, `last_damage`, `last_moves`, both sides'
+`last_selected_move` / `last_used_move`, the foe's `order[]` bench arrangement,
+the foe's live and stored move IDs, the foe's live and stored PP, the foe's and
+our own computed stat block, the foe's exact HP *within* one percent bucket, HP
+and max scaled together so the percentage is preserved, an unrevealed foe member
+(identity and fainting), sleep turns remaining and the Rest/EXT marker, the eight
+packed volatile counters each behind its flag, and the eight volatile flags with
+no encoder slot (Light Screen, Bide, Mist, MultiHit, Flinch, Invulnerable,
+Transform, and the Toxic VOLATILE as distinct from the TOX status).
+
+Covered as VISIBLE: turn, our own exact HP, PP and live move ids, the foe's HP
+*across* a bucket, its max HP alone, a revealed foe's species / level / status,
+its active species, all six boosts plus our own spe boost, the toxic counter, and
+the Substitute / Reflect / Leech Seed / Confusion / Focus Energy / Recharging /
+Charging / Binding presence flags.
 
 Light Screen is audited as **HIDDEN on purpose**: it is visible on Showdown but
 has no encoder slot (poke-env 0.15.0 cannot parse it), so encoding it anywhere
 would be a divergence, not a fix.
 
-A second test proves the audit can fail: it injects a deliberate leak of the
-foe's exact HP into a spare lane and confirms the same comparison catches it,
-while the real encoder does not move for that same perturbation.
+A second test proves the audit can fail, and now at the smallest scale that
+matters: it leaks the foe's hidden exact HP as a **one-ulp** flip of a real lane
+and confirms the same comparison catches it, while the real encoder does not move
+for that perturbation. (`differs` compares raw bits, so ulp sensitivity was
+always true by construction — but by construction is an argument, not a test.)
 
 **The first run reported 8 leaks, all harness artifacts** — the mutations flipped
 a visible FLAG alongside the hidden counter behind it (the confusion bit with
