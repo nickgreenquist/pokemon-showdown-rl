@@ -11131,3 +11131,22 @@ line numbers are not — grep the date, then read that region):
   declared (it does not exist in poke-env 0.15.0). CLAUDE.md rule 1 gained the
   env-exception clause after that session flagged that an auto-loaded file was
   telling it to do the one fleet-killing thing (5481be2).
+  (2026-09-07, late; cont.) **RULING: the gen-4 ladder is BANKED, NOT RUN** —
+  superseding the previous day's CONDITIONAL ruling. The chapter closes on the
+  offline comparison (step-5 pooled 3×3000 vs-SH against Wang's 0.786
+  network-alone, plus the full gen-4 anchor battery); the ladder becomes an
+  optional addendum against the frozen final, **disclosed in RESULTS as
+  available-and-unrun rather than dropped**, runnable any later evening. The
+  maintainer's words: "after we finish all offline evals and compare to Wang, we
+  can head back to gen1. bank gen4 ladder for later." Reasoning recorded in
+  JOURNEY step 6: a ladder number cannot strengthen the validation claim; the
+  comparison it invites is the one that does NOT hold (Wang's rank 8 / Elo 1693 /
+  GXE 79.5 is his MCTS-at-inference agent, ours would be greedy — the policy-form
+  mismatch our own anchor rule forbids — and vs-SH is never a ladder number in
+  either direction); and the one thing only a ladder tests, adaptive human
+  opposition, matters in gen 1 where the story ends and four ladder runs of
+  provenance already exist. Consequences: step 7's written exit condition now
+  closes on ONE step-5 comparison plus the battery, and **step 7.5's precondition
+  is the readout, not the ladder** — so the collector port starts as soon as the
+  post-fleet schedule and the readout land (≈ 2026-09-09). Nothing is relaxed
+  about the anchor legs: every descriptive leg still lands before the README row.

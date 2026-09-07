@@ -46,8 +46,8 @@ chat waiver of rule 4 at the header's recommended defaults. Step-3 milestone = i
    ONE commit. **25M read 12:46Z: all gates PASS ×3 lanes, D-A exact at 25M (x=0.4996),
    D-B median 204–209; the reader's expected is 203, NOT 212 — quote 203.**
 5. Then gen-4 levers against this baseline, each its own pre-reg — **NOT the pool
-   (ruled 2026-09-06: league stays on, no ablation)**; step 6 = ONE gen-4 ladder,
-   NEW pre-reg, **RULED CONDITIONAL 2026-09-06** on a matched step-5 read (miss → none).
+   (ruled 2026-09-06: league stays on, no ablation)**. **Step 6's ladder is BANKED, NOT
+   RUN (ruled 2026-09-06): the chapter closes on the offline comparison; gen 1 is next.**
 6. **2026-09-06 rulings (docs only):** JOURNEY **7.5** = gen-1 training off Node onto
    pkmn/engine, **P0 once the gen-4 chapter CLOSES** (one collector for steps 8–11, gated
    on A-1, parity time-boxed, keep-the-server branch pre-decided); IDEAS §3 classifies
