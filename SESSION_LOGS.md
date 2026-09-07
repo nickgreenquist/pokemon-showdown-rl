@@ -11083,3 +11083,20 @@ line numbers are not — grep the date, then read that region):
   rounds cannot bring A-1 inside |Δ| < 0.025 we KEEP the server path and bank the parity
   harness as tests. Renting stays optional and is a workflow fix (fleets off the laptop,
   the Mac free for evals), never the noise-floor fix.
+  (7-corr, 2026-09-07 ~01:40Z) **The CPU split in (7) is corrected.** That
+  measurement was a single `ps` snapshot and `ps` is PHASE-DEPENDENT here: during
+  collection it reads python 204% / node 306%, during the PPO update python 297% /
+  node 28%. Re-measured properly from cumulative CPU-time deltas over 900 s:
+  **python 0.85 cores/lane, node 1.08, fleet 1.93 cores/lane, NODE SHARE 56%**
+  (was quoted as 1.7 cores/lane and 60%). Derived figures move with it: ~5
+  cores/lane at gen-1 rates, so k=8 gen-1 ≈ **~40 cores** (was 32–36) and k=8
+  gen-4 ≈ ~16. The P0 case is unaffected — 56% is still the majority and the
+  4.2× projection was never mine. THROUGHPUT_SPEC and JOURNEY 7.5 updated; the
+  method note (never size a box off one snapshot) is now in the spec.
+  Also read from the merged history while checking a rate dip: `time/update_sec`
+  +8.2% and `time/eval_sec` +8.6% between <3M and >13M while
+  `rollout/episode_length` FELL 5.8% (36.9 → 34.8). Update cost is invariant to
+  training progress at fixed batch and net, so a uniform rise across collect /
+  update / eval is external CPU contention or thermal throttling on the box (the
+  >13M window contains a Chrome-active period), **not** workload drift — worth
+  re-reading once the box has been quiet for an hour.
