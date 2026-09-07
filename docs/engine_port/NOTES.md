@@ -793,9 +793,133 @@ asserts the rewards negate. On the Python side, `BatchEnv` is checked for whole
 episodes, in-mask actions, observations inside the declared `Box(-1, 4)`, no
 stalled slot, and lane-seed reproducibility.
 
+## The tracker review, and the two divergences it found
+
+A third adversarial reviewer was pointed at one question: is `track.rs` CORRECT,
+and can that be proved offline? It confirmed the reveal rule, the sleep rule, the
+`aliased` precedence, `trapped`/`force_switch`, and the foe-seat slot handling
+against Showdown's and poke-env's sources — and found two real divergences plus
+the fact that the tracker had **no behavioural tests at all**.
+
+### F1 — a fainted active, on a force-switch row. Material; fixed.
+
+The engine's `faint()` zeroes the whole volatile word and the status byte
+(`mechanics.zig:1544-1570`). poke-env's `Pokemon.faint()` clears `_effects` but
+**not** `_must_recharge`, `_preparing_move` or `_status_counter` — those clear in
+`moved()` and `switch_out()` (`pokemon.py:422-429`, `:465`, `:604`). And on a
+force-switch the fainted mon is **still the active**, so `_fill_active` runs on
+it: the reviewer measured all 23,086 force-switch requests in the corpus and in
+23,086/23,086 `side.pokemon[0]` is both `active: true` and `fnt`.
+
+Force-switch rows are 23,086 of 184,221 decisions = **12.5% of all rows**, and of
+66,968 faints the corpus has 2,377 while asleep, 2,953 with a recharge pending
+and 270 while preparing — so roughly **1.4% of all rows** would have disagreed on
+`vec[214]` (MUST_RECHARGE), `vec[218]` (status_counter) or `vec[219]`
+(preparing). P-1 cannot see this by construction: it hands both encoders the same
+`ObservableState`.
+
+Fixed by snapshotting `(must_recharge, preparing)` per party index while the mon
+is still alive, and by not resetting `sleep_observed` when the sleep ends because
+the mon fainted. **Reproducing poke-env's staleness is the point** — I2 is
+"bit-for-bit where the information exists", defects included, the same rule that
+keeps Light Screen out of the encoder. `a_fainted_active_still_reports_what_poke_env_would`
+pins it, including that the six EFFECT-derived volatile slots DO clear (both
+sides clear those).
+
+### F2 — a hard lock's action index. Fixed.
+
+On a Thrash / two-turn charge / Rage turn the engine offers exactly `Move(1)` and
+`env.rs` mapped it to **action 6**. poke-env does not alias a hard lock — the
+locked move is a real member of the move dict — so `get_action_mask` yields
+`6 + its stored slot` (`singles_env.py:247-251`). Plan §7.2 says exactly that
+("{6+slot(last_selected_move)}") and the first implementation ignored it. If Sky
+Attack is the mon's third move, poke-env's legal action is 8 and the port's was
+6. Measured: ~100 hard locks in 161,135 move decisions, **0.06%** — small, but
+wrong in the worst way, since the single legal action sat in the wrong lane.
+
+This is the first concrete instance of the gap the previous review left open:
+P-2 never compares an ENGINE-derived mask to anything. `a_hard_lock_keeps_the_locked_moves_own_action_index`
+now covers it for all four stored slots.
+
+### Three smaller ones, also fixed
+
+- **A charge move was revealed one decision late.** `canMove` returns at the
+  `.Charge` branch *before* `decrementPP` while still emitting `|move|`
+  (`mechanics.zig:758`), so the PP diff sees nothing until the release turn.
+  872 `-prepare` events in the corpus, 0.54% of turns; Sky Attack is the only
+  charge move in the pool. Now revealed when the Charging bit goes false→true.
+- **Transform and Mimic swallowed their own reveal**: both rewrite the slot id in
+  the same update that spends its PP, so `id == prev_id` fails. Now revealed on
+  the transform bit turning on, and on a live slot id changing.
+  All three of these reveal paths read `last_selected_move` as the identity of a
+  move the opponent just publicly saw used — the engine's proxy for the `|move|`
+  line — and **only ever reveal a move the mon actually owns**, so a
+  Metronome-called move cannot be fabricated into its moveset. (That last guard
+  was added because the property tests caught it doing exactly that.)
+- **`binding_victim_turns` counted UPDATES, not turns**, while §7.2's
+  "first trapped turn" rule is in turns; and the `[Fight]` placeholder gate
+  omitted SEMI-locks, which PS includes (`sim/pokemon.ts:1089-1108`). Both dead
+  in `gen1randombattle` — no binding or Bide move is in the pool — but both
+  matter for the search line, and both are cheap.
+
+### F5 — the tracker had no behavioural tests. Now it has property tests.
+
+The tapes cannot be replayed in the engine (no RNG), so there is no direct
+oracle. `tests/tracker_properties.rs` instead asserts properties any correct
+tracker must satisfy, each reading a DIFFERENT part of the state from the rule it
+checks — **300 battles, 32,199 updates, no violations**:
+
+- **cross-seat agreement**, the strongest independent witness available: every
+  public fact must read the same from both seats, derived by different code paths
+  (own-side vs foe-side). Species, level, fainted, status, is_active, base stats
+  and types must agree; the foe's `hp_fraction` must equal the quantisation rule
+  exactly and sit within one bucket of the exact fraction; an unrevealed mon must
+  be absent from the foe's view entirely; both seats must agree on which mon is
+  active. This is what would catch a side-index swap — and the PARTIALLY_TRAPPED
+  read, which takes the FOE's Binding bit, is exposed to precisely it.
+- **sleep conservation**: `sleep_observed + sleep_turns_left` is invariant while
+  one sleep runs down, re-based when the remaining count goes up (a fresh sleep,
+  which poke-env does not reset the counter for either). Catches a missed
+  increment, a double increment and a missed reset in one assertion.
+- **"damaged, statused or PP-spent implies revealed"** — a mon can only reach any
+  of those while on the field, and being on the field reveals it. Reads a
+  completely different part of the state than the reveal rule, so a skipped
+  reveal surfaces the moment that mon takes a point of damage.
+- **reveal soundness**: a revealed move must exist on that mon (relaxed for mons
+  whose slots Transform or Mimic rewrote).
+- **monotonicity**: reveal lists only extend, never reorder or shrink, never
+  exceed the caps; counters step by one or reset to zero.
+
+The properties are demonstrably able to fail — they fired three times during
+development, twice on reveal soundness and once on sleep conservation. Two of
+those were over-strong assertions of mine (a Transform-copied move need not be in
+the stored set; sleep can be re-applied), and one was a real tracker bug (the
+Metronome-called reveal). That is the pattern to expect from property tests, and
+it is why they are worth more than the unit tests they replaced.
+
 ## Still open
 
 D-1, T-1 and A-1 are unchanged: out of scope while the fleet runs. The
-`EngineCollector` / `train.py` seam (plan §12 step 8) is not built. Nothing here
-narrows the P-1 disclosure — the tracker now EXISTS, but it is graded by D-1 and
-A-1, not by anything run so far.
+`EngineCollector` / `train.py` seam (plan §12 step 8) is not built.
+
+Nothing above narrows the P-1 disclosure — the tracker now EXISTS and has
+properties, but properties are not an oracle. What still cannot be settled
+offline is whether the engine's `choices()` equals the request Showdown would
+have sent; that bridge is argued from showdown-mode's definition, and F2 is the
+first concrete instance of it producing a wrong number. **That is what D-1 is
+for.**
+
+Two documentation corrections fall out:
+
+- **§7.1.1's declared "Struggle slot" family does not exist.**
+  `Move.should_be_stored` returns False for poke-env's SPECIAL_MOVES
+  (`move.py:151-161`), so poke-env 0.15.0 never puts `struggle` in a move dict.
+  The budget line should drop it.
+- The reveal families for `gen1randombattle` are, precisely: **Mirror Move
+  (4 species), Mimic (5), Transform (1)** — Metronome is 0 species, so §7.1.1's
+  "Metronome / Mirror Move" should read Mirror Move alone.
+
+Not fixed, recorded: `state_for` builds the entire `ObservableState` for both
+seats just to read `aliased`, and `mask_for` issues ten separate `choices()` FFI
+calls per seat per step — roughly three full state builds and ~20 FFI calls per
+decision. That is a T-1 concern and T-1 is out of scope.

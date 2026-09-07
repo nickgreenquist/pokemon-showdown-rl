@@ -51,8 +51,24 @@ pub struct SideTracker {
     prev_status: [u8; 6],
     prev_active_party: Option<usize>,
     prev_live_moves: [(u8, u8); 4],
-    /// Turns this side has been held by a binding move (it is the VICTIM).
+    /// TURNS this side has been held by a binding move (it is the VICTIM).
+    /// Keyed on `battle.turn()`, not on updates: a turn can span several updates
+    /// (a mid-turn faint and its replacement), and §7.2's "first trapped turn"
+    /// rule is stated in turns.
     binding_victim_turns: u8,
+    binding_last_turn: u16,
+    /// poke-env clears `_effects` when a mon faints but NOT `_must_recharge`,
+    /// `_preparing_move` or `_status_counter` (`pokemon.py:422-429`; those clear
+    /// in `moved()` and `switch_out()`), while the engine zeroes the whole
+    /// volatile word and the status byte inside `faint()`
+    /// (`mechanics.zig:1544-1570`). On a FORCE-SWITCH request the fainted mon is
+    /// still the active and poke-env's `_fill_active` runs on it, so these three
+    /// features must be reported as they were the instant before the faint.
+    /// Reproducing poke-env's staleness is the point -- I2 is "bit-for-bit where
+    /// the information exists", defects included.
+    flags_before_faint: [(bool, bool); 6],
+    prev_charging: bool,
+    prev_transform: bool,
     started: bool,
 }
 
@@ -67,6 +83,10 @@ impl Default for SideTracker {
             prev_active_party: None,
             prev_live_moves: [(0, 0); 4],
             binding_victim_turns: 0,
+            binding_last_turn: u16::MAX,
+            flags_before_faint: [(false, false); 6],
+            prev_charging: false,
+            prev_transform: false,
             started: false,
         }
     }
@@ -87,6 +107,11 @@ impl SideTracker {
     }
     pub fn binding_victim_turns(&self) -> u8 {
         self.binding_victim_turns
+    }
+    /// `(must_recharge, preparing)` as of the instant before this party member
+    /// fainted -- what poke-env would still be reporting.
+    pub fn flags_before_faint(&self, party: usize) -> (bool, bool) {
+        self.flags_before_faint[party]
     }
 
     fn reveal(&mut self, party: usize) {
@@ -131,19 +156,56 @@ impl BattleTracker {
             //     Never inferred across a switch: the slots belong to a
             //     different mon.
             let live = side.active().moves();
+            let vol = side.active().volatiles();
             if t.started && !switched {
+                let reveal = |seen: &mut Vec<u8>, id: u8| {
+                    if id != 0 && !seen.contains(&id) && seen.len() < 4 {
+                        seen.push(id);
+                    }
+                };
                 for i in 0..4 {
                     let (id, pp) = live[i];
                     let (prev_id, prev_pp) = t.prev_live_moves[i];
                     if id != 0 && id == prev_id && pp < prev_pp {
-                        let seen = &mut t.revealed_moves[active_party];
-                        if !seen.contains(&id) && seen.len() < 4 {
-                            seen.push(id);
-                        }
+                        reveal(&mut t.revealed_moves[active_party], id);
                     }
+                }
+                // Three moves are USED without their slot's PP moving in the
+                // same update, so a pure PP diff misses them while poke-env
+                // reveals them on `|move|`. `last_selected_move` is read here as
+                // the identity of a move the opponent just publicly saw used --
+                // the engine's proxy for the `|move|` line -- not as hidden
+                // state.
+                // Only ever a move the mon actually OWNS. `last_selected_move`
+                // holds the CALLED move after Metronome / Mirror Move, and
+                // revealing that would invent a move the mon does not have --
+                // §7.1.1 declares the called-move reveal a non-parity family, so
+                // the safe direction is to under-reveal, never to fabricate.
+                let owned = |id: u8| {
+                    id != 0
+                        && (live.iter().any(|&(m, _)| m == id)
+                            || side.party(active_party).moves().iter().any(|&(m, _)| m == id))
+                };
+                let sel = side.last_selected_move();
+                let sel = if owned(sel) { sel } else { 0 };
+                // (a) a two-turn move CHARGING: `canMove` returns at the
+                //     `.Charge` branch before `decrementPP` (mechanics.zig:758).
+                if vol.charging() && !t.prev_charging {
+                    reveal(&mut t.revealed_moves[active_party], sel);
+                }
+                // (b) Transform rewrites all four slots at 5 PP in the same
+                //     update (mechanics.zig:2461), so its own use is invisible.
+                if vol.transform() && !t.prev_transform {
+                    reveal(&mut t.revealed_moves[active_party], sel);
+                } else if live.iter().zip(t.prev_live_moves.iter()).any(|(a, b)| a.0 != b.0) {
+                    // (c) Mimic overwrites the slot id it spent PP on
+                    //     (mechanics.zig:2177), so `id == prev_id` fails.
+                    reveal(&mut t.revealed_moves[active_party], sel);
                 }
             }
             t.prev_live_moves = live;
+            t.prev_charging = vol.charging();
+            t.prev_transform = vol.transform();
             t.prev_active_party = Some(active_party);
 
             // (3) Observed sleep turns. The remaining count is HIDDEN; what a
@@ -152,11 +214,16 @@ impl BattleTracker {
             for i in 0..6 {
                 let cur = side.party(i).status();
                 let prev = StatusByte(t.prev_status[i]);
+                let fainted = side.party(i).hp() == 0;
                 if cur.asleep() && prev.asleep() {
                     if cur.sleep_turns_left() < prev.sleep_turns_left() {
                         t.sleep_observed[i] = t.sleep_observed[i].saturating_add(1);
                     }
-                } else if cur.asleep() != prev.asleep() {
+                } else if cur.asleep() != prev.asleep() && !fainted {
+                    // NOT on a faint: the engine zeroes the status byte inside
+                    // `faint()`, but poke-env only resets `_status_counter` on
+                    // `cure_status` and `switch_out`, so a mon that faints asleep
+                    // keeps its count until its replacement comes in.
                     t.sleep_observed[i] = 0;
                 }
                 t.prev_status[i] = cur.0;
@@ -166,9 +233,19 @@ impl BattleTracker {
             //     iff the FOE's active carries it. Only ever used to decide
             //     whether Showdown would show the `[Fight]` placeholder.
             if foe.active().volatiles().binding() {
-                t.binding_victim_turns = t.binding_victim_turns.saturating_add(1);
+                if t.binding_last_turn != b.turn() {
+                    t.binding_victim_turns = t.binding_victim_turns.saturating_add(1);
+                    t.binding_last_turn = b.turn();
+                }
             } else {
                 t.binding_victim_turns = 0;
+                t.binding_last_turn = u16::MAX;
+            }
+
+            // (5) Snapshot the two flags poke-env keeps across a faint, while
+            //     the mon is still alive to have them.
+            if side.party(active_party).hp() > 0 {
+                t.flags_before_faint[active_party] = (vol.recharging(), vol.charging());
             }
 
             t.started = true;
@@ -207,7 +284,12 @@ impl BattleTracker {
             false
         } else if vol.recharging() {
             true
-        } else if forced {
+        } else if forced || vol.bide() || vol.binding() {
+            // PS gates the gen-1 `[Fight]` placeholder on `!lockedMove`, and
+            // `lockedMove` covers the SEMI-locks (Bide, a binding user) as well
+            // as the hard ones (`sim/pokemon.ts:1089-1108`). Unreachable in
+            // gen1randombattle -- no binding or Bide move is in the pool -- but
+            // the search line and other gen-1 formats need it.
             false
         } else {
             status.asleep()
@@ -250,7 +332,7 @@ impl BattleTracker {
             );
         }
         seat.active_slot = Some(active_party);
-        seat.active = active_view(b, p, tr.sleep_observed(active_party));
+        seat.active = active_view(b, p, tr, active_party);
         let live = side.active().moves();
         for i in 0..4 {
             let (id, pp) = live[i];
@@ -292,7 +374,7 @@ impl BattleTracker {
             }
         }
         if seat.active_slot.is_some() {
-            seat.active = active_view(b, p, tr.sleep_observed(active_party));
+            seat.active = active_view(b, p, tr, active_party);
             // Revealed moves only, in usage order. The prior fills the rest --
             // in `encoder.rs`, from the table, never from the engine's slots.
             for (i, &id) in tr.revealed_moves(active_party).iter().take(4).enumerate() {
@@ -363,12 +445,23 @@ fn mon_view(
     }
 }
 
-fn active_view(b: &Battle, p: Player, sleep_observed: u8) -> ObsActive {
+fn active_view(b: &Battle, p: Player, tr: &SideTracker, active_party: usize) -> ObsActive {
     let side = b.side(p);
     let a = side.active();
     let vol = a.volatiles();
     let boosts = a.boosts();
-    let status = side.party(side.active_party_index()).status();
+    let stored = side.party(active_party);
+    let status = stored.status();
+    let sleep_observed = tr.sleep_observed(active_party);
+    // A fainted mon is STILL the active on a force-switch request, and poke-env
+    // reports the three scalars its `faint()` does not clear. The engine has
+    // already zeroed them, so they come from the tracker's snapshot.
+    let fainted = stored.hp() == 0;
+    let (recharging, charging) = if fainted {
+        tr.flags_before_faint(active_party)
+    } else {
+        (vol.recharging(), vol.charging())
+    };
     // Gen 1 has ONE Special stat, and poke-env carries both spa and spd.
     let b7 = [
         boosts.accuracy as i16,
@@ -387,7 +480,7 @@ fn active_view(b: &Battle, p: Player, sleep_observed: u8) -> ObsActive {
         vol.confusion(),
         vol.focus_energy(),
         vol.leech_seed(),
-        vol.recharging(),
+        recharging,
         b.side(p.foe()).active().volatiles().binding(),
         vol.reflect(),
         vol.substitute(),
@@ -398,14 +491,14 @@ fn active_view(b: &Battle, p: Player, sleep_observed: u8) -> ObsActive {
         volatiles: vols,
         // SLP uses the OBSERVED count (the remaining count is hidden); TOX uses
         // the toxic counter, which is visible as one damage message per turn.
-        status_counter: if st.asleep() {
+        status_counter: if st.asleep() || (fainted && sleep_observed > 0) {
             sleep_observed as u16
         } else if st.tox() {
             vol.toxic_turns() as u16
         } else {
             0
         },
-        preparing: vol.charging(),
+        preparing: charging,
     }
 }
 

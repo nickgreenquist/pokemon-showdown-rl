@@ -81,6 +81,30 @@ fn action_to_choice(b: &Battle, p: Player, req: Request, aliased: bool, action: 
         // poke-env would have sent (plan §7.2, declared and negligible).
         return (action == 6).then(|| offered.first_move()).flatten();
     }
+    // A HARD LOCK (Thrash / two-turn charge / Rage) offers exactly `Move(1)`,
+    // but poke-env does NOT alias it: the locked move is a real member of the
+    // mon's move dict, so `get_action_mask` yields `6 + its STORED SLOT`
+    // (`singles_env.py:247-251`), not action 6. Plan §7.2 says exactly this
+    // ("{6+slot(last_selected_move)}"); mapping it to 6 would put the legal
+    // action in the wrong lane on every Sky Attack release turn.
+    let side = b.side(p);
+    let vol = side.active().volatiles();
+    if vol.thrashing() || vol.charging() || vol.rage() {
+        let locked = side.last_selected_move();
+        let slot = side
+            .active()
+            .moves()
+            .iter()
+            .position(|&(id, _)| id != 0 && id == locked);
+        return match slot {
+            // `Move(1)` is the engine's single forced option whatever the slot.
+            Some(j) if action == 6 + j => offered.first_move(),
+            Some(_) => None,
+            // The locked move is not in the live slots (it cannot normally
+            // happen); fall back to action 6 rather than offering nothing.
+            None => (action == 6).then(|| offered.first_move()).flatten(),
+        };
+    }
     let c = Choice::Move((action - 6 + 1) as u8);
     offered.contains(c).then_some(c)
 }
@@ -440,6 +464,58 @@ mod tests {
             env.step(&t, la, 0.0, 0, oa).unwrap();
         }
         assert!(checked > 50, "only {checked} masks inspected");
+    }
+
+    /// A HARD LOCK is not aliased, so poke-env keeps the locked move at its own
+    /// stored slot: `get_action_mask` yields `6 + j`, not `6`
+    /// (`singles_env.py:247-251`). The engine offers only `Move(1)` whatever the
+    /// slot, so mapping it to action 6 would put the single legal action in the
+    /// wrong lane on every two-turn-move release turn.
+    #[test]
+    fn a_hard_lock_keeps_the_locked_moves_own_action_index() {
+        use crate::layout::*;
+        let t = tables_stub();
+        let p1: Vec<_> = random_team(31, true).iter().map(|m| m.to_bytes()).collect();
+        let p2: Vec<_> = random_team(32, true).iter().map(|m| m.to_bytes()).collect();
+        let mut b = Battle::new(0x10CC_0001, &p1, &p2);
+        b.update(Request::Pass, Choice::Pass, Request::Pass, Choice::Pass)
+            .unwrap();
+
+        let p = Player::P1;
+        let side_at = B_SIDES + p.index() * SIDE_SIZE;
+        let active_at = side_at + S_ACTIVE;
+        for slot in 0..4usize {
+            let mut m = b.clone();
+            let locked = m.side(p).active().moves()[slot].0;
+            if locked == 0 {
+                continue;
+            }
+            // Charging: a hard lock whose move IS a real member of the moveset.
+            let at = active_at + A_VOLATILES;
+            let mut w = [0u8; 8];
+            w.copy_from_slice(&m.0[at..at + 8]);
+            let v = u64::from_le_bytes(w) | (1u64 << V_CHARGING);
+            m.0[at..at + 8].copy_from_slice(&v.to_le_bytes());
+            m.0[side_at + S_LAST_SELECTED_MOVE] = locked;
+
+            let offered = m.choices(p, Request::Move);
+            assert_eq!(offered.len(), 1, "a hard lock offers exactly one choice");
+            assert_eq!(offered.get(0), Choice::Move(1));
+
+            let mask = mask_for(&m, p, Request::Move, false);
+            let legal: Vec<usize> = (0..N_ACTIONS).filter(|&a| mask[a]).collect();
+            assert_eq!(
+                legal,
+                vec![6 + slot],
+                "locked move in stored slot {slot} must be action {}",
+                6 + slot
+            );
+            assert_eq!(
+                action_to_choice(&m, p, Request::Move, false, 6 + slot),
+                Some(Choice::Move(1)),
+                "and it must still submit the engine's single forced option"
+            );
+        }
     }
 
     #[test]
