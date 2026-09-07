@@ -11100,3 +11100,34 @@ line numbers are not — grep the date, then read that region):
   update / eval is external CPU contention or thermal throttling on the box (the
   >13M window contains a Chrome-active period), **not** workload drift — worth
   re-reading once the box has been quiet for an hour.
+
+- 2026-09-07 (midday, agent; babysitting) — **THE 25M IN-RUN READ IS DISCHARGED
+  AND CLEAN ON ALL THREE LANES; the parallel engine-port session finished its
+  whole six-gate scope overnight.** (1) **25M read** (12:46Z, on merged
+  histories — s200 657,488 rows / 2 segments, s208 637,094 / 2, s216 628,602 /
+  4): every gate PASS on every lane. R0-2, R0-3, R0-6, H1, K6, T2, T3 all PASS;
+  the three `SUMMARY RECORD`s are D-C alone, which records by design (in-loop
+  eval, n=100, NOT ACTIONABLE). Harvest health: ratio 0.955–1.059 / 0.967–1.032
+  / 0.986–1.017, version_lag_max 1 on all three, rows dropped 0.00%, discarded 0,
+  empty 0.00%. Entropy min 0.818 / 0.833 / 0.815 against the 0.15 floor;
+  clip_frac max 0.175 / 0.177 / 0.189 (last ≈ 0.045); approx_kl max ≤ 0.0023.
+  **D-A exact at the 25M rung on all three** — u=1252, x=0.499599, stored lr
+  5.271813e-06 vs closed form to 1e-12 — so the Wang schedule is being followed
+  precisely at the anneal's halfway point. In-loop evals sit at 0.81–0.91 (n=100,
+  not a claim, and not a verdict input). (2) **A disclosure for the readout: the
+  gate reader re-derives D-B expected as 203 steps/s, not the header's 212**, and
+  the lanes read median 204–209 with last 199–200. The apparent "drift" watched
+  overnight was mostly the rate watch's fixed 212 reference; the box-wide ~5%
+  slowdown is real but small (update_sec +5.9% in a quiet window, episode_length
+  DOWN 5.8%, so contention/thermal, not workload) and ETA moves to ≈ 09-08 23:00Z.
+  (3) **Engine port** (separate session, own worktree + own conda env — the
+  fleet's env is untouched, site-packages still dated Aug 22): gates B-0, B-1,
+  P-4 (exact on 44,100 sets), P-3 (100k teams), P-1 and P-2 all PASS, stopping at
+  the brief's line. Its adversarial reviewer earned the slot: it found **P-1 was
+  partly circular** — 184 of the 828 floats were a shared `_effect_block`
+  imported by both sides, not an independent reimplementation — so P-1 now reports
+  bitwise parity over the **377 of 828 independently-derived columns** with a
+  positive control, and the Transform non-parity family was DISSOLVED rather than
+  declared (it does not exist in poke-env 0.15.0). CLAUDE.md rule 1 gained the
+  env-exception clause after that session flagged that an auto-loaded file was
+  telling it to do the one fleet-killing thing (5481be2).

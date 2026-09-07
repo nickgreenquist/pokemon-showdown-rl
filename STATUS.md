@@ -42,9 +42,9 @@ chat waiver of rule 4 at the header's recommended defaults. Step-3 milestone = i
    (n=1000, deterministic, ties 0.022); MDT-vs-SH sanity row **0.400** (120-173-7, n=300).
    L4 is no longer PENDING; its h2h runs in the post-fleet schedule.
 4. `scripts/gen4_wang50m_postfleet.sh` (FROZEN order, resume-safe; refuses while a lane
-   trains) AUTO-CHAINS on FLEET DONE (a session watch; ≈ 2026-09-08 21:30Z) → author the
-   five-leg readout in ONE commit. In-run gates: `scripts/gen4_wang50m_gates.py` (5M: all
-   PASS, D-B 211–215 steps/s; next read 25M ≈ 09-07 12:30Z).
+   trains) AUTO-CHAINS on FLEET DONE (session watch; ≈ 09-08 23:00Z) → five-leg readout in
+   ONE commit. **25M read 12:46Z: all gates PASS ×3 lanes, D-A exact at 25M (x=0.4996),
+   D-B median 204–209; the reader's expected is 203, NOT 212 — quote 203.**
 5. Then gen-4 levers against this baseline, each its own pre-reg — **NOT the pool
    (ruled 2026-09-06: league stays on, no ablation)**; step 6 = ONE gen-4 ladder,
    NEW pre-reg, **RULED CONDITIONAL 2026-09-06** on a matched step-5 read (miss → none).
