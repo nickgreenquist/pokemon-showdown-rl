@@ -16,6 +16,7 @@ compile_error!("pkmn/engine stores its battle state in native endianness; \
 pub mod battle;
 pub mod data;
 pub mod encoder;
+pub mod env;
 pub mod ffi;
 pub mod layout;
 pub mod observe;

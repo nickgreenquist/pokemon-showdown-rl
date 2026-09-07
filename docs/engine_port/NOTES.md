@@ -610,3 +610,134 @@ and cannot be measured without D-1.
 4. The D-1 band should be revisited with the P-2 finding in hand: with no
    binding, Bide, Thrash or Rage in the format, the mechanics D-1 can actually
    discriminate are a smaller set than plan §10 assumes.
+
+---
+
+# Beyond the gates (2026-09-07, maintainer-authorised)
+
+The brief scoped six gates and said stop. The maintainer then asked for two
+further pieces, both server-free and both untouched by the fleet. Neither is a
+gate and neither licenses anything.
+
+## The engine→observable tracker (`src/track.rs`) — plan §7.1's producer
+
+This is the half of the port P-1 deliberately does not test. P-1 compares the two
+ENCODERS given identical observable state; `track.rs` is what DERIVES that state
+from the engine's 384 bytes, by diffing, with `-Dlog` off and nothing parsed.
+
+Rules pinned against their sources rather than against the plan's summary:
+
+- **HP quantisation.** Showdown's `getHealth` under the HP Percentage Mod
+  (`sim/pokemon.ts:2065`, and the tapes confirm the rule is on) is
+  `ceil(100*hp/maxhp)`, forced to 99 when that rounds a non-full mon up to 100,
+  and 0 when fainted. A property test walks every `hp` in `1..max` for five
+  values of `max` and asserts the result lands in `1..=100` and equals 100 only
+  at full HP.
+- **Transform.** The engine writes the copied species and types into
+  `ActivePokemon` and the copied moves at **5 PP**
+  (`mechanics.zig:2456-2461`) — which is `min(5, base)`, matching PS and
+  poke-env. So the tracker reads stats and types from `active.species` for the
+  active mon and from the stored record otherwise: the same identity/stats split
+  `MonView` already carries, now with an engine-side producer.
+- **Move reveal** is by PP decrement on the LIVE slots, and is never inferred
+  across a switch (the slots belong to a different mon). **Sleep turns** are
+  counted from observed decrements and reset on entry and exit, never read from
+  `status & 7`. **PARTIALLY_TRAPPED** reads the FOE's `Binding` bit, because the
+  flag sits on the user.
+
+### The I1 leak audit (`tests/leak_audit.rs`) — enforced, not asserted
+
+Plan §10 asks for "an explicit leak audit lists every engine field with its
+visibility class". A list is a comment, and a comment does not survive a year of
+edits, so the audit is mechanical: flip a field in a live battle, re-derive the
+seat's 828 floats **from the same tracker**, and check the result against that
+field's declared class.
+
+- HIDDEN → the observation must be bit-identical. A difference is a leak.
+- VISIBLE → the observation must differ. This is the positive control, and it is
+  what stops the audit passing because the harness is inert.
+
+Holding the tracker fixed is the point: everything it carries (reveal order,
+revealed moves, observed sleep turns) comes from HISTORY, so what is being asked
+is precisely "does the encoder read the hidden byte DIRECTLY?".
+
+**Result: 56 perturbations across both seats, 0 leaks, 0 inert controls.**
+Covered as HIDDEN: the RNG seed, `last_damage`, `last_moves`,
+`last_selected_move`, `last_used_move`, the foe's live and stored PP, the foe's
+exact HP *within one percent bucket*, an unrevealed foe party member, and the
+whole hidden-counter family — confusion turns, attacks left, Bide damage,
+Substitute HP, Disable duration and slot, Transform target, and sleep turns
+remaining on both sides. Covered as VISIBLE: turn, our own exact HP and PP, the
+foe's HP *across* a bucket, its active species, boosts, toxic counter, and the
+Substitute/Reflect/Leech Seed presence flags.
+
+Light Screen is audited as **HIDDEN on purpose**: it is visible on Showdown but
+has no encoder slot (poke-env 0.15.0 cannot parse it), so encoding it anywhere
+would be a divergence, not a fix.
+
+A second test proves the audit can fail: it injects a deliberate leak of the
+foe's exact HP into a spare lane and confirms the same comparison catches it,
+while the real encoder does not move for that same perturbation.
+
+**The first run reported 8 leaks, all harness artifacts** — the mutations flipped
+a visible FLAG alongside the hidden counter behind it (the confusion bit with
+the confusion turns, the SLP bits with the sleep turns). Cases now carry a
+`prepare` step applied to BOTH sides of the comparison, so a hidden counter is
+tested with its flag already set in both. Worth recording: a perturbation audit
+that does not separate "prepare" from "mutate" reports its own construction as a
+leak.
+
+## `Gen1Env` / `BatchEnv` (`src/env.rs`) — plan §7.5, §7.6
+
+K battles, two seats, no server, no sockets, no asyncio. Reward is terminal only
+and flips with the learner seat; ties (the 1000-turn tie, Endless Battle Clause,
+a double KO) score 0, which is the async path's G4c rule. Finished slots restart
+immediately with fresh teams and a fresh seed, so episodes are whole by
+construction — `episodes_discarded` is 0 the same way.
+
+Seeds follow §7.5: `battle_seed = splitmix64(lane_seed * PHI ^ battle_counter)`,
+the team pair drawn at `splitmix64(battle_seed ^ 1)`, and `battle_counter` is
+readable and settable so a `--resume` continues the same sequence.
+
+**One design decision the plan did not make.** §7.6 says `step()` "pumps Pass
+turns … asking the opponent seat for its choice". It does not. A mid-turn faint
+leaves the learner owing a Pass while the opponent replaces its mon, and that
+replacement is a real decision belonging to the opponent POLICY — choosing one
+inside `step` would quietly install a "first legal choice" bot in the env and
+would show up much later as an unexplained strength difference. Instead
+`pending()` reports every seat that owes a decision and the caller re-asks, which
+is also what keeps opponent inference batched by member (§8.2).
+
+End-to-end smoke, K=64 against the P-3 bank, uniform policy on both seats:
+
+| | |
+|---|---|
+| episodes | 300 |
+| learner rows | 19,679 |
+| P1 win / lose / tie | 144 / 155 / 1 |
+| mean turns | **61.1** |
+| actions outside their own mask | 0 |
+
+Mean turns 61.1 against P-3's independently measured 60.3 on the same bank is the
+sanity check that matters here.
+
+**The wall time of that smoke is NOT a throughput number**: uniform policy, no
+network forward pass, measured next to three training lanes. T-1 remains out of
+scope.
+
+Tests: `a_battle_plays_out_through_the_action_space` drives 40 battles end to end
+through the 10-way ACTION space rather than through `Choice`, so the mask, the
+action mapping and the Pass handling are exercised together; the mask is checked
+never to offer the active or a fainted mon and never to offer a move on a forced
+switch; an illegal action is refused with an error rather than reaching the
+engine; and the **seat-flip test** plays one identical game from both seats and
+asserts the rewards negate. On the Python side, `BatchEnv` is checked for whole
+episodes, in-mask actions, observations inside the declared `Box(-1, 4)`, no
+stalled slot, and lane-seed reproducibility.
+
+## Still open
+
+D-1, T-1 and A-1 are unchanged: out of scope while the fleet runs. The
+`EngineCollector` / `train.py` seam (plan §12 step 8) is not built. Nothing here
+narrows the P-1 disclosure — the tracker now EXISTS, but it is graded by D-1 and
+A-1, not by anything run so far.

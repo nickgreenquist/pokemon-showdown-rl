@@ -36,7 +36,7 @@ fn type_index(v: i64, what: &str) -> PyResult<Option<u8>> {
 
 #[pyclass]
 pub struct Tables {
-    inner: StaticTables,
+    pub(crate) inner: StaticTables,
 }
 
 #[pymethods]
@@ -284,4 +284,170 @@ fn parse_state(d: &Bound<'_, PyAny>) -> PyResult<ObservableState> {
         own: parse_seat(&get(d, "own")?)?,
         opp: parse_seat(&get(d, "opp")?)?,
     })
+}
+
+// ---------------------------------------------------------------------------
+// BatchEnv: the Python-facing collection surface (plan §7.6).
+// ---------------------------------------------------------------------------
+
+use crate::battle::Player;
+use crate::env::{BatchEnv as RustBatchEnv, N_ACTIONS, Seat, TeamBank};
+use numpy::PyArray2;
+use pyo3::exceptions::PyRuntimeError;
+use pyo3::types::PyDict;
+
+/// K engine battles driven together. NOT a licensed collector: no number from
+/// this is comparable to anything banked until gate A-1 passes.
+#[pyclass]
+pub struct BatchEnv {
+    inner: RustBatchEnv,
+}
+
+#[pymethods]
+impl BatchEnv {
+    /// `bank` is the packed payload of a `scripts/engine_team_bank.py` file
+    /// (header stripped by the caller, which is where the sha256 is checked).
+    #[new]
+    #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1"))]
+    fn new(k: usize, seed: u64, tables: &Tables, bank: Vec<u8>, learner_seat: &str) -> PyResult<Self> {
+        let learner = match learner_seat {
+            "p1" => Player::P1,
+            "p2" => Player::P2,
+            s => return Err(PyValueError::new_err(format!("learner_seat {s:?} is not p1/p2"))),
+        };
+        let bank = TeamBank::new(bank).map_err(PyValueError::new_err)?;
+        let inner = RustBatchEnv::new(k, seed, tables.inner.clone(), bank, learner)
+            .map_err(PyValueError::new_err)?;
+        Ok(BatchEnv { inner })
+    }
+
+    #[getter]
+    fn k(&self) -> usize {
+        self.inner.len()
+    }
+    #[getter]
+    fn battle_counter(&self) -> u64 {
+        self.inner.battle_counter()
+    }
+    #[setter]
+    fn set_battle_counter(&mut self, n: u64) {
+        self.inner.set_battle_counter(n);
+    }
+
+    /// Which pool member owns a slot, for the lifetime of its battle.
+    fn set_member(&mut self, slot: usize, member: i32) {
+        self.inner.set_member(slot, member);
+    }
+
+    /// `(idx int32[n], obs f32[n, 828], mask bool[n, 10], member int32[n])` for
+    /// every slot where that seat owes a real decision. Slots owing a Pass are
+    /// absent.
+    #[pyo3(signature = (seat="learner"))]
+    fn pending<'py>(
+        &self,
+        py: Python<'py>,
+        seat: &str,
+    ) -> PyResult<(
+        Bound<'py, PyArray1<i32>>,
+        Bound<'py, PyArray2<f32>>,
+        Bound<'py, PyArray2<bool>>,
+        Bound<'py, PyArray1<i32>>,
+    )> {
+        let seat = match seat {
+            "learner" => Seat::Learner,
+            "opponent" => Seat::Opponent,
+            s => return Err(PyValueError::new_err(format!("seat {s:?} is not learner/opponent"))),
+        };
+        let (idx, obs, mask, member) = py.detach(|| self.inner.pending(seat));
+        let n = idx.len();
+        Ok((
+            PyArray1::from_vec(py, idx),
+            PyArray2::from_vec2(py, &obs.chunks(OBS_DIM).map(|c| c.to_vec()).collect::<Vec<_>>())
+                .unwrap_or_else(|_| PyArray2::zeros(py, [n, OBS_DIM], false)),
+            PyArray2::from_vec2(
+                py,
+                &mask.chunks(N_ACTIONS).map(|c| c.to_vec()).collect::<Vec<_>>(),
+            )
+            .unwrap_or_else(|_| PyArray2::zeros(py, [n, N_ACTIONS], false)),
+            PyArray1::from_vec(py, member),
+        ))
+    }
+
+    /// One batched step. Releases the GIL for the engine/encoder loop.
+    #[pyo3(signature = (l_idx, l_actions, l_logp, version, o_idx, o_actions))]
+    fn step(
+        &mut self,
+        py: Python<'_>,
+        l_idx: Vec<i32>,
+        l_actions: Vec<usize>,
+        l_logp: Vec<f32>,
+        version: i64,
+        o_idx: Vec<i32>,
+        o_actions: Vec<usize>,
+    ) -> PyResult<()> {
+        py.detach(|| {
+            self.inner
+                .step(&l_idx, &l_actions, &l_logp, version, &o_idx, &o_actions)
+        })
+        .map_err(PyRuntimeError::new_err)
+    }
+
+    /// Finished episodes since the last call, as dicts of numpy arrays.
+    fn drain_finished<'py>(&mut self, py: Python<'py>) -> PyResult<Vec<Bound<'py, PyDict>>> {
+        let eps = self.inner.drain_finished();
+        let mut out = Vec::with_capacity(eps.len());
+        for e in eps {
+            let d = PyDict::new(py);
+            let n = e.length;
+            d.set_item(
+                "obs",
+                PyArray2::from_vec2(py, &e.obs.chunks(OBS_DIM).map(|c| c.to_vec()).collect::<Vec<_>>())
+                    .unwrap_or_else(|_| PyArray2::zeros(py, [n, OBS_DIM], false)),
+            )?;
+            d.set_item(
+                "masks",
+                PyArray2::from_vec2(
+                    py,
+                    &e.masks.chunks(N_ACTIONS).map(|c| c.to_vec()).collect::<Vec<_>>(),
+                )
+                .unwrap_or_else(|_| PyArray2::zeros(py, [n, N_ACTIONS], false)),
+            )?;
+            d.set_item("actions", PyArray1::from_vec(py, e.actions))?;
+            d.set_item("old_logp", PyArray1::from_vec(py, e.logp))?;
+            d.set_item("version", PyArray1::from_vec(py, e.version))?;
+            d.set_item(
+                "opp_choice",
+                PyArray2::from_vec2(
+                    py,
+                    &e.opp_choice.chunks(3).map(|c| c.to_vec()).collect::<Vec<_>>(),
+                )
+                .unwrap_or_else(|_| PyArray2::zeros(py, [n, 3], false)),
+            )?;
+            d.set_item("reward", e.reward)?;
+            d.set_item("length", n)?;
+            d.set_item("turns", e.turns)?;
+            d.set_item("seed", e.seed)?;
+            d.set_item("member", e.member)?;
+            out.push(d);
+        }
+        Ok(out)
+    }
+
+    /// The counters the collector logs. Names deliberately mirror the async
+    /// path's `collect/*` keys.
+    fn stats<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let s = &self.inner.stats;
+        let d = PyDict::new(py);
+        d.set_item("episodes_finished", s.episodes_finished)?;
+        d.set_item("episodes_discarded", 0u64)?;
+        d.set_item("seam_requests", s.learner_decisions)?;
+        d.set_item("opponent_requests", s.opponent_decisions)?;
+        d.set_item("engine_updates", s.engine_updates)?;
+        d.set_item("battles_started", s.battles_started)?;
+        d.set_item("battles_in_flight", self.inner.len())?;
+        d.set_item("rooms_tracked", self.inner.len())?;
+        d.set_item("rerequests", 0u64)?;
+        d.set_item("battle_counter", self.inner.battle_counter())?;
+        Ok(d)
+    }
 }
