@@ -923,3 +923,60 @@ Not fixed, recorded: `state_for` builds the entire `ObservableState` for both
 seats just to read `aliased`, and `mask_for` issues ten separate `choices()` FFI
 calls per seat per step — roughly three full state builds and ~20 FFI calls per
 decision. That is a T-1 concern and T-1 is out of scope.
+
+## D25 opponent-action labels: two bugs in the `(kind, id, flags)` seam
+
+Found by reading `rl/envs/showdown.py::_order_identity` against `src/env.rs`
+while scoping the training seam; both were SILENT — `canonicalise` has no
+assertion either one could trip.
+
+1. **The id was the choice's DATA FIELD, not the entity.** `_order_identity`
+   emits `_move_id(move)` / `_species_id(species)` — the encoder's own id space,
+   1..165 and 1..151. `env.rs` emitted `Choice::Move(d)`/`Choice::Switch(d)`'s
+   `d`, a slot in 1..=4 / 1..=6. `canonicalise` matches the id against the row's
+   OWN opponent-move id suffix, so a slot index simply fails to match and the
+   row lands in OTHER_MOVE. Measured: 76.6% of valid move rows canonicalise to a
+   real slot after the fix, 0.0% under a control that reproduces the bug.
+
+   Three sub-cases the naive "look the slot up" fix would still get wrong, all
+   from `mechanics.zig::choices`:
+
+   | engine | Showdown's request | `_move_id` |
+   |---|---|---|
+   | `Move(0)` (no selectable move, or Bide with none) | `Struggle` | 165 |
+   | `Move(1)` under `isForced` | `Recharge` if recharging, else THE LOCKED MOVE | 0 / `last_selected_move` |
+   | aliased turn (sleep / freeze / first turn bound) | `Fight` | 0 |
+
+   `Move(1)` under a lock is `@intFromBool(showdown)` (`mechanics.zig:3178`), a
+   "no slot was offered" marker — reading it as stored slot 1 mislabels every
+   lock outside slot 0 as Pound. This is the same marker F2 got wrong on the
+   action index; the two are independent reads of it.
+
+2. **A foe that owed no decision was marked PRESENT.** `_OPP_CHOICE_NONE` is
+   `(-1, -1, 0)` and poke-env reaches it via `clear_choice` before every inner
+   step (B2). `env.rs` set `flags = 1 | aliased<<1` unconditionally, so a wait
+   turn produced `(-1, -1, 1)`: `canonicalise` sees PRESENT, fails to match id
+   -1 against any slot, falls through to OTHER_MOVE — which is ALWAYS legal —
+   and trains on a decision that never happened. Measured 6.04% of learner rows
+   are wait turns, against the reference's independently measured 6.4% of raw
+   steps vs max_power.
+
+Tests: `src/env.rs` gained three (a lock's label names its own move; a switch
+label names a live bench member's SPECIES through the `order[]` indirection; and
+a 60-battle property run asserting every label names something the seat was
+offered, the sentinel is whole, and the id distribution is not slot-shaped).
+All three FAIL on the pre-fix code with the right diagnostics. `tests/
+test_engine_d25.py` runs the REAL `rl.networks.opp_action.canonicalise` over
+25,669 engine rows:
+
+| stat | engine | reference |
+|---|---|---|
+| `aux/illegal_label_frac` | 0.0000 | 0.0000 on all five tapes |
+| `aux/aliased_frac` | 0.0981 | 0.040–0.103 across five tapes |
+| `aux/label_present_frac` | 0.9396 | 6.4% wait turns measured vs max_power |
+| `aux/frame_collision_frac` | 0.0000 | — |
+| slotted share of valid move rows | 0.766 | — (control: 0.000) |
+
+`aux/switch_frac` is 0.432 here against the tapes' 0.0719 and that is EXPECTED,
+not a divergence: this run is uniform-random on both seats and 6 of the 10
+actions are switches. It is not evidence either way.

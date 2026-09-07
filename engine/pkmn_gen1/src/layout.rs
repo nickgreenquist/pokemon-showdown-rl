@@ -194,6 +194,14 @@ impl Volatiles {
     vflag!(reflect, V_REFLECT);
     vflag!(transform, V_TRANSFORM);
 
+    /// `mechanics.zig::isForced` -- the hard-lock set, where Showdown offers
+    /// exactly one option and the engine writes `Move(1)` as a "no slot was
+    /// offered" marker rather than as a stored slot.
+    #[inline]
+    pub fn forced(self) -> bool {
+        self.recharging() || self.rage() || self.thrashing() || self.charging()
+    }
+
     #[inline]
     fn field(self, off: u32, width: u32) -> u64 {
         (self.0 >> off) & ((1u64 << width) - 1)

@@ -269,7 +269,7 @@ impl BattleTracker {
 
         // `isForced` -- the engine's hard-lock set, which is exactly PS's
         // `trapped: true` (plan §7.2, confirmed at P-2 leg B).
-        let forced = vol.recharging() || vol.rage() || vol.thrashing() || vol.charging();
+        let forced = vol.forced();
 
         // Would Showdown re-base the move list onto a placeholder? PS's order of
         // precedence: `mustrecharge` -> `[Recharge]`; a lock -> the move itself

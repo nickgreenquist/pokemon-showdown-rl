@@ -24,6 +24,8 @@ use crate::team::PokemonSet;
 use crate::track::BattleTracker;
 
 pub const N_ACTIONS: usize = 10;
+/// Struggle's gen-1 move num, which is also its engine id (B-0's name map).
+const STRUGGLE_ID: i32 = 165;
 /// A battle needs several updates per turn; 1000 turns is the showdown-mode
 /// ceiling. Generous, and a wedged env trips it instead of hanging (F-03).
 pub const MAX_UPDATES: u32 = 8000;
@@ -87,9 +89,10 @@ fn action_to_choice(b: &Battle, p: Player, req: Request, aliased: bool, action: 
     // (`singles_env.py:247-251`), not action 6. Plan §7.2 says exactly this
     // ("{6+slot(last_selected_move)}"); mapping it to 6 would put the legal
     // action in the wrong lane on every Sky Attack release turn.
+    // `recharging` is in `forced()` too but cannot reach here: a recharge turn
+    // is always aliased and left above.
     let side = b.side(p);
-    let vol = side.active().volatiles();
-    if vol.thrashing() || vol.charging() || vol.rage() {
+    if side.active().volatiles().forced() {
         let locked = side.last_selected_move();
         let slot = side
             .active()
@@ -107,6 +110,46 @@ fn action_to_choice(b: &Battle, p: Player, req: Request, aliased: bool, action: 
     }
     let c = Choice::Move((action - 6 + 1) as u8);
     offered.contains(c).then_some(c)
+}
+
+/// `rl/envs/showdown.py::_order_identity` for one seat's choice: `(kind, id)`,
+/// kind 0 switch / 1 move / -1 none. It names the ENTITY, never the slot --
+/// `_move_id(move)` and `_species_id(species)` -- and gen 1's engine numbering
+/// IS that id space (B-0 proved species 1..151 and moves 1..165 identical to
+/// poke-env's `num`), so no table lookup is needed.
+///
+/// poke-env names the entity in the REQUEST IT WAS SHOWN, not the move the
+/// engine will run, so the placeholder turns take the placeholder's id:
+///
+///   * `Move(0)` is the engine's Struggle marker and Showdown displays
+///     Struggle, whose num 165 is in range.
+///   * an ALIASED turn is one Showdown re-based onto `Recharge` or `Fight`;
+///     neither carries a gen-1 num, so `_move_id` gives 0 for both.
+///   * a HARD LOCK is NOT aliased -- the request names the locked move, which is
+///     `last_selected_move`. The engine writes `Move(1)` there as a "no slot was
+///     offered" marker (`mechanics.zig:3178`, `@intFromBool(showdown)`), so
+///     reading that 1 as a stored slot mislabels every lock outside slot 0.
+///
+/// Reading the DATA FIELD as the id -- the shape this function replaced -- is
+/// silent: `canonicalise` matches the id against the row's own opponent-move id
+/// suffix, so a slot index simply fails to match and the row lands in
+/// OTHER_MOVE with no assertion to trip.
+fn choice_identity(b: &Battle, p: Player, aliased: bool, c: Choice) -> (i32, i32) {
+    let side = b.side(p);
+    match c {
+        Choice::Pass => (-1, -1),
+        Choice::Move(0) => (1, STRUGGLE_ID),
+        Choice::Move(_) if aliased => (1, 0),
+        Choice::Move(_) if side.active().volatiles().forced() => {
+            (1, side.last_selected_move() as i32)
+        }
+        Choice::Move(d) => (1, side.active().moves()[d as usize - 1].0 as i32),
+        Choice::Switch(d) => {
+            let party = side.order()[d as usize - 1] as usize;
+            let id = if party == 0 { 0 } else { side.party(party - 1).species() as i32 };
+            (0, id)
+        }
+    }
 }
 
 /// The 10-way mask, derived from the engine's own `choices()`.
@@ -241,15 +284,24 @@ impl Gen1Env {
                 .ok_or_else(|| format!("opponent action {a} is not legal here"))?;
         }
 
-        // D25 labels come for free: both seats' choices are in hand.
+        // D25 labels come for free: both seats' choices are in hand. The
+        // identity must be read BEFORE the update -- `choice_identity` reads the
+        // move slots and party order the choice was made against.
         if lreq != Request::Pass {
-            let (kind, id) = match fchoice {
-                Choice::Pass => (-1, -1),
-                Choice::Move(d) => (1, d as i32),
-                Choice::Switch(d) => (0, d as i32),
+            // A foe that owes nothing this step gets the SENTINEL, flags and
+            // all. `_OPP_CHOICE_NONE` is `(-1, -1, 0)`: PRESENT must be 0, or
+            // `canonicalise` reads a row where the opponent never decided as a
+            // real decision, fails to match id -1 against any move slot, and
+            // trains OTHER_MOVE on it. poke-env reaches the same sentinel via
+            // `clear_choice` before every inner step (B2).
+            let label = if freq == Request::Pass {
+                [-1, -1, 0]
+            } else {
+                let faliased = self.state(foe, t).aliased;
+                let (kind, id) = choice_identity(&self.battle, foe, faliased, fchoice);
+                [kind, id, 1 | i32::from(faliased) << 1]
             };
-            let flags = 1 | if self.state(foe, t).aliased { 2 } else { 0 };
-            self.ep.opp_choice.extend_from_slice(&[kind, id, flags]);
+            self.ep.opp_choice.extend_from_slice(&label);
         }
 
         let (c1, c2) = match self.learner {
@@ -474,7 +526,6 @@ mod tests {
     #[test]
     fn a_hard_lock_keeps_the_locked_moves_own_action_index() {
         use crate::layout::*;
-        let t = tables_stub();
         let p1: Vec<_> = random_team(31, true).iter().map(|m| m.to_bytes()).collect();
         let p2: Vec<_> = random_team(32, true).iter().map(|m| m.to_bytes()).collect();
         let mut b = Battle::new(0x10CC_0001, &p1, &p2);
@@ -516,6 +567,174 @@ mod tests {
                 "and it must still submit the engine's single forced option"
             );
         }
+    }
+
+    /// D25's label names the ENTITY. Under a hard lock the engine hands back
+    /// `Move(1)` whatever the stored slot, so a label read off the choice's data
+    /// field says "move 1" -- Pound -- on every locked turn.
+    #[test]
+    fn a_hard_locks_d25_label_names_the_locked_move_not_the_engines_marker() {
+        use crate::layout::*;
+        let p1: Vec<_> = random_team(31, true).iter().map(|m| m.to_bytes()).collect();
+        let p2: Vec<_> = random_team(32, true).iter().map(|m| m.to_bytes()).collect();
+        let mut b = Battle::new(0x10CC_0001, &p1, &p2);
+        b.update(Request::Pass, Choice::Pass, Request::Pass, Choice::Pass)
+            .unwrap();
+
+        let p = Player::P1;
+        let side_at = B_SIDES + p.index() * SIDE_SIZE;
+        let mut checked = 0;
+        for slot in 0..4usize {
+            let mut m = b.clone();
+            let locked = m.side(p).active().moves()[slot].0;
+            if locked == 0 {
+                continue;
+            }
+            let at = side_at + S_ACTIVE + A_VOLATILES;
+            let mut w = [0u8; 8];
+            w.copy_from_slice(&m.0[at..at + 8]);
+            let v = u64::from_le_bytes(w) | (1u64 << V_CHARGING);
+            m.0[at..at + 8].copy_from_slice(&v.to_le_bytes());
+            m.0[side_at + S_LAST_SELECTED_MOVE] = locked;
+
+            let offered = m.choices(p, Request::Move);
+            assert_eq!(offered.get(0), Choice::Move(1));
+            assert_eq!(
+                choice_identity(&m, p, false, offered.get(0)),
+                (1, locked as i32),
+                "a lock in stored slot {slot} must be labelled with its own move id"
+            );
+            checked += 1;
+        }
+        assert!(checked >= 2, "only {checked} slots exercised");
+    }
+
+    /// The switch label names a SPECIES, and reaching it goes through the
+    /// current-order indirection (`order[slot-1]` is a one-based party index) --
+    /// the one place a slot could pass for an id undetected, since both live in
+    /// 1..=6.
+    #[test]
+    fn a_switch_label_names_a_live_bench_members_species() {
+        let p1: Vec<_> = random_team(41, true).iter().map(|m| m.to_bytes()).collect();
+        let p2: Vec<_> = random_team(42, true).iter().map(|m| m.to_bytes()).collect();
+        let mut b = Battle::new(0x5117_0001, &p1, &p2);
+        b.update(Request::Pass, Choice::Pass, Request::Pass, Choice::Pass)
+            .unwrap();
+        let p = Player::P1;
+        let side = b.side(p);
+        let active = side.active_party_index();
+        let mut seen = 0;
+        for c in b.choices(p, Request::Move).iter() {
+            let Choice::Switch(d) = c else { continue };
+            let (kind, id) = choice_identity(&b, p, false, c);
+            assert_eq!(kind, 0);
+            let party = side.order()[d as usize - 1] as usize - 1;
+            assert_ne!(party, active, "the active is never a switch target");
+            assert_eq!(id, side.party(party).species() as i32);
+            assert!((1..=151).contains(&id), "species id {id} out of gen 1");
+            seen += 1;
+        }
+        assert_eq!(seen, 5, "five bench members should be switchable at turn 1");
+    }
+
+    /// Over real play: every label names an entity the seat could actually have
+    /// been shown, and the id distribution is NOT slot-shaped. The second half
+    /// is what fails if the choice's data field is emitted as the id -- move
+    /// slots are 1..=4 and order slots 1..=6, so a slot-shaped label set is
+    /// indistinguishable from a legal one field by field.
+    #[test]
+    fn every_d25_label_names_an_entity_the_seat_was_offered() {
+        let t = tables_stub();
+        let mut ids_above_six = 0usize;
+        let mut moves = 0usize;
+        let mut switches = 0usize;
+        let mut sentinels = 0usize;
+        for battle in 0..60u64 {
+            let p1: Vec<_> = random_team(1000 + battle, true).iter().map(|m| m.to_bytes()).collect();
+            let p2: Vec<_> = random_team(2000 + battle, true).iter().map(|m| m.to_bytes()).collect();
+            let mut env = Gen1Env::new(0xD25 ^ battle, &p1, &p2, Player::P1, 0).unwrap();
+            let mut rng = 7 * battle + 1;
+            while !env.done() {
+                let pick = |env: &Gen1Env, p: Player, rng: &mut u64| -> Option<usize> {
+                    let pd = env.pending(p, &t)?;
+                    let legal: Vec<usize> = (0..N_ACTIONS).filter(|&a| pd.mask[a]).collect();
+                    *rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+                    Some(legal[((*rng >> 33) as usize) % legal.len()])
+                };
+                let la = pick(&env, Player::P1, &mut rng);
+                let oa = pick(&env, Player::P2, &mut rng);
+
+                // The foe's pre-update truth, which the label must be consistent
+                // with -- read here because `step` advances the engine.
+                let foe = Player::P2;
+                let side = env.battle.side(foe);
+                let live_moves: Vec<u8> = side
+                    .active()
+                    .moves()
+                    .iter()
+                    .filter(|&&(id, pp)| id != 0 && pp > 0)
+                    .map(|&(id, _)| id)
+                    .collect();
+                let bench: Vec<u8> = (0..6)
+                    .filter(|&i| i != side.active_party_index() && side.party(i).hp() > 0)
+                    .map(|i| side.party(i).species())
+                    .collect();
+                let locked = side.last_selected_move();
+                let n_before = env.ep.opp_choice.len();
+
+                env.step(&t, la, 0.0, 0, oa).unwrap();
+
+                if env.ep.opp_choice.len() == n_before {
+                    continue;
+                }
+                let lbl = &env.ep.opp_choice[n_before..];
+                let (kind, id, flags) = (lbl[0], lbl[1], lbl[2]);
+                if id > 6 {
+                    ids_above_six += 1;
+                }
+                match kind {
+                    // The sentinel: a foe that owed no decision. Whole, or
+                    // `canonicalise` treats it as a real one.
+                    -1 => {
+                        assert_eq!([kind, id, flags], [-1, -1, 0], "a partial sentinel");
+                        sentinels += 1;
+                    }
+                    0 => {
+                        assert_eq!(flags & 1, 1, "a real decision is PRESENT");
+                        switches += 1;
+                        assert!(
+                            bench.contains(&(id as u8)),
+                            "switch label {id} names no live bench member of {bench:?}"
+                        );
+                    }
+                    1 => {
+                        assert_eq!(flags & 1, 1, "a real decision is PRESENT");
+                        moves += 1;
+                        let ok = id == 0
+                            || id == STRUGGLE_ID
+                            || id == locked as i32
+                            || live_moves.contains(&(id as u8));
+                        assert!(
+                            ok,
+                            "move label {id} (flags {flags}) is neither a live move of \
+                             {live_moves:?}, the locked move {locked}, nor a placeholder"
+                        );
+                    }
+                    k => panic!("label kind {k}"),
+                }
+            }
+        }
+        assert!(moves > 500 && switches > 20, "{moves} moves / {switches} switches");
+        // Wait turns exist (the reference measures 6.4% of raw steps), so a
+        // run with none would mean the sentinel path is untested here.
+        assert!(sentinels > 0, "no wait turn in {} steps", moves + switches);
+        // Species run to 151 and moves to 165; slots stop at 6. Emitting the
+        // choice's data field puts EVERY label in 1..=6.
+        let n = moves + switches;
+        assert!(
+            ids_above_six * 2 > n,
+            "only {ids_above_six} of {n} labels exceed 6 -- these look like slots"
+        );
     }
 
     #[test]
