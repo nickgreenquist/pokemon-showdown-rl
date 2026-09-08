@@ -389,6 +389,7 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<crate::pyencode::BatchEnv>()?;
     m.add("N_ACTIONS", crate::env::N_ACTIONS)?;
     m.add("OBS_DIM", crate::encoder::OBS_DIM)?;
+    m.add("PRIV_DIM", crate::encoder::PRIV_DIM)?;
     m.add("__engine_sha__", ffi::ENGINE_SHA)?;
     // Bump whenever the ObservableState dict schema changes. A stale editable
     // install is otherwise INVISIBLE: `cargo build` writes target/, but the

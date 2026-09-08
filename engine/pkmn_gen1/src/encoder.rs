@@ -51,6 +51,38 @@ pub const MOVE_DIM_V1: usize = MOVE_TYPE_OFF + N_TYPES;
 pub const MOVE_DIM: usize = MOVE_DIM_V1 + EFFECT_DIM;
 
 pub const ID_DIM: usize = 20;
+/// D18's privileged block: the OPPONENT seat's OWN-side slice of its own
+/// `embed_battle` encoding, for widening the CRITIC during self-play
+/// (`rl/envs/showdown.py::privileged_block`, PRIV_DIM). Defined as a SLICE and
+/// never as a new fill path, so the privileged features carry bit-identical
+/// semantics to the actor's and cannot drift.
+///
+/// Layout: 6 own-mon blocks | own-active extras | the active's 4 move blocks
+/// (= `embed_battle[GLOBAL_DIM .. PRIV_OWN_END]`) | 6 own species ids + 4 own
+/// move ids from the id suffix.
+pub const PRIV_OWN_END: usize = GLOBAL_DIM + 6 * MON_DIM + ACTIVE_DIM + 4 * MOVE_DIM;
+pub const PRIV_ID_DIM: usize = 10;
+pub const PRIV_DIM: usize = (PRIV_OWN_END - GLOBAL_DIM) + PRIV_ID_DIM;
+
+/// Fills `out` (PRIV_DIM wide) from a full 828-vector encoded for the OPPONENT
+/// seat. A copy of a slice, exactly as the Python does.
+/// Compile-time agreement with the Python constants under
+/// `POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1`, the only configuration
+/// this crate is built for (`OBS_DIM == 828`). A change to either encoder that
+/// moved the block boundaries would fail the build rather than silently feed
+/// the critic a shifted slice.
+const _: () = assert!(PRIV_OWN_END == 404);
+const _: () = assert!(PRIV_DIM == 408);
+
+pub fn privileged_block(vec: &[f32], out: &mut [f32]) {
+    debug_assert_eq!(vec.len(), OBS_DIM);
+    debug_assert_eq!(out.len(), PRIV_DIM);
+    let own = PRIV_OWN_END - GLOBAL_DIM;
+    out[..own].copy_from_slice(&vec[GLOBAL_DIM..PRIV_OWN_END]);
+    let o = OBS_DIM - ID_DIM;
+    out[own..own + 6].copy_from_slice(&vec[o..o + 6]);
+    out[own + 6..own + 10].copy_from_slice(&vec[o + 12..o + 16]);
+}
 pub const ID_SCALE: f64 = 256.0;
 
 pub const OBS_DIM: usize = GLOBAL_DIM
@@ -374,5 +406,55 @@ mod tests {
         };
         assert_eq!(t.multiplier(7, Some(3), None), 2.0);
         assert_eq!(t.multiplier(7, Some(3), Some(3)), 4.0);
+    }
+}
+
+#[cfg(test)]
+mod priv_tests {
+    use super::*;
+
+    /// The block is a SLICE of the seat's own encoding, never a new fill path —
+    /// that is D18's design, so the privileged features carry bit-identical
+    /// semantics to the actor's and cannot drift.
+    #[test]
+    fn the_privileged_block_is_a_slice_of_the_seats_own_encoding() {
+        let vec: Vec<f32> = (0..OBS_DIM).map(|i| i as f32).collect();
+        let mut out = vec![0.0f32; PRIV_DIM];
+        privileged_block(&vec, &mut out);
+
+        let own = PRIV_OWN_END - GLOBAL_DIM;
+        assert_eq!(out.len(), 408);
+        // The own-side half, verbatim and in order.
+        for i in 0..own {
+            assert_eq!(out[i], (GLOBAL_DIM + i) as f32, "own slot {i}");
+        }
+        // Then 6 own SPECIES ids and 4 own MOVE ids from the id suffix --
+        // never the opponent's, which sit at o+6..o+12 and o+16..o+20.
+        let o = OBS_DIM - ID_DIM;
+        for i in 0..6 {
+            assert_eq!(out[own + i], (o + i) as f32, "species id {i}");
+        }
+        for i in 0..4 {
+            assert_eq!(out[own + 6 + i], (o + 12 + i) as f32, "move id {i}");
+        }
+    }
+
+    #[test]
+    fn it_never_leaks_the_opponent_half_of_the_vector() {
+        // The whole point: this is seat B's OWN side, handed to OUR critic. If
+        // it carried seat B's view of US the critic would get a second copy of
+        // public information and the D18 construction would be misdescribed.
+        let vec: Vec<f32> = (0..OBS_DIM).map(|i| i as f32).collect();
+        let mut out = vec![0.0f32; PRIV_DIM];
+        privileged_block(&vec, &mut out);
+        let o = OBS_DIM - ID_DIM;
+        let forbidden: Vec<f32> = (PRIV_OWN_END..o)
+            .chain(o + 6..o + 12)
+            .chain(o + 16..o + 20)
+            .map(|i| i as f32)
+            .collect();
+        for v in &out {
+            assert!(!forbidden.contains(v), "value {v} came from the opponent half");
+        }
     }
 }

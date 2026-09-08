@@ -16,7 +16,7 @@
 //!     action 6 is legal.
 
 use crate::battle::{Battle, BattleResult, Choice, IllegalChoice, Outcome, Player, Request};
-use crate::encoder::{OBS_DIM, encode};
+use crate::encoder::{OBS_DIM, PRIV_DIM, encode, privileged_block};
 use crate::layout::POKEMON_SIZE;
 use crate::observe::ObservableState;
 use crate::scripted::Scripted;
@@ -49,6 +49,11 @@ pub struct Episode {
     pub version: Vec<i64>,
     /// D25 opponent-action labels: `(kind, id, flags)` per learner row.
     pub opp_choice: Vec<i32>,
+    /// D18's privileged block per learner row -- the OPPONENT seat's own-side
+    /// slice of ITS OWN encoding, for widening the critic. Empty unless the env
+    /// was built with `privileged`, because filling it costs a SECOND full
+    /// encode per learner row.
+    pub privileged: Vec<f32>,
     pub reward: f32,
     pub length: usize,
     pub turns: u16,
@@ -71,6 +76,7 @@ pub struct Gen1Env {
     member: i32,
     ep: Episode,
     done: bool,
+    privileged: bool,
 }
 
 /// Maps an action index to the engine choice it means, or `None` if illegal.
@@ -173,6 +179,7 @@ impl Gen1Env {
         p2: &[[u8; POKEMON_SIZE]],
         learner: Player,
         member: i32,
+        privileged: bool,
     ) -> Result<Gen1Env, IllegalChoice> {
         let mut battle = Battle::new(seed, p1, p2);
         let mut tracker = BattleTracker::default();
@@ -194,6 +201,7 @@ impl Gen1Env {
                 ..Default::default()
             },
             done: false,
+            privileged,
         })
     }
 
@@ -273,6 +281,25 @@ impl Gen1Env {
                         mask
                     )
                 })?;
+            // D18. The foe's OWN-side state, sliced out of a full encode of
+            // ITS seat -- a SLICE and never a new fill path, so the privileged
+            // features carry bit-identical semantics to the actor's. Read here,
+            // BEFORE the update, so it describes the state the learner's action
+            // was chosen in.
+            //
+            // COST: a second full 828 encode per learner row, of which ~half is
+            // discarded. Plan §12 waves this through because "the collection
+            // loop is I/O-dominated" -- TRUE of the server path and FALSE here,
+            // which is the whole point of the port. Hence opt-in: off, it costs
+            // nothing; on, T-1 should measure it before an arm relies on it.
+            if self.privileged {
+                let fst = self.state(foe, t);
+                let mut fobs = vec![0.0f32; OBS_DIM];
+                encode(&mut fobs, t, &fst);
+                let n = self.ep.privileged.len();
+                self.ep.privileged.resize(n + PRIV_DIM, 0.0);
+                privileged_block(&fobs, &mut self.ep.privileged[n..]);
+            }
             self.ep.obs.extend_from_slice(&obs);
             self.ep.masks.extend(mask);
             self.ep.actions.push(a as i32);
@@ -466,7 +493,7 @@ mod tests {
         for seed in 0..40u64 {
             let p1: Vec<_> = random_team(seed ^ 0xA, true).iter().map(|m| m.to_bytes()).collect();
             let p2: Vec<_> = random_team(seed ^ 0xB, true).iter().map(|m| m.to_bytes()).collect();
-            let mut env = Gen1Env::new(seed, &p1, &p2, Player::P1, 3).unwrap();
+            let mut env = Gen1Env::new(seed, &p1, &p2, Player::P1, 3, false).unwrap();
             let mut rng = seed | 1;
             let mut guard = 0;
             while !env.done() {
@@ -501,7 +528,7 @@ mod tests {
         let t = tables_stub();
         let p1: Vec<_> = random_team(11, true).iter().map(|m| m.to_bytes()).collect();
         let p2: Vec<_> = random_team(22, true).iter().map(|m| m.to_bytes()).collect();
-        let mut env = Gen1Env::new(5, &p1, &p2, Player::P1, 0).unwrap();
+        let mut env = Gen1Env::new(5, &p1, &p2, Player::P1, 0, false).unwrap();
         let mut rng = 99u64;
         let mut checked = 0;
         while !env.done() && checked < 400 {
@@ -669,7 +696,7 @@ mod tests {
         for battle in 0..60u64 {
             let p1: Vec<_> = random_team(1000 + battle, true).iter().map(|m| m.to_bytes()).collect();
             let p2: Vec<_> = random_team(2000 + battle, true).iter().map(|m| m.to_bytes()).collect();
-            let mut env = Gen1Env::new(0xD25 ^ battle, &p1, &p2, Player::P1, 0).unwrap();
+            let mut env = Gen1Env::new(0xD25 ^ battle, &p1, &p2, Player::P1, 0, false).unwrap();
             let mut rng = 7 * battle + 1;
             while !env.done() {
                 let pick = |env: &Gen1Env, p: Player, rng: &mut u64| -> Option<usize> {
@@ -754,12 +781,79 @@ mod tests {
         );
     }
 
+    /// D18: the block must be the FOE's own-side slice of the FOE's own
+    /// encoding, read at the state the learner acted in. Rebuilding it
+    /// independently here is the check -- if `step` sliced our own vector, or
+    /// read the foe after the update, this fails.
+    #[test]
+    fn the_privileged_block_is_the_foes_own_side_at_the_acting_state() {
+        use crate::encoder::{PRIV_DIM, privileged_block};
+        let t = tables_stub();
+        let p1: Vec<_> = random_team(61, true).iter().map(|m| m.to_bytes()).collect();
+        let p2: Vec<_> = random_team(62, true).iter().map(|m| m.to_bytes()).collect();
+        let mut env = Gen1Env::new(0xD18, &p1, &p2, Player::P1, 0, true).unwrap();
+        let mut rng = 5u64;
+        let mut want: Vec<f32> = Vec::new();
+        let mut rows = 0;
+        while !env.done() && rows < 60 {
+            // The foe's block, from the state BEFORE the update.
+            if env.pending(Player::P1, &t).is_some() {
+                let fst = env.state(Player::P2, &t);
+                let mut fobs = vec![0.0f32; OBS_DIM];
+                crate::encoder::encode(&mut fobs, &t, &fst);
+                let mut blk = vec![0.0f32; PRIV_DIM];
+                privileged_block(&fobs, &mut blk);
+                want.extend_from_slice(&blk);
+                rows += 1;
+            }
+            let pick = |env: &Gen1Env, p: Player, rng: &mut u64| -> Option<usize> {
+                let pd = env.pending(p, &t)?;
+                let legal: Vec<usize> = (0..N_ACTIONS).filter(|&a| pd.mask[a]).collect();
+                *rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+                Some(legal[((*rng >> 33) as usize) % legal.len()])
+            };
+            let la = pick(&env, Player::P1, &mut rng);
+            let oa = pick(&env, Player::P2, &mut rng);
+            env.step(&t, la, 0.0, 0, oa).unwrap();
+        }
+        assert!(rows > 10, "only {rows} learner rows");
+        assert_eq!(env.ep.privileged.len(), rows * PRIV_DIM);
+        assert_eq!(env.ep.privileged, want, "the block is not the foe's own side");
+        // It must not be constant -- a zero-filled block would pass an
+        // equality test against an equally broken reference.
+        let first = env.ep.privileged[0];
+        assert!(env.ep.privileged.iter().any(|&v| v != first), "block is constant");
+    }
+
+    /// Off by default, and off costs nothing.
+    #[test]
+    fn the_privileged_block_is_empty_unless_asked_for() {
+        let t = tables_stub();
+        let p1: Vec<_> = random_team(63, true).iter().map(|m| m.to_bytes()).collect();
+        let p2: Vec<_> = random_team(64, true).iter().map(|m| m.to_bytes()).collect();
+        let mut env = Gen1Env::new(7, &p1, &p2, Player::P1, 0, false).unwrap();
+        let mut rng = 9u64;
+        while !env.done() {
+            let pick = |env: &Gen1Env, p: Player, rng: &mut u64| -> Option<usize> {
+                let pd = env.pending(p, &t)?;
+                let legal: Vec<usize> = (0..N_ACTIONS).filter(|&a| pd.mask[a]).collect();
+                *rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+                Some(legal[((*rng >> 33) as usize) % legal.len()])
+            };
+            let (la, oa) = (pick(&env, Player::P1, &mut rng), pick(&env, Player::P2, &mut rng));
+            env.step(&t, la, 0.0, 0, oa).unwrap();
+        }
+        let ep = env.take_episode();
+        assert!(ep.length > 0);
+        assert!(ep.privileged.is_empty());
+    }
+
     #[test]
     fn an_illegal_action_is_refused_not_passed_to_the_engine() {
         let t = tables_stub();
         let p1: Vec<_> = random_team(3, true).iter().map(|m| m.to_bytes()).collect();
         let p2: Vec<_> = random_team(4, true).iter().map(|m| m.to_bytes()).collect();
-        let mut env = Gen1Env::new(1, &p1, &p2, Player::P1, 0).unwrap();
+        let mut env = Gen1Env::new(1, &p1, &p2, Player::P1, 0, false).unwrap();
         let pd = env.pending(Player::P1, &t).unwrap();
         let illegal = (0..N_ACTIONS).find(|&a| !pd.mask[a]).unwrap();
         let err = env.step(&t, Some(illegal), 0.0, 0, Some(6)).unwrap_err();
@@ -773,7 +867,7 @@ mod tests {
         let p2: Vec<_> = random_team(8, true).iter().map(|m| m.to_bytes()).collect();
         let mut rewards = Vec::new();
         for learner in [Player::P1, Player::P2] {
-            let mut env = Gen1Env::new(1234, &p1, &p2, learner, 0).unwrap();
+            let mut env = Gen1Env::new(1234, &p1, &p2, learner, 0, false).unwrap();
             let mut rng = 42u64;
             while !env.done() {
                 let act = |p: Player, rng: &mut u64| -> Option<usize> {
@@ -825,6 +919,9 @@ pub struct BatchEnv {
     /// The scripted opponents' draw stream (`scripted.rs`), seeded off the lane
     /// seed so an in-engine eval replays exactly.
     scripted_rng: u64,
+    /// D18: fill each learner row's privileged block. Off by default -- it
+    /// costs a second full encode per row.
+    privileged: bool,
     pub stats: BatchStats,
 }
 
@@ -841,6 +938,7 @@ impl BatchEnv {
         bank: TeamBank,
         learner: Player,
         battle_counter: u64,
+        privileged: bool,
     ) -> Result<BatchEnv, String> {
         if k == 0 {
             return Err("BatchEnv needs at least one slot".into());
@@ -854,6 +952,7 @@ impl BatchEnv {
             learner,
             finished: Vec::new(),
             scripted_rng: lane_seed ^ 0x5343_5249_5054_4544,
+            privileged,
             stats: BatchStats::default(),
         };
         for _ in 0..k {
@@ -877,7 +976,7 @@ impl BatchEnv {
         let pick = crate::battle::splitmix64(seed ^ 1) as usize;
         let (p1, p2) = self.bank.pair(pick % self.bank.pairs());
         self.stats.battles_started += 1;
-        Gen1Env::new(seed, &p1, &p2, self.learner, -1).map_err(|e| e.to_string())
+        Gen1Env::new(seed, &p1, &p2, self.learner, -1, self.privileged).map_err(|e| e.to_string())
     }
 
     pub fn battle_counter(&self) -> u64 {

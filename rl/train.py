@@ -801,8 +801,19 @@ def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
                          f"{sorted(extra)} — the engine path emits terminal "
                          "outcome rewards only")
     if cfg.agent.get("privileged_dim"):
-        raise ValueError("collector.mode 'engine' does not emit the privileged "
-                         "block (D18) — the wide critic would train on zeros")
+        # The EMITTER exists (`Gen1Env`'s `privileged` flag, verified against a
+        # rebuilt reference in Rust) but nothing carries the block from the
+        # episode dict into PPO's privileged path on this route yet, so a wide
+        # critic would still train on zeros. Kept as a refusal rather than a
+        # half-wired feature: the arm is IDEAS 4.7 and needs its own pre-reg
+        # regardless, and T-1 should price the SECOND full encode per learner
+        # row first -- plan §12 waves that cost through on the grounds that
+        # "the collection loop is I/O-dominated", which is exactly what this
+        # port stops being true.
+        raise ValueError("collector.mode 'engine' does not yet carry the "
+                         "privileged block (D18) into the update — the emitter "
+                         "exists (BatchEnv(privileged=True)) but the seam does "
+                         "not; the wide critic would train on zeros")
     if cfg.selfplay.get("harvest_both_seats", False):
         raise ValueError("collector.mode 'engine' has no seat-2 harvest hook; "
                          "seat 2's rows are cheap here but nothing collects "

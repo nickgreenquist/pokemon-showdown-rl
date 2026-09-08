@@ -1464,3 +1464,41 @@ Owed at merge: IDEAS 2.2 also asks that the pre-reg seed guards be extended to
 tags. Those live in `tests/test_*_prereg.py`, which this branch may not edit;
 `tests/test_seat_tag.py` records the contract they would assert so the extension
 is mechanical.
+
+## D18's privileged block: the EMITTER, built. The seam, deliberately not.
+
+Plan §8.4 lists the privileged block as something the engine path makes cheap
+later, and IDEAS ranks the arm (4.7) fourth. Mechanism is not an arm — the same
+status 4.1 had when it was built for gen 4 — so the emitter is buildable now and
+the arm still needs its own pre-reg.
+
+**Built and verified:** `encoder.rs::privileged_block` (the same SLICE the
+Python takes: own-side blocks, then 6 own species ids and 4 own move ids from
+the id suffix, never the opponent's), and `Gen1Env`'s `privileged` flag, which
+fills one block per learner row from a full encode of THE FOE'S SEAT, read
+BEFORE the update so it describes the state the action was chosen in. The Rust
+test rebuilds the expected block independently rather than re-running the
+implementation, so slicing our own vector, or reading the foe after the update,
+fails it. A second test pins that the block is empty when the flag is off.
+
+Two guards against the drift that is actually coming — JOURNEY step 8's encoder
+rewrite is the very NEXT step after 7.5, so both implementations are about to
+move: `encoder.rs` asserts `PRIV_OWN_END == 404` and `PRIV_DIM == 408` at
+COMPILE time, and a Python test asserts those constants equal
+`rl/envs/showdown.py`'s. A shifted slice would otherwise reach the critic with
+no error anywhere.
+
+**Deliberately NOT built: the seam into PPO, and the lifted refusal.**
+`_engine_collector_checks` still refuses `privileged_dim`, with a message that
+now says the emitter exists and the seam does not. Half-wiring it would let
+someone configure a wide critic that trains on zeros — the exact failure the
+original refusal named.
+
+**A plan claim that expires here.** Plan §12 waves through the block's cost —
+a SECOND full 828 encode per learner row, half of it discarded — on the grounds
+that "the collection loop is I/O-dominated". That is true of the server path and
+false of this one, which is the whole point of the port. Hence the flag is
+opt-in and off by default: off it costs nothing, and T-1 should price it before
+an arm relies on it. Recorded rather than optimised, because optimising it means
+a partial encode path and D18's design deliberately chose a SLICE over a new
+fill path so the semantics cannot drift.

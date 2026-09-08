@@ -292,6 +292,7 @@ fn parse_state(d: &Bound<'_, PyAny>) -> PyResult<ObservableState> {
 // ---------------------------------------------------------------------------
 
 use crate::battle::Player;
+use crate::encoder::PRIV_DIM;
 use crate::env::{BatchEnv as RustBatchEnv, N_ACTIONS, Seat, TeamBank};
 use numpy::PyArray2;
 use pyo3::exceptions::PyRuntimeError;
@@ -338,7 +339,7 @@ impl BatchEnv {
     /// `bank` is the packed payload of a `scripts/engine_team_bank.py` file
     /// (header stripped by the caller, which is where the sha256 is checked).
     #[new]
-    #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1", battle_counter=0))]
+    #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1", battle_counter=0, privileged=false))]
     fn new(
         k: usize,
         seed: u64,
@@ -346,6 +347,7 @@ impl BatchEnv {
         bank: Vec<u8>,
         learner_seat: &str,
         battle_counter: u64,
+        privileged: bool,
     ) -> PyResult<Self> {
         let learner = match learner_seat {
             "p1" => Player::P1,
@@ -353,7 +355,7 @@ impl BatchEnv {
             s => return Err(PyValueError::new_err(format!("learner_seat {s:?} is not p1/p2"))),
         };
         let bank = TeamBank::new(bank).map_err(PyValueError::new_err)?;
-        let inner = RustBatchEnv::new(k, seed, tables.inner.clone(), bank, learner, battle_counter)
+        let inner = RustBatchEnv::new(k, seed, tables.inner.clone(), bank, learner, battle_counter, privileged)
             .map_err(PyValueError::new_err)?;
         Ok(BatchEnv { inner })
     }
@@ -523,6 +525,9 @@ impl BatchEnv {
             d.set_item("seed", e.seed)?;
             d.set_item("member", e.member)?;
             d.set_item("slot", e.slot)?;
+            if !e.privileged.is_empty() {
+                d.set_item("privileged", rows2(py, &e.privileged, PRIV_DIM, "episode privileged")?)?;
+            }
             out.push(d);
         }
         Ok(out)

@@ -241,7 +241,7 @@ pub fn scripted_series(
         let seed = splitmix64(lane_seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ i);
         let pick = splitmix64(seed ^ 1) as usize;
         let (t1, t2) = bank.pair(pick % bank.pairs());
-        let mut env = Gen1Env::new(seed, &t1, &t2, Player::P1, -1).map_err(|e| e.to_string())?;
+        let mut env = Gen1Env::new(seed, &t1, &t2, Player::P1, -1, false).map_err(|e| e.to_string())?;
         let mut s = BattleSummary::default();
         while !env.done() {
             let mut acts = [None, None];

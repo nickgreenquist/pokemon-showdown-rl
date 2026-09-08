@@ -132,3 +132,20 @@ def test_the_seed_guard_reasoning_is_recorded_where_a_reader_will_find_it():
     src = pathlib.Path(showdown.__file__).read_text()
     assert "MEASURE AND REPORT rho ON FIRST USE" in src
     assert "weakly dominant" in src
+
+
+# --- D18 privileged block: the constant both encoders must agree on ---------
+
+
+def test_the_two_encoders_agree_on_the_privileged_block_width():
+    """`encoder.rs` slices the block by its own constants and asserts them at
+    COMPILE time; this is the other half — that those constants are the Python
+    ones. A drift here would feed the critic a shifted slice with no error, and
+    JOURNEY step 8's encoder rewrite is the very next step after 7.5, so the two
+    implementations are about to move."""
+    import pkmn_gen1
+
+    from rl.envs.showdown import OBS_DIM, PRIV_DIM
+
+    assert pkmn_gen1.OBS_DIM == OBS_DIM == 828
+    assert pkmn_gen1.PRIV_DIM == PRIV_DIM == 408
