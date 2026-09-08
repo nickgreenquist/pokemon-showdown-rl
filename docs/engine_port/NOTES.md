@@ -1502,3 +1502,34 @@ opt-in and off by default: off it costs nothing, and T-1 should price it before
 an arm relies on it. Recorded rather than optimised, because optimising it means
 a partial encode path and D18's design deliberately chose a SLICE over a new
 fill path so the semantics cannot drift.
+
+## The team bank A-1 must use, and how to rebuild it
+
+The bank is gitignored, so a merge to `main` leaves it unreproducible unless
+this is written down. **Every A-1 lane must use the same file**, because its
+sha256 is what `meta["engine"]["team_bank_sha256"]` pins and what a resume
+re-verifies.
+
+| field | value |
+|---|---|
+| file | `data/engine/teams_59da482e_e0e0_50000.bin` (4,800,260 B, built 2026-09-06) |
+| sha256 | `4f2b8737a3a5aba3989fd7fb140add7cb5e103a7e989c3d802974c10dd124ca2` |
+| pairs | 50,000 (a pair = one BATTLE: two teams from one generator) |
+| PS commit | `59da482eabc87245eb62313593e468e81ca537d9` — the ladder's own pin |
+| generator seed prefix | `e0e0` |
+| engine sha at build | `9b88fd6c5467f703c38951d5b2e8a660314d410b` |
+
+Rebuild (needs the `showdown/` checkout at that commit; starts NO server):
+
+    python scripts/engine_team_bank.py --pairs 50000 --out data/engine/
+
+**Why 50,000, recorded because nobody had written it down.** A 100M-step lane
+plays ~1.5M battles, so each pair recurs ~30 times — with a FRESH battle seed
+every time, so the rolls differ even when the teams repeat. The pairs are a
+correct iid sample from PS's own generator, so the recurrence adds no bias to
+the team distribution; what it does is make the team draw slightly
+lower-variance than a truly fresh draw per battle. Far below anything A-1's
+bands read, and gate P-3 verified the marginals against
+`rl/envs/randbats_prior.py` by χ² at n=100k. If a later run wants a fresh draw
+per battle, the bank is cheap to regenerate larger — the constraint is disk
+(96 B per pair), not correctness.
