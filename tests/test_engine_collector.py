@@ -212,3 +212,84 @@ assert same == 0, f"{same}/{len(resumed)} resumed battles replay the lane's firs
 print("OK", n_fresh, n_resumed)
 """)
     assert out.strip().splitlines()[-1].startswith("OK")
+
+
+@needs_bank
+def test_the_liveness_check_fires_when_nothing_finishes():
+    """`check()` is the F-03 shape for a collector that cannot hang on a socket:
+    the failure mode left is a battle that never terminates. `Gen1Env` raises on
+    its own per-battle bound, so reaching the collector's bound means every slot
+    is stuck at once — which is why the message says so."""
+    out = _run(r"""
+agent = make_agent()
+pool = SnapshotPool(pool_size=1, latest_prob=1.0)
+pool.push(agent)
+# The bound must exceed a real battle's update count or it fires on healthy
+# play: at K=4 a finish arrives every ~25 engine steps. The default 8000 is
+# `Gen1Env`'s own per-battle ceiling, which is the right coincidence — at K=1
+# the two bounds mean the same thing.
+c = collector(agent, pool, k=4, max_updates_per_battle=400)
+c.start(n_battles=100)
+
+# Healthy: battles finish well inside the bound.
+for _ in range(200):
+    c.poll()
+    c.check()
+assert c.episodes_finished > 0, "no battle finished; the bound is untested"
+
+# The stall shape: steps accumulate, nothing finishes.
+c._last_finish_step = -10_000
+try:
+    c.check()
+except RuntimeError as e:
+    assert "not terminating" in str(e), e
+    assert "every slot is stuck at once" in str(e), e
+else:
+    raise AssertionError("check() did not fire")
+print("OK", c.episodes_finished)
+""")
+    assert out.strip().splitlines()[-1].startswith("OK")
+
+
+@needs_bank
+def test_a_member_evicted_mid_battle_finishes_its_game_and_moves_no_counter():
+    """`SnapshotPool.report` matches on IDENTITY, so a member evicted while its
+    battle was in flight is silently not a member and credits nothing. The
+    collector holds the member OBJECT rather than its push id for exactly this
+    reason — holding the id would credit whichever member later occupied that
+    slot in the list."""
+    out = _run(r"""
+agent = make_agent()
+pool = SnapshotPool(pool_size=2, latest_prob=0.5)
+pool.push(make_agent(seed=1))
+pool.push(make_agent(seed=2))
+c = collector(agent, pool, k=8)
+c.start(n_battles=1000)
+
+# Every slot is seated on one of the two members; now evict by pushing past
+# pool_size while their battles are in flight.
+seated_before = list(c._seated)
+for _ in range(3):
+    c.poll()
+for i in range(2):
+    pool.push(make_agent(seed=10 + i))
+evicted = [m for m in seated_before if m not in pool.members]
+assert evicted, "the push did not evict anything seated"
+
+finished = 0
+for _ in range(20000):
+    finished += len(c.poll())
+    if finished >= 40:
+        break
+assert finished >= 40, finished
+
+# No crash, and an evicted member's games are simply not counted anywhere:
+# the pool's total is <= the number finished, never more.
+games = sum(st[1] for st in pool.stats)
+assert 0 < games <= finished, (games, finished)
+# ...and every credited game is a real one: scores never exceed games.
+for score, n in pool.stats:
+    assert 0 <= score <= n, (score, n)
+print("OK", finished, games, len(evicted))
+""")
+    assert out.strip().splitlines()[-1].startswith("OK")

@@ -788,6 +788,18 @@ def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
         raise ValueError("collector.mode 'engine' trains against the snapshot "
                          "pool only; scripted in-engine opponents are for eval "
                          "and gate D-1, never for a training arm")
+    # The D25 pair, at LAUNCH rather than at the first update. PPO refuses the
+    # mismatch in update_episodes, but that is a whole rollout later and the
+    # repo's rule is that a mis-set knob dies before any step runs.
+    if bool(cfg.env_kwargs.get("opp_action", False)) != bool(
+        cfg.agent.get("aux_oppact_coef", 0.0)
+    ):
+        raise ValueError(
+            "env_kwargs.opp_action and agent.aux_oppact_coef must be set "
+            "together: the collector emits D25 labels iff the agent has a head "
+            "to consume them (PPO refuses the mismatch, but only at the first "
+            "update)"
+        )
 
 
 def _async_loop(

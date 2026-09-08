@@ -84,6 +84,13 @@ def test_engine_mode_accepted(tmp_path):
     bank.write_bytes(b"")
     cfg = _engine(collector={"team_bank": str(bank)})
     assert _async_collector_mode(cfg, vectorized=True) == "engine"
+    # ...and with the D25 pair set together, which is the shape A-1 would run.
+    paired = _engine(
+        collector={"team_bank": str(bank)},
+        env_kwargs={"opp_action": True},
+        agent={"aux_oppact_coef": 0.1},
+    )
+    assert _async_collector_mode(paired, vectorized=True) == "engine"
 
 
 @pytest.mark.parametrize(
@@ -103,6 +110,9 @@ def test_engine_mode_accepted(tmp_path):
         (dict(agent={"privileged_dim": 7}), "privileged"),
         (dict(selfplay={"enabled": True, "harvest_both_seats": True}), "harvest"),
         (dict(selfplay={}), "snapshot"),
+        # The D25 pair, refused at LAUNCH rather than at the first update.
+        (dict(env_kwargs={"opp_action": True}), "must be set together"),
+        (dict(agent={"aux_oppact_coef": 0.1}), "must be set together"),
     ],
 )
 def test_engine_blocks_fail_at_launch(over, match, tmp_path):

@@ -141,6 +141,16 @@ class EngineCollector:
         # The pool's own per-episode draw stream. One generator for the lane,
         # seeded off the lane seed: the env path draws from the env's episode
         # RNG, which does not exist here.
+        #
+        # A RESUME RESTARTS THIS STREAM, deliberately. F-18 restores the GLOBAL
+        # torch/numpy/random streams from the checkpoint, but this is a private
+        # generator, so a resumed lane re-draws members from the sequence's
+        # start. That matches the env path -- its per-sub-env episode RNGs are
+        # re-created on resume too -- and it is harmless where `battle_counter`
+        # was not: member selection is iid 80/20 draws from the same pool, so
+        # restarting the stream changes WHICH member plays a given battle but
+        # not the distribution. `battle_counter` had to be continued because a
+        # restarted battle sequence REPLAYS battles; this one does not.
         self._rng = np.random.default_rng(seed)
 
         self.k = k

@@ -1161,3 +1161,67 @@ at once localises nothing).
 Also added: **`requirements-engine.txt`**. The engine deps stay OUT of
 `pyproject.toml` on purpose — a sync or async run never imports `pkmn_gen1`, and
 a checkout with no Rust/Zig toolchain must stay installable.
+
+## Sweep, 2026-09-07: what the branch was still missing
+
+### An engine lane is NOT server-free — plan §0 corrected
+
+The plan's §0 says "engine lanes need no server, no accounts, no `/timer on`,
+no orphaned-room deadlock". That is true of COLLECTION and **false of a LANE**.
+`make_eval_env` builds a `Showdown-v0`, and `ShowdownEnv.__init__` constructs
+`ShowdownSingles`, whose poke-env players connect at CONSTRUCTION — so every
+engine lane holds two seats for its whole life, not just during an eval.
+
+Three consequences that change how a fleet is planned, now written into the
+plan:
+
+* **CLAUDE.md rule 2 still applies to engine lanes.** Concurrent lanes need
+  distinct `--seed`s or the seats collide on usernames and a lane dies with a
+  misleading `TimeoutError`. "No server for collection" is not "no server".
+* `/timer on` and the orphaned-room deadlock still apply to those seats.
+* The server must be UP AT LAUNCH, not merely by the first eval.
+
+The width argument survives and gets stronger — 8 lanes put 16 mostly-idle
+seats on the server instead of 8 × K battling ones — but §0's sentence was not
+one to plan a fleet on.
+
+### The plan itself, corrected in place (brief §5)
+
+Nine corrections, each marked with its date and the gate that found it, and
+each STRIKING the wrong text rather than quietly rewriting it: §0 (above), §4.3
+(`pyo3/extension-module` is maturin-only), §4.4 (rpath + `-j2` inside build.rs),
+§4.5 (`requirements-engine.txt`, the stale-`.so` landmine), §6.2 (the bank's
+unit is a battle), §7.1.1 (Metronome is not in the randbats pool, so the family
+is Mirror Move alone), §7.2 (the Transform family does not exist; three rows
+unreachable in this format), §7.5 (**wait-pumping REVERSED** — pumping installs
+a first-legal-choice bot in place of the pool member; and `battle_counter` is a
+constructor argument), §8.1 (the strict key set, the mode string, the
+server-at-launch fact), §8.2 (the naming rule), §9 (the P-1/P-2 family rows).
+Grep the plan for `IN PLACE` to find them all.
+
+### Three robustness gaps closed
+
+1. **`check()` had never been exercised.** Now tested both ways, and the test
+   documents why the default bound is `Gen1Env`'s own per-battle ceiling: at
+   K=1 the collector's "steps since a finish" and a battle's update count are
+   the same quantity, so the two bounds coincide, which is the right
+   coincidence.
+2. **A pool member evicted mid-battle** was untested. It works, and for a
+   reason worth stating: the collector holds the member OBJECT, not its push
+   id, so `SnapshotPool.report`'s identity match silently credits nothing —
+   holding the id would credit whichever member later occupied that list slot.
+3. **The D25 pair is now refused at LAUNCH.** PPO refuses a mismatched
+   `opp_action` / `aux_oppact_coef` pair, but only at the first update, a whole
+   rollout in.
+
+### One thing deliberately left as-is, documented rather than "fixed"
+
+**A resume restarts the pool's member-selection stream.** F-18 restores the
+global torch/numpy/random streams; `EngineCollector._rng` is private, so a
+resumed lane re-draws members from the sequence's start. That MATCHES the env
+path (its per-sub-env episode RNGs are re-created on resume too) and it is
+harmless where `battle_counter` was not: member selection is iid 80/20 draws
+from the same pool, so restarting changes WHICH member plays a given battle but
+not the distribution. A restarted BATTLE sequence replays battles; a restarted
+selection stream does not. Recorded at the field rather than silently differing
+from the env path.
