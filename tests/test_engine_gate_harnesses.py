@@ -127,11 +127,6 @@ def test_both_gates_refuse_a_busy_box():
     assert d1.check_box("engine", force=False) is False
 
 
-def test_the_server_leg_is_absent_and_says_so_rather_than_faking_a_number():
-    with pytest.raises(SystemExit, match="not implemented"):
-        d1.server_leg(pathlib.Path("nope.bin"), 10, 0)
-
-
 def test_t1_quotes_the_width_it_measures_at():
     """CLAUDE.md: a throughput number without its width and scope is the
     `showdown_throughput.py` landmine (~7x overstatement at [64,64])."""
@@ -142,3 +137,100 @@ def test_t1_quotes_the_width_it_measures_at():
     assert t1.K_GRID == (32, 64, 128, 256, 512)
     assert t1.BANDS["b_steps_per_sec_at_256"] == 25_000
     assert t1.BANDS["c_realized_steps_per_sec"] == 2_000
+
+
+# --- D-1's server leg: the parts that need no server ------------------------
+#
+# THE LEG HAS NEVER BEEN RUN. It was written while a fleet owned the box, so
+# the connection, the challenge loop and the chunk/resume path are UNVERIFIED
+# against a live server. What is verified here is everything else: the row
+# assembly, the outcome convention, and the sleep/freeze semantics — which is
+# where a silent asymmetry against the engine leg would live.
+
+
+class _FakeMon:
+    def __init__(self, fainted=False, status=None):
+        self.fainted = fainted
+        self.status = type("S", (), {"name": status})() if status else None
+
+
+class _FakeBattle:
+    def __init__(self, tag, won=None, lost=None, turn=20, team=None, opp=None,
+                 finished=True):
+        self.battle_tag = tag
+        self.won, self.lost, self.turn, self.finished = won, lost, turn, finished
+        self.team = team or {}
+        self.opponent_team = opp or {}
+
+
+class _FakePlayer(d1._DynamicsProbe):
+    def __init__(self, battles):
+        self.battles = battles
+        self.sleep_tags, self.freeze_tags = set(), set()
+
+
+def test_the_server_leg_uses_the_repos_outcome_convention_including_ties():
+    a = _FakePlayer({
+        "w": _FakeBattle("w", won=True, lost=False),
+        "l": _FakeBattle("l", won=False, lost=True),
+        "t": _FakeBattle("t", won=False, lost=False),   # tie: neither flag
+        "x": _FakeBattle("x", finished=False),          # in flight: excluded
+    })
+    b = _FakePlayer({})
+    rows = d1._server_rows(a, b)
+    assert sorted(rows["outcome"].tolist()) == [-1, 0, 1]
+    assert len(rows["turns"]) == 3, "an unfinished battle entered the rows"
+
+
+def test_sleep_is_any_time_during_the_battle_not_the_end_state():
+    """The engine leg scans every party member at every decision point AND once
+    after the final update. An end-state-only read on the server side would miss
+    a mon slept and then KO'd — inventing a mechanic difference out of an
+    instrument asymmetry."""
+    slept_then_ko = _FakeBattle(
+        "b1", won=True, lost=False,
+        team={"a": _FakeMon(fainted=True)},              # status gone at the end
+        opp={"z": _FakeMon()},
+    )
+    probe = _FakePlayer({"b1": slept_then_ko})
+    # Mid-battle: the mon was asleep at a decision point.
+    probe._scan(_FakeBattle("b1", team={"a": _FakeMon(status="SLP")}))
+    probe.scan_finished()          # the post-final pass sees no status
+    rows = d1._server_rows(probe, _FakePlayer({}))
+    assert bool(rows["any_sleep"][0]) is True, "a sleep before a KO was lost"
+    assert bool(rows["any_freeze"][0]) is False
+
+
+def test_either_seat_may_witness_the_status():
+    """`_server_rows` unions both players' observations. P1 sees its own team in
+    full and only REVEALED opponents — but a mon can only be slept while active,
+    and an active mon is revealed, so the union is complete."""
+    bt = _FakeBattle("b", won=True, lost=False)
+    a, b = _FakePlayer({"b": bt}), _FakePlayer({})
+    b.freeze_tags.add("b")                     # only the OPPONENT seat saw it
+    rows = d1._server_rows(a, b)
+    assert bool(rows["any_freeze"][0]) is True
+
+
+def test_the_two_legs_report_the_same_field_set():
+    """`--leg compare` reads one shape. A field present on one leg only would
+    make a band silently unreadable."""
+    engine_like = d1._summarise(_rows())
+    server_like = d1._summarise(_rows())
+    assert engine_like.keys() == server_like.keys()
+    # And the server leg's row dict feeds exactly that summariser.
+    a = _FakePlayer({"b": _FakeBattle("b", won=True, lost=False,
+                                      team={"m": _FakeMon(fainted=True)},
+                                      opp={"n": _FakeMon()})})
+    s = d1._summarise(d1._server_rows(a, _FakePlayer({})))
+    assert s.keys() == engine_like.keys()
+
+
+def test_the_server_leg_declares_itself_unverified():
+    """It has never run. That must be visible in the artifact, not only in a
+    commit message."""
+    src = (ROOT / "scripts/engine_d1.py").read_text()
+    assert "NEVER RUN" in src
+    assert '"unverified"' in src
+    # And the design decision the plan's own arithmetic forced.
+    assert "DIFFERENCE OF" in src and "gen1randombattle" in src

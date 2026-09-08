@@ -1344,3 +1344,76 @@ so a caller can never zip one slot's obs with another's mask.
   `runs/showdown_sp_100m_s104/history.csv`: `time/eval_sec` mean **5.31 s** over
   400 evals, not plan §8.3's "~26 s". At the projected 2,350 steps/s and
   `eval_every 250000` that is ~4.8% of lane wall (up from ~1.2% today).
+
+## 2026-09-08: the first engine config, and D-1's server leg
+
+Written under a no-heavy-runs discipline — the 50M fleet was at ~48M with its
+8 h eval chain due in ~2.5 h, and an eval is more sensitive to contention than
+training. Rust unit tests (0.2 s) ran; the expensive Python suites (~2 min of
+real PPO plus K engine battles each) were deferred. **What that means for this
+entry is stated per item.**
+
+### `configs/engine_smoke.yaml` — a SMOKE, not a pre-reg
+
+Nothing on disk had `mode: engine`, so the first lane had to be invented at the
+command line. This follows the `gen4_smoke_heur.yaml` precedent (a smoke needs
+no ruling), names `journey_step: 7.5`, restates A-1's exit condition, and says
+outright that it reads no band and produces no quotable number.
+
+Three choices worth recording:
+
+* **Seed 9300.** The 9xxx band is this repo's smoke band (9001/9002/9004/
+  9100-9102) and 9300 is clear of every reserved pre-reg window — 66-90 (ch5
+  R2), 104-127 (100M), 200-247 (gen4). A stamped run dir inside one of those
+  turns the OWNING prereg's test red, which is how a smoke breaks someone
+  else's suite without touching their files. The test checks the whole sub-env
+  window `[seed, seed+num_envs)`, not just the base.
+* **The 100M agent block verbatim.** A `[64, 64]` smoke would prove the seam
+  and hide every batching question T-1 exists to answer — the by-member
+  opponent forwards are where the GEMV/GEMM anomaly lives.
+* **The header says it still needs a server**, with CLAUDE.md rule 2 restated,
+  because "engine lanes need no server" is the sentence most likely to be
+  remembered wrongly.
+
+VERIFIED: the config loads and passes `selfplay_env_kwargs` → 
+`_async_collector_mode` in `train()`'s real order. That is also the end-to-end
+proof the unlaunchable bug is fixed — on a real config rather than a fixture.
+NOT VERIFIED: it has never been launched (needs a server, and the box is busy).
+
+### D-1's server leg — written, NEVER RUN
+
+The plan's own band arithmetic settled a design question the earlier draft got
+wrong. §9 says "se ~ 0.007 at n=10,000", which is the se of a **difference of
+two independent proportions** (√(2×0.25/10000) = 0.00707) — so D-1 intends
+INDEPENDENT draws, and the earlier docstring's scheme of feeding the bank's
+pairs to the server through `gen1customgame` would have changed the FORMAT to
+buy a pairing the gate never asked for. Both legs now play
+`gen1randombattle` distributions from the same generator: the engine reads the
+bank, which our Showdown at `59da482e` produced, and the server draws live from
+that same checkout. The generator is common; only the simulator differs.
+
+Disclosed, not fixed: the engine leg samples 10,000 battles from a 50,000-pair
+bank so a few pairs recur (each with a fresh battle seed), while the server
+draws fresh. Same distribution, different finite-sample structure, far below
+the bands.
+
+The subtle part is the sleep/freeze read, because an instrument asymmetry there
+would look exactly like a mechanic difference. The engine leg scans every party
+member at every decision point AND once after the final update; the server leg
+now mixes a `_DynamicsProbe` into the registry player that scans both teams at
+every `choose_move` and once when the battle finishes. Coverage matches despite
+`opponent_team` holding only revealed mons — a mon can only be slept or frozen
+while active, and an active mon is revealed. Outcomes go through the repo's own
+`battle_outcome`, not a local reading of `battle.won`.
+
+Ops, from CLAUDE.md's landmines: the poke-env ORIGINALS play (running our port
+against itself would prove nothing), every seat sends `/timer on`, usernames
+are explicit and distinct, and each chunk gets a FRESH SEAT PAIR so a resume
+never reuses a killed arm's poisoned pair. Progress prints as s/battle.
+
+**VERIFIED: none of the server path.** It has never touched a live server. The
+row assembly, the outcome convention, the sleep-before-KO semantics and the
+both-seats union ARE tested offline against stubs — that is where a silent
+asymmetry against the engine leg would live. The connection, challenge loop and
+chunk/resume path are unverified; `result["unverified"]` says so in the
+artifact itself, and the first run is a bring-up, not the gate.
