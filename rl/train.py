@@ -186,6 +186,15 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
             from rl.envs.showdown import ENCODER_FINGERPRINT
 
         meta["encoder"] = dict(ENCODER_FINGERPRINT)
+    if cfg.collector.get("mode") == "engine":
+        # Which engine build, which team bank, which static tables. Stamped
+        # here rather than at collector construction so a run that dies before
+        # its first checkpoint still records what game it was playing — and so
+        # the pin is auditable from the run dir alone. NOT LICENSED: gate A-1
+        # has not run (docs/PKMN_ENGINE_RUST_PLAN.md §9).
+        from rl.envs.engine_collector import engine_metadata
+
+        meta["engine"] = engine_metadata(cfg.collector["team_bank"])
     if agent is not None and hasattr(agent, "actor") and hasattr(agent, "critic"):
         # Exact param counts (Rung 2 R0-2 stamps them; harmless everywhere
         # else): a capacity-matched comparison is only auditable if the
@@ -295,6 +304,7 @@ def _save_latest(
     best_eval: float,
     updates_done: int,
     pool_state: dict | None,
+    loop_extra: dict | None = None,
 ) -> None:
     """The ONE resume artifact (F-05): checkpoint.pt carries the learner, the
     loop counters and — on a self-play run — the pool, in a single
@@ -311,7 +321,16 @@ def _save_latest(
     paused (pause() gates the learner's decisions, not the opponent's) — while
     the vector loop reads it inline. The one thing every site shares is this
     payload shape, so the shape lives in one place."""
-    extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
+    extras = {
+        "loop": {
+            "best_eval": best_eval,
+            "updates_done": updates_done,
+            # Collector-owned counters that a resume must continue rather than
+            # restart — today only the engine lane's `battle_counter`. They ride
+            # `loop` because `resume_state` is `{"step": ..., **ckpt["loop"]}`.
+            **(loop_extra or {}),
+        }
+    }
     if pool_state is not None:
         extras["pool"] = {"step": step, "state": pool_state}
     # F-18: the global streams ride in the same payload, so a resume continues
@@ -486,8 +505,8 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         train_env_kwargs["opponent"] = _frozen_checkpoint_pool(
             train_env_kwargs["opponent"]
         )
-    async_collect = _async_collector_mode(cfg, vectorized)
-    if async_collect:
+    collect_mode = _async_collector_mode(cfg, vectorized)
+    if collect_mode in ("async", "engine"):
         # No training env is constructed at all: the async collector builds
         # its own two Players (rl/envs/showdown_async.py), and opening a
         # SyncVectorEnv here would cost 16 idle websockets. The agent builds
@@ -630,9 +649,9 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             print("RESUME: no rng state in checkpoint.pt (pre-F-18 run dir) — "
                   "torch/numpy/random streams restart from set_seed(seed), as before")
 
-    if async_collect:
+    if collect_mode in ("async", "engine"):
         _async_loop(cfg, eval_env, agent, logger, out_dir, pool, push_every,
-                    resume_state, train_env_kwargs.get("opponent"))
+                    resume_state, train_env_kwargs.get("opponent"), collect_mode)
     elif vectorized:
         _vector_loop(cfg, env, eval_env, agent, logger, out_dir, normalizers, pool,
                      push_every, resume_state)
@@ -644,21 +663,45 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     eval_env.close()
 
 
-def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
+ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat"}
+ASYNC_KEYS = {"mode", "concurrency"}
+
+
+def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
     """Strict launch-time validation of the Stage-2 collector block — the
     selfplay-keys rule: a typo'd knob or an unsupported combination must
-    fail HERE, not train a 50M run silently wrong."""
-    unknown = cfg.collector.keys() - {"mode", "concurrency"}
-    if unknown:
-        raise ValueError(f"unknown collector key(s) {sorted(unknown)}; known: "
-                         "['concurrency', 'mode']")
+    fail HERE, not train a 50M run silently wrong.
+
+    Returns the collection mode: 'sync' (the env stack), 'async' (K battles on
+    POKE_LOOP against the server) or 'engine' (in-process pkmn/engine, plan
+    §8.1). The last two share `_async_loop`; only the collector object differs.
+    """
     mode = cfg.collector.get("mode", "sync")
-    if mode not in ("sync", "async"):
-        raise ValueError(f"collector.mode must be 'sync' or 'async', got {mode!r}")
+    if mode not in ("sync", "async", "engine"):
+        raise ValueError(
+            f"collector.mode must be 'sync', 'async' or 'engine', got {mode!r}"
+        )
+    known = {"sync": {"mode"}, "async": ASYNC_KEYS, "engine": ENGINE_KEYS}[mode]
+    unknown = cfg.collector.keys() - known
+    if unknown:
+        # A key that belongs to ANOTHER mode names that mode: "concurrency is
+        # async-only" says what went wrong; "unknown key" makes the reader
+        # wonder if they typo'd it.
+        owner = {k: "async" for k in ASYNC_KEYS - {"mode"}}
+        owner.update({k: "engine" for k in ENGINE_KEYS - {"mode"}})
+        misplaced = sorted(k for k in unknown if owner.get(k, mode) != mode)
+        if misplaced:
+            raise ValueError(
+                f"collector.{misplaced[0]} is {owner[misplaced[0]]}-only "
+                f"(collector.mode is {mode!r})"
+            )
+        raise ValueError(f"unknown collector key(s) {sorted(unknown)} for "
+                         f"collector.mode {mode!r}; known: {sorted(known)}")
     if mode == "sync":
-        if "concurrency" in cfg.collector:
-            raise ValueError("collector.concurrency is async-only")
-        return False
+        return "sync"
+    if mode == "engine":
+        _engine_collector_checks(cfg, vectorized)
+        return "engine"
     concurrency = cfg.collector.get("concurrency", 8)
     if not isinstance(concurrency, int) or not 1 <= concurrency <= 64:
         raise ValueError(f"collector.concurrency must be an int in [1, 64], "
@@ -694,7 +737,57 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
     if cfg.selfplay.get("harvest_both_seats", False):
         raise ValueError("collector.mode 'async' has no seat-2 harvest hook "
                          "(BI-G4-1 is the sync path's); use collector.mode 'sync'")
-    return True
+    return "async"
+
+
+def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
+    """`collector.mode: engine` — the in-process pkmn/engine collector.
+
+    NOT LICENSED: gate A-1 has not run, so a run launched with this mode
+    produces numbers from a NEW INSTRUMENT that are not comparable to any
+    banked row (plan §9). The refusals below are the async path's, for the same
+    reasons, plus the ones specific to a collector that never opens a socket.
+    """
+    k = cfg.collector.get("k", 256)
+    if not isinstance(k, int) or not 1 <= k <= 4096:
+        raise ValueError(f"collector.k must be an int in [1, 4096], got {k!r}")
+    bank = cfg.collector.get("team_bank")
+    if not bank:
+        raise ValueError(
+            "collector.mode 'engine' needs collector.team_bank: the path to a "
+            "bank built by scripts/engine_team_bank.py (its sha256 and the PS "
+            "commit that generated it are stamped into meta.yaml)"
+        )
+    if not Path(bank).exists():
+        raise ValueError(f"collector.team_bank {bank!r} does not exist")
+    seat = cfg.collector.get("learner_seat", "p1")
+    if seat not in ("p1", "p2"):
+        raise ValueError(f"collector.learner_seat must be 'p1' or 'p2', got {seat!r}")
+    if not cfg.env_id.startswith("Showdown-"):
+        # The engine is gen 1 only, and the encoder it links is the gen-1 828.
+        raise ValueError(f"collector.mode 'engine' is gen-1 only (env_id {cfg.env_id!r})")
+    if not vectorized:
+        raise ValueError("collector.mode 'engine' needs a vectorized algorithm "
+                         "(the episode batches enter PPO's _optimize)")
+    if cfg.normalize_obs or cfg.normalize_reward:
+        raise ValueError("collector.mode 'engine' is incompatible with the "
+                         "vector-level normalizers")
+    extra = cfg.env_kwargs.keys() - {"opp_action"}
+    if extra:
+        raise ValueError(f"collector.mode 'engine' supports env_kwargs "
+                         f"{{'opp_action'}} only; got {sorted(extra)} — the "
+                         "engine path emits terminal outcome rewards only")
+    if cfg.agent.get("privileged_dim"):
+        raise ValueError("collector.mode 'engine' does not emit the privileged "
+                         "block (D18) — the wide critic would train on zeros")
+    if cfg.selfplay.get("harvest_both_seats", False):
+        raise ValueError("collector.mode 'engine' has no seat-2 harvest hook; "
+                         "seat 2's rows are cheap here but nothing collects "
+                         "them yet (plan §8.4, its own pre-reg)")
+    if not cfg.selfplay.get("enabled", False):
+        raise ValueError("collector.mode 'engine' trains against the snapshot "
+                         "pool only; scripted in-engine opponents are for eval "
+                         "and gate D-1, never for a training arm")
 
 
 def _async_loop(
@@ -707,6 +800,7 @@ def _async_loop(
     push_every: int,
     resume_state: dict | None,
     opponent_spec,
+    mode: str = "async",
 ) -> None:
     """The Stage-2 collection loop: K concurrent battles serviced on
     POKE_LOOP (rl/envs/showdown_async.py), whole finished episodes
@@ -726,22 +820,44 @@ def _async_loop(
     needs no fence because pause() guarantees no decision is in flight.
     """
     from rl.buffers.episode import EpisodeDataset
-    from rl.envs.showdown_async import AsyncCollector
 
     # The construction-time rollout buffer is the vector path's; this loop
     # feeds update_episodes and must never touch it — None makes any stray
     # update() call fail loudly instead of training on a phantom rollout.
     agent.buffer = None
     budget = cfg.agent["rollout_steps"] * cfg.num_envs
-    collector = AsyncCollector(
-        agent.act_logp,
-        opponent_spec,
-        seed=cfg.seed,
-        concurrency=cfg.collector.get("concurrency", 8),
-        opp_action=bool(cfg.env_kwargs.get("opp_action", False)),
-    )
-    dataset = EpisodeDataset()
+    opp_action = bool(cfg.env_kwargs.get("opp_action", False))
+    # Read BEFORE the collector is built: the engine lane's k battles in flight
+    # are drawn at construction, so a restored `battle_counter` has to be in
+    # hand by then or the resume replays the run's first k battles.
     rs = resume_state or {}
+    if mode == "engine":
+        # In-process pkmn/engine, no server (plan §8.1). Same seam, same
+        # cadences, same metric names — only where transitions come from
+        # differs. NOT LICENSED until gate A-1.
+        from rl.envs.engine_collector import EngineCollector
+
+        collector = EngineCollector(
+            agent.act_logp,
+            opponent_spec,
+            seed=cfg.seed,
+            k=cfg.collector.get("k", 256),
+            team_bank=cfg.collector["team_bank"],
+            learner_seat=cfg.collector.get("learner_seat", "p1"),
+            opp_action=opp_action,
+            battle_counter=int(rs.get("battle_counter", 0)),
+        )
+    else:
+        from rl.envs.showdown_async import AsyncCollector
+
+        collector = AsyncCollector(
+            agent.act_logp,
+            opponent_spec,
+            seed=cfg.seed,
+            concurrency=cfg.collector.get("concurrency", 8),
+            opp_action=opp_action,
+        )
+    dataset = EpisodeDataset()
     best_eval = rs.get("best_eval", float("-inf"))
     step = rs.get("step", 0)
     updates_done = rs.get("updates_done", 0)
@@ -782,7 +898,16 @@ def _async_loop(
         # unfenced state_dict() would read generator states mid-draw. The
         # learner's own state needs no fence (no decision is in flight).
         pool_state = None if pool is None else collector.run_in_loop(pool.state_dict)
-        _save_latest(out_dir, agent, step, cfg, None, best_eval, updates_done, pool_state)
+        # The engine lane's battle sequence is `splitmix64(lane_seed * PHI ^
+        # battle_counter)`, so without the counter a resume replays the run's
+        # first K battles — same teams, same seeds, silently. Nothing else in
+        # the payload can reconstruct it (the async path's battles are
+        # server-rolled and it has no counter).
+        loop_extra = {}
+        if hasattr(collector, "battle_counter"):
+            loop_extra["battle_counter"] = collector.battle_counter
+        _save_latest(out_dir, agent, step, cfg, None, best_eval, updates_done,
+                     pool_state, loop_extra)
 
     collector.seam.version = agent.updates  # a resume starts at the restored count
     collector.start(n_battles=cfg.total_steps)

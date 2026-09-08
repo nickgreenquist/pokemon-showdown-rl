@@ -40,17 +40,23 @@ from poke_env import to_id_str
 
 import pkmn_gen1
 
-MAGIC = b"PKB1"
-BYTES_PER_MON = 8
-MONS_PER_TEAM = 6
-TEAMS_PER_PAIR = 2
-PAIR_BYTES = BYTES_PER_MON * MONS_PER_TEAM * TEAMS_PER_PAIR
+# The format itself lives in rl/envs/engine_bank.py so the training path can
+# read a bank without importing from scripts/; re-exported here because every
+# existing caller of this module expects these names.
+from rl.envs.engine_bank import (  # noqa: F401
+    BYTES_PER_MON,
+    FLAG_MIN_ATK,
+    MAGIC,
+    MONS_PER_TEAM,
+    PAIR_BYTES,
+    TEAMS_PER_PAIR,
+    iter_pairs,
+    read_bank,
+    unpack_mon,
+)
 
 SPECIES_ID = {to_id_str(n): i for i, n in enumerate(pkmn_gen1.species_names()) if i}
 MOVE_ID = {to_id_str(n): i for i, n in enumerate(pkmn_gen1.move_names()) if i}
-
-FLAG_MIN_ATK = 1 << 0
-
 
 def pack_mon(mon: dict) -> bytes:
     sid = SPECIES_ID[to_id_str(mon["s"])]
@@ -59,18 +65,6 @@ def pack_mon(mon: dict) -> bytes:
     flags = FLAG_MIN_ATK if (mon["ia"] == 2 and mon["ea"] == 0) else 0
     return bytes([sid, mon["l"], *moves, flags, mon["eh"] // 4])
 
-
-def unpack_mon(b: bytes) -> dict:
-    sid, level, m1, m2, m3, m4, flags, hp_ev4 = b
-    ivs = [30, 2 if flags & FLAG_MIN_ATK else 30, 30, 30, 30]
-    evs = [hp_ev4 * 4, 0 if flags & FLAG_MIN_ATK else 255, 255, 255, 255]
-    return {
-        "species": sid,
-        "level": level,
-        "moves": [m for m in (m1, m2, m3, m4) if m],
-        "ivs": ivs,
-        "evs": evs,
-    }
 
 
 def generate(showdown_root: pathlib.Path, pairs: int, seed_prefix: str) -> bytes:
@@ -127,31 +121,6 @@ def write_bank(path: pathlib.Path, payload: bytes, ps_commit: str, seed_prefix: 
     return header
 
 
-def read_bank(path: pathlib.Path) -> tuple[dict, bytes]:
-    with open(path, "rb") as fh:
-        if fh.read(4) != MAGIC:
-            raise ValueError(f"{path} is not a team bank")
-        (hlen,) = struct.unpack("<I", fh.read(4))
-        header = json.loads(fh.read(hlen))
-        payload = fh.read()
-    if hashlib.sha256(payload).hexdigest() != header["sha256"]:
-        raise ValueError(f"{path}: payload sha256 does not match the header")
-    if len(payload) != header["pairs"] * PAIR_BYTES:
-        raise ValueError(f"{path}: payload is {len(payload)} bytes for {header['pairs']} pairs")
-    return header, payload
-
-
-def iter_pairs(payload: bytes):
-    team_bytes = BYTES_PER_MON * MONS_PER_TEAM
-    for i in range(0, len(payload), PAIR_BYTES):
-        pair = payload[i : i + PAIR_BYTES]
-        yield tuple(
-            [
-                unpack_mon(pair[t * team_bytes + j * BYTES_PER_MON :][:BYTES_PER_MON])
-                for j in range(MONS_PER_TEAM)
-            ]
-            for t in range(TEAMS_PER_PAIR)
-        )
 
 
 def ps_commit(showdown_root: pathlib.Path) -> str:

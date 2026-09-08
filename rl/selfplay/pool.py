@@ -127,6 +127,33 @@ class AgentOpponent(Opponent):
         # 2026-09-01; fixed 2026-09-05). The RL loop stays CPU-only by rule.
         return int(torch.multinomial(probs.cpu(), 1, generator=self.generator).item())
 
+    def move_batch(self, obs: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        """`move()` for B rows at once — the engine collector's act path.
+
+        Same construction as `move()`: one masked softmax, one multinomial
+        from THIS member's own generator. The batching is the point (plan
+        §8.2): with K battles in flight and members grouped by id, a member
+        that owns 200 rows costs one GEMM instead of 200 GEMVs.
+
+        The generator STREAM is not the same as B separate `move()` calls —
+        `torch.multinomial` over a (B, A) tensor consumes the generator once
+        for the batch, not B times — so an engine-collected battle does not
+        replay a server-collected one row for row. That is not a regression
+        of the determinism contract: the contract is that a member's draws
+        come from its OWN generator and never the global stream, which holds
+        here, and engine-mode play is reproducible from (lane seed, pool
+        state). Nothing compares the two streams; the two collectors already
+        source different games.
+        """
+        if len(obs) == 0:
+            return np.empty(0, dtype=np.int64)
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.agent.device)
+        mask_t = torch.as_tensor(mask, dtype=torch.bool, device=self.agent.device)
+        with torch.no_grad():
+            probs = torch.softmax(masked_logits(self.agent.actor(obs_t), mask_t), dim=-1)
+        draws = torch.multinomial(probs.cpu(), 1, generator=self.generator)
+        return draws.squeeze(1).numpy().astype(np.int64)
+
     def move_logp(self, obs: np.ndarray, mask: np.ndarray, rng: np.random.Generator) -> tuple[int, float]:
         """`move()` plus log pi_member(a|s) — the both-seat harvest's act path
         (rl/selfplay/harvest.py). SAME draw as move(): one multinomial on the

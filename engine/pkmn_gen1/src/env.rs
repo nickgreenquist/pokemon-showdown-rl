@@ -53,6 +53,10 @@ pub struct Episode {
     pub turns: u16,
     pub seed: u64,
     pub member: i32,
+    /// Which `BatchEnv` slot produced this episode. The slot has ALREADY been
+    /// restarted by the time the caller sees this, so it names where to seat
+    /// the next battle's opponent, not where this one still lives.
+    pub slot: i32,
 }
 
 /// One battle: the engine, both seats' projections, and the learner's rows.
@@ -809,12 +813,18 @@ pub struct BatchEnv {
 }
 
 impl BatchEnv {
+    /// `battle_counter` is where in the lane's battle sequence to START. It is
+    /// a CONSTRUCTOR argument and not only a setter because the k battles in
+    /// flight are drawn HERE: a resumed lane that set the counter afterwards
+    /// would still replay its first k battles, teams and seeds included, before
+    /// the counter had any effect.
     pub fn new(
         k: usize,
         lane_seed: u64,
         tables: StaticTables,
         bank: TeamBank,
         learner: Player,
+        battle_counter: u64,
     ) -> Result<BatchEnv, String> {
         if k == 0 {
             return Err("BatchEnv needs at least one slot".into());
@@ -824,7 +834,7 @@ impl BatchEnv {
             tables,
             bank,
             lane_seed,
-            battle_counter: 0,
+            battle_counter,
             learner,
             finished: Vec::new(),
             stats: BatchStats::default(),
@@ -968,7 +978,9 @@ impl BatchEnv {
             if self.slots[i].done() {
                 let next = self.fresh()?;
                 let done = std::mem::replace(&mut self.slots[i], next);
-                self.finished.push(done.take_episode());
+                let mut ep = done.take_episode();
+                ep.slot = i as i32;
+                self.finished.push(ep);
                 self.stats.episodes_finished += 1;
             }
         }

@@ -980,3 +980,48 @@ test_engine_d25.py` runs the REAL `rl.networks.opp_action.canonicalise` over
 `aux/switch_frac` is 0.432 here against the tapes' 0.0719 and that is EXPECTED,
 not a divergence: this run is uniform-random on both seats and 6 of the 10
 actions are switches. It is not evidence either way.
+
+## Step 8: the training seam (`collector.mode: engine`)
+
+Built, unit-tested, NOT RUN as a training lane — the 12M smoke needs the server
+(and the box). Nothing here is licensed; A-1 has not run.
+
+| piece | where |
+|---|---|
+| `EngineCollector` | `rl/envs/engine_collector.py` — the `_async_loop` seam verbatim: `seam.version/requests/inference_seconds`, `start`, `poll`, `check`, `pause`, `resume`, `run_in_loop`, `stats`, `close` |
+| episode adapter | `EngineCollector._episode` — Rust dict -> `EPISODE_KEYS`, with `rewards` zeros + terminal outcome (ties 0, G4c) |
+| opponent loop | `SnapshotPool.select` per BATTLE at slot restart, `AgentOpponent.move_batch` grouped by member, `pool.report` at finish |
+| launch validation | `rl/train.py::_engine_collector_checks`, strict key set `{mode, k, team_bank, learner_seat}` |
+| metadata | `engine_metadata()` -> `meta["engine"]`: engine sha, PKMN_OPTIONS, zig, crate, bank sha256/pairs/PS commit, tables fingerprint |
+| resume | `battle_counter` in `checkpoint.pt`'s `loop` entry |
+| bank reader | moved to `rl/envs/engine_bank.py`; `scripts/engine_team_bank.py` re-exports it |
+
+Three things the plan did not say, found by building it:
+
+1. **`battle_counter` must be a CONSTRUCTOR argument, not just a setter.**
+   `BatchEnv::new` draws the k battles in flight, so a resumed lane that set
+   the counter afterwards still replayed the run's first k battles — same
+   seeds, same teams, silently. Caught by
+   `test_a_resumed_lane_does_not_replay_its_first_battles`, which failed 8/24
+   before the fix. `_async_loop` now reads `resume_state` before constructing
+   the collector.
+2. **An episode must name its slot.** The opponent is drawn per BATTLE, so the
+   collector has to seat a member on the slot that just restarted; `Episode`
+   gained `slot`, set at restart.
+3. **`AgentOpponent.move_batch`** is the batched-by-member act path. Its
+   generator STREAM differs from B separate `move()` calls (one multinomial
+   over (B, A) consumes the generator once), so an engine battle does not
+   replay a server battle row for row — documented at the method. The contract
+   that matters (a member draws from its OWN generator, never the global
+   stream) is intact.
+
+Also: `_async_collector_mode` now returns the MODE (`'sync'`/`'async'`/
+`'engine'`) rather than a bool, and a key belonging to another mode is refused
+by name ("collector.k is engine-only") rather than as an unknown key.
+
+Tests: `tests/test_engine_collector.py` (3) drives the real `PPOAgent`, the
+real `SnapshotPool` and the real `EpisodeDataset` end to end — 3,000 rows into
+`update_episodes` with the D25 aux head on, weights move, `episodes_discarded`
+0; a per-battle member draw credited exactly one game per finish; and the
+resume property above. `tests/test_async_launch.py` gained 16 engine-mode
+validation cases.

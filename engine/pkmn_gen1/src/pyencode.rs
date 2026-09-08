@@ -308,15 +308,22 @@ impl BatchEnv {
     /// `bank` is the packed payload of a `scripts/engine_team_bank.py` file
     /// (header stripped by the caller, which is where the sha256 is checked).
     #[new]
-    #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1"))]
-    fn new(k: usize, seed: u64, tables: &Tables, bank: Vec<u8>, learner_seat: &str) -> PyResult<Self> {
+    #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1", battle_counter=0))]
+    fn new(
+        k: usize,
+        seed: u64,
+        tables: &Tables,
+        bank: Vec<u8>,
+        learner_seat: &str,
+        battle_counter: u64,
+    ) -> PyResult<Self> {
         let learner = match learner_seat {
             "p1" => Player::P1,
             "p2" => Player::P2,
             s => return Err(PyValueError::new_err(format!("learner_seat {s:?} is not p1/p2"))),
         };
         let bank = TeamBank::new(bank).map_err(PyValueError::new_err)?;
-        let inner = RustBatchEnv::new(k, seed, tables.inner.clone(), bank, learner)
+        let inner = RustBatchEnv::new(k, seed, tables.inner.clone(), bank, learner, battle_counter)
             .map_err(PyValueError::new_err)?;
         Ok(BatchEnv { inner })
     }
@@ -329,6 +336,9 @@ impl BatchEnv {
     fn battle_counter(&self) -> u64 {
         self.inner.battle_counter()
     }
+    /// Where the NEXT battle is drawn from. Setting it does not disturb the
+    /// battles already in flight -- pass `battle_counter` to the constructor to
+    /// start a resumed lane in the right place.
     #[setter]
     fn set_battle_counter(&mut self, n: u64) {
         self.inner.set_battle_counter(n);
@@ -428,6 +438,7 @@ impl BatchEnv {
             d.set_item("turns", e.turns)?;
             d.set_item("seed", e.seed)?;
             d.set_item("member", e.member)?;
+            d.set_item("slot", e.slot)?;
             out.push(d);
         }
         Ok(out)
