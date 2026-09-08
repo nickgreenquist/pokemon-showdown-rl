@@ -28,6 +28,7 @@ and damage ranges, so eval variance is handled by battle count (the Phase 5
 headline metric budgets >=1000 battles per matchup), not by fixed seeds.
 """
 
+import hashlib
 import logging
 import os
 import random
@@ -942,6 +943,48 @@ class ShowdownSingles(SinglesEnv):
         return embed_battle(battle, self._type_chart)
 
 
+# --- IDEAS 2.2: seed-sharing seat names ------------------------------------
+#
+# Every training A/B to date has been unpaired for a MECHANICAL reason, not a
+# statistical one: two arms at the same seed collide on Showdown usernames
+# (CLAUDE.md rule 2), which is why the pre-reg seed guards carry "legal owner"
+# bookkeeping to keep arms on separate seeds. Fold a per-run tag into the names
+# and arms can SHARE a seed — shared init where shapes match, and a shared early
+# episode stream.
+#
+# Honest expectations, from IDEAS §2.2: CH3 R4's paired-clustered se of 0.0080
+# shows what FULL pairing buys, but that was same-checkpoint EVAL pairing;
+# training-seed pairing cancels only what stays correlated through chaotic
+# decorrelation, and rho is unknown. It is weakly dominant (rho ~ 0 means no
+# worse than unpaired), costs almost nothing, and is the only cheap attack on
+# sigma_seed. MEASURE AND REPORT rho ON FIRST USE.
+#
+# OPT-IN, and off by default: with no tag the names are byte-identical to what
+# the async collector has always used, so no existing run's wire moves.
+SEAT_PREFIX = "as2s"
+SEAT_NAME_MAX = 18  # Showdown's username cap
+
+
+def seat_names(seed: int, tag: str = "", role: str = "t") -> tuple[str, str]:
+    """The two seat usernames for one lane: `(seat_a, seat_b)`.
+
+    `role` separates envs that share a seed within one run — "t" for a training
+    sub-env, "e" for the eval env. Without it the eval env would collide with
+    training sub-env 0, which today's random derivation avoids only because
+    poke-env draws a fresh name per construction.
+    """
+    if not tag:
+        return f"{SEAT_PREFIX}{seed}a", f"{SEAT_PREFIX}{seed}b"
+    digest = hashlib.sha256(tag.encode()).hexdigest()[:4]
+    base = f"{SEAT_PREFIX}{seed}{role}{digest}"
+    if len(base) + 1 > SEAT_NAME_MAX:
+        raise ValueError(
+            f"seat name {base!r}+a exceeds Showdown's {SEAT_NAME_MAX}-character "
+            "username cap; use a smaller seed"
+        )
+    return base + "a", base + "b"
+
+
 def battle_outcome(battle) -> int:
     """info["outcome"] for a finished battle: +1 won, -1 lost, 0 tie."""
     if battle.won:
@@ -1304,6 +1347,8 @@ class ShowdownEnv(Env):
         opp_action: bool = False,
         start_timer_on_battle_start: bool = True,
         harvest=None,
+        account_configuration1=None,
+        account_configuration2=None,
     ):
         # save_replays (False | True | directory) is poke-env's native replay
         # dump: each finished battle is written as a Showdown replay HTML
@@ -1330,7 +1375,16 @@ class ShowdownEnv(Env):
         # MAX_TURN_TIME_CHALLENGE) against a measured max `time/update_sec` of
         # 15.3 s on the 50M batch lanes -- a 20x margin, but the argument is
         # ops, not a claim, and setting this False restores the pre-fix wire.
+        # IDEAS 2.2: explicit seat names when `make_env` derived them from a
+        # run tag, so two arms can share a seed. None (the default) leaves
+        # poke-env's own derivation in place -- the wire every run to date used.
+        accounts = {}
+        if account_configuration1 is not None:
+            accounts["account_configuration1"] = account_configuration1
+        if account_configuration2 is not None:
+            accounts["account_configuration2"] = account_configuration2
         inner = ShowdownSingles(
+            **accounts,
             battle_format=battle_format,
             save_replays=save_replays,
             faint_shaping=faint_shaping,

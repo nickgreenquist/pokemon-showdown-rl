@@ -73,6 +73,7 @@ from rl.envs.showdown import (
     _parse_mix,
     battle_outcome,
     embed_battle,
+    seat_names,
 )
 from rl.selfplay.pool import SnapshotPool
 
@@ -234,6 +235,7 @@ class AsyncCollector:
         battle_format: str = "gen1randombattle",
         seat_kwargs_override: dict | None = None,
         liveness_s: float | None = _LIVENESS_S,
+        run_tag: str = "",
     ):
         self.seam = GatedSeam(policy)
         self.builders: dict[str, _EpisodeBuilder] = {}
@@ -272,14 +274,17 @@ class AsyncCollector:
                     "seat_kwargs_override may not touch start_timer_on_battle_start"
                 )
             seat_kwargs.update(seat_kwargs_override)
+        # IDEAS 2.2: with no tag these are `as2s{seed}a/b`, byte-identical to
+        # every async run to date; with one, two arms can share a seed.
+        name_a, name_b = seat_names(seed, run_tag)
         self.learner = CollectPlayer(
             self,
-            account_configuration=AccountConfiguration(f"as2s{seed}a", None),
+            account_configuration=AccountConfiguration(name_a, None),
             **seat_kwargs,
         )
         self.opponent = self._make_opponent(
             opponent_spec,
-            account_configuration=AccountConfiguration(f"as2s{seed}b", None),
+            account_configuration=AccountConfiguration(name_b, None),
             **seat_kwargs,
         )
         self._pool_player = (

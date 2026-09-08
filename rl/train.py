@@ -743,14 +743,15 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
     if cfg.normalize_obs or cfg.normalize_reward:
         raise ValueError("collector.mode 'async' is incompatible with the "
                          "vector-level normalizers")
-    extra = cfg.env_kwargs.keys() - {"opp_action"}
+    extra = cfg.env_kwargs.keys() - {"opp_action", "seat_tag"}
     if extra:
         # faint_shaping / hl_shaping / privileged / save_replays all live in
         # the env stack the async path does not run; accepting them here
         # would stamp a config whose knobs silently did nothing.
         raise ValueError(f"collector.mode 'async' supports env_kwargs "
-                         f"{{'opp_action'}} only; got {sorted(extra)} — the "
-                         "async path emits terminal outcome rewards only")
+                         f"{{'opp_action', 'seat_tag'}} only; got "
+                         f"{sorted(extra)} — the async path emits terminal "
+                         "outcome rewards only")
     if cfg.agent.get("privileged_dim"):
         raise ValueError("collector.mode 'async' does not collect the "
                          "privileged block (D18) — the wide critic would "
@@ -793,11 +794,12 @@ def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
     if cfg.normalize_obs or cfg.normalize_reward:
         raise ValueError("collector.mode 'engine' is incompatible with the "
                          "vector-level normalizers")
-    extra = cfg.env_kwargs.keys() - {"opp_action"}
+    extra = cfg.env_kwargs.keys() - {"opp_action", "seat_tag"}
     if extra:
         raise ValueError(f"collector.mode 'engine' supports env_kwargs "
-                         f"{{'opp_action'}} only; got {sorted(extra)} — the "
-                         "engine path emits terminal outcome rewards only")
+                         f"{{'opp_action', 'seat_tag'}} only; got "
+                         f"{sorted(extra)} — the engine path emits terminal "
+                         "outcome rewards only")
     if cfg.agent.get("privileged_dim"):
         raise ValueError("collector.mode 'engine' does not emit the privileged "
                          "block (D18) — the wide critic would train on zeros")
@@ -869,6 +871,10 @@ def _async_loop(
     agent.buffer = None
     budget = cfg.agent["rollout_steps"] * cfg.num_envs
     opp_action = bool(cfg.env_kwargs.get("opp_action", False))
+    # IDEAS 2.2. Lives in env_kwargs rather than as a new Config field on
+    # purpose: a new field would break `ckpt["config"] == asdict(cfg)` for every
+    # run launched before it existed, refusing their resumes.
+    run_tag = str(cfg.env_kwargs.get("seat_tag", ""))
     # Read BEFORE the collector is built: the engine lane's k battles in flight
     # are drawn at construction, so a restored `battle_counter` has to be in
     # hand by then or the resume replays the run's first k battles.
@@ -898,6 +904,7 @@ def _async_loop(
             seed=cfg.seed,
             concurrency=cfg.collector.get("concurrency", 8),
             opp_action=opp_action,
+            run_tag=run_tag,
         )
     dataset = EpisodeDataset()
     best_eval = rs.get("best_eval", float("-inf"))

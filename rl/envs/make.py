@@ -20,6 +20,7 @@ def make_env(
     seed: int,
     render_mode: str | None = None,
     env_kwargs: dict | None = None,
+    seat_role: str = "t",
 ) -> gym.Env:
     """`env_kwargs` are forwarded to the env constructor. They are passed to
     `gym.make` as CALLER kwargs on purpose: gymnasium deep-copies the kwargs
@@ -31,7 +32,22 @@ def make_env(
         _ensure_connect4_registered()
     elif env_id.startswith("Showdown"):
         _ensure_showdown_registered()
-    env = gym.make(env_id, render_mode=render_mode, **(env_kwargs or {}))
+    env_kwargs = dict(env_kwargs or {})
+    # IDEAS 2.2. `seat_tag` is consumed HERE and never reaches the env: this is
+    # the only place that holds the PER-SUB-ENV seed (make_vec_env passes
+    # seed + i), which is what makes each sub-env's two seats distinct. With no
+    # tag nothing is injected and poke-env's own derivation runs, byte-identical
+    # to every run to date.
+    tag = env_kwargs.pop("seat_tag", "")
+    if tag and env_id.startswith("Showdown-"):
+        from poke_env.ps_client import AccountConfiguration
+
+        from rl.envs.showdown import seat_names
+
+        a, b = seat_names(seed, tag, seat_role)
+        env_kwargs["account_configuration1"] = AccountConfiguration(a, None)
+        env_kwargs["account_configuration2"] = AccountConfiguration(b, None)
+    env = gym.make(env_id, render_mode=render_mode, **env_kwargs)
     if isinstance(env.action_space, gym.spaces.Discrete):
         # Masking contract: every Discrete-action env emits
         # info["action_mask"] (all-True unless the env supplies its own).
@@ -136,6 +152,9 @@ def make_eval_env(
         cfg.seed,
         render_mode=render_mode,
         env_kwargs=env_kwargs,
+        # "e", so a tagged run's eval seats cannot collide with training
+        # sub-env 0's — both are built at cfg.seed.
+        seat_role="e",
     )
 
 

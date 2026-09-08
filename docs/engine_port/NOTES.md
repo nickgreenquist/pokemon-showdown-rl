@@ -1417,3 +1417,50 @@ both-seats union ARE tested offline against stubs — that is where a silent
 asymmetry against the engine leg would live. The connection, challenge loop and
 chunk/resume path are unverified; `result["unverified"]` says so in the
 artifact itself, and the first run is a bring-up, not the gate.
+
+## IDEAS 2.2 — the seed-sharing run tag. BUILT.
+
+IDEAS calls this "BUILD IT (few lines + a test)" and Tier-0 instrument work, so
+it needs no pre-reg. It matters here because the port does NOT make paired
+training seeds free: the per-battle seed pairs the BATTLE STREAM, not the
+LAUNCH, and two engine arms at the same `--seed` still collided on eval-env
+usernames (IDEAS §1's own note says the tag "matters only for concurrent
+same-seed arms" — which is exactly the engine case).
+
+`rl/envs/showdown.py::seat_names(seed, tag, role)`, used by both collectors.
+
+Four design points:
+
+1. **Off by default, byte-identical.** With no tag the names are
+   `as2s{seed}a/b`, what the async collector has always used. No existing run's
+   wire moves, so this cannot perturb a resume of anything already launched.
+2. **It rides `env_kwargs`, not a new `Config` field.** A new field would break
+   `ckpt["config"] == asdict(cfg)` for every run launched before it existed and
+   REFUSE THEIR RESUMES — including the live fleet's lanes. `env_kwargs` is the
+   existing per-run env-knob channel, and `seat_tag` is now in the strict
+   accepted set on both the async and engine paths (a typo is still refused).
+3. **`make_env` resolves it, not the env.** That is the only place holding the
+   PER-SUB-ENV seed (`make_vec_env` passes `seed + i`), which is what makes each
+   sub-env's pair distinct — and it is why the pre-reg guards reserve
+   `[seed, seed+num_envs)` in the first place. The tag is popped there and never
+   reaches the env constructor.
+4. **A `role` separates train from eval.** Both are built at `cfg.seed`, so with
+   explicit names the eval env would collide with training sub-env 0. Today's
+   random derivation avoids that only because poke-env draws a fresh name per
+   construction — an accident this replaces with a reason.
+
+Refused rather than truncated: a seed large enough to push the name past
+Showdown's 18-character cap raises, because a silently truncated name collides
+with its neighbour — the exact failure the tag exists to prevent.
+
+**No variance claim is made.** IDEAS is explicit that CH3 R4's paired-clustered
+se of 0.0080 was same-checkpoint EVAL pairing, while training-seed pairing
+cancels only what stays correlated through chaotic decorrelation, with rho
+UNKNOWN. It is weakly dominant (rho ~ 0 means no worse than unpaired). **rho
+must be measured and reported on first use** — recorded at the helper itself so
+the obligation travels with the code.
+
+Owed at merge: IDEAS 2.2 also asks that the pre-reg seed guards be extended to
+tags. Those live in `tests/test_*_prereg.py`, which this branch may not edit;
+`tests/test_seat_tag.py` records the contract they would assert so the extension
+is mechanical.
