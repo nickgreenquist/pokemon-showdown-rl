@@ -366,6 +366,18 @@ impl Gen1Env {
     pub fn request(&self, p: Player) -> Request {
         self.result.request(p)
     }
+
+    /// The engine's true state. Only DIAGNOSTIC readers touch this -- gate
+    /// D-1's per-battle summaries -- never the encoder, which sees the world
+    /// exclusively through `state()`'s `ObservableState`.
+    pub fn battle(&self) -> &Battle {
+        &self.battle
+    }
+
+    /// From P1's seat, as the engine reports it.
+    pub fn outcome(&self) -> Outcome {
+        self.result.outcome
+    }
 }
 
 /// The team bank's packed payload (`scripts/engine_team_bank.py`): pairs of two
@@ -1014,6 +1026,18 @@ impl BatchEnv {
             actions.push(policy.act(&st, &p.mask, &self.tables, &mut self.scripted_rng));
         }
         (idx, actions)
+    }
+
+    /// Gate D-1's engine leg (`scripted.rs::scripted_series`), sharing this
+    /// lane's seed and team bank so a D-1 leg plays the same battles a
+    /// collector lane at the same seed would.
+    pub fn scripted_series(
+        &self,
+        n: u64,
+        p1: Scripted,
+        p2: Scripted,
+    ) -> Result<Vec<crate::scripted::BattleSummary>, String> {
+        crate::scripted::scripted_series(n, self.lane_seed, &self.tables, &self.bank, p1, p2)
     }
 
     pub fn drain_finished(&mut self) -> Vec<Episode> {

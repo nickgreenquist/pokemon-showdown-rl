@@ -162,6 +162,113 @@ fn pick(from: &[usize], rng: &mut u64) -> usize {
     from[(draw >> 33) as usize % from.len()]
 }
 
+/// One battle's dynamics summary — gate D-1's per-battle row (plan §9).
+///
+/// These are TRUE-STATE reads, and they are legitimate here because D-1's
+/// server leg reads the same facts off the protocol: both sides' faints and
+/// statuses are public in a Showdown log. They are diagnostics, never
+/// observations; nothing in `ObservableState` or the encoder sees them.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct BattleSummary {
+    /// From P1's seat: 1 win, -1 loss, 0 tie.
+    pub outcome: i8,
+    pub turns: u16,
+    pub faints_p1: u8,
+    pub faints_p2: u8,
+    /// Did any mon on either side spend a turn asleep / frozen? D-1's
+    /// "fraction of games with a sleep/freeze" read: gen 1 sleep is the
+    /// mechanic most likely to differ between the engine's patched-PS target
+    /// and our PS 0.11.11, so it gets its own comparison.
+    pub any_sleep: bool,
+    pub any_freeze: bool,
+}
+
+/// `n` scripted-vs-scripted battles, engine only. Gate D-1's engine leg.
+///
+/// The whole loop is in Rust so a 10,000-battle leg costs no Python at all and
+/// the two legs differ only in the simulator, which is the comparison D-1 makes.
+pub fn scripted_series(
+    n: u64,
+    lane_seed: u64,
+    tables: &StaticTables,
+    bank: &crate::env::TeamBank,
+    p1: Scripted,
+    p2: Scripted,
+) -> Result<Vec<BattleSummary>, String> {
+    use crate::battle::{Outcome, Player, splitmix64};
+    use crate::env::Gen1Env;
+
+    let mut out = Vec::with_capacity(n as usize);
+    let mut rng = lane_seed ^ 0x4431_5F53_4552_4945;
+    for i in 0..n {
+        // The SAME battle-seed and team-pair derivation `BatchEnv` uses, so a
+        // D-1 leg and a collector lane at the same lane seed play the same
+        // battles (plan §7.5).
+        let seed = splitmix64(lane_seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ i);
+        let pick = splitmix64(seed ^ 1) as usize;
+        let (t1, t2) = bank.pair(pick % bank.pairs());
+        let mut env = Gen1Env::new(seed, &t1, &t2, Player::P1, -1).map_err(|e| e.to_string())?;
+        let mut s = BattleSummary::default();
+        while !env.done() {
+            let mut acts = [None, None];
+            for (k, (who, pol)) in [(Player::P1, p1), (Player::P2, p2)].iter().enumerate() {
+                if let Some(pd) = env.pending(*who, tables) {
+                    let st = env.state(*who, tables);
+                    acts[k] = Some(pol.act(&st, &pd.mask, tables, &mut rng));
+                }
+            }
+            scan_status(env.battle(), &mut s);
+            env.step(tables, acts[0], 0.0, 0, acts[1])?;
+        }
+        // Once more after the last update, or a status applied on the killing
+        // turn is missed -- and the server leg, which reads `|-status|` lines
+        // off the log, would not miss it. An asymmetric undercount here would
+        // show up as a phantom mechanic difference.
+        scan_status(env.battle(), &mut s);
+        let b = env.battle();
+        for who in [Player::P1, Player::P2] {
+            let side = b.side(who);
+            let faints = (0..6)
+                .filter(|&j| !side.party(j).is_empty() && side.party(j).hp() == 0)
+                .count() as u8;
+            if who == Player::P1 {
+                s.faints_p1 = faints;
+            } else {
+                s.faints_p2 = faints;
+            }
+        }
+        s.turns = b.turn();
+        s.outcome = match env.outcome() {
+            Outcome::Win => 1,
+            Outcome::Lose => -1,
+            _ => 0,
+        };
+        out.push(s);
+    }
+    Ok(out)
+}
+
+
+/// Sleep / freeze anywhere on either side. Every PARTY member, not just the
+/// active: a mon can be slept and switched out, and gen 1's freeze is
+/// permanent, so a whole-party scan at every decision point plus one after the
+/// final update sees every application the server's log would show.
+fn scan_status(b: &crate::battle::Battle, s: &mut BattleSummary) {
+    use crate::battle::Player;
+    for who in [Player::P1, Player::P2] {
+        let side = b.side(who);
+        for j in 0..6 {
+            let mon = side.party(j);
+            if mon.is_empty() {
+                continue;
+            }
+            let st = mon.status();
+            s.any_sleep |= st.asleep();
+            s.any_freeze |= st.frz();
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

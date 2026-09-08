@@ -415,6 +415,39 @@ impl BatchEnv {
         ))
     }
 
+    /// Gate D-1's ENGINE LEG: `n` scripted-vs-scripted battles, engine only,
+    /// returned as per-battle arrays (plan §9). The whole loop runs in Rust so
+    /// a 10,000-battle leg costs no Python; the server leg
+    /// (`scripts/engine_d1.py --leg server`) plays the same policies against
+    /// the real simulator and the two distributions are compared.
+    ///
+    /// This is a MEASUREMENT. It must not run next to a training fleet.
+    #[pyo3(signature = (n, p1="max_power", p2="max_power"))]
+    fn scripted_series<'py>(
+        &mut self,
+        py: Python<'py>,
+        n: u64,
+        p1: &str,
+        p2: &str,
+    ) -> PyResult<Bound<'py, PyDict>> {
+        let parse = |s: &str| {
+            crate::scripted::Scripted::parse(s)
+                .ok_or_else(|| PyValueError::new_err(format!("unknown scripted policy {s:?}")))
+        };
+        let (a, b) = (parse(p1)?, parse(p2)?);
+        let rows = py
+            .detach(|| self.inner.scripted_series(n, a, b))
+            .map_err(PyRuntimeError::new_err)?;
+        let d = PyDict::new(py);
+        d.set_item("outcome", PyArray1::from_vec(py, rows.iter().map(|r| r.outcome as i8).collect()))?;
+        d.set_item("turns", PyArray1::from_vec(py, rows.iter().map(|r| r.turns).collect()))?;
+        d.set_item("faints_p1", PyArray1::from_vec(py, rows.iter().map(|r| r.faints_p1).collect()))?;
+        d.set_item("faints_p2", PyArray1::from_vec(py, rows.iter().map(|r| r.faints_p2).collect()))?;
+        d.set_item("any_sleep", PyArray1::from_vec(py, rows.iter().map(|r| r.any_sleep).collect()))?;
+        d.set_item("any_freeze", PyArray1::from_vec(py, rows.iter().map(|r| r.any_freeze).collect()))?;
+        Ok(d)
+    }
+
     /// One batched step. Releases the GIL for the engine/encoder loop.
     #[pyo3(signature = (l_idx, l_actions, l_logp, version, o_idx, o_actions))]
     fn step(

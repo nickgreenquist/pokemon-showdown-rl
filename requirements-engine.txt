@@ -1,0 +1,34 @@
+# Engine-collector extra dependencies (docs/PKMN_ENGINE_RUST_PLAN.md §4.5).
+#
+# NOT part of `pip install -e ".[dev]"`. The engine collector is an OPTIONAL
+# path: a run with `collector.mode` sync or async never imports pkmn_gen1, and
+# a checkout without a Rust/Zig toolchain must stay installable. Keeping these
+# out of pyproject.toml is what makes that true.
+#
+# Repo rule: exact pins, always.
+#
+#   pip install -r requirements-engine.txt
+#   git submodule update --init engine/pkmn_gen1/vendor/pkmn-engine
+#   pip install --no-build-isolation -e engine/pkmn_gen1
+#
+# Then VERIFY, every time (the FG-5 habit) -- it asserts the engine sha against
+# the pin, PKMN_OPTIONS == {showdown: true, log: false, chance: false,
+# calc: false}, battle_size == 384 and zig == 0.16.0:
+#
+#   python -c "import pkmn_gen1; pkmn_gen1.verify()"
+#
+# `zig` comes from the pip wheel, so `zig` is not on PATH: build.rs resolves it
+# via `python -m ziglang`, and honours $PKMN_ZIG or $PKMN_PYTHON if you need to
+# point it somewhere else. `maturin` IS a console script, so its bin directory
+# must be on PATH for the editable install to build.
+#
+# THE STALE-.so LANDMINE: `cargo build` refreshes `target/`, but the importable
+# extension only changes on `pip install -e`. After ANY Rust edit, re-run the
+# editable install before running Python tests -- `pkmn_gen1.__state_schema__`
+# exists to make the mismatch loud, but only for the shapes it covers.
+#
+# rustc/cargo are NOT pinned here: they are a system toolchain, not a Python
+# dependency. Built and tested on 1.97.1.
+
+ziglang==0.16.0
+maturin==1.15.0

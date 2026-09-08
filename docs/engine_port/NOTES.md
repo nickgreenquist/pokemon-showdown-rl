@@ -1068,3 +1068,56 @@ random-vs-random 0.35–0.65 as a symmetry guard, max_power vs random > 0.85,
 most_damage_typed vs random > 0.85, and **most_damage_typed vs max_power >
 0.55** — the type chart is the only difference between those two, which is why
 JOURNEY's anchor is the typed one.
+
+## Gate harnesses written but NOT RUN: D-1 and T-1
+
+Both are MEASUREMENTS and the box has a fleet on it, so both were written and
+tested and neither was run. The point of writing them now is that when the box
+frees they fire the same day instead of starting cold.
+
+**`scripts/engine_d1.py`** — engine vs server dynamics. Three legs
+(`--leg engine|server|compare`). The engine leg is complete and its plumbing is
+verified; **the server leg is deliberately a `SystemExit` with the four
+implementation steps and the two CLAUDE.md traps (`/timer on`, distinct
+usernames) written into its docstring** — it needs a server, which this session
+may not start. Bands restated verbatim in the file: P1 win rate |Δ| < 0.02, tie
+rate |Δ| < 0.005, mean turns |Δ| < 5%.
+
+The engine leg runs entirely in Rust (`scripted_series`), so a 10,000-battle leg
+costs no Python, and it derives battle seeds and team pairs exactly as `BatchEnv`
+does — a D-1 leg plays the battles a collector lane at the same seed would.
+
+Two design points found while writing it:
+
+* **The status scan must cover the WHOLE PARTY at every decision point AND once
+  after the final update.** Checking only the active mon before each step misses
+  a status applied on the killing turn, and misses a mon slept then switched
+  out — while the server leg, reading `|-status|` off the log, misses neither.
+  That asymmetry would have read as a phantom mechanic difference.
+* **Both matchups are load-bearing.** Measured on 200 engine battles:
+  `max_power` vs `max_power` gives sleep 0.000 / freeze 0.370 / 21.3 turns,
+  `random` vs `random` gives sleep 0.765 / freeze 0.190 / 60.6 turns. max_power
+  never selects a 0-base-power move, so it cannot exercise sleep at all; the
+  random matchup is the only one that tests gen 1's sleep mechanic, which is the
+  likeliest thing to differ between the engine's patched-PS target and PS
+  0.11.11.
+
+**`scripts/engine_t1.py`** — legs (a) engine-only battles/s, (b)
+collection-only steps/s across K ∈ {32,64,128,256,512} at the 100M trunk with a
+20-member pool, (c) full-loop `time/realized_steps_per_sec` read out of a run's
+own `history.csv` (never re-derived, and never `time/steps_per_sec`, which is
+the poll-cadence estimator). Bands 20k / 25k@K=256 / 2,000, with "if (c) <
+1,500: PROFILE, and the plan's §0 numbers get corrected in place" in the file.
+
+**Both refuse to start on a busy box** (`pgrep` for `rl.train` and
+`node pokemon-showdown`); `--force` records `contended: true` rather than a
+clean number. Verified: both refused today.
+
+`tests/test_engine_gate_harnesses.py` (12) tests everything that would
+otherwise only run on gate day — the guard, the summary shape, and each band
+firing on its OWN read and not on its neighbours' (a gate that fails everything
+at once localises nothing).
+
+Also added: **`requirements-engine.txt`**. The engine deps stay OUT of
+`pyproject.toml` on purpose — a sync or async run never imports `pkmn_gen1`, and
+a checkout with no Rust/Zig toolchain must stay installable.
