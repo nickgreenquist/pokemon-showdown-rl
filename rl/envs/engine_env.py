@@ -29,7 +29,35 @@ from rl.envs.engine_bank import read_bank
 from rl.envs.showdown import OBS_DIM
 
 N_ACTIONS = 10
-SCRIPTED = ("random", "max_power", "most_damage_typed")
+
+# The in-engine bots. `random` and `max_power` keep poke-env's names on purpose
+# — gate D-1 plays the engine's against the server's under the same name, and
+# "same rule, two simulators" is the comparison. `most_damage_typed_engine`
+# does NOT: the bare name already means the SERVER anchor project-wide
+# (`rl/envs/showdown.py::OPPONENT_PLAYERS`), whose h2h at 500 battles is a
+# reported anchor-battery row, and there is no engine-vs-server comparison for
+# it to earn the shared name with.
+SCRIPTED = ("random", "max_power", "most_damage_typed_engine")
+
+# Names refused BY NAME rather than as "unknown", each with where the real one
+# lives. A silent substitution here would put an in-engine number in a row that
+# means something else.
+_REFUSED = {
+    "heuristics": (
+        "SimpleHeuristicsPlayer is the VERDICT DENOMINATOR for every banked "
+        "number in this project and is deliberately not ported — a port that "
+        "differed anywhere would redefine it silently. It stays on the server "
+        "(plan §8.2); eval does not run here."
+    ),
+    "simple_heuristics": "see 'heuristics'",
+    "most_damage_typed": (
+        "`most_damage_typed` names the SERVER anchor "
+        "(rl/envs/most_damage_typed.py), whose h2h at 500 battles is a reported "
+        "anchor-battery row. The in-engine port is 'most_damage_typed_engine', "
+        "and its numbers are DESCRIPTIVE ONLY — never a battery leg, never a "
+        "verdict input, and not comparable to anything until gate D-1 passes."
+    ),
+}
 
 
 class EngineEnv(gym.Env):
@@ -54,10 +82,14 @@ class EngineEnv(gym.Env):
 
         from rl.envs.engine_tables import build_tables
 
+        if opponent in _REFUSED:
+            why = _REFUSED[opponent]
+            if why.startswith("see "):
+                why = _REFUSED[why.removeprefix("see ").strip("'")]
+            raise ValueError(f"engine opponent {opponent!r} is refused: {why}")
         if opponent not in SCRIPTED:
             raise ValueError(
-                f"engine opponent {opponent!r} is not one of {list(SCRIPTED)}; "
-                "'heuristics' is server-only (plan §8.2)"
+                f"engine opponent {opponent!r} is not one of {list(SCRIPTED)}"
             )
         self._make = pkmn_gen1.BatchEnv
         self._tables, _fp = build_tables()

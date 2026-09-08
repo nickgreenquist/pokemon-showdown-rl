@@ -1,5 +1,6 @@
 //! In-engine scripted opponents (plan §8.2) — `random`, `max_power` and
-//! `most_damage_typed`, ports of the poke-env players of the same names.
+//! `most_damage_typed_engine`. See `Scripted::parse` for why two of them keep
+//! poke-env's names and the third deliberately does not.
 //!
 //! They exist for two jobs and NEITHER is a training arm: gate D-1 plays the
 //! same scripted policy on both seats against both the engine and the server
@@ -15,7 +16,7 @@
 //!
 //! Borrowed definitions, named per the standing obligation:
 //!   * `random` / `max_power` — poke-env (MIT), `player/baselines.py`.
-//!   * `most_damage_typed` — Huang & Lee's `MostDamageMovePlayer(type_aware=
+//!   * `most_damage_typed_engine` — Huang & Lee's `MostDamageMovePlayer(type_aware=
 //!     True)` via `rl/envs/most_damage_typed.py`, whose docstring carries the
 //!     three disclosed deviations. Deviation (1) (Return at base power 102) is
 //!     gen 4+ only and cannot apply here.
@@ -35,12 +36,45 @@ pub enum Scripted {
 }
 
 impl Scripted {
-    pub fn parse(name: &str) -> Option<Scripted> {
-        Some(match name {
+    /// NAMING RULE, and it is not cosmetic.
+    ///
+    /// `random` and `max_power` keep poke-env's names ON PURPOSE: gate D-1
+    /// plays the engine's under that name against the server's under the same
+    /// name, and "same rule, two simulators" is exactly the comparison. A
+    /// divergence there is what D-1 is built to FIND.
+    ///
+    /// `most_damage_typed` is different and takes the `_engine` suffix.
+    /// `rl/envs/showdown.py::OPPONENT_PLAYERS["most_damage_typed"]` already
+    /// means one specific thing project-wide -- the SERVER anchor, whose h2h at
+    /// 500 battles is a REPORTED ROW in the gen-1 and gen-4 anchor batteries
+    /// (CLAUDE.md). There is no engine-vs-server comparison for it, so sharing
+    /// the name buys nothing and risks an in-engine number landing in a battery
+    /// row. Such a number would be wrong twice: the port could drift, and the
+    /// in-engine game has not passed D-1.
+    ///
+    /// So the bare name is REFUSED here, by name, with a pointer to the anchor.
+    pub fn parse(name: &str) -> Result<Scripted, String> {
+        Ok(match name {
             "random" => Scripted::Random,
             "max_power" => Scripted::MaxPower,
-            "most_damage_typed" => Scripted::MostDamageTyped,
-            _ => return None,
+            "most_damage_typed_engine" => Scripted::MostDamageTyped,
+            "most_damage_typed" => {
+                return Err(
+                    "`most_damage_typed` names the SERVER anchor                      (rl/envs/most_damage_typed.py), whose h2h at 500 battles is a                      reported anchor-battery row. The in-engine port is                      `most_damage_typed_engine`, and its numbers are DESCRIPTIVE                      ONLY -- never a battery leg, never a verdict input, and not                      comparable to anything until gate D-1 passes"
+                        .into(),
+                );
+            }
+            "heuristics" | "simple_heuristics" => {
+                return Err(
+                    "SimpleHeuristicsPlayer is deliberately not ported: it is the                      VERDICT DENOMINATOR for every banked number in this project,                      and a port that differs anywhere would redefine it silently.                      The anchor stays on the server (plan §8.2)"
+                        .into(),
+                );
+            }
+            other => {
+                return Err(format!(
+                    "unknown scripted policy {other:?}; known: random, max_power,                      most_damage_typed_engine"
+                ));
+            }
         })
     }
 
@@ -48,7 +82,7 @@ impl Scripted {
         match self {
             Scripted::Random => "random",
             Scripted::MaxPower => "max_power",
-            Scripted::MostDamageTyped => "most_damage_typed",
+            Scripted::MostDamageTyped => "most_damage_typed_engine",
         }
     }
 
@@ -334,6 +368,37 @@ mod tests {
             m[a] = true;
         }
         m
+    }
+
+    /// The names are a safety property, not cosmetics — see `parse`'s comment.
+    #[test]
+    fn the_anchors_bare_name_is_refused_with_a_pointer_to_the_server_one() {
+        // D-1's two policies keep poke-env's names: the shared name IS the
+        // comparison.
+        assert_eq!(Scripted::parse("random").unwrap(), Scripted::Random);
+        assert_eq!(Scripted::parse("max_power").unwrap(), Scripted::MaxPower);
+
+        let e = Scripted::parse("most_damage_typed").unwrap_err();
+        assert!(e.contains("SERVER anchor"), "{e}");
+        assert!(e.contains("most_damage_typed_engine"), "{e}");
+        assert!(e.contains("DESCRIPTIVE"), "{e}");
+        assert_eq!(
+            Scripted::parse("most_damage_typed_engine").unwrap(),
+            Scripted::MostDamageTyped
+        );
+
+        // The anchor that must never be faked says why, not "unknown policy".
+        for name in ["heuristics", "simple_heuristics"] {
+            let e = Scripted::parse(name).unwrap_err();
+            assert!(e.contains("VERDICT DENOMINATOR"), "{e}");
+        }
+
+        // Round-trip: whatever a policy calls itself must parse back to it, or
+        // a label written into a results file names something that no longer
+        // exists.
+        for p in [Scripted::Random, Scripted::MaxPower, Scripted::MostDamageTyped] {
+            assert_eq!(Scripted::parse(p.name()).unwrap(), p);
+        }
     }
 
     #[test]

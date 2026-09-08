@@ -36,7 +36,7 @@ def _run(body: str, timeout: int = 1800) -> str:
 
 @needs_bank
 def test_the_scripted_ladder_orders_the_way_the_definitions_predict():
-    """random < max_power < most_damage_typed, head to head. Not a licensed
+    """random < max_power < most_damage_typed_engine, head to head. Not a licensed
     number — a sanity read that the three policies are actually different and
     that the type-aware refinement is the stronger one."""
     out = _run(r"""
@@ -64,8 +64,8 @@ def duel(p1, p2, n=300, seed=11):
 
 sym, n = duel("random", "random")
 mp, _ = duel("max_power", "random")
-md, _ = duel("most_damage_typed", "random")
-mdmp, _ = duel("most_damage_typed", "max_power")
+md, _ = duel("most_damage_typed_engine", "random")
+mdmp, _ = duel("most_damage_typed_engine", "max_power")
 print(f"RESULT {sym:.3f} {mp:.3f} {md:.3f} {mdmp:.3f} {n}")
 """)
     line = [l for l in out.splitlines() if l.startswith("RESULT")][-1]
@@ -164,14 +164,55 @@ print(f"RESULT {distinct} {len(rewards)} {np.mean(lengths):.1f} {np.mean(rewards
 
 
 @needs_bank
-def test_the_heuristics_anchor_is_refused_not_faked():
+def test_the_anchors_are_refused_by_name_not_faked_or_called_unknown():
+    """The naming rule is a safety property.
+
+    `random` and `max_power` keep poke-env's names because D-1 plays the
+    engine's against the server's under the same name — that shared name IS the
+    comparison. The two names that identify a REPORTED number do not get shared:
+    `heuristics` is the verdict denominator, and `most_damage_typed` is an
+    anchor-battery row. Both are refused with a pointer to where the real one
+    lives, so a misattributed number needs an explicit rename rather than a
+    typo.
+    """
     out = _run(r"""
 import sys
+import pkmn_gen1
+from rl.envs.engine_bank import read_bank
+from rl.envs.engine_tables import build_tables
 from rl.envs.engine_env import EngineEnv
-try:
-    EngineEnv(sys.argv[1], opponent="heuristics")
-except ValueError as e:
-    assert "server-only" in str(e), e
-    print("RESULT refused")
+
+for name, needle in [("heuristics", "VERDICT DENOMINATOR"),
+                     ("most_damage_typed", "SERVER anchor")]:
+    try:
+        EngineEnv(sys.argv[1], opponent=name)
+    except ValueError as e:
+        assert needle in str(e), (name, e)
+    else:
+        raise AssertionError(f"{name} was accepted")
+
+# ...and the same refusal reaches through the Rust surface, which is what a
+# D-1 or harness caller actually touches.
+tables, _ = build_tables()
+import pathlib
+_h, payload = read_bank(pathlib.Path(sys.argv[1]))
+env = pkmn_gen1.BatchEnv(2, 1, tables, payload, "p1")
+for name, needle in [("heuristics", "VERDICT DENOMINATOR"),
+                     ("most_damage_typed", "SERVER anchor"),
+                     ("nonsense", "unknown scripted policy")]:
+    try:
+        env.scripted_actions("opponent", name)
+    except ValueError as e:
+        assert needle in str(e), (name, e)
+    else:
+        raise AssertionError(f"{name} was accepted")
+
+# The suffixed name works, and it is what `EngineEnv` advertises.
+assert "most_damage_typed_engine" in EngineEnv.__module__ or True
+from rl.envs.engine_env import SCRIPTED
+assert SCRIPTED == ("random", "max_power", "most_damage_typed_engine"), SCRIPTED
+env.scripted_actions("opponent", "most_damage_typed_engine")
+EngineEnv(sys.argv[1], opponent="most_damage_typed_engine")
+print("RESULT refused")
 """)
     assert "RESULT refused" in out

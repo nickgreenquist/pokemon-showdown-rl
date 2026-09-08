@@ -386,9 +386,11 @@ impl BatchEnv {
 
     /// `(idx int32[n], actions int64[n])` — what a SCRIPTED policy would do at
     /// every slot where `seat` owes a decision. `policy` is one of `random`,
-    /// `max_power`, `most_damage_typed` (plan §8.2). For gate D-1 and for the
-    /// single-battle gym env; NEVER a training opponent, and an in-engine
-    /// `eval/win_rate` is never the locked number.
+    /// `max_power`, `most_damage_typed_engine` (plan §8.2). For gate D-1 and
+    /// for the single-battle gym env; NEVER a training opponent, and an
+    /// in-engine `eval/win_rate` is never the locked number. The bare
+    /// `most_damage_typed` and `heuristics` are refused by name — both identify
+    /// a REPORTED number that lives on the server.
     #[pyo3(signature = (seat="opponent", policy="random"))]
     fn scripted_actions<'py>(
         &mut self,
@@ -401,13 +403,7 @@ impl BatchEnv {
             "opponent" => Seat::Opponent,
             s => return Err(PyValueError::new_err(format!("seat {s:?} is not learner/opponent"))),
         };
-        let p = crate::scripted::Scripted::parse(policy).ok_or_else(|| {
-            PyValueError::new_err(format!(
-                "unknown scripted policy {policy:?}; known: random, max_power, \
-                 most_damage_typed (SimpleHeuristicsPlayer is deliberately not \
-                 ported -- it reads poke-env Battle objects, plan §8.2)"
-            ))
-        })?;
+        let p = crate::scripted::Scripted::parse(policy).map_err(PyValueError::new_err)?;
         let (idx, actions) = py.detach(|| self.inner.scripted_actions(seat, p));
         Ok((
             PyArray1::from_vec(py, idx),
@@ -430,10 +426,8 @@ impl BatchEnv {
         p1: &str,
         p2: &str,
     ) -> PyResult<Bound<'py, PyDict>> {
-        let parse = |s: &str| {
-            crate::scripted::Scripted::parse(s)
-                .ok_or_else(|| PyValueError::new_err(format!("unknown scripted policy {s:?}")))
-        };
+        let parse =
+            |s: &str| crate::scripted::Scripted::parse(s).map_err(PyValueError::new_err);
         let (a, b) = (parse(p1)?, parse(p2)?);
         let rows = py
             .detach(|| self.inner.scripted_series(n, a, b))

@@ -112,9 +112,10 @@ class EngineCollector:
         if not isinstance(opponent_spec, SnapshotPool):
             raise ValueError(
                 f"engine collector opponent {opponent_spec!r} is not supported; "
-                "self-play against a SnapshotPool is the only wired opponent "
-                "(scripted opponents live in rl/envs/engine_scripted.py and are "
-                "for eval and gate D-1, not for training)"
+                "self-play against a SnapshotPool is the only wired opponent. "
+                "The in-engine scripted bots (engine/pkmn_gen1/src/scripted.rs, "
+                "reachable through rl/envs/engine_env.py) are for gate D-1 and "
+                "server-free harness tests, never for a training arm"
             )
         self.pool = opponent_spec
         self.seam = _Seam()

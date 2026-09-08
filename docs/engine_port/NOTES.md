@@ -1065,9 +1065,49 @@ different team pairs rather than one pair repeatedly.
 
 Sanity ladder, 300 battles each (DESCRIPTIVE, not licensed, in-engine only):
 random-vs-random 0.35–0.65 as a symmetry guard, max_power vs random > 0.85,
-most_damage_typed vs random > 0.85, and **most_damage_typed vs max_power >
-0.55** — the type chart is the only difference between those two, which is why
-JOURNEY's anchor is the typed one.
+most_damage_typed_engine vs random > 0.85, and **most_damage_typed_engine vs
+max_power > 0.55** — the type chart is the only difference between those two,
+which is why JOURNEY's anchor is the typed one.
+
+### The naming rule (a safety property, added after review)
+
+`random` and `max_power` keep poke-env's names ON PURPOSE: D-1 plays the
+engine's under that name against the server's under the same name, and "same
+rule, two simulators" is exactly the comparison — a divergence there is what the
+gate exists to FIND, and it is found, not hidden, by the shared name.
+
+The in-engine typed bot is `most_damage_typed_engine`, and the bare
+`most_damage_typed` is REFUSED by name. The reason is not tidiness:
+`OPPONENT_PLAYERS["most_damage_typed"]` already means one specific thing
+project-wide — the SERVER anchor, whose h2h at 500 battles is a REPORTED ROW in
+the gen-1 and gen-4 anchor batteries (CLAUDE.md). There is no engine-vs-server
+comparison for it to earn the shared name with, so sharing it buys nothing and
+risks an in-engine number landing in a battery row. Such a number would be wrong
+twice over: the port could have drifted, and the in-engine game has not passed
+D-1.
+
+`heuristics` / `simple_heuristics` are refused the same way and always will be.
+SH is the VERDICT DENOMINATOR for every banked number in this project; a port
+that differed anywhere would redefine it with no error surfacing anywhere. The
+information for a gen-1 SH port is nearly all present (`ObservableState` carries
+types, base stats, HP fractions, boosts and faint counts on both sides; only the
+active's computed atk/spa, `move.expected_hits` and per-stat `move.boosts` are
+missing, and the hazard/dynamax/tera branches are dead in gen 1) — feasibility
+was never the objection. The one thing that would justify it is paired
+evaluation with common random numbers (plan §8.4), and that needs its own
+pre-reg AND its own parity gate: the ported SH's action against the real SH's,
+decision for decision on tape states, the way P-2 gated the mask.
+
+Both refusals name where the real one lives instead of saying "unknown policy",
+so a misattributed number needs a deliberate rename rather than a typo. Pinned
+by `scripted::tests::the_anchors_bare_name_is_refused_with_a_pointer_to_the_server_one`
+and by `tests/test_engine_scripted.py::test_the_anchors_are_refused_by_name_not_faked_or_called_unknown`,
+which checks both the Python and the Rust surface.
+
+Evidence that this class of bug is real and not hypothetical: porting
+`MaxBasePowerPlayer` — nine lines — shipped a tie-break divergence in this same
+session, because Rust's `max_by_key` keeps the LAST maximum where Python's `max`
+keeps the first. SH is roughly fifty times that surface.
 
 ## Gate harnesses written but NOT RUN: D-1 and T-1
 
