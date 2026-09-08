@@ -20,6 +20,7 @@ pub mod env;
 pub mod ffi;
 pub mod layout;
 pub mod observe;
+pub mod scripted;
 pub mod smoke;
 pub mod tables;
 pub mod team;

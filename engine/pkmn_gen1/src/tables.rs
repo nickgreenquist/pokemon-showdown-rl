@@ -48,6 +48,11 @@ pub struct MoveEntry {
     pub status: bool,
     /// ALPHABETICAL type index; `None` for a type outside the gen's 15.
     pub move_type: Option<u8>,
+    /// `move.entry.get("ohko")` -- Fissure / Horn Drill / Guillotine in gen 1.
+    /// Read ONLY by the most-damage-typed anchor (`scripted.rs`), which scores
+    /// them at H&L's constant 120 because poke-env reports base power 0. Not an
+    /// encoder input, so it is deliberately outside the tables fingerprint.
+    pub ohko: bool,
     /// `rl.envs.showdown._effect_block(move_id)` verbatim, as f32.
     pub effect: [f32; EFFECT_DIM],
 }
@@ -62,6 +67,7 @@ impl Default for MoveEntry {
             physical: false,
             status: false,
             move_type: None,
+            ohko: false,
             effect: [0.0; EFFECT_DIM],
         }
     }

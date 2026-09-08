@@ -1025,3 +1025,46 @@ real `SnapshotPool` and the real `EpisodeDataset` end to end — 3,000 rows into
 0; a per-battle member draw credited exactly one game per finish; and the
 resume property above. `tests/test_async_launch.py` gained 16 engine-mode
 validation cases.
+
+## In-engine scripted opponents + the single-battle env (plan §8.2, §8.3)
+
+`src/scripted.rs` ports three poke-env players. They read the OBSERVABLE state
+(`ObservableState`), never the engine's 384 bytes — a scripted opponent that
+cheated would make D-1 compare two different games and make any in-engine eval
+number meaningless.
+
+| policy | rule ported from |
+|---|---|
+| `random` | `Player.choose_random_singles_move` — uniform over moves ∪ switches, which is exactly the mask's true entries (proved at P-2) |
+| `max_power` | `MaxBasePowerPlayer.choose_singles_move` — a move whenever one is legal (NEVER a voluntary switch), else a random switch |
+| `most_damage_typed` | `rl/envs/most_damage_typed.py` (Huang & Lee) — base power × effectiveness, OHKO at 120, ties uniform; forced switch minimises the summed weakness |
+
+`SimpleHeuristicsPlayer` is NOT ported and the env REFUSES `opponent:
+"heuristics"` by name. It reads poke-env `Battle` objects; an in-engine version
+would be a different bot with the same name, and the locked protocol's
+denominator would silently change.
+
+**One porting bug the tests caught: Rust's `max_by_key` keeps the LAST maximum
+where Python's `max` keeps the FIRST.** `max_power` therefore picked the
+highest stored slot among tied base powers instead of the lowest —
+`available_moves` is in stored-slot order, so poke-env's tie goes to the lowest
+slot. Fixed by making the slot part of the key.
+
+`MoveEntry` gained an `ohko` flag (poke-env reports base power 0 for Fissure /
+Horn Drill / Guillotine, and H&L score them at 120). It is deliberately OUTSIDE
+the tables fingerprint: the fingerprint pins what produced the OBSERVATIONS,
+and `ohko` enters no encoder field.
+
+`rl/envs/engine_env.py` (`ShowdownEngine-v0`) is a thin `BatchEnv(k=1)` wrapper
+so `evaluate()` and harness tests run with no server. It pumps the opponent's
+forced-replacement turns rather than returning them as learner rows with a
+placeholder action — the sync path's wait-state absorption, and the one place
+the env differs from the collector (which has other slots to work on instead of
+waiting). Consecutive resets advance the battle counter, so an eval sees
+different team pairs rather than one pair repeatedly.
+
+Sanity ladder, 300 battles each (DESCRIPTIVE, not licensed, in-engine only):
+random-vs-random 0.35–0.65 as a symmetry guard, max_power vs random > 0.85,
+most_damage_typed vs random > 0.85, and **most_damage_typed vs max_power >
+0.55** — the type chart is the only difference between those two, which is why
+JOURNEY's anchor is the typed one.

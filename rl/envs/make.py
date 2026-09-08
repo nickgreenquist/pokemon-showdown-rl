@@ -154,3 +154,10 @@ def _ensure_showdown_registered() -> None:
     # gen-4 twin (rl/envs/gen4/env.py); same lazy entry-point idiom.
     if "ShowdownGen4-v0" not in gym.registry:
         gym.register(id="ShowdownGen4-v0", entry_point="rl.envs.gen4.env:Gen4ShowdownEnv")
+    # In-process pkmn/engine, one battle wide, scripted opponents, NO SERVER
+    # (docs/PKMN_ENGINE_RUST_PLAN.md §8.3). Descriptive only: the locked eval
+    # protocol is vs SimpleHeuristicsPlayer on the server, and SH is not
+    # ported. Registering it costs nothing — the entry point defers the
+    # pkmn_gen1 import, so a run without the extension built never sees it.
+    if "ShowdownEngine-v0" not in gym.registry:
+        gym.register(id="ShowdownEngine-v0", entry_point="rl.envs.engine_env:EngineEnv")

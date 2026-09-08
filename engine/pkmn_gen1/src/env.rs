@@ -19,6 +19,7 @@ use crate::battle::{Battle, BattleResult, Choice, IllegalChoice, Outcome, Player
 use crate::encoder::{OBS_DIM, encode};
 use crate::layout::POKEMON_SIZE;
 use crate::observe::ObservableState;
+use crate::scripted::Scripted;
 use crate::tables::StaticTables;
 use crate::team::PokemonSet;
 use crate::track::BattleTracker;
@@ -206,7 +207,7 @@ impl Gen1Env {
         self.battle.turn()
     }
 
-    fn state(&self, p: Player, t: &StaticTables) -> ObservableState {
+    pub(crate) fn state(&self, p: Player, t: &StaticTables) -> ObservableState {
         self.tracker
             .state_for(&self.battle, p, self.result.request(p), t)
     }
@@ -809,6 +810,9 @@ pub struct BatchEnv {
     battle_counter: u64,
     learner: Player,
     finished: Vec<Episode>,
+    /// The scripted opponents' draw stream (`scripted.rs`), seeded off the lane
+    /// seed so an in-engine eval replays exactly.
+    scripted_rng: u64,
     pub stats: BatchStats,
 }
 
@@ -837,6 +841,7 @@ impl BatchEnv {
             battle_counter,
             learner,
             finished: Vec::new(),
+            scripted_rng: lane_seed ^ 0x5343_5249_5054_4544,
             stats: BatchStats::default(),
         };
         for _ in 0..k {
@@ -985,6 +990,30 @@ impl BatchEnv {
             }
         }
         Ok(())
+    }
+
+    /// What a SCRIPTED policy would do at every slot where `seat` owes a
+    /// decision (plan §8.2). For gate D-1 and for `rl/envs/engine_env.py`'s
+    /// opponent — never for a training arm.
+    ///
+    /// The state is rebuilt here rather than taken from `pending()`, so the
+    /// policy is a pure function of the same projection the encoder reads and
+    /// cannot see anything the observation does not.
+    pub fn scripted_actions(&mut self, seat: Seat, policy: Scripted) -> (Vec<i32>, Vec<usize>) {
+        let who = match seat {
+            Seat::Learner => self.learner,
+            Seat::Opponent => self.learner.foe(),
+        };
+        let mut idx = Vec::new();
+        let mut actions = Vec::new();
+        for i in 0..self.slots.len() {
+            let s = &self.slots[i];
+            let Some(p) = s.pending(who, &self.tables) else { continue };
+            let st = s.state(who, &self.tables);
+            idx.push(i as i32);
+            actions.push(policy.act(&st, &p.mask, &self.tables, &mut self.scripted_rng));
+        }
+        (idx, actions)
     }
 
     pub fn drain_finished(&mut self) -> Vec<Episode> {

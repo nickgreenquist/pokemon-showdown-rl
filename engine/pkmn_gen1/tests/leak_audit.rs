@@ -52,6 +52,7 @@ fn tables() -> StaticTables {
             physical: i % 2 == 0,
             status: i % 5 == 0,
             move_type: if i == 0 { None } else { Some((i % N_TYPES as u32) as u8) },
+            ohko: i % 53 == 0,
             effect: std::array::from_fn(|k| ((i as usize * 13 + k) % 17) as f32 / 17.0),
         })
         .collect();

@@ -49,7 +49,7 @@ impl Tables {
     fn new(
         species_base_stats: Vec<[u16; N_BASE_STATS]>,
         species_types: Vec<(i64, i64)>,
-        moves: Vec<(u16, f32, u16, i16, bool, bool, i64, Vec<f32>)>,
+        moves: Vec<(u16, f32, u16, i16, bool, bool, i64, bool, Vec<f32>)>,
         type_chart: Vec<Vec<f64>>,
         prior: Vec<(u8, Vec<u8>, Vec<Vec<u8>>)>,
         set_prior: bool,
@@ -72,7 +72,7 @@ impl Tables {
         let moves = moves
             .into_iter()
             .map(
-                |(base_power, accuracy, max_pp, priority, physical, status, ty, effect)| {
+                |(base_power, accuracy, max_pp, priority, physical, status, ty, ohko, effect)| {
                     if effect.len() != EFFECT_DIM {
                         return Err(PyValueError::new_err(format!(
                             "effect block is {} floats, expected {EFFECT_DIM}",
@@ -89,6 +89,7 @@ impl Tables {
                         physical,
                         status,
                         move_type: type_index(ty, "move type")?,
+                        ohko,
                         effect: e,
                     })
                 },
@@ -380,6 +381,37 @@ impl BatchEnv {
             )
             .unwrap_or_else(|_| PyArray2::zeros(py, [n, N_ACTIONS], false)),
             PyArray1::from_vec(py, member),
+        ))
+    }
+
+    /// `(idx int32[n], actions int64[n])` — what a SCRIPTED policy would do at
+    /// every slot where `seat` owes a decision. `policy` is one of `random`,
+    /// `max_power`, `most_damage_typed` (plan §8.2). For gate D-1 and for the
+    /// single-battle gym env; NEVER a training opponent, and an in-engine
+    /// `eval/win_rate` is never the locked number.
+    #[pyo3(signature = (seat="opponent", policy="random"))]
+    fn scripted_actions<'py>(
+        &mut self,
+        py: Python<'py>,
+        seat: &str,
+        policy: &str,
+    ) -> PyResult<(Bound<'py, PyArray1<i32>>, Bound<'py, PyArray1<i64>>)> {
+        let seat = match seat {
+            "learner" => Seat::Learner,
+            "opponent" => Seat::Opponent,
+            s => return Err(PyValueError::new_err(format!("seat {s:?} is not learner/opponent"))),
+        };
+        let p = crate::scripted::Scripted::parse(policy).ok_or_else(|| {
+            PyValueError::new_err(format!(
+                "unknown scripted policy {policy:?}; known: random, max_power, \
+                 most_damage_typed (SimpleHeuristicsPlayer is deliberately not \
+                 ported -- it reads poke-env Battle objects, plan §8.2)"
+            ))
+        })?;
+        let (idx, actions) = py.detach(|| self.inner.scripted_actions(seat, p));
+        Ok((
+            PyArray1::from_vec(py, idx),
+            PyArray1::from_vec(py, actions.into_iter().map(|a| a as i64).collect()),
         ))
     }
 

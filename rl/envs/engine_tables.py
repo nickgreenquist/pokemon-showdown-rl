@@ -66,7 +66,7 @@ def _move_rows(spec: EncoderSpec):
     gd = GenData.from_gen(spec.gen)
     lo, hi = spec.move_num_range
     rows = [
-        (0, 0.0, 0, 0, False, False, -1, [0.0] * 23)
+        (0, 0.0, 0, 0, False, False, -1, False, [0.0] * 23)
         for _ in range(hi + 1)
     ]
     seen: set[int] = set()
@@ -87,6 +87,10 @@ def _move_rows(spec: EncoderSpec):
             m.category == MoveCategory.PHYSICAL,
             m.category == MoveCategory.STATUS,
             spec.type_index.get(m.type, -1),
+            # OHKO: read by the most-damage-typed anchor only (H&L score it at
+            # 120 because poke-env reports base power 0), never by the encoder —
+            # which is why it is NOT in `fingerprint` below.
+            bool(entry.get("ohko")),
             [float(x) for x in _effect_block(move_id)],
         )
     return rows
@@ -173,7 +177,9 @@ def fingerprint(spec: EncoderSpec = GEN1) -> str:
     h.update(np.asarray(base, dtype=np.int32).tobytes())
     h.update(np.asarray(types, dtype=np.int32).tobytes())
     for row in moves:
-        bp, acc, pp, prio, phys, stat, ty, eff = row
+        # `ohko` is skipped on purpose: the fingerprint pins what produced the
+        # OBSERVATIONS, and OHKO enters no encoder field.
+        bp, acc, pp, prio, phys, stat, ty, _ohko, eff = row
         h.update(np.asarray([bp, pp, prio, ty], dtype=np.int32).tobytes())
         h.update(np.asarray([acc], dtype=np.float32).tobytes())
         h.update(bytes([phys, stat]))
