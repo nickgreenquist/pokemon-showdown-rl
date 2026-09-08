@@ -604,6 +604,27 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         meta_path = out_dir / "meta.yaml"
         meta = yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
         meta.setdefault("resumes", []).append(stamp)
+        # THE ENGINE BLOCK IS RE-VERIFIED HERE, not just re-stamped. The
+        # `ckpt["config"] == asdict(cfg)` assert above catches a changed
+        # `collector.team_bank` PATH; it cannot catch a DIFFERENT BANK at the
+        # same path (read_bank validates a payload against its own embedded
+        # sha256, so a swapped-but-valid bank passes), a rebuilt extension at a
+        # different engine sha, or a tables fingerprint moved by a poke-env
+        # upgrade. All three silently change the game mid-run. Same shape as
+        # `_ensure_theta0` and the encoder fingerprint.
+        if cfg.collector.get("mode") == "engine" and "engine" in meta:
+            from rl.envs.engine_collector import engine_metadata
+
+            now = engine_metadata(cfg.collector["team_bank"])
+            drift = {k: (meta["engine"].get(k), v) for k, v in now.items()
+                     if meta["engine"].get(k) != v}
+            if drift:
+                raise SystemExit(
+                    "RESUME REFUSED: the engine block moved since this run was "
+                    f"launched — {drift}. A resumed lane must play the same "
+                    "game; rebuild/reinstall to the recorded state, or start a "
+                    "new run."
+                )
         meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
         print(f"RESUME: {cfg.run_name} from step {ckpt['step']} "
               f"(best_eval {resume_state.get('best_eval')})")
@@ -784,10 +805,19 @@ def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
         raise ValueError("collector.mode 'engine' has no seat-2 harvest hook; "
                          "seat 2's rows are cheap here but nothing collects "
                          "them yet (plan §8.4, its own pre-reg)")
-    if not cfg.selfplay.get("enabled", False):
-        raise ValueError("collector.mode 'engine' trains against the snapshot "
-                         "pool only; scripted in-engine opponents are for eval "
-                         "and gate D-1, never for a training arm")
+    # `selfplay.opponent == "self"` is the predicate the rest of train() uses
+    # (the aux purity seam at :458 reads exactly this), and it is what builds
+    # the SnapshotPool at :463. An `enabled` key would be REFUSED: the strict
+    # selfplay key set lives in `selfplay_env_kwargs`, which runs BEFORE this
+    # check, so no config could ever satisfy both — the engine mode was
+    # unlaunchable until this was fixed.
+    if cfg.selfplay.get("opponent") != "self":
+        raise ValueError(
+            "collector.mode 'engine' needs selfplay.opponent 'self' (got "
+            f"{cfg.selfplay.get('opponent')!r}): it trains against the snapshot "
+            "pool only. The in-engine scripted bots are for gate D-1 and "
+            "server-free harness tests, never for a training arm."
+        )
     # The D25 pair, at LAUNCH rather than at the first update. PPO refuses the
     # mismatch in update_episodes, but that is a whole rollout later and the
     # repo's rule is that a mis-set knob dies before any step runs.
@@ -928,7 +958,16 @@ def _async_loop(
             collector.check()
             episodes = collector.poll()
             if not episodes:
-                time.sleep(0.02)
+                # The async collector does its work on POKE_LOOP, so an empty
+                # poll means "nothing has finished yet" and sleeping is right.
+                # The ENGINE collector does all of its work INSIDE poll(), so an
+                # empty poll is a step that finished no battle and the sleep is a
+                # pure stall — 62% of polls at K=32, which would be ~12 s of
+                # sleep per 30,720-step rollout against ~1 s of collection.
+                # `idle_sleep` lets each collector state its own semantics.
+                delay = getattr(collector, "idle_sleep", 0.02)
+                if delay:
+                    time.sleep(delay)
                 continue
             now = time.perf_counter()
             for episode in episodes:

@@ -128,11 +128,20 @@ def leg_b(bank: pathlib.Path, seed: int, steps: int = 400, pool_size: int = 20) 
         for _ in range(20):  # warm-up: the first polls allocate
             c.poll()
         before, t0 = c.seam.requests, time.perf_counter()
+        empty = 0
         for _ in range(steps):
-            c.poll()
+            if not c.poll():
+                empty += 1
         wall = time.perf_counter() - t0
         served = c.seam.requests - before
         rows[k] = {
+            # The share of polls that finished no battle. It matters because
+            # `_async_loop` sleeps `collector.idle_sleep` after such a poll:
+            # this leg drives poll() bare, so a nonzero idle_sleep would make
+            # the leg's number unreachable by a real lane. EngineCollector sets
+            # it to 0, and this row is the evidence that the two agree.
+            "empty_poll_fraction": empty / steps,
+            "idle_sleep": float(getattr(c, "idle_sleep", 0.02)),
             "learner_steps": served,
             "wall_seconds": wall,
             "steps_per_sec": served / wall,
@@ -143,6 +152,14 @@ def leg_b(bank: pathlib.Path, seed: int, steps: int = 400, pool_size: int = 20) 
         }
         print(f"  K={k}: {rows[k]['steps_per_sec']:.0f} steps/s", file=sys.stderr)
     at256 = rows.get(256, {}).get("steps_per_sec", 0.0)
+    # A leg that measured a cadence the training loop cannot reproduce is not a
+    # measurement of the training loop. Refuse rather than publish it.
+    if any(r["idle_sleep"] and r["empty_poll_fraction"] for r in rows.values()):
+        raise SystemExit(
+            "this leg drives poll() with no idle sleep, but the collector "
+            "declares idle_sleep > 0 and some polls returned nothing — the "
+            "numbers would not be reachable by `_async_loop`"
+        )
     return {
         "scope": f"COLLECTION-ONLY, entity trunk {TRUNK_KWARGS}, hidden {HIDDEN_SIZES}, "
                  f"pool_size {pool_size} latest_prob 0.8, torch_threads 1",

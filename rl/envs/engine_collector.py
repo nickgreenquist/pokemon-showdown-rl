@@ -92,6 +92,14 @@ class EngineCollector:
     `rl/collect.py` structural contract the async seam also keeps).
     """
 
+    # `_async_loop` sleeps this long after a poll that returned no episodes.
+    # ZERO here, and that is not a tuning choice: every engine poll DOES a
+    # batched step, so an empty poll means "this step finished no battle", not
+    # "nothing has happened yet". Sleeping would be a pure stall, and it would
+    # bite hardest exactly where the plan wants a choice measured — at K=32 a
+    # poll finishes a battle only ~38% of the time.
+    idle_sleep = 0.0
+
     def __init__(
         self,
         policy,
@@ -122,6 +130,29 @@ class EngineCollector:
         self._policy = policy
         self._opp_action = bool(opp_action)
         self._max_updates = int(max_updates_per_battle)
+
+        # THE FG-5 HABIT, on the training path. `build_info()` only RECORDS
+        # what the loaded extension says — including a stale one — while
+        # `verify()` asserts the engine sha against the pin, PKMN_OPTIONS,
+        # battle_size and the Zig version. The stale-extension trap is real and
+        # already cost a debugging cycle at gate P-1: `cargo build` refreshes
+        # target/, but the IMPORTABLE module only changes on `pip install -e`.
+        pkmn_gen1.verify()
+        # The Rust encoder's width is a compile-time constant; the Python one is
+        # env-var driven (POKEMON_RL_ENCODER_V2 / _IDS). The BACKSTOP, not the
+        # primary guard: `EntityDeepSetsNet` already refuses at agent
+        # construction with a message naming both flags, which is earlier and
+        # better. This one covers a trunk that does not read the id suffix
+        # (`trunk: mlp`), where nothing else compares the two widths.
+        from rl.envs.showdown import OBS_DIM as PY_OBS_DIM
+
+        if PY_OBS_DIM != pkmn_gen1.OBS_DIM:
+            raise ValueError(
+                f"encoder width disagreement: Python {PY_OBS_DIM}, engine "
+                f"{pkmn_gen1.OBS_DIM}. The engine collector is built for the "
+                "828-dim v2+ids encoder — set POKEMON_RL_ENCODER_V2=1 and "
+                "POKEMON_RL_ENCODER_IDS=1."
+            )
 
         tables, self.tables_fingerprint = build_tables()
         self.bank_header, payload = read_bank(pathlib.Path(team_bank))

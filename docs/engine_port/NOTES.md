@@ -1225,3 +1225,122 @@ from the same pool, so restarting changes WHICH member plays a given battle but
 not the distribution. A restarted BATTLE sequence replays battles; a restarted
 selection stream does not. Recorded at the field rather than silently differing
 from the env path.
+
+## The second sweep (one opus subagent + my own), 2026-09-07
+
+The subagent's headline finding is the important one and it was MINE to make:
+
+### `collector.mode: engine` was UNLAUNCHABLE. Fixed.
+
+`_engine_collector_checks` required `cfg.selfplay["enabled"]`, and **`enabled`
+is not a legal selfplay key**. `selfplay_env_kwargs` (`rl/envs/make.py:103-110`)
+fixes the known set and raises on anything else, and `train()` calls it at
+`:447` — BEFORE `_async_collector_mode` at `:508`. So without the key the engine
+check raised, and with it `selfplay_env_kwargs` raised first. **No config could
+satisfy both.**
+
+Why sixteen validation cases missed it: every one of them called
+`_async_collector_mode` **in isolation**, and the fixture did
+`setdefault("selfplay", {"enabled": True})` — so the test suite ENCODED THE BUG
+AS THE EXPECTED SHAPE. A validator tested apart from the order it runs in is
+not tested.
+
+Fixed by reading the predicate `train()` already uses (`selfplay.opponent ==
+"self"`, the same one the D25 purity seam reads at `:458`) rather than by adding
+a key to `make.py` — a new selfplay key would persist into `config.yaml` and
+`ckpt["config"]`, and nine eval sites route through `selfplay_env_kwargs`. Two
+new tests: one that runs the two validators **in `train()`'s order**, and one
+that greps `_engine_collector_checks` for every `cfg.selfplay.get(...)` key it
+reads and asserts each is one the validator accepts — so the class of bug cannot
+return.
+
+### The empty-poll sleep was a pure stall on this path, and it corrupted T-1(b)
+
+`_async_loop` slept 20 ms after a poll that returned nothing. Correct for
+`AsyncCollector` (its work happens on POKE_LOOP, so an empty poll means "nothing
+has finished yet"); wrong here, because **every engine poll DOES a batched
+step** — an empty poll is a step that finished no battle.
+
+It bites hardest exactly where the plan wants a K chosen. At ~67 engine updates
+per battle a poll finishes one with probability ~K/67:
+
+| K | P(empty poll) | sleep per 30,720-step rollout |
+|---|---|---|
+| 256 | ~2% | 0.05 s |
+| 128 | ~15% | 0.7 s |
+| 64 | ~38% | **3.8 s** |
+| 32 | ~62% | **12.1 s** |
+
+against the plan's ~1 s projected collection. The default K=256 is fine, which
+is why nothing would have caught it — but **T-1 leg (b) sweeps K ∈ {32…512} and
+drives `poll()` bare**, so it would have published a clean K=32 number no lane
+could reach: a measurement/production mismatch inside the gate itself.
+
+Fixed with a collector-declared `idle_sleep` (0.0 here, 0.02 by default for the
+async path), and leg (b) now records `empty_poll_fraction` per K and REFUSES to
+publish if the collector declares a sleep the leg did not take.
+
+### Five silent zero-fallbacks removed
+
+`PyArray2::from_vec2(...).unwrap_or_else(|_| PyArray2::zeros(...))` at five
+sites. `from_vec2` fails exactly when the flat buffer is not a whole number of
+rows — the signature of an episode-buffer length bug — and the fallback handed
+back an **all-zero observation of the correct declared shape** to train on, or
+an **all-False mask** that sends every logit to the −1e8 sentinel. Replaced by
+one `rows2` helper that errors, plus a row-count agreement check in `pending()`
+so a caller can never zip one slot's obs with another's mask.
+
+### Two guards added
+
+* **Launch preflight.** `pkmn_gen1.verify()` now runs on the training path.
+  `build_info()` only RECORDS what is loaded, including a stale extension; the
+  stale-editable-install trap already cost a cycle at P-1 and nothing guarded a
+  launch. (The encoder-width half is a BACKSTOP, not the primary guard —
+  `EntityDeepSetsNet` already refuses at agent construction naming both flags,
+  which is earlier and better. It covers `trunk: mlp`, where nothing compares
+  the two widths. Recorded that way rather than claiming more.)
+* **A resume re-verifies the engine block.** `ckpt["config"] == asdict(cfg)`
+  catches a changed `team_bank` PATH but not a different bank at the same path
+  (`read_bank` validates against the payload's own sha256, so a
+  swapped-but-valid bank passes), a rebuilt extension at a different engine sha,
+  or a tables fingerprint moved by a poke-env upgrade. All three silently change
+  the game mid-run. Now refused, in the shape of `_ensure_theta0`.
+
+### Recorded, not acted on
+
+* **Three A-1 R0 gates cannot fail on this path.** `episodes_discarded`,
+  `rerequests` are literal `0` and `battles_in_flight`/`rooms_tracked` are the
+  constant k (`pyencode.rs`). They are live counters on the async path, which is
+  why the gates were worth stating there. **The A-1 header must not restate
+  gates that cannot fire** — drop them with a stated reason or replace them with
+  something this path can violate (mask-legality errors and `Outcome::Error`
+  both raise, so both qualify). This is pre-reg text, which is not agent work.
+* **Any encoder change now costs two implementations plus a P-1 re-run.**
+  `encoder.rs` hard-pins `OBS_DIM == 828` at compile time, so IDEAS 4.6, 2.7 and
+  — importantly — **JOURNEY step 8's gen-4 encoder rewrite back-ported to gen 1,
+  the very next step after 7.5** — must land in `rl/envs/showdown.py` AND
+  `engine/pkmn_gen1/src/encoder.rs` AND `rl/envs/engine_tables.py`, with P-1
+  re-run to re-establish bitwise parity. Plan §12's 12-16 block estimate does
+  not include this recurring cost.
+* **IDEAS 4.4 (H&L 5-term shaping) needs a different engine BUILD, not a knob.**
+  `hl_shaping` sums Showdown PROTOCOL events, and the engine is built
+  `-Dlog=false`. A `debug-log` feature exists but a protocol decoder does not,
+  and a log build is a different artifact needing its own B-0. Nothing prices
+  this. 4.4 is last-ranked and gated on 4.1/4.3/4.5 nulling, so: recorded, not
+  built.
+* **IDEAS 2.2 (the seed-sharing run tag) is still required.** The per-battle
+  seed makes the BATTLE STREAM pairable, not the LAUNCH: two engine arms at the
+  same `--seed` still collide on eval-env usernames. This is the same
+  server-at-launch fact as above, and it means the pairing prize the 7.5 case
+  rests on is gated on 2.2, which is Tier-0 instrument work needing no pre-reg.
+* **Artifact compatibility: no gaps.** Independently swept — `eval_checkpoint.py`
+  rebuilds from `ckpt["config"]` and never reads `cfg.collector`; `ladder.py`
+  needs only the checkpoint, its sha and the encoder flags; `extract_history.py`
+  takes a per-file key union so the two extra `collect/*` columns just appear;
+  `meta.yaml` readers ignore the new `engine` block and
+  `tests/test_run_capture.py` asserts a subset. Nothing outside `rl/train.py`
+  reads `cfg.collector`.
+* **In-loop eval costs less than the plan says.** Measured on
+  `runs/showdown_sp_100m_s104/history.csv`: `time/eval_sec` mean **5.31 s** over
+  400 evals, not plan §8.3's "~26 s". At the projected 2,350 steps/s and
+  `eval_every 250000` that is ~4.8% of lane wall (up from ~1.2% today).

@@ -293,3 +293,95 @@ for score, n in pool.stats:
 print("OK", finished, games, len(evicted))
 """)
     assert out.strip().splitlines()[-1].startswith("OK")
+
+
+def test_the_engine_collector_declares_no_idle_sleep():
+    """`_async_loop` sleeps `collector.idle_sleep` after a poll that returned no
+    episodes. That is right for the async collector — its work happens on
+    POKE_LOOP, so an empty poll means "nothing has finished yet". It is wrong
+    here: every engine poll DOES a batched step, so an empty poll is a step that
+    finished no battle and the sleep is a pure stall.
+
+    It bites hardest exactly where the plan wants a K chosen. Using the branch's
+    own measured ~67 engine updates per battle, a poll finishes a battle with
+    probability ~K/67, so an empty poll is ~2% likely at K=256 but ~62% at K=32 —
+    which at 20 ms would be ~12 s of sleep per 30,720-step rollout against the
+    plan's ~1 s projected collection.
+    """
+    from rl.envs.engine_collector import EngineCollector
+
+    assert EngineCollector.idle_sleep == 0.0
+
+    # And the loop must actually read it rather than hardcoding 0.02.
+    import inspect
+
+    import rl.train
+
+    src = inspect.getsource(rl.train._async_loop)
+    assert 'getattr(collector, "idle_sleep"' in src, (
+        "_async_loop hardcodes its empty-poll sleep; the engine path stalls"
+    )
+
+
+@needs_bank
+def test_the_collector_preflights_the_extension_and_the_encoder_width():
+    """`build_info()` RECORDS whatever extension is loaded, including a stale
+    one; `verify()` REFUSES a mismatch against the pin. The stale-editable-
+    install trap already cost a debugging cycle at gate P-1, and nothing guarded
+    a training launch against it.
+
+    The width check is the second half: the Rust OBS_DIM is a compile-time
+    constant, the Python one is env-var driven, and a lane launched without the
+    encoder flags would build its agent at the Python width and die on a torch
+    GEMM shape error at the first poll — after meta.yaml and the wandb run
+    exist, with a message naming nothing.
+    """
+    out = _run(r"""
+import pkmn_gen1
+from rl.envs.showdown import OBS_DIM
+assert OBS_DIM == pkmn_gen1.OBS_DIM == 828
+
+agent = make_agent()
+pool = SnapshotPool(pool_size=1, latest_prob=1.0)
+pool.push(agent)
+c = collector(agent, pool, k=2)          # calls verify() on the way through
+assert c.metadata()["engine_sha"] == pkmn_gen1.build_info()["engine_sha_pinned"]
+print("OK")
+""")
+    assert out.strip().splitlines()[-1] == "OK"
+
+
+@needs_bank
+def test_a_lane_without_the_encoder_flags_is_refused_by_name():
+    """Without the encoder flags a lane must die naming THE FLAGS, never inside
+    a torch GEMM.
+
+    The primary guard turns out to be the entity trunk itself, which refuses at
+    agent construction — earlier than the collector, and with a better message.
+    The collector's width check is the backstop for a trunk that does not care
+    about the id suffix (`trunk: mlp`), where nothing else compares the Python
+    encoder's width to the Rust one. This test accepts either, and fails if the
+    process gets far enough to build a collector at the wrong width.
+    """
+    r = subprocess.run(
+        [sys.executable, "-c", _PREAMBLE + r"""
+agent = make_agent()
+pool = SnapshotPool(pool_size=1, latest_prob=1.0)
+pool.push(agent)
+try:
+    collector(agent, pool, k=2)
+except ValueError as e:
+    assert "POKEMON_RL_ENCODER_V2" in str(e), e
+    print("OK refused")
+except Exception as e:
+    print("OTHER", type(e).__name__, e)
+""", BANKS[-1]],
+        capture_output=True, text=True, timeout=900, cwd=ROOT,
+        env={k: v for k, v in os.environ.items()
+             if k not in ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS")},
+    )
+    # Without the flags the agent's own construction may fail first; either way
+    # the failure must be about the encoder width, never a silent 612-dim run.
+    combined = r.stdout + r.stderr
+    assert "POKEMON_RL_ENCODER_IDS" in combined or "encoder width" in combined, combined
+    assert "OTHER" not in combined, combined

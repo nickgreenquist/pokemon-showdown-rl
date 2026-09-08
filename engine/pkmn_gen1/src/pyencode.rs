@@ -297,6 +297,35 @@ use numpy::PyArray2;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::types::PyDict;
 
+
+/// `PyArray2::from_vec2`, but a ragged input is an ERROR, never zeros.
+///
+/// `from_vec2` fails exactly when the flat buffer is not a whole number of rows
+/// — the signature of an episode-buffer length bug. The five call sites used to
+/// fall back to `PyArray2::zeros` of the correct DECLARED shape, so such a bug
+/// would have handed the collector an all-zero OBSERVATION to train on, or an
+/// all-False MASK that sends every logit to the -1e8 sentinel. That is the
+/// "a bug becomes silent wrong data" shape this repo's masking and
+/// outcome-reading conventions exist to prevent.
+fn rows2<'py, T: numpy::Element>(
+    py: Python<'py>,
+    flat: &[T],
+    width: usize,
+    what: &str,
+) -> PyResult<Bound<'py, PyArray2<T>>>
+where
+    T: Clone,
+{
+    if width == 0 || flat.len() % width != 0 {
+        return Err(PyRuntimeError::new_err(format!(
+            "{what}: {} values is not a whole number of {width}-wide rows",
+            flat.len()
+        )));
+    }
+    PyArray2::from_vec2(py, &flat.chunks(width).map(|c| c.to_vec()).collect::<Vec<_>>())
+        .map_err(|e| PyRuntimeError::new_err(format!("{what}: {e}")))
+}
+
 /// K engine battles driven together. NOT a licensed collector: no number from
 /// this is comparable to anything banked until gate A-1 passes.
 #[pyclass]
@@ -370,16 +399,21 @@ impl BatchEnv {
             s => return Err(PyValueError::new_err(format!("seat {s:?} is not learner/opponent"))),
         };
         let (idx, obs, mask, member) = py.detach(|| self.inner.pending(seat));
+        // The three arrays must agree on their row count, or a caller zips a
+        // slot's observation with another slot's mask.
         let n = idx.len();
+        if obs.len() != n * OBS_DIM || mask.len() != n * N_ACTIONS || member.len() != n {
+            return Err(PyRuntimeError::new_err(format!(
+                "pending({seat:?}): {n} slots but {} obs / {} mask / {} member values",
+                obs.len(),
+                mask.len(),
+                member.len()
+            )));
+        }
         Ok((
             PyArray1::from_vec(py, idx),
-            PyArray2::from_vec2(py, &obs.chunks(OBS_DIM).map(|c| c.to_vec()).collect::<Vec<_>>())
-                .unwrap_or_else(|_| PyArray2::zeros(py, [n, OBS_DIM], false)),
-            PyArray2::from_vec2(
-                py,
-                &mask.chunks(N_ACTIONS).map(|c| c.to_vec()).collect::<Vec<_>>(),
-            )
-            .unwrap_or_else(|_| PyArray2::zeros(py, [n, N_ACTIONS], false)),
+            rows2(py, &obs, OBS_DIM, "pending obs")?,
+            rows2(py, &mask, N_ACTIONS, "pending mask")?,
             PyArray1::from_vec(py, member),
         ))
     }
@@ -470,27 +504,18 @@ impl BatchEnv {
             let n = e.length;
             d.set_item(
                 "obs",
-                PyArray2::from_vec2(py, &e.obs.chunks(OBS_DIM).map(|c| c.to_vec()).collect::<Vec<_>>())
-                    .unwrap_or_else(|_| PyArray2::zeros(py, [n, OBS_DIM], false)),
+                rows2(py, &e.obs, OBS_DIM, "episode obs")?,
             )?;
             d.set_item(
                 "masks",
-                PyArray2::from_vec2(
-                    py,
-                    &e.masks.chunks(N_ACTIONS).map(|c| c.to_vec()).collect::<Vec<_>>(),
-                )
-                .unwrap_or_else(|_| PyArray2::zeros(py, [n, N_ACTIONS], false)),
+                rows2(py, &e.masks, N_ACTIONS, "episode masks")?,
             )?;
             d.set_item("actions", PyArray1::from_vec(py, e.actions))?;
             d.set_item("old_logp", PyArray1::from_vec(py, e.logp))?;
             d.set_item("version", PyArray1::from_vec(py, e.version))?;
             d.set_item(
                 "opp_choice",
-                PyArray2::from_vec2(
-                    py,
-                    &e.opp_choice.chunks(3).map(|c| c.to_vec()).collect::<Vec<_>>(),
-                )
-                .unwrap_or_else(|_| PyArray2::zeros(py, [n, 3], false)),
+                rows2(py, &e.opp_choice, 3, "episode opp_choice")?,
             )?;
             d.set_item("reward", e.reward)?;
             d.set_item("length", n)?;
