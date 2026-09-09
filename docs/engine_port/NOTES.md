@@ -1533,3 +1533,47 @@ bands read, and gate P-3 verified the marginals against
 `rl/envs/randbats_prior.py` by χ² at n=100k. If a later run wants a fresh draw
 per battle, the bank is cheap to regenerate larger — the constraint is disk
 (96 B per pair), not correctness.
+
+## 2026-09-09 — pre-launch smoke, and what it caught
+
+The gen-4 chapter closed (`POST-FLEET DONE`, pooled vs-SH 0.8788, M-YES,
+S5-MATCHED) and the maintainer released the box. Before committing the gate
+chain I smoked the engine training loop, which was worth doing.
+
+**The box was not literally free.** An idle Showdown server left from the gen-4
+chapter (543 min cumulative CPU, ZERO delta over 10 s), a leftover idle shell
+from that chapter's launcher, and `caffeinate`. The shell and `caffeinate` were
+left alone. The server was restarted — deliberately, recorded in the pre-reg's
+`launch_authorization` block, because the chapter that started it is closed and
+D-1 wants a fresh instrument anyway.
+
+**The stale server was breaking the eval path.** The first smoke threw
+`websockets ConnectionClosedError: no close frame received or sent` on BOTH eval
+seats ~43 s in. Collection was unaffected (the engine needs no server) and the
+lane kept training, so this is a shape that would have quietly cost P-AUC its
+48 rungs rather than killing a lane. On a FRESH server the same smoke ran with
+**zero** connection errors and logged `eval/win_rate`. The chain restarts the
+server before D-1 and before A-1, so it is covered by design — but the failure
+mode is worth knowing: an eval-seat drop does not kill an engine lane.
+
+**Measured, solo, single lane, engine collector, 100M recipe width:**
+step 247,537 in ~180 s = **~1,375 steps/s**. Against the Node async fleet's
+realized 574 steps/s/lane 3-wide, that is ~2.4x on a solo-vs-3-wide comparison,
+which is NOT a like-for-like number and is not quotable as a speedup — T-1 (c)
+and (d) exist to replace it. Recording it only as evidence the loop runs at a
+plausible rate. It is well short of the plan's 4.2x projection.
+
+**Resume works on the engine path:** `--resume` continued 247,537 -> 370,835
+and crossed an eval boundary cleanly.
+
+**Three defects the launch attempt found in my own runner**, all fixed before
+launch: the RAM preflight assumed a 4096-byte page (this box reports 16384, so
+it read 2 GB against a 6 GB floor and refused a box with ~10 GB free); the chain
+was not actually detached, since it asked an operator to start and stop the
+server between steps; and D-1's SERVER leg needs `--bank` (`engine_d1.py:410`),
+which the runner did not pass — it would have died at step 2.
+
+**Bank generation is much faster than NOTES had recorded:** 5,000 pairs in
+2.44 s = **2,049 pairs/s**, so the 5,000,000-pair bank is ~41 min, not the
+~2.75 h implied by the earlier "99 s per 50,000" (that figure was measured under
+fleet contention). This is what made RW-6's 5M ruling cheap.
