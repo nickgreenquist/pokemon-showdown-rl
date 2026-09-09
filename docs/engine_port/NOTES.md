@@ -1687,3 +1687,53 @@ harness runs): max_power 0.333/0.167/20.7, sleep 0.000; random 0.833/0.000/45.5,
 sleep 0.833. The `sleep_fraction` agreeing at 0.000 on max_power across both
 simulators is the first cross-simulator signal the port has ever produced.
 Server rate 0.08 s/battle at concurrency 8, so D-1's 20,000 battles is ~30 min.
+
+## 2026-09-09 (evening) — D-1's first FAIL was an artifact, and how it was caught
+
+**The verdict.** D-1 came back FAIL: `max_power_vs_max_power` breached two of
+three bands (p1 win rate delta +0.0208 against 0.02; tie rate +0.0060 against
+0.005), while `random_vs_random` passed all three cleanly. Correctly, A-1 did
+not launch.
+
+**It was not a parity failure.** The engine leg was measuring 500 battles
+twenty times. `scripted_series` derives battle `i` from `(lane_seed, i)` and
+looped `for i in 0..n` on EVERY call; `engine_d1` chunks n=10,000 into 20 calls
+of CHUNK=500, so it replayed battles 0..499 and reported n=10,000. Two
+successive calls returned byte-identical outcomes AND turns — that was the
+direct confirmation.
+
+**The tell, and it is worth remembering.** Not the failing band — the SEAT
+ASYMMETRY. Under `random_vs_random`, the same uniform policy sits on both
+seats, so p1 − p2 must be ~0 by construction; there is no mechanism for a
+difference. The engine gave +0.021, +0.061, +0.008, −0.010, +0.022 across five
+lane seeds at a nominal n=20,000 — up to 12 se from zero, and violently
+seed-dependent. Independent battles cannot behave like that, so the sample was
+not what it claimed to be. **A symmetric matchup is a free self-test on any
+battle generator, and it found this before any parity argument did.**
+After the fix, the same five seeds: −0.0025, −0.0036, +0.0020, +0.0047,
++0.0091 — all inside 1.8 se.
+
+**What it does to the numbers.** The engine leg's true binomial se is
+sqrt(20)x what it reported: 0.0224, not 0.0050. The max_power p1-win delta of
++0.0208 is **+0.91 se_diff**, not the 4.2 se the reported se implied. Both
+breaches were inside noise. `results/d1` was DELETED and the gate re-run, not
+reinterpreted — a verdict computed on a broken sample is not evidence about
+anything, in either direction.
+
+**The fix, and a second bug inside it.** A battle-index `start` now threads
+through `scripted.rs`, `env.rs` and the PyO3 binding (default 0, so single-shot
+callers are unchanged). While fixing it, the policy RNG turned out to be a
+STREAM carried across the series, which made the result depend on how the
+caller chunked the run — 20x500 and 1x10,000 would play the same battles with
+different policy draws, so D-1 could not resume without changing its own
+answer. It is now derived per battle from the battle index. `2x30 == 1x60`
+exactly, for both policies, and that invariant is pinned.
+
+**Pinned by three tests** (`tests/test_engine_scripted.py`): chunks play
+different battles; chunking is invariant; a symmetric matchup shows no seat
+asymmetry. 59 Rust tests green.
+
+**Scope check — this never touched training.** `scripted_series` is D-1-only.
+The collector takes `battle_counter` as a CONSTRUCTOR argument precisely so
+`BatchEnv` cannot replay battles across a resume, which is the same class of
+bug caught earlier and already guarded. A-1's arm is unaffected.
