@@ -1,0 +1,6 @@
+[submodule "engine/pkmn_gen1/vendor/pkmn-engine"]
+	path = engine/pkmn_gen1/vendor/pkmn-engine
+	url = https://github.com/pkmn/engine
+	# PINNED: 9b88fd6c5467f703c38951d5b2e8a660314d410b (2026-09-02, "MAX_FRONTIER += 4").
+	# pkmn/engine, MIT, (c) 2021-2024 pkmn contributors. Moving this pin re-runs gates B-0..P-2
+	# (docs/PKMN_ENGINE_RUST_PLAN.md §1.1, §10).

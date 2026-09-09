@@ -186,6 +186,15 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
             from rl.envs.showdown import ENCODER_FINGERPRINT
 
         meta["encoder"] = dict(ENCODER_FINGERPRINT)
+    if cfg.collector.get("mode") == "engine":
+        # Which engine build, which team bank, which static tables. Stamped
+        # here rather than at collector construction so a run that dies before
+        # its first checkpoint still records what game it was playing — and so
+        # the pin is auditable from the run dir alone. NOT LICENSED: gate A-1
+        # has not run (docs/PKMN_ENGINE_RUST_PLAN.md §9).
+        from rl.envs.engine_collector import engine_metadata
+
+        meta["engine"] = engine_metadata(cfg.collector["team_bank"])
     if agent is not None and hasattr(agent, "actor") and hasattr(agent, "critic"):
         # Exact param counts (Rung 2 R0-2 stamps them; harmless everywhere
         # else): a capacity-matched comparison is only auditable if the
@@ -295,6 +304,7 @@ def _save_latest(
     best_eval: float,
     updates_done: int,
     pool_state: dict | None,
+    loop_extra: dict | None = None,
 ) -> None:
     """The ONE resume artifact (F-05): checkpoint.pt carries the learner, the
     loop counters and — on a self-play run — the pool, in a single
@@ -311,7 +321,16 @@ def _save_latest(
     paused (pause() gates the learner's decisions, not the opponent's) — while
     the vector loop reads it inline. The one thing every site shares is this
     payload shape, so the shape lives in one place."""
-    extras = {"loop": {"best_eval": best_eval, "updates_done": updates_done}}
+    extras = {
+        "loop": {
+            "best_eval": best_eval,
+            "updates_done": updates_done,
+            # Collector-owned counters that a resume must continue rather than
+            # restart — today only the engine lane's `battle_counter`. They ride
+            # `loop` because `resume_state` is `{"step": ..., **ckpt["loop"]}`.
+            **(loop_extra or {}),
+        }
+    }
     if pool_state is not None:
         extras["pool"] = {"step": step, "state": pool_state}
     # F-18: the global streams ride in the same payload, so a resume continues
@@ -486,8 +505,8 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         train_env_kwargs["opponent"] = _frozen_checkpoint_pool(
             train_env_kwargs["opponent"]
         )
-    async_collect = _async_collector_mode(cfg, vectorized)
-    if async_collect:
+    collect_mode = _async_collector_mode(cfg, vectorized)
+    if collect_mode in ("async", "engine"):
         # No training env is constructed at all: the async collector builds
         # its own two Players (rl/envs/showdown_async.py), and opening a
         # SyncVectorEnv here would cost 16 idle websockets. The agent builds
@@ -585,6 +604,27 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
         meta_path = out_dir / "meta.yaml"
         meta = yaml.safe_load(meta_path.read_text()) if meta_path.exists() else {}
         meta.setdefault("resumes", []).append(stamp)
+        # THE ENGINE BLOCK IS RE-VERIFIED HERE, not just re-stamped. The
+        # `ckpt["config"] == asdict(cfg)` assert above catches a changed
+        # `collector.team_bank` PATH; it cannot catch a DIFFERENT BANK at the
+        # same path (read_bank validates a payload against its own embedded
+        # sha256, so a swapped-but-valid bank passes), a rebuilt extension at a
+        # different engine sha, or a tables fingerprint moved by a poke-env
+        # upgrade. All three silently change the game mid-run. Same shape as
+        # `_ensure_theta0` and the encoder fingerprint.
+        if cfg.collector.get("mode") == "engine" and "engine" in meta:
+            from rl.envs.engine_collector import engine_metadata
+
+            now = engine_metadata(cfg.collector["team_bank"])
+            drift = {k: (meta["engine"].get(k), v) for k, v in now.items()
+                     if meta["engine"].get(k) != v}
+            if drift:
+                raise SystemExit(
+                    "RESUME REFUSED: the engine block moved since this run was "
+                    f"launched — {drift}. A resumed lane must play the same "
+                    "game; rebuild/reinstall to the recorded state, or start a "
+                    "new run."
+                )
         meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
         print(f"RESUME: {cfg.run_name} from step {ckpt['step']} "
               f"(best_eval {resume_state.get('best_eval')})")
@@ -630,9 +670,9 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             print("RESUME: no rng state in checkpoint.pt (pre-F-18 run dir) — "
                   "torch/numpy/random streams restart from set_seed(seed), as before")
 
-    if async_collect:
+    if collect_mode in ("async", "engine"):
         _async_loop(cfg, eval_env, agent, logger, out_dir, pool, push_every,
-                    resume_state, train_env_kwargs.get("opponent"))
+                    resume_state, train_env_kwargs.get("opponent"), collect_mode)
     elif vectorized:
         _vector_loop(cfg, env, eval_env, agent, logger, out_dir, normalizers, pool,
                      push_every, resume_state)
@@ -644,21 +684,45 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     eval_env.close()
 
 
-def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
+ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs"}
+ASYNC_KEYS = {"mode", "concurrency"}
+
+
+def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
     """Strict launch-time validation of the Stage-2 collector block — the
     selfplay-keys rule: a typo'd knob or an unsupported combination must
-    fail HERE, not train a 50M run silently wrong."""
-    unknown = cfg.collector.keys() - {"mode", "concurrency"}
-    if unknown:
-        raise ValueError(f"unknown collector key(s) {sorted(unknown)}; known: "
-                         "['concurrency', 'mode']")
+    fail HERE, not train a 50M run silently wrong.
+
+    Returns the collection mode: 'sync' (the env stack), 'async' (K battles on
+    POKE_LOOP against the server) or 'engine' (in-process pkmn/engine, plan
+    §8.1). The last two share `_async_loop`; only the collector object differs.
+    """
     mode = cfg.collector.get("mode", "sync")
-    if mode not in ("sync", "async"):
-        raise ValueError(f"collector.mode must be 'sync' or 'async', got {mode!r}")
+    if mode not in ("sync", "async", "engine"):
+        raise ValueError(
+            f"collector.mode must be 'sync', 'async' or 'engine', got {mode!r}"
+        )
+    known = {"sync": {"mode"}, "async": ASYNC_KEYS, "engine": ENGINE_KEYS}[mode]
+    unknown = cfg.collector.keys() - known
+    if unknown:
+        # A key that belongs to ANOTHER mode names that mode: "concurrency is
+        # async-only" says what went wrong; "unknown key" makes the reader
+        # wonder if they typo'd it.
+        owner = {k: "async" for k in ASYNC_KEYS - {"mode"}}
+        owner.update({k: "engine" for k in ENGINE_KEYS - {"mode"}})
+        misplaced = sorted(k for k in unknown if owner.get(k, mode) != mode)
+        if misplaced:
+            raise ValueError(
+                f"collector.{misplaced[0]} is {owner[misplaced[0]]}-only "
+                f"(collector.mode is {mode!r})"
+            )
+        raise ValueError(f"unknown collector key(s) {sorted(unknown)} for "
+                         f"collector.mode {mode!r}; known: {sorted(known)}")
     if mode == "sync":
-        if "concurrency" in cfg.collector:
-            raise ValueError("collector.concurrency is async-only")
-        return False
+        return "sync"
+    if mode == "engine":
+        _engine_collector_checks(cfg, vectorized)
+        return "engine"
     concurrency = cfg.collector.get("concurrency", 8)
     if not isinstance(concurrency, int) or not 1 <= concurrency <= 64:
         raise ValueError(f"collector.concurrency must be an int in [1, 64], "
@@ -679,14 +743,15 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
     if cfg.normalize_obs or cfg.normalize_reward:
         raise ValueError("collector.mode 'async' is incompatible with the "
                          "vector-level normalizers")
-    extra = cfg.env_kwargs.keys() - {"opp_action"}
+    extra = cfg.env_kwargs.keys() - {"opp_action", "seat_tag"}
     if extra:
         # faint_shaping / hl_shaping / privileged / save_replays all live in
         # the env stack the async path does not run; accepting them here
         # would stamp a config whose knobs silently did nothing.
         raise ValueError(f"collector.mode 'async' supports env_kwargs "
-                         f"{{'opp_action'}} only; got {sorted(extra)} — the "
-                         "async path emits terminal outcome rewards only")
+                         f"{{'opp_action', 'seat_tag'}} only; got "
+                         f"{sorted(extra)} — the async path emits terminal "
+                         "outcome rewards only")
     if cfg.agent.get("privileged_dim"):
         raise ValueError("collector.mode 'async' does not collect the "
                          "privileged block (D18) — the wide critic would "
@@ -694,7 +759,108 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> bool:
     if cfg.selfplay.get("harvest_both_seats", False):
         raise ValueError("collector.mode 'async' has no seat-2 harvest hook "
                          "(BI-G4-1 is the sync path's); use collector.mode 'sync'")
-    return True
+    return "async"
+
+
+def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
+    """`collector.mode: engine` — the in-process pkmn/engine collector.
+
+    NOT LICENSED: gate A-1 has not run, so a run launched with this mode
+    produces numbers from a NEW INSTRUMENT that are not comparable to any
+    banked row (plan §9). The refusals below are the async path's, for the same
+    reasons, plus the ones specific to a collector that never opens a socket.
+    """
+    k = cfg.collector.get("k", 256)
+    if not isinstance(k, int) or not 1 <= k <= 4096:
+        raise ValueError(f"collector.k must be an int in [1, 4096], got {k!r}")
+    bank = cfg.collector.get("team_bank")
+    if not bank:
+        raise ValueError(
+            "collector.mode 'engine' needs collector.team_bank: the path to a "
+            "bank built by scripts/engine_team_bank.py (its sha256 and the PS "
+            "commit that generated it are stamped into meta.yaml)"
+        )
+    if not Path(bank).exists():
+        raise ValueError(f"collector.team_bank {bank!r} does not exist")
+    floor = cfg.collector.get("min_bank_pairs")
+    if floor is not None:
+        # A pre-registration can pin a MINIMUM bank size, and then it has to be
+        # enforced where the lane starts rather than in prose. The engine draws
+        # team pairs with replacement, so a small bank trains the agent on a
+        # finite support while evaluation uses fresh server-rolled teams; A-1
+        # pins a floor for exactly that reason. Without this check a lane
+        # pointed at the wrong bank trains happily and stamps a valid meta.yaml.
+        from rl.envs.engine_bank import read_bank
+
+        have = read_bank(Path(bank))[0]["pairs"]
+        if have < floor:
+            raise ValueError(
+                f"collector.team_bank {bank!r} holds {have:,} pairs but "
+                f"collector.min_bank_pairs is {floor:,} — a bank below the "
+                "pre-registered floor changes the training team distribution "
+                "relative to the arm being compared against"
+            )
+    seat = cfg.collector.get("learner_seat", "p1")
+    if seat not in ("p1", "p2"):
+        raise ValueError(f"collector.learner_seat must be 'p1' or 'p2', got {seat!r}")
+    if not cfg.env_id.startswith("Showdown-"):
+        # The engine is gen 1 only, and the encoder it links is the gen-1 828.
+        raise ValueError(f"collector.mode 'engine' is gen-1 only (env_id {cfg.env_id!r})")
+    if not vectorized:
+        raise ValueError("collector.mode 'engine' needs a vectorized algorithm "
+                         "(the episode batches enter PPO's _optimize)")
+    if cfg.normalize_obs or cfg.normalize_reward:
+        raise ValueError("collector.mode 'engine' is incompatible with the "
+                         "vector-level normalizers")
+    extra = cfg.env_kwargs.keys() - {"opp_action", "seat_tag"}
+    if extra:
+        raise ValueError(f"collector.mode 'engine' supports env_kwargs "
+                         f"{{'opp_action', 'seat_tag'}} only; got "
+                         f"{sorted(extra)} — the engine path emits terminal "
+                         "outcome rewards only")
+    if cfg.agent.get("privileged_dim"):
+        # The EMITTER exists (`Gen1Env`'s `privileged` flag, verified against a
+        # rebuilt reference in Rust) but nothing carries the block from the
+        # episode dict into PPO's privileged path on this route yet, so a wide
+        # critic would still train on zeros. Kept as a refusal rather than a
+        # half-wired feature: the arm is IDEAS 4.7 and needs its own pre-reg
+        # regardless, and T-1 should price the SECOND full encode per learner
+        # row first -- plan §12 waves that cost through on the grounds that
+        # "the collection loop is I/O-dominated", which is exactly what this
+        # port stops being true.
+        raise ValueError("collector.mode 'engine' does not yet carry the "
+                         "privileged block (D18) into the update — the emitter "
+                         "exists (BatchEnv(privileged=True)) but the seam does "
+                         "not; the wide critic would train on zeros")
+    if cfg.selfplay.get("harvest_both_seats", False):
+        raise ValueError("collector.mode 'engine' has no seat-2 harvest hook; "
+                         "seat 2's rows are cheap here but nothing collects "
+                         "them yet (plan §8.4, its own pre-reg)")
+    # `selfplay.opponent == "self"` is the predicate the rest of train() uses
+    # (the aux purity seam at :458 reads exactly this), and it is what builds
+    # the SnapshotPool at :463. An `enabled` key would be REFUSED: the strict
+    # selfplay key set lives in `selfplay_env_kwargs`, which runs BEFORE this
+    # check, so no config could ever satisfy both — the engine mode was
+    # unlaunchable until this was fixed.
+    if cfg.selfplay.get("opponent") != "self":
+        raise ValueError(
+            "collector.mode 'engine' needs selfplay.opponent 'self' (got "
+            f"{cfg.selfplay.get('opponent')!r}): it trains against the snapshot "
+            "pool only. The in-engine scripted bots are for gate D-1 and "
+            "server-free harness tests, never for a training arm."
+        )
+    # The D25 pair, at LAUNCH rather than at the first update. PPO refuses the
+    # mismatch in update_episodes, but that is a whole rollout later and the
+    # repo's rule is that a mis-set knob dies before any step runs.
+    if bool(cfg.env_kwargs.get("opp_action", False)) != bool(
+        cfg.agent.get("aux_oppact_coef", 0.0)
+    ):
+        raise ValueError(
+            "env_kwargs.opp_action and agent.aux_oppact_coef must be set "
+            "together: the collector emits D25 labels iff the agent has a head "
+            "to consume them (PPO refuses the mismatch, but only at the first "
+            "update)"
+        )
 
 
 def _async_loop(
@@ -707,6 +873,7 @@ def _async_loop(
     push_every: int,
     resume_state: dict | None,
     opponent_spec,
+    mode: str = "async",
 ) -> None:
     """The Stage-2 collection loop: K concurrent battles serviced on
     POKE_LOOP (rl/envs/showdown_async.py), whole finished episodes
@@ -726,22 +893,49 @@ def _async_loop(
     needs no fence because pause() guarantees no decision is in flight.
     """
     from rl.buffers.episode import EpisodeDataset
-    from rl.envs.showdown_async import AsyncCollector
 
     # The construction-time rollout buffer is the vector path's; this loop
     # feeds update_episodes and must never touch it — None makes any stray
     # update() call fail loudly instead of training on a phantom rollout.
     agent.buffer = None
     budget = cfg.agent["rollout_steps"] * cfg.num_envs
-    collector = AsyncCollector(
-        agent.act_logp,
-        opponent_spec,
-        seed=cfg.seed,
-        concurrency=cfg.collector.get("concurrency", 8),
-        opp_action=bool(cfg.env_kwargs.get("opp_action", False)),
-    )
-    dataset = EpisodeDataset()
+    opp_action = bool(cfg.env_kwargs.get("opp_action", False))
+    # IDEAS 2.2. Lives in env_kwargs rather than as a new Config field on
+    # purpose: a new field would break `ckpt["config"] == asdict(cfg)` for every
+    # run launched before it existed, refusing their resumes.
+    run_tag = str(cfg.env_kwargs.get("seat_tag", ""))
+    # Read BEFORE the collector is built: the engine lane's k battles in flight
+    # are drawn at construction, so a restored `battle_counter` has to be in
+    # hand by then or the resume replays the run's first k battles.
     rs = resume_state or {}
+    if mode == "engine":
+        # In-process pkmn/engine, no server (plan §8.1). Same seam, same
+        # cadences, same metric names — only where transitions come from
+        # differs. NOT LICENSED until gate A-1.
+        from rl.envs.engine_collector import EngineCollector
+
+        collector = EngineCollector(
+            agent.act_logp,
+            opponent_spec,
+            seed=cfg.seed,
+            k=cfg.collector.get("k", 256),
+            team_bank=cfg.collector["team_bank"],
+            learner_seat=cfg.collector.get("learner_seat", "p1"),
+            opp_action=opp_action,
+            battle_counter=int(rs.get("battle_counter", 0)),
+        )
+    else:
+        from rl.envs.showdown_async import AsyncCollector
+
+        collector = AsyncCollector(
+            agent.act_logp,
+            opponent_spec,
+            seed=cfg.seed,
+            concurrency=cfg.collector.get("concurrency", 8),
+            opp_action=opp_action,
+            run_tag=run_tag,
+        )
+    dataset = EpisodeDataset()
     best_eval = rs.get("best_eval", float("-inf"))
     step = rs.get("step", 0)
     updates_done = rs.get("updates_done", 0)
@@ -782,7 +976,16 @@ def _async_loop(
         # unfenced state_dict() would read generator states mid-draw. The
         # learner's own state needs no fence (no decision is in flight).
         pool_state = None if pool is None else collector.run_in_loop(pool.state_dict)
-        _save_latest(out_dir, agent, step, cfg, None, best_eval, updates_done, pool_state)
+        # The engine lane's battle sequence is `splitmix64(lane_seed * PHI ^
+        # battle_counter)`, so without the counter a resume replays the run's
+        # first K battles — same teams, same seeds, silently. Nothing else in
+        # the payload can reconstruct it (the async path's battles are
+        # server-rolled and it has no counter).
+        loop_extra = {}
+        if hasattr(collector, "battle_counter"):
+            loop_extra["battle_counter"] = collector.battle_counter
+        _save_latest(out_dir, agent, step, cfg, None, best_eval, updates_done,
+                     pool_state, loop_extra)
 
     collector.seam.version = agent.updates  # a resume starts at the restored count
     collector.start(n_battles=cfg.total_steps)
@@ -791,7 +994,16 @@ def _async_loop(
             collector.check()
             episodes = collector.poll()
             if not episodes:
-                time.sleep(0.02)
+                # The async collector does its work on POKE_LOOP, so an empty
+                # poll means "nothing has finished yet" and sleeping is right.
+                # The ENGINE collector does all of its work INSIDE poll(), so an
+                # empty poll is a step that finished no battle and the sleep is a
+                # pure stall — 62% of polls at K=32, which would be ~12 s of
+                # sleep per 30,720-step rollout against ~1 s of collection.
+                # `idle_sleep` lets each collector state its own semantics.
+                delay = getattr(collector, "idle_sleep", 0.02)
+                if delay:
+                    time.sleep(delay)
                 continue
             now = time.perf_counter()
             for episode in episodes:

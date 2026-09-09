@@ -1,0 +1,104 @@
+# SMOKE, NOT A PRE-REGISTRATION. It exists so the FIRST engine lane does not
+# have to be invented at the command line, and so `collector.mode: engine`
+# closes end to end: engine collection -> EpisodeDataset -> PPO update -> eval
+# on the server -> checkpoint -> resume. It produces NO number anyone may quote.
+#
+# NOTHING FROM THE ENGINE COLLECTOR IS LICENSED. Gate A-1 has not run and gate
+# D-1 has not run, so this is a NEW INSTRUMENT: no result from it is comparable
+# to any banked row, and it names no arm, no gate and no read
+# (docs/PKMN_ENGINE_RUST_PLAN.md §9). The gen4_smoke_heur.yaml precedent is the
+# one this follows: a smoke is not a pre-reg, and needs no ruling.
+#
+# journey_step: 7.5 (the Rust collector port; JOURNEY's P0 for the gen-1
+# return). The step's exit condition is gate A-1: 3 seeds x 12M on the engine
+# collector against the async-collector 12M acceptance fleet (pooled vs-SH
+# 0.67211, seed sd 0.0122) under the LOCKED eval protocol on the server,
+# PRIMARY pooled vs-SH |delta| < 0.025 with the signed delta disclosed forever
+# after. THIS FILE IS NOT THAT RUN and does not read that band.
+#
+# ---------------------------------------------------------------------------
+# IT STILL NEEDS A SERVER. "Engine lanes need no server" is true of COLLECTION
+# and false of a LANE: `make_eval_env` builds a Showdown-v0 whose players
+# connect at construction, so this run holds two seats for its whole life and
+# the server must be UP AT LAUNCH.
+#
+#   cd showdown && node pokemon-showdown start --no-security
+#
+# CLAUDE.md rule 2 therefore still binds: concurrent engine lanes need distinct
+# --seed values or their eval seats collide on usernames and a lane dies with a
+# misleading TimeoutError.
+#
+# Build first (requirements-engine.txt has the pins and the stale-.so trap):
+#   pip install -r requirements-engine.txt
+#   git submodule update --init engine/pkmn_gen1/vendor/pkmn-engine
+#   pip install --no-build-isolation -e engine/pkmn_gen1
+#   python -c "import pkmn_gen1; pkmn_gen1.verify()"
+#
+# And the encoder flags, or the run dies at agent construction:
+#   POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1
+#
+# Build the team bank once (needs the showdown/ checkout, no server):
+#   python scripts/engine_team_bank.py --pairs 50000 --out data/engine/
+# ---------------------------------------------------------------------------
+#
+# SEED 9300 is deliberate: the 9xxx band is this repo's smoke band (9001, 9002,
+# 9004, 9100-9102), and it is clear of every reserved pre-reg window -- 66-90
+# (ch5 R2), 104-127 (100M), 200-247 (gen4 wang50m). A stamped run dir inside one
+# of those turns `pytest tests/` red.
+env_id: Showdown-v0
+seed: 9300
+total_steps: 1000000       # ~30 updates; minutes, not hours
+eval_every: 250000         # the 100M cadence, so eval load is representative
+eval_episodes: 20          # NOT the locked protocol (3000/seed x 3 seeds)
+num_envs: 8                # x rollout_steps = the 30,720-step update budget
+torch_threads: 1
+checkpoint_every: 500000   # exercises the ladder write and the resume payload
+device: cpu
+run_name: engine_smoke_s9300
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine
+  k: 256                   # T-1 (b) picks the real one; 256 is the plan's default
+  team_bank: data/engine/teams_59da482e_e0e0_50000.bin
+  learner_seat: p1
+env_kwargs:
+  opp_action: true         # paired with agent.aux_oppact_coef; refused apart
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+# The 100M recipe's agent block verbatim, so the smoke exercises the width the
+# port is actually for -- a [64, 64] smoke would prove the seam and hide every
+# batching question T-1 exists to answer.
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 1000000  # == total_steps, the 100M header's R0-b coupling
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

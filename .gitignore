@@ -96,3 +96,7 @@ results/design_gen4_wang50m/*
 !results/design_gen4_wang50m/review_1.md
 !results/design_gen4_wang50m/review_2.md
 !results/design_gen4_wang50m/gen4_wang50m.draft.yaml
+
+# Rust build artifacts for the pkmn/engine collector (engine/pkmn_gen1).
+# Cargo.lock IS tracked: the repo pins exact versions.
+engine/pkmn_gen1/target/

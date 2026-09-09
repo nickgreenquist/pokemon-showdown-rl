@@ -1,0 +1,456 @@
+# A-1 pre-registration sidecar — the machine-readable half of
+# configs/engine_a1.yaml. The header is the authority on WHY; this file is
+# the authority on WHAT WAS FIXED BEFORE THE RUN. Neither may be edited
+# after launch except to FILL a cell marked [FILLED <date>].
+---
+prereg_for: configs/engine_a1.yaml
+status: >-
+  RATIFIED (design), NOT LAUNCHABLE (preconditions). Written 2026-09-08 on
+  branch pkmn-engine-port while the gen4 fleet held the box. Both 2-Opus
+  reviews APPLIED and tagged in place. RW-1..RW-8 RATIFIED by the maintainer
+  in chat 2026-09-09 ("for the rulings, go with your recs") — the design is
+  now FROZEN and editing it after launch is falsification. STILL BLOCKED ON:
+  D-1 has never run (precondition, hard); the 5,000,000-pair team bank does
+  not exist yet; and the gen-4 chapter still owns the box. Launch authorization
+  is SEPARATE from ratification and is not granted here — A-1's lanes are
+  ~2.5 h x 3 (CLAUDE.md rule 4's "ask first" band).
+journey_step: "7.5"
+exit_condition_verbatim: >-
+  A-1 acceptance is the gate — 3 seeds × 12M inside |Δ| < 0.025 of the
+  async acceptance fleet, with the signed delta travelling forever after
+  as N-COLL's does; outside the band we diagnose parity and do NOT switch.
+failure_branch_verbatim: >-
+  Pre-decided failure branch. If two diagnosis rounds cannot bring A-1's
+  12M read inside |Δ| < 0.025, we KEEP the server path; the sunk cost is
+  then the parity harness, which survives as a test suite.
+credits_nothing: true
+is_equivalence_test: false          # a GROSS-BREAKAGE SCREEN; no TOST is run
+
+precondition:
+  gate: D-1
+  state_at_drafting: NEVER RUN      # docs/engine_port/NOTES.md:1112, :1383
+  bands: {p1_win_rate_abs: 0.02, tie_rate_abs: 0.005, mean_turns_rel: 0.05}
+  n: 10000
+  matchups: [max_power_vs_max_power, random_vs_random]   # BOTH pairs [R1-N2]
+  pass_requires: both_matchups_inside_all_three_bands
+  rule: >-
+    A-1 does not launch on a failed or unrun D-1. Without it A-1 is a
+    joint test of collector correctness and engine-vs-Showdown dynamics
+    parity and neither verdict can be attributed. Enforced by
+    scripts/engine_gates.sh, which refuses A-1 without a D-1 PASS artifact.
+
+arms:
+  E: {n_lanes: 3, seeds: [66, 75, 83], collector: engine, k: 8, compute: NEW}
+  N: {n_lanes: 3, seeds: [66, 75, 83], collector: async, k: 8, compute: BANKED_FREE}
+  sync_reference: {n_lanes: 3, seeds: [66, 75, 83], collector: sync, compute: BANKED_FREE, role: descriptive_only}
+
+baseline_by_provenance:                # never by a remembered number
+  aggregator: equal_weight_mean_of_per_seed_win_rates
+  pooled_endpoint: 0.67211
+  seed_sd: 0.01221
+  pooled_auc: 0.64597
+  auc_seed_sd: 0.01265
+  eval_protocol:
+    n_per_seed: 3000
+    seed_start: 100
+    policy: deterministic
+    opponent: SimpleHeuristicsPlayer
+    ties: non_wins
+    cross_check: wins_from_returns == eval/win_rate (both banked, agreeing)
+  lanes:
+    - {run: runs/showdown_sp_batch50m_async_s66, ckpt: ckpt_012000013.pt, win_rate: 0.6593333,
+       config_sha256: d8bd72383c86357a092e5deb4f613e46da298901623c3307e6d32841c2044559,
+       ckpt_sha256: 244764751f483af7eed59461009e2f63e78be13f1a1b88e46a44c7be69c33bd0}
+    - {run: runs/showdown_sp_batch50m_async_s75, ckpt: ckpt_012000009.pt, win_rate: 0.6836667,
+       config_sha256: 85bfbbccdb6abba3f16e4481ebc3ad9b49874b2549d89242e924b85403108b76,
+       ckpt_sha256: f650b079dfd40ea852cd3b0d0360267dc89c7f7f0a97512252c3f7f679b79c74}
+    - {run: runs/showdown_sp_batch50m_async_s83, ckpt: ckpt_012000041.pt, win_rate: 0.6733333,
+       config_sha256: 89388114425560e24c3c1f2ca674ac8deed952131ee3ce7e8e6898d09722c737,
+       ckpt_sha256: 9dbf51f335b0fac2d7b526e1ed824b498ba748af668260e2b94a91fb67b4e1cc}
+  provenance_caveats:
+    git_sha: 722a31cdfdaccc73d1ee1b6e1a9a43e8e9b8f87e
+    git_dirty: true
+    dirty_bounded_by: >-
+      722a31c is 2026-09-01 03:26Z; lanes ran 04:21-10:11Z; the first
+      commit after it (ae2328e 10:12Z) adds a new file, and no rl/ commit
+      lands until d546228 on 2026-09-02. The dirty flag is an untracked
+      script, not a learner edit. RECORDED, not waived.
+    learner_drift_audit: >-
+      38 commits touch rl/ between 722a31c and the branch point; every
+      learner-path change is opt-in and defaults to the baseline wire
+      (ppo.py knobs inert and RNG-neutral, episode_gae pinned bit-identical,
+      pool deepcopy/probs.cpu identity on CPU, seed_rng branches scripted-only,
+      TrunkLayout builds no extra embedding at gen 1, e37a7fc's phantom-step
+      change unreachable on the async path). rl/agents, rl/common, rl/buffers,
+      rl/networks are untouched on pkmn-engine-port.
+  exhaustiveness: >-
+    All 10 runs/ dirs with collector.mode async were swept; exactly 3
+    carry a 12M rung. The smokes are 6.2k-123k steps; the 100M lanes
+    retain only their 100M final checkpoint. Raising k on the baseline
+    side is NOT free and this pre-reg does not assume it.
+
+dose:
+  steps: 12000000
+  rung: first_checkpoint_at_or_after_12000000    # crossing rung; overshoot recorded
+  matched: true
+  how_we_would_know: >-
+    the realized crossing step in each lane's meta.yaml and checkpoint
+    filename, against the banked 12000013 / 12000009 / 12000041. A lane
+    more than one update (30,720 steps) off is REPORTED and its realized
+    step used, never the nominal.
+  anneal_trap:
+    total_steps: 50000000
+    lr_anneal_steps: 50000000
+    why: >-
+      A 12M budget with lr_anneal_steps == total_steps would anneal the
+      engine arm to ~0 while the banked arm sits at 1.9e-4 at the same
+      rung, comparing LR schedules rather than collectors. G9's verbatim
+      obligation, restated.
+  hours: NOT_STATED                    # T-1 has not run; any figure would be a guess
+
+power:
+  derivation: scripts/engine_a1_sigma.py -> results/engine_a1/sigma.json   # [R1-M11]
+  planning_sigma: 0.01499              # REGIME-MATCHED, 2 fleets, 4 df [R2-M6]
+  planning_sigma_ci95: [0.0090, 0.0431]
+  planning_sigma_fleets:               # named, so the band's basis can be looked up
+    - {fleet: showdown_sp_batch50m, k: 3, sd: 0.01732}
+    - {fleet: showdown_sp_batch50m_async, k: 3, sd: 0.01221}
+  regime_definition: annealed with <50% of the LR schedule consumed at the 12M rung
+  excluded_from_regime:
+    showdown_sp_recipe12m: >-
+      annealed, but over 12M (config:699) so fully decayed at the rung A-1
+      reads, where A-1's arms still hold ~76% of base LR. It is also the only
+      annealed fleet that is not one of A-1's own arms, which is why its
+      removal drops df from 7 to 4.
+  caveat_that_travels: >-
+    the planning constant rests on 4 df drawn from A-1's OWN TWO ARMS, and its
+    95% CI runs to 0.0431, where the endpoint-only screen fails a perfect port
+    47.7% of the time.
+  eval_replicate_decomposition:        # [R2-M5] the finding that changed the design
+    measured_replicate_sd_at_n3000: 0.01262
+    source: docs/landmines.md — three n=3000 re-draws of ONE checkpoint, 1.47x binomial
+    share_of_planning_variance: 0.71
+    residual_training_seed_sd: 0.00809
+    conclusion: precision here is bought with BATTLES, not seeds
+  sigma_alternatives:
+    all_12m_fleets: {sigma: 0.03411, df: 33, n_fleets: 11}
+    flat_lr_subset: {sigma: 0.03768, df: 26, n_fleets: 8}
+    project_constant_50m_dose: {sigma: 0.0617, source: "RESULTS.md:1177 (50M, off-FP@20)"}
+  excluded_from_the_sweep: >-
+    131 locked-n reads outside the 12M rung window, including
+    results/d18/best_s*.json (step 7,000,000) and results/d23/best_s*.json
+    (step 5,000,000) — BEST-checkpoint reads at other doses. Pooling them
+    into a "12M sigma" mixes doses and inflates it. Excluded by the step
+    window, never by filename; the full list is in the JSON.
+  binomial_share_of_all_fleet_variance: 0.065
+  eval_n_per_seed: 12000               # BOTH arms; the banked arm re-evaluated [R2-M5]
+  band_in_se_units_at_n3000: {s0.01499: 2.04, s0.04309: 0.71, s0.03411: 0.90, s0.06170: 0.50}
+  band_in_se_units_at_n12000: {s0.01499: 2.98}
+  false_alarm_rate_at_n3000: {s0.01499: 0.041, s0.04309: 0.477, s0.03411: 0.369, s0.06170: 0.620}
+  false_alarm_rate_at_n12000: {s0.01499: 0.003}
+  power_vs_0p015_regression: {n3000: 0.793, n12000: 0.884}   # what n CANNOT buy
+  mde_at_80pct_power: 0.035
+  tost_k_required_at_delta_0p025: {s0.01499: 7, s0.04309: 51, s0.03411: 32, s0.06170: 105}   # z_{1-b/2} [R2-S9]
+  pairing_credit_taken: false
+  pairing_refutation: >-
+    the same six banked runs imply a seed-pair correlation of +0.856 on
+    the 12M endpoint and -0.996 on the 48-rung AUC; on the AUC the paired
+    se (0.01348) is worse than the unpaired (0.00957). Seed reuse is for
+    net-init comparability in diagnosis only.
+
+primary:
+  P-END:
+    statistic: pooled vs-SH win rate at the 12M crossing rung, locked protocol
+    aggregator: equal_weight_mean_of_per_seed_win_rates
+    read: signed delta = pooled_E - 0.67211
+    band: 0.025
+    sides: two_sided
+    pass_rule_depends_on_se: false     # fixed magnitude, the maintainer's
+  P-AUC:
+    status: SECONDARY_DESCRIPTIVE            # RW-8 RATIFIED; a tightening JOURNEY 7.5 does not name
+    source: history.csv, or history_merged.csv if the lane resumed   # [R1-M4]
+    first_verdict_grade_history_read: true    # docs/landmines.md:282 says the verdict path never read history before
+    statistic: mean of eval/win_rate over the 48 in-loop rungs 250k..12.0M
+    aggregator: equal_weight_mean_of_the_three_lane_AUCs
+    read: signed delta = AUC_E - 0.64597
+    band: 0.025
+    sides: two_sided
+    basis_2se_diff: 0.01915            # tighter than the endpoint's 0.02447
+    paired: false
+  both_must_hold: false                # RW-8 ratified SECONDARY: the verdict is P-END alone
+
+secondary_descriptive_only:
+  - per-seed signed deltas on both reads
+  - max |per-rung pooled delta| and its rung   # NOT a gate; banked arms spread -0.0967..+0.1167 at n=100
+  - rollout/episode_length, loss/entropy, loss/approx_kl, loss/explained_variance overlays
+  - collect/policy_version_lag_p99 and realized in-flight carry
+  - D-SYNC: the same two reads against the banked SYNC fleet (0.64889 / 0.63194)
+
+branches:
+  A1-PASS:  {rule: "|D_END| < 0.025 AND |D_AUC| < 0.025", action: "engine collector ACCEPTED as gen-1 training default AT K=8; both signed deltas recorded and travel forever (N-ENG); merge remains a maintainer decision"}
+  # A1-SPLIT REMOVED — RW-8 ratified P-AUC as secondary, so there is no second
+  # gated read for the endpoint to split against. P-AUC's signed delta is still
+  # reported, and a P-AUC breach beside an in-band endpoint still requires a
+  # diagnosis round before the switch; it just cannot fail A-1 on its own.
+  A1-FAIL:  {rule: "both reads outside their bands", action: "diagnosis round 1"}
+  boundary: "|D| exactly 0.025 reads as OUTSIDE (fails that leg)"
+  after_two_rounds: "KEEP the server path; the port is NOT merged as the training default; steps 8-11 sit on Node. PRE-DECIDED; a near-miss does not reopen it."
+  diagnosis_order_if_negative: [team_bank_recurrence, i1_i2_projection_leak, staleness_K, d25_label_join]
+  diagnosis_order_if_positive: [information_leak_I1, team_bank_memorisation, staleness_K]
+
+r0_gates:
+  loss_entropy_band: [1.3, 2.0]
+  clip_frac_nonzero: true
+  aux_illegal_label_frac: 0
+  aux_frame_collision_frac: 0
+  aux_label_present_frac_band: [0.74, 0.88]
+  eval_win_rate_open_interval: true
+  policy_version_lag_p99_max: 1        # breach = 3 consecutive rollouts
+  eval_no_outcome_key: MUST_BE_ABSENT  # [R1-M3] emitted ONLY when missing>0 (evaluation.py:180-182); "== 0" is unreachable
+  team_bank_min_pairs: 1000000         # sha256 stamped in every lane's meta.yaml
+
+contamination_guards:
+  both_seat_harvest: OFF
+  d18_privileged_block: OFF_BY_ABSENCE   # [R1-M1] agent.privileged_dim unset; rl/train.py:803-816. There is NO collector.privileged key (ENGINE_KEYS is strict)
+  engine_scripted_opponents: UNUSED    # verdict denominator is the server's SH
+  d25_opp_action: ON                   # the banked arm has it; removing it would be the treatment
+  declared_config_differences: [collector.*, run_name, env_kwargs.seat_tag]
+  byte_identity_verified: >-
+    every other key equals configs/showdown_sp_batch50m_async.yaml;
+    checked at drafting, zero undeclared differences.
+
+estimator:
+  pass_rule: fixed_magnitude_band       # does not depend on an se
+  se_quoted_for_power: unpaired_two_fleet_larger_of_binomial_or_seed_clustered
+  deviation_disclosed: >-
+    JOURNEY 7.5 and PKMN_ENGINE_RUST_PLAN.md:1109 read the band against
+    the banked 0.67211 as KNOWN (se 0.0078, band 3.2 se), ignoring the
+    baseline's own 3-seed spread. The PASS RULE is unchanged; only the
+    honesty of the power statement is. See RW-3.
+
+disclosures:
+  - "equivalence at this n is WEAKLY POWERED; A-1 is a screen, not an equivalence test"
+  - "at the upper end of its own 95% CI the screen fails a truly-equivalent arm 26.6% of the time (35.9% if the annealed family is not the reference class)"
+  - "the band cannot distinguish 'matches async' from 'matches sync': an arm reproducing the sync fleet exactly passes having consumed 93% of the band"
+  - "the baseline's own acceptance delta was +0.02322 = 2.11 se, an effect that missed credit only on magnitude"
+  - "the AUC shares the endpoint's engine-trained/server-evaluated transfer confound; it buys power against noise, not independent evidence about learning"
+  - "A-1 says nothing about behaviour at 100M+, the horizon the port exists to buy; a 12M null does not close an axis"
+  - "the engine draws teams from a fixed bank; the Node arm rolls fresh teams server-side"
+
+barred_language: [equivalent, "identical (about the RESULT; 'byte-identical' about config bytes and 'bit-identical' about episode_gae are permitted)", "no difference", "the same as the Node path", validated]   # [R1-N1]
+permitted_language: ["inside the band at |D| = x", "within +-k se_diff", "not distinguishable at this n and k", "screened, not equivalence-tested"]
+
+ratified_decisions: {}
+verdict_authorized: false
+withdrawn_ratification:
+  recorded_at: 2026-09-09 morning
+  withdrawn_because: >-
+    the day's standing authorization says "do NOT ratify" in terms, and a
+    pre-reg is an irreversible artifact — when two instructions conflict the
+    safe reading is the one that decides less.
+launch_authorization:
+  granted_by: maintainer, in chat 2026-09-09 ("all train and eval done, the box is free. go go go")
+  covers: >-
+    the full frozen chain in scripts/engine_gates.sh — bank generation, D-1,
+    T-1 (a)(b), the three A-1 lanes, T-1 (c)(d), both arms' evals at
+    n=12,000/seed, and the grade. CLAUDE.md rule 4's "2-5 h ask first" band is
+    thereby answered for the A-1 lanes (~2.5 h x 3 concurrent, projected).
+  preconditions_at_grant:
+    gen4_chapter: CLOSED — logs/gen4_wang50m_postfleet.log reads POST-FLEET DONE (pooled vs-SH 0.8788, M-YES, S5-MATCHED)
+    d1: STILL UNRUN — it is step 2 of the chain and the chain HARD-STOPS if it fails; A-1 does not launch on a failed D-1
+    team_bank: does not exist; step 1 generates 5,000,000 pairs
+  box_at_grant: >-
+    no training process alive; an IDLE Showdown server left from the gen-4
+    chapter (543 min cumulative CPU, zero delta over 10 s) which step 2
+    restarts fresh; a leftover idle shell from the gen-4 launcher, untouched;
+    caffeinate untouched; free+inactive ~10.6 GB, disk 157 GiB.
+  note: >-
+    the runner OWNS the Showdown server's lifecycle from here (up for D-1 and
+    the evals, down for T-1's idle-box legs). That means killing a server this
+    session did not start — done deliberately and recorded, because the chapter
+    that started it is closed and a fresh server is the right instrument.
+
+review:                                # the standing 2-Opus cycle
+  review_1:
+    mandate: repo consistency and rule compliance
+    findings: {must: 11, should: 15, nice: 6}
+    applied: >-
+      11/11 MUST (M-2 discharged by WRITING scripts/engine_gates.sh, which
+      the header had cited four times but which did not exist), 14/15
+      SHOULD, 3/6 NICE — each tagged [R1-*] at the point it changed.
+    not_applied:
+      S-14: >-
+        make the sidecar's disclosure strings verbatim excerpts of the
+        header's wording so the halves can be string-pinned to each other.
+        The substance is present on both sides; the pin is owed when this
+        pre-reg gets its frozen review copy.
+      N-3: the crossing-rung overshoot bound reads as measured; it is a bound
+      N-4: the team_bank path does not exist yet — expected for a draft (RW-6)
+    pins: tests/test_engine_a1_prereg.py (14 tests, green)
+    highest_value: >-
+      M-1 (collector.privileged is refused by ENGINE_KEYS — the config as
+      first committed would not have loaded), M-3 (eval/no_outcome is
+      emitted only on failure, so an "== 0" gate can never fire), M-11
+      (the sigma had no provenance; it is now derived by
+      scripts/engine_a1_sigma.py, which also found that the first pooling
+      had swept in best-checkpoint reads at 5M and 7M).
+  review_2:
+    mandate: adversarial — construct the false PASS and the false FAIL
+    findings: {must: 11, should: 11, nice: 5}
+    verdict_before_fixes: >-
+      "No" — would not let the gate decide an irreversible switch as drafted.
+    applied: >-
+      all MUSTs and the SHOULDs that change a number or a mechanism, tagged
+      [R2-*] in place. Four were code defects, not prose: the R0 label gate
+      named a metric on which two of the three BANKED lanes read outside the
+      band (would have killed a perfect engine arm at its second update); the
+      team-bank generator buffered all of node's stdout, ~1.4 GB at 1M pairs
+      and ~7 GB at 5M, enough to OOM the box RW-6 was about to ask for; the
+      >=1M floor was enforced nowhere in code; and the runner killed each lane
+      on the checkpoint, which rl/train.py writes BEFORE that step's eval, so
+      the 48th in-loop rung P-AUC needs would have been lost.
+    design_change_it_forced: >-
+      ~71% of the regime-matched sigma is EVAL-REPLICATE noise, not training
+      seed variation, so A-1's precision is bought with battles rather than
+      seeds. Both arms now read at n=12,000/seed — the banked arm re-evaluated
+      from its own sha-pinned checkpoints — which takes the band from 2.04 to
+      2.98 se_diff and the false-alarm rate from 4.1% to 0.3%, for eval time
+      and no training.
+    reversal_it_forced: >-
+      RW-8's recommendation flipped from co-primary to secondary-descriptive:
+      the AUC is WIDER than the endpoint on the async arm, which is the arm
+      A-1 actually compares against.
+    not_applied:
+      S2: "the sync arm is a 28-commit composite — recorded, not fixable"
+      S8: "deterministic seat names verified correct; the relaunch caveat is disclosed in OPS"
+      NICE: "entropy band margin, poisonous-bank-pair replay on resume, learner_seat p2 unexercised"
+
+# =====================================================================
+# RULINGS WANTED — THE LAST WORD IN THIS FILE, DELIBERATELY.
+# Maintainer, 2026-09-09: "End the sidecar with `rulings_wanted`; do NOT
+# ratify." Nothing below this block decides anything.
+# RULINGS WANTED — the decisions that are the maintainer's, not mine.
+# NOTHING HERE IS RATIFIED. A-1 does not launch until these are answered.
+# =====================================================================
+rulings_wanted:
+  RW-1:
+    topic: K (the collector's concurrency)
+    question: >-
+      A-1 is written at k=8 to match the banked arm's concurrency, so the
+      collector is the ONLY delta. The engine's production default is 256,
+      which carries 12.6% of a 30,720-step update as off-policy rows
+      versus 0.39% at k=8. Option (a) accept at k=8 and treat production K
+      as a separate, cheaper staleness read; option (b) run A-1 at 256,
+      declare K part of the treatment, re-base the staleness gate, and
+      pre-name a K-matched lane as diagnosis round 1.
+    my_recommendation: (a)
+  RW-2:
+    topic: whether to buy an equivalence test
+    question: >-
+      A-1 as written is a screen. A genuine TOST at delta 0.025 needs
+      k >= 4/arm at the reference-class sigma and k >= 15 at its CI upper
+      end. Buying it means new Node lanes as well as engine lanes, since
+      the free baseline exists only at k=3. Run the screen only, or fund
+      the equivalence test?
+    my_recommendation: screen only; revisit if A-1 lands in 0.015-0.025
+  RW-3:
+    topic: the estimator
+    question: >-
+      The plan and JOURNEY read |D| < 0.025 against the banked pooled
+      number as if it were known. I keep that as the PASS RULE (fixed
+      magnitude) but quote the unpaired two-fleet se_diff for power, which
+      is larger and more honest. Confirm, or rule that the known-baseline
+      reading is what the gate means.
+    my_recommendation: keep as written
+  RW-4:
+    topic: whether the baseline may be HISTORICAL
+    question: >-
+      The entire baseline arm is banked runs from 2026-09-01 at a dirty
+      tree, reused rather than re-run. The learner-drift audit came back
+      null and the dirty flag is bounded to an untracked script, but
+      reusing a week-old arm as the reference for an irreversible
+      instrument switch is a judgement call, not an arithmetic one. Accept
+      the banked baseline, or re-run the Node arm alongside the engine arm
+      (which doubles the fleet and removes every drift question)?
+      EVIDENCE ADDED 2026-09-09: scripts/engine_a1_baseline_audit.py checks
+      every candidate against this config field by field. The four
+      showdown_sp_recipe12m checkpoints flagged as possible reuse are
+      DISQUALIFIED — not on encoder identity (their meta.yaml is intact,
+      git_dirty false, step exactly 12,000,000, banked n=3000 finals) but on
+      RECIPE: 1,024 steps per update against 30,720, a fully-decayed LR at the
+      read, and the sync loop rather than the async path. 6 of 10 candidates
+      qualify and all six are the batch50m fleet. Historical reuse remains
+      available at k=3 and only k=3.
+    my_recommendation: accept the banked baseline
+  RW-5:
+    topic: the (A) choice and its band
+    question: >-
+      Confirm A-1 is a GROSS-BREAKAGE SCREEN at |D| < 0.025 (JOURNEY's own
+      band, which the corrected dose-matched arithmetic supports at 2.27
+      se_diff), and NOT an equivalence test at 0.025, and NOT a widened
+      band. Widening to 0.05 was considered and rejected: it would pass a
+      real 0.05 defect half the time.
+    my_recommendation: confirm as written
+  RW-6:
+    topic: the team bank
+    conflicts_with_record: >-
+      docs/engine_port/NOTES.md's "Why 50,000" paragraph argues the current
+      bank is fine, and on its own terms it is right (no distributional
+      bias; P-3 verified the marginals; fresh battle seed each time).
+      A-1's concern is a different mechanism — train-on-finite-support vs
+      evaluate-on-fresh-server-teams, an asymmetry BETWEEN THE ARMS. Read
+      both before ruling. If this pre-reg wins, NOTES gets a correction
+      line in the same commit. [R1-M6]
+    question: >-
+      A-1 pins >= 1,000,000 pairs (0.40x recurrence per lane) against the
+      port's current 50,000-pair bank (7.95x per lane, 23.84x fleet-wide),
+      because the Node arm effectively never repeats a team and eval is on
+      the server with fresh teams. 5,000,000 pairs (0.08x) removes the
+      question entirely at 480 MB. Which, and may the runner generate it?
+    my_recommendation: >-
+      5,000,000. MEASURED 2026-09-09: generation runs at 2,049 pairs/s once the
+      generator streams instead of buffering node's stdout, so 5M is ~41 min
+      and 480 MB — not the ~2.75 h the earlier "99 s per 50,000" implied (that
+      figure was taken under fleet contention). The 1,000,000 floor is enforced
+      at launch by rl/train.py, so the ruling cannot be silently under-met.
+  RW-7:
+    topic: seed reuse and a test amendment
+    question: >-
+      A-1 reuses seeds 66/75/83 for net-init comparability (NO variance
+      credit claimed). tests/test_ch5_r2_prereg.py::
+      test_seeds_are_window_disjoint_and_unused asserts that only
+      showdown_sp_batch50m_s{s} and _async_s{s} may stamp those seeds, so
+      A-1's dirs need to be named as a THIRD legal owner — the same
+      amendment the async fleet made. Approve the amendment, or run A-1 on
+      fresh seeds outside every reserved window?
+    my_recommendation: approve the amendment
+  RW-8:
+    topic: is P-AUC co-primary or secondary
+    question: >-
+      JOURNEY 7.5 names only the endpoint. I made the 48-rung AUC
+      CO-PRIMARY because it is measurably tighter (2*se_diff 0.01915 vs
+      0.02447) and free. That cannot loosen the gate but it CAN fail a run
+      the JOURNEY's own wording would pass, which is a scope change and
+      therefore yours. Co-primary, or secondary-descriptive?
+    my_recommendation: >-
+      SECONDARY-DESCRIPTIVE [changed after review 2, M7]. The tightening
+      claim does not survive: the AUC is 3.5% WIDER than the endpoint on the
+      ASYNC arm — the actual comparator — and the pooled tightening comes
+      entirely from the sync arm's endpoint spread (F(4,4)=1.63, p~0.33).
+      Under both_must_hold the JOINT false-alarm rate is worse than the
+      disclosed single-read figure at every sigma. JOURNEY 7.5 names only the
+      endpoint, and this feeds an irreversible failure branch on a P0 item.
+
+# RATIFICATION STATE — TWO INSTRUCTIONS, THE LATER ONE WINS.
+# 2026-09-09 morning, in chat: "for the rulings, go with your recs" — which I
+# recorded as a ratification of RW-1..RW-8 at my recommended values.
+# 2026-09-09, the standing authorization for the day, verbatim: "End the sidecar
+# with `rulings_wanted`; do NOT ratify." That is the later instruction and it
+# governs, so the ratification is WITHDRAWN and every ruling is owed again. The
+# recommendations survive in rulings_wanted; nothing is decided.
+# THE CONSEQUENCE THAT MATTERS: no A-1 verdict may be computed. The engine ARM
+# still runs — it is common to every candidate design and extra seeds are
+# additive — but scripts/engine_a1_grade.py refuses to emit a delta without
+# `verdict_authorized: true` beside a ruled RW-5, and the runner does not call
+# it. See rulings_wanted, and the note under RW-5 on which sigma the band
+# should be sized against.

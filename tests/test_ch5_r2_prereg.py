@@ -335,9 +335,18 @@ def test_seeds_are_window_disjoint_and_unused():
             # showdown_sp_batch50m_async.yaml, G9's pre-registered
             # matched-seed treatment) deliberately reuses 66/75/83 AFTER
             # R2 closed and credited — its dirs are the second legal owner.
+            # 2026-09-09: gate A-1 (configs/engine_a1.yaml, RW-7 ratified)
+            # is the THIRD. It reuses the same seeds so that network
+            # initialisation matches the banked async arm lane-for-lane,
+            # which makes its per-seed SECONDARY read interpretable during
+            # diagnosis. NO variance-reduction credit is taken and the
+            # primary read is unpaired — the same six banked runs imply a
+            # seed-pair correlation of +0.856 on the endpoint and -0.996 on
+            # the AUC, so the pairing is not a usable structure.
             assert p.parent.name in (
                 f"showdown_sp_batch50m_s{s}",
                 f"showdown_sp_batch50m_async_s{s}",
+                f"engine_a1_s{s}",
             ), f"seed {s} already used by a foreign run {p.parent.name}"
 
 

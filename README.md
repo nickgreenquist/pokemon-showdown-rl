@@ -390,4 +390,15 @@ Notable external components: [poke-env](https://github.com/hsahovic/poke-env)
 forward model used inside search, **Wang (2024)** — the gen-4 PPO recipe the first
 gen-4 run copies as its foundation, and his poke-env fork's state-tracking fixes
 (`docs/prior_work/README.md`, `docs/design_gen4/research/`) — and **Huang & Lee's
-metagrok** most-damage-typed rule (`rl/envs/most_damage_typed.py`).
+metagrok** most-damage-typed rule (`rl/envs/most_damage_typed.py`), and
+[**pkmn/engine**](https://github.com/pkmn/engine) (MIT, © 2021-2024 pkmn
+contributors) — a Zig implementation of the Pokémon battle engine, vendored as
+a submodule pinned to `9b88fd6c` and built in `-Dshowdown` mode so its RNG and
+tie-breaks match Pokémon Showdown's. It backs an optional in-process gen-1
+collector (`engine/pkmn_gen1`, a Rust + PyO3 wrapper) that removes the Node
+simulator from the training loop, where it was a measured **56%** of a lane's
+CPU. **It is not the default and does not become one here:** `collector.mode`
+stays on the server path until gate A-1 accepts the engine, and on an A-1
+failure gen-1 stays there permanently (JOURNEY 7.5). Anything the engine
+produces is graded on the same Showdown server as everything else — the locked
+eval protocol and the ladder never leave it.

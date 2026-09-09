@@ -1,0 +1,50 @@
+[package]
+name = "pkmn-gen1"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+description = "Safe Rust + PyO3 wrapper over pkmn/engine's libpkmn-showdown (Gen 1) for pokemon-showdown-rl"
+license = "MIT"
+
+# Borrowed: pkmn/engine (https://github.com/pkmn/engine), MIT, (c) 2021-2024 pkmn
+# contributors, vendored as a submodule at vendor/pkmn-engine and PINNED to
+# 9b88fd6c5467f703c38951d5b2e8a660314d410b. See docs/PKMN_ENGINE_RUST_PLAN.md §1.1.
+
+[lib]
+name = "pkmn_gen1"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# NOTE: `extension-module` is deliberately NOT enabled here -- maturin turns it on
+# via [tool.maturin] features. With it always on, `cargo test` cannot link
+# (no libpython), and the layout/bit tests are the B-0 gate.
+pyo3 = "=0.29.2"
+numpy = "=0.29.0"
+
+[dev-dependencies]
+# Test-only: the layout test parses the vendored src/data/layout.json so the
+# offsets in layout.rs are pinned to the engine rather than to this document.
+serde_json = "=1.0.151"
+
+[build-dependencies]
+bindgen = { version = "=0.72.1", optional = true }
+# Codegens the engine's own species/move tables from the pinned data.json into
+# OUT_DIR, so the simulator's data comes from the engine and needs no runtime
+# JSON parser. Build-time only: not linked into the extension.
+# `preserve_order` is REQUIRED: data.json's species/moves objects are ordered
+# by dex/index number, and serde_json's default Map is a BTreeMap, which
+# silently alphabetises them (caught at B-0: species 1 came out as Abra).
+serde_json = { version = "=1.0.151", features = ["preserve_order"] }
+
+[features]
+default = []
+# Regenerates src/ffi_generated.rs from the built header. Needs libclang; the
+# generated file is committed so a normal build never requires it (plan §4.4).
+regen-bindings = ["dep:bindgen"]
+# Builds the engine with -Dlog=true for the §10 protocol-replay fallback.
+# NOT for training: verify() rejects a log build unless this feature is on.
+debug-log = []
+
+[profile.release]
+lto = "fat"
+codegen-units = 1

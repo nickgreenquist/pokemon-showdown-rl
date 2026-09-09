@@ -1,0 +1,20 @@
+[build-system]
+requires = ["maturin==1.15.0"]
+build-backend = "maturin"
+
+[project]
+name = "pkmn-gen1"
+version = "0.1.0"
+description = "In-process Gen 1 collector over pkmn/engine (MIT, (c) 2021-2024 pkmn contributors)"
+requires-python = "==3.13.*"
+dependencies = ["numpy==2.5.1"]
+
+# Toolchain pins (repo rule: exact pins). These are installed into the session's
+# own conda env, never the fleet's -- see docs/engine_port_session_brief.md §1.1.
+#   pip install ziglang==0.16.0 maturin==1.15.0
+[project.optional-dependencies]
+build = ["ziglang==0.16.0", "maturin==1.15.0"]
+
+[tool.maturin]
+module-name = "pkmn_gen1"
+features = ["pyo3/extension-module"]

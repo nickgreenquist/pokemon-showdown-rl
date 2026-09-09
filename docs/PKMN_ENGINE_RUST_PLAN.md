@@ -44,6 +44,23 @@ vs `SimpleHeuristicsPlayer` on the Showdown server and is not touched here.
   bounded by cores (14) and RAM (~2.7 GB/lane at 3-wide; a solo lane was seen at
   5.87 GB — learner buffers, not the env). 8 lanes = 8 seeds per fleet-day
   instead of 3, which is the only thing that shrinks σ_seed.
+
+  > **CORRECTED IN PLACE, 2026-09-07.** "Need no server, no accounts" is true of
+  > COLLECTION and false of a LANE. In-loop eval and the locked protocol both run
+  > on the server (§8.3), and `make_eval_env` builds a `Showdown-v0` whose
+  > `ShowdownSingles` players connect in `__init__` — so every engine lane holds
+  > TWO SEATS for its whole life, not just during an eval. Consequences that
+  > change how a fleet is planned:
+  >   * **CLAUDE.md rule 2 still applies**: concurrent engine lanes need distinct
+  >     `--seed`s, or poke-env's globally-seeded username derivation collides and
+  >     a lane dies with a misleading `TimeoutError`.
+  >   * `/timer on` and the orphaned-room deadlock still apply to those seats.
+  >   * The server must be UP AT LAUNCH, not merely by the first eval.
+  >
+  > The width argument survives and gets stronger: 8 lanes put 16 mostly-idle
+  > seats on the server instead of 8 × K battling ones, so the server stops being
+  > the constraint. But "engine lanes are server-free" is not a sentence anyone
+  > should plan a fleet on.
 - **New capability:** every battle is reproducible from a 64-bit seed (teams and
   rolls). Paired evaluation with common random numbers becomes possible
   (docs/research_reports Q1/Q2 §2.7); it is impossible on the server path.
@@ -393,6 +410,13 @@ tests/test_engine_*.py            # Python-side tests (see §9)
 
 ### 4.3 `Cargo.toml`
 
+> **CORRECTED IN PLACE, 2026-09-06 (gate B-0).** `pyo3/extension-module` must
+> NOT be a crate default: with it always on, the test binary has no libpython to
+> link and `cargo test` cannot run at all — the entire Rust half of B-0 would be
+> unrunnable. It belongs in `[tool.maturin] features` only, so maturin turns it
+> on for the wheel and `cargo test` links normally.
+
+
 ```toml
 [package]
 name = "pkmn-gen1"
@@ -424,6 +448,14 @@ codegen-units = 1
 ```
 
 ### 4.4 `build.rs` — compile the engine with Zig, link it, (re)generate bindings
+
+> **ADDED IN PLACE, 2026-09-06 (gate B-0).** `build.rs` must also emit an rpath
+> to the interpreter's `LIBDIR`: a conda `libpython` is not on dyld's default
+> search path, so without it `cargo test` aborts at load. Harmless for the
+> maturin build, which never links libpython. It must also pass `-j2` to `zig
+> build` INSIDE the script — a `-j2` on the cargo command line does not reach
+> the Zig subprocess, which is what actually costs the cores.
+
 
 ```rust
 use std::{env, path::PathBuf, process::Command};
@@ -525,9 +557,21 @@ features = ["pyo3/extension-module"]
 prerequisites, not a wheel):
 
 ```
+# CORRECTED IN PLACE 2026-09-07: these pins live in `requirements-engine.txt`,
+# NOT in pyproject.toml. The engine collector is an OPTIONAL path -- a sync or
+# async run never imports pkmn_gen1 -- and a checkout with no Rust/Zig toolchain
+# must stay installable. `maturin` is a console script, so its bin dir must be on
+# PATH; `zig` is NOT on PATH (it is the pip wheel), and build.rs resolves it via
+# `python -m ziglang`, honouring $PKMN_ZIG / $PKMN_PYTHON.
+#
+# THE STALE-.so LANDMINE: `cargo build` refreshes target/, but the IMPORTABLE
+# extension only changes on `pip install -e`. Re-run the editable install after
+# ANY Rust edit; `pkmn_gen1.__state_schema__` makes the mismatch loud, but only
+# for the shapes it covers.
+#
 # Engine-collector extra dependency. Install with EXACTLY these commands,
 # in the pokemon-showdown-rl conda env (never base):
-#   pip install ziglang==0.16.0 maturin==1.15.0
+#   pip install -r requirements-engine.txt
 #   git submodule update --init engine/pkmn_gen1/vendor/pkmn-engine
 #   pip install --no-build-isolation -e engine/pkmn_gen1
 # Verify EVERY time (the FG-5 habit): python -c "import pkmn_gen1; pkmn_gen1.verify()"
@@ -755,8 +799,20 @@ teams, so a 2M-team bank is reused ~3× per lane — team draw is a nuisance ter
 already averaged over millions of battles, and the bank is resampled *with* a
 per-battle seed, so no two lanes see the same pairing sequence.
 
-Pairing rule at battle start: draw two teams; **re-draw the second if both
-contain Ditto** (the one cross-team constraint the shared generator enforces).
+> **CORRECTED IN PLACE, 2026-09-06 (gate P-3; docs/engine_port/NOTES.md).**
+> The paragraph below was wrong and the bank stores **pairs**, not single
+> teams. `battleHasDitto` is a field on the team GENERATOR, PS creates exactly
+> one generator per `Battle` and calls `getTeam()` twice
+> (`sim/battle.ts:3171-3177`), and the Ditto rule is enforced by SKIPPING Ditto
+> while picking the SECOND team — it resamples one slot, not the whole team. A
+> re-draw is therefore a different distribution. Reusing one generator across
+> many teams would additionally silence Ditto after its first appearance. The
+> asymmetry the pair rule predicts is visible in the shipped bank: Ditto in
+> 2,780 first teams against 2,599 second teams, a 2.5 se gap. So: 96 bytes per
+> PAIR (2 × 6 × 8), and the bank's unit is a BATTLE.
+
+~~Pairing rule at battle start: draw two teams; **re-draw the second if both
+contain Ditto** (the one cross-team constraint the shared generator enforces).~~
 
 The bank is gitignored (`data/` already is); the generator script, the PS
 commit and the bank sha256 are tracked and stamped into run metadata.
@@ -814,6 +870,15 @@ roles swapped, so the pool member's observation is built by the same rule.
 
 #### 7.1.1 Reveal-by-diff, and the two families it cannot see
 
+> **CORRECTED IN PLACE, 2026-09-06 (gates P-1/P-2).** Both families shrank, and
+> the Metronome half is GONE: `rl/envs/data/gen1_randbats_sets.json` — a byte
+> copy of Showdown's own gen-1 randbats pool — contains no Metronome, so family
+> (a) reduces to **Mirror Move alone** (4 species offer it) in this format.
+> Family (b) is real. Neither exceeded its budget: P-1 passed BITWISE on the
+> tapes. The engine still implements every path, because other gen-1 formats and
+> the search line need them.
+
+
 Move reveal by PP decrement is correct for `|cant|` turns (no PP spent, no
 reveal), for locked continuation turns (already revealed), for Struggle (no
 slot, no reveal) and after Transform (the copied moves live in the active's
@@ -863,7 +928,31 @@ the request JSON's quirks must be reproduced from state. The mapping table:
 | asleep / frozen | full list (engine accepts any) | `[Fight]` placeholder, switching allowed | switches ∪ {6} | the FIRST Move choice the engine lists | 0 | 0 | 1 |
 | Wrap VICTIM, first trapped turn (`binding_turns_observed == 1`) | full list | `[Fight]` placeholder (`partiallytrapped` without `maybeLocked`) | switches ∪ {6} | first Move choice | 0 | 0 | 1 |
 | Wrap VICTIM, later turns (`maybeLocked`) and the two `fakepartiallytrapped` turns after it ends | full list | full list | normal | direct | 0 | 0 | 0 |
-| after Transform (Ditto) | live slots = copied moves | request lists copied moves; poke-env's `[:4]` still names the ORIGINAL dict entries | **non-parity family**: the engine env exposes the live slots (correct game); current poke-env behaviour is an accepted defect. Counted at P-2 | direct | 0 | 0 | 0 |
+| after Transform (Ditto) | live slots = copied moves | request lists copied moves; ~~poke-env's `[:4]` still names the ORIGINAL dict entries~~ **poke-env names the COPIED moves** | ~~non-parity family~~ **no family: they agree** (see the correction below) | direct | 0 | 0 | 0 |
+
+> **CORRECTED IN PLACE, 2026-09-06 (gates P-1/P-2, 100,000 tape decisions +
+> 2,453,224 engine decisions).** Three things about this table:
+>
+> 1. **The Transform row's family does not exist.** In poke-env 0.15.0
+>    `Pokemon.moves` returns `_moves.moves`, which resolves to the
+>    `_transform_moves` set when transformed (`move.py:974-975`). poke-env and
+>    the engine agree on the live slots. The plan declared a non-parity family
+>    on a reading of poke-env that is false for the pinned version.
+> 2. **Three rows are UNREACHABLE in `gen1randombattle`.** The randbats set pool
+>    contains no Wrap, Bind, Clamp, Fire Spin, Thrash, Petal Dance, Rage or
+>    Bide, so the **Wrap-user**, **Wrap-victim** and **Bide** rows cannot occur
+>    in this format. Consequently the encoder's `PARTIALLY_TRAPPED`,
+>    `LEECH_SEED` and `FOCUS_ENERGY` volatile slots are **structurally dead
+>    here** — measured 0 of 100,000 decisions on both sides — the same shape of
+>    defect the D13a `MUST_RECHARGE` fix addressed, though the cause is the
+>    format's set pool rather than a parser gap. The mapping is still
+>    implemented and its hard-lock shape is verified directly on synthetic
+>    battles, because other gen-1 formats and the search line need it; but no
+>    A-1 number can be attributed to those rows.
+> 3. **The split the paragraph below asks for was confirmed.** P-2 leg B read
+>    the `trapped` values off the wire on 100,000 decisions and the table's
+>    hard-lock / semi-lock division held; mask parity was 100% with 0 mismatches
+>    and, after the Transform correction, with NO declared family at all.
 
 `trapped` = the request's `trapped: true` = a hard lock = exactly the engine's `isForced` set (Recharging, Thrashing, Charging, Rage); Bide and Wrap-user turns are semi-locks and allow switching in both PS and the engine.
 The encoder's own measurement that `battle.trapped` is False on 1,262 of 1,273
@@ -966,11 +1055,22 @@ flag that skips prior fills, matching the Python ablation switch.
   `battle_counter` is persisted in the checkpoint payload so a `--resume`
   continues the same sequence (the async path loses in-flight battles on
   resume and so does this one).
-- **Wait pumping.** `step()` applies the submitted choices, then keeps
-  updating any battle whose learner request is `Pass` (only the opponent
-  decides) — asking the opponent seat for its choice through the same batched
-  path — until every live battle has a learner decision pending or has ended.
-  Finished slots are restarted immediately with fresh teams and seed.
+- ~~**Wait pumping.**~~ **REVERSED IN PLACE, 2026-09-06.** `step()` does NOT
+  pump Pass turns. Pumping means the ENGINE choosing the opponent's action
+  without asking the policy, which installs a "first legal choice" bot in place
+  of the pool member on exactly the turns a learner row is not being written —
+  a different opponent, invisibly. Instead `pending("opponent")` returns those
+  slots like any other and the collector answers them through the pool; a slot
+  where only the opponent owes a decision simply produces no learner row that
+  step. The collector never waits on it, because it has K−1 other slots.
+  (`rl/envs/engine_env.py` DOES pump, because a one-battle gym env has nothing
+  else to do — that is the sync path's wait-state absorption and it is the one
+  place the env and the collector differ.) Finished slots are still restarted
+  immediately with fresh teams and seed.
+- **`battle_counter` is a CONSTRUCTOR argument, not only a setter** (added
+  2026-09-07): `BatchEnv::new` draws the k battles in flight, so a resumed lane
+  that assigned the counter afterwards replayed the run's first k battles —
+  same seeds, same teams — silently.
 
 ### 7.6 `BatchEnv` — the Python-facing surface (`src/python.rs`)
 
@@ -985,7 +1085,7 @@ while True:
     O = env.pending("opponent")    # idx int32[m], obs f32[m,828], mask bool[m,10], member int32[m]
     a_l, logp = agent.act_logp(L.obs, L.mask)
     a_o = move_members(O)          # grouped by member (§8.2)
-    env.step(L.idx, a_l, logp, version, O.idx, a_o)   # asserts legality; pumps Pass turns; restarts finished slots
+    env.step(L.idx, a_l, logp, version, O.idx, a_o)   # asserts legality; restarts finished slots (does NOT pump Pass turns -- §7.5)
     for ep in env.drain_finished(): dataset.append(ep)  # dict with obs/masks/actions/rewards/old_logp/version[/opp_choice]
 ```
 
@@ -1030,6 +1130,21 @@ ladder, pool push every `push_every_updates`), its metric names and
   `battles_in_flight` = K, `rooms_tracked` = K, `rerequests` = 0) plus
   `collect/engine_updates` and `collect/opponent_inference_seconds`.
 
+> **CORRECTED IN PLACE, 2026-09-07 (built).** Two details of the paragraph
+> below: the strict key set is `{mode, k, team_bank, learner_seat}` — `opp_action`
+> is an `env_kwargs` key on every collection path, not a collector key — and
+> `_async_collector_mode` now returns the MODE STRING (`'sync'`/`'async'`/
+> `'engine'`) rather than a bool, so the two loops share one validator. A key
+> belonging to another mode is refused by name ("collector.k is engine-only")
+> rather than as an unknown key.
+>
+> Also: an engine lane STILL NEEDS A SERVER UP AT LAUNCH. `make_eval_env`
+> constructs a `Showdown-v0` env whose `ShowdownSingles` players connect in
+> `__init__`, so the two eval seats are held for the whole run, not just during
+> an eval. **CLAUDE.md rule 2 therefore still applies to engine lanes**:
+> concurrent lanes need distinct `--seed`s or their seats collide on usernames.
+> "No server for collection" does not mean "no server".
+
 `train.py` changes: `_async_collector_mode` accepts `collector.mode: engine`
 with its own strict key set (`k`, `team_bank`, `learner_seat`, `opp_action`)
 and the same refusals (async-style episode batches only; no `privileged_dim`
@@ -1056,7 +1171,21 @@ number that is quoted.
   are trivial in Rust or numpy. `most-damage-typed` (JOURNEY's standing anchor,
   base power × type effectiveness, no switching) is equally trivial and is
   worth adding as an in-engine opponent since its definition is fixed by
-  `docs/design_gen4/anchors_and_eval.md`. **`SimpleHeuristicsPlayer` is NOT
+  `docs/design_gen4/anchors_and_eval.md`.
+
+  > **NAMING RULE, added in place 2026-09-07.** The in-engine typed bot is
+  > `most_damage_typed_engine` and the BARE name is refused. `random` and
+  > `max_power` keep poke-env's names deliberately — D-1 plays the engine's
+  > against the server's under the same name, and "same rule, two simulators"
+  > IS the comparison. `most_damage_typed` has no such comparison: the bare name
+  > already means the SERVER anchor project-wide, whose h2h at 500 battles is a
+  > reported anchor-battery row, so sharing it only risks an in-engine number
+  > landing in that row — wrong twice, since the port could drift AND the
+  > in-engine game has not passed D-1. A shared name is right where there is a
+  > comparison to earn it and wrong where the name only identifies a reported
+  > number. Evidence the risk is real: porting `MaxBasePowerPlayer` — nine lines
+  > — shipped a tie-break divergence, because Rust's `max_by_key` keeps the LAST
+  > maximum where Python's `max` keeps the first. **`SimpleHeuristicsPlayer` is NOT
   ported**: it reads poke-env `Battle` objects, and an in-engine re-implementation
   would be a different bot with the same name — the anchor stays on the server.
 - **`opp_action` labels (D25)** come for free: both seats' choices are in hand
@@ -1102,10 +1231,10 @@ or FULL-LOOP and carry the network width, per CLAUDE.md.
 | **B-1 loop smoke** | 10,000 random-policy battles engine-only; every `update` legal by construction; outcomes in {Win, Lose, Tie}; never `Error`; turn ≤ 1000; mean turns and tie rate recorded | no panic, no `Error` | wrapper bug; stop |
 | **P-4 stats** | for ≥ 1,000 own-side mons on the tapes, our §5.5 stats == the `|request|` `stats` (+ `maxhp`) | exact, 100% | formula/DV rule wrong; fix before P-1 |
 | **P-3 teams** | bank header sha, PS commit == `59da482e`; per-team constraints (6 mons, ≤2 per type, ≤2 per spammable weakness, ≤1 level-100, ≤1 Ditto per pair) hold on 100k draws; species marginals vs `randbats_prior` set marginals agree (χ², n=100k) | constraints never violated | generator wiring bug |
-| **P-1 encoder parity** | replay ≥ 5,000 tape decisions through poke-env (the `test_encoder_ids_tapes.py` harness); rebuild the engine-side observable state from the poke-env `Battle` (own side from the request, opponent from revealed info; the `shadow_battle.py` idea inverted); run the Rust encoder; compare 828 floats **bitwise** outside the declared families | 100% exact outside families; each family's count reported (Metronome/Mirror Move reveal, Struggle slot, Transform, Fire-thaw selection) with a budget of ≤ 1% of decisions in total | an undeclared mismatch is a bug, not a family; fix or declare with a why |
-| **P-2 mask parity** | same replay: engine-derived mask == `get_action_mask` per decision; separately report the split of recharge / Wrap-victim / Wrap-user / locked turns and their `trapped` values against §7.2's table | 100% outside the Transform family | table wrong; fix |
-| **D-1 dynamics smoke** | 10k battles engine vs 10k on the local server, both with the SAME scripted policy on both seats (`max_power` vs `max_power`, then `random` vs `random`); compare P1 win rate, tie rate, mean/percentile turns, faints per game, fraction of games with a sleep/freeze | P1 win-rate `|Δ| < 0.02` (se ≈ 0.007 at n=10k), tie-rate `|Δ| < 0.005`, mean turns `|Δ| < 5%` | a mechanic differs between the engine's patched-PS target and our PS `0.11.11`; localise with the `debug-log` build before any training |
-| **T-1 throughput** | (a) engine-only battles/s, one core (expect ≥ 20k battles/s); (b) COLLECTION-ONLY learner steps/s at K ∈ {32, 64, 128, 256, 512}, entity trunk at the 100M `trunk_kwargs`, pool opponent batched by member, quoted with width and "collection-only"; (c) FULL-LOOP `time/realized_steps_per_sec` on a 12M config (`showdown_sp_struct12m`-shaped, engine mode) with the update share printed | (b) ≥ 25k steps/s at K=256; (c) ≥ 2,000 steps/s realized — the 4× claim, or the honest smaller number | if (c) < 1,500: profile; the learner or Python-side batching is the bound, and the doc's §0 numbers get corrected in place |
+| **P-1 encoder parity** | replay ≥ 5,000 tape decisions through poke-env (the `test_encoder_ids_tapes.py` harness); rebuild the engine-side observable state from the poke-env `Battle` (own side from the request, opponent from revealed info; the `shadow_battle.py` idea inverted); run the Rust encoder; compare 828 floats **bitwise** outside the declared families | 100% exact outside families; each family's count reported (Metronome/Mirror Move reveal, Struggle slot, ~~Transform~~, Fire-thaw selection) with a budget of ≤ 1% of decisions in total | an undeclared mismatch is a bug, not a family; fix or declare with a why |
+| **P-2 mask parity** | same replay: engine-derived mask == `get_action_mask` per decision; separately report the split of recharge / Wrap-victim / Wrap-user / locked turns and their `trapped` values against §7.2's table | 100% ~~outside the Transform family~~ **with NO family declared** (§7.2 correction) | table wrong; fix |
+| **D-1 dynamics smoke** | 10k battles engine vs 10k on the local server, both with the SAME scripted policy on both seats (`max_power` vs `max_power`, then `random` vs `random`); compare P1 win rate, tie rate, mean/percentile turns, faints per game, fraction of games with a sleep/freeze | P1 win-rate `|Δ| < 0.02` (se ≈ 0.007 at n=10k), tie-rate `|Δ| < 0.005`, mean turns `|Δ| < 5%` | a mechanic differs between the engine's patched-PS target and our PS `0.11.11`; localise with the `debug-log` build before any training | **PASS 2026-09-09** at n=10,000 per matchup per simulator: max_power p1-win Δ+0.0011 / tie Δ+0.0027 / turns Δ−0.0016 rel; random Δ+0.0008 / Δ−0.0012 / Δ+0.0001. Descriptive agreement is the stronger half — sleep 0.0002/0.0002 and 0.7520/0.7597, freeze 0.4347/0.4340 and 0.2148/0.2115, faints 5.08/5.08 and 4.96/4.97 — and BOTH simulators show the same small first-player advantage (engine p1−p2 +0.0193, server +0.0144), which is the right answer rather than zero. **The first run FAILED and was an ARTIFACT**: `scripted_series` replayed battles 0..CHUNK on every call, so the leg measured 500 battles twenty times and understated its own se by √20; the tell was a seat asymmetry under a SYMMETRIC matchup, which is impossible in an independent sample. Fixed, regression-tested, and re-run rather than reinterpreted. |
+| **T-1 throughput** | (a) engine-only DECISIONS/s, one core (expect ≥ 400k decisions/s) [**CORRECTED IN PLACE 2026-09-09**: was "≥ 20k battles/s". A band in BATTLES per second silently depends on which policy is played — leg (a) runs `random_vs_random` at 61.1 turns/battle, so its measured 6,056 battles/s IS ~740k decisions/s, while `max_power`'s 21.3-turn battles would read ~3× higher on the same engine and "pass" the old band. Decisions/s is the policy-independent quantity]; (b) COLLECTION-ONLY learner steps/s at K ∈ {32, 64, 128, 256, 512}, entity trunk at the 100M `trunk_kwargs`, pool opponent batched by member, quoted with width and "collection-only"; (c) FULL-LOOP `time/realized_steps_per_sec` on a 12M config (`showdown_sp_struct12m`-shaped, engine mode) with the update share printed | (b) ≥ 25k steps/s at K=256 [**MEASURED 2026-09-09: 22,318 at K=256 — BELOW BAND; 30,559 at K=512 clears it.** The band is not the finding. The OPPONENT's forward pass is 60–75% of collection at EVERY K (0.719/0.748/0.726/0.680/0.605 at K=32/64/128/256/512) against ~25% for the learner's own, which is the batch-2..4 GEMV→GEMM anomaly this leg was written to look for. Opponent batching, not K, is the next lever — empty polls are already 3% at K=512]; (c) ≥ 2,000 steps/s realized — the 4× claim, or the honest smaller number | if (c) < 1,500: profile; the learner or Python-side batching is the bound, and the doc's §0 numbers get corrected in place |
 | **A-1 acceptance (pre-registered; the standing 2-Opus cycle, an irreversible artifact)** | 3 seeds × 12M on the engine collector vs the async-collector 12M acceptance fleet (pooled vs-SH 0.67211, seed sd 0.0122; itself +0.02322 above the sync basis 0.64889 — G9, `configs/showdown_sp_100m.yaml` N-COLL) under the locked eval protocol on the server; **primary** pooled vs-SH `|Δ| < 0.025` (G9's band; report the SIGNED delta forever after, as N-COLL does); secondary: off-FP@20 descriptive, entropy/ep-length curves overlaid; R0 gates: `collect/episodes_discarded == 0`, mask-legality errors == 0, no `Error` outcomes | inside the band with the signed delta disclosed | outside: diagnose parity (P-1/P-2 families, D-1), never tune; a NEGATIVE delta outside the band means the projection I1/I2 leaks or shifts the game and the collector is not licensed |
 
 Only after A-1 does `collector.mode: engine` become a licensed non-lever that
@@ -1125,7 +1254,7 @@ per-seed finals), and say which side each band reads.
 | **Showdown drift** (engine targets patched PS at `@pkmn/sim 0.9.31`; our server is PS 0.11.11 `59da482e`) | a gen 1 mechanic could differ | D-1 bands; the engine's README §Bugs list is the reference for expected divergences; anything outside it is investigated with the `debug-log` build |
 | **Hidden-information leak** (I1) | the in-engine game is easier than the real one; in-engine strength would not transfer to the server/ladder | the tracker never reads hidden fields (§7.1 table); P-1 is bitwise; an explicit leak audit lists every engine field with its visibility class |
 | **Aliased turns** (sleep, freeze, first Wrap-victim turn, recharge, Struggle) | wrong mask or un-zeroed blocks teaches "slot-0 features ⇒ action 6" | §7.2 table; P-2 counts each kind |
-| **Transform (Ditto), Mimic** | poke-env's `[:4]` dict semantics differ from the live slots | declared non-parity family; the engine env exposes the live slots (the correct game); counted at P-1/P-2 |
+| **Transform (Ditto), Mimic** | ~~poke-env's `[:4]` dict semantics differ from the live slots~~ **they do not: `Pokemon.moves` resolves to `_transform_moves` (`move.py:974-975`)** | ~~declared non-parity family~~ **no family; P-1/P-2 passed with none declared** (corrected 2026-09-06, §7.2) |
 | **Metronome / Mirror Move reveal, Struggle slot** | diff-based reveal cannot see `[from]` calls | declared families with a 1% total budget; fallback = `debug-log` protocol decode for `|move|` |
 | **Endless battles** | two Rest/Recover stallers | the engine implements EBC and the 1000-turn tie under `-Dshowdown`; `check()` also bounds updates per battle |
 | **Two Dittos in one battle** | PS never generates it | re-draw the pairing (§6.2) |
