@@ -156,11 +156,15 @@ fi
 say "STEP 1 DONE (team bank $BANK)"
 
 # ---- 2. D-1 ------------------------------------------------------------------
-# Needs a server, and a FRESH one: the engine leg is compared against real
-# Showdown, so a server carrying hours of another run's state is not the
-# instrument we want.
-restart_server || exit 1
+# ORDER MATTERS INSIDE D-1. The ENGINE leg needs NO server and refuses to
+# measure while one is up (a server doing work is contention for an
+# engine-only read). The SERVER leg needs a fresh one. So: engine leg first
+# with the box quiet, THEN bring the server up for its half.
+stop_server || exit 1
 unit "$D1OUT/engine.json" "$PY" scripts/engine_d1.py --leg engine --bank "$BANK" --out "$D1OUT" || exit 1
+# A FRESH server for the server leg: it is compared against the engine, so one
+# carrying hours of another run's state is not the instrument we want.
+restart_server || exit 1
 # the server leg needs the SAME bank: D-1 compares the two engines on matched
 # team pairs, so a bankless server leg is not the comparison (engine_d1.py:410).
 unit "$D1OUT/server.json" "$PY" scripts/engine_d1.py --leg server --bank "$BANK" --out "$D1OUT" || exit 1
