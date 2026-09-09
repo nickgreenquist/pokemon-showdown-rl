@@ -8,13 +8,14 @@ item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
 
 **Status tally — 2026-09-06, amended 2026-09-08.** Of the
-21 actionable rows (2.9 and the §5 shared-trunk row added 2026-09-08 from the
-SB3 audit; the SB3 MIGRATION itself is closed in §3): DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
+22 actionable rows (2.9 and the §5 shared-trunk row added 2026-09-08 from the
+SB3 audit; the §5 cross-features row banked the same evening; the SB3
+MIGRATION itself is closed in §3): DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
 gen-4 baseline's mechanism, unrun as a gen-1 lever); ABSORBED by the gen-4
 design 2 (temporal context in §5; C6's defect via the variable-damage bit —
 neither credited, both no longer open at gen 4); BUILT-UNRUN 1 (4.3); NOT
-STARTED 15 (2.1–2.4, 2.8, 2.9, 4.2 as an arm, 4.4–4.7, the attention
-re-benchmark, the §5 shared trunk, §6
+STARTED 16 (2.1–2.4, 2.8, 2.9, 4.2 as an arm, 4.4–4.7, the attention
+re-benchmark, the §5 shared trunk, the §5 cross features, §6
 except the branch-protection click). **Q45 CLOSED 2026-09-06: §4 is ranked
 4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4, all downstream of JOURNEY 7.5.** Nothing
 here precedes the first gen-4 run (ruled: Wang's recipe, levers held back);
@@ -818,6 +819,48 @@ so JOURNEY wants an amendment at the next maintainer pass.
   why the deviation was taken), never a refactor: it needs its own pre-reg, and
   it is not bit-identical. Worth most after 7.5, when the epoch loop owns the
   wall.
+
+
+- **Explicit cross features / DCN-style crossing — RUNG 2 of an existing spec,
+  NEVER RUN (banked 2026-09-08 on the maintainer's ask).** Not a new idea:
+  `docs/prior_work/CROSS_FEATURES_AND_ARCHITECTURE.md` already ladders it —
+  rung 0 hand-composed crosses, rung 1 pointer/shared-slot head, **rung 2
+  explicit crossing (two-tower dot product / DCN)**, rung 3 entity attention.
+  We built rung 3's cousin (`entity_deepsets`) and **skipped rung 2 entirely**.
+  That doc's own caveat travels with every formula: it was written in a session
+  with NO repo access, so verify against `baselines.py` and the gen-1 damage
+  formula before implementing, and `docs/prior_work/`'s audit of it supersedes
+  it on conflicts. **The maintainer's framing (2026-09-08, from RecSys
+  wide-and-deep):** the "wide" half is a SPARSE MEMORIZATION branch over cross
+  features, which is the half we have never had — our ID embeddings are inputs
+  to the dense trunk, not a crossing branch.
+  **Size the cross deliberately — the arithmetic decides the form.** Full 3-way
+  (attacker species × defender species × move) is 301·301·183 ≈ **16.6M cells**
+  in gen 4 (151·151·165 ≈ 3.8M in gen 1) against ≈48M decisions per 50M-step
+  lane ≈ **3 samples/cell**, i.e. unlearnable. 2-way is the tractable form:
+  species×species ≈ 90k cells ≈ 530 samples/cell, move×defender-species ≈ 55k.
+  START 2-WAY; hash or factorize before any 3-way.
+  **Why this is NOT the §3 width kill re-proposed.** That kill rests on measured
+  IDLENESS of DENSE capacity (dormancy 27→84–88%, critic ctx srank99 9–13/384 at
+  37.5–50M). An embedding row is updated only when its cell is seen, so it
+  cannot go dormant the way a dense layer does — the idleness mechanism does not
+  transfer, and this is a different question rather than a re-proposal.
+  **Capacity datapoint, RECORDED not acted on:** `ps-ppo` is **14,490,657
+  params** (transformer 6.31M + subnets 4.32M + JEPA 1.58M + readout 2.10M;
+  **embeddings only 141k**, verified by instantiating the model 2026-08-04) and
+  claims ladder 1900+ at gen 9 — 21× our actor's 674,763. It is simultaneously
+  the strongest external argument for DENSE capacity and evidence that such
+  scale is NOT embedding-shaped. Re-opening §3's width kill on it needs a
+  MAINTAINER RULING (§3's rule: vacating a mechanism-bounded entry does).
+  **Cheap pre-test, fully offline, no server:** screen the branch SUPERVISED on
+  the gen-4 BC-clone dataset (`runs/bc_gen4_fp20_soft_s0`, val agreement 0.433
+  is the incumbent) before any RL run touches it; a width sweep on the same
+  fixed dataset also separates "the architecture cannot represent the target"
+  from "RL training does not use what it has". **PURITY NOTE:** only the
+  ARCHITECTURE CHOICE may transfer — no weights trained on FP tapes enter the
+  learner, or the pure-self-play lane is contaminated (the clone is an anchor,
+  never training data). Needs its own pre-reg; not bit-identical; worth most
+  after 7.5.
 
 
 ## 6. Ops hygiene (from the 2026-09-01 auto-mode review; sequenced)
