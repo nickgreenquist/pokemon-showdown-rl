@@ -372,7 +372,27 @@ def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
             return sum(1 for r in csv.DictReader(fh)
                        if r.get("eval/win_rate") not in (None, ""))
 
+    def _ckpt_step(d: pathlib.Path):
+        """Realized step from the lane's own latest checkpoint.
+
+        A RUNNING lane has no history.csv — wandb is offline and
+        extract_history.py only runs afterwards — so a fleet-width rate cannot
+        come from history while the fleet is up. `checkpoint.pt` is written
+        every SAVE_LATEST_EVERY_UPDATES updates (~123k steps at this recipe),
+        which over a 900 s window is ~9 writes: plenty of resolution, and it is
+        realized steps by definition rather than a poll-cadence estimator.
+        """
+        f = d / "checkpoint.pt"
+        if not f.exists():
+            return None
+        try:
+            import torch
+            return torch.load(f, map_location="cpu", weights_only=False).get("step")
+        except Exception:
+            return None
+
     evals0 = {d.name: _eval_rows(d) for d in run_dirs}
+    steps0 = {d.name: _ckpt_step(d) for d in run_dirs}
     t0 = time.time()
     cpu0 = {n: _cpu_seconds(p) for n, p in pids.items()}
     node0, node_pids = _node_cpu_seconds()
@@ -381,6 +401,7 @@ def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
     node1, _ = _node_cpu_seconds()
     elapsed = time.time() - t0
     evals1 = {d.name: _eval_rows(d) for d in run_dirs}
+    steps1 = {d.name: _ckpt_step(d) for d in run_dirs}
     eval_ticks = {n: evals1[n] - evals0[n] for n in evals0 if evals0[n] >= 0}
     ticked = {n: v for n, v in eval_ticks.items() if v > 0}
 
@@ -392,25 +413,39 @@ def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
     node_cores = (node1 - node0) / elapsed
     per_lane_cores = sum(cores.values()) / k
 
-    # Rate over the SAME window, from each lane's own realized series.
+    # Rate over the SAME window, from each lane's own realized progress.
     rates: dict[str, float] = {}
     for d in run_dirs:
-        hist = d / "history.csv"
-        if not hist.exists():
-            raise SystemExit(f"{hist} missing — run scripts/extract_history.py "
-                             f"{d} first (and note a RESUMED lane splits the "
-                             "history; merge it before reading a rate)")
-        with open(hist) as fh:
-            rows = list(csv.DictReader(fh))
-        series = [float(r["time/realized_steps_per_sec"]) for r in rows
-                  if r.get("time/realized_steps_per_sec") not in (None, "")]
-        if not series:
-            raise SystemExit(
-                f"{hist} has no time/realized_steps_per_sec — that is the only "
-                "series T-1 quotes; time/steps_per_sec is the poll-cadence "
-                "estimator and overstates the async loop by ~57%")
-        # Conforming window only: drop the first reading, which straddles startup.
-        rates[d.name] = statistics.median(series[1:] or series)
+        a, b = steps0.get(d.name), steps1.get(d.name)
+        if a is not None and b is not None and b > a:
+            rates[d.name] = (b - a) / elapsed
+    if len(rates) != k:
+        # Fall back to history for a FINISHED fleet, where checkpoint.pt no
+        # longer advances. A resumed lane splits the history and
+        # extract_history.py hard-fails, so history_merged.csv is honoured too.
+        for d in run_dirs:
+            if d.name in rates:
+                continue
+            hist = d / "history.csv"
+            if not hist.exists():
+                hist = d / "history_merged.csv"
+            if not hist.exists():
+                raise SystemExit(
+                    f"{d}: checkpoint.pt did not advance during the window and "
+                    "there is no history to fall back on. If the lane is "
+                    "RUNNING this means it made no progress in "
+                    f"{elapsed:.0f}s — check for the alive-at-zero-CPU stall.")
+            with open(hist) as fh:
+                rows = list(csv.DictReader(fh))
+            series = [float(r["time/realized_steps_per_sec"]) for r in rows
+                      if r.get("time/realized_steps_per_sec") not in (None, "")]
+            if not series:
+                raise SystemExit(
+                    f"{hist} has no time/realized_steps_per_sec — that is the "
+                    "only series T-1 quotes; time/steps_per_sec is the "
+                    "poll-cadence estimator and overstates the async loop by "
+                    "~57%")
+            rates[d.name] = statistics.median(series[1:] or series)
 
     per_lane_rate = statistics.median(rates.values())
     basis = NODE_BASIS["per_lane_realized_steps_per_sec"]
