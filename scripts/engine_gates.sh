@@ -58,6 +58,35 @@ export POKEMON_RL_ENCODER_IDS=1
 
 mkdir -p "$OUT" "$T1OUT" "$D1OUT" logs data/engine
 say() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
+# The server lives in the MAIN tree (showdown/ is gitignored, so this worktree
+# has none). The runner OWNS its lifecycle: D-1 and the evals need it up, and
+# T-1 (a)/(b) are idle-box measurements that need it down. A chain that asked an
+# operator to start and stop it between steps would not be detached, which is
+# the whole point of rule 4's (i).
+MAIN="${MAIN:-/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl}"
+server_pid() { pgrep -f "node pokemon-showdown start" | head -n 1; }
+stop_server() {
+  local pid; pid=$(server_pid)
+  [ -z "$pid" ] && return 0
+  say "stopping Showdown server (pid $pid)"
+  [ "$DRY" = 1 ] && return 0
+  kill "$pid" 2>/dev/null; sleep 3; kill -9 "$pid" 2>/dev/null
+  local i=0
+  while [ -n "$(server_pid)" ]; do sleep 1; i=$((i+1)); [ $i -gt 60 ] && { say "SERVER FAILED: old server would not die"; return 1; }; done
+  return 0
+}
+start_server() {
+  [ -n "$(server_pid)" ] && { say "server already up (pid $(server_pid))"; return 0; }
+  say "starting Showdown server from $MAIN/showdown"
+  [ "$DRY" = 1 ] && return 0
+  ( cd "$MAIN/showdown" && nohup node pokemon-showdown start --no-security >> "$MAIN/logs/showdown_server.log" 2>&1 < /dev/null & )
+  local i=0
+  until nc -z localhost 8000 2>/dev/null; do sleep 1; i=$((i+1)); [ $i -gt 120 ] && { say "SERVER FAILED: nothing listening on 8000 after 120 s"; return 1; }; done
+  sleep 5
+  say "server up (pid $(server_pid)); simulator: $(grep -o 'simulator: [0-9]*' "$MAIN/showdown/config/config.js" | head -1 | tr -d '\n')"
+  return 0
+}
+restart_server() { stop_server && start_server; }
 run() { if [ "$DRY" = 1 ]; then say "DRY: $*"; return 0; fi; "$@"; }
 die() { say "REFUSED: $*"; exit 1; }
 run_dir_of() { echo "runs/engine_a1_s$1"; }
@@ -82,6 +111,9 @@ unit() {  # $1 output path, $2.. command — skip when the output exists
 say "=== engine_gates preflight ==="
 pgrep -f "rl\.train" > /dev/null && die "a training lane is alive — this script owns the box or does not run"
 pgrep -f "gen4_wang50m_postfleet" > /dev/null && die "the gen-4 post-fleet chain is running"
+# An IDLE Showdown server left over from a finished chapter is not contention —
+# step 2 restarts it fresh anyway. A server doing WORK would be, but nothing on
+# this box may be training (checked above) and the evals are ours.
 if [ -f logs/gen4_wang50m_postfleet.log ] && ! grep -q "POST-FLEET DONE" logs/gen4_wang50m_postfleet.log; then
   die "logs/gen4_wang50m_postfleet.log has no POST-FLEET DONE line — the gen-4 chapter still owns the box"
 fi
@@ -102,7 +134,12 @@ case "$AUTH" in
   "OWED:"*) die "rulings still owed ($AUTH)" ;;
 esac
 
-FREE_GB=$(vm_stat | awk '/free|inactive/ {gsub(/\./,"");s+=$NF} END {print int(s*4096/1073741824)}')
+# vm_stat's page size is NOT 4096 on this box — it is 16384, and the header
+# states it. Hard-coding 4096 under-reports free memory by 4x and would refuse
+# a launch on a box with 10 GB free. Read the page size rather than assume it.
+PAGE=$(vm_stat | awk 'NR==1{for(i=1;i<=NF;i++) if ($i+0>1024) {print $i+0; exit}}')
+PAGE=${PAGE:-4096}
+FREE_GB=$(vm_stat | awk -v pg="$PAGE" '/Pages free|Pages inactive/ {gsub(/\./,"");s+=$NF} END {print int(s*pg/1073741824)}')
 DISK_GB=$(df -g . | awk 'NR==2{print $4}')
 say "box: free+inactive ${FREE_GB}GB, disk ${DISK_GB}GiB, width 3"
 [ "${FREE_GB:-0}" -lt 6 ] && die "free+inactive ${FREE_GB}GB < 6GB — RAM is the local ceiling, not cores"
@@ -112,14 +149,20 @@ say "preflight OK"
 # ---- 1. team bank ------------------------------------------------------------
 if [ ! -f "$BANK" ]; then
   say "team bank $BANK missing — generating $BANK_PAIRS pairs (RW-6)"
-  unit "$BANK" "$PY" scripts/engine_team_bank.py --pairs "$BANK_PAIRS" --out "$BANK" || exit 1
+  unit "$BANK" "$PY" scripts/engine_team_bank.py --showdown-root "$MAIN/showdown" \
+      --pairs "$BANK_PAIRS" --seed-prefix a1a1 --out "$BANK" || exit 1
 fi
 say "STEP 1 DONE (team bank $BANK)"
 
 # ---- 2. D-1 ------------------------------------------------------------------
-# Needs a server. Both matchups; a PASS requires all three bands on BOTH.
+# Needs a server, and a FRESH one: the engine leg is compared against real
+# Showdown, so a server carrying hours of another run's state is not the
+# instrument we want.
+restart_server || exit 1
 unit "$D1OUT/engine.json" "$PY" scripts/engine_d1.py --leg engine --bank "$BANK" --out "$D1OUT" || exit 1
-unit "$D1OUT/server.json" "$PY" scripts/engine_d1.py --leg server --out "$D1OUT" || exit 1
+# the server leg needs the SAME bank: D-1 compares the two engines on matched
+# team pairs, so a bankless server leg is not the comparison (engine_d1.py:410).
+unit "$D1OUT/server.json" "$PY" scripts/engine_d1.py --leg server --bank "$BANK" --out "$D1OUT" || exit 1
 unit "$D1OUT/compare.json" "$PY" scripts/engine_d1.py --leg compare --out "$D1OUT" || exit 1
 if ! "$PY" -c "
 import json,sys; d=json.load(open('$D1OUT/compare.json'))
@@ -133,14 +176,14 @@ fi
 say "STEP 2 DONE (D-1 PASS)"
 
 # ---- 3. T-1 (a)(b), idle box, server DOWN ------------------------------------
-pgrep -f "pokemon-showdown" > /dev/null && die "a Showdown server is up — T-1 (a)/(b) are idle-box measurements; stop it first"
+stop_server || exit 1
 unit "$T1OUT/leg_a.json" "$PY" scripts/engine_t1.py --leg a --bank "$BANK" --out "$T1OUT" || exit 1
 unit "$T1OUT/leg_b.json" "$PY" scripts/engine_t1.py --leg b --bank "$BANK" --out "$T1OUT" || exit 1
 say "STEP 3 DONE (T-1 a,b)"
 
 # ---- 4. A-1 lanes ------------------------------------------------------------
 # Server UP from here: the in-loop evals go through poke-env.
-pgrep -f "pokemon-showdown" > /dev/null || die "start the Showdown server before step 4 (in-loop evals need it)"
+start_server || exit 1
 for s in $SEEDS; do
   d=$(run_dir_of "$s")
   if [ -n "$(rung_ckpt "$s")" ]; then say "SKIP lane s$s (12M rung exists)"; continue; fi

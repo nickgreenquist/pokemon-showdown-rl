@@ -136,15 +136,26 @@ def test_every_open_ruling_is_named_in_the_header():
             "reads as settled on an open ruling answers it for the maintainer")
 
 
-def test_every_ruling_is_ratified_but_launch_is_still_not_authorized():
-    """Ratification froze the DESIGN. It is not a launch authorization: D-1 has
-    never run, and the lanes sit in CLAUDE.md rule 4's "ask first" band."""
+def test_every_ruling_is_ratified():
     ratified = SIDE["ratified_decisions"]
     assert set(ratified) == set(SIDE["rulings_wanted"]), \
         "every open ruling must be answered, or the header still speaks for the maintainer"
-    assert SIDE["launch_authorization"] == "NONE"
     assert SIDE["is_equivalence_test"] is False
     assert SIDE["precondition"]["state_at_drafting"] == "NEVER RUN"
+
+
+def test_launch_authorization_is_a_record_not_a_ratification():
+    """Separate acts, separately recorded. The authorization says WHO granted
+    it, WHAT it covers, and what was still unmet when it was granted — D-1
+    above all, which is step 2 of the chain and hard-stops it on failure."""
+    auth = SIDE["launch_authorization"]
+    if auth == "NONE":
+        return                                  # not yet granted; nothing to check
+    assert isinstance(auth, dict)
+    for field in ("granted_by", "covers", "preconditions_at_grant", "box_at_grant"):
+        assert field in auth, f"launch_authorization is missing {field}"
+    assert "UNRUN" in auth["preconditions_at_grant"]["d1"], \
+        "an authorization that does not say D-1 was still unrun is not honest"
 
 
 def test_rw8_ruled_secondary_so_the_verdict_is_the_endpoint_alone():

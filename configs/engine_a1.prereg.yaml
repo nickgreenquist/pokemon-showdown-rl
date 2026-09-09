@@ -353,7 +353,28 @@ ratified_decisions:
   RW-8: "P-AUC is SECONDARY-DESCRIPTIVE. The verdict is P-END alone and the A1-SPLIT branch does not exist"
 ratified_at: 2026-09-09
 ratified_by: maintainer, in chat
-launch_authorization: NONE   # ratification is not authorization; D-1 must PASS first
+# NOT a ratification — the record of how the run started (the gen-4 precedent).
+launch_authorization:
+  granted_by: maintainer, in chat 2026-09-09 ("all train and eval done, the box is free. go go go")
+  covers: >-
+    the full frozen chain in scripts/engine_gates.sh — bank generation, D-1,
+    T-1 (a)(b), the three A-1 lanes, T-1 (c)(d), both arms' evals at
+    n=12,000/seed, and the grade. CLAUDE.md rule 4's "2-5 h ask first" band is
+    thereby answered for the A-1 lanes (~2.5 h x 3 concurrent, projected).
+  preconditions_at_grant:
+    gen4_chapter: CLOSED — logs/gen4_wang50m_postfleet.log reads POST-FLEET DONE (pooled vs-SH 0.8788, M-YES, S5-MATCHED)
+    d1: STILL UNRUN — it is step 2 of the chain and the chain HARD-STOPS if it fails; A-1 does not launch on a failed D-1
+    team_bank: does not exist; step 1 generates 5,000,000 pairs
+  box_at_grant: >-
+    no training process alive; an IDLE Showdown server left from the gen-4
+    chapter (543 min cumulative CPU, zero delta over 10 s) which step 2
+    restarts fresh; a leftover idle shell from the gen-4 launcher, untouched;
+    caffeinate untouched; free+inactive ~10.6 GB, disk 157 GiB.
+  note: >-
+    the runner OWNS the Showdown server's lifecycle from here (up for D-1 and
+    the evals, down for T-1's idle-box legs). That means killing a server this
+    session did not start — done deliberately and recorded, because the chapter
+    that started it is closed and a fresh server is the right instrument.
 
 review:                                # the standing 2-Opus cycle
   review_1:
