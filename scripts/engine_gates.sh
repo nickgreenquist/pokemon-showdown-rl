@@ -134,6 +134,12 @@ a=d.get('launch_authorization')
 print('OK' if isinstance(a, dict) and a.get('granted_by') else 'NONE')" 2>/dev/null)
 [ "$AUTH" = "OK" ] || die "no launch_authorization block in $PREREG"
 
+# vm_stat's page size is NOT 4096 on this box — it is 16384, and the header
+# states it. Hard-coding 4096 under-reports free memory by 4x and would refuse
+# a launch on a box with 10 GB free. Read the page size rather than assume it.
+# (`set -u` is on, so PAGE must be assigned before it is referenced.)
+PAGE=$(vm_stat | awk 'NR==1{for(i=1;i<=NF;i++) if ($i+0>1024) {print $i+0; exit}}')
+PAGE=${PAGE:-4096}
 FREE_GB=$(vm_stat | awk -v pg="$PAGE" '/Pages free|Pages inactive/ {gsub(/\./,"");s+=$NF} END {print int(s*pg/1073741824)}')
 DISK_GB=$(df -g . | awk 'NR==2{print $4}')
 say "box: free+inactive ${FREE_GB}GB, disk ${DISK_GB}GiB, width 3"
