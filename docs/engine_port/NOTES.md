@@ -1577,3 +1577,62 @@ which the runner did not pass — it would have died at step 2.
 2.44 s = **2,049 pairs/s**, so the 5,000,000-pair bank is ~41 min, not the
 ~2.75 h implied by the earlier "99 s per 50,000" (that figure was measured under
 fleet contention). This is what made RW-6's 5M ruling cheap.
+
+## P-1b — giving `track.rs` an oracle (designed 2026-09-09, not yet built)
+
+**The problem, stated exactly.** P-1 rebuilds the engine-side observable state
+*from poke-env's own `Battle`* and then compares encoders. So it answers only
+"given identical observable state, do the two encoders agree?" — `track.rs`,
+the engine→observable projection, is never exercised. Its own header says so
+("the half of the port that gate P-1 deliberately does not test") and
+`tests/tracker_properties.rs` says there is no direct oracle for it. That
+projection decides roughly 400 of the 828 columns, it is symmetric in
+self-play, it moves none of the D25 gates, and the repo has a measured sibling
+defect — `recharge_fix`, an observation-semantics bug of exactly this class —
+worth +0.0106, which is 42% of A-1's band. This is the single largest
+unverified surface in the port.
+
+A second, smaller circularity sits beside it: 184 of the 828 floats (8 move
+blocks x the 23-float v2 effect sub-block) are a verbatim copy of shared
+`_effect_block` output, because `engine_tables.py` IMPORTS `_effect_block`
+rather than reimplementing it. That is sanctioned (plan §7.4 — values that
+travel as data are never recomputed, which is what makes bitwise parity
+reachable at all) but it means those columns carry no independent signal in
+P-1. Fixing the projection oracle does not fix this one; only an independent
+reimplementation would, and the cost/benefit there is poor.
+
+**Why "drive track.rs from recorded protocol tapes" cannot be done literally.**
+The tracker is DIFF-DRIVEN over the engine's own 384-byte structs
+(`BattleTracker::observe(&mut self, b: &Battle)`), with `-Dlog` off and nothing
+parsed. It has no protocol input to drive. And a recorded PS tape cannot be
+replayed into the engine, because matching a real battle would require its RNG
+stream and both players' choices.
+
+**The design that does work — turn the direction around.** The engine has a
+`-Dlog` build already wired as the `debug-log` cargo feature, and poke-env is
+itself a PS-protocol parser. So:
+
+  1. Run engine battles under `debug-log`, emitting PS protocol.
+  2. Feed that protocol to a poke-env `Battle` — the REFERENCE observer, the
+     same code the server path trusts in production.
+  3. At every decision point, compare poke-env's `Battle`-derived observable
+     state against `track.rs`'s diff-derived state for the SAME battle.
+
+Both observers now watch one battle from the same information boundary, and
+neither is derived from the other. That is a real oracle, and it exercises
+precisely what P-1 skips: reveal order, revealed-move sets, HP quantisation,
+observed sleep turns, binding/lock counters, faint flags.
+
+**Why this is worth building even though A-1 is running.** A-1 cannot see a
+projection defect below ~2.5 pp of win rate, and P-1b can see one at n=1 —
+a single mismatched reveal is a hard failure. It is also offline, needs no
+server, and is repeatable. If it finds nothing, A-1's blind spot shrinks from
+"~400 unverified columns" to "~400 columns verified against poke-env on N
+battles", which is the difference between a screened port and a trusted one.
+
+**Cost and shape.** A `debug-log` build (the feature exists, unused), a small
+Rust binary that plays K battles and writes protocol + a per-decision dump of
+`ObservableState`, and a Python comparator reusing P-1's existing field
+extractor against a poke-env `Battle` fed the same protocol. The declared
+families carry over from P-1; anything else is a bug, not a family.
+NOT STARTED — designed here so the next session can cost it honestly.
