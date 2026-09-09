@@ -123,10 +123,36 @@ def main(argv=None) -> int:
                     default=pathlib.Path("configs/engine_a1.prereg.yaml"))
     ap.add_argument("--out", type=pathlib.Path,
                     default=pathlib.Path("results/engine_a1/primary.json"))
+    ap.add_argument("--descriptive-only", action="store_true",
+                    help="print per-seed numbers and stop — no delta, no band, "
+                         "no cell. The only mode allowed while RW-5 is open.")
     args = ap.parse_args(argv)
+
+    # THE VERDICT GUARD. A-1's band is unresolved (maintainer, 2026-09-09:
+    # "a verdict off that band is worse than no verdict"), so this script
+    # REFUSES to compute a delta, a band comparison or a cell until the sidecar
+    # records a ruling on RW-5 AND an explicit verdict authorization. Without
+    # both it prints the per-seed numbers and stops. Belt and braces: the
+    # runner does not call it at all today.
+    side_pre = yaml.safe_load(args.prereg.read_text()) if args.prereg.exists() else {}
+    ratified_pre = side_pre.get("ratified_decisions") or {}
+    authorized = bool(ratified_pre.get("RW-5")) and side_pre.get("verdict_authorized") is True
+    if not authorized and not args.descriptive_only:
+        raise SystemExit(
+            "REFUSING to grade: A-1's band is unresolved. The sidecar records no\n"
+            "ruling on RW-5 plus verdict_authorized: true, so any delta printed\n"
+            "here would be a verdict off an unresolved band. Re-run with\n"
+            "--descriptive-only for per-seed numbers, which are not a comparison.")
 
     lanes = _load(args.evals)
     n_used = lanes[0]["episodes"]
+    if args.descriptive_only:
+        print("DESCRIPTIVE ONLY — per-seed engine-arm numbers, not a comparison:")
+        for l in lanes:
+            print(f"  {l['run']:20s} step {l['step']:>9,}  n={l['episodes']:>6,}  "
+                  f"win_rate {l['win_rate']:.5f}")
+        print("no delta, no band, no cell — the A-1 band is unresolved")
+        return 0
     if any(l["episodes"] != n_used for l in lanes):
         raise SystemExit("arm-E lanes were evaluated at different n")
     if args.banked:

@@ -136,12 +136,34 @@ def test_every_open_ruling_is_named_in_the_header():
             "reads as settled on an open ruling answers it for the maintainer")
 
 
-def test_every_ruling_is_ratified():
-    ratified = SIDE["ratified_decisions"]
-    assert set(ratified) == set(SIDE["rulings_wanted"]), \
-        "every open ruling must be answered, or the header still speaks for the maintainer"
+def test_nothing_is_ratified_and_no_verdict_is_authorized():
+    """2026-09-09's standing authorization says "do NOT ratify" in terms, so the
+    morning's ratification is withdrawn and every ruling is owed again. The
+    engine ARM may still run — it is common to every candidate design — but a
+    VERDICT may not be computed off an unresolved band."""
+    assert SIDE["ratified_decisions"] in ({}, [], None), \
+        "a pre-reg that ratifies itself decides what is the maintainer's to decide"
+    assert SIDE["verdict_authorized"] is False
     assert SIDE["is_equivalence_test"] is False
     assert SIDE["precondition"]["state_at_drafting"] == "NEVER RUN"
+    assert set(SIDE["rulings_wanted"]) == {f"RW-{i}" for i in range(1, 9)}
+
+
+def test_the_grader_refuses_a_verdict_while_the_band_is_open():
+    """Belt and braces: the runner does not call the grader today, and the
+    grader would refuse anyway."""
+    src = (REPO / "scripts/engine_a1_grade.py").read_text()
+    assert "REFUSING to grade" in src
+    assert "verdict_authorized" in src
+    assert "--descriptive-only" in src
+
+
+def test_the_runner_computes_no_verdict():
+    runner = (REPO / "scripts/engine_gates.sh").read_text()
+    assert "NO A-1 VERDICT COMPUTED" in runner
+    # the grader may be NAMED in a comment, but never invoked
+    assert not any(l.strip().startswith(("run ", '"$PY" scripts/engine_a1_grade'))
+                   and "engine_a1_grade" in l for l in runner.splitlines())
 
 
 def test_launch_authorization_is_a_record_not_a_ratification():
@@ -158,9 +180,10 @@ def test_launch_authorization_is_a_record_not_a_ratification():
         "an authorization that does not say D-1 was still unrun is not honest"
 
 
-def test_rw8_ruled_secondary_so_the_verdict_is_the_endpoint_alone():
-    """The AUC is WIDER than the endpoint on the async arm — the arm A-1 is
-    actually compared against — so promoting it was refused."""
+def test_p_auc_stays_secondary_the_conservative_default():
+    """RW-8 is open again, so P-AUC holds the SAFER of the two states: secondary.
+    The AUC is WIDER than the endpoint on the async arm — the arm A-1 is
+    actually compared against — so promoting it was never supported anyway."""
     assert SIDE["primary"]["both_must_hold"] is False
     assert SIDE["primary"]["P-AUC"]["status"] == "SECONDARY_DESCRIPTIVE"
     assert "A1-SPLIT" not in SIDE["branches"]
@@ -172,9 +195,9 @@ def test_rw6_bank_target_and_enforced_floor_agree():
     assert RAW["collector"]["min_bank_pairs"] == 1_000_000
 
 
-def test_rw7_amendment_landed_with_ratification():
-    """The header says the third-legal-owner amendment belongs to the
-    ratification commit, not to a post-hoc fix."""
+def test_the_seed_guard_names_engine_a1_as_a_legal_owner():
+    """Harmless independent of RW-7's fate: it only permits a run-dir name, and
+    the arm writes those dirs today."""
     guard = (REPO / "tests/test_ch5_r2_prereg.py").read_text()
     assert 'f"engine_a1_s{s}"' in guard
 

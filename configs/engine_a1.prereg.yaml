@@ -339,21 +339,27 @@ rulings_wanted:
       disclosed single-read figure at every sigma. JOURNEY 7.5 names only the
       endpoint, and this feeds an irreversible failure branch on a P0 item.
 
-# RATIFIED by the maintainer in chat, 2026-09-09: "for the rulings, go with
-# your recs". Each entry is the recommendation as it stood in rulings_wanted
-# at the moment of ratification; the reasoning lives there and in the header.
-ratified_decisions:
-  RW-1: "k=8 — A-1 accepts the collector AT K=8; production K is T-1(b)'s question and needs its own staleness read"
-  RW-2: "screen only; no TOST. Revisit only if A-1 lands in 0.015-0.025"
-  RW-3: "estimator as written — fixed-magnitude pass rule, unpaired two-fleet se_diff quoted for power"
-  RW-4: "the banked baseline is ACCEPTED as the reference arm; the drift audit stands as its evidence"
-  RW-5: "gross-breakage SCREEN at |D| < 0.025, regime-matched sigma 0.01499 (4 df); NOT widened, NOT an equivalence test"
-  RW-6: "team bank 5,000,000 pairs (generation is cheap now the generator streams); min_bank_pairs floor 1,000,000 enforced at launch"
-  RW-7: "seed reuse APPROVED; tests/test_ch5_r2_prereg.py amended in this commit to name engine_a1_s{s} as a third legal owner"
-  RW-8: "P-AUC is SECONDARY-DESCRIPTIVE. The verdict is P-END alone and the A1-SPLIT branch does not exist"
-ratified_at: 2026-09-09
-ratified_by: maintainer, in chat
-# NOT a ratification — the record of how the run started (the gen-4 precedent).
+# RATIFICATION STATE — TWO INSTRUCTIONS, THE LATER ONE WINS.
+# 2026-09-09 morning, in chat: "for the rulings, go with your recs" — which I
+# recorded as a ratification of RW-1..RW-8 at my recommended values.
+# 2026-09-09, the standing authorization for the day, verbatim: "End the sidecar
+# with `rulings_wanted`; do NOT ratify." That is the later instruction and it
+# governs, so the ratification is WITHDRAWN and every ruling is owed again. The
+# recommendations survive in rulings_wanted; nothing is decided.
+# THE CONSEQUENCE THAT MATTERS: no A-1 verdict may be computed. The engine ARM
+# still runs — it is common to every candidate design and extra seeds are
+# additive — but scripts/engine_a1_grade.py refuses to emit a delta without
+# `verdict_authorized: true` beside a ruled RW-5, and the runner does not call
+# it. See rulings_wanted, and the note under RW-5 on which sigma the band
+# should be sized against.
+ratified_decisions: {}
+verdict_authorized: false
+withdrawn_ratification:
+  recorded_at: 2026-09-09 morning
+  withdrawn_because: >-
+    the day's standing authorization says "do NOT ratify" in terms, and a
+    pre-reg is an irreversible artifact — when two instructions conflict the
+    safe reading is the one that decides less.
 launch_authorization:
   granted_by: maintainer, in chat 2026-09-09 ("all train and eval done, the box is free. go go go")
   covers: >-

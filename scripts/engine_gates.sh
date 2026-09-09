@@ -121,24 +121,19 @@ fi
 [ "${POKEMON_RL_ENCODER_V2:-}" = "1" ] && [ "${POKEMON_RL_ENCODER_IDS:-}" = "1" ] \
   || die "POKEMON_RL_ENCODER_V2 / _IDS unset — the lane would build a width that compares to no checkpoint"
 
-# Ratification. The pre-reg is DRAFT until the maintainer answers RW-1..RW-8;
-# launching before that would make the run's own design a fait accompli.
+# NO RATIFICATION GATE ON THE ARM. Maintainer, 2026-09-09: the A-1 ENGINE ARM
+# is COMMON TO EVERY CANDIDATE DESIGN — gross-breakage screen or equivalence
+# test, historical baseline or fresh — and extra seeds are ADDITIVE if k later
+# rises, so running it early wastes nothing under any ruling. What stays
+# forbidden is a VERDICT: this script computes no delta, no band comparison and
+# no pass/fail, and it does not call the grader. See step 7.
 AUTH=$("$PY" -c "
-import yaml,sys
+import yaml
 d=yaml.safe_load(open('$PREREG'))
-owed=[k for k in d.get('rulings_wanted',{}) if k not in (d.get('ratified_decisions') or {})]
-print('OWED:'+','.join(sorted(owed)) if owed else 'OK')
-print(d.get('launch_authorization','NONE'))" 2>/dev/null | tr '\n' ' ')
-case "$AUTH" in
-  "OK NONE "*|*"NONE "*) die "pre-reg not ratified / no launch authorization ($AUTH). Answer RW-1..RW-8 in $PREREG first." ;;
-  "OWED:"*) die "rulings still owed ($AUTH)" ;;
-esac
+a=d.get('launch_authorization')
+print('OK' if isinstance(a, dict) and a.get('granted_by') else 'NONE')" 2>/dev/null)
+[ "$AUTH" = "OK" ] || die "no launch_authorization block in $PREREG"
 
-# vm_stat's page size is NOT 4096 on this box — it is 16384, and the header
-# states it. Hard-coding 4096 under-reports free memory by 4x and would refuse
-# a launch on a box with 10 GB free. Read the page size rather than assume it.
-PAGE=$(vm_stat | awk 'NR==1{for(i=1;i<=NF;i++) if ($i+0>1024) {print $i+0; exit}}')
-PAGE=${PAGE:-4096}
 FREE_GB=$(vm_stat | awk -v pg="$PAGE" '/Pages free|Pages inactive/ {gsub(/\./,"");s+=$NF} END {print int(s*pg/1073741824)}')
 DISK_GB=$(df -g . | awk 'NR==2{print $4}')
 say "box: free+inactive ${FREE_GB}GB, disk ${DISK_GB}GiB, width 3"
@@ -175,14 +170,20 @@ sys.exit(0 if d.get('pass') else 1)"; then
 fi
 say "STEP 2 DONE (D-1 PASS)"
 
-# ---- 3. T-1 (a)(b), idle box, server DOWN ------------------------------------
+# ---- 3. T-1 (a)(b) — IDLE BOX. Nothing of ours may run beside these. -------
+# A throughput number taken against our own job measures nothing (the earlier
+# engine_smoke run sat at 106% of a core). Server DOWN, no lanes, no builds.
 stop_server || exit 1
-unit "$T1OUT/leg_a.json" "$PY" scripts/engine_t1.py --leg a --bank "$BANK" --out "$T1OUT" || exit 1
-unit "$T1OUT/leg_b.json" "$PY" scripts/engine_t1.py --leg b --bank "$BANK" --out "$T1OUT" || exit 1
+if pgrep -f "rl\.train|pytest|cargo|maturin" > /dev/null; then
+  die "something of ours is running — T-1 (a)/(b) are IDLE-BOX measurements"
+fi
+unit "$T1OUT/leg_a.json" "$PY" scripts/engine_t1.py --leg a --bank "$BANK" --out "$T1OUT" || \
+  say "T-1 (a) FAILED — recorded, continuing (an independent unit)"
+unit "$T1OUT/leg_b.json" "$PY" scripts/engine_t1.py --leg b --bank "$BANK" --out "$T1OUT" || \
+  say "T-1 (b) FAILED — recorded, continuing"
 say "STEP 3 DONE (T-1 a,b)"
 
-# ---- 4. A-1 lanes ------------------------------------------------------------
-# Server UP from here: the in-loop evals go through poke-env.
+# ---- 4. THE A-1 ENGINE ARM — arms only, NO VERDICT --------------------------
 start_server || exit 1
 for s in $SEEDS; do
   d=$(run_dir_of "$s")
@@ -197,13 +198,29 @@ for s in $SEEDS; do
   fi
   sleep 90   # stagger: lanes can SIGSEGV at startup before any log line
 done
+say "STEP 4: three engine lanes launched (seeds $SEEDS)"
 
-# Wait for every lane to cross the rung, checking liveness by CPU-TIME DELTA —
-# a lane can STALL ALIVE AT ZERO CPU and every pgrep passes forever.
+# ---- 5. T-1 (c)(d) MEASURED WHILE THE LANES RUN -----------------------------
+# This is the real fleet-width case. A solo number repeats the
+# showdown_throughput.py mistake (~7x overstatement) — width and scope travel
+# with every figure. Wait for startup to settle first: a window straddling
+# startup invents a record.
+say "STEP 5: settling 20 min before the fleet-width read"
+[ "$DRY" = 1 ] || sleep 1200
+if pgrep -f "engine_a1_s" > /dev/null; then
+  unit "$T1OUT/leg_d.json" "$PY" scripts/engine_t1.py --leg d \
+      $(for s in $SEEDS; do printf -- "--run-dir %s " "$(run_dir_of "$s")"; done) --out "$T1OUT" || \
+    say "T-1 (d) FAILED — recorded, continuing"
+else
+  say "STEP 5: no lane alive — T-1 (d) NOT MEASURED (a fleet-width number cannot be reconstructed later)"
+fi
+
+# ---- 6. wait for the rung, then stop the lanes ------------------------------
 while :; do
   done_n=0
   for s in $SEEDS; do [ -n "$(rung_ckpt "$s")" ] && done_n=$((done_n+1)); done
   [ "$done_n" -ge 3 ] && break
+  [ "$DRY" = 1 ] && break
   for s in $SEEDS; do
     [ -n "$(rung_ckpt "$s")" ] && continue
     pid=$(pgrep -f "engine_a1_s$s" | head -n 1)
@@ -215,57 +232,41 @@ while :; do
   done
   sleep 600
 done
-# Kill at the rung: the lane's own horizon is 50M (the control's schedule).
-# NOT IMMEDIATELY. rl/train.py writes the checkpoint BEFORE it runs that step's
-# eval, so killing the moment ckpt_0120*.pt appears drops the 48th in-loop rung
-# — the one P-AUC's denominator needs. Measured time/eval_sec is ~5.1 s; 120 s
-# is a ~23x margin.
+# rl/train.py writes the checkpoint BEFORE that step's eval, so killing the
+# moment ckpt_0120*.pt appears drops the 48th in-loop rung. Measured
+# time/eval_sec is ~5.1 s; 120 s is a ~23x margin.
 say "12M rung reached on all lanes — holding 120 s so the 48th in-loop eval lands"
 [ "$DRY" = 1 ] || sleep 120
 for s in $SEEDS; do
   pid=$(pgrep -f "engine_a1_s$s" | head -n 1)
   [ -n "$pid" ] && { say "lane s$s stopping at $(basename "$(rung_ckpt "$s")")"; run kill "$pid"; }
 done
-say "STEP 4 DONE (A-1 lanes at the 12M rung)"
+# T-1 (c) is a full-loop read off a lane's own history; it needs the lane
+# FINISHED, not running, so it lands here rather than in step 5.
+for s in $SEEDS; do
+  [ -f "$(run_dir_of "$s")/history.csv" ] || run "$PY" scripts/extract_history.py "$(run_dir_of "$s")" || \
+    say "extract_history failed for s$s (a resume splits the history — merge_history.py)"
+done
+unit "$T1OUT/leg_c.json" "$PY" scripts/engine_t1.py --leg c --config "$CONFIG" \
+    --run-dir "$(run_dir_of 66)" --out "$T1OUT" || say "T-1 (c) FAILED — recorded, continuing"
+say "STEP 6 DONE (lanes at the 12M rung; T-1 c)"
 
-# ---- 5. T-1 (c)(d) on the A-1 fleet ------------------------------------------
-# NOTE: (d) must run while the lanes are ALIVE. If step 4 already stopped them,
-# these legs are recorded as NOT MEASURED rather than faked from a dead fleet.
-if pgrep -f "engine_a1_s" > /dev/null; then
-  unit "$T1OUT/leg_c.json" "$PY" scripts/engine_t1.py --leg c --config "$CONFIG" \
-      --run-dir "$(run_dir_of 66)" --out "$T1OUT"
-  unit "$T1OUT/leg_d.json" "$PY" scripts/engine_t1.py --leg d \
-      $(for s in $SEEDS; do printf -- "--run-dir %s " "$(run_dir_of "$s")"; done) --out "$T1OUT"
-else
-  say "STEP 5: T-1 (c)/(d) NOT MEASURED — the lanes are no longer alive and a"
-  say "fleet-width number cannot be reconstructed from a finished run. Re-run"
-  say "them during the next engine fleet; A-1 does not depend on them."
-fi
-say "STEP 5 DONE (T-1 c,d)"
-
-# ---- 6. A-1 evals, locked protocol -------------------------------------------
+# ---- 7. DESCRIPTIVE evals of the engine arm's own finals ---------------------
+# PER-SEED NUMBERS ONLY. Not a comparison, not a grade, no delta, no band.
+# The A-1 band is UNRESOLVED (maintainer, 2026-09-09) and a verdict computed
+# off an unresolved band is worse than no verdict, so scripts/engine_a1_grade.py
+# is NOT called and the banked arm is NOT re-evaluated here.
+start_server || exit 1
 for s in $SEEDS; do
   ck=$(rung_ckpt "$s")
-  [ -n "$ck" ] || { say "lane s$s has no 12M rung — A1-VOID-K applies, see the header"; continue; }
+  [ -n "$ck" ] || { say "lane s$s has no 12M rung — no eval"; continue; }
   unit "$OUT/rung12m_s$s.json" "$PY" scripts/eval_checkpoint.py "$ck" \
-      --episodes "$EVAL_N" --opponent heuristics --out "$OUT/rung12m_s$s.json" || exit 1
+      --episodes "$EVAL_N" --opponent heuristics --out "$OUT/rung12m_s$s.json" || \
+    say "eval s$s FAILED — recorded, continuing"
 done
-# THE BASELINE IS RE-EVALUATED AT THE SAME n, FROM ITS BANKED CHECKPOINTS.
-# Raising n is only honest if BOTH arms get it: the banked g9_treat JSONs are
-# n=3000, and comparing a 12,000-battle arm against a 3,000-battle basis would
-# buy precision on one side only. The checkpoints are on disk and sha-pinned,
-# so this costs eval time and no training.
+say "STEP 7 DONE — DESCRIPTIVE per-seed engine-arm numbers:"
 for s in $SEEDS; do
-  bck="$BANKED_RUNS/showdown_sp_batch50m_async_s$s"
-  ck=$(ls "$bck"/ckpt_0120*.pt 2>/dev/null | head -n 1)
-  [ -n "$ck" ] || { say "banked lane s$s has no 12M rung at $bck — cannot re-evaluate"; exit 1; }
-  unit "$OUT/banked_s$s.json" "$PY" scripts/eval_checkpoint.py "$ck" \
-      --episodes "$EVAL_N" --opponent heuristics --out "$OUT/banked_s$s.json" || exit 1
+  [ -f "$OUT/rung12m_s$s.json" ] && say "  s$s n=$EVAL_N win_rate=$(wr_of "$OUT/rung12m_s$s.json")"
 done
-say "STEP 6 DONE (A-1 evals, both arms at n=$EVAL_N)"
-
-# ---- 7. grade ----------------------------------------------------------------
-run "$PY" scripts/engine_a1_grade.py --out "$OUT/primary.json" \
-    --banked $(for s in $SEEDS; do printf -- "%s " "$OUT/banked_s$s.json"; done) \
-    $(for s in $SEEDS; do printf -- "%s " "$OUT/rung12m_s$s.json"; done) 2>&1 | tee -a "$LOG"
-say "ENGINE GATES DONE — author the readout by hand from $OUT/ (one commit)"
+say "NO A-1 VERDICT COMPUTED. The band is unresolved; the pre-reg resolves it."
+say "ENGINE GATES DONE"
