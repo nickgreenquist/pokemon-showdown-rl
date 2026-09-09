@@ -39,7 +39,7 @@ FLAT = re.sub(r"\s+", " ", "\n".join(
 
 # rl/train.py:687. Duplicated deliberately: importing rl here would pull in the
 # env stack, and this test must stay server-free.
-ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat"}
+ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs"}
 ALLOWED_DIFF = {"collector", "run_name", "env_kwargs.seat_tag"}
 
 
@@ -151,11 +151,11 @@ def test_the_precondition_is_recorded_as_unmet():
 # --- the two halves agree ------------------------------------------------------
 
 def test_sidecar_and_header_agree_on_every_constant():
-    for value in ("0.67211", "0.64597", "0.025", "0.01454", "+0.02322"):
+    for value in ("0.67211", "0.64597", "0.025", "0.01499", "+0.02322"):
         assert value in TXT, f"{value} missing from the header"
     assert SIDE["primary"]["P-END"]["band"] == 0.025
     assert SIDE["primary"]["P-AUC"]["band"] == 0.025
-    assert SIDE["power"]["planning_sigma"] == 0.01454
+    assert SIDE["power"]["planning_sigma"] == 0.01499
     assert SIDE["baseline_by_provenance"]["pooled_endpoint"] == 0.67211
     assert SIDE["baseline_by_provenance"]["pooled_auc"] == 0.64597
     assert len(SIDE["baseline_by_provenance"]["lanes"]) == 3
@@ -186,3 +186,44 @@ def test_no_duplicate_keys_at_any_depth():
     Strict.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, no_dupes)
     for p in (HDR, SIDE_P):
         yaml.load(p.read_text(), Loader=Strict)
+
+
+# --- what review 2 changed, pinned so it cannot drift back --------------------
+
+def test_both_arms_are_read_at_the_same_raised_n():
+    """Precision here is bought with battles, not seeds: ~71% of the
+    regime-matched sigma is eval-replicate noise. Raising n on one arm only
+    would buy precision on one side only, so the banked arm is re-evaluated."""
+    assert SIDE["power"]["eval_n_per_seed"] == 12000
+    assert "RE-EVALUATED at the same n" in TXT or "RE-EVALUATED at the same n" in FLAT
+    assert "12,000/seed" in FLAT
+
+
+def test_the_planning_sigma_is_regime_matched_not_merely_annealed():
+    """showdown_sp_recipe12m anneals over 12M and is fully decayed at the rung
+    A-1 reads; A-1's arms still hold ~76% of base LR there."""
+    assert "showdown_sp_recipe12m" in SIDE["power"]["excluded_from_regime"]
+    fleets = SIDE["power"]["planning_sigma_fleets"]
+    assert {f["fleet"] for f in fleets} == {
+        "showdown_sp_batch50m", "showdown_sp_batch50m_async"}
+    assert SIDE["power"]["planning_sigma_ci95"] == [0.0090, 0.0431]
+
+
+def test_the_r0_label_gate_names_the_metric_that_can_actually_pass():
+    """aux/label_present_frac measures [0.8345, 0.9406] on the BANKED lanes, so
+    a [0.74, 0.88] gate on it would kill a perfect engine arm. The band belongs
+    to aux/labelled_frac."""
+    assert "aux/labelled_frac within [0.74, 0.88]" in FLAT
+    assert "aux/label_present_frac within [0.74, 0.88]" not in FLAT
+
+
+def test_the_auc_window_is_a_bucket_rule():
+    """The 48th eval lands PAST 12,000,000, so a literal 250k..12.0M interval
+    holds 47 async rungs against 48 sync ones."""
+    assert "floor(_step / 250000) in 1..48" in FLAT
+
+
+def test_the_blind_surface_and_the_anchor_leg_are_both_named():
+    assert "FOE-SIDE PROJECTION" in FLAT and "recharge_fix" in FLAT
+    assert "L-FP20" in TXT and "SEARCH IS THE TRAP" in FLAT
+    assert "P-PARITY" in TXT and "rollout/episode_length" in FLAT

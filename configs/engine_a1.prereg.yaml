@@ -107,12 +107,28 @@ dose:
 
 power:
   derivation: scripts/engine_a1_sigma.py -> results/engine_a1/sigma.json   # [R1-M11]
-  planning_sigma: 0.01454              # annealed-LR family, 3 fleets, 7 df
-  planning_sigma_ci95: [0.0096, 0.0296]
+  planning_sigma: 0.01499              # REGIME-MATCHED, 2 fleets, 4 df [R2-M6]
+  planning_sigma_ci95: [0.0090, 0.0431]
   planning_sigma_fleets:               # named, so the band's basis can be looked up
     - {fleet: showdown_sp_batch50m, k: 3, sd: 0.01732}
     - {fleet: showdown_sp_batch50m_async, k: 3, sd: 0.01221}
-    - {fleet: showdown_sp_recipe12m, k: 4, sd: 0.01391}
+  regime_definition: annealed with <50% of the LR schedule consumed at the 12M rung
+  excluded_from_regime:
+    showdown_sp_recipe12m: >-
+      annealed, but over 12M (config:699) so fully decayed at the rung A-1
+      reads, where A-1's arms still hold ~76% of base LR. It is also the only
+      annealed fleet that is not one of A-1's own arms, which is why its
+      removal drops df from 7 to 4.
+  caveat_that_travels: >-
+    the planning constant rests on 4 df drawn from A-1's OWN TWO ARMS, and its
+    95% CI runs to 0.0431, where the endpoint-only screen fails a perfect port
+    47.7% of the time.
+  eval_replicate_decomposition:        # [R2-M5] the finding that changed the design
+    measured_replicate_sd_at_n3000: 0.01262
+    source: docs/landmines.md — three n=3000 re-draws of ONE checkpoint, 1.47x binomial
+    share_of_planning_variance: 0.71
+    residual_training_seed_sd: 0.00809
+    conclusion: precision here is bought with BATTLES, not seeds
   sigma_alternatives:
     all_12m_fleets: {sigma: 0.03411, df: 33, n_fleets: 11}
     flat_lr_subset: {sigma: 0.03768, df: 26, n_fleets: 8}
@@ -124,10 +140,14 @@ power:
     into a "12M sigma" mixes doses and inflates it. Excluded by the step
     window, never by filename; the full list is in the JSON.
   binomial_share_of_all_fleet_variance: 0.065
-  band_in_se_units: {s0.01454: 2.11, s0.02960: 1.03, s0.03411: 0.90, s0.06170: 0.50}
-  false_alarm_rate: {s0.01454: 0.035, s0.02960: 0.301, s0.03411: 0.369, s0.06170: 0.620}
-  power_vs_0p05_defect: {s0.01454: 0.982, s0.02960: 0.850}
-  tost_k_required_at_delta_0p025: {s0.01454: 5, s0.02960: 18, s0.03411: 23, s0.06170: 76}
+  eval_n_per_seed: 12000               # BOTH arms; the banked arm re-evaluated [R2-M5]
+  band_in_se_units_at_n3000: {s0.01499: 2.04, s0.04309: 0.71, s0.03411: 0.90, s0.06170: 0.50}
+  band_in_se_units_at_n12000: {s0.01499: 2.98}
+  false_alarm_rate_at_n3000: {s0.01499: 0.041, s0.04309: 0.477, s0.03411: 0.369, s0.06170: 0.620}
+  false_alarm_rate_at_n12000: {s0.01499: 0.003}
+  power_vs_0p015_regression: {n3000: 0.793, n12000: 0.884}   # what n CANNOT buy
+  mde_at_80pct_power: 0.035
+  tost_k_required_at_delta_0p025: {s0.01499: 7, s0.04309: 51, s0.03411: 32, s0.06170: 105}   # z_{1-b/2} [R2-S9]
   pairing_credit_taken: false
   pairing_refutation: >-
     the same six banked runs imply a seed-pair correlation of +0.856 on
@@ -304,7 +324,14 @@ rulings_wanted:
       0.02447) and free. That cannot loosen the gate but it CAN fail a run
       the JOURNEY's own wording would pass, which is a scope change and
       therefore yours. Co-primary, or secondary-descriptive?
-    my_recommendation: co-primary
+    my_recommendation: >-
+      SECONDARY-DESCRIPTIVE [changed after review 2, M7]. The tightening
+      claim does not survive: the AUC is 3.5% WIDER than the endpoint on the
+      ASYNC arm — the actual comparator — and the pooled tightening comes
+      entirely from the sync arm's endpoint spread (F(4,4)=1.63, p~0.33).
+      Under both_must_hold the JOINT false-alarm rate is worse than the
+      disclosed single-read figure at every sigma. JOURNEY 7.5 names only the
+      endpoint, and this feeds an irreversible failure branch on a P0 item.
 
 ratified_decisions: []                 # nothing ratified; this list stays empty until the maintainer fills it
 launch_authorization: NONE
@@ -335,4 +362,31 @@ review:                                # the standing 2-Opus cycle
       had swept in best-checkpoint reads at 5M and 7M).
   review_2:
     mandate: adversarial — construct the false PASS and the false FAIL
-    findings: PENDING
+    findings: {must: 11, should: 11, nice: 5}
+    verdict_before_fixes: >-
+      "No" — would not let the gate decide an irreversible switch as drafted.
+    applied: >-
+      all MUSTs and the SHOULDs that change a number or a mechanism, tagged
+      [R2-*] in place. Four were code defects, not prose: the R0 label gate
+      named a metric on which two of the three BANKED lanes read outside the
+      band (would have killed a perfect engine arm at its second update); the
+      team-bank generator buffered all of node's stdout, ~1.4 GB at 1M pairs
+      and ~7 GB at 5M, enough to OOM the box RW-6 was about to ask for; the
+      >=1M floor was enforced nowhere in code; and the runner killed each lane
+      on the checkpoint, which rl/train.py writes BEFORE that step's eval, so
+      the 48th in-loop rung P-AUC needs would have been lost.
+    design_change_it_forced: >-
+      ~71% of the regime-matched sigma is EVAL-REPLICATE noise, not training
+      seed variation, so A-1's precision is bought with battles rather than
+      seeds. Both arms now read at n=12,000/seed — the banked arm re-evaluated
+      from its own sha-pinned checkpoints — which takes the band from 2.04 to
+      2.98 se_diff and the false-alarm rate from 4.1% to 0.3%, for eval time
+      and no training.
+    reversal_it_forced: >-
+      RW-8's recommendation flipped from co-primary to secondary-descriptive:
+      the AUC is WIDER than the endpoint on the async arm, which is the arm
+      A-1 actually compares against.
+    not_applied:
+      S2: "the sync arm is a 28-commit composite — recorded, not fixable"
+      S8: "deterministic seat names verified correct; the relaunch caveat is disclosed in OPS"
+      NICE: "entropy band margin, poisonous-bank-pair replay on resume, learner_seat p2 unexercised"

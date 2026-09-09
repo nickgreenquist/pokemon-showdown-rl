@@ -69,7 +69,12 @@ def pack_mon(mon: dict) -> bytes:
 
 def generate(showdown_root: pathlib.Path, pairs: int, seed_prefix: str) -> bytes:
     here = pathlib.Path(__file__).resolve().parent
-    proc = subprocess.run(
+    # STREAM the generator's stdout, never capture_output. A pair is ~1.4 kB of
+    # JSON, so buffering the whole run would hold ~1.4 GB at 1,000,000 pairs and
+    # ~7 GB at 5,000,000 — enough to OOM this box, and A-1 mandates a bank of at
+    # least 1,000,000 (review 2, M4). The packed payload is 96 B/pair, so the
+    # bytearray below is 96 MB and 480 MB respectively, which is the real cost.
+    proc = subprocess.Popen(
         [
             "node",
             str(here / "engine_team_bank.js"),
@@ -77,16 +82,16 @@ def generate(showdown_root: pathlib.Path, pairs: int, seed_prefix: str) -> bytes
             str(pairs),
             seed_prefix,
         ],
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
+        bufsize=1,
         cwd=str(showdown_root),
-        check=False,
     )
-    if proc.returncode != 0:
-        raise RuntimeError(f"team generator failed:\n{proc.stderr[-4000:]}")
     payload = bytearray()
     n = 0
-    for line in proc.stdout.splitlines():
+    assert proc.stdout is not None
+    for line in proc.stdout:
         if not line.strip():
             continue
         p1, p2 = json.loads(line)
@@ -96,6 +101,11 @@ def generate(showdown_root: pathlib.Path, pairs: int, seed_prefix: str) -> bytes
             for mon in team:
                 payload += pack_mon(mon)
         n += 1
+    proc.stdout.close()
+    rc = proc.wait()
+    err = (proc.stderr.read() if proc.stderr else "")[-4000:]
+    if rc != 0:
+        raise RuntimeError(f"team generator failed (rc {rc}):\n{err}")
     if n != pairs:
         raise RuntimeError(f"generator produced {n} pairs, asked for {pairs}")
     return bytes(payload)

@@ -684,7 +684,7 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     eval_env.close()
 
 
-ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat"}
+ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs"}
 ASYNC_KEYS = {"mode", "concurrency"}
 
 
@@ -782,6 +782,24 @@ def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
         )
     if not Path(bank).exists():
         raise ValueError(f"collector.team_bank {bank!r} does not exist")
+    floor = cfg.collector.get("min_bank_pairs")
+    if floor is not None:
+        # A pre-registration can pin a MINIMUM bank size, and then it has to be
+        # enforced where the lane starts rather than in prose. The engine draws
+        # team pairs with replacement, so a small bank trains the agent on a
+        # finite support while evaluation uses fresh server-rolled teams; A-1
+        # pins a floor for exactly that reason. Without this check a lane
+        # pointed at the wrong bank trains happily and stamps a valid meta.yaml.
+        from rl.envs.engine_bank import read_bank
+
+        have = read_bank(Path(bank))[0]["pairs"]
+        if have < floor:
+            raise ValueError(
+                f"collector.team_bank {bank!r} holds {have:,} pairs but "
+                f"collector.min_bank_pairs is {floor:,} — a bank below the "
+                "pre-registered floor changes the training team distribution "
+                "relative to the arm being compared against"
+            )
     seat = cfg.collector.get("learner_seat", "p1")
     if seat not in ("p1", "p2"):
         raise ValueError(f"collector.learner_seat must be 'p1' or 'p2', got {seat!r}")

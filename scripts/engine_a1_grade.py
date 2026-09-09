@@ -27,11 +27,15 @@ import sys
 import yaml
 
 # --- the banked baseline, BY PROVENANCE (configs/engine_a1.yaml §B) -----------
-BASE_END = 0.67211            # equal-weight mean of 0.6593333/0.6836667/0.6733333
+BASE_END = 0.67211            # n=3000 basis; --banked replaces it at a matched n
 BASE_AUC = 0.64597            # equal-weight mean of the three lane AUCs
 BAND = 0.025                  # JOURNEY 7.5, verbatim
-SIGMA_REF = 0.01454           # annealed family, 7 df (results/engine_a1/sigma.json)
-SIGMA_CI_HI = 0.0296
+# REGIME-MATCHED sigma: the two 50M-annealed-killed-at-12M arms only, 4 df.
+# showdown_sp_recipe12m is annealed but to 12M (config:699), i.e. fully decayed
+# at the rung where A-1 reads, so it is a different LR regime and is excluded.
+SIGMA_REF = 0.01499
+SIGMA_CI_HI = 0.04309
+EVAL_REPLICATE_SD_AT_3000 = 0.01262   # docs/landmines.md, rescaled to p=0.672
 N_LANES = 3
 RUNG = 12_000_000
 UPDATE = 30_720               # one update; the A1-RUNG tolerance
@@ -53,6 +57,10 @@ def _auc(run_dir: pathlib.Path) -> tuple[float, int, str]:
             f"{run_dir}: no history.csv and no history_merged.csv. A resumed "
             "lane splits the wandb history and extract_history.py HARD-FAILS; "
             "run scripts/merge_history.py first (docs/landmines.md:268-283).")
+    # The window is a BUCKET rule, not a literal interval: the 48th in-loop eval
+    # lands just PAST 12,000,000 (the banked lanes read 12,000,013 / 12,000,009 /
+    # 12,000,041), so "250k..12.0M" literally holds only 47 async rungs against
+    # 48 sync ones and would compare different denominators.
     pts = {}
     with open(path) as fh:
         for r in csv.DictReader(fh):
@@ -63,13 +71,14 @@ def _auc(run_dir: pathlib.Path) -> tuple[float, int, str]:
                 step, val = int(float(r["_step"])), float(w)
             except (TypeError, ValueError):
                 continue
-            if step <= RUNG + EVAL_INTERVAL:
-                pts[step] = val          # a resume overlaps steps; last wins
-    vals = [pts[k] for k in sorted(pts)][:N_RUNGS]
+            bucket = step // EVAL_INTERVAL
+            if 1 <= bucket <= N_RUNGS:
+                pts[bucket] = val        # a resume overlaps steps; last wins
+    vals = [pts[k] for k in sorted(pts)]
     return (statistics.fmean(vals) if vals else float("nan"), len(vals), path.name)
 
 
-def _load(paths: list[pathlib.Path]) -> list[dict]:
+def _load(paths: list[pathlib.Path], want_n: int | None = None) -> list[dict]:
     lanes = []
     for p in sorted(paths):
         d = json.loads(p.read_text())
@@ -81,8 +90,14 @@ def _load(paths: list[pathlib.Path]) -> list[dict]:
                              f"{wfr} — the cross-check disagrees; do not grade")
         if d.get("mask_desyncs", 0) != 0:
             raise SystemExit(f"{p}: mask_desyncs={d['mask_desyncs']} != 0")
-        if d.get("episodes") != 3000:
-            raise SystemExit(f"{p}: episodes={d.get('episodes')}, locked protocol is 3000")
+        n = d.get("episodes")
+        if want_n is not None and n != want_n:
+            raise SystemExit(
+                f"{p}: episodes={n} but the other arm used {want_n}. Both arms "
+                "must be read at the SAME n — raising n on one side buys "
+                "precision on one side only.")
+        if n is None or n < 3000:
+            raise SystemExit(f"{p}: episodes={n}, the locked protocol floor is 3000")
         if "eval/no_outcome" in d:
             raise SystemExit(
                 f"{p}: eval/no_outcome present ({d['eval/no_outcome']}). The "
@@ -92,6 +107,7 @@ def _load(paths: list[pathlib.Path]) -> list[dict]:
         run = d.get("run_name", p.stem)
         lanes.append({"file": str(p), "run": run, "step": int(d["step"]),
                       "win_rate": float(wr),
+                      "episodes": n,
                       "run_dir": pathlib.Path("runs") / run})
     return lanes
 
@@ -99,6 +115,10 @@ def _load(paths: list[pathlib.Path]) -> list[dict]:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("evals", nargs="+", type=pathlib.Path)
+    ap.add_argument("--banked", nargs="*", type=pathlib.Path, default=[],
+                    help="the banked arm RE-EVALUATED at the same n. Without "
+                         "these the grade falls back to the n=3000 basis "
+                         "0.67211 and says so.")
     ap.add_argument("--prereg", type=pathlib.Path,
                     default=pathlib.Path("configs/engine_a1.prereg.yaml"))
     ap.add_argument("--out", type=pathlib.Path,
@@ -106,8 +126,24 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
 
     lanes = _load(args.evals)
-    res: dict = {"lanes": lanes, "band": BAND, "baseline_endpoint": BASE_END,
-                 "baseline_auc": BASE_AUC}
+    n_used = lanes[0]["episodes"]
+    if any(l["episodes"] != n_used for l in lanes):
+        raise SystemExit("arm-E lanes were evaluated at different n")
+    if args.banked:
+        banked = _load(args.banked, want_n=n_used)
+        base_end = statistics.fmean([l["win_rate"] for l in banked])
+        base_sd = statistics.stdev([l["win_rate"] for l in banked])
+        base_src = {"mode": "RE-EVALUATED at matched n",
+                    "n": n_used, "files": [l["file"] for l in banked],
+                    "per_seed": {l["run"]: l["win_rate"] for l in banked}}
+    else:
+        base_end, base_sd = BASE_END, 0.01221
+        base_src = {"mode": "BANKED n=3000 basis (arms read at different n — "
+                            "disclose it)", "n": 3000}
+    res: dict = {"lanes": lanes, "band": BAND, "baseline_endpoint": base_end,
+                 "baseline_auc": BASE_AUC, "eval_n": n_used,
+                 "baseline_source": base_src,
+                 "arms_read_at_matched_n": bool(args.banked)}
 
     # --- cell A1-VOID-K / A1-RUNG --------------------------------------------
     off = [l for l in lanes if abs(l["step"] - RUNG) > EVAL_INTERVAL]
@@ -128,12 +164,12 @@ def main(argv=None) -> int:
     # --- P-END ----------------------------------------------------------------
     per_seed = [l["win_rate"] for l in lanes]
     pooled = statistics.fmean(per_seed)
-    d_end = pooled - BASE_END
+    d_end = pooled - base_end
     sd_e = statistics.stdev(per_seed)
     # se_diff for the DISCLOSED POWER only — the pass rule is a fixed magnitude.
     # Larger of the pooled-binomial and the seed-clustered form.
-    se_binom = math.sqrt(2 * pooled * (1 - pooled) / (3 * 3000))
-    se_seed = math.sqrt((sd_e ** 2 + 0.01221 ** 2) / 2) * math.sqrt(2 / 3)
+    se_binom = math.sqrt(2 * pooled * (1 - pooled) / (3 * n_used))
+    se_seed = math.sqrt((sd_e ** 2 + base_sd ** 2) / 2) * math.sqrt(2 / 3)
     se_diff = max(se_binom, se_seed)
     res["P_END"] = {"per_seed": {l["run"]: l["win_rate"] for l in lanes},
                     "pooled": pooled, "signed_delta": d_end, "seed_sd": sd_e,

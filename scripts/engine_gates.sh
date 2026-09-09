@@ -45,6 +45,10 @@ PREREG=configs/engine_a1.prereg.yaml
 RUNG=12000000
 BANK="${BANK:-data/engine/teams_a1_1000000.bin}"
 BANK_PAIRS="${BANK_PAIRS:-1000000}"
+EVAL_N="${EVAL_N:-12000}"          # review 2, M5: precision here is bought by
+                                   # battles, not seeds — ~71% of the
+                                   # regime-matched sigma is eval-replicate noise
+BANKED_RUNS="${BANKED_RUNS:-/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs}"
 DRY="${DRY:-0}"
 # OBS_DIM 828 comes from these two and nothing else (CLAUDE.md's OBS_DIM
 # landmine); the banked arm A-1 compares against was trained with both set.
@@ -168,9 +172,15 @@ while :; do
   sleep 600
 done
 # Kill at the rung: the lane's own horizon is 50M (the control's schedule).
+# NOT IMMEDIATELY. rl/train.py writes the checkpoint BEFORE it runs that step's
+# eval, so killing the moment ckpt_0120*.pt appears drops the 48th in-loop rung
+# — the one P-AUC's denominator needs. Measured time/eval_sec is ~5.1 s; 120 s
+# is a ~23x margin.
+say "12M rung reached on all lanes — holding 120 s so the 48th in-loop eval lands"
+[ "$DRY" = 1 ] || sleep 120
 for s in $SEEDS; do
   pid=$(pgrep -f "engine_a1_s$s" | head -n 1)
-  [ -n "$pid" ] && { say "lane s$s reached the 12M rung — stopping at $(basename "$(rung_ckpt "$s")")"; run kill "$pid"; }
+  [ -n "$pid" ] && { say "lane s$s stopping at $(basename "$(rung_ckpt "$s")")"; run kill "$pid"; }
 done
 say "STEP 4 DONE (A-1 lanes at the 12M rung)"
 
@@ -194,11 +204,24 @@ for s in $SEEDS; do
   ck=$(rung_ckpt "$s")
   [ -n "$ck" ] || { say "lane s$s has no 12M rung — A1-VOID-K applies, see the header"; continue; }
   unit "$OUT/rung12m_s$s.json" "$PY" scripts/eval_checkpoint.py "$ck" \
-      --episodes 3000 --opponent heuristics --out "$OUT/rung12m_s$s.json" || exit 1
+      --episodes "$EVAL_N" --opponent heuristics --out "$OUT/rung12m_s$s.json" || exit 1
 done
-say "STEP 6 DONE (A-1 evals)"
+# THE BASELINE IS RE-EVALUATED AT THE SAME n, FROM ITS BANKED CHECKPOINTS.
+# Raising n is only honest if BOTH arms get it: the banked g9_treat JSONs are
+# n=3000, and comparing a 12,000-battle arm against a 3,000-battle basis would
+# buy precision on one side only. The checkpoints are on disk and sha-pinned,
+# so this costs eval time and no training.
+for s in $SEEDS; do
+  bck="$BANKED_RUNS/showdown_sp_batch50m_async_s$s"
+  ck=$(ls "$bck"/ckpt_0120*.pt 2>/dev/null | head -n 1)
+  [ -n "$ck" ] || { say "banked lane s$s has no 12M rung at $bck — cannot re-evaluate"; exit 1; }
+  unit "$OUT/banked_s$s.json" "$PY" scripts/eval_checkpoint.py "$ck" \
+      --episodes "$EVAL_N" --opponent heuristics --out "$OUT/banked_s$s.json" || exit 1
+done
+say "STEP 6 DONE (A-1 evals, both arms at n=$EVAL_N)"
 
 # ---- 7. grade ----------------------------------------------------------------
 run "$PY" scripts/engine_a1_grade.py --out "$OUT/primary.json" \
+    --banked $(for s in $SEEDS; do printf -- "%s " "$OUT/banked_s$s.json"; done) \
     $(for s in $SEEDS; do printf -- "%s " "$OUT/rung12m_s$s.json"; done) 2>&1 | tee -a "$LOG"
 say "ENGINE GATES DONE — author the readout by hand from $OUT/ (one commit)"

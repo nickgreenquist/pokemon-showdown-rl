@@ -113,6 +113,7 @@ def collect(main: pathlib.Path) -> dict:
             "win_rate": float(d["eval/win_rate"]), "total_steps": cfg.get("total_steps"),
             "lr_anneal_steps": anneal,
             "schedule": "annealed" if anneal and anneal > 0 else "flat",
+            "anneal_frac_at_rung": (RUNG_LO / anneal) if anneal else 0.0,
         })
 
     for cfg_path in sorted((main / "runs").glob("*/config.yaml")):
@@ -149,6 +150,7 @@ def collect(main: pathlib.Path) -> dict:
                 "total_steps": total,
                 "lr_anneal_steps": anneal,
                 "schedule": "annealed" if anneal and anneal > 0 else "flat",
+                "anneal_frac_at_rung": (RUNG_LO / anneal) if anneal else 0.0,
             })
             break   # one locked read per lane
     return lanes, rejected
@@ -197,6 +199,13 @@ def main(argv=None) -> int:
 
     allp = pool(by_fleet)
     ann = pool({k: v for k, v in by_fleet.items() if v[0]["schedule"] == "annealed"})
+    # REGIME-MATCHED is stricter than "annealed" (review 2, M6). A-1's arms
+    # anneal over 50M and are KILLED at 12M, so ~76% of the base LR is still
+    # live at the read. showdown_sp_recipe12m anneals over 12M and is fully
+    # decayed at the same rung — annealed, but a different regime, and it is
+    # the only annealed fleet that is not one of A-1's own two arms.
+    regime = pool({k: v for k, v in by_fleet.items()
+                   if 0.0 < v[0]["anneal_frac_at_rung"] < 0.5})
     flat = pool({k: v for k, v in by_fleet.items() if v[0]["schedule"] == "flat"})
 
     # Binomial floor at the locked n, for the "is this real seed variation"
@@ -209,6 +218,9 @@ def main(argv=None) -> int:
         "rung_window": [RUNG_LO, RUNG_HI],
         "all": {**allp, "ci95": ci95(allp["sigma"], allp["df"]) if allp["sigma"] else None},
         "annealed": {**ann, "ci95": ci95(ann["sigma"], ann["df"]) if ann["sigma"] else None},
+        "regime_matched": {**regime,
+                           "ci95": ci95(regime["sigma"], regime["df"]) if regime["sigma"] else None,
+                           "definition": "annealed with <50% of the schedule consumed at the 12M rung — A-1's own regime"},
         "flat": {**flat, "ci95": ci95(flat["sigma"], flat["df"]) if flat["sigma"] else None},
         "binomial_se_at_locked_n": binom,
         "binomial_share_of_all_variance": (binom / allp["sigma"]) ** 2 if allp["sigma"] else None,
@@ -220,7 +232,7 @@ def main(argv=None) -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2) + "\n")
 
-    for key in ("all", "annealed", "flat"):
+    for key in ("all", "annealed", "regime_matched", "flat"):
         b = out[key]
         ci = b.get("ci95")
         print(f"{key:9s} sigma={b['sigma']:.5f} df={b['df']:2d} "
