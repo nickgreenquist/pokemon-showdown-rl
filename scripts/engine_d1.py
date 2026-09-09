@@ -95,6 +95,16 @@ def check_box(leg: str, force: bool, gate: str = "D-1") -> bool:
         # The server leg NEEDS a server, so a running one is only a problem if
         # a training fleet is using it.
         busy = [b for b in busy if "training lane" in b]
+    elif leg == "fleet":
+        # T-1 (d) MEASURES a running fleet, so the training lanes are the
+        # SUBJECT, not contention. A Showdown server is expected to be RESIDENT
+        # too: the A-1 lanes run in-loop evals every 250k steps and those go
+        # through poke-env. Neither is filtered as "busy" — instead leg_d
+        # MEASURES the server's CPU over the window and requires it to be ~0,
+        # which is the actual claim (the port deletes the server's 56% share
+        # from COLLECTION), and refuses any window in which an eval tick fired.
+        busy = [b for b in busy
+                if "training lane" not in b and "Showdown server" not in b]
     if not busy:
         return False
     msg = f"{gate} is a measurement and the box is busy: " + "; ".join(busy)

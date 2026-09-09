@@ -355,6 +355,23 @@ def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
         raise SystemExit(f"no live rl.train process for {missing} — leg d must "
                          f"measure all {k} lanes over ONE window, or not at all")
 
+    def _eval_rows(d: pathlib.Path) -> int:
+        """How many in-loop evals this lane has logged so far.
+
+        An eval tick inside the window would show up as Node CPU and as a
+        depressed lane rate, and G8's estimator excludes eval ticks for exactly
+        that reason. We cannot exclude them from a CPU-time delta after the
+        fact, so the window is declared NON-CONFORMING instead.
+        """
+        import csv
+        hist = d / "history.csv"
+        if not hist.exists():
+            return -1
+        with open(hist) as fh:
+            return sum(1 for r in csv.DictReader(fh)
+                       if r.get("eval/win_rate") not in (None, ""))
+
+    evals0 = {d.name: _eval_rows(d) for d in run_dirs}
     t0 = time.time()
     cpu0 = {n: _cpu_seconds(p) for n, p in pids.items()}
     node0, node_pids = _node_cpu_seconds()
@@ -362,6 +379,9 @@ def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
     cpu1 = {n: _cpu_seconds(p) for n, p in pids.items()}
     node1, _ = _node_cpu_seconds()
     elapsed = time.time() - t0
+    evals1 = {d.name: _eval_rows(d) for d in run_dirs}
+    eval_ticks = {n: evals1[n] - evals0[n] for n in evals0 if evals0[n] >= 0}
+    ticked = {n: v for n, v in eval_ticks.items() if v > 0}
 
     if any(cpu1[n] is None for n in cpu1):
         raise SystemExit("a lane died inside the measurement window — the window "
@@ -415,6 +435,8 @@ def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
                   "from cumulative CPU-time deltas (NOT a ps snapshot)"),
         "width": k,
         "window_sec": elapsed,
+        "eval_ticks_in_window": eval_ticks,
+        "window_conforming": not ticked,
         "run_dirs": [str(d) for d in run_dirs],
         "per_lane_realized_steps_per_sec": rates,
         "per_lane_realized_median": per_lane_rate,
@@ -428,8 +450,13 @@ def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
         "node_share_deleted": NODE_BASIS["node_share_of_fleet_cpu"] if node_ok else None,
         "cores_per_lane_band": BANDS["d_cores_per_lane"],
         "tier": tier,
-        "pass": tier == "CREDITED" and cores_ok and node_ok,
-        "action": action if action else (
+        "pass": tier == "CREDITED" and cores_ok and node_ok and not ticked,
+        "action": (
+            f"NON-CONFORMING WINDOW: an in-loop eval fired in {sorted(ticked)} "
+            "during the measurement — eval ticks pull the Showdown server into "
+            "a read whose whole point is that the server is gone. Re-measure "
+            "between eval ticks (eval_every is 250k steps)."
+            if ticked else action) if (action or ticked) else (
             None if (cores_ok and node_ok) else
             f"rate tier {tier} but cores/lane {per_lane_cores:.2f} "
             f"(band {BANDS['d_cores_per_lane']}) or Node cores "
@@ -454,7 +481,8 @@ def main(argv=None) -> int:
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args(argv)
 
-    contended = check_box("engine", args.force, gate="T-1")
+    contended = check_box("fleet" if args.leg == "d" else "engine",
+                          args.force, gate="T-1")
     args.out.mkdir(parents=True, exist_ok=True)
     if args.leg == "c":
         if not (args.config and args.run_dir):
