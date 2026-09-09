@@ -141,7 +141,10 @@ def engine_leg(bank: pathlib.Path, n: int, seed: int) -> dict:
         done = 0
         t0 = time.perf_counter()
         while done < n:
-            chunk = env.scripted_series(min(CHUNK, n - done), p1, p2)
+            # `done` is the battle INDEX to resume from. Without it every
+            # chunk replays battles 0..CHUNK and the leg measures CHUNK
+            # distinct battles while reporting n.
+            chunk = env.scripted_series(min(CHUNK, n - done), done, p1, p2)
             for k in rows:
                 rows[k].append(np.asarray(chunk[k]))
             done += len(chunk["turns"])

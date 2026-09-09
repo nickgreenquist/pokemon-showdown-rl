@@ -1130,13 +1130,20 @@ impl BatchEnv {
     /// Gate D-1's engine leg (`scripted.rs::scripted_series`), sharing this
     /// lane's seed and team bank so a D-1 leg plays the same battles a
     /// collector lane at the same seed would.
+    /// `start` is the index of the FIRST battle to play. It is not optional
+    /// bookkeeping: battle `i` is derived from `(lane_seed, i)` alone, so a
+    /// caller that chunks a long run into repeated calls WITHOUT advancing
+    /// `start` replays battles 0..n every time. D-1 did exactly that — 20
+    /// chunks of 500 reported as n=10,000 while measuring 500 distinct battles
+    /// twenty times, understating its own se by sqrt(20).
     pub fn scripted_series(
         &self,
         n: u64,
+        start: u64,
         p1: Scripted,
         p2: Scripted,
     ) -> Result<Vec<crate::scripted::BattleSummary>, String> {
-        crate::scripted::scripted_series(n, self.lane_seed, &self.tables, &self.bank, p1, p2)
+        crate::scripted::scripted_series(n, start, self.lane_seed, &self.tables, &self.bank, p1, p2)
     }
 
     pub fn drain_finished(&mut self) -> Vec<Episode> {

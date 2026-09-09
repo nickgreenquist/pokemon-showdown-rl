@@ -216,3 +216,83 @@ EngineEnv(sys.argv[1], opponent="most_damage_typed_engine")
 print("RESULT refused")
 """)
     assert "RESULT refused" in out
+
+
+# --- the D-1 replay bug, pinned ------------------------------------------------
+
+def _bank_or_skip():
+    import pathlib
+    import pytest
+    for name in ("teams_a1_5000000.bin", "teams_59da482e_e0e0_50000.bin"):
+        p = pathlib.Path("data/engine") / name
+        if p.exists():
+            return p
+    pytest.skip("no team bank on disk (gitignored)")
+
+
+def test_scripted_series_chunks_play_DIFFERENT_battles():
+    """D-1 reported n=10,000 while measuring 500 battles twenty times.
+
+    Battle `i` is a pure function of `(lane_seed, i)`, so a caller that chunks a
+    long run and does not advance `start` replays battles 0..CHUNK every time.
+    The leg's binomial se was understated by sqrt(20), which turned a +0.91 se
+    difference into a "+4.2 se" D-1 FAILURE that was pure artifact.
+    """
+    import numpy as np
+    import pkmn_gen1
+
+    from rl.envs.engine_bank import read_bank
+    from rl.envs.engine_tables import build_tables
+
+    tables, _ = build_tables()
+    _, payload = read_bank(_bank_or_skip())
+    env = pkmn_gen1.BatchEnv(1, 20260907, tables, payload, "p1")
+
+    a = np.asarray(env.scripted_series(40, 0, "max_power", "max_power")["outcome"])
+    b = np.asarray(env.scripted_series(40, 40, "max_power", "max_power")["outcome"])
+    assert (a != b).any(), "consecutive chunks replayed the same battles"
+
+
+def test_scripted_series_is_chunk_invariant():
+    """Chunking must not change the numbers, or D-1 cannot resume without
+    changing its own result. This also pins the policy RNG as PER-BATTLE: a
+    stream carried across the series would make 20x500 differ from 1x10000."""
+    import numpy as np
+    import pkmn_gen1
+
+    from rl.envs.engine_bank import read_bank
+    from rl.envs.engine_tables import build_tables
+
+    tables, _ = build_tables()
+    _, payload = read_bank(_bank_or_skip())
+    env = pkmn_gen1.BatchEnv(1, 20260907, tables, payload, "p1")
+
+    for pol in ("random", "max_power"):
+        halves = np.concatenate([
+            np.asarray(env.scripted_series(30, 0, pol, pol)["outcome"]),
+            np.asarray(env.scripted_series(30, 30, pol, pol)["outcome"]),
+        ])
+        whole = np.asarray(env.scripted_series(60, 0, pol, pol)["outcome"])
+        assert (halves == whole).all(), f"{pol}: chunking changed the outcomes"
+
+
+def test_no_seat_asymmetry_under_a_symmetric_matchup():
+    """Same policy on both seats must not favour a seat. This is the read that
+    exposed the replay bug: it showed +7.4 se before the fix and under 2 se
+    after, across every lane seed tried."""
+    import math
+
+    import numpy as np
+    import pkmn_gen1
+
+    from rl.envs.engine_bank import read_bank
+    from rl.envs.engine_tables import build_tables
+
+    tables, _ = build_tables()
+    _, payload = read_bank(_bank_or_skip())
+    n = 4000
+    env = pkmn_gen1.BatchEnv(1, 20260907, tables, payload, "p1")
+    o = np.asarray(env.scripted_series(n, 0, "random", "random")["outcome"])
+    p1, p2 = float((o > 0).mean()), float((o < 0).mean())
+    se = math.sqrt((p1 * (1 - p1) + p2 * (1 - p2)) / n)
+    assert abs(p1 - p2) < 4 * se, f"seat asymmetry {p1 - p2:+.4f} = {(p1-p2)/se:.1f} se"

@@ -454,11 +454,16 @@ impl BatchEnv {
     /// the real simulator and the two distributions are compared.
     ///
     /// This is a MEASUREMENT. It must not run next to a training fleet.
-    #[pyo3(signature = (n, p1="max_power", p2="max_power"))]
+    /// `start` is the index of the FIRST battle. Battle `i` is a pure function
+    /// of `(lane_seed, i)`, so a chunked caller MUST advance it — D-1 did not,
+    /// and reported 10,000 battles while measuring 500 of them twenty times.
+    /// It defaults to 0 so a single-shot call is unchanged.
+    #[pyo3(signature = (n, start=0, p1="max_power", p2="max_power"))]
     fn scripted_series<'py>(
         &mut self,
         py: Python<'py>,
         n: u64,
+        start: u64,
         p1: &str,
         p2: &str,
     ) -> PyResult<Bound<'py, PyDict>> {
@@ -466,7 +471,7 @@ impl BatchEnv {
             |s: &str| crate::scripted::Scripted::parse(s).map_err(PyValueError::new_err);
         let (a, b) = (parse(p1)?, parse(p2)?);
         let rows = py
-            .detach(|| self.inner.scripted_series(n, a, b))
+            .detach(|| self.inner.scripted_series(n, start, a, b))
             .map_err(PyRuntimeError::new_err)?;
         let d = PyDict::new(py);
         d.set_item("outcome", PyArray1::from_vec(py, rows.iter().map(|r| r.outcome as i8).collect()))?;

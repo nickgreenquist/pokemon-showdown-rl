@@ -223,6 +223,7 @@ pub struct BattleSummary {
 /// the two legs differ only in the simulator, which is the comparison D-1 makes.
 pub fn scripted_series(
     n: u64,
+    start: u64,
     lane_seed: u64,
     tables: &StaticTables,
     bank: &crate::env::TeamBank,
@@ -233,8 +234,16 @@ pub fn scripted_series(
     use crate::env::Gen1Env;
 
     let mut out = Vec::with_capacity(n as usize);
-    let mut rng = lane_seed ^ 0x4431_5F53_4552_4945;
-    for i in 0..n {
+    for i in start..start + n {
+        // THE POLICY RNG IS PER-BATTLE, derived from the battle index, not a
+        // stream carried across the series. A running stream would make the
+        // result depend on how the caller CHUNKED the run: 20 calls of 500 and
+        // one call of 10,000 would play the same battles with different policy
+        // draws. Deriving it here makes chunking invariant, which is what lets
+        // D-1 resume without changing its own numbers.
+        let mut rng = splitmix64(
+            lane_seed ^ i.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ 0x4431_5F53_4552_4945,
+        );
         // The SAME battle-seed and team-pair derivation `BatchEnv` uses, so a
         // D-1 leg and a collector lane at the same lane seed play the same
         // battles (plan §7.5).

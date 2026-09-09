@@ -116,9 +116,10 @@ def leg_a(bank: pathlib.Path, seed: int, battles: int = 20_000) -> dict:
     tables, _ = build_tables()
     _h, payload = read_bank(bank)
     env = pkmn_gen1.BatchEnv(1, seed, tables, payload, "p1")
-    env.scripted_series(200, "random", "random")  # warm the allocator
+    env.scripted_series(200, 0, "random", "random")  # warm the allocator
     t0 = time.perf_counter()
-    rows = env.scripted_series(battles, "random", "random")
+    # offset 200: measure battles the warm-up did not already play
+    rows = env.scripted_series(battles, 200, "random", "random")
     wall = time.perf_counter() - t0
     turns = np.asarray(rows["turns"], dtype=np.float64)
     return {
