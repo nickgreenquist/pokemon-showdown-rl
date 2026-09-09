@@ -1737,3 +1737,63 @@ asymmetry. 59 Rust tests green.
 The collector takes `battle_counter` as a CONSTRUCTOR argument precisely so
 `BatchEnv` cannot replay battles across a resume, which is the same class of
 bug caught earlier and already guarded. A-1's arm is unaffected.
+
+## 2026-09-09 — GATE RESULTS: D-1 PASS, T-1 (a) and (b) BELOW BAND
+
+### D-1 — PASS, on independent battles, n=10,000 per matchup per simulator
+
+| matchup | metric | engine | server | delta | band |
+|---|---|---|---|---|---|
+| max_power | p1 win | 0.4947 | 0.4936 | **+0.0011** | 0.02 |
+| max_power | tie | 0.0299 | 0.0272 | **+0.0027** | 0.005 |
+| max_power | mean turns | 21.31 | 21.35 | **−0.0016** rel | 0.05 |
+| random | p1 win | 0.4928 | 0.4920 | **+0.0008** | 0.02 |
+| random | tie | 0.0070 | 0.0082 | **−0.0012** | 0.005 |
+| random | mean turns | 61.03 | 61.02 | **+0.0001** rel | 0.05 |
+
+Descriptive, and the more convincing half: sleep fraction 0.0002 / 0.0002 and
+0.7520 / 0.7597; freeze 0.4347 / 0.4340 and 0.2148 / 0.2115; mean faints 5.08 /
+5.08 and 4.96 / 4.97. The seat check agrees too — engine p1−p2 +0.0193 against
+the server's +0.0144 on max_power, i.e. **both simulators show the same small
+first-player advantage**, which is the right answer rather than zero.
+
+This is the port's first evidence that it is playing the same GAME as
+Showdown. It is not evidence about the encoder or the tracker (P-1 does not
+test the projection; see the P-1b design above).
+
+### T-1 (a) — 6,056 battles/s, band ≥ 20,000. BELOW BAND.
+
+Engine-only, no encoder, no policy, no network, `contended: false`. But the
+band and the measurement are not the same quantity: leg (a) plays
+`random_vs_random`, whose mean battle is **61.1 turns**, and 6,056 battles/s at
+61.1 turns is **~740,000 decisions/s** across both seats. A band stated in
+BATTLES per second silently depends on which policy is played — max_power
+battles are 21.3 turns, so the same engine would read ~3x higher on that
+matchup and "pass". **The band is mis-specified, not merely missed**, and
+plan §9 should restate it in DECISIONS per second. Recorded rather than
+quietly re-run against the flattering matchup.
+
+### T-1 (b) — 22,318 steps/s at K=256, band ≥ 25,000. BELOW BAND at 256; K=512 clears it.
+
+| K | steps/s | empty polls | own inference | OPPONENT inference |
+|---|---|---|---|---|
+| 32 | 13,549 | 0.672 | 0.266 | **0.719** |
+| 64 | 15,686 | 0.398 | 0.234 | **0.748** |
+| 128 | 17,977 | 0.193 | 0.238 | **0.726** |
+| 256 | 22,318 | 0.060 | 0.254 | **0.680** |
+| 512 | 30,559 | 0.030 | 0.308 | **0.605** |
+
+**The finding that matters is not the band — it is that the OPPONENT's forward
+pass is 60–75% of collection at every K.** The learner's own inference is
+~25%. This is exactly the batch-2..4 GEMV→GEMM anomaly T-1 (b) was written to
+look for (`latest_prob 0.8` with 20 pool members leaves the latest member ~200
+rows and the other 19 about three each), and it is now measured rather than
+predicted. Any further collection speedup should attack opponent batching
+FIRST; K alone is a weaker lever, and empty polls are already only 3% at 512.
+
+**Consequence for A-1's K ruling (RW-1).** A-1 is written at k=8 to match the
+banked arm's concurrency so the collector is the only delta. These numbers say
+the engine's throughput case rests on LARGE K, so accepting the collector at
+k=8 accepts it at a point nobody would train on. That is an argument for RW-1
+branch (b) — declare K part of the treatment — and it is now backed by a
+measurement instead of intuition. The ruling is still the maintainer's.
