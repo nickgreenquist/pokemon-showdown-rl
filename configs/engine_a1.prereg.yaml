@@ -240,118 +240,6 @@ disclosures:
 barred_language: [equivalent, "identical (about the RESULT; 'byte-identical' about config bytes and 'bit-identical' about episode_gae are permitted)", "no difference", "the same as the Node path", validated]   # [R1-N1]
 permitted_language: ["inside the band at |D| = x", "within +-k se_diff", "not distinguishable at this n and k", "screened, not equivalence-tested"]
 
-# =====================================================================
-# RULINGS WANTED — the decisions that are the maintainer's, not mine.
-# NOTHING HERE IS RATIFIED. A-1 does not launch until these are answered.
-# =====================================================================
-rulings_wanted:
-  RW-1:
-    topic: K (the collector's concurrency)
-    question: >-
-      A-1 is written at k=8 to match the banked arm's concurrency, so the
-      collector is the ONLY delta. The engine's production default is 256,
-      which carries 12.6% of a 30,720-step update as off-policy rows
-      versus 0.39% at k=8. Option (a) accept at k=8 and treat production K
-      as a separate, cheaper staleness read; option (b) run A-1 at 256,
-      declare K part of the treatment, re-base the staleness gate, and
-      pre-name a K-matched lane as diagnosis round 1.
-    my_recommendation: (a)
-  RW-2:
-    topic: whether to buy an equivalence test
-    question: >-
-      A-1 as written is a screen. A genuine TOST at delta 0.025 needs
-      k >= 4/arm at the reference-class sigma and k >= 15 at its CI upper
-      end. Buying it means new Node lanes as well as engine lanes, since
-      the free baseline exists only at k=3. Run the screen only, or fund
-      the equivalence test?
-    my_recommendation: screen only; revisit if A-1 lands in 0.015-0.025
-  RW-3:
-    topic: the estimator
-    question: >-
-      The plan and JOURNEY read |D| < 0.025 against the banked pooled
-      number as if it were known. I keep that as the PASS RULE (fixed
-      magnitude) but quote the unpaired two-fleet se_diff for power, which
-      is larger and more honest. Confirm, or rule that the known-baseline
-      reading is what the gate means.
-    my_recommendation: keep as written
-  RW-4:
-    topic: whether the baseline may be HISTORICAL
-    question: >-
-      The entire baseline arm is banked runs from 2026-09-01 at a dirty
-      tree, reused rather than re-run. The learner-drift audit came back
-      null and the dirty flag is bounded to an untracked script, but
-      reusing a week-old arm as the reference for an irreversible
-      instrument switch is a judgement call, not an arithmetic one. Accept
-      the banked baseline, or re-run the Node arm alongside the engine arm
-      (which doubles the fleet and removes every drift question)?
-    my_recommendation: accept the banked baseline
-  RW-5:
-    topic: the (A) choice and its band
-    question: >-
-      Confirm A-1 is a GROSS-BREAKAGE SCREEN at |D| < 0.025 (JOURNEY's own
-      band, which the corrected dose-matched arithmetic supports at 2.27
-      se_diff), and NOT an equivalence test at 0.025, and NOT a widened
-      band. Widening to 0.05 was considered and rejected: it would pass a
-      real 0.05 defect half the time.
-    my_recommendation: confirm as written
-  RW-6:
-    topic: the team bank
-    conflicts_with_record: >-
-      docs/engine_port/NOTES.md's "Why 50,000" paragraph argues the current
-      bank is fine, and on its own terms it is right (no distributional
-      bias; P-3 verified the marginals; fresh battle seed each time).
-      A-1's concern is a different mechanism — train-on-finite-support vs
-      evaluate-on-fresh-server-teams, an asymmetry BETWEEN THE ARMS. Read
-      both before ruling. If this pre-reg wins, NOTES gets a correction
-      line in the same commit. [R1-M6]
-    question: >-
-      A-1 pins >= 1,000,000 pairs (0.40x recurrence per lane) against the
-      port's current 50,000-pair bank (7.95x per lane, 23.84x fleet-wide),
-      because the Node arm effectively never repeats a team and eval is on
-      the server with fresh teams. 5,000,000 pairs (0.08x) removes the
-      question entirely at 480 MB. Which, and may the runner generate it?
-    my_recommendation: 5,000,000 if generation is cheap, else 1,000,000
-  RW-7:
-    topic: seed reuse and a test amendment
-    question: >-
-      A-1 reuses seeds 66/75/83 for net-init comparability (NO variance
-      credit claimed). tests/test_ch5_r2_prereg.py::
-      test_seeds_are_window_disjoint_and_unused asserts that only
-      showdown_sp_batch50m_s{s} and _async_s{s} may stamp those seeds, so
-      A-1's dirs need to be named as a THIRD legal owner — the same
-      amendment the async fleet made. Approve the amendment, or run A-1 on
-      fresh seeds outside every reserved window?
-    my_recommendation: approve the amendment
-  RW-8:
-    topic: is P-AUC co-primary or secondary
-    question: >-
-      JOURNEY 7.5 names only the endpoint. I made the 48-rung AUC
-      CO-PRIMARY because it is measurably tighter (2*se_diff 0.01915 vs
-      0.02447) and free. That cannot loosen the gate but it CAN fail a run
-      the JOURNEY's own wording would pass, which is a scope change and
-      therefore yours. Co-primary, or secondary-descriptive?
-    my_recommendation: >-
-      SECONDARY-DESCRIPTIVE [changed after review 2, M7]. The tightening
-      claim does not survive: the AUC is 3.5% WIDER than the endpoint on the
-      ASYNC arm — the actual comparator — and the pooled tightening comes
-      entirely from the sync arm's endpoint spread (F(4,4)=1.63, p~0.33).
-      Under both_must_hold the JOINT false-alarm rate is worse than the
-      disclosed single-read figure at every sigma. JOURNEY 7.5 names only the
-      endpoint, and this feeds an irreversible failure branch on a P0 item.
-
-# RATIFICATION STATE — TWO INSTRUCTIONS, THE LATER ONE WINS.
-# 2026-09-09 morning, in chat: "for the rulings, go with your recs" — which I
-# recorded as a ratification of RW-1..RW-8 at my recommended values.
-# 2026-09-09, the standing authorization for the day, verbatim: "End the sidecar
-# with `rulings_wanted`; do NOT ratify." That is the later instruction and it
-# governs, so the ratification is WITHDRAWN and every ruling is owed again. The
-# recommendations survive in rulings_wanted; nothing is decided.
-# THE CONSEQUENCE THAT MATTERS: no A-1 verdict may be computed. The engine ARM
-# still runs — it is common to every candidate design and extra seeds are
-# additive — but scripts/engine_a1_grade.py refuses to emit a delta without
-# `verdict_authorized: true` beside a ruled RW-5, and the runner does not call
-# it. See rulings_wanted, and the note under RW-5 on which sigma the band
-# should be sized against.
 ratified_decisions: {}
 verdict_authorized: false
 withdrawn_ratification:
@@ -436,3 +324,133 @@ review:                                # the standing 2-Opus cycle
       S2: "the sync arm is a 28-commit composite — recorded, not fixable"
       S8: "deterministic seat names verified correct; the relaunch caveat is disclosed in OPS"
       NICE: "entropy band margin, poisonous-bank-pair replay on resume, learner_seat p2 unexercised"
+
+# =====================================================================
+# RULINGS WANTED — THE LAST WORD IN THIS FILE, DELIBERATELY.
+# Maintainer, 2026-09-09: "End the sidecar with `rulings_wanted`; do NOT
+# ratify." Nothing below this block decides anything.
+# RULINGS WANTED — the decisions that are the maintainer's, not mine.
+# NOTHING HERE IS RATIFIED. A-1 does not launch until these are answered.
+# =====================================================================
+rulings_wanted:
+  RW-1:
+    topic: K (the collector's concurrency)
+    question: >-
+      A-1 is written at k=8 to match the banked arm's concurrency, so the
+      collector is the ONLY delta. The engine's production default is 256,
+      which carries 12.6% of a 30,720-step update as off-policy rows
+      versus 0.39% at k=8. Option (a) accept at k=8 and treat production K
+      as a separate, cheaper staleness read; option (b) run A-1 at 256,
+      declare K part of the treatment, re-base the staleness gate, and
+      pre-name a K-matched lane as diagnosis round 1.
+    my_recommendation: (a)
+  RW-2:
+    topic: whether to buy an equivalence test
+    question: >-
+      A-1 as written is a screen. A genuine TOST at delta 0.025 needs
+      k >= 4/arm at the reference-class sigma and k >= 15 at its CI upper
+      end. Buying it means new Node lanes as well as engine lanes, since
+      the free baseline exists only at k=3. Run the screen only, or fund
+      the equivalence test?
+    my_recommendation: screen only; revisit if A-1 lands in 0.015-0.025
+  RW-3:
+    topic: the estimator
+    question: >-
+      The plan and JOURNEY read |D| < 0.025 against the banked pooled
+      number as if it were known. I keep that as the PASS RULE (fixed
+      magnitude) but quote the unpaired two-fleet se_diff for power, which
+      is larger and more honest. Confirm, or rule that the known-baseline
+      reading is what the gate means.
+    my_recommendation: keep as written
+  RW-4:
+    topic: whether the baseline may be HISTORICAL
+    question: >-
+      The entire baseline arm is banked runs from 2026-09-01 at a dirty
+      tree, reused rather than re-run. The learner-drift audit came back
+      null and the dirty flag is bounded to an untracked script, but
+      reusing a week-old arm as the reference for an irreversible
+      instrument switch is a judgement call, not an arithmetic one. Accept
+      the banked baseline, or re-run the Node arm alongside the engine arm
+      (which doubles the fleet and removes every drift question)?
+      EVIDENCE ADDED 2026-09-09: scripts/engine_a1_baseline_audit.py checks
+      every candidate against this config field by field. The four
+      showdown_sp_recipe12m checkpoints flagged as possible reuse are
+      DISQUALIFIED — not on encoder identity (their meta.yaml is intact,
+      git_dirty false, step exactly 12,000,000, banked n=3000 finals) but on
+      RECIPE: 1,024 steps per update against 30,720, a fully-decayed LR at the
+      read, and the sync loop rather than the async path. 6 of 10 candidates
+      qualify and all six are the batch50m fleet. Historical reuse remains
+      available at k=3 and only k=3.
+    my_recommendation: accept the banked baseline
+  RW-5:
+    topic: the (A) choice and its band
+    question: >-
+      Confirm A-1 is a GROSS-BREAKAGE SCREEN at |D| < 0.025 (JOURNEY's own
+      band, which the corrected dose-matched arithmetic supports at 2.27
+      se_diff), and NOT an equivalence test at 0.025, and NOT a widened
+      band. Widening to 0.05 was considered and rejected: it would pass a
+      real 0.05 defect half the time.
+    my_recommendation: confirm as written
+  RW-6:
+    topic: the team bank
+    conflicts_with_record: >-
+      docs/engine_port/NOTES.md's "Why 50,000" paragraph argues the current
+      bank is fine, and on its own terms it is right (no distributional
+      bias; P-3 verified the marginals; fresh battle seed each time).
+      A-1's concern is a different mechanism — train-on-finite-support vs
+      evaluate-on-fresh-server-teams, an asymmetry BETWEEN THE ARMS. Read
+      both before ruling. If this pre-reg wins, NOTES gets a correction
+      line in the same commit. [R1-M6]
+    question: >-
+      A-1 pins >= 1,000,000 pairs (0.40x recurrence per lane) against the
+      port's current 50,000-pair bank (7.95x per lane, 23.84x fleet-wide),
+      because the Node arm effectively never repeats a team and eval is on
+      the server with fresh teams. 5,000,000 pairs (0.08x) removes the
+      question entirely at 480 MB. Which, and may the runner generate it?
+    my_recommendation: >-
+      5,000,000. MEASURED 2026-09-09: generation runs at 2,049 pairs/s once the
+      generator streams instead of buffering node's stdout, so 5M is ~41 min
+      and 480 MB — not the ~2.75 h the earlier "99 s per 50,000" implied (that
+      figure was taken under fleet contention). The 1,000,000 floor is enforced
+      at launch by rl/train.py, so the ruling cannot be silently under-met.
+  RW-7:
+    topic: seed reuse and a test amendment
+    question: >-
+      A-1 reuses seeds 66/75/83 for net-init comparability (NO variance
+      credit claimed). tests/test_ch5_r2_prereg.py::
+      test_seeds_are_window_disjoint_and_unused asserts that only
+      showdown_sp_batch50m_s{s} and _async_s{s} may stamp those seeds, so
+      A-1's dirs need to be named as a THIRD legal owner — the same
+      amendment the async fleet made. Approve the amendment, or run A-1 on
+      fresh seeds outside every reserved window?
+    my_recommendation: approve the amendment
+  RW-8:
+    topic: is P-AUC co-primary or secondary
+    question: >-
+      JOURNEY 7.5 names only the endpoint. I made the 48-rung AUC
+      CO-PRIMARY because it is measurably tighter (2*se_diff 0.01915 vs
+      0.02447) and free. That cannot loosen the gate but it CAN fail a run
+      the JOURNEY's own wording would pass, which is a scope change and
+      therefore yours. Co-primary, or secondary-descriptive?
+    my_recommendation: >-
+      SECONDARY-DESCRIPTIVE [changed after review 2, M7]. The tightening
+      claim does not survive: the AUC is 3.5% WIDER than the endpoint on the
+      ASYNC arm — the actual comparator — and the pooled tightening comes
+      entirely from the sync arm's endpoint spread (F(4,4)=1.63, p~0.33).
+      Under both_must_hold the JOINT false-alarm rate is worse than the
+      disclosed single-read figure at every sigma. JOURNEY 7.5 names only the
+      endpoint, and this feeds an irreversible failure branch on a P0 item.
+
+# RATIFICATION STATE — TWO INSTRUCTIONS, THE LATER ONE WINS.
+# 2026-09-09 morning, in chat: "for the rulings, go with your recs" — which I
+# recorded as a ratification of RW-1..RW-8 at my recommended values.
+# 2026-09-09, the standing authorization for the day, verbatim: "End the sidecar
+# with `rulings_wanted`; do NOT ratify." That is the later instruction and it
+# governs, so the ratification is WITHDRAWN and every ruling is owed again. The
+# recommendations survive in rulings_wanted; nothing is decided.
+# THE CONSEQUENCE THAT MATTERS: no A-1 verdict may be computed. The engine ARM
+# still runs — it is common to every candidate design and extra seeds are
+# additive — but scripts/engine_a1_grade.py refuses to emit a delta without
+# `verdict_authorized: true` beside a ruled RW-5, and the runner does not call
+# it. See rulings_wanted, and the note under RW-5 on which sigma the band
+# should be sized against.
