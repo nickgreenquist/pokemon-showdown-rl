@@ -1,0 +1,508 @@
+# =====================================================================
+# A-1 — ENGINE COLLECTOR ACCEPTANCE. The gate that decides whether the
+# pkmn/engine in-process collector replaces the Node/poke-env path as the
+# gen-1 TRAINING default. DRAFTED 2026-09-08 on branch pkmn-engine-port.
+#
+# This run CREDITS NOTHING. It is a null-expected acceptance gate on an
+# INSTRUMENT, in the shape of G9 (configs/showdown_sp_batch50m_async.yaml),
+# which accepted the async collector on the same axis at the same dose.
+# No lever is credit-seeking here and nothing here licenses a fleet.
+#
+# journey_step: 7.5 ("Switch the gen1 collector off Node — pkmn/engine").
+# EXIT CONDITION, VERBATIM FROM JOURNEY.md step 7.5:
+#   "A-1 acceptance is the gate — 3 seeds x 12M inside |D| < 0.025 of the
+#   async acceptance fleet, with the signed delta travelling forever after
+#   as N-COLL's does; outside the band we diagnose parity and do NOT
+#   switch."
+# and its guard rail (ii), VERBATIM:
+#   "Pre-decided failure branch. If two diagnosis rounds cannot bring
+#   A-1's 12M read inside |D| < 0.025, we KEEP the server path; the sunk
+#   cost is then the parity harness, which survives as a test suite."
+# Both are RESTATED, not amended. Where this header adds anything the
+# JOURNEY does not say (the AUC co-primary, the estimator, the R0 gates)
+# it is ADDITIVE and cannot loosen the quoted band.
+#
+# ---------------------------------------------------------------------
+# ARMS
+#   E (this file): 3 engine lanes, seeds 66/75/83, collector.mode engine,
+#     killed at the 12M crossing rung by scripts/engine_gates.sh.
+#   N (banked, NO COMPUTE SPENT): runs/showdown_sp_batch50m_async_s{66,75,83}
+#     at their own 12M crossing rungs — G9's treatment arm, which is
+#     exactly "the async acceptance fleet" the JOURNEY names.
+#   The sync fleet runs/showdown_sp_batch50m_s{66,75,83} at the same rung
+#     is carried as a SECOND banked reference, descriptive only (see D-SYNC).
+#
+# ---------------------------------------------------------------------
+# (A) POWER — WHAT THIS GATE IS, AND WHAT IT IS NOT
+#
+# A-1 IS A GROSS-BREAKAGE SCREEN. It is NOT an equivalence test, and the
+# words "equivalent", "identical" and "no difference" are BARRED on every
+# branch (see BARRED LANGUAGE). No TOST is run.
+#
+# THE SIGMA THIS TURNS ON. docs/IDEAS_POST_100M.md §1 carries
+# sigma_seed ~= 0.0617 at k=3. That number is measured AT THE 50M DOSE
+# (RESULTS.md:1177, the 50M fleet off Foul Play @20, n=1000/lane, sd of
+# 0.3960/0.3430/0.2730; its vs-SH twin at the same dose is 0.06295,
+# SESSION_LOGS.md:8322). A-1's dose is 12M. Using a 50M-dose sigma to
+# size a 12M gate is a dose mismatch, and it is the reason the band was
+# briefly believed to be unusably loose.
+#
+# MEASURED sigma_seed AT 12M, pooling every 12M fleet in runs/ that
+# carries a locked-protocol vs-SH final (11 fleets):
+#   all 12M fleets            df 31   s = 0.03335   chi2 95% CI [0.0267, 0.0443]
+#   flat-LR subset (8)        df 24   s = 0.03720
+#   ANNEALED-LR subset (3)    df  7   s = 0.01349   chi2 95% CI [0.0089, 0.0275]
+#   G9's two arms alone       df  4   s = 0.01499
+# The LR schedule is the covariate, not the mean: corr(sd, mean) = -0.147,
+# Bartlett across the 11 variances chi2 = 19.66 df 10 p = 0.033, and
+# flat-vs-annealed is chi2 = 7.07 df 1 p = 0.0078, a 7.6x variance ratio.
+# Binomial noise is 7.1% of the all-fleet spread at n=3000, so the spread
+# is real seed variation, not eval noise.
+#
+# A-1's REFERENCE CLASS IS THE ANNEALED FAMILY. Both arms run the 50M
+# anneal schedule and are killed at 12M (see DOSE), and two of the three
+# annealed fleets ARE this recipe. PLANNING CONSTANT: sigma_seed = 0.01349
+# on 7 df. The upper end of its own CI, 0.0275, is carried in every
+# disclosure because that is where the band stops working.
+#
+# THE BAND IN se UNITS, k=3/arm, unpaired two-fleet (se_diff = sigma*sqrt(2/3)):
+#   sigma    se_diff   |D|<0.025 is   P(fail | true D=0)   P(pass | true D=0.05)
+#   0.01349  0.01101   2.27 se        0.023                0.012
+#   0.01499  0.01224   2.04 se        0.041                0.021
+#   0.02750  0.02245   1.11 se        0.266                0.132
+#   0.03335  0.02723   0.92 se        0.359                0.176
+#   0.06170  0.05038   0.50 se        0.620                0.242
+# So at the reference-class sigma the band is 2.27 se_diff — the same
+# FORM as the repo's own 2*se_diff rule — with a 2.3% false-alarm rate
+# and 98.8% power against a 0.05 defect. THE BAND IS NOT WIDENED AND
+# MUST NOT BE: at |D| < 0.05 a real 0.05 defect passes 50% of the time,
+# which is the wrong trade for a screen whose entire job is catching
+# silent breakage.
+#
+# WHAT AN EQUIVALENCE TEST WOULD COST (TOST, alpha .05 one-sided, power
+# .80, delta 0.025), stated so the choice is priced rather than guessed:
+#   sigma 0.01349 -> k >= 4/arm      sigma 0.02750 -> k >= 15/arm
+#   sigma 0.03335 -> k >= 22/arm     sigma 0.06170 -> k >= 76/arm
+# NOT RUN under this pre-reg. Buying it is RW-2.
+#
+# STANDING DISCLOSURE, rides every quote of this gate, all three parts:
+#   (1) An equivalence test at this n is WEAKLY POWERED; A-1 is a screen.
+#       At the upper end of its own 95% CI (sigma 0.0275) it fails a
+#       truly-equivalent arm 26.6% of the time, and 35.9% if the annealed
+#       family is not in fact A-1's reference class.
+#   (2) The band CANNOT distinguish "matches async" from "matches sync".
+#       An engine arm reproducing the SYNC fleet exactly lands at
+#       |D| = 0.02322 — a PASS consuming 93% of the band — and G9
+#       credited that same 0.02322 as the async collector's own effect.
+#   (3) The baseline's own acceptance delta was +0.02322 = 2.11 se at the
+#       reference-class sigma: an effect that missed the credit line only
+#       on magnitude, never on precision. A-1 anchors on it anyway,
+#       because the JOURNEY names that fleet as the reference.
+#
+# CREDIT LINE, VERBATIM (appears in this header exactly once, here):
+# "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff,
+# where se_diff is the LARGER of the pooled-binomial se_diff and the
+# seed-clustered se_diff, the latter computed from the per-seed finals
+# at read time."
+# IT DOES NOT APPLY TO A-1 AND CANNOT. That line answers "is there an
+# effect"; A-1 asks whether a difference is ABSENT, which no credit rule
+# can answer. It is restated so that its absence cannot be read as a
+# waiver, and so that nobody later quotes A-1's PASS as a credit. A-1
+# credits nothing, and the engine collector is a NON-LEVER whose signed
+# delta travels forever (see N-ENG).
+#
+# NO PAIRING CREDIT IS TAKEN, AND THE SEED REUSE IS NOT A PAIRING CLAIM.
+# Seeds 66/75/83 are reused so that network initialisation matches the
+# banked arm lane-for-lane, which makes the per-seed SECONDARY read
+# interpretable during diagnosis. It buys NO variance reduction and none
+# is claimed. Across a Node arm and an engine arm only the net init is
+# genuinely paired: --seed never reached the server on the Node path
+# (rl/envs/showdown.py:26-28, :964-965 — the server rolls the teams), and
+# the torch stream diverges from the first poll because call counts and
+# tensor shapes differ between concurrency 8 and the engine's K. The
+# banked runs refute the pairing directly: the SAME six runs imply a
+# seed-pair correlation of +0.856 on the 12M endpoint and -0.996 on the
+# 48-rung AUC, and on the AUC the paired se (0.01348) is WORSE than the
+# unpaired one (0.00957). A structure that reads +0.86 and -1.00 on the
+# same data is not a structure. BOTH primary reads are UNPAIRED.
+#
+# ---------------------------------------------------------------------
+# (B) THE BASELINE, BY PROVENANCE — NEVER BY A REMEMBERED NUMBER
+# (the ~40% GXE conversion is how a remembered figure goes wrong; every
+# cell below is re-read from these files at grade time, never retyped.)
+#
+#   arm N run dirs, n, seed, and the exact rung:
+#     runs/showdown_sp_batch50m_async_s66  ckpt_012000013.pt  win 0.6593333
+#     runs/showdown_sp_batch50m_async_s75  ckpt_012000009.pt  win 0.6836667
+#     runs/showdown_sp_batch50m_async_s83  ckpt_012000041.pt  win 0.6733333
+#   pooled (equal-weight mean of the three) = 0.67211, seed sd 0.01221
+#   eval JSONs: <run>/g9_treat/rung_12M_n3000.json
+#     n = 3000/seed, seed_start 100, deterministic policy, vs
+#     SimpleHeuristicsPlayer, ties as non-wins, mask_desyncs 0,
+#     wins_from_returns == eval/win_rate on all three (the required
+#     cross-check; the two must agree).
+#   config sha256 (<run>/config.yaml):
+#     s66 d8bd72383c86357a092e5deb4f613e46da298901623c3307e6d32841c2044559
+#     s75 85bfbbccdb6abba3f16e4481ebc3ad9b49874b2549d89242e924b85403108b76
+#     s83 89388114425560e24c3c1f2ca674ac8deed952131ee3ce7e8e6898d09722c737
+#   checkpoint sha256 (the 12M rung actually evaluated):
+#     s66 244764751f483af7eed59461009e2f63e78be13f1a1b88e46a44c7be69c33bd0
+#     s75 f650b079dfd40ea852cd3b0d0360267dc89c7f7f0a97512252c3f7f679b79c74
+#     s83 9dbf51f335b0fac2d7b526e1ed824b498ba748af668260e2b94a91fb67b4e1cc
+#   encoder stamp on all three meta.yaml: obs_dim 828, encoder v2,
+#     set_prior true, recharge_fix true, ids true; aux_label_space l6,
+#     aux_shuffle_labels false.
+#   git_sha 722a31cdfdaccc73d1ee1b6e1a9a43e8e9b8f87e, git_dirty TRUE.
+#
+# THE BASELINE IS FREE, AND ONLY AT k=3. Every run dir in runs/ was swept
+# for collector.mode async: 10 exist, and exactly 3 carry a 12M rung.
+# ch5_async_smoke{,2,3} and ch5_stage2_bench are 6.2k-123k steps.
+# showdown_sp_100m_s{104,112,120} are async at this encoder but retain
+# ONLY the 100M final checkpoint — the intermediates were deleted, so no
+# 12M rung exists and none can be recovered without retraining. Raising k
+# on the baseline side therefore costs a fresh Node fleet; it is not free
+# and this pre-reg does not assume it.
+#
+# THE DIRTY-TREE QUESTION, ANSWERED RATHER THAN WAIVED. git_dirty true
+# cannot be reconstructed (the git_dirty_tracked/untracked_files stamp is
+# eb1da7b, later). It is bounded: 722a31c is 2026-09-01 03:26Z, the lanes
+# ran 04:21-10:11Z, the FIRST commit after it (ae2328e, 10:12Z) adds a new
+# file scripts/ch5_100m_grade.py, and NO rl/ commit lands until d546228 on
+# 2026-09-02. The dirty flag is an untracked script, not a learner edit.
+# RECORDED, not waived — this is exactly the CLAUDE.md rule-3 failure mode.
+#
+# LEARNER DRIFT 722a31c -> the A-1 branch: AUDITED, NULL. 38 commits touch
+# rl/. Every learner-path change is opt-in and defaults to the baseline's
+# wire: rl/agents/ppo.py's minibatch_tail/value_clip_eps/lr_schedule knobs
+# are inert at default and consume the same torch RNG (one randperm per
+# epoch); rl/buffers/episode.py's episode_gae re-layout is pinned
+# bit-identical in tests/test_episode_buffer.py; pool.py's deepcopy
+# narrowing and probs.cpu() draw no RNG and are identity on CPU; the
+# reset-time seed_rng branches fire only for scripted opponents, never for
+# selfplay.opponent self; entity_deepsets' TrunkLayout builds no extra
+# embedding at gen 1 (id_items 0), preserving init RNG order. e37a7fc's
+# phantom-step DefaultBattleOrder change — the one real candidate, since
+# it would shift both the opponent RNG stream and the D25 label
+# distribution and aux_oppact_coef 0.1 is LIVE here — never reaches this
+# comparison: expect_decision/_tell_pool_expectation exist only in the
+# sync ShowdownEnv and the gen-4 env, so PoolPlayer._expect_decision stays
+# at its class default on the async path. rl/agents/, rl/common/,
+# rl/buffers/ and rl/networks/ are UNTOUCHED on pkmn-engine-port, and the
+# engine arm enters the learner through the same _async_loop and the same
+# anneal basis as the banked arm. G9 itself compared across a 28-commit
+# gap and handled it by asserting vector-path bit-identity in the suite;
+# A-1 makes the same assertion and names the paths above.
+#
+# ---------------------------------------------------------------------
+# PRECONDITION — A-1 DOES NOT LAUNCH ON A FAILED OR UNRUN D-1
+# D-1 (dynamics smoke, plan §9) must PASS FIRST: P1 win rate |D| < 0.02
+# at n = 10,000 scripted-vs-scripted battles, tie rate |D| < 0.005, mean
+# turns |D| < 5%, engine against real Showdown. As of this header D-1 has
+# NEVER RUN (docs/engine_port/NOTES.md:1112, :1383 — the server leg is
+# written and unrun; the session brief stops after P-2).
+# WHY THIS IS BINDING, NOT CEREMONIAL: if the engine disagrees with
+# Showdown about the GAME, A-1 measures nothing — it becomes a joint test
+# of collector correctness and dynamics parity, and neither a PASS nor a
+# FAIL can be attributed. The plan's own failure branch says "diagnose
+# parity, never tune", which presumes D-1 exists to diagnose against.
+# scripts/engine_gates.sh enforces the order and refuses A-1 without a
+# D-1 PASS artifact.
+#
+# ---------------------------------------------------------------------
+# DOSE — IN STEPS, MATCHED BY CONSTRUCTION
+# 12,000,000 environment steps per lane, read at the CROSSING rung
+# (the first checkpoint at step >= 12,000,000; overshoot <= ~15k steps =
+# 0.13% of the rung, recorded, never asserted). NOT stated in hours:
+# T-1 has not run, so any wall-clock figure here would be a guess.
+#
+# THE ANNEAL TRAP, PINNED. total_steps 50,000,000 and
+# agent.lr_anneal_steps 50,000,000 — the CONTROL'S OWN SCHEDULE — with the
+# lane KILLED at the 12M crossing rung. A 12M budget with
+# lr_anneal_steps == total_steps (the R0-b coupling that
+# configs/engine_smoke.yaml:95 correctly carries FOR A SMOKE) would anneal
+# the engine arm to ~0 while the banked arm sits at
+# 2.5e-4 * (1 - 12/50) = 1.9e-4 at the same rung, and A-1 would be
+# comparing LEARNING-RATE SCHEDULES, not collectors. This is G9's own
+# verbatim obligation, restated: "total_steps and lr_anneal_steps stay 50M
+# so the treatment trains under the CONTROL'S OWN schedule and simply
+# stops at 12M". rl/train.py:413-419 permits anneal >= total, so this is a
+# header line and needs no code change.
+# IS DOSE MATCHED, AND HOW WOULD WE KNOW: YES, and we know from the
+# realized crossing step recorded in each lane's meta.yaml and checkpoint
+# filename, compared against the banked arm's 12000013/12000009/12000041.
+# A lane whose crossing rung differs from 12,000,000 by more than 30,720
+# (one update) is REPORTED and its realized step used, never the nominal.
+#
+# ---------------------------------------------------------------------
+# THE FIVE PRE-REG RULES THE D25/D25-P CYCLE PAID FOR
+#  1. ACROSS-LANE AGGREGATOR, NAMED: the EQUAL-WEIGHT MEAN of the three
+#     per-seed win rates (the R2/G9 aggregator), on BOTH sides, for BOTH
+#     primary reads. Never a battle-weighted pool, never a subtraction.
+#  2. NO UNNAMED CELLS: the partitions in ACTION ON EACH BRANCH are
+#     exhaustive and every boundary is assigned explicitly.
+#  3. DOSE MATCHED, AND HOW WE'D KNOW: see DOSE above.
+#  4. CREDIT LINE RESTATED VERBATIM: see (A); and why it does not apply.
+#  5. WHICH SIDE EACH BAND READS: every band below is TWO-SIDED on the
+#     SIGNED delta (engine minus banked-async), and the sign is reported
+#     on every branch including PASS. A one-sided read is barred: an
+#     engine arm that is BETTER than the Node arm is as much a parity
+#     failure as one that is worse.
+#
+# ---------------------------------------------------------------------
+# R0 SANITY GATES (first 200k steps of each lane; kill the fleet on breach)
+#   - loss/entropy in [1.3, 2.0]  (G9's re-based band; the control's own
+#     first-250k runs 1.81 -> 1.57).
+#   - loss/clip_frac != 0.0 on every update (recorded-old_logp liveness).
+#   - aux/illegal_label_frac == 0 AND aux/frame_collision_frac == 0 (the
+#     D25 hard gates, fed by the engine's (kind, id, flags) label seam).
+#   - aux/label_present_frac within [0.74, 0.88] over the first 250k
+#     (G9's re-based R0-7 band; the un-rebased [0.78, 0.88] would have
+#     false-killed s83 at 0.757).
+#   - eval/win_rate present and in (0, 1).
+#   - collect/policy_version_lag_p99 <= 1; breach = 3 CONSECUTIVE rollouts.
+#   - NEW, AND OWED TO AN ASYMMETRY IN THE INSTRUMENT: eval/no_outcome
+#     == 0 on EVERY A-1 eval. 07f587d relaxed rl/common/evaluation.py from
+#     raising on any missing outcome to raising only when
+#     missing*2 > len(outcomes), scoring a minority as non-wins. The
+#     banked JSONs were produced under the OLD all-or-nothing guard, so
+#     their missing == 0 is proven by the fact they completed; the engine
+#     arm runs under the new code, where a silent 1% no-outcome rate is a
+#     -0.01 bias, 40% of the band. This gate restores the symmetry.
+#   - THE TEAM-BANK GATE: the bank file A-1 uses must hold >= 1,000,000
+#     pairs and its sha256 is stamped in every lane's meta.yaml. WHY: the
+#     engine draws with replacement from a fixed bank, the Node arm rolls
+#     fresh teams server-side and effectively never repeats, and eval is
+#     on the server with fresh teams — so a small bank reads the engine
+#     agent OUT OF DISTRIBUTION, with expected sign NEGATIVE. At 12M and
+#     Lbar 30.2 a lane runs ~397,351 battles: a 50,000-pair bank recurs
+#     7.95x per lane and 23.84x fleet-wide (12.6% of battles use an
+#     unseen pair), while 1,000,000 pairs recur 0.40x per lane and leave
+#     82.5% of battles on an unseen pair. The plan pre-decides that a
+#     NEGATIVE delta outside the band means the I1/I2 projection leaks —
+#     which would send diagnosis to the wrong place — so bank recurrence
+#     is named FIRST in the negative-delta diagnosis order below.
+#
+# ---------------------------------------------------------------------
+# PRIMARY READS (co-primary; BOTH must hold for a PASS)
+#
+# P-END — THE ENDPOINT, and the JOURNEY's own gate.
+#   Each engine lane's 12M crossing rung under the LOCKED EVAL PROTOCOL:
+#   n = 3000/seed, seed_start 100, deterministic policy, vs
+#   SimpleHeuristicsPlayer, ties as non-wins, scripts/eval_checkpoint.py.
+#   Aggregator: equal-weight mean of the three per-seed win rates.
+#   READ: signed D_END = pooled_E - 0.67211.
+#   PASS: |D_END| < 0.025.
+#   ESTIMATOR, NAMED (CLAUDE.md: "name the across-lane aggregator ... say
+#   which side each band reads"): the band is a FIXED MAGNITUDE — the
+#   maintainer's, quoted verbatim above — so the pass rule does not depend
+#   on an se at all. se_diff enters only the DISCLOSED POWER, and the se
+#   quoted there is the UNPAIRED TWO-FLEET se_diff, the LARGER of the
+#   pooled-binomial se_diff and the seed-clustered se_diff computed from
+#   the per-seed finals at read time. This is a DEVIATION, disclosed:
+#   JOURNEY 7.5 and PKMN_ENGINE_RUST_PLAN.md:1109 both read the band
+#   against the banked 0.67211 as if it were KNOWN (se 0.0078, band 3.2
+#   se), which understates uncertainty by ignoring the baseline's own
+#   3-seed spread. The PASS RULE is unchanged by this; only the honesty of
+#   the power statement is. RW-3.
+#
+# P-AUC — THE CURVE, and the reason a single endpoint is not enough.
+#   AUC_lane = the mean of eval/win_rate over the 48 in-loop rungs at
+#   250k...12.0M in that lane's history.csv (eval_every 250000,
+#   eval_episodes 100, eval_opponent heuristics). Arm statistic: the
+#   equal-weight mean of the three lane AUCs. Read UNPAIRED.
+#   BANKED BASIS, from the same six runs, computed and re-checked this
+#   session: async 0.6592/0.6340/0.6448 -> 0.64597 (sd 0.01265);
+#   sync 0.6212/0.6427/0.6319 -> 0.63194 (sd 0.01073); pooled AUC sd
+#   0.01173 on 4 df -> unpaired 2*se_diff = 0.01915.
+#   READ: signed D_AUC = AUC_E - 0.64597.  PASS: |D_AUC| < 0.025.
+#   WHY IT IS A REAL GATE AND NOT DECORATION: averaging 48 rungs collapses
+#   the per-rung binomial se from 0.0283 to ~0.0041, leaving almost pure
+#   seed variance, so the AUC is TIGHTER than the 3000-battle endpoint
+#   (2*se_diff 0.01915 vs 0.02447) at ZERO extra cost — the rungs are
+#   already banked on both sides. Both arms' in-loop evals go through
+#   make_eval_env to poke-env against the Showdown server, so the overlay
+#   is on ONE instrument.
+#   TWO DISCLOSURES IT OWES: the AUC's seed pairing ANTI-correlates
+#   (rho -0.996; see (A)), so it is read unpaired and no pairing credit is
+#   taken; and it shares P-END's engine-trained/server-evaluated transfer
+#   confound, so it buys power against noise but NOT independent evidence
+#   about learning.
+#   NOT A GATE, descriptive only: the max |per-rung pooled delta| and the
+#   rung at which it occurs. At n=100 the two BANKED arms already spread
+#   -0.0967 to +0.1167 per rung, so eyeballing 48 rungs finds a
+#   "divergence" every time. It is reported and never graded.
+#
+# SECONDARY (descriptive, no gates, cannot change the verdict):
+#   - per-seed D_END and D_AUC with signs (net init is matched lane-for-
+#     lane; interpretable for diagnosis, NOT a paired estimator).
+#   - rollout/episode_length trajectory vs the banked lanes at matched
+#     steps; loss/entropy, loss/approx_kl, loss/explained_variance overlays.
+#   - collect/policy_version_lag_p99 and the realized in-flight carry.
+#   - D-SYNC: the same two reads against the banked SYNC fleet
+#     (0.64889 endpoint, 0.63194 AUC). Reported because an engine arm
+#     landing on the sync fleet rather than the async one is diagnostic
+#     information the async-only read cannot show — see disclosure (2).
+#
+# ---------------------------------------------------------------------
+# ACTION ON EACH BRANCH (exhaustive; boundaries assigned explicitly)
+#   A1-PASS   |D_END| < 0.025 AND |D_AUC| < 0.025
+#             -> the engine collector is ACCEPTED as the gen-1 training
+#             default AT K = 8 (see K below). Both signed deltas are
+#             recorded and travel forever (N-ENG). Merge is then a
+#             maintainer decision, not an automatic consequence.
+#   A1-SPLIT  exactly one of the two reads inside its band
+#             -> NOT a pass. Enter diagnosis round 1. A split is
+#             INFORMATIVE: endpoint-in/AUC-out points at a trajectory
+#             difference that the endpoint happened to cross;
+#             AUC-in/endpoint-out points at the rung, the anneal, or eval
+#             noise. Report both signs.
+#   A1-FAIL   both reads outside their bands
+#             -> diagnosis round 1.
+#   Boundaries: |D| exactly 0.025 reads as OUTSIDE (fails that leg).
+#
+#   DIAGNOSIS ORDER, PRE-COMMITTED (JOURNEY allows TWO rounds), and
+#   ordered by the sign of D_END because the sign is informative:
+#     if D_END < 0 (engine worse):
+#       1. TEAM-BANK RECURRENCE — re-run one lane against a >= 5,000,000
+#          pair bank (0.08x per lane). Named first because the bank is
+#          the one KNOWN distribution difference and the plan otherwise
+#          mis-attributes a negative delta to projection leakage.
+#       2. I1/I2 projection leakage — re-run P-1/P-2 on tapes drawn from
+#          the A-1 lanes' own decisions, not the banked corpus.
+#       3. staleness / K (below), then the D25 label join
+#          (aux/label_present_frac vs the banked lanes').
+#     if D_END > 0 (engine better — as much a failure as worse):
+#       1. INFORMATION LEAK — the observation must be a function of what
+#          poke-env could observe (invariant I1). Re-audit the encoder
+#          against the information boundary, and the D18 privileged block
+#          for an accidental live path.
+#       2. team-bank memorisation (a small bank can flatter, not only
+#          punish).
+#       3. staleness / K.
+#   AFTER TWO ROUNDS, VERBATIM FROM JOURNEY 7.5: "we KEEP the server path;
+#   the sunk cost is then the parity harness, which survives as a test
+#   suite." The gen-1 collector STAYS on Node, the port is NOT merged as
+#   the training default, and steps 8-11 sit on the server path. This is
+#   PRE-DECIDED and is not reopened by a near-miss.
+#
+# ---------------------------------------------------------------------
+# K — DECLARED, NOT ASSUMED
+# A-1 runs at k = 8, MATCHING the banked arm's collector.concurrency 8, so
+# that the COLLECTOR IS THE ONLY DELTA. The engine's own default is 256
+# (rl/train.py, configs/engine_smoke.yaml:62). At Lbar 30.2, K = 256
+# carries ~3,866 collected-but-unfinished steps into the next batch —
+# 12.6% of a 30,720-step update, against 0.39% at K = 8, a ~32x increase
+# in off-policy carry — and the banked arm's own R0 gate was
+# lag_p99 <= 1. Running A-1 at 256 would bundle a staleness treatment into
+# "the collector" and make any delta unattributable.
+# CONSEQUENCE, STATED PLAINLY: A-1 accepts the collector AT K = 8. It does
+# NOT accept K = 256, and the production K is T-1(b)'s question. Any
+# K > 8 needs its own read before it becomes the training default — a
+# staleness read, not necessarily a win-rate fleet. RW-1.
+# A K-MATCHED LANE IS PRE-NAMED as diagnosis round 1 if the maintainer
+# rules A-1 to 256 instead (RW-1 branch b).
+#
+# ---------------------------------------------------------------------
+# FLAG-GATED MECHANISMS THAT MUST BE OFF (a contaminated arm answers a
+# different question, and the port carries three switches that would do it)
+#   - BOTH-SEAT HARVEST (IDEAS 4.1): OFF. It changes the data
+#     distribution per update and would be a second treatment. The
+#     harvest/* metric names stay unemitted for A-1.
+#   - D18 PRIVILEGED BLOCK (IDEAS 4.7): OFF. collector privileged: false.
+#     The emitter exists on this branch; A-1 refuses it, and rl/train.py
+#     raises rather than silently ignoring it.
+#   - ENGINE SCRIPTED OPPONENTS: unused. selfplay.opponent is self, and
+#     the eval opponent is the SERVER's SimpleHeuristicsPlayer — the
+#     verdict denominator is never an in-engine reimplementation.
+#   - D25 opponent-action labels stay ON (env_kwargs.opp_action true,
+#     agent.aux_oppact_coef 0.1) because the banked arm has them; turning
+#     them off would be the treatment.
+# EVERY KEY BELOW THE collector BLOCK IS BYTE-IDENTICAL to
+# configs/showdown_sp_batch50m_async.yaml (diff it). The keys that
+# legitimately differ are exactly: collector.* , run_name, and
+# env_kwargs.seat_tag (eval-seat naming, IDEAS 2.2 — needed because A-1
+# reuses the banked arm's seeds; it touches no learning path).
+#
+# ---------------------------------------------------------------------
+# N-ENG — THE NON-LEVER DECLARATION (the N-COLL precedent,
+# configs/showdown_sp_100m.yaml:95-106)
+# The engine collector is declared a NON-LEVER backed by A-1's null. Its
+# SIGNED delta rides every gen-1 credit sentence produced on the engine
+# path, forever, exactly as G9's +0.02322 does for async. A bare "A-1
+# passed" is NOT an attribution. No gen-1 number ever pools across
+# collectors, and any comparison that spans the switch names both deltas.
+#
+# BARRED LANGUAGE on every branch (no TOST is run): "equivalent",
+# "identical", "no difference", "the same as the Node path", "validated".
+# PERMITTED: "inside the band at |D| = x", "within +-k se_diff",
+# "not distinguishable at this n and k", "screened, not equivalence-tested".
+#
+# WHAT A-1 CANNOT SAY, EVEN ON A PASS: nothing about behaviour at 100M+,
+# which is the horizon the port exists to buy. A 12M null does not close
+# an axis (the D18 vacating principle, IDEAS 2026-09-06). A-1 is
+# nonetheless acceptable as the switch gate because the signed delta
+# travels forever, no number pools across collectors, and the failure
+# branch keeps the server path — not because 12M licenses the instrument.
+#
+# OPS: launched ONLY by scripts/engine_gates.sh (D-1 -> T-1 -> A-1, order
+# frozen, every unit skipped when its output exists, ELAPSED per unit,
+# step 0 refuses while anything else owns the box or the server). Lanes
+# are detached and resume-safe (--resume runs/<dir>). Distinct seeds
+# across concurrent lanes (CLAUDE.md rule 2). Commit docs before
+# launching; launch from a clean tree.
+# =====================================================================
+env_id: Showdown-v0
+seed: 66                   # lanes 2/3 via --seed 75 / 83
+total_steps: 50000000      # the CONTROL'S OWN horizon; killed at the 12M rung
+eval_every: 250000
+eval_episodes: 100
+num_envs: 8                # x rollout_steps = the 30,720-step update budget
+torch_threads: 1
+checkpoint_every: 500000
+run_name: engine_a1_s66    # lanes 2/3 via --run-name
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine             # THE TREATMENT
+  k: 8                     # MATCHES the banked arm's concurrency 8 (see K)
+  team_bank: data/engine/teams_a1_1000000.bin   # >= 1,000,000 pairs; sha stamped
+  learner_seat: p1
+  privileged: false        # D18 emitter OFF (contamination guard)
+env_kwargs:
+  opp_action: true
+  seat_tag: a1             # eval-seat naming only; A-1 reuses seeds 66/75/83
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 50000000   # == total_steps; the CONTROL'S schedule (anneal trap)
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
