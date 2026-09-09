@@ -131,6 +131,15 @@ python scripts/gen4_wang50m_readout.py results/gen4_wang50m/final_s*.json \
     --out results/gen4_wang50m/primary.json
 ```
 
+## Rendered summary
+
+A one-page rendering of this readout (verdict, the number line against Wang's
+three published figures, the S-SHAPE curve, the gate chips, the disclosures and
+the next steps) is published as a private artifact:
+<https://claude.ai/code/artifact/c63edab6-0119-41f3-899a-030d06e5c389>. It is a
+VIEW, never the source: every number there is transcribed from
+`results/gen4_wang50m/` and this file is canonical on any conflict.
+
 ## What this readout may not be used for
 
 vs-SH is not a ladder number, in either direction. No lever is credited. The
