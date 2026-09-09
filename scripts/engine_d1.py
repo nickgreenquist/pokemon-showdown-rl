@@ -66,6 +66,9 @@ import numpy as np
 MATCHUPS = [("max_power", "max_power"), ("random", "random")]
 BANDS = {"p1_win_rate": 0.02, "tie_rate": 0.005, "mean_turns_rel": 0.05}
 DEFAULT_N = 10_000
+# Watchdog: seconds per battle allowed before a chunk is declared hung. The
+# measured scripted rate is well under 2 s/battle; 20 s is a ~13x margin.
+CHUNK_TIMEOUT_PER_BATTLE = 20.0
 CHUNK = 500
 
 
@@ -279,38 +282,86 @@ def server_leg(bank: pathlib.Path, n: int, seed: int, concurrency: int = 8) -> d
     from rl.envs.engine_bank import read_bank
 
     header, _payload = read_bank(bank)  # provenance only; the server draws its own
-    out = {}
-    for p1, p2 in MATCHUPS:
-        rows = {k: [] for k in ("outcome", "turns", "faints_p1", "faints_p2",
-                                "any_sleep", "any_freeze")}
-        done = 0
-        t0 = time.perf_counter()
-        while done < n:
-            want = min(CHUNK, n - done)
-            # A FRESH PAIR OF SEATS PER CHUNK. A killed arm's username pair is
-            # poisoned for hours (the Foul-Play runner incidents), and a fresh
-            # pair per chunk means a resume never reuses one.
-            tag = f"d1{done // CHUNK}"
-            a = _probe_player(p1, f"{tag}a{seed}", seed, concurrency)
-            b = _probe_player(p2, f"{tag}b{seed}", seed + 1, concurrency)
-            asyncio.run(a.battle_against(b, n_battles=want))
-            chunk = _server_rows(a, b)
-            got = len(chunk["turns"])
-            if got != want:
-                raise SystemExit(
-                    f"{p1} vs {p2}: asked for {want} battles, {got} finished — "
-                    "a room was abandoned; do not average over a short chunk"
-                )
-            for k in rows:
-                rows[k].append(chunk[k])
-            done += got
-            print(f"  {p1} vs {p2}: {done}/{n} "
-                  f"({(time.perf_counter() - t0) / done:.2f} s/battle)",
-                  file=sys.stderr)
-        out[f"{p1}_vs_{p2}"] = _summarise(
-            {k: np.concatenate(v) for k, v in rows.items()}
-        )
-        out[f"{p1}_vs_{p2}"]["wall_seconds"] = time.perf_counter() - t0
+
+    async def _play_all() -> dict:
+        """EVERYTHING poke-env touches is built and awaited INSIDE one loop.
+
+        This is not a style choice. poke-env runs every player on its own
+        background POKE_LOOP and only the wrapped entry points marshal across
+        it. Constructing the players in a SYNC frame and then awaiting
+        `battle_against` from a freshly-created `asyncio.run` loop leaves the
+        handshake touching primitives that live on another loop, and it
+        silently never completes — both processes sit at ZERO CPU forever, with
+        no error. That is exactly how the first bring-up of this leg failed
+        (2026-09-09), and it is the same trap ch5_orphan_demo.py documents.
+        scripts/anchor_h2h.py's working shape is the one copied here.
+        """
+        out = {}
+        for mi, (p1, p2) in enumerate(MATCHUPS):
+            rows = {k: [] for k in ("outcome", "turns", "faints_p1", "faints_p2",
+                                    "any_sleep", "any_freeze")}
+            done = 0
+            t0 = time.perf_counter()
+            while done < n:
+                want = min(CHUNK, n - done)
+                # A FRESH PAIR OF SEATS PER CHUNK **AND PER MATCHUP**. A killed
+                # arm's username pair is poisoned for hours (the Foul-Play
+                # runner incidents), and a fresh pair per chunk means a resume
+                # never reuses one. THE MATCHUP INDEX IS PART OF THE NAME: an
+                # earlier version keyed the tag on the chunk alone, so the
+                # SECOND matchup re-used the FIRST matchup's usernames while
+                # those players were still connected, and its login failed with
+                # "Expected d10b... to be logged in" — a poisoned pair this
+                # script inflicted on itself. Caught at bring-up 2026-09-09,
+                # after the first matchup would already have cost 10,000
+                # battles.
+                tag = f"d1m{mi}c{done // CHUNK}"
+                a = _probe_player(p1, f"{tag}a{seed}", seed, concurrency)
+                b = _probe_player(p2, f"{tag}b{seed}", seed + 1, concurrency)
+                # A WATCHDOG, because the failure mode above is a SILENT hang
+                # and this leg runs unattended inside scripts/engine_gates.sh.
+                # 20 s/battle is ~13x the measured scripted rate and still
+                # bounds a 500-battle chunk at under three hours.
+                budget = CHUNK_TIMEOUT_PER_BATTLE * want
+                try:
+                    await asyncio.wait_for(
+                        a.battle_against(b, n_battles=want), timeout=budget)
+                except TimeoutError:
+                    raise SystemExit(
+                        f"{p1} vs {p2}: chunk of {want} battles exceeded "
+                        f"{budget:.0f}s. A poke-env handshake that never "
+                        "completes looks exactly like this — both sides idle at "
+                        "zero CPU. Check the server is up and that nothing else "
+                        "holds these usernames."
+                    ) from None
+                chunk = _server_rows(a, b)
+                # Hang up before the next pair connects. Even with distinct
+                # names, leaving sockets open across a 20-chunk leg leaks
+                # connections and the server eventually refuses them.
+                for pl in (a, b):
+                    try:
+                        await pl.ps_client.stop_listening()
+                    except Exception:  # noqa: BLE001 - best effort teardown
+                        pass
+                got = len(chunk["turns"])
+                if got != want:
+                    raise SystemExit(
+                        f"{p1} vs {p2}: asked for {want} battles, {got} finished — "
+                        "a room was abandoned; do not average over a short chunk"
+                    )
+                for k in rows:
+                    rows[k].append(chunk[k])
+                done += got
+                print(f"  {p1} vs {p2}: {done}/{n} "
+                      f"({(time.perf_counter() - t0) / done:.2f} s/battle)",
+                      file=sys.stderr)
+            out[f"{p1}_vs_{p2}"] = _summarise(
+                {k: np.concatenate(v) for k, v in rows.items()}
+            )
+            out[f"{p1}_vs_{p2}"]["wall_seconds"] = time.perf_counter() - t0
+        return out
+
+    out = asyncio.run(_play_all())
     return {
         "leg": "server",
         "n": n,
@@ -318,7 +369,7 @@ def server_leg(bank: pathlib.Path, n: int, seed: int, concurrency: int = 8) -> d
         "bank_sha256": header["sha256"],
         "ps_commit": header["ps_commit"],
         "battle_format": "gen1randombattle",
-        "unverified": "this leg has never been run; treat the first run as bring-up",
+        "bring_up": "first run 2026-09-09; the loop-binding hang found and fixed then",
         "matchups": out,
     }
 
