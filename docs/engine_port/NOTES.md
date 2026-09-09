@@ -1636,3 +1636,54 @@ Rust binary that plays K battles and writes protocol + a per-decision dump of
 extractor against a poke-env `Battle` fed the same protocol. The declared
 families carry over from P-1; anything else is a bug, not a family.
 NOT STARTED — designed here so the next session can cost it honestly.
+
+## 2026-09-09 (afternoon) — three incidents on the way to the first gate run
+
+**The box slept all day.** The maintainer's `caffeinate` died, so the laptop
+suspended repeatedly. Wall-clock elapsed is therefore meaningless for anything
+measured today; CPU-time deltas are the only honest progress read, which is the
+same instrument the stall landmine already demands. The current chain holds its
+own `caffeinate -dims` (PreventSystemSleep asserted, confirmed in `pmset -g
+log`), so it is insulated — but ANY future unattended run must assert sleep
+prevention itself rather than inherit someone else's.
+
+**Incident 1 — the 5,000,000-pair bank died at ~4 GB, and lied about why.**
+`engine_team_bank.js` flushed every 2000 lines but ignored the return value of
+`process.stdout.write`. Writing to a pipe returns false when the kernel buffer
+is full; ignoring that queues the unwritten chunks on node's own heap. With a
+JSON-parsing consumer the queue outran node's default old-space limit and node
+died MID-WRITE. What the reader saw was `JSONDecodeError: Expecting value: line
+1 column 928` — a TRUNCATED LINE, which reads like corrupt data rather than an
+OOM. RSS was measured climbing 0.11 GB/min through 4.05 GB just before it went.
+Fixed by awaiting `'drain'`. MEASURED after: RSS flat at 0.31 GB across 90 s of
+continuous generation, and the output is byte-identical (sha256 `d2374a16…` on
+a 5,000-pair run before and after), so this changed memory behaviour only. The
+Python side now names the real cause on a partial line instead of surfacing a
+decode error. Streaming the Python reader (fixed earlier the same day) was
+necessary but not sufficient — BOTH ends had to stop buffering.
+
+**Incident 2 — D-1's server leg hung silently, and its own docstring predicted
+it.** The leg had never run. First contact: the script and the server both sat
+at ZERO CPU indefinitely, no error, no timeout. Cause: the players were built
+in a sync frame and then awaited from a fresh `asyncio.run` loop, so the
+handshake touched primitives living on poke-env's background POKE_LOOP and
+never completed — the trap `ch5_orphan_demo.py` already documents. Isolated by
+running `anchor_h2h.py` against the same server, which finished 4 battles while
+this leg hung. Everything poke-env touches is now built and awaited inside one
+loop. A watchdog (`asyncio.wait_for`, 20 s/battle, ~13x the measured rate) was
+added because the failure mode is SILENT and the chain runs unattended.
+
+**Incident 3 — D-1 poisoned its own usernames.** The seat tag keyed on the
+chunk index alone, so the SECOND matchup reused the FIRST matchup's usernames
+while those players were still connected: `Expected d10b… to be logged in`. At
+the real n=10,000 this would have fired only after the first matchup had
+already spent 10,000 battles. The tag now carries the matchup index, and both
+players are torn down after each chunk so a 20-chunk leg does not leak sockets.
+
+**First numbers off the repaired legs (SANITY ONLY, not the gate).**
+Engine, n=400: max_power 0.517/0.025 tie/21.4 turns, sleep 0.000; random
+0.490/0.007/61.9, sleep 0.755. Server, n=6 (noise, quoted only to show the
+harness runs): max_power 0.333/0.167/20.7, sleep 0.000; random 0.833/0.000/45.5,
+sleep 0.833. The `sleep_fraction` agreeing at 0.000 on max_power across both
+simulators is the first cross-simulator signal the port has ever produced.
+Server rate 0.08 s/battle at concurrency 8, so D-1's 20,000 battles is ~30 min.
