@@ -44,6 +44,7 @@ Full encoder rewrite: items, abilities, weather, hazards, SpA/SpD split. Note ge
 Steal his observation design where it fits (Tables A.1/A.2): multi-turn effect durations as one-hot counters to restore Markovianity, HP binned, PP as floor(pp^(1/3)). Our encoder is ours, but these are solved problems.
 
 ### 4. Gen4 train — start from Wang's published recipe
+**DONE 2026-09-09** — three lanes, 50M seat-1 steps each, `configs/gen4_wang50m.yaml`; RESULTS §19.
 Use his hyperparameters as the starting config, not a from-scratch guess (Table A.3): γ 0.9999, λ 0.754, 7 epochs, clip 0.0829, value clip 0.0184, ent 0.0588, vf 0.4375, grad-norm 0.543, n_steps 78×512, batch 1024, hidden 256, features 896. Plus his LR schedule 10^-4.23/(8x+1)^1.5 — the only controlled annealing ablation in this literature.
 
 This is a config, not a teacher — it stays inside the purity lane. He ran SB3, so any residual gap partly measures SB3's implementation against ours. State it in step 5 rather than let a reader find it.
@@ -53,6 +54,7 @@ This is a config, not a teacher — it stays inside the purity lane. He ran SB3,
 ~~Consider the 3v3 surrogate for tuning.~~ He ran Bayesian optimization on 3v3 battles — half the episode length, most of the complexity, far cheaper per trial. **Ruled 2026-09-06: NOT PURSUED.** Gen4 is a bug-check, not a tuning target: "close enough that we know the pipeline has no bug" is the whole job, and 3v3 was his HYPERPARAMETER-SEARCH surrogate, never part of any parity claim — nothing in step 5's read depends on it. Cheap tuning, if we ever want it, comes from step 7.5's speed (8 lanes a day, 4.2× a lane), not from a shortened format.
 
 ### 5. Gen4 offline evals vs Wang
+**EXIT MET 2026-09-09 — S5-MATCHED: pooled 0.8788 vs SH against the ruled floor 0.756, one-sided (+27.19 se). Step 3's milestone also MET (M-YES). RESULTS §19; the run credits nothing.**
 **Exit condition: "close enough" to his offline numbers.**
 
 **Pin the target before starting.** His Table 4.1 says 0.786 vs `SimpleHeuristicsPlayer`; his Figure 4.1 reads closer to 0.85. Our own prior-work index flags this as unreconciled. Choose which one we are matching, in writing, and define what "matched" means numerically — deciding afterward is how a comparison becomes a rationalization.
@@ -77,11 +79,13 @@ Why, beyond impatience. (i) Step 5 *is* the validation claim: pooled 3×3000 vs 
 What this does NOT relax: every descriptive anchor leg still lands before the README row (CLAUDE.md's per-generation battery), and the ladder is recorded as banked, never quietly forgotten.
 
 ### 7. Record results
+**DISCHARGED 2026-09-09 — the gen-4 chapter is CLOSED**: RESULTS §19, the README's own gen-4 table, `readouts/GEN4_WANG50M_READOUT.md`, all four anchor legs in (MDT 0.902, FP@20 0.2933, FP@500 0.2640, clone 0.9853) and Q38 pinned at 20 ms.
 Gen4 chapter closes. **Give gen4 a written exit condition when the chapter is opened** (written 2026-09-05: the chapter closes here after ONE step-5 comparison against the pinned 0.786 — matched or not — any pre-registered lever runs against that baseline, and ONE step-6 ladder run; no second ladder, no unregistered lever; **amended 2026-09-06, twice and finally: the step-6 ladder is BANKED, NOT RUN — the chapter closes on the ONE step-5 comparison plus the full anchor battery, and the ladder stands as an optional addendum against the frozen final, disclosed as available-and-unrun**), or it becomes where the project lives. It is a borrowed instrument, not a home.
 
 No search experiments here. They belong after step 11, against our strongest gen1 policy — running them now would reopen gen1 mid-arc and would measure search against a weak critic, which we already know the answer to.
 
 ### 7.5  Switch the gen1 collector off Node — pkmn/engine (maintainer, 2026-09-06: critical)
+**UNBLOCKED AND ACTIVE 2026-09-09 — its precondition (the step-7 readout) is discharged.** Gates B-0/B-1/P-4/P-3/P-1/P-2 already PASS on branch `pkmn-engine-port`; D-1, T-1 (+ a fleet-width T-1(d) reporting `collect_sec`/`update_sec`, not only steps/s) and A-1 remain, and all three want the idle box.
 
 Everything from here on is gen1, and gen1's bottleneck is not ideas — it is that a fleet-day buys 3 seeds against a σ_seed ≈ 0.062 noise floor, so advisory-scale levers cannot be seen at all (IDEAS_POST_100M §1). `docs/PKMN_ENGINE_RUST_PLAN.md` is the fix: an in-process collector on **`pkmn/engine`** (not `poke-engine`, which is the chapter-3 search dependency we already ship), ~4.2× full-loop per lane once the learner owns ~90% of wall, and **8 seeds a fleet-day instead of 3** — which is the bar itself, since it scales as 1/√k: k=3 → k=8 takes the two-fleet bar from 0.1007 to ≈0.062 and the shared-control bar from 0.0717 to ≈0.044, and at ≈0.044 the regenerative-L2 read that came back "letter-met, seed-fragile" at +0.0451 would have cleared the bar it missed — whether the effect itself replicates at 8 seeds is exactly what such a run would test. Per-battle seeds also make arm-paired *training* seeds exact. (Not the same as paired *evaluation* under common random numbers, which this repo already answered as a small prize that cannot touch σ_seed — the width is the win, not the CRN.) Build it in the gen4 chapter's evening blocks; it needs no fleet until acceptance. It also makes the both-seat harvest, the re-opened privileged-critic arm (IDEAS 4.7), and the depth-2 question cheap (plan §8.4).
 
