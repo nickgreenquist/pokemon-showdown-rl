@@ -16,6 +16,9 @@ Three legs, from plan §9:
     c  FULL-LOOP `time/realized_steps_per_sec` on a 12M engine-mode config,
        with the update's share of wall printed
                                         band: >= 2,000 steps/s realized
+    d  FLEET WIDTH — k lanes at once, which is the only width the gen-1
+       question is ever asked at.       band: >= 2.5x the Node 3-wide basis,
+                                        <= 2.0 cores/lane, and ZERO Node cores
 
 If (c) < 1,500: PROFILE. The learner or the Python-side batching is the bound,
 and the plan's §0 numbers get corrected in place — they are not defended.
@@ -30,6 +33,19 @@ by this measurement, not before it.
     python scripts/engine_t1.py --leg a --bank data/engine/teams_*.bin
     python scripts/engine_t1.py --leg b --bank data/engine/teams_*.bin
     python scripts/engine_t1.py --leg c --config configs/<engine 12m>.yaml
+    python scripts/engine_t1.py --leg d --run-dir runs/a --run-dir runs/b --run-dir runs/c
+
+WHY LEG (d) EXISTS AT ALL. Legs (a)-(c) are SOLO numbers, and a solo throughput
+number is exactly the mistake `scripts/showdown_throughput.py` made (~7x
+overstatement at [64,64], and the repo now requires width and scope with every
+quote). The gen-1 question is never "how fast is one lane" — it is "how many
+lanes does this box hold at what rate", because the whole case for the port is
+the MEASURED fact that 56% of a lane's CPU is the Node simulator
+(docs/prior_work/THROUGHPUT_SPEC.md, "MEASURED BOX SIZING", time-averaged over
+900 s at 3-wide; a single `ps` snapshot read 60% and is phase-dependent junk).
+That share is what the port deletes. Leg (d) is the only leg that can see it,
+so it is the one whose number may be quoted in a sizing claim; (a)-(c) are
+instrument reads on the way there.
 
 REFUSES TO RUN ON A BUSY BOX. A throughput window that straddles other work
 invents records (CLAUDE.md's landmine list, and R2's own disclosure). `--force`
@@ -59,7 +75,34 @@ TRUNK_KWARGS = dict(
 HIDDEN_SIZES = [512, 512]
 K_GRID = (32, 64, 128, 256, 512)
 BANDS = {"a_battles_per_sec": 20_000, "b_steps_per_sec_at_256": 25_000,
-         "c_realized_steps_per_sec": 2_000, "c_profile_below": 1_500}
+         "c_realized_steps_per_sec": 2_000, "c_profile_below": 1_500,
+         "d_credited_x": 2.5, "d_short_x": 1.5,
+         "d_cores_per_lane": 2.0}
+
+# The Node path's own fleet-width numbers, MEASURED, never projected. Leg (d)
+# compares against these and against nothing else.
+#   rate: the gen-1 Stage-2 async acceptance fleet's REALIZED per-lane rate at
+#     3-wide (12M / wall), SESSION_LOGS 2026-09-01: 573.5 / 574.1 / 574.6.
+#     Realized, not the sps estimator, which overstates the async loop by ~57%.
+#   cores: docs/prior_work/THROUGHPUT_SPEC.md "MEASURED BOX SIZING" (2026-09-06),
+#     time-averaged from cumulative CPU-time deltas over 900 s on the gen-4
+#     fleet at 3-wide: 0.85 python + 1.08 node = 1.93 cores/lane, Node 56%.
+#     Gen 4, so the CORES basis is cross-generation: it is quoted as the SHARE
+#     the port deletes, never as a gen-1 per-lane budget.
+NODE_BASIS = {
+    "per_lane_realized_steps_per_sec": 574.1,
+    "per_lane_realized_source": "gen-1 async acceptance fleet, 3-wide, 12M/wall",
+    "cores_per_lane_total": 1.93,
+    "cores_per_lane_python": 0.85,
+    "cores_per_lane_node": 1.08,
+    "node_share_of_fleet_cpu": 0.56,
+    "cores_source": "THROUGHPUT_SPEC.md MEASURED BOX SIZING, gen-4 3-wide, 900 s time-averaged",
+    "width": 3,
+}
+# The spec's method, and the reason it is the method: sampled during collection
+# the split reads python 204% / node 306%; sampled during the update, 297% / 28%.
+# Only a cumulative-CPU-time delta over a long window is immune to that.
+WINDOW_SEC = 900
 
 
 def leg_a(bank: pathlib.Path, seed: int, battles: int = 20_000) -> dict:
@@ -226,12 +269,186 @@ def leg_c(config: pathlib.Path, run_dir: pathlib.Path) -> dict:
     }
 
 
+def _cpu_seconds(pid: int) -> float | None:
+    """Cumulative CPU seconds for one pid, from `ps -o time=` ([DD-]HH:MM:SS).
+
+    Cumulative, never %CPU: `ps` %CPU is a LIFETIME average and a snapshot of it
+    is phase-dependent (THROUGHPUT_SPEC's correction). Two of these, far apart,
+    is the only honest instrument.
+    """
+    import subprocess
+
+    out = subprocess.run(["ps", "-p", str(pid), "-o", "time="],
+                         capture_output=True, text=True).stdout.strip()
+    if not out:
+        return None
+    days, _, rest = out.rpartition("-")
+    parts = [float(x) for x in rest.split(":")]
+    while len(parts) < 3:
+        parts.insert(0, 0.0)
+    h, m, s = parts[-3:]
+    return (float(days) if days else 0.0) * 86400 + h * 3600 + m * 60 + s
+
+
+def _lane_pids(run_dirs: list[pathlib.Path]) -> dict[str, int]:
+    """Map run-dir name -> the `rl.train` pid writing it. A lane we cannot find
+    is FATAL, not skipped: a fleet-width number computed over the wrong number
+    of lanes is the width error this leg exists to prevent."""
+    import subprocess
+
+    ps = subprocess.run(["ps", "-A", "-o", "pid=,command="],
+                        capture_output=True, text=True).stdout.splitlines()
+    found: dict[str, int] = {}
+    for line in ps:
+        line = line.strip()
+        pid_s, _, cmd = line.partition(" ")
+        if "rl.train" not in cmd:
+            continue
+        for d in run_dirs:
+            if d.name in cmd and d.name not in found:
+                found[d.name] = int(pid_s)
+    return found
+
+
+def _node_cpu_seconds() -> tuple[float, list[int]]:
+    """Cumulative CPU seconds across every `pokemon-showdown` process on the box.
+
+    The port's whole claim is that this term goes to ZERO for a training lane.
+    Leg (d) measures it rather than assuming it — an engine lane that still
+    pulls in a server (an in-loop eval, a stray import) has not deleted the
+    share, it has only hidden it between polls."""
+    import subprocess
+
+    ps = subprocess.run(["ps", "-A", "-o", "pid=,command="],
+                        capture_output=True, text=True).stdout.splitlines()
+    pids = [int(l.strip().partition(" ")[0]) for l in ps
+            if "pokemon-showdown" in l and "grep" not in l]
+    return sum(_cpu_seconds(p) or 0.0 for p in pids), pids
+
+
+def leg_d(run_dirs: list[pathlib.Path], window_sec: int = WINDOW_SEC) -> dict:
+    """FLEET WIDTH: k engine lanes at once — rate AND cores, both time-averaged.
+
+    Reports three things, because the port's case needs all three and a rate
+    alone has misled this repo before:
+      1. aggregate and per-lane REALIZED steps/s at width k, against the Node
+         path's own realized 3-wide rate;
+      2. cores/lane, time-averaged over `window_sec` from cumulative CPU-time
+         deltas (the spec's method, not a snapshot);
+      3. the Node share, which must be ZERO — that share is the thing the port
+         claims to delete, and it is 56% on the Node path.
+
+    Every number carries WIDTH and SCOPE, per CLAUDE.md's quoting rule.
+    Bands mirror G8's three tiers (CREDITED / SHORT / STOP) because this is the
+    same kind of read: an ops number on an instrument, not a lever.
+    """
+    import csv
+
+    k = len(run_dirs)
+    if k < 2:
+        raise SystemExit("leg d is a FLEET-WIDTH read; give it >= 2 --run-dir "
+                         "(a solo number is leg c, and quoting one as a fleet "
+                         "number is the showdown_throughput.py mistake)")
+    pids = _lane_pids(run_dirs)
+    missing = [d.name for d in run_dirs if d.name not in pids]
+    if missing:
+        raise SystemExit(f"no live rl.train process for {missing} — leg d must "
+                         f"measure all {k} lanes over ONE window, or not at all")
+
+    t0 = time.time()
+    cpu0 = {n: _cpu_seconds(p) for n, p in pids.items()}
+    node0, node_pids = _node_cpu_seconds()
+    time.sleep(window_sec)
+    cpu1 = {n: _cpu_seconds(p) for n, p in pids.items()}
+    node1, _ = _node_cpu_seconds()
+    elapsed = time.time() - t0
+
+    if any(cpu1[n] is None for n in cpu1):
+        raise SystemExit("a lane died inside the measurement window — the window "
+                         "is void; re-run it (a partial window invents a record)")
+
+    cores = {n: (cpu1[n] - cpu0[n]) / elapsed for n in cpu0}
+    node_cores = (node1 - node0) / elapsed
+    per_lane_cores = sum(cores.values()) / k
+
+    # Rate over the SAME window, from each lane's own realized series.
+    rates: dict[str, float] = {}
+    for d in run_dirs:
+        hist = d / "history.csv"
+        if not hist.exists():
+            raise SystemExit(f"{hist} missing — run scripts/extract_history.py "
+                             f"{d} first (and note a RESUMED lane splits the "
+                             "history; merge it before reading a rate)")
+        with open(hist) as fh:
+            rows = list(csv.DictReader(fh))
+        series = [float(r["time/realized_steps_per_sec"]) for r in rows
+                  if r.get("time/realized_steps_per_sec") not in (None, "")]
+        if not series:
+            raise SystemExit(
+                f"{hist} has no time/realized_steps_per_sec — that is the only "
+                "series T-1 quotes; time/steps_per_sec is the poll-cadence "
+                "estimator and overstates the async loop by ~57%")
+        # Conforming window only: drop the first reading, which straddles startup.
+        rates[d.name] = statistics.median(series[1:] or series)
+
+    per_lane_rate = statistics.median(rates.values())
+    basis = NODE_BASIS["per_lane_realized_steps_per_sec"]
+    speedup = per_lane_rate / basis
+
+    if speedup >= BANDS["d_credited_x"]:
+        tier, action = "CREDITED", None
+    elif speedup >= BANDS["d_short_x"]:
+        tier, action = "SHORT", (
+            "above the Node path but below the plan's ~4.2x projection — name "
+            "the gap's owner before any wall-clock or box-sizing claim quotes "
+            "this number")
+    else:
+        tier, action = "STOP", (
+            "the port does not buy fleet width; the throughput case for the "
+            "switch is not made and plan §0's numbers get corrected in place")
+
+    cores_ok = per_lane_cores <= BANDS["d_cores_per_lane"]
+    node_ok = node_cores < 0.05           # a live server is a failure, not a rounding term
+    return {
+        "scope": (f"FULL-LOOP, FLEET WIDTH k={k}, entity trunk {TRUNK_KWARGS}, "
+                  f"hidden {HIDDEN_SIZES}; time-averaged over {elapsed:.0f} s "
+                  "from cumulative CPU-time deltas (NOT a ps snapshot)"),
+        "width": k,
+        "window_sec": elapsed,
+        "run_dirs": [str(d) for d in run_dirs],
+        "per_lane_realized_steps_per_sec": rates,
+        "per_lane_realized_median": per_lane_rate,
+        "aggregate_realized_steps_per_sec": sum(rates.values()),
+        "node_basis": NODE_BASIS,
+        "speedup_vs_node_3wide": speedup,
+        "cores_per_lane": cores,
+        "cores_per_lane_mean": per_lane_cores,
+        "node_cores_observed": node_cores,
+        "node_pids_seen": node_pids,
+        "node_share_deleted": NODE_BASIS["node_share_of_fleet_cpu"] if node_ok else None,
+        "cores_per_lane_band": BANDS["d_cores_per_lane"],
+        "tier": tier,
+        "pass": tier == "CREDITED" and cores_ok and node_ok,
+        "action": action if action else (
+            None if (cores_ok and node_ok) else
+            f"rate tier {tier} but cores/lane {per_lane_cores:.2f} "
+            f"(band {BANDS['d_cores_per_lane']}) or Node cores "
+            f"{node_cores:.2f} (band 0) — the share is not deleted"),
+        "quoting_rule": (
+            f"quote as: '{per_lane_rate:.0f} realized steps/s per lane at k={k}, "
+            f"FULL-LOOP, entity trunk 512x512' — never without the width and "
+            "never without FULL-LOOP"),
+    }
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--leg", required=True, choices=("a", "b", "c"))
+    ap.add_argument("--leg", required=True, choices=("a", "b", "c", "d"))
     ap.add_argument("--bank", type=pathlib.Path)
     ap.add_argument("--config", type=pathlib.Path)
-    ap.add_argument("--run-dir", type=pathlib.Path)
+    ap.add_argument("--run-dir", type=pathlib.Path, action="append", default=[],
+                    help="leg c: one run dir. leg d: repeat once per lane.")
+    ap.add_argument("--window-sec", type=int, default=WINDOW_SEC)
     ap.add_argument("--seed", type=int, default=20260907)
     ap.add_argument("--out", type=pathlib.Path, default=pathlib.Path("results/t1"))
     ap.add_argument("--force", action="store_true")
@@ -242,7 +459,11 @@ def main(argv=None) -> int:
     if args.leg == "c":
         if not (args.config and args.run_dir):
             raise SystemExit("leg c needs --config and --run-dir")
-        result = leg_c(args.config, args.run_dir)
+        if len(args.run_dir) != 1:
+            raise SystemExit("leg c takes exactly one --run-dir (k lanes is leg d)")
+        result = leg_c(args.config, args.run_dir[0])
+    elif args.leg == "d":
+        result = leg_d(args.run_dir, args.window_sec)
     else:
         if args.bank is None:
             raise SystemExit(f"leg {args.leg} needs --bank")
