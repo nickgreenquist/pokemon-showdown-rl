@@ -1,11 +1,13 @@
 # =====================================================================
-# STATUS: DRAFT — NOT RATIFIED, NOT LAUNCHABLE.
-#   2-Opus review 1 (repo consistency) APPLIED, tagged [R1-*] in place.
-#   OWED BEFORE LAUNCH: RW-1..RW-8 (configs/engine_a1.prereg.yaml);
-#   D-1 has NEVER RUN, so the precondition is unmet by construction;
-#   the team bank this file names DOES NOT EXIST YET (RW-6);
-#   seed reuse turns tests/test_ch5_r2_prereg.py RED until RW-7 lands.
-#   scripts/engine_gates.sh refuses to launch while any of that holds.
+# STATUS: RATIFIED (design) — NOT LAUNCHABLE (preconditions).
+#   Both 2-Opus reviews APPLIED, tagged [R1-*] / [R2-*] in place.
+#   RW-1..RW-8 RATIFIED by the maintainer 2026-09-09. THIS DESIGN IS NOW
+#   FROZEN: editing it after launch is falsification.
+#   STILL BLOCKED ON: D-1 has NEVER RUN (hard precondition); the
+#   5,000,000-pair team bank does not exist yet; the gen-4 chapter still
+#   owns the box. Launch authorization is SEPARATE from ratification and is
+#   NOT granted — the lanes are ~2.5 h x 3, CLAUDE.md rule 4's "ask first"
+#   band. scripts/engine_gates.sh refuses while any of that holds.
 #
 # A-1 — ENGINE COLLECTOR ACCEPTANCE. The gate that decides whether the
 # pkmn/engine in-process collector replaces the Node/poke-env path as the
@@ -53,15 +55,19 @@
 # ---------------------------------------------------------------------
 # (A) POWER — WHAT THIS GATE IS, AND WHAT IT IS NOT
 #
-# EIGHT DECISIONS IN THIS HEADER ARE NOT MINE TO MAKE [R1-M7]. Wherever the
-# text below reads as settled, it is a RECOMMENDATION pending the matching
-# ruling in configs/engine_a1.prereg.yaml: RW-1 (K), RW-2 (buy a TOST?),
-# RW-3 (the estimator), RW-4 (may the baseline be HISTORICAL — the whole of
-# arm N is banked and a week old), RW-5 (this screen framing, its band, and
-# which sigma reference class), RW-6 (the team bank — and the bank this file
-# names DOES NOT EXIST YET), RW-7 (seed reuse, which turns a test RED at
-# launch), RW-8 (whether P-AUC may be co-primary at all). NOTHING IS
-# RATIFIED AND NOTHING LAUNCHES UNTIL THEY ARE ANSWERED.
+# EIGHT DECISIONS IN THIS HEADER WERE NOT MINE TO MAKE [R1-M7], AND ALL EIGHT
+# ARE NOW RATIFIED (maintainer, 2026-09-09; recorded in
+# configs/engine_a1.prereg.yaml under ratified_decisions):
+#   RW-1 k=8, and A-1 accepts the collector AT K=8 only.
+#   RW-2 screen only; no TOST is purchased.
+#   RW-3 the estimator as written.
+#   RW-4 the banked, week-old arm N is ACCEPTED as the reference.
+#   RW-5 gross-breakage screen at |D| < 0.025 on the regime-matched sigma.
+#   RW-6 a 5,000,000-pair bank, floor 1,000,000 enforced at launch.
+#   RW-7 seed reuse approved; the test amendment lands with ratification.
+#   RW-8 P-AUC is SECONDARY — the verdict is P-END alone.
+# The design is FROZEN. What is still owed is not a decision but a
+# MEASUREMENT: D-1 has never run.
 #
 # A-1 IS A GROSS-BREAKAGE SCREEN [RW-5]. It is NOT an equivalence test, and the
 # words "equivalent", "identical" and "no difference" are BARRED on every
@@ -149,7 +155,7 @@
 # and 98.2% power against a 0.05 defect. THE BAND IS NOT WIDENED AND
 # MUST NOT BE: at |D| < 0.05 a real 0.05 defect passes 50% of the time,
 # which is the wrong trade for a screen whose entire job is catching
-# silent breakage. Subject to RW-5.
+# silent breakage. RATIFIED under RW-5.
 #
 # WHAT AN EQUIVALENCE TEST WOULD COST (TOST, alpha .05 one-sided, power
 # .80, delta 0.025), stated so the choice is priced rather than guessed:
@@ -464,12 +470,19 @@
 #   the power statement is. RW-3.
 #
 # P-AUC — THE CURVE, and the reason a single endpoint is not enough.
-#   SCOPE CHANGE, UNRATIFIED [R1-M8]. JOURNEY 7.5 names ONLY the endpoint.
-#   Making the AUC co-primary can FAIL a run the JOURNEY's own wording would
-#   PASS — a TIGHTENING, not a loosening, and therefore the maintainer's.
-#   UNTIL RW-8 IS ANSWERED, P-AUC IS SECONDARY-DESCRIPTIVE: the verdict is
-#   P-END alone and the A1-SPLIT branch does not exist. What follows
-#   describes what P-AUC WOULD be if RW-8 promotes it.
+#   RULED SECONDARY-DESCRIPTIVE [RW-8, ratified 2026-09-09]. JOURNEY 7.5
+#   names ONLY the endpoint, and promoting the AUC would have been a
+#   TIGHTENING — it could FAIL a run the JOURNEY's wording would PASS. Two
+#   things decided it against promotion. (i) The tightening claim does not
+#   survive decomposition: the AUC is 3.5% WIDER than the endpoint on the
+#   ASYNC arm, which is the arm A-1 actually compares against, and the pooled
+#   advantage came entirely from the SYNC arm's endpoint spread
+#   (F(4,4)=1.63, p~0.33) [R2-M7]. (ii) It would have made wandb history a
+#   verdict input for the first time in this repo. THEREFORE: the verdict is
+#   P-END ALONE, the A1-SPLIT branch does not exist, and P-AUC's signed delta
+#   is REPORTED, not gated. A P-AUC breach beside an in-band endpoint still
+#   requires a diagnosis round before the switch — it simply cannot fail A-1
+#   by itself.
 #   AUC_lane = the mean of eval/win_rate over the 48 in-loop rungs, selected
 #   by the BUCKET RULE floor(_step / 250000) in 1..48, one row per bucket
 #   [R2-M8]. NOT the literal interval "250k..12.0M": the 48th eval lands just
@@ -570,19 +583,19 @@
 #
 # ---------------------------------------------------------------------
 # ACTION ON EACH BRANCH (exhaustive; boundaries assigned explicitly)
-#   A1-PASS   |D_END| < 0.025 AND |D_AUC| < 0.025
+#   A1-PASS   |D_END| < 0.025
 #             -> the engine collector is ACCEPTED as the gen-1 training
 #             default AT K = 8 (see K below). Both signed deltas are
 #             recorded and travel forever (N-ENG). Merge is then a
 #             maintainer decision, not an automatic consequence.
-#   A1-SPLIT  exactly one of the two reads inside its band
-#             -> NOT a pass. Enter diagnosis round 1. A split is
-#             INFORMATIVE: endpoint-in/AUC-out points at a trajectory
-#             difference that the endpoint happened to cross;
-#             AUC-in/endpoint-out points at the rung, the anneal, or eval
-#             noise. Report both signs.
-#   A1-FAIL   both reads outside their bands
+#   A1-FAIL   |D_END| >= 0.025
 #             -> diagnosis round 1.
+#   (A1-SPLIT is GONE with RW-8: there is no second gated read. If P-AUC
+#   lands outside 0.025 while the endpoint is inside, that is REPORTED and
+#   costs a diagnosis round before the switch, but it is not a FAIL cell —
+#   endpoint-in/AUC-out points at a trajectory difference the endpoint
+#   happened to cross, and it is exactly the shape a tracker defect would
+#   make, so it is never waved through.)
 #   Boundaries: |D| exactly 0.025 reads as OUTSIDE (fails that leg).
 #   THREE CELLS THE PARTITION WOULD OTHERWISE LEAVE UNNAMED [R1-S9]:
 #     A1-VOID-K  fewer than 3 engine lanes reach the 12M rung -> the read is
@@ -758,7 +771,7 @@ eval_win_rate: true
 collector:
   mode: engine             # THE TREATMENT
   k: 8                     # MATCHES the banked arm's concurrency 8 (see K)
-  team_bank: data/engine/teams_a1_1000000.bin   # DOES NOT EXIST YET (RW-6)
+  team_bank: data/engine/teams_a1_5000000.bin   # RW-6: 5,000,000 pairs (DOES NOT EXIST YET)
   min_bank_pairs: 1000000  # ENFORCED at launch (rl/train.py) — a floor in prose
                            # is not a floor; a lane pointed at the 50,000-pair
                            # bank would otherwise train and stamp a valid

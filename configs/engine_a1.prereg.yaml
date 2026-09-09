@@ -5,12 +5,15 @@
 ---
 prereg_for: configs/engine_a1.yaml
 status: >-
-  DRAFT, NOT RATIFIED, NOT LAUNCHABLE. Written 2026-09-08 on branch
-  pkmn-engine-port while the gen4 fleet held the box. 2-Opus review 1
-  (repo consistency) APPLIED — 11 MUST / 15 SHOULD, each tagged [R1-*] in
-  place. D-1 has never run, so the precondition is UNMET by construction;
-  the team bank this pre-reg names does not exist yet; RW-1..RW-8 are owed
-  before any launch.
+  RATIFIED (design), NOT LAUNCHABLE (preconditions). Written 2026-09-08 on
+  branch pkmn-engine-port while the gen4 fleet held the box. Both 2-Opus
+  reviews APPLIED and tagged in place. RW-1..RW-8 RATIFIED by the maintainer
+  in chat 2026-09-09 ("for the rulings, go with your recs") — the design is
+  now FROZEN and editing it after launch is falsification. STILL BLOCKED ON:
+  D-1 has never run (precondition, hard); the 5,000,000-pair team bank does
+  not exist yet; and the gen-4 chapter still owns the box. Launch authorization
+  is SEPARATE from ratification and is not granted here — A-1's lanes are
+  ~2.5 h x 3 (CLAUDE.md rule 4's "ask first" band).
 journey_step: "7.5"
 exit_condition_verbatim: >-
   A-1 acceptance is the gate — 3 seeds × 12M inside |Δ| < 0.025 of the
@@ -164,7 +167,7 @@ primary:
     sides: two_sided
     pass_rule_depends_on_se: false     # fixed magnitude, the maintainer's
   P-AUC:
-    status: SECONDARY_DESCRIPTIVE_UNTIL_RW8   # [R1-M8] a tightening JOURNEY 7.5 does not name
+    status: SECONDARY_DESCRIPTIVE            # RW-8 RATIFIED; a tightening JOURNEY 7.5 does not name
     source: history.csv, or history_merged.csv if the lane resumed   # [R1-M4]
     first_verdict_grade_history_read: true    # docs/landmines.md:282 says the verdict path never read history before
     statistic: mean of eval/win_rate over the 48 in-loop rungs 250k..12.0M
@@ -174,7 +177,7 @@ primary:
     sides: two_sided
     basis_2se_diff: 0.01915            # tighter than the endpoint's 0.02447
     paired: false
-  both_must_hold: CONDITIONAL_ON_RW8   # if RW-8 declines, the verdict is P-END alone and A1-SPLIT does not exist
+  both_must_hold: false                # RW-8 ratified SECONDARY: the verdict is P-END alone
 
 secondary_descriptive_only:
   - per-seed signed deltas on both reads
@@ -185,7 +188,10 @@ secondary_descriptive_only:
 
 branches:
   A1-PASS:  {rule: "|D_END| < 0.025 AND |D_AUC| < 0.025", action: "engine collector ACCEPTED as gen-1 training default AT K=8; both signed deltas recorded and travel forever (N-ENG); merge remains a maintainer decision"}
-  A1-SPLIT: {rule: "exactly one read inside its band", action: "NOT a pass; diagnosis round 1; report both signs"}
+  # A1-SPLIT REMOVED — RW-8 ratified P-AUC as secondary, so there is no second
+  # gated read for the endpoint to split against. P-AUC's signed delta is still
+  # reported, and a P-AUC breach beside an in-band endpoint still requires a
+  # diagnosis round before the switch; it just cannot fail A-1 on its own.
   A1-FAIL:  {rule: "both reads outside their bands", action: "diagnosis round 1"}
   boundary: "|D| exactly 0.025 reads as OUTSIDE (fails that leg)"
   after_two_rounds: "KEEP the server path; the port is NOT merged as the training default; steps 8-11 sit on Node. PRE-DECIDED; a near-miss does not reopen it."
@@ -333,8 +339,21 @@ rulings_wanted:
       disclosed single-read figure at every sigma. JOURNEY 7.5 names only the
       endpoint, and this feeds an irreversible failure branch on a P0 item.
 
-ratified_decisions: []                 # nothing ratified; this list stays empty until the maintainer fills it
-launch_authorization: NONE
+# RATIFIED by the maintainer in chat, 2026-09-09: "for the rulings, go with
+# your recs". Each entry is the recommendation as it stood in rulings_wanted
+# at the moment of ratification; the reasoning lives there and in the header.
+ratified_decisions:
+  RW-1: "k=8 — A-1 accepts the collector AT K=8; production K is T-1(b)'s question and needs its own staleness read"
+  RW-2: "screen only; no TOST. Revisit only if A-1 lands in 0.015-0.025"
+  RW-3: "estimator as written — fixed-magnitude pass rule, unpaired two-fleet se_diff quoted for power"
+  RW-4: "the banked baseline is ACCEPTED as the reference arm; the drift audit stands as its evidence"
+  RW-5: "gross-breakage SCREEN at |D| < 0.025, regime-matched sigma 0.01499 (4 df); NOT widened, NOT an equivalence test"
+  RW-6: "team bank 5,000,000 pairs (generation is cheap now the generator streams); min_bank_pairs floor 1,000,000 enforced at launch"
+  RW-7: "seed reuse APPROVED; tests/test_ch5_r2_prereg.py amended in this commit to name engine_a1_s{s} as a third legal owner"
+  RW-8: "P-AUC is SECONDARY-DESCRIPTIVE. The verdict is P-END alone and the A1-SPLIT branch does not exist"
+ratified_at: 2026-09-09
+ratified_by: maintainer, in chat
+launch_authorization: NONE   # ratification is not authorization; D-1 must PASS first
 
 review:                                # the standing 2-Opus cycle
   review_1:

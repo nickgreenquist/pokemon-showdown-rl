@@ -136,10 +136,36 @@ def test_every_open_ruling_is_named_in_the_header():
             "reads as settled on an open ruling answers it for the maintainer")
 
 
-def test_nothing_is_ratified_and_nothing_is_authorized():
-    assert SIDE["ratified_decisions"] == [] or not SIDE["ratified_decisions"]
+def test_every_ruling_is_ratified_but_launch_is_still_not_authorized():
+    """Ratification froze the DESIGN. It is not a launch authorization: D-1 has
+    never run, and the lanes sit in CLAUDE.md rule 4's "ask first" band."""
+    ratified = SIDE["ratified_decisions"]
+    assert set(ratified) == set(SIDE["rulings_wanted"]), \
+        "every open ruling must be answered, or the header still speaks for the maintainer"
     assert SIDE["launch_authorization"] == "NONE"
     assert SIDE["is_equivalence_test"] is False
+    assert SIDE["precondition"]["state_at_drafting"] == "NEVER RUN"
+
+
+def test_rw8_ruled_secondary_so_the_verdict_is_the_endpoint_alone():
+    """The AUC is WIDER than the endpoint on the async arm — the arm A-1 is
+    actually compared against — so promoting it was refused."""
+    assert SIDE["primary"]["both_must_hold"] is False
+    assert SIDE["primary"]["P-AUC"]["status"] == "SECONDARY_DESCRIPTIVE"
+    assert "A1-SPLIT" not in SIDE["branches"]
+    assert "the verdict is P-END ALONE" in FLAT
+
+
+def test_rw6_bank_target_and_enforced_floor_agree():
+    assert RAW["collector"]["team_bank"].endswith("teams_a1_5000000.bin")
+    assert RAW["collector"]["min_bank_pairs"] == 1_000_000
+
+
+def test_rw7_amendment_landed_with_ratification():
+    """The header says the third-legal-owner amendment belongs to the
+    ratification commit, not to a post-hoc fix."""
+    guard = (REPO / "tests/test_ch5_r2_prereg.py").read_text()
+    assert 'f"engine_a1_s{s}"' in guard
 
 
 def test_the_precondition_is_recorded_as_unmet():

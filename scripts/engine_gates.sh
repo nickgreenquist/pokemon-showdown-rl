@@ -43,8 +43,9 @@ SEEDS="${SEEDS:-66 75 83}"
 CONFIG=configs/engine_a1.yaml
 PREREG=configs/engine_a1.prereg.yaml
 RUNG=12000000
-BANK="${BANK:-data/engine/teams_a1_1000000.bin}"
-BANK_PAIRS="${BANK_PAIRS:-1000000}"
+BANK="${BANK:-data/engine/teams_a1_5000000.bin}"
+BANK_PAIRS="${BANK_PAIRS:-5000000}"   # RW-6 ratified; ~2.75 h, 480 MB,
+                                     # and the generator streams now (review 2, M4)
 EVAL_N="${EVAL_N:-12000}"          # review 2, M5: precision here is bought by
                                    # battles, not seeds — ~71% of the
                                    # regime-matched sigma is eval-replicate noise
