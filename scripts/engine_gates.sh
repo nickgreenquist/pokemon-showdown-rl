@@ -184,7 +184,14 @@ say "STEP 2 DONE (D-1 PASS)"
 # A throughput number taken against our own job measures nothing (the earlier
 # engine_smoke run sat at 106% of a core). Server DOWN, no lanes, no builds.
 stop_server || exit 1
-if pgrep -f "rl\.train|pytest|cargo|maturin" > /dev/null; then
+# The pattern must be ANCHORED. A bare "cargo" matched two idle
+# @playwright/mcp processes whose embedded PATH contains `.cargo/bin`, and the
+# chain died at this line right after D-1 passed. PATH entries are
+# colon-separated and contain no spaces, so requiring a path separator or
+# whitespace around the token is enough to tell an INVOCATION from a mention.
+BUSY_RE='(^|/|[[:space:]])(cargo|maturin)[[:space:]]|(^|/)pytest[[:space:]]|-m[[:space:]]+pytest|rl\.train'
+if pgrep -f "$BUSY_RE" > /dev/null; then
+  say "processes matching the busy pattern:"; pgrep -fl "$BUSY_RE" | head -5 | tee -a "$LOG"
   die "something of ours is running — T-1 (a)/(b) are IDLE-BOX measurements"
 fi
 unit "$T1OUT/leg_a.json" "$PY" scripts/engine_t1.py --leg a --bank "$BANK" --out "$T1OUT" || \
