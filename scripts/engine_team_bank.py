@@ -94,7 +94,20 @@ def generate(showdown_root: pathlib.Path, pairs: int, seed_prefix: str) -> bytes
     for line in proc.stdout:
         if not line.strip():
             continue
-        p1, p2 = json.loads(line)
+        try:
+            p1, p2 = json.loads(line)
+        except json.JSONDecodeError as exc:
+            # A partial line means the GENERATOR DIED mid-write, not that the
+            # data is malformed. Say so, with node's own stderr, instead of
+            # surfacing a decode error several hundred characters into a pair.
+            proc.kill()
+            err = (proc.stderr.read() if proc.stderr else "")[-4000:]
+            raise RuntimeError(
+                f"team generator produced a TRUNCATED line after {n:,} pairs "
+                f"({len(line)} chars): it died mid-write. This is what an "
+                f"out-of-memory generator looks like from the reading end.\n"
+                f"decode error: {exc}\nnode stderr:\n{err}"
+            ) from None
         for team in (p1, p2):
             if len(team) != MONS_PER_TEAM:
                 raise RuntimeError(f"a team has {len(team)} mons, expected 6")

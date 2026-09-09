@@ -50,17 +50,39 @@ function slim(set) {
 	};
 }
 
-const out = [];
-for (let i = 0; i < nPairs; i++) {
-	const h = splitmix64(BigInt(i)).toString(16).padStart(16, '0');
-	const seed = `sodium,${prefix}${h}`;
-	const gen = Teams.getGenerator('gen1randombattle', seed);
-	const p1 = gen.getTeam().map(slim);
-	const p2 = gen.getTeam().map(slim);
-	out.push(JSON.stringify([p1, p2]));
-	if (out.length >= 2000) {
-		process.stdout.write(out.join('\n') + '\n');
-		out.length = 0;
-	}
+// BACKPRESSURE IS NOT OPTIONAL HERE. `process.stdout.write` to a pipe returns
+// false when the kernel buffer is full, and ignoring that lets node queue the
+// unwritten chunks on its own heap. At 5,000,000 pairs (~1.4 kB each) and a
+// consumer that parses JSON, the queue outruns the default old-space limit and
+// node dies MID-WRITE — which reaches the reader as a TRUNCATED LINE and a
+// JSONDecodeError several hundred characters into a pair, not as an OOM
+// message. That is exactly how the 2026-09-09 run failed at ~4 GB RSS.
+// Awaiting 'drain' makes the generator run at the consumer's pace instead.
+function write(chunk) {
+	return new Promise((resolve) => {
+		if (process.stdout.write(chunk)) resolve();
+		else process.stdout.once('drain', resolve);
+	});
 }
-if (out.length) process.stdout.write(out.join('\n') + '\n');
+
+async function main() {
+	const out = [];
+	for (let i = 0; i < nPairs; i++) {
+		const h = splitmix64(BigInt(i)).toString(16).padStart(16, '0');
+		const seed = `sodium,${prefix}${h}`;
+		const gen = Teams.getGenerator('gen1randombattle', seed);
+		const p1 = gen.getTeam().map(slim);
+		const p2 = gen.getTeam().map(slim);
+		out.push(JSON.stringify([p1, p2]));
+		if (out.length >= 2000) {
+			await write(out.join('\n') + '\n');
+			out.length = 0;
+		}
+	}
+	if (out.length) await write(out.join('\n') + '\n');
+}
+
+main().catch((e) => {
+	console.error(e && e.stack ? e.stack : String(e));
+	process.exit(1);
+});
