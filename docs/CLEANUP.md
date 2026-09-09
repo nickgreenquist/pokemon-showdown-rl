@@ -140,6 +140,19 @@ Re-verified 2026-09-04: every file named below still exists, and
   `ladder_supervise.sh` + `ladder_watchdog.sh` + `ch5_watchdog.sh` are three
   distinct live tools. `configs/showdown_sp_actpred12m.yaml.c4prereg` is a
   deliberate unlaunchable pre-reg record, invisible to `*.yaml` globs.
+- **Our PPO vs a library (Stable-Baselines3) — AUDITED 2026-09-08, verdict
+  NEITHER.** Do not re-propose a migration:
+  `docs/research_reports/PPO_VS_SB3_UPDATE_AUDIT.md`, indexed in IDEAS §3. The
+  one update-path optimization we lack (`target_kl`) is off by default in SB3
+  too and never fires at our measured KL (p50 0.00086 / max 0.00228 vs a
+  1.5·target_kl trigger); the local SB3 clone is Wang's v2.0.0 fork whose entire
+  diff from the tag is timers and logging with `common/buffers.py` untouched;
+  `sb3-contrib` (MaskablePPO) is not cloned, so SB3 cannot even satisfy the
+  action-masking contract. Migration would re-plumb masking, the both-seat
+  harvest, per-episode GAE, the pool, the resume toolchain and every locked
+  metric name. **Only the migration is closed** — the PORTABLE wins are live as
+  IDEAS **2.9** (4.3–6.0% of `update_sec`, bit-identical) and the §5 shared-trunk
+  pre-reg (19.5% of the epoch loop); both are worth most after JOURNEY 7.5.
 - **`play_vs_agent.py` stays** — flagged dead by the 2026-08-25 audit, then
   immediately became the way to play the ladder policy by hand (`--arm`).
 - The 2026-08-25 same-day fixes and the 2026-08-28/29 executed items are
