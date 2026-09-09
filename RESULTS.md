@@ -1409,3 +1409,244 @@ under `results/ch5_100m/bcclone/`; wave provenance
 `configs/showdown_sp_100m.yaml` (training + read, ratified) and
 `configs/eval/ch5_100m_offfp.yaml` (runner-facing spec). Session narrative:
 SESSION_LOGS 2026-09-01 → 2026-09-04.
+
+## 19. Addendum, 2026-09-09 — gen-4 first run (JOURNEY step 3 → 4 → 5): Wang's recipe on our frozen encoder — **M-YES and S5-MATCHED**; **this run credits nothing**
+
+Written at readout, immediately after `scripts/gen4_wang50m_postfleet.sh`
+finished the frozen schedule. Pre-reg `configs/gen4_wang50m.yaml` (+ the
+`.prereg.yaml` sidecar, byte-pinned by `tests/test_gen4_prereg.py`); the 2-Opus
+review was APPLIED before launch (16 MUST / 33 SHOULD across both reviews,
+`results/design_gen4_wang50m/`). The run started on a CHAT AUTHORIZATION at the
+header's RECOMMENDED DEFAULTS, not on a formal ratification: RW-2 (our trunk
+widths), RW-3 (an update is TOTAL rows ≈ 39,936) and RW-6 (minibatch tail kept,
+40 slices) were baked in at launch; **RW-1** (the 0.756 floor, one-sided) and
+**RW-4** (FP@500 on all three lanes, chunked) were ruled in chat 2026-09-06
+11:30Z; RW-5 is moot because the maintainer waived CLAUDE.md rule 4 for this
+run only ("you can start it yourself"). All of it is recorded in the sidecar's
+`ratified_decisions`. The lever question is not asked here: **this run credits
+nothing**, and "matched" is the only strength word it is permitted.
+
+**What ran.** Wang's Table A.3 / §3.1.4 recipe — lr 5.8884e-5 (10^-4.23) on his
+lr0/(8x+1)^1.5 power schedule, 7 epochs, γ 0.9999, λ_GAE 0.754, clip 0.0829,
+value clip 0.0184, entropy 0.0588, value 0.4375, grad-norm 0.543, batch 1,024 —
+on OUR frozen gen-4 encoder (layout v0.1, OBS_DIM 1,448 / priv 703, corpus sha
+`b72dcbc7…`) and OUR entity trunk (actor 674,763 / critic 543,553 params).
+Three lanes, seeds 200 / 208 / 216, **50,000,000 seat-1 steps each with both
+seats harvested**, launched 2026-09-06T03:40:18Z at sha `d51fa6f`, FLEET DONE
+2026-09-09T01:29:03Z — **≈ 69.8 h wall**, realized updates **2,504 per lane**
+(exactly the header's `floor(5e7 / 19,968)`).
+
+### The primary read — vs `SimpleHeuristicsPlayer`, locked protocol, n=3000/lane
+
+Final `ckpt_050000000.pt`, 3,000 battles per lane, deterministic policy, ties as
+non-wins, equal-weight mean over the three lanes at equal n.
+
+| lane | vs SH | ties | return_mean |
+|---|---|---|---|
+| s200 | 0.8873 | 0.0053 | 0.7800 |
+| s208 | 0.8720 | 0.0087 | 0.7527 |
+| s216 | 0.8770 | 0.0087 | 0.7627 |
+| **pooled** | **0.8788** | | |
+
+`n_eff` = 3000 / 3000 / 3000; `mask_desyncs` = 0 on all three;
+**`eval/win_rate` == `wins_from_returns` exactly on every lane** (the
+reward-sign guard — nothing is shaped). **se provenance:** binomial on 9,000
+battles **0.00344**; seed-clustered over k=3 (sd 0.00782) **0.00452**; the band
+reads the **LARGER, 0.00452**. All three lanes evaluated from `seed_start` 100,
+so the eval battle seeds are SHARED across lanes and the across-lane spread is
+training-seed variance rather than eval noise — another reason the clustered se
+is the honest one. k = 3, so a branch fires. **ONE vs-SH RUNG IS WORTH ±0.02**:
+read the curve's shape, never one rung.
+
+### The branch calls — both read off the header, neither decided after
+
+- **Step-3 MILESTONE (≥ 0.60): M-YES.** The gen-4 pipeline learns. 0.8788 is
+  0.279 above the milestone.
+- **Step-5 read (≥ 0.756, ONE-SIDED, no ceiling): S5-MATCHED**, by +0.1228 =
+  27.2× the larger printed se. In the header's words, this **matched Wang's
+  NETWORK-ALONE 0.786** (one-sided, at the ruled floor 0.756 = 0.786 − one se
+  at his n = 200; his weaker number) — **at 2/3 of his per-seat dose (D-DOSE),
+  with our PPO not SB3 (D-IMPL), our entity trunk not his 256/896 MLP (D-NET),
+  our 10-way positional action space not his 494 masked identities (D-ACT), our
+  layout v0.1 not his Tables A.1/A.2 (D-ENC), lockstep sync collection not his
+  per-worker buffers (D-COLL), our SH version and poke-env pin (D-SH), and ties
+  as non-wins where his tie handling is unknown (D-TIE)** — and Figure 4.1
+  digitizes to ≈ 0.836 endpoint / ≈ 0.849 peak near 120M, unreconciled with
+  Table 4.1's 0.786, so his own figure reads higher than the number we matched
+  against.
+- **Wang's number, precisely.** 0.786 is Table 4.1's NETWORK-ALONE cell;
+  MCTS + NN is 0.908. n = 200 is §3.1.2's validation metric while every Table
+  4.1 digit fits n = 1000 (se 0.0130, floor 0.773). His curve crossed 0.786 at
+  ≈ 30% of our per-seat dose — so dose is not a story his curve supports in
+  either direction.
+- The point estimate 0.8788 sits above his 0.786 cell **and above Figure 4.1's
+  ≈ 0.836 endpoint**, near its ≈ 0.849 peak. That comparison is NOT like-for-like
+  on any of the seven deviations above, his n is unstated, and **no claim of
+  exceeding or reproducing his result is made or implied**. In the grader's own
+  words, printed with the verdict: *matched under this pre-reg is NOT a
+  reproduction of his curve.*
+
+### S-SHAPE — 10 rungs × 3 lanes × n=1000, pooled the primary's way
+
+| step | s200 | s208 | s216 | pooled |
+|---|---|---|---|---|
+| 5M | 0.822 | 0.815 | 0.846 | 0.8277 |
+| 10M | 0.855 | 0.827 | 0.816 | 0.8327 |
+| 15M | 0.848 | 0.862 | 0.842 | 0.8507 |
+| 20M | 0.852 | 0.856 | 0.867 | 0.8583 |
+| 25M | 0.880 | 0.887 | 0.887 | 0.8847 |
+| 30M | 0.873 | 0.867 | 0.865 | 0.8683 |
+| 35M | 0.882 | 0.870 | 0.876 | 0.8760 |
+| 40M | 0.880 | 0.876 | 0.875 | 0.8770 |
+| 45M | 0.882 | 0.895 | 0.879 | 0.8853 |
+| 50M | 0.876 | 0.890 | 0.874 | 0.8800 |
+
+The read is the CURVE: it **climbs through 25M** (+0.0523 pooled, 0.8277 →
+0.8800 end to end), and from 25M on the six rungs span 0.8683–0.8853 — a 0.017
+spread INSIDE one rung's ±0.02, i.e. **not distinguishable from flat at this n
+and k**. No TOST was run, so "flat" and "plateau" are barred as descriptions.
+**MANDATORY: sub-50M rungs sit on the 50M power anneal and are not comparable
+to a finished run at the same step.** Two cross-checks worth keeping: the 50M
+rung pooled 0.8800 (n=1000/lane) against the primary's 0.8788 (n=3000/lane) on
+the same checkpoints is 0.0012 apart; within s200 alone the same checkpoint
+reads 0.876 and 0.8873 — 0.011 apart, a live demonstration of the ±0.02 rule.
+
+### Anchors (descriptive, never verdict inputs; per lane and pooled)
+
+- **L1 most-damage-typed h2h, 500/lane**: 0.910 / 0.890 / 0.906, pooled
+  **0.902**. Sanity row: MDT vs SH **0.400** (120-173-7, n=300).
+- **L2 Foul Play @20 ms h2h, 250/lane, seat form SAMPLES**: 75-174-1 /
+  74-176-0 / 71-177-2, pooled **0.293** (220 W of 750; 3 ties as non-wins;
+  1.58–1.61 s/battle). **Budget named: `--search-time-ms 20`.** The two
+  standing disclosures travel forever: the equivalence test is weakly powered,
+  and the point estimate flatters us. The pinned gen-4 set file drifts ±1–2
+  levels on 40 species. Sanity row for scale: FP@20 vs SH **226-24-0** (n=250,
+  bot-vs-bot) — FP@20 is a far stronger opponent than the verdict axis, which
+  is why 0.8788 vs SH and 0.293 vs FP@20 are consistent, not contradictory.
+- **L3 Foul Play @500 ms h2h, 5 × 50/lane** (tally = SUM of chunk records,
+  never a subtraction): **77-172-1 / 65-185-0 / 56-194-0, pooled 0.2640** (198 W of 750; 1 tie as a
+  non-win; 34.8-40.4 s/battle, ~37 s mean = **24x FP@20's 1.58 s**, so the 25x
+  search budget shows up almost exactly in wall cost - 7.8 h for this leg alone). Same three disclosures. Both budgets are
+  quoted, and `q38_pin.json` **PINS 20 ms**: |0.2933 − 0.2640| = 0.0293 against
+  2·se_diff 0.0463 (binomial, pooled; the seed-clustered variant gives 0.0496 and
+  the same verdict) — **not distinguishable at this n and k**, so the cheap rung
+  carries the same information at 1/24th the wall clock. **The pin governs LATER
+  runs only**, and "not distinguishable" is not "the same": the equivalence test is
+  weakly powered, and FP@500's across-lane sd (0.0421) is 5× FP@20's (0.0083), so
+  the dearer leg is also the noisier instrument. Lane ordering agrees across both
+  budgets (s200 highest on each), which is the coherence check that matters here.
+- **L4 BC-clone h2h, 500/lane, teacher FP@20**: 0.986 / 0.988 / 0.982, pooled **0.9853**. The clone
+  (`runs/bc_gen4_fp20_soft_s0`, 168,676 rows / 7,200 battles, val agreement
+  0.433) scores **0.464 vs SH** at n=1000 (ties 0.022). A clone number is never
+  style evidence, and the clone is an anchor, never training data.
+- **L5** is the primary axis used descriptively (per-lane values and tie rates
+  above). Random / MaxBasePower may print as sanity rows; they are not legs.
+
+### Gates and provenance
+
+Every gate PASS on all three lanes, read by `scripts/gen4_wang50m_gates.py`
+against `history_merged.csv` (resumes SPLIT the wandb history; the merged file
+is the only correct input, and the reader marks resume-gap windows
+non-conforming).
+
+- **R0-1** first-250k entropy 1.757–1.821 (band 1.3–2.1). **R0-2** `clip_frac`
+  == 0 on 0 / 2503 updates. **R0-3** harvest ratio 0.901–1.059 (band 0.7–1.3),
+  `version_lag_max` 1 (≤ 2), dropped 0.00%, discarded 0, empty 0.00%.
+  **R0-4** first `eval/win_rate` 0.310 / 0.320 / 0.470 at 250k. **R0-6** zero
+  non-finite `loss/*`. **H1** 0 / 100 rung buckets breached. **K6** entropy min
+  0.740 / 0.747 / 0.748 against a 0.15 floor. **T2** `clip_frac` max
+  0.175 / 0.177 / 0.189 (STOP at ≥ 0.90 ×3), last 0.019–0.020. **T3**
+  `approx_kl` max 0.0022–0.0023 (STOP at ≥ 0.5 ×3).
+- **R0-5 PASS, but its post-hoc read is vacuous and is disclosed as such:** the
+  reader measures the first rung against the LAST launch line, which after the
+  11:32Z rollover is a RESUME, so it prints negative minutes (−420 / −431 /
+  −407). R0-5 was satisfied at attempt-2 launch, not by this read.
+- **D-A anneal liveness, the (u−1) form** (x = ((u−1)·19,968)/5e7;
+  lr == 5.8884e-5·(8x+1)^−1.5): **EXACT to 1e-12 relative at 5M, 25M and 50M on
+  all three lanes**, actor and critic identical — 5M u=250 x=0.099441
+  2.447429e-05; 25M u=1252 x=0.499599 5.271813e-06; 50M u=2504 x=0.999598
+  2.182058e-06. Realized minimum lr0/26.99 at the last update.
+- **D-B throughput, realized whole-lane dStep/dWall over conforming ≥30-min
+  windows:** s200 median 202 (133 of 134 windows conforming), s208 198 (134 of
+  136), s216 197 (134 of 136); whole post-1M 202 / 200 / 199. **The header's
+  expectation is 203, not 212** (0.7 × 290, band [173, 234] provisional) — quote
+  203. Non-conforming windows are the resume gaps > 300 s. The 183–185 minima
+  are a single 2026-09-07 window of foreground browser load on the same laptop;
+  rates returned to 204–211 once the box went idle. Progress is a RATE, never
+  an ETA.
+- **D-C** 200 in-loop evals per lane at n=100 (se 0.05): RECORDED, **NOT
+  ACTIONABLE**; last five 0.86–0.94 per lane, consistent with the finals.
+  **D-D** `selfplay/winrate_latest` 0.500 / 0.500 / 0.499 — ≈ 0.5 **by
+  construction** at `pool_size: 1`, and there is no forgetting detector on this
+  arm. **D-E/D-F** box-level records only; disk ≥ 158 GiB throughout.
+- **Stalls: 0.** Deaths and resumes: **s216 ×3, s200 ×1, s208 ×1** (history
+  segments 2 / 2 / 4). Each resume splits the history and loses at most one
+  rollout of open seat-2 rows.
+- **Both-seat harvest:** ≈ 100M union rows per lane from 50M seat-1 steps
+  (2/3 of Wang's 150M learner steps); seat-2 rows carry the pool member's own
+  log-prob; `version_lag_max` never exceeded 1.
+- **The post-fleet schedule was launched by hand at 01:31:58Z, not by the
+  auto-chain**, after the auto-chain was found to deadlock on itself: the
+  watcher shell's own command line contains the literal strings
+  `python -m rl.train` and `gen4_wang50m`, so both its own guard and the
+  schedule's step-0 refusal check (`pgrep -f "rl.train.*gen4_wang50m"`) matched
+  THE WATCHER. Launch followed verifying `pgrep -f "bin/python -m rl.train"`
+  == 0 and all three `ckpt_050000000.pt` present at 14,318,259 bytes. **A
+  pgrep guard must anchor on the interpreter path, never on a bare module name
+  a watcher may also mention.**
+
+### What failed — part of the result
+
+- **Attempt 1 was OPS-KILLED.** Launched 2026-09-06T03:08:42Z at sha `8858393`,
+  killed by the agent at 03:21:13Z: gen-4 pool-seat mask desyncs — U-turn /
+  Baton Pass / choice-lock traffic moves the request under the pool seat —
+  tripped the gen-1 recovery cap. Fixed in `e37a7fc` + `d51fa6f` (the pool
+  player re-decides once on the moved request; phantom seat-2 steps get a
+  default order, so no phantom harvest rows), verified by a 60k-step smoke with
+  zero desyncs. Attempt 1 is archived under `runs/aborted_20260906_0308Z/`.
+  **Attempt 2 carried zero surviving desyncs across all three lanes to 50M.**
+- **Incident 2, 2026-09-06 10:55Z:** lane s216 died on the in-loop eval's
+  all-or-nothing outcome guard (one capped-out episode). Fixed `07f587d` (the
+  minority is scored as non-wins and counted in `eval/no_outcome`); all lanes
+  were rolled onto the fix by 11:32Z via `scripts/gen4_wang50m_watch.sh`.
+- **R0-k2 was green with TWO documented live-server tests DESELECTED** (860
+  passed; `logs/gen4_launch_seq.log`). The deselects are the disclosure.
+- Both gen-4 guard failures share a shape worth keeping: **gen-4 traffic breaks
+  gen-1 guards, and a 3-update smoke cannot show it.**
+
+### Disclosures — all travel with any quote
+
+- **N-TIMER (owed since 2026-08-31, discharged here):** every connecting seat
+  sends `/timer on`. Without a timer requester Showdown never ends an abandoned
+  room, the queue slot never returns, and the lane wedges forever — the
+  orphaned-room deadlock. It is wire-visible, maintainer-ruled, and part of the
+  instrument behind every number in this project, gen 1 and gen 4 alike.
+- **D-DOSE:** 50M per seat against Wang's ≈ 75M — 2/3. Named first on any
+  shortfall reading, and named here even though the read matched.
+- **vs-SH numbers are NOT ladder numbers.** No projection in either direction;
+  the ~40% GXE conversion is retired. **The gen-4 ladder is BANKED, NOT RUN**
+  (ruled 2026-09-06): the chapter closes on this offline comparison.
+- Ties are non-wins throughout; the tie rate is printed beside every number.
+- Anchors are descriptive and **never verdict inputs**; the FP budget is named
+  in every FP quote.
+
+### What this does NOT establish
+
+- **No lever is credited.** No credit line is applied anywhere in this readout;
+  the run is a baseline, and the pooled delta / 2·se_diff rule has no argument
+  here. The next gen-4 work is a pre-registered lever against this baseline, or
+  nothing.
+- It does not establish that our recipe reproduces Wang's, only that our
+  pipeline clears the ruled floor derived from his weaker cell, under seven
+  named deviations at 2/3 of his per-seat dose.
+- It says nothing about ladder strength at gen 4, and nothing about gen 1.
+- **The gen-4 vs-SH scale is NOT the gen-1 vs-SH scale, and the two tables may
+  not be set side by side.** `SimpleHeuristicsPlayer` is a generic heuristic; its
+  competence relative to a learned policy differs by generation, so 0.8788 here
+  is not "better than" the gen-1 table's 0.7959. What IS internally coherent is
+  the ordering within gen 4: FP@20 scores 0.904 vs SH, we score 0.8788 vs SH, and
+  we lose to FP@20 head-to-head at 0.293 — a consistent ranking, and the reason a
+  strong vs-SH number is not evidence of strength against a searching opponent.
+- `pool_size: 1` is Wang-match fidelity only. **League play stays on in gen 1
+  and is not ablated** (ruled 2026-09-06), so this run is not evidence about
+  the pool either way.

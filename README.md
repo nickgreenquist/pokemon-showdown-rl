@@ -248,6 +248,36 @@ term always wins, and three separate arms cleared +0.025 on the point estimate
 and still did not credit. Full table with every disclosure, and the arms that
 failed, in [`RESULTS.md` §15](RESULTS.md).
 
+### Gen 4 — first run (a separate table; never a row in the gen-1 ladder above)
+
+`gen4randombattle`, JOURNEY step 3 → 5. Wang's recipe (Table A.3) on our own
+frozen gen-4 encoder and entity trunk, 50M seat-1 steps per lane × 3 lanes,
+both seats harvested. Same locked protocol as the gen-1 table: final
+checkpoint, deterministic, ties as non-wins, 3000 battles/lane pooled.
+
+| | vs SH | anchors (descriptive, never verdict inputs) |
+|---|---|---|
+| **gen 4 — Wang's recipe on our encoder (50M/seat × 3), greedy** | **0.8788** | MDT h2h 0.902 · FP@20 h2h 0.293 · FP@500 h2h 0.264 · clone(FP@20) h2h 0.985 |
+| *reference:* most-damage-typed baseline vs SH | 0.400 | |
+| *reference:* behaviour clone of Foul Play@20 vs SH | 0.464 | |
+| *reference:* Foul Play @20 ms vs SH | 0.904 | bot-vs-bot, n=250 |
+| *reference:* Foul Play @500 ms vs SH | 0.912 | bot-vs-bot, n=250 |
+
+**This run credits nothing.** It is a baseline, not a lever: no credit line is
+applied to any number in it. The step-3 milestone (≥ 0.60) reads **M-YES** and
+the step-5 exit (≥ 0.756, one-sided, the ruled floor from Wang's weaker cell)
+reads **S5-MATCHED** at +0.1228 = 27× the larger printed se — "matched" is the
+only strength word this run is permitted, and it carries seven named deviations
+(dose 2/3, our PPO not SB3, our trunk, our action space, our encoder layout,
+lockstep collection, ties as non-wins). Wang's 0.786 is his Table 4.1
+NETWORK-ALONE cell (MCTS + NN is 0.908) while his Figure 4.1 digitizes to
+≈ 0.836/0.849 — his own figure reads higher than the number we matched against.
+**The two FP disclosures travel with every FP quote, forever:** the equivalence
+test is weakly powered, and the point estimate flatters us; the budget is named
+in every quote. **vs-SH is not a ladder number** — the gen-4 ladder is banked
+and unrun. Full account with every disclosure: [`RESULTS.md` §19](RESULTS.md);
+provenance: [`readouts/GEN4_WANG50M_READOUT.md`](readouts/GEN4_WANG50M_READOUT.md).
+
 ## What the project actually learned
 
 The negative results are the durable part.
