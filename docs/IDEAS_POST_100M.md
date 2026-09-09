@@ -189,7 +189,9 @@ does not pay in Pokémon". The external field says the opposite at real budgets:
 Wang's own headline (rank 8, Elo 1693, GXE 79.5) is his MCTS-at-inference
 agent against the 0.786 network-alone we are matching in step 5, and PokéChamp
 is search-based. JOURNEY 11.5 is the test; the honest framing there is
-budget-limited, not mechanism-bounded.
+budget-limited, not mechanism-bounded. **How budget-limited, quantified (2026-09-09): 20 ms is
+0.013% of the ladder's ~150 s per turn — see §8.1, which re-runs this curve at real
+budgets.**
 
 **2.6 most-damage-typed anchor — BUILT 2026-09-05 (`rl/envs/most_damage_typed.py`;
 JOURNEY's own item).** The only anchor whose strength doesn't drift across
@@ -886,6 +888,64 @@ After FLEET DONE + frozen schedule + grade are recorded:
 - docs/CLEANUP.md shelf unshelves at the readout per its own terms (audit items
   A2–A5); B3 (decide()-helper refactor) became legal when R2 landed but
   waits until the frozen eval paths are done being load-bearing.
+
+## 8. Post-JOURNEY — the strength chapter (JOURNEY 14; NOT in the tally above)
+
+These rows are **outside** the §2–§6 tally on purpose: they belong to a chapter that
+starts after JOURNEY step 12 wraps the story, they are not part of the novelty claim,
+and no number from them may be quoted beside a pure-lane number. Added 2026-09-09 on the
+maintainer's ask ("recheck how much search over our own self-play value function gives
+us... hoping it can give a big boost without needing to distill or imitate FP").
+
+**8.1 The unspent inference budget — the cheapest real read on this list.** The ladder
+allows **~150 s per turn** (the tight path; a challenge gets 300) and we play GREEDY.
+Every point on the search-depreciation curve in **2.5** is depth-1 EXPECTATION search at
+**20 ms** = **0.013% of the available budget**, while Foul Play beats us using 500 ms =
+0.33% of it. So "search stops paying" is currently a statement about one thousandth of
+the budget. **Read:** re-run the depreciation curve at 0.5 s, 5 s and 50 s per decision
+on the engine (7.5 makes state-copy ordinary) against the same checkpoints, and report
+decisions/sec beside every point. No training. This is the measurement that decides
+whether the strength chapter is worth opening at all, and it can run on an idle box.
+
+**8.2 A critic trained AS AN EVALUATOR (the actual bottleneck).** Search amplifies its
+leaf evaluator, and D22 measures ours as the weakest component we have (critic context
+srank99 **9–13 of 384** at 37.5–50M; dormancy 27 → 84–88%). PPO's value loss builds a
+baseline for advantage estimation ON THE POLICY'S OWN STATE DISTRIBUTION; search needs
+accurate values on HYPOTHETICAL states it has never played. Nothing here has ever trained
+for the second objective. Candidates, cheapest first: a value head trained on
+self-play returns from RESAMPLED states rather than visited ones; bootstrapped n-step
+targets from the search itself (its root value is a better target than the raw return);
+and the plasticity levers in **4.3** / **4.7**, which are the same fight seen from the
+other side — a rank-9 representation cannot evaluate positions it has not seen. Pairs
+with **8.1**: if a real budget still does not pay, this is why, and 8.1 alone cannot
+distinguish "search does not help here" from "our evaluator is not good enough to search
+with".
+
+**8.3 Belief-sampled search (the imperfect-information leg 11.5 does not ask).** Randbats
+hides sets, EVs and unrevealed moves; JOURNEY 11.5's depth question is perfect-info. FP
+approximates the real thing by searching a sampled world, and our gen-4 encoder already
+carries an exact set prior. Sample opponent sets from the prior, search each, aggregate at
+the root. The h2h gap against FP is more plausibly THIS than depth. Cost scales with the
+sample count, so it is a dial, not a cliff.
+
+**8.4 FP distillation — the LAST rung, and a CHARTER CHANGE.** Tapes, soft targets,
+DAgger-style relabelling of our own states. **Excluded from the pure lane by CLAUDE.md
+("expert-data bootstrapping into the learner is excluded") and it needs its own maintainer
+ruling before one row of it enters a learner.** Do not reach for it until 8.1 + 8.2 have
+been measured and found insufficient. Three things already known if it ever runs: (i) FP
+decisions cost ~250x a self-play decision — FP@500 emits ~0.8 decisions/s against a lane's
+~200 steps/s appetite, so a live FP opponent can feed **0.4% of one lane** and any
+"league at X% vs FP" prices out at ~12 concurrent FP processes for 5%; the only viable
+shape is pay-once-per-decision, reuse-many-times, i.e. TAPES, never opponents. (ii) Q38
+(2026-09-09) found FP@20 and FP@500 **not distinguishable as opponents** (0.2933 vs
+0.2640, |Δ| 0.029 against 2·se_diff 0.046) at **24x** the wall clock, so FP@20 is where
+volume lives and FP@500 must justify itself on VALUE targets or not at all. (iii) Our
+existing clone reproduces almost none of its teacher — **0.464 vs SH against a teacher at
+0.904**, val agreement 0.433 — so a "league of FP clones" proxies nothing until the
+distillation itself improves. Two free door-openers meanwhile: **record the search's
+per-action statistics, not the chosen move**, in any FP tape collected from here on (the
+search already computes them, and soft targets are the one distillation objective that
+survived our own testing), and keep a state-copy/rollout surface in the collector.
 
 ## 7. Corrections to the source doc (so nobody re-imports them)
 

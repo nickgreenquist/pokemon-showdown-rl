@@ -123,6 +123,9 @@ Decide before launching whether the laddered object is greedy or searched. Depth
 
 Why here and not earlier: if search substitutes for a deficient value head, the honest test is against our best critic, after the special sauce and the massive train. A large depth gain here means search depth genuinely pays even with a good value function. A small one means full MCTS is not worth building.
 
+**Step 14 is the wider version of this question** (real budgets, a critic trained as an
+evaluator, belief sampling); 11.5 stays the narrow depth comparison inside the arc.
+
 **This gates the gen9 search decision.** It also feeds step 12 directly — "search's contribution declines as the policy improves" is a finding, and it is one only a multi-checkpoint study can make.
 
 Step 7.5 also changes what this costs: the engine clones a battle in 384 bytes and has `-Dchance`/`-Dcalc` builds for exact chance enumeration (plan §8.4), so depth-2 stops being an expensive bespoke harness. Today's evidence points at a null — search@20 read 0.381 against greedy 0.474 on the 50M batch lane, and the per-lane deltas were monotone in lane weakness — so the honest framing is a cheap confirmation, not a hoped-for lever.
@@ -142,6 +145,55 @@ Where the comparators are. Terastallization genuinely expands the action space r
 If 11.5 says depth pays, build MCTS here — on poke-engine, not on a Showdown fork. pmariglia's Rust engine is purpose-built for AI use, well-vetted in gen9, and already does root-parallelized MCTS with decoupled UCT. Building search in gen4 would have meant forking Showdown for >getstate/>load plus gen4-specific constrained team regeneration — infrastructure that does not carry forward. Gen9 is where the effort compounds.
 
 If we only ever get two generations, make them gen1 and gen9 — trade the clean transfer claim for relevance.
+
+### 14. OPTIONAL, AND AFTER THE STORY IS WRAPPED — the strength chapter: search over OUR OWN value function
+**Maintainer, 2026-09-09: "i want to see how far self play can go on the ladder, but i
+also in the future might want to actually get something REALLY STRONG."** Those are two
+goals, and this chapter exists so they never contaminate each other. Steps 1–12 are the
+novelty and they END at 12. Nothing here is part of that claim, and no number from here
+may be quoted beside a pure-lane number.
+
+**The thesis, from our own measurements.** Foul Play does ZERO learning — expectiminimax
+with a hand-written evaluation — and at 20 ms it scores 0.904 vs SH while our 50M gen-4
+policy scores 0.8788 and loses to it head-to-head at 0.293. Wang's network alone is 0.786
+and his MCTS+network is 0.908. A search wrapper is worth more than everything our training
+pipeline achieved. **Search amplifies its leaf evaluator**, which is why our own depth-1
+attempts disappointed: we substituted the component D22 measures as the weakest thing we
+have (critic context srank99 collapsing to 9–13 of 384 by 37.5–50M). So this chapter's
+target is the VALUE FUNCTION, not the depth.
+
+**Three things step 11.5 does not ask, and this chapter does.**
+1. **The unspent budget.** The ladder gives ~150 s per turn (the tight path) and we play
+   GREEDY. Every point on the search-depreciation curve (IDEAS 2.5) is depth-1 at **20 ms**
+   — 0.013% of the budget available — while FP@500 beats us using 0.33% of it. The curve
+   licenses "depth-1 at 20 ms stops paying as the policy improves"; it says nothing about
+   what a real budget buys.
+2. **A critic trained AS AN EVALUATOR.** PPO's value loss produces a baseline for advantage
+   estimation on states the policy actually visits. Search needs accurate values on
+   HYPOTHETICAL states it has never played. Those are different objectives, and nothing in
+   this project has ever trained for the second one.
+3. **Belief-sampled search.** Randbats is imperfect information and 11.5's depth framing is
+   perfect-info. FP approximates the real thing by searching a sampled world; we already
+   carry an exact set prior in the gen-4 encoder. Sample opponent sets, search each,
+   aggregate — that is the shape, and it is what the h2h gap against FP most likely is.
+
+**Purity: most of this chapter is pure-lane-legal, which is the point.** Search over our OWN
+policy and our OWN value function uses no expert data. FP distillation — tapes, soft targets,
+DAgger-style relabelling of our own states — is the LAST rung, it is a charter change, and it
+needs its own maintainer ruling before a single row of it enters a learner. Do not reach for
+it until search over our own evaluator has been measured and found insufficient.
+
+**Precondition: step 7.5.** Real search needs to copy a state and roll it forward thousands
+of times. You cannot fork a Showdown battle room, which is very likely why our search work
+never got past one ply; pkmn/engine's 384-byte state makes it ordinary. Keep a
+state-copy/rollout surface in the collector even before anything uses it.
+
+**Exit condition: one comparison at a REAL budget, on the strongest gen-1 object we have.**
+Search-with-our-evaluator vs the same checkpoint greedy, pooled under the standing credit
+line, with decisions/sec reported for both arms and the per-turn budget named in every
+quote. A credit means the strength project is real and gen9 gets MCTS (step 13). A null at a
+real budget — not at 20 ms — is what would finally close the search question, and it is also
+the only honest trigger for considering the FP rung.
 
 ---
 
