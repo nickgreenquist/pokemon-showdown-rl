@@ -73,6 +73,24 @@
 # words "equivalent", "identical" and "no difference" are BARRED on every
 # branch (see BARRED LANGUAGE). No TOST is run.
 #
+# THE PREMISE THIS PRE-REG HAS TO ANSWER, STATED AS THE MAINTAINER PUT IT
+# (2026-09-09): "at k=3, sigma_seed ~= 0.0617 gives se_diff ~= 0.050, so the
+# specified |delta| < 0.025 is HALF AN SE and would return 'within band'
+# whether the collector is faithful or quietly broken at the 0.05 level."
+# THE ARITHMETIC IS RIGHT AND THE CONSTANT IS THE WRONG ONE. 0.0617 is
+# measured at the 50M DOSE, off Foul Play @20, n=1000/lane (RESULTS.md:1177).
+# A-1 reads at 12M. Seeds diverge with dose, so a 50M constant over-states the
+# spread of a 12M rung — and the direction of that error is the one that makes
+# a band look useless when it is not.
+# (One correction to the quoted line, in the maintainer's favour: at
+# sigma 0.0617 the band is 0.50 se_diff, not 0.25 — 0.025 / 0.05038. An
+# earlier draft of this header made the 0.25 error by dividing by 2*se_diff.)
+# What the measured 12M numbers say is below; the conclusion is that the band
+# is ~2 se_diff rather than half of one, and it therefore stands. If the
+# maintainer prefers the conservative all-fleet 0.03411 the band is 0.90
+# se_diff and A-1 IS underpowered — that choice is RW-5's, and both columns
+# are tabulated so it can be made from numbers rather than from a memory.
+#
 # THE SIGMA THIS TURNS ON. docs/IDEAS_POST_100M.md §1 carries
 # sigma_seed ~= 0.0617 at k=3. That number is measured AT THE 50M DOSE
 # (RESULTS.md:1177, the 50M fleet off Foul Play @20, n=1000/lane, sd of
@@ -249,6 +267,33 @@
 # IRREVERSIBLE INSTRUMENT SWITCH IS A JUDGEMENT CALL, NOT AN ARITHMETIC ONE
 # — RW-4. The drift audit below is evidence for it, never a substitute for
 # the ruling.
+#
+# THE FOUR FLAGGED CANDIDATES: 0 OF 4 QUALIFY, AND NOT FOR THE REASON
+# EXPECTED [2026-09-09]. The maintainer flagged
+# `<d25-backup>/_runs_sacred/showdown_sp_recipe12m_s6{2,3,4,5}` as possible
+# historical reuse, noting they carry "NO meta.yaml, so encoder identity must
+# be established from the state-dict shapes". Two corrections, both checkable
+# by `scripts/engine_a1_baseline_audit.py`:
+#   (i) All four DO carry meta.yaml with the full stamp (obs_dim 828, v2,
+#       set_prior, recharge_fix, ids) and git_dirty FALSE — cleaner provenance
+#       than the async fleet, which is git_dirty true. They are also still
+#       live in the main tree's runs/, not only in the backup. Verified
+#       against the checkpoints themselves, not the stamp: all four sit at
+#       step exactly 12,000,000, and all four have banked locked-protocol
+#       n=3000 vs-SH finals in results/d26/.
+#   (ii) They are nonetheless DISQUALIFIED, on a ground the encoder question
+#       never reaches: they are a DIFFERENT RECIPE. rollout_steps 128 against
+#       A-1's 3840 and minibatches 4 against 120 — 1,024 steps per update
+#       where A-1 has 30,720, a 30x difference in the update budget — plus
+#       lr_anneal_steps 12,000,000 (fully decayed at the read, where A-1 still
+#       holds ~76% of base LR) and push_every_updates 150 against 5. They also
+#       run the SYNC vector loop, not the async path JOURNEY names. An engine
+#       arm compared against these would measure the distance between two
+#       RECIPES, not between two collectors.
+# The audit checks 10 candidates field by field; 6 qualify — the three async
+# lanes and the three sync lanes at the same rung — and the sync three are a
+# different Node path, flagged as such. The historical-reuse answer is
+# unchanged by the new candidates.
 #
 # THE BASELINE IS FREE, AND ONLY AT k=3. Every run dir in runs/ was swept
 # for collector.mode async: 10 exist, and exactly 3 carry a 12M rung.
