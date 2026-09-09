@@ -11083,3 +11083,127 @@ line numbers are not — grep the date, then read that region):
   rounds cannot bring A-1 inside |Δ| < 0.025 we KEEP the server path and bank the parity
   harness as tests. Renting stays optional and is a workflow fix (fleets off the laptop,
   the Mac free for evals), never the noise-floor fix.
+  (7-corr, 2026-09-07 ~01:40Z) **The CPU split in (7) is corrected.** That
+  measurement was a single `ps` snapshot and `ps` is PHASE-DEPENDENT here: during
+  collection it reads python 204% / node 306%, during the PPO update python 297% /
+  node 28%. Re-measured properly from cumulative CPU-time deltas over 900 s:
+  **python 0.85 cores/lane, node 1.08, fleet 1.93 cores/lane, NODE SHARE 56%**
+  (was quoted as 1.7 cores/lane and 60%). Derived figures move with it: ~5
+  cores/lane at gen-1 rates, so k=8 gen-1 ≈ **~40 cores** (was 32–36) and k=8
+  gen-4 ≈ ~16. The P0 case is unaffected — 56% is still the majority and the
+  4.2× projection was never mine. THROUGHPUT_SPEC and JOURNEY 7.5 updated; the
+  method note (never size a box off one snapshot) is now in the spec.
+  Also read from the merged history while checking a rate dip: `time/update_sec`
+  +8.2% and `time/eval_sec` +8.6% between <3M and >13M while
+  `rollout/episode_length` FELL 5.8% (36.9 → 34.8). Update cost is invariant to
+  training progress at fixed batch and net, so a uniform rise across collect /
+  update / eval is external CPU contention or thermal throttling on the box (the
+  >13M window contains a Chrome-active period), **not** workload drift — worth
+  re-reading once the box has been quiet for an hour.
+
+- 2026-09-07 (midday, agent; babysitting) — **THE 25M IN-RUN READ IS DISCHARGED
+  AND CLEAN ON ALL THREE LANES; the parallel engine-port session finished its
+  whole six-gate scope overnight.** (1) **25M read** (12:46Z, on merged
+  histories — s200 657,488 rows / 2 segments, s208 637,094 / 2, s216 628,602 /
+  4): every gate PASS on every lane. R0-2, R0-3, R0-6, H1, K6, T2, T3 all PASS;
+  the three `SUMMARY RECORD`s are D-C alone, which records by design (in-loop
+  eval, n=100, NOT ACTIONABLE). Harvest health: ratio 0.955–1.059 / 0.967–1.032
+  / 0.986–1.017, version_lag_max 1 on all three, rows dropped 0.00%, discarded 0,
+  empty 0.00%. Entropy min 0.818 / 0.833 / 0.815 against the 0.15 floor;
+  clip_frac max 0.175 / 0.177 / 0.189 (last ≈ 0.045); approx_kl max ≤ 0.0023.
+  **D-A exact at the 25M rung on all three** — u=1252, x=0.499599, stored lr
+  5.271813e-06 vs closed form to 1e-12 — so the Wang schedule is being followed
+  precisely at the anneal's halfway point. In-loop evals sit at 0.81–0.91 (n=100,
+  not a claim, and not a verdict input). (2) **A disclosure for the readout: the
+  gate reader re-derives D-B expected as 203 steps/s, not the header's 212**, and
+  the lanes read median 204–209 with last 199–200. The apparent "drift" watched
+  overnight was mostly the rate watch's fixed 212 reference; the box-wide ~5%
+  slowdown is real but small (update_sec +5.9% in a quiet window, episode_length
+  DOWN 5.8%, so contention/thermal, not workload) and ETA moves to ≈ 09-08 23:00Z.
+  (3) **Engine port** (separate session, own worktree + own conda env — the
+  fleet's env is untouched, site-packages still dated Aug 22): gates B-0, B-1,
+  P-4 (exact on 44,100 sets), P-3 (100k teams), P-1 and P-2 all PASS, stopping at
+  the brief's line. Its adversarial reviewer earned the slot: it found **P-1 was
+  partly circular** — 184 of the 828 floats were a shared `_effect_block`
+  imported by both sides, not an independent reimplementation — so P-1 now reports
+  bitwise parity over the **377 of 828 independently-derived columns** with a
+  positive control, and the Transform non-parity family was DISSOLVED rather than
+  declared (it does not exist in poke-env 0.15.0). CLAUDE.md rule 1 gained the
+  env-exception clause after that session flagged that an auto-loaded file was
+  telling it to do the one fleet-killing thing (5481be2).
+  (2026-09-07, late; cont.) **RULING: the gen-4 ladder is BANKED, NOT RUN** —
+  superseding the previous day's CONDITIONAL ruling. The chapter closes on the
+  offline comparison (step-5 pooled 3×3000 vs-SH against Wang's 0.786
+  network-alone, plus the full gen-4 anchor battery); the ladder becomes an
+  optional addendum against the frozen final, **disclosed in RESULTS as
+  available-and-unrun rather than dropped**, runnable any later evening. The
+  maintainer's words: "after we finish all offline evals and compare to Wang, we
+  can head back to gen1. bank gen4 ladder for later." Reasoning recorded in
+  JOURNEY step 6: a ladder number cannot strengthen the validation claim; the
+  comparison it invites is the one that does NOT hold (Wang's rank 8 / Elo 1693 /
+  GXE 79.5 is his MCTS-at-inference agent, ours would be greedy — the policy-form
+  mismatch our own anchor rule forbids — and vs-SH is never a ladder number in
+  either direction); and the one thing only a ladder tests, adaptive human
+  opposition, matters in gen 1 where the story ends and four ladder runs of
+  provenance already exist. Consequences: step 7's written exit condition now
+  closes on ONE step-5 comparison plus the battery, and **step 7.5's precondition
+  is the readout, not the ladder** — so the collector port starts as soon as the
+  post-fleet schedule and the readout land (≈ 2026-09-09). Nothing is relaxed
+  about the anchor legs: every descriptive leg still lands before the README row.
+
+- 2026-09-09 (overnight, agent; the maintainer's standing authorization "you keep
+  working until a truly blocking decision. run the eval, make the writeup, etc
+  etc all yourself") — **THE GEN-4 CHAPTER IS CLOSED. FLEET DONE 01:29:03Z, the
+  frozen post-fleet schedule ran 01:31:58 → 10:11:38Z, and this is the one-commit
+  readout (RESULTS §19, the README's own gen-4 table, STATUS rewritten,
+  `readouts/GEN4_WANG50M_READOUT.md`).**
+  **The result.** Pooled vs SH **0.8788** (0.8873 / 0.8720 / 0.8770; n_eff 3000
+  per lane, `win_rate` == `wins_from_returns` on every lane, ties 0.76% pooled as
+  non-wins, `mask_desyncs` 0). se binomial 0.00344 vs seed-clustered 0.00452 → the
+  band reads **0.00452**; the step-5 gap is +0.1228 = **27.19 se**.
+  `scripts/gen4_wang50m_readout.py` printed the verdict with `problems: []`:
+  **M-YES** (≥ 0.60) and **S5-MATCHED** (≥ 0.756, one-sided, the ruled floor from
+  Wang's weaker Table 4.1 cell). **This run credits nothing** — it is a baseline,
+  and "matched" carries D-DOSE (2/3 of his per-seat dose), D-IMPL, D-NET, D-ACT,
+  D-ENC, D-COLL, D-SH, D-TIE in the same sentence. The point estimate also sits
+  above Figure 4.1's ≈ 0.836 endpoint; the grader's own sentence travels with it —
+  matched under this pre-reg is NOT a reproduction of his curve.
+  **Legs, all four in, so the README row lands.** L1 MDT 0.902 pooled (sanity
+  MDT-vs-SH 0.400). L2 FP@20 **0.2933** (75-174-1 / 74-176-0 / 71-177-2). L3
+  FP@500 **0.2640** (77-172-1 / 65-185-0 / 56-194-0, the tally SUMMED from 15
+  chunk records, never a subtraction; 0 crash_forfeits). L4 clone(FP@20) 0.9853.
+  S-SHAPE climbs through 25M (0.8277 → 0.8800) and from 25M spans 0.017, inside
+  one rung's ±0.02 → not distinguishable from flat at this n and k; "flat" and
+  "plateau" stay barred. **Q38 PINS 20 ms** — |0.2933 − 0.2640| = 0.0293 against
+  2·se_diff 0.0463, not distinguishable, and FP@500 costs **24×** the wall clock
+  (~37 s/battle vs 1.58) for a number we cannot tell apart, with 5× the
+  across-lane sd. The pin governs LATER runs only.
+  **Gates: every one PASS on all three lanes.** D-A EXACT to 1e-12 at 5M/25M/50M
+  (u = 2504, x = 0.999598, lr 2.182058e-06, actor == critic). D-B medians
+  202/198/197 against the header's **expected 203, never 212**; the 183–185 minima
+  are the one 2026-09-07 browser-load window and rates returned to 204–211.
+  Harvest ratio 0.901–1.059, `version_lag_max` 1, dropped 0.00%. Stalls 0;
+  resumes s216 ×3, s200 ×1, s208 ×1.
+  **Two honest defects found while verifying, both disclosed in §19.** (i) **R0-5's
+  post-hoc read is vacuous**: it measures the first rung against the LAST launch
+  line, which after the 11:32Z rollover is a RESUME, so it prints negative minutes
+  (−420 / −431 / −407); R0-5 was satisfied at attempt-2 launch, not by this read.
+  (ii) **The FLEET DONE auto-chain would have deadlocked on itself** — the watcher
+  shell's own command line contains the literal strings `python -m rl.train` and
+  `gen4_wang50m`, so both its guard and `gen4_wang50m_postfleet.sh`'s step-0 check
+  (`pgrep -f "rl.train.*gen4_wang50m"`) matched THE WATCHER. The watcher was
+  stopped and the schedule launched by hand at 01:31:58Z after verifying
+  `pgrep -f "bin/python -m rl.train"` == 0 and all three `ckpt_050000000.pt`
+  present at 14,318,259 bytes. **Anchor any such guard on the interpreter path,
+  never on a bare module name a watcher may also mention.**
+  **A caveat added on the agent's own initiative:** the gen-4 vs-SH scale is NOT
+  the gen-1 vs-SH scale and the two README tables may not be set side by side —
+  SH's competence relative to a learned policy differs by generation. What IS
+  coherent is the ordering inside gen 4: FP@20 scores 0.904 vs SH, we score 0.8788
+  vs SH, and we lose to FP@20 head-to-head at 0.293.
+  **Next: JOURNEY 7.5, the pkmn/engine collector port, is P0 and now unblocked** —
+  its precondition was this readout, and D-1 / T-1 (+ the fleet-width T-1(d)) /
+  A-1 all want the idle box. Also landed earlier in the session (separate commits,
+  c33d541 and a0a8bd7): the SB3-vs-our-PPO update-path audit (verdict NEITHER,
+  filed with a do-not-relitigate line), IDEAS 2.9, the §5 shared-trunk row and the
+  §5 cross-features row banked as rung 2 of an existing spec.

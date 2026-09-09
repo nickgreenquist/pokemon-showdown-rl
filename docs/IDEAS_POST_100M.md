@@ -7,12 +7,15 @@ doc's errors are corrected in §7. **Not a pre-registration.** Every fleet
 item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
 
-**Status tally — 2026-09-06 (agent, on the maintainer's question).** Of the
-19 actionable rows: DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
+**Status tally — 2026-09-06, amended 2026-09-08.** Of the
+22 actionable rows (2.9 and the §5 shared-trunk row added 2026-09-08 from the
+SB3 audit; the §5 cross-features row banked the same evening; the SB3
+MIGRATION itself is closed in §3): DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
 gen-4 baseline's mechanism, unrun as a gen-1 lever); ABSORBED by the gen-4
 design 2 (temporal context in §5; C6's defect via the variable-damage bit —
 neither credited, both no longer open at gen 4); BUILT-UNRUN 1 (4.3); NOT
-STARTED 13 (2.1–2.4, 2.8, 4.2 as an arm, 4.4–4.7, the attention re-benchmark, §6
+STARTED 16 (2.1–2.4, 2.8, 2.9, 4.2 as an arm, 4.4–4.7, the attention
+re-benchmark, the §5 shared trunk, the §5 cross features, §6
 except the branch-protection click). **Q45 CLOSED 2026-09-06: §4 is ranked
 4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4, all downstream of JOURNEY 7.5.** Nothing
 here precedes the first gen-4 run (ruled: Wang's recipe, levers held back);
@@ -254,6 +257,44 @@ now (it is a bench, not a training run); ADOPTING it is a CLAUDE.md change and
 waits for the maintainer, and it should not precede 7.5 — a 4× on 10% of wall
 is worth ~2.5%, which is exactly the number that killed it the first time.
 
+**2026-09-08 addendum (the SB3 audit, `docs/research_reports/PPO_VS_SB3_UPDATE_AUDIT.md`).**
+That audit's MAC model implies the update already runs at **~226 GFLOP/s on ONE
+thread** (an UPPER bound: it excludes LayerNorm/ReLU/gather/autograd work), and
+`libtorch_cpu.dylib` links Accelerate with every hot shape a clean sgemm — i.e.
+the update may already be BLAS-bound, with no dispatch fat for a backend swap to
+reclaim. If that figure is 2–3× high the opposite holds and even CPU fused Adam
+pays. ONE run settles both, plus the actor/critic/backward/optimizer split and
+the per-minibatch `approx_kl` max: `scripts/ch5_mps_update_bench.py --arms cpu1`
+under `torch.profiler`. Needs the idle box, so it queues behind the gen-4
+post-fleet schedule.
+
+**2.9 Update-path micro-wins, BIT-IDENTICAL — DO (an afternoon, no fleet).
+Added 2026-09-08 from the SB3 audit
+(`docs/research_reports/PPO_VS_SB3_UPDATE_AUDIT.md`).** Four sites in OUR update
+cost **4.3–6.0% of `update_sec`** (1.2–1.7 s of gen 4's 27.7 s) and change no
+number, ranked by saving: store `old_logp` at act time instead of recomputing a
+full actor forward over 19,968 rows (`rl/agents/ppo.py:1054`; the machinery
+already exists at `:810` and `rl/selfplay/harvest.py:25-27`) **1.59%**; gate the
+critic's dead `move_net` call on `is_policy`
+(`rl/networks/entity_deepsets.py:517-521`, cf. the early-out at `:535-538`)
+**1.46%**; stop duplicating `flat_critic_obs` (`ppo.py:1099-1100`) and gathering
+the same rows twice per minibatch (`:1329`, `:1335`) — 1.62 GB of redundant
+gather traffic per update, **0.5–1.7%** (this band rests on an assumed
+bandwidth, not arithmetic); replace the second critic pass with a shift of
+`values` (`:1052-1053`) **0.75%**. **Scope, stated because the audit's revision
+2 withdrew a gen-1 claim over exactly this:** all four apply to the SYNC path
+(gen 4, and the gen-1 50M runs). The gen-1 **100M** runs are
+`collector.mode: async` → `update_episodes`, which ALREADY stores `old_logp` and
+ALREADY uses one critic pass, so two of the four do not apply there. Say which
+path you mean when quoting a gen-1 number. Separately and **NOT bit-identical**:
+Adam runs the single-tensor Python loop on CPU (torch 2.13 omits "cpu" from
+`_get_foreach_kernels_supported_devices()` and passes `use_fused=False`);
+`fused=True` is a legal explicit override on cpu and is UNSIZED until the 2.8
+measurement. **Sequencing:** the four bit-identical fixes are worth most AFTER
+7.5 makes the update dominant, and they touch the update on a live recipe —
+never mid-fleet.
+
+
 ## 3. Ruled out / answered — do not re-propose
 
 **How to read this section (maintainer ruling, 2026-09-06).** Two verdicts
@@ -414,6 +455,42 @@ never-killed item is repriced by the collector plan: **4.3** (see its own note).
   use the opponent's observations as input to the value functions") —
   OpenAI Five's is not (its value head is a projection of the same LSTM
   state as the policy, Berner et al. 2019 §3.1; §7 #17).
+
+- **Migrating the learner to a library (Stable-Baselines3) — ANSWERED
+  2026-09-08, verdict NEITHER; do not re-propose.** [MECHANISM-BOUNDED for the
+  MIGRATION question only — the portable wins are live as **2.9** and the §5
+  shared-trunk row, and are NOT closed.] Full audit:
+  `docs/research_reports/PPO_VS_SB3_UPDATE_AUDIT.md`. SB3's PPO has exactly ONE
+  update-path optimization we lack — `target_kl` early epoch termination
+  (`stable_baselines3/ppo/ppo.py:261-270`, the break placed before
+  backward/step) — it is `Optional[float] = None`, OFF BY DEFAULT in SB3 too,
+  and our measured KL says it would never fire: `loss/approx_kl` over 1,761
+  updates of `gen4_wang50m_s200` is **p50 0.00086, max 0.00228** against a
+  trigger of 1.5·target_kl at a sane 0.01–0.03 — it would need 4× the all-time
+  max (the logged value is the mean over 273 minibatches while SB3 tests
+  per-minibatch, so the last epoch runs higher; nothing logs the per-minibatch
+  max today). We already do three of the four ANTICIPATED wins BETTER than SB3:
+  one-shot buffer→tensor conversion (`ppo.py:1012-1017`) vs a fresh `th.tensor`
+  copy per minibatch (`common/buffers.py:480-493` + `:124-136`);
+  allocation-free `explained_variance` (the residual IS `flat_advantages`,
+  `ppo.py:1231-1240`) vs `np.var(y_true - y_pred)`; vectorized episode GAE (the
+  F-10 `(Lmax, E)` layout, `rl/buffers/episode.py:139-194`). The fourth,
+  `zero_grad(set_to_none=True)`, is torch 2.13's default for both. **The local
+  clone is a dead end as a source:** Wang's fork at `version.txt` 2.0.0, and
+  `git diff v2.0.0 HEAD` is 40 insertions / 12 deletions of TIMERS AND LOGGING
+  across 5 files with `common/buffers.py` UNTOUCHED — algorithmically stock,
+  ~9 minor versions behind the tags present locally, and `sb3-contrib`
+  (MaskablePPO) is not cloned anywhere. **What a migration would cost:** SB3's
+  PPO has NO action masking (our harness contract — `-1e8` sentinel, no
+  `mask is None` branches, masking at eval too); `RolloutBuffer`'s fixed
+  `(buffer_size, n_envs)` shape with its `assert self.full` cannot hold the
+  both-seat harvest (seat-2 rows carry the pool member's OWN log-prob); plus
+  per-episode GAE, the league pool, the resume/`meta.yaml`/history toolchain,
+  and ZERO overlap with our locked metric names — a rename shim on day one,
+  forever. **What SB3's design does suggest** is not code we would inherit:
+  `share_features_extractor` (`common/policies.py:693`), i.e. the shared trunk,
+  which is the §5 row.
+
 
 ## 4. Tier 1 — training levers (each its own pre-reg; step 8 unless pulled forward; 50M async recipe, ~1 day/fleet at 574 steps/s/lane)
 
@@ -728,6 +805,63 @@ so JOURNEY wants an amendment at the next maintainer pass.
   change as a DEPLOYMENT object; it cannot make the change free for credit
   (§3, chaining).
 - **Width — SKIP** (§3, width/capacity bullet).
+
+- **Shared actor/critic trunk — a PRE-REG item, ~20% of the epoch loop (added
+  2026-09-08 from the SB3 audit).** Actor and critic are two INDEPENDENT
+  DeepSets encoders (`rl/agents/ppo.py:513-515`), and the duplicated stage is
+  **790,016 of the critic's 1,183,616 MAC/row = 66.7% of its forward**, i.e.
+  **19.5% of the epoch loop** — the single largest number in the audit, and 4×
+  every bit-identical win in **2.9** combined. `entity_deepsets.py:44-47`
+  records the separate stacks as a DELIBERATE deviation from Huang & Lee, who
+  share; SB3's own default is `share_features_extractor`
+  (`common/policies.py:693`). So this is an ARCHITECTURE decision with a
+  win-rate risk (a shared trunk couples value and policy gradients, which is
+  why the deviation was taken), never a refactor: it needs its own pre-reg, and
+  it is not bit-identical. Worth most after 7.5, when the epoch loop owns the
+  wall.
+
+
+- **Explicit cross features / DCN-style crossing — RUNG 2 of an existing spec,
+  NEVER RUN (banked 2026-09-08 on the maintainer's ask).** Not a new idea:
+  `docs/prior_work/CROSS_FEATURES_AND_ARCHITECTURE.md` already ladders it —
+  rung 0 hand-composed crosses, rung 1 pointer/shared-slot head, **rung 2
+  explicit crossing (two-tower dot product / DCN)**, rung 3 entity attention.
+  We built rung 3's cousin (`entity_deepsets`) and **skipped rung 2 entirely**.
+  That doc's own caveat travels with every formula: it was written in a session
+  with NO repo access, so verify against `baselines.py` and the gen-1 damage
+  formula before implementing, and `docs/prior_work/`'s audit of it supersedes
+  it on conflicts. **The maintainer's framing (2026-09-08, from RecSys
+  wide-and-deep):** the "wide" half is a SPARSE MEMORIZATION branch over cross
+  features, which is the half we have never had — our ID embeddings are inputs
+  to the dense trunk, not a crossing branch.
+  **Size the cross deliberately — the arithmetic decides the form.** Full 3-way
+  (attacker species × defender species × move) is 301·301·183 ≈ **16.6M cells**
+  in gen 4 (151·151·165 ≈ 3.8M in gen 1) against ≈48M decisions per 50M-step
+  lane ≈ **3 samples/cell**, i.e. unlearnable. 2-way is the tractable form:
+  species×species ≈ 90k cells ≈ 530 samples/cell, move×defender-species ≈ 55k.
+  START 2-WAY; hash or factorize before any 3-way.
+  **Why this is NOT the §3 width kill re-proposed.** That kill rests on measured
+  IDLENESS of DENSE capacity (dormancy 27→84–88%, critic ctx srank99 9–13/384 at
+  37.5–50M). An embedding row is updated only when its cell is seen, so it
+  cannot go dormant the way a dense layer does — the idleness mechanism does not
+  transfer, and this is a different question rather than a re-proposal.
+  **Capacity datapoint, RECORDED not acted on:** `ps-ppo` is **14,490,657
+  params** (transformer 6.31M + subnets 4.32M + JEPA 1.58M + readout 2.10M;
+  **embeddings only 141k**, verified by instantiating the model 2026-08-04) and
+  claims ladder 1900+ at gen 9 — 21× our actor's 674,763. It is simultaneously
+  the strongest external argument for DENSE capacity and evidence that such
+  scale is NOT embedding-shaped. Re-opening §3's width kill on it needs a
+  MAINTAINER RULING (§3's rule: vacating a mechanism-bounded entry does).
+  **Cheap pre-test, fully offline, no server:** screen the branch SUPERVISED on
+  the gen-4 BC-clone dataset (`runs/bc_gen4_fp20_soft_s0`, val agreement 0.433
+  is the incumbent) before any RL run touches it; a width sweep on the same
+  fixed dataset also separates "the architecture cannot represent the target"
+  from "RL training does not use what it has". **PURITY NOTE:** only the
+  ARCHITECTURE CHOICE may transfer — no weights trained on FP tapes enter the
+  learner, or the pure-self-play lane is contaminated (the clone is an anchor,
+  never training data). Needs its own pre-reg; not bit-identical; worth most
+  after 7.5.
+
 
 ## 6. Ops hygiene (from the 2026-09-01 auto-mode review; sequenced)
 
