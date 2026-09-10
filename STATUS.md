@@ -2,19 +2,16 @@
 
 Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
 
-## JOURNEY POSITION — steps 3–7 DONE; **step 7.5 is NEXT and is P0** (`JOURNEY.md`)
-Steps 1–2 DONE (batch credited, RESULTS §17; LADDER R4: GXE 65.2 / Glicko-1 1618 ± 25 /
-Elo 1354, n=200). **THE GEN-4 CHAPTER IS CLOSED (2026-09-09).** Step 3 milestone MET
-(M-YES), step 4 ran (Wang's recipe on our frozen encoder), **step 5's exit MET
-(S5-MATCHED: pooled 0.8788 vs SH ≥ the ruled floor 0.756, one-sided)**, step 6's ladder
-is BANKED NOT RUN (ruled 2026-09-06), step 7 is this readout (RESULTS §19).
-**Everything from here is gen 1, and 7.5 — the pkmn/engine collector port — comes first.**
+## JOURNEY POSITION — steps 1–7 DONE; **7.5 (the engine port) IS IN FLIGHT, P0**
+**THE GEN-4 CHAPTER IS CLOSED (2026-09-09):** step 3 MET (M-YES), step 5's exit MET
+(S5-MATCHED), step 6's ladder BANKED NOT RUN, step 7 is RESULTS §19. Steps 1–2 banked
+(LADDER R4: GXE 65.2 / Glicko-1 1618 ± 25 / Elo 1354, n=200).
+**Everything from here is gen 1.**
 
-## The gen-4 result (2026-09-09; full account RESULTS §19, provenance readouts/GEN4_WANG50M_READOUT.md)
-- **PRIMARY vs SH, locked protocol, 3×3000, greedy: pooled 0.8788** (0.8873 / 0.8720 /
-  0.8770). n_eff 3000×3; `win_rate` == `wins_from_returns` on every lane; ties 0.5–0.9%
-  as non-wins; mask_desyncs 0. se binomial 0.00344, seed-clustered 0.00452 — **the band
-  reads 0.00452**; +0.1228 over the floor = 27.2×. **ONE RUNG IS WORTH ±0.02.**
+## The gen-4 result (2026-09-09; RESULTS §19, readouts/GEN4_WANG50M_READOUT.md)
+- **PRIMARY vs SH, locked protocol, 3×3000, greedy: pooled 0.8788.** se binomial 0.00344,
+  seed-clustered 0.00452 — **the band reads 0.00452**; +0.1228 over the floor = 27.2×.
+  **ONE RUNG IS WORTH ±0.02.**
 - **M-YES** (≥ 0.60) and **S5-MATCHED** (≥ 0.756). **CREDITS NOTHING** — "matched" is the
   only permitted strength word and carries D-DOSE (2/3), D-IMPL, D-NET, D-ACT, D-ENC,
   D-COLL, D-SH, D-TIE in the same sentence.
