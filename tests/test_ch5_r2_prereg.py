@@ -352,6 +352,10 @@ def test_seeds_are_window_disjoint_and_unused():
                 f"showdown_sp_batch50m_async_s{s}",
                 f"engine_a1_s{s}",
                 f"engine_a1b_s{s}",
+                # 2026-09-10: the design-B seam SMOKE (engine_pe_s66) — seed 66
+                # ON PURPOSE, so its rung checkpoint can be compared BITWISE to
+                # engine_a1b_s66's (the head must be inert on the policy).
+                f"engine_pe_s{s}",
             ), f"seed {s} already used by a foreign run {p.parent.name}"
 
 
