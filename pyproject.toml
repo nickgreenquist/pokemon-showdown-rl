@@ -32,7 +32,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest==9.1.1"]
+# pandas: scripts/gen4_wang50m_gates.py reads a lane's history with it, and
+# tests/test_gen4_gates.py invokes that script as a subprocess — so the SUITE
+# needs it. Undeclared until 2026-09-10: it had only ever reached an env as a
+# transitive dep of an ad-hoc seaborn install, so the four gen-4 gate tests
+# failed in any env built from this file alone.
+dev = ["pytest==9.1.1", "pandas==3.0.5"]
 # Human-replay corpus survey (DESIGN.md §4 Track 1 / §10). Only needed to run
 # scripts/corpus_survey.py, which downloads and measures the single
 # gen1randombattle parquet from HolidayOugi/pokemon-showdown-replays at a

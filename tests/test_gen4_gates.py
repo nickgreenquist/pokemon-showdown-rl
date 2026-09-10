@@ -48,7 +48,12 @@ def _history(path: Path, rate: float, minutes: int = 100, start_step: int = 1_00
 def _run(run: Path, history: Path, *extra: str):
     cmd = [sys.executable, str(SCRIPT), str(run), "--history", str(history), "--wave-log", "/nonexistent", *extra]
     p = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO)
-    return p.returncode, p.stdout
+    # stderr rides along so a script that DIES — an import error, a traceback —
+    # shows its reason. Without this a missing dependency surfaces as
+    # `assert "D-A    PASS" in ""`, which took an agent to diagnose on
+    # 2026-09-10 and should have been one line.
+    tail = f"\n--- stderr ---\n{p.stderr}" if p.stderr else ""
+    return p.returncode, p.stdout + tail
 
 
 def test_d_a_closed_form_passes_the_u_minus_one_rung_and_stops_the_u_form(tmp_path):

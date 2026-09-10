@@ -12,8 +12,11 @@ claims a variance reduction; these tests only prove the mechanism.
 
 from __future__ import annotations
 
+import os
 import pathlib
 import re
+import subprocess
+import sys
 
 import pytest
 
@@ -137,15 +140,41 @@ def test_the_seed_guard_reasoning_is_recorded_where_a_reader_will_find_it():
 # --- D18 privileged block: the constant both encoders must agree on ---------
 
 
+_WIDTH_CHILD = r"""
+import pkmn_gen1
+from rl.envs.showdown import OBS_DIM, PRIV_DIM
+assert pkmn_gen1.OBS_DIM == OBS_DIM == 828, (pkmn_gen1.OBS_DIM, OBS_DIM)
+assert pkmn_gen1.PRIV_DIM == PRIV_DIM == 408, (pkmn_gen1.PRIV_DIM, PRIV_DIM)
+print("OK")
+"""
+
+
 def test_the_two_encoders_agree_on_the_privileged_block_width():
     """`encoder.rs` slices the block by its own constants and asserts them at
     COMPILE time; this is the other half — that those constants are the Python
     ones. A drift here would feed the critic a shifted slice with no error, and
     JOURNEY step 8's encoder rewrite is the very next step after 7.5, so the two
-    implementations are about to move."""
-    import pkmn_gen1
+    implementations are about to move.
 
-    from rl.envs.showdown import OBS_DIM, PRIV_DIM
+    IN A SUBPROCESS, and that is not incidental. The Python constants are read
+    from the environment at import (`showdown.py` reads POKEMON_RL_ENCODER_V2 /
+    _IDS), so in-process under the documented `pytest tests/` they are 612/300
+    and this assertion could never hold — it failed from the day it was written
+    (2026-09-08). The flags cannot simply be exported suite-wide either:
+    test_entity_deepsets::test_entity_trunk_refuses_a_missing_id_flag REQUIRES
+    them unset, because that is the R0-1 seam check for a forgotten env var at
+    launch. So the child gets the flags and the suite does not.
 
-    assert pkmn_gen1.OBS_DIM == OBS_DIM == 828
-    assert pkmn_gen1.PRIV_DIM == PRIV_DIM == 408
+    Deliberately NOT a skipif: skipping would make this drift guard silently
+    not run under the documented invocation, which is exactly when step 8's
+    encoder rewrite would break it.
+    """
+    pytest.importorskip("pkmn_gen1", reason="build engine/pkmn_gen1 first")
+    r = subprocess.run(
+        [sys.executable, "-c", _WIDTH_CHILD],
+        env={**os.environ, "POKEMON_RL_ENCODER_V2": "1",
+             "POKEMON_RL_ENCODER_IDS": "1"},
+        capture_output=True, text=True, cwd=str(ROOT),
+    )
+    assert r.returncode == 0, r.stderr
+    assert "OK" in r.stdout
