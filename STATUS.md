@@ -1,7 +1,4 @@
 # STATUS
-
-Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on conflict.
-
 ## JOURNEY POSITION — step 7.5 (the engine port), IN FLIGHT and P0; steps 1–7 DONE
 **THE GEN-4 CHAPTER IS CLOSED (2026-09-09):** step 3 MET (M-YES), step 5's exit MET
 (S5-MATCHED), step 6's ladder BANKED NOT RUN, step 7 is RESULTS §19. Steps 1–2 banked
