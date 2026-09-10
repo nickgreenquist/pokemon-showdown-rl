@@ -1,0 +1,49 @@
+# =====================================================================
+# SEARCH RELOOK — S3, off-Foul-Play leg. DESCRIPTIVE ANCHOR, never a
+# verdict input. Registered 2026-09-10 with configs/eval/search_s3_100m.yaml
+# (the vs-SH leg; its header is the authority on WHY and on the reads).
+# journey_step: "11.5" — exit condition verbatim in the vs-SH file.
+# ARM: F3M112 — the s112 100M final played through depth-1 search@M
+#   (SearchAgent on the seat's OWN battle, rl/search) against Foul Play at
+#   --search-time-ms 20, n=1000, ties non-wins. Comparator: the BANKED
+#   greedy t112 off FP@20, 0.50167 at n=3000 (results/ch5_100m/t112.json)
+#   — same checkpoint artifact, same FP build and flags, same budget.
+# The two standing FP@20 disclosures travel with every number here: the
+#   equivalence test is weakly powered, and the point estimate flatters
+#   us. Budget named: 20 ms. FP@20 is an instrument, not a rung.
+# EXPECTED DIRECTION, stated up front (a sanity read, not a verdict): the
+#   50M batch lane read search@M 0.3807 against greedy 0.4740 off FP@20
+#   (-0.0933, -7.3 se); the prior is NEGATIVE here too. A positive read is
+#   a finding to record, not a gate.
+# Runner: scripts/ch3_r4_fp_runner.sh (all four incident fixes; kind and
+#   usernames come FROM THIS FILE, BI-6). n_eff = seat-finished minus
+#   crash-forfeits; G1-G5 carry over; a rerun after an ops failure uses
+#   the rerun pair, never the same names (poisoned-pair landmine).
+# =====================================================================
+title: search_s3_100m_offfp
+status: "REGISTERED 2026-09-10 (agent; descriptive anchor; credits nothing)"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/search_s3_100m_offfp
+fp:
+  search_time_ms: 20
+checkpoints:
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
+usernames:
+  scheme: "s3fp<dose><lane><role>, role in {seat, fp}; rerun pairs suffix the LANE with b (s3fpm112bseat), never the role. Pairwise distinct and prefix-free against every name in configs/eval/*.yaml (checked at registration: no other pre-reg issues a name starting with s3)."
+  never_reuse: [c4, r4anchor, ch3, ch4, ch5r1, ch5r2, ch5c1, fplad]
+  pairs:
+    F3M112: {seat: s3fpm112seat, fp: s3fpm112fp}
+  rerun_pairs:
+    F3M112: {seat: s3fpm112bseat, fp: s3fpm112bfp}
+arms:
+  F3M112:
+    kind: search_seat
+    seat: s112
+    dose: M
+    battles: 1000
+    search_time_ms: 20
+    seat_username: s3fpm112seat
+    fp_username: s3fpm112fp
+comparator_banked:
+  t112_greedy_offfp20: {rate: 0.50167, n: 3000, source: results/ch5_100m/t112.json}

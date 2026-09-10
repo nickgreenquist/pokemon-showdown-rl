@@ -1,0 +1,128 @@
+# =====================================================================
+# SEARCH RELOOK — S3: the missing depreciation point, on the 100M finals
+# vs SimpleHeuristics under the LOCKED protocol. DESCRIPTIVE SCREEN.
+# Registered 2026-09-10 (agent, under the maintainer's standing autonomy
+# authorization of 2026-09-10: "take it from here"). CREDITS NOTHING.
+#
+# journey_step: "11.5"
+# exit_condition_verbatim (JOURNEY 11.5): "Exit condition: one comparison,
+#   then the chapter closes. Depth-2 credits over depth-1 iff the pooled
+#   delta clears the standing credit line. Report decisions/sec for both
+#   arms — a gain that costs 5× is a different finding than the same gain
+#   at 1.5×."
+# THIS RUN IS NOT THAT COMPARISON. Depth-2 does not exist in rl/search/
+# (STATUS 2026-09-10). This is the screen that has to come first: the
+# search-depreciation CLOSED ruling (VACATED 2026-09-10) claimed search
+# stops paying as the policy improves, and every number behind it is
+# 12M/50M and off Foul Play — "search@M on a 100M lane was NEVER
+# measured" (docs/proposals/search_depreciation_check.md), and "no vs-SH at
+# the locked protocol exists for search on any 50M lane" (RESULTS.md
+# ~923). S3 puts the existing depth-1 search on the object we would
+# actually ladder, on the only verdict axis this repo has.
+#
+# WHY IT IS CHEAP AND WHY NOW: ch3_eval.py already runs SearchAgent over a
+# live battle1 (R2/R3/R4 machinery, chunked + resumable); the 100M
+# finals carry the oppact head (aux_oppact_coef 0.1, opp_action true —
+# SearchAgent hard-asserts it, rl/search/agent.py:68); the box is idle
+# until the A-1 rulings land. Eval/analysis of any length may run
+# agent-side under CLAUDE.md rule 4 iff detached + resume-safe +
+# rate-readable — scripts/search_s3_queue.sh is all three.
+#
+# ARMS (vs SH, deterministic seat, ties non-wins, 3000/lane, 10 chunks):
+#   A0   greedy, FRESH this session, lanes s104/s112/s120. Fresh because
+#        R3 measured a same-checkpoint era_diff of 0.0148 between a banked
+#        A0 and a fresh one; the banked final_s1xx.json are NOT the
+#        comparator here.
+#   S3M  depth-1 search, dose M (n_det 4, top_branches 6, leaf_cap 1296),
+#        lanes s104/s112/s120 — paired with A0 by lane.
+#   S3L  dose L (n_det 16, leaf_cap 5184), lane s112 ONLY (one lane: L is
+#        ~4x M's cost; its read is the sign of the n_det axis on the
+#        strongest object, against the +-0.02 one-lane redraw spread).
+#   A1E  dose M with the leave-one-out CRITIC ENSEMBLE as the leaf
+#        evaluator (R4's E3 form — the only search dial that ever moved:
+#        +0.036 screen, +0.0224 at credit grade, B3 FLAT), lanes
+#        s104/s112/s120, pool = the other two 100M lanes. Runs LAST, held
+#        behind a sentinel, because R4's F5 assert was written for a
+#        4-lane pool (peers == 3) and the 100M fleet has three lanes
+#        (peers == 2): the assert is generalised to `loo_pool_expected`
+#        with the default unchanged, and R4-13 (evaluator discrimination,
+#        serverless) must PASS before the arm launches. Intent of F5
+#        (own lane excluded by identity; every other lane in) unchanged.
+#
+# PRE-STATED READS (vs SH is the ONLY verdict axis; this run credits
+# nothing — the reads route the relook, they do not land a README row):
+#   P-M  delta_M = equal-weight mean over lanes of (S3M - A0), paired by
+#        lane. Cells: NEG iff pooled <= 0 AND per-lane <= 0 in >= 2 of 3;
+#        POS iff pooled >= +0.025 AND >= 2*se_diff (larger-of clause);
+#        FLAT otherwise. NEG or FLAT -> depth-1@M does not pay on the 100M
+#        object at the locked protocol; the vacated ruling's PREMISE
+#        survives on the verdict axis and the relook's burden is entirely
+#        the leaf evaluator + depth (Phase 1 build, gated on the S1/S2
+#        offline screens). POS -> depth-1@M still pays at 100M; the
+#        existing form is a live ladder-object candidate and P-L decides
+#        whether the n_det axis is worth extending.
+#   P-L  delta_L = S3L(s112) - S3M(s112). Sign only, one lane, +-0.02.
+#   P-E  delta_E = equal-weight mean over lanes of (A1E - S3M), paired.
+#        Same cells as P-M. POS -> "a better evaluator pays on the 100M
+#        object" — the monster train's evaluator lever (IDEAS 8.2 / 4.7)
+#        moves to the top of its config decisions. NEG/FLAT -> the
+#        ensemble form does not move the 100M object; 8.2 (a critic
+#        trained as an evaluator) stays untested — different mechanism.
+#   Timing: search/ms_mean, leaves_mean, decisions/s recorded per arm.
+#        The box carries up to 7 concurrent eval processes (torch_threads
+#        1 each): timing here is DESCRIPTIVE AND CONTENDED, never the
+#        clean decisions/sec JOURNEY 11.5's exit condition asks for.
+# Credit line, restated verbatim so the cells above are the standing
+# ones: "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff,
+# where se_diff is the LARGER of the pooled-binomial se_diff and the
+# seed-clustered se_diff, the latter computed from the per-seed finals at
+# read time." Across-lane aggregator: equal-weight mean of per-lane
+# paired deltas; no unnamed cells; dose is NOT matched between A0 and
+# any search arm (a generic-compute confound survives, as in R2).
+# ONE RUNG IS WORTH +-0.02 (three n=3000 redraws of one checkpoint spread
+# 0.0200) — read shapes across the three lanes, never one cell alone.
+#
+# WHAT THIS DOES NOT TEST: depth >= 2 (no code); any dose above L; any
+# top_branches other than 6; search at a Foul Play-comparable budget on
+# a form that could use it. Those are the Phase 1/2 builds.
+# PURITY: SearchAgent over the checkpoint's OWN policy/value/oppact heads;
+# RSD determinization from the vendored generator's public statistics;
+# the battle2 sentinel (SF-13) is armed on chunk 0 of every arm. No
+# expert data anywhere. Pure-lane legal.
+# OPS: scripts/search_s3_queue.sh (frozen-copy re-exec; phases: A0 x3 +
+# S3L + the off-FP leg; then S3M x3; then A1E x3 behind `.s3_e_go`).
+# Resume = re-run the same --job; a killed job loses one chunk (300
+# battles). Rate reference (R3, clean box): A0 ~5-8 min/chunk, M ~18
+# min/chunk, L ~55 min/chunk. scripts/search_s3_status.sh prints
+# chunks/rate per job. Off-FP leg: configs/eval/search_s3_100m_offfp.yaml.
+# =====================================================================
+title: search_s3_100m
+status: "REGISTERED 2026-09-10 (agent; descriptive screen; credits nothing)"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/search_s3_100m
+comparator: fresh
+pairing: checkpoint_lane_paired
+aggregator: equal_weight_mean_of_per_lane_paired_deltas
+credit_line: "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time"
+dose_matched: false
+lane_width: 7
+checkpoints:
+  s104: {path: runs/showdown_sp_100m_s104/ckpt_100000027.pt, sha256: 16a6f02064e4c71ddecec08122a60f2ba363cea237761c9cda01a1c2ce5914ff, step: 100000027}
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
+  s120: {path: runs/showdown_sp_100m_s120/ckpt_100000080.pt, sha256: db5d07d2096e021cb74deaf86c1feb2134954a35e042392680d568a185320287, step: 100000080}
+arms:
+  A0:  {kind: policy, lanes: [s104, s112, s120], battles: 3000, chunks: 10}
+  S3M: {kind: search, lanes: [s104, s112, s120], dose: M, battles: 3000, chunks: 10}
+  S3L: {kind: search, lanes: [s112], dose: L, battles: 3000, chunks: 10}
+  A1E:
+    kind: search
+    lanes: [s104, s112, s120]
+    dose: M
+    battles: 3000
+    chunks: 10
+    evaluator: {kind: loo, pool: [s104, s112, s120], loo_pool_expected: 2}
+run_order: [A0, S3L, S3M, A1E]
+banked_reference_never_the_comparator:
+  vssh_finals: {s104: results/ch5_100m/final_s104.json, s112: results/ch5_100m/final_s112.json, s120: results/ch5_100m/final_s120.json, pooled: 0.79589}
+  offfp20_t112: {rate: 0.50167, n: 3000, source: results/ch5_100m/t112.json}
