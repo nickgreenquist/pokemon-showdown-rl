@@ -11368,3 +11368,30 @@ line numbers are not — grep the date, then read that region):
   in S3), privileged critic (leaves are full-info under determinization; needs the
   `ppo.py:478` guard lifted + the engine seam), an outcome-trained evaluator on our
   own self-play + engine-generated counterfactual states with an offline metric.
+- 2026-09-10 (late afternoon, agent; "Ratify RW-1 through RW-9 at the recommended
+  values, RW-10 no, verdict authorized") — **A-1 A1-PASS; A-1a CAUGHT A DEFECT, FIXED;
+  S1 FIRED AND det_blind COLLAPSES IT; K-1 PARKED.** Sidecar filled verbatim, the
+  pre-ratification test rewritten to pin the ratification, grader's two first-run
+  defects fixed. P-END 0.67067 vs 0.67211 → **−0.00144** (−0.11 se, band 0.025);
+  same-era re-read at n=12,000 (banked 0.65692/0.66825/0.68208) → **+0.0016**.
+  **A-1a:** every learning-relevant statistic inside the A/A reseeding spread, but
+  `obs_smd_max` 0.94–0.97 vs A/A 0.07–0.10 on dims 627/673/719 = the foe's revealed-
+  move PP fraction: poke-env decrements per observed `|move|`, `track.rs` hard-coded
+  max_pp (plan §858's premise, falsified by the Node harvest: 0.89 ± 0.13). P-1 could
+  not see it (it fills state FROM poke-env). Tracker fix bd3d06a counts PP spends on the
+  live slots; Rust test client-uses == engine-uses; cargo 44/44; P-1 100k/0; engine
+  pytest 87. A-1a re-run on the fixed build: NOTHING separated. 7.5 closes on an A-1
+  re-run on the fixed build (~2.4 h; asked).
+  **K-1 (k=256):** two opus reviews applied; PARKED (1eea071). k alone = 1.30x at matched
+  width (5 h on the monster); prefix carry 22% (turns 1–5) vs 7% (25+); stale rows enter
+  an already-saturated clip; MDE 0.032–0.038 > the 0.025 band. Rec: monster at k=8.
+  **S1/S2 (899fdd9):** S1 FIRED 4/4 lanes — leaf-vs-live critic bias +0.0497 (+16 se), sd
+  0.125, margin 0.028 (4.5x); S2 silent (L flips 6.75% of M, close calls).
+  **det_blind (f6e7226):** the leaf keeps the root's information boundary; offline S1
+  sd 0.00782, bias +0.00018, ratio 0.29, S1 no longer fires; default path byte-identical
+  (golden digests, 3,707 real leaves); 11.4% of as-is dose-M decisions flip at identical
+  leaves. Arms S3B ×3 (vs SH) and F3B112 (off FP@20) registered (c9d3f17) and launched
+  ~17:00Z. **F3M112 (as-is search@M, s112, off FP@20, n=1000): 0.396** vs banked greedy
+  0.50167 — G2 exact (595/396/9). S3M at 4/10: 0.72/0.73/0.69 vs fresh greedy
+  0.789/0.782/0.794. Privileged-critic seam scoped (eff2494): 10 edits, no next_privs,
+  guard structurally inert, design fork A (critic) vs B (separate evaluator head).

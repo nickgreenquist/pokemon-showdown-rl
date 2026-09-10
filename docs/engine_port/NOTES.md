@@ -2224,3 +2224,50 @@ further matmul win while the per-region barrier cost keeps growing, so T=4 and
 T=6 are pure loss at the shipped 256-row minibatch. At 3,840 rows the regions
 are 15x larger, the barrier amortises, and the same thread counts help. Two
 curves crossing, and now both are measured rather than inferred.
+
+## Gate A-1 — GRADED A1-PASS (2026-09-10) — and A-1a's catch
+
+**Ratification (maintainer, in chat, verbatim):** "Ratify RW-1 through RW-9 at
+the recommended values, RW-10 no, verdict authorized". Sidecar FILLED;
+`tests/test_engine_a1_prereg.py` pins the ratification. The grader's first
+real run found two defects (PosixPath in the result JSON; the RW-8 role label
+reading "unanswered" when answered) — fixed, regraded.
+
+**P-END, pre-registered basis (banked n=3000):** pooled 0.67067 (s66 0.6640 /
+s75 0.6925 / s83 0.6555, n=12,000 each) vs banked 0.67211 → signed delta
+**−0.00144** (−0.11 se on the seed-clustered 0.01322; band 0.025) INSIDE.
+**P-AUC** −0.00833 INSIDE, secondary (RW-8). `results/engine_a1/primary.json`.
+**Same-era secondary read** (banked checkpoints RE-EVALUATED at n=12,000 the
+same afternoon; R3 measured a 0.0148 same-checkpoint era diff): banked
+0.65692 / 0.66825 / 0.68208 → mean 0.66908, delta **+0.0016**. Both bases
+agree to ±0.002. `results/engine_a1/banked12k_s*.json`.
+
+**A-1a (RW-9, one-way gate), first run on the A-1 build:** actions, masks,
+old_logp, episode lengths and outcomes all inside the A/A reseeding spread —
+but `obs_smd_max` separated at **10×** (A/B 0.94–0.97 vs A/A 0.07–0.10) on
+dims **627 / 673 / 719** = the opponent's revealed-move **PP fraction**
+(`move.current_pp / max_pp`, slots 0–2). Cause: poke-env decrements a foe's
+`Move.current_pp` once per observed `|move|` (`Pokemon.moved` → `Move.use`;
+not on `[from]lockedmove`, not on `|cant|`), so the Node path reads 0.89 ±
+0.13 on the first revealed slot; `track.rs`'s producer hard-coded `pp:
+max_pp` ("a seat never sees a foe's PP") — the plan's §858 premise, which
+the harvest falsifies. **P-1 could not see it**: P-1 fills the observable
+state FROM poke-env's battle (with its decremented PP) and compares the two
+encoders on identical state. This is exactly the half of the port A-1a was
+built to read. **Fix (bd3d06a):** the tracker counts PP spends on the live
+slots (the same proxy that drives reveal) and reports `max_pp − uses`; charge
+turns lag poke-env by one turn (disclosed); Transform/Mimic count their own
+line. Rust test: client uses == engine uses on every revealed foe move
+outside the declared families, 8 random battles. `cargo test` 44/44; P-1
+re-run 100,000 decisions **0 mismatches** (its path is unchanged);
+`tests/test_engine_*` 87 passed (port env).
+**A-1a re-run on the fixed build:** NOTHING separated — `obs_smd_max` A/B
+0.10–0.13 vs A/A 0.10, dims > 0.10: 0–3 vs 0–1, every other statistic inside
+the A/A spread. `results/engine_a1/a1a_fixed.json`.
+
+**Status of the 7.5 exit:** A-1 PASS was measured on the PRE-fix build; the
+fix adds information the Node path always had. The clean close is A-1
+re-run on the fixed engine (3 × 12M, ~2.4 h, rule-4 "ask first" band) —
+asked of the maintainer 2026-09-10. Until then the engine build the switch
+is graded on is bd3d06a's predecessor, and the signed delta that travels is
+−0.00144 (pre-registered basis) / +0.0016 (same era).

@@ -14,47 +14,40 @@
   weakly powered; flatters us) · FP@500 0.264 · clone(FP@20) 0.985. Every gate PASS ×3.
 
 ## JOURNEY 7.5 — the engine port (2026-09-10; full account docs/engine_port/NOTES.md)
-- **A/B SPEEDUP 4.035x** (width 1, k=256 vs concurrency 8; ABBA, sd 0.0086); **2.984x
-  matched** (collector alone); **3.553x at width 3**. The Node path is ~85% batch-1
-  forwards, so much of this is INFERENCE BATCHING — quote the PIPELINE's, never the
-  engine's. 2.62x cross-day is RETIRED.
-- **PROFILE INVERTED:** update 25.0% of wall on Node -> **65.1% on engine**; further
-  collector work capped at **1.54x**. Account: docs/engine_port/SPEEDUP.md.
-- **MAX-OUT:** today k=8 w=3 = 4,861 steps/s fleet; **k=256 w=6 = 9,994 = 2.06x** on
-  11.3 GB of 24; best per-lane k=256 w=1 = 3,035 = 1.87x. **A lane is a SEED — width buys
-  seeds/hour, never a shorter run.** 100M×3 seeds: 13.2 h at k=256 vs 48 h on Node.
-- **Learner levers are COMPLEMENTS:** threads and minibatches each NEGATIVE alone, **1.51x
-  crossed**; `torch.compile` dead. Scorer factorization REVERTED (bit-exact pin). See CLEANUP
-  E1-E3 for the three open rulings.
-- **A-1: NO VERDICT, by instruction.** Descriptive per-seed at n=12,000: s66 0.6640,
-  s75 0.6925, s83 0.6555. `ratified_decisions` empty; RW-1..RW-10 all owed.
+- **A/B SPEEDUP 4.035x** (k=256 vs concurrency 8; ABBA) is the COLLECTOR's; **k alone is
+  1.30x at matched width** (max-out); fleet k=256 w=6 = 2.06x. Profile inverted: update 65%
+  of wall on the engine. Account: docs/engine_port/SPEEDUP.md.
+- **A-1 GRADED A1-PASS** (maintainer ratified RW-1..9, RW-10 no, verdict authorized):
+  engine 0.67067 vs banked 0.67211, **signed delta −0.00144** (pre-reg basis); same-era
+  re-read at n=12,000 **+0.0016**. **A-1a (RW-9) CAUGHT a boundary defect** — foe move PP
+  hard-coded 1.0 where poke-env decrements per observed use (dims 627/673/719, SMD 0.94);
+  FIXED in the tracker (bd3d06a), P-1 still bitwise, A-1a re-run on the fixed build shows
+  NOTHING separated. **7.5 closes on A-1 re-run on the fixed build (~2.4 h, ASKED).**
+- **K-1 (k=256 screen) is PARKED, reviewed x2** (`configs/engine_k256*.yaml`): the monster
+  should run at k=8 — k buys 5 fleet-hours and the screen cannot resolve a 2-point cost.
 
 ## Next actions
-0. **SEARCH RELOOK (critical, maintainer 2026-09-10).** On record: VALUE-LIMITED, not
-   dose-limited — depth-1 over the PPO critic went NEGATIVE at 50M off FP (0.474 → 0.381),
-   16x n_det bought +0.0225 vs SH at 12M (last 4x: +0.0025), FP@500 ≈ FP@20 against us
-   (gen 1: 0.312/0.388/0.332 at 20/100/500 ms). The monster train MUST keep the oppact head
-   (`rl/search/agent.py:68` asserts it) AND pick its EVALUATOR lever before launch (seed
-   ensemble / privileged critic / outcome-trained evaluator). **S3 RUNNING** (agent-side,
-   detached, `scripts/search_s3_status.sh`): search@M/L + LOO-ensemble vs FRESH greedy on the
-   100M finals vs SH locked, + search@M off FP@20 (`configs/eval/search_s3_100m*.yaml`).
-   Fresh greedy landed: s104 0.7893 / s112 0.7823 / s120 0.7943 (banked pooled 0.7959).
-1. **Rule on RW-1..RW-10** (`configs/engine_a1.prereg.yaml`) + `verdict_authorized` — A-1
-   reads engine 0.6707 vs banked 0.6721 (Δ −0.0014, band ±0.025) and cannot be graded until
-   ruled; nothing 100M+ runs on the engine before 7.5 exits (one collector for steps 8–11).
-2. **k=256 screen** (3 × 12M, ~1.7 h, paired with A-1's own k=8 lanes) — pre-reg in draft.
-   The 4.035x is at an UNTESTED LEARNING config (12.6% of an update is off-policy rows).
-3. **Monster pre-reg (JOURNEY 10):** rec 100M × 2 arms × 3 seeds (R4 recipe vs + evaluator
-   lever; ~17 h at k=256 w=6) over 250M × 1 arm (35–43 h, dose only — the ladder resolves
-   ±70 Elo and R1→R4 spans 45). Maintainer launches (>5 h). Rulings owed: shape, k, JOURNEY
-   11.5-before-11, a per-decision cap for a searched ladder object (proposed ≤ 5 s).
-4. FREE wins still staged (scorer `ctx` factorization, CLEANUP E2; mmap'd team bank).
+0. **SEARCH RELOOK — the day's finding.** Depth-1 search as it existed HURTS the 100M object:
+   off FP@20 s112 **0.396 vs greedy 0.502** (n=1000); vs SH at 4/10 chunks search@M trails
+   fresh greedy by 5–10 points on all three lanes. **S1 fired (4.5x):** the leaf encoding
+   revealed the determinized bench to a critic that never saw it (bias +0.050, sd 0.125 vs
+   margins 0.028). **`det_blind` built** (f6e7226; byte-identical default): offline the
+   artefact collapses (sd 0.008, bias +0.0002) and 11.4% of dose-M decisions flip.
+   **S3B (det_blind, 3 lanes vs SH) + F3B112 (off FP@20) RUNNING**; reads pre-stated in
+   `configs/eval/search_s3_100m*.yaml` (P-B) and docs/search_relook/DET_BLIND.md §6.
+   S3M/S3L/A1E (LOO-ensemble evaluator) also running. `scripts/search_s3_status.sh`.
+1. **Monster pre-reg (JOURNEY 10), rec:** 100M × 2 arms × 3 seeds at **k=8**, w=6 (~22 h):
+   R4 recipe (oppact head ON — `rl/search/agent.py:68` asserts it) vs + a separate
+   PRIVILEGED EVALUATOR HEAD (design B, docs/proposals/privileged_critic_engine_route.md;
+   2 blocks; the ppo.py:478 guard protects nothing structurally). Rulings owed: 100M×2
+   vs 250M×1; design A/B; JOURNEY 11.5 before 11; per-decision cap for a searched ladder
+   object (proposed ≤ 5 s). Maintainer launches (>5 h).
+2. Free wins still staged (scorer `ctx` factorization, CLEANUP E2; mmap'd team bank).
 
 ## Watch items
-- **SUITE GREEN** 939 / 19 skipped + 9 live-server (port env); no single env runs it all
-  (CLEANUP E1). The live-server "flake" was an ORDERING BUG — fixed in `tests/conftest.py`.
-- **Depth-2 does NOT exist.** Today's stack: 5 s/decision (55% is a Python leaf encoder the
-  Rust encoder does 166x faster); pkmn/engine ~0.17 s PROJECTED. The asset is the 384-byte
-  clone + Rust encode, NOT the chance builds (plan §8.4 has it backwards).
+- **SUITE GREEN** in the main env (965 passed with det_blind); engine tests 87 in the port
+  env — no single env runs both (CLEANUP E1). Live-server "flake" fixed in `tests/conftest.py`.
+- Depth-2 does NOT exist; ~0.17 s/decision PROJECTED on pkmn/engine; today's stack 5 s. The
+  asset is the 384-byte clone + Rust encode, not the chance builds (plan §8.4 backwards).
 - **vs-SH is NEVER a ladder number**; resumes SPLIT wandb history (`merge_history.py`); a
   pgrep guard anchors on `bin/python`; never edit a bash script an instance is executing.
