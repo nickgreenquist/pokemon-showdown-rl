@@ -2046,3 +2046,50 @@ k=8 that affects ~3% of polls. At k=256 it is ~2.4 episodes/poll and at k=512
 `rollout/episode_length` — which are R0-gate inputs (G8 gates episode_length to
 a band). **Fix before raising k.** Mechanical; it changes history granularity,
 not learning.
+
+## 2026-09-10 — threads and minibatch size are COMPLEMENTS; neither works alone
+
+The single most useful measurement of the night, and it only exists because a
+reviewer insisted the two levers be CROSSED rather than swept independently.
+
+Idle box, `update_episodes()` (the async path the engine calls), one process
+per cell with OMP/MKL/VECLIB sized at launch, best of 3 repeats, batch 30,720:
+
+```
+minibatches  rows/mb    T=1     T=2     T=4     T=6
+    120         256    7.73    9.49    8.83    9.83     <- shipped recipe
+     30        1024    7.98    7.54    6.38    6.43
+      8        3840    9.89    6.66    5.38    5.11
+```
+
+**Read the first row alone and threading is dead** — every thread count is
+worse than T=1, which reproduces the banked 0.85x-at-T=6 result on the sync
+path. **Read the first column alone and bigger minibatches are dead** — 7.98
+and 9.89 against the shipped 7.73. Two independent sweeps would have closed
+both axes and moved on.
+
+**Crossed, they are worth 1.51x on the update** (7.73 -> 5.11 s), which at the
+measured 65.1% update share is **~1.28x on the full training loop**.
+
+The mechanism is now legible. A parallel region has to amortise its own
+fork/join barrier; at 256 rows it cannot, at 1024 it can, and at 3,840 threads
+scale nearly linearly (9.89 -> 5.11 = 1.94x across T=1..6 at the same shape).
+The single-thread column moving the OTHER way (7.73 -> 7.98 -> 9.89) is a
+cache-capacity effect: 3,840 rows x 828 floats is ~12.7 MB of observations per
+minibatch, well past L2, so single-threaded it is strictly worse. The two
+effects cross, which is why the optimum is interior.
+
+**This also kills the third hypothesis.** "`BLAS_INFO=accelerate` means
+`set_num_threads` never reaches the sgemm" cannot be right: threads plainly
+reach it once the minibatch is large enough to pay for the barrier. The
+Accelerate reading explains the SHIPPED row and nothing else.
+
+**What may be adopted, and what may not.** `torch_threads` is free — reduction
+order changes, the update does not. **`minibatches` CHANGES LEARNING**: 4
+epochs x 8 minibatches is 32 optimizer steps per update against the shipped
+480, a materially different optimiser trajectory, different gradient noise and
+a different effective learning rate per sample. The 1.51x is a SPEED
+measurement and nothing here licenses the recipe change; it needs its own
+pre-reg and its own credit line. The honest split today is: threads are
+adoptable only in combination with a minibatch change that is not, so **the
+free part of this finding is zero and the whole 1.51x sits behind a pre-reg.**
