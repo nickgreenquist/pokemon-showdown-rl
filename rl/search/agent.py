@@ -35,6 +35,11 @@ from poke_env.data import GenData
 from rl.common.masking import masked_logits
 from rl.search.bridge import is_locked_turn
 from rl.search.matrix import N_L6, Dose, decision_rng, solve_decision
+from rl.search.shadow_battle import public_view
+
+# Leaf-encoding options (docs/search_relook/DET_BLIND.md). None is the
+# R2-credited as-is encoding; nothing else has ever run.
+LEAF_ENCODINGS = (None, "det_blind")
 
 # R3 E-cell noise stream: keyed like decision_rng but with this salt so the
 # noise draws NEVER share (or shift) the determinization stream — an E2 arm
@@ -51,8 +56,18 @@ class SearchAgent:
         battle_format: str = "gen1randombattle",
         evaluator: dict | None = None,
         det_fn=None,
+        leaf_encoding: str | None = None,
     ):
-        """`evaluator` — R3's E-cell dial (design §4 R3). None = E0, the
+        """`leaf_encoding` — the leaf ENCODER dial (S1's finding,
+        docs/search_relook/DET_BLIND.md). None = as-is, the R2-credited
+        configuration, bit-identical (no view built, no extra work).
+        "det_blind" hands every leaf the ROOT battle's opponent-side
+        `PublicView`, so the determinizer's invented bench and movesets are
+        encoded as UNKNOWN exactly where the live encoder would leave them
+        unknown. Orthogonal to `evaluator`: this fixes the evaluator's
+        INPUT, that swaps the evaluator.
+
+        `evaluator` — R3's E-cell dial (design §4 R3). None = E0, the
         R2-credited configuration, bit-identical (no extra rng draws, no
         wrapper on the critic). Screen-grade dials:
           {"kind": "noise", "sigma": s}  E2: v_leaf + N(0, s) in outcome
@@ -75,10 +90,14 @@ class SearchAgent:
                 assert float(evaluator["sigma"]) > 0.0
             if kind == "loo":
                 assert evaluator["agents"], "loo needs the other lanes' agents"
+        assert leaf_encoding in LEAF_ENCODINGS, (
+            f"unknown leaf_encoding {leaf_encoding!r}; one of {LEAF_ENCODINGS}"
+        )
         self._agent = agent
         self._dose = dose
         self._seed = int(checkpoint_seed)
         self._evaluator = evaluator
+        self.leaf_encoding = leaf_encoding
         # det_fn: R3 oracle-team diagnostic ONLY — injected from the
         # separate binary; None = RSD sampling (every other arm, ever).
         self._det_fn = det_fn
@@ -156,6 +175,9 @@ class SearchAgent:
             self._decision_critic(battle_index, turn, decision_index),
             self._type_chart,
             det_fn=self._det_fn,
+            leaf_view=(
+                public_view(battle) if self.leaf_encoding == "det_blind" else None
+            ),
         )
         if action != stats["search/policy_argmax"]:
             self.counters["search/flips"] += 1

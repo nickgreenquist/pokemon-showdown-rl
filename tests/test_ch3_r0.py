@@ -146,8 +146,11 @@ def test_jobs_search_kind_and_legacy_shape():
     }}
     jobs = ch3_eval._jobs(r2)
     assert set(jobs) == {"a0_s62", "a0_s63", "a1s_s62", "a1s_s63"}
+    # `leaf_encoding` joined the job dict on 2026-09-10 (DET_BLIND.md) and is
+    # None on an arm that does not declare it — i.e. the as-is leaf encoding
+    # every banked search arm ran.
     assert jobs["a1s_s62"] == {"arm": "A1S", "members": ["s62"],
-                               "search_dose": "M"}
+                               "search_dose": "M", "leaf_encoding": None}
     assert "search_dose" not in jobs["a0_s62"]
     with pytest.raises(ValueError):
         ch3_eval._jobs({"arms": {"X": {"kind": "mcts"}}})

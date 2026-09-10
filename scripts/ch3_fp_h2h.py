@@ -28,6 +28,9 @@ every path here behaves exactly as it did for FG/FS):
   * the seat lane is `arm.get("seat", "s65")`, so arms that name no seat
     (FG/FS) resolve to exactly the s65 checkpoint and checkpoint_seed 65
     they always did.
+A `search_seat` arm may also declare `leaf_encoding: det_blind` (2026-09-10,
+docs/search_relook/DET_BLIND.md); absent = the as-is leaf encoding, and the
+realized value lands in the report as `search_leaf_encoding` either way.
 The crash-forfeit auto-relaunch loop lives in scripts/ch3_r4_fp_runner.sh.
 """
 
@@ -318,10 +321,14 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         evaluator, eval_provenance = _resolve_evaluator(
             prereg, seat_lane, arm.get("evaluator"), agent
         )
+        # `leaf_encoding` (optional, 2026-09-10 — docs/search_relook/DET_BLIND.md):
+        # absent = the as-is leaf encoding every banked FS/FE arm ran. The
+        # realized value is stamped into the report below either way.
         search_agent = SearchAgent(
             agent, DOSES[arm["dose"]],
             checkpoint_seed=int(seat_lane.lstrip("s")),
             evaluator=evaluator,
+            leaf_encoding=arm.get("leaf_encoding"),
         )
     seat = SeatPlayer(
         agent,
@@ -392,6 +399,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
         lv = np.array(seat.leaves) if seat.leaves else np.array([0])
         report.update({
+            "search_leaf_encoding": search_agent.leaf_encoding or "as_is",
             "search/ms_mean": float(ms.mean()),
             "search/leaves_mean": float(lv.mean()),
             "search/searched_decisions": len(seat.ms),

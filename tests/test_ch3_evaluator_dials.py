@@ -118,10 +118,13 @@ def test_oppact_uniform_substitutes_q_but_records_real_entropy(monkeypatch):
     captured = {}
     real_solve = agent_mod.solve_decision
 
-    def spy(battle, mask, q, prior, dose, rng, critic_fn, type_chart, det_fn=None):
+    # **kw, not a pinned argument list: this spy exists to capture `q`, and
+    # every new solve_decision dial (det_fn, then leaf_view) would otherwise
+    # break it (2026-09-10).
+    def spy(battle, mask, q, prior, dose, rng, critic_fn, type_chart, **kw):
         captured["q"] = q.copy()
         return real_solve(battle, mask, q, prior, dose, rng, critic_fn,
-                          type_chart, det_fn=det_fn)
+                          type_chart, **kw)
 
     monkeypatch.setattr(agent_mod, "solve_decision", spy)
     sa = SearchAgent(

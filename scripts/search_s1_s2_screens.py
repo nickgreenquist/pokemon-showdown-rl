@@ -47,6 +47,22 @@ four dets ARE M's four dets — L is a strict superset of M's sample, not an
 independent redraw.
 
 Writes <out>/s1.json and <out>/s2.json (per-decision rows + pooled stats).
+
+--det-blind (2026-09-10, docs/search_relook/DET_BLIND.md) RE-RUNS S1 ONLY,
+on the same 800 decisions, with the information-boundary leaf encoding on:
+
+  * the S1 root encode passes the ROOT battle's `PublicView`, so the
+    determinizer's unrevealed bench and invented movesets are encoded as
+    UNKNOWN exactly where the live encoder leaves them unknown;
+  * the primary search arm is `SearchAgent(..., leaf_encoding="det_blind")`
+    at Dose M, and the comparator arm is the SAME Dose M AS-IS. Both key
+    the same `decision_rng`, so they draw the identical four
+    determinizations and differ ONLY in how a leaf is encoded — the flip
+    rate between them is therefore the artefact's decision footprint, with
+    nothing else moving.
+  * output goes to <out>/s1_det_blind.json and NO s2 file is written: S2's
+    read rule is about BUDGET (Dose L vs Dose M) and there is no Dose L in
+    this mode, so `s2.json` keeps its pre-registered meaning untouched.
 """
 
 import argparse
@@ -68,7 +84,7 @@ from rl.search.bridge import BridgeCounters, battle_to_state
 from rl.search.determinize import sample_determinization
 from rl.search.harvest import rehydrate_battle
 from rl.search.matrix import DOSES, SearchWatchdogError, decision_rng
-from rl.search.shadow_battle import shadow_battle
+from rl.search.shadow_battle import public_view, shadow_battle
 from rl.train import make_agent
 
 # Pre-stated S2 bound constant (decisions per battle). Conservative: a
@@ -111,10 +127,19 @@ def _margin(row_ev: dict) -> tuple[float | None, float | None, int]:
     return float(vals[0] - vals[1]), float(vals.std()), int(vals.size)
 
 
-def screen_lane(prereg: dict, lane: str, n: int, harvest_dir: Path) -> tuple[list[dict], dict]:
+def screen_lane(
+    prereg: dict, lane: str, n: int, harvest_dir: Path, det_blind: bool = False
+) -> tuple[list[dict], dict]:
     agent, cfg = _load_agent(prereg["checkpoints"][lane])
-    search_m = SearchAgent(agent, DOSES["M"], checkpoint_seed=cfg.seed)
-    search_l = SearchAgent(agent, DOSES["L"], checkpoint_seed=cfg.seed)
+    if det_blind:
+        # arm "m" = the det_blind primary; arm "l" = the AS-IS comparator at
+        # the SAME dose. Same decision_rng key -> identical determinizations.
+        search_m = SearchAgent(agent, DOSES["M"], checkpoint_seed=cfg.seed,
+                               leaf_encoding="det_blind")
+        search_l = SearchAgent(agent, DOSES["M"], checkpoint_seed=cfg.seed)
+    else:
+        search_m = SearchAgent(agent, DOSES["M"], checkpoint_seed=cfg.seed)
+        search_l = SearchAgent(agent, DOSES["L"], checkpoint_seed=cfg.seed)
     type_chart = search_m._type_chart
     n_det_s1 = DOSES["M"].n_det
 
@@ -147,11 +172,12 @@ def screen_lane(prereg: dict, lane: str, n: int, harvest_dir: Path) -> tuple[lis
         v_root = float(_critic(agent, row["obs"][None, :].astype(np.float32))[0])
         rng = decision_rng(int(cfg.seed), bi, int(battle.turn), si)
         encs, det_err = [], None
+        view = public_view(battle) if det_blind else None
         try:
             dets = [sample_determinization(battle, rng) for _ in range(n_det_s1)]
             for det in dets:
                 state = battle_to_state(battle, det, BridgeCounters())
-                sb = shadow_battle(state, turn=int(battle.turn))
+                sb = shadow_battle(state, turn=int(battle.turn), view=view)
                 encs.append(embed_battle(sb, type_chart))
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -209,17 +235,20 @@ def screen_lane(prereg: dict, lane: str, n: int, harvest_dir: Path) -> tuple[lis
 # aggregation
 # ---------------------------------------------------------------------------
 
-def _s1_stats(rows: list[dict]) -> dict:
+def _s1_stats(rows: list[dict], arm: str = "m") -> dict:
     """Pooled S1 read. `usable` = a decision with 4 det deltas AND a defined
-    Dose-M margin (>= 2 legal rows, no watchdog trip, not a placeholder)."""
-    usable = [r for r in rows if r["deltas"] and r["margin_m"] is not None]
+    margin on `arm` (>= 2 legal rows, no watchdog trip, not a placeholder).
+    `arm` is "m" everywhere except the --det-blind re-run's secondary read,
+    which prices the same Deltas against the AS-IS arm's margins."""
+    mk, sk = f"margin_{arm}", f"row_ev_sd_{arm}"
+    usable = [r for r in rows if r["deltas"] and r[mk] is not None]
     if not usable:
         return {"n_decisions": len(rows), "n_usable": 0}
     all_deltas = np.array([d for r in usable for d in r["deltas"]], dtype=np.float64)
     mean_delta = np.array([float(np.mean(r["deltas"])) for r in usable])
     sd_delta = np.array([float(np.std(r["deltas"], ddof=1)) for r in usable])
-    margins = np.array([float(r["margin_m"]) for r in usable])
-    ev_sd = np.array([float(r["row_ev_sd_m"]) for r in usable])
+    margins = np.array([float(r[mk]) for r in usable])
+    ev_sd = np.array([float(r[sk]) for r in usable])
     pooled_sd = float(all_deltas.std(ddof=1))
     median_margin = float(np.median(margins))
     return {
@@ -293,6 +322,36 @@ def _s2_stats(rows: list[dict]) -> dict:
     }
 
 
+def _det_blind_flips(rows: list[dict]) -> dict:
+    """The --det-blind flip block, arms named. `_s2_stats`' arithmetic is
+    reused unchanged; only the labels differ, because in this mode "m" is
+    det_blind@M and "l" is as-is@M on the IDENTICAL determinizations. The
+    S2 budget bound is not reported: there is no Dose L here."""
+    s = _s2_stats(rows)
+    if not s.get("n_usable"):
+        return s
+    ren = {
+        "flip_rate_L_vs_M": "flip_rate_det_blind_vs_as_is",
+        "n_flips_L_vs_M": "n_flips_det_blind_vs_as_is",
+        "flip_rate_M_vs_greedy": "flip_rate_det_blind_vs_greedy",
+        "flip_rate_L_vs_greedy": "flip_rate_as_is_vs_greedy",
+        "mean_margin_M_at_L_vs_M_flips": "mean_margin_det_blind_at_flips",
+        "median_margin_M_at_L_vs_M_flips": "median_margin_det_blind_at_flips",
+        "mean_margin_M_at_non_flips": "mean_margin_det_blind_at_non_flips",
+        "median_margin_M_at_non_flips": "median_margin_det_blind_at_non_flips",
+        "n_watchdog_m": "n_watchdog_det_blind",
+        "n_watchdog_l": "n_watchdog_as_is",
+        "ms_per_decision_M": "ms_per_decision_det_blind",
+        "ms_per_decision_L": "ms_per_decision_as_is",
+        "leaves_per_decision_M": "leaves_per_decision_det_blind",
+        "leaves_per_decision_L": "leaves_per_decision_as_is",
+    }
+    drop = ("S2_LOW_FLIP_BOUND_HOLDS", "decisions_touched_per_battle_prestated_38")
+    out = {"arm_primary": "det_blind@M", "arm_comparator": "as_is@M"}
+    out.update({ren.get(k, k): v for k, v in s.items() if k not in drop})
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--prereg", default="configs/eval/ch3_rung2.yaml")
@@ -301,6 +360,11 @@ def main() -> None:
     ap.add_argument("--out", default="results/search_s1_s2")
     ap.add_argument("--torch-threads", type=int, default=2)
     ap.add_argument("--lanes", default="", help="comma list; default all in the prereg")
+    ap.add_argument(
+        "--det-blind", action="store_true",
+        help="re-run S1 ONLY with the information-boundary leaf encoding "
+             "(docs/search_relook/DET_BLIND.md); writes s1_det_blind.json",
+    )
     args = ap.parse_args()
 
     for var in ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS"):
@@ -315,10 +379,14 @@ def main() -> None:
     rows: list[dict] = []
     metas: dict[str, dict] = {}
     t0 = time.perf_counter()
+    arms = ("det_blind@M + as-is@M" if args.det_blind else "Dose M + Dose L")
     for lane in lanes:
         print(f"[{time.strftime('%H:%M:%S')}] screening {lane} "
-              f"({args.per_lane} decisions, S1 + Dose M + Dose L)...", flush=True)
-        lrows, meta = screen_lane(prereg, lane, args.per_lane, Path(args.harvest))
+              f"({args.per_lane} decisions, S1 + {arms})...", flush=True)
+        lrows, meta = screen_lane(
+            prereg, lane, args.per_lane, Path(args.harvest),
+            det_blind=args.det_blind,
+        )
         rows.extend(lrows)
         metas[lane] = meta
     wall = time.perf_counter() - t0
@@ -346,7 +414,28 @@ def main() -> None:
         "lane_meta": metas,
         "searchable_decisions_per_battle_measured": dpb,
         "decisions_per_battle_prestated": DECISIONS_PER_BATTLE_PRESTATED,
+        "leaf_encoding": "det_blind" if args.det_blind else "as_is",
+        "arm_m": "det_blind@M" if args.det_blind else "as_is@M",
+        "arm_l": "as_is@M" if args.det_blind else "as_is@L",
     }
+    if args.det_blind:
+        provenance["root_encoding"] = (
+            "embed_battle(shadow_battle(battle_to_state(battle, det), "
+            "turn=battle.turn, view=public_view(battle)), type_chart)"
+        )
+        provenance["root_encoding_note"] = (
+            "the det_blind root: the determinizer's unrevealed bench and "
+            "invented movesets are encoded as UNKNOWN, exactly as the live "
+            "encoder leaves them. Declared residual families (measured, "
+            "DET_BLIND.md): opponent HP quantisation, transformed-Ditto base "
+            "stats/types and everything downstream of them, preparing, "
+            "root trapped, the sleep/Rest counter split."
+        )
+        provenance["paired_note"] = (
+            "arm_m and arm_l key the SAME decision_rng, so they expand the "
+            "identical four determinizations and the same branches; the only "
+            "difference between them is how a leaf is ENCODED"
+        )
 
     s1 = {
         "screen": "S1 — leaf-encoding bias vs decision margin",
@@ -364,6 +453,30 @@ def main() -> None:
             for r in rows
         ],
     }
+    if args.det_blind:
+        s1["screen"] = (
+            "S1 (det_blind re-run) — leaf-encoding bias vs decision margin, "
+            "with the information-boundary leaf encoding on"
+        )
+        # the same Deltas priced against the AS-IS arm's margins, so the ratio
+        # can be read against the original screen's denominator too
+        s1["pooled_vs_as_is_margins"] = _s1_stats(rows, arm="l")
+        s1["flips"] = _det_blind_flips(rows)
+        s1["flips_per_lane"] = {
+            ln: _det_blind_flips([r for r in rows if r["lane"] == ln])
+            for ln in lanes
+        }
+        s1["decisions"] = [
+            {k: v for k, v in r.items() if not k.startswith("err_l")} for r in rows
+        ]
+        out_path = outdir / "s1_det_blind.json"
+        out_path.write_text(json.dumps(s1, indent=2) + "\n")
+        print(json.dumps(
+            {"S1_det_blind": s1["pooled"], "flips": s1["flips"]}, indent=2
+        ))
+        print(f"wrote {out_path}  ({wall / 60:.1f} min)")
+        return
+
     s2_pooled = _s2_stats(rows)
     s2_pooled["decisions_touched_per_battle_measured"] = (
         s2_pooled.get("flip_rate_L_vs_M", float("nan")) * dpb

@@ -13,6 +13,13 @@ is one chunk. When all chunks exist the job writes a merged
 `eval/win_rate` (env-supplied) is authoritative; `wins_from_returns` is the
 sign-bug cross-check and MUST agree exactly (R0-a; the grader enforces).
 
+A `kind: search` arm may also declare `leaf_encoding: det_blind` (2026-09-10,
+docs/search_relook/DET_BLIND.md) — the leaf is then encoded at the LIVE
+encoder's information boundary instead of the determinizer's. The key is
+OPTIONAL and absent means the as-is encoding every banked search arm ran;
+either way the realized value is stamped into every chunk JSON as
+`search_leaf_encoding` so the arm is gradeable from disk.
+
 R2 (the search rungs): an arm with `kind: search` (plus `dose`, per-lane
 `lanes`) runs each lane through rl/search's SearchAgent via
 _SearchEvalAdapter — battle1 read live off the env, decision rng keyed by
@@ -203,6 +210,8 @@ def _jobs(prereg: dict) -> dict[str, dict]:
                 jobs[f"{prefix}_{lane}"] = {
                     "arm": arm_name, "members": [lane],
                     "search_dose": spec["dose"],
+                    # absent -> None -> the as-is leaf encoding (DET_BLIND.md)
+                    "leaf_encoding": spec.get("leaf_encoding"),
                 }
         elif kind == "ensemble":
             for b in range(spec["batches"]):
@@ -330,6 +339,7 @@ def run_job(prereg: dict, name: str) -> None:
             agent0, DOSES[job["search_dose"]],
             checkpoint_seed=int(first_lane.lstrip("s")),
             evaluator=evaluator,
+            leaf_encoding=job.get("leaf_encoding"),
         )
         adapter = agent = _SearchEvalAdapter(sa, env)
     elif len(job["members"]) == 1:
@@ -393,6 +403,9 @@ def run_job(prereg: dict, name: str) -> None:
         if adapter is not None:
             report.update(adapter.chunk_summary())
             report["search_dose"] = job["search_dose"]
+            # DET_BLIND.md: the realized leaf encoder, always stamped so an
+            # arm is gradeable from disk with no reference back to the pre-reg
+            report["search_leaf_encoding"] = job.get("leaf_encoding") or "as_is"
             if eval_provenance is not None:
                 report["evaluator"] = eval_provenance
         desync_before = desync_now
@@ -435,6 +448,9 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
         flips = sum(rep["search/flips"] for rep in reports)
         searched = sum(rep["search/searched_decisions"] for rep in reports)
         final["search_dose"] = reports[0]["search_dose"]
+        # .get: chunks written before 2026-09-10 carry no leaf-encoder stamp,
+        # and every one of them is as-is by construction
+        final["search_leaf_encoding"] = reports[0].get("search_leaf_encoding", "as_is")
         final["search/decisions"] = dec
         final["search/placeholder_skips"] = skips
         final["search/placeholder_skip_rate"] = skips / dec if dec else None

@@ -50,7 +50,7 @@ from rl.envs.showdown import embed_battle
 from rl.search.bridge import BridgeCounters, battle_to_state
 from rl.search.determinize import sample_determinization
 from rl.search.expansion import expand_leaf
-from rl.search.shadow_battle import shadow_battle
+from rl.search.shadow_battle import PublicView, shadow_battle
 
 # L6 class indices, pinned by rl/networks/opp_action.py (the header contract).
 N_L6 = 6
@@ -140,14 +140,20 @@ def solve_decision(
     critic_fn: Callable[[np.ndarray], np.ndarray],
     type_chart: dict,
     det_fn: Callable[[Any, np.random.Generator], dict] | None = None,
+    leaf_view: PublicView | None = None,
 ) -> tuple[int, dict]:
     """One depth-1 BR solve. `q` is the oppact head's plain L6 posterior at
     the root; `prior` the masked policy probabilities (tie-break only);
     `critic_fn` maps (N, OBS_DIM) float32 -> (N,) values. `det_fn` defaults
     to RSD sampling; the ONLY other caller is R3's contained oracle-team
     diagnostic, which injects true-team dets from outside rl/search (the
-    bridge's FG-4 assert still governs what passes). Returns
-    (action index, stats)."""
+    bridge's FG-4 assert still governs what passes).
+
+    `leaf_view` is the det_blind option (docs/search_relook/DET_BLIND.md):
+    the ROOT battle's opponent-side `PublicView`, handed to every leaf's
+    `shadow_battle` so the leaf is encoded at the live encoder's information
+    boundary rather than the determinizer's. None = the as-is leaf encoding,
+    byte-for-byte. Returns (action index, stats)."""
     rows = [i for i in range(len(mask)) if mask[i]]
     assert rows, "no legal action at a decision point"
     counters = BridgeCounters()
@@ -178,6 +184,23 @@ def solve_decision(
         other_move_mass = float(q[OTHER_MOVE])
         w = np.array([float(q[c]) for c in col_classes], dtype=np.float64)
         col_w = (w / w.sum()) if w.sum() > 0 else np.full(len(w), 1.0 / len(w))
+
+    # det_blind: one view per COLUMN. A column's opponent action is the same
+    # move id across determinizations (the containment law makes the active's
+    # four slots det-independent), so the leaf's information set differs only
+    # by which move the transition revealed. A SWITCH column names a species
+    # and a locked/force-switch column names "none": neither reveals a move,
+    # and the membership test against the active's own four slots is what
+    # keeps a species that happens to spell a move id out of the set.
+    if leaf_view is None:
+        col_views: list[PublicView | None] = [None] * len(col_classes)
+    else:
+        own_moves = set(slot_moves[:4])
+        col_views = [
+            leaf_view.plus_move(opp_active_species, col_actions[ci][0])
+            if col_actions[ci][0] in own_moves else leaf_view
+            for ci in range(len(col_classes))
+        ]
 
     # --- cell fill: shared determinizations, top-B retention ------------
     leaf_obs: list[np.ndarray] = []
@@ -222,9 +245,10 @@ def solve_decision(
                             )
                         tv = _terminal_value(lv)
                         if tv is None:
-                            leaf_obs.append(
-                                embed_battle(shadow_battle(lv, turn + 1), type_chart)
-                            )
+                            leaf_obs.append(embed_battle(
+                                shadow_battle(lv, turn + 1, view=col_views[ci]),
+                                type_chart,
+                            ))
                             leaf_fixed.append(np.nan)
                         else:
                             leaf_obs.append(None)
