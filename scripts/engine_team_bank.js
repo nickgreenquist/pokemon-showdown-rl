@@ -5,6 +5,18 @@
 // MIT, vendored in this repo at showdown/ and pinned to 59da482e. Only
 // `dist/sim` is loaded -- this starts NO server and opens NO socket.
 //
+// PROVENANCE CORRECTION (2026-09-10): the server RESEEDS between the two teams
+// and this script does not. `battle.ts:3167-3169` mints a fresh `options.seed`
+// for the second `setPlayer`, and `:3174` applies it with
+// `teamGenerator.setSeed(...)`; here, two bare `getTeam()` calls on one
+// generator leave team 2 continuing team 1's PRNG stream. Believed INERT --
+// SodiumRNG is a ChaCha20 forward ratchet that re-keys from its own output each
+// `next()` (`prng.ts:198-210`), so a continued stream is indistinguishable from
+// a fresh key -- and the Ditto coupling below is unaffected either way, because
+// it lives on the generator object and survives `setSeed`. Recorded rather than
+// changed: rebuilding the bank would invalidate its sha and every gate that
+// cites it, for a difference with no known mechanism.
+//
 // PAIRS, not single teams. `battleHasDitto` is a field on the TEAM GENERATOR,
 // and PS creates exactly one generator per Battle and calls getTeam() twice
 // (sim/battle.ts:3171-3177), so "at most one Ditto" is a property of the PAIR

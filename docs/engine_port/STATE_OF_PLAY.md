@@ -120,5 +120,40 @@ Two rulings arrived. My assessment, with a second opus reviewer running:
   same-box head-to-head A/B at 12M scale for free** and retires the
   historical-baseline question.
 
+### Second opinion (independent opus reviewer) — where it CHANGED my verdicts
+
+* **Band: REJECT — CONFIRMED by both.** No disagreement.
+* **A-1a: my ADOPT was too loose. Correct verdict is ADOPT AS AN *ADDITIONAL*
+  GATE, REJECT AS A REPLACEMENT.** The ruling has A-1a "carry the decision".
+  It cannot: row parity at a FIXED checkpoint tests the collector's OUTPUT
+  under a frozen policy, not LEARNING. A collector can emit identical rows and
+  still break learning through staleness, the recorded-old_logp path, or GAE
+  on unfinished episodes — none of which a frozen-policy comparison touches.
+  A-1a is still worth building, because it is the sharpest instrument available
+  against the `track.rs` hole; it is a complement to the outcome gate, not a
+  substitute for it.
+* **Team source: the ruling's PREMISE IS WRONG.** The bank calls literally the
+  same PS generator object the server does (`showdown/sim/teams.ts:629-649`,
+  invoked from `battle.ts:3172`), at the same pin, with the `battleHasDitto`
+  pair coupling preserved. The team DISTRIBUTIONS match; A-1a would not fail
+  spuriously on this. The residual the ruling gestures at is real but is a
+  different thing — train-on-finite-support vs evaluate-on-fresh-teams, an
+  asymmetry BETWEEN THE ARMS — and it is exactly what RW-6 already addresses:
+  the 5,000,000-pair bank gives 0.078x recurrence at 12M. No distributional
+  proof substitutes for bank size there.
+* Also established: **"feed the server packed teams" is BLOCKED** for
+  `gen1randombattle` — `team-validator.ts:381-387` refuses a user team before
+  the sim is reached, and poke-env sends `/utm` unconditionally
+  (`ps_client.py:328-332`). It is achievable only via a custom vendored format
+  (a gitignored tree edit of the `simulator: 4` chore class). So of the
+  ruling's three resolutions, (a) is expensive, (b) is a coarsening rather than
+  a control, and (c) proves the wrong thing.
+* **New, and actionable: a bank provenance discrepancy.** The server reseeds
+  between the two teams (`battle.ts:3167-3169`, `:3174`); our generator does
+  not. Verified in both files. Believed inert (ChaCha20 forward ratchet; Ditto
+  coupling survives `setSeed`) and recorded in `scripts/engine_team_bank.js`
+  rather than fixed, since a rebuild would invalidate the bank sha and every
+  gate citing it for a difference with no known mechanism.
+
 Nothing above is ratified. `rulings_wanted` in
 `configs/engine_a1.prereg.yaml` still ends the sidecar with all eight open.
