@@ -30,31 +30,31 @@
   s75 0.6925, s83 0.6555. `ratified_decisions` empty; RW-1..RW-10 all owed.
 
 ## Next actions
-0. **ANY 100M/250M TRAIN MUST KEEP THE OPPACT HEAD, or it can never be searched.**
-   `rl/search/agent.py:68` hard-asserts `agent.aux_head is not None` — search uses its
-   L6 posterior as the opponent distribution `q`. Requires `agent.aux_oppact_coef > 0`
-   AND `env_kwargs.opp_action: true`. Unrecoverable after the fact: a monster checkpoint
-   without it is greedy-only forever. **SEARCH RELOOK IS CRITICAL** (maintainer,
-   2026-09-10) — the depreciation CLOSED ruling is VACATED; it swept `n_det` at ONE
-   depth and depth-2 does not exist in `rl/search/` at all.
-1. **Rule on RW-1..RW-10** (`configs/engine_a1.prereg.yaml`) — nothing about A-1 can be
-   graded until the band is ruled; `scripts/engine_a1_grade.py` refuses by design.
-2. **Apply the two FREE wins** — scorer `ctx` factorization (staged, tested) and an
-   mmap'd team bank. Neither changes learning; both were held back only so the A/B and
-   the max-out sweep would not span two builds.
-3. **Anything that changes LEARNING needs its own pre-reg**: k 8→256 (staleness), the
-   threads×minibatches pair (trajectory). Width 3→6 does NOT — it is free, and it is
-   fleet throughput only.
-4. **IDEAS after 7.5:** §4 ranked 4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4; §2.9's remaining
-   bit-identical update wins and §5's shared trunk (19.5% of the epoch loop). SB3
-   migration is CLOSED (§3 + docs/CLEANUP.md).
+0. **SEARCH RELOOK (critical, maintainer 2026-09-10).** On record: VALUE-LIMITED, not
+   dose-limited — depth-1 over the PPO critic went NEGATIVE at 50M off FP (0.474 → 0.381),
+   16x n_det bought +0.0225 vs SH at 12M (last 4x: +0.0025), FP@500 ≈ FP@20 against us
+   (gen 1: 0.312/0.388/0.332 at 20/100/500 ms). The monster train MUST keep the oppact head
+   (`rl/search/agent.py:68` asserts it) AND pick its EVALUATOR lever before launch (seed
+   ensemble / privileged critic / outcome-trained evaluator). **S3 RUNNING** (agent-side,
+   detached, `scripts/search_s3_status.sh`): search@M/L + LOO-ensemble vs FRESH greedy on the
+   100M finals vs SH locked, + search@M off FP@20 (`configs/eval/search_s3_100m*.yaml`).
+   Fresh greedy landed: s104 0.7893 / s112 0.7823 / s120 0.7943 (banked pooled 0.7959).
+1. **Rule on RW-1..RW-10** (`configs/engine_a1.prereg.yaml`) + `verdict_authorized` — A-1
+   reads engine 0.6707 vs banked 0.6721 (Δ −0.0014, band ±0.025) and cannot be graded until
+   ruled; nothing 100M+ runs on the engine before 7.5 exits (one collector for steps 8–11).
+2. **k=256 screen** (3 × 12M, ~1.7 h, paired with A-1's own k=8 lanes) — pre-reg in draft.
+   The 4.035x is at an UNTESTED LEARNING config (12.6% of an update is off-policy rows).
+3. **Monster pre-reg (JOURNEY 10):** rec 100M × 2 arms × 3 seeds (R4 recipe vs + evaluator
+   lever; ~17 h at k=256 w=6) over 250M × 1 arm (35–43 h, dose only — the ladder resolves
+   ±70 Elo and R1→R4 spans 45). Maintainer launches (>5 h). Rulings owed: shape, k, JOURNEY
+   11.5-before-11, a per-decision cap for a searched ladder object (proposed ≤ 5 s).
+4. FREE wins still staged (scorer `ctx` factorization, CLEANUP E2; mmap'd team bank).
 
 ## Watch items
-- **SUITE GREEN** 939 passed / 19 skipped in 2 min + 9 live-server in 4.5 s (port env).
-  Main env skips 30 engine tests — no single env runs it all (CLEANUP E1).
-- **The live-server "flake" was an ORDERING BUG** — poke-env draws seat names from global
-  `random`, pinned by `set_seed()` first. Fixed + bounded in `tests/conftest.py`.
-- **vs-SH is NEVER a ladder number**; the gen-4 ladder is banked and unrun. No projection.
-- Resumes SPLIT wandb history — always `merge_history.py`, then `history_merged.csv`.
-- **A pgrep guard must anchor on `bin/python`**; 0.786 is Wang's NETWORK-ALONE cell;
-  never edit a bash script an instance is executing (byte-offset resume into garbage).
+- **SUITE GREEN** 939 / 19 skipped + 9 live-server (port env); no single env runs it all
+  (CLEANUP E1). The live-server "flake" was an ORDERING BUG — fixed in `tests/conftest.py`.
+- **Depth-2 does NOT exist.** Today's stack: 5 s/decision (55% is a Python leaf encoder the
+  Rust encoder does 166x faster); pkmn/engine ~0.17 s PROJECTED. The asset is the 384-byte
+  clone + Rust encode, NOT the chance builds (plan §8.4 has it backwards).
+- **vs-SH is NEVER a ladder number**; resumes SPLIT wandb history (`merge_history.py`); a
+  pgrep guard anchors on `bin/python`; never edit a bash script an instance is executing.

@@ -11327,3 +11327,44 @@ line numbers are not — grep the date, then read that region):
   dependencies. scipy appears once, in a comment saying it is deliberately NOT
   used; seaborn is absent entirely. Only matplotlib was real, and it is one
   figure script no test imports.
+- 2026-09-10 (afternoon, agent; "take it from here … what you will be owning",
+  then "lets get to work") — **THE PLAN CHECK, AND S3 IS RUNNING.** The maintainer's
+  frame: port done (confirmed), monster train next (100M/250M), search on top under
+  pure self-play. Three corrections from the record. (1) **FP@500 does not show
+  that budget pays**: against us FP@500 ≈ FP@20 in both gens (gen 1 s65: 0.312 /
+  0.388 / 0.332 at 20/100/500 ms, non-monotone at 1–2 se; gen 4: 0.293 vs 0.264).
+  Our own n_det axis is measured saturated (R3: S→M +0.0200 resolved, M→L +0.0025
+  unresolved, 16x compute for +0.0225 total, 12M vs SH); search@M went NEGATIVE at
+  50M off FP (s66 0.474 → 0.381); LADDER R3 (search@M, 50M) sat below R4 (greedy,
+  100M) at Elo 1232 vs 1354. Chapter 3's dial sweep: evaluator noise σ=0.1 costs
+  −0.06 (E2), the LOO critic ensemble is the only dial that moved (+0.036 screen,
+  +0.0224 at credit grade, B3 FLAT), oracle teams HURT, oppact-uniform flat. So
+  "search on top" = an EVALUATOR decision at TRAINING time + a depth build at
+  inference. (2) **k=256 is the 4.035x number and an untested LEARNING config**
+  (12.6% off-policy rows; A-1 accepted the collector at k=8). (3) **250M
+  same-recipe likely ladders inside R4's noise** (curve 0.724/0.758/0.792 at
+  50/75/100M vs SH; last doubling +0.009; ladder 2σ ≈ 71 Elo, R1→R4 spread 45).
+  Rec: 100M × 2 arms × 3 seeds (R4 recipe vs + evaluator lever), ~17 h at k=256
+  w=6. Depth-2: none exists; 5.0 s/decision on today's stack (a Python leaf
+  encoder is 55% of a decision, 166x slower than the Rust encoder); ~0.17 s
+  PROJECTED on pkmn/engine; the asset is the 384-byte clone + Rust encode, not
+  the `-Dchance` builds (plan §8.4 backwards — default build is sampled chance).
+  The binding budget is the 3×3000 verdict protocol, not the ladder's 150 s.
+  **S3 launched 15:07Z** (`configs/eval/search_s3_100m.yaml` + `_offfp.yaml`,
+  committed first; `scripts/search_s3_queue.sh` detached, frozen-copy re-exec):
+  fresh greedy ×3 (DONE in <3 min each at concurrency 8: s104 0.78933 / s112
+  0.78233 / s120 0.79433; banked 0.79589 pooled), search@M ×3 paired, dose L on
+  s112 (~11 h), LOO-ensemble evaluator ×3 behind `.s3_e_go` (R4-13 PASS ×3,
+  transcribed), search@M off FP@20 on s112 n=1000. Smoke: 92 ms/decision, 423
+  leaves on the 100M object. F5's `peers == 3` generalised to a declared
+  `loo_pool_expected` in all three resolver copies (default unchanged; tests).
+  **Owned from here:** S3 read; S1/S2 offline screens (reveal-artefact bias vs
+  decision margin; L-vs-M flip headroom) and the k=256 screen pre-reg — both
+  drafting under opus agents; monster pre-reg; engine search build (bridge v2 +
+  batched leaf encode + depth-2) gated on the screens. **Rulings owed:** RW-1..10
+  + verdict authorization (A-1: engine 0.6707 vs 0.6721, Δ −0.0014); monster
+  shape and k; JOURNEY 11.5 before 11; a per-decision cap for a searched ladder
+  object (proposed ≤ 5 s). Evaluator routes, all pure-lane: seed ensemble (free,
+  in S3), privileged critic (leaves are full-info under determinization; needs the
+  `ppo.py:478` guard lifted + the engine seam), an outcome-trained evaluator on our
+  own self-play + engine-generated counterfactual states with an offline metric.
