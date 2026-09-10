@@ -213,7 +213,8 @@ def leg_b(bank: pathlib.Path, seed: int, steps: int = 400, pool_size: int = 20) 
     }
 
 
-def leg_c(config: pathlib.Path, run_dir: pathlib.Path) -> dict:
+def leg_c(config: pathlib.Path, run_dir: pathlib.Path,
+          lane_width: int = 1) -> dict:
     """FULL-LOOP: the real `rl.train` on an engine-mode config, read back out of
     the run's own history. Nothing is re-derived here — `time/
     realized_steps_per_sec` is the series F-16 added precisely so a throughput
@@ -250,10 +251,21 @@ def leg_c(config: pathlib.Path, run_dir: pathlib.Path) -> dict:
     collect = series("time/collect_sec")
     update = series("time/update_sec")
     median = statistics.median(conforming)
-    return {
+    # THE BAND IS A SOLO-LANE BAND. `c_realized_steps_per_sec` was written for
+    # ONE lane with the box to itself; a lane that ran k-wide shares the box
+    # with k-1 others and legitimately realizes less. Scoring a 3-wide read
+    # against a 1-wide band is the "resource gates are calibrated at a FLEET
+    # WIDTH" landmine in CLAUDE.md — R2's own D-E gate declared a STOP at
+    # 4.5 GB from a 3-wide calibration and a lane running ALONE then hit
+    # 5.87 GB with the box 85% free. The rule that came out of that is
+    # DISCLOSE, DON'T KILL, so at width > 1 this reports the number and says
+    # the band does not apply, rather than returning a FAIL that means nothing.
+    applies = lane_width == 1
+    out = {
         "scope": f"FULL-LOOP from {run_dir}/history.csv (config {config.name})",
         "config": str(config),
         "windows": len(conforming),
+        "lane_width_when_measured": lane_width,
         "realized_steps_per_sec_median": median,
         "realized_steps_per_sec_min": min(conforming),
         "realized_steps_per_sec_max": max(conforming),
@@ -261,13 +273,23 @@ def leg_c(config: pathlib.Path, run_dir: pathlib.Path) -> dict:
             sum(update) / max(sum(update) + sum(collect), 1e-9) if update else None
         ),
         "band": BANDS["c_realized_steps_per_sec"],
-        "pass": median >= BANDS["c_realized_steps_per_sec"],
+        "band_calibrated_at_width": 1,
+        "band_applies": applies,
+        "pass": (median >= BANDS["c_realized_steps_per_sec"]) if applies else None,
         "action": (
             "PROFILE: the learner or the Python-side batching is the bound, and "
             "the plan's §0 numbers get corrected in place"
-            if median < BANDS["c_profile_below"] else None
+            if applies and median < BANDS["c_profile_below"] else None
         ),
     }
+    if not applies:
+        out["disclosure"] = (
+            f"MEASURED AT WIDTH {lane_width}, band calibrated at width 1. The "
+            f"median {median:.0f} steps/s is a {lane_width}-wide PER-LANE rate "
+            "and is not comparable to a solo band; it IS comparable to leg (d)'s "
+            "fleet-width read and to the Node basis at the same width. No "
+            "pass/fail is claimed. To score this band, re-run one lane alone.")
+    return out
 
 
 def _cpu_seconds(pid: int) -> float | None:
@@ -514,18 +536,28 @@ def main(argv=None) -> int:
     ap.add_argument("--window-sec", type=int, default=WINDOW_SEC)
     ap.add_argument("--seed", type=int, default=20260907)
     ap.add_argument("--out", type=pathlib.Path, default=pathlib.Path("results/t1"))
+    ap.add_argument("--lane-width", type=int, default=1,
+                    help="leg c: how many lanes shared the box while the lane "
+                         "being read was running. The band is a SOLO-lane band, "
+                         "so at width > 1 the number is reported and disclosed "
+                         "rather than scored.")
     ap.add_argument("--force", action="store_true")
     args = ap.parse_args(argv)
 
-    contended = check_box("fleet" if args.leg == "d" else "engine",
-                          args.force, gate="T-1")
+    # Leg (c) reads a FINISHED lane's history.csv. Nothing about the box's
+    # CURRENT state can change rates recorded in the past, so the live idle
+    # guard does not apply to it — it refused a legitimate read on 2026-09-10
+    # because the chain had already brought the server up for the next step.
+    # What matters for (c) is the width the LANE ran at, which is --lane-width.
+    contended = False if args.leg == "c" else check_box(
+        "fleet" if args.leg == "d" else "engine", args.force, gate="T-1")
     args.out.mkdir(parents=True, exist_ok=True)
     if args.leg == "c":
         if not (args.config and args.run_dir):
             raise SystemExit("leg c needs --config and --run-dir")
         if len(args.run_dir) != 1:
             raise SystemExit("leg c takes exactly one --run-dir (k lanes is leg d)")
-        result = leg_c(args.config, args.run_dir[0])
+        result = leg_c(args.config, args.run_dir[0], args.lane_width)
     elif args.leg == "d":
         result = leg_d(args.run_dir, args.window_sec)
     else:
@@ -536,6 +568,10 @@ def main(argv=None) -> int:
     result["measured_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     (args.out / f"leg_{args.leg}.json").write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2))
+    if result["pass"] is None:
+        print(f"T-1 leg {args.leg}: REPORTED, NOT SCORED — "
+              + result.get("disclosure", "the band does not apply here"))
+        return 0
     print(f"T-1 leg {args.leg}: {'PASS' if result['pass'] else 'FAIL'}"
           + (" (CONTENDED — not quotable)" if contended else ""))
     return 0 if result["pass"] else 1
