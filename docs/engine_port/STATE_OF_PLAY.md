@@ -23,10 +23,19 @@ read is at 12M regardless and the extra steps are only wasted compute.
 
 The A-1 lanes run out of the WORKTREE
 (`/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-engine`), so its
-`runs/`, `results/` and `logs/` are the live ones until they finish. **The env
-needs nothing** — checked 2026-09-10, `pkmn-engine-port` already resolves `rl`
-to MAIN and `pkmn_gen1` to site-packages, so teardown is only: move those three
-directories home, then `git worktree remove`. That runs itself as step 1 of
+`runs/`, `results/` and `logs/` are the live ones until they finish.
+
+**THE ENV DID need something, and my note here said it did not.** I checked
+`rl.__file__` FROM THE REPO ROOT, saw it resolve to main, and concluded the
+editable install was fine. It was not: the install's finder still mapped
+`{'rl': '<worktree>/rl'}`, and what I actually observed was CWD RESOLUTION
+masking a broken install. The moment the worktree was deleted, `import rl`
+worked only from the repo root — so every test that spawns a subprocess with a
+different cwd died with `ModuleNotFoundError: No module named 'rl'`, which is
+most of what looked like a wall of pre-existing test failures. `pip install -e .`
+fixed it. **Deleting a worktree an editable install points at breaks that
+install silently, and `python -c "import rl"` from the repo root will NOT tell
+you.** Check the finder's MAPPING, or import from `/tmp`. That runs itself as step 1 of
 `scripts/engine_post_lane_queue.sh`.
 
 **THE TEARDOWN HAZARD, WHICH NEARLY BIT TWICE.** `runs/`, `results/`, `logs/`

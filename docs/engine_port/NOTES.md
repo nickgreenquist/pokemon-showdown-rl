@@ -2132,3 +2132,36 @@ collector as its only delta, and it was never chosen to go fast.
 is how fast ONE run finishes; fleet is how many seeds per hour. A lane is a
 SEED, not a shard, so width buys the second and never the first. A 50M run does
 not get shorter by adding lanes.
+
+## 2026-09-10 — deleting the worktree silently broke the editable install
+
+Removing the engine worktree left the env's editable finder pointing into it:
+
+```
+MAPPING: dict[str, str] = {'rl': '/Users/.../pokemon-showdown-rl-engine/rl'}
+```
+
+That path no longer exists, so `rl` became importable ONLY from the repo root,
+via ordinary cwd resolution. Every test that spawns a subprocess with a
+different cwd then died with `ModuleNotFoundError: No module named 'rl'` — and
+that accounted for most of what looked like a wall of unrelated pre-existing
+failures (`test_engine_p1_p2` x2, `test_frozen_opponent`, `test_run_capture`,
+and the empty-output `test_gen4_gates` symptoms all trace to it). One
+`pip install -e .` cleared them.
+
+**The trap is the check, not the breakage.** I verified the install by running
+`python -c "import rl; print(rl.__file__)"` FROM THE REPO ROOT. It printed
+main's path and I concluded the install was healthy. It was cwd resolution
+masking a dead finder. The honest check is either to read the finder's MAPPING
+directly, or to import from a directory that is not the repo:
+
+```
+cd /tmp && python -c "import rl; print(rl.__file__)"
+```
+
+A second diagnostic error worth recording alongside it: I twice called a test
+"wedged at zero CPU" after checking only the PARENT process. `test_engine_p3`'s
+parent is idle precisely BECAUSE its child is doing the work — the child was
+burning 43 s of CPU in 44 s of wall. A CPU-delta check has to follow the
+process tree; on the parent alone it reports a hang for every subprocess-driven
+test.
