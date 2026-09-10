@@ -489,13 +489,15 @@ rulings_wanted:
       yields the true head-to-head A/B AT 12M SCALE for free, which no
       1M-dose measurement can — scripts/engine_ab_speed.py answers "how fast",
       but only a 12M Node arm answers "how fast at the dose the gate reads at".
-      COST, measured not guessed: the Node path ran 574.1 steps/s aggregate
-      3-wide on this box tonight (results/t1/leg_d.json), so 3 x 12M = 36M
-      steps is ~17.4 h.
-      THAT PUTS IT OVER CLAUDE.md RULE 4's 5 h HAND-OVER LINE for training, so
-      this is not a ruling I can act on even if you approve the science — it
-      comes back to you as a command to launch, not as something the runner
-      picks up.
+      COST, measured not guessed: the Node path realizes 574.1 steps/s PER LANE
+      at 3-wide (results/t1/leg_d.json, `node_basis.per_lane_realized_steps_per_sec`
+      — per lane, NOT the aggregate; an earlier draft of this entry read it as
+      aggregate and said 17.4 h, which was wrong by 3x). Three lanes run
+      CONCURRENTLY, so 12M per lane is 12e6 / 574.1 = ~5.8 h of wall clock, not
+      3 x that.
+      THAT IS STILL OVER CLAUDE.md RULE 4's 5 h HAND-OVER LINE for training,
+      though only just, so this is not a ruling the runner can act on even if
+      you approve the science — it comes back to you as a command to launch.
     my_recommendation: >-
       Worth the overnight, and it retires RW-4 rather than answering it. But it
       is strictly additive: A-1's engine arm is already collected, the banked

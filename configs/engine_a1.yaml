@@ -80,10 +80,11 @@
 #        nothing. Added 2026-09-09 after another session's rulings and an
 #        independent review; the review's correction is that row parity under
 #        a FROZEN policy cannot carry a LEARNING verdict.
-#   RW-10 optionally fund a FRESH 3 x 12M Node arm (~17.4 h at tonight's
-#        measured 574.1 steps/s 3-wide) — it retires RW-4 rather than
-#        answering it, and yields the head-to-head A/B at 12M scale. Over
-#        CLAUDE.md rule 4's 5 h line, so it is handed over, not picked up.
+#   RW-10 optionally fund a FRESH 3 x 12M Node arm (~5.8 h: the lanes run
+#        concurrently and tonight's measured Node rate is 574.1 steps/s PER
+#        LANE at 3-wide) — it retires RW-4 rather than answering it, and
+#        yields the head-to-head A/B at 12M scale. Still over CLAUDE.md rule
+#        4's 5 h line, so it is handed over, not picked up.
 # What is owed is a DECISION on each of the ten, not a measurement: the
 # measurement that used to block this file (D-1) has since PASSED.
 #
