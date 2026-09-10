@@ -2093,3 +2093,42 @@ measurement and nothing here licenses the recipe change; it needs its own
 pre-reg and its own credit line. The honest split today is: threads are
 adoptable only in combination with a minibatch change that is not, so **the
 free part of this finding is zero and the whole 1.51x sits behind a pre-reg.**
+
+## 2026-09-10 — MAX-OUT FACTORIAL: k x width on the engine path
+
+Idle box, 200,000 steps per lane per cell, realized steps/s read from each
+lane's own `time/realized_steps_per_sec` with the startup window dropped, peak
+RSS sampled across the cell's lanes while it ran.
+
+```
+    k   w   per-lane    fleet    peak GB
+    8   1      2390      2390      2.26
+    8   3      1620      4861      7.37
+    8   6      1282      7694     10.95
+  256   1      3035      3035      2.37
+  256   3      2106      6317      7.89
+  256   6      1666      9994     11.33
+```
+
+**Today's A-1 setting is k=8 w=3 — the bottom-left of the useful region.** It
+was chosen to MATCH THE BANKED NODE ARM's concurrency so the gate had the
+collector as its only delta, and it was never chosen to go fast.
+
+* **Best FLEET throughput: k=256 w=6 → 9,994 steps/s = 2.06x today**, at 11.33
+  GB of 24. Width 6 is not the ceiling; memory is not close to binding.
+* **Best PER-LANE rate: k=256 w=1 → 3,035 steps/s = 1.87x** today's per-lane.
+  This is the one that shortens a SINGLE run.
+* **k is nearly free in memory**: 248 extra battle slots cost 0.11 GB
+  (2.26 → 2.37 at width 1), so k and width are independent axes rather than
+  substitutes. An earlier guess that they traded against each other was wrong.
+* **k is worth 1.27x at width 1 and 1.30x at width 3** on the full loop, close
+  to the 1.32x the collection model predicted from amortising the ~230 µs fixed
+  cost of a forward pass over more rows.
+* **Lanes contend, and the contention is the real width cost**: per-lane falls
+  to 0.68x going 1→3 and 0.79x going 3→6, so 6 lanes deliver 1.58x the fleet
+  throughput of 3, not 2x.
+
+**The two numbers answer different questions and must not be added.** Per-lane
+is how fast ONE run finishes; fleet is how many seeds per hour. A lane is a
+SEED, not a shard, so width buys the second and never the first. A 50M run does
+not get shorter by adding lanes.
