@@ -1,0 +1,1076 @@
+# K-1 pre-registration sidecar — the machine-readable half of
+# configs/engine_k256.yaml. The header is the authority on WHY; this file is
+# the authority on WHAT WAS FIXED BEFORE THE RUN. Neither may be edited
+# after launch except to FILL a cell marked [FILLED <date>].
+#
+# STATUS: DRAFT, REVIEWED x2, PARKED. Nothing here is ratified, no verdict is
+# authorized, and the lanes are not launchable. `rulings_wanted` ends the
+# file and nothing below it decides anything. Both reviews are applied and
+# tagged [V1-*] (design/provenance) and [V2-*] (mechanism/statistics).
+---
+prereg_for: configs/engine_k256.yaml
+status: >-
+  DRAFT, REVIEWED x2 (2026-09-10), PARKED — not ratified; the maintainer was
+  advised to run JOURNEY 10 at k=8 because k-alone is 1.30x at matched width
+  (five fleet-hours on a 100M x 6-lane monster) and this screen's resolution
+  floor (MDE 0.032-0.038) is wider than its own accept band
+status_note: >-
+  PARKED IS NOT WITHDRAWN. Every gate, band and branch is complete and the
+  lanes could start the hour a ruling arrives; what changed is the PRIORITY,
+  not the design. See `what_turns_on_it` for the re-priced stake that produced
+  the advice, and `power.resolution_floor_vs_band` for the second half of it.
+journey_step: "7.5"
+exit_condition_verbatim: >-
+  A-1 acceptance is the gate — 3 seeds × 12M inside |Δ| < 0.025 of the
+  async acceptance fleet, with the signed delta travelling forever after
+  as N-COLL's does; outside the band we diagnose parity and do NOT switch.
+failure_branch_verbatim: >-
+  Pre-decided failure branch. If two diagnosis rounds cannot bring A-1's
+  12M read inside |Δ| < 0.025, we KEEP the server path; the sunk cost is
+  then the parity harness, which survives as a test suite.
+exit_condition_note: >-
+  Both quotes are copied byte-for-byte from configs/engine_a1.prereg.yaml,
+  which pins them against JOURNEY.md step 7.5 in
+  tests/test_engine_a1_prereg.py. K-1 is NOT that gate and does not amend
+  it: they are restated because CLAUDE.md requires every header to name its
+  journey_step and restate that step's exit condition verbatim, and because
+  K-1 borrows JOURNEY 7.5's band, its dose and its signed-delta-travels
+  obligation. Anything K-1 adds is ADDITIVE and cannot loosen the band.
+why_it_exists_cited_by_sha:                 # [V1-B2]
+  a1_header: >-
+    configs/engine_a1.yaml, present in HEAD: "A-1 accepts the collector AT
+    K = 8. It does NOT accept K = 256, and the production K is T-1(b)'s
+    question. Any K > 8 needs its own read before it becomes the training
+    default."
+  status_at_b1ff2c0_caret: >-
+    STATUS.md at b1ff2c0^, next action 3: "Anything that changes LEARNING needs
+    its own pre-reg: k 8->256 (staleness)". THIS WORDING IS GONE FROM HEAD —
+    b1ff2c0 rewrote the block — so it is cited by sha and NOT quoted as
+    current. An earlier draft of this file quoted it as if it were in HEAD.
+  status_at_head: >-
+    next action 2: "k=256 screen (3 x 12M, ~1.7 h, paired with A-1's own k=8
+    lanes) — pre-reg in draft. The 4.035x is at an UNTESTED LEARNING config
+    (12.6% of an update is off-policy rows)."
+credits_nothing: true
+is_equivalence_test: false          # a GROSS-BREAKAGE SCREEN; no TOST is run
+supersedes_nothing: true
+
+what_turns_on_it:                           # [V2-14] RE-PRICED AT MATCHED WIDTH
+  retracted: >-
+    an earlier draft priced this screen with the 4.035x / 2.984x A/B pair and a
+    "13.2 h vs 24 h" line. THAT PAIR PRICES THE COLLECTOR, NOT K: 4.035x is the
+    engine at its production width against Node and 2.984x is the engine at k=8
+    against Node. Neither is a k-alone number.
+  k_alone_at_matched_width:                 # results/engine_a1/maxout.json
+    width_1: {k8: 2390.2, k256: 3034.7, ratio: 1.270}
+    width_3: {k8: 1620.5, k256: 2105.6, ratio: 1.299}
+    width_6: {k8: 1282.3, k256: 1665.6, ratio: 1.299}
+    abba_ab_width_1: {ratio: 1.352, from: "4.0345 / 2.9839, ab_speed_k256.json / ab_speed_k8.json, evals off"}
+  the_2x_is_not_k: >-
+    the headline 2.06x fleet gain factors as 1.299 (k) x 1.582 (width 3 -> 6),
+    and width is FREE — a lane is a SEED, width does not change learning, and it
+    needs no screen.
+  the_stake: >-
+    at the shape STATUS.md proposes for JOURNEY 10 (100M x 2 arms x 3 seeds =
+    6 lanes at width 6): 21.7 h at k=8 against 16.7 h at k=256. FIVE FLEET
+    HOURS. That is what this screen buys, and it is why the advice is to run
+    JOURNEY 10 at k=8 and park this file rather than spend ~1.9 h of fleet plus
+    a ratification cycle to chase it.
+
+precondition:
+  P1_no_time_budgeted_eval_in_flight:
+    state_at_drafting: BREACHED
+    inventory_taken: "2026-09-10, this session — RE-CHECK AT LAUNCH; a process list is a snapshot and this one will be stale"
+    what_was_running: >-
+      five python processes under a `search_s3_queue` shell, including
+      scripts/ch3_fp_h2h.py --prereg configs/eval/search_s3_100m_offfp.yaml,
+      which runs Foul Play at search_time_ms 20, plus three scripts/ch3_eval.py
+      jobs and a Showdown server.
+    rule: >-
+      K-1's lanes do not launch while any TIME-BUDGETED eval is in flight. A
+      fixed-time search budget under CPU contention buys FEWER ROLLOUTS, so a
+      three-lane training fleet silently WEAKENS the opponent in someone else's
+      in-flight anchor and INFLATES their win rate. It contaminates their
+      number, not ours. The box is 14 cores / 24 GB and has the capacity; the
+      hazard is arithmetic, not resources. A win-rate eval with no time budget
+      is a throughput question and is RWK-6's to weigh.
+  P2_a1_rulings:
+    state_at_drafting: OPEN (RW-1..RW-10)
+    rule: >-
+      K-1 does not need A-1 graded to be well posed — it asks whether k=256
+      reproduces k=8 ON THE ENGINE PATH, which is well posed whatever A-1
+      concludes. The dependency runs one way and the K1-PASS branch encodes it
+      as a CONJUNCTION. BUT RW-1 is the ruling that CREATED K-1: if RW-1 branch
+      (b) is taken ("run A-1 at 256, declare K part of the treatment"), K-1 is
+      SUPERSEDED rather than re-scoped and this file is withdrawn, not amended.
+      RWK-1.
+  P3_build_identity:
+    rule: >-
+      the E256 lanes must launch from a tree whose rl/ differs from the
+      comparator's by the logging commit and NOTHING else, and whose installed
+      pkmn_gen1 stamps the comparator's engine block field for field. See
+      build_identity_gate. RWK-7.
+  P4_grader_and_test_must_exist:            # [V1-M6]
+    state_at_drafting: NEITHER EXISTS
+    rule: >-
+      the RATIFICATION COMMIT lands BOTH, before launch. Neither is written by
+      this pre-reg.
+    owed:
+      - path: scripts/engine_k256_grade.py
+        must: >-
+          read only committed files; compute D_K and the three D_AUC legs;
+          refuse without `verdict_authorized: true`; and SHA-STAMP every E256
+          eval JSON and checkpoint it reads into its output, so a graded number
+          can be traced to the bytes it came from.
+      - path: tests/test_engine_k256_prereg.py
+        must: >-
+          in the shape of tests/test_engine_a1_prereg.py — the loader would
+          accept the config; the arms differ only where declared; no open ruling
+          is quietly answered; the verbatim quotes match JOURNEY.
+    not_a_substitute: >-
+      scripts/engine_a1_grade.py takes --prereg and --banked and could be a
+      starting point, but it hard-codes A-1's BASE_AUC and disclosure strings. A
+      K-1 grade computed by it is NOT trusted.
+  P5_runner_must_exist:                     # [V1-B4]
+    state_at_drafting: DOES NOT EXIST
+    rule: >-
+      either scripts/engine_k256_gates.sh or an --arm-parameterised
+      scripts/engine_gates.sh. NAMED AS OWED; not written by this pre-reg.
+    must_encode:
+      a_120s_hold: >-
+        HOLD EACH LANE 120 s AFTER ITS RUNG CHECKPOINT BEFORE THE KILL. This is
+        a silent data-loss bug otherwise: rl/train.py writes the crossing
+        checkpoint BEFORE that step's eval, so a lane killed the moment
+        ckpt_0120*.pt appears LOSES THE 48th IN-LOOP BUCKET — exactly the bucket
+        D_AUC's last-24 leg needs. scripts/engine_gates.sh:252-255 already does
+        this for A-1; measured time/eval_sec ~5.1 s, so 120 s is a ~23x margin.
+      b_bank: ">= 1,000,000 pair floor, and a bank sha256 equality check against the comparator"
+      c_seats: "seat_tag k256 and a DISTINCT --seed per lane"
+      d_eval: >-
+        n=12,000, --opponent heuristics, seed_start 100, writing
+        results/engine_k256/rung12m_s<seed>.json
+
+arms:
+  E256: {n_lanes: 3, seeds: [66, 75, 83], collector: engine, k: 256, compute: NEW}
+  E8:   {n_lanes: 3, seeds: [66, 75, 83], collector: engine, k: 8,   compute: BANKED_FREE,
+         run_dirs: [runs/engine_a1_s66, runs/engine_a1_s75, runs/engine_a1_s83]}
+  node_arm_is_not_an_arm_and_is_not_reported:      # [V1-M3]
+    rule: >-
+      the banked Node async fleet is A-1's comparator. Its pooled number is one
+      of the two OPERANDS of A-1's P-END read, and putting it in this file would
+      place BOTH operands of another gate's verdict in a third gate's artifact,
+      where a later reader can subtract them without noticing which pre-reg
+      authorised the subtraction. K-1 therefore reports NO Node number at all —
+      not as a "descriptive" row, not as provenance context, and not as a
+      derived delta from which the operand could be recovered. A-1's delta
+      belongs to A-1's artifacts and travels with A-1's sentences.
+    an_earlier_draft: >-
+      carried a `D-NODE` secondary read quoting the Node pooled figure "beside
+      the arms, never subtracted". That is removed: beside is close enough.
+  comparator_rationale: >-
+    comparing E256 against the banked NODE arm would measure the collector AND
+    the concurrency together, which is the confound A-1 exists to avoid.
+    Against A-1's ENGINE arm, k is the ONLY declared delta: same collector,
+    same seeds, same box, same team bank file, same recipe, same rung, same
+    eval instrument at the same n.
+
+baseline_by_provenance:                # never by a remembered number
+  arm: E8 (A-1's own engine arm)
+  aggregator: equal_weight_mean_of_per_seed_win_rates
+  pooled_endpoint: 0.67067
+  seed_sd: 0.01938                     # the MEASURED spread; see power.measured_seed_sd
+  eval_protocol:
+    n_per_seed: 12000
+    seed_start: 100
+    policy: deterministic
+    opponent: SimpleHeuristicsPlayer
+    ties: non_wins
+    produced_by: >-
+      scripts/eval_checkpoint.py --episodes 12000 --opponent heuristics
+      (scripts/engine_gates.sh step 7)
+    cross_checks_verified: >-
+      wins_from_returns == eval/win_rate on all three; mask_desyncs == 0 on all
+      three; eval/no_outcome ABSENT from all three (it is emitted only when
+      missing > 0, so "== 0" is unreachable).
+  lanes:
+    - run: runs/engine_a1_s66
+      ckpt: ckpt_012000008.pt
+      realized_step: 12000008
+      win_rate: 0.6640
+      ties_from_returns: 0.0080833
+      eval_json: results/engine_a1/rung12m_s66.json
+      eval_json_sha256: 1c0e8a020b43082d699b03f235a98c86f14bc4d391b548889d2416d68f967175
+      ckpt_sha256: f6c5e73f4bcdcbaa931ba175f796a639a6912445dcf6d1e054e02781b8860ac9
+      config_sha256: 0470ac5d5e1777b5e1214a08030408c52924db9c81e3774c85411ef78b91353f
+      git_sha: 95e5ec9fad0fc31958d0b2e17c04212e94b90d0b
+      git_dirty: false
+      realized_steps_per_sec: 1514.8
+      hours_to_rung: 2.2004
+      collect_update_eval_hours: [0.738, 1.390, 0.0700]
+      updates_to_rung: 390
+      update_share: 0.6533
+      lbar_at_rung: 30.3392
+      auc: {rung48: 0.62667, first24: 0.60458, last24: 0.64875, buckets: 48, resumes: 0}
+    - run: runs/engine_a1_s75
+      ckpt: ckpt_012000019.pt
+      realized_step: 12000019
+      win_rate: 0.6925
+      ties_from_returns: 0.0083333
+      eval_json: results/engine_a1/rung12m_s75.json
+      eval_json_sha256: f24eecd8d818449c2f02a803ae597eda98a82293c2e20466140c43b062da9bf4
+      ckpt_sha256: 92bf9f9614a913e9353bb9f48c3dcabf0d667e533b3593adb8e60b9250572ae1
+      config_sha256: 15188441eccc79096086412578b8ae9a4fa4b1dee662a543dfe650de34a3a924
+      git_sha: 95e5ec9fad0fc31958d0b2e17c04212e94b90d0b
+      git_dirty: false
+      realized_steps_per_sec: 1536.1
+      hours_to_rung: 2.1700
+      collect_update_eval_hours: [0.714, 1.381, 0.0713]
+      updates_to_rung: 390
+      update_share: 0.6591
+      lbar_at_rung: 30.7523
+      auc: {rung48: 0.64708, first24: 0.62458, last24: 0.66958, buckets: 48, resumes: 0}
+    - run: runs/engine_a1_s83
+      ckpt: ckpt_012000031.pt
+      realized_step: 12000031
+      win_rate: 0.6555
+      ties_from_returns: 0.0083333
+      eval_json: results/engine_a1/rung12m_s83.json
+      eval_json_sha256: 2f0410894c7ee83b3a71f0bbcb625cae53f193a73078b56d053996df95688cec
+      ckpt_sha256: 3bc2bc10c0be8699a0157f2c4e1b7af5b6f512be115d26f0d278f73919ac68c1
+      config_sha256: 3ec302e96ea03605078bbeed5860cae96fecbe36d5758aeeeaeb7442eccd5402
+      git_sha: 6e3486a2f85d038339cc580ff81c4e735b90e1b3
+      git_dirty: false
+      realized_steps_per_sec: 1444.5
+      hours_to_rung: 2.3076
+      collect_update_eval_hours: [0.787, 1.444, 0.0723]
+      updates_to_rung: 390
+      update_share: 0.6473
+      lbar_at_rung: 29.6942
+      auc: {rung48: 0.63917, first24: 0.61500, last24: 0.66333, buckets: 48, resumes: 0}
+  fleet_wall_hours_measured: 2.359      # first launch 22:47:04Z to last rung 01:08:37Z
+  auc_basis:                            # provenance anchor for D_AUC; computed this session
+    aggregator: equal_weight_mean_of_the_three_lane_AUCs
+    bucket_rule: floor(_step / 250000) in 1..48, one row per bucket
+    rung48:  {mean: 0.63764, seed_sd: 0.01029}
+    first24: {mean: 0.61472, seed_sd: 0.01000}
+    last24:  {mean: 0.66056, seed_sd: 0.01069}
+    all_lanes_yield_48_buckets: true
+  encoder_stamp: {obs_dim: 828, encoder: v2, set_prior: true, recharge_fix: true, ids: true,
+                  aux_label_space: l6, aux_shuffle_labels: false}
+  provenance:
+    two_shas_one_tree:                  # [V1-B1]
+      shas: {s66: 95e5ec9fad0fc31958d0b2e17c04212e94b90d0b,
+             s75: 95e5ec9fad0fc31958d0b2e17c04212e94b90d0b,
+             s83: 6e3486a2f85d038339cc580ff81c4e735b90e1b3}
+      git_dirty: false                  # on all three lanes
+      evidence: >-
+        `git diff --stat 95e5ec9 6e3486a -- rl/ engine/` is EMPTY. The only
+        change between the two commits anywhere is docs/engine_port/NOTES.md
+        +60. Lane s83 launched from a later commit that moved no code the lane
+        executes, so the arm is a single build in every sense that matters to a
+        comparison. RECORDED, NOT WAIVED — an earlier draft of this sidecar
+        collapsed all three lanes onto 95e5ec9 without checking.
+    resumes: 0                          # on all three lanes
+    cleaner_than_a1s_baseline: >-
+      A-1's baseline was a week-old Node fleet at a DIRTY tree whose dirt could
+      not be reconstructed (RW-4). K-1's comparator is one day old, git_dirty
+      FALSE on all three lanes, same box, same operator, same bank file, with
+      engine and encoder provenance stamped rather than inferred. RW-4's
+      question does not arise here in the same form — but it is not zero, and
+      this block is evidence, never a substitute for a ruling.
+    learner_drift_audit: >-
+      `git diff 95e5ec9..HEAD -- rl/ engine/` is EXACTLY rl/train.py, +14/-2 —
+      a logging fix, and REQUIRED rather than merely harmless: before it, every
+      episode in a poll was logged at the poll's END step and the logger kept
+      only the last per (step, key). The commit's own comment names this
+      pre-reg's setting as the reason ("at k=8 a poll finishes ~1 episode and it
+      barely showed; at k=256 it is ~2.4"). An E256 lane on the OLD logger would
+      corrupt its own descriptive reads by construction. `sps` and `step` are
+      unchanged; rl/agents, rl/buffers, rl/networks, rl/common, rl/envs and
+      engine/ did not move.
+    logger_asymmetry_measured: >-
+      the comparator logged 396,214 / 392,827 / 382,714 episode rows against
+      ~438,700 / ~434,700 / ~424,500 episodes actually finished — it dropped
+      ~10%, keeping the LAST episode of each poll. The subsample is
+      LENGTH-NEUTRAL: episode_length means 30.3319 / 30.7553 / 29.7087 against
+      the logger-independent _step/episodes_finished of 30.3392 / 30.7523 /
+      29.6942, agreeing to 0.01 turns. CONSEQUENCE: the parity read uses
+      _step / collect/episodes_finished on BOTH arms, never the
+      rollout/episode_length series.
+
+build_identity_gate:                    # checked before any read is taken
+  rule: >-
+    every E256 lane's meta.yaml `engine` block must equal the comparator's
+    field for field. Not a new mechanism: rl/train.py already refuses a RESUME
+    whose engine block moved, because "a resumed lane must play the same game".
+    K-1 applies the same test ACROSS ARMS, which is where it bites.
+  expected:
+    engine_sha: 9b88fd6c5467f703c38951d5b2e8a660314d410b
+    engine_options: {showdown: true, log: false, chance: false, calc: false}
+    zig_version: "0.16.0"
+    crate_version: "0.1.0"
+    team_bank_sha256: 7b0d4c9e93a36aea01a6af828b77eb2f7a34e48209092e96931a8f51ff62209d
+    team_bank_pairs: 5000000
+    team_bank_ps_commit: 59da482eabc87245eb62313593e468e81ca537d9
+    tables_fingerprint: d2ba00c2ef52ba332cf80b9a6bbbf1ea7f85bb3610c63b86f10521186ce1f640
+  expires_if_the_engine_build_moves:    # [V1-M5]
+    rule: >-
+      a K-1 result is a statement about THIS engine build. If A-1's parity
+      diagnosis — A-1a or any later round — changes `engine_sha`, a banked K-1
+      PASS is VOID and k=256 is RE-SCREENED, not carried forward.
+    why: >-
+      the staleness path runs through the collector's own drain and episode
+      bookkeeping, which is exactly the code such a fix would touch.
+  team_bank_verified_this_session: >-
+    data/engine/teams_a1_5000000.bin carries header sha256 7b0d4c9e93... — byte
+    for byte the payload the comparator stamped. The FILE's own sha256 is
+    86f60956ae241f2f115561b6ce0869475856ba146893e994374936d3959e2a26 and is a
+    DIFFERENT quantity: rl/envs/engine_bank.py hashes the PAYLOAD. Recorded
+    because an earlier reading this session mistook the two for a bank swap.
+  consequence: >-
+    RW-6's train-on-finite-support asymmetry is IDENTICAL on both arms and
+    cancels out of this comparison entirely. The one confound A-1 had to buy
+    its way out of is free here.
+  must_not_land_between_the_arms:
+    scorer_ctx_factorization: >-
+      recorded as "verified to 3e-07", which is NOT bit-identical, and REVERTED
+      once on a bit-exact pin. A numerics change between the arms is a second
+      treatment and K-1 would stop measuring k.
+    mmap_team_bank: SAFE (memory only; the bank bytes and its sha are unchanged)
+
+dose:
+  steps: 12000000
+  rung: first_checkpoint_at_or_after_12000000    # crossing rung; overshoot recorded
+  matched: true
+  how_we_would_know: >-
+    the realized crossing step in each lane's meta.yaml and CHECKPOINT FILENAME,
+    against the comparator's 12000008 / 12000019 / 12000031. A lane more than
+    one update (30,720 steps) off is REPORTED and its realized step used, never
+    the nominal; beyond 250,000 (one eval interval) it is a different dose and
+    the cell is K1-VOID-K.
+  anneal_trap:
+    total_steps: 50000000
+    lr_anneal_steps: 50000000
+    why_verbatim_from_a1: >-
+      A 12M budget with lr_anneal_steps == total_steps would anneal the
+      engine arm to ~0 while the banked arm sits at 1.9e-4 at the same
+      rung, comparing LR schedules rather than collectors. G9's verbatim
+      obligation, restated.
+    substitution_for_k1: >-
+      one word and it changes nothing: it is the E8 ENGINE arm that sits at
+      2.5e-4 * (1 - 12/50) = 1.9e-4 at the same rung, and a 12M horizon here
+      would compare LR SCHEDULES rather than K. rl/train.py:425-438 permits
+      anneal >= total (it refuses only 0 < anneal < total_steps), so this is a
+      header line and needs no code change.
+  hours_projected: [1.699, 1.836]       # per lane, route (i); see ops.cost
+
+treatment:                              # what k=256 actually changes
+  mechanism: >-
+    the engine steps k battles in lockstep and drains WHOLE FINISHED EPISODES,
+    so at a drain the k battles in flight carry their collected steps into the
+    NEXT update, where they arrive one policy version stale.
+  carry_fraction:                       # [V1-M1, V2] TWO derivations, both recorded
+    retracted: >-
+      an earlier draft used k * Lbar / 2, the mean age of a UNIFORMLY-sampled
+      point in an episode of MEAN length. That is the wrong expectation: a drain
+      lands in an episode with probability proportional to that episode's
+      LENGTH, so the constant is the length-biased mean age E[L^2]/(2E[L]).
+    method_1_length_biased_age:
+      constant: {length_biased_age: 16.725, lbar_over_2: 15.166, ratio: 1.103}
+      k8:   {steps: 133.8,  fraction: 0.00436}
+      k256: {per_lane: [0.1394, 0.1407, 0.1347], fleet: 0.1383, steps: 4281}
+      recomputed_this_session: >-
+        over rows at _step <= 12,000,000 the age is 16.598, k=8 is 0.432% and
+        the k=256 fleet is 13.83% — inside the quoted range; the difference is
+        which episode rows fall in the window.
+    method_2_drain_cadence_simulation:
+      k256: {per_lane: [0.1340, 0.1349, 0.1291], fleet: 0.133}
+      method: direct simulation of the drain cadence against the same length distribution
+    quote_the_range: "13.3-13.8% at k=256 against ~0.4% at k=8"
+    ratio: "32-37x depending on the k=8 estimator"
+    ratio_note: >-
+      the length-biased formula and the simulation disagree slightly more at
+      k=8, where a slot runs ~127 episodes per update, than at k=256, where it
+      runs ~4.
+    drifts_with_training: >-
+      14.85% over 0-3M against 13.58 / 13.81 / 13.63% over the later quarters,
+      because Lbar itself drifts. "DOSE-INDEPENDENT" IS TRUE ONLY AT FIXED
+      LBAR and an earlier draft overstated it.
+  prefix_carry:                         # [V2-1] which rows go stale, not just how many
+    p_lag_ge_1_by_within_episode_position:
+      k256: {turns_0_4: 0.2248, turns_5_9: 0.1836, turns_10_14: 0.1426,
+             turns_15_19: 0.1045, turns_20_24: 0.0763, turns_25_plus: 0.0726}
+      k8:   {turns_0_4: 0.0062, turns_25_plus: 0.0019}
+    mechanism: >-
+      a row early in an episode has more episode left, so a drain boundary is
+      likelier to fall after it and hold it.
+    consequence: >-
+      k=256 TRAINS OPENING PLAY OFF-POLICY AND ENDGAME PLAY ON-POLICY, by 3.1x
+      across the episode. A structured, non-uniform treatment, not a uniform
+      noise floor — exactly the shape that could move opening-phase behaviour
+      (lead choice, early switching) without moving a win rate much.
+    read_through: [loss/clip_frac, loss/approx_kl]
+    not_claimed_away: true
+  how_a_stale_row_enters_ppo:           # [V2-2]
+    path: >-
+      through the RECORDED old_logp with NO filter and NO reweighting:
+      rl/agents/ppo.py:1163-1165 tensorises batch["old_logp"] as collected, and
+      :1332-1334 feeds it straight to clipped_surrogate_loss. The PPO clip is
+      the ONLY correction in the path.
+    the_clip_is_already_saturated_on_the_comparator:
+      loss_approx_kl_per_update: [0.0396, 0.0381, 0.0359]
+      loss_clip_frac_per_update: [0.2363, 0.2338, 0.2264]
+      clip_eps: 0.2
+      arithmetic: >-
+        log(1.2) = 0.182, and a one-update policy displacement is rms |log r|
+        ~ 0.28 — a carried row's importance ratio typically lands OUTSIDE the
+        clip, where its gradient is zeroed rather than corrected.
+    pre_registered_prediction: >-
+      at k=256 loss/clip_frac RISES and loss/approx_kl RISES. Both become parity
+      overlays WITH A STATED DIRECTION rather than open-ended series.
+    the_informative_null: >-
+      clip_frac UNCHANGED beside a delivered dose (p99 at 1) is a CONTRADICTION
+      — the rows say they are stale and the loss says they are on-policy — and
+      it costs a diagnosis round.
+  k_is_four_changes:                    # [V2-4]
+    retracted: >-
+      an earlier draft said "what moves is the CARRY FRACTION and only that".
+    i_learner_carry: "13.3-13.8% of rows one version stale against ~0.4%, structured by within-episode position"
+    ii_opponent_snapshot_carry: >-
+      the same factor. An episode spans 0.253 updates at k=256 against 0.0079 at
+      k=8, so against push_every_updates 5 roughly 2.7 in-flight battles per push
+      are seated on a pool member that has just been evicted, against 0.08 at
+      k=8. QUANTIFIED, NEGLIGIBLE, NOT ABSENT — recorded so it is not discovered
+      later as an unnamed confound.
+    iii_batch_size: >-
+      mean realized update 30,866 rows against the comparator's MEASURED 30,739
+      (+0.41%), because more episodes complete in the poll that crosses the
+      budget. ~1.6 fewer updates to the rung, minibatch 257 against 256.
+    iv_inference_batch_shape: >-
+      8 rows per forward against 256, a floating-point reduction-order change.
+      Nothing here claims byte-identical rows and A-1a's row-parity language
+      does not apply.
+    nothing_else: >-
+      distinct episodes per update is 30,720 / Lbar either way (1,013 measured
+      at k=8, ~1,015 at k=256), the battle seeds and team pairs are the COMMON
+      stream (see power.common_streams), and the recipe is byte-identical.
+
+power:
+  planning_sigma: 0.01499              # REUSED, not re-derived
+  planning_sigma_source: scripts/engine_a1_sigma.py -> results/engine_a1/sigma.json
+  planning_sigma_df: 4
+  planning_sigma_ci95: [0.0090, 0.0431]
+  planning_sigma_fleets:
+    - {fleet: showdown_sp_batch50m, k: 3, sd: 0.01732}
+    - {fleet: showdown_sp_batch50m_async, k: 3, sd: 0.01221}
+  regime_definition: annealed with <50% of the LR schedule consumed at the 12M rung
+  why_it_transfers: >-
+    K-1's arms are the same recipe at the same rung holding the same ~76% of
+    base LR. Nothing about raising k changes the reference class.
+  eval_n_per_seed: 12000               # BOTH arms; the comparator is ALREADY at this n
+  eval_n_costs_nothing_here: >-
+    A-1's review 2 found ~71% of the regime-matched variance is EVAL-REPLICATE
+    noise (replicate sd 0.01262 at n=3,000 = 1.47x binomial, docs/landmines.md;
+    residual training-seed sd 0.00809) and bought precision with battles. K-1
+    inherits it at zero cost.
+  derivation_note: >-
+    the first three rows scale that decomposition as 1/sqrt(n) on the replicate
+    term only and reproduce A-1's own n=12,000 row exactly. The fourth row is
+    NOT a model — it is the comparator's own measured spread.
+  band_at_n12000:                      # [V1-M2, V2-7]
+    - {basis: regime-matched, sigma_at_n3000: 0.01499, sigma_eff: 0.01026, se_diff: 0.00838,
+       band_in_se: 2.98, p_fail_given_null: 0.003, mde_80: 0.0320, p_pass_given_D_0p05: 0.001}
+    - {basis: all-12M-fleets, sigma_at_n3000: 0.03411, sigma_eff: 0.03231, se_diff: 0.02638,
+       band_in_se: 0.95, p_fail_given_null: 0.343, mde_80: 0.0472, p_pass_given_D_0p05: 0.169}
+    - {basis: CI-upper-end,   sigma_at_n3000: 0.04309, sigma_eff: 0.04168, se_diff: 0.03403,
+       band_in_se: 0.73, p_fail_given_null: 0.463, mde_80: 0.0536, p_pass_given_D_0p05: 0.218}
+    - {basis: MEASURED-E8-seed-sd, sigma_eff: 0.01938, se_diff: 0.01582,
+       band_in_se: 1.58, p_fail_given_null: 0.114, mde_80: 0.0383, p_pass_given_D_0p05: 0.057,
+       p_fail_given_D_0p02: 0.378}
+  mde_recomputation_note: >-
+    an independent recomputation this session lands the three MODEL MDEs at
+    0.0320 / 0.0469 / 0.0523 against the reviewed 0.0320 / 0.0472 / 0.0536 —
+    intermediate rounding in sigma_eff, and it moves no decision. The reviewed
+    values are the ones tabulated.
+  measured_seed_sd:                    # [V2-7] the honest column
+    value: 0.01938
+    vs_model: 1.89x the 0.01026 the decomposition predicts
+    chi2_2_p: 0.028
+    reading: >-
+      not comfortably attributable to a 3-seed sd being noisy. Either the
+      regime-matched planning constant understates this recipe's seed spread, or
+      these three lanes were unlucky. K-1 CANNOT TELL WHICH AT k=3, so both
+      columns are carried on every quote. Which is the planning basis is RWK-3's.
+  resolution_floor_vs_band:
+    band: 0.025
+    mde_80_range: [0.0320, 0.0383]
+    statement: >-
+      the band is 0.025 and the MDE at 80% power runs 0.0320 (planning) to
+      0.0383 (measured). A screen whose smallest reliably-detectable effect is
+      LARGER than the difference it calls acceptable can only catch GROSS
+      breakage — which is what it is named for, and why a PASS may not be read
+      as a null. This is half the reason the file is PARKED.
+  a_pass_is_not_a_null_verbatim: >-
+    A PASS is not a null. If D_K lands at -0.020 the screen passes, and what
+    JOURNEY step 10 inherits is a k=256 setting whose true 12M cost is somewhere
+    in [-0.051, +0.011] at the comparator's own measured seed sd (0.01938 at
+    n=12,000), or [-0.036, -0.004] at the planning constant — i.e. at the
+    planning constant a PASS at -0.020 is 2.4 se from zero and excludes it.
+    N-K256's disclosure therefore carries the INTERVAL, never the point
+    estimate, and no gen-1 number produced at k=256 may be quoted as "k=256
+    costs nothing".
+  band_must_not_be_widened: >-
+    at |D| < 0.05 a real 0.05 staleness defect passes half the time, which is
+    the wrong trade for a screen whose entire job is catching silent breakage.
+  what_it_cannot_resolve:
+    - "12M is not 100M, and the decision K-1 feeds is a 100M+ train. The per-update carry fraction is roughly dose-stable, but its CUMULATIVE effect over 8x the horizon is not measured and cannot be. THIS IS THE REAL BLIND SPOT"
+    - "K-1 is a win-rate read; staleness that changes the trajectory without changing the 12M endpoint is what the descriptive reads are for, and they are descriptive"
+    - "a small real regression: at the measured seed sd the screen FAILS a true 0.02 defect only 38% of the time"
+  lr_direction_is_not_a_blind_spot:    # [V2-10]
+    retracted: >-
+      an earlier draft called "~76% of base LR still live at the rung" a blind
+      spot.
+    correct_direction: >-
+      the parameter displacement a stale gradient causes scales WITH the LR, so
+      the 12M rung is the WORST per-update point on the whole schedule and K-1
+      reads the treatment where it bites hardest. What 12M cannot bound is the
+      accumulation over 8x the horizon.
+  common_streams:                      # [V2-12]
+    battle_and_team_stream: COMMON ACROSS ARMS
+    source: >-
+      engine/pkmn_gen1/src/env.rs:968-980 — battle_seed =
+      splitmix64(lane_seed * PHI ^ battle_counter); team pair =
+      splitmix64(battle_seed ^ 1) % bank.pairs(). A function of
+      (lane_seed, battle_counter) and NOTHING ELSE, so at a given battle index
+      both arms play the SAME battle seed off the SAME team pair from the SAME
+      bank, and both arms run ~1,015 battles per update.
+    retracted: >-
+      an earlier draft said "the engine draws a fresh battle seed per battle",
+      which reads as if the battle stream diverged between arms. It does not.
+    what_does_diverge:
+      - "the torch stream, from the first poll: an 8-row forward and a 256-row forward consume different call counts and shapes"
+      - "the self-play pool's member-draw offset, since draws happen per battle START and the start cadence differs"
+    eval_side_crn: >-
+      both arms evaluate at seed_start 100, so the EVAL side also has common
+      random numbers across arms. That makes the unpaired se_diff CONSERVATIVE
+      rather than wrong.
+    pairing_credit_taken: false
+    why_recorded: >-
+      so that nobody later reads the seed reuse as a paired estimator and
+      quietly narrows the interval. The aggregator is the equal-weight mean of
+      the three PER-SEED SIGNED DELTAS, which is ARITHMETICALLY IDENTICAL to the
+      difference of the two arms' equal-weight means, and the UNPAIRED se_diff
+      is the one quoted. A-1's refutation of pairing on these seeds stands and
+      is not re-litigated (+0.856 on the endpoint, -0.996 on the AUC).
+
+primary:
+  P-K:
+    statistic: pooled vs-SH win rate at the 12M crossing rung, locked protocol at n=12,000
+    aggregator: equal_weight_mean_of_per_seed_signed_deltas
+    read: "signed D_K = mean_s( win_256(s) - win_8(s) ), s in {66, 75, 83}"
+    band: 0.025
+    sides: two_sided
+    pass_rule_depends_on_se: false     # fixed magnitude, JOURNEY 7.5's, which K-1 borrows
+    comparator_reevaluated: false      # already at n=12,000 on this instrument
+    always_reported_with_it: >-
+      the 95% interval at BOTH the planning constant and the comparator's
+      measured seed sd. The point estimate is never quoted alone.
+    required_cross_checks: >-
+      wins_from_returns == eval/win_rate and mask_desyncs == 0 on every arm-E256
+      eval JSON; eval/no_outcome ABSENT.
+    protocol_deviations_disclosed:
+      - "an INTERMEDIATE RUNG, not the locked protocol's final checkpoint (the only rung the comparator has)"
+      - "3 seeds pooled, not the 5 every arm from D23 on has used (5 do not exist on the comparator side)"
+      - "n RAISED to 12,000/seed on both arms — conservative, and the same direction as the 5x3000 deviation"
+
+secondary_descriptive_only:
+  D_AUC:                                # [V2-9] THREE numbers, not one
+    status: SECONDARY under RW-8, which K-1 inherits rather than reopens
+    can_fail_k1: false
+    legs:
+      - {name: D_AUC(48), rungs: 1-48, comparator_mean: 0.63764, comparator_seed_sd: 0.01029}
+      - {name: D_AUC(first-24), rungs: 1-24, comparator_mean: 0.61472, comparator_seed_sd: 0.01000}
+      - {name: D_AUC(last-24), rungs: 25-48, comparator_mean: 0.66056, comparator_seed_sd: 0.01069}
+    sign_convention: "each leg is a signed delta E256 - E8; NEGATIVE MEANS E256 WORSE"
+    bucket_rule: floor(_step / 250000) in 1..48, one row per bucket
+    source: history.csv, or history_merged.csv if the lane resumed
+    denominator_check: >-
+      a lane whose merged history yields a count != 48 is REPORTED and
+      re-extracted, never graded on a different denominator.
+    why_three: >-
+      the split is the only instrument here that can see COMPOUNDING. A
+      first-half delta inside +-0.010 beside a second-half delta outside it is
+      the signature of a defect that accumulates — precisely the shape the 12M
+      endpoint cannot rule out for a 100M run.
+    rw8_does_not_transfer: >-
+      RW-8's "the AUC is 3.5% WIDER than the endpoint" was measured on the NODE
+      arm. ON THIS ARM THE AUC IS TIGHTER: comparator seed sds 0.01029 / 0.01000
+      / 0.01069 against the ENDPOINT's 0.01938 — 1.88x. It stays SECONDARY
+      anyway, because RW-8's other ground (a gated read would make wandb history
+      a verdict input) is unchanged.
+    consequence_has_a_threshold: >-
+      |D_AUC| >= 0.025 on ANY of the three legs costs A DIAGNOSIS ROUND before
+      the switch. Never a verdict input. An earlier draft required a round for a
+      "breach" without defining breach; that consequence-without-a-threshold is
+      removed.
+  other_reads:
+    - per-seed signed deltas, with signs (interpretable for diagnosis, NOT a paired estimator)
+    - "DIRECTIONAL OVERLAYS per the pre-registered prediction: loss/clip_frac and loss/approx_kl, both PREDICTED TO RISE, reported against the comparator's measured 0.2363/0.2338/0.2264 and 0.0396/0.0381/0.0359 at matched steps. clip_frac unchanged beside a delivered dose costs a diagnosis round"
+    - "the staleness trajectory: collect/policy_version_lag_p99 and _max per update, the (f0, f1, f2) triple, and the realized carry against the predicted 13.3-13.8%"
+    - "NOTE: the realized carry is NOT directly logged today — rl/train.py:1057-1060 emits only p99 and max. Reported as those proxies plus the prediction. Whether to add collect/policy_version_lag_frac_nonzero before launch is RWK-5"
+    - "parity: Lbar via _step/collect/episodes_finished (NOT the episode_length series); aux/labelled_frac, aux/switch_frac, aux/aliased_frac; loss/entropy, loss/explained_variance overlays at matched steps. No bands; DIAGNOSTIC"
+    - "throughput realized: per-lane steps/s and hours to the rung against the projection. NEVER a verdict input — a faster arm that trains a different agent is worth nothing"
+anchor_battery_fires: false
+anchor_battery_why_not: >-
+  K-1 credits nothing, lands no README row and is not a headline-grade result,
+  so CLAUDE.md's anchor battery does not apply. If K-1 passes and a later gen-1
+  headline is produced at k=256, THAT result carries the full battery.
+
+branches:
+  K1-PASS:
+    rule: "|D_K| < 0.025"
+    conditional_on_a1: true             # [V1-B5]
+    action: >-
+      A K-1 PASS LICENSES k=256 ONLY IF A-1 SEPARATELY ACCEPTS THE ENGINE
+      COLLECTOR. The two gates are CONJUNCTIVE and K-1 cannot stand alone: it
+      compares an engine arm against an engine arm, so if A-1 fails, BOTH
+      settings are rejected together and the gen-1 path stays on Node — a k=256
+      PASS says nothing about a collector that was not accepted. On the
+      conjunction, k=256 becomes the gen-1 training default at fleet width <= 6
+      (the widths max-out measured) and JOURNEY step 10 may run at k=256. THE
+      SIGNED DELTA AND ITS INTERVAL ARE RECORDED AND TRAVEL FOREVER (N-K256) ON
+      EITHER BRANCH OF THE CONJUNCTION. Adoption remains a maintainer decision,
+      not an automatic consequence.
+  K1-FAIL-NEG:
+    rule: "D_K <= -0.025 (E256 worse)"
+    action: >-
+      the monster train runs at K = 8, and k=256 stays a THROUGHPUT-ONLY setting:
+      A/B harnesses, smokes, max-out sweeps, anything where no learning is kept.
+      PRE-DECIDED; a near-miss does not reopen it.
+  K1-FAIL-POS:
+    rule: "D_K >= +0.025 (E256 better)"
+    action: >-
+      SAME ACTION as K1-FAIL-NEG — the monster train runs at K = 8. Accepting
+      "better" would be a one-sided read, and a 2.5-point gain from staleness
+      alone is far likelier to be a defect in the read than a free lunch. It is
+      REPORTED as the interesting result it would be and earns a diagnosis
+      round, not an adoption.
+  boundary: "|D_K| exactly 0.025 reads as OUTSIDE (fails)"
+  K1-VOID-K: >-
+    fewer than 3 E256 lanes reach the 12M rung -> DESCRIPTIVE ONLY; K-1 does not
+    decide. k<=2 cannot carry a 3-seed aggregator and refilling one lane makes a
+    mixed-provenance fleet. Report and relaunch.
+  K1-VOID-DOSE: >-
+    the dose-delivery partition says the treatment did not land: f1 + f2 < 0.90,
+    or collect/battles_in_flight != 256. Reported as the full (f0, f1, f2)
+    triple. VOID, never a PASS.
+  K1-R0: >-
+    an R0 breach kills the fleet. A relaunch after an R0 fix does NOT consume a
+    diagnosis round: rounds are for a COMPLETED read outside the band, never for
+    a fleet that produced no read.
+  K1-RUNG: >-
+    a lane whose crossing rung is more than one update (30,720 steps) off
+    12,000,000 is still GRADED at its realized step, with that step disclosed
+    beside the number. Beyond 250,000 steps it is K1-VOID-K instead — a
+    different dose, not an overshoot.
+  diagnosis_rounds: 1
+  diagnosis_rounds_note: >-
+    JOURNEY 7.5's two rounds are A-1's, not K-1's, and K-1 does not spend them.
+    K-1 gets ONE because its failure branch is CHEAP: k=8 is a working, screened
+    setting and the whole cost of failing is five fleet hours on a 100M x 6-lane
+    monster. Whether that is right is RWK-8's.
+  diagnosis_order_if_negative:
+    - "staleness itself at an intermediate K (k=32 or k=64, ONE lane) — separates 'staleness hurts' from '13.5% is too much'. Descriptive; adopting an intermediate K as production needs its own pre-reg [RWK-8]"
+    - "the update seam and the prefix channel: loss/clip_frac and loss/approx_kl against the predicted rise, and the per-position carry against the prefix table. Cheap, no training"
+    - "GAE on held episodes — carried rows are not truncated (episodes_discarded is a literal 0) but are advantaged and valued under a policy one version old. Read loss/explained_variance against the comparator"
+  diagnosis_order_if_positive:
+    - "the read itself — re-draw one lane's eval at a fresh seed_start. ONE rung at n=3,000 is worth +-0.02 in this repo's record; at 12,000 it is smaller but not zero, and the comparator's measured seed sd is 1.89x the model"
+    - "information leak — re-audit the encoder against invariant I1 for anything k-dependent"
+    - "staleness as a genuine regulariser: a REAL mechanism and a finding, but it does not change the action"
+
+r0_gates:
+  window_steps: 250000                 # NOT 200k
+  window_why: >-
+    eval_every is 250,000, so eval/win_rate CANNOT BE OBSERVED AT ALL inside
+    200k and a 200k window would have shipped a gate that can never fire.
+  inherited_from: configs/engine_a1.yaml
+  loss_entropy_band: [1.3, 2.0]
+  clip_frac_nonzero: true
+  clip_frac_note: >-
+    a LIVENESS gate, not a level gate; the LEVEL is a directional overlay under
+    secondary, per the pre-registered prediction.
+  aux_illegal_label_frac: 0
+  aux_frame_collision_frac: 0
+  aux_labelled_frac_band: [0.74, 0.88]   # the metric is `labelled_frac`; a gate on the similarly named `label_present_frac` would kill a perfect lane [A-1 R2-M2]
+  eval_win_rate_open_interval: true      # read at the 250k rung
+  eval_no_outcome_key: MUST_BE_ABSENT
+  team_bank_min_pairs: 1000000
+  team_bank_sha256_must_equal_comparator: true
+  staleness_gate:                        # [V1-B3, V2-11]
+    metric_semantics: >-
+      collect/policy_version_lag_p99 is a PER-ROW lag percentile computed at the
+      drain (rl/train.py:1040, logged :1057-1060).
+    why_rebased: >-
+      A-1's gate was "p99 <= 1; breach = 3 consecutive rollouts", and ON THE
+      COMPARATOR IT MEASURED 0.0 ON EVERY UPDATE — 432 / 434 / 410 update rows,
+      min 0, max 0 — while lag_max read 1.0 on 99.77% of them. That is the 0.4%
+      carry: fewer than 1% of rows stale, so the 99th percentile is 0. At k=256,
+      13.3-13.8% of rows are stale and p99 rises to 1 BY CONSTRUCTION. A-1's
+      gate would not fire; A-1's EXPECTATION would have a reader call a
+      delivered treatment a breach. Re-basing is not a loosening.
+    partition:
+      definition: "f0 / f1 / f2 = fraction of post-250k update rows with p99 == 0 / == 1 / >= 2. These three exhaust the space."
+      dose_landed: "f1 + f2 >= 0.90"
+      otherwise: "K1-VOID-DOSE, reported as the full triple (f0, f1, f2), never as a PASS"
+      why_f1_plus_f2: >-
+        a single ~1,000-turn battle legitimately puts one update's p99 at 2,
+        which the design predicts on ~0.8% of updates; an `f1 >= 0.90` rule
+        would have counted those against the dose.
+      f2_reported_separately: >-
+        on every branch, because the triple distinguishes the two failure modes:
+        f0 large means K DID NOT TAKE (the lane is running k=8 under a k=256
+        filename), f2 large means SOMETHING ELSE IS STALE (rows surviving two
+        boundaries at a rate the design does not predict).
+      first_update_note: >-
+        p99 == 0 is EXPECTED on update 1 — nothing is in flight before the first
+        drain — which is why the fractions are measured AFTER 250,000 steps and
+        not from the first row.
+    breach: "p99 >= 2 on THREE CONSECUTIVE rollouts"
+    breach_consecutive_clause_is_load_bearing: >-
+      isolated p99 == 2 updates ARE predicted at ~0.8%, so a single-update rule
+      would false-kill a correct lane.
+    lag_max: "REPORTED, NEVER GATED. It reaches 8 on such an update and sits near 2 typically; the rise is expected."
+  dose_delivery_second_leg:
+    battles_in_flight: 256               # comparator reads a constant 8
+    readable_at_update_1: true
+    rationale_corrected: >-
+      an earlier draft had this backwards. rl/train.py:921 DEFAULTS k to 256, so
+      a config that silently fell back to the default would give 256, not 8. The
+      gate is worth having because THE CONSTANT IS THE TREATMENT — this is the
+      one place a k OTHER than 256 (a typo, a stale --config, a resumed run dir
+      from the wrong arm) becomes visible, and it becomes visible immediately.
+  episodes_discarded:                    # [V1-M4]
+    status: REPORTED, NEVER GATED
+    why: >-
+      it is a HARD-CODED LITERAL 0u64 on this path
+      (engine/pkmn_gen1/src/pyencode.rs:547), so it cannot fail and a gate on it
+      would be theatre. Its only use is as a BUILD-IDENTITY TELL: a non-zero
+      value means the running extension is not the build this pre-reg pins,
+      which the engine block should have caught first.
+
+contamination_guards:
+  both_seat_harvest: OFF
+  d18_privileged_block: OFF_BY_ABSENCE   # agent.privileged_dim unset; rl/train.py:821-834 (A-1 cites 803-816; the block moved)
+  engine_scripted_opponents: UNUSED      # verdict denominator is the server's SH
+  d25_opp_action: ON                     # the comparator has it; removing it would be the treatment
+  oppact_head_on: >-
+    also STATUS.md action 0: rl/search/agent.py:68 hard-asserts
+    `agent.aux_head is not None`, so a checkpoint trained without it can never
+    be searched. K-1's lanes are 12M throwaways and this does not bind them, but
+    the SETTING K-1 licenses is the one the monster train inherits.
+  declared_config_differences: [collector.k, run_name, env_kwargs.seat_tag]
+  byte_identity_verified: >-
+    the parsed diff against configs/engine_a1.yaml is EXACTLY
+    {collector.k, run_name, env_kwargs.seat_tag} — checked at drafting, zero
+    undeclared differences. FIVE further lines differ in COMMENT TEXT ONLY and
+    no value (total_steps, collector.mode, collector.team_bank,
+    collector.min_bank_pairs, agent.lr_anneal_steps).
+
+estimator:
+  pass_rule: fixed_magnitude_band        # does not depend on an se
+  se_quoted_for_power: unpaired_two_fleet_larger_of_binomial_or_seed_clustered
+  deviation_disclosed: >-
+    the same one A-1 discloses under RW-3: JOURNEY 7.5 reads the band against a
+    pooled number as if it were KNOWN, ignoring the comparator's own 3-seed
+    spread. The PASS RULE is unchanged; only the honesty of the power statement
+    is.
+
+ops:
+  env: /opt/anaconda3/envs/pkmn-engine-port/bin/python
+  env_note: >-
+    the ONLY env carrying pkmn_gen1, and the env CLAUDE.md rule 1's fleet
+    exception names. Nothing is installed into it for this run.
+  required_env_vars: [POKEMON_RL_ENCODER_V2=1, POKEMON_RL_ENCODER_IDS=1]
+  required_env_vars_why: >-
+    read at import (rl/envs/showdown.py:118, :131); they are what makes OBS_DIM
+    828 — the comparator's own stamp. Without them the lane builds a different
+    width and no checkpoint compares.
+  seat_tag: k256                         # distinct from A-1's `a1`, the A/B's `ab*`, the search fleet's `s3*`
+  seeds: [66, 75, 83]                    # DISTINCT --seed per lane (CLAUDE.md rule 2)
+  stagger_sec: 90
+  hold_after_rung_sec: 120               # P5(a) — or the 48th in-loop bucket is lost
+  detached: true
+  resume_safe: true                      # --resume runs/<dir>
+  server_required: true                  # the in-loop evals go through poke-env
+  cost:
+    comparator_measured:
+      per_lane_hours: [2.2004, 2.1700, 2.3076]
+      per_lane_steps_per_sec: [1514.8, 1536.1, 1444.5]
+      per_lane_eval_hours: [0.0700, 0.0713, 0.0723]
+      updates_to_rung: 390
+      fleet_wall_hours: 2.359
+      conditions: k=8, width 3, server up, in-loop evals on, box otherwise idle
+    k256_rate_measured:
+      maxout_w3_per_lane_steps_per_sec: 2105.6    # results/engine_a1/maxout.json (k=8 w3 reads 1620.5)
+      maxout_w3_peak_rss_gb: 7.89                 # against 7.37 at k=8 w3
+      ab_w3_per_lane_wall_steps_per_sec: [1994.6, 2021.6]   # results/engine_a1/ab_speed_w3_k256.json
+      ab_w3_per_lane_steady_state: [2101.1, 2095.5, 2120.1]
+    projection_route_i_update_invariant:
+      basis: >-
+        k moves collection only; the 30,720-row update is unchanged. Per-update
+        wall falls 30,720/1620.5 = 18.957 s to 30,720/2105.6 = 14.590 s, i.e.
+        4.367 s x 390 updates = 0.473 h saved per lane, applied to the MEASURED
+        per-lane walls rather than the accounting sums.
+      per_lane_hours: [1.729, 1.699, 1.836]
+      fleet_wall_hours: 1.89
+    projection_route_ii_ratio:
+      basis: ratio 1.2994 applied to (collect + update), eval held constant
+      per_lane_hours: [1.705, 1.677, 1.788]
+      fleet_wall_hours: 1.84
+    claude_md_rule_4_band: >-
+      the point estimate is UNDER 2 h ("run it yourself") but it is within 6% of
+      the line, the twin arm MEASURED 2.359 h, and the box is not idle — any
+      contention puts it in the "2-5 h ask first" band. The conservative reading
+      is ASK FIRST, which is how A-1 was handled. RWK-9.
+    contention: >-
+      a LEARNING screen tolerates contention: it changes wall clock, not the win
+      rate, and neither arm's number moves. The reason to wait is the OTHER
+      job's time budget (see precondition P1), not this one's throughput.
+    box: 14 cores / 24 GB; resource gates are calibrated at a FLEET WIDTH and 7.89 GB is a width-3 figure
+  landmines:
+    - "A LANE CAN STALL ALIVE AT ZERO CPU — every pgrep passes forever. Liveness is a CPU-TIME DELTA (`ps -o time=` twice, 15 s apart). Recover with --resume. A pgrep guard must anchor on `bin/python`"
+    - "PROGRESS IS A RATE. The comparable completed arm is A-1's own: ~1,500 steps/s per lane at k=8 width 3, so an E256 lane should read roughly 1,950-2,100. Anything near 1,500 means k did not take (K1-VOID-DOSE)"
+    - "A RESUME SPLITS THE WANDB HISTORY; extract_history.py HARD-FAILS and merge_history.py is required. Read the real from_step from meta.yaml; expect updates_done one short per resume. The comparator has ZERO resumes, so any resume here is an asymmetry worth disclosing beside D_AUC"
+    - "every connecting seat sends /timer on (start_timer_on_battle_start defaults True) — without a timer requester Showdown never ends an abandoned room and the lane wedges forever"
+
+disclosures:
+  - "equivalence at this n is WEAKLY POWERED; K-1 is a screen, not an equivalence test"
+  - "the screen's resolution floor (MDE 0.032-0.038) is WIDER than its own accept band (0.025); a PASS is not a null and N-K256 carries the INTERVAL, never the point estimate"
+  - "the comparator's MEASURED seed sd at n=12,000 is 0.01938, 1.89x the planning model (chi2_2 p = 0.028); both columns are carried on every quote"
+  - "K-1 says nothing about behaviour at 100M+, which is the horizon the decision it feeds actually runs at; a 12M null does not close an axis"
+  - "the 12M rung is the WORST per-update point for a staleness defect (displacement scales with LR), so this is not an LR blind spot; the accumulation over 8x the horizon is"
+  - "k=256 trains OPENING play off-policy and ENDGAME play on-policy by 3.1x; the treatment is structured, not a uniform noise floor"
+  - "the PPO clip is the only correction on the stale-row path and it is ALREADY saturated on the comparator (clip_frac ~0.23 against clip_eps 0.2)"
+  - "k=256 changes four things, not one: learner carry, opponent-snapshot carry, batch size (+0.41%), and inference batch shape"
+  - "the comparator is A-1's own arm; a K-1 PASS licenses k=256 only in conjunction with an A-1 acceptance"
+  - "the battle-seed and team-pair stream is COMMON across arms and both evaluate at seed_start 100; no CRN credit is taken and the primary read is unpaired, which makes the quoted se_diff conservative"
+  - "the two arms' loggers differ by one commit; the parity read therefore uses _step/episodes_finished, and the ~10% episode-row drop on the comparator side is measured to be length-neutral"
+  - "the comparator arm ran at TWO git shas (95e5ec9 for s66/s75, 6e3486a for s83); the diff between them touches no code the lanes execute"
+
+barred_language: [equivalent, "identical (about the RESULT; 'byte-identical' about config bytes is permitted)", "no difference", "the same as k=8", validated, "staleness is harmless", "k=256 costs nothing"]
+permitted_language: ["inside the band at |D| = x", "within +-k se_diff", "not distinguishable at this n and k", "screened, not equivalence-tested"]
+
+non_lever_declaration:
+  name: N-K256
+  rule: >-
+    k=256 is declared a NON-LEVER backed by K-1's null. Its SIGNED delta AND ITS
+    INTERVAL ride every gen-1 credit sentence produced at k=256, forever, as
+    G9's +0.02322 does for async and as A-1's does for the engine collector. A
+    bare "K-1 passed" is NOT an attribution, and neither is a bare point
+    estimate: a PASS at -0.020 is consistent with a real cost of five points. No
+    gen-1 number ever pools across K settings, no gen-1 number produced at k=256
+    may be quoted as "k=256 costs nothing", and a result produced at k=256 on
+    the engine path carries BOTH non-lever deltas, K-1's and A-1's.
+
+test_amendment_owed:
+  test: "tests/test_ch5_r2_prereg.py:346-350 :: test_seeds_are_window_disjoint_and_unused"
+  what_happens: >-
+    it admits exactly three legal owners of seeds 66/75/83
+    (showdown_sp_batch50m_s{s}, showdown_sp_batch50m_async_s{s},
+    engine_a1_s{s}), so it turns RED the moment lane 1 writes
+    runs/engine_k256_s66/config.yaml.
+  rule: >-
+    adding engine_k256_s{s} as a FOURTH legal owner belongs to the RATIFICATION
+    COMMIT, not to a post-hoc fix — the same amendment A-1 made under RW-7. The
+    twin test named in precondition P4 lands in the same commit. RWK-4.
+  not_applied_now: true
+
+review:
+  review_1:
+    mandate: design and provenance
+    applied: >-
+      B1 (two shas, one tree, with the empty rl//engine diff as evidence), B2
+      (STATUS cited by sha, not quoted as current), B3 (the f0/f1/f2 exhaustive
+      dose partition), B4 (the 120 s hold and precondition P5), B5 (K1-PASS made
+      conjunctive on A-1), M1 (length-biased carry, both derivations), M2 (MDE at
+      all three sigmas), M3 (no Node number anywhere), M4 (episodes_discarded is
+      a literal 0 — reported, not gated), M5 (expires_if_the_engine_build_moves),
+      M6 (grader + test owed before launch), and every minor.
+    tagged_in_place: "[V1-*]"
+  review_2:
+    mandate: mechanism and statistics
+    applied: >-
+      R2-1 (the prefix-carry table and the opening/endgame asymmetry), R2-2 (the
+      old_logp path, the already-saturated clip, and the directional prediction),
+      R2-4 (four channels, not one), R2-7/8 (the measured-seed-sd column and the
+      "A PASS is not a null" paragraph verbatim), R2-9 (D_AUC as three legs with
+      a real threshold), R2-10 (the LR direction inverted), R2-11 (gate
+      semantics, the first-update note, the load-bearing consecutive clause),
+      R2-12 (the common battle/team stream), R2-14 (the stake re-priced at
+      matched width).
+    tagged_in_place: "[V2-*]"
+    reconciliation_with_review_1: >-
+      B3 asked for f1 >= 0.90 as the delivery leg; R2-11 pointed out that a
+      single ~1,000-turn battle legitimately puts one update's p99 at 2 on ~0.8%
+      of updates, which such a rule would count against the dose. RECONCILED as
+      f1 + f2 >= 0.90 with f2 reported separately, which satisfies both.
+
+ratified_decisions: {}
+verdict_authorized: false
+launch_authorization:
+  granted: false
+  note: >-
+    ratification and launch authorization are SEPARATE. Neither is granted here.
+    Under CLAUDE.md rule 4 these are TRAINING lanes, so the eval/analysis
+    carve-out does not apply however detached and resume-safe they are.
+
+# =====================================================================
+# RULINGS WANTED — THE LAST WORD IN THIS FILE, DELIBERATELY.
+# NOTHING HERE IS RATIFIED. K-1 does not launch until these are answered.
+# The file is PARKED, so these are owed only if it is un-parked.
+# =====================================================================
+rulings_wanted:
+  RWK-1:
+    topic: may the comparator be A-1's ENGINE arm, and does a PASS depend on A-1?
+    question: >-
+      K-1 reads E256 against A-1's k=8 engine arm, which makes k the only
+      declared delta. Option (a) yes, and the K1-PASS branch is CONJUNCTIVE on
+      A-1's acceptance as now written — "does k=256 reproduce k=8 ON THE ENGINE
+      PATH" is well posed whatever A-1 concludes, and if A-1 fails both settings
+      are rejected together. Option (b) no — wait for A-1's verdict before
+      running K-1 at all. NOTE the coupling: if RW-1 branch (b) is taken ("run
+      A-1 at 256"), K-1 is SUPERSEDED rather than re-scoped and this file should
+      be withdrawn, not amended.
+    my_recommendation: (a), with the conjunction written into the branch
+  RWK-2:
+    topic: n per seed, and whether the comparator may be reused as-read
+    question: >-
+      Both arms read at n=12,000/seed. The comparator is ALREADY at that n on
+      that instrument (results/engine_a1/rung12m_s*.json), so this side is free
+      and no re-evaluation is proposed. Confirm the reuse, or require a fresh
+      comparator eval at a new seed_start so both sides are drawn this week?
+    my_recommendation: >-
+      reuse as read. A re-draw would ADD eval-replicate variance to the
+      comparator rather than remove it, and the checkpoints are sha-pinned.
+  RWK-3:
+    topic: the read, its band, and WHICH SIGMA IS THE PLANNING BASIS
+    question: >-
+      Confirm K-1 is a GROSS-BREAKAGE SCREEN at |D| < 0.025, two-sided, NOT an
+      equivalence test and NOT a widened band. And rule on the planning basis:
+      the regime-matched 0.01499 (band 2.98 se, false alarm 0.3%, MDE 0.0320) or
+      the comparator's OWN MEASURED seed sd 0.01938 (band 1.58 se, false alarm
+      11.4%, MDE 0.0383), which is 1.89x the model at chi2_2 p = 0.028. The
+      all-fleet 0.03411 and the CI upper end 0.04309 are tabulated as the
+      conservative alternatives.
+    my_recommendation: >-
+      confirm the screen and the band; carry BOTH sigma columns on every quote
+      rather than choosing, because at k=3 the data cannot distinguish "the
+      planning constant understates this recipe" from "these three lanes were
+      unlucky". If one must be chosen for the power statement, the MEASURED
+      0.01938 is the honest one.
+  RWK-4:
+    topic: seed reuse and the test amendment
+    question: >-
+      K-1 reuses seeds 66/75/83 for net-init comparability (NO variance credit
+      claimed). tests/test_ch5_r2_prereg.py:346-350 admits three owners and turns
+      RED when lane 1 writes its run dir. Approve engine_k256_s{s} as a FOURTH
+      legal owner in the ratification commit, or run K-1 on fresh seeds outside
+      every reserved window?
+    my_recommendation: >-
+      approve the amendment. Fresh seeds would cost the lane-for-lane net-init
+      match that makes the per-seed diagnosis read interpretable, and buy
+      nothing, since no pairing credit is taken either way.
+  RWK-5:
+    topic: a new metric for the realized carry
+    question: >-
+      The treatment's DOSE is the fraction of rows arriving one version stale.
+      Today only p99 and max are logged (rl/train.py:1057-1060), and p99
+      saturates at 1 — enough to say the treatment landed, not enough to say it
+      landed at 13.3-13.8%. A one-line addition beside them
+      (`collect/policy_version_lag_frac_nonzero = float((lag > 0).mean())`)
+      would measure it directly. It is a NEW metric name and CLAUDE.md locks the
+      metric list, so it is a ruling, not housekeeping. Add it before launch, or
+      run on the two proxies plus the prediction?
+    my_recommendation: >-
+      ADD IT. It is logged from the update path beside the existing collect/*
+      keys, costs nothing, and it converts "the treatment landed" from an
+      inference into a measurement — which is the whole point of a dose-delivery
+      gate. It would also let the two carry derivations (13.3% vs 13.8%) be
+      settled by observation instead of arbitration. If declined, K1-VOID-DOSE
+      stands on the (f0, f1, f2) triple and battles_in_flight alone.
+  RWK-6:
+    topic: run ordering against a live time-budgeted eval
+    question: >-
+      When K-1 is un-parked, does it wait for every time-budgeted eval to drain?
+      A fixed-time search under contention makes weaker decisions, so a
+      three-lane training fleet would INFLATE someone else's in-flight anchor.
+    my_recommendation: >-
+      WAIT. K-1's numbers are unaffected — the damage is entirely to the OTHER
+      measurement, which is a live pre-registered anchor, and there is no way to
+      disclose it back into validity afterwards.
+  RWK-7:
+    topic: the build between the arms
+    question: >-
+      The comparator ran at 95e5ec9 / 6e3486a (one tree); `git diff 95e5ec9..HEAD
+      -- rl/ engine/` is one logging commit, which K-1 REQUIRES (the old logger
+      would discard most rollout/* rows at k=256). The two staged "free wins" are
+      the scorer ctx factorization ("verified to 3e-07", NOT bit-identical,
+      already reverted once on a bit-exact pin) and an mmap'd bank (memory only).
+      Confirm the scorer change does NOT land before K-1's lanes.
+    my_recommendation: >-
+      pin the tree. The mmap'd bank is safe and may land; the scorer
+      factorization must not, or K-1 stops measuring k.
+  RWK-8:
+    topic: how many diagnosis rounds, and what a k-ladder may decide
+    question: >-
+      K-1 as written gets ONE diagnosis round (JOURNEY 7.5's two are A-1's), and
+      names a k=32/64 lane as the first diagnosis if D_K is negative. Two
+      decisions: is one round right given the failure branch is cheap (five fleet
+      hours on a 100M x 6-lane monster)? And may a diagnosis lane at an
+      intermediate K be ADOPTED as the production setting, or does any
+      intermediate K need its own pre-reg?
+    my_recommendation: >-
+      one round, and an intermediate K needs its own pre-reg. A single
+      descriptive lane cannot carry a learning decision — the same substitution
+      both A-1 reviews rejected for A-1a.
+  RWK-9:
+    topic: job ownership under CLAUDE.md rule 4
+    question: >-
+      Projected fleet wall is ~1.84-1.89 h on an idle box against the twin arm's
+      MEASURED 2.359 h. That straddles rule 4's 2 h line for TRAINING. Agent-run,
+      or handed over?
+    my_recommendation: >-
+      treat as "2-5 h ask first" and hand the commands over, the way A-1's
+      sidecar answered rule 4 explicitly. The estimate is within 6% of the line
+      and the box will not be idle.
+  RWK-10:
+    topic: what a PASS actually licenses
+    question: >-
+      On the conjunction with A-1, does a K-1 PASS license k=256 for the MONSTER
+      TRAIN only, or as the gen-1 training default for every subsequent run? And
+      at what fleet width — max-out measured 1, 3 and 6, and width does NOT
+      change learning ("a lane is a SEED"), but K-1 measures at width 3 only.
+    my_recommendation: >-
+      the gen-1 training default at fleet width <= 6, with N-K256's signed delta
+      AND INTERVAL travelling forever. Width is not a learning axis (each lane is
+      an independent seed) so it does not need re-screening, but the width K-1
+      measured at should be stated beside any quote, as every throughput figure
+      in this chapter already is.
+  RWK-11:
+    topic: is the screen worth running at all, given the re-priced stake?
+    added: 2026-09-10, after both reviews
+    question: >-
+      The two reviews together produce a question neither was asked: k-alone is
+      1.299x at matched width, the stake on a 100M x 6-lane monster is five fleet
+      hours, and the screen's resolution floor (MDE 0.032-0.038) is WIDER than
+      its accept band (0.025) — so a PASS cannot establish that k=256 is cheap,
+      only that it is not grossly broken. Run K-1 anyway, run JOURNEY 10 at k=8
+      and drop it, or park it against a future horizon where the stake is larger
+      (a 250M or 500M fleet, where five hours becomes fifteen or thirty)?
+    my_recommendation: >-
+      PARK, which is the state this file is now in. Run JOURNEY 10 at k=8: five
+      hours is not worth an un-interpretable PASS on the run that produces the
+      headline number, and the failure mode is asymmetric — a k=8 monster costs
+      five hours, a k=256 monster with an undetected -0.02 staleness cost is
+      unrecoverable and would contaminate every gen-1 sentence downstream of it.
+      Un-park when the horizon is long enough that the stake exceeds the risk.
