@@ -92,7 +92,8 @@ def realized(run_dir: pathlib.Path) -> float | None:
 
 
 def run_cell(base: dict, k: int, width: int, threads: int, steps: int,
-             work: pathlib.Path, seed: int, path: str = "engine") -> dict:
+             work: pathlib.Path, seed: int, path: str = "engine",
+             bank: str = AB.BANK) -> dict:
     """One configuration, `width` lanes, on either collector.
 
     `k` means battles-in-flight on both paths — `collector.k` for the engine,
@@ -116,7 +117,7 @@ def run_cell(base: dict, k: int, width: int, threads: int, steps: int,
         cfg["env_kwargs"] = {"opp_action": True,
                              "seat_tag": f"{tag}{k}w{width}t{threads}l{lane}"}
         if path == "engine":
-            cfg["collector"] = {"mode": "engine", "k": k, "team_bank": AB.BANK,
+            cfg["collector"] = {"mode": "engine", "k": k, "team_bank": bank,
                                 "learner_seat": "p1", "min_bank_pairs": 1_000_000}
         else:
             cfg["collector"] = {"mode": "async", "concurrency": k}
@@ -194,6 +195,8 @@ def main(argv=None) -> int:
                          "update windows, so this needs enough updates to have "
                          "a median: 200k is ~6 updates at the 30,720 batch.")
     ap.add_argument("--seed", type=int, default=5100)
+    ap.add_argument("--team-bank", default=None,
+                    help="engine path only; defaults to the standard bank")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--out", type=pathlib.Path,
                     default=pathlib.Path("results/engine_a1/maxout.json"))
@@ -209,9 +212,10 @@ def main(argv=None) -> int:
     ws = [int(x) for x in args.width.split(",")] if args.width else grid.get("width", [1])
     ts = [int(x) for x in args.threads.split(",")] if args.threads else grid.get("threads", [1])
 
+    bank = args.team_bank or AB.BANK
     if args.path == "engine":
-        if not (AB.MAIN / AB.BANK).exists():
-            raise SystemExit(f"team bank {AB.MAIN / AB.BANK} is missing")
+        if not pathlib.Path(bank).exists() and not (AB.MAIN / bank).exists():
+            raise SystemExit(f"team bank {bank} is missing")
         AB.stop_server()      # engine cells need no server; a live one is noise
     else:
         if AB.simulator_workers() != 4:
@@ -234,7 +238,7 @@ def main(argv=None) -> int:
                 print(f"--- [{len(cells)+1}/{total}] k={k} width={width} "
                       f"threads={threads}", flush=True)
                 c = run_cell(base, k, width, threads, args.steps, work, seed,
-                             args.path)
+                             args.path, bank)
                 seed += width + 1          # never reuse a seed across cells
                 cells.append(c)
                 print(f"    ok={c['ok']} wall={c['wall_seconds']}s  "
