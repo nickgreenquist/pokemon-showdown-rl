@@ -1943,3 +1943,106 @@ measured; the change is a follow-up with its own verification.
 **One documentation error found alongside.** `configs/engine_a1.yaml:793` says
 "a 1M-pair bank is ~96 MB resident" while the lane ships the 5M-pair bank — the
 resource note understates its own lane by 5x.
+
+## 2026-09-10 — two audits: where the remaining speed actually is
+
+Two opus agents audited the collection and learner halves independently, told
+only "make sure we didn't miss any obvious ways to speed up training runs".
+Both came back with something better than a list, and the two agree on the
+shape: **collection is no longer the problem, and the learner's obvious knobs
+are all dead.** The live items are structural.
+
+### The collection side is ~93-98% PyTorch forwards, not engine, not seam
+
+The collector auditor fit a two-parameter model to `results/t1/leg_b.json` —
+per-poll wall = `(1 + M(k))·F + 2·n·R`, where `M(k)` is the expected number of
+DISTINCT pool members among k slots at `latest_prob 0.8, pool_size 20`. It fits
+all five k in the sweep, and the headline parameter is:
+
+> **A forward pass costs ~230 µs almost regardless of how many rows are in it.**
+
+Cross-checked independently against a banked Node lane's own history
+(`Δcollect/inference_seconds ÷ Δcollect/seam_requests` = 352.3 µs per batch-1
+forward at width 3, ≈223 µs after the 0.634 contention factor). Same F from a
+different instrument.
+
+Consequences, and they are large:
+* The engine, the Rust encoder and the PyO3 seam together are **1.5% of
+  collection at k=32 and never above 8.7%** (k=512). At the shipped k=8 the
+  fixed per-forward cost is **82% of collection**. Optimising the seam is
+  optimising 0.5% of wall — recorded as CHECKED AND NOT WORTH IT, with the
+  specific waste found and priced anyway (double encode per decision in
+  `env.rs:224-234`/`:273-274`; two extra copies per row in `pyencode.rs
+  :311-328`; element-by-element numpy→list conversion in
+  `engine_collector.py:257-262`; an un-memoised `SpeciesPrior::conditional` in
+  `tables.rs:171-213` that Rust recomputes while the PYTHON encoder caches the
+  identical function). Bundle as hygiene if the code is open; never as a
+  throughput item.
+* **k=8 → 256 is worth 1.32x** at the full loop (not the +22% I estimated), and
+  the mechanism is entirely "amortise F over more rows": the fixed share falls
+  82% → 47% → 33%. The Amdahl ceiling with collection free is 1.54x.
+* **The Node baseline is ~85% batch-1 PyTorch forwards** — the E4b knee of 1240
+  learner-decisions/s is 806 µs/decision, of which ~682 µs is two batch-1
+  forwards. That is not a server limit and not an I/O limit. **A large share of
+  whatever the A/B reports is INFERENCE BATCHING, which is not the engine and
+  which the Node path could also have had.** This owes a disclosure line beside
+  the speedup, and it is now in `scripts/engine_speed_readout.py`.
+
+### The largest lever was not scheduled: fleet width
+
+An engine lane is **1.02 cores and ~2.2 GB**, so a 3-wide fleet holds 3.06 of
+14 cores and 6.6 of 24 GB — **the box is ~78% idle while it trains**. The "do
+not run 6 lanes" rule in THROUGHPUT_SPEC was written for the SYNC NODE path,
+where a lane cost 1.93 cores and 2.7 GB and the box was 1.5 GB into swap. Both
+premises died with the port. Its own measurement was a 7% per-lane loss for
+1.86x fleet throughput. Width `[1,2,3,6]` existed in `engine_maxout.py` and was
+simply not in the scheduled grid; it is now.
+
+### The learner: one large mechanical win, and the threads knob is closed
+
+**The pointer scorer recomputes the same `ctx` projection ten times per row.**
+`entity_deepsets.py:543-547` builds `pairs = cat([ctx.expand(10), entities])`
+and runs `Linear(512→256)` over `(B, 10, 512)` — where the first 384 columns
+are the SAME `ctx` vector in all ten slots. A linear map over a concat splits
+exactly:
+
+```
+W @ [ctx ; e_i] + b  ==  (W[:, :384] @ ctx + b)  +  W[:, 384:] @ e_i
+```
+
+so the 384-wide half needs one GEMM per row, not ten. Priced at **26.3% of the
+epoch loop** (actor scorer 1,313,280 → 428,544 MAC/row; the aux head at
+`opp_action.py:143-150` has the identical shape, 295,488 → 111,168), which is
+**~1.13-1.18x end-to-end** after an honest haircut for the narrower GEMM. The
+same cut is 24.6% of the gen-4 epoch loop. It also deletes ~8 GB/update of
+`cat` materialisation traffic. MECHANICAL — not bit-identical (~1e-7, a
+different summation tree), same class as a thread-count change; parameters,
+`state_dict` and the param ceiling are untouched, and there is no bit-exact
+forward golden on the entity trunk. One named trap: `d22_dormant_rank.py
+:119-121` hooks `scorer.1` as a module, so keep the ReLU as a module call or
+that dormancy row silently disappears.
+
+**Why threads make it slower, third hypothesis and the best one:** this build
+reports `BLAS_INFO=accelerate` with `MKLDNN not found`, so every `Linear` goes
+to Apple's Accelerate sgemm — and `torch.set_num_threads()` does not reach
+inside it. It only widens ATen `parallel_for` regions (ReLU, LayerNorm, cat,
+the Adam elementwise loop), which are bandwidth-bound. `scripts/engine_gemm_probe.py`
+settles this in 30 seconds by timing a bare `torch.mm` at the scorer's exact
+production shape across thread counts in separate processes: a FLAT curve means
+the knob is closed on this box permanently.
+
+**Collection and the update are strictly serial** — `train.py:1025` `pause()`
+… `:1078` `resume()` bracket the update. Overlapping them reaches the same
+1.54x Amdahl ceiling WITHOUT making the collector any faster, at the cost of
+one more update of policy-version staleness (currently `version_lag_max` 1).
+
+### A real bug found on the way, and it gets worse exactly when k is raised
+
+`rl/train.py:1013-1021` logs once PER FINISHED EPISODE, but `step` is fully
+advanced by the first loop before the second logs — so **every episode from one
+poll is logged at the same `step`, and only one survives per (step, key)**. At
+k=8 that affects ~3% of polls. At k=256 it is ~2.4 episodes/poll and at k=512
+~7, so raising k silently discards half or more of `rollout/episode_return` and
+`rollout/episode_length` — which are R0-gate inputs (G8 gates episode_length to
+a band). **Fix before raising k.** Mechanical; it changes history granularity,
+not learning.
