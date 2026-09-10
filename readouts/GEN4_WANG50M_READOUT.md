@@ -138,7 +138,11 @@ three published figures, the S-SHAPE curve, the gate chips, the disclosures and
 the next steps) is published as a private artifact:
 <https://claude.ai/code/artifact/c63edab6-0119-41f3-899a-030d06e5c389>. It is a
 VIEW, never the source: every number there is transcribed from
-`results/gen4_wang50m/` and this file is canonical on any conflict.
+`results/gen4_wang50m/` and this file is canonical on any conflict. The page's source
+is committed beside this file as `readouts/gen4_wang50m_readout.html`, so the artifact
+is reproducible from a clone; it is published without the `<!doctype>`/`<head>`
+wrapper, which the Artifact host supplies. Editing it and republishing to the SAME
+URL keeps the link — publishing a different file path would create a second artifact.
 
 ## What this readout may not be used for
 

@@ -1,0 +1,381 @@
+<title>Wang Recipe Readout</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;600&family=IBM+Plex+Sans:wght@400;450;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper:      #f6f7f4;
+    --surface:    #fffffe;
+    --rule:       #d9ddd6;
+    --ink:        #12181a;
+    --ink-soft:   #59656a;
+    --ink-faint:  #8a949a;
+    --pass:       #1f6f56;
+    --pass-bg:    #e6efe9;
+    --warn:       #8a5c15;
+    --warn-bg:    #f6eedd;
+    --ref:        #6a5a86;
+    --lane-a:     #1f6f56;
+    --lane-b:     #2b6383;
+    --lane-c:     #a06a25;
+    --measure:    66ch;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:     #101414;
+      --surface:   #171d1d;
+      --rule:      #2c3634;
+      --ink:       #e8ebe6;
+      --ink-soft:  #a3aeaf;
+      --ink-faint: #717d7e;
+      --pass:      #6cc39f;
+      --pass-bg:   #172a23;
+      --warn:      #d9a75a;
+      --warn-bg:   #2a2318;
+      --ref:       #a495c4;
+      --lane-a:    #6cc39f;
+      --lane-b:    #74aed3;
+      --lane-c:    #d4a463;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:     #101414;
+    --surface:   #171d1d;
+    --rule:      #2c3634;
+    --ink:       #e8ebe6;
+    --ink-soft:  #a3aeaf;
+    --ink-faint: #717d7e;
+    --pass:      #6cc39f;
+    --pass-bg:   #172a23;
+    --warn:      #d9a75a;
+    --warn-bg:   #2a2318;
+    --ref:       #a495c4;
+    --lane-a:    #6cc39f;
+    --lane-b:    #74aed3;
+    --lane-c:    #d4a463;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 48px 24px 96px; }
+  p, li { max-width: var(--measure); }
+  h1, h2, h3 { font-family: "IBM Plex Serif", Georgia, serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: 2.15rem; font-weight: 600; line-height: 1.18; letter-spacing: -0.01em; }
+  h2 { font-size: 1.32rem; font-weight: 600; margin-bottom: .3rem; }
+  h3 { font-size: 1rem; font-weight: 600; font-family: "IBM Plex Sans", sans-serif; }
+  .num, code, th, .chip, .stat b { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+
+  /* masthead */
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 20px; }
+  header h1 { margin: 10px 0 14px; }
+  .ident { display: flex; flex-wrap: wrap; gap: 4px 28px; font-size: .82rem; color: var(--ink-soft); }
+  .ident span { font-family: "IBM Plex Mono", monospace; }
+  .ident b { color: var(--ink); font-weight: 500; }
+
+  section { margin-top: 44px; }
+  section > p:first-of-type { margin-top: .4rem; }
+
+  /* verdict */
+  .verdict { display: flex; flex-wrap: wrap; gap: 14px; margin: 20px 0 4px; }
+  .call {
+    flex: 1 1 220px; background: var(--pass-bg); border-left: 3px solid var(--pass);
+    padding: 14px 18px;
+  }
+  .call .tag { font-family: "IBM Plex Mono", monospace; font-weight: 500; color: var(--pass); font-size: 1.02rem; }
+  .call p { margin: 2px 0 0; font-size: .88rem; color: var(--ink-soft); max-width: none; }
+
+  figure { margin: 26px 0 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { font-size: .8rem; color: var(--ink-soft); margin-top: 10px; max-width: var(--measure); }
+  .scroller { overflow-x: auto; }
+
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; margin-top: 18px; }
+  th {
+    text-align: left; font-weight: 500; font-size: .7rem; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--ink-faint);
+    border-bottom: 1px solid var(--ink); padding: 0 14px 7px 0; white-space: nowrap;
+  }
+  td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  td.n { font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.lead { font-weight: 450; }
+  tr.headline td { background: var(--pass-bg); font-weight: 600; }
+  .note { font-size: .8rem; color: var(--ink-soft); }
+
+  /* gate chips */
+  .gates { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 18px; }
+  .chip {
+    font-size: .76rem; padding: 4px 9px; border: 1px solid var(--pass);
+    color: var(--pass); background: var(--pass-bg); white-space: nowrap;
+  }
+  .chip.rec { border-color: var(--rule); color: var(--ink-soft); background: transparent; }
+
+  /* stat row */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule); margin-top: 20px; border: 1px solid var(--rule); }
+  .stat { background: var(--surface); padding: 13px 16px; }
+  .stat b { display: block; font-size: 1.24rem; font-weight: 500; letter-spacing: -0.01em; }
+  .stat span { font-size: .74rem; color: var(--ink-soft); }
+
+  /* disclosures */
+  .disc { border-left: 3px solid var(--warn); background: var(--warn-bg); padding: 4px 18px 14px; margin-top: 18px; }
+  .disc h3 { color: var(--warn); margin-top: 12px; }
+  .disc p { font-size: .88rem; margin: .3rem 0 0; }
+
+  ol.next { padding-left: 0; list-style: none; counter-reset: n; margin-top: 18px; }
+  ol.next li { counter-increment: n; padding-left: 42px; position: relative; margin-bottom: 18px; }
+  ol.next li::before {
+    content: counter(n); position: absolute; left: 0; top: 1px;
+    font-family: "IBM Plex Mono", monospace; font-size: .78rem; color: var(--ink-faint);
+    border: 1px solid var(--rule); width: 26px; height: 26px;
+    display: grid; place-items: center;
+  }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: .8rem; color: var(--ink-faint); }
+  a { color: var(--pass); }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Journey step 3 → 7 · chapter closed 2026-09-09</div>
+  <h1>Gen 4, first run: Wang’s recipe on our own encoder</h1>
+  <div class="ident">
+    <span><b>configs/gen4_wang50m.yaml</b> · sha256 daa17a01…</span>
+    <span>launched <b>d51fa6f</b></span>
+    <span>3 lanes × <b>50,000,000</b> seat-1 steps</span>
+    <span><b>69.8 h</b> wall</span>
+    <span>2,504 updates/lane</span>
+  </div>
+</header>
+
+<section>
+  <h2>The verdict</h2>
+  <p>Pooled <span class="num">0.8788</span> against poke-env’s <code>SimpleHeuristicsPlayer</code> — locked protocol: final
+  checkpoint, 3,000 battles per lane, deterministic policy, ties as non-wins, equal-weight mean over three lanes.
+  Both calls were read off the pre-registered header, and the grader printed them with <code>problems: []</code>.</p>
+
+  <div class="verdict">
+    <div class="call">
+      <div class="tag">M-YES</div>
+      <p>Step 3’s milestone (≥ 0.60): the gen-4 pipeline learns.</p>
+    </div>
+    <div class="call">
+      <div class="tag">S5-MATCHED</div>
+      <p>Step 5’s exit (≥ 0.756, one-sided): met by +0.1228 = <b>27.19 se</b>. The chapter’s exit condition is satisfied.</p>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>0.8788</b><span>pooled vs SH</span></div>
+    <div class="stat"><b>0.00452</b><span>governing se (clustered)</span></div>
+    <div class="stat"><b>0.76%</b><span>tie rate, scored as losses</span></div>
+    <div class="stat"><b>0</b><span>mask desyncs, all lanes</span></div>
+  </div>
+
+  <figure>
+    <div class="scroller">
+      <svg viewBox="0 0 760 170" role="img" aria-label="Number line placing the pooled result 0.8788 against the ruled floor 0.756, Wang's Table 4.1 cell 0.786, and his Figure 4.1 range 0.836 to 0.849.">
+        <!-- bracket for Fig 4.1 range -->
+        <path d="M541.5 74 L541.5 66 L569.1 66 L569.1 74" fill="none" stroke="var(--ref)" stroke-width="1.2"></path>
+        <text x="555" y="58" fill="var(--ref)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">Fig 4.1  0.836–0.849</text>
+        <!-- thresholds -->
+        <line x1="371.5" y1="74" x2="371.5" y2="112" stroke="var(--ink)" stroke-width="1.4"></line>
+        <text x="371.5" y="66" fill="var(--ink)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">0.756 ruled floor</text>
+        <line x1="435.25" y1="80" x2="435.25" y2="106" stroke="var(--ref)" stroke-width="1.2"></line>
+        <text x="435.25" y="127" fill="var(--ref)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">Table 4.1  0.786</text>
+        <!-- axis -->
+        <line x1="40" y1="93" x2="720" y2="93" stroke="var(--rule)" stroke-width="2"></line>
+        <line x1="40" y1="88" x2="40" y2="98" stroke="var(--ink-faint)" stroke-width="1"></line>
+        <text x="40" y="145" fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="start">0.60 milestone</text>
+        <line x1="720" y1="88" x2="720" y2="98" stroke="var(--ink-faint)" stroke-width="1"></line>
+        <text x="720" y="145" fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="end">0.92</text>
+        <!-- our result: 2 se bar + lanes + pooled -->
+        <rect x="622.9" y="87" width="19.2" height="12" fill="var(--pass)" opacity="0.22"></rect>
+        <circle cx="618" cy="93" r="3" fill="none" stroke="var(--lane-b)" stroke-width="1.5"></circle>
+        <circle cx="628.6" cy="93" r="3" fill="none" stroke="var(--lane-c)" stroke-width="1.5"></circle>
+        <circle cx="650.5" cy="93" r="3" fill="none" stroke="var(--lane-a)" stroke-width="1.5"></circle>
+        <circle cx="632.45" cy="93" r="5.5" fill="var(--pass)"></circle>
+        <text x="632.45" y="30" fill="var(--pass)" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" text-anchor="middle">0.8788 pooled</text>
+        <line x1="632.45" y1="36" x2="632.45" y2="84" stroke="var(--pass)" stroke-width="1.2"></line>
+        <text x="632.45" y="163" fill="var(--ink-soft)" font-family="IBM Plex Mono, monospace" font-size="10.5" text-anchor="middle">shaded band = ±2 se · rings = lanes</text>
+      </svg>
+    </div>
+    <figcaption><b>Matched is not reproduced.</b> 0.786 is Wang’s Table 4.1 <em>network-alone</em> cell — his MCTS+NN agent is 0.908 — and his
+    Figure 4.1 digitizes higher than the cell we matched against, unreconciled in the thesis. Our estimate lands above both, but the
+    comparison is not like-for-like on any of eight named deviations (2/3 of his per-seat dose, our PPO not SB3, our trunk, our
+    10-way action space, our encoder layout, lockstep collection, our SH version, ties as non-wins). No claim of exceeding or
+    reproducing his result is made.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>The anchor battery</h2>
+  <p>Descriptive only — never verdict inputs. All four gen-4 legs landed, so the README row did not have to wait.</p>
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Leg</th><th>s200</th><th>s208</th><th>s216</th><th>Pooled</th><th>Raw record</th></tr></thead>
+    <tbody>
+      <tr class="headline"><td class="lead">vs SH — the primary</td><td class="n">0.8873</td><td class="n">0.8720</td><td class="n">0.8770</td><td class="n">0.8788</td><td class="n">3,000 / lane</td></tr>
+      <tr><td class="lead">Most-damage-typed h2h</td><td class="n">0.910</td><td class="n">0.890</td><td class="n">0.906</td><td class="n">0.902</td><td class="n">500 / lane</td></tr>
+      <tr><td class="lead">Foul Play @20 ms h2h</td><td class="n">0.300</td><td class="n">0.296</td><td class="n">0.284</td><td class="n">0.2933</td><td class="n">75-174-1 · 74-176-0 · 71-177-2</td></tr>
+      <tr><td class="lead">Foul Play @500 ms h2h</td><td class="n">0.308</td><td class="n">0.260</td><td class="n">0.224</td><td class="n">0.2640</td><td class="n">77-172-1 · 65-185-0 · 56-194-0</td></tr>
+      <tr><td class="lead">BC-clone (FP@20 teacher) h2h</td><td class="n">0.986</td><td class="n">0.988</td><td class="n">0.982</td><td class="n">0.9853</td><td class="n">500 / lane</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note" style="margin-top:14px">Sanity rows, not legs: MDT vs SH 0.400 · clone vs SH 0.464 · FP@20 vs SH 0.904 · FP@500 vs SH 0.912 (bot-vs-bot, n=250).
+  Those place the scale: <b>a strong vs-SH number is not evidence against a searching opponent.</b> Foul Play beats SH more decisively than we do
+  and beats us head-to-head — a consistent ordering, not a contradiction.</p>
+
+  <div class="disc">
+    <h3>Q38 pins the 20 ms budget</h3>
+    <p>|0.2933 − 0.2640| = 0.0293 against 2·se_diff 0.0463 — <b>not distinguishable at this n and k</b>. FP@500 charged
+    <b>24× the wall clock</b> for it: ~37 s/battle against 1.58, i.e. 7.8 h for that one leg, with 5× the across-lane spread.
+    The dearer instrument is also the noisier one. The pin governs later runs only, and “not distinguishable” is not “the same” —
+    the equivalence test is weakly powered, and the point estimate flatters us. Both disclosures travel with every Foul Play
+    number, forever, and the budget is named in every quote.</p>
+  </div>
+</section>
+
+<section>
+  <h2>The learning curve</h2>
+  <p>Ten rungs × 3 lanes × n=1000, pooled the primary’s way.</p>
+  <figure>
+    <div class="scroller">
+      <svg viewBox="0 0 760 310" role="img" aria-label="Pooled win rate against SH by training step, from 0.8277 at 5M rising to about 0.885 by 25M and holding near 0.88 through 50M.">
+        <!-- y grid + ticks -->
+        <line x1="60" y1="250" x2="740" y2="250" stroke="var(--rule)" stroke-width="1"></line>
+        <line x1="60" y1="145" x2="740" y2="145" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 4"></line>
+        <line x1="60" y1="40" x2="740" y2="40" stroke="var(--rule)" stroke-width="1" stroke-dasharray="2 4"></line>
+        <text x="52" y="254" fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="end">0.80</text>
+        <text x="52" y="149" fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="end">0.85</text>
+        <text x="52" y="44" fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="end">0.90</text>
+        <!-- primary reference -->
+        <line x1="60" y1="84.5" x2="740" y2="84.5" stroke="var(--pass)" stroke-width="1.2" stroke-dasharray="6 4" opacity="0.75"></line>
+        <text x="66" y="78" fill="var(--pass)" font-family="IBM Plex Mono, monospace" font-size="10.5" text-anchor="start">primary 0.8788 at n=3000</text>
+        <!-- per-lane dots -->
+        <g fill="none" stroke-width="1.4">
+          <circle cx="60" cy="191.8" r="2.6" stroke="var(--lane-a)"></circle><circle cx="60" cy="206.5" r="2.6" stroke="var(--lane-b)"></circle><circle cx="60" cy="141.4" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="134.4" cy="122.5" r="2.6" stroke="var(--lane-a)"></circle><circle cx="134.4" cy="181.3" r="2.6" stroke="var(--lane-b)"></circle><circle cx="134.4" cy="204.4" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="208.9" cy="137.2" r="2.6" stroke="var(--lane-a)"></circle><circle cx="208.9" cy="107.8" r="2.6" stroke="var(--lane-b)"></circle><circle cx="208.9" cy="149.8" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="283.3" cy="128.8" r="2.6" stroke="var(--lane-a)"></circle><circle cx="283.3" cy="120.4" r="2.6" stroke="var(--lane-b)"></circle><circle cx="283.3" cy="97.3" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="357.8" cy="82" r="2.6" stroke="var(--lane-a)"></circle><circle cx="357.8" cy="67.3" r="2.6" stroke="var(--lane-b)"></circle><circle cx="357.8" cy="67.3" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="432.2" cy="96.7" r="2.6" stroke="var(--lane-a)"></circle><circle cx="432.2" cy="109.3" r="2.6" stroke="var(--lane-b)"></circle><circle cx="432.2" cy="113.5" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="506.7" cy="77.8" r="2.6" stroke="var(--lane-a)"></circle><circle cx="506.7" cy="103" r="2.6" stroke="var(--lane-b)"></circle><circle cx="506.7" cy="90.4" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="581.1" cy="82" r="2.6" stroke="var(--lane-a)"></circle><circle cx="581.1" cy="90.4" r="2.6" stroke="var(--lane-b)"></circle><circle cx="581.1" cy="92.5" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="655.6" cy="77.8" r="2.6" stroke="var(--lane-a)"></circle><circle cx="655.6" cy="50.5" r="2.6" stroke="var(--lane-b)"></circle><circle cx="655.6" cy="84.1" r="2.6" stroke="var(--lane-c)"></circle>
+          <circle cx="730" cy="90.4" r="2.6" stroke="var(--lane-a)"></circle><circle cx="730" cy="61" r="2.6" stroke="var(--lane-b)"></circle><circle cx="730" cy="94.6" r="2.6" stroke="var(--lane-c)"></circle>
+        </g>
+        <!-- pooled line -->
+        <polyline points="60,191.8 134.4,181.3 208.9,143.5 283.3,127.6 357.8,72.1 432.2,106.6 506.7,90.4 581.1,88.3 655.6,70.9 730,82"
+          fill="none" stroke="var(--ink)" stroke-width="2.2"></polyline>
+        <g fill="var(--ink)">
+          <circle cx="60" cy="191.8" r="3.6"></circle><circle cx="134.4" cy="181.3" r="3.6"></circle><circle cx="208.9" cy="143.5" r="3.6"></circle>
+          <circle cx="283.3" cy="127.6" r="3.6"></circle><circle cx="357.8" cy="72.1" r="3.6"></circle><circle cx="432.2" cy="106.6" r="3.6"></circle>
+          <circle cx="506.7" cy="90.4" r="3.6"></circle><circle cx="581.1" cy="88.3" r="3.6"></circle><circle cx="655.6" cy="70.9" r="3.6"></circle><circle cx="730" cy="82" r="3.6"></circle>
+        </g>
+        <text x="60" y="212" fill="var(--ink)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="start">0.8277</text>
+        <!-- x labels -->
+        <g fill="var(--ink-faint)" font-family="IBM Plex Mono, monospace" font-size="11" text-anchor="middle">
+          <text x="60" y="272">5M</text><text x="134.4" y="272">10M</text><text x="208.9" y="272">15M</text>
+          <text x="283.3" y="272">20M</text><text x="357.8" y="272">25M</text><text x="432.2" y="272">30M</text>
+          <text x="506.7" y="272">35M</text><text x="581.1" y="272">40M</text><text x="655.6" y="272">45M</text><text x="730" y="272">50M</text>
+        </g>
+        <text x="60" y="296" fill="var(--ink-soft)" font-family="IBM Plex Mono, monospace" font-size="10.5" text-anchor="start">seat-1 steps · black = pooled, rings = s200 / s208 / s216</text>
+      </svg>
+    </div>
+    <figcaption>The read is the curve: it <b>climbs through 25M</b> (+0.0523 pooled end to end), and from 25M the six rungs span 0.017 —
+    inside one rung’s ±0.02 — so it is <b>not distinguishable from flat at this n and k</b>. No equivalence test was run, so “flat” and
+    “plateau” stay barred as descriptions. Mandatory caveat: sub-50M rungs sit on the 50M power anneal and are not comparable to a
+    finished run at the same step. The 50M rung pooled 0.8800 against the primary’s 0.8788 on the same checkpoints is the
+    internal check; within s200 alone the same checkpoint reads 0.876 and 0.8873 — 0.011 apart, the ±0.02 rule in action.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Gates</h2>
+  <p>Every gate passed on all three lanes, read against <code>history_merged.csv</code> — resumes split the wandb history, so the
+  merged file is the only correct input.</p>
+  <div class="gates">
+    <span class="chip">R0-1 entropy 1.757–1.821</span>
+    <span class="chip">R0-2 clip_frac ≠ 0</span>
+    <span class="chip">R0-3 harvest 0.901–1.059</span>
+    <span class="chip">R0-4 first eval present</span>
+    <span class="chip">R0-6 no non-finite loss</span>
+    <span class="chip">H1 0/100 breached</span>
+    <span class="chip">K6 entropy min 0.740</span>
+    <span class="chip">T2 clip_frac max 0.189</span>
+    <span class="chip">T3 approx_kl max 0.0023</span>
+    <span class="chip">D-A exact to 1e-12</span>
+    <span class="chip">D-B median 197–202</span>
+    <span class="chip rec">D-C record only — not actionable</span>
+    <span class="chip rec">D-D 0.500 by construction</span>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>2,504</b><span>updates/lane — exactly the header’s prediction</span></div>
+    <div class="stat"><b>2.182058e-06</b><span>final lr, matching closed form to 1e-12</span></div>
+    <div class="stat"><b>203</b><span>expected steps/s — never 212</span></div>
+    <div class="stat"><b>0</b><span>stalls · 5 resumes across 3 lanes</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>What failed, and two defects found while verifying</h2>
+  <p>Part of the result, not footnotes.</p>
+  <div class="disc">
+    <h3>Attempt 1 was ops-killed after 13 minutes</h3>
+    <p>Gen-4 pool-seat mask desyncs — U-turn, Baton Pass and choice-lock traffic move the request under the pool seat — tripped
+    a gen-1 recovery cap. Fixed so the pool player re-decides once on the moved request, verified by a 60k-step smoke, and
+    attempt 2 then carried <b>zero surviving desyncs to 50M on all three lanes</b>. A second incident killed one lane on the
+    in-loop eval’s all-or-nothing outcome guard. Both share a shape worth keeping: <b>gen-4 traffic breaks gen-1 guards, and a
+    three-update smoke cannot show it.</b></p>
+    <h3>R0-5’s post-hoc read is vacuous</h3>
+    <p>It measures the first rung against the <em>last</em> launch line — which after the rollover is a resume — so it prints
+    negative minutes. The gate was genuinely satisfied at launch, not by that read.</p>
+    <h3>The completion auto-chain would have deadlocked on itself</h3>
+    <p>The watcher’s own command line contains the strings <code>python -m rl.train</code> and <code>gen4_wang50m</code>, so both
+    its own guard and the schedule’s refusal check matched <b>the watcher</b>. The schedule was launched by hand after confirming
+    no interpreter process remained and all three finals were on disk. <b>Anchor such a guard on the interpreter path, never on a
+    bare module name a watcher may also mention.</b></p>
+  </div>
+</section>
+
+<section>
+  <h2>What this does not establish</h2>
+  <ul>
+    <li><b>No lever is credited.</b> This is a baseline; no credit line is applied to any number in it.</li>
+    <li><b>vs-SH is never a ladder number</b>, in either direction. The gen-4 ladder is banked and unrun — the chapter closes on the offline comparison.</li>
+    <li><b>The gen-4 vs-SH scale is not the gen-1 scale.</b> 0.8788 may not be set beside the gen-1 table’s 0.7959: SH’s competence
+    relative to a learned policy differs by generation.</li>
+    <li><code>pool_size: 1</code> was Wang-match fidelity only, and is not evidence about league play either way.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>What is free to proceed</h2>
+  <ol class="next">
+    <li><b>Journey 7.5 — move gen-1 collection off Node onto pkmn/engine.</b> P0, and unblocked: this readout was its stated
+    precondition, and the box is now idle. Gates B-0, B-1, P-4, P-3, P-1 and P-2 already pass on the port branch; D-1, T-1 and A-1
+    remain and all three want an idle box. T-1 should report <code>collect_sec</code>/<code>update_sec</code>, not only steps/s —
+    the port is expected to invert the loop from 83% collection to update-dominated.</li>
+    <li><b>The A-1 rulings.</b> At k=3, σ_seed ≈ 0.0617 puts se_diff near 0.050, so the specified ±0.025 equivalence band is half
+    an se: A-1 as written is a gross-breakage screen, not an equivalence test. The cheap escape is reusing four historical 12M
+    async finals as the baseline arm. That is the choice the pre-reg is waiting on.</li>
+    <li><b>Cheap and queued.</b> Four bit-identical update-path fixes worth 4.3–6.0% of <code>update_sec</code>; the shared
+    actor/critic trunk at 19.5% of the epoch loop, which needs its own pre-reg; and one profiler run to settle whether the update
+    is already BLAS-bound.</li>
+  </ol>
+</section>
+
+<footer>
+  Full account: <code>RESULTS.md</code> §19. Provenance, raw records and exact commands: <code>readouts/GEN4_WANG50M_READOUT.md</code>.
+  Numbers here are transcribed from <code>results/gen4_wang50m/</code>; the repository copy is canonical.
+</footer>
+
+</div>
