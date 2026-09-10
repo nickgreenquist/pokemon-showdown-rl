@@ -100,3 +100,8 @@ results/design_gen4_wang50m/*
 # Rust build artifacts for the pkmn/engine collector (engine/pkmn_gen1).
 # Cargo.lock IS tracked: the repo pins exact versions.
 engine/pkmn_gen1/target/
+
+# Post-lane queue hold sentinel: a human touches this to release the A/B,
+# and the queue consumes it. Untracked files stamp git_dirty on every run
+# (CLAUDE.md rule 3), so it is ignored rather than left lying in the tree.
+.ab_go

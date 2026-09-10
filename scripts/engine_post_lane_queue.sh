@@ -128,6 +128,25 @@ POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
   "$EPY" -m pytest tests/ -q -rf > logs/pytest_main.log 2>&1
 say "pytest rc=$? :: $(tail -n 3 logs/pytest_main.log | tr '\n' ' ')"
 
+# ---- 2.5 the thread bench ---------------------------------------------------
+# Runs HERE, before the A/B, for two reasons. It needs an idle box (it is a
+# timing measurement), and its answer may change what the A/B should measure:
+# if the update parallelises, the config anyone would actually run is not
+# torch_threads 1, and an A/B of the un-tuned config would be measuring a
+# machine nobody uses. It needs the teardown to have landed the checkpoint and
+# the team bank in main, which step 1 did.
+CKPT=runs/engine_a1_s66/ckpt_012000008.pt
+BANK=data/engine/teams_a1_5000000.bin
+if [ -e "$CKPT" ] && [ -e "$BANK" ]; then
+  say "=== thread bench: does the PPO update parallelise? ==="
+  POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+    "$EPY" scripts/engine_thread_bench.py "$CKPT" --threads 1,2,4,8 --repeats 3 \
+    --team-bank "$BANK" >> "$LOG" 2>&1
+  say "thread bench rc=$? -> results/engine_a1/thread_bench.json"
+else
+  say "thread bench SKIPPED: $CKPT or $BANK not in main (teardown did not land it)"
+fi
+
 # ---- 3. the head-to-head A/B ------------------------------------------------
 # HOLD GATE. The A/B is the one thing here that measures WALL CLOCK, so it must
 # not start while anyone else is using the box — including the maintainer, who
