@@ -18,11 +18,11 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
 
 ## JOURNEY 7.5 — the engine port (2026-09-10; full account docs/engine_port/NOTES.md)
 - **A/B SPEEDUP 4.035x** (width 1, k=256 vs concurrency 8; ABBA, sd 0.0086); **2.984x
-  matched** (collector alone); **3.553x at width 3**. 2.62x cross-day is RETIRED. The Node
-  path is ~85% batch-1 forwards, so much of this is INFERENCE BATCHING — quote the
-  PIPELINE's speedup, never the engine's.
-- **THE PROFILE INVERTED:** update 25.0% of wall on Node -> **65.1% on the engine**, so
-  further collector work is capped at **1.54x**. Account: docs/engine_port/SPEEDUP.md.
+  matched** (collector alone); **3.553x at width 3**. The Node path is ~85% batch-1
+  forwards, so much of this is INFERENCE BATCHING — quote the PIPELINE's, never the
+  engine's. 2.62x cross-day is RETIRED.
+- **PROFILE INVERTED:** update 25.0% of wall on Node -> **65.1% on engine**; further
+  collector work capped at **1.54x**. Account: docs/engine_port/SPEEDUP.md.
 - **MAX-OUT:** today k=8 w=3 = 4,861 steps/s fleet; **k=256 w=6 = 9,994 = 2.06x** on
   11.3 GB of 24; best per-lane k=256 w=1 = 3,035 = 1.87x. **A lane is a SEED — width buys
   seeds/hour, never a shorter run.** 100M×3 seeds: 13.2 h at k=256 vs 48 h on Node.
@@ -53,9 +53,8 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
    migration is CLOSED (§3 + docs/CLEANUP.md).
 
 ## Watch items
-- **SUITE GREEN: 939 passed / 19 skipped in 2 min, + all 9 live-server in 4.5 s**
-  (ch3 ignored; port env). **No single env runs it all** — the main env lacks
-  `pkmn_gen1`. Needs a ruling. (`pandas` now pinned; scipy/seaborn are NOT used.)
+- **SUITE GREEN** 939 passed / 19 skipped in 2 min + 9 live-server in 4.5 s (port env).
+  Main env skips 30 engine tests — no single env runs it all (CLEANUP E1).
 - **The live-server "flake" was an ORDERING BUG** — poke-env draws seat names from global
   `random`, pinned by `set_seed()` first. Fixed + bounded in `tests/conftest.py`.
 - **vs-SH is NEVER a ladder number**; the gen-4 ladder is banked and unrun. No projection.
