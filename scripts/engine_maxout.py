@@ -92,8 +92,17 @@ def realized(run_dir: pathlib.Path) -> float | None:
 
 
 def run_cell(base: dict, k: int, width: int, threads: int, steps: int,
-             work: pathlib.Path, seed: int) -> dict:
+             work: pathlib.Path, seed: int, path: str = "engine") -> dict:
+    """One configuration, `width` lanes, on either collector.
+
+    `k` means battles-in-flight on both paths — `collector.k` for the engine,
+    `collector.concurrency` for the async Node collector. Naming them the same
+    thing here is deliberate: the whole point of sweeping the Node path too is
+    that maxing one side against a default-configured other side is not a
+    comparison, and the levers have to line up to be swept together.
+    """
     cfgs, rds, logs = [], [], []
+    tag = "mx" if path == "engine" else "mn"
     for lane in range(width):
         cfg = copy.deepcopy(base)
         cfg["total_steps"] = steps
@@ -103,11 +112,14 @@ def run_cell(base: dict, k: int, width: int, threads: int, steps: int,
         cfg["logger"] = "wandb"
         cfg["torch_threads"] = threads
         cfg["seed"] = seed + lane
-        cfg["run_name"] = f"mx_k{k}_w{width}_t{threads}_l{lane}"
+        cfg["run_name"] = f"{tag}_k{k}_w{width}_t{threads}_l{lane}"
         cfg["env_kwargs"] = {"opp_action": True,
-                             "seat_tag": f"mx{k}w{width}t{threads}l{lane}"}
-        cfg["collector"] = {"mode": "engine", "k": k, "team_bank": AB.BANK,
-                            "learner_seat": "p1", "min_bank_pairs": 1_000_000}
+                             "seat_tag": f"{tag}{k}w{width}t{threads}l{lane}"}
+        if path == "engine":
+            cfg["collector"] = {"mode": "engine", "k": k, "team_bank": AB.BANK,
+                                "learner_seat": "p1", "min_bank_pairs": 1_000_000}
+        else:
+            cfg["collector"] = {"mode": "async", "concurrency": k}
         p = work / f"{cfg['run_name']}.yaml"
         p.write_text(yaml.safe_dump(cfg, sort_keys=False))
         cfgs.append(p)
@@ -140,6 +152,7 @@ def run_cell(base: dict, k: int, width: int, threads: int, steps: int,
 
     per_lane = [r for r in (realized(rd) for rd in rds) if r]
     cell = {
+        "path": path,
         "k": k, "width": width, "threads": threads, "steps_per_lane": steps,
         "rcs": rcs, "ok": all(r == 0 for r in rcs),
         "wall_seconds": round(wall, 1),
@@ -156,6 +169,10 @@ GRIDS = {
     # ends plus the production default, width 1 against the protocol's 3, and
     # threads 1 against a count that leaves headroom at width 3.
     "quick": {"k": [8, 256], "width": [1, 3], "threads": [1, 4]},
+    # The Node path's own headroom, so a maxed engine is not being compared
+    # against a default-configured server. concurrency 8 is what the banked
+    # arm ran; 32 is the same direction the engine's k lever moves in.
+    "quick_node": {"k": [8, 32], "width": [1, 3], "threads": [1, 4]},
     "k": {"k": [8, 64, 256, 512], "width": [1], "threads": [1]},
     "width": {"k": [256], "width": [1, 2, 3, 6], "threads": [1]},
     "threads": {"k": [256], "width": [1], "threads": [1, 2, 4, 8]},
@@ -164,6 +181,10 @@ GRIDS = {
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--path", choices=("engine", "node"), default="engine",
+                    help="which collector to sweep. `k` is battles in flight "
+                         "either way: collector.k for the engine, "
+                         "collector.concurrency for the async Node collector.")
     ap.add_argument("--grid", choices=sorted(GRIDS), default=None)
     ap.add_argument("--k", default=None)
     ap.add_argument("--width", default=None)
@@ -188,9 +209,17 @@ def main(argv=None) -> int:
     ws = [int(x) for x in args.width.split(",")] if args.width else grid.get("width", [1])
     ts = [int(x) for x in args.threads.split(",")] if args.threads else grid.get("threads", [1])
 
-    if not (AB.MAIN / AB.BANK).exists():
-        raise SystemExit(f"team bank {AB.MAIN / AB.BANK} is missing")
-    AB.stop_server()          # engine cells need no server; a live one is noise
+    if args.path == "engine":
+        if not (AB.MAIN / AB.BANK).exists():
+            raise SystemExit(f"team bank {AB.MAIN / AB.BANK} is missing")
+        AB.stop_server()      # engine cells need no server; a live one is noise
+    else:
+        if AB.simulator_workers() != 4:
+            raise SystemExit("showdown/config/config.js must set simulator: 4 "
+                             "(CLAUDE.md rule 5) or every Node cell is ~81% "
+                             "slow for a reason that has nothing to do with "
+                             "the lever being swept")
+        AB.start_server()
 
     base = yaml.safe_load(AB.BASE_CONFIG.read_text())
     work = pathlib.Path("results/engine_a1/maxout")
@@ -204,7 +233,8 @@ def main(argv=None) -> int:
             for threads in ts:
                 print(f"--- [{len(cells)+1}/{total}] k={k} width={width} "
                       f"threads={threads}", flush=True)
-                c = run_cell(base, k, width, threads, args.steps, work, seed)
+                c = run_cell(base, k, width, threads, args.steps, work, seed,
+                             args.path)
                 seed += width + 1          # never reuse a seed across cells
                 cells.append(c)
                 print(f"    ok={c['ok']} wall={c['wall_seconds']}s  "
@@ -213,13 +243,15 @@ def main(argv=None) -> int:
                       f"peak {c['peak_rss_gb']} GB", flush=True)
                 args.out.parent.mkdir(parents=True, exist_ok=True)
                 args.out.write_text(json.dumps(
-                    {"cells": cells, "steps_per_lane": args.steps,
+                    {"path": args.path, "cells": cells,
+                     "steps_per_lane": args.steps,
                      "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ",
                                                   time.gmtime())},
                     indent=2) + "\n")
 
     ok = [c for c in cells if c["ok"] and c["fleet_realized"]]
-    print(f"\n{'k':>5} {'width':>6} {'thr':>4} {'per-lane':>10} {'fleet':>10} {'GB':>6}")
+    print(f"\npath={args.path}")
+    print(f"{'k':>5} {'width':>6} {'thr':>4} {'per-lane':>10} {'fleet':>10} {'GB':>6}")
     for c in cells:
         print(f"{c['k']:>5} {c['width']:>6} {c['threads']:>4} "
               f"{str(c['per_lane_realized_median']):>10} "
