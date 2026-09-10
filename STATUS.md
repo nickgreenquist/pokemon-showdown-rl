@@ -20,20 +20,19 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
   S-SHAPE climbs through 25M then spans 0.017 — one rung is ±0.02. Detail: RESULTS §19.
 
 ## JOURNEY 7.5 — the engine port (2026-09-10; full account docs/engine_port/NOTES.md)
-- **A/B SPEEDUP 4.035x** — same box, same hour, ABBA, 1M/arm, width 1, engine k=256 vs
-  async concurrency 8. Per-pair 4.041/4.028, sd 0.0086 (node 21.8 min/run, engine 5.4).
-  **The 2.62x cross-day figure is RETIRED.** Big caveat that travels with it: the Node
-  path does batch-1 forwards for ~85% of its ceiling, so much of this is INFERENCE
-  BATCHING, not the Rust engine. Quote it as the PIPELINE's speedup.
-- **THE PROFILE INVERTED:** update is 25.0% of wall on Node, **65.1% on the engine**
-  (3 lanes each side, both 3-wide). Further collector work is capped at **1.54x**.
-- **MAX-OUT** (idle, k x width): today's k=8 w=3 = 4,861 steps/s fleet; **k=256 w=6 =
-  9,994 = 2.06x** on 11.3 GB of 24. Best per-lane k=256 w=1 = 3,035 = 1.87x. **A lane is
-  a SEED — width buys seeds/hour, never a shorter run.**
-- **Learner levers are COMPLEMENTS:** threads and minibatches are each NEGATIVE alone,
-  **1.51x crossed** (7.73 → 5.11 s update). `torch.compile` 0.82x, dead.
-- **Free wins, not yet applied:** scorer `ctx` factorization (~26% of the epoch loop,
-  verified 3e-07) and an mmap'd team bank (0.53 GB/lane duplicated today).
+- **A/B SPEEDUP 4.035x** (width 1, k=256 vs concurrency 8; ABBA, sd 0.0086);
+  **2.984x matched** (collector alone); **3.553x at width 3**. The 2.62x cross-day
+  figure is RETIRED. Caveat that travels with it: the Node path is ~85% batch-1
+  forwards, so much of this is INFERENCE BATCHING — quote it as the PIPELINE's.
+- **THE PROFILE INVERTED:** update 25.0% of wall on Node -> **65.1% on the engine**.
+  Further collector work is capped at **1.54x**. Full account: docs/engine_port/SPEEDUP.md.
+- **MAX-OUT:** today k=8 w=3 = 4,861 steps/s fleet; **k=256 w=6 = 9,994 = 2.06x** on
+  11.3 GB of 24. Best per-lane k=256 w=1 = 3,035 = 1.87x. **A lane is a SEED — width
+  buys seeds/hour, never a shorter run.** 100M x 3 seeds: 13.2 h at k=256, 48 h on Node.
+- **Learner levers are COMPLEMENTS:** threads and minibatches each NEGATIVE alone,
+  **1.51x crossed**. `torch.compile` 0.82x, dead. Both need a pre-reg (minibatches
+  change the trajectory). The scorer `ctx` factorization is REVERTED — correct to
+  3e-07 but a bit-exact forward pin forbids it; needs a ruling.
 - **A-1: NO VERDICT, by instruction.** Descriptive per-seed at n=12,000: s66 0.6640,
   s75 0.6925, s83 0.6555. `ratified_decisions` empty; RW-1..RW-10 all owed.
 
@@ -51,6 +50,14 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
    migration is CLOSED (§3 + docs/CLEANUP.md).
 
 ## Watch items
+- **SUITE IS GREEN: 939 passed / 19 skipped in 2 min** (`-m "not live_server"`, ch3 ignored).
+  Needs the port env; `pandas` is now pinned in `[dev]`. **No single env runs it all** —
+  `pokemon-showdown-rl` lacks `pkmn_gen1`, and `seaborn`/`scipy`/`matplotlib` are used by
+  `scripts/` while undeclared. Needs a ruling.
+- **The live-server "flake" was an ORDERING BUG**, not randomness: poke-env draws seat
+  names from global `random`, which `set_seed()` has pinned by then. `tests/conftest.py`
+  unpins it and bounds each live test at 300 s — poke-env parks the main thread on an
+  untimed queue get, so a name collision used to hang the suite forever.
 - **vs-SH is NEVER a ladder number**; the gen-4 ladder is banked and unrun. No projection.
 - Resumes SPLIT wandb history — always `merge_history.py`, then `history_merged.csv`.
 - **A pgrep guard must anchor on `bin/python`, not a bare module name:** the FLEET DONE
