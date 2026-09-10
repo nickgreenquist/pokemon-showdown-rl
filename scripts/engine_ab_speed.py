@@ -121,7 +121,17 @@ def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
     cfg["run_name"] = f"ab_{arm}_s{seed}_r{rep}"
     cfg["checkpoint_every"] = steps * 10    # no ladder writes skewing either arm
     cfg.pop("env_kwargs", None) or None
-    cfg["env_kwargs"] = {"opp_action": True}   # keep D25 on, as both recipes have it
+    # PER-REPLICATE SEAT TAG, and the arm is in it. Alternation runs the two
+    # Node replicates back to back at the SAME seed, and with no tag
+    # `seat_names` gives both the identical pair `as2s{seed}a/b` (rl/envs/
+    # showdown.py:976). If replicate 1's seats have not fully released when
+    # replicate 2 connects, replicate 2 dies with a misleading TimeoutError —
+    # and a killed arm's username pair stays poisoned for HOURS, which would
+    # take the rest of the A/B with it. A tag hashes into the name, so any
+    # distinct tag separates them. Kept on the engine arm too: identical
+    # env_kwargs across arms is the point, and the engine path ignores it.
+    cfg["env_kwargs"] = {"opp_action": True,     # keep D25 on, both recipes have it
+                         "seat_tag": f"ab{arm}{rep}"}
     if arm == "node":
         cfg["collector"] = {"mode": "async", "concurrency": 8}
     else:
@@ -133,7 +143,7 @@ def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
     return p
 
 
-def steady_state(run_dir: pathlib.Path, drop: int = 2) -> dict | None:
+def steady_state(run_dir: pathlib.Path, batch: int, drop: int = 2) -> dict | None:
     """Per-update wall EXCLUDING startup — the number sample size cannot fix.
 
     MEASURED on a real Node lane: per-update wall has a CV of only 2.5%, so at
@@ -170,7 +180,7 @@ def steady_state(run_dir: pathlib.Path, drop: int = 2) -> dict | None:
     return {"updates_used": len(per), "dropped": drop,
             "sec_per_update_mean": mean,
             "sec_per_update_cv": (st.stdev(per) / mean) if len(per) > 1 else None,
-            "steady_state_steps_per_sec": 30720 / mean}
+            "steady_state_steps_per_sec": batch / mean}
 
 
 def run_arm(arm: str, cfg: pathlib.Path, log: pathlib.Path) -> dict:
@@ -218,7 +228,26 @@ def main(argv=None) -> int:
             "the file and re-run; the setting is gitignored, so a re-clone "
             "loses it.")
 
+    # PREFLIGHT THE ENGINE ARM'S BANK. ABBA puts a NODE run first, so a missing
+    # bank would otherwise surface ~33 minutes in, when the engine arm's turn
+    # comes and rl/train.py refuses the config. The bank lives under `data/`,
+    # which is gitignored and was moved out of the engine worktree by the
+    # teardown — exactly the kind of thing that is either there or very much
+    # not, and is worth one stat call to find out now.
+    if not (MAIN / BANK).exists():
+        raise SystemExit(
+            f"team bank {MAIN / BANK} is missing, so the engine arm cannot "
+            "run. If the engine worktree has not been torn down yet, its "
+            "data/ still holds the bank — run the teardown first "
+            "(scripts/engine_post_lane_queue.sh) rather than regenerating, "
+            "since a rebuilt bank has a different sha256 and every gate "
+            "record cites the current one.")
+
     base = yaml.safe_load(BASE_CONFIG.read_text())
+    # The update batch, read from the config rather than pasted in: it is the
+    # denominator of every steady-state rate, and a base config with different
+    # rollout_steps would otherwise report rates that are quietly wrong.
+    batch = int(base["agent"]["rollout_steps"]) * int(base["num_envs"])
     work = pathlib.Path("results/engine_a1/ab"); work.mkdir(parents=True, exist_ok=True)
     args.out.parent.mkdir(parents=True, exist_ok=True)
 
@@ -250,7 +279,7 @@ def main(argv=None) -> int:
         r.update(steps=args.steps, replicate=rep, slot=idx,
                  steps_per_sec=(args.steps / r["wall_seconds"]
                                 if r["wall_seconds"] else None),
-                 steady_state=steady_state(rd))
+                 steady_state=steady_state(rd, batch))
         results[arm].append(r)
         print(f"    rc={r['rc']}  wall={r['wall_seconds']:.1f}s  "
               f"{r['steps_per_sec']:.0f} steps/s", flush=True)
