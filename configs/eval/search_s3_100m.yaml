@@ -132,6 +132,30 @@
 #   disagreements above margin 0.2 are policy-attacks-search-switches — which is
 #   Wang's own documented search failure, thesis p.33-34).
 #   CREDITS NOTHING; one lane at n=3000 is worth +-0.02, never a cell.
+# [P-G RESULT, 2026-09-10 23:46Z — the arms above are COMPLETE and the shape is
+#  a HUMP.] s112, n=3000/arm: delta 0 = 0.74767, 0.02 = 0.78200, 0.05 = 0.80867,
+#  0.10 = 0.82400, inf = 0.78233. Override rate falls 0.709 -> 0.445 -> 0.232 ->
+#  0.085. Peak SO FAR is delta 0.10 at **+0.04167 over greedy** (4.06 binomial
+#  se; 2x the +-0.02 one-lane redraw spread). The HUMP branch's pre-decided
+#  action fires: re-run the best delta on all three lanes.
+# ARMS ADDED 2026-09-10 23:50Z, BEFORE THEY RUN:
+#   C10S104 / C10S120 — delta 0.10 on the OTHER TWO lanes, so P-G's peak can be
+#     read at the locked protocol (3 lanes x 3000, paired against A0's per-lane
+#     0.78933 / 0.79433 and S3M's 0.72167 / 0.69233 which are already banked).
+#     READ P-C: delta_C = equal-weight mean over the THREE lanes of
+#     (S3G10-or-C10 - A0), paired by lane, se_diff the LARGER of pooled-binomial
+#     and seed-clustered, credit line restated verbatim below. This is the first
+#     search arm in this project that could CREDIT, so it is graded on the
+#     standing line and not on a screen's shape rule.
+#   P15S112 / P20S112 — delta 0.15 and 0.20 on s112, to LOCATE the peak: the
+#     curve is still rising at 0.10 and must return to 0.78233 at inf, so the
+#     maximum lies at or above 0.10 and is not yet bracketed.
+#     **HONEST REVERSAL, recorded rather than dropped:** this same header
+#     EXCLUDED delta >= 0.15 as "indistinguishable from A0". That exclusion
+#     rested on the inference that a low override rate cannot move the win rate.
+#     Delta 0.10 overrides only 8.5% of decisions and moves it +0.042, which
+#     FALSIFIES the inference. The exclusion is withdrawn on that evidence.
+#     P15/P20 are DESCRIPTIVE (one lane, +-0.02): they locate a peak, never credit.
 # NOT TESTED BY THESE ARMS, and no null here closes it: Wang's BUDGET is 160x
 # our wall clock and 250-500x our determinizations, with the tree persisted
 # across decisions.
@@ -179,7 +203,10 @@ arms:
   S3G02: {kind: search, lanes: [s112], dose: M, battles: 3000, chunks: 10, margin_delta: 0.02}
   S3G05: {kind: search, lanes: [s112], dose: M, battles: 3000, chunks: 10, margin_delta: 0.05}
   S3G10: {kind: search, lanes: [s112], dose: M, battles: 3000, chunks: 10, margin_delta: 0.10}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10]
+  C10:  {kind: search, lanes: [s104, s120], dose: M, battles: 3000, chunks: 10, margin_delta: 0.10}
+  P15:  {kind: search, lanes: [s112], dose: M, battles: 3000, chunks: 10, margin_delta: 0.15}
+  P20:  {kind: search, lanes: [s112], dose: M, battles: 3000, chunks: 10, margin_delta: 0.20}
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
