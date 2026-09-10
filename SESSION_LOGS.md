@@ -11395,3 +11395,42 @@ line numbers are not — grep the date, then read that region):
   0.50167 — G2 exact (595/396/9). S3M at 4/10: 0.72/0.73/0.69 vs fresh greedy
   0.789/0.782/0.794. Privileged-critic seam scoped (eff2494): 10 edits, no next_privs,
   guard structurally inert, design fork A (critic) vs B (separate evaluator head).
+- 2026-09-10 (evening, agent; "keep working ... you are in charge") — **THE SEARCH
+  RELOOK IS GRADED AND IT POINTS AT THE EVALUATOR.** S3 on the 100M finals, vs SH,
+  locked protocol, 3x3000 per arm, FRESH greedy comparator (A0 0.78867 pooled;
+  banked 0.79589 printed as context only). **P-M = -0.0681 NEG, all three lanes**
+  (s104 -0.0677, s112 -0.0347, s120 -0.1020; bar 0.0389 seed-clustered). **P-B
+  (det_blind - as-is) = -0.0088 NEG** (bar 0.0134, binomial governs; 2 of 3 lanes
+  negative). **P-BA = -0.0769 NEG.** Off FP@20 on s112 (n=1000, budget named, both
+  standing disclosures, G2 exact both arms): as-is 0.3960, det_blind 0.4054 (n_eff
+  999 after one crash-forfeit), banked greedy 0.50167. Dose L partial on s112 reads
+  BELOW dose M. Timing CONTENDED: 62.3 / 58.8 / 244.6 ms per decision at M / M-det_blind
+  / L, leaves 277 / 268 / 1083.
+  **What this settles.** S1's artefact was REAL (a +0.0497 bias at 4.5x the decision
+  margin, on a critic that never saw a revealed bench) and det_blind removes it
+  offline (sd 0.125 -> 0.008) — and removing it moves the win rate by nothing. So the
+  binding defect is NOT the leaf ENCODING; it is the leaf EVALUATOR, exactly what
+  chapter 3's E2 dose-response to evaluator noise predicted and what the 2026-09-10
+  vacatur left open. Depth is downstream of the same thing: search amplifies its
+  evaluator, so depth on this critic amplifies the wrong signal. **The ladder object
+  is GREEDY unless an evaluator arm changes it**, and JOURNEY 11.5 must not run
+  before an evaluator exists.
+  **Consequence for the monster.** Arm B (the privileged EVALUATOR head, design B)
+  stops being a nice-to-have and becomes the only live search hypothesis. Built and
+  committed today (7d8650e): `agent.priv_eval_dim` + `priv_eval_coef` construct a
+  SEPARATE full-information value head; `agent.privileged_dim` keeps D18's meaning,
+  so a B lane does not silently carry A. Bit-identical when off (actor+critic init
+  and 20 updates), engine-route parity 1,807 blocks bitwise, RNG state rewound
+  around the head's construction — a surprise worth keeping: building a net consumes
+  `torch.randperm` draws and would otherwise have desynchronised the two monster
+  arms' minibatch order for a reason unrelated to the lever. Smoke queued
+  (`scripts/engine_pe_smoke.sh`) with a BITWISE actor/critic comparison against
+  engine_a1b_s66 as its inertness read.
+  **Also today:** A-1 re-run launched on the fixed engine build at 18:18Z
+  (`runs/engine_a1b_s*`); engine-native search DESIGN written (808bc35) — 8-11
+  blocks, R1-E parity gate, sampled chance, and a recommendation NOT to build the
+  exact-enumeration crate; the S3 readout/grader (7cf32bc, fb61392, 66f1874, bf2b5fb)
+  transcribes every pre-registered cell, quotes the FP legs on n_eff, and refuses a
+  cell on partial data. `s3m_s112` died mid-run on poke-env's
+  `assert not self.battle2.finished` and resumed at the chunk boundary — one chunk
+  of 300 battles re-run, which is what the chunking is for.
