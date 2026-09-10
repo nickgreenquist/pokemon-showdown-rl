@@ -34,6 +34,25 @@ sampling from one caller-supplied numpy Generator keyed per decision
 index; D4 argmax over the renormalized matrix score. Shared
 determinizations (MF-13): the same n_det determinizations serve EVERY cell.
 
+D5, the MARGIN GATE (2026-09-10, docs/search_relook/MARGIN_SELECTOR.md) —
+OPTIONAL and OFF by default. `margin_delta=None` is the D4 behaviour
+byte-for-byte (no extra work, no extra stats key). Any float delta makes
+D4's argmax `a_s` a CANDIDATE that must beat the policy's own argmax
+`a_pi` by more than delta on the same row_ev scale:
+
+    play a_s iff row_ev[a_s] - row_ev[a_pi] > delta, else play a_pi
+
+so delta=0.0 is D4 with ties conceded to the policy and delta=inf is the
+greedy policy exactly. Motivation: Wang 2024 puts the policy prior INSIDE
+the selection rule and decides by max VISIT COUNT rather than max Q,
+"because less-visited actions may have higher variance in their Q
+estimates" (p.22; docs/prior_work/WANG_SEARCH_DEEP_READ.md §2). Our D4 is
+a hard argmax over single-digit-sample cell means and overrides a
+0.789-strength policy on 72.8% of decisions while losing 6.8 points
+(S3_READOUT.md). The gate is the cheap, retraining-free analogue of his
+variance aversion: it is a CONFIDENCE THRESHOLD on the search, not a prior
+inside the tree policy.
+
 Terminal leaves are valued +/-1 (all-fainted side) without asking the
 critic; both-fainted values 0.
 """
@@ -141,6 +160,7 @@ def solve_decision(
     type_chart: dict,
     det_fn: Callable[[Any, np.random.Generator], dict] | None = None,
     leaf_view: PublicView | None = None,
+    margin_delta: float | None = None,
 ) -> tuple[int, dict]:
     """One depth-1 BR solve. `q` is the oppact head's plain L6 posterior at
     the root; `prior` the masked policy probabilities (tie-break only);
@@ -153,7 +173,18 @@ def solve_decision(
     the ROOT battle's opponent-side `PublicView`, handed to every leaf's
     `shadow_battle` so the leaf is encoded at the live encoder's information
     boundary rather than the determinizer's. None = the as-is leaf encoding,
-    byte-for-byte. Returns (action index, stats)."""
+    byte-for-byte.
+
+    `margin_delta` is D5, the margin gate (module docstring;
+    docs/search_relook/MARGIN_SELECTOR.md). None = D4 alone, byte-for-byte:
+    nothing is computed and NO new stats key appears, so a golden digest
+    over this function's full output is unchanged. A float delta (>= 0.0,
+    `inf` allowed) plays D4's argmax only when it beats the policy's own
+    argmax by MORE than delta on the row_ev scale, and adds the four
+    `search/margin_delta`, `search/search_argmax`, `search/margin`,
+    `search/overrode` keys. `search/chosen` is always the action PLAYED.
+
+    Returns (action index, stats)."""
     rows = [i for i in range(len(mask)) if mask[i]]
     assert rows, "no legal action at a decision point"
     counters = BridgeCounters()
@@ -273,6 +304,35 @@ def solve_decision(
         key=lambda i: (-row_ev[i], -float(prior[rows[i]]), rows[i]),
     )
     best = rows[order[0]]
+    # `policy_argmax` is the action the GREEDY agent would play: argmax over
+    # LEGAL actions of the same masked policy the SearchAgent wraps (softmax
+    # is monotone, so this is argmax of the masked logits), ties to the
+    # lowest index — exactly what `PPOAgent.act(deterministic=True)` does
+    # and exactly what the placeholder-skip path in agent.py returns.
+    policy_argmax = int(max(rows, key=lambda a: prior[a]))
+
+    # --- D5: the MARGIN GATE (optional; MARGIN_SELECTOR.md) --------------
+    # None short-circuits to nothing: no arithmetic, no stats key, so the
+    # default path is byte-identical to the pre-2026-09-10 D4 behaviour.
+    gate: dict[str, Any] = {}
+    if margin_delta is not None:
+        delta = float(margin_delta)
+        assert delta == delta and delta >= 0.0, f"margin_delta {margin_delta!r}"
+        pos = {a: i for i, a in enumerate(rows)}
+        search_argmax = best
+        margin = float(row_ev[pos[search_argmax]] - row_ev[pos[policy_argmax]])
+        # STRICT >: at delta 0.0 an exact tie is conceded to the policy.
+        # (D3 already resolves row_ev ties by prior then index, so a tie
+        # between a_s and a_pi forces a_s == a_pi — see MARGIN_SELECTOR.md
+        # §3 — but the strict comparison is what makes delta=inf exactly
+        # greedy, and it is stated rather than relied upon.)
+        best = search_argmax if margin > delta else policy_argmax
+        gate = {
+            "search/margin_delta": delta,
+            "search/search_argmax": int(search_argmax),
+            "search/margin": margin,
+            "search/overrode": bool(best != policy_argmax),
+        }
     stats = {
         "search/leaves": n_leaves,
         "search/rows": len(rows),
@@ -283,11 +343,12 @@ def solve_decision(
         "oppact/other_move_mass": other_move_mass,
         "search/row_ev": {int(rows[i]): float(row_ev[i]) for i in range(len(rows))},
         "search/chosen": int(best),
-        "search/policy_argmax": int(max(rows, key=lambda a: prior[a])),
+        "search/policy_argmax": policy_argmax,
         "search/retained_mass_mean": float(np.mean(retained_mass)) if retained_mass else 1.0,
         "search/expanded_leaves": n_expanded,
         "search/ev_matrix": ev_matrix.tolist(),
         "search/col_classes": list(col_classes),
         "bridge/unmapped_effects": dict(counters.unmapped_effects),
+        **gate,
     }
     return best, stats

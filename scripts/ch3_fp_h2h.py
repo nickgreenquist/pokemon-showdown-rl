@@ -31,6 +31,10 @@ every path here behaves exactly as it did for FG/FS):
 A `search_seat` arm may also declare `leaf_encoding: det_blind` (2026-09-10,
 docs/search_relook/DET_BLIND.md); absent = the as-is leaf encoding, and the
 realized value lands in the report as `search_leaf_encoding` either way.
+It may likewise declare `margin_delta: <float>` (2026-09-10,
+docs/search_relook/MARGIN_SELECTOR.md) — the margin-gated selector; absent =
+the hard argmax every banked FS/FE arm ran, and the realized value lands in
+the report as `search_margin_delta` (null when off) either way.
 The crash-forfeit auto-relaunch loop lives in scripts/ch3_r4_fp_runner.sh.
 """
 
@@ -322,13 +326,16 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             prereg, seat_lane, arm.get("evaluator"), agent
         )
         # `leaf_encoding` (optional, 2026-09-10 — docs/search_relook/DET_BLIND.md):
-        # absent = the as-is leaf encoding every banked FS/FE arm ran. The
-        # realized value is stamped into the report below either way.
+        # absent = the as-is leaf encoding every banked FS/FE arm ran.
+        # `margin_delta` (optional, 2026-09-10 — MARGIN_SELECTOR.md): absent =
+        # the hard argmax (matrix.py D4) every banked FS/FE arm ran. Both
+        # realized values are stamped into the report below either way.
         search_agent = SearchAgent(
             agent, DOSES[arm["dose"]],
             checkpoint_seed=int(seat_lane.lstrip("s")),
             evaluator=evaluator,
             leaf_encoding=arm.get("leaf_encoding"),
+            margin_delta=arm.get("margin_delta"),
         )
     seat = SeatPlayer(
         agent,
@@ -398,14 +405,24 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     if search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
         lv = np.array(seat.leaves) if seat.leaves else np.array([0])
+        dec = search_agent.counters["search/decisions"]
+        skips = search_agent.counters["search/placeholder_skips"]
+        overrides = search_agent.counters["search/overrides"]
         report.update({
             "search_leaf_encoding": search_agent.leaf_encoding or "as_is",
+            "search_margin_delta": search_agent.margin_delta,
             "search/ms_mean": float(ms.mean()),
             "search/leaves_mean": float(lv.mean()),
             "search/searched_decisions": len(seat.ms),
-            "search/decisions": search_agent.counters["search/decisions"],
-            "search/placeholder_skips": search_agent.counters["search/placeholder_skips"],
+            "search/decisions": dec,
+            "search/placeholder_skips": skips,
             "search/flips": search_agent.counters["search/flips"],
+            "search/overrides": overrides,
+            # null with the gate off — see scripts/ch3_eval.py::_merge
+            "search/override_rate": (
+                overrides / max(dec - skips, 1)
+                if search_agent.margin_delta is not None else None
+            ),
         })
     if eval_provenance is not None:
         report["evaluator"] = eval_provenance   # F5, gradeable from disk

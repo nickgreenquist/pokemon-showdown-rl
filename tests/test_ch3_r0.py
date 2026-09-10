@@ -150,7 +150,8 @@ def test_jobs_search_kind_and_legacy_shape():
     # None on an arm that does not declare it — i.e. the as-is leaf encoding
     # every banked search arm ran.
     assert jobs["a1s_s62"] == {"arm": "A1S", "members": ["s62"],
-                               "search_dose": "M", "leaf_encoding": None}
+                               "search_dose": "M", "leaf_encoding": None,
+                               "margin_delta": None}
     assert "search_dose" not in jobs["a0_s62"]
     with pytest.raises(ValueError):
         ch3_eval._jobs({"arms": {"X": {"kind": "mcts"}}})
@@ -189,8 +190,13 @@ def test_battle2_sentinel_raises_only_from_search_frames(tmp_path):
 def test_search_adapter_indices_and_chunk_deltas():
     class StubSA:
         def __init__(self):
+            # SearchAgent registers every counter at construction, including
+            # search/overrides (2026-09-10, the margin gate) — the adapter
+            # takes chunk DELTAS over this dict, so a stub missing a key is a
+            # stub, not a product bug.
             self.counters = {"search/decisions": 0,
-                             "search/placeholder_skips": 0, "search/flips": 0}
+                             "search/placeholder_skips": 0, "search/flips": 0,
+                             "search/overrides": 0}
             self.calls = []
 
         def act(self, battle, obs, mask, battle_index, decision_index):

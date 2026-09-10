@@ -41,6 +41,11 @@ from rl.search.shadow_battle import public_view
 # R2-credited as-is encoding; nothing else has ever run.
 LEAF_ENCODINGS = (None, "det_blind")
 
+# Margin-gate options (docs/search_relook/MARGIN_SELECTOR.md). None is the
+# R2-credited hard-argmax selector (matrix.py D4); nothing else has ever run
+# live. 0.0 is D4 with ties conceded to the policy; inf is the greedy policy.
+MARGIN_DELTA_OFF = None
+
 # R3 E-cell noise stream: keyed like decision_rng but with this salt so the
 # noise draws NEVER share (or shift) the determinization stream — an E2 arm
 # replays the exact determinizations of the E0 arm, differing only at leaves.
@@ -57,6 +62,7 @@ class SearchAgent:
         evaluator: dict | None = None,
         det_fn=None,
         leaf_encoding: str | None = None,
+        margin_delta: float | None = None,
     ):
         """`leaf_encoding` — the leaf ENCODER dial (S1's finding,
         docs/search_relook/DET_BLIND.md). None = as-is, the R2-credited
@@ -79,6 +85,19 @@ class SearchAgent:
               uniform over the N_L6 classes at the root (the head still
               runs; the real q's entropy is still recorded so the dial
               measures the head's decision contribution, not its stats).
+
+        `margin_delta` — the SELECTOR dial (matrix.py D5,
+        docs/search_relook/MARGIN_SELECTOR.md). None = the R2-credited hard
+        argmax, bit-identical (nothing computed, no extra stats key). A
+        float delta plays the search's argmax only when it beats the
+        POLICY's argmax by more than delta on the row_ev scale; 0.0 concedes
+        exact ties to the policy, `inf` reproduces the greedy policy
+        exactly. Orthogonal to `leaf_encoding` (which fixes the evaluator's
+        INPUT) and to `evaluator` (which swaps the evaluator): this changes
+        only how the finished matrix is turned into an action, and it is
+        the one dial that can only ever move the search back TOWARDS the
+        policy — it cannot invent an action the D4 argmax did not already
+        pick.
         """
         assert agent.aux_head is not None, (
             "SearchAgent needs the oppact head (D26 checkpoints carry it)"
@@ -93,6 +112,13 @@ class SearchAgent:
         assert leaf_encoding in LEAF_ENCODINGS, (
             f"unknown leaf_encoding {leaf_encoding!r}; one of {LEAF_ENCODINGS}"
         )
+        if margin_delta is not None:
+            margin_delta = float(margin_delta)
+            assert margin_delta == margin_delta and margin_delta >= 0.0, (
+                f"margin_delta must be None or a float >= 0.0 (inf allowed), "
+                f"got {margin_delta!r}"
+            )
+        self.margin_delta = margin_delta
         self._agent = agent
         self._dose = dose
         self._seed = int(checkpoint_seed)
@@ -106,6 +132,13 @@ class SearchAgent:
             "search/decisions": 0,
             "search/placeholder_skips": 0,
             "search/flips": 0,  # chosen != policy argmax
+            # D5 only: decisions where the gate LET the search override the
+            # policy. Identical to `flips` whenever margin_delta is not None
+            # (both are "played != policy argmax"); it stays 0 with the gate
+            # off, where no override decision was ever taken. Kept separate
+            # so the two are cross-checkable from disk and so a future
+            # selector cannot silently alias them.
+            "search/overrides": 0,
         }
         self._entropies: list[float] = []
 
@@ -178,9 +211,12 @@ class SearchAgent:
             leaf_view=(
                 public_view(battle) if self.leaf_encoding == "det_blind" else None
             ),
+            margin_delta=self.margin_delta,
         )
         if action != stats["search/policy_argmax"]:
             self.counters["search/flips"] += 1
+        if stats.get("search/overrode"):
+            self.counters["search/overrides"] += 1
         stats["oppact/entropy"] = self._entropies[-1]
         return action, stats
 

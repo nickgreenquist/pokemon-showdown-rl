@@ -20,6 +20,17 @@ OPTIONAL and absent means the as-is encoding every banked search arm ran;
 either way the realized value is stamped into every chunk JSON as
 `search_leaf_encoding` so the arm is gradeable from disk.
 
+It may likewise declare `margin_delta: <float>` (2026-09-10,
+docs/search_relook/MARGIN_SELECTOR.md) — the margin-gated selector: the
+search's argmax is played only when it beats the POLICY's argmax by more
+than `margin_delta` on the row_ev scale. Absent = the R2-credited hard
+argmax every banked search arm ran; `0.0` is that argmax with exact ties
+conceded to the policy; `.inf` (YAML) is the greedy policy exactly. The
+realized value is stamped into every chunk JSON and the merged final as
+`search_margin_delta` (null when off), alongside `search/overrides` and
+`search/override_rate` — which is null when the gate is off, because with
+no gate no override decision was ever taken.
+
 R2 (the search rungs): an arm with `kind: search` (plus `dose`, per-lane
 `lanes`) runs each lane through rl/search's SearchAgent via
 _SearchEvalAdapter — battle1 read live off the env, decision rng keyed by
@@ -175,7 +186,8 @@ class _SearchEvalAdapter:
             "search/searched_decisions": len(self.ms),
             "oppact/entropy_median": self._sa.entropy_median(),
         }
-        for key in ("search/decisions", "search/placeholder_skips", "search/flips"):
+        for key in ("search/decisions", "search/placeholder_skips",
+                    "search/flips", "search/overrides"):
             out[key] = self._sa.counters[key] - self._counter_snapshot[key]
         self._counter_snapshot = dict(self._sa.counters)
         self.ms, self.leaves = [], []
@@ -212,6 +224,8 @@ def _jobs(prereg: dict) -> dict[str, dict]:
                     "search_dose": spec["dose"],
                     # absent -> None -> the as-is leaf encoding (DET_BLIND.md)
                     "leaf_encoding": spec.get("leaf_encoding"),
+                    # absent -> None -> the hard argmax (MARGIN_SELECTOR.md)
+                    "margin_delta": spec.get("margin_delta"),
                 }
         elif kind == "ensemble":
             for b in range(spec["batches"]):
@@ -340,6 +354,7 @@ def run_job(prereg: dict, name: str) -> None:
             checkpoint_seed=int(first_lane.lstrip("s")),
             evaluator=evaluator,
             leaf_encoding=job.get("leaf_encoding"),
+            margin_delta=job.get("margin_delta"),
         )
         adapter = agent = _SearchEvalAdapter(sa, env)
     elif len(job["members"]) == 1:
@@ -406,6 +421,9 @@ def run_job(prereg: dict, name: str) -> None:
             # DET_BLIND.md: the realized leaf encoder, always stamped so an
             # arm is gradeable from disk with no reference back to the pre-reg
             report["search_leaf_encoding"] = job.get("leaf_encoding") or "as_is"
+            # MARGIN_SELECTOR.md: the realized selector, same rule. null =
+            # the hard argmax (matrix.py D4); a float = the margin gate (D5).
+            report["search_margin_delta"] = job.get("margin_delta")
             if eval_provenance is not None:
                 report["evaluator"] = eval_provenance
         desync_before = desync_now
@@ -451,11 +469,24 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
         # .get: chunks written before 2026-09-10 carry no leaf-encoder stamp,
         # and every one of them is as-is by construction
         final["search_leaf_encoding"] = reports[0].get("search_leaf_encoding", "as_is")
+        # .get: chunks written before 2026-09-10 carry no selector stamp, and
+        # every one of them ran the hard argmax by construction.
+        margin_delta = reports[0].get("search_margin_delta")
+        overrides = sum(rep.get("search/overrides", 0) for rep in reports)
+        final["search_margin_delta"] = margin_delta
         final["search/decisions"] = dec
         final["search/placeholder_skips"] = skips
         final["search/placeholder_skip_rate"] = skips / dec if dec else None
         final["search/flips"] = flips
         final["search/flip_rate"] = flips / max(dec - skips, 1)
+        final["search/overrides"] = overrides
+        # NULL with the gate off: no override decision was ever taken there,
+        # and a 0.0 would read as "the search never overrode the policy".
+        # With the gate ON this equals search/flip_rate by construction —
+        # both are "played != policy argmax" — and the pair is the check.
+        final["search/override_rate"] = (
+            overrides / max(dec - skips, 1) if margin_delta is not None else None
+        )
         final["search/ms_mean"] = (
             sum(rep["search/ms_mean"] * rep["search/searched_decisions"]
                 for rep in reports) / searched if searched else None
