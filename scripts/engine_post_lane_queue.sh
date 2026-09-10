@@ -152,4 +152,13 @@ say "=== A/B variant 2: matched concurrency (engine k=8), ABBA ==="
 "$EPY" scripts/engine_ab_speed.py --steps 1000000 --order ABBA --engine-k 8 \
      --out results/engine_a1/ab_speed_k8.json >> "$LOG" 2>&1
 say "variant 2 rc=$?"
+
+# ---- 4. the readout ---------------------------------------------------------
+# Rendered from the JSON rather than typed, because the port has produced
+# several speed numbers today and only one of them is an A/B. The renderer
+# carries the scope and the disclosures with the number so the wrong one
+# cannot be quoted by accident.
+say "=== rendering the speed readout ==="
+"$EPY" scripts/engine_speed_readout.py --write docs/engine_port/SPEEDUP.md >> "$LOG" 2>&1
+say "readout rc=$? -> docs/engine_port/SPEEDUP.md"
 say "POST-LANE QUEUE DONE"
