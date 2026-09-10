@@ -38,6 +38,12 @@ dependencies = [
 # transitive dep of an ad-hoc seaborn install, so the four gen-4 gate tests
 # failed in any env built from this file alone.
 dev = ["pytest==9.1.1", "pandas==3.0.5"]
+# matplotlib: scripts/make_showdown_figure.py only. NOT a suite dependency — no
+# test imports it — so it is its own extra rather than riding in `dev`. Audited
+# 2026-09-10 alongside the pandas fix: `scipy` and `seaborn` are NOT used
+# anywhere in rl/, scripts/ or tests/ (scipy appears once, in a comment saying
+# a chi-square table is used instead), so neither is declared.
+figures = ["matplotlib==3.11.1"]
 # Human-replay corpus survey (DESIGN.md §4 Track 1 / §10). Only needed to run
 # scripts/corpus_survey.py, which downloads and measures the single
 # gen1randombattle parquet from HolidayOugi/pokemon-showdown-replays at a
