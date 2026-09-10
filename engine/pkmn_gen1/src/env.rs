@@ -786,6 +786,77 @@ mod tests {
     /// independently here is the check -- if `step` sliced our own vector, or
     /// read the foe after the update, this fails.
     #[test]
+    fn a_foes_revealed_move_pp_is_the_clients_count_of_observed_uses() {
+        // A-1a (2026-09-10): poke-env decrements a foe's `Move.current_pp` once
+        // per observed `|move|` line; the engine path reported max_pp (1.0) and
+        // the two collectors separated at SMD 0.94 on the first revealed slot.
+        // The tracker now counts PP spends on the live slots. Outside the
+        // declared quirk families (charging: a one-turn lag; Transform / Mimic:
+        // the slots are rewritten) the CLIENT's count must equal the engine's
+        // true PP for every revealed foe move -- and it must actually move,
+        // because a test that never sees pp < max_pp tests nothing.
+        let t = tables_stub();
+        let (mut checked, mut moved) = (0usize, 0usize);
+        for seed in 0..8u64 {
+            let p1: Vec<_> = random_team(200 + seed, true).iter().map(|m| m.to_bytes()).collect();
+            let p2: Vec<_> = random_team(300 + seed, true).iter().map(|m| m.to_bytes()).collect();
+            let mut env = Gen1Env::new(0xA1A + seed, &p1, &p2, Player::P1, 0, false).unwrap();
+            let mut rng = 11u64 + seed;
+            let mut steps = 0;
+            while !env.done() && steps < 150 {
+                if env.pending(Player::P1, &t).is_some() {
+                    let view = env.state(Player::P1, &t);
+                    let foe = env.battle().side(Player::P2);
+                    let active = foe.active();
+                    let vol = active.volatiles();
+                    let live = active.moves();
+                    let party: Vec<u8> = foe
+                        .party(foe.active_party_index())
+                        .moves()
+                        .iter()
+                        .map(|m| m.0)
+                        .collect();
+                    let live_ids: Vec<u8> = live.iter().map(|m| m.0).collect();
+                    // Skip the declared families: charging (lag), Transform and
+                    // Mimic (the live slots no longer name the party's moves).
+                    if !vol.charging() && !vol.transform() && live_ids == party {
+                        for mv in view.opp.moves.iter().filter(|m| m.present && m.prob == 1.0) {
+                            if let Some(&(_, true_pp)) = live.iter().find(|&&(id, _)| id == mv.id) {
+                                // Compare USES, not PP: `tables_stub()` carries a
+                                // synthetic max_pp, while the bank fills every
+                                // slot at the engine's real max (`data::max_pp`).
+                                let client_uses = mv.max_pp - mv.pp;
+                                let true_uses = u16::from(crate::data::max_pp(mv.id)) - u16::from(true_pp);
+                                assert_eq!(
+                                    client_uses, true_uses,
+                                    "foe move {} seed {seed} step {steps}: client saw {} uses, engine spent {}",
+                                    mv.id, client_uses, true_uses
+                                );
+                                checked += 1;
+                                if client_uses > 0 {
+                                    moved += 1;
+                                }
+                            }
+                        }
+                    }
+                }
+                let pick = |env: &Gen1Env, p: Player, rng: &mut u64| -> Option<usize> {
+                    let pd = env.pending(p, &t)?;
+                    let legal: Vec<usize> = (0..N_ACTIONS).filter(|&a| pd.mask[a]).collect();
+                    *rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+                    Some(legal[((*rng >> 33) as usize) % legal.len()])
+                };
+                let la = pick(&env, Player::P1, &mut rng);
+                let oa = pick(&env, Player::P2, &mut rng);
+                env.step(&t, la, 0.0, 0, oa).unwrap();
+                steps += 1;
+            }
+        }
+        assert!(checked > 50, "only {checked} revealed foe moves were checked");
+        assert!(moved > 10, "the client count never moved ({moved} of {checked}): the fix is not wired");
+    }
+
+    #[test]
     fn the_privileged_block_is_the_foes_own_side_at_the_acting_state() {
         use crate::encoder::{PRIV_DIM, privileged_block};
         let t = tables_stub();

@@ -45,6 +45,17 @@ pub struct SideTracker {
     revealed: [bool; 6],
     /// Move ids this side has been SEEN to use, in usage order, per party index.
     revealed_moves: [Vec<u8>; 6],
+    /// Times each revealed move has been SEEN to spend PP, aligned with
+    /// `revealed_moves`. poke-env decrements a foe's `Move.current_pp` once per
+    /// observed `|move|` line (`Pokemon.moved` -> `Move.use`; NOT on
+    /// `[from]lockedmove` continuation turns, NOT on `|cant|`), so the client's
+    /// view of a foe's PP is max_pp minus the uses it watched. A-1a
+    /// (2026-09-10) caught the encoder reporting 1.0 here while the Node path
+    /// reports 0.89 +- 0.13 on the first revealed slot: SMD 0.94 on dims
+    /// 627/673/719 against an A/A spread of 0.10. The count is built from the
+    /// same live-slot PP decrements that drive reveal -- the engine's proxy for
+    /// the `|move|` line -- never from the true PP itself.
+    move_uses: [Vec<u8>; 6],
     /// poke-env's `status_counter` for SLP: turns of sleep OBSERVED, never the
     /// engine's remaining count.
     sleep_observed: [u8; 6],
@@ -78,6 +89,7 @@ impl Default for SideTracker {
             reveal_order: Vec::with_capacity(6),
             revealed: [false; 6],
             revealed_moves: std::array::from_fn(|_| Vec::with_capacity(4)),
+            move_uses: std::array::from_fn(|_| Vec::with_capacity(4)),
             sleep_observed: [0; 6],
             prev_status: [0; 6],
             prev_active_party: None,
@@ -101,6 +113,33 @@ impl SideTracker {
     }
     pub fn revealed_moves(&self, party: usize) -> &[u8] {
         &self.revealed_moves[party]
+    }
+    /// Observed PP spends per revealed move, aligned with `revealed_moves`.
+    pub fn move_uses(&self, party: usize) -> &[u8] {
+        &self.move_uses[party]
+    }
+    /// Record that `id` was seen used by party member `party`, spending `n` PP
+    /// (0 = reveal only, e.g. the charge turn of a two-turn move, where
+    /// poke-env decrements a turn EARLIER than the engine does -- a one-turn
+    /// lag, disclosed, never a fabricated count). Reveals the move if new.
+    fn note_use(&mut self, party: usize, id: u8, n: u8) {
+        if id == 0 {
+            return;
+        }
+        let seen = &mut self.revealed_moves[party];
+        let uses = &mut self.move_uses[party];
+        let idx = match seen.iter().position(|&m| m == id) {
+            Some(i) => i,
+            None => {
+                if seen.len() >= 4 {
+                    return;
+                }
+                seen.push(id);
+                uses.push(0);
+                seen.len() - 1
+            }
+        };
+        uses[idx] = uses[idx].saturating_add(n);
     }
     pub fn sleep_observed(&self, party: usize) -> u8 {
         self.sleep_observed[party]
@@ -158,16 +197,12 @@ impl BattleTracker {
             let live = side.active().moves();
             let vol = side.active().volatiles();
             if t.started && !switched {
-                let reveal = |seen: &mut Vec<u8>, id: u8| {
-                    if id != 0 && !seen.contains(&id) && seen.len() < 4 {
-                        seen.push(id);
-                    }
-                };
                 for i in 0..4 {
                     let (id, pp) = live[i];
                     let (prev_id, prev_pp) = t.prev_live_moves[i];
                     if id != 0 && id == prev_id && pp < prev_pp {
-                        reveal(&mut t.revealed_moves[active_party], id);
+                        // One `|move|` line per PP spent (gen 1: exactly one).
+                        t.note_use(active_party, id, prev_pp - pp);
                     }
                 }
                 // Three moves are USED without their slot's PP moving in the
@@ -191,16 +226,21 @@ impl BattleTracker {
                 // (a) a two-turn move CHARGING: `canMove` returns at the
                 //     `.Charge` branch before `decrementPP` (mechanics.zig:758).
                 if vol.charging() && !t.prev_charging {
-                    reveal(&mut t.revealed_moves[active_party], sel);
+                    // Reveal only: the engine spends the PP on the attack turn
+                    // (case (2) above counts it then); poke-env spent it on this
+                    // turn's `|move|…|[still]`. One-turn lag, disclosed.
+                    t.note_use(active_party, sel, 0);
                 }
                 // (b) Transform rewrites all four slots at 5 PP in the same
                 //     update (mechanics.zig:2461), so its own use is invisible.
                 if vol.transform() && !t.prev_transform {
-                    reveal(&mut t.revealed_moves[active_party], sel);
+                    // poke-env decrements Transform's own PP on its `|move|`.
+                    t.note_use(active_party, sel, 1);
                 } else if live.iter().zip(t.prev_live_moves.iter()).any(|(a, b)| a.0 != b.0) {
                     // (c) Mimic overwrites the slot id it spent PP on
                     //     (mechanics.zig:2177), so `id == prev_id` fails.
-                    reveal(&mut t.revealed_moves[active_party], sel);
+                    //     poke-env decrements Mimic by one on its `|move|`.
+                    t.note_use(active_party, sel, 1);
                 }
             }
             t.prev_live_moves = live;
@@ -377,13 +417,18 @@ impl BattleTracker {
             seat.active = active_view(b, p, tr, active_party);
             // Revealed moves only, in usage order. The prior fills the rest --
             // in `encoder.rs`, from the table, never from the engine's slots.
+            let uses = tr.move_uses(active_party);
             for (i, &id) in tr.revealed_moves(active_party).iter().take(4).enumerate() {
                 let max_pp = t.mov(id).max_pp;
+                // The CLIENT's count of this foe's PP: max_pp minus the uses it
+                // has watched (poke-env `Move.use` per observed `|move|`). Never
+                // the engine's true pp. Was hard-coded to max_pp until A-1a
+                // (2026-09-10) measured the Node path at 0.89 +- 0.13 here.
+                let used = uses.get(i).copied().unwrap_or(0) as u16;
                 seat.moves[i] = MoveView {
                     id,
                     prob: 1.0,
-                    // A seat never sees a foe's PP, so the feature is always 1.0.
-                    pp: max_pp,
+                    pp: max_pp.saturating_sub(used),
                     max_pp,
                     present: true,
                 };
