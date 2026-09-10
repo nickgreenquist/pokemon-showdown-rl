@@ -34,8 +34,10 @@ usernames:
   never_reuse: [c4, r4anchor, ch3, ch4, ch5r1, ch5r2, ch5c1, fplad]
   pairs:
     F3M112: {seat: s3fpm112seat, fp: s3fpm112fp}
+    F3B112: {seat: s3fpd112seat, fp: s3fpd112fp}
   rerun_pairs:
     F3M112: {seat: s3fpm112bseat, fp: s3fpm112bfp}
+    F3B112: {seat: s3fpd112bseat, fp: s3fpd112bfp}
 arms:
   F3M112:
     kind: search_seat
@@ -45,5 +47,18 @@ arms:
     search_time_ms: 20
     seat_username: s3fpm112seat
     fp_username: s3fpm112fp
+  F3B112:
+    # ADDED 2026-09-10 ~16:40Z, before it runs: the det_blind twin of F3M112
+    # (DET_BLIND.md §6). Read: F3B112 - F3M112 (same seat, same dose, same FP
+    # budget) and F3B112 vs the banked greedy 0.50167; descriptive, credits
+    # nothing; the two FP@20 disclosures travel. F3M112 read 0.396 (n=1000).
+    kind: search_seat
+    seat: s112
+    dose: M
+    leaf_encoding: det_blind
+    battles: 1000
+    search_time_ms: 20
+    seat_username: s3fpd112seat
+    fp_username: s3fpd112fp
 comparator_banked:
   t112_greedy_offfp20: {rate: 0.50167, n: 3000, source: results/ch5_100m/t112.json}

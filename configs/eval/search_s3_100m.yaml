@@ -82,6 +82,22 @@
 # ONE RUNG IS WORTH +-0.02 (three n=3000 redraws of one checkpoint spread
 # 0.0200) — read shapes across the three lanes, never one cell alone.
 #
+# ARM ADDED 2026-09-10 ~16:40Z, BEFORE IT RUNS (S1 fired at 4.5x the decision
+# margin; docs/search_relook/S1_S2_SCREENS.md, DET_BLIND.md §6 carries the read
+# verbatim): S3B = S3M with `leaf_encoding: det_blind` — the leaf keeps the ROOT
+# battle's information boundary (unrevealed bench stays unknown, live move fill
+# and tracked PP), which collapses S1's artefact offline (sd 0.125 -> 0.008,
+# bias +0.050 -> +0.0002) and flips 11.4% of as-is dose-M decisions at
+# identical leaf counts. PRE-STATED READ P-B: delta_B = equal-weight mean over
+# lanes of (S3B - S3M), paired by lane, dose MATCHED (same leaves). Cells as
+# P-M: POS iff pooled >= +0.025 AND >= 2*se_diff (larger-of); NEG iff pooled
+# <= 0 AND per-lane <= 0 in >= 2 of 3; FLAT otherwise. Expected direction:
+# det_blind >= as-is. Secondary: delta_BA = mean(S3B - A0) with the same
+# cells (does search beat greedy on the 100M object once the artefact is
+# gone?); decision agreement S3B vs S3M; leaves_mean must be equal across the
+# two arms (a leaves delta means the option changed the tree, which it must
+# not). A FLAT/NEG delta_B means the artefact was not the binding defect and
+# the evaluator is. Off-FP twin F3B112 in search_s3_100m_offfp.yaml.
 # WHAT THIS DOES NOT TEST: depth >= 2 (no code); any dose above L; any
 # top_branches other than 6; search at a Foul Play-comparable budget on
 # a form that could use it. Those are the Phase 1/2 builds.
@@ -122,7 +138,8 @@ arms:
     battles: 3000
     chunks: 10
     evaluator: {kind: loo, pool: [s104, s112, s120], loo_pool_expected: 2}
-run_order: [A0, S3L, S3M, A1E]
+  S3B: {kind: search, lanes: [s104, s112, s120], dose: M, battles: 3000, chunks: 10, leaf_encoding: det_blind}
+run_order: [A0, S3L, S3M, S3B, A1E]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
