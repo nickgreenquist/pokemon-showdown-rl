@@ -2165,3 +2165,62 @@ parent is idle precisely BECAUSE its child is doing the work — the child was
 burning 43 s of CPU in 44 s of wall. A CPU-delta check has to follow the
 process tree; on the parent alone it reports a hang for every subprocess-driven
 test.
+
+## 2026-09-10 — the ACT path traces cleanly: bit-identical, ~1.3-1.6x, free
+
+`torch.compile` is dead on the UPDATE (0.82x idle). That result says nothing
+about the ACT path, which is the opposite regime: the collection model puts a
+forward at ~230 us almost regardless of row count, i.e. ~4.6 us per tensor op
+for a 1.17M-parameter net — dispatch and `nn.Module._call_impl`, not
+arithmetic. Measured, `torch_threads=1`, on the real actor:
+
+```
+  B    eager    trace   trace+freeze   trace x   frozen x
+  1    135.7     84.9           83.8      1.60       1.62
+  4    196.2    150.3          146.0      1.31       1.34
+  8    249.6    201.4          200.5      1.24       1.24
+ 64    611.3    563.1          581.3      1.09       1.05
+256   2356.4   2105.0              -      1.12          -
+```
+
+**Bit-identical at every batch size tested** (`torch.equal`, maxdiff 0.00e+00),
+so it changes no sampled action and needs no pre-reg — unlike the scorer
+factorization, which is correct to 3e-07 and therefore blocked by the trunk's
+bit-exact forward pin. This one is genuinely free.
+
+**Use `trace`, NOT `trace` + `freeze`.** They are within noise of each other
+(1.60x vs 1.62x at B=1), so `freeze` buys nothing here — the entire win is
+removing Python dispatch. That matters because `freeze` is documented to inline
+parameters as CONSTANTS, which would be wrong for the learner's actor, whose
+weights change every update. Both variants happened to track an in-place weight
+update in this test, but that is an artefact of how the capture aliased storage
+and not something to build on. `trace` alone is safe and costs nothing.
+
+**Where it pays.** The act path runs at B=1..8 in practice: at k=8 the learner
+sees ~2 rows per poll, and the opponent runs one forward per DISTINCT pool
+member at ~2.6 rows each. That is the 1.3-1.6x end of the table, not the 1.09x
+end. Collection is 34.9% of wall at k=8 and forwards are ~82% of collection, so
+~28.6% of wall at ~1.4x is a **~1.09x full-loop win** — modest, but free,
+bit-identical, and it stacks with everything else. It shrinks as k rises, since
+collection's share falls.
+
+## 2026-09-10 — the threads knob DOES reach the GEMMs, and saturates at T=2
+
+Settles the third hypothesis. A bare `torch.mm` at the pointer scorer's exact
+production shape (2560x512 @ 512x256), one process per thread count with OMP
+sized at launch:
+
+```
+T=1   0.472 ms   1421 GFLOP/s
+T=2   0.304 ms   2211 GFLOP/s   1.56x
+T=4   0.305 ms   2197 GFLOP/s   plateau
+T=6   0.306 ms   2193 GFLOP/s   plateau
+```
+
+So "`BLAS_INFO=accelerate` means `set_num_threads` never reaches the sgemm" is
+REFUTED — it reaches it and is worth 1.56x. But the gain **saturates at two
+threads**. That is the missing piece of the crossed table: past T=2 there is no
+further matmul win while the per-region barrier cost keeps growing, so T=4 and
+T=6 are pure loss at the shipped 256-row minibatch. At 3,840 rows the regions
+are 15x larger, the barrier amortises, and the same thread counts help. Two
+curves crossing, and now both are measured rather than inferred.
