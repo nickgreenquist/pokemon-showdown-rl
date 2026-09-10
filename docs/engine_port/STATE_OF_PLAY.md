@@ -1,4 +1,4 @@
-# Engine port — state of play, 2026-09-10 ~02:00Z
+# Engine port — state of play, 2026-09-10 ~02:35Z
 
 Written so a session with no memory of today can pick this up. Durable record
 is `docs/engine_port/NOTES.md` (incidents and gate numbers) and the git log;
@@ -163,6 +163,36 @@ banked 0.85x is a fact about `update()` that does not transfer unexamined.
 
 **Lanes contend hard.** A solo engine lane reads ~2427 steps/s against 1539 at
 width 3, so width 3 buys ~1.9x fleet throughput rather than 3x.
+
+## MAX-OUT: what the engine does when pushed (measured, idle box)
+
+```
+    k   w   per-lane    fleet    peak GB
+    8   1      2390      2390      2.26
+    8   3      1620      4861      7.37   <- today's A-1 setting
+    8   6      1282      7694     10.95
+  256   1      3035      3035      2.37
+  256   3      2106      6317      7.89
+  256   6      1666      9994     11.33
+```
+
+**k=256 at width 6 is 2.06x today's fleet throughput**, on 11.33 GB of 24 —
+width 6 is not the ceiling. **k=256 at width 1 is 1.87x today's per-lane rate**,
+and that is the only one of the two that shortens a SINGLE run.
+
+k is nearly free in memory (248 extra battle slots cost 0.11 GB), so k and
+width are INDEPENDENT axes — an earlier guess that they traded against each
+other was wrong. What width costs is contention: per-lane falls to 0.68x going
+1→3 and 0.79x going 3→6.
+
+### The four levers, and what each is actually worth
+
+| lever | worth | free? |
+|---|---|---|
+| k 8 → 256 | 1.27x per-lane at w=1, 1.30x at w=3 | changes staleness; own pre-reg |
+| width 3 → 6 | 1.58x FLEET only, never a shorter run | **yes** |
+| threads x minibatches, crossed | 1.51x update ≈ 1.28x loop | NO — minibatches change learning |
+| scorer ctx factorization | ~26% of the epoch loop, ~1.15x loop | **yes**, verified to 3e-07 |
 
 ## Built tonight, all committed, none of it ratified
 
