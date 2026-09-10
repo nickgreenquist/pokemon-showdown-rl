@@ -1,4 +1,4 @@
-# Engine port — state of play, 2026-09-10 ~01:15Z
+# Engine port — state of play, 2026-09-10 ~02:00Z
 
 Written so a session with no memory of today can pick this up. Durable record
 is `docs/engine_port/NOTES.md` (incidents and gate numbers) and the git log;
@@ -117,6 +117,47 @@ Numbers that exist now and their status:
 * 1502 steps/s/lane at 3-wide — measured today, clean on its own.
 * **2.62x — NOT QUOTABLE as the speedup.** It divides today's rate by a Node
   rate banked 2026-09-01. Recorded in NOTES with that caveat attached.
+
+## THE SPEED PICTURE AS IT STANDS (2026-09-10 ~02:00Z)
+
+**The port inverted the profile, and that is the headline finding, not the
+multiplier.** Three lanes each side, both 3-wide, so the shares are comparable:
+
+| | update share of wall | collection share |
+|---|---|---|
+| Node path, concurrency 8 | 0.2513 / 0.2502 / 0.2500 | 74.9% |
+| engine path, k=8 | 0.6509 / 0.6562 / 0.6467 | 34.9% |
+
+So **Amdahl caps any further COLLECTOR work at 1.54x** at k=8, and higher at
+larger k (a contended probe at k=64 read ~84% update share). Essentially all
+remaining headroom is in the learner.
+
+**And the learner does not want the obvious levers.** Every one measured so far
+is neutral or NEGATIVE at the shipped 256-row minibatch shape:
+
+* `torch_threads` 2: **0.84x** (slower). Banked quiet-box `update()` at 6
+  threads: 0.85x. Both directions agree.
+* `torch.compile`: **0.89x** (slower), after a 14.6 s warmup.
+* `minibatches` 120 -> 8 (256 -> 3,840 rows): **1.03x**. So the update is
+  COMPUTE-bound, not dispatch-bound, and bigger batches are not the lever.
+
+Two live hypotheses for why threads hurt, and a crossed T x minibatches sweep
+is queued to separate them: (a) synchronisation cost scaling with the NUMBER of
+parallel regions, which would nearly vanish at minibatches 8; (b) heterogeneous
+cores — 10 P + 4 E, no QoS pinning, and a static parallel region runs at its
+slowest thread's speed, which would leave the T-curve FLAT across the minibatch
+axis.
+
+**One instrument trap, resolved, that would have invalidated all of the above.**
+`update_episodes()` (async, what the engine calls) is NOT `update()` (sync,
+what the 2026-08-31 bench timed at 12.002 s). The async path drops three
+full-batch forwards over 30,720 rows the sync path performs — the second critic
+pass over `next_obs` and the `old_logp` recompute (`ppo.py:1126-1145`). That
+gap, not a faster box, is why numbers here land under 12 s, and it means the
+banked 0.85x is a fact about `update()` that does not transfer unexamined.
+
+**Lanes contend hard.** A solo engine lane reads ~2427 steps/s against 1539 at
+width 3, so width 3 buys ~1.9x fleet throughput rather than 3x.
 
 ## Built tonight, all committed, none of it ratified
 
