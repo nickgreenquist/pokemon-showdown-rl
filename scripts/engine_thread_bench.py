@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""How does the PPO UPDATE scale with `torch_threads` on this box?
+"""How does the PPO UPDATE scale with `torch_threads` and MINIBATCH SIZE?
 
 WHY THIS IS THE QUESTION NOW. Before the collector port, collection was 75% of
 training wall clock and the update was 25%, so how fast the update ran barely
@@ -16,9 +16,22 @@ METHOD, and the two things it is careful about:
   * The batch is COLLECTED, not synthesised. Shapes drive most of the cost, but
     a synthetic batch cannot be trusted on the parts that branch on values, and
     collecting one update's worth from the engine costs seconds.
-  * Every thread count updates a FRESH DEEP COPY of the same agent over the
-    SAME episodes. Otherwise thread count 2 would be timing an agent that
-    thread count 1 had already stepped, on data whose advantages had shifted.
+  * Every cell updates a FRESH DEEP COPY of the same agent over the SAME
+    episodes. Otherwise the second cell would be timing an agent the first had
+    already stepped, on data whose advantages had shifted.
+
+TWO LEVERS, AND THEY ARE NOT THE SAME KIND OF THING:
+  * `torch_threads` is FREE. It changes float reduction order, so an update is
+    not bit-identical across thread counts, but it is distributionally the same
+    update and needs no pre-registration to adopt.
+  * `minibatches` CHANGES LEARNING. The shipped config runs 4 epochs x 120
+    minibatches on a 30,720-step batch: 480 optimizer steps on 256 ROWS EACH,
+    which is very small for CPU, where per-op dispatch overhead dominates at
+    that size. Fewer, larger minibatches should be markedly faster per update,
+    but it is a different optimiser trajectory — different gradient noise, a
+    different number of steps, a different effective learning rate per sample.
+    MEASURING it is free; ADOPTING it needs its own pre-reg and its own credit
+    line. This script measures and says so. It recommends nothing.
 
 WHAT IT DOES NOT MEASURE. Threads under FLEET CONTENTION. These numbers are one
 lane with the box to itself; three lanes at 4 threads each want 12 cores and
@@ -47,6 +60,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("checkpoint", type=pathlib.Path)
     ap.add_argument("--threads", default="1,2,4,8")
+    ap.add_argument("--minibatches", default=None,
+                    help="comma-separated minibatch COUNTS, swept at the "
+                         "fastest thread count found. Changing this changes "
+                         "LEARNING, not just speed.")
     ap.add_argument("--repeats", type=int, default=3)
     ap.add_argument("--k", type=int, default=64,
                     help="engine k for the COLLECTION of the benchmark batch; "
@@ -106,6 +123,35 @@ def main(argv=None) -> int:
         print(f"  threads={n:>2}  update {best:6.2f}s  "
               f"(all: {', '.join(f'{x:.2f}' for x in times)})", flush=True)
 
+    # --- minibatch sweep, at the fastest thread count found above -----------
+    mb_rows = []
+    if args.minibatches:
+        best_t = min(rows, key=lambda r: r["update_seconds_min"])["threads"]
+        torch.set_num_threads(best_t)
+        shipped = int(cfg.agent["minibatches"])
+        print(f"minibatch sweep at threads={best_t} "
+              f"(shipped value is {shipped})", flush=True)
+        for m in [int(x) for x in args.minibatches.split(",")]:
+            times = []
+            for _ in range(args.repeats):
+                a = copy.deepcopy(agent)
+                a.buffer = None
+                a.minibatches = m
+                ds = EpisodeDataset()
+                for ep in episodes:
+                    ds.append(ep)
+                t = time.perf_counter()
+                a.update_episodes(ds.drain(), steps_seen=0)
+                times.append(time.perf_counter() - t)
+            mb_rows.append({"minibatches": m, "threads": best_t,
+                            "rows_per_minibatch": batch // m,
+                            "optimizer_steps_per_update":
+                                int(cfg.agent["epochs"]) * m,
+                            "update_seconds_min": min(times),
+                            "is_shipped_value": m == shipped})
+            print(f"  minibatches={m:>4} ({batch // m:>5} rows/mb) "
+                  f"update {min(times):6.2f}s", flush=True)
+
     base = rows[0]["update_seconds_min"]
     for r in rows:
         r["speedup_vs_1_thread"] = base / r["update_seconds_min"]
@@ -124,6 +170,12 @@ def main(argv=None) -> int:
         "batch_steps": batch,
         "episodes_in_batch": len(episodes),
         "rows": rows,
+        "minibatch_rows": mb_rows,
+        "minibatch_caveat": (
+            "minibatches CHANGES LEARNING — a different optimiser trajectory, "
+            "different gradient noise, a different number of steps. These are "
+            "SPEED numbers only. Adopting a different value needs its own "
+            "pre-reg and its own credit line; nothing here recommends one."),
         "update_share_used_for_extrapolation": U_SHARE,
         "scope": "ONE LANE with the box to itself. Three lanes at 4 threads "
                  "each want 12 cores and will not see this scaling — the "
@@ -137,6 +189,18 @@ def main(argv=None) -> int:
         print(f"{r['threads']:>8} {r['update_seconds_min']:>10.2f} "
               f"{r['speedup_vs_1_thread']:>8.2f} "
               f"{r['implied_full_loop_speedup']:>13.2f}")
+    if mb_rows:
+        b = next((r for r in mb_rows if r["is_shipped_value"]), None)
+        print(f"\n{'minibatches':>12} {'rows/mb':>9} {'opt steps':>10} "
+              f"{'update s':>10} {'x':>6}")
+        for r in mb_rows:
+            x = (b["update_seconds_min"] / r["update_seconds_min"]) if b else 0.0
+            print(f"{r['minibatches']:>12} {r['rows_per_minibatch']:>9} "
+                  f"{r['optimizer_steps_per_update']:>10} "
+                  f"{r['update_seconds_min']:>10.2f} {x:>6.2f}"
+                  + ("  <- shipped" if r["is_shipped_value"] else ""))
+        print("\nSPEED ONLY. minibatches changes the optimiser trajectory; "
+              "adopting a value needs its own pre-reg.")
     print(f"\nwritten: {args.out}")
     return 0
 
