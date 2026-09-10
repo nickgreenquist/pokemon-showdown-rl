@@ -105,3 +105,4 @@ engine/pkmn_gen1/target/
 # and the queue consumes it. Untracked files stamp git_dirty on every run
 # (CLAUDE.md rule 3), so it is ignored rather than left lying in the tree.
 .ab_go
+.s3_e_go

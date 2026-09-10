@@ -123,6 +123,13 @@ arms:
     chunks: 10
     evaluator: {kind: loo, pool: [s104, s112, s120], loo_pool_expected: 2}
 run_order: [A0, S3L, S3M, A1E]
+# R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
+# transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
+# |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
+r4_13_discrimination:
+  s104: {mean_abs_diff: 3.3771, argmax_differ_frac: 0.933}
+  s112: {mean_abs_diff: 3.5021, argmax_differ_frac: 0.810}
+  s120: {mean_abs_diff: 2.0447, argmax_differ_frac: 0.687}
 banked_reference_never_the_comparator:
   vssh_finals: {s104: results/ch5_100m/final_s104.json, s112: results/ch5_100m/final_s112.json, s120: results/ch5_100m/final_s120.json, pooled: 0.79589}
   offfp20_t112: {rate: 0.50167, n: 3000, source: results/ch5_100m/t112.json}
