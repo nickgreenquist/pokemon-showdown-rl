@@ -561,11 +561,18 @@ def offfp_anchor(offfp_dir: Path) -> dict:
         if rj.exists():
             forfeits = json.loads(rj.read_text()).get("crash_forfeits", 0)
         n_eff = finished - forfeits
+        # The pre-reg's n_eff rule (ch3_r4_fp_runner.sh): a crash-forfeited
+        # battle is scored as OUR win by the seat and is EXCLUDED — so the
+        # quotable rate is (our_wins - forfeits) / n_eff, never the raw rate.
+        wins_eff = d["our_wins"] - forfeits
+        rate_eff = wins_eff / n_eff if n_eff else None
         out["arms"][arm] = {
             "status": "COMPLETE" if finished == d["battles_requested"]
             else "PARTIAL",
             "leaf_encoding": enc,
-            "our_win_rate": d["our_win_rate"],
+            "our_win_rate": rate_eff,
+            "our_win_rate_raw": d["our_win_rate"],
+            "our_wins_eff": wins_eff,
             "battles_requested": d["battles_requested"],
             "battles_finished": finished,
             "crash_forfeits": forfeits, "n_eff": n_eff,
