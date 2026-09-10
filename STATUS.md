@@ -46,9 +46,9 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
    migration is CLOSED (§3 + docs/CLEANUP.md).
 
 ## Watch items
-- **SUITE GREEN: 939 passed / 19 skipped, 2 min** (`-m "not live_server"`, ch3 ignored;
-  port env). **No single env runs it all** — the main env lacks `pkmn_gen1`, and
-  seaborn/scipy/matplotlib are undeclared. Needs a ruling.
+- **SUITE GREEN: 939 passed / 19 skipped in 2 min, + all 9 live-server in 4.5 s**
+  (ch3 ignored; port env). **No single env runs it all** — the main env lacks
+  `pkmn_gen1`. Needs a ruling. (`pandas` now pinned; scipy/seaborn are NOT used.)
 - **The live-server "flake" was an ORDERING BUG** — poke-env draws seat names from global
   `random`, pinned by `set_seed()` first. Fixed + bounded in `tests/conftest.py`.
 - **vs-SH is NEVER a ladder number**; the gen-4 ladder is banked and unrun. No projection.

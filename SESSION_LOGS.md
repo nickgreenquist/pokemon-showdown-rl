@@ -11275,3 +11275,55 @@ line numbers are not — grep the date, then read that region):
   frozen copy); A/B run dirs collided across variants, destroying variant 1's
   steady-state data; and a missing `math` import killed variant 1's summary
   after all four arms had run — recovered from the log rather than re-run.
+- 2026-09-10 (midday, agent; "seems like lot of failures: use 1-2 opus agents to
+  help you deep review certain parts of the code you think need help with to
+  debug") — **THE SUITE IS GREEN FOR THE FIRST TIME SINCE THE PORT LANDED: 939
+  passed / 19 skipped in 2 min, plus all 9 live-server tests in 4.5 s with a
+  server up.** Fourteen failures and an indefinite hang, and the two biggest
+  causes were mine.
+  **My errors.** (1) Deleting the engine worktree left the editable install
+  mapping `{'rl': '<worktree>/rl'}`, so `import rl` worked ONLY from the repo
+  root via cwd resolution and every subprocess-spawning test died with
+  `ModuleNotFoundError`. That was most of the "wall of pre-existing failures".
+  The trap was my CHECK: I ran `import rl` FROM the repo root, saw main's path,
+  and called the install healthy. `cd /tmp` first, or read the finder's MAPPING.
+  (2) I twice called a test "wedged at zero CPU" after checking only the PARENT
+  process — `test_engine_p3`'s parent is idle BECAUSE its child works (43 s CPU
+  in 44 s wall). CPU-delta checks must follow the process tree.
+  **What the agents found that I had not.** `scripts/engine_p3.py` retained a
+  frozenset PER MON to compute a per-species Counter over ~165 move ids — 12 per
+  pair, ~3.1 kB/pair, **~16 GB on the 5M bank**, which swapped a 24 GB box.
+  Rewritten to Counters and **verified byte-identical** (same PASS, same worst
+  cell eevee/sandattack z=+3.15; only the wall-seconds line differs), peak RSS
+  **0.11 GB**. Five test files also did `sorted(glob("teams_*.bin"))[-1]`, which
+  means "biggest" only by alphabetical accident and silently switched to the
+  480 MB bank the day it was generated; four now take the smallest and P-3 pins
+  the REGISTERED gate bank — right on merit, since P-3's power is floored by the
+  prior's own 4,000 draws/species so a 100x bank buys ≤1.40x on se while
+  multiplying every real-but-tiny z against an unchanged Bonferroni bar.
+  **CLAUDE.md's "known flake" was never a flake.** poke-env derives seat
+  usernames from the GLOBAL `random`, which `set_seed()` has pinned by the time
+  the live tests run — so the suite asked for identical names every run while a
+  single file got OS entropy. That IS the "fails in the suite, passes alone"
+  signature. And `nametaken` is raised on a daemon loop while the main thread
+  parks on an UNTIMED `battle_queue.get()`, so a collision hung the suite forever
+  at zero CPU instead of failing. `tests/conftest.py` unpins the RNG and bounds
+  each live test at 300 s.
+  **Also fixed:** `pandas` was undeclared in pyproject (four gen-4 gate tests
+  died on it, the traceback swallowed by a helper that dropped stderr);
+  `test_seat_tag` asserted env-flag-dependent constants IN-PROCESS where they are
+  612/300 and so could never pass under `pytest tests/`; `test_engine_gate_
+  harnesses` demanded the literal `"unverified"` that commit bc1c2b8 correctly
+  replaced with `"bring_up"` — and its sibling assertion was green only because
+  `engine_d1.py`'s docstring was ALSO stale.
+  **Two more free measurements landed.** The ACT path traces **bit-identically**
+  for 1.60x at B=1 / 1.31x at B=4 (`trace`, NOT `trace+freeze` — freeze buys
+  nothing here and would inline weights as constants), so unlike the scorer
+  factorization it needs no pre-reg: ~1.09x on the full loop, free. And the GEMM
+  probe REFUTES the "Accelerate owns the sgemm" hypothesis — `set_num_threads`
+  reaches it and is worth 1.56x, but **saturates at T=2**, which is exactly why
+  T=4/T=6 lose at the shipped 256-row minibatch and win at 3,840.
+  **Corrected an agent, too:** it reported seaborn/scipy/matplotlib as undeclared
+  dependencies. scipy appears once, in a comment saying it is deliberately NOT
+  used; seaborn is absent entirely. Only matplotlib was real, and it is one
+  figure script no test imports.
