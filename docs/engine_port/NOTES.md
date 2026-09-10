@@ -1797,3 +1797,40 @@ the engine's throughput case rests on LARGE K, so accepting the collector at
 k=8 accepts it at a point nobody would train on. That is an argument for RW-1
 branch (b) — declare K part of the treatment — and it is now backed by a
 measurement instead of intuition. The ruling is still the maintainer's.
+
+## 2026-09-09 — T-1 (d) FLEET WIDTH: CREDITED
+
+Measured on the live A-1 fleet, 3 lanes, 900 s conforming window, no eval tick
+inside it, time-averaged from cumulative CPU-time deltas (never a `ps` snapshot).
+
+| | engine, measured today | Node path | source of the Node figure |
+|---|---|---|---|
+| realized steps/s per lane | **1502** (1639 / 1502 / 1502) | 574.1 | banked, 2026-09-01 |
+| aggregate steps/s, 3-wide | **4643** | ~1722 | derived from the above |
+| cores per lane | **1.02** | 1.93 | THROUGHPUT_SPEC, 2026-09-06 |
+| **Showdown server cores** | **0.043** | 1.08 | THROUGHPUT_SPEC, 2026-09-06 |
+
+**The strongest result here is the last row, and it is measured today on this
+box: 0.043 cores.** The Node path spends 1.08 cores per lane inside the
+simulator — 56% of a lane's CPU — and on the engine path that term is gone.
+The residual 4% of a core is the in-loop evals every 250k steps, which stay on
+the server by design. This is the port's central claim, and it is now a
+measurement rather than a projection.
+
+Cores per lane falls 1.93 → 1.02, i.e. the box holds roughly twice the lanes it
+did, before counting any per-lane speedup.
+
+**HONESTY ABOUT THE 2.62x.** The RATE comparison divides a number measured
+today by a number banked on 2026-09-01 — a different day, a different box
+state, different neighbours. It is the same cross-day subtraction the
+maintainer correctly rejected, and it is NOT the official speedup. It is
+recorded here because the fleet-width SHAPE (three lanes, one box, cores and
+rate together) is what leg (d) exists to capture, and that shape is sound.
+**`scripts/engine_ab_speed.py` is the authoritative answer** — same dose, both
+collectors, back to back on one idle box — and it is queued to run when the
+lanes free the machine.
+
+Two further caveats on the rate, both pushing the same way: this fleet runs at
+**k=8**, matched to the banked arm so the collector is the only delta, and
+T-1(b) measures K=512 at 1.37x K=256 collection-only. So 1502 steps/s/lane is a
+LOWER BOUND on the configuration anyone would actually train at.
