@@ -88,6 +88,7 @@ docs/prior_work/*
 !docs/prior_work/HUANG_LEE_DEEP_READ.md
 !docs/prior_work/THROUGHPUT_SPEC.md
 !docs/prior_work/RESEARCH_2026-08-10_prior_art_and_levers.md
+!docs/prior_work/WANG_SEARCH_DEEP_READ.md
 logs/
 # gen-4 Wang-recipe pre-reg design chain (2026-09-05; the A1 pattern)
 !results/design_gen4_wang50m/
