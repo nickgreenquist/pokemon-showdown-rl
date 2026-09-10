@@ -80,9 +80,17 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   SMOKE, not a pre-reg); Foul Play's gen-4 engine build lives in conda env
   `foul-play-gen4` (`scripts/setup_foulplay_gen4.sh`) — the gen-1 `foul-play`
   env stays untouched, one env per engine build. Design: `docs/design_gen4/`.
-- **Tests:** `pytest tests/` from the repo root. Known flake (documented
-  in-file): `test_full_episode_contract_against_live_server` fails only when
-  the whole suite runs with a server up; passes alone.
+- **Tests:** `pytest tests/` from the repo root, in an env that has BOTH
+  `pkmn_gen1` and the analysis deps — no env has both today (see CLEANUP).
+  **The old "known flake" is FIXED (2026-09-10) and was never a flake:**
+  poke-env derives seat usernames from the GLOBAL `random`, which `set_seed()`
+  has already pinned by the time the live tests run, so the whole suite asked
+  for identical names every time while a single file got OS entropy. That is
+  the "fails in the suite, passes alone" signature. `tests/conftest.py` unpins
+  it and bounds each `live_server` test at 300 s, because poke-env raises
+  `nametaken` on a daemon loop and parks the main thread on an UNTIMED queue
+  get — so a collision used to hang the suite forever at zero CPU rather than
+  fail. All 9 live tests now pass in 4.5 s with a server up.
 
 ## Docs
 
