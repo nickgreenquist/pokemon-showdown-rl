@@ -33,6 +33,13 @@ engine, two node — and read:
                                                          like at this n
     A/B pairs (engine_i, node_j), all four            -> the thing under test
 
+THE A/A BAND IS NOT A FORMALITY — MEASURED 2026-09-10. A 20-episode smoke of
+two ENGINE arms against each other, i.e. a TRUE NULL, gave obs_smd_max 1.086,
+412 of 828 dimensions over an SMD of 0.10, and episode_length_ks 0.174. Any
+fixed threshold anyone would think to write down would have failed a perfectly
+healthy collector at that n. The A/A pairs are what make the A/B numbers mean
+anything, and they shrink with n while a real defect does not.
+
 A statistic is interesting when the A/B pairs sit clearly outside the spread of
 the A/A pairs. A statistic where they overlap is telling you the difference is
 the same size as reseeding, which is the honest reading of "no evidence of a
@@ -317,6 +324,11 @@ def main(argv=None) -> int:
                          "same-seed poke-env seats collide on usernames "
                          "(CLAUDE.md rule 2)")
     ap.add_argument("--no-opp-action", action="store_true")
+    ap.add_argument("--smoke", action="store_true",
+                    help="ENGINE ARMS ONLY — no server needed. Exercises every "
+                         "path but AsyncCollector construction, and what it "
+                         "produces is not a throwaway: two engine arms ARE the "
+                         "A/A null calibration this harness reads against.")
     ap.add_argument("--out", type=pathlib.Path,
                     default=pathlib.Path("results/engine_a1/a1a.json"))
     args = ap.parse_args(argv)
@@ -333,6 +345,8 @@ def main(argv=None) -> int:
     arms = {}
     plan = [("engine", "engine1", seeds[0]), ("engine", "engine2", seeds[1]),
             ("node", "node1", seeds[2]), ("node", "node2", seeds[3])]
+    if args.smoke:
+        plan = plan[:2]
     for mode, name, seed in plan:
         print(f"--- collecting {name} ({mode}, seed {seed})", flush=True)
         arms[name] = collect(mode, agent, episodes=args.episodes, seed=seed,
@@ -340,17 +354,19 @@ def main(argv=None) -> int:
                              opp_action=opp_action, run_tag=f"a1a{seed}",
                              name=name)
 
-    aa = [compare(arms["engine1"], arms["engine2"]),
-          compare(arms["node1"], arms["node2"])]
+    aa = [compare(arms["engine1"], arms["engine2"])]
+    if "node1" in arms:
+        aa.append(compare(arms["node1"], arms["node2"]))
     ab = [compare(arms[e], arms[n])
-          for e in ("engine1", "engine2") for n in ("node1", "node2")]
+          for e in ("engine1", "engine2") for n in ("node1", "node2")
+          if n in arms]
 
     # THE READ. For every scalar statistic, how far outside the A/A spread do
     # the A/B pairs sit? No p-values: the null here is two numbers, so the
     # honest summary is the ratio and the raw values beside it.
     keys = [k for k, v in aa[0].items() if isinstance(v, (int, float))]
     read = {}
-    for kk in keys:
+    for kk in [] if not ab else keys:
         aav = [p[kk] for p in aa]
         abv = [p[kk] for p in ab]
         worst_aa = max(aav)
@@ -362,7 +378,8 @@ def main(argv=None) -> int:
         }
 
     out = {
-        "gate": "A-1a",
+        "gate": "A-1a" + (" (SMOKE — engine A/A only, no node arms)"
+                          if args.smoke else ""),
         "decides": "NOTHING ON ITS OWN [RW-9]. Failing blocks the switch and "
                    "opens parity diagnosis; passing licenses nothing, because "
                    "a FROZEN-policy row comparison cannot test LEARNING — "
@@ -389,6 +406,14 @@ def main(argv=None) -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2) + "\n")
 
+    if not ab:
+        print("\nA-1a SMOKE — engine A/A only. These ARE the null band; "
+              "there is nothing to read them against yet.")
+        for kk, v in aa[0].items():
+            if isinstance(v, (int, float)):
+                print(f"  {kk:<28} {v}")
+        print(f"\nwritten: {args.out}")
+        return 0
     print("\nA-1a — every statistic is a DISTANCE; A/B is read against A/A")
     print(f"{'statistic':<28} {'A/A worst':>10} {'A/B worst':>10} {'ratio':>8}  separated")
     for kk, r in read.items():
