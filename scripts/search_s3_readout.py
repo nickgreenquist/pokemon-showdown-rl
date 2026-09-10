@@ -245,6 +245,12 @@ def _search_block(reports: list[dict]) -> dict | None:
     dec = sum(r["search/decisions"] for r in reports)
     skips = sum(r["search/placeholder_skips"] for r in reports)
     flips = sum(r["search/flips"] for r in reports)
+    # A chunk carries search/searched_decisions; a FINAL does not (ch3_eval.py
+    # merges it away), and searched == decisions - placeholder_skips by the
+    # adapter's own accounting. Fill it so finals and chunks read alike.
+    for r in reports:
+        r.setdefault("search/searched_decisions",
+                     r["search/decisions"] - r["search/placeholder_skips"])
     searched = sum(r["search/searched_decisions"] for r in reports)
     return {
         "dose": reports[0].get("search_dose"),
