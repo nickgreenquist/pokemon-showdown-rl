@@ -166,11 +166,13 @@ def run_arm(arm: str, cfg: pathlib.Path, log: pathlib.Path) -> dict:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--steps", type=int, default=1_000_000)
-    ap.add_argument("--order", default="ABBAABBA",
+    ap.add_argument("--order", default="ABBA",
                     help="run order, A=node B=engine. ABBA cancels LINEAR "
                          "drift exactly (both arms mean position 2.5); ABAB "
-                         "does not (A 2.0 vs B 3.0). Default is two ABBA "
-                         "blocks = 4 replicates per arm.")
+                         "does not (A 2.0 vs B 3.0). Default ABBA = 2 "
+                         "replicates per arm; ABBAABBA doubles it, but the "
+                         "statistical term is not the binding one, so the "
+                         "extra block buys little.")
     ap.add_argument("--engine-k", type=int, default=256)
     ap.add_argument("--seed", type=int, default=9301)
     ap.add_argument("--out", type=pathlib.Path,

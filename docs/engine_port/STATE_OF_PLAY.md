@@ -10,15 +10,17 @@ this file is only "what is in flight and what was just decided".
 |---|---|---|
 | A-1 engine arm, 3 lanes x 12M, seeds 66/75/83, k=8 | `<worktree>/runs/engine_a1_s*` | ~01:45Z |
 | the gate chain (finishes with T-1(c) then A-1 descriptive evals) | `scripts/engine_gates.sh`, log `logs/engine_gates.log` | after lanes |
-| post-lane queue: `pytest tests/` then BOTH A/B variants | `logs/post_lane_queue.log` | after the chain |
+| post-lane queue: worktree teardown, `pytest tests/`, then BOTH A/B variants (`scripts/engine_post_lane_queue.sh`) | `logs/post_lane_queue.log` | after the chain |
 
 The A-1 lanes run out of the WORKTREE
-(`/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-engine`) and the
-`pkmn-engine-port` env's editable `rl` still points there. **Do not remove the
-worktree or re-point the env until the lanes finish.** Teardown is one step:
-`pip install -e .` from main, `pip install --no-build-isolation -e
-engine/pkmn_gen1` from main, move `runs/engine_a1_s*` into main's `runs/`, then
-`git worktree remove`.
+(`/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-engine`), so its
+`runs/`, `results/` and `logs/` are the live ones until they finish. **The env
+needs nothing** — checked 2026-09-10, `pkmn-engine-port` already resolves `rl`
+to MAIN and `pkmn_gen1` to site-packages, so teardown is only: move those three
+directories home, then `git worktree remove`. That now runs itself as step 1 of
+`scripts/engine_post_lane_queue.sh`; a name collision is SKIPPED and logged
+rather than clobbered, and `worktree remove` is left to refuse if anything is
+still uncommitted in there.
 
 ## Overnight ops — what may and may not be killed
 
@@ -60,23 +62,31 @@ Measured from a real Node lane's own history: per-update wall has a **CV of
 | 3M | 98 | 0.25% | 0.36% |
 | 12M | 391 | 0.13% | 0.18% |
 
-**So sample size is NOT the binding constraint — startup is.** The engine is
-the short arm, so a fixed ~20 s startup is **8%** of a 1M engine run against
-2% of the Node run, an order of magnitude above the statistical term, and it
-does not average down. Hence: dose raised to **3M** (startup falls to ~2.7%)
-AND the harness now reports a **steady-state** ratio with the first two updates
-dropped, which is immune to startup regardless of dose. Both ratios are
-reported; `speedup_wall_clock` is what you pay, `speedup_steady_state` is what
-the collector sustains.
+**So sample size is NOT the binding constraint** — the two systematics are.
 
-Remaining systematic, stated not mitigated: Node runs first and is the long
-arm, so the engine arm runs on a warmer box. On a laptop that biases AGAINST
-the engine, so the reported speedup is conservative. Reversing the order bounds
-it if the number is ever contested.
+*Startup.* The engine is the short arm, so a fixed ~20 s startup is **8%** of a
+1M engine run against 2% of the Node run — an order of magnitude above the
+statistical term, and it does not average down with dose. The harness therefore
+reports a **steady-state** ratio with the first two updates dropped, which is
+immune to startup at any dose. Both ratios are reported: `speedup_wall_clock`
+is what you pay, `speedup_steady_state` is what the collector sustains.
+
+*Drift.* The box warms and background load creeps, so a single A-then-B
+ordering hands all of it to whichever arm ran second. **Fixed by alternation,
+not by dose** (maintainer, 2026-09-09): the harness runs **ABBA** — two
+replicates per arm, both averaging run position 2.5, so a linear trend cancels
+out of the ratio exactly. `ABAB` would NOT do this (A at 2.0 against B at 3.0),
+and six runs cannot balance at all: three integers cannot average 3.5. The
+ratio is the mean of PER-PAIR ratios, and the sd/se across pairs is an
+empirical error bar rather than an assumption — if the pairs disagree, the box
+was not stable, which a single run could never have revealed. `--order
+ABBAABBA` doubles the replicates; the maintainer ruled that overkill, and the
+arithmetic agrees.
 
 **"How many steps to be certain" has no answer in steps.** At 1M the ratio is
 already good to 0.6%; what would make it wrong is startup, thermal drift and a
-noisy neighbour, none of which more steps fix.
+noisy neighbour — the first two are now designed out, and none of the three
+are fixed by more steps. Dose stays at **1M**.
 
 ## The speed question — read this before quoting any number
 
