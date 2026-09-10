@@ -22,33 +22,37 @@
   re-read at n=12,000 **+0.0016**. **A-1a (RW-9) CAUGHT a boundary defect** — foe move PP
   hard-coded 1.0 where poke-env decrements per observed use (dims 627/673/719, SMD 0.94);
   FIXED in the tracker (bd3d06a), P-1 still bitwise, A-1a re-run on the fixed build shows
-  NOTHING separated. **7.5 closes on A-1 re-run on the fixed build (~2.4 h, ASKED).**
+  NOTHING separated. **7.5's EXIT IS MET: A-1 on the FIXED build is A1-PASS, delta -0.00436.**
 - **K-1 (k=256 screen) is PARKED, reviewed x2** (`configs/engine_k256*.yaml`): the monster
   should run at k=8 — k buys 5 fleet-hours and the screen cannot resolve a 2-point cost.
 
 ## Next actions
-0. **SEARCH RELOOK — GRADED; THE ANSWER IS THE EVALUATOR** (S3, `docs/search_relook/
-   S3_READOUT.md`; credits nothing). 100M finals, vs SH, locked, 3x3000, FRESH greedy
-   0.78867: **P-M (search@M - greedy) -0.0681 NEG, 3/3 lanes** (bar 0.0389); **P-B
-   (det_blind - as-is) -0.0088 NEG** (bar 0.0134) — S1's encoding artefact was REAL
-   (+0.050 bias, 4.5x the margin), is FIXED, and **was not the binding defect**;
-   P-BA -0.0769. Off FP@20 s112 n=1000 (budget named, both disclosures): 0.3960 /
-   0.4054 vs banked greedy 0.50167. Dose L (partial) reads BELOW M. Open: a better
-   EVALUATOR (A1E running) and depth (no code). **Ladder object is GREEDY unless an
-   evaluator arm changes it; JOURNEY 11.5 must not run before an evaluator exists.**
+0. **SEARCH RELOOK — the selector, not (only) the evaluator.** S3 GRADED: **P-M
+   (search@M - greedy) -0.0681 NEG 3/3**; **P-B (det_blind - as-is) -0.0088 NEG** — S1's
+   encoding artefact was real, is fixed, was NOT binding. **But Wang's MCTS gained +12
+   pts on the UNMODIFIED PPO critic** (`WANG_SEARCH_DEEP_READ.md`), so a bad critic does
+   not explain our sign either. His prior sits INSIDE the selection rule; he decides by
+   VISIT COUNT for variance; **ours overrides the policy on 72.8% of decisions** —
+   maximization bias. **RUNNING: the margin gate D5** (S3G02/05/10 on s112, registered
+   9034d7e; endpoints both measured, 0.74767 and 0.78233). Only a HUMP is interesting;
+   MONOTONE routes to **H3, the opponent model / switch-target law** (8.5 pts of mass
+   moves attack->switch, concentrated in the high-margin tail the gate keeps — Wang's
+   own documented failure). A1E partial ~0.732 buys ~1 pt where the gap is 7.
+   **Ladder object stays GREEDY until this moves.**
 1. **Monster (JOURNEY 10), ruled:** 100M x 2 arms x 3 seeds at **k=8**, w=6 (~22 h;
    fallback 250M x 3). A = R4 recipe (oppact head ON); B = **+ privileged EVALUATOR
-   head** (design B, BUILT 7d8650e, flag-gated, bit-identical off; smoke queued).
-   Pre-reg after P-E lands. Maintainer launches (>5 h).
-2. **7.5 closes on the A-1 re-run** on the fixed build (running since 18:18Z,
-   `runs/engine_a1b_s*` -> `results/engine_a1/primary_fixed.json`).
-3. Owed: 11.5 before 11; a per-decision cap for any searched ladder object (<= 5 s);
-   whether to build engine-native search at all given P-M (`ENGINE_SEARCH_DESIGN.md`).
+   head** (design B, BUILT 7d8650e, bit-identical off; 12M smoke queued behind the
+   margin arms). Pre-reg after P-E and P-G land. Maintainer launches (>5 h).
+2. Owed: 11.5 before 11; a per-decision cap for a searched ladder object (<= 5 s);
+   whether to build engine-native search at all (`ENGINE_SEARCH_DESIGN.md`, 8-11 blocks);
+   `engine_a1_grade.py` must run `extract_history.py` before the AUC leg; 8 corrections
+   owed to the Wang row in `prior_work/README.md` (1756 is his PEAK vs our FINAL Elo).
 
 ## Watch items
-- **SUITE GREEN** 995 in the port env (with the seam); no env runs engine + analysis.
-- **A-1a caught a defect P-1 could not see** (foe move PP hard-coded 1.0 vs poke-env's
-  per-use decrement). Fixed bd3d06a; the A-1a re-run separates NOTHING.
+- **SUITE GREEN** 995 in the port env; 102 across the search files after D5.
+- **A-1a caught a defect P-1 could not see** (foe move PP hard-coded 1.0). Fixed bd3d06a.
+  **Post-fix between-seed sd 0.01938 -> 0.00368 — DESCRIPTIVE ONLY**; k=3 cannot separate
+  that from chance; re-check on the monster fleet.
 - **K-1 (k=256) PARKED, reviewed x2** — k alone is 1.30x at matched width.
 - Depth-2 does NOT exist; the asset is the 384-byte clone + Rust encode, NOT the chance
   builds. A `ch3_eval` job can die on `assert not self.battle2.finished`; it resumes.
