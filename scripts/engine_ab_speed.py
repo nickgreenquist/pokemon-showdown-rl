@@ -111,6 +111,46 @@ def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
     return p
 
 
+def steady_state(run_dir: pathlib.Path, drop: int = 2) -> dict | None:
+    """Per-update wall EXCLUDING startup — the number sample size cannot fix.
+
+    MEASURED on a real Node lane: per-update wall has a CV of only 2.5%, so at
+    33 updates (1M steps) the se on an arm's rate is 0.44% and on the RATIO
+    0.62%. Statistical noise is not the problem. STARTUP is: the engine arm is
+    the short one, so a 20 s startup is 8% of a 1M run and 2.7% of a 3M run —
+    an order of magnitude larger than the statistical term, and it does NOT
+    average down. Reporting a steady-state rate beside the total makes the
+    comparison robust to it instead of paying for more steps to dilute it.
+    """
+    import csv
+    import subprocess as sp
+    hist = run_dir / "history.csv"
+    if not hist.exists():
+        sp.run([PY, "scripts/extract_history.py", str(run_dir)],
+               capture_output=True)
+    if not hist.exists():
+        return None
+    per = []
+    with open(hist) as fh:
+        for r in csv.DictReader(fh):
+            c, u = r.get("time/collect_sec", ""), r.get("time/update_sec", "")
+            if c in ("", None) or u in ("", None):
+                continue
+            try:
+                per.append(float(c) + float(u))
+            except ValueError:
+                pass
+    per = per[drop:]
+    if not per:
+        return None
+    import statistics as st
+    mean = st.fmean(per)
+    return {"updates_used": len(per), "dropped": drop,
+            "sec_per_update_mean": mean,
+            "sec_per_update_cv": (st.stdev(per) / mean) if len(per) > 1 else None,
+            "steady_state_steps_per_sec": 30720 / mean}
+
+
 def run_arm(arm: str, cfg: pathlib.Path, log: pathlib.Path) -> dict:
     env = {"POKEMON_RL_ENCODER_V2": "1", "POKEMON_RL_ENCODER_IDS": "1"}
     import os
@@ -125,7 +165,7 @@ def run_arm(arm: str, cfg: pathlib.Path, log: pathlib.Path) -> dict:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--steps", type=int, default=1_000_000)
+    ap.add_argument("--steps", type=int, default=3_000_000)
     ap.add_argument("--engine-k", type=int, default=256)
     ap.add_argument("--seed", type=int, default=9301)
     ap.add_argument("--out", type=pathlib.Path,
@@ -164,6 +204,7 @@ def main(argv=None) -> int:
         r = run_arm(arm, cfg, work / f"ab_{arm}.log")
         r["steps"] = args.steps
         r["steps_per_sec"] = args.steps / r["wall_seconds"] if r["wall_seconds"] else None
+        r["steady_state"] = steady_state(pathlib.Path(f"runs/ab_{arm}_s{args.seed}"))
         results[arm] = r
         print(f"    {arm}: rc={r['rc']}  wall={r['wall_seconds']:.1f}s  "
               f"{r['steps_per_sec']:.0f} steps/s", flush=True)
@@ -182,6 +223,12 @@ def main(argv=None) -> int:
     n, e = results.get("node", {}), results.get("engine", {})
     if n.get("rc") == 0 and e.get("rc") == 0:
         out["speedup_wall_clock"] = n["wall_seconds"] / e["wall_seconds"]
+        ns, es = n.get("steady_state"), e.get("steady_state")
+        if ns and es:
+            out["speedup_steady_state"] = (es["steady_state_steps_per_sec"]
+                                           / ns["steady_state_steps_per_sec"])
+            print(f"  steady-state (startup excluded): "
+                  f"{out['speedup_steady_state']:.2f}x")
         print(f"\nSPEEDUP (wall clock, same dose, same box, back to back): "
               f"{out['speedup_wall_clock']:.2f}x")
         print(f"  node   {n['wall_seconds']/60:.1f} min")
@@ -198,6 +245,17 @@ def main(argv=None) -> int:
         "the ratio",
         "back to back on one idle box, Node first with the server up, engine "
         "second with the server DOWN",
+        "ORDER/THERMAL BIAS, unmitigated and stated: Node runs FIRST and is the "
+        "long arm, so the engine arm runs on a warmer box. On a laptop that "
+        "biases AGAINST the engine, i.e. the reported speedup is conservative. "
+        "Reverse the order to bound it if the number is ever contested.",
+        "TWO RATIOS ARE REPORTED. `speedup_wall_clock` includes startup and is "
+        "what you actually pay. `speedup_steady_state` excludes the first 2 "
+        "updates and is what the collector sustains. They differ because "
+        "startup is a fixed cost falling on a short arm: at 1M steps a 20 s "
+        "startup is 8% of the engine arm against 2% of the Node arm. Sample "
+        "size does not fix that — per-update CV is 2.5%, so the ratio's "
+        "STATISTICAL se is already 0.62% at 1M steps.",
     ]
     args.out.write_text(json.dumps(out, indent=2) + "\n")
     print(f"written: {args.out}")
