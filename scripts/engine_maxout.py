@@ -134,7 +134,14 @@ def run_cell(base: dict, k: int, width: int, threads: int, steps: int,
     e.update({"POKEMON_RL_ENCODER_V2": "1", "POKEMON_RL_ENCODER_IDS": "1"})
     t0 = time.time()
     procs, handles = [], []
-    for cfg, log in zip(cfgs, logs):
+    for i, (cfg, log) in enumerate(zip(cfgs, logs)):
+        # STAGGER. Each lane peaks at ~1.3 GB while the team bank exists as
+        # both a Python bytes and the Rust Vec<u8> it is copied into, so six
+        # simultaneous launches is ~8 GB of transient nobody needs. Also the
+        # SIGSEGV-at-startup landmine. Applied at every width, so it is a
+        # constant inside the cell rather than a difference between cells.
+        if i:
+            time.sleep(8)
         fh = open(log, "w")
         handles.append(fh)
         procs.append(subprocess.Popen([AB.PY, "-m", "rl.train", "--config", str(cfg)],
@@ -169,7 +176,15 @@ GRIDS = {
     # Enough to find the shape without spending the night on it: k at the two
     # ends plus the production default, width 1 against the protocol's 3, and
     # threads 1 against a count that leaves headroom at width 3.
-    "quick": {"k": [8, 256], "width": [1, 3], "threads": [1, 4]},
+    # WIDTH IS THE LARGEST LEVER AND WAS NOT SCHEDULED. An engine lane is
+    # 1.02 cores and ~2.2 GB, so three lanes hold 3.06 of 14 cores and 6.6 of
+    # 24 GB — the box is ~78% idle during a 3-wide fleet. The "do not run
+    # 6 lanes" rule in THROUGHPUT_SPEC was written for the SYNC NODE path,
+    # where a lane cost 1.93 cores and 2.7 GB and the box was 1.5 GB into
+    # swap; both premises died with the port. Threads are dropped from the
+    # grid because they measure NEGATIVE (0.84x at T=2) and the GEMM probe
+    # explains why: set_num_threads does not reach Accelerate's sgemm.
+    "quick": {"k": [8, 256], "width": [1, 3, 6], "threads": [1]},
     # The Node path's own headroom, so a maxed engine is not being compared
     # against a default-configured server. concurrency 8 is what the banked
     # arm ran; 32 is the same direction the engine's k lever moves in.

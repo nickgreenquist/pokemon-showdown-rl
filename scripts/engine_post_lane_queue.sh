@@ -26,6 +26,18 @@
 # STATISTICAL se is already 0.62% at 1M steps, and drift, not sample size, is
 # the binding error term.
 set -uo pipefail
+# RUN FROM A FROZEN COPY. bash reads a script incrementally BY BYTE OFFSET, so
+# editing this file while an instance is executing makes that instance resume
+# at a stale offset and run garbage — which is exactly what happened on
+# 2026-09-10: two edits landed mid-run and the queue died with "syntax error
+# near unexpected token `in'" pointing at a line that is perfectly valid on
+# disk. Re-exec once from an immutable snapshot so the repo copy can be edited
+# freely while a run is in flight.
+if [ "${QUEUE_FROZEN:-0}" != "1" ]; then
+  FROZEN=$(mktemp -t engine_queue)
+  cat "$0" > "$FROZEN"
+  QUEUE_FROZEN=1 exec bash "$FROZEN" "$@"
+fi
 cd /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl
 MAIN=/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl
 WT=/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-engine
@@ -160,9 +172,18 @@ done
 
 # ---- 2. the test suite ------------------------------------------------------
 say "=== pytest tests/ (engine env, main tree) ==="
+# The three chapter-3 SEARCH test modules import `poke_engine`, a gen-1 source
+# build that pyproject deliberately does not pin (see its own NOTE at line 5).
+# This env does not have it, so those three fail to IMPORT — they are not
+# failing, they are unrunnable here. Ignored by name rather than by a blanket
+# --continue-on-collection-errors, so a NEW import failure still stops the run.
 POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
-  "$EPY" -m pytest tests/ -q -rf > logs/pytest_main.log 2>&1
+  "$EPY" -m pytest tests/ -q -rf \
+  --ignore=tests/test_ch3_bridge.py \
+  --ignore=tests/test_ch3_evaluator_dials.py \
+  --ignore=tests/test_ch3_matrix.py > logs/pytest_main.log 2>&1
 say "pytest rc=$? :: $(tail -n 3 logs/pytest_main.log | tr '\n' ' ')"
+say "  (3 ch3-search modules ignored: poke_engine is a source build absent from this env)"
 
 # ---- 2.5 the thread bench ---------------------------------------------------
 # Runs HERE, before the A/B, for two reasons. It needs an idle box (it is a
