@@ -88,7 +88,7 @@ def stop_server() -> None:
 
 
 def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
-                 out: pathlib.Path) -> pathlib.Path:
+                 out: pathlib.Path, rep: int = 1) -> pathlib.Path:
     """Both arms from ONE base. The collector block is the only edit."""
     cfg = copy.deepcopy(base)
     cfg["total_steps"] = steps
@@ -96,7 +96,7 @@ def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
     cfg["eval_win_rate"] = False
     cfg["logger"] = "wandb"
     cfg["seed"] = seed
-    cfg["run_name"] = f"ab_{arm}_s{seed}"
+    cfg["run_name"] = f"ab_{arm}_s{seed}_r{rep}"
     cfg["checkpoint_every"] = steps * 10    # no ladder writes skewing either arm
     cfg.pop("env_kwargs", None) or None
     cfg["env_kwargs"] = {"opp_action": True}   # keep D25 on, as both recipes have it
@@ -106,7 +106,7 @@ def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
         cfg["collector"] = {"mode": "engine", "k": k,
                             "team_bank": BANK, "learner_seat": "p1",
                             "min_bank_pairs": 1_000_000}
-    p = out / f"ab_{arm}.yaml"
+    p = out / f"ab_{arm}_r{rep}.yaml"
     p.write_text(yaml.safe_dump(cfg, sort_keys=False))
     return p
 
@@ -165,7 +165,12 @@ def run_arm(arm: str, cfg: pathlib.Path, log: pathlib.Path) -> dict:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--steps", type=int, default=3_000_000)
+    ap.add_argument("--steps", type=int, default=1_000_000)
+    ap.add_argument("--order", default="ABBAABBA",
+                    help="run order, A=node B=engine. ABBA cancels LINEAR "
+                         "drift exactly (both arms mean position 2.5); ABAB "
+                         "does not (A 2.0 vs B 3.0). Default is two ABBA "
+                         "blocks = 4 replicates per arm.")
     ap.add_argument("--engine-k", type=int, default=256)
     ap.add_argument("--seed", type=int, default=9301)
     ap.add_argument("--out", type=pathlib.Path,
@@ -184,32 +189,38 @@ def main(argv=None) -> int:
     work = pathlib.Path("results/engine_a1/ab"); work.mkdir(parents=True, exist_ok=True)
     args.out.parent.mkdir(parents=True, exist_ok=True)
 
-    results = {}
-    # NODE FIRST, with the server up. Engine second, server DOWN — the port's
-    # whole claim is that it needs no server, so leaving one running would hand
-    # the engine arm a neighbour it does not have in production.
-    for arm in ("node", "engine"):
-        for d in work.glob(f"../../../runs/ab_{arm}_s{args.seed}"):
-            shutil.rmtree(d, ignore_errors=True)
-        rd = pathlib.Path(f"runs/ab_{arm}_s{args.seed}")
+    # ALTERNATING REPLICATES, not one long run of each.
+    # The statistical term is already tiny — per-update wall has a CV of 2.5%,
+    # so the ratio's se is 0.62% at 1M steps. What actually threatens this
+    # number is SYSTEMATIC drift: the box warms, background load creeps, and a
+    # single A-then-B ordering hands all of that to whichever arm runs second.
+    # Replication with alternation attacks that; more steps do not. ABBA
+    # cancels a linear trend exactly (both arms average position 2.5), where
+    # ABAB leaves A at 2.0 against B at 3.0.
+    order = [c.upper() for c in args.order if c.upper() in ("A", "B")]
+    results: dict[str, list] = {"node": [], "engine": []}
+    for idx, slot in enumerate(order, start=1):
+        arm = "node" if slot == "A" else "engine"
+        rep = len(results[arm]) + 1
+        rd = pathlib.Path(f"runs/ab_{arm}_s{args.seed}_r{rep}")
         shutil.rmtree(rd, ignore_errors=True)
-        cfg = build_config(base, arm, args.steps, args.engine_k, args.seed, work)
+        cfg = build_config(base, arm, args.steps, args.engine_k,
+                           args.seed, work, rep)
         if arm == "node":
             start_server()
         else:
             stop_server()
-        print(f"--- arm {arm}: {args.steps:,} steps "
+        print(f"--- [{idx}/{len(order)}] {arm} rep {rep}: {args.steps:,} steps "
               f"({'async concurrency 8' if arm=='node' else f'engine k={args.engine_k}'})",
               flush=True)
-        r = run_arm(arm, cfg, work / f"ab_{arm}.log")
-        r["steps"] = args.steps
-        r["steps_per_sec"] = args.steps / r["wall_seconds"] if r["wall_seconds"] else None
-        r["steady_state"] = steady_state(pathlib.Path(f"runs/ab_{arm}_s{args.seed}"))
-        results[arm] = r
-        print(f"    {arm}: rc={r['rc']}  wall={r['wall_seconds']:.1f}s  "
+        r = run_arm(arm, cfg, work / f"ab_{arm}_r{rep}.log")
+        r.update(steps=args.steps, replicate=rep, slot=idx,
+                 steps_per_sec=(args.steps / r["wall_seconds"]
+                                if r["wall_seconds"] else None),
+                 steady_state=steady_state(rd))
+        results[arm].append(r)
+        print(f"    rc={r['rc']}  wall={r['wall_seconds']:.1f}s  "
               f"{r['steps_per_sec']:.0f} steps/s", flush=True)
-        if r["rc"] != 0:
-            print(f"    FAILED — see {r['log']}", flush=True)
 
     out = {
         "question": "wall-clock seconds to train the SAME dose, old way vs new way",
@@ -220,21 +231,47 @@ def main(argv=None) -> int:
         "arms": results,
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    n, e = results.get("node", {}), results.get("engine", {})
-    if n.get("rc") == 0 and e.get("rc") == 0:
-        out["speedup_wall_clock"] = n["wall_seconds"] / e["wall_seconds"]
-        ns, es = n.get("steady_state"), e.get("steady_state")
+    import statistics as _st
+    ok = {a: [r for r in results[a] if r["rc"] == 0] for a in ("node", "engine")}
+    if ok["node"] and ok["engine"]:
+        nw = [r["wall_seconds"] for r in ok["node"]]
+        ew = [r["wall_seconds"] for r in ok["engine"]]
+        # PAIRED by replicate index where both exist — that is what the
+        # alternation buys, and it is a tighter estimator than mean/mean.
+        pairs = [n_ / e_ for n_, e_ in zip(nw, ew)]
+        out["per_pair_speedup"] = pairs
+        out["speedup_wall_clock"] = _st.fmean(pairs)
+        if len(pairs) > 1:
+            sd = _st.stdev(pairs)
+            out["speedup_sd"] = sd
+            out["speedup_se"] = sd / math.sqrt(len(pairs))
+        ns = [r["steady_state"]["steady_state_steps_per_sec"]
+              for r in ok["node"] if r.get("steady_state")]
+        es = [r["steady_state"]["steady_state_steps_per_sec"]
+              for r in ok["engine"] if r.get("steady_state")]
         if ns and es:
-            out["speedup_steady_state"] = (es["steady_state_steps_per_sec"]
-                                           / ns["steady_state_steps_per_sec"])
+            out["speedup_steady_state"] = _st.fmean(es) / _st.fmean(ns)
+        print(f"\nSPEEDUP, wall clock, same dose, same box, alternated "
+              f"{args.order}: {out['speedup_wall_clock']:.2f}x")
+        print("  per-pair: " + ", ".join(f"{p:.2f}x" for p in pairs))
+        if "speedup_se" in out:
+            print(f"  sd {out['speedup_sd']:.3f}  se {out['speedup_se']:.3f} "
+                  f"over {len(pairs)} pairs")
+        if "speedup_steady_state" in out:
             print(f"  steady-state (startup excluded): "
                   f"{out['speedup_steady_state']:.2f}x")
-        print(f"\nSPEEDUP (wall clock, same dose, same box, back to back): "
-              f"{out['speedup_wall_clock']:.2f}x")
-        print(f"  node   {n['wall_seconds']/60:.1f} min")
-        print(f"  engine {e['wall_seconds']/60:.1f} min")
+        print(f"  node   {_st.fmean(nw)/60:.1f} min/run   "
+              f"engine {_st.fmean(ew)/60:.1f} min/run")
+
+    out["order"] = args.order
+    out["replicates"] = {a: len(results[a]) for a in results}
     out["disclosures"] = [
         f"ONE LANE each, width 1. This is not a fleet number.",
+        f"ALTERNATED {args.order} with {len(ok['node'])}/{len(ok['engine'])} "
+        "completed replicates, and the ratio is the mean of PER-PAIR ratios, "
+        "so a monotone drift in the box cancels rather than landing on "
+        "whichever arm ran second. The reported sd/se is across pairs and is "
+        "an empirical error bar, not an assumption.",
         f"engine k={args.engine_k}; "
         + ("MATCHED to the Node arm's concurrency, so the collector is the only "
            "delta" if args.engine_k == 8 else
@@ -243,12 +280,11 @@ def main(argv=None) -> int:
         "evals OFF in both arms; the locked protocol stays on the server either "
         "way, so including it would add the same constant to both and dilute "
         "the ratio",
-        "back to back on one idle box, Node first with the server up, engine "
-        "second with the server DOWN",
-        "ORDER/THERMAL BIAS, unmitigated and stated: Node runs FIRST and is the "
-        "long arm, so the engine arm runs on a warmer box. On a laptop that "
-        "biases AGAINST the engine, i.e. the reported speedup is conservative. "
-        "Reverse the order to bound it if the number is ever contested.",
+        "each run is back to back on one idle box; the server is brought UP "
+        "for a Node run and DOWN for an engine run, every time",
+        "ORDER/THERMAL BIAS IS NOW CANCELLED BY DESIGN rather than disclosed: "
+        "ABBA gives both arms mean run position 2.5, so a linear trend drops "
+        "out of the per-pair ratios. ABAB would NOT do this (A 2.0 vs B 3.0).",
         "TWO RATIOS ARE REPORTED. `speedup_wall_clock` includes startup and is "
         "what you actually pay. `speedup_steady_state` excludes the first 2 "
         "updates and is what the collector sustains. They differ because "
