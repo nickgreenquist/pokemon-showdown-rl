@@ -132,21 +132,26 @@ So **Amdahl caps any further COLLECTOR work at 1.54x** at k=8, and higher at
 larger k (a contended probe at k=64 read ~84% update share). Essentially all
 remaining headroom is in the learner.
 
-**And the learner does not want the obvious levers.** Every one measured so far
-is neutral or NEGATIVE at the shipped 256-row minibatch shape:
+**The learner's levers are complements, and that is the finding.** Idle box,
+`update_episodes()`, one process per cell with OMP sized at launch, best of 3:
 
-* `torch_threads` 2: **0.84x** (slower). Banked quiet-box `update()` at 6
-  threads: 0.85x. Both directions agree.
-* `torch.compile`: **0.89x** (slower), after a 14.6 s warmup.
-* `minibatches` 120 -> 8 (256 -> 3,840 rows): **1.03x**. So the update is
-  COMPUTE-bound, not dispatch-bound, and bigger batches are not the lever.
+```
+minibatches  rows/mb    T=1     T=2     T=4     T=6
+    120         256    7.73    9.49    8.83    9.83   <- shipped recipe
+     30        1024    7.98    7.54    6.38    6.43
+      8        3840    9.89    6.66    5.38    5.11
+```
 
-Two live hypotheses for why threads hurt, and a crossed T x minibatches sweep
-is queued to separate them: (a) synchronisation cost scaling with the NUMBER of
-parallel regions, which would nearly vanish at minibatches 8; (b) heterogeneous
-cores — 10 P + 4 E, no QoS pinning, and a static parallel region runs at its
-slowest thread's speed, which would leave the T-curve FLAT across the minibatch
-axis.
+Read the top row alone and threading is dead. Read the left column alone and
+bigger minibatches are dead. **Crossed, 7.73 -> 5.11 s = 1.51x on the update,
+~1.28x on the full loop.** Two independent sweeps would have closed both axes.
+
+`torch.compile` IS dead: **0.82x** idle (worse than the 0.89x contended read).
+
+Adoption is the uncomfortable part. `torch_threads` is free; `minibatches` is
+NOT — 4 x 8 is 32 optimizer steps per update against the shipped 480, a
+different trajectory. The gain needs both, so **the free part of this finding is
+zero and the whole 1.51x sits behind a pre-reg.**
 
 **One instrument trap, resolved, that would have invalidated all of the above.**
 `update_episodes()` (async, what the engine calls) is NOT `update()` (sync,
