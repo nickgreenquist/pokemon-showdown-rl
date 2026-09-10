@@ -1884,3 +1884,62 @@ checksum pass and no window in which a file exists in neither tree.
 
 `scripts/engine_post_lane_queue.sh` step 1 carries all of this, with the two
 near misses named in the comments so the next edit does not quietly undo them.
+
+## 2026-09-10 — the team bank is duplicated in every lane, and mmap fixes it
+
+Found by an opus reviewer asked "what is the real speedup when the engine is
+maxed out", then measured directly. It is the largest single max-out lever on
+the width axis and it has NO SCIENCE ATTACHED — it changes how the bank is
+loaded, not what training does.
+
+**What happens today.** `read_bank` does `payload = fh.read()`
+(`rl/envs/engine_bank.py:63`), so the whole 458 MB payload becomes a Python
+`bytes`; pyo3 then COPIES it into a Rust `Vec<u8>` that `TeamBank` holds for
+the lane's life. Both copies are live during construction.
+
+**Measured, on the real collector** (`EngineCollector(k=8)` on the
+5,000,000-pair bank):
+
+```
+before collector (agent + pool loaded)     0.338 GB
+after  EngineCollector(k=8)                0.870 GB    delta +0.532
+process peak RSS                           1.317 GB
+```
+
+So **+0.532 GB resident per lane**, and a **1.317 GB peak** at launch while
+both copies exist. Every lane holds its own copy of BYTES THAT ARE IDENTICAL.
+At width 8 that is 4.3 GB of the same 458 MB.
+
+**Would mmap actually share them, or is that folklore?** Measured, three
+processes each holding the payload, watching SYSTEM-WIDE free memory rather
+than per-process RSS — mmap'd file pages appear in every mapper's RSS while
+existing physically once, so summing RSS is precisely the measurement that
+cannot tell the two cases apart:
+
+```
+read()   free+inactive 17.29 -> 15.92 GB    3 holders consumed  1.37 GB
+mmap     free+inactive 17.25 -> 17.27 GB    3 holders consumed  0.00 GB
+```
+
+Fully shared. The saving is the whole duplication, `0.532 x (W-1)` GB.
+
+**What it is worth.** A lane is ~2.2 GB, of which 0.53 GB is bank. Removing the
+duplication takes a lane to ~1.67 GB, so a memory ceiling that allowed ~8 lanes
+allows ~10-11. It also deletes the 1.317 GB launch transient, which is what
+currently makes the launch stagger load-bearing for MEMORY and not only for the
+SIGSEGV-at-startup landmine.
+
+**The shape of the fix.** Pass the PATH to Rust and mmap it there (memmap2)
+rather than handing over bytes; the OS shares read-only file-backed pages
+across processes with no coordination. The sha256 the header vouches for can be
+streamed over the mapping, so the provenance every gate record cites is
+unaffected — the bank FILE does not change, only how it is loaded.
+
+**Not implemented tonight, deliberately.** The extension is installed
+non-editable into site-packages, and a rebuild mid-flight would mean the A/B
+and the max-out sweep were measuring two different builds. The prize is
+measured; the change is a follow-up with its own verification.
+
+**One documentation error found alongside.** `configs/engine_a1.yaml:793` says
+"a 1M-pair bank is ~96 MB resident" while the lane ships the 5M-pair bank — the
+resource note understates its own lane by 5x.

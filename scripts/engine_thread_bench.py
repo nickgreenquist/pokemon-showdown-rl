@@ -60,10 +60,24 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("checkpoint", type=pathlib.Path)
     ap.add_argument("--threads", default="1,2,4,8")
+    ap.add_argument("--compile", action="store_true",
+                    help="also time the update with torch.compile on the actor "
+                         "and critic. Compilation happens on first call, so a "
+                         "WARMUP update runs untimed first — otherwise this "
+                         "would be timing the compiler.")
     ap.add_argument("--minibatches", default=None,
                     help="comma-separated minibatch COUNTS, swept at the "
                          "fastest thread count found. Changing this changes "
                          "LEARNING, not just speed.")
+    ap.add_argument("--cross", action="store_true",
+                    help="cross threads x minibatches at both ends instead of "
+                         "sweeping them independently. THEY INTERACT: at the "
+                         "shipped 256-row minibatch, threading overhead per op "
+                         "can exceed the gain, so threads look useless — but "
+                         "that is a statement about the SHAPE, not about "
+                         "threading, and a 3,840-row minibatch may thread fine. "
+                         "Sweeping them separately would conclude that neither "
+                         "lever works while their combination does.")
     ap.add_argument("--repeats", type=int, default=3)
     ap.add_argument("--k", type=int, default=64,
                     help="engine k for the COLLECTION of the benchmark batch; "
@@ -131,7 +145,16 @@ def main(argv=None) -> int:
         shipped = int(cfg.agent["minibatches"])
         print(f"minibatch sweep at threads={best_t} "
               f"(shipped value is {shipped})", flush=True)
-        for m in [int(x) for x in args.minibatches.split(",")]:
+        mbs = [int(x) for x in args.minibatches.split(",")]
+        # THE CROSS. Threads and minibatch size are not independent: a
+        # 256-row minibatch is too small for threading to pay for its own
+        # synchronisation, so threads measured at the shipped shape say
+        # nothing about threads at a 3,840-row shape.
+        cells = ([(m, t) for m in mbs
+                  for t in [int(x) for x in args.threads.split(",")]]
+                 if args.cross else [(m, best_t) for m in mbs])
+        for m, t_n in cells:
+            torch.set_num_threads(t_n)
             times = []
             for _ in range(args.repeats):
                 a = copy.deepcopy(agent)
@@ -143,14 +166,69 @@ def main(argv=None) -> int:
                 t = time.perf_counter()
                 a.update_episodes(ds.drain(), steps_seen=0)
                 times.append(time.perf_counter() - t)
-            mb_rows.append({"minibatches": m, "threads": best_t,
+            mb_rows.append({"minibatches": m, "threads": t_n,
                             "rows_per_minibatch": batch // m,
                             "optimizer_steps_per_update":
                                 int(cfg.agent["epochs"]) * m,
                             "update_seconds_min": min(times),
                             "is_shipped_value": m == shipped})
             print(f"  minibatches={m:>4} ({batch // m:>5} rows/mb) "
-                  f"update {min(times):6.2f}s", flush=True)
+                  f"threads={t_n:>2}  update {min(times):6.2f}s", flush=True)
+
+    # --- torch.compile, at the fastest thread count --------------------------
+    # The update is 65-85% of training wall clock now, so this is the highest
+    # -value untested lever on the whole path. It is also the one most likely
+    # to do nothing on CPU, which is why it is measured rather than adopted.
+    compile_row = None
+    if args.compile:
+        best_t = min(rows, key=lambda r: r["update_seconds_min"])["threads"]
+        torch.set_num_threads(best_t)
+        try:
+            # The PPO update calls backward more than once per minibatch (the
+            # aux opponent-action head carries its own clipped grad path), and
+            # inductor's donated-buffer optimisation requires a single
+            # backward with retain_graph=False. Disabling it is the documented
+            # escape and is what the error message itself names; it costs some
+            # memory reuse, not correctness.
+            import torch._functorch.config as _fc
+            _fc.donated_buffer = False
+            # ONE agent copy for this whole cell, unlike the eager rows.
+            # A compiled module is bound to the parameters it was compiled
+            # against, so handing it to a fresh deep copy leaves the optimiser
+            # holding different tensors than the graph writes gradients into —
+            # which surfaces as "stack expects a non-empty TensorList" on the
+            # second update, not as a wrong number. Compute per update depends
+            # on SHAPES, not parameter values, so timing on an agent that has
+            # already been stepped is sound; it just is not the same object
+            # discipline the eager rows use, and that is recorded below.
+            a = copy.deepcopy(agent)
+            a.buffer = None
+            a.actor = torch.compile(a.actor)
+            a.critic = torch.compile(a.critic)
+            times = []
+            for i in range(args.repeats + 1):     # +1: the first is WARMUP
+                ds = EpisodeDataset()
+                for ep in episodes:
+                    ds.append(ep)
+                t = time.perf_counter()
+                a.update_episodes(ds.drain(), steps_seen=0)
+                dt = time.perf_counter() - t
+                if i:
+                    times.append(dt)
+                else:
+                    print(f"  compile warmup (includes compilation): {dt:.1f}s",
+                          flush=True)
+            compile_row = {"threads": best_t, "update_seconds_min": min(times),
+                           "update_seconds_all": times,
+                           "note": "timed on ONE agent copy across repeats "
+                                   "(a compiled module is bound to the "
+                                   "parameters it was compiled against); the "
+                                   "eager rows use a fresh copy each time"}
+            print(f"  torch.compile threads={best_t}  update "
+                  f"{min(times):6.2f}s", flush=True)
+        except Exception as exc:            # noqa: BLE001 - a failure IS the result
+            compile_row = {"threads": best_t, "error": f"{type(exc).__name__}: {exc}"}
+            print(f"  torch.compile FAILED: {type(exc).__name__}: {exc}", flush=True)
 
     base = rows[0]["update_seconds_min"]
     for r in rows:
@@ -171,6 +249,7 @@ def main(argv=None) -> int:
         "episodes_in_batch": len(episodes),
         "rows": rows,
         "minibatch_rows": mb_rows,
+        "compile_row": compile_row,
         "minibatch_caveat": (
             "minibatches CHANGES LEARNING — a different optimiser trajectory, "
             "different gradient noise, a different number of steps. These are "
@@ -189,14 +268,22 @@ def main(argv=None) -> int:
         print(f"{r['threads']:>8} {r['update_seconds_min']:>10.2f} "
               f"{r['speedup_vs_1_thread']:>8.2f} "
               f"{r['implied_full_loop_speedup']:>13.2f}")
+    if compile_row and "update_seconds_min" in compile_row:
+        t1 = min(r["update_seconds_min"] for r in rows
+                 if r["threads"] == compile_row["threads"])
+        print(f"\ntorch.compile: {compile_row['update_seconds_min']:.2f}s vs "
+              f"{t1:.2f}s eager at the same thread count -> "
+              f"{t1 / compile_row['update_seconds_min']:.2f}x")
     if mb_rows:
-        b = next((r for r in mb_rows if r["is_shipped_value"]), None)
-        print(f"\n{'minibatches':>12} {'rows/mb':>9} {'opt steps':>10} "
-              f"{'update s':>10} {'x':>6}")
+        b = next((r for r in mb_rows if r["is_shipped_value"]
+                  and r["threads"] == 1), None) or \
+            next((r for r in mb_rows if r["is_shipped_value"]), None)
+        print(f"\n{'minibatches':>12} {'rows/mb':>9} {'thr':>4} "
+              f"{'opt steps':>10} {'update s':>10} {'x':>6}")
         for r in mb_rows:
             x = (b["update_seconds_min"] / r["update_seconds_min"]) if b else 0.0
             print(f"{r['minibatches']:>12} {r['rows_per_minibatch']:>9} "
-                  f"{r['optimizer_steps_per_update']:>10} "
+                  f"{r['threads']:>4} {r['optimizer_steps_per_update']:>10} "
                   f"{r['update_seconds_min']:>10.2f} {x:>6.2f}"
                   + ("  <- shipped" if r["is_shipped_value"] else ""))
         print("\nSPEED ONLY. minibatches changes the optimiser trajectory; "

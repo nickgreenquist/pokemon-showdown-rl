@@ -141,7 +141,7 @@ if [ -e "$CKPT" ] && [ -e "$BANK" ]; then
   say "=== thread bench: does the PPO update parallelise? ==="
   POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
     "$EPY" scripts/engine_thread_bench.py "$CKPT" --threads 1,2,4,8 --repeats 3 \
-    --minibatches 120,60,30,15,8 --team-bank "$BANK" >> "$LOG" 2>&1
+    --minibatches 120,60,30,15,8 --compile --team-bank "$BANK" >> "$LOG" 2>&1
   say "thread bench rc=$? -> results/engine_a1/thread_bench.json"
 else
   say "thread bench SKIPPED: $CKPT or $BANK not in main (teardown did not land it)"

@@ -809,9 +809,18 @@
 #       exists for the engine path yet. Until T-1 (c) lands, the liveness
 #       read is the CPU delta plus a monotone `_step`; no ETA is quoted.
 #   (c) RESOURCE GATES ARE CALIBRATED AT A FLEET WIDTH. A-1 is 3-wide and
-#       carries a NEW resource profile (a 1M-pair bank is ~96 MB resident,
-#       plus k battles); the launcher checks free RAM, free disk and a clean
-#       tree before lane 1, and records the width beside any figure.
+#       carries a NEW resource profile; the launcher checks free RAM, free
+#       disk and a clean tree before lane 1, and records the width beside any
+#       figure.
+#       CORRECTED 2026-09-10, MEASURED: this note said "a 1M-pair bank is
+#       ~96 MB resident", but RW-6 ruled the 5,000,000-pair bank and that is
+#       what the lanes ship — so the note understated its own lane by 5x. The
+#       measured cost is +0.532 GB RESIDENT PER LANE with a 1.317 GB PEAK at
+#       construction, because read_bank hands Rust a Python `bytes` that pyo3
+#       then copies into a Vec<u8>, and both are live at once. Every lane holds
+#       its own copy of identical bytes; at width 8 that is 4.3 GB of the same
+#       458 MB. mmap would share them outright (measured: 3 processes consume
+#       1.37 GB read, 0.00 GB mmap'd) — see docs/engine_port/NOTES.md.
 # SEAT NAMES ARE NOW DETERMINISTIC ACROSS A RESUME [R1-S7]. With
 # env_kwargs.seat_tag set, a resumed lane reconnects under exactly the names
 # it died with, and a mid-battle kill poisons a username pair for hours
