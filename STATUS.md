@@ -27,12 +27,19 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
   11.3 GB of 24; best per-lane k=256 w=1 = 3,035 = 1.87x. **A lane is a SEED — width buys
   seeds/hour, never a shorter run.** 100M×3 seeds: 13.2 h at k=256 vs 48 h on Node.
 - **Learner levers are COMPLEMENTS:** threads and minibatches each NEGATIVE alone, **1.51x
-  crossed**; `torch.compile` 0.82x, dead. Both need a pre-reg. Scorer `ctx` factorization
-  REVERTED — correct to 3e-07 but a bit-exact forward pin forbids it; needs a ruling.
+  crossed**; `torch.compile` dead. Scorer factorization REVERTED (bit-exact pin). See CLEANUP
+  E1-E3 for the three open rulings.
 - **A-1: NO VERDICT, by instruction.** Descriptive per-seed at n=12,000: s66 0.6640,
   s75 0.6925, s83 0.6555. `ratified_decisions` empty; RW-1..RW-10 all owed.
 
 ## Next actions
+0. **ANY 100M/250M TRAIN MUST KEEP THE OPPACT HEAD, or it can never be searched.**
+   `rl/search/agent.py:68` hard-asserts `agent.aux_head is not None` — search uses its
+   L6 posterior as the opponent distribution `q`. Requires `agent.aux_oppact_coef > 0`
+   AND `env_kwargs.opp_action: true`. Unrecoverable after the fact: a monster checkpoint
+   without it is greedy-only forever. **SEARCH RELOOK IS CRITICAL** (maintainer,
+   2026-09-10) — the depreciation CLOSED ruling is VACATED; it swept `n_det` at ONE
+   depth and depth-2 does not exist in `rl/search/` at all.
 1. **Rule on RW-1..RW-10** (`configs/engine_a1.prereg.yaml`) — nothing about A-1 can be
    graded until the band is ruled; `scripts/engine_a1_grade.py` refuses by design.
 2. **Apply the two FREE wins** — scorer `ctx` factorization (staged, tested) and an
@@ -53,7 +60,5 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
   `random`, pinned by `set_seed()` first. Fixed + bounded in `tests/conftest.py`.
 - **vs-SH is NEVER a ladder number**; the gen-4 ladder is banked and unrun. No projection.
 - Resumes SPLIT wandb history — always `merge_history.py`, then `history_merged.csv`.
-- **A pgrep guard must anchor on `bin/python`**, or it matches its own command line.
-- 0.786 is Wang's NETWORK-ALONE, WEAKER cell (Fig 4.1 ≈ 0.836/0.849); dose is named first.
-- **Never edit a bash script an instance is executing** — bash reads by byte offset and
-  resumes into garbage. The queue re-execs from a frozen copy for this reason.
+- **A pgrep guard must anchor on `bin/python`**; 0.786 is Wang's NETWORK-ALONE cell;
+  never edit a bash script an instance is executing (byte-offset resume into garbage).
