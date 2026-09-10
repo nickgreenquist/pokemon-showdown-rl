@@ -20,11 +20,20 @@ loop, worth ~1.97x on the scorer forward in isolation.
 
 from __future__ import annotations
 
+import pytest
 import torch
 import torch.nn.functional as F
 
-from rl.envs.showdown import OBS_DIM
+from rl.envs.showdown import ID_DIM, OBS_DIM
 from rl.networks.entity_deepsets import EntityDeepSetsNet
+
+# The entity trunk refuses to build without the id suffix (entity_deepsets.py:129),
+# and the suite's documented invocation leaves the flags unset — R0-1 has a test
+# that ASSERTS they are unset. So this file skips rather than forcing them.
+pytestmark = pytest.mark.skipif(
+    ID_DIM == 0,
+    reason="entity trunk needs POKEMON_RL_ENCODER_IDS=1; set it to run this file",
+)
 
 TRUNK_KWARGS = dict(
     species_vocab=152, move_vocab=166, embed_dim=64, entity_dim=128,

@@ -1006,11 +1006,23 @@ def _async_loop(
                     time.sleep(delay)
                 continue
             now = time.perf_counter()
+            # ONE `step` PER EPISODE, not one per poll. These two loops used to
+            # be separate: the first advanced `step` to the poll's END, and the
+            # second then logged EVERY episode at that same step — so the
+            # logger kept one value per (step, key) and silently dropped all
+            # but the last. At k=8 a poll finishes ~1 episode and it barely
+            # showed; at k=256 it is ~2.4 and at k=512 ~7, so RAISING k would
+            # have quietly discarded most of `rollout/episode_return` and
+            # `rollout/episode_length` — and episode_length is a G8 gate input.
+            # `sps` is computed against the poll's total first so it keeps
+            # exactly the value it had before, and `step` still lands on the
+            # same number.
+            sps = (step + sum(len(e["actions"]) for e in episodes) - last_step) / (
+                now - last_time
+            )
             for episode in episodes:
                 step += len(episode["actions"])
                 dataset.append(episode)
-            sps = (step - last_step) / (now - last_time)
-            for episode in episodes:
                 logger.log(
                     {
                         "rollout/episode_return": float(episode["rewards"][-1]),

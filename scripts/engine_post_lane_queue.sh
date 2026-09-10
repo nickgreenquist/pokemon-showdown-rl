@@ -177,8 +177,12 @@ say "=== pytest tests/ (engine env, main tree) ==="
 # This env does not have it, so those three fail to IMPORT — they are not
 # failing, they are unrunnable here. Ignored by name rather than by a blanket
 # --continue-on-collection-errors, so a NEW import failure still stops the run.
-POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
-  "$EPY" -m pytest tests/ -q -rf \
+# NO encoder env vars here. `pytest tests/` is the documented invocation
+# (CLAUDE.md), and test_entity_trunk_refuses_a_missing_id_flag asserts the
+# flags are UNSET — it is the R0-1 seam check for a forgotten env var at
+# launch. Setting them makes that test fail for the wrong reason, which it did
+# on the first run tonight.
+"$EPY" -m pytest tests/ -q -rf \
   --ignore=tests/test_ch3_bridge.py \
   --ignore=tests/test_ch3_evaluator_dials.py \
   --ignore=tests/test_ch3_matrix.py > logs/pytest_main.log 2>&1
