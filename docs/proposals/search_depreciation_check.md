@@ -1,5 +1,36 @@
 # Search-depreciation check — data assembled, decision rule PROPOSED (unruled)
 
+> **VACATED 2026-09-10 (maintainer).** Verbatim: *"I disagree that search has
+> been decided as no gain. that is old and wrong. we didn't actually try
+> anything good. so we need to relook at inference search."*
+>
+> **Why the vacatur is right, and not merely a change of mind.** EVERY point on
+> the curve below is **dose M at ~65 ms/decision**. That licenses "depth-1 at a
+> 65 ms budget stops paying as the policy improves" — it does NOT license
+> "inference search does not pay for gen 1", which is how the CLOSED branch was
+> written and how it was being applied. Dose L (`n_det=16, leaf_cap=5184`,
+> 252–269 ms/decision) was never put on the curve, and Foul Play — the opponent
+> we are measured against and do not beat — searches at **500 ms**, roughly 8x
+> our per-move compute. We have never tested our own search at a budget
+> comparable to the thing beating us.
+>
+> This is the same shape as the **D18 kill, vacated 2026-09-06** on the rule
+> that *a small-run null closes nothing; only a measured ceiling kills*. A
+> 4-point OLS at ONE dose, extrapolated past its own data, is a dose-limited
+> null, not a measured ceiling on search.
+>
+> **What the data below still supports**, and it is worth keeping: at a FIXED
+> 65 ms budget, search's gain declines as greedy strength rises, and the
+> mechanism is measured — search EQUALISES lanes (between-lane sd 0.0617 →
+> 0.0150, against a binomial floor of 0.0157), i.e. it is a floor-raiser for
+> weak value heads. That remains true and is a real finding about dose M. It
+> says nothing about what a 500 ms budget or a genuine tree search does.
+>
+> **Consequences of the vacatur:** JOURNEY 11.5 returns to being a STRENGTH
+> test rather than the value-head diagnostic the CLOSED branch reframed it as;
+> the MCTS question is re-opened; and what would actually close it is a BUDGET
+> LADDER on our own search (the measured ceiling), not another point at 65 ms.
+
 **Status: RATIFIED 2026-09-05 evening (maintainer) — the rule as written; under §1's data it reads CLOSED: S < 0 and G = −7.3 se. Consequences per §2 CLOSED. Originally:** JOURNEY's second pre-step-3 add ("Plot search
 gain against policy strength across the 12M and 50M checkpoints we already have.
 No training, no new runs. … If gains are already declining as the policy
