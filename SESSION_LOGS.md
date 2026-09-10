@@ -11434,3 +11434,42 @@ line numbers are not — grep the date, then read that region):
   cell on partial data. `s3m_s112` died mid-run on poke-env's
   `assert not self.battle2.finished` and resumed at the chunk boundary — one chunk
   of 300 battles re-run, which is what the chunking is for.
+- 2026-09-10 (night, agent) — **7.5's EXIT IS MET, AND THE SEARCH DIAGNOSIS MOVED
+  OFF THE EVALUATOR.** (i) **A-1 re-run on the FIXED engine build: A1-PASS**, per-seed
+  0.66675 / 0.67183 / 0.66467, pooled 0.66775 vs banked 0.67211, **signed delta
+  -0.00436** (-0.59 se on the seed-clustered 0.00736, band 0.025); P-AUC -0.00298
+  INSIDE. That delta is what travels forever; the pre-fix -0.00144 is superseded.
+  Between-seed sd fell 0.01938 -> 0.00368 and is recorded DESCRIPTIVE ONLY — k=3
+  cannot separate a real variance reduction from three lucky draws, and saying so is
+  the point. Grader defect: it reads P-AUC from history.csv, which a KILLED lane does
+  not have until `extract_history.py` runs, and it hard-failed the whole grade instead
+  of degrading to P-END; extracted, re-graded, fix owed.
+  (ii) **WANG DEEP-READ (c48dd67) OVERTURNS MY OWN EVENING CONCLUSION.** I wrote "the
+  answer is the evaluator". Wang's MCTS scores leaves with the **UNMODIFIED PPO critic**
+  — never retrained, never recalibrated (thesis p.21/23/41) — and gained +12 pts vs SH
+  on a network of comparable strength to ours. So "our critic is bad" cannot by itself
+  explain our -6.8. What differs is SELECTION: his policy prior sits INSIDE the PUCT
+  rule and he decides by MAX VISIT COUNT, not max Q, explicitly because "less-visited
+  actions may have higher variance in their Q estimates" (p.21-22). Ours uses the prior
+  only as tie-break D3 and hard-argmaxes (D4) — **and overrides the policy on 72.8% of
+  decisions while losing 6.8 points.** He also declines OUR S1 defect by name (§5.2.2:
+  revealing determinized info "would also [require training] a new neural network on a
+  perfect-information version of the game"), and his budget is 160x our wall clock with
+  250-500x the determinizations and a tree persisted across decisions. Eight corrections
+  owed to the index, the load-bearing one being that 1756/79.5% is his PEAK at rank 8
+  (post-game-100 average 1615) while our ladder rows quote FINAL Elo.
+  (iii) **D5, the margin gate, BUILT AND REGISTERED (9034d7e), arms RUNNING.** Play the
+  search's action only if it beats the POLICY's argmax by > delta; absent = exact no-op
+  (golden digest over solve_decision's full output, 13,775 real leaves, anchored to a
+  pin predating det_blind); delta=inf is exactly greedy. Offline override-rate curve
+  chose 0.02 / 0.05 / 0.10 on s112, the lane where BOTH endpoints are already measured
+  (0.74767 at delta 0, 0.78233 at inf). **Only a HUMP is interesting.** The build agent
+  named the reason to expect MONOTONE and it is a good one: among disagreements the
+  search moves ~8.5 pts of mass from attacking to switching and that mass CONCENTRATES
+  in the high-margin tail the gate keeps (0.600 of disagreements above margin 0.2 are
+  policy-attacks/search-switches), so the confident subset may be the contaminated
+  subset — which is Wang's own documented search failure (p.33-34). MONOTONE therefore
+  routes to **H3, the opponent model / switch-target law at depth 1**, not to the
+  selector. A1E (LOO ensemble evaluator) partial reads ~0.732 against search 0.721 and
+  greedy 0.789 — a better evaluator buying ~1 point where the gap is 7, which is the
+  third independent piece of evidence against "evaluator alone".
