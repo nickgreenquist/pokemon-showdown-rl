@@ -106,6 +106,44 @@ def render(rows: dict[str, dict]) -> str:
           "delta. This is the apples-to-apples read and the one to use for any "
           "claim about the collector itself rather than about the pipeline.\n")
 
+    mx = pathlib.Path("results/engine_a1/maxout.json")
+    if mx.exists():
+        m = json.loads(mx.read_text())
+        cells = [c for c in m["cells"] if c["ok"] and c["fleet_realized"]]
+        base = next((c for c in cells if c["k"] == 8 and c["width"] == 3), None)
+        A("## And if you MAX IT OUT: k x fleet width\n")
+        A("The A/B above is ONE LANE at each collector's production width. This "
+          "is the other axis — what the engine does when the box is pushed. "
+          "Idle box, 200,000 steps per lane per cell, realized steps/s from "
+          "each lane's own series with the startup window dropped.\n")
+        A("| k | lanes | per-lane | fleet | peak RSS |")
+        A("|---|---|---|---|---|")
+        for c in cells:
+            mark = "  <- today" if base and c is base else ""
+            A(f"| {c['k']} | {c['width']} | {c['per_lane_realized_median']:,.0f} "
+              f"| {c['fleet_realized']:,.0f} | {c['peak_rss_gb']:.2f} GB{mark} |")
+        A("")
+        if base:
+            bf = max(cells, key=lambda c: c["fleet_realized"])
+            bl = max(cells, key=lambda c: c["per_lane_realized_median"])
+            A(f"**Best fleet throughput: k={bf['k']} at width {bf['width']} — "
+              f"{bf['fleet_realized']:,.0f} steps/s, {bf['fleet_realized']/base['fleet_realized']:.2f}x "
+              f"today's setting**, on {bf['peak_rss_gb']:.1f} GB of 24. Width "
+              f"{bf['width']} is not the ceiling.\n")
+            A(f"**Best per-lane rate: k={bl['k']} at width {bl['width']} — "
+              f"{bl['per_lane_realized_median']:,.0f} steps/s, "
+              f"{bl['per_lane_realized_median']/base['per_lane_realized_median']:.2f}x.** "
+              "This is the only one of the two that shortens a SINGLE run.\n")
+        A("**These two answer different questions and must not be multiplied "
+          "together or added to the A/B.** A lane is a SEED, not a shard of one "
+          "run: width buys seeds per hour and never a shorter run. And k costs "
+          "0.11 GB for 248 extra battle slots, so k and width are independent "
+          "axes rather than substitutes.\n")
+        A("**Neither is free.** Raising k changes the staleness profile (stale "
+          "rows go 0.40% at k=8 to 12.6% at k=256) and needs its own pre-reg. "
+          "Width does not change learning at all — a lane is an independent "
+          "seed — so it is the one lever here that can be taken on merit.\n")
+
     A("## What the speedup is actually made of\n")
     A("**A large share of this number is INFERENCE BATCHING, not the engine.** "
       "The Node collector calls the policy one decision at a time — "
