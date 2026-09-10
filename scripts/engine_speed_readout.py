@@ -106,6 +106,24 @@ def render(rows: dict[str, dict]) -> str:
           "delta. This is the apples-to-apples read and the one to use for any "
           "claim about the collector itself rather than about the pipeline.\n")
 
+    A("## What the speedup is actually made of\n")
+    A("**A large share of this number is INFERENCE BATCHING, not the engine.** "
+      "The Node collector calls the policy one decision at a time — "
+      "`rl/envs/showdown_async.py:118-123` passes `obs[None, :]`, and the "
+      "opponent seat does the same at `rl/envs/showdown.py:1227`. A forward "
+      "pass costs ~230 us almost regardless of how many rows are in it (fit "
+      "across the k sweep, cross-checked at 352 us/batch-1-forward against a "
+      "banked Node lane's own `inference_seconds / seam_requests`). So the "
+      "Node path's measured knee of 1240 learner-decisions/s = 806 us each is "
+      "**~85% two batch-1 forwards** — not a server limit and not an I/O "
+      "limit. The engine path batches 8 learner rows into one forward, i.e. "
+      "44 us/row against 352.\n")
+    A("That batching is a genuine property of the port — an in-process "
+      "collector can hold k battles at a decision point simultaneously and a "
+      "websocket-per-battle collector cannot — so it belongs in the number. "
+      "But it is NOT the Rust engine being fast, and someone could in "
+      "principle have batched the Node path's forwards without any of this "
+      "work. Quote the speedup as the pipeline's, never as the engine's.\n")
     A("## What this is not\n")
     A("- **Not a fleet number.** One lane each, width 1. The fleet-width read "
       "is T-1(d), and it says something different and independently useful: "
