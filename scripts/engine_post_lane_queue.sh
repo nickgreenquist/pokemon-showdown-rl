@@ -68,7 +68,17 @@ if [ -d "$WT" ]; then
     # collisions --ignore-existing declined to touch. That makes the leftovers
     # the verification: no separate checksum pass, and no window in which a
     # file exists in neither tree.
-    rsync -a --ignore-existing --remove-source-files "$WT/$d/" "$MAIN/$d/" 2>>"$LOG" \
+    # EXCLUDE TRACKED FILES. `results/` holds both gitignored gate outputs and
+    # TRACKED design docs, and --remove-source-files deletes anything
+    # "successfully duplicated on the receiving side" — which per rsync's own
+    # docs INCLUDES files --ignore-existing skipped. So the first run of this
+    # deleted the worktree's copies of 15 tracked files (harmless, main is
+    # canonical and had them all, but it left the worktree dirty and made
+    # `git worktree remove` refuse). Only gitignored artifacts should move.
+    git -C "$WT" ls-files "$d" > "$WT/.migrate-exclude" 2>/dev/null || : > "$WT/.migrate-exclude"
+    sed -i '' "s|^$d/||" "$WT/.migrate-exclude" 2>/dev/null || true
+    rsync -a --ignore-existing --remove-source-files \
+      --exclude-from="$WT/.migrate-exclude" "$WT/$d/" "$MAIN/$d/" 2>>"$LOG" \
       && say "  merged $d/ into main (files already in main were left alone)" \
       || say "  RSYNC FAILED for $d/ — nothing will be removed"
   done
@@ -77,6 +87,7 @@ if [ -d "$WT" ]; then
   # the two copies actually differ, keep both, and block the removal — two
   # trees disagreeing about a result is a thing to look at, not to resolve
   # with a coin flip.
+  rm -f "$WT/.migrate-exclude"
   orphans=0; collisions=0
   for d in $MIGRATE; do
     [ -d "$WT/$d" ] || continue
@@ -121,6 +132,31 @@ if [ -d "$WT" ]; then
     say "worktree KEPT — removing it now would delete gitignored files outright"
   fi
 fi
+
+# ---- 1.5 re-run any descriptive eval that did not land ----------------------
+# s83's eval was killed on 2026-09-10 by my OWN max-out smoke, which called
+# stop_server() on the reasoning that engine cells need no server — taking down
+# the server the eval was mid-way through. The eval then sat alive at zero CPU
+# waiting on a dead websocket. The harness bug is fixed; this re-runs whatever
+# the chain failed to produce, from main, against a server we bring up here.
+# Descriptive per-seed numbers only — no comparison, no delta, no verdict.
+for s in 66 75 83; do
+  OUT="results/engine_a1/rung12m_s$s.json"
+  [ -f "$OUT" ] && continue
+  CK=$(ls runs/engine_a1_s$s/ckpt_0120*.pt 2>/dev/null | head -n 1)
+  [ -n "$CK" ] || { say "no 12M rung for s$s — cannot re-run its eval"; continue; }
+  if ! pgrep -f "node pokemon-showdown start" >/dev/null; then
+    say "bringing the Showdown server up for the eval re-run"
+    (cd "$MAIN/showdown" && nohup node pokemon-showdown start --no-security \
+        >> "$MAIN/logs/showdown_server.log" 2>&1 &)
+    sleep 8
+  fi
+  say "re-running descriptive eval for s$s (n=12000) from $CK"
+  POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+    "$EPY" scripts/eval_checkpoint.py "$CK" --episodes 12000 \
+    --opponent heuristics --out "$OUT" >> "$LOG" 2>&1
+  say "s$s eval rc=$?"
+done
 
 # ---- 2. the test suite ------------------------------------------------------
 say "=== pytest tests/ (engine env, main tree) ==="

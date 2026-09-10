@@ -216,7 +216,20 @@ def main(argv=None) -> int:
     if args.path == "engine":
         if not pathlib.Path(bank).exists() and not (AB.MAIN / bank).exists():
             raise SystemExit(f"team bank {bank} is missing")
-        AB.stop_server()      # engine cells need no server; a live one is noise
+        # DO NOT KILL A SERVER THIS PROCESS DID NOT START. An earlier version
+        # called AB.stop_server() here "because engine cells need no server",
+        # and on 2026-09-10 that pkill took down the server a DESCRIPTIVE EVAL
+        # was mid-way through. The eval then sat alive at ZERO CPU forever,
+        # waiting on a websocket that would never answer — indistinguishable at
+        # a glance from the alive-at-zero-CPU stall landmine, and caused by the
+        # measurement harness rather than by the thing being measured. An idle
+        # server costs 0.043 cores (T-1 d), far less than being wrong about who
+        # owns it.
+        if AB.server_up():
+            print("NOTE: a Showdown server is running. Engine cells do not need "
+                  "one and it costs ~0.043 cores idle, so it is LEFT ALONE — "
+                  "this process did not start it and does not know who did.",
+                  flush=True)
     else:
         if AB.simulator_workers() != 4:
             raise SystemExit("showdown/config/config.js must set simulator: 4 "
