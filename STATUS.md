@@ -27,27 +27,30 @@
   should run at k=8 — k buys 5 fleet-hours and the screen cannot resolve a 2-point cost.
 
 ## Next actions
-0. **SEARCH RELOOK — the day's finding.** Depth-1 search as it existed HURTS the 100M object:
-   off FP@20 s112 **0.396 vs greedy 0.502** (n=1000); vs SH at 4/10 chunks search@M trails
-   fresh greedy by 5–10 points on all three lanes. **S1 fired (4.5x):** the leaf encoding
-   revealed the determinized bench to a critic that never saw it (bias +0.050, sd 0.125 vs
-   margins 0.028). **`det_blind` built** (f6e7226; byte-identical default): offline the
-   artefact collapses (sd 0.008, bias +0.0002) and 11.4% of dose-M decisions flip.
-   **S3B (det_blind, 3 lanes vs SH) + F3B112 (off FP@20) RUNNING**; reads pre-stated in
-   `configs/eval/search_s3_100m*.yaml` (P-B) and docs/search_relook/DET_BLIND.md §6.
-   S3M/S3L/A1E (LOO-ensemble evaluator) also running. `scripts/search_s3_status.sh`.
-1. **Monster pre-reg (JOURNEY 10), rec:** 100M × 2 arms × 3 seeds at **k=8**, w=6 (~22 h):
-   R4 recipe (oppact head ON — `rl/search/agent.py:68` asserts it) vs + a separate
-   PRIVILEGED EVALUATOR HEAD (design B, docs/proposals/privileged_critic_engine_route.md;
-   2 blocks; the ppo.py:478 guard protects nothing structurally). Rulings owed: 100M×2
-   vs 250M×1; design A/B; JOURNEY 11.5 before 11; per-decision cap for a searched ladder
-   object (proposed ≤ 5 s). Maintainer launches (>5 h).
-2. Free wins still staged (scorer `ctx` factorization, CLEANUP E2; mmap'd team bank).
+0. **SEARCH RELOOK — GRADED; THE ANSWER IS THE EVALUATOR** (S3, `docs/search_relook/
+   S3_READOUT.md`; credits nothing). 100M finals, vs SH, locked, 3x3000, FRESH greedy
+   0.78867: **P-M (search@M - greedy) -0.0681 NEG, 3/3 lanes** (bar 0.0389); **P-B
+   (det_blind - as-is) -0.0088 NEG** (bar 0.0134) — S1's encoding artefact was REAL
+   (+0.050 bias, 4.5x the margin), is FIXED, and **was not the binding defect**;
+   P-BA -0.0769. Off FP@20 s112 n=1000 (budget named, both disclosures): 0.3960 /
+   0.4054 vs banked greedy 0.50167. Dose L (partial) reads BELOW M. Open: a better
+   EVALUATOR (A1E running) and depth (no code). **Ladder object is GREEDY unless an
+   evaluator arm changes it; JOURNEY 11.5 must not run before an evaluator exists.**
+1. **Monster (JOURNEY 10), ruled:** 100M x 2 arms x 3 seeds at **k=8**, w=6 (~22 h;
+   fallback 250M x 3). A = R4 recipe (oppact head ON); B = **+ privileged EVALUATOR
+   head** (design B, BUILT 7d8650e, flag-gated, bit-identical off; smoke queued).
+   Pre-reg after P-E lands. Maintainer launches (>5 h).
+2. **7.5 closes on the A-1 re-run** on the fixed build (running since 18:18Z,
+   `runs/engine_a1b_s*` -> `results/engine_a1/primary_fixed.json`).
+3. Owed: 11.5 before 11; a per-decision cap for any searched ladder object (<= 5 s);
+   whether to build engine-native search at all given P-M (`ENGINE_SEARCH_DESIGN.md`).
 
 ## Watch items
-- **SUITE GREEN** in the main env (965 passed with det_blind); engine tests 87 in the port
-  env — no single env runs both (CLEANUP E1). Live-server "flake" fixed in `tests/conftest.py`.
-- Depth-2 does NOT exist; ~0.17 s/decision PROJECTED on pkmn/engine; today's stack 5 s. The
-  asset is the 384-byte clone + Rust encode, not the chance builds (plan §8.4 backwards).
-- **vs-SH is NEVER a ladder number**; resumes SPLIT wandb history (`merge_history.py`); a
-  pgrep guard anchors on `bin/python`; never edit a bash script an instance is executing.
+- **SUITE GREEN** 995 in the port env (with the seam); no env runs engine + analysis.
+- **A-1a caught a defect P-1 could not see** (foe move PP hard-coded 1.0 vs poke-env's
+  per-use decrement). Fixed bd3d06a; the A-1a re-run separates NOTHING.
+- **K-1 (k=256) PARKED, reviewed x2** — k alone is 1.30x at matched width.
+- Depth-2 does NOT exist; the asset is the 384-byte clone + Rust encode, NOT the chance
+  builds. A `ch3_eval` job can die on `assert not self.battle2.finished`; it resumes.
+- **vs-SH is NEVER a ladder number**; resumes SPLIT wandb history; pgrep on `bin/python`;
+  never edit a bash script an instance is executing.
