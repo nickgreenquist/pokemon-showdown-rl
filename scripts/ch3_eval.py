@@ -266,8 +266,16 @@ def _resolve_evaluator(prereg, first_lane, spec_eval, env, agent0):
     evaluator = dict(spec_eval)
     provenance = {"kind": evaluator["kind"]}
     if evaluator["kind"] == "loo":
+        # F5 was written for R4's 4-lane pool (peers == 3). A pre-reg with a
+        # different fleet width declares `loo_pool_expected` (S3, 2026-09-10:
+        # three 100M lanes, peers == 2); the default keeps R4's assert
+        # byte-for-byte. The intent is unchanged: own lane excluded by
+        # identity, EVERY other lane in.
+        expected = int(evaluator.pop("loo_pool_expected", 3))
         pool = [x for x in evaluator.pop("pool") if x != first_lane]
-        assert len(pool) == 3, f"F5: loo pool resolved to {pool}"
+        assert len(pool) == expected, (
+            f"F5: loo pool resolved to {pool} (expected {expected} peers)"
+        )
         assert first_lane not in pool, f"F5: own lane {first_lane} in pool"
         evaluator["agents"] = [
             _load_member(prereg, x, env=env)[0] for x in pool
@@ -526,13 +534,14 @@ def r4_discrimination(prereg: dict) -> None:
     arm = prereg["arms"]["A1E"]
     lanes = arm["lanes"]
     pool = arm["evaluator"]["pool"]
+    expected = int(arm["evaluator"].get("loo_pool_expected", 3))  # F5, see _resolve_evaluator
     agents = {x: _load_member_spaces(prereg, x)[0] for x in dict.fromkeys(pool + lanes)}
     rng = np.random.default_rng(20260823)
     results = {}
     for lane in lanes:
         own = agents[lane]
         peers = [agents[x] for x in pool if x != lane]
-        assert len(peers) == 3 and all(p is not own for p in peers)
+        assert len(peers) == expected and all(p is not own for p in peers)
         diffs, flips = [], 0
         for _ in range(1000):
             batch = rng.standard_normal((24, OBS_DIM)).astype(np.float32)

@@ -58,3 +58,25 @@ def test_loo_bad_pool_size_fires_f5():
     spec = {"kind": "loo", "pool": ["s62", "s63"]}
     with pytest.raises(AssertionError, match="F5"):
         ch3_eval._resolve_evaluator(PREREG, "s63", spec, None, _FakeAgent())
+
+
+def test_loo_pool_expected_two_resolves_a_three_lane_fleet(monkeypatch):
+    """S3 (2026-09-10): the 100M fleet has THREE lanes, so a LOO pool
+    resolves to two peers. The pre-reg declares `loo_pool_expected: 2`;
+    the key is consumed here and never reaches SearchAgent; F5's intent
+    (own lane out by identity, every other lane in) is unchanged, and the
+    default without the key is still R4's three."""
+    agents = {l: _FakeAgent() for l in ("s104", "s112", "s120")}
+    prereg = {"checkpoints": {l: {"sha256": l[-3:]} for l in agents}}
+    monkeypatch.setattr(ch3_eval, "_load_member", _fake_loader(agents))
+    spec = {"kind": "loo", "pool": ["s104", "s112", "s120"], "loo_pool_expected": 2}
+    ev, prov = ch3_eval._resolve_evaluator(prereg, "s112", spec, None, agents["s112"])
+    assert [a is agents[l] for a, l in zip(ev["agents"], ["s104", "s120"])]
+    assert "loo_pool_expected" not in ev and "pool" not in ev
+    assert prov == {"kind": "loo", "members": ["s104", "s120"],
+                    "member_sha256": ["104", "120"]}
+    # without the key, a three-lane pool is still an F5 failure (R4's default)
+    with pytest.raises(AssertionError, match="F5"):
+        ch3_eval._resolve_evaluator(
+            prereg, "s112", {"kind": "loo", "pool": ["s104", "s112", "s120"]},
+            None, agents["s112"])

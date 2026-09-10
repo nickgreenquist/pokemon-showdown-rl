@@ -129,8 +129,13 @@ def _resolve_evaluator(prereg: dict, seat_lane: str, spec_eval, agent0):
     evaluator = dict(spec_eval)
     provenance = {"kind": evaluator["kind"]}
     if evaluator["kind"] == "loo":
+        # F5 pool size: R4's 4-lane default (peers == 3) unless the pre-reg
+        # declares `loo_pool_expected` (S3, 2026-09-10 — three 100M lanes).
+        expected = int(evaluator.pop("loo_pool_expected", 3))
         pool = [x for x in evaluator.pop("pool") if x != seat_lane]
-        assert len(pool) == 3, f"F5: loo pool resolved to {pool}"
+        assert len(pool) == expected, (
+            f"F5: loo pool resolved to {pool} (expected {expected} peers)"
+        )
         assert seat_lane not in pool, f"F5: own lane {seat_lane} in pool"
         evaluator["agents"] = [
             _build_agent(prereg["checkpoints"][x]) for x in pool

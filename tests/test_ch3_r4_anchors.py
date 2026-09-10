@@ -248,3 +248,25 @@ def test_fp_runner_is_bash32_safe():
     assert "wc -c" in code and "Winner:" in code
     # no directory-existence liveness test anywhere in the loop
     assert "[ -d " not in code and "[[ -d " not in code
+
+
+@pytest.mark.parametrize("mod,patch_target", [
+    (ch3_fp_h2h, "_build_agent"),
+    (anchors, "_load_peer"),
+])
+def test_loo_pool_expected_is_honoured_and_consumed(mod, patch_target,
+                                                    monkeypatch):
+    """S3 (2026-09-10): `loo_pool_expected` lets a three-lane fleet declare
+    two peers; the key never reaches SearchAgent; the default stays three."""
+    if patch_target == "_build_agent":
+        monkeypatch.setattr(mod, patch_target, lambda spec: _Stub(spec["path"]))
+    else:
+        monkeypatch.setattr(mod, patch_target, lambda prereg, lane: _Stub(lane))
+    evaluator, prov = mod._resolve_evaluator(
+        {"checkpoints": PINS}, "s65",
+        {"kind": "loo", "pool": ["s62", "s63", "s65"], "loo_pool_expected": 2},
+        _Stub("s65"),
+    )
+    assert prov["members"] == ["s62", "s63"]
+    assert len(evaluator["agents"]) == 2
+    assert "loo_pool_expected" not in evaluator and "pool" not in evaluator
