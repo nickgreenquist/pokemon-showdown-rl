@@ -110,9 +110,17 @@ def stop_server() -> None:
 
 
 def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
-                 out: pathlib.Path, rep: int = 1) -> pathlib.Path:
-    """Both arms from ONE base. The collector block is the only edit."""
+                 out: pathlib.Path, rep: int = 1, lane: int = 0) -> pathlib.Path:
+    """Both arms from ONE base. The collector block is the only edit.
+
+    `lane` is the index within a WIDTH > 1 arm. It shifts the seed, because
+    concurrent lanes MUST have distinct seeds (CLAUDE.md rule 2 — poke-env
+    derives Showdown usernames from a globally-seeded `random`, so same-seed
+    lanes collide and die with a misleading TimeoutError), and it enters the
+    seat tag for the same reason at one more level.
+    """
     cfg = copy.deepcopy(base)
+    seed = seed + lane
     cfg["total_steps"] = steps
     cfg["eval_every"] = steps * 10          # evals OFF, both arms alike
     cfg["eval_win_rate"] = False
@@ -131,14 +139,14 @@ def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
     # distinct tag separates them. Kept on the engine arm too: identical
     # env_kwargs across arms is the point, and the engine path ignores it.
     cfg["env_kwargs"] = {"opp_action": True,     # keep D25 on, both recipes have it
-                         "seat_tag": f"ab{arm}{rep}"}
+                         "seat_tag": f"ab{arm}{rep}l{lane}"}
     if arm == "node":
         cfg["collector"] = {"mode": "async", "concurrency": 8}
     else:
         cfg["collector"] = {"mode": "engine", "k": k,
                             "team_bank": BANK, "learner_seat": "p1",
                             "min_bank_pairs": 1_000_000}
-    p = out / f"ab_{arm}_r{rep}.yaml"
+    p = out / f"ab_{arm}_r{rep}_l{lane}.yaml"
     p.write_text(yaml.safe_dump(cfg, sort_keys=False))
     return p
 
@@ -183,16 +191,36 @@ def steady_state(run_dir: pathlib.Path, batch: int, drop: int = 2) -> dict | Non
             "steady_state_steps_per_sec": batch / mean}
 
 
-def run_arm(arm: str, cfg: pathlib.Path, log: pathlib.Path) -> dict:
-    env = {"POKEMON_RL_ENCODER_V2": "1", "POKEMON_RL_ENCODER_IDS": "1"}
+def run_arm(arm: str, cfgs: list[pathlib.Path], logs: list[pathlib.Path],
+            stagger_sec: float = 0.0) -> dict:
+    """Run one arm at its full width and return the FLEET wall clock.
+
+    Wall is measured from the FIRST launch to the LAST exit, which is what a
+    fleet actually costs you: a 3-seed result is not ready until the slowest
+    seed is. The stagger is inside that window, deliberately — it is applied
+    IDENTICALLY to both arms, so it cancels in the ratio, and lanes launched
+    dead simultaneously are their own hazard (a lane can SIGSEGV at startup
+    before writing any log line).
+    """
     import os
-    e = dict(os.environ); e.update(env)
+    e = dict(os.environ)
+    e.update({"POKEMON_RL_ENCODER_V2": "1", "POKEMON_RL_ENCODER_IDS": "1"})
     t0 = time.time()
-    with open(log, "w") as fh:
-        rc = subprocess.run([PY, "-m", "rl.train", "--config", str(cfg)],
-                            stdout=fh, stderr=subprocess.STDOUT, env=e).returncode
-    return {"arm": arm, "wall_seconds": time.time() - t0, "rc": rc,
-            "config": str(cfg), "log": str(log)}
+    procs, handles = [], []
+    for i, (cfg, log) in enumerate(zip(cfgs, logs)):
+        if i and stagger_sec:
+            time.sleep(stagger_sec)
+        fh = open(log, "w")
+        handles.append(fh)
+        procs.append(subprocess.Popen([PY, "-m", "rl.train", "--config", str(cfg)],
+                                      stdout=fh, stderr=subprocess.STDOUT, env=e))
+    rcs = [p.wait() for p in procs]
+    for fh in handles:
+        fh.close()
+    return {"arm": arm, "wall_seconds": time.time() - t0,
+            "rc": max(rcs) if rcs else 1, "rcs": rcs,
+            "width": len(cfgs), "stagger_sec": stagger_sec,
+            "config": [str(c) for c in cfgs], "log": [str(l) for l in logs]}
 
 
 def main(argv=None) -> int:
@@ -206,6 +234,19 @@ def main(argv=None) -> int:
                          "statistical term is not the binding one, so the "
                          "extra block buys little.")
     ap.add_argument("--engine-k", type=int, default=256)
+    ap.add_argument("--width", type=int, default=1,
+                    help="LANES PER ARM. width 1 answers 'how fast is one lane'. "
+                         "width 3 answers 'how long does a 3-seed fleet take', "
+                         "which is the unit this project actually works in — "
+                         "and unlike the banked cross-day comparison it puts "
+                         "both arms on the same box in the same hour. A lane "
+                         "is a SEED, not a shard: raising width does NOT make "
+                         "one run finish sooner, it runs more seeds at once.")
+    ap.add_argument("--stagger-sec", type=float, default=15.0,
+                    help="delay between lane launches within an arm, applied "
+                         "IDENTICALLY to both arms so it cancels in the ratio. "
+                         "Simultaneous launches are their own hazard: a lane "
+                         "can SIGSEGV at startup before writing a log line.")
     ap.add_argument("--seed", type=int, default=9301)
     ap.add_argument("--out", type=pathlib.Path,
                     default=pathlib.Path("results/engine_a1/ab_speed.json"))
@@ -264,30 +305,47 @@ def main(argv=None) -> int:
     for idx, slot in enumerate(order, start=1):
         arm = "node" if slot == "A" else "engine"
         rep = len(results[arm]) + 1
-        rd = pathlib.Path(f"runs/ab_{arm}_s{args.seed}_r{rep}")
-        shutil.rmtree(rd, ignore_errors=True)
-        cfg = build_config(base, arm, args.steps, args.engine_k,
-                           args.seed, work, rep)
+        rds = [pathlib.Path(f"runs/ab_{arm}_s{args.seed + lane}_r{rep}")
+               for lane in range(args.width)]
+        for rd in rds:
+            shutil.rmtree(rd, ignore_errors=True)
+        cfgs = [build_config(base, arm, args.steps, args.engine_k,
+                             args.seed, work, rep, lane)
+                for lane in range(args.width)]
+        logs = [work / f"ab_{arm}_r{rep}_l{lane}.log" for lane in range(args.width)]
         if arm == "node":
             start_server()
         else:
             stop_server()
-        print(f"--- [{idx}/{len(order)}] {arm} rep {rep}: {args.steps:,} steps "
+        print(f"--- [{idx}/{len(order)}] {arm} rep {rep}: {args.width} lane(s) x "
+              f"{args.steps:,} steps "
               f"({'async concurrency 8' if arm=='node' else f'engine k={args.engine_k}'})",
               flush=True)
-        r = run_arm(arm, cfg, work / f"ab_{arm}_r{rep}.log")
-        r.update(steps=args.steps, replicate=rep, slot=idx,
-                 steps_per_sec=(args.steps / r["wall_seconds"]
+        r = run_arm(arm, cfgs, logs, args.stagger_sec)
+        # FLEET steps: at width W the arm delivers W x steps, and the ratio of
+        # fleet walls is the thing a fleet operator actually experiences.
+        fleet_steps = args.steps * args.width
+        ss = [steady_state(rd, batch) for rd in rds]
+        ss = [x for x in ss if x]
+        r.update(steps=args.steps, fleet_steps=fleet_steps, replicate=rep,
+                 slot=idx,
+                 steps_per_sec=(fleet_steps / r["wall_seconds"]
                                 if r["wall_seconds"] else None),
-                 steady_state=steady_state(rd, batch))
+                 per_lane_steps_per_sec=(args.steps / r["wall_seconds"]
+                                         if r["wall_seconds"] else None),
+                 steady_state=({"steady_state_steps_per_sec":
+                                sum(x["steady_state_steps_per_sec"] for x in ss),
+                                "per_lane": ss} if ss else None))
         results[arm].append(r)
         print(f"    rc={r['rc']}  wall={r['wall_seconds']:.1f}s  "
-              f"{r['steps_per_sec']:.0f} steps/s", flush=True)
+              f"{r['steps_per_sec']:.0f} steps/s fleet "
+              f"({r['per_lane_steps_per_sec']:.0f}/lane)", flush=True)
 
     out = {
         "question": "wall-clock seconds to train the SAME dose, old way vs new way",
         "dose_steps": args.steps,
-        "width": 1,
+        "width": args.width,
+        "stagger_sec": args.stagger_sec,
         "engine_k": args.engine_k,
         "matched_concurrency": args.engine_k == 8,
         "arms": results,
@@ -329,7 +387,13 @@ def main(argv=None) -> int:
     out["order"] = args.order
     out["replicates"] = {a: len(results[a]) for a in results}
     out["disclosures"] = [
-        f"ONE LANE each, width 1. This is not a fleet number.",
+        (f"ONE LANE each, width 1. This is not a fleet number."
+         if args.width == 1 else
+         f"WIDTH {args.width}: each arm ran {args.width} concurrent lanes at "
+         f"distinct seeds, and the wall is FIRST LAUNCH to LAST EXIT — a "
+         f"{args.width}-seed result is not ready until the slowest seed is. A "
+         "lane is a SEED, not a shard of one run, so this does NOT say a "
+         "single run finishes sooner at higher width."),
         f"ALTERNATED {args.order} with {len(ok['node'])}/{len(ok['engine'])} "
         "completed replicates, and the ratio is the mean of PER-PAIR ratios, "
         "so a monotone drift in the box cancels rather than landing on "
