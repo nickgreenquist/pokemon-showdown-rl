@@ -111,7 +111,8 @@ def stop_server() -> None:
 
 
 def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
-                 out: pathlib.Path, rep: int = 1, lane: int = 0) -> pathlib.Path:
+                 out: pathlib.Path, rep: int = 1, lane: int = 0,
+                 width: int = 1) -> pathlib.Path:
     """Both arms from ONE base. The collector block is the only edit.
 
     `lane` is the index within a WIDTH > 1 arm. It shifts the seed, because
@@ -127,7 +128,10 @@ def build_config(base: dict, arm: str, steps: int, k: int, seed: int,
     cfg["eval_win_rate"] = False
     cfg["logger"] = "wandb"
     cfg["seed"] = seed
-    cfg["run_name"] = f"ab_{arm}_s{seed}_r{rep}"
+    # The variant is IN THE NAME. Consecutive variants used to share run-dir
+    # names, so variant 2's `shutil.rmtree` deleted variant 1's history.csv —
+    # and with it variant 1's steady-state ratio, which is computed from it.
+    cfg["run_name"] = f"ab_{arm}_k{k}_w{width}_s{seed}_r{rep}"
     cfg["checkpoint_every"] = steps * 10    # no ladder writes skewing either arm
     cfg.pop("env_kwargs", None) or None
     # PER-REPLICATE SEAT TAG, and the arm is in it. Alternation runs the two
@@ -306,12 +310,13 @@ def main(argv=None) -> int:
     for idx, slot in enumerate(order, start=1):
         arm = "node" if slot == "A" else "engine"
         rep = len(results[arm]) + 1
-        rds = [pathlib.Path(f"runs/ab_{arm}_s{args.seed + lane}_r{rep}")
+        rds = [pathlib.Path(f"runs/ab_{arm}_k{args.engine_k}_w{args.width}"
+                            f"_s{args.seed + lane}_r{rep}")
                for lane in range(args.width)]
         for rd in rds:
             shutil.rmtree(rd, ignore_errors=True)
         cfgs = [build_config(base, arm, args.steps, args.engine_k,
-                             args.seed, work, rep, lane)
+                             args.seed, work, rep, lane, args.width)
                 for lane in range(args.width)]
         logs = [work / f"ab_{arm}_r{rep}_l{lane}.log" for lane in range(args.width)]
         if arm == "node":
