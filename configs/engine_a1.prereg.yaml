@@ -240,8 +240,26 @@ disclosures:
 barred_language: [equivalent, "identical (about the RESULT; 'byte-identical' about config bytes and 'bit-identical' about episode_gae are permitted)", "no difference", "the same as the Node path", validated]   # [R1-N1]
 permitted_language: ["inside the band at |D| = x", "within +-k se_diff", "not distinguishable at this n and k", "screened, not equivalence-tested"]
 
-ratified_decisions: {}
-verdict_authorized: false
+# [FILLED 2026-09-10] Maintainer, in chat, verbatim: "Ratify RW-1 through RW-9 at
+# the recommended values, RW-10 no, verdict authorized". Values below are the
+# `my_recommendation` cells under rulings_wanted, transcribed, not paraphrased.
+# This supersedes the withdrawn_ratification block (the 2026-09-09 standing
+# order no longer applies; today's authorization is explicit and later).
+ratified_decisions:
+  RW-1: "(a) accept at k=8; production K is a separate staleness read (K-1 screen)"
+  RW-2: "screen only; revisit if A-1 lands in 0.015-0.025"
+  RW-3: "keep as written"
+  RW-4: "accept the banked baseline"
+  RW-5: "confirm as written: gross-breakage screen, |D| < 0.025, regime-matched sigma"
+  RW-6: "5,000,000-pair bank, floor 1,000,000 enforced at launch"
+  RW-7: "seed reuse 66/75/83 approved; test amendment travels with the ruling"
+  RW-8: "SECONDARY — P-AUC is secondary-descriptive; the verdict is P-END alone"
+  RW-9: "BUILD A-1a as an ADDITIONAL gate that blocks in ONE direction only: FAIL blocks the switch, PASS licenses nothing"
+  RW-10: "NO — no fresh Node arm; the banked baseline stands (RW-4)"
+  ratified_by: maintainer
+  ratified_at: "2026-09-10"
+  ratified_verbatim: "Ratify RW-1 through RW-9 at the recommended values, RW-10 no, verdict authorized"
+verdict_authorized: true
 withdrawn_ratification:
   recorded_at: 2026-09-09 morning
   withdrawn_because: >-

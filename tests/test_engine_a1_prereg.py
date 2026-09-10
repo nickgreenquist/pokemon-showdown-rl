@@ -136,19 +136,25 @@ def test_every_open_ruling_is_named_in_the_header():
             "reads as settled on an open ruling answers it for the maintainer")
 
 
-def test_nothing_is_ratified_and_no_verdict_is_authorized():
-    """2026-09-09's standing authorization says "do NOT ratify" in terms, so the
-    morning's ratification is withdrawn and every ruling is owed again. The
-    engine ARM may still run — it is common to every candidate design — but a
-    VERDICT may not be computed off an unresolved band."""
-    assert SIDE["ratified_decisions"] in ({}, [], None), \
-        "a pre-reg that ratifies itself decides what is the maintainer's to decide"
-    assert SIDE["verdict_authorized"] is False
+def test_the_ratification_is_recorded_verbatim_and_complete():
+    """2026-09-10: the maintainer ratified in chat — "Ratify RW-1 through RW-9 at
+    the recommended values, RW-10 no, verdict authorized" — superseding the
+    2026-09-09 withdrawal. The sidecar must carry every ruling, the verbatim
+    sentence, and the authorization; RW-8 must NOT read co-primary (the grader
+    keys the cell on that prefix); the open-ruling set may still only grow."""
+    rd = SIDE["ratified_decisions"]
+    assert isinstance(rd, dict) and rd, "the ratification of 2026-09-10 must be recorded"
+    for i in range(1, 11):
+        assert rd.get(f"RW-{i}"), f"RW-{i} has no recorded ruling"
+    assert rd["RW-10"].upper().startswith("NO"), "RW-10 was ruled NO"
+    assert not str(rd["RW-8"]).lower().startswith("co-primary"), \
+        "RW-8 was ratified SECONDARY; the grader would read co-primary off this prefix"
+    assert rd["ratified_verbatim"] == (
+        "Ratify RW-1 through RW-9 at the recommended values, RW-10 no, verdict authorized")
+    assert str(rd["ratified_at"]) == "2026-09-10" and rd["ratified_by"] == "maintainer"
+    assert SIDE["verdict_authorized"] is True
     assert SIDE["is_equivalence_test"] is False
     assert SIDE["precondition"]["state_at_drafting"] == "NEVER RUN"
-    # RW-1..RW-8 are the original eight and none of them may quietly vanish;
-    # the set is allowed to GROW, because a review that finds a new decision
-    # for the maintainer should be able to add it without editing a test.
     rw = set(SIDE["rulings_wanted"])
     assert {f"RW-{i}" for i in range(1, 9)} <= rw, "an open ruling was dropped"
     assert all(re.fullmatch(r"RW-\d+", k) for k in rw), f"malformed ruling id in {rw}"

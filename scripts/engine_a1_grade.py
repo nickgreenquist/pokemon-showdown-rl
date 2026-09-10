@@ -43,7 +43,8 @@ EVAL_INTERVAL = 250_000       # beyond this it is a different dose, not an overs
 N_RUNGS = 48
 
 
-def _auc(run_dir: pathlib.Path) -> tuple[float, int, str]:
+def _auc(run_dir: pathlib.Path | str) -> tuple[float, int, str]:
+    run_dir = pathlib.Path(run_dir)  # lanes carry it as str so the result JSON serialises
     """Mean eval/win_rate over the in-loop rungs at 250k..12.0M.
 
     A resumed lane has NO history.csv — extract_history.py hard-fails on a split
@@ -108,7 +109,7 @@ def _load(paths: list[pathlib.Path], want_n: int | None = None) -> list[dict]:
         lanes.append({"file": str(p), "run": run, "step": int(d["step"]),
                       "win_rate": float(wr),
                       "episodes": n,
-                      "run_dir": pathlib.Path("runs") / run})
+                      "run_dir": str(pathlib.Path("runs") / run)})  # str: json.dumps refuses PosixPath (found on the first real run, 2026-09-10)
     return lanes
 
 
@@ -224,7 +225,9 @@ def main(argv=None) -> int:
     side = yaml.safe_load(args.prereg.read_text()) if args.prereg.exists() else {}
     rw8 = (side.get("ratified_decisions") or {}).get("RW-8")
     co_primary = str(rw8).lower().startswith("co-primary") if rw8 else False
-    res["P_AUC"]["role"] = "CO-PRIMARY" if co_primary else "SECONDARY-DESCRIPTIVE (RW-8 unanswered)"
+    res["P_AUC"]["role"] = ("CO-PRIMARY" if co_primary else
+                            f"SECONDARY-DESCRIPTIVE (RW-8: {rw8})" if rw8 else
+                            "SECONDARY-DESCRIPTIVE (RW-8 unanswered)")
 
     if co_primary:
         if res["P_END"]["inside_band"] and res["P_AUC"]["inside_band"]:
