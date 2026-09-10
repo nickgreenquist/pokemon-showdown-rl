@@ -25,6 +25,44 @@ exactly that (see do-not-relitigate below).
 
 ## Still open
 
+- **E1 — NO SINGLE ENV RUNS THE TEST SUITE** (opened 2026-09-10). The port env
+  `pkmn-engine-port` has the `pkmn_gen1` extension and now the analysis deps;
+  `pokemon-showdown-rl` has the analysis deps but NOT the extension, so its run
+  skips the seven `importorskip`-guarded engine modules. Both are green on what
+  they can see, neither covers everything. Needs a ruling: install the extension
+  into `pokemon-showdown-rl`, or make the port env the suite env. Blocked on the
+  maintainer because CLAUDE.md rule 1 forbids installing into that env
+  unilaterally. (`pandas` was the same class of bug and is fixed — it was
+  undeclared and only ever arrived as a transitive dep, failing four gen-4 gate
+  tests in any env built from `pyproject.toml` alone. `scipy` and `seaborn`
+  were reported as the same problem and are NOT: scipy appears once, in a
+  comment saying it is deliberately not used, and seaborn is absent entirely.)
+
+- **E2 — the scorer `ctx` factorization is blocked by a bit-exact pin**
+  (opened 2026-09-10). `entity_deepsets.py` scores 10 actions over
+  `[ctx || entity_i]` where `ctx` is identical in all ten slots, so the
+  384-wide half runs ten times per row instead of once. Factoring it is
+  ~26% of the epoch loop and ~1.97x on that layer's forward, verified
+  equivalent to 2.98e-07 (`scripts/engine_scorer_equiv.py`,
+  `tests/test_entity_scorer_factorization.py`, both retained). But
+  `tests/test_entity_trunk_gen4.py::_GEN1_PIN` asserts `lo == lo_w` on the
+  actor's summed logits — EXACT equality, with the comment "the forwards are
+  exact". 3e-07 is not bit-identical. Regenerating a deliberate golden to pass
+  one's own change is backwards, so this needs a maintainer ruling on whether
+  the pin may be re-baselined. APPLIED AND REVERTED 2026-09-10.
+
+- **E3 — the act path traces bit-identically and is not yet adopted**
+  (opened 2026-09-10). `torch.jit.trace` on the actor gives 1.60x at B=1 and
+  1.31x at B=4 — the range the act path actually runs at — and is BIT-IDENTICAL
+  at every batch size tested, so unlike E2 it needs no pre-reg. ~1.09x on the
+  full loop, free. Use `trace`, NOT `trace`+`freeze`: they are within noise, so
+  freeze buys nothing while being documented to inline parameters as constants.
+  NOT LANDED, deliberately: it changes the learner's collection path, tonight's
+  A/B numbers were measured against the untraced path, and a traced module that
+  ever stopped tracking a weight update would be silently wrong — the exact
+  failure class the recorded-`old_logp` design exists to prevent. Wants a guard
+  (periodic eager-vs-traced assertion) or a maintainer ruling before it lands.
+
 - **B3 — the encode/mask/convert trio is duplicated 8× with divergent
   desync policy** (strict-raise in `rl/collect.py`, counted-recover in
   `showdown.py`/`ch3_fp_h2h.py`, default-move in `ladder.py` — the ladder
