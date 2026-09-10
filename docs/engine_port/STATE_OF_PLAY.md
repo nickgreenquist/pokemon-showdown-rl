@@ -1,4 +1,4 @@
-# Engine port — state of play, 2026-09-10 ~00:30Z
+# Engine port — state of play, 2026-09-10 ~01:15Z
 
 Written so a session with no memory of today can pick this up. Durable record
 is `docs/engine_port/NOTES.md` (incidents and gate numbers) and the git log;
@@ -8,19 +8,37 @@ this file is only "what is in flight and what was just decided".
 
 | what | where | eta |
 |---|---|---|
-| A-1 engine arm, 3 lanes x 12M, seeds 66/75/83, k=8 | `<worktree>/runs/engine_a1_s*` | ~01:45Z |
-| the gate chain (finishes with T-1(c) then A-1 descriptive evals) | `scripts/engine_gates.sh`, log `logs/engine_gates.log` | after lanes |
-| post-lane queue: worktree teardown, `pytest tests/`, then BOTH A/B variants (`scripts/engine_post_lane_queue.sh`) | `logs/post_lane_queue.log` | after the chain |
+| A-1 engine arm, 3 lanes x 12M, seeds 66/75/83, k=8 | `<worktree>/runs/engine_a1_s*` | ALL THREE PAST THE 12M RUNG |
+| the gate chain (kills at the rung, then T-1(c), then A-1 descriptive evals) | `scripts/engine_gates.sh`, log `<worktree>/logs/engine_gates.log` | step 6 polls every 600 s |
+| post-lane queue: teardown, `pytest tests/`, both A/B variants, readout (`scripts/engine_post_lane_queue.sh`) | `logs/post_lane_queue.log` | after the chain, **A/B held** |
+
+**THE A/B IS HELD BEHIND A SENTINEL.** The maintainer asked (2026-09-10) to
+close their own work and Chrome before anything measures wall clock, and no
+check inside the script can see either. Teardown and `pytest` run unattended;
+the A/B waits for `touch <repo>/.ab_go` and consumes the sentinel when it fires.
+
+The lanes overran to 12.5-13M because step 6 polls every 600 s and waits for
+the SLOWEST lane. Harmless: `rung_ckpt` takes the first `ckpt_0120*.pt`, so the
+read is at 12M regardless and the extra steps are only wasted compute.
 
 The A-1 lanes run out of the WORKTREE
 (`/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-engine`), so its
 `runs/`, `results/` and `logs/` are the live ones until they finish. **The env
 needs nothing** — checked 2026-09-10, `pkmn-engine-port` already resolves `rl`
 to MAIN and `pkmn_gen1` to site-packages, so teardown is only: move those three
-directories home, then `git worktree remove`. That now runs itself as step 1 of
-`scripts/engine_post_lane_queue.sh`; a name collision is SKIPPED and logged
-rather than clobbered, and `worktree remove` is left to refuse if anything is
-still uncommitted in there.
+directories home, then `git worktree remove`. That runs itself as step 1 of
+`scripts/engine_post_lane_queue.sh`.
+
+**THE TEARDOWN HAZARD, WHICH NEARLY BIT TWICE.** `runs/`, `results/`, `logs/`
+and `data/` are ALL gitignored, and `git worktree remove` treats a worktree
+carrying only ignored files as CLEAN — it deletes them silently. First near
+miss: migrating directory-by-directory would have stranded `results/t1`'s
+leg_a/leg_b, because that directory exists in BOTH trees. Second, and worse:
+`data/` was not on the migrate list at all, and it holds the 480 MB
+5,000,000-pair team bank whose sha256 every gate record cites (41 min to
+regenerate, different sha at the end). The list is no longer the safety — every
+gitignored path git reports in the worktree must now be either migrated or
+provably rebuildable, and anything else BLOCKS the removal.
 
 ## Overnight ops — what may and may not be killed
 
@@ -99,6 +117,39 @@ Numbers that exist now and their status:
 * 1502 steps/s/lane at 3-wide — measured today, clean on its own.
 * **2.62x — NOT QUOTABLE as the speedup.** It divides today's rate by a Node
   rate banked 2026-09-01. Recorded in NOTES with that caveat attached.
+
+## Built tonight, all committed, none of it ratified
+
+* **`scripts/engine_a1a.py` — the A-1a row-parity harness (RW-9).** Frozen
+  checkpoint, no learning, four arms (2 engine + 2 node), and the null is
+  MEASURED rather than assumed: the A/A pairs say what reseeding alone does at
+  this n, and the A/B pairs are read against that. A 20-episode engine-vs-engine
+  smoke — a TRUE NULL — gave `obs_smd_max` 1.086 and 412 of 828 dims over SMD
+  0.10, which is the whole argument for not writing a fixed threshold.
+  `version` is reported and never scored (staleness differs by construction).
+  `--smoke` runs the engine arms alone, needs no server, and produces the A/A
+  calibration rather than a throwaway. **It decides nothing on its own** and
+  says so in its output.
+* **`scripts/engine_speed_readout.py`** renders the speedup FROM THE JSON, with
+  the scope and disclosures attached, so 2.62x / T-1(a,b) / T-1(d) cannot be
+  quoted as "the speedup" by accident. Wired as step 4 of the queue.
+* **A/B hardening**, two of which were real hazards: per-replicate seat tags
+  (alternation ran both Node replicates at the same seed with no tag, so both
+  got `as2s9301a/b` — a collision there poisons the pair for HOURS and takes
+  the rest of the A/B with it); a `simulator: 4` assertion (gitignored file,
+  worth +81% on the Node path, and getting it wrong inflates the ratio by
+  exactly that); `steady_state` now divides by the config's own batch instead
+  of a pasted 30720; and a bank preflight, since ABBA runs a Node arm first and
+  a missing bank would otherwise surface 33 minutes in.
+* **`tests/test_engine_ab_speed.py`** (10 tests) turns the fairness claim into
+  a test: the arms differ in exactly {collector, env_kwargs, run_name}, and
+  inside env_kwargs only in seat_tag.
+* **The A-1 header said RATIFIED while the sidecar said WITHDRAWN** — for a
+  day. Fixed, and `tests/test_engine_a1_prereg.py` now asserts the header
+  cannot claim ratification while `ratified_decisions` is empty (verified to
+  fail on the old wording before it passed on the new). RW-9 and RW-10 joined
+  `rulings_wanted`; the RW-set test tolerates growth so a review can add a
+  decision without editing a test.
 
 ## Open decision: another session's A-1 rulings (2026-09-09 evening)
 
