@@ -82,8 +82,13 @@ say "verify() PASS: $("$PREFIX/bin/python" -c "import pkmn_gen1,json;i=pkmn_gen1
 
 # 6. The Rust unit tests are the B-0 gate and must pass against this build.
 say "cargo test (B-0)"
-( cd engine/pkmn_gen1 && PKMN_PYTHON= cargo test --quiet ) >> "$LOG" 2>&1 \
-  || say "WARNING: cargo test failed — see $LOG (does not block the install claim)"
+# PKMN_PYTHON must point at a python that HAS the ziglang wheel, not be empty.
+# `PKMN_PYTHON=` (empty) makes build.rs fall back to looking for `zig` on PATH,
+# and zig is a pip wheel here, so the build script dies with
+# "failed to run [\"zig\"]: No such file or directory" — which reads like a
+# missing toolchain rather than a mis-set variable. Same trap twice today.
+( cd engine/pkmn_gen1 && PKMN_PYTHON="$PREFIX/bin/python" cargo test --quiet ) >> "$LOG" 2>&1 \
+  || say "WARNING: cargo test failed — see $LOG (does not block the INSTALL claim, but it should pass; check PKMN_PYTHON resolves zig)"
 
 say "FRESH-ENV CHECK PASSED — the main env can acquire the extension from the committed pins alone"
 cleanup
