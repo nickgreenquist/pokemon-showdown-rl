@@ -95,7 +95,9 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 ## Docs
 
 - `STATUS.md` — **always read at session start.** Current state, last verdict
-  with numbers, next actions, watch items. Hard cap 60 lines; rewritten in
+  with numbers, next actions, watch items. Hard cap 100 lines (raised from
+  60 by the maintainer, 2026-09-10: "this is ridiculous how short it is" —
+  the 60-line cap was forcing real findings out of the doc); rewritten in
   place; update it in the same commit that appends a session-log entry. On
   conflict, the newest session-log entry wins — say so and fix STATUS.md.
 - `HANDOFF.md` — read only if non-empty (mid-handoff). Fold anything durable
