@@ -63,8 +63,14 @@ def test_collector_keys_are_exactly_what_the_engine_mode_accepts():
     assert RAW["collector"]["mode"] == "engine"
     extra = set(RAW["collector"]) - ENGINE_KEYS
     assert not extra, f"collector.mode 'engine' would REFUSE these keys: {sorted(extra)}"
+    # A-1 IS A ONE-LEVER PARITY GATE: engine-vs-server dynamics and nothing
+    # else. The engine route can carry D18's block since 2026-09-10 (the seam),
+    # so this is no longer "train.py refuses it" — it is A-1's own arm scope,
+    # and it must stay asserted for exactly that reason.
     assert "privileged_dim" not in RAW["agent"], \
-        "agent.privileged_dim set — rl/train.py refuses D18 on the engine path"
+        "agent.privileged_dim set — A-1 is a one-lever parity gate, D18 is not its lever"
+    assert not RAW["agent"].get("priv_eval_coef"), \
+        "agent.priv_eval_coef set — A-1 is a one-lever parity gate"
 
 
 def test_contamination_guards_are_off():

@@ -320,6 +320,9 @@ class PPOAgent(Agent):
         lr_schedule: str = "linear",
         lr_power_a: float = 8.0,
         lr_power_b: float = 1.5,
+        priv_eval_coef: float = 0.0,
+        priv_eval_dim: int = 0,
+        priv_eval_max_grad_norm: float = 0.5,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -473,16 +476,122 @@ class PPOAgent(Agent):
                     f"{list(LABEL_SPACES)} — L6 is R0-L's pre-stated fallback, "
                     "executed because the 12-class adopt-rule FAILED, not a free choice"
                 )
-            if privileged_dim:
-                raise TypeError(
-                    "aux_oppact_coef with privileged_dim: R0-1's fingerprint requires "
-                    "D18's plumbing ABSENT — D25 needs neither the privileged block "
-                    "nor its ~65 us/step seat-B re-encode"
-                )
+            # NO privileged_dim REFUSAL HERE. There was one until 2026-09-10; it
+            # protected nothing structural and it was ARM-SCOPED, not an
+            # invariant. R0-1 (configs/showdown_sp_actpred12m.yaml:1138-1143) was
+            # a LAUNCH FINGERPRINT for the D25 12M rung — "D18's plumbing must
+            # not ride along; D25 needs neither" — and those lanes are banked.
+            # The two levers touch DISJOINT tensors: the aux head reads the
+            # ACTOR's features (`self.actor(obs, return_features=True)`, and
+            # `_aux_gradient` takes grads over actor+aux params only), while the
+            # privileged block reaches VALUE STACKS only — the `flat_critic_obs`
+            # concat into `self.critic`, split back out inside the critic's own
+            # forward, and (design B) `priv_eval_head`. Actor and critic share
+            # no trunk. Pinned by
+            # tests/test_privileged_aux_seam.py::test_aux_head_inputs_are_
+            # unchanged_by_privileged_dim.
+            #
+            # ONE RESIDUE, DISCLOSED RATHER THAN FIXED: privileged_dim changes
+            # the ACTOR'S INITIAL WEIGHTS at a fixed seed. `init_head` re-inits
+            # the WHOLE net and runs after the widened critic has moved the
+            # global RNG stream, so actor param sum is 334.851 at
+            # privileged_dim=0 and 410.510 at 408 with an identical param count
+            # (tests/test_entity_trunk_gen4.py:194-199). So `aux_oppact_coef` is
+            # no longer an exact no-op in R0-3b's sense once privileged_dim is
+            # also set, and two arms that differ in privileged_dim are NOT
+            # paired at initialisation even at the same seed. Reordering
+            # construction to fix it would move the RNG stream for
+            # privileged_dim=0 too and break _GEN1_PIN for every existing
+            # recipe. Disclose, do not reorder.
         self.aux_oppact_coef = aux_oppact_coef
         self.aux_label_space = aux_label_space
         self.aux_max_grad_norm = aux_max_grad_norm
         self.aux_head: nn.Module | None = None
+        # DESIGN B (docs/proposals/privileged_critic_engine_route.md §4.3(B)):
+        # a SEPARATE privileged evaluator head beside the ordinary critic. It
+        # regresses the SAME value targets the critic does, on the SAME rows,
+        # from obs ‖ the privileged block — and it feeds NOTHING. Advantages,
+        # the policy gradient, `loss/value` and `loss/explained_variance` all
+        # keep reading `self.critic` exactly as before; this head exists to be
+        # the SEARCH LEAF EVALUATOR later (under determinization every leaf is
+        # a full-information state, §4.2), and to ride as arm B of the 100M
+        # monster.
+        #
+        # Why a second head rather than reusing the wide critic: D18's own
+        # falsifier fired on the ADVANTAGE channel — "EV rose on EVERY lane …
+        # while win rate stayed flat" (SESSION_LOGS 2026-08-xx, D18's epitaph).
+        # A critic that values states better but degrades the advantage signal
+        # is the wrong object for a policy gradient and the right one for a
+        # leaf evaluator. Keeping the two objects separate is what makes that
+        # asymmetry usable instead of a hazard.
+        #
+        # Default 0.0 is the EXACT no-op — no module, no optimizer group, no
+        # metric key, no checkpoint rider (the aux_oppact_coef / l2_init_decay
+        # / bc_kl_coef precedent).
+        #
+        # THE EMITTER AND THE TWO CONSUMERS ARE INDEPENDENT KNOBS, and that is
+        # the whole point of design B rather than a detail. There is ONE
+        # privileged block and there are TWO things that could read it:
+        #
+        #   privileged_dim  -> D18 / DESIGN A: `self.critic` widens to
+        #                      obs ‖ priv, so the block enters the ADVANTAGE
+        #                      channel. This is the thing D18's falsifier fired
+        #                      on. Unchanged in every respect.
+        #   priv_eval_dim   -> DESIGN B: only `priv_eval_head` reads the block.
+        #                      `self.critic` stays EXACTLY the D18-free critic —
+        #                      same width, same parameters, bit-identical init
+        #                      and bit-identical updates to a run with no
+        #                      privileged keys at all.
+        #
+        # Either one makes the COLLECTOR emit (see `privileged_block_dim`
+        # below, which is what rl/train.py derives the engine collector's flag
+        # from). Both may be set, which is design A + design B; then they must
+        # agree, because it is one block. A design-B arm sets `priv_eval_dim`
+        # and leaves `privileged_dim` absent — that is the arm the 100M monster
+        # wants, and setting `privileged_dim` instead would silently make it
+        # A+B and carry D18's hazard into the policy gradient.
+        if priv_eval_coef < 0.0:
+            raise ValueError(f"priv_eval_coef must be >= 0, got {priv_eval_coef}")
+        if priv_eval_dim < 0:
+            raise ValueError(f"priv_eval_dim must be >= 0, got {priv_eval_dim}")
+        if priv_eval_dim and privileged_dim and priv_eval_dim != privileged_dim:
+            raise ValueError(
+                f"priv_eval_dim {priv_eval_dim} != privileged_dim {privileged_dim}: "
+                "there is ONE privileged block and both consumers read it, so the "
+                "two widths cannot disagree"
+            )
+        # The head's input width: its own key when given, otherwise the wide
+        # critic's (so `privileged_dim` + `priv_eval_coef` still expresses A+B
+        # without repeating the number).
+        priv_eval_dim = priv_eval_dim or (privileged_dim if priv_eval_coef > 0.0 else 0)
+        if priv_eval_dim and priv_eval_coef <= 0.0:
+            raise ValueError(
+                "priv_eval_dim > 0 with priv_eval_coef = 0: the collector would "
+                "emit a block nothing trains on. Set the coefficient or drop the "
+                "width (the aux_shuffle_labels loud-seam rule)."
+            )
+        if priv_eval_coef > 0.0:
+            if not priv_eval_dim:
+                raise TypeError(
+                    "priv_eval_coef requires a privileged block width: set "
+                    "priv_eval_dim (design B — the head reads the block and the "
+                    "critic stays narrow) or privileged_dim (design A + B — the "
+                    "critic widens too)"
+                )
+            if trunk != "entity_deepsets":
+                raise TypeError(
+                    "priv_eval_coef requires trunk 'entity_deepsets': the head "
+                    "re-tokenises the privileged block through the same entity "
+                    "space the critic does (EntityDeepSetsNet._priv_features)"
+                )
+        if priv_eval_max_grad_norm <= 0.0:
+            raise ValueError(
+                f"priv_eval_max_grad_norm must be > 0, got {priv_eval_max_grad_norm}"
+            )
+        self.priv_eval_coef = float(priv_eval_coef)
+        self.priv_eval_dim = int(priv_eval_dim)
+        self.priv_eval_max_grad_norm = float(priv_eval_max_grad_norm)
+        self.priv_eval_head: nn.Module | None = None
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
         if self.obs_rank == 3:
@@ -554,6 +663,41 @@ class PPOAgent(Agent):
             )
             self.aux_head.init_head(aux_head_gain)
             self.aux_head.to(self.device)
+        # AND THE PRIVILEGED EVALUATOR HEAD AFTER THAT, for the same reason and
+        # by the same rule: construction comes LAST in the global RNG stream, so
+        # at a fixed seed the actor's, the critic's AND the aux head's
+        # state_dicts are bit-identical to a priv_eval_coef=0 build. A second
+        # `EntityDeepSetsNet(obs_dim, 1, privileged_dim=…)` — the critic's exact
+        # construction (`_priv_features` re-tokenises the block through the same
+        # entity space) with its OWN parameters, sharing nothing with
+        # `self.critic`. That disjointness is what makes "no leakage into the
+        # policy or the critic" structural rather than a claim about
+        # coefficients.
+        if self.priv_eval_coef > 0.0:
+            from rl.networks.entity_deepsets import EntityDeepSetsNet
+
+            # AND THE GLOBAL RNG STREAM IS REWOUND AROUND IT. This goes one step
+            # further than the aux head's construction-last rule, and design B's
+            # whole claim is why: "the ordinary critic and the policy gradient
+            # are left untouched" has to mean the LEARNING DYNAMICS, not just
+            # the gradients. Constructing a net consumes the default generator,
+            # which the epoch loop's `torch.randperm` draws its minibatch
+            # permutations from — so without the rewind, turning the head on
+            # would silently reorder every minibatch in the run and the two arms
+            # would diverge for a reason that has nothing to do with the lever.
+            # With it, an arm-B lane's actor, critic, aux head, minibatch
+            # ordering and every downstream draw are BIT-IDENTICAL to arm A's at
+            # the same seed, and the head's own init is still reproducible.
+            # (This is exactly what privileged_dim itself cannot have — see the
+            # disclosed R1 residue at the aux-guard comment above.)
+            rng_state = torch.get_rng_state()
+            self.priv_eval_head = EntityDeepSetsNet(
+                observation_space.shape[0], 1,
+                privileged_dim=self.priv_eval_dim, **(trunk_kwargs or {}),
+            )
+            self.priv_eval_head.init_head(1.0)  # a value head, the critic's gain
+            self.priv_eval_head.to(self.device)
+            torch.set_rng_state(rng_state)
         # D25-P's one lever (placebo config P1/P4). The loud seam mirrors the
         # opp_choice seam: a shuffle with no aux loss is a silent no-op and
         # means the wrong config is running.
@@ -645,6 +789,20 @@ class PPOAgent(Agent):
                 if not name.startswith(("scorer.", "slot_bias"))
             ]
             self._trunk_ids = {id(p) for p in self.trunk_params}
+        # The privileged evaluator head's group, APPENDED LAST for B8's reason
+        # (see the aux group above): `load_state_dict` grafts the checkpoint's
+        # Adam moments onto OUR groups by POSITIONAL ORDER across the flattened
+        # params, so a group appended after actor/critic/aux leaves every loaded
+        # key landing on a shape-matching param and simply gives this head none.
+        # It rides the CRITIC's lr (no actor_lr_scale): it is a value head, and
+        # the anneal writes it back by the index recorded here rather than by a
+        # hard-coded 2/3.
+        self.priv_eval_params: list[nn.Parameter] = []
+        self._priv_eval_group = -1
+        if self.priv_eval_head is not None:
+            self.priv_eval_params = list(self.priv_eval_head.parameters())
+            self._priv_eval_group = len(groups)
+            groups.append({"params": self.priv_eval_params, "lr": lr})
         self.optimizer = torch.optim.Adam(groups, eps=1e-5)
         self._set_actor_trainable(critic_warmup_updates == 0)
         # theta0 capture, AFTER init_head()/.to(device) (so the anchors are
@@ -670,7 +828,7 @@ class PPOAgent(Agent):
             observation_space.shape,
             obs_dtype=observation_space.dtype,
             **action_storage,
-            priv_dim=privileged_dim or None,
+            priv_dim=self.privileged_block_dim or None,
             opp_choice_dim=CHOICE_DIM if self.aux_head is not None else None,
         )
         self.updates = 0  # completed fill -> epochs cycles
@@ -679,13 +837,28 @@ class PPOAgent(Agent):
         # today's wire: update() drains nothing and concatenates nothing.
         self._harvest = None
 
+    @property
+    def privileged_block_dim(self) -> int:
+        """The width of the `info["privileged"]` block this agent needs, 0 if
+        none — THE EMITTER FLAG, derived rather than configured.
+
+        Either consumer turns emission on: D18's wide critic (`privileged_dim`)
+        or design B's evaluator head (`priv_eval_dim`). They are the same block,
+        so the constructor already refused a disagreement and this is just
+        whichever is set. `rl/train.py` reads it to decide whether the engine
+        collector asks the Rust side for the block, which is why there is no
+        `collector.privileged` key: one emitter and one consumer in one process
+        leave the two-knob pairing nothing to prevent."""
+        return self.privileged_dim or self.priv_eval_dim
+
     def attach_harvest(self, harvest) -> None:
         """Seat-2 episodes join the seat-1 rollout at every update. Refused
-        with the privileged critic (seat 2's privileged block would be seat
-        1's own side — not collected) and with the D25 aux head (seat 2's
-        opponent-action labels are not collected); both are held-back
-        levers for the gen-4 baseline anyway."""
-        if self.privileged_dim:
+        whenever the agent needs the privileged block AT ALL — D18's wide
+        critic or design B's evaluator head — because seat 2's block would be
+        seat 1's own side and is not collected; and with the D25 aux head
+        (seat 2's opponent-action labels are not collected). All of these are
+        held-back levers for the gen-4 baseline anyway."""
+        if self.privileged_block_dim:
             raise ValueError("harvest_both_seats does not collect seat 2's privileged block")
         if self.aux_head is not None:
             raise ValueError("harvest_both_seats does not collect seat 2's opponent-action labels")
@@ -913,6 +1086,79 @@ class PPOAgent(Agent):
         # coefficient entering at torch.autograd.grad above).
         return float(loss.item()), total, trunk, trunk * scale, scale
 
+    def _priv_eval_gradient(
+        self, priv_obs: torch.Tensor, targets: torch.Tensor
+    ) -> float:
+        """Design B's head: one MSE against the SAME returns the critic
+        regresses, on the SAME minibatch rows, clipped to its OWN budget and
+        written into `.grad` — the `_aux_gradient` shape.
+
+        Structurally isolated, which is the whole point of design B. The head
+        shares no parameter with the actor or the critic, so a separate
+        `torch.autograd.grad` over `priv_eval_params` cannot touch either — no
+        coefficient, no detach and no ordering argument is load-bearing. The
+        inputs are already detached (`priv_obs` is obs ‖ the collector's block,
+        `targets` come from a no_grad critic pass plus GAE), so the graph this
+        builds is the head's alone.
+
+        Called AFTER `clip_grad_norm_(self.params, …)` has been read, so it
+        provably cannot move `loss/grad_norm` or `loss/grad_clip_frac`, and
+        BEFORE `optimizer.step()`, which is what makes the head's own param
+        group take a step. No value clipping: `value_clip_eps` clamps against
+        the pre-update values the ADVANTAGES were computed from, and this head
+        computes no advantages.
+
+        Returns the UNSCALED value loss (the metric), not the coefficient-
+        weighted one.
+        """
+        pred = self.priv_eval_head(priv_obs).squeeze(-1)
+        loss = F.mse_loss(pred, targets)
+        params = [p for p in self.priv_eval_params if p.requires_grad]
+        grads = torch.autograd.grad(self.priv_eval_coef * loss, params)
+        total = float(torch.norm(torch.stack([g.norm() for g in grads])))
+        # clip_grad_norm_'s own arithmetic, on a detached grad list.
+        scale = min(1.0, self.priv_eval_max_grad_norm / (total + 1e-6))
+        for param, grad in zip(params, grads):
+            if param.grad is None:
+                param.grad = grad * scale
+            else:
+                param.grad.add_(grad, alpha=scale)
+        return float(loss.item())
+
+    def priv_eval_value(self, obs: Any, priv: Any) -> np.ndarray:
+        """The privileged evaluator's V(s), for a SEARCH leaf (§4.2).
+
+        `obs` is (N, obs_dim) and `priv` is (N, privileged_dim); returns (N,)
+        float. Deliberately shaped like `rl/search/agent.py::_critic_fn`'s
+        return so it can drop in there — nothing in `rl/search/` calls it yet.
+
+        The two arrays are separate arguments rather than one pre-concatenated
+        batch because a search leaf builds them from different places: the obs
+        from the leaf's own `shadow_battle`, the block from a seat-mirrored
+        assembly of the SAME determinization. TRAIN/INFERENCE SHIFT IS REAL and
+        is owed as a disclosure wherever this is used: at training time the
+        block is the TRUE seat-2 encoding; at search time it would be an
+        RSD-sampled opponent whose unrevealed bench is systematically fresher
+        (full HP, no status, max PP).
+        """
+        if self.priv_eval_head is None:
+            raise ValueError(
+                "priv_eval_value() with priv_eval_coef = 0: this agent has no "
+                "privileged evaluator head. Rebuild it from the run's own config."
+            )
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device)
+        priv_t = torch.as_tensor(priv, dtype=torch.float32, device=self.device)
+        if obs_t.ndim == 1:
+            obs_t, priv_t = obs_t.unsqueeze(0), priv_t.unsqueeze(0)
+        if priv_t.shape[-1] != self.priv_eval_dim:
+            raise ValueError(
+                f"privileged block is {priv_t.shape[-1]} wide, expected "
+                f"{self.priv_eval_dim}"
+            )
+        with torch.no_grad():
+            values = self.priv_eval_head(torch.cat([obs_t, priv_t], dim=-1))
+        return values.reshape(-1).cpu().numpy()
+
     def _prepare_aux(
         self, flat_obs: torch.Tensor, flat_opp_choice: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, dict[str, float]]:
@@ -978,9 +1224,11 @@ class PPOAgent(Agent):
         # Loud seam (R0-1 style): a lane with the env flag but not the agent
         # flag would silently train a blind critic; the reverse would train
         # the wide critic on zeros. Neither may pass.
-        if (privs is None) == bool(self.privileged_dim):
+        if (privs is None) == bool(self.privileged_block_dim):
             raise ValueError(
-                f"privileged mismatch: agent privileged_dim={self.privileged_dim} "
+                f"privileged mismatch: agent needs a "
+                f"{self.privileged_block_dim}-wide block (privileged_dim="
+                f"{self.privileged_dim}, priv_eval_dim={self.priv_eval_dim}) "
                 f"but the env {'did not emit' if privs is None else 'emitted'} "
                 "info['privileged'] — the env kwarg and the agent hparam must "
                 "be set together"
@@ -1024,16 +1272,19 @@ class PPOAgent(Agent):
                 flat_obs,
                 torch.as_tensor(buf.opp_choice, device=self.device).flatten(0, 1),
             )
-        # The critic's input: obs ‖ privileged when the block is carried,
-        # plain obs otherwise (aliases, no copy). Every critic forward below
-        # reads these two and only these two.
+        # The privileged block, flattened once — read by design B's head
+        # whether or not the CRITIC widens. `privileged_dim` (design A) is the
+        # only thing that decides the critic's input.
+        flat_priv = None
+        if self.privileged_block_dim:
+            flat_priv = torch.as_tensor(
+                buf.privs, dtype=torch.float32, device=self.device
+            ).flatten(0, 1)
+        # The critic's input: obs ‖ privileged when D18 is on, plain obs
+        # otherwise (aliases, no copy). Every critic forward below reads these
+        # two and only these two.
         if self.privileged_dim:
-            flat_critic_obs = torch.cat(
-                [flat_obs, torch.as_tensor(
-                    buf.privs, dtype=torch.float32, device=self.device
-                ).flatten(0, 1)],
-                dim=-1,
-            )
+            flat_critic_obs = torch.cat([flat_obs, flat_priv], dim=-1)
             flat_critic_next_obs = torch.cat(
                 [flat_next_obs, torch.as_tensor(
                     buf.next_privs, dtype=torch.float32, device=self.device
@@ -1116,6 +1367,7 @@ class PPOAgent(Agent):
             steps_seen=self.updates * horizon * num_envs,
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
             aux_stats=aux_stats, flat_old_values=flat_old_values,
+            flat_priv=flat_priv,
         )
         self.buffer.clear()
         return {**metrics, **harvest_stats}
@@ -1138,16 +1390,17 @@ class PPOAgent(Agent):
           sync path's second forward over 30k next_obs rows is gone.
 
         `steps_seen` is the train loop's env-step counter (checkpointed, so
-        a resume keeps the lr anneal on schedule). Privileged critics are
-        refused loudly: the async collector has no seat-2 battle object to
-        emit the block, and a silently blind wide critic is the exact
-        failure the sync path's seam check exists to prevent."""
-        if self.privileged_dim:
-            raise ValueError(
-                "privileged critics are not supported on the async collection "
-                "path: no privileged block is collected, and training the "
-                "wide critic on zeros would be silent"
-            )
+        a resume keeps the lr anneal on schedule).
+
+        The privileged block (D18) rides the SAME loud seam the sync path
+        uses: present iff the agent is wide, refused loudly either way. Only
+        the ENGINE collector emits it — the server-backed async collector has
+        no seat-2 battle object, so `rl/train.py` still refuses the pairing
+        there at launch. There is no `next_privs` on this route and none is
+        needed: the ONE critic pass above means V(s') is row t+1's value,
+        computed from row t+1's own block, and the terminal bootstraps to 0
+        (rl/buffers/episode.py:97-112) so the final state's block is never
+        read."""
         opp_choice = batch.get("opp_choice")
         if (opp_choice is None) == (self.aux_head is not None):
             raise ValueError(
@@ -1156,6 +1409,19 @@ class PPOAgent(Agent):
                 f"{'did not record' if opp_choice is None else 'recorded'} "
                 "opp_choice labels — the collector flag and the agent hparam "
                 "must be set together"
+            )
+        # The same loud seam for D18, in update()'s exact shape: a collector
+        # emitting the block into a narrow agent collects rows nobody reads;
+        # the reverse trains the wide critic on zeros.
+        privs = batch.get("privileged")
+        if (privs is None) == bool(self.privileged_block_dim):
+            raise ValueError(
+                f"privileged mismatch: agent needs a "
+                f"{self.privileged_block_dim}-wide block (privileged_dim="
+                f"{self.privileged_dim}, priv_eval_dim={self.priv_eval_dim}) "
+                f"but the collector {'did not emit' if privs is None else 'emitted'} "
+                "'privileged' — the collector flag and the agent hparam must be "
+                "set together"
             )
         flat_obs = torch.as_tensor(batch["obs"], dtype=torch.float32, device=self.device)
         flat_actions = torch.as_tensor(batch["actions"], device=self.device)
@@ -1169,8 +1435,20 @@ class PPOAgent(Agent):
             aux_target, aux_allow, aux_valid, aux_stats = self._prepare_aux(
                 flat_obs, torch.as_tensor(opp_choice, device=self.device)
             )
+        # The block, read by design B's head whichever critic is in play; and
+        # the critic's own input, which is obs ‖ privileged ONLY under D18
+        # (an alias, no copy, otherwise) — update()'s construction, minus the
+        # next_obs half this route does not have. `_optimize` needs no change
+        # for the critic: it already indexes flat_critic_obs uniformly and
+        # never assumes it equals flat_obs.
+        flat_priv = None
+        if self.privileged_block_dim:
+            flat_priv = torch.as_tensor(privs, dtype=torch.float32, device=self.device)
+        flat_critic_obs = flat_obs
+        if self.privileged_dim:
+            flat_critic_obs = torch.cat([flat_obs, flat_priv], dim=-1)
         with torch.no_grad():
-            values = self.critic(flat_obs).squeeze(-1)
+            values = self.critic(flat_critic_obs).squeeze(-1)
         advantages = episode_gae(
             batch["rewards"],
             values.cpu().numpy(),
@@ -1181,11 +1459,12 @@ class PPOAgent(Agent):
         advantages_t = torch.as_tensor(advantages, device=self.device)
         flat_targets = advantages_t + values
         metrics = self._optimize(
-            flat_obs, flat_actions, flat_masks, flat_obs,
+            flat_obs, flat_actions, flat_masks, flat_critic_obs,
             advantages_t, flat_targets, flat_old_logp,
             steps_seen=steps_seen,
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
             aux_stats=aux_stats, flat_old_values=values,
+            flat_priv=flat_priv,
         )
         return metrics
 
@@ -1204,6 +1483,7 @@ class PPOAgent(Agent):
         aux_valid: torch.Tensor | None = None,
         aux_stats: dict[str, float] | None = None,
         flat_old_values: torch.Tensor | None = None,
+        flat_priv: torch.Tensor | None = None,
     ) -> dict[str, float]:
         """The epoch x minibatch optimization on a prepared flat batch, plus
         its diagnostics — everything downstream of advantage computation,
@@ -1216,6 +1496,19 @@ class PPOAgent(Agent):
         aux_stats = dict(aux_stats or {})
         if self.value_clip_eps > 0.0 and flat_old_values is None:
             raise ValueError("value_clip_eps > 0 needs the pre-update values (flat_old_values)")
+        if self.priv_eval_head is not None and flat_priv is None:
+            raise ValueError(
+                "priv_eval_coef > 0 but no privileged block reached _optimize: "
+                "the head would train on nothing"
+            )
+        # Design B's head reads obs ‖ priv REGARDLESS of the critic's width —
+        # `flat_critic_obs` is the plain obs on a design-B-only lane and the
+        # concat on an A+B one, so building the head's input here from the two
+        # pieces is the one form that is correct on both (and bit-identical to
+        # `flat_critic_obs` when D18 is also on).
+        priv_eval_obs = (
+            None if flat_priv is None else torch.cat([flat_obs, flat_priv], dim=-1)
+        )
         # Mechanism diagnostics, computed ONCE per update on the whole batch
         # (DESIGN.md §5: without them a null result cannot distinguish "the
         # lever did nothing" from "the lever never changed the learning
@@ -1243,6 +1536,24 @@ class PPOAgent(Agent):
             # scale, so this is the only place a shaping term's effect on
             # advantage magnitude is visible at all.
             adv_std = float(flat_advantages.std(unbiased=False))
+            # Design B's read, computed the same way and on the same batch, so
+            # the two EVs are directly comparable — the question the head
+            # exists to answer is whether the privileged view fits the SAME
+            # returns better than `self.critic` does. Costs one extra forward
+            # per update (the critic's residual is free because it IS the
+            # advantage; this head's is not), and no key at all when the head
+            # is absent.
+            priv_eval_stats: dict[str, float] = {}
+            if self.priv_eval_head is not None:
+                pe_pred = self.priv_eval_head(priv_eval_obs).squeeze(-1)
+                priv_eval_stats["priv_eval/explained_variance"] = (
+                    0.0
+                    if float(target_var) < 1e-12
+                    else float(
+                        1.0
+                        - (flat_targets - pe_pred).var(unbiased=False) / target_var
+                    )
+                )
 
         # Staged unfreeze (no-op unless critic_warmup_updates > 0): the actor
         # is frozen for the first N updates while the critic regresses onto
@@ -1281,6 +1592,13 @@ class PPOAgent(Agent):
                 # "safe" against an anneal that writes [0] and [1] by index.
                 self.optimizer.param_groups[2]["lr"] = (
                     self.base_lr * self.actor_lr_scale * frac
+                )
+            if self._priv_eval_group >= 0:
+                # Critic-side: the value stack's own schedule, unscaled. By the
+                # RECORDED index, because the group is 2 without the aux head
+                # and 3 with it.
+                self.optimizer.param_groups[self._priv_eval_group]["lr"] = (
+                    self.base_lr * frac
                 )
 
         batch_size = flat_actions.shape[0]
@@ -1418,6 +1736,17 @@ class PPOAgent(Agent):
                         # and has the same channel (review MF-1b).
                         # Rollout-level, not divided by grad_steps.
                         aux_stats["aux/loss_mb0"] = aux_loss
+                if self.priv_eval_head is not None:
+                    # AFTER the clip read above, BEFORE the step — the same
+                    # placement rule the aux term follows, so design B cannot
+                    # move `loss/grad_norm` or `loss/grad_clip_frac` even by
+                    # accident. It reads obs ‖ priv (its own input, NOT the
+                    # critic's — those differ on a design-B-only lane) and
+                    # `flat_targets[idx]` (the returns the critic regresses),
+                    # and writes only into its own head's `.grad`.
+                    sums["loss/priv_eval_value"] += self._priv_eval_gradient(
+                        priv_eval_obs[idx], flat_targets[idx]
+                    )
                 self.optimizer.step()
                 if self.l2_init_decay > 0.0:
                     # AFTER the step and after the clip read above: the lever
@@ -1449,6 +1778,9 @@ class PPOAgent(Agent):
             **{name: total / grad_steps for name, total in sums.items()},
             "loss/explained_variance": explained_variance,
             "loss/adv_std": adv_std,
+            # Batch-level already; must not be divided by grad_steps. Empty
+            # unless the privileged evaluator head exists.
+            **priv_eval_stats,
             **tail_stats,
             # Rollout-level label diagnostics; already single numbers for this
             # update and must not be divided. Empty unless the lever is on.
@@ -1474,6 +1806,15 @@ class PPOAgent(Agent):
             # score_ladder.py and d22_dormant_rank.py load a D25 checkpoint
             # unmodified (R0-2b).
             state["aux_head"] = self.aux_head.state_dict()
+        if self.priv_eval_head is not None:
+            # A rider, exactly like `aux_head`: `actor` and `critic` keep the
+            # keys and counts a control checkpoint has, so eval_checkpoint.py,
+            # score_ladder.py and d22_dormant_rank.py load a design-B
+            # checkpoint unmodified. It is a rider and not a fourth top-level
+            # net because the head is AGENT-owned — the search evaluator loads
+            # it through `make_agent` from the run's own config, which is how
+            # every eval site already rebuilds.
+            state["priv_eval_head"] = self.priv_eval_head.state_dict()
         if self.l2_init_decay > 0.0:
             # A digest, not the anchors: theta0.pt lives once in the run dir.
             # Riders are ignored by load_state_dict on purpose — an EVAL-side
@@ -1494,6 +1835,17 @@ class PPOAgent(Agent):
                 "checkpoint carries a D25 aux head but this agent has "
                 "aux_oppact_coef = 0: the auxiliary head would be dropped "
                 "without a word. Rebuild the agent from the run's own config."
+            )
+        # The same rule for design B's head, and the same asymmetry: a
+        # checkpoint that carries it must not load silently into an agent
+        # without one (the search evaluator would be a fresh random net), while
+        # a head-on agent warm-starting from a control checkpoint is
+        # legitimate and leaves the head at its init.
+        if state.get("priv_eval_head") is not None and self.priv_eval_head is None:
+            raise ValueError(
+                "checkpoint carries a privileged evaluator head but this agent "
+                "has priv_eval_coef = 0: the head would be dropped without a "
+                "word. Rebuild the agent from the run's own config."
             )
         self.actor.load_state_dict(state["actor"])
         self.critic.load_state_dict(state["critic"])
@@ -1533,6 +1885,12 @@ class PPOAgent(Agent):
         aux_state = state.get("aux_head")
         if aux_state is not None:
             self.aux_head.load_state_dict(aux_state)
+        # Absent from every checkpoint written before 2026-09-10; .get keeps
+        # them loadable into a design-B agent, which then trains its head from
+        # its own init.
+        priv_eval_state = state.get("priv_eval_head")
+        if priv_eval_state is not None:
+            self.priv_eval_head.load_state_dict(priv_eval_state)
 
     def begin_warm_start(self) -> None:
         """`init_from` semantics, settled 2026-08-05: a warm start is a FRESH

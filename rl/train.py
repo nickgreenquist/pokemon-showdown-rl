@@ -752,10 +752,14 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
                          f"{{'opp_action', 'seat_tag'}} only; got "
                          f"{sorted(extra)} — the async path emits terminal "
                          "outcome rewards only")
-    if cfg.agent.get("privileged_dim"):
+    if cfg.agent.get("privileged_dim") or cfg.agent.get("priv_eval_dim"):
+        # STILL REFUSED HERE, unlike the engine route: the server-backed async
+        # collector has no seat-2 battle object to emit the block from, so
+        # BOTH consumers — D18's wide critic and design B's evaluator head —
+        # would train on zeros.
         raise ValueError("collector.mode 'async' does not collect the "
-                         "privileged block (D18) — the wide critic would "
-                         "train on zeros")
+                         "privileged block (D18 / priv_eval) — the wide "
+                         "critic or evaluator head would train on zeros")
     if cfg.selfplay.get("harvest_both_seats", False):
         raise ValueError("collector.mode 'async' has no seat-2 harvest hook "
                          "(BI-G4-1 is the sync path's); use collector.mode 'sync'")
@@ -818,20 +822,38 @@ def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
                          f"{{'opp_action', 'seat_tag'}} only; got "
                          f"{sorted(extra)} — the engine path emits terminal "
                          "outcome rewards only")
-    if cfg.agent.get("privileged_dim"):
-        # The EMITTER exists (`Gen1Env`'s `privileged` flag, verified against a
-        # rebuilt reference in Rust) but nothing carries the block from the
-        # episode dict into PPO's privileged path on this route yet, so a wide
-        # critic would still train on zeros. Kept as a refusal rather than a
-        # half-wired feature: the arm is IDEAS 4.7 and needs its own pre-reg
-        # regardless, and T-1 should price the SECOND full encode per learner
-        # row first -- plan §12 waves that cost through on the grounds that
-        # "the collection loop is I/O-dominated", which is exactly what this
-        # port stops being true.
-        raise ValueError("collector.mode 'engine' does not yet carry the "
-                         "privileged block (D18) into the update — the emitter "
-                         "exists (BatchEnv(privileged=True)) but the seam does "
-                         "not; the wide critic would train on zeros")
+    # Either consumer of the block turns the emitter on — D18's wide critic
+    # (`privileged_dim`) or design B's evaluator head (`priv_eval_dim`). They
+    # are the same block, so both are checked against the same width.
+    priv = (cfg.agent.get("privileged_dim") or 0) or (cfg.agent.get("priv_eval_dim") or 0)
+    if priv:
+        # D18's block IS carried on this route (the refusal that used to sit
+        # here was lifted with the seam, docs/proposals/privileged_critic_
+        # engine_route.md §1.4). There is deliberately NO `collector.privileged`
+        # key: the flag is DERIVED from the AGENT'S OWN NEED at the one place
+        # the collector is built (`agent.privileged_block_dim`, _async_loop
+        # below), because the engine route has one emitter and one consumer in
+        # one process, so the two-knob pairing the Node path needs has no
+        # failure mode to prevent here. An explicit key has already broken one
+        # config (tests/test_engine_a1_prereg.py:59-67 —
+        # `collector.privileged` is rejected by ENGINE_KEYS).
+        #
+        # STILL UNMEASURED (plan §12 / NOTES.md:1497-1504): the block costs a
+        # SECOND full 828 encode per learner row inside the Rust step. The
+        # ceiling from the banked profile is <= ~3% of wall; price it with
+        # `scripts/engine_t1.py --leg b` before an arm relies on it.
+        from rl.envs.showdown import PRIV_DIM
+
+        if priv != PRIV_DIM:
+            raise ValueError(
+                f"agent privileged block width {priv} != this process's PRIV_DIM "
+                f"{PRIV_DIM}: a mismatched critic would read a shifted slice "
+                "with no error anywhere. The engine's block is 408 wide "
+                "(engine/pkmn_gen1/src/encoder.rs asserts it at compile time), "
+                "and the Python constant is env-var driven — if this says "
+                "anything but 408, set POKEMON_RL_ENCODER_V2=1 and "
+                "POKEMON_RL_ENCODER_IDS=1"
+            )
     if cfg.selfplay.get("harvest_both_seats", False):
         raise ValueError("collector.mode 'engine' has no seat-2 harvest hook; "
                          "seat 2's rows are cheap here but nothing collects "
@@ -922,6 +944,14 @@ def _async_loop(
             team_bank=cfg.collector["team_bank"],
             learner_seat=cfg.collector.get("learner_seat", "p1"),
             opp_action=opp_action,
+            # DERIVED FROM THE AGENT'S OWN NEED, not configured (§1.4f): one
+            # emitter and one consumer in one process, so the agent is the
+            # single source of truth and `update_episodes`' seam is the runtime
+            # check. `privileged_block_dim` is non-zero for EITHER consumer —
+            # D18's wide critic or design B's evaluator head — so a design-B
+            # lane collects the block with `self.critic` left narrow. The width
+            # was validated at launch in _engine_collector_checks.
+            privileged=bool(getattr(agent, "privileged_block_dim", 0)),
             battle_counter=int(rs.get("battle_counter", 0)),
         )
     else:

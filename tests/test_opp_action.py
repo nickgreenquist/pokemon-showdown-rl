@@ -631,9 +631,14 @@ def test_d25_trunk_gates_r02_r02b_r02c_r03_r07_r09():
 
 def test_the_lever_refuses_the_configurations_it_was_not_ratified_for():
     """The label space is not a free choice: L6 is R0-L's pre-stated fallback,
-    executed because the 12-class adopt-rule FAILED at both named lanes. And
-    D18's plumbing must not ride along — R0-1's fingerprint requires
-    privileged_dim and env_kwargs.privileged ABSENT."""
+    executed because the 12-class adopt-rule FAILED at both named lanes.
+
+    R0-1's "D18's plumbing must not ride along" clause used to be a third
+    constructor refusal here (aux_oppact_coef + privileged_dim -> TypeError).
+    LIFTED 2026-09-10: it was a LAUNCH FINGERPRINT for the D25 12M rung, whose
+    lanes are banked, and the two levers touch disjoint parameter sets — see
+    tests/test_privileged_aux_seam.py, which pins the property the refusal was
+    asserting by refusal."""
     import gymnasium as gym
     import numpy as np
 

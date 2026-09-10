@@ -3,11 +3,19 @@
 import numpy as np
 import pytest
 
-from rl.buffers.episode import EpisodeDataset, _episode_gae_reference, episode_gae
+from rl.buffers.episode import (
+    EpisodeDataset,
+    _episode_boundaries,
+    _episode_gae_reference,
+    episode_gae,
+)
 from rl.buffers.rollout import compute_gae
 
+PRIV = 408
 
-def _episode(length, action=0, outcome=1.0, opp_choice=False, version=0):
+
+def _episode(length, action=0, outcome=1.0, opp_choice=False, version=0,
+             privileged=False):
     ep = {
         "obs": np.full((length, 4), 0.5, dtype=np.float32),
         "masks": np.ones((length, 3), dtype=np.bool_),
@@ -20,6 +28,8 @@ def _episode(length, action=0, outcome=1.0, opp_choice=False, version=0):
         ep["opp_choice"] = np.tile(
             np.array([1, 33, 1], dtype=np.int32), (length, 1)
         )
+    if privileged:
+        ep["privileged"] = np.full((length, PRIV), 0.25, dtype=np.float32)
     return ep
 
 
@@ -52,6 +62,57 @@ def test_dataset_opp_choice_is_all_or_none():
     with pytest.raises(AssertionError, match="opp_choice"):
         ds.append(_episode(3, opp_choice=True))
     assert "opp_choice" not in ds.drain()
+
+
+def test_dataset_privileged_is_all_or_none():
+    """D18's block on the engine route rides the SAME optional-key rule as D25's
+    labels: a mixed dataset would silently train the wide critic on a subset."""
+    ds = EpisodeDataset()
+    ds.append(_episode(3, privileged=True))
+    with pytest.raises(AssertionError, match="privileged"):
+        ds.append(_episode(2, privileged=False))
+    batch = ds.drain()
+    assert batch["privileged"].shape == (3, PRIV)
+    ds.append(_episode(2, privileged=False))
+    with pytest.raises(AssertionError, match="privileged"):
+        ds.append(_episode(3, privileged=True))
+    assert "privileged" not in ds.drain()
+
+
+def test_dataset_carries_both_optional_keys_at_once():
+    ds = EpisodeDataset()
+    ds.append(_episode(3, opp_choice=True, privileged=True))
+    ds.append(_episode(5, opp_choice=True, privileged=True))
+    batch = ds.drain()
+    assert batch["opp_choice"].shape == (8, 3)
+    assert batch["privileged"].shape == (8, PRIV)
+    assert batch["obs"].shape == (8, 4)
+    # A short optional row is a length bug, not a shape the drain should tile.
+    ragged = _episode(3, privileged=True)
+    ragged["privileged"] = ragged["privileged"][:2]
+    with pytest.raises(AssertionError, match="privileged"):
+        ds.append(ragged)
+
+
+def test_no_next_privileged_is_needed_on_this_path():
+    """The one real divergence from the Node contract, pinned rather than
+    argued. `update_episodes` makes ONE critic pass and shifts V within an
+    episode, so V(s_{t+1}) is the value computed AT ROW t+1 — from row t+1's own
+    privileged block, which is exactly what `next_privs` supplies on the sync
+    path. The last row bootstraps to 0, so the FINAL state's block is never
+    read and therefore never has to be emitted, stored or carried. Same reason
+    `next_obs` does not exist here."""
+    values = np.arange(1.0, 9.0, dtype=np.float32)      # two episodes, 3 + 5
+    lengths = np.array([3, 5], dtype=np.int64)
+    rewards = np.zeros(8, dtype=np.float32)
+    terminated, next_values = _episode_boundaries(rewards, values, lengths)
+    ends = [2, 7]
+    assert terminated.tolist() == [0, 0, 1, 0, 0, 0, 0, 1]
+    for t in range(8):
+        if t in ends:
+            assert next_values[t] == 0.0, t   # the terminal block is never read
+        else:
+            assert next_values[t] == values[t + 1], t   # row t+1's OWN value
 
 
 def test_dataset_rejects_wrong_dtype_and_ragged_rows():

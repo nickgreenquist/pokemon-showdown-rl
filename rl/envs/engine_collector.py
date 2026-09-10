@@ -110,6 +110,7 @@ class EngineCollector:
         team_bank: str | pathlib.Path,
         learner_seat: str = "p1",
         opp_action: bool = False,
+        privileged: bool = False,
         max_updates_per_battle: int = 8000,
         battle_counter: int = 0,
     ):
@@ -129,6 +130,12 @@ class EngineCollector:
         self.seam = _Seam()
         self._policy = policy
         self._opp_action = bool(opp_action)
+        # D18's block on this route (docs/proposals/privileged_critic_engine_
+        # route.md §1.4). Opt-in because it costs a SECOND full 828 encode per
+        # learner row inside `step()` (engine/pkmn_gen1/src/env.rs:295-302) —
+        # cheap against a socket, not free against the engine. Off, the Rust
+        # side emits nothing and `_episode` adds no key.
+        self._privileged = bool(privileged)
         self._max_updates = int(max_updates_per_battle)
 
         # THE FG-5 HABIT, on the training path. `build_info()` only RECORDS
@@ -160,7 +167,8 @@ class EngineCollector:
         # are drawn here, so a resumed lane that set it later would replay its
         # first k battles -- same seeds, same teams -- before it took effect.
         self.env = pkmn_gen1.BatchEnv(
-            k, int(seed), tables, payload, learner_seat, int(battle_counter)
+            k, int(seed), tables, payload, learner_seat, int(battle_counter),
+            privileged=self._privileged,
         )
         self.build_info = pkmn_gen1.build_info()
 
@@ -383,4 +391,14 @@ class EngineCollector:
         }
         if self._opp_action:
             episode["opp_choice"] = np.asarray(raw["opp_choice"], dtype=np.int32)
+        if self._privileged:
+            # SAME KEY AND SAME SHAPE CONTRACT AS THE NODE PATH's
+            # `info["privileged"]` (rl/envs/showdown.py::_emit_privileged):
+            # (n, PRIV_DIM) float32, one row per LEARNER row, in learner-row
+            # order — env.rs:295-302 appends one block in the same branch that
+            # appends `ep.obs`. `next_privs` has no analogue here and needs
+            # none: update_episodes shifts V within an episode and bootstraps
+            # the terminal to 0, so the successor's block is row t+1's own and
+            # the final state's is never read (rl/buffers/episode.py:97-112).
+            episode["privileged"] = np.asarray(raw["privileged"], dtype=np.float32)
         return episode

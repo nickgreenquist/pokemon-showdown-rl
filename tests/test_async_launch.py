@@ -123,7 +123,13 @@ def test_engine_mode_accepted(tmp_path):
         (dict(env_id="Connect4-v0"), "gen-1 only"),
         (dict(normalize_reward=True), "normalizers"),
         (dict(env_kwargs={"faint_shaping": 1.0}), "opp_action"),
-        (dict(agent={"privileged_dim": 7}), "privileged"),
+        # D18 is CARRIED on the engine route since 2026-09-10 (the seam), so
+        # this is no longer a blanket refusal — it is a WIDTH guard. A
+        # privileged_dim that is not the encoder's PRIV_DIM would feed the
+        # critic a shifted slice with no error anywhere downstream. (The
+        # accepted width is 408 and only under the encoder env vars, so the
+        # positive case lives in a subprocess: tests/test_priv_eval_head.py.)
+        (dict(agent={"privileged_dim": 7}), "PRIV_DIM"),
         (dict(selfplay={**SELFPLAY, "harvest_both_seats": True}), "harvest"),
         (dict(selfplay={}), "selfplay.opponent"),
         (dict(selfplay={**SELFPLAY, "opponent": "heuristics"}), "selfplay.opponent"),

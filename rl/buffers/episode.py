@@ -40,10 +40,21 @@ EPISODE_KEYS = {
     "old_logp": np.float32,
     "version": np.int64,
 }
-# Optional D25 label row: the opponent's simultaneous action identity,
-# (kind, id, flags) int32 — present on every episode or on none (the loud
-# seam rule: a mixed dataset would silently train the aux head on a subset).
-OPT_KEY = "opp_choice"
+# Optional per-decision rows, each present on EVERY episode or on NONE (the
+# loud seam rule: a mixed dataset would silently train a head on a subset).
+# Both are (n, W) with the same `n` the required keys carry, so no length
+# logic changes:
+#   opp_choice  D25's label — the opponent's simultaneous action identity,
+#               (kind, id, flags) int32, W = 3.
+#   privileged  D18's block — the OPPONENT seat's own-side slice of its own
+#               encoding, float32, W = PRIV_DIM (408 at gen 1). Emitted by
+#               the engine collector under `privileged=True`; the same key and
+#               shape the Node path puts in `info["privileged"]`.
+# There is deliberately no `next_privileged`: per-episode GAE shifts V within
+# an episode and bootstraps the terminal to 0 (`_episode_boundaries` below),
+# so the successor's block is row t+1's own and the last row's is never read —
+# the same reason `next_obs` does not exist on this path.
+OPT_KEYS = ("opp_choice", "privileged")
 
 
 class EpisodeDataset:
@@ -71,11 +82,17 @@ class EpisodeDataset:
             arr = episode[key]
             assert arr.dtype == dtype, f"{key}: {arr.dtype} != {dtype}"
             assert len(arr) == length, f"{key}: length {len(arr)} != {length}"
+        for key in OPT_KEYS:
+            if key not in episode:
+                continue
+            arr = episode[key]
+            assert len(arr) == length, f"{key}: length {len(arr)} != {length}"
         if self._episodes:
-            has = OPT_KEY in self._episodes[0]
-            assert (OPT_KEY in episode) == has, (
-                "opp_choice must be present on every episode or on none"
-            )
+            for key in OPT_KEYS:
+                has = key in self._episodes[0]
+                assert (key in episode) == has, (
+                    f"{key} must be present on every episode or on none"
+                )
         self._episodes.append(episode)
         self.steps += length
 
@@ -86,8 +103,9 @@ class EpisodeDataset:
         batch = {
             key: np.concatenate([ep[key] for ep in eps]) for key in EPISODE_KEYS
         }
-        if OPT_KEY in eps[0]:
-            batch[OPT_KEY] = np.concatenate([ep[OPT_KEY] for ep in eps])
+        for key in OPT_KEYS:
+            if key in eps[0]:
+                batch[key] = np.concatenate([ep[key] for ep in eps])
         batch["lengths"] = np.array([len(ep["actions"]) for ep in eps], dtype=np.int64)
         self._episodes = []
         self.steps = 0
