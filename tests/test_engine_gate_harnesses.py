@@ -226,11 +226,18 @@ def test_the_two_legs_report_the_same_field_set():
     assert s.keys() == engine_like.keys()
 
 
-def test_the_server_leg_declares_itself_unverified():
-    """It has never run. That must be visible in the artifact, not only in a
-    commit message."""
+def test_the_server_leg_declares_its_bring_up_provenance():
+    """Where this leg stands must be visible in the ARTIFACT, not only in a
+    commit message.
+
+    It said `"unverified"` until 2026-09-09, when the leg first ran and the
+    bring-up found three faults (commit bc1c2b8). The declaration was then
+    replaced by a truthful successor, `"bring_up"`, and this test did not move
+    with it — so it asserted a word the script had correctly stopped saying.
+    It now pins that SOME provenance is emitted, not that one particular
+    sentence survives forever."""
     src = (ROOT / "scripts/engine_d1.py").read_text()
-    assert "NEVER RUN" in src
-    assert '"unverified"' in src
+    assert '"bring_up"' in src
+    assert "2026-09-09" in src
     # And the design decision the plan's own arithmetic forced.
     assert "DIFFERENCE OF" in src and "gen1randombattle" in src

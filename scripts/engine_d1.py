@@ -271,10 +271,13 @@ def _server_rows(a, b) -> dict:
 def server_leg(bank: pathlib.Path, n: int, seed: int, concurrency: int = 8) -> dict:
     """The same policies on the real simulator.
 
-    NEVER RUN. Written 2026-09-08 while a fleet owned the box, so every line
-    below is UNVERIFIED against a live server: treat the first run as a
-    bring-up, not as the gate, and read the sanity lines it prints before
-    trusting a single number.
+    Written 2026-09-08 while a fleet owned the box and NEVER RUN until
+    2026-09-09, when the bring-up found three faults in one sitting: a silent
+    loop-binding hang (players built in a sync frame, then awaited from a fresh
+    `asyncio.run` loop — both processes at ZERO CPU forever), no watchdog, and a
+    self-inflicted poisoned username pair. All three are fixed below and the
+    fixes are load-bearing — see `_play_all`. The gate then PASSED at n=10,000
+    per matchup per simulator.
 
     Chunked and resume-safe (CLAUDE.md rule 4): each chunk's rows are appended
     to `<out>/server_partial.json`, so a death costs one chunk and progress is

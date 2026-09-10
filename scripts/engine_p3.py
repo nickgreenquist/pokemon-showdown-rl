@@ -121,7 +121,7 @@ def chi_square_sf(stat: float, dof: int) -> float:
     return 0.5 * math.erfc(z / math.sqrt(2.0))
 
 
-def move_marginals(bank_sets: dict[str, list[frozenset]]) -> dict:
+def move_marginals(bank_counts: dict[str, Counter], bank_draws: Counter) -> dict:
     """Per (species, move): bank presence rate vs the prior's own presence rate.
 
     The prior (`randbats_prior._samples`) is a Python re-implementation of PS's
@@ -140,15 +140,17 @@ def move_marginals(bank_sets: dict[str, list[frozenset]]) -> dict:
     cells = []
     deterministic = 0
     unknown: dict[str, list[str]] = {}
-    for sid, draws in sorted(bank_sets.items()):
+    # COUNTERS, not one frozenset per mon. This statistic needs only `n_bank`
+    # and a per-move presence count, but the old form retained a frozenset for
+    # every mon in the bank: 12 per PAIR, ~3.1 kB/pair, which is ~16 GB on the
+    # 5,000,000-pair A-1 bank. It swapped a 24 GB box on 2026-09-10 and made the
+    # whole suite look wedged. Memory is now O(species x moves).
+    for sid, observed in sorted(bank_counts.items()):
         prior_ids, mat = randbats_prior._samples(sid)
-        if not prior_ids or not draws:
+        n_bank = bank_draws[sid]
+        if not prior_ids or not n_bank:
             continue
-        n_bank, n_prior = len(draws), mat.shape[0]
-        observed: Counter = Counter()
-        for d in draws:
-            for m in d:
-                observed[m] += 1
+        n_prior = mat.shape[0]
         extra = sorted(set(observed) - set(prior_ids))
         if extra:
             unknown[sid] = extra
@@ -225,7 +227,8 @@ def analyse(payload_pairs, report: Counter, failures: list) -> dict:
     species_even: Counter = Counter()
     species_odd: Counter = Counter()
     ditto_first = ditto_second = 0
-    bank_sets: dict[str, list[frozenset]] = defaultdict(list)
+    bank_counts: dict[str, Counter] = defaultdict(Counter)
+    bank_draws: Counter = Counter()
     levels: dict[str, set] = defaultdict(set)
 
     for i, (t1, t2) in enumerate(payload_pairs):
@@ -254,8 +257,13 @@ def analyse(payload_pairs, report: Counter, failures: list) -> dict:
                 sid = to_id_str(name)
                 bucket[sid] += 1
                 levels[sid].add(mon["level"])
-                bank_sets[sid].append(
-                    frozenset(to_id_str(ENGINE_MOVES[m]) for m in mon["moves"])
+                bank_draws[sid] += 1
+                # `set`, not the raw generator: the frozenset this replaces
+                # deduped a move repeated within one set. Nothing in
+                # gen1randombattle draws one, but the statistic must not change
+                # silently if something ever does.
+                bank_counts[sid].update(
+                    {to_id_str(ENGINE_MOVES[m]) for m in mon["moves"]}
                 )
                 report["mons"] += 1
 
@@ -268,7 +276,7 @@ def analyse(payload_pairs, report: Counter, failures: list) -> dict:
         "ditto_teams_first": ditto_first,
         "ditto_teams_second": ditto_second,
         "levels_multi_valued": {k: sorted(v) for k, v in levels.items() if len(v) > 1},
-        "move_marginals": move_marginals(bank_sets),
+        "move_marginals": move_marginals(bank_counts, bank_draws),
     }
 
 

@@ -25,7 +25,13 @@ import pytest
 pytest.importorskip("pkmn_gen1", reason="build engine/pkmn_gen1 first")
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-BANKS = sorted(glob.glob(str(ROOT / "data/engine/teams_*.bin")))
+# SMALLEST bank, not `sorted(...)[-1]`. That idiom picked the bank whose
+# NAME sorts last, which became the 480 MB / 5,000,000-pair A-1 bank the
+# moment it was generated (2026-09-09) — a test that wanted a few teams
+# suddenly read 100x the data. These tests want A bank, not THE BIGGEST
+# one, so they take the cheapest that exists.
+BANKS = sorted(glob.glob(str(ROOT / "data/engine/teams_*.bin")),
+               key=lambda p: pathlib.Path(p).stat().st_size)
 
 _CHILD = r"""
 import json, pathlib, sys
