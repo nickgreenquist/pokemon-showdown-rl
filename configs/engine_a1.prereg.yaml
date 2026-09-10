@@ -252,9 +252,17 @@ launch_authorization:
   granted_by: maintainer, in chat 2026-09-09 ("all train and eval done, the box is free. go go go")
   covers: >-
     the full frozen chain in scripts/engine_gates.sh — bank generation, D-1,
-    T-1 (a)(b), the three A-1 lanes, T-1 (c)(d), both arms' evals at
-    n=12,000/seed, and the grade. CLAUDE.md rule 4's "2-5 h ask first" band is
-    thereby answered for the A-1 lanes (~2.5 h x 3 concurrent, projected).
+    T-1 (a)(b), the three A-1 lanes, T-1 (c)(d), and the ENGINE arm's
+    DESCRIPTIVE evals at n=12,000/seed. CLAUDE.md rule 4's "2-5 h ask first"
+    band is thereby answered for the A-1 lanes (~2.5 h x 3 concurrent,
+    projected).
+  does_not_cover: >-
+    A GRADE. The same day's authorization says compute no verdict, so the
+    banked arm is NOT re-evaluated, the runner never calls
+    scripts/engine_a1_grade.py, and the grader refuses anyway while
+    verdict_authorized is false. An earlier draft of this field said the
+    authorization covered "the grade"; it never did, and that wording is
+    corrected here rather than left to be quoted.
   preconditions_at_grant:
     gen4_chapter: CLOSED — logs/gen4_wang50m_postfleet.log reads POST-FLEET DONE (pooled vs-SH 0.8788, M-YES, S5-MATCHED)
     d1: STILL UNRUN — it is step 2 of the chain and the chain HARD-STOPS if it fails; A-1 does not launch on a failed D-1
@@ -440,6 +448,60 @@ rulings_wanted:
       Under both_must_hold the JOINT false-alarm rate is worse than the
       disclosed single-read figure at every sigma. JOURNEY 7.5 names only the
       endpoint, and this feeds an irreversible failure branch on a P0 item.
+  RW-9:
+    topic: A-1a, distributional row parity — build it, and what may it decide?
+    added: 2026-09-09 evening, from another session's rulings + an independent review
+    question: >-
+      A-1a fixes ONE checkpoint, runs NO learning, collects rows from BOTH
+      collectors under the same policy and compares the row DISTRIBUTIONS
+      (observation, reward, done, action mask, episode length). It attacks the
+      hole engine/pkmn_gen1/src/track.rs admits to in terms — "the half of the
+      port that gate P-1 deliberately does not test" — and it is far sharper
+      than an outcome test, because it reads the rows themselves instead of a
+      win rate downstream of millions of them. Cost is hours, not a fleet.
+      THE RULING THAT PROPOSED IT WANTED A-1a TO CARRY THE DECISION. It cannot,
+      and this is the one place the two reviews diverged from my first read:
+      row parity under a FROZEN POLICY tests the collector's OUTPUT, not
+      LEARNING. A collector can emit bit-identical rows and still break
+      learning through staleness, through the recorded-old_logp path, or
+      through GAE on unfinished episodes — none of which a frozen-policy
+      comparison touches at all.
+      Two things this does NOT need to worry about, both established
+      2026-09-09: the team-source confound is not real (the bank calls the same
+      PS generator object the server does, showdown/sim/teams.ts:629-649 from
+      battle.ts:3172, same pin, Ditto pair coupling preserved — the
+      distributions match), and the residual asymmetry that ruling gestured at
+      is train-on-finite-support vs evaluate-on-fresh-teams, which is RW-6's
+      business and is answered by bank SIZE, not by any distributional proof.
+    my_recommendation: >-
+      BUILD IT, AS AN ADDITIONAL GATE THAT BLOCKS IN ONE DIRECTION ONLY. A-1a
+      FAILING blocks the switch and opens parity diagnosis. A-1a PASSING adds
+      evidence and licenses nothing on its own — A-1 still has to clear its
+      band. Anything stronger would let a frozen-policy test stand in for a
+      learning test, which is exactly the substitution both reviews reject.
+  RW-10:
+    topic: fund a FRESH Node arm at 12M, run alongside the engine arm?
+    added: 2026-09-09 evening
+    question: >-
+      RW-4 asks whether the baseline may be historical. This is the other way
+      out of that question: run three Node lanes at 12M on this box now, and
+      the baseline is same-box, same-week, same-tree by construction. It also
+      yields the true head-to-head A/B AT 12M SCALE for free, which no
+      1M-dose measurement can — scripts/engine_ab_speed.py answers "how fast",
+      but only a 12M Node arm answers "how fast at the dose the gate reads at".
+      COST, measured not guessed: the Node path ran 574.1 steps/s aggregate
+      3-wide on this box tonight (results/t1/leg_d.json), so 3 x 12M = 36M
+      steps is ~17.4 h.
+      THAT PUTS IT OVER CLAUDE.md RULE 4's 5 h HAND-OVER LINE for training, so
+      this is not a ruling I can act on even if you approve the science — it
+      comes back to you as a command to launch, not as something the runner
+      picks up.
+    my_recommendation: >-
+      Worth the overnight, and it retires RW-4 rather than answering it. But it
+      is strictly additive: A-1's engine arm is already collected, the banked
+      baseline qualifies on audit (6 of 10 candidates, all batch50m), and
+      nothing is blocked on this. Rule it only if you want the historical
+      question gone for good.
 
 # RATIFICATION STATE — TWO INSTRUCTIONS, THE LATER ONE WINS.
 # 2026-09-09 morning, in chat: "for the rulings, go with your recs" — which I

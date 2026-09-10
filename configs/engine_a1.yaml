@@ -1,13 +1,21 @@
 # =====================================================================
-# STATUS: RATIFIED (design) — NOT LAUNCHABLE (preconditions).
+# STATUS: DESIGN COMPLETE — NOTHING RATIFIED, NO VERDICT AUTHORIZED.
 #   Both 2-Opus reviews APPLIED, tagged [R1-*] / [R2-*] in place.
-#   RW-1..RW-8 RATIFIED by the maintainer 2026-09-09. THIS DESIGN IS NOW
-#   FROZEN: editing it after launch is falsification.
-#   STILL BLOCKED ON: D-1 has NEVER RUN (hard precondition); the
-#   5,000,000-pair team bank does not exist yet; the gen-4 chapter still
-#   owns the box. Launch authorization is SEPARATE from ratification and is
-#   NOT granted — the lanes are ~2.5 h x 3, CLAUDE.md rule 4's "ask first"
-#   band. scripts/engine_gates.sh refuses while any of that holds.
+#   RATIFICATION WAS WITHDRAWN 2026-09-09. The morning's "go with your recs"
+#   was recorded here as a ratification of RW-1..RW-8; the day's standing
+#   authorization then said "do NOT ratify" in terms, and being the later
+#   instruction it governs. So EVERY [RW-n] TAG IN THIS FILE MARKS A
+#   RECOMMENDATION, NOT A RULING — read them that way wherever they appear
+#   below, including where the surrounding sentence reads as settled.
+#   The consequence that bites: NO A-1 VERDICT MAY BE COMPUTED. The engine
+#   ARM has run (it is common to every candidate design and extra seeds are
+#   additive), scripts/engine_gates.sh computes no delta and says so, and
+#   scripts/engine_a1_grade.py refuses without `verdict_authorized: true`.
+#   PRECONDITIONS AT DRAFTING, all since cleared: D-1 had never run (it has
+#   now PASSED, n=10,000/matchup/simulator), the 5,000,000-pair bank did not
+#   exist (it does), and the gen-4 chapter owned the box (it is closed).
+#   Launch authorization is SEPARATE from ratification and WAS granted for
+#   the arm — see `launch_authorization` in the sidecar.
 #
 # A-1 — ENGINE COLLECTOR ACCEPTANCE. The gate that decides whether the
 # pkmn/engine in-process collector replaces the Node/poke-env path as the
@@ -57,17 +65,27 @@
 #
 # EIGHT DECISIONS IN THIS HEADER WERE NOT MINE TO MAKE [R1-M7], AND ALL EIGHT
 # ARE NOW RATIFIED (maintainer, 2026-09-09; recorded in
-# configs/engine_a1.prereg.yaml under ratified_decisions):
+# configs/engine_a1.prereg.yaml under rulings_wanted — as RECOMMENDATIONS,
+# every one of them still owed):
 #   RW-1 k=8, and A-1 accepts the collector AT K=8 only.
 #   RW-2 screen only; no TOST is purchased.
 #   RW-3 the estimator as written.
 #   RW-4 the banked, week-old arm N is ACCEPTED as the reference.
 #   RW-5 gross-breakage screen at |D| < 0.025 on the regime-matched sigma.
 #   RW-6 a 5,000,000-pair bank, floor 1,000,000 enforced at launch.
-#   RW-7 seed reuse approved; the test amendment lands with ratification.
+#   RW-7 seed reuse approved; the test amendment lands with the ruling.
 #   RW-8 P-AUC is SECONDARY — the verdict is P-END alone.
-# The design is FROZEN. What is still owed is not a decision but a
-# MEASUREMENT: D-1 has never run.
+#   RW-9 build A-1a (distributional row parity) as an ADDITIONAL gate that
+#        blocks in ONE DIRECTION: failing blocks the switch, passing licenses
+#        nothing. Added 2026-09-09 after another session's rulings and an
+#        independent review; the review's correction is that row parity under
+#        a FROZEN policy cannot carry a LEARNING verdict.
+#   RW-10 optionally fund a FRESH 3 x 12M Node arm (~17.4 h at tonight's
+#        measured 574.1 steps/s 3-wide) — it retires RW-4 rather than
+#        answering it, and yields the head-to-head A/B at 12M scale. Over
+#        CLAUDE.md rule 4's 5 h line, so it is handed over, not picked up.
+# What is owed is a DECISION on each of the ten, not a measurement: the
+# measurement that used to block this file (D-1) has since PASSED.
 #
 # A-1 IS A GROSS-BREAKAGE SCREEN [RW-5]. It is NOT an equivalence test, and the
 # words "equivalent", "identical" and "no difference" are BARRED on every

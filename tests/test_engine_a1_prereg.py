@@ -146,7 +146,35 @@ def test_nothing_is_ratified_and_no_verdict_is_authorized():
     assert SIDE["verdict_authorized"] is False
     assert SIDE["is_equivalence_test"] is False
     assert SIDE["precondition"]["state_at_drafting"] == "NEVER RUN"
-    assert set(SIDE["rulings_wanted"]) == {f"RW-{i}" for i in range(1, 9)}
+    # RW-1..RW-8 are the original eight and none of them may quietly vanish;
+    # the set is allowed to GROW, because a review that finds a new decision
+    # for the maintainer should be able to add it without editing a test.
+    rw = set(SIDE["rulings_wanted"])
+    assert {f"RW-{i}" for i in range(1, 9)} <= rw, "an open ruling was dropped"
+    assert all(re.fullmatch(r"RW-\d+", k) for k in rw), f"malformed ruling id in {rw}"
+
+
+def test_the_header_does_not_read_as_ratified_while_the_sidecar_is_open():
+    """THE GUARD THIS FILE WAS MISSING, and it caught a real one on 2026-09-09.
+
+    The sidecar recorded the ratification as WITHDRAWN, and the header went on
+    saying "RW-1..RW-8 RATIFIED by the maintainer" and "THIS DESIGN IS NOW
+    FROZEN" for a day. The header is the artifact anyone actually reads, so a
+    header that claims rulings the sidecar says are owed answers them for the
+    maintainer by default — which is the exact failure the whole rulings_wanted
+    apparatus exists to prevent."""
+    if SIDE["ratified_decisions"] not in ({}, [], None):
+        return                                  # genuinely ratified; nothing to check
+    for claim in ("RW-1..RW-8 RATIFIED", "RATIFIED (design)", "ratified_decisions):"):
+        assert claim not in TXT, (
+            f"the header says {claim!r} but the sidecar ratifies nothing — "
+            "one of the two is lying and it is not the sidecar")
+    # and the withdrawal has to be stated where it will be read, not buried
+    head = "\n".join(TXT.splitlines()[:40])
+    assert "WITHDRAWN" in head or "NOTHING RATIFIED" in head, (
+        "the header's opening block must say the rulings are open; a reader "
+        "who stops after the status block must not come away thinking they are "
+        "settled")
 
 
 def test_the_grader_refuses_a_verdict_while_the_band_is_open():
