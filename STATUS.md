@@ -32,9 +32,8 @@ Hard cap: 60 lines. Rewritten in place; newest SESSION_LOGS.md entry wins on con
   a SEED — width buys seeds/hour, never a shorter run.**
 - **Learner levers are COMPLEMENTS:** threads and minibatches are each NEGATIVE alone,
   **1.51x crossed** (7.73 → 5.11 s update). `torch.compile` 0.82x, dead.
-- **Free wins found, not yet applied:** scorer `ctx` factorization (~26% of the epoch
-  loop, verified 3e-07, 1.97x on that layer) and mmap'ing the team bank (0.53 GB/lane
-  duplicated; 1.37 GB → 0.00 GB across 3 holders).
+- **Free wins, not yet applied:** scorer `ctx` factorization (~26% of the epoch loop,
+  verified 3e-07) and an mmap'd team bank (0.53 GB/lane duplicated today).
 - **A-1: NO VERDICT, by instruction.** Descriptive per-seed at n=12,000: s66 0.6640,
   s75 0.6925, s83 0.6555. `ratified_decisions` empty; RW-1..RW-10 all owed.
 
