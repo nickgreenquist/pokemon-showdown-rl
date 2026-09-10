@@ -37,6 +37,7 @@ import argparse
 import copy
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -58,6 +59,27 @@ def busy() -> list[str]:
         if r.stdout.strip():
             out.append(what)
     return out
+
+
+def simulator_workers() -> int:
+    """CLAUDE.md rule 5: `showdown/config/config.js` must set `simulator: 4`.
+
+    THIS IS A CORRECTNESS GUARD ON THE HEADLINE NUMBER, not housekeeping. That
+    setting is worth +81% collection throughput on the Node path, and the file
+    is GITIGNORED — a re-clone silently resets it to the default. Running the
+    A/B against a 1-worker server would hand the Node arm an 81% handicap and
+    inflate the reported speedup by that whole amount, with nothing anywhere in
+    the output to show it happened. So it is read, asserted, and RECORDED in
+    the result as provenance.
+    """
+    cfg = MAIN / "showdown/config/config.js"
+    m = re.search(r"^\s*simulator\s*:\s*(\d+)", cfg.read_text(), re.M)
+    if not m:
+        raise SystemExit(
+            f"{cfg} has no `simulator:` line. CLAUDE.md rule 5 requires "
+            "simulator: 4; without it the Node arm runs ~81% slower and this "
+            "A/B would report a speedup that is mostly a misconfiguration.")
+    return int(m.group(1))
 
 
 def server_up() -> bool:
@@ -187,6 +209,15 @@ def main(argv=None) -> int:
             "measurement — anything else running makes both arms wrong and the "
             "ratio meaningless. Wait, or pass --force to record it as tainted.")
 
+    workers = simulator_workers()
+    if workers != 4:
+        raise SystemExit(
+            f"showdown/config/config.js sets simulator: {workers}, not 4 "
+            "(CLAUDE.md rule 5). The Node arm would run ~81% slower and the "
+            "speedup this prints would be mostly that misconfiguration. Fix "
+            "the file and re-run; the setting is gitignored, so a re-clone "
+            "loses it.")
+
     base = yaml.safe_load(BASE_CONFIG.read_text())
     work = pathlib.Path("results/engine_a1/ab"); work.mkdir(parents=True, exist_ok=True)
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -231,6 +262,7 @@ def main(argv=None) -> int:
         "engine_k": args.engine_k,
         "matched_concurrency": args.engine_k == 8,
         "arms": results,
+        "showdown_simulator_workers": workers,
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     import statistics as _st
@@ -284,6 +316,10 @@ def main(argv=None) -> int:
         "the ratio",
         "each run is back to back on one idle box; the server is brought UP "
         "for a Node run and DOWN for an engine run, every time",
+        f"the Showdown server ran with simulator: {workers} (CLAUDE.md rule 5, "
+        "checked at launch and recorded here rather than assumed — the file is "
+        "gitignored, the setting is worth +81% on the Node path, and getting it "
+        "wrong would inflate this ratio by that whole amount)",
         "ORDER/THERMAL BIAS IS NOW CANCELLED BY DESIGN rather than disclosed: "
         "ABBA gives both arms mean run position 2.5, so a linear trend drops "
         "out of the per-pair ratios. ABAB would NOT do this (A 2.0 vs B 3.0).",
