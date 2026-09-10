@@ -564,7 +564,10 @@ def offfp_anchor(offfp_dir: Path) -> dict:
         # The pre-reg's n_eff rule (ch3_r4_fp_runner.sh): a crash-forfeited
         # battle is scored as OUR win by the seat and is EXCLUDED — so the
         # quotable rate is (our_wins - forfeits) / n_eff, never the raw rate.
-        wins_eff = d["our_wins"] - forfeits
+        # `our_wins` is what ch3_fp_h2h.py writes; a fixture may carry only the
+        # rate, in which case the count is reconstructed from it exactly.
+        our_wins = d.get("our_wins", round(d["our_win_rate"] * finished))
+        wins_eff = our_wins - forfeits
         rate_eff = wins_eff / n_eff if n_eff else None
         out["arms"][arm] = {
             "status": "COMPLETE" if finished == d["battles_requested"]

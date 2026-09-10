@@ -1,6 +1,6 @@
 # S3 READOUT — search relook on the 100M object (JOURNEY 11.5)
 
-**MACHINE-WRITTEN by `scripts/search_s3_readout.py` at 2026-09-10T18:05:43+00:00.** Regenerated in place on every run — do not hand-edit; edit the script.
+**MACHINE-WRITTEN by `scripts/search_s3_readout.py` at 2026-09-10T18:06:00+00:00.** Regenerated in place on every run — do not hand-edit; edit the script.
 
 > **Credit line, verbatim:** "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time"
 >
@@ -8,7 +8,7 @@
 >
 > ONE RUNG IS WORTH +-0.02 (three n=3000 redraws of ONE checkpoint spread 0.0200) — read the SHAPE across the three lanes, never one cell against its neighbour.
 
-Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `30d224b1048f89cb…`) · `configs/eval/search_s3_100m_offfp.yaml` (sha256 `9c82af2080aa7f48…`) · P-B's read: `docs/search_relook/DET_BLIND.md` §6 (P-B's read, verbatim). git HEAD `fb61392cd001` (dirty: True).
+Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `30d224b1048f89cb…`) · `configs/eval/search_s3_100m_offfp.yaml` (sha256 `9c82af2080aa7f48…`) · P-B's read: `docs/search_relook/DET_BLIND.md` §6 (P-B's read, verbatim). git HEAD `66f1874c3847` (dirty: True).
 
 ## Arms
 
