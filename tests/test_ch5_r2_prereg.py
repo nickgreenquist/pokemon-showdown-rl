@@ -343,10 +343,15 @@ def test_seeds_are_window_disjoint_and_unused():
             # primary read is unpaired — the same six banked runs imply a
             # seed-pair correlation of +0.856 on the endpoint and -0.996 on
             # the AUC, so the pairing is not a usable structure.
+            # 2026-09-10: A-1 RE-EXECUTED on the fixed engine build (bd3d06a,
+            # the foe-PP boundary A-1a caught) as engine_a1b_s{s} — the FOURTH
+            # legal owner; same seeds by the same RW-7 reasoning, pre-fix lanes
+            # kept intact for the record. Maintainer: "rerun a-1 yes".
             assert p.parent.name in (
                 f"showdown_sp_batch50m_s{s}",
                 f"showdown_sp_batch50m_async_s{s}",
                 f"engine_a1_s{s}",
+                f"engine_a1b_s{s}",
             ), f"seed {s} already used by a foreign run {p.parent.name}"
 
 
