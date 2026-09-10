@@ -2,53 +2,62 @@
 """How does the PPO UPDATE scale with `torch_threads` and MINIBATCH SIZE?
 
 WHY THIS IS THE QUESTION NOW. Before the collector port, collection was 75% of
-training wall clock and the update was 25%, so how fast the update ran barely
-mattered. After the port those numbers INVERT: the update is 65% of wall
-(results/engine_a1/update_share.json, three lanes each side, both 3-wide). And
-both configs set `torch_threads: 1` (rl/train.py:398), so that 65% is running
-single-threaded on a box with 14 logical cores while a 3-lane engine fleet uses
-about 3 of them.
+training wall clock and the update 25%, so how fast the update ran barely
+mattered. After the port those invert: the update is ~65% of wall
+(results/engine_a1/update_share.json, three lanes each side, both 3-wide), and
+both configs still ship `torch_threads: 1` on a 14-core box where a 3-lane
+engine fleet uses about 3 cores.
 
-So this measures the one thing that would change that: update wall against
-thread count, on the REAL update path, with a REAL batch.
+WHICH UPDATE THIS TIMES, AND WHY THAT MATTERS. `update_episodes()`, the ASYNC
+path — the one the engine collector actually calls. It is NOT the same function
+as `update()`, which the 2026-08-31 MPS bench timed at 12.002 s on a quiet box
+(docs/landmines.md). `update_episodes` drops three full-batch forwards over
+30,720 rows that `update()` performs: the second critic pass over `next_obs`,
+and the `old_logp` recompute (rl/agents/ppo.py:1126-1145 states both). That
+gap, not a faster box, is why numbers here land well under 12 s — and it means
+the banked **0.85x at 6 threads is a fact about `update()` and does not
+transfer here unexamined**. This script prints its own absolutes so the two
+instruments can be tied by a shared point rather than subtracted blind.
 
-METHOD, and the two things it is careful about:
-  * The batch is COLLECTED, not synthesised. Shapes drive most of the cost, but
-    a synthetic batch cannot be trusted on the parts that branch on values, and
-    collecting one update's worth from the engine costs seconds.
-  * Every cell updates a FRESH DEEP COPY of the same agent over the SAME
-    episodes. Otherwise the second cell would be timing an agent the first had
-    already stepped, on data whose advantages had shifted.
+EACH CELL RUNS IN ITS OWN PROCESS, and that is not fastidiousness.
+`torch.set_num_threads(n)` cannot resize an OpenMP runtime that already sized
+itself to the machine at import — rl/train.py:396-397 says so in its own
+comment. A single process sweeping thread counts would therefore measure
+`set_num_threads` against a fixed, possibly oversubscribed pool, and every cell
+would inherit the same defect. So the parent collects ONE batch of real
+episodes, writes it once, and each cell is a child launched with
+OMP_NUM_THREADS / MKL_NUM_THREADS / VECLIB_MAXIMUM_THREADS set in its
+environment. `torch.__config__.parallel_info()` is recorded per cell as
+provenance.
 
-TWO LEVERS, AND THEY ARE NOT THE SAME KIND OF THING:
-  * `torch_threads` is FREE. It changes float reduction order, so an update is
-    not bit-identical across thread counts, but it is distributionally the same
-    update and needs no pre-registration to adopt.
-  * `minibatches` CHANGES LEARNING. The shipped config runs 4 epochs x 120
-    minibatches on a 30,720-step batch: 480 optimizer steps on 256 ROWS EACH,
-    which is very small for CPU, where per-op dispatch overhead dominates at
-    that size. Fewer, larger minibatches should be markedly faster per update,
-    but it is a different optimiser trajectory — different gradient noise, a
-    different number of steps, a different effective learning rate per sample.
-    MEASURING it is free; ADOPTING it needs its own pre-reg and its own credit
-    line. This script measures and says so. It recommends nothing.
+TWO LEVERS, NOT THE SAME KIND OF THING:
+  * `torch_threads` is FREE. Reduction order changes, the update does not.
+  * `minibatches` CHANGES LEARNING. The shipped recipe is 4 epochs x 120
+    minibatches on a 30,720-step batch: 480 optimizer steps of 256 ROWS.
+    Fewer, larger minibatches may be faster per update, but it is a different
+    optimiser trajectory. MEASURING is free; ADOPTING needs its own pre-reg and
+    its own credit line. This script recommends nothing.
 
-WHAT IT DOES NOT MEASURE. Threads under FLEET CONTENTION. These numbers are one
-lane with the box to itself; three lanes at 4 threads each want 12 cores and
-will not get this scaling. That is the whole point of reporting a curve rather
-than a single "use N threads" answer — the fleet-width choice depends on how
-many lanes you intend to run, and this only bounds the single-lane end.
+THEY INTERACT, which is why --cross exists. If synchronisation is what makes
+threads unhelpful, the penalty scales with the NUMBER of parallel regions, i.e.
+with minibatch COUNT, and should nearly vanish at `minibatches: 8`. If instead
+it is heterogeneous cores (10 P + 4 E, no QoS pinning, a static parallel region
+running at its slowest thread's speed), the penalty persists at every minibatch
+size and the T-curve is FLAT across that axis. Those two predictions differ,
+and the crossed table tells them apart.
 
     python scripts/engine_thread_bench.py runs/<run>/ckpt_012000008.pt \\
-        --threads 1,2,4,8 --team-bank data/engine/teams_a1_5000000.bin
+        --threads 1,2,4,6 --minibatches 120,30,8 --cross
 """
 
 from __future__ import annotations
 
 import argparse
-import copy
 import json
+import os
 import pathlib
+import pickle
+import subprocess
 import sys
 import time
 
@@ -56,55 +65,114 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 
+def _child(argv) -> int:
+    """One cell, in its own process, with the thread env already set."""
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--child", action="store_true")
+    ap.add_argument("--checkpoint", required=True)
+    ap.add_argument("--episodes-file", required=True)
+    ap.add_argument("--threads", type=int, required=True)
+    ap.add_argument("--minibatches", type=int, default=0)
+    ap.add_argument("--repeats", type=int, default=3)
+    ap.add_argument("--compile", action="store_true")
+    a = ap.parse_args(argv)
+
+    import copy
+    import torch
+    from engine_a1a import build_agent
+    from rl.buffers.episode import EpisodeDataset
+
+    torch.set_num_threads(a.threads)
+    agent, cfg = build_agent(pathlib.Path(a.checkpoint))
+    with open(a.episodes_file, "rb") as fh:
+        episodes = pickle.load(fh)
+
+    if a.compile:
+        import torch._functorch.config as _fc
+        # The PPO update calls backward more than once per minibatch (the aux
+        # opponent-action head carries its own clipped grad path), and
+        # inductor's donated-buffer optimisation requires a single backward.
+        _fc.donated_buffer = False
+
+    def one(mb: int, compiled: bool):
+        # A compiled module is bound to the parameters it was compiled
+        # against, so the compiled cell reuses ONE agent across repeats while
+        # eager cells get a fresh copy each time. Compute per update depends on
+        # shapes, not parameter values, so this is sound — it is just a
+        # different object discipline, and it is recorded.
+        times = []
+        a_ = None
+        for i in range(a.repeats + (1 if compiled else 0)):
+            if a_ is None or not compiled:
+                a_ = copy.deepcopy(agent)
+                a_.buffer = None
+                if mb:
+                    a_.minibatches = mb
+                if compiled:
+                    a_.actor = torch.compile(a_.actor)
+                    a_.critic = torch.compile(a_.critic)
+            ds = EpisodeDataset()
+            for ep in episodes:
+                ds.append(ep)
+            t = time.perf_counter()
+            a_.update_episodes(ds.drain(), steps_seen=0)
+            dt = time.perf_counter() - t
+            if compiled and i == 0:
+                continue                      # warmup: this one IS the compiler
+            times.append(dt)
+        return times
+
+    try:
+        times = one(a.minibatches, a.compile)
+        out = {"ok": True, "threads": a.threads,
+               "minibatches": a.minibatches or int(cfg.agent["minibatches"]),
+               "update_seconds_min": min(times), "update_seconds_all": times,
+               "torch_num_threads": torch.get_num_threads(),
+               "omp_num_threads": os.environ.get("OMP_NUM_THREADS"),
+               "parallel_info": torch.__config__.parallel_info()}
+    except Exception as exc:                  # noqa: BLE001 - a failure IS a result
+        out = {"ok": False, "threads": a.threads,
+               "minibatches": a.minibatches,
+               "error": f"{type(exc).__name__}: {exc}"}
+    print("@@RESULT@@" + json.dumps(out))
+    return 0
+
+
 def main(argv=None) -> int:
+    if "--child" in (argv if argv is not None else sys.argv[1:]):
+        return _child(argv if argv is not None else sys.argv[1:])
+
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("checkpoint", type=pathlib.Path)
-    ap.add_argument("--threads", default="1,2,4,8")
-    ap.add_argument("--compile", action="store_true",
-                    help="also time the update with torch.compile on the actor "
-                         "and critic. Compilation happens on first call, so a "
-                         "WARMUP update runs untimed first — otherwise this "
-                         "would be timing the compiler.")
-    ap.add_argument("--minibatches", default=None,
-                    help="comma-separated minibatch COUNTS, swept at the "
-                         "fastest thread count found. Changing this changes "
-                         "LEARNING, not just speed.")
-    ap.add_argument("--cross", action="store_true",
-                    help="cross threads x minibatches at both ends instead of "
-                         "sweeping them independently. THEY INTERACT: at the "
-                         "shipped 256-row minibatch, threading overhead per op "
-                         "can exceed the gain, so threads look useless — but "
-                         "that is a statement about the SHAPE, not about "
-                         "threading, and a 3,840-row minibatch may thread fine. "
-                         "Sweeping them separately would conclude that neither "
-                         "lever works while their combination does.")
+    ap.add_argument("--threads", default="1,2,4,6")
+    ap.add_argument("--minibatches", default=None)
+    ap.add_argument("--cross", action="store_true")
+    ap.add_argument("--compile", action="store_true")
     ap.add_argument("--repeats", type=int, default=3)
-    ap.add_argument("--k", type=int, default=64,
-                    help="engine k for the COLLECTION of the benchmark batch; "
-                         "it has no bearing on the update being timed")
+    ap.add_argument("--k", type=int, default=64)
     ap.add_argument("--team-bank", default="data/engine/teams_a1_5000000.bin")
     ap.add_argument("--seed", type=int, default=7731)
     ap.add_argument("--out", type=pathlib.Path,
                     default=pathlib.Path("results/engine_a1/thread_bench.json"))
     args = ap.parse_args(argv)
 
-    import torch
-
     from engine_a1a import build_agent
-    from rl.buffers.episode import EpisodeDataset
     from rl.envs.engine_collector import EngineCollector
     from rl.selfplay.pool import SnapshotPool
 
     agent, cfg = build_agent(args.checkpoint)
     batch = int(cfg.agent["rollout_steps"]) * int(cfg.num_envs)
-    print(f"batch = rollout_steps {cfg.agent['rollout_steps']} x num_envs "
-          f"{cfg.num_envs} = {batch:,} steps per update", flush=True)
+    shipped_mb = int(cfg.agent["minibatches"])
+    print(f"batch = {cfg.agent['rollout_steps']} x {cfg.num_envs} = {batch:,} "
+          f"steps/update; shipped minibatches {shipped_mb} "
+          f"({batch // shipped_mb} rows each), epochs {cfg.agent['epochs']}",
+          flush=True)
 
     pool = SnapshotPool(pool_size=1, latest_prob=1.0)
     pool.push(agent)
     collector = EngineCollector(agent.act_logp, pool, seed=args.seed, k=args.k,
-                               team_bank=args.team_bank,
-                               opp_action=bool(cfg.env_kwargs.get("opp_action")))
+                                team_bank=args.team_bank,
+                                opp_action=bool(cfg.env_kwargs.get("opp_action")))
     print("collecting one update's worth of REAL episodes...", flush=True)
     t0 = time.perf_counter()
     episodes, steps = [], 0
@@ -114,180 +182,130 @@ def main(argv=None) -> int:
             episodes.append(ep)
             steps += len(ep["actions"])
     collector.close()
-    print(f"  {len(episodes)} episodes, {steps:,} steps in "
-          f"{time.perf_counter() - t0:.1f}s", flush=True)
+    collect_s = time.perf_counter() - t0
+    print(f"  {len(episodes)} episodes, {steps:,} steps in {collect_s:.1f}s "
+          f"({steps / collect_s:,.0f} steps/s collection at k={args.k})",
+          flush=True)
+
+    work = args.out.parent / "thread_bench_episodes.pkl"
+    work.parent.mkdir(parents=True, exist_ok=True)
+    with open(work, "wb") as fh:
+        pickle.dump(episodes, fh)
+
+    threads = [int(x) for x in args.threads.split(",")]
+    mbs = [int(x) for x in args.minibatches.split(",")] if args.minibatches else []
+    cells = [(t, 0) for t in threads]
+    if mbs:
+        cells += ([(t, m) for m in mbs for t in threads] if args.cross
+                  else [(threads[0], m) for m in mbs])
+    seen, ordered = set(), []
+    for c in cells:
+        key = (c[0], c[1] or shipped_mb)
+        if key not in seen:
+            seen.add(key)
+            ordered.append(c)
 
     rows = []
-    for n in [int(x) for x in args.threads.split(",")]:
-        torch.set_num_threads(n)
-        times = []
-        for _ in range(args.repeats):
-            a = copy.deepcopy(agent)
-            a.buffer = None
-            ds = EpisodeDataset()
-            for ep in episodes:
-                ds.append(ep)
-            t = time.perf_counter()
-            a.update_episodes(ds.drain(), steps_seen=0)
-            times.append(time.perf_counter() - t)
-        best = min(times)
-        rows.append({"threads": n, "update_seconds_min": best,
-                     "update_seconds_all": times,
-                     "torch_get_num_threads": torch.get_num_threads()})
-        print(f"  threads={n:>2}  update {best:6.2f}s  "
-              f"(all: {', '.join(f'{x:.2f}' for x in times)})", flush=True)
+    for t_n, mb in ordered:
+        env = dict(os.environ)
+        # SET AT LAUNCH, not with set_num_threads: the OpenMP runtime sizes
+        # itself before any Python in the child can run.
+        for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS",
+                    "VECLIB_MAXIMUM_THREADS", "OPENBLAS_NUM_THREADS",
+                    "NUMEXPR_NUM_THREADS"):
+            env[var] = str(t_n)
+        cmd = [sys.executable, __file__, "--child",
+               "--checkpoint", str(args.checkpoint),
+               "--episodes-file", str(work), "--threads", str(t_n),
+               "--repeats", str(args.repeats)]
+        if mb:
+            cmd += ["--minibatches", str(mb)]
+        r = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        line = next((l for l in r.stdout.splitlines()
+                     if l.startswith("@@RESULT@@")), None)
+        if not line:
+            rows.append({"ok": False, "threads": t_n, "minibatches": mb or shipped_mb,
+                         "error": (r.stderr or r.stdout)[-400:]})
+            print(f"  T={t_n:<2} mb={mb or shipped_mb:<4} FAILED", flush=True)
+            continue
+        row = json.loads(line[len("@@RESULT@@"):])
+        rows.append(row)
+        print(f"  T={row['threads']:<2} mb={row['minibatches']:<4} "
+              f"({batch // row['minibatches']:>5} rows/mb)  "
+              f"update {row['update_seconds_min']:6.2f}s", flush=True)
 
-    # --- minibatch sweep, at the fastest thread count found above -----------
-    mb_rows = []
-    if args.minibatches:
-        best_t = min(rows, key=lambda r: r["update_seconds_min"])["threads"]
-        torch.set_num_threads(best_t)
-        shipped = int(cfg.agent["minibatches"])
-        print(f"minibatch sweep at threads={best_t} "
-              f"(shipped value is {shipped})", flush=True)
-        mbs = [int(x) for x in args.minibatches.split(",")]
-        # THE CROSS. Threads and minibatch size are not independent: a
-        # 256-row minibatch is too small for threading to pay for its own
-        # synchronisation, so threads measured at the shipped shape say
-        # nothing about threads at a 3,840-row shape.
-        cells = ([(m, t) for m in mbs
-                  for t in [int(x) for x in args.threads.split(",")]]
-                 if args.cross else [(m, best_t) for m in mbs])
-        for m, t_n in cells:
-            torch.set_num_threads(t_n)
-            times = []
-            for _ in range(args.repeats):
-                a = copy.deepcopy(agent)
-                a.buffer = None
-                a.minibatches = m
-                ds = EpisodeDataset()
-                for ep in episodes:
-                    ds.append(ep)
-                t = time.perf_counter()
-                a.update_episodes(ds.drain(), steps_seen=0)
-                times.append(time.perf_counter() - t)
-            mb_rows.append({"minibatches": m, "threads": t_n,
-                            "rows_per_minibatch": batch // m,
-                            "optimizer_steps_per_update":
-                                int(cfg.agent["epochs"]) * m,
-                            "update_seconds_min": min(times),
-                            "is_shipped_value": m == shipped})
-            print(f"  minibatches={m:>4} ({batch // m:>5} rows/mb) "
-                  f"threads={t_n:>2}  update {min(times):6.2f}s", flush=True)
-
-    # --- torch.compile, at the fastest thread count --------------------------
-    # The update is 65-85% of training wall clock now, so this is the highest
-    # -value untested lever on the whole path. It is also the one most likely
-    # to do nothing on CPU, which is why it is measured rather than adopted.
     compile_row = None
     if args.compile:
-        best_t = min(rows, key=lambda r: r["update_seconds_min"])["threads"]
-        torch.set_num_threads(best_t)
-        try:
-            # The PPO update calls backward more than once per minibatch (the
-            # aux opponent-action head carries its own clipped grad path), and
-            # inductor's donated-buffer optimisation requires a single
-            # backward with retain_graph=False. Disabling it is the documented
-            # escape and is what the error message itself names; it costs some
-            # memory reuse, not correctness.
-            import torch._functorch.config as _fc
-            _fc.donated_buffer = False
-            # ONE agent copy for this whole cell, unlike the eager rows.
-            # A compiled module is bound to the parameters it was compiled
-            # against, so handing it to a fresh deep copy leaves the optimiser
-            # holding different tensors than the graph writes gradients into —
-            # which surfaces as "stack expects a non-empty TensorList" on the
-            # second update, not as a wrong number. Compute per update depends
-            # on SHAPES, not parameter values, so timing on an agent that has
-            # already been stepped is sound; it just is not the same object
-            # discipline the eager rows use, and that is recorded below.
-            a = copy.deepcopy(agent)
-            a.buffer = None
-            a.actor = torch.compile(a.actor)
-            a.critic = torch.compile(a.critic)
-            times = []
-            for i in range(args.repeats + 1):     # +1: the first is WARMUP
-                ds = EpisodeDataset()
-                for ep in episodes:
-                    ds.append(ep)
-                t = time.perf_counter()
-                a.update_episodes(ds.drain(), steps_seen=0)
-                dt = time.perf_counter() - t
-                if i:
-                    times.append(dt)
-                else:
-                    print(f"  compile warmup (includes compilation): {dt:.1f}s",
-                          flush=True)
-            compile_row = {"threads": best_t, "update_seconds_min": min(times),
-                           "update_seconds_all": times,
-                           "note": "timed on ONE agent copy across repeats "
-                                   "(a compiled module is bound to the "
-                                   "parameters it was compiled against); the "
-                                   "eager rows use a fresh copy each time"}
-            print(f"  torch.compile threads={best_t}  update "
-                  f"{min(times):6.2f}s", flush=True)
-        except Exception as exc:            # noqa: BLE001 - a failure IS the result
-            compile_row = {"threads": best_t, "error": f"{type(exc).__name__}: {exc}"}
-            print(f"  torch.compile FAILED: {type(exc).__name__}: {exc}", flush=True)
+        env = dict(os.environ)
+        for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS",
+                    "VECLIB_MAXIMUM_THREADS", "OPENBLAS_NUM_THREADS"):
+            env[var] = "1"
+        r = subprocess.run([sys.executable, __file__, "--child",
+                            "--checkpoint", str(args.checkpoint),
+                            "--episodes-file", str(work), "--threads", "1",
+                            "--repeats", str(args.repeats), "--compile"],
+                           capture_output=True, text=True, env=env)
+        line = next((l for l in r.stdout.splitlines()
+                     if l.startswith("@@RESULT@@")), None)
+        compile_row = json.loads(line[len("@@RESULT@@"):]) if line else \
+            {"ok": False, "error": (r.stderr or r.stdout)[-400:]}
+        if compile_row.get("ok"):
+            print(f"  torch.compile T=1  update "
+                  f"{compile_row['update_seconds_min']:6.2f}s", flush=True)
+        else:
+            print(f"  torch.compile FAILED: {compile_row.get('error','')[:200]}",
+                  flush=True)
 
-    base = rows[0]["update_seconds_min"]
-    for r in rows:
-        r["speedup_vs_1_thread"] = base / r["update_seconds_min"]
+    ok = [r for r in rows if r.get("ok")]
+    ref = next((r for r in ok if r["threads"] == 1
+                and r["minibatches"] == shipped_mb), None)
+    for r in ok:
+        if ref:
+            r["x_vs_T1_shipped_mb"] = ref["update_seconds_min"] / r["update_seconds_min"]
 
-    # What the loop would do, holding COLLECTION fixed at the measured 3-wide
-    # engine share. Explicitly an EXTRAPOLATION: collection is unchanged here,
-    # and these thread numbers are single-lane with the box to itself.
-    U_SHARE = 0.6513   # results/engine_a1/update_share.json, engine 3-wide
-    for r in rows:
-        f = 1.0 / r["speedup_vs_1_thread"]
-        r["implied_full_loop_speedup"] = 1.0 / ((1 - U_SHARE) + U_SHARE * f)
+    U_SHARE = 0.6513          # results/engine_a1/update_share.json, engine 3-wide
+    for r in ok:
+        if "x_vs_T1_shipped_mb" in r:
+            f = 1.0 / r["x_vs_T1_shipped_mb"]
+            r["implied_full_loop_speedup"] = 1.0 / ((1 - U_SHARE) + U_SHARE * f)
 
     out = {
-        "question": "does the PPO update parallelise, now that it is 65% of "
-                    "training wall clock",
-        "batch_steps": batch,
+        "question": "does the PPO update parallelise, and does minibatch size "
+                    "change that, now that the update is ~65% of wall",
+        "which_update": "update_episodes() — the ASYNC path the engine "
+                        "collector calls. NOT update(), which the 2026-08-31 "
+                        "bench timed at 12.002s; that function additionally "
+                        "does a second critic pass over next_obs and an "
+                        "old_logp recompute over 30,720 rows. The banked 0.85x "
+                        "at 6 threads is a fact about update() and does not "
+                        "transfer here unexamined.",
+        "batch_steps": batch, "shipped_minibatches": shipped_mb,
         "episodes_in_batch": len(episodes),
-        "rows": rows,
-        "minibatch_rows": mb_rows,
-        "compile_row": compile_row,
-        "minibatch_caveat": (
-            "minibatches CHANGES LEARNING — a different optimiser trajectory, "
-            "different gradient noise, a different number of steps. These are "
-            "SPEED numbers only. Adopting a different value needs its own "
-            "pre-reg and its own credit line; nothing here recommends one."),
+        "collection_steps_per_sec_at_k": {str(args.k): steps / collect_s},
+        "rows": rows, "compile_row": compile_row,
         "update_share_used_for_extrapolation": U_SHARE,
+        "minibatch_caveat": "minibatches CHANGES LEARNING — a different "
+                            "optimiser trajectory, different gradient noise, a "
+                            "different number of steps. SPEED numbers only; "
+                            "adopting one needs its own pre-reg.",
         "scope": "ONE LANE with the box to itself. Three lanes at 4 threads "
-                 "each want 12 cores and will not see this scaling — the "
-                 "fleet-width answer needs its own measurement.",
+                 "each want 12 cores and will not see this scaling.",
         "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
-    args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, indent=2) + "\n")
-    print(f"\n{'threads':>8} {'update s':>10} {'x vs 1':>8} {'implied loop':>13}")
-    for r in rows:
-        print(f"{r['threads']:>8} {r['update_seconds_min']:>10.2f} "
-              f"{r['speedup_vs_1_thread']:>8.2f} "
-              f"{r['implied_full_loop_speedup']:>13.2f}")
-    if compile_row and "update_seconds_min" in compile_row:
-        t1 = min(r["update_seconds_min"] for r in rows
-                 if r["threads"] == compile_row["threads"])
-        print(f"\ntorch.compile: {compile_row['update_seconds_min']:.2f}s vs "
-              f"{t1:.2f}s eager at the same thread count -> "
-              f"{t1 / compile_row['update_seconds_min']:.2f}x")
-    if mb_rows:
-        b = next((r for r in mb_rows if r["is_shipped_value"]
-                  and r["threads"] == 1), None) or \
-            next((r for r in mb_rows if r["is_shipped_value"]), None)
-        print(f"\n{'minibatches':>12} {'rows/mb':>9} {'thr':>4} "
-              f"{'opt steps':>10} {'update s':>10} {'x':>6}")
-        for r in mb_rows:
-            x = (b["update_seconds_min"] / r["update_seconds_min"]) if b else 0.0
-            print(f"{r['minibatches']:>12} {r['rows_per_minibatch']:>9} "
-                  f"{r['threads']:>4} {r['optimizer_steps_per_update']:>10} "
-                  f"{r['update_seconds_min']:>10.2f} {x:>6.2f}"
-                  + ("  <- shipped" if r["is_shipped_value"] else ""))
-        print("\nSPEED ONLY. minibatches changes the optimiser trajectory; "
-              "adopting a value needs its own pre-reg.")
+    work.unlink(missing_ok=True)
+
+    print(f"\n{'T':>3} {'minibatches':>12} {'rows/mb':>9} {'update s':>10} "
+          f"{'x':>7} {'implied loop':>13}")
+    for r in ok:
+        print(f"{r['threads']:>3} {r['minibatches']:>12} "
+              f"{batch // r['minibatches']:>9} "
+              f"{r['update_seconds_min']:>10.2f} "
+              f"{r.get('x_vs_T1_shipped_mb', float('nan')):>7.2f} "
+              f"{r.get('implied_full_loop_speedup', float('nan')):>13.2f}")
+    print("\nx and implied-loop are against T=1 at the SHIPPED minibatch count. "
+          "Rows at other minibatch counts are SPEED ONLY — that lever changes "
+          "learning and adopting it needs its own pre-reg.")
     print(f"\nwritten: {args.out}")
     return 0
 
