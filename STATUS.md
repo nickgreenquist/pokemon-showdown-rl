@@ -29,12 +29,28 @@ is BANKED NOT RUN (ruled 2026-09-06), step 7 is this readout (RESULTS §19).
   D-C not actionable; D-D ≈ 0.5 by construction at pool_size 1. Stalls 0; resumes
   s216 ×3, s200 ×1, s208 ×1. Harvest ratio 0.901–1.059, version_lag_max 1.
 
+## JOURNEY 7.5 — the engine port (2026-09-10; full account docs/engine_port/NOTES.md)
+- **A/B SPEEDUP 4.035x** — same box, same hour, ABBA, 1M/arm, width 1, engine k=256 vs
+  async concurrency 8. Per-pair 4.041/4.028, sd 0.0086 (node 21.8 min/run, engine 5.4).
+  **The 2.62x cross-day figure is RETIRED.** Big caveat that travels with it: the Node
+  path does batch-1 forwards for ~85% of its ceiling, so much of this is INFERENCE
+  BATCHING, not the Rust engine. Quote it as the PIPELINE's speedup.
+- **THE PROFILE INVERTED:** update is 25.0% of wall on Node, **65.1% on the engine**
+  (3 lanes each side, both 3-wide). Further collector work is capped at **1.54x**.
+- **MAX-OUT** (idle, k x width): today's k=8 w=3 = 4,861 steps/s fleet; **k=256 w=6 =
+  9,994 = 2.06x** on 11.3 GB of 24. Best per-lane k=256 w=1 = 3,035 = 1.87x. **A lane is
+  a SEED — width buys seeds/hour, never a shorter run.**
+- **Learner levers are COMPLEMENTS:** threads and minibatches are each NEGATIVE alone,
+  **1.51x crossed** (7.73 → 5.11 s update). `torch.compile` 0.82x, dead.
+- **Free wins found, not yet applied:** scorer `ctx` factorization (~26% of the epoch
+  loop, verified 3e-07, 1.97x on that layer) and mmap'ing the team bank (0.53 GB/lane
+  duplicated; 1.37 GB → 0.00 GB across 3 holders).
+- **A-1: NO VERDICT, by instruction.** Descriptive per-seed at n=12,000: s66 0.6640,
+  s75 0.6925, s83 0.6555. `ratified_decisions` empty; RW-1..RW-10 all owed.
+
 ## Next actions
-1. **JOURNEY 7.5 — the pkmn/engine collector port. P0, starts now** (the box is idle and
-   the readout is written, which was its precondition). Gates B-0/B-1/P-4/P-3/P-1/P-2
-   already PASS on branch `pkmn-engine-port` (worktree `../pokemon-showdown-rl-engine`);
-   **D-1, T-1 (+ a fleet-width T-1(d)) and A-1 remain and all need the idle box.**
-   T-1 must report `collect_sec`/`update_sec`, not only steps/s.
+1. **Rule on RW-1..RW-10** (`configs/engine_a1.prereg.yaml`) — nothing about A-1 can be
+   graded until the band is ruled; `scripts/engine_a1_grade.py` refuses by design.
 2. **A-1 pre-reg is drafting in that worktree** and owes the maintainer a `rulings_wanted`
    list: at k=3, σ_seed ≈ 0.0617 gives se_diff ≈ 0.050, so a ±0.025 equivalence band is
    ~0.5 se — A-1 as specified is a GROSS-BREAKAGE SCREEN, not an equivalence test. The

@@ -11207,3 +11207,71 @@ line numbers are not — grep the date, then read that region):
   c33d541 and a0a8bd7): the SB3-vs-our-PPO update-path audit (verdict NEITHER,
   filed with a do-not-relitigate line), IDEAS 2.9, the §5 shared-trunk row and the
   §5 cross-features row banked as rung 2 of an existing spec.
+- 2026-09-10 (overnight, agent; the maintainer's standing authorization "dont
+  stop until you have all the data you need to be confident on the speedup...
+  you have all night to work") — **THE ENGINE PORT'S SPEED QUESTION IS
+  ANSWERED. A/B 4.035x per lane, max-out 2.06x on top of that for fleet
+  throughput, and the port MOVED THE BOTTLENECK from collection to the
+  learner.** A-1's engine arm ran and is reported DESCRIPTIVELY ONLY; no
+  verdict was computed and the band remains unresolved by instruction.
+  **THE HEADLINE A/B.** Same box, same hour, alternated ABBA, 1M steps per arm,
+  width 1, production-vs-production (engine k=256 against the async collector's
+  concurrency 8): node 1314.0 / 1302.8 s against engine 325.2 / 323.4 s —
+  per-pair **4.041x and 4.028x, mean 4.035x, sd 0.0086**. Two pairs agreeing to
+  0.3% means the box was stable and ABBA had little drift to cancel. This
+  RETIRES the 2.62x figure, which divided today's engine rate by a Node rate
+  banked 2026-09-01 and was never quotable.
+  **THE PROFILE INVERTED, and this matters more than the multiplier.** Three
+  lanes each side, both 3-wide: the update is **25.0% of wall on the Node path
+  and 65.1% on the engine path** (0.2513/0.2502/0.2500 against
+  0.6509/0.6562/0.6467). Collection fell from 74.9% to 34.9%, so Amdahl caps
+  ANY further collector work at 1.54x and the learner now holds the headroom.
+  **MAX-OUT, k x width factorial, idle box, 200k steps/lane.** Today's A-1
+  setting (k=8 w=3) is the bottom-left of the useful region — it was chosen to
+  MATCH the banked Node arm, never for speed. Best fleet **k=256 w=6 → 9,994
+  steps/s = 2.06x** on 11.33 GB of 24 (width 6 is not the ceiling); best
+  per-lane **k=256 w=1 → 3,035 = 1.87x**, the only one that shortens a SINGLE
+  run. k costs 0.11 GB for 248 extra battle slots, so k and width are
+  INDEPENDENT axes; what width costs is contention (per-lane 0.68x going 1→3,
+  0.79x going 3→6).
+  **THE LEARNER'S LEVERS ARE COMPLEMENTS — the night's best measurement.**
+  Crossed threads x minibatches on `update_episodes()`, one process per cell
+  with OMP sized at launch: at the shipped 256-row minibatch every thread count
+  is SLOWER (7.73 → 9.49/8.83/9.83); at T=1 every larger minibatch is SLOWER
+  (7.73 → 7.98 → 9.89). **Crossed, 7.73 → 5.11 s = 1.51x on the update, ~1.28x
+  on the loop.** Two independent sweeps would have closed both axes. A parallel
+  region must amortise its own barrier (impossible at 256 rows, near-linear at
+  3,840: 1.94x across T=1..6) while single-threaded cost RISES with size
+  (3,840 x 828 floats ≈ 12.7 MB, past L2) — the curves cross, so the optimum is
+  interior. `torch.compile` is dead: **0.82x** idle.
+  **TWO AUDITS.** Collection is **93-98% PyTorch forwards**: a forward costs
+  ~230 µs almost regardless of row count (fit across the k sweep, cross-checked
+  at 352 µs/batch-1-forward against a banked Node lane's own
+  inference_seconds/seam_requests), so the Rust engine, encoder and PyO3 seam
+  together are under 1.5% of collection at k=8 — recorded as CHECKED AND NOT
+  WORTH IT with the specific waste priced anyway. The **Node baseline is ~85%
+  batch-1 forwards**, so a large share of the 4.035x is INFERENCE BATCHING
+  rather than the engine; that disclosure now travels in the readout. On the
+  learner side: **the pointer scorer recomputes the same `ctx` projection ten
+  times per row** — a linear map over a concat splits exactly, verified to
+  **2.98e-07** with a **1.97x** measured cut on that layer's forward, ~26% of
+  the epoch loop, MECHANICAL. Staged and tested, not yet applied.
+  **THE TEAM BANK IS DUPLICATED PER LANE.** `read_bank` does `fh.read()`, then
+  pyo3 copies it into a Rust Vec: **+0.532 GB resident per lane, 1.317 GB
+  construction peak**, identical bytes in every lane. mmap shares them outright
+  — measured three processes consuming **1.37 GB read vs 0.00 GB mmap'd**.
+  Worth ~2 extra lanes at max width. Not implemented: a rebuild mid-flight
+  would have put two builds inside one comparison.
+  **A-1 DESCRIPTIVE, no verdict:** s66 0.6640, s75 0.6925, s83 0.6555 at
+  n=12,000 each; `eval/win_rate` == `wins_from_returns` exactly on all three,
+  ties 0.8% as non-wins, mask_desyncs 0. T-1(c) 1539 steps/s/lane at 3-wide,
+  REPORTED NOT SCORED (its band is a solo-lane band).
+  **FIVE OF MY OWN ERRORS, all fixed and all recorded:** the max-out harness
+  pkilled the Showdown server a running eval depended on (it then sat alive at
+  zero CPU, looking exactly like the stall landmine); teardown migrated 15
+  TRACKED files because rsync's --remove-source-files deletes what
+  --ignore-existing skipped; I edited a bash script while bash was reading it,
+  killing the queue mid-night on a stale byte offset (it now re-execs from a
+  frozen copy); A/B run dirs collided across variants, destroying variant 1's
+  steady-state data; and a missing `math` import killed variant 1's summary
+  after all four arms had run — recovered from the log rather than re-run.
