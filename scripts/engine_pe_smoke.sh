@@ -23,9 +23,18 @@ say() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
 rung() { ls "runs/$RUN"/ckpt_0120*.pt 2>/dev/null | head -1; }
 lane_pid() { pgrep -f "bin/python -m rl.train.*$RUN" | head -1; }
 
-say "waiting for the A-1 re-run lanes to reach their rung (logs/engine_a1_rerun.log)"
-while ! grep -q '12M rung on all lanes' logs/engine_a1_rerun.log 2>/dev/null; do sleep 300; done
-sleep 240
+# Re-gated 2026-09-10 21:45Z: the A-1 re-run lanes are DONE (A1-PASS on the fixed
+# build), and the box now carries seven eval jobs — the three margin-gate arms are
+# the night's read and a training lane must not contend with them. Wait for THEM.
+say "waiting for the margin-gate arms to finish (results/search_s3_100m/s3g*_s112.final.json)"
+while :; do
+  n=0
+  for j in s3g02_s112 s3g05_s112 s3g10_s112; do [ -f "results/search_s3_100m/$j.final.json" ] && n=$((n+1)); done
+  [ "$n" -ge 3 ] && break
+  sleep 300
+done
+say "margin arms done"
+sleep 120
 git status --porcelain | grep -q . && { say "DIRTY TREE — refusing (rule 3)"; exit 1; }
 curl -s -o /dev/null --max-time 3 http://localhost:8000/ || { say "server down — refusing"; exit 1; }
 say "git HEAD: $(git rev-parse HEAD)"
