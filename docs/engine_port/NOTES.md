@@ -1834,3 +1834,53 @@ Two further caveats on the rate, both pushing the same way: this fleet runs at
 **k=8**, matched to the banked arm so the collector is the only delta, and
 T-1(b) measures K=512 at 1.37x K=256 collection-only. So 1502 steps/s/lane is a
 LOWER BOUND on the configuration anyone would actually train at.
+
+## 2026-09-10 — the worktree teardown nearly ate the team bank (twice)
+
+The engine work ran in a git worktree (`../pokemon-showdown-rl-engine`) to keep
+it off the live gen-4 fleet. Once that fleet closed and the branch merged into
+main, the worktree had to go, and the teardown looked like a two-line chore:
+move the run dirs home, `git worktree remove`. It is not a two-line chore, and
+the reason generalises past this repo.
+
+**`git worktree remove` treats a worktree carrying only IGNORED files as
+clean.** It refuses on modified tracked files and on untracked ones, so it
+*feels* safe. But `.gitignore` covers `runs/`, `results/`, `logs/` and `data/`
+here, which is to say it covers every artifact the whole day produced, and none
+of that registers as a reason to refuse. The command deletes it and says
+nothing.
+
+**Near miss 1 — migrating by directory instead of by file.** The first version
+walked the top-level entries of `runs/`, `results/` and `logs/` and skipped any
+whose name already existed in main, so as never to clobber. `results/t1` exists
+in BOTH trees: the worktree holds `leg_a.json` and `leg_b.json` from the gate
+chain, main holds the `leg_d.json` re-run by hand after the chain's copy failed
+(the history.csv precondition). The skip was per-DIRECTORY, so `results/t1`
+would have been skipped whole, leg_a and leg_b left in the worktree, and then
+deleted by the removal.
+
+**Near miss 2, and the worse one — `data/` was not on the list at all.** It
+holds `teams_a1_5000000.bin`: 480 MB, 5,000,000 team pairs, ~41 minutes to
+generate, and its sha256 is cited by every gate record from D-1 onward. A
+rebuild produces a DIFFERENT sha, so losing it does not cost 41 minutes, it
+costs the provenance of the day's gates.
+
+**The fix is not a longer list.** A hand-maintained list of directories to save
+loses the third round, and the third round is a directory someone adds six
+months from now. So the check is inverted and fails closed: enumerate every
+ignored path git reports in the worktree, and require each to be either on the
+MIGRATE list or matched by an explicit DISPOSABLE pattern (`__pycache__`,
+`.pytest_cache`, the cargo `target/`, the egg-info). Anything unrecognised
+BLOCKS the removal rather than being swept along with it.
+
+Two smaller things fell out of the same pass. Matching had to be on the FIRST
+PATH SEGMENT, because git reports `results/d1/`, `results/engine_a1/` and
+`results/t1/` separately when `results/` is itself partially tracked — an
+exact-match against `results` misses all three. And migration uses `rsync -a
+--ignore-existing --remove-source-files`, which deletes each source file only
+after verifying the transfer: what is LEFT BEHIND afterwards is then exactly
+the set of collisions, so the leftovers ARE the verification, with no separate
+checksum pass and no window in which a file exists in neither tree.
+
+`scripts/engine_post_lane_queue.sh` step 1 carries all of this, with the two
+near misses named in the comments so the next edit does not quietly undo them.
