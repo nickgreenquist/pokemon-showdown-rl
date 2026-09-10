@@ -2271,3 +2271,35 @@ re-run on the fixed engine (3 × 12M, ~2.4 h, rule-4 "ask first" band) —
 asked of the maintainer 2026-09-10. Until then the engine build the switch
 is graded on is bd3d06a's predecessor, and the signed delta that travels is
 −0.00144 (pre-registered basis) / +0.0016 (same era).
+
+## A-1 RE-EXECUTED on the fixed build — **A1-PASS, and 7.5's exit is MET** (2026-09-10)
+
+Maintainer, in chat: "rerun a-1 yes". Lanes `runs/engine_a1b_s{66,75,83}`, launched
+18:18Z from a clean tree at 7d8650e, same design as `configs/engine_a1.yaml` (k=8,
+12M crossing rung, bank `teams_a1_5000000.bin`, n=12,000 per rung eval), engine build
+carrying bd3d06a's foe-PP fix. Runner `scripts/engine_a1_rerun.sh` (waits for the
+time-budgeted FP leg, holds 120 s at the rung so the 48th in-loop eval lands).
+
+| | s66 | s75 | s83 | pooled | signed delta | cell |
+|---|---|---|---|---|---|---|
+| pre-fix build | 0.66400 | 0.69250 | 0.65550 | 0.67067 | **−0.00144** | A1-PASS |
+| **fixed build** | 0.66675 | 0.67183 | 0.66467 | **0.66775** | **−0.00436** | **A1-PASS** |
+
+Band ±0.025; the fixed read is −0.59 se_diff on the seed-clustered 0.00736.
+P-AUC −0.00298 INSIDE (secondary, RW-8). Rung checkpoints 012000017 / 012000008 /
+012000029. **The signed delta that travels forever is −0.00436** (fixed build); the
+pre-fix −0.00144 is superseded and is kept here only as the record of what the
+defect cost.
+
+**DESCRIPTIVE, and not a claim: the between-seed spread collapsed** from sd 0.01938
+to 0.00368 (5.3×). At k=3 an sd estimate is worth very little — the 95% CI on a
+3-sample sd is roughly a factor of 3 either way — so this is an observation to
+re-check at the next fleet, NOT evidence that the PP defect was a variance source.
+It is exactly the shape a per-seat information defect would produce if it were, and
+it is exactly the shape three draws produce by chance, and k=3 cannot separate them.
+
+**Grader defect found on this run and fixed:** `engine_a1_grade.py` reads P-AUC from
+`history.csv`, which does NOT exist until `scripts/extract_history.py <run_dir>` has
+run — a killed lane leaves only the wandb offline dir. The grader failed the whole
+grade on it rather than degrading to P-END. Extracted, re-graded, and the runner
+should extract before grading (owed).
