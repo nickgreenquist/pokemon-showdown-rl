@@ -50,7 +50,10 @@ say "repo installed editable"
 say "engine toolchain installed from requirements-engine.txt: $(grep -v '^#' requirements-engine.txt | tr '\n' ' ')"
 
 # 3. The submodule must be present at the pin.
-SUB=$(git submodule status engine/pkmn_gen1/vendor/pkmn-engine 2>/dev/null | awk '{print $1}' | tr -d '-+')
+# `tr -d '-+'` reads the leading dash as an OPTION on BSD tr (macOS) and dies
+# with "illegal option -- +", so SUB came back empty and this check false-failed
+# on a correctly initialised submodule. sed has no such ambiguity.
+SUB=$(git submodule status engine/pkmn_gen1/vendor/pkmn-engine 2>/dev/null | awk '{print $1}' | sed 's/^[-+]//')
 [ -n "$SUB" ] || fail "submodule engine/pkmn_gen1/vendor/pkmn-engine not initialised"
 say "submodule at $SUB"
 
