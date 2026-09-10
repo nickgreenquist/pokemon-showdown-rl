@@ -147,6 +147,24 @@ else
   say "thread bench SKIPPED: $CKPT or $BANK not in main (teardown did not land it)"
 fi
 
+# ---- 2.6 the max-out sweep --------------------------------------------------
+# Every engine number this port has produced was taken at ONE point in the
+# configuration space — k=8, width 3, torch_threads 1 — and that point was
+# chosen to MATCH THE BANKED NODE ARM for gate A-1, not to go fast. "How fast
+# is it when maxed out" is therefore a search, and it has to happen BEFORE the
+# A/B, because it decides what configuration the A/B should be measuring.
+# A 2x2x2 factorial rather than three one-dimensional sweeps: threads and width
+# are substitutes for the same cores, so their interaction is the whole
+# question and separate sweeps would miss it.
+if [ -e "$BANK" ]; then
+  say "=== max-out sweep: k x width x threads (2x2x2 factorial) ==="
+  POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
+    "$EPY" scripts/engine_maxout.py --grid quick --steps 200000 >> "$LOG" 2>&1
+  say "max-out rc=$? -> results/engine_a1/maxout.json"
+else
+  say "max-out SKIPPED: $BANK not in main"
+fi
+
 # ---- 3. the head-to-head A/B ------------------------------------------------
 # HOLD GATE. The A/B is the one thing here that measures WALL CLOCK, so it must
 # not start while anyone else is using the box — including the maintainer, who
