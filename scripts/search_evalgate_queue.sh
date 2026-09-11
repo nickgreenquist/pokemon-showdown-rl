@@ -12,6 +12,11 @@
 set -u
 export POKEMON_RL_ENCODER_V2=1
 export POKEMON_RL_ENCODER_IDS=1
+# Unbuffered: stdout is redirected to a file, so without this the job's
+# startup provenance (realized usernames, evaluator members, the SF-13
+# sentinel line) is invisible until the first chunk flushes -- which on a
+# search arm is 15+ minutes of not knowing whether the arm is even right.
+export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python
