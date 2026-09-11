@@ -120,12 +120,39 @@ Where that sits in the published randbats field:
 | poke-env SH | Gen7RB / Gen9RB | ~1450–1500 | 39.7% / 41.2% |
 | Huang & Lee 2019 — PPO self-play, **no search** (VERIFIED, see entry) | Gen7RB | 1677 (n=300) | 72%* |
 | ps-ppo — transformer PPO | Gen9RB | 1725 ± 25 | 76.7% |
-| Wang 2024 — PPO + test-time MCTS | Gen4RB | 1756 | 79.5% |
+| **ours — LADDER R4 object: gen-4 Wang-recipe 50M, greedy (0.8788 vs SH)** | **gen4RB** | **1618 ± 25** | **65.2%** |
+| Wang 2024 — PPO + test-time MCTS **(PEAK, see note)** | Gen4RB | **1756 ± 28 (peak)** | **79.5% (peak)** |
 | Metamon SynRL-V2 — offline RL on human data | Gen1OU | 1761 ± 35 | 79.9% |
 | best human players | — | — | 74–90% |
 
-**The two "ours" rows that are MEASURED — added 2026-08-28, and everything below travels with
-them.** Committed provenance: [`LADDER_R1_READOUT.md`](../readouts/LADDER_R1_READOUT.md) and
+**READ THE WANG ROW AS A PEAK, NOT A FINISH (corrections 2026-09-11, sourced to
+[`WANG_SEARCH_DEEP_READ.md`](WANG_SEARCH_DEEP_READ.md), 154 citations).** The row is a fair
+Glicko-1-to-Glicko-1 comparison in its UNITS and an unfair one in its STATISTIC, and the gap
+is large enough to change conclusions:
+
+1. **1756 ± 28 / 79.5% GXE is his PEAK**, quoted from p.32 verbatim: *"peaking at rank 8
+   (1693 Elo, 1756 ± 28 Glicko-1, 79.5% GXE)"*. His **average after game 100 was 1615 Elo** —
+   his own footnote excludes the early period. Our rows are the state the account FINISHED in.
+   A peak-vs-final comparison flatters him; a like-for-like one is not available from the
+   thesis.
+2. **His peak Elo is 1693, not 1756** — 1756 is the Glicko-1. Do not read 1756 as an Elo, and
+   do not compare it to our final Elo rows (R1 1292, R4 1354), which is comparing a peak
+   Glicko to a final Elo — wrong on both axes at once.
+3. **Only MCTS+NN was laddered. His network ALONE never was**, so this row cannot be used to
+   say what his policy is worth without search, which is exactly the quantity our own
+   search-vs-greedy work needs.
+4. **Table 4.1 carries no n, no error bars, no stated checkpoint and no stated policy form**,
+   so his vs-SH cells (.786, .908) are not protocol-comparable to our locked 3×3000.
+5. **His `SimpleHeuristicsPlayer` is PATCHED, ours is stock** (his fork carries fixes to
+   `HeuristicsPlayer` and `maybe_trapped`). His SH is a different, stronger opponent, so
+   his vs-SH numbers and ours are not the same denominator.
+
+R4 is the row to read against Wang's: **same generation, same format, both laddered**. It is
+1618 ± 25 against his 1756 ± 28 peak — and against his post-game-100 average of 1615 Elo the
+honest statement is that we do not have the matching statistic on either side.
+
+**The three "ours" rows that are MEASURED — R1/R3 added 2026-08-28, R4 added 2026-09-11, and
+everything below travels with them.** Committed provenance: [`LADDER_R1_READOUT.md`](../readouts/LADDER_R1_READOUT.md) and
 [`LADDER_R3_READOUT.md`](../readouts/LADDER_R3_READOUT.md); `results/ladder/` is gitignored.
 
 - **R1** — account `nickgen1rbrlbot`, run 2026-08-25/26, n = 200, record 95–105, final PS Elo
