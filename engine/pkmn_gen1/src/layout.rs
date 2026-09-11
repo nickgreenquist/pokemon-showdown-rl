@@ -421,3 +421,337 @@ impl<'a> BattleView<'a> {
         u64::from_le_bytes(w)
     }
 }
+
+// =============================================================================
+// The WRITE side -- mirror-image accessors (`ENGINE_SEARCH_DESIGN.md` §2).
+//
+// Everything above decodes the engine's 384 bytes. The search line (JOURNEY
+// 11.5 / 14) has to CONSTRUCT a mid-battle state as well, and §2.1 records that
+// no writer existed: "`layout.rs` is entirely read-only ... There is no way to
+// construct a mid-battle `Battle` from a public view."
+//
+// Every writer below is the exact mirror of a reader above and goes through the
+// SAME offset constant, so the layout stays ONE contract rather than two that
+// can drift. Nothing here allocates and nothing here validates -- these are raw
+// byte writers that do not know what a legal battle looks like. `spec.rs` owns
+// legality (`BattleSpec` + W-VALIDATE); this module owns bytes.
+//
+// Appended as a block rather than interleaved with the readers on purpose: the
+// design docs and the plan cite `layout.rs` BY LINE NUMBER throughout, and
+// interleaving would silently invalidate every one of those citations.
+// =============================================================================
+
+#[inline]
+fn set_u16le(b: &mut [u8], at: usize, v: u16) {
+    b[at..at + 2].copy_from_slice(&v.to_le_bytes());
+}
+
+impl Stats {
+    /// Writes the five stats at `at` in the engine's own order.
+    #[inline]
+    pub fn write(self, b: &mut [u8], at: usize) {
+        set_u16le(b, at + ST_HP, self.hp);
+        set_u16le(b, at + ST_ATK, self.atk);
+        set_u16le(b, at + ST_DEF, self.def);
+        set_u16le(b, at + ST_SPE, self.spe);
+        set_u16le(b, at + ST_SPC, self.spc);
+    }
+}
+
+impl Boosts {
+    /// The inverse of `ActiveView::boosts`: six i4 stages packed into a u32.
+    /// A stage outside -6..=6 is truncated to its low nibble here -- range is
+    /// `spec.rs`'s job, not this module's.
+    #[inline]
+    pub fn pack(self) -> u32 {
+        #[inline]
+        fn nib(v: i8) -> u32 {
+            (v as u8 as u32) & 0xF
+        }
+        nib(self.atk) << BO_ATK
+            | nib(self.def) << BO_DEF
+            | nib(self.spe) << BO_SPE
+            | nib(self.spc) << BO_SPC
+            | nib(self.accuracy) << BO_ACCURACY
+            | nib(self.evasion) << BO_EVASION
+    }
+}
+
+impl StatusByte {
+    /// Healthy. Also what `faint()` leaves behind: it CLEARS the status byte of
+    /// the mon that fainted (`mechanics.zig:1567`).
+    pub const NONE: StatusByte = StatusByte(0);
+    pub const PSN: StatusByte = StatusByte(1 << 3);
+    pub const BRN: StatusByte = StatusByte(1 << 4);
+    pub const FRZ: StatusByte = StatusByte(1 << 5);
+    pub const PAR: StatusByte = StatusByte(1 << 6);
+    /// `Status.TOX = 0b1000_1000` -- EXT together with PSN (`data.zig:256`).
+    pub const TOX: StatusByte = StatusByte(0b1000_1000);
+
+    /// A non-self-inflicted sleep of `turns` REMAINING (`Status.slp`,
+    /// `data.zig:271-274`). `turns` is the engine's hidden counter, not
+    /// poke-env's observed one -- see family W-SLEEP.
+    #[inline]
+    pub fn slp(turns: u8) -> StatusByte {
+        StatusByte(turns & 0b111)
+    }
+    /// Self-inflicted sleep -- Rest, which Showdown's Sleep Clause Mod has to
+    /// tell apart (`Status.slf`, `data.zig:277-280`). poke-env CONFLATES the
+    /// two, which is why the EXT bit is part of family W-SLEEP.
+    #[inline]
+    pub fn slf(turns: u8) -> StatusByte {
+        StatusByte(0x80 | (turns & 0b111))
+    }
+}
+
+macro_rules! vflag_set {
+    ($name:ident, $bit:expr) => {
+        #[inline]
+        pub fn $name(&mut self, on: bool) -> &mut Self {
+            if on {
+                self.0 |= 1u64 << $bit;
+            } else {
+                self.0 &= !(1u64 << $bit);
+            }
+            self
+        }
+    };
+}
+
+impl Volatiles {
+    vflag_set!(set_bide, V_BIDE);
+    vflag_set!(set_thrashing, V_THRASHING);
+    vflag_set!(set_multi_hit, V_MULTI_HIT);
+    vflag_set!(set_flinch, V_FLINCH);
+    vflag_set!(set_charging, V_CHARGING);
+    vflag_set!(set_binding, V_BINDING);
+    vflag_set!(set_invulnerable, V_INVULNERABLE);
+    vflag_set!(set_confusion, V_CONFUSION);
+    vflag_set!(set_mist, V_MIST);
+    vflag_set!(set_focus_energy, V_FOCUS_ENERGY);
+    vflag_set!(set_substitute, V_SUBSTITUTE);
+    vflag_set!(set_recharging, V_RECHARGING);
+    vflag_set!(set_rage, V_RAGE);
+    vflag_set!(set_leech_seed, V_LEECH_SEED);
+    vflag_set!(set_toxic, V_TOXIC);
+    vflag_set!(set_light_screen, V_LIGHT_SCREEN);
+    vflag_set!(set_reflect, V_REFLECT);
+    vflag_set!(set_transform, V_TRANSFORM);
+
+    /// The inverse of `Volatiles::field`: a `width`-bit field at `off`. Values
+    /// wider than `width` are truncated, deliberately -- `spec.rs` range-checks.
+    #[inline]
+    fn set_field(&mut self, off: u32, width: u32, v: u64) -> &mut Self {
+        let mask = ((1u64 << width) - 1) << off;
+        self.0 = (self.0 & !mask) | ((v << off) & mask);
+        self
+    }
+
+    #[inline]
+    pub fn set_confusion_turns(&mut self, v: u8) -> &mut Self {
+        self.set_field(V_CONFUSION_TURNS, 3, v as u64)
+    }
+    #[inline]
+    pub fn set_attacks(&mut self, v: u8) -> &mut Self {
+        self.set_field(V_ATTACKS, 3, v as u64)
+    }
+    #[inline]
+    pub fn set_state(&mut self, v: u16) -> &mut Self {
+        self.set_field(V_STATE, 16, v as u64)
+    }
+    #[inline]
+    pub fn set_substitute_hp(&mut self, v: u8) -> &mut Self {
+        self.set_field(V_SUBSTITUTE_HP, 8, v as u64)
+    }
+    /// The transform target's `ID` byte: one-based party slot in bits 0-2, the
+    /// target's player in bit 3 (`common/data.zig:30-45`).
+    #[inline]
+    pub fn set_transform_id(&mut self, v: u8) -> &mut Self {
+        self.set_field(V_TRANSFORM_ID, 4, v as u64)
+    }
+    #[inline]
+    pub fn set_disable_duration(&mut self, v: u8) -> &mut Self {
+        self.set_field(V_DISABLE_DURATION, 4, v as u64)
+    }
+    #[inline]
+    pub fn set_disable_move(&mut self, v: u8) -> &mut Self {
+        self.set_field(V_DISABLE_MOVE, 3, v as u64)
+    }
+    #[inline]
+    pub fn set_toxic_turns(&mut self, v: u8) -> &mut Self {
+        self.set_field(V_TOXIC_TURNS, 5, v as u64)
+    }
+}
+
+/// A stored party member, 24 bytes, writable. The mirror of `PokemonView`.
+pub struct PokemonViewMut<'a>(pub &'a mut [u8]);
+
+impl PokemonViewMut<'_> {
+    /// Zeroes the record -- an EMPTY party slot, which is what `Battle::new`
+    /// leaves for a side with fewer than six mons (`battle.rs:223-236`).
+    #[inline]
+    pub fn clear(&mut self) {
+        self.0[..POKEMON_SIZE].fill(0);
+    }
+    #[inline]
+    pub fn set_stats(&mut self, s: Stats) {
+        s.write(self.0, P_STATS);
+    }
+    /// The STORED move slots: `(move id, pp)`. Transform rewrites the ACTIVE
+    /// slots, not these.
+    #[inline]
+    pub fn set_moves(&mut self, m: [(u8, u8); 4]) {
+        for (i, (id, pp)) in m.into_iter().enumerate() {
+            self.0[P_MOVES + 2 * i] = id;
+            self.0[P_MOVES + 2 * i + 1] = pp;
+        }
+    }
+    #[inline]
+    pub fn set_hp(&mut self, hp: u16) {
+        set_u16le(self.0, P_HP, hp);
+    }
+    #[inline]
+    pub fn set_status(&mut self, s: StatusByte) {
+        self.0[P_STATUS] = s.0;
+    }
+    #[inline]
+    pub fn set_species(&mut self, s: u8) {
+        self.0[P_SPECIES] = s;
+    }
+    /// `(type1, type2)` as engine `Type` values; type1 is the low nibble. A
+    /// mono-type mon REPEATS its type here -- that is the engine's encoding,
+    /// and distinct from `observe::MonView`, whose `type_2` is `None`.
+    #[inline]
+    pub fn set_types(&mut self, t: (u8, u8)) {
+        self.0[P_TYPES] = (t.0 & 0x0F) | (t.1 << 4);
+    }
+    #[inline]
+    pub fn set_level(&mut self, l: u8) {
+        self.0[P_LEVEL] = l;
+    }
+}
+
+/// The active Pokémon's volatile state, 32 bytes, writable.
+pub struct ActiveViewMut<'a>(pub &'a mut [u8]);
+
+impl ActiveViewMut<'_> {
+    /// Zeroes the whole record -- exactly what `faint()` and `switchIn` do to
+    /// the volatile word before rebuilding it (`mechanics.zig:1562`, `:246-248`).
+    #[inline]
+    pub fn clear(&mut self) {
+        self.0[..ACTIVE_SIZE].fill(0);
+    }
+    /// MODIFIED stats -- boosts and `statusModify` ALREADY applied. This is the
+    /// hardest field in the bridge; `spec::active_stats` is rule W-ACTIVESTATS.
+    #[inline]
+    pub fn set_stats(&mut self, s: Stats) {
+        s.write(self.0, A_STATS);
+    }
+    #[inline]
+    pub fn set_species(&mut self, s: u8) {
+        self.0[A_SPECIES] = s;
+    }
+    #[inline]
+    pub fn set_types(&mut self, t: (u8, u8)) {
+        self.0[A_TYPES] = (t.0 & 0x0F) | (t.1 << 4);
+    }
+    #[inline]
+    pub fn set_boosts(&mut self, b: Boosts) {
+        self.0[A_BOOSTS..A_BOOSTS + 4].copy_from_slice(&b.pack().to_le_bytes());
+    }
+    #[inline]
+    pub fn set_volatiles(&mut self, v: Volatiles) {
+        self.0[A_VOLATILES..A_VOLATILES + 8].copy_from_slice(&v.0.to_le_bytes());
+    }
+    /// The LIVE move slots -- what the mon can actually select right now.
+    #[inline]
+    pub fn set_moves(&mut self, m: [(u8, u8); 4]) {
+        for (i, (id, pp)) in m.into_iter().enumerate() {
+            self.0[A_MOVES + 2 * i] = id;
+            self.0[A_MOVES + 2 * i + 1] = pp;
+        }
+    }
+}
+
+/// One player's side, 184 bytes, writable.
+pub struct SideViewMut<'a>(pub &'a mut [u8]);
+
+impl<'a> SideViewMut<'a> {
+    #[inline]
+    pub fn party_mut(&mut self, i: usize) -> PokemonViewMut<'_> {
+        debug_assert!(i < 6);
+        PokemonViewMut(&mut self.0[S_POKEMON + i * POKEMON_SIZE..S_POKEMON + (i + 1) * POKEMON_SIZE])
+    }
+    #[inline]
+    pub fn active_mut(&mut self) -> ActiveViewMut<'_> {
+        ActiveViewMut(&mut self.0[S_ACTIVE..S_ACTIVE + ACTIVE_SIZE])
+    }
+    /// `order[slot-1]` = the ONE-BASED party index in that slot; 0 marks an
+    /// unused slot. Slot 1 is the active. `choices()` walks THIS array to decide
+    /// which switches to offer and under which slot number
+    /// (`mechanics.zig:3149-3153, 3183-3188`), so it is not decorative -- but
+    /// the SET it offers is permutation-invariant, which is why §2.4 declares
+    /// `order[1..6]` free (family W-ORDER).
+    #[inline]
+    pub fn set_order(&mut self, o: [u8; 6]) {
+        self.0[S_ORDER..S_ORDER + 6].copy_from_slice(&o);
+    }
+    #[inline]
+    pub fn set_last_selected_move(&mut self, m: u8) {
+        self.0[S_LAST_SELECTED_MOVE] = m;
+    }
+    #[inline]
+    pub fn set_last_used_move(&mut self, m: u8) {
+        self.0[S_LAST_USED_MOVE] = m;
+    }
+    /// Read-only reborrow, so a writer can check what it just wrote without
+    /// giving up the mutable borrow.
+    #[inline]
+    pub fn as_view(&self) -> SideView<'_> {
+        SideView(self.0)
+    }
+}
+
+/// Writable view over the whole 384-byte battle.
+pub struct BattleViewMut<'a>(pub &'a mut [u8]);
+
+impl<'a> BattleViewMut<'a> {
+    #[inline]
+    pub fn side_mut(&mut self, p: usize) -> SideViewMut<'_> {
+        debug_assert!(p < 2);
+        SideViewMut(&mut self.0[B_SIDES + p * SIDE_SIZE..B_SIDES + (p + 1) * SIDE_SIZE])
+    }
+    /// Turn number. **Must be >= 1 on a constructed root**: `update` routes
+    /// turn 0 into `start()`, which switches both leads in from scratch
+    /// (`mechanics.zig:81-82`). W-VALIDATE enforces it.
+    #[inline]
+    pub fn set_turn(&mut self, t: u16) {
+        set_u16le(self.0, B_TURN, t);
+    }
+    /// Damage dealt by the last move -- what Counter reads. Family W-LASTDMG.
+    #[inline]
+    pub fn set_last_damage(&mut self, d: u16) {
+        set_u16le(self.0, B_LAST_DAMAGE, d);
+    }
+    /// `(index, counterable)` for player `p`. `index` is a ONE-BASED LIVE MOVE
+    /// SLOT, not a move id, and **0 is never a safe value**: on the release turn
+    /// of a two-turn move the engine recovers the slot from here
+    /// (`mechanics.zig:439-443`) and `ActivePokemon.move` asserts `mslot > 0`
+    /// (`data.zig:179-184`). `switchIn` writes 1 (`mechanics.zig:238`).
+    #[inline]
+    pub fn set_last_moves(&mut self, p: usize, index: u8, counterable: bool) {
+        debug_assert!(p < 2);
+        self.0[B_LAST_MOVES + 2 * p] = index;
+        self.0[B_LAST_MOVES + 2 * p + 1] = counterable as u8;
+    }
+    /// The PSRNG seed. Not an approximation of anything -- this IS the chance
+    /// dial the sampled-chance search turns (§1.2, rule CRN-1).
+    #[inline]
+    pub fn set_seed(&mut self, s: u64) {
+        self.0[B_RNG..B_RNG + 8].copy_from_slice(&s.to_le_bytes());
+    }
+    #[inline]
+    pub fn as_view(&self) -> BattleView<'_> {
+        BattleView(self.0)
+    }
+}

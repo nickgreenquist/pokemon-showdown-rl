@@ -22,6 +22,7 @@ pub mod layout;
 pub mod observe;
 pub mod scripted;
 pub mod smoke;
+pub mod spec;
 pub mod tables;
 pub mod team;
 pub mod track;

@@ -2303,3 +2303,96 @@ it is exactly the shape three draws produce by chance, and k=3 cannot separate t
 run — a killed lane leaves only the wandb offline dir. The grader failed the whole
 grade on it rather than degrading to P-END. Extracted, re-graded, and the runner
 should extract before grading (owed).
+
+## 2026-09-10 — Phase 1 write side: `layout.rs` writers, `BattleSpec`, W-VALIDATE
+
+Built against `docs/search_relook/ENGINE_SEARCH_DESIGN.md` §2. **Purely
+additive: 641 inserted lines, 0 deleted.** `layout.rs` is append-only from line
+424 (deliberate — the design docs cite it by line number), `lib.rs` gains
+`pub mod spec;`, `python.rs` gains three classes and one function. `observe.rs`,
+`encoder.rs`, `track.rs` and `env.rs` are untouched, so the accepted collector
+(gate A-1, signed delta −0.00436) is byte-for-byte the same object.
+
+`cargo test`: **94 pass, 0 fail, 0 warnings** (48 unit + 10 layout + 3 leak
+audit + 3 tracker properties + 30 new `tests/write_side.rs`).
+
+### OWED: the editable reinstall
+
+`cargo build` refreshes `target/`; the IMPORTABLE extension only changes on
+`pip install --no-build-isolation -e engine/pkmn_gen1`. That was **NOT run** —
+the `engine_pe_s66` training lane was alive throughout and a reinstall replaces
+the `.so` under it. **The Python surface (`MonSpec` / `SideSpec` / `BattleSpec`
+/ `validate_battle`) is therefore COMPILED BUT UNEXERCISED.** Reinstall once the
+lane is down, then smoke it before Phase 2 builds on it. (`__state_schema__`
+stays at 2: the `ObservableState` dict schema did not change.)
+
+### Three corrections to §2, found by building against the code
+
+§2 was written from a read of the engine; each of these only shows up when you
+assemble bytes and hand them to `update`.
+
+1. **`B_LAST_MOVES[p].index` is load-bearing for `V_CHARGING`, and 0 is UB.**
+   §2.4 files it under W-LASTDMG as a Counter input. On the release turn of a
+   two-turn move the engine DISCARDS the offered `Move(1)` and recovers the real
+   slot from this byte (`mechanics.zig:439-443`), then calls
+   `ActivePokemon.move`, which asserts `mslot > 0` (`data.zig:181`) — and
+   `build.rs:220` pins `-Doptimize=ReleaseFast` in **every** profile this repo
+   builds, cargo debug included, so that assert is compiled out everywhere and
+   the read is an unconditional `moves[-1]`. There is no build in which the
+   engine would have caught it. `env.rs:106-120` separately needs
+   `S_LAST_SELECTED_MOVE` to put the charge on the right mask lane. Both are
+   derived from one spec field, `VolatileSpec::charging = Some(live slot)`;
+   `DEFAULT_LAST_MOVE_INDEX` is **1** (what `switchIn` writes,
+   `mechanics.zig:238`), never 0. Demonstrated:
+   `last_moves_index_decides_which_charging_move_is_released` points the index
+   at a different slot and the engine releases a different move.
+
+2. **W-ACTIVESTATS is wrong on a ~10× wider set than §2.6 says.** §2.6 claims
+   the rule "is exact when there are no boosts" and bounds the error by the
+   boost × PAR/BRN intersection, 2.26% of opponent roots. False: the engine
+   re-applies `statusModify` to the DEFENDER's ALREADY-MODIFIED active stats at
+   the end of **every** stat change — `boost` on `battle.foe(player)`
+   (`mechanics.zig:2580-2581`), `unboost` on its own target (`:2688-2689`), both
+   labelled "GLITCH: Stat modification errors glitch". A paralysed mon with no
+   boosts of its own loses another factor of 4 on speed each time its opponent
+   uses Agility / Swords Dance / Amnesia / Sand-Attack. Measured in the corpus:
+   stored spe 188, no boosts, PAR → engine holds **11** (188/4/4) where the rule
+   gives 47. Honest domain: **exact iff the active is neither paralysed nor
+   burned**; the incidence bound is §2.5's "opp active PAR or BRN", **24.38%**,
+   not 2.26%. Still not a regression against the current line (`bridge.py`
+   hands poke_engine stages and status separately and has the same ambiguity),
+   and still invisible to the encoder (`_spe_est` does not read `active.stats`)
+   — but R1-E must declare the wider family, and depth-2's turn order sees it.
+   Test: `the_stat_modification_glitch_compounds_status_on_the_defender`.
+
+3. **`order[0]` may name a FAINTED mon, so §2.4's W-VALIDATE rule "`order[0]`
+   names a live mon" would reject 14.73% of the harvest.** That is exactly a
+   force-switch root, and it is what W-REQ's `(Switch, Pass)` row is for. The
+   implemented rule is: `order[0]` names a PRESENT mon, the side has ≥1 live
+   mon, and the request pair equals W-REQ for those actives.
+
+Minor, same origin: `V_DISABLE_MOVE` is classed **V** (0 pool species, true for
+`gen1randombattle`) but dropping it **removes a legal action** — `choices()`
+skips the disabled slot (`mechanics.zig:3231`), which is R1-E leg C's hard stop,
+not a residual. It is now family **W-DISABLE**: the slot is carried (owner-
+visible, the `|request|` omits the move), the duration is defaulted to 4 of
+1..=8, and a set slot with a 0 duration is rejected because `beforeMove` only
+clears a disable inside `if (disable_duration > 0)` — a 0 disables the move
+forever. Gen 2+ makes this live.
+
+### Byte-identity guard, as measured
+
+A spec rebuilt from a played battle's own K-class fields, over 1,200 engine-
+produced states (30 seeds × 40 steps, `team::random_team` so status/boosts/
+sleep/two-turn moves actually occur): **36 states bit-identical**, and every
+differing byte inside a declared range. Bytes by family: W-ORDER 7,326,
+W-LASTMOVE 3,058, W-LASTDMG 2,354, hidden volatile counters 185, W-SLEEP 172,
+**W-ACTIVESTATS 9**. W-SEED and `order[0]` contribute **0** by assertion, and
+the 18 public volatile flag bits + `V_TRANSFORM_ID` + `V_TOXIC_TURNS` are
+checked bit-for-bit rather than by byte range. W-ACTIVESTATS: 9 of 3,200 actives
+differ, all inside the corrected domain (PAR/BRN 85, Transform, fainted).
+
+**W-ORDER's freeness is now a test, not a comment:** `order_is_free_for_the_
+action_set` and the rebuild leg compare the offered choices BY ENTITY (switch →
+species, move → move id) and require set equality on all 1,200 states. That is
+R1-E leg C's mechanism at the crate level and it is what caught W-DISABLE.

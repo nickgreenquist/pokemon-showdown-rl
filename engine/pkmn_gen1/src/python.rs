@@ -13,6 +13,7 @@ use crate::data;
 use crate::ffi;
 use crate::layout;
 use crate::smoke;
+use crate::spec;
 use crate::team::PokemonSet;
 
 fn player(p: &str) -> PyResult<Player> {
@@ -372,6 +373,310 @@ impl PyBattle {
     }
 }
 
+// =============================================================================
+// The WRITE-SIDE BRIDGE's Python surface
+// (`docs/search_relook/ENGINE_SEARCH_DESIGN.md` §2).
+//
+// Deliberately thin and deliberately NOT ergonomic-by-defaulting: every field
+// §2.4 classes **S** is either named here or carries a default that `spec.rs`
+// documents with the engine line that forces it. Phase 2 builds on these names,
+// so they are the design's names.
+//
+// What is NOT here: the poke-env -> spec mapping. The determinizer, the reveal
+// order, the HP quantisation and the A-1a PP rule live in
+// `rl/search/engine_bridge.py` and are graded by R1-E.
+// =============================================================================
+
+fn spec_err(e: spec::SpecError) -> PyErr {
+    PyValueError::new_err(format!("W-VALIDATE: {e}"))
+}
+
+fn moves_from_py(m: &[(u8, u8)]) -> PyResult<[(u8, u8); 4]> {
+    if m.is_empty() || m.len() > 4 {
+        return Err(PyValueError::new_err("a Pokemon has 1..4 (move_id, pp) slots"));
+    }
+    for (i, &(id, _)) in m.iter().enumerate() {
+        if id == 0 || id > 165 {
+            return Err(PyValueError::new_err(format!("move id {id} out of range in slot {i}")));
+        }
+    }
+    let mut out = [(0u8, 0u8); 4];
+    out[..m.len()].copy_from_slice(m);
+    Ok(out)
+}
+
+/// One party member as a client can know it. `stats=None` applies §2.3's
+/// identity (`ivs=[30;5], evs=[255;5]`, the determinizer's max-DV model
+/// bit-for-bit); `types=None` reads the engine's own table; `hp=None` is full
+/// HP. Stats and types are settable because Transform separates identity from
+/// stats and the PRODUCER has to say which apply (gate P-1's lesson).
+#[pyclass(name = "MonSpec", from_py_object)]
+#[derive(Clone)]
+struct PyMonSpec {
+    inner: spec::MonSpec,
+}
+
+#[pymethods]
+impl PyMonSpec {
+    #[new]
+    #[pyo3(signature = (species, level, moves, hp=None, status=0, stats=None, types=None))]
+    fn new(
+        species: u8,
+        level: u8,
+        moves: Vec<(u8, u8)>,
+        hp: Option<u16>,
+        status: u8,
+        stats: Option<[u16; 5]>,
+        types: Option<(u8, u8)>,
+    ) -> PyResult<Self> {
+        if species == 0 || species > 151 {
+            return Err(PyValueError::new_err(format!("species {species} out of range")));
+        }
+        let slots = moves_from_py(&moves)?;
+        let ids: Vec<u8> = slots.iter().map(|m| m.0).take_while(|&m| m != 0).collect();
+        let mut inner = spec::MonSpec::determinized(
+            species,
+            level,
+            {
+                let mut a = [(0u8, 0u8); 4];
+                for (i, &id) in ids.iter().enumerate() {
+                    a[i] = (id, 0);
+                }
+                a
+            },
+        );
+        inner.moves = slots;
+        if let Some(s) = stats {
+            inner.stats = layout::Stats { hp: s[0], atk: s[1], def: s[2], spe: s[3], spc: s[4] };
+        }
+        if let Some(t) = types {
+            inner.types = t;
+        }
+        inner.hp = hp.unwrap_or(inner.stats.hp);
+        inner.status = layout::StatusByte(status);
+        Ok(PyMonSpec { inner })
+    }
+
+    /// An empty party slot (`species == 0`).
+    #[staticmethod]
+    fn empty() -> PyMonSpec {
+        PyMonSpec { inner: spec::MonSpec::EMPTY }
+    }
+
+    /// The max-HP stat, which is what W-HP quantises the opponent's percentage
+    /// against. Exposed so the Python half can apply `bridge.py:220`'s rounding
+    /// without reimplementing the stat model.
+    #[getter]
+    fn max_hp(&self) -> u16 {
+        self.inner.max_hp()
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "<MonSpec species={} level={} hp={}/{} status={:#04x}>",
+            self.inner.species, self.inner.level, self.inner.hp, self.inner.stats.hp, self.inner.status.0
+        )
+    }
+}
+
+/// Reads `VolatileSpec` out of a plain dict. **Unknown keys raise** — a typo
+/// must not become a silent zero, which is the whole failure mode §2.4 warns
+/// about for the S-class fields.
+fn volatiles_from_py(d: &Bound<'_, PyDict>) -> PyResult<spec::VolatileSpec> {
+    let mut v = spec::VolatileSpec::default();
+    for (k, val) in d.iter() {
+        let key: String = k.extract()?;
+        match key.as_str() {
+            // K, and the one that carries a slot rather than a flag.
+            "charging" => v.charging = val.extract()?,
+            "recharging" => v.recharging = val.extract()?,
+            "reflect" => v.reflect = val.extract()?,
+            "confusion" => v.confusion = val.extract()?,
+            "confusion_turns" => v.confusion_turns = val.extract()?,
+            "substitute" => v.substitute = val.extract()?,
+            "substitute_hp" => v.substitute_hp = val.extract()?,
+            "transform" => {
+                v.transform = match val.extract::<Option<(String, u8)>>()? {
+                    Some((who, slot)) => Some((player(&who)?, slot)),
+                    None => None,
+                }
+            }
+            "light_screen" => v.light_screen = val.extract()?,
+            // V in gen1randombattle (§2.5), carried so the type is complete.
+            "bide" => v.bide = val.extract()?,
+            "thrashing" => v.thrashing = val.extract()?,
+            "multi_hit" => v.multi_hit = val.extract()?,
+            "flinch" => v.flinch = val.extract()?,
+            "binding" => v.binding = val.extract()?,
+            "invulnerable" => v.invulnerable = val.extract()?,
+            "mist" => v.mist = val.extract()?,
+            "focus_energy" => v.focus_energy = val.extract()?,
+            "rage" => v.rage = val.extract()?,
+            "leech_seed" => v.leech_seed = val.extract()?,
+            "toxic" => v.toxic = val.extract()?,
+            "attacks" => v.attacks = val.extract()?,
+            "state" => v.state = val.extract()?,
+            "disable_move" => v.disable_move = val.extract()?,
+            "disable_duration" => v.disable_duration = val.extract()?,
+            "toxic_turns" => v.toxic_turns = val.extract()?,
+            other => {
+                return Err(PyValueError::new_err(format!(
+                    "unknown volatile {other:?}; see VolatileSpec in engine/pkmn_gen1/src/spec.rs"
+                )));
+            }
+        }
+    }
+    Ok(v)
+}
+
+/// One side, plus the two `B_LAST_MOVES` bytes that belong to this player.
+///
+/// `boosts` is `(atk, def, spe, spc, accuracy, evasion)` — gen 1 has ONE
+/// Special, so poke-env's `spa` (== `spd`) goes into `spc`. `identity` and
+/// `live_moves` are `None` for everything except Transform. `active_stats` is
+/// §2.6's named-and-not-taken upgrade hook, and is REQUIRED under Transform.
+#[pyclass(name = "SideSpec", from_py_object)]
+#[derive(Clone)]
+struct PySideSpec {
+    inner: spec::SideSpec,
+}
+
+#[pymethods]
+impl PySideSpec {
+    #[new]
+    #[pyo3(signature = (
+        party,
+        active_index,
+        boosts=(0, 0, 0, 0, 0, 0),
+        volatiles=None,
+        identity=None,
+        live_moves=None,
+        active_stats=None,
+        last_selected_move=spec::DEFAULT_LAST_SELECTED_MOVE,
+        last_used_move=spec::DEFAULT_LAST_USED_MOVE,
+        last_move_index=spec::DEFAULT_LAST_MOVE_INDEX,
+        last_move_counterable=spec::DEFAULT_LAST_MOVE_COUNTERABLE,
+    ))]
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        party: Vec<PyMonSpec>,
+        active_index: u8,
+        boosts: (i8, i8, i8, i8, i8, i8),
+        volatiles: Option<&Bound<'_, PyDict>>,
+        identity: Option<(u8, (u8, u8))>,
+        live_moves: Option<Vec<(u8, u8)>>,
+        active_stats: Option<[u16; 5]>,
+        last_selected_move: u8,
+        last_used_move: u8,
+        last_move_index: u8,
+        last_move_counterable: bool,
+    ) -> PyResult<Self> {
+        if party.is_empty() || party.len() > 6 {
+            return Err(PyValueError::new_err("a side has 1..6 party slots"));
+        }
+        let mut slots = [spec::MonSpec::EMPTY; 6];
+        for (i, m) in party.iter().enumerate() {
+            slots[i] = m.inner;
+        }
+        let mut inner = spec::SideSpec::new(slots, active_index);
+        inner.active.boosts = layout::Boosts {
+            atk: boosts.0,
+            def: boosts.1,
+            spe: boosts.2,
+            spc: boosts.3,
+            accuracy: boosts.4,
+            evasion: boosts.5,
+        };
+        if let Some(d) = volatiles {
+            inner.active.volatiles = volatiles_from_py(d)?;
+        }
+        inner.active.identity = identity;
+        inner.active.live_moves = match live_moves {
+            Some(m) => Some(moves_from_py(&m)?),
+            None => None,
+        };
+        inner.active.stats = active_stats.map(|s| layout::Stats {
+            hp: s[0],
+            atk: s[1],
+            def: s[2],
+            spe: s[3],
+            spc: s[4],
+        });
+        inner.last_selected_move = last_selected_move;
+        inner.last_used_move = last_used_move;
+        inner.last_move_index = last_move_index;
+        inner.last_move_counterable = last_move_counterable;
+        Ok(PySideSpec { inner })
+    }
+
+    fn __repr__(&self) -> String {
+        format!(
+            "<SideSpec n={} active={}>",
+            self.inner.party_len(),
+            self.inner.active_index
+        )
+    }
+}
+
+/// The battle header plus both sides. `build()` assembles the 384 bytes, runs
+/// **W-VALIDATE**, and returns `(Battle, req_p1, req_p2)` — the request pair is
+/// rule **W-REQ** and is NOT in the bytes (`battle.rs:96-138`).
+///
+/// `seed` has no default on purpose: it IS the chance dial (§1.2, CRN-1), and a
+/// shared default would silently correlate every sample in a batch.
+#[pyclass(name = "BattleSpec", skip_from_py_object)]
+#[derive(Clone)]
+struct PyBattleSpec {
+    inner: spec::BattleSpec,
+}
+
+#[pymethods]
+impl PyBattleSpec {
+    #[new]
+    #[pyo3(signature = (turn, seed, p1, p2, last_damage=spec::DEFAULT_LAST_DAMAGE))]
+    fn new(turn: u16, seed: u64, p1: PySideSpec, p2: PySideSpec, last_damage: u16) -> PyBattleSpec {
+        PyBattleSpec {
+            inner: spec::BattleSpec { turn, last_damage, seed, p1: p1.inner, p2: p2.inner },
+        }
+    }
+
+    /// Rule W-REQ, without building. Cheap, and it tells the caller whether it
+    /// even owes a decision.
+    fn requests(&self) -> (&'static str, &'static str) {
+        let (a, b) = self.inner.requests();
+        (request_to_py(a), request_to_py(b))
+    }
+
+    /// `(Battle, req_p1, req_p2)`. Raises `ValueError` naming the field on any
+    /// W-VALIDATE violation — it never repairs and never panics.
+    fn build(&self) -> PyResult<(PyBattle, &'static str, &'static str)> {
+        let root = self.inner.build().map_err(spec_err)?;
+        Ok((
+            PyBattle { inner: root.battle },
+            request_to_py(root.p1),
+            request_to_py(root.p2),
+        ))
+    }
+
+    /// Rebuilds a spec from a battle's own bytes using ONLY §2.4's K-class
+    /// fields. This is the byte-identity guard's input and a debugging aid; it
+    /// is NOT the poke-env bridge.
+    #[staticmethod]
+    fn from_visible(b: &PyBattle) -> PyBattleSpec {
+        PyBattleSpec { inner: spec::BattleSpec::from_visible(&b.inner) }
+    }
+}
+
+/// **W-VALIDATE** on 384 arbitrary bytes, because `Battle.from_bytes` accepts
+/// anything (§2.4). Raises `ValueError` naming the field; returns `None` when
+/// the state is one the engine may legally be handed.
+#[pyfunction]
+fn validate_battle(b: Vec<u8>, req1: &str, req2: &str) -> PyResult<()> {
+    let arr = <[u8; layout::BATTLE_SIZE]>::try_from(b.as_slice())
+        .map_err(|_| PyValueError::new_err("battle state must be 384 bytes"))?;
+    spec::validate(&Battle(arr), request(req1)?, request(req2)?).map_err(spec_err)
+}
+
 #[pymodule]
 fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(build_info, m)?)?;
@@ -384,7 +689,13 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(max_pp, m)?)?;
     m.add_function(wrap_pyfunction!(set_stats, m)?)?;
     m.add_function(wrap_pyfunction!(pokemon_record, m)?)?;
+    m.add_function(wrap_pyfunction!(validate_battle, m)?)?;
     m.add_class::<PyBattle>()?;
+    // The write-side bridge (ENGINE_SEARCH_DESIGN.md §2). Phase 2 builds on
+    // these names.
+    m.add_class::<PyMonSpec>()?;
+    m.add_class::<PySideSpec>()?;
+    m.add_class::<PyBattleSpec>()?;
     m.add_class::<crate::pyencode::Tables>()?;
     m.add_class::<crate::pyencode::BatchEnv>()?;
     m.add("N_ACTIONS", crate::env::N_ACTIONS)?;
