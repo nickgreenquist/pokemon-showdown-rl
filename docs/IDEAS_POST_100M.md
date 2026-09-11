@@ -769,7 +769,14 @@ so JOURNEY wants an amendment at the next maintainer pass.
 
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
-- **Attention re-benchmark — DO (minutes-to-an-hour, no training).**
+- **Attention re-benchmark — DEFERRED POST-LADDER (maintainer, 2026-09-11); the
+  live home is JOURNEY 11.6.** Still DO-able in minutes-to-an-hour with no training,
+  and explicitly NOT run on 2026-09-11 so it could not tempt a third arm into the
+  monster. Two updates to the pricing since the kill: the engine port took the
+  update from 25% to 65% of wall, so a slow trunk costs MORE now; and the 34.6x was
+  measured against the flat MLP, so the ratio against today's trunk is unknown.
+  ARCHITECTURE EXPIRES AT A RUN'S LAUNCH — taking this rung means another training
+  run, which is why it sits behind the ladder.
   [THROUGHPUT-PROXY kill — the weakest class on the list: no attention arm has
   ever been measured on WIN RATE here, at any dose. Industry-standard
   architecture killed on a speed microbenchmark against a different trunk.]

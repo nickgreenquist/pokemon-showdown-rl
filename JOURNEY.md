@@ -137,6 +137,47 @@ Credits at acceptable cost → build MCTS in gen9. Doesn't credit → the MCTS q
 
 No depth-3. If depth-2 is ambiguous, that is the answer.
 
+### 11.6  Architecture: an attention / transformer trunk — **POST-LADDER, ruled 2026-09-11**
+
+**Maintainer's ruling, verbatim: "next ladder should be as good as we can do with new
+poke-engine training and all these search gains ... transformer model can be post this
+ladder (wherever that falls in journey). can be recorded there as idea to try."** So the
+step-11 ladder object is the engine-trained monster plus gated (D5) search, and the
+architecture question waits behind it. **This step does not block step 12** — the story can
+be wrapped without it.
+
+**Why it is still open at all.** The attention trunk was killed on 2026-08-07 by a **CPU
+train-step microbenchmark** (34.6x) against the **flat [512,512] MLP**, before the entity
+trunk existed. `docs/IDEAS_POST_100M.md` §5 files it as a THROUGHPUT-PROXY kill, the
+weakest class on that list, and states the gap plainly: **attention has never been
+measured on WIN RATE here, at any dose**, and attention-vs-`entity_deepsets` has never
+been measured at all. An industry-standard architecture is sitting retired on a speed
+comparison against a trunk we no longer run.
+
+**What changed since, and it cuts both ways.** AGAINST: the engine port inverted the
+profile — the update went from 25% to **65% of wall** — so a slow trunk costs strictly
+more now than when it was killed. FOR: the 34.6x was measured against the flat MLP, so
+the honest ratio against today's trunk is simply unknown.
+
+**The cheap first move, deliberately NOT run yet (2026-09-11):** ARCH_SCREEN_SPEC's
+re-benchmark against the current trunk — minutes to an hour, no training, settles
+THROUGHPUT only. It was offered and deferred, because running it now would only tempt a
+third arm into the monster.
+
+**THE TIMING TRAP, recorded so nobody rediscovers it late.** Architecture EXPIRES at the
+monster's launch exactly the way the privileged evaluator head does: you cannot bolt a
+different trunk onto a finished checkpoint. Taking this step means **another training
+run**, not a re-analysis. That is the whole reason it sits after the ladder rather than
+inside the monster — and if a future maintainer wants it inside a run, the decision has to
+be made BEFORE that run starts, not after its readout.
+
+**Shape when it runs:** the win-rate question is a §4-class fleet arm needing its own
+pre-reg with mechanism co-primary, on the collector path where k=8 makes it readable. Note
+also that ps-ppo's laddered system is the EARLIER-era one — its KV-cache/temporal machinery
+is HEAD-only with no logs or checkpoints — so "ps-ppo is a transformer at 1725" is not the
+clean comparable it looks like (`docs/prior_work/README.md`). The transferable finding from
+their code was the MOVE TOKEN, which this project already derived independently.
+
 ### 12. Wrap the story
 Novelty (gen1), validation (gen4), and the transfer result. Three points on a complexity curve, and a recipe developed where it could be seen and tested where it couldn't.
 
