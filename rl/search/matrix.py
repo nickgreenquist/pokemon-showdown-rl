@@ -177,88 +177,112 @@ def _leaf_our_moves(state: Any, k: int) -> list[str]:
     return out[:k]
 
 
-def _look_one_more_ply(values, need, leaf_states, col_actions, leaf_at, turn,
-                       col_views, critic_fn, type_chart, depth2):
-    """DEPTH-2 PROBE. Replace a leaf's critic value with a ONE-PLY LOOKAHEAD:
-    from the leaf state, play each of our legal moves against the opponent
-    continuing its column class, and take the MAX over our replies.
+def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
+                  col_views, critic_fn, type_chart, depth2):
+    """SELECTIVE DEPTH. Replace a leaf's critic value with an N-PLY lookahead:
+    from the leaf state, play our legal moves against the opponent CONTINUING
+    ITS COLUMN CLASS, repeat for `plies`, and take the MAX over the sequences.
 
-    Selective on purpose -- `our_k` moves, one opponent line, a hard `cap` on
-    grandchildren -- because exhaustive depth-2 costs ~leaves^2 and that cost
-    is the entire reason the engine port exists. Foul Play gets depth by being
-    selective, not by being fast, and this is the cheapest imitation of that.
+    Max over the final states is the right back-up here and not an
+    approximation: between the leaf and the horizon only WE choose (the
+    opponent is pinned to the column the root already assigned it), so the
+    best sequence is the best endpoint. The opponent's distribution has not
+    been dropped -- `col_w = q` re-weights these values at the root, which is
+    the same expectation-under-q the depth-1 `row_ev` takes.
 
-    Optimistic by construction: max over our replies with no min over the
+    Selective on purpose -- `our_k` moves per ply, one opponent line, a hard
+    `cap` on states -- because EXHAUSTIVE depth-2 costs ~leaves^2, and that
+    cost is the entire reason the engine port exists. Foul Play gets depth by
+    being selective, not by being fast, and this is the cheapest imitation.
+
+    Optimistic by construction: a max over our replies with no min over the
     opponent's. That biases the VALUES up, but it biases every row the same
-    way, and the root decision is an argmax over rows -- so it is a fair probe
+    way and the root decision is an argmax over rows -- so it is a fair probe
     of "does looking further change the CHOICE", not a calibrated value.
     """
     our_k = int(depth2.get("our_k", 3))
     cap = int(depth2.get("cap", 6000))
-    g_obs: list[np.ndarray] = []
-    g_fixed: list[float] = []     # terminal values; nan = ask the critic
-    g_at: list[int] = []          # which leaf each grandchild belongs to
+    plies = int(depth2.get("plies", 1))
+    # (state, origin leaf index, column index); terminal states leave the
+    # frontier carrying their own value and are never expanded again.
+    # (state, origin leaf, column, determinization). The determinization
+    # index matters: a SWITCH column names a DIFFERENT bench target per
+    # determinization, so pinning the opponent to "its column" means
+    # col_actions[ci][di], not col_actions[ci][0].
+    frontier = [(leaf_states[i], i, leaf_at[i][1], leaf_at[i][2]) for i in need
+                if leaf_states[i] is not None]
+    fixed: list[tuple[int, float]] = []   # (origin leaf, settled value)
     expanded = 0
-    for i in need:
-        st = leaf_states[i]
-        if st is None or expanded >= cap:
-            continue
-        ri, ci, di, _w = leaf_at[i]
-        b_str = col_actions[ci][di]
-        for a_str in _leaf_our_moves(st, our_k):
+    for ply in range(plies):
+        nxt = []
+        for st, i, ci, di in frontier:
             if expanded >= cap:
-                break
-            try:
-                brs = generate_instructions(st, a_str, b_str)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except BaseException:
+                nxt.append((st, i, ci, di))   # out of budget: keep it a leaf
                 continue
-            if not brs:
-                continue
-            br = max(brs, key=lambda b: b.percentage)
-            try:
-                gc = st.apply_instructions(br)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except BaseException:
-                continue
-            tv = _terminal_value(gc)
-            if tv is not None:
-                # A terminal grandchild carries its OWN value (+/-1), not the
-                # zero an unfilled slot would default to -- scoring a won line
-                # as 0.0 is exactly backwards and would make the extra ply
-                # avoid wins.
-                g_obs.append(None); g_fixed.append(tv)
-                g_at.append(i); expanded += 1
-                continue
-            try:
-                g_obs.append(embed_battle(
-                    shadow_battle(gc, turn + 2, view=col_views[ci]), type_chart))
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except BaseException:
-                continue
-            g_fixed.append(np.nan)
-            g_at.append(i); expanded += 1
-    if not g_at:
+            b_str = col_actions[ci][di]
+            grew = False
+            for a_str in _leaf_our_moves(st, our_k):
+                if expanded >= cap:
+                    break
+                try:
+                    brs = generate_instructions(st, a_str, b_str)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except BaseException:
+                    continue
+                if not brs:
+                    continue
+                br = max(brs, key=lambda b: b.percentage)
+                try:
+                    gc = st.apply_instructions(br)
+                except (KeyboardInterrupt, SystemExit):
+                    raise
+                except BaseException:
+                    continue
+                grew = True
+                expanded += 1
+                tv = _terminal_value(gc)
+                if tv is not None:
+                    fixed.append((i, tv))
+                else:
+                    nxt.append((gc, i, ci, di))
+            if not grew:   # nothing legal from here: it stays a leaf
+                nxt.append((st, i, ci, di))
+        frontier = nxt
+        if not frontier:
+            break
+    if not (frontier or fixed):
         return values, {"depth2/grandchildren": 0.0, "depth2/leaves_deepened": 0.0}
-    real = [j for j, o in enumerate(g_obs) if o is not None]
-    gvals = np.array(g_fixed, dtype=np.float64)
-    if real:
-        gb = np.stack([g_obs[j] for j in real]).astype(np.float32)
-        gvals[real] = np.asarray(critic_fn(gb), dtype=np.float64)
+
     best: dict[int, float] = {}
-    for j, i in enumerate(g_at):
-        v = gvals[j]
+    for i, v in fixed:
         if i not in best or v > best[i]:
             best[i] = v
+    if frontier:
+        obs, at = [], []
+        for st, i, ci, _di in frontier:
+            try:
+                obs.append(embed_battle(
+                    shadow_battle(st, turn + 1 + plies, view=col_views[ci]),
+                    type_chart))
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except BaseException:
+                continue
+            at.append(i)
+        if obs:
+            gv = np.asarray(
+                critic_fn(np.stack(obs).astype(np.float32)), dtype=np.float64)
+            for j, i in enumerate(at):
+                if i not in best or gv[j] > best[i]:
+                    best[i] = float(gv[j])
     out = values.copy()
     for i, v in best.items():
         out[i] = v
     return out, {
-        "depth2/grandchildren": float(len(g_at)),
+        "depth2/grandchildren": float(expanded),
         "depth2/leaves_deepened": float(len(best)),
+        "depth2/plies": float(plies),
         "depth2/mean_shift": float(np.mean([abs(out[i] - values[i]) for i in best])),
     }
 
@@ -411,7 +435,7 @@ def solve_decision(
         values[need] = np.asarray(critic_fn(batch), dtype=np.float64)
     d2_stats: dict[str, float] = {}
     if depth2 is not None and need:
-        values, d2_stats = _look_one_more_ply(
+        values, d2_stats = _look_further(
             values, need, leaf_states, col_actions, leaf_at, turn, col_views,
             critic_fn, type_chart, depth2,
         )

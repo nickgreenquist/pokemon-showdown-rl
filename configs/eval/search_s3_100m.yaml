@@ -288,6 +288,18 @@ arms:
   # every leaf is valued by the mean of their critics. The ensemble is the one
   # free-compute lever this project has credited (+0.03489 at 5.93 se); this
   # asks what it is worth at depth rather than at the root.
+  # SELECTIVE DEPTH ON THE BANKED OBJECT. D2B is the exact S3G10 matrix (dose
+  # M, delta 0.10, the arm that reads 0.82400 at n=3000) with ONE extra ply at
+  # every leaf. These push the same idea: D3 looks two plies further, D2W
+  # stops truncating our replies at 3 of 4 moves. Unlike the tree arms these
+  # keep everything the banked object already gets right -- the exact
+  # expectation over opponent columns under q, the retained-branch law, and a
+  # gate calibrated on the row_ev scale -- and change only how far each leaf
+  # is followed.
+  D3:  {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, margin_delta: 0.10, depth2: {our_k: 2, cap: 9000, plies: 2}}
+  D2W: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, margin_delta: 0.10, depth2: {our_k: 4, cap: 9000, plies: 1}}
+  D3S: {kind: search, lanes: [s112], dose: M, battles: 6,   chunks: 1, margin_delta: 0.10, depth2: {our_k: 2, cap: 9000, plies: 2}}
+  D4S: {kind: search, lanes: [s112], dose: M, battles: 6,   chunks: 1, margin_delta: 0.10, depth2: {our_k: 2, cap: 12000, plies: 3}}
   # THE DEPTH LADDER. Everything is held fixed except `depth_cap`, so this is
   # the first clean dose-response in DEPTH this project has: same tree, same
   # iteration budget, same determinizations, same selector, same margin. TDC1
@@ -321,7 +333,7 @@ arms:
   TSAMP1: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1, opp_rule: sample}}
   TDC8Z:  {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, value_from: zero}}
   TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
