@@ -735,6 +735,24 @@
 #     refuses collector.mode engine when it IS set, because the emitter exists
 #     (BatchEnv(privileged=True)) but the seam into PPO does not, so a wide
 #     critic would train on zeros.
+#
+#     ^^^ CORRECTION 2026-09-11, left in place rather than rewritten because a
+#     pre-reg records what was believed AT LAUNCH. **The second half of that
+#     sentence is no longer true of the code.** The privileged_dim refusal on
+#     the engine route was LIFTED on 2026-09-10 when the design-B seam landed
+#     (rl/agents/ppo.py carries the reasoning verbatim: "NO privileged_dim
+#     REFUSAL HERE. There was one until 2026-09-10; it protected nothing
+#     structural and it was ARM-SCOPED, not an invariant"). rl/train.py now
+#     applies a WIDTH CHECK only. **A-1's own arm is unaffected and still
+#     clean** — privileged_dim was genuinely unset, so the CONCLUSION holds and
+#     no A-1 number moves; only the stated MECHANISM is wrong, and the guard was
+#     the absence of the key rather than a refusal that would have caught it.
+#     This matters downstream because the 100M monster's arm C sets
+#     privileged_dim on the engine route, and **it is launchable only because
+#     this refusal is gone** — so anyone reading this file for "can arm C even
+#     run" must not conclude no. Note also that privileged_dim has NEVER run on
+#     the engine route, and privileged_dim + aux_oppact_coef has never run
+#     anywhere (D18 predates D25), so a live smoke is a hard precondition.
 #   - ENGINE SCRIPTED OPPONENTS: unused. selfplay.opponent is self, and
 #     the eval opponent is the SERVER's SimpleHeuristicsPlayer — the
 #     verdict denominator is never an in-engine reimplementation.
