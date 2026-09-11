@@ -151,11 +151,14 @@ def test_jobs_search_kind_and_legacy_shape():
     # every banked search arm ran.
     # `depth2` / `mcts` / `tree` joined on 2026-09-11 (the depth probes) and,
     # like `leaf_encoding`, are None on an arm that does not declare them --
-    # so every banked search arm's job dict is unchanged in VALUE.
+    # so every banked search arm's job dict is unchanged in VALUE. Same for
+    # `ensemble_search` (False) and `seed_lane`, which on a single-lane arm is
+    # the lane the decision RNG was always seeded from.
     assert jobs["a1s_s62"] == {"arm": "A1S", "members": ["s62"],
                                "search_dose": "M", "leaf_encoding": None,
                                "margin_delta": None, "depth2": None,
-                               "mcts": None, "tree": None}
+                               "mcts": None, "tree": None,
+                               "ensemble_search": False, "seed_lane": "s62"}
     assert "search_dose" not in jobs["a0_s62"]
     with pytest.raises(ValueError):
         ch3_eval._jobs({"arms": {"X": {"kind": "mcts"}}})

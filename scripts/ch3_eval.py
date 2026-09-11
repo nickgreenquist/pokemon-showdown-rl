@@ -230,9 +230,18 @@ def _jobs(prereg: dict) -> dict[str, dict]:
             for lane in spec["lanes"]:
                 jobs[f"{prefix}_{lane}"] = {"arm": arm_name, "members": [lane]}
         elif kind == "search":
+            # `ensemble_members` makes the searched object an ENSEMBLE (the
+            # EnsembleSearchAdapter): the log-pooled prior, the mean opponent
+            # model and the mean critic behind the same three surfaces
+            # SearchAgent consumes. One job, not one per lane, because the
+            # committee is the object. The lane still names the decision RNG
+            # seed, which is why it stays in the job name.
             for lane in spec["lanes"]:
                 jobs[f"{prefix}_{lane}"] = {
-                    "arm": arm_name, "members": [lane],
+                    "arm": arm_name,
+                    "members": spec.get("ensemble_members") or [lane],
+                    "ensemble_search": bool(spec.get("ensemble_members")),
+                    "seed_lane": lane,
                     "search_dose": spec["dose"],
                     # absent -> None -> the as-is leaf encoding (DET_BLIND.md)
                     "leaf_encoding": spec.get("leaf_encoding"),
@@ -351,8 +360,8 @@ def run_job(prereg: dict, name: str) -> None:
     out_dir = Path(prereg["results_dir"])
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    first_lane = job["members"][0]
-    agent0, cfg, env = _load_member(prereg, first_lane)
+    first_lane = job.get("seed_lane") or job["members"][0]
+    agent0, cfg, env = _load_member(prereg, job["members"][0])
     torch.set_num_threads(cfg.torch_threads)
     adapter = None
     if "search_dose" in job:
@@ -366,8 +375,15 @@ def run_job(prereg: dict, name: str) -> None:
             prereg, first_lane, prereg["arms"][job["arm"]].get("evaluator"),
             env, agent0,
         )
+        searched = agent0
+        if job.get("ensemble_search"):
+            from rl.search.ensemble_search import EnsembleSearchAdapter
+
+            others = [_load_member(prereg, m, env=env)[0]
+                      for m in job["members"][1:]]
+            searched = EnsembleSearchAdapter([agent0, *others])
         sa = SearchAgent(
-            agent0, DOSES[job["search_dose"]],
+            searched, DOSES[job["search_dose"]],
             checkpoint_seed=int(first_lane.lstrip("s")),
             evaluator=evaluator,
             leaf_encoding=job.get("leaf_encoding"),

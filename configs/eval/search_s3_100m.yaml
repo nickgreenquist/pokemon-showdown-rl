@@ -262,7 +262,15 @@ arms:
   # decoupled UCT over determinized states, decided by root visit share.
   # Neither other probe is this -- matrix.py is our critic at ONE ply,
   # mcts_probe.py is a real tree with poke_engine's HEURISTIC at the leaves.
-  TREESM: {kind: search, lanes: [s112], dose: M, battles: 4, chunks: 1, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8}}
+  TREESM:  {kind: search, lanes: [s112], dose: M, battles: 4, chunks: 1, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8}}
+  TREESMB: {kind: search, lanes: [s112], dose: M, battles: 4, chunks: 1, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
+  # Depth-per-millisecond sweep. Leaf-parallel batching trades some depth per
+  # iteration (16 descents commit before any is expanded) for 2x the
+  # iterations per second; these ask where that trade turns over.
+  SWA: {kind: search, lanes: [s112], dose: M, battles: 10, chunks: 1, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
+  SWB: {kind: search, lanes: [s112], dose: M, battles: 10, chunks: 1, tree: {iters: 300, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 8}}
+  SWC: {kind: search, lanes: [s112], dose: M, battles: 10, chunks: 1, tree: {iters: 800, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 32}}
+  SWD: {kind: search, lanes: [s112], dose: M, battles: 10, chunks: 1, tree: {iters: 400, n_det: 1, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
   # THE DEPTH COMPARISON. TREEQ's selector is the SAME SHAPE as the banked
   # S3G10 (a critic-value score per root action, played only if it beats the
   # policy's own action by delta on that scale) at the SAME delta 0.10 on the
@@ -272,7 +280,14 @@ arms:
   # MP20 vs MP20T measured that the gate, not the tree, dominated the outcome.
   TREEQ:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8}}
   TREEQ25: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 150, n_det: 2, margin: 0.25, decide: q, root_min_visits: 8}}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREEQ, TREEQ25]
+  # THE ENSEMBLE INSIDE THE TREE. `ensemble_members` routes the searched
+  # object through EnsembleSearchAdapter, so the PUCT prior is the log-pool of
+  # the three lanes, the opponent prior is their mean oppact posterior, and
+  # every leaf is valued by the mean of their critics. The ensemble is the one
+  # free-compute lever this project has credited (+0.03489 at 5.93 se); this
+  # asks what it is worth at depth rather than at the root.
+  TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.

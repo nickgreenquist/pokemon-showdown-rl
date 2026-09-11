@@ -34,6 +34,7 @@ measured that this gate is not a detail: the same tree at a 0.10 margin
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -76,6 +77,14 @@ class TreeCfg:
     #     having.
     decide: str = "visits"
     root_min_visits: int = 0   # force-visit every root action this many times
+    # LEAF-PARALLEL BATCHING. At batch 1 the network is 55% of a decision's
+    # cost (measured: 126 of 227 ms, 276 batch-1 forwards). `batch` descents
+    # are run per round under a VIRTUAL LOSS so they diverge, their leaves are
+    # encoded and valued in ONE forward, and the virtual loss is undone on
+    # backup. This is what makes more iterations -- i.e. more DEPTH --
+    # affordable; it does not change what the tree searches.
+    batch: int = 1
+    virtual_loss: float = 1.0
 
 
 def _active(side) -> tuple[int, Any]:
@@ -154,6 +163,8 @@ class Node:
     n_b: np.ndarray | None = None
     w_b: np.ndarray | None = None
     n: int = 0
+    v0: float = 0.0    # the network's value at expansion; a batched backup
+                       # needs it after the forward has already returned
     kids: dict = field(default_factory=dict)     # (ai, bi) -> (pcts, [Node|None])
 
 
@@ -184,43 +195,68 @@ class Tree:
         self.max_depth = 0
         self.depth_sum = 0
         self.sims = 0
+        # Where the budget actually goes. Batching the network only pays if
+        # the network is the cost; on a pure-Python encoder it may not be.
+        self.t_encode = 0.0
+        self.t_net = 0.0
+        self.t_engine = 0.0
 
     # --- network ------------------------------------------------------
-    def _evaluate(self, node: Node) -> float:
-        """Expand `node` and return its value from OUR seat's point of view."""
+    def _encode(self, node: Node) -> np.ndarray:
         from rl.envs.showdown import embed_battle
 
-        if node.terminal is not None:
-            return node.terminal
+        t0 = time.perf_counter()
         sb = shadow_battle(node.state, node.turn, view=None)
-        obs = embed_battle(sb, self.type_chart)[None, :].astype(np.float32)
-        logp, val, q = self.eval_fn(obs)
-        self.evals += 1
-        v = float(val[0]) if self.cfg.value_from == "critic" else 0.0
+        obs = embed_battle(sb, self.type_chart).astype(np.float32)
+        self.t_encode += time.perf_counter() - t0
+        return obs
 
+    def _install(self, node: Node, logp, val, q) -> float:
+        """Give an encoded node its priors, its stats arrays and its value.
+        Split out of `_evaluate` so one forward can serve a whole batch."""
+        v = float(val) if self.cfg.value_from == "critic" else 0.0
         node.ours = (
             self.root_actions if node.depth == 0 and self.root_actions
             else _legal_ours(node.state, self.cfg.our_k)
         )
         node.theirs = _legal_theirs(node.state, self.cfg.opp_k)
-        p = np.array([float(np.exp(logp[0, s])) for s, _ in node.ours])
+        p = np.array([float(np.exp(logp[s])) for s, _ in node.ours])
         node.p_ours = p / p.sum() if p.sum() > 0 else np.full(len(p), 1.0 / len(p))
         # L6 -> the concrete opponent actions at THIS node. Several actions can
         # share a class (two live bench mons are both class 4); the class mass
         # is split evenly among them, which is the same "one column, one
         # weight" law the depth-1 matrix uses.
         cls = np.array([c for c, _ in node.theirs])
-        share = np.array([max(float(q[0, c]), 1e-6) for c in cls])
+        share = np.array([max(float(q[c]), 1e-6) for c in cls])
         for c in set(cls.tolist()):
             m = cls == c
             share[m] /= m.sum()
         node.p_theirs = share / share.sum()
-
         na, nb = len(node.ours), len(node.theirs)
         node.n_a, node.w_a = np.zeros(na), np.zeros(na)
         node.n_b, node.w_b = np.zeros(nb), np.zeros(nb)
         node.expanded = True
+        node.v0 = v
         return v
+
+    def _expand_batch(self, nodes: list) -> None:
+        """ONE forward for every node in `nodes`."""
+        if not nodes:
+            return
+        obs = np.stack([self._encode(n) for n in nodes])
+        t0 = time.perf_counter()
+        logp, val, q = self.eval_fn(obs)
+        self.t_net += time.perf_counter() - t0
+        self.evals += len(nodes)
+        for i, n in enumerate(nodes):
+            self._install(n, logp[i], val[i], q[i])
+
+    def _evaluate(self, node: Node) -> float:
+        """Expand `node` and return its value from OUR seat's point of view."""
+        if node.terminal is not None:
+            return node.terminal
+        self._expand_batch([node])
+        return node.v0
 
     # --- selection ----------------------------------------------------
     def _puct(self, n_vec, w_vec, prior, total, sign):
@@ -235,12 +271,14 @@ class Tree:
         key = (ai, bi)
         if key not in node.kids:
             a_str, b_str = node.ours[ai][1], node.theirs[bi][1]
+            t0 = time.perf_counter()
             try:
                 brs = generate_instructions(node.state, a_str, b_str)
             except (KeyboardInterrupt, SystemExit):
                 raise
             except BaseException:  # PyO3 panics are BaseException (F-14)
                 brs = []
+            self.t_engine += time.perf_counter() - t0
             brs = sorted(brs, key=lambda b: -b.percentage)[: self.cfg.top_branches]
             if not brs:
                 self.transition_failures += 1
@@ -266,16 +304,7 @@ class Tree:
                             terminal=_terminal_value(st))
         return slots[j]
 
-    def _simulate(self, node: Node) -> float:
-        self.max_depth = max(self.max_depth, node.depth)
-        if node.terminal is not None:
-            return node.terminal
-        if not node.expanded:
-            return self._evaluate(node)
-        if node.depth >= self.cfg.depth_cap:
-            # depth cap: the critic's estimate at this node, already computed
-            # when it was expanded, is the best we have
-            return float(node.w_a.sum() / max(node.n, 1)) if node.n else 0.0
+    def _pick(self, node: Node) -> tuple[int, int]:
         if node.depth == 0 and self.cfg.root_min_visits:
             # A flat floor at the ROOT only: `decide: q` needs a value for
             # every root action, and PUCT starves an action the policy puts
@@ -286,32 +315,80 @@ class Tree:
         else:
             ai = self._puct(node.n_a, node.w_a, node.p_ours, node.n, +1)
         bi = self._puct(node.n_b, node.w_b, node.p_theirs, node.n, -1)
-        kid = self._child(node, ai, bi)
-        v = self._evaluate_or_recurse(kid)
-        node.n += 1
-        node.n_a[ai] += 1
-        node.w_a[ai] += v
-        node.n_b[bi] += 1
-        node.w_b[bi] += v
-        return v
+        return ai, bi
 
-    def _evaluate_or_recurse(self, kid: Node | None) -> float:
-        if kid is None:  # the engine refused this pair; treat it as neutral
-            return 0.0
-        return self._simulate(kid)
+    def _descend(self) -> tuple[list, Node | None, float | None]:
+        """Walk from the root under PUCT until the simulation has nothing more
+        to select. Returns (path, leaf_to_expand, settled_value).
+
+        Exactly one of the last two is not None: a leaf that needs the network,
+        or a value already known (terminal, depth cap, or an engine-refused
+        transition).
+        """
+        path: list = []
+        node = self.root
+        while True:
+            self.max_depth = max(self.max_depth, node.depth)
+            if node.terminal is not None:
+                return path, None, node.terminal
+            if not node.expanded:
+                return path, node, None
+            if node.depth >= self.cfg.depth_cap:
+                return path, None, (node.w_a.sum() / node.n if node.n else node.v0)
+            ai, bi = self._pick(node)
+            path.append((node, ai, bi))
+            self._virtual_loss(node, ai, bi, +1)
+            kid = self._child(node, ai, bi)
+            if kid is None:  # the engine refused this pair; treat it as neutral
+                return path, None, 0.0
+            node = kid
+
+    def _virtual_loss(self, node: Node, ai: int, bi: int, sign: int) -> None:
+        """Pessimise the edge a pending descent is sitting on so the NEXT
+        descent in the same batch goes somewhere else, then undo it on backup.
+        Our side reads +Q and theirs reads -Q, so the loss has opposite signs.
+        """
+        vl = self.cfg.virtual_loss * sign
+        node.n += vl
+        node.n_a[ai] += vl
+        node.w_a[ai] -= vl
+        node.n_b[bi] += vl
+        node.w_b[bi] += vl
+
+    def _backup(self, path: list, v: float) -> None:
+        for node, ai, bi in path:
+            self._virtual_loss(node, ai, bi, -1)   # undo
+            node.n += 1
+            node.n_a[ai] += 1
+            node.w_a[ai] += v
+            node.n_b[bi] += 1
+            node.w_b[bi] += v
 
     def run(self) -> None:
-        self._evaluate(self.root) if not self.root.expanded else None
+        if not self.root.expanded:
+            self._expand_batch([self.root])
         if self.cfg.root_dirichlet > 0 and self.root.p_ours is not None:
             d = self.rng.dirichlet(
                 np.full(len(self.root.p_ours), self.cfg.root_dirichlet))
             self.root.p_ours = 0.75 * self.root.p_ours + 0.25 * d
-        for _ in range(self.cfg.iters):
-            before = self.max_depth
-            self._simulate(self.root)
-            self.sims += 1
-            self.depth_sum += self.max_depth if self.max_depth > before else before
-
+        b = max(1, int(self.cfg.batch))
+        done = 0
+        while done < self.cfg.iters:
+            k = min(b, self.cfg.iters - done)
+            rounds = [self._descend() for _ in range(k)]
+            # One node can be reached twice in a batch (the virtual loss makes
+            # it unlikely, not impossible); expand it once.
+            pending, seen = [], set()
+            for _p, leaf, _v in rounds:
+                if leaf is not None and id(leaf) not in seen:
+                    seen.add(id(leaf))
+                    pending.append(leaf)
+            self._expand_batch(pending)
+            for path, leaf, val in rounds:
+                self._backup(path, leaf.v0 if leaf is not None else val)
+                self.sims += 1
+                self.depth_sum += len(path)
+            done += k
 
 def tree_decision(
     battle: Any,
@@ -339,6 +416,7 @@ def tree_decision(
     evals = fails = trees = 0
     max_depth = 0
     depth_sum = sims = 0
+    t_enc = t_net = t_eng = 0.0
     for _ in range(cfg.n_det):
         try:
             st = battle_to_state(battle, sample_determinization(battle, rng),
@@ -353,6 +431,7 @@ def tree_decision(
         trees += 1
         evals += t.evals
         fails += t.transition_failures
+        t_enc += t.t_encode; t_net += t.t_net; t_eng += t.t_engine
         max_depth = max(max_depth, t.max_depth)
         depth_sum += t.depth_sum
         sims += t.sims
@@ -401,6 +480,9 @@ def tree_decision(
         "tree/q_best": float(score[tree_argmax]) if cfg.decide == "q" else 0.0,
         "tree/q_policy": float(score[policy_argmax]) if cfg.decide == "q" else 0.0,
         "tree/evals": float(evals),
+        "tree/ms_encode": 1e3 * t_enc,
+        "tree/ms_net": 1e3 * t_net,
+        "tree/ms_engine": 1e3 * t_eng,
         "tree/max_depth": float(max_depth),
         "tree/mean_sim_depth": float(depth_sum / max(sims, 1)),
         "tree/transition_failures": float(fails),
