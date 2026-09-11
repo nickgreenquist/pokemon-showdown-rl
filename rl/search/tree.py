@@ -85,6 +85,19 @@ class TreeCfg:
     # affordable; it does not change what the tree searches.
     batch: int = 1
     virtual_loss: float = 1.0
+    # HOW THE OPPONENT PICKS. This is not a detail -- it changes what the
+    # backed-up value MEANS.
+    #   "puct" -- the opponent minimises our value, so the root Q is a
+    #     best-response (minimax) value.
+    #   "sample" -- the opponent's action is DRAWN from the oppact head's
+    #     posterior, so the root Q is an EXPECTATION under q. That is exactly
+    #     what the banked depth-1 `row_ev` is (an ev_matrix averaged with
+    #     col_w = q), which makes "sample" the setting under which TREEQ and
+    #     S3G10 measure the same quantity at different depths.
+    # The locked protocol's opponent is SimpleHeuristicsPlayer, which does not
+    # best-respond to anything, so assuming it does is not conservative -- it
+    # is wrong about the opponent we are actually scored against.
+    opp_rule: str = "puct"
 
 
 def _active(side) -> tuple[int, Any]:
@@ -314,7 +327,10 @@ class Tree:
                   else self._puct(node.n_a, node.w_a, node.p_ours, node.n, +1))
         else:
             ai = self._puct(node.n_a, node.w_a, node.p_ours, node.n, +1)
-        bi = self._puct(node.n_b, node.w_b, node.p_theirs, node.n, -1)
+        if self.cfg.opp_rule == "sample":
+            bi = int(self.rng.choice(len(node.p_theirs), p=node.p_theirs))
+        else:
+            bi = self._puct(node.n_b, node.w_b, node.p_theirs, node.n, -1)
         return ai, bi
 
     def _descend(self) -> tuple[list, Node | None, float | None]:
