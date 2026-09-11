@@ -31,12 +31,12 @@ Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/
 - So: the selector WAS the defect and fixing it moved search from **-0.0681 to +0.016**,
   which is real, free and reproducible on 2/2 held-out lanes — and still **below the bar**.
   delta 0.10 is also only known to be the peak ON s112; the per-lane curves are unmeasured.
-- Cost **77.6 ms/decision** at the peak — 0.05% of the ladder's 150 s/turn.
-- S3's earlier NEG cells (P-M −0.0681, P-B −0.0088, P-BA −0.0769) were all **D4** objects.
-- **S1 fired and its fix did not pay** (leaf bias +0.0497, sd 0.125 vs margins 0.028;
-  det_blind collapses it offline and moved win rate by nothing). Encoding was not the defect.
-- **WANG OVERTURNED "the evaluator is the answer"**: +12 pts vs SH on the **UNMODIFIED PPO
-  critic**; what differs is SELECTION (prior inside PUCT, decide by MAX VISIT COUNT not max Q).
+- **OFF FOUL PLAY THE GATE TRANSFERS — pre-decided branch FIRED.** BLM (gated@M, delta 0.10,
+  s112) vs FP@20, n=1000: **0.525** against a **0.47** bar. Same lane/checkpoint: banked greedy
+  0.50167 (n=3000), UNGATED search 0.39600. **The SELECTOR ALONE bought +0.129 off-FP** —
+  −0.106-vs-greedy → **+0.023** (1.28 se, NOT significant; TRANSFERS = not SH-facing, NOT
+  that it beats greedy). Stage 2 (BLL) auto-launched. Both FP@20 disclosures travel.
+- 77.6 ms/decision at the peak. S3's NEG cells were all **D4**. S1's fix did not pay.
 
 ## LANDMINE — **every search number before 2026-09-11 measures a BROKEN selector**
 Grep `PRE-D5`. **LADDER R3 is a D4 object.** Such a number may NOT be used to argue that
