@@ -232,11 +232,11 @@ arms:
   # poke_engine's own MCTS on our determinizations, decided by visit share,
   # gated against the policy. MP20 is FP@20's MEASURED budget (2 dets x 20 ms);
   # MP200 is 10x it. Small n on purpose -- this is a signal check, not a verdict.
-  MP20:  {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, mcts: {n_det: 2, ms: 20,  margin: 0.10}}
-  MP200: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, mcts: {n_det: 2, ms: 200, margin: 0.10}}
+  MP20:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, mcts: {n_det: 2, ms: 20,  margin: 0.10}}
+  MP200: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, mcts: {n_det: 2, ms: 200, margin: 0.10}}
   # MP20 chunk00 overrode on 30.4% of decisions (the depth-1 gate sits at 8.5%),
   # so the 0.10 margin is far too loose on a VISIT-SHARE scale. MP20T tightens it.
-  MP20T: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, mcts: {n_det: 2, ms: 20, margin: 0.35}}
+  MP20T: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, mcts: {n_det: 2, ms: 20, margin: 0.35}}
   # THE ONE THAT MATTERS: our own search, our own critic, but looking ONE MORE
   # PLY at every leaf. Same dose M, same delta 0.10 as the banked depth-1 arm
   # (s3g10_s112 = 0.82400), so the ONLY change is depth.

@@ -193,3 +193,69 @@ isolates the tree's Monte-Carlo root estimate from the matrix's exact one, and
 `TSAMP` against `TSAMP1` then isolates depth with that controlled. `D3` and
 `D2W` push the one family that keeps everything the banked object already
 gets right.
+
+---
+
+## The depth census, and what it does to the question (2026-09-11)
+
+`poke_engine`'s own `iterative_deepening_expectiminimax`, run on OUR
+determinized states at three budgets, 218 live decisions:
+
+| budget | depth reached |
+|---|---|
+| 20 ms | **2.44** |
+| 200 ms | 3.08 |
+| 2000 ms | 3.56 |
+
+**100× the compute buys 1.1 plies.** The curve is that flat because branching
+is ~9 our-actions × ~5 opponent-actions × chance branches per ply, so depth is
+logarithmic in budget. Our own tree's sweep says the same thing from the other
+side: 400 → 800 iterations moved mean simulation depth 3.05 → 3.40.
+
+Two consequences, and they change what the open question is.
+
+**1. Foul Play at its anchor budget is searching at roughly depth 2.4–2.6.**
+Its whole measured budget is ~40 ms (2 determinizations × 20 ms). So "Foul
+Play is strong because it searches deep" is not supportable, and neither is any
+story that explains our gap by depth we cannot afford. Our tree reaches a MEAN
+simulation depth of 3.15 and a max near 7 — **we already search deeper than
+Foul Play does at the budget we anchor against.**
+
+**2. The question is no longer "can we get depth".** We get it, and it costs
+us. At n=900, matched seed-for-seed against the depth-1 gated baseline
+(0.8189), with McNemar's se over the battles where the two arms disagreed:
+
+| arm | depth | n | win | vs depth-1 |
+|---|---|---|---|---|
+| `TSAMP1` tree, opponent sampled from q | **1** | 900 | 0.8144 | −0.0044 (−0.2 se) |
+| `TSAMP` same tree, same selector, uncapped | 3.15 | 900 | 0.7900 | −0.0289 (−1.6 se) |
+| `D2B` banked matrix + 1 selective ply | 2 | 900 | 0.7800 | −0.0389 (−2.1 se) |
+| `D2W` same, our_k 3 → 4 | 2 | 900 | 0.7778 | −0.0411 (−2.2 se) |
+| `D3` banked matrix + 2 selective plies | 3 | 900 | 0.7244 | −0.0944 (−4.6 se) |
+| `TREEQ` tree, MINIMAX opponent, 27% override | 3.71 | 300 | 0.6800 | −0.1200 (−3.3 se) |
+
+`TSAMP1` is the control that makes the rest readable: the NEW tree, capped to
+one ply, reproduces the banked depth-1 matrix (−0.2 se). The implementation is
+not the problem. What is left is a **monotone dose-response in depth, going
+the wrong way, in two independent implementations** — −0.004 → −0.029 in the
+tree, −0.039 → −0.094 on the matrix.
+
+### The hypothesis this now points at
+
+Same depth, different evaluator. `poke_engine`'s hand-written heuristic works
+at depth 2.4; our critic does not work at depth 3. A static evaluator has no
+training distribution to fall off — it is the same function everywhere in the
+tree. Our critic was fit by PPO **only to states our own policy reaches**, and
+search deliberately visits the lines the policy does not play. The deeper it
+goes, the further off that distribution it is asked to judge.
+
+The supporting evidence was already on the table and was being read as a
+selector story: **the gate is load-bearing at depth 1 too.** Ungated depth-1
+is 0.74767, BELOW greedy's 0.78233; gated at δ 0.10 it is 0.82400. Even at one
+ply the critic's own argmax is worse than the policy's preference. Search has
+only ever paid here as a rarely-fired veto. Depth does not fix that; it gives
+a bad argmax more room to act.
+
+Not yet established, and deliberately left open: whether a critic trained on
+search-visited states would change the sign. That is the AlphaZero / expert
+iteration answer and it is the reason the deep-research briefs went out.
