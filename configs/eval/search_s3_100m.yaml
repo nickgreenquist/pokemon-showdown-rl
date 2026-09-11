@@ -222,7 +222,13 @@ arms:
     chunks: 10
     margin_delta: 0.05
     evaluator: {kind: loo, pool: [s104, s112, s120], loo_pool_expected: 2}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05]
+  ENS3:
+    kind: ensemble
+    members: [s104, s112, s120]
+    batches: 3
+    battles: 3000
+    chunks: 10
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
@@ -323,4 +329,53 @@ banked_reference_never_the_comparator:
 # about an ensemble used as the PRIOR rather than as the leaf value — that
 # composition needs SearchAgent to consume an EnsembleAgent, which it cannot
 # today (EnsembleAgent exposes no actor/critic/aux_head).
+# =====================================================================
+
+# =====================================================================
+# AMENDMENT 2026-09-11 (b) — ENS3: THE 3-SEED ENSEMBLE ON THE 100M
+# CHECKPOINTS. Registered BEFORE the arm launches.
+#
+# WHY. The masked log-prob ensemble is the only free-compute dial this project
+# has ever CREDITED (CH3 R0.B: 0.7463 +/- 0.0046 against a fresh greedy mean of
+# 0.7103, +0.036, cell B1 CREDIT) and it was LADDER R1's actual object — and it
+# has NEVER been run on the 100M checkpoints. Every ladder-object conversation
+# tonight has compared gated search against SINGLE-SEED greedy while the
+# cheapest credited alternative sat unmeasured. It costs ~20 minutes.
+#
+# ARM. ENS3 = equal-weight masked log-prob mean over the three 100M lanes'
+# actors, deterministic argmax, 3 batches x 3000 on DISJOINT seed windows =
+# n=9000 — matched to A0's pooled n=9000. Batch 0 lands on the SAME seed window
+# as A0, so that pair is on IDENTICAL battles.
+#
+# PRIMARY READ — P-ENS = ENS3(n=9000) - A0 pooled (0.78867, n=9000, fresh this
+# session). Aggregator: pooled over batches, equal weight (batches are equal
+# size). Two-sided.
+#
+# CREDIT LINE, restated verbatim: a lever is credited iff pooled delta
+# >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the
+# pooled-binomial se_diff and the seed-clustered se_diff, the latter computed
+# from the per-seed finals at read time. HERE THE CLUSTERED TERM IS NOT
+# AVAILABLE and that is a DISCLOSED LIMITATION, not an omission: three lanes
+# make exactly ONE committee, so there is no across-committee replication and
+# the batch spread measures EVAL noise only. The binomial se_diff therefore
+# governs by default, which is the ANTI-CONSERVATIVE direction — so a credited
+# ENS3 licenses "ensembling THESE three checkpoints", never "ensembling helps".
+# That is the identical limitation LADDER R1's object carried (RESULTS §16.1),
+# and it is repeated here deliberately rather than quietly dropped.
+#
+# R0 SANITY GATES: mask_desyncs_delta == 0 on every chunk; ensemble_decisions
+# and ensemble_flips recorded per chunk (flip_rate = ensemble argmax differing
+# from the MODAL member argmax — a rate of 0 means the wrapper is inert and the
+# arm is a single member in disguise, which voids it).
+#
+# BRANCHES: credited positive -> ENS3 is a ladder-object candidate and the
+# ensemble-as-PRIOR composition with the gate becomes worth the engineering
+# (SearchAgent cannot consume an EnsembleAgent today). Null -> the 12M B1
+# credit did NOT carry to 100M; record it, because a lever that decays with
+# scale is itself a finding, and per the 2026-09-06 ruling a null closes
+# nothing. Credited negative -> report; the ensemble is discredited at 100M.
+#
+# WHAT IT DOES NOT LICENSE: one committee, one recipe, one budget. It says
+# nothing about ensembling as a leaf EVALUATOR (that is EG10) and nothing about
+# a larger committee.
 # =====================================================================
