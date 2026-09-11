@@ -87,11 +87,11 @@ search, depth or dose does not pay. Re-measure under D5 or do not cite it.
 1. **DECISIONS OWED BEFORE LAUNCH** (all four in the handoff): fold B into A's lanes and
    spend the freed 3 on seeds?; keep, re-specify or drop C?; primary axis off-FP@20 vs the
    saturated vs-SH (at p 0.789 credit needs ≥ 0.81367)?; read each arm at ITS OWN delta peak.
-2. **Free, measured, NOT in the design:** the 3-seed inference ensemble (+0.036, credited at
-   B1) composed with the D5 gate (+0.016 OOS) — orthogonal (ensemble moves the prior and leaf
-   value, the gate the selector), zero training cost. **Both reviews named it independently.**
-3. **Chores owed:** `engine_a1_grade.py` must run `extract_history.py` before the AUC leg;
-   8 corrections to the Wang row in `prior_work/README.md`; the engine editable reinstall.
+2. **Free, NOT in the design:** the 3-seed ensemble composed with the D5 gate — orthogonal
+   (PRIOR vs SELECTOR), zero training cost, module built but NOT wired.
+3. **RULINGS OWED (dropped in a rewrite, restored):** 11.5 before 11; a per-decision cap for
+   a searched ladder object (≤ 5 s proposed); **whether to build engine-native DEPTH-2 at all**
+   — Ph.1-3, **~6-8 evening blocks left**; Ph.0 DONE+PASSED; **depth-2 is NOT authorized.**
 
 ## Watch items
 - **SUITE GREEN 1031 / 0 failed** on the DOCUMENTED invocation (encoder flags UNSET); 86
