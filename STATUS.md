@@ -63,11 +63,11 @@ search, depth or dose does not pay. Re-measure under D5 or do not cite it.
   — MUST NOT run while `engine_pe_s66` is alive. The Python surface is UNEXERCISED until it does.
 
 ## The monster (JOURNEY 10) — reviewed; THREE THINGS CHANGED, maintainer decisions owed
-1. **ARM B IS BITWISE ARM A — PROVEN, not argued.** runs/engine_pe_s66 vs engine_a1b_s66 at
-   10.5M: **21 identical checkpoint rungs, 223 shared tensors / 3,428,015 elements, 0
-   differing, sha 104a9339eb6a2260.** The head takes a separate `autograd.grad` and rewinds
-   the RNG. **So B must RIDE arm A's lanes, not cost three of its own** — 3 of 9 lanes were
-   buying duplicate checkpoints. Cost of the rider is wall only (~+56% params, update-side).
+1. **ARM B IS BITWISE ARM A — PROVEN AT THE FULL 12M HORIZON.** The design-B smoke finished:
+   engine_pe_s66 vs engine_a1b_s66 at ckpt_012000017 (same step, **24 identical rungs**),
+   **223 shared tensors / 3,428,015 elements, 0 differing, sha f156f232462e635b**; the head
+   is present (26 tensors, 642,305 params) and touches nothing. **So B must RIDE arm A's
+   lanes** — 3 of 9 lanes bought duplicate checkpoints. Rider cost is wall only.
 2. **ARM B'S TARGET WAS WRONG AND IS FIXED (b147f48).** The head regressed the GAE(0.95)
    target, which at gamma 1 with terminal-only reward is **~53% the ORDINARY critic's own
    output (~82% at turn 1)** — the network it exists to beat. It survived because its only

@@ -11521,3 +11521,33 @@ line numbers are not — grep the date, then read that region):
   cannot fire. Also flagged: no search seam exists (grep priv_eval_value rl/search/ = 0),
   so neither B nor C can be read through search today; and k=3 x n=3000 gives
   P(credit | +0.025) = 0.45. **Four decisions are owed before launch and are in STATUS.**
+
+- 2026-09-11 (night, agent, cont.) — **THE DESIGN-B SMOKE FINISHED AND ITS VERDICT IS
+  INERT AT FULL HORIZON.** engine_pe_s66 reached ckpt_012000017.pt, the same filename and
+  the same step as engine_a1b_s66's 12M checkpoint, after **24 checkpoint rungs with
+  identical filenames**. At that endpoint: 223 shared tensors / 3,428,015 elements, **0
+  bitwise-different**, sha256 f156f232462e635badb9cba94fdd003d on both sides; the PE lane
+  carries 104 extra tensors that are exactly its own head and optimizer state (26 head
+  tensors, 642,305 params). So design B's privileged evaluator head is provably free of the
+  policy over a whole 12M run, not just at a mid-run snapshot — which settles arm B's
+  status: it is not a separate training object and must not be bought at three lanes.
+  **Tonight's queue, all pre-registered before launch and all detached:** EG10 (dose M +
+  LOO ensemble evaluator + margin_delta 0.10, three lanes, n=3000 each) asks whether a
+  better EVALUATOR pays once the SELECTOR works — A1E's +0.0163 was a D4 number and is
+  PRE-D5 by our own landmine, so that axis is unanswered rather than answered no, and it is
+  arm B's premise. EG05 sizes the disclosed delta bias on s112 afterwards. ENS3 runs the
+  3-seed log-prob ensemble on the 100M finals for the first time (n=9000 matched to A0's
+  pooled 9000, batch 0 on A0's own seed window): it is the only free-compute dial this
+  project has CREDITED (+0.036, B1) and it was LADDER R1's object, yet every ladder-object
+  comparison tonight had been against single-seed greedy. Its clustered se term does not
+  exist — three lanes make one committee — and the header says so in the anti-conservative
+  direction rather than omitting it. Agent work committed: the Rust write side (+739/0,
+  94 cargo tests, three design corrections), the R1-E gate (49 tests; leg A fails on one
+  undeclared dim under BOTH bars), P0 (stop rule passes, depth-2 alive), and the monster
+  pre-reg draft (three configs verified key-by-key: B differs on 4 keys, C on 3, zero
+  undeclared). The pre-reg drafter found ten things wrong against the record, the
+  load-bearing one being that configs/engine_a1.yaml:734-736 is STALE — it claims
+  rl/train.py refuses privileged_dim on the engine route, a refusal lifted with the
+  design-B seam, and **arm C is launchable only because of that**. Cost is also wrong in
+  STATUS: nine-wide is REFUSED on memory (16.4 GB vs 11-13 GB headroom), so the fleet is
+  w6 + w3 = ~45.3 h, not ~40 h.
