@@ -256,7 +256,7 @@ arms:
   # D2 was VOID: _leaf_our_moves indexed a list with pyo3's STRING
   # active_index, the TypeError hit a bare `except: return []`, and the extra
   # ply fired on 0 of 1572 decisions. D2B is the same arm after the fix.
-  D2B: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, margin_delta: 0.10, depth2: {our_k: 3, cap: 6000}}
+  D2B: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.10, depth2: {our_k: 3, cap: 6000}}
   # THE TREE (rl/search/tree.py): our masked policy as the PUCT prior, the
   # oppact head's L6 as the opponent's prior, OUR critic at the leaves,
   # decoupled UCT over determinized states, decided by root visit share.
@@ -281,7 +281,7 @@ arms:
   # thing that moves. TREEQ25 is the same arm with the gate tightened, because
   # MP20 vs MP20T measured that the gate, not the tree, dominated the outcome.
   TREEQ:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8}}
-  TREEQ25: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 150, n_det: 2, margin: 0.25, decide: q, root_min_visits: 8}}
+  TREEQ25: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 150, n_det: 2, margin: 0.25, decide: q, root_min_visits: 8}}
   # THE ENSEMBLE INSIDE THE TREE. `ensemble_members` routes the searched
   # object through EnsembleSearchAdapter, so the PUCT prior is the log-pool of
   # the three lanes, the opponent prior is their mean oppact posterior, and
@@ -296,8 +296,8 @@ arms:
   # expectation over opponent columns under q, the retained-branch law, and a
   # gate calibrated on the row_ev scale -- and change only how far each leaf
   # is followed.
-  D3:  {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, margin_delta: 0.10, depth2: {our_k: 2, cap: 9000, plies: 2}}
-  D2W: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, margin_delta: 0.10, depth2: {our_k: 4, cap: 9000, plies: 1}}
+  D3:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.10, depth2: {our_k: 2, cap: 9000, plies: 2}}
+  D2W: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.10, depth2: {our_k: 4, cap: 9000, plies: 1}}
   D3S: {kind: search, lanes: [s112], dose: M, battles: 6,   chunks: 1, margin_delta: 0.10, depth2: {our_k: 2, cap: 9000, plies: 2}}
   D4S: {kind: search, lanes: [s112], dose: M, battles: 6,   chunks: 1, margin_delta: 0.10, depth2: {our_k: 2, cap: 12000, plies: 3}}
   # THE DEPTH LADDER. Everything is held fixed except `depth_cap`, so this is
@@ -315,24 +315,24 @@ arms:
   #       states our own policy reaches and PUCT deliberately explores the
   #       lines it does not -- then TDC8Z (no critic at all) should not be
   #       much worse than TDC8, and nothing recovers the deep arm.
-  TDC1:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1}}
-  TDC2:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 2}}
-  TDC4:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 4}}
-  TDC8:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8}}
-  TDC8N8: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 8, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8}}
+  TDC1:   {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1}}
+  TDC2:   {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 2}}
+  TDC4:   {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 4}}
+  TDC8:   {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8}}
+  TDC8N8: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 8, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8}}
   # NARROW AND DEEP. The sweep measured that depth barely moves with
   # iterations -- 400 -> 800 took mean depth 3.05 -> 3.40 -- because a node
   # has up to our_k(6) x opp_k(5) x top_branches(2) = 60 children. Depth is
   # bought by NARROWING, which is how Foul Play gets it, not by spending.
-  TNAR:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, our_k: 3, opp_k: 3, top_branches: 1}}
+  TNAR:   {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, our_k: 3, opp_k: 3, top_branches: 1}}
   # THE OPPONENT RULE. `sample` makes the root Q an expectation under the
   # oppact posterior -- the same quantity the banked depth-1 `row_ev` is --
   # instead of a best-response value against an opponent (SimpleHeuristics)
   # that never best-responds.
-  TSAMP:  {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
-  TSAMP1: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1, opp_rule: sample}}
-  TDC8Z:  {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, value_from: zero}}
-  TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 300, chunks: 3, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
+  TSAMP:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
+  TSAMP1: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1, opp_rule: sample}}
+  TDC8Z:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, value_from: zero}}
+  TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
 run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
