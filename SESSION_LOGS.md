@@ -11664,3 +11664,20 @@ line numbers are not — grep the date, then read that region):
   finals as members 4–6; minutes each); off FP@20, sequential, ~4 h — G104F/G112F/G120F (the
   same-session comparator), E6MIXF, E350F, G66F/G75F/G83F, ENS3FR (ENS3F replicate on a fresh pair).
   Reads pre-stated in both headers; credits nothing; decides Saturday's WIDTH.
+
+- 2026-09-11 (late night, agent, cont.) — **PHASE 1 OF THE WIDTH SCREEN (vs SH) IS IN, AND THE FLEET
+  LAUNCHER RE-DRY-RAN GREEN WITH THE NEW LINES.** b0 member curve 1→6: 0.78867 → 0.81678 → 0.82667 →
+  0.82767 → 0.83633 → 0.84400 (members 4–6 = the 50M finals, weaker objects, so a lower bound). Pooled
+  n=9000: **E6MIX 0.83356 vs ENS3 0.82356 = +0.0100 at 1.78 se → the pre-stated "unresolved" branch**
+  (6 lanes still preferred; not evidence of saturation either way). E6MIX's batch spread is 0.024
+  (0.844 / 0.837 / 0.820), larger than ENS3's 0.0147 — one batch is never a read. **Steps vs members:**
+  ENS3 of the 50M finals reads **0.82233** vs the 100M committee's 0.82356 — the 50M→100M doubling is
+  worth +0.001 ON THE COMMITTEE vs SH, and the ensemble gain is +0.038 at 50M vs +0.035 at 100M
+  (additive). Fresh 50M singles 0.781 / 0.7803 / 0.7903 vs banked 0.7813 / 0.7947 / 0.7833 (same-object
+  cross-session spread up to 0.014, the era_diff rule again). **Smoke fleet** (2 × 400k, engine mode)
+  through the modified launcher: both lanes DONE at 400012/400014, watchdog exit `RESUMES=0
+  NODE_RESTARTS=0`, the launcher's `caffeinate -i -s -w <watchdog>` held PreventSystemSleep +
+  PreventUserIdleSystemSleep (parented to launchd, no terminal) and released on the watchdog's exit;
+  per-lane RSS 1.26–1.75 GB at steady state, so six lanes ≈ 8–11 GB of 24. Smoke dirs removed. Phase 2
+  (off FP@20, nine arms, sequential, ~4 h) launched 23:00Z; `scripts/ens_width_readout.py` prints the
+  pre-stated reads from disk with PENDING for anything not yet there.

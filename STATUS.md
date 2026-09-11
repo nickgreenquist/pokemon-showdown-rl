@@ -45,14 +45,14 @@ n=900 each vs S3G10 (0.8189 on the same 900 seeds), UNPAIRED se ≈ 0.019 (seeds
   won Gen 1. That is an OU TEAM-BUILDING ladder rank — the paper calls set prediction "critical" there —
   so it does not show search underperforms in gen-1 randbats. Quote it; do not infer from it.
 
-## ENSEMBLE SCALING — "members SATURATE at 3" is NOT established; members 4–6 are measured overnight
-Pairs on b0: 0.81867 / 0.81100 / 0.82067 (mean 0.81678); triple 0.82667; singles mean **0.78867** (not
-s112's 0.78233). Gains +0.028 then +0.010 — but ENS3's own batches spread **0.0147** (0.82667 / 0.81467 /
-0.82933), so the 2→3 gain sits inside one batch swing. The last STEP doubling (50M→100M, RESULTS §18)
-bought +0.024 off-FP (**NOT credited**) and +0.009 vs SH; three free members bought +0.035 vs SH.
-**RUNNING (`configs/eval/ens_width*.yaml` → `results/ens_width*/`, `logs/ens_width/queue.log`):** E4 /
-E5 / E6MIX with the 50M finals as members 4–6 (vs SH, minutes; off FP@20 ~4 h, sequential), plus a
-SAME-SESSION greedy off-FP re-draw (the comparator ENS3F lacked) and an ENS3F replicate on a fresh pair.
+## ENSEMBLE SCALING — members 4–6 MEASURED (the 50M finals as extra members; `configs/eval/ens_width*.yaml`)
+b0 member curve, 1→6: **0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400** (members 4–6 are WEAKER
+50M objects, so a lower bound). Pooled n=9000: **E6MIX 0.83356 vs ENS3 0.82356 = +0.0100 at 1.78 se —
+unresolved (pre-stated branch: 6 lanes still preferred; NOT saturation).** E6MIX's batches spread 0.024
+(0.844 / 0.837 / 0.820) vs ENS3's 0.0147 — never read one batch. **STEPS vs MEMBERS:** ENS3 of the 50M finals
+= **0.82233** vs the 100M committee's 0.82356 (+0.001 for the doubling, on the committee); ensemble gain
++0.038 at 50M vs +0.035 at 100M — additive, and the horizon is the weaker lever vs SH (saturated axis).
+**OFF FP@20 RUNNING** (`logs/ens_width/queue.log`, ~4 h): G1xxF re-draw, E6MIXF, E350F, G50F, ENS3FR.
 
 ## ENSG — ensemble AS the search's prior+leaf value, with the gate. **A NULL ON BOTH AXES.**
 vs SH, n=3000 vs ENS3 b0: δ 0.05 **−0.002** (n=2900), **δ 0.10 +0.01500 at 1.6 se**, δ 0.20 **+0.008** —
