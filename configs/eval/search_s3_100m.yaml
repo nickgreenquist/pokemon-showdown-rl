@@ -323,6 +323,18 @@ banked_reference_never_the_comparator:
 #   P-EG credited NEGATIVE -> report it; the ensemble evaluator is a
 #       DISCREDITED lever under the gate and arm B needs a new argument.
 #
+# EG05 IS DEFERRED, AND WHY — recorded 2026-09-11 02:47Z, BEFORE ANY EG10
+# CHUNK EXISTED (every eg10_* lane was 0/10; the first chunk had not landed).
+# The reason is BOX AVAILABILITY and nothing else: PRE-10 of the 100M monster
+# pre-reg requires a FREE BOX, EG10 alone runs to roughly 06:00-07:00 local,
+# and letting the exploratory arm follow it would hold the box until about noon
+# and block a ~45 h fleet launch. EG05 REMAINS REGISTERED at delta 0.05 on s112
+# and may be run at any later time without re-registration. It is NOT dropped,
+# NOT conditioned on anything EG10 shows, and no EG10 number informed it — a
+# registered arm deferred after its sibling's data starts arriving would
+# otherwise be indistinguishable from selection, which is what this note rules
+# out.
+#
 # WHAT A RESULT HERE DOES NOT LICENSE: it is ONE dose (M), ONE delta, ONE
 # ensemble form (LOO over three of our own critics), and three checkpoints of
 # one recipe. It says nothing about depth, about a privileged evaluator, or
