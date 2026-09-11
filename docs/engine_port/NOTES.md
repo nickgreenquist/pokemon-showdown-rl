@@ -2396,3 +2396,37 @@ differ, all inside the corrected domain (PAR/BRN 85, Transform, fainted).
 action_set` and the rebuild leg compare the offered choices BY ENTITY (switch →
 species, move → move id) and require set equality on all 1,200 states. That is
 R1-E leg C's mechanism at the crate level and it is what caught W-DISABLE.
+
+## 2026-09-11 — the editable reinstall is DISCHARGED, and the Python write surface is EXERCISED
+
+The write side landed with `cargo build`/`cargo test` only, because
+`engine_pe_s66` was alive and the brief forbids reinstalling under a live
+lane. That lane finished at `ckpt_012000017.pt` (its 12M target), so the
+reinstall ran:
+
+    PATH=<port-env>/bin:$PATH pip install --no-build-isolation -e engine/pkmn_gen1
+
+into `pkmn-engine-port` ONLY. `pkmn_gen1` is not installed in
+`pokemon-showdown-rl` at all (checked, `ModuleNotFoundError`), so rule 1's
+one-env-per-repo boundary is intact and nothing was installed into the
+analysis env.
+
+`__state_schema__` stays **2** — the `ObservableState` dict did not change.
+All four new names import: `MonSpec`, `SideSpec`, `BattleSpec`,
+`validate_battle`.
+
+**The surface is no longer merely compiled — it round-trips.** A real
+three-mon-a-side root built through `BattleSpec(turn=1, seed=12345, ...)
+.build()` returns 384 bytes and a `(move, move)` request pair; W-VALIDATE
+accepts it; **200 consecutive engine-produced states were then stepped and
+every one passed W-VALIDATE**; and the validator REJECTS all-zero bytes
+naming the field (`battle.turn = 0: a constructed root needs turn >= 1`)
+rather than waving them through. That is the check the write-side work could
+not run on itself.
+
+Two API notes for whoever writes `rl/search/engine_bridge.py` next, because
+both cost a round-trip here: `MonSpec.moves` is `Vec<(id, pp)>`, not a list
+of ids (use `max_pp(id)` for a fresh slot), and `Battle.choices(p, req)`
+takes STRING seat and request kinds (`"p1"`, `"move"`), with
+`update(req1, c1, req2, c2)` returning `(outcome, p1_request, p2_request)`.
+
