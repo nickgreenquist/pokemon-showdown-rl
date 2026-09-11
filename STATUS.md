@@ -29,17 +29,15 @@ search has only ever paid as a rarely-fired veto; 0.05 0.80867, **0.10 0.82400**
 
 **LANDMINE: every search number before 2026-09-11 measures a BROKEN selector** (grep
 `PRE-D5`; **LADDER R3 is a D4 object**). Re-measure under D5 or do not cite it.
-
 ## DEPTH IS MEASURED NOW, AND IT DOES NOT PAY — 2026-09-11, ~14,000 battles
-Two implementations (`rl/search/tree.py`, decoupled-UCT with our policy as PUCT prior and
-**our critic at the leaves**; `_look_further`, N selective plies on the banked matrix),
-matched seed-for-seed, McNemar se. Account: `docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS.md`.
+Two implementations (`rl/search/tree.py`, decoupled-UCT, our policy as PUCT prior and **our
+critic at the leaves**; `_look_further`, N selective plies on the banked matrix), matched
+seed-for-seed, McNemar se; account in `docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS.md`.
 n=900 each vs depth-1 gated: **tree capped to 1 ply (the CONTROL) −0.004 (−0.2 se)**; tree
 uncapped (depth 3.15) −0.029; matrix +1 ply −0.039; **matrix +2 plies −0.094 (−4.6 se)**;
 tree with a MINIMAX opponent (n=300) **−0.120 (−3.3 se)**.
-
-- **The depth-1 control reproduces the banked matrix, so the implementation is not the
-  story.** Deep arms got 3–6× MORE compute (229 vs 40 ms; 330 vs 78 ms), not a split budget.
+- **The depth-1 control reproduces the banked matrix, so the implementation is not the story**,
+  and the deep arms got 3–6× MORE compute (229 vs 40 ms; 330 vs 78 ms), not a split budget.
   **Every intervention that let search wander further from the policy lost; every one that
   pulled it back recovered** (D3 at δ 0.10 −0.094 → at δ 0.40, 2.9% override, −0.006).
 - **DEPTH CENSUS:** poke_engine's iterative deepening on our states reaches **2.44 / 3.08 /
@@ -53,17 +51,17 @@ tree with a MINIMAX opponent (n=300) **−0.120 (−3.3 se)**.
   inference search underperforms, and it is ours (`prior_work/SEARCH_AT_INFERENCE_2026-09-11.md`).
 
 ## ENSEMBLE SCALING — members SATURATE at 3; the monster run should buy STEPS
-All three 2-member pairs at ENS3's exact protocol on its own seed block: **1 member 0.78233 →
-2 members 0.81678 (mean) → 3 members 0.82667.** Gain 1→2 **+0.0344**, gain 2→3 **+0.0099**,
-and ENS3 separates from NO single pair (+0.8/+1.6/+0.6 se). Scope: the marginal value of a
-member AT 100M ON THESE THREE CHECKPOINTS.
+All three 2-member pairs at ENS3's protocol on its own seed block: **1 member 0.78233 → 2
+members 0.81678 (mean) → 3 members 0.82667.** Gain 1→2 **+0.0344**, 2→3 **+0.0099**, and ENS3
+separates from NO single pair (+0.8/+1.6/+0.6 se). Scope: the marginal value of a member AT
+100M ON THESE THREE CHECKPOINTS.
 
 ## ENSG — ensemble AS the search's prior+leaf value, with the gate. **A NULL.**
 The last untested cell of PRIOR × SELECTOR, now built (`ensemble_members:` routes a search arm
 through `EnsembleSearchAdapter`). n=3000 matched: **ENSG 0.84167 vs ENS3 0.82667 = +0.01500 at
 1.6 se — MISSES the floor AND 2·se_diff.** Highest point estimate we own; not credited. **Also
 IN-SAMPLE — δ 0.10 was swept on s112 and the committee CONTAINS s112** — so optimistic, not
-conservative. ENSG05/ENSG20 running to separate gate-tuning from ensemble-leaves. At n=900 it
+conservative; ENSG05/ENSG20 running to separate gate-tuning from ensemble-leaves. At n=900 it
 read +0.030 at 1.7 se and was quoted as a win; it regressed. Sub-2-se deltas are not wins.
 
 ## The monster (JOURNEY 10) — decisions owed; today's reads bear on two
@@ -85,16 +83,16 @@ read +0.030 at 1.7 se and was quoted as a win; it regressed. Sub-2-se deltas are
    off-FP@20 vs the saturated vs-SH (at p 0.789 credit needs ≥ 0.81367)?; **horizon/width** —
    members saturate, so buy STEPS; 6 lanes buys 2 committees.
 2. **LAUNCH TOOLING BUILT, DRY-RUN GREEN:** `monster_fleet.sh` (7 preflight gates, staggered,
-   CPU-delta liveness) + `train_watchdog.sh` (auto-RESUME on the R2 alive-at-zero-CPU stall;
-   every branch verified on real runs) + `derive_monster_config.py` (the lr_anneal trap —
-   `rl.train` has NO --total-steps and a horizon past the anneal trains its tail at lr≈0;
-   refused, not described). **k stays 8**, §(C) settles it.
-3. **RULINGS OWED:** 11.5 before 11; a per-decision cap for a searched ladder object (≤5 s
-   proposed); **whether to build engine-native DEPTH-2 at all** (see above — today argues no).
+   CPU-delta liveness) + `train_watchdog.sh` (auto-RESUME on the R2 alive-at-zero-CPU stall,
+   every branch verified on real runs) + `derive_monster_config.py` (**the lr_anneal trap** —
+   `rl.train` has NO --total-steps and a horizon past the anneal trains its tail at lr≈0).
+   **k stays 8**, §(C) settles it.
+3. **RULINGS OWED:** 11.5 before 11; a per-decision cap for a searched ladder object (≤5 s);
+   **whether to build engine-native DEPTH-2 at all** (above — today argues no).
 
 ## Watch items
-- **SUITE GREEN 1031 / 0 failed** on the DOCUMENTED invocation (encoder flags UNSET); 86
-  skip and pass with them SET, where 6 v1-shape tests fail by design. Engine 115 + 94 cargo.
+- **SUITE GREEN 1031 / 0 failed** on the DOCUMENTED invocation (encoder flags UNSET); 86 skip
+  and pass with them SET, where 6 v1-shape tests fail by design. Engine 115 + 94 cargo.
 - **ONE RUNG IS WORTH ±0.02** — three redraws of one checkpoint spread 0.0200, larger than the
   gate's whole out-of-sample effect. Read curves, never one rung. **Corollary paid for
   2026-09-11: a 300-seed arm may NOT be read against a 3000-seed pooled mean** — on seeds
