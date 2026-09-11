@@ -84,3 +84,68 @@ Not for an agent to decide; `JOURNEY.md` is the maintainer's doc.
 
 **Until (b) is measured, "search does not pay for this project" is an
 unsupported claim, and no depth-1 null may be cited for it.**
+
+---
+
+## What got built, 2026-09-11 (hacking phase — probes, not pre-regs)
+
+### The depth-2 probe was VOID, and its number must not be quoted
+
+`D2` (n=300, s112) printed 0.8400 and it means nothing. `_leaf_our_moves`
+indexed `side.pokemon` with `side.active_index`, which pyo3 returns as a
+STRING; the `TypeError` landed in a bare `except Exception: return []`, so the
+extra ply produced **zero grandchildren on all 1572 searched decisions**. The
+arm was S3G10 re-rolled on fresh seeds. Fixed, along with a second bug in the
+same function (a terminal grandchild was valued 0.0 instead of its own ±1).
+
+The reason it was invisible is worth more than the bug: `solve_decision` DID
+emit `depth2/grandchildren`, and `_SearchEvalAdapter` dropped it, because that
+adapter forwards a whitelist of keys. **"The extra ply changed nothing" and
+"the extra ply never fired" printed the same win rate.** Any future dial gets
+a counter that reaches disk before it gets an arm.
+
+### `rl/search/tree.py` — the thing that was actually missing
+
+Decoupled UCT over determinized engine states. Our masked policy is the PUCT
+prior on our side; the oppact head's L6 posterior is the prior on theirs;
+chance nodes are real (`generate_instructions`' branch distribution, sampled
+per visit); **our critic values the leaves.**
+
+Neither existing probe is this:
+
+| | leaf evaluator | depth |
+|---|---|---|
+| `matrix.py` (every banked search number) | our critic | **1** |
+| `mcts_probe.py` (MP20/MP20T/MP200) | poke_engine's heuristic | real |
+| `tree.py` | **our critic** | **real** |
+
+Measured, not argued — mean simulation depth **3.05**, max **6.58**, at 400
+iterations × 2 determinizations, 692 network evaluations, **280 ms/decision**.
+For scale: the depth-1 matrix at dose M is 78 ms, FP@20's ENTIRE budget is
+~40 ms, and the ladder allows 150 s per turn.
+
+### Two decision rules, because the rule mattered more than the tree
+
+`decide: visits` is AlphaZero's and FP's. On the first smoke a sharp policy
+prior put **90.9%** of root visits on one action, so at this budget visit
+share is very nearly the prior and the tree can barely speak. FP gets away
+with it because FP has no policy net to be overruled by.
+
+`decide: q` scores each root action by its backed-up mean value and plays it
+only if it beats the policy's own action by a margin. That is the SAME SHAPE
+as the banked depth-1 selector (`row_ev` + `margin_delta`), on the same ±1
+critic scale — so `S3G10` at δ 0.10 and `TREEQ` at δ 0.10 differ in DEPTH and
+in nothing else. That is the comparison this axis has been missing.
+
+The gate calibration lesson is already paid for: the same MCTS tree at
+margin 0.10 (30.0% override) read 0.7900 and at 0.35 (10.9%) read 0.8400.
+
+### Batching, so depth is affordable
+
+The network was 55% of a decision (126 of 227 ms over 276 batch-1 forwards).
+Leaf-parallel descents under a virtual loss now share one forward: **224 ms →
+113 ms at batch 16**, network 125 → 25 ms. The cost is depth per iteration
+(16 descents commit before any is expanded: mean depth 2.70 → 2.15 at equal
+iterations), which more iterations buy back. The bottleneck is now the
+pure-Python encoder — 99 of SWA's 280 ms — and `embed_battle` is NOT to be
+touched, because every checkpoint was trained against it byte-for-byte.
