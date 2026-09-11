@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# MONSTER FLEET LAUNCHER — one command, preflighted, watchdogged.
+#
+#   bash scripts/monster_fleet.sh <config.yaml> <steps> <seed> [seed ...]
+#
+# e.g.  bash scripts/monster_fleet.sh configs/showdown_monster100m.yaml 200000000 104 112 120
+#
+# Written 2026-09-11 so that the command run before an 8-hour drive is one
+# that has already worked once, and so that every rule which has cost this
+# project hours is CHECKED rather than remembered.
+#
+# WHAT IT REFUSES TO LAUNCH ON, and why each one is here:
+#
+#  1. WRONG ENV. `collector: mode: engine` imports pkmn_gen1, which lives only
+#     in pkmn-engine-port. The repo's default env does not have it.
+#  2. DIRTY TREE. CLAUDE.md rule 3 -- one untracked .md stamps git_dirty on
+#     every run in the fleet, and the fleet is the thing we will publish.
+#  3. COLLIDING SEEDS. CLAUDE.md rule 2. Engine mode still builds poke-env
+#     seats for the IN-LOOP EVAL (rl/train.py's make_eval_env), and poke-env
+#     derives usernames from the globally-seeded `random`, so same-seed lanes
+#     still collide and still die with a misleading TimeoutError.
+#  4. simulator < 4 in showdown/config/config.js -- CLAUDE.md rule 5. The file
+#     is gitignored, so a re-clone silently loses it.
+#  5. NO NODE SERVER. Same reason as 3: the in-loop eval needs it.
+#  6. MISSING TEAM BANK, or one below the config's own min_bank_pairs.
+#  7. AN EXISTING RUN DIR. Never silently resume-or-clobber; say which.
+#
+# AND WHAT IT DOES AFTER LAUNCH, which matters as much:
+#   * Lanes are STAGGERED. A lane can SIGSEGV at startup before writing any
+#     log line, so they go up one at a time.
+#   * Liveness is verified per lane by CPU-TIME DELTA, not by "the process
+#     exists" -- the R2 stall shape passes every pgrep check forever.
+#   * The watchdog is started LAST, on the lanes that actually came up, with
+#     the same interpreter the fleet is running.
+set -uo pipefail
+cd "$(cd "$(dirname "$0")/.." && pwd)" || exit 1
+
+CFG="${1:-}"; STEPS="${2:-}"; shift 2 2>/dev/null || true
+SEEDS=("$@")
+[ -n "$CFG" ] && [ -n "$STEPS" ] && [ "${#SEEDS[@]}" -ge 1 ] || {
+  echo "usage: $0 <config.yaml> <total_steps> <seed> [seed ...]"; exit 2; }
+
+PY="${PY:-/opt/anaconda3/envs/pkmn-engine-port/bin/python}"
+STAGGER="${STAGGER:-90}"      # seconds between lane launches
+VERIFY="${VERIFY:-20}"        # CPU-delta window per lane
+TAG="${TAG:-$(basename "$CFG" .yaml)}"
+LOG="logs/monster_fleet.log"; mkdir -p logs runs
+say(){ echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
+die(){ say "REFUSING TO LAUNCH: $*"; exit 2; }
+
+say "=== PREFLIGHT: $CFG, ${STEPS} steps, seeds ${SEEDS[*]} ==="
+
+[ -f "$CFG" ] || die "no such config: $CFG"
+
+# THE ANNEAL TRAP, checked. `rl.train` has NO --total-steps flag: the horizon
+# comes from the config and ONLY from the config, so a STEPS argument that
+# disagreed with it would silently run the config's number. Worse, the config
+# names the real trap itself -- "lr_anneal_steps: 100000000 # == total_steps.
+# THE ANNEAL TRAP" -- because a 200M run against a 100M anneal drives the
+# learning rate to zero at the halfway mark and trains the entire second half
+# at lr~0. That failure is invisible until the readout. Both are checked, and
+# the fix is printed rather than described.
+read -r CFG_STEPS CFG_ANNEAL <<<"$("$PY" - "$CFG" <<'PYEOF'
+import yaml, sys
+c = yaml.safe_load(open(sys.argv[1]))
+print(int(c.get("total_steps", -1)),
+      int((c.get("agent") or {}).get("lr_anneal_steps", -1)))
+PYEOF
+)"
+if [ "$CFG_STEPS" != "$STEPS" ] || [ "$CFG_ANNEAL" != "$STEPS" ]; then
+  say "  config total_steps     = $CFG_STEPS"
+  say "  config lr_anneal_steps = $CFG_ANNEAL"
+  say "  requested              = $STEPS"
+  die "config horizon != requested. Derive a matching config first:
+    $PY scripts/derive_monster_config.py $CFG $STEPS
+  (both total_steps AND agent.lr_anneal_steps must equal $STEPS -- a
+   mismatched anneal silently trains the tail of the run at lr~0)"
+fi
+say "horizon: total_steps = lr_anneal_steps = $STEPS"
+
+MODE="$("$PY" -c "import yaml,sys;print((yaml.safe_load(open(sys.argv[1])).get('collector') or {}).get('mode',''))" "$CFG")"
+say "collector mode: ${MODE:-<none>}"
+if [ "$MODE" = "engine" ]; then
+  "$PY" -c 'import pkmn_gen1' 2>/dev/null \
+    || die "mode=engine but $PY cannot import pkmn_gen1 (use the pkmn-engine-port env)"
+  BANK="$("$PY" -c "import yaml,sys;print((yaml.safe_load(open(sys.argv[1])).get('collector') or {}).get('team_bank',''))" "$CFG")"
+  [ -n "$BANK" ] && [ -f "$BANK" ] || die "team_bank missing: ${BANK:-<unset>}"
+  say "team bank: $BANK ($(du -h "$BANK" | cut -f1))"
+fi
+
+# rule 3 -- and it must be CLEAN, not merely committed
+[ -z "$(git status --porcelain)" ] || {
+  git status --short | head -10
+  die "dirty tree (CLAUDE.md rule 3): one untracked file stamps git_dirty on every lane"
+}
+say "tree clean at $(git rev-parse --short HEAD)"
+
+# rule 2
+if [ "$(printf '%s\n' "${SEEDS[@]}" | sort -u | wc -l | tr -d ' ')" -ne "${#SEEDS[@]}" ]; then
+  die "duplicate seeds ${SEEDS[*]} (CLAUDE.md rule 2): lanes collide on Showdown usernames"
+fi
+
+# rule 5
+SIM="$(grep -E '^\s*simulator:' showdown/config/config.js 2>/dev/null | grep -oE '[0-9]+' | head -1)"
+[ "${SIM:-0}" -ge 4 ] || die "showdown/config/config.js simulator=${SIM:-unset}, need >=4 (CLAUDE.md rule 5)"
+say "simulator: $SIM"
+
+pgrep -f "node pokemon-showdown" >/dev/null \
+  || die "no Showdown server -- engine mode still builds poke-env seats for the in-loop eval"
+say "node server up"
+
+for s in "${SEEDS[@]}"; do
+  d="runs/${TAG}_s${s}"
+  [ -e "$d" ] && die "$d already exists -- move it or pick another TAG; this script never resumes-or-clobbers"
+done
+
+pgrep -f "bin/python -m rl.train" >/dev/null && say "WARNING: rl.train already running; the fleet will contend"
+
+say "=== LAUNCH (stagger ${STAGGER}s) ==="
+UP=(); DOWN=()
+for s in "${SEEDS[@]}"; do
+  d="runs/${TAG}_s${s}"
+  say "launching seed $s -> $d"
+  nohup "$PY" -c 'import os,sys; os.setsid(); os.execv(sys.argv[1], sys.argv[1:])' \
+    "$PY" -m rl.train --config "$CFG" --seed "$s" --run-name "$(basename "$d")" \
+    > "${d}.nohup.log" 2>&1 &
+  sleep "$STAGGER"
+
+  pid="$(pgrep -f "bin/python -m rl.train.*--run-name $(basename "$d")" | head -1)"
+  if [ -z "$pid" ]; then
+    say "  ALERT seed $s: NO PROCESS after ${STAGGER}s -- see ${d}.nohup.log"
+    tail -5 "${d}.nohup.log" 2>/dev/null | sed 's/^/    /'
+    DOWN+=("$s"); continue
+  fi
+  # PROGRESS, not existence: a lane can be alive at zero CPU.
+  c0="$(ps -o time= -p "$pid" | tr -d ' ')"; sleep "$VERIFY"
+  c1="$(ps -o time= -p "$pid" | tr -d ' ')"
+  if [ "$c0" = "$c1" ]; then
+    say "  ALERT seed $s: pid $pid alive but ZERO CPU in ${VERIFY}s -- not counting it up"
+    DOWN+=("$s"); continue
+  fi
+  say "  seed $s up: pid $pid, cpu $c0 -> $c1"
+  UP+=("$d")
+done
+
+say "=== ${#UP[@]}/${#SEEDS[@]} lanes up ==="
+[ "${#DOWN[@]}" -gt 0 ] && say "ALERT lanes that did not come up: ${DOWN[*]}"
+[ "${#UP[@]}" -eq 0 ] && die "no lane came up"
+
+say "starting watchdog on the lanes that came up"
+PY="$PY" nohup bash scripts/train_watchdog.sh "${UP[@]}" > /dev/null 2>&1 &
+say "watchdog pid $! -- log runs/train_watchdog.log"
+say "DONE. Monitor with:  tail -f runs/train_watchdog.log"

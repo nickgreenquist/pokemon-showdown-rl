@@ -117,6 +117,28 @@ resume_lane() {  # run dir -> relaunch detached, IN ITS OWN SESSION
   say "  RESUMED $d -> pid $! (own session; log ${d}.resume.log)"
 }
 
+# --- PREFLIGHT: refuse to start rather than fail on resume #1 at 3am -------
+# The engine collector imports pkmn_gen1, which lives ONLY in the
+# pkmn-engine-port env -- not in pokemon-showdown-rl, which is this script's
+# default interpreter. A watchdog that starts happily and then resumes an
+# engine lane with the wrong python produces an ImportError per resume until
+# it burns the cap, on an unattended box, silently. So the interpreter is
+# checked against what each lane's own config asks for, BEFORE watching.
+for d in "${LANES[@]}"; do
+  [ -d "$d" ] || { echo "REFUSING: $d is not a directory"; exit 2; }
+  mode="$(grep -A3 '^collector:' "$d/config.yaml" 2>/dev/null \
+          | grep -E '^\s*mode:' | awk '{print $2}')"
+  if [ "${mode:-}" = "engine" ]; then
+    if ! "$PY" -c 'import pkmn_gen1' 2>/dev/null; then
+      echo "REFUSING TO START: $d is collector mode=engine, but"
+      echo "  $PY"
+      echo "cannot import pkmn_gen1. Re-run with the engine env, e.g."
+      echo "  PY=/opt/anaconda3/envs/pkmn-engine-port/bin/python bash $0 $*"
+      exit 2
+    fi
+  fi
+done
+
 say "WATCHDOG START poll=${POLL}s cpu_win=${CPU_WIN}s cpu_min=${CPU_MIN}s max_resumes=${MAX_RESUMES}"
 say "  lanes: ${LANES[*]}"
 
