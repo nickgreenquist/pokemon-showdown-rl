@@ -1016,7 +1016,7 @@ preconditions:
   PRE-5: "width measured (unit W-0) and the branch recorded"
   PRE-6: "POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 on every lane and every eval; the launcher exports both and refuses if either is unset"
   PRE-7: "the bank exists, holds >= 1,000,000 pairs, sha256 recorded"
-  PRE-8: "the tests/test_100m_prereg.py amendment is committed"
+  PRE-8: "SATISFIED 2026-09-11. tests/test_100m_prereg.py::test_seed_windows_disjoint_and_unused now names monster100m_{a,b,c}_s{104,112,120} and monster_c_smoke_s104 as legal owners of the seed windows, with the reason (on the engine route no training env is built; seat_tag injects explicit AccountConfigurations so poke-env's global-random username derivation — rule 2's actual mechanism — is never reached). The 100M fleet stays the FIRST legal owner and any OTHER stamped run in a window still fails. It went red tonight when PRE-2's own smoke stamped seed 104, which is how the amendment got made rather than discovered at launch. 5 passed."
   PRE-9: "clean tree, docs committed (CLAUDE.md rule 3). One untracked .md stamps git_dirty on all nine lanes and it cannot be reconstructed afterwards."
   PRE-10: "the box is FREE — no ch3_eval jobs, no train lanes, no calibration jobs, no other agent's queues; a fresh Showdown server started by the launcher; free+inactive >= 14 GiB and >= 60 GiB disk at lane 1"
   PRE-11: "ratification: every RWM-n answered here and verdict_authorized set"

@@ -79,6 +79,20 @@ def test_seed_windows_disjoint_and_unused():
     # 2026-09-01T10:58Z) and the fleet is the first legal owner of
     # 104/112/120. Any OTHER stamped run in a window still fails.
     legal = {f"showdown_sp_100m_s{s}" for s in (104, 112, 120)}
+    # PRE-8 amendment, 2026-09-11: the JOURNEY-10 monster reuses the SAME
+    # triple under distinct `seat_tag`s, which is safe because on the engine
+    # route no training env is constructed at all (rl/train.py) — the only
+    # poke-env object is the in-loop eval env, and `seat_tag` injects explicit
+    # AccountConfigurations so poke-env's global-`random` username derivation
+    # (rule 2's actual mechanism) is never reached. The 100M fleet remains the
+    # FIRST legal owner; these are the second, named rather than inferred so an
+    # unexpected stamped run still fails.
+    legal |= {f"monster100m_{arm}_s{s}"
+              for arm in ("a", "b", "c") for s in (104, 112, 120)}
+    # ...and PRE-2's own live smoke, which is a REQUIRED precondition of that
+    # fleet (a ~10-update design-A lane on the engine route, then killed) and
+    # therefore cannot be a violation of the gate it exists to satisfy.
+    legal.add("monster_c_smoke_s104")
     if (REPO / "runs").exists():
         for p in (REPO / "runs").glob("*/config.yaml"):
             if p.parent.name in legal:
