@@ -1089,8 +1089,11 @@ class PPOAgent(Agent):
     def _priv_eval_gradient(
         self, priv_obs: torch.Tensor, targets: torch.Tensor
     ) -> float:
-        """Design B's head: one MSE against the SAME returns the critic
-        regresses, on the SAME minibatch rows, clipped to its OWN budget and
+        """Design B's head: one MSE against the MONTE-CARLO return
+        (`flat_priv_targets`, the lam=1 telescoping of the same audited
+        kernel -- deliberately NOT the GAE target the critic regresses,
+        which at lam 0.95 is ~53% that critic's own output, i.e. the
+        network this head exists to beat), on the SAME minibatch rows, clipped to its OWN budget and
         written into `.grad` — the `_aux_gradient` shape.
 
         Structurally isolated, which is the whole point of design B. The head
@@ -1324,6 +1327,31 @@ class PPOAgent(Agent):
         flat_advantages = advantages_t.reshape(-1)
         flat_old_logp = old_logp.reshape(-1)
         flat_old_values = values.reshape(-1)
+        # Design B's head regresses the MONTE-CARLO return, never the
+        # GAE(lambda) target -- the full argument is in `update_episodes`,
+        # which is where the engine lanes go; this is the same fix on the
+        # step-based path so the head's target cannot depend on which driver
+        # the run happens to use (that split is how the defect survived).
+        # lam=1 telescopes the SAME audited kernel to R_t - V(s_t) and
+        # bootstraps at a truncation, which for an episode this rollout cut is
+        # the only available answer.
+        flat_priv_targets = None
+        if self.priv_eval_head is not None:
+            flat_priv_targets = (
+                torch.as_tensor(
+                    compute_gae(
+                        buf.rewards,
+                        buf.terminated,
+                        buf.truncated,
+                        values.cpu().numpy(),
+                        next_values.cpu().numpy(),
+                        self.gamma,
+                        1.0,
+                    ),
+                    device=self.device,
+                )
+                + values
+            ).reshape(-1)
 
         harvest_stats: dict[str, float] = {}
         if self._harvest is not None and len(self._harvest):
@@ -1353,6 +1381,15 @@ class PPOAgent(Agent):
             flat_masks = torch.cat([flat_masks, h_masks])
             flat_advantages = torch.cat([flat_advantages, h_adv])
             flat_targets = torch.cat([flat_targets, h_adv + h_values])
+            if flat_priv_targets is not None:
+                # Seat 2's rows get the head's target the same way (lam=1 over
+                # the async path's own per-episode kernel, terminal bootstrap 0).
+                h_mc = torch.as_tensor(
+                    episode_gae(batch["rewards"], h_values.cpu().numpy(),
+                                batch["lengths"], self.gamma, 1.0),
+                    device=self.device,
+                )
+                flat_priv_targets = torch.cat([flat_priv_targets, h_mc + h_values])
             flat_old_logp = torch.cat([flat_old_logp, h_old_logp])
             flat_old_values = torch.cat([flat_old_values, h_values])
             harvest_stats["harvest/rows_this_update"] = float(len(h_actions))
@@ -1367,7 +1404,7 @@ class PPOAgent(Agent):
             steps_seen=self.updates * horizon * num_envs,
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
             aux_stats=aux_stats, flat_old_values=flat_old_values,
-            flat_priv=flat_priv,
+            flat_priv=flat_priv, flat_priv_targets=flat_priv_targets,
         )
         self.buffer.clear()
         return {**metrics, **harvest_stats}
@@ -1458,13 +1495,45 @@ class PPOAgent(Agent):
         )
         advantages_t = torch.as_tensor(advantages, device=self.device)
         flat_targets = advantages_t + values
+        # DESIGN B REGRESSES THE OUTCOME, NOT THE CRITIC'S OPINION OF IT.
+        # `flat_targets` is the GAE(lambda) target, which at gamma 1 with a
+        # terminal-only reward decomposes EXACTLY as
+        #     target_t = lam^(N-1-t) * z + (1 - lam) * sum_k lam^(k-1) V(s_t+k)
+        # so at lam 0.95 over a ~34-decision episode only ~0.47 of the target
+        # mass (step-weighted) is the game's outcome and ~0.53 is the ORDINARY
+        # critic's own output -- ~0.82 of it at the FIRST decision, which is
+        # precisely where the privileged block carries the most information.
+        # Regressing the privileged head on that made it chase the
+        # non-privileged critic it exists to beat, and left arm C's critic
+        # self-consistently privileged while arm B's head was not (found in
+        # review, 2026-09-10; the head's only learning test runs at lam 1.0,
+        # where the target already IS the MC return -- so the production path
+        # was never the tested one).
+        #
+        # GAE at lam=1 telescopes to R_t - V(s_t), so the audited kernel
+        # ALREADY computes the Monte-Carlo return: no second implementation to
+        # drift, correct under truncation (bootstrapped at the cut, the only
+        # available answer) and under any gamma or shaping term -- which a
+        # terminal-reward broadcast would silently get wrong instead.
+        flat_priv_targets = None
+        if self.priv_eval_head is not None:
+            mc_advantages = episode_gae(
+                batch["rewards"],
+                values.cpu().numpy(),
+                batch["lengths"],
+                self.gamma,
+                1.0,
+            )
+            flat_priv_targets = (
+                torch.as_tensor(mc_advantages, device=self.device) + values
+            )
         metrics = self._optimize(
             flat_obs, flat_actions, flat_masks, flat_critic_obs,
             advantages_t, flat_targets, flat_old_logp,
             steps_seen=steps_seen,
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
             aux_stats=aux_stats, flat_old_values=values,
-            flat_priv=flat_priv,
+            flat_priv=flat_priv, flat_priv_targets=flat_priv_targets,
         )
         return metrics
 
@@ -1484,6 +1553,7 @@ class PPOAgent(Agent):
         aux_stats: dict[str, float] | None = None,
         flat_old_values: torch.Tensor | None = None,
         flat_priv: torch.Tensor | None = None,
+        flat_priv_targets: torch.Tensor | None = None,
     ) -> dict[str, float]:
         """The epoch x minibatch optimization on a prepared flat batch, plus
         its diagnostics — everything downstream of advantage computation,
@@ -1554,6 +1624,33 @@ class PPOAgent(Agent):
                         - (flat_targets - pe_pred).var(unbiased=False) / target_var
                     )
                 )
+                # THE VERDICT READ, against the MC return the head actually
+                # regresses now -- with the critic scored on the SAME target in
+                # the same pass, so head-minus-critic is like-for-like. The GAE
+                # EV above stays a DIAGNOSTIC and is never a verdict input: it
+                # scores the head against a target that is ~53% the critic's
+                # own output, which flatters the head by construction.
+                # The critic's values are recovered exactly as
+                # `flat_targets - flat_advantages` (that identity is how
+                # `flat_targets` was built), so this needs no extra forward
+                # and does not depend on `flat_old_values` being supplied.
+                if flat_priv_targets is not None:
+                    mc_var = flat_priv_targets.var(unbiased=False)
+                    if float(mc_var) >= 1e-12:
+                        critic_values = flat_targets - flat_advantages
+                        pe_ev = float(
+                            1.0
+                            - (flat_priv_targets - pe_pred).var(unbiased=False)
+                            / mc_var
+                        )
+                        cr_ev = float(
+                            1.0
+                            - (flat_priv_targets - critic_values).var(unbiased=False)
+                            / mc_var
+                        )
+                        priv_eval_stats["priv_eval/explained_variance_mc"] = pe_ev
+                        priv_eval_stats["priv_eval/critic_ev_mc"] = cr_ev
+                        priv_eval_stats["priv_eval/ev_mc_advantage"] = pe_ev - cr_ev
 
         # Staged unfreeze (no-op unless critic_warmup_updates > 0): the actor
         # is frozen for the first N updates while the critic regresses onto
@@ -1742,10 +1839,18 @@ class PPOAgent(Agent):
                     # move `loss/grad_norm` or `loss/grad_clip_frac` even by
                     # accident. It reads obs ‖ priv (its own input, NOT the
                     # critic's — those differ on a design-B-only lane) and
-                    # `flat_targets[idx]` (the returns the critic regresses),
-                    # and writes only into its own head's `.grad`.
+                    # the MONTE-CARLO return (`flat_priv_targets`, NOT the GAE
+                    # target the critic regresses -- see update_episodes),
+                    # and writes only into its own head's `.grad`. The
+                    # fallback to `flat_targets` is unreachable while the
+                    # head exists; it is kept so the block has no None path.
                     sums["loss/priv_eval_value"] += self._priv_eval_gradient(
-                        priv_eval_obs[idx], flat_targets[idx]
+                        priv_eval_obs[idx],
+                        (
+                            flat_targets
+                            if flat_priv_targets is None
+                            else flat_priv_targets
+                        )[idx],
                     )
                 self.optimizer.step()
                 if self.l2_init_decay > 0.0:

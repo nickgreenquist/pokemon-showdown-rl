@@ -183,6 +183,12 @@ TK = dict(species_vocab=152, move_vocab=166, embed_dim=16, entity_dim=32,
 # so `flat_targets = advantages + values` is the Monte-Carlo return and does NOT
 # move as the critic learns. The head's regression target is therefore fixed
 # across the twenty updates and "the loss falls" means the head fit something.
+# SINCE 2026-09-10 the head regresses `flat_priv_targets` -- the lam=1 return --
+# at EVERY lambda, so this fixture is no longer the only setting where its
+# target is the MC return. It is kept at 1.0 anyway so `flat_targets` and
+# `flat_priv_targets` coincide and this file's other assertions stay readable;
+# `test_the_heads_target_is_the_mc_return_at_every_lambda` is what pins the
+# production setting (lam 0.95), where the two DIFFER.
 KW = dict(num_envs=2, device="cpu", lr=1.0e-3, gamma=1.0, gae_lambda=1.0,
           rollout_steps=8, epochs=2, minibatches=2, clip_eps=0.2,
           entropy_coef=0.01, value_coef=0.5, max_grad_norm=0.5,
@@ -282,7 +288,18 @@ for name, a, b in (("actor", off.actor, on.actor), ("critic", off.critic, on.cri
         assert torch.equal(p, q), (name, k)
 assert len(m_off) == len(m_on) == 20
 for i, (a, b) in enumerate(zip(m_off, m_on)):
-    assert set(b) - set(a) == {"loss/priv_eval_value", "priv_eval/explained_variance"}, (i, set(b) - set(a))
+    assert set(b) - set(a) == {
+        "loss/priv_eval_value",
+        "priv_eval/explained_variance",
+        # Added 2026-09-10 with the MC-target fix. `explained_variance_mc` is
+        # the VERDICT read (head vs the outcome it now regresses); `critic_ev_mc`
+        # scores the ordinary critic on that same target in the same pass, and
+        # `ev_mc_advantage` is their difference. The GAE-target EV above stays a
+        # diagnostic because it scores the head against ~53% its own opponent.
+        "priv_eval/explained_variance_mc",
+        "priv_eval/critic_ev_mc",
+        "priv_eval/ev_mc_advantage",
+    }, (i, set(b) - set(a))
     assert not set(a) - set(b), (i, set(a) - set(b))
     for k in a:
         assert a[k] == b[k], (i, k, a[k], b[k])
@@ -479,3 +496,89 @@ def test_the_engine_launch_gate_accepts_the_block_at_the_encoder_width(tmp_path)
     bank = tmp_path / "teams.bin"
     bank.write_bytes(b"")
     assert _run(_LAUNCH_CHILD, str(bank)).strip().splitlines()[-1] == "OK"
+
+
+# The defect this pins (found in review 2026-09-10, fixed the same day): the
+# head used to regress `flat_targets`, the GAE(lambda) target. At gamma 1 with
+# a terminal-only reward that decomposes EXACTLY as
+#     target_t = lam^(N-1-t) * z + (1 - lam) * sum_k lam^(k-1) V(s_t+k)
+# so at the PRODUCTION lam of 0.95 about 53% of the head's target mass was the
+# ORDINARY critic's own output (82% of it at the first decision) -- the network
+# the privileged head exists to beat. It survived because the only test of the
+# head's learning ran at lam 1.0, where the GAE target already IS the MC return:
+# the tested path was not the production path. Both assertions below fail on the
+# pre-fix code.
+_MC_TARGET_CHILD = _PREAMBLE + r"""
+batch = make_batch()
+
+
+def build_lam(lam, **kw):
+    torch.manual_seed(0)
+    kws = dict(KW, gae_lambda=lam)
+    return PPOAgent(
+        gym.spaces.Box(-1.0, 4.0, (828,), np.float32), gym.spaces.Discrete(10),
+        **kws, **kw,
+    )
+
+
+def capture(agent):
+    # Every target the head is actually handed, minibatch by minibatch.
+    seen = []
+    inner = agent._priv_eval_gradient
+
+    def spy(priv_obs, targets):
+        seen.append(targets.detach().clone())
+        return inner(priv_obs, targets)
+
+    agent._priv_eval_gradient = spy
+    agent.update_episodes(batch, steps_seen=0)
+    return seen
+
+
+HEAD = dict(priv_eval_dim=PRIV_DIM, priv_eval_coef=0.5)
+t95 = capture(build_lam(0.95, **HEAD))     # production
+t100 = capture(build_lam(1.0, **HEAD))     # the old fixture's setting
+assert len(t95) == len(t100) > 0, (len(t95), len(t100))
+
+# 1. THE TARGET DOES NOT MOVE WITH gae_lambda. The critic's advantages still do
+#    -- only the head's target is pinned to the outcome.
+for i, (a, b) in enumerate(zip(t95, t100)):
+    assert torch.equal(a, b), ("the head's target moved with gae_lambda", i)
+
+# 2. AND IT IS THE GAME'S OUTCOME. gamma is 1 and the reward is terminal-only,
+#    so the MC return of every row in an episode is that episode's own z.
+#    Pre-fix these were a continuous smear of bootstrapped critic values.
+#    Magnitude, not equality: lam=1 reaches z by TELESCOPING the float32 scan,
+#    so the critic's values cancel to ~1.2e-7 rather than to zero bits.
+for i, a in enumerate(t95):
+    assert torch.allclose(a.abs(), torch.ones_like(a), atol=1e-5), (
+        i, float(a.abs().min()), float(a.abs().max()))
+
+# 3. The GAE(0.95) target the head USED to get is materially different, so (1)
+#    and (2) are not vacuous on this fixture.
+probe = build_lam(0.95, **HEAD)
+obs_t = torch.as_tensor(batch["obs"], dtype=torch.float32)
+with torch.no_grad():
+    v = probe.critic(obs_t).squeeze(-1)
+from rl.buffers.episode import episode_gae
+gae95 = torch.as_tensor(
+    episode_gae(batch["rewards"], v.numpy(), batch["lengths"], 1.0, 0.95)) + v
+mc = torch.as_tensor(
+    episode_gae(batch["rewards"], v.numpy(), batch["lengths"], 1.0, 1.0)) + v
+assert (gae95 - mc).abs().mean().item() > 1e-3, (gae95 - mc).abs().mean().item()
+z = np.repeat(batch["rewards"][np.cumsum(batch["lengths"]) - 1], batch["lengths"])
+assert np.allclose(mc.numpy(), z, atol=1e-5), np.abs(mc.numpy() - z).max()
+
+# 4. The verdict metric exists and scores head against critic on that target.
+m = build_lam(0.95, **HEAD).update_episodes(batch, steps_seen=0)
+for k in ("priv_eval/explained_variance_mc", "priv_eval/critic_ev_mc",
+          "priv_eval/ev_mc_advantage"):
+    assert k in m, (k, sorted(m))
+assert abs((m["priv_eval/explained_variance_mc"] - m["priv_eval/critic_ev_mc"])
+           - m["priv_eval/ev_mc_advantage"]) < 1e-6
+print("OK")
+"""
+
+
+def test_the_heads_target_is_the_mc_return_at_every_lambda():
+    assert _run(_MC_TARGET_CHILD).strip().splitlines()[-1] == "OK"
