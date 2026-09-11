@@ -79,7 +79,8 @@ results_dir: results/search_budget_ladder
 comparator: banked_same_session
 aggregator: single_lane_shape_read
 lane: s112
-margin_delta: null          # [FILL BEFORE LAUNCH] the peak from S3 P15/P20
+margin_delta: 0.1          # [FILLED at launch] the peak measured on dose M by
+                           # S3's S3G10/P15/P20 arms on s112; held FIXED across rungs.
 checkpoints:
   s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
 banked_rungs:
@@ -87,6 +88,6 @@ banked_rungs:
   R-M:  {source: results/search_s3_100m/s3g10_s112.final.json, rate: 0.82400, n: 3000, dose: M, margin_delta: 0.10}
   ungated_L_for_contrast: {source: results/search_s3_100m/s3l_s112.final.json, dose: L, margin_delta: null}
 arms:
-  RL:  {kind: search, lanes: [s112], dose: L,  battles: 3000, chunks: 10}
-  RXL: {kind: search, lanes: [s112], dose: XL, battles: 1000, chunks: 10}
+  RL:  {kind: search, lanes: [s112], dose: L,  battles: 3000, chunks: 10, margin_delta: 0.1}
+  RXL: {kind: search, lanes: [s112], dose: XL, battles: 1000, chunks: 10, margin_delta: 0.1}
 run_order: [RL, RXL]
