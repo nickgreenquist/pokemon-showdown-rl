@@ -30,13 +30,6 @@
   structurally could not see it** (it fills the observable state FROM poke-env). Fixed by
   counting observed spends; `cargo test` 44/44; P-1 re-run 100,000 decisions 0 mismatches;
   A-1a on the fixed build separates NOTHING.
-- **SPEED.** A/B **4.035x** (k=256 vs concurrency 8, ABBA) is the COLLECTOR's; **k alone is
-  1.30x at matched width**; fleet k=256 w=6 = 2.06x. Profile INVERTED (update 25% → 65% of
-  wall), so further collector work is capped at 1.54x. A lane is a SEED.
-- **K-1 (k=256) PARKED, reviewed ×2.** The monster runs at **k=8**: k buys ~5 fleet-hours
-  against 13.3% of every update's rows one version stale, concentrated on OPENING play (22%
-  of turns 1–5 vs 7% of turns 25+), into an already-saturated clip. Its MDE (0.032–0.038)
-  is WIDER than its own accept band.
 
 ## The search relook — GRADED, and the diagnosis moved (docs/search_relook/)
 - **S3, on the 100M finals, vs SH, locked protocol, 3×3000/arm** (credits nothing):
@@ -70,13 +63,23 @@
 - **The ladder object stays GREEDY** until an evaluator or selector arm changes it.
 
 ## Next actions
-1. **Monster (JOURNEY 10), ruled:** 100M × 2 arms × 3 seeds at **k=8**, w=6 (~22 h;
-   fallback 250M × 3). **A** = R4 recipe, oppact head ON (`rl/search/agent.py:68` asserts
-   it — a checkpoint without it can NEVER be searched). **B** = A + the **privileged
-   EVALUATOR head** (design B, BUILT 7d8650e: a SEPARATE full-information value head;
-   `privileged_dim` keeps D18's meaning so a B lane does not silently carry A;
-   bit-identical off; engine parity 1,807 blocks bitwise). Pre-reg after P-E and P-G.
-   **Maintainer launches (>5 h).**
+0b. **GOAL CHANGED (maintainer, 2026-09-11): not "clear top 500" but "AS HIGH AS
+   POSSIBLE".** R4 finished Elo **1354** vs a **1358.999** cutoff — missed by 5. Targets:
+   H&L 1677 / ps-ppo 1725 / **Wang 1756** (the in-charter one: pure self-play + MCTS).
+   Metamon's 1761 used HUMAN REPLAYS — out of bounds. **Search is the axis:** we spend
+   63 ms of the ladder's 150 s/turn (0.04%); Wang spends 10 s on 20 workers. Next ladder
+   = engine monster + gated search. Transformer trunk is POST-LADDER (JOURNEY 11.6).
+1. **Monster (JOURNEY 10) — THREE ARMS, ruled 2026-09-11** (was two; C added on the
+   maintainer's "how could it even hurt"). 100M × **3 arms × 3 seeds**, **k=8** (~40 h;
+   +11-15 h over two arms, ZERO new engineering). All three carry the oppact head
+   (`rl/search/agent.py:68` asserts it; without it a checkpoint can NEVER be searched).
+   **A** = R4 recipe. **B** = A + the privileged **EVALUATOR** head (`priv_eval_dim`,
+   BUILT 7d8650e; read through SEARCHED eval — a greedy A-vs-B read is NULL BY DESIGN).
+   **C** = A + `privileged_dim` (D18's wide critic) at 8x the dose it died at, carrying
+   D18's falsifier VERBATIM: EV rose on all 5 lanes (~0.50 → 0.60) while win rate stayed
+   FLAT (0.5364 vs 0.5509, z −0.65) — "critic fits information the policy cannot
+   exploit". VACATED as dose-limited; a repeat at 100M with an UNCOLLAPSED critic is a
+   kill WITH a mechanism. Pre-reg drafting + 2 reviews in flight. **Maintainer launches.**
 2. **12M design-B smoke** queued behind the margin arms (`scripts/engine_pe_smoke.sh`); a
    BITWISE actor/critic comparison against engine_a1b_s66 is its inertness read.
 3. **Rulings owed:** **11.5 before 11** (the ladder object cannot be chosen blind); a
@@ -95,6 +98,3 @@
 - **Depth-2 does NOT exist.** ~0.17 s/decision PROJECTED on the engine vs 5 s today. The
   asset is the 384-byte clone + Rust encoder, **NOT** the `-Dchance`/`-Dcalc` builds —
   plan §8.4 has that backwards (the pinned build SAMPLES chance).
-- A `ch3_eval` job can die on `assert not self.battle2.finished`; it resumes at the chunk
-  boundary. **vs-SH is NEVER a ladder number.** Resumes SPLIT wandb history. A pgrep guard
-  anchors on `bin/python`. Never edit a script an instance is executing.
