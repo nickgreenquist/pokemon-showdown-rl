@@ -393,9 +393,20 @@ arms:
   # one thing that might make a leaf value trustworthy enough to act on.
   # If ENSG does not beat the ensemble alone, the ladder object is the
   # ensemble and search is done for this chapter.
+  # DOES THE ENSEMBLE STILL PAY PER MEMBER AT 3? This is free -- the three
+  # 100M checkpoints already exist -- and it is the number that decides the
+  # SHAPE of the monster run. ENS3 credits +0.03489 over a single lane. If
+  # each 2-member pair is already most of the way there, members are
+  # saturating and the run should buy STEPS (3 x 250M). If the pairs sit well
+  # below the triple, members are still paying and the run should buy SEEDS
+  # (6 x 100M = a six-member ensemble). batches: 1 puts every arm on the same
+  # seed block as ens3_b0, so the comparison is matched.
+  ENS2A: {kind: ensemble, members: [s112, s104], batches: 1}
+  ENS2B: {kind: ensemble, members: [s112, s120], batches: 1}
+  ENS2C: {kind: ensemble, members: [s104, s120], batches: 1}
   ENSG: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, margin_delta: 0.10}
   TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, BSM, BK05, BK10, BK10D3, ENSG, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, BSM, BK05, BK10, BK10D3, ENSG, ENS2A, ENS2B, ENS2C, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
