@@ -121,7 +121,37 @@ ARMS = {
             "leaf_encoding": "as_is",
             "what": "dose M with the leave-one-out CRITIC ENSEMBLE as the "
                     "leaf evaluator (R4's E3 form)"},
+    # --- the margin-gate arms (AMENDMENT 2026-09-11) --------------------
+    # G10 is a COMPOSITE: the gated-plain read at delta 0.10 was run under two
+    # arm names (S3G10 on the tuning lane, C10 on the other two). It is one
+    # object and `job_map` says so, rather than a fourth arm being invented to
+    # hold the same configuration.
+    "G10": {"lanes": LANES, "kind": "search", "dose": "M",
+            "leaf_encoding": "as_is",
+            "job_map": {"s112": "s3g10_s112", "s104": "c10_s104",
+                        "s120": "c10_s120"},
+            "what": "dose M + margin_delta 0.10, PLAIN evaluator — the gated "
+                    "comparator (S3G10 on s112, C10 on s104/s120)"},
+    "EG10": {"lanes": LANES, "kind": "search", "dose": "M",
+             "leaf_encoding": "as_is",
+             "what": "dose M + margin_delta 0.10 + the LOO ensemble evaluator "
+                     "— the evaluator axis under a WORKING selector"},
+    "EG05": {"lanes": ("s112",), "kind": "search", "dose": "M",
+             "leaf_encoding": "as_is",
+             "what": "EG10 at delta 0.05, s112 ONLY — EXPLORATORY, sizes the "
+                     "disclosed delta bias; never quotable as the arm effect"},
+    # Batches, not lanes: the jobs are ens3_b0/b1/b2 on DISJOINT seed windows,
+    # so `lanes` carries the batch ids and read_job's naming falls out.
+    "ENS3": {"lanes": ("b0", "b1", "b2"), "kind": "ensemble", "dose": None,
+             "leaf_encoding": None,
+             "what": "3-seed masked log-prob ensemble over the 100M finals, "
+                     "n=9000 on disjoint seed windows"},
 }
+
+
+def _job_name(arm: str, lane: str) -> str:
+    """`<arm>_<lane>`, unless the arm declares a job_map (the composite G10)."""
+    return ARMS[arm].get("job_map", {}).get(lane, f"{arm.lower()}_{lane}")
 
 # The pre-stated reads. (name, treatment, comparator, lanes, primary?, prose).
 READS = (
@@ -144,6 +174,25 @@ READS = (
      "its config decisions. NEG/FLAT -> the ensemble form does not move the "
      "100M object; 8.2 stays untested (different mechanism)."),
 )
+# AMENDMENT 2026-09-11 reads. P-EG is reported TWICE on purpose: pooled over
+# all three lanes, and OUT OF SAMPLE over s104+s120 alone. delta 0.10 was
+# SELECTED on s112, and the plain gate's own effect shrank 2.6x across exactly
+# that split (+0.04167 in-sample, +0.01600 out of sample), so the out-of-sample
+# row is the one that travels and the header says so.
+EG_READS = (
+    ("P-EG", "EG10", "G10", LANES, True,
+     "does a better leaf EVALUATOR pay once the SELECTOR works? Dose, leaf "
+     "encoding and delta are all held fixed, so the only thing that moves is "
+     "which critic values the leaves. A1E's +0.0163 was a D4 number and is "
+     "PRE-D5 by our own landmine, so this axis is UNANSWERED, not answered no "
+     "-- and it is the 100M monster's arm-B premise."),
+    ("P-EG-OOS", "EG10", "G10", ("s104", "s120"), True,
+     "THE ONE THAT TRAVELS: P-EG on the two lanes delta was NOT selected on."),
+    ("P-EG-A", "EG10", "A0", LANES, False,
+     "SECONDARY: the whole stack (search + ensemble evaluator + gate) against "
+     "plain greedy -- the ladder-object question, not the lever question."),
+)
+
 PL_READ = ("P-L", "S3L", "S3M", "s112",
            "SECONDARY, ONE LANE, SIGN ONLY, NO CELL: the sign of the n_det "
            "axis on the strongest object, against the +-0.02 one-lane redraw "
@@ -276,7 +325,7 @@ def read_job(results_dir: Path, arm: str, lane: str,
     A PARTIAL job carries `rate` = the running pooled rate over the completed
     chunks and `complete: False`. Callers must never read a cell from it.
     """
-    job = f"{arm.lower()}_{lane}"
+    job = _job_name(arm, lane)
     final = results_dir / f"{job}.final.json"
     chunk_paths = [results_dir / f"{job}.chunk{k:02d}.json" for k in range(chunks)]
     done = [p for p in chunk_paths if p.exists()]
@@ -336,7 +385,7 @@ def read_arm(results_dir: Path, arm: str, chunks: int = CHUNKS) -> dict:
     pooled = (sum(r * n for r, n in rates if r is not None) / eps) if eps else None
     reports: list[dict] = []
     for ln in ARMS[arm]["lanes"]:
-        job = f"{arm.lower()}_{ln}"
+        job = _job_name(arm, ln)
         f = results_dir / f"{job}.final.json"
         if f.exists():
             reports.append(json.loads(f.read_text()))
@@ -709,6 +758,67 @@ def attest(prov: dict, arms: dict, offfp: dict) -> dict:
     return {"pass": all(c["pass"] for c in checks), "checks": checks}
 
 
+def ens_read(arms: dict) -> dict:
+    """P-ENS: the 3-seed ensemble against greedy. UNPAIRED, and the pre-reg
+    says why it must be: ENS3 is ONE object read over three disjoint seed
+    windows, while A0 is three lanes -- there is nothing to pair by, and three
+    lanes make exactly ONE committee, so no across-committee term exists.
+
+    The clustered se is therefore UNAVAILABLE rather than small, which is the
+    ANTI-CONSERVATIVE direction; the binomial governs by default and the output
+    says so on the read itself. A credited P-ENS licenses "ensembling THESE
+    three checkpoints", never "ensembling helps" -- LADDER R1's own limitation,
+    repeated deliberately."""
+    t, c = arms["ENS3"], arms["A0"]
+    out = {"read": "P-ENS", "treatment": "ENS3", "comparator": "A0",
+           "delta_name": "delta(ENS3 - A0)", "primary": True,
+           "paired": False,
+           "prose": ("does the ensemble -- the ONLY free-compute dial this "
+                     "project has credited (+0.036, B1, at 12M) and LADDER "
+                     "R1's actual object -- still pay at 100M? Never once run "
+                     "on these checkpoints before tonight."),
+           "clustered_se_available": False,
+           "clustered_se_note": ("UNAVAILABLE by construction: one committee, "
+                                 "no across-committee replication. The batch "
+                                 "spread measures EVAL noise only and is NOT a "
+                                 "seed-clustered term. Binomial governs."),
+           "licenses": ("ensembling THESE three checkpoints at 100M; NEVER "
+                        "'ensembling helps'"),
+           "batch_rates": {ln: j.get("rate") if j["complete"]
+                           else j.get("partial_rate")
+                           for ln, j in t["jobs"].items()}}
+    if not (t["complete"] and c["complete"]):
+        out.update({"status": "PENDING", "cell": None,
+                    "why": (f"ENS3 {t['chunks_done']}/{t['chunks_expected']} "
+                            f"chunks, A0 {c['chunks_done']}/"
+                            f"{c['chunks_expected']} — NO CELL ON PARTIAL "
+                            "DATA"),
+                    "partial_delta": (
+                        None if t.get("partial_pooled_rate") is None
+                        or c.get("pooled_rate") is None
+                        else t["partial_pooled_rate"] - c["pooled_rate"])})
+        return out
+    rt, nt = t["pooled_rate"], t["episodes"]
+    rc, nc = c["pooled_rate"], c["episodes"]
+    se_bin = math.sqrt(rt * (1 - rt) / nt + rc * (1 - rc) / nc)
+    delta = rt - rc
+    out.update({
+        "status": "COMPLETE",
+        "treatment_rate": rt, "treatment_n": nt,
+        "comparator_rate": rc, "comparator_n": nc,
+        "delta": delta,
+        "se_diff_binomial": se_bin, "se_diff_clustered": None,
+        "se_diff_quoted": se_bin, "se_governing": "binomial (clustered N/A)",
+        "delta_in_se": delta / se_bin if se_bin else None,
+        "meets_floor": delta >= 0.025,
+        "meets_2se": abs(delta) >= 2 * se_bin,
+        "cell": ("CREDIT" if delta >= 0.025 and delta >= 2 * se_bin else
+                 "CREDITED-NEGATIVE" if delta <= -0.025 and abs(delta) >= 2 * se_bin
+                 else "NULL"),
+    })
+    return out
+
+
 # ---------------------------------------------------------------------------
 # build + render
 # ---------------------------------------------------------------------------
@@ -719,6 +829,9 @@ def build(results_dir: Path, offfp_dir: Path, chunks: int = CHUNKS) -> dict:
     reads = {}
     for name, t, c, lanes, primary, prose in READS:
         reads[name] = paired_read(name, arms, t, c, lanes, primary, prose)
+    for name, t, c, lanes, primary, prose in EG_READS:
+        reads[name] = paired_read(name, arms, t, c, lanes, primary, prose)
+    reads["P-ENS"] = ens_read(arms)
     reads["P-L"] = pl_read(arms)
     return {
         "schema": "search_s3_readout/1",

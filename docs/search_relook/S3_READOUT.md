@@ -1,6 +1,6 @@
 # S3 READOUT — search relook on the 100M object (JOURNEY 11.5)
 
-**MACHINE-WRITTEN by `scripts/search_s3_readout.py` at 2026-09-10T20:07:39+00:00.** Regenerated in place on every run — do not hand-edit; edit the script.
+**MACHINE-WRITTEN by `scripts/search_s3_readout.py` at 2026-09-11T02:24:12+00:00.** Regenerated in place on every run — do not hand-edit; edit the script.
 
 > **Credit line, verbatim:** "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time"
 >
@@ -8,7 +8,7 @@
 >
 > ONE RUNG IS WORTH +-0.02 (three n=3000 redraws of ONE checkpoint spread 0.0200) — read the SHAPE across the three lanes, never one cell against its neighbour.
 
-Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `30d224b1048f89cb…`) · `configs/eval/search_s3_100m_offfp.yaml` (sha256 `9c82af2080aa7f48…`) · P-B's read: `docs/search_relook/DET_BLIND.md` §6 (P-B's read, verbatim). git HEAD `8c514210e3c8` (dirty: True).
+Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `f912dcdc33d408d0…`) · `configs/eval/search_s3_100m_offfp.yaml` (sha256 `9c82af2080aa7f48…`) · P-B's read: `docs/search_relook/DET_BLIND.md` §6 (P-B's read, verbatim). git HEAD `278ab9a7a835` (dirty: True).
 
 ## Arms
 
@@ -17,8 +17,12 @@ Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `30d224b1048f89cb…`) · `
 | A0 | greedy, FRESH this session — the comparator | s104/s112/s120 | 30/30 | 9000 | **0.78867** | COMPLETE |
 | S3M | depth-1 search, dose M (n_det 4, top_branches 6, leaf_cap 1296), as-is leaf encoding | s104/s112/s120 | 30/30 | 9000 | **0.72056** | COMPLETE |
 | S3B | S3M with leaf_encoding: det_blind (DET_BLIND.md) | s104/s112/s120 | 30/30 | 9000 | **0.71178** | COMPLETE |
-| S3L | dose L (n_det 16, leaf_cap 5184), s112 ONLY | s112 | 4/10 | 1200 | 0.72333 *(PARTIAL)* | PARTIAL |
-| A1E | dose M with the leave-one-out CRITIC ENSEMBLE as the leaf evaluator (R4's E3 form) | s104/s112/s120 | 3/30 | 900 | 0.73778 *(PARTIAL)* | PARTIAL |
+| S3L | dose L (n_det 16, leaf_cap 5184), s112 ONLY | s112 | 10/10 | 3000 | **0.74267** | COMPLETE |
+| A1E | dose M with the leave-one-out CRITIC ENSEMBLE as the leaf evaluator (R4's E3 form) | s104/s112/s120 | 30/30 | 9000 | **0.73689** | COMPLETE |
+| G10 | dose M + margin_delta 0.10, PLAIN evaluator — the gated comparator (S3G10 on s112, C10 on s104/s120) | s104/s112/s120 | 30/30 | 9000 | **0.81322** | COMPLETE |
+| EG10 | dose M + margin_delta 0.10 + the LOO ensemble evaluator — the evaluator axis under a WORKING selector | s104/s112/s120 | 0/30 | 0 | — | PENDING |
+| EG05 | EG10 at delta 0.05, s112 ONLY — EXPLORATORY, sizes the disclosed delta bias; never quotable as the arm effect | s112 | 0/10 | 0 | — | PENDING |
+| ENS3 | 3-seed masked log-prob ensemble over the 100M finals, n=9000 on disjoint seed windows | b0/b1/b2 | 6/30 | 1800 | 0.81722 *(PARTIAL)* | PARTIAL |
 
 Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and is **never** a cell input):
 
@@ -27,8 +31,12 @@ Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and 
 | A0 | 0.78933 (10/10) | 0.78233 (10/10) | 0.79433 (10/10) |
 | S3M | 0.72167 (10/10) | 0.74767 (10/10) | 0.69233 (10/10) |
 | S3B | 0.71267 (10/10) | 0.72933 (10/10) | 0.69333 (10/10) |
-| S3L | *n/a* | 0.72333 PARTIAL (4/10) | *n/a* |
-| A1E | 0.74333 PARTIAL (1/10) | 0.74667 PARTIAL (1/10) | 0.72333 PARTIAL (1/10) |
+| S3L | *n/a* | 0.74267 (10/10) | *n/a* |
+| A1E | 0.73833 (10/10) | 0.73200 (10/10) | 0.74033 (10/10) |
+| G10 | 0.80900 (10/10) | 0.82400 (10/10) | 0.80667 (10/10) |
+| EG10 | PENDING (0/10) | PENDING (0/10) | PENDING (0/10) |
+| EG05 | *n/a* | PENDING (0/10) | *n/a* |
+| ENS3 | *n/a* | *n/a* | *n/a* |
 
 *Era note.* A0 is FRESH this session and is the ONLY comparator. The banked results/ch5_100m/final_s1xx.json (pooled 0.79589) are printed for CONTEXT ONLY — R3 measured a same-checkpoint era_diff of 0.0148 between a banked A0 and a fresh one, which is why the pre-reg forbids them as the comparator.
 
@@ -41,7 +49,7 @@ Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and 
 | **P-M** (delta(S3M - A0)) | **-0.0681** | -0.0677 | -0.0347 | -0.1020 | 0.00639 | 0.01944 | clustered | 0.03888 | **NEG** |
 | **P-B** (delta(S3B - S3M)) | **-0.0088** | -0.0090 | -0.0183 | +0.0010 | 0.00672 | 0.00558 | binomial | 0.01344 | **NEG** |
 | **P-BA** (delta(S3B - A0)) | **-0.0769** | -0.0767 | -0.0530 | -0.1010 | 0.00643 | 0.01386 | clustered | 0.02771 | **NEG** |
-| **P-E** (delta(A1E - S3M)) | *PENDING* | — | — | — | — | — | — | — | **PENDING — no cell on partial data** |
+| **P-E** (delta(A1E - S3M)) | **+0.0163** | +0.0167 | -0.0157 | +0.0480 | 0.00663 | 0.01838 | clustered | 0.03676 | **FLAT** |
 
 **P-M** (PRIMARY) — does depth-1 search@M pay on the 100M object at the locked protocol? NEG or FLAT -> the vacated depreciation ruling's PREMISE survives on the verdict axis and the relook's burden is the leaf evaluator + depth. POS -> the existing form is a live ladder-object candidate.
 
@@ -57,17 +65,11 @@ Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and 
 
 **P-E** (PRIMARY) — does a better leaf EVALUATOR pay on the 100M object? POS -> the monster train's evaluator lever (IDEAS 8.2 / 4.7) moves to the top of its config decisions. NEG/FLAT -> the ensemble form does not move the 100M object; 8.2 stays untested (different mechanism).
 
-> PENDING — NO CELL ON PARTIAL DATA. Incomplete jobs: a1e_s104 1/10, a1e_s112 1/10, a1e_s120 1/10. The per-lane numbers above are running pooled rates over completed chunks (PARTIAL); they are printed so the run is readable as a RATE, and they are NEVER cell inputs.
-
-| lane | A1E (partial) | S3M (partial) |
-| --- | ---: | ---: |
-| s104 | 0.74333 (1/10) | 0.72167 (10/10) |
-| s112 | 0.74667 (1/10) | 0.74767 (10/10) |
-| s120 | 0.72333 (1/10) | 0.69233 (10/10) |
+> **FLAT** — pooled +0.0163 below the +0.025 floor; pooled +0.0163 below 2*se_diff = 0.0368. Pooled rates 0.73689 (n=9000) vs 0.72056 (n=9000); 1/3 lanes non-positive. se_diff = **clustered** 0.01838 (binomial 0.00663, clustered 0.01838) — the LARGER of the two governs.
 
 **P-L** (SECONDARY, one lane s112, **sign only, no cell**) — SECONDARY, ONE LANE, SIGN ONLY, NO CELL: the sign of the n_det axis on the strongest object, against the +-0.02 one-lane redraw spread.
 
-> PENDING — NO READ ON PARTIAL DATA; the rates shown are running pooled rates over completed chunks (PARTIAL). S3L 0.72333 (4/10) vs S3M — (10/10). ONE RUNG IS WORTH +-0.02; a one-lane delta inside +-0.02 is indistinguishable from a redraw of the same checkpoint.
+> sign **-** — S3L 0.74267 vs S3M 0.74767, delta -0.0050 (WITHIN ±0.02). ONE RUNG IS WORTH +-0.02; a one-lane delta inside +-0.02 is indistinguishable from a redraw of the same checkpoint.
 
 ## Search cost and decision counters — **CONTENDED**
 
@@ -78,8 +80,12 @@ Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and 
 | A0 | — | — | — | — | — | — | — | COMPLETE |
 | S3M | M | as_is | 62.3 | 277.4 | 471072 | 0.7277 | 0.0275 | COMPLETE |
 | S3B | M | det_blind | 58.8 | 268.4 | 526292 | 0.7585 | 0.0233 | COMPLETE |
-| S3L | L | as_is | 244.6 | 1083.4 | 68452 | 0.7502 | 0.0460 | PARTIAL |
-| A1E | M | as_is | 73.1 | 288.4 | 43615 | 0.6991 | 0.0257 | PARTIAL |
+| S3L | L | as_is | 251.1 | 1116.6 | 156499 | 0.7277 | 0.0386 | COMPLETE |
+| A1E | M | as_is | 67.4 | 281.4 | 448049 | 0.7091 | 0.0272 | COMPLETE |
+| G10 | M | as_is | 76.9 | 339.9 | 257720 | 0.1486 | 0.0208 | COMPLETE |
+| EG10 | M | as_is | — | — | — | — | — | PENDING |
+| EG05 | M | as_is | — | — | — | — | — | PENDING |
+| ENS3 | — | — | — | — | — | — | — | PARTIAL |
 
 **leaves_mean equality (S3B vs S3M)** — DIAGNOSTIC ONLY — never a cell. Exact equality holds at MATCHED decisions (DET_BLIND.md §4, 11.4% argmax flips at IDENTICAL leaf counts). Live, the arms diverge after the first flip and play different battles, so the live check is a stated tolerance on the relative difference.
 
@@ -107,7 +113,7 @@ Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and 
 
 ## Attestations
 
-Overall: **PASS** (13/13).
+Overall: **PASS** (21/21).
 
 | check | pass | detail |
 | --- | --- | --- |
@@ -117,11 +123,19 @@ Overall: **PASS** (13/13).
 | S3B leaf encoding stamped | PASS | expected det_blind, on disk det_blind |
 | S3L leaf encoding stamped | PASS | expected as_is, on disk as_is |
 | A1E leaf encoding stamped | PASS | expected as_is, on disk as_is |
+| G10 leaf encoding stamped | PASS | expected as_is, on disk as_is |
+| EG10 leaf encoding stamped | PASS | expected as_is, on disk None (no search counters yet) |
+| EG05 leaf encoding stamped | PASS | expected as_is, on disk None (no search counters yet) |
+| ENS3 leaf encoding stamped | PASS | expected None, on disk None (no search counters yet) |
 | A0 mask_desyncs == 0 | PASS | 0 |
 | S3M mask_desyncs == 0 | PASS | 0 |
 | S3B mask_desyncs == 0 | PASS | 0 |
 | S3L mask_desyncs == 0 | PASS | 0 |
 | A1E mask_desyncs == 0 | PASS | 0 |
+| G10 mask_desyncs == 0 | PASS | 0 |
+| EG10 mask_desyncs == 0 | PASS | 0 |
+| EG05 mask_desyncs == 0 | PASS | 0 |
+| ENS3 mask_desyncs == 0 | PASS | 0 |
 | off-FP pre-reg sha256 stamped in F3M112 resolves to a committed pre-reg revision | PASS | stamped d8417eda194e… = commit 1d0e076c5ea4 ("Search relook S3: pre-reg the missing depreciation point — d"), SUPERSEDED by today's 9c82af2080aa…. This is the RECORDED amendment that added F3B112 before it ran, not drift — the arm's own read is unchanged. |
 | off-FP pre-reg sha256 stamped in F3B112 resolves to a committed pre-reg revision | PASS | stamped 9c82af2080aa… == the file today (HEAD version) |
 
