@@ -231,7 +231,9 @@ removed, SH is roughly twice the player it is in OU tiers, putting it at Glicko-
 > rule of thumb the same day). **The projection has been replaced by measurement — this
 > project laddered twice, n = 200 each:** LADDER R1 (2026-08-25/26, the 4-checkpoint
 > ensemble) read **GXE 59.6%, Glicko-1 1573 ± 27, final PS Elo 1292**; LADDER R3 (2026-08-28,
-> one-ply search on a 50M lane) read **GXE 60.3%, Glicko-1 1579 ± 25, Elo 1232**. Both are
+> one-ply search on a 50M lane — **PRE-D5: a BROKEN-SELECTOR object, see
+> `docs/landmines.md`; it is not evidence about a gated searched agent**) read
+> **GXE 60.3%, Glicko-1 1579 ± 25, Elo 1232**. Both are
 > DESCRIPTIVE — a ladder run credits no lever here — and **no arithmetic difference between
 > them may be presented as a quantity, in either direction** (ruling D5,
 > `configs/eval/ladder_r3.yaml`). See §16.
@@ -686,7 +688,7 @@ a verdict input.
 | ↳ all five 50M-stack lanes, descriptive only (pre-declared before the re-run's data) | 0.7181 ± 0.0224‡ |
 | D28 zero-info dose control (12M, 5 seeds) — **A1: does NOT reproduce D25** (perm 1/252, strict separation); **not sealed** — the control's delivered dose collapsed once the task was learned (g 0.979) | 0.5224 ± 0.0041 |
 | CH3 R0: log-prob ensemble of the four D26 checkpoints (inference-only, zero training) — **B1 CREDIT** vs their fresh greedy mean 0.7103; licenses "ensembling THESE four checkpoints", never "ensembling helps" (one committee, no seed replication, floor-governed) | 0.7463 ± 0.0046 |
-| **CH3 R2: one-ply expectation search over a validated gen-1 forward model (transition agreement FG-2 = 0.9092 per the accept-with-named-strata ruling; ko_disagreement 0.092 on raw average-damage leaves, 0.0075 after the pre-registered 2-point roll expansion; average-damage approximation named; search inactive on ~5.0% of decisions — the gen-1 placeholder stratum), using only our own self-play policy/value/opponent-action heads — B1 CREDIT 2026-08-22, new best: +0.0693 over the identical checkpoints played greedily (fresh A0 0.7236, same session), all four lanes positive (worst +0.0497), operative bar 0.025 (floor-governed; largest se term 0.0069 unpaired-clustered). CAVEAT (pre-registered falsifier P2, ruled 2026-08-23): the search increment is SH-FACING on the anchors available — on the tested lane (s65) it does not transfer to the BC-clone anchor (greedy 0.894 → search 0.860; transfer > +0.008 excluded at ~95%) nor to Foul Play (0.388 → 0.368, n=250/arm); the D26 policy's own strength DOES transfer (rows below)** | **0.7928 ± 0.0037** |
+| **CH3 R2 [PRE-D5 — broken selector, docs/landmines.md]: one-ply expectation search over a validated gen-1 forward model (transition agreement FG-2 = 0.9092 per the accept-with-named-strata ruling; ko_disagreement 0.092 on raw average-damage leaves, 0.0075 after the pre-registered 2-point roll expansion; average-damage approximation named; search inactive on ~5.0% of decisions — the gen-1 placeholder stratum), using only our own self-play policy/value/opponent-action heads — B1 CREDIT 2026-08-22, new best: +0.0693 over the identical checkpoints played greedily (fresh A0 0.7236, same session), all four lanes positive (worst +0.0497), operative bar 0.025 (floor-governed; largest se term 0.0069 unpaired-clustered). CAVEAT (pre-registered falsifier P2, ruled 2026-08-23): the search increment is SH-FACING on the anchors available — on the tested lane (s65) it does not transfer to the BC-clone anchor (greedy 0.894 → search 0.860; transfer > +0.008 excluded at ~95%) nor to Foul Play (0.388 → 0.368, n=250/arm); the D26 policy's own strength DOES transfer (rows below)** | **0.7928 ± 0.0037** |
 | ↳ h2h vs the FP behaviour clone, s65 lane (falsifier anchor): greedy det-seat / search@M det-seat / greedy pooled-both-orientations | 0.894* / 0.860* / 0.795* |
 | **CH5 R2: the batch lever at 50M (rollout_steps 128→3840 = 30,720-step batch; push_every_updates 150→5), 3 seeds — CREDITED 2026-08-31, cell P1.** Primary is OFF-FP@20 (delta +0.13722 vs a 0.07181 bar, treatment 0.47456 vs control 0.33733); this vs-SH column is the SECONDARY read, cell X1, delta +0.08422 vs a 0.07316 bar — it clears by 0.011 and the binding term is the CONTROL's spread (s82 0.62967). s_T 0.00719 vs the control's 0.06295 is NOT a variance result ((2,2) df, crit 19.0, needs ~4.4×). Two of three lanes stalled mid-run and were resumed (190,776 / 170,680 steps re-run; updates_done 1626 vs 1627). NO README ROW YET — the anchor battery's BC-clone half (R3c) did not run | **0.78644 ± 0.0043** |
 | ↳ h2h vs Foul Play itself, s65 lane, n=250/arm ("FP + our patches"): greedy / search@M — our take off the teacher-class bot across generations: 0.124 → 0.172 → 0.388 | 0.388* / 0.368* |
@@ -779,7 +781,8 @@ RETIRED (2026-08-28); never project a ladder number from a vs-SH number, in eith
 direction.** What is measured instead: SH's *own* GXE is 39.7%/41.2% in gen7/gen9 randbats
 (Metamon Fig 17), the strongest documented Gen 1 agents (Metamon-family,
 human-replay-bootstrapped offline RL) reach ~80% GXE in **Gen1OU**, and this project's two
-gen1RB ladder reads are **GXE 59.6% (R1, n=200)** and **GXE 60.3% (R3, n=200)** — descriptive,
+gen1RB ladder reads are **GXE 59.6% (R1, n=200)** and **GXE 60.3% (R3, n=200 — PRE-D5,
+broken selector)** — descriptive,
 non-comparable to each other (D5), §16. This chase is a *purity-lane* first in a generation
 where it had not been shown — it is not a strength record and does not enter the published
 field. `DESIGN.md`
@@ -1650,3 +1653,44 @@ non-conforming).
 - `pool_size: 1` is Wang-match fidelity only. **League play stays on in gen 1
   and is not ablated** (ruled 2026-09-06), so this run is not evidence about
   the pool either way.
+
+## Addendum, 2026-09-11 — **PRE-D5: every search number in this file measures a broken selector**
+
+Maintainer, 2026-09-11: *"our search was BROKEN before. those results should have a
+massive asterisk next to them."*
+
+`rl/search/matrix.py` clause **D4** took a hard `argmax` over the renormalized matrix
+score, with the policy prior used only as tie-break D3. Measured on the 100M finals,
+that **overrode the policy's own argmax on 72.8% of decisions**, with leaf-value noise
+(sd 0.125) at **4.5x the decision margin** (0.028) — the maximization-bias regime, where
+the argmax selects whichever leaf drew the luckiest positive error. The signature is in
+the dose axis: ungated, dose L read BELOW dose M.
+
+Clause **D5**, the margin gate, plays the search's action only if it beats the policy's
+argmax by more than `margin_delta`. Same critic, same ~300 leaves, same 63 ms per
+decision. Lane s112, n=3000 per arm, against greedy **0.78233**:
+
+| selector | win rate | overrides the policy |
+|---|---|---|
+| **D4** — every search number in this file | 0.74767 | 71% |
+| D5, delta 0.05 | 0.80867 | 23% |
+| D5, delta 0.10 | **0.82400** | 8.5% |
+
+**The binding rule.** A pre-D5 number is a valid measurement OF THAT CONFIGURATION and
+of nothing else. It may **not** be used to argue that search does not pay, that depth
+does not pay, that more dose does not pay, or that a searched object ladders worse than
+a greedy one. Every such argument must be re-measured under D5. This covers **LADDER R3**
+(the only searched object ever laddered, §16.2), **CH3 R2's credit** (+0.0693 at 12M, §13),
+the chapter-3 dose axis, the search-depreciation curve (separately VACATED 2026-09-10),
+and the off-Foul-Play searched reads (0.396 / 0.406 on s112).
+
+**What survives.** CH3 R2's +0.0693 at 12M was real. On a weak policy, overriding the
+argmax 71% of the time is not obviously worse than trusting it; the defect only bites
+once the policy is strong enough to be worth deferring to. That is why the sign flipped
+between 12M and 100M, and why a whole chapter passed without anyone catching it.
+
+**Not closed.** Whether the D5 gain transfers off SimpleHeuristics is UNMEASURED as of
+this addendum. CH3 R2's credit was SH-FACING and did not transfer (FP 0.388 -> 0.368;
+BC-clone 0.894 -> 0.860); `configs/eval/search_budget_ladder_offfp.yaml` stages that
+probe first so the same mistake is not repeated. No headline claim may rest on D5 until
+that leg reads.

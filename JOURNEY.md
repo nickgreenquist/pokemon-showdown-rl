@@ -129,6 +129,7 @@ evaluator, belief sampling); 11.5 stays the narrow depth comparison inside the a
 **This gates the gen9 search decision.** It also feeds step 12 directly — "search's contribution declines as the policy improves" is a finding, and it is one only a multi-checkpoint study can make.
 
 Step 7.5 also changes what this costs: the engine clones a battle in 384 bytes and has `-Dchance`/`-Dcalc` builds for exact chance enumeration (plan §8.4), so depth-2 stops being an expensive bespoke harness. Today's evidence points at a null — search@20 read 0.381 against greedy 0.474 on the 50M batch lane, and the per-lane deltas were monotone in lane weakness — so the honest framing is a cheap confirmation, not a hoped-for lever.
+**SUPERSEDED 2026-09-11: that null is a PRE-D5 number.** Both figures above came from the hard-argmax selector, which the margin gate measured at -6.8 points on the 100M object and +4.2 once gated. Depth is re-opened; see `docs/landmines.md` and `docs/search_relook/`.
 
 **Exit condition: one comparison, then the chapter closes.** Depth-2 credits over depth-1 iff the pooled delta clears the standing credit line. Report decisions/sec for both arms — a gain that costs 5× is a different finding than the same gain at 1.5×.
 

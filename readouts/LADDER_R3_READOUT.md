@@ -13,6 +13,12 @@ against those artifacts.
 - Listed on the top-500: **False**
 - Top-500 admission cutoff: Elo **1359.0884124340625**
 
+> **PRE-D5 — THIS IS A BROKEN-SELECTOR NUMBER.** It was measured with clause D4's hard argmax, which overrode the policy's own argmax on 72.8% of decisions; the D5 margin gate (2026-09-11) turns -0.035 into +0.042 on the same critic, same leaves, same 63 ms. This number measures THE OLD SELECTOR, not search, and may not be used to argue that search, depth or dose does not pay. See `docs/landmines.md`.
+>
+> **The laddered OBJECT here is a D4 searched agent.** Every rating below
+> describes that configuration. It is NOT evidence about what a gated (D5)
+> searched object would score, in either direction.
+
 **PRIMARY READ (server-computed, via profile):** GXE **60.3%**, Glicko-1 **1579 +/- 25**, Elo **1232**, record **106-102**.
 Quoted WITH n, WITH the policy kind and WITH the board position,
 exactly as pre-registered. DESCRIPTIVE — the ladder credits no

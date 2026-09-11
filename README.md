@@ -9,7 +9,8 @@ cloning, no scripted opponent in the training loop. It plays through
 It plays on the **real Showdown ladder, against humans**. Three pre-registered
 runs are complete at n=200 each: LADDER R1 (2026-08-25, ensemble, GXE
 **59.6%**, Glicko-1 **1573 ± 27**), LADDER R3 (2026-08-28, one-ply
-expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25**) and
+expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25** — a
+**PRE-D5 broken-selector object; see `docs/landmines.md`**) and
 LADDER R4 (2026-09-04/05, the 100M final greedy, on R1's account reused and
 warm-started, GXE **65.2%**, Glicko-1 **1618 ± 25**). During R4 the account was
 **listed on the global top-500 for 42 of its 200 battles** (a filed screenshot shows

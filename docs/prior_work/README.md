@@ -116,7 +116,7 @@ Where that sits in the published randbats field:
 | ~~ours (12M+LRA), projected~~ **SUPERSEDED, 0.4607 era** | gen1RB | ~1400–1450 | ~38–40% |
 | **ours (D26 12M greedy, 0.71825 vs SH)** | gen1RB | **UNMEASURED** | **UNMEASURED — never laddered; see the conversion note above, do not project** |
 | **ours — LADDER R1 object: 4-ckpt log-prob ensemble, 12M (0.74633 vs SH)** | **gen1RB** | **1573 ± 27** | **59.6%** |
-| **ours — LADDER R3 object: one-ply search@M on 50M lane s80** | **gen1RB** | **1579 ± 25** | **60.3%** |
+| **ours — LADDER R3 object: one-ply search@M on 50M lane s80 — PRE-D5, broken selector (landmines.md)** | **gen1RB** | **1579 ± 25** | **60.3%** |
 | poke-env SH | Gen7RB / Gen9RB | ~1450–1500 | 39.7% / 41.2% |
 | Huang & Lee 2019 — PPO self-play, **no search** (VERIFIED, see entry) | Gen7RB | 1677 (n=300) | 72%* |
 | ps-ppo — transformer PPO | Gen9RB | 1725 ± 25 | 76.7% |
