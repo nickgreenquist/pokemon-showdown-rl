@@ -415,8 +415,17 @@ arms:
   # credit and n=900 is why; matching ENS3's own n is the decisive read, and
   # it is the one that picks the ladder object.
   ENSG: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 3000, chunks: 30, margin_delta: 0.10}
+  # IS ENSG'S +0.015 REAL, OR IS IT delta=0.10 BEING THE TUNED VALUE?
+  # delta 0.10 was selected by sweeping s112 (STATUS's table), and ENSG's
+  # committee CONTAINS s112 -- so its number is in-sample on the one dial that
+  # was fitted. If the gain is a property of ensemble-leaves, it should survive
+  # a delta nobody chose; if it peaks sharply at 0.10 and falls away on both
+  # sides, it is the sweep talking. Same committee, same seeds, only the gate
+  # moves.
+  ENSG05: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 3000, chunks: 30, margin_delta: 0.05}
+  ENSG20: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 3000, chunks: 30, margin_delta: 0.20}
   TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, BSM, BK05, BK10, BK10D3, ENSG, ENS2A, ENS2B, ENS2C, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, BSM, BK05, BK10, BK10D3, ENSG, ENSG05, ENSG20, ENS2A, ENS2B, ENS2C, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
