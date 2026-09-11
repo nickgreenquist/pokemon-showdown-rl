@@ -36,6 +36,15 @@ Violating any of these costs hours, and each already has.
 5. **`showdown/config/config.js` must set `simulator: 4`** (line ~111) — +81%
    collection throughput, and the file is gitignored, so re-set it after any
    re-clone.
+6. **A SMALL-RUN NULL IS NOT EVIDENCE ABOUT A LEVER. Never cite one — not as
+   a kill, not as a caveat, not in an opinion.** A 12M (or 50M, 3–5 seed)
+   A/B cannot resolve an advisory-scale effect, so its null says nothing
+   about the lever at 100M+; only a MEASURED MECHANISM CEILING kills (the
+   maintainer's ruling, 2026-09-06, restated with anger 2026-09-11 after the
+   fourth session quoted D18's 12M null as gospel). When the maintainer asks
+   "what do you think of X", answer from mechanism, the literature at scale,
+   and the format's properties — never from D18 / D23 / any sub-scale number.
+   `docs/landmines.md` "Small-run nulls".
 
 ## What this project is
 

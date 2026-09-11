@@ -595,3 +595,32 @@ Consequences:
   gap. The 16:14 STATUS read one replicate as "the control reproduces the
   banked matrix" and did not report the other. **Replicates are the
   instrument; report every one that ran.**
+
+## SMALL-RUN NULLS ARE NOT EVIDENCE, and every session re-quotes them anyway (ruled 2026-09-06, restated 2026-09-11)
+
+The maintainer has said it repeatedly, and it is now CLAUDE.md rule 6: a 12M
+(or 50M, 3–5 seed) A/B null closes nothing about a lever at 100M+. The bars at
+that dose are 0.065–0.10 unpaired, so an advisory-scale effect (+0.02..0.05)
+lands in the noise band whatever the truth is. Only a MEASURED MECHANISM
+CEILING kills — shaping's algebraic inertness, a bounded information leg
+measured on the format, an exploitability read. `docs/IDEAS_POST_100M.md` §3
+classifies every kill by which kind it is.
+
+**The failure that keeps recurring, in its exact shape.** Asked "what do you
+think of the privileged critic?", four sessions in a row answered with D18's
+12M × 5-seed win-rate null ("it predicted returns better but play did not
+improve"), sometimes hedged with "dose-limited", as if the hedge made it
+usable. It does not. The maintainer, 2026-09-11: *"I've said so many times WE
+CANNOT MAKE CONCLUSIONS WITH such small runs ... I don't want to hear of a
+single 'idea being killed' based on what was tried on a 12M run."*
+
+**The rule in practice.**
+* A number from a sub-100M A/B may appear in a doc as PROVENANCE ("D18 ran, here
+  is what it read, it is dose-limited") and nowhere else. It never appears in an
+  opinion, a recommendation, a ranking, or a "why we dropped X" sentence.
+* When asked for an opinion on a lever, the inputs are: the mechanism, what the
+  field does at scale (AlphaStar, MAPPO, OpenAI Five, Suphx, the plasticity
+  literature), the format's own properties, and the cost. If none of those
+  speak, say "unmeasured at scale", not "killed at 12M".
+* "Dose-limited null" is a classification for §3, not a licence to cite. If the
+  sentence would not survive deleting the number, delete the sentence.
