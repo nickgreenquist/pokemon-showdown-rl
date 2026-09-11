@@ -1,19 +1,17 @@
 # STATUS
 ## JOURNEY POSITION — step 7.5 (engine port) **EXITED 2026-09-10**; next is gen-1 step 8/10
-**GEN-4 CHAPTER CLOSED (2026-09-09):** step 3 MET (M-YES), step 5 MET (S5-MATCHED), step 6
-BANKED NOT RUN, step 7 is RESULTS §19. vs SH 3×3000 greedy **0.8788**, band on the
-seed-clustered 0.00452, **CREDITS NOTHING**. LADDER R4: GXE 65.2 / Glicko 1618 ± 25 / Elo
-1354, n=200. **From here it is all gen 1.**
+**GEN-4 CHAPTER CLOSED (2026-09-09):** steps 3 and 5 MET (M-YES, S5-MATCHED), step 6 BANKED
+NOT RUN, step 7 is RESULTS §19; vs SH 0.8788, **CREDITS NOTHING**. LADDER R4: GXE 65.2 /
+Glicko 1618 ± 25 / Elo 1354, n=200. **From here it is all gen 1.**
 
 ## JOURNEY 7.5 — the engine port, EXITED (full account docs/engine_port/NOTES.md)
-- **A-1 PASSED TWICE** (maintainer ratified RW-1..9, RW-10 no). Engine arm at the 12M rung,
-  n=12,000/seed vs the banked async 0.67211: pre-fix pooled 0.67067 (−0.00144), **FIXED
-  (bd3d06a) 0.66775, −0.00436, A1-PASS**, −0.59 se on the seed-clustered 0.00736.
-  **−0.00436 travels forever.** P-AUC −0.00298 INSIDE.
-- **A-1a EARNED ITS PLACE:** 10× separation on dims 627/673/719 — the foe's revealed-move
-  **PP fraction**; `track.rs` hard-coded `pp = max_pp`. **P-1 structurally could not see it.**
+- **A-1 PASSED TWICE** (RW-1..9 ratified, RW-10 no). 12M rung, n=12,000/seed vs the banked
+  async 0.67211: **FIXED (bd3d06a) 0.66775, −0.00436, A1-PASS**, −0.59 se on the clustered
+  0.00736; **−0.00436 travels forever.** **A-1a EARNED ITS PLACE** — 10× separation on dims
+  627/673/719, the foe's revealed-move PP (`track.rs` hard-coded `pp = max_pp`); **P-1
+  structurally could not see it.**
 
-## SEARCH IS CRACKED — the defect was the SELECTOR, not the evaluator
+## SEARCH: the defect WAS the SELECTOR — fixed, positive out of sample, NOT yet credit-grade
 **D5 margin gate: play search's action only if it beats the POLICY's argmax by > delta.**
 Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/arm, vs SH:
 
@@ -22,11 +20,17 @@ Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/
 | win rate | 0.74767 | 0.78200 | 0.80867 | **0.82400** | 0.81400 | 0.81000 | 0.78233 |
 | override rate | 0.71 | 0.445 | 0.232 | **0.085** | 0.040 | 0.021 | 0 |
 
-- **HUMP FIRED AND THE PEAK IS NOW BRACKETED** — it falls off on BOTH sides. Interior max
-  at delta 0.10, **+0.04167 over greedy on the same checkpoint, ZERO training.**
-- **delta WAS SELECTED ON s112, so s112's +0.0417 is IN-SAMPLE and optimistic.** The honest
-  read is out of sample: **s104 0.80900 vs greedy 0.78933 = +0.01967**; s120 pending (9/10).
-  Quote the out-of-sample pooled number, never s112's, and say which is which.
+- **HUMP FIRED AND THE PEAK IS BRACKETED** — it falls off on BOTH sides; interior max at
+  delta 0.10. But **delta WAS SELECTED ON s112, so that +0.04167 is IN-SAMPLE.**
+- **THE HONEST READ IS OUT OF SAMPLE AND IT IS +0.016, NOT +0.042.** Both held-out lanes at
+  delta 0.10, n=3000 each: **s104 0.80900 vs 0.78933 = +0.01967**, **s120 0.80667 vs
+  0.79433 = +0.01233**. **Pooled n=6000: +0.01600 = 2.19 se_diff (binomial 0.00730; the
+  2-lane clustered se is smaller, so binomial governs under larger-of).**
+  **CREDIT LINE: MEETS 2*se_diff, MISSES the +0.025 floor -> NOT CREDITED.**
+  Selection shrank the effect by 2.6x. **Never quote s112's +0.0417 as the gate's effect.**
+- So: the selector WAS the defect and fixing it moved search from **-0.0681 to +0.016**,
+  which is real, free and reproducible on 2/2 held-out lanes — and still **below the bar**.
+  delta 0.10 is also only known to be the peak ON s112; the per-lane curves are unmeasured.
 - Cost **77.6 ms/decision** at the peak — 0.05% of the ladder's 150 s/turn.
 - S3's earlier NEG cells (P-M −0.0681, P-B −0.0088, P-BA −0.0769) were all **D4** objects.
 - **S1 fired and its fix did not pay** (leaf bias +0.0497, sd 0.125 vs margins 0.028;
@@ -86,8 +90,10 @@ search, depth or dose does not pay. Re-measure under D5 or do not cite it.
 1. **DECISIONS OWED BEFORE LAUNCH** (all four in the handoff): fold B into A's lanes and
    spend the freed 3 on seeds?; keep, re-specify or drop C?; primary axis off-FP@20 vs the
    saturated vs-SH (at p 0.789 credit needs ≥ 0.81367)?; read each arm at ITS OWN delta peak.
-2. **Free, measured, and NOT in the design:** the 3-seed inference ensemble (+0.036, credited
-   at B1) composed with the D5 gate (+0.042). Structurally orthogonal, zero training cost.
+2. **Free, measured, and NOT in the design:** the 3-seed inference ensemble (+0.036,
+   credited at B1) composed with the D5 gate (+0.016 out-of-sample). Structurally orthogonal
+   (ensemble moves the prior and the leaf value; the gate moves the selector), zero training
+   cost. **Both reviews named this independently as the biggest free win not in the design.**
 3. **Chores owed:** `engine_a1_grade.py` must run `extract_history.py` before the AUC leg;
    8 corrections to the Wang row in `prior_work/README.md`; the engine editable reinstall.
 
