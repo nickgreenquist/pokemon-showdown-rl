@@ -325,6 +325,36 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         evaluator, eval_provenance = _resolve_evaluator(
             prereg, seat_lane, arm.get("evaluator"), agent
         )
+        # `ensemble_members` (2026-09-11): the SEARCHED object becomes the
+        # committee -- log-pooled prior, mean opponent model, mean critic at
+        # the leaves -- through EnsembleSearchAdapter, the same wiring
+        # scripts/ch3_eval.py uses. It is deliberately NOT spelled `lanes`:
+        # `lanes` is asserted absent on every non-ensemble_seat kind above,
+        # and that assert exists because a `lanes` key on the wrong kind
+        # silently rates one lane. A distinct key cannot be confused for it.
+        #
+        # WHY OFF-FP AT ALL: vs-SH is saturated (we sit 0.82-0.84 against a
+        # bot the bare policy already beats 78% of the time), and the two
+        # objects share all three checkpoints, so that comparison is mostly
+        # measuring their shared component. Off Foul Play we sit near 0.50,
+        # where a selector has room -- and the gate is MEASURED to be worth
+        # 3x more there: +0.042 vs SH against +0.129 off-FP.
+        if arm.get("ensemble_members"):
+            from rl.search.ensemble_search import EnsembleSearchAdapter
+
+            members = list(arm["ensemble_members"])
+            assert len(members) == len(set(members)), (
+                f"{arm_name}: duplicate member in {members} -- a repeated "
+                "member silently reweights the log-prob pool"
+            )
+            assert seat_lane in members, (
+                f"{arm_name}: seat {seat_lane} must be one of {members}; the "
+                "seat lane is what seeds the decision RNG and pins the sha"
+            )
+            agent = EnsembleSearchAdapter(
+                [agent if x == seat_lane else _build_agent(prereg["checkpoints"][x])
+                 for x in members]
+            )
         # `leaf_encoding` (optional, 2026-09-10 — docs/search_relook/DET_BLIND.md):
         # absent = the as-is leaf encoding every banked FS/FE arm ran.
         # `margin_delta` (optional, 2026-09-10 — MARGIN_SELECTOR.md): absent =
