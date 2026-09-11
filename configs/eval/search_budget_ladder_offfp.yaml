@@ -1,0 +1,77 @@
+# =====================================================================
+# BUDGET LADDER — the off-FOUL-PLAY legs. DESCRIPTIVE ANCHOR, never a
+# verdict input. Registered 2026-09-11 BEFORE ANY ARM RUNS, alongside
+# configs/eval/search_budget_ladder.yaml (the vs-SH legs; its header is the
+# authority on the rungs, the gate and the read).
+# journey_step: "11.5" — exit condition verbatim in the vs-SH file.
+#
+# WHY THIS EXISTS, and it is not optional. The gate turned search from
+# -0.035 to +0.042 vs SimpleHeuristics on s112. **This project has already
+# measured a search gain vs SH that did NOT transfer**: CH3 R2, RESULTS.md
+# :689 verbatim — "the search increment is SH-FACING on the anchors
+# available - on the tested lane (s65) it does not transfer to the BC-clone
+# anchor (greedy 0.894 -> search 0.860; transfer > +0.008 excluded at ~95%)
+# nor to Foul Play (0.388 -> 0.368, n=250/arm); the D26 policy\'s own
+# strength DOES transfer". A gate tuned on SH could be that again, and no
+# amount of vs-SH compute would reveal it.
+#
+# n = 1000 PER ARM (maintainer, 2026-09-11: "yes" to the middle option).
+# The greedy side is BANKED at n=3000 on all three lanes (results/ch5_100m/
+# t1xx.json: 0.48633 / 0.50167 / 0.50733), so each rung needs only its own
+# searched arm and the comparison runs against that banked number:
+# se_diff = sqrt(p(1-p)/1000 + p(1-p)/3000) ~ 0.018, so ~0.036 at 2 se.
+# n=500 was considered and rejected: at ~0.048 a real transfer would be
+# ambiguous. n=3000 was considered and rejected: 43 h to sharpen a screen.
+#
+# STAGED, AND THE STAGING IS THE POINT:
+#   STAGE 1  BLM  dose M gated, ~3.3 s/battle -> ~0.9 h. Runs FIRST, ALONE.
+#   STAGE 2  BLL  dose L gated, ~10.2 s/battle -> ~2.8 h   } only on the
+#            BLX  dose XL gated, ~38 s/battle -> ~10.6 h   } stage-1 branch
+# PRE-DECIDED BRANCH on BLM, against the two numbers already on this exact
+# lane and checkpoint (banked greedy 0.50167 n=3000; UNGATED search@M
+# 0.39600 n=1000):
+#   TRANSFERS  BLM >= 0.47 (i.e. the gate recovers most of the 0.106 the
+#     ungated search gave away) -> the gain is not SH-facing; STAGE 2 RUNS,
+#     and the compute axis is worth its 13.4 h.
+#   PARTIAL    0.42 <= BLM < 0.47 -> recorded, STAGE 2 RUNS at dose L ONLY
+#     (2.8 h); XL is not funded on a partial transfer.
+#   SH-FACING  BLM < 0.42 (indistinguishable from the ungated 0.396) ->
+#     **STAGE 2 DOES NOT RUN.** The gate is an SH-facing artifact, CH3 R2
+#     repeats, and the live question becomes the OPPONENT MODEL, not
+#     compute. This branch saves 13.4 h and is why stage 1 runs alone.
+# Both standing FP@20 disclosures travel with every number here, forever:
+#   the equivalence test is weakly powered, and the point estimate flatters
+#   us. Budget named: 20 ms. FP@20 is an instrument, not a rung.
+# Runner: scripts/ch3_r4_fp_runner.sh (all four incident fixes; kind and
+#   usernames come FROM THIS FILE, BI-6). n_eff = seat-finished minus
+#   crash-forfeits; G1-G5 carry over; a rerun uses the rerun pair.
+# =====================================================================
+title: search_budget_ladder_offfp
+status: "REGISTERED 2026-09-11, before any arm ran. DELTA PENDING (filled at launch)."
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/search_budget_ladder_offfp
+fp:
+  search_time_ms: 20
+margin_delta: null          # [FILL BEFORE LAUNCH] the peak from S3 P15/P20
+checkpoints:
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
+usernames:
+  scheme: "blfp<dose><lane><role>; rerun pairs suffix the LANE with b. Pairwise distinct and prefix-free against every name issued in configs/eval/*.yaml (no other pre-reg issues a name starting with bl)."
+  never_reuse: [c4, r4anchor, ch3, ch4, ch5r1, ch5r2, ch5c1, fplad, s3fp]
+  pairs:
+    BLM: {seat: blfpm112seat, fp: blfpm112fp}
+    BLL: {seat: blfpl112seat, fp: blfpl112fp}
+    BLX: {seat: blfpx112seat, fp: blfpx112fp}
+  rerun_pairs:
+    BLM: {seat: blfpm112bseat, fp: blfpm112bfp}
+    BLL: {seat: blfpl112bseat, fp: blfpl112bfp}
+    BLX: {seat: blfpx112bseat, fp: blfpx112bfp}
+arms:
+  BLM: {kind: search_seat, seat: s112, dose: M,  battles: 1000, search_time_ms: 20, seat_username: blfpm112seat, fp_username: blfpm112fp}
+  BLL: {kind: search_seat, seat: s112, dose: L,  battles: 1000, search_time_ms: 20, seat_username: blfpl112seat, fp_username: blfpl112fp}
+  BLX: {kind: search_seat, seat: s112, dose: XL, battles: 1000, search_time_ms: 20, seat_username: blfpx112seat, fp_username: blfpx112fp}
+comparators_banked:
+  greedy_offfp20_t112:   {rate: 0.50167, n: 3000, source: results/ch5_100m/t112.json}
+  ungated_searchM_offfp: {rate: 0.39600, n: 1000, source: results/search_s3_100m_offfp/f3m112.json}
+  detblind_searchM_offfp: {rate: 0.40600, n: 999, source: results/search_s3_100m_offfp/f3b112.json}
