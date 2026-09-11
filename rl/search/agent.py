@@ -66,6 +66,7 @@ class SearchAgent:
         mcts: dict | None = None,
         depth2: dict | None = None,
         tree: dict | None = None,
+        bcts: dict | None = None,
     ):
         """`leaf_encoding` — the leaf ENCODER dial (S1's finding,
         docs/search_relook/DET_BLIND.md). None = as-is, the R2-credited
@@ -131,6 +132,10 @@ class SearchAgent:
         # thing neither of the other two probes is: matrix.py has our critic
         # and one ply, mcts_probe.py has a tree and poke_engine's heuristic.
         self._tree = tree
+        # BCTS (Hallak et al. 2021): the margin, derived per decision from the
+        # measured on- vs off-policy Bellman-error split, instead of a flat
+        # constant. Overrides margin_delta when set.
+        self._bcts = bcts
         self._agent = agent
         self._dose = dose
         self._seed = int(checkpoint_seed)
@@ -322,6 +327,9 @@ class SearchAgent:
             ),
             margin_delta=self.margin_delta,
             depth2=self._depth2,
+            bcts=self._bcts,
+            root_v=(self._critic_fn(obs[None].astype(np.float32))[0]
+                    if self._bcts is not None else None),
         )
         if action != stats["search/policy_argmax"]:
             self.counters["search/flips"] += 1

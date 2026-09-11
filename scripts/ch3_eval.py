@@ -174,7 +174,7 @@ class _SearchEvalAdapter:
             self.ms.append((time.perf_counter() - t0) * 1e3)
             self.leaves.append(int(stats["search/leaves"]))
             for k, v in stats.items():
-                if k.split("/")[0] in ("depth2", "census", "tree"):
+                if k.split("/")[0] in ("depth2", "census", "tree", "bcts"):
                     self.d2.setdefault(k, []).append(float(v))
         self._decision_index += 1
         return action
@@ -259,6 +259,7 @@ def _jobs(prereg: dict) -> dict[str, dict]:
                     "mcts": spec.get("mcts"),
                     "depth2": spec.get("depth2"),
                     "tree": spec.get("tree"),
+                    "bcts": spec.get("bcts"),
                 }
         elif kind == "ensemble":
             for b in range(spec["batches"]):
@@ -419,6 +420,7 @@ def run_job(prereg: dict, name: str) -> None:
             mcts=job.get("mcts"),
             depth2=job.get("depth2"),
             tree=job.get("tree"),
+            bcts=job.get("bcts"),
         )
         adapter = agent = _SearchEvalAdapter(sa, env)
     elif len(job["members"]) == 1:

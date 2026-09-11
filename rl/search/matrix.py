@@ -300,6 +300,8 @@ def solve_decision(
     leaf_view: PublicView | None = None,
     margin_delta: float | None = None,
     depth2: dict | None = None,
+    bcts: dict | None = None,
+    root_v: float | None = None,
 ) -> tuple[int, dict]:
     """One depth-1 BR solve. `q` is the oppact head's plain L6 posterior at
     the root; `prior` the masked policy probabilities (tie-break only);
@@ -462,7 +464,72 @@ def solve_decision(
     # None short-circuits to nothing: no arithmetic, no stats key, so the
     # default path is byte-identical to the pre-2026-09-10 D4 behaviour.
     gate: dict[str, Any] = {}
-    if margin_delta is not None:
+    if bcts is not None and root_v is not None:
+        # BCTS: the margin is DERIVED per decision, not a constant.
+        #
+        # Hallak, Dalal, Dalton, Frosio, Mannor & Chechik, "Improve Agents
+        # without Retraining: Parallel Tree Search with Off-Policy Correction"
+        # (NeurIPS 2021, arXiv:2107.01715). Their Assumption 1: a leaf value
+        # whose FIRST action was the policy's is N(Q, sigma_o^2), any other is
+        # N(Q, sigma_e^2), with sigma_o < sigma_e -- measured at 1.5-2x on
+        # Atari. A max over higher-variance estimates is biased UP, so the
+        # search systematically over-rates exactly the actions the policy
+        # would not take, and the gap (their Lemma 3.4) is
+        #     sqrt(2 log A) * (sigma_e*sqrt(d) - sigma_o*sqrt(d-1))
+        # which GROWS with depth. That is the shape of our own dose-response:
+        # -0.039 at one extra ply, -0.094 at two, under a CONSTANT delta 0.10
+        # that cannot grow to meet it.
+        #
+        # Their Prop. 3.6 makes the estimate free: var_{n=2}[Q] = delta^2/2
+        # where delta is a Bellman error, and "at depth 1 we have access to
+        # delta(s0,a) of all a in A without additional computation". Here
+        # row_ev[a] IS the one-ply backup and root_v is V(s0), so
+        # delta(s0,a) = row_ev[a] - root_v costs nothing.
+        #
+        # A is the number of LEGAL actions THIS TURN, which in Pokemon varies
+        # with forced switches and disabled moves -- the gate should be wider
+        # when more actions compete, and this gets that for free.
+        #
+        # kappa is the one swept scale. The paper is explicit that it needs
+        # one: "we found that multiplying its correction term ... by a
+        # constant that we sweep over can improve performance". kappa=0 is the
+        # ungated hard argmax; large kappa is the policy.
+        kappa = float(bcts.get("kappa", 1.0))
+        d = float(bcts.get("d", 1))
+        pos = {a: i for i, a in enumerate(rows)}
+        A = max(len(rows), 2)          # log A must be > 0
+        errs = np.abs(row_ev - float(root_v))
+        i_pi = pos[policy_argmax]
+        d_o = float(errs[i_pi])
+        others = [errs[i] for i in range(len(rows)) if i != i_pi]
+        d_e = float(np.mean(others)) if others else d_o
+        pen = kappa * (
+            np.sqrt(np.log(A)) * (d_e * np.sqrt(d) - d_o * np.sqrt(d - 1.0))
+            - (d_e - d_o) / np.sqrt(8.0)
+        )
+        # A NEGATIVE penalty would reward leaving the policy, which inverts
+        # the correction; the paper's term is a bias to subtract, so it floors
+        # at zero.
+        pen = float(max(pen, 0.0))
+        scored = row_ev - pen * np.array(
+            [0.0 if a == policy_argmax else 1.0 for a in rows])
+        order2 = sorted(range(len(rows)),
+                        key=lambda i: (-scored[i], -float(prior[rows[i]]), rows[i]))
+        search_argmax = best
+        best = rows[order2[0]]
+        gate = {
+            "bcts/kappa": kappa,
+            "bcts/penalty": pen,
+            "bcts/delta_off": d_e,
+            "bcts/delta_on": d_o,
+            "bcts/ratio": float(d_e / d_o) if d_o > 1e-9 else float("nan"),
+            "bcts/n_legal": float(len(rows)),
+            "search/search_argmax": int(search_argmax),
+            "search/margin": float(
+                row_ev[pos[search_argmax]] - row_ev[pos[policy_argmax]]),
+            "search/overrode": bool(best != policy_argmax),
+        }
+    elif margin_delta is not None:
         delta = float(margin_delta)
         assert delta == delta and delta >= 0.0, f"margin_delta {margin_delta!r}"
         pos = {a: i for i, a in enumerate(rows)}

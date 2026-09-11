@@ -1,0 +1,246 @@
+- generic [active] [ref=f14e1]:
+  - generic:
+    - generic:
+      - link "Skip to main content" [ref=f14e2] [cursor=pointer]
+      - link "Accessibility help" [ref=f14e3] [cursor=pointer]:
+        - /url: https://support.google.com/websearch/answer/181196?hl=en
+  - generic [ref=f14e8]:
+    - search [ref=f14e9]:
+      - generic [ref=f14e11]:
+        - link "Go to Google Home" [ref=f14e13] [cursor=pointer]:
+          - /url: https://www.google.com/webhp?hl=en&sa=X&ved=2ahUKEwig66PH9uaWAxWE4ckDHZqnFQMQPHoECAYQBA
+        - generic [ref=f14e21]:
+          - generic [ref=f14e22]:
+            - combobox "Search" [ref=f14e25]: Norström "Comparison of Artificial Intelligence Algorithms for Pokémon Battles" chalmers pdf Norström "Comparison of Artificial Intelligence Algorithms for Pokémon Battles" chalmers pdf
+            - generic [ref=f14e26]:
+              - button "Clear" [ref=f14e28] [cursor=pointer]
+              - generic [ref=f14e33]:
+                - button "Search by voice" [ref=f14e34] [cursor=pointer]
+                - button "Search by image" [ref=f14e37] [cursor=pointer]
+          - button "Search" [ref=f14e40] [cursor=pointer]
+    - generic [ref=f14e45]:
+      - button "Settings" [ref=f14e47] [cursor=pointer]
+      - button "Share" [ref=f14e53] [cursor=pointer]
+      - generic [ref=f14e59]:
+        - button "Google apps" [ref=f14e61] [cursor=pointer]
+        - link "Sign in" [ref=f14e66] [cursor=pointer]:
+          - /url: https://accounts.google.com/ServiceLogin?hl=en&passive=true&continue=https://www.google.com/search%3Fq%3DNorstr%25C3%25B6m%2B%2522Comparison%2Bof%2BArtificial%2BIntelligence%2BAlgorithms%2Bfor%2BPok%25C3%25A9mon%2BBattles%2522%2Bchalmers%2Bpdf&ec=futura_srp_og_si_72236_p
+  - generic [ref=f14e69]:
+    - navigation [ref=f14e75]:
+      - generic [ref=f14e81]:
+        - list [ref=f14e82]:
+          - listitem [ref=f14e83]:
+            - link "AI Mode" [ref=f14e86] [cursor=pointer]:
+              - /url: /search?q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+pdf&sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&udm=50&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832TjxNIFbwIM4usFl5WSp0ky5KMihsXKc3oOKqrAUfBSlp96FSesPZA9B1-jB25AhLwY0Yi2Cb-TSSElT8HlQXHerrzU2xNjzx_xEQ-EVNuYH1M_GymJDTY-48wPTgaJOt2UgCgMAoqziOAtGHBmIw9DaiTJ9jqiWDzLZO2q1AXoad0an3g&vsint=&aep=1&ntc=1&cs=0&sa=X&ved=2ahUKEwig66PH9uaWAxWE4ckDHZqnFQMQ2J8OegQIFBAD
+          - listitem [ref=f14e90]:
+            - link "All" [disabled] [ref=f14e91]
+          - listitem [ref=f14e94]:
+            - link "Images" [ref=f14e95] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&udm=2&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832TjxNIFbwIM4usFl5WSp0ky5KMihsXKc3oOKqrAUfBSlp96FSesPZA9B1-jB25AhLwY0Yi2Cb-TSSElT8HlQXHerrzU2xNjzx_xEQ-EVNuYH1M_GymJDTY-48wPTgaJOt2UgCgMAoqziOAtGHBmIw9DaiTJ9jqiWDzLZO2q1AXoad0an3g&q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+pdf&sa=X&ved=2ahUKEwig66PH9uaWAxWE4ckDHZqnFQMQtKgLegQIGhAB
+          - listitem [ref=f14e98]:
+            - link "Forums" [ref=f14e99] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&udm=18&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832TjxNIFbwIM4usFl5WSp0ky5KMihsXKc3oOKqrAUfBSlp96FSesPZA9B1-jB25AhLwY0Yi2Cb-TSSElT8HlQXHerrzU2xNjzx_xEQ-EVNuYH1M_GymJDTY-48wPTgaJOt2UgCgMAoqziOAtGHBmIw9DaiTJ9jqiWDzLZO2q1AXoad0an3g&q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+pdf&sa=X&ved=2ahUKEwig66PH9uaWAxWE4ckDHZqnFQMQs6gLegQIGRAB
+          - listitem [ref=f14e102]:
+            - link "Short videos" [ref=f14e103] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&udm=39&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832TjxNIFbwIM4usFl5WSp0ky5KMihsXKc3oOKqrAUfBSlp96FSesPZA9B1-jB25AhLwY0Yi2Cb-TSSElT8HlQXHerrzU2xNjzx_xEQ-EVNuYH1M_GymJDTY-48wPTgaJOt2UgCgMAoqziOAtGHBmIw9DaiTJ9jqiWDzLZO2q1AXoad0an3g&q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+pdf&sa=X&ved=2ahUKEwig66PH9uaWAxWE4ckDHZqnFQMQs6gLegQIGBAB
+          - listitem [ref=f14e106]:
+            - link "Shopping" [ref=f14e107] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&udm=28&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832TjxNIFbwIM4usFl5WSp0ky5KMihsXKc3oOKqrAUfBSlp96FSesPZA9B1-jB25AhLwY0Yi2Cb-TSSElT8HlQXHerrzU2xNjzx_xEQ-EVNuYH1M_GymJDTY-48wPTgaJOt2UgCgMAoqziOAtGHBmIw9DaiTJ9jqiWDzLZO2q1AXoad0an3g&q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+pdf&ved=1t:220175&ictx=111
+          - listitem [ref=f14e110]:
+            - link "Videos" [ref=f14e111] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&udm=7&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832TjxNIFbwIM4usFl5WSp0ky5KMihsXKc3oOKqrAUfBSlp96FSesPZA9B1-jB25AhLwY0Yi2Cb-TSSElT8HlQXHerrzU2xNjzx_xEQ-EVNuYH1M_GymJDTY-48wPTgaJOt2UgCgMAoqziOAtGHBmIw9DaiTJ9jqiWDzLZO2q1AXoad0an3g&q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+pdf&sa=X&ved=2ahUKEwig66PH9uaWAxWE4ckDHZqnFQMQtKgLegQIFhAB
+          - listitem [ref=f14e114]:
+            - button [ref=f14e115] [cursor=pointer]:
+              - generic "More filters" [ref=f14e116]: More
+        - button "Tools" [ref=f14e123] [cursor=pointer]
+    - heading "Search Results" [level=1] [ref=f14e130]
+    - main [ref=f14e136]:
+      - generic [ref=f14e140]:
+        - generic [ref=f14e143]:
+          - heading "Web results" [level=2] [ref=f14e144]
+          - generic [ref=f14e145]:
+            - generic [ref=f14e148]:
+              - link "Comparison of Artificial Intelligence Algorithms for ... Chalmers ODR https://odr.chalmers.se › bitstreams › download" [ref=f14e150] [cursor=pointer]:
+                - /url: /goto?url=CAESiAEB6zswFayevDmy63QHyepiZPLhQeA7nX1-0tt6YC41pWG0_lnpRRVi4N1xlD0W5LZvg2TRAKJ4pdI3yLAnLZZRvKbn-Rp5DSFmdzsY99_ZE1VEb-aL0VLpL1Qo-f818pLMSnwPIt8DuV6jtRZ5KSOQF5HgDbYhonrGIXTCyKu1aUvsj3Bz39DE
+                - heading "Comparison of Artificial Intelligence Algorithms for ..." [level=3] [ref=f14e151]
+                - generic [ref=f14e157]:
+                  - generic [ref=f14e158]: Chalmers ODR
+                  - generic [ref=f14e160]: https://odr.chalmers.se › bitstreams › download
+              - generic [ref=f14e162]: PDF
+              - button "About this result" [ref=f14e167] [cursor=pointer]
+            - generic [ref=f14e173]:
+              - generic [ref=f14e174]: by L Norström · 2019 · Cited by 6 —
+              - generic [ref=f14e175]:
+                - emphasis [ref=f14e176]: Comparison of Artificial Intelligence Algorithms for Pokémon Battles
+                - text: . LINUS
+                - emphasis [ref=f14e177]: NORSTRÖM
+                - text: . Department of Space, Earth and Environment.
+                - emphasis [ref=f14e178]: Chalmers
+                - text: University of ...
+              - link "Read more" [ref=f14e179] [cursor=pointer]:
+                - /url: /goto?url=CAES8gEB6zswFRZqnnmcs1emqrAGv6vMJR-YgxCbr8xR_w6081x4TTQlBCRwcfsMasQiZUNBtAqTdawJDYILfvaAb1vI3Ep3uzBfgnLJ27--1HuQDwZ6qxEsOAs-9Bs26pongzdNYqNApKhGI6g0pN6yEnXBh5pmYl-CYeGp5gQQLFkSgLHe_-Pk9jMu0kGg671980AjrPMeOUGJ9obTEbUYlHEKl-k9tqljXSVS4-fNuUxsi47YcBX8h4jTAPvmKSN6mAj5hf_2MKydGKJvdAGFAfkf4Df8cLDR1ckVenz1YlKEryvusxoGkC9pPpGB5udXoa1klw
+            - generic [ref=f14e181]:
+              - text: "Missing: pdf ‎| Show results with:"
+              - link "pdf" [ref=f14e182] [cursor=pointer]:
+                - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+%22pdf%22&sa=X&ved=2ahUKEwig66PH9uaWAxWE4ckDHZqnFQMQ5t4CegQIJBAB
+        - generic [ref=f14e193]:
+          - heading "Thinking" [level=2] [ref=f14e197]
+          - progressbar "Generating" [ref=f14e200]
+        - generic [ref=f14e204]:
+          - heading "Web results" [level=2] [ref=f14e205]
+          - generic [ref=f14e206]:
+            - generic [ref=f14e209]:
+              - link "Teamwork under extreme uncertainty:AI for Pokémon ranks ... arXiv https://arxiv.org › html" [ref=f14e211] [cursor=pointer]:
+                - /url: /goto?url=CAESWwHrOzAVKxOduviR9sTKEsPIxFY1sA3HXVUqNtVk86tfA2iJZmlzLQB40bfoDTTJE5bQTXUGbcR5mVBudE3mDAXZAmPn_bNDEMDO2GCISd0cNIdkLmZ8twpv_dc
+                - heading "Teamwork under extreme uncertainty:AI for Pokémon ranks ..." [level=3] [ref=f14e212]
+                - generic [ref=f14e218]:
+                  - generic [ref=f14e219]: arXiv
+                  - generic [ref=f14e221]: https://arxiv.org › html
+              - button "About this result" [ref=f14e227] [cursor=pointer]
+            - generic [ref=f14e233]:
+              - generic [ref=f14e234]: Jan 4, 2023 —
+              - generic [ref=f14e235]:
+                - text: ...
+                - emphasis [ref=f14e236]: pdf
+                - text: ; [16] L.
+                - emphasis [ref=f14e237]: Norström
+                - text: ","
+                - emphasis [ref=f14e238]: Comparison of Artificial Intelligence Algorithms for Pokémon Battles
+                - text: . https://odr.
+                - emphasis [ref=f14e239]: chalmers
+                - text: .se/bitstream/20.500.12380 ...
+              - link "Read more" [ref=f14e240] [cursor=pointer]:
+                - /url: /goto?url=CAESxQIB6zswFczC5htc2DPCGy_CApEBiPHO0BLyv7FFZ4L1fE4GdGiLNwhtMTaMne9KClfTw_ffL_N4X3OOUEyQ2G3cZrXiy_9sRW6gl10Z0j1SKOCzFSwmOMgN2me2B_GyT6_ReoyynRS9rLXb0MkCo8HGZyNxifSeIvzeANlWumZiCCPoIDZyn2no8_2_HNi4CI-S4kYhPWOhzUX--ukeja2P2tFbyjIVai3jCklNSmnkSiCCuTFJY_CtrYAVj_XAAq4071oN2KX3ej9nbw2JDSftSx3srUQ-TUEIE65S7xTA_4OTUCDKi-IFhQuPeOu6yRHzjapwwzWVzJH-bFKR_le3XqVjlBNVhfrMQXTEMWsUPneQ_UPZv6hD0u7M1AlK_0BKScqtasedYUaJrj5QA-HoMhIJqmV5307Lr4MKRqRxyooP83fT
+        - generic [ref=f14e244]:
+          - generic [ref=f14e247]:
+            - 'link "Computer vision for pokémon Battles: a Yolo and tesseraCt ... Portal de Revistas Ulima https://revistas.ulima.edu.pe › article › download" [ref=f14e249] [cursor=pointer]':
+              - /url: /goto?url=CAESiwEB6zswFUo6xQp_dxHvH4Ed02XtzcouNDXCxbtFxKT10cbLpw018GAfGBI3hijfz630qmt7HtSorB3-zPw46k6f0_ej67OKEyuQ-F_X03yaxNpW3PyMO3NxXtE4pNu0EF_xF-UvY7KA_vNw_AdZiGeDXLWU3AmXR08dVlbRqMzJfBiEdPaM5agFQjGc
+              - 'heading "Computer vision for pokémon Battles: a Yolo and tesseraCt ..." [level=3] [ref=f14e250]'
+              - generic [ref=f14e256]:
+                - generic [ref=f14e257]: Portal de Revistas Ulima
+                - generic [ref=f14e259]: https://revistas.ulima.edu.pe › article › download
+            - generic [ref=f14e261]: PDF
+            - button "About this result" [ref=f14e266] [cursor=pointer]
+          - generic [ref=f14e272]:
+            - generic [ref=f14e273]:
+              - emphasis [ref=f14e274]: Norström
+              - text: ", L. (2019)."
+              - emphasis [ref=f14e275]: Comparison of artificial intelligence algorithms for Pokémon battles
+              - text: . [Master's thesis,
+              - emphasis [ref=f14e276]: Chalmers
+              - text: University of Technology].
+              - emphasis [ref=f14e277]: Chalmers
+              - text: ...
+            - link "Read more" [ref=f14e278] [cursor=pointer]:
+              - /url: /goto?url=CAES9gEB6zswFRtgG4uzx1AWcWo20SAypZFpPKaHItzwVGplQZmvw0eTUuGTl9UyrX3cqjyjgG4o6Lcr0J3Wz9FPd0VzkFLaFSEwIs6DmjGKYsHbgbOV601nrI45TpCht6_5gABP-8maY0su3vN7s1UiK_OxlgoPU1NEDw6vcvo8SS8kWSaeAgA3SrRr8hhAvSjBIpK8ovHSEsm9msKDRCVysOlbulpXC51a9eNQsoHdSZZ3fM_9T8n0TgSa8c5mO98OASbcPnr70n0Uzsgvx3-jG4KIhfYWVkIUkLVoiQCRjmwmCLUKXaZKZ9g17-UTCBJOfxUEwjeqza0
+        - generic [ref=f14e282]:
+          - generic [ref=f14e285]:
+            - link "Implementing Monte Carlo Tree Search in a Pokémon battle ... Tilburg University https://arno.uvt.nl › show" [ref=f14e287] [cursor=pointer]:
+              - /url: /goto?url=CAESXwHrOzAVhiOmIxS2wy0wIPsVF5tCEckWIcwB6b_K0Clsj1hi2wgdmK1JPGgn_5A-iGMf8R2JC955XzaaQZpiZDDWkewOKnt-2lRKaFOa8sqNCJeDhIQQjCjnn7xQ-E6M
+              - heading "Implementing Monte Carlo Tree Search in a Pokémon battle ..." [level=3] [ref=f14e288]
+              - generic [ref=f14e297]:
+                - generic [ref=f14e298]: Tilburg University
+                - generic [ref=f14e300]: https://arno.uvt.nl › show
+            - generic [ref=f14e302]: PDF
+            - button "About this result" [ref=f14e307] [cursor=pointer]
+          - generic [ref=f14e313]:
+            - generic [ref=f14e314]: Jun 23, 2023 —
+            - generic [ref=f14e315]:
+              - emphasis [ref=f14e316]: Norström
+              - text: ", L. (2019)."
+              - emphasis [ref=f14e317]: Comparison of Artificial Intelligence Algorithms for Pokémon Battles
+              - text: "[MA thesis]."
+              - emphasis [ref=f14e318]: Chalmers
+              - text: University of Technology.
+            - link "Read more" [ref=f14e319] [cursor=pointer]:
+              - /url: /goto?url=CAES0AEB6zswFcwZmle3dRCHVJgtTGoawUKVzSsKpd1q1TAj23i11JVDfEFnkjf27qNp9oJ3sf6svW3BNEQOpTp0PZ14CIN1ovQIsj5uoHLtu9QO5v4tSL56M09UIPU_4NNtBQp_-DomlLk3vly2A6ey-goJjA4_d51AqcuhwCMGUNhSzz2OWYpxR8jK4hcQwKV4xMEUre3o_iQtvUEGF5Elf5_ntIp-AQVZAul6E36jdPH3gTZXSrLaC19R-Mjs1qUtcv6PB8gVk3MkbTlKgNqolWnk
+        - generic [ref=f14e323]:
+          - generic [ref=f14e326]:
+            - link "Visión por Computador para Batallas Pokémon Portal de Revistas Ulima https://revistas.ulima.edu.pe › view" [ref=f14e328] [cursor=pointer]:
+              - /url: /goto?url=CAESfAHrOzAVxFh9rwkRr_8c7NA8xHmih5bowRgJRNjnSzCMGXUbmIh3J0RpqUi44pGyqu88OJyK-v3fSX1ZhujL6Sn1CdFD7JU6i47sVIEP2xKGuA7_qEZ4RPHHzOt7cOgxuHLe00F7w-9vCoe647Zpl8cFfuG4nwxqshG9pXU
+              - heading "Visión por Computador para Batallas Pokémon" [level=3] [ref=f14e329]
+              - generic [ref=f14e335]:
+                - generic [ref=f14e336]: Portal de Revistas Ulima
+                - generic [ref=f14e338]: https://revistas.ulima.edu.pe › view
+            - generic [ref=f14e340]:
+              - generic [ref=f14e341]: ·
+              - link "Translate this page" [ref=f14e342] [cursor=pointer]:
+                - /url: /goto?url=CAESxgEB6zswFRXeVzbLyVsMnOFExf4XKlI3NdO86Xq-uzVyqrHTvduOVF8HW9iSbScRhT21BvfcByrWHw2tEy4jPRYc3iReNcP_4qEbuzwH6vL66T7wHOzMxWECAjoBWJ1LQqfMo_BX5ZIUj4g3gfSPlDVWo9zrLEusD0qpX6Cr_sM8wtVaNzNT4WM4cIlxvtLkOKsEC7ccZ0cCeFPIKZOpKc4Jahpos4U-XRNGZC5r3xpwJv6z26_1mgOgpsc_-uaMGj18xbT4dNM
+            - button "About this result" [ref=f14e347] [cursor=pointer]
+          - generic [ref=f14e353]:
+            - generic [ref=f14e354]: by MR Lladó · 2025 —
+            - generic [ref=f14e355]:
+              - emphasis [ref=f14e356]: Norström
+              - text: ", L. (2019)."
+              - emphasis [ref=f14e357]: Comparison of artificial intelligence algorithms for Pokémon battles
+              - text: "[Master's thesis,"
+              - emphasis [ref=f14e358]: Chalmers
+              - text: University of Technology].
+            - link "Read more" [ref=f14e359] [cursor=pointer]:
+              - /url: /goto?url=CAES7wEB6zswFaM4oVNyuh1BzcYTlf7yKxJx7LzvHk-rA4jAnIYoe7bv0q39XZeqBl3jBSBqngaSq8R9B2d8GnKROGbZFxpVWZpT78JUmZ6nQg8ZTnLrZmCt9RffhiP2C7W9dtFDJkZEzKlOyv9EbfwGIP6bts9QKwf_Wmeo1Ek4lcyK_TXTtIvSsq-FqhdM8br84KR8Qbkb1UDOzBjRelughcXlXYv-1SxvMUOZtTF7RexzTQgN5cw-Q3yToiPDdrkYaOH1Rh61fWiTwyNlfZJFTCd-QF-yjRpG0owiqfGqDNdhdMlYkvoKR1dJxT8pu6DlIA
+        - generic [ref=f14e363]:
+          - heading "Images" [level=2] [ref=f14e367]
+          - generic [ref=f14e371]:
+            - generic [ref=f14e375] [cursor=pointer]:
+              - link "Comparison of artificial intelligence algorithms for Pokémon ... Chalmers ODR - Chalmers tekniska högskola" [ref=f14e376]:
+                - /url: /goto?url=CAESegHrOzAVkORX1P-OSPOrB3jfpOKZA3kJS-tDnFd4XdAnn3F7cFSIbnNV-uJgzTw895XrxRVriwkmO85hl0d46MIcvvOFfylV5qg1VNqsZj1ryDkdszaMuBKJOUQuPBYjzMOa7KZBw88mcpntQy-ACmu9TUPD52GdJ0TJ
+              - button [ref=f14e378]:
+                - img "Comparison of artificial intelligence algorithms for Pokémon ..." [ref=f14e380]
+              - generic [ref=f14e382]:
+                - generic [ref=f14e384]: Comparison of artificial intelligence algorithms for Pokémon ...
+                - generic [ref=f14e385]:
+                  - generic [ref=f14e387]: Chalmers ODR - Chalmers tekniska högskola
+                  - button "About this result" [ref=f14e397]
+            - generic [ref=f14e405] [cursor=pointer]:
+              - link "Implementing Monte Carlo Tree Search in a Pokémon battle ... arno - Tilburg University" [ref=f14e406]:
+                - /url: /goto?url=CAESXwHrOzAVhiOmIxS2wy0wIPsVF5tCEckWIcwB6b_K0Clsj1hi2wgdmK1JPGgn_5A-iGMf8R2JC955XzaaQZpiZDDWkewOKnt-2lRKaFOa8sqNCJeDhIQQjCjnn7xQ-E6M
+              - button [ref=f14e408]:
+                - img "Implementing Monte Carlo Tree Search in a Pokémon battle ..." [ref=f14e410]
+              - generic [ref=f14e412]:
+                - generic [ref=f14e414]: Implementing Monte Carlo Tree Search in a Pokémon battle ...
+                - generic [ref=f14e415]:
+                  - generic [ref=f14e417]: arno - Tilburg University
+                  - button "About this result" [ref=f14e427]
+            - generic [ref=f14e435] [cursor=pointer]:
+              - 'link "Computer vision for pokémon Battles: a Yolo and tesseraCt ... Portal de Revistas Ulima - Universidad de Lima" [ref=f14e436]':
+                - /url: /goto?url=CAESiwEB6zswFUo6xQp_dxHvH4Ed02XtzcouNDXCxbtFxKT10cbLpw018GAfGBI3hijfz630qmt7HtSorB3-zPw46k6f0_ej67OKEyuQ-F_X03yaxNpW3PyMO3NxXtE4pNu0EF_xF-UvY7KA_vNw_AdZiGeDXLWU3AmXR08dVlbRqMzJfBiEdPaM5agFQjGc
+              - button [ref=f14e438]:
+                - 'img "Computer vision for pokémon Battles: a Yolo and tesseraCt ..." [ref=f14e440]'
+              - generic [ref=f14e442]:
+                - generic [ref=f14e444]: "Computer vision for pokémon Battles: a Yolo and tesseraCt ..."
+                - generic [ref=f14e445]:
+                  - generic [ref=f14e447]: Portal de Revistas Ulima - Universidad de Lima
+                  - button "About this result" [ref=f14e457]
+          - button "Show more images" [ref=f14e463] [cursor=pointer]:
+            - separator [aria-hidden] [ref=f14e464]
+      - generic [ref=f14e471]:
+        - generic [ref=f14e472]:
+          - heading "Notices about Filtered Results" [level=2] [ref=f14e473]
+          - paragraph [ref=f14e475]:
+            - generic [ref=f14e476]:
+              - text: In order to show you the most relevant results, we have omitted some entries very similar to the 5 already displayed.If you like, you can
+              - link "repeat the search with the omitted results included" [ref=f14e477] [cursor=pointer]:
+                - /url: /search?q=Norstr%C3%B6m+%22Comparison+of+Artificial+Intelligence+Algorithms+for+Pok%C3%A9mon+Battles%22+chalmers+pdf&sca_esv=c130cae6dad1d85e&sxsrf=APpeQntdPLQCxmU-2xm3cdLxvpNrDXfR8A:1789143401697&filter=0
+              - text: .
+        - navigation
+      - navigation
+    - contentinfo [ref=f14e478]:
+      - heading "Footer Links" [level=1] [ref=f14e479]
+      - generic [ref=f14e483]:
+        - generic [ref=f14e487]:
+          - button "Cedar Grove, New Jersey - From your IP address" [ref=f14e489] [cursor=pointer]:
+            - generic [ref=f14e490]: Cedar Grove, New Jersey
+            - generic [ref=f14e492]:
+              - text: "-"
+              - generic [ref=f14e493]: From your IP address
+          - text: "-"
+          - button "Update location" [ref=f14e495] [cursor=pointer]
+        - generic [ref=f14e498]:
+          - link "Help" [ref=f14e499] [cursor=pointer]:
+            - /url: https://support.google.com/websearch/?p=ws_results_help&hl=en&fg=1
+          - link "Send feedback" [ref=f14e500] [cursor=pointer]:
+            - /url: "#"
+          - link "Privacy" [ref=f14e501] [cursor=pointer]:
+            - /url: https://policies.google.com/privacy?hl=en&fg=1
+          - link "Terms" [ref=f14e502] [cursor=pointer]:
+            - /url: https://policies.google.com/terms?hl=en&fg=1

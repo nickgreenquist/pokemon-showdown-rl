@@ -157,7 +157,7 @@ def test_jobs_search_kind_and_legacy_shape():
     assert jobs["a1s_s62"] == {"arm": "A1S", "members": ["s62"],
                                "search_dose": "M", "leaf_encoding": None,
                                "margin_delta": None, "depth2": None,
-                               "mcts": None, "tree": None,
+                               "mcts": None, "tree": None, "bcts": None,
                                "ensemble_search": False, "seed_lane": "s62"}
     assert "search_dose" not in jobs["a0_s62"]
     with pytest.raises(ValueError):
