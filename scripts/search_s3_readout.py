@@ -456,7 +456,22 @@ def paired_read(name: str, arms: dict, t: str, c: str, lanes,
     p_t = sum(tj[ln]["rate"] * tj[ln]["episodes"] for ln in lanes) / n_t
     p_c = sum(cj[ln]["rate"] * cj[ln]["episodes"] for ln in lanes) / n_c
     se = se_terms(p_t, n_t, p_c, n_c, deltas)
-    c_name, c_why = cell(pooled_delta, deltas, se["se_diff"])
+    # THE REGISTERED CELLS ARE DEFINED ON THE 3-LANE SET and do not transfer:
+    # NEG reads "per-lane <= 0 in >= 2 of 3", which is not a rule about two
+    # lanes. A sub-3-lane read therefore reports its delta, both se terms and
+    # the floor/2*se comparisons -- all of which are well defined -- but NO
+    # CELL, exactly as P-L does on one lane. That is what P-EG-OOS is: the
+    # out-of-sample half of P-EG over the two lanes delta was not selected on.
+    # Widening cell() to k=2 would have been the wrong fix: it would invent a
+    # cell definition after seeing the data it would be applied to.
+    if len(lanes) == 3:
+        c_name, c_why = cell(pooled_delta, deltas, se["se_diff"])
+    else:
+        c_name = None
+        c_why = (f"NO CELL: k={len(lanes)} lanes. The registered cells are "
+                 "defined on the 3-lane set (NEG needs 2-of-3), so this read "
+                 "is delta + se + floor/2*se only, sign-and-magnitude, never a "
+                 "cell.")
     fragile = [nm for nm, ref in (("credit floor", FLOOR),
                                   ("2*se_diff", 2 * se["se_diff"]),
                                   ("zero", 0.0))
