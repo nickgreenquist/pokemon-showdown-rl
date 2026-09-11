@@ -318,6 +318,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         np.random.seed(seed)
     search_agent = None
     eval_provenance = None
+    searched_ensemble = None
     if arm["kind"] == "search_seat":
         from rl.search.agent import SearchAgent
         from rl.search.matrix import DOSES
@@ -355,6 +356,15 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
                 [agent if x == seat_lane else _build_agent(prereg["checkpoints"][x])
                  for x in members]
             )
+            # PROVENANCE, not decoration. Without these the report of a
+            # 3-member searched committee is byte-indistinguishable from a
+            # single-lane searched arm -- the exact class of defect the
+            # seat_lane_defaulted stamp and the MA-10 budget note exist for.
+            searched_ensemble = {
+                "members": members,
+                "member_sha256": [prereg["checkpoints"][x]["sha256"] for x in members],
+                "member_steps": [prereg["checkpoints"][x].get("step") for x in members],
+            }
         # `leaf_encoding` (optional, 2026-09-10 — docs/search_relook/DET_BLIND.md):
         # absent = the as-is leaf encoding every banked FS/FE arm ran.
         # `margin_delta` (optional, 2026-09-10 — MARGIN_SELECTOR.md): absent =
@@ -424,6 +434,8 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "seat_rng_seed": arm.get("seat_rng_seed"),
         "seat_lane": seat_lane,
         "seat_lane_defaulted": seat_lane_defaulted,
+        # None on a single-lane arm; the members + shas on a searched committee.
+        "searched_ensemble": searched_ensemble,
         "seat_native_dim": native_dim,
         "declared_search_time_ms": arm.get("search_time_ms"),
         # 2026-08-27: proves the deadlock fix did not buy concurrency. The
