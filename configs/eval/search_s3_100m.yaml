@@ -383,8 +383,19 @@ arms:
   TSAMP:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
   TSAMP1: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1, opp_rule: sample}}
   TDC8Z:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, value_from: zero}}
+  # THE LADDER CANDIDATE CHECK. The ensemble is the only credited lever
+  # (+0.03489 at 5.93 se) and the depth-1 gate is the best search has managed
+  # (+0.016 out of sample). They are structurally ORTHOGONAL -- the ensemble
+  # changes the PRIOR and the LEAF VALUE, the gate changes the SELECTOR -- and
+  # have never been measured in each other's presence: every search number
+  # this project owns sits on a SINGLE critic. Three critics also give the
+  # leaf an uncertainty the single-critic arms could not have, which is the
+  # one thing that might make a leaf value trustworthy enough to act on.
+  # If ENSG does not beat the ensemble alone, the ladder object is the
+  # ensemble and search is done for this chapter.
+  ENSG: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, margin_delta: 0.10}
   TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, BSM, BK05, BK10, BK10D3, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, BSM, BK05, BK10, BK10D3, ENSG, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
