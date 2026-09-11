@@ -471,3 +471,44 @@ why the sign flipped between 12M and 100M and why nobody caught it for a chapter
 credit was SH-FACING and did NOT transfer (FP 0.388 -> 0.368; BC-clone 0.894 ->
 0.860). `configs/eval/search_budget_ladder_offfp.yaml` stages that probe first,
 precisely so the same mistake is not made twice.
+
+## `taskpolicy -b` on an eval job costs ~7x and makes its timings incomparable (2026-09-11)
+
+**What happened.** The EG10 queue was written with `taskpolicy -b` in front of
+`ch3_eval.py`, copying the habit from the engine-port brief (which prescribes
+background QoS for *builds*, and is right to). Its first chunk read **549.8
+ms/decision** against **81.1** for the banked C10 arm at the same dose, the same
+leaf count (347 vs 358) and a comparable number of concurrent jobs. That is a
+**6.8x** penalty, and it projected the arm from ~2 h to ~12 h.
+
+**Why.** This box is **10 performance + 4 efficiency cores**
+(`sysctl hw.perflevel0.logicalcpu hw.perflevel1.logicalcpu`). `taskpolicy -b`
+is BACKGROUND QoS, which on Apple Silicon schedules onto the EFFICIENCY cores
+only. Three search lanes sharing four efficiency cores is the whole story.
+
+**Two costs, and the second is worse.** The obvious one is wall clock. The
+subtle one is that **every other eval queue in this repo runs at normal QoS**
+(`search_s3_queue.sh`, `search_ladder_queue.sh`, `ch3_r4_run_sweep.sh` — none
+of them call `taskpolicy`), so a `-b` arm's `search/ms_mean` is not comparable
+to the banked arms it is being measured against. A timing read taken this way
+is not a slow number, it is a **wrong** number.
+
+**What it does NOT touch.** Outcomes. The eval is seeded per chunk, so QoS
+changes speed and nothing else: win rates, leaf counts, override rates and
+decision counts from a `-b` chunk are all valid and may be pooled. Only the
+WALL-CLOCK fields (`search/ms_mean`, `ms_p50`, `ms_p99`, s/battle) are
+contaminated, and only for the chunks that ran that way.
+
+**The rule.** `taskpolicy -b` for BUILDS (cargo, pip) — yes, that is what the
+engine-port brief means. For anything whose NUMBER you intend to quote, or
+that you want to finish this decade: normal QoS. And when an arm's timing is
+7x a comparable banked arm at the same leaf count, suspect the scheduler before
+suspecting the lever — the first hypothesis here was "the LOO evaluator and the
+margin gate interact superadditively", which was wrong and would have been a
+much more interesting finding to report falsely.
+
+**How it was caught.** Not by the wall clock (a slow arm looks like a busy
+box). By comparing `chunk00` to `chunk00` across arms — same code path, same
+measurement — where 77.1 / 81.1 / 549.8 at matched leaf counts is not a load
+story.
+

@@ -39,7 +39,15 @@ run_group() {
         continue
       fi
       log "$GROUP: launching $J (try $TRY)"
-      taskpolicy -b $PY scripts/ch3_eval.py --prereg "$PREREG" --job "$J" \
+      # NO taskpolicy -b. This box is 10 performance + 4 efficiency cores, and
+      # -b is BACKGROUND QoS, which schedules onto the 4 efficiency cores ONLY.
+      # The first EG10 chunk ran at 549.8 ms/decision against 81.1 for the same
+      # dose and leaf count on the banked C10 arm -- a 6.8x penalty from three
+      # search lanes sharing four efficiency cores, not from the LOO evaluator.
+      # Every earlier eval queue (search_s3_queue.sh, ch3_r4_run_sweep.sh) runs
+      # at normal QoS, so -b also made this arm's timings incomparable to the
+      # very arms it is measured against. Background QoS is for BUILDS.
+      $PY scripts/ch3_eval.py --prereg "$PREREG" --job "$J" \
         > "$RDIR/$J.log" 2>&1 &
       PIDS="$PIDS $!"
       LAUNCHED=1

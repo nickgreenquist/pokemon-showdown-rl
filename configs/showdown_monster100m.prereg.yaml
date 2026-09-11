@@ -994,10 +994,16 @@ preconditions:
   # NOTE THE SCOPE: this says the SEAM WORKS, and nothing whatever about
   # whether privileged information HELPS. It cannot: 10 updates is 307k steps
   # against a 100M arm, EV is not the arm's read, and per the 2026-09-06 ruling
-  # a small run closes nothing in either direction. The trailing steps/s (385,
-  # 403) are BOX CONTENTION from the concurrent eval fleet, not a lane
-  # property, and must not be used as a throughput figure — PRE-10 requires a
-  # free box and this smoke deliberately did not have one.
+  # a small run closes nothing in either direction. THE steps/s COLUMN IS NOT A
+  # THROUGHPUT FIGURE and the reason is stronger than "contention": this smoke
+  # ran under `taskpolicy -b`, i.e. BACKGROUND QoS, which on this 10P+4E box
+  # schedules onto the FOUR EFFICIENCY CORES ONLY, alongside a concurrent eval
+  # fleet doing the same. See docs/landmines.md (2026-09-11) — the same mistake
+  # cost the EG10 arm a 6.8x penalty and was initially misread as a lever
+  # interaction. The GATE READINGS are unaffected: loss/value, explained
+  # variance and the param sums are QoS-independent. Only the steps/s column is
+  # contaminated, and PRE-10's free box is where a real throughput number comes
+  # from.
   #
   # PRE-3 CAVEAT, recorded rather than waved: engine_pe_s66 ran the PRE-FIX
   # design-B code, so its head regressed the GAE target. Its BITWISE inertness

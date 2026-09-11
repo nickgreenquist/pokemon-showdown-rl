@@ -323,6 +323,19 @@ banked_reference_never_the_comparator:
 #   P-EG credited NEGATIVE -> report it; the ensemble evaluator is a
 #       DISCREDITED lever under the gate and arm B needs a new argument.
 #
+# EG10 chunk00 TIMING CAVEAT (2026-09-11, recorded when found): the first
+# chunk of eg10_s104 ran under `taskpolicy -b` (BACKGROUND QoS = the 4
+# efficiency cores of a 10P+4E box) and read 549.8 ms/decision against 81.1 for
+# the banked C10 arm at a matched leaf count — a 6.8x SCHEDULER penalty, not a
+# property of the LOO-evaluator-plus-gate combination, which was the first and
+# wrong hypothesis. The queue was fixed and the arm relaunched at normal QoS;
+# the chunk is KEPT because the eval is seeded per chunk, so its win rate,
+# leaf counts, decisions and overrides are exactly what they would have been at
+# any QoS. **The arm's WALL-CLOCK fields (search/ms_mean, ms_p50, ms_p99,
+# s/battle) are therefore a MIX and must not be quoted**; the dose-matched
+# check in this header reads `leaves_mean`, which is QoS-independent, precisely
+# so it still holds. docs/landmines.md carries the full account.
+#
 # EG05 IS DEFERRED, AND WHY — recorded 2026-09-11 02:47Z, BEFORE ANY EG10
 # CHUNK EXISTED (every eg10_* lane was 0/10; the first chunk had not landed).
 # The reason is BOX AVAILABILITY and nothing else: PRE-10 of the 100M monster
