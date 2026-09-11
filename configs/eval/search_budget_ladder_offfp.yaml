@@ -53,7 +53,7 @@ credits_nothing: true
 results_dir: results/search_budget_ladder_offfp
 fp:
   search_time_ms: 20
-margin_delta: null          # [FILL BEFORE LAUNCH] the peak from S3 P15/P20
+margin_delta: 0.1          # [FILLED at launch] the peak measured on dose M (S3 s112)
 checkpoints:
   s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
 usernames:
@@ -68,9 +68,9 @@ usernames:
     BLL: {seat: blfpl112bseat, fp: blfpl112bfp}
     BLX: {seat: blfpx112bseat, fp: blfpx112bfp}
 arms:
-  BLM: {kind: search_seat, seat: s112, dose: M,  battles: 1000, search_time_ms: 20, seat_username: blfpm112seat, fp_username: blfpm112fp}
-  BLL: {kind: search_seat, seat: s112, dose: L,  battles: 1000, search_time_ms: 20, seat_username: blfpl112seat, fp_username: blfpl112fp}
-  BLX: {kind: search_seat, seat: s112, dose: XL, battles: 1000, search_time_ms: 20, seat_username: blfpx112seat, fp_username: blfpx112fp}
+  BLM: {kind: search_seat, seat: s112, dose: M,  battles: 1000, search_time_ms: 20, seat_username: blfpm112seat, fp_username: blfpm112fp, margin_delta: 0.1}
+  BLL: {kind: search_seat, seat: s112, dose: L,  battles: 1000, search_time_ms: 20, seat_username: blfpl112seat, fp_username: blfpl112fp, margin_delta: 0.1}
+  BLX: {kind: search_seat, seat: s112, dose: XL, battles: 1000, search_time_ms: 20, seat_username: blfpx112seat, fp_username: blfpx112fp, margin_delta: 0.1}
 comparators_banked:
   greedy_offfp20_t112:   {rate: 0.50167, n: 3000, source: results/ch5_100m/t112.json}
   ungated_searchM_offfp: {rate: 0.39600, n: 1000, source: results/search_s3_100m_offfp/f3m112.json}
