@@ -61,9 +61,19 @@ print("OK")
 
 
 def test_encoder_v2_dims_and_effect_block():
+    # The child asserts OBS_DIM == 808, which is v2 WITHOUT the id lanes. Its
+    # env must therefore be built rather than inherited: POKEMON_RL_ENCODER_IDS
+    # adds the 20 id dims (808 -> 828), and every command in this repo --
+    # CLAUDE.md's own, the queue scripts, the launchers -- exports BOTH vars,
+    # so inheriting os.environ made this test fail for everyone running the
+    # suite the normal way while passing in isolation. That is the same
+    # "fails in the suite, passes alone" signature as the 2026-09-10 seat-name
+    # flake, and the same fix: control the variable instead of inheriting it.
+    child_env = {k: v for k, v in os.environ.items()
+                 if k != "POKEMON_RL_ENCODER_IDS"}
     result = subprocess.run(
         [sys.executable, "-c", _CHILD],
-        env={**os.environ, "POKEMON_RL_ENCODER_V2": "1"},
+        env={**child_env, "POKEMON_RL_ENCODER_V2": "1"},
         capture_output=True,
         text=True,
         timeout=120,
@@ -73,7 +83,11 @@ def test_encoder_v2_dims_and_effect_block():
 
 
 def test_default_encoder_is_still_v1():
-    env = {k: v for k, v in os.environ.items() if k != "POKEMON_RL_ENCODER_V2"}
+    # Both flags stripped, for the reason above: the v1 default is 612 dims and
+    # POKEMON_RL_ENCODER_IDS would change it, so dropping only V2 left this
+    # asserting the default while the environment still asked for a non-default.
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS")}
     result = subprocess.run(
         [
             sys.executable,
