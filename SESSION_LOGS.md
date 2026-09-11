@@ -11473,3 +11473,51 @@ line numbers are not — grep the date, then read that region):
   selector. A1E (LOO ensemble evaluator) partial reads ~0.732 against search 0.721 and
   greedy 0.789 — a better evaluator buying ~1 point where the gap is 7, which is the
   third independent piece of evidence against "evaluator alone".
+
+- 2026-09-11 (night, agent) — **THE MARGIN GATE'S PEAK IS BRACKETED, ARM B IS ARM A, AND
+  ARM B'S TARGET WAS WRONG.** Six agents reported; four results changed the plan.
+  **(1) D5 IS A HUMP AND THE PEAK IS INTERIOR.** s112, n=3000/arm, vs SH, greedy 0.78233:
+  delta 0 -> 0.74767, 0.02 -> 0.78200, 0.05 -> 0.80867, **0.10 -> 0.82400**, 0.15 ->
+  0.81400, 0.20 -> 0.81000. It falls off on BOTH sides, so the peak is bracketed for the
+  first time. Override rate at the peak 0.085, cost 77.6 ms/decision. **delta was SELECTED
+  on s112, so +0.04167 is IN-SAMPLE**; the honest out-of-sample read is s104 0.80900 vs
+  0.78933 = **+0.01967** (s120 pending 9/10). Quote out-of-sample, always say which.
+  **(2) ARM B IS BITWISE ARM A — measured, not argued.** runs/engine_pe_s66 against
+  runs/engine_a1b_s66 at ckpt_010500013: 21 identical rungs, 223 shared tensors /
+  3,428,015 elements, **0 differing**, sha 104a9339eb6a2260; the PE lane adds only its own
+  104 head/optimizer tensors. Both reviews reached this independently from the code. So
+  three of the nine planned lanes were buying duplicate checkpoints: B should RIDE A's
+  lanes. (First attempt at this check hashed nested dicts and returned the SHA of the
+  empty string — a vacuous green. Recursive flatten is the real instrument.)
+  **(3) ARM B'S HEAD REGRESSED THE CRITIC, NOT THE OUTCOME — FIXED b147f48.** At gamma 1
+  with terminal-only reward the GAE(lambda) target decomposes exactly as lam^(N-1-t)*z +
+  (1-lam)*sum lam^(k-1) V(s_t+k), so at lambda 0.95 over ~34 decisions **~53% of the
+  head's target mass was the ordinary non-privileged critic's own output, ~82% of it at
+  the first decision** — the network the head exists to beat. Arm C's critic is
+  self-consistently privileged; arm B's head was not, so B-vs-C would have measured that
+  attenuation on top of the intended contrast. **It survived because the head's only
+  learning test runs at lambda 1.0, where the GAE target already IS the MC return: the
+  tested path was not the production path.** Fixed via the lam=1 telescoping of the same
+  audited kernel (no second return implementation, correct under truncation and any gamma
+  or shaping), applied on BOTH drivers -- update_episodes and update(), because that split
+  is how it survived. Actor/critic stay bit-identical. New verdict metric
+  priv_eval/ev_mc_advantage; the GAE-target EV is demoted to a diagnostic.
+  **(4) P0 PASSES — depth-2 is not killed.** sd(margin | S=32, CRN-1) 0.00835 vs the
+  0.5*median bar 0.01640 (ratio 0.509). CRN-1 measured worth exactly 2x the samples.
+  **Depth-1's honest speedup is ~4x at S=32, not 17x**; 65% of per-child cost is Python
+  marshalling Phase 2 deletes. Pre-register S=16 for depth-2, not 52.
+  **(5) R1-E ran end to end:** leg A FAILS on exactly one undeclared dim (F5), leg B PASS,
+  leg C PASS 99.686% vs a 99.5% hard stop, controls 8/8. The Rust write side landed (+739
+  lines, 0 deleted, 94 cargo tests) and corrected three design claims -- W-ACTIVESTATS is
+  wrong on <=24.38% of roots not 2.26%, B_LAST_MOVES.index is load-bearing for V_CHARGING
+  with 0 an unconditional OOB read, and W-VALIDATE's order[0] rule would reject 14.73% of
+  the harvest. **Both amendments were pushed into R1-E BEFORE it read out**, with
+  provenance and post_dates_first_numbers: true, the pre-bar artifact preserved, and a
+  leg-by-leg diff showing every number identical -- leg A fails under both bars.
+  **(6) Both design reviews contest arm C**: it is D18's lever at lambda 0.95 where the
+  vacatur named the lambda=1.0 pure-baseline variant, its variance channel has 30x less
+  headroom at a 30,720-step update than at D18's 1,024, and its falsifier conditions on an
+  "uncollapsed critic" never observed above 25/384 on any lane at any dose -- as written it
+  cannot fire. Also flagged: no search seam exists (grep priv_eval_value rl/search/ = 0),
+  so neither B nor C can be read through search today; and k=3 x n=3000 gives
+  P(credit | +0.025) = 0.45. **Four decisions are owed before launch and are in STATUS.**
