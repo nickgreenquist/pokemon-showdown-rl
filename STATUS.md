@@ -25,7 +25,6 @@ Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/
 |---|---|---|---|---|---|---|---|
 | win rate | 0.74767 | 0.78200 | 0.80867 | **0.82400** | 0.81400 | 0.81000 | 0.78233 |
 
-- **HUMP FIRED, PEAK BRACKETED** at delta 0.10 — but **delta was SELECTED on s112.**
 - **THE HONEST READ IS OUT OF SAMPLE AND IT IS +0.016, NOT +0.042.** Both held-out lanes at
   delta 0.10, n=3000 each: **s104 0.80900 vs 0.78933 = +0.01967**, **s120 0.80667 vs
   0.79433 = +0.01233**. **Pooled n=6000: +0.01600 = 2.19 se_diff (binomial 0.00730; the
@@ -35,8 +34,9 @@ Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/
   gate, 3x3000: **0.81278 vs gated-PLAIN 0.81322 = −0.00044, se_diff 0.00812** (0.05 se; the
   cell reads NEG only via the 2-of-3 rule). **The SELECTOR was the whole story — a better
   evaluator buys ZERO. That is arm B's premise.**
-- **THE FREE ENSEMBLE BEATS THE SEARCHED STACK:** stack vs greedy **+0.0241 FLAT** (floor
-  missed by 0.0009, ~80 ms/dec) vs **ENS3 +0.0349 CREDIT** at greedy speed. Tuning lane in both.
+- **ENSEMBLE vs STACK IS A NULL, NOT A WIN.** ENS3 0.82356 vs stack 0.81278 = **+0.01078 at
+  1.87 se — fails BOTH bars**; never a registered h2h (both read vs A0), and the stack figure
+  includes the tuning lane, flattering SEARCH. Not rivals: PRIOR vs SELECTOR, never composed.
 - **OFF FOUL PLAY THE GATE TRANSFERS — pre-decided branch FIRED.** BLM (gated@M, delta 0.10,
   s112) vs FP@20, n=1000: **0.525** against a **0.47** bar. Same lane/checkpoint: banked greedy
   0.50167 (n=3000), UNGATED search 0.39600. **The SELECTOR ALONE bought +0.129 off-FP** —
