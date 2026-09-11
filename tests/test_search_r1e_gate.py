@@ -48,6 +48,17 @@ from rl.envs.showdown import (
     OBS_DIM,
 )
 
+# The R1-E gate is a read of the 828-wide gen-1 observation: its dim classifier
+# indexes OBS_DIM and its families are named against the v2+ids layout. Under
+# the suite's documented invocation the flags are unset and OBS_DIM is 612, so
+# this file SKIPS rather than mislabelling every dim -- the same gate
+# tests/test_entity_scorer_factorization.py uses, and the same reason.
+pytestmark = pytest.mark.skipif(
+    ID_DIM == 0,
+    reason="the R1-E gate reads the 828-wide encoder; set "
+           "POKEMON_RL_ENCODER_V2=1 and POKEMON_RL_ENCODER_IDS=1 to run it",
+)
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 

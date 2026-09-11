@@ -25,8 +25,19 @@ import pytest
 import torch
 
 from rl.agents.ppo import PPOAgent
+from rl.envs.showdown import ID_DIM
 from rl.search.ensemble_search import EnsembleSearchAdapter
 from rl.search.ensemble import EnsembleAgent
+
+# The entity trunk refuses to build without the id suffix
+# (entity_deepsets.py:129) and reads ID_DIM at IMPORT time, so setting the flag
+# inside a test cannot work. The suite's documented invocation leaves the flags
+# unset -- R0-1 asserts they are unset -- so this file SKIPS rather than forcing
+# them, matching tests/test_entity_scorer_factorization.py.
+pytestmark = pytest.mark.skipif(
+    ID_DIM == 0,
+    reason="entity trunk needs POKEMON_RL_ENCODER_IDS=1; set it to run this file",
+)
 
 OBS_DIM, N_ACTS = 828, 10
 TK = dict(species_vocab=152, move_vocab=166, embed_dim=16, entity_dim=32,
