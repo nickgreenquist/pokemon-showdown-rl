@@ -1,0 +1,115 @@
+- generic [active] [ref=f10e1]:
+  - generic:
+    - generic:
+      - link "Skip to main content" [ref=f10e2] [cursor=pointer]
+      - link "Accessibility help" [ref=f10e3] [cursor=pointer]:
+        - /url: https://support.google.com/websearch/answer/181196?hl=en
+  - generic [ref=f10e8]:
+    - search [ref=f10e9]:
+      - generic [ref=f10e11]:
+        - link "Go to Google Home" [ref=f10e13] [cursor=pointer]:
+          - /url: https://www.google.com/webhp?hl=en&sa=X&ved=2ahUKEwjAr_eC9uaWAxUw4ckDHdKMCg0QPHoECAYQBA
+        - generic [ref=f10e21]:
+          - generic [ref=f10e22]:
+            - combobox "Search" [ref=f10e25]: "\"Pokémon\" OR \"Pokemon\" agent \"decoupled UCT\" OR DUCT \"does not converge\" Nash simultaneous move \"Pokémon\" OR \"Pokemon\" agent \"decoupled UCT\" OR DUCT \"does not converge\" Nash simultaneous move"
+            - generic [ref=f10e26]:
+              - button "Clear" [ref=f10e28] [cursor=pointer]
+              - generic [ref=f10e33]:
+                - button "Search by voice" [ref=f10e34] [cursor=pointer]
+                - button "Search by image" [ref=f10e37] [cursor=pointer]
+          - button "Search" [ref=f10e40] [cursor=pointer]
+    - generic [ref=f10e45]:
+      - button "Settings" [ref=f10e47] [cursor=pointer]
+      - button "Share" [ref=f10e53] [cursor=pointer]
+      - generic [ref=f10e59]:
+        - button "Google apps" [ref=f10e61] [cursor=pointer]
+        - link "Sign in" [ref=f10e66] [cursor=pointer]:
+          - /url: https://accounts.google.com/ServiceLogin?hl=en&passive=true&continue=https://www.google.com/search%3Fq%3D%2522Pok%25C3%25A9mon%2522%2BOR%2B%2522Pokemon%2522%2Bagent%2B%2522decoupled%2BUCT%2522%2BOR%2BDUCT%2B%2522does%2Bnot%2Bconverge%2522%2BNash%2Bsimultaneous%2Bmove%26num%3D20%26sei%3D2iikaoKBD4vewN4Pra6pgQ8&ec=futura_srp_og_si_72236_p
+  - generic [ref=f10e69]:
+    - navigation [ref=f10e75]:
+      - generic [ref=f10e81]:
+        - list [ref=f10e82]:
+          - listitem [ref=f10e83]:
+            - link "AI Mode" [ref=f10e86] [cursor=pointer]:
+              - /url: /search?q=%22Pok%C3%A9mon%22+OR+%22Pokemon%22+agent+%22decoupled+UCT%22+OR+DUCT+%22does+not+converge%22+Nash+simultaneous+move&sca_esv=c130cae6dad1d85e&sxsrf=APpeQntnhFdW5G0nUWfCyKmt5VTIXEfVjQ:1789143258383&udm=50&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832VstEKsVDqPorK0Gahnm2nrruedQ0d32Et2kDhW_DVrEiVEEKhGMS6J6qOai58Kp-xhksXV28NogeTUukXLA6cErqGvRbRiH7suRTN0y_34V3a_l9_d5vx2BXsNvp3CNaFbjOcCna9jBf_n8HFTuWydDmY1eASGf8xNKp4j1zWBVjs_98w&vsint=&aep=1&ntc=1&cs=0&sa=X&ved=2ahUKEwjAr_eC9uaWAxUw4ckDHdKMCg0Q2J8OegQIExAD
+          - listitem [ref=f10e90]:
+            - link "All" [disabled] [ref=f10e91]
+          - listitem [ref=f10e94]:
+            - link "Images" [ref=f10e95] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntnhFdW5G0nUWfCyKmt5VTIXEfVjQ:1789143258383&udm=2&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832VstEKsVDqPorK0Gahnm2nrruedQ0d32Et2kDhW_DVrEiVEEKhGMS6J6qOai58Kp-xhksXV28NogeTUukXLA6cErqGvRbRiH7suRTN0y_34V3a_l9_d5vx2BXsNvp3CNaFbjOcCna9jBf_n8HFTuWydDmY1eASGf8xNKp4j1zWBVjs_98w&q=%22Pok%C3%A9mon%22+OR+%22Pokemon%22+agent+%22decoupled+UCT%22+OR+DUCT+%22does+not+converge%22+Nash+simultaneous+move&sa=X&ved=2ahUKEwjAr_eC9uaWAxUw4ckDHdKMCg0QtKgLegQIGRAB
+          - listitem [ref=f10e98]:
+            - link "Videos" [ref=f10e99] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntnhFdW5G0nUWfCyKmt5VTIXEfVjQ:1789143258383&udm=7&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832VstEKsVDqPorK0Gahnm2nrruedQ0d32Et2kDhW_DVrEiVEEKhGMS6J6qOai58Kp-xhksXV28NogeTUukXLA6cErqGvRbRiH7suRTN0y_34V3a_l9_d5vx2BXsNvp3CNaFbjOcCna9jBf_n8HFTuWydDmY1eASGf8xNKp4j1zWBVjs_98w&q=%22Pok%C3%A9mon%22+OR+%22Pokemon%22+agent+%22decoupled+UCT%22+OR+DUCT+%22does+not+converge%22+Nash+simultaneous+move&sa=X&ved=2ahUKEwjAr_eC9uaWAxUw4ckDHdKMCg0QtKgLegQIGhAB
+          - listitem [ref=f10e102]:
+            - link "Shopping" [ref=f10e103] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntnhFdW5G0nUWfCyKmt5VTIXEfVjQ:1789143258383&udm=28&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832VstEKsVDqPorK0Gahnm2nrruedQ0d32Et2kDhW_DVrEiVEEKhGMS6J6qOai58Kp-xhksXV28NogeTUukXLA6cErqGvRbRiH7suRTN0y_34V3a_l9_d5vx2BXsNvp3CNaFbjOcCna9jBf_n8HFTuWydDmY1eASGf8xNKp4j1zWBVjs_98w&q=%22Pok%C3%A9mon%22+OR+%22Pokemon%22+agent+%22decoupled+UCT%22+OR+DUCT+%22does+not+converge%22+Nash+simultaneous+move&ved=1t:220175&ictx=111
+          - listitem [ref=f10e106]:
+            - link "Forums" [ref=f10e107] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntnhFdW5G0nUWfCyKmt5VTIXEfVjQ:1789143258383&udm=18&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832VstEKsVDqPorK0Gahnm2nrruedQ0d32Et2kDhW_DVrEiVEEKhGMS6J6qOai58Kp-xhksXV28NogeTUukXLA6cErqGvRbRiH7suRTN0y_34V3a_l9_d5vx2BXsNvp3CNaFbjOcCna9jBf_n8HFTuWydDmY1eASGf8xNKp4j1zWBVjs_98w&q=%22Pok%C3%A9mon%22+OR+%22Pokemon%22+agent+%22decoupled+UCT%22+OR+DUCT+%22does+not+converge%22+Nash+simultaneous+move&sa=X&ved=2ahUKEwjAr_eC9uaWAxUw4ckDHdKMCg0Qs6gLegQIFhAB
+          - listitem [ref=f10e110]:
+            - link "Short videos" [ref=f10e111] [cursor=pointer]:
+              - /url: /search?sca_esv=c130cae6dad1d85e&sxsrf=APpeQntnhFdW5G0nUWfCyKmt5VTIXEfVjQ:1789143258383&udm=39&fbs=ABfTbFVyMZGZf1hfvX9uKjN_-G8c4u0nXx4bEIpwm1lnNH832VstEKsVDqPorK0Gahnm2nrruedQ0d32Et2kDhW_DVrEiVEEKhGMS6J6qOai58Kp-xhksXV28NogeTUukXLA6cErqGvRbRiH7suRTN0y_34V3a_l9_d5vx2BXsNvp3CNaFbjOcCna9jBf_n8HFTuWydDmY1eASGf8xNKp4j1zWBVjs_98w&q=%22Pok%C3%A9mon%22+OR+%22Pokemon%22+agent+%22decoupled+UCT%22+OR+DUCT+%22does+not+converge%22+Nash+simultaneous+move&sa=X&ved=2ahUKEwjAr_eC9uaWAxUw4ckDHdKMCg0Qs6gLegQIGBAB
+          - listitem [ref=f10e114]:
+            - button [ref=f10e115] [cursor=pointer]:
+              - generic "More filters" [ref=f10e116]: More
+        - button "Tools" [ref=f10e123] [cursor=pointer]
+    - heading "Search Results" [level=1] [ref=f10e130]
+    - generic [ref=f10e135]:
+      - generic [ref=f10e154]:
+        - heading "Thinking" [level=2] [ref=f10e158]
+        - progressbar "Generating" [ref=f10e161]
+      - main [ref=f10e163]:
+        - generic [ref=f10e170]:
+          - heading "Web results" [level=2] [ref=f10e171]
+          - generic [ref=f10e172]:
+            - generic [ref=f10e175]:
+              - link "SMITSIMAX · Mighty Professional Tutorials Mighty Professional Gaming https://mightyprofessionalgaming.com › tutorials › smitsi..." [ref=f10e177] [cursor=pointer]:
+                - /url: /goto?url=CAESggEB6zswFRK7RGkHYjB0QIzVlHZM8WG6aqXyyhRGcr1QR_58AggK9zRrIWIOr-KQ8UvBOs5ClLvojc1deXCOPxBmxNdkgUNNR8ljpDr2RpMkiV-3o50LoFW2l2ehpvlLv9LamkyWaqOnXRQAl0I8g_cR4v9HcgxhKALN9379vi4VlB2q
+                - heading "SMITSIMAX · Mighty Professional Tutorials" [level=3] [ref=f10e178]
+                - generic [ref=f10e187]:
+                  - generic [ref=f10e188]: Mighty Professional Gaming
+                  - generic [ref=f10e190]: https://mightyprofessionalgaming.com › tutorials › smitsi...
+              - button "About this result" [ref=f10e196] [cursor=pointer]
+            - generic [ref=f10e202]:
+              - generic [ref=f10e203]:
+                - text: Proves UCB/UCT
+                - emphasis [ref=f10e204]: does not converge
+                - text: to
+                - emphasis [ref=f10e205]: Nash
+                - text: equilibrium in
+                - emphasis [ref=f10e206]: simultaneous
+                - text: "-"
+                - emphasis [ref=f10e207]: move
+                - text: ... Reference implementation of
+                - emphasis [ref=f10e208]: Decoupled UCT
+                - text: for
+                - emphasis [ref=f10e209]: simultaneous
+                - text: "-"
+                - emphasis [ref=f10e210]: move
+                - text: games in the ...
+              - link "Read more" [ref=f10e211] [cursor=pointer]:
+                - /url: /goto?url=CAESvwIB6zswFcfRig7eZCj7du68_4lrRsatgelDHvrLLyyNsrh16VLJxgADcH4r-KLV8FNzPTEDzizMhcEkhvISqLqnalbRVL6XQcS4djgc59TplPwDATa_DCzjk_7lkNA7gmHZyjkQlqQShn85hbB9ouizHPXU33qICGrlxt9dYi93hBdM_tmjjYUVWqwwWWzzsTbjkF88fck0ic-yuzZI7_6UfnrRs3AAg7NYo4NqObQx_eQ--cavGed9VIVwve55cFRx7pEsrQCv6EPcKdLV9ViAKgkVZEPbjTrR2WcURvZzFq_NZAkM1VMfriDYa_QbXAI9YUjTkHWEPd64Uq7Y5Wel2oqMkoU3Oqby1QlUnsQktdaEpSN1bdKm6CdpccEiurorX0bHHLtLv7O0IGgTk3aLNlBVcAU9065-0S-QK4k-
+        - generic:
+          - generic:
+            - navigation
+        - navigation
+    - contentinfo [ref=f10e212]:
+      - heading "Footer Links" [level=1] [ref=f10e213]
+      - generic [ref=f10e217]:
+        - generic [ref=f10e221]:
+          - button "Cedar Grove, New Jersey - From your IP address" [ref=f10e223] [cursor=pointer]:
+            - generic [ref=f10e224]: Cedar Grove, New Jersey
+            - generic [ref=f10e226]:
+              - text: "-"
+              - generic [ref=f10e227]: From your IP address
+          - text: "-"
+          - button "Update location" [ref=f10e229] [cursor=pointer]
+        - generic [ref=f10e232]:
+          - link "Help" [ref=f10e233] [cursor=pointer]:
+            - /url: https://support.google.com/websearch/?p=ws_results_help&hl=en&fg=1
+          - link "Send feedback" [ref=f10e234] [cursor=pointer]:
+            - /url: "#"
+          - link "Privacy" [ref=f10e235] [cursor=pointer]:
+            - /url: https://policies.google.com/privacy?hl=en&fg=1
+          - link "Terms" [ref=f10e236] [cursor=pointer]:
+            - /url: https://policies.google.com/terms?hl=en&fg=1

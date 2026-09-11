@@ -262,7 +262,7 @@ arms:
   # decoupled UCT over determinized states, decided by root visit share.
   # Neither other probe is this -- matrix.py is our critic at ONE ply,
   # mcts_probe.py is a real tree with poke_engine's HEURISTIC at the leaves.
-  TREESM:  {kind: search, lanes: [s112], dose: M, battles: 4, chunks: 1, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8}}
+  TREESM:  {kind: search, lanes: [s112], dose: M, battles: 6, chunks: 1, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
   TREESMB: {kind: search, lanes: [s112], dose: M, battles: 4, chunks: 1, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
   SMNAR:  {kind: search, lanes: [s112], dose: M, battles: 6, chunks: 1, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, our_k: 3, opp_k: 3, top_branches: 1}}
   SMSAMP: {kind: search, lanes: [s112], dose: M, battles: 6, chunks: 1, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
@@ -300,6 +300,47 @@ arms:
   D2W: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.10, depth2: {our_k: 4, cap: 9000, plies: 1}}
   D3S: {kind: search, lanes: [s112], dose: M, battles: 6,   chunks: 1, margin_delta: 0.10, depth2: {our_k: 2, cap: 9000, plies: 2}}
   D4S: {kind: search, lanes: [s112], dose: M, battles: 6,   chunks: 1, margin_delta: 0.10, depth2: {our_k: 2, cap: 12000, plies: 3}}
+  # THE TWO FIXES THE LITERATURE NAMES FOR EXACTLY THIS FAILURE.
+  #
+  # Hallak, Dalal, Dalton, Frosio, Mannor, Chechik, "Improve Agents without
+  # Retraining: Parallel Tree Search with Off-Policy Correction" (NeurIPS
+  # 2021, arXiv:2107.01715) report our result -- a pre-trained value plus tree
+  # search plus an EXACT simulator scoring BELOW the base agent, worst at
+  # depth 1 with a hard argmax (ours: 0.74767 ungated vs 0.78233 greedy).
+  # Their mechanism is that off-policy branches carry higher value-error
+  # variance (measured Bellman error 1.5-2x higher for non-policy actions) and
+  # a max over higher-variance estimates is biased upward, with the gap
+  # growing like sqrt(2 log A) * (sigma_e*sqrt(d) - sigma_o*sqrt(d-1)). Their
+  # correction is a penalty on every branch whose ROOT ACTION differs from the
+  # policy's -- which is our margin gate, except ours is a CONSTANT 0.10 and
+  # theory says it must grow with depth. D3G is D3 (two extra plies) with the
+  # gate scaled; if the depth loss is this bias, a bigger delta recovers it.
+  D3G25: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.25, depth2: {our_k: 2, cap: 9000, plies: 2}}
+  D3G40: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.40, depth2: {our_k: 2, cap: 9000, plies: 2}}
+  #
+  # Chang, Henaff, Amos, Dudek, Fujimoto, "The Surprising Difficulty of Search
+  # in Model-Based Reinforcement Learning" (ICML 2026, arXiv:2601.21306): "we
+  # find that search can harm performance even when the model is highly
+  # accurate... mitigating overestimation bias matters more than improving
+  # model or value function accuracy", and their fix is a MIN over a value
+  # ensemble at the leaves. The three 100M lanes are an independent-init
+  # ensemble we already have, so this is three critic forwards and no
+  # retraining. DMIN is D2B with pessimistic leaves; D3MIN is D3 with them.
+  DMIN:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.10, depth2: {our_k: 3, cap: 9000, plies: 1}, evaluator: {kind: ens_min, pool: [s112, s104, s120]}}
+  D3MIN: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.10, depth2: {our_k: 2, cap: 9000, plies: 2}, evaluator: {kind: ens_min, pool: [s112, s104, s120]}}
+  # The depth-1 control for both: pessimistic leaves with NO extra ply. If
+  # ens_min alone moves the depth-1 number, the deep arms are not readable
+  # against the ordinary-critic baseline.
+  D1MIN: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, margin_delta: 0.10, evaluator: {kind: ens_min, pool: [s112, s104, s120]}}
+  # THE TREE, WITH THE TWO DEFECTS THE LITERATURE NAMES REMOVED.
+  # TQV  = q_init parent_v (the PPO-MCTS fix) at depth 1 -- the control.
+  # TQV8 = the same at depth 8, the depth arm TSAMP should have been.
+  # TGB* = the Gumbel completed-Q root rule instead of the hard margin gate,
+  #        beta swept, at depth 8.
+  TQV:   {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1, opp_rule: sample}}
+  TQV8:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
+  TGB2:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, decide: gumbel, beta: 2.0, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
+  TGB6:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, decide: gumbel, beta: 6.0, root_min_visits: 8, batch: 16, depth_cap: 8, opp_rule: sample}}
   # THE DEPTH LADDER. Everything is held fixed except `depth_cap`, so this is
   # the first clean dose-response in DEPTH this project has: same tree, same
   # iteration budget, same determinizations, same selector, same margin. TDC1
@@ -333,7 +374,7 @@ arms:
   TSAMP1: {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 1, opp_rule: sample}}
   TDC8Z:  {kind: search, lanes: [s112], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16, depth_cap: 8, value_from: zero}}
   TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.

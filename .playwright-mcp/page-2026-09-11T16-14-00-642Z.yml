@@ -1,0 +1,47 @@
+- generic [active] [ref=f4e1]:
+  - banner [ref=f4e2]:
+    - button "Skip to content" [ref=f4e3] [cursor=pointer]
+    - button "Accessibility Feedback" [ref=f4e6] [cursor=pointer]
+    - generic [ref=f4e9]:
+      - link [ref=f4e10] [cursor=pointer]:
+        - /url: /?FORM=Z9FD1
+        - heading "Back to Bing search" [level=1] [ref=f4e11]
+      - search [ref=f4e12]:
+        - button "Search" [ref=f4e15] [cursor=pointer]
+        - searchbox "Enter your search here - Search suggestions will show as you type" [ref=f4e16]: pokemon showdown bot "expectiminimax" worse than MCTS OR greedy search depth
+        - button "Search using an image" [ref=f4e19] [cursor=pointer]
+    - complementary "Account Rewards and Preferences" [ref=f4e21]:
+      - button "Microsoft Rewards" [ref=f4e22] [cursor=pointer]
+      - link "Sign in" [ref=f4e23] [cursor=pointer]:
+        - /url: javascript:void(0)
+    - navigation "Search Filter" [ref=f4e25]:
+      - list [ref=f4e26]:
+        - listitem [ref=f4e27]:
+          - link "All" [ref=f4e28] [cursor=pointer]:
+            - /url: /?scope=web&FORM=HDRSC1
+        - listitem [ref=f4e29]:
+          - link "Web" [ref=f4e30] [cursor=pointer]:
+            - /url: https://www.bing.com/ck/a?!&&p=996186489bed52c4e3e2b0854cb3016d08ce1d434be9a1419119a61ffd707c0fJmltdHM9MTc4OTA4NDgwMA&ptn=3&ver=2&hsh=4&fclid=0bcc5df4-8857-670c-0d1b-4a2589f166eb&u=a1L3NlYXJjaD9xPXBva2Vtb24rc2hvd2Rvd24rYm90KyUyMmV4cGVjdGltaW5pbWF4JTIyK3dvcnNlK3RoYW4rTUNUUytPUitncmVlZHkrc2VhcmNoK2RlcHRoJndlYnNjcD0xJkZPUk09SERSV1ND&ntb=1
+        - listitem [ref=f4e31]:
+          - link "Search" [ref=f4e32] [cursor=pointer]:
+            - /url: /copilotsearch?q=pokemon+showdown+bot+%22expectiminimax%22+worse+than+MCTS+OR+greedy+search+depth&FORM=CSSCOP
+        - listitem [ref=f4e35]:
+          - link "Images" [ref=f4e36] [cursor=pointer]:
+            - /url: https://www.bing.com/ck/a?!&&p=fd35ca762ad03653425ffd43e64e256b32086538fa14dd5c7eef36fd50b10b48JmltdHM9MTc4OTA4NDgwMA&ptn=3&ver=2&hsh=4&fclid=0bcc5df4-8857-670c-0d1b-4a2589f166eb&u=a1L2ltYWdlcy9zZWFyY2g_cT1wb2tlbW9uK3Nob3dkb3duK2JvdCslMjJleHBlY3RpbWluaW1heCUyMit3b3JzZSt0aGFuK01DVFMrT1IrZ3JlZWR5K3NlYXJjaCtkZXB0aCZGT1JNPUhEUlNDMg&ntb=1
+        - listitem [ref=f4e37]:
+          - link "Videos" [ref=f4e38] [cursor=pointer]:
+            - /url: https://www.bing.com/ck/a?!&&p=20552b2837d5127f2f44834ac608a74995dfa06928242433afc1e7f1fc5ddbe2JmltdHM9MTc4OTA4NDgwMA&ptn=3&ver=2&hsh=4&fclid=0bcc5df4-8857-670c-0d1b-4a2589f166eb&u=a1L3ZpZGVvcy9zZWFyY2g_cT1wb2tlbW9uK3Nob3dkb3duK2JvdCslMjJleHBlY3RpbWluaW1heCUyMit3b3JzZSt0aGFuK01DVFMrT1IrZ3JlZWR5K3NlYXJjaCtkZXB0aCZGT1JNPUhEUlNDMw&ntb=1
+        - listitem [ref=f4e39]:
+          - link "Maps" [ref=f4e40] [cursor=pointer]:
+            - /url: https://www.bing.com/ck/a?!&&p=e6e0daa15b11f6a0273ef82749f626a99ec3ddf72326ef55ff8b431124964bc4JmltdHM9MTc4OTA4NDgwMA&ptn=3&ver=2&hsh=4&fclid=0bcc5df4-8857-670c-0d1b-4a2589f166eb&u=a1L21hcHM_cT1wb2tlbW9uK3Nob3dkb3duK2JvdCslMjJleHBlY3RpbWluaW1heCUyMit3b3JzZSt0aGFuK01DVFMrT1IrZ3JlZWR5K3NlYXJjaCtkZXB0aCZGT1JNPUhEUlNDNA&ntb=1
+        - listitem [ref=f4e41]:
+          - button [ref=f4e42] [cursor=pointer]
+  - contentinfo [ref=f4e46]:
+    - generic [ref=f4e47]:
+      - list:
+        - listitem [ref=f4e48]:
+          - link "Privacy" [ref=f4e49] [cursor=pointer]:
+            - /url: https://www.bing.com/ck/a?!&&p=f0bf13546cf4ffc71de82494c2abc631432b50eeb33e8dfc70d0a63dfa1470c3JmltdHM9MTc4OTA4NDgwMA&ptn=3&ver=2&hsh=4&fclid=0bcc5df4-8857-670c-0d1b-4a2589f166eb&u=a1aHR0cDovL2dvLm1pY3Jvc29mdC5jb20vZndsaW5rLz9MaW5rSWQ9NTIxODM5&ntb=1
+        - listitem [ref=f4e50]:
+          - link "Terms" [ref=f4e51] [cursor=pointer]:
+            - /url: https://www.bing.com/ck/a?!&&p=23ea46f55fc49bb0745a9354a01c8f052e9430fc676a88d2278b82814dc0a9f1JmltdHM9MTc4OTA4NDgwMA&ptn=3&ver=2&hsh=4&fclid=0bcc5df4-8857-670c-0d1b-4a2589f166eb&u=a1aHR0cDovL2dvLm1pY3Jvc29mdC5jb20vZndsaW5rLz9MaW5rSUQ9MjQ2MzM4&ntb=1

@@ -107,11 +107,11 @@ class SearchAgent:
         )
         if evaluator is not None:
             kind = evaluator["kind"]
-            assert kind in ("noise", "loo", "oppact_uniform"), kind
+            assert kind in ("noise", "loo", "oppact_uniform", "ens_min"), kind
             if kind == "noise":
                 assert float(evaluator["sigma"]) > 0.0
-            if kind == "loo":
-                assert evaluator["agents"], "loo needs the other lanes' agents"
+            if kind in ("loo", "ens_min"):
+                assert evaluator["agents"], f"{kind} needs the pool's agents"
         assert leaf_encoding in LEAF_ENCODINGS, (
             f"unknown leaf_encoding {leaf_encoding!r}; one of {LEAF_ENCODINGS}"
         )
@@ -151,6 +151,14 @@ class SearchAgent:
             # so the two are cross-checkable from disk and so a future
             # selector cannot silently alias them.
             "search/overrides": 0,
+            # ens_min diagnostics: which lane supplies the min, and how far
+            # apart the lanes are. A lane share near 1.0 means the "minimum"
+            # is one critic and the pessimism is imaginary.
+            "ens_min/argmin_lane0": 0,
+            "ens_min/argmin_lane1": 0,
+            "ens_min/argmin_lane2": 0,
+            "ens_min/spread_sum": 0.0,
+            "ens_min/leaves": 0,
         }
         self._entropies: list[float] = []
 
@@ -187,6 +195,46 @@ class SearchAgent:
             vs = [a.critic(t).reshape(-1) for a in self._evaluator["agents"]]
         return torch.stack(vs).mean(dim=0).numpy()
 
+    def _ens_min_critic_fn(self, batch: np.ndarray) -> np.ndarray:
+        """PESSIMISTIC leaf value over the pool's critics.
+
+        Search maximises over leaf values, so any upward error in a leaf is
+        selected FOR -- and Hallak et al. (NeurIPS 2021) measure that the
+        upward error is systematically larger off the policy's own action,
+        which is what makes the bias grow with depth. Chang et al. (ICML 2026)
+        report that a min over a value ensemble "effectively addresses this
+        bias and enables effective search". The three 100M lanes are an
+        independent-init ensemble we already have, so this costs three critic
+        forwards and no retraining.
+
+        TWO FORMS, because a plain MIN is not obviously pessimism here.
+        These critics were trained separately and are not calibrated to each
+        other, so if one lane simply sits lower than the others the min is
+        that lane's critic everywhere and nothing has been made pessimistic --
+        the evaluator has just been swapped. `lcb_k` gives the scale-free
+        form, mean - k*std, which is invariant to a per-lane offset and
+        penalises exactly the leaves the lanes DISAGREE about; k = 0 is the
+        plain mean. `argmin_share` records which lane supplied the min so the
+        degenerate case is visible on disk rather than assumed away.
+
+        Unlike `loo`, this INCLUDES the lane's own critic -- it is not a screen
+        for "would a better evaluator help", it is the evaluator.
+        """
+        t = torch.as_tensor(batch, dtype=torch.float32)
+        with torch.no_grad():
+            vs = torch.stack(
+                [a.critic(t).reshape(-1) for a in self._evaluator["agents"]])
+        k = self._evaluator.get("lcb_k")
+        am = vs.argmin(dim=0)
+        for i in range(vs.shape[0]):
+            self.counters["ens_min/argmin_lane%d" % i] += int((am == i).sum())
+        self.counters["ens_min/spread_sum"] += float(
+            (vs.max(0).values - vs.min(0).values).sum())
+        self.counters["ens_min/leaves"] += int(vs.shape[1])
+        if k is None:
+            return vs.min(dim=0).values.numpy()
+        return (vs.mean(dim=0) - float(k) * vs.std(dim=0)).numpy()
+
     def _decision_critic(self, battle_index: int, turn: int, decision_index: int):
         """The leaf evaluator for ONE decision. E0 returns the bound method
         unchanged — the None path adds nothing to the R2 code path."""
@@ -195,6 +243,8 @@ class SearchAgent:
         kind = self._evaluator["kind"]
         if kind == "loo":
             return self._loo_critic_fn
+        if kind == "ens_min":
+            return self._ens_min_critic_fn
         if kind == "noise":
             sigma = float(self._evaluator["sigma"])
             key = hash((self._seed, battle_index, turn, decision_index, _NOISE_SALT))

@@ -1,0 +1,385 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - link "DuckDuckGo home" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e8]: DuckDuckGo
+          - generic [ref=e15]:
+            - combobox "Search privately" [ref=e17]: smogon forums "technical machine" pokemon AI david stone
+            - button "Search" [ref=e19] [cursor=pointer]
+        - button "Open menu" [ref=e23] [cursor=pointer]
+      - navigation [ref=e31]:
+        - list [ref=e32]:
+          - listitem [ref=e33]:
+            - link [ref=e34] [cursor=pointer]:
+              - /url: /?q=smogon+forums+%22technical+machine%22+pokemon+AI+david+stone&ia=web
+              - strong [ref=e35]: All
+          - listitem [ref=e38]:
+            - link [ref=e39] [cursor=pointer]:
+              - /url: /?q=smogon+forums+%22technical+machine%22+pokemon+AI+david+stone&ia=images&iax=images
+              - strong [ref=e40]: Images
+          - listitem [ref=e41]:
+            - link [ref=e42] [cursor=pointer]:
+              - /url: /?q=smogon+forums+%22technical+machine%22+pokemon+AI+david+stone&ia=videos&iax=videos
+              - strong [ref=e43]: Videos
+          - listitem [ref=e44]:
+            - link [ref=e45] [cursor=pointer]:
+              - /url: /?q=smogon+forums+%22technical+machine%22+pokemon+AI+david+stone&ia=news&iar=news
+              - strong [ref=e46]: News
+          - listitem [ref=e47]:
+            - button [ref=e48] [cursor=pointer]:
+              - strong [ref=e50]: More
+        - list [ref=e53]:
+          - listitem [ref=e54]:
+            - link "Search Assist" [ref=e56] [cursor=pointer]:
+              - /url: /?q=smogon+forums+%22technical+machine%22+pokemon+AI+david+stone&ia=web&assist=true
+          - listitem [ref=e63]:
+            - link "Duck.ai" [ref=e65] [cursor=pointer]:
+              - /url: /?q=smogon+forums+%22technical+machine%22+pokemon+AI+david+stone&ia=chat
+          - listitem [ref=e69]:
+            - button "Search Settings ✀" [ref=e71] [cursor=pointer]:
+              - strong [ref=e72]:
+                - generic [ref=e75]: Search Settings
+                - generic [ref=e76]: ✀
+    - generic [ref=e83]:
+      - navigation [ref=e85]:
+        - button [ref=e87] [cursor=pointer]:
+          - strong [ref=e94]: Private
+        - button "All regions" [ref=e99] [cursor=pointer]
+        - button [ref=e104] [cursor=pointer]:
+          - strong [ref=e106]: "Safe search: moderate"
+        - button [ref=e110] [cursor=pointer]:
+          - strong [ref=e112]: Any time
+      - generic [ref=e116]:
+        - list [ref=e117]:
+          - listitem [ref=e118]:
+            - article [ref=e119] [cursor=pointer]:
+              - button [ref=e121]
+              - generic [ref=e126]:
+                - link "Search domain smogon.com" [ref=e128]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:www.smogon.com
+                - generic [ref=e131]:
+                  - paragraph [ref=e132]: Smogon University
+                  - link "https://www.smogon.com › forums › threads › technical-machine-a-pokemon-ai.69021" [ref=e133]:
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/
+                    - paragraph [ref=e135]:
+                      - generic [ref=e136]: https://www.smogon.com
+                      - generic [ref=e137]: › forums › threads › technical-machine-a-pokemon-ai.69021
+              - heading [level=2] [ref=e139]:
+                - 'link "Technical Machine: A Pokemon AI | Smogon Forums" [ref=e140]':
+                  - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/
+              - generic [ref=e142]: Major update! Technical Machine home page and Mercurial repository. I am working on an AI to play Pokemon (I'll make a more in-depth, general thread on it later), and one of the things I need is an evaluation function. I am using an expectiminimax algorithm with alpha-beta pruning, which...
+              - list [ref=e149]:
+                - listitem [ref=e150]:
+                  - 'link "Technical Machine: A Pokemon AI | Page 5 | Smogon Forums In this battle, Technical Machine was searching two turns ahead before moving, and encountered a couple of bugs in the middle and end of the battle that caused issues. Remember: to read Technical Machine''s evaluation of a position, lower scores always benefit the foe, higher scores always benefit Technical Machine." [ref=e151]':
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-5
+                    - 'heading "Technical Machine: A Pokemon AI | Page 5 | Smogon Forums" [level=3] [ref=e152]'
+                    - paragraph [ref=e153]:
+                      - generic [ref=e154]: "In this battle, Technical Machine was searching two turns ahead before moving, and encountered a couple of bugs in the middle and end of the battle that caused issues. Remember: to read Technical Machine's evaluation of a position, lower scores always benefit the foe, higher scores always benefit Technical Machine."
+                - listitem [ref=e155]:
+                  - 'link "Technical Machine: A Pokemon AI | Page 4 | Smogon Forums I now have a working battle log parser. Right now I just have the obvious stuff (extract Pokemon names, movesets, leftovers, etc.), but I''m going to combine it with my reverse damage calculator soon so I can also get exact moveset / EV combinations. This way, I can get more detailed stats so I..." [ref=e156]':
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-4
+                    - 'heading "Technical Machine: A Pokemon AI | Page 4 | Smogon Forums" [level=3] [ref=e157]'
+                    - paragraph [ref=e158]:
+                      - generic [ref=e159]: I now have a working battle log parser. Right now I just have the obvious stuff (extract Pokemon names, movesets, leftovers, etc.), but I'm going to combine it with my reverse damage calculator soon so I can also get exact moveset / EV combinations. This way, I can get more detailed stats so I...
+                - listitem [ref=e160]:
+                  - 'link "Technical Machine: A Pokemon AI | Page 3 | Smogon Forums [david@davidp4 pokemon]$ ./ai 3 Use Dragon Claw for a minimum expected score of -398 [david@davidp4 pokemon]$ ./ai 4 Use Dragon Dance for a minimum expected score of 105 [david@davidp4 pokemon]$ ./ai 5 Use Dragon Dance, winning the game. Click to expand... And this is how much the Leftovers can change things (Salamence gets Leftovers instead of ..." [ref=e161]':
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-3
+                    - 'heading "Technical Machine: A Pokemon AI | Page 3 | Smogon Forums" [level=3] [ref=e162]'
+                    - paragraph [ref=e163]:
+                      - generic [ref=e164]: "[david@davidp4 pokemon]$ ./ai 3 Use Dragon Claw for a minimum expected score of -398 [david@davidp4 pokemon]$ ./ai 4 Use Dragon Dance for a minimum expected score of 105 [david@davidp4 pokemon]$ ./ai 5 Use Dragon Dance, winning the game. Click to expand... And this is how much the Leftovers can change things (Salamence gets Leftovers instead of ..."
+          - listitem [ref=e165]:
+            - article [ref=e166] [cursor=pointer]:
+              - button [ref=e168]
+              - generic [ref=e173]:
+                - link "Search domain smogon.com" [ref=e175]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:www.smogon.com
+                - generic [ref=e178]:
+                  - paragraph [ref=e179]: Smogon University
+                  - link "https://www.smogon.com › forums › threads › technical-machine-a-pokemon-bot.3455783" [ref=e180]:
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-bot.3455783/
+                    - paragraph [ref=e182]:
+                      - generic [ref=e183]: https://www.smogon.com
+                      - generic [ref=e184]: › forums › threads › technical-machine-a-pokemon-bot.3455783
+              - heading [level=2] [ref=e186]:
+                - 'link "Technical Machine: A Pokemon bot | Smogon Forums" [ref=e187]':
+                  - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-bot.3455783/
+              - generic [ref=e189]: Technical Machine is a program / AI / bot that can play Pokemon. It connects to a server and without any assistance it determines which moves to use and then uses them.
+          - listitem [ref=e194]:
+            - article [ref=e195] [cursor=pointer]:
+              - button [ref=e197]
+              - generic [ref=e202]:
+                - link "Search domain github.com" [ref=e204]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:github.com
+                - generic [ref=e207]:
+                  - paragraph [ref=e208]: Github
+                  - link "https://github.com › davidstone › technical-machine" [ref=e209]:
+                    - /url: https://github.com/davidstone/technical-machine
+                    - paragraph [ref=e211]:
+                      - generic [ref=e212]: https://github.com
+                      - generic [ref=e213]: › davidstone › technical-machine
+              - heading [level=2] [ref=e215]:
+                - link "Technical Machine, a Pokemon AI - GitHub" [ref=e216]:
+                  - /url: https://github.com/davidstone/technical-machine
+              - generic [ref=e218]: The world's most advanced Pokemon AI. Contribute to davidstone/technical-machine development by creating an account on GitHub.
+          - listitem [ref=e223]:
+            - article [ref=e224] [cursor=pointer]:
+              - button [ref=e226]
+              - generic [ref=e231]:
+                - link "Search domain smogon.com" [ref=e233]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:www.smogon.com
+                - generic [ref=e236]:
+                  - paragraph [ref=e237]: Smogon University
+                  - link "https://www.smogon.com › forums › threads › technical-machine-a-pokemon-ai.69021 › page-5" [ref=e238]:
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-5
+                    - paragraph [ref=e240]:
+                      - generic [ref=e241]: https://www.smogon.com
+                      - generic [ref=e242]: › forums › threads › technical-machine-a-pokemon-ai.69021 › page-5
+              - heading [level=2] [ref=e244]:
+                - 'link "Technical Machine: A Pokemon AI | Page 5 | Smogon Forums" [ref=e245]':
+                  - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-5
+              - generic [ref=e247]: "In this battle, Technical Machine was searching two turns ahead before moving, and encountered a couple of bugs in the middle and end of the battle that caused issues. Remember: to read Technical Machine's evaluation of a position, lower scores always benefit the foe, higher scores always benefit Technical Machine."
+          - listitem [ref=e252]:
+            - article [ref=e253] [cursor=pointer]:
+              - button [ref=e255]
+              - generic [ref=e260]:
+                - link "Search domain smogon.com" [ref=e262]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:www.smogon.com
+                - generic [ref=e265]:
+                  - paragraph [ref=e266]: Smogon University
+                  - link "https://www.smogon.com › forums › threads › technical-machine-a-pokemon-ai.69021 › page-4" [ref=e267]:
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-4
+                    - paragraph [ref=e269]:
+                      - generic [ref=e270]: https://www.smogon.com
+                      - generic [ref=e271]: › forums › threads › technical-machine-a-pokemon-ai.69021 › page-4
+              - heading [level=2] [ref=e273]:
+                - 'link "Technical Machine: A Pokemon AI | Page 4 | Smogon Forums" [ref=e274]':
+                  - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-4
+              - generic [ref=e276]: I now have a working battle log parser. Right now I just have the obvious stuff (extract Pokemon names, movesets, leftovers, etc.), but I'm going to combine it with my reverse damage calculator soon so I can also get exact moveset / EV combinations. This way, I can get more detailed stats so I...
+          - listitem [ref=e281]:
+            - article [ref=e282] [cursor=pointer]:
+              - button [ref=e284]
+              - generic [ref=e289]:
+                - link "Search domain smogon.com" [ref=e291]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:www.smogon.com
+                - generic [ref=e294]:
+                  - paragraph [ref=e295]: Smogon University
+                  - link "https://www.smogon.com › forums › threads › technical-machine-a-pokemon-ai.69021 › page-3" [ref=e296]:
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-3
+                    - paragraph [ref=e298]:
+                      - generic [ref=e299]: https://www.smogon.com
+                      - generic [ref=e300]: › forums › threads › technical-machine-a-pokemon-ai.69021 › page-3
+              - heading [level=2] [ref=e302]:
+                - 'link "Technical Machine: A Pokemon AI | Page 3 | Smogon Forums" [ref=e303]':
+                  - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-3
+              - generic [ref=e305]: "[david@davidp4 pokemon]$ ./ai 3 Use Dragon Claw for a minimum expected score of -398 [david@davidp4 pokemon]$ ./ai 4 Use Dragon Dance for a minimum expected score of 105 [david@davidp4 pokemon]$ ./ai 5 Use Dragon Dance, winning the game. Click to expand... And this is how much the Leftovers can change things (Salamence gets Leftovers instead of ..."
+          - listitem [ref=e310]:
+            - article [ref=e311] [cursor=pointer]:
+              - button [ref=e313]
+              - generic [ref=e318]:
+                - link "Search domain smogon.com" [ref=e320]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:www.smogon.com
+                - generic [ref=e323]:
+                  - paragraph [ref=e324]: Smogon University
+                  - link "https://www.smogon.com › forums › threads › technical-machine-a-pokemon-ai.69021 › page-2" [ref=e325]:
+                    - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-2
+                    - paragraph [ref=e327]:
+                      - generic [ref=e328]: https://www.smogon.com
+                      - generic [ref=e329]: › forums › threads › technical-machine-a-pokemon-ai.69021 › page-2
+              - heading [level=2] [ref=e331]:
+                - 'link "Technical Machine: A Pokemon AI | Page 2 | Smogon Forums" [ref=e332]':
+                  - /url: https://www.smogon.com/forums/threads/technical-machine-a-pokemon-ai.69021/page-2
+              - generic [ref=e334]: "obi formerly david stone Mar 30, 2010 #27 I'm not interested in creating watered down versions of the AI. To address the issue of replaying a computer to try and \"cheat\" it, the ideal strategy for the AI is not \"in this situation, use this move\", due to the simultaneous execution of moves."
+          - listitem [ref=e339]:
+            - article [ref=e340] [cursor=pointer]:
+              - button [ref=e342]
+              - generic [ref=e347]:
+                - link "Search domain smogon.com" [ref=e349]:
+                  - /url: /?q=smogon%20forums%20%22technical%20machine%22%20pokemon%20AI%20david%20stone+site:www.smogon.com
+                - generic [ref=e352]:
+                  - paragraph [ref=e353]: Smogon University
+                  - link "https://www.smogon.com › forums › threads › creating-a-showdown-ai.3521134" [ref=e354]:
+                    - /url: https://www.smogon.com/forums/threads/creating-a-showdown-ai.3521134/
+                    - paragraph [ref=e356]:
+                      - generic [ref=e357]: https://www.smogon.com
+                      - generic [ref=e358]: › forums › threads › creating-a-showdown-ai.3521134
+              - heading [level=2] [ref=e360]:
+                - link "Creating a showdown AI | Smogon Forums" [ref=e361]:
+                  - /url: https://www.smogon.com/forums/threads/creating-a-showdown-ai.3521134/
+              - generic [ref=e363]: david stone has been working on a Pokemon AI called Technical Machine for some time now (or at least was). I remember him running into a lot of issues with it, particularly the time it took the AI to actually select an action. Creating an AI is a big task, and you need to be absolutely sure you're up to it if you want to actually create one.
+          - listitem [ref=e368]:
+            - generic [ref=e376]:
+              - generic [ref=e377]:
+                - generic [ref=e379]:
+                  - text: Generate answer for
+                  - strong [ref=e380]: smogon forums "technical machine" pokemon AI david stone
+                - generic [ref=e381]:
+                  - button "About Search Assist" [ref=e382] [cursor=pointer]
+                  - button "Change Search Assist settings" [ref=e386] [cursor=pointer]
+              - button "Assist" [ref=e389] [cursor=pointer]: Search Assist
+        - button "More results" [ref=e397] [cursor=pointer]
+    - list [ref=e400]:
+      - button "Close menu" [ref=e401] [cursor=pointer]
+      - list [ref=e405]:
+        - listitem [ref=e406]: Search
+        - listitem [ref=e407]:
+          - link "Homepage" [ref=e408] [cursor=pointer]:
+            - /url: https://start.duckduckgo.com/
+        - listitem [ref=e409]:
+          - link "Themes" [ref=e410] [cursor=pointer]:
+            - /url: /settings#appearance
+        - listitem [ref=e411]:
+          - link "Settings" [ref=e412] [cursor=pointer]:
+            - /url: /settings
+      - list [ref=e413]:
+        - listitem [ref=e414]: Share Feedback
+        - listitem [ref=e415]:
+          - generic [ref=e418]:
+            - button "Positive feedback" [ref=e419] [cursor=pointer]
+            - button "Negative feedback" [ref=e423] [cursor=pointer]
+      - list [ref=e427]:
+        - listitem [ref=e428]: Downloads
+        - listitem [ref=e429]:
+          - link "iOS Browser" [ref=e430] [cursor=pointer]:
+            - /url: https://apps.apple.com/app/duckduckgo-private-browser/id663592361?platform=iphone&pt=866401&mt=8&ct=serp-atb-serp
+        - listitem [ref=e431]:
+          - link "Android Browser" [ref=e432] [cursor=pointer]:
+            - /url: https://play.google.com/store/apps/details?id=com.duckduckgo.mobile.android&referrer=utm_campaign%3Dserp-atb-serp%26origin%3Dfunnel_playstore_searchresults
+        - listitem [ref=e433]:
+          - link "Mac Browser" [ref=e434] [cursor=pointer]:
+            - /url: /mac?origin=funnel_browser_searchresults
+        - listitem [ref=e435]:
+          - link "Windows Browser" [ref=e436] [cursor=pointer]:
+            - /url: /windows?origin=funnel_browser_searchresults
+        - listitem [ref=e437]:
+          - link "Browser Extensions" [ref=e438] [cursor=pointer]:
+            - /url: /duckduckgo-help-pages/desktop/adding-duckduckgo-to-your-browser/
+      - list [ref=e439]:
+        - listitem [ref=e440]: More From DuckDuckGo
+        - listitem [ref=e441]:
+          - generic [ref=e444]:
+            - button "Dismiss promotion" [ref=e445] [cursor=pointer]
+            - generic [ref=e448]:
+              - paragraph [ref=e450]: Upgrade to our Private Browser
+              - paragraph [ref=e462]: Fast. Secure. Free.
+            - link "Install Mac Browser" [ref=e463] [cursor=pointer]:
+              - /url: /mac
+        - listitem [ref=e466]:
+          - link "DuckDuckGo Subscription" [ref=e467] [cursor=pointer]:
+            - /url: /pro?origin=funnel_pro_searchresults
+        - listitem [ref=e468]:
+          - link "Duck.ai" [ref=e469] [cursor=pointer]:
+            - /url: https://duck.ai
+        - listitem [ref=e470]:
+          - link "Email Protection" [ref=e471] [cursor=pointer]:
+            - /url: /email
+        - listitem [ref=e472]:
+          - link "Newsletter" [ref=e473] [cursor=pointer]:
+            - /url: /newsletter
+        - listitem [ref=e474]:
+          - link "Blog" [ref=e475] [cursor=pointer]:
+            - /url: /blog
+        - listitem [ref=e476]:
+          - link "Podcast" [ref=e477] [cursor=pointer]:
+            - /url: https://insideduckduckgo.substack.com/?showWelcome=true
+        - listitem [ref=e478]:
+          - link "Collaborations" [ref=e479] [cursor=pointer]:
+            - /url: /collaborations
+      - list [ref=e480]:
+        - listitem [ref=e481]: Learn More
+        - listitem [ref=e482]:
+          - link "What’s New" [ref=e483] [cursor=pointer]:
+            - /url: /updates
+        - listitem [ref=e484]:
+          - link "Compare Privacy" [ref=e485] [cursor=pointer]:
+            - /url: /compare-privacy
+        - listitem [ref=e486]:
+          - link "About Our Browser" [ref=e487] [cursor=pointer]:
+            - /url: /app
+        - listitem [ref=e488]:
+          - link "About DuckDuckGo" [ref=e489] [cursor=pointer]:
+            - /url: /about
+      - list [ref=e490]:
+        - listitem [ref=e491]: Other Resources
+        - listitem [ref=e492]:
+          - link "Help" [ref=e493] [cursor=pointer]:
+            - /url: /duckduckgo-help-pages
+        - listitem [ref=e494]:
+          - link "Community" [ref=e495] [cursor=pointer]:
+            - /url: https://www.reddit.com/r/duckduckgo/
+        - listitem [ref=e496]:
+          - link "Careers" [ref=e497] [cursor=pointer]:
+            - /url: /careers
+        - listitem [ref=e498]:
+          - link "Privacy Policy" [ref=e499] [cursor=pointer]:
+            - /url: /privacy
+        - listitem [ref=e500]:
+          - link "Terms of Service" [ref=e501] [cursor=pointer]:
+            - /url: /terms
+        - listitem [ref=e502]:
+          - link "Press Kit" [ref=e503] [cursor=pointer]:
+            - /url: /press
+        - listitem [ref=e504]:
+          - link "Advertise on Search" [ref=e505] [cursor=pointer]:
+            - /url: /duckduckgo-help-pages/company/advertise-on-duckduckgo-search
+  - generic [ref=e509]:
+    - generic [ref=e511]:
+      - generic [ref=e528]:
+        - heading "Get Our Mac Browser" [level=3] [ref=e529]
+        - paragraph [ref=e530]: Protect your data as you search, browse, and use AI.
+      - link "Download" [ref=e531] [cursor=pointer]:
+        - /url: https://duckduckgo.com/mac?origin=funnel_browser_searchresults__footercard
+    - generic [ref=e535]:
+      - generic [ref=e536]:
+        - heading "Learn More" [level=3] [ref=e537]
+        - list [ref=e538]:
+          - listitem [ref=e539]:
+            - link "What's New" [ref=e540] [cursor=pointer]:
+              - /url: https://duckduckgo.com/updates
+          - listitem [ref=e541]:
+            - link "About Browser" [ref=e542] [cursor=pointer]:
+              - /url: https://duckduckgo.com/app
+          - listitem [ref=e543]:
+            - link "Compare Privacy" [ref=e544] [cursor=pointer]:
+              - /url: https://duckduckgo.com/compare-privacy
+          - listitem [ref=e545]:
+            - link "Help Pages" [ref=e546] [cursor=pointer]:
+              - /url: https://duckduckgo.com/duckduckgo-help-pages/
+      - generic [ref=e547]:
+        - heading "Get More" [level=3] [ref=e548]
+        - list [ref=e549]:
+          - listitem [ref=e550]:
+            - link "Subscription" [ref=e551] [cursor=pointer]:
+              - /url: https://duckduckgo.com/pro
+          - listitem [ref=e552]:
+            - link "Email Protection" [ref=e553] [cursor=pointer]:
+              - /url: https://duckduckgo.com/email
+          - listitem [ref=e554]:
+            - generic [ref=e555]:
+              - link "Podcast" [ref=e557] [cursor=pointer]:
+                - /url: https://insideduckduckgo.substack.com/?showWelcome=true
+              - generic [ref=e558]:
+                - text: "&"
+                - link "Newsletter" [ref=e559] [cursor=pointer]:
+                  - /url: https://duckduckgo.com/newsletter
+          - listitem [ref=e560]:
+            - link "Collaborations" [ref=e561] [cursor=pointer]:
+              - /url: https://duckduckgo.com/collaborations
+  - button "Share Feedback" [ref=e566] [cursor=pointer]
+  - generic [ref=e567]:
+    - generic [ref=e569]:
+      - banner [ref=e570]:
+        - paragraph [ref=e572]: Upgrade to our browser.
+      - generic [ref=e573]:
+        - paragraph [ref=e579]:
+          - generic [ref=e580]:
+            - text: Try the
+            - strong [ref=e581]: DuckDuckGo Browser.
+            - text: Fast. Free. Private.
+        - link "Download Browser" [ref=e582] [cursor=pointer]:
+          - /url: https://duckduckgo.com/mac?origin=funnel_browser_searchresults__popover
+      - paragraph [ref=e588]:
+        - generic [ref=e589]: Free
+    - button "Dismiss" [ref=e591] [cursor=pointer]

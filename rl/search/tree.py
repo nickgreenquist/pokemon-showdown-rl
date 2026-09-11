@@ -75,7 +75,21 @@ class TreeCfg:
     #     same critic-value scale, so S3G10 at delta 0.10 and this at 0.10
     #     differ in DEPTH and nothing else. That is the comparison worth
     #     having.
+    #   "gumbel" -- pi' = softmax(logits + beta * q_norm), then argmax.
+    #     Danihelka, Guez, Schrittwieser & Silver, "Policy improvement by
+    #     planning with Gumbel" (ICLR 2022), App. C.2.2: for ANY monotonically
+    #     increasing sigma, sum_a pi'(a) q(a) >= sum_a pi(a) q(a) -- a policy
+    #     improvement with a single knob, where beta = 0 is the bare policy
+    #     and beta -> inf is greedy-over-search. Two caveats travel with it
+    #     and must not be dropped: the guarantee is against SAMPLING from pi,
+    #     not against argmax pi (and the locked protocol is deterministic),
+    #     and it holds only as far as q is correct -- which is the whole
+    #     problem. It is a better-shaped knob than the hard margin, not a
+    #     proof that it wins. Their own c_visit=50 is NOT copied: that is
+    #     calibrated for search-trained Q-values and here would be argmax in
+    #     all but name.
     decide: str = "visits"
+    beta: float = 4.0          # "gumbel" only
     root_min_visits: int = 0   # force-visit every root action this many times
     # LEAF-PARALLEL BATCHING. At batch 1 the network is 55% of a decision's
     # cost (measured: 126 of 227 ms, 276 batch-1 forwards). `batch` descents
@@ -85,6 +99,10 @@ class TreeCfg:
     # affordable; it does not change what the tree searches.
     batch: int = 1
     virtual_loss: float = 1.0
+    # "parent_v" = an unvisited child starts at its parent's value (the
+    # PPO-MCTS fix); "zero" is the old, wrong-for-our-scale default, kept only
+    # so the defect is measurable rather than merely asserted.
+    q_init: str = "parent_v"
     # HOW THE OPPONENT PICKS. This is not a detail -- it changes what the
     # backed-up value MEANS.
     #   "puct" -- the opponent minimises our value, so the root Q is a
@@ -272,8 +290,25 @@ class Tree:
         return node.v0
 
     # --- selection ----------------------------------------------------
-    def _puct(self, n_vec, w_vec, prior, total, sign):
-        q = np.zeros_like(n_vec)
+    def _puct(self, n_vec, w_vec, prior, total, sign, q_init=0.0):
+        """PUCT, with UNVISITED children initialised to the node's OWN value
+        rather than to zero.
+
+        Zero-init is the default everywhere and it is wrong whenever the value
+        scale is not centred on zero. Our critic sits near +0.47 on a typical
+        state, so a zero-initialised unvisited action looks WORSE than any
+        visited one and PUCT stops exploring: the first smoke measured 90.9%
+        of root visits landing on a single action, i.e. the tree very nearly
+        reproducing its own prior.
+
+        Liu et al., "Don't throw away your value model!" (arXiv:2309.15028)
+        hit exactly this retrofitting a PPO value head into MCTS -- verbatim,
+        zero-init "can severely suppress exploration in the tree search,
+        making it degenerate to greedy decoding" -- and their fix is this one,
+        Q(s*,a) <- V(s*) for the children of a newly expanded node. Ablating
+        it cost them 86.72 -> 73.97.
+        """
+        q = np.full_like(n_vec, sign * q_init)
         nz = n_vec > 0
         q[nz] = sign * (w_vec[nz] / n_vec[nz])
         u = self.cfg.c_puct * prior * np.sqrt(total + 1.0) / (1.0 + n_vec)
@@ -318,19 +353,21 @@ class Tree:
         return slots[j]
 
     def _pick(self, node: Node) -> tuple[int, int]:
+        q0 = node.v0 if self.cfg.q_init == "parent_v" else 0.0
         if node.depth == 0 and self.cfg.root_min_visits:
             # A flat floor at the ROOT only: `decide: q` needs a value for
             # every root action, and PUCT starves an action the policy puts
             # 0.001 on. Below the root PUCT is untouched.
             under = np.flatnonzero(node.n_a < self.cfg.root_min_visits)
             ai = (int(under[np.argmin(node.n_a[under])]) if len(under)
-                  else self._puct(node.n_a, node.w_a, node.p_ours, node.n, +1))
+                  else self._puct(node.n_a, node.w_a, node.p_ours, node.n, +1,
+                                  q0))
         else:
-            ai = self._puct(node.n_a, node.w_a, node.p_ours, node.n, +1)
+            ai = self._puct(node.n_a, node.w_a, node.p_ours, node.n, +1, q0)
         if self.cfg.opp_rule == "sample":
             bi = int(self.rng.choice(len(node.p_theirs), p=node.p_theirs))
         else:
-            bi = self._puct(node.n_b, node.w_b, node.p_theirs, node.n, -1)
+            bi = self._puct(node.n_b, node.w_b, node.p_theirs, node.n, -1, q0)
         return ai, bi
 
     def _descend(self) -> tuple[list, Node | None, float | None]:
@@ -464,6 +501,34 @@ def tree_decision(
     # derives legality from the engine state, which does not model gen-1
     # placeholder turns or partial-trapping locks (bridge.is_locked_turn).
     share = {a: visits.get(a, 0.0) / total for a in rows}
+    if cfg.decide == "gumbel":
+        # Normalise q to [0,1] over the LEGAL rows, as mctx does, so beta has
+        # the same meaning whatever the value spread of the position.
+        seen = {a: (vals[a] / visits[a]) for a in rows if visits.get(a, 0) > 0}
+        if not seen:
+            return policy_argmax, {
+                "search/chosen": policy_argmax, "search/leaves": evals,
+                "search/policy_argmax": policy_argmax, "search/overrode": 0,
+                "tree/policy_unvisited": 1.0}
+        lo, hi = min(seen.values()), max(seen.values())
+        rng_q = max(hi - lo, 1e-6)
+        logits = np.array([np.log(max(float(prior[a]), 1e-38)) for a in rows])
+        qn = np.array([(seen[a] - lo) / rng_q if a in seen else 0.0
+                       for a in rows])
+        z = logits + float(cfg.beta) * qn
+        chosen = rows[int(np.argmax(z))]
+        return chosen, {
+            "search/chosen": chosen,
+            "search/policy_argmax": policy_argmax,
+            "search/overrode": int(chosen != policy_argmax),
+            "search/leaves": evals,
+            "tree/beta": float(cfg.beta),
+            "tree/q_spread": float(rng_q),
+            "tree/evals": float(evals),
+            "tree/max_depth": float(max_depth),
+            "tree/mean_sim_depth": float(depth_sum / max(sims, 1)),
+            "tree/transition_failures": float(fails),
+        }
     if cfg.decide == "q":
         # Root mean value per action, pooled over determinizations. An action
         # nobody visited cannot be argued for, so it sits at -inf rather than

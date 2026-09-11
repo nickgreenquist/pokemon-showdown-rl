@@ -1,0 +1,223 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - generic [ref=f2e4]:
+      - generic [ref=f2e5]:
+        - generic [ref=f2e6]:
+          - link "DuckDuckGo home" [ref=f2e7] [cursor=pointer]:
+            - /url: /
+            - generic [ref=f2e8]: DuckDuckGo
+          - generic [ref=f2e15]:
+            - combobox "Search privately" [ref=f2e17]: pokemon showdown AI "deeper search" OR "search depth" made it worse bot minimax
+            - button "Search" [ref=f2e19] [cursor=pointer]
+        - button "Open menu" [ref=f2e23] [cursor=pointer]
+      - navigation [ref=f2e31]:
+        - list [ref=f2e32]:
+          - listitem [ref=f2e33]:
+            - link [ref=f2e34] [cursor=pointer]:
+              - /url: /?q=pokemon+showdown+AI+%22deeper+search%22+OR+%22search+depth%22+made+it+worse+bot+minimax&ia=web
+              - strong [ref=f2e35]: All
+          - listitem [ref=f2e38]:
+            - link [ref=f2e39] [cursor=pointer]:
+              - /url: /?q=pokemon+showdown+AI+%22deeper+search%22+OR+%22search+depth%22+made+it+worse+bot+minimax&ia=images&iax=images
+              - strong [ref=f2e40]: Images
+          - listitem [ref=f2e41]:
+            - link [ref=f2e42] [cursor=pointer]:
+              - /url: /?q=pokemon+showdown+AI+%22deeper+search%22+OR+%22search+depth%22+made+it+worse+bot+minimax&ia=videos&iax=videos
+              - strong [ref=f2e43]: Videos
+          - listitem [ref=f2e44]:
+            - link [ref=f2e45] [cursor=pointer]:
+              - /url: /?q=pokemon+showdown+AI+%22deeper+search%22+OR+%22search+depth%22+made+it+worse+bot+minimax&ia=news&iar=news
+              - strong [ref=f2e46]: News
+          - listitem [ref=f2e47]:
+            - link [ref=f2e48] [cursor=pointer]:
+              - /url: /?q=pokemon+showdown+AI+%22deeper+search%22+OR+%22search+depth%22+made+it+worse+bot+minimax&iaxm=maps
+              - strong [ref=f2e49]: Maps
+          - listitem [ref=f2e50]:
+            - link [ref=f2e51] [cursor=pointer]:
+              - /url: /?q=pokemon+showdown+AI+%22deeper+search%22+OR+%22search+depth%22+made+it+worse+bot+minimax&ia=shopping&iax=shopping
+              - strong [ref=f2e52]: Shopping
+        - list [ref=f2e53]:
+          - listitem [ref=f2e54]:
+            - link "Duck.ai" [ref=f2e56] [cursor=pointer]:
+              - /url: /?q=pokemon+showdown+AI+%22deeper+search%22+OR+%22search+depth%22+made+it+worse+bot+minimax&ia=chat
+          - listitem [ref=f2e60]:
+            - button "Search Settings ✀" [ref=f2e62] [cursor=pointer]:
+              - strong [ref=f2e63]:
+                - generic [ref=f2e66]: Search Settings
+                - generic [ref=f2e67]: ✀
+    - navigation [ref=f2e76]:
+      - button [ref=f2e78] [cursor=pointer]:
+        - strong [ref=f2e85]: Private
+      - button "All regions" [ref=f2e90] [cursor=pointer]
+      - button [ref=f2e95] [cursor=pointer]:
+        - strong [ref=f2e97]: "Safe search: moderate"
+      - button [ref=f2e101] [cursor=pointer]:
+        - strong [ref=f2e103]: Any time
+    - list [ref=f2e107]:
+      - button "Close menu" [ref=f2e108] [cursor=pointer]
+      - list [ref=f2e112]:
+        - listitem [ref=f2e113]: Search
+        - listitem [ref=f2e114]:
+          - link "Homepage" [ref=f2e115] [cursor=pointer]:
+            - /url: https://start.duckduckgo.com/
+        - listitem [ref=f2e116]:
+          - link "Themes" [ref=f2e117] [cursor=pointer]:
+            - /url: /settings#appearance
+        - listitem [ref=f2e118]:
+          - link "Settings" [ref=f2e119] [cursor=pointer]:
+            - /url: /settings
+      - list [ref=f2e120]:
+        - listitem [ref=f2e121]: Share Feedback
+        - listitem [ref=f2e122]:
+          - generic [ref=f2e125]:
+            - button "Positive feedback" [ref=f2e126] [cursor=pointer]
+            - button "Negative feedback" [ref=f2e130] [cursor=pointer]
+      - list [ref=f2e134]:
+        - listitem [ref=f2e135]: Downloads
+        - listitem [ref=f2e136]:
+          - link "iOS Browser" [ref=f2e137] [cursor=pointer]:
+            - /url: https://apps.apple.com/app/duckduckgo-private-browser/id663592361?platform=iphone&pt=866401&mt=8&ct=serp-atb-serp
+        - listitem [ref=f2e138]:
+          - link "Android Browser" [ref=f2e139] [cursor=pointer]:
+            - /url: https://play.google.com/store/apps/details?id=com.duckduckgo.mobile.android&referrer=utm_campaign%3Dserp-atb-serp%26origin%3Dfunnel_playstore_searchresults
+        - listitem [ref=f2e140]:
+          - link "Mac Browser" [ref=f2e141] [cursor=pointer]:
+            - /url: /mac?origin=funnel_browser_searchresults
+        - listitem [ref=f2e142]:
+          - link "Windows Browser" [ref=f2e143] [cursor=pointer]:
+            - /url: /windows?origin=funnel_browser_searchresults
+        - listitem [ref=f2e144]:
+          - link "Browser Extensions" [ref=f2e145] [cursor=pointer]:
+            - /url: /duckduckgo-help-pages/desktop/adding-duckduckgo-to-your-browser/
+      - list [ref=f2e146]:
+        - listitem [ref=f2e147]: More From DuckDuckGo
+        - listitem [ref=f2e148]:
+          - generic [ref=f2e151]:
+            - button "Dismiss promotion" [ref=f2e152] [cursor=pointer]
+            - generic [ref=f2e155]:
+              - paragraph [ref=f2e157]: Upgrade to our Private Browser
+              - paragraph [ref=f2e169]: Fast. Secure. Free.
+            - link "Install Mac Browser" [ref=f2e170] [cursor=pointer]:
+              - /url: /mac
+        - listitem [ref=f2e173]:
+          - link "DuckDuckGo Subscription" [ref=f2e174] [cursor=pointer]:
+            - /url: /pro?origin=funnel_pro_searchresults
+        - listitem [ref=f2e175]:
+          - link "Duck.ai" [ref=f2e176] [cursor=pointer]:
+            - /url: https://duck.ai
+        - listitem [ref=f2e177]:
+          - link "Email Protection" [ref=f2e178] [cursor=pointer]:
+            - /url: /email
+        - listitem [ref=f2e179]:
+          - link "Newsletter" [ref=f2e180] [cursor=pointer]:
+            - /url: /newsletter
+        - listitem [ref=f2e181]:
+          - link "Blog" [ref=f2e182] [cursor=pointer]:
+            - /url: /blog
+        - listitem [ref=f2e183]:
+          - link "Podcast" [ref=f2e184] [cursor=pointer]:
+            - /url: https://insideduckduckgo.substack.com/?showWelcome=true
+        - listitem [ref=f2e185]:
+          - link "Collaborations" [ref=f2e186] [cursor=pointer]:
+            - /url: /collaborations
+      - list [ref=f2e187]:
+        - listitem [ref=f2e188]: Learn More
+        - listitem [ref=f2e189]:
+          - link "What’s New" [ref=f2e190] [cursor=pointer]:
+            - /url: /updates
+        - listitem [ref=f2e191]:
+          - link "Compare Privacy" [ref=f2e192] [cursor=pointer]:
+            - /url: /compare-privacy
+        - listitem [ref=f2e193]:
+          - link "About Our Browser" [ref=f2e194] [cursor=pointer]:
+            - /url: /app
+        - listitem [ref=f2e195]:
+          - link "About DuckDuckGo" [ref=f2e196] [cursor=pointer]:
+            - /url: /about
+      - list [ref=f2e197]:
+        - listitem [ref=f2e198]: Other Resources
+        - listitem [ref=f2e199]:
+          - link "Help" [ref=f2e200] [cursor=pointer]:
+            - /url: /duckduckgo-help-pages
+        - listitem [ref=f2e201]:
+          - link "Community" [ref=f2e202] [cursor=pointer]:
+            - /url: https://www.reddit.com/r/duckduckgo/
+        - listitem [ref=f2e203]:
+          - link "Careers" [ref=f2e204] [cursor=pointer]:
+            - /url: /careers
+        - listitem [ref=f2e205]:
+          - link "Privacy Policy" [ref=f2e206] [cursor=pointer]:
+            - /url: /privacy
+        - listitem [ref=f2e207]:
+          - link "Terms of Service" [ref=f2e208] [cursor=pointer]:
+            - /url: /terms
+        - listitem [ref=f2e209]:
+          - link "Press Kit" [ref=f2e210] [cursor=pointer]:
+            - /url: /press
+        - listitem [ref=f2e211]:
+          - link "Advertise on Search" [ref=f2e212] [cursor=pointer]:
+            - /url: /duckduckgo-help-pages/company/advertise-on-duckduckgo-search
+  - generic [ref=f2e216]:
+    - generic [ref=f2e218]:
+      - generic [ref=f2e235]:
+        - heading "Get Our Mac Browser" [level=3] [ref=f2e236]
+        - paragraph [ref=f2e237]: Protect your data as you search, browse, and use AI.
+      - link "Download" [ref=f2e238] [cursor=pointer]:
+        - /url: https://duckduckgo.com/mac?origin=funnel_browser_searchresults__footercard
+    - generic [ref=f2e242]:
+      - generic [ref=f2e243]:
+        - heading "Learn More" [level=3] [ref=f2e244]
+        - list [ref=f2e245]:
+          - listitem [ref=f2e246]:
+            - link "What's New" [ref=f2e247] [cursor=pointer]:
+              - /url: https://duckduckgo.com/updates
+          - listitem [ref=f2e248]:
+            - link "About Browser" [ref=f2e249] [cursor=pointer]:
+              - /url: https://duckduckgo.com/app
+          - listitem [ref=f2e250]:
+            - link "Compare Privacy" [ref=f2e251] [cursor=pointer]:
+              - /url: https://duckduckgo.com/compare-privacy
+          - listitem [ref=f2e252]:
+            - link "Help Pages" [ref=f2e253] [cursor=pointer]:
+              - /url: https://duckduckgo.com/duckduckgo-help-pages/
+      - generic [ref=f2e254]:
+        - heading "Get More" [level=3] [ref=f2e255]
+        - list [ref=f2e256]:
+          - listitem [ref=f2e257]:
+            - link "Subscription" [ref=f2e258] [cursor=pointer]:
+              - /url: https://duckduckgo.com/pro
+          - listitem [ref=f2e259]:
+            - link "Email Protection" [ref=f2e260] [cursor=pointer]:
+              - /url: https://duckduckgo.com/email
+          - listitem [ref=f2e261]:
+            - generic [ref=f2e262]:
+              - link "Podcast" [ref=f2e264] [cursor=pointer]:
+                - /url: https://insideduckduckgo.substack.com/?showWelcome=true
+              - generic [ref=f2e265]:
+                - text: "&"
+                - link "Newsletter" [ref=f2e266] [cursor=pointer]:
+                  - /url: https://duckduckgo.com/newsletter
+          - listitem [ref=f2e267]:
+            - link "Collaborations" [ref=f2e268] [cursor=pointer]:
+              - /url: https://duckduckgo.com/collaborations
+  - generic [ref=f2e271]:
+    - generic [ref=f2e272]: Unfortunately, bots use DuckDuckGo too.
+    - generic [ref=f2e273]: Please complete the following challenge to confirm this search was made by a human.
+    - generic [ref=f2e274]: "Select all squares containing a duck:"
+    - button "Submit" [ref=f2e296] [cursor=pointer]
+  - button "Share Feedback" [ref=f2e300] [cursor=pointer]
+  - generic [ref=f2e301]:
+    - generic [ref=f2e303]:
+      - banner [ref=f2e304]:
+        - paragraph [ref=f2e306]: Upgrade to our browser.
+      - generic [ref=f2e307]:
+        - paragraph [ref=f2e313]:
+          - generic [ref=f2e314]:
+            - text: Try the
+            - strong [ref=f2e315]: DuckDuckGo Browser.
+            - text: Fast. Free. Private.
+        - link "Download Browser" [ref=f2e316] [cursor=pointer]:
+          - /url: https://duckduckgo.com/mac?origin=funnel_browser_searchresults__popover
+      - paragraph [ref=f2e322]:
+        - generic [ref=f2e323]: Free
+    - button "Dismiss" [ref=f2e325] [cursor=pointer]

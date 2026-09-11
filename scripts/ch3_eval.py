@@ -199,8 +199,15 @@ class _SearchEvalAdapter:
             gc = self.d2.get("depth2/grandchildren", [0.0])
             out["depth2/decisions_with_any"] = float(np.mean([g > 0 for g in gc]))
         for key in ("search/decisions", "search/placeholder_skips",
-                    "search/flips", "search/overrides"):
-            out[key] = self._sa.counters[key] - self._counter_snapshot[key]
+                    "search/flips", "search/overrides",
+                    "ens_min/argmin_lane0", "ens_min/argmin_lane1",
+                    "ens_min/argmin_lane2", "ens_min/spread_sum",
+                    "ens_min/leaves"):
+            # `.get`: a test double (and any future SearchAgent stand-in)
+            # carries only the counters it needs, and a diagnostic key must
+            # never be the thing that breaks the harness.
+            out[key] = (self._sa.counters.get(key, 0)
+                        - self._counter_snapshot.get(key, 0))
         self._counter_snapshot = dict(self._sa.counters)
         self.ms, self.leaves, self.d2 = [], [], {}
         return out
@@ -331,6 +338,27 @@ def _resolve_evaluator(prereg, first_lane, spec_eval, env, agent0):
         ]
         assert all(a is not agent0 for a in evaluator["agents"]), (
             "F5: the lane's own agent object is in the ensemble"
+        )
+        provenance["members"] = pool
+        provenance["member_sha256"] = [
+            prereg["checkpoints"][x]["sha256"] for x in pool
+        ]
+    elif evaluator["kind"] == "ens_min":
+        # Pessimistic leaves: the MIN over every lane's critic, own lane
+        # INCLUDED. Not a screen like `loo` -- it is the evaluator, so the
+        # membership assert is the mirror image: the lane's own agent must be
+        # in the pool, reused by IDENTITY rather than loaded a second time.
+        pool = list(evaluator.pop("pool"))
+        assert first_lane in pool, (
+            f"ens_min pool {pool} must contain the lane's own {first_lane}; "
+            "excluding it makes this a leave-one-out screen, not an evaluator"
+        )
+        evaluator["agents"] = [
+            agent0 if x == first_lane else _load_member(prereg, x, env=env)[0]
+            for x in pool
+        ]
+        assert sum(a is agent0 for a in evaluator["agents"]) == 1, (
+            "ens_min: the lane's own agent must appear exactly once"
         )
         provenance["members"] = pool
         provenance["member_sha256"] = [
