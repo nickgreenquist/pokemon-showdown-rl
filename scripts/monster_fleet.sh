@@ -45,10 +45,25 @@ STAGGER="${STAGGER:-90}"      # seconds between lane launches
 VERIFY="${VERIFY:-20}"        # CPU-delta window per lane
 TAG="${TAG:-$(basename "$CFG" .yaml)}"
 LOG="logs/monster_fleet.log"; mkdir -p logs runs
+
+# THE ENCODER FLAGS ARE PART OF THE OBSERVATION CONTRACT, and they are read at
+# IMPORT time by rl/networks/entity_deepsets.py -- so a lane launched without
+# them does not train a slightly different model, it dies on the spot with
+# "entity trunk needs the id suffix". Found by dry-running this script rather
+# than by reading it: the first smoke launched two lanes and both were dead
+# inside a second. Exported here, and re-asserted in the child, because a
+# fleet that fails at 23:00 on the night before an 8-hour drive is the exact
+# failure this script exists to prevent.
+export POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1
 say(){ echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
 die(){ say "REFUSING TO LAUNCH: $*"; exit 2; }
 
 say "=== PREFLIGHT: $CFG, ${STEPS} steps, seeds ${SEEDS[*]} ==="
+say "encoder: V2=$POKEMON_RL_ENCODER_V2 IDS=$POKEMON_RL_ENCODER_IDS"
+"$PY" -c 'import os,sys
+v,i = os.environ.get("POKEMON_RL_ENCODER_V2"), os.environ.get("POKEMON_RL_ENCODER_IDS")
+sys.exit(0 if v=="1" and i=="1" else 1)' \
+  || die "encoder flags not visible to $PY -- the entity trunk reads them at import"
 
 [ -f "$CFG" ] || die "no such config: $CFG"
 
