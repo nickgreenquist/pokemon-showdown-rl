@@ -2,7 +2,6 @@
 ## JOURNEY POSITION — step 7.5 (engine port) **EXITED 2026-09-10**; next is gen-1 step 8/10
 **GEN-4 CLOSED (RESULTS §19):** steps 3/5 MET, vs SH 0.8788, CREDITS NOTHING. **LADDER R4:
 GXE 65.2 / Glicko 1618 ± 25 / Elo 1354, n=200. From here it is all gen 1.**
-
 **JOURNEY 7.5 engine port EXITED. A-1 PASSED TWICE** (12M, n=12,000/seed: 0.66775 vs banked
 async 0.67211, **−0.00436, a signed delta that travels forever**; `docs/engine_port/NOTES.md`).
 Engine rates at k=8, measured idle: **w3 1620, w6 1282 steps/s/lane** → 6×200M ≈ 43 h.
@@ -18,9 +17,9 @@ checkpoints at 100M", NEVER "ensembling helps"**. README row WAITS on the anchor
 no-op, golden digest; δ=inf is exactly greedy). s112, n=3000/arm vs SH: **δ 0 → 0.74767,
 BELOW greedy's 0.78233** — the critic's own argmax loses to the policy even at ONE ply, so
 search has only ever paid as a rarely-fired veto; 0.05 0.80867, **0.10 0.82400**, 0.20 0.81000.
-- **THE HONEST READ IS OUT OF SAMPLE: +0.016, NOT +0.042.** Held-out lanes at δ 0.10, n=3000
-  each: s104 +0.01967, s120 +0.01233. **Pooled n=6000 = +0.01600 at 2.19 se_diff. MEETS
-  2·se_diff, MISSES the floor → NOT CREDITED.** Never quote s112's +0.0417.
+- **HONEST READ IS OUT OF SAMPLE: +0.016, NOT +0.042.** Held-out lanes at δ 0.10, n=3000 each:
+  s104 +0.01967, s120 +0.01233; **pooled n=6000 = +0.01600 at 2.19 se_diff — MEETS 2·se_diff,
+  MISSES the floor → NOT CREDITED.** Never quote s112's +0.0417.
 - **EG10: a better evaluator adds nothing AT DEPTH-1** (LOO ensemble + same gate, 3×3000:
   −0.00044 at 0.05 se) — weakens arm B's premise. **ENS3 vs stack is a NULL** (+0.01078 at
   1.87 se; that figure includes the tuning lane, flattering SEARCH).
