@@ -11625,3 +11625,42 @@ line numbers are not — grep the date, then read that region):
   files added tonight broke the suite's DOCUMENTED invocation (flags unset) because I had
   only ever run it with the encoder flags exported. Both now carry the repo's ID_DIM skipif.
   **Suite: 1031 passed / 0 failed on the documented invocation.**
+
+- 2026-09-11 (late night, agent — an ADVERSARIAL REVIEW of the day's work by a fresh model, then
+  prep for the 2026-09-12 launch) — **THREE OF FIVE HEADLINE CLAIMS DID NOT SURVIVE AS STATED;
+  THE LADDER OBJECT DID.** Everything re-derived from the chunk JSONs, not the summaries.
+  **(1) DEPTH is a NULL, not a negative.** The tree row used TSAMP1/TSAMP while their exact-config
+  replicates TQV/TQV8 (on disk since 13:50, identical diagnostics) were unreported; pooled, depth 1 vs
+  ~3 in the tree is **−0.004 ± 0.013**, and the two depth-1 replicates differ by 0.037 (0.8144 vs
+  0.7778) — "the control reproduces the banked matrix" was one replicate of two. The matrix's −0.094
+  at −4.6 se is an OVERRIDE-RATE effect: deep arms override 16.5–20.1% vs S3G10's 8.3% at the same δ;
+  at matched override (D3G40, δ 0.40) **−0.017 ± 0.023** (STATUS's −0.006 was the n=500 read).
+  Licensed: "no evidence depth helps at these budgets and this δ"; barred: "hurts", "monotone".
+  **(2) SEEDS DO NOT PAIR BATTLES.** Per-battle agreement between arms on shared seeds sits at the
+  independence level (0.66–0.73; teams and rolls are server-rolled). "Matched McNemar" was unpaired all
+  along (the se coincides, no number moved) and the 16:14 "300 vs 3000 seed block" corollary was n=300
+  noise. Landmine written. **(3) "MEMBERS SATURATE AT 3" is not established:** the 2→3 gain (+0.0099)
+  sits inside ENS3's own batch spread (0.0147); the 1-member point was s112 alone (0.78233; block mean
+  0.78867); RESULTS §18 records the last step-doubling at +0.024 off-FP NOT credited vs +0.035 for three
+  free members. **(4) ENSG null CONFIRMED on both axes:** vs SH δ 0.05 −0.002 / 0.10 +0.015 (1.6 se) /
+  0.20 +0.008; off FP@20 **ENSGF 0.558 vs ENS3F 0.557, +0.001**, the pre-registered "ENS3 stays" branch
+  (search fired: 7.5% override, 31,085 searched decisions). **(5) ENS3F +0.055 over greedy** mostly
+  stands (opponent unchanged: foul-play edits and poke-engine 0.0.48 both dated Aug 6; same log volume
+  per battle; comparator ran 10 h after the fleet ended) but is SECONDARY by its own pre-reg and 2.4 se
+  under the era_diff rule — re-drawn same-session tonight. **(6) DROP ARM B stands** (priv_eval_head has
+  no consumer outside ppo.py; no search seam). PokeAgent quote re-verified from the PDF; the "gen 1
+  punishes search" inference is an over-read (OU team-building ladder rank). Hallak 2021 / Chang 2026
+  exist and match at abstract level (arXiv fetched); their inner formulas are unverified and inert.
+  **LAUNCH PATH — two fleet-killers fixed and tested (33f9996).** The box's ONLY sleep assertion was a
+  caffeinate in a 14-day-old terminal tab on an AC profile of `sleep 1` (the launcher now holds
+  `caffeinate -i -s -w <watchdog>`); Node was a single point of failure with no restart — every lane
+  evals through it every 250k steps and every resume reconnects — so the watchdog now checks :8000
+  each sweep and relaunches in its own session (tested by killing the live server: back in 7 s, ten
+  workers). Two more need a password and are in STATUS: `sudo pmset -c sleep 0`, and
+  `AutomaticallyInstallMacOSUpdates` is ON. Recommended launch written as [RWL-1..6] at the top of
+  `configs/showdown_monster200m.yaml`: **6 × 200M, all arm A, k=8, primary read off-FP@20 vs a
+  same-session greedy 100M re-draw.** **RUNNING OVERNIGHT (54b7de1; `logs/ens_width/queue.log`):**
+  vs SH — A50 (fresh 50M singles; a50_s66 0.781 vs its banked 0.7813), E350, E4, E5, E6MIX (the 50M
+  finals as members 4–6; minutes each); off FP@20, sequential, ~4 h — G104F/G112F/G120F (the
+  same-session comparator), E6MIXF, E350F, G66F/G75F/G83F, ENS3FR (ENS3F replicate on a fresh pair).
+  Reads pre-stated in both headers; credits nothing; decides Saturday's WIDTH.

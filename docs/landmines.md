@@ -565,3 +565,33 @@ like "closes", "answers", "settles" or "buys zero" are barred for the search
 axis until depth-2 exists and has been measured. The available words are the
 honest ones: *"at depth-1, dose M, delta 0.10, X adds nothing."*
 
+
+## SEEDS DO NOT PAIR BATTLES — "matched seed-for-seed" is not a paired design (2026-09-11 review)
+
+The eval seed (`seed_start + episode`) pins OUR decision RNG and nothing about
+the battle: the team draw and every damage roll come from the Showdown server,
+which our seed never reaches. Measured from the chunk JSONs: per-battle
+agreement between two arms on the same seed block sits where two INDEPENDENT
+Bernoulli draws at p≈0.8 would put it (0.68) — greedy vs S3G10 0.686, greedy
+s112 vs greedy s104 0.657, two exact-config replicates of the depth-1 tree
+0.674, ENS3 vs ENSG 0.727.
+
+Consequences:
+
+* "Matched seed-for-seed with McNemar se" (STATUS 2026-09-11 16:14, the depth
+  doc) is NOT a paired design. No number moved — on independent pairs
+  McNemar's sqrt(b+c)/n equals the unpaired two-proportion se in expectation —
+  but the words claim power that does not exist. Write "unpaired,
+  two-proportion binomial se".
+* The 16:14 corollary "a 300-seed arm may NOT be read against a 3000-seed
+  pooled mean — on seeds 100–399 greedy runs +0.054 above its own pooled
+  value" was a misdiagnosis: with no pairing there is no seed-block offset to
+  correct for. A 300-battle subset has se 0.023 and +0.054 is a 2.3-se
+  excursion among many arms — the existing "one rung is worth ±0.02"
+  landmine, not a new mechanism. The rule is "n=300 cannot resolve ±0.05";
+  "compare matched" buys nothing.
+* Two runs of the SAME arm on the same seeds differ by ordinary sampling
+  noise: TSAMP1 0.8144 vs TQV 0.7778 (n=900 each, identical dials), a 0.037
+  gap. The 16:14 STATUS read one replicate as "the control reproduces the
+  banked matrix" and did not report the other. **Replicates are the
+  instrument; report every one that ran.**

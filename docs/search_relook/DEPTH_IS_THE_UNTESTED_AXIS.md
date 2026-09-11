@@ -259,3 +259,51 @@ a bad argmax more room to act.
 Not yet established, and deliberately left open: whether a critic trained on
 search-visited states would change the sign. That is the AlphaZero / expert
 iteration answer and it is the reason the deep-research briefs went out.
+
+---
+
+## Review addendum, 2026-09-11 (night): the tree replicates, the pairing, and the override rate
+
+Three corrections to the sections above, each with the number that forces it.
+
+**1. TQV / TQV8 are exact-config replicates of TSAMP1 / TSAMP, and were omitted.**
+Same dials (iters 400, n_det 2, margin 0.10, decide q, root_min_visits 8,
+batch 16, opp_rule sample; depth_cap 1 / 8), run 12:18–13:50 after the q-init
+fix, with tree diagnostics identical to the pre-fix pair (share_policy 0.672
+vs 0.673 and evals 64.1 vs 64.5 at depth 1; 0.654 vs 0.657 and mean depth
+3.05 vs 3.15 at depth 8). Against S3G10 on the same 900 seeds (0.8189),
+unpaired se ≈ 0.019:
+
+| arm | depth cap | mean depth | win | vs S3G10 |
+|---|---|---|---|---|
+| TSAMP1 | 1 | 1.00 | 0.8144 | −0.004 |
+| TQV | 1 | 1.00 | 0.7778 | −0.041 (−2.2 se) |
+| TSAMP | 8 | 3.15 | 0.7900 | −0.029 |
+| TQV8 | 8 | 3.05 | 0.7944 | −0.024 |
+
+Pooled by depth (n=1800 each): depth-1 0.7961, deep 0.7922, **delta −0.004 ±
+0.013. Depth in the tree is a null.** The two depth-1 replicates differ by
+0.037, more than the "monotone" effect read above from TSAMP1 → TSAMP, and the
+depth-1 tree sits −0.023 (−1.7 se) under the banked matrix pooled — so "the
+control reproduces the banked matrix" is what one replicate of two says.
+
+**2. Seeds do not pair battles.** Per-battle agreement between arms on shared
+seeds is at the independence level (greedy vs S3G10 0.686; TSAMP1 vs TQV
+0.674; expectation 0.68 at p≈0.8). Every "matched, McNemar se" phrase above is
+an unpaired comparison with the two-proportion se. The se values are unchanged
+(they coincide on independent pairs); the words are not. `docs/landmines.md`.
+
+**3. The matrix family's depth effect is an override-rate effect.** At δ 0.10
+the deep arms override 16.5% (D2B), 19.2% (D2W) and 20.1% (D3) of decisions
+against S3G10's 8.3%: a deeper backup has a wider value spread, so a δ tuned
+at one ply lets two to three times as many overrides through. At matched
+override (D3G40, δ 0.40, 2.9%) depth 3 reads **0.7933 vs 0.8100, −0.017 ±
+0.023 at n=600** — a null, not −0.094. (STATUS's "−0.006" was the n=500 read.)
+Nobody has swept δ for depth 2–3. That sweep is the cheap first step before
+any engine-native depth-2 build, and it is the one experiment on this axis
+that has not been run.
+
+What survives: no arm at any depth beat the depth-1 gate; the deep arms had
+3–6× the compute; FP@20 itself searches ~2.4 plies. The licensed sentence is
+"no evidence depth helps at these budgets and this δ." "Depth hurts" and
+"monotone in two implementations" are not licensed by this data.
