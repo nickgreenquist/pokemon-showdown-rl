@@ -128,7 +128,7 @@ comparison and should not be registered as one.
 
 ## What is running tonight that bears on this
 
-- **EG10 — DONE, AND IT ANSWERS ARM B'S PREMISE: A BETTER EVALUATOR BUYS ZERO.**
+- **EG10 — DONE. A better evaluator adds nothing AT DEPTH-1, DOSE M, delta 0.10.**
   LOO ensemble evaluator + the SAME gate vs the gated-plain arm, 3x3000 each:
   **0.81278 vs 0.81322 = −0.00044, se_diff 0.00812** (0.05 se — a flat null;
   the cell prints NEG only via the 2-of-3 direction rule). Dose matched.

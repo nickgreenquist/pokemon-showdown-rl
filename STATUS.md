@@ -17,7 +17,7 @@ committee, so the batch spread is EVAL noise and the binomial governs — anti-c
 and it licenses **"ensembling THESE three checkpoints at 100M", NEVER "ensembling helps"** —
 LADDER R1's own limitation, repeated deliberately. A README row WAITS on the anchor battery.
 
-## SEARCH: the defect WAS the SELECTOR — fixed, positive out of sample, NOT yet credit-grade
+## SEARCH at DEPTH-1 — selector fixed; DEPTH-2 DOES NOT EXIST AND IS UNTESTED
 **D5 margin gate: play search's action only if it beats the POLICY's argmax by > delta.**
 Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/arm, vs SH:
 
@@ -30,10 +30,10 @@ Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/
   0.79433 = +0.01233**. **Pooled n=6000: +0.01600 = 2.19 se_diff (binomial 0.00730; the
   2-lane clustered se is smaller, so binomial governs under larger-of).**
   **MEETS 2*se_diff, MISSES the floor -> NOT CREDITED.** Never quote s112's +0.0417.
-- **EG10 ANSWERS THE EVALUATOR AXIS: IT ADDS NOTHING.** LOO ensemble evaluator + the SAME
-  gate, 3x3000: **0.81278 vs gated-PLAIN 0.81322 = −0.00044, se_diff 0.00812** (0.05 se; the
-  cell reads NEG only via the 2-of-3 rule). **The SELECTOR was the whole story — a better
-  evaluator buys ZERO. That is arm B's premise.**
+- **EG10: a better evaluator adds nothing AT DEPTH-1, DOSE M, delta 0.10.** LOO ensemble
+  evaluator + the SAME gate, 3x3000, vs gated-PLAIN: **0.81278 vs 0.81322 = −0.00044,
+  se_diff 0.00812** (0.05 se). **DOES NOT LICENSE:** anything about DEPTH, about a
+  PRIVILEGED evaluator, or about an ensemble as PRIOR. Weakens arm B's premise; closes nothing.
 - **ENSEMBLE vs STACK IS A NULL, NOT A WIN.** ENS3 0.82356 vs stack 0.81278 = **+0.01078 at
   1.87 se — fails BOTH bars**; never a registered h2h (both read vs A0), and the stack figure
   includes the tuning lane, flattering SEARCH. Not rivals: PRIOR vs SELECTOR, never composed.

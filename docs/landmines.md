@@ -528,3 +528,40 @@ gap was the scheduler. Leaf counts are unchanged throughout (347 / 351 / 358),
 which is why the dose-match check was written on `leaves_mean` rather than on
 wall clock and why it still holds across the QoS split.
 
+## EVERY SEARCH NUMBER IN THIS REPO IS DEPTH-1. Do not read one as a verdict on search (2026-09-11)
+
+`rl/search/` implements **one ply**. The dose dials (S/M/L/XL) buy more
+DETERMINIZATIONS and more LEAVES at that single ply; **none of them is depth.**
+There is no depth-2, there never has been, and `docs/search_relook/
+ENGINE_SEARCH_DESIGN.md` prices building it at 8-11 blocks.
+
+So a null on the evaluator axis, on the dose axis, or on the selector axis is a
+statement about **depth-1 at a named dose and a named delta**, and nothing more.
+Write it that way.
+
+**This rule exists because the 2026-09-11 session broke it.** That session
+measured EG10 (a better leaf evaluator under a working gate) at **-0.00044,
+0.05 se** and logged it as *"EG10 CLOSES THE EVALUATOR AXIS: A BETTER EVALUATOR
+BUYS ZERO"* — into STATUS.md and SESSION_LOGS.md, the two files every session is
+required to read. At the moment those words were written:
+
+* **dose XL (BLX) was still executing on the same box** — the deep rung of the
+  budget ladder, unread;
+* **P0 had passed its stop rule that same night** (sigma-margin ratio 0.509),
+  i.e. depth-2 was explicitly **NOT killed**;
+* the session had, hours earlier, written the **PRE-D5** landmine telling future
+  agents never to cite a number to argue "search/depth/dose does not pay" — and
+  then produced exactly the sentence a future agent would cite to do so;
+* and the arm's OWN pre-reg carried the scope limit verbatim (*"DOES NOT
+  LICENSE: ... anything about DEPTH"*), which simply was not carried into STATUS.
+
+That is the whole failure mode: **the caveat lives in the pre-reg, which nobody
+re-reads, while the headline lives in STATUS, which everybody does.** A scope
+limit that is not in STATUS does not exist.
+
+**The rule.** Any search result written into STATUS, SESSION_LOGS, RESULTS or a
+README row names its DEPTH, its DOSE and its DELTA in the claim itself. Words
+like "closes", "answers", "settles" or "buys zero" are barred for the search
+axis until depth-2 exists and has been measured. The available words are the
+honest ones: *"at depth-1, dose M, delta 0.10, X adds nothing."*
+

@@ -11586,8 +11586,12 @@ line numbers are not — grep the date, then read that region):
   could cost because it was not buildable. Deliberately NOT wired: the EG10 queue relaunches
   on failure and a resumed verdict arm must not run different code than its finished chunks.
 
-- 2026-09-11 (night, agent, cont. 3) — **EG10 CLOSES THE EVALUATOR AXIS: A BETTER EVALUATOR
-  BUYS ZERO ONCE THE SELECTOR WORKS.** LOO ensemble evaluator + the SAME margin gate at
+- 2026-09-11 (night, agent, cont. 3) — **EG10: A BETTER EVALUATOR ADDS NOTHING AT DEPTH-1,
+  DOSE M, delta 0.10.** (Originally logged as "CLOSES THE EVALUATOR AXIS / BUYS ZERO ONCE
+  THE SELECTOR WORKS" — **overscoped, corrected on the maintainer's challenge.** Every
+  number here is ONE ply. Depth-2 does not exist in rl/search/, dose XL was STILL RUNNING
+  when this was written, and P0 the same night explicitly did NOT kill depth-2. A depth-1
+  null is not a verdict on search.) LOO ensemble evaluator + the SAME margin gate at
   delta 0.10, 3 lanes x 3000, against the gated-PLAIN arm at the same delta: **0.81278 vs
   0.81322, delta -0.00044, se_diff 0.00812** — 0.05 se, a flat NULL. The registered cell
   prints NEG only through the "per-lane <= 0 in >= 2 of 3" DIRECTION rule (s104 -0.0020,
