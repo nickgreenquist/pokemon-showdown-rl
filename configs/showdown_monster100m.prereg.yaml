@@ -956,6 +956,35 @@ oppact_head_mandatory:
 
 preconditions:
   PRE-1: "the oppact head in all three configs; asserted by the launcher and by rl/train.py at launch"
+  # --- PRE-2 / PRE-3 live readings, 2026-09-11 night (agent) ----------------
+  # R0-C1 VERIFIED AT INIT, seed 104, both configs constructed through
+  # rl.train.make_agent: actor_params 626059 (A and C alike), critic_params
+  # 494849 (ctx_in 640) for A vs 642305 (ctx_in 1024) for C, privileged_dim and
+  # privileged_block_dim both 408 on C. The actor param sum is the SIGNED sum
+  # (not sum of |p|, which reads 28514.521/28527.191 and is the wrong
+  # statistic): A 442.300, C 375.635 — both reproduce this file exactly,
+  # including the DOWNWARD sign that the note_on_the_usual_figures predicts.
+  # R0-C1 PASS.
+  #
+  # R0-C3 PASS and R0-C2 ON TRACK from the live smoke (monster_c_smoke_s104,
+  # configs/showdown_monster100m_c.yaml, seed 104): loss/value finite on every
+  # update (0.116194, 0.067661, ...) and loss/explained_variance RISING
+  # (-0.43534 -> +0.21949). THE WIDE CRITIC HAS NOW TAKEN A LIVE STEP ON THE
+  # ENGINE ROUTE — the thing this gate exists to establish and which had never
+  # happened. Full reading appended below when the smoke is killed at ~10
+  # updates.
+  #
+  # PRE-3 CAVEAT, recorded rather than waved: engine_pe_s66 ran the PRE-FIX
+  # design-B code, so its head regressed the GAE target. Its BITWISE inertness
+  # read is unaffected and is IN HAND (24 rungs, 223 shared tensors /
+  # 3,428,015 elements, 0 differing, sha f156f232462e635b at ckpt_012000017) —
+  # inertness is a property of the SEAM, not of the target. But R0-B5 (the
+  # post-fix metric keys present from update 1) has NOT been shown on a live
+  # lane; it is pinned by tests only
+  # (tests/test_priv_eval_head.py::test_the_heads_target_is_the_mc_return_at_
+  # every_lambda, item 4, which asserts all three keys and their arithmetic on
+  # the same update_episodes path). The fleet's own update 1 is where it is
+  # confirmed live, and R0-B5 must be READ there rather than assumed.
   PRE-2: "ARM C HAS NEVER RUN ON THIS ROUTE. A live design-A smoke — one lane, ~10 updates, read against R0-C1/C2/C3 and R0-B1/B2/B3, then killed — must PASS before the fleet. Minutes of agent-side work; the difference between a dead seam at update 10 and at hour 25. Config: configs/showdown_monster100m_c.yaml with --run-name monster_c_smoke_s104."
   PRE-3: "the arm-B smoke has read its gates. runs/engine_pe_s66 is LIVE as this is drafted; its R0-B4/B5/B6 read and its BITWISE actor/critic comparison against engine_a1b_s66 must be in hand."
   PRE-4: "the privileged encode is PRICED: scripts/engine_t1.py --leg b twice, flag off then on, ~10 min. Until then the <=3% figure is a BOUND."
