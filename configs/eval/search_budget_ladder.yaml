@@ -1,0 +1,92 @@
+# =====================================================================
+# THE BUDGET LADDER — greedy / trivial / shallow / deep, ALL GATED.
+# Registered 2026-09-11 BEFORE ANY ARM RUNS (maintainer, at the laptop:
+# "we should test 1. greedy 2. trivial search (what we have) 3. shallow
+# search (whatever is like in between fp20 or fp500) 4. deep search
+# (headroom, not to be used for millions of games to burn hours)").
+#
+# journey_step: "11.5"
+# exit_condition_verbatim (JOURNEY 11.5): "Exit condition: one comparison,
+#   then the chapter closes. Depth-2 credits over depth-1 iff the pooled
+#   delta clears the standing credit line. Report decisions/sec for both
+#   arms — a gain that costs 5x is a different finding than the same gain
+#   at 1.5x."
+# THIS IS NOT THAT COMPARISON — it is the ladder 11.5 needs first, and it
+# moves COMPUTE, not DEPTH. **DEPTH IS NOT A DIAL IN THIS CODE**: no
+# depth-2 exists (docs/search_relook/ENGINE_SEARCH_DESIGN.md prices it at
+# 8-11 blocks). Every rung here samples MORE OPPONENT TEAMS at one ply, so
+# what it measures is whether a lower-variance estimate of the SAME one-ply
+# quantity keeps paying. A flat ladder does NOT close the depth question.
+#
+# WHY NOW. The margin gate D5 turned search from -0.035 to +0.042 on s112
+# (docs/search_relook/MARGIN_SELECTOR.md; S3's P-G). The gate works by
+# refusing to override the policy on thin evidence — so the natural next
+# question is whether BUYING BETTER EVIDENCE (more determinizations) makes
+# the gate fire more often and more correctly. There is a sharp prior here:
+# UNGATED, dose L read BELOW dose M (S3's P-L), which is the maximization-
+# bias signature — more leaves, more extreme max-order statistic. If the
+# gate is the fix, that ordering should INVERT. That inversion is the
+# single most diagnostic thing this ladder can show.
+#
+# THE RUNGS (all on lane s112; per-battle cost measured in THIS harness,
+# and the Foul Play column is FP's own cost here, not a strength claim):
+#   R-G    greedy            0 leaves     0.02 s/battle   [BANKED: a0_s112]
+#   R-M    dose M gated    ~300 leaves    2.4  s/battle  ~ FP@20   [BANKED]
+#   R-L    dose L gated  ~1,100 leaves    9.3  s/battle  ~ FP@100
+#   R-XL   dose XL gated ~4,400 leaves   37    s/battle  ~ FP@500
+# n: R-L at 3000 (~7.8 h). R-XL at **1000** (~10.3 h) — the maintainer's
+#   "headroom, not to burn hours". **R-XL's n=1000 carries +-0.031 binomial,
+#   against +-0.020 for a 3000-battle rung and the +-0.02 one-lane redraw
+#   spread; it is a HEADROOM PROBE and may not be read as a rung equal to
+#   the others.** Stated here, before it runs, so the weaker n cannot be
+#   quietly forgotten when the number is quoted.
+#
+# DELTA IS HELD FIXED ACROSS RUNGS at the peak located on dose M by S3's
+#   P15/P20 arms, and is FILLED BELOW before launch. **This biases AGAINST
+#   the expensive rungs**: a lower-variance estimate should want a SMALLER
+#   delta, so a fixed delta tuned on M under-uses L and XL. Conservative,
+#   named, and not corrected — re-tuning delta per rung would confound the
+#   compute axis with a selector axis in the same read.
+#
+# PRE-STATED READ P-LADDER (one lane, so a SHAPE read; credits nothing):
+#   Report win rate, override rate, ms/decision, leaves/decision and
+#   decisions/sec for every rung (11.5's exit condition requires the cost).
+#   MONOTONE-UP: each rung above its predecessor by more than the +-0.02
+#     one-lane spread -> compute is still paying at one ply; the ladder is
+#     extended and a 3-lane read at the top rung is registered.
+#   SATURATING: R-L above R-M but R-XL within +-0.02 of R-L -> the one-ply
+#     compute axis is exhausted; what remains for search is DEPTH or a
+#     better EVALUATOR, and 11.5's depth build becomes the live question.
+#   INVERTING: a rung BELOW its predecessor -> the gate did not remove the
+#     maximization bias, only moved it; the selector work is not finished
+#     and the prior-regularized selector (Grill et al., via the Claude deep
+#     research report) is the named next step, not depth.
+#   Whatever the shape, the ungated-vs-gated ORDERING at dose L is recorded
+#   against S3's P-L, because that is the direct test of the bias story.
+# Credit line, restated verbatim (this ladder CANNOT credit — one lane —
+#   but the line governs anything it routes to): "a lever is credited iff
+#   pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of
+#   the pooled-binomial se_diff and the seed-clustered se_diff, the latter
+#   computed from the per-seed finals at read time."
+# OPS: agent-side per CLAUDE.md rule 4 — detached, resume-safe (one chunk
+#   lost on a death), rate-readable (min/chunk against the banked M rate).
+# =====================================================================
+title: search_budget_ladder
+status: "REGISTERED 2026-09-11, before any arm ran. DELTA PENDING (filled at launch)."
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/search_budget_ladder
+comparator: banked_same_session
+aggregator: single_lane_shape_read
+lane: s112
+margin_delta: null          # [FILL BEFORE LAUNCH] the peak from S3 P15/P20
+checkpoints:
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
+banked_rungs:
+  R-G:  {source: results/search_s3_100m/a0_s112.final.json, rate: 0.78233, n: 3000, dose: null}
+  R-M:  {source: results/search_s3_100m/s3g10_s112.final.json, rate: 0.82400, n: 3000, dose: M, margin_delta: 0.10}
+  ungated_L_for_contrast: {source: results/search_s3_100m/s3l_s112.final.json, dose: L, margin_delta: null}
+arms:
+  RL:  {kind: search, lanes: [s112], dose: L,  battles: 3000, chunks: 10}
+  RXL: {kind: search, lanes: [s112], dose: XL, battles: 1000, chunks: 10}
+run_order: [RL, RXL]

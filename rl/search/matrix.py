@@ -99,6 +99,15 @@ DOSES = {
     "S": Dose(n_det=1, top_branches=6, leaf_cap=324, node_cap=None),
     "M": Dose(n_det=4, top_branches=6, leaf_cap=1296, node_cap=1500),
     "L": Dose(n_det=16, top_branches=6, leaf_cap=5184, node_cap=None),
+    # XL added 2026-09-11 for the BUDGET LADDER (maintainer: "greedy / trivial /
+    # shallow / deep"). It is 4x L on the SAME axis every other dose moves —
+    # n_det, the number of sampled opponent teams — because that is the axis the
+    # code has; DEPTH IS NOT A DIAL HERE (no depth-2 exists). So XL buys a
+    # lower-variance estimate of the SAME one-ply quantity, not a deeper one.
+    # Priced against Foul Play's own measured cost in this harness: M ~2.4 s per
+    # battle ~ FP@20, L ~9.3 ~ FP@100, XL ~37 ~ FP@500. leaf_cap scales with
+    # n_det exactly as S->M->L do (324/1296/5184 = 324 * 4^k).
+    "XL": Dose(n_det=64, top_branches=6, leaf_cap=20736, node_cap=None),
 }
 
 
