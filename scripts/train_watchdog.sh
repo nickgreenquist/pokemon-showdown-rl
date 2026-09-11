@@ -117,6 +117,45 @@ resume_lane() {  # run dir -> relaunch detached, IN ITS OWN SESSION
   say "  RESUMED $d -> pid $! (own session; log ${d}.resume.log)"
 }
 
+# --- THE SHOWDOWN SERVER IS A SINGLE POINT OF FAILURE, so it is kept alive --
+# Every lane, engine collector or not, runs its in-loop eval through poke-env
+# against the Node server (rl/train.py builds make_eval_env unconditionally),
+# every 250k steps at the monster cadence -- about every three minutes -- and
+# every RESUME reconnects at startup. If Node dies at 3am the shape is: every
+# lane stalls at its next eval, the CPU-delta check resumes it, the resume
+# fails at connect, and MAX_RESUMES later the whole fleet is RETIRED with the
+# box idle until someone comes back. Found by the 2026-09-11 review; nothing
+# else on the box restarts Node. Liveness is HTTP on :8000 (a hung server
+# passes pgrep), checked twice 10 s apart before acting so a busy-but-healthy
+# server is never killed. The relaunch is the maintainer's own command line,
+# in its OWN SESSION for the same reason the lanes are.
+NODE_RESTARTS=0
+node_alive() { curl -s -o /dev/null -m 5 http://localhost:8000/; }
+ensure_node() {
+  node_alive && return 0
+  sleep 10
+  node_alive && return 0
+  say "ALERT Showdown server not answering on :8000 -- restarting it"
+  pkill -f "^node pokemon-showdown" 2>/dev/null; sleep 3
+  pkill -9 -f "^node pokemon-showdown" 2>/dev/null
+  pkill -9 -f "showdown/dist/server/" 2>/dev/null   # its workers; a survivor holds :8000
+  sleep 2
+  mkdir -p "$REPO/logs"
+  ( cd "$REPO/showdown" && nohup "$PY" -c 'import os,sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
+      node pokemon-showdown start --no-security >> "$REPO/logs/showdown_server.log" 2>&1 & )
+  local i
+  for i in $(seq 1 30); do
+    sleep 2
+    if node_alive; then
+      NODE_RESTARTS=$((NODE_RESTARTS+1))
+      say "  Showdown server back (restart #$NODE_RESTARTS). Rooms the lanes held are gone; a lane's next eval may stall and the CPU-delta check will resume it."
+      return 0
+    fi
+  done
+  say "  ALERT Showdown server did NOT come back in 60 s -- lanes will fail their next eval; needs a human"
+  return 1
+}
+
 # --- PREFLIGHT: refuse to start rather than fail on resume #1 at 3am -------
 # The engine collector imports pkmn_gen1, which lives ONLY in the
 # pkmn-engine-port env -- not in pokemon-showdown-rl, which is this script's
@@ -124,6 +163,8 @@ resume_lane() {  # run dir -> relaunch detached, IN ITS OWN SESSION
 # engine lane with the wrong python produces an ImportError per resume until
 # it burns the cap, on an unattended box, silently. So the interpreter is
 # checked against what each lane's own config asks for, BEFORE watching.
+command -v node >/dev/null || { echo "REFUSING TO START: no `node` on PATH -- the keepalive could not restart the Showdown server"; exit 2; }
+command -v curl >/dev/null || { echo "REFUSING TO START: no curl -- the Node liveness check needs it"; exit 2; }
 for d in "${LANES[@]}"; do
   [ -d "$d" ] || { echo "REFUSING: $d is not a directory"; exit 2; }
   mode="$(grep -A3 '^collector:' "$d/config.yaml" 2>/dev/null \
@@ -145,6 +186,7 @@ say "  lanes: ${LANES[*]}"
 live=1
 while [ "$live" -gt 0 ]; do
   live=0
+  ensure_node
   for i in "${!LANES[@]}"; do
     d="${LANES[$i]}"
     [ -d "$d" ] || { say "$d MISSING -- not a run dir, skipping forever"; continue; }
@@ -223,7 +265,7 @@ while [ "$live" -gt 0 ]; do
   [ "$live" -gt 0 ] && sleep "$POLL"
 done
 
-say "WATCHDOG EXIT -- every lane DONE or retired. RESUMES=$TOTAL_RESUMES"
+say "WATCHDOG EXIT -- every lane DONE or retired. RESUMES=$TOTAL_RESUMES NODE_RESTARTS=$NODE_RESTARTS"
 say "  DISCLOSURE: each resume split the wandb history. Read the real"
 say "  from_step from each meta.yaml before extract_history.py, and expect"
 say "  updates_done one short per resume."

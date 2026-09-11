@@ -131,6 +131,19 @@ done
 
 pgrep -f "bin/python -m rl.train" >/dev/null && say "WARNING: rl.train already running; the fleet will contend"
 
+# THE BOX ITSELF, checked. Two things kill an unattended fleet that no lane
+# check can see (2026-09-11 review): the laptop SLEEPING (this MacBook's AC
+# profile is `sleep 1`, held off only by whatever caffeinate someone left in a
+# terminal tab), and macOS REBOOTING ITSELF to install an update on a box
+# that is idle at the keyboard for three days. The first is handled below --
+# the launcher holds its own assertion for the watchdog's lifetime. The second
+# needs a human and a password, so it is said loudly here and again at DONE.
+SLEEP_MIN="$(pmset -g 2>/dev/null | awk '$1=="sleep"{print $2}')"
+[ "${SLEEP_MIN:-0}" != "0" ] && say "NOTE: pmset AC sleep=${SLEEP_MIN} min -- a caffeinate assertion is held for the watchdog's lifetime; belt and braces: sudo pmset -c sleep 0 disksleep 0. Keep the LID OPEN (clamshell sleeps without an external display)."
+if [ "$(defaults read /Library/Preferences/com.apple.SoftwareUpdate AutomaticallyInstallMacOSUpdates 2>/dev/null)" = "1" ]; then
+  say "WARNING: macOS 'Install macOS updates' is ON -- an idle box can reboot itself mid-fleet and nothing relaunches the lanes. Turn it off before leaving: System Settings > General > Software Update > Automatic Updates."
+fi
+
 say "=== LAUNCH (stagger ${STAGGER}s) ==="
 UP=(); DOWN=()
 for s in "${SEEDS[@]}"; do
@@ -164,5 +177,11 @@ say "=== ${#UP[@]}/${#SEEDS[@]} lanes up ==="
 
 say "starting watchdog on the lanes that came up"
 PY="$PY" nohup bash scripts/train_watchdog.sh "${UP[@]}" > /dev/null 2>&1 &
-say "watchdog pid $! -- log runs/train_watchdog.log"
+WD=$!
+say "watchdog pid $WD -- log runs/train_watchdog.log (it also keeps the Showdown server alive)"
+# Sleep assertion bound to the watchdog: -i (idle sleep), -s (while on AC),
+# -w (release when the watchdog exits). Independent of any terminal tab.
+nohup caffeinate -i -s -w "$WD" > /dev/null 2>&1 &
+say "caffeinate pid $! holding the box awake until watchdog $WD exits; verify with: pmset -g assertions | grep caffeinate"
 say "DONE. Monitor with:  tail -f runs/train_watchdog.log"
+say "BEFORE YOU LEAVE: lid open; 'Install macOS updates' OFF; optionally: sudo pmset -c sleep 0 disksleep 0"
