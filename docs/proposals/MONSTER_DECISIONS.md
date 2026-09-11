@@ -145,3 +145,33 @@ memory** (16.4 GB measured non-growing against 11–13 GB idle headroom on 24
 GB, before the Node path's 1.39× growth). Measured: wave 1 at w6 (25.3 h) plus
 wave 2 at w3 (20.0 h) = **~45.3 h**. Waves are cut **by seed, never by arm** —
 a wave cut by arm confounds arm with box.
+
+---
+
+## The next experiment, now buildable
+
+`rl/search/ensemble_search.py` (committed tonight, tested, **not wired**) lets a
+`SearchAgent` take an ensemble as its **prior and leaf value**, which was
+previously impossible — `EnsembleAgent` exposes none of the three surfaces
+`SearchAgent` consumes, which is why `ch3_eval.py` could build an ensemble OR a
+search but never both.
+
+That composition is the top untested lever on the evidence:
+
+| lever | measured | cost |
+|---|---|---|
+| ensemble as PRIOR (ENS3) | **+0.038** on batch 1 of 3 | greedy speed |
+| D5 margin gate (out of sample) | +0.016 | 77.6 ms/decision |
+| gate, off Foul Play | **+0.129 vs ungated**, TRANSFERS | same |
+
+They are structurally orthogonal — the ensemble moves the prior and the leaf
+value, the gate moves the selector — and **neither has ever been measured in
+the presence of the other.** Wiring is three lines in `ch3_eval.py`, held back
+only because the EG10 verdict arm's queue relaunches on failure and a resumed
+arm must not run different code than its finished chunks.
+
+**It is deliberately NOT pre-registered yet.** ENS3 and EG10 are still running,
+and a pre-reg written tonight would be written by someone who has seen one
+batch of ENS3 and none of EG10. The honest sequence is: read those two out,
+then register the composition against whichever object wins.
+
