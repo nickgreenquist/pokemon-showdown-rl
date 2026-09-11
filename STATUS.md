@@ -79,26 +79,22 @@ search, depth or dose does not pay. Re-measure under D5 or do not cite it.
    variance channel has **30× less headroom** at a 30,720-step update than at D18's 1,024.
    Its falsifier also conditions on an "uncollapsed critic" that has **never exceeded 25/384
    on any lane at any dose** — as written the falsifier cannot fire and the arm returns no cell.
-- **Both reviews also flag: no search seam exists** (`grep priv_eval_value rl/search/` = 0),
-  so neither B nor C can be read through search today; and **k=3 × n=3000 gives
-  P(credit | +0.025) = 0.45** — a coin flip at its own bar.
+- **No search seam exists** (`grep priv_eval_value rl/search/` = 0) so neither B nor C can be
+  read through search today; and **k=3 × n=3000 gives P(credit | +0.025) = 0.45.**
 
 ## Next actions
-0. **GOAL (maintainer, 2026-09-11): not "clear top 500" but "AS HIGH AS POSSIBLE".** R4 hit
-   Elo 1354 vs a 1358.999 cutoff — missed by 5. Targets: H&L 1677 / ps-ppo 1725 / **Wang
-   1756** (the in-charter one). Metamon's 1761 used HUMAN REPLAYS — out of bounds.
+0. **GOAL: "AS HIGH AS POSSIBLE", not "clear top 500".** R4 hit Elo 1354 vs a 1358.999
+   cutoff. Targets: H&L 1677 / ps-ppo 1725 / **Wang 1756** (Metamon's 1761 used REPLAYS).
 1. **DECISIONS OWED BEFORE LAUNCH** (all four in the handoff): fold B into A's lanes and
    spend the freed 3 on seeds?; keep, re-specify or drop C?; primary axis off-FP@20 vs the
    saturated vs-SH (at p 0.789 credit needs ≥ 0.81367)?; read each arm at ITS OWN delta peak.
-2. **Free, measured, and NOT in the design:** the 3-seed inference ensemble (+0.036,
-   credited at B1) composed with the D5 gate (+0.016 out-of-sample). Structurally orthogonal
-   (ensemble moves the prior and the leaf value; the gate moves the selector), zero training
-   cost. **Both reviews named this independently as the biggest free win not in the design.**
+2. **Free, measured, NOT in the design:** the 3-seed inference ensemble (+0.036, credited at
+   B1) composed with the D5 gate (+0.016 OOS) — orthogonal (ensemble moves the prior and leaf
+   value, the gate the selector), zero training cost. **Both reviews named it independently.**
 3. **Chores owed:** `engine_a1_grade.py` must run `extract_history.py` before the AUC leg;
    8 corrections to the Wang row in `prior_work/README.md`; the engine editable reinstall.
 
 ## Watch items
-- **SUITE GREEN** 995 (port env); 143 across ppo/privileged/episode/harvest after b147f48.
-  **No single env runs engine + analysis** (CLEANUP E1).
-- **ONE RUNG IS WORTH ±0.02** — three redraws of one checkpoint spread 0.0200.
-- Post-fix between-seed sd 0.01938 → 0.00368 is **DESCRIPTIVE ONLY**; re-check on the fleet.
+- **SUITE GREEN** 995 (port env) + 143 ppo/priv/episode/harvest; no env runs both (E1).
+- **ONE RUNG IS WORTH ±0.02** — three redraws of one checkpoint spread 0.0200, larger than
+  the gate's entire out-of-sample effect. Read curves, never one rung.
