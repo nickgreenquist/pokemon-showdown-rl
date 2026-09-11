@@ -408,7 +408,13 @@ arms:
   ENS2A: {kind: ensemble, members: [s104, s112], batches: 1, battles: 3000, chunks: 10}
   ENS2B: {kind: ensemble, members: [s112, s120], batches: 1, battles: 3000, chunks: 10}
   ENS2C: {kind: ensemble, members: [s104, s120], batches: 1, battles: 3000, chunks: 10}
-  ENSG: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, margin_delta: 0.10}
+  # EXTENDED to ENS3's full 3000-seed block (chunk_size stays 100, so chunks
+  # 00-08 are reused). At n=900 ENSG reads 0.84444 against ENS3's 0.81444 on
+  # the same seeds -- +0.030 at +1.7 se, the first composition all day to sit
+  # ABOVE the ensemble, and +0.050 at +2.9 se over greedy. 1.7 se is not a
+  # credit and n=900 is why; matching ENS3's own n is the decisive read, and
+  # it is the one that picks the ladder object.
+  ENSG: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 3000, chunks: 30, margin_delta: 0.10}
   TREEENS: {kind: search, lanes: [s112], ensemble_members: [s112, s104, s120], dose: M, battles: 900, chunks: 9, tree: {iters: 400, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8, batch: 16}}
 run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREESMB, SMNAR, SMSAMP, SWA, SWB, SWC, SWD, TREEQ, TREEQ25, D3, D2W, D3G25, D3G40, DMIN, D3MIN, D1MIN, TQV, TQV8, TGB2, TGB6, BSM, BK05, BK10, BK10D3, ENSG, ENS2A, ENS2B, ENS2C, D3S, D4S, TDC1, TDC2, TDC4, TDC8, TDC8N8, TNAR, TSAMP, TSAMP1, TDC8Z, TREEENS]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
