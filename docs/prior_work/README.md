@@ -25,6 +25,19 @@ re-download from the URLs below if one goes missing.
   the Gen 1 damage formula before implementing — where it contradicts this repo's own audit,
   the audit wins.** Bears directly on DESIGN §7's parked STAB and boosts-one-hot items and on
   DESIGN's (retired) architecture-screen proposal — r7 removed §10-11; see §8.
+- **`SEARCH_AT_INFERENCE_2026-09-11.md`** — verified index for "depth > 1 search over
+  an RL policy at inference", written after our own depth arms came in monotonically
+  negative. Every claim carries a verification status, and the two that matter were
+  checked against PDFs already on this disk. **The headline, verified verbatim from our
+  own copy of arXiv:2603.15563v2 (PokeAgent Challenge, NeurIPS 2025 Competition Track):
+  Foul Play is #1 in Gen 9 OU and #8 in Gen 1 OU, and the Gen 1 winner (PA-Agent,
+  Metamon-based) uses no test-time search at all.** Gen 1 is the generation where
+  test-time search is measured to underperform search-free policies — and it is ours.
+  Also records that a research pass got two details of that result wrong (it said rank
+  7, and misattributed the Gen 1 final), which is this directory's rule earning its
+  keep. Carries the Foul-Play hyperparameter that INVERTED between a 100 ms and a
+  ladder budget, and four mis-citation traps including "do not call this Nau pathology".
+
 - **`DISTILLATION_OBJECTIVES.md`** (2026-08-07) — verified survey + in-repo measurements on
   the BC objective for the Foul-Play chapter. Verdict: soft-target CE stays; every
   weighted/filtered/offline-RL variant is measurably inert on our tapes (teacher advantage
