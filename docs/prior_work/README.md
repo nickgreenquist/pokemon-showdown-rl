@@ -736,3 +736,43 @@ lossy by construction and the code has repeatedly contradicted the project's own
 
 Referenced but not archived: PokéChamp / PokeLLMon (LLM agents, no SH numbers); rlmon
 (results tables arithmetically impossible — do not cite).
+
+## What Foul Play@20 ACTUALLY does per decision — measured, 2026-09-11
+
+Read off **33,620 real decisions** in Foul Play's own stdout from the off-FP
+budget-ladder runs (`results/search_budget_ladder_offfp/blm.fp.stdout`), not
+from its README:
+
+```
+30,338  "Sampling 2 battles at 20ms each"
+ 3,282  "Sampling 4 battles at 10ms each"
+```
+
+* It **determinizes** the opponent's unknown team (`Sampling 5 unrevealed
+  pokemon`) — the same operation our `n_det` dial performs.
+* It holds a **~40 ms TOTAL budget** per decision and trades determinizations
+  against per-sample time (2x20 or 4x10), rather than a fixed sample count.
+* It searches each sample with **MCTS** (`Searching for a move using MCTS...`)
+  and reports **visit percentage** per candidate
+  (`Policy 0: switch wigglytuff visited 67.63% avg_score=0.566`). It decides by
+  VISITS — the same variance-motivated rule Wang uses (thesis p.27) and the one
+  our D4 hard-argmax lacked until the D5 gate.
+* It logs **no depth and no node count**, because an MCTS tree has no fixed
+  ply: depth is whatever the visits reach.
+
+`poke_engine` 0.0.48 (the installed build) exposes BOTH
+`iterative_deepening_expectiminimax(state, duration_ms)` — which returns a
+`depth_searched` and marks pruned branches — and
+`monte_carlo_tree_search(state, duration_ms, iterations, threads)`. **Foul Play
+at our anchor budget takes the MCTS path**, so "FP does expectiminimax" is a
+half-truth about the ENGINE, not a description of the OPPONENT we benchmark on.
+
+**THE NUMBER THAT MATTERS FOR OUR OWN SEARCH.** Our gated depth-1 search spends
+**77.6 ms/decision** (`s3g10_s112`, `search/ms_mean`) across ~347 leaves. Foul
+Play@20 spends **~40 ms** and gets a tree. **We already spend roughly TWICE the
+anchor's entire budget and put all of it into BREADTH at a single ply.** Dose
+L bought 4x the leaves for -0.014 (BLL vs BLM, off-FP, -0.63 se). So depth-1
+breadth is saturating while the opponent's advantage is structural, not
+budgetary — and the ladder allows **150 s/turn**, against our 0.078 s and
+FP@500's ~1 s. Quote this before arguing that search is compute-limited here.
+
