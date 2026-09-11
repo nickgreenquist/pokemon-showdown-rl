@@ -1,6 +1,6 @@
 # S3 READOUT — search relook on the 100M object (JOURNEY 11.5)
 
-**MACHINE-WRITTEN by `scripts/search_s3_readout.py` at 2026-09-11T02:24:12+00:00.** Regenerated in place on every run — do not hand-edit; edit the script.
+**MACHINE-WRITTEN by `scripts/search_s3_readout.py` at 2026-09-11T03:03:18+00:00.** Regenerated in place on every run — do not hand-edit; edit the script.
 
 > **Credit line, verbatim:** "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time"
 >
@@ -8,7 +8,7 @@
 >
 > ONE RUNG IS WORTH +-0.02 (three n=3000 redraws of ONE checkpoint spread 0.0200) — read the SHAPE across the three lanes, never one cell against its neighbour.
 
-Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `f912dcdc33d408d0…`) · `configs/eval/search_s3_100m_offfp.yaml` (sha256 `9c82af2080aa7f48…`) · P-B's read: `docs/search_relook/DET_BLIND.md` §6 (P-B's read, verbatim). git HEAD `278ab9a7a835` (dirty: True).
+Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `8d37c88f8f81ec77…`) · `configs/eval/search_s3_100m_offfp.yaml` (sha256 `9c82af2080aa7f48…`) · P-B's read: `docs/search_relook/DET_BLIND.md` §6 (P-B's read, verbatim). git HEAD `dd3ce9a94990` (dirty: False).
 
 ## Arms
 
@@ -22,7 +22,7 @@ Pre-regs: `configs/eval/search_s3_100m.yaml` (sha256 `f912dcdc33d408d0…`) · `
 | G10 | dose M + margin_delta 0.10, PLAIN evaluator — the gated comparator (S3G10 on s112, C10 on s104/s120) | s104/s112/s120 | 30/30 | 9000 | **0.81322** | COMPLETE |
 | EG10 | dose M + margin_delta 0.10 + the LOO ensemble evaluator — the evaluator axis under a WORKING selector | s104/s112/s120 | 0/30 | 0 | — | PENDING |
 | EG05 | EG10 at delta 0.05, s112 ONLY — EXPLORATORY, sizes the disclosed delta bias; never quotable as the arm effect | s112 | 0/10 | 0 | — | PENDING |
-| ENS3 | 3-seed masked log-prob ensemble over the 100M finals, n=9000 on disjoint seed windows | b0/b1/b2 | 6/30 | 1800 | 0.81722 *(PARTIAL)* | PARTIAL |
+| ENS3 | 3-seed masked log-prob ensemble over the 100M finals, n=9000 on disjoint seed windows | b0/b1/b2 | 30/30 | 9000 | **0.82356** | COMPLETE |
 
 Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and is **never** a cell input):
 
@@ -85,7 +85,7 @@ Per-lane (a PARTIAL cell is the running pooled rate over the chunks on disk and 
 | G10 | M | as_is | 76.9 | 339.9 | 257720 | 0.1486 | 0.0208 | COMPLETE |
 | EG10 | M | as_is | — | — | — | — | — | PENDING |
 | EG05 | M | as_is | — | — | — | — | — | PENDING |
-| ENS3 | — | — | — | — | — | — | — | PARTIAL |
+| ENS3 | — | — | — | — | — | — | — | COMPLETE |
 
 **leaves_mean equality (S3B vs S3M)** — DIAGNOSTIC ONLY — never a cell. Exact equality holds at MATCHED decisions (DET_BLIND.md §4, 11.4% argmax flips at IDENTICAL leaf counts). Live, the arms diverge after the first flip and play different battles, so the live check is a stated tolerance on the relative difference.
 

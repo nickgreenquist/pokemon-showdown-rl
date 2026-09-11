@@ -1,15 +1,21 @@
 # STATUS
 ## JOURNEY POSITION — step 7.5 (engine port) **EXITED 2026-09-10**; next is gen-1 step 8/10
-**GEN-4 CHAPTER CLOSED (2026-09-09):** steps 3 and 5 MET (M-YES, S5-MATCHED), step 6 BANKED
-NOT RUN, step 7 is RESULTS §19; vs SH 0.8788, **CREDITS NOTHING**. LADDER R4: GXE 65.2 /
-Glicko 1618 ± 25 / Elo 1354, n=200. **From here it is all gen 1.**
+**GEN-4 CLOSED (RESULTS §19):** steps 3/5 MET, vs SH 0.8788, CREDITS NOTHING. **LADDER R4:
+GXE 65.2 / Glicko 1618 ± 25 / Elo 1354, n=200. From here it is all gen 1.**
 
 ## JOURNEY 7.5 — the engine port, EXITED (full account docs/engine_port/NOTES.md)
-- **A-1 PASSED TWICE** (RW-1..9 ratified, RW-10 no). 12M rung, n=12,000/seed vs the banked
-  async 0.67211: **FIXED (bd3d06a) 0.66775, −0.00436, A1-PASS**, −0.59 se on the clustered
-  0.00736; **−0.00436 travels forever.** **A-1a EARNED ITS PLACE** — 10× separation on dims
-  627/673/719, the foe's revealed-move PP (`track.rs` hard-coded `pp = max_pp`); **P-1
-  structurally could not see it.**
+- **A-1 PASSED TWICE.** 12M rung, n=12,000/seed vs banked async 0.67211: **FIXED 0.66775,
+  −0.00436, A1-PASS**; **−0.00436 travels forever.** **A-1a EARNED ITS PLACE** — 10×
+  separation on the foe's revealed-move PP dims; **P-1 structurally could not see it.**
+## **ENS3 CREDITS (+0.0349) — the strongest FREE object we have**
+First run of the log-prob ensemble on the 100M finals. **ENS3 0.82356 (n=9000) vs fresh greedy
+A0 0.78867 (n=9000) = +0.03489, se_diff 0.005888, 5.93 se → CREDIT** (meets the +0.025 floor
+AND 2·se_diff). Batches 0.82667 / 0.81467 / 0.82933; flip rate ~0.108 so the wrapper is live;
+0 desyncs. **It beats the gated search's IN-SAMPLE peak (0.82400) at GREEDY SPEED.** Two
+disclosures travel: the **clustered se is UNAVAILABLE by construction** (three lanes = ONE
+committee, so the batch spread is EVAL noise and the binomial governs — anti-conservative),
+and it licenses **"ensembling THESE three checkpoints at 100M", NEVER "ensembling helps"** —
+LADDER R1's own limitation, repeated deliberately. A README row WAITS on the anchor battery.
 
 ## SEARCH: the defect WAS the SELECTOR — fixed, positive out of sample, NOT yet credit-grade
 **D5 margin gate: play search's action only if it beats the POLICY's argmax by > delta.**
@@ -42,25 +48,19 @@ Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/
 Grep `PRE-D5`. **LADDER R3 is a D4 object.** Such a number may NOT be used to argue that
 search, depth or dose does not pay. Re-measure under D5 or do not cite it.
 
-## Engine-native search — P0 and R1-E both read out 2026-09-10
-- **P0 STOP RULE PASSES — depth-2 is NOT killed.** sd(margin | S=32, CRN-1) **0.00835** vs
-  the 0.5×median bar **0.01640** (ratio 0.509); passes on the median too. **CRN-1 is worth
-  exactly 2× the samples at S=32, measured.** Pre-register **S=16** for depth-2, not 52.
-- **Depth-1's honest speedup is ~4×** at S=32 (not 17×, not 3×) — **quote it with the dose.**
-  **65% of per-child cost is Python marshalling that Phase 2 deletes**, so no engine ceiling
-  can be read off today's loop. Restriction cost said loudly: only 45.3% of roots survive.
-- **R1-E gate built and run** (13,396 roots, poke_engine stand-in): **leg A FAILS on exactly
-  ONE undeclared dim** (F5, a mon that faints asleep keeps `status_counter`); leg B PASS
-  (disclosed internal-only); **leg C PASS 99.686%** vs a 99.5% hard stop; **controls 8/8**.
-- **Rust write side landed** (+739 lines, 0 deleted, 94 cargo tests). It corrected the design
-  in three places: `B_LAST_MOVES.index` is load-bearing for V_CHARGING and 0 is an
-  unconditional OOB read (charging roots must be REFUSED); **W-ACTIVESTATS is wrong on
-  ≤24.38% of roots, not 2.26%**; W-VALIDATE's `order[0]` rule would reject 14.73% of the
-  harvest. Amendments applied to R1-E BEFORE readout with provenance and
-  `post_dates_first_numbers: true`; the pre-bar artifact is preserved and **every number is
-  identical leg by leg** — leg A fails under BOTH bars, on the same dim.
-- **Editable reinstall still OWED** (`pip install --no-build-isolation -e engine/pkmn_gen1`)
-  — MUST NOT run while `engine_pe_s66` is alive. The Python surface is UNEXERCISED until it does.
+## Engine-native search — P0 and R1-E read out 2026-09-10
+- **P0 STOP RULE PASSES — depth-2 is NOT killed.** sd(margin | S=32, CRN-1) **0.00835** vs the
+  0.5×median bar **0.01640** (ratio 0.509). **CRN-1 = 2× the samples, measured.** Depth-2
+  pre-registers **S=16**, not 52. **Depth-1's honest speedup is ~4×** at S=32 (not 17×) —
+  quote WITH the dose; 65% of per-child cost is Python marshalling Phase 2 deletes.
+- **R1-E built and run** (13,396 roots): **leg A FAILS on exactly ONE undeclared dim** (F5);
+  leg B PASS (internal-only); **leg C PASS 99.686%** vs a 99.5% stop; **controls 8/8**.
+- **Rust write side landed** (+739/0, 94 tests), correcting the design three times:
+  `B_LAST_MOVES.index` is load-bearing for V_CHARGING and 0 is an unconditional OOB read;
+  **W-ACTIVESTATS wrong on ≤24.38% of roots, not 2.26%**; `order[0]` would reject 14.73%.
+  Amendments reached R1-E BEFORE readout with provenance; **leg A fails under BOTH bars.**
+- **Editable reinstall DONE 2026-09-11**, Python write surface EXERCISED: a built root
+  validates, 200 engine-produced states all pass W-VALIDATE, all-zero bytes rejected by name.
 
 ## The monster (JOURNEY 10) — reviewed; THREE THINGS CHANGED, maintainer decisions owed
 1. **ARM B IS BITWISE ARM A — PROVEN AT THE FULL 12M HORIZON.** The design-B smoke finished:

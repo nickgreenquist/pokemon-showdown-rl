@@ -11551,3 +11551,37 @@ line numbers are not — grep the date, then read that region):
   design-B seam, and **arm C is launchable only because of that**. Cost is also wrong in
   STATUS: nine-wide is REFUSED on memory (16.4 GB vs 11-13 GB headroom), so the fleet is
   w6 + w3 = ~45.3 h, not ~40 h.
+
+- 2026-09-11 (night, agent, cont. 2) — **ENS3 CREDITS: +0.0349, AND IT IS FREE.** The 3-seed
+  masked log-prob ensemble, run on the 100M finals for the FIRST time: pooled **0.82356**
+  (n=9000, batches 0.82667 / 0.81467 / 0.82933) against the FRESH greedy A0 0.78867
+  (n=9000), **delta +0.03489, se_diff 0.005888, 5.93 se** — meets the +0.025 floor AND
+  2*se_diff, so **CREDIT** under the standing credit line. Flip rate ~0.108 on every batch
+  (the R0 gate: a rate of 0 would mean the wrapper is a single member in disguise), 0 mask
+  desyncs. Graded by scripts/search_s3_readout.py through the pre-registered machinery, not
+  by hand. **Two disclosures travel with it forever.** The CLUSTERED se term is UNAVAILABLE
+  BY CONSTRUCTION — three lanes make exactly ONE committee, so the batch spread measures
+  EVAL noise only and the binomial governs, which is the ANTI-CONSERVATIVE direction — and
+  it licenses "ensembling THESE three checkpoints at 100M", NEVER "ensembling helps". That
+  is LADDER R1's own recorded limitation (RESULTS §16.1) repeated deliberately rather than
+  quietly dropped. A README row still WAITS on the gen-1 anchor battery.
+  **Why it matters for the ladder object:** it beats the gated search's IN-SAMPLE peak
+  (0.82400 on s112) at GREEDY SPEED, against a gate whose honest out-of-sample effect is
+  +0.016 at 77.6 ms/decision. Both design reviews named this independently as the biggest
+  free win not in the design, and they were right.
+  **THE GATE ALSO TRANSFERS OFF FOUL PLAY — pre-decided branch FIRED.** BLM (gated search@M,
+  delta 0.10, s112) vs FP@20, n=1000: **0.525** against a pre-decided bar of 0.47, with the
+  banked greedy at 0.50167 (n=3000) and the UNGATED search at 0.39600 (n=1000) on the same
+  lane and checkpoint. **The SELECTOR ALONE moved the off-FP number by +0.129**, from
+  -0.106-vs-greedy to +0.023. The +0.023 is 1.28 se and is NOT significant; what the branch
+  tested, and what fired, is that the gain is not an SH-facing artifact. Stage 2 (BLL, dose
+  L) auto-launched. This is the more informative axis: off-FP sits at p~0.50 where the
+  credit line has full power, while vs-SH at 0.789 is the saturated one R4's own pre-reg
+  registered as a near-certain null.
+  Also tonight: PRE-2 SATISFIED (arm C's seam works on the engine route — EV rises -0.43534
+  -> +0.43713 over 10 updates, loss/value finite throughout, smoke killed at exactly 10);
+  the engine editable reinstall discharged and the Python write surface EXERCISED (200
+  engine-produced states all pass W-VALIDATE); and rl/search/ensemble_search.py written and
+  tested so a SearchAgent can take an ensemble as its PRIOR — the composition neither review
+  could cost because it was not buildable. Deliberately NOT wired: the EG10 queue relaunches
+  on failure and a resumed verdict arm must not run different code than its finished chunks.
