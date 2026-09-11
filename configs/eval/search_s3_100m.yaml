@@ -206,7 +206,23 @@ arms:
   C10:  {kind: search, lanes: [s104, s120], dose: M, battles: 3000, chunks: 10, margin_delta: 0.10}
   P15:  {kind: search, lanes: [s112], dose: M, battles: 3000, chunks: 10, margin_delta: 0.15}
   P20:  {kind: search, lanes: [s112], dose: M, battles: 3000, chunks: 10, margin_delta: 0.20}
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20]
+  EG10:
+    kind: search
+    lanes: [s104, s112, s120]
+    dose: M
+    battles: 3000
+    chunks: 10
+    margin_delta: 0.10
+    evaluator: {kind: loo, pool: [s104, s112, s120], loo_pool_expected: 2}
+  EG05:
+    kind: search
+    lanes: [s112]
+    dose: M
+    battles: 3000
+    chunks: 10
+    margin_delta: 0.05
+    evaluator: {kind: loo, pool: [s104, s112, s120], loo_pool_expected: 2}
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.
@@ -217,3 +233,94 @@ r4_13_discrimination:
 banked_reference_never_the_comparator:
   vssh_finals: {s104: results/ch5_100m/final_s104.json, s112: results/ch5_100m/final_s112.json, s120: results/ch5_100m/final_s120.json, pooled: 0.79589}
   offfp20_t112: {rate: 0.50167, n: 3000, source: results/ch5_100m/t112.json}
+
+# =====================================================================
+# AMENDMENT 2026-09-11 — THE EVALUATOR AXIS, RE-ASKED UNDER A WORKING
+# SELECTOR (arms EG10, EG05). Registered BEFORE either arm launches.
+#
+# WHY THIS EXISTS. A1E measured the leave-one-out critic ENSEMBLE as the leaf
+# evaluator and read 0.73689 pooled against S3M's 0.72056 — +0.0163, and still
+# 0.0518 BELOW greedy. That number was taken under D4, the HARD ARGMAX, which
+# overrode the policy on ~73% of decisions. By this repo's own landmine
+# (`PRE-D5`, docs/landmines.md) EVERY search number before 2026-09-11 measures
+# a BROKEN SELECTOR and may not be used to argue that a lever does not pay.
+# **A1E is one of those numbers.** The evaluator axis has therefore never been
+# read at an operating point where search is actually positive, and "does a
+# better evaluator buy anything?" is currently UNANSWERED, not answered NO.
+#
+# It is also the premise of the 100M monster's arm B (a privileged evaluator
+# head). If a strictly better evaluator buys nothing once the selector works,
+# arm B's premise is weak BEFORE 40 h of fleet is spent on it; if it buys a
+# lot, arm B is the right call. Either way this is the cheap read first.
+#
+# ARMS. Both dials already exist and are documented as ORTHOGONAL
+# (rl/search/agent.py: `evaluator` swaps the evaluator, `margin_delta` changes
+# only how a finished matrix becomes an action). No code change.
+#   EG10 — dose M + LOO ensemble evaluator + margin_delta 0.10, all 3 lanes.
+#   EG05 — the same at delta 0.05, s112 ONLY. EXPLORATORY, not a verdict arm.
+#
+# PRIMARY READ — P-EG = delta(EG10 - the GATED PLAIN arm at the SAME delta),
+# paired by lane, across-lane aggregator = EQUAL-WEIGHT MEAN OVER LANES.
+# Comparators are BANKED, same checkpoints, same locked protocol, same
+# session: s104 0.80900 (C10), s112 0.82400 (S3G10), s120 0.80667 (C10).
+# This isolates THE EVALUATOR because dose, leaf encoding and delta are all
+# held fixed; the ONLY thing that moves is which critic values the leaves.
+#
+# CREDIT LINE, restated verbatim: a lever is credited iff pooled delta
+# >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the
+# pooled-binomial se_diff and the seed-clustered se_diff, the latter computed
+# from the per-seed finals at read time.
+#
+# WHICH SIDE EACH BAND READS: P-EG is two-sided. A credited NEGATIVE (delta
+# <= -0.025 and >= 2*se_diff) is a real outcome and says the ensemble
+# evaluator HURTS under a working gate — that is a finding, not a null.
+#
+# DOSE IS MATCHED AND HERE IS HOW WE WOULD KNOW: both arms are dose M
+# (n_det 4, top_branches 6, leaf_cap 1296) and both log search/leaves_mean and
+# search/ms_mean per chunk. Matched means leaves_mean within 5% of S3G10/C10's
+# banked 349.8 +/- the chunk spread. The LOO evaluator costs ~17% more WALL
+# per decision (A1E 73.1 ms vs S3M 62.3 ms) and that is a COST, not a dose
+# difference; if leaves_mean moves more than 5% the arms are NOT dose-matched
+# and P-EG is reported as UNINTERPRETABLE rather than as a delta.
+#
+# A DISCLOSED BIAS, STATED BEFORE THE FACT AND AGAINST THE TREATMENT: delta
+# 0.10 was tuned on s112 for the PLAIN evaluator. A lower-variance evaluator
+# should want a SMALLER delta (the same argument the budget ladder makes for
+# its expensive rungs), so reading the ensemble at the plain evaluator's delta
+# biases AGAINST it. EG05 exists to size that bias on the tuning lane only; it
+# is EXPLORATORY and can never be quoted as the arm's effect.
+#
+# SELECTION HYGIENE. s112 is the delta-SELECTION lane. P-EG is reported BOTH
+# pooled over three lanes AND out-of-sample over s104+s120 alone, and the
+# out-of-sample number is the one that travels. (The plain gate's own effect
+# shrank 2.6x this way: +0.04167 in-sample on s112, +0.01600 out of sample.)
+#
+# R0 SANITY GATES, all three must hold or the arm is void:
+#   R0-a  mask_desyncs_delta == 0 on every chunk (harness contract).
+#   R0-b  F5's loo membership asserts fire at resolution and the member
+#         sha256s are written into every chunk JSON (already enforced).
+#   R0-c  search/override_rate is RECORDED per chunk. At delta 0.10 the plain
+#         arm sat at 0.085 (s112) / 0.157 (s104) / 0.197 (s120). A rate of 0
+#         means the gate never fired and the arm is greedy-in-disguise; a rate
+#         near 1 means the gate is inert. Either voids the arm.
+#
+# BRANCHES, decided now:
+#   P-EG credited POSITIVE  -> the evaluator axis is live under a working
+#       selector. Arm B's premise is supported; the ladder object becomes
+#       gated-search-with-ensemble-evaluator and a delta re-tune is owed.
+#   P-EG null (|delta| < 0.025) -> the evaluator is NOT the binding axis at
+#       this dose. Per the 2026-09-06 ruling this is a NULL, NOT A KILL: it
+#       does not close the evaluator axis, and it does not by itself kill arm
+#       B, because a PRIVILEGED evaluator carries information a LOO ensemble
+#       of our own critics does not. It DOES mean arm B should not be bought
+#       at three dedicated lanes on this evidence.
+#   P-EG credited NEGATIVE -> report it; the ensemble evaluator is a
+#       DISCREDITED lever under the gate and arm B needs a new argument.
+#
+# WHAT A RESULT HERE DOES NOT LICENSE: it is ONE dose (M), ONE delta, ONE
+# ensemble form (LOO over three of our own critics), and three checkpoints of
+# one recipe. It says nothing about depth, about a privileged evaluator, or
+# about an ensemble used as the PRIOR rather than as the leaf value — that
+# composition needs SearchAgent to consume an EnsembleAgent, which it cannot
+# today (EnsembleAgent exposes no actor/critic/aux_head).
+# =====================================================================
