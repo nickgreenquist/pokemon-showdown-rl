@@ -133,10 +133,17 @@ comparison and should not be registered as one.
   the evaluator axis is **unanswered, not answered no** — and it is arm B's
   premise. If a strictly better evaluator buys nothing once the selector works,
   that is worth knowing before 45 h of fleet.
-- **ENS3** — the 3-seed log-prob ensemble on the 100M finals, n=9000. The only
-  free-compute dial this project has ever credited (+0.036, B1), LADDER R1's
-  actual object, and never once run at 100M.
-- **BLM** — the pre-decided Foul Play transfer branch for the gate.
+- **ENS3 — DONE, AND IT CREDITS.** 0.82356 (n=9000) vs fresh greedy 0.78867,
+  **+0.03489 at 5.93 se**, meeting both the floor and 2*se_diff. It beats the
+  gated search's IN-SAMPLE peak at greedy speed. **This changes the ladder-object
+  question**: the object to beat is no longer single-seed greedy, it is the
+  ensemble. Disclosures travel — clustered se UNAVAILABLE (one committee), and
+  it licenses "ensembling THESE three checkpoints", never "ensembling helps".
+- **BLM — DONE, branch FIRED: TRANSFERS.** 0.525 vs FP@20 (n=1000) against a
+  0.47 bar, with banked greedy 0.50167 and UNGATED search 0.39600 on the same
+  lane. **The selector alone bought +0.129 off-FP.** The gate is not an
+  SH-facing artifact. (The +0.023 over greedy is 1.28 se — not significant; the
+  branch tested SH-facing-ness, not superiority.) Stage 2 auto-launched.
 
 ## Cost, corrected
 
