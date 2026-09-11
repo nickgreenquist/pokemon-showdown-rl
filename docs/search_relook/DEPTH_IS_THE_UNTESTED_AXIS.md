@@ -149,3 +149,47 @@ Leaf-parallel descents under a virtual loss now share one forward: **224 ms →
 iterations), which more iterations buy back. The bottleneck is now the
 pure-Python encoder — 99 of SWA's 280 ms — and `embed_battle` is NOT to be
 touched, because every checkpoint was trained against it byte-for-byte.
+
+---
+
+## The baseline these probes have to be read against (2026-09-11, corrected)
+
+**A 300-seed arm may not be compared to a 3000-seed pooled mean.** Every probe
+arm here runs seeds 100–399. So does `S3G10`'s chunk00 — and that chunk reads
+**0.8000**, while `S3G10`'s pooled n=3000 number is **0.82400**. Reading the
+probes against 0.824 silently charged each of them 0.024 of seed-block offset.
+
+On this block the ordering is not even the usual one:
+
+| seeds 100–399, n=300 | win rate |
+|---|---|
+| `A0` greedy | **0.8367** |
+| `S3G10` depth-1 gated | 0.8000 |
+| `S3M` depth-1 ungated | 0.7500 |
+
+Greedy *beats* the gated search on these 300 seeds. That is the landmine
+about a single rung being worth ±0.02 rather than the binomial ±0.008, showing
+up exactly where it was predicted to.
+
+Matched seed-for-seed, with McNemar's se over the battles where the two arms
+actually disagreed:
+
+| arm | n | win | vs depth-1 | |
+|---|---|---|---|---|
+| `TREEQ` deep tree, minimax opponent, δ 0.10, **27.2%** override | 300 | 0.6800 | **−0.1200** | **−3.3 se** |
+| `TREEQ25` same tree, δ 0.25, 9.7% override | 300 | 0.7900 | −0.0100 | −0.3 se |
+| `D2B` banked matrix + 1 selective ply, 16.9% override | 300 | 0.7900 | −0.0100 | −0.3 se |
+| `MP200` poke_engine MCTS @200 ms, 31.5% override | 300 | 0.8200 | +0.0200 | +0.6 se |
+
+**One thing separates at this n, and it is not depth: letting the deep tree's
+minimax Q override the policy 27% of the time costs 0.12.** Tightening the
+same tree's gate to 9.7% recovers all of it. Depth itself is neither shown to
+help nor shown to hurt at these doses — n=300 buys ±0.03 and the interesting
+deltas are smaller than that.
+
+Which is why the next arms are the ones that separate the mechanisms rather
+than pile on n: `TSAMP1` (depth 1, opponent SAMPLED from q) against `S3G10`
+isolates the tree's Monte-Carlo root estimate from the matrix's exact one, and
+`TSAMP` against `TSAMP1` then isolates depth with that controlled. `D3` and
+`D2W` push the one family that keeps everything the banked object already
+gets right.
