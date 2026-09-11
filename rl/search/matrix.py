@@ -158,6 +158,111 @@ def _terminal_value(state: Any) -> float | None:
     return None
 
 
+def _leaf_our_moves(state: Any, k: int) -> list[str]:
+    """Legal move ids for US at a child state: pp left, not disabled. Switches
+    are skipped on purpose -- this probe asks whether looking one more ply at
+    the ATTACK lines changes the root choice, and switches multiply the branch
+    factor without being the thing in question."""
+    side = state.side_one
+    # `active_index` comes back from pyo3 as a STRING ('0'..'5'), not an int,
+    # so `side.pokemon[side.active_index]` raises TypeError. Wrapped in a bare
+    # `except: return []` that cost a whole void D2 arm -- 1572 decisions, zero
+    # grandchildren, a win rate that looked like a result. Same unwrap as
+    # matrix.py's opponent side and shadow_battle.py.
+    ai = side.active_index
+    active = side.pokemon[int(str(ai)[-1]) if not isinstance(ai, int) else ai]
+    out = [m.id for m in active.moves
+           if getattr(m, "pp", 0) > 0 and not getattr(m, "disabled", False)
+           and m.id and m.id.lower() != "none"]
+    return out[:k]
+
+
+def _look_one_more_ply(values, need, leaf_states, col_actions, leaf_at, turn,
+                       col_views, critic_fn, type_chart, depth2):
+    """DEPTH-2 PROBE. Replace a leaf's critic value with a ONE-PLY LOOKAHEAD:
+    from the leaf state, play each of our legal moves against the opponent
+    continuing its column class, and take the MAX over our replies.
+
+    Selective on purpose -- `our_k` moves, one opponent line, a hard `cap` on
+    grandchildren -- because exhaustive depth-2 costs ~leaves^2 and that cost
+    is the entire reason the engine port exists. Foul Play gets depth by being
+    selective, not by being fast, and this is the cheapest imitation of that.
+
+    Optimistic by construction: max over our replies with no min over the
+    opponent's. That biases the VALUES up, but it biases every row the same
+    way, and the root decision is an argmax over rows -- so it is a fair probe
+    of "does looking further change the CHOICE", not a calibrated value.
+    """
+    our_k = int(depth2.get("our_k", 3))
+    cap = int(depth2.get("cap", 6000))
+    g_obs: list[np.ndarray] = []
+    g_fixed: list[float] = []     # terminal values; nan = ask the critic
+    g_at: list[int] = []          # which leaf each grandchild belongs to
+    expanded = 0
+    for i in need:
+        st = leaf_states[i]
+        if st is None or expanded >= cap:
+            continue
+        ri, ci, di, _w = leaf_at[i]
+        b_str = col_actions[ci][di]
+        for a_str in _leaf_our_moves(st, our_k):
+            if expanded >= cap:
+                break
+            try:
+                brs = generate_instructions(st, a_str, b_str)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except BaseException:
+                continue
+            if not brs:
+                continue
+            br = max(brs, key=lambda b: b.percentage)
+            try:
+                gc = st.apply_instructions(br)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except BaseException:
+                continue
+            tv = _terminal_value(gc)
+            if tv is not None:
+                # A terminal grandchild carries its OWN value (+/-1), not the
+                # zero an unfilled slot would default to -- scoring a won line
+                # as 0.0 is exactly backwards and would make the extra ply
+                # avoid wins.
+                g_obs.append(None); g_fixed.append(tv)
+                g_at.append(i); expanded += 1
+                continue
+            try:
+                g_obs.append(embed_battle(
+                    shadow_battle(gc, turn + 2, view=col_views[ci]), type_chart))
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except BaseException:
+                continue
+            g_fixed.append(np.nan)
+            g_at.append(i); expanded += 1
+    if not g_at:
+        return values, {"depth2/grandchildren": 0.0, "depth2/leaves_deepened": 0.0}
+    real = [j for j, o in enumerate(g_obs) if o is not None]
+    gvals = np.array(g_fixed, dtype=np.float64)
+    if real:
+        gb = np.stack([g_obs[j] for j in real]).astype(np.float32)
+        gvals[real] = np.asarray(critic_fn(gb), dtype=np.float64)
+    best: dict[int, float] = {}
+    for j, i in enumerate(g_at):
+        v = gvals[j]
+        if i not in best or v > best[i]:
+            best[i] = v
+    out = values.copy()
+    for i, v in best.items():
+        out[i] = v
+    return out, {
+        "depth2/grandchildren": float(len(g_at)),
+        "depth2/leaves_deepened": float(len(best)),
+        "depth2/mean_shift": float(np.mean([abs(out[i] - values[i]) for i in best])),
+    }
+
+
 def solve_decision(
     battle: Any,
     mask: np.ndarray,
@@ -170,6 +275,7 @@ def solve_decision(
     det_fn: Callable[[Any, np.random.Generator], dict] | None = None,
     leaf_view: PublicView | None = None,
     margin_delta: float | None = None,
+    depth2: dict | None = None,
 ) -> tuple[int, dict]:
     """One depth-1 BR solve. `q` is the oppact head's plain L6 posterior at
     the root; `prior` the masked policy probabilities (tie-break only);
@@ -244,6 +350,7 @@ def solve_decision(
 
     # --- cell fill: shared determinizations, top-B retention ------------
     leaf_obs: list[np.ndarray] = []
+    leaf_states: list[Any] = []   # depth2 probe: the engine state behind each leaf
     leaf_fixed: list[float] = []  # terminal values; nan = ask the critic
     leaf_at: list[tuple[int, int, int, float]] = []  # (row_i, col_i, det_i, w)
     n_leaves = 0
@@ -283,6 +390,7 @@ def solve_decision(
                                 f"(dose n_det={dose.n_det}, {len(rows)} rows, "
                                 f"{len(col_classes)} cols)"
                             )
+                        leaf_states.append(lv if depth2 is not None else None)
                         tv = _terminal_value(lv)
                         if tv is None:
                             leaf_obs.append(embed_battle(
@@ -301,6 +409,12 @@ def solve_decision(
     if need:
         batch = np.stack([leaf_obs[i] for i in need]).astype(np.float32)
         values[need] = np.asarray(critic_fn(batch), dtype=np.float64)
+    d2_stats: dict[str, float] = {}
+    if depth2 is not None and need:
+        values, d2_stats = _look_one_more_ply(
+            values, need, leaf_states, col_actions, leaf_at, turn, col_views,
+            critic_fn, type_chart, depth2,
+        )
 
     # --- EV matrix + BR solve (D3/D4) ----------------------------------
     ev_cell = np.zeros((len(rows), len(col_classes), dose.n_det))
@@ -360,4 +474,6 @@ def solve_decision(
         "bridge/unmapped_effects": dict(counters.unmapped_effects),
         **gate,
     }
+    if depth2 is not None:
+        stats.update(d2_stats)
     return best, stats

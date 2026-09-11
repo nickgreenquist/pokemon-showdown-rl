@@ -145,6 +145,10 @@ class _SearchEvalAdapter:
         self._tag = None
         self.ms: list[float] = []
         self.leaves: list[int] = []
+        # depth-2 probe diagnostics: without these a null is unreadable,
+        # because "the extra ply changed nothing" and "the extra ply never
+        # fired" print the same win rate.
+        self.d2: dict[str, list[float]] = {}
         self._counter_snapshot = dict(search_agent.counters)
 
     def begin_chunk(self, base_battle_index: int) -> None:
@@ -169,6 +173,9 @@ class _SearchEvalAdapter:
         if "search/leaves" in stats:  # searched (non-placeholder) decision
             self.ms.append((time.perf_counter() - t0) * 1e3)
             self.leaves.append(int(stats["search/leaves"]))
+            for k, v in stats.items():
+                if k.split("/")[0] in ("depth2", "census", "tree"):
+                    self.d2.setdefault(k, []).append(float(v))
         self._decision_index += 1
         return action
 
@@ -186,11 +193,16 @@ class _SearchEvalAdapter:
             "search/searched_decisions": len(self.ms),
             "oppact/entropy_median": self._sa.entropy_median(),
         }
+        for k, vs in self.d2.items():
+            out[k + "_mean"] = float(np.mean(vs))
+        if self.d2:
+            gc = self.d2.get("depth2/grandchildren", [0.0])
+            out["depth2/decisions_with_any"] = float(np.mean([g > 0 for g in gc]))
         for key in ("search/decisions", "search/placeholder_skips",
                     "search/flips", "search/overrides"):
             out[key] = self._sa.counters[key] - self._counter_snapshot[key]
         self._counter_snapshot = dict(self._sa.counters)
-        self.ms, self.leaves = [], []
+        self.ms, self.leaves, self.d2 = [], [], {}
         return out
 
 
@@ -226,6 +238,11 @@ def _jobs(prereg: dict) -> dict[str, dict]:
                     "leaf_encoding": spec.get("leaf_encoding"),
                     # absent -> None -> the hard argmax (MARGIN_SELECTOR.md)
                     "margin_delta": spec.get("margin_delta"),
+                    # PROBE: {"n_det":2,"ms":20,"margin":0.10} swaps the depth-1
+                    # matrix for poke_engine's MCTS. absent -> None -> untouched.
+                    "mcts": spec.get("mcts"),
+                    "depth2": spec.get("depth2"),
+                    "tree": spec.get("tree"),
                 }
         elif kind == "ensemble":
             for b in range(spec["batches"]):
@@ -355,6 +372,9 @@ def run_job(prereg: dict, name: str) -> None:
             evaluator=evaluator,
             leaf_encoding=job.get("leaf_encoding"),
             margin_delta=job.get("margin_delta"),
+            mcts=job.get("mcts"),
+            depth2=job.get("depth2"),
+            tree=job.get("tree"),
         )
         adapter = agent = _SearchEvalAdapter(sa, env)
     elif len(job["members"]) == 1:
