@@ -1,0 +1,147 @@
+# =====================================================================
+# THE MONSTER, ARM B — THE PRIVILEGED EVALUATOR HEAD (design B).
+#
+# THE PRE-REGISTRATION FOR THIS ARM IS configs/showdown_monster100m.yaml.
+# Read it. This file restates nothing from it: not the journey_step, not
+# the exit condition, not the credit line, not the arms, not the reads, not
+# the gates. A second copy of any of those is a second copy that drifts.
+# The sidecar is configs/showdown_monster100m.prereg.yaml and it covers all
+# three arms.
+#
+# THIS FILE ONLY EXISTS UNDER ONE BRANCH OF A PENDING DECISION. 2026-09-10
+# MEASURED that an arm-B lane is BITWISE an arm-A lane — engine_pe_s66
+# against engine_a1b_s66, 21 identical rungs, 223 tensors, 3,428,015
+# elements, ZERO differing, digest 104a9339eb6a2260. So:
+#   Under D1-RIDE (the recommendation, pre-reg section (A1)) the two
+#     priv_eval keys move INTO configs/showdown_monster100m.yaml, arm B has
+#     no lanes of its own, and THIS FILE IS NOT LAUNCHED. It is kept because
+#     the decision is the maintainer's and has not been made.
+#   Under D1-SEPARATE this file launches three lanes whose actor and critic
+#     bytes MUST equal monster100m_a_s{s}'s at every shared rung (P-ID). A
+#     single differing element is an R0-class event, not a finding.
+# NO WIN-RATE COMPARISON BETWEEN THESE LANES AND ARM A's IS REPORTED on the
+# greedy axis under either branch. If the checkpoints are identical then so
+# are their evals.
+#
+# WHAT DIFFERS FROM configs/showdown_monster100m.yaml — FOUR LINES, NO MORE.
+# `diff configs/showdown_monster100m.yaml configs/showdown_monster100m_b.yaml`
+# below the header must show exactly these and nothing else; the launcher
+# runs that diff before lane 1 and refuses on any undeclared difference.
+#   run_name              monster100m_b_s104     lane identity only
+#   env_kwargs.seat_tag   m10b                   eval-seat naming only
+#   agent.priv_eval_dim   408                    THE EMITTER
+#   agent.priv_eval_coef  0.5                    THE HEAD
+#
+# WHAT IS *NOT* HERE, AND IT IS THE WHOLE POINT: `agent.privileged_dim`.
+# That key is D18 / design A and it widens `self.critic`, putting the
+# privileged block into the ADVANTAGE channel — the exact channel D18's
+# falsifier fired on. It is arm C's key and it is absent here. This lane's
+# critic is the ordinary D18-free critic: same width, same parameter count
+# (494,849, not 642,305), bit-identical INIT and bit-identical UPDATES on
+# the same rows to a lane with no privileged keys at all
+# (tests/test_priv_eval_head.py, twenty updates). The head's construction
+# rewinds the global torch RNG stream, so even the minibatch permutations
+# match arm A's.
+#
+# WHY priv_eval_coef IS 0.5, since a pre-reg has to say. THE COEFFICIENT
+# CANNOT REACH THE POLICY OR THE CRITIC BY CONSTRUCTION — the head shares
+# no parameters with either, has its own Adam group and its own gradient
+# clip, and feeds nothing — so its value is a pure optimisation choice for
+# the head alone, and the only channels it touches at all are the clip
+# threshold and Adam's epsilon. 0.5 IS value_coef. Setting it there trains
+# the evaluator head under the CRITIC'S OWN RECIPE, which is what makes the
+# head-versus-critic comparison apples-to-apples. It is chosen for
+# COMPARABILITY, not tuned for performance, and no tuning of it is licensed
+# by this pre-reg. `priv_eval_max_grad_norm` is left at its 0.5 default on
+# purpose: one unstated knob is one fewer thing a reader has to check.
+#
+# WHICH COMPARISON, EXACTLY — AND IT CHANGED ON 2026-09-10 (commit b147f48).
+# THE VERDICT METRIC IS `priv_eval/ev_mc_advantage`: the head's explained
+# variance MINUS the critic's, BOTH against the MONTE-CARLO RETURN, on the
+# same batch in the same pass. That is read P-BEV, and it is arm B's
+# REGISTERED PRIMARY for this run.
+# `priv_eval/explained_variance` IS A DIAGNOSTIC AND IS BARRED AS A VERDICT
+# INPUT. It scores the head against the GAE target, and at gamma 1 with a
+# terminal-only reward that target decomposes as
+# lam^(N-1-t)*z + (1-lam)*sum_k lam^(k-1) V(s_{t+k}) — so at lambda 0.95
+# over ~34 decisions ~53% of it is the ORDINARY CRITIC'S OWN OUTPUT, ~82% at
+# the first decision, where the privileged block matters most. Before
+# b147f48 the head was TRAINED on that target: it existed to beat the critic
+# and was being taught to agree with it. It now regresses the MC return.
+# A LANE THAT DOES NOT LOG `priv_eval/ev_mc_advantage` FROM UPDATE 1 IS
+# RUNNING THE PRE-FIX HEAD — that is R0-B5, and it is the one gate that
+# separates a correct arm-B lane from the smoke that was running when this
+# pre-reg was drafted.
+#
+# THE SMOKE THIS ARM INHERITS: configs/engine_a1_priveval_smoke.yaml, run as
+# runs/engine_pe_s66 on 2026-09-10. Its S-1..S-6 gates are this arm's
+# R0-B1..R0-B6 (pre-reg section (L)), and precondition PRE-3 requires its
+# read to be in hand before the fleet launches.
+# =====================================================================
+env_id: Showdown-v0
+seed: 104                  # lanes 2/3 via --seed 112 / 120
+total_steps: 100000000
+eval_every: 250000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 500000
+run_name: monster100m_b_s104      # lanes 2/3 via --run-name
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine
+  k: 8
+  team_bank: data/engine/teams_a1_5000000.bin
+  min_bank_pairs: 1000000
+  learner_seat: p1
+env_kwargs:
+  opp_action: true
+  seat_tag: m10b           # ARM B
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 100000000
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
+  # --- THE ONLY TWO ADDED KEYS -------------------------------------------
+  priv_eval_dim: 408          # THE EMITTER, AND ONLY THE HEAD READS IT. The
+                              # collector's `privileged` flag is DERIVED from
+                              # PPOAgent.privileged_block_dim (rl/train.py:954),
+                              # so there is no collector.privileged key — one
+                              # is refused outright by ENGINE_KEYS. 408 is the
+                              # encoder's PRIV_DIM, asserted at compile time in
+                              # engine/pkmn_gen1/src/encoder.rs and checked at
+                              # launch (rl/train.py:845-856); any other value
+                              # is refused.
+  priv_eval_coef: 0.5         # value_coef's scale — chosen for comparability
+                              # with the critic, not tuned. See the header.
