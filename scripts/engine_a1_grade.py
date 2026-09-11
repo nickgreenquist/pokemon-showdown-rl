@@ -22,6 +22,7 @@ import json
 import math
 import pathlib
 import statistics
+import subprocess
 import sys
 
 import yaml
@@ -43,6 +44,11 @@ EVAL_INTERVAL = 250_000       # beyond this it is a different dose, not an overs
 N_RUNGS = 48
 
 
+class _HistoryUnavailable(RuntimeError):
+    """No history CSV and none could be built. P-AUC becomes UNAVAILABLE; it
+    must never take the PRIMARY endpoint read down with it (2026-09-10)."""
+
+
 def _auc(run_dir: pathlib.Path | str) -> tuple[float, int, str]:
     run_dir = pathlib.Path(run_dir)  # lanes carry it as str so the result JSON serialises
     """Mean eval/win_rate over the in-loop rungs at 250k..12.0M.
@@ -54,10 +60,33 @@ def _auc(run_dir: pathlib.Path | str) -> tuple[float, int, str]:
     merged, plain = run_dir / "history_merged.csv", run_dir / "history.csv"
     path = merged if merged.exists() else plain
     if not path.exists():
-        raise SystemExit(
-            f"{run_dir}: no history.csv and no history_merged.csv. A resumed "
-            "lane splits the wandb history and extract_history.py HARD-FAILS; "
-            "run scripts/merge_history.py first (docs/landmines.md:268-283).")
+        # BUILD IT rather than dying. The 2026-09-10 A-1 re-run lost its whole
+        # grade here: one lane had been resumed, so it had no history.csv, and
+        # a SystemExit in the SECONDARY leg took the PRIMARY endpoint read down
+        # with it. A resumed lane needs merge_history (extract_history
+        # hard-fails on a split history, docs/landmines.md:268-283); an
+        # unresumed one just needs extract_history. Pick by counting the
+        # offline-run dirs, which is the same signal merge_history segments on.
+        segments = sorted(run_dir.glob("wandb/offline-run-*"))
+        tool = "merge_history" if len(segments) > 1 else "extract_history"
+        print(f"{run_dir.name}: no history CSV; running {tool}.py "
+              f"({len(segments)} offline-run segment(s))")
+        try:
+            subprocess.run(
+                [sys.executable, str(pathlib.Path(__file__).parent / f"{tool}.py"),
+                 str(run_dir)],
+                check=True, capture_output=True, text=True, timeout=600,
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+            detail = getattr(e, "stderr", "") or str(e)
+            raise _HistoryUnavailable(
+                f"{run_dir}: no history CSV and {tool}.py failed: "
+                f"{detail.strip()[-400:]}") from e
+        path = merged if merged.exists() else plain
+        if not path.exists():
+            raise _HistoryUnavailable(
+                f"{run_dir}: {tool}.py ran but produced neither history.csv nor "
+                "history_merged.csv")
     # The window is a BUCKET rule, not a literal interval: the 48th in-loop eval
     # lands just PAST 12,000,000 (the banked lanes read 12,000,013 / 12,000,009 /
     # 12,000,041), so "250k..12.0M" literally holds only 47 async rungs against
@@ -206,9 +235,54 @@ def main(argv=None) -> int:
 
     # --- P-AUC ----------------------------------------------------------------
     aucs, counts, srcs = [], {}, {}
+    auc_errors = {}
     for l in lanes:
-        a, n, src = _auc(l["run_dir"])
+        try:
+            a, n, src = _auc(l["run_dir"])
+        except _HistoryUnavailable as e:
+            auc_errors[l["run"]] = str(e)
+            continue
         aucs.append(a); counts[l["run"]] = n; srcs[l["run"]] = src
+    if auc_errors:
+        # P-AUC is UNAVAILABLE, not zero and not silently dropped. P-END above
+        # is already computed and stands on its own; RW-8 below decides whether
+        # this is merely a missing secondary or a missing CO-PRIMARY, which is
+        # an ungradeable run rather than a pass.
+        res["P_AUC"] = {"status": "UNAVAILABLE", "errors": auc_errors,
+                        "per_lane": {l["run"]: a for l, a in zip(lanes, aucs)},
+                        "inside_band": None, "denominator_ok": False,
+                        "signed_delta": None, "arm_auc": None,
+                        "rung_counts": counts, "sources": srcs}
+        side = yaml.safe_load(args.prereg.read_text()) if args.prereg.exists() else {}
+        rw8 = (side.get("ratified_decisions") or {}).get("RW-8")
+        co_primary = str(rw8).lower().startswith("co-primary") if rw8 else False
+        res["P_AUC"]["role"] = ("CO-PRIMARY" if co_primary else
+                                f"SECONDARY-DESCRIPTIVE (RW-8: {rw8})" if rw8 else
+                                "SECONDARY-DESCRIPTIVE (RW-8 unanswered)")
+        if co_primary:
+            res["cell"] = "A1-UNGRADEABLE"
+            res["pass"] = False
+            res["verdict"] = ("P-AUC is CO-PRIMARY and its history could not be "
+                              f"built for {sorted(auc_errors)}. The run is "
+                              "UNGRADEABLE on that leg — not a pass. P-END read "
+                              f"{res['P_END']['signed_delta']:+.5f}.")
+        else:
+            res["cell"] = "A1-PASS" if res["P_END"]["inside_band"] else "A1-FAIL"
+            res["pass"] = res["cell"] == "A1-PASS"
+            res["verdict"] = (f"A-1 SIGNED delta {res['P_END']['signed_delta']:+.5f} "
+                              "(endpoint). P-AUC UNAVAILABLE (secondary, so it "
+                              "cannot fail the run) for "
+                              f"{sorted(auc_errors)}.")
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(res, indent=2) + "\n")
+        print(f"A-1 {res['cell']}")
+        print(f"  P-END  {res['P_END']['signed_delta']:+.5f} "
+              f"({'INSIDE' if res['P_END']['inside_band'] else 'OUTSIDE'} band {BAND})")
+        print(f"  P-AUC  UNAVAILABLE [{res['P_AUC']['role']}]")
+        for r, e in sorted(auc_errors.items()):
+            print(f"           {r}: {e}")
+        print(f"  written: {args.out}")
+        return 0 if res["pass"] else 1
     auc = statistics.fmean(aucs)
     d_auc = auc - BASE_AUC
     bad = {r: n for r, n in counts.items() if n != N_RUNGS}
