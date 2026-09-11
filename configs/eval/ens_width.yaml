@@ -1,0 +1,87 @@
+title: ens_width
+status: "REGISTERED 2026-09-11 (night, agent; hacking-phase screen). CREDITS NOTHING."
+journey_step: "10"
+credits_nothing: true
+results_dir: results/ens_width
+
+# WHY THIS EXISTS -- the one number Saturday's launch shape depends on, and
+# it can be measured tonight for free.
+#
+# STATUS (2026-09-11) says "members SATURATE at 3; the monster run should buy
+# STEPS", from three 2-member pairs vs ONE 3-member triple on one seed block:
+# 0.78233 -> 0.81678 -> 0.82667. The review session found that read does not
+# carry its weight: the same ENS3 object spreads 0.0147 across its three
+# batches (0.82667 / 0.81467 / 0.82933), larger than the 2->3 gain (+0.0099);
+# the 1-member point used s112 alone (0.78233) where the b0 singles mean is
+# 0.78867, so the gains are +0.028 then +0.010; and the member added last was
+# the weakest lane. A 4th-6th member at +0.01 each is not excluded. Against
+# "buy steps": RESULTS s18 records the last doubling (50M -> 100M finals) at
+# +0.024 off-FP (cell P3, NOT credited) and +0.009 vs SH, while three members
+# bought +0.035 vs SH for free.
+#
+# The 4th, 5th and 6th members EXIST ALREADY: the R2 batch-50M finals
+# (s66/s75/s83, ckpt_050000000.pt), 828-d objects the ch5_100m grade already
+# compared to the 100M finals (vs SH 0.781/0.795/0.783 vs 0.791/0.800/0.797).
+# Mixing horizons makes every extra member a slightly WEAKER one, so a gain
+# here is a LOWER bound on what three more 200M members would buy, and a null
+# here is not proof of saturation -- it is stated as such below.
+#
+# ARMS (vs SH, LOCKED protocol: deterministic, ties non-wins, 3000/chunk-set,
+# seed window b = 100 + b*3000 exactly as search_s3_100m.yaml's ENS3 uses):
+#   A50    greedy, FRESH, the three 50M finals, b0            (the 1-member point at 50M)
+#   E350   ENS3 of the 50M finals, batches b0/b1/b2, n=9000   (the 3-member point at 50M)
+#   E4     100M trio + s75 (strongest 50M single), b0         (4 members)
+#   E5     100M trio + s75 + s66, b0                          (5 members)
+#   E6MIX  100M trio + all three 50M finals, b0/b1/b2, n=9000 (6 members)
+# Comparators, SAME session block, already on disk in results/search_s3_100m:
+#   A0 (100M singles, b0) 0.78933 / 0.78233 / 0.79433, mean 0.78867
+#   ENS3 b0/b1/b2 0.82667 / 0.81467 / 0.82933, pooled 0.82356
+#
+# THE READ, stated before any arm runs. DESCRIPTIVE, credits nothing, and the
+# seeds do NOT pair battles (per-battle agreement between arms on shared seeds
+# sits at the independence level, 0.66-0.73; teams and rolls are server-rolled)
+# so every comparison is UNPAIRED with the two-proportion binomial se.
+#   W1 members-at-100M curve: ENS3 (3) -> E4 -> E5 -> E6MIX (6), all on b0,
+#      plus E6MIX pooled n=9000 vs ENS3 pooled n=9000 (se_diff ~0.0057).
+#      E6MIX - ENS3 >= +0.025 and >= 2 se  -> members still pay at 3; the
+#          monster buys WIDTH first (6 lanes), horizon second.
+#      |E6MIX - ENS3| < 2 se               -> not resolvable with weaker
+#          members; the 6-lane shape is still preferred because it costs
+#          nothing Saturday can not afford (43 h at w6) and yields two
+#          committees. This branch does NOT establish saturation.
+#      E6MIX - ENS3 <= -0.025               -> weaker members HURT the pooled
+#          prior; report, and prefer equal-strength members (all-200M).
+#   W2 ensemble gain at 50M vs at 100M: (E350 - A50 mean) vs (ENS3 - A0 mean
+#      = +0.0349). Equal gains -> members and steps are additive; a smaller
+#      gain at 100M than at 50M -> they are substitutes and the horizon is
+#      the weaker lever.
+#
+# DISCLOSURES: vs SH is the SATURATED axis (bare policy 0.78-0.79); every
+# delta here is compressed by the ceiling and the off-FP twin
+# (configs/eval/ens_width_offfp.yaml) is the axis with room. The clustered se
+# is UNAVAILABLE for every ensemble arm by construction (one committee per
+# arm), so the binomial governs -- anti-conservative, said up front.
+
+checkpoints:
+  s104: {path: runs/showdown_sp_100m_s104/ckpt_100000027.pt, sha256: 16a6f02064e4c71ddecec08122a60f2ba363cea237761c9cda01a1c2ce5914ff, step: 100000027}
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
+  s120: {path: runs/showdown_sp_100m_s120/ckpt_100000080.pt, sha256: db5d07d2096e021cb74deaf86c1feb2134954a35e042392680d568a185320287, step: 100000080}
+  s66:  {path: runs/showdown_sp_batch50m_s66/ckpt_050000000.pt, sha256: 1836b2288c011dae8bbf375c86c9011a7ac3adeb618ab9240cc1adb01116eea6, step: 50000000}
+  s75:  {path: runs/showdown_sp_batch50m_s75/ckpt_050000000.pt, sha256: d9db48422bbe90e49ece712e6b34bcdd958463954d8fb8a42734a078a2763c2f, step: 50000000}
+  s83:  {path: runs/showdown_sp_batch50m_s83/ckpt_050000000.pt, sha256: 332f7bc4950cf36a2d1136f08abf767e47149bea6fcb9f03e8a840c1fa81d54a, step: 50000000}
+
+arms:
+  A50:   {kind: policy,   lanes: [s66, s75, s83], battles: 3000, chunks: 10}
+  E350:  {kind: ensemble, members: [s66, s75, s83], batches: 3, battles: 3000, chunks: 10}
+  E4:    {kind: ensemble, members: [s104, s112, s120, s75], batches: 1, battles: 3000, chunks: 10}
+  E5:    {kind: ensemble, members: [s104, s112, s120, s75, s66], batches: 1, battles: 3000, chunks: 10}
+  E6MIX: {kind: ensemble, members: [s104, s112, s120, s66, s75, s83], batches: 3, battles: 3000, chunks: 10}
+
+# SEQUENTIAL on purpose (scripts/ens_width_queue.sh): poke-env derives seat
+# usernames from the globally-seeded `random`, so two ch3_eval jobs on the
+# same checkpoint seed collide (CLAUDE.md rule 2). Each arm is minutes.
+run_order: [A50, E350, E4, E5, E6MIX]
+
+comparators_same_block_on_disk:
+  a0_singles_b0: {s104: 0.78933, s112: 0.78233, s120: 0.79433, mean: 0.78867, source: results/search_s3_100m/a0_s1*.chunk*.json}
+  ens3: {b0: 0.82667, b1: 0.81467, b2: 0.82933, pooled: 0.82356, source: results/search_s3_100m/ens3_b*.chunk*.json}
