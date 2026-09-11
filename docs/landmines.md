@@ -423,3 +423,51 @@ foul-play (precedent: `scripts/patches/foulplay_gen1_local.patch` is already
 sha-stamped in `wave.provenance.json`), accept lower n for search arms, or
 pre-register exclusion of turn-1000 battles. All three touch a frozen pre-reg
 and/or the G8 provenance stamp.
+
+## EVERY SEARCH NUMBER BEFORE 2026-09-11 MEASURES A BROKEN SELECTOR, NOT SEARCH
+
+**Maintainer, 2026-09-11: "our search was BROKEN before. those results should have
+a massive asterisk next to them."** They do now. Grep `PRE-D5` to find them.
+
+**What was wrong.** `rl/search/matrix.py` clause **D4** took a hard `argmax` over
+the renormalized matrix score, using the policy prior only as tie-break D3. On the
+100M finals that **overrode the policy's own argmax on 72.8% of decisions** — a
+0.789-strength policy, overruled three times in four, on a one-ply value estimate
+whose leaf noise (sd 0.125) is **4.5x the decision margin** (0.028). That is the
+textbook maximization-bias / optimizer's-curse amplifier: the argmax selects
+whichever leaf drew the luckiest positive error. More leaves made it WORSE, which
+is the signature — dose L read BELOW dose M, ungated.
+
+**What fixed it.** Clause **D5**, the margin gate (2026-09-11): play the search's
+action only if it beats the POLICY's argmax by more than `margin_delta`. Same
+critic, same ~300 leaves, same 63 ms. On lane s112, n=3000 per arm, against
+greedy 0.78233:
+
+| selector | win rate | overrides |
+|---|---|---|
+| D4 (every pre-2026-09-11 number) | 0.74767 | 71% |
+| D5 at delta 0.05 | 0.80867 | 23% |
+| D5 at delta 0.10 | **0.82400** | 8.5% |
+
+**-0.035 to +0.042 from the decision rule alone.**
+
+**The rule this creates, and it is binding.** A pre-D5 search number measures
+**the old selector**, not "search". It may not be used to argue that search does
+not pay, that depth does not pay, that more dose does not pay, or that a searched
+object ladders worse than a greedy one. Any such argument must be re-measured
+under D5. This applies to **LADDER R3** (the only searched object ever laddered:
+GXE 60.3 / Glicko-1 1579 / Elo 1232 — a D4 object), to chapter 3's credit
+(+0.0693 at 12M) and its dose axis, to the search-depreciation curve (already
+VACATED for a different reason 2026-09-10), and to every off-Foul-Play searched
+number (0.396 / 0.406 on s112).
+
+**What a pre-D5 number still supports.** It is a valid measurement of that
+configuration. CH3 R2's +0.0693 at 12M was real: on a WEAK policy, overriding the
+argmax 71% of the time was not obviously worse than trusting it. The defect only
+bites once the policy is strong enough to be worth deferring to — which is exactly
+why the sign flipped between 12M and 100M and why nobody caught it for a chapter.
+
+**Not yet closed:** whether the D5 gain transfers off SimpleHeuristics. CH3 R2's
+credit was SH-FACING and did NOT transfer (FP 0.388 -> 0.368; BC-clone 0.894 ->
+0.860). `configs/eval/search_budget_ladder_offfp.yaml` stages that probe first,
+precisely so the same mistake is not made twice.

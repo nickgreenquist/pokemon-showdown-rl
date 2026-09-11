@@ -165,6 +165,11 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   window that straddles startup invents records; use the conforming window.
 - A wall-clock ETA is not progress — check s/battle against a comparable
   completed arm (FP@20 ≈ 1.2–1.5 s, FP@100 ≈ 6–7 s); 10× off means stalled.
+- **EVERY SEARCH NUMBER BEFORE 2026-09-11 MEASURES A BROKEN SELECTOR** (D4's hard
+  argmax overrode a 0.789 policy on 72.8% of decisions; D5's margin gate turns
+  -0.035 into +0.042 on the same critic). Grep `PRE-D5`. Such a number may NOT
+  be used to argue search, depth or dose does not pay — re-measure under D5.
+  **LADDER R3 is a D4 object.**
 - Changing `OBS_DIM` invalidates every checkpoint — evaluate outstanding
   finals first.
 - **One vs-SH rung at n=3000 is worth ±0.02, not the binomial ±0.008** — three
