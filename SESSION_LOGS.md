@@ -11585,3 +11585,39 @@ line numbers are not — grep the date, then read that region):
   tested so a SearchAgent can take an ensemble as its PRIOR — the composition neither review
   could cost because it was not buildable. Deliberately NOT wired: the EG10 queue relaunches
   on failure and a resumed verdict arm must not run different code than its finished chunks.
+
+- 2026-09-11 (night, agent, cont. 3) — **EG10 CLOSES THE EVALUATOR AXIS: A BETTER EVALUATOR
+  BUYS ZERO ONCE THE SELECTOR WORKS.** LOO ensemble evaluator + the SAME margin gate at
+  delta 0.10, 3 lanes x 3000, against the gated-PLAIN arm at the same delta: **0.81278 vs
+  0.81322, delta -0.00044, se_diff 0.00812** — 0.05 se, a flat NULL. The registered cell
+  prints NEG only through the "per-lane <= 0 in >= 2 of 3" DIRECTION rule (s104 -0.0020,
+  s112 -0.0137, s120 +0.0143); the MAGNITUDE is what should be quoted. Dose matched at 351
+  vs 358 leaves, well inside the pre-registered 5%. P-EG-OOS (the two lanes delta was not
+  selected on) reads +0.0062 and carries NO CELL — the registered cells are defined on the
+  3-lane set and a k=2 read cannot have one, which is a readout fix made tonight rather
+  than a cell definition invented after seeing the data.
+  **Why it matters:** A1E's +0.0163 was a D4 number and PRE-D5 by our own landmine, so the
+  evaluator axis was UNANSWERED rather than answered no. It is now answered, cheaply, and
+  the answer is that **the SELECTOR was the entire story** — the gate moved search from
+  -0.0681 to +0.016 out of sample, and stacking a strictly better evaluator on top adds
+  nothing. **That is the 100M monster's arm-B premise, measured for ~2 h of box instead of
+  45 h of fleet.**
+  **AND THE FREE THING BEATS THE EXPENSIVE THING.** The whole searched stack against plain
+  greedy (P-EG-A) reads **+0.0241, cell FLAT — it misses the credit floor by 0.0009** — at
+  ~80 ms/decision. **ENS3 reads +0.0349 and CREDITS at greedy speed.** Both pooled figures
+  include the delta-tuning lane, so both are the generous reading; the ordering is not
+  close. The ladder object is the ENSEMBLE.
+  **A scheduling error of mine, caught and recorded (docs/landmines.md).** EG10's first
+  chunk ran under `taskpolicy -b` — BACKGROUND QoS, which on this 10P+4E box uses the four
+  EFFICIENCY cores only — and read 549.8 ms/decision against the banked C10 arm's 81.1 at a
+  matched leaf count. My first hypothesis was a superadditive LOO-plus-gate interaction,
+  which would have been a much more interesting thing to report falsely. Relaunching at
+  normal QoS gave **79.4 ms/decision, a 6.9x speedup, and 79.4 vs C10's 81.1 exonerates the
+  evaluator completely**. chunk00 was kept (the eval is seeded, so outcomes are
+  QoS-independent); only the wall-clock fields are contaminated and the header says so. Two
+  further self-caught errors: a diagnostic of mine printed override_rate 0.000 by reading a
+  key the CHUNK json does not carry (only the merged final does) and nearly voided a live
+  arm on the pre-registered R0-c gate — the true rate is 637/8239 = 0.077; and the two test
+  files added tonight broke the suite's DOCUMENTED invocation (flags unset) because I had
+  only ever run it with the encoder flags exported. Both now carry the repo's ID_DIM skipif.
+  **Suite: 1031 passed / 0 failed on the documented invocation.**

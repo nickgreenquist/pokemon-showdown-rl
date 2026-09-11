@@ -128,11 +128,16 @@ comparison and should not be registered as one.
 
 ## What is running tonight that bears on this
 
-- **EG10** — the LOO ensemble evaluator *with* the working gate, three lanes,
-  n=3000. A1E's +0.0163 was a D4 number and is `PRE-D5` by our own landmine, so
-  the evaluator axis is **unanswered, not answered no** — and it is arm B's
-  premise. If a strictly better evaluator buys nothing once the selector works,
-  that is worth knowing before 45 h of fleet.
+- **EG10 — DONE, AND IT ANSWERS ARM B'S PREMISE: A BETTER EVALUATOR BUYS ZERO.**
+  LOO ensemble evaluator + the SAME gate vs the gated-plain arm, 3x3000 each:
+  **0.81278 vs 0.81322 = −0.00044, se_diff 0.00812** (0.05 se — a flat null;
+  the cell prints NEG only via the 2-of-3 direction rule). Dose matched.
+  **This is the cheapest possible test of arm B's premise and it came back
+  null for ~2 h of box instead of 45 h of fleet.** It does NOT kill a
+  PRIVILEGED evaluator — that carries information a LOO ensemble of our own
+  critics does not — but it removes the reason to *buy* one at dedicated lanes,
+  and D1 already makes arm B free. Combined, the honest position is: let the
+  head ride arm A's lanes as a rider, read it offline, and spend nothing on it.
 - **ENS3 — DONE, AND IT CREDITS.** 0.82356 (n=9000) vs fresh greedy 0.78867,
   **+0.03489 at 5.93 se**, meeting both the floor and 2*se_diff. It beats the
   gated search's IN-SAMPLE peak at greedy speed. **This changes the ladder-object
