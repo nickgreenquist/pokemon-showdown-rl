@@ -512,3 +512,19 @@ box). By comparing `chunk00` to `chunk00` across arms — same code path, same
 measurement — where 77.1 / 81.1 / 549.8 at matched leaf counts is not a load
 story.
 
+**CONFIRMED the same night, by relaunching at normal QoS and comparing chunk to
+chunk on the SAME job:**
+
+| eg10_s104 | ms/decision | s/battle | leaves_mean |
+|---|---:|---:|---:|
+| chunk00, `taskpolicy -b` | 549.8 | 14.98 | 347 |
+| chunk01, normal QoS | **79.4** | **2.21** | 351 |
+| banked C10 chunk00 (PLAIN evaluator, normal QoS) | 81.1 | 2.23 | 358 |
+
+**6.9x**, and the diagnosis is airtight in both directions: at normal QoS the
+LOO-evaluator arm costs **79.4 ms against the plain evaluator's 81.1** — i.e.
+the evaluator this was briefly blamed on is FREE at this dose, and the entire
+gap was the scheduler. Leaf counts are unchanged throughout (347 / 351 / 358),
+which is why the dose-match check was written on `leaves_mean` rather than on
+wall clock and why it still holds across the QoS split.
+
