@@ -228,7 +228,51 @@ arms:
     batches: 3
     battles: 3000
     chunks: 10
-run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3]
+  # --- PROBE, not a registered arm: does a real TREE beat our depth-1 matrix?
+  # poke_engine's own MCTS on our determinizations, decided by visit share,
+  # gated against the policy. MP20 is FP@20's MEASURED budget (2 dets x 20 ms);
+  # MP200 is 10x it. Small n on purpose -- this is a signal check, not a verdict.
+  MP20:  {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, mcts: {n_det: 2, ms: 20,  margin: 0.10}}
+  MP200: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, mcts: {n_det: 2, ms: 200, margin: 0.10}}
+  # MP20 chunk00 overrode on 30.4% of decisions (the depth-1 gate sits at 8.5%),
+  # so the 0.10 margin is far too loose on a VISIT-SHARE scale. MP20T tightens it.
+  MP20T: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, mcts: {n_det: 2, ms: 20, margin: 0.35}}
+  # THE ONE THAT MATTERS: our own search, our own critic, but looking ONE MORE
+  # PLY at every leaf. Same dose M, same delta 0.10 as the banked depth-1 arm
+  # (s3g10_s112 = 0.82400), so the ONLY change is depth.
+  D2: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, margin_delta: 0.10, depth2: {our_k: 3, cap: 6000}}
+  # D2 cost only +3.9% ms/decision over S3G10 (80.66 vs 77.62) for a nominal 3x
+  # lookahead at every leaf -- implausible, so the extra ply may barely be
+  # firing. D2DIAG is the same arm with the depth2/* counters now plumbed
+  # through chunk_summary, small n, purely to read grandchildren-per-decision.
+  D2DIAG: {kind: search, lanes: [s112], dose: M, battles: 60, chunks: 1, margin_delta: 0.10, depth2: {our_k: 3, cap: 6000}}
+  # DEPTH CENSUS. Not a decision rule -- the policy plays normally (margin
+  # null = the MCTS result is never used) while poke_engine's iterative
+  # deepening reports the DEPTH it finished at three budgets on a
+  # determinization of the same live state. FP@20's whole budget is ~40 ms;
+  # the ladder allows 150 s per turn. n is tiny because the 2000 ms rung costs
+  # ~2 s per decision and the answer is a depth, not a win rate.
+  CENSUS: {kind: search, lanes: [s112], dose: M, battles: 8, chunks: 1, mcts: {n_det: 1, ms: 1, margin: null, census: [20, 200, 2000]}}
+  # D2 was VOID: _leaf_our_moves indexed a list with pyo3's STRING
+  # active_index, the TypeError hit a bare `except: return []`, and the extra
+  # ply fired on 0 of 1572 decisions. D2B is the same arm after the fix.
+  D2B: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, margin_delta: 0.10, depth2: {our_k: 3, cap: 6000}}
+  # THE TREE (rl/search/tree.py): our masked policy as the PUCT prior, the
+  # oppact head's L6 as the opponent's prior, OUR critic at the leaves,
+  # decoupled UCT over determinized states, decided by root visit share.
+  # Neither other probe is this -- matrix.py is our critic at ONE ply,
+  # mcts_probe.py is a real tree with poke_engine's HEURISTIC at the leaves.
+  TREESM: {kind: search, lanes: [s112], dose: M, battles: 4, chunks: 1, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8}}
+  # THE DEPTH COMPARISON. TREEQ's selector is the SAME SHAPE as the banked
+  # S3G10 (a critic-value score per root action, played only if it beats the
+  # policy's own action by delta on that scale) at the SAME delta 0.10 on the
+  # same +/-1 critic scale. S3G10 scores at ONE ply; TREEQ scores at a
+  # MEASURED mean simulation depth of ~3.9 (max ~5.9). Depth is the only
+  # thing that moves. TREEQ25 is the same arm with the gate tightened, because
+  # MP20 vs MP20T measured that the gate, not the tree, dominated the outcome.
+  TREEQ:   {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 150, n_det: 2, margin: 0.10, decide: q, root_min_visits: 8}}
+  TREEQ25: {kind: search, lanes: [s112], dose: M, battles: 300, chunks: 3, tree: {iters: 150, n_det: 2, margin: 0.25, decide: q, root_min_visits: 8}}
+run_order: [A0, S3L, S3M, S3B, A1E, S3G02, S3G05, S3G10, C10, P15, P20, EG10, EG05, ENS3, MP20, MP200, MP20T, D2, D2DIAG, CENSUS, D2B, TREESM, TREEQ, TREEQ25]
 # R4-13 (evaluator discrimination, serverless, 1000 synthetic points/lane):
 # transcribed 2026-09-10 15:10Z BEFORE the A1E arm launches. Gate: mean
 # |v_LOO - v_own| >= 0.02 AND argmax-differ >= 0.05. All three PASS.

@@ -63,6 +63,9 @@ class SearchAgent:
         det_fn=None,
         leaf_encoding: str | None = None,
         margin_delta: float | None = None,
+        mcts: dict | None = None,
+        depth2: dict | None = None,
+        tree: dict | None = None,
     ):
         """`leaf_encoding` — the leaf ENCODER dial (S1's finding,
         docs/search_relook/DET_BLIND.md). None = as-is, the R2-credited
@@ -119,6 +122,15 @@ class SearchAgent:
                 f"got {margin_delta!r}"
             )
         self.margin_delta = margin_delta
+        # PROBE (rl/search/mcts_probe.py): swap our depth-1 matrix for a real
+        # TREE -- poke_engine's own MCTS on our determinizations, decided by
+        # visit share, gated against the policy. None = untouched.
+        self._mcts = mcts
+        self._depth2 = depth2   # selective 1-ply lookahead at every leaf
+        # OUR prior + OUR critic inside a real tree (rl/search/tree.py). The
+        # thing neither of the other two probes is: matrix.py has our critic
+        # and one ply, mcts_probe.py has a tree and poke_engine's heuristic.
+        self._tree = tree
         self._agent = agent
         self._dose = dose
         self._seed = int(checkpoint_seed)
@@ -150,6 +162,19 @@ class SearchAgent:
             prior = torch.softmax(masked_logits(logits, mask_t), dim=-1)[0].numpy()
             q = torch.softmax(self._agent.aux_head(*feats), dim=-1)[0].numpy()
         return prior, q
+
+    def _tree_eval_fn(self, obs: np.ndarray):
+        """(logprobs, values, q) from ONE forward — the tree's whole network
+        surface. UNMASKED log-probs: below the root the tree derives its own
+        legality from the engine state, so a slot it never offers cannot be
+        chosen no matter what mass the policy puts on it."""
+        obs_t = torch.as_tensor(obs, dtype=torch.float32)
+        with torch.no_grad():
+            logits, *feats = self._agent.actor(obs_t, return_features=True)
+            logp = torch.log_softmax(logits, dim=-1).numpy()
+            q = torch.softmax(self._agent.aux_head(*feats), dim=-1).numpy()
+            v = self._agent.critic(obs_t).reshape(-1).numpy()
+        return logp, v, q
 
     def _critic_fn(self, batch: np.ndarray) -> np.ndarray:
         with torch.no_grad():
@@ -203,6 +228,40 @@ class SearchAgent:
             q = np.full(N_L6, 1.0 / N_L6)
         turn = int(battle.turn)
         rng = decision_rng(self._seed, battle_index, turn, decision_index)
+        if self._tree is not None:
+            from rl.search.tree import TreeCfg, tree_decision
+            action, stats = tree_decision(
+                battle, np.asarray(mask), prior, self._tree_eval_fn, rng,
+                self._type_chart, TreeCfg(**self._tree),
+            )
+            if action != stats.get("search/policy_argmax", action):
+                self.counters["search/flips"] += 1
+            if stats.get("search/overrode"):
+                self.counters["search/overrides"] += 1
+            stats["oppact/entropy"] = self._entropies[-1]
+            return action, stats
+        if self._mcts is not None:
+            from rl.search.mcts_probe import mcts_decision
+            action, stats = mcts_decision(
+                battle, np.asarray(mask), prior, rng,
+                n_det=int(self._mcts.get("n_det", 2)),
+                duration_ms=int(self._mcts.get("ms", 20)),
+                margin=self._mcts.get("margin", 0.10),
+            )
+            if action != stats.get("search/policy_argmax", action):
+                self.counters["search/flips"] += 1
+            if stats.get("search/overrode"):
+                self.counters["search/overrides"] += 1
+            stats["oppact/entropy"] = self._entropies[-1]
+            if self._mcts.get("census"):
+                from rl.search.mcts_probe import depth_census
+                stats.update(depth_census(
+                    battle, rng, tuple(self._mcts["census"])))
+            # `search/leaves` is the adapter's "this decision was searched"
+            # flag; the MCTS path has no leaf count of its own, so it is set to
+            # 0 here purely so the per-decision stats get aggregated at all.
+            stats.setdefault("search/leaves", 0)
+            return action, stats
         action, stats = solve_decision(
             battle, np.asarray(mask), q, prior, self._dose, rng,
             self._decision_critic(battle_index, turn, decision_index),
@@ -212,6 +271,7 @@ class SearchAgent:
                 public_view(battle) if self.leaf_encoding == "det_blind" else None
             ),
             margin_delta=self.margin_delta,
+            depth2=self._depth2,
         )
         if action != stats["search/policy_argmax"]:
             self.counters["search/flips"] += 1
