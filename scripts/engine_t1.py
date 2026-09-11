@@ -133,13 +133,24 @@ def leg_a(bank: pathlib.Path, seed: int, battles: int = 20_000) -> dict:
     }
 
 
-def leg_b(bank: pathlib.Path, seed: int, steps: int = 400, pool_size: int = 20) -> dict:
+def leg_b(bank: pathlib.Path, seed: int, steps: int = 400, pool_size: int = 20,
+          privileged: bool = False) -> dict:
     """COLLECTION-ONLY: engine + encoder + the learner's forward + the pool
     opponent's forwards. No update, no eval, no checkpointing.
 
     A full pool is built (`pool_size` members at `latest_prob` 0.8) because the
     by-member batching is the thing under test; measuring against a one-member
     pool would report a number the real recipe never sees.
+
+    `privileged` turns on the collector's SECOND per-row encode — the 408-wide
+    opponent-side block that design A (`privileged_dim`) and design B
+    (`priv_eval_dim`) both need. PRE-4 of the 100M monster pre-reg requires this
+    priced before an arm relies on it, and rl/train.py says so in terms: the
+    <=3% of wall figure is a BOUND, "STILL UNMEASURED ... price it with
+    scripts/engine_t1.py --leg b". Run the leg twice, flag off then on, ON A
+    FREE BOX — collection is ~35% of wall at k=8, so a contended pair cannot
+    resolve a single-digit-percent difference and must not be quoted as if it
+    could.
     """
     import torch
 
@@ -167,7 +178,8 @@ def leg_b(bank: pathlib.Path, seed: int, steps: int = 400, pool_size: int = 20) 
 
     rows = {}
     for k in K_GRID:
-        c = EngineCollector(learner.act_logp, pool, seed=seed, k=k, team_bank=bank)
+        c = EngineCollector(learner.act_logp, pool, seed=seed, k=k, team_bank=bank,
+                            privileged=privileged)
         c.start(n_battles=10**9)
         for _ in range(20):  # warm-up: the first polls allocate
             c.poll()
@@ -542,6 +554,10 @@ def main(argv=None) -> int:
                          "so at width > 1 the number is reported and disclosed "
                          "rather than scored.")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--privileged", action="store_true",
+                    help="leg b only: emit the 408-wide privileged block, so "
+                         "the SECOND per-row encode is in the number (PRE-4). "
+                         "Run twice, off then on, on a FREE box.")
     args = ap.parse_args(argv)
 
     # Leg (c) reads a FINISHED lane's history.csv. Nothing about the box's
@@ -563,7 +579,15 @@ def main(argv=None) -> int:
     else:
         if args.bank is None:
             raise SystemExit(f"leg {args.leg} needs --bank")
-        result = (leg_a if args.leg == "a" else leg_b)(args.bank, args.seed)
+        if args.leg == "b":
+            result = leg_b(args.bank, args.seed, privileged=args.privileged)
+            result["privileged"] = bool(args.privileged)
+        else:
+            if args.privileged:
+                raise SystemExit("--privileged is a leg-b dial (the collector's "
+                                 "second encode); it means nothing on leg "
+                                 f"{args.leg}")
+            result = leg_a(args.bank, args.seed)
     result["contended"] = contended
     result["measured_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     (args.out / f"leg_{args.leg}.json").write_text(json.dumps(result, indent=2))

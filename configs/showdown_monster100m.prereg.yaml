@@ -1012,7 +1012,7 @@ preconditions:
   # confirmed live, and R0-B5 must be READ there rather than assumed.
   PRE-2: "ARM C HAS NEVER RUN ON THIS ROUTE. A live design-A smoke — one lane, ~10 updates, read against R0-C1/C2/C3 and R0-B1/B2/B3, then killed — must PASS before the fleet. Minutes of agent-side work; the difference between a dead seam at update 10 and at hour 25. Config: configs/showdown_monster100m_c.yaml with --run-name monster_c_smoke_s104."
   PRE-3: "the arm-B smoke has read its gates. runs/engine_pe_s66 is LIVE as this is drafted; its R0-B4/B5/B6 read and its BITWISE actor/critic comparison against engine_a1b_s66 must be in hand."
-  PRE-4: "the privileged encode is PRICED: scripts/engine_t1.py --leg b twice, flag off then on, ~10 min. Until then the <=3% figure is a BOUND."
+  PRE-4: "the privileged encode is PRICED: scripts/engine_t1.py --leg b twice, flag off then on, ~10 min. Until then the <=3% figure is a BOUND. TOOLING BUILT 2026-09-11 — the --privileged flag did not exist when this was written (it threads through to EngineCollector(privileged=...) and stamps `privileged` into the leg JSON); the MEASUREMENT is still owed and must run on a FREE box, because collection is ~35% of wall at k=8 and a contended pair cannot resolve a single-digit-percent difference."
   PRE-5: "width measured (unit W-0) and the branch recorded"
   PRE-6: "POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 on every lane and every eval; the launcher exports both and refuses if either is unset"
   PRE-7: "the bank exists, holds >= 1,000,000 pairs, sha256 recorded"
