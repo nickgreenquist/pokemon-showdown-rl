@@ -966,13 +966,38 @@ preconditions:
   # including the DOWNWARD sign that the note_on_the_usual_figures predicts.
   # R0-C1 PASS.
   #
-  # R0-C3 PASS and R0-C2 ON TRACK from the live smoke (monster_c_smoke_s104,
-  # configs/showdown_monster100m_c.yaml, seed 104): loss/value finite on every
-  # update (0.116194, 0.067661, ...) and loss/explained_variance RISING
-  # (-0.43534 -> +0.21949). THE WIDE CRITIC HAS NOW TAKEN A LIVE STEP ON THE
-  # ENGINE ROUTE — the thing this gate exists to establish and which had never
-  # happened. Full reading appended below when the smoke is killed at ~10
-  # updates.
+  # PRE-2 IS SATISFIED. The live smoke (monster_c_smoke_s104,
+  # configs/showdown_monster100m_c.yaml, seed 104) ran exactly 10 updates on
+  # the engine route and was killed, per this precondition. All three gates:
+  #
+  #   step      loss/value   EV         steps/s
+  #   30731     0.116194     -0.43534     745.2
+  #   61469     0.067661     +0.21949    1288.2
+  #   92231     0.059460     +0.45266    1412.8
+  #   122998    0.050604     +0.36659     988.0
+  #   153729    0.034715     +0.37566    1529.3
+  #   184470    0.073733     +0.38356    1464.0
+  #   215281    0.071327     +0.46842    1980.0
+  #   246010    0.067205     +0.46739    2243.6
+  #   276745    0.061424     +0.45802     385.7
+  #   307473    0.059289     +0.43713     403.0
+  #
+  #   R0-C1 PASS  (shapes and sums, at init — above)
+  #   R0-C2 PASS  EV rises -0.43534 -> +0.43713, max +0.46842, plateauing near
+  #               0.45. D18's "could not even FIT the privileged signal" branch
+  #               DID NOT fire: the wide critic fits the privileged signal on
+  #               this route, and it fits it fast.
+  #   R0-C3 PASS  loss/value finite on every one of the 10 updates.
+  #
+  # THE WIDE CRITIC HAS NOW TAKEN A LIVE STEP ON THE ENGINE ROUTE — the thing
+  # that had never happened and the whole reason this precondition exists.
+  # NOTE THE SCOPE: this says the SEAM WORKS, and nothing whatever about
+  # whether privileged information HELPS. It cannot: 10 updates is 307k steps
+  # against a 100M arm, EV is not the arm's read, and per the 2026-09-06 ruling
+  # a small run closes nothing in either direction. The trailing steps/s (385,
+  # 403) are BOX CONTENTION from the concurrent eval fleet, not a lane
+  # property, and must not be used as a throughput figure — PRE-10 requires a
+  # free box and this smoke deliberately did not have one.
   #
   # PRE-3 CAVEAT, recorded rather than waved: engine_pe_s66 ran the PRE-FIX
   # design-B code, so its head regressed the GAE target. Its BITWISE inertness
