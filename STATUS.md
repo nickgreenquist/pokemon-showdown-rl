@@ -42,7 +42,6 @@ Absent = exact no-op (golden digest); delta=inf is exactly greedy. s112, n=3000/
   0.50167 (n=3000), UNGATED search 0.39600. **The SELECTOR ALONE bought +0.129 off-FP** —
   −0.106-vs-greedy → **+0.023** (1.28 se, NOT significant; TRANSFERS = not SH-facing, NOT
   that it beats greedy). Stage 2 (BLL) auto-launched. Both FP@20 disclosures travel.
-- 77.6 ms/decision at the peak. S3's NEG cells were all **D4**. S1's fix did not pay.
 
 ## LANDMINE — **every search number before 2026-09-11 measures a BROKEN selector**
 Grep `PRE-D5`. **LADDER R3 is a D4 object.** Such a number may NOT be used to argue that
@@ -95,6 +94,7 @@ search, depth or dose does not pay. Re-measure under D5 or do not cite it.
    8 corrections to the Wang row in `prior_work/README.md`; the engine editable reinstall.
 
 ## Watch items
-- **SUITE GREEN** 995 (port env) + 143 ppo/priv/episode/harvest; no env runs both (E1).
+- **SUITE GREEN 1031 / 0 failed** on the DOCUMENTED invocation (encoder flags UNSET); 86
+  skip and pass with them SET, where 6 v1-shape tests fail by design. Engine 115 + 94 cargo.
 - **ONE RUNG IS WORTH ±0.02** — three redraws of one checkpoint spread 0.0200, larger than
   the gate's entire out-of-sample effect. Read curves, never one rung.
