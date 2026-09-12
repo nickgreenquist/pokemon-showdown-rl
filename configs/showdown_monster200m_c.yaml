@@ -1,0 +1,142 @@
+# DERIVED from showdown_monster100m_c.yaml by scripts/derive_monster_config.py:
+# total_steps 100000000 -> 200000000, and agent.lr_anneal_steps moved
+# WITH it. Those two must be equal -- the base config names the
+# mismatch THE ANNEAL TRAP, because a horizon longer than the anneal
+# trains its whole tail at lr~0 and nothing reports it. Everything
+# else, including k=8 and the collector mode, is unchanged.
+#
+# =====================================================================
+# THE MONSTER, ARM C — THE PRIVILEGED CRITIC (D18's own form, IDEAS 4.7).
+#
+# THE PRE-REGISTRATION FOR THIS ARM IS configs/showdown_monster100m.yaml.
+# Read it. This file restates nothing from it: not the journey_step, not
+# the exit condition, not the credit line, not the arms, not the reads (P-C
+# and P-D18 are this arm's), not the gates. The sidecar is
+# configs/showdown_monster100m.prereg.yaml and it covers all three arms.
+#
+# WHAT DIFFERS FROM configs/showdown_monster100m.yaml — THREE LINES, NO MORE.
+# `diff configs/showdown_monster100m.yaml configs/showdown_monster100m_c.yaml`
+# below the header must show exactly these and nothing else; the launcher
+# runs that diff before lane 1 and refuses on any undeclared difference.
+#   run_name              monster100m_c_s104     lane identity only
+#   env_kwargs.seat_tag   m10c                   eval-seat naming only
+#   agent.privileged_dim  408                    THE LEVER
+#
+# WHAT `privileged_dim: 408` DOES, so that nobody has to guess which of the
+# two privileged keys this is. `self.critic` is built as
+# EntityDeepSetsNet(obs_dim, 1, privileged_dim=408)
+# (rl/agents/ppo.py:622-638): the critic's input becomes obs ‖ the 408-dim
+# privileged block, the priv tokens go through the SAME mon/move subnets
+# and embeddings, and ctx pooling widens from 5 to 8 entity slots
+# (rl/networks/entity_deepsets.py:355-369). Critic parameters go 494,849 ->
+# 642,305. THE ACTOR NEVER WIDENS — entity_deepsets refuses
+# `privileged_dim` on an actor in terms — and the observation space is
+# unchanged. This is the unbiased V(h, s) form (Baisero & Amato 2022), not
+# a privileged-only critic.
+# THE BLOCK THEREFORE ENTERS THE ADVANTAGE CHANNEL, which is the whole
+# hypothesis and also the whole hazard.
+#
+# WHAT IS *NOT* HERE:
+#   `agent.priv_eval_dim` / `agent.priv_eval_coef` — arm B's keys. Setting
+#   them here would make this lane A+B+C, three levers in one arm. (The code
+#   permits the combination and even expresses it — priv_eval_dim defaults
+#   to privileged_dim when priv_eval_coef is set, rl/agents/ppo.py:566 — and
+#   that is exactly why their absence is stated rather than assumed.)
+#   `env_kwargs.privileged: true` — D18's SECOND knob, on the NODE path.
+#   The engine route derives the collector's flag from the agent's own need
+#   and accepts env_kwargs {opp_action, seat_tag} ONLY, so this key would be
+#   REFUSED at launch (rl/train.py:820-825). One knob here, not two.
+#
+# TWO THINGS THIS ARM IS THE FIRST TO DO, BOTH LAUNCH-RELEVANT:
+#   (1) `privileged_dim` HAS NEVER RUN ON THE ENGINE ROUTE. All 20
+#       `collector.mode: engine` run dirs were swept; one carries a
+#       privileged key and it is `priv_eval_dim`. The refusal that used to
+#       block this (rl/train.py, lifted with the design-B seam) is gone and
+#       what remains is a WIDTH CHECK only. Precondition PRE-2 in the
+#       pre-reg is a live design-A smoke before the fleet, and it exists
+#       because of this line.
+#   (2) `privileged_dim` + `aux_oppact_coef` HAS NEVER RUN ANYWHERE. D18's
+#       own config (configs/showdown_sp_priv12m.yaml) carries no oppact head
+#       — D18 predates D25 — and the refusal on the combination was removed
+#       on 2026-09-10. docs/proposals/privileged_critic_engine_route.md:711
+#       calls the combined build "a NEW object with no golden". The oppact
+#       head is nonetheless MANDATORY here (pre-reg section (B)): a
+#       checkpoint without it can never be searched, and an unsearchable
+#       arm C would be a lane spent on an object that cannot reach step 11.
+#
+# THE INIT-PAIRING RESIDUE, DISCLOSED RATHER THAN FIXED. `privileged_dim`
+# changes the ACTOR'S INITIAL WEIGHTS at a fixed seed: `init_head` re-inits
+# the whole net after the widened critic has moved the global RNG stream, so
+# actor param sum is 334.851 at privileged_dim=0 and 410.510 at 408, with an
+# IDENTICAL parameter count (rl/agents/ppo.py:494-505). SO THIS ARM IS NOT
+# INIT-PAIRED WITH ARM A EVEN AT THE SAME SEED, while arm B is. It still
+# shares the ENVIRONMENT stream — the battle seeds and the pool-member draws
+# are functions of the lane seed alone. Every between-arm sentence involving
+# C names this asymmetry. Reordering construction to fix it would move the
+# stream for privileged_dim=0 too and break the gen-1 golden for every
+# existing recipe: DISCLOSE, DO NOT REORDER.
+# =====================================================================
+env_id: Showdown-v0
+seed: 104                  # lanes 2/3 via --seed 112 / 120
+total_steps: 200000000
+eval_every: 250000
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 500000
+run_name: monster200m_c_s104      # lanes 2/3 via --run-name
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine
+  k: 8
+  team_bank: data/engine/teams_a1_5000000.bin
+  min_bank_pairs: 1000000
+  learner_seat: p1
+env_kwargs:
+  opp_action: true
+  seat_tag: m10c           # ARM C
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 200000000
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
+  # --- THE ONLY ADDED KEY ------------------------------------------------
+  privileged_dim: 408         # THE LEVER. `self.critic` widens to obs ‖ priv;
+                              # ctx pooling 5 -> 8 slots; critic params
+                              # 494,849 -> 642,305; the actor never widens.
+                              # The collector's `privileged` flag is DERIVED
+                              # from PPOAgent.privileged_block_dim
+                              # (rl/train.py:954). 408 is PRIV_DIM, asserted
+                              # at compile time in the Rust encoder and
+                              # checked at launch; any other value is refused.
