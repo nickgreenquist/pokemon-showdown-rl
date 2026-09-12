@@ -298,6 +298,7 @@ class EntityDeepSetsNet(nn.Module):
         entity_dim: int = 128,
         pool: str = "max",
         ctx_sizes: list[int] = (384, 384),
+        ctx_layernorm: bool = False,
         scorer_sizes: list[int] = (256,),
         value_sizes: list[int] = (384, 384),
         privileged_dim: int = 0,
@@ -368,9 +369,24 @@ class EntityDeepSetsNet(nn.Module):
         # (|| priv pool || priv active || priv-move pool when privileged).
         ctx_in = (5 + (3 if privileged_dim else 0)) * entity_dim
         sizes = list(ctx_sizes if self.is_policy else value_sizes)
+        # `ctx_layernorm` (2026-09-12): Linear -> LayerNorm -> ReLU in the
+        # context stack (actor ctx_net and the critic's value stack alike, since
+        # both are built from the same trunk_kwargs). The per-entity subnets
+        # already end in a LayerNorm; the context stack was the one place the
+        # trunk had none, and it is where D22 measured the rank collapse. BRO's
+        # ablation names LayerNorm its essential component and Juliani & Ash's
+        # best on-policy plasticity combination carries it. Default False is an
+        # EXACT no-op: no new modules, identical state_dict keys, identical
+        # forward -- every existing checkpoint loads unchanged, and the
+        # ACTOR_PARAM_CEILING assert below still sees the pinned count. LayerNorm
+        # draws no RNG, so the flag does not perturb the seeded streams either.
+        self.ctx_layernorm = bool(ctx_layernorm)
         layers: list[nn.Module] = []
         for width in sizes:
-            layers += [nn.Linear(ctx_in, width), nn.ReLU()]
+            layers.append(nn.Linear(ctx_in, width))
+            if self.ctx_layernorm:
+                layers.append(nn.LayerNorm(width))
+            layers.append(nn.ReLU())
             ctx_in = width
         self.ctx_net = nn.Sequential(*layers)
         if self.is_policy:
