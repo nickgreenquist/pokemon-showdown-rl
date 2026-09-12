@@ -1,0 +1,2043 @@
+# ARM L2LAM -- DERIVED 2026-09-12 from showdown_monster200m_l2.yaml (arm L2) by the
+# review session after docs/research_reports/MONSTER_BUNDLE_2026-09-12.md; TWO diffs vs
+# arm A: agent.gae_lambda 0.95 -> 1.0 (Monte-Carlo targets, the zero-compute lever aimed
+# at the measured critic collapse's named cause) and agent.l2_init_decay 0.0 -> 0.02 (regenerative L2 toward the
+# init weights, the lever D23 built and tested; -3.2% throughput). run_name and
+# seat_tag renamed so run dirs and seat names cannot collide with arm A's.
+# Everything else -- horizon, anneal, k=8, engine collector, oppact head -- is
+# byte-identical to arm A. See [RWL-7] in showdown_monster200m.yaml for the 3+3
+# launch this file belongs to. NOT RATIFIED until the maintainer says so.
+#
+# DERIVED from showdown_monster100m.yaml by scripts/derive_monster_config.py:
+# total_steps 100000000 -> 200000000, and agent.lr_anneal_steps moved
+# WITH it. Those two must be equal -- the base config names the
+# mismatch THE ANNEAL TRAP, because a horizon longer than the anneal
+# trains its whole tail at lr~0 and nothing reports it. Everything
+# else, including k=8 and the collector mode, is unchanged.
+#
+# =====================================================================
+# LAUNCH BLOCK, 2026-09-11 (night, review session). RECOMMENDATIONS FOR THE
+# 2026-09-12 LAUNCH, EACH TAGGED [RWL-n]; THE MAINTAINER RATIFIES BY EDITING
+# THIS BLOCK AND COMMITTING BEFORE LAUNCH (CLAUDE.md rule 3). Everything
+# below this block is the 100M draft's header, inherited verbatim; where it
+# conflicts with this block, this block wins ONCE RATIFIED and not before.
+#
+# [RWL-1] ARMS: A ONLY. Arm B is bitwise arm A plus a head that feeds nothing
+#   (rl/agents/ppo.py:513; no consumer outside ppo.py; no search seam reads
+#   it), and its only planned consumer -- search -- is null twice over (EG10
+#   -0.00044 at depth-1; ENSGF - ENS3F = +0.001 off FP@20, pre-registered).
+#   Arm C's falsifier cannot fire (both pre-launch reviews) and D18 was
+#   vacated at lambda 1.0, not 0.95: DROPPED unless re-specified. This file
+#   IS arm A; showdown_monster100m_b.yaml / _c.yaml are not launched.
+# [RWL-2] WIDTH: SIX LANES, seeds 104 112 120 128 136 144 (rule 2: distinct
+#   across the fleet; the 100M finals' seeds are reused deliberately -- their
+#   run dirs differ by TAG and their seat names are tag-derived, section (A1)).
+#   ~43 h at the idle w6 rate (1282 steps/s/lane, STATUS), inside the 3-4 day
+#   window; six lanes are ~11 GB of the box's 24 (nine-wide was refused at
+#   16.4 GB). Six lanes buy the 200M horizon read (three fresh seeds), TWO
+#   3-committees (the clustered se the ENS3 credit lacks) and a 6-member
+#   committee; three lanes buy only the first. "Members saturate at 3" was
+#   WITHDRAWN by the 2026-09-11 review (the 2->3 gain sits inside ENS3's own
+#   batch spread; the last step-doubling was +0.024 off-FP, NOT credited);
+#   configs/eval/ens_width*.yaml measures members 4-6 overnight and moves this
+#   to 3 x 200M only if extra members HURT.
+# [RWL-3] PRIMARY READ: off FP@20 (locked FP budget; both FP disclosures
+#   travel), greedy, n=3000/lane, the six 200M finals vs the three 100M finals
+#   RE-DRAWN IN THE SAME SESSION on fresh usernames -- never the 2026-09-03
+#   t1xx numbers (the era_diff rule, search_s3_100m.yaml; protocol rehearsed
+#   in configs/eval/ens_width_offfp.yaml). Aggregator: equal-weight mean of
+#   the six lanes minus the mean of the three re-drawn 100M lanes; se_diff the
+#   LARGER of pooled-binomial and seed-clustered (k=6 vs k=3). Credit line
+#   verbatim, section (K) below. vs SH at the locked protocol is SECONDARY
+#   (saturated at ~0.79). Committee reads (ENS3 of any three, ENS6) are
+#   DESCRIPTIVE, pick the ladder object, and credit nothing.
+# [RWL-4] k = 8, unchanged (section (C)). total_steps = lr_anneal_steps =
+#   200,000,000 (checked by the launcher; rl/train.py:433 refuses otherwise).
+# [RWL-5] COMMAND, one line, from a clean tree with Node up (the launcher's
+#   default PY is the pkmn-engine-port env):
+#   bash scripts/monster_fleet.sh configs/showdown_monster200m.yaml 200000000 104 112 120 128 136 144
+#   Before leaving: sudo pmset -c sleep 0 disksleep 0; 'Install macOS
+#   updates' OFF (it was ON on 2026-09-11); lid OPEN; VS Code and Chrome quit.
+#   The launcher holds its own caffeinate; the watchdog restarts Node.
+# [RWL-6] OWED AT READOUT: RESUMES= and NODE_RESTARTS= from the watchdog's
+#   exit line; every resume's from_step from meta.yaml; the /timer disclosure
+#   line; the gen-1 anchor battery legs (BC-clone h2h PENDING) before any
+#   README row; and a same-session ENS3-of-100M re-draw next to any ENS6.
+# =====================================================================
+# STATUS: DRAFT 2026-09-10. NOTHING RATIFIED, NO VERDICT AUTHORIZED, NO
+#   LAUNCH AUTHORIZED. Every [RWM-n] tag below marks a RECOMMENDATION, never
+#   a ruling — read them that way wherever they appear, including where the
+#   surrounding sentence reads as settled. `ratified_decisions` is empty in
+#   configs/showdown_monster100m.prereg.yaml and `verdict_authorized` is
+#   false. THE STANDING 2-OPUS REVIEW CYCLE HAS NOT RUN ON THIS FILE; a
+#   pre-reg is an irreversible artifact (memory: design-decisions-two-opus)
+#   and this one is a 45-fleet-hour irreversible artifact.
+#
+# THE MONSTER — JOURNEY STEP 10, "massive gen1 train". 100,000,000 env
+# steps per lane, 3 arms x 3 seeds = 9 lanes, on the pkmn/engine in-process
+# collector at k = 8. Its finals are the candidate objects for the step-11
+# ladder. This is the first gen-1 fleet on the engine path and the first
+# gen-1 fleet of any kind since the 100M Node fleet of 2026-09-01.
+#
+# FILES. This file is ARM A and carries the WHOLE pre-registration; the other
+# two arms are byte-identical to it except for the keys named under ARMS and
+# live in configs/showdown_monster100m_b.yaml and _c.yaml, which quote this
+# header by path rather than restating it. `rl/train.py` has no key-override
+# flag (`--config`, `--seed`, `--run-name` only, rl/train.py:1460-1465), so
+# three files is the minimum that is launchable, not a stylistic choice.
+#
+# ---------------------------------------------------------------------
+# journey_step: 10 ("Massive gen1 train").
+#
+# JOURNEY 10, QUOTED IN FULL AND VERBATIM, because it is four sentences and
+# because two of them bind this file (markdown emphasis markers stripped;
+# byte-equal otherwise, Unicode included):
+#   "The big one, with a recipe validated somewhere the instrument works.
+#
+#   Step 7.5 is what makes "massive" mean something new: ≈ 30 h a lane for
+#   250M instead of ≈ 124 h on the Node path, so the horizon that was a
+#   5-day fleet becomes an overnight one and 500M is thinkable. S-SHAPE read
+#   SS-CLIMB at 100M and the last doubling bought +0.00944 finished-to-
+#   finished vs SH, so dose is the only lever here with a measured monotone
+#   curve — and it is now the cheap one. The anneal trap still binds: a
+#   fresh full-horizon run with `lr_anneal_steps == total_steps`, never a
+#   warm start off a finished checkpoint."
+#
+# EXIT CONDITION: JOURNEY 10 STATES NONE, AND THIS FILE SAYS SO RATHER THAN
+# INVENTING ONE. Step 10 is a completion-shaped step with no gate, no band
+# and no branch table in the JOURNEY. The precedent is
+# configs/showdown_sp_100m.yaml, which hit the same wall and wrote
+# "Exit condition, completion-shaped (SF-17)"; this file follows it:
+#   THE RUN IS DONE when all nine lanes reach their 100M crossing rung (or
+#   the lane-failure rule below disposes of them), the post-fleet eval
+#   schedule has produced the PRIMARY reads with their disclosures, the
+#   anchor battery's gen-1 legs are reported or marked PENDING, and the
+#   readout is committed.
+# Everything this header adds beyond that — the arms, the credit-seeking
+# cells, the falsifier, the R0 gates — is ADDITIVE. None of it is quoted
+# from JOURNEY 10 and none of it may be described later as the JOURNEY's
+# own gate.
+# ROUTING: step 11 (the final gen-1 ladder) is next on EVERY branch of the
+# table below. No branch here reopens step 10 and no branch here selects the
+# ladder object — that is step 11's, and the ruling STATUS.md calls "11.5
+# before 11" is owed before it.
+#
+# THE GOAL THIS RUN SERVES CHANGED ON 2026-09-11 and the change is why arm B
+# exists. STATUS.md, next action 0b: "GOAL CHANGED (maintainer, 2026-09-11):
+# not 'clear top 500' but AS HIGH AS POSSIBLE." R4 finished Elo 1354 against
+# a 1358.999 cutoff. The named targets are H&L 1677 / ps-ppo 1725 / Wang
+# 1756, and Wang's is the in-charter one (pure self-play + MCTS). SEARCH IS
+# THE AXIS: we spend 63 ms of the ladder's 150 s/turn — 0.04% of the budget
+# — while Wang spends 10 s on 20 workers. "Next ladder = engine monster +
+# gated search." EVERY LANE IN THIS FLEET THEREFORE HAS TO PRODUCE A
+# SEARCHABLE OBJECT, which is section (B), and arm B is an attempt to
+# improve the thing search amplifies.
+#
+# JOURNEY 11, VERBATIM, because it is what this run feeds and it names a
+# decision this run must NOT pre-empt:
+#   "Decide before launching whether the laddered object is greedy or
+#   searched. Depth-1 expectation search is currently deployed, so this is a
+#   live choice, not a default. It determines what the depth experiment
+#   below is measuring — the object we shipped, or one we didn't. This is
+#   the policy-form scope question that has been open since R2; step 11 is
+#   where it stops being deferrable."
+#
+# JOURNEY 11.6's RULING, VERBATIM, because it is why there is no fourth arm:
+#   "next ladder should be as good as we can do with new poke-engine
+#   training and all these search gains ... transformer model can be post
+#   this ladder (wherever that falls in journey). can be recorded there as
+#   idea to try."
+# and its timing trap, VERBATIM, because it is the reason the arm list is
+# frozen at three and cannot be reopened after launch:
+#   "Architecture EXPIRES at the monster's launch exactly the way the
+#   privileged evaluator head does: you cannot bolt a different trunk onto a
+#   finished checkpoint. Taking this step means another training run, not a
+#   re-analysis."
+#
+# ---------------------------------------------------------------------
+# (A0) TWO MEASURED FACTS THAT LANDED ON 2026-09-10, AFTER THE THREE-ARM
+#      RULING AND BEFORE ANY LANE STARTED. THEY CHANGE THE DESIGN, AND TWO
+#      DECISIONS THAT FOLLOW FROM THEM ARE THE MAINTAINER'S. BOTH BRANCHES
+#      OF EACH ARE WRITTEN OUT BELOW; NEITHER IS SILENTLY PICKED.
+#
+# FACT 1 — ARM B IS BITWISE ARM A. MEASURED, NOT ARGUED.
+#   runs/engine_pe_s66 against runs/engine_a1b_s66 — same seed 66, configs
+#   differing only in run_name / seat_tag and the two priv_eval keys — at
+#   ckpt_010500013: 21 IDENTICAL CHECKPOINT RUNGS including the step
+#   counter, 223 shared tensors / 3,428,015 elements, ZERO DIFFERING, digest
+#   104a9339eb6a2260. The PE lane adds only its own 104 head+optimizer
+#   tensors. The head takes a SEPARATE autograd.grad over its own parameters
+#   AFTER the clip is read, and its construction REWINDS the global RNG
+#   stream, so actor, critic, aux head and every minibatch permutation match.
+#   THIS FALSIFIES A CLAIM AN EARLIER DRAFT OF THIS HEADER MADE. That draft
+#   reasoned that collector/learner interleaving would make an arm-B lane
+#   drift from its arm-A twin, and proposed reading |B - A| as the engine
+#   collector's run-to-run reproducibility floor. THE MEASUREMENT SAYS THE
+#   COLLECTOR IS DETERMINISTIC at a fixed lane seed and a fixed policy: the
+#   battle stream is splitmix64(lane_seed * PHI ^ battle_counter), the
+#   pool-member stream is a private np.random.default_rng(seed), and neither
+#   depends on wall-clock timing. There is no interleaving floor to measure
+#   and the reasoning that predicted one was wrong.
+#   TWO CONSEQUENCES, BOTH BINDING:
+#     (i) A GREEDY A-vs-B COMPARISON IS NOT "A NULL BY DESIGN". IT IS
+#         LITERALLY THE SAME NUMBER — the same actor, the same critic, the
+#         same checkpoint bytes. IT MUST NOT BE REGISTERED AS A CONTRAST.
+#         It is registered instead as P-ID, an IDENTITY CHECK (below).
+#     (ii) THREE OF THE NINE PLANNED LANES WERE BUYING DUPLICATE
+#         CHECKPOINTS. Decision 1 disposes of that.
+#
+# FACT 2 — ARM B's TARGET WAS WRONG, AND IS NOW FIXED (commit b147f48,
+#   2026-09-10, found in the pre-launch review BEFORE any lane started).
+#   The head regressed `flat_targets`, the GAE(lambda) target. At gamma 1
+#   with a terminal-only reward that decomposes EXACTLY as
+#       target_t = lam^(N-1-t) * z + (1-lam) * sum_k lam^(k-1) V(s_{t+k})
+#   so at the production lambda of 0.95 over a ~34-decision episode only
+#   ~0.47 of the head's target mass (step-weighted) was the GAME'S OUTCOME
+#   and ~0.53 was the ORDINARY NON-PRIVILEGED CRITIC'S OWN OUTPUT — ~0.82 of
+#   it at the FIRST DECISION of a battle, which is exactly where the
+#   privileged block carries the most information. THE HEAD EXISTED TO BEAT
+#   THAT CRITIC AND WAS BEING TRAINED TO AGREE WITH IT. It now regresses the
+#   MONTE-CARLO RETURN on both drivers.
+#   THE VERDICT METRIC IS THEREFORE `priv_eval/ev_mc_advantage` — the head's
+#   EV minus the critic's EV, BOTH against the outcome, computed on the same
+#   batch in the same pass (rl/agents/ppo.py:1638-1653).
+#   `priv_eval/explained_variance` IS A DIAGNOSTIC AND NEVER A VERDICT
+#   INPUT: it scores the head against a target that is ~53% the critic's own
+#   output, which FLATTERS THE HEAD BY CONSTRUCTION. Quoting it as the arm's
+#   read would be scoring a contestant against a scorecard half-written by
+#   its opponent. The companion keys `priv_eval/explained_variance_mc` and
+#   `priv_eval/critic_ev_mc` are the two halves of the verdict metric and
+#   are reported beside it.
+#
+# ---------------------------------------------------------------------
+# (A1) DECISION 1 — PENDING RATIFICATION [RWM-11]: DOES ARM B RIDE ARM A's
+#      LANES?
+#
+#   D1-RIDE (RECOMMENDED). `priv_eval_dim: 408` and `priv_eval_coef: 0.5`
+#     are set IN ARM A's OWN CONFIG, so every A lane carries the head.
+#     There is then ONE set of A/B lanes producing ONE actor, ONE critic and
+#     ONE head per seed, and THREE LANES ARE FREED. This is licensed by
+#     FACT 1 and by nothing else: the bitwise smoke IS the control, and it
+#     is a stronger control than a separate arm could ever be, because a
+#     separate arm would differ from A by exactly zero and would be
+#     reporting that zero at a cost of 25 h per lane.
+#     COST: the freed lanes are real — ~20 h of fleet, or three more seeds.
+#     WHAT IS GIVEN UP: nothing measurable. The one thing a separate arm
+#     buys is a live re-demonstration of FACT 1 at 100M rather than at
+#     10.5M; that is bought far more cheaply by P-ID below, which asserts
+#     the identity on the rungs the combined lane writes anyway.
+#   D1-SEPARATE. Arm B keeps its own three lanes
+#     (configs/showdown_monster100m_b.yaml, unchanged). Then P-ID is a
+#     nine-rung bitwise assertion across two lane families rather than a
+#     within-lane one, THREE LANES PRODUCE DUPLICATE ACTOR/CRITIC BYTES, and
+#     the allocation branch below does not fire.
+#   THE HEADER IS WRITTEN SO THAT EITHER RULING LEAVES A COMPLETE PRE-REG.
+#   Under D1-RIDE, "arm A" and "arm B" name the same lanes and the same
+#   checkpoints; the arm-B READS (P-BEV, P-BS) are reads of the head those
+#   lanes carry. Under D1-SEPARATE they name different lanes and P-ID
+#   asserts the identity between them.
+#
+#   THE FREED LANES, IF D1-RIDE — A NAMED BRANCH, NOT A LEFTOVER [RWM-12].
+#   The leading candidate is MORE SEEDS, for two independent reasons:
+#     (a) THE GOVERNING BAND IS SEED-CLUSTERED. The credit line takes the
+#         LARGER of the binomial and the seed-clustered se_diff, and at
+#         k=3 the seed-clustered leg is a 2-df estimate whose 95% CI
+#         multiplier runs [0.521, 6.285] — a factor of 12. Seeds are the
+#         only thing that touches it; battles are not.
+#     (b) THE LADDER OBJECT IS AN ENSEMBLE CANDIDATE. S3's P-E read the
+#         LOO-ensemble evaluator at PARTIAL ~+0.012 on a 3-member pool. A
+#         6-member ensemble beats a 3-member one, and the object this run
+#         exists to produce is the one step 11 ladders.
+#   TWO CONCRETE ALLOCATIONS, both 9 lanes, both priced at the same ~45.3 h:
+#     ALLOC-AB5C4 (if arm C stays): A/B on FIVE seeds, C on FOUR of those
+#       same five. Near-optimal for the C-vs-A contrast (se_clus scales as
+#       sqrt(1/5 + 1/4) = 0.671 s against 0.816 s at 3+3) AND it restores
+#       the D23-onward 5x3000 practice on the arm that produces the ladder
+#       object. Seeds: 104/112/120/128/136 for A/B; 104/112/120/128 for C.
+#       (128 and 136 are the 100M pre-reg's own ORDERED spares, 8 apart.)
+#     ALLOC-AB9 (if arm C is dropped): A/B on NINE seeds
+#       104/112/120/128/136/144/152/160/168. NO credit-seeking greedy
+#       contrast exists in that world and the run is a PRODUCTION run for
+#       the ladder object — which is legitimate and should be said plainly
+#       rather than dressed as an experiment. Arm B's mechanism read still
+#       fires at full strength, because P-BEV is paired WITHIN a lane and
+#       needs no contrast arm at all.
+#
+# ---------------------------------------------------------------------
+# (A2) DECISION 2 — PENDING RATIFICATION [RWM-13]: DOES ARM C RUN AT ALL?
+#
+# THE MAINTAINER RULED THREE ARMS ON 2026-09-11 ("how could it even hurt").
+# BOTH PRE-LAUNCH REVIEWS CONTEST ARM C, and the three objections are
+# recorded here in full because none of them is a matter of taste:
+#   (i) IT IS D18's EXACT LEVER AT lambda 0.95, AND THE VACATUR NAMED A
+#       DIFFERENT ONE. docs/IDEAS_POST_100M.md §4.7's live hypothesis is
+#       "a both-seat critic as a VARIANCE REDUCER at large batch and long
+#       horizon", and it names the "lambda=1.0 pure-baseline variant" as the
+#       thing that was "judged not worth a lane at 12M — at 100M+ with the
+#       batch config it is worth a lane". Arm C as configured is
+#       gae_lambda 0.95, i.e. D18's configuration, not 4.7's.
+#   (ii) THE VARIANCE-REDUCTION CHANNEL HAS ~30x LESS HEADROOM HERE. A
+#       baseline reduces the variance of a gradient ESTIMATE, and this
+#       recipe's update is 30,720 steps against D18's 1,024. Whatever a
+#       better baseline is worth per sample, the averaging has already taken
+#       ~30x of it before the gradient is formed.
+#   (iii) ITS FALSIFIER AS DRAFTED CANNOT FIRE. An earlier draft of this
+#       header conditioned the mechanism claim on an "UNCOLLAPSED critic".
+#       THE MAXIMUM CRITIC CTX srank99 EVER RECORDED IN THIS PROJECT IS 25
+#       OF 384 (D18 s41, results/d18/effective_rank.csv); no lane at any
+#       dose has exceeded it, and the matched-12M controls read 8/14/11. A
+#       leg conditioned on a state that has never been observed is a leg
+#       that returns no cell, and an arm whose only mechanism cell cannot
+#       fire is an arm that returns nothing but a win-rate delta at a bar
+#       it is unlikely to clear.
+# AND THE WORD "KILL" IS BARRED FOR THIS ARM, per the 2026-09-06 ruling. A
+# SMALL-RUN NULL CLOSES NOTHING; ONLY A MEASURED CEILING KILLS. The only
+# verdicts available to arm C are NULL and CREDITED NEGATIVE. Every
+# "C-FLAT-KILL" cell of the earlier draft is REMOVED, not renamed.
+#   D2-RUN. Arm C runs as configured, under the exhaustive partition in (K)
+#     — (primary delta) x (mechanism moved), four cells, none unnamed, none
+#     conditioned on an unobserved state, none using the word kill.
+#   D2-DROP. Arm C does not run; ALLOC-AB9 fires; IDEAS 4.7 stays open and
+#     its next design is the lambda=1.0 pure-baseline variant it actually
+#     names, pre-registered separately.
+#   D2-REFORM. Arm C runs, but as 4.7's OWN hypothesis: gae_lambda 1.0 with
+#     `privileged_dim: 408`. This tests what the vacatur named rather than
+#     what D18 ran — but it is then TWO levers against arm A (lambda AND the
+#     privileged block), so it needs a lambda-only control and the fleet is
+#     four arms, which does not fit. RECORDED AS CONSIDERED AND NOT
+#     RECOMMENDED at this width.
+#
+# ---------------------------------------------------------------------
+# (A) THE ARMS
+#
+# All three run the SAME recipe (configs/showdown_sp_100m.yaml's, the R4
+# recipe), the SAME dose (100M), the SAME anneal (100M), the SAME collector
+# (engine, k=8), the SAME team bank, the SAME seeds, and the SAME oppact
+# head. They differ in exactly the keys named here and nowhere else.
+#
+#   A — CONTROL. configs/showdown_monster100m.yaml (this file).
+#       The R4 recipe on the engine collector. `agent.aux_oppact_coef: 0.1`
+#       and `env_kwargs.opp_action: true` — the D25 pair, ON, in all three
+#       arms (see MANDATORY below). No privileged key of any kind.
+#       Run dirs: monster100m_a_s{104,112,120}. seat_tag: m10a.
+#
+#   B — PRIVILEGED EVALUATOR HEAD (design B, built 2026-09-10, commit
+#       7d8650e; TARGET FIXED b147f48). A + `agent.priv_eval_dim: 408` +
+#       `agent.priv_eval_coef: 0.5`. A SEPARATE full-information value head
+#       beside the critic, regressing the MONTE-CARLO RETURN (not the GAE
+#       target — see FACT 2) from obs ‖ the 408-dim privileged block, with
+#       its own parameters, its own Adam group at the critic's lr and its
+#       own gradient clip. `self.critic` stays the ordinary D18-free critic;
+#       advantages, the policy gradient, `loss/value` and
+#       `loss/explained_variance` all keep reading `self.critic`
+#       (rl/agents/ppo.py:667-700). It exists to be a SEARCH LEAF EVALUATOR.
+#       UNDER D1-RIDE these keys live in this file and arm B has no lanes of
+#       its own; under D1-SEPARATE they live in
+#       configs/showdown_monster100m_b.yaml, run dirs
+#       monster100m_b_s{104,112,120}, seat_tag m10b.
+#
+#   C — PRIVILEGED CRITIC (D18's own form, IDEAS 4.7). A +
+#       `agent.privileged_dim: 408`. `self.critic` widens to obs ‖ priv, the
+#       ctx pooling widens 5 -> 8 entity slots
+#       (rl/networks/entity_deepsets.py:355-369), and the block therefore
+#       enters the ADVANTAGE channel — the exact channel D18's falsifier
+#       fired on, at 8.3x the dose it was killed at (12M -> 100M).
+#       Run dirs: monster100m_c_s{104,112,120}. seat_tag: m10c.
+#
+# THE EMITTER AND THE TWO CONSUMERS ARE INDEPENDENT KEYS, AND THAT SEAM WAS
+# BUILT FOR THIS RUN. `PPOAgent.privileged_block_dim` (rl/agents/ppo.py:
+# 841-852) is `privileged_dim or priv_eval_dim`, and rl/train.py:954 derives
+# the collector's `privileged` flag from it. Either key makes the collector
+# emit; only `privileged_dim` changes what produces advantages. So a B lane
+# cannot silently carry A: A-ness is one key, and it is absent from
+# configs/showdown_monster100m_b.yaml. THERE IS NO `collector.privileged`
+# KEY and a config carrying one is refused outright (ENGINE_KEYS,
+# rl/train.py:687).
+#
+# THE THREE ARMS ARE NOT SYMMETRIC IN COST, AND THE ASYMMETRY IS DISCLOSED
+# RATHER THAN EQUALISED. B and C both make the Rust side run a SECOND full
+# 828 encode per learner row (engine/pkmn_gen1/src/env.rs:295-302); A does
+# not. The ceiling from the banked profile is <= ~3% of wall (the entire
+# Rust side is <= 8.7% of collection, and collection is 34.9% of wall at
+# k=8 — results/engine_a1/update_share.json, engine collect_share_mean
+# 0.34873). IT HAS NEVER BEEN MEASURED: `scripts/engine_t1.py --leg b` run
+# twice, flag off then on, is the measurement, and it is named as a
+# pre-launch unit below. Quote it as a BOUND until then, never as a
+# measurement. This costs wall time, not learning, and it is why arms
+# finish at different times inside a wave.
+#
+# WHAT HAS NEVER RUN, AND IT IS ARM C [RWM-6]. Every `runs/*/config.yaml`
+# with `collector.mode: engine` was swept: 20 exist, exactly one carries a
+# privileged key, and it is `priv_eval_dim` (runs/engine_pe_s66, the design-B
+# smoke, live as this is written). NO RUN IN THIS REPO HAS EVER PUT
+# `privileged_dim` ON THE ENGINE ROUTE, and none has ever combined
+# `privileged_dim` with `aux_oppact_coef` on ANY route — D18's own config
+# (configs/showdown_sp_priv12m.yaml:271,281) sets `env_kwargs.privileged:
+# true` + `agent.privileged_dim: 408` and carries NO oppact head, because
+# D18 predates D25. The combined build is called out in
+# docs/proposals/privileged_critic_engine_route.md:711-712 as "a NEW object
+# with no golden". The refusal that used to block it
+# (rl/agents/ppo.py:479-484) was removed on 2026-09-10, the same day as the
+# design-B seam. ARM C THEREFORE NEEDS A LIVE SMOKE BEFORE THE FLEET, and
+# it is a launch-blocking precondition below, not a footnote.
+# (Note also that arm C sets ONLY `agent.privileged_dim`. D18's
+# `env_kwargs.privileged: true` is the NODE path's second knob and would be
+# REFUSED here: the engine route accepts `env_kwargs` {opp_action,
+# seat_tag} only, rl/train.py:820-825.)
+#
+# ---------------------------------------------------------------------
+# (B) THE OPPACT HEAD IS MANDATORY IN ALL THREE ARMS — A LAUNCH-BLOCKING
+#     PRECONDITION, NOT A FOOTNOTE
+#
+# rl/search/agent.py:68-70 hard-asserts it:
+#     assert agent.aux_head is not None, (
+#         "SearchAgent needs the oppact head (D26 checkpoints carry it)"
+#     )
+# A checkpoint without `aux_oppact_coef > 0` can NEVER be handed to
+# SearchAgent — not with a flag, not with a patch that preserves the arm,
+# because the head's parameters do not exist and cannot be trained after the
+# fact. THE WHOLE POINT OF THIS RUN IS AN OBJECT WE CAN SEARCH: the margin
+# gate (D5) read a HUMP on the 100M finals at +0.04167 over greedy on s112
+# (configs/eval/search_s3_100m.yaml, P-G RESULT 2026-09-10 23:46Z), the
+# three-lane confirmation P-C is in flight as this is written, and arm B's
+# entire read is a searched read. A monster lane launched without
+# `aux_oppact_coef: 0.1` is a dead object for every read in section (F) and
+# for step 11.
+# ENFORCEMENT, so this cannot be a prose promise: `rl/train.py:876-884`
+# already refuses a launch where `env_kwargs.opp_action` and
+# `agent.aux_oppact_coef` disagree, at LAUNCH rather than at the first
+# update. The launcher additionally asserts `aux_oppact_coef == 0.1` and
+# `aux_label_space == l6` in every one of the three configs before lane 1
+# starts. Both keys are present in all three files.
+#
+# ---------------------------------------------------------------------
+# (C) K = 8, DECLARED AND JUSTIFIED — DO NOT "OPTIMISE" IT LATER
+#
+# The engine's own production default is 256 (rl/train.py:777). This fleet
+# runs at 8, and the reasoning is restated here in full so that a later
+# reader who sees "4x speedup" in SPEEDUP.md does not helpfully raise it.
+#
+# WHAT k ACTUALLY BUYS, AT MATCHED WIDTH (results/engine_a1/maxout.json,
+# `cells[].per_lane_realized_median`; the 4.035x figure is the COLLECTOR's,
+# not k's, and mixing them is the error K-1's own header retracts):
+#     width 1   2,390.2 -> 3,034.7 steps/s per lane   1.270x
+#     width 3   1,620.5 -> 2,105.6                    1.299x
+#     width 6   1,282.3 -> 1,665.6                    1.299x
+# At the shape THIS fleet actually runs (9 lanes x 100M, 6-wide then
+# 3-wide; see COST), 1.299x on the collect term is worth about FIVE FLEET
+# HOURS out of ~45 — and the collect term is 34.9% of wall on the engine
+# path, so the lane-level gain is smaller than 1.299x.
+#
+# WHAT IT COSTS. At L-bar 30.70 the length-biased carry is 0.436% of a
+# 30,720-step update at k=8 and 13.3-13.8% at k=256 — a 32-37x increase in
+# off-policy rows (configs/engine_k256.yaml, methods 1 and 2, which agree).
+# AND THE CARRY IS NOT UNIFORM: P(lag >= 1) by within-episode position runs
+# 0.2248 over turns 0-4 against 0.0726 over turns 25+ at k=256 (0.0062 and
+# 0.0019 at k=8). k=256 TRAINS OPENING PLAY OFF-POLICY AND ENDGAME PLAY
+# ON-POLICY by a factor of 3.1x — a structured, non-uniform treatment on
+# lead choice and early switching, which is exactly the behaviour a ladder
+# object is judged on. The stale rows enter through the recorded `old_logp`
+# with NO filter and NO reweighting (rl/agents/ppo.py:1163-1165, :1332-1334),
+# and the PPO clip is the only correction in the path — already saturated on
+# the comparator at clip_frac 0.2264-0.2363 against clip_eps 0.2.
+#
+# AND THE SCREEN THAT WOULD HAVE LICENSED 256 CANNOT RESOLVE IT. K-1
+# (configs/engine_k256.yaml, drafted and reviewed twice, PARKED not
+# withdrawn) has an MDE at 80% power of 0.032-0.038 against its own accept
+# band of 0.025: a screen whose resolution floor is wider than its band.
+# THE CONSEQUENCE: this fleet runs at k=8, the setting A-1 accepted the
+# collector at, and any k > 8 needs its own read BEFORE it becomes a
+# training default. Nothing in this pre-reg licenses k=256, and a later
+# reader wanting the five hours should read configs/engine_k256.yaml's
+# staleness section first.
+#
+# WIDTH IS FREE AND K IS NOT, AND THAT IS THE WHOLE POINT. A lane is a
+# SEED; width does not change learning and needs no screen. The headline
+# 2.06x fleet figure factors as 1.299 (k) x 1.582 (width 3 -> 6), and this
+# fleet takes the 1.582 and declines the 1.299.
+#
+# ---------------------------------------------------------------------
+# (D) THE ANNEAL TRAP, PINNED
+#
+# JOURNEY 10, verbatim (quoted once more here because it is the binding
+# sentence and this is the section that discharges it): "The anneal trap
+# still binds: a fresh full-horizon run with `lr_anneal_steps ==
+# total_steps`, never a warm start off a finished checkpoint."
+#
+# DISCHARGED: total_steps 100,000,000 and agent.lr_anneal_steps
+# 100,000,000, in all three arms, byte-identical. This is R0-b, the recipe's
+# own full-horizon-anneal convention, and it is CONSTITUTIVE of "a 100M run"
+# under this recipe rather than a bundled delta
+# (configs/showdown_sp_100m.yaml, N-ANNEAL).
+#
+# AND IT IS A FRESH RUN. No `--resume`, no warm start, no initialisation
+# from the banked 100M finals or from any A-1 lane. Every lane starts from
+# `set_seed(cfg.seed)` at step 0. A warm start would (i) break the anneal
+# basis — `anneal_basis = step` at rl/train.py:970, so a warm-started lane
+# would anneal from the wrong place — and (ii) make the arms incomparable,
+# since only one of the three could inherit a control's weights.
+# A RESUME AFTER A CRASH IS NOT A WARM START and is permitted (it restores
+# step, updates_done, the anneal basis and the battle counter); see OPS for
+# the two things a resume costs.
+#
+# ---------------------------------------------------------------------
+# (E) SEEDS — SHARED ACROSS ARMS, UNDER DISTINCT `env_kwargs.seat_tag`s.
+#     DERIVED FROM THE CODE, NOT FROM RULE 2's HEADLINE.
+#
+# THE SEED LIST IS ALLOCATION-DEPENDENT AND (A1) OWNS IT: 104/112/120 under
+# ALLOC-3x3; 104/112/120/128/136 (C on the first four) under ALLOC-AB5C4;
+# 104/112/120/128/136/144/152/160/168 under ALLOC-AB9. EVERYTHING IN THIS
+# SECTION HOLDS FOR ALL THREE — the mechanism, the tag derivation, the
+# window argument and the test amendment do not depend on how many seeds
+# there are, only on which. Where this section writes "104/112/120" it means
+# the first three of whichever list the ruling picks.
+#
+# CLAUDE.md rule 2 says concurrent lanes need distinct `--seed`s INCLUDING
+# ACROSS ARMS. The reason it gives is mechanical: poke-env derives seat
+# usernames from the globally-seeded `random`, so two lanes at one seed ask
+# Showdown for the same names and die with a misleading TimeoutError. THE
+# RULE IS RIGHT AND THE MECHANISM IS THE THING TO CHECK, because on this
+# collector the mechanism has moved twice.
+#
+# WHAT THE ENGINE PATH ACTUALLY OPENS. `rl/train.py:508-525`: with
+# `collect_mode in ("async", "engine")` NO TRAINING ENV IS CONSTRUCTED AT
+# ALL — the agent is built against `fake_spaces()` and the engine collector
+# is in-process with no sockets, no threads and no child processes
+# (rl/envs/engine_collector.py:315-316). The ONLY poke-env object a monster
+# lane creates is the in-loop EVAL env, `make_eval_env(cfg)` at
+# rl/train.py:533, which opens TWO seats (ours and SimpleHeuristicsPlayer).
+# So a lane is 2 usernames, not 18.
+#
+# WHAT `seat_tag` DOES. rl/envs/make.py:41-49 pops `seat_tag` before the env
+# is built and, when it is set, injects explicit `AccountConfiguration`s
+# from `rl.envs.showdown.seat_names(seed, tag, seat_role)`
+# (rl/envs/showdown.py:968-986):
+#     base = f"as2s{seed}{role}{sha256(tag)[:4]}"   ->  base+"a", base+"b"
+# `make_eval_env` passes `seat_role="e"` (rl/envs/make.py:155-157), exactly
+# so a tagged run's eval seats cannot collide with training sub-env 0's.
+# WITH A TAG SET, poke-env's global-`random` derivation IS NEVER REACHED,
+# and rule 2's failure mechanism is not present. Without a tag it is, and
+# three arms at one seed would collide on the first eval.
+# VERIFIED LIVE, NOT DERIVED: the design-B smoke at seed 66 under
+# `seat_tag: pe` is on the server right now as `as2s66ecdf6a` /
+# `as2s66ecdf6b` (runs/engine_pe_s66.nohup.log), which is exactly
+# seat_names(66, "pe", "e").
+#
+# THE EIGHTEEN NAMES THIS FLEET WILL HOLD, COMPUTED AND PINNED so a
+# collision is a launcher assertion and not a surprise (13 chars each,
+# against Showdown's 18-character cap, SEAT_NAME_MAX):
+#     m10a  as2s104ec990{a,b}  as2s112ec990{a,b}  as2s120ec990{a,b}
+#     m10b  as2s104e930b{a,b}  as2s112e930b{a,b}  as2s120e930b{a,b}
+#     m10c  as2s104eed0d{a,b}  as2s112eed0d{a,b}  as2s120eed0d{a,b}
+# All 18 distinct; all distinct from A-1's `a1` tag and the smoke's `pe`.
+#
+# THE 8-WIDE "SEED WINDOW" DOES NOT APPLY TO AN ENGINE LANE, and saying so
+# matters because both seed guards in tests/ are written in terms of it.
+# `make_vec_env` seeds sub-env i at `seed + i` (rl/envs/make.py:88), which
+# is what makes [seed, seed+7] a reserved window on the VECTOR path. The
+# engine path builds no vector env, so only `cfg.seed` itself is consumed —
+# by the eval env's spaces, by the pool's private
+# `np.random.default_rng(seed)` (engine_collector.py:193) and by the Rust
+# battle stream `splitmix64(lane_seed * PHI ^ battle_counter)`. 104/112/120
+# are 8 apart anyway, so nothing turns on this; it is recorded so the
+# window is not later treated as a live constraint on the engine path.
+#
+# WHY SHARE RATHER THAN SPEND NINE SEEDS [RWM-1]. Three reasons, in order:
+#   1. THIS IS WHAT `seat_tag` WAS BUILT FOR. IDEAS 2.2: "Every training A/B
+#      to date has been unpaired for a MECHANICAL reason, not a statistical
+#      one ... Fold a per-run tag into the names and arms can SHARE a seed —
+#      shared init where shapes match, and a shared early episode stream."
+#      A-1 used the tag only to avoid its own banked lanes; this is the
+#      first design that takes the pairing.
+#   2. THE PAIRING IS WEAKLY DOMINANT AND COSTS NOTHING. rho ~ 0 means no
+#      worse than unpaired. The PRIMARY estimator is UNPAIRED regardless
+#      (the credit line takes the larger of the pooled-binomial and the
+#      seed-clustered se_diff, and neither is a paired quantity), so the
+#      pairing can only ADD a secondary. IDEAS 2.2's own obligation —
+#      "MEASURE AND REPORT rho ON FIRST USE" — is discharged as a named
+#      secondary in section (G).
+#   3. THE ENVIRONMENT STREAM IS GENUINELY SHARED, WHICH IS THE PART THAT
+#      IS NEW. At a fixed lane seed the battle-seed sequence and the
+#      pool-member sequence are functions of the seed alone, so all three
+#      arms at seed 104 see the SAME team pairs in the SAME order and the
+#      SAME opponent-member draws, until their policies diverge. That is
+#      common random numbers on the training distribution, which no gen-1
+#      A/B in this repo has ever had.
+#
+# AND THE PAIRING IS ASYMMETRIC ACROSS THE THREE ARMS. THIS IS THE SINGLE
+# MOST IMPORTANT SENTENCE IN THIS SECTION:
+#   * A and B ARE init-paired. `priv_eval_coef > 0` constructs the head LAST
+#     and REWINDS the global torch RNG stream around it
+#     (rl/agents/ppo.py:680-700), so at a fixed seed an arm-B lane's actor,
+#     critic, aux head, minibatch permutations and every downstream draw are
+#     BIT-IDENTICAL to arm A's. Pinned offline over twenty updates by
+#     tests/test_priv_eval_head.py.
+#   * C IS NOT. `privileged_dim` re-inits the whole net after the widened
+#     critic has moved the RNG stream, so the ACTOR's initial weights move
+#     at a fixed seed, with an IDENTICAL parameter count
+#     (rl/agents/ppo.py:494-505). The figure usually quoted is actor param
+#     sum 334.851 -> 410.510 (tests/test_entity_trunk_gen4.py:194-199), AT
+#     THAT TEST'S SEED. MEASURED ON THESE THREE FILES AT SEED 104 the pair
+#     is 442.300 (arms A and B, identical to the last float) -> 375.635
+#     (arm C). The residue is real at every seed; the numbers are
+#     seed-specific and the sign is not fixed. Reordering construction to
+#     fix it would move the stream for privileged_dim=0 too and break the
+#     gen-1 golden for every existing recipe. DISCLOSE, DO NOT REORDER.
+#   So C shares the ENVIRONMENT stream with A but not the INITIALISATION,
+#   and B shares both. Any paired secondary reports the two contrasts
+#   separately and never pools them, and no pairing credit is taken on
+#   either.
+#
+# THE TEST AMENDMENT THE RATIFICATION COMMIT MUST MAKE [RWM-2], NAMED HERE
+# BECAUSE A POST-HOC FIX IS THE THING THE PRE-REG RULES EXIST TO PREVENT.
+# Two guards exist and only ONE of them is the guard the brief for this file
+# named; both are checked:
+#   * tests/test_100m_prereg.py::test_seed_windows_disjoint_and_unused GOES
+#     RED THE MOMENT LANE 1 WRITES ITS CONFIG. It enumerates the windows
+#     [104..111], [112..119], [120..127] and asserts that no run dir OTHER
+#     than showdown_sp_100m_s{104,112,120} stamps a seed inside them. The
+#     amendment adds the nine monster dirs as the SECOND legal owner, with
+#     the same comment form the 2026-09-01 and 2026-09-09 amendments used,
+#     and it lands in the RATIFICATION commit — before launch, never after.
+#   * tests/test_ch5_r2_prereg.py::test_seeds_are_window_disjoint_and_unused
+#     is UNAFFECTED. It guards 66/75/83 only, and this fleet does not touch
+#     them. (That test is the one the drafting brief named; it is the wrong
+#     one for these seeds, and the right one is the 100M guard above.)
+#
+# WHY 104/112/120 AND NOT A FRESH TRIPLE [RWM-1b]. Because arm A is the R4
+# recipe at the R4 dose with the R4 anneal, so at these seeds it is
+# INIT-PAIRED LANE-FOR-LANE with runs/showdown_sp_100m_s{104,112,120} — the
+# banked Node 100M fleet, the same recipe on the other collector. That buys,
+# for zero compute, the one descriptive read A-1 explicitly could not
+# produce: its own disclosure says "A-1 says nothing about behaviour at
+# 100M+, which is the horizon the port exists to buy". It is a DESCRIPTIVE
+# overlay and never a verdict input (see D-COLL100 in section (G)) — the
+# two fleets differ in collector, in team source, and in eight days of tree
+# — but it exists only if these seeds are used, and it cannot be recovered
+# later.
+#
+# ---------------------------------------------------------------------
+# (F) COST, WIDTH AND WAVES — FROM MEASURED ARTIFACTS ONLY
+#
+# EVERY NUMBER BELOW NAMES ITS FILE. Nothing here is a projection from a
+# projection, and where a figure is an extrapolation it is labelled as one.
+#
+# THE TWO MEASURED RATE FAMILIES, and they measure different things:
+#   (i) results/engine_a1/maxout.json — IDLE box, evals OFF, k=8, 200,000
+#       steps per lane per cell, `cells[].per_lane_realized_median`:
+#         width 1  2,390.2 steps/s per lane   fleet 2,390.2   peak RSS 2.263 GB
+#         width 3  1,620.5                    fleet 4,861.4   peak RSS 7.369 GB
+#         width 6  1,282.3                    fleet 7,693.6   peak RSS 10.952 GB
+#       `peak_rss_gb` IS THE SUM OVER THE CELL'S LANES, not per lane
+#       (scripts/engine_maxout.py:58-72 accumulates over all lane pids per
+#       tick). Per-lane at width 6 is therefore 1.825 GB.
+#       THE GRID IS {1, 3, 6} AND NOTHING ABOVE 6 HAS EVER BEEN MEASURED.
+#   (ii) THE A-1b LANES' OWN WHOLE-LANE RATE — the honest planning number,
+#       because its denominator includes evals, checkpoint writes, pauses
+#       and everything else a real lane pays. From each lane's history.csv,
+#       (max _step - min _step) / (max _timestamp - min _timestamp), on the
+#       FIXED build (bd3d06a), 3-wide, evals on:
+#         engine_a1b_s66  1,390.03 steps/s   engine_a1b_s75  1,386.79
+#         engine_a1b_s83  1,349.49           -> median 1,386.79
+#       The per-lane median of `time/realized_steps_per_sec` on the same
+#       lanes is 1,380.95-1,423.54, which brackets it. DO NOT USE
+#       `time/steps_per_sec`: it medians 5,202-5,638 on these lanes, ~3.5x
+#       the truth, and it is a poll-cadence estimator.
+#
+# THE PLANNING RATE, AND ITS ONE EXTRAPOLATION:
+#   width 3, whole-lane, evals on, fixed build  = 1,386.79 steps/s per lane
+#                                                 [MEASURED]
+#   width 6/width 3 per-lane ratio from maxout  = 1,282.3 / 1,620.5 = 0.7913
+#                                                 [MEASURED, evals OFF]
+#   width 6, whole-lane, evals on               = 1,097.4 steps/s per lane
+#                                                 [PROJECTED — see caveat]
+# CAVEAT, AND IT IS THE RIGHT DIRECTION TO WORRY ABOUT: the width ratio is
+# measured with evals OFF, so it does not carry the contention of six lanes'
+# eval seats on ONE Showdown server. The projection is therefore an UPPER
+# bound on rate and a LOWER bound on hours. The eval term is small — the
+# A-1 lanes spent 271-292 s on 49-53 evals, ~5.5 s per 100-battle eval, and
+# 400 evals is ~0.61 h per lane — and 6 lanes is 12 eval seats against the
+# Node 100M fleet's 27 concurrent seats, so contention is expected to be
+# minor. EXPECTED IS NOT MEASURED; D-B below records the realized rate and
+# the pre-stated action on a shortfall.
+#
+# HOURS, AT THE RECOMMENDED WIDTH:
+#   one lane, 100M at 1,097.4 steps/s (width 6)  = 91,124 s = 25.3 h
+#   one lane, 100M at 1,386.79 steps/s (width 3) = 72,109 s = 20.0 h
+#   WAVE 1 — 6 lanes, 6-wide:                      25.3 h
+#   WAVE 2 — 3 lanes, 3-wide:                      20.0 h
+#   FLEET TOTAL:                                   ~45.3 h  (~1.9 days)
+# SANITY, against the only 100M fleet that exists: the banked Node fleet ran
+# 3 lanes 3-wide in 49.36 / 49.77 / 49.83 h. This fleet does NINE lanes in
+# ~45 h. That is the port, and it is the thing JOURNEY 7.5 was bought for.
+#
+# THE WAVES ARE ARM-BALANCED, AND THAT IS A DESIGN CONSTRAINT, NOT AN
+# ORDERING CONVENIENCE. A wave is a shared box condition — width, thermal
+# state, whatever else is running — so a wave that holds unequal numbers of
+# each arm CONFOUNDS ARM WITH BOX. The waves are therefore cut BY SEED:
+#   WAVE 1 = seeds 104 and 112, all three arms      (6 lanes, width 6)
+#   WAVE 2 = seed 120, all three arms               (3 lanes, width 3)
+# Every wave holds exactly one lane of each arm per seed, so any wave effect
+# enters all three arms equally and cancels in every between-arm contrast.
+# A wave cut BY ARM (all of A, then all of B, ...) is BARRED.
+#
+# NINE-WIDE IS REFUSED, ON MEMORY, AND THE REFUSAL IS MEASURED [RWM-3]:
+#   * The box is 24.00 GB (sysctl hw.memsize 25,769,803,776) and 14 cores
+#     (M4 Pro, 10 performance + 4 efficiency).
+#   * Per-lane RSS at width 6 is 1.825 GB (maxout fleet sum 10.952 / 6), so
+#     nine lanes is 16.4 GB of the measured, NON-GROWING figure.
+#   * The comparable idle-box headroom is free+inactive 11-13 GB
+#     (logs/engine_gates.log, 2026-09-09, the A-1 launch preflight).
+#     16.4 > 13 before any growth at all.
+#   * AND GROWTH IS UNMEASURED ON THIS PATH. The A-1 lanes ran 2.4-2.6 h. On
+#     the Node path a lane grew from 2.31 GB solo to 3.21 GB peak over 49 h
+#     (logs/ch5_100m_rss.log, 598 samples) — a factor of 1.39. If the engine
+#     path grows anything like that, six lanes reach ~15.2 GB and NINE reach
+#     ~22.8 GB, which is the whole box.
+#   * The named, MEASURED unlock is mmap'ing the team bank: three processes
+#     consume 1.37 GB when the bank is `read()` and 0.00 GB when it is
+#     mmap'd (docs/engine_port/NOTES.md). At width 6 that returns 5 x 0.532
+#     = 2.7 GB. It is "not implemented tonight, deliberately" (NOTES.md) and
+#     it lives in engine/pkmn_gen1/, which this pre-reg does not touch.
+#     STATUS.md lists it under "Free wins staged". If it lands before
+#     launch, RWM-3 should be re-asked — it changes the memory arithmetic
+#     and only the memory arithmetic.
+#   * A HYPOTHESIS FOR WHY THE GRID STOPS AT 6, offered as a hypothesis and
+#     not as a finding: this box is an M4 Pro with 10 PERFORMANCE cores and
+#     4 EFFICIENCY cores, and a lane measures 1.0199 cores mean
+#     (results/t1/leg_d.json, `cores_per_lane`, 900 s time-averaged at width
+#     3). Six lanes plus the Showdown server plus the OS is about what fits
+#     on ten performance cores; the seventh lane onward lands on efficiency
+#     cores. That is consistent with the measured per-lane falloff (1->3 is
+#     0.678x, 3->6 is 0.791x) and it predicts a much sharper knee at 7-9
+#     than a naive extrapolation would. W-0 is what settles it, and until
+#     W-0 runs this paragraph is a hypothesis with a mechanism, not a
+#     number.
+#   THE RECOMMENDATION IS WIDTH 6 IN TWO WAVES. Nine-wide is an
+#   extrapolation on rate AND a measured-over-budget on memory, and saying
+#   "9-wide, ~34-38 h" would be inventing a record off a grid that stops at
+#   6 — the shape of the throughput landmine in CLAUDE.md.
+#
+# THE WIDTH IS NOT ASSUMED — IT IS MEASURED AT LAUNCH, AND THE RULE IS
+# PRE-STATED. Unit W-0, ~12 minutes, before lane 1:
+#   `scripts/engine_maxout.py` at k=8, widths 6 and (if the maintainer wants
+#   the option live) 9, 200,000 steps per lane, on the idle box, with an
+#   arm-B config so the privileged encode is in the measurement.
+#   RULE: run 9-wide iff BOTH (a) fleet aggregate at 9 >= 1.10x the fleet
+#   aggregate at 6, AND (b) fleet peak RSS at 9 <= 14.0 GB, leaving >= 10 GB
+#   of a 24 GB box for the OS, the Showdown server and growth. Otherwise the
+#   6+3 arm-balanced waves above. The measured numbers and the branch taken
+#   are recorded before lane 1 starts.
+#
+# DISK, MEASURED PER UNIT AND MULTIPLIED OUT:
+#   a rung checkpoint        13,779,635 B  x 200 rungs x 9 lanes = 24.8 GB
+#   checkpoint.pt (resume)  103,929,979 B  x 9                   =  0.94 GB
+#   best_checkpoint.pt       13,779,864 B  x 9                   =  0.12 GB
+#   history.csv     48.6 MB per 13.1M steps -> ~371 MB/lane      =  3.3 GB
+#   wandb/           180 MB per 13.3M steps -> ~1.35 GB/lane     = 12.2 GB
+#                                                        TOTAL   ~41 GB
+# against 149 GiB free on /System/Volumes/Data. THERE IS NO RETENTION
+# POLICY: `rl/common/checkpoint.py::save_checkpoint` writes and never
+# deletes, and no `keep_last` / prune path exists anywhere in rl/. D-F below
+# is the gate; a cleanup pass is a POST-fleet decision and never a mid-fleet
+# one (the 100M Node lanes lost their intermediate rungs to exactly such a
+# pass, which is why P-AUC-style reads on them are impossible).
+#
+# THE ALLOCATION QUESTION, ANSWERED IN ADVANCE. The same ~45 fleet-hours buys
+# either this (9 lanes x 100M, three arms) or ~3.6 lanes x 250M (one arm at
+# more dose). JOURNEY 10 says dose "is the only lever here with a measured
+# monotone curve", and the measurement is +0.00944 finished-to-finished for
+# the whole 50M -> 100M doubling. A further doubling is therefore expected to
+# land BELOW the credit line's +0.025 floor — it would be a real gain that
+# could not be credited. The arms are credit-seeking and dose is not, so the
+# fleet is spent on arms. THIS RUN IS NOT A DOSE EXPERIMENT and no branch of
+# it may be reported as one (see WHAT THIS DOES NOT TEST).
+#
+# A DISCREPANCY WITH STATUS.md, NAMED RATHER THAN QUIETLY RECONCILED.
+# STATUS next-action 1 prices this fleet at "~40 h; +11-15 h over two arms".
+# That figure is only reachable at NINE-WIDE: two arms is 6 lanes = one
+# width-6 wave = 25.3 h, so "+11-15 h" implies the third arm's three lanes
+# join the same wave. Nine-wide has never been measured on rate and is over
+# budget on the measured memory (above). The 6+3 arm-balanced structure this
+# file recommends is +20.0 h over two arms, for ~45.3 h. THE MEASURED
+# NUMBER IS THE ONE THIS PRE-REG PLANS AGAINST; W-0 can move it, and if W-0
+# licenses nine-wide the total falls toward STATUS's figure.
+#
+# CLAUDE.md RULE 4: THIS IS A HAND-OVER. Training, ~25 h per lane, ~45 h per
+# fleet, far over the 5 h line. THE MAINTAINER LAUNCHES. The commands are in
+# OPS, one per fenced block, and the launcher refuses without an explicit
+# `launch_authorization` in the sidecar.
+#
+# ---------------------------------------------------------------------
+# (G) THE FIVE PRE-REG RULES THE D25/D25-P CYCLE PAID FOR
+#
+#  1. ACROSS-LANE AGGREGATOR, NAMED: the EQUAL-WEIGHT MEAN of the three
+#     per-seed win rates, on EVERY arm, for EVERY read, greedy and searched
+#     alike. Never a battle-weighted pool; never a subtraction of pools.
+#     A between-arm delta is the equal-weight mean of the three per-seed
+#     win rates of one arm minus the equal-weight mean of the other's — and
+#     because the seeds are shared it is numerically equal to the mean of
+#     the three per-seed deltas. Both framings are the same number here;
+#     the FIRST is the definition, so that a lane loss (which breaks the
+#     pairing) does not silently change the estimator.
+#  2. NO UNNAMED CELLS: section (K) partitions every read exhaustively and
+#     assigns every boundary explicitly, including the void cells.
+#  3. DOSE MATCHED, AND HOW WE'D KNOW: see (H).
+#  4. CREDIT LINE RESTATED VERBATIM: immediately below, exactly once.
+#  5. WHICH SIDE EACH BAND READS: stated per read in (I). Every between-arm
+#     band is TWO-SIDED on the signed delta and the sign is reported on
+#     every branch including the null ones; the CREDIT cell is the positive
+#     side only, and a symmetric negative cell is named so that "not
+#     credited" and "harmful" are never the same sentence.
+#
+# CREDIT LINE, VERBATIM (appears in this header exactly once, here):
+# "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff,
+# where se_diff is the LARGER of the pooled-binomial se_diff and the
+# seed-clustered se_diff, the latter computed from the per-seed finals
+# at read time."
+# Clustered formula: sqrt(s_arm^2/k_arm + s_cmp^2/k_cmp). BAR =
+# max(0.025, 2*se_gov). It GOVERNS the two credit-seeking contrasts named
+# in (I) — P-C and P-BS — and it governs nothing else in this file.
+#
+# THE MULTIPLICITY DISCLOSURE THIS RUN OWES, because it is the first gen-1
+# fleet in this repo to read TWO credit-seeking contrasts against ONE
+# control. No alpha adjustment is applied: the credit line is a fixed
+# effect-size floor plus a 2*se_diff rule, not a p-value, and inventing a
+# correction for it here would be a new rule written by a drafter. What is
+# owed instead is the DISCLOSURE, and it rides every credit sentence this
+# run produces: TWO credit-seeking contrasts were read against a shared
+# control, so the family-wise probability of a false credit is higher than
+# the single-contrast figure the credit line implies.
+#
+# ---------------------------------------------------------------------
+# (G2) THE POWER PROBLEM, STATED BEFORE THE RUN RATHER THAN AT THE READOUT
+#      — AND THE ONE RULING IT RAISES [RWM-8]
+#
+# THE PRIMARY AXIS OF THIS PRE-REG IS vs-SH, per CLAUDE.md's anchor battery
+# ("vs-SH ... the ONLY verdict input") and per the brief this file was
+# drafted to. IT IS ALSO THE WEAKEST AXIS AVAILABLE AT THIS DOSE, and the
+# repo has already measured why.
+#
+# THE ARITHMETIC, FROM configs/showdown_sp_100m.yaml:141-168 — the 100M
+# pre-reg's own, not this drafter's: at p ~= 0.79 against p ~= 0.47, vs-SH
+# needs ~1.56x MORE TRUE IMPROVEMENT to clear the same ABSOLUTE +0.025
+# floor, because the same logit gain buys less probability near the tail.
+# At a matched logit gain of 0.10 and a fixed sigma_seed of 0.008,
+# P(credit) is 0.488 off-FP@20 against 0.067 vs-SH. That pre-reg concluded,
+# verbatim: pre-registering vs-SH as a verdict axis "would pre-register a
+# near-guaranteed failure sentence", and its ratification item E1 promoted
+# off-FP@20 to the verdict axis FOR THAT ROUND ONLY, explicitly noting it
+# "does not carry itself forward".
+#
+# WHAT THE BAR ACTUALLY IS HERE, COMPUTED IN ADVANCE so no letter-vs-rule
+# gap can open at the readout. At p ~= 0.79, n = 3000/seed, k = 3:
+#   pooled-binomial se per arm  = sqrt(0.79*0.21/9000)      = 0.00429
+#   pooled-binomial se_diff     = sqrt(2) * 0.00429         = 0.00607
+#   seed-clustered se_diff, at the banked 100M fleet's OWN measured vs-SH
+#     seed sd of 0.00455 (results/ch5_100m/grade.json, s_T):
+#                               = 0.00455 * sqrt(2/3)       = 0.00372
+#   -> THE BINOMIAL GOVERNS, 2*se_gov = 0.01214 < 0.025, so BAR = 0.025.
+# AND THE SEED SD IS A 2-df ESTIMATE. The 100M pre-reg's own multiplier
+# table puts the 95% interval on sigma_seed at [0.521, 6.285] x s — a
+# factor of 12. At the upper end (sigma 0.0286) the clustered se_diff is
+# 0.0234, 2*se_gov = 0.0467, and CREDIT WOULD REQUIRE +0.047. So the bar
+# this run faces is 0.025 if the seed spread is as tight as the 100M
+# fleet's and up to ~0.047 if that fleet was lucky. BOTH NUMBERS ARE QUOTED
+# WHEREVER s_T IS.
+#
+# THE TWO NUMBERS THIS HEADER IS REQUIRED TO PRINT, AND DOES, so that no
+# readout can present a null as a surprise:
+#   * AT k = 3 AND n = 3000, P(credit | a TRUE +0.025) = 0.45. THE BAR IS A
+#     COIN FLIP AT ITS OWN EFFECT SIZE. (This is the 2-df-marginalized
+#     figure in the same family as the 100M pre-reg's own 0.466 on its axis;
+#     raising k is the only thing that moves it, which is what makes the
+#     freed-lane branch in (A1) a statistical decision and not a tidiness
+#     one.)
+#   * ON THE vs-SH AXIS AT p = 0.789, P(credit) ~= 0.07 — credit requires
+#     pooled >= 0.81367 (0.78867 + 0.025). THE SATURATION ARGUMENT WAS
+#     ALREADY PRE-REGISTERED, at configs/showdown_sp_100m.yaml:141-145 and
+#     :205-213, and this file is re-printing it rather than discovering it.
+# BOTH FIGURES RIDE EVERY NULL THIS RUN PRODUCES. A null at a bar with
+# P(credit)=0.45 against its own effect size is a statement about the
+# instrument at least as much as about the lever, and the readout must say
+# so in the same paragraph as the number.
+# The honest prior, from docs/IDEAS_POST_100M.md:676-683 verbatim: "Unless
+# the next doubling's effect is LARGER than the last, k=3 unpaired lands in
+# P3 again — the pre-reg must pair seeds (2.2) or pre-commit a descriptive
+# read". THIS FILE DOES BOTH: seeds are shared (section (E)) and the
+# descriptive reads in (O) are pre-committed.
+#
+# THE RULING THIS RAISES, AND IT IS NOT THE DRAFTER'S [RWM-8]: whether to
+# promote off-FP@20 to the verdict axis for THIS round, as E1 did for the
+# 100M round, with vs-SH as the named secondary under a composition table.
+# ARGUMENTS FOR: the measured power gap is ~7x; the object this run
+# produces is a LADDER candidate and FP is "the incumbent and the
+# reproducible one" (JOURNEY standing notes); the goal changed on
+# 2026-09-11 to "as high as possible", and FP@20 discriminates near the top
+# where SH does not. ARGUMENTS AGAINST: CLAUDE.md says vs-SH is the only
+# verdict input, in terms; E1 said in terms that it does not carry forward;
+# FP@20 carries two permanent disclosures and the FP leg costs ~12 h across
+# three arms against vs-SH's ~18 min; and an axis promoted twice stops
+# being an exception. MY RECOMMENDATION IS TO KEEP vs-SH AS THE VERDICT
+# AXIS AND DISCLOSE THE POWER — an underpowered primary whose weakness is
+# pre-stated is honest, whereas a second ad-hoc promotion of the anchor
+# axis would make "the only verdict input" mean nothing. But it is the
+# maintainer's call and it must be made BEFORE launch, because the freeze
+# rule below makes it unmakeable afterwards.
+#
+# THE FREEZE RULE, INHERITED VERBATIM from configs/showdown_sp_100m.yaml:
+#   "no cell, bar, bar formula, n, aggregator, sidedness, comparator or
+#   barred-sentence list moves after the FIRST treatment datum on the
+#   primary axis lands."
+#
+# AND THE PEEKING RULES, INHERITED IN FULL because a 45-hour fleet with 400
+# in-loop evals per lane is the same temptation the 100M fleet named:
+#   NO outcome-based early stop, extension, restart, lr change, config
+#   change or lane replacement (ops kills excepted). BARRED OUTRIGHT: ANY
+#   checkpoint evaluation — any n, any opponent, any lane — between launch
+#   and the last lane's end. BARRED: extending past 100M mid-run even on a
+#   climbing log; that is a NEW pre-registration and a maintainer decision.
+#   In-loop eval/win_rate (n=100, se 0.040, 400 readings per lane — the
+#   named temptation), episode_return and explained_variance are logged,
+#   visible, AND NOT ACTIONABLE. Restated for the peeker: ONE vs-SH RUNG AT
+#   n=3000 IS WORTH +-0.02.
+#   THE ONE EXCEPTION, AND IT IS NOT A PEEK: the R0 gates in (L) and the
+#   in-run gates in (M) are BUILD-FAULT gates, read on metrics that are not
+#   outcomes and pre-stated here in full. R0-5 reads eval/win_rate only for
+#   presence and (0,1), never for level.
+#
+# ---------------------------------------------------------------------
+# (H) DOSE — MATCHED BY CONSTRUCTION, AND HOW WE WOULD KNOW
+#
+# 100,000,000 env steps per lane, read at the FINAL checkpoint (the locked
+# protocol's own word), which on this loop is the crossing rung — the first
+# checkpoint at step >= 100,000,000. The banked Node fleet's realized
+# crossings were 100,000,027 / 100,000,008 / 100,000,080, i.e. well inside
+# one update.
+# HOW WE WOULD KNOW: the realized final step in each lane's meta.yaml and
+# checkpoint filename. A lane whose crossing step is more than ONE UPDATE
+# (30,720 steps) off 100,000,000 is REPORTED and graded at its realized
+# step, never at the nominal. Beyond 250,000 steps (one eval interval) it is
+# the M-VOID-DOSE cell in (K) — that is a different dose, not an overshoot.
+# ACROSS ARMS dose is matched by construction (same total_steps, same
+# anneal, same rollout budget, same epochs, same minibatches). Optimizer
+# passes per datum are matched in configuration: epochs 4 and minibatches
+# 120 in all three arms; the realized grad-steps-per-env-step is RECORDED at
+# grade time, never asserted.
+# AGAINST THE BANKED NODE FLEET (the descriptive overlay only) dose is ALSO
+# matched at 100M with the same anneal — the collector is the unmatched
+# thing, and that is the point of the overlay.
+#
+# THE TEAM BANK, AND A NUMBER THAT CHANGES AT THIS DOSE. The lanes draw team
+# pairs with replacement from a fixed 5,000,000-pair bank (RW-6's ruling for
+# A-1, carried forward). At L-bar 30.70 a 12M A-1 lane ran ~390,317 battles
+# and 96.2% of them were the FIRST use of their pair. A 100M lane runs
+# ~3,257,000 battles, and the same arithmetic gives 0.651 draws per pair,
+# 2.393M distinct pairs, and 73.5% of battles on a first-use pair. Across
+# nine lanes sharing one bank the fleet-wide first-use fraction is 17.0%.
+# Both are quoted because the per-lane one flatters.
+# WHY THIS IS DISCLOSED AND NOT FIXED: recurrence is COMMON TO ALL THREE
+# ARMS, so it cannot bias any between-arm contrast — which is what the
+# credit line reads. It CAN bias the absolute level (the headline vs-SH
+# number, and the ladder object's strength) and the descriptive Node
+# overlay, where the Node arm effectively never repeats a pair. Restoring
+# A-1's 96% would need ~20,000,000 pairs, which is +2.13 GB resident PER
+# LANE against the memory budget in (F) — infeasible until the bank is
+# mmap'd. RWM-4 asks for the ruling; the recommendation is to keep 5M and
+# disclose.
+# `collector.min_bank_pairs: 1000000` is enforced in code at launch
+# (rl/train.py:789-806); a floor in prose is not a floor.
+#
+# ---------------------------------------------------------------------
+# (I) PRIMARY READS
+#
+# THE INSTRUMENT for every greedy read: the LOCKED EVAL PROTOCOL — final
+# checkpoint, 3000 battles/seed, 3 seeds pooled, ties as non-wins,
+# deterministic policy, vs `SimpleHeuristicsPlayer` on the Showdown server,
+# seed_start 100, via scripts/eval_checkpoint.py.
+# THE CROSS-CHECKS ARE REQUIRED OF EVERY ARM: `wins_from_returns ==
+# eval/win_rate` on every eval JSON (eval/win_rate is env-supplied outcome
+# and wins_from_returns exists only as the cross-check; the two must agree),
+# `mask_desyncs == 0`, and the key `eval/no_outcome` ABSENT — not "== 0".
+# rl/common/evaluation.py:180-182 emits that key only when missing > 0, so a
+# literal "== 0" gate either KeyErrors or, with a .get default, passes
+# silently forever.
+# PROTOCOL DEVIATION, DISCLOSED: 3 seeds, not the 5 every arm from D23 on has
+# pooled. Three is what 45 fleet-hours buys at three arms; five would be
+# 75 fleet-hours. This is the NON-conservative direction and it is stated
+# here rather than buried — the credit line's seed-clustered leg is computed
+# on k=3, and CLAUDE.md's own landmine says ONE RUNG AT n=3000 IS WORTH
+# +-0.02.
+#
+# EVERY COMPARATOR IN THIS PRE-REG IS READ IN THE SAME SESSION AS ITS ARM.
+# THIS IS A HARD RULE AND IT IS NOT A STYLE PREFERENCE. The project has a
+# MEASURED ERA BIAS on this instrument: the SAME three 100M checkpoints,
+# the same seed_start, deterministic, read one week apart, give pooled
+# 0.79589 (banked 2026-09-03, results/ch5_100m/final_s*.json) against
+# 0.78867 (fresh 2026-09-10, results/search_s3_100m/a0_s*.final.json) — a
+# drift of -0.00723. The earlier precedent is sharper still:
+# configs/eval/ch3_r4_ensemble_critic.yaml:592 records "R2 A0 0.72358 vs R3
+# A0 0.70875 — same checkpoints, same seed_start, deterministic, 4x3000,
+# one day apart: -0.0148 at ~2.6x its binomial se; teams are server-rolled.
+# A frozen comparator carries a bias worth 59% of the floor that NO SE TERM
+# CAPTURES." 0.0148 is 59% of the credit floor.
+# CONSEQUENCES, BINDING:
+#   * The three arms are read in ONE post-fleet session, interleaved, never
+#     arm-by-arm on different days. The read ORDER is pre-stated in (S).
+#   * D-COLL100 (the banked Node 100M overlay, section (O)) re-reads the
+#     BANKED checkpoints FRESH in the same session. It costs ~6 minutes
+#     (~120 s per lane) and without it the overlay measures the calendar.
+#     The banked 0.79589 is reported beside it as PROVENANCE only.
+#   * No number in this pre-reg is ever compared to a figure quoted from
+#     RESULTS.md or STATUS.md without a same-session re-read of the
+#     checkpoint that produced it, where that checkpoint is on disk.
+#
+# ---- P-A — THE OBJECT (no contrast; this is what step 11 gets) -------
+#   Each arm's pooled vs-SH final under the locked protocol, with its three
+#   per-seed numbers, its seed sd, its pooled-binomial se and its
+#   seed-clustered se. THREE NUMBERS, reported side by side, with A-1's
+#   signed collector delta attached to every one of them.
+#   STATUS: REPORTED, NOT GATED. There is no band on an absolute level and
+#   inventing one would be inventing JOURNEY 10's missing exit condition.
+#   WHAT IT FEEDS: step 11's choice of ladder object, which is step 11's.
+#
+# ---- P-C — ARM C vs ARM A, GREEDY. CREDIT-SEEKING. -------------------
+#   READ: signed delta_C = pooled_C - pooled_A, both under P-A's instrument.
+#   AGGREGATOR: equal-weight mean of per-seed win rates, per (G).
+#   SIDES: TWO-SIDED on the signed delta. The CREDIT cell is the positive
+#   side and requires the credit line in full. A symmetric NEGATIVE cell
+#   (delta <= -0.025 AND |delta| >= 2*se_diff) is named so that a harmful
+#   lever is reported as harmful rather than as "not credited".
+#   se_diff: se_gov, exactly as the credit line in (G) defines it (it is
+#   restated there and, per this repo's own rule, exactly once).
+#   UNPAIRED, even though the seeds are shared — C is not
+#   init-paired with A (see (E)) and no pairing credit is taken anywhere.
+#   WHAT THIS IS: IDEAS 4.7, the asymmetric-baseline lever, at 8.3x the dose
+#   its kill was vacated at.
+#
+# ---- P-ID — THE IDENTITY CHECK. NOT A CONTRAST, AND NOT A READ. ------
+#   REPLACES the "P-BA" cell of an earlier draft, which registered arm B
+#   against arm A as a greedy contrast. FACT 1 measured that comparison at
+#   EXACTLY ZERO — 21 rungs, 223 tensors, 3,428,015 elements, zero
+#   differing. A contrast whose value is known in advance to be the integer
+#   zero is not a contrast, and registering one would manufacture a null
+#   result out of an equality.
+#   WHAT IS REGISTERED INSTEAD: an ASSERTION, checked and reported, never
+#   graded.
+#     Under D1-RIDE: the combined lane's actor and critic tensors at the
+#     100M rung are bitwise equal to a same-seed control's. THE CONTROL IS
+#     THE BANKED SMOKE PAIR (engine_pe_s66 vs engine_a1b_s66, digest
+#     104a9339eb6a2260 at ckpt_010500013), not a new lane — FACT 1 is
+#     already measured and re-buying it at 100M would cost 25 h to confirm
+#     an equality that has a mechanism.
+#     Under D1-SEPARATE: monster100m_b_s{s}'s actor and critic tensors are
+#     bitwise equal to monster100m_a_s{s}'s at EVERY shared rung, all three
+#     seeds. A SINGLE DIFFERING ELEMENT IS AN R0-CLASS EVENT — it means the
+#     head is not inert, which falsifies the premise the whole arm rests on
+#     — and it stops the fleet for diagnosis.
+#   NO WIN-RATE COMPARISON BETWEEN A AND B IS REPORTED ON THE GREEDY AXIS,
+#   in either direction, on any branch. If the checkpoints are identical
+#   then so are their evals, and quoting two draws of one checkpoint as an
+#   A/B would be quoting eval noise as a lever.
+#   [WHAT AN EARLIER DRAFT CLAIMED HERE AND WAS WRONG ABOUT, recorded so it
+#   is not re-derived: it argued that collector/learner interleaving would
+#   make the two lanes drift, and proposed |B - A| as the engine collector's
+#   run-to-run reproducibility floor. The measurement says the collector is
+#   DETERMINISTIC at a fixed lane seed and policy — the battle stream is
+#   splitmix64(lane_seed * PHI ^ battle_counter) and the pool-member stream
+#   is a private np.random.default_rng(seed), neither of which reads a
+#   clock. There is no interleaving floor, and the reasoning that predicted
+#   one was wrong.]
+#
+# ---- P-BEV — ARM B's REGISTERED PRIMARY. AVAILABLE TODAY. ------------
+#   CREDIT-SEEKING ON A MECHANISM, NOT ON A WIN RATE, and that is deliberate
+#   — see P-BS for why the win-rate read cannot run yet.
+#   THE STATISTIC: `priv_eval/ev_mc_advantage` = the head's explained
+#   variance MINUS the critic's explained variance, BOTH against the
+#   MONTE-CARLO RETURN, computed on the SAME batch in the SAME pass
+#   (rl/agents/ppo.py:1638-1653; the critic's values are recovered exactly
+#   as flat_targets - flat_advantages, so this costs one forward and no
+#   extra bookkeeping). It answers the one question the head exists to
+#   answer: DOES THE PRIVILEGED VIEW FIT THE SAME RETURNS BETTER THAN
+#   `self.critic` DOES?
+#   IT IS PAIRED WITHIN A LANE. Head and critic are scored on the same rows,
+#   in the same update, against the same target. That is the tightest
+#   pairing available anywhere in this project, it consumes NO contrast arm,
+#   and its power scales with the number of lanes carrying the head rather
+#   than with the number of ARMS — which is why ALLOC-AB9 does not weaken it.
+#   THE READ: the per-lane mean of `priv_eval/ev_mc_advantage` over the LAST
+#   5M steps, then the equal-weight mean over lanes. Reported with its
+#   per-lane values, with `priv_eval/explained_variance_mc` and
+#   `priv_eval/critic_ev_mc` beside it so the difference can be decomposed.
+#   SIDES: TWO-SIDED. A NEGATIVE ev_mc_advantage means the privileged view
+#   fits the outcome WORSE than the ordinary critic does, which would be a
+#   finding about the block and not merely an absence.
+#   NO BAND IS PRE-REGISTERED ON ITS MAGNITUDE, and the reason is stated
+#   rather than elided: this metric has never been measured on a real lane
+#   at any dose, there is no basis from which to name a floor, and a number
+#   invented by a drafter is worse than an honest "reported with its sign
+#   and its spread". WHAT IS PRE-STATED IS THE SIGN TEST: the arm's
+#   mechanism cell is POSITIVE iff the lane-mean advantage is > 0 on EVERY
+#   lane, NEGATIVE iff < 0 on every lane, and MIXED otherwise. Three cells,
+#   exhaustive, no boundary unassigned (exactly 0.0 on any lane reads as
+#   MIXED).
+#   `priv_eval/explained_variance` IS A DIAGNOSTIC AND IS BARRED AS A
+#   VERDICT INPUT ON EVERY BRANCH. It scores the head against the GAE
+#   target, which at lambda 0.95 over ~34 decisions is ~53% the ORDINARY
+#   CRITIC'S OWN OUTPUT — ~82% of it at the first decision, where the
+#   privileged block matters most. Quoting it as the arm's read would score
+#   a contestant against a scorecard half-written by its opponent. It is
+#   logged, reported, and not actionable.
+#
+# ---- P-BS — ARM B, SEARCHED. DEFERRED. NOT REGISTERED FOR THIS RUN. --
+#   THERE IS NO SEARCH SEAM. `grep -rn priv_eval rl/search/` returns ZERO
+#   LINES today, and rl/agents/ppo.py says so in its own comment: the head
+#   "exists to be the SEARCH LEAF EVALUATOR later". The `evaluator` dial
+#   accepts exactly {"noise", "loo", "oppact_uniform"}
+#   (rl/search/agent.py:73-77) and `critic_fn` maps (N, 828) -> (N,)
+#   (rl/search/matrix.py:168-176). ARM B's WIN-RATE READ THROUGH SEARCHED
+#   EVALUATION IS THEREFORE DEFERRED, and the header says so rather than
+#   registering a read that cannot be taken — otherwise this run produces an
+#   artifact with no consumer.
+#   WHAT IT WAITS ON, NAMED so the dependency is a work item and not a hope
+#   (docs/proposals/privileged_critic_engine_route.md §4.4):
+#     1. rl/search/agent.py `_critic_fn` / `_loo_critic_fn` — must accept
+#        (N, 1236) or a second array.
+#     2. rl/search/agent.py `_decision_critic` — the single dispatcher; the
+#        one injection point.
+#     3. rl/search/matrix.py — the leaf vectorisation, plus the terminal
+#        `leaf_obs.append(None)` mirror.
+#     4. rl/search/shadow_battle.py — a SEAT-MIRRORED variant yielding the
+#        408 block from seat 2's perspective through the one true encoder.
+#     5. scripts/ch3_eval.py:345-346 — SF-13 asserts the eval env must not
+#        emit info["privileged"]. A determinization-sourced block does not
+#        violate SF-13's spirit (RSD uses no hidden state) but the assert is
+#        LITERAL and needs a ruling, not a quiet edit.
+#     6. scripts/ch3_eval.py:57-109 `_Battle2Sentinel` — raises
+#        PurityIncident when battle2 is read from any frame under rl/search.
+#        A determinization-sourced block never touches battle2; a "just read
+#        seat 2, it's easier" shortcut is a RETRACTION-GRADE INCIDENT BY
+#        CONSTRUCTION, named here so nobody takes it.
+#   THE ARTIFACT SURVIVES THE DEFERRAL, WHICH IS THE WHOLE REASON THE HEAD
+#   RIDES THIS RUN AT ALL: the head is in every checkpoint, so P-BS is
+#   recoverable at ANY later date at EVAL COST ONLY. It cannot be recovered
+#   if the head is not trained now — you cannot bolt an evaluator onto a
+#   finished checkpoint, exactly as JOURNEY 11.6 says of a trunk.
+#   IF THE SEAM LANDS BEFORE GRADE TIME it is a SEPARATE PRE-REGISTRATION,
+#   not an amendment to this one, and the sketch below is what it would
+#   register — recorded so the design is not re-derived, and explicitly NOT
+#   in force.
+#   --- SKETCH ONLY, NOT REGISTERED, NOT A CELL OF THIS RUN ---------------
+#   CREDIT-SEEKING, AND CONDITIONAL ON A BUILD THAT DOES NOT EXIST YET.
+#   THE READ: pooled vs-SH win rate under the locked protocol with the
+#   policy form being D5-GATED DEPTH-1 SEARCH (`margin_delta` set to the
+#   value P-C/P15/P20 settle in configs/eval/search_s3_100m.yaml), leaf
+#   evaluator = ARM B's `priv_eval_head`, against the SAME gate and the SAME
+#   delta over ARM A's checkpoints with the ordinary critic as leaf
+#   evaluator. Lane-paired (the same three seeds on both sides), aggregator
+#   as (G), se_diff the larger-of, credit line as restated above.
+#   WHY THE GATE AND NOT BARE SEARCH: bare hard-argmax depth-1 search reads
+#   -0.0681 against fresh greedy on the banked 100M finals (P-M,
+#   configs/eval/search_s3_100m.yaml). The margin gate is what turned that
+#   around — the P-G shape read came back a HUMP on 2026-09-10 at delta 0.10
+#   scoring 0.82400 against greedy's 0.78233 on s112, +0.04167. Reading arm
+#   B's evaluator against an ungated search would measure the evaluator
+#   against a selector we already know is defective.
+#   PRE-STATED DEPENDENCY, AND IT IS THE REASON THIS CELL CAN VOID: the D5
+#   delta is not yet pinned. P-C (delta 0.10 on s104/s120) and P15/P20 (the
+#   peak location on s112) were still running when this file was drafted. If
+#   P-C does not credit, the gated-search form is not a live ladder object
+#   and P-BS is read at the best delta anyway, DESCRIPTIVELY, with the
+#   credit line withdrawn — reported as B-DESC in (K).
+#   THE BUILD, NAMED AND NOT UNDERSTATED [RWM-5]. Nothing under `rl/search/`
+#   knows about the privileged block today: the `evaluator` dial accepts
+#   exactly {"noise", "loo", "oppact_uniform"} (rl/search/agent.py:73-77),
+#   and `critic_fn` maps (N, 828) -> (N,) (rl/search/matrix.py:168-176).
+#   docs/proposals/privileged_critic_engine_route.md §4.4 enumerates the
+#   seam: `_critic_fn` / `_loo_critic_fn`, `_decision_critic`, the leaf
+#   vectorisation in `matrix.py`, and a SEAT-MIRRORED `shadow_battle` that
+#   yields the 408 block from seat 2's perspective through the one true
+#   encoder. §4.2 establishes that this is POSSIBLE — the block is a pure
+#   function of the opponent's team plus the observable state, and a
+#   determinized leaf supplies both — with three caveats that become named
+#   secondaries, not assumptions: the block is RSD-sampled rather than true
+#   (Monte-Carlo averaged over the determinization axis at n_det 4/16), the
+#   sampled bench is systematically "fresher" (max PP, HP 1.0, no status),
+#   and the aliasing decision must be taken on the MIRRORED active or it is
+#   taken on the wrong seat.
+#   TWO GUARDS WILL FIRE AND NEED RULINGS, NOT QUIET EDITS:
+#     scripts/ch3_eval.py:345-346 asserts the eval env must not emit
+#     info["privileged"] (SF-13). A determinization-sourced block does not
+#     violate SF-13's spirit — RSD uses no hidden state — but the assert is
+#     literal.
+#     scripts/ch3_eval.py:57-109's `_Battle2Sentinel` raises PurityIncident
+#     when `battle2` is read from any frame under rl/search. A
+#     determinization-sourced block never touches battle2; a "just read seat
+#     2, it's easier" shortcut is a retraction-grade incident BY
+#     CONSTRUCTION, and it is named here so nobody takes it.
+#   COST OF THE READ, BRACKETED FROM MEASURED CHUNK RATES: dose M runs ~18
+#   min per 300-battle chunk today (configs/eval/search_s3_100m.yaml). A
+#   second `embed_battle` per leaf roughly doubles the dominant term
+#   (STATUS: ~55% of the stack is the Python leaf encoder), so ~28 min per
+#   chunk; 3 lanes x 3000 battles x 2 sides = 60 chunks = ~28 h of eval,
+#   parallelisable across jobs the way the S3 queue already is. FEASIBLE,
+#   POST-FLEET, NEVER ON THE CRITICAL PATH.
+#   THIS PRE-REG DOES NOT AUTHORISE THAT BUILD and does not specify it. It
+#   is another session's work under its own brief, `rl/search/` is owned by
+#   another agent as this is written.
+#   --- END SKETCH. Nothing above this line since "SKETCH ONLY" is a cell of
+#   this run, and no branch of this run turns on it. -------------------
+#
+# ---- P-D18 — ARM C's MECHANISM READ, CO-PRIMARY WITH P-C -------------
+#   D18's FALSIFIER, VERBATIM from configs/showdown_sp_priv12m.yaml:148-151:
+#     "FALSIFIER, PRE-STATED (§12 verbatim): EV jumps but win rate flat or
+#     negative => the critic fits information the policy cannot exploit and
+#     the advantage signal degraded — KILL THE RUNG, do not tune around it."
+#   WHAT D18 MEASURED (results/d18/grade.txt; SESSION_LOGS.md:2647-2675):
+#     pooled 0.5364 (per-seed 0.5610 / 0.5477 / 0.4740 / 0.5623 / 0.5370)
+#     against a comparator of 0.5509; delta -0.0145; binomial se_diff
+#     0.00664, clustered 0.02214 — the clustered GOVERNED, 2*se 0.04427,
+#     operative bar 0.59517. z = -0.65. FLAT, NOT LETTER-NEGATIVE.
+#     And the falsifier fired: EV ROSE ON EVERY ONE OF FIVE LANES.
+#   THE EV NUMBERS, RE-DERIVED FROM THE TAPES AND NOT FROM THE READOUT
+#   [a correction this file makes rather than inherits]: the 2026-08-16
+#   audit (SESSION_LOGS.md:4552-4557) recomputed last-1M explained variance
+#   per lane from history.csv as D18 0.5972 / 0.6150 / 0.6206 / 0.5972 /
+#   0.6040 (s39-43) against CONTROL 0.5751 / 0.5572 / 0.5657 (s26-28), and
+#   states in terms that the recorded control band "0.549-0.561" reads
+#   slightly low against its own windows' 0.556-0.575. THE AUDITED CONTROL
+#   NUMBERS ARE THE ONES THIS FILE QUOTES; the readout's band is superseded.
+#   Every D18 lane sat above every control lane in every window tried
+#   (5-12M, 10-12M, 11-12M), so the premise is robust to windowing.
+#   THE KILL WAS VACATED, 2026-09-06, and the vacating is quoted so the
+#   re-open is visibly licensed (docs/IDEAS_POST_100M.md:26-30):
+#     "(i) The privileged critic's D18 kill is VACATED AS FINAL — a 12M A/B
+#     on the pre-batch recipe does not close an axis; the evidence stays in
+#     §3 and the live item is 4.7 (a 100M+ arm, mechanism co-primary)."
+#   AND WHAT THE VACATING DOES NOT TOUCH (IDEAS 4.7): the INFORMATION leg.
+#   The entire hidden team was worth ~+0.045 EV of return variance against a
+#   hoped-for ~0.40, and D19 found 88-90% of it recoverable as a
+#   deterministic cap mask. So the ceiling on what arm C can buy is known
+#   and small; arm C is a VARIANCE-REDUCTION hypothesis at large batch and
+#   long horizon, not an information hypothesis.
+#
+#   WHAT THIS RUN PRE-STATES, AND IT IS A CHANGE THAT IS NOT MINE TO MAKE
+#   [RWM-7]. IDEAS 4.7's design sketch says, verbatim: "D18's falsifier
+#   restated verbatim (EV rose on every lane, win rate did not) and
+#   pre-committed as a NULL branch this time, never a kill." The brief for
+#   this file asks for something STRICTER — that the same signature at 100M
+#   with an UNCOLLAPSED critic be a kill WITH A MECHANISM.
+#   THAT DRAFTING IS WITHDRAWN, ON TWO GROUNDS, AND THE WITHDRAWAL IS THE
+#   SUBSTANTIVE CHANGE THIS SECTION MAKES:
+#     (1) THE WORD "KILL" IS BARRED FOR THIS ARM. The 2026-09-06 ruling is
+#         that a small-run null closes nothing and ONLY A MEASURED CEILING
+#         KILLS (memory: kills-need-mechanism-not-dose). One 100M fleet at
+#         k=3 or k=4 is not a measured ceiling. The only verdicts available
+#         to arm C are NULL and CREDITED NEGATIVE, and every cell in (K) is
+#         written in those words.
+#     (2) THE "UNCOLLAPSED CRITIC" CONDITION COULD NOT FIRE. THE MAXIMUM
+#         CRITIC CTX srank99 EVER RECORDED IN THIS PROJECT IS 25 OF 384
+#         (D18 s41); no lane at any dose has exceeded it, and the
+#         matched-12M controls read 8 / 14 / 11. A leg conditioned on a
+#         state never observed returns no cell, and an arm whose only
+#         mechanism cell cannot fire returns nothing but a win-rate delta at
+#         a bar it is unlikely to clear.
+#   WHAT IS REGISTERED INSTEAD: srank and EV are MECHANISM-MOVED
+#   MEASUREMENTS, not gates, and they enter (K)'s partition as one binary
+#   axis — MECHANISM MOVED or NOT — crossed with the primary delta. Four
+#   cells, all reachable, none unnamed, none using the word kill.
+#     MECHANISM MOVED is TRUE iff BOTH:
+#       (a) `loss/explained_variance` over the last 5M steps is HIGHER in
+#           arm C than in the paired arm-A lane on EVERY seed arm C ran; AND
+#       (c') critic ctx srank99 in arm C is strictly GREATER than the paired
+#           arm-A lane's on EVERY seed arm C ran.
+#     It is FALSE otherwise. (a) alone, or (c') alone, is MECHANISM MOVED =
+#     FALSE and the per-leg values are reported so the partial is visible.
+#     THE ASYMMETRY IS DELIBERATE AND DISCLOSED: "moved" is a strong
+#     conjunction and "not moved" is everything else, so the partition is
+#     biased AGAINST the mechanism claim, which is the direction an arm
+#     re-opening a vacated null should be biased in.
+#   WHY (c') IS THERE AT ALL, GIVEN THAT IT HAS NEVER BEEN OBSERVED TO HOLD:
+#   because without it, EV-up-and-win-rate-flat is equally explained by
+#   representational collapse, which D22 measures as
+#   training-dynamics-intrinsic rather than information starvation. With it
+#   as a REPORTED AXIS rather than a GATE, an arm C that moves EV and not
+#   srank still lands in a named cell (C-FLAT / MECHANISM-NOT-MOVED) and
+#   still says something: it reproduces D18's signature at 8.3x the dose,
+#   under the same confound D18 had, which is a REPLICATION and not a
+#   closure. IDEAS 4.7 stays open on that branch and its next design is the
+#   lambda=1.0 pure-baseline variant §4.7 actually names.
+#   D18's own
+#   srank secondary found the privileged input did NOT de-collapse the
+#   critic: critic ctx srank99 at 12M was 14 / 14 / 25 / 17 / 7 of 384
+#   (results/d18/effective_rank.csv), against matched-12M controls of 8 / 14
+#   / 11 (results/d22/effective_rank.csv, s35/s36/s37) — indistinguishable.
+#   [CORRECTION THIS FILE MAKES: D18's readout compared its 12M critics
+#   against 50M controls, which is a cross-budget comparison; the
+#   matched-12M rows exist in the same CSV and are the ones quoted here.
+#   AND: the 37.5M-50M collapse figure is 7-13, not 9-13 — 50M alone is
+#   s35 10 / s36 7 / s37 9. The repo's canonical "7-11 of 384" reproduces no
+#   single-step row and should be quoted only with an "as recorded" hedge.]
+#   NOBODY HAS MEASURED srank AT 100M ON ANY CHECKPOINT, so an absolute
+#   threshold here would be a number invented by a drafter. The relative
+#   test against arm A at the same dose on the same tapes is the honest form.
+#   THE INSTRUMENT, NAMED so the leg is reproducible: two stages, both under
+#   POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1, server UP and THE
+#   FLEET DOWN (scripts/d22_collect_obs.py:22-26 — username collision):
+#     scripts/d22_collect_obs.py <ckpt> --episodes 200 --out <npz>
+#     scripts/d22_dormant_rank.py --lanes 104,112,120 --steps 100000000
+#         --run-prefix monster100m_<arm>_s --out results/monster100m/<arm>
+#   Privileged handling is automatic: the collector reads
+#   `cfg.agent.privileged_dim` off the checkpoint, builds the critic widened
+#   and forwards torch.cat([obs, priv]); it SystemExits on a mismatch.
+#   Overwriting an --out is REFUSED (use --tag or --force) — the guard
+#   exists because a second pass into one --out destroyed D23's control
+#   ranks.
+#   UNDER D1-RIDE THERE IS NO SEPARATE ARM-B CHECKPOINT to run this leg on
+#   — the A/B lanes ARE arm A — so the srank leg is two families (A/B and
+#   C), not three. Under D1-SEPARATE it is run on arm B too and, by FACT 1,
+#   must return arm A's numbers EXACTLY; a difference there is a P-ID
+#   failure, not a finding.
+#
+# ---------------------------------------------------------------------
+# (J) THE ANCHOR BATTERY — GEN 1
+#
+# CLAUDE.md: every headline-grade result reports vs-SH (the locked protocol,
+# the ONLY verdict input) PLUS every descriptive leg for its generation
+# before its README row lands. Gen 1's legs are BC-clone h2h (500) and Foul
+# Play h2h @20. A leg that does not exist yet is reported as PENDING and the
+# README row WAITS for it. Legs are never dropped to make a readout land.
+# Random / MaxBasePower may print as sanity rows; they are not legs.
+# ANCHORS ARE DESCRIPTIVE AND NEVER VERDICT INPUTS.
+#
+#   L-SH    vs SimpleHeuristicsPlayer, locked protocol, 3x3000 per arm.
+#           THE ONLY VERDICT INPUT. Also the P-A and P-C instrument.
+#           (P-BEV needs no eval at all — it is a training-time metric.)
+#           COST: ~120 s per lane, ~18 min for nine lanes.
+#   L-FP20  Foul Play head-to-head at `--search-time-ms 20`, n=3000/lane,
+#           GREEDY seat, serial k=1, no co-scheduling, all three arms.
+#           THE BUDGET IS NAMED IN EVERY QUOTE. Two disclosures travel with
+#           every FP@20 number, forever: the equivalence test is WEAKLY
+#           POWERED, and the point estimate FLATTERS US. FP@20 is an
+#           INSTRUMENT, not a rung; the readiness gradient is the FP budget
+#           ladder, configs/eval/fp_budget_ladder.yaml.
+#           THE RUNNER IS `scripts/ch3_r4_fp_runner.sh` (all four incident
+#           fixes live in it: subshell-pid orphans, kill search-worker
+#           children FIRST, a killed arm's username pair is poisoned for
+#           hours so re-run it LAST or on a fresh pair, no forfeit at a
+#           clean boundary, G2 is two tallies agreeing and never a
+#           subtraction). The 100M fleet's leg is pinned by
+#           `configs/eval/ch5_100m_offfp.yaml` — NOT by ch3_r4_fp_anchor.yaml
+#           (that is FP@100, n=250, a 12M lane) and NOT by
+#           fp_budget_ladder.yaml (that is the budget calibration).
+#           COST, MEASURED on the 100M fleet: 3.98 h for 3 x 3000 at
+#           ~1.55-1.67 s/battle. NINE LANES IS ~12 h. That is the largest
+#           single item in the post-fleet schedule and it is the reason the
+#           schedule is ordered rather than parallel.
+#   L-CLONE BC-clone head-to-head, 500 battles, all three arms.
+#           MATCH THE POLICY FORM TO THE RATING YOU COMPARE AGAINST — a
+#           clone number is never style evidence.
+#           THE CLONE EXISTS: runs/bc_fp_v2r_soft_180k_s0/checkpoint.pt,
+#           sha256 5e490adecf70b480edcde9a6080ffc34049c16bf77b295c0e2a8bd43299a0683,
+#           pinned identically in configs/eval/ch5_100m_offfp.yaml:31.
+#           Runner: `scripts/ch3_r4_anchors.py`. COST, MEASURED: ~22 s per
+#           lane, ~3.5 min for nine. This leg is free.
+#           TWO TRAPS CARRIED FORWARD RATHER THAN REDISCOVERED:
+#           (i) THE CLONE IS AN 808-d MODEL (actor.0.weight (512, 808),
+#           MLP [512,512]) and this fleet is 828-d. It is served through the
+#           cross-encoder shim (scripts/eval_checkpoint.py, fake_spaces takes
+#           the checkpoint's own width) and it WORKED on the 100M fleet. It
+#           is not free of assumption: if anything about OBS_DIM moves, the
+#           shim is re-verified before this leg is assumed.
+#           (ii) THE TAPES PREDATE THE FP@20 BUDGET. The clone was built
+#           2026-08-09 from 7,200 FP battles; FP@20 was adopted 2026-08-23.
+#           CLAUDE.md's GEN-4 clause says "a gen-4 clone of FP@20 tapes"
+#           explicitly; the gen-1 clause just says "BC-clone h2h (500)". THE
+#           STANDING GEN-1 LEG IS THIS CLONE, as used on the 100M fleet, and
+#           that is what this file reports. Whether gen 1 owes an FP@20-tape
+#           clone is a separate question and is NOT resolved here.
+#   WHY BOTH LEGS AND NOT vs-SH ALONE: this project has an ADJUDICATED case
+#   of vs-SH alone being misleading. CH3 R2's search arm was credited on
+#   vs-SH at +0.0693 — the best vs-SH number in this repo, all four lanes
+#   positive — while going NEGATIVE on BC-clone (-0.034) and on Foul Play
+#   (-0.020); it was ruled SH-FACING, and configs/eval/ladder_r1.yaml
+#   records "SEARCH IS THE TRAP". A vs-SH-only gate would have shipped it.
+#   That precedent binds HARDER here than anywhere, because P-BS is a search
+#   read and the object this run produces is a ladder candidate.
+#   THE SEARCHED FORM GETS THE BATTERY TOO. If step 11's object is the
+#   D5-gated searched form, then the battery is run ON THAT FORM, not on the
+#   greedy checkpoint — the policy form must match the rating it is quoted
+#   beside. Both forms' legs are reported when both are live.
+#   THE 100M FLEET'S OWN BATTERY, for context and for the era-bias rule
+#   above (every one of these is BANKED and must be re-read fresh before it
+#   is differenced against anything this run produces):
+#     vs-SH   0.7910 / 0.8000 / 0.79667 -> pooled 0.79589, s_T 0.00455
+#             (results/ch5_100m/final_s*.json, grade.json)
+#             FRESH re-read 2026-09-10: 0.78933 / 0.78233 / 0.79433 ->
+#             0.78867, s 0.00603 (results/search_s3_100m/a0_s*.final.json)
+#     FP@20   0.48633 / 0.50167 / 0.50733 -> pooled 0.49844, s_T 0.01086
+#             (results/ch5_100m/t*.json) — budget named; both disclosures
+#     clone   0.912 / 0.930 / 0.928 -> pooled 0.9233, n=3x500
+#             (results/ch5_100m/bcclone/ca*.final.json)
+#   [A CORRECTION THIS FILE MAKES: 0.3960 is NOT the 100M fleet's FP@20
+#   number. It is the depth-1 search@M arm on lane s112 at n=1000
+#   (docs/search_relook/S3_READOUT.md:101-106), against det_blind's 0.4054
+#   and the banked greedy 0.50167 on the SAME lane at n=3000. Quoting 0.3960
+#   as "the 100M FP anchor" would compare a search arm at n=1000 to a greedy
+#   arm at n=3000.]
+#   [FILL AT READOUT] the per-arm, per-leg numbers, with the FP budget named
+#   in every cell and PENDING written where a leg has not run.
+#
+# ---------------------------------------------------------------------
+# (K) ACTION ON EACH BRANCH — EXHAUSTIVE, BOUNDARIES ASSIGNED
+#
+# Boundary convention, applied to every cell below: a delta EXACTLY at
+# +-0.025, or a |delta| EXACTLY equal to 2*se_gov, reads as NOT MEETING that
+# leg. Credit needs both legs strictly met.
+#
+# ---- ARM C: A FULL CROSS-PARTITION OF (PRIMARY DELTA) x (MECHANISM MOVED)
+#      — 3 x 2, with the FLAT/NOT-MOVED cell sub-labelled by which leg
+#      failed, giving EIGHT NAMED CELLS. ALL REACHABLE, NONE UNNAMED, and
+#      every delta and every leg lands in exactly one. THE WORD "KILL" DOES NOT
+#      APPEAR: per the 2026-09-06 ruling a small-run null closes nothing and
+#      only a measured ceiling kills, so the verdicts available are NULL and
+#      CREDITED NEGATIVE.
+#
+#   PRIMARY AXIS (P-C, signed delta_C = pooled_C - pooled_A, vs-SH, locked):
+#     POS   delta_C >= +0.025 AND delta_C >= 2*se_gov
+#     NEG   delta_C <= -0.025 AND |delta_C| >= 2*se_gov
+#     FLAT  everything else (not credited, and not credited negative)
+#   MECHANISM AXIS (P-D18): MOVED iff (a) EV higher in C than in the paired
+#     A lane on EVERY seed C ran AND (c') critic ctx srank99 strictly greater
+#     on EVERY seed C ran. NOT-MOVED otherwise. PARTIAL is a REPORTING label
+#     inside NOT-MOVED, used when exactly one of (a) / (c') holds; it is
+#     named so a partial is visible, and it changes no action.
+#
+#   C-POS-MOVED      the privileged critic is CREDITED at 100M and the
+#                    mechanism moved with it. IDEAS 4.7 resolves POSITIVE.
+#                    Arm C's finals join the step-11 ladder candidates.
+#   C-POS-NOTMOVED   CREDITED, mechanism did not move. The credit stands —
+#                    the primary is the verdict axis — and the readout says
+#                    in terms that the lever paid WITHOUT the mechanism it
+#                    was hypothesised through, which is a finding about the
+#                    hypothesis and not a reason to withhold the credit.
+#   C-NEG-MOVED      CREDITED NEGATIVE: the lever HURT, and the critic did
+#                    fit more while the policy did worse. This is the
+#                    strongest form of D18's original signature this run can
+#                    produce. IDEAS 4.7 resolves NEGATIVE. It is still not a
+#                    "kill": one fleet is not a measured ceiling, and the
+#                    sentence is "credited negative at 100M, k=<k>, at
+#                    lambda 0.95", with the lambda named because §4.7's own
+#                    hypothesis is lambda 1.0.
+#   C-NEG-NOTMOVED   CREDITED NEGATIVE with no mechanism. Reported as such;
+#                    the first diagnosis is the second Rust encode and the
+#                    init non-pairing, both of which differ between C and A
+#                    and neither of which is the lever.
+#   C-FLAT-MOVED     D18's EXACT SIGNATURE, REPRODUCED AT 8.3x THE DOSE.
+#                    A NULL, and the most informative one available: EV up
+#                    on every lane and srank up on every lane while the win
+#                    rate did not move, at a batch 30x D18's and a dose 8.3x
+#                    D18's. IDEAS 4.7 does NOT close — it is one fleet — but
+#                    the replication is banked and the next design must
+#                    answer it. THE SENTENCE IS "NULL, D18's signature
+#                    replicated", never "killed".
+#   C-FLAT-NOTMOVED  A NULL with the mechanism unmoved. Sub-labelled by which
+#                    leg failed, because they say different things:
+#                      C-FLAT-EVONLY   (a) held, (c') did not — D18's own
+#                        outcome, under D18's own confound. A REPLICATION of
+#                        the 12M result at 100M, and it closes nothing: the
+#                        null is equally explained by representational
+#                        collapse, which D22 measures as
+#                        training-dynamics-intrinsic.
+#                      C-FLAT-SRONLY   (c') held, (a) did not — the
+#                        privileged input de-collapsed the critic without
+#                        improving its fit. Never observed anywhere; if it
+#                        happens it is the most surprising result this fleet
+#                        can produce and it is reported as such.
+#                      C-FLAT-NEITHER  neither held. The lever did nothing
+#                        measurable on any axis. A NULL.
+#   ON EVERY C-FLAT CELL: IDEAS 4.7 STAYS OPEN and its next design is the
+#   lambda=1.0 PURE-BASELINE variant §4.7 actually names — not this arm
+#   again at more dose.
+#   AND ON EVERY ARM-C CELL, THE CONFIGURATION IS NAMED IN THE SENTENCE:
+#   gae_lambda 0.95, update 30,720 steps, k = <the seeds arm C ran>. §4.7's
+#   hypothesis is the lambda=1.0 pure baseline and this arm is not it; a
+#   result quoted without that clause would be read as answering §4.7 when
+#   it answers D18.
+#
+# ---- ARM B (the head): P-BEV's THREE CELLS, EXHAUSTIVE -----------------
+#   B-EV-POS    `priv_eval/ev_mc_advantage` lane-mean > 0 on EVERY lane.
+#               The privileged view fits the outcome better than the
+#               ordinary critic does, at 100M, on real rows. That is the
+#               precondition for the deferred search read and it is banked
+#               as such. IT IS NOT A WIN-RATE CLAIM and may never be quoted
+#               as one.
+#   B-EV-NEG    lane-mean < 0 on EVERY lane. The privileged view fits the
+#               outcome WORSE. A finding about the block, and the strongest
+#               available argument for NOT building the search seam.
+#   B-EV-MIXED  otherwise (a lane at exactly 0.0 reads here). Reported with
+#               all per-lane values and both EV halves.
+#   P-BS IS NOT A CELL OF THIS RUN. There is no search seam; the read is
+#   DEFERRED to its own pre-registration and the checkpoints carry the head
+#   so it is recoverable at eval cost only.
+#   P-ID IS NOT A CELL EITHER. It is an assertion: a single differing
+#   element between a head-on lane's actor/critic and a same-seed control's
+#   is an R0-CLASS EVENT that stops the fleet, not a result.
+#
+# ---- FLEET-LEVEL CELLS (these dispose of lanes, not of levers) ---------
+#   M-VOID-K      an arm finishing fewer than 3 lanes at the 100M rung is
+#                 DESCRIPTIVE ONLY and decides nothing. k<=2 cannot carry a
+#                 seed-clustered aggregator, and re-running one lane makes
+#                 the arm a mixed-provenance fleet. Report and relaunch the
+#                 arm.
+#   M-VOID-DOSE   a lane whose crossing step is more than 250,000 off
+#                 100,000,000 is not graded at that arm's dose; it is
+#                 M-VOID-K for that arm. Between 30,720 and 250,000 it is
+#                 GRADED at its realized step with that step disclosed.
+#   M-R0          an R0 breach kills the affected lane or the fleet per the
+#                 gate. A relaunch after an R0 fix is a fresh fleet and
+#                 consumes nothing; R0 exists to catch a build fault in
+#                 minutes rather than in twenty-five hours.
+#   M-WAVE        a lane lost in wave 1 is re-run IN WAVE 2 at wave 2's
+#                 width, with the width difference disclosed on that lane's
+#                 row. NEVER re-run alone at width 1 — a solo lane runs 1.9x
+#                 faster under a different memory and thermal regime than
+#                 any other lane in the fleet.
+#   M-UNRATIFIED  a decision in (A1) or (A2) is unanswered at launch time.
+#                 THE FLEET DOES NOT LAUNCH. The arm list and the lane
+#                 allocation are not defaults this file may pick.
+#
+# ---------------------------------------------------------------------
+# (L) R0 SANITY GATES — FIRST 250,000 STEPS OF EVERY LANE
+#
+# Hair-trigger; a breach is a build fault, not a result. ~4 minutes per lane
+# at the planning rate. Inherited from configs/engine_a1.yaml and
+# configs/showdown_sp_100m.yaml except where noted.
+#
+# EVERY LANE (the count is allocation-dependent — see (A1)):
+#   R0-1  loss/entropy in [1.3, 2.0]. KILL FLEET. (G9's re-based band; the
+#         control's own first-250k runs 1.81 -> 1.52/1.59/1.57.)
+#   R0-2  loss/clip_frac != 0.0 on every update. KILL FLEET. Exactly 0.0
+#         means recorded-old_logp is not wired.
+#   R0-3  aux/illegal_label_frac == 0 AND aux/frame_collision_frac == 0.
+#         KILL FLEET. The D25 hard gates, fed by the engine's (kind, id,
+#         flags) label seam.
+#   R0-4  aux/labelled_frac in [0.74, 0.88]. THE METRIC NAME MATTERS: the
+#         band's source is configs/showdown_sp_100m.yaml's R0-7, re-based on
+#         the acceptance fleet's realized [0.757, 0.856]. The similarly
+#         named `aux/label_present_frac` measures [0.8345, 0.9406] on the
+#         same rows and a [0.74,0.88] gate on IT would kill a perfect lane.
+#   R0-5  eval/win_rate present and in (0, 1).
+#   R0-6  collect/policy_version_lag_p99 <= 1; breach = 3 CONSECUTIVE
+#         rollouts (the D-G debounce; a >8,000-action episode spanning two
+#         pauses legitimately reads 2).
+#   R0-7  the key `eval/no_outcome` ABSENT from every eval — NOT "== 0".
+#         rl/common/evaluation.py:180-182 emits it only when missing > 0.
+#   R0-8  wins_from_returns == eval/win_rate on the first in-loop eval, and
+#         mask_desyncs == 0.
+#   R0-9  TEAM BANK: the bank file holds >= 1,000,000 pairs (enforced in
+#         code at launch) and its sha256 is stamped in every lane's
+#         meta.yaml. All nine lanes must stamp the SAME sha256 — a fleet
+#         split across two banks is two fleets.
+#   R0-10 OPS DEADLINE: the first ckpt_*.pt with step >= 500,000 on disk
+#         within 45 min of that lane's own launch (the 100M pre-reg's 30 min
+#         re-based on this fleet's slower per-lane rate at width 6), else
+#         kill THAT lane, investigate, relaunch fresh. A startup wedge is
+#         not a result.
+#   R0-11 THE ENCODER STAMP: meta.yaml records obs_dim 828, encoder v2,
+#         set_prior true, recharge_fix true, ids true, aux_label_space l6,
+#         aux_shuffle_labels false, on all nine lanes. A lane that built a
+#         different width compares to no checkpoint (the OBS_DIM landmine).
+#   R0-12 THE ENGINE STAMP: meta["engine"] records the same build sha, the
+#         same tables fingerprint and the same bank header on all nine
+#         lanes. Written at rl/train.py:189-197, before the first
+#         checkpoint, so a lane that dies early still records what game it
+#         was playing.
+#   NOT A GATE, RECORDED AS A STAMP: collect/battles_in_flight and
+#   collect/rooms_tracked are the constant k on this collector
+#   (engine_collector.py:308-309 reads them straight from the Rust stats),
+#   and collect/episodes_discarded is a literal 0 on this path. A-1 dropped
+#   them as gates for exactly this reason and this file keeps that ruling:
+#   they are RECORDED (battles_in_flight == 8 on every lane) and they cannot
+#   fire. A mask-legality error and an Outcome::Error both RAISE and kill
+#   the lane by construction, which is strictly stronger than a gate read
+#   after the fact.
+#
+# ARM B AND ARM C ONLY — THE PRIVILEGED BLOCK IS REAL:
+#   R0-B1 NOT ZEROS, AND NOT CONSTANT. The drained batch's `privileged`
+#         array: abs(x).sum() > 0, x.std() > 0, and MORE THAN A QUARTER of
+#         the 408 columns non-constant (> PRIV_DIM // 4 = 102, the rule
+#         pinned in tests/test_engine_privileged_seam.py:213-214). This is
+#         the entire content of the two refusals that were lifted ("the wide
+#         critic would train on zeros"). OBSERVED REFERENCE: 329 of 408
+#         columns non-constant on 1,530 real rows
+#         (configs/engine_a1_priveval_smoke.yaml, from the same test).
+#         [The figure "324/408" appears nowhere in this repo; 329 is the
+#         recorded one and the gate is the > 102 rule, not either number.]
+#   R0-B2 SHAPE. batch["privileged"].shape == (n_rows, 408) and n_rows ==
+#         len(batch["obs"]) == lengths.sum(). A ragged block is refused
+#         Rust-side by `rows2`; this is the Python-side pair.
+#   R0-B3 IT IS THE FOE'S SIDE, NOT OURS. On the first drained batch, fewer
+#         than 8 of the first 256 rows have privileged_block(obs_row)
+#         bitwise equal to priv_row.
+#
+# ARM B ONLY:
+#   R0-B4 THE CRITIC IS NARROW AND THE HEAD IS WIDE. MEASURED ON THESE
+#         THREE CONFIG FILES AT SEED 104, not quoted from elsewhere:
+#           critic params 494,849, ctx_net[0].weight.shape[1] == 640
+#             (== 5 * entity_dim) — IDENTICAL to arm A's
+#           actor params 626,059, ACTOR PARAM SUM 442.300 — IDENTICAL to
+#             arm A's at the same seed, to the last float. This is the
+#             init-pairing claim, checkable in one line at launch.
+#           priv_eval_head params 642,305, ctx_net[0].weight.shape[1]
+#             == 1024 (== 8 * entity_dim)
+#           agent.privileged_block_dim == 408
+#         A WIDE CRITIC HERE MEANS `privileged_dim` LEAKED INTO THE CONFIG
+#         AND THE LANE IS RUNNING A+B. KILL THE LANE.
+#   R0-B5 THE NEW HEAD IS LEARNING, AND THE VERDICT METRIC EXISTS.
+#         `loss/priv_eval_value` present from update 1, FINITE on every
+#         update, and FALLING over the first ~10 updates.
+#         `priv_eval/explained_variance_mc`, `priv_eval/critic_ev_mc` and
+#         `priv_eval/ev_mc_advantage` ALL PRESENT from update 1 and FINITE
+#         — these are the post-b147f48 keys and their ABSENCE means the lane
+#         is running the PRE-FIX head, which regressed the GAE target (~53%
+#         the ordinary critic's own output, ~82% at the first decision) and
+#         would make P-BEV unreadable. THIS GATE EXISTS BECAUSE THE FIX
+#         LANDED THE DAY BEFORE THE FLEET; it is the one thing that
+#         distinguishes a correct arm-B lane from the smoke that was running
+#         when this file was drafted. `priv_eval/explained_variance` (the
+#         GAE diagnostic) is also present and is NOT gated on direction.
+#         Offline reference on a fixed synthetic batch, PRE-FIX and quoted
+#         as pre-fix: the head went 18.92 -> 0.014 with EV -14.5 -> 0.988
+#         over 20 updates. There is no post-fix offline reference yet; R0-B5
+#         reads PRESENCE, FINITENESS and the direction of
+#         `loss/priv_eval_value` only, and the first ~10 updates of
+#         `ev_mc_advantage` are RECORDED, not banded — nobody has measured
+#         it on a real lane.
+#   R0-B6 THE ACTOR DID NOT MOVE. loss/entropy, aux/labelled_frac,
+#         aux/illegal_label_frac and loss/clip_frac distributionally
+#         indistinguishable from the PAIRED arm-A lane at the same seed over
+#         the first 250k. On this arm that is an equality in expectation,
+#         not merely a band — the head's construction rewinds the RNG stream
+#         — but the realized rows differ by interleaving, so it is read as a
+#         band and any breach is investigated before the fleet continues.
+#
+# ARM C ONLY:
+#   R0-C1 THE CRITIC IS WIDE, AND THE ACTOR MOVED. MEASURED AT SEED 104:
+#           critic params 642,305, ctx_net[0].weight.shape[1] == 1024
+#           actor params 626,059 (UNCHANGED — the actor never widens) but
+#             ACTOR PARAM SUM 375.635, against arm A's and arm B's 442.300
+#             at the same seed. THE DIFFERENCE IS THE DISCLOSED RESIDUE
+#             AND IT IS EXPECTED; an arm-C lane whose actor sum EQUALS
+#             442.300 means `privileged_dim` did not take.
+#           agent.privileged_block_dim == 408
+#         [A NOTE ON THE FIGURES USUALLY QUOTED: 334.851 -> 410.510 comes
+#         from tests/test_entity_trunk_gen4.py:194-199 AT ITS OWN SEED and
+#         is not this fleet's pair. The residue is real at every seed; the
+#         NUMBERS are seed-specific, and 442.300 -> 375.635 are seed 104's,
+#         measured on these files. Note also that the direction is not
+#         fixed — the test's pair goes up and seed 104's goes down, which
+#         is what "the RNG stream moved" means and what "a bigger init"
+#         would not.]
+#         A NARROW CRITIC means `privileged_dim` did not take and the lane
+#         is arm A with extra collection cost. KILL THE LANE.
+#   R0-C2 loss/explained_variance present, finite and rising over the first
+#         250k, on the WIDE critic. A flat EV in the first updates is the
+#         "could not even FIT the privileged signal" branch D18 named, and
+#         at this cost it is worth catching at update 10 rather than at
+#         hour 25.
+#   R0-C3 loss/value finite on every update. The wide critic on the engine
+#         route has never taken a live step (see (A)); this is the gate that
+#         says it did.
+#
+# ---------------------------------------------------------------------
+# (M) IN-RUN GATES — inherited from configs/showdown_sp_100m.yaml's D-block,
+#     re-based for this collector and this width. RECORD means log it;
+#     STOP means stop that lane; STOP ALL is box-level.
+#
+#   D-A  ANNEAL LIVENESS at the crossing rungs nearest >= 4M / 25M / 50M /
+#        100M, every lane, all param groups: optimizer lr ==
+#        2.5e-4 * max(0, 1 - basis/1e8), basis = the step of the last update
+#        preceding the update being annealed. Breach -> STOP that lane.
+#        ARM C AND ARM B ADD A GROUP EACH and the gate covers them: arm B's
+#        priv_eval group runs at the CRITIC's lr and anneals with it.
+#   D-B  THROUGHPUT: realized dStep/dWall over >= 30-min conforming windows
+#        post-1M, never `time/steps_per_sec`. Expected 1,097 +- 15% at width
+#        6 -> [933, 1262]; 1,387 +- 15% at width 3 -> [1179, 1595]. RECORD
+#        below 0.90x expected; STOP-AND-INVESTIGATE below 0.70x sustained
+#        over two windows. A WINDOW THAT STRADDLES STARTUP INVENTS RECORDS —
+#        use the conforming window only.
+#   D-C  AUX HEALTH every 5M: illegal == 0, collision == 0 (STOP that lane);
+#        labelled_frac bin-mean in [0.65, 0.86] RECORD.
+#   D-D  selfplay/winrate_anchor >= 0.75 by 4M each lane (STOP); RECORD
+#        below 0.83.
+#   D-E  MEMORY: per-lane peak RSS RECORD-ONLY at every D-B reading, NO
+#        per-lane threshold at ANY width — that is the D-E landmine, and
+#        this fleet changes width mid-run, so a per-lane line would fire on
+#        the wave-2 lanes by design. RECORD any lane above 3.0 GB. The only
+#        STOP is box-level: free+inactive < 2 GiB AND non-zero swapouts, 3
+#        consecutive 5-min polls -> STOP ALL, disclose, resume after.
+#        THIS FLEET'S MEMORY IS THE LEAST-MEASURED THING ABOUT IT (see (F))
+#        and D-E is the instrument that catches it.
+#   D-F  DISK: RECORD < 40 GiB free; STOP ALL < 20 GiB (a full disk corrupts
+#        a checkpoint write). Re-based upward from the 100M pre-reg's
+#        30/15 GiB because this fleet writes ~41 GB against that one's ~14.
+#   D-G  LAG: RECORD lag_p99 >= 2 on any rollout; STOP that lane at p99 >= 2
+#        for 3 consecutive rollouts. The update fence is what makes old_logp
+#        exact.
+#   D-H  THE STALL WATCH, AND IT IS NOT OPTIONAL. A lane can stall ALIVE at
+#        ZERO CPU and every pgrep passes forever (twice in R2, ~10 h apart).
+#        Liveness is a CPU-TIME DELTA — `ps -o time=` twice, 15 s apart —
+#        never a step count and never a process check. Poll every 15 min per
+#        lane. Recover with `--resume runs/<dir>`. A pgrep guard anchors on
+#        `bin/python`.
+#   D-I  THE BOX IS SHARED BY NINE LANES AND ONE SHOWDOWN SERVER. RECORD the
+#        server's CPU-time delta at every D-B reading; a server that has
+#        stopped advancing while lanes are evaluating is the orphaned-room
+#        shape. Every connecting seat sends /timer on
+#        (start_timer_on_battle_start, default True) and it is what bounds
+#        an abandoned room — DO NOT REMOVE IT.
+#
+# ---------------------------------------------------------------------
+# (N) DISCLOSURES THAT TRAVEL WITH EVERY NUMBER THIS RUN PRODUCES
+#
+#  1. THE COLLECTOR DELTA. A-1 passed on the FIXED build (bd3d06a) at signed
+#     delta **-0.00436** (pooled engine 0.66775 against the banked async
+#     0.67211, 3 seeds x n=12,000, band +-0.025, -0.59 se on the
+#     seed-clustered 0.00736). That signed delta rides every gen-1 credit
+#     sentence produced on this path, FOREVER, exactly as N-COLL's +0.02322
+#     does for async. A bare "A-1 passed" is NOT an attribution. No gen-1
+#     number ever pools across collectors, and any comparison spanning the
+#     switch names both deltas.
+#     AND WHAT A-1 COULD NOT SAY, restated because this run is the first
+#     thing that could be misread as answering it: "A-1 says nothing about
+#     behaviour at 100M+, which is the horizon the port exists to buy." This
+#     fleet does NOT retroactively validate A-1; D-COLL100 below is a
+#     descriptive overlay, not a gate.
+#  2. K = 8, named in every throughput or cost sentence. The engine's
+#     production default is 256 and this fleet is not at it.
+#  3. THE ENGINE BUILD SHA, the static-tables fingerprint and the team-bank
+#     sha256, from meta["engine"] — quoted in the readout, identical across
+#     all nine lanes.
+#  4. THE INIT-PAIRING ASYMMETRY. Arms A and B are init-paired at a shared
+#     seed; arm C is NOT, because `privileged_dim` re-rolls the actor
+#     (334.851 -> 410.510 at identical param count). Every between-arm
+#     sentence involving C names it.
+#  5. THREE SEEDS, NOT FIVE. A disclosed deviation in the NON-conservative
+#     direction from the D23-onward 5x3000 practice.
+#  6. TEAM-BANK RECURRENCE AT THIS DOSE: 73.5% of a lane's battles are the
+#     first use of their pair (against 96.2% at A-1's 12M), 17.0%
+#     fleet-wide. Common to all three arms; it cannot bias a contrast and it
+#     can bias the level.
+#  7. THE PRIVILEGED ENCODE IS UNPRICED. Arms B and C pay a second full 828
+#     encode per learner row; the bound is <= ~3% of wall and the
+#     measurement has never been run. Quote it as a bound.
+#  8. TWO CREDIT-SEEKING CONTRASTS against one shared control (see (G)).
+#  9. FP@20's two standing disclosures, on every FP number, forever: the
+#     equivalence test is WEAKLY POWERED and the point estimate FLATTERS US.
+#     The budget is named in every quote.
+# 10. vs-SH IS NEVER A LADDER NUMBER, in either direction. The ~40% GXE
+#     conversion is RETIRED.
+#
+# ---------------------------------------------------------------------
+# (O) SECONDARY AND DESCRIPTIVE — no gates, cannot change a verdict
+#
+#   D-COLL100  ARM A against the banked Node 100M fleet
+#              (runs/showdown_sp_100m_s{104,112,120}), lane-for-lane at
+#              matched seeds, matched dose, matched anneal and matched
+#              recipe. THE ONLY THING THAT DIFFERS IS THE COLLECTOR (plus
+#              ten days of tree and a team source). This is the 100M
+#              reading of the collector delta that A-1 structurally could
+#              not produce, and it is available ONLY because these seeds
+#              were used. DESCRIPTIVE. It is NOT a re-run of A-1, it has
+#              k=3 and no band, and it may not be quoted as an acceptance.
+#              THE BANKED CHECKPOINTS ARE RE-READ FRESH IN THE SAME SESSION
+#              (~6 min for three lanes) — the era bias is -0.0072 to -0.0148
+#              on this instrument and no se term captures it. The banked
+#              0.79589 is provenance, never the comparator.
+#              If it disagrees in SIGN with A-1's -0.00436 that disagreement
+#              is REPORTED beside the verdict and is itself grounds for a
+#              diagnosis round before any headline lands.
+#              PINS for the banked side (configs/eval/ch5_100m_offfp.yaml:
+#              25-27): s104 ckpt_100000027.pt 16a6f020..., s112
+#              ckpt_100000008.pt 2ec16fbf..., s120 ckpt_100000080.pt
+#              db5d07d2...; meta.yaml git_sha 2a21b9ac, git_dirty FALSE,
+#              obs_dim 828, actor 626,059 / critic 494,849 / aux 49,479.
+#   SEED-SD    THE WATCH ITEM THIS FLEET DISCHARGES. STATUS.md carries:
+#              "Post-fix between-seed sd 0.01938 -> 0.00368 — DESCRIPTIVE
+#              ONLY. k=3 cannot separate that from three lucky draws.
+#              Re-check on the monster fleet." This fleet gives THREE MORE
+#              k=3 draws of the engine collector's between-seed sd at a
+#              dose ten times A-1's, and the banked Node 100M fleet's own
+#              vs-SH s_T of 0.00455 as a matched-dose Node comparison.
+#              REPORTED WITH ITS 2-df CI ([0.521, 6.285] x s) and with the
+#              statement that three arms x k=3 is still not enough to
+#              separate a real narrowing from luck. It is DESCRIPTIVE and
+#              it changes no bar in this run — the bar was computed in
+#              advance in (G2) and the freeze rule holds it there.
+#   RHO        IDEAS 2.2's first-use obligation, discharged: the realized
+#              seed-pair correlation between arms at shared seeds, reported
+#              for A-B and for A-C separately, with the note that A-B is
+#              init-paired and A-C is not. NO PAIRING CREDIT IS TAKEN and
+#              the primary estimator is unpaired regardless.
+#   CURVES     loss/explained_variance, loss/entropy, loss/approx_kl,
+#              loss/clip_frac and rollout/episode_length overlays, all three
+#              arms at matched steps, plus priv_eval/explained_variance on
+#              arm B. Read for SHAPE over tens of millions of steps, never
+#              one rung against its neighbour.
+#   SRANK      critic and actor ctx srank99 at the final on all three arms
+#              AND on the banked Node 100M finals (free — the checkpoints
+#              are on disk). The first srank measurement at 100M in this
+#              project. Feeds P-D18 leg (c).
+#   LENGTH     rollout/episode_length per arm, and the realized L-bar that
+#              the team-bank recurrence arithmetic in (H) assumed.
+#   THROUGHPUT realized dStep/dWall per lane per wave, with the WIDTH named
+#              beside every figure, and the realized collect/update split
+#              against the A-1 basis (engine collect_share 0.34873).
+#   LAG        collect/policy_version_lag_p99 and the realized in-flight
+#              carry, per arm — the k=8 staleness figure this fleet actually
+#              realizes, which is the empirical counterpart to (C)'s 0.436%.
+#
+# ---------------------------------------------------------------------
+# (P) WHAT THIS RUN DOES NOT TEST — so that no null here can be over-read
+#
+#  1. k = 256. This fleet is k=8 and says nothing about k=256's learning.
+#     K-1 (configs/engine_k256.yaml) is PARKED, not withdrawn, and its own
+#     MDE is wider than its band. A null on any arm here is not evidence
+#     about staleness.
+#  2. THE ATTENTION / TRANSFORMER TRUNK. JOURNEY 11.6, POST-LADDER by the
+#     maintainer's ruling of 2026-09-11. The architecture question EXPIRES
+#     at this run's launch — you cannot bolt a different trunk onto a
+#     finished checkpoint — and it is deliberately not an arm. A null here
+#     is not evidence about architecture, and a credit here is not evidence
+#     that architecture would not have been better.
+#  3. DEPTH >= 2. No code exists. P-BS is a DEPTH-1 read with a margin gate.
+#     JOURNEY 11.5 is a separate step and this run does not pre-empt it.
+#  4. DOSE BEYOND 100M. The measured 50M -> 100M gain is +0.00944 vs SH,
+#     FINISHED-TO-FINISHED — the R2 batch 50M finals pooled 0.7864444
+#     against the 100M fleet's 0.7958889 (results/ch5_100m/grade.json,
+#     grade.vs_sh.delta; RESULTS.md:1324-1329, cell SN-N, no letter). THIS
+#     RUN IS NOT A DOSE EXPERIMENT and no branch may be reported as one.
+#     Nothing here speaks to 250M or 500M.
+#     [A DISTINCTION THIS FILE INSISTS ON, because the two are routinely
+#     fused: +0.00944 is the FINISHED-TO-FINISHED vs-SH secondary. It is
+#     NOT S-SHAPE. S-SHAPE is a WITHIN-RUN rung curve on the 100M fleet's
+#     own checkpoints — W_hi (85/90/95/100M) 0.77764 against W_lo
+#     (65/70/75/80M) 0.74839, +0.02925 against se_W 0.00633, cell SS-CLIMB
+#     (RESULTS.md:1331-1338) — and it carries a MANDATORY SENTENCE: the
+#     treatment's sub-100M rungs sit on the 100M anneal and are NOT
+#     comparable to a finished run at the same step (507.8x in lr at 50M).
+#     JOURNEY 10's sentence fuses both reads in one clause; quote them
+#     apart.]
+#     THIS FLEET BANKS ITS OWN S-SHAPE MATERIAL FOR FREE — 200 rungs per
+#     lane are on disk — but reading it is a SEPARATE pre-registration and
+#     is not authorised here.
+#  5. THE SEARCH BUDGET. Every search number this run can produce is
+#     depth-1 at the S3 doses. Wang's budget is 160x our wall clock and
+#     250-500x our determinizations. A null on P-BS does not close the
+#     budget axis (JOURNEY 14).
+#  6. THE BOTH-SEAT HARVEST (IDEAS 4.1). OFF, and it is REFUSED in code
+#     whenever the privileged block is needed (rl/agents/ppo.py:856-862), so
+#     arms B and C could not run it even by accident. The harvest/* metric
+#     names stay unemitted.
+#  7. LEAGUE COMPOSITION. pool_size 20, latest_prob 0.8, push_every_updates
+#     5 in all three arms — the R4 recipe's. League play stays on and
+#     pool_size 1 exists only as gen-4 Wang-match fidelity.
+#  8. WHETHER THE PRIVILEGED BLOCK IS THE RIGHT INFORMATION. The whole
+#     hidden team was worth ~+0.045 EV of return variance (D18 audit) and
+#     D19 found 88-90% of it recoverable as a deterministic cap mask. Arm C
+#     is a variance-reduction hypothesis at scale, not an information one.
+#
+# ---------------------------------------------------------------------
+# (Q) CONTAMINATION GUARDS — a contaminated arm answers a different question
+#
+#   BOTH-SEAT HARVEST        OFF in all three arms. Refused in code for B/C.
+#   D25 OPPACT LABELS        ON in all three arms (env_kwargs.opp_action
+#                            true, agent.aux_oppact_coef 0.1). MANDATORY,
+#                            see (B). Turning them off would be a treatment
+#                            AND would make the checkpoint unsearchable.
+#   ENGINE SCRIPTED BOTS     UNUSED. selfplay.opponent is self; the eval
+#                            opponent is the SERVER's SimpleHeuristicsPlayer.
+#                            The verdict denominator is never an in-engine
+#                            reimplementation.
+#   aux_shuffle_labels       absent (false) in all three arms.
+#   aux_synthetic            absent (false) in all three arms.
+#   `env_kwargs.privileged`  ABSENT — it is the Node path's second knob and
+#                            the engine route refuses any env_kwargs key
+#                            outside {opp_action, seat_tag}.
+#   `collector.privileged`   DOES NOT EXIST. ENGINE_KEYS is strict.
+#   DECLARED CONFIG DIFFERENCES BETWEEN THE THREE ARMS, EXHAUSTIVE:
+#     run_name, env_kwargs.seat_tag, agent.priv_eval_dim (B),
+#     agent.priv_eval_coef (B), agent.privileged_dim (C).
+#     EVERY OTHER KEY IS BYTE-IDENTICAL ACROSS THE THREE FILES — diff them;
+#     the launcher diffs them before lane 1 and refuses on any undeclared
+#     difference.
+#   DECLARED DIFFERENCES AGAINST configs/showdown_sp_100m.yaml (arm A only):
+#     collector.* (async/concurrency -> engine/k/team_bank/min_bank_pairs/
+#     learner_seat), run_name, env_kwargs.seat_tag. Every other key is
+#     byte-identical.
+#
+# ---------------------------------------------------------------------
+# (R) LAUNCH-BLOCKING PRECONDITIONS
+#
+#   PRE-1  THE OPPACT HEAD in all three configs (section (B)). Asserted by
+#          the launcher, and by rl/train.py at launch.
+#   PRE-2  ARM C HAS NEVER RUN ON THIS ROUTE (section (A)). A live design-A
+#          smoke — one lane, ~10 updates, read against R0-C1/C2/C3 and
+#          R0-B1/B2/B3, then killed — must PASS before the fleet. It is
+#          minutes of agent-side work and it is the difference between
+#          finding a dead seam at update 10 and finding it at hour 25.
+#          Its config is `configs/showdown_monster100m_c.yaml` itself with
+#          `--run-name monster_c_smoke_s104`; nothing else changes.
+#   PRE-3  THE ARM-B SMOKE HAS READ ITS GATES. runs/engine_pe_s66 is live as
+#          this is drafted; its R0-B4/B5/B6 read (and its BITWISE
+#          actor/critic comparison against engine_a1b_s66) must be in hand.
+#   PRE-4  THE PRIVILEGED ENCODE IS PRICED. `scripts/engine_t1.py --leg b`
+#          twice, flag off then on. ~10 minutes. Until then (N)-7 is a bound.
+#   PRE-5  WIDTH MEASURED (unit W-0, section (F)) and the branch recorded.
+#   PRE-6  ENV VARS on every lane and every eval:
+#          POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1. Read at import
+#          (rl/envs/showdown.py:118,:131); they are what makes OBS_DIM 828.
+#          The launcher exports both and refuses if either is unset.
+#   PRE-7  THE BANK EXISTS and holds >= 1,000,000 pairs, sha256 recorded
+#          (data/engine/teams_a1_5000000.bin, 480,000,262 B, built
+#          2026-09-09).
+#   PRE-8  THE TEST AMENDMENT (section (E), RWM-2) is committed.
+#   PRE-9  CLEAN TREE, DOCS COMMITTED (CLAUDE.md rule 3). One untracked .md
+#          stamps git_dirty on all nine lanes and the dirty flag cannot be
+#          reconstructed afterwards.
+#   PRE-10 THE BOX IS FREE. No ch3_eval jobs, no train lanes, no calibration
+#          jobs, no other agent's queues. A fresh Showdown server, started
+#          by the launcher. free+inactive >= 14 GiB and >= 60 GiB disk at
+#          lane 1.
+#   PRE-11 RATIFICATION. Every RWM-n answered in the sidecar and
+#          `verdict_authorized` set. The launcher refuses without an
+#          explicit `launch_authorization`.
+#   PRE-12 THE TWO PENDING DECISIONS IN (A1) AND (A2) ARE ANSWERED, and the
+#          lane list and seed list that follow from them are written into
+#          the sidecar before lane 1. An unanswered decision is M-UNRATIFIED
+#          in (K) and THE FLEET DOES NOT LAUNCH — the arm list and the lane
+#          allocation are not defaults this file may pick.
+#
+# ---------------------------------------------------------------------
+# (S) OPS
+#
+#   THE ENV IS `pkmn-engine-port`, NOT `pokemon-showdown-rl`. The engine
+#   extension is built there and only there
+#   (/opt/anaconda3/envs/pkmn-engine-port/bin/python, as
+#   scripts/engine_gates.sh:37 and the live lanes use). This is CLAUDE.md
+#   rule 1's named engine-port exception. Do not install into it and do not
+#   run these lanes from the analysis env.
+#
+#   LANES ARE DETACHED AND RESUME-SAFE. `--resume runs/<dir>` restores step,
+#   updates_done, the anneal basis, the RNG streams and the engine's battle
+#   counter. TWO THINGS A RESUME COSTS, both pre-stated so neither is a
+#   surprise at grade time:
+#     (i) A RESUME SPLITS THE WANDB HISTORY into two offline runs with
+#         OVERLAPPING steps, and `extract_history.py <run_dir>` then HARD
+#         FAILS. Use `scripts/merge_history.py`, verify segments == resumes
+#         + 1 from meta.yaml and _step monotone, and read the merged file.
+#         Every curve in (O) is affected; no PRIMARY read is, because the
+#         primary reads are checkpoint evals.
+#     (ii) `checkpoint.pt` LAGS the last logged step by much more than one
+#         update (R2 lost 190,776 and 170,680 steps). Read the real
+#         `from_step` from meta.yaml, and expect `updates_done` one short
+#         per resume.
+#   SEAT NAMES ARE DETERMINISTIC ACROSS A RESUME with seat_tag set, so a
+#   resumed lane reconnects under exactly the names it died with. A
+#   mid-battle kill poisons a username pair for hours; /timer on is what
+#   bounds it.
+#
+#   THE POST-FLEET EVAL SCHEDULE, ORDER FROZEN (all agent-side, detached,
+#   resume-safe, rate-readable; NOTHING runs while any lane trains). The
+#   ORDER is what discharges the era-bias rule in (I): every arm's cell on a
+#   given axis is read in ONE contiguous session, arm-interleaved.
+#     1  vs-SH finals, 9 lanes x 3000, locked protocol.       ~18 min
+#     2  D-COLL100: the three BANKED Node 100M checkpoints,
+#        re-read FRESH at the same n in the same session.      ~6 min
+#     3  BC-clone h2h, 9 lanes x 500.                          ~4 min
+#     4  srank/dormancy (P-D18 leg (c)): d22 two-stage on all
+#        nine finals plus the three banked Node finals. FLEET
+#        DOWN, SERVER UP.                            BRACKETED, not measured
+#     5  FP@20 h2h, 9 lanes x 3000, serial k=1.                ~12 h
+#     6  P-BS — NOT A STEP OF THIS SCHEDULE. DEFERRED to its own
+#        pre-registration; there is no search seam. Listed so its
+#        absence is deliberate.                            NOT RUN
+#   TOTAL ~13 h without step 4 (step 6 does not run). Steps 1-3 alone
+#   settle P-A, P-C and two of the three anchor legs; P-BEV needs no
+#   post-fleet work at all, because it is read off the lanes' own history.
+#   NO STEP IS REORDERED to get a number earlier. Step 5 last on the axis
+#   list is deliberate: FP@20 is descriptive, and running it before the
+#   verdict axis would make the verdict the second thing anybody read.
+#
+#   THE LAUNCH COMMANDS ARE IN configs/showdown_monster100m.prereg.yaml
+#   under `launch_commands`, one per block, and in
+#   docs/proposals/MONSTER_PREREG_NOTES.md in the handed-over form. They are
+#   NOT in this header, because a header is not a runbook and a copy of a
+#   command in two places is a command that drifts.
+#
+#   READOUT: RESULTS.md gets the addendum, by hand, in ONE commit with the
+#   STATUS rewrite and the SESSION_LOGS entry. `readouts/` gets a file only
+#   if the object is laddered — the 100M fleet produced no readouts/ file
+#   and its account is RESULTS §18. That precedent is followed.
+# =====================================================================
+env_id: Showdown-v0
+seed: 104                  # lanes 2/3 via --seed 112 / 120
+total_steps: 200000000     # JOURNEY 10's dose
+eval_every: 250000         # 400 in-loop evals/lane, ~0.61 h; descriptive only
+eval_episodes: 100
+num_envs: 8                # x rollout_steps = the 30,720-step update budget
+torch_threads: 1
+checkpoint_every: 500000   # ~200 crossing rungs/lane; see DISK in (F)
+run_name: monster200m_l2lam_s104      # lanes 2/3 via --run-name
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine             # A-1-accepted, signed delta -0.00436 travels forever
+  k: 8                     # DECLARED, NOT ASSUMED — see (C). Do not raise.
+  team_bank: data/engine/teams_a1_5000000.bin   # 5,000,000 pairs; recurrence in (H)
+  min_bank_pairs: 1000000  # ENFORCED in code at launch; a floor in prose is not a floor
+  learner_seat: p1
+env_kwargs:
+  opp_action: true         # D25 pair, half 1 of 2. MANDATORY — see (B).
+  seat_tag: m10v             # ARM L2LAM
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  l2_init_decay: 0.02      # ARM L2 -- THE ONE DIFF vs showdown_monster200m.yaml: D23's value, decoupled per-step decay toward theta0 (captured at construction, theta0.pt in the run dir, restored on resume)
+  aux_oppact_coef: 0.1     # D25 pair, half 2 of 2. MANDATORY — see (B).
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [384, 384]
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 200000000  # == total_steps. THE ANNEAL TRAP — see (D).
+  gamma: 1.0
+  gae_lambda: 1.0          # ARM L2LAM -- THE SECOND DIFF vs arm A: Monte-Carlo value targets and advantages (gamma is 1, returns are terminal +/-1). Aimed at the NAMED cause of the measured critic rank collapse: Kumar et al. 2020 show bootstrapped targets drive it and MC targets remove it; at ~31 decisions/episode ~53% of the lambda 0.95 target was the critic's own output. Targets stay bounded, so it cannot NaN; advantage variance rises (normalised per minibatch).
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
+# NO PRIVILEGED KEY OF ANY KIND. This is the control: the collector's
+# `privileged` flag is derived from `PPOAgent.privileged_block_dim`, which is
+# zero here, so the Rust side never runs the second encode and the batch
+# carries no `privileged` array at all.
