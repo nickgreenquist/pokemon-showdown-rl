@@ -83,6 +83,8 @@ usernames:
     E350F:  {seat: ewe350r2seat, fp: ewe350r2bot}
     E6MIXF: {seat: ewe6mr2seat,  fp: ewe6mr2bot}
     ENS3FR: {seat: ewe3rr2seat,  fp: ewe3rr2bot}
+    ENS3F500: {seat: ewf5e3r2seat,   fp: ewf5e3r2bot}     # IN USE since 01:13Z (first pair poisoned)
+    G112F500: {seat: ewf5g112r2seat, fp: ewf5g112r2bot}
 
 # `seat` (not `lanes`) on greedy_seat; `lanes` (not `seat`) on ensemble_seat --
 # both directions are asserted by scripts/ch3_fp_h2h.py and the wrong one
@@ -110,7 +112,9 @@ arms:
   # FP@20-budget artefact", which would matter for the ladder. Runs AFTER the
   # 20 ms arms (scripts/ens_width_fp500_queue.sh): FP's budget is wall-clock,
   # so nothing else may share the box with it.
-  ENS3F500: {kind: ensemble_seat, lanes: [s104, s112, s120], battles: 500, search_time_ms: 500, seat_username: ewf5e3seat,   fp_username: ewf5e3bot}
+  # ENS3F500 runs on its RERUN pair: the first pair (ewf5e3seat/ewf5e3bot) was
+  # poisoned at 01:13Z when the waiter mis-fired and the arm had to be killed.
+  ENS3F500: {kind: ensemble_seat, lanes: [s104, s112, s120], battles: 500, search_time_ms: 500, seat_username: ewf5e3r2seat, fp_username: ewf5e3r2bot}
   G112F500: {kind: greedy_seat,   seat: s112,               battles: 250, search_time_ms: 500, seat_username: ewf5g112seat, fp_username: ewf5g112bot}
 
 # Most decision-relevant first, so an early box-up still leaves a read.

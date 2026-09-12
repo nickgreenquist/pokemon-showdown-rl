@@ -23,8 +23,13 @@ LOG=logs/ens_width
 mkdir -p "$LOG" "$FPRES"
 log() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG/queue.log"; }
 
-log "FP500 waiter: holding until the 20 ms queue prints QUEUE DONE"
-until grep -q "QUEUE DONE" "$LOG/queue.log" 2>/dev/null; do sleep 60; done
+# The sentinel is the 20 ms queue's EXACT final line, anchored at both ends.
+# The first version of this waiter grepped for the bare phrase, matched ITS
+# OWN "holding until ..." log line, and launched a 500 ms arm on top of a
+# running 20 ms arm -- the one overlap the pre-reg forbids (2026-09-12
+# 01:11Z, killed after ~2 min; ENS3F500's first username pair is poisoned).
+log "FP500 waiter: holding for the 20 ms queue's final line"
+until grep -qE '^\[[^]]+\] QUEUE DONE$' "$LOG/queue.log" 2>/dev/null; do sleep 60; done
 sleep 60   # let Showdown reap the last 20 ms pair's rooms
 
 fparm() {  # one off-FP arm through the incident-hardened runner, blocking
