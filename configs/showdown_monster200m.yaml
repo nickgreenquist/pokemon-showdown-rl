@@ -55,8 +55,9 @@
 #   lambda did not take), l2init/* anchor distances. The critic's pre-
 #   activation norm is NOT logged today; say so rather than invent it.
 #   Pre-stated branches: srank99/width holds or rises on W -> width is live,
-#   size the next fleet on the curve; srank99 stays pinned near 7-10 absolute
-#   at 2.67x width -> a MEASURED CEILING, capacity is confirmed idle (this is
+#   size the next fleet on the curve; srank99 stays pinned near ~48 absolute
+#   (the fleet lineage's own value; the "7-10" figure was the D22 struct50m
+#   lineage) at 2.67x width -> a MEASURED CEILING, capacity is confirmed idle (this is
 #   the only kind of kill rule 6 permits); EV and norms move but win rate does
 #   not -> the bottleneck is signal, and the next lever is denser self-play
 #   targets. SECONDARY (descriptive, picks the ladder object): off FP@20,

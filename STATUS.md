@@ -61,19 +61,19 @@ the +0.015 is the tuned δ talking (swept on s112, which the committee contains)
 branch.** Search fired (override 7.5%, 31,085 searched decisions, committee shas stamped), so this is a
 real null, not a void arm. The gate adds nothing to the committee anywhere; sub-2-se deltas are not wins.
 
-## The monster (JOURNEY 10) — three overnight reports converge on THE CRITIC; launch block rewritten
+## The monster (JOURNEY 10) — three overnight reports (`docs/research_reports/*_2026-09-12.md`) converge on THE CRITIC
 1. **Arm B dropped** (bitwise arm A; its head feeds nothing; its only consumer, search, is null twice over).
    **Arm C not recommended** (falsifier cannot fire; never run on the engine route with the oppact head).
-2. **The critic is the bottleneck on every line:** ctx-stack srank99 7–10/384 vs the actor's 33–54, explained
-   variance flat at ~0.59 from mid-run, three on-policy sources say widen the VALUE net, not the actor. The
-   actor is 626,059 params, at parity with the closest pure-self-play comparable. Reports (2026-09-12):
-   `docs/research_reports/MODEL_SCALE_*`, `SELFPLAY_RECIPE_*`, `MONSTER_BUNDLE_*`. **BUILT tonight:** gated
-   LayerNorm in the ctx stack (tested; next fleet — it muddies L2's instruments), configs W and L2LAM.
-3. **Plasticity probe (`PLASTICITY_PROBE_*`, `results/plasticity_probe/probe.json`): PLASTICITY LOST in the
-   CRITIC** — the 100M final fits fresh random targets 2.3× worse than a fresh init (held-out 0.128 vs 0.055;
-   head-only 1.01 vs 0.32, i.e. the frozen features fit nothing), and it is ALREADY SO AT 12M (0.132) while
-   ctx srank99 keeps falling 241 → 48; the actor degrades far less. Supports regularising from step 0 (L2 on
-   every lane) plus critic capacity (W) and MC targets (L2LAM). Smokes running now (started 03:59Z).
+2. **The critic is the bottleneck on every line:** its ctx srank99 is 48/384 at the 100M final (94–139 at 50M;
+   the "7–10" figure was another lineage) vs the actor's ~370; explained variance flat at ~0.59 from mid-run;
+   three on-policy sources say widen the VALUE net, not the actor; the actor is 626,059 params, at parity with
+   the closest pure-self-play comparable. **BUILT tonight:** gated LayerNorm in the ctx stack (tested; next
+   fleet — it muddies L2's instruments), configs W and L2LAM.
+3. **Plasticity probe (`PLASTICITY_PROBE_*`): the pre-stated PLASTICITY-LOST branch FIRED for the critic** —
+   under an identical refit budget the 100M and 50M critics fit fresh random targets **R = 1.89 / 1.70 / 1.69 /
+   1.70× worse than a fresh init** (threshold 1.50; both lrs; a second target draw R 2.1–2.3), their frozen
+   features support no linear fit (R² 0.03 vs 0.71), and the loss is complete by 12M; the actor's features stay
+   full-rank. Directly supports L2 from step 0; width only indirectly. Smokes running (started 03:59Z).
 
 ## Next actions
 0. **GOAL: "AS HIGH AS POSSIBLE".** R4 hit Elo 1354 vs a 1358.999 cutoff. Targets: H&L 1677 / ps-ppo 1725 /
