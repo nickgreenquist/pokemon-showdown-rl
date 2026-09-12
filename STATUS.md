@@ -18,12 +18,10 @@ argmax loses to the policy at ONE ply; search only ever paid as a rarely-fired v
 - **HONEST READ IS OUT OF SAMPLE: +0.016, NOT +0.042.** Held-out lanes at δ 0.10, n=3000 each:
   s104 +0.01967, s120 +0.01233; **pooled n=6000 = +0.01600 at 2.19 se_diff — MEETS 2·se_diff,
   MISSES the floor → NOT CREDITED.** Never quote s112's +0.0417.
-- **EG10: a better evaluator adds nothing AT DEPTH-1** (LOO ensemble + same gate, 3×3000:
-  −0.00044 at 0.05 se) — weakens arm B's premise. **ENS3 vs stack is a NULL** (+0.01078 at
-  1.87 se; that figure includes the tuning lane, flattering SEARCH).
-- **OFF FOUL PLAY THE GATE TRANSFERS** — BLM (gated@M, δ 0.10) vs FP@20, n=1000: **0.525** vs
-  a **0.47** bar (greedy 0.50167, UNGATED 0.39600 — **the SELECTOR alone bought +0.129
-  off-FP**). +0.023 vs greedy at 1.28 se is NOT significant. Both FP@20 disclosures travel.
+- **EG10: a better evaluator adds nothing AT DEPTH-1** (LOO ensemble + same gate, 3×3000: −0.00044 at 0.05 se).
+  **ENS3 vs the searched stack is a NULL** (+0.01078 at 1.87 se, and that figure includes the tuning lane).
+- **OFF FOUL PLAY THE GATE TRANSFERS** — BLM (gated@M, δ 0.10) vs FP@20, n=1000: **0.525** vs a **0.47** bar
+  (greedy 0.50167, UNGATED 0.39600: the SELECTOR alone bought +0.129 off-FP); +0.023 vs greedy at 1.28 se is n.s.
 **LANDMINE: every search number before 2026-09-11 measures a BROKEN selector** (grep `PRE-D5`; LADDER R3 is a D4 object).
 ## DEPTH IS MEASURED, AND IT IS A NULL, NOT A NEGATIVE — 2026-09-11 review of ~14,000 battles
 Two implementations (`rl/search/tree.py`, decoupled-UCT with OUR prior and critic; `_look_further`,
@@ -52,10 +50,12 @@ unresolved (pre-stated branch: 6 lanes still preferred; NOT saturation).** E6MIX
 (0.844 / 0.837 / 0.820) vs ENS3's 0.0147 — never read one batch. **STEPS vs MEMBERS:** ENS3 of the 50M finals
 = **0.82233** vs the 100M committee's 0.82356 (+0.001 for the doubling, on the committee); ensemble gain
 +0.038 at 50M vs +0.035 at 100M — additive, and the horizon is the weaker lever vs SH (saturated axis).
-**OFF FP@20, SAME SESSION, n=1000 each:** greedy 100M re-draw 0.507 / 0.486 / 0.507 (mean 0.500; era term
-+0.002 vs 2026-09-03) → **ENS3F 0.557 is +0.057 at 3.1 se, verdict-grade now**; E6MIXF 0.553 (−0.004 vs ENS3F:
-unresolved); E350F 0.537 (committee doubling +0.020 ± 0.022); 50M re-draws 0.501 / 0.501 / pending (their
-R2-era banked values were 0.474 / 0.483: a different Foul Play build); ENS3FR and the FP@500 pair pending.
+**OFF FP@20, SAME SESSION, n=1000 each (`scripts/ens_width_readout.py`):** greedy 100M re-draw 0.507 / 0.486 /
+0.507 (mean 0.500; era term +0.002 vs 2026-09-03) → **ENS3F 0.557 and its fresh-pair replicate ENS3FR 0.577
+(spread 0.020 = noise) pool to +0.067 at 4.7 se: the committee's off-FP transfer is verdict-grade.** E6MIXF
+0.553 = −0.014 vs the pooled ENS3 (unresolved; three weaker members neither help nor hurt). E350F 0.537 vs
+fresh 50M greedy 0.501 / 0.501 / 0.473: gain +0.045 at 50M vs +0.067 at 100M (additive); committee doubling
++0.030 ± 0.02. The R2-era 50M comparators (0.474 / 0.483 / 0.467) were a different FP build. FP@500 pending.
 
 ## ENSG — ensemble AS the search's prior+leaf value, with the gate. **A NULL ON BOTH AXES.**
 vs SH, n=3000 vs ENS3 b0: δ 0.05 **−0.002** (n=2900), **δ 0.10 +0.01500 at 1.6 se**, δ 0.20 **+0.008** —
