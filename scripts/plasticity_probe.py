@@ -448,9 +448,46 @@ def get_net(kind, spec, part, state_cache=None):
     return net
 
 
+@torch.no_grad()
+def linear_probe_check(sets, obs, n_train, target, out_path):
+    """Closed-form control for the HEAD-ONLY condition: the least-squares
+    readout of the frozen critic features, solved directly (ridge lambda 1e-6,
+    float64) instead of by 6,000 Adam steps. If the two disagree, HEAD-ONLY was
+    measuring the optimiser and not the representation. Reported as held-out R^2
+    so the number reads as "how much of a random target the frozen features
+    linearly explain"."""
+    y = target.double()
+    ytr, yte = y[:n_train], y[n_train:]
+    rows = {}
+    for name, kind, spec in sets:
+        net = get_net(kind, spec, "critic")
+        f = head_features(net, "critic", obs).double()
+        ones = torch.ones(len(f), 1, dtype=torch.float64)
+        ftr = torch.cat([f[:n_train], ones[:n_train]], 1)
+        fte = torch.cat([f[n_train:], ones[n_train:]], 1)
+        a = ftr.T @ ftr + 1e-6 * torch.eye(ftr.shape[1], dtype=torch.float64)
+        w = torch.linalg.solve(a, ftr.T @ ytr)
+        mse_te = float(((fte @ w - yte) ** 2).mean())
+        rows[name] = {
+            "train_mse": float(((ftr @ w - ytr) ** 2).mean()),
+            "heldout_mse": mse_te,
+            "heldout_r2": 1.0 - mse_te / float(yte.var()),
+            "feature_std": float(f[n_train:].std()),
+        }
+        print(f"  {name:12s} lstsq heldout MSE {mse_te:.4f}  R2 {rows[name]['heldout_r2']:.3f}",
+              flush=True)
+    out_path.write_text(json.dumps(
+        {"note": "closed-form control for HEAD_ONLY, critic / randnet targets",
+         "heldout_target_var": float(yte.var()), "rows": rows}, indent=2) + "\n")
+    print(f"wrote {out_path}")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default="results/plasticity_probe")
+    ap.add_argument("--linear-probe", action="store_true",
+                    help="run ONLY the closed-form HEAD-ONLY control (see "
+                         "linear_probe_check) and write linear_probe_check.json")
     ap.add_argument("--obs-root", default="results/d22")
     ap.add_argument("--steps", type=int, default=6000)
     ap.add_argument("--batch", type=int, default=256)
@@ -468,7 +505,7 @@ def main() -> None:
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / ("dry_run.json" if args.dry else "probe.json")
-    if out_path.exists() and not args.force:
+    if out_path.exists() and not args.force and not args.linear_probe:
         raise SystemExit(f"refusing to overwrite {out_path} — pass --force")
 
     steps = 20 if args.dry else args.steps
@@ -482,6 +519,10 @@ def main() -> None:
     sets, skipped = parameter_sets(args.dry)
     print(f"rows {len(obs)} (train {n_train} / held-out {len(obs) - n_train}), "
           f"{len(sets)} parameter sets, {steps} steps x batch {batch}", flush=True)
+    if args.linear_probe:
+        linear_probe_check(sets, obs, n_train, targets["randnet"][0],
+                           out_dir / "linear_probe_check.json")
+        return
     for s in skipped:
         print(f"  SKIPPED {s['name']}: {s['why']}", flush=True)
 

@@ -250,8 +250,214 @@ shape would show, and the srank table.
 
 ## 4. Results
 
-*(filled in after the run — see §5 for the verdict)*
+Run 2026-09-12 03:16–03:58Z, one process, one thread, **2,470 s** wall
+(≈41 min CPU), started after `ENS3FR DONE` cleared the 20 ms Foul Play queue.
+No checkpoint was skipped. Raw: `results/plasticity_probe/probe.json`.
+All numbers `[V]`.
+
+### 4.1 PRIMARY — critic, random-network targets, FULL (Def 1 proper)
+
+Held-out MSE against a unit-variance target (held-out target variance 1.029).
+Every parameter set starts from essentially the same loss (~1.32), so this leg
+has **no travel-distance confound**. `R` = best-lr final ÷ mean of the two
+fresh inits at that lr.
+
+| param set | step 0 | 1500 (25%) | 3000 (50%) | 6000 (100%) | 6000 @ lr 1e-3 | best | **R** |
+|---|---|---|---|---|---|---|---|
+| `100M_final` | 1.319 | 0.1946 | 0.1588 | 0.1280 | 0.1024 | 0.1024 | **1.89** |
+| `50M_s66` | 1.325 | 0.1897 | 0.1438 | 0.1201 | 0.0920 | 0.0920 | **1.70** |
+| `50M_s75` | 1.321 | 0.1902 | 0.1485 | 0.1291 | 0.0919 | 0.0919 | **1.69** |
+| `50M_s83` | 1.341 | 0.1821 | 0.1451 | 0.1178 | 0.0924 | 0.0924 | **1.70** |
+| `100M_rung12M` | 1.415 | 0.1796 | 0.1456 | 0.1324 | 0.0915 | 0.0915 | **1.69** |
+| `early_1M` | 1.442 | 0.0998 | 0.0956 | 0.0870 | 0.0645 | 0.0645 | **1.19** |
+| `early_500k` | 1.374 | 0.0836 | 0.0791 | 0.0720 | 0.0565 | 0.0565 | **1.04** |
+| `fresh_a` | 1.305 | 0.0695 | 0.0572 | 0.0554 | 0.0564 | 0.0554 | **1.02** |
+| `fresh_b` | 5.995 | 0.0736 | 0.0555 | 0.0533 | 0.0520 | 0.0520 | **0.96** |
+
+Same ordering on the **second target draw** (`randnet2`, lr 2.5e-4 only, so not
+best-of-lr): `100M_final` **2.11**, `50M` trio **2.11 / 2.12 / 2.19**, `12M`
+**2.28**, `early_1M` 1.61, `early_500k` 1.35, fresh 0.95 / 1.05. The ordering is
+also identical at each lr taken alone (at lr 2.5e-4 the 100M ratio is 2.36).
+
+The **memorisation** leg (`iid` N(0,1), **train** loss — held-out is meaningless
+by construction and comes out at 1.0–1.7 for everything, which is the control
+working): `100M_final` 0.730, `12M` 0.669, `50M` trio 0.539 / 0.557 / 0.626,
+against fresh **0.127 / 0.138** and `early_500k` **0.127** — **R 3.6–5.5**. A
+trained net is far worse at memorising arbitrary labels than a fresh one; an
+early rung is indistinguishable from fresh.
+
+### 4.2 HEAD-ONLY — what the frozen trunk's features can support
+
+Held-out MSE of the best linear readout of the frozen penultimate features.
+
+| param set | 6000-step best | closed-form least squares | held-out **R²** |
+|---|---|---|---|
+| `100M_final` | 1.007 | 0.9988 | **0.029** |
+| `50M_s66` | 1.006 | 0.9806 | **0.047** |
+| `50M_s75` | 0.997 | 0.9689 | **0.058** |
+| `50M_s83` | 1.015 | 1.0003 | **0.028** |
+| `100M_rung12M` | 0.996 | 0.9713 | **0.056** |
+| `early_1M` | 0.891 | 0.8896 | **0.135** |
+| `early_500k` | 0.796 | 0.7815 | **0.240** |
+| `fresh_a` | 0.302 | 0.2973 | **0.711** |
+| `fresh_b` | 0.269 | 0.2551 | **0.752** |
+
+This is the run's largest single effect, and it is **not** an optimisation
+artefact: a closed-form ridge solve (λ=1e-6, float64) on the same cached
+features lands within 0.01–0.03 of what 6,000 Adam steps found, on all nine
+parameter sets `[V]` (`scripts/plasticity_probe.py --linear-probe` →
+`results/plasticity_probe/linear_probe_check.json`). **The trained critics'
+384-d context features linearly explain 3–6% of a fresh random critic's output;
+a fresh init's explain 71–75%.** R_HEAD is 3.49–3.55 for every trained final.
+
+### 4.3 Actor — read with the step-0 disclosure
+
+| param set | step 0 KL | 6000 best | frac of initial left | **R** |
+|---|---|---|---|---|
+| `100M_final` | 9.135 | 0.0147 | 0.0016 | **3.43** |
+| `50M_s66/s75/s83` | 9.10 / 9.46 / 9.26 | 0.0114 each | 0.0013 | **2.65 / 2.66 / 2.66** |
+| `100M_rung12M` | 8.481 | 0.0112 | 0.0013 | **2.60** |
+| `early_1M` | 1.821 | 0.0064 | 0.0035 | **1.49** |
+| `early_500k` | 0.704 | 0.0053 | 0.0076 | **1.24** |
+| `fresh_a / fresh_b` | 0.210 / 0.211 | 0.0042 / 0.0044 | 0.020 | **0.99 / 1.01** |
+
+The raw R is 2.6–3.4, but a trained actor starts **43×** further from the
+target than a fresh init and closes **99.84–99.87%** of that gap against the
+fresh init's 98%. The actor leg is directionally consistent with the critic's and is
+**not** the clean measurement; the critic leg is.
+
+*Care with "the actor degrades far less"* (STATUS.md, commit `834b265`). It is
+right on the two legs that are read-comparable — the actor's frozen features
+still support a fit (HEAD-ONLY closes 98.3% of its initial KL where the
+critic's frozen features close ~0%) and its `srank99(ctx)` is 369–370/384
+against the critic's 48–139. It is **not** right on the raw FULL ratio, where
+the actor's 2.6–3.4 is numerically worse than the critic's 1.69–1.89 purely
+because of the step-0 distance. Quote the srank and head-only legs for that
+claim, not R.
+
+### 4.4 Effective rank — and a correction to `MODEL_SCALE` §D'-3
+
+srank99 / 384 on the held-out obs, float64, same function as the D22 CSV.
+
+| param set | critic srank99(ctx) | critic PR | actor srank99(ctx) | actor PR |
+|---|---|---|---|---|
+| `100M_final` | **48** | 1.03 | 370 | 8.62 |
+| `50M_s66` | 139 | 1.31 | 370 | 10.35 |
+| `50M_s75` | 94 | 1.25 | 370 | 9.15 |
+| `50M_s83` | 102 | 1.52 | 369 | 9.01 |
+| `100M_rung12M` | 241 | 2.34 | 367 | 10.46 |
+| `early_1M` | 323 | 3.34 | 359 | 6.97 |
+| `early_500k` | 322 | 2.94 | 343 | 4.63 |
+| `fresh_a / fresh_b` | 297 / 305 | 1.29 / 1.33 | 289 / 313 | 1.31 / 1.42 |
+
+**`MODEL_SCALE` §E(2)(a) argues for ARM W partly on "our critic sits at srank99
+7–10/384 against the actor's 33–54". Those numbers belong to the D22
+`showdown_sp_struct50m_s{35,36,37}` lanes, not to the lineage the fleet builds
+on.** On `showdown_sp_100m_s112` and the `showdown_sp_batch50m` trio the critic
+measures **48–139/384** and the actor is at **essentially full rank, 369–370/384
+— above a fresh init's 289–313.** The instrument is not at fault: this same code
+path reproduces the D22 CSV exactly on `struct50m_s35` (actor 33, critic 10) and
+the pooled-vs-own-obs difference is ≤1 `[V]`. The actor/critic **ordering**
+survives everywhere; the **severity** does not transfer between run families.
+
+Note also that rank and trainability do not track each other cleanly *across*
+runs: `100M_final` has the lowest critic srank (48) and the worst R (1.89), but
+the 50M trio spans 94–139 at a flat R of 1.69–1.70. They do track *within* a
+training trajectory (500k: 322 / R 1.04 → 12M: 241 / R 1.69 → 100M: 48 / R
+1.89). This is Lyle 2303.01486 §5.2's point restated by our own data: rank is
+correlated with, but not a substitute for, a trainability measurement.
+
+### 4.5 The trajectory
+
+R (critic, FULL, best-lr) against training step, the shape Lyle's capacity-loss
+figures show:
+
+```
+  500k   1.04   ←  indistinguishable from a fresh init
+    1M   1.19
+   12M   1.69
+   50M   1.70  1.69  1.70   (three independent seeds)
+  100M   1.89
+```
+
+**Capacity loss is essentially complete by 12M.** 12M → 100M, an 8× increase in
+experience, adds 0.20 to a ratio that moved 0.65 over the first 12M.
+
+---
 
 ## 5. Verdict
 
-*(pending)*
+### The branch that fired: **PLASTICITY LOST**
+
+Pre-stated threshold: R ≥ 1.50 on the critic `randnet` FULL condition, at the
+better lr, consistently across the four trained finals. Measured **1.89 / 1.70 /
+1.69 / 1.70** — fires, at both lrs taken separately, on both target draws, and
+corroborated by the memorisation leg at R 3.6–5.5.
+
+*Reconciling two numbers for one result:* STATUS.md and
+`configs/showdown_monster200m.yaml` (commit `834b265`, written off this
+probe's JSON) quote **2.3×** for the 100M critic. That is the ratio at the
+run's own lr, 2.5e-4 (0.128 ÷ 0.0544 = 2.36). The **1.89** above is the
+pre-registered statistic — best-of-lr, which is more conservative because the
+trained checkpoints benefit more from lr 1e-3 than the fresh inits do. Both are
+this table; the branch fires either way, and 1.89 is the one the pre-reg binds. The
+REPRESENTATION-DEGENERATE-BUT-TRAINABLE branch required FULL R ≤ 1.10 and does
+**not** fire: HEAD-ONLY is indeed catastrophic (R 3.5, R² 0.03), but FULL is
+impaired too, so this is not a pure representation artefact of sparse reward.
+
+**Per §3's table this is the branch that argues for ARM W — width *plus*
+L2-toward-init.** Three qualifications travel with that, and none of them is
+optional:
+
+1. **The loss is real but moderate in absolute terms.** The trained critic
+   still explains **90%** of a random target's variance under this budget
+   (0.102 MSE on variance 1.029) where a fresh init explains **94.7%** (0.054).
+   This is not a net that has stopped learning; it is a net that has lost about
+   half of its residual headroom.
+2. **The probe is direct evidence for the REGULARISER half of ARM W and only
+   indirect evidence for the WIDTH half.** Lyle's own remedy for exactly this
+   measurement is InFeR — *"regressing a subspace of features towards its value
+   at initialization"* `[V]` — which is `l2_init_decay`'s family, not width.
+   Width enters through Lyle 2402.18762 (*"Across depths, increasing width is
+   beneficial"*) and Sokar's width-invariance of dormancy `[R]`, neither of
+   which is a capacity-loss-under-width measurement. **Nothing here says
+   `value_sizes: [1024,1024]` recovers the lost capacity.**
+3. **Capacity loss saturates by 12M**, so ARM W would have to earn its keep by
+   *resisting or recovering* capacity, not by delaying an onset that the 200M
+   lane will reach in its first 6% of steps either way.
+
+And one correction that cuts the other way: **§4.4 retires "critic srank99
+7–10/384" as evidence for the fleet's own lineage.** The batch50m/100M critics
+are at 48–139/384 and their actors at full rank. `MODEL_SCALE` §E(2)(a) should
+be read with that substitution; the actor/critic *ordering* it relies on
+survives, the severity does not.
+
+### The single sentence
+
+> Under an identical 6,000-step budget the 100M and 50M critics fit fresh random
+> targets **1.7–1.9× worse** than a fresh init of the same architecture, and
+> their frozen features support **no** linear fit of one (R² 0.03 vs 0.71) — the
+> pre-registered **PLASTICITY LOST** branch fires, which is the branch that
+> argues for ARM W, with the caveat that the probe directly supports the
+> `l2_init_decay` half and only indirectly the width half.
+
+### What follows for the ~30 h decision
+
+- **Launching 3 × L2 + 3 × ARM W is consistent with this probe.** It is not
+  *required* by it: the measured pathology is an optimisation one, and the
+  instrument that would tell you width fixes it does not exist in the
+  literature or here.
+- **If only one thing changes, make it the regulariser, not the width.**
+  `l2_init_decay` is on both arms of §E(2) already, so the L2 trio alone
+  already tests the intervention this probe points at — and §E(5)'s fallback
+  (Option B unchanged + the D22 instruments and the pre-activation norm as a
+  named mechanism cell) remains a defensible read of tonight's result.
+- **The mechanism co-primary in §E(4) should add this probe as a rung.** Re-run
+  `scripts/plasticity_probe.py` on the W-arm and L2-arm finals: R against a
+  fresh init of *each arm's own architecture* is the direct test of whether
+  width bought back capacity — the measurement nobody in this literature has
+  made, and it costs 41 min of CPU.
+- **`gae_lambda: 1.0` is not dismissed by this result.** Kumar's bootstrapping
+  mechanism predicts exactly the collapse in §4.2; the probe cannot distinguish
+  "sparse reward" from "bootstrapping" as its cause, and §E(6) still ranks that
+  lever above width for the fleet after this one.
