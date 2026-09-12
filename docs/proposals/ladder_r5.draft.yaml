@@ -1,0 +1,106 @@
+# =====================================================================
+# LADDER R5 (DRAFT) — GEN1 LADDER #4, THE COMMITTEE OF THE MONSTER FINALS, GREEDY
+# Status: DRAFT 2026-09-12 (night, agent). NOT RATIFIED. Lives under docs/proposals/
+#   on purpose: tests/test_ladder.py globs configs/eval/ladder_*.yaml and asserts the
+#   literal "Status: RATIFIED", so a draft at that path turns the suite red. The
+#   ratifying commit `git mv`s this file to configs/eval/ladder_r5.yaml, pins the
+#   checkpoints, and records rulings in ratified_decisions at the foot -- exactly
+#   R4's path (configs/eval/ladder_r4.yaml lines 1-12).
+#
+# WHAT THIS IS: R4 (ratified 2026-09-04, greedy s112 at 100M: GXE 65.2 / Glicko
+#   1618 +/- 25 / Elo 1354, n=200) with ONE change of object -- the ladder seat is
+#   the log-prob COMMITTEE of the 200M finals (kind: ensemble, which
+#   scripts/ladder.py already supports: POLICY_KINDS = greedy | ensemble | search;
+#   LADDER R1's object was the 4-lane EnsembleAgent). Everything R4 settled and the
+#   maintainer ruled is INHERITED VERBATIM unless a line below says otherwise:
+#   stopping rule (rd <= 40 AND n >= 200 of THIS run's logged battles), ONE
+#   CONTINUOUS RUN, /timer on, pacing, G-BLIND (no board polling before
+#   min_battles), the four G-BLIND stops and no fifth, the do-not-kill rule, the
+#   resume rule, the barred-language list, the profile endpoint as the only
+#   rating source, aggregators, and the comparison ruling (STANDALONE DESCRIPTIVE
+#   MEASUREMENT; no R1/R3/R4/R5 delta may be quoted as an effect).
+#
+# WHY THE COMMITTEE: it is the only free lever this repo has CREDITED (+0.0349 vs
+#   SH at 5.9 se on a same-session greedy re-draw; ~+0.057 off FP@20 on a same-session
+#   re-draw, 2026-09-12), and every composition on top of it (depth-1 gate, ensemble-
+#   as-prior search) is a null on both axes. It plays at greedy speed: R1's 4-lane
+#   ensemble stamped 6.74 ms/decision. Which members: decided by the monster readout
+#   (off FP@20 same-session re-draw per [RWL-3]); the candidates are ENS3 of the
+#   better arm, ENS6 across both arms, and -- only if it reads better -- a committee
+#   that also carries the 100M finals (same encoder, same OBS_DIM; mixed-width
+#   committees are fine because each member is built from its own run config).
+#
+# journey_step: 11 ("the final gen-1 ladder"), reached via 10 (the monster). The
+#   11.5-before-11 ruling is OWED and is moot for a GREEDY object: 11.5 asks about
+#   depth-2 search, which tonight's relook (docs/search_relook/) leaves as a null.
+#
+# RULINGS OWED BEFORE RATIFICATION (M-R5-n; each gets a RULING line at the foot):
+#   M-R5-1 OBJECT: which committee (ENS3 of one arm / ENS6 / +100M finals), from the
+#          monster readout; pins go in `checkpoints`.
+#   M-R5-2 ACCOUNT: REUSE nickgen1rbrlbot (R4 M6 stands: "multiple accounts are
+#          against the rules"); the headline discloses the warm-started rating and
+#          the cumulative-profile denominators exactly as R4 did.
+#   M-R5-3 n: 200 as R4, or more? The GOAL is "as high as possible"; rd converges
+#          under 40 well before n=200 on a reused account, so extra battles buy a
+#          tighter estimate, not a higher one, and every extra battle is exposure.
+#          RECOMMENDED: 200, one run, then decide.
+#   M-R5-4 DECISION CAP: the standing "<= 5 s per decision for a searched object"
+#          ruling is moot for greedy; RECOMMENDED band [1, 30] ms for a 3-6 member
+#          committee (R1's 4-lane ensemble 6.74 ms; 5x margin like R4's rule).
+#   M-R5-5 SCHEDULE: one continuous run, plan 12-16 h, budget 17 h, ceiling ~22 h
+#          (R4 M7), on a box that is NOT running a fleet (the committee's forwards
+#          are cheap, but the ladder's 150 s/turn is wall-clock and the R2 stall
+#          shape must not meet a rated game).
+#   M-R5-6 ANCHOR BATTERY: the README row for the monster's committee WAITS on
+#          vs-SH (locked protocol) + BC-clone h2h (500) + FP@20 h2h; a leg that
+#          does not exist is PENDING, never dropped. The ladder run does not wait
+#          on the battery (R4 precedent), the README row does.
+# ---------------------------------------------------------------------
+
+primary_arm: R5E
+results_dir: results/ladder
+save_replays: results/ladder/replays_r5
+max_battles_total: 300
+pacing:
+  sleep_between_battles_sec: 5
+  start_timer: true
+  board_poll_every_battles: 10
+
+checkpoints:
+  # TODO at ratification: the monster finals, pinned by sha256 with their real
+  # final-step filenames (lanes finish at DIFFERENT steps; never guess a name).
+  # e.g. l2_104: {path: runs/showdown_monster200m_l2_s104/ckpt_2000000xx.pt, sha256: TODO}
+
+arms:
+  R5E:
+    kind: ensemble
+    lanes: []                      # TODO: M-R5-1
+    display_name: nickgen1rbrlbot  # M-R5-2: R4 M6 stands
+
+stopping_rule:
+  glicko_rd_max: 40
+  min_battles: 200
+  warm_start_note: "reused account: rd starts from the R4 parked state; GXE/Glicko/Elo at stop are ACCOUNT properties carrying R1 + R4's games -- the headline disclosure owns this, exactly as R4's did"
+  source: "profile endpoint (pokemonshowdown.com/users/<userid>.json)"
+
+expected_instrument_values:
+  mean_decision_ms_band: [1, 30]   # M-R5-4; VOID (e) threshold at the upper bound, as R4
+  provenance_keys_exact: [kind, obs_dim, encoder_v2, encoder_ids, lanes, sha256]  # `lanes`, plural: an ensemble; a `lane`/`dose` key = wrong object pasted in
+  max_concurrent_live_battles_expected: 1
+  sec_per_battle_band: [190, 300]
+  mean_turns_band: [18, 32]
+  bands_are_diagnostic: "every band except mean_decision_ms_band is DIAGNOSTIC -- a breach is disclosed and voids nothing (R4)"
+
+comparison_ruling:
+  verdict: "R5 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1/R3/R4/R5 DELTA MAY BE QUOTED AS AN EFFECT, IN ANY DIRECTION."
+  confounds_moved_at_once: [policy_kind, training_scale, training_recipe, account_path_dependence, calendar_and_pool, opponent_memory]
+
+instruments:
+  runner: scripts/ladder.py
+  supervisor: scripts/ladder_supervise.sh
+  watchdog: scripts/ladder_watchdog.sh
+  readout: scripts/ladder_readout.py
+  backup: scripts/backup_ladder.sh
+  tests: tests/test_ladder.py
+
+ratified_decisions: {}             # M-R5-1..6 RULED: <date> -- filled at ratification
