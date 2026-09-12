@@ -52,37 +52,37 @@ unresolved (pre-stated branch: 6 lanes still preferred; NOT saturation).** E6MIX
 (0.844 / 0.837 / 0.820) vs ENS3's 0.0147 — never read one batch. **STEPS vs MEMBERS:** ENS3 of the 50M finals
 = **0.82233** vs the 100M committee's 0.82356 (+0.001 for the doubling, on the committee); ensemble gain
 +0.038 at 50M vs +0.035 at 100M — additive, and the horizon is the weaker lever vs SH (saturated axis).
-**OFF FP@20 RUNNING** (`logs/ens_width/queue.log`, ~4 h): G1xxF re-draw, E6MIXF, E350F, G50F, ENS3FR.
+**OFF FP@20, SAME SESSION, n=1000 each:** greedy 100M re-draw 0.507 / 0.486 / 0.507 (mean 0.500; era term
++0.002 vs 2026-09-03) → **ENS3F 0.557 is +0.057 at 3.1 se, verdict-grade now**; E6MIXF 0.553 (−0.004 vs ENS3F:
+unresolved); E350F 0.537 (committee doubling +0.020 ± 0.022); 50M re-draws 0.501 / 0.501 / pending (their
+R2-era banked values were 0.474 / 0.483: a different Foul Play build); ENS3FR and the FP@500 pair pending.
 
 ## ENSG — ensemble AS the search's prior+leaf value, with the gate. **A NULL ON BOTH AXES.**
 vs SH, n=3000 vs ENS3 b0: δ 0.05 **−0.002** (n=2900), **δ 0.10 +0.01500 at 1.6 se**, δ 0.20 **+0.008** —
 the +0.015 is the tuned δ talking (swept on s112, which the committee contains). **Off FP@20, pre-registered
 (`configs/eval/ens_offfp.yaml`): ENSGF 0.558 vs ENS3F 0.557 = +0.001, the "|δ| < 0.045 → ENS3 stays"
 branch.** Search fired (override 7.5%, 31,085 searched decisions, committee shas stamped), so this is a
-real null, not a void arm. The gate adds nothing to the committee anywhere. At n=900 it had read +0.030
-at 1.7 se and was called a win; sub-2-se deltas are not wins.
+real null, not a void arm. The gate adds nothing to the committee anywhere; sub-2-se deltas are not wins.
 
-## The monster (JOURNEY 10) — decisions owed; today's reads bear on two
-1. **ARM B IS BITWISE ARM A** (24 rungs, 223 tensors / 3,428,015 elements, 0 differing, sha
-   f156f232462e635b): separate net, own trunk, `autograd.grad` over its own params only.
-   **Its ONLY consumer is a search leaf evaluator** — EG10 says a better evaluator adds
-   nothing at depth-1 and today says no reachable depth pays. **Recommend DROP arm B**; its
-   MC-target bug is fixed (b147f48) and that finding keeps regardless.
-2. **ARM C IS CONTESTED BY BOTH REVIEWS** — D18's lever at λ 0.95 where the vacatur named
-   λ=1.0; 30× less variance headroom at a 30,720-step update; falsifier conditions on an
-   "uncollapsed critic" never exceeding 25/384 at any dose, so it cannot fire.
-3. **k=3 × n=3000 gives P(credit | +0.025) = 0.45.** 6 lanes buys TWO committees (the clustered se
-   the ENS3 credit lacks) AND the 6-member read; the "saturate at 3" reason for 3 lanes is withdrawn.
+## The monster (JOURNEY 10) — three overnight reports converge on THE CRITIC; launch block rewritten
+1. **Arm B dropped** (bitwise arm A; its head feeds nothing; its only consumer, search, is null twice over).
+   **Arm C not recommended** (falsifier cannot fire; never run on the engine route with the oppact head).
+2. **The critic is the bottleneck on every line:** ctx-stack srank99 7–10/384 vs the actor's 33–54, explained
+   variance flat at ~0.59 from mid-run, three on-policy sources say widen the VALUE net, not the actor. The
+   actor is 626,059 params, at parity with the closest pure-self-play comparable. Reports (2026-09-12):
+   `docs/research_reports/MODEL_SCALE_*`, `SELFPLAY_RECIPE_*`, `MONSTER_BUNDLE_*`. **BUILT tonight:** gated
+   LayerNorm in the ctx stack (tested; next fleet — it muddies L2's instruments), configs W and L2LAM.
+3. **Plasticity probe running** (`PLASTICITY_PROBE_*`): does the 100M final still fit fresh targets like a
+   fresh init? Its pre-stated branches re-weight the two trios; none blocks the launch. Smokes run ~07:00Z.
 
 ## Next actions
 0. **GOAL: "AS HIGH AS POSSIBLE".** R4 hit Elo 1354 vs a 1358.999 cutoff. Targets: H&L 1677 / ps-ppo 1725 /
    **Wang 1756** (Metamon's 1761 used REPLAYS). **LADDER OBJECT TODAY: ENS3** (greedy speed, no confound).
-1. **SATURDAY LAUNCH** (box packed ~2026-09-12 13:00 EDT, launch that night, unattended 3–4 days). Recommended,
-   written as [RWL-1..6] at the top of `configs/showdown_monster200m.yaml` for the maintainer to ratify:
-   `bash scripts/monster_fleet.sh configs/showdown_monster200m.yaml 200000000 104 112 120 128 136 144` —
-   **6 × 200M, ALL ARM A** (B: bitwise A, head feeds nothing, its only consumer is search, null twice over;
-   C: falsifier cannot fire — drop unless re-specified), k=8, ≈43 h at the idle w6 rate. PRIMARY read
-   off-FP@20 vs a SAME-SESSION greedy 100M re-draw (protocol rehearsed tonight); vs SH secondary.
+1. **SATURDAY LAUNCH** (box packed ~2026-09-12 13:00 EDT, launch that night, unattended 3–4 days). Recommended
+   OPTION C, written as [RWL-1..8] at the top of `configs/showdown_monster200m.yaml` for you to ratify:
+   **every lane L2; trio W = L2 + 1024-wide critic (seeds 104 112 120, ~54 h); trio L2LAM = L2 + Monte-Carlo
+   targets (128 136 144, ~45 h)**; two commands ([RWL-5]); k=8; anneal = horizon (the LR FLOOR is a ruling,
+   both sides in [RWL-4]). Reads: mechanism co-primary; off-FP@20 same-session re-draw picks the committee.
 2. **BEFORE LEAVING (a password is needed):** `sudo pmset -c sleep 0 disksleep 0`; Software Update →
    "Install macOS updates" **OFF (it is ON)**; lid OPEN; quit VS Code/Chrome (6-wide ≈ 11 GB of 24).
    The launcher now holds its own caffeinate and the watchdog restarts Node (both tested 2026-09-11).
