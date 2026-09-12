@@ -71,6 +71,8 @@ usernames:
     E350F:  {seat: ewe350seat, fp: ewe350bot}
     E6MIXF: {seat: ewe6mseat,  fp: ewe6mbot}
     ENS3FR: {seat: ewe3rseat,  fp: ewe3rbot}
+    ENS3F500: {seat: ewf5e3seat,   fp: ewf5e3bot}
+    G112F500: {seat: ewf5g112seat, fp: ewf5g112bot}
   rerun_pairs:
     G104F:  {seat: ewg104r2seat, fp: ewg104r2bot}
     G112F:  {seat: ewg112r2seat, fp: ewg112r2bot}
@@ -95,9 +97,24 @@ arms:
   G75F:   {kind: greedy_seat,   seat: s75,  battles: 1000, search_time_ms: 20, seat_username: ewg75seat,  fp_username: ewg75bot}
   G83F:   {kind: greedy_seat,   seat: s83,  battles: 1000, search_time_ms: 20, seat_username: ewg83seat,  fp_username: ewg83bot}
   ENS3FR: {kind: ensemble_seat, lanes: [s104, s112, s120], battles: 1000, search_time_ms: 20, seat_username: ewe3rseat, fp_username: ewe3rbot}
+  # FP@500 (added 2026-09-12 00:05Z on the maintainer's ask, BEFORE either arm
+  # ran): the ladder object has never faced Foul Play at its stronger rung.
+  # CLAUDE.md: FP@20 is an instrument, the READINESS GRADIENT is the FP budget
+  # ladder (configs/eval/fp_budget_ladder.yaml, which prices FP500 at ~15-20
+  # s/battle and expects our_wr(FP20) > our_wr(FP500)). DESCRIPTIVE, n sized
+  # for curiosity not credit: ENS3 n=500 (se ~0.022), greedy s112 n=250
+  # (se ~0.03). THE READ: (i) both budgets side by side for the same object;
+  # (ii) does the committee's edge over greedy (ENS3F - G112F at 20 ms)
+  # survive at 500 ms -- a delta of the same sign and size within its ~0.04 se
+  # is "survives"; a collapse to <= 0 at > 2 se is "the ensemble's edge is an
+  # FP@20-budget artefact", which would matter for the ladder. Runs AFTER the
+  # 20 ms arms (scripts/ens_width_fp500_queue.sh): FP's budget is wall-clock,
+  # so nothing else may share the box with it.
+  ENS3F500: {kind: ensemble_seat, lanes: [s104, s112, s120], battles: 500, search_time_ms: 500, seat_username: ewf5e3seat,   fp_username: ewf5e3bot}
+  G112F500: {kind: greedy_seat,   seat: s112,               battles: 250, search_time_ms: 500, seat_username: ewf5g112seat, fp_username: ewf5g112bot}
 
 # Most decision-relevant first, so an early box-up still leaves a read.
-run_order: [G112F, G104F, G120F, E6MIXF, E350F, G66F, G75F, G83F, ENS3FR]
+run_order: [G112F, G104F, G120F, E6MIXF, E350F, G66F, G75F, G83F, ENS3FR, ENS3F500, G112F500]
 
 comparators_banked:
   greedy_offfp20_100m:  {s104: 0.48633, s112: 0.50167, s120: 0.50733, mean: 0.49844, n: 3000 each, source: results/ch5_100m/t1*.json, dated: 2026-09-03}
