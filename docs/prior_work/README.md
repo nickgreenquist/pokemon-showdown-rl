@@ -789,3 +789,13 @@ breadth is saturating while the opponent's advantage is structural, not
 budgetary — and the ladder allows **150 s/turn**, against our 0.078 s and
 FP@500's ~1 s. Quote this before arguing that search is compute-limited here.
 
+
+## Foul Play@500 costs ONE SECOND per decision — measured, 2026-09-12
+
+Off the committee's FP@500 arm (`results/ens_width_offfp/ens3f500.fp.stdout`):
+`--search-time-ms 500` logs **"Sampling 4 battles at 250ms each"**, i.e. four
+determinizations × 250 ms = **1.0 s per decision**, against FP@20's
+"4 battles at 10ms" = 40 ms. At ~30 decisions a battle that is **~35–40 s per
+battle**, twice what `configs/eval/fp_budget_ladder.yaml` priced ("FP500 ~1–1.5 h
+for 250"). Price FP@500 at ~5 h per 500 battles, and never run it beside another
+wall-clock-budgeted opponent.

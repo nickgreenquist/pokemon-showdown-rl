@@ -53,6 +53,30 @@ C6 at `:624`), §6 and §7 live verbatim in
 for the C-items; §7 ruling 4 (the 50M ceiling) is superseded by name in
 the 100M header.
 
+**Round 3 — 2026-09-12 (overnight review session; three Opus reports under
+`docs/research_reports/*_2026-09-12.md` and a plasticity probe).** Status
+changes, each pointing at its evidence: **2.2 is BUILT** (`env_kwargs.seat_tag`,
+`rl/envs/make.py:36-47`; the tally above is stale) and deliberately NOT used to
+pair arms in the monster — pairing trades away the committee diversity the
+ladder object monetises. **4.3 (regenerative L2) rides EVERY lane of the
+2026-09-12 fleet** ([RWL-1] in `configs/showdown_monster200m.yaml`): the
+probe's PLASTICITY-LOST branch fired for the critic (refit R = 1.89× a fresh
+init, complete by 12M). **4.7 (privileged critic)** is not in that fleet (its
+falsifier cannot fire; both reviews) and stays live here. **4.5 (more steps)**
+is the fleet's horizon (200M) but is no longer read as a lever: the 50M and
+100M committees read within 0.0013 vs SH and +0.030 ± 0.02 off FP@20 — steps
+and members are additive and the horizon is the weaker one. **§5 LayerNorm in
+the context stack is BUILT** (`trunk_kwargs.ctx_layernorm`, gated, tested) and
+held for the next fleet (it removes `ctx_net` from the L2 per-block metrics).
+**§5 width is being MEASURED for the first time** — the W trio widens the
+critic to 1024 (the axis three on-policy sources name), with srank99 as a
+fraction of width as the mechanism read; the entry in §3 stays contingent
+until that reads. **§8.1 is answered up to ~300 ms** (the budget ladder to
+dose XL, the tree at ~230 ms, poke_engine MCTS at 200 ms: flat; FP@500 for the
+committee pending) and **§8.3 at depth-1** (n_det 1→64 flat). **NEW ROW 4.8
+below: the committee.** The IDEAS-stale claim "our measured KL would never
+fire" is gen-4; gen 1 reaches approx_kl 0.04–0.11.
+
 **Sequencing floor (binding):** nothing below runs before FLEET DONE → the
 frozen eval schedule → grade → record (HANDOFF §§1–3; the peeking bar covers
 *any* checkpoint eval until the last lane ends). After the record lands,
@@ -766,6 +790,26 @@ back-port; NOT gen 4. Step 4's held-back-lever list names the privileged
 critic, which predates this ruling and reads as a gen-4 candidate — the
 maintainer's scope here is a large gen-1-scale run with the batch changes,
 so JOURNEY wants an amendment at the next maintainer pass.
+
+**4.8 THE COMMITTEE — members as the lever (added 2026-09-12; the only free
+lever this repo has CREDITED, and it had no row).** A masked log-prob ensemble
+over the finals of separately trained lanes: **+0.0349 vs SH at 5.9 se**
+(ENS3 of the 100M finals vs a same-session greedy re-draw, 2026-09-11) and
+**+0.067 off FP@20 at 4.7 se** (ENS3F 0.557 and its fresh-pair replicate
+0.577 vs a same-session greedy re-draw at 0.500, 2026-09-12), at greedy
+speed, with every composition on top of it (depth-1 gate, ensemble-as-prior
+search) a null on both axes. Members 4–6 measured with the 50M finals as
+extra members (`configs/eval/ens_width*.yaml`): +0.010 at 1.8 se vs SH,
+−0.014 ± 0.019 off FP@20 — unresolved with WEAKER members, and not saturation.
+**Mechanism:** variance reduction over independently trained policies plus
+disagreement where each member is off-distribution (the committee overrides
+its first member 10.8% of decisions vs SH and 27.8% off FP). **Sequencing:**
+every fleet's lanes are members; the ladder object is the best committee off
+FP@20 (ENS3 of a trio / ENS6 / ENS9 with the 100M finals), floor = the 100M
+ENS3. **Open, cheap, post-fleet:** equal-strength members 4–6 (the 200M
+lanes answer it), weight-space averaging of each lane's last rungs as a
+member, and the clustered se the credit still lacks (two 3-committees).
+Never "ensembling helps" in general — the credit licenses THESE checkpoints.
 
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
