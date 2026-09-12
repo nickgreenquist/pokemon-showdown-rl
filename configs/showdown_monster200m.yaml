@@ -6,10 +6,15 @@
 # else, including k=8 and the collector mode, is unchanged.
 #
 # =====================================================================
+# RATIFIED 2026-09-12 (maintainer, in chat, verbatim): "Arms - C / LR anneal -
+# as is / 200M / Seeds distinct". So: [RWL-1] OPTION C (3 x W + 3 x L2LAM);
+# [RWL-4] anneal = horizon = 200,000,000, NO floor; [RWL-2] seeds 104 112 120
+# and 128 136 144, distinct across trios. This block now GOVERNS; the 100M
+# draft header below is inherited history.
+#
 # LAUNCH BLOCK, 2026-09-12 02:30Z (overnight review session; supersedes the
 # 2026-09-11 block). RECOMMENDATIONS FOR THE 2026-09-12 LAUNCH, EACH TAGGED
-# [RWL-n]; THE MAINTAINER RATIFIES BY EDITING THIS BLOCK AND COMMITTING BEFORE
-# LAUNCH (CLAUDE.md rule 3). Everything below this block is the 100M draft's
+# [RWL-n]; RATIFIED AS ABOVE (CLAUDE.md rule 3: committed before launch). Everything below this block is the 100M draft's
 # header, inherited verbatim; where it conflicts, this block wins ONCE RATIFIED.
 # Inputs: docs/research_reports/MODEL_SCALE_2026-09-12.md, SELFPLAY_RECIPE_
 # 2026-09-12.md, MONSTER_BUNDLE_2026-09-12.md, PLASTICITY_PROBE_2026-09-12.md
