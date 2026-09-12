@@ -11734,3 +11734,13 @@ line numbers are not — grep the date, then read that region):
   All gates recorded in [RWL-6]; smoke dirs removed. Off FP@500: "500 ms" is 4 sampled battles at
   250 ms = 1 s/decision, ~35–40 s/battle, twice the budget-ladder pre-reg's pricing; ENS3F500 (n=500)
   ends ~08:50Z; G112F500 is auto-skipped at launch so nothing runs past the box-up.
+
+- 2026-09-12 (overnight, agent, cont. 4, 09:00Z) — **THE COMMITTEE AT FP@500: 0.472 (n=500, ties 1,
+  40.6 s/battle) vs 0.567 pooled at FP@20** — the stronger rung costs ~0.095, the direction the budget-ladder
+  pre-reg expects; the greedy@500 reference (G112F500) was auto-skipped at launch because "500 ms" is
+  4 × 250 ms = 1 s per decision (twice the pre-reg's pricing) and it would have run past the box-up, so
+  "does the committee's edge over greedy survive at 500 ms" stays OPEN (docs/prior_work/README.md carries the
+  pricing). Disclosures on this arm: the three 400k smokes (two lanes each, 03:59–04:20Z) and the single-
+  thread plasticity probe shared the box with it; both FP@20 disclosures travel; nothing here projects to
+  the ladder. Session ends at the 09:35Z deadline with the tree clean; the morning asks are in STATUS
+  next-actions 1–2 and [RWL-1..8].

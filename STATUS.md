@@ -4,12 +4,10 @@
 GXE 65.2 / Glicko 1618 ± 25 / Elo 1354, n=200. From here it is all gen 1.**
 **JOURNEY 7.5 engine port EXITED; A-1 PASSED TWICE** (0.66775 vs async 0.67211, **−0.00436 travels forever**; `docs/engine_port/NOTES.md`).
 Engine rates at k=8, measured idle: **w3 1620, w6 1282 steps/s/lane** → 6×200M ≈ 43 h.
-## **ENS3 CREDITS (+0.0349) — STILL THE LADDER OBJECT, and the strongest FREE one**
-**0.82356 (n=9000) vs fresh greedy A0 0.78867 = +0.03489 at 5.93 se → CREDIT** (clears floor
-AND 2·se_diff). **Beats the gated search's IN-SAMPLE peak (0.82400) at GREEDY SPEED.** Two
-disclosures travel: **clustered se UNAVAILABLE by construction** (3 lanes = ONE committee, so
-the binomial governs — anti-conservative), and it licenses **"ensembling THESE three
-checkpoints at 100M", NEVER "ensembling helps"**. README row WAITS on the anchor battery.
+## **ENS3 CREDITS (+0.0349 vs SH; +0.067 off FP@20) — THE LADDER OBJECT, and the strongest FREE one**
+**0.82356 (n=9000) vs fresh greedy A0 0.78867 = +0.03489 at 5.93 se → CREDIT** (floor AND 2·se_diff); beats the
+gated search's in-sample peak (0.82400) at GREEDY SPEED. Disclosures: clustered se UNAVAILABLE by construction
+(one committee; the binomial governs, anti-conservative); licenses THESE checkpoints, never "ensembling helps".
 ## SEARCH at DEPTH-1 — the gate is the whole effect, and it is NOT CREDITED
 **D5: play search's action only if it beats the POLICY's argmax by > δ** (absent = no-op, golden digest;
 δ=inf = greedy). s112, n=3000/arm vs SH: **δ 0 → 0.74767, BELOW greedy's 0.78233** — the critic's own
@@ -52,7 +50,9 @@ unresolved (pre-stated branch: 6 lanes still preferred; NOT saturation).** E6MIX
 (spread 0.020 = noise) pool to +0.067 at 4.7 se: the committee's off-FP transfer is verdict-grade.** E6MIXF
 0.553 = −0.014 vs the pooled ENS3 (unresolved; three weaker members neither help nor hurt). E350F 0.537 vs
 fresh 50M greedy 0.501 / 0.501 / 0.473: gain +0.045 at 50M vs +0.067 at 100M (additive); committee doubling
-+0.030 ± 0.02. The R2-era 50M comparators (0.474 / 0.483 / 0.467) were a different FP build. FP@500 pending.
++0.030 ± 0.02. The R2-era 50M comparators (0.474 / 0.483 / 0.467) were a different FP build. **FP@500 (n=500,
+"500 ms" = 4 × 250 ms = 1 s/decision, ~41 s/battle): the committee reads 0.472** vs 0.567 at 20 ms — the
+stronger rung costs ~0.095; the greedy@500 reference was skipped for time, so "does the edge survive" is OPEN.
 
 ## ENSG — ensemble AS the search's prior+leaf value, with the gate. **A NULL ON BOTH AXES.**
 vs SH, n=3000 vs ENS3 b0: δ 0.05 **−0.002** (n=2900), **δ 0.10 +0.01500 at 1.6 se**, δ 0.20 **+0.008** —
