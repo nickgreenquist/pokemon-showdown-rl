@@ -11681,3 +11681,33 @@ line numbers are not — grep the date, then read that region):
   per-lane RSS 1.26–1.75 GB at steady state, so six lanes ≈ 8–11 GB of 24. Smoke dirs removed. Phase 2
   (off FP@20, nine arms, sequential, ~4 h) launched 23:00Z; `scripts/ens_width_readout.py` prints the
   pre-stated reads from disk with PENDING for anything not yet there.
+
+- 2026-09-12 (overnight, agent, cont. 2; maintainer asleep, 8-h timer to 09:35Z) — **THREE OPUS
+  REPORTS CONVERGE ON THE CRITIC; THE LAUNCH BLOCK IS NOW OPTION C.** (1) `MODEL_SCALE`: actor
+  626,059 / critic 494,849 / aux 49,479 by instantiation (the 674,763 in IDEAS is the gen-4 actor); at
+  our ~1e17 FLOP the RL scaling laws say not undersized, the AlphaZero-family self-play laws say
+  undersized; three on-policy sources (Andrychowicz, BRO, SimBa) say widen the VALUE net; width has
+  never been varied here (125 configs, one width). (2) `SELFPLAY_RECIPE`: the recipe is field-correct on
+  most axes; recommends L2 on half the fleet and LayerNorm in the ctx stack; its #1, an LR-anneal FLOOR
+  (240M on a 200M run) because approx_kl→1e-6 in the tail, is NOT adopted: the frozen rung evals
+  (n=9000/rung) show 85M→100M as the STEEPEST segment of the curve (0.762→0.792); recorded as a ruling
+  with both sides in [RWL-4]. (3) `MONSTER_BUNDLE`: every IDEAS row priced for THIS fleet; adds
+  `gae_lambda 1.0` (MC targets, the named cause of the critic rank collapse); NO to both-seat harvest on
+  the engine route (days of Rust), anything touching OBS_DIM, λ 0.75, epochs 2 (next), 250M; notes
+  seat_tag already IS IDEAS 2.2 and that LayerNorm drops ctx_net from the L2 anchor metrics.
+  **BUILT AND TESTED:** `trunk_kwargs.ctx_layernorm` (Linear→LayerNorm→ReLU in the ctx stack of both
+  nets; default off is an exact no-op; 39 tests green incl. the pinned param counts) — held for the
+  NEXT fleet because of the L2 interaction. Configs: `showdown_monster200m_{w,l2lam,wln,l2ln,c}.yaml`.
+  **RECOMMENDED LAUNCH ([RWL-1..8]):** every lane L2; trio W = L2 + critic value_sizes 1024 (seeds
+  104/112/120, ~54 h); trio L2LAM = L2 + λ 1.0 (128/136/144, ~45 h); two commands; k=8; anneal =
+  horizon; reads mechanism co-primary with pre-stated branches, off-FP@20 same-session re-draw picks the
+  committee, floor = the 100M ENS3. Smokes (400k, both configs, one lane killed for the resume test,
+  plus a torch_threads-2 probe) are armed to start automatically after the FP@500 arms (~07:00Z).
+  **Also:** `docs/proposals/ladder_r5.draft.yaml` (the committee as the ladder object, R4's rulings
+  inherited, six rulings owed); the plasticity probe agent (Lyle Def-1 refit on our own obs buffers,
+  runs after the last 20 ms arm); an FP@500 waiter mis-fired once (its own log line matched its grep)
+  and launched ENS3F500 on top of E350F for ~2 min — killed, sentinel anchored, the arm moved to its
+  rerun pair. Off-FP re-draws so far: greedy 100M 0.507/0.486/0.507 (era +0.002 → ENS3F +0.057 at
+  3.1 se); E6MIXF 0.553; E350F 0.537; G66F/G75F 0.501/0.501 (R2-era banked 0.474/0.483 were a
+  different FP build). **CLAUDE.md rule 6 added** after the maintainer's rebuke: a small-run null is
+  never evidence about a lever.
