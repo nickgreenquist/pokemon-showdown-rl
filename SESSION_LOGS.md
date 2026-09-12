@@ -11711,3 +11711,26 @@ line numbers are not — grep the date, then read that region):
   3.1 se); E6MIXF 0.553; E350F 0.537; G66F/G75F 0.501/0.501 (R2-era banked 0.474/0.483 were a
   different FP build). **CLAUDE.md rule 6 added** after the maintainer's rebuke: a small-run null is
   never evidence about a lever.
+
+- 2026-09-12 (overnight, agent, cont. 3) — **THE PLASTICITY PROBE FIRED ITS PLASTICITY-LOST BRANCH, AND
+  ALL THREE LAUNCH-CANDIDATE SMOKES ARE GREEN.** Probe (`docs/research_reports/PLASTICITY_PROBE_2026-09-12.md`,
+  `scripts/plasticity_probe.py`, Lyle Def-1 refit on our own D22 obs buffers, 41 min single-thread CPU,
+  protocol and branches written before the run): under an identical 6,000-step budget the 100M and 50M
+  CRITICS fit fresh random targets **R = 1.89 / 1.70 / 1.69 / 1.70× worse than a fresh init** (threshold
+  1.50; both lrs; second target draw R 2.1–2.3); their frozen features support no linear fit (R² 0.03 vs
+  0.71, closed-form confirmed); the loss is complete by 12M (R 1.04 at 500k → 1.69 at 12M → 1.89 at
+  100M) while ctx srank99 keeps falling 241 → 48; the actor's features stay full-rank (~370/384).
+  Correction the probe forces on the scale report: the "critic srank99 7–10/384" line was the D22
+  struct50m lineage; on the fleet's own lineage the critic reads 48–139/384. Directly supports L2 from
+  step 0; width only indirectly — re-run the probe on the W and L2 finals as a mechanism rung.
+  **Smokes** (400k, two lanes each, 03:59–04:20Z, run early because the FP@500 arm paces at ~40 s/battle
+  and would have pushed them past the deadline; disclosed on that arm): W — params actor 626,059 / critic
+  1,807,489; 1190 steps/s two-wide; l2init/* rising; adv_std 0.53→0.48; EV −0.25→0.48; no NaN; **lane 991
+  killed at step 122,992, detected dead 42 s later, RESUMED in its own session with rng + pool restored
+  from checkpoint.pt, finished at 400,016, watchdog exit RESUMES=1 NODE_RESTARTS=0.** L2LAM — critic
+  494,849; 1544 steps/s two-wide (the wide critic costs ~30% wall, as modelled); adv_std 1.02→0.91
+  (λ took, ~1.9× W's); EV −0.05→0.08, NOT comparable across trios (MC targets carry the outcome noise);
+  no NaN. W at torch_threads 2: 1278 steps/s (+7% two-wide; would contend six-wide) — threads stay 1.
+  All gates recorded in [RWL-6]; smoke dirs removed. Off FP@500: "500 ms" is 4 sampled battles at
+  250 ms = 1 s/decision, ~35–40 s/battle, twice the budget-ladder pre-reg's pricing; ENS3F500 (n=500)
+  ends ~08:50Z; G112F500 is auto-skipped at launch so nothing runs past the box-up.

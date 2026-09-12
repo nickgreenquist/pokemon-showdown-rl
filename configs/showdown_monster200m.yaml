@@ -51,7 +51,8 @@
 # [RWL-3] READS. PRIMARY (mechanism, W vs L2LAM at matched rungs, from the
 #   logged metrics): critic ctx srank99 AS A FRACTION OF WIDTH (1024 vs 384),
 #   dormant fraction at tau 0.025 and 0.1, loss/explained_variance (does the
-#   0.59 plateau move), loss/adv_std (must sit materially higher on L2LAM or
+#   0.59 plateau move -- comparable ONLY within a trio: lambda 1.0 targets
+#   carry the outcome noise, so L2LAM's EV reads far lower by construction), loss/adv_std (must sit materially higher on L2LAM or
 #   lambda did not take), l2init/* anchor distances. The critic's pre-
 #   activation norm is NOT logged today; say so rather than invent it.
 #   Pre-stated branches: srank99/width holds or rises on W -> width is live,
@@ -103,6 +104,19 @@
 #   watchdog with the engine interpreter, the theta0 hash guard passing, the
 #   wide critic reloading, from_step sane in meta.yaml. Plus one throughput
 #   probe: W with torch_threads 2 vs 1 (every measured rate is 1-thread).
+#   SMOKES RUN 2026-09-12 03:59-04:20Z (400k, two lanes each, a Foul Play
+#   FP@500 arm sharing the box): ALL GATES PASSED. W: params actor 626,059 /
+#   critic 1,807,489 / aux 49,479; whole-lane 1190 steps/s two-wide; l2init/*
+#   present and rising (ctx_net anchor 6.16); adv_std 0.53->0.48; EV -0.25->
+#   0.48; entropy 1.80->1.30; no NaN; lane 991 killed at step 122,992, detected
+#   dead 42 s later, RESUMED in its own session (from_step 122992, rng and pool
+#   restored from checkpoint.pt), finished at 400,016, watchdog exit RESUMES=1
+#   NODE_RESTARTS=0. L2LAM: params actor 626,059 / critic 494,849; 1544 steps/s
+#   two-wide (so the wide critic costs ~30% wall, as modelled); l2init/* rising;
+#   adv_std 1.02->0.91 (lambda took: ~1.9x W's); EV -0.05->0.08 -- NOT
+#   comparable to W's 0.48, since MC targets carry the outcome noise; entropy
+#   1.79->1.38; no NaN. W at torch_threads 2: 1278 steps/s two-wide (+7%), which
+#   would contend at six lanes on 10 P-cores -- torch_threads stays 1.
 # [RWL-7] CONSIDERED AND NOT BUNDLED (so the maintainer sees the rejects):
 #   LayerNorm in the context stack is BUILT and tested tonight
 #   (trunk_kwargs.ctx_layernorm; configs _wln/_l2ln exist) but stays out of
