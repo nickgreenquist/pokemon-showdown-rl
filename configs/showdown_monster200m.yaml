@@ -27,6 +27,14 @@
 #   cleanly and the committee gets two genuinely different critics. No plain-A
 #   lanes: the 100M finals already ARE the plain recipe, and our own read
 #   prices the last step-doubling at +0.001 vs SH on the committee.
+#   PLASTICITY PROBE (2026-09-12 04:00Z, results/plasticity_probe/probe.json,
+#   Lyle Def-1 refit on our own obs buffers, CPU-only): the trained CRITIC fits
+#   fresh random targets 2.3x WORSE than a fresh init (held-out 0.128 vs 0.055,
+#   FULL; head-only 1.01 vs 0.32, i.e. its frozen features fit nothing), and it
+#   is already so at the 12M rung (0.132) while ctx srank99 keeps falling
+#   241 -> 48 to 100M; the actor degrades far less (0.023 vs 0.004). That is
+#   the PLASTICITY-LOST branch: regularise from step 0 (L2 on every lane), and
+#   both critic-directed trios are the right pair.
 #   Option A (six lanes of this file) and option B (3 x L2 + 3 x arm C) stay
 #   available; arm B is dropped (bitwise arm A; its head feeds nothing) and
 #   arm C is not recommended (its falsifier cannot fire; never run on the

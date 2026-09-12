@@ -2,8 +2,7 @@
 ## JOURNEY POSITION — step 7.5 (engine port) **EXITED 2026-09-10**; next is gen-1 step 8/10
 **GEN-4 CLOSED (RESULTS §19):** steps 3/5 MET, vs SH 0.8788, CREDITS NOTHING. **LADDER R4:
 GXE 65.2 / Glicko 1618 ± 25 / Elo 1354, n=200. From here it is all gen 1.**
-**JOURNEY 7.5 engine port EXITED. A-1 PASSED TWICE** (12M, n=12,000/seed: 0.66775 vs banked
-async 0.67211, **−0.00436, a signed delta that travels forever**; `docs/engine_port/NOTES.md`).
+**JOURNEY 7.5 engine port EXITED; A-1 PASSED TWICE** (0.66775 vs async 0.67211, **−0.00436 travels forever**; `docs/engine_port/NOTES.md`).
 Engine rates at k=8, measured idle: **w3 1620, w6 1282 steps/s/lane** → 6×200M ≈ 43 h.
 ## **ENS3 CREDITS (+0.0349) — STILL THE LADDER OBJECT, and the strongest FREE one**
 **0.82356 (n=9000) vs fresh greedy A0 0.78867 = +0.03489 at 5.93 se → CREDIT** (clears floor
@@ -29,9 +28,8 @@ N plies on the banked matrix); account + review addendum in `docs/search_relook/
 n=900 each vs S3G10 (0.8189 on the same 900 seeds), UNPAIRED se ≈ 0.019 (seeds do NOT pair — Watch items).
 - **Tree: depth is a NULL.** Two exact-config replicates per depth. Depth 1: TSAMP1 0.8144, TQV 0.7778
   (0.037 apart at n=900); depth ~3: TSAMP 0.7900, TQV8 0.7944. **Pooled 0.7961 vs 0.7922 = −0.004 ± 0.013.**
-  The 16:14 STATUS reported TSAMP1/TSAMP only; TQV/TQV8 were on disk since 13:50 and unreported. The
-  depth-1 tree sits −0.023 (−1.7 se) under the banked matrix pooled — "the control reproduces the
-  matrix" held for one replicate of two.
+  The 16:14 STATUS reported TSAMP1/TSAMP only; TQV/TQV8 were on disk and unreported. The depth-1 tree sits
+  −0.023 (−1.7 se) under the banked matrix pooled: "the control reproduces the matrix" held for one of two.
 - **Matrix: the −0.094 (−4.6 se) at +2 plies is an OVERRIDE-RATE effect, not depth.** At δ 0.10 the deep
   arms override 16.5–20.1% of decisions vs S3G10's 8.3%; at matched override (D3G40, δ 0.40, 2.9%) depth 3
   reads **−0.017 ± 0.023 at n=600**. A deeper backup needs a recalibrated δ; nobody has swept it.
@@ -39,9 +37,8 @@ n=900 each vs S3G10 (0.8189 on the same 900 seeds), UNPAIRED se ≈ 0.019 (seeds
   reaches 2.44 / 3.08 / 3.56 plies at 20 / 200 / 2000 ms — FP@20 searches ~depth 2.4; our tree exceeds it.
 - **Licensed: "no evidence depth helps at these budgets and this δ." Barred: "depth hurts", "monotone".**
   Engine-native depth-2 ruling still owed; a δ sweep for deep backups is the cheap first step.
-- PokeAgent paper (re-verified from our PDF): Foul Play #1 Gen 9 OU / #8 Gen 1 OU; PA-Agent (no search)
-  won Gen 1. That is an OU TEAM-BUILDING ladder rank — the paper calls set prediction "critical" there —
-  so it does not show search underperforms in gen-1 randbats. Quote it; do not infer from it.
+- PokeAgent paper (re-verified from our PDF): Foul Play #1 Gen 9 OU / #8 Gen 1 OU; PA-Agent (no search) won
+  Gen 1 — an OU TEAM-BUILDING ladder rank (set prediction is "critical" there); it says nothing about randbats.
 
 ## ENSEMBLE SCALING — members 4–6 MEASURED (the 50M finals as extra members; `configs/eval/ens_width*.yaml`)
 b0 member curve, 1→6: **0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400** (members 4–6 are WEAKER
@@ -72,8 +69,11 @@ real null, not a void arm. The gate adds nothing to the committee anywhere; sub-
    actor is 626,059 params, at parity with the closest pure-self-play comparable. Reports (2026-09-12):
    `docs/research_reports/MODEL_SCALE_*`, `SELFPLAY_RECIPE_*`, `MONSTER_BUNDLE_*`. **BUILT tonight:** gated
    LayerNorm in the ctx stack (tested; next fleet — it muddies L2's instruments), configs W and L2LAM.
-3. **Plasticity probe running** (`PLASTICITY_PROBE_*`): does the 100M final still fit fresh targets like a
-   fresh init? Its pre-stated branches re-weight the two trios; none blocks the launch. Smokes run ~07:00Z.
+3. **Plasticity probe (`PLASTICITY_PROBE_*`, `results/plasticity_probe/probe.json`): PLASTICITY LOST in the
+   CRITIC** — the 100M final fits fresh random targets 2.3× worse than a fresh init (held-out 0.128 vs 0.055;
+   head-only 1.01 vs 0.32, i.e. the frozen features fit nothing), and it is ALREADY SO AT 12M (0.132) while
+   ctx srank99 keeps falling 241 → 48; the actor degrades far less. Supports regularising from step 0 (L2 on
+   every lane) plus critic capacity (W) and MC targets (L2LAM). Smokes running now (started 03:59Z).
 
 ## Next actions
 0. **GOAL: "AS HIGH AS POSSIBLE".** R4 hit Elo 1354 vs a 1358.999 cutoff. Targets: H&L 1677 / ps-ppo 1725 /
