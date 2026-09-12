@@ -6,72 +6,112 @@
 # else, including k=8 and the collector mode, is unchanged.
 #
 # =====================================================================
-# LAUNCH BLOCK, 2026-09-11 (night, review session). RECOMMENDATIONS FOR THE
-# 2026-09-12 LAUNCH, EACH TAGGED [RWL-n]; THE MAINTAINER RATIFIES BY EDITING
-# THIS BLOCK AND COMMITTING BEFORE LAUNCH (CLAUDE.md rule 3). Everything
-# below this block is the 100M draft's header, inherited verbatim; where it
-# conflicts with this block, this block wins ONCE RATIFIED and not before.
+# LAUNCH BLOCK, 2026-09-12 02:30Z (overnight review session; supersedes the
+# 2026-09-11 block). RECOMMENDATIONS FOR THE 2026-09-12 LAUNCH, EACH TAGGED
+# [RWL-n]; THE MAINTAINER RATIFIES BY EDITING THIS BLOCK AND COMMITTING BEFORE
+# LAUNCH (CLAUDE.md rule 3). Everything below this block is the 100M draft's
+# header, inherited verbatim; where it conflicts, this block wins ONCE RATIFIED.
+# Inputs: docs/research_reports/MODEL_SCALE_2026-09-12.md, SELFPLAY_RECIPE_
+# 2026-09-12.md, MONSTER_BUNDLE_2026-09-12.md, PLASTICITY_PROBE_2026-09-12.md
+# (pending), and the overnight width screen (configs/eval/ens_width*.yaml).
 #
-# [RWL-1] ARMS: A ONLY. Arm B is bitwise arm A plus a head that feeds nothing
-#   (rl/agents/ppo.py:513; no consumer outside ppo.py; no search seam reads
-#   it), and its only planned consumer -- search -- is null twice over (EG10
-#   -0.00044 at depth-1; ENSGF - ENS3F = +0.001 off FP@20, pre-registered).
-#   Arm C's falsifier cannot fire (both pre-launch reviews) and D18 was
-#   vacated at lambda 1.0, not 0.95: DROPPED unless re-specified. This file
-#   IS arm A; showdown_monster100m_b.yaml / _c.yaml are not launched.
-# [RWL-2] WIDTH: SIX LANES, seeds 104 112 120 128 136 144 (rule 2: distinct
-#   across the fleet; the 100M finals' seeds are reused deliberately -- their
-#   run dirs differ by TAG and their seat names are tag-derived, section (A1)).
-#   ~43 h at the idle w6 rate (1282 steps/s/lane, STATUS), inside the 3-4 day
-#   window; six lanes are ~11 GB of the box's 24 (nine-wide was refused at
-#   16.4 GB). Six lanes buy the 200M horizon read (three fresh seeds), TWO
-#   3-committees (the clustered se the ENS3 credit lacks) and a 6-member
-#   committee; three lanes buy only the first. "Members saturate at 3" was
-#   WITHDRAWN by the 2026-09-11 review (the 2->3 gain sits inside ENS3's own
-#   batch spread; the last step-doubling was +0.024 off-FP, NOT credited);
-#   configs/eval/ens_width*.yaml measures members 4-6 overnight and moves this
-#   to 3 x 200M only if extra members HURT.
-# [RWL-3] PRIMARY READ: off FP@20 (locked FP budget; both FP disclosures
-#   travel), greedy, n=3000/lane, the six 200M finals vs the three 100M finals
-#   RE-DRAWN IN THE SAME SESSION on fresh usernames -- never the 2026-09-03
-#   t1xx numbers (the era_diff rule, search_s3_100m.yaml; protocol rehearsed
-#   in configs/eval/ens_width_offfp.yaml). Aggregator: equal-weight mean of
-#   the six lanes minus the mean of the three re-drawn 100M lanes; se_diff the
-#   LARGER of pooled-binomial and seed-clustered (k=6 vs k=3). Credit line
-#   verbatim, section (K) below. vs SH at the locked protocol is SECONDARY
-#   (saturated at ~0.79). Committee reads (ENS3 of any three, ENS6) are
-#   DESCRIPTIVE, pick the ladder object, and credit nothing.
+# [RWL-1] ARMS -- OPTION C, RECOMMENDED: every lane carries regenerative L2
+#   toward init (agent.l2_init_decay 0.02); trio W adds a 1024-wide CRITIC
+#   (showdown_monster200m_w.yaml: trunk_kwargs.value_sizes [1024,1024]); trio
+#   L2LAM adds Monte-Carlo value targets (showdown_monster200m_l2lam.yaml:
+#   gae_lambda 1.0). Every evidence line tonight points at the CRITIC as the
+#   bottleneck (context-stack rank collapse, explained variance flat at ~0.59
+#   from mid-run, three on-policy sources say widen the value net not the
+#   actor), and the two trios attack it by capacity and by bootstrapping
+#   respectively, at matched regularisation, on separate lanes so each reads
+#   cleanly and the committee gets two genuinely different critics. No plain-A
+#   lanes: the 100M finals already ARE the plain recipe, and our own read
+#   prices the last step-doubling at +0.001 vs SH on the committee.
+#   Option A (six lanes of this file) and option B (3 x L2 + 3 x arm C) stay
+#   available; arm B is dropped (bitwise arm A; its head feeds nothing) and
+#   arm C is not recommended (its falsifier cannot fire; never run on the
+#   engine route with the oppact head beyond a 10-update seam check).
+# [RWL-2] WIDTH, SEEDS, HOURS: six lanes, distinct seeds (rule 2) -- W trio
+#   104 112 120, L2LAM trio 128 136 144. Modelled from the measured idle rates
+#   (1282 steps/s/lane six-wide; update 65% of wall): L2LAM trio ~45 h, W trio
+#   ~54 h (the critic never runs at collection; +9.7 h over L2 alone), inside
+#   the 72-96 h window with ~20 h of slack for resumes. Memory ~11 GB of 24
+#   (1.26-1.75 GB/lane measured on the smoke; W adds ~21 MB/lane). Disk: the
+#   inherited DISK block is 100M x 9-shaped; at 200M x 6 it is 400 rungs/lane
+#   (checkpoint_every 500k) and ~800 in-loop evals/lane -- ~70 GB against
+#   ~146 GB free; fits, re-check the free space on launch night.
+# [RWL-3] READS. PRIMARY (mechanism, W vs L2LAM at matched rungs, from the
+#   logged metrics): critic ctx srank99 AS A FRACTION OF WIDTH (1024 vs 384),
+#   dormant fraction at tau 0.025 and 0.1, loss/explained_variance (does the
+#   0.59 plateau move), loss/adv_std (must sit materially higher on L2LAM or
+#   lambda did not take), l2init/* anchor distances. The critic's pre-
+#   activation norm is NOT logged today; say so rather than invent it.
+#   Pre-stated branches: srank99/width holds or rises on W -> width is live,
+#   size the next fleet on the curve; srank99 stays pinned near 7-10 absolute
+#   at 2.67x width -> a MEASURED CEILING, capacity is confirmed idle (this is
+#   the only kind of kill rule 6 permits); EV and norms move but win rate does
+#   not -> the bottleneck is signal, and the next lever is denser self-play
+#   targets. SECONDARY (descriptive, picks the ladder object): off FP@20,
+#   greedy, n=3000/lane, the six finals vs the three 100M finals RE-DRAWN IN
+#   THE SAME SESSION on fresh usernames (never the 2026-09-03 numbers; the
+#   protocol is configs/eval/ens_width_offfp.yaml); vs SH at the locked
+#   protocol; both FP@20 disclosures travel. Committees read: ENS3 of each
+#   trio, ENS6 mixed, ENS9 with the 100M finals; the ladder object is the best
+#   of those off FP@20, and the FLOOR is the 100M ENS3 (0.82356 vs SH, 0.557
+#   off FP@20). Credit line verbatim in section (K); nothing here is a credit.
 # [RWL-4] k = 8, unchanged (section (C)). total_steps = lr_anneal_steps =
-#   200,000,000 (checked by the launcher; rl/train.py:433 refuses otherwise).
-# [RWL-5] COMMAND, one line, from a clean tree with Node up (the launcher's
-#   default PY is the pkmn-engine-port env):
-#   bash scripts/monster_fleet.sh configs/showdown_monster200m.yaml 200000000 104 112 120 128 136 144
-#   Before leaving: sudo pmset -c sleep 0 disksleep 0; 'Install macOS
-#   updates' OFF (it was ON on 2026-09-11); lid OPEN; VS Code and Chrome quit.
-#   The launcher holds its own caffeinate; the watchdog restarts Node.
-# [RWL-6] OWED AT READOUT: RESUMES= and NODE_RESTARTS= from the watchdog's
-#   exit line; every resume's from_step from meta.yaml; the /timer disclosure
-#   line; the gen-1 anchor battery legs (BC-clone h2h PENDING) before any
-#   README row; and a same-session ENS3-of-100M re-draw next to any ENS6.
-# [RWL-7] OPTION B, 2026-09-12 (the session's recommendation after the
-#   maintainer asked about L2 and the privileged critic; NOT RATIFIED):
-#   THREE LANES OF ARM L2 + THREE LANES OF ARM C, no plain-A lanes.
-#   Arm L2 = showdown_monster200m_l2.yaml (one key: agent.l2_init_decay 0.02,
-#   regenerative L2 toward init -- the standard plasticity regulariser for a
-#   long run; -3.2% throughput). Arm C = showdown_monster200m_c.yaml (design
-#   A privileged critic: `privileged_dim: 408`, the critic sees obs || the
-#   opponent's true block, the AlphaStar / MAPPO form; near-zero cost). The
-#   100M finals stand in as the plain recipe at the shorter horizon; the
-#   ladder object is the six-member mixed committee, or ENS3 of whichever
-#   arm reads better off-FP; if one lever hurts, the other trio is the
-#   fallback. THE PRICE: "more steps" becomes a descriptive read (two levers
-#   ride with the horizon). BOTH configs need a 400k smoke through the
-#   launcher before Saturday (arm C has never run on the engine route with
-#   the oppact head beyond a 10-update seam check). Two commands, in order:
-#   bash scripts/monster_fleet.sh configs/showdown_monster200m_l2.yaml 200000000 104 112 120
-#   bash scripts/monster_fleet.sh configs/showdown_monster200m_c.yaml 200000000 128 136 144
-#   (two watchdogs, two caffeinates; the second launch's "rl.train already
-#   running" line is expected). Option A stays [RWL-2]: six lanes of this file.
+#   200,000,000 (checked by the launcher; rl/train.py:433 refuses a shorter
+#   anneal). THE LR-ANNEAL FLOOR (two of tonight's agents' top item:
+#   lr_anneal_steps 240M so the tail keeps 17% of the lr and L2 stays armed) is
+#   NOT ADOPTED for this fleet, and the maintainer should see both sides: the
+#   case for it is that per-update approx_kl reaches ~1e-6 and clip_frac 0 in
+#   the final rungs, so the last few percent of steps move the policy almost
+#   nothing; the case against it is the frozen rung evals of the 100M lanes
+#   (n=9000/rung, results/ch5_100m/sshape): pooled 0.7622 (85M) -> 0.7738 ->
+#   0.7826 -> 0.7920 (100M), the STEEPEST segment of the whole curve, exactly
+#   where the anneal is in its tail -- the anneal's consolidation is measured
+#   to pay, a floor is unmeasured, JOURNEY 10's clause is verbatim, and an
+#   unattended fleet is not where to find out. It is a pre-registered arm for
+#   the next fleet (with the free post-hoc antidote, weight-averaging of the
+#   last rungs, tested first on this fleet's rungs). Ruling owed either way.
+# [RWL-5] COMMANDS, in this order (W first: it is the long pole), each from a
+#   clean tree with Node up (the launcher's default PY is the pkmn-engine-port
+#   env; the second launch's "rl.train already running" line is expected;
+#   two watchdogs, two caffeinates):
+#   bash scripts/monster_fleet.sh configs/showdown_monster200m_w.yaml 200000000 104 112 120
+#   bash scripts/monster_fleet.sh configs/showdown_monster200m_l2lam.yaml 200000000 128 136 144
+#   Before leaving: sudo pmset -c sleep 0 disksleep 0; 'Install macOS updates'
+#   OFF (it was ON on 2026-09-11); lid OPEN; VS Code and Chrome quit. The
+#   launcher holds its own caffeinate; the watchdog restarts Node.
+# [RWL-6] SMOKES OWED BEFORE LAUNCH (agent, night of 2026-09-12, after the FP
+#   arms clear the box), 400k steps through the launcher for BOTH configs, each
+#   gated on: preflight green; meta.yaml params actor 626,059 on both and
+#   critic 1,807,489 (W) / 494,849 (L2LAM); l2init/* keys present and rising;
+#   loss/adv_std higher on L2LAM than on W at matched step; no NaN in loss/*;
+#   rate >= ~1000 steps/s/lane for W and >= ~1200 for L2LAM two-wide (if W is
+#   under ~900 the cost model is wrong: drop to value_sizes [768,768] or drop
+#   W); and THE RESUME TEST -- one lane killed mid-run and brought back by the
+#   watchdog with the engine interpreter, the theta0 hash guard passing, the
+#   wide critic reloading, from_step sane in meta.yaml. Plus one throughput
+#   probe: W with torch_threads 2 vs 1 (every measured rate is 1-thread).
+# [RWL-7] CONSIDERED AND NOT BUNDLED (so the maintainer sees the rejects):
+#   LayerNorm in the context stack is BUILT and tested tonight
+#   (trunk_kwargs.ctx_layernorm; configs _wln/_l2ln exist) but stays out of
+#   this fleet: it removes ctx_net from the L2 anchor metrics and makes the
+#   ctx Linears partly gauge-free under L2, muddying both instruments -- it is
+#   the next fleet's lever. Also out: the both-seat harvest (engine route:
+#   days of Rust work plus a re-gate), anything touching OBS_DIM (C6, temporal
+#   context, cross features -- they break the 100M finals as committee
+#   members), lambda 0.75, epochs 2 (a real candidate, but a dose change with
+#   no local read; screen it next), 250M (the last doubling bought ~nothing on
+#   the committee), value clipping, entropy changes, seed-sharing across arms
+#   (seat_tag is built -- IDEAS 2.2 is DONE -- but pairing trades away the
+#   committee diversity the ladder object monetises).
+# [RWL-8] OWED AT READOUT: RESUMES= and NODE_RESTARTS= from each watchdog's
+#   exit line; every resume's from_step from meta.yaml; the /timer disclosure;
+#   the gen-1 anchor battery legs (BC-clone h2h PENDING) before any README row;
+#   the same-session 100M re-draw next to any ENS6/ENS9; and the ladder R5
+#   pre-reg (docs/proposals/ladder_r5.draft.yaml) pinned to the chosen committee.
 # =====================================================================
 # STATUS: DRAFT 2026-09-10. NOTHING RATIFIED, NO VERDICT AUTHORIZED, NO
 #   LAUNCH AUTHORIZED. Every [RWM-n] tag below marks a RECOMMENDATION, never
