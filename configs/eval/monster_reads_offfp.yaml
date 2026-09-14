@@ -1,0 +1,150 @@
+title: monster_reads_offfp
+status: "REGISTERED 2026-09-14 (agent, under the maintainer's 2026-09-14 rulings; protocol = [RWL-3] of configs/showdown_monster200m.yaml, rehearsed by configs/eval/ens_width_offfp.yaml). CREDITS NOTHING. PICKS THE LADDER OBJECT."
+journey_step: "10"
+credits_nothing: true
+results_dir: results/monster_reads_offfp
+
+# THE OFF-FOUL-PLAY HALF of the monster's [RWL-3] SECONDARY read, and THE
+# READ THAT PICKS LADDER R5's OBJECT (M-R5-1). Everything is off FP@20
+# (search_time_ms 20 PER ARM; the MA-10 failure is a mis-set budget that
+# yields an indistinguishable JSON), greedy or committee, n=3000 per arm
+# ([RWL-3]: "greedy, n=3000/lane, the six finals vs the three 100M finals
+# RE-DRAWN IN THE SAME SESSION on fresh usernames (never the 2026-09-03
+# numbers)"), SEQUENTIAL: FP's budget is WALL-CLOCK; a second concurrent Foul
+# Play would weaken both opponents and flatter both seats.
+#
+# TWO PHASES, BECAUSE THE TRIOS LAND ~12 h APART (maintainer 2026-09-14: the
+# L2LAM reads may start while W trains "if it doesn't massively slow down
+# train or break anything"; scripts/monster_reads_queue.sh holds phase A if
+# the W trio's steps/s falls >10% under its post-L2LAM baseline):
+#   PHASE A (L2LAM exited; W trio still training, 3 of 14 cores):
+#     GL128F GL136F GL144F  greedy L2LAM finals
+#     E3LF                  ENS3 of the L2LAM trio
+#     G104R G112R G120R     greedy 100M finals, RE-DRAWN (the comparator)
+#   PHASE B (W exited; idle box):
+#     GW104F GW112F GW120F  greedy W finals
+#     E3WF                  ENS3 of the W trio
+#     E6MF                  ENS6 = W trio + L2LAM trio
+#     E9F                   ENS9 = the six + the three 100M finals
+#     E3HF                  ENS3 of the 100M trio, fresh -- THE FLOOR, same session
+#     G112B                 greedy s112 again, n=1000: the LOAD BRIDGE (same
+#                           object as G112R, phase A) -- diagnostic only
+# LOAD DISCLOSURE, stated up front: phase A's Foul Play ran beside three
+# training lanes, phase B's on an idle box. The bridge G112B-G112R reads the
+# load term at se ~0.018; anything under that is invisible and is disclosed as
+# such. Every L2LAM-vs-100M comparison is WITHIN phase A; every W-vs-100M
+# comparison crosses phases and carries the bridge next to it.
+#
+# READS, stated before any arm runs. Unpaired two-proportion se: at p~0.5,
+# se_diff ~0.0129 arm-vs-arm at n=3000; ~0.0105 arm-vs-pooled-9000.
+#   R1 THE LADDER OBJECT (M-R5-1). Candidates: E3WF, E3LF, E6MF, E9F. FLOOR:
+#      E3HF (the 100M ENS3, same session; banked 0.557 / 0.577 at n=1000,
+#      2026-09-11/12). Rule: the candidate with the highest point estimate;
+#      if the top two are within 1 se_diff (0.013), the LARGER committee
+#      (members are the credited direction, STATUS "ensemble scaling"). If no
+#      candidate reaches E3HF - 0.013, the ladder object is the 100M ENS3
+#      itself (the floor is a floor). Committee cost at ladder speed is
+#      1-30 ms per decision for 3-9 members (M-R5-4 band) -- no size penalty.
+#   R2 STEPS PER RECIPE: mean(GW*F) - mean(G*R) and mean(GL*F) - mean(G*R),
+#      each pooled n=9000 vs n=9000 (se_diff ~0.0074): does 200M under each
+#      recipe beat the 100M greedy off FP@20? DESCRIPTIVE ([RWL-3]).
+#   R3 RECIPE: mean(GW*F) vs mean(GL*F), pooled 9000 vs 9000, crossing phases
+#      (bridge disclosed). The mechanism co-primary ([RWL-3] PRIMARY) is read
+#      from the logged metrics, not here.
+#   R4 COMMITTEE GAIN PER TRIO: E3WF - mean(GW*F), E3LF - mean(GL*F), vs the
+#      100M's +0.067 (n=2000 vs 3000). Additive across horizon or not.
+#   R5 MEMBERS: E9F vs E6MF vs the better ENS3: do the 100M finals still add
+#      to a 200M committee? (ens_width read R2's twin at 200M.)
+# Credit line, verbatim (CLAUDE.md), because the file must carry it: "a lever
+# is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is
+# the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff,
+# the latter computed from the per-seed finals at read time." NOTHING HERE IS
+# A CREDIT ([RWL-3]). The ladder pick is a descriptive selection under R1.
+#
+# DISCLOSURES THAT TRAVEL WITH EVERY FP@20 NUMBER, FOREVER (CLAUDE.md): the
+# equivalence test is weakly powered, and the point estimate flatters us. The
+# budget is NAMED in every quote. FP@20 is an instrument, not a rung; nothing
+# here is a ladder projection in either direction.
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: TBD, sha256: TBD, step: TBD}   # pinned by scripts/monster_reads_pin.py --trio w
+  w112: {path: TBD, sha256: TBD, step: TBD}   # pinned by scripts/monster_reads_pin.py --trio w
+  w120: {path: TBD, sha256: TBD, step: TBD}   # pinned by scripts/monster_reads_pin.py --trio w
+  l128: {path: TBD, sha256: TBD, step: TBD}   # pinned by scripts/monster_reads_pin.py --trio l
+  l136: {path: TBD, sha256: TBD, step: TBD}   # pinned by scripts/monster_reads_pin.py --trio l
+  l144: {path: TBD, sha256: TBD, step: TBD}   # pinned by scripts/monster_reads_pin.py --trio l
+  s104: {path: runs/showdown_sp_100m_s104/ckpt_100000027.pt, sha256: 16a6f02064e4c71ddecec08122a60f2ba363cea237761c9cda01a1c2ce5914ff, step: 100000027}
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3, step: 100000008}
+  s120: {path: runs/showdown_sp_100m_s120/ckpt_100000080.pt, sha256: db5d07d2096e021cb74deaf86c1feb2134954a35e042392680d568a185320287, step: 100000080}
+
+usernames:
+  scheme: "mr<arm><role>. The prefix `mr` is issued to NO existing name (0 of the 218 names in configs/eval/*.yaml start with it; training seats are as2s...), so every name here is prefix-free against the inventory; pairwise prefix-freeness is checked by scripts/monster_reads_queue.sh before the first arm launches. A killed arm's pair is poisoned for hours -- re-run it on its rerun pair, never on the original."
+  never_reuse: [c4, r4anchor, ch3, ch4, ch5r1, ch5r2, ch5c1, fplad, s3fp, blfp, eof, ew]
+  pairs:
+    GL128F: {seat: mrgl128seat, fp: mrgl128bot}
+    GL136F: {seat: mrgl136seat, fp: mrgl136bot}
+    GL144F: {seat: mrgl144seat, fp: mrgl144bot}
+    E3LF:   {seat: mre3lseat,   fp: mre3lbot}
+    G104R:  {seat: mrg104seat,  fp: mrg104bot}
+    G112R:  {seat: mrg112seat,  fp: mrg112bot}
+    G120R:  {seat: mrg120seat,  fp: mrg120bot}
+    GW104F: {seat: mrgw104seat, fp: mrgw104bot}
+    GW112F: {seat: mrgw112seat, fp: mrgw112bot}
+    GW120F: {seat: mrgw120seat, fp: mrgw120bot}
+    E3WF:   {seat: mre3wseat,   fp: mre3wbot}
+    E6MF:   {seat: mre6mseat,   fp: mre6mbot}
+    E9F:    {seat: mre9seat,    fp: mre9bot}
+    E3HF:   {seat: mre3hseat,   fp: mre3hbot}
+    G112B:  {seat: mrgbseat,    fp: mrgbbot}
+  rerun_pairs:
+    GL128F: {seat: mrgl128r2seat, fp: mrgl128r2bot}
+    GL136F: {seat: mrgl136r2seat, fp: mrgl136r2bot}
+    GL144F: {seat: mrgl144r2seat, fp: mrgl144r2bot}
+    E3LF:   {seat: mre3lr2seat,   fp: mre3lr2bot}
+    G104R:  {seat: mrg104r2seat,  fp: mrg104r2bot}
+    G112R:  {seat: mrg112r2seat,  fp: mrg112r2bot}
+    G120R:  {seat: mrg120r2seat,  fp: mrg120r2bot}
+    GW104F: {seat: mrgw104r2seat, fp: mrgw104r2bot}
+    GW112F: {seat: mrgw112r2seat, fp: mrgw112r2bot}
+    GW120F: {seat: mrgw120r2seat, fp: mrgw120r2bot}
+    E3WF:   {seat: mre3wr2seat,   fp: mre3wr2bot}
+    E6MF:   {seat: mre6mr2seat,   fp: mre6mr2bot}
+    E9F:    {seat: mre9r2seat,    fp: mre9r2bot}
+    E3HF:   {seat: mre3hr2seat,   fp: mre3hr2bot}
+    G112B:  {seat: mrgbr2seat,    fp: mrgbr2bot}
+
+# `seat` (not `lanes`) on greedy_seat; `lanes` (not `seat`) on ensemble_seat --
+# both directions are asserted by scripts/ch3_fp_h2h.py and the wrong one
+# silently rates a single lane.
+arms:
+  # PHASE A
+  GL128F: {kind: greedy_seat,   seat: l128, battles: 3000, search_time_ms: 20, seat_username: mrgl128seat, fp_username: mrgl128bot}
+  GL136F: {kind: greedy_seat,   seat: l136, battles: 3000, search_time_ms: 20, seat_username: mrgl136seat, fp_username: mrgl136bot}
+  GL144F: {kind: greedy_seat,   seat: l144, battles: 3000, search_time_ms: 20, seat_username: mrgl144seat, fp_username: mrgl144bot}
+  E3LF:   {kind: ensemble_seat, lanes: [l128, l136, l144], battles: 3000, search_time_ms: 20, seat_username: mre3lseat, fp_username: mre3lbot}
+  G104R:  {kind: greedy_seat,   seat: s104, battles: 3000, search_time_ms: 20, seat_username: mrg104seat, fp_username: mrg104bot}
+  G112R:  {kind: greedy_seat,   seat: s112, battles: 3000, search_time_ms: 20, seat_username: mrg112seat, fp_username: mrg112bot}
+  G120R:  {kind: greedy_seat,   seat: s120, battles: 3000, search_time_ms: 20, seat_username: mrg120seat, fp_username: mrg120bot}
+  # PHASE B
+  GW104F: {kind: greedy_seat,   seat: w104, battles: 3000, search_time_ms: 20, seat_username: mrgw104seat, fp_username: mrgw104bot}
+  GW112F: {kind: greedy_seat,   seat: w112, battles: 3000, search_time_ms: 20, seat_username: mrgw112seat, fp_username: mrgw112bot}
+  GW120F: {kind: greedy_seat,   seat: w120, battles: 3000, search_time_ms: 20, seat_username: mrgw120seat, fp_username: mrgw120bot}
+  E3WF:   {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3000, search_time_ms: 20, seat_username: mre3wseat, fp_username: mre3wbot}
+  E6MF:   {kind: ensemble_seat, lanes: [w104, w112, w120, l128, l136, l144], battles: 3000, search_time_ms: 20, seat_username: mre6mseat, fp_username: mre6mbot}
+  E9F:    {kind: ensemble_seat, lanes: [w104, w112, w120, l128, l136, l144, s104, s112, s120], battles: 3000, search_time_ms: 20, seat_username: mre9seat, fp_username: mre9bot}
+  E3HF:   {kind: ensemble_seat, lanes: [s104, s112, s120], battles: 3000, search_time_ms: 20, seat_username: mre3hseat, fp_username: mre3hbot}
+  G112B:  {kind: greedy_seat,   seat: s112, battles: 1000, search_time_ms: 20, seat_username: mrgbseat,   fp_username: mrgbbot}
+
+# Most decision-relevant first within each phase, so an early stop still
+# leaves a read: the committee candidates and the floor before the singles.
+run_order_phase_a: [E3LF, GL128F, GL136F, GL144F, G112R, G104R, G120R]
+run_order_phase_b: [E3WF, E6MF, E9F, E3HF, GW104F, GW112F, GW120F, G112B]
+
+comparators_banked:
+  greedy_offfp20_100m_fresh_2026_09_11: {s104: 0.486, s112: 0.507, s120: 0.507, mean: 0.500, n: 1000 each, source: results/ens_width_offfp/g1*.json}
+  ens3f_offfp20: {ens3f: 0.557, ens3fr: 0.577, pooled: 0.567, n: 1000 each, source: results/ens_offfp/ens3f.json + results/ens_width_offfp/ens3fr.json}
+  e6mixf_offfp20: {rate: 0.553, n: 1000, source: results/ens_width_offfp/e6mixf.json}
+  ens3f500_offfp500: {rate: 0.472, n: 500, source: results/ens_width_offfp/ens3f500.json, note: "4 x 250 ms = 1 s/decision; the greedy@500 reference was never run"}

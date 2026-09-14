@@ -11744,3 +11744,28 @@ line numbers are not — grep the date, then read that region):
   thread plasticity probe shared the box with it; both FP@20 disclosures travel; nothing here projects to
   the ladder. Session ends at the 09:35Z deadline with the tree clean; the morning asks are in STATUS
   next-actions 1–2 and [RWL-1..8].
+
+- 2026-09-14 (babysit day 2, agent, 13:15Z) — **THE [RWL-3] READ QUEUE IS ARMED; FLEET 27 h IN, ZERO
+  RESUMES.** Maintainer rulings in chat today (memory `vacation-week-plan-2026-09-14`): ladder + results by
+  Saturday night; the L2LAM reads MAY START while the W trio trains "if it doesn't massively slow down train
+  or break anything"; LADDER R5 runs AGENT-SIDE on nickgen1rbrlbot; FLEET 2 SKIPPED; the six R5 rulings were
+  restated in plain words with recommended defaults (200 battles / [1,30] ms / one 12–16 h run, 22 h ceiling,
+  no fleet on the box / README row waits on the anchor battery) — awaiting "go with the recs".
+  - **Loader smoke PASSED (12:4xZ, ~3 min of one core):** patched copies of live W (1024 critic) and L2LAM
+    rungs (seed 9104/9128, seat_tag mrsmk → names as2s9128e…, no collision with the lanes) load and play
+    under `ch3_eval.py` in the pokemon-showdown-rl env (policy, policy, mixed-width ensemble) AND through the
+    FP runner (greedy_seat + ensemble_seat, 2 battles each, JSON written). Both trunk widths, both eval paths.
+  - **Pre-regs written** (`configs/eval/monster_reads_offfp.yaml` picks the ladder object under R1–R5;
+    `configs/eval/monster_reads.yaml` is the vs-SH locked-protocol leg, S1–S3): n=3000 per FP@20 arm, prefix
+    `mr` (284 eval names pairwise prefix-free). Two phases because the trios land ~12 h apart: A = L2LAM
+    finals + the three 100M re-draws (beside the W trio; a mechanical GUARD holds phase A if W's steps/s
+    drops >10% under its post-L2LAM baseline), B = W finals + E3W/E6M/E9 + the floor E3HF + a load bridge
+    G112B (n=1000). Finals are pinned by `scripts/monster_reads_pin.py` (refuses without the watchdog's DONE
+    line; real step names, sha256; commits) the moment each trio exits. `scripts/monster_reads_queue.sh`
+    (frozen-copy, detached, resume-safe) waits on the watchdog log; `scripts/monster_reads_readout.py` prints
+    the pre-stated reads with PENDING. ETA: phase A Tue ~01–13Z, phase B Tue ~13Z–Wed ~02Z, vs SH ~1 h.
+  - **What srank needs, said plainly:** srank99/dormant are NOT logged per update (only `loss/*`, `l2init/*`);
+    the [RWL-3] PRIMARY read needs `d22_collect_obs.py` + `d22_dormant_rank.py` on the finals (and the
+    plasticity probe asserts value_sizes [384,384], so the W finals need a per-checkpoint trunk allowance).
+    Wednesday work, off the ladder's critical path.
+  - Fleet at 13:15Z: W 100–106M (~1180–1270 steps/s), L2LAM 128–136M (~1610/s); swap 0.4 GB; 109 GB free.
