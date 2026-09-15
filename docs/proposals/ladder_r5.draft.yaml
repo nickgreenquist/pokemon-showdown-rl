@@ -1,106 +1,239 @@
 # =====================================================================
-# LADDER R5 (DRAFT) — GEN1 LADDER #4, THE COMMITTEE OF THE MONSTER FINALS, GREEDY
-# Status: DRAFT 2026-09-12 (night, agent). NOT RATIFIED. Lives under docs/proposals/
-#   on purpose: tests/test_ladder.py globs configs/eval/ladder_*.yaml and asserts the
-#   literal "Status: RATIFIED", so a draft at that path turns the suite red. The
-#   ratifying commit `git mv`s this file to configs/eval/ladder_r5.yaml, pins the
-#   checkpoints, and records rulings in ratified_decisions at the foot -- exactly
-#   R4's path (configs/eval/ladder_r4.yaml lines 1-12).
+# LADDER R5 (DRAFT) — GEN1 LADDER #4, THE COMMITTEE, GREEDY, AGENT-LAUNCHED
+# Status: DRAFT 2026-09-15 (pre-filled by the agent during the monster reads;
+#   supersedes the 2026-09-12 skeleton). NOT RATIFIED. Lives under
+#   docs/proposals/ on purpose: tests/test_ladder.py globs
+#   configs/eval/ladder_*.yaml and asserts the literal "Status: RATIFIED" and
+#   the ABSENCE of << MAINTAINER n >> markers, so a draft at that path turns the
+#   suite red. The ratifying commit `git mv`s this file to
+#   configs/eval/ladder_r5.yaml, replaces line 3, clears the markers, fills
+#   `arms.R5E.lanes` from the readout, and records the rulings in
+#   ratified_decisions at the foot — exactly R4's path
+#   (configs/eval/ladder_r4.yaml lines 1-12).
 #
-# WHAT THIS IS: R4 (ratified 2026-09-04, greedy s112 at 100M: GXE 65.2 / Glicko
-#   1618 +/- 25 / Elo 1354, n=200) with ONE change of object -- the ladder seat is
-#   the log-prob COMMITTEE of the 200M finals (kind: ensemble, which
-#   scripts/ladder.py already supports: POLICY_KINDS = greedy | ensemble | search;
-#   LADDER R1's object was the 4-lane EnsembleAgent). Everything R4 settled and the
-#   maintainer ruled is INHERITED VERBATIM unless a line below says otherwise:
-#   stopping rule (rd <= 40 AND n >= 200 of THIS run's logged battles), ONE
-#   CONTINUOUS RUN, /timer on, pacing, G-BLIND (no board polling before
-#   min_battles), the four G-BLIND stops and no fifth, the do-not-kill rule, the
-#   resume rule, the barred-language list, the profile endpoint as the only
-#   rating source, aggregators, and the comparison ruling (STANDALONE DESCRIPTIVE
+# WHAT THIS IS: R4 (ratified 2026-09-04; greedy s112 at 100M: GXE 65.2 /
+#   Glicko-1 1618 +/- 25 / Elo 1354, n=200) with TWO changes: (1) the OBJECT is
+#   the log-prob COMMITTEE (kind: ensemble; scripts/ladder.py POLICY_KINDS =
+#   greedy | ensemble | search; R1's object was the 4-lane EnsembleAgent), its
+#   members picked by the monster readout's pre-stated rule R1
+#   (configs/eval/monster_reads_offfp.yaml); (2) the LAUNCH is AGENT-SIDE
+#   (maintainer ruling 2026-09-14, in chat: "Ladder agent side? Yes but use
+#   nickgen1rbrlbot (same account)") — R4's LG-9 human read of the startup lines
+#   becomes a LOG read, stated below. Everything else R4 settled and the
+#   maintainer ruled is INHERITED VERBATIM: stopping rule (rd <= 40 AND n >= 200
+#   of THIS run's logged battles), ONE CONTINUOUS RUN, /timer on, pacing,
+#   G-BLIND (no board polling before min_battles), the four G-BLIND stops and no
+#   fifth, do-not-kill, the resume rule, the barred-language list, the profile
+#   endpoint as the only rating source, aggregators, the set-pool pin and its
+#   24-h re-check, and the comparison ruling (STANDALONE DESCRIPTIVE
 #   MEASUREMENT; no R1/R3/R4/R5 delta may be quoted as an effect).
 #
-# WHY THE COMMITTEE: it is the only free lever this repo has CREDITED (+0.0349 vs
-#   SH at 5.9 se on a same-session greedy re-draw; ~+0.057 off FP@20 on a same-session
-#   re-draw, 2026-09-12), and every composition on top of it (depth-1 gate, ensemble-
-#   as-prior search) is a null on both axes. It plays at greedy speed: R1's 4-lane
-#   ensemble stamped 6.74 ms/decision. Which members: decided by the monster readout
-#   (off FP@20 same-session re-draw per [RWL-3]); the candidates are ENS3 of the
-#   better arm, ENS6 across both arms, and -- only if it reads better -- a committee
-#   that also carries the 100M finals (same encoder, same OBS_DIM; mixed-width
-#   committees are fine because each member is built from its own run config).
+# THE GOAL IT SERVES (maintainer, 2026-09-15, verbatim): "The must have goal is
+#   break top500 with self play" — and not "for more than just 40/200 visits".
+#   R4 finished Elo 1354 against a 1358.999 cutoff and VISITED the top 500. This
+#   file does not project a rating (vs-SH and off-FP numbers are NOT ladder
+#   numbers; CLAUDE.md) — it fields the strongest offline object available and
+#   measures. Sitting in the top 500 rather than visiting it needs a rating
+#   comfortably above the cutoff (rank fluctuates by about the rating's noise);
+#   whether R5 gets there is the run's finding, not a premise.
 #
-# journey_step: 11 ("the final gen-1 ladder"), reached via 10 (the monster). The
-#   11.5-before-11 ruling is OWED and is moot for a GREEDY object: 11.5 asks about
-#   depth-2 search, which tonight's relook (docs/search_relook/) leaves as a null.
+# journey_step: 11 ("the final gen-1 ladder"), reached via 10 (the monster).
+#   Exit condition, verbatim from JOURNEY.md step 2 (the ladder steps share it):
+#   "the run itself — not a rating, not top-500." The 11.5-before-11 ruling is
+#   moot for a GREEDY object (11.5 asks about depth-2 search, a null twice over
+#   in docs/search_relook/).
 #
-# RULINGS OWED BEFORE RATIFICATION (M-R5-n; each gets a RULING line at the foot):
-#   M-R5-1 OBJECT: which committee (ENS3 of one arm / ENS6 / +100M finals), from the
-#          monster readout; pins go in `checkpoints`.
-#   M-R5-2 ACCOUNT: REUSE nickgen1rbrlbot (R4 M6 stands: "multiple accounts are
-#          against the rules"); the headline discloses the warm-started rating and
-#          the cumulative-profile denominators exactly as R4 did.
-#   M-R5-3 n: 200 as R4, or more? The GOAL is "as high as possible"; rd converges
-#          under 40 well before n=200 on a reused account, so extra battles buy a
-#          tighter estimate, not a higher one, and every extra battle is exposure.
-#          RECOMMENDED: 200, one run, then decide.
-#   M-R5-4 DECISION CAP: the standing "<= 5 s per decision for a searched object"
-#          ruling is moot for greedy; RECOMMENDED band [1, 30] ms for a 3-6 member
-#          committee (R1's 4-lane ensemble 6.74 ms; 5x margin like R4's rule).
-#   M-R5-5 SCHEDULE: one continuous run, plan 12-16 h, budget 17 h, ceiling ~22 h
-#          (R4 M7), on a box that is NOT running a fleet (the committee's forwards
-#          are cheap, but the ladder's 150 s/turn is wall-clock and the R2 stall
-#          shape must not meet a rated game).
-#   M-R5-6 ANCHOR BATTERY: the README row for the monster's committee WAITS on
-#          vs-SH (locked protocol) + BC-clone h2h (500) + FP@20 h2h; a leg that
-#          does not exist is PENDING, never dropped. The ladder run does not wait
-#          on the battery (R4 precedent), the README row does.
+# RULINGS (M-R5-n). The maintainer did not know what "R5 rulings" meant
+#   (2026-09-14) and was given each in plain words with a recommended default;
+#   this file carries those defaults under markers. A one-line "go with the
+#   recs" clears 2-6; M-R5-1 is filled from the readout.
+#
+#   M-R5-1 OBJECT << MAINTAINER 1 >> — which committee. FILLED FROM
+#          results/monster_reads/READOUT.txt under the pre-stated rule R1 of
+#          configs/eval/monster_reads_offfp.yaml: the candidate (E3WF / E3LF /
+#          E6MF / E9F) with the highest off-FP@20 point estimate; top two within
+#          0.013 -> the larger committee; none reaches the floor E3HF - 0.013 ->
+#          the 100M ENS3 itself. Interim (2026-09-15 12:30Z, phase A done):
+#          E3LF 0.496 vs the same-session 100M greedy 0.495 — the L2LAM committee
+#          sits at the 100M SINGLE's level; E3WF / E6MF / E9F / E3HF pending.
+#          Pins go in `arms.R5E.lanes`; every member's sha256 is below already.
+#   M-R5-2 ACCOUNT — RULED 2026-09-14 (maintainer, in chat): REUSE
+#          nickgen1rbrlbot. R4 M6 stands verbatim ("multiple accounts are
+#          against the rules and could get my ip banned"). The headline
+#          discloses the warm-started rating and the cumulative-profile
+#          denominators exactly as R4 did.
+#   M-R5-3 n << MAINTAINER 3 >> — RECOMMENDED 200, one run, then decide.
+#          More battles tighten the estimate but do not raise it; rd converges
+#          under 40 well before n=200 on a reused account; every battle is
+#          exposure (ladder exposure is the scarce resource — memory
+#          `ladder-ban-risk-budget`).
+#   M-R5-4 DECISION CAP << MAINTAINER 4 >> — RECOMMENDED band [1, 30] ms for a
+#          3-9 member greedy committee (R1's 4-lane ensemble 6.74 ms; R4's rule
+#          of ~5x margin over the smoke's stamp). The standing "<= 5 s per
+#          decision for a searched object" ruling is moot for greedy. The upper
+#          bound IS the VOID (e) threshold, as R4. FINALIZED from the LG-6 smoke
+#          stamp at ratification (R4 ADJ-5).
+#   M-R5-5 SCHEDULE << MAINTAINER 5 >> — RECOMMENDED one continuous run, plan
+#          12-16 h, budget 17 h, hard ceiling ~22 h (R4 M7 verbatim), on a box
+#          that is NOT running a fleet or an eval (the committee's forwards are
+#          cheap, but the ladder's 150 s/turn is wall-clock and the R2 stall
+#          shape must not meet a rated game). Fleet 2 is SKIPPED (ruled
+#          2026-09-14); the read queue must have printed QUEUE DONE.
+#   M-R5-6 ANCHOR BATTERY << MAINTAINER 6 >> — RECOMMENDED: the ladder run
+#          does not wait on the battery (R4 precedent); the README row WAITS on
+#          vs-SH (locked protocol, phase C of the read queue) + BC-clone h2h
+#          (500) + FP@20 h2h (phase A/B of the read queue). A leg that does not
+#          exist is PENDING, never dropped. The committee's BC-clone leg does not
+#          exist yet and is reported PENDING.
+#
+# LAUNCH GATES (R4's LG-2..LG-9, adapted for an agent launch; each is checked
+#   and its evidence line quoted in the readout):
+#   LG-2 ACCOUNT: nickgen1rbrlbot's profile read BEFORE launch and recorded
+#        (rating values + n as found; rd as found). ANY activity on the account
+#        since R4's stop (2026-09-04/05) is VOID (d) contamination.
+#   LG-3 .env carries PS_USERNAME=nickgen1rbrlbot and PS_PASSWORD (present,
+#        79 bytes, never printed); the launch shell exports
+#        POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 (bare, the seat dies
+#        at OBS_DIM 612 and burns relaunches doing it — R4 F17).
+#   LG-4 pytest tests/test_ladder.py green on the ratified file, incl.
+#        TestSetPoolIntegrity.
+#   LG-5 set-pool upstream re-check within 24 h (pin below; unchanged since R4:
+#        vendored 59da482e, data.json 85fc2743..., teams.ts 277d5a37...,
+#        re-verified 2026-09-15 12:40Z).
+#   LG-6 --local-smoke >= 2 battles on R5E against the LOCAL server: kind=
+#        ensemble, `lanes` (plural) with every member sha, obs_dim 828, NO
+#        dose/lane key, mean_decision_ms stamped (FINALIZES M-R5-4's threshold).
+#   LG-7 clean tree, docs committed, LOCAL SERVER STOPPED (the ladder speaks to
+#        sim.smogon.com; the fleet's watchdogs are gone, so nothing restarts
+#        Node), nothing else on the box, a caffeinate bound to the supervisor.
+#   LG-8 build items: none new; R4's BI-R4-2/5/6 readout items carry their
+#        named fallbacks.
+#   LG-9 (AGENT LAUNCH — replaces R4's human ~90 s at the terminal): the agent
+#        reads the runner's startup lines from the log within 90 s of launch
+#        and quotes them in the launch commit: kind=ensemble, the userid
+#        character-by-character, the member sha256s, obs_dim, and the starting
+#        rating line showing R4's PARKED values (an EMPTY "none yet" rating =
+#        WRONG ACCOUNT — the fresh-account tell inverts under reuse). A mismatch
+#        is an operational abort BEFORE the first rated game.
+#
+# BABYSITTING (agent): CPU-time deltas + socket checks each hour;
+#   scripts/ladder_supervise.sh relaunches on exit, scripts/ladder_watchdog.sh
+#   kills a hung runner (0% CPU, no TCP — the R3 n=10 shape); ONE mid-run
+#   backup (scripts/backup_ladder.sh); readout via scripts/ladder_readout.py;
+#   the docs commit. Do-not-kill: a kill mid-battle forfeits a live rated game.
 # ---------------------------------------------------------------------
 
 primary_arm: R5E
-results_dir: results/ladder
-save_replays: results/ladder/replays_r5
+results_dir: results/ladder      # decorative; --out-dir and the supervisor decide
+save_replays: results/ladder/replays_r5   # CWD-relative — launch from the repo root
 max_battles_total: 300
 pacing:
   sleep_between_battles_sec: 5
-  start_timer: true
-  board_poll_every_battles: 10
+  start_timer: true              # the LADDER SEAT has sent /timer on since R1
+  board_poll_every_battles: 10   # polling starts ONLY at min_battles (G-BLIND)
 
 checkpoints:
-  # TODO at ratification: the monster finals, pinned by sha256 with their real
-  # final-step filenames (lanes finish at DIFFERENT steps; never guess a name).
-  # e.g. l2_104: {path: runs/showdown_monster200m_l2_s104/ckpt_2000000xx.pt, sha256: TODO}
+  # The six monster finals, pinned by scripts/monster_reads_pin.py at the
+  # moment each trio's watchdog printed DONE (real step names, never guessed;
+  # commits 038c864 and 00eedae), plus the three 100M finals (R4's s112 pin
+  # unchanged). FROZEN until the R5 readout lands.
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7}
+  l128: {path: runs/showdown_monster200m_l2lam_s128/ckpt_200000046.pt, sha256: 454075fa3a03a189c6e9b549df83bf7132765e42dcb7e7b45030c036ae7a77a6}
+  l136: {path: runs/showdown_monster200m_l2lam_s136/ckpt_200000007.pt, sha256: d9f5e28e1cf790736b9faa2ce80f4b7aa66842e10da532b7dbfcfa037e611d18}
+  l144: {path: runs/showdown_monster200m_l2lam_s144/ckpt_200000006.pt, sha256: bcf91d11407601cfe42da39beaf4a14e4d496accd1787e78ffd862bbc2e0ae68}
+  s104: {path: runs/showdown_sp_100m_s104/ckpt_100000027.pt, sha256: 16a6f02064e4c71ddecec08122a60f2ba363cea237761c9cda01a1c2ce5914ff}
+  s112: {path: runs/showdown_sp_100m_s112/ckpt_100000008.pt, sha256: 2ec16fbf85a9046d360328e50cdee5c732d8529599aafa2215a2a56128abcbb3}
+  s120: {path: runs/showdown_sp_100m_s120/ckpt_100000080.pt, sha256: db5d07d2096e021cb74deaf86c1feb2134954a35e042392680d568a185320287}
 
 arms:
   R5E:
     kind: ensemble
-    lanes: []                      # TODO: M-R5-1
-    display_name: nickgen1rbrlbot  # M-R5-2: R4 M6 stands
+    lanes: []                      # << MAINTAINER 1 >> filled from the readout (rule R1); a subset of the keys above
+    display_name: nickgen1rbrlbot  # M-R5-2 RULED 2026-09-14: reuse; identity enforced in code
 
 stopping_rule:
-  glicko_rd_max: 40
-  min_battles: 200
-  warm_start_note: "reused account: rd starts from the R4 parked state; GXE/Glicko/Elo at stop are ACCOUNT properties carrying R1 + R4's games -- the headline disclosure owns this, exactly as R4's did"
+  glicko_rd_max: 40              # cross-run invariant; hardcoded in tests/test_ladder.py
+  min_battles: 200               # THE BINDING HALF; n counts THIS RUN's logged battles  << MAINTAINER 3 >>
+  warm_start_note: "reused account: rd starts from the R4 parked state grown by inactivity, not a fresh ~350; it converges under 40 well before n=200 either way; GXE/Glicko/Elo at stop are ACCOUNT properties carrying R1 + R4's 400 games -- the headline disclosure owns this, exactly as R4's did"
   source: "profile endpoint (pokemonshowdown.com/users/<userid>.json)"
 
-expected_instrument_values:
-  mean_decision_ms_band: [1, 30]   # M-R5-4; VOID (e) threshold at the upper bound, as R4
+credit_line_not_applicable: "R5 credits nothing and contains no arm pair a credit could attach to. For the record the line reads: 'a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time.' No R5 number may be described as credited; doing so is a category error. Stated rather than omitted."
+
+aggregators:                     # R3's four keys, named
+  across_lanes: "NONE at the ladder -- one committee, one arm; the committee's members are averaged in log-prob space inside the seat (rl/search/ensemble.py), which is the object, not an aggregator over runs. Stated rather than omitted."
+  primary: "the server's own GXE / Glicko-1 / Elo off the profile; we compute nothing"
+  descriptive_rates: "unweighted pooled proportion over ALL rated battles in the denominator named beside the rate (n_profile for the record; n_jsonl for bands and rates)"
+  ties: "ties count as non-wins in every rate; the server's tie handling for the RATING is the server's and is reported as found"
+
+barred_language:                 # machine-readable; R4's list plus the R5-specific tells
+  - "better than R1"
+  - "better than R3"
+  - "better than R4"
+  - "worse than R1"
+  - "worse than R3"
+  - "worse than R4"
+  - "improved on the ladder"
+  - "any arithmetic difference between any two runs' GXE, Glicko or Elo presented as a quantity"
+  - "the committee beats greedy on the ladder"
+  - "200M beats 100M on the ladder"
+  - "the wide critic helped on the ladder"
+  - "our best model"
+  - "the strongest lane"
+  - "trend"
+  - "trajectory"
+  - "fourth point in a series"
+  - "on track for top-500"
+  - "credited (of any ladder number)"
+  - "any (off-FP or vs-SH) <-> ladder mapping, fitted or narrated"
+
+set_pool_pin:                    # VOID (c) — LG-5 re-check within 24 h of launch; unchanged since R4 (re-verified 2026-09-15 12:40Z)
+  vendored_commit: 59da482eabc87245eb62313593e468e81ca537d9
+  data_json_sha256: 85fc2743d9dba5a0dc996f8991be5ec07bcba4818555c3466d4da75eafe5380f
+  teams_ts_sha256: 277d5a375213b7b0e06f58a34058fb0576dc90d8a5e41eecf54d7339ea07c059
+  rerun_before_launch: "LG-5, within 24 h -- live external dependency; the ENCODER's set-pool copy feeds embed_battle (greedy has no determinizer; the committee's members all read the same encoder)"
+
+schedule:                        # M-R5-5 << MAINTAINER 5 >> — R4 M7 verbatim
+  plan: ONE_CONTINUOUS_RUN
+  battles_target: 200            # passed ONCE as --battles 200; CUMULATIVE across resumes
+  rule_unmet_at_200: "licensed continuation: supervisor relaunch with TARGET 300 (max_battles_total never moves) -- pre-committed, R4 F7"
+  plan_h: "12 - 16"
+  budget_h: 17
+  hard_ceiling_h: "~22 (rd still > 40 at n=200 AND the run reaches max_battles_total)"
+  sec_per_battle_refs:           # R1's object was the 4-lane ENSEMBLE — the closest reference for R5's committee
+    r1_ensemble_median: 230.0
+    r1_ensemble_median_excl_gaps: 229.5
+    r1_ensemble_mean: 246.5
+    r4_greedy: "see readouts/LADDER_R4_READOUT.md"
+  outage_tail_h: "0 - 3 (R1 0.41, R3 2.87 of a 15.34 h realized span)"
+  do_not_kill: "Killing mid-battle FORFEITS A LIVE RATED GAME against a human. An early stop is an operational abort under G-BLIND, logged with cause and battle index."
+  resume: "relaunch with the SAME --battles; the JSONL is the truth; a death costs one battle"
+  box: "no fleet, no eval, local Node STOPPED, a caffeinate bound to the supervisor (M-R5-5)"
+
+expected_instrument_values:      # pre-stated so a silent wrong-object run is visible
+  mean_decision_ms_band: [1, 30]   # M-R5-4 << MAINTAINER 4 >>; VOID (e) threshold at the upper bound, as R4; FINALIZED from the LG-6 smoke stamp at ratification
   provenance_keys_exact: [kind, obs_dim, encoder_v2, encoder_ids, lanes, sha256]  # `lanes`, plural: an ensemble; a `lane`/`dose` key = wrong object pasted in
   max_concurrent_live_battles_expected: 1
-  sec_per_battle_band: [190, 300]
+  sec_per_battle_band: [190, 300]  # applies to the MEDIAN EXCLUDING GAPS > 900 s
   mean_turns_band: [18, 32]
-  bands_are_diagnostic: "every band except mean_decision_ms_band is DIAGNOSTIC -- a breach is disclosed and voids nothing (R4)"
+  bands_are_diagnostic: "every band except mean_decision_ms_band is DIAGNOSTIC -- a breach is disclosed in the readout and voids nothing (R4)"
 
 comparison_ruling:
-  verdict: "R5 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1/R3/R4/R5 DELTA MAY BE QUOTED AS AN EFFECT, IN ANY DIRECTION."
-  confounds_moved_at_once: [policy_kind, training_scale, training_recipe, account_path_dependence, calendar_and_pool, opponent_memory]
+  verdict: "R5 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1/R3/R4/R5 DELTA MAY BE QUOTED AS AN EFFECT, IN ANY DIRECTION, BETWEEN ANY PAIR OR ACROSS ALL FOUR."
+  confounds_moved_at_once: [policy_kind, training_scale, training_recipe, account_path_dependence, calendar_and_pool, opponent_memory, launch_ownership]
+  multi_run_tables: "columns under CONFOUNDED -- NOT AN EFFECT with the confound list adjacent, exactly as R4"
 
 instruments:
   runner: scripts/ladder.py
   supervisor: scripts/ladder_supervise.sh
   watchdog: scripts/ladder_watchdog.sh
+  classifier: scripts/ladder_classify.py
   readout: scripts/ladder_readout.py
+  move_audit: scripts/ladder_move_audit.py
   backup: scripts/backup_ladder.sh
   tests: tests/test_ladder.py
+  r4_provenance: readouts/LADDER_R4_READOUT.md
+  object_selection: configs/eval/monster_reads_offfp.yaml   # rule R1; results/monster_reads/READOUT.txt
 
 ratified_decisions: {}             # M-R5-1..6 RULED: <date> -- filled at ratification
