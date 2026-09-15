@@ -59,7 +59,11 @@ trio_done() {  # every lane of the trio has a DONE line in the watchdog log
   return 0
 }
 trio_alive() {  # any rl.train for the trio still alive
-  for d in $1; do pgrep -f "bin/python -m rl.train.*$d" > /dev/null && return 0; done
+  # rl.train's argv carries `--run-name showdown_monster200m_w_s104`, NOT the
+  # run dir `runs/...` (found 2026-09-15 03:55Z: the dir pattern matched
+  # nothing, so the phase-A guard silently never fired -- the DONE-line
+  # checks were binding and unaffected). Match on the run name.
+  for d in $1; do pgrep -f "bin/python -m rl.train.*--run-name ${d#runs/}\$" > /dev/null && return 0; done
   return 1
 }
 w_rate() {  # W trio's pooled steps/s over the last N seconds of watchdog ok lines
