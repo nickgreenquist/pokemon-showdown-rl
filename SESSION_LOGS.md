@@ -11769,3 +11769,37 @@ line numbers are not — grep the date, then read that region):
     plasticity probe asserts value_sizes [384,384], so the W finals need a per-checkpoint trunk allowance).
     Wednesday work, off the ladder's critical path.
   - Fleet at 13:15Z: W 100–106M (~1180–1270 steps/s), L2LAM 128–136M (~1610/s); swap 0.4 GB; 109 GB free.
+
+- 2026-09-15 (babysit day 3, agent, 23:30Z) — **THE MONSTER FLEET IS DONE WITH ZERO RESUMES, THE [RWL-3] READS
+  ARE IN, AND RULE R1 NAMED THE LADDER OBJECT: ENS3 OF THE W TRIO.** Fleet: L2LAM trio finished 01:19Z
+  (s128 `ckpt_200000046.pt`, s136 `ckpt_200000007.pt`, s144 `ckpt_200000006.pt`; 38.7 h wall), W trio 08:54Z
+  (s104 `ckpt_200000000.pt`, s112 `ckpt_200000012.pt`, s120 `ckpt_200000003.pt`; 46.3 h wall); both watchdog
+  exit lines `RESUMES=0 NODE_RESTARTS=0`; steps/s six-wide 1015–1270 (W) / 1100–1600 (L2LAM), three-wide 1526.
+  - **OFF FP@20, SAME SESSION, n=3000/arm (`results/monster_reads_offfp/`, `READOUT.txt`):** committees E3WF
+    **0.5987**, E6MF 0.5763, E9F 0.5760, E3HF (the 100M ENS3 re-drawn) **0.5570 = its banked value**, E3LF
+    0.4960. Singles pooled n=9000: W **0.5417** (0.527/0.552/0.546), 100M re-draw 0.4952 (0.499/0.504/0.483),
+    L2LAM 0.4481 (0.447/0.457/0.441). R1: **E3WF is the ladder object** (+0.0417 over the floor at 3.27 se;
+    runner-up 0.023 below, outside the 0.013 tie band). R2: W 200M − 100M **+0.0464 at 6.2 se**; L2LAM −0.0471 at
+    −6.3 se. R3: W − L2LAM +0.094. R4 committee gain: W +0.057, L2LAM +0.048, 100M same-session +0.062 (additive).
+    R5: the L2LAM and 100M members add nothing to the W committee (E9F − E6MF −0.0003; E6MF − E3WF −0.022).
+    Load bridge G112B 0.490 (n=1000) vs G112R 0.504: −0.014 at −0.75 se — phase A beside the W trio left no
+    measurable load term. FP@20 disclosures travel (weakly powered equivalence; flattering point estimate).
+  - **vs SH, locked protocol (`results/monster_reads/`):** GW **0.8217** (n=9000; 0.821/0.822/0.822) vs the
+    banked 100M A0 0.7887 = +0.033 at 5.6 se; GL 0.7778 (−0.011); E3W 0.8386 (+0.015 over the banked 100M ENS3
+    0.8236 at 2.7 se; +0.014 over today's E3H 0.8250); E6M 0.8426; E9 0.8433; E3L 0.8130. Committee gain vs SH:
+    W +0.017, L2LAM +0.035 (the 100M's +0.035). **Not a credit:** [RWL-3] registered these reads as
+    DESCRIPTIVE; the W-vs-100M deltas meet the credit line's arithmetic on both instruments and are reported as
+    such, with the mechanism co-primary (srank99/width, dormant, EV, l2init distances; needs the offline obs
+    tools on the finals — srank/dormant are not logged) still OWED before any credit is claimed in RESULTS.
+  - **What the two recipes say:** the wider critic + L2 (W) is the first 200M object above the 100M baseline
+    on both instruments; Monte-Carlo targets + L2 (L2LAM) are BELOW it on both. Same L2, same horizon, same
+    seeds-distinct fleet: the difference is the value target.
+  - Ops: the queue's phase-A W-rate guard was a silent no-op (pgrep pattern; fixed 3a1a71f); W's rate stayed at
+    or above its 1526 baseline throughout. The fleet's caffeinates exited with the watchdogs at 08:54Z; a
+    caffeinate bound to the queue was added at 09:0xZ, and a standalone 5-day one (`caffeinate -i -s -t 432000`)
+    at 23:25Z for the ladder week. Disk 70 GB free; swap flat at 0.4 GB all fleet.
+  - **Ladder R5:** `docs/proposals/ladder_r5.draft.yaml` carries the object (lanes w104/w112/w120, all nine
+    member shas), rulings 2–6 as recommended defaults under markers, LG-2 (profile parked at R4's stop: Elo
+    1353.96 / GXE 65.1 / Glicko 1617.7 / RD 33.4 / 199W-201L) and LG-3 (.env exports the username) verified.
+    Waiting on the maintainer's "go with the recs"; then git mv + RATIFIED, tests, local smoke, Node stopped,
+    caffeinate, launch, LG-9 log read.

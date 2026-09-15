@@ -1,10 +1,10 @@
 # STATUS
-## JOURNEY POSITION — step 7.5 (engine port) **EXITED 2026-09-10**; next is gen-1 step 8/10
+## JOURNEY POSITION — step 10 (the monster) DONE 2026-09-15; **step 11 LADDER R5 is next, object decided by rule**
 **GEN-4 CLOSED (RESULTS §19):** steps 3/5 MET, vs SH 0.8788, CREDITS NOTHING. **LADDER R4:
 GXE 65.2 / Glicko 1618 ± 25 / Elo 1354, n=200. From here it is all gen 1.**
 **JOURNEY 7.5 engine port EXITED; A-1 PASSED TWICE** (0.66775 vs async 0.67211, **−0.00436 travels forever**; `docs/engine_port/NOTES.md`).
 Engine rates at k=8, measured idle: **w3 1620, w6 1282 steps/s/lane** → 6×200M ≈ 43 h.
-## **ENS3 CREDITS (+0.0349 vs SH; +0.067 off FP@20) — THE LADDER OBJECT, and the strongest FREE one**
+## **ENS3 of the 100M finals CREDITS (+0.0349 vs SH; +0.067 off FP@20) — now the R5 FLOOR; the object is E3WF (below)**
 **0.82356 (n=9000) vs fresh greedy A0 0.78867 = +0.03489 at 5.93 se → CREDIT** (floor AND 2·se_diff); beats the
 gated search's in-sample peak (0.82400) at GREEDY SPEED. Disclosures: clustered se UNAVAILABLE by construction
 (one committee; the binomial governs, anti-conservative); licenses THESE checkpoints, never "ensembling helps".
@@ -35,59 +35,54 @@ n=900 each vs S3G10 (0.8189 on the same 900 seeds), UNPAIRED se ≈ 0.019 (seeds
   reaches 2.44 / 3.08 / 3.56 plies at 20 / 200 / 2000 ms — FP@20 searches ~depth 2.4; our tree exceeds it.
 - **Licensed: "no evidence depth helps at these budgets and this δ." Barred: "depth hurts", "monotone".**
   Engine-native depth-2 ruling still owed; a δ sweep for deep backups is the cheap first step.
-- PokeAgent paper (re-verified from our PDF): Foul Play #1 Gen 9 OU / #8 Gen 1 OU; PA-Agent (no search) won
-  Gen 1 — an OU TEAM-BUILDING ladder rank (set prediction is "critical" there); it says nothing about randbats.
 
-## ENSEMBLE SCALING — members 4–6 MEASURED (the 50M finals as extra members; `configs/eval/ens_width*.yaml`)
-b0 member curve, 1→6: **0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400** (members 4–6 are WEAKER
-50M objects, so a lower bound). Pooled n=9000: **E6MIX 0.83356 vs ENS3 0.82356 = +0.0100 at 1.78 se —
-unresolved (pre-stated branch: 6 lanes still preferred; NOT saturation).** E6MIX's batches spread 0.024
-(0.844 / 0.837 / 0.820) vs ENS3's 0.0147 — never read one batch. **STEPS vs MEMBERS:** ENS3 of the 50M finals
-= **0.82233** vs the 100M committee's 0.82356 (+0.001 for the doubling, on the committee); ensemble gain
-+0.038 at 50M vs +0.035 at 100M — additive, and the horizon is the weaker lever vs SH (saturated axis).
-**OFF FP@20, SAME SESSION, n=1000 each (`scripts/ens_width_readout.py`):** greedy 100M re-draw 0.507 / 0.486 /
-0.507 (mean 0.500; era term +0.002 vs 2026-09-03) → **ENS3F 0.557 and its fresh-pair replicate ENS3FR 0.577
-(spread 0.020 = noise) pool to +0.067 at 4.7 se: the committee's off-FP transfer is verdict-grade.** E6MIXF
-0.553 = −0.014 vs the pooled ENS3 (unresolved; three weaker members neither help nor hurt). E350F 0.537 vs
-fresh 50M greedy 0.501 / 0.501 / 0.473: gain +0.045 at 50M vs +0.067 at 100M (additive); committee doubling
-+0.030 ± 0.02. The R2-era 50M comparators (0.474 / 0.483 / 0.467) were a different FP build. **FP@500 (n=500,
-"500 ms" = 4 × 250 ms = 1 s/decision, ~41 s/battle): the committee reads 0.472** vs 0.567 at 20 ms — the
-stronger rung costs ~0.095; the greedy@500 reference was skipped for time, so "does the edge survive" is OPEN.
+## ENSEMBLE SCALING (2026-09-11/12, `configs/eval/ens_width*.yaml`) — superseded in detail by the monster reads below
+b0 member curve 1→6 vs SH: 0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400 (members 4–6 are 50M objects,
+a lower bound); pooled E6MIX 0.83356 vs ENS3 0.82356 = +0.010 at 1.78 se (unresolved, NOT saturation). STEPS vs
+MEMBERS: ENS3 of the 50M finals 0.82233 vs the 100M committee 0.82356 — the horizon was the weaker lever vs SH.
+Off FP@20 (same session): greedy 100M re-draw mean 0.500; ENS3F 0.557 / ENS3FR 0.577 (+0.067 at 4.7 se — the
+committee's off-FP transfer is verdict-grade); FP@500 (1 s/decision) costs the committee ~0.095 (0.472, n=500).
 
-## ENSG — ensemble AS the search's prior+leaf value, with the gate. **A NULL ON BOTH AXES.**
-vs SH, n=3000 vs ENS3 b0: δ 0.05 **−0.002** (n=2900), **δ 0.10 +0.01500 at 1.6 se**, δ 0.20 **+0.008** —
-the +0.015 is the tuned δ talking (swept on s112, which the committee contains). **Off FP@20, pre-registered
-(`configs/eval/ens_offfp.yaml`): ENSGF 0.558 vs ENS3F 0.557 = +0.001, the "|δ| < 0.045 → ENS3 stays"
-branch.** Search fired (override 7.5%, 31,085 searched decisions, committee shas stamped), so this is a
-real null, not a void arm. The gate adds nothing to the committee anywhere; sub-2-se deltas are not wins.
+## ENSG — the committee AS the search's prior+leaf value, with the gate: A NULL ON BOTH AXES
+vs SH δ 0.05/0.10/0.20: −0.002 / +0.015 (1.6 se, the tuned δ) / +0.008; off FP@20 pre-registered ENSGF 0.558 vs
+ENS3F 0.557 (search fired: override 7.5%, 31,085 searched decisions). The gate adds nothing to the committee anywhere.
 
-## The monster (JOURNEY 10) — three overnight reports (`docs/research_reports/*_2026-09-12.md`) converge on THE CRITIC
-1. **Arm B dropped** (bitwise arm A; its head feeds nothing; its only consumer, search, is null twice over).
-   **Arm C not recommended** (falsifier cannot fire; never run on the engine route with the oppact head).
-2. **The critic is the bottleneck on every line:** its ctx srank99 is 48/384 at the 100M final (94–139 at 50M;
-   the "7–10" figure was another lineage) vs the actor's ~370; explained variance flat at ~0.59 from mid-run;
-   three on-policy sources say widen the VALUE net, not the actor; the actor is 626,059 params, at parity with
-   the closest pure-self-play comparable. **BUILT tonight:** gated LayerNorm in the ctx stack (tested; next
-   fleet — it muddies L2's instruments), configs W and L2LAM.
-3. **Plasticity probe (`PLASTICITY_PROBE_*`): the pre-stated PLASTICITY-LOST branch FIRED for the critic** —
-   under an identical refit budget the 100M and 50M critics fit fresh random targets **R = 1.89 / 1.70 / 1.69 /
-   1.70× worse than a fresh init** (threshold 1.50; both lrs; a second target draw R 2.1–2.3), their frozen
-   features support no linear fit (R² 0.03 vs 0.71), and the loss is complete by 12M; the actor's features stay
-   full-rank. Directly supports L2 from step 0; width only indirectly. Smokes running (started 03:59Z).
+## THE MONSTER (JOURNEY 10) — DONE 2026-09-15, ZERO RESUMES; the reads picked the ladder object BY RULE
+Fleet (ratified option C, launched 2026-09-13 10:35Z, six lanes k=8): **W trio = L2 + 1024-wide critic** (seeds
+104/112/120, 46.3 h, `runs/showdown_monster200m_w_s*`, finals `ckpt_200000000/…12/…03.pt`); **L2LAM trio = L2 +
+Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_200000046/…07/…06.pt`). Watchdog exits
+`RESUMES=0 NODE_RESTARTS=0`. Reads: `configs/eval/monster_reads{,_offfp}.yaml`, `results/monster_reads/READOUT.txt`.
+- **OFF FP@20, SAME SESSION, n=3000/arm — the read that picks the object (rule R1):** E3WF **0.5987** > E6MF
+  0.5763 ≈ E9F 0.5760 > E3HF (100M ENS3 re-drawn) **0.5570 = its banked value** > E3LF 0.4960. Singles pooled
+  n=9000: **W 0.5417**, 100M 0.4952, L2LAM 0.4481. **LADDER OBJECT = E3WF, ENS3 OF THE W TRIO** (+0.0417 over the
+  floor at 3.27 se; the runner-up is 0.023 below, outside the 0.013 tie band). W 200M − 100M **+0.046 at 6.2 se**;
+  L2LAM −0.047 at −6.3 se; the L2LAM and 100M members add NOTHING to the W committee. Load bridge −0.014 at
+  −0.75 se (phase A ran beside the W trio; no measurable term). FP@20 disclosures travel.
+- **vs SH, locked protocol:** GW **0.8217** (n=9000) vs the 100M A0 0.7887 = +0.033 at 5.6 se; GL 0.7778; E3W
+  **0.8386** (+0.015 over the banked 100M ENS3 0.8236 at 2.7 se); E6M 0.8426; E9 0.8433; E3L 0.8130.
+- **NOT A CREDIT (yet):** [RWL-3] registered these reads as DESCRIPTIVE. W-vs-100M meets the credit line's
+  arithmetic on both instruments; the mechanism co-primary (critic srank99/width, dormant fraction, EV, l2init
+  distances) is OWED first — srank/dormant are NOT logged; run `d22_collect_obs.py` + `d22_dormant_rank.py` on the
+  finals (the plasticity probe asserts value_sizes 384 and needs a per-checkpoint allowance for W).
+- **The recipe verdict in one line:** same L2, horizon, fleet — the wider critic beat the 100M baseline on both
+  instruments and Monte-Carlo value targets lost to it on both. The value TARGET, not the horizon, moved the number.
 
 ## Next actions
-0. **GOAL: "AS HIGH AS POSSIBLE".** R4 hit Elo 1354 vs a 1358.999 cutoff. Targets: H&L 1677 / ps-ppo 1725 /
-   **Wang 1756** (Metamon's 1761 used REPLAYS). **LADDER OBJECT TODAY: ENS3** (greedy speed, no confound).
-1. **SATURDAY LAUNCH** (box packed ~2026-09-12 13:00 EDT, launch that night, unattended 3–4 days). Recommended
-   OPTION C, written as [RWL-1..8] at the top of `configs/showdown_monster200m.yaml` for you to ratify:
-   **every lane L2; trio W = L2 + 1024-wide critic (seeds 104 112 120, ~54 h); trio L2LAM = L2 + Monte-Carlo
-   targets (128 136 144, ~45 h)**; two commands ([RWL-5]); k=8; anneal = horizon (the LR FLOOR is a ruling,
-   both sides in [RWL-4]). Reads: mechanism co-primary; off-FP@20 same-session re-draw picks the committee.
-2. **BEFORE LEAVING (a password is needed):** `sudo pmset -c sleep 0 disksleep 0`; Software Update →
-   "Install macOS updates" **OFF (it is ON)**; lid OPEN; quit VS Code/Chrome (6-wide ≈ 11 GB of 24).
-   The launcher now holds its own caffeinate and the watchdog restarts Node (both tested 2026-09-11).
-3. **RULINGS OWED:** 11.5 before 11; a per-decision cap for a searched ladder object (≤5 s); engine-native
-   DEPTH-2 (above: not the lever; a δ sweep for deep backups is the cheaper first step).
+0. **GOAL (maintainer, 2026-09-15): "break top500 with self play", and STAY there, not visit it** (R4: Elo 1354
+   vs a 1358.999 cutoff, ~40/200 visits). Nothing here projects a rating; vs-SH / off-FP are not ladder numbers.
+1. **LADDER R5 — object decided, launch waits on one line.** `docs/proposals/ladder_r5.draft.yaml`: lanes
+   w104/w112/w120 (nine member shas pinned), rulings 2–6 as recommended defaults (reuse nickgen1rbrlbot — RULED;
+   200 battles one run; [1,30] ms band; 12–16 h plan, 22 h ceiling, idle box; README row waits on the battery).
+   LG-2 profile parked at R4's stop (Elo 1353.96 / GXE 65.1 / Glicko 1617.7 / RD 33.4 / 199W-201L); LG-3 .env
+   username verified. **On "go with the recs":** git mv → `configs/eval/ladder_r5.yaml` (Status: RATIFIED,
+   markers cleared), `pytest tests/test_ladder.py`, `--local-smoke` ≥2 battles, STOP Node, caffeinate bound to the
+   supervisor, `source .env && scripts/ladder_supervise.sh R5E 200 configs/eval/ladder_r5.yaml` (encoder env vars
+   exported), LG-9 startup-line read from the log within 90 s. Agent-launched (ruled 2026-09-14). Results +
+   readout due Saturday night 2026-09-19.
+2. **After the ladder:** mechanism co-primary on the six finals; RESULTS addendum (fleet, reads, R5); README row
+   (BC-clone leg for the committee PENDING); the plasticity probe on the W/L2LAM finals; STATUS/landmines.
+3. **RULINGS OWED:** the LR-anneal floor for the next fleet; engine-native depth-2 (not the lever); the next
+   fleet's shape (more W-recipe members vs 300M; LayerNorm arm).
 
 ## Watch items
 - **SUITE GREEN 1031 / 0 failed** on the DOCUMENTED invocation (encoder flags UNSET); 86 skip
