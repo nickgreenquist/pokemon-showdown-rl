@@ -48,15 +48,21 @@
 #   this file carries those defaults under markers. A one-line "go with the
 #   recs" clears 2-6; M-R5-1 is filled from the readout.
 #
-#   M-R5-1 OBJECT << MAINTAINER 1 >> — which committee. FILLED FROM
-#          results/monster_reads/READOUT.txt under the pre-stated rule R1 of
-#          configs/eval/monster_reads_offfp.yaml: the candidate (E3WF / E3LF /
-#          E6MF / E9F) with the highest off-FP@20 point estimate; top two within
-#          0.013 -> the larger committee; none reaches the floor E3HF - 0.013 ->
-#          the 100M ENS3 itself. Interim (2026-09-15 12:30Z, phase A done):
-#          E3LF 0.496 vs the same-session 100M greedy 0.495 — the L2LAM committee
-#          sits at the 100M SINGLE's level; E3WF / E6MF / E9F / E3HF pending.
-#          Pins go in `arms.R5E.lanes`; every member's sha256 is below already.
+#   M-R5-1 OBJECT << MAINTAINER 1 >> — which committee. DECIDED BY THE
+#          PRE-STATED RULE R1 of configs/eval/monster_reads_offfp.yaml on
+#          2026-09-15 17:57Z with all four candidates and the floor on disk
+#          (scripts/monster_reads_readout.py, verbatim):
+#            "LADDER OBJECT = E3WF 0.5987 (n=3000) (best E3WF 0.5987, second
+#             E6MF 0.5763)"; E3WF - E3HF: +0.0417 at 3.27 se_diff (se 0.0127);
+#            E6MF - E3HF +0.0193 (1.51 se); E9F - E3HF +0.0190 (1.49 se);
+#            E3LF - E3HF -0.0610 (-4.74 se). Floor E3HF (the 100M ENS3, same
+#            session) 0.5570 = its 2026-09-11 banked value exactly.
+#          THE OBJECT IS ENS3 OF THE W TRIO: lanes [w104, w112, w120] (the
+#          200M finals of configs/showdown_monster200m_w.yaml: L2-toward-init
+#          + 1024-wide critic). The rule's tie band (0.013) did not engage:
+#          the runner-up is 0.023 below. Off FP@20 = 4 x 10 ms; the two FP@20
+#          disclosures travel; nothing here is a credit. The maintainer
+#          ratifies the RULE's output, not a choice.
 #   M-R5-2 ACCOUNT — RULED 2026-09-14 (maintainer, in chat): REUSE
 #          nickgen1rbrlbot. R4 M6 stands verbatim ("multiple accounts are
 #          against the rules and could get my ip banned"). The headline
@@ -150,7 +156,7 @@ checkpoints:
 arms:
   R5E:
     kind: ensemble
-    lanes: []                      # << MAINTAINER 1 >> filled from the readout (rule R1); a subset of the keys above
+    lanes: [w104, w112, w120]      # << MAINTAINER 1 >> rule R1's output (E3WF 0.5987 off FP@20, +0.0417 over the floor at 3.27 se); ratification confirms the rule, not a choice
     display_name: nickgen1rbrlbot  # M-R5-2 RULED 2026-09-14: reuse; identity enforced in code
 
 stopping_rule:
