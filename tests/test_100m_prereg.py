@@ -89,6 +89,14 @@ def test_seed_windows_disjoint_and_unused():
     # unexpected stamped run still fails.
     legal |= {f"monster100m_{arm}_s{s}"
               for arm in ("a", "b", "c") for s in (104, 112, 120)}
+    # ...and the names that fleet ACTUALLY launched under, once option C was
+    # ratified (2026-09-12) and the arms were rewritten as [RWL-1..8]: the W
+    # trio is `showdown_monster200m_w_s{104,112,120}`, not the
+    # `monster100m_<arm>_s<seed>` sketch the amendment above anticipated. Same
+    # reasoning, same seeds, second legal owner. Added 2026-09-16: this test
+    # had been RED since the fleet launched on 2026-09-13, because the
+    # amendment named the PLANNED dirs rather than the realized ones.
+    legal |= {f"showdown_monster200m_w_s{s}" for s in (104, 112, 120)}
     # ...and PRE-2's own live smoke, which is a REQUIRED precondition of that
     # fleet (a ~10-update design-A lane on the engine route, then killed) and
     # therefore cannot be a violation of the gate it exists to satisfy.

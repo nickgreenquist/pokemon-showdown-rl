@@ -149,6 +149,8 @@ Categories: `{'forfeit': 29, 'played_out': 161, 'no_show': 4, 'timeout_midgame':
 
 ---
 
+<!-- HAND-WRITTEN APPENDIX — preserved on regeneration -->
+
 ## Appendix — hand-written history (NOT generated; preserved 2026-08-28)
 
 **Everything above this line was REGENERATED on 2026-08-28** by

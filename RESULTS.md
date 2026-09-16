@@ -1728,7 +1728,11 @@ time. The members were not chosen: they were named by the pre-stated rule R1 of
 
 **It held the line rather than touching it.** By the replay-derived pre-battle ratings the
 account entered **146 of its 200 battles at or above the admission line**, across 9
-excursions, peaking at Elo **1541**, and **finished listed**. Its record while at or above
+excursions, peaking at Elo **1541**, and **finished listed**. (WHICH LINE, stated because
+it moves the count: the cutoff **at the stop**, 1354.17 — the same line the "listed, clear
+by" claim is made against, and the conservative of the two. Against the n=0 pull, 1353.61,
+the same battles read 148 and 8 excursions. No pre-registration picks one — R4's M2 clause
+was about its band table and R5's M2 is the account ruling — so the readout prints both.) Its record while at or above
 the line was 93–53 (0.637), statistically indistinguishable from 35–19 (0.648) below it.
 **Peak Elo is not a result; the stopping-rule figure is the read.**
 

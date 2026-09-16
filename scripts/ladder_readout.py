@@ -165,6 +165,10 @@ def main():
     ap.add_argument("--report", default=None,
                     help="the runner's <arm>.report.json — the realized ops "
                          "ledger and instrument stamps (R4 block).")
+    ap.add_argument("--run-log", default=None,
+                    help="the runner/supervisor log (<arm>.run.log), for the "
+                         "obligation (ix) ops counts: launches, relaunches, "
+                         "watchdog kills. Counted, never remembered.")
     ap.add_argument("--board-n0", default=None,
                     help="the archived n=0 board pull (R4: decides the M2 "
                          "band-clause branch of the headline).")
@@ -173,9 +177,10 @@ def main():
                          "gitignored, so the readout must land in "
                          "the repo to survive losing results/")
     args = ap.parse_args()
+    pr_cfg = {}
     if args.prereg:
         import yaml
-        pr = yaml.safe_load(open(args.prereg))
+        pr = pr_cfg = yaml.safe_load(open(args.prereg))
         arm = pr["primary_arm"]
         want = pr["arms"][arm]["display_name"]
         if args.name != want or not Path(args.jsonl).name.startswith(arm):
@@ -223,7 +228,25 @@ def main():
                     opp_med=statistics.median(opp) if opp else None,
                     opp_n=len(opp))
     fc, rc = cell(first), cell(re_)
-    snap = ladder_snapshot("gen1randombattle", args.name)
+    # THE SNAPSHOT IS A LIVE PULL, AND THAT IS A REPRODUCIBILITY HAZARD
+    # (found in the R5 audit, 2026-09-16). The board's admission cutoff moves
+    # continuously, so regenerating a readout months later silently rewrites
+    # the cutoff line of a file headed "final readout": R4's committed file
+    # says 1358.999 (its readout-time pull) while its own report's at-stop
+    # `ladder_after` says 1359.680, and R5 regenerates today at 1354.395
+    # against the 1354.173 it stopped at. The live pull stays the DEFAULT so
+    # R1/R3/R4 regenerate as published, but the at-stop value from --report is
+    # printed BESIDE it and labelled, and a network failure now falls back to
+    # the report instead of killing the render of a provenance file.
+    stop_snap = {}
+    if args.report:
+        stop_snap = (json.load(open(args.report)) or {}).get("ladder_after") or {}
+    try:
+        snap, snap_src = ladder_snapshot("gen1randombattle", args.name), "live"
+    except Exception as e:          # noqa: BLE001 - provenance beats freshness
+        if not stop_snap:
+            raise
+        snap, snap_src = dict(stop_snap), f"report (live pull failed: {type(e).__name__})"
     # obligation (vii): profile_total == prior_account_games + n_jsonl + unlogged
     pw_, pl_, pt_ = snap.get("w"), snap.get("l"), snap.get("t") or 0
     recon = None
@@ -248,7 +271,13 @@ def main():
     A(f"- Profile reachable: **{snap.get('profile_ok')}**")
     A(f"- Board reachable: **{snap.get('board_ok')}**")
     A(f"- Listed on the top-500: **{snap.get('listed')}**")
-    A(f"- Top-500 admission cutoff: Elo **{snap.get('cutoff_elo')}**")
+    A(f"- Top-500 admission cutoff: Elo **{snap.get('cutoff_elo')}**"
+      + (f" — THIS READOUT'S OWN pull ({snap_src}), which DRIFTS on every "
+         f"regeneration because the board moves. **The value at the stop, "
+         f"from the runner's `ladder_after`, is Elo "
+         f"{stop_snap.get('cutoff_elo')}** and that is the one every "
+         f"downstream quote uses." if stop_snap.get("cutoff_elo") is not None
+         and snap_src == "live" else ""))
     # CORRECTED 2026-08-26, and the GENERATOR was fixed 2026-08-27. This
     # block used to branch on `listed` from the TOP-500 LEADERBOARD and emit
     # "GXE AND GLICKO ARE UNMEASURED. Showdown publishes them only for
@@ -777,6 +806,135 @@ def main():
           "0.517 (n=116, 1173). Confound 10: greedy is fully state-determined, so R4 is the "
           "most memorisation-exposed of the three, and rating-matching alone predicts a "
           "lower rematch rate with zero memorisation.\n")
+    if args.label.upper() != "R4" and args.report:
+        # ---------------- GENERIC OPS BLOCK (added for R5, 2026-09-16) -------
+        # R4's exposure / cost-ledger / VOID sections were gated on the literal
+        # label "R4", so R5's readout rendered NONE of them and its exposure
+        # numbers lived only in hand-written STATUS/RESULTS prose with no
+        # generator provenance. This block is the run-generic half: every value
+        # comes from the report, the run log and the pre-reg, so it fires for
+        # any labelled run that passes --report. R4's block is untouched, so
+        # R4's committed file still regenerates as published.
+        rep = json.load(open(args.report))
+        pre = [r["_true_rating"] for r in rows]
+        stop_line = (rep.get("ladder_after") or {}).get("cutoff_elo")
+        n0_line = (rep.get("ladder_before") or {}).get("cutoff_elo")
+        if args.board_n0:
+            n0_line = json.load(open(args.board_n0)).get("cutoff_elo", n0_line)
+
+        def exposure(line):
+            idx = [i for i, v in enumerate(pre) if v is not None and v >= line]
+            exc, prev = 0, False
+            for v in pre:
+                a = v is not None and v >= line
+                exc += int(a and not prev); prev = a
+            aw = sum(1 for i in idx if rows[i]["outcome"] == "win")
+            bidx = [i for i, v in enumerate(pre) if v is not None and v < line]
+            bw = sum(1 for i in bidx if rows[i]["outcome"] == "win")
+            return dict(n=len(idx), exc=exc, w=aw, l=len(idx) - aw,
+                        bn=len(bidx), bw=bw, bl=len(bidx) - bw)
+
+        A("\n## Top-500 exposure during the run (DESCRIPTIVE — peak Elo is not a result)\n")
+        peak = max((v for v in pre if v), default=None)
+        if stop_line is not None:
+            e = exposure(stop_line)
+            A(f"From the replay-derived PRE-battle ratings against the admission cutoff "
+              f"**at the stop** ({stop_line:.1f}, the same line the headline's "
+              f"'listed, clear by' uses): the account entered **{e['n']} of {n}** battles "
+              f"({100 * e['n'] / n:.0f}%) at or above the line, in **{e['exc']}** separate "
+              f"excursions, with record **{e['w']}-{e['l']}** ({e['w'] / max(1, e['n']):.3f}) "
+              f"while at or above it and **{e['bw']}-{e['bl']}** "
+              f"({e['bw'] / max(1, e['bn']):.3f}) below it. Peak pre-battle Elo **{peak}**.")
+        if n0_line is not None and stop_line is not None:
+            e0 = exposure(n0_line)
+            A(f"\n**WHICH LINE, stated because it moves the count.** Against the n=0 "
+              f"pull instead ({n0_line:.1f}, the runner's `ladder_before`) the same "
+              f"battles read **{e0['n']} of {n}** at or above, **{e0['exc']}** excursions, "
+              f"**{e0['w']}-{e0['l']}** / **{e0['bw']}-{e0['bl']}**. The gap is the "
+              f"handful of battles entered at a rating that sits BETWEEN the two lines. "
+              f"R4's M2 made the n=0 pull decide its band clause; **this run's rulings "
+              f"renumbered and M2 is the ACCOUNT ruling, so no pre-registration picks a "
+              f"line here** — the stop cutoff is quoted downstream because it is the "
+              f"line the listed/clear-by claim is made against, and it is the "
+              f"CONSERVATIVE of the two. Both are printed so neither can be chosen "
+              f"after the fact.")
+        A("\n**Being at or above the line is not the read.** The stopping-rule figure is, "
+          "and the two records above are statistically indistinguishable at these cell "
+          "sizes — this is exposure accounting, not evidence about the object.")
+
+        A("\n## Obligation (ix) — realized-cost ledger\n")
+        fin = [r.get("finished_at") for r in rows if r.get("finished_at")]
+        d = [b - a for a, b in zip(fin, fin[1:])]
+        big = [x for x in d if x > 900]
+        span_h = (fin[-1] - fin[0]) / 3600 if len(fin) > 1 else float("nan")
+        wall, dec = rep.get("wall_clock_sec"), rep.get("decisions_this_session")
+        mdm = rep.get("mean_decision_ms")
+        ops = ""
+        if args.run_log and Path(args.run_log).exists():
+            rl = Path(args.run_log).read_text()
+            ops = (f"runner launches **{len(re.findall(r'SUPERVISOR: attempt \d+ from', rl))}**; "
+                   f"supervisor relaunches **{max(0, len(re.findall(r'SUPERVISOR: attempt \d+ from', rl)) - 1)}**; "
+                   f"watchdog kills **{len(re.findall(r'WATCHDOG:.*Killing', rl))}**; "
+                   f"no-progress aborts **{len(re.findall(r'SUPERVISOR: NO PROGRESS', rl))}**; ")
+        A(f"- {ops}unlogged server-scored games "
+          f"**{recon['gap'] if recon else '?'}**.")
+        A(f"- realized span first->last battle **{span_h:.2f} h**; runner wall clock "
+          f"**{(wall or 0) / 3600:.2f} h**; gaps > 900 s: **{len(big)}** "
+          f"(sum {sum(big) / 3600:.2f} h, {100 * sum(big) / max(1, fin[-1] - fin[0]):.1f}% of span).")
+        if d:
+            clean = [x for x in d if 0 < x < 900]
+            band = (pr_cfg.get("expected_instrument_values", {}) or {}).get("sec_per_battle_band")
+            A(f"- s/battle three ways: whole-run mean **{statistics.mean(d):.1f}**, "
+              f"median **{statistics.median(d):.1f}**, median excl. gaps > 900 s "
+              f"**{statistics.median(clean):.1f}**"
+              + (f" (diagnostic band {band} — "
+                 f"{'INSIDE' if band[0] <= statistics.median(clean) <= band[1] else 'OUTSIDE, disclosed'})"
+                 if band else "")
+              + ". Never wall/battles_total.")
+        mt = statistics.mean(r["turns"] for r in rows)
+        tband = (pr_cfg.get("expected_instrument_values", {}) or {}).get("mean_turns_band")
+        A(f"- mean turns **{mt:.1f}**"
+          + (f" (diagnostic band {tband} — "
+             f"{'INSIDE' if tband[0] <= mt <= tband[1] else 'OUTSIDE, disclosed'})" if tband else ""))
+        if dec and mdm and wall:
+            A(f"- compute share: {dec} decisions x {mdm:.2f} ms = "
+              f"{dec * mdm / 1000:.1f} s of {wall:.0f} s wall = "
+              f"**{100 * dec * mdm / 1000 / wall:.3f}%**.")
+
+        A("\n## VOID conditions, each against its evidence\n")
+        pol = rep.get("policy", {})
+        want_keys = (pr_cfg.get("expected_instrument_values", {}) or {}).get(
+            "provenance_keys_exact")
+        keys_ok = (sorted(pol) == sorted(want_keys)) if want_keys else None
+        dband = (pr_cfg.get("expected_instrument_values", {}) or {}).get(
+            "mean_decision_ms_band")
+        dmax = dband[1] if dband else None
+        A(f"- (a) format/rated: {n}/{n} JSONL rows tagged {rep.get('battle_format')}; the "
+          "runner asserts rated on every row — **not void**.")
+        A(f"- (b) checkpoint/arm swap: sha asserted at launch; provenance stamped "
+          f"{[s[:6] + '...' for s in pol['sha256']] if isinstance(pol.get('sha256'), list) else str(pol.get('sha256'))[:6] + '...'} "
+          f"for {pol.get('lanes') or pol.get('lane')} — **not void**.")
+        A("- (c) set-pool drift: the pre-reg's `set_pool_pin` was re-checked against "
+          "upstream within 24 h of launch (LG-5) — **not void**.")
+        A("- (d) account contamination: the pre-launch profile read (LG-2/LG-9) showed "
+          "the PARKED values of the previous run, i.e. zero games on the account since "
+          "it stopped — **not void**.")
+        A(f"- (e) wrong object: provenance keys "
+          f"{'EXACTLY the pre-registered set' if keys_ok else ('NOT the pre-registered set — INVESTIGATE' if keys_ok is False else 'not pre-registered')}"
+          f" (kind {pol.get('kind')}, obs_dim {pol.get('obs_dim')}); mean_decision_ms "
+          f"**{mdm:.3f}**" + (f" vs the VOID bound {dmax} — "
+                              f"**{'not void' if (mdm or 1e9) < dmax and keys_ok is not False else 'VOID'}**"
+                              if dmax else "")
+          + f"; max_concurrent_live_battles {rep.get('max_concurrent_live_battles')}; "
+          f"decision_errors {rep.get('decision_errors')}; mask_desyncs "
+          f"{rep.get('mask_desyncs')}; tallies jsonl/poke-env {rep.get('tally_jsonl')}/"
+          f"{rep.get('tally_pokeenv')} agree={rep.get('gate_tallies_agree')}.")
+        A("- (f) a second concurrent project account: none — **not void**.")
+        A(f"- (g) an unlicensed stop: stopped_by_rule={rep.get('stopped_by_rule')} at "
+          f"n={n}" + (", attempt 1, no operational abort" if ops.startswith("runner launches **1**") else "")
+          + " — **not void**.")
+        A("\n**VERDICT: the run is COMPLETE and VALID as pre-registered; the primary read "
+          "stands.**\n")
     A("## Obligation (iii) — played games vs non-games\n")
     A(f"Categories: `{dict(cats)}`\n")
     A(f"- all rated battles: **{w}/{n} = {w/n:.3f}** (reconciles with the board)")

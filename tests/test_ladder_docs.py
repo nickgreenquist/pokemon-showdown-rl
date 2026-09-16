@@ -30,10 +30,25 @@ ALLOWED = {
     "R1": {(95, 105)},
     "R3": {(106, 102), (106, 94)},        # profile (208 rated) / runner-logged (200)
     "R4": {(104, 96), (199, 201)},        # runner-logged (200) / cumulative profile (400)
+    "R5": {(128, 72), (327, 273)},        # runner-logged (200) / cumulative profile (600)
+}
+# WITHIN-RUN CELLS, not records. A cell is admitted here only if it has
+# GENERATOR provenance -- i.e. `scripts/ladder_readout.py` prints it into the
+# committed readout -- so the list cannot become a place to park a number
+# somebody typed. R5's pair is the top-500 exposure split (record while at or
+# above the admission line vs below it), which the readout's "Top-500 exposure"
+# section emits under BOTH candidate lines; both are listed so that naming the
+# other line is not a test failure. Added 2026-09-16 in the R5 audit, with the
+# R5 headline pairs above -- the R5 write-up shipped without teaching this
+# guard about R5 at all, and the guard was RED at HEAD until now.
+CELLS = {
+    "R5": {(93, 53), (95, 53)},           # stop-cutoff / n=0-cutoff exposure split
 }
 PAIR = re.compile(r"(?<![\d.])(\d{2,3})\s*[-–]\s*(\d{2,3})(?![\d.]|\s*%)")  # a % range is not a record
-LADDER_LINE = re.compile(r"ladder|GXE|\bElo\b|rated battles|\bR[134]\b", re.IGNORECASE)
-ALLOWED_ALL = set().union(*ALLOWED.values())
+# \bR\d\b, not \bR[134]\b: the old class did not know R5 existed, so STATUS's
+# R5 record line matched no ladder keyword and was never scanned at all.
+LADDER_LINE = re.compile(r"ladder|GXE|\bElo\b|rated battles|\bR\d\b", re.IGNORECASE)
+ALLOWED_ALL = set().union(*ALLOWED.values(), *CELLS.values())
 
 
 def ladder_pairs(text):
@@ -64,3 +79,31 @@ def test_the_scanner_catches_the_r3_drift_that_motivated_it():
     # ratings, bands, dates and hours are out of scope by construction
     quiet = "LADDER R4: Elo 1292-1354, band 1300-1400, 2026-09-04, 12-16 h, se 0.19-0.22, GXE 66-77%"
     assert not list(ladder_pairs(quiet))
+
+
+# ---------------------------------------------------------------------------
+# The hand-written appendix marker. `scripts/ladder_readout.py` re-appends
+# everything at or after MARK when it regenerates over an existing --out file;
+# an appendix written WITHOUT the marker is deleted, silently, by the next
+# regeneration. LADDER R5 shipped that way (2026-09-16, bb1a0dc) and the
+# opponent-pool appendix -- the CLEANUP L1 evidence -- was one re-run from
+# gone. This test is the guard, not the memory.
+MARK = "<!-- HAND-WRITTEN APPENDIX — preserved on regeneration -->"
+
+
+def test_hand_written_readout_appendices_sit_behind_the_marker():
+    bad = []
+    for path in sorted((ROOT / "readouts").glob("LADDER_*_READOUT.md")):
+        text = path.read_text()
+        heads = [i for i, line in enumerate(text.splitlines())
+                 if line.startswith("## Appendix")]
+        if not heads:
+            continue
+        if MARK not in text:
+            bad.append(f"{path.name}: has {len(heads)} '## Appendix' section(s) "
+                       "but no preservation marker — a regeneration deletes them")
+            continue
+        mark_line = next(i for i, line in enumerate(text.splitlines()) if MARK in line)
+        if min(heads) < mark_line:
+            bad.append(f"{path.name}: an '## Appendix' section sits ABOVE the marker")
+    assert not bad, "\n".join(bad)

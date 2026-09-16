@@ -11,7 +11,7 @@ against those artifacts.
 - Profile reachable: **True**
 - Board reachable: **True**
 - Listed on the top-500: **True**
-- Top-500 admission cutoff: Elo **1354.1726586955**
+- Top-500 admission cutoff: Elo **1354.3949945282** — THIS READOUT'S OWN pull (live), which DRIFTS on every regeneration because the board moves. **The value at the stop, from the runner's `ladder_after`, is Elo 1354.1726586955** and that is the one every downstream quote uses.
 
 **PRIMARY READ (server-computed, via profile):** GXE **73.9%**, Glicko-1 **1697 +/- 25**, Elo **1457**, record **327-273** (CUMULATIVE account record — it carries 400 rated games from before this run; this run's own record is the runner-logged subset in obligation (vii)).
 Quoted WITH n, WITH the policy kind and WITH the board position,
@@ -164,6 +164,35 @@ measured off Foul Play@20, with the 0.944 (proxy -> ladder)
 calibration that predicted ~34.8. This is the only new OBSERVABLE
 this run buys beyond a rating.
 
+
+## Top-500 exposure during the run (DESCRIPTIVE — peak Elo is not a result)
+
+From the replay-derived PRE-battle ratings against the admission cutoff **at the stop** (1354.2, the same line the headline's 'listed, clear by' uses): the account entered **146 of 200** battles (73%) at or above the line, in **9** separate excursions, with record **93-53** (0.637) while at or above it and **35-19** (0.648) below it. Peak pre-battle Elo **1541**.
+
+**WHICH LINE, stated because it moves the count.** Against the n=0 pull instead (1353.6, the runner's `ladder_before`) the same battles read **148 of 200** at or above, **8** excursions, **95-53** / **33-19**. The gap is the handful of battles entered at a rating that sits BETWEEN the two lines. R4's M2 made the n=0 pull decide its band clause; **this run's rulings renumbered and M2 is the ACCOUNT ruling, so no pre-registration picks a line here** — the stop cutoff is quoted downstream because it is the line the listed/clear-by claim is made against, and it is the CONSERVATIVE of the two. Both are printed so neither can be chosen after the fact.
+
+**Being at or above the line is not the read.** The stopping-rule figure is, and the two records above are statistically indistinguishable at these cell sizes — this is exposure accounting, not evidence about the object.
+
+## Obligation (ix) — realized-cost ledger
+
+- runner launches **1**; supervisor relaunches **0**; watchdog kills **0**; no-progress aborts **0**; unlogged server-scored games **0**.
+- realized span first->last battle **14.04 h**; runner wall clock **14.16 h**; gaps > 900 s: **0** (sum 0.00 h, 0.0% of span).
+- s/battle three ways: whole-run mean **253.9**, median **239.0**, median excl. gaps > 900 s **239.0** (diagnostic band [190, 300] — INSIDE). Never wall/battles_total.
+- mean turns **28.8** (diagnostic band [18, 32] — INSIDE)
+- compute share: 6493 decisions x 5.40 ms = 35.0 s of 50982 s wall = **0.069%**.
+
+## VOID conditions, each against its evidence
+
+- (a) format/rated: 200/200 JSONL rows tagged gen1randombattle; the runner asserts rated on every row — **not void**.
+- (b) checkpoint/arm swap: sha asserted at launch; provenance stamped ['a502af...', 'add6e8...', '33108e...'] for ['w104', 'w112', 'w120'] — **not void**.
+- (c) set-pool drift: the pre-reg's `set_pool_pin` was re-checked against upstream within 24 h of launch (LG-5) — **not void**.
+- (d) account contamination: the pre-launch profile read (LG-2/LG-9) showed the PARKED values of the previous run, i.e. zero games on the account since it stopped — **not void**.
+- (e) wrong object: provenance keys EXACTLY the pre-registered set (kind ensemble, obs_dim 828); mean_decision_ms **5.398** vs the VOID bound 30 — **not void**; max_concurrent_live_battles 1; decision_errors 0; mask_desyncs 0; tallies jsonl/poke-env 200/200 agree=True.
+- (f) a second concurrent project account: none — **not void**.
+- (g) an unlicensed stop: stopped_by_rule=True at n=200, attempt 1, no operational abort — **not void**.
+
+**VERDICT: the run is COMPLETE and VALID as pre-registered; the primary read stands.**
+
 ## Obligation (iii) — played games vs non-games
 
 Categories: `{'played_out': 150, 'forfeit': 40, 'no_show': 3, 'timeout_midgame': 7}`
@@ -173,6 +202,8 @@ Categories: `{'played_out': 150, 'forfeit': 40, 'no_show': 3, 'timeout_midgame':
   (a no-show — opponent submitted zero moves — is not a game; a forfeit
   or a mid-game timeout IS a win, per the 2026-08-25 amendment)
 
+
+<!-- HAND-WRITTEN APPENDIX — preserved on regeneration -->
 
 ## Appendix — opponent-pool concentration (CLEANUP item L1)
 
@@ -191,13 +222,15 @@ many independent draws 200 battles actually buy.
 
 Top five: JodiTh 23, NidoRey 14, iranteamo 13, CrangleMcDangle 10, aluminum_boat 9.
 
-**Two adaptation tests, both pre-stated in shape and both NULL:**
+**Two adaptation tests, both pre-stated in shape and both NULL**, with a third
+time-order cut shown beneath them for context (it is not an adaptation test —
+the pool turns over between the halves):
 
-| test | early | late | delta |
+| cut | early | late | delta |
 |---|---|---|---|
-| repeat opponents (>=4 games), their first halves vs second halves | 0.629 (n=35) | 0.632 (n=38) | +0.003 at 0.03 se |
-| first meetings vs all rematches | 0.627 (n=102) | 0.653 (n=98) | +0.026 at 0.38 se |
-| first 50 battles vs last 50 battles | 0.580 | 0.600 | +0.020 |
+| TEST 1 — repeat opponents (>=4 games), their first halves vs second halves | 0.629 (n=35) | 0.632 (n=38) | +0.003 at 0.03 se |
+| TEST 2 — first meetings vs all rematches | 0.627 (n=102) | 0.653 (n=98) | +0.026 at 0.38 se |
+| context — first 50 battles vs last 50 battles | 0.580 (n=50) | 0.600 (n=50) | +0.020 at 0.20 se |
 
 Both deltas run in OUR favour and neither is close to significance, so this run
 shows **no evidence that opponents adapted to the object**. It equally shows no
@@ -214,3 +247,37 @@ Recorded as **CLEANUP item L1** with a proposal to replace "ONE CONTINUOUS RUN"
 with a pre-registered SPLIT SCHEDULE (sessions across different hours and days,
 with its own stopping rule) at the R6 pre-reg. **Not applied to R5**: changing a
 schedule mid-run is an unregistered deviation. Descriptive; attaches to no lever.
+
+## Appendix — regenerating this file (the R1-default trap)
+
+Every flag, because all three readout scripts default to R1's paths and R1's
+account name and a readout built on those defaults still renders, silently,
+against the wrong run:
+
+```
+python scripts/ladder_readout.py --jsonl results/ladder/R5E.battles.jsonl \
+  --replays results/ladder/replays_r5 --name nickgen1rbrlbot --label R5 \
+  --prereg configs/eval/ladder_r5.yaml \
+  --prior-account-games 400 --prior-account-record 199-201 \
+  --report results/ladder/R5E.report.json \
+  --run-log results/ladder/R5E.run.log \
+  --compare-jsonl results/ladder/L2.battles.jsonl \
+  --compare-jsonl results/ladder/R3S.battles.jsonl \
+  --compare-jsonl results/ladder/R4G.battles.jsonl \
+  --out readouts/LADDER_R5_READOUT.md
+```
+
+TWO THINGS DRIFT ON REGENERATION, both by design and both labelled where they
+print: the **"Status of the primary read" block is a LIVE pull** (board cutoff
+and profile as of the moment you run it), so its cutoff line will not match
+the value this run stopped against — which is why that line now prints the
+at-stop `ladder_after` value beside it, and why every downstream quote uses
+the at-stop one; and the run's own record can only be read off the JSONL,
+never off the profile, because the profile record is CUMULATIVE.
+
+Everything from the marker line above down is hand-written and is re-appended
+verbatim by the generator. **The marker was missing when this file was first
+committed (2026-09-16, bb1a0dc): a regeneration at that point would have
+silently deleted the opponent-pool appendix.** Added in the audit the same day,
+along with the generic ops block (exposure / cost ledger / VOID discharge),
+which had been gated on the literal label `R4` and so rendered nothing for R5.

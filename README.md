@@ -201,8 +201,9 @@ started by a human. **The run is finished and the pre-registered stopping rule w
 | Instrument | mean decision 5.40 ms (band [1, 30], no VOID), 0 decision errors, 0 mask desyncs |
 
 **It held the list rather than touching it.** By the replay-derived pre-battle ratings
-the account entered **146 of its 200 battles at or above the admission line**, across 9
-excursions, peaked at Elo 1541, and **finished listed**. Its record while at or above the
+the account entered **146 of its 200 battles at or above the admission line** (the cutoff
+at the stop, 1354.17; against the n=0 pull it reads 148 — the readout prints both and
+neither is pre-registered), across 9 excursions, peaked at Elo 1541, and **finished listed**. Its record while at or above the
 line (93–53, 0.637) is indistinguishable from its record below it (35–19, 0.648). Peak Elo
 is not a result; the stopping-rule figure is the read.
 
