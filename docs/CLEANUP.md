@@ -25,6 +25,34 @@ exactly that (see do-not-relitigate below).
 
 ## Still open
 
+- **L2 — THE LADDER READOUT'S "STATUS OF THE PRIMARY READ" BLOCK IS A LIVE PULL
+  AND DRIFTS ON EVERY REGENERATION** (opened 2026-09-16, R5 audit).
+  `scripts/ladder_readout.py` calls `ladder_snapshot()` at readout time, so the
+  admission cutoff, `listed`, and the profile it prints are "as of whenever you
+  ran it", inside a file headed "final readout". Measured: R4's committed file
+  says cutoff **1358.999** while its own `R4G.report.json` `ladder_after` says
+  **1359.680**, and R5 re-renders today at **1354.395** against the **1354.173**
+  it stopped at. **Mitigated, not fixed:** the at-stop value from `--report` now
+  prints beside the live one and is labelled as the one every downstream quote
+  uses, and a failed network pull falls back to the report instead of killing
+  the render. **The ruling owed is whether the report should simply BE the
+  source** — which would change what a regenerated R1/R3/R4 readout says, and
+  the repo's published R4 cutoff (1358.999, quoted in README and the R5
+  pre-reg header) is one of the numbers that would move. Escalate before
+  changing; a published number is a maintainer call.
+
+- **L3 — `scripts/plasticity_probe.py` CAN ONLY SEE ONE ARCHITECTURE** (opened
+  2026-09-16). It asserts `REF_TRUNK_KWARGS` with `value_sizes [384, 384]` and
+  compares parameter sets of ONE architecture against fresh inits of that same
+  architecture, so the 1024-wide critic finals cannot enter it without a second
+  arch family (its own fresh inits and `ORDER_SEEDS`). This is the instrument
+  that would separate "the parameters can still be optimised" (Lyle Def-1
+  plasticity) from "the representation is a sparse-reward artefact" — i.e. it
+  is the follow-up the mechanism read (RESULTS §21) leaves open, since that read
+  shows the wide critic's capacity is USED but buys no explained variance.
+  Not blocking anything today; named so the next person does not rediscover the
+  assert mid-read.
+
 - **L1 — THE LADDER'S OPPONENT POOL IS SMALL AND ONE SESSION SAMPLES ONE SLICE
   OF IT** (opened 2026-09-16, from the maintainer's observation mid-R5). R5 at
   n=156 had played **78 distinct opponents, with five of them supplying 62 games
