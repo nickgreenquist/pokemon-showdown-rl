@@ -382,3 +382,86 @@ def test_ch3_eval_merge_override_rate(tmp_path, extra, want_rate, want_delta):
     assert final["search_margin_delta"] == want_delta
     assert final["search/override_rate"] == want_rate
     assert final["search/flip_rate"] == 120 / 192  # unchanged by the gate
+
+
+# ---------------------------------------------------------------------------
+# DEPTH-2 PROBE DIAGNOSTICS MUST SURVIVE THE MERGE (2026-09-16, JOURNEY 11.5).
+#
+# `_SeatEval.chunk_summary` writes depth2/ tree/ census/ bcts/ keys into every
+# CHUNK, and `_merge` built the final from an explicit whitelist that did not
+# include them -- so a depth-2 arm's final.json was byte-compatible with a
+# depth-1 one. That is the SAME defect class as 2026-09-11's VOID D2 probe,
+# where `_SearchEvalAdapter` dropped `depth2/grandchildren` and "the extra ply
+# changed nothing" printed the same win rate as "the extra ply never fired" --
+# one layer up, and still live until this test existed.
+
+def test_ch3_eval_merge_carries_depth2_diagnostics(tmp_path):
+    ch3_eval = _ch3_eval()
+    # two chunks with DIFFERENT searched-decision counts, so a bug that
+    # averages unweighted is distinguishable from the weighted mean
+    for k, (searched, gc) in enumerate([(96, 800.0), (48, 500.0)]):
+        extra = {
+            "search/searched_decisions": searched,
+            "depth2/grandchildren_mean": gc,
+            "depth2/decisions_with_any": 1.0,
+            "depth2/mean_shift_mean": 0.08,
+        }
+        (tmp_path / f"j.chunk{k:02d}.json").write_text(json.dumps(_chunk(k, extra)))
+    ch3_eval._merge({}, "j", tmp_path, 2)
+    final = json.loads((tmp_path / "j.final.json").read_text())
+    assert "depth2/grandchildren_mean" in final, (
+        "a depth-2 final.json is byte-compatible with a depth-1 one"
+    )
+    assert final["depth2/grandchildren_mean"] == pytest.approx(
+        (800.0 * 96 + 500.0 * 48) / (96 + 48)
+    ), "weighted by searched decisions, which is what chunk_summary averaged over"
+    assert final["depth2/decisions_with_any"] == pytest.approx(1.0)
+
+
+def test_ch3_eval_merge_is_unchanged_without_probe_keys(tmp_path):
+    """A depth-1 arm gains no depth2/ keys -- absence stays meaningful."""
+    ch3_eval = _ch3_eval()
+    for k in range(2):
+        (tmp_path / f"j.chunk{k:02d}.json").write_text(json.dumps(_chunk(k, {})))
+    ch3_eval._merge({}, "j", tmp_path, 2)
+    final = json.loads((tmp_path / "j.final.json").read_text())
+    assert not [k for k in final if k.startswith(("depth2/", "tree/", "bcts/"))]
+
+
+def test_search_agent_counts_the_extra_ply():
+    """The counter that must reach disk before the dial gets an arm.
+
+    2026-09-11's D2 probe produced ZERO grandchildren on all 1572 searched
+    decisions and printed a win rate anyway. These counters are what R0 gate
+    G_FIRED of configs/eval/depth2_r5.yaml reads.
+    """
+    from rl.search.agent import SearchAgent
+
+    sa = SearchAgent.__new__(SearchAgent)      # no env, no checkpoint needed
+    sa._depth2 = {"our_k": 3, "cap": 6000, "plies": 1}
+    sa.counters = {"depth2/decisions_with_ply": 0, "depth2/grandchildren": 0,
+                   "depth2/leaves_deepened": 0, "depth2/shift_sum": 0.0,
+                   "search/flips": 0, "search/overrides": 0}
+    for gc in (840, 0, 900):                   # one decision where it did not fire
+        stats = {"depth2/grandchildren": gc, "depth2/leaves_deepened": 340,
+                 "depth2/mean_shift": 0.09}
+        if sa._depth2 is not None and "depth2/grandchildren" in stats:
+            g = int(stats["depth2/grandchildren"])
+            sa.counters["depth2/grandchildren"] += g
+            sa.counters["depth2/leaves_deepened"] += int(stats["depth2/leaves_deepened"])
+            sa.counters["depth2/decisions_with_ply"] += int(g > 0)
+            sa.counters["depth2/shift_sum"] += float(stats.get("depth2/mean_shift", 0.0))
+    assert sa.counters["depth2/grandchildren"] == 1740
+    assert sa.counters["depth2/decisions_with_ply"] == 2, (
+        "a decision that produced no grandchildren must not count as fired"
+    )
+
+
+def test_lane_seed_is_backward_identical_and_stops_being_a_landmine():
+    from rl.search.agent import lane_seed
+
+    for lane in ("s65", "s104", "s112", "s120"):
+        assert lane_seed(lane) == int(lane.lstrip("s"))   # every banked arm
+    assert lane_seed("w104") == 104 and lane_seed("l128") == 128
+    with pytest.raises(AssertionError):
+        lane_seed("clone")
