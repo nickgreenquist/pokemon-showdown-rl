@@ -11842,3 +11842,75 @@ line numbers are not — grep the date, then read that region):
     on the public gen-1 top-500 at the end of a 200-game run. It settles no lever: the committee, horizon,
     wide critic and L2 all moved together, there is no control arm, the account is warm-started, and **no
     R1/R3/R4/R5 delta may be quoted as an effect**. The BC-clone anchor leg for this object is **PENDING**.
+
+- 2026-09-16 — **post-ladder follow-through: the R5 write-up audited (two tests
+  were RED), [RWL-3]'s mechanism co-primary run and the wide-critic RECIPE
+  credited, the BC-clone anchor leg unblocked and run, and a ranked next-steps
+  brief.** Agent-side, box idle, no training launched.
+  - **AUDIT (d4feef9).** Every published R5 number recomputes exactly from
+    `R5E.report.json`, the JSONL and the 200 replays — 128–72/0.640, played-only
+    125/197, 102 distinct opponents, 127 repeat battles (63.5%), top five 34.5%,
+    mean turns 28.76, mean opp Elo 1303.8, median 239.0 s/battle, both adaptation
+    tests at 0.03 and 0.38 se. Nothing in RESULTS/README/STATUS was wrong. What
+    was: **`tests/test_ladder_docs.py` and `tests/test_100m_prereg.py` were both
+    RED at bb1a0dc** — the W-L guard never learned R5's pairs and its line regex
+    stopped at `R[134]`, so STATUS's R5 record line was never scanned at all; the
+    seed-window gate named the monster fleet's PLANNED dirs
+    (`monster100m_<arm>_s<seed>`) and went red the day the fleet launched with
+    `showdown_monster200m_w_s*`. **The R5 readout had no
+    `<!-- HAND-WRITTEN APPENDIX -->` marker**, so the next regeneration would have
+    silently deleted the CLEANUP-L1 appendix; R1's readout has the same hole and
+    is patched too, with a test now guarding every readout. The exposure / cost
+    ledger / VOID sections were gated on the literal label `"R4"` and so rendered
+    NOTHING for R5 — a run-generic block now fires for any labelled run with
+    `--report`, reproducing 146/9/93–53/35–19 and printing the n=0-cutoff variant
+    (148/8/95–53) beside it, because no R5 ruling picks a line. The readout's
+    status block is a LIVE pull that drifts on every regeneration (R4's committed
+    1358.999 vs its report's 1359.680); the at-stop value now prints beside it.
+  - **MECHANISM CO-PRIMARY (12aaa18 plan, d5c83b0 read, a564196 verdict).** Plan
+    registered before any number existed. **Branch 1 fires: width is LIVE.** In
+    the FIRST layer of the critic's value stack the wide critic holds srank99
+    **632 of 1024 (0.617)**; L2LAM holds 27/384 and the 100M baseline **5 of
+    384**. Eight times the across-lane spread, same sign on both obs protocols.
+    The arms collapse at OPPOSITE ENDS of the stack — the narrow critics destroy
+    the representation at layer 1 and partly re-expand; the wide one carries it
+    through and compresses at the output. L2LAM has L2 and the 100M baseline does
+    not and BOTH collapse: **L2 does not prevent it, width does.** The ceiling
+    branch did NOT fire (it wanted ~48 absolute), so rule 6 permits no kill.
+    **Branch 3 is INVERTED: EV did not move (W 0.5881 vs the 100M lanes' 0.5919)
+    and the win rate did.** 2.67× width and 126× first-layer rank bought ZERO
+    explained variance — do not size the next fleet on EV. adv_std manipulation
+    check passes (L2LAM 1.83× W). **CREDITED: the recipe as shipped, +0.0330 vs
+    SH (5.59 se) and +0.0464 off FP@20 (4.79 se, seed-clustered se binding).
+    NOT credited: width as a separable lever (no contrast isolates it), and E3W
+    vs the 100M ENS3 floor at +0.0150/2.01 se** — at committee level the recipe
+    gain and the committee gain SUBSTITUTE rather than add.
+  - **INSTRUMENT BUG behind that read.** `d22_dormant_rank.py` skipped layers by
+    `".3" in name`, meaning "the LayerNorm slot"; on every checkpoint this repo
+    has trained `ctx_net.3` is the SECOND ReLU, so the dormant table carried the
+    FIRST layer while `srank99_ctx` carried the OUTPUT layer. The first version
+    of the readout compared the two and **called it a ceiling** — the opposite of
+    the truth. Now skips by module TYPE, `--layer-ranks` records the whole stack.
+  - **BC-CLONE ANCHOR LEG (099c440, f180455).** It was PENDING because it was
+    BLOCKED: `_opponent_from_checkpoint` began returning `(player, env_id)` at
+    8afa069 (2026-09-05) and **five scripts never unpacked it**, including
+    `ch3_r4_anchors.py`, the clone runner — so the leg had been unrunnable for
+    eleven days and nothing noticed, because no test drives those live paths. All
+    five fixed plus a static AST guard over every call site (mutation-checked).
+    The runner also had no ensemble seat; `ensemble_h2h` added with the
+    mutual-exclusion contract `ch3_fp_h2h.py` uses, and the JSONs now stamp
+    `seat1_lanes`/`members` so a committee run can never read as a single lane.
+    Result: **committee 0.9640 (n=500), W fleet 0.9467, 100M fleet re-drawn SAME
+    SESSION 0.9373.** W vs 100M here is a NULL (+0.009 at 1.1 se) — the credited
+    recipe is invisible against a frozen imitator at a ~0.94 ceiling. **The
+    same-session re-draw earned its cost:** the banked 2026-09-04 value is 0.9233,
+    so differencing against it would have read +0.023 instead of +0.009, 2.5×
+    larger and entirely a session artefact.
+  - **NEXT, RANKED** (`docs/proposals/WHATS_NEXT_2026-09-16.md`): JOURNEY 11.5
+    (depth-1 vs depth-2 on the R5 committee — the next arc step, needs no
+    training, and every depth number we own is PRE-D5); the critic LayerNorm arm
+    (a 50M run can resolve the MECHANISM legally under rule 6 even though its win
+    rate could not); more W-recipe members; 300M (weakest); and whether EV 0.59 is
+    the IRREDUCIBLE ceiling. Rulings owed: R6's split schedule, the LR-anneal
+    floor, the next fleet's shape.
+  - Suite **1055 passed / 87 skipped** with the server up (1044/96 without).

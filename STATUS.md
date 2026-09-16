@@ -31,12 +31,10 @@ depth 3 reads -0.017 +/- 0.023). Licensed: "no evidence depth helps at these bud
 **LANDMINE: every search number before 2026-09-11 measures a BROKEN selector** (grep `PRE-D5`; LADDER R3 is a
 D4 object). ENSG (committee as the search's prior+leaf, with the gate) is a NULL on both axes.
 
-## ENSEMBLE SCALING (2026-09-11/12, `configs/eval/ens_width*.yaml`) — superseded in detail by the monster reads below
-b0 member curve 1→6 vs SH: 0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400 (members 4–6 are 50M objects,
-a lower bound); pooled E6MIX 0.83356 vs ENS3 0.82356 = +0.010 at 1.78 se (unresolved, NOT saturation). STEPS vs
-MEMBERS: ENS3 of the 50M finals 0.82233 vs the 100M committee 0.82356 — the horizon was the weaker lever vs SH.
-Off FP@20 (same session): greedy 100M re-draw mean 0.500; ENS3F 0.557 / ENS3FR 0.577 (+0.067 at 4.7 se — the
-committee's off-FP transfer is verdict-grade); FP@500 (1 s/decision) costs the committee ~0.095 (0.472, n=500).
+## ENSEMBLE SCALING (2026-09-11/12, `configs/eval/ens_width*.yaml`) — superseded in detail by the monster reads
+Member curve 1→6 vs SH: 0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400 (members 4–6 are 50M, a lower
+bound). STEPS vs MEMBERS: ENS3 of the 50M finals 0.82233 vs the 100M committee 0.82356 — **the horizon was the
+WEAKER lever vs SH.** Off FP@20 the committee's transfer is verdict-grade (+0.067 at 4.7 se); FP@500 costs it ~0.095.
 
 ## THE MONSTER (JOURNEY 10) — DONE 2026-09-15, ZERO RESUMES; the reads picked the ladder object BY RULE
 Fleet (ratified option C, launched 2026-09-13 10:35Z, six lanes k=8): **W trio = L2 + 1024-wide critic** (seeds
@@ -76,9 +74,17 @@ Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_2000000
    alone is +0.014, so differencing against the banked value would have inflated the gain 2.5x). W vs
    100M on this axis is a NULL (+0.009 at 1.1 se): a ~0.94 ceiling, not a contradiction of the §21 credit.
    It was PENDING because its runner had been BROKEN since 2026-09-05 and had no ensemble seat (099c440).
-3. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — sessions across hours/days need their own
-   stopping rule, since rd grows between sessions); the LR-anneal floor for the next fleet; the next
-   fleet's shape (more W-recipe members vs 300M vs the LayerNorm arm); engine-native depth-2 (not the lever).
+3. **NEXT, RANKED — `docs/proposals/WHATS_NEXT_2026-09-16.md` (for the maintainer's Sunday read):**
+   **(1) JOURNEY 11.5, depth-1 vs depth-2 on the R5 committee** — the actual next arc step, needs NO
+   training, and is UNANSWERED (every depth number we have is PRE-D5). It gates gen-9's MCTS decision.
+   **(2) the critic LayerNorm arm** (built 2026-09-12, never run): the cheap test of the collapse this
+   session measured — a 50M run can resolve the MECHANISM legally under rule 6 even though its win rate
+   could not. **(3) more W-recipe members. (4) 300M — weakest on evidence. (5) is EV 0.59 the
+   IRREDUCIBLE ceiling?** (cheap; would retire or reopen all future critic work).
+4. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its OWN stopping rule, rd grows between
+   sessions); the LR-anneal floor ([RWL-4]; new datum: W's EV FALLS through the annealed tail,
+   0.675→0.596 — the tail is not inert, which cuts both ways); the next fleet's shape — answer it AFTER
+   the LayerNorm read, since the question has changed from "how much width" to "is width the cheap way".
 
 ## Watch items
 - **SUITE GREEN 1044 / 0 failed, 96 skipped** (2026-09-16, encoder flags UNSET — the documented
