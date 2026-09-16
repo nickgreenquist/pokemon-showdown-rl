@@ -1790,8 +1790,11 @@ with no human data in training can sit on the public gen-1 random-battle top-500
 the end of a 200-game run**, which is the thing this project set out to show and the thing
 §16's three earlier runs did not show. It settles nothing about which lever produced it:
 the committee, the horizon, the wide critic and L2 all moved together, the ladder has no
-control arm, and the anchor battery for this object is incomplete — **vs-SH and FP@20 are
-in hand; the BC-clone head-to-head is PENDING and the README row says so**.
+control arm, and the ladder itself credits nothing. **The anchor battery for this object
+is COMPLETE as of 2026-09-16** — vs-SH 0.8386, FP@20 0.5987 and BC-clone 0.9640 (n=500,
+`readouts/MONSTER_BCCLONE_READOUT.md`); against that frozen clone the 200M and 100M fleets
+are indistinguishable (+0.009 at 1.1 se), a ceiling result and not a contradiction of §21.
+The mechanism read that decides what §20.1's numbers may be called is §21.
 
 ## 21. Addendum, 2026-09-16 — the monster fleet's **mechanism co-primary**: the wide critic's capacity is **used**, its explained variance is **flat**, and the **recipe** is credited
 

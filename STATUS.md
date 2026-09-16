@@ -15,7 +15,7 @@ DISCLOSURES: warm-started account (400 prior games — GXE/Glicko/Elo are ACCOUN
 STANDALONE DESCRIPTIVE; **no R1/R3/R4/R5 delta is an effect**; barred-language list is binding.
 **Pool caveat (CLEANUP L1):** 102 distinct opponents, 63.5% of battles vs a repeat, top five = 34.5%;
 two adaptation tests null (+0.003 at 0.03 se; +0.026 at 0.38 se). Full: `readouts/LADDER_R5_READOUT.md`,
-`RESULTS.md` §20. **Anchor battery INCOMPLETE — BC-clone h2h PENDING; README row says so.**
+`RESULTS.md` §20. **Anchor battery COMPLETE 2026-09-16: BC-clone 0.9640 (n=500).**
 
 ## **ENS3 of the 100M finals CREDITS (+0.0349 vs SH; +0.067 off FP@20) — now the R5 FLOOR; the object is E3WF (below)**
 **0.82356 (n=9000) vs fresh greedy A0 0.78867 = +0.03489 at 5.93 se → CREDIT** (floor AND 2·se_diff); beats the
@@ -71,8 +71,11 @@ Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_2000000
    recipe pays, since it is measurably not a better value fit. The plasticity probe (Lyle Def-1) is the
    instrument that would separate "the parameters can still be optimised" from "the representation is a
    sparse-reward artifact"; it asserts value_sizes [384,384] and needs a second arch family for W.
-2. **OWED FOR THE README ROW:** the BC-clone h2h (500) for the committee — the only missing anchor leg;
-   it is reported PENDING and the row already says so. vs-SH (0.8386) and FP@20 (0.5987) are in hand.
+2. **DONE 2026-09-16 — the BC-clone leg** (`readouts/MONSTER_BCCLONE_READOUT.md`): committee **0.9640**,
+   W fleet 0.9467, 100M fleet re-drawn SAME SESSION 0.9373 (banked cross-session 0.9233 — the re-draw
+   alone is +0.014, so differencing against the banked value would have inflated the gain 2.5x). W vs
+   100M on this axis is a NULL (+0.009 at 1.1 se): a ~0.94 ceiling, not a contradiction of the §21 credit.
+   It was PENDING because its runner had been BROKEN since 2026-09-05 and had no ensemble seat (099c440).
 3. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — sessions across hours/days need their own
    stopping rule, since rd grows between sessions); the LR-anneal floor for the next fleet; the next
    fleet's shape (more W-recipe members vs 300M vs the LayerNorm arm); engine-native depth-2 (not the lever).

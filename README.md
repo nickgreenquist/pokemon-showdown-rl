@@ -222,12 +222,17 @@ came back null and both in our favour. Glicko counts 200 independent games; the 
 sample is smaller. Recorded as item L1 in [`docs/CLEANUP.md`](docs/CLEANUP.md) with a
 proposal to spread the next run across sessions.
 
-**Anchor battery for this object: INCOMPLETE.** vs SimpleHeuristics under the locked
-protocol (**0.8386**, n=9000) and Foul Play@20 (**0.5987**, n=3000) are in hand; the
-**BC-clone head-to-head is PENDING** and this row does not wait on it only because the
-ladder run does not — the claim above is the ladder number, nothing more. Full provenance:
-[`readouts/LADDER_R5_READOUT.md`](readouts/LADDER_R5_READOUT.md), evidence and reads in
-[`RESULTS.md` §20](RESULTS.md).
+**Anchor battery for this object: COMPLETE (2026-09-16).** vs SimpleHeuristics under the
+locked protocol **0.8386** (n=9000), Foul Play@20 **0.5987** (n=3000), and the BC-clone
+head-to-head **0.9640** (n=500) — the last leg, which had been reported PENDING and turned
+out to be blocked rather than undecided: its runner had been broken since 2026-09-05 and
+had no ensemble seat. Against that frozen clone the 200M fleet and the 100M fleet are
+indistinguishable (+0.009 at 1.1 se, same session), which is what a ~0.94 ceiling looks
+like — **a clone number is never style evidence, and anchors are never verdict inputs**.
+Full provenance: [`readouts/LADDER_R5_READOUT.md`](readouts/LADDER_R5_READOUT.md),
+[`readouts/MONSTER_BCCLONE_READOUT.md`](readouts/MONSTER_BCCLONE_READOUT.md), evidence and
+reads in [`RESULTS.md` §20](RESULTS.md) and the mechanism verdict in
+[§21](RESULTS.md).
 
 ## The claim
 
@@ -421,7 +426,7 @@ W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` writes
 | `docs/prior_work/README.md` | verified index of external systems — several widely-repeated claims about them do not survive contact with their code |
 | `scripts/README.md` | why almost nothing in `scripts/` is safe to delete |
 | `docs/IDEAS_POST_100M.md` | the live lever list, re-ranked after the 100M read; each entry owes its own pre-reg |
-| [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md), [`LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md), [`LADDER_R5_READOUT.md`](readouts/LADDER_R5_READOUT.md) |
+| [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md), [`LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md), [`LADDER_R5_READOUT.md`](readouts/LADDER_R5_READOUT.md); plus the reads behind them — [`MECH200M_READOUT.md`](readouts/MECH200M_READOUT.md) (the mechanism co-primary) and [`MONSTER_BCCLONE_READOUT.md`](readouts/MONSTER_BCCLONE_READOUT.md) (the BC-clone anchor leg) |
 | `rl/envs/gen4/`, `docs/design_gen4/` | gen 4 groundwork (JOURNEY step 3, merged 2026-09-05): the design docs verified against recorded protocol tapes, encoder layout v0.1, `ShowdownGen4-v0`, the Foul Play gen-4 eval bot. No gen-4 model has been trained beyond a smoke; nothing there is a claim |
 | `docs/` | the written record: `prior_work/` and `research_reports/` (external evidence), `IDEAS_POST_100M.md`, `CLEANUP.md`, `landmines.md`, `proposals/`, `design_gen4/` |
 | `docs/archive/` | **history, never "what next"** — spent roadmaps (DESIGN, DESIGN2), the Chapter 5 brief and frozen audits, read only when named |

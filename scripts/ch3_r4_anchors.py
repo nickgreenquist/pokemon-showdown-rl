@@ -165,10 +165,32 @@ def _arm_spec(prereg: dict, arm_name: str) -> dict:
     arms = prereg["anchor_arms"]
     assert arm_name in arms, f"{arm_name} not in anchor_arms {sorted(arms)}"
     arm = arms[arm_name]
-    assert arm["kind"] in ("greedy_h2h", "search_h2h"), (
+    assert arm["kind"] in ("greedy_h2h", "search_h2h", "ensemble_h2h"), (
         f"{arm_name}: kind {arm['kind']!r} is not a clone-block kind — FE3 "
         "(kind search_seat) runs through scripts/ch3_fp_h2h.py"
     )
+    # `seat1` and `lanes` are MUTUALLY EXCLUSIVE, asserted in BOTH directions
+    # (the contract scripts/ch3_fp_h2h.py:273-292 fixed for ensemble_seat, and
+    # for the same reason): an ensemble arm that kept a `seat1` key would
+    # silently rate ONE lane and its JSON would be indistinguishable from a
+    # correct one. Added 2026-09-16 so the committee can take the BC-clone
+    # anchor leg -- the runner had only ever had a single-checkpoint seat.
+    if arm["kind"] == "ensemble_h2h":
+        assert "seat1" not in arm, (
+            f"{arm_name}: ensemble_h2h takes `lanes`, not `seat1` — a `seat1` "
+            "key here would silently rate a single lane"
+        )
+        lanes = list(arm.get("lanes") or [])
+        assert lanes, f"{arm_name}: ensemble_h2h needs at least one lane"
+        assert len(lanes) == len(set(lanes)), (
+            f"{arm_name}: duplicate lane in {lanes} — a repeated member "
+            "silently reweights the log-prob mean"
+        )
+    else:
+        assert "lanes" not in arm, (
+            f"{arm_name}: `lanes` is ensemble_h2h-only; kind {arm['kind']!r} "
+            "would ignore it and rate a single lane"
+        )
     return arm
 
 
@@ -190,7 +212,13 @@ def run_arm(prereg: dict, prereg_path: str, arm_name: str,
     assert chunk_size > 0, f"{arm_name}: {total} battles over {chunks} chunks"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    seat_lane, opp_lane = arm["seat1"], arm["seat2"]
+    is_ensemble = arm["kind"] == "ensemble_h2h"
+    ens_lanes = list(arm["lanes"]) if is_ensemble else []
+    # The env/seed/threads come from the FIRST member's config on an ensemble
+    # arm; every member is asserted to share env_id and obs_dim below, so any
+    # of them would do and taking the first is stated rather than implicit.
+    seat_lane = ens_lanes[0] if is_ensemble else arm["seat1"]
+    opp_lane = arm["seat2"]
     seat_spec = prereg["checkpoints"][seat_lane]
     opp_spec = prereg["checkpoints"][opp_lane]
     ckpt = load_checkpoint(seat_spec["path"])
@@ -211,6 +239,19 @@ def run_arm(prereg: dict, prereg_path: str, arm_name: str,
     adapter = None
     eval_provenance = None
     agent = agent0
+    if is_ensemble:
+        from rl.search.ensemble import EnsembleAgent
+
+        members = [agent0]
+        for lane in ens_lanes[1:]:
+            c = load_checkpoint(prereg["checkpoints"][lane]["path"])
+            mcfg = Config(**c["config"])
+            assert mcfg.env_id == cfg.env_id, (
+                f"{arm_name}: member {lane} is {mcfg.env_id!r}, seat is {cfg.env_id!r}"
+            )
+            members.append(_load_showdown_agent(c, mcfg))
+        agent = EnsembleAgent(members)
+        print(f"{arm_name}: ensemble seat over {len(members)} members {ens_lanes}")
     if is_search:
         assert getattr(env.unwrapped, "_privileged", None) is False, (
             "SF-13: the eval env must not emit info['privileged']"
@@ -261,7 +302,13 @@ def run_arm(prereg: dict, prereg_path: str, arm_name: str,
         report = {
             "arm": arm_name,
             "kind": arm["kind"],
-            "seat1": seat_lane,
+            # PROVENANCE MUST DISTINGUISH A COMMITTEE FROM ITS FIRST MEMBER.
+            # `seat1` on an ensemble arm would name one lane and the JSON
+            # would read exactly like a single-lane run -- the failure the
+            # kind/lane asserts above exist to prevent, so it is not
+            # reintroduced here in the output.
+            **({"seat1_lanes": ens_lanes, "members": len(ens_lanes)}
+               if is_ensemble else {"seat1": seat_lane}),
             "seat2": opp_lane,
             "chunk": k,
             "episodes": chunk_size,
@@ -315,7 +362,10 @@ def _merge(prereg_path: str, arm_name: str, out_dir: Path, chunks: int) -> None:
     final = {
         "arm": arm_name,
         "kind": reports[0]["kind"],
-        "seat1": reports[0]["seat1"],
+        # carries whichever seat-1 provenance the chunks stamped: `seat1` for
+        # a single checkpoint, `seat1_lanes` + `members` for a committee
+        **{k: reports[0][k] for k in ("seat1", "seat1_lanes", "members")
+           if k in reports[0]},
         "seat2": reports[0]["seat2"],
         "episodes": n,
         "chunks": chunks,
