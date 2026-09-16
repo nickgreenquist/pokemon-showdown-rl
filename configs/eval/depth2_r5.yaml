@@ -1,0 +1,348 @@
+# =====================================================================
+# JOURNEY 11.5 — DEPTH-1 vs DEPTH-2, ON THE R5 LADDER OBJECT
+# Status: REGISTERED 2026-09-16 (agent), before any arm ran. Launched under
+#   the maintainer's instruction in chat, verbatim: "Start depth 1 vs 2. No
+#   need to wait on me."
+#
+# journey_step: "11.5". EXIT CONDITION, VERBATIM from JOURNEY.md:
+#   "Exit condition: one comparison, then the chapter closes. Depth-2 credits
+#    over depth-1 iff the pooled delta clears the standing credit line. Report
+#    decisions/sec for both arms — a gain that costs 5x is a different finding
+#    than the same gain at 1.5x."
+#   "Credits at acceptable cost -> build MCTS in gen9. Doesn't credit -> the
+#    MCTS question closes permanently; write up the substitution result and
+#    move on."
+#   "No depth-3. If depth-2 is ambiguous, that is the answer."
+#
+# ---------------------------------------------------------------------
+# THE SCOPE LIMIT THIS FILE IMPOSES ON ITSELF, AND WHY.
+#
+# `docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS.md` §3 names THE TRAP in
+# advance: "a null on EXHAUSTIVE depth-2 -- a different algorithm, with a
+# different cost curve ... -- would retire MCTS having never tested it. That is
+# the PRE-D5 failure shape: a null from the wrong configuration closing a
+# question permanently." It asks for a maintainer ruling to DECOUPLE the stop
+# rule. That ruling has not been given.
+#
+# So this file measures ONE vehicle and says so in every sentence it licenses:
+# **the matrix family's SELECTIVE extra ply** (`rl/search/matrix.py::
+# _look_further`: our_k replies per ply, the opponent pinned to its column
+# class, a hard cap). It is NOT MCTS, and `rl/search/tree.py` -- decoupled UCT
+# with our own critic at the leaves, mean simulation depth 3.05 -- is a
+# DIFFERENT algorithm with a different cost curve.
+#
+#   **A NULL IN THIS FILE MAY NOT RETIRE MCTS.** If the primary reads null, the
+#   licensed sentence is "the matrix family's selective depth-2 does not pay on
+#   the R5 committee off FP@20 at dose M and matched override rate", and the
+#   MCTS half of JOURNEY 11.5 stays open pending the maintainer's decoupling
+#   ruling. This is stated BEFORE the arms run so it cannot be argued
+#   afterwards in either direction.
+#
+# ---------------------------------------------------------------------
+# WHY THIS EXPERIMENT IS DIFFERENT FROM EVERY DEPTH NUMBER WE HAVE.
+#
+# Three defects, all recorded, all fixed here:
+#
+# 1. EVERY BANKED DEPTH NUMBER IS ON THE SATURATED AXIS. The depth probes of
+#    2026-09-11 ran vs SimpleHeuristics, where the bare policy already wins
+#    ~0.78 and our objects sit 0.82-0.84. The same D5 gate is worth +0.042 vs
+#    SH and +0.129 off FP@20 -- a 3x larger effect on the same dial. THIS FILE
+#    READS OFF FOUL PLAY @20, where a selector has room.
+#
+# 2. THE OVERRIDE-RATE CONFOUND WAS NEVER CONTROLLED. A deeper backup has a
+#    wider value spread, so a delta tuned at one ply lets two to three times as
+#    many overrides through: at delta 0.10 the deep matrix arms overrode 16.5%
+#    / 19.2% / 20.1% against the depth-1 gate's 8.3%, and at MATCHED override
+#    (delta 0.40, 2.9%) depth 3 read -0.017 +/- 0.023 instead of -0.094. The
+#    same confound is already MEASURED on this object: in the 2026-09-16
+#    engineering smoke, delta 0.10 overrode 10.0% at depth 1 and 14.9% at
+#    depth 2. `DEPTH_IS_THE_UNTESTED_AXIS.md` closes with: "Nobody has swept
+#    delta for depth 2-3. That sweep is the cheap first step before any
+#    engine-native depth-2 build, and it is the one experiment on this axis
+#    that has not been run." PHASE S IS THAT SWEEP.
+#
+# 3. THE OBJECT WAS THE 100M LANE. JOURNEY 11.5 asks for "the strongest gen1
+#    object we have" and argues the test is only honest "against our best
+#    critic, after the special sauce and the massive train". That object now
+#    exists and is pinned: the R5 LADDER COMMITTEE, whose recipe was credited
+#    on 2026-09-16 (RESULTS §21).
+#
+# AND ONE NEW REASON THE TEST IS SHARPER THAN IT WAS. The mechanism read
+# (RESULTS §21) measured that this critic's `explained_variance` is 0.5881
+# against the 100M lanes' 0.5919 -- 2.67x the critic width and 126x the
+# first-layer rank bought ZERO extra explained variance. So if search pays
+# here, it is paying against a value function that CAPACITY CANNOT IMPROVE,
+# which is precisely the substitution result JOURNEY 12 and step 14 turn on.
+#
+# ---------------------------------------------------------------------
+# WHAT IS MATCHED, STATED UP FRONT (the D25 pre-reg rules).
+#
+# * DOSE IS MATCHED AND IT IS DOSE M ON BOTH ARMS: n_det 4, top_branches 6,
+#   leaf_cap 1296, node_cap 1500. Depth is the ONLY dial that differs between
+#   the primary pair. Changing dose and depth together is the confound that
+#   made the budget ladder unreadable, and it is not repeated.
+# * THE OBJECT IS MATCHED: the same three checkpoints, the same log-pooled
+#   prior, the same mean opponent model, the same mean critic at the leaves,
+#   through `EnsembleSearchAdapter` on both arms.
+# * THE OPPONENT IS MATCHED: Foul Play at --search-time-ms 20 on every arm.
+# * THE SELECTOR SHAPE IS MATCHED (`margin_delta` on the row_ev scale); only
+#   its VALUE moves, and it moves BY A PRE-STATED RULE (R1 below) so that the
+#   thing being compared is depth at EQUAL OVERRIDE RATE.
+# * ACROSS-LANE AGGREGATOR: NONE. There is one committee and one arm per cell;
+#   the members are pooled in log-prob space INSIDE the seat, which is the
+#   object, not an aggregator over runs. Stated rather than omitted.
+# * WHICH SIDE EACH BAND READS is stated on every read below.
+#
+# CREDIT LINE, VERBATIM (CLAUDE.md), because the header must carry it:
+#   "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where
+#    se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered
+#    se_diff, the latter computed from the per-seed finals at read time."
+#   SEED-CLUSTERED se IS UNAVAILABLE BY CONSTRUCTION HERE -- one committee, one
+#   arm per cell, no per-seed replicates -- so the POOLED BINOMIAL GOVERNS and
+#   is ANTI-CONSERVATIVE. That is a disclosure, not a footnote: it is the same
+#   shape as the ENS3 credit's, and it means a delta that only just clears
+#   2*se_diff is weaker evidence than the arithmetic suggests.
+#
+# BOTH FP@20 DISCLOSURES TRAVEL WITH EVERY NUMBER IN THIS FILE, FOREVER:
+#   (1) the equivalence test is weakly powered; (2) the point estimate flatters
+#   us. The budget is NAMED in every quote. FP@20 is an INSTRUMENT, not a rung,
+#   and nothing here projects to the ladder in either direction.
+# =====================================================================
+
+title: depth2_r5
+status: "REGISTERED 2026-09-16 (agent), before any arm ran."
+journey_step: "11.5"
+credits_nothing: false    # this file CAN credit depth-2; see the credit line above
+results_dir: results/depth2_r5
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  # The R5 ladder object's three members. Pins identical to
+  # configs/eval/ladder_r5.yaml and configs/eval/monster_reads.yaml, written by
+  # scripts/monster_reads_pin.py at the moment the watchdog printed DONE.
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+
+usernames:
+  scheme: "d15<armid><role>, role in {seat, bot}. Verified pairwise distinct AND prefix-free against every name issued in configs/eval/*.yaml by scripts/depth2_r5_queue.sh's preflight, which refuses to launch on a collision. A killed arm's pair is poisoned for hours (CLAUDE.md foul-play runner ops) -- re-run it LAST or on the rerun pair."
+  never_reuse: [c4, r4anchor, ch3, ch4, ch5r1, ch5r2, ch5c1, fplad, s3fp, blfp, eof, mr]
+  pairs:
+    S1A: {seat: d15s1aseat, bot: d15s1abot}
+    S1B: {seat: d15s1bseat, bot: d15s1bbot}
+    S1C: {seat: d15s1cseat, bot: d15s1cbot}
+    S2A: {seat: d15s2aseat, bot: d15s2abot}
+    S2B: {seat: d15s2bseat, bot: d15s2bbot}
+    S2C: {seat: d15s2cseat, bot: d15s2cbot}
+    S2D: {seat: d15s2dseat, bot: d15s2dbot}
+    D1:  {seat: d15d1seat,  bot: d15d1bot}
+    D2M: {seat: d15d2mseat, bot: d15d2mbot}
+    D2N: {seat: d15d2nseat, bot: d15d2nbot}
+    G0:  {seat: d15g0seat,  bot: d15g0bot}
+  rerun_pairs:
+    D1:  {seat: d15d1rseat,  bot: d15d1rbot}
+    D2M: {seat: d15d2mrseat, bot: d15d2mrbot}
+    D2N: {seat: d15d2nrseat, bot: d15d2nrbot}
+    G0:  {seat: d15g0rseat,  bot: d15g0rbot}
+
+# ---------------------------------------------------------------------
+# PHASE S — THE DELTA SWEEP. Measures OVERRIDE RATE and COST ONLY.
+#
+# n=60 per cell, which is chosen for the quantity being measured and NOT for a
+# win rate: 60 battles is ~2,200 searched decisions, so an override rate near
+# 0.10 carries se ~0.006. **NO WIN RATE FROM PHASE S IS A READ.** At n=60 the
+# binomial se on a win rate is 0.065 and the repo's own landmine says one rung
+# is worth +/-0.02 even at n=3000. Any phase-S win rate that appears in a
+# readout is labelled DIAGNOSTIC and is never differenced.
+# ---------------------------------------------------------------------
+arms:                              # PHASE S cells; the PHASE R cells follow under the same key
+  S1A: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.10, battles: 60, search_time_ms: 20, seat_username: d15s1aseat, fp_username: d15s1abot}
+  S1B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.20, battles: 60, search_time_ms: 20, seat_username: d15s1bseat, fp_username: d15s1bbot}
+  S1C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.35, battles: 60, search_time_ms: 20, seat_username: d15s1cseat, fp_username: d15s1cbot}
+  S2A: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.10, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: d15s2aseat, fp_username: d15s2abot}
+  S2B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.20, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: d15s2bseat, fp_username: d15s2bbot}
+  S2C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.35, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: d15s2cseat, fp_username: d15s2cbot}
+  S2D: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.50, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: d15s2dseat, fp_username: d15s2dbot}
+
+# ---------------------------------------------------------------------
+  # THE PRIMARY PAIR. Identical in every dial but depth and the matched delta.
+  D1:
+    kind: search_seat
+    seat: w112
+    ensemble_members: [w104, w112, w120]
+    dose: M
+    margin_delta: 0.10
+    battles: 3000
+    search_time_ms: 20
+    seat_username: d15d1seat
+    fp_username: d15d1bot
+  D2M:
+    kind: search_seat
+    seat: w112
+    ensemble_members: [w104, w112, w120]
+    dose: M
+    margin_delta: FILL_FROM_RULE_R1      # written by scripts/depth2_r5_pin.py
+    depth2: {our_k: 3, cap: 6000, plies: 1}
+    battles: 3000
+    search_time_ms: 20
+    seat_username: d15d2mseat
+    fp_username: d15d2mbot
+  # SECONDARY: depth-2 at the NAIVE delta -- the same 0.10 the depth-1 arm
+  # uses. This is what someone who had not controlled the override rate would
+  # have measured, and reporting it beside D2M is how the confound's size is
+  # shown rather than asserted. n=1500: it is not a credit candidate.
+  D2N:
+    kind: search_seat
+    seat: w112
+    ensemble_members: [w104, w112, w120]
+    dose: M
+    margin_delta: 0.10
+    depth2: {our_k: 3, cap: 6000, plies: 1}
+    battles: 1500
+    search_time_ms: 20
+    seat_username: d15d2nseat
+    fp_username: d15d2nbot
+  # ANCHOR: the greedy committee -- the R5 ladder object itself, no search at
+  # all -- re-drawn in THIS session. Without it the pair floats: the banked
+  # E3WF 0.5987 is from the 2026-09-15 session and this repo has just measured
+  # (BC-clone leg, 2026-09-16) that a same-session re-draw of an unchanged
+  # object can move 0.014 on a different instrument.
+  G0:
+    kind: ensemble_seat
+    lanes: [w104, w112, w120]
+    battles: 1500
+    search_time_ms: 20
+    seat_username: d15g0seat
+    fp_username: d15g0bot
+# ---------------------------------------------------------------------
+# PHASE R — THE READ. n=3000 on the primary pair, which is the number the
+# credit line needs: at p ~ 0.55 the unpaired two-proportion se_diff is 0.0128,
+# so 2*se_diff = 0.0257 and the +0.025 floor is the binding half by a hair.
+# At n=1500 it would be 0.036 and a credit-sized effect COULD NOT BE CREDITED
+# -- that arithmetic is why the primary arms are 3000 and the secondary is not.
+  # SMOKE on THROWAWAY usernames, the ens_offfp.yaml precedent. The `depth2`
+  # kwarg has never crossed the FP seat path, and a crash there poisons a real
+  # pair for hours (CLAUDE.md foul-play runner ops). It burns D2N's rerun pair
+  # instead, so a failure costs nothing that matters. It is NOT a cell: no
+  # number from it is read, and it is excluded from both phases below.
+  D2S:
+    kind: search_seat
+    seat: w112
+    ensemble_members: [w104, w112, w120]
+    dose: M
+    margin_delta: 0.10
+    depth2: {our_k: 3, cap: 6000, plies: 1}
+    battles: 2
+    search_time_ms: 20
+    seat_username: d15d2nrseat
+    fp_username: d15d2nrbot
+
+# ---------------------------------------------------------------------
+# R1 — THE SELECTION RULE, mechanical, stated before the sweep runs.
+#
+# The depth-1 arm is FIXED at margin_delta 0.10. It is not chosen: 0.10 is the
+# banked D5 value, the one every comparable number in this repo was measured
+# at, and the configuration that would actually ship.
+#
+# The depth-2 PRIMARY arm's delta is the grid point of {0.10, 0.20, 0.35, 0.50}
+# whose PHASE-S OVERRIDE RATE is closest in absolute value to S1A's phase-S
+# override rate. Ties (exactly equal distance) break toward the SMALLER delta,
+# because a smaller delta lets the search speak more often and is therefore the
+# arm less likely to be flattered by simply doing nothing.
+#
+# The rule reads OVERRIDE RATE and nothing else. It may not read a win rate.
+# If two depth-2 cells are within 0.005 of each other AND both within 0.01 of
+# S1A, the smaller delta wins, by the same clause.
+# ---------------------------------------------------------------------
+selection_rule:
+  fixed_depth1_delta: 0.10
+  grid: [0.10, 0.20, 0.35, 0.50]
+  criterion: "min |override_rate(depth2, delta) - override_rate(S1A)|"
+  tie_break: "smaller delta"
+  reads_only: "search/override_rate from the phase-S report JSONs"
+
+phases:
+  smoke: [D2S]                               # not a cell; nothing from it is read
+  S: [S1A, S1B, S1C, S2A, S2B, S2C, S2D]    # the delta sweep -- override rate and cost ONLY
+  R: [D1, D2M, D2N, G0]                      # the read
+run_order: [D2S, S1A, S1B, S1C, S2A, S2B, S2C, S2D, D1, D2M, D2N, G0]
+
+# ---------------------------------------------------------------------
+# R0 SANITY GATES. Each is checked from the report JSON before any arm's number
+# is read, and a failure VOIDS that arm rather than being explained.
+# ---------------------------------------------------------------------
+r0_gates:
+  G_FIRED:
+    check: "every depth-2 arm reports depth2/fired_rate >= 0.90 and depth2/grandchildren_per_decision > 0"
+    why: "2026-09-11's D2 probe printed 0.8400 having produced ZERO grandchildren on all 1572 searched decisions, because a pyo3 string index died inside a bare except and the adapter dropped the counter. 'The extra ply changed nothing' and 'the extra ply never fired' printed the same win rate. The counter now reaches disk on both the vs-SH and the off-FP paths (2026-09-16); this gate is what reads it."
+    on_fail: "the arm is VOID. Do not report its win rate."
+  G_DOSE:
+    check: "every arm reports search_dose M and search/leaves_mean within 20% of 343 (the smoke's value)"
+    why: "dose is the confound that made the budget ladder unreadable; a silently different leaf count means the arms are not matched."
+    on_fail: "VOID the arm."
+  G_OBJECT:
+    check: "every arm's report carries seat_lanes/members = [w104, w112, w120] with the three pinned sha256s"
+    why: "a searched committee's report was byte-indistinguishable from a single-lane searched arm until the ensemble provenance stamp existed."
+    on_fail: "VOID the arm."
+  G_BUDGET:
+    check: "declared_search_time_ms == 20 on every arm"
+    why: "MA-10: a mis-set FP budget yields a JSON indistinguishable from a correct one."
+    on_fail: "VOID the arm."
+  G_SERIAL:
+    check: "max_concurrent_live_battles == 1 on every arm"
+    why: "a second concurrent Foul Play weakens both opponents and flatters both seats."
+    on_fail: "VOID the arm."
+
+# ---------------------------------------------------------------------
+# THE READS, stated before any arm runs.
+# ---------------------------------------------------------------------
+reads:
+  PRIMARY:
+    cells: "D2M - D1, off FP@20, n=3000 each, MATCHED OVERRIDE RATE"
+    se: "unpaired two-proportion binomial. Seeds do NOT pair battles (docs/landmines.md 2026-09-11) and these are separate FP sessions, so no paired statistic is available or claimed."
+    credit: "depth-2 is CREDITED iff D2M - D1 >= +0.025 AND >= 2*se_diff, with se_diff the pooled binomial (seed-clustered UNAVAILABLE by construction, disclosed above)."
+    side: "ONE-SIDED IN INTENT, TWO-SIDED IN REPORTING. The question is whether depth PAYS, so only a positive delta can credit; but a negative delta of the same size is reported with its se and is NOT converted into 'depth hurts' -- see the barred list."
+    cost_read: "REQUIRED BY THE EXIT CONDITION, not optional: report ms/decision and decisions/sec for BOTH arms from search/ms_mean. The 2026-09-16 smoke measured 78.6 ms at depth 1 and 260.7 ms at depth 2 on this object -- 3.3x. A credit at 3.3x is a different finding from a credit at 1.2x and the readout says which."
+  S1_confound:
+    cells: "D2N - D1, off FP@20, n=1500 vs 3000, UNMATCHED override rate"
+    reads: "the size of the override-rate confound on this object. Descriptive. If D2M and D2N differ materially, that difference IS the confound, and it is the reason every earlier depth number is uninterpretable."
+    side: "two-sided, descriptive"
+  S2_anchor:
+    cells: "D1 - G0 and D2M - G0, off FP@20"
+    reads: "does search of ANY depth beat the greedy committee on this object? The banked answer on the 100M object was that the gate is worth +0.129 off FP@20; on the R5 committee it has never been measured. G0 is n=1500, so this comparison carries se_diff ~0.0158 and cannot resolve anything under ~0.032."
+    side: "two-sided, descriptive"
+  S3_session:
+    cells: "G0 vs the banked E3WF 0.5987 (n=3000, 2026-09-15)"
+    reads: "the session offset on this instrument, for the same frozen object. Descriptive, and quoted as a CAVEAT on any cross-session comparison, never as a change in the object."
+    side: "two-sided, descriptive"
+
+branches:
+  credit: "D2M - D1 >= +0.025 AND >= 2*se_diff -> DEPTH-2 CREDITS on the matrix family at dose M off FP@20, at a stated cost multiple. Per JOURNEY 11.5 this argues for MCTS in gen9 -- and the cost multiple travels with that argument."
+  null: "|D2M - D1| < 2*se_diff, or the delta misses the +0.025 floor -> the licensed sentence is exactly: 'the matrix family's selective depth-2 does not pay on the R5 committee off FP@20 at dose M and matched override rate, at n=3000 per arm.' THE MCTS QUESTION STAYS OPEN (the scope limit at the top of this file). No depth-3, per the exit condition."
+  negative: "D2M - D1 <= -0.025 AND >= 2*se_diff in magnitude -> depth-2 COSTS on this vehicle at this budget. Report it; it is still not evidence about MCTS, and it is not evidence about depth at other doses."
+
+barred_language:
+  - "search does not pay for this project"
+  - "depth hurts"
+  - "monotone in depth"
+  - "MCTS is closed / retired / not worth building"     # NOT what this file tests
+  - "depth is a null at every budget"                   # one dose, one budget, one vehicle
+  - "this generalises to the ladder"                    # FP@20 is an instrument, not a rung
+  - "any comparison of a phase-S win rate against anything"
+
+instruments:
+  screen_and_read: scripts/ch3_fp_h2h.py          # via scripts/ch3_r4_fp_runner.sh
+  pin: scripts/depth2_r5_pin.py                   # applies rule R1 mechanically, commits
+  queue: scripts/depth2_r5_queue.sh               # detached, resume-safe, rate-readable
+  readout: scripts/depth2_r5_readout.py
+  # the SELECTIVE extra ply is rl/search/matrix.py::_look_further (our_k
+  # replies per ply, the opponent pinned to its column class, a hard cap);
+  # its counters were wired to disk on both the vs-SH and off-FP paths
+  # 2026-09-16, which is what R0 gate G_FIRED reads.
+  depth_implementation: rl/search/matrix.py
+
+comparators_banked:
+  e3wf_offfp20:   {rate: 0.5987, n: 3000, source: "results/monster_reads_offfp/e3wf.json, 2026-09-15"}
+  gate_offfp_100m: {ungated: 0.396, gated: 0.525, n: 1000, note: "the D5 gate's +0.129 off FP@20 on the 100M single lane -- the reason this axis was chosen"}

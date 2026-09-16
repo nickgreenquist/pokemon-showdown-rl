@@ -52,6 +52,21 @@ MARGIN_DELTA_OFF = None
 _NOISE_SALT = 0xE2C0DE
 
 
+def lane_seed(lane: str) -> int:
+    """The decision-RNG seed behind a lane name.
+
+    Every call site used `int(lane.lstrip("s"))`, which works only for lanes
+    named `s<digits>` and raises on any other scheme. The monster fleet's
+    lanes are `w104` / `l128`, so the searched committee could not be named at
+    all until this existed (2026-09-16, JOURNEY 11.5). Digits-only is
+    BACKWARD-IDENTICAL on every lane name this repo has ever used -- `s112` ->
+    112 either way -- and simply stops being a landmine on the next one.
+    """
+    digits = "".join(c for c in lane if c.isdigit())
+    assert digits, f"lane {lane!r} carries no digits to seed the decision RNG"
+    return int(digits)
+
+
 class SearchAgent:
     def __init__(
         self,
@@ -164,6 +179,18 @@ class SearchAgent:
             "ens_min/argmin_lane2": 0,
             "ens_min/spread_sum": 0.0,
             "ens_min/leaves": 0,
+            # DEPTH-2 COUNTERS, and they exist because of 2026-09-11's VOID
+            # probe: `solve_decision` DID emit `depth2/grandchildren`, the
+            # adapter dropped it, and "the extra ply changed nothing" printed
+            # the same win rate as "the extra ply never fired" (the D2 arm
+            # produced ZERO grandchildren on all 1572 searched decisions and
+            # read 0.8400). docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS.md
+            # made the rule: any future dial gets a counter that REACHES DISK
+            # before it gets an arm. These are that counter.
+            "depth2/decisions_with_ply": 0,
+            "depth2/grandchildren": 0,
+            "depth2/leaves_deepened": 0,
+            "depth2/shift_sum": 0.0,
         }
         self._entropies: list[float] = []
 
@@ -335,6 +362,12 @@ class SearchAgent:
             self.counters["search/flips"] += 1
         if stats.get("search/overrode"):
             self.counters["search/overrides"] += 1
+        if self._depth2 is not None and "depth2/grandchildren" in stats:
+            gc = int(stats["depth2/grandchildren"])
+            self.counters["depth2/grandchildren"] += gc
+            self.counters["depth2/leaves_deepened"] += int(stats["depth2/leaves_deepened"])
+            self.counters["depth2/decisions_with_ply"] += int(gc > 0)
+            self.counters["depth2/shift_sum"] += float(stats.get("depth2/mean_shift", 0.0))
         stats["oppact/entropy"] = self._entropies[-1]
         return action, stats
 

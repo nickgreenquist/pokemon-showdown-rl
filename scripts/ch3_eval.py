@@ -394,7 +394,7 @@ def run_job(prereg: dict, name: str) -> None:
     torch.set_num_threads(cfg.torch_threads)
     adapter = None
     if "search_dose" in job:
-        from rl.search.agent import SearchAgent
+        from rl.search.agent import SearchAgent, lane_seed
         from rl.search.matrix import DOSES
 
         assert getattr(env.unwrapped, "_privileged", None) is False, (
@@ -413,7 +413,7 @@ def run_job(prereg: dict, name: str) -> None:
             searched = EnsembleSearchAdapter([agent0, *others])
         sa = SearchAgent(
             searched, DOSES[job["search_dose"]],
-            checkpoint_seed=int(first_lane.lstrip("s")),
+            checkpoint_seed=lane_seed(first_lane),
             evaluator=evaluator,
             leaf_encoding=job.get("leaf_encoding"),
             margin_delta=job.get("margin_delta"),
@@ -557,6 +557,23 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
             sum(rep["search/ms_mean"] * rep["search/searched_decisions"]
                 for rep in reports) / searched if searched else None
         )
+        # PROBE DIAGNOSTICS SURVIVE THE MERGE (fixed 2026-09-16, JOURNEY 11.5).
+        # `chunk_summary` writes depth2/ tree/ census/ bcts/ keys into every
+        # CHUNK, and this merge built `final` from a whitelist that did not
+        # include them -- so a depth-2 arm's final.json was byte-compatible
+        # with a depth-1 one. That is the SAME defect class as 2026-09-11's
+        # VOID D2 probe, where `_SearchEvalAdapter` dropped
+        # `depth2/grandchildren` and "the extra ply changed nothing" printed
+        # the same number as "the extra ply never fired" -- one layer up, and
+        # still live. Carried through weighted by searched decisions, which is
+        # what chunk_summary averaged over.
+        probe_keys = sorted({k for rep in reports for k in rep
+                             if k.split("/")[0] in ("depth2", "tree", "census", "bcts")})
+        for key in probe_keys:
+            vals = [(rep.get(key), rep["search/searched_decisions"]) for rep in reports]
+            vals = [(v, w) for v, w in vals if v is not None]
+            if vals and searched:
+                final[key] = sum(v * w for v, w in vals) / sum(w for _, w in vals)
         final["search/ms_p99_max_over_chunks"] = max(
             rep["search/ms_p99"] for rep in reports
         )

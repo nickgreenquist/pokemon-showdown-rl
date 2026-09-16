@@ -320,7 +320,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     eval_provenance = None
     searched_ensemble = None
     if arm["kind"] == "search_seat":
-        from rl.search.agent import SearchAgent
+        from rl.search.agent import SearchAgent, lane_seed
         from rl.search.matrix import DOSES
 
         evaluator, eval_provenance = _resolve_evaluator(
@@ -372,10 +372,17 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         # realized values are stamped into the report below either way.
         search_agent = SearchAgent(
             agent, DOSES[arm["dose"]],
-            checkpoint_seed=int(seat_lane.lstrip("s")),
+            checkpoint_seed=lane_seed(seat_lane),
             evaluator=evaluator,
             leaf_encoding=arm.get("leaf_encoding"),
             margin_delta=arm.get("margin_delta"),
+            # `depth2` (optional, wired 2026-09-16 for JOURNEY 11.5): a dict
+            # {our_k, cap, plies} turns on matrix.py's SELECTIVE extra ply.
+            # Absent = the depth-1 matrix every banked FP arm ran. The
+            # realized dict AND the fired-counters are stamped into the report
+            # below either way -- an unfired extra ply must never again be
+            # indistinguishable from an ineffective one.
+            depth2=arm.get("depth2"),
         )
     seat = SeatPlayer(
         agent,
@@ -466,6 +473,27 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
                 if search_agent.margin_delta is not None else None
             ),
         })
+        # DEPTH PROVENANCE. `search_depth2` is the realized dial (null = the
+        # depth-1 matrix). The three counters below are what make an arm
+        # gradeable: `depth2/fired_rate` near 0 means the extra ply NEVER RAN
+        # and the arm is VOID, whatever its win rate says. 2026-09-11's D2
+        # probe is the precedent and the reason this is stamped rather than
+        # inferred.
+        d2 = search_agent._depth2
+        report["search_depth2"] = d2
+        if d2 is not None:
+            searched = max(dec - skips, 1)
+            report.update({
+                "depth2/decisions_with_ply": search_agent.counters["depth2/decisions_with_ply"],
+                "depth2/fired_rate": search_agent.counters["depth2/decisions_with_ply"] / searched,
+                "depth2/grandchildren_total": search_agent.counters["depth2/grandchildren"],
+                "depth2/grandchildren_per_decision": (
+                    search_agent.counters["depth2/grandchildren"] / searched),
+                "depth2/leaves_deepened_total": search_agent.counters["depth2/leaves_deepened"],
+                "depth2/mean_shift": (
+                    search_agent.counters["depth2/shift_sum"]
+                    / max(search_agent.counters["depth2/decisions_with_ply"], 1)),
+            })
     if eval_provenance is not None:
         report["evaluator"] = eval_provenance   # F5, gradeable from disk
         report["seat_lane"] = seat_lane
