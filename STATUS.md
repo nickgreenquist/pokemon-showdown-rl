@@ -51,10 +51,15 @@ Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_2000000
   −0.75 se (phase A ran beside the W trio; no measurable term). FP@20 disclosures travel.
 - **vs SH, locked protocol:** GW **0.8217** (n=9000) vs the 100M A0 0.7887 = +0.033 at 5.6 se; GL 0.7778; E3W
   **0.8386** (+0.015 over the banked 100M ENS3 0.8236 at 2.7 se); E6M 0.8426; E9 0.8433; E3L 0.8130.
-- **NOT A CREDIT (yet):** [RWL-3] registered these reads as DESCRIPTIVE. W-vs-100M meets the credit line's
-  arithmetic on both instruments; the mechanism co-primary (critic srank99/width, dormant fraction, EV, l2init
-  distances) is OWED first — srank/dormant are NOT logged; run `d22_collect_obs.py` + `d22_dormant_rank.py` on the
-  finals (the plasticity probe asserts value_sizes 384 and needs a per-checkpoint allowance for W).
+- **CREDITED 2026-09-16, for the RECIPE (RESULTS §21, `readouts/MECH200M_READOUT.md`):** the mechanism
+  co-primary is IN. Critic FIRST-layer srank99 **632/1024 (0.617) on W vs 27/384 and 5/384** — 8× the
+  across-lane spread, both obs protocols agreeing: **width is LIVE, the ceiling branch did NOT fire**
+  (it wanted ~48 absolute), so rule 6 permits no kill. But **EV DID NOT MOVE** (W 0.5881 vs the 100M
+  lanes' 0.5919): 2.67× width and 126× first-layer rank buy ZERO explained variance — **do not size the
+  next fleet on EV.** Credit line computed both halves, seed-clustered se binding off FP: W vs 100M
+  **+0.046 (4.79 se)** and **+0.033 vs SH (5.59 se)**. **What is credited is the RECIPE AS SHIPPED, never
+  width alone** (no contrast isolates it) — and **E3W vs the 100M ENS3 floor is +0.015 at 2.01 se, NOT
+  credited**: at committee level the recipe gain and the committee gain SUBSTITUTE rather than add.
 - **The recipe verdict in one line:** same L2, horizon, fleet — the wider critic beat the 100M baseline on both
   instruments and Monte-Carlo value targets lost to it on both. The value TARGET, not the horizon, moved the number.
 
@@ -62,10 +67,10 @@ Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_2000000
 0. **GOAL MET, ONCE (maintainer, 2026-09-15): "break top500 with self play", and stay rather than visit.**
    R5 finished LISTED at Elo 1457 against a 1354.2 line and spent 73% of its battles at or above it.
    It is ONE run on a warm-started account; nothing here is a projection, and the barred list stands.
-1. **OWED BEFORE ANY CREDIT FOR THE WIDE CRITIC:** the [RWL-3] mechanism co-primary on the six finals —
-   critic ctx srank99/width, dormant fraction at tau 0.025/0.1, explained variance, l2init distances.
-   srank/dormant are NOT logged: run `d22_collect_obs.py` + `d22_dormant_rank.py` on the finals (the
-   plasticity probe asserts value_sizes 384 — the W finals need a per-checkpoint trunk allowance).
+1. **DONE 2026-09-16 — the mechanism co-primary (above, RESULTS §21).** What it leaves open: WHY the
+   recipe pays, since it is measurably not a better value fit. The plasticity probe (Lyle Def-1) is the
+   instrument that would separate "the parameters can still be optimised" from "the representation is a
+   sparse-reward artifact"; it asserts value_sizes [384,384] and needs a second arch family for W.
 2. **OWED FOR THE README ROW:** the BC-clone h2h (500) for the committee — the only missing anchor leg;
    it is reported PENDING and the row already says so. vs-SH (0.8386) and FP@20 (0.5987) are in hand.
 3. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — sessions across hours/days need their own

@@ -812,7 +812,8 @@ authoritative "what next"; this file is the account, not the queue.
 ## 16. The ladder — three descriptive measurements against humans
 <!-- A FOURTH RUN EXISTS: LADDER R5 (2026-09-16, the committee of the 200M finals,
      GXE 73.9 / Glicko-1 1697 +/- 25 / Elo 1457, LISTED on the top-500 at the stop)
-     is written up in §20. This section is R1/R3/R4 and is left as written. -->
+     is written up in §20, and the mechanism read that credits its recipe in §21.
+     This section is R1/R3/R4 and is left as written. -->
 
 Every other number in this file comes from an opponent we control: SH, Foul Play, or our
 own behaviour clone of Foul Play. The public `gen1randombattle` ladder is the only place
@@ -1791,3 +1792,74 @@ the end of a 200-game run**, which is the thing this project set out to show and
 the committee, the horizon, the wide critic and L2 all moved together, the ladder has no
 control arm, and the anchor battery for this object is incomplete — **vs-SH and FP@20 are
 in hand; the BC-clone head-to-head is PENDING and the README row says so**.
+
+## 21. Addendum, 2026-09-16 — the monster fleet's **mechanism co-primary**: the wide critic's capacity is **used**, its explained variance is **flat**, and the **recipe** is credited
+
+[RWL-3] registered every read in §20.1 as DESCRIPTIVE and made the MECHANISM the
+co-primary, so nothing was credited for the wide critic until this read landed. The read
+plan (`configs/eval/mech200m.yaml`) fixed all three branches, the tie clause and the
+known gaps **before any number existed**; full provenance is
+`readouts/MECH200M_READOUT.md`.
+
+**Branch 1 fires: the width is live.** In the FIRST layer of the critic's value stack,
+at the finals, on a shared pooled input set (the per-lane pass agrees in sign):
+
+| arm | critic width | first-layer srank99 | as a fraction of width | dormant @ τ=0.025 |
+|---|---|---|---|---|
+| **W** — L2 + 1024 critic, 200M | 1024 | **632** | **0.617** | **0.359** |
+| L2LAM — L2 + MC targets, 200M | 384 | 26.7 | 0.069 | 0.969 |
+| the 100M baseline — no L2, 100M | 384 | **5.0** | 0.013 | 0.987 |
+
+The delta is eight times the across-lane spread. **The two arms collapse at opposite ends
+of the stack**: the 384-wide critics destroy their representation in the first layer — the
+100M baseline keeps FIVE significant directions out of 384 — and partially re-expand
+afterwards, while the wide critic carries 632 directions through and compresses at the
+output (24 of 1024), which is what a network emitting one scalar should do. L2LAM carries
+L2-toward-init and the 100M baseline does not, and **both collapse: L2 does not prevent
+this; width does.**
+
+**Branch 2 — the measured ceiling — does not fire.** It required srank99 "pinned near ~48
+absolute at 2.67× width". It is 632. Under CLAUDE.md rule 6 a ceiling is the only kind of
+kill available, so **nothing here kills anything.**
+
+**Branch 3 is inverted, and this is the sharpest finding.** It required EV to move while
+the win rate did not. **Explained variance did not move**: W 0.5881 against the 100M
+lanes' 0.5919 (across-lane sd 0.0006 and 0.0014) — the 0.59 plateau is exactly where it
+was, and the comparison is like-for-like (both TD targets at gae_lambda < 1; L2LAM's 0.2024
+is not evidence about the critic, as [RWL-3] states verbatim). The win rate, meanwhile,
+DID move. **2.67× the critic width and 126× the first-layer rank buy zero explained
+variance at the horizon** — whatever the wide critic is worth, it is not that it fits the
+returns better, and **the next fleet must not be sized on EV.** (Mid-run the wide critic
+does fit better — 0.688 at 12M against 0.634 — and gives it back by 200M.)
+
+The L2LAM manipulation check **passes** (`loss/adv_std` 1.83× W's), so that arm is a fair
+comparison that lost, not a mis-run.
+
+**The credit, stated exactly.** The credit line is computed in the readout from the
+per-lane finals, both halves, and on the off-Foul-Play rows the **seed-clustered** se is
+the binding one — which is what the larger-of clause exists for:
+
+| contrast | pooled delta | larger se_diff | verdict |
+|---|---|---|---|
+| off FP@20 — W singles vs the 100M re-draw | **+0.0464** | 0.0097 (4.79 se) | **CREDITED** |
+| off FP@20 — W singles vs L2LAM singles | **+0.0936** | 0.0088 (10.61 se) | **CREDITED** |
+| vs SH — GW vs the banked 100M greedy A0 | **+0.0330** | 0.0059 (5.59 se) | **CREDITED** |
+| vs SH — GW vs GL | **+0.0439** | 0.0060 (7.37 se) | **CREDITED** |
+| vs SH — E3W (the ladder object) vs the 100M ENS3 floor | +0.0150 | 0.0075 (2.01 se) | **NOT credited — misses the floor** |
+
+**What is credited is the RECIPE AS SHIPPED — regenerative L2-toward-init plus a 1024-wide
+critic, at 200M, against the 100M baseline — and not width as a separable lever.** No
+contrast isolates width: W vs the 100M baseline bundles width, L2 and the horizon; W vs
+L2LAM bundles width and the value target. Width is the only factor common to both
+contrasts and the mechanism read shows it is *used* rather than idle, which is what
+licenses the recipe-level credit and is the whole of what the mechanism shows.
+
+**The last row of that table is not a footnote.** At the COMMITTEE level the 200M recipe
+does not clear the floor over the 100M committee (+0.015 at 2.01 se). **The recipe gain
+and the committee gain substantially substitute for each other rather than adding** — a
+direct input to the next fleet's shape, and the reason the ladder object's advantage over
+what this project already had is smaller than the singles comparison suggests.
+
+Barred, by name, on these numbers: "the wide critic is worth +0.033"; "a wider critic fits
+the value function better" (measured false); "ensembling the 200M finals beats the 100M
+committee"; and any suggestion that the Monte-Carlo-target arm was mis-run.
