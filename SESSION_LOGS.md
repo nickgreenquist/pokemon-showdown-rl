@@ -11803,3 +11803,19 @@ line numbers are not — grep the date, then read that region):
     1353.96 / GXE 65.1 / Glicko 1617.7 / RD 33.4 / 199W-201L) and LG-3 (.env exports the username) verified.
     Waiting on the maintainer's "go with the recs"; then git mv + RATIFIED, tests, local smoke, Node stopped,
     caffeinate, launch, LG-9 log read.
+
+- 2026-09-16 (agent, 00:10Z) — **LADDER R5 RATIFIED AND LAUNCHED, AGENT-SIDE.** Maintainer, in chat 2026-09-15
+  ~23:45Z, verbatim: "Go with the recs" (M-R5-1..6; recorded in `configs/eval/ladder_r5.yaml`, commit f80a54a).
+  Object: ENS3 of the W trio (lanes w104/w112/w120) by rule R1. Gates: LG-4 88 ladder tests green; LG-5 set-pool
+  pin unchanged (vendored 59da482e, both file shas equal to R4's); LG-6 local smoke 2/2, kind=ensemble, obs_dim
+  828, encoder 1/1, no lane/dose key, **mean_decision_ms 2.838** (band [1,30] finalized); LG-2 profile at launch
+  = R4's parked state (Elo 1353.96 / GXE 65.1 / Glicko 1617.7 / RD 33.4 / 199W-201L, no activity since R4);
+  LG-3 .env exports the username; LG-7 tree clean at f80a54a, local Node STOPPED, nothing else on the box,
+  caffeinate bound to the supervisor (pid 36624) plus a standalone 5-day one (35302).
+  **Launch 00:06:53Z:** `scripts/ladder_supervise.sh R5E 200 configs/eval/ladder_r5.yaml` (pid 36609; runner
+  36622; `ladder_watchdog.sh R5E` 36623; logs `results/ladder/R5E.run.log`, JSONL `R5E.battles.jsonl`).
+  **LG-9 (log read at +75 s):** `seat 'nickgen1rbrlbot' (userid nickgen1rbrlbot) kind=ensemble -> 200 battles`;
+  provenance sha256 = [a502af3a…, add6e89a…, 33108ead…]; `starting rating (profile): GXE 65.1 Glicko-1 1618
+  +/- 33 Elo 1354 [listed=True]` — the PARKED values, the right account. G-BLIND from here: no profile or board
+  read before n=200; babysitting is battle count + CPU-time deltas + socket presence; ONE mid-run backup
+  (`scripts/backup_ladder.sh`) near n=100. Plan 12–16 h (~12:00–16:00Z Wed), ceiling ~22 h.

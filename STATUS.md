@@ -70,7 +70,7 @@ Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_2000000
 ## Next actions
 0. **GOAL (maintainer, 2026-09-15): "break top500 with self play", and STAY there, not visit it** (R4: Elo 1354
    vs a 1358.999 cutoff, ~40/200 visits). Nothing here projects a rating; vs-SH / off-FP are not ladder numbers.
-1. **LADDER R5 — object decided, launch waits on one line.** `docs/proposals/ladder_r5.draft.yaml`: lanes
+1. **LADDER R5 — RATIFIED ("Go with the recs", 2026-09-15) and LIVE since 2026-09-16 00:07Z, agent-side; G-BLIND until n=200; plan 12–16 h.** Was: `docs/proposals/ladder_r5.draft.yaml`: lanes
    w104/w112/w120 (nine member shas pinned), rulings 2–6 as recommended defaults (reuse nickgen1rbrlbot — RULED;
    200 battles one run; [1,30] ms band; 12–16 h plan, 22 h ceiling, idle box; README row waits on the battery).
    LG-2 profile parked at R4's stop (Elo 1353.96 / GXE 65.1 / Glicko 1617.7 / RD 33.4 / 199W-201L); LG-3 .env
