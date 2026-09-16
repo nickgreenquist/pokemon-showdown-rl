@@ -1,0 +1,113 @@
+title: mech200m
+status: "REGISTERED 2026-09-16 (agent), BEFORE any srank / dormant / EV number for these lanes was read. This file does not open a new experiment: it is the READ PLAN that discharges the PRIMARY of [RWL-3] in configs/showdown_monster200m.yaml, whose branches were fixed on 2026-09-12 and are restated VERBATIM below. CREDITS NOTHING BY ITSELF -- it decides whether the wide critic MAY be credited on the numbers already banked."
+journey_step: "10"
+credits_nothing: true
+results_dir: results/mech200m
+
+# WHY THIS EXISTS. The monster fleet's SECONDARY (configs/eval/monster_reads*.yaml)
+# is done and banked: off FP@20 the W trio's singles pool 0.5417 against the 100M
+# re-draw's 0.4952, and vs SH GW 0.8217 against 0.7887. Both meet the credit
+# line's ARITHMETIC. [RWL-3] nonetheless registered every one of those reads as
+# DESCRIPTIVE and made the MECHANISM the co-primary, so nothing is credited for
+# the wide critic until the mechanism read below is in. That ordering is the
+# whole point: rule 6 says only a MEASURED MECHANISM CEILING kills a lever, and
+# the symmetric obligation is that a measured mechanism is what LICENSES one.
+#
+# THE PRE-STATED BRANCHES, verbatim from [RWL-3] (configs/showdown_monster200m.yaml
+# lines 56-69), reproduced here so this file can be graded without opening that one:
+#   "PRIMARY (mechanism, W vs L2LAM at matched rungs, from the logged metrics):
+#    critic ctx srank99 AS A FRACTION OF WIDTH (1024 vs 384), dormant fraction at
+#    tau 0.025 and 0.1, loss/explained_variance (does the 0.59 plateau move --
+#    comparable ONLY within a trio: lambda 1.0 targets carry the outcome noise, so
+#    L2LAM's EV reads far lower by construction), loss/adv_std (must sit materially
+#    higher on L2LAM or lambda did not take), l2init/* anchor distances. The
+#    critic's pre-activation norm is NOT logged today; say so rather than invent
+#    it. Pre-stated branches: srank99/width holds or rises on W -> width is live,
+#    size the next fleet on the curve; srank99 stays pinned near ~48 absolute (the
+#    fleet lineage's own value; the '7-10' figure was the D22 struct50m lineage) at
+#    2.67x width -> a MEASURED CEILING, capacity is confirmed idle (this is the
+#    only kind of kill rule 6 permits); EV and norms move but win rate does not ->
+#    the bottleneck is signal, and the next lever is denser self-play targets."
+#
+# WHERE THE WIDTH ACTUALLY IS, checked in code rather than assumed
+# (rl/networks/entity_deepsets.py:371): `sizes = list(ctx_sizes if self.is_policy
+# else value_sizes)`. The CRITIC's context stack is built from `value_sizes`, so
+# W's critic ctx_net is 1024 wide and L2LAM's / the 100M lanes' is 384, while
+# EVERY actor ctx_net is 384 on all three recipes (ctx_sizes [384,384] is
+# identical across them -- verified on the pinned checkpoints). So:
+#   * "critic ctx srank99 as a fraction of width" is measured on exactly the
+#     layer the recipe widened, and scripts/d22_dormant_rank.py's `srank99_ctx`
+#     with part=critic is that layer with no modification;
+#   * the ACTOR's ctx srank is a matched-width CONTROL: same 384 on both arms, so
+#     an actor-side difference is a consequence of the critic change, not of it.
+
+instruments:
+  history: scripts/mech200m_history.py          # EV / adv_std / l2init at matched rungs from history.csv
+  collect: scripts/d22_collect_obs.py           # per-lane self-play obs (D22 protocol); NEEDS the local server
+  probe:   scripts/d22_dormant_rank.py          # srank99 + participation ratio + dormant fractions
+  readout: scripts/mech200m_readout.py          # grades the branches; writes results/mech200m/READOUT.txt
+  queue:   scripts/mech200m_queue.sh            # detached, resume-safe, rate-readable (CLAUDE.md rule 4)
+
+lanes:
+  # The nine pinned finals. The six monster finals are the [RWL-3] PRIMARY's own
+  # objects; the three 100M finals are a REFERENCE at the same 384 width and a
+  # shorter horizon, not part of the W-vs-L2LAM contrast.
+  w:     {prefix: showdown_monster200m_w_s,     seeds: [104, 112, 120], obs_prefix: obs_w, critic_width: 1024}
+  l2lam: {prefix: showdown_monster200m_l2lam_s, seeds: [128, 136, 144], obs_prefix: obs_l, critic_width: 384}
+  h100:  {prefix: showdown_sp_100m_s,           seeds: [104, 112, 120], obs_prefix: obs_h, critic_width: 384}
+
+rungs:
+  # MATCHED RUNGS, as [RWL-3] asks. Checkpoint step numbers JITTER per lane (the
+  # collector finishes a batch past the boundary), so the nearest existing
+  # checkpoint to each target is READ off disk, never guessed -- the same rule
+  # scripts/monster_reads_pin.py enforces for the finals.
+  targets: [500000, 12000000, 50000000, 100000000, 150000000, 200000000]
+  h100_note: "the 100M lanes kept only two checkpoints (12M and the final), so they contribute the final and nothing else; a 100M TRAJECTORY is not available and is reported as ABSENT, never interpolated."
+
+obs:
+  episodes: 200            # D22's protocol, unchanged
+  protocol: "each lane's OWN final-policy self-play mirror (scripts/d22_collect_obs.py), seat 1 deterministic"
+  sequential: true         # cfg.seed derives the poke-env usernames and W/h100 SHARE seeds 104/112/120 -- rule 2
+  shared_pass:
+    # THE CROSS-ARM CONFOUND, named before the numbers. D22's per-lane obs make
+    # TRAJECTORIES comparable WITHIN a lane (the script's own docstring says so),
+    # but W and L2LAM play different policies, so a per-lane srank difference
+    # between arms is partly a difference between input distributions. The
+    # PRIMARY cross-arm read is therefore taken on a SHARED, POOLED input set;
+    # the per-lane pass is reported beside it and must agree in SIGN.
+    build: "concatenate the six monster lanes' obs, one fixed shuffle (seed 20260916), subsample 20000 rows"
+    file: results/mech200m/obs_shared.npz
+    applies_to: "all nine lanes, via the --obs-file override added to d22_dormant_rank.py for this read"
+
+reads:
+  # Each read is stated with the number that decides it, BEFORE the number exists.
+  M1_width_live:
+    statement: "critic ctx srank99 / critic width, W (1024) vs L2LAM (384), at the 200M finals on the SHARED obs set, pooled over each trio's three lanes (mean of lanes; the spread across lanes is reported)."
+    branch_width_live: "W's FRACTION holds or rises relative to L2LAM's -> width is live; size the next fleet on the curve."
+    branch_ceiling: "W's srank99 sits near L2LAM's in ABSOLUTE units (the [RWL-3] figure is ~48 for this lineage) while its width is 2.67x -> the fraction collapses by ~2.67x and the extra capacity is MEASURED IDLE: a ceiling, the only kind of kill rule 6 permits."
+    tie: "if the two arms' fractions differ by less than the ACROSS-LANE SPREAD within either trio, the read is UNRESOLVED and says so -- three lanes per arm cannot resolve a small difference, and an unresolved mechanism licenses nothing in either direction."
+  M2_dormant:
+    statement: "dormant fraction at tau 0.025 and tau 0.1, critic ctx layers, W vs L2LAM at the finals, same pooling."
+    reads: "a HIGHER dormant fraction on W at matched tau is the capacity-idle signature that supports the ceiling branch; a matched or lower fraction supports width-live."
+  M3_ev:
+    statement: "loss/explained_variance over the last 5% of updates, WITHIN each trio only."
+    disclosure_verbatim: "comparable ONLY within a trio: lambda 1.0 targets carry the outcome noise, so L2LAM's EV reads far lower by construction."
+    reads: "does W's EV clear the 0.59 plateau the 100M lanes sat at? A cross-trio EV difference is NOT evidence and is not reported as one."
+  M4_adv_std:
+    statement: "loss/adv_std over the last 5% of updates, W vs L2LAM."
+    gate_verbatim: "must sit materially higher on L2LAM or lambda did not take"
+    reads: "this is a MANIPULATION CHECK on the L2LAM arm, not a lever read. If adv_std is NOT higher on L2LAM, the L2LAM arm did not do what it was built to do and its comparison value drops accordingly -- stated either way."
+  M5_l2init:
+    statement: "l2init/anchor_dist_* at the finals, W vs L2LAM, every logged key."
+    known_gap: "the logged anchors are ACTOR-side (actor_lnfree, ctx_net, move_emb, scorer, slot_bias, species_emb). THERE IS NO CRITIC ANCHOR METRIC. The critic's pre-activation norm is NOT logged either ([RWL-3] says to say so rather than invent it) -- so l2init here reads whether the two arms' ACTORS drifted comparably from init, i.e. whether L2 bit equally hard on both, and it CANNOT speak about the critic. Said here, before the numbers, so it cannot be quietly upgraded later."
+  M6_signal_bound:
+    statement: "the third [RWL-3] branch: EV and norms move but win rate does not."
+    reads: "graded against the banked vs-SH and off-FP numbers, which are ALREADY IN and are not re-run here (GW 0.8217 / GL 0.7778 vs SH; W singles 0.5417 / L2LAM 0.4481 off FP@20). Win rate DID move between the arms, so this branch can only fire in the within-W sense: EV/norms move across the 100M->200M horizon while the vs-SH number is flat (0.8217 vs the 100M A0 0.7887 -- it is not flat, and that is stated rather than stretched)."
+
+decision:
+  # WHAT THIS READ IS ALLOWED TO DO, fixed before it runs.
+  may: "license or withhold a CREDIT for the wide critic on the ALREADY-BANKED off-FP@20 and vs-SH numbers, per [RWL-3]'s co-primary structure; and rank the next fleet's shape."
+  may_not: "produce a new win-rate number, re-run any arm, or change any banked value. It is offline, on frozen checkpoints and frozen logs."
+  credit_line_verbatim: "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time."
+  credit_arithmetic_already_met: "W singles vs the 100M re-draw off FP@20: +0.0465 pooled (0.5417 vs 0.4952, n=9000 each), and vs SH +0.0330 (0.8217 vs 0.7887). BOTH clear +0.025; the binomial se_diff is ~0.0075 and ~0.0058. The seed-clustered se_diff on three lanes is the LARGER-OF clause's live half and is computed in the readout, not assumed."
+  rule_6: "a null or an unresolved mechanism does NOT kill the wide critic. Only the CEILING branch -- a measured, quantified idle capacity -- is a kill, and it kills the WIDTH lever specifically, not the checkpoints."
