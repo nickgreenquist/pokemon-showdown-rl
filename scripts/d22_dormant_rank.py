@@ -108,17 +108,21 @@ def srank99(m: torch.Tensor, where: str) -> tuple[int, float]:
     return int((cum < 0.99).sum()) + 1, float((s.pow(2).sum() ** 2) / s.pow(4).sum())
 
 
-def probe(net: EntityDeepSetsNet, obs: torch.Tensor, where: str = "?") -> tuple[dict, dict]:
+def probe(net: EntityDeepSetsNet, obs: torch.Tensor, where: str = "?",
+          layer_ranks: bool = False) -> tuple[dict, dict]:
     acts: dict[str, list[torch.Tensor]] = {}
+    kinds: dict[str, str] = {}
 
     def hook(name):
         def fn(_m, _i, out):
             acts.setdefault(name, []).append(out.detach())
         return fn
 
-    handles = [m.register_forward_hook(hook(n))
-               for n, m in net.named_modules()
-               if isinstance(m, (torch.nn.ReLU, torch.nn.LayerNorm))]
+    handles = []
+    for n, m in net.named_modules():
+        if isinstance(m, (torch.nn.ReLU, torch.nn.LayerNorm)):
+            kinds[n] = type(m).__name__
+            handles.append(m.register_forward_hook(hook(n)))
     handles.append(net.ctx_net.register_forward_hook(hook("ctx_out")))
     with torch.no_grad():
         net(obs)
@@ -127,7 +131,17 @@ def probe(net: EntityDeepSetsNet, obs: torch.Tensor, where: str = "?") -> tuple[
 
     dormant = {}
     for name, hs in acts.items():
-        if "ctx_out" in name or ".3" in name:  # LayerNorm outputs: rank only
+        # SKIP BY MODULE TYPE, NOT BY NAME INDEX (fixed 2026-09-16, mech200m).
+        # This used to read `".3" in name`, meaning "the LayerNorm slot of a
+        # ctx_layernorm trunk". On every net WITHOUT ctx_layernorm -- which is
+        # every checkpoint this repo has trained to date -- `ctx_net.3` is the
+        # SECOND ReLU, so the OUTPUT layer of the context/value stack was
+        # silently absent from the dormant table while `ctx_out`'s rank (that
+        # same layer) was present. The two headline metrics were therefore
+        # reported on DIFFERENT layers, which reverses the conclusion: at the
+        # 200M finals the wide critic's first layer is srank 707/1024 and its
+        # output layer 18/1024, and the narrow critics are the other way round.
+        if name == "ctx_out" or kinds.get(name) == "LayerNorm":
             continue
         flat = torch.cat([h.reshape(-1, h.shape[-1]) for h in hs])
         mean_act = flat.mean(dim=0)
@@ -137,6 +151,9 @@ def probe(net: EntityDeepSetsNet, obs: torch.Tensor, where: str = "?") -> tuple[
             "tau100": float((score <= 0.1).float().mean()),
             "n": hs[0].shape[-1],
         }
+        if layer_ranks:
+            r, pr = srank99(flat, f"{where} {name}")
+            dormant[name].update(srank99=r, pr=pr, srank_frac=r / hs[0].shape[-1])
 
     ranks = {}
     for name, key in (("ctx_out", "ctx"), ("mon_net.3", "mon")):
@@ -156,12 +173,29 @@ def main() -> None:
                     help="comma-separated checkpoint steps")
     ap.add_argument("--run-prefix", default="showdown_sp_struct50m_s",
                     help="run dir name is <prefix><seed>")
+    ap.add_argument("--obs-file", default=None,
+                    help="ONE npz used for EVERY lane, overriding --obs-prefix. "
+                         "Added 2026-09-16 for configs/eval/mech200m.yaml: the "
+                         "per-lane obs of the D22 protocol make TRAJECTORIES "
+                         "comparable WITHIN a lane (this script's own docstring), "
+                         "but two ARMS play different policies, so a cross-arm "
+                         "srank difference taken on per-lane obs is partly a "
+                         "difference between input distributions. A shared pooled "
+                         "input set removes that confound; the per-lane pass is "
+                         "still run and the two must agree in sign.")
     ap.add_argument("--obs-prefix", default="obs_s",
                     help="obs npz name is <prefix><seed>.npz under --out")
     ap.add_argument("--tag", default="",
                     help="suffix for the output CSVs: dormant_<tag>.csv / "
                          "effective_rank_<tag>.csv. Use it to keep a control "
                          "pass and a treatment pass side by side in one --out")
+    ap.add_argument("--layer-ranks", action="store_true",
+                    help="also compute srank99 / participation ratio / rank-as-"
+                         "fraction-of-width for EVERY post-ReLU layer, into the "
+                         "dormant CSV. The default `ctx_out` rank is the stack's "
+                         "OUTPUT layer only; [RWL-3]'s 'fraction of width' read "
+                         "needs the whole stack, because the wide and narrow "
+                         "critics collapse at OPPOSITE ends of it.")
     ap.add_argument("--force", action="store_true",
                     help="overwrite existing output CSVs (refused by default)")
     args = ap.parse_args()
@@ -184,7 +218,8 @@ def main() -> None:
 
     d_rows, r_rows = [], []
     for seed in lanes:
-        data = np.load(out / f"{args.obs_prefix}{seed}.npz")
+        data = np.load(Path(args.obs_file) if args.obs_file
+                       else out / f"{args.obs_prefix}{seed}.npz")
         obs = torch.from_numpy(data["obs"])
         priv = torch.from_numpy(data["priv"]) if "priv" in data else None
         rd = Path(args.runs_root) / f"{args.run_prefix}{seed}"
@@ -205,7 +240,8 @@ def main() -> None:
                 x = obs
                 if part == "critic" and pd_dim:
                     x = torch.cat([obs, priv], dim=-1)
-                dormant, ranks = probe(net, x, f"s{seed} step={step} {part}")
+                dormant, ranks = probe(net, x, f"s{seed} step={step} {part}",
+                                       layer_ranks=args.layer_ranks)
                 for layer, d in dormant.items():
                     d_rows.append({"seed": seed, "step": step, "part": part,
                                    "layer": layer, **d})
