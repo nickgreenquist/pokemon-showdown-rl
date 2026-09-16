@@ -144,9 +144,25 @@ def main() -> None:
         o1 = d1.get("search/override_rate")
         o2 = d2m.get("search/override_rate")
         if o1 is not None and o2 is not None:
-            print(f"  MATCHING ACHIEVED: override {o1:.4f} vs {o2:.4f} "
-                  f"(|diff| {abs(o2 - o1):.4f}) — the rule matched on PHASE-S rates; "
-                  f"this is the realized read-phase check.")
+            # MATCH QUALITY, judged against a threshold fixed 2026-09-16 at
+            # 23:31Z -- after the three DEPTH-1 screen cells were on disk
+            # (0.0723 / 0.0208 / 0.0005) and BEFORE any depth-2 cell existed,
+            # so the quantity this judges did not yet exist when the threshold
+            # was set. It changes no arm, no choice and no credit rule; it only
+            # refuses to let "matched override rate" be claimed when the grid
+            # did not actually bracket the target.
+            diff = abs(o2 - o1)
+            print(f"  REALIZED OVERRIDE RATES: depth-1 {o1:.4f} vs depth-2 {o2:.4f} "
+                  f"(|diff| {diff:.4f})")
+            if diff <= 0.02:
+                print("  MATCH OK (<= 0.02): the primary comparison isolates DEPTH.")
+            else:
+                print("  **MATCH POOR (> 0.02).** The pre-registered grid "
+                      "{0.10, 0.20, 0.35, 0.50} did not bracket depth-1's rate "
+                      "closely, so the primary delta is PARTLY an override-rate "
+                      "effect -- the exact confound this design set out to "
+                      "control. Read it as an upper bound on depth's own "
+                      "contribution, and say so in every quote.")
         print()
         if credit:
             print("  BRANCH: **DEPTH-2 CREDITS** on the matrix family at dose M off FP@20,")
