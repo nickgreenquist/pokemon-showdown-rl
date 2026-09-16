@@ -465,3 +465,42 @@ def test_lane_seed_is_backward_identical_and_stops_being_a_landmine():
     assert lane_seed("w104") == 104 and lane_seed("l128") == 128
     with pytest.raises(AssertionError):
         lane_seed("clone")
+
+
+def test_off_fp_seat_forwards_every_search_vehicle():
+    """ch3_fp_h2h must pass EVERY vehicle kwarg SearchAgent accepts.
+
+    The off-FP path silently ignored `depth2` until 2026-09-16, which is why
+    JOURNEY 11.5 could not run at all, and it ignored `tree` for the same
+    reason -- so the one vehicle docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS
+    calls "the actual target" had never been runnable on the axis where a
+    selector has leverage. A kwarg that SearchAgent takes and this caller drops
+    produces a JSON indistinguishable from a correct one, which is the defect
+    class this whole file exists for.
+    """
+    import ast
+    import inspect
+
+    from rl.search.agent import SearchAgent
+
+    src = (Path(__file__).parent.parent / "scripts/ch3_fp_h2h.py").read_text()
+    call = next(
+        n for n in ast.walk(ast.parse(src))
+        if isinstance(n, ast.Call)
+        and getattr(n.func, "id", None) == "SearchAgent"
+    )
+    passed = {k.arg for k in call.keywords}
+    # `det_fn` is the R3 oracle-team diagnostic, injected from a separate
+    # binary and never from a pre-reg. `battle_format` is not a vehicle: this
+    # script is gen-1 only and its default is the right one.
+    NOT_VEHICLES = {"det_fn", "battle_format"}
+    accepted = {
+        p for p, spec in inspect.signature(SearchAgent.__init__).parameters.items()
+        if spec.default is not inspect.Parameter.empty and p not in NOT_VEHICLES
+    }
+    missing = accepted - passed
+    assert not missing, (
+        f"scripts/ch3_fp_h2h.py drops SearchAgent kwargs {sorted(missing)}; an "
+        "arm declaring one of these would run the DEFAULT vehicle and its JSON "
+        "would look correct"
+    )

@@ -383,6 +383,24 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             # below either way -- an unfired extra ply must never again be
             # indistinguishable from an ineffective one.
             depth2=arm.get("depth2"),
+            # `tree` (optional, wired 2026-09-16 alongside depth2): swaps the
+            # depth-1 matrix for rl/search/tree.py -- decoupled UCT with OUR
+            # policy as the PUCT prior and OUR critic at the leaves, mean
+            # simulation depth ~3. It was already wired in ch3_eval.py (vs SH)
+            # and missing here, so the one vehicle
+            # docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS.md calls "the actual
+            # target" had never been runnable on the axis where a selector has
+            # leverage -- the SAME plumbing gap that kept depth2 off this path.
+            # Wiring it costs nothing and does not run it: an MCTS arm needs its
+            # own pre-reg, and configs/eval/depth2_r5.yaml deliberately does NOT
+            # test this vehicle.
+            tree=arm.get("tree"),
+            # ...and the other two vehicles ch3_eval.py already forwards and
+            # this caller dropped: `mcts` (poke_engine's OWN MCTS on our
+            # determinized roots -- the reference marker, no learned policy in
+            # the loop) and `bcts`. Same defect, found by the same test.
+            mcts=arm.get("mcts"),
+            bcts=arm.get("bcts"),
         )
     seat = SeatPlayer(
         agent,
@@ -481,6 +499,9 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         # inferred.
         d2 = search_agent._depth2
         report["search_depth2"] = d2
+        report["search_tree"] = search_agent._tree
+        report["search_mcts"] = search_agent._mcts
+        report["search_bcts"] = search_agent._bcts
         if d2 is not None:
             searched = max(dec - skips, 1)
             report.update({
