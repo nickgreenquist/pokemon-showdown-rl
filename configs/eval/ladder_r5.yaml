@@ -1,15 +1,11 @@
 # =====================================================================
 # LADDER R5 (DRAFT) — GEN1 LADDER #4, THE COMMITTEE, GREEDY, AGENT-LAUNCHED
-# Status: DRAFT 2026-09-15 (pre-filled by the agent during the monster reads;
-#   supersedes the 2026-09-12 skeleton). NOT RATIFIED. Lives under
-#   docs/proposals/ on purpose: tests/test_ladder.py globs
-#   configs/eval/ladder_*.yaml and asserts the literal "Status: RATIFIED" and
-#   the ABSENCE of << MAINTAINER n >> markers, so a draft at that path turns the
-#   suite red. The ratifying commit `git mv`s this file to
-#   configs/eval/ladder_r5.yaml, replaces line 3, clears the markers, fills
-#   `arms.R5E.lanes` from the readout, and records the rulings in
-#   ratified_decisions at the foot — exactly R4's path
-#   (configs/eval/ladder_r4.yaml lines 1-12).
+# Status: RATIFIED 2026-09-15 23:50Z — maintainer's ruling in chat, verbatim: "Go with the recs"
+#   (M-R5-1..6; the six were laid out in plain words with recommended defaults on
+#   2026-09-14/15 and the object was decided by rule R1 at 17:57Z). Ratifying
+#   commit: `git mv` from docs/proposals/ladder_r5.draft.yaml, this line replaced,
+#   the six maintainer markers cleared, rulings recorded in ratified_decisions at
+#   the foot — exactly R4's path (configs/eval/ladder_r4.yaml lines 1-12).
 #
 # WHAT THIS IS: R4 (ratified 2026-09-04; greedy s112 at 100M: GXE 65.2 /
 #   Glicko-1 1618 +/- 25 / Elo 1354, n=200) with TWO changes: (1) the OBJECT is
@@ -48,7 +44,7 @@
 #   this file carries those defaults under markers. A one-line "go with the
 #   recs" clears 2-6; M-R5-1 is filled from the readout.
 #
-#   M-R5-1 OBJECT << MAINTAINER 1 >> — which committee. DECIDED BY THE
+#   M-R5-1 OBJECT RULED — which committee. DECIDED BY THE
 #          PRE-STATED RULE R1 of configs/eval/monster_reads_offfp.yaml on
 #          2026-09-15 17:57Z with all four candidates and the floor on disk
 #          (scripts/monster_reads_readout.py, verbatim):
@@ -68,24 +64,24 @@
 #          against the rules and could get my ip banned"). The headline
 #          discloses the warm-started rating and the cumulative-profile
 #          denominators exactly as R4 did.
-#   M-R5-3 n << MAINTAINER 3 >> — RECOMMENDED 200, one run, then decide.
+#   M-R5-3 n RULED — RECOMMENDED 200, one run, then decide.
 #          More battles tighten the estimate but do not raise it; rd converges
 #          under 40 well before n=200 on a reused account; every battle is
 #          exposure (ladder exposure is the scarce resource — memory
 #          `ladder-ban-risk-budget`).
-#   M-R5-4 DECISION CAP << MAINTAINER 4 >> — RECOMMENDED band [1, 30] ms for a
+#   M-R5-4 DECISION CAP RULED — RECOMMENDED band [1, 30] ms for a
 #          3-9 member greedy committee (R1's 4-lane ensemble 6.74 ms; R4's rule
 #          of ~5x margin over the smoke's stamp). The standing "<= 5 s per
 #          decision for a searched object" ruling is moot for greedy. The upper
 #          bound IS the VOID (e) threshold, as R4. FINALIZED from the LG-6 smoke
 #          stamp at ratification (R4 ADJ-5).
-#   M-R5-5 SCHEDULE << MAINTAINER 5 >> — RECOMMENDED one continuous run, plan
+#   M-R5-5 SCHEDULE RULED — RECOMMENDED one continuous run, plan
 #          12-16 h, budget 17 h, hard ceiling ~22 h (R4 M7 verbatim), on a box
 #          that is NOT running a fleet or an eval (the committee's forwards are
 #          cheap, but the ladder's 150 s/turn is wall-clock and the R2 stall
 #          shape must not meet a rated game). Fleet 2 is SKIPPED (ruled
 #          2026-09-14); the read queue must have printed QUEUE DONE.
-#   M-R5-6 ANCHOR BATTERY << MAINTAINER 6 >> — RECOMMENDED: the ladder run
+#   M-R5-6 ANCHOR BATTERY RULED — RECOMMENDED: the ladder run
 #          does not wait on the battery (R4 precedent); the README row WAITS on
 #          vs-SH (locked protocol, phase C of the read queue) + BC-clone h2h
 #          (500) + FP@20 h2h (phase A/B of the read queue). A leg that does not
@@ -156,12 +152,12 @@ checkpoints:
 arms:
   R5E:
     kind: ensemble
-    lanes: [w104, w112, w120]      # << MAINTAINER 1 >> rule R1's output (E3WF 0.5987 off FP@20, +0.0417 over the floor at 3.27 se); ratification confirms the rule, not a choice
+    lanes: [w104, w112, w120]      # RULED rule R1's output (E3WF 0.5987 off FP@20, +0.0417 over the floor at 3.27 se); ratification confirms the rule, not a choice
     display_name: nickgen1rbrlbot  # M-R5-2 RULED 2026-09-14: reuse; identity enforced in code
 
 stopping_rule:
   glicko_rd_max: 40              # cross-run invariant; hardcoded in tests/test_ladder.py
-  min_battles: 200               # THE BINDING HALF; n counts THIS RUN's logged battles  << MAINTAINER 3 >>
+  min_battles: 200               # THE BINDING HALF; n counts THIS RUN's logged battles  RULED
   warm_start_note: "reused account: rd starts from the R4 parked state grown by inactivity, not a fresh ~350; it converges under 40 well before n=200 either way; GXE/Glicko/Elo at stop are ACCOUNT properties carrying R1 + R4's 400 games -- the headline disclosure owns this, exactly as R4's did"
   source: "profile endpoint (pokemonshowdown.com/users/<userid>.json)"
 
@@ -200,7 +196,7 @@ set_pool_pin:                    # VOID (c) — LG-5 re-check within 24 h of lau
   teams_ts_sha256: 277d5a375213b7b0e06f58a34058fb0576dc90d8a5e41eecf54d7339ea07c059
   rerun_before_launch: "LG-5, within 24 h -- live external dependency; the ENCODER's set-pool copy feeds embed_battle (greedy has no determinizer; the committee's members all read the same encoder)"
 
-schedule:                        # M-R5-5 << MAINTAINER 5 >> — R4 M7 verbatim
+schedule:                        # M-R5-5 RULED — R4 M7 verbatim
   plan: ONE_CONTINUOUS_RUN
   battles_target: 200            # passed ONCE as --battles 200; CUMULATIVE across resumes
   rule_unmet_at_200: "licensed continuation: supervisor relaunch with TARGET 300 (max_battles_total never moves) -- pre-committed, R4 F7"
@@ -218,7 +214,7 @@ schedule:                        # M-R5-5 << MAINTAINER 5 >> — R4 M7 verbatim
   box: "no fleet, no eval, local Node STOPPED, a caffeinate bound to the supervisor (M-R5-5)"
 
 expected_instrument_values:      # pre-stated so a silent wrong-object run is visible
-  mean_decision_ms_band: [1, 30]   # M-R5-4 << MAINTAINER 4 >>; VOID (e) threshold at the upper bound, as R4; FINALIZED from the LG-6 smoke stamp at ratification
+  mean_decision_ms_band: [1, 30]   # M-R5-4 RULED; VOID (e) threshold at the upper bound, as R4; FINALIZED 2026-09-15 23:58Z from the LG-6 smoke: stamped 2.838 ms (2 battles, 21 + 24 turns, kind=ensemble, lanes w104/w112/w120, obs_dim 828, max_concurrent_live_battles 1) -- 10x margin under the bound
   provenance_keys_exact: [kind, obs_dim, encoder_v2, encoder_ids, lanes, sha256]  # `lanes`, plural: an ensemble; a `lane`/`dose` key = wrong object pasted in
   max_concurrent_live_battles_expected: 1
   sec_per_battle_band: [190, 300]  # applies to the MEDIAN EXCLUDING GAPS > 900 s
@@ -242,4 +238,17 @@ instruments:
   r4_provenance: readouts/LADDER_R4_READOUT.md
   object_selection: configs/eval/monster_reads_offfp.yaml   # rule R1; results/monster_reads/READOUT.txt
 
-ratified_decisions: {}             # M-R5-1..6 RULED: <date> -- filled at ratification
+ratified_decisions:                  # M-R5-1..6 RULED 2026-09-15 (maintainer, in chat)
+  M1_object:
+    RULING: "RULE R1's OUTPUT ACCEPTED: ENS3 of the W trio (lanes w104/w112/w120; E3WF 0.5987 off FP@20, +0.0417 over the same-session 100M floor 0.5570 at 3.27 se). Ratified as the rule's output, not a choice."
+  M2_account:
+    RULING: "REUSE nickgen1rbrlbot (maintainer 2026-09-14: 'Ladder agent side? Yes but use nickgen1rbrlbot (same account)'); R4 M6 stands."
+  M3_n:
+    RULING: "200 battles, one run, then decide — as recommended ('Go with the recs')."
+  M4_decision_cap:
+    RULING: "Band [1, 30] ms; the upper bound is the VOID (e) threshold, finalized from the LG-6 smoke stamp — as recommended."
+  M5_schedule:
+    RULING: "ONE CONTINUOUS RUN to n=200; plan 12-16 h, budget 17 h, hard ceiling ~22 h; no fleet, no eval, local Node stopped, caffeinate held — as recommended. Launch is AGENT-SIDE (2026-09-14 ruling); LG-9 is a log read."
+  M6_anchor_battery:
+    RULING: "The ladder run does not wait on the battery; the README row waits on vs-SH (done, phase C) + FP@20 h2h (done, phase B) + BC-clone h2h (PENDING, never dropped) — as recommended."
+  ratified_by: "maintainer, in chat, 2026-09-15 ~23:45Z, verbatim: 'Go with the recs'"
