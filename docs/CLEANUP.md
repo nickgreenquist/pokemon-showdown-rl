@@ -25,6 +25,24 @@ exactly that (see do-not-relitigate below).
 
 ## Still open
 
+- **L1 — THE LADDER'S OPPONENT POOL IS SMALL AND ONE SESSION SAMPLES ONE SLICE
+  OF IT** (opened 2026-09-16, from the maintainer's observation mid-R5). R5 at
+  n=156 had played **78 distinct opponents, with five of them supplying 62 games
+  (40%)** and 64% of all battles against someone already faced. Consequences, both
+  real: 200 battles buy fewer than 200 independent draws (Glicko treats them as
+  independent), and a repeat opponent can adapt to the bot across games. The
+  adaptation is NOT visible yet in R5 — repeat opponents' first halves vs second
+  halves 0.625 → 0.657 (+0.03, 0.27 se), first meetings vs rematches 0.603 →
+  0.684 (+0.08, 1.06 se), both in OUR favour and neither significant — so this is
+  a design item, not a finding. **Proposal for the next ladder pre-reg (R6):
+  replace "ONE CONTINUOUS RUN" with a pre-registered SPLIT SCHEDULE** — e.g. four
+  sessions of ~50 at different hours and on different days — with its own stopping
+  rule (rd grows between sessions; the current rule reads rd at the stop of one
+  continuous run), an explicit calendar-drift disclosure, and the repeat-opponent
+  census above computed in the readout. **Not applied to R5**: changing the
+  schedule mid-run is an unregistered deviation, and R5 was 40 games from its
+  floor when this came up. Blocked on a maintainer ruling at R6 pre-reg time.
+
 - **E1 — NO SINGLE ENV RUNS THE TEST SUITE** (opened 2026-09-10). The port env
   `pkmn-engine-port` has the `pkmn_gen1` extension and now the analysis deps;
   `pokemon-showdown-rl` has the analysis deps but NOT the extension, so its run
