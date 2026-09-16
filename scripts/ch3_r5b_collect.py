@@ -198,7 +198,8 @@ def run_lane(prereg: dict, prereg_path: str, lane: str,
 
     # seat 2 = the SAME lane's checkpoint, sampling (r5a TS verbatim);
     # seat 1 = deterministic search@M, evaluator ABSENT (E0).
-    opponent = _opponent_from_checkpoint(spec["path"], cfg.seed)
+    # (player, env_id) since 8afa069 -- see scripts/ch3_r4_anchors.py. 2026-09-16.
+    opponent, _opp_env_id = _opponent_from_checkpoint(spec["path"], cfg.seed)
     env = make_env(cfg.env_id, cfg.seed, env_kwargs={"opponent": opponent})
     assert getattr(env.unwrapped, "_privileged", None) is False, (
         "F-P2/SF-13: the collection env must not emit info['privileged']"

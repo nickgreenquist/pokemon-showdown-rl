@@ -21,7 +21,9 @@ set_seed(a.seed); torch.set_num_threads(1)
 pre=yaml.safe_load(open("configs/eval/ladder_r1.yaml"))
 ck=load_checkpoint(pre["checkpoints"]["s62"]["path"])
 agent=_load_showdown_agent(ck, Config(**ck["config"]))
-opp = _opponent_from_checkpoint(a.opponent, a.seed) if a.opponent.endswith(".pt") else a.opponent
+# (player, env_id) since 8afa069 -- see scripts/ch3_r4_anchors.py. 2026-09-16.
+opp = (_opponent_from_checkpoint(a.opponent, a.seed)[0]
+       if a.opponent.endswith(".pt") else a.opponent)
 env=make_env("Showdown-v0", a.seed,
              env_kwargs={"opponent": opp, "save_replays": a.outdir})
 for b in range(a.battles):

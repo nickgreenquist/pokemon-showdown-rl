@@ -78,7 +78,8 @@ def main():
 
     if args.opponent.endswith(".pt"):
         from eval_checkpoint import _opponent_from_checkpoint
-        opp = _opponent_from_checkpoint(args.opponent, args.seed)
+        # (player, env_id) since 8afa069 -- see scripts/ch3_r4_anchors.py. 2026-09-16.
+        opp, _opp_env_id = _opponent_from_checkpoint(args.opponent, args.seed)
         print(f"opponent: checkpoint {args.opponent} (SAMPLING, pool contract)")
     else:
         opp = args.opponent

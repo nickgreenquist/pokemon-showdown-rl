@@ -52,7 +52,16 @@ def main() -> None:
     cfg = Config(**ckpt["config"])
     assert cfg.env_id.startswith("Showdown")
     privileged = bool(cfg.env_kwargs.get("privileged"))
-    opponent = _opponent_from_checkpoint(args.checkpoint, cfg.seed)
+    # _opponent_from_checkpoint returns (player, env_id) -- it grew the second
+    # element with BI-G4-4's cross-generation guard and this caller was never
+    # updated, so it passed the TUPLE as the opponent and died in
+    # opponent_player with "unknown opponent (<PoolPlayer ...>, 'Showdown-v0')".
+    # Found 2026-09-16 running the mech200m read. Unpack, and carry the same
+    # same-family assert eval_checkpoint.py makes.
+    opponent, opp_env_id = _opponent_from_checkpoint(args.checkpoint, cfg.seed)
+    assert opp_env_id.startswith("ShowdownGen4") == cfg.env_id.startswith("ShowdownGen4"), (
+        f"cross-play across generations: seat 1 {cfg.env_id!r}, seat 2 {opp_env_id!r}"
+    )
     env_kwargs = {"opponent": opponent}
     if privileged:
         env_kwargs["privileged"] = True

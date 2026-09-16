@@ -270,3 +270,58 @@ def test_loo_pool_expected_is_honoured_and_consumed(mod, patch_target,
     assert prov["members"] == ["s62", "s63"]
     assert len(evaluator["agents"]) == 2
     assert "loo_pool_expected" not in evaluator and "pool" not in evaluator
+
+
+# ---------------------------------------------------------------------------
+# THE CALLER CONTRACT OF `_opponent_from_checkpoint`, 2026-09-16.
+#
+# That helper started returning `(player, env_id)` at 8afa069 (gen-4 BI-G4-4).
+# Two of its callers were updated; FIVE were not, and each of those passed the
+# TUPLE straight into `make_env(..., env_kwargs={"opponent": ...})`, where
+# `opponent_player` rejected it with "unknown opponent (<PoolPlayer ...>,
+# 'Showdown-v0')". Nothing caught it because no test drives these scripts'
+# live paths -- so the BC-clone ANCHOR LEG was simply unrunnable from
+# 2026-09-05 until it was tried on 2026-09-16. This test is cheap, static and
+# covers the whole class: every call site must either unpack the pair or take
+# element [0].
+import ast as _ast
+from pathlib import Path as _Path
+
+_SCRIPTS = _Path(__file__).resolve().parents[1] / "scripts"
+
+
+def test_every_opponent_from_checkpoint_caller_unpacks_the_pair():
+    bad = []
+    for path in sorted(_SCRIPTS.rglob("*.py")):
+        try:
+            tree = _ast.parse(path.read_text())
+        except SyntaxError:                      # not ours to police here
+            continue
+        for node in _ast.walk(tree):
+            if not isinstance(node, _ast.Call):
+                continue
+            fn = node.func
+            name = fn.id if isinstance(fn, _ast.Name) else getattr(fn, "attr", None)
+            if name != "_opponent_from_checkpoint":
+                continue
+            parent = next((p for p in _ast.walk(tree)
+                           if any(c is node for c in _ast.iter_child_nodes(p))), None)
+            ok = (isinstance(parent, _ast.Subscript)                       # (...)[0]
+                  or (isinstance(parent, _ast.Assign)
+                      and isinstance(parent.targets[0], _ast.Tuple))       # a, b = ...
+                  or (isinstance(parent, _ast.Tuple)
+                      and isinstance(getattr(parent, "ctx", None), _ast.Load) is False))
+            if not ok:
+                bad.append(f"{path.relative_to(_SCRIPTS.parent)}:{node.lineno}: "
+                           "result of _opponent_from_checkpoint is used whole; it is "
+                           "a (player, env_id) PAIR since 8afa069 -- unpack it or "
+                           "index [0]")
+    assert not bad, "\n".join(bad)
+
+
+def test_the_contract_test_catches_the_shape_that_broke():
+    tree = _ast.parse("opponent = _opponent_from_checkpoint(p, s)\n")
+    call = next(n for n in _ast.walk(tree) if isinstance(n, _ast.Call))
+    parent = next(p for p in _ast.walk(tree)
+                  if any(c is call for c in _ast.iter_child_nodes(p)))
+    assert isinstance(parent, _ast.Assign) and not isinstance(parent.targets[0], _ast.Tuple)

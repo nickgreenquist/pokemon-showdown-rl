@@ -199,7 +199,12 @@ def run_arm(prereg: dict, prereg_path: str, arm_name: str,
 
     # seat 2 = the clone, PoolPlayer-style SAMPLING seat (the falsifier's
     # construction verbatim); seat 1 = our deterministic side.
-    opponent = _opponent_from_checkpoint(opp_spec["path"], cfg.seed)
+    # _opponent_from_checkpoint returns (player, env_id) since 8afa069 (gen-4
+    # BI-G4-4); this caller was never updated and passed the TUPLE as the
+    # opponent, dying in opponent_player with "unknown opponent
+    # (<PoolPlayer ...>, 'Showdown-v0')" -- i.e. the BC-clone anchor leg has
+    # been unrunnable since 2026-09-05. Found and fixed 2026-09-16.
+    opponent, _opp_env_id = _opponent_from_checkpoint(opp_spec["path"], cfg.seed)
     env = make_env(cfg.env_id, cfg.seed, env_kwargs={"opponent": opponent})
     agent0 = _load_showdown_agent(ckpt, cfg)
 
