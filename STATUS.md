@@ -1,40 +1,34 @@
 # STATUS
-## JOURNEY POSITION — step 10 (the monster) DONE 2026-09-15; **step 11 LADDER R5 is next, object decided by rule**
+## JOURNEY POSITION — step 11 (the final gen-1 ladder) **DONE 2026-09-16: LADDER R5 finished LISTED on the top-500**
 **GEN-4 CLOSED (RESULTS §19):** steps 3/5 MET, vs SH 0.8788, CREDITS NOTHING. **LADDER R4:
 GXE 65.2 / Glicko 1618 ± 25 / Elo 1354, n=200. From here it is all gen 1.**
 **JOURNEY 7.5 engine port EXITED; A-1 PASSED TWICE** (0.66775 vs async 0.67211, **−0.00436 travels forever**; `docs/engine_port/NOTES.md`).
 Engine rates at k=8, measured idle: **w3 1620, w6 1282 steps/s/lane** → 6×200M ≈ 43 h.
+## **LADDER R5 — GXE 73.9 / Glicko-1 1697 ± 25 / Elo 1457, n=200, LISTED (cutoff 1354.2, ~103 clear)**
+The committee of the 200M W finals (lanes w104/w112/w120), greedy, agent-launched 2026-09-16 00:07Z,
+finished 14:17Z: **128–72 (0.640)**, played-only 125/197, rd 25.0, attempt 1, NO relaunch/resume,
+mean decision 5.40 ms (band [1,30], no VOID), 0 decision errors, 0 mask desyncs, tallies agree, account
+record reconciles 327–273/600 with ZERO unlogged games. **Entered 146/200 battles at or above the line,
+9 excursions, peak 1541, finished listed**; 93–53 while listed vs 35–19 below (indistinguishable).
+DISCLOSURES: warm-started account (400 prior games — GXE/Glicko/Elo are ACCOUNT properties);
+STANDALONE DESCRIPTIVE; **no R1/R3/R4/R5 delta is an effect**; barred-language list is binding.
+**Pool caveat (CLEANUP L1):** 102 distinct opponents, 63.5% of battles vs a repeat, top five = 34.5%;
+two adaptation tests null (+0.003 at 0.03 se; +0.026 at 0.38 se). Full: `readouts/LADDER_R5_READOUT.md`,
+`RESULTS.md` §20. **Anchor battery INCOMPLETE — BC-clone h2h PENDING; README row says so.**
+
 ## **ENS3 of the 100M finals CREDITS (+0.0349 vs SH; +0.067 off FP@20) — now the R5 FLOOR; the object is E3WF (below)**
 **0.82356 (n=9000) vs fresh greedy A0 0.78867 = +0.03489 at 5.93 se → CREDIT** (floor AND 2·se_diff); beats the
 gated search's in-sample peak (0.82400) at GREEDY SPEED. Disclosures: clustered se UNAVAILABLE by construction
 (one committee; the binomial governs, anti-conservative); licenses THESE checkpoints, never "ensembling helps".
-## SEARCH at DEPTH-1 — the gate is the whole effect, and it is NOT CREDITED
-**D5: play search's action only if it beats the POLICY's argmax by > δ** (absent = no-op, golden digest;
-δ=inf = greedy). s112, n=3000/arm vs SH: **δ 0 → 0.74767, BELOW greedy's 0.78233** — the critic's own
-argmax loses to the policy at ONE ply; search only ever paid as a rarely-fired veto; 0.05 0.80867, **0.10 0.82400**, 0.20 0.81000.
-- **HONEST READ IS OUT OF SAMPLE: +0.016, NOT +0.042.** Held-out lanes at δ 0.10, n=3000 each:
-  s104 +0.01967, s120 +0.01233; **pooled n=6000 = +0.01600 at 2.19 se_diff — MEETS 2·se_diff,
-  MISSES the floor → NOT CREDITED.** Never quote s112's +0.0417.
-- **EG10: a better evaluator adds nothing AT DEPTH-1** (LOO ensemble + same gate, 3×3000: −0.00044 at 0.05 se).
-  **ENS3 vs the searched stack is a NULL** (+0.01078 at 1.87 se, and that figure includes the tuning lane).
-- **OFF FOUL PLAY THE GATE TRANSFERS** — BLM (gated@M, δ 0.10) vs FP@20, n=1000: **0.525** vs a **0.47** bar
-  (greedy 0.50167, UNGATED 0.39600: the SELECTOR alone bought +0.129 off-FP); +0.023 vs greedy at 1.28 se is n.s.
-**LANDMINE: every search number before 2026-09-11 measures a BROKEN selector** (grep `PRE-D5`; LADDER R3 is a D4 object).
-## DEPTH IS MEASURED, AND IT IS A NULL, NOT A NEGATIVE — 2026-09-11 review of ~14,000 battles
-Two implementations (`rl/search/tree.py`, decoupled-UCT with OUR prior and critic; `_look_further`,
-N plies on the banked matrix); account + review addendum in `docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS.md`.
-n=900 each vs S3G10 (0.8189 on the same 900 seeds), UNPAIRED se ≈ 0.019 (seeds do NOT pair — Watch items).
-- **Tree: depth is a NULL.** Two exact-config replicates per depth. Depth 1: TSAMP1 0.8144, TQV 0.7778
-  (0.037 apart at n=900); depth ~3: TSAMP 0.7900, TQV8 0.7944. **Pooled 0.7961 vs 0.7922 = −0.004 ± 0.013.**
-  The 16:14 STATUS reported TSAMP1/TSAMP only; TQV/TQV8 were on disk and unreported. The depth-1 tree sits
-  −0.023 (−1.7 se) under the banked matrix pooled: "the control reproduces the matrix" held for one of two.
-- **Matrix: the −0.094 (−4.6 se) at +2 plies is an OVERRIDE-RATE effect, not depth.** At δ 0.10 the deep
-  arms override 16.5–20.1% of decisions vs S3G10's 8.3%; at matched override (D3G40, δ 0.40, 2.9%) depth 3
-  reads **−0.017 ± 0.023 at n=600**. A deeper backup needs a recalibrated δ; nobody has swept it.
-- Deep arms had 3–6× the compute (229 vs 40 ms; 330 vs 78 ms). **DEPTH CENSUS:** FP's iterative deepening
-  reaches 2.44 / 3.08 / 3.56 plies at 20 / 200 / 2000 ms — FP@20 searches ~depth 2.4; our tree exceeds it.
-- **Licensed: "no evidence depth helps at these budgets and this δ." Barred: "depth hurts", "monotone".**
-  Engine-native depth-2 ruling still owed; a δ sweep for deep backups is the cheap first step.
+## SEARCH at DEPTH-1 and DEPTH >1 — BOTH NULL, banked (`docs/search_relook/`, RESULTS §"PRE-D5")
+D5 gate (play search's action only if it beats the policy's argmax by > delta): in-sample peak 0.82400 at
+delta 0.10, but **out of sample +0.016 at 2.19 se — MEETS 2*se_diff, MISSES the floor, NOT CREDITED**; never
+quote s112's +0.0417. A better evaluator adds nothing at depth 1 (EG10 -0.0004). Off FP@20 the SELECTOR alone
+bought +0.129 (gated 0.525 vs ungated 0.396). **DEPTH is a NULL, not a negative** (two implementations,
+~14,000 battles, pooled -0.004 +/- 0.013; the matrix's -0.094 is an OVERRIDE-RATE effect: at matched override
+depth 3 reads -0.017 +/- 0.023). Licensed: "no evidence depth helps at these budgets and this delta."
+**LANDMINE: every search number before 2026-09-11 measures a BROKEN selector** (grep `PRE-D5`; LADDER R3 is a
+D4 object). ENSG (committee as the search's prior+leaf, with the gate) is a NULL on both axes.
 
 ## ENSEMBLE SCALING (2026-09-11/12, `configs/eval/ens_width*.yaml`) — superseded in detail by the monster reads below
 b0 member curve 1→6 vs SH: 0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400 (members 4–6 are 50M objects,
@@ -42,10 +36,6 @@ a lower bound); pooled E6MIX 0.83356 vs ENS3 0.82356 = +0.010 at 1.78 se (unreso
 MEMBERS: ENS3 of the 50M finals 0.82233 vs the 100M committee 0.82356 — the horizon was the weaker lever vs SH.
 Off FP@20 (same session): greedy 100M re-draw mean 0.500; ENS3F 0.557 / ENS3FR 0.577 (+0.067 at 4.7 se — the
 committee's off-FP transfer is verdict-grade); FP@500 (1 s/decision) costs the committee ~0.095 (0.472, n=500).
-
-## ENSG — the committee AS the search's prior+leaf value, with the gate: A NULL ON BOTH AXES
-vs SH δ 0.05/0.10/0.20: −0.002 / +0.015 (1.6 se, the tuned δ) / +0.008; off FP@20 pre-registered ENSGF 0.558 vs
-ENS3F 0.557 (search fired: override 7.5%, 31,085 searched decisions). The gate adds nothing to the committee anywhere.
 
 ## THE MONSTER (JOURNEY 10) — DONE 2026-09-15, ZERO RESUMES; the reads picked the ladder object BY RULE
 Fleet (ratified option C, launched 2026-09-13 10:35Z, six lanes k=8): **W trio = L2 + 1024-wide critic** (seeds
@@ -68,21 +58,18 @@ Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_2000000
   instruments and Monte-Carlo value targets lost to it on both. The value TARGET, not the horizon, moved the number.
 
 ## Next actions
-0. **GOAL (maintainer, 2026-09-15): "break top500 with self play", and STAY there, not visit it** (R4: Elo 1354
-   vs a 1358.999 cutoff, ~40/200 visits). Nothing here projects a rating; vs-SH / off-FP are not ladder numbers.
-1. **LADDER R5 — RATIFIED ("Go with the recs", 2026-09-15) and LIVE since 2026-09-16 00:07Z, agent-side; G-BLIND until n=200; plan 12–16 h.** Was: `docs/proposals/ladder_r5.draft.yaml`: lanes
-   w104/w112/w120 (nine member shas pinned), rulings 2–6 as recommended defaults (reuse nickgen1rbrlbot — RULED;
-   200 battles one run; [1,30] ms band; 12–16 h plan, 22 h ceiling, idle box; README row waits on the battery).
-   LG-2 profile parked at R4's stop (Elo 1353.96 / GXE 65.1 / Glicko 1617.7 / RD 33.4 / 199W-201L); LG-3 .env
-   username verified. **On "go with the recs":** git mv → `configs/eval/ladder_r5.yaml` (Status: RATIFIED,
-   markers cleared), `pytest tests/test_ladder.py`, `--local-smoke` ≥2 battles, STOP Node, caffeinate bound to the
-   supervisor, `source .env && scripts/ladder_supervise.sh R5E 200 configs/eval/ladder_r5.yaml` (encoder env vars
-   exported), LG-9 startup-line read from the log within 90 s. Agent-launched (ruled 2026-09-14). Results +
-   readout due Saturday night 2026-09-19.
-2. **After the ladder:** mechanism co-primary on the six finals; RESULTS addendum (fleet, reads, R5); README row
-   (BC-clone leg for the committee PENDING); the plasticity probe on the W/L2LAM finals; STATUS/landmines.
-3. **RULINGS OWED:** the LR-anneal floor for the next fleet; engine-native depth-2 (not the lever); the next
-   fleet's shape (more W-recipe members vs 300M; LayerNorm arm).
+0. **GOAL MET, ONCE (maintainer, 2026-09-15): "break top500 with self play", and stay rather than visit.**
+   R5 finished LISTED at Elo 1457 against a 1354.2 line and spent 73% of its battles at or above it.
+   It is ONE run on a warm-started account; nothing here is a projection, and the barred list stands.
+1. **OWED BEFORE ANY CREDIT FOR THE WIDE CRITIC:** the [RWL-3] mechanism co-primary on the six finals —
+   critic ctx srank99/width, dormant fraction at tau 0.025/0.1, explained variance, l2init distances.
+   srank/dormant are NOT logged: run `d22_collect_obs.py` + `d22_dormant_rank.py` on the finals (the
+   plasticity probe asserts value_sizes 384 — the W finals need a per-checkpoint trunk allowance).
+2. **OWED FOR THE README ROW:** the BC-clone h2h (500) for the committee — the only missing anchor leg;
+   it is reported PENDING and the row already says so. vs-SH (0.8386) and FP@20 (0.5987) are in hand.
+3. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — sessions across hours/days need their own
+   stopping rule, since rd grows between sessions); the LR-anneal floor for the next fleet; the next
+   fleet's shape (more W-recipe members vs 300M vs the LayerNorm arm); engine-native depth-2 (not the lever).
 
 ## Watch items
 - **SUITE GREEN 1031 / 0 failed** on the DOCUMENTED invocation (encoder flags UNSET); 86 skip

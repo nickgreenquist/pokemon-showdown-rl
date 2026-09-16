@@ -810,6 +810,9 @@ remains open now lives in `STATUS.md` and the newest `SESSION_LOGS.md` entry, wh
 authoritative "what next"; this file is the account, not the queue.
 
 ## 16. The ladder — three descriptive measurements against humans
+<!-- A FOURTH RUN EXISTS: LADDER R5 (2026-09-16, the committee of the 200M finals,
+     GXE 73.9 / Glicko-1 1697 +/- 25 / Elo 1457, LISTED on the top-500 at the stop)
+     is written up in §20. This section is R1/R3/R4 and is left as written. -->
 
 Every other number in this file comes from an opponent we control: SH, Foul Play, or our
 own behaviour clone of Foul Play. The public `gen1randombattle` ladder is the only place
@@ -1694,3 +1697,93 @@ this addendum. CH3 R2's credit was SH-FACING and did not transfer (FP 0.388 -> 0
 BC-clone 0.894 -> 0.860); `configs/eval/search_budget_ladder_offfp.yaml` stages that
 probe first so the same mistake is not repeated. No headline claim may rest on D5 until
 that leg reads.
+
+## 20. Addendum, 2026-09-16 — **LADDER R5: the committee of the 200M finals, on the top-500 list at the stop**
+
+**The object.** The log-probability **committee (`kind: ensemble`) of the three 200M W-trio
+finals** — `runs/showdown_monster200m_w_s{104,112,120}/ckpt_2000000{00,12,03}.pt`, the
+recipe being regenerative L2-toward-init plus a **1024-wide critic** — played **greedy**,
+one arm, no A/B. Pre-registered in `configs/eval/ladder_r5.yaml`, ratified by the
+maintainer in chat 2026-09-15 ("Go with the recs"), **launched and babysat agent-side**
+(the first ladder run in this repo not launched by a human), played 2026-09-16
+00:07–14:17Z on `nickgen1rbrlbot`, **R1's account reused and warm-started** for the third
+time. The members were not chosen: they were named by the pre-stated rule R1 of
+`configs/eval/monster_reads_offfp.yaml` from a same-session off-Foul-Play@20 read
+(§20.1 below).
+
+**The primary read, server-computed, quoted with n and with the policy kind.**
+
+| | |
+|---|---|
+| **GXE** | **73.9%** |
+| **Glicko-1** | **1697 ± 25** |
+| **PS Elo, final** | **1457** |
+| **Top-500 admission cutoff at the stop** | Elo **1354.2** — **LISTED, ~103 Elo clear** |
+| Record, this run (runner-logged) | **128–72** over **200** rated battles (**0.640**); played-only 125/197 (0.635) |
+| Record, the account (cumulative, incl. R1 + R4's 400) | 327–273 over 600 — **reconciles exactly, zero unlogged games** |
+| Opponents | **102 distinct**, mean Elo 1304 |
+| Stopping rule `rd ≤ 40 AND n ≥ 200` | **satisfied** (rd 25.0, n 200), attempt 1, **no relaunch, no resume** |
+| Wall clock | 14.16 h, median 239 s/battle, mean 28.8 turns |
+| Instrument | mean decision **5.40 ms** (pre-registered band [1, 30] — **no VOID**), 0 decision errors, 0 mask desyncs, JSONL and poke-env tallies agree at 200 |
+
+**It held the line rather than touching it.** By the replay-derived pre-battle ratings the
+account entered **146 of its 200 battles at or above the admission line**, across 9
+excursions, peaking at Elo **1541**, and **finished listed**. Its record while at or above
+the line was 93–53 (0.637), statistically indistinguishable from 35–19 (0.648) below it.
+**Peak Elo is not a result; the stopping-rule figure is the read.**
+
+**Every disclosure R4 carried travels with this run**, and they are not softened by the
+number being higher: the rating is **WARM-STARTED** (the account began this run at Elo
+1354 carrying 400 games, so GXE / Glicko / Elo at the stop are ACCOUNT properties, not
+this run's alone); the run is a **STANDALONE DESCRIPTIVE MEASUREMENT**; and
+**no R1/R3/R4/R5 delta may be quoted as an effect, in any direction** — policy kind,
+training scale, training recipe, account path-dependence, calendar and pool, opponent
+memory and launch ownership all moved at once. The barred-language list in the pre-reg is
+machine-readable and binding on this text.
+
+**§20.1 — how the object was chosen, and the read that chose it.** The monster fleet
+(JOURNEY 10; `configs/showdown_monster200m.yaml` [RWL-1..8], six lanes, k=8, launched
+2026-09-13, **zero resumes**) ran two recipes to 200M under identical L2: **W** = 1024-wide
+critic (seeds 104/112/120, 46.3 h) and **L2LAM** = Monte-Carlo value targets (128/136/144,
+38.7 h). The pre-registered secondary read, **same session, fresh usernames, n=3000 per
+arm off Foul Play@20** (`configs/eval/monster_reads_offfp.yaml`,
+`results/monster_reads/READOUT.txt`):
+
+| arm | off FP@20 |
+|---|---|
+| **E3WF — ENS3 of the W trio (the ladder object)** | **0.5987** |
+| E6MF (W + L2LAM, 6 members) | 0.5763 |
+| E9F (those six + the three 100M finals) | 0.5760 |
+| **E3HF — ENS3 of the 100M finals, re-drawn (the FLOOR)** | **0.5570** |
+| E3LF — ENS3 of the L2LAM trio | 0.4960 |
+| W singles pooled (n=9000) | 0.5417 |
+| 100M singles re-drawn (n=9000) | 0.4952 |
+| L2LAM singles pooled (n=9000) | 0.4481 |
+
+Rule R1 selected **E3WF** (+0.0417 over the floor at 3.27 se; the runner-up sits 0.023
+below, outside the 0.013 tie band). vs SH under the locked protocol: **GW 0.8217** (n=9000)
+against the banked 100M greedy 0.7887, **E3W 0.8386**, E6M 0.8426, E9 0.8433, GL 0.7778,
+E3L 0.8130. **These reads are DESCRIPTIVE by pre-registration ([RWL-3]) and credit
+nothing**; the mechanism co-primary (critic srank99/width, dormant fraction, explained
+variance, L2-anchor distances) is **OWED** before any credit is claimed for the wide
+critic. Both FP@20 disclosures travel with every number above: the equivalence test is
+weakly powered, and the point estimate flatters us.
+
+**§20.2 — the opponent pool, named because it bears on what n means.** 200 battles came
+from **102 distinct opponents**; 73 were met once, **127 battles (63.5%) were against
+someone already faced**, and the top five accounts supplied **69 games (34.5%)**. Two
+adaptation tests, both null: repeat opponents' first halves vs second halves 0.629 → 0.632
+(+0.003, 0.03 se); first meetings vs rematches 0.627 → 0.653 (+0.026, 0.38 se). Both run in
+our favour and neither is powered to resolve anything under ~20 points of win rate.
+Glicko treats 200 battles as 200 independent games; the **effective sample is smaller than
+n suggests**. Recorded as **CLEANUP item L1** with a proposal to replace "one continuous
+run" with a pre-registered **split schedule** at the R6 pre-reg. Full provenance:
+`readouts/LADDER_R5_READOUT.md`.
+
+**§20.3 — what this does and does not settle.** It settles that **a pure-self-play policy
+with no human data in training can sit on the public gen-1 random-battle top-500 list at
+the end of a 200-game run**, which is the thing this project set out to show and the thing
+§16's three earlier runs did not show. It settles nothing about which lever produced it:
+the committee, the horizon, the wide critic and L2 all moved together, the ladder has no
+control arm, and the anchor battery for this object is incomplete — **vs-SH and FP@20 are
+in hand; the BC-clone head-to-head is PENDING and the README row says so**.

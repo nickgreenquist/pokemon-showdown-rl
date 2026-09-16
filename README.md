@@ -6,16 +6,20 @@ A reinforcement-learning agent for **Pokémon Showdown Gen 1 random battles**
 cloning, no scripted opponent in the training loop. It plays through
 [poke-env](https://github.com/hsahovic/poke-env).
 
-It plays on the **real Showdown ladder, against humans**. Three pre-registered
+It plays on the **real Showdown ladder, against humans**. Four pre-registered
 runs are complete at n=200 each: LADDER R1 (2026-08-25, ensemble, GXE
 **59.6%**, Glicko-1 **1573 ± 27**), LADDER R3 (2026-08-28, one-ply
 expectation search on a 50M lane, GXE **60.3%**, Glicko-1 **1579 ± 25** — a
-**PRE-D5 broken-selector object; see `docs/landmines.md`**) and
+**PRE-D5 broken-selector object; see `docs/landmines.md`**),
 LADDER R4 (2026-09-04/05, the 100M final greedy, on R1's account reused and
-warm-started, GXE **65.2%**, Glicko-1 **1618 ± 25**). During R4 the account was
+warm-started, GXE **65.2%**, Glicko-1 **1618 ± 25**) and
+**LADDER R5** (2026-09-16, the committee of the 200M finals, same account,
+GXE **73.9%**, Glicko-1 **1697 ± 25**, PS Elo **1457**). During R4 the account was
 **listed on the global top-500 for 42 of its 200 battles** (a filed screenshot shows
-rank 369 mid-run), and finished one game's swing under the line. The runs are **not comparable** in
-any direction — see the R3 and R4 sections.
+rank 369 mid-run), and finished one game's swing under the line; **R5 entered 146 of
+its 200 battles at or above the admission line and finished LISTED, ~103 Elo clear
+of the cutoff.** The runs are **not comparable** in
+any direction — see the R3, R4 and R5 sections.
 
 ## On the ladder — LADDER R1, complete
 
@@ -170,6 +174,59 @@ no threshold), the exact record reconciliation, every VOID condition against
 its evidence, and the disclosures (no courtesy note was sent, by ruling; the
 run was blind; ops were clean: one launch, zero kills, zero unlogged games) —
 is [`readouts/LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md).
+
+
+## On the ladder — LADDER R5, complete
+
+Account [`nickgen1rbrlbot`](https://pokemonshowdown.com/users/nickgen1rbrlbot)
+— **R1's account, reused and warm-started** for the third time — playing the
+**log-probability committee of the three 200M finals** of the wide-critic recipe
+(regenerative L2-toward-init + a 1024-wide critic), **greedy**. The members were
+not chosen by hand: a pre-stated rule picked them from a same-session
+off-Foul-Play@20 read of every candidate committee. Pre-registered in
+[`configs/eval/ladder_r5.yaml`](configs/eval/ladder_r5.yaml) before the first rated
+battle, and **launched and babysat agent-side** — the first ladder run here not
+started by a human. **The run is finished and the pre-registered stopping rule was met.**
+
+| | |
+|---|---|
+| **GXE — the pre-registered primary read** | **73.9%** |
+| **Glicko-1** | **1697 ± 25** |
+| **PS Elo, final** | **1457** (highest pre-battle observed 1541; started at R4's parked 1354) |
+| **Top-500 admission cutoff at the stop** | Elo **1354.2** — **listed, ~103 Elo clear** |
+| Record, this run (runner-logged) | 128–72 over **200** rated battles (0.640); played-only 125/197 (0.635) |
+| Record, the account (cumulative, incl. R1 + R4's 400) | 327–273 over 600 — reconciles exactly, zero unlogged games |
+| Opponents | 102 distinct, mean Elo 1304 |
+| Stopping rule `rd ≤ 40 AND n ≥ 200` | **satisfied** (rd 25.0, n 200), attempt 1, no relaunch |
+| Instrument | mean decision 5.40 ms (band [1, 30], no VOID), 0 decision errors, 0 mask desyncs |
+
+**It held the list rather than touching it.** By the replay-derived pre-battle ratings
+the account entered **146 of its 200 battles at or above the admission line**, across 9
+excursions, peaked at Elo 1541, and **finished listed**. Its record while at or above the
+line (93–53, 0.637) is indistinguishable from its record below it (35–19, 0.648). Peak Elo
+is not a result; the stopping-rule figure is the read.
+
+**The disclosures do not soften because the number is higher.** The rating is
+**warm-started** — the account carried 400 games into this run, so GXE / Glicko / Elo at
+the stop are properties of the ACCOUNT, not of these 200 battles alone. The run is a
+**standalone descriptive measurement**: it has no A/B, no control arm and no threshold to
+clear, it **credits nothing**, and **no delta between any two ladder runs may be quoted as
+an effect** — the policy kind, training scale, training recipe, account history, calendar,
+opponent pool and launch ownership all moved at once.
+
+**The opponent pool is small and that bears on what n means.** 102 distinct opponents
+supplied the 200 battles; 63.5% of battles were against someone already faced and the top
+five accounts supplied 34.5% of the run. Two tests for opponents adapting to the bot both
+came back null and both in our favour. Glicko counts 200 independent games; the effective
+sample is smaller. Recorded as item L1 in [`docs/CLEANUP.md`](docs/CLEANUP.md) with a
+proposal to spread the next run across sessions.
+
+**Anchor battery for this object: INCOMPLETE.** vs SimpleHeuristics under the locked
+protocol (**0.8386**, n=9000) and Foul Play@20 (**0.5987**, n=3000) are in hand; the
+**BC-clone head-to-head is PENDING** and this row does not wait on it only because the
+ladder run does not — the claim above is the ladder number, nothing more. Full provenance:
+[`readouts/LADDER_R5_READOUT.md`](readouts/LADDER_R5_READOUT.md), evidence and reads in
+[`RESULTS.md` §20](RESULTS.md).
 
 ## The claim
 
@@ -363,7 +420,7 @@ W&B logging defaults to offline; `scripts/extract_history.py <run_dir>` writes
 | `docs/prior_work/README.md` | verified index of external systems — several widely-repeated claims about them do not survive contact with their code |
 | `scripts/README.md` | why almost nothing in `scripts/` is safe to delete |
 | `docs/IDEAS_POST_100M.md` | the live lever list, re-ranked after the 100M read; each entry owes its own pre-reg |
-| [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md), [`LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md) |
+| [`readouts/`](readouts/) | committed ladder provenance, one file per run: [`LADDER_R1_READOUT.md`](readouts/LADDER_R1_READOUT.md), [`LADDER_R3_READOUT.md`](readouts/LADDER_R3_READOUT.md), [`LADDER_R4_READOUT.md`](readouts/LADDER_R4_READOUT.md), [`LADDER_R5_READOUT.md`](readouts/LADDER_R5_READOUT.md) |
 | `rl/envs/gen4/`, `docs/design_gen4/` | gen 4 groundwork (JOURNEY step 3, merged 2026-09-05): the design docs verified against recorded protocol tapes, encoder layout v0.1, `ShowdownGen4-v0`, the Foul Play gen-4 eval bot. No gen-4 model has been trained beyond a smoke; nothing there is a claim |
 | `docs/` | the written record: `prior_work/` and `research_reports/` (external evidence), `IDEAS_POST_100M.md`, `CLEANUP.md`, `landmines.md`, `proposals/`, `design_gen4/` |
 | `docs/archive/` | **history, never "what next"** — spent roadmaps (DESIGN, DESIGN2), the Chapter 5 brief and frozen audits, read only when named |

@@ -11819,3 +11819,26 @@ line numbers are not — grep the date, then read that region):
   +/- 33 Elo 1354 [listed=True]` — the PARKED values, the right account. G-BLIND from here: no profile or board
   read before n=200; babysitting is battle count + CPU-time deltas + socket presence; ONE mid-run backup
   (`scripts/backup_ladder.sh`) near n=100. Plan 12–16 h (~12:00–16:00Z Wed), ceiling ~22 h.
+
+- 2026-09-16 (agent, 14:30Z) — **LADDER R5 IS COMPLETE AND FINISHED ON THE TOP-500 LIST: GXE 73.9,
+  Glicko-1 1697 ± 25, Elo 1457 against a 1354.2 admission line, n=200.** The object was the committee of
+  the 200M W finals (lanes w104/w112/w120 = L2 + 1024-wide critic), greedy, named by rule R1 of
+  `configs/eval/monster_reads_offfp.yaml`, ratified in chat ("Go with the recs", 2026-09-15) and **launched
+  and babysat agent-side** — the first ladder run in this repo not started by a human.
+  - **Run:** 00:06:53Z → 14:16:36Z (14.16 h), **128–72 = 0.640**, played-only 125/197 (0.635), rd 25.0 at
+    the stop, **attempt 1, no relaunch, no resume, no watchdog kill**. Median 239 s/battle, mean 28.8 turns,
+    mean decision **5.40 ms** (band [1,30] → no VOID), 0 decision errors, 0 mask desyncs, JSONL and poke-env
+    tallies agree at 200, account record reconciles 327–273 over 600 with **zero unlogged games**.
+  - **Listing:** entered **146/200 battles at or above the line**, 9 excursions, peak pre-battle Elo 1541,
+    **finished listed**; 93–53 (0.637) while at/above vs 35–19 (0.648) below — indistinguishable.
+  - **Pool (CLEANUP L1, raised by the maintainer mid-run):** 102 distinct opponents, 73 met once, **63.5% of
+    battles against a repeat**, top five accounts = **34.5%** of the run. Two adaptation tests, both null and
+    both in our favour: repeat opponents' first vs second halves 0.629 → 0.632 (+0.003, 0.03 se); first
+    meetings vs rematches 0.627 → 0.653 (+0.026, 0.38 se). Appended to the readout as an appendix.
+  - **Docs:** `readouts/LADDER_R5_READOUT.md` (generator + hand appendix, all obligations machine-checked),
+    `RESULTS.md` §20 (+ a pointer at §16), README intro + a full LADDER R5 section + the readouts index,
+    STATUS rewritten (82 lines). Backups: mirror + dated tarball, R5E verified 200 rows / 202 replays.
+  - **What it settles and what it does not:** a pure-self-play policy with no human data in training can sit
+    on the public gen-1 top-500 at the end of a 200-game run. It settles no lever: the committee, horizon,
+    wide critic and L2 all moved together, there is no control arm, the account is warm-started, and **no
+    R1/R3/R4/R5 delta may be quoted as an effect**. The BC-clone anchor leg for this object is **PENDING**.
