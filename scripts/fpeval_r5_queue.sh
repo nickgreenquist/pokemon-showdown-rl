@@ -67,7 +67,7 @@ print('fired', d.get('heuristic/fired_rate'), 'ms', round(d.get('search/ms_mean'
 fi
 
 log "PHASE S: delta sweep, 8 cells x 60 battles (override rate + cost only)"
-for arm in E1A E1B E1C E1D E2A E2B E2C E2D; do
+for arm in E1A E1B E1C E1D E1E E2A E2B E2C E2D E2E; do
   fparm "$arm" "$(echo $arm | tr 'A-Z' 'a-z')"
 done
 log "PHASE S DONE"
