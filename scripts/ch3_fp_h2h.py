@@ -221,6 +221,7 @@ class SeatPlayer(Player):
         self.tag_index: dict[str, int] = {}  # CH4 R1 BI-7: per-battle records
         self.ms: list[float] = []
         self.leaves: list[int] = []
+        self.concurrent_decisions = 0
 
     def choose_move(self, battle):
         from rl.envs.showdown import SinglesEnv, _recover_mask_desync, embed_battle
@@ -229,6 +230,17 @@ class SeatPlayer(Player):
         live = sum(1 for b in self.battles.values() if not b.finished)
         if live > self.max_concurrent_live:
             self.max_concurrent_live = live
+        # COUNT the decisions taken while more than one battle was live, not
+        # just the MAX (added 2026-09-17). `max_concurrent_live_battles` is a
+        # max over the whole arm, so ONE transient at ONE battle seam -- poke-env
+        # creating the next battle object before the previous one's `finished`
+        # flag lands -- sets it to 2 for a 3000-battle arm and is indistinguish-
+        # able from genuinely parallel play, which would invalidate the arm.
+        # Three of the banked monster-read arms carry a 2, including E3WF, the
+        # number that PICKED THE LADDER OBJECT; inferring "transient" from
+        # compute-share arithmetic worked but should not have been necessary.
+        if live > 1:
+            self.concurrent_decisions += 1
         if battle.battle_tag != self._battle_tag:
             self._battle_tag = battle.battle_tag
             self._battle_index += 1
@@ -468,6 +480,10 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         # must remain strictly serial; if this is ever > 1 the arm is NOT
         # commensurable with the k=1 comparator wave and must be re-run.
         "max_concurrent_live_battles": seat.max_concurrent_live,
+        # the MAX above answers "did it ever happen"; these answer "how much"
+        "concurrent_decisions": seat.concurrent_decisions,
+        "concurrent_decision_rate": (
+            seat.concurrent_decisions / max(seat._decision_index, 1)),
     }
     if search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
@@ -476,6 +492,13 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         skips = search_agent.counters["search/placeholder_skips"]
         overrides = search_agent.counters["search/overrides"]
         report.update({
+            # THE DOSE, stamped 2026-09-17. It never was, so a claim like
+            # "dose is matched and it is M" -- which is the entire basis of the
+            # JOURNEY 11.5 comparison -- was UNVERIFIABLE from the artifact.
+            # ch3_eval.py has stamped it since R2; this path did not, and the
+            # R0 gate that reads it therefore passed silently on absence. The
+            # leaves count is the indirect check and it is right beside it.
+            "search_dose": arm["dose"],
             "search_leaf_encoding": search_agent.leaf_encoding or "as_is",
             "search_margin_delta": search_agent.margin_delta,
             "search/ms_mean": float(ms.mean()),

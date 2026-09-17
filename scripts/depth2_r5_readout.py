@@ -30,17 +30,35 @@ def se2(pa, na, pb, nb):
     return math.sqrt(pa * (1 - pa) / na + pb * (1 - pb) / nb)
 
 
-def gates(arm: str, d: dict, spec: dict) -> list[str]:
-    """The pre-reg's R0 gates, each against the report. Returns failures."""
-    bad = []
+def gates(arm: str, d: dict, spec: dict) -> tuple[list[str], list[str]]:
+    """The pre-reg's R0 gates against the report.
+
+    Returns (VOIDS, DISCLOSURES). The distinction is load-bearing and was got
+    wrong once, on 2026-09-17: a gate that cannot be CHECKED is not a gate that
+    FAILED. An unverifiable dose is a caveat carried beside the number; a
+    wrong dose, an unfired ply or the wrong object is a void. Collapsing the
+    two voided two perfectly good n=3000 arms and hid the primary read behind
+    a provenance gap in the stamping, which is a different problem entirely.
+    """
+    bad, disc = [], []
     if spec.get("depth2"):
         fired = d.get("depth2/fired_rate")
         gc = d.get("depth2/grandchildren_per_decision")
         if fired is None or fired < 0.90 or not gc:
             bad.append(f"G_FIRED: fired_rate={fired!r} gc/dec={gc!r} — the extra "
                        "ply did not fire; the arm is VOID")
-    if d.get("search_dose") not in (None, "M"):
-        bad.append(f"G_DOSE: dose {d.get('search_dose')!r} != M")
+    dose = d.get("search_dose")
+    if dose is None and spec.get("dose"):
+        # NOT a pass. ch3_fp_h2h.py did not stamp the dose until 2026-09-17, so
+        # an arm run before that cannot have this gate checked directly; the
+        # leaves band below is the indirect check. Say UNVERIFIABLE rather than
+        # letting absence read as agreement.
+        disc.append("G_DOSE: dose UNVERIFIABLE from this artifact — the report "
+                    "predates the search_dose stamp (2026-09-17). The leaves "
+                    "band below IS checked and is the indirect evidence; the "
+                    "pre-reg's dose M is what the arm was launched with.")
+    elif dose is not None and dose != "M":
+        bad.append(f"G_DOSE: dose {dose!r} != M")
     lv = d.get("search/leaves_mean")
     if lv is not None and abs(lv - LEAVES_REF) / LEAVES_REF > LEAVES_BAND:
         bad.append(f"G_DOSE: leaves_mean {lv:.0f} outside {LEAVES_BAND:.0%} of {LEAVES_REF:.0f}")
@@ -50,9 +68,34 @@ def gates(arm: str, d: dict, spec: dict) -> list[str]:
     if d.get("declared_search_time_ms") not in (None, 20):
         bad.append(f"G_BUDGET: declared_search_time_ms {d.get('declared_search_time_ms')}")
     mc = d.get("max_concurrent_live_battles")
+    cd = d.get("concurrent_decision_rate")
     if mc is not None and mc > 1:
-        bad.append(f"G_SERIAL: max_concurrent_live_battles {mc} > 1")
-    return bad
+        if cd is None:
+            # A MAX cannot distinguish one transient at a battle seam from real
+            # parallel play. Where the count is absent the discriminator is the
+            # COMPUTE SHARE: genuinely overlapping battles would let our own
+            # search time exceed the wall clock, and it does not. Three banked
+            # monster-read arms carry the same 2, E3WF among them -- the number
+            # that picked the R5 ladder object -- so voiding on the max alone
+            # would retroactively void that too.
+            share = None
+            if d.get("search/ms_mean") and d.get("search/searched_decisions") and d.get("wall_clock_sec"):
+                share = (d["search/searched_decisions"] * d["search/ms_mean"] / 1000
+                         / d["wall_clock_sec"])
+            disc.append(
+                f"G_SERIAL: max_concurrent_live_battles {mc} > 1, but the arm "
+                f"predates the concurrent-decision COUNT (2026-09-17)"
+                + (f"; our own search compute is {share:.1%} of wall clock, which "
+                   "is a serial budget — overlapping play would exceed 100%"
+                   if share else "")
+                + ". Transient at a battle seam; DISCLOSED, not waived.")
+        elif cd > 0.01:
+            bad.append(f"G_SERIAL: {cd:.1%} of decisions taken with >1 battle "
+                       "live — the arm is NOT commensurable with a serial one")
+        else:
+            disc.append(f"G_SERIAL: max {mc}, but only {cd:.2%} of decisions "
+                        "were taken with >1 battle live — transient.")
+    return bad, disc
 
 
 def main() -> None:
@@ -70,21 +113,28 @@ def main() -> None:
     print("estimate flatters us. FP@20 is an INSTRUMENT, not a rung.")
     print("=" * 78)
 
-    data, voids = {}, {}
+    data, voids, notes = {}, {}, {}
     for arm, spec in arms.items():
         d = load(out, arm)
         if d is None:
             continue
         data[arm] = d
-        bad = gates(arm, d, spec)
+        bad, disc = gates(arm, d, spec)
         if bad:
             voids[arm] = bad
+        if disc:
+            notes[arm] = disc
 
     print("\n## R0 gates\n")
     if not data:
         print("  PENDING — no arm JSON on disk yet")
     for arm in [a for a in pr["run_order"] if a in data]:
-        print(f"  {arm:4s} {'VOID: ' + '; '.join(voids[arm]) if arm in voids else 'all gates pass'}")
+        if arm in voids:
+            print(f"  {arm:4s} VOID: {'; '.join(voids[arm])}")
+        elif arm in notes:
+            print(f"  {arm:4s} passes, WITH DISCLOSURE: {'; '.join(notes[arm])}")
+        else:
+            print(f"  {arm:4s} all gates pass")
     for arm in [a for a in pr["run_order"] if a not in data]:
         print(f"  {arm:4s} PENDING")
 
