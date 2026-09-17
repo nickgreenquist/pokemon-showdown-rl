@@ -11972,3 +11972,54 @@ line numbers are not — grep the date, then read that region):
     to retest things using the mechanics FP does". **Its value scale differs, so
     δ must be re-swept and override-matched — the same confound.**
   - Suite 1089 passed / 87 skipped.
+
+- 2026-09-17 (cont.) — **FOUL PLAY'S OWN EVALUATOR IN OUR SEARCH: DEPTH BUYS
+  NOTHING WITH IT EITHER, so the depth null is NOT an evaluator problem.**
+  Maintainer: *"How does FP have such a good evaluator? Have we ever even
+  bothered to look?"* — we had not, in three separate hypotheses. Then: *"i want
+  to retest things using the mechanics FP does"*, and *"pre-reg is for ladder
+  runs. For hacking and trying ideas, keep going by yourself"* (now CLAUDE.md).
+  `readouts/FPEVAL_R5_READOUT.md`, RESULTS §23.
+  - **WHAT IT IS.** poke-engine 0.0.48 `src/gen1/evaluate.rs`: 202 lines, ~30
+    constants. The part that matters is `mcts.rs`'s `rollout`, which does not
+    roll out — `sigmoid(0.0125 × (evaluate(leaf) − evaluate(root)))`. Differenced
+    from the root so constant bias cancels; the SAME function everywhere so a
+    deeper tree asks it no harder a question. Ported (`rl/search/fp_eval.py`,
+    the Rust symbol is not bound into the extension), verified by 29 tests with
+    values hand-computed from the Rust, wired as a search vehicle.
+  - **THE RESULT, all n=3000, override matched to within 0.3 points:**
+
+        leaf evaluator     depth 1   depth 2   depth step
+        our critic         0.5687    0.5680    -0.0007 (0.05 se)
+        FP's heuristic     0.5487    0.5400    -0.0087 (0.67 se)
+        difference         -0.0200   -0.0280
+        greedy, no search  0.5747 (G0) and 0.5720 (GA), n=1500 each
+
+    **The standing explanation for the depth null is dead.** It turned on our
+    critic having a training distribution to fall off; their heuristic has none,
+    and the extra ply still bought nothing. Theirs is also WORSE than ours at
+    both depths and worse than greedy — FP's evaluator wins for FP because it is
+    cheap and search-stable, not because it judges positions better.
+  - **SESSION ANCHOR −0.0027 at 0.15 se**, so none of the −0.020 is drift. The
+    standing rule earned itself a third time this week.
+  - **COST is the attractive half:** their eval at depth 2 = 81.2 ms = what our
+    critic costs at depth ONE (81.7), a third of ours at depth 2. **Implementation-
+    bound, not intrinsic** — we batch one forward over ~890 leaves, the port loops
+    in Python — and neither is what FP's Rust costs.
+  - **PROCESS.** The sweep grid straddled the target without landing inside it, so
+    I added two bracketing cells mid-run (δ 0.20, 0.31) and hit 6.2% and 6.8%
+    against a 6.8% target. Legitimate because the selection rule reads override
+    rate and never a win rate — and possible only because this was hacking rather
+    than a pre-reg, which is exactly what the maintainer's ruling bought.
+  - **THE COUNTER RULE FIRED AGAIN, FOURTH TIME THIS WEEK.** The first smoke ran
+    the vehicle, changed the decisions (override 0.18 vs 0.07, 30 ms vs 88) and
+    reported NO counter: `ch3_eval` has TWO prefix filters, incoming and outgoing,
+    and the new vehicle was in neither. A test now reads both out of the source
+    and fails unless they agree.
+  - **LIVE HYPOTHESIS IS NOW THE GATE, not the evaluator and not depth.** At ~6.5%
+    override the search changes ~2 decisions of a 30-turn battle, which BOUNDS any
+    leaf-value effect. Our critic collapses when allowed to speak more (16.3%
+    override → 0.5160 vs 0.5687). Untested: does a STATIC evaluator collapse there
+    too? If not, the evaluator difference lives on the axis where it can matter;
+    if so, the search construction is the ceiling.
+  - Suite 1090 passed / 87 skipped.

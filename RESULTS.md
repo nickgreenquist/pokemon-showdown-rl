@@ -1929,3 +1929,55 @@ everywhere*, so a deeper tree asks it no harder a question. Ours is a 1.8M-param
 fit by PPO only to states our own policy reaches, whose explained variance §21 showed capacity
 cannot improve. That evaluator is ported, verified against hand-computed values from the Rust,
 and wired as a search vehicle; the arm that swaps it in is one pre-reg away.
+
+## 23. Addendum, 2026-09-17 — **Foul Play's own evaluator in our search: depth still buys nothing, so the depth null is not an evaluator problem**
+
+`readouts/FPEVAL_R5_READOUT.md`; config `configs/eval/fpeval_r5.yaml`; evaluator
+`rl/search/fp_eval.py`, a port of poke-engine 0.0.48's `src/gen1/evaluate.rs` verified by
+29 tests whose expected values are hand-computed from the Rust. A hacking run under the
+maintainer's 2026-09-17 ruling, not a pre-registered one. Both FP@20 disclosures travel.
+
+§22's depth null had one standing explanation: our critic is fit by PPO **only to states our
+own policy reaches**, so it degrades on the lines a search visits. Foul Play's heuristic has
+the opposite property — **the same function everywhere**, scored as a **difference from the
+root** — and Foul Play converts compute into strength where we do not. So we swapped **only
+the leaf evaluator** into our own search and re-asked the question.
+
+| leaf evaluator | depth 1 | depth 2 | the depth step |
+|---|---|---|---|
+| **our critic** (1.8M params, 200M steps) | 0.5687 | 0.5680 | **−0.0007** (0.05 se) |
+| **Foul Play's heuristic** (202 lines, ~30 constants) | 0.5487 | 0.5400 | **−0.0087** (0.67 se) |
+| evaluator difference | −0.0200 (1.56 se) | −0.0280 (2.18 se) | |
+
+n=3000 per arm, **override rates matched to within 0.3 points** (6.82 / 6.20 / 6.54 / 6.07 %)
+by a rule that reads override rate and never a win rate. Greedy — the same object, no search
+— reads 0.5747 and 0.5720 on two independent n=1500 draws.
+
+**THE HYPOTHESIS DOES NOT SURVIVE.** The property the story turned on is exactly what the
+heuristic has, and the extra ply still bought nothing. *"Depth does not pay because our
+critic is off-distribution"* is no longer supported, and this document should stop implying it.
+
+**The comparison is clean, not drift.** The session anchor reads **−0.0027 at 0.15 se** (GA
+0.5720 vs G0 0.5747), so the two measurement blocks are calibrated — which mattered, because
+the same frozen committee moved −0.024 between 09-15 and 09-17 and an unanchored −0.020 could
+have been entirely session.
+
+**Their evaluator is also simply worse here** — below our critic at both depths and below
+plain greedy (−0.023 and −0.032 against the same-session anchor). Foul Play's evaluator wins
+*for Foul Play* because it is cheap and search-stable, not because it judges gen-1 positions
+better than a critic trained on them.
+
+**The cost result is the attractive one, with its caveat attached.** Their evaluator at depth
+2 costs 81.2 ms, what our critic costs at depth **1** (81.7 ms), and a third of ours at depth
+2 (267.3 ms) — because with this vehicle the encoder never runs. **This is implementation-
+bound, not intrinsic:** our critic values ~890 leaves in one batched forward while the port
+loops in Python, so the timings flatter the heuristic at depth 1 and the network at depth 2,
+and neither is what Foul Play's Rust costs.
+
+**What is now the live hypothesis: the GATE.** At a ~6.5% override rate the search changes
+the played action on about 2 decisions of a 30-turn battle, which bounds how much *any*
+leaf-value improvement can move a win rate. Our critic is already known to collapse when
+allowed to speak more often (depth-2 at 16.3% override reads 0.5160 against 0.5687 at 6.8%).
+Whether a *static* evaluator collapses the same way is the untested cell, and it is the one
+that would separate "our evaluator is the problem" from "the search construction is the
+ceiling".
