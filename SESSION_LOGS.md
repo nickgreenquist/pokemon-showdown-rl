@@ -11914,3 +11914,61 @@ line numbers are not — grep the date, then read that region):
     the IRREDUCIBLE ceiling. Rulings owed: R6's split schedule, the LR-anneal
     floor, the next fleet's shape.
   - Suite **1055 passed / 87 skipped** with the server up (1044/96 without).
+
+- 2026-09-17 — **JOURNEY 11.5 READ: depth-2 is a null, and EVERY EARLIER DEPTH
+  NUMBER IN THIS REPO WAS AN OVERRIDE-RATE ARTIFACT.** Maintainer, in chat
+  2026-09-16: "Start depth 1 vs 2. No need to wait on me." Pre-reg
+  `configs/eval/depth2_r5.yaml` (be0d7a3), provenance
+  `readouts/DEPTH2_R5_READOUT.md`, RESULTS §22.
+  - **PRIMARY: −0.0007, se 0.0128, 0.05 se, n=3000/arm, at 3.27× the compute**
+    (81.7 → 267.3 ms/decision). Misses the floor and 2·se_diff. NOT CREDITED.
+  - **THE FINDING IS THE CONFOUND.** The same depth-2 arm at the NAIVE δ (0.10,
+    the one depth-1 uses) reads 0.5160 vs depth-1's 0.5687 — **−0.0527 at 3.34
+    se**, which anyone would publish as "depth hurts". Matched on override rate
+    (δ 0.20, 6.2% vs 6.8%) it is −0.0007. **Same depth, same object, same dose,
+    same evaluator; only δ moved; 0.052 apart at 3.30 se.** A deeper backup
+    spreads values wider, so a δ tuned at one ply lets **2.4× as many overrides
+    through** (pre-registered sweep: 13.5% vs 7.2% at δ 0.10), and every extra
+    override is our critic vetoing the policy in a position it was never
+    trained to judge. Licensed reading of every pre-2026-09-17 depth number:
+    "no evidence about depth" — which `docs/landmines.md` already said and now
+    has a measurement behind.
+  - **Search at either depth is a null vs the greedy committee** (−0.006 /
+    −0.007 against a same-session G0 of 0.5747, n=1500).
+  - **THE SAME-SESSION ANCHOR EARNED ITS 40 MINUTES.** G0 0.5747 vs the banked
+    E3WF 0.5987 on the SAME FROZEN CHECKPOINTS = **−0.0240 at 1.54 se**. So the
+    −0.030 gap between depth-1 search and the banked greedy, which reads as a
+    three-point search penalty, is ~0.024 session + ~0.006 search. With the
+    BC-clone leg's +0.0140 the day before, **session offset is ~0.02 on both FP
+    instruments** — two readouts would have been wrong without an anchor.
+  - **MCTS IS NOT CLOSED, and the refusal was pre-registered.** JOURNEY 11.5
+    says a non-credit closes it permanently; the pre-reg's scope limit says
+    this tested ONE vehicle (the matrix's selective ply) and `rl/search/tree.py`
+    is a different algorithm — the exact trap DEPTH_IS_THE_UNTESTED_AXIS.md
+    named in advance. **Ruling owed.** The confound raises the bar: the evidence
+    against MCTS was negative depth numbers now shown to be artifacts.
+  - **MACHINERY, all of it defect-class fixes rather than one-offs.** The off-FP
+    seat was dropping THREE of SearchAgent's four vehicles — `depth2`, `tree`,
+    `mcts`, `bcts` — so the MCTS tree had never been runnable on the axis where
+    a selector has leverage; wired with a test that reflects over the signature
+    (4441e30). `ch3_eval`'s merge dropped every depth2/* key, making a depth-2
+    final byte-compatible with a depth-1 one. `search_dose` was never stamped
+    off-FP, so "dose is matched" was unverifiable. `max_concurrent_live_battles`
+    is a MAX and cannot tell a battle-seam transient from parallel play (D1
+    carries a 2 — so do three banked monster-read arms, E3WF included); the seat
+    now COUNTS concurrent decisions, and for these arms compute share settles it
+    (85.0% and 96.2% of wall clock). A gate that cannot be CHECKED is now a
+    disclosure, not a void (2acd8fa).
+  - **FOUL PLAY'S EVALUATOR, READ AT LAST** (maintainer: "How does FP have such
+    a good evaluator? Have we ever even bothered to look?" — we had not).
+    `poke-engine 0.0.48 src/gen1/evaluate.rs`: 202 lines, ~30 constants. The
+    part that matters is `mcts.rs`'s `rollout`, which does not roll out —
+    `sigmoid(0.0125 × (evaluate(leaf) − evaluate(root)))`, **differenced from
+    the root** so constant bias cancels, and the **same function everywhere** so
+    a deeper tree asks it no harder a question. Ported to `rl/search/fp_eval.py`
+    (the Rust `evaluate` is a symbol in the binary but is NOT bound), verified
+    by 29 tests whose expected values are hand-computed from the Rust term by
+    term, and wired as a search vehicle (4ee66e0) under the maintainer's "i want
+    to retest things using the mechanics FP does". **Its value scale differs, so
+    δ must be re-swept and override-matched — the same confound.**
+  - Suite 1089 passed / 87 skipped.

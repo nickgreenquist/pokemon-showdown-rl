@@ -1866,3 +1866,66 @@ what this project already had is smaller than the singles comparison suggests.
 Barred, by name, on these numbers: "the wide critic is worth +0.033"; "a wider critic fits
 the value function better" (measured false); "ensembling the 200M finals beats the 100M
 committee"; and any suggestion that the Monte-Carlo-target arm was mis-run.
+
+## 22. Addendum, 2026-09-17 — **JOURNEY 11.5: depth-2 is a null, and every earlier depth number was an override-rate artifact**
+
+Pre-registered in `configs/eval/depth2_r5.yaml` before any arm ran; full provenance
+`readouts/DEPTH2_R5_READOUT.md`. The object is the R5 ladder committee, the axis is off
+Foul Play @20 (both FP@20 disclosures travel with every number below), and the vehicle is
+the matrix family's selective extra ply.
+
+**PRIMARY — depth-2 vs depth-1 at MATCHED override rate: −0.0007, se_diff 0.0128, 0.05 se,
+n=3000 per arm, for 3.27× the compute** (81.7 → 267.3 ms/decision; 12.24 → 3.74
+decisions/sec). It misses the +0.025 floor and 2·se_diff. **NOT CREDITED.** The
+seed-clustered half of the credit line is unavailable by construction — one arm per cell —
+so the pooled binomial governs and is anti-conservative; that was in the pre-reg header.
+
+**SECONDARY, and it is the finding.** The same depth-2 arm at the *naive* δ — the 0.10 the
+depth-1 arm uses — reads **0.5160 against depth-1's 0.5687: −0.0527 at 3.34 se**. Anyone
+would write that up as "depth hurts, significantly".
+
+| comparison | delta | | |
+|---|---|---|---|
+| depth-2 **matched** (δ 0.20, override 6.2%) − depth-1 (override 6.8%) | **−0.0007** | 0.0128 | 0.05 se |
+| depth-2 **naive** (δ 0.10, override 16.3%) − depth-1 | **−0.0527** | 0.0158 | **3.34 se** |
+| matched − naive (**same depth, same everything but δ**) | **+0.0520** | 0.0158 | **3.30 se** |
+
+A deeper backup has a wider value spread, so a δ calibrated at one ply lets **2.4× as many
+overrides through** (measured in the pre-registered sweep: at δ 0.10 the extra ply overrides
+13.5% of decisions against depth-1's 7.2%), and every extra override is our critic vetoing
+the policy in a position it was never trained to judge.
+
+**Consequence for this document: every depth number published here before 2026-09-17
+compared arms that differed in how often the search was allowed to speak, not in how deep it
+looked.** `docs/landmines.md` already licensed only "no evidence about depth" from them; that
+sentence now has a measurement behind it rather than a suspicion.
+
+**Search of either depth is a null against the greedy committee**: depth-1 −0.0060 (0.38 se),
+depth-2 −0.0067 (0.43 se), against a same-session greedy anchor of 0.5747 (n=1500).
+
+**And the anchor earned its 40 minutes.** That same frozen committee reads **0.5987** in the
+2026-09-15 session and **0.5747** here — **−0.0240 at 1.54 se on unchanged checkpoints**.
+So the −0.030 gap between depth-1 search and the banked greedy number, which reads as a
+three-point search penalty, is **~0.024 session and ~0.006 search**. Yesterday's BC-clone leg
+measured the same shape (+0.0140 between sessions on an unchanged object). **Cross-session
+differencing on these instruments is worth about 0.02 and must not be done without a
+same-session comparator.**
+
+**WHAT THIS DOES NOT SETTLE, pre-registered before the arms ran.** JOURNEY 11.5's exit
+condition says a non-credit closes the MCTS question permanently. **This result declines to
+close it.** It tested ONE vehicle — the selective ply — and `rl/search/tree.py` (decoupled
+UCT, our policy as prior, our critic at the leaves) is a different algorithm with a different
+cost curve that could not even be run off Foul Play until the seat stopped dropping the kwarg
+on 2026-09-17. `docs/search_relook/DEPTH_IS_THE_UNTESTED_AXIS.md` named this trap in advance
+— "a null from the wrong configuration closing a question permanently" — and asked for a
+maintainer ruling to decouple the stop rule. **That ruling is owed.** The confound finding
+raises the bar further: the evidence that made MCTS look unpromising was a set of negative
+depth numbers this addendum has just shown to be artifacts.
+
+**The live hypothesis is now testable rather than arguable.** Foul Play converts compute into
+strength with a 202-line, 30-constant heuristic consumed as `sigmoid(0.0125 × (eval(leaf) −
+eval(root)))` — differenced from the root, so constant bias cancels, and the *same function
+everywhere*, so a deeper tree asks it no harder a question. Ours is a 1.8M-parameter critic
+fit by PPO only to states our own policy reaches, whose explained variance §21 showed capacity
+cannot improve. That evaluator is ported, verified against hand-computed values from the Rust,
+and wired as a search vehicle; the arm that swaps it in is one pre-reg away.

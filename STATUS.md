@@ -1,5 +1,13 @@
 # STATUS
-## JOURNEY POSITION — step 11 (the final gen-1 ladder) **DONE 2026-09-16: LADDER R5 finished LISTED on the top-500**
+## JOURNEY POSITION — step 11 DONE (R5 LISTED); **11.5 READ 2026-09-17: depth-2 NULL, and every earlier depth number was an OVERRIDE-RATE ARTIFACT**
+**11.5 (`readouts/DEPTH2_R5_READOUT.md`, RESULTS §22):** depth-2 − depth-1 at MATCHED override rate
+= **−0.0007 at 0.05 se (n=3000/arm) for 3.27× the compute** — NOT CREDITED. At the NAIVE δ the same
+arm reads **−0.053 at 3.34 se**: same depth, same everything but δ, **+0.052 at 3.30 se apart**. A
+deeper backup spreads values wider, so a δ tuned at one ply lets 2.4× as many overrides through.
+**Every depth number before 2026-09-17 compared arms that differed in how often search was BELIEVED.**
+Search at either depth is a null vs the greedy committee (−0.006 / −0.007). **SESSION OFFSET: the same
+frozen committee reads 0.5987 (09-15) vs 0.5747 (09-17), −0.024 at 1.5 se — never difference across
+sessions without a same-session anchor.** **MCTS IS NOT CLOSED** (pre-reg scope limit; ruling owed).
 **GEN-4 CLOSED (RESULTS §19):** steps 3/5 MET, vs SH 0.8788, CREDITS NOTHING. **LADDER R4:
 GXE 65.2 / Glicko 1618 ± 25 / Elo 1354, n=200. From here it is all gen 1.**
 **JOURNEY 7.5 engine port EXITED; A-1 PASSED TWICE** (0.66775 vs async 0.67211, **−0.00436 travels forever**; `docs/engine_port/NOTES.md`).
@@ -21,15 +29,13 @@ two adaptation tests null (+0.003 at 0.03 se; +0.026 at 0.38 se). Full: `readout
 **0.82356 (n=9000) vs fresh greedy A0 0.78867 = +0.03489 at 5.93 se → CREDIT** (floor AND 2·se_diff); beats the
 gated search's in-sample peak (0.82400) at GREEDY SPEED. Disclosures: clustered se UNAVAILABLE by construction
 (one committee; the binomial governs, anti-conservative); licenses THESE checkpoints, never "ensembling helps".
-## SEARCH at DEPTH-1 and DEPTH >1 — BOTH NULL, banked (`docs/search_relook/`, RESULTS §"PRE-D5")
-D5 gate (play search's action only if it beats the policy's argmax by > delta): in-sample peak 0.82400 at
-delta 0.10, but **out of sample +0.016 at 2.19 se — MEETS 2*se_diff, MISSES the floor, NOT CREDITED**; never
-quote s112's +0.0417. A better evaluator adds nothing at depth 1 (EG10 -0.0004). Off FP@20 the SELECTOR alone
-bought +0.129 (gated 0.525 vs ungated 0.396). **DEPTH is a NULL, not a negative** (two implementations,
-~14,000 battles, pooled -0.004 +/- 0.013; the matrix's -0.094 is an OVERRIDE-RATE effect: at matched override
-depth 3 reads -0.017 +/- 0.023). Licensed: "no evidence depth helps at these budgets and this delta."
-**LANDMINE: every search number before 2026-09-11 measures a BROKEN selector** (grep `PRE-D5`; LADDER R3 is a
-D4 object). ENSG (committee as the search's prior+leaf, with the gate) is a NULL on both axes.
+## SEARCH — depth NULL (above), and the gate is the only thing that ever paid
+D5 gate (play search's action only if it beats the policy's argmax by > delta): out of sample **+0.016 at
+2.19 se — MISSES the floor, NOT CREDITED**; never quote s112's +0.0417. Off FP@20 the SELECTOR alone bought
++0.129 (gated 0.525 vs ungated 0.396) — **search has only ever paid here as a RARELY-FIRED VETO**, and §22
+shows why: let it speak 2.4x more often and it costs 0.052. A better evaluator adds nothing at depth 1 (EG10
+-0.0004); ENSG is a NULL on both axes. **LANDMINE: every search number before 2026-09-11 measures a BROKEN
+selector** (grep `PRE-D5`; LADDER R3 is a D4 object).
 
 ## ENSEMBLE SCALING (2026-09-11/12, `configs/eval/ens_width*.yaml`) — superseded in detail by the monster reads
 Member curve 1→6 vs SH: 0.78867 → 0.81678 → 0.82667 → 0.82767 → 0.83633 → 0.84400 (members 4–6 are 50M, a lower
@@ -58,22 +64,21 @@ Monte-Carlo targets** (128/136/144, 38.7 h, `…_l2lam_s*`, finals `ckpt_2000000
   **+0.046 (4.79 se)** and **+0.033 vs SH (5.59 se)**. **What is credited is the RECIPE AS SHIPPED, never
   width alone** (no contrast isolates it) — and **E3W vs the 100M ENS3 floor is +0.015 at 2.01 se, NOT
   credited**: at committee level the recipe gain and the committee gain SUBSTITUTE rather than add.
-- **The recipe verdict in one line:** same L2, horizon, fleet — the wider critic beat the 100M baseline on both
-  instruments and Monte-Carlo value targets lost to it on both. The value TARGET, not the horizon, moved the number.
+- **Recipe verdict in one line:** the wider critic beat the 100M baseline on both instruments and MC value
+  targets lost to it on both — the value TARGET, not the horizon, moved the number.
 
 ## Next actions
 0. **GOAL MET, ONCE (maintainer, 2026-09-15): "break top500 with self play", and stay rather than visit.**
    R5 finished LISTED at Elo 1457 against a 1354.2 line and spent 73% of its battles at or above it.
    It is ONE run on a warm-started account; nothing here is a projection, and the barred list stands.
-1. **DONE 2026-09-16 — the mechanism co-primary (above, RESULTS §21).** What it leaves open: WHY the
-   recipe pays, since it is measurably not a better value fit. The plasticity probe (Lyle Def-1) is the
-   instrument that would separate "the parameters can still be optimised" from "the representation is a
-   sparse-reward artifact"; it asserts value_sizes [384,384] and needs a second arch family for W.
+1. **DONE 2026-09-16/17 — the mechanism co-primary (§21) and JOURNEY 11.5 (§22).** Open: WHY the recipe
+   pays (it is measurably not a better value fit — the Lyle Def-1 plasticity probe is the instrument, and
+   it asserts value_sizes [384,384], so W needs a second arch family: CLEANUP L3).
 2. **DONE 2026-09-16 — the BC-clone leg** (`readouts/MONSTER_BCCLONE_READOUT.md`): committee **0.9640**,
-   W fleet 0.9467, 100M fleet re-drawn SAME SESSION 0.9373 (banked cross-session 0.9233 — the re-draw
-   alone is +0.014, so differencing against the banked value would have inflated the gain 2.5x). W vs
-   100M on this axis is a NULL (+0.009 at 1.1 se): a ~0.94 ceiling, not a contradiction of the §21 credit.
-   It was PENDING because its runner had been BROKEN since 2026-09-05 and had no ensemble seat (099c440).
+   W fleet 0.9467, 100M re-drawn SAME SESSION 0.9373 vs banked 0.9233. W vs 100M is a NULL here (+0.009 at
+   1.1 se) — a ~0.94 ceiling. **Its runner had been BROKEN since 2026-09-05** (099c440).
+   **SESSION OFFSET IS ~0.02 ON BOTH FP INSTRUMENTS (+0.014 clone, −0.024 off-FP@20): never difference a
+   number against another session's without a same-session anchor. Two readouts would have been wrong.**
 3. **NEXT, RANKED — `docs/proposals/WHATS_NEXT_2026-09-16.md` (for the maintainer's Sunday read):**
    **(1) JOURNEY 11.5, depth-1 vs depth-2 on the R5 committee** — the actual next arc step, needs NO
    training, and is UNANSWERED (every depth number we have is PRE-D5). It gates gen-9's MCTS decision.
