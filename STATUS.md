@@ -79,8 +79,7 @@ Reads: `configs/eval/monster_reads{,_offfp}.yaml`, `results/monster_reads/READOU
 2. **DONE 2026-09-16 — the BC-clone leg** (`readouts/MONSTER_BCCLONE_READOUT.md`): committee **0.9640**,
    W fleet 0.9467, 100M re-drawn SAME SESSION 0.9373 vs banked 0.9233. W vs 100M is a NULL here (+0.009 at
    1.1 se) — a ~0.94 ceiling. **Its runner had been BROKEN since 2026-09-05** (099c440).
-   **SESSION OFFSET IS ~0.02 ON BOTH FP INSTRUMENTS (+0.014 clone, −0.024 off-FP@20): never difference a
-   number against another session's without a same-session anchor. Two readouts would have been wrong.**
+   **SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS: never difference across sessions without an anchor.**
 3. **NEXT (`docs/proposals/WHATS_NEXT_2026-09-16.md`):** 11.5 and the evaluator follow-up are DONE
    (§22, §23). Then **the critic LayerNorm arm** (built, never run — a 50M run resolves the MECHANISM
    legally under rule 6); **more W members; 300M (weakest); is EV 0.59 the IRREDUCIBLE ceiling?**; and
