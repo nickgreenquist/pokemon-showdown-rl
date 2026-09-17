@@ -81,8 +81,8 @@ arms:
   E2E: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.31, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2eseat, fp_username: fpee2ebot}
 
   # --- PHASE R: the read. deltas written by scripts/fpeval_r5_pin.py ---
-  HD1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PIN1, heuristic: {kind: fp_gen1}, battles: 3000, search_time_ms: 20, seat_username: fpehd1seat, fp_username: fpehd1bot}
-  HD2: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PIN2, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 3000, search_time_ms: 20, seat_username: fpehd2seat, fp_username: fpehd2bot}
+  HD1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.20, heuristic: {kind: fp_gen1}, battles: 3000, search_time_ms: 20, seat_username: fpehd1seat, fp_username: fpehd1bot}
+  HD2: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.31, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 3000, search_time_ms: 20, seat_username: fpehd2seat, fp_username: fpehd2bot}
   # the session anchor, re-drawn beside these arms
   GA:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1500, search_time_ms: 20, seat_username: fpegaseat, fp_username: fpegabot}
   # throwaway smoke pair: the heuristic has never crossed the FP seat path
