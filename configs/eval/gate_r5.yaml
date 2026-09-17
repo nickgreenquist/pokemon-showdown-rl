@@ -55,8 +55,8 @@ arms:
   F1B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.12, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: gtf1bseat, fp_username: gtf1bbot}
   F1C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.08, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: gtf1cseat, fp_username: gtf1cbot}
   # the read, deltas written by scripts/gate_r5_pin.py
-  CN1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PINC, battles: 1500, search_time_ms: 20, seat_username: gtcn1seat, fp_username: gtcn1bot}
-  FN1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PINF, heuristic: {kind: fp_gen1}, battles: 1500, search_time_ms: 20, seat_username: gtfn1seat, fp_username: gtfn1bot}
+  CN1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 1500, search_time_ms: 20, seat_username: gtcn1seat, fp_username: gtcn1bot}
+  FN1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.12, heuristic: {kind: fp_gen1}, battles: 1500, search_time_ms: 20, seat_username: gtfn1seat, fp_username: gtfn1bot}
   GB:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1500, search_time_ms: 20, seat_username: gtgbseat, fp_username: gtgbbot}
 
 phases:
