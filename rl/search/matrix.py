@@ -178,7 +178,8 @@ def _leaf_our_moves(state: Any, k: int) -> list[str]:
 
 
 def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
-                  col_views, critic_fn, type_chart, depth2):
+                  col_views, critic_fn, type_chart, depth2,
+                  heuristic=None, root_evals=None):
     """SELECTIVE DEPTH. Replace a leaf's critic value with an N-PLY lookahead:
     from the leaf state, play our legal moves against the opponent CONTINUING
     ITS COLUMN CLASS, repeat for `plies`, and take the MAX over the sequences.
@@ -258,7 +259,18 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
     for i, v in fixed:
         if i not in best or v > best[i]:
             best[i] = v
-    if frontier:
+    if frontier and heuristic is not None:
+        # The DEEPER ply must be scored by the SAME evaluator as the shallower
+        # one, or the depth comparison silently becomes an evaluator
+        # comparison. Grandchildren are differenced against the root of their
+        # own determinization, exactly as the leaves are.
+        from rl.search import fp_eval
+
+        for st, i, _ci, di in frontier:
+            gv = fp_eval.leaf_value(st, root_evals[di])
+            if i not in best or gv > best[i]:
+                best[i] = float(gv)
+    elif frontier:
         obs, at = [], []
         for st, i, ci, _di in frontier:
             try:
@@ -302,6 +314,7 @@ def solve_decision(
     depth2: dict | None = None,
     bcts: dict | None = None,
     root_v: float | None = None,
+    heuristic: dict | None = None,
 ) -> tuple[int, dict]:
     """One depth-1 BR solve. `q` is the oppact head's plain L6 posterior at
     the root; `prior` the masked policy probabilities (tie-break only);
@@ -416,10 +429,18 @@ def solve_decision(
                                 f"(dose n_det={dose.n_det}, {len(rows)} rows, "
                                 f"{len(col_classes)} cols)"
                             )
-                        leaf_states.append(lv if depth2 is not None else None)
+                        keep_state = depth2 is not None or heuristic is not None
+                        leaf_states.append(lv if keep_state else None)
                         tv = _terminal_value(lv)
                         if tv is None:
-                            leaf_obs.append(embed_battle(
+                            # With the heuristic vehicle the ENCODER IS NOT RUN:
+                            # it exists only to feed a critic we are not asking.
+                            # That is most of the per-decision cost (the tree
+                            # probe measured 99 of 280 ms in embed_battle), so
+                            # the cost difference between the two vehicles is a
+                            # FINDING to report, never a confound to hide.
+                            leaf_obs.append(None if heuristic is not None
+                                            else embed_battle(
                                 shadow_battle(lv, turn + 1, view=col_views[ci]),
                                 type_chart,
                             ))
@@ -431,15 +452,43 @@ def solve_decision(
 
     # --- batched leaf valuation ----------------------------------------
     values = np.array(leaf_fixed, dtype=np.float64)
-    need = [i for i, o in enumerate(leaf_obs) if o is not None]
-    if need:
-        batch = np.stack([leaf_obs[i] for i in need]).astype(np.float32)
-        values[need] = np.asarray(critic_fn(batch), dtype=np.float64)
+    h_stats: dict[str, float] = {}
+    if heuristic is not None:
+        # FOUL PLAY'S OWN VEHICLE (rl/search/fp_eval.py): every non-terminal
+        # leaf is scored `2*sigmoid(k*(evaluate(leaf) - evaluate(root))) - 1`,
+        # differenced against the root of ITS OWN determinization. Terminal
+        # leaves keep the true +1/0/-1 that `_terminal_value` already fixed,
+        # which is what `rollout` does when `battle_is_over`.
+        from rl.search import fp_eval
+
+        need = [i for i, v in enumerate(leaf_fixed) if np.isnan(v)]
+        root_evals = [fp_eval.evaluate(st) for st in states]
+        if need:
+            values[need] = fp_eval.leaf_values(
+                [leaf_states[i] for i in need], root_evals,
+                [leaf_at[i][2] for i in need],
+            )
+        # the counter reaches disk before the dial gets an arm (the standing
+        # rule after 2026-09-11's VOID probe): an unfired vehicle and an
+        # ineffective one must never print the same number.
+        h_stats = {
+            "heuristic/leaves_scored": float(len(need)),
+            "heuristic/root_eval_mean": float(np.mean(root_evals)) if root_evals else 0.0,
+            "heuristic/value_mean": float(np.mean(values[need])) if need else 0.0,
+            "heuristic/value_absmean": float(np.mean(np.abs(values[need]))) if need else 0.0,
+        }
+    else:
+        need = [i for i, o in enumerate(leaf_obs) if o is not None]
+        if need:
+            batch = np.stack([leaf_obs[i] for i in need]).astype(np.float32)
+            values[need] = np.asarray(critic_fn(batch), dtype=np.float64)
     d2_stats: dict[str, float] = {}
     if depth2 is not None and need:
         values, d2_stats = _look_further(
             values, need, leaf_states, col_actions, leaf_at, turn, col_views,
             critic_fn, type_chart, depth2,
+            heuristic=heuristic,
+            root_evals=(root_evals if heuristic is not None else None),
         )
 
     # --- EV matrix + BR solve (D3/D4) ----------------------------------
@@ -567,4 +616,6 @@ def solve_decision(
     }
     if depth2 is not None:
         stats.update(d2_stats)
+    if heuristic is not None:
+        stats.update(h_stats)
     return best, stats

@@ -82,6 +82,7 @@ class SearchAgent:
         depth2: dict | None = None,
         tree: dict | None = None,
         bcts: dict | None = None,
+        heuristic: dict | None = None,
     ):
         """`leaf_encoding` — the leaf ENCODER dial (S1's finding,
         docs/search_relook/DET_BLIND.md). None = as-is, the R2-credited
@@ -151,6 +152,10 @@ class SearchAgent:
         # measured on- vs off-policy Bellman-error split, instead of a flat
         # constant. Overrides margin_delta when set.
         self._bcts = bcts
+        # FOUL PLAY'S OWN leaf evaluator + its root-differenced sigmoid
+        # (rl/search/fp_eval.py). Swaps WHAT values a leaf, leaving the dose,
+        # the opponent model and the selector shape untouched.
+        self._heuristic = heuristic
         self._agent = agent
         self._dose = dose
         self._seed = int(checkpoint_seed)
@@ -191,6 +196,10 @@ class SearchAgent:
             "depth2/grandchildren": 0,
             "depth2/leaves_deepened": 0,
             "depth2/shift_sum": 0.0,
+            # same rule, same reason: a vehicle that never fired and one that
+            # fired and changed nothing must not print the same number
+            "heuristic/decisions": 0,
+            "heuristic/leaves_scored": 0,
         }
         self._entropies: list[float] = []
 
@@ -355,6 +364,7 @@ class SearchAgent:
             margin_delta=self.margin_delta,
             depth2=self._depth2,
             bcts=self._bcts,
+            heuristic=self._heuristic,
             root_v=(self._critic_fn(obs[None].astype(np.float32))[0]
                     if self._bcts is not None else None),
         )
@@ -362,6 +372,9 @@ class SearchAgent:
             self.counters["search/flips"] += 1
         if stats.get("search/overrode"):
             self.counters["search/overrides"] += 1
+        if self._heuristic is not None and "heuristic/leaves_scored" in stats:
+            self.counters["heuristic/decisions"] += 1
+            self.counters["heuristic/leaves_scored"] += int(stats["heuristic/leaves_scored"])
         if self._depth2 is not None and "depth2/grandchildren" in stats:
             gc = int(stats["depth2/grandchildren"])
             self.counters["depth2/grandchildren"] += gc

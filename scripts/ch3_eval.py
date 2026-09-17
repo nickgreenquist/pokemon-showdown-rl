@@ -258,6 +258,7 @@ def _jobs(prereg: dict) -> dict[str, dict]:
                     # matrix for poke_engine's MCTS. absent -> None -> untouched.
                     "mcts": spec.get("mcts"),
                     "depth2": spec.get("depth2"),
+                    "heuristic": spec.get("heuristic"),
                     "tree": spec.get("tree"),
                     "bcts": spec.get("bcts"),
                 }
@@ -419,6 +420,7 @@ def run_job(prereg: dict, name: str) -> None:
             margin_delta=job.get("margin_delta"),
             mcts=job.get("mcts"),
             depth2=job.get("depth2"),
+            heuristic=job.get("heuristic"),
             tree=job.get("tree"),
             bcts=job.get("bcts"),
         )

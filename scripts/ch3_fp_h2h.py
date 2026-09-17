@@ -413,6 +413,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             # the loop) and `bcts`. Same defect, found by the same test.
             mcts=arm.get("mcts"),
             bcts=arm.get("bcts"),
+            heuristic=arm.get("heuristic"),
         )
     seat = SeatPlayer(
         agent,
@@ -525,6 +526,13 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         report["search_tree"] = search_agent._tree
         report["search_mcts"] = search_agent._mcts
         report["search_bcts"] = search_agent._bcts
+        report["search_heuristic"] = search_agent._heuristic
+        if search_agent._heuristic is not None:
+            hd = search_agent.counters["heuristic/decisions"]
+            report["heuristic/decisions"] = hd
+            report["heuristic/fired_rate"] = hd / max(dec - skips, 1)
+            report["heuristic/leaves_per_decision"] = (
+                search_agent.counters["heuristic/leaves_scored"] / max(hd, 1))
         if d2 is not None:
             searched = max(dec - skips, 1)
             report.update({

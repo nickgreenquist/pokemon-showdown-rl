@@ -154,10 +154,16 @@ def test_jobs_search_kind_and_legacy_shape():
     # so every banked search arm's job dict is unchanged in VALUE. Same for
     # `ensemble_search` (False) and `seed_lane`, which on a single-lane arm is
     # the lane the decision RNG was always seeded from.
+    # `heuristic` (2026-09-17): Foul Play's own leaf evaluator as a vehicle.
+    # This dict is pinned ON PURPOSE -- a new vehicle that the job builder
+    # forwards but a runner drops is the defect class that kept depth-2, the
+    # MCTS tree, mcts and bcts unrunnable off Foul Play for months, so adding
+    # a key here is meant to be a deliberate act with a test to update.
     assert jobs["a1s_s62"] == {"arm": "A1S", "members": ["s62"],
                                "search_dose": "M", "leaf_encoding": None,
                                "margin_delta": None, "depth2": None,
                                "mcts": None, "tree": None, "bcts": None,
+                               "heuristic": None,
                                "ensemble_search": False, "seed_lane": "s62"}
     assert "search_dose" not in jobs["a0_s62"]
     with pytest.raises(ValueError):
