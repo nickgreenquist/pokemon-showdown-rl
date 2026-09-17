@@ -183,7 +183,7 @@ arms:                              # PHASE S cells; the PHASE R cells follow und
     seat: w112
     ensemble_members: [w104, w112, w120]
     dose: M
-    margin_delta: FILL_FROM_RULE_R1      # written by scripts/depth2_r5_pin.py
+    margin_delta: 0.20   # pinned by rule R1 from S2B (override 0.0629 vs S1A 0.0723)
     depth2: {our_k: 3, cap: 6000, plies: 1}
     battles: 3000
     search_time_ms: 20
