@@ -1,0 +1,71 @@
+# DOES THE GATE, RATHER THAN THE EVALUATOR OR THE DEPTH, SET THE CEILING?
+# Hacking run, 2026-09-17 (maintainer: "Run what you want next").
+#
+# WHAT IS ESTABLISHED. Depth is a null with BOTH evaluators at ~6.5% override
+# (§22 -0.0007, §23 -0.0087). Foul Play's heuristic is no better than our critic
+# there, and both are level with greedy. But at that override rate the search
+# changes the played action on ~2 decisions of a 30-turn battle, which MECHAN-
+# ICALLY BOUNDS how much any leaf-value improvement can move a win rate. The one
+# thing measured to move the number is opening the gate: our critic at depth 2
+# went 0.5687 -> 0.5160 when its override rate went 6.8% -> 16.3% (D2N, §22).
+#
+# THE QUESTION. Is that collapse a property of OUR CRITIC -- which PPO fit only
+# to states our own policy reaches, so it misjudges exactly the lines a search
+# wants to override into -- or of the SEARCH CONSTRUCTION, in which case a static
+# evaluator with no training distribution collapses the same way?
+#
+#   collapses too   -> the construction is the ceiling; the matrix-family search
+#                      story closes, and the next lever is not a better leaf value.
+#   holds up        -> the evaluator difference lives on the axis where it can
+#                      matter, and OUR critic's off-distribution behaviour is real
+#                      after all -- just invisible at a 6.5% override rate.
+#
+# DEPTH IS HELD AT 1 on purpose: it is a measured null, and depth-1 arms cost a
+# third as much, so the budget buys n instead of plies.
+#
+# MATCHING. Target is D2N's realized 16.3% override. Both arms are swept to it
+# by a rule that reads `search/override_rate` and never a win rate -- the same
+# rule that turned a -0.053 artifact into a -0.0007 null yesterday.
+#
+# ANCHOR. GA/G0 (greedy, same object) read 0.5720 and 0.5747 in the two most
+# recent blocks; a third greedy draw runs here because session offset is ~0.02
+# on this instrument and two readouts this week would have been wrong without one.
+
+title: gate_r5
+status: "hacking run, 2026-09-17"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/gate_r5
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+
+arms:
+  # sweep: our critic, depth 1, toward 16.3% override (0.10 gave 6.8%)
+  C1A: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 60, search_time_ms: 20, seat_username: gtc1aseat, fp_username: gtc1abot}
+  C1B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.07, battles: 60, search_time_ms: 20, seat_username: gtc1bseat, fp_username: gtc1bbot}
+  C1C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.03, battles: 60, search_time_ms: 20, seat_username: gtc1cseat, fp_username: gtc1cbot}
+  # sweep: their heuristic, depth 1, toward 16.3% (0.15 gave 11.3%, 0.20 gave 6.2%)
+  F1A: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.10, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: gtf1aseat, fp_username: gtf1abot}
+  F1B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.12, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: gtf1bseat, fp_username: gtf1bbot}
+  F1C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.08, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: gtf1cseat, fp_username: gtf1cbot}
+  # the read, deltas written by scripts/gate_r5_pin.py
+  CN1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PINC, battles: 1500, search_time_ms: 20, seat_username: gtcn1seat, fp_username: gtcn1bot}
+  FN1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PINF, heuristic: {kind: fp_gen1}, battles: 1500, search_time_ms: 20, seat_username: gtfn1seat, fp_username: gtfn1bot}
+  GB:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1500, search_time_ms: 20, seat_username: gtgbseat, fp_username: gtgbbot}
+
+phases:
+  S: [C1A, C1B, C1C, F1A, F1B, F1C]
+  R: [CN1, FN1, GB]
+
+comparators:
+  target_override: 0.163        # D2N's realized rate
+  d2n:  {rate: 0.5160, n: 1500, override: 0.1626, note: "our critic, depth 2, gate OPEN"}
+  d1:   {rate: 0.5687, n: 3000, override: 0.0682, note: "our critic, depth 1, gate tight"}
+  hd1:  {rate: 0.5487, n: 3000, override: 0.0654, note: "their heuristic, depth 1, gate tight"}
+  greedy: {rate: 0.5720, n: 1500, note: "GA, most recent same-object greedy draw"}
