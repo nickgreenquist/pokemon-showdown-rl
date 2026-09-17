@@ -19,8 +19,8 @@ REPO = Path(__file__).resolve().parents[1]
 PREREG = REPO / "configs/eval/fpeval_r5.yaml"
 RES = REPO / "results/fpeval_r5"
 TARGET = 0.0682
-GRID = {"d1": {"E1A": 0.15, "E1B": 0.25, "E1C": 0.40, "E1D": 0.60},
-        "d2": {"E2A": 0.25, "E2B": 0.40, "E2C": 0.60, "E2D": 0.90}}
+GRID = {"d1": {"E1A": 0.15, "E1B": 0.25, "E1C": 0.40, "E1D": 0.60, "E1E": 0.20},
+        "d2": {"E2A": 0.25, "E2B": 0.40, "E2C": 0.60, "E2D": 0.90, "E2E": 0.31}}
 
 
 def pick(cells):

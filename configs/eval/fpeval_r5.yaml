@@ -70,6 +70,16 @@ arms:
   E2C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.60, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2cseat, fp_username: fpee2cbot}
   E2D: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.90, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2dseat, fp_username: fpee2dbot}
 
+  # BRACKETING CELLS, added 2026-09-17 after the first sweep showed the grid
+  # straddling the target without landing inside the 2-point match threshold:
+  # depth 1 gave 11.3% at 0.15 and 4.0% at 0.25, depth 2 gave 11.2% at 0.25 and
+  # 3.5% at 0.40, and the target is 6.8%. Log-linear interpolation puts them at
+  # 0.20 and 0.31. Adding grid points here is a refinement of the MATCHING, not
+  # of the result: the selection rule reads `search/override_rate` and never a
+  # win rate, so no outcome can influence which delta is chosen.
+  E1E: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.20, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: fpee1eseat, fp_username: fpee1ebot}
+  E2E: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.31, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2eseat, fp_username: fpee2ebot}
+
   # --- PHASE R: the read. deltas written by scripts/fpeval_r5_pin.py ---
   HD1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PIN1, heuristic: {kind: fp_gen1}, battles: 3000, search_time_ms: 20, seat_username: fpehd1seat, fp_username: fpehd1bot}
   HD2: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PIN2, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 3000, search_time_ms: 20, seat_username: fpehd2seat, fp_username: fpehd2bot}
@@ -80,5 +90,5 @@ arms:
 
 phases:
   smoke: [ES]
-  S: [E1A, E1B, E1C, E1D, E2A, E2B, E2C, E2D]
+  S: [E1A, E1B, E1C, E1D, E1E, E2A, E2B, E2C, E2D, E2E]
   R: [HD1, HD2, GA]
