@@ -504,3 +504,27 @@ def test_off_fp_seat_forwards_every_search_vehicle():
         "arm declaring one of these would run the DEFAULT vehicle and its JSON "
         "would look correct"
     )
+
+
+def test_every_probe_prefix_survives_both_collectors():
+    """A vehicle's stats must reach disk, and there are TWO places to forget.
+
+    `_SeatEval.choose_move` filters incoming stats by prefix and `_merge`
+    filters outgoing ones. On 2026-09-17 the Foul Play evaluator was added to
+    the writer and to neither collector, so it ran, changed the decisions
+    (override 0.18 vs 0.07, 28 ms vs 88) and reported NO counter at all -- the
+    exact shape of the 2026-09-11 VOID probe, three fixes later. This test
+    reads both filters out of the source and requires them to agree.
+    """
+    import re
+
+    src = (Path(__file__).parent.parent / "scripts/ch3_eval.py").read_text()
+    groups = re.findall(r'k\.split\("/"\)\[0\] in \(([^)]*)\)', src, re.S)
+    assert len(groups) == 2, f"expected two prefix filters, found {len(groups)}"
+    sets = [frozenset(re.findall(r'"([a-z0-9_]+)"', g)) for g in groups]
+    assert sets[0] == sets[1], (
+        f"the two prefix filters disagree: {sorted(sets[0] ^ sets[1])} is "
+        "handled by one and dropped by the other"
+    )
+    for vehicle in ("depth2", "tree", "bcts", "heuristic"):
+        assert vehicle in sets[0], f"{vehicle} stats never reach disk"

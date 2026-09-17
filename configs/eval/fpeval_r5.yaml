@@ -1,0 +1,84 @@
+# FOUL PLAY'S OWN EVALUATOR, IN OUR SEARCH — hacking, not a pre-reg
+# (maintainer 2026-09-17: "pre-reg is for ladder runs. For hacking and trying
+# ideas, keep going by yourself"). Nothing here is a headline number; if any of
+# it becomes one it gets the full treatment first.
+#
+# THE QUESTION. JOURNEY 11.5 came back a null: depth-2 over depth-1 is -0.0007
+# at matched override rate, for 3.27x the compute (RESULTS §22). The standing
+# explanation is that our critic, fit by PPO only to states our own policy
+# reaches, degrades on the lines a search visits — while Foul Play converts
+# compute into strength with a 202-line heuristic because it is the SAME
+# function everywhere and is scored as a DIFFERENCE FROM THE ROOT, so constant
+# bias cancels and a deeper tree asks it no harder a question.
+#
+# So: swap ONLY the leaf evaluator (rl/search/fp_eval.py, verified against
+# hand-computed values from poke-engine 0.0.48's Rust), keep the dose, the
+# opponent model, the object and the selector SHAPE, and re-ask the depth
+# question. If depth pays with their evaluator and not with ours, the evaluator
+# is isolated as the cause and "search substitutes for a value function, and
+# ours is the wrong shape for it" stops being a hypothesis.
+#
+# WHAT MUST STILL BE MATCHED, because these are the parts that stop us fooling
+# ourselves rather than ceremony:
+#   * OVERRIDE RATE. The heuristic's values spread wider: at delta 0.10 it
+#     overrides 18.4% of decisions against our critic's 7.2% (measured, smoke
+#     2026-09-17). An unmatched override rate turned a -0.0007 null into a
+#     -0.053 "significant" result yesterday. Phase S sweeps delta; the read
+#     matches D1's REALIZED read-phase rate of 0.0682.
+#   * A SAME-SESSION GREEDY ANCHOR. The same frozen committee read 0.5987 on
+#     09-15 and 0.5747 on 09-17. Session offset is ~0.02 on both FP instruments.
+#   * COUNTERS ON DISK. heuristic/fired_rate must be ~1.0 or the vehicle did
+#     not run and the arm says nothing.
+#
+# COST NOTE, to be reported rather than hidden: with this vehicle the ENCODER
+# IS NOT RUN (it exists only to feed a critic nobody is asking), so depth-1 is
+# ~30 ms/decision against our critic's ~88. The comparison is evaluator-vs-
+# evaluator at EQUAL DOSE, not at equal wall clock, and the wall-clock gap is a
+# finding in its own right.
+#
+# BANKED COMPARATORS, all off FP@20 on the same three checkpoints:
+#   D1  depth-1, our critic, delta 0.10, override 0.0682 : 0.5687 (n=3000)
+#   D2M depth-2, our critic, delta 0.20, override 0.0620 : 0.5680 (n=3000)
+#   G0  greedy committee, 2026-09-17 session             : 0.5747 (n=1500)
+
+title: fpeval_r5
+status: "hacking run, 2026-09-17"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/fpeval_r5
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+
+usernames:
+  scheme: "fpe<armid><role>; prefix-freeness across every configs/eval/*.yaml is checked by the queue before launch."
+  target_override: 0.0682   # D1's realized read-phase rate, the thing to match
+
+arms:
+  # --- PHASE S: sweep delta at both depths. Override rate and cost only. ---
+  E1A: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.15, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: fpee1aseat, fp_username: fpee1abot}
+  E1B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.25, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: fpee1bseat, fp_username: fpee1bbot}
+  E1C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.40, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: fpee1cseat, fp_username: fpee1cbot}
+  E1D: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.60, heuristic: {kind: fp_gen1}, battles: 60, search_time_ms: 20, seat_username: fpee1dseat, fp_username: fpee1dbot}
+  E2A: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.25, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2aseat, fp_username: fpee2abot}
+  E2B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.40, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2bseat, fp_username: fpee2bbot}
+  E2C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.60, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2cseat, fp_username: fpee2cbot}
+  E2D: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.90, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 60, search_time_ms: 20, seat_username: fpee2dseat, fp_username: fpee2dbot}
+
+  # --- PHASE R: the read. deltas written by scripts/fpeval_r5_pin.py ---
+  HD1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PIN1, heuristic: {kind: fp_gen1}, battles: 3000, search_time_ms: 20, seat_username: fpehd1seat, fp_username: fpehd1bot}
+  HD2: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PIN2, heuristic: {kind: fp_gen1}, depth2: {our_k: 3, cap: 6000, plies: 1}, battles: 3000, search_time_ms: 20, seat_username: fpehd2seat, fp_username: fpehd2bot}
+  # the session anchor, re-drawn beside these arms
+  GA:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1500, search_time_ms: 20, seat_username: fpegaseat, fp_username: fpegabot}
+  # throwaway smoke pair: the heuristic has never crossed the FP seat path
+  ES:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.25, heuristic: {kind: fp_gen1}, battles: 2, search_time_ms: 20, seat_username: fpeesseat, fp_username: fpeesbot}
+
+phases:
+  smoke: [ES]
+  S: [E1A, E1B, E1C, E1D, E2A, E2B, E2C, E2D]
+  R: [HD1, HD2, GA]

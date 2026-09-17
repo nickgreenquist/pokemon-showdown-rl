@@ -174,7 +174,8 @@ class _SearchEvalAdapter:
             self.ms.append((time.perf_counter() - t0) * 1e3)
             self.leaves.append(int(stats["search/leaves"]))
             for k, v in stats.items():
-                if k.split("/")[0] in ("depth2", "census", "tree", "bcts"):
+                if k.split("/")[0] in ("depth2", "census", "tree", "bcts",
+                                       "heuristic"):
                     self.d2.setdefault(k, []).append(float(v))
         self._decision_index += 1
         return action
@@ -570,7 +571,8 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
         # still live. Carried through weighted by searched decisions, which is
         # what chunk_summary averaged over.
         probe_keys = sorted({k for rep in reports for k in rep
-                             if k.split("/")[0] in ("depth2", "tree", "census", "bcts")})
+                             if k.split("/")[0] in ("depth2", "tree", "census", "bcts",
+                                   "heuristic")})
         for key in probe_keys:
             vals = [(rep.get(key), rep["search/searched_decisions"]) for rep in reports]
             vals = [(v, w) for v, w in vals if v is not None]
