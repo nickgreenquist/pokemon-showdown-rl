@@ -205,7 +205,18 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 
 ## Conventions (they earned their place)
 
-- **Pre-register every experiment** in the config header before launching —
+- **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS, NOT FOR HACKING** (maintainer,
+  2026-09-17, verbatim: *"pre-reg is for ladder runs. For hacking and trying ideas,
+  keep going by yourself"*). An offline arm that explores an idea needs no pre-reg,
+  no ratification and no waiting: build it, run it, report it. What does NOT relax
+  is the anti-self-deception machinery, because that is about not fooling ourselves
+  rather than about ceremony — **counters must reach disk before a dial gets an arm;
+  a comparison must be matched on the thing that is not being tested (2026-09-17: an
+  unmatched override rate turned a −0.0007 null into a −0.053 "significant" result);
+  and a cross-session number needs a same-session anchor (~0.02 on both FP
+  instruments)**. Anything that becomes a headline number, a README row or a ladder
+  run gets the full treatment below, written BEFORE it runs.
+- **Pre-register every LADDER RUN and every headline-grade experiment** in the config header before launching —
   pattern: `configs/showdown_r512_lra.yaml`. **Every header names its
   `journey_step` and restates that step's exit condition verbatim.** Arms, R0
   sanity gates, PRIMARY read with explicit credit line, secondary reads,
