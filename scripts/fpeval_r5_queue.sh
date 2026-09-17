@@ -34,6 +34,11 @@ log "guards ok"
 
 fparm() {
   local arm="$1" tag="$2" extra="${3:-}"
+  # SMOKE_BATTLES forces the runner to prefix the tag with `smoke_` so a smoke
+  # can never overwrite a real arm's JSON -- so the existence check has to look
+  # for the SAME name the runner will write, or it reports a successful smoke
+  # as "NO JSON" (which is exactly what it did on the first run, 2026-09-17).
+  case "$extra" in *SMOKE_BATTLES=*) tag="smoke_$tag";; esac
   if [ -f "$OUT/$tag.json" ]; then log "$arm SKIP (json exists)"; return; fi
   log "$arm launching"
   env PREREG="$PREREG" ARM="$arm" TAG="$tag" OUT="$OUT" STALL_POLLS=60 \
