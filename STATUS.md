@@ -87,9 +87,9 @@ Reads: `configs/eval/monster_reads{,_offfp}.yaml`, `results/monster_reads/READOU
    **(3) more W-recipe members. (4) 300M — weakest. (5) is EV 0.59 the IRREDUCIBLE ceiling?** Plus the
    GATE question §23 opened: does a STATIC evaluator survive a high override rate where ours collapses?
 4. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its OWN stopping rule, rd grows between
-   sessions); the LR-anneal floor ([RWL-4]; new datum: W's EV FALLS through the annealed tail,
-   0.675→0.596 — the tail is not inert, which cuts both ways); the next fleet's shape — answer it AFTER
-   the LayerNorm read, since the question has changed from "how much width" to "is width the cheap way".
+   sessions); the LR-anneal floor ([RWL-4]; W's EV FALLS through the annealed tail 0.675→0.596, so the tail
+   is not inert — cuts both ways); the next fleet's shape (answer AFTER the LayerNorm read); **and whether a
+   null on the MATRIX vehicle may close MCTS (§22 declined to; `rl/search/tree.py` is a different algorithm).**
 
 ## Watch items
 - **SUITE GREEN 1090 / 0 failed, 87 skipped** (2026-09-17, encoder flags UNSET — the documented
