@@ -81,11 +81,10 @@ Reads: `configs/eval/monster_reads{,_offfp}.yaml`, `results/monster_reads/READOU
    1.1 se) — a ~0.94 ceiling. **Its runner had been BROKEN since 2026-09-05** (099c440).
    **SESSION OFFSET IS ~0.02 ON BOTH FP INSTRUMENTS (+0.014 clone, −0.024 off-FP@20): never difference a
    number against another session's without a same-session anchor. Two readouts would have been wrong.**
-3. **NEXT, RANKED — `docs/proposals/WHATS_NEXT_2026-09-16.md`.** (1) 11.5 **DONE** (§22) and the
-   evaluator follow-up **DONE** (§23). **(2) the critic LayerNorm arm** (built 2026-09-12, never run):
-   a 50M run can resolve the MECHANISM legally under rule 6 even though its win rate could not.
-   **(3) more W-recipe members. (4) 300M — weakest. (5) is EV 0.59 the IRREDUCIBLE ceiling?** Plus the
-   GATE question §23 opened: does a STATIC evaluator survive a high override rate where ours collapses?
+3. **NEXT (`docs/proposals/WHATS_NEXT_2026-09-16.md`):** 11.5 and the evaluator follow-up are DONE
+   (§22, §23). Then **the critic LayerNorm arm** (built, never run — a 50M run resolves the MECHANISM
+   legally under rule 6); **more W members; 300M (weakest); is EV 0.59 the IRREDUCIBLE ceiling?**; and
+   the GATE question §23 opened — does a STATIC evaluator survive a high override rate where ours collapses?
 4. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its OWN stopping rule, rd grows between
    sessions); the LR-anneal floor ([RWL-4]; W's EV FALLS through the annealed tail 0.675→0.596, so the tail
    is not inert — cuts both ways); the next fleet's shape (answer AFTER the LayerNorm read); **and whether a
