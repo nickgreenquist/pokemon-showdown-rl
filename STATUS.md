@@ -95,7 +95,7 @@ Reads: `configs/eval/monster_reads{,_offfp}.yaml`, `results/monster_reads/READOU
   runs and reports nothing:** the off-FP seat dropped 3 of 4 search vehicles; ch3_eval's merge dropped every
   depth2/* key; `search_dose` was never stamped; a new vehicle reached the writer and neither collector.
   Each now has a test that reads the source and fails on recurrence.
-- **ONE RUNG IS WORTH ±0.02** — three redraws of one checkpoint spread 0.0200. Read curves, never one rung.
+- **ONE RUNG IS WORTH ±0.02** (three redraws of one checkpoint spread 0.0200) — read curves, never rungs.
 - **SEEDS DO NOT PAIR BATTLES (`docs/landmines.md`).** Per-battle agreement on shared seeds is at the
   independence level (0.66–0.73) — teams and rolls are server-rolled, so every "matched seed-for-seed,
   McNemar se" phrase was UNPAIRED (the se coincides, so no number moved). Replicates are the instrument.
