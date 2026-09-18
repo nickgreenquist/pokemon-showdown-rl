@@ -395,6 +395,11 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             # below either way -- an unfired extra ply must never again be
             # indistinguishable from an ineffective one.
             depth2=arm.get("depth2"),
+            # `disagree` (optional, wired 2026-09-18 for IDEAS 8.5): a dict
+            # {metric, threshold} spends the search budget only on the
+            # decisions the committee is split on. Absent = search every
+            # decision, which is what every banked arm did.
+            disagree=arm.get("disagree"),
             # `tree` (optional, wired 2026-09-16 alongside depth2): swaps the
             # depth-1 matrix for rl/search/tree.py -- decoupled UCT with OUR
             # policy as the PUCT prior and OUR critic at the leaves, mean
@@ -490,7 +495,15 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
         lv = np.array(seat.leaves) if seat.leaves else np.array([0])
         dec = search_agent.counters["search/decisions"]
-        skips = search_agent.counters["search/placeholder_skips"]
+        # IDEAS 8.5: a decision the DISAGREEMENT GATE declined is not searched
+        # either, and it is not a placeholder skip. Folding it in here is not
+        # cosmetic -- every rate below divides by `dec - skips`, so a gated arm
+        # would otherwise report `depth2/fired_rate` and `override_rate` against
+        # a denominator that counts decisions the search never saw, and a
+        # perfectly healthy gated arm would read VOID.
+        skips = (search_agent.counters["search/placeholder_skips"]
+                 + (search_agent.counters["disagree/eligible"]
+                    - search_agent.counters["disagree/searched"]))
         overrides = search_agent.counters["search/overrides"]
         report.update({
             # THE DOSE, stamped 2026-09-17. It never was, so a claim like
@@ -523,6 +536,24 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         # inferred.
         d2 = search_agent._depth2
         report["search_depth2"] = d2
+        # IDEAS 8.5 PROVENANCE. `search_disagree` is the realized dial; the
+        # rate beside it is what makes a gated arm gradeable. A search_rate of
+        # 1.0 is a UNIFORM-DOSE arm wearing a gated label and a 0.0 is greedy,
+        # and neither is distinguishable from the win rate alone.
+        report["search_disagree"] = search_agent._disagree
+        if search_agent._disagree is not None:
+            elig = search_agent.counters["disagree/eligible"]
+            srch = search_agent.counters["disagree/searched"]
+            report.update({
+                "disagree/eligible": elig,
+                "disagree/searched": srch,
+                "disagree/search_rate": srch / max(elig, 1),
+                "disagree/score_mean":
+                    search_agent.counters["disagree/score_sum"] / max(elig, 1),
+                "disagree/score_mean_searched": (
+                    search_agent.counters["disagree/score_sum_searched"]
+                    / srch if srch else None),
+            })
         report["search_tree"] = search_agent._tree
         report["search_mcts"] = search_agent._mcts
         report["search_bcts"] = search_agent._bcts

@@ -201,6 +201,8 @@ class _SearchEvalAdapter:
             out["depth2/decisions_with_any"] = float(np.mean([g > 0 for g in gc]))
         for key in ("search/decisions", "search/placeholder_skips",
                     "search/flips", "search/overrides",
+                    "disagree/eligible", "disagree/searched",
+                    "disagree/score_sum", "disagree/score_sum_searched",
                     "ens_min/argmin_lane0", "ens_min/argmin_lane1",
                     "ens_min/argmin_lane2", "ens_min/spread_sum",
                     "ens_min/leaves"):
@@ -578,6 +580,21 @@ def _merge(prereg: dict, name: str, out_dir: Path, chunks: int) -> None:
             vals = [(v, w) for v, w in vals if v is not None]
             if vals and searched:
                 final[key] = sum(v * w for v, w in vals) / sum(w for _, w in vals)
+        # IDEAS 8.5. SUMMED, not weighted-averaged: these are counts and
+        # sums over decisions, and the realized SEARCH RATE is the whole
+        # provenance of a gated arm -- 1.0 means the gate never fired and the
+        # arm is a uniform-dose arm wearing a gated label.
+        elig = sum(rep.get("disagree/eligible", 0) for rep in reports)
+        if elig:
+            srch = sum(rep.get("disagree/searched", 0) for rep in reports)
+            final["disagree/eligible"] = elig
+            final["disagree/searched"] = srch
+            final["disagree/search_rate"] = srch / elig
+            final["disagree/score_mean"] = (
+                sum(rep.get("disagree/score_sum", 0.0) for rep in reports) / elig)
+            final["disagree/score_mean_searched"] = (
+                sum(rep.get("disagree/score_sum_searched", 0.0) for rep in reports)
+                / srch if srch else None)
         final["search/ms_p99_max_over_chunks"] = max(
             rep["search/ms_p99"] for rep in reports
         )

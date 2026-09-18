@@ -91,10 +91,19 @@ class _EnsembleActor:
 
     def __init__(self, members):
         self._members = members
+        # The per-member log-probs of the MOST RECENT call, kept because the
+        # committee's DISAGREEMENT is the one signal this project can have for
+        # free on every decision (IDEAS 8.5) and recomputing it would mean a
+        # second forward per member. Overwritten by every call -- including the
+        # tree's batched leaf forwards -- so it is only meaningful to the
+        # caller that made the call it belongs to. `SearchAgent._forward`
+        # reads it immediately, which is the only supported use.
+        self.last_member_logps: torch.Tensor | None = None
 
     def __call__(self, obs_t: torch.Tensor, return_features: bool = False):
         outs = [m.actor(obs_t, return_features=True) for m in self._members]
         logps = torch.stack([torch.log_softmax(o[0], dim=-1) for o in outs])
+        self.last_member_logps = logps
         mean_logp = logps.mean(dim=0)
         if not return_features:
             return mean_logp

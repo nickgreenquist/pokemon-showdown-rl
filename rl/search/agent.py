@@ -83,6 +83,7 @@ class SearchAgent:
         tree: dict | None = None,
         bcts: dict | None = None,
         heuristic: dict | None = None,
+        disagree: dict | None = None,
     ):
         """`leaf_encoding` — the leaf ENCODER dial (S1's finding,
         docs/search_relook/DET_BLIND.md). None = as-is, the R2-credited
@@ -144,6 +145,24 @@ class SearchAgent:
         # visit share, gated against the policy. None = untouched.
         self._mcts = mcts
         self._depth2 = depth2   # selective 1-ply lookahead at every leaf
+        # IDEAS 8.5 -- WHERE the budget goes, not how much of it there is.
+        # Every dose measured so far raised the budget on EVERY decision,
+        # which is why depth-2's 3.27x cost bought -0.0007 (RESULTS §22).
+        # This spends it only where the committee is CONTESTED, a signal the
+        # committee already computes on every decision at zero extra cost.
+        #   {"metric": "votes"|"margin", "threshold": t}
+        # None = search every decision, bit-identical to every banked arm.
+        if disagree is not None:
+            metric = disagree.get("metric", "votes")
+            assert metric in ("votes", "margin"), metric
+            assert 0.0 <= float(disagree["threshold"]) <= 1.0, disagree
+            if metric == "votes":
+                assert len(getattr(agent, "members", []) or []) >= 2, (
+                    "the votes metric needs a committee: a one-member "
+                    "ensemble never disagrees with itself and the gate would "
+                    "silently skip every decision"
+                )
+        self._disagree = disagree
         # OUR prior + OUR critic inside a real tree (rl/search/tree.py). The
         # thing neither of the other two probes is: matrix.py has our critic
         # and one ply, mcts_probe.py has a tree and poke_engine's heuristic.
@@ -203,6 +222,14 @@ class SearchAgent:
             # without it), `drop_sum` says the min over those answers actually
             # MOVED the backed-up value, and `leaves_unexpanded` counts the
             # leaves the lookahead could not look past at all.
+            # IDEAS 8.5, and the same rule as every dial above: the gate
+            # reports BEFORE it gets an arm. `searched` over `eligible` is the
+            # realized rate -- an arm where it is 1.0 is a uniform-dose arm
+            # wearing a gated label, and one where it is 0.0 is greedy.
+            "disagree/eligible": 0,
+            "disagree/searched": 0,
+            "disagree/score_sum": 0.0,
+            "disagree/score_sum_searched": 0.0,
             "depth2/opp_replies_sum": 0.0,
             "depth2/drop_sum": 0.0,
             "depth2/leaves_unexpanded": 0,
@@ -221,6 +248,40 @@ class SearchAgent:
             prior = torch.softmax(masked_logits(logits, mask_t), dim=-1)[0].numpy()
             q = torch.softmax(self._agent.aux_head(*feats), dim=-1)[0].numpy()
         return prior, q
+
+    def _disagreement(self, prior: np.ndarray, mask: np.ndarray) -> float:
+        """How CONTESTED is this decision, in [0, 1]? Higher = more contested.
+
+        Two metrics, and the choice is not cosmetic -- they disagree about what
+        "close" means:
+
+          votes   the fraction of committee members whose own argmax is not the
+                  pooled argmax. Discrete, exactly the quantity 4.8's credit
+                  rests on (the committee overrides its first member on 10.8%
+                  of decisions vs SH and 27.8% off FP@20), and it is FREE:
+                  `_forward` has just computed every member's log-probs.
+          margin  1 - (p_top1 - p_top2) on the pooled masked prior. Continuous,
+                  defined for a single agent too, and it measures the pooled
+                  policy's own confidence rather than the members' agreement.
+
+        A decision with one legal action scores 0 under both: there is nothing
+        to be contested about, and searching it is pure waste.
+        """
+        legal = np.flatnonzero(mask)
+        if legal.size <= 1:
+            return 0.0
+        if self._disagree.get("metric", "votes") == "margin":
+            p = np.sort(prior[legal])[::-1]
+            return float(np.clip(1.0 - (p[0] - p[1]), 0.0, 1.0))
+        logps = getattr(self._agent.actor, "last_member_logps", None)
+        assert logps is not None, (
+            "the votes metric needs the per-member log-probs `_forward` just "
+            "computed; this agent's actor does not keep them"
+        )
+        lp = logps[:, 0, :].numpy() if logps.ndim == 3 else logps.numpy()
+        votes = lp[:, legal].argmax(axis=1)
+        pooled = int(np.argmax(prior[legal]))
+        return float(np.mean(votes != pooled))
 
     def _tree_eval_fn(self, obs: np.ndarray):
         """(logprobs, values, q) from ONE forward — the tree's whole network
@@ -325,6 +386,21 @@ class SearchAgent:
             action = int(legal[np.argmax(prior[legal])])
             return action, {"search/placeholder_skip": 1, "search/chosen": action}
         self._entropies.append(float(-(q * np.log(q + 1e-12)).sum()))
+        if self._disagree is not None:
+            score = self._disagreement(prior, np.asarray(mask))
+            self.counters["disagree/eligible"] += 1
+            self.counters["disagree/score_sum"] += score
+            if score < float(self._disagree["threshold"]):
+                # NOT SEARCHED. The action is the policy's own argmax, which is
+                # exactly what the greedy object plays, so a gate at threshold
+                # 1.0 reproduces greedy and a gate at 0.0 reproduces the
+                # ungated arm -- the two ends this dial has to have.
+                legal = np.flatnonzero(np.asarray(mask))
+                action = int(legal[np.argmax(prior[legal])])
+                return action, {"disagree/score": score, "disagree/skip": 1,
+                                "search/chosen": action}
+            self.counters["disagree/searched"] += 1
+            self.counters["disagree/score_sum_searched"] += score
         if self._evaluator is not None and self._evaluator["kind"] == "oppact_uniform":
             q = np.full(N_L6, 1.0 / N_L6)
         turn = int(battle.turn)
