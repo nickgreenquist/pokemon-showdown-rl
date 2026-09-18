@@ -2032,3 +2032,51 @@ Scope: "our critic beats Foul Play's evaluator" is about **leaf values inside ou
 construction**. It does not follow that it wins inside a deep tree, where leaves sit much
 further off-policy, and it says nothing about MCTS — a different algorithm that could not run
 off Foul Play at all until 2026-09-17.
+
+## 25. Addendum, 2026-09-18 — **the ladder committee BEATS Foul Play at 500 ms, and 25× budget buys Foul Play nothing**
+
+`readouts/FP500_R5_READOUT.md`; config `configs/eval/fp500_r5.yaml`. Hacking run,
+**credits nothing**. The maintainer asked for this number on 2026-09-17 and it did not
+exist — the only banked FP@500 figure was **0.472 (n=500, 1 tie)** for the **100M**
+committee (2026-09-12).
+
+The object is the **R5 ladder committee exactly**: the masked log-prob ensemble of the
+three 200M W finals, sha-pinned, **greedy, no search**.
+
+| arm | FP budget | record | win rate | ties | vs even | s/battle |
+|---|---|---|---|---|---|---|
+| **W500** | **500 ms** | **280–220** | **0.5600** | 0 | **+2.70 se** | 38.8 |
+| W020 | 20 ms | 275–225 | 0.5500 | 0 | +2.25 se | 1.59 |
+
+**W500 − W020 = +0.0100 at 0.32 se** (unpaired; seeds do not pair battles) for **24.4×
+the wall clock.** Foul Play's own depth census says 500 ms buys it ~3.2 plies against
+2.44 at 20 ms — most of the extra compute goes into visits, not depth — and none of it
+shows up in the result.
+
+**The 20 ms arm is not a spare: it is what makes the budget comparison internal.** The
+session offset on this instrument is ~0.02 and produced a wrong reading twice this week.
+
+**Against the 100M committee at the same budget — 0.5600 against 0.472 — is
+CROSS-SESSION** and must be read as a change in the object, not as a measured delta; the
+sign is not in doubt at that size and the direction matches the same pair at FP@20 (R5
+0.5987 banked, 100M ENS3 0.5770).
+
+Both arms: 500/500 resolved, `gate_all_challenges_resolved`, 0 ties, 0 mask desyncs,
+`max_concurrent_live_battles: 1` (fully serial — neither seat flattered by a divided
+box), identical encoder, pre-reg sha and checkpoint sha256s.
+
+**The four standing Foul Play disclosures travel with every sentence above: name the
+budget, the equivalence test is weakly powered (se 0.0224 at n=500), the point estimate
+flatters us, and FP@500 is an INSTRUMENT rather than a rung — descriptive, never a
+verdict input, and it projects to the ladder in neither direction.**
+
+**What it retracts.** The search work of JOURNEY 11.5 was written on the premise that
+*"Foul Play beats us using 500 ms"* — IDEAS §8.1's argument that our unspent inference
+budget was the gap. **That premise is retracted for this object**, and the live question
+about the budget is no longer "more milliseconds on the same construction" (25× bought
+Foul Play nothing either) but **where** it goes (IDEAS 8.5) and **what the network learns
+from it** (IDEAS 4.9).
+
+Barred, by name, on these numbers: "we beat Foul Play" without its budget; any ladder
+projection in either direction; and treating the 0.5600-vs-0.472 gap as a measured
+recipe effect.

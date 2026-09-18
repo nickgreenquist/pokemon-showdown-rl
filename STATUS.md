@@ -12,7 +12,8 @@ our replies with the opponent PINNED, and rows with more escape hatches inflate 
 **pooled 0.5765 (n=4500)**; best searched arm 0.5627. **THE BAR IS GREEDY, not the depth-1 search.**
 ## **NEW 2026-09-18 — the R5 committee BEATS FP@500: 0.5600 (n=500, 0 ties), +2.70 se above even**
 Same session W020 0.5500; **25× budget buys Foul Play +0.010 at 0.32 se**. The 100M committee LOST this at
-0.472. FP@500 is an INSTRUMENT, not a rung; both FP@20 disclosures travel; `configs/eval/fp500_r5.yaml`.
+0.472. FP@500 is an INSTRUMENT, not a rung; all four FP disclosures travel. **RESULTS §25,
+`readouts/FP500_R5_READOUT.md`.**
 **JOURNEY 11.5's premise "FP beats us at 500 ms" is retracted for THIS object.**
 ## **LADDER R5 — GXE 73.9 / Glicko-1 1697 ± 25 / Elo 1457, n=200, LISTED (cutoff 1354.2, ~103 clear)**
 Committee of the 200M W finals (w104/w112/w120), greedy, 2026-09-16: **128–72 (0.640)**, rd 25.0, attempt 1,
@@ -67,7 +68,7 @@ SELECTOR alone bought +0.129 — search has only ever paid as a **rarely-fired V
 had a known-optimistic backup until today.
 
 ## Next actions
-1. **Tree readout → RESULTS §25** when the queue lands, then this file.
+1. **Tree readout → RESULTS §26** when the queue lands, then this file. (§25 is FP@500.)
 2. **Run 2.11 (luck ceiling) BEFORE anything else** — it gates 4.9 and every evaluator item. Hours, no
    server, no FP; detached + resume-safe now.
 3. **Then the two built-and-unrun arms, both at an OPEN gate and matched on override rate:** 2.10's
