@@ -76,10 +76,18 @@ exactly that (see do-not-relitigate below).
   bit-identical actions, stats and counters on all three decide rules; only
   wall-clock differed, and the arms are iteration-bounded). The queue script
   freezes ITSELF (`mktemp` + re-exec) precisely because of this hazard and does
-  nothing about the Python. **THE STAMP ALREADY EXISTS AND NOTHING READ IT:**
-  every arm's JSON has carried `launch_git_sha` since CH4 R1's G8 provenance
-  block (`scripts/ch3_fp_h2h.py:639`), so a block that spans a commit was fully
-  recorded and entirely invisible. **Half-closed 2026-09-18:** both live
+  nothing about the Python. **THE STAMP ALREADY EXISTED, NOTHING READ IT, AND IT
+  MEANT THE WRONG THING:** every arm's JSON has carried `launch_git_sha` since
+  CH4 R1's G8 provenance block — but it was read AFTER the battles, so it
+  recorded the tree state when the arm FINISHED, under a name that says
+  otherwise, while SESSION_LOGS records the opposite belief in prose ("the seat
+  stamps `launch_git_sha` per arm at ITS start"). Caught 2026-09-18 when TV —
+  launched 10:45Z — came back stamped with a commit made at 11:40Z. **Fixed:**
+  the sha is read before the first battle and `finish_git_sha` is kept beside
+  it, so an arm that spans a commit MID-ARM is visible too. **Arms written
+  before that fix carry a finish-time value under the launch name**, and both
+  readouts label them rather than comparing them against a real launch sha.
+  **A provenance field nothing reads is a field nobody notices is wrong.** **Half-closed 2026-09-18:** both live
   readouts now print each arm's sha and say plainly when a block spans more than
   one, so a reader is told rather than having to think of the question.
   **Still open:** whether a spanning block should be REFUSED rather than

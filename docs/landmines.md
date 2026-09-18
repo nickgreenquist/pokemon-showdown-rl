@@ -706,7 +706,16 @@ Three things make this cheap to handle, and all three exist now: **(i)** every
 arm's JSON has carried `launch_git_sha` since CH4 R1's G8 block, **(ii)** the
 readouts read it and say when a block spans more than one commit, and
 **(iii)** the golden fixture answers "did my edit change the search?" in a
-second. Whether a spanning block should be REFUSED is still a maintainer
+second.
+
+**And (i) was itself wrong until this was written.** `launch_git_sha` was read
+AFTER the battles, so it recorded the tree state at COMPLETION under a name
+that says the opposite — and SESSION_LOGS records the opposite belief in prose.
+It surfaced because TV, launched 10:45Z, came back stamped with a commit made
+at 11:40Z. Now read before the first battle, with `finish_git_sha` beside it;
+arms written earlier carry a finish-time value under the launch name and the
+readouts label them. **A provenance field nothing reads is a field nobody
+notices is wrong.** Whether a spanning block should be REFUSED is still a maintainer
 ruling (`docs/CLEANUP.md` L5).
 
 **Also pinned by that fixture, and worth knowing on its own: the ENCODER

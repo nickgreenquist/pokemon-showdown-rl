@@ -609,6 +609,17 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     return report
 
 
+def _git_sha() -> str:
+    import subprocess
+    try:
+        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                              text=True).stdout.strip()
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException:
+        return ""
+
+
 def main() -> None:
     import os
 
@@ -628,18 +639,27 @@ def main() -> None:
     battles = args.battles or prereg["arms"][args.arm]["battles"]
     tag = args.tag or args.arm.lower()
 
+    # `launch_git_sha` DID NOT MEAN WHAT ITS NAME SAYS until 2026-09-18: it was
+    # read AFTER the battles, so it recorded the tree state when the arm
+    # FINISHED, and SESSION_LOGS 2026-09-0x documents the opposite belief ("the
+    # seat stamps launch_git_sha per arm at ITS start"). Caught when the tree
+    # block's TV arm -- launched 10:45Z -- came back stamped with a commit made
+    # at 11:40Z. It is now read HERE, before a single battle, and the finish-time
+    # value is kept beside it so an arm that spans a commit is visible rather
+    # than merely mis-labelled. ARMS WRITTEN BEFORE THIS CHANGE CARRY A
+    # FINISH-TIME VALUE UNDER THE LAUNCH NAME (docs/CLEANUP.md L5).
+    launch_sha = _git_sha()
+
     result = asyncio.run(run(prereg, args.arm, battles, tag))
 
     # CH4 R1 G8: era/provenance stamp — launch sha, the pre-reg's content
     # hash (the thresholds cannot drift between launch and grading without
     # a trace), encoder state, process obs width.
     import hashlib
-    import subprocess
 
     from rl.envs.showdown import OBS_DIM
-    result["launch_git_sha"] = subprocess.run(
-        ["git", "rev-parse", "HEAD"], capture_output=True, text=True
-    ).stdout.strip()
+    result["launch_git_sha"] = launch_sha
+    result["finish_git_sha"] = _git_sha()
     result["prereg_path"] = args.prereg
     result["prereg_sha256"] = hashlib.sha256(Path(args.prereg).read_bytes()).hexdigest()
     result["encoder_env"] = {

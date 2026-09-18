@@ -39,20 +39,41 @@ def code_provenance(data):
     block and nothing has ever read it (docs/CLEANUP.md L5). This reads it. It
     does not refuse -- whether a spanning block is VOID is a maintainer ruling
     -- but a reader is told rather than having to think of the question.
+
+    THE FIELD WAS MIS-NAMED UNTIL 2026-09-18: it was read AFTER the battles, so
+    older arms carry the tree state at COMPLETION under the launch name. An arm
+    with no `finish_git_sha` is one of those and is labelled as such, because
+    comparing a finish sha against a launch sha proves nothing either way.
     """
-    shas = {t: (d or {}).get("launch_git_sha") for t, d in data.items() if d}
-    if not shas:
+    rows = {t: d for t, d in data.items() if d}
+    if not rows:
         return
     print("\n## Code provenance\n")
-    for t, sha in shas.items():
-        print(f"  {t:4s} {(sha or 'UNSTAMPED')[:12]}")
-    distinct = {s for s in shas.values() if s}
+    distinct, legacy = set(), []
+    for t, d in rows.items():
+        start, end = d.get("launch_git_sha"), d.get("finish_git_sha")
+        if end is None:
+            # Written before 2026-09-18: `launch_git_sha` was read AFTER the
+            # battles, so it is the FINISH state under the launch name. Say so
+            # rather than silently comparing it against a real launch sha.
+            legacy.append(t)
+            print(f"  {t:4s} {(start or 'UNSTAMPED')[:12]}  (FINISH-time sha, "
+                  f"mis-named: this arm predates the fix)")
+        else:
+            span = "" if start == end else f" -> {end[:12]} SPANNED A COMMIT MID-ARM"
+            print(f"  {t:4s} {(start or 'UNSTAMPED')[:12]}{span}")
+        if start:
+            distinct.add(start)
     if len(distinct) > 1:
         print(f"\n  THIS BLOCK SPANS {len(distinct)} COMMITS. Every arm is a fresh")
         print("  process importing the working tree, so the arms ran different")
         print("  programs. Say what the diff touched before differencing them.")
-    else:
+    elif not legacy:
         print("\n  One commit across every arm.")
+    if legacy:
+        print(f"\n  {len(legacy)} arm(s) carry a FINISH-time sha under the launch")
+        print("  name, so this block's shas are not directly comparable to each")
+        print("  other. Read the commit LOG against the arm's wall-clock window.")
 
 
 def cmp(lab, a, b, na=None, nb=None):
