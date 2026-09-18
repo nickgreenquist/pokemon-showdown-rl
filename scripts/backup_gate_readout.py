@@ -115,6 +115,12 @@ def main():
         print(f"  {tag:4s} search_rate {r:.4f}  "
               f"score_mean {num(d, 'disagree/score_mean'):.4f}  "
               f"{'OK' if fired else 'VOID -- 1.0 is uniform dose, 0.0 is greedy'}")
+    if arms.get("B2R") and arms.get("B2O"):
+        cap = float(PR["arms"]["B2R"]["depth2"]["cap"])
+        gr, go = (num(arms[t], "depth2/grandchildren_per_decision") for t in ("B2R", "B2O"))
+        binds = gr >= 0.5 * cap
+        print(f"  CAP  B2R {gr:.0f} gc/decision vs B2O {go:.0f}, cap {cap:.0f}  "
+              f"{'BINDS -- the arms differ in how many of OUR replies they saw' if binds else 'OK'}")
     if arms.get("DGV") and arms.get("DRV"):
         gap = abs(num(arms["DGV"], "disagree/search_rate")
                   - num(arms["DRV"], "disagree/search_rate"))

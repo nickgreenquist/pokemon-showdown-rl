@@ -28,6 +28,13 @@
 # as -0.053 on 2026-09-17). Phase S sweeps B2's delta to D1O's target rate and
 # `scripts/backup_gate_pin.py` reads ONLY `search/override_rate`.
 #
+# THE CAP IS NOT A HIDDEN DOSE DIFFERENCE, and it was checked rather than
+# assumed. `opp_k` multiplies grandchildren by ~opp_k, so if `cap` bound, B2R
+# would explore HALF as many of OUR replies as B2O before capping and the two
+# arms would differ in more than the backup. Measured on the banked depth-2
+# arms (D2M, D2N): 881.1 and 866.3 grandchildren per decision against a cap of
+# 6000, so B2R's ~1760 is still far under it. G_CAP below reads it back.
+#
 # READ: B2R - B2O is the FIX. B2R - D1O is whether depth pays once the backup
 # is honest. A null on B2R - D1O is a real null for THIS vehicle; it still does
 # not close MCTS (`rl/search/tree.py` is a different algorithm) and it does not
@@ -124,5 +131,7 @@ R0_gates:
     check: "|disagree/search_rate(DGV) - disagree/search_rate(DRV)| <= 0.03; unmatched, DGV vs DRV measures the FRACTION searched, not the SELECTION"
   - name: G_OVERRIDE_MATCHED
     check: "|search/override_rate(B2R) - search/override_rate(D1O)| <= 0.03 and same for B2O; unmatched, the comparison is the 2026-09-17 artifact again"
+  - name: G_CAP
+    check: "B2R reports depth2/grandchildren_per_decision < 0.5 * depth2.cap AND roughly 2x B2O's; if the cap BINDS, the two arms differ in how many of OUR replies they saw and not only in the backup"
   - name: G_REPLICATE
     check: "|our_win_rate(D1O) - our_win_rate(DUM)| reported beside every delta as this block's realized noise floor"
