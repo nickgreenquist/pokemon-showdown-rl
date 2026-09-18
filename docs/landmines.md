@@ -624,3 +624,92 @@ single 'idea being killed' based on what was tried on a 12M run."*
   speak, say "unmeasured at scale", not "killed at 12M".
 * "Dose-limited null" is a classification for §3, not a licence to cite. If the
   sentence would not survive deleting the number, delete the sentence.
+
+## THE OVERRIDE RATE IS THE CONFOUND, AND A TREE ARM DOES NOT REPORT ONE (2026-09-17/18)
+
+Two separate traps, one field.
+
+**(1) An unmatched override rate turns a null into a result.** JOURNEY 11.5
+measured depth-2 minus depth-1 at **−0.0007 (0.05 se)** when both arms were
+matched on REALIZED override rate, and **−0.053 (3.34 se)** on the same
+checkpoints, the same depth and the same everything else when they were run at
+the same `margin_delta` instead. A deeper backup spreads leaf values wider, so
+an identical delta lets ~2.4× as many overrides through. **Every depth number
+this project published before 2026-09-17 compared arms that differed in how
+often search was BELIEVED, not in how deep it looked.** The rule that came out
+of it is general and is now in CLAUDE.md's conventions: **match the comparison
+on the thing that is NOT being tested**, and let the pin read the matching
+quantity and never a win rate (at n=60 a win rate carries se 0.065 — larger
+than every effect these blocks look for).
+
+**(2) A TREE arm reports `search/override_rate: None`.** That field is gated on
+`margin_delta`, which belongs to the MATRIX selector; the tree carries its
+margin in `tree.margin`. The quantity exists — it is
+`search/flips / (decisions − placeholder_skips)` — but under different
+bookkeeping. Taking the None at face value blocked the tree block's pin from
+07:05Z to 10:45Z on 2026-09-18 with a bare `PIN FAILED`, and the same None
+printed as `nan` in the readout. Both now fall back. **If you add a vehicle,
+check what its override rate is CALLED before you match anything on it.**
+
+**And the gate is not a nuisance parameter — it is the instrument.** RESULTS
+§24: holding depth and opening the gate from ~6.5% to 16–19% costs our critic
+0.006 (0.38 se) and Foul Play's hand-tuned heuristic 0.088 (5.59 se). At a
+tight gate the two evaluators are 0.020 apart (1.56 se) and at an open one
+0.102 (5.62 se). A tight gate does not make a comparison conservative; it makes
+it POWERLESS, because the search changes ~2 decisions of a 30-turn battle.
+
+## `_look_further` WAS OPTIMISTIC, AND ITS DOCSTRING SAID THAT WAS FINE (2026-09-18)
+
+`rl/search/matrix.py::_look_further` took a MAX over our replies with the
+opponent PINNED to the column the root assigned it, and defended that in prose:
+"it biases every row the same way and the root decision is an argmax over rows".
+**It does not.** Rows differ in how many replies they have and how good the best
+one is, so a max over k noisy leaf estimates inflates exactly the rows with the
+most escape hatches — and those are the rows the search then overrides into.
+Measured (RESULTS §24): depth 1 and depth 2 are indistinguishable at a tight
+gate (−0.0007) and **−0.047 at 2.57 se apart once the gate is open**; opening
+the gate costs depth-2 0.052 against depth-1's 0.006. A tight gate was
+discarding the inflated rows; an open gate plays them.
+
+Fixed by `depth2.opp_k` (default 1 = the old backup, bit-identical). Two more
+holes closed with it, both found by writing the tests rather than by reading
+the code: **a leaf the lookahead could not expand was re-embedded at
+`turn + 1 + plies` and RE-SCORED**, so merely turning depth on moved the value
+of leaves it never looked past (every depth-2 arm before 2026-09-18 carries
+that artifact — `docs/CLEANUP.md` L4); and **a SWITCH column produced ZERO
+grandchildren**, because repeating "switch N" at ply 2 is illegal and the raise
+landed in a bare `continue`.
+
+**The general lesson is about the prose, not the code.** A docstring that
+asserts a bias is harmless is a claim, and this one was load-bearing for three
+published numbers. State such claims as something checkable, or check them.
+
+## A RUNNING BLOCK IMPORTS THE WORKING TREE (2026-09-18)
+
+Each arm of an FP block is a FRESH PROCESS launched when its turn comes, so it
+imports whatever is in `rl/` at that moment. Edit a module mid-block and the
+later arms run a different program than the earlier ones. The queue scripts
+freeze THEMSELVES (`mktemp` + re-exec) precisely because of this hazard and do
+nothing about the Python.
+
+It happened on 2026-09-18: the tree block launched at 10:45Z, TV finished, and
+the session then edited `agent.py`, `matrix.py`, `ensemble_search.py` and
+`ch3_fp_h2h.py` before TG/TQ/TGR launched. **That instance was provably
+harmless** — the fixture in `tests/test_tree_decision_golden.py` run against
+the pre-edit tree (`git archive <sha> rl tests | tar -x -C tmp`, then
+`PYTHONPATH=tmp`) gave bit-identical actions, decision stats and pre-existing
+counters on all three decide rules; only wall-clock `tree/ms_*` differed, and
+the arms are ITERATION-bounded (`iters: 100`), so timing cannot change what is
+searched.
+
+Three things make this cheap to handle, and all three exist now: **(i)** every
+arm's JSON has carried `launch_git_sha` since CH4 R1's G8 block, **(ii)** the
+readouts read it and say when a block spans more than one commit, and
+**(iii)** the golden fixture answers "did my edit change the search?" in a
+second. Whether a spanning block should be REFUSED is still a maintainer
+ruling (`docs/CLEANUP.md` L5).
+
+**Also pinned by that fixture, and worth knowing on its own: the ENCODER
+VERSION is part of the search.** The tree encodes every leaf, so under the
+suite's default (`OBS_DIM` 612, flags unset) `visits` and `gumbel` pick a
+DIFFERENT ACTION on the same fixture than under the arms' 828.

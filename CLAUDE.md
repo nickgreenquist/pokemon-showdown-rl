@@ -174,6 +174,26 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   window that straddles startup invents records; use the conforming window.
 - A wall-clock ETA is not progress — check s/battle against a comparable
   completed arm (FP@20 ≈ 1.2–1.5 s, FP@100 ≈ 6–7 s); 10× off means stalled.
+- **MATCH ON THE OVERRIDE RATE, NOT THE DELTA** — an unmatched gate turned a
+  −0.0007 null into a −0.053 "result" on the same checkpoints and the same
+  depth (2026-09-17). And a TREE arm reports `search/override_rate: None` (the
+  field is gated on the matrix's `margin_delta`); the quantity is
+  `search/flips / (decisions − skips)`. Taking the None at face value blocked a
+  pin for four hours. **The gate is the instrument, not a nuisance parameter:**
+  at ~6.5% override the search changes ~2 decisions of a 30-turn battle, which
+  BOUNDS any leaf-value effect (RESULTS §24).
+- **A RUNNING BLOCK IMPORTS THE WORKING TREE.** Each arm is a fresh process, so
+  editing `rl/` mid-block makes the later arms a different program. Every arm
+  stamps `launch_git_sha` and both live readouts now say when a block spans
+  commits; `tests/test_tree_decision_golden.py` answers "did my edit change the
+  search?" in a second. The encoder version is part of the search — the same
+  fixture picks a different action at OBS_DIM 612 than at 828.
+- **`_look_further` WAS OPTIMISTIC and its docstring said that was fine** — a
+  max over our replies with the opponent pinned inflates the rows with the most
+  escape hatches, which are the rows search overrides into. Fixed 2026-09-18
+  behind `depth2.opp_k` (default 1 = the old backup, bit-identical); **every
+  depth-2 arm before that date also carries an unexpanded-leaf re-scoring
+  artifact** (`docs/CLEANUP.md` L4).
 - **EVERY SEARCH NUMBER BEFORE 2026-09-11 MEASURES A BROKEN SELECTOR** (D4's hard
   argmax overrode a 0.789 policy on 72.8% of decisions; D5's margin gate turns
   -0.035 into +0.042 on the same critic). Grep `PRE-D5`. Such a number may NOT
