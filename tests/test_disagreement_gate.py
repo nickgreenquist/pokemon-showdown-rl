@@ -200,3 +200,43 @@ def test_a_gated_decision_is_excluded_from_the_searched_denominator():
     block = src[i:i + 400]
     assert "disagree/eligible" in block and "disagree/searched" in block, (
         "the gate's skips are not folded into `skips`")
+
+
+# ------------------------------------------------------------- the control
+def test_random_searches_the_fraction_the_threshold_names():
+    """Uniform in [0,1), so a threshold t searches ~(1 - t) BY CONSTRUCTION --
+    which is how the control gets MATCHED to the real gate's realized rate
+    instead of swept for it."""
+    sa = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7,
+                     disagree={"metric": "random", "threshold": 0.8})
+    m = np.asarray(_mask())
+    prior, _ = sa._forward(np.zeros(8, dtype=np.float32), _mask())
+    hits = sum(sa._disagreement(prior, m, b, 3, 1) >= 0.8 for b in range(2000))
+    assert 0.17 < hits / 2000 < 0.23, hits / 2000
+
+
+def test_random_is_deterministic_per_decision_key():
+    """The replay clause holds for dials: the same decision must score the
+    same, or a resumed arm is a different experiment from the one it resumes."""
+    sa = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7,
+                     disagree={"metric": "random", "threshold": 0.5})
+    m = np.asarray(_mask())
+    prior, _ = sa._forward(np.zeros(8, dtype=np.float32), _mask())
+    a = sa._disagreement(prior, m, 11, 4, 2)
+    assert a == sa._disagreement(prior, m, 11, 4, 2)
+    assert a != sa._disagreement(prior, m, 11, 4, 3)
+
+
+def test_a_gate_at_zero_expands_exactly_the_leaves_the_ungated_arm_does():
+    """The control's whole value is that the ONLY thing it changes is WHICH
+    decisions are searched. If the gate's coin came off the search's own rng,
+    a gated arm would expand different leaves and the comparison would be
+    confounded by the thing that is not being tested."""
+    ungated = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7)
+    gated = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7,
+                        disagree={"metric": "random", "threshold": 0.0})
+    a_u, s_u = _act(ungated)
+    a_g, s_g = _act(gated)
+    assert a_u == a_g
+    assert s_u["search/leaves"] == s_g["search/leaves"]
+    assert s_u["search/chosen"] == s_g["search/chosen"]

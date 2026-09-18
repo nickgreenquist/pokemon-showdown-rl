@@ -50,6 +50,10 @@ MARGIN_DELTA_OFF = None
 # noise draws NEVER share (or shift) the determinization stream — an E2 arm
 # replays the exact determinizations of the E0 arm, differing only at leaves.
 _NOISE_SALT = 0xE2C0DE
+# The gate's own stream, salted off the determinization and noise streams so
+# that turning the gate ON cannot change which leaves an otherwise identical
+# arm expands. Without this, the `random` control would not be a control.
+_GATE_SALT = 0x6A7E60
 
 
 def lane_seed(lane: str) -> int:
@@ -154,8 +158,13 @@ class SearchAgent:
         # None = search every decision, bit-identical to every banked arm.
         if disagree is not None:
             metric = disagree.get("metric", "votes")
-            assert metric in ("votes", "margin"), metric
+            assert metric in ("votes", "margin", "random"), metric
             assert 0.0 <= float(disagree["threshold"]) <= 1.0, disagree
+            # `random` is the CONTROL, not a lever: it searches the same
+            # FRACTION of decisions the real gate does, chosen by a coin. A
+            # gated arm that does not beat it has shown that concentrating the
+            # budget pays, not that the committee knows WHERE to concentrate it
+            # -- and those are different claims.
             if metric == "votes":
                 assert len(getattr(agent, "members", []) or []) >= 2, (
                     "the votes metric needs a committee: a one-member "
@@ -249,7 +258,9 @@ class SearchAgent:
             q = torch.softmax(self._agent.aux_head(*feats), dim=-1)[0].numpy()
         return prior, q
 
-    def _disagreement(self, prior: np.ndarray, mask: np.ndarray) -> float:
+    def _disagreement(self, prior: np.ndarray, mask: np.ndarray,
+                      battle_index: int = 0, turn: int = 0,
+                      decision_index: int = 0) -> float:
         """How CONTESTED is this decision, in [0, 1]? Higher = more contested.
 
         Two metrics, and the choice is not cosmetic -- they disagree about what
@@ -263,6 +274,12 @@ class SearchAgent:
           margin  1 - (p_top1 - p_top2) on the pooled masked prior. Continuous,
                   defined for a single agent too, and it measures the pooled
                   policy's own confidence rather than the members' agreement.
+          random  a coin, on its OWN salted stream. THE CONTROL: it searches
+                  the same fraction of decisions and chooses them by luck, so
+                  "the gate pays" and "the committee knows where to spend"
+                  are separable claims. Uniform in [0,1), so a threshold t
+                  searches ~(1 - t) of decisions BY CONSTRUCTION, which is how
+                  it gets matched to the real gate's realized rate.
 
         A decision with one legal action scores 0 under both: there is nothing
         to be contested about, and searching it is pure waste.
@@ -270,7 +287,12 @@ class SearchAgent:
         legal = np.flatnonzero(mask)
         if legal.size <= 1:
             return 0.0
-        if self._disagree.get("metric", "votes") == "margin":
+        metric = self._disagree.get("metric", "votes")
+        if metric == "random":
+            key = hash((self._seed, battle_index, turn, decision_index, _GATE_SALT))
+            return float(np.random.default_rng(
+                key & 0xFFFFFFFFFFFFFFFF).random())
+        if metric == "margin":
             p = np.sort(prior[legal])[::-1]
             return float(np.clip(1.0 - (p[0] - p[1]), 0.0, 1.0))
         logps = getattr(self._agent.actor, "last_member_logps", None)
@@ -386,14 +408,22 @@ class SearchAgent:
             action = int(legal[np.argmax(prior[legal])])
             return action, {"search/placeholder_skip": 1, "search/chosen": action}
         self._entropies.append(float(-(q * np.log(q + 1e-12)).sum()))
+        if self._evaluator is not None and self._evaluator["kind"] == "oppact_uniform":
+            q = np.full(N_L6, 1.0 / N_L6)
+        turn = int(battle.turn)
+        rng = decision_rng(self._seed, battle_index, turn, decision_index)
+        # THE GATE SITS HERE -- after `rng`, before every vehicle -- so that it
+        # covers the matrix, the tree and MCTS alike, and so a skipped decision
+        # leaves the search's own rng stream untouched.
         if self._disagree is not None:
-            score = self._disagreement(prior, np.asarray(mask))
+            score = self._disagreement(
+                prior, np.asarray(mask), battle_index, turn, decision_index)
             self.counters["disagree/eligible"] += 1
             self.counters["disagree/score_sum"] += score
             if score < float(self._disagree["threshold"]):
                 # NOT SEARCHED. The action is the policy's own argmax, which is
-                # exactly what the greedy object plays, so a gate at threshold
-                # 1.0 reproduces greedy and a gate at 0.0 reproduces the
+                # exactly what the greedy object plays, so a gate above every
+                # score reproduces greedy and a gate at 0.0 reproduces the
                 # ungated arm -- the two ends this dial has to have.
                 legal = np.flatnonzero(np.asarray(mask))
                 action = int(legal[np.argmax(prior[legal])])
@@ -401,10 +431,6 @@ class SearchAgent:
                                 "search/chosen": action}
             self.counters["disagree/searched"] += 1
             self.counters["disagree/score_sum_searched"] += score
-        if self._evaluator is not None and self._evaluator["kind"] == "oppact_uniform":
-            q = np.full(N_L6, 1.0 / N_L6)
-        turn = int(battle.turn)
-        rng = decision_rng(self._seed, battle_index, turn, decision_index)
         if self._tree is not None:
             from rl.search.tree import TreeCfg, tree_decision
             action, stats = tree_decision(
