@@ -75,7 +75,11 @@ done
 log "PHASE S DONE"
 
 git status --porcelain | grep -q . && { log "DIRTY TREE -- refusing to pin"; exit 1; }
-"$PY" scripts/tree_r5_pin.py --commit >> "$LOG/pin.log" 2>&1 || { log "PIN FAILED"; exit 1; }
+if grep -q "margin: PINQ" configs/eval/tree_r5.yaml; then
+  "$PY" scripts/tree_r5_pin.py --commit >> "$LOG/pin.log" 2>&1 || { log "PIN FAILED"; exit 1; }
+else
+  log "PIN already applied (margin resolved in the config)"
+fi
 log "PIN: $(grep -- '->' "$LOG/pin.log" | tr '\n' ' ')"
 
 log "PHASE R: TV/TG/TQ 1000 each + TGR greedy anchor 1000"
