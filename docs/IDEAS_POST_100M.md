@@ -369,7 +369,7 @@ never mid-fleet.
 
 
 **2.10 Fix `_look_further`'s OPTIMISM — an IDENTIFIED DEFECT, not a lever
-(added 2026-09-18; hours of work, no fleet).** `rl/search/matrix.py::_look_further`
+(added 2026-09-18; **BUILT the same day**, unrun as an arm).** `rl/search/matrix.py::_look_further`
 takes a **max over OUR replies with no min over the OPPONENT's**, and its
 docstring justifies that by asserting the optimism "biases every row the same
 way". **It does not**, and the failure mode is systematic: rows differ in how
@@ -378,9 +378,25 @@ exactly the rows with the most escape hatches — which are the rows search then
 overrides into. **What it costs, measured (RESULTS §24):** depth 1 and depth 2
 are indistinguishable at a tight gate (−0.0007) and **−0.047 apart at 2.57 se
 once the gate is open**; opening the gate costs depth-2 **0.052** against
-depth-1's 0.006. **Fix:** min over the opponent's replies at ply 2 (the standard
-minimax backup), or an explicit expectation over the opponent's row under its
-own policy — the matrix already holds both sides' distributions. **Why it is
+depth-1's 0.006. **BUILT 2026-09-18** (`rl/search/matrix.py`,
+`tests/test_look_further_backup.py`, 11 tests): a `depth2.opp_k` dial, default
+**1 = the old pinned-opponent max, bit-identical**, so nothing banked moves;
+at `opp_k>1` the opponent answers each of our replies with up to k moves (its
+column action first) and the back-up is max-over-paths of min-over-that-path —
+exactly minimax at `plies=1`, which is what every arm has ever run. Counters
+before arms: `depth2/opp_replies_mean` proves the opponent really got answers
+and `depth2/minimax_drop` proves the min moved the value.
+**A SECOND DEFECT fell out of writing the tests and is also fixed:** a leaf the
+lookahead could not expand at all was re-embedded at `turn + 1 + plies` and
+re-scored, so merely TURNING DEPTH ON moved its value by whatever the encoder
+does with a shifted turn count — noise attributed to depth. It now keeps the
+value it has (`depth2/leaves_unexpanded` counts them), and **every depth-2 arm
+before 2026-09-18 carries that artifact**. A third, smaller hole closes with
+it: a SWITCH column produced zero grandchildren, because repeating "switch N"
+at ply 2 is illegal and the raise landed in a `continue`.
+**STILL UNRUN.** The arm to run is D1 vs depth-2-with-`opp_k`, **at an open
+gate** (the tight gate is where §22 found nothing) and **matched on override
+rate**. **Why it is
 Tier 0 and not Tier 1:** it does not need a fleet, it does not need a pre-reg
 (hacking), and until it lands **no depth-2 number on the matrix vehicle measures
 depth** — it measures this bug. **It also gates a ruling:** the maintainer was
