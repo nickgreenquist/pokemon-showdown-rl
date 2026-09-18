@@ -75,9 +75,8 @@ NOT CLOSED** (§22's scope limit, ruling owed; §24 adds a reason and §26 a sec
 known-optimistic backup, and its `q + margin` selector is the WORST of three decide rules inside a tree).
 
 ## Next actions
-1. **RUN 2.11 (the luck ceiling) FIRST** — it gates 4.9 and every evaluator item, costs ~45 min, and is
-   detached + resume-safe. If `EV_ceiling ≈ 0.6` the critic is DONE and every remaining lever is on the
-   POLICY, which re-ranks everything below.
+1. **RUN 2.11 (the luck ceiling) FIRST** — it gates 4.9 and every evaluator item, costs ~45 min, detached and
+   resume-safe. If `EV_ceiling ≈ 0.6` the critic is DONE and every remaining lever is on the POLICY.
 2. **Then `scripts/backup_gate_queue.sh`** (~8 h, overnight): 2.10's `opp_k` minimax backup vs the old one
    vs depth-1, at an OPEN gate and matched on override rate; and 8.5's gate against a COIN at the same rate
    and a uniform arm at matched compute. Config/pin/queue/readout committed and tested offline.
