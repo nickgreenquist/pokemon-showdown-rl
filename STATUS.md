@@ -81,8 +81,8 @@ known-optimistic backup, and its `q + margin` selector is the WORST of three dec
 2. **Then `scripts/backup_gate_queue.sh`** (~8 h, overnight): 2.10's `opp_k` minimax backup vs the old one
    vs depth-1, at an OPEN gate and matched on override rate; and 8.5's gate against a COIN at the same rate
    and a uniform arm at matched compute. Config/pin/queue/readout committed and tested offline.
-3. **NEW, from §26 — the TREE BUDGET on the gumbel rule** (IDEAS 8.6): `iters` 100/300/900. Resolving
-   TG's +0.021 at the SMALLEST budget would spend ten hours on the weakest version of the arm.
+3. **NEW from §26 — the TREE BUDGET on the gumbel rule** (IDEAS 8.6): `iters` 100/300/900; resolving TG's
+   +0.021 at the SMALLEST budget would spend ten hours on the weakest version of the arm.
 4. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its own stopping rule); the LR-anneal floor
    ([RWL-4]; W's EV FALLS through the annealed tail 0.675→0.596, so the tail is not inert); the next fleet's
    shape; **whether a null on the MATRIX vehicle may close MCTS**; and whether 4.9 (expert iteration) gets a
@@ -95,7 +95,7 @@ known-optimistic backup, and its `q + margin` selector is the WORST of three dec
   the wrong thing.** Each now has a test that reads the source.
 - **SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS**, and **ONE RUNG IS WORTH ±0.02** (three redraws of one
   checkpoint spread 0.0200): never difference across sessions without an anchor; read curves, not rungs.
-- **SEEDS DO NOT PAIR BATTLES** (`docs/landmines.md`): shared-seed agreement is at the independence level
-  (0.66–0.73), so every "matched seed-for-seed, McNemar se" phrase was UNPAIRED. Replicates are the instrument.
-- **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS ONLY** (maintainer, 2026-09-17). Hacking needs none; the
-  anti-self-deception rules do not relax — counters to disk, matched comparisons, same-session anchors.
+- **SEEDS DO NOT PAIR BATTLES** (`docs/landmines.md`): shared-seed agreement is at the independence level, so
+  every "matched seed-for-seed, McNemar se" phrase was UNPAIRED. Replicates are the instrument.
+- **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS ONLY** (maintainer, 2026-09-17); hacking needs none, and
+  the anti-self-deception rules do not relax — counters to disk, matched comparisons, same-session anchors.
