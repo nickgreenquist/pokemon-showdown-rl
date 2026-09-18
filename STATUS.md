@@ -82,7 +82,12 @@ known-optimistic backup, and its `q + margin` selector is the WORST of three dec
    and a uniform arm at matched compute. Config/pin/queue/readout committed and tested offline.
 3. **NEW from §26 — the TREE BUDGET on the gumbel rule** (IDEAS 8.6): `iters` 100/300/900; resolving TG's
    +0.021 at the SMALLEST budget would spend ten hours on the weakest version of the arm.
-4. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its own stopping rule); the LR-anneal floor
+4. **NEW 2026-09-18 (§28): every turn-cap stall is a two-mon switch loop against a FROZEN opponent** —
+   ~950 switches, 100% alternating, six times across three blocks and two objects, with and without
+   search. The locked protocol's own determinism sustains it (argmax in a state that stopped changing).
+   A thrown-away win; ties are non-wins. `rl/common/loop_breaker.py` is BUILT and WIRED NOWHERE — it
+   changes the policy form, so it needs a ruling. Latent ladder risk (R5 max 121 turns, 0 ties).
+5. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its own stopping rule); the LR-anneal floor
    ([RWL-4]; W's EV FALLS through the annealed tail 0.675→0.596, so the tail is not inert); the next fleet's
    shape; **whether a null on the MATRIX vehicle may close MCTS**; and whether 4.9 (expert iteration) gets a
    fleet — it needs a pre-reg and a mechanism co-primary that is NOT explained variance.

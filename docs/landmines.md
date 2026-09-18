@@ -751,7 +751,29 @@ comparisons were already barred; this is a second, independent reason.
 **What it does NOT say.** Nothing about the matrix vehicle, the gate, or depth —
 the two long battles that started this live in open-gate arms, but greedy anchors
 and old greedy arms hit the cap at similar rates (`ch5_r1_offsh/rs81` is 15 of
-3000 on a plain greedy seat). **The behaviour itself is unexamined**: a
-1000-turn gen-1 battle is presumably a recovery loop (Softboiled/Recover mirrors,
-or a switching cycle), and nobody has read one. That is a replay question, not a
-statistics question, and it is open.
+3000 on a plain greedy seat).
+
+**AND THE BEHAVIOUR IS NOW EXAMINED — it is one bug, every time**
+(`scripts/stall_forensics.py`, RESULTS §28). Six stalls read across three blocks
+and two objects, with and without search, are identical: **the opponent is down
+to one Pokémon FROZEN SOLID** — gen-1 freeze is permanent without a fire move, so
+it cannot act — and our seat **oscillates between exactly two Pokémon for ~950
+turns, 100% strictly alternating**, instead of attacking a helpless target. Turn
+cap, tie, non-win. **A thrown-away win.**
+
+**THE MECHANISM IS THE LOCKED PROTOCOL'S OWN DETERMINISM.** Argmax in a state
+that has stopped changing repeats forever. Training SAMPLES, so this never
+happens there: it is *created* by evaluating deterministically, and it is
+invisible to every statistic that does not look at turn counts. A plain greedy
+seat with no search dials at all produces it 15 times in 3000 battles, so search
+neither causes nor prevents it.
+
+**The fix, and why it is not applied.** `rl/common/loop_breaker.py` — on the
+fourth occurrence of an identical (observation, action) pair inside one battle,
+take the next-best legal action, escalating a rank per escape so a cycle of any
+period unwinds. It stays DETERMINISTIC (a function of the episode's history, so
+a replay plays the same moves) and it **cannot change a single non-looping
+battle**, which is pinned by a test. But it is a change to the POLICY FORM and
+the locked protocol names the policy, so **it is wired nowhere and needs a
+maintainer ruling.** LADDER R5 never hit the bug (max 121 turns, zero ties) —
+human opponents do not freeze-lock and then sit — so the risk is latent.

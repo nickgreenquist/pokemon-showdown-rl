@@ -471,6 +471,26 @@ untested object.
 **What it does NOT do:** close the gap. It is 12% of it; the other 88% is
 ranking (§27.1), which is 4.9's and 4.1's territory.
 
+**2.14 BREAK THE DETERMINISTIC-POLICY LOOP — a MEASURED BUG with a BUILT fix,
+waiting on one ruling (added 2026-09-18; RESULTS §28).** Every turn-cap stall
+this project has produced is the same thing: the opponent is down to one Pokémon
+**frozen solid**, the state stops changing, and a deterministic argmax
+**oscillates between exactly two Pokémon for ~950 turns** — 100% strictly
+alternating, six times across three blocks and two objects, with and without
+search — until the 1000-turn cap makes it a tie, which the locked protocol counts
+as a NON-WIN. **It is a thrown-away win against a helpless opponent.**
+**BUILT:** `rl/common/loop_breaker.py` (13 tests) takes the next-best legal
+action on the fourth identical (observation, action) pair in a battle, escalating
+a rank per escape so a cycle of any period unwinds. It stays **deterministic** —
+a function of the episode's history, so a replay plays the same moves — and a
+test pins that it **cannot change a single non-looping battle**.
+**WIRED NOWHERE, AND THE RULING IS WHY:** it changes the POLICY FORM and the
+locked protocol names the policy. **Worth:** up to +0.011 on the worst banked arm
+and ~+0.0014 typically — small, free, and it removes a behaviour that is simply
+wrong. **It is also a LADDER RISK:** R5 never hit it (max 121 turns, 0 ties)
+because humans do not freeze-lock and then sit, but a 1000-turn rated game would
+be ugly and R6 is unruled.
+
 ## 3. Ruled out / answered — do not re-propose
 
 **How to read this section (maintainer ruling, 2026-09-06).** Two verdicts
