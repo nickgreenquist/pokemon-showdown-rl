@@ -2080,3 +2080,58 @@ from it** (IDEAS 4.9).
 Barred, by name, on these numbers: "we beat Foul Play" without its budget; any ladder
 projection in either direction; and treating the 0.5600-vs-0.472 gap as a measured
 recipe effect.
+
+## 26. Addendum, 2026-09-18 — **a real tree over our critic: nothing clears greedy, but the DECIDE RULE turns out to matter more than how often search acts**
+
+`readouts/TREE_R5_READOUT.md`; config `configs/eval/tree_r5.yaml`. Hacking run,
+**credits nothing**. Off FP@20, R5 committee, n=1000 per arm, both FP@20 disclosures
+travelling and the budget named.
+
+Every search number this project owns is the **matrix family** — one ply, an expectation
+over the opponent's column, decided by a hard argmax or a margin gate. `rl/search/tree.py`
+is a different algorithm (decoupled UCT, our policy as the PUCT prior, our critic at the
+leaves, batch-16 leaf-parallel descents under a virtual loss) and had never faced a real
+opponent. §22 declined to close MCTS on a matrix null for exactly this reason.
+
+| arm | decide rule | acted on | changed/battle | win rate | vs greedy |
+|---|---|---|---|---|---|
+| **TG** | gumbel | 11.44% | 3.6 | **0.6040** | **+0.0210 at 0.96 se** |
+| TV | visits (Foul Play's rule) | 3.65% | 1.1 | 0.5970 | +0.0140 at 0.64 se |
+| TQ | q + margin (the matrix selector's shape) | 9.34% | 2.9 | 0.5600 | −0.0230 at 1.04 se |
+| **TGR** | GREEDY, this block | — | — | **0.5830** | the bar |
+
+**NOTHING CLEARS GREEDY** — the credit line needs ≥ +0.025 **and** ≥ 2·se_diff, and TG's
++0.0210 at 0.96 se misses both. **And nothing is below it either, which is new:** every
+matrix arm ever measured was level with or under greedy. The block is calibrated —
+TGR − the three-block pooled greedy is **+0.0065 at 0.38 se**.
+
+**THE FINDING IS THAT THE DECIDE RULE, NOT THE ACTION RATE, ORDERS THESE ARMS.** TQ acts
+*between* TV and TG (9.34% against 3.65% and 11.44%) and reads **lowest**; TG − TQ is
+**+0.0440 at 2.00 se**. Every previous depth or search result in this file was explicable
+by how often the search was believed (§22: the same arm reads −0.0007 or −0.053 on that
+alone). **This ordering runs against that confound rather than with it** — the arm that
+acts LEAST reads second-best — so what is left is the rule that turns a finished tree
+into an action. **The worst of the three is `q + margin`, which is the shape of the
+selector every banked matrix number uses.**
+
+**TG's +0.021 IS UNRESOLVED, NOT A NULL.** se_diff at n=1000/arm is 0.0220, so an
+advisory-scale effect sits in the recording band by construction (§1's constraint, at the
+eval rather than the fleet). **Resolving +0.0210 at 2 se needs n≈4,375/arm; clearing the
++0.025 floor at 2 se needs n≈3,087.** Under CLAUDE.md rule 6 this closes nothing.
+
+Disclosures. All four arms 1000/1000 resolved, 0 mask desyncs; ties 1/1/1/0, counted as
+non-wins. **TGR reports `max_concurrent_live_battles: 2` on 109 concurrent decisions of
+~29,500 (0.4%)** — a disclosure, not a void, and concurrency divides Foul Play's
+time-boxed budget, so it can only have flattered the ANCHOR, which is the conservative
+direction here. Cost 92.7–97.7 ms/decision against greedy's ~0 (3.3 s/battle vs 1.95).
+The block spans three commits and **`rl/` is identical across them**; a decision fixture
+run against the pre-block tree gives bit-identical actions, stats and counters on all
+three rules (`tests/test_tree_decision_golden.py` pins it).
+
+**Every arm is `iters: 100`, so nothing here speaks to the BUDGET.** The 90.9%
+visit-concentration measurement (2026-09-11) says a small budget cannot overrule a sharp
+prior, and TV's 1.1 changed decisions per battle is that showing up in a win rate.
+
+Barred, by name: "a tree beats greedy" (it does not, at this n); "gumbel beats visits"
+(+0.0070 at 0.32 se, and confounded by action rate); reading TG's +0.021 as a null; and
+any claim about MCTS at a budget this block did not run.

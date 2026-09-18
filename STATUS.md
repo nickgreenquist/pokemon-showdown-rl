@@ -16,39 +16,47 @@ Same session W020 0.5500; **25× budget buys Foul Play +0.010 at 0.32 se**. The 
 `readouts/FP500_R5_READOUT.md`.**
 **JOURNEY 11.5's premise "FP beats us at 500 ms" is retracted for THIS object.**
 ## **LADDER R5 — GXE 73.9 / Glicko-1 1697 ± 25 / Elo 1457, n=200, LISTED (cutoff 1354.2, ~103 clear)**
-Committee of the 200M W finals (w104/w112/w120), greedy, 2026-09-16: **128–72 (0.640)**, rd 25.0, attempt 1,
-NO relaunch/resume, mean decision 5.40 ms, 0 decision errors, 0 mask desyncs, account reconciles 327–273/600
-with ZERO unlogged games. 146/200 battles entered at or above the STOP cutoff, 9 excursions, peak 1541;
-93–53 listed vs 35–19 below (indistinguishable). DISCLOSURES: warm-started account (400 prior games — GXE/
-Glicko/Elo are ACCOUNT properties); STANDALONE DESCRIPTIVE; **no R1/R3/R4/R5 delta is an effect**; barred
-list binding. Pool (CLEANUP L1): 102 opponents, 63.5% repeats; both adaptation tests null.
-`readouts/LADDER_R5_READOUT.md`, §20. **Anchor battery COMPLETE: BC-clone 0.9640 (n=500).**
+Committee of the 200M W finals (w104/w112/w120), greedy, 2026-09-16: **128–72**, rd 25.0, attempt 1, no
+relaunch/resume, 0 decision errors, 0 mask desyncs, account reconciles 327–273/600 with ZERO unlogged games.
+146/200 battles at or above the STOP cutoff; 93–53 listed vs 35–19 below (indistinguishable). DISCLOSURES:
+warm-started account (400 prior games — GXE/Glicko/Elo are ACCOUNT properties); STANDALONE DESCRIPTIVE;
+**no R1/R3/R4/R5 delta is an effect**; barred list binding. Pool (CLEANUP L1): 102 opponents, 63.5% repeats,
+both adaptation tests null. `readouts/LADDER_R5_READOUT.md`, §20. **Anchors COMPLETE: BC-clone 0.9640.**
 **GEN-4 CLOSED (§19): vs SH 0.8788, CREDITS NOTHING. LADDER R4: Elo 1354, n=200. From here it is all gen 1.**
 **JOURNEY 7.5 engine port EXITED; A-1 PASSED TWICE** (−0.00436 travels forever). k=8 idle: w3 1620, w6 1282 steps/s/lane.
 
-## RUNNING NOW — `scripts/tree_r5_queue.sh` (our critic inside a REAL tree, off FP@20)
-Launched 10:45Z, ETA ~14:40Z. Arms n=1000 each: **TV** visits (FP's/AlphaZero's rule), **TG** gumbel,
-**TQ** q at margin 0.20 (flip 0.0888 vs D1's 0.0682 target), **TGR** greedy anchor. Decoupled UCT, our
-policy as PUCT prior, our critic at leaves, batch-16 leaf-parallel under virtual loss.
-**THE BAR IS GREEDY 0.5765.** If it clears, step 2 is scaling the budget for a 500 ms h2h vs FP@500.
-Monitor `logs/tree_r5/queue.log`; readout `scripts/tree_r5_readout.py`. Caveat measured 2026-09-11:
-**90.9% of root visits land on ONE action** at a small budget, so visit share is nearly the prior.
+## **THE TREE (§26, `readouts/TREE_R5_READOUT.md`) — DONE 14:08Z: nothing clears greedy, but the RULE matters**
+A real decoupled-UCT tree, our policy as PUCT prior, our critic at leaves, n=1000/arm off FP@20:
 
-## BUILT TODAY, ALL UNRUN — the three cheapest items the post-ladder reads point at
-- **IDEAS 2.10 — `depth2.opp_k`** (`rl/search/matrix.py`, 11 tests). Default 1 = the old pinned-opponent
-  max, BIT-IDENTICAL; >1 gives the opponent answers and backs up max-of-min (exactly minimax at plies=1).
-  **A SECOND DEFECT fell out of the tests:** an unexpandable leaf was re-embedded at `turn+1+plies` and
-  re-scored, so TURNING DEPTH ON moved values it never looked past. **Every depth-2 arm before today carries
-  it.** Third hole closed: a SWITCH column produced ZERO grandchildren (illegal repeat → silent `continue`).
-- **IDEAS 8.5 — the disagreement gate** (`SearchAgent(disagree=…)`, 14 tests): search only where the
-  committee is split. `votes` is free (the members' log-probs are already computed); `margin` works for a
-  single agent. Threshold 0.0 = search everything, above every score = exactly greedy. Gate skips fold into
-  the `skips` denominator or a healthy gated arm reads VOID.
-- **IDEAS 2.11 — the luck ceiling** (`scripts/outcome_variance.py`) is now RESUME-SAFE and rate-readable
-  (rule 4): one position at a time, row appended as measured. **RUN IT BEFORE ANY FLEET — it BOUNDS
-  everything.** If EV_ceiling ≈ 0.6 the critic is DONE and every remaining lever is on the POLICY.
-- `docs/IDEAS_POST_100M.md` **Round 4**: §3 width/capacity ANSWERED (both halves), §8.1/§8.2 amended,
-  **4.9 EXPERT ITERATION added as the TOP §4 item** (maintainer, 2026-09-18), 2.10 / 2.11 / 2.12 / 8.5 new.
+| arm | rule | acted on | changed/battle | win rate | vs greedy |
+|---|---|---|---|---|---|
+| **TG** | gumbel | 11.44% | 3.6 | **0.6040** | **+0.0210 at 0.96 se** |
+| TV | visits (FP's rule) | 3.65% | 1.1 | 0.5970 | +0.0140 at 0.64 se |
+| TQ | q + margin (the MATRIX selector's shape) | 9.34% | 2.9 | 0.5600 | −0.0230 at 1.04 se |
+| **TGR** | GREEDY, this block | — | — | **0.5830** | the bar |
+
+**NOTHING CLEARS THE CREDIT LINE** (≥ +0.025 AND ≥ 2·se_diff). **And nothing is BELOW greedy either —
+that is new:** every matrix arm ever measured was level or under. Block calibrated (TGR − pooled greedy
++0.0065 at 0.38 se). **THE FINDING: the DECIDE RULE orders these arms, not the action rate.** TQ acts
+BETWEEN TV and TG and reads LOWEST; TG − TQ = **+0.0440 at 2.00 se**. Every earlier search result was
+explicable by how often search was believed (§22); this ordering runs AGAINST that confound. The worst
+rule is `q + margin` — **the shape every banked matrix number uses. TG's +0.021 is UNRESOLVED, not a
+null**: se_diff 0.0220 at n=1000, and resolving it at 2 se needs n≈4,375/arm (the +0.025 floor, ≈3,087).
+**Every arm is `iters: 100`, so nothing here speaks to the BUDGET** — and 90.9% of root visits land on
+one action at a small budget, which is what TV's 1.1 changed decisions/battle is.
+
+## BUILT 2026-09-18, ALL UNRUN — details in `docs/IDEAS_POST_100M.md` Round 4
+- **2.10 `depth2.opp_k`** (11 tests): default 1 = the old pinned-opponent max, BIT-IDENTICAL; >1 gives the
+  opponent answers and backs up max-of-min (= minimax at plies=1). **TWO MORE DEFECTS fell out of the
+  tests:** an unexpandable leaf was re-embedded at `turn+1+plies` and RE-SCORED (**every depth-2 arm before
+  today carries it**, CLEANUP L4), and a SWITCH column produced ZERO grandchildren.
+- **8.5 the disagreement gate** (`SearchAgent(disagree=…)`, 17 tests): search only where the committee is
+  split. `votes` is free; `margin` works for one agent; **`random` is the CONTROL** that separates "spend it
+  HERE" from "spend it CONCENTRATED". Threshold 0 = search all, above every score = exactly greedy.
+- **2.11 the luck ceiling** (`scripts/outcome_variance.py`) is now RESUME-SAFE and rate-readable (rule 4).
+- **4.9 EXPERT ITERATION is the maintainer's TOP §4 item** (2026-09-18); design in
+  `docs/proposals/EXPERT_ITERATION.md`, gated on 2.11, with a falsifier that is free: measure
+  KL(π′‖prior) on banked arms — if the expert IS the student the lever dies without a fleet.
 
 ## THE MONSTER (JOURNEY 10) — DONE 2026-09-15, ZERO RESUMES; CREDITED for the RECIPE (§21)
 Six lanes k=8: **W trio = L2 + 1024 critic** (104/112/120, 46.3 h); **L2LAM = L2 + MC targets** (128/136/144).
@@ -68,12 +76,15 @@ SELECTOR alone bought +0.129 — search has only ever paid as a **rarely-fired V
 had a known-optimistic backup until today.
 
 ## Next actions
-1. **Tree readout → RESULTS §26** when the queue lands, then this file. (§25 is FP@500.)
-2. **Run 2.11 (luck ceiling) BEFORE anything else** — it gates 4.9 and every evaluator item. Hours, no
-   server, no FP; detached + resume-safe now.
-3. **Then the two built-and-unrun arms, both at an OPEN gate and matched on override rate:** 2.10's
-   `opp_k` depth-2 vs depth-1, and 8.5's disagreement gate (threshold swept for realized search_rate first,
-   exactly as the margin was swept for override rate).
+1. **RUN 2.11 (the luck ceiling) FIRST** — it gates 4.9 and every evaluator item, costs ~45 min, and is
+   detached + resume-safe. If `EV_ceiling ≈ 0.6` the critic is DONE and every remaining lever is on the
+   POLICY, which re-ranks everything below.
+2. **Then `scripts/backup_gate_queue.sh`** (~8 h, overnight, 12 arms + an in-session greedy anchor and an
+   in-session replicate): 2.10's `opp_k` minimax backup vs the old one vs depth-1, all at an OPEN gate and
+   matched on override rate; and 8.5's disagreement gate against a COIN at the same rate and against a
+   uniform arm at matched compute. Config/pin/queue/readout all committed and tested offline.
+3. **NEW, from §26 — the TREE BUDGET on the gumbel rule** (IDEAS 8.6): `iters` 100/300/900. Resolving
+   TG's +0.021 at the SMALLEST budget would spend ten hours on the weakest version of the arm.
 4. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its own stopping rule); the LR-anneal floor
    ([RWL-4]; W's EV FALLS through the annealed tail 0.675→0.596, so the tail is not inert); the next fleet's
    shape; **whether a null on the MATRIX vehicle may close MCTS**; and whether 4.9 (expert iteration) gets a
