@@ -964,7 +964,8 @@ Never "ensembling helps" in general — the credit licenses THESE checkpoints.
 
 **4.9 EXPERT ITERATION — train on the SEARCH's visit distribution (added
 2026-09-18; the maintainer's TOP §4 item, and the highest-ceiling row this file
-has). IN CHARTER: the expert is OUR OWN SEARCH, not external data.** AlphaZero's
+has). IN CHARTER: the expert is OUR OWN SEARCH, not external data.
+DESIGN: `docs/proposals/EXPERT_ITERATION.md`.** AlphaZero's
 actual loop, not "MCTS bolted on at inference": the search at state `s` returns
 an improved distribution `π′ = N/ΣN` over root visits and a root value; the
 network is then trained toward BOTH (cross-entropy to `π′`, value toward the
@@ -983,7 +984,11 @@ and this is the only proposal that attacks both at once:
 2. **Our policy is never trained toward the search's improved distribution.**
    Measured 2026-09-11 and recorded in `configs/eval/tree_r5.yaml:36`: at a
    small budget **90.9% of root visits land on one action**, because the prior
-   is sharp and nothing ever moves it. A tree whose visit distribution is
+   is sharp and nothing ever moves it. **Confirmed live 2026-09-18:** the TV arm
+   (a real tree, decide=visits, iters 100) changed the played action on **3.65%
+   of decisions — 1.1 decisions per battle**. A tree whose visit distribution is
+   nearly its own prior IS nearly the greedy policy, which is what every "search
+   is a null" result has been measuring. A tree whose visit distribution is
    nearly its own prior cannot express an improvement, which is exactly why
    every visits-decided arm reads like greedy. Training on `π′` is the only
    mechanism that turns search compute into a POLICY change instead of an
@@ -1004,6 +1009,13 @@ every decision is ~100× a greedy step, so the realistic shape is **search a
 SAMPLED FRACTION of decisions** (or only the ones §8.5 flags) and train on
 those, not all of them. **This is a FLEET item and needs its own pre-reg** with a
 mechanism co-primary that is NOT explained variance (RESULTS §21 bars that).
+
+**THE FREE FALSIFIER, and it comes with step (i).** If `π′` is ~the prior, the
+cross-entropy term is a no-op with extra compute. **Measure KL(`π′` ‖ prior) and
+the fraction of decisions where argmax `π′` ≠ argmax prior on BANKED arms before
+any fleet.** If that KL is ~0 at an affordable budget, this lever is dead without
+spending a day, and the right follow-up is the tree's BUDGET rather than the
+loss. That makes step (i) worth doing even if the rest is never ratified.
 
 **The gate, stated plainly: run 2.11 FIRST.** If the luck ceiling comes back near
 0.6, the critic is already at the format's ceiling, a better expert has nothing
