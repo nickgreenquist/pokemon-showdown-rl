@@ -545,6 +545,20 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
                 "depth2/mean_shift": (
                     search_agent.counters["depth2/shift_sum"]
                     / max(search_agent.counters["depth2/decisions_with_ply"], 1)),
+                # IDEAS 2.10. `opp_replies_mean` is the REALIZED branch factor
+                # on the opponent's side -- 1.0 means the minimax back-up never
+                # fired whatever `opp_k` the config asked for -- and
+                # `minimax_drop` is how much the min over its answers moved the
+                # backed-up value. A number from an arm where both are ~0 is a
+                # depth-1 number wearing a depth-2 label.
+                "depth2/opp_replies_mean": (
+                    search_agent.counters["depth2/opp_replies_sum"]
+                    / max(search_agent.counters["depth2/decisions_with_ply"], 1)),
+                "depth2/minimax_drop": (
+                    search_agent.counters["depth2/drop_sum"]
+                    / max(search_agent.counters["depth2/decisions_with_ply"], 1)),
+                "depth2/leaves_unexpanded_total":
+                    search_agent.counters["depth2/leaves_unexpanded"],
             })
     if eval_provenance is not None:
         report["evaluator"] = eval_provenance   # F5, gradeable from disk

@@ -177,88 +177,170 @@ def _leaf_our_moves(state: Any, k: int) -> list[str]:
     return out[:k]
 
 
+def _leaf_opp_moves(state: Any, col_action: str, k: int) -> list[str]:
+    """The opponent's candidate replies at a grandchild-parent state.
+
+    The COLUMN ACTION ALWAYS COMES FIRST and is always present, so `opp_k=1`
+    reproduces the pinned-opponent backup exactly and every banked depth-2
+    number stays reproducible. Beyond it: the opponent's own legal attacks,
+    same filter as `_leaf_our_moves` on the other side. Switches are skipped
+    for the same reason they are skipped for us -- they multiply the branch
+    factor without being the thing in question.
+
+    A SWITCH column has a real consequence here that `opp_k=1` cannot see: the
+    opponent already switched during the root ply, so repeating "switch N" at
+    ply 2 is illegal, `generate_instructions` raises and that leaf produced
+    ZERO grandchildren. With `opp_k>1` those leaves get their real replies.
+    """
+    out = [col_action]
+    if k <= 1:
+        return out
+    side = state.side_two
+    ai = side.active_index
+    active = side.pokemon[int(str(ai)[-1]) if not isinstance(ai, int) else ai]
+    for m in active.moves:
+        if len(out) >= k:
+            break
+        mid = m.id
+        if (getattr(m, "pp", 0) > 0 and not getattr(m, "disabled", False)
+                and mid and mid.lower() != "none" and mid not in out):
+            out.append(mid)
+    return out
+
+
 def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
                   col_views, critic_fn, type_chart, depth2,
                   heuristic=None, root_evals=None):
     """SELECTIVE DEPTH. Replace a leaf's critic value with an N-PLY lookahead:
-    from the leaf state, play our legal moves against the opponent CONTINUING
-    ITS COLUMN CLASS, repeat for `plies`, and take the MAX over the sequences.
+    from the leaf state, play our legal moves against the opponent's reply,
+    repeat for `plies`, and back the values up to the leaf.
 
-    Max over the final states is the right back-up here and not an
-    approximation: between the leaf and the horizon only WE choose (the
-    opponent is pinned to the column the root already assigned it), so the
-    best sequence is the best endpoint. The opponent's distribution has not
-    been dropped -- `col_w = q` re-weights these values at the root, which is
-    the same expectation-under-q the depth-1 `row_ev` takes.
+    THE BACK-UP IS THE WHOLE EXPERIMENT, and this docstring got it wrong once.
+    Two modes, selected by `opp_k`:
 
-    Selective on purpose -- `our_k` moves per ply, one opponent line, a hard
-    `cap` on states -- because EXHAUSTIVE depth-2 costs ~leaves^2, and that
-    cost is the entire reason the engine port exists. Foul Play gets depth by
-    being selective, not by being fast, and this is the cheapest imitation.
+      opp_k = 1  (DEFAULT, and what every arm before 2026-09-18 ran)
+          The opponent is PINNED to the column the root assigned it, we take a
+          MAX over our reply sequences, and that is all. The original argument
+          for it -- "between the leaf and the horizon only WE choose, so the
+          best sequence is the best endpoint" -- is sound GIVEN the pin, and
+          the pin is the modelling error rather than the max.
+          **It is OPTIMISTIC, and the claim that it "biases every row the same
+          way" is FALSE.** Rows differ in how many replies they have and how
+          good the best one is, so a max over k noisy leaf estimates inflates
+          exactly the rows with the most escape hatches -- which are the rows
+          the root then overrides into. MEASURED (RESULTS §24): depth 2 is
+          indistinguishable from depth 1 at a tight gate (-0.0007) and -0.047
+          at 2.57 se WORSE once the gate is open; opening the gate costs
+          depth-2 0.052 against depth-1's 0.006. A tight gate was discarding
+          the inflated rows; an open gate plays them.
 
-    Optimistic by construction: a max over our replies with no min over the
-    opponent's. That biases the VALUES up, but it biases every row the same
-    way and the root decision is an argmax over rows -- so it is a fair probe
-    of "does looking further change the CHOICE", not a calibrated value.
+      opp_k > 1  (the fix, IDEAS 2.10)
+          The opponent answers each of our replies with up to `opp_k` moves
+          (its column action first) and we take the MIN over its answers
+          before the MAX over ours -- the standard minimax back-up, and the
+          missing half of the asymmetry above. Cost multiplies by `opp_k`.
+
+    At `plies=1` -- what every arm has ever run -- min-over-answers then
+    max-over-ours IS minimax. At `plies>1` the min is taken over the
+    opponent's whole PLAN rather than ply by ply, which is strictly more
+    pessimistic than minimax; say so if a multi-ply arm is ever read.
+
+    The opponent's ROOT distribution has not been dropped in either mode --
+    `col_w = q` re-weights these values at the root, the same
+    expectation-under-q the depth-1 `row_ev` takes.
+
+    Selective on purpose -- `our_k` moves per ply, a hard `cap` on states --
+    because EXHAUSTIVE depth-2 costs ~leaves^2, and that cost is the entire
+    reason the engine port exists. Foul Play gets depth by being selective,
+    not by being fast, and this is the cheapest imitation.
     """
     our_k = int(depth2.get("our_k", 3))
     cap = int(depth2.get("cap", 6000))
     plies = int(depth2.get("plies", 1))
-    # (state, origin leaf index, column index); terminal states leave the
-    # frontier carrying their own value and are never expanded again.
-    # (state, origin leaf, column, determinization). The determinization
-    # index matters: a SWITCH column names a DIFFERENT bench target per
-    # determinization, so pinning the opponent to "its column" means
-    # col_actions[ci][di], not col_actions[ci][0].
-    frontier = [(leaf_states[i], i, leaf_at[i][1], leaf_at[i][2]) for i in need
-                if leaf_states[i] is not None]
-    fixed: list[tuple[int, float]] = []   # (origin leaf, settled value)
+    opp_k = int(depth2.get("opp_k", 1))
+    # (state, origin leaf index, column index, determinization, PATH).
+    # `path` names one sequence of OUR replies; every opponent answer along
+    # that sequence shares it. The back-up is max-over-paths of
+    # min-over-that-path, so opp_k=1 (one member per path) is bit-identical to
+    # the pinned-opponent max this function shipped with.
+    frontier = [(leaf_states[i], i, leaf_at[i][1], leaf_at[i][2], (i,))
+                for i in need if leaf_states[i] is not None]
+    fixed: list[tuple[int, tuple, float]] = []   # (origin leaf, path, value)
     expanded = 0
+    opp_reply_count = 0
+    opp_reply_states = 0
     for ply in range(plies):
         nxt = []
-        for st, i, ci, di in frontier:
+        for st, i, ci, di, path in frontier:
             if expanded >= cap:
-                nxt.append((st, i, ci, di))   # out of budget: keep it a leaf
+                nxt.append((st, i, ci, di, path))   # out of budget: keep it a leaf
                 continue
-            b_str = col_actions[ci][di]
+            b_strs = _leaf_opp_moves(st, col_actions[ci][di], opp_k)
+            opp_reply_count += len(b_strs)
+            opp_reply_states += 1
             grew = False
-            for a_str in _leaf_our_moves(st, our_k):
+            for ai_, a_str in enumerate(_leaf_our_moves(st, our_k)):
                 if expanded >= cap:
                     break
-                try:
-                    brs = generate_instructions(st, a_str, b_str)
-                except (KeyboardInterrupt, SystemExit):
-                    raise
-                except BaseException:
-                    continue
-                if not brs:
-                    continue
-                br = max(brs, key=lambda b: b.percentage)
-                try:
-                    gc = st.apply_instructions(br)
-                except (KeyboardInterrupt, SystemExit):
-                    raise
-                except BaseException:
-                    continue
-                grew = True
-                expanded += 1
-                tv = _terminal_value(gc)
-                if tv is not None:
-                    fixed.append((i, tv))
-                else:
-                    nxt.append((gc, i, ci, di))
+                sub = path + (ai_,)
+                for b_str in b_strs:
+                    if expanded >= cap:
+                        break
+                    try:
+                        brs = generate_instructions(st, a_str, b_str)
+                    except (KeyboardInterrupt, SystemExit):
+                        raise
+                    except BaseException:
+                        continue
+                    if not brs:
+                        continue
+                    br = max(brs, key=lambda b: b.percentage)
+                    try:
+                        gc = st.apply_instructions(br)
+                    except (KeyboardInterrupt, SystemExit):
+                        raise
+                    except BaseException:
+                        continue
+                    grew = True
+                    expanded += 1
+                    tv = _terminal_value(gc)
+                    if tv is not None:
+                        fixed.append((i, sub, tv))
+                    else:
+                        nxt.append((gc, i, ci, di, sub))
             if not grew:   # nothing legal from here: it stays a leaf
-                nxt.append((st, i, ci, di))
+                nxt.append((st, i, ci, di, path))
         frontier = nxt
         if not frontier:
             break
     if not (frontier or fixed):
-        return values, {"depth2/grandchildren": 0.0, "depth2/leaves_deepened": 0.0}
+        return values, {"depth2/grandchildren": 0.0, "depth2/leaves_deepened": 0.0,
+                        "depth2/leaves_unexpanded": float(len(frontier)),
+                        "depth2/opp_k": float(opp_k),
+                        "depth2/opp_replies_mean": 0.0,
+                        "depth2/minimax_drop": 0.0}
 
-    best: dict[int, float] = {}
-    for i, v in fixed:
-        if i not in best or v > best[i]:
-            best[i] = v
+    # scored[(leaf, path)] -> list of values; the min over a path is taken
+    # AFTER every member of it is scored, so a terminal answer and an
+    # evaluated one compete on the same footing.
+    scored: dict[tuple, list[float]] = {}
+
+    def _put(i, path, v):
+        scored.setdefault((i, path), []).append(float(v))
+
+    for i, path, v in fixed:
+        _put(i, path, v)
+    # A state that was NEVER EXPANDED is not a lookahead and must keep the
+    # value it already has. It used to be re-embedded at `turn + 1 + plies`
+    # and re-scored, so merely TURNING DEPTH ON moved an un-deepenable leaf's
+    # value by whatever the encoder does with a shifted turn count -- pure
+    # noise, attributed to depth. `len(path) == 1` is exactly "still the
+    # original leaf": `path` starts at `(i,)` and gains one element per
+    # expansion. Every arm before 2026-09-18 carries the artifact; it is
+    # disclosed rather than retro-fitted, and it is one more reason a depth
+    # number from the matrix vehicle must be re-measured (IDEAS 2.10).
+    unexpanded = sum(1 for e in frontier if len(e[4]) == 1)
+    frontier = [e for e in frontier if len(e[4]) > 1]
     if frontier and heuristic is not None:
         # The DEEPER ply must be scored by the SAME evaluator as the shallower
         # one, or the depth comparison silently becomes an evaluator
@@ -266,13 +348,11 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
         # own determinization, exactly as the leaves are.
         from rl.search import fp_eval
 
-        for st, i, _ci, di in frontier:
-            gv = fp_eval.leaf_value(st, root_evals[di])
-            if i not in best or gv > best[i]:
-                best[i] = float(gv)
+        for st, i, _ci, di, path in frontier:
+            _put(i, path, fp_eval.leaf_value(st, root_evals[di]))
     elif frontier:
         obs, at = [], []
-        for st, i, ci, _di in frontier:
+        for st, i, ci, _di, path in frontier:
             try:
                 obs.append(embed_battle(
                     shadow_battle(st, turn + 1 + plies, view=col_views[ci]),
@@ -281,13 +361,22 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
                 raise
             except BaseException:
                 continue
-            at.append(i)
+            at.append((i, path))
         if obs:
             gv = np.asarray(
                 critic_fn(np.stack(obs).astype(np.float32)), dtype=np.float64)
-            for j, i in enumerate(at):
-                if i not in best or gv[j] > best[i]:
-                    best[i] = float(gv[j])
+            for j, (i, path) in enumerate(at):
+                _put(i, path, gv[j])
+
+    best: dict[int, float] = {}
+    best_optimistic: dict[int, float] = {}
+    for (i, _path), vs in scored.items():
+        v = min(vs)                      # the opponent picks inside the path
+        if i not in best or v > best[i]:
+            best[i] = v                  # we pick between paths
+        vo = max(vs)
+        if i not in best_optimistic or vo > best_optimistic[i]:
+            best_optimistic[i] = vo
     out = values.copy()
     for i, v in best.items():
         out[i] = v
@@ -295,7 +384,20 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
         "depth2/grandchildren": float(expanded),
         "depth2/leaves_deepened": float(len(best)),
         "depth2/plies": float(plies),
-        "depth2/mean_shift": float(np.mean([abs(out[i] - values[i]) for i in best])),
+        "depth2/opp_k": float(opp_k),
+        "depth2/paths": float(len(scored)),
+        "depth2/leaves_unexpanded": float(unexpanded),
+        "depth2/opp_replies_mean": (
+            float(opp_reply_count / opp_reply_states) if opp_reply_states else 0.0),
+        # how much the min-over-answers actually moved the backed-up value:
+        # 0.0 whenever opp_k == 1, and the size of the correction otherwise.
+        "depth2/minimax_drop": float(np.mean(
+            [best_optimistic[i] - best[i] for i in best])) if best else 0.0,
+        # NEVER let a NaN counter reach disk: `best` is empty whenever every
+        # leaf was unexpanded, and np.mean([]) is NaN, which a readout then
+        # prints as a number.
+        "depth2/mean_shift": (
+            float(np.mean([abs(out[i] - values[i]) for i in best])) if best else 0.0),
     }
 
 

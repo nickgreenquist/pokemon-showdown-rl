@@ -196,6 +196,16 @@ class SearchAgent:
             "depth2/grandchildren": 0,
             "depth2/leaves_deepened": 0,
             "depth2/shift_sum": 0.0,
+            # IDEAS 2.10, same rule again: `opp_k > 1` is a DIAL, so it gets
+            # counters before it gets an arm. `opp_replies_sum` says the
+            # opponent really was given answers (a config that sets opp_k on a
+            # state with one legal move is indistinguishable from opp_k=1
+            # without it), `drop_sum` says the min over those answers actually
+            # MOVED the backed-up value, and `leaves_unexpanded` counts the
+            # leaves the lookahead could not look past at all.
+            "depth2/opp_replies_sum": 0.0,
+            "depth2/drop_sum": 0.0,
+            "depth2/leaves_unexpanded": 0,
             # same rule, same reason: a vehicle that never fired and one that
             # fired and changed nothing must not print the same number
             "heuristic/decisions": 0,
@@ -381,6 +391,12 @@ class SearchAgent:
             self.counters["depth2/leaves_deepened"] += int(stats["depth2/leaves_deepened"])
             self.counters["depth2/decisions_with_ply"] += int(gc > 0)
             self.counters["depth2/shift_sum"] += float(stats.get("depth2/mean_shift", 0.0))
+            self.counters["depth2/opp_replies_sum"] += float(
+                stats.get("depth2/opp_replies_mean", 0.0))
+            self.counters["depth2/drop_sum"] += float(
+                stats.get("depth2/minimax_drop", 0.0))
+            self.counters["depth2/leaves_unexpanded"] += int(
+                stats.get("depth2/leaves_unexpanded", 0))
         stats["oppact/entropy"] = self._entropies[-1]
         return action, stats
 
