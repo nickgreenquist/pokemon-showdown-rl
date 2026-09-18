@@ -40,6 +40,37 @@
 # not close MCTS (`rl/search/tree.py` is a different algorithm) and it does not
 # close depth for a vehicle whose backup is a true minimax at every ply.
 #
+# ------------------------------------------------------------------------------
+# DESIGN ERROR, FOUND MID-BLOCK 2026-09-18 AFTER B2O RAN. DISCLOSED, NOT PATCHED.
+#
+# The header above says all three arms are "matched on override rate", and phase
+# S swept B2R's delta to a target. **B2O's delta was NOT swept** -- it was
+# hardcoded at 0.12, the value §22's D2N used in a DIFFERENT SESSION for a 16.3%
+# rate. In this session it realized 0.1322, so:
+#
+#     D1O  depth 1, delta 0.05   override 0.1703
+#     B2O  depth 2 OLD, d 0.12   override 0.1322   |B2O - D1O| = 0.038  GATE FAILS
+#     B2R  depth 2 FIX, d 0.08   override ~0.197   |B2R - D1O| ~ 0.027  gate passes
+#                                                  |B2R - B2O| ~ 0.065  MISMATCHED
+#
+# **The comparison this file declares as THE FIX (B2R - B2O) is the mismatched
+# one**, and the one it calls secondary (B2R - D1O) is the matched one. That is
+# the error, and it is mine: a matched block must sweep EVERY arm it intends to
+# match, and against an IN-SESSION control (CLEANUP L6).
+#
+# NOT RE-PINNED, deliberately. B2O's win rate is now visible, and a selection
+# rule re-run after an outcome is visible stops being a selection rule -- the
+# whole lesson of 2026-09-17. The block runs as pinned.
+#
+# WHAT IS STILL READABLE, AND IN WHICH DIRECTION. §24 measured that for the OLD
+# backup, acting MORE is WORSE (0.5680 at 6.2% -> 0.5160 at 16.3%). B2R acts
+# ~50% MORE OFTEN than B2O, so the mismatch is CONSERVATIVE FOR THE FIX:
+#   * B2R > B2O  is a STRONG result -- it beat the old backup DESPITE acting
+#     more often, on the axis where acting more is known to hurt;
+#   * B2R < B2O  is UNINTERPRETABLE -- the rate alone could produce it.
+# B2R - D1O is matched within 0.027 and carries no such asymmetry: read that as
+# the block's primary, and B2O as a descriptive reference at its own rate.
+#
 # ---------------------------------------------------------------- HALF TWO
 # IDEAS 8.5. Every dose this project has measured raised the budget on EVERY
 # decision, which is why depth-2's 3.27x cost bought -0.0007. The ladder allows

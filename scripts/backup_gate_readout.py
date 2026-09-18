@@ -215,10 +215,25 @@ def main():
         print("  Read every delta below against THAT, not against the binomial.")
 
     print("\n## HALF ONE -- IDEAS 2.10, does an honest backup rescue depth 2?\n")
+    # THE DECLARED PRIMARY IS THE MISMATCHED ONE. B2O's delta was hardcoded from
+    # §22's D2N rather than swept, and realized 0.1322 here against B2R's ~0.197
+    # -- see the DESIGN ERROR block in the config. The direction is stated
+    # because it is asymmetric, not because it excuses anything.
     if arms.get("B2R") and arms.get("B2O"):
-        cmp("B2R - B2O  THE FIX (same session)", arms["B2R"], arms["B2O"])
+        g = abs(num(arms["B2R"], "search/override_rate")
+                - num(arms["B2O"], "search/override_rate"))
+        cmp("B2R - B2O  the declared FIX comparison", arms["B2R"], arms["B2O"])
+        if g > 0.03:
+            better = arms["B2R"]["our_win_rate"] > arms["B2O"]["our_win_rate"]
+            print(f"       ^ OVERRIDE RATES DIFFER BY {g:.4f} -- B2R acts "
+                  f"{'MORE' if num(arms['B2R'],'search/override_rate') > num(arms['B2O'],'search/override_rate') else 'LESS'} often.")
+            print("         §24 measured that for the OLD backup acting MORE is WORSE, so the")
+            print("         mismatch is CONSERVATIVE for the fix: B2R > B2O would be a strong")
+            print("         result DESPITE the rate; B2R < B2O is UNINTERPRETABLE.")
+            print(f"         Here B2R is {'ABOVE' if better else 'BELOW'} B2O, so this line "
+                  f"{'CARRIES' if better else 'DOES NOT CARRY'} a verdict.")
     if arms.get("B2R") and arms.get("D1O"):
-        cmp("B2R - D1O  does depth pay once the backup is honest", arms["B2R"], arms["D1O"])
+        cmp("B2R - D1O  THE MATCHED PRIMARY (|d| 0.027)", arms["B2R"], arms["D1O"])
     if arms.get("B2O") and arms.get("D1O"):
         cmp("B2O - D1O  the §24 finding, re-drawn here", arms["B2O"], arms["D1O"])
     if arms.get("B2O"):
