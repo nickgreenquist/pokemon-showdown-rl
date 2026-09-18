@@ -12104,3 +12104,66 @@ line numbers are not — grep the date, then read that region):
     ITERATION, which the maintainer ranks the TOP item of §4**.
   - Suite 1113 passed / 87 skipped / 9 deselected (`-k "not live_server"`, because
     the tree queue owns the Showdown server). +29 tests today.
+
+- 2026-09-18 (cont.) — **THE TREE READ (RESULTS §26): nothing clears greedy, and the
+  DECIDE RULE turns out to order the arms rather than the action rate.** Plus RESULTS
+  §25 (FP@500) written up, and the luck ceiling launched after two estimator defects in
+  it were found and fixed.
+  - **§26, n=1000/arm off FP@20, against an in-block greedy anchor of 0.5830:**
+
+        arm  rule                      acts on   changed/battle   win rate   vs greedy
+        TG   gumbel                     11.44%        3.6          0.6040   +0.0210 (0.96 se)
+        TV   visits (Foul Play's rule)   3.65%        1.1          0.5970   +0.0140 (0.64 se)
+        TQ   q + margin (matrix shape)   9.34%        2.9          0.5600   -0.0230 (1.04 se)
+        TGR  GREEDY, this block            —           —           0.5830   the bar
+
+    **Nothing clears the credit line** (≥ +0.025 AND ≥ 2·se_diff). **And nothing is
+    BELOW greedy either, which is new** — every matrix arm ever measured was level or
+    under. The block is calibrated: TGR − the three-block pooled greedy is +0.0065 at
+    0.38 se.
+  - **THE FINDING IS THE ORDERING.** TQ acts BETWEEN TV and TG and reads LOWEST;
+    **TG − TQ = +0.0440 at 2.00 se.** Every earlier search or depth result in this repo
+    was explicable by how often the search was believed (§22: the same arm reads −0.0007
+    or −0.053 on that alone). **This ordering runs AGAINST that confound** — the arm
+    that acts least reads second-best — so what is left is the rule that turns a
+    finished tree into an action, and **the worst of three is `q + margin`, the shape of
+    the selector every banked matrix number uses.**
+  - **TG's +0.021 is UNRESOLVED, not a null.** se_diff 0.0220 at n=1000; resolving it at
+    2 se needs n≈4,375/arm and the +0.025 floor needs ≈3,087. Rule 6 closes nothing here.
+    **Every arm is `iters: 100`, so nothing speaks to the BUDGET** — which is why the
+    follow-up is IDEAS **8.6** (ladder iters 100/300/900 on gumbel, reporting
+    KL(π′‖prior) at every rung) rather than more n at the weakest budget.
+  - **RESULTS §25 written: the R5 committee beats FP@500 (0.5600, n=500, +2.70 se).**
+    The number the maintainer asked for had been MEASURED and lived only in a JSON file —
+    not in RESULTS, not in a readout. It retracts the premise the whole search push was
+    written on (IDEAS §8.1's "Foul Play beats us using 500 ms"). 25× budget buys Foul
+    Play +0.010 at 0.32 se for 24.4× the wall clock.
+  - **A provenance field was wrong for its whole life and nothing noticed because nothing
+    read it.** `launch_git_sha` was read AFTER the battles, so every arm ever run stamped
+    its COMPLETION state under the launch name — while SESSION_LOGS documents the
+    opposite belief in prose. Caught the moment the readouts started reading it: TV,
+    launched 10:45Z, came back stamped with a commit made at 11:40Z. Now read before the
+    first battle with `finish_git_sha` beside it; older arms are LABELLED in the readouts
+    rather than compared against real launch shas.
+  - **Editing a module mid-block, and the guard that now exists.** The tree block spans
+    three commits because this session edited `agent.py`/`matrix.py`/`ensemble_search.py`
+    while it ran. **Proved harmless:** a decision fixture run against the pre-edit tree
+    out of `git archive` gives bit-identical actions, stats and counters on all three
+    decide rules (only wall-clock differs, and the arms are iteration-bounded).
+    `tests/test_tree_decision_golden.py` now pins it, keyed by OBS_DIM — **the encoder
+    version is part of the search**: at 612 `visits` and `gumbel` pick a different action
+    than at 828. The readouts now also run `git diff -- rl/` across a block's stamps and
+    say whether the SEARCHER moved rather than just the repo.
+  - **IDEAS 2.11's own arithmetic was wrong in the direction that argues for a fleet, and
+    smoking it is what found that.** (i) The ceiling ratio was BIASED UP — `var_between`
+    is the variance of position MEANS and carries their sampling noise; a one-way
+    random-effects decomposition now runs beside it and read **0.092 against the naive
+    0.191** on a 12-position smoke. (ii) It sampled only the OPENING — `stop_at` was drawn
+    from [2,14) against a ~29-turn mean — so the pooled ceiling was a statement about
+    openings; widening to [2,36) moved it from 0.09 to 0.26 and a BY-TURN table now makes
+    the turn dependence visible. **And the docstring's "apples to apples with the 0.59"
+    claim is retracted in the file**: the training EV is computed over PPO's whole batch
+    including near-terminal states, so setting it against this ceiling would be the same
+    unmatched comparison that cost a day on 2026-09-17.
+  - Full suite (server up, documented invocation) **1151 passed / 87 skipped; +61 tests
+    today**.
