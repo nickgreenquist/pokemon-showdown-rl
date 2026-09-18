@@ -722,3 +722,36 @@ ruling (`docs/CLEANUP.md` L5).
 VERSION is part of the search.** The tree encodes every leaf, so under the
 suite's default (`OBS_DIM` 612, flags unset) `visits` and `gumbel` pick a
 DIFFERENT ACTION on the same fixture than under the arms' 828.
+
+## BATTLES CAN STALL TO A 1000-TURN CAP, AND THE TIE IS A NON-WIN (2026-09-18)
+
+`scripts/tie_and_stall_audit.py` over **143,500 banked battles**, written after a
+sideways observation: the open-gate arms of RESULTS §24 have a battle-length
+standard deviation **three times** their anchor's (37.6 against 11.0). That is
+not systematic lengthening — the medians are within a turn of each other. It is
+**one or two battles hitting a 1000-turn cap**, which is enough to move an sd
+and nothing else.
+
+**What the audit found.**
+
+- Overall tie rate **0.0014**; the worst single arm **0.0110**.
+- **51% of all ties are 1000-turn caps** — a genuine stall, not a close finish.
+- The tie rate is a **SYMPTOM OF WEAKNESS**: corr(win rate, tie rate) = **−0.31**,
+  and the weaker half of arms tie **3.5×** as often as the stronger half. It is
+  not a hidden lever and chasing it would be chasing a proxy.
+
+**Why it still matters.** Ties are NON-WINS under the locked protocol, so a
+stall-prone arm gives away win rate mechanically. **Within a block** every arm
+sits near 0.001 and the term is negligible — this does not touch any
+within-block comparison this project has published. **Across blocks** the spread
+reaches **0.011**, half the size of the effects being chased, and it points the
+same way as the session offset: against the weaker arm. Cross-block win-rate
+comparisons were already barred; this is a second, independent reason.
+
+**What it does NOT say.** Nothing about the matrix vehicle, the gate, or depth —
+the two long battles that started this live in open-gate arms, but greedy anchors
+and old greedy arms hit the cap at similar rates (`ch5_r1_offsh/rs81` is 15 of
+3000 on a plain greedy seat). **The behaviour itself is unexamined**: a
+1000-turn gen-1 battle is presumably a recovery loop (Softboiled/Recover mirrors,
+or a switching cycle), and nobody has read one. That is a replay question, not a
+statistics question, and it is open.
