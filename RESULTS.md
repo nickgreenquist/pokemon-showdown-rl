@@ -1981,3 +1981,51 @@ allowed to speak more often (depth-2 at 16.3% override reads 0.5160 against 0.56
 Whether a *static* evaluator collapses the same way is the untested cell, and it is the one
 that would separate "our evaluator is the problem" from "the search construction is the
 ceiling".
+
+## 24. Addendum, 2026-09-18 — **the GATE was the instrument all along: our critic is the robust evaluator, and depth-2 is what breaks**
+
+`readouts/GATE_R5_READOUT.md`; config `configs/eval/gate_r5.yaml`. Hacking run. Both FP@20
+disclosures travel.
+
+§22 and §23 both read null on depth, but both were measured at a ~6.5% override rate, where
+the search changes the played action on about **two decisions of a thirty-turn battle** — a
+mechanical bound on how much any leaf value can matter. Holding depth and opening the gate
+to the rate already known to move the number (16–19%) gives:
+
+| | tight gate | open gate | opening costs |
+|---|---|---|---|
+| **our critic, depth 1** | 0.5687 [6.8%] | **0.5627** [19.3%] | **−0.0060** (0.38 se) |
+| our critic, depth 2 | 0.5680 [6.2%] | 0.5160 [16.3%] | −0.0520 (3.30 se) |
+| **Foul Play heuristic, depth 1** | 0.5487 [6.5%] | **0.4607** [16.7%] | **−0.0880** (5.59 se) |
+
+**THIS REVERSES §23's READING, AND THE CORRECTION IS THE POINT.** §23 concluded that Foul
+Play's heuristic is no better than our critic (−0.020 at 1.56 se) — true, and nearly
+powerless, because a tight gate lets neither evaluator speak. **At an open gate the same
+comparison is −0.1020 at 5.62 se.** Our critic is not merely not-worse than a hand-tuned
+heuristic; **it is decisively better once the search is allowed to act on it.**
+
+**And the off-distribution story is falsified in the opposite direction to the one assumed.**
+The expectation was that our critic, fit by PPO only to states our own policy reaches, would
+be the fragile evaluator on search-visited lines. Tripling how often search acts on it costs
+**0.006**; doing the same to a static heuristic with no training distribution at all costs
+**0.088**. §23's closing hypothesis should be read as refuted rather than open.
+
+**DEPTH-2 IS THE DEFECT, and the mechanism is in our own code.** The two depths are
+indistinguishable at a tight gate (−0.0007) and **−0.047 apart at 2.57 se when the gate is
+open**. `rl/search/matrix.py::_look_further` takes a **max over our replies with no min over
+the opponent's**, and its docstring justifies this by asserting the optimism "biases every
+row the same way". It does not: rows differ in how many replies they have and how good the
+best one is, so the bias inflates exactly the rows with the most escape hatches — the rows
+search then overrides into. A tight gate discards those inflated rows; an open gate plays
+them. **§22's "depth is a null" is therefore true only in the regime where depth barely
+speaks**, and the honest reading of §22 is narrower than it was written.
+
+**WHAT DOES NOT CHANGE: search still does not beat greedy.** The best searched arm on this
+object — our critic, depth 1, open gate — is 0.5627 against a greedy committee at ~0.572.
+Every search configuration measured on the R5 committee is level with or below simply playing
+the policy's argmax, and neither a better evaluator nor more depth changed that.
+
+Scope: "our critic beats Foul Play's evaluator" is about **leaf values inside our one-ply
+construction**. It does not follow that it wins inside a deep tree, where leaves sit much
+further off-policy, and it says nothing about MCTS — a different algorithm that could not run
+off Foul Play at all until 2026-09-17.
