@@ -39,9 +39,14 @@ And the critic's OWN explained variance is computed on the SAME positions, so
 "0.59 against a ceiling of X" is apples to apples rather than a comparison
 across two different samples.
 
-COST. Fixed policy on both seats, so a rollout is ~30 engine steps and ~60
-policy forwards. Positions come from real self-play battles played by the same
-object, sampled across the whole battle rather than at a fixed turn.
+COST, AND WHY IT IS SHAPED THIS WAY. Fixed policy on both seats, so a rollout
+is ~30 engine steps and ~60 policy forwards. Positions come from real self-play
+battles played by the same object, sampled across the whole battle rather than
+at a fixed turn. Each position is MEASURED AS IT IS REACHED and its row is
+appended to a JSONL immediately, so the job is resume-safe (a death costs one
+position, `--rows` picks up where it stopped) and its progress is readable as a
+RATE rather than as a wall-clock guess -- CLAUDE.md rule 4's three conditions
+for running long analysis agent-side.
 
 WHAT THIS IS NOT. It is not a claim about the ladder, and it is not a win rate.
 It is a property of the FORMAT measured through our own encoder and policy.
@@ -52,6 +57,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -162,6 +168,32 @@ def rollout(state, agent, type_chart, rng, turn0: int, max_turns: int = 120) -> 
     return float("nan")                   # hit the cap: dropped, not scored 0
 
 
+def load_rows(path) -> tuple[list[dict], set[int]]:
+    """Rows already on disk, and the positions they cover.
+
+    A row is one line of JSON appended the moment its position was measured,
+    so the LAST line of a killed run can be a partial write. That line is
+    dropped rather than allowed to raise -- a resume that crashes on its own
+    crash log is not resume-safe (CLAUDE.md rule 4 (ii)).
+    """
+    from pathlib import Path as _P
+
+    p = _P(path)
+    if not p.exists():
+        return [], set()
+    rows = []
+    for line in p.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            r = json.loads(line)
+        except json.JSONDecodeError:
+            continue                      # torn final line from a kill
+        if "ep" in r:
+            rows.append(r)
+    return rows, {int(r["ep"]) for r in rows}
+
+
 def _critic_value(agent, obs) -> float:
     """The committee's value for an observation: the MEAN over members.
 
@@ -188,7 +220,14 @@ def main() -> None:
     ap.add_argument("--rollouts", type=int, default=8, help="rollouts per determinization")
     ap.add_argument("--seed", type=int, default=20260917)
     ap.add_argument("--out", default="results/outcome_variance/variance.json")
+    # RESUME SAFETY (CLAUDE.md rule 4 (ii)): every position's row is appended
+    # here the moment it is measured, and a restart skips the positions the
+    # file already holds. A death costs ONE position, not the whole job. The
+    # default sits beside --out so the two travel together.
+    ap.add_argument("--rows", default=None,
+                    help="JSONL of per-position rows; defaults to <out>.rows.jsonl")
     args = ap.parse_args()
+    rows_path = Path(args.rows) if args.rows else Path(str(args.out) + ".rows.jsonl")
 
     os.environ.setdefault("POKEMON_RL_ENCODER_V2", "1")
     os.environ.setdefault("POKEMON_RL_ENCODER_IDS", "1")
@@ -215,19 +254,33 @@ def main() -> None:
     cfg0 = Config(**c0["config"])
     opponent, _ = _opponent_from_checkpoint(args.checkpoints[0], cfg0.seed)
     env = make_env(cfg0.env_id, cfg0.seed, env_kwargs={"opponent": opponent})
-    rng = np.random.default_rng(args.seed)
     counters = BridgeCounters()
+    rows_path.parent.mkdir(parents=True, exist_ok=True)
+    rows, done_eps = load_rows(rows_path)
+    if rows:
+        print(f"RESUME: {len(rows)} positions already measured in {rows_path}",
+              flush=True)
 
-    # ---- positions -------------------------------------------------------
-    # ONE position per battle, frozen the moment it is reached: poke-env battle
-    # objects are LIVE, so a snapshot kept for later would describe a different
-    # turn by the time it was used.
-    positions = []
+    # ---- one position, then its rollouts, then the next ------------------
+    # INTERLEAVED on purpose. Collecting every position first and measuring
+    # afterwards is the same arithmetic but it is not RESUME-SAFE: the job only
+    # produces its first row after the whole collection phase, so a death at
+    # 90% costs everything. Measuring each position as it is reached means a
+    # death costs one position and the rate is readable from the file.
+    #
+    # Each position also gets its OWN rng, derived from (seed, ep), so a
+    # resumed run reproduces the positions it skipped and the ones it has yet
+    # to do -- a single shared stream would make the resumed half a different
+    # experiment from the first.
+    t_start = time.time()
     for ep in range(args.battles):
+        if ep in done_eps:
+            continue
+        rng = np.random.default_rng([args.seed, ep])
         obs, info = env.reset(seed=EVAL_SEED_OFFSET + 90000 + ep)
         mask = info.get("action_mask")
         stop_at = int(rng.integers(2, 14))     # mid-battle, before most are decided
-        done, step = False, 0
+        done, step, found = False, 0, None
         while not done and step < 500:
             # env.unwrapped (ShowdownEnv) -> _env (SingleAgentWrapper) -> env
             # (ShowdownSingles) -> battle1. Checked against the live object
@@ -243,22 +296,15 @@ def main() -> None:
                     raise
                 except BaseException:
                     break
-                positions.append((states, int(battle.turn),
-                                  np.asarray(obs, dtype=np.float32)))
+                found = (states, int(battle.turn), np.asarray(obs, dtype=np.float32))
                 break
             obs, _, term, trunc, info = env.step(
                 agent.act(obs, mask, deterministic=True))
             mask, done, step = info.get("action_mask"), term or trunc, step + 1
-        if (ep + 1) % 10 == 0:
-            print(f"{ep + 1}/{args.battles} battles, {len(positions)} positions",
-                  flush=True)
-    env.close()
-    print(f"{len(positions)} usable positions", flush=True)
-
-    # ---- the measurement -------------------------------------------------
-    rows, all_out, all_pred = [], [], []
-    for i, (states, turn, obs) in enumerate(positions):
-        v = _critic_value(agent, obs)
+        if found is None:
+            continue
+        states, turn, pos_obs = found
+        v = _critic_value(agent, pos_obs)
         outs = []
         for st in states:
             for _ in range(args.rollouts):
@@ -268,13 +314,23 @@ def main() -> None:
         if len(outs) < 4:
             continue
         outs = np.asarray(outs, dtype=np.float64)
-        rows.append({"turn": turn, "mean": float(outs.mean()),
-                     "var": float(outs.var()), "n": int(outs.size), "critic": v})
-        all_out.extend(outs.tolist())
-        all_pred.extend([v] * outs.size)
-        if (i + 1) % 10 == 0:
-            print(f"{i + 1}/{len(positions)} positions measured", flush=True)
+        row = {"ep": ep, "turn": turn, "mean": float(outs.mean()),
+               "var": float(outs.var()), "n": int(outs.size), "critic": v,
+               "outcomes": outs.tolist()}
+        rows.append(row)
+        with rows_path.open("a") as f:
+            f.write(json.dumps(row) + "\n")
+        el = time.time() - t_start
+        print(f"ep {ep + 1}/{args.battles}: {len(rows)} rows, "
+              f"turn {turn}, n {outs.size}, mean {outs.mean():+.3f}, "
+              f"{el / max(len(rows), 1):.1f} s/row", flush=True)
+    env.close()
+    print(f"{len(rows)} usable positions", flush=True)
 
+    all_out, all_pred = [], []
+    for r in rows:
+        all_out.extend(r["outcomes"])
+        all_pred.extend([r["critic"]] * len(r["outcomes"]))
     m = np.array([r["mean"] for r in rows])
     w = np.array([r["var"] for r in rows])
     ao, ap_ = np.asarray(all_out), np.asarray(all_pred)
@@ -295,7 +351,10 @@ def main() -> None:
         "critic_headroom": ceiling - ev_critic,
     }
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps({"summary": summary, "rows": rows}, indent=2))
+    Path(args.out).write_text(json.dumps(
+        {"summary": summary,
+         "rows": [{k: v for k, v in r.items() if k != "outcomes"} for r in rows]},
+        indent=2))
     print("\n" + "=" * 72)
     print(f"{len(rows)} positions x {args.dets}x{args.rollouts} rollouts "
           f"= {ao.size} outcomes; mean outcome {ao.mean():+.4f}")
