@@ -78,10 +78,9 @@ known-optimistic backup, and its `q + margin` selector is the WORST of three dec
 1. **RUN 2.11 (the luck ceiling) FIRST** — it gates 4.9 and every evaluator item, costs ~45 min, and is
    detached + resume-safe. If `EV_ceiling ≈ 0.6` the critic is DONE and every remaining lever is on the
    POLICY, which re-ranks everything below.
-2. **Then `scripts/backup_gate_queue.sh`** (~8 h, overnight, 12 arms + an in-session greedy anchor and an
-   in-session replicate): 2.10's `opp_k` minimax backup vs the old one vs depth-1, all at an OPEN gate and
-   matched on override rate; and 8.5's disagreement gate against a COIN at the same rate and against a
-   uniform arm at matched compute. Config/pin/queue/readout all committed and tested offline.
+2. **Then `scripts/backup_gate_queue.sh`** (~8 h, overnight): 2.10's `opp_k` minimax backup vs the old one
+   vs depth-1, at an OPEN gate and matched on override rate; and 8.5's gate against a COIN at the same rate
+   and a uniform arm at matched compute. Config/pin/queue/readout committed and tested offline.
 3. **NEW, from §26 — the TREE BUDGET on the gumbel rule** (IDEAS 8.6): `iters` 100/300/900. Resolving
    TG's +0.021 at the SMALLEST budget would spend ten hours on the weakest version of the arm.
 4. **RULINGS OWED:** R6's SPLIT SCHEDULE (CLEANUP L1 — needs its own stopping rule); the LR-anneal floor
@@ -94,9 +93,9 @@ known-optimistic backup, and its `q + margin` selector is the WORST of three dec
   encoder flags UNSET — the documented invocation; **+61 tests today**). Engine 115 + 94 cargo. **SIX
   defect-class fixes this week, all one shape — a dial or a field that runs and reports nothing, or reports
   the wrong thing.** Each now has a test that reads the source.
-- **SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS** — never difference across sessions without a same-session
-  anchor. **ONE RUNG IS WORTH ±0.02** (three redraws of one checkpoint spread 0.0200): read curves, not rungs.
-- **SEEDS DO NOT PAIR BATTLES** (`docs/landmines.md`): agreement on shared seeds is at the independence level
-  (0.66–0.73); every "matched seed-for-seed, McNemar se" phrase was UNPAIRED. Replicates are the instrument.
+- **SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS**, and **ONE RUNG IS WORTH ±0.02** (three redraws of one
+  checkpoint spread 0.0200): never difference across sessions without an anchor; read curves, not rungs.
+- **SEEDS DO NOT PAIR BATTLES** (`docs/landmines.md`): shared-seed agreement is at the independence level
+  (0.66–0.73), so every "matched seed-for-seed, McNemar se" phrase was UNPAIRED. Replicates are the instrument.
 - **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS ONLY** (maintainer, 2026-09-17). Hacking needs none; the
   anti-self-deception rules do not relax — counters to disk, matched comparisons, same-session anchors.
