@@ -984,9 +984,10 @@ and this is the only proposal that attacks both at once:
 2. **Our policy is never trained toward the search's improved distribution.**
    Measured 2026-09-11 and recorded in `configs/eval/tree_r5.yaml:36`: at a
    small budget **90.9% of root visits land on one action**, because the prior
-   is sharp and nothing ever moves it. **Confirmed live 2026-09-18:** the TV arm
-   (a real tree, decide=visits, iters 100) changed the played action on **3.65%
-   of decisions — 1.1 decisions per battle**. A tree whose visit distribution is
+   is sharp and nothing ever moves it. **Confirmed live 2026-09-18 (RESULTS §26):** the TV
+   arm (a real tree, decide=visits, iters 100) changed the played action on
+   **3.65% of decisions — 1.1 decisions per battle**, and read +0.014 at 0.64 se
+   against an in-session greedy anchor. A tree whose visit distribution is
    nearly its own prior IS nearly the greedy policy, which is what every "search
    is a null" result has been measuring. A tree whose visit distribution is
    nearly its own prior cannot express an improvement, which is exactly why
@@ -1276,6 +1277,30 @@ first, exactly as the margin was swept for override rate.
 **Feeds 4.9 directly** — it is
 the natural answer to 4.9's dose question (search the flagged fraction, train on
 those states).
+
+**8.6 THE TREE'S BUDGET, on the gumbel rule — the direct follow-up to RESULTS §26
+(added 2026-09-18).** §26 ran a real decoupled-UCT tree at `iters: 100` against an
+in-session greedy anchor and got **TG (gumbel) 0.6040 vs greedy 0.5830 = +0.0210
+at 0.96 se** — the first search arm this project has measured that is not below
+greedy, and **unresolved rather than null** (se_diff 0.0220 at n=1000).
+**Two things follow, and the order matters.**
+**(i) LADDER THE BUDGET BEFORE ADDING n.** Resolving +0.0210 at 2 se takes
+n≈4,375 per arm — an overnight block — and it would spend that on the WEAKEST
+version of the arm. `iters: 100` is precisely the regime the 90.9%
+visit-concentration measurement describes: the prior dominates and the tree can
+barely express an improvement (TV changed **1.1 decisions per battle**). If more
+iterations move `π′` off the prior, the effect to resolve is a bigger one.
+Ladder `iters` 100 / 300 / 900 on the gumbel rule with an in-session greedy
+anchor, and **report KL(`π′` ‖ prior) and the override rate at every rung** —
+those are the mechanism, and they are also exactly what **4.9**'s free falsifier
+needs.
+**(ii) RETIRE `q + margin` AS THE TREE'S DECIDE RULE.** It is the worst of the
+three at 2.00 se (TG − TQ = +0.0440), and it is *the shape of the selector every
+banked matrix number uses*. The ordering is not explained by action rate — TQ
+acts BETWEEN TV and TG — so this is a statement about the rule itself.
+**Cost:** iters 300 ≈ 2.8 h at n=1000; iters 900 ≈ 5 h at n=600. One block with
+an anchor is a night. **This does not close or open MCTS** — one budget, one
+object, one session, and CLAUDE.md rule 6 still applies.
 
 **8.4 FP distillation — the LAST rung, and a CHARTER CHANGE.** Tapes, soft targets,
 DAgger-style relabelling of our own states. **Excluded from the pure lane by CLAUDE.md
