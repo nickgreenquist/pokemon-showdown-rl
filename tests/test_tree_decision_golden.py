@@ -31,30 +31,64 @@ TREES = {
     "gumbel": {"decide": "gumbel", "iters": 48, "n_det": 2, "batch": 8},
 }
 
+# KEYED BY OBS_DIM, NOT BY ENV VAR. The tree encodes every leaf through
+# `embed_battle`, so the ENCODER VERSION changes what it searches -- visits and
+# gumbel pick a DIFFERENT ACTION under the two encoders on this fixture. The
+# suite's documented invocation leaves POKEMON_RL_ENCODER_V2/_IDS UNSET (612),
+# while every arm sets them (828), so a fixture pinned to one of them would
+# either fail in the suite or pin nothing about the arms. Both are pinned.
 GOLDEN = {
-    "visits": (9, {
-        "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
-        "search/leaves": 92.0, "search/overrode": 1.0,
-        "search/policy_argmax": 8.0, "tree/argmax": 9.0, "tree/evals": 92.0,
-        "tree/gap": 0.2291666667, "tree/max_depth": 3.0,
-        "tree/mean_sim_depth": 1.5, "tree/q_best": 0.0, "tree/q_policy": 0.0,
-        "tree/root_q_best": 0.3843762961, "tree/share_best": 0.46875,
-        "tree/share_policy": 0.2395833333, "tree/transition_failures": 0.0}),
-    "q": (9, {
-        "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
-        "search/leaves": 92.0, "search/overrode": 1.0,
-        "search/policy_argmax": 8.0, "tree/argmax": 9.0, "tree/evals": 92.0,
-        "tree/gap": 0.8192121631, "tree/max_depth": 3.0,
-        "tree/mean_sim_depth": 1.5, "tree/q_best": 0.3843762961,
-        "tree/q_policy": -0.4348358671, "tree/root_q_best": 0.3843762961,
-        "tree/share_best": 0.46875, "tree/share_policy": 0.2395833333,
-        "tree/transition_failures": 0.0}),
-    "gumbel": (9, {
-        "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
-        "search/leaves": 92.0, "search/overrode": 1.0,
-        "search/policy_argmax": 8.0, "tree/beta": 4.0, "tree/evals": 92.0,
-        "tree/max_depth": 3.0, "tree/mean_sim_depth": 1.5,
-        "tree/q_spread": 1.1998435792, "tree/transition_failures": 0.0}),
+    828: {
+        "visits": (9, {
+            "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
+            "search/leaves": 92.0, "search/overrode": 1.0,
+            "search/policy_argmax": 8.0, "tree/argmax": 9.0, "tree/evals": 92.0,
+            "tree/gap": 0.2291666667, "tree/max_depth": 3.0,
+            "tree/mean_sim_depth": 1.5, "tree/q_best": 0.0, "tree/q_policy": 0.0,
+            "tree/root_q_best": 0.3843762961, "tree/share_best": 0.46875,
+            "tree/share_policy": 0.2395833333, "tree/transition_failures": 0.0}),
+        "q": (9, {
+            "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
+            "search/leaves": 92.0, "search/overrode": 1.0,
+            "search/policy_argmax": 8.0, "tree/argmax": 9.0, "tree/evals": 92.0,
+            "tree/gap": 0.8192121631, "tree/max_depth": 3.0,
+            "tree/mean_sim_depth": 1.5, "tree/q_best": 0.3843762961,
+            "tree/q_policy": -0.4348358671, "tree/root_q_best": 0.3843762961,
+            "tree/share_best": 0.46875, "tree/share_policy": 0.2395833333,
+            "tree/transition_failures": 0.0}),
+        "gumbel": (9, {
+            "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
+            "search/leaves": 92.0, "search/overrode": 1.0,
+            "search/policy_argmax": 8.0, "tree/beta": 4.0, "tree/evals": 92.0,
+            "tree/max_depth": 3.0, "tree/mean_sim_depth": 1.5,
+            "tree/q_spread": 1.1998435792, "tree/transition_failures": 0.0}),
+    },
+    612: {
+        "visits": (6, {
+            "oppact/entropy": 1.7707760334, "search/chosen": 6.0,
+            "search/leaves": 93.0, "search/overrode": 1.0,
+            "search/policy_argmax": 8.0, "tree/argmax": 6.0, "tree/evals": 93.0,
+            "tree/gap": 0.21875, "tree/max_depth": 3.0,
+            "tree/mean_sim_depth": 1.5520833333, "tree/q_best": 0.0,
+            "tree/q_policy": 0.0, "tree/root_q_best": -0.073022709,
+            "tree/share_best": 0.40625, "tree/share_policy": 0.1875,
+            "tree/transition_failures": 0.0}),
+        "q": (9, {
+            "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
+            "search/leaves": 93.0, "search/overrode": 1.0,
+            "search/policy_argmax": 8.0, "tree/argmax": 9.0, "tree/evals": 93.0,
+            "tree/gap": 0.5708767449, "tree/max_depth": 3.0,
+            "tree/mean_sim_depth": 1.5520833333, "tree/q_best": -0.0280336696,
+            "tree/q_policy": -0.5989104145, "tree/root_q_best": -0.0280336696,
+            "tree/share_best": 0.2604166667, "tree/share_policy": 0.1875,
+            "tree/transition_failures": 0.0}),
+        "gumbel": (6, {
+            "oppact/entropy": 1.7707760334, "search/chosen": 6.0,
+            "search/leaves": 93.0, "search/overrode": 1.0,
+            "search/policy_argmax": 8.0, "tree/beta": 4.0, "tree/evals": 93.0,
+            "tree/max_depth": 3.0, "tree/mean_sim_depth": 1.5520833333,
+            "tree/q_spread": 0.5708767449, "tree/transition_failures": 0.0}),
+    },
 }
 
 
@@ -96,7 +130,11 @@ def test_the_tree_decides_exactly_what_it_decided_on_2026_09_18(rule):
                      tree=TREES[rule])
     action, stats = sa.act(_two_mon_battle(), np.zeros(8, dtype=np.float32),
                            _mask(), 5, 2)
-    want_action, want_stats = GOLDEN[rule]
+    from rl.envs.showdown import OBS_DIM
+    assert OBS_DIM in GOLDEN, (
+        f"no golden values for OBS_DIM {OBS_DIM}; the tree encodes every leaf, "
+        "so a new encoder is a new search and needs its own row")
+    want_action, want_stats = GOLDEN[OBS_DIM][rule]
     assert action == want_action
     got = {k: v for k, v in stats.items() if "/ms_" not in k}
     assert sorted(got) == sorted(want_stats), (
@@ -107,7 +145,8 @@ def test_the_tree_decides_exactly_what_it_decided_on_2026_09_18(rule):
 
 def test_the_three_rules_do_not_all_report_the_same_thing():
     """The fixture would pin nothing if the rules were indistinguishable on it."""
-    seen = {r: GOLDEN[r][1] for r in GOLDEN}
+    from rl.envs.showdown import OBS_DIM
+    seen = {r: GOLDEN[OBS_DIM][r][1] for r in TREES}
     assert seen["q"]["tree/gap"] != seen["visits"]["tree/gap"]
     assert "tree/beta" in seen["gumbel"] and "tree/argmax" not in seen["gumbel"]
 
