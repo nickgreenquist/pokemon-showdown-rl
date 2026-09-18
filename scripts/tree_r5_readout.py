@@ -19,6 +19,22 @@ def g(t):
     return json.loads(p.read_text()) if p.exists() else None
 
 
+def flip_rate(d):
+    """How often did the search overrule the policy?
+
+    A TREE ARM REPORTS NO `search/override_rate`: that field is gated on
+    `margin_delta`, which belongs to the MATRIX selector, while the tree carries
+    its margin in `tree.margin`. Same quantity, different bookkeeping -- and
+    taking the None at face value is what blocked the 07:05Z pin for four hours.
+    """
+    r = d.get("search/override_rate")
+    if r is not None:
+        return float(r)
+    dec = d.get("search/decisions") or 0
+    skips = d.get("search/placeholder_skips") or 0
+    return (d.get("search/flips") or 0) / max(dec - skips, 1)
+
+
 def cmp(lab, pa, na, pb, nb):
     se = math.sqrt(pa * (1 - pa) / na + pb * (1 - pb) / nb)
     print(f"  {lab:46s} {pa:.4f} - {pb:.4f} = {pa - pb:+.4f} at {abs(pa - pb) / se:.2f} se")
@@ -36,8 +52,7 @@ def main():
         if not d:
             print(f"  {a} PENDING"); continue
         t = PR["arms"][a]["tree"]
-        print(f"  {a} margin {t['margin']:<5.2f} override "
-              f"{(d.get('search/override_rate') or float('nan')):.4f} "
+        print(f"  {a} margin {t['margin']:<5.2f} override {flip_rate(d):.4f} "
               f"ms {(d.get('search/ms_mean') or float('nan')):.1f}")
 
     print("\n## The read\n")
@@ -50,7 +65,7 @@ def main():
             print(f"  {a:4s} {lab:26s} PENDING"); continue
         print(f"  {a:4s} {lab:26s} {d['our_win_rate']:.4f} n={d['battles_finished']:<5d} "
               f"ms {(d.get('search/ms_mean') or 0):.1f} "
-              f"flips {(d.get('search/flip_rate') or d.get('search/override_rate') or float('nan')):.4f}")
+              f"flips {flip_rate(d):.4f}")
 
     anchor = data["TGR"]
     print("\n## Against greedy\n")
