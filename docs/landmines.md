@@ -753,13 +753,20 @@ the two long battles that started this live in open-gate arms, but greedy anchor
 and old greedy arms hit the cap at similar rates (`ch5_r1_offsh/rs81` is 15 of
 3000 on a plain greedy seat).
 
-**AND THE BEHAVIOUR IS NOW EXAMINED — it is one bug, every time**
-(`scripts/stall_forensics.py`, RESULTS §28). Six stalls read across three blocks
-and two objects, with and without search, are identical: **the opponent is down
-to one Pokémon FROZEN SOLID** — gen-1 freeze is permanent without a fire move, so
-it cannot act — and our seat **oscillates between exactly two Pokémon for ~950
-turns, 100% strictly alternating**, instead of attacking a helpless target. Turn
-cap, tie, non-win. **A thrown-away win.**
+**AND THE BEHAVIOUR IS NOW EXAMINED — 103 OF THE 104 CAPPED BATTLES IN THE REPO**
+(`scripts/stall_forensics.py`, RESULTS §28). **100 of the 103 are a switch loop**
+— ~900–990 switches, essentially 100% strictly alternating between two slots —
+and in **94 of them (91.3%) the opponent is immobilised on ≥80% of turns**,
+usually one Pokémon FROZEN SOLID (gen-1 freeze is permanent without a fire move).
+Our seat oscillates instead of attacking a helpless target: turn cap, tie,
+non-win. **A thrown-away win.** Six are the same loop against an opponent that
+COULD act, and three logs are incomplete (an arm relaunched mid-battle).
+
+**THAT NUMBER IS A CORRECTION.** This entry and §28 first said "one bug, every
+time" on the strength of SIX battles, because the forensics script re-read a
+200–900 MB log once per battle and only one arm had ever been swept. One pass
+over all tags turned a sample into an enumeration. **A claim about "every" needs
+the denominator, and getting it was ten minutes of work.**
 
 **THE MECHANISM IS THE LOCKED PROTOCOL'S OWN DETERMINISM.** Argmax in a state
 that has stopped changing repeats forever. Training SAMPLES, so this never

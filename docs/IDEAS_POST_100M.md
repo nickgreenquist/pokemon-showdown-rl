@@ -472,13 +472,13 @@ untested object.
 ranking (§27.1), which is 4.9's and 4.1's territory.
 
 **2.14 BREAK THE DETERMINISTIC-POLICY LOOP — a MEASURED BUG with a BUILT fix,
-waiting on one ruling (added 2026-09-18; RESULTS §28).** Every turn-cap stall
-this project has produced is the same thing: the opponent is down to one Pokémon
-**frozen solid**, the state stops changing, and a deterministic argmax
-**oscillates between exactly two Pokémon for ~950 turns** — 100% strictly
-alternating, six times across three blocks and two objects, with and without
-search — until the 1000-turn cap makes it a tie, which the locked protocol counts
-as a NON-WIN. **It is a thrown-away win against a helpless opponent.**
+waiting on one ruling (added 2026-09-18; RESULTS §28).** **103 of the 104 capped battles in the repo
+were enumerated** (the claim first rested on six; see §28's correction box).
+**100 of the 103 are a switch loop** — ~900–990 switches, ~100% strictly
+alternating between two slots — and in **94 (91.3%)** the opponent is immobilised
+on ≥80% of turns, usually one Pokémon **frozen solid**, while a deterministic
+argmax oscillates instead of attacking it, until the 1000-turn cap makes it a tie
+that the locked protocol counts as a NON-WIN. **It is a thrown-away win against a helpless opponent.**
 **BUILT:** `rl/common/loop_breaker.py` (13 tests) takes the next-best legal
 action on the fourth identical (observation, action) pair in a battle, escalating
 a rank per escape so a cycle of any period unwinds. It stays **deterministic** —

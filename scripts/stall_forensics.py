@@ -42,26 +42,33 @@ MARK = "Received message from websocket: >"
 CAP = 1000
 
 
-def room_lines(path: Path, tag: str) -> str:
-    """The protocol lines belonging to ONE battle room.
+def room_lines(path: Path, tags) -> dict[str, str]:
+    """The protocol lines belonging to EACH of `tags`, in ONE pass.
 
     The log interleaves rooms, and every room block starts with a `>battle-...`
     marker; any other logger line ends the block. Getting this wrong returns a
     handful of lines and a confident empty answer, which is what the first
     attempt did.
+
+    ONE PASS, not one per tag: these logs run 200-900 MB and an arm can hold
+    fifteen stalls, so re-reading per battle turned a ten-minute sweep into an
+    afternoon. That is why the first version only ever looked at one arm -- and
+    a claim about "every stall" then rested on six of them.
     """
-    out, cur = [], False
+    want = set(tags)
+    out: dict[str, list[str]] = {t: [] for t in want}
+    cur = None
     with path.open(errors="replace") as f:
         for line in f:
             if MARK in line:
-                cur = tag in line
+                cur = next((t for t in want if t in line), None)
                 continue
             if line.startswith(("DEBUG", "INFO ", "WARNING", "ERROR")):
-                cur = False
+                cur = None
                 continue
-            if cur:
-                out.append(line)
-    return "".join(out)
+            if cur is not None:
+                out[cur].append(line)
+    return {t: "".join(v) for t, v in out.items()}
 
 
 def classify(txt: str, seat: str) -> dict:
@@ -72,20 +79,41 @@ def classify(txt: str, seat: str) -> dict:
     foe_cant = len(re.findall(rf"\|cant\|{foe}a: [^|]+\|([a-z]+)", txt))
     foe_status = Counter(re.findall(rf"\|cant\|{foe}a: [^|]+\|([a-z]+)", txt))
     alt = sum(1 for a, b in zip(sw, sw[1:]) if a != b)
+    turns = txt.count("|turn|")
+    acts = len(sw) + len(mv)
+    # THE CLASSIFIER IS DELIBERATELY CONSERVATIVE, because the claim it supports
+    # is about EVERY stall and the first version's categories were too coarse to
+    # carry one. Three things are separated that it used to conflate:
+    #   * a room whose protocol we did not fully capture -- an arm that was
+    #     relaunched mid-battle leaves a partial room, and a battle with 1000
+    #     turns and 10 recorded actions is a LOG artifact, not a policy one;
+    #   * a loop against an opponent that CAN act -- a real game, however ugly;
+    #   * the bug: the opponent is immobilised for most of the battle and we
+    #     still do not finish it. Whether our side alternates between two slots
+    #     or hammers one is not the point; NOT WINNING against something that
+    #     cannot act is.
+    incomplete = acts < 0.25 * max(turns, 1)
+    foe_frac = foe_cant / max(turns, 1)
+    if incomplete:
+        verdict = "INCOMPLETE LOG -- too few recorded actions to classify"
+    elif foe_frac >= 0.80:
+        verdict = "FOE IMMOBILISED AND WE DID NOT FINISH -- a thrown-away win"
+    elif alt / max(len(sw) - 1, 1) > 0.9 and len(sw) > 100:
+        verdict = "SWITCH LOOP against an opponent that COULD act"
+    else:
+        verdict = "long game, no simple cycle"
     return {
-        "turns": txt.count("|turn|"),
+        "turns": turns,
         "our_switches": len(sw), "our_moves": len(mv),
         "alternating": alt, "alternating_frac": alt / max(len(sw) - 1, 1),
+        "switch_frac": len(sw) / max(acts, 1),
+        "foe_immobilised_frac": foe_frac,
         "switch_targets": Counter(sw).most_common(4),
         "our_top_moves": Counter(mv).most_common(4),
         "foe_immobilised_turns": foe_cant,
         "foe_immobilised_by": dict(foe_status),
         "struggle": txt.lower().count("struggle"),
-        "verdict": (
-            "SWITCH LOOP vs an IMMOBILISED opponent -- a thrown-away win"
-            if alt / max(len(sw) - 1, 1) > 0.9 and foe_cant > 0.5 * txt.count("|turn|")
-            else "SWITCH LOOP" if alt / max(len(sw) - 1, 1) > 0.9
-            else "long game, no simple cycle"),
+        "verdict": verdict,
     }
 
 
@@ -96,7 +124,11 @@ def main() -> None:
     ap.add_argument("--min-turns", type=int, default=CAP)
     ap.add_argument("--seat", default="p2", choices=("p1", "p2"),
                     help="our side in the Foul Play log (the seat ACCEPTS, so p2)")
+    ap.add_argument("--summary", action="store_true",
+                    help="one line per arm plus a verdict tally -- the form that "
+                         "supports (or refutes) a claim about EVERY stall")
     args = ap.parse_args()
+    tally: Counter = Counter()
 
     d = REPO / "results" / args.block
     arms = [args.arm] if args.arm else sorted(
@@ -118,12 +150,19 @@ def main() -> None:
             print(f"  (no {lf.name} -- the log is gitignored; rerun the arm to "
                   "inspect, or point --block at a block whose log survives)")
             continue
+        rooms = room_lines(lf, [b["tag"] for b in stalls])
         for b in stalls:
-            txt = room_lines(lf, b["tag"])
+            txt = rooms.get(b["tag"], "")
             if not txt:
                 print(f"  {b['tag']}: no protocol lines found in the log")
                 continue
             c = classify(txt, args.seat)
+            tally[c["verdict"]] += 1
+            if args.summary:
+                print(f"  {b['tag'][-8:]}  {c['verdict']:<52} "
+                      f"sw {c['our_switches']:>4} ({c['switch_frac']:>4.0%} of acts) "
+                      f"alt {c['alternating_frac']:>5.0%} foe-stuck {c['foe_immobilised_frac']:>5.0%}")
+                continue
             print(f"  {b['tag']}  outcome={b['outcome']}  turns={c['turns']}")
             print(f"    VERDICT: {c['verdict']}")
             print(f"    our switches {c['our_switches']} "
@@ -133,6 +172,13 @@ def main() -> None:
             print(f"    our top moves  {c['our_top_moves']}")
             print(f"    opponent could not act on {c['foe_immobilised_turns']} "
                   f"turns {c['foe_immobilised_by']}")
+
+    if tally:
+        total = sum(tally.values())
+        print(f"\n{'=' * 78}\nVERDICT TALLY over {total} stalls examined\n{'=' * 78}")
+        for v, n in tally.most_common():
+            print(f"  {n:>4}  ({n / total:>5.1%})  {v}")
+        print("\n  A claim about EVERY stall needs this denominator, not a sample.")
 
 
 if __name__ == "__main__":

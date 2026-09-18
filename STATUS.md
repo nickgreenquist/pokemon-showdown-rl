@@ -1,11 +1,12 @@
 # STATUS
 ## JOURNEY POSITION — step 11 DONE (R5 LISTED). The post-ladder week is a SEARCH chapter that closed with a BUG
 **Everything below is RESULTS §20–§29, each with a readout. Nothing since §21 credits anything.**
-**§28 — EVERY TURN-CAP STALL IS ONE BUG, and it is a THROWN-AWAY WIN.** The opponent is down to one Pokémon
-**FROZEN SOLID** (gen-1 freeze is permanent), the state stops changing, and our seat **oscillates between
-exactly two Pokémon for ~950 turns, 100% strictly alternating** instead of attacking a helpless target. Turn
-cap → tie → **NON-WIN**. Six times, three blocks, two objects, **with and without search** (a plain greedy
-seat does it 15× in 3000). **THE MECHANISM IS THE LOCKED PROTOCOL'S OWN DETERMINISM:** argmax in a state that
+**§28 — THE TURN-CAP STALL IS A SWITCH LOOP, and in 91% of cases a THROWN-AWAY WIN.** **103 of the 104
+capped battles enumerated** (the claim first rested on six — corrected same day): **100 are switch loops**
+(~900–990 switches, ~100% alternating between two slots) and **94 (91.3%) have the opponent immobilised on
+≥80% of turns**, usually one Pokémon **FROZEN SOLID**, while our seat oscillates instead of attacking it.
+Turn cap → tie → **NON-WIN**. **With and without search** — the two largest concentrations are greedy seats
+(15 and 19 of 3000). **THE MECHANISM IS THE LOCKED PROTOCOL'S OWN DETERMINISM:** argmax in a state that
 stopped changing repeats forever; training SAMPLES, so it never happens there. `rl/common/loop_breaker.py`
 BUILT (13 tests, provably invisible on non-looping battles), **WIRED NOWHERE — it changes the policy form, so
 it needs a RULING.** Ladder risk latent (R5 max 121 turns, 0 ties). Tie rate 0.0014, worst arm 0.0110.
@@ -24,12 +25,12 @@ makes the truth exactly 0 — **first direct evidence for IDEAS 4.1 (both-seat h
 regime search visits. **NEVER set the training EV 0.59 against this ceiling** — a different state distribution.
 **§26 + §26.1 — a real tree does not beat greedy, but the DECIDE RULE orders the arms.** n=1000/arm off FP@20
 vs an in-block greedy anchor **0.5830**: **TG** gumbel **0.6040** [acts 11.4%] **+0.0210 at 0.96 se**; **TV**
-visits 0.5970 [3.7%] +0.0140; **TQ** q+margin 0.5600 [9.3%] −0.0230. Nothing clears the credit line;
-**nothing is BELOW greedy either, which is new.** TQ acts BETWEEN the others and reads LOWEST (TG−TQ **+0.0440
-at 2.00 se**), so the ordering runs AGAINST the override-rate confound. **Worst rule is `q + margin` — the
-shape every banked matrix number uses.** TG's +0.021 is **UNRESOLVED** (n≈4,375/arm). All arms `iters: 100`,
-so nothing speaks to the BUDGET. **§26.1: all 5 matrix arms are below their own anchor; the only arms above
-one are trees (2 of 3), Fisher p 0.107** — the VEHICLE separates, the dose does not.
+visits 0.5970 [3.7%] +0.0140; **TQ** q+margin 0.5600 [9.3%] −0.0230. Nothing clears the credit line; **nothing
+is BELOW greedy either, which is new.** TQ acts BETWEEN the others and reads LOWEST (TG−TQ **+0.0440 at 2.00
+se**), so the ordering runs AGAINST the override-rate confound. **Worst rule is `q + margin` — the shape every
+banked matrix number uses.** TG's +0.021 is **UNRESOLVED** (n≈4,375/arm); all arms `iters: 100`, so nothing
+speaks to the BUDGET. **§26.1: all 5 matrix arms sit below their own anchor; the only arms above one are trees
+(2 of 3), Fisher p 0.107** — the VEHICLE separates, the dose does not.
 **§25 — the R5 committee BEATS FP@500: 0.5600 (n=500, 0 ties), +2.70 se.** Same-session W020 0.5500, so 25×
 budget buys Foul Play +0.010 at 0.32 se for 24.4× the wall clock; the 100M committee lost at 0.472.
 **Retracts IDEAS §8.1's premise that FP beats us at 500 ms.** FP@500 is an INSTRUMENT, not a rung.

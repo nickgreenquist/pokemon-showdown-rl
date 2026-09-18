@@ -2274,7 +2274,7 @@ win-rate column may not be read downward across blocks; arms differ in n (1000�
 each carries ~0.02 of binomial se; and D1 and CN1 are the same vehicle at different
 deltas in different blocks, not a dose curve.
 
-## 28. Addendum, 2026-09-18 — **every turn-cap stall is the same bug: a two-Pokémon switch loop against a frozen opponent, and the locked protocol's determinism is what sustains it**
+## 28. Addendum, 2026-09-18 — **the turn-cap stall is a switch loop, and in 91% of cases it is a thrown-away win against an opponent that cannot act** (corrected the same day — see the box below)
 
 `scripts/stall_forensics.py` and `scripts/tie_and_stall_audit.py`. No new compute — this
 is banked Showdown protocol read out of arms already run. **This is a measured mechanism,
@@ -2286,19 +2286,29 @@ is not lengthening; it is one or two battles hitting the **1000-turn cap**. Acro
 **143,500 banked battles** the overall tie rate is 0.0014, the worst arm is 0.0110, and
 **51% of all ties are turn-cap stalls**.
 
-**What a stall is.** Every one examined — six battles, three blocks, two different
-objects, with and without search — is the same thing:
+> **CORRECTION, same day.** This section first read *"every turn-cap stall is the same
+> bug"* on the strength of **six** battles. That is a generalization from a sample, and
+> the maintainer's standing instruction is not to close an idea that was not finished.
+> `scripts/stall_forensics.py` was rewritten to scan every tag in ONE pass (it had been
+> re-reading a 200–900 MB log per battle, which is why only one arm had ever been looked
+> at) and **103 of the 104 capped battles in the repo were then enumerated.** The finding
+> survives and is stronger for resting on near-complete enumeration, but **it is 91.3%,
+> not "every"**, and the numbers below are the enumeration.
 
-| arm | our switches | strictly alternating | our moves | opponent could not act |
-|---|---|---|---|---|
-| gate_r5/cn1 | 949 | **100%** | 52 | 997 turns (frz) |
-| gate_r5/cn1 | 927 | **100%** | 59 | 965 turns (frz 962) |
-| depth2_r5/d2n | 954 | **100%** | 48 | 950 turns (frz 948) |
-| ch5_r1_offsh/rs81 ×3 | 907–984 | **100%** | 18–94 | 973–979 turns (frz 965–975) |
+**What a stall is — 103 of 104 capped battles examined:**
 
-The opponent is down to one Pokémon, **frozen solid** — gen-1 freeze is permanent without
-a fire move, so it literally cannot act — and our seat **oscillates between exactly two
-Pokémon for nine hundred turns** instead of attacking it. Turn cap → tie → **a NON-WIN**.
+| verdict | count | share |
+|---|---|---|
+| **opponent IMMOBILISED ≥80% of turns and we did not finish** — a thrown-away win | **94** | **91.3%** |
+| switch loop against an opponent that COULD act | 6 | 5.8% |
+| incomplete log (an arm relaunched mid-battle), unclassifiable | 3 | 2.9% |
+
+**100 of the 103 are a switch loop of some kind** — ~900–990 switches, essentially 100%
+strictly alternating between two slots. In the 94-battle majority the opponent is down to
+one Pokémon **frozen solid** (gen-1 freeze is permanent without a fire move, so it cannot
+act on 95–99% of turns) and our seat oscillates instead of attacking it. Turn cap → tie →
+**a NON-WIN**. The 6 exceptions are the same loop against an opponent that *could* act —
+a real game, however ugly, and not a free win being discarded.
 
 **THE MECHANISM IS THE PROTOCOL'S OWN DETERMINISM.** The locked protocol plays argmax. A
 frozen opponent stops changing the state; a deterministic policy in a repeating state
@@ -2308,8 +2318,9 @@ statistic that does not look at turn counts.
 
 **IT IS NOT A SEARCH ARTIFACT.** `ch5_r1_offsh/rs81` carries no search dials at all
 (`search_dose`, `search_margin_delta`, `search_tree`, `search_depth2` all null,
-`seat_policy: deterministic`) and produces the identical loop 15 times in 3000 battles.
-Search neither causes it nor prevents it.
+`seat_policy: deterministic`) and produces the identical loop 15 times in 3000 battles;
+`ch5_r2_offsh/r4s66`, also greedy, produces it 19 times in 3000. Search neither causes it
+nor prevents it, and the two largest concentrations are both on greedy seats.
 
 **Size, stated honestly.** Within a block every arm sits near 0.001 and **no published
 within-block comparison is affected**. Across blocks the spread reaches 0.011 — half the
