@@ -62,11 +62,11 @@ one action at a small budget, which is what TV's 1.1 changed decisions/battle is
 Six lanes k=8: **W trio = L2 + 1024 critic** (104/112/120, 46.3 h); **L2LAM = L2 + MC targets** (128/136/144).
 - **Off FP@20, same session, n=3000/arm:** E3WF **0.5987** > E6MF 0.5763 ≈ E9F 0.5760 > E3HF 0.5570 > E3LF
   0.4960. Singles n=9000: W 0.5417, 100M 0.4952, L2LAM 0.4481. **LADDER OBJECT = E3WF** (+0.0417 at 3.27 se).
-- **vs SH:** GW 0.8217 vs 100M A0 0.7887 = **+0.033 at 5.6 se**; E3W 0.8386 (+0.015 over the 100M ENS3 at
-  2.01 se — **NOT credited; recipe gain and committee gain SUBSTITUTE**).
+  **vs SH:** GW 0.8217 vs 100M A0 0.7887 = **+0.033 at 5.6 se**; E3W 0.8386 (+0.015 over the 100M ENS3 at
+  2.01 se — **NOT credited; recipe gain and committee gain SUBSTITUTE**). **ENS3 of the 100M finals CREDITS**
+  (+0.0349 vs SH at 5.93 se) and is the R5 FLOOR, at greedy speed.
 - **Mechanism (§21):** critic first-layer srank99 **632/1024 vs 5/384** — width is LIVE, ceiling branch did
   NOT fire. But **EV DID NOT MOVE** (0.5881 vs 0.5919): **do not size the next fleet on EV.**
-- **ENS3 of the 100M finals CREDITS** (+0.0349 vs SH at 5.93 se) and is the R5 FLOOR, at greedy speed.
 
 ## SEARCH LANDMINES
 D5 gate out of sample **+0.016 at 2.19 se — MISSES the floor**; never quote s112's +0.0417. Off FP@20 the
