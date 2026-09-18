@@ -12023,3 +12023,84 @@ line numbers are not — grep the date, then read that region):
     too? If not, the evaluator difference lives on the axis where it can matter;
     if so, the search construction is the ceiling.
   - Suite 1090 passed / 87 skipped.
+
+- 2026-09-18 — **THE GATE WAS THE INSTRUMENT (RESULTS §24), the R5 committee BEATS
+  FP@500, and three fixes the week's reads pointed at were BUILT.** Hacking runs
+  throughout, under the maintainer's 2026-09-17 ruling; nothing here credits anything.
+  - **§24, the sharpest search finding we have, and it REVERSES §23.** §22 and §23
+    both read null on depth at a ~6.5% override rate — where the search changes the
+    played action on about **two decisions of a thirty-turn battle**, a mechanical
+    bound on how much any leaf value can matter. Hold depth, open the gate:
+
+        evaluator, depth      tight gate        open gate         opening costs
+        our critic, d1        0.5687 [6.8%]     0.5627 [19.3%]    -0.0060 (0.38 se)
+        our critic, d2        0.5680 [6.2%]     0.5160 [16.3%]    -0.0520 (3.30 se)
+        FP heuristic, d1      0.5487 [6.5%]     0.4607 [16.7%]    -0.0880 (5.59 se)
+
+    §23 concluded the two evaluators are indistinguishable (−0.020 at 1.56 se) — true,
+    and nearly powerless, because a tight gate lets NEITHER speak. **At an open gate
+    the same comparison is −0.1020 at 5.62 se.** **OUR CRITIC IS THE ROBUST
+    EVALUATOR.** The off-distribution story is falsified in the OPPOSITE direction to
+    the one everyone assumed: the thing with no training distribution at all is the
+    one that breaks when search acts on it.
+  - **DEPTH-2 IS THE DEFECT, and the mechanism is in our own code.** The depths are
+    indistinguishable tight (−0.0007) and **−0.047 at 2.57 se apart open**.
+    `matrix.py::_look_further` took a max over OUR replies with the opponent PINNED
+    to its column, and its docstring defended that with "it biases every row the same
+    way". **It does not:** rows differ in how many replies they have, so the bias
+    inflates exactly the rows with the most escape hatches — the rows search then
+    overrides into. A tight gate discards them; an open gate plays them. §22's "depth
+    is a null" is therefore true only in the regime where depth barely speaks.
+  - **WHAT DOES NOT CHANGE: search still loses to GREEDY.** Best searched arm 0.5627
+    against three greedy draws 0.5747 / 0.5720 / 0.5827 (spread 0.0107 against a
+    binomial se of 0.0128 — the blocks are calibrated), **pooled 0.5765 (n=4500)**.
+    **THE BAR IS GREEDY**, and every configuration measured on the R5 committee is
+    level with or below it.
+  - **THE R5 COMMITTEE BEATS FOUL PLAY AT 500 ms — the number the maintainer asked
+    for, which did not exist.** W500 **0.5600 (n=500, 0 ties, +2.70 se above even)**;
+    same-session W020 0.5500, so **25× budget buys Foul Play +0.010 at 0.32 se**. The
+    100M committee LOST this matchup at 0.472, so the change is in the object.
+    JOURNEY 11.5's premise "FP beats us using 500 ms" is retracted for this object.
+    FP@500 is an INSTRUMENT, not a rung; both FP disclosures travel.
+  - **THE TREE (our critic inside a real decoupled-UCT tree, our policy as the PUCT
+    prior) launched and stalled on its own pin.** Tree arms report
+    `search/override_rate: None` — that field is gated on `margin_delta`, which
+    belongs to the MATRIX selector, while the tree's margin lives in `tree.margin`.
+    The pin took the None at face value and the queue sat blocked from 07:05Z to
+    10:45Z. Fixed to fall back to `search/flips / (decisions − skips)` — the same
+    quantity, different bookkeeping — and TQ pinned at margin 0.20 (flip rate 0.0888
+    against D1's 0.0682 target). Relaunched 10:45Z, n=1000 × 4 arms.
+  - **BUILT, ALL UNRUN, all three named by the week's own reads:**
+    - **IDEAS 2.10 — `depth2.opp_k`** (11 tests). Default 1 is the old pinned
+      backup BIT-IDENTICALLY, so nothing banked moves; >1 gives the opponent up to k
+      answers (its column action first) and backs up max-of-min — exactly minimax at
+      `plies=1`, which is what every arm has ever run. **A SECOND DEFECT fell out of
+      writing the tests:** a leaf the lookahead could not expand was re-embedded at
+      `turn + 1 + plies` and re-scored, so merely TURNING DEPTH ON moved the value of
+      leaves it never looked past. **Every depth-2 arm before today carries that
+      artifact.** A third hole closed with it: a SWITCH column produced ZERO
+      grandchildren, because repeating "switch N" at ply 2 is illegal and the raise
+      landed in a `continue`.
+    - **IDEAS 8.5 — the disagreement gate** (17 tests): search only where the
+      committee is split. `votes` is free — `_EnsembleActor` now keeps the per-member
+      log-probs it already computed. A **`random`** metric is the CONTROL, on its own
+      salted stream, so "concentrating the budget pays" and "the committee knows
+      WHERE" stay separable claims; a test proves a gate at threshold 0 expands
+      exactly the leaves the ungated arm does.
+    - **IDEAS 2.11 — the luck ceiling** is now RESUME-SAFE (rule 4): one position
+      measured as it is reached, row appended immediately, `load_rows` tested against
+      the torn final line a kill leaves behind.
+  - **`configs/eval/backup_gate_r5.yaml` + pin + queue written, NOT launched:** both
+    fixes in one session because the session offset is ~0.02 and an anchor costs an
+    hour whether it serves one question or two. The 8.5 arms are matched on COMPUTE
+    by construction (dose L is 4× M on n_det, so ~25% of decisions at L costs what
+    100% at M costs) and the random control is matched ARITHMETICALLY from the real
+    gate's realized rate. B2O exists so "the backup fix helps" is a same-session
+    delta rather than a cross-session one.
+  - **`docs/IDEAS_POST_100M.md` Round 4.** §3's width/capacity entry ANSWERED with
+    BOTH halves (width is USED — srank99 632/1024 — and buys ZERO explained variance,
+    so the bound is now the EV ceiling, and sizing a fleet on EV is barred by name);
+    §8.1 and §8.2 amended by §24; new rows 2.10, 2.11, 2.12, 8.5 and **4.9 EXPERT
+    ITERATION, which the maintainer ranks the TOP item of §4**.
+  - Suite 1113 passed / 87 skipped / 9 deselected (`-k "not live_server"`, because
+    the tree queue owns the Showdown server). +29 tests today.
