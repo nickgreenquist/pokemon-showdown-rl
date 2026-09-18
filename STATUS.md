@@ -56,12 +56,16 @@ Six lanes k=8: **W = L2 + 1024 critic** (104/112/120, 46.3 h); **L2LAM = L2 + MC
 - **Mechanism (§21):** critic first-layer srank99 **632/1024 vs 5/384** (width is LIVE, ceiling branch did
   NOT fire) but **EV DID NOT MOVE** (0.5881 vs 0.5919): **do not size the next fleet on EV.**
 
-## RUNNING — `scripts/backup_gate_queue.sh` (launched 16:09Z, ~8 h)
-2.10's `opp_k` minimax backup vs the OLD backup vs depth-1, at an OPEN gate, matched on override rate; and
-8.5's committee gate vs a COIN at the same rate vs uniform, **all three at dose M** so the only difference
-is WHICH decisions were searched (the smoke measured the gate at 45%, not the 25% the original dose-L
-compute matching assumed — corrected mid-block before the pin). Sweep: δ0.03→0.370, δ0.05→0.240, target
-0.193. The pin REFUSES above |d|>0.05 rather than handing phase R an unmatched comparison.
+## RUNNING — `scripts/backup_gate_queue.sh` (phase R from 17:06Z, ~9 h; ETA ~02:00Z)
+**PHASE S CLEAN AND PINNED.** B2 sweep δ0.03→0.370, δ0.05→0.240, **δ0.08→0.1974 against a 0.193 target
+(|d| 0.0044)**; the gate's realized rate is **0.437**, so DRV's coin is pinned at 1−0.437 = **0.563**. The
+pin reads override rates and never a win rate, and REFUSES above |d|>0.05 rather than handing phase R an
+unmatched comparison. Phase R, n=1000 each: **D1O** depth-1 open gate / **B2O** depth-2 OLD backup /
+**B2R** depth-2 `opp_k` minimax (δ 0.08) — 2.10; **DGV** committee-gated / **DRV** coin at the same rate /
+**DUM** uniform — 8.5, **all three dose M** so the only difference is WHICH decisions were searched; **GC**
+greedy anchor. D1O and DUM are the same configuration on two pairs — the block's realized noise floor.
+**The dose-L design was corrected mid-block:** the smoke measured the gate at 45%, not the 25% the compute
+matching assumed, which would have made DGV cost ~1.8× DUM and confounded it with COMPUTE.
 
 ## BUILT 2026-09-18, UNRUN — details in `docs/IDEAS_POST_100M.md` Round 4
 - **2.10 `depth2.opp_k`** (12 tests): default 1 = the old pinned max, BIT-IDENTICAL. **Two more defects fell
