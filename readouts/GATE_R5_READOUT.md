@@ -75,6 +75,24 @@ critic at depth 1 with an open gate, reads 0.5627 against a greedy committee at
 below simply playing the policy's argmax. **A better evaluator did not change
 that, and neither did more depth.**
 
+## The greedy anchor, three independent draws
+
+| draw | block | n | win rate |
+|---|---|---|---|
+| G0 | depth2_r5 (09-17) | 1500 | 0.5747 |
+| GA | fpeval_r5 (09-17) | 1500 | 0.5720 |
+| GB | gate_r5 (09-18) | 1500 | 0.5827 |
+
+Spread 0.0107, each with binomial se 0.0128 — **the blocks are calibrated**, so
+every comparison above is within-session in effect and none of it is drift.
+Pooled, the greedy committee sits at **0.5765 (n=4500)**.
+
+**Against that, the best searched arm on this object is 0.5627** (our critic,
+depth 1, open gate) — **−0.020 against its own block's anchor at 1.29 se**, and
+every other search configuration is further below. Search on the R5 committee is
+level with or worse than simply playing the policy's argmax, at every depth,
+with either evaluator, at either gate setting.
+
 ## What this does NOT say
 
 - It says nothing about MCTS. `rl/search/tree.py` — decoupled UCT, our policy as

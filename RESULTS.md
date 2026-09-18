@@ -2021,7 +2021,10 @@ them. **§22's "depth is a null" is therefore true only in the regime where dept
 speaks**, and the honest reading of §22 is narrower than it was written.
 
 **WHAT DOES NOT CHANGE: search still does not beat greedy.** The best searched arm on this
-object — our critic, depth 1, open gate — is 0.5627 against a greedy committee at ~0.572.
+object — our critic, depth 1, open gate — is 0.5627 against this block's own greedy anchor of
+**0.5827**, i.e. **−0.020 at 1.29 se**. Three independent greedy draws across the three
+blocks read 0.5747 / 0.5720 / 0.5827 (spread 0.0107 against a binomial se of 0.0128, so the
+blocks are calibrated), pooling to **0.5765 (n=4500)**.
 Every search configuration measured on the R5 committee is level with or below simply playing
 the policy's argmax, and neither a better evaluator nor more depth changed that.
 
