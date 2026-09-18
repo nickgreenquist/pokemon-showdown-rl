@@ -1,0 +1,128 @@
+# TWO FIXES, ONE SESSION: does a CORRECT depth-2 backup pay, and does the
+# committee know WHERE to spend the budget?
+# Hacking run, 2026-09-18 (maintainer, 2026-09-17: "pre-reg is for ladder runs.
+# For hacking and trying ideas, keep going by yourself"). CREDITS NOTHING.
+#
+# WHY BOTH IN ONE BLOCK. Session offset on this instrument is ~0.02 (measured
+# twice this week), so every number here needs a SAME-SESSION anchor, and an
+# anchor costs an hour whether it serves one question or two. GC is that anchor
+# and it serves both halves.
+#
+# ---------------------------------------------------------------- HALF ONE
+# IDEAS 2.10. RESULTS §24 measured depth-2 -0.047 at 2.57 se WORSE than depth-1
+# once the gate is open, and named the cause in our own code: `_look_further`
+# maxed over OUR replies with the opponent PINNED to its column, so rows with
+# more escape hatches inflated most -- and those are the rows the root then
+# overrides into. `depth2.opp_k` (built 2026-09-18) gives the opponent answers
+# and backs up max-of-min, which at plies=1 is exactly minimax.
+#
+#   D1O  depth 1, gate open        the control (§24's CN1 re-drawn here)
+#   B2O  depth 2, opp_k 1, open    the OLD backup, same session -- without this
+#                                  arm the fix would be a cross-session delta,
+#                                  which is the error the ~0.02 offset forbids
+#   B2R  depth 2, opp_k 2, open    the fix
+#
+# MATCHING IS MANDATORY AND IT IS THE WHOLE REASON §22 EXISTS. The min-backup
+# LOWERS values, so the same `margin_delta` lets a different number of overrides
+# through and an unmatched comparison would measure the gate again (-0.0007 read
+# as -0.053 on 2026-09-17). Phase S sweeps B2's delta to D1O's target rate and
+# `scripts/backup_gate_pin.py` reads ONLY `search/override_rate`.
+#
+# READ: B2R - B2O is the FIX. B2R - D1O is whether depth pays once the backup
+# is honest. A null on B2R - D1O is a real null for THIS vehicle; it still does
+# not close MCTS (`rl/search/tree.py` is a different algorithm) and it does not
+# close depth for a vehicle whose backup is a true minimax at every ply.
+#
+# ---------------------------------------------------------------- HALF TWO
+# IDEAS 8.5. Every dose this project has measured raised the budget on EVERY
+# decision, which is why depth-2's 3.27x cost bought -0.0007. The ladder allows
+# ~150 s/turn and we spend 20 ms. The committee already computes, free, a signal
+# for which decisions are close.
+#
+#   DGV  votes >= 1/3 (any member dissents), dose L on those decisions
+#   DRV  a COIN at the same realized rate, dose L        <- isolates SELECTION
+#   DUM  ungated, dose M, every decision                 <- isolates CONCENTRATION
+#
+# THE COMPUTE IS MATCHED BY CONSTRUCTION, not by hope: dose L is 4x dose M on
+# n_det (1296 -> 5184 leaves), so searching ~25% of decisions at L costs what
+# searching 100% at M costs. DGV-DUM at equal compute is therefore "spend it
+# where it matters" vs "spread it", and DGV-DRV is "the committee knows where"
+# vs "any 25% would have done". Both claims are wanted and they are different.
+#
+# WHY `votes` AT 1/3 RATHER THAN A SWEPT THRESHOLD: with three members `votes`
+# takes only {0, 1/3, 2/3}, so 1/3 is the NATURAL cut (any dissent) and there is
+# nothing to sweep. DRV's threshold is then pinned ARITHMETICALLY from DGV's
+# realized rate -- a uniform coin searches (1 - t) by construction -- so the
+# control is matched rather than screened, which costs a phase-S cell.
+#
+# ANCHOR. Three greedy draws on this object read 0.5747 / 0.5720 / 0.5827,
+# pooled 0.5765 (n=4500). GC is the fourth, in THIS session. THE BAR IS GREEDY.
+
+title: backup_gate_r5
+status: "hacking run, 2026-09-18"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/backup_gate_r5
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+
+arms:
+  # SMOKE on a THROWAWAY pair: neither `opp_k` nor `disagree` has ever crossed
+  # the FP seat path, and a crash there poisons a real pair for hours.
+  SMK: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, disagree: {metric: votes, threshold: 0.30}, battles: 2, search_time_ms: 20, seat_username: bksmkseat, fp_username: bksmkbot}
+
+  # phase S -- opp_k=2 delta sweep toward D1O's override rate. Win rates from
+  # phase S are NOT reads (n=60 carries se 0.065).
+  B2A: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.03, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 60, search_time_ms: 20, seat_username: bkb2aseat, fp_username: bkb2abot}
+  B2B: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 60, search_time_ms: 20, seat_username: bkb2bseat, fp_username: bkb2bbot}
+  B2C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.08, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 60, search_time_ms: 20, seat_username: bkb2cseat, fp_username: bkb2cbot}
+  # phase S -- the gate's realized rate at the natural cut. DRV is matched to
+  # THIS number arithmetically, so this cell is measured, never assumed.
+  GV:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: L, margin_delta: 0.05, disagree: {metric: votes, threshold: 0.30}, battles: 60, search_time_ms: 20, seat_username: bkgvseat, fp_username: bkgvbot}
+
+  # phase R -- the reads. Deltas and thresholds marked PIN are written by
+  # scripts/backup_gate_pin.py from phase S and committed before R launches.
+  D1O: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 1000, search_time_ms: 20, seat_username: bkd1oseat, fp_username: bkd1obot}
+  B2O: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.12, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 1}, battles: 1000, search_time_ms: 20, seat_username: bkb2oseat, fp_username: bkb2obot}
+  B2R: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PINB, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 1000, search_time_ms: 20, seat_username: bkb2rseat, fp_username: bkb2rbot}
+  DGV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: L, margin_delta: 0.05, disagree: {metric: votes, threshold: 0.30}, battles: 1000, search_time_ms: 20, seat_username: bkdgvseat, fp_username: bkdgvbot}
+  DRV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: L, margin_delta: 0.05, disagree: {metric: random, threshold: PIND}, battles: 1000, search_time_ms: 20, seat_username: bkdrvseat, fp_username: bkdrvbot}
+  DUM: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 1000, search_time_ms: 20, seat_username: bkdumseat, fp_username: bkdumbot}
+  GC:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1000, search_time_ms: 20, seat_username: bkgcseat, fp_username: bkgcbot}
+
+phases:
+  S: [B2A, B2B, B2C, GV]
+  R: [D1O, B2O, B2R, DGV, DRV, DUM, GC]
+
+# D1O and DUM are the SAME CONFIGURATION (dose M, delta 0.05, ungated), run as
+# two arms on two username pairs. That is deliberate and it is not waste: it is
+# an in-session replicate of the one arm both halves lean on, and one rung of
+# this instrument is worth +/-0.02 (three re-draws of one checkpoint spread
+# 0.0200). If D1O and DUM differ by more than that, the block's own noise floor
+# is larger than the effects it is looking for and every delta here is read
+# against that, not against the binomial.
+
+comparators:
+  target_override: 0.193     # D1O's banked realized rate (§24's CN1, n=1500)
+  cn1:    {rate: 0.5627, n: 1500, override: 0.1930, note: "our critic, depth 1, gate OPEN (§24)"}
+  d2n:    {rate: 0.5160, n: 1500, override: 0.1626, note: "depth 2, OLD backup, gate OPEN (§22)"}
+  d1:     {rate: 0.5687, n: 3000, override: 0.0682, note: "depth 1, gate tight (§22)"}
+  greedy: {rate: 0.5765, n: 4500, note: "three draws pooled -- THE BAR"}
+
+R0_gates:
+  - name: G_OPPK_FIRED
+    check: "B2R reports depth2/opp_replies_mean > 1.2 and depth2/minimax_drop > 0; a 1.0 means the minimax backup NEVER FIRED whatever the config asked for, and the arm is VOID"
+  - name: G_GATE_FIRED
+    check: "DGV and DRV report 0.05 < disagree/search_rate < 0.95; 1.0 is a uniform-dose arm wearing a gated label and 0.0 is greedy"
+  - name: G_RATE_MATCHED
+    check: "|disagree/search_rate(DGV) - disagree/search_rate(DRV)| <= 0.03; unmatched, DGV vs DRV measures the FRACTION searched, not the SELECTION"
+  - name: G_OVERRIDE_MATCHED
+    check: "|search/override_rate(B2R) - search/override_rate(D1O)| <= 0.03 and same for B2O; unmatched, the comparison is the 2026-09-17 artifact again"
+  - name: G_REPLICATE
+    check: "|our_win_rate(D1O) - our_win_rate(DUM)| reported beside every delta as this block's realized noise floor"
