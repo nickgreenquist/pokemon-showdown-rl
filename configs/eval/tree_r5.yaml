@@ -1,0 +1,91 @@
+# OUR CRITIC INSIDE A REAL TREE -- the "RL500" question, in two steps.
+# Hacking run, 2026-09-18. Maintainer: "If our evaluator is better than FP
+# heuristic: I'm confused why we can't do like an RL500 and let it search same
+# way as FP and beat FP500?"
+#
+# THE ANSWER SO FAR IS THAT NOBODY BUILT IT AND RAN IT. `rl/search/tree.py` is
+# decoupled UCT with OUR policy as the PUCT prior, OUR critic at the leaves,
+# real chance nodes and real depth (mean simulation depth ~3.05 measured
+# 2026-09-11) -- i.e. structurally what Foul Play does, with a better evaluator
+# in it. It has only ever been run vs SimpleHeuristics at n=300, BEFORE the
+# override-rate confound was understood, on the saturated axis. It could not be
+# run off Foul Play at all until 2026-09-17, because the seat silently dropped
+# the `tree` kwarg (4441e30).
+#
+# WHY IT IS WORTH RUNNING NOW, when depth-1 search is a null and depth-2 hurts:
+# §24 measured that OUR CRITIC IS THE ROBUST EVALUATOR -- tripling how often
+# search acts on it costs 0.006, while doing the same to Foul Play's heuristic
+# costs 0.088 at 5.6 se. The standing reason to expect a tree over our critic to
+# fail was that the critic would misjudge off-policy lines. That is now
+# measured false at depth 1. The matrix's depth-2 failure has a DIFFERENT and
+# identified cause: `_look_further` maxes over our replies with no min over the
+# opponent's, which inflates exactly the rows search overrides into. A real tree
+# does not make that error -- it backs up through both players.
+#
+# STEP 1 (this file): does a real tree beat GREEDY at all, off FP@20?
+# STEP 2 (only if step 1 clears greedy): scale the budget and put it against
+# FP@500 head to head. Running step 2 first would spend ~7 h to learn something
+# step 1 answers in 90 minutes.
+#
+# THE BAR IS GREEDY, NOT THE DEPTH-1 SEARCH. Three independent greedy draws on
+# this object read 0.5747 / 0.5720 / 0.5827, pooling to 0.5765 (n=4500). Every
+# search configuration measured so far is level with or below that.
+#
+# THREE DECISION RULES, because the rule mattered more than the tree last time:
+#   TV  decide=visits -- Foul Play's and AlphaZero's rule. No gate. Caveat
+#       measured 2026-09-11: our prior is sharp enough that 90.9% of root visits
+#       landed on one action at a small budget, so visit share IS nearly the
+#       prior unless the budget is large enough to overrule it.
+#   TQ  decide=q + margin, swept to match D1's 6.8% override. This is EXACTLY
+#       the shape of the banked depth-1 selector on the same value scale, so
+#       TQ vs D1 differs in DEPTH and in nothing else -- the comparison
+#       tree.py's own docstring says is the one worth having.
+#   TG  decide=gumbel (Danihelka et al., ICLR 2022 App. C.2.2): a policy
+#       improvement for ANY monotone sigma, with one knob. Two caveats travel:
+#       the guarantee is against SAMPLING from pi, not against argmax pi (and
+#       our protocol is deterministic), and it holds only as far as q is
+#       correct. §24 is the first evidence that our q IS relatively correct.
+#
+# BATCHING IS ON (batch 16): leaf-parallel descents under a virtual loss share
+# one forward, measured 224 -> 113 ms/decision at equal iterations. It is what
+# makes depth affordable and it does not change what the tree searches.
+
+title: tree_r5
+status: "hacking run, 2026-09-18"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/tree_r5
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+
+arms:
+  # --- sweep: the margin for TQ, toward D1's realized 6.8% override ---
+  TSA: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 60, search_time_ms: 20, seat_username: trtsaseat, fp_username: trtsabot, tree: {iters: 100, n_det: 2, batch: 16, decide: q, margin: 0.05, root_min_visits: 8}}
+  TSB: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 60, search_time_ms: 20, seat_username: trtsbseat, fp_username: trtsbbot, tree: {iters: 100, n_det: 2, batch: 16, decide: q, margin: 0.10, root_min_visits: 8}}
+  TSC: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 60, search_time_ms: 20, seat_username: trtscseat, fp_username: trtscbot, tree: {iters: 100, n_det: 2, batch: 16, decide: q, margin: 0.20, root_min_visits: 8}}
+  # --- the read ---
+  TV:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 1000, search_time_ms: 20, seat_username: trtvseat,  fp_username: trtvbot,  tree: {iters: 100, n_det: 2, batch: 16, decide: visits, root_min_visits: 8}}
+  TG:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 1000, search_time_ms: 20, seat_username: trtgseat,  fp_username: trtgbot,  tree: {iters: 100, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
+  TQ:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 1000, search_time_ms: 20, seat_username: trtqseat,  fp_username: trtqbot,  tree: {iters: 100, n_det: 2, batch: 16, decide: q, margin: PINQ, root_min_visits: 8}}
+  # the same-session greedy anchor. Non-negotiable now: ~0.02 session offsets
+  # have bitten twice, and this block's bar IS greedy.
+  TGR: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1000, search_time_ms: 20, seat_username: trtgrseat, fp_username: trtgrbot}
+  # throwaway smoke: the tree has never crossed the FP seat path
+  TSM: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 2, search_time_ms: 20, seat_username: trtsmseat, fp_username: trtsmbot, tree: {iters: 100, n_det: 2, batch: 16, decide: visits, root_min_visits: 8}}
+
+phases:
+  smoke: [TSM]
+  S: [TSA, TSB, TSC]
+  R: [TV, TG, TQ, TGR]
+
+comparators:
+  greedy_pooled: {rate: 0.5765, n: 4500, note: "G0/GA/GB, three blocks, spread 0.0107"}
+  d1_matrix:     {rate: 0.5687, n: 3000, override: 0.0682, note: "depth-1 matrix, tight gate"}
+  cn1_matrix:    {rate: 0.5627, n: 1500, override: 0.1933, note: "depth-1 matrix, open gate"}
+  target_override: 0.0682
