@@ -443,6 +443,44 @@ class Tree:
                 self.depth_sum += len(path)
             done += k
 
+def _expert_stats(rows, share, prior) -> dict[str, float]:
+    """IS THE EXPERT ACTUALLY BETTER THAN THE STUDENT? (IDEAS 4.9's falsifier.)
+
+    Expert iteration trains the policy toward the search's root visit
+    distribution pi' = N/sum(N). If pi' is ~the prior, that cross-entropy term
+    is a no-op with extra compute and the lever is dead WITHOUT A FLEET. The
+    quantity that decides it is KL(pi' || prior) over the legal actions, and it
+    costs two array operations on numbers this function already holds -- so it
+    is computed here rather than left as a thing a future fleet would discover.
+
+    `argmax_moved` is deliberately UN-GATED, unlike `search/overrode`: the
+    question is whether the search HAS an opinion, not whether a margin let it
+    act on one. Those are different, and conflating them is the override-rate
+    confound in a new place.
+
+    Measured 2026-09-11 and recorded in configs/eval/tree_r5.yaml: 90.9% of root
+    visits landed on ONE action at a small budget. These counters are how that
+    stops being an anecdote.
+    """
+    p = np.array([max(float(share[a]), 0.0) for a in rows], dtype=np.float64)
+    tot = p.sum()
+    if tot <= 0:
+        return {}
+    p = p / tot
+    q = np.array([max(float(prior[a]), 1e-38) for a in rows], dtype=np.float64)
+    q = q / q.sum()
+    nz = p > 0
+    return {
+        "tree/kl_pi_prior": float((p[nz] * np.log(p[nz] / q[nz])).sum()),
+        "tree/pi_top1": float(p.max()),
+        "tree/prior_top1": float(q.max()),
+        "tree/pi_entropy": float(-(p[nz] * np.log(p[nz])).sum()),
+        "tree/pi_support": float((p > 0.01).sum()),
+        "tree/argmax_moved": float(
+            int(rows[int(np.argmax(p))] != rows[int(np.argmax(q))])),
+    }
+
+
 def tree_decision(
     battle: Any,
     mask: np.ndarray,
@@ -501,6 +539,7 @@ def tree_decision(
     # derives legality from the engine state, which does not model gen-1
     # placeholder turns or partial-trapping locks (bridge.is_locked_turn).
     share = {a: visits.get(a, 0.0) / total for a in rows}
+    expert = _expert_stats(rows, share, prior)
     if cfg.decide == "gumbel":
         # Normalise q to [0,1] over the LEGAL rows, as mctx does, so beta has
         # the same meaning whatever the value spread of the position.
@@ -528,6 +567,10 @@ def tree_decision(
             "tree/max_depth": float(max_depth),
             "tree/mean_sim_depth": float(depth_sum / max(sims, 1)),
             "tree/transition_failures": float(fails),
+            # the gumbel rule returns here, and it is the arm that read +0.021
+            # (RESULTS §26) -- so it is the LAST path that should be missing
+            # the falsifier IDEAS 4.9 turns on.
+            **expert,
         }
     if cfg.decide == "q":
         # Root mean value per action, pooled over determinizations. An action
@@ -569,4 +612,5 @@ def tree_decision(
         "tree/transition_failures": float(fails),
         "tree/root_q_best": float(
             vals.get(tree_argmax, 0.0) / max(visits.get(tree_argmax, 0.0), 1.0)),
+        **expert,
     }

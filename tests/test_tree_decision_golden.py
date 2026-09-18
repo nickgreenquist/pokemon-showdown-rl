@@ -46,7 +46,13 @@ GOLDEN = {
             "tree/gap": 0.2291666667, "tree/max_depth": 3.0,
             "tree/mean_sim_depth": 1.5, "tree/q_best": 0.0, "tree/q_policy": 0.0,
             "tree/root_q_best": 0.3843762961, "tree/share_best": 0.46875,
-            "tree/share_policy": 0.2395833333, "tree/transition_failures": 0.0}),
+            "tree/share_policy": 0.2395833333, "tree/transition_failures": 0.0,
+            "tree/argmax_moved": 1.0,
+            "tree/kl_pi_prior": 0.6680381306,
+            "tree/pi_entropy": 1.2084141311,
+            "tree/pi_support": 4.0,
+            "tree/pi_top1": 0.46875,
+            "tree/prior_top1": 0.382250705,}),
         "q": (9, {
             "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
             "search/leaves": 92.0, "search/overrode": 1.0,
@@ -55,13 +61,25 @@ GOLDEN = {
             "tree/mean_sim_depth": 1.5, "tree/q_best": 0.3843762961,
             "tree/q_policy": -0.4348358671, "tree/root_q_best": 0.3843762961,
             "tree/share_best": 0.46875, "tree/share_policy": 0.2395833333,
-            "tree/transition_failures": 0.0}),
+            "tree/transition_failures": 0.0,
+            "tree/argmax_moved": 1.0,
+            "tree/kl_pi_prior": 0.6680381306,
+            "tree/pi_entropy": 1.2084141311,
+            "tree/pi_support": 4.0,
+            "tree/pi_top1": 0.46875,
+            "tree/prior_top1": 0.382250705,}),
         "gumbel": (9, {
             "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
             "search/leaves": 92.0, "search/overrode": 1.0,
             "search/policy_argmax": 8.0, "tree/beta": 4.0, "tree/evals": 92.0,
             "tree/max_depth": 3.0, "tree/mean_sim_depth": 1.5,
-            "tree/q_spread": 1.1998435792, "tree/transition_failures": 0.0}),
+            "tree/q_spread": 1.1998435792, "tree/transition_failures": 0.0,
+            "tree/argmax_moved": 1.0,
+            "tree/kl_pi_prior": 0.6680381306,
+            "tree/pi_entropy": 1.2084141311,
+            "tree/pi_support": 4.0,
+            "tree/pi_top1": 0.46875,
+            "tree/prior_top1": 0.382250705,}),
     },
     612: {
         "visits": (6, {
@@ -72,7 +90,13 @@ GOLDEN = {
             "tree/mean_sim_depth": 1.5520833333, "tree/q_best": 0.0,
             "tree/q_policy": 0.0, "tree/root_q_best": -0.073022709,
             "tree/share_best": 0.40625, "tree/share_policy": 0.1875,
-            "tree/transition_failures": 0.0}),
+            "tree/transition_failures": 0.0,
+            "tree/argmax_moved": 1.0,
+            "tree/kl_pi_prior": 0.255958894,
+            "tree/pi_entropy": 1.3109701282,
+            "tree/pi_support": 4.0,
+            "tree/pi_top1": 0.40625,
+            "tree/prior_top1": 0.382250705,}),
         "q": (9, {
             "oppact/entropy": 1.7707760334, "search/chosen": 9.0,
             "search/leaves": 93.0, "search/overrode": 1.0,
@@ -81,13 +105,25 @@ GOLDEN = {
             "tree/mean_sim_depth": 1.5520833333, "tree/q_best": -0.0280336696,
             "tree/q_policy": -0.5989104145, "tree/root_q_best": -0.0280336696,
             "tree/share_best": 0.2604166667, "tree/share_policy": 0.1875,
-            "tree/transition_failures": 0.0}),
+            "tree/transition_failures": 0.0,
+            "tree/argmax_moved": 1.0,
+            "tree/kl_pi_prior": 0.255958894,
+            "tree/pi_entropy": 1.3109701282,
+            "tree/pi_support": 4.0,
+            "tree/pi_top1": 0.40625,
+            "tree/prior_top1": 0.382250705,}),
         "gumbel": (6, {
             "oppact/entropy": 1.7707760334, "search/chosen": 6.0,
             "search/leaves": 93.0, "search/overrode": 1.0,
             "search/policy_argmax": 8.0, "tree/beta": 4.0, "tree/evals": 93.0,
             "tree/max_depth": 3.0, "tree/mean_sim_depth": 1.5520833333,
-            "tree/q_spread": 0.5708767449, "tree/transition_failures": 0.0}),
+            "tree/q_spread": 0.5708767449, "tree/transition_failures": 0.0,
+            "tree/argmax_moved": 1.0,
+            "tree/kl_pi_prior": 0.255958894,
+            "tree/pi_entropy": 1.3109701282,
+            "tree/pi_support": 4.0,
+            "tree/pi_top1": 0.40625,
+            "tree/prior_top1": 0.382250705,}),
     },
 }
 
@@ -163,3 +199,60 @@ def test_wall_clock_is_deliberately_excluded():
     assert [k for k in stats if "/ms_" in k], (
         "if the timing keys ever disappear, this exclusion is silently moot")
     assert "iters" in TREES["visits"] and "ms" not in TREES["visits"]
+
+
+def test_the_expert_falsifier_is_computed_on_EVERY_decide_path():
+    """IDEAS 4.9 dies or lives on KL(pi' || prior), and the gumbel rule returns
+    from its own branch -- which is the arm that read +0.021 (RESULTS §26) and
+    therefore the last one that should be missing the measurement."""
+    from rl.envs.showdown import OBS_DIM
+    for rule in TREES:
+        sa = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=112,
+                         tree=TREES[rule])
+        _, stats = sa.act(_two_mon_battle(), np.zeros(8, dtype=np.float32),
+                          _mask(), 5, 2)
+        for k in ("tree/kl_pi_prior", "tree/pi_top1", "tree/prior_top1",
+                  "tree/argmax_moved", "tree/pi_entropy"):
+            assert k in stats, f"{rule} never reports {k}"
+        assert 0.0 <= stats["tree/pi_top1"] <= 1.0
+        assert stats["tree/kl_pi_prior"] >= -1e-12, "KL cannot be negative"
+
+
+def test_argmax_moved_is_UNGATED_and_differs_from_overrode():
+    """`search/overrode` asks whether a MARGIN let the search act.
+    `tree/argmax_moved` asks whether the search HAS an opinion. Conflating them
+    is the override-rate confound in a new place -- so a rule with no margin at
+    all must still report whether its argmax moved."""
+    sa = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=112,
+                     tree=TREES["visits"])          # decide=visits, NO margin
+    _, stats = sa.act(_two_mon_battle(), np.zeros(8, dtype=np.float32),
+                      _mask(), 5, 2)
+    assert "tree/argmax_moved" in stats
+    assert stats["tree/argmax_moved"] in (0.0, 1.0)
+
+
+def test_expert_stats_are_a_distribution_over_the_legal_actions():
+    """Directly, on the helper: pi' must be normalised over LEGAL rows and the
+    KL taken against the prior renormalised the same way, or the number is a
+    comparison between a distribution and something that is not one."""
+    from rl.search.tree import _expert_stats
+    rows = [6, 7, 8, 9]
+    share = {6: 0.5, 7: 0.25, 8: 0.25, 9: 0.0}
+    prior = np.zeros(10); prior[rows] = [0.25, 0.25, 0.25, 0.25]
+    st = _expert_stats(rows, share, prior)
+    assert st["tree/pi_top1"] == pytest.approx(0.5)
+    assert st["tree/pi_support"] == 3.0
+    assert st["tree/argmax_moved"] == 0.0, "same argmax, ties to the lowest index"
+    # KL of (.5,.25,.25,0) from uniform(4) = .5ln2 + .25ln1 + .25ln1 = 0.3466
+    assert st["tree/kl_pi_prior"] == pytest.approx(0.5 * np.log(2.0), abs=1e-9)
+
+
+def test_an_expert_identical_to_the_prior_reports_zero_kl():
+    """THE KILL CASE for IDEAS 4.9: if the search's visit distribution IS the
+    prior, training toward it is a no-op with extra compute."""
+    from rl.search.tree import _expert_stats
+    rows = [6, 7, 8]
+    prior = np.zeros(10); prior[rows] = [0.5, 0.3, 0.2]
+    st = _expert_stats(rows, {6: 0.5, 7: 0.3, 8: 0.2}, prior)
+    assert st["tree/kl_pi_prior"] == pytest.approx(0.0, abs=1e-12)
+    assert st["tree/argmax_moved"] == 0.0
