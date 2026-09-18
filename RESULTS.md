@@ -2135,3 +2135,55 @@ prior, and TV's 1.1 changed decisions per battle is that showing up in a win rat
 Barred, by name: "a tree beats greedy" (it does not, at this n); "gumbel beats visits"
 (+0.0070 at 0.32 se, and confounded by action rate); reading TG's +0.021 as a null; and
 any claim about MCTS at a budget this block did not run.
+
+## 27. Addendum, 2026-09-18 — **the luck ceiling: ~64% of a gen-1 position's outcome is irreducible, and our critic holds 60% of the rest**
+
+`readouts/OUTCOME_VARIANCE_READOUT.md`; `scripts/outcome_variance.py`. Hacking run,
+**credits nothing**. IDEAS **2.11**, run before anything else because it was the kill
+branch for everything above it.
+
+§21 measured `explained_variance` pinned at ~0.59 while 2.67× critic width and 126×
+first-layer rank bought **zero** of it; §22–§24 and §26 measured that no search
+construction beats greedy. **Both have the same untested explanation — the format may
+simply be mostly luck — and if so the critic is done and every remaining lever belongs on
+the policy.** Each position is held at **our observation**, then 4 determinizations × 8
+rollouts under the **same deterministic committee on both seats**, so what varies is
+engine chance plus hidden information and nothing else. **707 positions, 22,358
+rollouts.**
+
+| quantity | value |
+|---|---|
+| mean outcome | **−0.0006** |
+| σ² within an observation (irreducible) | 0.6366 |
+| σ² between observations | 0.3627 |
+| **EV ceiling for any critic reading our observation** | **0.3630** |
+| our critic on the same positions | **0.2176** |
+| **headroom** | **+0.1454** |
+
+**THE GATE OPENS: the critic is NOT at the format's ceiling.** About 40% of the knowable
+variance is unclaimed. The kill branch for expert iteration does not fire.
+
+| turns | positions | ceiling | critic | critic/ceiling |
+|---|---|---|---|---|
+| 2–8 | 173 | 0.1586 | 0.0393 | **25%** |
+| 9–15 | 157 | 0.2049 | 0.0445 | **22%** |
+| 16–22 | 187 | 0.4870 | 0.3319 | 68% |
+| 23+ | 190 | 0.5564 | 0.4053 | 73% |
+
+**Both rise with the turn and they do not rise together.** The critic holds 73% of what
+is knowable at turn 23 and **a quarter of it in the opening** — so the largest
+proportional gap is exactly where a battle is still open, which is the regime search
+visits.
+
+**The instrument's own check: mean outcome −0.0006 over 22,358 rollouts.** The rollout is
+self-play with one policy on both seats, so it must come out even; `_swap`, which builds
+the opponent's view, is the one hand-written piece that could have failed silently.
+
+**NEVER set the training `explained_variance` (~0.59) against this ceiling.** That is
+computed over PPO's whole batch including near-terminal states; every position here is
+mid-battle. The matched pair is 0.2176 against 0.3630. The naive ratio (0.3818) is biased
+up — `var_between` carries the sampling noise of position means — and the reported
+ceiling is the one-way random-effects estimate; the bias runs toward *more* headroom.
+
+Barred, by name: "0.59 is the ceiling"; any use of these numbers as a win rate or a
+ladder claim; and quoting the pooled ceiling without the turn mix that produced it.

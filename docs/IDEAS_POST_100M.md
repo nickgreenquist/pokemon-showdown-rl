@@ -404,9 +404,17 @@ asked whether a null on the matrix vehicle may close MCTS; §22 declined to
 close it, and closing it on a vehicle with a known-optimistic backup would be
 the D18 mistake in a new costume.
 
-**2.11 MEASURE THE LUCK CEILING — BUILT AND UNRUN, and it BOUNDS EVERY ROW IN
-THIS FILE (added 2026-09-18; `scripts/outcome_variance.py`, hours agent-side,
-no fleet).** RESULTS §21 measured `explained_variance` pinned at **~0.59** while
+**2.11 MEASURE THE LUCK CEILING — RUN 2026-09-18. THE GATE OPENS: the critic is
+NOT at the format's ceiling (RESULTS §27, `readouts/OUTCOME_VARIANCE_READOUT.md`).**
+**707 positions, 22,358 rollouts. Ceiling 0.3630, our critic 0.2176, headroom
++0.1454** — ~64% of a mid-battle outcome is irreducible and we hold 60% of the
+rest. **By turn the story is sharper: the critic holds 73% of what is knowable at
+turn 23 and 25% in the opening**, so the proportional gap is largest exactly where
+a battle is still open — the regime search visits. The kill branch ("EV_ceiling ≈
+our EV, so the critic is done") **DOES NOT FIRE**, and 4.9, 8.2 and every
+evaluator row stay live on this evidence. **NEVER set the training EV of 0.59
+against this ceiling** — different state distribution, and the matched pair is
+0.2176 vs 0.3630. The original entry follows. RESULTS §21 measured `explained_variance` pinned at **~0.59** while
 2.67× critic width and 126× first-layer rank bought **zero** of it; §22/§23/§24
 then measured that search buys nothing at depth 2 with **either** evaluator.
 **Both results have the same untested explanation: 0.59 may simply BE the
@@ -1018,9 +1026,15 @@ any fleet.** If that KL is ~0 at an affordable budget, this lever is dead withou
 spending a day, and the right follow-up is the tree's BUDGET rather than the
 loss. That makes step (i) worth doing even if the rest is never ratified.
 
-**The gate, stated plainly: run 2.11 FIRST.** If the luck ceiling comes back near
-0.6, the critic is already at the format's ceiling, a better expert has nothing
-to teach, and this is the wrong fleet. 2.11 is hours; this is days.
+**The gate, stated plainly: run 2.11 FIRST — DONE 2026-09-18, AND IT OPENS.**
+RESULTS §27 puts the ceiling at 0.3630 against our critic's 0.2176 on the same
+positions: **+0.145 of explainable variance is unclaimed, about 40% of what is
+knowable**, so the kill branch does not fire. **And it points at exactly this
+lever:** the critic holds 73% of the ceiling at turn 23 and **25% in the
+opening**, i.e. it is short of signal about positions whose outcome is still
+open — which is the regime search visits and what training on search-visited
+states addresses. What remains gating this row is the FREE FALSIFIER above
+(KL(`π′` ‖ prior) on banked arms), not the luck ceiling.
 
 **Composes with:** 2.10 (a tree with an optimistic backup would teach the bug),
 §8.5 (which decides WHERE to spend the search), 4.8 (members stay members), and
