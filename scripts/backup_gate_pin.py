@@ -29,6 +29,16 @@ PREREG = REPO / "configs/eval/backup_gate_r5.yaml"
 RES = REPO / "results/backup_gate_r5"
 TARGET_OVERRIDE = 0.193          # D1O's banked rate, §24's CN1, n=1500
 GRID = {"B2A": 0.03, "B2B": 0.05, "B2C": 0.08}
+# REFUSE RATHER THAN PIN A DELTA THAT DOES NOT MATCH. The grid is a guess: the
+# min-over-the-opponent backup lowers leaf values by an amount nobody has
+# measured, and B2A came back at 0.3702 against a 0.193 target on 2026-09-18.
+# If the best cell is still this far out, the read would be a comparison at
+# UNMATCHED override rates -- which is the 2026-09-17 artifact and the single
+# thing this block exists to avoid. Refusing stops the queue before phase R and
+# costs a screen cell; pinning anyway costs eight hours and produces a number
+# that cannot be used. The screen measures the rate over ~2,000 decisions, so
+# it is well determined even at n=60 -- a miss here is the GRID, not noise.
+MAX_OVERRIDE_ERR = 0.05
 
 
 def _load(tag: str) -> dict:
@@ -62,6 +72,20 @@ def pin_b() -> tuple[float, str]:
         print(f"  B2 delta {delta:<5} {tag}: override {rate:.4f} "
               f"(|d| {err:.4f}), drop {drop}, {ms} ms")
     best = min(rows, key=lambda r: (r[3], r[0]))
+    if best[3] > MAX_OVERRIDE_ERR:
+        lo = min(r[2] for r in rows)
+        hi = max(r[2] for r in rows)
+        sys.exit(
+            f"REFUSE: the grid does not reach the target. Best is {best[1]} at "
+            f"delta {best[0]} with override {best[2]:.4f} against a target of "
+            f"{TARGET_OVERRIDE} (|d| {best[3]:.4f} > {MAX_OVERRIDE_ERR}). The "
+            f"swept range spans {lo:.4f}..{hi:.4f}.\n"
+            "Phase R would compare arms that differ in HOW OFTEN the search is "
+            "BELIEVED as well as in the backup -- the 2026-09-17 artifact.\n"
+            "FIX: add bracketing cells to configs/eval/backup_gate_r5.yaml and "
+            "this GRID, run them, and re-run the pin. The selection rule reads "
+            "override rate and never a win rate, so extending the grid mid-block "
+            "is legitimate (it is what the 2026-09-17 fpeval sweep did).")
     return best[0], (f"-> B2R delta {best[0]} from {best[1]} "
                      f"(override {best[2]:.4f} vs target {TARGET_OVERRIDE})")
 
