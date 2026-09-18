@@ -109,9 +109,17 @@ def main():
         d = data[a]
         if not d:
             print(f"  {a:4s} {lab:26s} PENDING"); continue
+        # DECISIONS PER BATTLE, not just a rate. §24's whole finding is that at
+        # a ~6.5% override the search changes ~2 decisions of a 30-turn battle,
+        # which MECHANICALLY BOUNDS what any leaf value can be worth. An arm
+        # that overrides on 3% of decisions is mostly the greedy policy, and its
+        # win rate should be read as such before anything is attributed to the
+        # tree.
+        searched = (d.get("search/decisions") or 0) - (d.get("search/placeholder_skips") or 0)
+        per_battle = flip_rate(d) * searched / max(d["battles_finished"], 1)
         print(f"  {a:4s} {lab:26s} {d['our_win_rate']:.4f} n={d['battles_finished']:<5d} "
               f"ms {(d.get('search/ms_mean') or 0):.1f} "
-              f"flips {flip_rate(d):.4f}")
+              f"flips {flip_rate(d):.4f} = {per_battle:.1f} changed decisions/battle")
 
     code_provenance(data)
     anchor = data["TGR"]

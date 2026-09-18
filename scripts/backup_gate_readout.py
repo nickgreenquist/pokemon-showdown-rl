@@ -142,9 +142,15 @@ def main():
         d = arms.get(tag)
         if not d:
             print(f"  {tag:4s} {lab:42s} PENDING"); continue
+        # DECISIONS PER BATTLE, not just a rate: §24's finding is that at a
+        # ~6.5% override the search changes ~2 decisions of a 30-turn battle,
+        # which mechanically bounds what any leaf value can be worth.
+        searched = (d.get("search/decisions") or 0) - (d.get("search/placeholder_skips") or 0)
+        rate = num(d, "search/override_rate", 0.0)
+        per_battle = rate * searched / max(d["battles_finished"], 1)
         print(f"  {tag:4s} {lab:42s} {d['our_win_rate']:.4f} "
               f"n={d['battles_finished']:<5d} ms {num(d, 'search/ms_mean'):6.1f} "
-              f"override {num(d, 'search/override_rate'):.4f}")
+              f"override {rate:.4f} = {per_battle:.1f} changed decisions/battle")
 
     if arms.get("D1O") and arms.get("DUM"):
         floor = abs(arms["D1O"]["our_win_rate"] - arms["DUM"]["our_win_rate"])
