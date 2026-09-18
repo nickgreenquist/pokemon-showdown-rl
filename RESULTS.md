@@ -2235,3 +2235,41 @@ what 4.9 (expert iteration) and 4.1 (both-seat harvest) are for.**
 Barred: reading the +0.0195 as "recalibration fixes the critic"; quoting the isotonic
 number in-sample (it is 0.2389 there, and the honest figure is the 5-fold 0.2371); and
 treating the seat bias as a property of the format rather than of a p1-only learner.
+
+### 26.1 — every search arm side by side: **the VEHICLE separates them, and the override rate does not**
+
+`scripts/search_meta.py`. No new compute — this is every Foul Play block already banked,
+put in one table for the first time. **Each delta is against THAT BLOCK'S OWN greedy
+anchor and never against another block's number**, because the session offset is ~0.02
+and has produced a wrong reading three times.
+
+| acts on | vs its own anchor | vehicle | arm |
+|---|---|---|---|
+| 3.7% | **+0.0140** | tree/visits | TV |
+| 6.2% | −0.0067 | matrix d2 | D2M |
+| 6.8% | −0.0060 | matrix d1 | D1 |
+| 9.3% | −0.0230 | tree/q | TQ |
+| 11.4% | **+0.0210** | tree/gumbel | TG |
+| 16.3% | −0.0587 | matrix d2 | D2N |
+| 16.7% | −0.1220 | matrix d1, FP's evaluator | FN1 |
+| 19.3% | −0.0200 | matrix d1 | CN1 |
+
+**The override rate does not order the list** — the signs run +, −, −, −, +, −, −, − as
+it rises, so "search pays at rate X" has no support. **The vehicle does:**
+
+| family | above its anchor | mean delta | range |
+|---|---|---|---|
+| matrix | **0 of 5** | −0.0427 | −0.1220 … −0.0060 |
+| tree | **2 of 3** | +0.0040 | −0.0230 … +0.0210 |
+
+**Every matrix arm ever measured is below its own anchor; the only arms above one are
+trees.** One-sided Fisher exact on 2-of-3 against 0-of-5 is **p = 0.107** — suggestive and
+**NOT significant**, and the families also differ in evaluator, depth and selector, so
+this is not a clean contrast. What it does is name the axis worth a clean test, and it
+agrees with what §26 found from inside a single block: the thing that separates these
+arms is the construction, not the dose.
+
+Scope, stated because a table like this is exactly what the session offset punishes: the
+win-rate column may not be read downward across blocks; arms differ in n (1000–3000) and
+each carries ~0.02 of binomial se; and D1 and CN1 are the same vehicle at different
+deltas in different blocks, not a dose curve.
