@@ -1,0 +1,98 @@
+# DOES A BIGGER TREE ACTUALLY THINK HARDER? (IDEAS 8.6, the follow-up RESULTS §26
+# argues for.) Hacking run, 2026-09-18. CREDITS NOTHING.
+#
+# WHAT §26 LEFT. A real decoupled-UCT tree at `iters: 100` read TG (gumbel)
+# 0.6040 against an in-block greedy anchor of 0.5830 -- **+0.0210 at 0.96 se**,
+# the first search arm this project has measured that is not BELOW greedy, and
+# UNRESOLVED rather than null (se_diff 0.0220 at n=1000).
+#
+# WHY NOT JUST ADD n. Resolving +0.0210 at 2 se takes n~4,375 per arm -- an
+# overnight block -- and it would spend that on the WEAKEST version of the arm.
+# `iters: 100` is precisely the regime the 90.9% visit-concentration measurement
+# describes: the prior dominates and the tree can barely express an improvement.
+# TV changed the played action on 1.1 decisions per battle. If more iterations
+# move pi' off the prior, the effect worth resolving is a bigger one.
+#
+# THE CHEAP SCREEN COMES FIRST, AND IT IS THE POINT OF THIS FILE.
+# `rl/search/tree.py` now reports, on EVERY decision and every decide rule:
+#     tree/kl_pi_prior   how far the visit distribution has moved from the prior
+#     tree/pi_top1       the visit concentration (90.9% was measured once by hand)
+#     tree/argmax_moved  UNGATED -- whether the search HAS an opinion, which is a
+#                        different question from whether a margin let it act
+# Those are per-DECISION quantities with ~1,300 samples in a 40-battle arm, so
+# phase S measures the MECHANISM to a precision a win rate could not reach at
+# n=4,375. **If KL does not rise with iters, the budget is not the lever and the
+# expensive rungs never run.** That is IDEAS 4.9's falsifier doing double duty:
+# a tree whose visit distribution is its own prior is nearly the greedy policy,
+# and it also has nothing to teach an expert-iteration loop.
+#
+# NO WIN RATE FROM PHASE S IS A READ. n=40 carries se 0.079.
+#
+# PHASE R IS CONDITIONAL AND DELIBERATELY UNWRITTEN. Which budget it runs, and
+# whether it runs at all, is decided by phase S against the rule below -- not by
+# a win rate, and not by a preference.
+
+title: tree_budget_r5
+status: "hacking run, 2026-09-18"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/tree_budget_r5
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+
+arms:
+  # SMOKE: the expert counters have never crossed the FP seat path.
+  BSM: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 2, search_time_ms: 20, seat_username: tbsmkseat, fp_username: tbsmkbot, tree: {iters: 300, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
+
+  # PHASE S -- the MECHANISM screen. Win rates here are NOT reads.
+  BS1: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 40, search_time_ms: 20, seat_username: tbbs1seat, fp_username: tbbs1bot, tree: {iters: 100, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
+  BS3: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 40, search_time_ms: 20, seat_username: tbbs3seat, fp_username: tbbs3bot, tree: {iters: 300, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
+  BS9: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 40, search_time_ms: 20, seat_username: tbbs9seat, fp_username: tbbs9bot, tree: {iters: 900, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
+  # the VISITS rule at the big budget: §26's TV acted on only 3.7% of decisions
+  # because visit share IS nearly the prior at iters 100. If the budget is what
+  # was missing, this is where it shows.
+  BSV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 40, search_time_ms: 20, seat_username: tbbsvseat, fp_username: tbbsvbot, tree: {iters: 900, n_det: 2, batch: 16, decide: visits, root_min_visits: 8}}
+
+phases:
+  S: [BS1, BS3, BS9, BSV]
+
+decision_rule:
+  # WRITTEN BEFORE THE SCREEN RUNS, and it reads the MECHANISM, never a win rate.
+  primary: "tree/kl_pi_prior at iters 900 vs iters 100, and tree/argmax_moved at both"
+  fires: >-
+    Run phase R (n=1500, the winning budget vs an in-session greedy anchor) only
+    if KL at 900 is at least 1.5x KL at 100 AND argmax_moved rises by at least 5
+    points. Both are per-decision quantities over ~1,300 decisions per arm, so
+    they are far better determined than any win rate here.
+  does_not_fire: >-
+    If KL is flat in the budget, MORE ITERATIONS DO NOT BUY MORE THINKING on this
+    object, and the tree's +0.021 is whatever it is at iters 100 -- resolving it
+    is then a pure n question (n~4,375/arm) and a separate decision. It also
+    kills the cheap version of IDEAS 4.9: an expert that IS the student has
+    nothing to teach, and the right follow-up becomes the PRIOR (a flatter
+    policy, a temperature) rather than the budget.
+  cost_is_recorded_either_way: >-
+    search/ms_mean at each rung is the price of a decision at that budget, and
+    the ladder is the first measurement of how tree cost scales with iters in
+    this harness. Quote it with the batch width (16) -- batching is what makes
+    depth affordable and it does not change what is searched.
+
+comparators:
+  tg_iters100: {rate: 0.6040, n: 1000, acts: 0.1144, note: "§26 TG, gumbel, iters 100"}
+  tv_iters100: {rate: 0.5970, n: 1000, acts: 0.0365, note: "§26 TV, visits, iters 100"}
+  greedy_inblock: {rate: 0.5830, n: 1000, note: "§26 TGR -- CROSS-SESSION from here"}
+  greedy_pooled: {rate: 0.5765, n: 4500, note: "four draws; the bar"}
+
+R0_gates:
+  - name: G_EXPERT_REPORTED
+    check: "every arm reports tree/kl_pi_prior, tree/pi_top1 and tree/argmax_moved; absent means the counters did not survive the seat path and the screen says NOTHING"
+  - name: G_BUDGET_REALIZED
+    check: "search/ms_mean rises roughly with iters (100 -> 300 -> 900); flat ms means the iters knob did not reach the tree and every rung is the same arm"
+  - name: G_SESSION
+    check: "no comparison to §26's numbers without an in-session anchor -- the offset on this instrument is ~0.02 and §26's anchor is a different session"
