@@ -30,6 +30,42 @@ def num(d, key, default=float("nan")):
     return float(v) if isinstance(v, (int, float)) else default
 
 
+def _rl_diff(shas) -> str:
+    """Did `rl/` change across the commits this block spans?
+
+    "The block spans commits" is only alarming if the code the SEAT IMPORTS
+    moved. Doc, test and readout commits are the common case and they change
+    nothing. This answers the actionable half automatically.
+
+    CAVEAT it cannot fix: an arm whose stamp is FINISH-time may have LAUNCHED
+    at an earlier commit, so an empty diff across the stamps is necessary and
+    not sufficient for those arms. The label above says which ones.
+    """
+    import subprocess
+
+    ordered = []
+    for sha in shas:
+        r = subprocess.run(["git", "rev-list", "--count", sha],
+                           capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            ordered.append((int(r.stdout.strip()), sha))
+    if len(ordered) < 2:
+        return "    (cannot order the commits; check by hand)"
+    ordered.sort()
+    lo, hi = ordered[0][1], ordered[-1][1]
+    r = subprocess.run(["git", "diff", "--stat", f"{lo}..{hi}", "--", "rl/"],
+                       capture_output=True, text=True)
+    out = r.stdout.strip()
+    if not out:
+        return (f"    rl/ is IDENTICAL across {lo[:12]}..{hi[:12]} -- the arms ran\n"
+                "    the same searcher and the spanning commits were docs, tests or\n"
+                "    tooling. (Necessary, not sufficient, for finish-time stamps.)")
+    return ("    rl/ CHANGED across the block:\n      "
+            + "\n      ".join(out.splitlines())
+            + "\n    Difference these arms only after saying what that diff does\n"
+              "    to the search path.")
+
+
 def code_provenance(data):
     """Did every arm in this block run the SAME CODE?
 
@@ -67,7 +103,8 @@ def code_provenance(data):
     if len(distinct) > 1:
         print(f"\n  THIS BLOCK SPANS {len(distinct)} COMMITS. Every arm is a fresh")
         print("  process importing the working tree, so the arms ran different")
-        print("  programs. Say what the diff touched before differencing them.")
+        print("  programs. What matters is whether the SEARCHER moved:")
+        print(_rl_diff(distinct))
     elif not legacy:
         print("\n  One commit across every arm.")
     if legacy:
