@@ -292,3 +292,44 @@ def test_the_opp_k_dial_reaches_disk_before_it_gets_an_arm():
     for key in ("depth2/opp_replies_mean", "depth2/minimax_drop",
                 "depth2/leaves_unexpanded_total"):
         assert key in report, f"{key} never reaches the arm's JSON"
+
+
+# ------------------------------------- end to end, through the REAL engine
+def test_opp_k_really_fires_against_poke_engine_not_just_against_a_fake():
+    """Every test above monkeypatches `generate_instructions`, which proves the
+    ARITHMETIC and nothing about whether the real engine accepts the move ids
+    `_leaf_opp_moves` hands it.
+
+    That is the whole VOID class: on 2026-09-11 a depth-2 probe ran 1572
+    decisions, produced ZERO grandchildren because a TypeError landed in a bare
+    `except`, and printed a win rate anyway. This runs the real solver on the
+    real engine and requires the counters to say the opponent actually replied.
+    """
+    from rl.search.matrix import DOSES, decision_rng, solve_decision
+    from tests.test_ch3_matrix import (
+        _TYPE_CHART, _mask, _two_mon_battle, _uniform_q, _zero_critic)
+
+    b = _two_mon_battle()
+    d2 = {"our_k": 3, "cap": 6000, "plies": 1}
+
+    def run(opp_k):
+        return solve_decision(
+            b, _mask(switches=[1]), _uniform_q(), np.full(10, 0.1),
+            DOSES["S"], decision_rng(62, 0, b.turn, 0), _zero_critic,
+            _TYPE_CHART, depth2=dict(d2, opp_k=opp_k))[1]
+
+    one, two = run(1), run(2)
+    assert one["depth2/grandchildren"] > 0, "the extra ply never ran at all"
+    assert one["depth2/opp_replies_mean"] == pytest.approx(1.0)
+    assert two["depth2/opp_replies_mean"] > 1.2, (
+        "the engine rejected every extra opponent reply, so opp_k=2 is opp_k=1 "
+        "with a bigger number in the config")
+    assert two["depth2/grandchildren"] > one["depth2/grandchildren"], (
+        "more opponent replies must mean more grandchildren")
+    # Paths can only GROW, and the reason is the third hole opp_k closes: a
+    # reply whose only opponent answer was illegal (a SWITCH column repeated at
+    # ply 2) produced nothing at all and vanished from the backup entirely.
+    # Measured here on the real engine: 252 paths at opp_k=1, 297 at opp_k=2.
+    assert two["depth2/paths"] >= one["depth2/paths"]
+    assert two["depth2/leaves_unexpanded"] <= one["depth2/leaves_unexpanded"], (
+        "giving the opponent more answers can only ever deepen more leaves")
