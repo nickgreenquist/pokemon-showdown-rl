@@ -97,8 +97,8 @@ rows, each pointing at its evidence:
   right bar.** The bar is **greedy 0.5765 (n=4500)**, not the depth-1 search,
   and every search configuration measured on the R5 committee is level with or
   below it (RESULTS §24). Separately, the R5 committee **beats FP@500**
-  (0.5600, n=500, +2.70 se above even) and 25× budget buys Foul Play nothing
-  (+0.010 at 0.32 se over FP@20) — so "FP beats us using 500 ms", the premise
+  (0.5600, n=500, +2.70 se above even; RESULTS §25) and 25× budget buys Foul
+  Play nothing (+0.010 at 0.32 se over FP@20, for 24.4× the wall clock) — so "FP beats us using 500 ms", the premise
   §8.1 was written on, no longer holds for this object.
 * **§8.2's premise SURVIVES but its diagnosis is REVERSED.** Our critic is the
   ROBUST evaluator, not the fragile one: opening the gate costs our critic 0.006
@@ -1243,9 +1243,13 @@ third of the search items; **BUILT the same day**, unrun as an arm).** §8.1's b
 on the ~97% of decisions where the answer was never in doubt. **We already
 compute the signal that says which decisions those are, on every decision, at
 zero extra cost:** 4.8's masked log-prob committee holds each member's
-distribution, and its disagreement (it overrides its first member on 10.8% of
-decisions vs SH and 27.8% off FP@20) is a free per-decision estimate of how
-contested the position is. **Read:** spend the budget only where disagreement is
+distribution, and its disagreement is a free per-decision estimate of how
+contested the position is. **Measured on THIS object, off FP (the FP500 block,
+RESULTS §25): the committee overrides its first member on 9.7–10.0% of
+decisions.** (4.8 quotes 10.8% vs SH and 27.8% off FP@20; **the 27.8% is the
+100M committee, a different object** — and "pooled argmax ≠ member-0 argmax" is
+a different, smaller quantity than "any member dissents", so **the gate's
+realized rate is MEASURED by a screen cell rather than predicted from either**.) **Read:** spend the budget only where disagreement is
 high — no search at all below a threshold, and a LARGE budget (500 ms–5 s, the
 ladder allows ~150 s/turn) above it. **Why it is not the dose question again:**
 every dose measured so far raised the budget on EVERY decision, which is why
