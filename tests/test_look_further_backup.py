@@ -333,3 +333,24 @@ def test_opp_k_really_fires_against_poke_engine_not_just_against_a_fake():
     assert two["depth2/paths"] >= one["depth2/paths"]
     assert two["depth2/leaves_unexpanded"] <= one["depth2/leaves_unexpanded"], (
         "giving the opponent more answers can only ever deepen more leaves")
+
+
+def test_the_launch_sha_is_read_before_the_battles_not_after():
+    """`launch_git_sha` recorded the tree state at COMPLETION for the whole
+    life of the field, under a name that says the opposite, and nothing
+    noticed because nothing read it. An arm launched at 10:45Z came back
+    stamped with a commit made at 11:40Z.
+
+    This is a source-ORDER test because that is what the bug was: the call was
+    correct, it was just in the wrong place.
+    """
+    from pathlib import Path
+
+    src = (Path(__file__).parent.parent / "scripts/ch3_fp_h2h.py").read_text()
+    launch = src.index("launch_sha = _git_sha()")
+    run = src.index("result = asyncio.run(run(")
+    finish = src.index('result["finish_git_sha"]')
+    assert launch < run < finish, (
+        "the launch sha must be read BEFORE the battles and the finish sha "
+        "after, or the two fields carry the same value and prove nothing")
+    assert 'result["launch_git_sha"] = launch_sha' in src
