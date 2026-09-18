@@ -2273,3 +2273,59 @@ Scope, stated because a table like this is exactly what the session offset punis
 win-rate column may not be read downward across blocks; arms differ in n (1000–3000) and
 each carries ~0.02 of binomial se; and D1 and CN1 are the same vehicle at different
 deltas in different blocks, not a dose curve.
+
+## 28. Addendum, 2026-09-18 — **every turn-cap stall is the same bug: a two-Pokémon switch loop against a frozen opponent, and the locked protocol's determinism is what sustains it**
+
+`scripts/stall_forensics.py` and `scripts/tie_and_stall_audit.py`. No new compute — this
+is banked Showdown protocol read out of arms already run. **This is a measured mechanism,
+not a dose-limited null, and it is a thrown-away win.**
+
+**How it surfaced.** The open-gate arms of §24 have a battle-length standard deviation
+three times their anchor's (37.6 against 11.0) while their medians are within a turn. That
+is not lengthening; it is one or two battles hitting the **1000-turn cap**. Across
+**143,500 banked battles** the overall tie rate is 0.0014, the worst arm is 0.0110, and
+**51% of all ties are turn-cap stalls**.
+
+**What a stall is.** Every one examined — six battles, three blocks, two different
+objects, with and without search — is the same thing:
+
+| arm | our switches | strictly alternating | our moves | opponent could not act |
+|---|---|---|---|---|
+| gate_r5/cn1 | 949 | **100%** | 52 | 997 turns (frz) |
+| gate_r5/cn1 | 927 | **100%** | 59 | 965 turns (frz 962) |
+| depth2_r5/d2n | 954 | **100%** | 48 | 950 turns (frz 948) |
+| ch5_r1_offsh/rs81 ×3 | 907–984 | **100%** | 18–94 | 973–979 turns (frz 965–975) |
+
+The opponent is down to one Pokémon, **frozen solid** — gen-1 freeze is permanent without
+a fire move, so it literally cannot act — and our seat **oscillates between exactly two
+Pokémon for nine hundred turns** instead of attacking it. Turn cap → tie → **a NON-WIN**.
+
+**THE MECHANISM IS THE PROTOCOL'S OWN DETERMINISM.** The locked protocol plays argmax. A
+frozen opponent stops changing the state; a deterministic policy in a repeating state
+repeats its action; the cycle runs to the cap. **Training samples, so this never happens
+there** — it is created by evaluating deterministically and is invisible to every
+statistic that does not look at turn counts.
+
+**IT IS NOT A SEARCH ARTIFACT.** `ch5_r1_offsh/rs81` carries no search dials at all
+(`search_dose`, `search_margin_delta`, `search_tree`, `search_depth2` all null,
+`seat_policy: deterministic`) and produces the identical loop 15 times in 3000 battles.
+Search neither causes it nor prevents it.
+
+**Size, stated honestly.** Within a block every arm sits near 0.001 and **no published
+within-block comparison is affected**. Across blocks the spread reaches 0.011 — half the
+size of the effects this project chases — and it points the same way as the session
+offset, against the weaker arm: corr(win rate, tie rate) = **−0.31**, and the weaker half
+of arms tie **3.5×** as often as the stronger half. A second, independent reason
+cross-block win rates are barred.
+
+**The ladder is clear but not immune.** LADDER R5's 200 battles ran to a maximum of 121
+turns with zero ties: human opponents do not freeze-lock and then sit. The risk is latent
+rather than realised, and it would be ugly if realised.
+
+**The fix is cheap and it needs a ruling.** An eval-time loop breaker — on an exact repeat
+of (observation, chosen action), take the next-best legal action — is still a
+*deterministic function of the episode* and fires **only** inside a loop, so it cannot
+change a single non-looping battle. But it is a change to the POLICY FORM, and the locked
+protocol names "deterministic policy", so it needs the maintainer's word before any
+headline number uses it. `rl/common/loop_breaker.py` is built and tested against the six
+banked stalls' signature; **it is wired nowhere.**
