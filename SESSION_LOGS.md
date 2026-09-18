@@ -12167,3 +12167,68 @@ line numbers are not — grep the date, then read that region):
     unmatched comparison that cost a day on 2026-09-17.
   - Full suite (server up, documented invocation) **1151 passed / 87 skipped; +61 tests
     today**.
+
+- 2026-09-18 (cont. 2) — **four findings mined out of data already on disk, one of them a
+  BUG that throws away won games.** No new compute for any of it; the numbers were sitting
+  in banked artifacts. RESULTS §26.1, §27.1, §28.
+  - **§27.1 — 88% OF THE CRITIC'S GAP IS RANKING, NOT CALIBRATION.** A second read of
+    §27's 707 positions. An out-of-sample **isotonic** recalibration — the best any
+    monotone rescaling can do — moves EV **0.2176 → 0.2371**, i.e. **+0.0195 of a 0.1652
+    gap (12%)**. The other 88% is the critic not knowing WHICH position is better, which
+    no post-hoc fix touches. **That is an argument against "fit the evaluator better" and
+    for changing what it trains on** — i.e. for 4.9.
+  - **AND THE CRITIC IS OPTIMISTIC ABOUT ITS OWN SEAT: +0.0416 at z = 2.74.** Self-play
+    with one policy on both seats makes the truth EXACTLY zero (realized −0.0006 over
+    22,358 rollouts), so there is no sampling argument to hide behind. The collector runs
+    `learner_seat: p1`. **IDEAS 4.1 (both-seat harvest) has rested on a sample-efficiency
+    argument since it was written; it now has a measured DEFECT** and a free falsifier —
+    re-run `scripts/critic_calibration.py` on a both-seat checkpoint.
+  - Both failures concentrate in the **OPENING**: r² against the oracle **0.287** at turns
+    2–8 against **0.727** at 23+, and the seat bias is 2.6× larger early. The critic is
+    weakest exactly where the game is still open.
+  - **§26.1 — every search arm in one table, and the VEHICLE separates while the dose does
+    not.** The override rate does not order the arms (+, −, −, −, +, −, −, − as it rises).
+    **All 5 matrix arms ever measured are below their own block's anchor; the only arms
+    above one are trees (2 of 3).** Fisher p = 0.107 — suggestive, NOT significant, and the
+    families differ in evaluator, depth and selector too. It names an axis rather than
+    settling one, and it agrees with what §26 found inside a single block.
+  - **§28 — THE STALL BUG, chased from a statistical oddity to a mechanism.** It surfaced
+    because the open-gate arms of §24 have a battle-length sd three times their anchor's
+    with medians a turn apart — one or two battles hitting the **1000-turn cap**. Over
+    143,500 banked battles the tie rate is 0.0014 (worst arm 0.0110) and **51% of ties are
+    cap stalls**. Reading the protocol out of six of them
+    (`scripts/stall_forensics.py`) gives ONE signature every time: **the opponent is down
+    to one Pokémon FROZEN SOLID** — gen-1 freeze is permanent — **and our seat oscillates
+    between exactly two Pokémon for ~950 turns, 100% strictly alternating**, instead of
+    attacking a helpless target. **A thrown-away win, counted as a non-win.**
+  - **The mechanism is the locked protocol's own determinism:** argmax in a state that has
+    stopped changing repeats forever. Training SAMPLES, so it never happens there. **Not a
+    search artifact** — `ch5_r1_offsh/rs81`, a plain greedy seat with every search dial
+    null, produces it 15 times in 3000 battles.
+  - **`rl/common/loop_breaker.py` BUILT (13 tests) and WIRED NOWHERE.** On the fourth
+    identical (observation, action) pair in a battle it takes the next-best legal action,
+    escalating a rank per escape so a cycle of any period unwinds. It stays DETERMINISTIC
+    — a function of the episode's history — and a test pins that it **cannot change a
+    single non-looping battle**. **It changes the POLICY FORM and the locked protocol names
+    the policy, so it needs a ruling.** Worth up to +0.011 on the worst banked arm, ~+0.0014
+    typically, and it is a latent ladder risk (R5 max 121 turns, 0 ties).
+  - **IDEAS 4.9's free falsifier is now MEASURED ON EVERY TREE DECISION**, not deferred to
+    a fleet: `tree/kl_pi_prior`, `tree/pi_top1`, `tree/pi_entropy`, `tree/argmax_moved`.
+    `argmax_moved` is deliberately UNGATED unlike `search/overrode` — whether the search
+    HAS an opinion is a different question from whether a margin let it act, and conflating
+    them is the override-rate confound in a new place. The golden fixture CAUGHT the
+    change, which is what it is for; actions and every pre-existing stat are bit-identical
+    at both encoders.
+  - **New IDEAS rows: 2.13** (recalibrate the leaf value — free, +0.0195 measured, and NOT
+    inert: `row_ev` averages leaf values and the D5 gate is a threshold on that scale, so
+    δ must be re-swept with it), **2.14** (the loop breaker), **8.6** (the tree budget).
+  - **README brought current**: the results table gains the 200M rows (0.8217 greedy
+    credited, 0.8386 committee) with the mechanism's split answer, and the pre-D5 search
+    discussion is replaced by one that reflects §22/§24/§25/§26/§26.1 and the luck ceiling.
+  - **Mid-block correction to the running queue, before the pin:** the smoke measured the
+    disagreement gate at **45%** of decisions, not the 25% the dose-L compute matching
+    assumed, which would have made DGV cost ~1.8× DUM and confounded the comparison with
+    COMPUTE. All three gate arms moved to dose M, so the only difference is WHICH decisions
+    were searched. The frozen queue script names arms rather than parameters, so the change
+    landed without a restart and without poisoning a username pair.
+  - Suite 1173 passed / 87 skipped; **+84 tests today**.
