@@ -147,3 +147,30 @@ def test_the_old_backup_arm_really_asks_for_the_old_backup():
     for name in ("B2A", "B2B", "B2C"):
         assert CFG["arms"][name]["depth2"]["opp_k"] == 2, (
             f"{name} sweeps the delta FOR B2R, so it must run B2R's backup")
+
+
+def test_the_readout_runs_on_a_partial_block():
+    """A readout is called ONCE, at 04:00, after nine hours of arms -- so a
+    NameError in it costs the whole night's turnaround.
+
+    This caught a real one on 2026-09-18: a local named `g` inside `main()`
+    shadowed the module-level `g()` that loads an arm's JSON, and the readout
+    died on its first line. Running it against the live (partial) results
+    directory is the cheapest possible guard and it exercises every branch that
+    a missing arm reaches.
+    """
+    import importlib.util
+    import io as _io
+    from contextlib import redirect_stdout
+
+    spec = importlib.util.spec_from_file_location(
+        "backup_gate_readout",
+        Path(__file__).parent.parent / "scripts/backup_gate_readout.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    buf = _io.StringIO()
+    with redirect_stdout(buf):
+        mod.main()
+    out = buf.getvalue()
+    assert "THE BAR IS GREEDY" in out
+    assert "R0 GATES" in out

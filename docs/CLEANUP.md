@@ -107,6 +107,15 @@ exactly that (see do-not-relitigate below).
   treatment to ITS realized rate.** Not applied to the running block, because
   re-pinning after a win rate is visible turns a selection rule into a choice.
   Fold this into the next matched block's queue script.
+  **AND SWEEP EVERY ARM YOU INTEND TO MATCH** (added the same evening, from the
+  same block): `backup_gate_r5` swept B2R's delta but HARDCODED B2O's at 0.12,
+  the value §22's D2N used in a different session. B2O realized **0.1322** here
+  against D1O's 0.1703 and B2R's ~0.197, so **the comparison the config declares
+  as the fix (B2R − B2O) is the mismatched one** and the one it calls secondary
+  (B2R − D1O, |d| 0.027) is the matched one. Not re-pinned — B2O's win rate was
+  visible by then, and a selection rule re-run after an outcome stops being one.
+  Disclosed in the config, in the readout, and here. The rule is one line: **a
+  matched block sweeps every arm it matches, against an in-session control.**
 
 - **L1 — THE LADDER'S OPPONENT POOL IS SMALL AND ONE SESSION SAMPLES ONE SLICE
   OF IT** (opened 2026-09-16, from the maintainer's observation mid-R5). R5 at

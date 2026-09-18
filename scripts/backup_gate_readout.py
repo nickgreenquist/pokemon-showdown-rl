@@ -220,12 +220,12 @@ def main():
     # -- see the DESIGN ERROR block in the config. The direction is stated
     # because it is asymmetric, not because it excuses anything.
     if arms.get("B2R") and arms.get("B2O"):
-        g = abs(num(arms["B2R"], "search/override_rate")
-                - num(arms["B2O"], "search/override_rate"))
+        rate_gap = abs(num(arms["B2R"], "search/override_rate")
+                       - num(arms["B2O"], "search/override_rate"))
         cmp("B2R - B2O  the declared FIX comparison", arms["B2R"], arms["B2O"])
-        if g > 0.03:
+        if rate_gap > 0.03:
             better = arms["B2R"]["our_win_rate"] > arms["B2O"]["our_win_rate"]
-            print(f"       ^ OVERRIDE RATES DIFFER BY {g:.4f} -- B2R acts "
+            print(f"       ^ OVERRIDE RATES DIFFER BY {rate_gap:.4f} -- B2R acts "
                   f"{'MORE' if num(arms['B2R'],'search/override_rate') > num(arms['B2O'],'search/override_rate') else 'LESS'} often.")
             print("         §24 measured that for the OLD backup acting MORE is WORSE, so the")
             print("         mismatch is CONSERVATIVE for the fix: B2R > B2O would be a strong")
