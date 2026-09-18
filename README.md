@@ -268,7 +268,9 @@ battles/seed pooled across seeds.
 | **+ LR anneal (D26) — credited, the headline** | **0.7183** |
 | 4-checkpoint log-prob ensemble (inference-only) | 0.7463 |
 | + one-ply expectation search (CH3 R2) | 0.7928 |
-| **batch recipe at 100M steps (CH5 C1, greedy) — current top training number** | **0.7959** |
+| batch recipe at 100M steps (CH5 C1, greedy) | 0.7959 |
+| **wide-critic recipe at 200M (regenerative L2 + 1024 critic), greedy — credited** | **0.8217** |
+| **3-checkpoint committee of those finals — the LADDER R5 object** | **0.8386** |
 | *reference:* behaviour clone of SH | 0.4657 |
 | *reference:* SH vs SH mirror (parity point) | 0.489 |
 | *reference:* Foul Play engine (search bot) vs SH | 0.8307 |
@@ -305,12 +307,83 @@ be ranked against each other. S-SHAPE read: still climbing at 100M
 the 100M anneal, not comparable to a finished run at the same step. Full
 table with every disclosure: [`RESULTS.md` §18](RESULTS.md).
 
+**The 200M rows, and what is credited in them.** The wide-critic recipe
+(regenerative L2-toward-init plus a 1024-wide critic, 200M steps) is **credited**
+against the 100M baseline: **+0.033 vs SH at 5.59 se** and **+0.046 off Foul
+Play@20 at 4.79 se**, both on a same-session re-draw of the baseline rather than
+its banked number. **The credit is for the RECIPE AS SHIPPED and never for width
+as a separable lever** — no contrast isolates it. Its mechanism co-primary was
+registered before any number existed and gave a split answer: the critic's
+first-layer effective rank is **632 of 1024** against **5 of 384** on the
+baseline, so the width is genuinely *used* — but **explained variance did not
+move at all** (0.5881 against 0.5919). **2.67× the width and 126× the rank bought
+zero explained variance**, and the next fleet may not be sized on it. At the
+COMMITTEE level the recipe gain nearly vanishes (+0.015 at 2.01 se over the 100M
+committee): **the recipe gain and the committee gain substitute for each other
+rather than adding.** [`RESULTS.md` §21](RESULTS.md).
+
 **A credit line, not a leaderboard.** A lever is credited here only if its
 pooled delta is ≥ +0.025 **and** ≥ 2·se_diff, where se_diff is the *larger* of
 the binomial and seed-clustered standard errors. On this task the clustered
 term always wins, and three separate arms cleared +0.025 on the point estimate
 and still did not credit. Full table with every disclosure, and the arms that
 failed, in [`RESULTS.md` §15](RESULTS.md).
+
+### Search — four constructions, and what they actually measured
+
+The search rows above are **1-ply expectation search on a matrix of the
+opponent's action classes**, and everything written about them before
+2026-09-11 measured **a broken selector** (a hard argmax overrode a 0.789 policy
+on 72.8% of decisions). September 2026 re-measured the axis properly, and the
+result is worth stating plainly because it is mostly negative:
+
+- **Depth buys nothing, and the earlier depth numbers were an artifact of
+  something else.** Depth-2 against depth-1 at a **matched override rate** is
+  −0.0007 (0.05 se, n=3000/arm) for 3.27× the compute. The same arm at the naive
+  delta reads **−0.053 at 3.34 se** — same depth, same everything but the gate's
+  threshold. **Every depth number this project published earlier compared arms
+  that differed in how often the search was BELIEVED, not in how deep it
+  looked.** [§22](RESULTS.md).
+- **The gate was the instrument all along, and it falsified the standing
+  explanation in the opposite direction.** At a tight gate the search changes
+  about **two decisions of a thirty-turn battle**, which bounds what any leaf
+  value can be worth. Opening it costs our critic **0.006** and costs Foul Play's
+  hand-tuned heuristic **0.088**. **Our own critic is the robust evaluator** —
+  the assumption that a PPO-fit value function would break on search-visited
+  lines is measured false, in the opposite direction. [§24](RESULTS.md).
+- **A real tree does not beat playing the policy's argmax either** — but for the
+  first time it is not below it. Decoupled UCT with our policy as the PUCT prior
+  and our critic at the leaves reads **+0.021 at 0.96 se** against an in-session
+  greedy anchor: **unresolved, not null.** What the block does establish is that
+  **the rule that turns a finished tree into an action orders the arms, and the
+  override rate does not**. [§26](RESULTS.md).
+- **Across every block, the vehicle separates and the dose does not.** All five
+  matrix arms ever measured sit below their own block's greedy anchor; the only
+  arms above one are trees (2 of 3). Fisher p = 0.107 — suggestive, not
+  significant. [§26.1](RESULTS.md).
+
+**And the agent beats Foul Play at Foul Play's own 500 ms budget** — 0.5600
+(n=500, 0 ties), with 25× the budget buying Foul Play +0.010 at 0.32 se. The 100M
+committee lost that matchup at 0.472. **FP@500 is an instrument, not a rung**, the
+two Foul Play disclosures travel, and nothing here projects to the ladder.
+[§25](RESULTS.md).
+
+### How much of a gen-1 battle is decided by luck?
+
+Enough to matter, and it was measured rather than assumed. Holding a position at
+**our own observation** and varying both irreducible sources — the engine's chance
+branches and the opponent's hidden team — over 707 positions and 22,358 self-play
+rollouts: **~64% of the outcome variance at a mid-battle position is irreducible**.
+The best possible critic reading our observation would reach **EV 0.363**; ours
+reaches **0.218**.
+
+So the evaluator is not finished, and the shape of what is left is specific: an
+out-of-sample monotone recalibration — the best any rescaling can do — closes only
+**12%** of that gap, so **88% of it is the critic not knowing which position is
+better**. And both the ranking failure and a measured **+0.042 optimism about its
+own seat** (z 2.74, in self-play where the truth is exactly zero) are **worst in
+the opening**, which is where a battle is still open and where a search looks.
+[§27 and §27.1](RESULTS.md).
 
 ### Gen 4 — first run (a separate table; never a row in the gen-1 ladder above)
 
