@@ -88,4 +88,11 @@ comparators:
   greedy_pooled: {rate: 0.5765, n: 4500, note: "G0/GA/GB, three blocks, spread 0.0107"}
   d1_matrix:     {rate: 0.5687, n: 3000, override: 0.0682, note: "depth-1 matrix, tight gate"}
   cn1_matrix:    {rate: 0.5627, n: 1500, override: 0.1933, note: "depth-1 matrix, open gate"}
+  # THE SAME GREEDY OBJECT, IN A DIFFERENT SESSION. E3WF is the monster block's
+  # off-FP read of the ladder committee playing GREEDY, and it is 0.022 above
+  # the three search blocks' pooled greedy. That spread IS the session offset,
+  # and it is the size of any effect this block could plausibly find -- so a
+  # tree arm near 0.60 is not evidence until TGR, the anchor in THIS session,
+  # says what greedy is worth today. Added 2026-09-18 after TV read 0.5970.
+  e3wf_greedy:   {rate: 0.5987, n: 3000, note: "the SAME committee, greedy, monster session"}
   target_override: 0.0682

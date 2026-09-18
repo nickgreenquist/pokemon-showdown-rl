@@ -133,6 +133,17 @@ def main():
         if data[a]:
             cmp(f"{a} - D1 matrix, tight gate", data[a]["our_win_rate"],
                 data[a]["battles_finished"], C["d1_matrix"]["rate"], C["d1_matrix"]["n"])
+    print("\n## The session offset, stated because it is the size of the effect\n")
+    print(f"  the SAME committee, GREEDY, monster session : "
+          f"{C['e3wf_greedy']['rate']:.4f} (n={C['e3wf_greedy']['n']})")
+    print(f"  the SAME committee, GREEDY, pooled 3 blocks : "
+          f"{C['greedy_pooled']['rate']:.4f} (n={C['greedy_pooled']['n']})")
+    print(f"  spread                                      : "
+          f"{C['e3wf_greedy']['rate'] - C['greedy_pooled']['rate']:+.4f}")
+    print("\n  EVERY comparison above that is NOT against TGR is CROSS-SESSION and")
+    print("  carries that spread. A tree arm near 0.60 looks like it clears the")
+    print("  pooled bar and is also exactly what GREEDY read in a good session.")
+    print("  TGR is the only clean difference in this block.")
     print("\n  READ: if a real tree clears GREEDY, step 2 is to scale the budget and")
     print("  put it against FP@500. If it does not, then on this object no search")
     print("  construction tried -- one-ply matrix, selective two-ply, or full UCT --")
