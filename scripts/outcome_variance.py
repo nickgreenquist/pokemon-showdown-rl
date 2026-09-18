@@ -35,9 +35,26 @@ seats. Everything that then differs is noise the critic could not have known.
     Var_total   = Var_obs,rollouts(outcome)          what a critic must explain
     EV_ceiling  = 1 - Var_within / Var_total
 
-And the critic's OWN explained variance is computed on the SAME positions, so
-"0.59 against a ceiling of X" is apples to apples rather than a comparison
-across two different samples.
+TWO CEILINGS ARE REPORTED AND THE SECOND IS THE ONE TO READ. The naive ratio
+above is BIASED UP: the variance of position MEANS carries the sampling noise of
+those means (~Var_within / n_i) on top of the real between-position spread. The
+bias runs the wrong way for what this gates -- it makes the critic look like it
+has more headroom than it has, which argues for spending a fleet -- so a
+one-way random-effects decomposition is computed alongside it and reported as
+`ev_ceiling_unbiased`.
+
+And the critic's OWN explained variance is computed on the SAME positions.
+
+**DO NOT SET THE TRAINING `explained_variance` (~0.59) AGAINST THIS CEILING.**
+That number is computed over PPO's whole batch -- every timestep of many
+episodes, including near-terminal states where the outcome is already decided --
+while this script samples MID-BATTLE positions. They are two different state
+distributions, and comparing them is exactly the unmatched comparison that
+turned a -0.0007 null into a -0.053 "result" on 2026-09-17. **The matched
+comparison is `critic_ev_here` against `ev_ceiling_unbiased`, both on THESE
+positions.** The by-turn table exists so the turn dependence is visible rather
+than averaged away: an early position is nearly unpredictable and a late one is
+nearly decided, so a single pooled ceiling is a statement about the turn mix.
 
 COST, AND WHY IT IS SHAPED THIS WAY. Fixed policy on both seats, so a rollout
 is ~30 engine steps and ~60 policy forwards. Positions come from real self-play
@@ -218,6 +235,9 @@ def main() -> None:
     ap.add_argument("--battles", type=int, default=60, help="source battles = positions")
     ap.add_argument("--dets", type=int, default=4, help="determinizations per position")
     ap.add_argument("--rollouts", type=int, default=8, help="rollouts per determinization")
+    ap.add_argument("--max-stop", type=int, default=36,
+                    help="upper end of the stop-turn draw; battles average ~29 "
+                         "turns, so the old cap of 14 sampled only the first half")
     ap.add_argument("--seed", type=int, default=20260917)
     ap.add_argument("--out", default="results/outcome_variance/variance.json")
     # RESUME SAFETY (CLAUDE.md rule 4 (ii)): every position's row is appended
@@ -279,7 +299,13 @@ def main() -> None:
         rng = np.random.default_rng([args.seed, ep])
         obs, info = env.reset(seed=EVAL_SEED_OFFSET + 90000 + ep)
         mask = info.get("action_mask")
-        stop_at = int(rng.integers(2, 14))     # mid-battle, before most are decided
+        # ACROSS THE WHOLE BATTLE, not its first half. The cap was 14 against a
+        # ~29-turn mean, so every position came from the opening and the pooled
+        # ceiling was a statement about openings. A late draw is only reachable
+        # in a battle that lasted that long -- which is not a bias for the
+        # PER-TURN numbers (the population at turn t is exactly the battles that
+        # reached turn t) but does weight the POOLED number toward long games.
+        stop_at = int(rng.integers(2, max(args.max_stop, 3)))
         done, step, found = False, 0, None
         while not done and step < 500:
             # env.unwrapped (ShowdownEnv) -> _env (SingleAgentWrapper) -> env
@@ -333,6 +359,7 @@ def main() -> None:
         all_pred.extend([r["critic"]] * len(r["outcomes"]))
     m = np.array([r["mean"] for r in rows])
     w = np.array([r["var"] for r in rows])
+    ns = np.array([r["n"] for r in rows], dtype=np.float64)
     ao, ap_ = np.asarray(all_out), np.asarray(all_pred)
     var_within = float(w.mean())
     var_between = float(m.var())
@@ -340,6 +367,59 @@ def main() -> None:
     ceiling = var_between / var_total if var_total > 0 else float("nan")
     ev_critic = (1.0 - float(((ao - ap_) ** 2).mean()) / var_total
                  if var_total > 0 else float("nan"))
+
+    # THE NAIVE RATIO IS BIASED UP, and the bias runs the WRONG WAY for the
+    # decision this measurement gates. `var_between` is the variance of POSITION
+    # MEANS, each estimated from only n_i rollouts, so it carries the sampling
+    # variance of those means -- roughly var_within / n_i -- on top of the real
+    # between-position spread. That inflates the ceiling, which makes the critic
+    # look like it has MORE headroom than it has, which argues for spending a
+    # fleet. So the components estimate is computed too and BOTH are reported.
+    #
+    # Standard one-way random-effects decomposition with unequal group sizes:
+    #   S_W = SS_within / (N - k)                     unbiased within
+    #   S_B = SS_between / (k - 1)
+    #   m0  = (N - sum(n_i^2)/N) / (k - 1)            effective group size
+    #   sigma2_between = (S_B - S_W) / m0             floored at 0
+    k, N = len(rows), float(ns.sum())
+    if k > 1 and N > k:
+        ss_within = float((w * ns).sum())             # w is the MLE per group
+        s_w = ss_within / (N - k)
+        grand = float((m * ns).sum() / N)
+        s_b = float((ns * (m - grand) ** 2).sum()) / (k - 1)
+        m0 = (N - float((ns ** 2).sum()) / N) / (k - 1)
+        sigma2_between = max((s_b - s_w) / m0, 0.0) if m0 > 0 else float("nan")
+        denom = sigma2_between + s_w
+        ceiling_unbiased = sigma2_between / denom if denom > 0 else float("nan")
+    else:
+        s_w = float("nan")
+        sigma2_between = float("nan")
+        ceiling_unbiased = float("nan")
+
+    # BY TURN, because the pooled ceiling is a statement about the turn mix.
+    buckets, edges = [], [(2, 8), (9, 15), (16, 22), (23, 10_000)]
+    for lo, hi in edges:
+        sel = [r for r in rows if lo <= r["turn"] <= hi]
+        if len(sel) < 2:
+            continue
+        o = np.array([v for r in sel for v in r["outcomes"]])
+        p = np.array([r["critic"] for r in sel for _ in r["outcomes"]])
+        mm = np.array([r["mean"] for r in sel])
+        ww = np.array([r["var"] for r in sel])
+        nn = np.array([r["n"] for r in sel], dtype=np.float64)
+        kk, NN = len(sel), float(nn.sum())
+        vt = float(o.var())
+        if kk > 1 and NN > kk and vt > 0:
+            sw = float((ww * nn).sum()) / (NN - kk)
+            gr = float((mm * nn).sum() / NN)
+            sb = float((nn * (mm - gr) ** 2).sum()) / (kk - 1)
+            mz = (NN - float((nn ** 2).sum()) / NN) / (kk - 1)
+            s2b = max((sb - sw) / mz, 0.0) if mz > 0 else float("nan")
+            cl = s2b / (s2b + sw) if (s2b + sw) > 0 else float("nan")
+            ev = 1.0 - float(((o - p) ** 2).mean()) / vt
+            buckets.append({"turns": f"{lo}-{'+' if hi > 999 else hi}",
+                            "positions": kk, "outcomes": int(o.size),
+                            "ev_ceiling_unbiased": cl, "critic_ev_here": ev})
 
     summary = {
         "positions": len(rows), "rollouts_total": int(ao.size),
@@ -349,6 +429,13 @@ def main() -> None:
         "var_total": var_total,
         "ev_ceiling": ceiling, "critic_ev_here": ev_critic,
         "critic_headroom": ceiling - ev_critic,
+        # the components version -- READ THIS ONE for the gate
+        "sigma2_within_unbiased": s_w,
+        "sigma2_between_unbiased": sigma2_between,
+        "ev_ceiling_unbiased": ceiling_unbiased,
+        "critic_headroom_unbiased": ceiling_unbiased - ev_critic,
+        "by_turn": buckets,
+        "max_stop": args.max_stop,
     }
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(
@@ -360,9 +447,20 @@ def main() -> None:
           f"= {ao.size} outcomes; mean outcome {ao.mean():+.4f}")
     print(f"  Var WITHIN an observation (chance + hidden info) : {var_within:.4f}")
     print(f"  Var BETWEEN observations (what play controls)    : {var_between:.4f}")
-    print(f"  EV CEILING for ANY critic reading our obs        : {ceiling:.4f}")
+    print(f"  EV ceiling, NAIVE ratio (biased UP)              : {ceiling:.4f}")
+    print(f"  EV CEILING, variance components -- READ THIS      : {ceiling_unbiased:.4f}")
     print(f"  our critic's EV on these same positions          : {ev_critic:.4f}")
-    print(f"  headroom                                         : {ceiling - ev_critic:+.4f}")
+    print(f"  headroom (components)                            : "
+          f"{ceiling_unbiased - ev_critic:+.4f}")
+    if buckets:
+        print("\n  BY TURN (the pooled number above is a statement about the mix):")
+        print(f"    {'turns':>8} {'pos':>5} {'ceiling':>9} {'critic':>9}")
+        for b in buckets:
+            print(f"    {b['turns']:>8} {b['positions']:>5} "
+                  f"{b['ev_ceiling_unbiased']:>9.4f} {b['critic_ev_here']:>9.4f}")
+    print("\n  NOT COMPARABLE TO THE TRAINING explained_variance (~0.59): that is")
+    print("  computed over PPO's whole batch including near-terminal states.")
+    print("  The matched comparison is the two columns above, on these positions.")
     print("=" * 72)
     print(f"-> {args.out}")
 
