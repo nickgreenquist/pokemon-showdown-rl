@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+"""IDEAS 2.10 + 8.5: did the honest backup pay, and does the committee know
+WHERE to spend the budget?
+
+    python scripts/backup_gate_readout.py
+
+Reads results/backup_gate_r5/*.json against configs/eval/backup_gate_r5.yaml.
+Every delta is unpaired two-proportion (SEEDS DO NOT PAIR BATTLES), every
+number is off FP@20 with both disclosures travelling, and the bar is GREEDY.
+"""
+import json
+import math
+from pathlib import Path
+
+import yaml
+
+REPO = Path(__file__).resolve().parents[1]
+RES = REPO / "results/backup_gate_r5"
+PR = yaml.safe_load(open(REPO / "configs/eval/backup_gate_r5.yaml"))
+C = PR["comparators"]
+
+
+def g(tag):
+    p = RES / f"{tag.lower()}.json"
+    return json.loads(p.read_text()) if p.exists() else None
+
+
+def num(d, key, default=float("nan")):
+    v = d.get(key) if d else None
+    return float(v) if isinstance(v, (int, float)) else default
+
+
+def cmp(lab, a, b, na=None, nb=None):
+    """a and b are (rate, n) pairs or arm dicts."""
+    pa, na = (a["our_win_rate"], a["battles_finished"]) if isinstance(a, dict) else (a, na)
+    pb, nb = (b["our_win_rate"], b["battles_finished"]) if isinstance(b, dict) else (b, nb)
+    se = math.sqrt(pa * (1 - pa) / na + pb * (1 - pb) / nb)
+    print(f"  {lab:52s} {pa:.4f} - {pb:.4f} = {pa - pb:+.4f} at {abs(pa - pb) / se:.2f} se")
+
+
+def main():
+    arms = {a: g(a) for a in PR["phases"]["R"]}
+    print("=" * 78)
+    print("TWO FIXES, ONE SESSION -- an honest depth-2 backup (IDEAS 2.10) and a")
+    print("budget spent where the committee is split (IDEAS 8.5). off FP@20, R5")
+    print("committee. Hacking run, CREDITS NOTHING. THE BAR IS GREEDY.")
+    print("=" * 78)
+
+    print("\n## R0 GATES -- did the dials FIRE? A failed gate VOIDS its arm.\n")
+    ok = True
+    for tag in ("B2R", "B2O"):
+        d = arms.get(tag)
+        if not d:
+            print(f"  {tag:4s} PENDING"); continue
+        opp, drop = num(d, "depth2/opp_replies_mean"), num(d, "depth2/minimax_drop")
+        want = tag == "B2R"
+        fired = (opp > 1.2 and drop > 0) if want else (opp <= 1.05)
+        ok &= fired
+        print(f"  {tag:4s} opp_replies {opp:.2f}  minimax_drop {drop:.4f}  "
+              f"fired_rate {num(d, 'depth2/fired_rate'):.3f}  "
+              f"{'OK' if fired else 'VOID -- the backup the arm claims did not run'}")
+    for tag in ("DGV", "DRV"):
+        d = arms.get(tag)
+        if not d:
+            print(f"  {tag:4s} PENDING"); continue
+        r = num(d, "disagree/search_rate")
+        fired = 0.05 < r < 0.95
+        ok &= fired
+        print(f"  {tag:4s} search_rate {r:.4f}  "
+              f"score_mean {num(d, 'disagree/score_mean'):.4f}  "
+              f"{'OK' if fired else 'VOID -- 1.0 is uniform dose, 0.0 is greedy'}")
+    if arms.get("DGV") and arms.get("DRV"):
+        gap = abs(num(arms["DGV"], "disagree/search_rate")
+                  - num(arms["DRV"], "disagree/search_rate"))
+        ok &= gap <= 0.03
+        print(f"  RATE MATCH |DGV - DRV| = {gap:.4f} "
+              f"{'OK' if gap <= 0.03 else 'UNMATCHED -- DGV-DRV measures the FRACTION, not the SELECTION'}")
+    for tag in ("B2R", "B2O"):
+        if arms.get(tag) and arms.get("D1O"):
+            gap = abs(num(arms[tag], "search/override_rate")
+                      - num(arms["D1O"], "search/override_rate"))
+            ok &= gap <= 0.03
+            print(f"  OVERRIDE MATCH |{tag} - D1O| = {gap:.4f} "
+                  f"{'OK' if gap <= 0.03 else 'UNMATCHED -- this is the 2026-09-17 artifact again'}")
+
+    print("\n## The arms\n")
+    labels = {"D1O": "depth 1, gate open (the control)",
+              "B2O": "depth 2, OLD pinned backup",
+              "B2R": "depth 2, opp_k minimax backup",
+              "DGV": "gated on committee votes, dose L",
+              "DRV": "gated by a COIN at the same rate, dose L",
+              "DUM": "ungated, dose M (D1O's replicate)",
+              "GC":  "GREEDY anchor, this block"}
+    for tag, lab in labels.items():
+        d = arms.get(tag)
+        if not d:
+            print(f"  {tag:4s} {lab:42s} PENDING"); continue
+        print(f"  {tag:4s} {lab:42s} {d['our_win_rate']:.4f} "
+              f"n={d['battles_finished']:<5d} ms {num(d, 'search/ms_mean'):6.1f} "
+              f"override {num(d, 'search/override_rate'):.4f}")
+
+    if arms.get("D1O") and arms.get("DUM"):
+        floor = abs(arms["D1O"]["our_win_rate"] - arms["DUM"]["our_win_rate"])
+        print(f"\n  THIS BLOCK'S REALIZED NOISE FLOOR (D1O vs DUM, the same "
+              f"configuration on two pairs): {floor:.4f}")
+        print("  Read every delta below against THAT, not against the binomial.")
+
+    print("\n## HALF ONE -- IDEAS 2.10, does an honest backup rescue depth 2?\n")
+    if arms.get("B2R") and arms.get("B2O"):
+        cmp("B2R - B2O  THE FIX (same session)", arms["B2R"], arms["B2O"])
+    if arms.get("B2R") and arms.get("D1O"):
+        cmp("B2R - D1O  does depth pay once the backup is honest", arms["B2R"], arms["D1O"])
+    if arms.get("B2O") and arms.get("D1O"):
+        cmp("B2O - D1O  the §24 finding, re-drawn here", arms["B2O"], arms["D1O"])
+    if arms.get("B2O"):
+        cmp("B2O - D2N (§22's banked open-gate depth 2)", arms["B2O"],
+            C["d2n"]["rate"], nb=C["d2n"]["n"])
+
+    print("\n## HALF TWO -- IDEAS 8.5, where should the budget go?\n")
+    if arms.get("DGV") and arms.get("DRV"):
+        cmp("DGV - DRV  SELECTION (does the committee know where?)",
+            arms["DGV"], arms["DRV"])
+    if arms.get("DGV") and arms.get("DUM"):
+        cmp("DGV - DUM  CONCENTRATION at matched compute", arms["DGV"], arms["DUM"])
+    if arms.get("DRV") and arms.get("DUM"):
+        cmp("DRV - DUM  concentration ALONE, chosen by luck", arms["DRV"], arms["DUM"])
+
+    print("\n## Against GREEDY -- the only bar that matters\n")
+    anchor = arms.get("GC")
+    if anchor:
+        for tag in ("D1O", "B2O", "B2R", "DGV", "DRV", "DUM"):
+            if arms.get(tag):
+                cmp(f"{tag} - greedy (same block)", arms[tag], anchor)
+        cmp("greedy this block - greedy pooled (3 earlier blocks)",
+            anchor, C["greedy"]["rate"], nb=C["greedy"]["n"])
+    else:
+        print("  PENDING -- the anchor is the bar, and nothing is read without it.")
+
+    print("\n  SCOPE. A null on B2R - D1O is a null for THIS vehicle at THIS")
+    print("  budget. It does not close MCTS (rl/search/tree.py is a different")
+    print("  algorithm) and it does not close depth for a vehicle whose backup")
+    print("  is a true minimax at every ply rather than at the last one.")
+    print("=" * 78)
+    if not ok:
+        print("\n  AT LEAST ONE R0 GATE FAILED -- the affected arms say nothing.")
+
+
+if __name__ == "__main__":
+    main()

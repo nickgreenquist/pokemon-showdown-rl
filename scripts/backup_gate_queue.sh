@@ -97,4 +97,6 @@ for arm in D1O B2O B2R DGV DRV DUM GC; do
   fparm "$arm" "$(echo $arm | tr 'A-Z' 'a-z')"
 done
 log "PHASE R DONE"
-log "QUEUE DONE -- readout is scripts/backup_gate_readout.py"
+"$PY" scripts/backup_gate_readout.py > "$OUT/READOUT.txt" 2>&1
+log "READOUT written to $OUT/READOUT.txt"
+log "QUEUE DONE"
