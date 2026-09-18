@@ -177,9 +177,9 @@ def main():
     labels = {"D1O": "depth 1, gate open (the control)",
               "B2O": "depth 2, OLD pinned backup",
               "B2R": "depth 2, opp_k minimax backup",
-              "DGV": "gated on committee votes, dose L",
-              "DRV": "gated by a COIN at the same rate, dose L",
-              "DUM": "ungated, dose M (D1O's replicate)",
+              "DGV": "gated on committee votes (dose M)",
+              "DRV": "gated by a COIN at the same rate (dose M)",
+              "DUM": "ungated, every decision (dose M; D1O's replicate)",
               "GC":  "GREEDY anchor, this block"}
     for tag, lab in labels.items():
         d = arms.get(tag)
@@ -217,9 +217,20 @@ def main():
         cmp("DGV - DRV  SELECTION (does the committee know where?)",
             arms["DGV"], arms["DRV"])
     if arms.get("DGV") and arms.get("DUM"):
-        cmp("DGV - DUM  CONCENTRATION at matched compute", arms["DGV"], arms["DUM"])
+        cmp("DGV - DUM  SKIPPING (does agreeing mean it does not matter?)",
+            arms["DGV"], arms["DUM"])
     if arms.get("DRV") and arms.get("DUM"):
-        cmp("DRV - DUM  concentration ALONE, chosen by luck", arms["DRV"], arms["DUM"])
+        cmp("DRV - DUM  skipping at RANDOM, the same fraction", arms["DRV"], arms["DUM"])
+    # ALL THREE ARE DOSE M, so the per-searched-decision cost must match or the
+    # arms are not the same search. The saving is the RATE, and it is the
+    # headline if DGV - DUM is a null.
+    if arms.get("DGV") and arms.get("DUM"):
+        mg, mu = num(arms["DGV"], "search/ms_mean"), num(arms["DUM"], "search/ms_mean")
+        r = num(arms["DGV"], "disagree/search_rate")
+        print(f"\n  per-searched-decision cost: DGV {mg:.1f} ms vs DUM {mu:.1f} ms "
+              f"({'OK' if mu and abs(mg - mu) / mu < 0.15 else 'MISMATCH -- not the same search'})")
+        print(f"  DGV searched {r:.1%} of decisions, so it spent ~{r:.0%} of DUM's")
+        print("  search compute. A NULL above is that saving for free.")
 
     print("\n## Against GREEDY -- the only bar that matters\n")
     anchor = arms.get("GC")

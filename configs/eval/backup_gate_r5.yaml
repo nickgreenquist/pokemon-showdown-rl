@@ -46,15 +46,34 @@
 # ~150 s/turn and we spend 20 ms. The committee already computes, free, a signal
 # for which decisions are close.
 #
-#   DGV  votes >= 1/3 (any member dissents), dose L on those decisions
-#   DRV  a COIN at the same realized rate, dose L        <- isolates SELECTION
-#   DUM  ungated, dose M, every decision                 <- isolates CONCENTRATION
+#   DGV  votes >= 1/3 (any member dissents), dose M
+#   DRV  a COIN at the same realized rate, dose M        <- isolates SELECTION
+#   DUM  ungated, dose M, every decision                 <- isolates SKIPPING
 #
-# THE COMPUTE IS MATCHED BY CONSTRUCTION, not by hope: dose L is 4x dose M on
-# n_det (1296 -> 5184 leaves), so searching ~25% of decisions at L costs what
-# searching 100% at M costs. DGV-DUM at equal compute is therefore "spend it
-# where it matters" vs "spread it", and DGV-DRV is "the committee knows where"
-# vs "any 25% would have done". Both claims are wanted and they are different.
+# ALL THREE AT DOSE M, AND THAT IS A CORRECTION MADE MID-BLOCK (2026-09-18,
+# after the smoke). The original design put the gated arms at dose L on the
+# arithmetic that "dose L is 4x M on n_det, so ~25% of decisions at L costs what
+# 100% at M costs". THE SMOKE MEASURED THE RATE AND IT IS NOT 25%: the gate at
+# threshold 0.30 searched 45.2% of decisions, so dose L would have cost ~1.8x
+# DUM and DGV-DUM would have been confounded by COMPUTE -- the exact class of
+# error this whole block exists to avoid. With three members `votes` takes only
+# {0, 1/3, 2/3}, so there is no continuous knob to tune the rate back to 25%.
+#
+# HOLDING THE DOSE INSTEAD IS BETTER SCIENCE AND CHEAPER. At dose M every arm
+# costs the SAME PER SEARCHED DECISION, so the only difference between DGV and
+# DUM is WHICH decisions were searched, and DGV spends ~45% of DUM's compute.
+# The questions become:
+#   DGV - DUM   does SKIPPING the decisions the committee agrees on cost
+#               anything? A null here is a ~2x saving for free, and it is the
+#               first evidence about WHERE search matters rather than how much.
+#   DGV - DRV   does the COMMITTEE know where, or would any 45% have done?
+#
+# And it follows the day's own evidence. §24 and §26 measured that MORE search
+# does not pay uniformly -- every dose increase has read flat or negative. So
+# "spend more, but targeted" bets on the lever that keeps failing; "spend less,
+# targeted" tests the selection claim directly. If selection carries signal,
+# THEN a bigger dose on the selected decisions is the natural follow-up (IDEAS
+# 8.6's budget ladder is the same question for the tree).
 #
 # WHY `votes` AT 1/3 RATHER THAN A SWEPT THRESHOLD: with three members `votes`
 # takes only {0, 1/3, 2/3}, so 1/3 is the NATURAL cut (any dissent) and there is
@@ -91,15 +110,15 @@ arms:
   B2C: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.08, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 60, search_time_ms: 20, seat_username: bkb2cseat, fp_username: bkb2cbot}
   # phase S -- the gate's realized rate at the natural cut. DRV is matched to
   # THIS number arithmetically, so this cell is measured, never assumed.
-  GV:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: L, margin_delta: 0.05, disagree: {metric: votes, threshold: 0.30}, battles: 60, search_time_ms: 20, seat_username: bkgvseat, fp_username: bkgvbot}
+  GV:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, disagree: {metric: votes, threshold: 0.30}, battles: 60, search_time_ms: 20, seat_username: bkgvseat, fp_username: bkgvbot}
 
   # phase R -- the reads. Deltas and thresholds marked PIN are written by
   # scripts/backup_gate_pin.py from phase S and committed before R launches.
   D1O: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 1000, search_time_ms: 20, seat_username: bkd1oseat, fp_username: bkd1obot}
   B2O: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.12, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 1}, battles: 1000, search_time_ms: 20, seat_username: bkb2oseat, fp_username: bkb2obot}
   B2R: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PINB, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 1000, search_time_ms: 20, seat_username: bkb2rseat, fp_username: bkb2rbot}
-  DGV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: L, margin_delta: 0.05, disagree: {metric: votes, threshold: 0.30}, battles: 1000, search_time_ms: 20, seat_username: bkdgvseat, fp_username: bkdgvbot}
-  DRV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: L, margin_delta: 0.05, disagree: {metric: random, threshold: PIND}, battles: 1000, search_time_ms: 20, seat_username: bkdrvseat, fp_username: bkdrvbot}
+  DGV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, disagree: {metric: votes, threshold: 0.30}, battles: 1000, search_time_ms: 20, seat_username: bkdgvseat, fp_username: bkdgvbot}
+  DRV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, disagree: {metric: random, threshold: PIND}, battles: 1000, search_time_ms: 20, seat_username: bkdrvseat, fp_username: bkdrvbot}
   DUM: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 1000, search_time_ms: 20, seat_username: bkdumseat, fp_username: bkdumbot}
   GC:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1000, search_time_ms: 20, seat_username: bkgcseat, fp_username: bkgcbot}
 
@@ -133,5 +152,7 @@ R0_gates:
     check: "|search/override_rate(B2R) - search/override_rate(D1O)| <= 0.03 and same for B2O; unmatched, the comparison is the 2026-09-17 artifact again"
   - name: G_CAP
     check: "B2R reports depth2/grandchildren_per_decision < 0.5 * depth2.cap AND roughly 2x B2O's; if the cap BINDS, the two arms differ in how many of OUR replies they saw and not only in the backup"
+  - name: G_COMPUTE
+    check: "search/ms_mean(DGV) ~= search/ms_mean(DUM) within 15% -- all three gate arms are dose M, so the ONLY difference is WHICH decisions were searched; if the per-decision cost differs the arms are not the same search"
   - name: G_REPLICATE
     check: "|our_win_rate(D1O) - our_win_rate(DUM)| reported beside every delta as this block's realized noise floor"

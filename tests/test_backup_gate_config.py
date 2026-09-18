@@ -94,14 +94,20 @@ def test_the_pin_tokens_in_the_config_are_exactly_the_ones_the_pin_writes():
         "the pin must refuse to finish with a placeholder still in the file")
 
 
-def test_the_two_gated_arms_carry_the_bigger_dose_and_the_ungated_one_does_not():
-    """The 8.5 comparison is matched on COMPUTE by construction: dose L is 4x M
-    on n_det, so ~25% of decisions at L costs what 100% at M costs. If the doses
-    ever drift apart, DGV - DUM stops being a spend-it-here vs spread-it
-    comparison and becomes a dose comparison."""
+def test_every_gate_arm_carries_THE_SAME_dose():
+    """The 8.5 comparison holds the dose FIXED so the only difference between
+    DGV and DUM is WHICH decisions were searched.
+
+    The original design put the gated arms at dose L on the arithmetic that
+    ~25% of decisions at L costs what 100% at M costs. The smoke measured the
+    rate at 45.2%, which would have made DGV cost ~1.8x DUM and confounded the
+    comparison with COMPUTE -- and with three members `votes` takes only
+    {0, 1/3, 2/3}, so there is no knob to tune the rate back. If these doses
+    ever drift apart again, the arms stop being the same search."""
     arms = CFG["arms"]
-    assert arms["DGV"]["dose"] == arms["DRV"]["dose"] == "L"
-    assert arms["DUM"]["dose"] == arms["D1O"]["dose"] == "M"
+    doses = {arms[a]["dose"] for a in ("DGV", "DRV", "DUM", "GV", "D1O")}
+    assert doses == {"M"}, f"the gate arms disagree on dose: {doses}"
+    # and the dose ladder still means what the header says it does
     assert DOSES["L"].n_det == 4 * DOSES["M"].n_det
 
 
