@@ -72,7 +72,7 @@ arms:
   # --- the read ---
   TV:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 1000, search_time_ms: 20, seat_username: trtvseat,  fp_username: trtvbot,  tree: {iters: 100, n_det: 2, batch: 16, decide: visits, root_min_visits: 8}}
   TG:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 1000, search_time_ms: 20, seat_username: trtgseat,  fp_username: trtgbot,  tree: {iters: 100, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
-  TQ:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 1000, search_time_ms: 20, seat_username: trtqseat,  fp_username: trtqbot,  tree: {iters: 100, n_det: 2, batch: 16, decide: q, margin: PINQ, root_min_visits: 8}}
+  TQ:  {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 1000, search_time_ms: 20, seat_username: trtqseat,  fp_username: trtqbot,  tree: {iters: 100, n_det: 2, batch: 16, decide: q, margin: 0.20, root_min_visits: 8}}
   # the same-session greedy anchor. Non-negotiable now: ~0.02 session offsets
   # have bitten twice, and this block's bar IS greedy.
   TGR: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1000, search_time_ms: 20, seat_username: trtgrseat, fp_username: trtgrbot}

@@ -29,7 +29,17 @@ def pick(cells):
         if not p.exists():
             sys.exit(f"REFUSE: {p} missing — phase S incomplete")
         d = json.loads(p.read_text())
+        # A TREE ARM REPORTS NO override_rate: that field is gated on
+        # `margin_delta`, which lives on the MATRIX selector. The tree carries
+        # its margin inside `tree.margin`, so its "how often did search overrule
+        # the policy" number is search/flips over searched decisions. Same
+        # quantity, different bookkeeping -- and taking the None at face value
+        # is what blocked this run at 07:05Z.
         rate = d.get("search/override_rate")
+        if rate is None and d.get("search_tree"):
+            dec = d.get("search/decisions") or 0
+            skips = d.get("search/placeholder_skips") or 0
+            rate = (d.get("search/flips") or 0) / max(dec - skips, 1)
         # the critic arms carry no heuristic counter by construction
         fired = 1.0 if d.get("search_tree") else 0.0   # the tree must have RUN
         if rate is None:
@@ -69,9 +79,8 @@ def main():
     if args.commit:
         subprocess.run(["git", "add", str(PREREG)], check=True, cwd=REPO)
         subprocess.run(["git", "commit", "-q", "-m",
-                        f"tree_r5: match override rate — HD1 delta {b1[0]:.2f} "
-                        f"(override {b1[2]:.4f}), HD2 delta {b2[0]:.2f} "
-                        f"(override {b2[2]:.4f}), target {TARGET}\n\n"
+                        f"tree_r5: TQ margin {b1[0]:.2f} matches D1's override "
+                        f"({b1[2]:.4f} vs target {TARGET})\n\n"
                         "Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>\n"
                         "Claude-Session: https://claude.ai/code/session_01Rz5TMHg1uVyb6emrgq7rXn"],
                        cwd=REPO)
