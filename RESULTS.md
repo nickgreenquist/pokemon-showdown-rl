@@ -2187,3 +2187,51 @@ ceiling is the one-way random-effects estimate; the bias runs toward *more* head
 
 Barred, by name: "0.59 is the ceiling"; any use of these numbers as a win rate or a
 ladder claim; and quoting the pooled ceiling without the turn mix that produced it.
+
+### 27.1 — a second read of the same rollouts: **88% of the critic's gap is RANKING, and it is optimistic about its own seat**
+
+`scripts/critic_calibration.py`, same 707 positions and 22,358 rollouts, no new compute.
+§27 took one number out of that file and stopped; three more were sitting in it, and all
+three bear on which lever to pull.
+
+**THE SELF-PLAY IDENTITY IS WHAT MAKES THIS POSSIBLE.** Every rollout is the same
+deterministic committee on both seats, so the true expected outcome is **exactly zero**
+and the realized mean is −0.0006. Any systematic non-zero in the critic is therefore a
+BIAS, with no sampling argument to hide behind.
+
+**(1) The gap is a RANKING gap, not a calibration gap.** An out-of-sample **isotonic**
+recalibration — the best any monotone rescaling can do — moves EV from **0.2176 to
+0.2371**, i.e. **+0.0195 of the 0.1652 gap (12%)**. Affine buys +0.0107. **The other 88%
+is the critic not knowing WHICH position is better**, and no rescaling touches it. This
+is a direct argument against "fix the evaluator by fitting it better" and for changing
+what it is trained ON.
+
+**(2) The critic is OPTIMISTIC ABOUT ITS OWN SEAT by +0.0416, z = 2.74** (paired against
+the oracle, se 0.0152). The fleet's collector runs `learner_seat: p1`, so the critic has
+only ever been fit from one side of a symmetric game. **This is the first direct evidence
+for IDEAS 4.1 (the both-seat harvest), which until now rested on a sample-efficiency
+argument rather than a measured defect.**
+
+**(3) The ranking failure is concentrated in the OPENING, and so is the bias.**
+
+| turns | positions | corr with the oracle | r² | fitted slope | paired bias |
+|---|---|---|---|---|---|
+| 2–8 | 173 | +0.535 | **0.287** | 0.706 | **+0.0672** |
+| 9–15 | 157 | +0.601 | 0.361 | 0.598 | +0.0418 |
+| 16–22 | 187 | +0.818 | 0.669 | 0.911 | +0.0340 |
+| 23+ | 190 | +0.853 | **0.727** | 0.884 | +0.0257 |
+
+The critic explains **73% of the oracle's variation at turn 23 and 29% in the opening**,
+and its seat bias is **2.6× larger** early. Both curves point at the same place: the
+critic is weakest exactly where the game is still open, which is where search looks and
+where a decision is still worth making.
+
+**What this licenses.** A monotone recalibration of the leaf value is **free and worth
++0.0195 EV** — and it is not inert inside the matrix vehicle even though it cannot
+reorder leaves at one node, because `row_ev` averages leaf values and the D5 margin gate
+is a threshold on that scale. It is a Tier-0 item, not a lever. **The 88% that remains is
+what 4.9 (expert iteration) and 4.1 (both-seat harvest) are for.**
+
+Barred: reading the +0.0195 as "recalibration fixes the critic"; quoting the isotonic
+number in-sample (it is 0.2389 there, and the honest figure is the 5-fold 0.2371); and
+treating the seat bias as a property of the format rather than of a p1-only learner.
