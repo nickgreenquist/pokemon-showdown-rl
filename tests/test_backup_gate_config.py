@@ -77,21 +77,36 @@ def test_every_search_arm_constructs(name):
     assert sa._depth2 == arm.get("depth2")
 
 
-def test_the_pin_tokens_in_the_config_are_exactly_the_ones_the_pin_writes():
+def test_the_pin_tokens_and_the_pin_script_agree():
     """A placeholder the pin does not recognise is a silent no-op: the queue's
     `grep -q PINB\\|PIND` would still fire, the pin would replace nothing, and
-    the assert inside it is the only thing standing between that and an arm
-    launched with a string margin."""
+    the assert inside the pin is the only thing standing between that and an arm
+    launched with a string margin.
+
+    THE CONFIG IS CHECKED IN BOTH STATES, because the pin REWRITES it in place
+    and commits: before the pin the tokens are present, after it every arm
+    carries a float. Asserting only the first state made this test go red the
+    moment the running block pinned itself, which is a test describing a
+    transient rather than a contract."""
     text = (Path(__file__).parent.parent
             / "configs/eval/backup_gate_r5.yaml").read_text()
     pin = (Path(__file__).parent.parent
            / "scripts/backup_gate_pin.py").read_text()
     for token in PINS:
-        assert f"margin_delta: {token}" in text or f"threshold: {token}" in text, (
-            f"{token} is written by the pin but appears nowhere in the config")
-        assert token in pin
+        assert token in pin, f"the pin does not know its own token {token}"
     assert 'assert "PINB" not in out and "PIND" not in out' in pin, (
         "the pin must refuse to finish with a placeholder still in the file")
+    pinned = not any(t in text for t in PINS)
+    if pinned:
+        # post-pin: every value the pin writes must now be a real number
+        for name in ("B2R", "DRV"):
+            arm = CFG["arms"][name]
+            assert isinstance(arm["margin_delta"], (int, float)), name
+            if arm.get("disagree"):
+                assert isinstance(arm["disagree"]["threshold"], (int, float)), name
+    else:
+        assert any(f"margin_delta: {t}" in text or f"threshold: {t}" in text
+                   for t in PINS), "tokens present but on no arm the pin writes"
 
 
 def test_every_gate_arm_carries_THE_SAME_dose():

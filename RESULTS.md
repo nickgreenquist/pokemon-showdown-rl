@@ -2329,3 +2329,48 @@ change a single non-looping battle. But it is a change to the POLICY FORM, and t
 protocol names "deterministic policy", so it needs the maintainer's word before any
 headline number uses it. `rl/common/loop_breaker.py` is built and tested against the six
 banked stalls' signature; **it is wired nowhere.**
+
+## 29. Addendum, 2026-09-18 — **the annealed tail trades explained variance for WIN RATE, in nine lanes out of nine**
+
+`scripts/anneal_tail_audit.py`. No new compute — this reads `history.csv` from fleets
+already run. **It answers an owed ruling** ([RWL-4], "the LR-anneal floor"), which until
+now had one number attached to it and no context: *W's EV falls through the annealed tail,
+"so the tail is not inert — cuts both ways".*
+
+The tail is the **last quarter** of each run, where a linear-to-zero anneal
+(`lr_anneal_steps == total_steps`) takes the LR from ~0.25× base to 0. Each metric is a
+window mean against the quarter before it.
+
+| fleet | lanes | EV | value loss | entropy | **eval win rate** | episode return |
+|---|---|---|---|---|---|---|
+| **W** — L2 + 1024 critic, 200M | 3 | **−0.060** | +0.066 | −0.141 | **+0.059** | +0.036 |
+| **L2LAM** — L2 + MC targets, 200M | 3 | **−0.088** | +0.278 | −0.053 | **+0.062** | +0.026 |
+| **the 100M baseline** | 3 | −0.005 | +0.045 | −0.111 | **+0.033** | +0.012 |
+
+**ALL NINE LANES AGREE IN SIGN on every row**, and the across-lane sd is 0.003–0.006 on
+the win rate. **The annealed tail is where three to six points of in-loop eval win rate
+are made, in every fleet this project has run.** Value fit gets worse while it happens.
+
+**The ruling this supports: do NOT floor the LR without a matched arm.** Cutting or
+flooring the tail forgoes the interval in which the win rate actually moves. The "cuts
+both ways" note is resolved: the tail is not inert, and the direction it cuts is **in our
+favour on the axis we care about.**
+
+**WHAT IT DOES NOT ESTABLISH, stated because the window is the obvious objection.**
+Last-quarter-against-previous-quarter confounds *the LR annealed* with *more steps
+happened*: a constant-LR run would also improve over the same interval. Entropy
+(−0.05 … −0.14) and approx_kl (−0.018, sd 0.0005) falling in every lane confirm the
+anneal is biting, but **attributing the win-rate gain to the anneal rather than to the
+steps needs a constant-LR arm**, and that arm has never been run. The ruling this
+evidence supports is therefore "do not cut the tail", not "the anneal causes the gain".
+
+**AND IT IS THE THIRD INDEPENDENT MEASUREMENT THAT EXPLAINED VARIANCE IS NOT THE
+OBJECTIVE HERE.** §21: 2.67× critic width and 126× first-layer rank bought **zero** EV
+while the win rate moved. §27.1: 88% of the critic's gap to the format's ceiling is
+ranking, and the calibration a better fit would buy closes only 12%. **§29: EV moves in
+the OPPOSITE direction to the win rate in 9 lanes of 9.** §21 already barred sizing a
+fleet on EV; the three together bar it as a *direction* as well.
+
+The self-play win rate against the latest opponent sits at 0.4994–0.5000 in every lane
+and moves by ±0.001 — which is what a zero-sum mirror must do, and is the instrument's
+own check that these windows are being read correctly.
