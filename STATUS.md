@@ -89,14 +89,14 @@ matching assumed, which would have made DGV cost ~1.8× DUM and confounded it wi
    shape; **whether a null on the MATRIX vehicle may close MCTS**; and whether 4.9 gets a fleet.
 
 ## Watch items
-- **SUITE GREEN 1173 / 0 failed / 87 skipped** (2026-09-18; +84 tests today). Engine 115 + 94 cargo.
-  **SEVEN defect-class fixes this week, all one shape — a dial or a field that runs and reports nothing, or
-  reports the wrong thing.** `launch_git_sha` was read AFTER the battles for its whole life, so every arm
-  ever run stamped its COMPLETION state under the launch name; nothing noticed because nothing read it.
+- **SUITE GREEN 1183 / 0 failed / 87 skipped** (2026-09-18; **+94 tests today**). **SEVEN defect-class
+  fixes this week, all one shape — a dial or a field that runs and reports nothing, or reports the wrong
+  thing.** `launch_git_sha` was read AFTER the battles for its whole life, so every arm ever run stamped its
+  COMPLETION state under the launch name; nothing noticed because nothing read it.
 - **SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS**, and **ONE RUNG IS WORTH ±0.02**: never difference across
   sessions without an anchor; read curves, not rungs. **§28 adds a second reason** cross-block win rates are
   barred — the tie rate spread is 0.011 and points the same way, against the weaker arm.
 - **SEEDS DO NOT PAIR BATTLES** (`docs/landmines.md`): every "matched seed-for-seed, McNemar se" phrase was
-  UNPAIRED. Replicates are the instrument.
-- **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS ONLY** (maintainer, 2026-09-17); hacking needs none, and
-  the anti-self-deception rules do not relax — counters to disk, matched comparisons, same-session anchors.
+  UNPAIRED; replicates are the instrument. **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS ONLY**
+  (maintainer, 2026-09-17) — hacking needs none, and the anti-self-deception rules do not relax: counters to
+  disk, matched comparisons, same-session anchors.
