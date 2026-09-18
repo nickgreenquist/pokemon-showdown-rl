@@ -95,6 +95,19 @@ exactly that (see do-not-relitigate below).
   snapshot. Refusal is the maintainer's call — it would have voided today's tree
   block, which was proved harmless.
 
+- **L6 — A MATCHED BLOCK SHOULD RUN ITS CONTROL FIRST** (opened 2026-09-18).
+  Matching on the realized override rate is the standing rule (§22), and
+  2026-09-18 measured that **the realized rate itself drifts across sessions at a
+  fixed delta**: the same configuration read **0.1933** on 09-17 (CN1) and
+  **0.1703** on 09-18 (D1O), 0.023 apart, the same order as the win-rate offset.
+  `backup_gate_r5` therefore matched its treatment to a BANKED target, because
+  the control had not run yet, and landed 0.027 from the control in front of it —
+  inside the ±0.03 gate and closer to the edge than intended. **The fix costs an
+  ordering and nothing else: put the control at the head of phase R and pin the
+  treatment to ITS realized rate.** Not applied to the running block, because
+  re-pinning after a win rate is visible turns a selection rule into a choice.
+  Fold this into the next matched block's queue script.
+
 - **L1 — THE LADDER'S OPPONENT POOL IS SMALL AND ONE SESSION SAMPLES ONE SLICE
   OF IT** (opened 2026-09-16, from the maintainer's observation mid-R5). R5 at
   n=156 had played **78 distinct opponents, with five of them supplying 62 games

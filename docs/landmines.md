@@ -777,3 +777,38 @@ battle**, which is pinned by a test. But it is a change to the POLICY FORM and
 the locked protocol names the policy, so **it is wired nowhere and needs a
 maintainer ruling.** LADDER R5 never hit the bug (max 121 turns, zero ties) —
 human opponents do not freeze-lock and then sit — so the risk is latent.
+
+## THE REALIZED OVERRIDE RATE ALSO DRIFTS ACROSS SESSIONS (2026-09-18)
+
+The standing rule is **match on the realized override rate, not on the delta**
+(§22: the same arm reads −0.0007 or −0.053 depending on that alone). This is the
+next layer down: **the realized rate itself is not reproducible across sessions
+at a fixed delta.**
+
+Measured on the same configuration — dose M, `margin_delta` 0.05, open gate,
+ungated, the same three checkpoints:
+
+| arm | session | n | override | win |
+|---|---|---|---|---|
+| CN1 | 2026-09-17 | 1500 | **0.1933** | 0.5627 |
+| D1O | 2026-09-18 | 1000 | **0.1703** | 0.5510 |
+
+**The same knob, a different realized rate, 0.023 apart** — the same order as the
+~0.02 win-rate session offset, and for a related reason: the override rate is a
+property of the POSITIONS the opponent leads you into, and Foul Play at 20 ms is
+not the same opponent twice.
+
+**What it breaks.** `scripts/backup_gate_pin.py` matched B2R to the **banked**
+0.193 because the control had not run yet, so B2R lands ~0.027 from D1O's
+in-session 0.170 — inside the ±0.03 gate, and closer to the edge than the design
+intended. The pin was applied before any phase-R number existed and **must not be
+re-pinned now that a win rate is visible**: a selection rule that reads only
+override rates stops being one the moment it is re-run after seeing an outcome.
+
+**The fix for the next block, and it is free: RUN THE CONTROL FIRST.** Put the
+control arm at the head of phase R, then pin the treatment's delta to the
+control's REALIZED in-session rate rather than to a banked one. It costs nothing
+but an ordering, and it removes a whole layer of drift from the matching.
+
+**A banked rate is a starting guess, never a target.** Every block that matches
+on a rate should say which session its target came from.

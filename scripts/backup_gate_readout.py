@@ -171,6 +171,19 @@ def main():
             ok &= gap <= 0.03
             print(f"  OVERRIDE MATCH |{tag} - D1O| = {gap:.4f} "
                   f"{'OK' if gap <= 0.03 else 'UNMATCHED -- this is the 2026-09-17 artifact again'}")
+    if arms.get("D1O"):
+        # THE TARGET CAME FROM ANOTHER SESSION, and the realized rate drifts.
+        # D1O is the same configuration as §24's CN1 (dose M, delta 0.05, open
+        # gate); CN1 realized 0.1933 and the pin used that as B2R's target. If
+        # D1O's own rate differs, the match is to a banked number rather than to
+        # the control in front of it -- disclosed, never re-pinned after a win
+        # rate is visible. Next block: run the CONTROL FIRST and pin to its
+        # realized rate (docs/landmines.md).
+        d1 = num(arms["D1O"], "search/override_rate")
+        drift = d1 - float(C["target_override"])
+        print(f"  TARGET DRIFT   D1O realized {d1:.4f} vs the banked target "
+              f"{C['target_override']:.4f} -> {drift:+.4f}"
+              f"{'' if abs(drift) < 0.015 else '  (the match is to a BANKED rate)'}")
 
     code_provenance(arms)
     print("\n## The arms\n")
