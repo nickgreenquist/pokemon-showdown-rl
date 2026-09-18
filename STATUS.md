@@ -71,9 +71,10 @@ matching assumed, which would have made DGV cost ~1.8× DUM and confounded it wi
 - **2.10 `depth2.opp_k`** (12 tests): default 1 = the old pinned max, BIT-IDENTICAL. **Two more defects fell
   out of the tests:** an unexpandable leaf was re-embedded at `turn+1+plies` and RE-SCORED (**every depth-2
   arm before today carries it**, CLEANUP L4), and a SWITCH column produced ZERO grandchildren.
-- **8.5 the disagreement gate** (17 tests) with a **`random` CONTROL** separating "spend it HERE" from
-  "spend it CONCENTRATED". **2.13 recalibrate the leaf value** — free, +0.0195 measured, and NOT inert
-  (row_ev averages leaf values; the D5 gate is a threshold on that scale, so re-sweep δ with it).
+- **8.5 the disagreement gate** (17 tests) with a **`random` CONTROL**. **2.13 recalibrate the leaf value**
+  (`rl/common/value_calibration.py`, 10 tests) — free, **+0.0195 measured**, and **NOT inert: a monotone map
+  cannot reorder leaves at one node but DOES reorder `row_ev`'s expectation over them (3.5% of row pairs
+  flip on the real curve), and the D5 gate is a threshold on that scale, so δ must be re-swept with it.**
 - **4.9 EXPERT ITERATION, the maintainer's TOP §4 item**; design `docs/proposals/EXPERT_ITERATION.md`. Its
   2.11 gate has OPENED. Its FREE falsifier is now measured on every tree decision:
   `tree/kl_pi_prior`, `tree/pi_top1`, `tree/argmax_moved` (UNGATED, unlike `search/overrode`).
@@ -83,7 +84,8 @@ matching assumed, which would have made DGV cost ~1.8× DUM and confounded it wi
 1. **Read out `backup_gate_r5` when it lands** → RESULTS §29, then this file.
 2. **8.6, the tree budget ladder** — resolving TG's +0.021 at the SMALLEST budget would spend ten hours on
    the weakest version of the arm; ladder `iters` first and report KL(π′‖prior) at every rung.
-3. **2.13 (recalibration) is free and unrun**; 2.12 (weight averaging) likewise.
+3. **2.13 (recalibration) is BUILT, free and unrun** — wire it into `matrix.py` once the block frees the
+   file, sweep δ with it, and read it off FP@20. 2.12 (weight averaging) likewise free and untried.
 4. **RULINGS OWED:** the LOOP BREAKER (§28 — it changes the policy form); R6's SPLIT SCHEDULE (CLEANUP L1);
    the LR-anneal floor ([RWL-4]; W's EV FALLS through the annealed tail 0.675→0.596); the next fleet's
    shape; **whether a null on the MATRIX vehicle may close MCTS**; and whether 4.9 gets a fleet.
