@@ -1,0 +1,44 @@
+# THE R5 COMMITTEE vs FOUL PLAY AT 500 ms. The number the maintainer asked for
+# on 2026-09-17 and which did not exist: the only banked FP@500 figure (0.472,
+# n=500, 1 tie) is the 100M committee, measured 2026-09-12.
+#
+# WHAT 500 ms MEANS: Foul Play splits its budget across determinizations, so
+# FP@500 is ~1 s per decision -- 25x the FP@20 anchor. Its depth census says
+# that buys it ~3.2 plies against 2.44 at 20 ms, so most of the extra compute
+# goes into visits rather than depth.
+#
+# n=500 at 1 s/decision is ~4.5 h. se at p~0.5 is 0.0224, so this resolves
+# "clearly behind" from "clearly ahead" and nothing finer; that is enough for
+# the question asked. Greedy, no search -- the ladder object exactly.
+#
+# Both FP disclosures travel, and the BUDGET IS NAMED in every quote: FP@500 is
+# an instrument, not a rung, and nothing here projects to the ladder.
+
+title: fp500_r5
+status: "hacking run, 2026-09-17"
+journey_step: "11.5"
+credits_nothing: true
+results_dir: results/fp500_r5
+
+fp:
+  search_time_ms: 500
+
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+
+arms:
+  # the ladder object, greedy, at Foul Play's 500 ms budget
+  W500: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 500, search_time_ms: 500, seat_username: f5w500seat, fp_username: f5w500bot}
+  # the SAME object at 20 ms, this session, so the budget comparison is within
+  # one session -- session offset on this instrument is ~0.02 and has bitten twice
+  W020: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 500, search_time_ms: 20, seat_username: f5w020seat, fp_username: f5w020bot}
+
+phases:
+  R: [W500, W020]
+
+comparators:
+  ens3_100m_fp500: {rate: 0.472, n: 500, ties: 1, source: "results/ens_width_offfp/ens3f500.json, 2026-09-12"}
+  ens3_100m_fp20:  {rate: 0.5770, n: 1000, source: "results/ens_width_offfp/ens3fr.json"}
+  r5_fp20_banked:  {rate: 0.5987, n: 3000, source: "results/monster_reads_offfp/e3wf.json, 2026-09-15"}
