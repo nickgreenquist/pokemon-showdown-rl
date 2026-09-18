@@ -47,14 +47,12 @@ BC-clone 0.9640.** **GEN-4 CLOSED (§19): 0.8788 vs SH, credits nothing; R4 Elo 
 **JOURNEY 7.5 engine port EXITED, A-1 PASSED TWICE** (−0.00436 travels); k=8 idle w3 1620, w6 1282 st/s.
 
 ## THE MONSTER (JOURNEY 10) — DONE 2026-09-15, ZERO RESUMES; CREDITED for the RECIPE (§21)
-Six lanes k=8: **W = L2 + 1024 critic** (104/112/120, 46.3 h); **L2LAM = L2 + MC targets** (128/136/144).
-- **Off FP@20, same session, n=3000/arm:** E3WF **0.5987** > E6MF 0.5763 ≈ E9F 0.5760 > E3HF 0.5570 > E3LF
-  0.4960. Singles n=9000: W 0.5417, 100M 0.4952, L2LAM 0.4481. **LADDER OBJECT = E3WF** (+0.0417, 3.27 se).
-  **vs SH:** GW 0.8217 vs 100M A0 0.7887 = **+0.033 at 5.6 se**; E3W 0.8386 (+0.015 at 2.01 se over the
-  100M ENS3 — **NOT credited; recipe gain and committee gain SUBSTITUTE**). **ENS3 of the 100M finals
-  CREDITS** (+0.0349 vs SH at 5.93 se) and is the R5 FLOOR, at greedy speed.
-- **Mechanism (§21):** critic first-layer srank99 **632/1024 vs 5/384** (width is LIVE, ceiling branch did
-  NOT fire) but **EV DID NOT MOVE** (0.5881 vs 0.5919): **do not size the next fleet on EV.**
+Six lanes k=8: **W = L2 + 1024 critic** (104/112/120); **L2LAM = L2 + MC targets** (128/136/144). Off FP@20
+same session n=3000: E3WF **0.5987** > E6MF 0.5763 ≈ E9F 0.5760 > E3HF 0.5570 > E3LF 0.4960 → **LADDER
+OBJECT = E3WF** (+0.0417, 3.27 se). vs SH: GW **0.8217** vs 100M A0 0.7887 = **+0.033 at 5.6 se**; E3W
+0.8386 (+0.015 at 2.01 se — **NOT credited; recipe and committee gains SUBSTITUTE**); the 100M ENS3
+CREDITS (+0.0349 at 5.93 se) and is the R5 FLOOR. **Mechanism: srank99 632/1024 vs 5/384** (width is LIVE)
+but **EV DID NOT MOVE** (0.5881 vs 0.5919): **do not size the next fleet on EV.**
 
 ## RUNNING — `scripts/backup_gate_queue.sh` (phase R from 17:06Z, ~9 h; ETA ~02:00Z)
 **PHASE S CLEAN AND PINNED.** B2 sweep δ0.03→0.370, δ0.05→0.240, **δ0.08→0.1974 against a 0.193 target
