@@ -1227,7 +1227,7 @@ be acted on. Both of those are 2.10 + §8.5 work, not new machinery.
 
 **8.5 SEARCH ONLY WHERE THE COMMITTEE DISAGREES — the unspent-budget question in
 the form the committee makes FREE (added 2026-09-18; the maintainer ranks it
-third of the search items).** §8.1's budget is not short; it is spent UNIFORMLY,
+third of the search items; **BUILT the same day**, unrun as an arm).** §8.1's budget is not short; it is spent UNIFORMLY,
 on the ~97% of decisions where the answer was never in doubt. **We already
 compute the signal that says which decisions those are, on every decision, at
 zero extra cost:** 4.8's masked log-prob committee holds each member's
@@ -1245,7 +1245,19 @@ makes the comparison matched on the thing that is not being tested, the rule the
 2026-09-17 override-rate confound was paid for. **Caveats:** disagreement is a
 proxy for closeness and could be anti-correlated with where search helps (that is
 the finding if it reads null); and the arm must be matched on override rate to a
-uniform control, or it measures the gate again. **Feeds 4.9 directly** — it is
+uniform control, or it measures the gate again. **BUILT 2026-09-18** (`rl/search/agent.py`'s `disagree=` dial,
+`tests/test_disagreement_gate.py`, 14 tests). Two metrics: **`votes`** — the
+fraction of members whose own argmax is not the pooled argmax, the exact
+quantity 4.8's credit rests on, and free because `_EnsembleActor` now keeps the
+per-member log-probs it already computed — and **`margin`** — `1 - (p1 - p2)` on
+the pooled prior, which works for a single agent. Both ends are pinned:
+threshold 0.0 searches everything, a threshold above every score plays exactly
+the greedy argmax (not a third policy), and `None` is every banked arm. A
+one-legal-action decision scores 0 under both. Gate skips are folded into the
+`skips` denominator, or a healthy gated arm reads VOID on `depth2/fired_rate`.
+**STILL UNRUN.** The arm needs a threshold swept for its realized `search_rate`
+first, exactly as the margin was swept for override rate.
+**Feeds 4.9 directly** — it is
 the natural answer to 4.9's dose question (search the flagged fraction, train on
 those states).
 
