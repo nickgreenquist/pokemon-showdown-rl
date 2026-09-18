@@ -62,7 +62,7 @@ unmatched comparison. Phase R, n=1000 each: **D1O** depth-1 open gate / **B2O** 
 **B2R** depth-2 `opp_k` minimax (δ 0.08) — 2.10; **DGV** committee-gated / **DRV** coin at the same rate /
 **DUM** uniform — 8.5, **all three dose M** so the only difference is WHICH decisions were searched; **GC**
 greedy anchor. D1O and DUM are the same configuration on two pairs — the block's realized noise floor.
-**The dose-L design was corrected mid-block:** the smoke measured the gate at 45%, not the 25% the compute
+**Dose-L was corrected mid-block:** the smoke measured the gate at 45%, not the 25% the compute
 matching assumed, which would have made DGV cost ~1.8× DUM and confounded it with COMPUTE.
 
 ## BUILT 2026-09-18, UNRUN — details in `docs/IDEAS_POST_100M.md` Round 4
@@ -80,13 +80,11 @@ matching assumed, which would have made DGV cost ~1.8× DUM and confounded it wi
 
 ## Next actions
 1. **Read out `backup_gate_r5` when it lands** → RESULTS §29, then this file.
-2. **8.6, the tree budget ladder** — resolving TG's +0.021 at the SMALLEST budget would spend ten hours on
-   the weakest version of the arm; ladder `iters` first and report KL(π′‖prior) at every rung.
-3. **2.13 (recalibration) is BUILT, free and unrun** — wire it into `matrix.py` once the block frees the
-   file, sweep δ with it, and read it off FP@20. 2.12 (weight averaging) likewise free and untried.
-4. **RULINGS OWED:** the LOOP BREAKER (§28 — it changes the policy form); R6's SPLIT SCHEDULE (CLEANUP L1);
-   the LR-anneal floor ([RWL-4]; W's EV FALLS through the annealed tail 0.675→0.596); the next fleet's
-   shape; **whether a null on the MATRIX vehicle may close MCTS**; and whether 4.9 gets a fleet.
+2. **8.6, the tree budget ladder** — resolving TG's +0.021 at the SMALLEST budget spends ten hours on the
+   weakest arm; ladder `iters` first, reporting KL(π′‖prior) at every rung. **2.13 (recalibration) is
+   BUILT, free, unrun** — wire it into `matrix.py`, re-sweep δ, read it off FP@20. **2.12** likewise.
+3. **RULINGS OWED:** the LOOP BREAKER (§28 — it changes the policy form); R6's SPLIT SCHEDULE (CLEANUP L1);
+   the LR-anneal floor ([RWL-4]; W's EV falls through the annealed tail); the next fleet's shape; whether a MATRIX null may close MCTS; whether 4.9 gets a fleet.
 
 ## Watch items
 - **SUITE GREEN 1183 / 0 failed / 87 skipped** (2026-09-18; **+94 tests today**). **SEVEN defect-class
@@ -94,8 +92,8 @@ matching assumed, which would have made DGV cost ~1.8× DUM and confounded it wi
   thing.** `launch_git_sha` was read AFTER the battles for its whole life, so every arm ever run stamped its
   COMPLETION state under the launch name; nothing noticed because nothing read it.
 - **SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS**, and **ONE RUNG IS WORTH ±0.02**: never difference across
-  sessions without an anchor; read curves, not rungs. **§28 adds a second reason** cross-block win rates are
-  barred — the tie rate spread is 0.011 and points the same way, against the weaker arm.
+  sessions without an anchor. **§28 adds a second reason** cross-block win rates are barred — the tie-rate
+  spread is 0.011 and points the same way, against the weaker arm.
 - **SEEDS DO NOT PAIR BATTLES** (`docs/landmines.md`): every "matched seed-for-seed, McNemar se" phrase was
   UNPAIRED; replicates are the instrument. **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS ONLY**
   (maintainer, 2026-09-17) — hacking needs none, and the anti-self-deception rules do not relax: counters to
