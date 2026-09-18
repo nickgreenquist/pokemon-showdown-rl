@@ -22,8 +22,8 @@ relaunch/resume, 0 decision errors, 0 mask desyncs, account reconciles 327–273
 warm-started account (400 prior games — GXE/Glicko/Elo are ACCOUNT properties); STANDALONE DESCRIPTIVE;
 **no R1/R3/R4/R5 delta is an effect**; barred list binding. Pool (CLEANUP L1): 102 opponents, 63.5% repeats,
 both adaptation tests null. `readouts/LADDER_R5_READOUT.md`, §20. **Anchors COMPLETE: BC-clone 0.9640.**
-**GEN-4 CLOSED (§19): vs SH 0.8788, CREDITS NOTHING. LADDER R4: Elo 1354, n=200. From here it is all gen 1.**
-**JOURNEY 7.5 engine port EXITED; A-1 PASSED TWICE** (−0.00436 travels forever). k=8 idle: w3 1620, w6 1282 steps/s/lane.
+**GEN-4 CLOSED (§19): vs SH 0.8788, CREDITS NOTHING; LADDER R4 Elo 1354. From here it is all gen 1. JOURNEY
+7.5 engine port EXITED, A-1 PASSED TWICE** (−0.00436 travels forever); k=8 idle w3 1620, w6 1282 steps/s/lane.
 
 ## **THE TREE (§26, `readouts/TREE_R5_READOUT.md`) — DONE 14:08Z: nothing clears greedy, but the RULE matters**
 A real decoupled-UCT tree, our policy as PUCT prior, our critic at leaves, n=1000/arm off FP@20:
@@ -90,10 +90,10 @@ known-optimistic backup, and its `q + margin` selector is the WORST of three dec
    fleet — it needs a pre-reg and a mechanism co-primary that is NOT explained variance.
 
 ## Watch items
-- **SUITE GREEN 1110 passed / 0 failed, 87 skipped, 9 deselected** (2026-09-18, encoder flags UNSET;
-  `-k "not live_server"` because the tree queue owns the Showdown server — re-run the 9 live tests when it
-  lands). **+29 tests today.** Engine 115 + 94 cargo. **FIVE defect-class fixes this week, all one shape — a
-  dial that runs and reports nothing.** Each now has a test that reads the source.
+- **SUITE GREEN 1151 passed / 0 failed / 87 skipped** (2026-09-18, full `pytest tests/` with the server up,
+  encoder flags UNSET — the documented invocation; **+61 tests today**). Engine 115 + 94 cargo. **SIX
+  defect-class fixes this week, all one shape — a dial or a field that runs and reports nothing, or reports
+  the wrong thing.** Each now has a test that reads the source.
 - **SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS** — never difference across sessions without a same-session
   anchor. **ONE RUNG IS WORTH ±0.02** (three redraws of one checkpoint spread 0.0200): read curves, not rungs.
 - **SEEDS DO NOT PAIR BATTLES** (`docs/landmines.md`): agreement on shared seeds is at the independence level
