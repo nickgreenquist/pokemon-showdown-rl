@@ -16,13 +16,13 @@ L2LAM / the 100M baseline: **EV −0.060 / −0.088 / −0.005** and value loss 
 the tail is where 3–6 points of win rate are made. It does NOT isolate the anneal from the steps (a
 constant-LR arm has never run). **THIRD independent measurement that EV IS NOT THE OBJECTIVE:** §21 (width
 bought zero EV while the win rate moved), §27.1 (88% of the gap is ranking), §29 (EV moves the OTHER WAY).
-**§27 + §27.1 — THE LUCK CEILING, and what the critic gets wrong.** 707 positions / 22,358 self-play
-rollouts: **~64% of a mid-battle outcome is IRREDUCIBLE**; ceiling **0.3630**, our critic **0.2176**. **THE
-GATE OPENS — the critic is NOT done.** Out-of-sample isotonic recalibration buys **+0.0195, only 12% of the
-gap: 88% is RANKING.** The critic is **optimistic about its own seat by +0.0416 (z 2.74)** where self-play
-makes the truth exactly 0 — **first direct evidence for IDEAS 4.1 (both-seat harvest)**; the collector runs
-`learner_seat: p1`. Both failures are **worst in the OPENING** (r² 0.287 at turns 2–8 vs 0.727 at 23+), the
-regime search visits. **NEVER set the training EV 0.59 against this ceiling** — a different state distribution.
+**§27 + §27.1 — THE LUCK CEILING, and what the critic gets wrong.** 707 positions / 22,358 self-play rollouts:
+**~64% of a mid-battle outcome is IRREDUCIBLE**; ceiling **0.3630**, our critic **0.2176**. **THE GATE OPENS —
+the critic is NOT done.** Out-of-sample isotonic recalibration buys **+0.0195, only 12% of the gap: 88% is
+RANKING.** The critic is **optimistic about its own seat by +0.0416 (z 2.74)** where self-play makes the truth
+exactly 0 — **first direct evidence for IDEAS 4.1 (both-seat harvest)**; the collector runs `learner_seat: p1`.
+Both failures are **worst in the OPENING** (r² 0.287 at turns 2–8 vs 0.727 at 23+). **NEVER set the training
+EV 0.59 against this ceiling** — a different state distribution.
 **§26 + §26.1 — a real tree does not beat greedy, but the DECIDE RULE orders the arms.** n=1000/arm off FP@20
 vs an in-block greedy anchor **0.5830**: **TG** gumbel **0.6040** [acts 11.4%] **+0.0210 at 0.96 se**; **TV**
 visits 0.5970 [3.7%] +0.0140; **TQ** q+margin 0.5600 [9.3%] −0.0230. Nothing clears the credit line; **nothing
