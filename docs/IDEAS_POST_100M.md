@@ -1,4 +1,4 @@
-# IDEAS_POST_100M — audited candidate levers (2026-09-01)
+# IDEAS_POST_100M — audited candidate levers (2026-09-01; last amended 2026-09-18)
 
 Source: `~/Downloads/pokemon_rl_ideas.md` (a 2026-09-01 env-less code audit),
 re-audited this session against the code, the committed record, and
@@ -7,7 +7,11 @@ doc's errors are corrected in §7. **Not a pre-registration.** Every fleet
 item here needs its own pre-reg header (credit line restated verbatim,
 `journey_step` named) before anything launches.
 
-**Status tally — 2026-09-06, amended 2026-09-08.** Of the
+**Status tally — 2026-09-06, amended 2026-09-08. STALE as of 2026-09-18:** four
+rows were added post-ladder (**2.10, 2.11, 2.12, 4.9, §8.5** — 26 actionable rows
+plus §8, which is deliberately outside this count), **2.2 is BUILT** (Round 3),
+**4.3 has RUN** on every lane of the 200M fleet, and **§3's width/capacity entry
+is ANSWERED**. Read Round 4 below before quoting any count here. Of the
 22 actionable rows (2.9 and the §5 shared-trunk row added 2026-09-08 from the
 SB3 audit; the §5 cross-features row banked the same evening; the SB3
 MIGRATION itself is closed in §3): DONE 3 (2.5 ruled + CLOSED; 2.6 BUILT; 4.1 BUILT as the
@@ -17,7 +21,9 @@ neither credited, both no longer open at gen 4); BUILT-UNRUN 1 (4.3); NOT
 STARTED 16 (2.1–2.4, 2.8, 2.9, 4.2 as an arm, 4.4–4.7, the attention
 re-benchmark, the §5 shared trunk, the §5 cross features, §6
 except the branch-protection click). **Q45 CLOSED 2026-09-06: §4 is ranked
-4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4, all downstream of JOURNEY 7.5.** Nothing
+4.1 → 4.5 → 4.3 → 4.7 → 4.2 → 4.4, all downstream of JOURNEY 7.5** — **amended
+2026-09-18: 4.9 (expert iteration) sits AHEAD of all six, and the whole section
+is gated on 2.11 reading first.** Nothing
 here precedes the first gen-4 run (ruled: Wang's recipe, levers held back);
 2.2's pairing comes free SEQUENTIALLY by seed reuse — the tag matters only
 for concurrent same-seed arms. 2.1 and the §6 ops items are the two cheap
@@ -76,6 +82,47 @@ dose XL, the tree at ~230 ms, poke_engine MCTS at 200 ms: flat; FP@500 for the
 committee pending) and **§8.3 at depth-1** (n_det 1→64 flat). **NEW ROW 4.8
 below: the committee.** The IDEAS-stale claim "our measured KL would never
 fire" is gen-4; gen 1 reaches approx_kl 0.04–0.11.
+
+**Round 4 — 2026-09-18 (post-ladder: LADDER R5 landed on the top-500 list, then a
+week of search and mechanism reads; RESULTS §§20–24).** Status changes and new
+rows, each pointing at its evidence:
+
+* **§3's width/capacity entry is ANSWERED and no longer contingent** — RESULTS
+  §21 fired branch 1 (critic first-layer srank99 **632/1024**, 0.617 of width,
+  against **5/384** on the 100M baseline) and INVERTED branch 3 (explained
+  variance **did not move**: 0.5881 vs 0.5919). Both halves are recorded in §3
+  below. A bigger critic is no longer bounded by IDLENESS; it is bounded by the
+  **EV ceiling**, and **the next fleet must not be sized on EV**.
+* **§8.1 is answered at a real budget, and the answer is a null against the
+  right bar.** The bar is **greedy 0.5765 (n=4500)**, not the depth-1 search,
+  and every search configuration measured on the R5 committee is level with or
+  below it (RESULTS §24). Separately, the R5 committee **beats FP@500**
+  (0.5600, n=500, +2.70 se above even) and 25× budget buys Foul Play nothing
+  (+0.010 at 0.32 se over FP@20) — so "FP beats us using 500 ms", the premise
+  §8.1 was written on, no longer holds for this object.
+* **§8.2's premise SURVIVES but its diagnosis is REVERSED.** Our critic is the
+  ROBUST evaluator, not the fragile one: opening the gate costs our critic 0.006
+  (0.38 se) and Foul Play's hand-tuned heuristic 0.088 (5.59 se), and the
+  evaluator difference is −0.102 at 5.62 se at an open gate (RESULTS §24). The
+  bottleneck §8.2 names is real, but "our critic is off-distribution garbage"
+  is measured false and may not be quoted.
+* **NEW Tier-0 rows: 2.10** (fix `_look_further`'s optimism — an IDENTIFIED
+  DEFECT, hours of work, currently worth ~5 points at an open gate), **2.11**
+  (measure the LUCK CEILING — BUILT AND UNRUN, and it BOUNDS every row above
+  it), **2.12** (weight-averaging the last rungs — free, never tried).
+* **NEW Tier-1 row 4.9 — EXPERT ITERATION**, and the maintainer ranks it the
+  **TOP item of §4** (2026-09-18). It is the one lever that attacks both
+  measured defects at once and it is IN CHARTER: the expert is our own search.
+* **NEW §8.5 — disagreement-gated search**, the unspent-budget question §8.1
+  asked, in the form the committee makes free.
+* **Maintainer's stack rank for the search work, 2026-09-18:** (1) 4.9 expert
+  iteration, (2) 2.10 the depth-2 optimism fix, (3) §8.5 disagreement-gated
+  search, (4) 2.11 the luck ceiling **first, as a gate on all of it**, (5) 2.12
+  weight averaging, (6) 4.8's members 4–6 on the W recipe.
+* **Process, now in CLAUDE.md:** pre-reg is for LADDER RUNS and headline claims.
+  A row here that only explores an idea needs no pre-reg and no ratification —
+  what does NOT relax is counters-to-disk, matched comparisons, and a
+  same-session anchor on every cross-session number.
 
 **Sequencing floor (binding):** nothing below runs before FLEET DONE → the
 frozen eval schedule → grade → record (HANDOFF §§1–3; the peeking bar covers
@@ -321,6 +368,65 @@ measurement. **Sequencing:** the four bit-identical fixes are worth most AFTER
 never mid-fleet.
 
 
+**2.10 Fix `_look_further`'s OPTIMISM — an IDENTIFIED DEFECT, not a lever
+(added 2026-09-18; hours of work, no fleet).** `rl/search/matrix.py::_look_further`
+takes a **max over OUR replies with no min over the OPPONENT's**, and its
+docstring justifies that by asserting the optimism "biases every row the same
+way". **It does not**, and the failure mode is systematic: rows differ in how
+many replies they have and how good the best one is, so the bias inflates
+exactly the rows with the most escape hatches — which are the rows search then
+overrides into. **What it costs, measured (RESULTS §24):** depth 1 and depth 2
+are indistinguishable at a tight gate (−0.0007) and **−0.047 apart at 2.57 se
+once the gate is open**; opening the gate costs depth-2 **0.052** against
+depth-1's 0.006. **Fix:** min over the opponent's replies at ply 2 (the standard
+minimax backup), or an explicit expectation over the opponent's row under its
+own policy — the matrix already holds both sides' distributions. **Why it is
+Tier 0 and not Tier 1:** it does not need a fleet, it does not need a pre-reg
+(hacking), and until it lands **no depth-2 number on the matrix vehicle measures
+depth** — it measures this bug. **It also gates a ruling:** the maintainer was
+asked whether a null on the matrix vehicle may close MCTS; §22 declined to
+close it, and closing it on a vehicle with a known-optimistic backup would be
+the D18 mistake in a new costume.
+
+**2.11 MEASURE THE LUCK CEILING — BUILT AND UNRUN, and it BOUNDS EVERY ROW IN
+THIS FILE (added 2026-09-18; `scripts/outcome_variance.py`, hours agent-side,
+no fleet).** RESULTS §21 measured `explained_variance` pinned at **~0.59** while
+2.67× critic width and 126× first-layer rank bought **zero** of it; §22/§23/§24
+then measured that search buys nothing at depth 2 with **either** evaluator.
+**Both results have the same untested explanation: 0.59 may simply BE the
+ceiling.** Gen-1 randbats carries enormous outcome noise — crits, freeze, full
+paralysis, sleep turns, damage rolls, speed ties — and none of it is knowable
+from a position. **What the script measures:** each position is held at **our
+observation** (the right conditioning set, because that is the function whose EV
+we are explaining), then `k` determinizations consistent with it × `m` rollouts
+each under the same deterministic policy on both seats, giving
+`EV_ceiling = 1 − Var_within/Var_total` **on the same positions** as the critic's
+own EV — apples to apples rather than across two samples. Both irreducible
+sources vary: engine chance AND hidden information.
+**Why it is a GATE.** If the ceiling comes back near 0.6, then the critic is
+DONE, no leaf evaluator can be much better, **search cannot be rescued by a
+better value function**, and every remaining lever belongs on the POLICY — which
+would re-rank this entire file, and in particular would make **4.9** a bad place
+to spend a fleet. If it comes back near 0.9, the critic is the bottleneck, 4.9
+and §8.2 are the right targets, and the depth nulls are an evaluator problem
+after all. **Run it before committing a fleet to 4.9.** It is not a win rate and
+not a claim about the ladder: it is a property of the FORMAT, measured through
+our own encoder and policy.
+
+**2.12 WEIGHT-SPACE AVERAGING of each lane's last rungs — free, post-hoc, never
+tried (added 2026-09-18; promoted out of 4.8's "open, cheap, post-fleet" list
+because it needs no fleet and no new members).** Average the parameters of the
+final N checkpoints of a single lane and evaluate the average as a member (or as
+the object). Zero training cost, zero inference cost — unlike 4.8, which pays
+one forward per member. It is the standard post-hoc antidote to end-of-anneal
+noise, and [RWL-4] named it and never ran it. **Read:** same locked protocol, on
+one lane first; if a lane's average beats that lane's final, re-form the
+committee out of averages and re-measure off FP@20 with a same-session anchor.
+**Caveat that decides the design:** averaging across INDEPENDENTLY trained lanes
+is not licensed (no shared basin, and permutation symmetry makes the average
+meaningless) — this is **within-lane, across-rungs** only, and it composes with
+4.8 rather than competing with it.
+
 ## 3. Ruled out / answered — do not re-propose
 
 **How to read this section (maintainer ruling, 2026-09-06).** Two verdicts
@@ -345,7 +451,7 @@ here is "unkilled" wholesale.
 | §3 entry | what changed | live item |
 |---|---|---|
 | privileged critic | 12M A/B is dose-limited; information leg still binds | **4.7** |
-| width / capacity | contingent on the idleness read surviving a plasticity fix | stays here |
+| width / capacity | **ANSWERED 2026-09-17 (RESULTS §21)** — width is USED (srank99 632/1024), and it buys ZERO explained variance | stays here, both halves |
 | PFSP / exploiters | 6M leg thin, transitivity leg carries it; league ruling moots it | stays here |
 | paired eval via server seed | unchanged, and it is the CRN reconciliation point (§1) | stays here |
 | D19 aux team head | final for GEN 1 only — format fact, not measured effect | open at gen 4 |
@@ -388,11 +494,34 @@ never-killed item is repriced by the collector plan: **4.3** (see its own note).
   lower-bound). It cannot touch σ_seed. Revisit only if 2.1 finds real
   overdispersion traceable to team draws. Patch would live in
   `scripts/patches/` (server is gitignored).
-- **Width/capacity scaling.** [MECHANISM-BOUNDED but CONTINGENT — the read is
-  measured IDLENESS (dormancy 27→84–88%, critic ctx srank99 7–11/384), i.e.
-  capacity is unused rather than scarce. If a plasticity lever (4.3) restores
-  srank at scale, the width question re-opens on new evidence — that is not
-  re-proposing, it is a changed premise.] The ledger argues directly against: the
+- **Width/capacity scaling — ANSWERED 2026-09-17, and the answer has TWO HALVES
+  that point opposite ways. Record both or neither.** [NO LONGER CONTINGENT. The
+  contingency below was discharged by the monster fleet's mechanism co-primary,
+  RESULTS §21 / `readouts/MECH200M_READOUT.md`.]
+  **Half one — the IDLENESS kill is VACATED.** A 1024-wide critic carries
+  **srank99 632, 0.617 of its width**, through its first layer, against **5 of
+  384** on the 100M baseline and 26.7/384 on L2LAM — 126× the rank, and the
+  delta is eight times the across-lane spread. Capacity at 1024 is *used*, not
+  idle, and **L2-toward-init does not prevent the 384-wide collapse: width
+  does.** "A wider critic would just sit idle" is measured false and may not be
+  re-quoted.
+  **Half two — the NEW bound is EXPLAINED VARIANCE, and it is flat.** EV did
+  not move: **0.5881 (W, 1024-wide, 200M) against 0.5919** on the 100M lanes
+  (across-lane sd 0.0006 / 0.0014), like-for-like at gae_lambda < 1. **2.67×
+  width and 126× first-layer rank buy ZERO explained variance at the horizon.**
+  The win rate did move, so the recipe is credited (+0.033 vs SH at 5.59 se,
+  +0.046 off FP@20 at 4.79 se) — **but for the RECIPE AS SHIPPED, never for
+  width as a separable lever**, because no contrast isolates it.
+  **What this licenses and what it does not.** Licensed: a further width step is
+  a legitimate proposal on changed evidence, and it must be pre-registered with a
+  mechanism co-primary that is NOT explained variance. Barred: **sizing the next
+  fleet on EV** (RESULTS §21 bars this by name); "the wide critic is worth
+  +0.033"; "a wider critic fits the value function better" (measured false). And
+  note what bounds the prize — at the COMMITTEE level the 200M recipe misses the
+  floor over the 100M committee (+0.015 at 2.01 se): **the recipe gain and 4.8's
+  committee gain substantially SUBSTITUTE rather than add.**
+  *The original entry, kept because the ledger argument it rests on is still
+  live:* the ledger argues directly against: the
   biggest credited win came at *reduced* params (626,059 actor under the
   681,994 K2 ceiling, +0.1513); H&L reached 72% GXE at 1.33M; measured
   idleness (D22: dormant 27→84–88% on s35/s36, critic ctx srank99 7–11/384;
@@ -523,6 +652,12 @@ never-killed item is repriced by the collector plan: **4.3** (see its own note).
 Ranked. Build 2.2 first — at k=3 unpaired, only an R2-sized effect credits
 (§1), so every arm below should either pair seeds or pre-commit a
 mechanism co-primary (D23 lesson).
+
+**AMENDED 2026-09-18 — the maintainer put 4.9 (expert iteration) at the TOP of
+§4**, ahead of everything below, and gated the whole section on 2.11 (the luck
+ceiling) reading first. The 2026-09-06 order stands for items 1–6 underneath it.
+The maintainer's own stack rank across §2/§4/§8 that evening: **4.9 → 2.10 →
+§8.5 → 2.11 (as a gate on all of it) → 2.12 → 4.8's members 4–6.**
 
 **RANKED ORDER — 2026-09-06. Q45 CLOSED** (the maintainer delegated the
 re-rank: "just do what you recommend"). Principle: cost-adjusted expected
@@ -811,6 +946,59 @@ lanes answer it), weight-space averaging of each lane's last rungs as a
 member, and the clustered se the credit still lacks (two 3-committees).
 Never "ensembling helps" in general — the credit licenses THESE checkpoints.
 
+**4.9 EXPERT ITERATION — train on the SEARCH's visit distribution (added
+2026-09-18; the maintainer's TOP §4 item, and the highest-ceiling row this file
+has). IN CHARTER: the expert is OUR OWN SEARCH, not external data.** AlphaZero's
+actual loop, not "MCTS bolted on at inference": the search at state `s` returns
+an improved distribution `π′ = N/ΣN` over root visits and a root value; the
+network is then trained toward BOTH (cross-entropy to `π′`, value toward the
+search-backed target) and the improved network makes the next search better.
+Expert iteration in the Anthony/Tian sense; nothing about it requires a teacher.
+
+**Why THIS lever, on OUR evidence.** The post-ladder week measured two defects
+and this is the only proposal that attacks both at once:
+1. **Our critic is never trained on search-visited states.** PPO's value loss
+   fits a baseline on the state distribution our OWN POLICY reaches; search
+   deliberately visits the lines the policy does not play. §8.2 has said this
+   since 2026-09-09 and nothing has ever trained for the second objective.
+   RESULTS §24 sharpens it: our critic is the ROBUST evaluator (opening the gate
+   costs it 0.006 against a hand-tuned heuristic's 0.088), so the material is
+   good — it has simply never been ASKED the search's question.
+2. **Our policy is never trained toward the search's improved distribution.**
+   Measured 2026-09-11 and recorded in `configs/eval/tree_r5.yaml:36`: at a
+   small budget **90.9% of root visits land on one action**, because the prior
+   is sharp and nothing ever moves it. A tree whose visit distribution is
+   nearly its own prior cannot express an improvement, which is exactly why
+   every visits-decided arm reads like greedy. Training on `π′` is the only
+   mechanism that turns search compute into a POLICY change instead of an
+   inference-time override.
+
+**Why it is not the depth question again.** §22/§23/§24 measured *inference-time*
+search on a FROZEN network — a one-shot override at 6–19% of decisions. Expert
+iteration changes what the network IS. Search there is a training signal whose
+value compounds over a fleet, and its failure mode (a bad expert teaching a bad
+target) is different in kind from "the override didn't pay".
+
+**What it needs, cheapest first.** (i) The search already computes per-action
+statistics; `rl/search/tree.py` returns visits, and nothing persists them — log
+`π′` and the root value on every searched decision. (ii) A policy loss term
+toward `π′` on those states, and a value target from the search's root rather
+than the raw return. (iii) The dose question that decides the price: searching
+every decision is ~100× a greedy step, so the realistic shape is **search a
+SAMPLED FRACTION of decisions** (or only the ones §8.5 flags) and train on
+those, not all of them. **This is a FLEET item and needs its own pre-reg** with a
+mechanism co-primary that is NOT explained variance (RESULTS §21 bars that).
+
+**The gate, stated plainly: run 2.11 FIRST.** If the luck ceiling comes back near
+0.6, the critic is already at the format's ceiling, a better expert has nothing
+to teach, and this is the wrong fleet. 2.11 is hours; this is days.
+
+**Composes with:** 2.10 (a tree with an optimistic backup would teach the bug),
+§8.5 (which decides WHERE to spend the search), 4.8 (members stay members), and
+4.7 (a privileged critic is a better expert on exactly the hidden-information
+lines search visits). **Never quote 8.4 beside it** — distillation from Foul
+Play is a charter change and this is not.
+
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
 - **Attention re-benchmark — DEFERRED POST-LADDER (maintainer, 2026-09-11); the
@@ -958,6 +1146,22 @@ on the engine (7.5 makes state-copy ordinary) against the same checkpoints, and 
 decisions/sec beside every point. No training. This is the measurement that decides
 whether the strength chapter is worth opening at all, and it can run on an idle box.
 
+**ANSWERED 2026-09-18 — and the answer is a NULL against the RIGHT BAR, plus one
+premise of this row retracted.** (i) **The bar is GREEDY**, not the depth-1
+search: three independent greedy draws on the R5 committee read 0.5747 / 0.5720 /
+0.5827, pooling to **0.5765 (n=4500)**, and **every** search configuration
+measured on that object is level with or below it — best searched arm 0.5627
+(RESULTS §24). Budget was not the binding constraint: the gate was (RESULTS §24),
+and opening it does not get search above greedy. (ii) **"Foul Play beats us using
+500 ms" is RETRACTED for this object.** Measured head-to-head 2026-09-18: the R5
+committee beats **FP@500 at 0.5600 (n=500, 0 ties, +2.70 se above even)**, and
+25× budget buys Foul Play nothing (FP@500 vs FP@20 is +0.010 at 0.32 se). The
+100M committee lost that same matchup at 0.472, so this is a real change in the
+object, not in the instrument. FP@500 is an INSTRUMENT, not a rung, and both FP
+disclosures travel with every number here. (iii) **What is still unspent** is
+therefore not "more milliseconds on the same construction" — it is **where** the
+budget goes (§8.5) and **what the network learned from it** (4.9).
+
 **8.2 A critic trained AS AN EVALUATOR (the actual bottleneck).** Search amplifies its
 leaf evaluator, and D22 measures ours as the weakest component we have (critic context
 srank99 **9–13 of 384** at 37.5–50M; dormancy 27 → 84–88%). PPO's value loss builds a
@@ -972,12 +1176,62 @@ with **8.1**: if a real budget still does not pay, this is why, and 8.1 alone ca
 distinguish "search does not help here" from "our evaluator is not good enough to search
 with".
 
+**AMENDED 2026-09-18 — the PREMISE SURVIVES, the DIAGNOSIS IS REVERSED, and the
+D22 numbers quoted above are superseded for the WIDE critic.** (i) **Our critic
+is the ROBUST evaluator, not the fragile one.** The assumption written above —
+that a critic fit only to our own policy's states would break on search-visited
+lines — is measured FALSE in the opposite direction: tripling how often search
+acts on it costs **0.006 (0.38 se)**, while doing the same to Foul Play's static
+hand-tuned heuristic costs **0.088 (5.59 se)**; the evaluator difference is
+−0.020 (1.56 se) at a tight gate and **−0.102 (5.62 se)** at an open one
+(RESULTS §24). "Our critic is off-distribution garbage" may not be quoted.
+(ii) **The srank/dormancy half is fixed by WIDTH, not by a plasticity lever:**
+the 1024-wide critic carries srank99 **632/1024** where the 384-wide lanes carry
+5–27 (RESULTS §21) — so "a rank-9 representation cannot evaluate positions it has
+not seen" no longer describes the current object. (iii) **But the bottleneck this
+row names is still real, and now has a sharper name:** explained variance did NOT
+move with that width (0.5881 vs 0.5919). Either 0.59 is the format's ceiling
+(**2.11 measures exactly this, and must run first**) or the critic needs a
+DIFFERENT OBJECTIVE rather than more capacity — which is **4.9**. This row's
+candidate list is superseded by 4.9 for the second and third items; the first
+(value targets from RESAMPLED states) survives as the cheap version of it.
+
 **8.3 Belief-sampled search (the imperfect-information leg 11.5 does not ask).** Randbats
 hides sets, EVs and unrevealed moves; JOURNEY 11.5's depth question is perfect-info. FP
 approximates the real thing by searching a sampled world, and our gen-4 encoder already
 carries an exact set prior. Sample opponent sets from the prior, search each, aggregate at
 the root. The h2h gap against FP is more plausibly THIS than depth. Cost scales with the
 sample count, so it is a dial, not a cliff.
+
+**AMENDED 2026-09-12 / 2026-09-18:** n_det 1→64 at depth 1 is FLAT, so belief
+breadth is not what depth-1 search is short of. The row stays open because it has
+never been measured where it could matter — inside a tree deep enough for the
+sampled world to change the line, and at a gate open enough for the aggregate to
+be acted on. Both of those are 2.10 + §8.5 work, not new machinery.
+
+**8.5 SEARCH ONLY WHERE THE COMMITTEE DISAGREES — the unspent-budget question in
+the form the committee makes FREE (added 2026-09-18; the maintainer ranks it
+third of the search items).** §8.1's budget is not short; it is spent UNIFORMLY,
+on the ~97% of decisions where the answer was never in doubt. **We already
+compute the signal that says which decisions those are, on every decision, at
+zero extra cost:** 4.8's masked log-prob committee holds each member's
+distribution, and its disagreement (it overrides its first member on 10.8% of
+decisions vs SH and 27.8% off FP@20) is a free per-decision estimate of how
+contested the position is. **Read:** spend the budget only where disagreement is
+high — no search at all below a threshold, and a LARGE budget (500 ms–5 s, the
+ladder allows ~150 s/turn) above it. **Why it is not the dose question again:**
+every dose measured so far raised the budget on EVERY decision, which is why
+depth-2's 3.27× cost bought −0.0007; concentrating the same total compute on the
+decisions that are actually close is a different experiment, and it has never
+been run. **Two properties make it cheap:** the gate is free (already computed),
+and the total budget can be held CONSTANT against a uniform-dose arm — which
+makes the comparison matched on the thing that is not being tested, the rule the
+2026-09-17 override-rate confound was paid for. **Caveats:** disagreement is a
+proxy for closeness and could be anti-correlated with where search helps (that is
+the finding if it reads null); and the arm must be matched on override rate to a
+uniform control, or it measures the gate again. **Feeds 4.9 directly** — it is
+the natural answer to 4.9's dose question (search the flagged fraction, train on
+those states).
 
 **8.4 FP distillation — the LAST rung, and a CHARTER CHANGE.** Tapes, soft targets,
 DAgger-style relabelling of our own states. **Excluded from the pure lane by CLAUDE.md
