@@ -116,9 +116,9 @@ arms:
   # scripts/backup_gate_pin.py from phase S and committed before R launches.
   D1O: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 1000, search_time_ms: 20, seat_username: bkd1oseat, fp_username: bkd1obot}
   B2O: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.12, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 1}, battles: 1000, search_time_ms: 20, seat_username: bkb2oseat, fp_username: bkb2obot}
-  B2R: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: PINB, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 1000, search_time_ms: 20, seat_username: bkb2rseat, fp_username: bkb2rbot}
+  B2R: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.08, depth2: {our_k: 3, cap: 6000, plies: 1, opp_k: 2}, battles: 1000, search_time_ms: 20, seat_username: bkb2rseat, fp_username: bkb2rbot}
   DGV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, disagree: {metric: votes, threshold: 0.30}, battles: 1000, search_time_ms: 20, seat_username: bkdgvseat, fp_username: bkdgvbot}
-  DRV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, disagree: {metric: random, threshold: PIND}, battles: 1000, search_time_ms: 20, seat_username: bkdrvseat, fp_username: bkdrvbot}
+  DRV: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, disagree: {metric: random, threshold: 0.563}, battles: 1000, search_time_ms: 20, seat_username: bkdrvseat, fp_username: bkdrvbot}
   DUM: {kind: search_seat, seat: w112, ensemble_members: [w104, w112, w120], dose: M, margin_delta: 0.05, battles: 1000, search_time_ms: 20, seat_username: bkdumseat, fp_username: bkdumbot}
   GC:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 1000, search_time_ms: 20, seat_username: bkgcseat, fp_username: bkgcbot}
 
