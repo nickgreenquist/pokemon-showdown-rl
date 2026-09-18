@@ -122,6 +122,22 @@ def main():
               f"flips {flip_rate(d):.4f} = {per_battle:.1f} changed decisions/battle")
 
     code_provenance(data)
+    # THE THREE TREE ARMS DO NOT ACT EQUALLY OFTEN, and that is not a defect --
+    # each decide rule has its own natural override rate and only TQ was swept
+    # to a target. It does mean a TV-vs-TG comparison is confounded by HOW OFTEN
+    # the search acted, which is the 2026-09-17 artifact in a new costume. Say it
+    # here rather than leaving a reader to infer "gumbel beats visits".
+    acted = {a: flip_rate(data[a]) for a, _ in arms[:3] if data[a]}
+    if len(acted) > 1 and max(acted.values()) > 1.5 * min(acted.values()):
+        print("\n## CROSS-ARM COMPARISONS AMONG TV/TG/TQ ARE CONFOUNDED\n")
+        for a, r in acted.items():
+            print(f"  {a} overrode the policy on {r:.4f} of decisions")
+        print("\n  These arms differ in HOW OFTEN the search acted as well as in")
+        print("  the rule that decided. Only arm-vs-GREEDY is a clean comparison")
+        print("  here; a delta between two of them measures the gate as much as")
+        print("  the rule (RESULTS §22: the same arm reads -0.0007 or -0.053")
+        print("  depending on that alone).")
+
     anchor = data["TGR"]
     print("\n## Against greedy\n")
     if anchor:
