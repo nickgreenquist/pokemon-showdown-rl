@@ -2222,9 +2222,16 @@ argument rather than a measured defect.**
 | 23+ | 190 | +0.853 | **0.727** | 0.884 | +0.0257 |
 
 The critic explains **73% of the oracle's variation at turn 23 and 29% in the opening**,
-and its seat bias is **2.6× larger** early. Both curves point at the same place: the
-critic is weakest exactly where the game is still open, which is where search looks and
-where a decision is still worth making.
+and the bias is **2.6× larger** early. Both curves point at the same place: the critic is
+weakest exactly where the game is still open, which is where search looks and where a
+decision is still worth making.
+
+**The turn profile does not separate the two causes above, and it is worth saying which
+way it cuts.** The determinization sampler's uncertainty is *largest* in the opening — so
+if the asymmetry were purely the sampler's belief, early is exactly where it would be
+worst. A seat bias learned from p1-only training would also be worst early, for a
+different reason (the opening is where the critic has least to go on). **Both readings
+predict this shape**, so it is not evidence for either; the both-seat falsifier is.
 
 **What this licenses.** A monotone recalibration of the leaf value is **free and worth
 +0.0195 EV** — and it is not inert inside the matrix vehicle even though it cannot
