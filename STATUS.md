@@ -1,6 +1,5 @@
 # STATUS
 ## JOURNEY POSITION — step 11 DONE (R5 LISTED). The post-ladder week is a SEARCH chapter that closed with a BUG
-**Everything below is RESULTS §20–§29, each with a readout. Nothing since §21 credits anything.**
 **§28 — THE TURN-CAP STALL IS A SWITCH LOOP, and in 91% of cases a THROWN-AWAY WIN.** **103 of the 104
 capped battles enumerated** (the claim first rested on six — corrected same day): **100 are switch loops**
 (~900–990 switches, ~100% alternating between two slots) and **94 (91.3%) have the opponent immobilised on
@@ -32,14 +31,13 @@ banked matrix number uses.** TG's +0.021 is **UNRESOLVED** (n≈4,375/arm); all 
 speaks to the BUDGET. **§26.1: all 5 matrix arms sit below their own anchor; the only arms above one are trees
 (2 of 3), Fisher p 0.107** — the VEHICLE separates, the dose does not.
 **§25 — the R5 committee BEATS FP@500: 0.5600 (n=500, 0 ties), +2.70 se.** Same-session W020 0.5500, so 25×
-budget buys Foul Play +0.010 at 0.32 se for 24.4× the wall clock; the 100M committee lost at 0.472.
-**Retracts IDEAS §8.1's premise that FP beats us at 500 ms.** FP@500 is an INSTRUMENT, not a rung.
+budget buys Foul Play +0.010 at 0.32 se for 24.4× the wall clock; the 100M committee lost at 0.472. **Retracts IDEAS §8.1's
+premise that FP beats us at 500 ms.** FP@500 is an INSTRUMENT, not a rung.
 **§24 — the GATE was the instrument.** Opening it costs our critic 0.006 and Foul Play's heuristic 0.088; the
 evaluator gap is −0.020 tight and **−0.102 (5.62 se) open. OUR CRITIC IS THE ROBUST EVALUATOR.** **Depth-2 is
 the defect** (−0.047 at 2.57 se open) and the cause was in our code. **§22 — depth-2 at a MATCHED override
 rate is −0.0007**; at the naive delta the same arm reads −0.053, so every earlier depth number was an artifact.
-**The realized override rate DRIFTS across sessions at fixed δ** (0.1933 → 0.1703): match to the CONTROL and
-run it FIRST (CLEANUP L6).
+**The realized override rate DRIFTS across sessions at fixed δ** (0.1933 → 0.1703): match to the CONTROL and run it FIRST (CLEANUP L6).
 
 ## **LADDER R5 — GXE 73.9 / Glicko-1 1697 ± 25 / Elo 1457, n=200, LISTED (cutoff 1354.2)**
 Committee of the 200M W finals, greedy, 2026-09-16: **128–72**, rd 25.0, attempt 1, no relaunch/resume, 0
@@ -47,8 +45,7 @@ decision errors, 0 mask desyncs, account reconciles 327–273/600 with ZERO unlo
 above the STOP cutoff; 93–53 listed vs 35–19 below. DISCLOSURES: warm-started account (400 prior games —
 GXE/Glicko/Elo are ACCOUNT properties); STANDALONE DESCRIPTIVE; **no R1/R3/R4/R5 delta is an effect**;
 barred list binding. Pool (CLEANUP L1): 102 opponents, 63.5% repeats, both adaptation tests null. §20.
-**Anchors COMPLETE: BC-clone 0.9640. GEN-4 CLOSED (§19): 0.8788 vs SH, credits nothing; R4 Elo 1354.**
-**JOURNEY 7.5 engine port EXITED, A-1 PASSED TWICE** (−0.00436 travels); k=8 idle w3 1620, w6 1282 st/s.
+**Anchors COMPLETE: BC-clone 0.9640. GEN-4 CLOSED (§19): 0.8788 vs SH, credits nothing; R4 Elo 1354.** **JOURNEY 7.5 engine port EXITED, A-1 PASSED TWICE.**
 
 ## THE MONSTER (JOURNEY 10) — DONE 2026-09-15, ZERO RESUMES; CREDITED for the RECIPE (§21)
 Six lanes k=8: **W = L2 + 1024 critic** (104/112/120); **L2LAM = L2 + MC targets** (128/136/144). Off FP@20
