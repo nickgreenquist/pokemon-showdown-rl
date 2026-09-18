@@ -30,6 +30,31 @@ def num(d, key, default=float("nan")):
     return float(v) if isinstance(v, (int, float)) else default
 
 
+def code_provenance(data):
+    """Did every arm in this block run the SAME CODE?
+
+    Each arm is a fresh process that imports the WORKING TREE, so a block
+    launched before an edit and finished after one is comparing two programs.
+    `launch_git_sha` has been stamped into every arm's JSON since CH4 R1's G8
+    block and nothing has ever read it (docs/CLEANUP.md L5). This reads it. It
+    does not refuse -- whether a spanning block is VOID is a maintainer ruling
+    -- but a reader is told rather than having to think of the question.
+    """
+    shas = {t: (d or {}).get("launch_git_sha") for t, d in data.items() if d}
+    if not shas:
+        return
+    print("\n## Code provenance\n")
+    for t, sha in shas.items():
+        print(f"  {t:4s} {(sha or 'UNSTAMPED')[:12]}")
+    distinct = {s for s in shas.values() if s}
+    if len(distinct) > 1:
+        print(f"\n  THIS BLOCK SPANS {len(distinct)} COMMITS. Every arm is a fresh")
+        print("  process importing the working tree, so the arms ran different")
+        print("  programs. Say what the diff touched before differencing them.")
+    else:
+        print("\n  One commit across every arm.")
+
+
 def cmp(lab, a, b, na=None, nb=None):
     """a and b are (rate, n) pairs or arm dicts."""
     pa, na = (a["our_win_rate"], a["battles_finished"]) if isinstance(a, dict) else (a, na)
@@ -83,6 +108,7 @@ def main():
             print(f"  OVERRIDE MATCH |{tag} - D1O| = {gap:.4f} "
                   f"{'OK' if gap <= 0.03 else 'UNMATCHED -- this is the 2026-09-17 artifact again'}")
 
+    code_provenance(arms)
     print("\n## The arms\n")
     labels = {"D1O": "depth 1, gate open (the control)",
               "B2O": "depth 2, OLD pinned backup",

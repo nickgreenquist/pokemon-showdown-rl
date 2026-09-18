@@ -35,6 +35,31 @@ def flip_rate(d):
     return (d.get("search/flips") or 0) / max(dec - skips, 1)
 
 
+def code_provenance(data):
+    """Did every arm in this block run the SAME CODE?
+
+    Each arm is a fresh process that imports the WORKING TREE, so a block
+    launched before an edit and finished after one is comparing two programs.
+    `launch_git_sha` has been stamped into every arm's JSON since CH4 R1's G8
+    block and nothing has ever read it (docs/CLEANUP.md L5). This reads it. It
+    does not refuse -- whether a spanning block is VOID is a maintainer ruling
+    -- but a reader is told rather than having to think of the question.
+    """
+    shas = {t: (d or {}).get("launch_git_sha") for t, d in data.items() if d}
+    if not shas:
+        return
+    print("\n## Code provenance\n")
+    for t, sha in shas.items():
+        print(f"  {t:4s} {(sha or 'UNSTAMPED')[:12]}")
+    distinct = {s for s in shas.values() if s}
+    if len(distinct) > 1:
+        print(f"\n  THIS BLOCK SPANS {len(distinct)} COMMITS. Every arm is a fresh")
+        print("  process importing the working tree, so the arms ran different")
+        print("  programs. Say what the diff touched before differencing them.")
+    else:
+        print("\n  One commit across every arm.")
+
+
 def cmp(lab, pa, na, pb, nb):
     se = math.sqrt(pa * (1 - pa) / na + pb * (1 - pb) / nb)
     print(f"  {lab:46s} {pa:.4f} - {pb:.4f} = {pa - pb:+.4f} at {abs(pa - pb) / se:.2f} se")
@@ -67,6 +92,7 @@ def main():
               f"ms {(d.get('search/ms_mean') or 0):.1f} "
               f"flips {flip_rate(d):.4f}")
 
+    code_provenance(data)
     anchor = data["TGR"]
     print("\n## Against greedy\n")
     if anchor:

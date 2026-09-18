@@ -53,6 +53,40 @@ exactly that (see do-not-relitigate below).
   Not blocking anything today; named so the next person does not rediscover the
   assert mid-read.
 
+- **L4 — EVERY DEPTH-2 ARM BEFORE 2026-09-18 CARRIES AN UNEXPANDED-LEAF
+  ARTIFACT** (opened 2026-09-18, found while building IDEAS 2.10's fix).
+  `matrix.py::_look_further` used to RE-SCORE a leaf it could not expand: the
+  state was re-embedded at `turn + 1 + plies` and passed to the critic again, so
+  merely TURNING DEPTH ON moved the value of leaves the lookahead never looked
+  past — by whatever the encoder does with a shifted turn count. Fixed (the leaf
+  keeps the value it has; `depth2/leaves_unexpanded` counts them), and the fix
+  is NOT retro-fitted to the banked arms. **Consequence for reading the record:**
+  D2M / D2N / §22's and §24's depth-2 numbers include it. It is small in
+  expectation — the same state, one turn index apart — but it is not zero, and it
+  is one more reason a depth number from the matrix vehicle must be re-measured
+  rather than re-quoted. Nothing to do; recorded so it is not rediscovered.
+
+- **L5 — A RUNNING BLOCK IMPORTS THE WORKING TREE, AND NOTHING ENFORCES THAT**
+  (opened 2026-09-18). The tree block launched at 10:45Z and this session then
+  edited `agent.py`, `matrix.py`, `ensemble_search.py` and `ch3_fp_h2h.py` —
+  files EVERY arm imports, with TV finished and TG/TQ/TGR not yet launched. Each
+  arm is a fresh process, so the later arms ran newer code than the earlier one.
+  **This time it was provably harmless** (`tests/test_tree_decision_golden.py`
+  now pins the decision, and the pre-edit tree out of `git archive` gave
+  bit-identical actions, stats and counters on all three decide rules; only
+  wall-clock differed, and the arms are iteration-bounded). The queue script
+  freezes ITSELF (`mktemp` + re-exec) precisely because of this hazard and does
+  nothing about the Python. **THE STAMP ALREADY EXISTS AND NOTHING READ IT:**
+  every arm's JSON has carried `launch_git_sha` since CH4 R1's G8 provenance
+  block (`scripts/ch3_fp_h2h.py:639`), so a block that spans a commit was fully
+  recorded and entirely invisible. **Half-closed 2026-09-18:** both live
+  readouts now print each arm's sha and say plainly when a block spans more than
+  one, so a reader is told rather than having to think of the question.
+  **Still open:** whether a spanning block should be REFUSED rather than
+  disclosed, and the heavier option of running a block out of a `git archive`
+  snapshot. Refusal is the maintainer's call — it would have voided today's tree
+  block, which was proved harmless.
+
 - **L1 — THE LADDER'S OPPONENT POOL IS SMALL AND ONE SESSION SAMPLES ONE SLICE
   OF IT** (opened 2026-09-16, from the maintainer's observation mid-R5). R5 at
   n=156 had played **78 distinct opponents, with five of them supplying 62 games
