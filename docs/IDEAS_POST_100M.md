@@ -451,6 +451,26 @@ is not licensed (no shared basin, and permutation symmetry makes the average
 meaningless) — this is **within-lane, across-rungs** only, and it composes with
 4.8 rather than competing with it.
 
+**2.13 RECALIBRATE THE LEAF VALUE — FREE, MEASURED AT +0.0195 EV, and it is not
+inert (added 2026-09-18 from RESULTS §27.1).** An out-of-sample **isotonic**
+recalibration of the critic's output moves EV from **0.2176 to 0.2371** on the
+§27 positions. That is the whole calibration prize — a monotone map is the best
+any rescaling can do — and it costs one fitted curve and no training.
+**WHY IT IS NOT INERT INSIDE THE SEARCH,** which is the objection to expect: a
+monotone map cannot reorder leaves at one node, but `matrix.py`'s `row_ev`
+**averages** leaf values across the opponent's column distribution, and averages
+of a non-linearly transformed quantity reorder; and the D5 margin gate is a
+THRESHOLD on that same scale, so recalibrating changes the override rate and the
+delta must be re-swept with it (the standing rule — match on the realized rate,
+never on the knob).
+**The fit itself:** `oracle ≈ −0.0348 + 0.8334 × critic` affinely (affine buys
++0.0107; the rest of the +0.0195 is the S-shape in the deciles). **Carry the
+fit with the checkpoint** — it is a property of THAT critic, not of the format,
+and a recalibration fitted on one checkpoint applied to another is a new
+untested object.
+**What it does NOT do:** close the gap. It is 12% of it; the other 88% is
+ranking (§27.1), which is 4.9's and 4.1's territory.
+
 ## 3. Ruled out / answered — do not re-propose
 
 **How to read this section (maintainer ruling, 2026-09-06).** Two verdicts
@@ -718,6 +738,18 @@ infrastructure measured after 7.5, not a lever. The **attention win-rate arm**
 (§5) enters at rank 3½ if and only if the free re-benchmark returns a
 tolerable ratio.
 
+**FIRST DIRECT EVIDENCE, 2026-09-18 (RESULTS §27.1): the critic is OPTIMISTIC
+ABOUT ITS OWN SEAT by +0.0416, z = 2.74** — measured in self-play with one policy
+on both seats, where the truth is EXACTLY zero (realized mean outcome −0.0006
+over 22,358 rollouts), so there is no sampling argument to hide behind. The
+collector runs `learner_seat: p1`, so the critic has only ever been fit from one
+side of a symmetric game. The bias is **2.6× larger in the opening** (+0.0672 at
+turns 2–8 against +0.0257 at 23+), i.e. worst exactly where the game is still
+open. **This row has until now rested on a sample-efficiency argument — a dose
+multiplier, not a hypothesis. It now also has a measured DEFECT to fix**, and a
+falsifier that costs nothing: re-run `scripts/critic_calibration.py` on a
+both-seat checkpoint and the bias should fall toward zero.
+
 **4.1 Both-seat harvest — the repo's licensed A2 (CHAPTER5 §3, licensed
 2026-08-26; do not confuse with docs/CLEANUP.md's audit item "A2"). STRONGEST.**
 **BUILT 2026-09-05 (commit 66746dc, `selfplay.harvest_both_seats`,
@@ -982,6 +1014,14 @@ Expert iteration in the Anthony/Tian sense; nothing about it requires a teacher.
 
 **Why THIS lever, on OUR evidence.** The post-ladder week measured two defects
 and this is the only proposal that attacks both at once:
+0. **THE GAP IS A RANKING GAP, AND THAT IS WHY IT IS A TRAINING LEVER (RESULTS
+   §27.1).** The critic sits at EV 0.2176 against a ceiling of 0.3630, and an
+   out-of-sample isotonic recalibration — the best any rescaling can do — closes
+   only **12%** of that. **The other 88% is the critic not knowing WHICH position
+   is better**, which no post-hoc fix touches and which is exactly what a
+   changed training signal addresses. And the failure is concentrated where this
+   lever operates: r² **0.287** against the oracle at turns 2–8 versus **0.727**
+   at 23+.
 1. **Our critic is never trained on search-visited states.** PPO's value loss
    fits a baseline on the state distribution our OWN POLICY reaches; search
    deliberately visits the lines the policy does not play. §8.2 has said this
