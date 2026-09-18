@@ -68,12 +68,11 @@ Six lanes k=8: **W trio = L2 + 1024 critic** (104/112/120, 46.3 h); **L2LAM = L2
 - **Mechanism (§21):** critic first-layer srank99 **632/1024 vs 5/384** — width is LIVE, ceiling branch did
   NOT fire. But **EV DID NOT MOVE** (0.5881 vs 0.5919): **do not size the next fleet on EV.**
 
-## SEARCH LANDMINES
-D5 gate out of sample **+0.016 at 2.19 se — MISSES the floor**; never quote s112's +0.0417. Off FP@20 the
-SELECTOR alone bought +0.129 — search has only ever paid as a **rarely-fired VETO**, and §22/§24 say why.
-**EVERY search number before 2026-09-11 measures a BROKEN selector** (grep `PRE-D5`; LADDER R3 is a D4 object).
-**MCTS IS NOT CLOSED** (§22's pre-reg scope limit; ruling owed) — and §24 adds a reason: the matrix vehicle
-had a known-optimistic backup until today.
+## SEARCH LANDMINES (narratives in `docs/landmines.md`)
+D5 gate out of sample **+0.016 at 2.19 se — MISSES the floor**; never quote s112's +0.0417. **EVERY search
+number before 2026-09-11 measures a BROKEN selector** (grep `PRE-D5`; LADDER R3 is a D4 object). **MCTS IS
+NOT CLOSED** (§22's scope limit, ruling owed; §24 adds a reason and §26 a second — the matrix vehicle had a
+known-optimistic backup, and its `q + margin` selector is the WORST of three decide rules inside a tree).
 
 ## Next actions
 1. **RUN 2.11 (the luck ceiling) FIRST** — it gates 4.9 and every evaluator item, costs ~45 min, and is
