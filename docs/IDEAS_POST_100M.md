@@ -805,6 +805,12 @@ Cost: logp capture in `pool.py:83-88` `move()`, a seat-2 episode builder,
 reward mirroring, D-C-style gates (illegal/collision exactly 0 on seat-2
 rows), a discard-rate metric, tests — then a fleet.
 
+**READ 4.10 FIRST (added 2026-09-18).** The effective horizon at λ=0.75 is
+**4 turns** in a battle averaging 29.5, and §27.1 measures the critic as blind
+exactly where a short horizon makes it blinder. This row may still be right for
+variance reasons, but it moves the dial the way the opening-blindness evidence
+argues AGAINST, and it should not run without that stated.
+
 **4.2 gae_lambda 0.75 — RUN IT, with corrected evidence.** λ=0.95 is
 universal (39 configs) and was explicitly HELD at R2's GO/NO-GO
 (`showdown_sp_batch50m.yaml:208`, "Q4"); the 2026-08-08 advisory verified
@@ -1101,6 +1107,59 @@ states addresses. What remains gating this row is the FREE FALSIFIER above
 4.7 (a privileged critic is a better expert on exactly the hidden-information
 lines search visits). **Never quote 8.4 beside it** — distillation from Foul
 Play is a charter change and this is not.
+
+**4.10 THE CREDIT-ASSIGNMENT HORIZON — why the critic is BLIND in the opening,
+and why BOTH ENDS of the λ dial have already failed (added 2026-09-18 from
+RESULTS §27.1 + §27).** This is a mechanism, not a hypothesis, and it explains a
+measurement rather than predicting one.
+
+**THE ARITHMETIC.** Gen-1's reward is **terminal only**, and the recipe runs
+γ=1.0, λ=0.95. GAE weights the real outcome k steps ahead by (γλ)^k, so in a
+battle averaging **29.5 turns**:
+
+| k turns from the end | 5 | 10 | 20 | 24 | 29 |
+|---|---|---|---|---|---|
+| weight on the ACTUAL outcome | 0.77 | 0.60 | 0.36 | **0.29** | 0.23 |
+
+**At turn 5 the value target takes 29% of its signal from what actually
+happened and 71% from the critic's own downstream estimates** — and §27.1
+measures those early estimates as the WORST the critic has (r² 0.287 against the
+oracle at turns 2–8, against 0.727 at 23+). **The target is self-referential
+exactly where the critic is weakest.** Effective horizon 1/(1−λ) = **20 turns**
+against a 29.5-turn mean battle: the outcome signal does not reach the opening.
+
+**AND BOTH ENDS OF THE DIAL ARE ALREADY TESTED, BOTH FAIL, FOR OPPOSITE REASONS
+THE LUCK CEILING NOW EXPLAINS.**
+* **λ = 1.0** (Monte-Carlo targets) is L2LAM, and it lost heavily — 0.4481 off
+  FP@20 against W's 0.5417. §27 says why: **~64% of a mid-battle outcome is
+  IRREDUCIBLE**, so an MC target is mostly noise, and the variance swamps the
+  horizon it buys. **CAVEAT, and it matters: L2LAM bundled MC targets with a
+  384-wide critic, so λ=1.0 is not cleanly isolated** — the fleet's own readout
+  attributes the loss to the value TARGET, but the contrast is not clean.
+* **λ = 0.95** is the incumbent and cannot reach turn 5, per the table above.
+* **4.2 proposes λ = 0.75**, which moves the effective horizon to **4 turns** —
+  the WRONG WAY on this evidence. That row should be read against this one before
+  it ever runs.
+
+**WHAT IS UNTESTED, cheapest first.**
+1. **λ between 0.97 and 0.99** — horizons of 33 and 100 turns, cheap, never
+   tried, and the only part of the dial neither end has ruled out. A screen can
+   read the by-turn r² profile (`scripts/critic_calibration.py`) rather than a
+   win rate, which is far better determined.
+2. **A value target from the SEARCH ROOT** (IDEAS 4.9 item iii) — it sidesteps
+   the tension entirely: the root value is lower-variance than an MC return and
+   is not the critic's own early estimate, so it is neither noisy nor
+   self-referential. **This is an independent argument for 4.9 that does not go
+   through the policy at all.**
+3. **A horizon-aware target** — e.g. MC for the last N turns where variance is
+   low and the outcome is near, bootstrapped before that. Untried, and it is the
+   shape the by-turn profile actually argues for.
+
+**HOW WE WOULD KNOW, and it is free:** the read is the BY-TURN r² profile against
+the rollout oracle, not a win rate. `scripts/critic_calibration.py` produces it
+from any `outcome_variance` run, and a lever that works must lift the turn-2–8
+bucket specifically. **Do not read this row as a win-rate lever until that
+profile moves.**
 
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
