@@ -394,9 +394,31 @@ value it has (`depth2/leaves_unexpanded` counts them), and **every depth-2 arm
 before 2026-09-18 carries that artifact**. A third, smaller hole closes with
 it: a SWITCH column produced zero grandchildren, because repeating "switch N"
 at ply 2 is illegal and the raise landed in a `continue`.
-**STILL UNRUN.** The arm to run is D1 vs depth-2-with-`opp_k`, **at an open
-gate** (the tight gate is where §22 found nothing) and **matched on override
-rate**. **Why it is
+**RUN 2026-09-19, AND IT DID NOT RESCUE DEPTH-2.** At a matched override rate
+(0.1862 vs the depth-1 control's 0.1703, gap 0.016) the minimax backup reads
+**0.5070 against depth-1's 0.5510 — −0.0440 at 1.97 se.** The dial FIRED:
+`opp_replies_mean` 2.0 and **`minimax_drop` 0.057**, large against a δ of 0.08,
+so the backup materially changed what the search believed. It changed it for the
+worse.
+**WHAT THIS DOES AND DOES NOT SETTLE.** The hypothesis this row was built on —
+*the optimism is WHY depth-2 hurts* — is **not supported**: the optimism was
+real and large, it was removed, and the arm got worse rather than better. It
+does **NOT** say the optimism was harmless (it moved leaf values by 0.057), and
+it does **NOT** close depth, the tree (a different vehicle, §26, still
+unresolved), or MCTS. One budget, one vehicle, one session, at 1.97 se.
+**THE NEXT HYPOTHESIS, and it is specific: PESSIMISM APPLIED TWICE.** The matrix
+already weights rows by the opponent's own column distribution (`col_w = q`), so
+the opponent's choice is ALREADY modelled probabilistically at the root. A MIN
+over its replies at ply 2 then assumes worst-case play *on top of* an
+expectation-weighted opponent — and a doubly-pessimistic evaluator inside an
+argmax systematically undervalues high-variance lines, which are the aggressive
+ones. **The test is the third option this row named originally and never ran: an
+EXPECTATION over the opponent's reply under its own policy, which `matrix.py`
+already holds.** That is `opp_k` with a weighted mean instead of a min, and it
+is a few lines.
+**The declared B2R − B2O comparison is UNINTERPRETABLE** (rates 0.054 apart, a
+design error disclosed in the config): §24 measured that acting more is worse
+for depth-2, B2R acts more, so a loss there could be the rate alone. **Why it is
 Tier 0 and not Tier 1:** it does not need a fleet, it does not need a pre-reg
 (hacking), and until it lands **no depth-2 number on the matrix vehicle measures
 depth** — it measures this bug. **It also gates a ruling:** the maintainer was
