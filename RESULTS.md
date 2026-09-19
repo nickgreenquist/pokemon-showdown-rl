@@ -2392,3 +2392,83 @@ fleet on EV; the three together bar it as a *direction* as well.
 The self-play win rate against the latest opponent sits at 0.4994–0.5000 in every lane
 and moves by ±0.001 — which is what a zero-sum mirror must do, and is the instrument's
 own check that these windows are being read correctly.
+
+## 30. Addendum, 2026-09-19 — **GREEDY BEATS EVERY SEARCH ARM, and the deficit grows with how often the search changes the action**
+
+`readouts/BACKUP_GATE_R5_READOUT.md`; config `configs/eval/backup_gate_r5.yaml`. Hacking
+run, **credits nothing**. Seven arms, n=1000 each, off FP@20 on the R5 committee, all in
+one session with an in-block greedy anchor and an in-block replicate.
+
+| arm | what | changes | win | vs GREEDY |
+|---|---|---|---|---|
+| **GC** | **GREEDY, this block** | 0.0% | **0.6050** | the bar |
+| DRV | gated by a COIN at 43% | 6.4% | 0.5840 | −0.0210 at 0.96 se |
+| DGV | gated on committee disagreement at 43% | 9.1% | 0.5870 | −0.0180 at 0.82 se |
+| B2O | depth 2, OLD pinned backup | 13.2% | 0.5290 | −0.0760 at 3.44 se |
+| DUM | depth 1, ungated (D1O's replicate) | 16.3% | 0.5530 | −0.0520 at 2.36 se |
+| D1O | depth 1, ungated (the control) | 17.0% | 0.5510 | −0.0540 at 2.45 se |
+| B2R | depth 2, MINIMAX backup | 18.6% | 0.5070 | −0.0980 at 4.43 se |
+
+**THIS IS NOT ANOTHER NULL. The ungated arms are BELOW greedy at 2.4 se and the depth-2
+arms at 3.4–4.4 se** — a measured cost, on the one axis where a null and a loss are
+different things. And **within the depth-1 family the ordering is monotone in how often
+the search changes the played action**: 0% → 0.605, 6.4% → 0.584, 9.1% → 0.587, 16.3% →
+0.553, 17.0% → 0.551.
+
+**IDEAS 2.10 — the honest backup did not rescue depth 2.** At a MATCHED override rate
+(0.1862 against the control's 0.1703) the minimax backup reads **0.5070 against depth-1's
+0.5510: −0.0440 at 1.97 se.** The dial provably fired — `opp_replies_mean` 2.00 and
+**`minimax_drop` 0.0566**, large against a δ of 0.08. The hypothesis the row was built on
+— *the optimism is why depth-2 hurts* — **is not supported**. It does NOT say the optimism
+was harmless, and it does not close depth, the tree or MCTS. The declared B2R − B2O
+comparison is **uninterpretable**: B2O's δ was hardcoded from §22 rather than swept, so
+the rates are 0.054 apart (a design error, disclosed in the config before the arms ran).
+
+**IDEAS 8.5 — the committee does NOT know where to spend.** At a search rate matched to
+three decimals (0.4309 vs 0.4314), gating on committee disagreement reads 0.5870 against a
+**COIN's** 0.5840: **+0.0030 at 0.14 se.** Selection is a null. **Concentration is not:**
+pooled gated − uniform is **+0.0325 at 1.69 se** — it clears the +0.025 floor and misses
+the 2·se_diff bar, and the pooling is post-hoc. **But both gated arms are still below
+greedy.** Searching less helps; searching none helps more.
+
+**THE BLOCK VALIDATED ITSELF.** D1O and DUM are the SAME configuration on two username
+pairs: **0.5510 and 0.5530, |d| = 0.0020 at 0.09 se.** Every delta above is read against
+that floor. All five R0 gates on the dials passed (`opp_replies` 2.00/1.00,
+`minimax_drop` 0.0566/0.0000, search rates matched, the cap not binding at 1865
+grandchildren against 6000).
+
+**Disclosures.** (i) The block spans 7 commits and `rl/` changed by 312 lines; the matrix
+decision path was replayed against the pre-block tree and is **bit-identical** (same
+actions, same stats; only two new counters, both zero). (ii) A second job ran beside DUM's
+first 35 battles (3.5%) for ~2.8 minutes; the measured window reads **0.4571 against the
+remaining 965 at 0.5565**, i.e. 1.2 se in the direction OPPOSITE to the flattering I
+predicted, so the contamination is not visible above noise. (iii) B2O's override rate is
+unmatched, stated above.
+
+### 30.1 — **the "session offset" does not survive five greedy draws**
+
+A standing landmine says the offset on the Foul Play instruments is ~0.02 and bars
+cross-session differencing. Its cited evidence was **one pair at 1.5 se** (0.5987 vs
+0.5747). There are now **five draws of the same greedy object** across three days and four
+blocks:
+
+| | G0 | GA | GB | TGR | GC |
+|---|---|---|---|---|---|
+| win | 0.5747 | 0.5720 | 0.5827 | 0.5830 | **0.6050** |
+| n | 1500 | 1500 | 1500 | 1000 | 1000 |
+
+**G-test of homogeneity: G = 3.139 on 4 df, p = 0.535.** Pooled rate **0.5818 (n=6500)**.
+The observed sd across draws is **0.0130** against **0.0140** expected from binomial noise
+alone — if anything *less* variable than chance. **There is no detectable session offset in
+the greedy win rate**, and the test has the power to see one of 0.02 (it would push G to
+≈12 and p to ≈0.02).
+
+**What DOES move is the realized OVERRIDE RATE**: the same configuration read 0.1933 on
+09-17 and 0.1703 on 09-18 (CLEANUP L6). So the instrument's *difficulty* looks stable
+while *the search's interaction with it* varies.
+
+**The practice does not change, but its reason does.** Keep the in-session anchor — it
+costs one arm and removes the question entirely — but stop citing "a ~0.02 session offset"
+as a measured fact, because five draws say it is not one. **And this is a correction to a
+rule of my own making: a single 1.5-se observation was promoted to a standing bar, and it
+took ten minutes of arithmetic to check.**

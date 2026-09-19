@@ -52,7 +52,35 @@ its own detector (measured). `scripts/score_ladder.py` and
 `wins_from_returns` is kept only as the sign-bug cross-check, and the two
 must agree.
 
-## THE +/-0.02 IS BETWEEN SESSIONS, NOT WITHIN A BLOCK (measured 2026-09-19)
+## THE "SESSION OFFSET" DOES NOT SURVIVE FIVE DRAWS (measured 2026-09-19)
+
+**A CORRECTION TO A RULE OF THIS REPO'S OWN MAKING.** The standing line —
+"session offset ~0.02 on both FP instruments, never difference across sessions
+without an anchor" — rested on **one pair at 1.5 se** (0.5987 vs 0.5747). There
+are now **five draws of the same greedy object** across three days and four
+blocks: 0.5747, 0.5720, 0.5827, 0.5830, 0.6050 (n = 1500/1500/1500/1000/1000).
+
+    G-test of homogeneity:  G = 3.139 on 4 df,  p = 0.535
+    pooled rate 0.5818 (n=6500)
+    observed sd 0.0130  vs  0.0140 expected from BINOMIAL ALONE
+
+**There is no detectable session offset in the greedy win rate** — the draws are
+if anything *less* variable than chance — and the test has the power to see one
+of 0.02 (that would push G to ~12 and p to ~0.02).
+
+**What DOES move is the realized OVERRIDE RATE**: the same configuration read
+0.1933 on 09-17 and 0.1703 on 09-18 (`docs/CLEANUP.md` L6). The instrument's
+DIFFICULTY looks stable; the SEARCH'S INTERACTION with it varies. Those are
+different quantities and only the second has evidence behind it.
+
+**The practice does not change; its justification does.** Keep the in-session
+anchor: it costs one arm and removes the question entirely. **Stop citing
+"a ~0.02 session offset" as a measured fact.** A single 1.5-se observation was
+promoted to a standing bar and stood for weeks; checking it took ten minutes of
+arithmetic. **Rules earned from one sub-2-se number should carry that in their
+wording.**
+
+## THE BINOMIAL IS RIGHT WITHIN A BLOCK (measured 2026-09-19)
 
 A refinement of the landmine below, and it changes which se a readout may use.
 `backup_gate_r5` ran the SAME CONFIGURATION twice in one block on two username
@@ -61,11 +89,13 @@ deliberate in-session replicate:
 
     D1O  0.5510      DUM  0.5530      |d| = 0.0020  at 0.09 se
 
-**Two identical arms in one session agree to 0.002**, an order of magnitude
-below the ~0.020 that separates the same object across sessions. So the +/-0.02
-is a BETWEEN-SESSION (equivalently between-block) quantity -- the opponent, the
-server and the box are not the same twice -- and **within a block the binomial
-se is roughly right**, which is what every readout here already assumes.
+**Two identical arms in one session agree to 0.002**, well inside their
+binomial se of 0.022. **Within a block the binomial se is right**, which is what
+every readout here already assumes and nothing had measured. Read together with
+the correction above, the picture is simpler than the old rule: the FP@20 win
+rate behaves like a binomial draw both within and across sessions, and the
+in-session anchor is cheap insurance rather than a correction for a measured
+drift.
 
 **What that licenses and what it does not.** Within-block, arm-versus-arm
 comparisons may be read at their binomial se. Cross-block comparisons may not be
