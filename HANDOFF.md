@@ -1,9 +1,14 @@
 # Handoff — the post-ladder week, 2026-09-18/19
 
 **Written 2026-09-19 at an explicit stopping point.** Nothing is running. Tree is
-clean, suite is green (**1219 passed / 0 failed / 87 skipped**), 13 commits today,
-45 since 09-18. On pickup: fold anything durable into STATUS/SESSION_LOGS and
-restore the empty stub.
+clean, suite is green (**1219 passed / 0 failed / 87 skipped**), **18 commits
+today, 102 since 09-18** [corrected — the first draft said "13 / 45", typed from
+memory into the handoff whose own headline lesson is about numbers typed from
+memory. The irony was not lost on the review agent that caught it]. On pickup:
+fold anything durable into STATUS/SESSION_LOGS and restore the empty stub.
+
+**The local Showdown server is still up** (idle, no battles). Harmless, but kill
+it if the box is going to sit for days — an orphaned room is a known landmine.
 
 **Read in this order:** this file → `STATUS.md` → the RESULTS sections it names.
 Do not quote a number from this week without reading its correction box first.
@@ -117,22 +122,36 @@ nothing, or reports the wrong thing.** The structural repair is in:
    answered. What remains unanswered is that `argmax_moved` is only **4.0%** at 100
    iters (15.9% at 900): the expert differs in SHAPE long before it differs in
    CHOICE, and a distillation target that never changes the action is a no-op.
-2. **SEARCH IS CLOSED FOR NOW, AND IT OWES A BAR.** Any next search idea has to
+2. **SEARCH IS CLOSED FOR NOW, AND IT OWES A BAR.** One instrument could close
+   the axis properly rather than by accumulation — `scripts/action_gap.py`, which
+   measures the PRIZE (how often the policy's top-1 is worse than its top-2, and
+   by how much) with no evaluator and no search involved. **It is written, UNRUN,
+   and currently INVALID**: two defects (`docs/CLEANUP.md` L9) both shrink the
+   measured gap, which is exactly the direction that would fake a ceiling. Fixing
+   it is a contained job and it is the highest-value thing on the search axis.
+   Meanwhile, any next search idea has to
    argue against the override regression (**−0.48 win rate per unit override
    fraction**, r −0.875, leave-one-out stable, intercept reproducing the measured
    anchor to 0.006), not merely propose another vehicle. Note carefully what this
    does **not** close: `tree.py` is a different algorithm from the matrix, a true
    per-ply minimax is untried, and the 40%-beats-93% result says targeting may pay
    even where dose does not.
-3. **FOUR RULINGS ARE OWED** (all in STATUS): the **loop breaker** (§28 — built,
-   13 tests, wired nowhere, because it changes the policy form); **R6's split
-   schedule**; the next fleet's shape; and whether 4.9 gets a fleet. **The LR-anneal
-   floor no longer needs one — §29 answers it: do not floor it.**
+3. **SIX RULINGS ARE OWED.** The **loop breaker** (§28 — built, 13 tests, wired
+   nowhere, because it changes the policy form); **R6's split schedule**; the next
+   fleet's shape; whether **4.9** gets a fleet; whether **2.13's recalibration goes
+   on by default** (§32.1 — it changes the object); and whether **8.6's
+   mis-specified criterion earns a re-run** (§32 — a corrected rule needs one and
+   it costs compute). **The LR-anneal floor no longer needs a ruling — §29 answers
+   it: do not floor it.**
 
 ## What is safe to trust, and what needs care
 
-- **Trust:** every number in `readouts/`, every R5 ladder figure, the suite, and
-  every correction box (each is now traced to a file in `results/`).
+- **Trust:** every number in `readouts/`, every R5 ladder figure, and the suite.
+  Every correction box cites the file it was derived from — **but note `results/`
+  is GITIGNORED**, so those files exist on this box and not in the repo. The
+  committed provenance is `readouts/` plus the grader scripts; §32 got its own
+  readout on 2026-09-19 for exactly this reason (it was the week's only block
+  without one, and the week's other missing readout was a live incident).
 - **Care:** anything this week quoted WITHOUT its correction box — the six rows in
   the table above are all still findable in older docs and in `docs/archive/`.
 - **Binding again:** never difference across sessions without an in-block anchor.

@@ -73,9 +73,15 @@ NOT THE OBJECTIVE** (§21 width, §27.1 ranking, §29 the tail).
    the gap is RANKING, worst in the opening, and the train/eval shift is measured at +0.059.
    `docs/IDEAS_POST_100M.md` Round 4 is re-ranked around that. **4.9 (expert iteration) is
    the top §4 item and its 2.11 gate has OPENED.**
-4. **RULINGS OWED:** the LOOP BREAKER (§28 — it changes the policy form); R6's SPLIT
-   SCHEDULE (CLEANUP L1); the next fleet's shape; whether 4.9 gets a fleet. **The LR-anneal
-   floor now has its evidence (§29): DO NOT floor it.**
+4. **SIX RULINGS OWED:** the LOOP BREAKER (§28 — it changes the policy form); R6's SPLIT
+   SCHEDULE (CLEANUP L1); the next fleet's shape; whether 4.9 gets a fleet; whether **2.13's
+   recalibration is ON BY DEFAULT** (§32.1 — it changes the object); whether **8.6's
+   mis-specified criterion earns a RE-RUN** (§32). **The LR-anneal floor now has its
+   evidence (§29): DO NOT floor it.**
+5. **`scripts/action_gap.py` — the one instrument that could CLOSE the search axis** (the
+   prize: P(top-1 worse than top-2) × E|ΔQ|, no evaluator, no search). **Written, UNRUN,
+   and INVALID — two defects that both SHRINK the gap** (CLEANUP L9), i.e. bias it toward
+   the ceiling it would license. Fixing it is contained and high value.
 
 ## Watch items
 - **A SMALL-RUN NULL IS NOT EVIDENCE ABOUT A LEVER** (CLAUDE.md rule 6). §30's selection

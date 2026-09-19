@@ -1,6 +1,32 @@
 #!/usr/bin/env python
 """HOW MUCH IS THERE FOR SEARCH TO WIN? The prize, measured.
 
+*** DO NOT RUN THIS AND READ THE NUMBER AS A CEILING. INVALID AS OF 2026-09-19. ***
+*** Two defects, both still present, both of which SHRINK the measured gap --   ***
+*** i.e. they bias it toward the "search cannot pay" conclusion it would license.***
+
+  (1) THE TOP-2 IS RE-DERIVED PER DETERMINIZATION.  `tt = top2(shadow_battle(st,
+      turn))` sits INSIDE `for st in states`, so each determinization gets its
+      own (a1, a2). The real policy commits to ONE action at the ROOT, before
+      any determinization, and search swaps THAT argmax. Averaging |Q(a1)-Q(a2)|
+      over per-determinization pairs measures a different and systematically
+      SMALLER quantity than the gap the policy actually faces.
+
+  (2) THE POLICY IS READ FROM A PRIVILEGED OBSERVATION.  `shadow_battle(st,
+      turn)` is called with `view=None`, so `embed_battle` encodes the
+      opponent's FULL determinized team. The live agent sees a zero-padded block
+      for every unrevealed mon. A policy that can see the opponent's team ranks
+      actions better, which again shrinks the top-1/top-2 gap.
+
+  The fix for (1) is to compute (a1, a2) ONCE from the root's live observation
+  and hold it fixed across determinizations; for (2) pass
+  `view=public_view(root_battle)` as the det_blind path does. Neither is done.
+  `cda517d` fixed a THIRD defect (the noise diagnostics measured ~zero by
+  construction) and did not touch these two.
+
+  UNRUN. Nothing in RESULTS, STATUS or any readout cites a number from this
+  script, and nothing should until both are fixed. Tracked in docs/CLEANUP.md.
+
     POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
         python scripts/action_gap.py --battles 150 --rollouts 24
 
@@ -25,6 +51,8 @@ WHAT IT DECIDES.
   * If the gap is SMALL relative to the critic's error, no evaluator can rank
     the two actions reliably and search cannot pay AT ANY BUDGET -- a ceiling,
     not a null, and the first thing in this project licensed to close the axis.
+    ** THAT LICENCE IS EXACTLY WHY THE TWO DEFECTS ABOVE MATTER: both shrink the
+    gap, so a SMALL reading is what a broken version of this script produces. **
   * If the gap is LARGE and the policy is often wrong, the prize is real and the
     four nulls are about our constructions rather than about search.
 

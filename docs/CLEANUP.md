@@ -409,3 +409,24 @@ was measured on the DEPLOYED (ramped) object, including
 and the **3.5% row-pair flip rate** quoted in RESULTS §27.1 and
 `tests/test_value_calibration.py`. Those are LOWER BOUNDS on the fixed object.
 **Re-run `scripts/calibration_action_diff.py` before any 2.13 arm.**
+
+## L9 — `scripts/action_gap.py` is INVALID for its headline claim (2026-09-19, OPEN)
+
+The script's docstring calls it *"a ceiling, not a null, and the first thing in
+this project licensed to close the axis"* — the search axis. **It is not valid
+for that, and both defects bias it toward the conclusion it would license.**
+
+1. **The top-2 is re-derived per determinization** (`top2(shadow_battle(st, turn))`
+   inside `for st in states`). The real policy commits to one argmax at the ROOT;
+   search swaps THAT. Per-determinization pairs measure a smaller quantity.
+2. **The policy is read from a privileged observation** — `shadow_battle(...)` is
+   called with `view=None`, so the opponent's full determinized team is encoded
+   where the live agent sees zero padding.
+
+`cda517d` fixed a third defect (noise diagnostics measuring ~zero by
+construction) and did not touch these. **Fix:** compute `(a1, a2)` once from the
+root's live observation and hold it fixed; pass `view=public_view(root_battle)`.
+
+**UNRUN and uncited** — no number from it appears in RESULTS, STATUS or any
+readout, which is the only reason this is a cleanup item rather than a
+retraction. **Do not run it and quote the number until both are fixed.**
