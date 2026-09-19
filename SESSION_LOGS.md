@@ -12433,3 +12433,44 @@ line numbers are not — grep the date, then read that region):
     applying. `HANDOFF.md` is left as that session wrote it; the fold to the stub is still
     owed. The memory note on ladder calibration was updated (R5 LISTED; climbing is the
     active question).
+
+- 2026-09-19 (evening, agent; maintainer: *"blunt 'here is what we are going to do to prep for
+  R6 fleet'"*, then *"going to put my laptop down for 4h ... try to reach a 'closable' stage"*)
+  — **THE R6 PREP EXECUTED TO A CLOSABLE STATE: the 2.12 read running, the action-gap
+  instrument fixed and queued, the expert-iteration gate written and HELD, C6 built behind
+  its flag.** Plan §6 (`docs/proposals/R6_PREP_PLAN_2026-09-19.md`) is the at-home checklist.
+  - **IDEAS 2.12 launched** (`configs/eval/wavg_r5.yaml`, `scripts/wavg_queue.sh`, 14a4fdf,
+    17:55Z, detached, caffeinated): the smoke played 2 battles from the three `avg_last5.pt`
+    files through the FP seat (they load; `weight_averaged.eval_only` honoured), then the
+    CONTROL E3WA (the finals) first and E3AF (the averages) second, n=3000 each off FP@20,
+    pacing 1.55 s/battle (474 battles at 18:09Z). Verdict rule in the config: credit at
+    ≥ +0.025 and ≥ 2·se_diff → the R6 object rule takes averaged members; the banked
+    0.5987 is never differenced. `results/wavg_r5/READOUT.txt` prints it.
+  - **`scripts/action_gap.py` — CLEANUP L9 FIXED** (bb45abd): `top2_live` ranks the
+    committee's masked log-probs on the LIVE observation and mask once per position and
+    holds (a1, a2) across determinizations (no shadow battle, no privileged view enters);
+    rows record `top1_is_played`, printed as a self-check. `tests/test_action_gap_top2.py`
+    (3) pins the ordering. Queued behind the 2.12 read in `scripts/exit_gate_queue.sh`
+    (`--battles 150 --rollouts 24`, resume-safe on its rows file).
+  - **IDEAS 4.9's gate written** (`configs/eval/exit_gate_r5.yaml`, 000c9b8): the gumbel
+    tree at `iters 900` (an ungated policy improvement by construction — `tree.py` returns
+    before the margin logic) vs the greedy committee, n=3200 each, control first, in one
+    session; clears at ≥ +0.025 and ≥ 2·se → R7's first trio; else 4.9 is closed on this
+    object by a measured bound on the operator. **HELD behind `logs/exit_gate_r5/GO`**
+    (~26 h; a killed FP arm poisons its pair for hours; the lid closes tonight).
+  - **C6 form (a) BUILT** (d13972c) behind `POKEMON_RL_ENCODER_C6=1`: Seismic Toss / Night
+    Shade 1.15, Counter 1.0, Super Fang 2.2 × the foe's HP fraction in the base-power slot,
+    immunity-only type multiplier; flag off is BIT-IDENTICAL (the 828 oracle
+    `0be192a8…` re-verified in the same run) and the sixth combo v2+ids+c6 is pinned at
+    `40646b06…`; `ENCODER_FINGERPRINT["c6"]` reaches `meta.yaml`; `load_checkpoint` refuses
+    a c6 mismatch on Showdown-v0 checkpoints (override env var for a disclosed mixed
+    committee; non-Showdown checkpoints untouched). 12 new tests; the encoder gates + entity
+    goldens + loop-breaker tests: 50 passed. Needs ruling #2 to ride the fleet.
+  - **Ops.** HANDOFF folded to the stub (317f845; its content is STATUS + the two 09-19
+    entries). `caffeinate -i -w` follows both queue pids. The encoder gates ran `nice -n 19`
+    beside the E3WA arm for ~20 s; the autopsy scripts ran before any FP arm started.
+  - **Not done, in order for the next session** (plan §6): the loop-breaker wiring (2.14),
+    the outcome heads (4.11 — the episode buffer keeps no terminal obs, so the collector must
+    emit the three targets as OPT_KEYS rows), the 12M batch/epochs screen (4.12), the
+    attention BC screen, the R6 fleet yaml with `POKEMON_RL_ENCODER_C6=1` in the launcher, the
+    400k smokes. **Six rulings owed** (plan §5).

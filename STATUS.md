@@ -1,6 +1,6 @@
 # STATUS
 ## JOURNEY POSITION — step 11 DONE (R5 LISTED). The post-ladder SEARCH chapter is CLOSED, and closed by a CORRECTION PASS
-**Nothing is running. Tree clean, suite green 1219 / 0 failed / 87 skipped.** Eight blocks
+**RUNNING: the wavg_r5 read (IDEAS 2.12; ends ~20:40Z 09-19); the exit-gate queue is HELD behind `logs/exit_gate_r5/GO`. Tree clean, suite green.** Eight blocks
 ran 09-18/19 (§25–§32); **three Opus review passes then went back over every claim and
 changed sixteen of them, retracted one section in full, and found three numbers I had
 invented while writing the corrections themselves.** Read §30.1's retraction box and the
@@ -68,8 +68,8 @@ you may cite:
   from `SearchAgent`'s signature and **hard-fails on an unknown pre-reg key**.
 
 ## Next actions
-1. **R6 PREP PLAN WRITTEN — `docs/proposals/R6_PREP_PLAN_2026-09-19.md` (NOT ratified; six rulings inside).** The R5
-   loss autopsy (IDEAS 2.15) reads the format as luck-dominated and our style at parity, so R6 = the W + C6 base, trio A 4.11, trio B 4.12; no width, no 300M; transformer and expert iteration gated for R7.
+1. **R6 PREP PLAN — `docs/proposals/R6_PREP_PLAN_2026-09-19.md`; §6 is the at-home checklist** (server check, read
+   `results/wavg_r5/READOUT.txt`, read the action-gap run, `touch logs/exit_gate_r5/GO` to start the ~26 h gate, then the six rulings). Built today: C6 behind `POKEMON_RL_ENCODER_C6` with a load guard, action_gap L9 fixed; next builds are the loop breaker, the outcome heads (4.11), the batch screen (4.12).
 2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
    search idea must argue against the override regression (−0.48 win rate per unit override
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.

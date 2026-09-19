@@ -26,6 +26,8 @@ log() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG/queue.log"; }
 log "WAIT: holding until logs/wavg_r5/queue.log prints QUEUE DONE"
 until grep -q "QUEUE DONE" logs/wavg_r5/queue.log 2>/dev/null; do sleep 120; done
 sleep 60
+# GAP is the §27 rollout instrument: no FP seat, but it opens ONE live battle per
+# position on the local server and needs the box awake; caffeinate follows it.
 lsof -nP -iTCP:8000 -sTCP:LISTEN > /dev/null 2>&1 || { log "REFUSING: no server on :8000"; exit 1; }
 pgrep -f "bin/python -m rl.train" > /dev/null 2>&1 && { log "REFUSING: rl.train alive"; exit 1; }
 pgrep -f "ch3_fp_h2h.py" > /dev/null 2>&1 && { log "REFUSING: another FP seat is alive"; exit 1; }
@@ -47,6 +49,16 @@ print('positions', d['positions'], 'ceiling', round(d['ceiling_win_rate'],4), 'f
   fi
 fi
 sleep 30
+
+# ---------------------------------------------------------------- HOLD
+# The EXIT block is ~26 h of wall clock and a killed FP arm poisons its
+# username pair for hours, so it never starts on its own: it needs the GO
+# sentinel, which the maintainer touches when the box will stay up.
+#   touch logs/exit_gate_r5/GO && nohup bash scripts/exit_gate_queue.sh > logs/exit_gate_r5/queue.nohup 2>&1 &
+if [ ! -f "$LOG/GO" ]; then
+  log "EXIT block HELD: touch $LOG/GO and re-run this queue when the box will stay up ~26 h (GAP re-runs resume-safe if it was cut)"
+  exit 0
+fi
 
 # ---------------------------------------------------------------- EXIT
 fparm() {
