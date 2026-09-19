@@ -62,7 +62,7 @@ thing in this block.
   that caveat showing up in a win rate.~~
   **CORRECTION appended 2026-09-19 (RESULTS §32) — the readout's NUMBERS are
   untouched; this CAVEAT is withdrawn.** The 90.9% was ONE smoke decision.
-  Measured on the 8.6 budget screen at the same `iters: 100` (1,107 searched
+  Measured on the 8.6 budget screen at the same `iters: 100` (1,090 tree-reporting
   decisions, `results/tree_budget_r5/bs1.json`): `tree/pi_top1` **0.417**
   against the prior's **0.885**, `KL(π′ ‖ prior)` **5.70 nats**, π′ entropy
   1.68. π′ is far FLATTER than the prior rather than concentrated on it, so the

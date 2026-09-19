@@ -133,8 +133,8 @@ with it because FP has no policy net to be overruled by.
 
 > **CORRECTION, 2026-09-19 — the 90.9% is WITHDRAWN (RESULTS §32).** It came
 > from ONE smoke decision and was quoted thereafter as a property of the
-> regime. Measured on the 8.6 budget screen at the same `iters: 100` (1,107
-> searched decisions, `results/tree_budget_r5/bs1.json`): `tree/pi_top1` is
+> regime. Measured on the 8.6 budget screen at the same `iters: 100` (1,090
+> tree-reporting decisions, `results/tree_budget_r5/bs1.json`): `tree/pi_top1` is
 > **0.417** against the prior's **0.885**, `KL(π′ ‖ prior)` is **5.70 nats**,
 > and π′'s entropy is 1.68 over a support of 7.06. **π′ is far FLATTER than the
 > prior, not concentrated on it** — the opposite of what the caveat asserted.

@@ -10,9 +10,15 @@ CORRECTED 2026-09-19. This docstring published "+0.0195 ... to 0.2371 ... the
 remaining 88%", and called isotonic "the best any monotone rescaling can do".
 The cross-validation behind those figures split at the OUTCOME level while the
 predictor is CONSTANT WITHIN A POSITION, so every held-out outcome had its own
-position in training. Grouped by position the gain roughly halves AND AFFINE
-BEATS ISOTONIC -- the optimality claim was in-sample, and with 707 distinct
-x-values at ~32 samples each, isotonic overfits.
+position in training. Grouped by position the gain roughly halves, and the
+optimality claim ("the best any monotone rescaling can do") was in-sample.
+
+CORRECTED AGAIN, same day: a first pass also concluded "AFFINE NOW BEATS
+ISOTONIC". That rested on ONE cross-validation fold draw. Over 40 seeds the
+difference is +0.00055 +/- 0.00128 with affine ahead in 24/40 -- half of
+isotonic's own seed-to-seed sd. WHICH MAP WINS IS UNRESOLVED at this n; both
+buy ~+0.010. This class is fitted by `ValueCalibration.fit` (isotonic) because
+that is what is wired; the choice is not evidence-backed.
 
 IS IT INERT INSIDE THE SEARCH? The objection to expect is that a monotone map
 cannot reorder leaves at a single node, so it cannot change an argmax. That is

@@ -2151,7 +2151,7 @@ three rules (`tests/test_tree_decision_golden.py` pins it).
 visit-concentration measurement (2026-09-11) says a small budget cannot overrule a sharp
 prior, and TV's 1.1 changed decisions per battle is that showing up in a win rate.~~
 **CORRECTION 2026-09-19 (§32): the 90.9% is WITHDRAWN — one smoke decision, quoted
-thereafter as a property of the regime. Over 1,107 searched decisions at `iters: 100`
+thereafter as a property of the regime. Over 1,090 tree-reporting decisions at `iters: 100`
 (`results/tree_budget_r5/bs1.json`) `tree/pi_top1` is 0.417 against the prior's 0.885 and
 `KL(π′ ‖ prior)` is 5.70 nats: π′ is far FLATTER than the prior, not concentrated on it. TV's 1.1 changed decisions is a property of the `visits` SCORE, not of the
 budget. The sentence above is struck; the "nothing here speaks to the BUDGET" caveat
@@ -2233,9 +2233,18 @@ BIAS, with no sampling argument to hide behind.
 > their own position in the training fold, at the identical x**, and the isotonic fit
 > partially learned that position's own mean. It is "seeds do not pair battles" in a new
 > costume, and I had clustered the se for §31 while leaving this ungrouped.
-> **Grouped by position: isotonic +0.0096 (0.2272), affine +0.0103 (0.2279)** — and
-> **AFFINE NOW BEATS ISOTONIC**, so "isotonic is the best any monotone rescaling can do"
-> was in-sample optimality; with 707 distinct x-values and ~32 samples each it overfits.
+> **Grouped by position: isotonic +0.0096 (0.2272), affine +0.0103 (0.2279).** The
+> in-sample optimality claim — "isotonic is the best any monotone rescaling can do" — is
+> **withdrawn**: it holds in sample and does not survive the grouped CV.
+>
+> > **CORRECTED AGAIN 2026-09-19 — "AFFINE NOW BEATS ISOTONIC" WAS A SEED-0 ARTIFACT
+> > and is WITHDRAWN.** The single shipped CV fold assignment (seed 0) gave affine a
+> > +0.00071 margin. **Across 40 CV seeds: isotonic 0.22694 ± 0.00139, affine 0.22749 ±
+> > 0.00050, difference +0.00055 ± 0.00128 — affine ahead in 24 of 40 seeds.** The
+> > shipped margin is *half of isotonic's own seed-to-seed sd*. **Which map wins is
+> > UNRESOLVED at this n**; both buy ~+0.010, and the 7%/93% split is unchanged either
+> > way (6.4% isotonic, 6.8% affine, averaged over seeds). This is the same error as
+> > reading one rung against its neighbour — a single fold draw is one rung.
 > The denominator is also corrected to §27's **unbiased** ceiling (0.1454) — the published
 > 0.1652 used the in-sample oracle that §27 explicitly bars.
 
@@ -2517,14 +2526,17 @@ the 2·se_diff bar, and the pooling is post-hoc.
 **THE BLOCK VALIDATED ITSELF.** D1O and DUM are the SAME configuration on two username
 pairs: **0.5510 and 0.5530, |d| = 0.0020 at 0.09 se.** Every delta above is read against
 that floor. **CORRECTED 2026-09-19: "all five R0 gates passed" was false.** The config declares
-**seven** gates, and **`G_OVERRIDE_MATCHED` FAILED** — it requires ≤0.03 for B2R *and*
-B2O, and B2O is 0.0382 out. The block's own readout prints `AT LEAST ONE R0 GATE FAILED`
+**seven** gates, and **`G_OVERRIDE_MATCHED` FAILED** — it requires the gap to D1O to be
+≤0.03 for B2R *and* B2O; B2O's gap is 0.0382, **exceeding the allowance by 0.0082**
+[corrected 2026-09-19 from "is 0.0382 out", which reads as a 4× larger miss]. The block's own readout prints `AT LEAST ONE R0 GATE FAILED`
 as its last line. §30 discloses B2O's mismatch separately two paragraphs below, which made
 the sentence an internal contradiction rather than a hidden failure. The six that did pass:
 `opp_replies` 2.00/1.00, `minimax_drop` 0.0566/0.0000, both search rates matched to
 0.0004, the cap not binding at 1865 grandchildren against 6000, and the replicate.
 
-**Disclosures.** (i) The block spans 7 commits and `rl/` changed by 312 lines; the matrix
+**Disclosures.** (i) The block spans 7 commits over phase R, across which `rl/` changed by
+**59** lines — or 40 commits and **312** lines counting from the smoke to GC [CORRECTED
+2026-09-19: the published sentence spliced the 7 from one span and the 312 from the other]; the matrix
 decision path was replayed against the pre-block tree and is **bit-identical** (same
 actions, same stats; only two new counters, both zero). (ii) A second job ran beside DUM's
 first 35 battles (3.5%) for ~2.8 minutes; the measured window reads **0.4571 against the
@@ -2568,10 +2580,24 @@ took ten minutes of arithmetic to check.**
 >
 > **1. The POWER CLAIM IS FALSE, and it was a hand-wave.** §30.1 asserts *"the test has
 > the power to see one of 0.02 (it would push G to ≈12 and p to ≈0.02)."* That number
-> was never computed. Simulating this exact design (n = 1500/1500/1500/1000/1000, a true
-> 0.02 spread across the three days) 20,000 times: **median G = 5.43, and the test reaches
-> p < 0.05 only 13% of the time.** Power at the effect in question is **0.13, not high.**
-> The design's real resolution:
+> was never computed. Simulating this exact design (n = 1500/1500/1500/1000/1000, day
+> rates **centred** at p−0.01 / p / p+0.01) 200,000 times: **median G = 4.67, and the
+> test reaches p < 0.05 only 13.5% of the time.** Power at the effect in question is
+> **0.13, not high.**
+>
+> > **CORRECTED, SECOND PASS 2026-09-19 — and the irony is the point.** This paragraph
+> > first published **"median G = 5.43"**, a number I did not compute for the design the
+> > table below describes — *inside the paragraph whose entire charge is "that number was
+> > never computed."* It came from a DIFFERENT arrangement of the same 0.02 spread (one
+> > day low, two high: p−0.0133 / p+0.0067 / p+0.0067), whose power is **0.19**, while
+> > the table's 0.13 is the centred arrangement. **Mixing two parameterisations in one
+> > paragraph is the error.** Everything here is now centred. **G is
+> > ARRANGEMENT-SENSITIVE at a fixed spread** — median 4.67 / power 0.135 centred vs
+> > median 5.45 / power 0.193 lop-sided — so quote the arrangement with the number or
+> > quote neither. **The conclusion is untouched: power at 0.02 is 0.13–0.19, low either
+> > way, and the retraction stands.**
+>
+> The design's real resolution (centred arrangement, 400k reps):
 >
 > | true day spread | 0.02 | 0.04 | 0.06 | 0.08 | 0.10 |
 > |---|---|---|---|---|---|

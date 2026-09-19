@@ -550,10 +550,15 @@ fitted curve and no training.
 The original cross-validation split at the OUTCOME level while the predictor is
 constant within a POSITION (~32 rollouts share one critic value), so 100% of
 held-out outcomes had their own position in training. Grouped by position the
-gain roughly HALVES **and AFFINE NOW BEATS ISOTONIC** — "a monotone map is the
-best any rescaling can do" was in-sample optimality; with 707 distinct x-values
-and ~32 samples each, isotonic overfits. **The prize is smaller and the simpler
-fit wins.]**
+gain roughly HALVES, and "a monotone map is the best any rescaling can do" was
+in-sample optimality — it does not survive the grouped CV. **The prize is
+smaller.** ~~And affine now beats isotonic, so the simpler fit wins.~~
+**THAT SECOND CLAIM IS ALSO WITHDRAWN (2026-09-19, second pass): it rested on
+ONE CV fold draw.** Over 40 seeds the affine−isotonic difference is
+**+0.00055 ± 0.00128, affine ahead in 24/40** — the shipped margin was half of
+isotonic's own seed-to-seed sd. **Which map wins is UNRESOLVED; both buy
+~+0.010.** Pick either on other grounds (affine is 2 numbers and carries
+trivially; isotonic needs 84 knots). ]**
 **WHY IT IS NOT INERT INSIDE THE SEARCH,** which is the objection to expect: a
 monotone map cannot reorder leaves at one node, but `matrix.py`'s `row_ev`
 **averages** leaf values across the opponent's column distribution, and averages
@@ -562,9 +567,11 @@ THRESHOLD on that same scale, so recalibrating changes the override rate and the
 delta must be re-swept with it (the standing rule — match on the realized rate,
 never on the knob).
 **The fit itself:** `oracle ≈ −0.0348 + 0.8334 × critic` affinely (affine buys
-**+0.0103** out of sample — MORE than isotonic's +0.0096, so there is no
-S-shape premium to collect; corrected 2026-09-19 from "+0.0107, the rest of the
-+0.0195 is the S-shape in the deciles"). **Carry the
+**+0.0103** out of sample on the shipped fold draw, isotonic +0.0096 —
+**statistically indistinguishable across 40 CV seeds**, so there is no
+demonstrated S-shape premium AND no demonstrated affine advantage; corrected
+2026-09-19 from "+0.0107, the rest of the +0.0195 is the S-shape in the
+deciles", then again from "the simpler fit wins"). **Carry the
 fit with the checkpoint** — it is a property of THAT critic, not of the format,
 and a recalibration fitted on one checkpoint applied to another is a new
 untested object.
@@ -574,7 +581,8 @@ JSON, so a calibration that silently failed to load is distinguishable from one
 that was never asked for).
 
 **THE TENSION THIS ROW HAS TO ANSWER BEFORE IT GETS AN ARM, and it is not
-rhetorical.** The +0.0195 is an **EXPLAINED-VARIANCE** gain, and this project
+rhetorical.** The +0.0096 is an **EXPLAINED-VARIANCE** gain [+0.0195 as first
+published], and this project
 has now measured THREE TIMES that EV does not track strength: §21 (2.67× critic
 width and 126× rank bought ZERO EV while the win rate moved), §27.1 (~93%
 [corrected from 88%] of the critic's gap to the ceiling is ranking, which no
@@ -1594,7 +1602,7 @@ ASSUMED to be the weakest version of the arm. ~~`iters: 100` is precisely the
 regime the 90.9% visit-concentration measurement describes: the prior dominates
 and the tree can barely express an improvement.~~ **That premise is WITHDRAWN
 (2026-09-19, RESULTS §32): the 90.9% was ONE smoke decision; measured over
-1,107 searched decisions at `iters: 100`, `tree/pi_top1` is **0.417** against
+1,090 tree-reporting decisions at `iters: 100`, `tree/pi_top1` is **0.417** against
 the prior's 0.885 and `KL(π′ ‖ prior)` is **5.70 nats** — π′ is far FLATTER
 than the prior, not concentrated on it.** The prior does NOT dominate at 100
 iterations, so "more iterations will unlock a bigger effect" has lost its

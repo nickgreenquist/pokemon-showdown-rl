@@ -82,7 +82,7 @@ pay", which is why the depth nulls do not speak to it.
 - **The expert is not better than the student.** If `π'` is ~the prior, the
   cross-entropy term is a no-op with extra compute. (~~the 90.9% reading~~ —
   **WITHDRAWN 2026-09-19, §32. The falsifier below has since RUN, at `iters:
-  100` over 1,107 searched decisions: `KL(π′ ‖ prior)` = 5.70 nats, `pi_top1`
+  100` over 1,090 tree-reporting decisions: `KL(π′ ‖ prior)` = 5.70 nats, `pi_top1`
   0.417 vs the prior's 0.885 — π′ is NOT ~the prior, so this gate is OPEN. Read
   the KL with its companion: π′ at this budget is DIFFUSE rather than
   confidently opposed, and `argmax_moved` is only 4.0% (15.9% at 900), so the

@@ -17,9 +17,13 @@ depth-1 arms sit below it at ~2.4 se and the depth-2 arms at 3.4–4.4 se; the
 gated arms sit between and are separated from neither.
 
 > **NOT MONOTONE, and RESULTS §30 corrects an earlier claim here that it was.**
-> Ordering the arms by how often they change the played action, **0.584 at 6.4%
-> RISES to 0.587 at 9.1%**, and `B2O`'s 0.529 at 12.5% sits below `DUM`'s 0.553
-> at 15.3%. Such a list also **mixes vehicles** — GC searches nothing, DGV/DRV
+> Ordering the arms by how often they change the played action — **all four
+> percentages below are overrides ÷ ALL decisions, the column in the table**
+> (the first draft quoted the first pair on the ÷ *searched* denominator §30
+> uses and the second pair on this one, which is the mismatch this whole block
+> exists to avoid) — **0.584 at 6.0% RISES to 0.587 at 8.5%**, and `B2O`'s
+> 0.529 at 12.5% sits below `DUM`'s 0.553 at 15.3%. Both inversions also hold
+> on §30's ÷ searched denominator (6.4% → 9.1%; 13.2% → 16.3%). Such a list also **mixes vehicles** — GC searches nothing, DGV/DRV
 > are gated, DUM/D1O/B2O/B2R ungated — which is the frame §26.1 retired ("the
 > VEHICLE separates them, and the override rate does not"). **This block does
 > not establish a monotone relation with the change rate.** What it establishes
@@ -53,8 +57,10 @@ That is the most important number here. One rung of this instrument is worth
 block's *within*-session replicate lands at a tenth of that. Every delta below
 is read against a measured floor rather than an assumed one.
 
-**SIX OF SEVEN R0 GATES PASS. `G_OVERRIDE_MATCHED` FAILS** — it requires ≤0.03
-for B2R *and* B2O, and **B2O misses by 0.0382**; the block's own readout prints
+**SIX OF SEVEN R0 GATES PASS. `G_OVERRIDE_MATCHED` FAILS** — it requires the
+gap to D1O to be ≤0.03 for B2R *and* B2O, and **B2O's gap is 0.0382, so it
+exceeds the allowance by 0.0082**; [stated as "misses by 0.0382" in the first
+draft, which reads as a 4× larger miss than it is] the block's own readout prints
 `AT LEAST ONE R0 GATE FAILED` as its last line, and the B2O design error below
 is the same fact stated twice. The six that pass: `opp_replies` 2.00/1.00,
 `minimax_drop` **0.0566**/0.0000 (the new backup genuinely fired, large against
@@ -151,8 +157,11 @@ seven arms:
 * **Each 1% of decisions handed to the search costs ≈ 0.48 points of win rate.**
 * The fit survives leave-one-out: dropping any single arm leaves the slope in
   −0.40…−0.56 and r in −0.82…−0.91, so no one arm is carrying it.
-* **The intercept, 0.6113, lands within 0.006 of the measured greedy anchor
-  0.6050** — a check the fit never got to use.
+* **The intercept, 0.61132, lands 0.0063 from the measured greedy anchor
+  0.6050** — a check the fit never got to use. [Stated as "within 0.006" in the
+  first draft; the actual gap is 0.00632, so the bound as written was false by
+  0.00002. Corrected rather than rounded, because a bound that is wrong in the
+  third decimal is still a bound that is wrong.]
 
 **How to read it, and how not to.** This is a **descriptive** relationship over
 seven arms that differ in more than one way. `override_fraction` is not
@@ -163,7 +172,7 @@ two inversions in the raw ordering, not a law**; the 0%–40% step is itself onl
 1.03 se. It is not a credited effect and it is not a mechanism ceiling.
 
 What it is worth: the ends separate at 2.78 se, the fit survives leave-one-out,
-and its intercept reproduces the measured anchor to 0.006. Read alongside §21
+and its intercept reproduces the measured anchor to 0.0063. Read alongside §21
 (width bought zero EV), §26 (no tree arm beat greedy) and §30 (greedy beat
 every search arm), it is the first *graded* version of a result this project has
 so far only seen as a sequence of binary nulls. **The value is as a target for

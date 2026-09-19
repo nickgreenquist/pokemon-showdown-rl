@@ -91,7 +91,7 @@ caveat across five files, I wrote **"KL 0.66 nats"** and **"argmax_moved 28%"**
 into the correction text. The 0.66 was a value from
 `tests/test_tree_decision_golden.py` — a golden **FIXTURE**, not a measurement.
 The 28% had no source at all. Measured values, from
-`results/tree_budget_r5/bs1.json` (1,107 searched decisions at `iters: 100`):
+`results/tree_budget_r5/bs1.json` (1,090 tree-reporting decisions at `iters: 100`):
 **`pi_top1` 0.417, KL 5.70 nats, `argmax_moved` 4.0%.**
 
 Two more from the same pass: a §30.1 retraction I had recorded as written had

@@ -4,7 +4,9 @@
     POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
         python scripts/calibration_action_diff.py --battles 200
 
-IDEAS 2.13 is justified by **+0.0195 of explained variance** (RESULTS §27.1) --
+IDEAS 2.13 is justified by **+0.0096 of explained variance** (RESULTS §27.1;
+corrected 2026-09-19 from +0.0195 -- the original CV leaked at the position
+level, and affine's +0.0103 is indistinguishable from it across CV seeds) --
 and this project has measured three times that EV does not track strength: §21
 (2.67x critic width bought ZERO EV while the win rate moved), §27.1 (88% of the
 critic's gap is RANKING, which no rescaling touches) and §29 (EV moves the

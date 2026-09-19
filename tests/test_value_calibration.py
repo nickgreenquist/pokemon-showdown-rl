@@ -1,7 +1,10 @@
 """A monotone recalibration of the leaf value, and the claim that it MATTERS.
 
-RESULTS §27.1 measured that an out-of-sample isotonic recalibration buys +0.0195
-EV for one fitted curve and no training. IDEAS 2.13 then claims it is NOT inert
+RESULTS §27.1 measured that an out-of-sample isotonic recalibration buys +0.0096
+EV for one fitted curve and no training [corrected 2026-09-19 from +0.0195 -- the
+original cross-validation split at the OUTCOME level while the predictor is
+constant within a POSITION; affine buys +0.0103 and the two are statistically
+indistinguishable across CV seeds]. IDEAS 2.13 then claims it is NOT inert
 inside the search -- the obvious objection being that a monotone map cannot
 reorder leaves at a single node, so it cannot change an argmax.
 
@@ -136,7 +139,7 @@ def test_the_gate_threshold_moves_with_the_scale():
 
 
 def test_pava_matches_the_analysis_scripts_estimator():
-    """The transform applied here and the +0.0195 reported by
+    """The transform applied here and the +0.0096 reported by
     scripts/critic_calibration.py must come from the same estimator, or the
     number quoted and the thing shipped drift apart."""
     import importlib.util

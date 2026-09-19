@@ -9,6 +9,8 @@ readout claimed the dial.  These tests pin the structural repair.
 """
 import importlib.util
 import inspect
+
+import numpy as np
 from pathlib import Path
 
 import pytest
@@ -95,8 +97,41 @@ def test_every_banked_prereg_still_parses():
 def test_tree_flags_a_gate_that_could_never_fire():
     """`margin: null` makes the tree branch greedy BY CONSTRUCTION: the leaves
     are paid for and the policy argmax is played regardless.  Without the flag,
-    'acts 0%' is indistinguishable from 'the tree agreed'."""
+    'acts 0%' is indistinguishable from 'the tree agreed'.
+
+    THE FIRST VERSION OF THIS TEST CERTIFIED NOTHING (found by review,
+    2026-09-19): it asserted the literal source string
+    `'"tree/gate_off": float(cfg.margin is None)' in src`, which SURVIVES
+    COMMENTING THE EMISSION OUT -- the substring is still in the file, now
+    inside a comment.  A grep is not a test.  This version RUNS the decision at
+    `margin=None` and asserts the flag's value and the greedy behaviour it
+    names.
+    """
+    from rl.search.agent import SearchAgent
+    from rl.search.matrix import DOSES
     from rl.search.tree import TreeCfg
+    from tests.test_tree_decision_golden import (  # the pinned stub fixture
+        TREES, _StubAgent, _mask, _two_mon_battle,
+    )
     assert TreeCfg().margin == 0.10, "the default must stay LIVE"
-    src = (ROOT / "rl" / "search" / "tree.py").read_text()
-    assert '"tree/gate_off": float(cfg.margin is None)' in src
+
+    def run(margin):
+        cfg = dict(TREES["visits"])
+        cfg["margin"] = margin
+        sa = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=112, tree=cfg)
+        return sa.act(_two_mon_battle(), np.zeros(8, dtype=np.float32),
+                      _mask(), 5, 2)
+
+    _, s_on = run(0.10)
+    assert s_on["tree/gate_off"] == 0.0, "a LIVE gate must report gate_off 0"
+
+    a_off, s_off = run(None)
+    assert s_off["tree/gate_off"] == 1.0, (
+        "margin=None makes the branch greedy by construction and MUST say so"
+    )
+    assert s_off["search/overrode"] == 0, "a dead gate can never override"
+    assert a_off == s_off["search/policy_argmax"], (
+        "margin=None must play the POLICY argmax whatever the tree found"
+    )
+    # and the tree really did run -- the leaves were paid for
+    assert s_off["search/leaves"] > 0

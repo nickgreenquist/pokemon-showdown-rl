@@ -12323,3 +12323,62 @@ line numbers are not — grep the date, then read that region):
     construction**, so "acts 0%, the tree agreed" can never again be confused with "acts
     0%, the tree was never allowed to act". The golden test caught the additive stat-set
     change, which is the golden test working.
+
+- 2026-09-19 (cont.) — **A SECOND REVIEW PAIR, AND THE CORRECTION PASS ITSELF NEEDED
+  CORRECTING IN NINE PLACES.** Two Opus reviewers — one on record completeness, one
+  recomputing every published number from the raw JSON. **Every headline number in §30,
+  §32, §30.1 and §31 reproduced exactly.** The errors were all in secondary claims, and
+  three of them were in the corrections written hours earlier.
+  - **THE RETRACTION HAD NOT REACHED `docs/landmines.md`.** The §30.1 retraction commit
+    fixed RESULTS and missed the file CLAUDE.md makes the AUTHORITY ("read a section
+    there before touching the thing it covers") — and CLAUDE.md's own landmine list never
+    carried the session-offset line, so landmines.md was the ONLY place a maintainer would
+    look, and it still said **"THE SESSION OFFSET DOES NOT SURVIVE FIVE DRAWS"** with the
+    uncomputed power claim verbatim. Rewritten; the section is KEPT rather than deleted
+    because the meta-lesson is the point.
+  - **"AFFINE NOW BEATS ISOTONIC" WAS A SEED-0 ARTIFACT — WITHDRAWN.** The grouped-CV fix
+    shipped ONE fold assignment, on which affine led isotonic by +0.00071. **Across 40 CV
+    seeds: isotonic 0.22694 ± 0.00139, affine 0.22749 ± 0.00050, difference +0.00055 ±
+    0.00128, affine ahead in 24 of 40.** The shipped margin is **half of isotonic's own
+    seed-to-seed sd.** Which map wins is UNRESOLVED; both buy ~+0.010 and the 7%/93% split
+    is unchanged either way. Three dependent conclusions went with it ("isotonic
+    overfits", "the simpler fit wins", "no S-shape premium to collect"). **This is
+    "one rung is worth ±0.02" in a new costume: a single CV fold draw is one rung**, and I
+    built a design conclusion on one.
+  - **A SECOND UNCOMPUTED NUMBER, INSIDE THE ANTI-UNCOMPUTED-NUMBER RETRACTION.** §30.1's
+    retraction box published **"median G = 5.43"** in the paragraph whose entire charge is
+    *"that number was never computed."* It came from a DIFFERENT arrangement of the same
+    0.02 spread than the power table beside it: lop-sided (p−0.0133 / p+0.0067 ×2) gives
+    median 5.45 at power **0.19**; centred (p−0.01 / p / p+0.01) gives median **4.67** at
+    power **0.135**, and the table was centred. **G is ARRANGEMENT-SENSITIVE at a fixed
+    spread** — quote the arrangement or quote neither. The conclusion is untouched: power
+    at 0.02 is 0.13–0.19, low either way.
+  - **A TEST THAT CERTIFIED NOTHING.** `test_tree_flags_a_gate_that_could_never_fire`
+    asserted a **literal source string**, which **survives commenting the emission out** —
+    the substring is still in the file, inside a comment. **A grep is not a test.**
+    Rewritten to RUN the decision at `margin=None` and assert `gate_off == 1.0`,
+    `overrode == 0`, the played action equal to the policy argmax, and `leaves > 0` (the
+    tree really ran). Mutation-checked: it now FAILS on the exact mutation the old one
+    survived. The reviewer mutation-tested the other new tests too —
+    `test_dial_forwarding` bites on every mutation, `test_value_calibration`'s L8 tests
+    bite hard.
+  - **THE `tree/*` DENOMINATOR WAS WRONG AT SIX SITES.** Quoted as 1,107
+    (`search/searched_decisions`); the real denominator is `probe/decisions_with_stats` =
+    **1,090** — 17 decisions where the search ran but the tree emitted no stats. The
+    check is that `argmax_moved × n` must be an INTEGER: 0.04036697 × 1090 = 44 exactly.
+    1.5% off, no reported value moves, **and it is the same defect shape as the
+    counter-denominator bugs this file already records.**
+  - **Four smaller ones, all in my own prose:** "the intercept lands **within 0.006**" of
+    the anchor (it is 0.00632 — a bound wrong in the third decimal is still wrong); the
+    NOT-MONOTONE box mixed **two denominators in one sentence** (÷ searched for one pair,
+    ÷ all decisions for the other — in the readout for the block whose whole purpose is
+    matched comparison); "B2O is **0.0382 out**" (0.0382 is the GAP; it exceeds the ≤0.03
+    allowance by **0.0082**, so the published phrasing reads as a 4× larger miss); and
+    "the block spans 7 commits and `rl/` changed by **312 lines**" **spliced two spans**
+    (7 commits over phase R is 59 lines; 312 lines is 40 commits from the smoke).
+  - **WHAT THIS SAYS ABOUT CORRECTION PASSES.** Nine errors, of which three were
+    introduced BY the correction pass and two more were corrections that failed to
+    propagate. **A correction pass is a measurement and needs the same machinery**: derive
+    every figure from `results/`, cite the file in the box, and grep that the annotation
+    actually landed. Both lessons are now in `docs/landmines.md` and CLAUDE.md rather than
+    only in SESSION_LOGS. Suite green throughout: **1219 passed / 0 failed / 87 skipped.**

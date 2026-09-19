@@ -50,7 +50,7 @@ The proposal behind this block asserted: *"our prior is sharp enough that 90.9%
 of root visits land on one action at a small budget."* It was quoted in seven
 files as a property of the regime.
 
-> **It was ONE smoke decision.** Measured here over **1,107 searched decisions**
+> **It was ONE smoke decision.** Measured here over **1,090 tree-reporting decisions**
 > at that same `iters: 100`: **`pi_top1` = 0.417**, not 0.909. **π′ is far
 > FLATTER than the prior, not concentrated on it** — the opposite of the claim.
 > The prior does NOT dominate at 100 iterations.
@@ -85,6 +85,13 @@ to answer.
   third occurrence of the writer-not-collector defect, fixed before this block
   ran, which is why these columns exist here and are absent from `tree_r5`'s
   JSONs. `readouts/TREE_R5_READOUT.md` carries that disclosure.
+* **THE `tree/*` DENOMINATOR IS `probe/decisions_with_stats`, NOT
+  `search/searched_decisions`.** On BS1 those are **1,090** and 1,107 — 17
+  decisions where the search ran but the tree emitted no stats. The check is
+  that `argmax_moved × n` must be an integer: 0.04036697 × 1090 = 44 exactly,
+  × 1107 = 44.69. A first draft of these sites quoted 1,107; corrected
+  2026-09-19. It moves no reported value (every `tree/*` figure is a mean the
+  writer already computed), only the stated sample size, by 1.5%.
 * **`tree/transition_failures` = 0.0 on all four arms** — the engine reproduced
   every transition the tree asked for.
 * **Ties: 0 on all four arms.** 40/40 battles finished per arm.
