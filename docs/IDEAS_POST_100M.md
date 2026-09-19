@@ -141,6 +141,30 @@ its evidence.
   what does NOT relax is counters-to-disk, matched comparisons, and a
   same-session anchor on every cross-session number.
 
+**Round 5 — 2026-09-19 (the R6 PREP PLAN: `docs/proposals/R6_PREP_PLAN_2026-09-19.md`;
+NOT ratified — six rulings listed there).** What changed in this ledger, each pointing at
+its evidence:
+
+* **NEW Tier-0 row 2.15 — the R5 LOSS AUTOPSY, RUN.** Outcome is luck-dominated (win
+  0.19 when ≥3 net luck events run against us, 0.83 when they run for us), only 25% of
+  losses are "unforced", and our style matches the human field on every coarse axis.
+  **"Find the tactical hole" is closed as a cheap route**; the deficit is decision
+  quality in close games, which is the critic's ranking (§27.1) and the policy head's
+  margin (`scripts/action_gap.py`, CLEANUP L9).
+* **NEW Tier-1 rows 4.11 (outcome decomposition on the critic) and 4.12 (the
+  batch/epochs dose)** — the two R6 trios. Both were in
+  `docs/research_reports/SELFPLAY_RECIPE_2026-09-12.md` §4 and had no row here.
+* **4.6 (C6) is RE-SEQUENCED into R6** in its constant-OBS_DIM form, common to every
+  lane and uncredited — a fresh fleet pays the invalidation anyway.
+* **4.9's gate is RESTATED** (below): the KL falsifier ran and was mis-specified
+  (RESULTS §32); the gate that matters is whether the search is a policy-improvement
+  operator at all — tree@900 vs greedy at n ≥ 4000 in one session (8.6's budget ladder
+  with the n that resolves it). **No 4.9 fleet before that reads.**
+* **§5's attention screen is SEQUENCED NOW** as R7's gate, in parallel with R6's prep;
+  it stays out of R6 (architecture expires at launch).
+* **NOT in R6, by name:** more critic width, actor width, 300M, an LR floor, λ 0.75,
+  λ ≥ 0.98 (L2LAM's −0.094 is the datum on that axis), search on the object.
+
 **Sequencing floor (binding):** nothing below runs before FLEET DONE → the
 frozen eval schedule → grade → record (HANDOFF §§1–3; the peeking bar covers
 *any* checkpoint eval until the last lane ends). After the record lands,
@@ -636,6 +660,24 @@ wrong. **It is also a LADDER RISK:** R5 never hit it (max 121 turns, 0 ties)
 because humans do not freeze-lock and then sit, but a 1000-turn rated game would
 be ugly and R6 is unruled.
 
+**2.15 THE R5 LOSS AUTOPSY — RUN 2026-09-19 (`scripts/replay_audit/r5_autopsy.py`;
+readout in `docs/proposals/R6_PREP_PLAN_2026-09-19.md` §0). Luck vs play, both sides
+on the same parser, all 200 replays, outcome agreeing with the JSONL on 200/200.**
+"Net hax" = luck events on the opponent minus luck events on us (crits taken, freezes,
+full-para / sleep / frozen turns, misses, confusion self-hits). Played-out battles
+only (150): **win 0.19 at net ≤ −3 (n=52), 0.67 at net 0 (n=12), 0.83 at net ≥ +3
+(n=40)**; mean net +2.4 in wins, −2.8 in losses; **unforced losses 18/72**, earned wins
+26/78. By band, played out: <1200 0.77, 1200–1299 0.54, 1300–1399 0.49, **≥1400 0.35
+(n=34; 14 of the 22 losses had luck against us, 8 did not)**. Losses are mostly close
+(opponent had 1–2 mons left in 45 of 72). **Style parity with the field, including
+the ≥1400 slice:** switch share 0.259 vs 0.287, status share 0.216 vs 0.242, Explosion
+0.9 vs 1.1 per 100 moves; over all 200 battles zero-damage moves 0.9% vs 1.0% and
+Hyper Beam KO rate 0.48 vs 0.50 with the same recharge count. **What it closes:** the hope that a visible
+tactical class explains the ≥1400 deficit — nothing coarse separates the sides.
+**What it points at:** decision quality in close games, i.e. the critic's ranking
+(§27.1) and the policy head's own margin (`action_gap.py`, once L9 is fixed). Matches
+§27's 64% irreducible variance from the other direction. Descriptive; credits nothing.
+
 ## 3. Ruled out / answered — do not re-propose
 
 **How to read this section (maintainer ruling, 2026-09-06).** Two verdicts
@@ -1128,6 +1170,15 @@ cost (§5). The gen4 chapter pays the invalidation anyway (CONSOLIDATED
 8) or the last gen1 training change before step 10. Cost: fork ~half a day
 + a full fleet.
 
+**RE-SEQUENCED 2026-09-19 (R6 prep plan §2; needs the maintainer's ruling #2).** C6
+rides EVERY R6 lane in form (a) — the constant-OBS_DIM semantic fix, flagged and
+fingerprinted, tape-hash gate re-pinned — as a common-mode change that is
+**uncredited by design** and read as a mechanism (Seismic Toss / Super Fang usage on
+guaranteed holders, replay-measured). A fresh fleet pays the invalidation anyway, and
+"LAST" was written when the next run was a continuation of the 100M baselines. It
+makes the R5 finals a *different object* inside a mixed committee (they never saw the
+new slot values), which the post-fleet read measures (ENS9) rather than assumes.
+
 **4.7 Privileged critic AT SCALE — RE-OPENED 2026-09-06 (maintainer). The
 D18 kill's FINALITY is vacated; §3 keeps every number.** The ruling: an axis
 is not closed by trivial old runs. D18 was 12M × 5 seeds on the pre-batch
@@ -1257,6 +1308,19 @@ open — which is the regime search visits and what training on search-visited
 states addresses. What remains gating this row is the FREE FALSIFIER above
 (KL(`π′` ‖ prior) on banked arms), not the luck ceiling.
 
+**GATE RESTATED 2026-09-19 (R6 prep plan §4).** The KL falsifier RAN and its criterion
+was mis-specified (RESULTS §32: KL measures dispersion, and a diffuse π′ against a sharp
+prior inflates it), so it gates nothing. The gate that matters is the one AlphaZero's
+loop presupposes: **the search must be a policy-improvement operator at inference
+before it can be a training target.** Measured so far it is not — §30's arms are at or
+below greedy and the gumbel tree's +0.021 (§26) is unresolved at 0.96 se; and CH3 R5
+(RESULTS §15, 2026-08-25) already distilled one iteration of a PRE-D5 search into the
+actor and read −0.0545 on all four lanes. **Go/no-go:** the gumbel tree at `iters 900`
+vs greedy, n ≥ 4000 per arm, one session with an in-block anchor (8.6's budget ladder
+with the n that resolves +0.025 at 2 se). Clears → 4.9 gets R7's first trio on the tree
+vehicle. Does not clear → 4.9 is closed on this object by a measured cost of the
+operator it depends on, not by a null. **No 4.9 fleet before that reads.**
+
 **Composes with:** 2.10 (a tree with an optimistic backup would teach the bug),
 §8.5 (which decides WHERE to spend the search), 4.8 (members stay members), and
 4.7 (a privileged critic is a better expert on exactly the hidden-information
@@ -1316,6 +1380,39 @@ from any `outcome_variance` run, and a lever that works must lift the turn-2–8
 bucket specifically. **Do not read this row as a win-rate lever until that
 profile moves.**
 
+**4.11 OUTCOME DECOMPOSITION ON THE CRITIC — R6 TRIO A (added 2026-09-19 from
+`docs/research_reports/SELFPLAY_RECIPE_2026-09-12.md` §4.2, which had no row here).**
+KataGo's 1.65× lever in our currency: auxiliary value heads regressing **(i) our
+survivors, (ii) their survivors, (iii) the terminal HP margin**, all from the episode's
+own terminal observation — self-play-legal, no target from outside the environment.
+Critic side only (the ladder object's actor is untouched at inference; D25's
+shared-parameter side effects do not arise), coefficient ~0.1, `aux_outcome/*` losses
+and per-target EV logged from PPO's update, counters on disk before the arm. **Why this
+lever:** §27.1 says ~93% of the critic's gap is RANKING and 2.15 says the ladder
+deficit is decision quality in close games; a critic that must also say *how* a game
+ends learns a finer position evaluation than ±1 can teach, and the targets carry far
+less of §27's 64% irreducible noise than the outcome does. **Mechanism co-primary:**
+the by-turn r² profile against the rollout oracle (§27's instrument,
+`scripts/critic_calibration.py`) on the finals — it must lift the turn-2–8 bucket —
+and critic first-layer srank99; win rate secondary, off FP@20 against the R5 W finals
+re-drawn in session. Cost ~a day to build + tests. Rides on the W base (L2 + 1024
+critic) with C6.
+
+**4.12 THE BATCH / EPOCHS DOSE — R6 TRIO B (added 2026-09-19; recipe audit §4.5 and
+MONSTER_BUNDLE's "epochs 2, screen it next" had no row here).** `rollout_steps 15360`
+(batch 122,880 = 4× today's 30,720), `epochs 2`, `minibatches 120` (1024-row
+minibatches), LR raised √2× to 3.5e-4 as the starting point. **Why:** the batch lever
+is the only lever family here with a measured MONOTONE credit (R2, +0.137 off FP@20,
+RESULTS §17) and nothing above 30,720 has ever run (all 30 gen-1 configs); H&L's
+15,360 episodes per update is an existence proof at ~15×; mid-run `approx_kl` 0.043
+at `clip_frac` 0.225 (recipe audit §1) says the surrogate is saturated on noisy
+advantages; and bigger minibatches are faster on CPU where the update is 65% of wall.
+**It is a dose change on two axes** (data per policy version ×4, optimizer passes per
+datum ×½), stated rather than hidden. **Screen first, 12M × 2 lanes, mechanism only**
+(`approx_kl`, `clip_frac`, entropy and EV trajectories vs the W base at matched steps;
+never a win rate): if `approx_kl` collapses, the pre-stated fallback is batch ×4 at
+epochs 4 with 480 minibatches (steps per datum matched). Rides on the W base with C6.
+
 ## 5. Tier 2 — architecture (step 8 at the earliest; most of it folds into step 3)
 
 - **Attention re-benchmark — DEFERRED POST-LADDER (maintainer, 2026-09-11); the
@@ -1338,6 +1435,15 @@ profile moves.**
   question — attention vs entity-deepsets on WIN RATE, never measured here at
   any dose — is a §4-class fleet arm and needs its own pre-reg, mechanism
   co-primary, on the collector path where k=8 makes it readable.
+- **SEQUENCED 2026-09-19 — the attention screen runs NOW, as R7's gate, in parallel
+  with R6's prep (R6 prep plan §3 item 10).** `ARCH_SCREEN_SPEC`'s BC screen on the
+  gen-1 FP tapes (attention vs the ENTITY trunk at matched params, 3 seeds × 2 arms,
+  paired, cluster-bootstrapped by battle) plus the throughput re-bench against today's
+  trunk. **Clears** (≥ +0.02 agreement with the CI excluding 0, ≤ 3× throughput loss)
+  → R7's second trio under a lifted `ACTOR_PARAM_CEILING` (a K2 structure-rung
+  artifact, not a finding). **Purity:** only the architecture choice transfers; no
+  weights fitted on FP tapes enter a learner. The mechanistic case it tests: max-pool
+  loses bench-vs-bench matchups, which 2.15 says is where close games are decided.
 - **DCN / two-tower explicit crossing — PARK for step 8.** The unbuilt
   middle rung (CROSS_FEATURES ladder). Only with a mechanism-read design;
   12M win-rate primaries are dead (§1).
