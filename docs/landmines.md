@@ -52,6 +52,28 @@ its own detector (measured). `scripts/score_ladder.py` and
 `wins_from_returns` is kept only as the sign-bug cross-check, and the two
 must agree.
 
+## THE +/-0.02 IS BETWEEN SESSIONS, NOT WITHIN A BLOCK (measured 2026-09-19)
+
+A refinement of the landmine below, and it changes which se a readout may use.
+`backup_gate_r5` ran the SAME CONFIGURATION twice in one block on two username
+pairs -- D1O and DUM, dose M, delta 0.05, open gate, n=1000 each -- as a
+deliberate in-session replicate:
+
+    D1O  0.5510      DUM  0.5530      |d| = 0.0020  at 0.09 se
+
+**Two identical arms in one session agree to 0.002**, an order of magnitude
+below the ~0.020 that separates the same object across sessions. So the +/-0.02
+is a BETWEEN-SESSION (equivalently between-block) quantity -- the opponent, the
+server and the box are not the same twice -- and **within a block the binomial
+se is roughly right**, which is what every readout here already assumes.
+
+**What that licenses and what it does not.** Within-block, arm-versus-arm
+comparisons may be read at their binomial se. Cross-block comparisons may not be
+read at all (the session offset, plus §28's tie-rate spread, both point the same
+way). **And one replicate is one measurement**: it bounds within-block noise on
+THIS block, off FP@20, at n=1000. Run the replicate again rather than assuming
+it.
+
 ## ONE vs-SH RUNG IS WORTH +/- 0.02, NOT +/- 0.008 (2026-08-31)
 
 The binomial se at n=3000 is 0.0077 and it UNDERSTATES what a re-run actually
