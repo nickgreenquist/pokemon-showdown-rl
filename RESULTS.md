@@ -2246,9 +2246,16 @@ what it is trained ON.
 
 **(2) The critic is OPTIMISTIC ABOUT ITS OWN SEAT by +0.0416, z = 2.74** (paired against
 the oracle, se 0.0152). The fleet's collector runs `learner_seat: p1`, so the critic has
-only ever been fit from one side of a symmetric game. **This is the first direct evidence
+only ever been fit from one side of a symmetric game. ~~**This is the first direct evidence
 for IDEAS 4.1 (the both-seat harvest), which until now rested on a sample-efficiency
-argument rather than a measured defect.**
+argument rather than a measured defect.**~~
+> **ATTRIBUTION WITHDRAWN 2026-09-19 — see §31.** The antisymmetry probe measures the
+> same critic adding **+0.059 to whichever side it is pointed at**, and Showdown's p1/p2
+> are symmetric, so this is **not a seat asymmetry** and IDEAS 4.1 does not get it as a
+> measured defect. The live item is a **TRAIN/EVAL DISTRIBUTION SHIFT**: league play fits
+> the critic against a pool of older, weaker checkpoints where the mean return really is
+> positive (+0.036 whole-run, +0.087 late), while evaluation is a mirror or Foul Play
+> where it is 0. **The measurement (2) stands; only its attribution is withdrawn.**
 
 **(3) The ranking failure is concentrated in the OPENING, and so is the bias.**
 
@@ -2272,14 +2279,18 @@ different reason (the opening is where the critic has least to go on). **Both re
 predict this shape**, so it is not evidence for either; the both-seat falsifier is.
 
 **What this licenses.** A monotone recalibration of the leaf value is **free and worth
-+0.0195 EV** — and it is not inert inside the matrix vehicle even though it cannot
-reorder leaves at one node, because `row_ev` averages leaf values and the D5 margin gate
-is a threshold on that scale. It is a Tier-0 item, not a lever. **The 88% that remains is
-what 4.9 (expert iteration) and 4.1 (both-seat harvest) are for.**
++0.0096 EV** [CORRECTED 2026-09-19 from +0.0195 — the grouped CV above] — and it is not
+inert inside the matrix vehicle even though it cannot reorder leaves at one node, because
+`row_ev` averages leaf values and the D5 margin gate is a threshold on that scale. It is a
+Tier-0 item, not a lever. **The 93% that remains** [corrected from 88%] **is what 4.9
+(expert iteration) is for** — and note that 4.1 (both-seat harvest) has since been
+REMOVED from this sentence, because §31 withdrew its claim on this evidence.
 
-Barred: reading the +0.0195 as "recalibration fixes the critic"; quoting the isotonic
-number in-sample (it is 0.2389 there, and the honest figure is the 5-fold 0.2371); and
-treating the seat bias as a property of the format rather than of a p1-only learner.
+Barred: reading the +0.0096 as "recalibration fixes the critic"; quoting the isotonic
+number in-sample (it is 0.2389 there, and the honest out-of-sample figure is 0.2272);
+and — **corrected 2026-09-19** — treating the bias as a property of a **p1-only learner**.
+§31 measured the same critic adding +0.059 to *whichever* side it is pointed at, so it is
+not a seat effect at all; it is the **train/eval distribution shift** league play creates.
 
 ### 26.1 — every search arm side by side: **the VEHICLE separates them, and the override rate does not**
 

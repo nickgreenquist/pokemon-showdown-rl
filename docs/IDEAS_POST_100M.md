@@ -839,7 +839,12 @@ mechanism instruments already exist. **Everything here is downstream of
 JOURNEY 7.5** — run these before the collector switch and they face the same
 ≈0.10 bar that already swallowed two of them.
 
-1. **4.1 both-seat harvest.** Built, tested, live in gen 4, zero build cost;
+1. **4.1 both-seat harvest.** **[2026-09-19 — ITS "MEASURED DEFECT" IS WITHDRAWN.**
+   §27.1's +0.0416 own-seat optimism was credited to this row; §31 then measured the
+   critic adding **+0.059 to WHICHEVER side it is pointed at**, and p1/p2 are symmetric,
+   so it is a **train/eval distribution shift**, not a seat asymmetry. This row is back to
+   the sample-efficiency argument it started with — which is still a real argument, and
+   the build cost is still zero.**]** Built, tested, live in gen 4, zero build cost;
    a ~2× sample-efficiency change — a dose multiplier, not a hypothesis. One
    arm to validate it (seat-2 rows are version-lagged ≤ 2 and do change the
    data distribution), then it stays on for good.
