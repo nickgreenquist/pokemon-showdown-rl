@@ -562,12 +562,19 @@ reorders rows (3.5% of pairs) and the D5 gate is a threshold on the same scale.
 The claim is "the search picks a different action", not "the critic fits
 better". **That is a real distinction and it is also an untested one.**
 
-**So the arm must read the ACTION, not the fit.** Cheapest form: run the
-calibrated and raw selectors on the SAME decisions offline and report how often
-the chosen action differs and in which direction — a per-decision quantity with
-thousands of samples, exactly the trick that made the 8.6 screen cheap. **If the
-action almost never changes, this row is inert in practice whatever its EV, and
-it should be closed without a fleet-grade arm.**
+**SCREENED 2026-09-19 (RESULTS §32.1), 7,122 decisions, both selectors on the
+same decisions with the same rng.** **The action changes on 5.41% of decisions,
+so the row is NOT inert** — and the way it is not inert confirms §31: the
+calibration moves each leaf by 0.0997 on average while moving only 5.4% of
+actions, because most of that shift is COMMON-MODE and a constant cancels
+between actions at one node. **But the only channel with a measured sign is
+small:** it reduces the override rate by 1.02 points, and §30's measured slope
+(≈0.0047 of win rate per point) makes that worth **≈ +0.005** — a fifth of the
+credit floor, and **n ≈ 80,000 battles per arm to resolve.**
+**VERDICT: never spend a win-rate arm on this row.** It costs one `np.interp`
+per leaf batch and moves the search the way §30 says is favourable, so **whether
+to turn it on by DEFAULT is a maintainer ruling about the object, not an
+experiment.**
 
 **What it does NOT do:** close the gap. It is 12% of it; the other 88% is
 ranking (§27.1), which is 4.9's and 4.1's territory.

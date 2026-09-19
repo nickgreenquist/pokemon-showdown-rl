@@ -2574,3 +2574,43 @@ changing MORE decisions is WORSE** (greedy 0.605 → 17% changed 0.551). A bigge
 more of exactly the thing that block measured to cost win rate. That is not a proof the
 tree behaves like the matrix (§26.1: the only arms ever above their own anchor were
 trees), but it is the question any phase R has to answer first.
+
+### 32.1 — **IDEAS 2.13's recalibration is NOT inert, and it is also not worth an arm**
+
+`results/outcome_variance/calib_action_diff.json`. **7,122 decisions, both selectors on
+the SAME decisions with the SAME rng** — same determinizations, same leaves, differing
+only in the value transform. There is no sampling error in this comparison: the action
+either changed or it did not.
+
+| | |
+|---|---|
+| decisions compared | 7,122 |
+| **action changed** | **385 (5.41%)** |
+| overrode under both | 741 |
+| overrode only RAW | 214 |
+| overrode only CALIBRATED | 141 |
+| **net change in override rate** | **−0.0102** |
+| leaves touched (raw / calibrated) | 0 / 2,566,656 |
+| mean \|shift\| per leaf | 0.0997 |
+
+**It is not inert** — 5.4% of actions change — which settles the objection that a monotone
+map cannot matter inside a search. **And the way it fails to be inert confirms §31.** The
+calibration moves each leaf by **0.0997 on average**, yet only 5.4% of actions move,
+because most of that shift is **COMMON-MODE**: §31 measured the bias as a near-constant
++0.059 offset, and a constant cancels in any comparison between actions at one node. The
+5.4% comes from the part that is *not* constant — the curvature, and the 5× turn
+dependence.
+
+**But the only channel with a measured sign is small.** The calibration **reduces the
+override rate by 1.02 points**, and §30 measured the win rate's slope against that rate
+directly (16.3% → 9.1% bought +0.034, i.e. ≈0.0047 per point). **One point is worth
+≈ +0.005.** That is a fifth of the credit floor, and **resolving 0.005 at 2·se_diff needs
+n ≈ 80,000 battles per arm** — it cannot be settled by any affordable win-rate arm.
+
+**The verdict, and it is a scoping one rather than a kill.** 2.13 should **never get a
+win-rate arm**: its headline justification was explained variance, which §21/§27.1/§29
+measured not to track strength, and its one signed channel is bounded an order of
+magnitude below the credit line. It costs one `np.interp` per leaf batch — essentially
+free — and it moves the search in the direction §30 measured as favourable. **Whether to
+turn it on by default is a maintainer ruling, because it changes the object; it is not an
+experiment.**
