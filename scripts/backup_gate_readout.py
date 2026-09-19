@@ -208,6 +208,22 @@ def main():
               f"n={d['battles_finished']:<5d} ms {num(d, 'search/ms_mean'):6.1f} "
               f"override {rate:.4f} = {per_battle:.1f} changed decisions/battle")
 
+    # THE DUM CONTAMINATION WINDOW (config, 2026-09-19): a second job ran beside
+    # DUM's first ~35 battles. Contention weakens a TIME-BOXED Foul Play, so
+    # those battles flatter DUM. Measured here rather than argued.
+    d = arms.get("DUM")
+    if d and d.get("per_battle"):
+        pb = d["per_battle"]
+        head = [b for b in pb[:35] if b.get("outcome")]
+        tail = [b for b in pb[35:] if b.get("outcome")]
+        if head and tail:
+            wh = sum(b["outcome"] == "win" for b in head) / len(head)
+            wt = sum(b["outcome"] == "win" for b in tail) / len(tail)
+            print(f"\n  DUM CONTAMINATION CHECK  first {len(head)} battles {wh:.4f} vs "
+                  f"remaining {len(tail)} {wt:.4f}  ->  {wh - wt:+.4f}")
+            print("    (se on 35 battles is 0.084, so only GROSS contamination shows;")
+            print("     a flattered DUM is conservative for DGV-DUM and for the floor)")
+
     if arms.get("D1O") and arms.get("DUM"):
         floor = abs(arms["D1O"]["our_win_rate"] - arms["DUM"]["our_win_rate"])
         print(f"\n  THIS BLOCK'S REALIZED NOISE FLOOR (D1O vs DUM, the same "

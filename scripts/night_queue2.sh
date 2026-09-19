@@ -25,15 +25,36 @@ LOG=logs/night
 mkdir -p "$LOG"
 log() { echo "[$(date -u +%FT%TZ)] [q2] $*" | tee -a "$LOG/queue.log"; }
 
-log "waiting for night_queue.sh and anything Showdown-facing"
-waited=0
-while pgrep -f "night_queue.sh|tree_budget_queue|ch3_fp_h2h.py|critic_antisymmetry" > /dev/null 2>&1; do
-  sleep 60
+# THE GUARD HAS TO SURVIVE THE GAP BETWEEN ARMS, and the first version did not.
+# On 2026-09-19 this chain started the 2.13 screen 23 SECONDS after the block in
+# front launched its next arm, because:
+#   (i) a queue script re-execs from a FROZEN mktemp copy, so its process name
+#       is /var/.../night_queue.XXXX and `pgrep -f night_queue.sh` never matched
+#       it; and
+#   (ii) the FP queues sleep 30 s between arms, so a single point-in-time check
+#        can land in a window where nothing is running and still be wrong.
+# The fix is both halves: match the frozen names too, and require the box to be
+# clear for SEVERAL CONSECUTIVE CHECKS spanning more than the inter-arm sleep.
+BUSY='night_queue|tree_budget_queue|backup_gate_queue|ch3_fp_h2h\.py|critic_antisymmetry|foul-play/bin/python'
+CLEAR_NEEDED=6          # x 30 s = 3 min, comfortably longer than a 30 s gap
+log "waiting for the box to be clear for ${CLEAR_NEEDED} consecutive checks"
+waited=0; clear=0
+while [ "$clear" -lt "$CLEAR_NEEDED" ]; do
+  # EXCLUDE OUR OWN PID: the frozen copy is named night_queue2.XXXX, which
+  # matches the pattern, so without this the loop never sees a clear box.
+  busy=$(pgrep -f "$BUSY" 2>/dev/null | grep -vx "$$" || true)
+  if [ -n "$busy" ]; then
+    if [ "$clear" -gt 0 ]; then log "busy again after ${clear} clear checks -- resetting"; fi
+    clear=0
+  else
+    clear=$((clear + 1))
+  fi
+  sleep 30
   waited=$((waited + 1))
-  if [ $((waited % 30)) -eq 0 ]; then log "still waiting (${waited} min)"; fi
-  if [ "$waited" -gt 900 ]; then log "GIVING UP after 15 h"; exit 1; fi
+  if [ $((waited % 60)) -eq 0 ]; then log "still waiting ($((waited / 2)) min)"; fi
+  if [ "$waited" -gt 1800 ]; then log "GIVING UP after 15 h"; exit 1; fi
 done
-log "clear after ${waited} min"
+log "box clear after $((waited / 2)) min"
 sleep 30
 
 if [ -f results/outcome_variance/calib_action_diff.json ]; then

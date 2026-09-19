@@ -62,6 +62,29 @@
 # rule re-run after an outcome is visible stops being a selection rule -- the
 # whole lesson of 2026-09-17. The block runs as pinned.
 #
+#
+# ------------------------------------------------------------------------------
+# CONTAMINATION INCIDENT, DUM, 2026-09-19 01:56-01:59Z. DISCLOSED.
+#
+# A second chain (the IDEAS 2.13 screen) started 23 SECONDS after DUM launched
+# and ran beside it for ~2.8 minutes before being killed. Two guard failures,
+# both now fixed in scripts/night_queue2.sh: a queue re-execs from a FROZEN
+# mktemp copy so `pgrep -f night_queue.sh` never matched it, and a
+# point-in-time check can land inside the 30 s sleep the FP queues take BETWEEN
+# ARMS. The guard now matches the frozen names and requires six consecutive
+# clear checks (3 min), which is longer than that sleep.
+#
+# SIZE AND DIRECTION. DUM finished 35 of 1000 battles inside the window -- 3.5%
+# -- and ran them at 5.5 s/battle against its clean 3.0, which is the slowdown
+# made visible. Contention divides the CPU and Foul Play's search is TIME-BOXED
+# at 20 ms, so a contended battle gives a WEAKER opponent and FLATTERS DUM.
+#
+# WHICH WAY THAT CUTS, stated so the readout is not re-derived: DUM is the
+# UNIFORM control, so a flattered DUM makes DGV - DUM SMALLER -- conservative
+# for the concentration claim. DUM is also D1O's replicate, so a flattered DUM
+# INFLATES the block's apparent noise floor -- conservative again. The readout
+# reports DUM's first 35 battles against its remainder so the size is measured
+# rather than bounded by argument.
 # WHAT IS STILL READABLE, AND IN WHICH DIRECTION. §24 measured that for the OLD
 # backup, acting MORE is WORSE (0.5680 at 6.2% -> 0.5160 at 16.3%). B2R acts
 # ~50% MORE OFTEN than B2O, so the mismatch is CONSERVATIVE FOR THE FIX:

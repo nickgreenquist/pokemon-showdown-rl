@@ -819,3 +819,37 @@ but an ordering, and it removes a whole layer of drift from the matching.
 
 **A banked rate is a starting guess, never a target.** Every block that matches
 on a rate should say which session its target came from.
+
+## A QUEUE GUARD MUST SURVIVE THE GAP BETWEEN ARMS (2026-09-19)
+
+Two chained job queues, the second guarded by `pgrep` against the first. It
+started its job **23 seconds after** the block in front launched its next arm,
+and the two ran together for ~2.8 minutes. **Both halves of the guard were
+wrong, and each alone would have been enough:**
+
+1. **A queue re-execs from a FROZEN `mktemp` copy** (the standing rule: never
+   edit a bash script an instance is executing). Its process name is therefore
+   `/var/folders/.../night_queue.5rd1Dr1HGR`, and `pgrep -f "night_queue.sh"`
+   **never matched it.** A guard that names the script it is waiting for must
+   name the frozen form too.
+2. **A point-in-time check can land in the gap.** The Foul Play queues
+   `sleep 30` between arms so Showdown can reap the finished rooms, and during
+   that window *nothing matching is running*. A single check is a coin flip
+   against a 30-second target.
+
+**And a third, found while fixing it:** the pattern that matches the queues
+matches the GUARD'S OWN frozen name, so `pgrep` returns its own pid and the box
+is never "clear". The fix excludes `$$`.
+
+**The rule:** a guard waits for the box to be clear for **several consecutive
+checks spanning more than the longest sleep in the thing it is waiting for**,
+matches frozen names, and excludes itself. `scripts/night_queue2.sh` now uses
+six checks at 30 s.
+
+**WHY IT MATTERS, and it is not hypothetical.** Foul Play's search is
+**TIME-BOXED** (20 ms at the standing anchor), so a contended battle gives a
+WEAKER opponent and flatters our seat. The affected arm ran its contaminated
+battles at **5.5 s/battle against its clean 3.0** — the slowdown is visible in
+the artifact. Disclose the window, say which way it biases the specific
+comparison the arm serves, and **measure it** (first-N against the remainder)
+rather than bounding it by argument.
