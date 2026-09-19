@@ -1,0 +1,64 @@
+# IDEAS 2.12 -- WEIGHT-SPACE AVERAGING of each W lane's last 5 rungs, read as a
+# committee against the committee of the finals. HACKING RUN (2026-09-19; pre-reg
+# is for ladder runs and headline claims). CREDITS NOTHING. R6 prep plan item 2
+# (docs/proposals/R6_PREP_PLAN_2026-09-19.md section 3): it decides whether the
+# R6 OBJECT RULE takes each lane's averaged checkpoint or its final as the member.
+#
+# THE TENSION IT RESOLVES (IDEAS 2.12): the average sits ~35% of the way back
+# along the tail in parameter space, and RESULTS section 29 measured that the
+# annealed tail is where 3-6 points of in-loop win rate are made -- while the
+# consecutive-displacement cosine (-0.05..-0.07, stable) says there IS noise to
+# cancel. Neither dominates on paper; this is the one-hour eval the row asks for.
+#
+# ANTI-SELF-DECEPTION, unrelaxed: the control (E3WA, the finals) runs FIRST and in
+# the SAME session (CLEANUP L6; the ~0.02 session offset on this instrument is
+# UNRESOLVED, RESULTS 30.1 retraction); the banked 0.5987 is never differenced;
+# both FP@20 disclosures travel (weakly powered equivalence; the point estimate
+# flatters us); ties are non-wins; counters reach disk before any verdict.
+title: wavg_r5
+status: "hacking run, 2026-09-19 -- IDEAS 2.12's eval; CREDITS NOTHING; the in-session anchor is E3WA"
+journey_step: "11 (post-ladder), feeding the R6 object rule"
+credits_nothing: true
+results_dir: results/wavg_r5
+fp:
+  search_time_ms: 20
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+  # scripts/weight_average.py --last 5: the mean of ckpt_198000001..ckpt_200000000 (etc.),
+  # float tensors averaged, integer buffers from the last rung, marked weight_averaged.eval_only.
+  a104: {path: runs/showdown_monster200m_w_s104/avg_last5.pt, sha256: 0c6b6a968ced693d72dfcc3412359d1c8c3ebe8b79dbafb5db949116a304adaa, step: 200000000}
+  a112: {path: runs/showdown_monster200m_w_s112/avg_last5.pt, sha256: 37dee4bd72a02292dbdd1179e26c640bac84b7f17c5439f0496c268fb38a9169, step: 200000012}
+  a120: {path: runs/showdown_monster200m_w_s120/avg_last5.pt, sha256: 9513874078e595d9d331db51bb62639e60b2d3c719594e2904310d0a18c139a7, step: 200000003}
+usernames:
+  scheme: "wa<arm><role>; the prefix `wa` is issued to no existing name (checked against the 411-name inventory 2026-09-19, pairwise prefix-free); the smoke pair is throwaway"
+arms:
+  WSM:  {kind: ensemble_seat, lanes: [a104, a112, a120], battles: 2,    search_time_ms: 20, seat_username: wasmkseat, fp_username: wasmkbot}
+  E3WA: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3000, search_time_ms: 20, seat_username: wae3wseat, fp_username: wae3wbot}
+  E3AF: {kind: ensemble_seat, lanes: [a104, a112, a120], battles: 3000, search_time_ms: 20, seat_username: wae3aseat, fp_username: wae3abot}
+phases:
+  smoke: [WSM]
+  R: [E3WA, E3AF]
+decision_rule:
+  primary: "E3AF minus E3WA, off FP@20, n=3000 per arm, same session, control first"
+  credit: >-
+    pooled delta >= +0.025 AND >= 2*se_diff -> the R6 object rule takes each lane's
+    avg_last5 as the committee member. One committee per arm, so the seed-clustered
+    half of the credit line is unavailable by construction and the binomial se
+    governs (anti-conservative; stated here as RESULTS 22 stated it).
+  close: >-
+    delta <= -0.025 at >= 2*se_diff -> 2.12 is closed on this object by a measured
+    cost (rule-6-legal); the finals stay the members.
+  unresolved: "anything else -> the row stays open and no fleet decision changes; the read is recorded either way"
+comparators:
+  e3wf_banked: {rate: 0.5987, n: 3000, note: "the SAME finals committee in the 2026-09-15 session -- CROSS-SESSION; E3WA is the in-session anchor and the only comparator"}
+R0_gates:
+  - name: G_LOADS
+    check: "WSM plays 2 battles from the averaged files through the FP seat path and writes smoke_wsm.json; a load failure is an ops failure, not a read"
+  - name: G_CONTROL_FIRST
+    check: "E3WA's json predates E3AF's (CLEANUP L6)"
+  - name: G_TIES
+    check: "ties are non-wins and are reported beside n"
+  - name: G_SESSION
+    check: "no difference against the banked 0.5987 is quoted; the delta is E3AF - E3WA only"
