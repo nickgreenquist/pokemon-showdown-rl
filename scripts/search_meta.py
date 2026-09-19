@@ -98,6 +98,20 @@ def se_diff(pa, na, pb, nb) -> float:
     return math.sqrt(pa * (1 - pa) / na + pb * (1 - pb) / nb)
 
 
+def _fisher_p(a: int, b: int, c: int, d: int) -> float:
+    """Two-sided Fisher exact on [[a,b],[c,d]], exact and dependency-free."""
+    from math import comb
+    n = a + b + c + d
+    r1, c1 = a + b, a + c
+    def prob(x):
+        return (comb(r1, x) * comb(n - r1, c1 - x)) / comb(n, c1)
+    obs = prob(a)
+    lo = max(0, c1 - (n - r1))
+    hi = min(r1, c1)
+    return min(1.0, sum(prob(x) for x in range(lo, hi + 1)
+                        if prob(x) <= obs + 1e-12))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--min-n", type=int, default=200,
@@ -157,8 +171,17 @@ def main() -> None:
         if pos:
             print(f"  The positive ones act on "
                   f"{min(r[0] for r in pos):.1%}-{max(r[0] for r in pos):.1%} of decisions,")
-            print("  and the rate does NOT order the list -- +, -, -, -, +, -, -, - as it")
-            print("  rises. Something other than how often the search acts is deciding.")
+            # DERIVED, NOT TYPED (2026-09-19). This sentence used to carry the
+            # literal string "+, -, -, -, +, -, -, -" -- the sign pattern as it
+            # stood the day it was written. Re-running on one more arm would
+            # have printed a stale pattern as if it had been computed, which is
+            # this week's defect class exactly.
+            signs = " ".join("+" if d > 0 else "-"
+                             for _, d, _, _ in sorted(rows))
+            asc = all(a[1] <= b[1] for a, b in zip(sorted(rows), sorted(rows)[1:]))
+            print(f"  and as the rate rises the signs run  {signs}")
+            print(f"  -- {'MONOTONE in the rate' if asc else 'NOT ordered by the rate'}."
+                  f" {'' if asc else 'Something other than how often the search acts is deciding.'}")
         print("\n  BY VEHICLE, which is what the rate column is hiding:")
         fam = {}
         for rate, delta, veh, tag in rows:
@@ -169,11 +192,34 @@ def main() -> None:
             print(f"    {key:<7} {up}/{len(ds)} above anchor   "
                   f"mean delta {sum(ds)/len(ds):+.4f}   "
                   f"range {min(ds):+.4f}..{max(ds):+.4f}")
-        print("  EVERY matrix arm is below its anchor; the only arms above one are")
-        print("  trees. That is 2-of-3 against 0-of-5 -- suggestive, NOT significant")
-        print("  (Fisher p~0.11), and the vehicles also differ in evaluator, depth")
+        # DERIVED, NOT TYPED (2026-09-19): the counts and the Fisher p used to
+        # be the literal strings "2-of-3 against 0-of-5" and "p~0.11".
+        tre = fam.get("tree", []); mat = fam.get("matrix", [])
+        ut, um = sum(1 for x in tre if x > 0), sum(1 for x in mat if x > 0)
+        p = _fisher_p(ut, len(tre) - ut, um, len(mat) - um) if tre and mat else float("nan")
+        if mat and um == 0:
+            print("  EVERY matrix arm is below its anchor; the only arms above one are")
+            print(f"  trees. That is {ut}-of-{len(tre)} against {um}-of-{len(mat)}"
+                  f" -- {'suggestive, NOT significant' if p > 0.05 else 'significant'}")
+        else:
+            print(f"  Trees {ut}-of-{len(tre)} above anchor, matrix {um}-of-{len(mat)}"
+                  f" -- {'suggestive, NOT significant' if p > 0.05 else 'significant'}")
+        print(f"  (Fisher p={p:.3f}), and the vehicles also differ in evaluator, depth")
         print("  and selector. It says the VEHICLE is the axis worth a clean test,")
         print("  which is what RESULTS §26 found from inside one block.")
+        print()
+        print("  DO NOT QUOTE THAT p AS A RESULT, AND DO NOT READ IT AS STRENGTHENING")
+        print("  AS ARMS ACCUMULATE. The unit here is an ARM, not an independent test:")
+        print("   * arms enter this table because some block wanted them, never by a")
+        print("     sampling scheme -- and every block that ran was a block someone")
+        print("     expected to be informative;")
+        print("   * REPLICATES COUNT TWICE. D1O and DUM are the SAME configuration on")
+        print("     two username pairs (RESULTS §30's own noise-floor check), so the")
+        print("     matrix column double-counts at least one arm;")
+        print("   * the matrix family has simply been RUN MORE, so its count grows")
+        print("     whether or not the underlying rate differs.")
+        print("  The p was 0.107 at 8 arms and moves every time a block lands. That")
+        print("  movement is accounting, not evidence. It stays DESCRIPTIVE.")
         print("\n  READ IT AS A SHAPE, NOT AS A RANKING. Every point carries its own")
         print("  binomial se (~0.02 at n=1000) and the vehicles differ, so this says")
         print("  where to look next -- never which arm is best.")

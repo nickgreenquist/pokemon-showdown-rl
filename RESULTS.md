@@ -2329,6 +2329,7 @@ named may be the biggest one:** `matrix.py` renders leaves through `col_views` w
 flips **10.76%** of argmaxes. "The vehicle separates them" may be measuring the rendering
 path.
 
+*(As published 2026-09-18, superseded by the box above — kept so the update is legible:)*
 **Every matrix arm ever measured is below its own anchor; the only arms above one are
 trees.** One-sided Fisher exact on 2-of-3 against 0-of-5 is **p = 0.107** — suggestive and
 **NOT significant**, and the families also differ in evaluator, depth and selector, so
