@@ -1830,8 +1830,10 @@ the win rate did not. **Explained variance did not move**: W 0.5881 against the 
 lanes' 0.5919 (across-lane sd 0.0006 and 0.0014) — the 0.59 plateau is exactly where it
 was, and the comparison is like-for-like (both TD targets at gae_lambda < 1; L2LAM's 0.2024
 is not evidence about the critic, as [RWL-3] states verbatim). The win rate, meanwhile,
-DID move. **2.67× the critic width and 126× the first-layer rank buy zero explained
-variance at the horizon** — whatever the wide critic is worth, it is not that it fits the
+DID move. **2.67× the critic width and 126× the first-layer rank buy NO explained variance at the
+horizon** — **CORRECTED 2026-09-19: "zero" was imprecise.** The delta is **−0.0038** with
+an across-lane se_diff of 0.0009, so W's EV is **significantly LOWER at 4.2 se**, not flat.
+The conclusion is unchanged and marginally strengthened — whatever the wide critic is worth, it is not that it fits the
 returns better, and **the next fleet must not be sized on EV.** (Mid-run the wide critic
 does fit better — 0.688 at 12M against 0.634 — and gives it back by 200M.)
 
@@ -1949,7 +1951,10 @@ the leaf evaluator** into our own search and re-asked the question.
 | **Foul Play's heuristic** (202 lines, ~30 constants) | 0.5487 | 0.5400 | **−0.0087** (0.67 se) |
 | evaluator difference | −0.0200 (1.56 se) | −0.0280 (2.18 se) | |
 
-n=3000 per arm, **override rates matched to within 0.3 points** (6.82 / 6.20 / 6.54 / 6.07 %)
+n=3000 per arm, **override rates matched to within 0.75 points** (**CORRECTED 2026-09-19 from "0.3"**:
+the four cells span 0.75, and the two DEPTH contrasts — this section's headline — are 0.62
+and 0.47 apart. The pre-reg's declared threshold is 2 points and all four arms meet it, so
+the matching is sound and the sentence was not) (6.82 / 6.20 / 6.54 / 6.07 %)
 by a rule that reads override rate and never a win rate. Greedy — the same object, no search
 — reads 0.5747 and 0.5720 on two independent n=1500 draws.
 
@@ -2012,7 +2017,11 @@ be the fragile evaluator on search-visited lines. Tripling how often search acts
 
 **DEPTH-2 IS THE DEFECT, and the mechanism is in our own code.** The two depths are
 indistinguishable at a tight gate (−0.0007) and **−0.047 apart at 2.57 se when the gate is
-open**. `rl/search/matrix.py::_look_further` takes a **max over our replies with no min over
+open**. **DISCLOSURE ADDED 2026-09-19:** that open-gate pair is itself **UNMATCHED** — CN1
+overrides on 19.33% and D2N on 16.26%, a 3.07-point gap that would FAIL the ±0.03 threshold
+this project adopted a day later. The direction is conservative (the arm that overrides
+LESS reads WORSE, against §30's gradient), so the conclusion stands — but the disclosure
+was owed and absent. `rl/search/matrix.py::_look_further` takes a **max over our replies with no min over
 the opponent's**, and its docstring justifies this by asserting the optimism "biases every
 row the same way". It does not: rows differ in how many replies they have and how good the
 best one is, so the bias inflates exactly the rows with the most escape hatches — the rows
@@ -2022,7 +2031,8 @@ speaks**, and the honest reading of §22 is narrower than it was written.
 
 **WHAT DOES NOT CHANGE: search still does not beat greedy.** The best searched arm on this
 object — our critic, depth 1, open gate — is 0.5627 against this block's own greedy anchor of
-**0.5827**, i.e. **−0.020 at 1.29 se**. Three independent greedy draws across the three
+**0.5827**, i.e. **−0.020 at 1.11 se** (**CORRECTED 2026-09-19 from a published
+1.29**; the unpaired two-proportion se at n=1500/1500 is 0.01806). Three independent greedy draws across the three
 blocks read 0.5747 / 0.5720 / 0.5827 (spread 0.0107 against a binomial se of 0.0128, so the
 blocks are calibrated), pooling to **0.5765 (n=4500)**.
 Every search configuration measured on the R5 committee is level with or below simply playing
@@ -2097,6 +2107,15 @@ opponent. §22 declined to close MCTS on a matrix null for exactly this reason.
 |---|---|---|---|---|---|
 | **TG** | gumbel | 11.44% | 3.6 | **0.6040** | **+0.0210 at 0.96 se** |
 | TV | visits (Foul Play's rule) | 3.65% | 1.1 | 0.5970 | +0.0140 at 0.64 se |
+
+**CORRECTION 2026-09-19 — TV WAS NOT UNGATED.** The pre-reg calls TV "Foul Play's and
+AlphaZero's rule. No gate." It declared no `margin`, and **`TreeCfg.margin` defaults to
+0.10** (`rl/search/tree.py:64`), so TV ran a **0.10 threshold on the VISIT-SHARE scale**
+while TQ ran 0.20 on the **critic-value** scale — two different quantities. Worse, the
+report stamps the *requested* tree dict, so the realized margin **is not recoverable from
+the artifact**; the same is true of every other `TreeCfg` default (`our_k`, `opp_k`,
+`c_puct`, `depth_cap`). TV's 3.65% action rate is the gate's effect as much as the rule's,
+and the TV/TG/TQ comparison is confounded by one more thing than §26 said it was.
 | TQ | q + margin (the matrix selector's shape) | 9.34% | 2.9 | 0.5600 | −0.0230 at 1.04 se |
 | **TGR** | GREEDY, this block | — | — | **0.5830** | the bar |
 
@@ -2199,10 +2218,23 @@ deterministic committee on both seats, so the true expected outcome is **exactly
 and the realized mean is −0.0006. Any systematic non-zero in the critic is therefore a
 BIAS, with no sampling argument to hide behind.
 
-**(1) The gap is a RANKING gap, not a calibration gap.** An out-of-sample **isotonic**
-recalibration — the best any monotone rescaling can do — moves EV from **0.2176 to
-0.2371**, i.e. **+0.0195 of the 0.1652 gap (12%)**. Affine buys +0.0107. **The other 88%
-is the critic not knowing WHICH position is better**, and no rescaling touches it. This
+**(1) The gap is a RANKING gap, not a calibration gap.**
+> **CORRECTED 2026-09-19 — THE PUBLISHED FIGURES WERE NOT OUT OF SAMPLE.** The
+> cross-validation split at the OUTCOME level while the predictor is **constant within a
+> position** (~32 rollouts share one critic value), so **100% of held-out outcomes had
+> their own position in the training fold, at the identical x**, and the isotonic fit
+> partially learned that position's own mean. It is "seeds do not pair battles" in a new
+> costume, and I had clustered the se for §31 while leaving this ungrouped.
+> **Grouped by position: isotonic +0.0096 (0.2272), affine +0.0103 (0.2279)** — and
+> **AFFINE NOW BEATS ISOTONIC**, so "isotonic is the best any monotone rescaling can do"
+> was in-sample optimality; with 707 distinct x-values and ~32 samples each it overfits.
+> The denominator is also corrected to §27's **unbiased** ceiling (0.1454) — the published
+> 0.1652 used the in-sample oracle that §27 explicitly bars.
+
+The honest split is therefore **calibration ≈ 7%, ranking ≈ 93%**: a monotone recalibration
+buys **+0.0096** of a 0.1454 gap. **The conclusion is unchanged and strengthened** — the
+critic not knowing WHICH position is better accounts for even more of the gap than
+published, and no rescaling touches it. This
 is a direct argument against "fix the evaluator by fitting it better" and for changing
 what it is trained ON.
 
@@ -2268,6 +2300,17 @@ it rises, so "search pays at rate X" has no support. **The vehicle does:**
 |---|---|---|---|
 | matrix | **0 of 5** | −0.0427 | −0.1220 … −0.0060 |
 | tree | **2 of 3** | +0.0040 | −0.0230 … +0.0210 |
+
+**UPDATED 2026-09-19, and it moves AGAINST the caution originally written here.** §30
+added six more matrix arms, every one below its own anchor: the count is now **0 of 11**,
+and one-sided Fisher on 2-of-3 against 0-of-11 is **p = 0.033**, not 0.107. Counting the
+D1O/DUM replicate once gives 0 of 10, p = 0.039. **The arms are not independent**
+(replicates, depth variants) and the families still differ in evaluator, depth and
+selector — so this is still not a clean contrast. **And a candidate difference §26.1 never
+named may be the biggest one:** `matrix.py` renders leaves through `col_views` while
+`tree.py` hardcodes `view=None`, and this repo has measured that the leaf-rendering choice
+flips **10.76%** of argmaxes. "The vehicle separates them" may be measuring the rendering
+path.
 
 **Every matrix arm ever measured is below its own anchor; the only arms above one are
 trees.** One-sided Fisher exact on 2-of-3 against 0-of-5 is **p = 0.107** — suggestive and
@@ -2411,9 +2454,20 @@ one session with an in-block greedy anchor and an in-block replicate.
 
 **THIS IS NOT ANOTHER NULL. The ungated arms are BELOW greedy at 2.4 se and the depth-2
 arms at 3.4–4.4 se** — a measured cost, on the one axis where a null and a loss are
-different things. And **within the depth-1 family the ordering is monotone in how often
-the search changes the played action**: 0% → 0.605, 6.4% → 0.584, 9.1% → 0.587, 16.3% →
-0.553, 17.0% → 0.551.
+different things.
+
+> **CORRECTED 2026-09-19 — "MONOTONE" WAS FALSE, on the very list that followed it.** The
+> published sentence read *"within the depth-1 family the ordering is monotone in how often
+> the search changes the played action: 0% → 0.605, 6.4% → 0.584, 9.1% → 0.587, 16.3% →
+> 0.553, 17.0% → 0.551"*. **0.584 at 6.4% RISES to 0.587 at 9.1%.** Three of the five
+> points are also mutually unresolved (DRV −0.0210 at 0.96 se, DGV −0.0180 at 0.82 se,
+> DRV−DGV at 0.10 se), and the list **mixes vehicles** — GC searches nothing, DRV/DGV are
+> gated, DUM/D1O ungated — which is exactly the frame §26.1 retired two sections earlier
+> ("the VEHICLE separates them, and the override rate does not"). **The defensible
+> statement is weaker:** greedy is above every arm in this block; the two ungated depth-1
+> arms sit below it at ~2.4 se and the depth-2 arms at 3.4–4.4 se; the gated arms sit
+> between and are separated from neither. **This block does not establish a monotone
+> relation with the change rate.**
 
 **IDEAS 2.10 — the honest backup did not rescue depth 2.** At a MATCHED override rate
 (0.1862 against the control's 0.1703) the minimax backup reads **0.5070 against depth-1's
@@ -2428,14 +2482,27 @@ the rates are 0.054 apart (a design error, disclosed in the config before the ar
 three decimals (0.4309 vs 0.4314), gating on committee disagreement reads 0.5870 against a
 **COIN's** 0.5840: **+0.0030 at 0.14 se.** Selection is a null. **Concentration is not:**
 pooled gated − uniform is **+0.0325 at 1.69 se** — it clears the +0.025 floor and misses
-the 2·se_diff bar, and the pooling is post-hoc. **But both gated arms are still below
-greedy.** Searching less helps; searching none helps more.
+the 2·se_diff bar, and the pooling is post-hoc.
+> **CORRECTED 2026-09-19, AND THE CORRECTION GOES AGAINST THE PUBLISHED VERDICT.** That
+> figure pools **two** gated arms (n=2000) against **one** of the two identical ungated
+> arms (DUM alone, n=1000) — an asymmetry §30 never disclosed, while the same section
+> calls D1O and DUM "the SAME configuration on two username pairs". Pooling both sides,
+> the obvious symmetric choice, gives **+0.0335 at 2.14 se**, which **clears BOTH halves
+> of the credit line.** The pooling remains post-hoc on both sides and this block credits
+> nothing; but the published sentence "misses the 2·se_diff bar" was an artifact of
+> dropping one of two replicates from one side only.
+
+**Both gated arms are still below greedy.** Searching less helps; searching none helps more.
 
 **THE BLOCK VALIDATED ITSELF.** D1O and DUM are the SAME configuration on two username
 pairs: **0.5510 and 0.5530, |d| = 0.0020 at 0.09 se.** Every delta above is read against
-that floor. All five R0 gates on the dials passed (`opp_replies` 2.00/1.00,
-`minimax_drop` 0.0566/0.0000, search rates matched, the cap not binding at 1865
-grandchildren against 6000).
+that floor. **CORRECTED 2026-09-19: "all five R0 gates passed" was false.** The config declares
+**seven** gates, and **`G_OVERRIDE_MATCHED` FAILED** — it requires ≤0.03 for B2R *and*
+B2O, and B2O is 0.0382 out. The block's own readout prints `AT LEAST ONE R0 GATE FAILED`
+as its last line. §30 discloses B2O's mismatch separately two paragraphs below, which made
+the sentence an internal contradiction rather than a hidden failure. The six that did pass:
+`opp_replies` 2.00/1.00, `minimax_drop` 0.0566/0.0000, both search rates matched to
+0.0004, the cap not binding at 1865 grandchildren against 6000, and the replicate.
 
 **Disclosures.** (i) The block spans 7 commits and `rl/` changed by 312 lines; the matrix
 decision path was replayed against the pre-block tree and is **bit-identical** (same
@@ -2519,8 +2586,10 @@ recency weighting should sit.
 "measured defect" in §27.1; **that attribution is withdrawn.** Showdown's p1/p2 are
 symmetric and a seat asymmetry is not what this is. The live item is the train/eval gap,
 and its cheapest fix is the one already built: **IDEAS 2.13's recalibration**, whose
-fitted affine intercept is **−0.0348** — within a whisker of the whole-run mean return of
-+0.036, i.e. it is already subtracting exactly this.
+fitted affine intercept is **−0.0348**. (The published text said it "is already
+subtracting exactly this"; **corrected 2026-09-19** — comparing an intercept to a mean is
+only valid at unit slope, and the fitted slope is 0.8334, so the correction applied is
+0.0348 + 0.1666·v, not a constant.)
 
 **What it does NOT touch.** Self-consistency is not accuracy: a critic can be perfectly
 antisymmetric and badly wrong. §27.1's finding that **88% of the gap to the ceiling is
