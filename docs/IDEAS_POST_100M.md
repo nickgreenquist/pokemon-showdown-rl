@@ -1547,11 +1547,19 @@ at 0.96 se** — the first search arm this project has measured that is not belo
 greedy, and **unresolved rather than null** (se_diff 0.0220 at n=1000).
 **Two things follow, and the order matters.**
 **(i) LADDER THE BUDGET BEFORE ADDING n.** Resolving +0.0210 at 2 se takes
-n≈4,375 per arm — an overnight block — and it would spend that on the WEAKEST
-version of the arm. `iters: 100` is precisely the regime the 90.9%
-visit-concentration measurement describes: the prior dominates and the tree can
-barely express an improvement (TV changed **1.1 decisions per battle**). If more
-iterations move `π′` off the prior, the effect to resolve is a bigger one.
+n≈4,375 per arm — an overnight block — and it would spend that on what was
+ASSUMED to be the weakest version of the arm. ~~`iters: 100` is precisely the
+regime the 90.9% visit-concentration measurement describes: the prior dominates
+and the tree can barely express an improvement.~~ **That premise is WITHDRAWN
+(2026-09-19, RESULTS §32): the 90.9% was ONE smoke decision; measured over
+1,107 searched decisions at `iters: 100`, `tree/pi_top1` is **0.417** against
+the prior's 0.885 and `KL(π′ ‖ prior)` is **5.70 nats** — π′ is far FLATTER
+than the prior, not concentrated on it.** The prior does NOT dominate at 100
+iterations, so "more iterations will unlock a bigger effect" has lost its
+mechanism — the screen ran and **phase R did not fire** (§32). TV still changed
+only **1.1 decisions per battle**, which now reads as a property of the
+`visits` SCORE, not of the budget. Ladder the budget if you like, but the
+expected gain is no longer argued from concentration.
 Ladder `iters` 100 / 300 / 900 on the gumbel rule with an in-session greedy
 anchor, and **report KL(`π′` ‖ prior) and the override rate at every rung** —
 those are the mechanism, and they are also exactly what **4.9**'s free falsifier

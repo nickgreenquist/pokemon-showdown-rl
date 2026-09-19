@@ -79,8 +79,14 @@ pay", which is why the depth nulls do not speak to it.
 - **The luck ceiling (2.11).** If `EV_ceiling ≈ 0.6`, the critic is already at
   the format's ceiling, a better expert has nothing to teach, and this is the
   wrong fleet. **This is why 2.11 runs first: hours against days.**
-- **The expert is not better than the student.** If `π'` is ~the prior (the 90.9%
-  reading), the cross-entropy term is a no-op with extra compute. **The
+- **The expert is not better than the student.** If `π'` is ~the prior, the
+  cross-entropy term is a no-op with extra compute. (~~the 90.9% reading~~ —
+  **WITHDRAWN 2026-09-19, §32. The falsifier below has since RUN, at `iters:
+  100` over 1,107 searched decisions: `KL(π′ ‖ prior)` = 5.70 nats, `pi_top1`
+  0.417 vs the prior's 0.885 — π′ is NOT ~the prior, so this gate is OPEN. Read
+  the KL with its companion: π′ at this budget is DIFFUSE rather than
+  confidently opposed, and `argmax_moved` is only 4.0% (15.9% at 900), so the
+  expert differs from the student mostly in SHAPE, not yet in CHOICE.**) **The
   falsifier is cheap and comes free with step 1: measure KL(`π'` ‖ prior) and the
   fraction of decisions where argmax `π'` ≠ argmax prior, on banked arms, BEFORE
   the fleet.** If that KL is ~0 at an affordable budget, the lever is dead

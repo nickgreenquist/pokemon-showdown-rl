@@ -131,6 +131,21 @@ prior put **90.9%** of root visits on one action, so at this budget visit
 share is very nearly the prior and the tree can barely speak. FP gets away
 with it because FP has no policy net to be overruled by.
 
+> **CORRECTION, 2026-09-19 — the 90.9% is WITHDRAWN (RESULTS §32).** It came
+> from ONE smoke decision and was quoted thereafter as a property of the
+> regime. Measured on the 8.6 budget screen at the same `iters: 100` (1,107
+> searched decisions, `results/tree_budget_r5/bs1.json`): `tree/pi_top1` is
+> **0.417** against the prior's **0.885**, `KL(π′ ‖ prior)` is **5.70 nats**,
+> and π′'s entropy is 1.68 over a support of 7.06. **π′ is far FLATTER than the
+> prior, not concentrated on it** — the opposite of what the caveat asserted.
+> `tree/argmax_moved` is only **4.0%** here, rising to 15.9% at 900 iterations:
+> the tree's SHAPE moves long before its CHOICE does.
+> **The paragraph's CONCLUSION still holds for a different reason**:
+> `visits` reads low not because the tree cannot speak but because visit share
+> is a poor score at this budget (TV changed 1.1 decisions per battle). Do not
+> re-cite 90.9% anywhere — it is a single-decision number, the same error shape
+> as citing a small-run null.
+
 `decide: q` scores each root action by its backed-up mean value and plays it
 only if it beats the policy's own action by a margin. That is the SAME SHAPE
 as the banked depth-1 selector (`row_ev` + `margin_delta`), on the same ±1

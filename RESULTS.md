@@ -2147,9 +2147,15 @@ The block spans three commits and **`rl/` is identical across them**; a decision
 run against the pre-block tree gives bit-identical actions, stats and counters on all
 three rules (`tests/test_tree_decision_golden.py` pins it).
 
-**Every arm is `iters: 100`, so nothing here speaks to the BUDGET.** The 90.9%
+**Every arm is `iters: 100`, so nothing here speaks to the BUDGET.** ~~The 90.9%
 visit-concentration measurement (2026-09-11) says a small budget cannot overrule a sharp
-prior, and TV's 1.1 changed decisions per battle is that showing up in a win rate.
+prior, and TV's 1.1 changed decisions per battle is that showing up in a win rate.~~
+**CORRECTION 2026-09-19 (§32): the 90.9% is WITHDRAWN — one smoke decision, quoted
+thereafter as a property of the regime. Over 1,107 searched decisions at `iters: 100`
+(`results/tree_budget_r5/bs1.json`) `tree/pi_top1` is 0.417 against the prior's 0.885 and
+`KL(π′ ‖ prior)` is 5.70 nats: π′ is far FLATTER than the prior, not concentrated on it. TV's 1.1 changed decisions is a property of the `visits` SCORE, not of the
+budget. The sentence above is struck; the "nothing here speaks to the BUDGET" caveat
+stands on its own.**
 
 Barred, by name: "a tree beats greedy" (it does not, at this n); "gumbel beats visits"
 (+0.0070 at 0.32 se, and confounded by action rate); reading TG's +0.021 as a null; and
@@ -2540,6 +2546,46 @@ as a measured fact, because five draws say it is not one. **And this is a correc
 rule of my own making: a single 1.5-se observation was promoted to a standing bar, and it
 took ten minutes of arithmetic to check.**
 
+> ## **RETRACTED IN FULL, 2026-09-19 — §30.1 IS WITHDRAWN. THE LANDMINE STANDS.**
+>
+> §30.1 relaxed a deliberately conservative rule on the strength of a test that
+> **cannot see the effect the rule is about.** Three things are wrong with it, and the
+> third is the one that matters.
+>
+> **1. The POWER CLAIM IS FALSE, and it was a hand-wave.** §30.1 asserts *"the test has
+> the power to see one of 0.02 (it would push G to ≈12 and p to ≈0.02)."* That number
+> was never computed. Simulating this exact design (n = 1500/1500/1500/1000/1000, a true
+> 0.02 spread across the three days) 20,000 times: **median G = 5.43, and the test reaches
+> p < 0.05 only 13% of the time.** Power at the effect in question is **0.13, not high.**
+> The design's real resolution:
+>
+> | true day spread | 0.02 | 0.04 | 0.06 | 0.08 | 0.10 |
+> |---|---|---|---|---|---|
+> | **power** | **0.13** | 0.46 | **0.85** | 0.98 | 1.00 |
+>
+> This design resolves a 0.06 offset. It has essentially nothing to say about 0.02.
+> **"No detectable offset" is true and vacuous:** an undetectable effect was not detected.
+>
+> **2. The HETEROGENEITY THAT IS THERE SITS BETWEEN DAYS.** Decomposing the G of 3.139:
+> **between-day G = 2.760 on 2 df, within-day G = 0.379 on 2 df.** 88% of the (small)
+> heterogeneity lies across days and almost none within 09-17's three draws — the shape a
+> day effect makes, on a sample far too small to call it one. §30.1 read a pooled p of
+> 0.535 as evidence AGAINST a day effect when the decomposition, if it leans anywhere,
+> leans the other way.
+>
+> **3. THE RULE WAS CONSERVATIVE ON PURPOSE, AND "UNRESOLVED" IS NOT "ABSENT".** Neither
+> the original single 1.5-se pair NOR these five draws resolves 0.02. That is an argument
+> for keeping a bar that costs one arm, not for lifting it. **Relaxing a safeguard requires
+> evidence that the hazard is absent; §30.1 offered evidence that the hazard is hard to
+> see** — and I wrote the relaxation into a section whose own headline was a correction of
+> someone else's overreach.
+>
+> **STANDING, unchanged:** the landmine "SESSION OFFSET ~0.02 ON BOTH FP INSTRUMENTS —
+> never difference across sessions without an anchor" is **BINDING**, now on the honest
+> ground that **0.02 is UNRESOLVED on every instrument we have**, not that it is measured.
+> The five-draw table itself is kept — the draws are real and the pooled greedy rate
+> **0.5818 (n = 6500)** is a useful number. Every inference §30.1 drew from it is withdrawn.
+
 ## 31. Addendum, 2026-09-19 — **the critic is not antisymmetric: it adds +0.059 to whichever side it looks at, and that is exactly its training distribution's mean return**
 
 `scripts/critic_antisymmetry.py`; `results/outcome_variance/antisymmetry.json`. Hacking
@@ -2561,9 +2607,24 @@ no sampler enter. That separates them.
 | turns 23+ | +0.0455 | +0.0228 |
 
 **THE CRITIC IS NOT ANTISYMMETRIC, at z = 14.7.** It is optimistic about whichever side it
-is pointed at, by **+0.059** — more than §27.1's +0.0416, so **the perspective bias fully
-accounts for that finding and the determinization sampler is exonerated.** The bias is
-**5× larger in the opening** than at turn 23+.
+is pointed at, by **+0.059**. The bias is **5× larger in the opening** than at turn 23+.
+
+> **RE-SCOPED 2026-09-19 — the published sentence claimed too much.** It read: *"more than
+> §27.1's +0.0416, so the perspective bias fully accounts for that finding and the
+> determinization sampler is exonerated."* Both halves are wrong.
+> **(a) "Fully accounts for" is not established.** +0.0586 and +0.0416 differ by 40%, and
+> they come from DIFFERENT position sets (263 positions × 4 determinizations here; 707
+> positions there) with different turn mixes — and this section's own table shows the bias
+> varies 5× with the turn, so a turn-mix difference alone could produce the gap. Same sign
+> and same order of magnitude is what the two measurements support: **a perspective bias is
+> the leading candidate for §27.1's optimism, not its demonstrated whole cause.**
+> **(b) "The sampler is exonerated" INVERTS the logic of the probe.** V(s) and V(swap(s))
+> are computed from the SAME determinization — which is exactly why this section can say
+> "no sampler enters". A probe constructed to hold the sampler fixed carries **zero
+> information about the sampler**; it cannot exonerate what it never varied. Auditing
+> `rl/search/determinize.py` remains open and this section is not evidence against it.
+> **What survives is the measurement itself**, which is the valuable part: the critic adds
+> **+0.059** to whichever side it is pointed at, at z = 14.7, and 5× more in the opening.
 
 **AND THE MECHANISM IS IDENTIFIED, not inferred.** The critic's optimism matches **its own
 training distribution's mean return**:

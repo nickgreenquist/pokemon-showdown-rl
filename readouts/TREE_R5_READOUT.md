@@ -57,9 +57,19 @@ thing in this block.
   against the confound rather than with it (the arm that acts LESS reads BETTER
   is not explicable by "it acted more").
 - **Nothing here says anything about the budget.** Every arm is `iters: 100`.
-  The 90.9% visit-concentration caveat measured 2026-09-11 says a small budget
+  ~~The 90.9% visit-concentration caveat measured 2026-09-11 says a small budget
   cannot overrule a sharp prior, and TV's 1.1 changed decisions per battle is
-  that caveat showing up in a win rate.
+  that caveat showing up in a win rate.~~
+  **CORRECTION appended 2026-09-19 (RESULTS §32) — the readout's NUMBERS are
+  untouched; this CAVEAT is withdrawn.** The 90.9% was ONE smoke decision.
+  Measured on the 8.6 budget screen at the same `iters: 100` (1,107 searched
+  decisions, `results/tree_budget_r5/bs1.json`): `tree/pi_top1` **0.417**
+  against the prior's **0.885**, `KL(π′ ‖ prior)` **5.70 nats**, π′ entropy
+  1.68. π′ is far FLATTER than the prior rather than concentrated on it, so the
+  premise "the prior dominates and the tree can barely speak" is wrong at this
+  budget. TV's 1.1 changed decisions per battle reads as a property of the
+  `visits` SCORE. (`tree/argmax_moved` is 4.0% at 100 iters and 15.9% at 900 —
+  the tree's SHAPE moves long before its CHOICE does.)
 
 ## Provenance and disclosures
 
