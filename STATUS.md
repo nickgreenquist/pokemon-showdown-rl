@@ -69,7 +69,7 @@ you may cite:
 
 ## Next actions
 1. **R6 PREP PLAN — `docs/proposals/R6_PREP_PLAN_2026-09-19.md`; §6 is the at-home checklist** (server check, read
-   `results/wavg_r5/READOUT.txt`, read the action-gap run, `touch logs/exit_gate_r5/GO` to start the ~26 h gate, then the six rulings). Built today: C6 behind `POKEMON_RL_ENCODER_C6` with a load guard, action_gap L9 fixed; next builds are the loop breaker, the outcome heads (4.11), the batch screen (4.12).
+   `results/wavg_r5/READOUT.txt`, read the action-gap run, `touch logs/exit_gate_r5/GO` for the ~26 h gate, then the six rulings). Built 09-19: C6 in the PYTHON encoder (the engine path refuses the flag until the Rust port, spec in §6), the loop breaker wired, 4.11's data path, 4.12's screen config; next: the C6 Rust port, 4.11's heads, the screen run.
 2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
    search idea must argue against the override regression (−0.48 win rate per unit override
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.
