@@ -351,16 +351,27 @@ result is worth stating plainly because it is mostly negative:
   hand-tuned heuristic **0.088**. **Our own critic is the robust evaluator** —
   the assumption that a PPO-fit value function would break on search-visited
   lines is measured false, in the opposite direction. [§24](RESULTS.md).
-- **A real tree does not beat playing the policy's argmax either** — but for the
-  first time it is not below it. Decoupled UCT with our policy as the PUCT prior
-  and our critic at the leaves reads **+0.021 at 0.96 se** against an in-session
-  greedy anchor: **unresolved, not null.** What the block does establish is that
-  **the rule that turns a finished tree into an action orders the arms, and the
-  override rate does not**. [§26](RESULTS.md).
-- **Across every block, the vehicle separates and the dose does not.** All five
-  matrix arms ever measured sit below their own block's greedy anchor; the only
-  arms above one are trees (2 of 3). Fisher p = 0.107 — suggestive, not
-  significant. [§26.1](RESULTS.md).
+- **A real tree does not beat playing the policy's argmax either** — but it is
+  the one vehicle not clearly below it. Decoupled UCT with our policy as the PUCT
+  prior and our critic at the leaves reads **+0.021 at 0.96 se** against an
+  in-session greedy anchor: **unresolved, not null.** What the block does
+  establish is that **the rule that turns a finished tree into an action orders
+  the arms, and the override rate does not**. [§26](RESULTS.md).
+- **And then greedy beat EVERY search arm, which is a measured COST rather than
+  another null.** A seven-arm block at n=1000 each, one session, with an
+  in-block greedy anchor **and an in-block replicate of one configuration that
+  agreed to 0.0020**: greedy **0.6050** tops the block, ungated depth-1 sits
+  **−0.052 at 2.4 se** below it and depth-2 **−0.076 / −0.098 at 3.4–4.4 se**.
+  A second result in the same block: **gating search onto 40% of decisions beat
+  running it on 93%** (+0.0335 at 2.14 se), while choosing WHICH 40% by committee
+  disagreement beat a **coin at the same rate** by only +0.0030 at 0.14 se — so
+  spending less helped and knowing where did not. [§30](RESULTS.md).
+- **Across every block, the vehicle separates and the dose does not.** Every
+  matrix arm ever measured sits below its own block's greedy anchor; the only
+  arms above one are trees (2 of 3). **Read as descriptive only** — arms enter
+  that tally because a block wanted them, replicates count twice, and the matrix
+  family has simply been run more, so its Fisher p moves as blocks land and that
+  movement is accounting rather than evidence. [§26.1](RESULTS.md).
 
 **And the agent beats Foul Play at Foul Play's own 500 ms budget** — 0.5600
 (n=500, 0 ties), with 25× the budget buying Foul Play +0.010 at 0.32 se. The 100M
@@ -378,12 +389,21 @@ The best possible critic reading our observation would reach **EV 0.363**; ours
 reaches **0.218**.
 
 So the evaluator is not finished, and the shape of what is left is specific: an
-out-of-sample monotone recalibration — the best any rescaling can do — closes only
-**12%** of that gap, so **88% of it is the critic not knowing which position is
-better**. And both the ranking failure and a measured **+0.042 optimism about its
-own seat** (z 2.74, in self-play where the truth is exactly zero) are **worst in
-the opening**, which is where a battle is still open and where a search looks.
-[§27 and §27.1](RESULTS.md).
+out-of-sample monotone recalibration closes only **~7%** of that gap, so **~93% of
+it is the critic not knowing which position is better** — and no post-hoc
+rescaling touches that. (Both figures are corrected: the first cross-validation
+split at the OUTCOME level while the predictor is constant within a POSITION, so
+every held-out outcome had its own position in training. Grouped properly the
+gain is +0.0096, and a plain affine fit beats isotonic.)
+
+The critic also **adds +0.059 to whichever side it is pointed at** (z 14.7), in a
+zero-sum game where `V(s) + V(swap(s))` must be 0 — and the mechanism is
+identified rather than guessed: that is its **training distribution's own mean
+return**, because league play fits it against a pool of older, weaker checkpoints
+(+0.036 whole-run) while evaluation is a mirror where the truth is 0. **A
+train/eval distribution shift, not a seat asymmetry.** Both the ranking failure
+and the bias are **worst in the opening**, which is where a battle is still open
+and where a search looks. [§27, §27.1 and §31](RESULTS.md).
 
 ### Gen 4 — first run (a separate table; never a row in the gen-1 ladder above)
 

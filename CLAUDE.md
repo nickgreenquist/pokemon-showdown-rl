@@ -174,6 +174,13 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   window that straddles startup invents records; use the conforming window.
 - A wall-clock ETA is not progress — check s/battle against a comparable
   completed arm (FP@20 ≈ 1.2–1.5 s, FP@100 ≈ 6–7 s); 10× off means stalled.
+- **A TYPED DIAL LIST SILENTLY DROPS DIALS** — nine instances in one week of the
+  same shape (a dial or counter that runs and reports nothing); the dial's counters
+  stay ZERO, which reads as a RESULT rather than an error. Derive the list from the
+  object's signature and hard-fail on unknown pre-reg keys.
+- **A NUMBER TYPED FROM MEMORY INTO A CORRECTION IS AS UNSAFE AS THE ONE IT
+  CORRECTS** — a correction carries more authority because nobody re-checks the fix.
+  Re-derive every figure from `results/` and cite the file inside the box.
 - **MATCH ON THE OVERRIDE RATE, NOT THE DELTA** — an unmatched gate turned a
   −0.0007 null into a −0.053 "result" on the same checkpoints and the same
   depth (2026-09-17). And a TREE arm reports `search/override_rate: None` (the
@@ -230,7 +237,10 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   keep going by yourself"*). An offline arm that explores an idea needs no pre-reg,
   no ratification and no waiting: build it, run it, report it. What does NOT relax
   is the anti-self-deception machinery, because that is about not fooling ourselves
-  rather than about ceremony — **counters must reach disk before a dial gets an arm;
+  rather than about ceremony — **counters must reach disk before a dial gets an arm,
+  and a harness's DIAL LIST MUST BE DERIVED FROM THE OBJECT'S SIGNATURE, NEVER
+  TYPED (a typed list silently drops a dial added later, and the arm then runs as a
+  CONTROL while its readout claims the dial — `docs/landmines.md`);
   a comparison must be matched on the thing that is not being tested (2026-09-17: an
   unmatched override rate turned a −0.0007 null into a −0.053 "significant" result);
   and a cross-session number needs a same-session anchor (~0.02 on both FP

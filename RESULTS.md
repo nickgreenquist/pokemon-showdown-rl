@@ -2213,7 +2213,9 @@ ceiling is the one-way random-effects estimate; the bias runs toward *more* head
 Barred, by name: "0.59 is the ceiling"; any use of these numbers as a win rate or a
 ladder claim; and quoting the pooled ceiling without the turn mix that produced it.
 
-### 27.1 — a second read of the same rollouts: **88% of the critic's gap is RANKING, and it is optimistic about its own seat**
+### 27.1 — a second read of the same rollouts: **~93% of the critic's gap is RANKING, and it is optimistic about whichever seat it looks at**
+*[Heading corrected 2026-09-19. Published as "88%" and "its own seat": the cross-validation
+leaked (box below) and §31 showed the bias is not a seat effect but a train/eval shift.]*
 
 `scripts/critic_calibration.py`, same 707 positions and 22,358 rollouts, no new compute.
 §27 took one number out of that file and stopped; three more were sitting in it, and all
@@ -2445,7 +2447,7 @@ evidence supports is therefore "do not cut the tail", not "the anneal causes the
 
 **AND IT IS THE THIRD INDEPENDENT MEASUREMENT THAT EXPLAINED VARIANCE IS NOT THE
 OBJECTIVE HERE.** §21: 2.67× critic width and 126× first-layer rank bought **zero** EV
-while the win rate moved. §27.1: 88% of the critic's gap to the format's ceiling is
+while the win rate moved. §27.1: ~93% [corrected 2026-09-19 from 88%] of the critic's gap to the format's ceiling is
 ranking, and the calibration a better fit would buy closes only 12%. **§29: EV moves in
 the OPPOSITE direction to the win rate in 9 lanes of 9.** §21 already barred sizing a
 fleet on EV; the three together bar it as a *direction* as well.
@@ -2665,8 +2667,8 @@ only valid at unit slope, and the fitted slope is 0.8334, so the correction appl
 0.0348 + 0.1666·v, not a constant.)
 
 **What it does NOT touch.** Self-consistency is not accuracy: a critic can be perfectly
-antisymmetric and badly wrong. §27.1's finding that **88% of the gap to the ceiling is
-RANKING** is untouched, and a constant offset cancels in any comparison BETWEEN actions at
+antisymmetric and badly wrong. §27.1's finding that **~93% of the gap to the ceiling is
+RANKING** [corrected 2026-09-19 from 88%] is untouched, and a constant offset cancels in any comparison BETWEEN actions at
 one node — so this bias is largely harmless to the search's choice, except through the
 one channel where it is not constant: **it varies 5× with the turn.**
 
@@ -2711,8 +2713,10 @@ tree cannot express an improvement — survives in a **different and better-supp
 at iters 100 the tree's argmax differs from the policy's on only 4% of decisions.**
 
 **THE ECONOMICS ARE THE REAL OBSTACLE, and they are worse than the rule.** 8.4× the cost
-buys 4× the disagreement — and **§30 measured, monotonically and in one session, that
-changing MORE decisions is WORSE** (greedy 0.605 → 17% changed 0.551). A bigger tree buys
+buys 4× the disagreement — and **§30 measured, in one session, that the arms changing
+MORE decisions read WORSE** (greedy 0.605 → 17% changed 0.551). ["monotonically" struck
+2026-09-19: §30's own correction box shows two inversions in that ordering; the LEVEL
+ordering is what §30 establishes.] A bigger tree buys
 more of exactly the thing that block measured to cost win rate. That is not a proof the
 tree behaves like the matrix (§26.1: the only arms ever above their own anchor were
 trees), but it is the question any phase R has to answer first.

@@ -1,10 +1,18 @@
 """A monotone recalibration of the critic's output, fitted once and carried.
 
 RESULTS §27.1: the critic sits at EV 0.2176 against a ceiling of 0.3630, and an
-out-of-sample ISOTONIC recalibration -- the best any monotone rescaling can do --
-moves it to 0.2371. That is **+0.0195 for one fitted curve and no training**, and
-it is the whole calibration prize: the remaining 88% of the gap is ranking, which
-no rescaling touches.
+out-of-sample recalibration moves it to 0.2279 (affine) or 0.2272 (isotonic).
+That is **+0.0103 for one fitted curve and no training**, and it is the whole
+calibration prize: the remaining ~93% of the gap is ranking, which no rescaling
+touches.
+
+CORRECTED 2026-09-19. This docstring published "+0.0195 ... to 0.2371 ... the
+remaining 88%", and called isotonic "the best any monotone rescaling can do".
+The cross-validation behind those figures split at the OUTCOME level while the
+predictor is CONSTANT WITHIN A POSITION, so every held-out outcome had its own
+position in training. Grouped by position the gain roughly halves AND AFFINE
+BEATS ISOTONIC -- the optimality claim was in-sample, and with 707 distinct
+x-values at ~32 samples each, isotonic overfits.
 
 IS IT INERT INSIDE THE SEARCH? The objection to expect is that a monotone map
 cannot reorder leaves at a single node, so it cannot change an argmax. That is

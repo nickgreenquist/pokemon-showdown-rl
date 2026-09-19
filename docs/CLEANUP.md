@@ -376,3 +376,36 @@ two deletions already retracted. Archive it when "Still open" and the A2-A5
 block are both empty — and fold the do-not-relitigate record into
 `docs/landmines.md` at that point rather than letting it go quiet under
 `docs/archive/`, which nothing reads unless the maintainer names the file.
+
+## L7 — a typed dial list dropped two dials (2026-09-19, FIXED)
+
+`scripts/ch3_eval.py` forwarded a HARDCODED list of `SearchAgent` dials.
+`disagree` and `calibration`, added to the object afterwards, would have been
+accepted in a pre-reg, silently dropped, and the arm run as an unmodified
+CONTROL while its readout claimed the dial. **Fixed:** the set is derived from
+`inspect.signature`, and an unrecognised arm key is a hard failure
+(`tests/test_dial_forwarding.py`; verified against all banked pre-regs).
+
+**AUDIT OWED, not yet done:** no banked arm is known to have declared either
+dial — `disagree` and `calibration` were only ever run through
+`scripts/ch3_fp_h2h.py`, which forwards them correctly. **But that was not
+verified arm-by-arm**, only reasoned from which harness each block used. Before
+citing any `kind: search` arm from `configs/eval/` as a dial test, confirm from
+its config that the dial it claims is one the harness of that era forwarded.
+
+## L8 — the isotonic thinner ramped through every step (2026-09-19, FIXED)
+
+`rl/common/value_calibration.py` kept only the FIRST x of each PAVA level set,
+so `np.interp` drew a RAMP across ground the fit holds FLAT and then STEPS.
+Measured on the 22,358-pair fit: **27% of the fitted gain thrown away**
+(in-sample EV +0.0213 full vs +0.0155 as deployed), max |deployed − true| 0.158.
+Its docstring claimed the estimator was shared with
+`scripts/critic_calibration.py` "so the number reported there and the transform
+applied here cannot drift apart". They had.
+
+**CONSEQUENCE FOR BANKED NUMBERS:** every 2.13 figure measured before this date
+was measured on the DEPLOYED (ramped) object, including
+`results/outcome_variance/calib_action_diff.json`'s **5.41% action-change rate**
+and the **3.5% row-pair flip rate** quoted in RESULTS §27.1 and
+`tests/test_value_calibration.py`. Those are LOWER BOUNDS on the fixed object.
+**Re-run `scripts/calibration_action_diff.py` before any 2.13 arm.**

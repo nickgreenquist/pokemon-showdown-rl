@@ -1,13 +1,18 @@
 """Escape a deterministic-policy limit cycle without becoming stochastic.
 
-RESULTS §28: every turn-cap stall this project has ever produced is the same
-thing -- the opponent is down to one Pokemon FROZEN SOLID (gen-1 freeze is
-permanent without a fire move, so it cannot act), the state therefore stops
-changing, and a deterministic policy in an unchanging state repeats its action
-forever. Measured six times across three blocks and two objects, with and
-without search: ~950 switches, **100% strictly alternating between exactly two
-Pokemon**, against a helpless opponent, to the 1000-turn cap and a TIE -- which
-the locked protocol counts as a NON-WIN. A thrown-away win.
+RESULTS §28: nearly every turn-cap stall this project has produced is the same
+thing -- the opponent is immobilised, often down to one Pokemon FROZEN SOLID
+(gen-1 freeze is permanent without a fire move, so it cannot act), the state
+therefore stops changing, and a deterministic policy in an unchanging state
+repeats its action forever. ~900-990 switches, **~100% strictly alternating
+between exactly two Pokemon**, to the 1000-turn cap and a TIE -- which the
+locked protocol counts as a NON-WIN. A thrown-away win.
+
+CORRECTED 2026-09-19. This docstring published "EVERY turn-cap stall ... measured
+six times". Six was the whole sample. All 104 capped battles were then
+enumerated: **100 of 104 are switch loops, and 94 (91.3%) have the opponent
+immobilised on >=80% of turns.** 91.3%, not "every" -- the mechanism is right
+and the universal quantifier was not.
 
 WHY NOT JUST SAMPLE. Because the locked eval protocol names a DETERMINISTIC
 policy, and sampling would change every battle rather than the broken ones. This

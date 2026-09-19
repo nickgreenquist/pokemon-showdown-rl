@@ -52,33 +52,117 @@ its own detector (measured). `scripts/score_ladder.py` and
 `wins_from_returns` is kept only as the sign-bug cross-check, and the two
 must agree.
 
-## THE "SESSION OFFSET" DOES NOT SURVIVE FIVE DRAWS (measured 2026-09-19)
+## A DIAL LIST THAT IS TYPED, NOT DERIVED, SILENTLY DROPS DIALS (2026-09-19)
 
-**A CORRECTION TO A RULE OF THIS REPO'S OWN MAKING.** The standing line —
-"session offset ~0.02 on both FP instruments, never difference across sessions
-without an anchor" — rested on **one pair at 1.5 se** (0.5987 vs 0.5747). There
-are now **five draws of the same greedy object** across three days and four
-blocks: 0.5747, 0.5720, 0.5827, 0.5830, 0.6050 (n = 1500/1500/1500/1000/1000).
+**NINE instances in one week, all the same shape: a dial or a counter that runs
+and reports nothing, or reports the wrong thing.** The purest one:
+`scripts/ch3_eval.py` forwarded a **hardcoded list** of `SearchAgent` dials.
+`disagree` and `calibration` were added to `SearchAgent` afterwards, so a
+pre-reg declaring either would be **accepted, the key silently dropped, and the
+arm run as an unmodified CONTROL while its readout claimed the dial.**
 
+**WHY NOTHING CATCHES THIS.** The dial's own counters stay at zero, and a zero
+counter reads as *"the dial did nothing"* — which is a RESULT, not an error. A
+block can run overnight, grade clean, and publish a null for a lever that was
+never switched on. That is the most expensive failure mode in this repo,
+because it manufactures evidence pointing the way you already expected.
+
+**THE FIX IS STRUCTURAL, and it is the pattern to copy.**
+  * `_SEARCH_DIALS` is **derived** from `inspect.signature(SearchAgent.__init__)`,
+    so a dial added to the object is forwarded the day it exists.
+  * `_ARM_KEYS` makes an unrecognised pre-reg key a **HARD FAILURE**, not a
+    silent drop. It allows the keys a SIBLING harness reads off the same file
+    (`ch3_fp_h2h`'s `fp_username`/`search_time_ms`/`seat`, `ladder.py`'s
+    `display_name`/`lane`) — one config routinely feeds two runners.
+  * `tests/test_dial_forwarding.py` pins both, and asserts the derived set
+    against the signature so the two cannot drift.
+
+**WHERE ELSE THIS SHAPE LIVES — check before trusting a null:** any readout that
+re-lists what a writer produces (`scripts/ch3_eval.py` had it, `search_meta.py`
+had hardcoded VERDICTS, `rl/common/value_calibration.py` had a docstring
+claiming it could not drift from its analysis script — it had). **If a list of
+fields appears in two files, one of them is already wrong.**
+
+## A NUMBER TYPED FROM MEMORY INTO A CORRECTION IS AS UNSAFE AS THE ONE IT CORRECTS (2026-09-19)
+
+**A correction carries more authority than the claim it replaces, because nobody
+re-checks the fix.** On 2026-09-19, while withdrawing the "90.9% of root visits"
+caveat across five files, I wrote **"KL 0.66 nats"** and **"argmax_moved 28%"**
+into the correction text. The 0.66 was a value from
+`tests/test_tree_decision_golden.py` — a golden **FIXTURE**, not a measurement.
+The 28% had no source at all. Measured values, from
+`results/tree_budget_r5/bs1.json` (1,107 searched decisions at `iters: 100`):
+**`pi_top1` 0.417, KL 5.70 nats, `argmax_moved` 4.0%.**
+
+Two more from the same pass: a §30.1 retraction I had recorded as written had
+**never reached the file**, and a "between-day G = 3.117" did not reproduce
+(it is **2.760**).
+
+**THE RULE:** before committing any correction, (1) open the file under
+`results/` and print the figure, (2) **cite that file inside the correction box**
+so the next reader can re-check, and (3) grep for the claim being corrected and
+verify the annotation landed at **every** site — including dependent sentences
+elsewhere that quote the old number. A correction pass needs the same
+anti-self-deception machinery as a measurement, for the same reason.
+
+## SESSION OFFSET ~0.02 IS UNRESOLVED — NEVER DIFFERENCE ACROSS SESSIONS WITHOUT AN ANCHOR (2026-09-19)
+
+**THIS SECTION ONCE SAID THE OPPOSITE. That version (RESULTS §30.1) is RETRACTED
+IN FULL, and the retraction is the landmine.** The bar STANDS.
+
+The standing line — "session offset ~0.02 on both FP instruments, never
+difference across sessions without an anchor" — rested on **one pair at 1.5 se**
+(0.5987 vs 0.5747), which is thin. On 2026-09-19 I gathered **five draws of the
+same greedy object** across three days and four blocks and used them to retire
+the rule:
+
+    G0 0.5747 (n1500, 09-17)   GA 0.5720 (n1500, 09-17)   GB 0.5827 (n1500, 09-17)
+    TGR 0.5830 (n1000, 09-18)  GC 0.6050 (n1000, 09-19)
     G-test of homogeneity:  G = 3.139 on 4 df,  p = 0.535
     pooled rate 0.5818 (n=6500)
-    observed sd 0.0130  vs  0.0140 expected from BINOMIAL ALONE
 
-**There is no detectable session offset in the greedy win rate** — the draws are
-if anything *less* variable than chance — and the test has the power to see one
-of 0.02 (that would push G to ~12 and p to ~0.02).
+**THE RETIREMENT WAS WRONG, FOR THREE REASONS.**
 
-**What DOES move is the realized OVERRIDE RATE**: the same configuration read
-0.1933 on 09-17 and 0.1703 on 09-18 (`docs/CLEANUP.md` L6). The instrument's
-DIFFICULTY looks stable; the SEARCH'S INTERACTION with it varies. Those are
-different quantities and only the second has evidence behind it.
+**1. THE POWER CLAIM WAS NEVER COMPUTED.** The published text asserted *"the
+test has the power to see one of 0.02 (that would push G to ~12 and p to
+~0.02)."* Simulating this exact design 20,000 times, a true 0.02 day spread
+gives **median G = 5.43** and reaches p < 0.05 **13% of the time**:
 
-**The practice does not change; its justification does.** Keep the in-session
-anchor: it costs one arm and removes the question entirely. **Stop citing
-"a ~0.02 session offset" as a measured fact.** A single 1.5-se observation was
-promoted to a standing bar and stood for weeks; checking it took ten minutes of
-arithmetic. **Rules earned from one sub-2-se number should carry that in their
-wording.**
+    true day spread   0.02   0.04   0.06   0.08   0.10
+    power             0.13   0.46   0.85   0.98   1.00
+
+**This design resolves 0.06. It has essentially nothing to say about 0.02.**
+"No detectable offset" was true and VACUOUS — an undetectable effect was not
+detected.
+
+**2. THE HETEROGENEITY THAT IS THERE SITS BETWEEN DAYS.** Decomposing the 3.139:
+**between-day G = 2.760 on 2 df, within-day G = 0.379 on 2 df.** 88% of it lies
+across days and almost none within 09-17's three draws — the shape a day effect
+makes, on a sample far too small to call it one. A pooled p of 0.535 was read as
+evidence AGAINST a day effect when the decomposition, if it leans anywhere,
+leans the other way.
+
+**3. "UNRESOLVED" IS NOT "ABSENT", AND THE RULE WAS CONSERVATIVE ON PURPOSE.**
+Neither the original 1.5-se pair NOR these five draws resolves 0.02. **Relaxing
+a safeguard requires evidence that the hazard is ABSENT; what I had was evidence
+that the hazard is HARD TO SEE.** The anchor costs one arm.
+
+**WHAT TO DO:** keep the in-session anchor, always. **Never difference a number
+against a banked arm from another session.** Quote the bar as **"0.02 is
+UNRESOLVED on every instrument we have"**, never as "a measured 0.02 offset" and
+never as "there is no offset" — both overclaim in opposite directions.
+
+**WHAT SURVIVES:** the five draws are real and the pooled greedy rate
+**0.5818 (n = 6500)** is a useful number. **What DOES move is the realized
+OVERRIDE RATE**: the same configuration read 0.1933 on 09-17 and 0.1703 on
+09-18 (`docs/CLEANUP.md` L6) — so the instrument's DIFFICULTY and the SEARCH'S
+INTERACTION with it are different quantities, and only the second has direct
+evidence.
+
+**THE META-LESSON, which is why this section is kept rather than deleted:** a
+safeguard was lifted on an analysis that could not see the hazard, and the
+error survived being written up, committed, and summarised before a second pass
+caught it. **When you find yourself relaxing a rule, compute the power first.**
 
 ## THE BINOMIAL IS RIGHT WITHIN A BLOCK (measured 2026-09-19)
 
@@ -91,11 +175,14 @@ deliberate in-session replicate:
 
 **Two identical arms in one session agree to 0.002**, well inside their
 binomial se of 0.022. **Within a block the binomial se is right**, which is what
-every readout here already assumes and nothing had measured. Read together with
-the correction above, the picture is simpler than the old rule: the FP@20 win
-rate behaves like a binomial draw both within and across sessions, and the
-in-session anchor is cheap insurance rather than a correction for a measured
-drift.
+every readout here already assumes and nothing had measured.
+
+**THIS IS A WITHIN-BLOCK RESULT ONLY.** [Corrected 2026-09-19: the published
+version continued *"the FP@20 win rate behaves like a binomial draw both within
+and across sessions, and the in-session anchor is cheap insurance rather than a
+correction for a measured drift"* — the ACROSS-sessions half rested on the
+retracted §30.1 above and is withdrawn. One replicate inside one block says
+nothing about drift between blocks.]
 
 **What that licenses and what it does not.** Within-block, arm-versus-arm
 comparisons may be read at their binomial se. Cross-block comparisons may not be

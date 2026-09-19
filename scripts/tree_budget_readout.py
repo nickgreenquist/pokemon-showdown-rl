@@ -11,6 +11,7 @@ far better determined than a win rate at n=40 -- and no win rate here is a read
 THE QUESTION. RESULTS §26 got TG (gumbel, iters 100) to +0.0210 at 0.96 se over
 an in-block greedy anchor: unresolved. Resolving it at 2 se needs n~4,375/arm,
 and iters 100 is the regime where the prior dominates -- 90.9% of root visits on
+^^ WITHDRAWN 2026-09-19 (RESULTS §32): the 90.9% was ONE smoke decision. Measured over 1,107 searched decisions at iters 100 (results/tree_budget_r5/bs1.json): pi_top1 0.417 vs the prior's 0.885, KL 5.70 nats -- pi' is far FLATTER than the prior.
 one action, 1.1 changed decisions per battle. If more iterations do not move
 pi' off the prior, the budget is not the lever and the expensive rungs should
 never run.

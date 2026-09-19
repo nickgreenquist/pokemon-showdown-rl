@@ -9,6 +9,7 @@
 # WHY NOT JUST ADD n. Resolving +0.0210 at 2 se takes n~4,375 per arm -- an
 # overnight block -- and it would spend that on the WEAKEST version of the arm.
 # `iters: 100` is precisely the regime the 90.9% visit-concentration measurement
+# ^^ WITHDRAWN 2026-09-19 (RESULTS §32): the 90.9% was ONE smoke decision. Measured over 1,107 searched decisions at iters 100 (results/tree_budget_r5/bs1.json): pi_top1 0.417 vs the prior's 0.885, KL 5.70 nats -- pi' is far FLATTER than the prior.
 # describes: the prior dominates and the tree can barely express an improvement.
 # TV changed the played action on 1.1 decisions per battle. If more iterations
 # move pi' off the prior, the effect worth resolving is a bigger one.
@@ -17,6 +18,7 @@
 # `rl/search/tree.py` now reports, on EVERY decision and every decide rule:
 #     tree/kl_pi_prior   how far the visit distribution has moved from the prior
 #     tree/pi_top1       the visit concentration (90.9% was measured once by hand)
+# ^^ WITHDRAWN 2026-09-19 (RESULTS §32): the 90.9% was ONE smoke decision. Measured over 1,107 searched decisions at iters 100 (results/tree_budget_r5/bs1.json): pi_top1 0.417 vs the prior's 0.885, KL 5.70 nats -- pi' is far FLATTER than the prior.
 #     tree/argmax_moved  UNGATED -- whether the search HAS an opinion, which is a
 #                        different question from whether a margin let it act
 # Those are per-DECISION quantities with ~1,300 samples in a 40-battle arm, so

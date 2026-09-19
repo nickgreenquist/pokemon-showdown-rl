@@ -174,7 +174,9 @@ class SearchAgent:
                 )
         self._disagree = disagree
         # IDEAS 2.13 -- a MONOTONE recalibration of the leaf value, fitted once
-        # from a luck-ceiling run and worth +0.0195 EV out of sample (§27.1).
+        # from a luck-ceiling run and worth +0.0096 EV out of sample (§27.1;
+        # corrected 2026-09-19 from +0.0195 -- the original CV leaked at the
+        # position level, and a plain AFFINE fit now scores higher at +0.0103).
         # None = untouched, bit-identical to every banked arm.
         #
         # IT IS NOT INERT, which is the objection to expect: a monotone map

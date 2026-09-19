@@ -68,6 +68,7 @@ class TreeCfg:
     #   "visits" -- AlphaZero / FP: root visit share. Assumes enough
     #     iterations for search to overrule the prior. Measured on the first
     #     smoke: our prior is sharp enough that 90.9% of visits land on one
+    # ^^ WITHDRAWN 2026-09-19 (RESULTS §32): the 90.9% was ONE smoke decision. Measured over 1,107 searched decisions at iters 100 (results/tree_budget_r5/bs1.json): pi_top1 0.417 vs the prior's 0.885, KL 5.70 nats -- pi' is far FLATTER than the prior.
     #     action, so at this budget visit share is very nearly the prior and
     #     the tree can barely speak.
     #   "q" -- root mean value, gated by a margin. This is EXACTLY the shape
@@ -298,6 +299,7 @@ class Tree:
         scale is not centred on zero. Our critic sits near +0.47 on a typical
         state, so a zero-initialised unvisited action looks WORSE than any
         visited one and PUCT stops exploring: the first smoke measured 90.9%
+        # ^^ WITHDRAWN 2026-09-19 (RESULTS §32): the 90.9% was ONE smoke decision. Measured over 1,107 searched decisions at iters 100 (results/tree_budget_r5/bs1.json): pi_top1 0.417 vs the prior's 0.885, KL 5.70 nats -- pi' is far FLATTER than the prior.
         of root visits landing on a single action, i.e. the tree very nearly
         reproducing its own prior.
 
@@ -459,6 +461,7 @@ def _expert_stats(rows, share, prior) -> dict[str, float]:
     confound in a new place.
 
     Measured 2026-09-11 and recorded in configs/eval/tree_r5.yaml: 90.9% of root
+    # ^^ WITHDRAWN 2026-09-19 (RESULTS §32): the 90.9% was ONE smoke decision. Measured over 1,107 searched decisions at iters 100 (results/tree_budget_r5/bs1.json): pi_top1 0.417 vs the prior's 0.885, KL 5.70 nats -- pi' is far FLATTER than the prior.
     visits landed on ONE action at a small budget. These counters are how that
     stops being an anecdote.
     """

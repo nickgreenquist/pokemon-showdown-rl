@@ -83,9 +83,22 @@ committee pending) and **§8.3 at depth-1** (n_det 1→64 flat). **NEW ROW 4.8
 below: the committee.** The IDEAS-stale claim "our measured KL would never
 fire" is gen-4; gen 1 reaches approx_kl 0.04–0.11.
 
-**Round 4 — 2026-09-18 (post-ladder: LADDER R5 landed on the top-500 list, then a
-week of search and mechanism reads; RESULTS §§20–24).** Status changes and new
-rows, each pointing at its evidence:
+**Round 4 — 2026-09-18, AMENDED THROUGH 2026-09-19 (post-ladder: LADDER R5
+landed on the top-500 list, then a week of search and mechanism reads; RESULTS
+§§20–24, extended to §§25–32).** Status changes and new rows, each pointing at
+its evidence.
+
+> **READ THIS FIRST (2026-09-19).** Round 4's ORDERING was set from §§20–24 and
+> has NOT been re-derived from §§25–32; individual rows below were amended in
+> place. Three things landed after it was written and they move the picture:
+> **(i) §30 — greedy beats EVERY search arm at 2.4–4.4 se**, so §8.1's "null" is
+> really a measured COST (see the bullet below, corrected); **(ii) §27/§27.1/§31
+> — the critic's deficit is now SPECIFIC** (~93% ranking, worst in the opening,
+> plus a +0.059 train/eval bias with an identified mechanism), which is the
+> strongest case on this list and argues for **4.9**; **(iii) §30's concentration
+> result — searching 40% of decisions beat searching 93%** (+0.0335 at 2.14 se),
+> which no row here anticipated. **A fresh re-rank is owed before the next
+> fleet.**
 
 * **§3's width/capacity entry is ANSWERED and no longer contingent** — RESULTS
   §21 fired branch 1 (critic first-layer srank99 **632/1024**, 0.617 of width,
@@ -93,10 +106,14 @@ rows, each pointing at its evidence:
   variance **did not move**: 0.5881 vs 0.5919). Both halves are recorded in §3
   below. A bigger critic is no longer bounded by IDLENESS; it is bounded by the
   **EV ceiling**, and **the next fleet must not be sized on EV**.
-* **§8.1 is answered at a real budget, and the answer is a null against the
-  right bar.** The bar is **greedy 0.5765 (n=4500)**, not the depth-1 search,
-  and every search configuration measured on the R5 committee is level with or
-  below it (RESULTS §24). Separately, the R5 committee **beats FP@500**
+* **§8.1 is answered at a real budget, and the answer is WORSE than a null —
+  it is a measured COST** [strengthened 2026-09-19 from "a null against the
+  right bar"]. The bar is **greedy** — 0.5765 (n=4500) banked, 0.6050 in
+  §30's own block — and every search configuration measured on the R5 committee
+  is level with or below it (RESULTS §24), with §30's ungated arms **below it at
+  2.4 se and the depth-2 arms at 3.4–4.4 se**. That distinction is the one
+  CLAUDE.md rule 6 turns on: a null would say nothing, a measured cost says
+  something. Separately, the R5 committee **beats FP@500**
   (0.5600, n=500, +2.70 se above even; RESULTS §25) and 25× budget buys Foul
   Play nothing (+0.010 at 0.32 se over FP@20, for 24.4× the wall clock) — so "FP beats us using 500 ms", the premise
   §8.1 was written on, no longer holds for this object.
@@ -524,11 +541,19 @@ checkpoint** and does NOT correspond to the averaged weights. The file is marked
 `weight_averaged.eval_only` at the top level: **evaluate from it, never resume
 from it.**
 
-**2.13 RECALIBRATE THE LEAF VALUE — FREE, MEASURED AT +0.0195 EV, and it is not
-inert (added 2026-09-18 from RESULTS §27.1).** An out-of-sample **isotonic**
-recalibration of the critic's output moves EV from **0.2176 to 0.2371** on the
-§27 positions. That is the whole calibration prize — a monotone map is the best
-any rescaling can do — and it costs one fitted curve and no training.
+**2.13 RECALIBRATE THE LEAF VALUE — FREE, MEASURED AT +0.0096 EV, and it is not
+inert (added 2026-09-18 from RESULTS §27.1).** An out-of-sample **affine**
+recalibration of the critic's output moves EV from **0.2176 to 0.2279** on the
+§27 positions; isotonic buys slightly less (+0.0096, to 0.2272). It costs one
+fitted curve and no training.
+**[CORRECTED 2026-09-19 — published as "+0.0195, isotonic, 0.2176 → 0.2371".**
+The original cross-validation split at the OUTCOME level while the predictor is
+constant within a POSITION (~32 rollouts share one critic value), so 100% of
+held-out outcomes had their own position in training. Grouped by position the
+gain roughly HALVES **and AFFINE NOW BEATS ISOTONIC** — "a monotone map is the
+best any rescaling can do" was in-sample optimality; with 707 distinct x-values
+and ~32 samples each, isotonic overfits. **The prize is smaller and the simpler
+fit wins.]**
 **WHY IT IS NOT INERT INSIDE THE SEARCH,** which is the objection to expect: a
 monotone map cannot reorder leaves at one node, but `matrix.py`'s `row_ev`
 **averages** leaf values across the opponent's column distribution, and averages
@@ -537,7 +562,9 @@ THRESHOLD on that same scale, so recalibrating changes the override rate and the
 delta must be re-swept with it (the standing rule — match on the realized rate,
 never on the knob).
 **The fit itself:** `oracle ≈ −0.0348 + 0.8334 × critic` affinely (affine buys
-+0.0107; the rest of the +0.0195 is the S-shape in the deciles). **Carry the
+**+0.0103** out of sample — MORE than isotonic's +0.0096, so there is no
+S-shape premium to collect; corrected 2026-09-19 from "+0.0107, the rest of the
++0.0195 is the S-shape in the deciles"). **Carry the
 fit with the checkpoint** — it is a property of THAT critic, not of the format,
 and a recalibration fitted on one checkpoint applied to another is a new
 untested object.
@@ -549,9 +576,10 @@ that was never asked for).
 **THE TENSION THIS ROW HAS TO ANSWER BEFORE IT GETS AN ARM, and it is not
 rhetorical.** The +0.0195 is an **EXPLAINED-VARIANCE** gain, and this project
 has now measured THREE TIMES that EV does not track strength: §21 (2.67× critic
-width and 126× rank bought ZERO EV while the win rate moved), §27.1 (88% of the
-critic's gap to the ceiling is ranking, which no rescaling touches), and §29 (EV
-moves in the OPPOSITE direction to the win rate in 9 lanes of 9). **A lever
+width and 126× rank bought ZERO EV while the win rate moved), §27.1 (~93%
+[corrected from 88%] of the critic's gap to the ceiling is ranking, which no
+rescaling touches), and §29 (EV moves in the OPPOSITE direction to the win rate
+in 9 lanes of 9). **A lever
 justified by EV is a lever justified by the one quantity measured not to
 matter.**
 
@@ -576,7 +604,8 @@ per leaf batch and moves the search the way §30 says is favourable, so **whethe
 to turn it on by DEFAULT is a maintainer ruling about the object, not an
 experiment.**
 
-**What it does NOT do:** close the gap. It is 12% of it; the other 88% is
+**What it does NOT do:** close the gap. It is ~7% of it [corrected 2026-09-19
+from 12%]; the other ~93% is
 ranking (§27.1), which is 4.9's and 4.1's territory.
 
 **2.14 BREAK THE DETERMINISTIC-POLICY LOOP — a MEASURED BUG with a BUILT fix,
@@ -1156,7 +1185,8 @@ and this is the only proposal that attacks both at once:
 0. **THE GAP IS A RANKING GAP, AND THAT IS WHY IT IS A TRAINING LEVER (RESULTS
    §27.1).** The critic sits at EV 0.2176 against a ceiling of 0.3630, and an
    out-of-sample isotonic recalibration — the best any rescaling can do — closes
-   only **12%** of that. **The other 88% is the critic not knowing WHICH position
+   only **~7%** of that [corrected 2026-09-19 from 12%/88% — the original CV
+   leaked; see RESULTS §27.1]. **The other ~93% is the critic not knowing WHICH position
    is better**, which no post-hoc fix touches and which is exactly what a
    changed training signal addresses. And the failure is concentrated where this
    lever operates: r² **0.287** against the oracle at turns 2–8 versus **0.727**
@@ -1522,10 +1552,17 @@ threshold 0.0 searches everything, a threshold above every score plays exactly
 the greedy argmax (not a third policy), and `None` is every banked arm. A
 one-legal-action decision scores 0 under both. Gate skips are folded into the
 `skips` denominator, or a healthy gated arm reads VOID on `depth2/fired_rate`.
-**RUN 2026-09-19. THE SELECTION CLAIM IS A NULL; the CONCENTRATION claim is
-still open (DUM pending).** At a search rate matched to three decimals (0.431
-both), gating on committee disagreement reads **0.5870** against a COIN's
-**0.5840** — **+0.0030 at 0.14 se.** The coin does just as well.
+**RUN 2026-09-19, COMPLETE. SELECTION IS A NULL; CONCENTRATION IS THE LIVE
+RESULT.** At a search rate matched to three decimals (0.431 both), gating on
+committee disagreement reads **0.5870** against a COIN's **0.5840** —
+**+0.0030 at 0.14 se.** The coin does just as well: the committee does not know
+WHERE. **But DUM has since finished, and concentration is the opposite of a
+null:** gated (40% of decisions) vs ungated (93%), pooling both replicates per
+side, is **+0.0335 at 2.14 se**, clearing BOTH halves of the credit line. The
+pooling is post-hoc and the block credits nothing — **but searching LESS beat
+searching MORE**, which inverts the dose intuition and is the most interesting
+unexplained result on this list. [Updated 2026-09-19; the paragraphs below were
+written while DUM was still running.]
 
 **WHAT IS AND IS NOT TESTED, because this is one cut of one metric.** The arm
 ran `votes` at threshold 0.30, which on a THREE-member committee means "ANY
