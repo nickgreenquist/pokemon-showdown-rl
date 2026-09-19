@@ -65,3 +65,18 @@ class EnsembleAgent:
                 self.flips += 1
             return int(actions.item())
         return actions.cpu().numpy()
+
+    def scores(self, obs, action_mask):
+        """The masked mean log-probs `act` takes its argmax over, for ONE
+        observation, as a (A,) float array -- the loop breaker's input. The
+        same per-member masking and log_softmax as `act`, so the argmax of
+        this array (lowest index among equal maxima) is the action `act`
+        returns. Does not touch the flip counters."""
+        first = self.members[0]
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=first.device)
+        assert obs_t.ndim == self.obs_rank, "scores() takes one observation"
+        mask_t = torch.as_tensor(action_mask, dtype=torch.bool, device=first.device)
+        with torch.no_grad():
+            logps = [torch.log_softmax(masked_logits(m.actor(obs_t.unsqueeze(0)), mask_t), dim=-1)
+                     for m in self.members]
+        return torch.stack(logps).mean(dim=0)[0].cpu().numpy()

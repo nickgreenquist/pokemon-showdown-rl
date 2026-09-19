@@ -101,8 +101,15 @@ _FOREIGN_KEYS = {
 _ARM_KEYS = {
     "kind", "lanes", "dose", "battles", "chunks", "evaluator",
     "ensemble_members", "members", "batches",
+    "loop_breaker", "loop_breaker_threshold",   # RESULTS §28, policy and ensemble kinds
     *_SEARCH_DIALS, *_FOREIGN_KEYS,
 }
+
+
+def _loop_keys(spec: dict) -> dict:
+    """The loop-breaker keys, forwarded only when the arm declares them so
+    every banked job dict is unchanged (tests/test_ch3_r0.py pins them)."""
+    return {k: spec[k] for k in ("loop_breaker", "loop_breaker_threshold") if k in spec}
 
 
 class PurityIncident(RuntimeError):
@@ -279,7 +286,8 @@ def _jobs(prereg: dict) -> dict[str, dict]:
         )
         if kind == "policy":
             for lane in spec["lanes"]:
-                jobs[f"{prefix}_{lane}"] = {"arm": arm_name, "members": [lane]}
+                jobs[f"{prefix}_{lane}"] = {"arm": arm_name, "members": [lane],
+                                            **_loop_keys(spec)}
         elif kind == "search":
             # `ensemble_members` makes the searched object an ENSEMBLE (the
             # EnsembleSearchAdapter): the log-pooled prior, the mean opponent
@@ -304,6 +312,7 @@ def _jobs(prereg: dict) -> dict[str, dict]:
             for b in range(spec["batches"]):
                 jobs[f"{prefix}_b{b}"] = {
                     "arm": arm_name, "members": spec["members"], "batch": b,
+                    **_loop_keys(spec),
                 }
         elif kind == "ensemble_loo":
             for lane in spec["members"]:
@@ -465,6 +474,12 @@ def run_job(prereg: dict, name: str) -> None:
             m, _, _ = _load_member(prereg, lane, env=env)
             members.append(m)
         agent = EnsembleAgent(members)
+    if job.get("loop_breaker"):
+        # RESULTS §28: the eval-time loop breaker, policy and ensemble kinds only.
+        assert adapter is None, "loop_breaker applies to the policy and ensemble kinds, not search"
+        from rl.common.loop_breaker import LoopBreakingPolicy
+
+        agent = LoopBreakingPolicy(agent, threshold=int(job.get("loop_breaker_threshold") or 4))
     _print_username(env)
 
     base = cfg.eval_episodes + job.get("batch", 0) * battles
@@ -512,9 +527,13 @@ def run_job(prereg: dict, name: str) -> None:
             "finished_at": time.time(),
             "returns": returns,
         }
-        if isinstance(agent, EnsembleAgent):
-            report["ensemble_decisions"] = agent.decisions
-            report["ensemble_flips"] = agent.flips
+        inner = getattr(agent, "agent", agent)   # LoopBreakingPolicy wraps the seat
+        if isinstance(inner, EnsembleAgent):
+            report["ensemble_decisions"] = inner.decisions
+            report["ensemble_flips"] = inner.flips
+        if getattr(agent, "breaker", None) is not None:
+            report["loop_breaker"] = True
+            report.update(agent.counters)   # cumulative over this job's chunks
         if adapter is not None:
             report.update(adapter.chunk_summary())
             report["search_dose"] = job["search_dose"]

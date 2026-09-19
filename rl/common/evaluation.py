@@ -52,6 +52,8 @@ def _run_eval_episodes(
     faints: list[tuple[int, int] | None] = []
     for episode in range(episodes):
         obs, info = env.reset(seed=EVAL_SEED_OFFSET + seed_start + episode)
+        if hasattr(agent, "reset_episode"):
+            agent.reset_episode()  # the loop breaker's memory is per episode
         mask = info.get("action_mask")  # masking applies at eval time too
         ep_return, done, steps = 0.0, False, 0
         while not done and steps < max_steps:

@@ -251,6 +251,8 @@ class SeatPlayer(Player):
             self._battle_index += 1
             self._decision_index = 0
             self.tag_index[battle.battle_tag] = self._battle_index
+            if hasattr(self._agent, "reset_episode"):
+                self._agent.reset_episode()  # the loop breaker's memory is per battle
         obs = embed_battle(battle, self._type_chart)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         if self._sa is not None:
@@ -335,6 +337,17 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         seat_lane_defaulted = "seat" not in arm
         seat_lane = arm.get("seat", "s65")
         agent = _build_agent(prereg["checkpoints"][seat_lane])
+    # RESULTS §28 / R6 prep plan ruling #1: the eval-time loop breaker, behind
+    # the arm's own key so every banked arm is byte-for-byte what it was. The
+    # wrapper delegates `members`/`decisions`/`actor`, so the dim probe and the
+    # ensemble counters below see through it.
+    loop_breaker = bool(arm.get("loop_breaker"))
+    if loop_breaker:
+        assert arm["kind"] in ("greedy_seat", "ensemble_seat"), (
+            f"{arm_name}: loop_breaker applies to the greedy and ensemble seats only")
+        from rl.common.loop_breaker import LoopBreakingPolicy
+
+        agent = LoopBreakingPolicy(agent, threshold=int(arm.get("loop_breaker_threshold", 4)))
     native_dim = _native_dim(agent)
     # CH4 R1 BI-3: a sampling seat (S1's whole point; C1's form-matching to
     # the banked pooled-orientation clone comparator) draws from torch's
@@ -500,6 +513,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "seat_rng_seed": arm.get("seat_rng_seed"),
         "seat_lane": seat_lane,
         "seat_lane_defaulted": seat_lane_defaulted,
+        "loop_breaker": loop_breaker,
         # None on a single-lane arm; the members + shas on a searched committee.
         "searched_ensemble": searched_ensemble,
         "seat_native_dim": native_dim,
@@ -659,6 +673,8 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         report["ensemble/flip_rate"] = (
             agent.flips / agent.decisions if agent.decisions else None
         )
+    if loop_breaker:
+        report.update(agent.counters)   # loop/decisions, fired, fired_rate, ...
     return report
 
 

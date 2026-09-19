@@ -980,6 +980,18 @@ class PPOAgent(Agent):
             return int(actions.item())  # (1,) -> the scalar the scalar loop wants
         return actions.cpu().numpy()
 
+    def scores(self, obs: Any, action_mask: Any) -> np.ndarray:
+        """The masked logits `act(deterministic=True)` takes its argmax over,
+        for ONE observation, as a (A,) float array -- the loop breaker's input
+        (rl/common/loop_breaker.py). Same tensors, same masking, so the argmax
+        of this array is the action `act` returns."""
+        obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device)
+        assert obs_t.ndim == self.obs_rank, "scores() takes one observation"
+        mask_t = torch.as_tensor(action_mask, dtype=torch.bool, device=self.device)
+        with torch.no_grad():
+            logits = masked_logits(self.actor(obs_t.unsqueeze(0)), mask_t)
+        return logits[0].cpu().numpy()
+
     def act_logp(self, obs: Any, action_mask: Any) -> tuple[Any, Any]:
         """Batched sample PLUS its log-prob — the async collector's act path.
 

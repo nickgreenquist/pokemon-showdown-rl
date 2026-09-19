@@ -323,6 +323,32 @@ def ladder_snapshot(fmt: str, userid: str) -> dict:
     return out
 
 
+def _deterministic_act(agent, arm: dict, prov: dict):
+    """The greedy / ensemble seat's act(): the agent's argmax -- or, behind the
+    arm's `loop_breaker: true` (RESULTS §28; a POLICY-FORM change that needs
+    the maintainer's ruling before a headline number), the LoopBreakingPolicy
+    over the same scores, reset at every battle boundary. Its counters go into
+    `prov` BY REFERENCE, so the report written after the run carries their
+    final values."""
+    if not arm.get("loop_breaker"):
+        def act(battle, obs, mask, bi, di):
+            return agent.act(obs, mask, deterministic=True)
+        return act
+    from rl.common.loop_breaker import LoopBreakingPolicy
+
+    wrapped = LoopBreakingPolicy(agent, threshold=int(arm.get("loop_breaker_threshold", 4)))
+    prov["loop_breaker"] = {"threshold": wrapped.breaker.threshold,
+                            "counters": wrapped.breaker.counters}
+    state = {"bi": None}
+
+    def act(battle, obs, mask, bi, di):
+        if state["bi"] != bi:
+            state["bi"] = bi
+            wrapped.reset_episode()
+        return wrapped.act(obs, mask, deterministic=True)
+    return act
+
+
 def _build_policy(prereg: dict, arm: dict):
     """Returns (act_fn, provenance). Every kind exposes the SAME call —
     act(battle, obs, mask, battle_index, decision_index) -> int — so the
@@ -367,9 +393,7 @@ def _build_policy(prereg: dict, arm: dict):
         agent = _load(lane)
         prov["lane"] = lane
         prov["sha256"] = prereg["checkpoints"][lane]["sha256"]
-
-        def act(battle, obs, mask, bi, di):
-            return agent.act(obs, mask, deterministic=True)
+        act = _deterministic_act(agent, arm, prov)
 
     elif kind == "ensemble":
         from rl.search.ensemble import EnsembleAgent
@@ -379,9 +403,7 @@ def _build_policy(prereg: dict, arm: dict):
         agent = EnsembleAgent(members)
         prov["lanes"] = lanes
         prov["sha256"] = [prereg["checkpoints"][x]["sha256"] for x in lanes]
-
-        def act(battle, obs, mask, bi, di):
-            return agent.act(obs, mask, deterministic=True)
+        act = _deterministic_act(agent, arm, prov)
 
     else:  # search
         from rl.search.agent import SearchAgent

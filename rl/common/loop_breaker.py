@@ -32,10 +32,14 @@ the measured loops are period-2 or period-3. The breaker therefore remembers how
 many times it has already escaped THIS observation and takes the (k+1)-th best
 action, so a cycle of any period unwinds in at most (legal actions) steps.
 
-NOT WIRED ANYWHERE. It is a change to the POLICY FORM and the locked protocol
-names the policy, so it needs the maintainer's ruling before a headline number
-uses it (RESULTS §28). This module is the proposal, tested against the measured
-signature.
+WIRED 2026-09-19 behind an arm key, OFF by default: `loop_breaker: true` (and
+`loop_breaker_threshold`, default 4) on a greedy / ensemble arm in
+scripts/ch3_fp_h2h.py, scripts/ch3_eval.py and scripts/ladder.py wraps the seat's
+agent in `LoopBreakingPolicy` below, resets it at every battle boundary and
+stamps `loop/*` into the report. It is still a change to the POLICY FORM and the
+locked protocol names the policy, so it needs the maintainer's ruling before a
+headline number uses it (RESULTS §28; R6 prep plan ruling #1). With the key
+absent every seat is byte-for-byte what it was.
 """
 from __future__ import annotations
 
@@ -77,6 +81,7 @@ class LoopBreaker:
             "loop/fired": 0,
             "loop/max_repeat": 0,
             "loop/distinct_states": 0,
+            "loop/fired_rate": 0.0,
         }
 
     def reset(self) -> None:
@@ -104,9 +109,49 @@ class LoopBreaker:
             # times. Escalate one rank for every future visit to this position.
             self._escapes[key] = k + 1
             self.counters["loop/fired"] += 1
+        self.counters["loop/fired_rate"] = (
+            self.counters["loop/fired"] / self.counters["loop/decisions"])
         return action
 
     @property
     def fired_rate(self) -> float:
         d = self.counters["loop/decisions"]
         return self.counters["loop/fired"] / d if d else 0.0
+
+
+class LoopBreakingPolicy:
+    """A deterministic seat with the breaker in front of it.
+
+    Wraps a PPOAgent or an EnsembleAgent: `act(obs, mask, deterministic=True)`
+    takes the wrapped agent's own SCORES over actions (`agent.scores`, the
+    masked logits or the masked mean log-probs the argmax is taken over) and
+    hands them to the LoopBreaker, so with no repetition the action is
+    bit-identical to `agent.act` (both pick the lowest index among equal
+    maxima). Everything else -- `members`, `decisions`, `actor`, `obs_rank` --
+    is delegated, so a harness that inspects the seat sees the seat.
+
+    `reset_episode()` must be called at every battle boundary (the memory is
+    per-episode); `counters` is the breaker's dict plus the fired rate.
+    """
+
+    def __init__(self, agent, threshold: int = DEFAULT_THRESHOLD):
+        self.agent = agent
+        self.breaker = LoopBreaker(threshold)
+
+    def __getattr__(self, name):
+        # Only reached for names not on the wrapper itself; never recurse.
+        if name in ("agent", "breaker"):
+            raise AttributeError(name)
+        return getattr(self.agent, name)
+
+    def reset_episode(self) -> None:
+        self.breaker.reset()
+
+    def act(self, obs, action_mask=None, deterministic: bool = True) -> int:
+        assert deterministic, "the loop breaker is a deterministic policy form"
+        assert action_mask is not None, "masking is a harness contract"
+        return self.breaker.decide(obs, self.agent.scores(obs, action_mask), action_mask)
+
+    @property
+    def counters(self) -> dict:
+        return dict(self.breaker.counters)
