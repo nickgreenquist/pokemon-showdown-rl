@@ -2472,3 +2472,105 @@ costs one arm and removes the question entirely — but stop citing "a ~0.02 ses
 as a measured fact, because five draws say it is not one. **And this is a correction to a
 rule of my own making: a single 1.5-se observation was promoted to a standing bar, and it
 took ten minutes of arithmetic to check.**
+
+## 31. Addendum, 2026-09-19 — **the critic is not antisymmetric: it adds +0.059 to whichever side it looks at, and that is exactly its training distribution's mean return**
+
+`scripts/critic_antisymmetry.py`; `results/outcome_variance/antisymmetry.json`. Hacking
+run, **credits nothing**. **No rollouts, no oracle, no sampler** — 263 positions × 4
+determinizations, two critic forwards each, sixteen seconds of compute.
+
+§27.1 measured the critic reading **+0.0416 optimistic** against the rollout oracle and
+named two causes it could not separate: a perspective bias, or the determinization
+sampler. Gen 1 is ZERO-SUM, so **V(s) + V(swap(s)) must be 0** for a calibrated critic —
+and both terms come from the same determinization and the same encoder, so no outcome and
+no sampler enter. That separates them.
+
+| | mean V(s)+V(swap(s)) | implied per-side bias |
+|---|---|---|
+| **all 1052 evaluations** | **+0.1173** (se 0.0080, **z 14.73**) | **+0.0586** |
+| turns 2–8 | +0.2402 | **+0.1201** |
+| turns 9–15 | +0.1217 | +0.0608 |
+| turns 16–22 | +0.0522 | +0.0261 |
+| turns 23+ | +0.0455 | +0.0228 |
+
+**THE CRITIC IS NOT ANTISYMMETRIC, at z = 14.7.** It is optimistic about whichever side it
+is pointed at, by **+0.059** — more than §27.1's +0.0416, so **the perspective bias fully
+accounts for that finding and the determinization sampler is exonerated.** The bias is
+**5× larger in the opening** than at turn 23+.
+
+**AND THE MECHANISM IS IDENTIFIED, not inferred.** The critic's optimism matches **its own
+training distribution's mean return**:
+
+| | value |
+|---|---|
+| critic's per-side optimism | **+0.0586** |
+| `rollout/episode_return`, last 10% of training (3 lanes) | +0.0881 / +0.0870 / +0.0847 |
+| `rollout/episode_return`, whole run (3 lanes) | +0.0361 / +0.0366 / +0.0362 |
+
+**The critic is not wrong. It is correctly predicting the expected return under the
+distribution it was fitted on** — and that distribution is positive because **league play
+puts the learner against a POOL of older, weaker checkpoints**, not against its equal.
+Evaluation puts it against a mirror of itself (or Foul Play), where the true mean is 0.
+The gap is a TRAIN/EVAL DISTRIBUTION SHIFT, and the measured bias sits between the
+whole-run mean and the late mean, which is where a value function fitted over the run with
+recency weighting should sit.
+
+**What this re-frames.** IDEAS **4.1** (the both-seat harvest) was given this as its
+"measured defect" in §27.1; **that attribution is withdrawn.** Showdown's p1/p2 are
+symmetric and a seat asymmetry is not what this is. The live item is the train/eval gap,
+and its cheapest fix is the one already built: **IDEAS 2.13's recalibration**, whose
+fitted affine intercept is **−0.0348** — within a whisker of the whole-run mean return of
++0.036, i.e. it is already subtracting exactly this.
+
+**What it does NOT touch.** Self-consistency is not accuracy: a critic can be perfectly
+antisymmetric and badly wrong. §27.1's finding that **88% of the gap to the ceiling is
+RANKING** is untouched, and a constant offset cancels in any comparison BETWEEN actions at
+one node — so this bias is largely harmless to the search's choice, except through the
+one channel where it is not constant: **it varies 5× with the turn.**
+
+## 32. Addendum, 2026-09-19 — **IDEAS 8.6's screen: the rule did not fire, one of its two criteria was MIS-SPECIFIED, and the "90.9%" caveat this project has been quoting is wrong**
+
+`results/tree_budget_r5/READOUT.txt`; config `configs/eval/tree_budget_r5.yaml`. Hacking
+run, **credits nothing**. n=40 per rung, so **no win rate here is a read** (se 0.079).
+
+| arm | rule | iters | ms/dec | prior_top1 | **π′_top1** | **argmax_moved** | KL(π′‖prior) |
+|---|---|---|---|---|---|---|---|
+| BS1 | gumbel | 100 | 91.8 | 0.885 | **0.417** | **4.0%** | 5.70 |
+| BS3 | gumbel | 300 | 256.7 | 0.890 | 0.670 | 9.0% | 2.77 |
+| BS9 | gumbel | 900 | 766.6 | 0.884 | **0.773** | **15.9%** | 1.67 |
+| BSV | visits | 900 | 760.0 | 0.882 | 0.754 | 17.5% | 1.82 |
+
+**THE PRE-REGISTERED RULE REQUIRED BOTH: KL ≥ 1.5× AND argmax_moved ≥ +5 points. KL went
+the other way (0.29×) and argmax_moved rose +11.9 points. The rule DOES NOT FIRE, and it
+is recorded as not firing.**
+
+**But one of its two criteria was mis-specified, and the screen shows exactly how.**
+KL(π′‖prior) conflates two different things — how much the search DISAGREES, and how SHARP
+its visit distribution is. At `iters: 100` the tree has not converged: π′_top1 is **0.417**
+against a prior whose top action carries **0.885**, so the visit distribution is
+*exploration noise*, not an opinion, and its distance from a sharp prior is large. At
+`iters: 900` the tree concentrates (π′_top1 0.773) and moves *toward the prior's shape*
+while disagreeing about the ACTION four times as often. **KL falls for a reason that has
+nothing to do with thinking less.**
+
+**`argmax_moved` is the criterion that measures the thing 8.6 asked about, and it rose
+from 4.0% to 15.9%.** That is stated as a correction to the rule, **not** as a result:
+switching to the criterion that fires after seeing the data is the discipline failure this
+project exists to avoid. **A corrected rule needs a re-run, and it is the maintainer's
+call whether to spend it.**
+
+**AND THE SCREEN CORRECTS A CAVEAT THIS PROJECT HAS BEEN QUOTING ALL WEEK.** Recorded at
+`configs/eval/tree_r5.yaml:36` and propagated into §26, IDEAS 4.9 and the expert-iteration
+proposal: *"our prior is sharp enough that 90.9% of root visits land on one action at a
+small budget, so visit share IS nearly the prior"*. **Measured here at iters 100:
+π′_top1 = 0.417.** The sharp thing is the **PRIOR** (0.885), not the visit distribution.
+The claim is withdrawn wherever it appears; the underlying worry — that a small-budget
+tree cannot express an improvement — survives in a **different and better-supported form:
+at iters 100 the tree's argmax differs from the policy's on only 4% of decisions.**
+
+**THE ECONOMICS ARE THE REAL OBSTACLE, and they are worse than the rule.** 8.4× the cost
+buys 4× the disagreement — and **§30 measured, monotonically and in one session, that
+changing MORE decisions is WORSE** (greedy 0.605 → 17% changed 0.551). A bigger tree buys
+more of exactly the thing that block measured to cost win rate. That is not a proof the
+tree behaves like the matrix (§26.1: the only arms ever above their own anchor were
+trees), but it is the question any phase R has to answer first.

@@ -33,7 +33,12 @@
 #
 # THREE DECISION RULES, because the rule mattered more than the tree last time:
 #   TV  decide=visits -- Foul Play's and AlphaZero's rule. No gate. Caveat
-#       measured 2026-09-11: our prior is sharp enough that 90.9% of root visits
+#       measured 2026-09-11: 90.9% of root visits landed on one action at a
+#       small budget. *** WITHDRAWN 2026-09-19 (RESULTS §32): measured at
+#       iters 100 in this configuration, pi_top1 is 0.417, not 0.909. The
+#       SHARP thing is the PRIOR (0.885). The worry survives in a better form:
+#       the tree's argmax differs from the policy's on only 4% of decisions
+#       at iters 100. Original line follows. *** our prior is sharp enough that 90.9% of root visits
 #       landed on one action at a small budget, so visit share IS nearly the
 #       prior unless the budget is large enough to overrule it.
 #   TQ  decide=q + margin, swept to match D1's 6.8% override. This is EXACTLY

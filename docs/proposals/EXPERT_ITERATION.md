@@ -35,7 +35,11 @@ the search's question.
 
 **(b) The policy is never trained toward the search's improved distribution, and
 the search cannot express an improvement without that.** Measured 2026-09-11 and
-recorded in `configs/eval/tree_r5.yaml:36`: at a small budget **90.9% of root
+recorded in `configs/eval/tree_r5.yaml:36` and **WITHDRAWN 2026-09-19 (RESULTS
+§32): π′_top1 at iters 100 measures 0.417, not 0.909 — the sharp thing is the
+PRIOR (0.885). The point survives in a better form: the tree's argmax differs
+from the policy's on 4.0% of decisions at iters 100 and 15.9% at iters 900.**
+The original claim was: at a small budget **90.9% of root
 visits land on ONE action**, because the prior is sharp and nothing ever moves
 it. First live confirmation, 2026-09-18: the TV arm (decide=visits, iters 100)
 changed the played action on **3.65% of decisions — 1.1 decisions per battle**.

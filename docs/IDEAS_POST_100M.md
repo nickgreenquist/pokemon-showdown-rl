@@ -1158,7 +1158,11 @@ and this is the only proposal that attacks both at once:
    good — it has simply never been ASKED the search's question.
 2. **Our policy is never trained toward the search's improved distribution.**
    Measured 2026-09-11 and recorded in `configs/eval/tree_r5.yaml:36`: at a
-   small budget **90.9% of root visits land on one action**, because the prior
+   small budget 90.9% of root visits land on one action — **WITHDRAWN 2026-09-19,
+   RESULTS §32: measured π′_top1 at iters 100 is 0.417, and the sharp thing is the
+   PRIOR at 0.885. The claim survives in a better form: the tree's argmax differs
+   from the policy's on only 4.0% of decisions at iters 100, rising to 15.9% at
+   iters 900.** The original wording said it was because the prior
    is sharp and nothing ever moves it. **Confirmed live 2026-09-18 (RESULTS §26):** the TV
    arm (a real tree, decide=visits, iters 100) changed the played action on
    **3.65% of decisions — 1.1 decisions per battle**, and read +0.014 at 0.64 se
