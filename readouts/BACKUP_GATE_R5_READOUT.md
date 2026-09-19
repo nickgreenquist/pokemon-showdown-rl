@@ -11,9 +11,19 @@ at `--search-time-ms 20`, seat `w112`. **n = 1000 battles per phase-R arm.**
 
 ## The one-line result
 
-**Every arm that searched read BELOW the greedy committee, and the shortfall
-grows monotonically with how much of the policy the search took over.**
-The in-session greedy anchor **GC = 0.6050** is the highest number in the block.
+**Every arm that searched read BELOW the greedy committee.** The in-session
+greedy anchor **GC = 0.6050** is the highest number in the block. The ungated
+depth-1 arms sit below it at ~2.4 se and the depth-2 arms at 3.4–4.4 se; the
+gated arms sit between and are separated from neither.
+
+> **NOT MONOTONE, and RESULTS §30 corrects an earlier claim here that it was.**
+> Ordering the arms by how often they change the played action, **0.584 at 6.4%
+> RISES to 0.587 at 9.1%**, and `B2O`'s 0.529 at 12.5% sits below `DUM`'s 0.553
+> at 15.3%. Such a list also **mixes vehicles** — GC searches nothing, DGV/DRV
+> are gated, DUM/D1O/B2O/B2R ungated — which is the frame §26.1 retired ("the
+> VEHICLE separates them, and the override rate does not"). **This block does
+> not establish a monotone relation with the change rate.** What it establishes
+> is the level ordering above.
 
 | arm  | what it is                              | searched | overrides / ALL decisions | **win rate** |
 |------|-----------------------------------------|---------:|--------------------------:|-------------:|
@@ -43,8 +53,13 @@ That is the most important number here. One rung of this instrument is worth
 block's *within*-session replicate lands at a tenth of that. Every delta below
 is read against a measured floor rather than an assumed one.
 
-`G_OPPK_FIRED` also passes: B2R reports `depth2/minimax_drop` **0.0566** (large
-against δ 0.08) and `depth2/fired_rate` 0.998 — the new backup genuinely fired.
+**SIX OF SEVEN R0 GATES PASS. `G_OVERRIDE_MATCHED` FAILS** — it requires ≤0.03
+for B2R *and* B2O, and **B2O misses by 0.0382**; the block's own readout prints
+`AT LEAST ONE R0 GATE FAILED` as its last line, and the B2O design error below
+is the same fact stated twice. The six that pass: `opp_replies` 2.00/1.00,
+`minimax_drop` **0.0566**/0.0000 (the new backup genuinely fired, large against
+δ 0.08), both search rates matched to 0.0004, the cap not binding at 1865
+grandchildren against 6000, and the replicate above.
 
 ---
 
@@ -92,7 +107,17 @@ dose M, same `margin_delta` 0.05, same ~40% searched fraction (DRV's threshold
 The only difference is *which* decisions were searched — and it is worth
 **+0.003**.
 
-**What this does and does not say.** At n=1000/arm the se on this delta is
+**Concentration is a different question from selection, and it reads
+differently.** Pooling both gated arms against both ungated replicates (the
+symmetric choice): **+0.0335 at 2.14 se**, which clears both halves of the
+credit line. **The pooling is post-hoc on both sides and this block credits
+nothing** — but "searching 40% of decisions beat searching 93%" is the live
+result here, and it is the opposite of the dose intuition. (RESULTS §30 first
+published this as "+0.0325 at 1.69 se, misses the 2·se bar"; that figure pooled
+two gated arms against only ONE of the two identical ungated arms, and is
+corrected there.)
+
+**What the SELECTION null does and does not say.** At n=1000/arm the se on this delta is
 0.0220, so an effect at the credit line (0.025) sits ~1.1 se from the point
 estimate: **this does not EXCLUDE a credit-sized selection effect, and it is not
 quoted as a kill.** What it does say is that the point estimate is +0.003 rather
@@ -103,7 +128,7 @@ lists them) and a bigger dose on the selected decisions, not more n on this cut.
 
 ---
 
-## What the block actually found: a monotone dose–response
+## The graded picture — a TREND, explicitly not a monotone law
 
 Pooling the arms by how much of the game they handed to the search:
 
@@ -130,14 +155,19 @@ seven arms:
   0.6050** — a check the fit never got to use.
 
 **How to read it, and how not to.** This is a **descriptive** relationship over
-seven arms that differ in more than one way, and `override_fraction` is not
+seven arms that differ in more than one way. `override_fraction` is not
 separable from `searched_fraction` here — an arm that searches more overrides
-more by construction. It is not a credited effect and it is not a mechanism
-ceiling. What it is: the **fourth** independent measurement pointing the same
-way (§21 width bought zero EV, §26 no tree arm beat greedy, §30 greedy beat
-every search arm, and now a monotone dose–response with the ends at 2.78 se),
-and the first one that is *graded* rather than binary. The next search idea
-should explain why it will move that line, not merely that it might.
+more by construction — and the three-rung pooling **mixes vehicles**, so it
+inherits §26.1's objection in full. **The fit is a trend with r = −0.875 and
+two inversions in the raw ordering, not a law**; the 0%–40% step is itself only
+1.03 se. It is not a credited effect and it is not a mechanism ceiling.
+
+What it is worth: the ends separate at 2.78 se, the fit survives leave-one-out,
+and its intercept reproduces the measured anchor to 0.006. Read alongside §21
+(width bought zero EV), §26 (no tree arm beat greedy) and §30 (greedy beat
+every search arm), it is the first *graded* version of a result this project has
+so far only seen as a sequence of binary nulls. **The value is as a target for
+the next search idea to argue against**, not as a number to cite.
 
 ---
 
@@ -148,14 +178,18 @@ should explain why it will move that line, not merely that it might.
   the ~0.02 instrument offset this project measures repeatedly, and it is
   exactly why the block bought an in-session anchor. **No number here is
   differenced against a banked cross-session arm.**
-* **CONTAMINATION, DUM, 2026-09-19 01:56–01:59Z.** A second chain started 23 s
-  after DUM launched and ran beside it ~2.8 min before being killed. **35 of
-  1000 battles** ran inside the window at 5.5 s/battle against DUM's clean 3.0.
-  Contention weakens a **time-boxed** opponent, so it **flatters DUM** — which
-  makes `DGV − DUM` SMALLER (conservative for the concentration claim) and the
-  93% rung HIGHER (conservative for the monotone ladder). Both guard holes are
-  fixed in `scripts/night_queue2.sh` (frozen-mktemp names now matched; six
-  consecutive clear checks, longer than the 30 s inter-arm sleep).
+* **CONTAMINATION, DUM, 2026-09-19 01:56–01:59Z — MEASURED, and it went the
+  OTHER WAY.** A second chain started 23 s after DUM launched and ran beside it
+  ~2.8 min before being killed. **35 of 1000 battles** ran inside the window at
+  5.5 s/battle against DUM's clean 3.0. The *prediction* was that contention
+  weakens a **time-boxed** opponent and so flatters DUM. **The measurement
+  refutes the prediction:** those 35 battles read **0.4571** against the
+  remaining 965 at **0.5565** — 1.2 se in the direction OPPOSITE to the one
+  predicted, i.e. **the contamination is not visible above noise.** Reported
+  this way because the pre-reg promised a measurement rather than an argument.
+  Both guard holes are fixed in `scripts/night_queue2.sh` (frozen-mktemp names
+  now matched; six consecutive clear checks, longer than the 30 s inter-arm
+  sleep).
 * **`concurrent_decision_rate` in these JSONs is computed on a BAD DENOMINATOR**
   (`_decision_index`, which the placeholder path does not advance) — DRV's
   1.15625 is a rate above 1, which is how it was caught. Fixed 2026-09-19 in
