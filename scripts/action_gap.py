@@ -184,9 +184,25 @@ def main() -> None:
                     q1s.append(float(o1.mean())); q2s.append(float(o2.mean()))
                 if len(q1s) >= 1:
                     q1, q2 = float(np.mean(q1s)), float(np.mean(q2s))
+                    # MEASURE the rollout noise on the gap, never assume it.
+                    # The ceiling is a conditional expectation and therefore a
+                    # WINNER'S CURSE: conditioning on a noisy negative selects
+                    # for negative noise, so the naive estimate is inflated by
+                    # exactly the amount of noise present. With zero true gap
+                    # everywhere, pure noise still yields a "ceiling" of ~0.04.
+                    # Assuming unit variance (§27 measures 0.637) and assuming
+                    # the two actions' rollouts are independent (they share a
+                    # position, so they are positively correlated) both move the
+                    # answer materially -- so the per-action spread is recorded.
                     row = {"ep": ep, "turn": turn, "q_top1": q1, "q_top2": q2,
                            "gap": q1 - q2, "n_det": len(q1s),
-                           "rollouts": args.rollouts}
+                           "rollouts": args.rollouts,
+                           "var1": float(np.var(o1, ddof=1)) if o1.size > 1 else None,
+                           "var2": float(np.var(o2, ddof=1)) if o2.size > 1 else None,
+                           "n1": int(o1.size), "n2": int(o2.size),
+                           "corr_12": float(np.corrcoef(o1[:min(o1.size, o2.size)],
+                                                        o2[:min(o1.size, o2.size)])[0, 1])
+                                       if min(o1.size, o2.size) > 3 else None}
                     rows.append(row)
                     with rows_path.open("a") as f:
                         f.write(json.dumps(row) + "\n")

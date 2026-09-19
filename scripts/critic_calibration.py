@@ -40,6 +40,10 @@ from pathlib import Path
 import numpy as np
 
 BUCKETS = ((2, 8), (9, 15), (16, 22), (23, 10**9))
+# RESULTS §27's one-way random-effects ceiling. The in-sample oracle (0.3828) is
+# biased UP and §27 bars it; the share of the gap a recalibration closes must be
+# measured against this, not against that.
+CEILING_UNBIASED = 0.3630
 
 
 def pava(x: np.ndarray, y: np.ndarray):
@@ -60,15 +64,30 @@ def pava(x: np.ndarray, y: np.ndarray):
     return xs, np.repeat(val, [int(w) for w in wt])
 
 
-def cross_val(pred_fn, p: np.ndarray, o: np.ndarray, folds: int = 5, seed: int = 0):
-    """Out of sample, because an in-sample recalibration is an upper bound and
-    the question is what a recalibration would actually BUY."""
-    idx = np.arange(o.size)
-    np.random.default_rng(seed).shuffle(idx)
+def cross_val(pred_fn, p: np.ndarray, o: np.ndarray, groups: np.ndarray,
+              folds: int = 5, seed: int = 0):
+    """Out of sample, GROUPED BY POSITION -- and the grouping is the whole point.
+
+    THIS WAS WRONG UNTIL 2026-09-19 AND IT INFLATED A HEADLINE. The first
+    version split at the OUTCOME level. But the predictor is CONSTANT WITHIN A
+    POSITION -- ~32 rollouts of one position share one critic value -- so a
+    held-out outcome's own position was in the training fold **100% of the
+    time**, with the identical x. The isotonic fit at that x then partially
+    learned that position's own mean, and "out of sample" measured nothing of
+    the kind: it read 0.2371 where the honest number is 0.2272.
+
+    It is the same mistake as "seeds do not pair battles" (docs/landmines.md) in
+    a new costume: correlated rows treated as independent draws. Splitting by
+    POSITION is the fix, and it changes the conclusion's magnitude -- the
+    calibration share of the gap falls from 12% to ~7%.
+    """
+    g = np.unique(groups)
+    np.random.default_rng(seed).shuffle(g)
     out = np.empty_like(o, dtype=float)
     for k in range(folds):
-        te = idx[k::folds]
-        tr = np.setdiff1d(idx, te)
+        held = set(g[k::folds].tolist())
+        te = np.flatnonzero(np.isin(groups, list(held)))
+        tr = np.setdiff1d(np.arange(o.size), te)
         out[te] = pred_fn(p[tr], o[tr], p[te])
     return out
 
@@ -100,15 +119,20 @@ def main() -> None:
     o = np.array([x for r in rows for x in r["outcomes"]], dtype=float)
     p = np.array([r["critic"] for r in rows for _ in r["outcomes"]], dtype=float)
     mu = np.array([r["mean"] for r in rows for _ in r["outcomes"]], dtype=float)
+    # the POSITION each outcome belongs to -- the CV must hold these out whole
+    groups = np.array([i for i, r in enumerate(rows) for _ in r["outcomes"]])
     vt = float(o.var())
 
     def ev(pred):
         return 1.0 - float(((o - pred) ** 2).mean()) / vt
 
     raw, oracle = ev(p), ev(mu)
-    iso_oos = ev(cross_val(_iso, p, o))
-    aff_oos = ev(cross_val(_affine, p, o))
-    gap = oracle - raw
+    iso_oos = ev(cross_val(_iso, p, o, groups))
+    aff_oos = ev(cross_val(_affine, p, o, groups))
+    # THE DENOMINATOR IS THE UNBIASED CEILING, not the in-sample oracle. §27
+    # bars the naive ratio as biased up, and using it here would be using a
+    # barred quantity as a denominator two subsections later.
+    gap = CEILING_UNBIASED - raw
     d = v - m
     bias = float(d.mean())
     bias_se = float(d.std(ddof=1) / np.sqrt(d.size))
@@ -135,7 +159,8 @@ def main() -> None:
     print(f"  EV, raw critic                         {raw:.4f}")
     print(f"  EV, affine recalibration (out of samp) {aff_oos:.4f}   {aff_oos - raw:+.4f}")
     print(f"  EV, ISOTONIC recalib.    (out of samp) {iso_oos:.4f}   {iso_oos - raw:+.4f}")
-    print(f"  EV, oracle E[outcome|obs]              {oracle:.4f}   the ceiling")
+    print(f"  EV, oracle E[outcome|obs]              {oracle:.4f}   IN-SAMPLE, biased up")
+    print(f"  EV ceiling, §27 variance components    {CEILING_UNBIASED:.4f}   <- the denominator")
     print(f"\n  A monotone recalibration is the BEST any rescaling can do, so")
     print(f"  calibration is worth {iso_oos - raw:+.4f} of the {gap:.4f} gap "
           f"({100 * (iso_oos - raw) / gap:.0f}%).")
