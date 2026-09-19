@@ -159,12 +159,22 @@ def test_jobs_search_kind_and_legacy_shape():
     # forwards but a runner drops is the defect class that kept depth-2, the
     # MCTS tree, mcts and bcts unrunnable off Foul Play for months, so adding
     # a key here is meant to be a deliberate act with a test to update.
-    assert jobs["a1s_s62"] == {"arm": "A1S", "members": ["s62"],
-                               "search_dose": "M", "leaf_encoding": None,
-                               "margin_delta": None, "depth2": None,
-                               "mcts": None, "tree": None, "bcts": None,
-                               "heuristic": None,
-                               "ensemble_search": False, "seed_lane": "s62"}
+    # 2026-09-19 (L7): the pinned dict is now DERIVED from SearchAgent's own
+    # signature rather than re-listed, because the hardcoded list is exactly
+    # how `disagree` and `calibration` -- added to SearchAgent after it was
+    # written -- were accepted in a pre-reg and silently DROPPED, so an arm
+    # would have run as a control while its readout claimed the dial. This
+    # assertion still pins the VALUE (every dial None on an undeclared arm, so
+    # every banked search arm is unchanged); what it no longer pins is a
+    # hand-maintained key list that could drift from the object again.
+    assert jobs["a1s_s62"] == {
+        "arm": "A1S", "members": ["s62"], "search_dose": "M",
+        "ensemble_search": False, "seed_lane": "s62",
+        **{d: None for d in ch3_eval._SEARCH_DIALS},
+    }
+    assert {"disagree", "calibration"} <= set(ch3_eval._SEARCH_DIALS), (
+        "the two dials the hardcoded list dropped must be forwarded"
+    )
     assert "search_dose" not in jobs["a0_s62"]
     with pytest.raises(ValueError):
         ch3_eval._jobs({"arms": {"X": {"kind": "mcts"}}})

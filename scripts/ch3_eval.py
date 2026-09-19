@@ -57,6 +57,8 @@ import sys
 import time
 from pathlib import Path
 
+import inspect
+
 import numpy as np
 import torch
 import yaml
@@ -67,8 +69,40 @@ from rl.common.evaluation import _run_eval_episodes, eval_metrics
 from rl.envs.make import make_eval_env
 from rl.envs.normalize import frozen_obs_env
 from rl.envs.showdown import mask_desync_total
+from rl.search.agent import SearchAgent
 from rl.search.ensemble import EnsembleAgent
 from rl.train import make_agent
+
+# L7 (2026-09-19): the dials a `kind: search` arm may set are DERIVED from
+# SearchAgent's own signature, never re-listed here.  For its whole life this
+# file forwarded a HARDCODED list, so `disagree:` and `calibration:` -- both
+# added to SearchAgent after the list was written -- were accepted in a prereg,
+# silently dropped, and the arm ran as an unmodified control while its readout
+# claimed the dial.  That is the SEVENTH instance of the one defect class this
+# week (a dial that runs and reports nothing).  Deriving the set means a dial
+# added to SearchAgent is forwarded the day it exists, and `_ARM_KEYS` makes an
+# unrecognised prereg key a HARD FAILURE instead of a silent drop.
+_SEARCH_DIALS = tuple(
+    p for p in inspect.signature(SearchAgent.__init__).parameters
+    if p not in ("self", "agent", "dose", "checkpoint_seed",
+                 "battle_format", "det_fn", "evaluator")
+)
+# Keys THIS harness consumes, plus the ones a SIBLING harness reads off the
+# same pre-reg file (ch3_fp_h2h, ladder, the *_grade readouts -- one config
+# routinely feeds two runners), plus inert documentation labels.  Anything
+# else is a typo or a dial nobody forwards.
+_FOREIGN_KEYS = {
+    "fp_username", "search_time_ms", "seat", "seat_username",  # ch3_fp_h2h
+    "seat1", "seat2",                                          # r2_falsifier
+    "comparator",                                              # anchor_grade
+    "display_name", "lane",                                    # ladder.py
+    "letter_bearing", "wave", "note", "journey_step",          # inert labels
+}
+_ARM_KEYS = {
+    "kind", "lanes", "dose", "battles", "chunks", "evaluator",
+    "ensemble_members", "members", "batches",
+    *_SEARCH_DIALS, *_FOREIGN_KEYS,
+}
 
 
 class PurityIncident(RuntimeError):
@@ -237,6 +271,12 @@ def _jobs(prereg: dict) -> dict[str, dict]:
     jobs: dict[str, dict] = {}
     for arm_name, spec in prereg["arms"].items():
         kind, prefix = spec["kind"], arm_name.lower()
+        unknown = set(spec) - _ARM_KEYS
+        assert not unknown, (
+            f"arm {arm_name!r} declares {sorted(unknown)}, which this harness "
+            f"does not forward -- it would run as a CONTROL while the readout "
+            f"claimed the dial (L7). Known: {sorted(_ARM_KEYS)}"
+        )
         if kind == "policy":
             for lane in spec["lanes"]:
                 jobs[f"{prefix}_{lane}"] = {"arm": arm_name, "members": [lane]}
@@ -248,23 +288,17 @@ def _jobs(prereg: dict) -> dict[str, dict]:
             # committee is the object. The lane still names the decision RNG
             # seed, which is why it stays in the job name.
             for lane in spec["lanes"]:
+                # every SearchAgent dial, derived -- see _SEARCH_DIALS.
+                # absent -> None -> that dial's bit-identical default
+                # (leaf_encoding: DET_BLIND.md; margin_delta: the hard
+                # argmax, MARGIN_SELECTOR.md; mcts: the depth-1 matrix).
                 jobs[f"{prefix}_{lane}"] = {
                     "arm": arm_name,
                     "members": spec.get("ensemble_members") or [lane],
                     "ensemble_search": bool(spec.get("ensemble_members")),
                     "seed_lane": lane,
                     "search_dose": spec["dose"],
-                    # absent -> None -> the as-is leaf encoding (DET_BLIND.md)
-                    "leaf_encoding": spec.get("leaf_encoding"),
-                    # absent -> None -> the hard argmax (MARGIN_SELECTOR.md)
-                    "margin_delta": spec.get("margin_delta"),
-                    # PROBE: {"n_det":2,"ms":20,"margin":0.10} swaps the depth-1
-                    # matrix for poke_engine's MCTS. absent -> None -> untouched.
-                    "mcts": spec.get("mcts"),
-                    "depth2": spec.get("depth2"),
-                    "heuristic": spec.get("heuristic"),
-                    "tree": spec.get("tree"),
-                    "bcts": spec.get("bcts"),
+                    **{d: spec.get(d) for d in _SEARCH_DIALS},
                 }
         elif kind == "ensemble":
             for b in range(spec["batches"]):
@@ -399,7 +433,7 @@ def run_job(prereg: dict, name: str) -> None:
     torch.set_num_threads(cfg.torch_threads)
     adapter = None
     if "search_dose" in job:
-        from rl.search.agent import SearchAgent, lane_seed
+        from rl.search.agent import lane_seed
         from rl.search.matrix import DOSES
 
         assert getattr(env.unwrapped, "_privileged", None) is False, (
@@ -420,13 +454,7 @@ def run_job(prereg: dict, name: str) -> None:
             searched, DOSES[job["search_dose"]],
             checkpoint_seed=lane_seed(first_lane),
             evaluator=evaluator,
-            leaf_encoding=job.get("leaf_encoding"),
-            margin_delta=job.get("margin_delta"),
-            mcts=job.get("mcts"),
-            depth2=job.get("depth2"),
-            heuristic=job.get("heuristic"),
-            tree=job.get("tree"),
-            bcts=job.get("bcts"),
+            **{d: job.get(d) for d in _SEARCH_DIALS},
         )
         adapter = agent = _SearchEvalAdapter(sa, env)
     elif len(job["members"]) == 1:
