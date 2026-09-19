@@ -236,9 +236,27 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
 
       opp_k > 1  (the fix, IDEAS 2.10)
           The opponent answers each of our replies with up to `opp_k` moves
-          (its column action first) and we take the MIN over its answers
-          before the MAX over ours -- the standard minimax back-up, and the
-          missing half of the asymmetry above. Cost multiplies by `opp_k`.
+          (its column action first) and we reduce over its answers before the
+          MAX over ours. Cost multiplies by `opp_k`. `backup` picks the reduce:
+
+            "min"   (default) the standard minimax back-up, and the missing
+                    half of the asymmetry above. RUN 2026-09-19 and it did NOT
+                    rescue depth-2: -0.0440 at 1.97 se against depth-1 at a
+                    MATCHED override rate, with the dial provably firing
+                    (minimax_drop 0.057).
+            "mean"  the expectation under a UNIFORM opponent at ply 2, and the
+                    test of why "min" failed. PESSIMISM MAY BE APPLIED TWICE:
+                    `col_w = q` already weights rows by the opponent's own
+                    column distribution, so the opponent is ALREADY modelled
+                    probabilistically at the root, and a MIN on top is
+                    worst-case play over an expectation. A doubly pessimistic
+                    evaluator inside an argmax undervalues high-variance lines
+                    -- which are the aggressive ones.
+                    UNIFORM IS STATED, NOT ASSUMED AWAY: the opponent model `q`
+                    lives at the ROOT and over CLASSES, and nothing evaluates
+                    the opponent's policy at a leaf, so a per-reply weight does
+                    not exist to use. Uniform is the honest stand-in and it sits
+                    strictly between max and min.
 
     At `plies=1` -- what every arm has ever run -- min-over-answers then
     max-over-ours IS minimax. At `plies>1` the min is taken over the
@@ -258,6 +276,8 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
     cap = int(depth2.get("cap", 6000))
     plies = int(depth2.get("plies", 1))
     opp_k = int(depth2.get("opp_k", 1))
+    backup = str(depth2.get("backup", "min"))
+    assert backup in ("min", "mean"), f"unknown depth2.backup {backup!r}"
     # (state, origin leaf index, column index, determinization, PATH).
     # `path` names one sequence of OUR replies; every opponent answer along
     # that sequence shares it. The back-up is max-over-paths of
@@ -370,8 +390,9 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
 
     best: dict[int, float] = {}
     best_optimistic: dict[int, float] = {}
+    reduce_fn = min if backup == "min" else (lambda xs: sum(xs) / len(xs))
     for (i, _path), vs in scored.items():
-        v = min(vs)                      # the opponent picks inside the path
+        v = reduce_fn(vs)                # the opponent's answers, reduced
         if i not in best or v > best[i]:
             best[i] = v                  # we pick between paths
         vo = max(vs)
@@ -385,6 +406,11 @@ def _look_further(values, need, leaf_states, col_actions, leaf_at, turn,
         "depth2/leaves_deepened": float(len(best)),
         "depth2/plies": float(plies),
         "depth2/opp_k": float(opp_k),
+        # 0 = min (minimax), 1 = mean (expectation under a uniform opponent).
+        # A NUMBER because the stats dict is averaged across decisions by the
+        # collectors; a string would be dropped silently, which is the defect
+        # class this repo keeps paying for.
+        "depth2/backup_is_mean": float(backup == "mean"),
         "depth2/paths": float(len(scored)),
         "depth2/leaves_unexpanded": float(unexpanded),
         "depth2/opp_replies_mean": (

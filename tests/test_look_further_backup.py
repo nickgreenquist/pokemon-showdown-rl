@@ -86,7 +86,7 @@ def critic_from(values, default=0.0):
 
 
 def run(monkeypatch, *, our_moves, their_moves, col_action, values,
-        opp_k=1, our_k=3, terminal=(), leaf_values=(0.0,)):
+        opp_k=1, our_k=3, terminal=(), leaf_values=(0.0,), backup=None):
     gen_ok(monkeypatch, terminal=terminal)
     embed, shadow, critic = critic_from(values)
     monkeypatch.setattr(M, "embed_battle", embed)
@@ -95,7 +95,8 @@ def run(monkeypatch, *, our_moves, their_moves, col_action, values,
     vals = np.array(leaf_values, dtype=np.float64)
     return M._look_further(
         vals, [0], [st], [[col_action]], [(0, 0, 0, 1.0)], 5, [None],
-        critic, None, {"our_k": our_k, "cap": 6000, "plies": 1, "opp_k": opp_k})
+        critic, None, {"our_k": our_k, "cap": 6000, "plies": 1, "opp_k": opp_k,
+                       **({"backup": backup} if backup else {})})
 
 
 # --------------------------------------------------------------- the default
@@ -354,3 +355,58 @@ def test_the_launch_sha_is_read_before_the_battles_not_after():
         "the launch sha must be read BEFORE the battles and the finish sha "
         "after, or the two fields carry the same value and prove nothing")
     assert 'result["launch_git_sha"] = launch_sha' in src
+
+
+# ------------------------------------------- IDEAS 2.10's NEXT hypothesis
+def test_mean_backup_sits_strictly_between_min_and_max(monkeypatch):
+    """The whole point of the dial: `min` is worst-case over an opponent that
+    `col_w = q` has ALREADY modelled probabilistically, so the mean is the
+    stand-in for 'not pessimistic twice'."""
+    values = {
+        (("a", "x"),): 0.9, (("a", "y"),): -0.8,     # path a: min -0.8, mean 0.05
+        (("b", "x"),): 0.3, (("b", "y"),): 0.2,      # path b: min  0.2, mean 0.25
+    }
+    kw = dict(our_moves=("a", "b"), their_moves=("x", "y"), col_action="x",
+              values=values, opp_k=2)
+    lo, _ = run(monkeypatch, **kw)                                  # default min
+    hi, st = run(monkeypatch, **kw, backup="mean")
+    assert lo[0] == pytest.approx(0.2), "max over paths of min-in-path"
+    assert hi[0] == pytest.approx(0.25), "max over paths of mean-in-path"
+    assert lo[0] < hi[0] < 0.9, "mean must sit strictly between min and max"
+    assert st["depth2/backup_is_mean"] == 1.0
+
+
+def test_the_backup_choice_reaches_disk_as_a_NUMBER(monkeypatch):
+    """The collectors average the stats dict across decisions, so a string
+    would be dropped silently -- the defect class this repo keeps paying for."""
+    values = {(("a", "x"),): 0.5, (("a", "y"),): 0.1}
+    _, st_min = run(monkeypatch, our_moves=("a",), their_moves=("x", "y"),
+                    col_action="x", values=values, opp_k=2)
+    _, st_mean = run(monkeypatch, our_moves=("a",), their_moves=("x", "y"),
+                     col_action="x", values=values, opp_k=2, backup="mean")
+    assert st_min["depth2/backup_is_mean"] == 0.0
+    assert st_mean["depth2/backup_is_mean"] == 1.0
+    assert all(isinstance(v, float) for v in st_mean.values())
+
+
+def test_mean_equals_min_when_the_opponent_has_one_reply(monkeypatch):
+    """At opp_k=1 every path holds one answer, so the reduce is a no-op and
+    BOTH modes must reproduce the original pinned-opponent max bit-identically."""
+    kw = dict(our_moves=("a", "b"), their_moves=("x", "y"), col_action="x",
+              values={(("a", "x"),): 0.9, (("b", "x"),): 0.3}, opp_k=1)
+    a, _ = run(monkeypatch, **kw)
+    b, _ = run(monkeypatch, **kw, backup="mean")
+    assert a[0] == b[0] == pytest.approx(0.9)
+
+
+def test_an_unknown_backup_is_refused_at_the_call_not_mid_battle(monkeypatch):
+    gen_ok(monkeypatch)
+    embed, shadow, critic = critic_from({})
+    monkeypatch.setattr(M, "embed_battle", embed)
+    monkeypatch.setattr(M, "shadow_battle", shadow)
+    st = FakeState((), ("a",), ("x",))
+    with pytest.raises(AssertionError, match="backup"):
+        M._look_further(np.array([0.0]), [0], [st], [["x"]], [(0, 0, 0, 1.0)], 5,
+                        [None], critic, None,
+                        {"our_k": 3, "cap": 6000, "plies": 1, "opp_k": 2,
+                         "backup": "softmin"})

@@ -413,9 +413,18 @@ over its replies at ply 2 then assumes worst-case play *on top of* an
 expectation-weighted opponent — and a doubly-pessimistic evaluator inside an
 argmax systematically undervalues high-variance lines, which are the aggressive
 ones. **The test is the third option this row named originally and never ran: an
-EXPECTATION over the opponent's reply under its own policy, which `matrix.py`
-already holds.** That is `opp_k` with a weighted mean instead of a min, and it
-is a few lines.
+EXPECTATION over the opponent's reply instead of a min.** **BUILT the same
+night** as `depth2.backup ∈ {"min", "mean"}`, default `min` so B2R's −0.0440
+stays reproducible from the config that produced it, with the choice reaching
+disk as a NUMBER (`depth2/backup_is_mean`) because the collectors average the
+stats dict and a string would be dropped silently.
+**The weight is UNIFORM, and that is stated rather than assumed away:** the
+opponent model `q` lives at the ROOT and over CLASSES, and nothing evaluates the
+opponent's policy at a leaf, so a per-reply weight does not exist to use.
+Uniform sits strictly between max and min, which is the whole hypothesis. **If
+`mean` beats `min` the double-pessimism reading is supported; if it lands between
+min and the depth-1 control, the vehicle is simply not helped by depth at this
+budget and 2.10 is done.**
 **The declared B2R − B2O comparison is UNINTERPRETABLE** (rates 0.054 apart, a
 design error disclosed in the config): §24 measured that acting more is worse
 for depth-2, B2R acts more, so a loss there could be the rate alone. **Why it is
