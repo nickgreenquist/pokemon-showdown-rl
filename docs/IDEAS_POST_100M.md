@@ -482,6 +482,48 @@ is not licensed (no shared basin, and permutation symmetry makes the average
 meaningless) — this is **within-lane, across-rungs** only, and it composes with
 4.8 rather than competing with it.
 
+**BUILT AND SCOPED 2026-09-19 (`scripts/weight_average.py`).** Three averaged
+checkpoints exist (`avg_last5.pt` on each W lane, sha-stamped, loading verified).
+Two things were measured before spending an eval, and they pull in OPPOSITE
+directions — which is why this row is **NOT closed**.
+
+**(1) WHERE THE AVERAGE LANDS.** `‖avg_N − final‖ / ‖first_N − final‖ = 0.35` at
+EVERY window size from 5 to 80 checkpoints, in BOTH lanes measured:
+
+| window | span | ‖avg−final‖ | ‖first−final‖ | ratio |
+|---|---|---|---|---|
+| 5 | 198–200M | 0.0022 | 0.0062 | 0.36 |
+| 20 | 190.5–200M | 0.0178 | 0.0514 | 0.35 |
+| 80 | 160.5–200M | 0.1046 | 0.2846 | 0.37 |
+
+**Averaging moves you about a third of the way back along the path.** And §29
+measured that the last quarter of training is where **3–6 points of win rate are
+made**, so moving backward along the tail has a real, measured cost.
+
+**(2) IS THERE NOISE TO CANCEL?** `cos(d_i, d_{i+1})` of consecutive
+displacements is **−0.046 to −0.073, stable at every stage of training** (last
+10 checkpoints, 40-back, 100-back, 300-back) and reproduced across lanes. With
+~1M parameters pure noise sits within ±0.001, so this is systematic. It is **NOT
+a drift** (that would be positive) and not a strong oscillation either: the
+trajectory is a near-orthogonal random walk with a slight restoring tendency.
+**So there IS noise for an average to cancel** — the usual precondition for SWA
+holds.
+
+**THE TWO READINGS DISAGREE, AND THAT IS THE ANSWER: RUN THE EVAL.** Noise to
+cancel argues for it; a third of the way back down a measurably productive tail
+argues against. Neither dominates on paper, and the eval is one hour — a
+committee of the three averages against the committee of the three finals, off
+FP@20 with a same-session anchor. **Do not close this row on the geometry
+alone.**
+
+**One artifact hazard, recorded in the file itself:** `PPOAgent.load_state_dict`
+indexes `state["optimizer"]["state"]` unconditionally, so the optimizer cannot be
+dropped or the checkpoint will not load — the first draft did drop it and only a
+load test caught it. It is therefore carried **verbatim from the last
+checkpoint** and does NOT correspond to the averaged weights. The file is marked
+`weight_averaged.eval_only` at the top level: **evaluate from it, never resume
+from it.**
+
 **2.13 RECALIBRATE THE LEAF VALUE — FREE, MEASURED AT +0.0195 EV, and it is not
 inert (added 2026-09-18 from RESULTS §27.1).** An out-of-sample **isotonic**
 recalibration of the critic's output moves EV from **0.2176 to 0.2371** on the
