@@ -2,6 +2,8 @@
 state_dict) + step + config + any extras the train loop registers (normalizer
 statistics, pool state)."""
 
+import os
+import warnings
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -45,7 +47,55 @@ def save_checkpoint(
     tmp.replace(path)
 
 
+def _encoder_c6_guard(path: Path, ckpt: dict) -> None:
+    """A gen-1 checkpoint is interpretable only under the encoder semantics it
+    trained on (rl/envs/showdown.py::ENCODER_FINGERPRINT). C6 changes slot
+    SEMANTICS at constant OBS_DIM, so no width check can catch a mismatch; the
+    run's own meta.yaml carries the stamp. The env var is read here rather than
+    imported from rl.envs.showdown so that loading a Connect-4 or MinAtar
+    checkpoint never imports poke_env.
+
+    Refuses on a mismatch; `POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1` downgrades
+    it to a warning for a DISCLOSED mixed committee (R5 finals beside R6 finals
+    under one encoder are a new object, measured rather than assumed). A
+    checkpoint with no meta.yaml beside it cannot be verified: loads with a
+    warning when the process flag is on, silently when it is off (every
+    checkpoint written before 2026-09-19 is c6-off)."""
+    cfg = ckpt.get("config") or {}
+    if cfg.get("env_id") != "Showdown-v0":
+        return
+    proc = bool(os.environ.get("POKEMON_RL_ENCODER_C6"))
+    meta_path = path.parent / "meta.yaml"
+    stamped = None
+    if meta_path.exists():
+        try:
+            import yaml
+
+            enc = (yaml.safe_load(meta_path.read_text()) or {}).get("encoder") or {}
+            stamped = bool(enc.get("c6", False))
+        except Exception:  # noqa: BLE001 -- an unreadable meta is "unknown", not a crash
+            stamped = None
+    if stamped is None:
+        if proc:
+            warnings.warn(
+                f"{path}: no readable meta.yaml beside it, so its C6 encoder stamp cannot "
+                "be verified while POKEMON_RL_ENCODER_C6 is set", stacklevel=3)
+        return
+    if stamped != proc:
+        msg = (f"{path}: the run stamped encoder c6={stamped} but this process has "
+               f"POKEMON_RL_ENCODER_C6={'1' if proc else 'unset'}; the fixed-damage move "
+               "slots would be read under the wrong semantics. Set the flag to match, or "
+               "POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1 for a disclosed mixed committee.")
+        if os.environ.get("POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH"):
+            warnings.warn(msg, stacklevel=3)
+            return
+        raise RuntimeError(msg)
+
+
 def load_checkpoint(path: str | Path) -> dict[str, Any]:
     # weights_only=False: checkpoints are our own files, and agent state may
     # hold non-tensor objects (e.g. a NumPy Q-table) the safe loader rejects.
-    return torch.load(Path(path), weights_only=False)
+    path = Path(path)
+    ckpt = torch.load(path, weights_only=False)
+    _encoder_c6_guard(path, ckpt)
+    return ckpt

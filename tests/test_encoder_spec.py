@@ -69,11 +69,14 @@ ORACLE = {
     ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS"): "OBS_DIM=828 decisions=6000 sha256=0be192a8711def10cff546a12271156e006c982f7a739d16161da34c4d961ef6",
     ("POKEMON_RL_NO_SET_PRIOR",): "OBS_DIM=612 decisions=6000 sha256=8c2956c4bde8eb89d30c17391b4a86e44aa8e81ea0dc38feaef2d016482eb769",
     ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_NO_SET_PRIOR"): "OBS_DIM=828 decisions=6000 sha256=ac57b7f88a54e209229a38ae897e8570271566f3f6619de2414933bf6044daee",
+    # C6 (2026-09-19), captured on commit bb45abd's tapes the same way; the flag-off 828 line above was re-verified bit-identical the same run.
+    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_ENCODER_C6"): "OBS_DIM=828 decisions=6000 sha256=40646b063062507f50c199724789a748b2db13df726667e02171efbf8f78ff8b",
 }
 
 # The encoder reads these at import; a child must see exactly the combo
 # under test, never the parent's inherited exports.
-_ENCODER_VARS = ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_NO_SET_PRIOR")
+_ENCODER_VARS = ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_NO_SET_PRIOR",
+                 "POKEMON_RL_ENCODER_C6")
 
 _HASH_CHILD = r"""
 import hashlib
@@ -190,11 +193,13 @@ print(sorted(sd.ENCODER_FINGERPRINT.items()))
 # and make checkpoints unattributable — the incident the fingerprint's own
 # comment in rl/envs/showdown.py cites.
 FINGERPRINTS = {
-    (): {"obs_dim": 612, "encoder": "v1", "set_prior": True, "recharge_fix": True, "ids": False},
-    ("POKEMON_RL_ENCODER_V2",): {"obs_dim": 808, "encoder": "v2", "set_prior": True, "recharge_fix": True, "ids": False},
-    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS"): {"obs_dim": 828, "encoder": "v2", "set_prior": True, "recharge_fix": True, "ids": True},
-    ("POKEMON_RL_NO_SET_PRIOR",): {"obs_dim": 612, "encoder": "v1", "set_prior": False, "recharge_fix": True, "ids": False},
-    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_NO_SET_PRIOR"): {"obs_dim": 828, "encoder": "v2", "set_prior": False, "recharge_fix": True, "ids": True},
+    (): {"obs_dim": 612, "encoder": "v1", "set_prior": True, "recharge_fix": True, "ids": False, "c6": False},
+    ("POKEMON_RL_ENCODER_V2",): {"obs_dim": 808, "encoder": "v2", "set_prior": True, "recharge_fix": True, "ids": False, "c6": False},
+    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS"): {"obs_dim": 828, "encoder": "v2", "set_prior": True, "recharge_fix": True, "ids": True, "c6": False},
+    ("POKEMON_RL_NO_SET_PRIOR",): {"obs_dim": 612, "encoder": "v1", "set_prior": False, "recharge_fix": True, "ids": False, "c6": False},
+    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_NO_SET_PRIOR"): {"obs_dim": 828, "encoder": "v2", "set_prior": False, "recharge_fix": True, "ids": True, "c6": False},
+    # C6 (2026-09-19): constant OBS_DIM, fixed-damage slots re-semanticised (tests/test_encoder_c6.py).
+    ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_ENCODER_C6"): {"obs_dim": 828, "encoder": "v2", "set_prior": True, "recharge_fix": True, "ids": True, "c6": True},
 }
 
 
@@ -303,7 +308,7 @@ def test_bare_process_is_612_v1():
 
 @pytest.mark.parametrize(
     "flags", list(FINGERPRINTS),
-    ids=["bare", "v2", "v2+ids", "bare+noprior", "v2+ids+noprior"],
+    ids=["bare", "v2", "v2+ids", "bare+noprior", "v2+ids+noprior", "v2+ids+c6"],
 )
 def test_fingerprint_records_the_semantics_the_hash_gate_pins(flags):
     dims, fingerprint = _run_child(_DIMS_CHILD, flags=flags).splitlines()
@@ -331,7 +336,7 @@ def test_every_hashed_combo_is_distinguishable():
 )
 @pytest.mark.parametrize(
     "flags", list(ORACLE),
-    ids=["bare", "v2", "v2+ids", "bare+noprior", "v2+ids+noprior"],
+    ids=["bare", "v2", "v2+ids", "bare+noprior", "v2+ids+noprior", "v2+ids+c6"],
 )
 def test_gen1_encoding_hash_is_pinned(flags):
     out = _run_child(_HASH_CHILD, *[str(t) for t in TAPES], flags=flags)

@@ -129,6 +129,35 @@ _ENCODER_V2 = bool(os.environ.get("POKEMON_RL_ENCODER_V2"))
 # (256 is a power of two), inside the declared Box(low=-1, high=4), and
 # recovered as round(x*256) inside the tokenizer. Unknown/unrevealed -> 0.
 _ENCODER_IDS = bool(os.environ.get("POKEMON_RL_ENCODER_IDS"))
+
+# --- Encoder C6 (2026-09-19, R6 prep plan §2 / IDEAS 4.6 form (a)), behind
+# POKEMON_RL_ENCODER_C6=1. THE DEFECT (measured 2026-08-26, replay sweep): the
+# vendored gen-1 mod sets basePower 1 on the fixed-damage moves, so [+1] reads
+# 0.01 for Seismic Toss (26 randbats species, Chansey among them), Counter (24),
+# Night Shade (3) and Super Fang (2) beside Thunderbolt's 0.95 -- and the agent
+# used Seismic Toss at half the human rate (0.141 vs 0.289, z -3.39) and Super
+# Fang never (0/59 vs 0.362). CONSTANT OBS_DIM, changed SEMANTICS on those slots
+# only: [+1] becomes an EFFECTIVE power on the same /100 scale, and [+4] (the
+# type multiplier) keeps immunities (0) and drops the spurious 2x/0.5x that a
+# fixed-damage move never applies. Default OFF: with the flag unset the encoding
+# is bit-identical (the hash gate in tests/test_encoder_spec.py pins both).
+# Derivation of the constants, gen-1 damage at A/D = 1: dmg = (2L/5+2)*BP/50 + 2,
+# so a move doing L damage (Seismic Toss, Night Shade) is BP_eff = 50(L-2)/(2L/5+2)
+# = 99..117 over the randbats level range 55..100 -> 1.15 (+-7%, level-blind
+# because _fill_move does not see the user's level). Super Fang halves the foe's
+# CURRENT HP: on a ~300-HP target at level 80 that is ~217 BP at full HP, scaling
+# linearly with the HP fraction -> 2.2 x fraction (the target's max HP varies
+# +-30% around that; the fraction is what the policy can act on). Counter is
+# conditional on the opponent's move and cannot be expressed as a power; 1.0 is
+# "a real attack" rather than 0.01, and the move embedding carries the rest.
+# Dragon Rage (40), Sonic Boom (20) and Psywave (~0.75L) never occur in the gen-1
+# randbats pool; they are covered so the table is total.
+_ENCODER_C6 = bool(os.environ.get("POKEMON_RL_ENCODER_C6"))
+_C6_FIXED_BP = {
+    "seismictoss": 1.15, "nightshade": 1.15, "counter": 1.0,
+    "dragonrage": 0.56, "sonicboom": 0.26, "psywave": 0.85,
+}
+_C6_SUPERFANG_BP = 2.2  # x the foe's current HP fraction (0.5 when the foe is unknown)
 ID_DIM = 20 if _ENCODER_IDS else 0  # 6 own + 6 opp species | 4 own + 4 opp moves
 ID_SCALE = 256.0
 
@@ -164,6 +193,13 @@ ENCODER_FINGERPRINT = {
     "recharge_fix": True,
     # Identity suffix (Rung 2, R0-1): true iff the 20-dim id block is on.
     "ids": _ENCODER_IDS,
+    # C6 (2026-09-19): fixed-damage moves carry an effective power and a
+    # neutral (immunity-only) type multiplier. Constant OBS_DIM, changed
+    # semantics -- exactly the class of change the fingerprint exists for.
+    # rl/common/checkpoint.py refuses a checkpoint whose run stamped the other
+    # value (POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1 downgrades that to a warning
+    # for a disclosed mixed committee).
+    "c6": _ENCODER_C6,
 }
 
 
@@ -263,6 +299,8 @@ def _fill_move(
         vec[o + 4] = move.type.damage_multiplier(
             foe.type_1, foe.type_2, type_chart=type_chart
         )
+    if _ENCODER_C6:
+        _c6_fixed_damage(vec, o, move, foe)
     vec[o + 5] = move.category == MoveCategory.PHYSICAL
     vec[o + 6] = move.category == MoveCategory.STATUS
     vec[o + 7] = move.priority / 5.0
@@ -272,6 +310,23 @@ def _fill_move(
     if _ENCODER_V2:
         o_e = o + spec.move_dim_v1
         vec[o_e : o_e + EFFECT_DIM] = _effect_block(move.id)
+
+
+def _c6_fixed_damage(vec, o, move, foe) -> None:
+    """C6 (flag on): overwrite [+1] with the effective power of a fixed-damage
+    move and make [+4] immunity-only for it. A no-op for every other move, so
+    the block is byte-identical to the flag-off path except on the seven ids
+    in the table (four of which occur in the gen-1 randbats pool)."""
+    mid = move.id
+    if mid == "superfang":
+        frac = getattr(foe, "current_hp_fraction", None) if foe is not None else None
+        vec[o + 1] = _C6_SUPERFANG_BP * (0.5 if frac is None else float(frac))
+    elif mid in _C6_FIXED_BP:
+        vec[o + 1] = _C6_FIXED_BP[mid]
+    else:
+        return
+    if foe is not None and vec[o + 4] != 0.0:
+        vec[o + 4] = 1.0
 
 
 def embed_battle(battle, type_chart, spec: EncoderSpec = GEN1) -> np.ndarray:
