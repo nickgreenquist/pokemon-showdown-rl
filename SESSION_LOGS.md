@@ -12474,7 +12474,24 @@ line numbers are not — grep the date, then read that region):
     seats with per-battle resets and `loop/*` counters in the reports; absent key =
     byte-for-byte the old seat; ch3_eval's derived `_ARM_KEYS` forwards it only when
     declared. 37 targeted tests green. Ruling #1 still decides whether R6's object carries it.
-  - **Not done, in order for the next session** (plan §6):
+  - **4.11's DATA PATH built** (22cfad6): `rl/envs/outcome_targets.py` (our survivors, their
+    survivors, HP margin, each /6, from the LAST decision row plus the outcome — unrevealed
+    opponents alive at full HP; the final-turn approximation is stated), emitted by the
+    engine collector as `(n, 3)` `outcome_targets` rows behind `collector.outcome_targets`
+    (an `ENGINE_KEYS` key). 6 engine-free tests; the port env's collector tests pass (14).
+    The heads + loss are specified in plan §6 for the next session.
+  - **C6 DOES NOT REACH THE ENGINE PATH — caught, sealed, disclosed.** The engine
+    collector's rows come from the Rust encoder (`engine/pkmn_gen1/src/encoder.rs::
+    fill_move`), which ignores the Python flag; a lane launched with it would have stamped
+    `c6=True` in meta.yaml while training on c6-off rows. `_check_engine_c6` now refuses
+    the flag until the extension exposes `ENCODER_C6`; the Rust port + A-1 re-gate is
+    specified in plan §6 and IDEAS 4.6. Until it lands, R6's base is the W recipe alone.
+  - **4.12's screen config written** (`configs/showdown_r6_batch12m.yaml`: the first 12M of
+    the 200M schedule so LR matches the W lanes' own rungs, batch 122,880, epochs 2,
+    lr 3.5e-4, read + fallback in the header). `scripts/monster_fleet.sh` gained an opt-in
+    `ALLOW_ANNEAL_OVER_HORIZON=1` for matched-schedule screens (loud; fleets keep the
+    equality check). To be RUN after the eval queues, never beside an FP arm.
+  - **Not done, in order for the next session** (plan §6): the C6 Rust port,
     the outcome heads (4.11 — the episode buffer keeps no terminal obs, so the collector must
     emit the three targets as OPT_KEYS rows), the 12M batch/epochs screen (4.12), the
     attention BC screen, the R6 fleet yaml with `POKEMON_RL_ENCODER_C6=1` in the launcher, the

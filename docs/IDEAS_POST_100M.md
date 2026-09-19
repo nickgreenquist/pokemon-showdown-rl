@@ -1173,6 +1173,11 @@ cost (§5). The gen4 chapter pays the invalidation anyway (CONSOLIDATED
 8) or the last gen1 training change before step 10. Cost: fork ~half a day
 + a full fleet.
 
+**BUILT 2026-09-19 (evening) in the PYTHON encoder** (`rl/envs/showdown.py`, behind
+`POKEMON_RL_ENCODER_C6=1`, bit-identical off, fingerprinted, a load-time guard in
+`rl/common/checkpoint.py`; `tests/test_encoder_c6.py`) — **but NOT yet in the RUST
+encoder the engine collector trains on** (`engine/pkmn_gen1/src/encoder.rs::fill_move`);
+the collector refuses the flag until that port lands (R6 prep plan §6 carries the spec).
 **RE-SEQUENCED 2026-09-19 (R6 prep plan §2; needs the maintainer's ruling #2).** C6
 rides EVERY R6 lane in form (a) — the constant-OBS_DIM semantic fix, flagged and
 fingerprinted, tape-hash gate re-pinned — as a common-mode change that is
@@ -1384,7 +1389,12 @@ bucket specifically. **Do not read this row as a win-rate lever until that
 profile moves.**
 
 **4.11 OUTCOME DECOMPOSITION ON THE CRITIC — R6 TRIO A (added 2026-09-19 from
-`docs/research_reports/SELFPLAY_RECIPE_2026-09-12.md` §4.2, which had no row here).**
+`docs/research_reports/SELFPLAY_RECIPE_2026-09-12.md` §4.2, which had no row here).
+DATA PATH BUILT the same evening** (`rl/envs/outcome_targets.py`, emitted by the engine
+collector behind `collector.outcome_targets: true`; the targets are read at the LAST
+DECISION plus the outcome — the final-turn approximation is stated in the module — and
+`tests/test_outcome_targets.py` pins the arithmetic); **the heads and the loss are the next
+build, spec in the R6 prep plan §6.**
 KataGo's 1.65× lever in our currency: auxiliary value heads regressing **(i) our
 survivors, (ii) their survivors, (iii) the terminal HP margin**, all from the episode's
 own terminal observation — self-play-legal, no target from outside the environment.

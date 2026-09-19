@@ -82,7 +82,15 @@ print(int(c.get("total_steps", -1)),
       int((c.get("agent") or {}).get("lr_anneal_steps", -1)))
 PYEOF
 )"
-if [ "$CFG_STEPS" != "$STEPS" ] || [ "$CFG_ANNEAL" != "$STEPS" ]; then
+# ALLOW_ANNEAL_OVER_HORIZON=1 (2026-09-19): a MECHANISM SCREEN may run the first
+# N steps of a longer schedule so its LR at every step matches the fleet it is
+# read against (configs/showdown_r6_batch12m.yaml). anneal > horizon is the
+# OPPOSITE direction from the trap this check guards (anneal < horizon trains
+# the tail at lr~0), and rl/train.py permits it; but a FLEET must never get it
+# by accident (RWL-4: anneal = horizon, no floor), so it is opt-in and loud.
+if [ "${ALLOW_ANNEAL_OVER_HORIZON:-0}" = "1" ] && [ "$CFG_STEPS" = "$STEPS" ] && [ "$CFG_ANNEAL" -gt "$STEPS" ]; then
+  say "ANNEAL OVER HORIZON, opted in: total_steps = $STEPS, lr_anneal_steps = $CFG_ANNEAL (a matched-schedule screen; never a fleet)"
+elif [ "$CFG_STEPS" != "$STEPS" ] || [ "$CFG_ANNEAL" != "$STEPS" ]; then
   say "  config total_steps     = $CFG_STEPS"
   say "  config lr_anneal_steps = $CFG_ANNEAL"
   say "  requested              = $STEPS"
