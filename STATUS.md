@@ -55,22 +55,18 @@ OBJECT = E3WF** (+0.0417, 3.27 se). vs SH: GW **0.8217** vs 100M A0 0.7887 = **+
 CREDITS (+0.0349 at 5.93 se) and is the R5 FLOOR. **Mechanism: srank99 632/1024 vs 5/384** (width is LIVE)
 but **EV DID NOT MOVE** (0.5881 vs 0.5919): **do not size the next fleet on EV.**
 
-## RUNNING — `scripts/backup_gate_queue.sh` (phase R from 17:06Z, ~9 h; ETA ~02:00Z)
-**2.10 HALF IS IN, AND THE FIX DID NOT RESCUE DEPTH-2.** At a MATCHED override rate (0.1862 vs 0.1703):
-**B2R minimax 0.5070 vs D1O depth-1 0.5510 = −0.0440 at 1.97 se.** The dial fired (`minimax_drop` 0.057,
-large against δ 0.08) and made it worse. B2O 0.5290 at 0.1322 is MISMATCHED (design error, disclosed) so
-B2R−B2O says nothing. **Not supported: "the optimism is WHY depth-2 hurts".** Does NOT close depth, the
-tree, or MCTS. **Next hypothesis, specific: PESSIMISM TWICE** — `col_w = q` already models the opponent
-probabilistically, so a MIN on top is worst-case over an expectation; the untried third option is an
-EXPECTATION over the opponent's reply under its own policy, a few lines in `matrix.py`.
-**PHASE S CLEAN AND PINNED.** B2 sweep δ0.03→0.370, δ0.05→0.240, **δ0.08→0.1974 vs a 0.193 target (|d|
-0.0044)**; the gate's realized rate is **0.437**, so DRV's coin pins at **0.563**. The pin reads override
-rates and never a win rate, and REFUSES above |d|>0.05. Phase R n=1000 each: **D1O** depth-1 open gate (done,
-**0.551**, override 0.1703) / **B2O** depth-2 OLD backup / **B2R** depth-2 `opp_k` minimax — 2.10; **DGV**
-committee-gated / **DRV** coin at the same rate / **DUM** uniform — 8.5, **all dose M** so the only difference
-is WHICH decisions were searched; **GC** greedy anchor. D1O and DUM are the block's realized noise floor.
-**Dose-L was corrected mid-block:** the smoke measured the gate at 45%, not 25%, which would have confounded
-DGV−DUM with COMPUTE.
+## RUNNING — `scripts/backup_gate_queue.sh` (ETA ~04:15Z). **2.10 HALF IS IN AND THE FIX FAILED**
+At a MATCHED override rate (0.1862 vs 0.1703): **B2R minimax 0.5070 vs D1O depth-1 0.5510 = −0.0440 at 1.97
+se.** The dial fired (`minimax_drop` 0.057, large against δ 0.08) and made it WORSE. B2O 0.5290 at 0.1322 is
+MISMATCHED (a design error, disclosed in the config — B2O's δ was hardcoded from §22 rather than swept), so
+B2R−B2O says nothing. **NOT SUPPORTED: "the optimism is WHY depth-2 hurts".** Does NOT close depth, the tree
+or MCTS. **Next hypothesis, specific — PESSIMISM TWICE:** `col_w = q` already models the opponent
+probabilistically, so a MIN on top is worst-case over an expectation, and that undervalues exactly the
+high-variance (aggressive) lines. The untried third option is an EXPECTATION over the opponent's reply under
+its own policy — a few lines in `matrix.py`.
+**Phase S pinned clean:** δ0.08→0.1974 vs a 0.193 target (|d| 0.0044); the gate's realized rate 0.437 → DRV's
+coin at 0.563. Remaining: **DGV** committee-gated / **DRV** coin at the same rate / **DUM** uniform (8.5, all
+dose M, so the only difference is WHICH decisions were searched) and **GC** the greedy anchor.
 
 ## BUILT 2026-09-18, UNRUN — details in `docs/IDEAS_POST_100M.md` Round 4
 - **2.10 `depth2.opp_k`** (12 tests) — **RUN, see above.** Two more defects fell out of writing it: an
