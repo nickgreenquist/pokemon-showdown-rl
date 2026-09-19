@@ -12491,6 +12491,11 @@ line numbers are not — grep the date, then read that region):
     lr 3.5e-4, read + fallback in the header). `scripts/monster_fleet.sh` gained an opt-in
     `ALLOW_ANNEAL_OVER_HORIZON=1` for matched-schedule screens (loud; fleets keep the
     equality check). To be RUN after the eval queues, never beside an FP arm.
+  - **Suite at close: 1240 passed / 87 skipped / 0 failed in a BARE process** (the 09-19
+    baseline was 1219; +21 are today's tests). A first run with POKEMON_RL_ENCODER_V2/IDS
+    exported into pytest showed 6 failures in `tests/test_showdown_env.py` — those tests
+    build v1 fakes and assume a bare process; pre-existing, not a defect. Run the suite
+    bare. Both runs were `nice -n 19` beside the E3WA arm (~1.5 min each; disclosed).
   - **Not done, in order for the next session** (plan §6): the C6 Rust port,
     the outcome heads (4.11 — the episode buffer keeps no terminal obs, so the collector must
     emit the three targets as OPT_KEYS rows), the 12M batch/epochs screen (4.12), the
