@@ -684,7 +684,8 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
     eval_env.close()
 
 
-ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs"}
+ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs",
+               "outcome_targets"}  # IDEAS 4.11 (R6 trio A): the critic's three terminal targets
 ASYNC_KEYS = {"mode", "concurrency"}
 
 
@@ -953,6 +954,7 @@ def _async_loop(
             # was validated at launch in _engine_collector_checks.
             privileged=bool(getattr(agent, "privileged_block_dim", 0)),
             battle_counter=int(rs.get("battle_counter", 0)),
+            outcome_targets=bool(cfg.collector.get("outcome_targets", False)),
         )
     else:
         from rl.envs.showdown_async import AsyncCollector

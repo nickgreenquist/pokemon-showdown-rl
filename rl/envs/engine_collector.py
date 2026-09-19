@@ -30,6 +30,7 @@ in `engine/pkmn_gen1/vendor/pkmn-engine`.
 
 from __future__ import annotations
 
+import os
 import pathlib
 import time
 from collections import defaultdict
@@ -84,6 +85,25 @@ class _Seam:
         self.inference_seconds = 0.0
 
 
+def _check_engine_c6(ext) -> None:
+    """C6 (2026-09-19) lives in the PYTHON encoder (rl/envs/showdown.py) behind
+    POKEMON_RL_ENCODER_C6; THIS collector's rows come from the RUST encoder
+    (engine/pkmn_gen1/src/encoder.rs::fill_move), which does not read the flag.
+    A lane launched with the flag would stamp c6=True in meta.yaml while
+    training on c6-off observations -- the exact semantic split the fingerprint
+    exists to prevent. Refused until the port lands and the extension exposes
+    `ENCODER_C6 = True` (R6 prep plan section 6)."""
+    if os.environ.get("POKEMON_RL_ENCODER_C6") and not getattr(ext, "ENCODER_C6", False):
+        raise ValueError(
+            "POKEMON_RL_ENCODER_C6=1 but the engine extension does not implement the "
+            "C6 fixed-damage move semantics (no pkmn_gen1.ENCODER_C6): the lane would "
+            "stamp c6=True while training on c6-off observations. Port fill_move in "
+            "engine/pkmn_gen1/src/encoder.rs to match rl/envs/showdown.py::"
+            "_c6_fixed_damage, re-run the A-1 parity harness, expose ENCODER_C6 -- or "
+            "unset the flag."
+        )
+
+
 class EngineCollector:
     """K engine battles stepped in lockstep; whole finished episodes out.
 
@@ -113,6 +133,7 @@ class EngineCollector:
         privileged: bool = False,
         max_updates_per_battle: int = 8000,
         battle_counter: int = 0,
+        outcome_targets: bool = False,
     ):
         import pkmn_gen1
 
@@ -136,6 +157,11 @@ class EngineCollector:
         # cheap against a socket, not free against the engine. Off, the Rust
         # side emits nothing and `_episode` adds no key.
         self._privileged = bool(privileged)
+        # IDEAS 4.11 (R6 trio A): the outcome-decomposition targets, derived in
+        # Python from each finished episode's LAST decision row plus its outcome
+        # (rl/envs/outcome_targets.py) -- no Rust change. Off, `_episode` adds
+        # no key; on, every episode carries an (n, 3) `outcome_targets` block.
+        self._outcome_targets = bool(outcome_targets)
         self._max_updates = int(max_updates_per_battle)
 
         # THE FG-5 HABIT, on the training path. `build_info()` only RECORDS
@@ -160,6 +186,8 @@ class EngineCollector:
                 "828-dim v2+ids encoder — set POKEMON_RL_ENCODER_V2=1 and "
                 "POKEMON_RL_ENCODER_IDS=1."
             )
+
+        _check_engine_c6(pkmn_gen1)
 
         tables, self.tables_fingerprint = build_tables()
         self.bank_header, payload = read_bank(pathlib.Path(team_bank))
@@ -401,4 +429,8 @@ class EngineCollector:
             # the terminal to 0, so the successor's block is row t+1's own and
             # the final state's is never read (rl/buffers/episode.py:97-112).
             episode["privileged"] = np.asarray(raw["privileged"], dtype=np.float32)
+        if self._outcome_targets:
+            from rl.envs.outcome_targets import outcome_targets
+
+            episode["outcome_targets"] = outcome_targets(episode["obs"], float(raw["reward"]))
         return episode

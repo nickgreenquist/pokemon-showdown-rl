@@ -50,11 +50,15 @@ EPISODE_KEYS = {
 #               encoding, float32, W = PRIV_DIM (408 at gen 1). Emitted by
 #               the engine collector under `privileged=True`; the same key and
 #               shape the Node path puts in `info["privileged"]`.
+#   outcome_targets  IDEAS 4.11's three critic targets (survivors own / opp,
+#               HP margin, each in [-1, 1]), float32, W = 3, the SAME row on
+#               every step of the episode (rl/envs/outcome_targets.py). Emitted
+#               by the engine collector under `outcome_targets=True`.
 # There is deliberately no `next_privileged`: per-episode GAE shifts V within
 # an episode and bootstraps the terminal to 0 (`_episode_boundaries` below),
 # so the successor's block is row t+1's own and the last row's is never read —
 # the same reason `next_obs` does not exist on this path.
-OPT_KEYS = ("opp_choice", "privileged")
+OPT_KEYS = ("opp_choice", "privileged", "outcome_targets")
 
 
 class EpisodeDataset:
