@@ -653,8 +653,11 @@ action on the fourth identical (observation, action) pair in a battle, escalatin
 a rank per escape so a cycle of any period unwinds. It stays **deterministic** —
 a function of the episode's history, so a replay plays the same moves — and a
 test pins that it **cannot change a single non-looping battle**.
-**WIRED NOWHERE, AND THE RULING IS WHY:** it changes the POLICY FORM and the
-locked protocol names the policy. **Worth:** up to +0.011 on the worst banked arm
+**WIRED 2026-09-19 (evening) behind `loop_breaker: true` on greedy/ensemble arms in
+`scripts/ch3_fp_h2h.py`, `scripts/ladder.py` and `scripts/ch3_eval.py`** (reset per battle,
+`loop/*` counters stamped; with the key absent every seat is byte-for-byte what it was;
+`tests/test_loop_breaking_policy.py`). **THE RULING IS STILL OWED:** it changes the POLICY
+FORM and the locked protocol names the policy. **Worth:** up to +0.011 on the worst banked arm
 and ~+0.0014 typically — small, free, and it removes a behaviour that is simply
 wrong. **It is also a LADDER RISK:** R5 never hit it (max 121 turns, 0 ties)
 because humans do not freeze-lock and then sit, but a 1000-turn rated game would

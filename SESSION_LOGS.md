@@ -12469,7 +12469,12 @@ line numbers are not — grep the date, then read that region):
   - **Ops.** HANDOFF folded to the stub (317f845; its content is STATUS + the two 09-19
     entries). `caffeinate -i -w` follows both queue pids. The encoder gates ran `nice -n 19`
     beside the E3WA arm for ~20 s; the autopsy scripts ran before any FP arm started.
-  - **Not done, in order for the next session** (plan §6): the loop-breaker wiring (2.14),
+  - **Loop breaker WIRED** (2.14; after the closable-state commit): `LoopBreakingPolicy`
+    over `scores()` on both agent kinds, the `loop_breaker: true` arm key in all three
+    seats with per-battle resets and `loop/*` counters in the reports; absent key =
+    byte-for-byte the old seat; ch3_eval's derived `_ARM_KEYS` forwards it only when
+    declared. 37 targeted tests green. Ruling #1 still decides whether R6's object carries it.
+  - **Not done, in order for the next session** (plan §6):
     the outcome heads (4.11 — the episode buffer keeps no terminal obs, so the collector must
     emit the three targets as OPT_KEYS rows), the 12M batch/epochs screen (4.12), the
     attention BC screen, the R6 fleet yaml with `POKEMON_RL_ENCODER_C6=1` in the launcher, the
