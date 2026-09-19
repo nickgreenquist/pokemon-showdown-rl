@@ -149,3 +149,59 @@ def test_pava_matches_the_analysis_scripts_estimator():
     x = rng.normal(size=500)
     y = np.tanh(x) + rng.normal(scale=0.5, size=500)
     assert np.allclose(pava(x, y)[1], cc.pava(x, y)[1])
+
+
+# ------------------------------------------- wired into the search, default OFF
+def test_the_search_agent_is_bit_identical_without_a_calibration():
+    """The property every dial in this repo has to have. If this ever fails,
+    every banked number stops being reproducible from its config."""
+    import numpy as np
+    from rl.search.agent import SearchAgent
+    from rl.search.matrix import DOSES
+    from tests.test_ch3_matrix import _mask, _two_mon_battle
+    from tests.test_tree_decision_golden import _StubAgent
+
+    a = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7)
+    b = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7, calibration=None)
+    obs = np.zeros(8, dtype=np.float32)
+    aa, sa = a.act(_two_mon_battle(), obs, _mask(), 3, 1)
+    bb, sb = b.act(_two_mon_battle(), obs, _mask(), 3, 1)
+    assert aa == bb
+    assert {k: v for k, v in sa.items() if "/ms_" not in k} == \
+           {k: v for k, v in sb.items() if "/ms_" not in k}
+    assert a.counters["calib/leaves"] == 0
+
+
+def test_a_calibration_that_is_ON_moves_the_leaf_values_and_says_so():
+    """The counter exists so an arm whose calibration silently failed to load is
+    distinguishable from one that ran without it -- the defect class this repo
+    keeps paying for."""
+    import numpy as np
+    from rl.search.agent import SearchAgent
+    from rl.search.matrix import DOSES
+    from tests.test_ch3_matrix import _mask, _two_mon_battle
+    from tests.test_tree_decision_golden import _StubAgent
+
+    shift = ValueCalibration(np.array([-2.0, 2.0]), np.array([-1.0, 1.0]))
+    sa = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7,
+                     calibration=shift.to_dict())
+    sa.act(_two_mon_battle(), np.zeros(8, dtype=np.float32), _mask(), 3, 1)
+    assert sa.counters["calib/leaves"] > 0, "the dial never touched a leaf"
+    assert sa._calibration is not None
+
+
+def test_a_calibration_round_trips_through_the_agents_config_form():
+    """An arm carries the fit in its YAML or points at a rows file; both must
+    reach the agent, because a curve fitted on one checkpoint and applied to
+    another is a new untested object."""
+    import numpy as np
+    from rl.search.agent import SearchAgent
+    from rl.search.matrix import DOSES
+    from tests.test_tree_decision_golden import _StubAgent
+
+    c = ValueCalibration(np.array([-1.0, 0.0, 1.0]), np.array([-0.5, 0.0, 0.5]),
+                         {"source": "unit"})
+    sa = SearchAgent(_StubAgent(), DOSES["S"], checkpoint_seed=7,
+                     calibration=c.to_dict())
+    assert sa._calibration.fit_meta["source"] == "unit"
+    assert float(sa._calibration.apply(1.0)) == pytest.approx(0.5)

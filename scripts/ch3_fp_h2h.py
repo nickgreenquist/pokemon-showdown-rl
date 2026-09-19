@@ -400,6 +400,10 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             # decisions the committee is split on. Absent = search every
             # decision, which is what every banked arm did.
             disagree=arm.get("disagree"),
+            # `calibration` (optional, wired 2026-09-19 for IDEAS 2.13): a path
+            # to a luck-ceiling rows JSONL, or an inline {xs, ys} fit. Absent =
+            # the raw critic, which is what every banked arm ran.
+            calibration=arm.get("calibration"),
             # `tree` (optional, wired 2026-09-16 alongside depth2): swaps the
             # depth-1 matrix for rl/search/tree.py -- decoupled UCT with OUR
             # policy as the PUCT prior and OUR critic at the leaves, mean
@@ -541,6 +545,18 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         # 1.0 is a UNIFORM-DOSE arm wearing a gated label and a 0.0 is greedy,
         # and neither is distinguishable from the win rate alone.
         report["search_disagree"] = search_agent._disagree
+        # IDEAS 2.13 PROVENANCE. `calib/leaves` at 0 means the dial never
+        # touched a leaf whatever the config asked for, and `calib/mean_shift`
+        # says how far it moved them -- an arm where both are ~0 is a RAW-critic
+        # arm wearing a calibrated label.
+        cal = search_agent._calibration
+        report["search_calibration"] = (
+            None if cal is None else {"knots": len(cal.xs), **cal.fit_meta})
+        if cal is not None:
+            leaves = search_agent.counters["calib/leaves"]
+            report["calib/leaves"] = leaves
+            report["calib/mean_shift"] = (
+                search_agent.counters["calib/shift_sum"] / max(leaves, 1))
         if search_agent._disagree is not None:
             elig = search_agent.counters["disagree/eligible"]
             srch = search_agent.counters["disagree/searched"]

@@ -88,6 +88,7 @@ class SearchAgent:
         bcts: dict | None = None,
         heuristic: dict | None = None,
         disagree: dict | None = None,
+        calibration: str | dict | None = None,
     ):
         """`leaf_encoding` — the leaf ENCODER dial (S1's finding,
         docs/search_relook/DET_BLIND.md). None = as-is, the R2-credited
@@ -172,6 +173,23 @@ class SearchAgent:
                     "silently skip every decision"
                 )
         self._disagree = disagree
+        # IDEAS 2.13 -- a MONOTONE recalibration of the leaf value, fitted once
+        # from a luck-ceiling run and worth +0.0195 EV out of sample (§27.1).
+        # None = untouched, bit-identical to every banked arm.
+        #
+        # IT IS NOT INERT, which is the objection to expect: a monotone map
+        # cannot reorder leaves at ONE node, but `row_ev` takes an EXPECTATION
+        # over them and averages of a non-linearly transformed quantity reorder
+        # (3.5% of row pairs on the real curve). It therefore also moves the
+        # override rate, so `margin_delta` MUST be re-swept alongside it --
+        # matching on the realized rate, never on the knob.
+        self._calibration = None
+        if calibration is not None:
+            from rl.common.value_calibration import ValueCalibration
+            self._calibration = (
+                ValueCalibration.from_rows(calibration)
+                if isinstance(calibration, str)
+                else ValueCalibration.from_dict(calibration))
         # OUR prior + OUR critic inside a real tree (rl/search/tree.py). The
         # thing neither of the other two probes is: matrix.py has our critic
         # and one ply, mcts_probe.py has a tree and poke_engine's heuristic.
@@ -235,6 +253,8 @@ class SearchAgent:
             # reports BEFORE it gets an arm. `searched` over `eligible` is the
             # realized rate -- an arm where it is 1.0 is a uniform-dose arm
             # wearing a gated label, and one where it is 0.0 is greedy.
+            "calib/leaves": 0,
+            "calib/shift_sum": 0.0,
             "disagree/eligible": 0,
             "disagree/searched": 0,
             "disagree/score_sum": 0.0,
@@ -321,7 +341,15 @@ class SearchAgent:
     def _critic_fn(self, batch: np.ndarray) -> np.ndarray:
         with torch.no_grad():
             v = self._agent.critic(torch.as_tensor(batch, dtype=torch.float32))
-        return v.reshape(-1).numpy()
+        out = v.reshape(-1).numpy()
+        if self._calibration is not None:
+            # counters before arms: an arm whose calibration silently failed to
+            # load must not be indistinguishable from one that ran without it.
+            self.counters["calib/leaves"] += int(out.size)
+            self.counters["calib/shift_sum"] += float(
+                np.abs(self._calibration.apply(out) - out).sum())
+            out = self._calibration.apply(out)
+        return out
 
     def _loo_critic_fn(self, batch: np.ndarray) -> np.ndarray:
         t = torch.as_tensor(batch, dtype=torch.float32)

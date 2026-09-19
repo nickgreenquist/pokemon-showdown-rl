@@ -203,6 +203,7 @@ class _SearchEvalAdapter:
                     "search/flips", "search/overrides",
                     "disagree/eligible", "disagree/searched",
                     "disagree/score_sum", "disagree/score_sum_searched",
+                    "calib/leaves", "calib/shift_sum",
                     "ens_min/argmin_lane0", "ens_min/argmin_lane1",
                     "ens_min/argmin_lane2", "ens_min/spread_sum",
                     "ens_min/leaves"):
