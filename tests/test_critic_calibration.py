@@ -49,22 +49,44 @@ def test_pava_sorts_by_x_so_input_order_does_not_matter():
     assert np.allclose(a, b)
 
 
-def test_cross_val_scores_every_point_and_never_from_its_own_fold():
-    """An in-sample recalibration is an upper bound. If the split leaked, the
-    reported calibration prize would be inflated and the conclusion -- '88% of
-    the gap is ranking' -- could flip."""
-    seen = {}
+def test_cross_val_holds_out_WHOLE_POSITIONS_not_individual_outcomes():
+    """THE BUG THIS EXISTS FOR, found by review on 2026-09-19.
+
+    The predictor is CONSTANT WITHIN A POSITION -- ~32 rollouts of one position
+    share one critic value -- so an outcome-level split leaves the held-out
+    point's own position in the training fold, with the identical x, and the
+    isotonic fit partially learns that position's own mean. Measured on the real
+    data: 100% of held-out outcomes were contaminated, and the published
+    "out-of-sample" gain was +0.0195 where the honest figure is +0.0096.
+
+    Same shape as "seeds do not pair battles": correlated rows treated as
+    independent. The guard is that no held-out GROUP appears in training.
+    """
+    groups = np.repeat(np.arange(20), 5)          # 20 positions x 5 outcomes
+    p = np.repeat(np.arange(20, dtype=float), 5)  # predictor constant per group
+    o = p + 0.0
+    leaked = []
 
     def spy(ptr, otr, pte):
-        seen[len(pte)] = (len(ptr), len(pte))
+        # every training x must come from a DIFFERENT group than every test x
+        leaked.append(bool(set(np.unique(pte)) & set(np.unique(ptr))))
         return np.zeros_like(pte)
 
-    p = np.arange(100, dtype=float)
-    out = cc.cross_val(spy, p, p.copy(), folds=5)
+    out = cc.cross_val(spy, p, o, groups, folds=5)
     assert out.shape == p.shape
-    for train_n, test_n in seen.values():
-        assert train_n + test_n == 100, "a fold saw its own test points"
-        assert test_n == 20
+    assert not any(leaked), "a held-out position appeared in its own training fold"
+
+
+def test_an_outcome_level_split_WOULD_have_leaked():
+    """The counterfactual, so the test above cannot pass vacuously: shuffling
+    at the row level puts a group's own rows on both sides."""
+    groups = np.repeat(np.arange(20), 5)
+    p = np.repeat(np.arange(20, dtype=float), 5)
+    idx = np.arange(p.size)
+    np.random.default_rng(0).shuffle(idx)
+    te, tr = idx[::5], np.setdiff1d(idx, idx[::5])
+    assert set(groups[te]) & set(groups[tr]), (
+        "the row-level split did not leak, so the grouped test proves nothing")
 
 
 def test_a_perfectly_calibrated_predictor_gains_nothing_from_recalibration():
@@ -72,11 +94,12 @@ def test_a_perfectly_calibrated_predictor_gains_nothing_from_recalibration():
     conditional mean, isotonic recalibration is a no-op up to fold noise."""
     rng = np.random.default_rng(3)
     truth = rng.uniform(-1, 1, size=300)
+    groups = np.repeat(np.arange(300), 20)
     o = np.repeat(truth, 20) + rng.normal(scale=0.5, size=6000)
     p = np.repeat(truth, 20)
     vt = o.var()
     ev = lambda pred: 1.0 - ((o - pred) ** 2).mean() / vt
-    gain = ev(cc.cross_val(cc._iso, p, o)) - ev(p)
+    gain = ev(cc.cross_val(cc._iso, p, o, groups)) - ev(p)
     assert gain < 0.01, f"recalibrating an honest predictor bought {gain:+.4f}"
 
 
@@ -85,12 +108,13 @@ def test_a_MIS_calibrated_predictor_is_detected_and_repaired():
     the SAME ranking and a worse EV, and isotonic must recover most of it."""
     rng = np.random.default_rng(4)
     truth = rng.uniform(-1, 1, size=300)
+    groups = np.repeat(np.arange(300), 20)
     o = np.repeat(truth, 20) + rng.normal(scale=0.5, size=6000)
     p = 0.5 * np.repeat(truth, 20) + 0.3           # squashed and biased
     vt = o.var()
     ev = lambda pred: 1.0 - ((o - pred) ** 2).mean() / vt
     raw = ev(p)
-    fixed = ev(cc.cross_val(cc._iso, p, o))
+    fixed = ev(cc.cross_val(cc._iso, p, o, groups))
     assert fixed - raw > 0.05, (raw, fixed)
     # ranking is untouched by a monotone distortion, which is the premise of
     # splitting the gap this way at all
