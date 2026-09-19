@@ -1,0 +1,60 @@
+# IDEAS 4.9's GATE -- is the search a POLICY-IMPROVEMENT OPERATOR on this object at
+# an affordable budget? HACKING RUN (2026-09-19). CREDITS NOTHING. R6 prep plan
+# item 4 (docs/proposals/R6_PREP_PLAN_2026-09-19.md sections 3-4): AlphaZero's
+# loop presupposes that MCTS+net beats net alone at inference; measured here so
+# far it does not (RESULTS 30: every arm at or below greedy; RESULTS 26: the
+# gumbel tree +0.021 at 0.96 se, unresolved; CH3 R5 2026-08-25: one iteration of
+# a pre-D5 search distilled into the actor read -0.0545 on all four lanes).
+#
+# THE ARM is the strongest affordable expert: the gumbel rule (an UNGATED policy
+# improvement by construction -- rl/search/tree.py returns before the margin
+# logic) at iters 900, where argmax_moved is 15.9% (RESULTS 32), against an
+# in-session greedy anchor that runs FIRST (CLEANUP L6). n=3200 per arm resolves
+# +0.025 at 2 se (se_diff ~0.0122). Both FP@20 disclosures travel.
+title: exit_gate_r5
+status: "hacking run, 2026-09-19 -- IDEAS 4.9's go/no-go; CREDITS NOTHING; the in-session anchor is XGR"
+journey_step: "14 (the strength chapter's gate), read after 11"
+credits_nothing: true
+results_dir: results/exit_gate_r5
+fp:
+  search_time_ms: 20
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+usernames:
+  scheme: "xg<arm><role>; the prefix `xg` is issued to no existing name (411-name inventory, 2026-09-19); the smoke pair is throwaway"
+arms:
+  XSM:  {kind: search_seat,   seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 2,    search_time_ms: 20, seat_username: xgsmkseat, fp_username: xgsmkbot, tree: {iters: 900, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
+  XGR:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3200, search_time_ms: 20, seat_username: xggrseat, fp_username: xggrbot}
+  XTG9: {kind: search_seat,   seat: w112, ensemble_members: [w104, w112, w120], dose: M, battles: 3200, search_time_ms: 20, seat_username: xgtg9seat, fp_username: xgtg9bot, tree: {iters: 900, n_det: 2, batch: 16, decide: gumbel, beta: 4.0, root_min_visits: 8}}
+phases:
+  smoke: [XSM]
+  R: [XGR, XTG9]
+decision_rule:
+  primary: "XTG9 minus XGR, off FP@20, n=3200 per arm, same session, control first"
+  clears: >-
+    delta >= +0.025 AND >= 2*se_diff -> the gumbel tree at 900 iterations IS a
+    policy-improvement operator on this object; IDEAS 4.9 gets R7's first trio on
+    the tree vehicle (a pre-reg then, with a mechanism co-primary that is not EV).
+  does_not_clear: >-
+    otherwise -> at the strongest affordable budget the expert is not measurably
+    better than the student (a +0.025 improvement is excluded at 2 se), so there is
+    no expert to iterate on; 4.9 is closed on THIS object for R7 -- a measured bound
+    on the operator, not a small-run null (rule 6). It reopens only with a different
+    expert (a different vehicle or budget), never by re-running this one.
+  also_recorded: "search/ms_mean (the price), tree/kl_pi_prior, tree/pi_top1, tree/argmax_moved (the expert's shape), the realized change rate (search/overrode)"
+comparators:
+  bs9_screen: {ms_per_decision: 766.6, argmax_moved: 0.159, pi_top1: 0.773, n_battles: 40, note: "RESULTS 32, the same tree config; n=40 is not a win-rate read"}
+  tg_iters100: {rate: 0.6040, n: 1000, note: "RESULTS 26 TG at iters 100 -- CROSS-SESSION, never differenced"}
+R0_gates:
+  - name: G_EXPERT_REPORTED
+    check: "XTG9 reports tree/kl_pi_prior, tree/pi_top1, tree/argmax_moved and search/ms_mean; absent means the counters did not survive the seat path and the read says nothing"
+  - name: G_BUDGET_REALIZED
+    check: "search/ms_mean on XTG9 is within ~2x of the screen's 766.6 ms; far below means the iters knob did not reach the tree"
+  - name: G_CONTROL_FIRST
+    check: "XGR's json predates XTG9's (CLEANUP L6)"
+  - name: G_SESSION
+    check: "no difference against any banked number; the delta is XTG9 - XGR only"
+  - name: G_TIES
+    check: "ties are non-wins and are reported beside n"
