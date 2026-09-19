@@ -68,7 +68,8 @@ you may cite:
   from `SearchAgent`'s signature and **hard-fails on an unknown pre-reg key**.
 
 ## Next actions
-1. **This is a clean stopping point — see `HANDOFF.md`.** Nothing is mid-flight.
+1. **R6 PREP PLAN WRITTEN — `docs/proposals/R6_PREP_PLAN_2026-09-19.md` (NOT ratified; six rulings inside).** The R5
+   loss autopsy (IDEAS 2.15) reads the format as luck-dominated and our style at parity, so R6 = the W + C6 base, trio A 4.11, trio B 4.12; no width, no 300M; transformer and expert iteration gated for R7.
 2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
    search idea must argue against the override regression (−0.48 win rate per unit override
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.

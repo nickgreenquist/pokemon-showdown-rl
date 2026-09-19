@@ -12382,3 +12382,54 @@ line numbers are not — grep the date, then read that region):
     every figure from `results/`, cite the file in the box, and grep that the annotation
     actually landed. Both lessons are now in `docs/landmines.md` and CLAUDE.md rather than
     only in SESSION_LOGS. Suite green throughout: **1219 passed / 0 failed / 87 skipped.**
+
+- 2026-09-19 (afternoon, agent; maintainer: *"audit whats been done in ideas ... is it worth
+  a monster train for R6? wider critic? more params? or should we try Transformer next?"*,
+  then *"blunt 'here is what we are going to do to prep for R6 fleet'"*) — **THE R6 PREP
+  PLAN, THE R5 LOSS AUTOPSY, AND THREE LEDGER ROWS THAT WERE MISSING.** No new battles, no
+  training. Product: `docs/proposals/R6_PREP_PLAN_2026-09-19.md` (NOT ratified; six rulings
+  listed in it), `scripts/replay_audit/r5_autopsy.py`, and IDEAS Round 5 (rows 2.15, 4.11,
+  4.12; 4.6 re-sequenced; 4.9's gate restated; §5's attention screen sequenced).
+  - **The verdict on the maintainer's question, from the record:** "the wider critic moved the
+    needle" is not what §21 says — the credit is for the W BUNDLE (L2 + 1024 critic + 2×
+    horizon) as singles against the 100M baseline, no contrast isolates width, the committee
+    misses the floor (+0.015 at 2.01 se), and the wide critic's EV is 0.0038 LOWER. Width at
+    384 was starved (rank 5/384 → 632/1024) and that is the whole of what is licensed. So R6
+    keeps 1024 + L2 as the base and spends nothing more on capacity. The transformer is
+    gated (the BC screen in `ARCH_SCREEN_SPEC`, offline, R7's arm); expert iteration is gated
+    on the operator itself (the gumbel tree at 900 iters vs greedy, n ≥ 4000, one session —
+    §30 has every search arm at or below greedy and CH3 R5 already distilled one iteration of
+    a pre-D5 search into the actor at −0.0545 on all four lanes).
+  - **The autopsy (`scripts/replay_audit/r5_autopsy.py`, all 200 R5 replays, both sides on
+    the same parser, outcome agreeing with `R5E.battles.jsonl` on 200/200).** "Net hax" =
+    luck events on the opponent minus luck events on us (crits taken, freezes, full-para /
+    sleep / frozen turns, misses, confusion self-hits). Played-out battles (150): **win 0.19
+    at net ≤ −3 (n=52), 0.40 at −2..−1 (20), 0.67 at 0 (12), 0.73 at +1..+2 (26), 0.83 at
+    ≥ +3 (40)**; mean net +2.36 in wins, −2.81 in losses; **unforced losses 18/72, earned wins
+    26/78**. By band (played out): <1200 0.773 (n=22), 1200–1299 0.543 (35), 1300–1399 0.491
+    (55), **≥1400 0.353 (34)** — of the 22 losses to ≥1400, 14 had luck against us and 8 did
+    not. Losses are close: the opponent had 1–2 mons left in 45 of 72. **Style parity with
+    the field, including the ≥1400 slice:** switch share 0.259 vs 0.287, status share 0.216
+    vs 0.242, Explosion 0.9 vs 1.1 per 100 moves; over all 200 battles Hyper Beam KO rate
+    0.48 vs 0.50 (119 vs 105 uses, recharge turns 20 vs 22) and zero-damage moves 0.9% vs
+    1.0%. **What it closes:** a visible tactical class as the ≥1400 deficit. **What it
+    points at:** decision quality in close games — the critic's ranking (§27.1) and the
+    policy head's own margin (`action_gap.py`, CLEANUP L9). Descriptive; credits nothing.
+  - **The plan, in one line each:** rulings (loop breaker on; C6 form (a) on every R6 lane,
+    uncredited; the fleet shape; the split schedule; 2.13 off; the two R7 gates) → 2.12's
+    weight-averaging eval (~2 h) → the ExIt gate on the idle box (~14 h, detached) → build C6
+    + the outcome heads + wire the loop breaker → the 12M mechanism screen for the
+    batch/epochs trio (never a win rate) → 400k smokes → fleet (6 × 200M on the W + C6 base,
+    trio A = 4.11, trio B = 4.12, floor = the R5 W finals re-drawn in session, object = the
+    best committee off FP@20) → anchor battery → R6 ladder under CLEANUP L1's split
+    schedule. The attention BC screen overlaps all of it as R7's gate. **Expected: +0.02 to
+    +0.05 off FP@20, tens of Glicko; the board's p90 needs R7 too.**
+  - **Explicitly NOT in R6:** more critic or actor width, 300M, an LR floor (§29), λ 0.75
+    (4.10), λ ≥ 0.98 (L2LAM's −0.094 off FP@20 is the datum on that axis), search on the
+    object (§30), an expert-iteration fleet, a transformer fleet.
+  - **Process disclosure.** A second Claude session was committing a completeness review in
+    this tree throughout (3d085e2, 90ae350, 18aff0f and later); this session touched nothing
+    until the tree was clean and re-tested every anchor against the committed files before
+    applying. `HANDOFF.md` is left as that session wrote it; the fold to the stub is still
+    owed. The memory note on ladder calibration was updated (R5 LISTED; climbing is the
+    active question).
