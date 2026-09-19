@@ -41,39 +41,31 @@ DETERMINISM**: argmax in a state that stopped changing repeats forever; training
 −0.060/−0.088/−0.005, win rate +0.059/+0.062/+0.033. **DO NOT FLOOR THE LR. Third
 independent measurement that EV IS NOT THE OBJECTIVE** (§21 width, §27.1 ranking, §29).
 
-## WHAT THE REVIEW PASSES CHANGED (read before citing this week)
+## WHAT THE REVIEW PASSES CHANGED — **read before citing anything from this week**
+**Five review passes. ~25 claims changed, ONE SECTION RETRACTED, and several of the errors
+were INSIDE the corrections.** The full table is in `HANDOFF.md`; the four that change what
+you may cite:
 - **§30.1 RETRACTED IN FULL.** It relaxed the "never difference across sessions" landmine
-  on a G-test with **power 0.13** at the effect in question (20k sims of the exact design;
-  it claimed "G≈12, p≈0.02" without computing it). Heterogeneity sits **between days**
-  (G 2.760 of 3.139 on 2 df). **The landmine STANDS**, now on the honest ground that 0.02
-  is UNRESOLVED, not measured. The five draws and pooled greedy **0.5818 (n=6500)** keep.
-- **§27.1's CV LEAKED** (above). **§28's "every stall" rested on SIX battles** → 91.3%.
-  **§31's "the sampler is exonerated" INVERTS its own probe's logic** — V(s) and V(swap(s))
-  share a determinization, so it carries *zero* information about the sampler. **§32
-  withdrew the "90.9% of root visits" caveat** quoted all week: one smoke decision. At
-  `iters: 100`, `pi_top1` **0.417** vs the prior's 0.885, KL **5.70 nats** — π′ is far
-  FLATTER than the prior, the opposite of the claim.
-- **A SECOND REVIEW PAIR THEN FOUND NINE MORE, THREE OF THEM INSIDE THE CORRECTIONS.**
-  Every HEADLINE number reproduced exactly from raw JSON; every error was secondary.
-  **"AFFINE BEATS ISOTONIC" IS WITHDRAWN — a SEED-0 artifact**: over 40 CV seeds the
-  difference is +0.00055 ± 0.00128, affine ahead 24/40, the shipped margin *half of
-  isotonic's own seed-to-seed sd*. Which map wins is UNRESOLVED; both buy ~+0.010 and
-  7%/93% holds. **That is "one rung is worth ±0.02" in a new costume — one CV fold draw
-  is one rung.** Also: §30.1's box published an **uncomputed median G inside the paragraph
-  charging that a number was never computed** (arrangement-sensitive: 4.67 centred / 5.45
-  lop-sided; power 0.13–0.19 either way, conclusion untouched); a test that **asserted a
-  source string and so survived commenting the code out**; and the `tree/*` denominator
-  wrong at six sites (1,090, not 1,107 — `argmax_moved × n` must be an integer).
-- **I invented three numbers while writing the FIRST correction pass** (a KL lifted from a
-  GOLDEN TEST FIXTURE, an argmax_moved with no source). **Every number in a correction box
-  is now traced to a file in `results/`, and BOTH lessons are in `docs/landmines.md` +
-  CLAUDE.md** rather than only here — STATUS is rewritten in place and cannot hold them.
-- **EIGHT defect-class fixes this week, all ONE shape — a dial or a counter that runs and
-  reports nothing, or reports the wrong thing.** The structural repair landed: `ch3_eval`
-  now DERIVES its forwarded dials from `SearchAgent`'s signature and **hard-fails on an
-  unknown pre-reg key**, so `disagree:`/`calibration:` can never again be accepted, dropped,
-  and reported as if live. Also: the isotonic thinner ramped through every STEP (27% of the
-  fitted gain thrown away); `tree/gate_off` now says when a margin could never fire.
+  on a G-test whose power at 0.02 is **0.13** (it claimed "G≈12, p≈0.02" without computing
+  it). Heterogeneity sits **between days** (G 2.760 of 3.139 on 2 df). **THE LANDMINE
+  STANDS**, on the honest ground that 0.02 is UNRESOLVED. Pooled greedy **0.5818 (n=6500)**
+  keeps. The retraction did NOT reach `docs/landmines.md` for a day — it does now.
+- **§27.1: 12%/88% → 7%/93%** (the CV split at the OUTCOME level while the predictor is
+  constant within a POSITION). **"Affine beats isotonic" is WITHDRAWN — a SEED-0 artifact**:
+  over 40 CV seeds +0.00055 ± 0.00128, affine ahead 24/40, the margin *half of isotonic's
+  own seed-to-seed sd*. **One CV fold draw is one rung.**
+- **§28's "every stall" rested on SIX battles** → 91.3%. **§31's "the sampler is exonerated"
+  INVERTS its own probe** (V(s) and V(swap(s)) share a determinization, so it carries zero
+  information about the sampler). **§32 withdrew the "90.9% of root visits" caveat** quoted
+  all week: one smoke decision; measured `pi_top1` **0.417** vs the prior's 0.885.
+- **THE CORRECTIONS THEMSELVES NEEDED CORRECTING SIX TIMES** — a KL lifted from a GOLDEN
+  TEST FIXTURE, an uncomputed median G *inside the paragraph charging that a number was
+  never computed*, a test asserting a SOURCE STRING (so it survived commenting the code
+  out), and a denominator wrong at six sites. **Both lessons are in `docs/landmines.md` and
+  CLAUDE.md** — STATUS is rewritten in place and cannot hold them.
+- **NINE defect-class fixes, all ONE shape — a dial or counter that runs and reports
+  nothing, or the wrong thing.** Structural repair: `ch3_eval` DERIVES its forwarded dials
+  from `SearchAgent`'s signature and **hard-fails on an unknown pre-reg key**.
 
 ## Next actions
 1. **This is a clean stopping point — see `HANDOFF.md`.** Nothing is mid-flight.
