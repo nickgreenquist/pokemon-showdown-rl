@@ -499,6 +499,34 @@ never on the knob).
 fit with the checkpoint** — it is a property of THAT critic, not of the format,
 and a recalibration fitted on one checkpoint applied to another is a new
 untested object.
+**WIRED 2026-09-19** (`SearchAgent(calibration=...)`, default None and
+bit-identical when unset; `calib/leaves` and `calib/mean_shift` reach the arm's
+JSON, so a calibration that silently failed to load is distinguishable from one
+that was never asked for).
+
+**THE TENSION THIS ROW HAS TO ANSWER BEFORE IT GETS AN ARM, and it is not
+rhetorical.** The +0.0195 is an **EXPLAINED-VARIANCE** gain, and this project
+has now measured THREE TIMES that EV does not track strength: §21 (2.67× critic
+width and 126× rank bought ZERO EV while the win rate moved), §27.1 (88% of the
+critic's gap to the ceiling is ranking, which no rescaling touches), and §29 (EV
+moves in the OPPOSITE direction to the win rate in 9 lanes of 9). **A lever
+justified by EV is a lever justified by the one quantity measured not to
+matter.**
+
+**Why it may still pay, and the channel is different.** Those three are about
+TRAINING — a better value fit does not make a better policy. 2.13 is about
+SEARCH: `row_ev` takes an EXPECTATION over leaf values, so a monotone map
+reorders rows (3.5% of pairs) and the D5 gate is a threshold on the same scale.
+The claim is "the search picks a different action", not "the critic fits
+better". **That is a real distinction and it is also an untested one.**
+
+**So the arm must read the ACTION, not the fit.** Cheapest form: run the
+calibrated and raw selectors on the SAME decisions offline and report how often
+the chosen action differs and in which direction — a per-decision quantity with
+thousands of samples, exactly the trick that made the 8.6 screen cheap. **If the
+action almost never changes, this row is inert in practice whatever its EV, and
+it should be closed without a fleet-grade arm.**
+
 **What it does NOT do:** close the gap. It is 12% of it; the other 88% is
 ranking (§27.1), which is 4.9's and 4.1's territory.
 
