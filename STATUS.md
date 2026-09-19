@@ -15,32 +15,31 @@ read **0.5510 / 0.5530, |d| 0.0020**, so the within-session floor is a tenth of 
 cross-session rung. **"Monotone in the change rate" was published and is FALSE** (0.584 at
 6.4% rises to 0.587 at 9.1%); the defensible claim is the level ordering.
 **§30/8.5 — the committee does NOT know WHERE to search, but SEARCHING LESS BEAT SEARCHING
-MORE.** Gated on committee disagreement vs a **COIN at a rate matched to three decimals**:
-**+0.0030 at 0.14 se — selection is a null.** Gated (40%) vs ungated (93%), pooling both
-replicates per side: **+0.0335 at 2.14 se**, which clears both halves of the credit line.
-Post-hoc pooling, block credits nothing — but the dose intuition is backwards.
+MORE.** Gated on committee disagreement vs a **COIN at a matched rate: +0.0030 at 0.14 se,
+selection is a null.** Gated (40%) vs ungated (93%), both replicates pooled per side:
+**+0.0335 at 2.14 se**, clearing both halves of the credit line. Post-hoc pooling, credits
+nothing — but the dose intuition is backwards.
 **§27 + §27.1 — THE LUCK CEILING, and the critic's real deficit.** 707 positions / 22,358
 rollouts: **~64% of a mid-battle outcome is IRREDUCIBLE**; ceiling **0.3630**, critic
 **0.2176**. **THE GATE OPENS — the critic is NOT done.** Out-of-sample isotonic buys
 **+0.0096, only ~7% of the gap: 93% is RANKING** (corrected from 12/88 — the published CV
 split at the OUTCOME level while the predictor is constant within a POSITION, so every
-held-out outcome had its own position in training; affine now beats isotonic). Worst in
+held-out outcome had its own position in training). Worst in
 the **OPENING** (r² 0.287 at turns 2–8 vs 0.727 at 23+). **Never set the training EV 0.59
 against this ceiling** — a different state distribution.
 **§31 — THE CRITIC IS NOT ANTISYMMETRIC: +0.059 to whichever side it is pointed at,
 z 14.7**, 5× larger in the opening. **Mechanism identified:** that is its training
-distribution's own mean return — league play fits it against a pool of *older, weaker*
-checkpoints (+0.036 whole-run, +0.087 late) while eval is a mirror where the truth is 0.
-**A TRAIN/EVAL DISTRIBUTION SHIFT. IDEAS 4.1's claim on this evidence is WITHDRAWN** —
-p1/p2 are symmetric, so it is not a seat effect. 4.1 keeps its sample-efficiency argument.
+distribution's own mean return — league play fits it against *older, weaker* checkpoints
+(+0.036 whole-run) while eval is a mirror where the truth is 0. **A TRAIN/EVAL
+DISTRIBUTION SHIFT. IDEAS 4.1's claim on this evidence is WITHDRAWN** (p1/p2 are
+symmetric); 4.1 keeps its sample-efficiency argument.
 **§28 + §29 — two facts about our own policy form.** §28: **103 of 104 turn-cap battles
-enumerated** — 100 are switch loops, **94 (91.3%)** have the opponent immobilised on ≥80%
-of turns (often FROZEN SOLID) while our seat oscillates. **The mechanism is the locked
-protocol's own DETERMINISM**: argmax in a state that stopped changing repeats forever;
-training SAMPLES, so it never happens there. §29: **the annealed tail trades EV for WIN
-RATE in 9 lanes of 9** — EV −0.060/−0.088/−0.005 with value loss UP, win rate
-+0.059/+0.062/+0.033. **DO NOT FLOOR THE LR.** **Third independent measurement that EV IS
-NOT THE OBJECTIVE** (§21 width, §27.1 ranking, §29 the tail).
+enumerated** — 100 are switch loops, **94 (91.3%)** with the opponent immobilised on ≥80%
+of turns while our seat oscillates. **The mechanism is the locked protocol's own
+DETERMINISM**: argmax in a state that stopped changing repeats forever; training SAMPLES.
+§29: **the annealed tail trades EV for WIN RATE in 9 lanes of 9** — EV
+−0.060/−0.088/−0.005, win rate +0.059/+0.062/+0.033. **DO NOT FLOOR THE LR. Third
+independent measurement that EV IS NOT THE OBJECTIVE** (§21 width, §27.1 ranking, §29).
 
 ## WHAT THE REVIEW PASSES CHANGED (read before citing this week)
 - **§30.1 RETRACTED IN FULL.** It relaxed the "never difference across sessions" landmine
@@ -50,13 +49,25 @@ NOT THE OBJECTIVE** (§21 width, §27.1 ranking, §29 the tail).
   is UNRESOLVED, not measured. The five draws and pooled greedy **0.5818 (n=6500)** keep.
 - **§27.1's CV LEAKED** (above). **§28's "every stall" rested on SIX battles** → 91.3%.
   **§31's "the sampler is exonerated" INVERTS its own probe's logic** — V(s) and V(swap(s))
-  share a determinization, which is why no sampler enters, so it carries *zero* information
-  about the sampler. **§32 withdrew the "90.9% of root visits" caveat** this project quoted
-  all week: one smoke decision. Measured at `iters: 100`, `pi_top1` **0.417** vs the prior's
-  0.885 and KL **5.70 nats** — π′ is far FLATTER than the prior, the opposite of the claim.
-- **I invented three numbers while writing those corrections** (a KL lifted from a GOLDEN
-  TEST FIXTURE, an argmax_moved with no source). Caught by re-deriving from the JSONs.
-  **Every number in a correction box is now traced to a file in `results/`.**
+  share a determinization, so it carries *zero* information about the sampler. **§32
+  withdrew the "90.9% of root visits" caveat** quoted all week: one smoke decision. At
+  `iters: 100`, `pi_top1` **0.417** vs the prior's 0.885, KL **5.70 nats** — π′ is far
+  FLATTER than the prior, the opposite of the claim.
+- **A SECOND REVIEW PAIR THEN FOUND NINE MORE, THREE OF THEM INSIDE THE CORRECTIONS.**
+  Every HEADLINE number reproduced exactly from raw JSON; every error was secondary.
+  **"AFFINE BEATS ISOTONIC" IS WITHDRAWN — a SEED-0 artifact**: over 40 CV seeds the
+  difference is +0.00055 ± 0.00128, affine ahead 24/40, the shipped margin *half of
+  isotonic's own seed-to-seed sd*. Which map wins is UNRESOLVED; both buy ~+0.010 and
+  7%/93% holds. **That is "one rung is worth ±0.02" in a new costume — one CV fold draw
+  is one rung.** Also: §30.1's box published an **uncomputed median G inside the paragraph
+  charging that a number was never computed** (arrangement-sensitive: 4.67 centred / 5.45
+  lop-sided; power 0.13–0.19 either way, conclusion untouched); a test that **asserted a
+  source string and so survived commenting the code out**; and the `tree/*` denominator
+  wrong at six sites (1,090, not 1,107 — `argmax_moved × n` must be an integer).
+- **I invented three numbers while writing the FIRST correction pass** (a KL lifted from a
+  GOLDEN TEST FIXTURE, an argmax_moved with no source). **Every number in a correction box
+  is now traced to a file in `results/`, and BOTH lessons are in `docs/landmines.md` +
+  CLAUDE.md** rather than only here — STATUS is rewritten in place and cannot hold them.
 - **EIGHT defect-class fixes this week, all ONE shape — a dial or a counter that runs and
   reports nothing, or reports the wrong thing.** The structural repair landed: `ch3_eval`
   now DERIVES its forwarded dials from `SearchAgent`'s signature and **hard-fails on an

@@ -81,11 +81,18 @@ the wrong numbers were ones I had written INTO the corrections.**
 | **§31** | "the determinization sampler is exonerated" | **withdrawn** — the probe holds the sampler fixed by construction, so it carries zero information about it |
 | **§32 / the "90.9%" caveat** | quoted all week as a property of the regime | **one smoke decision.** Measured: `pi_top1` **0.417** vs the prior's 0.885, KL **5.70 nats** — π′ is far FLATTER than the prior |
 | **IDEAS 4.1** | "has its measured defect at last" | **attribution withdrawn** — p1/p2 are symmetric, so it is not a seat effect. 4.1 keeps its sample-efficiency argument at zero build cost |
+| **"affine beats isotonic"** | the grouped-CV fix's own conclusion | **withdrawn — a SEED-0 artifact.** Over 40 CV seeds: +0.00055 ± 0.00128, affine ahead 24/40. Which map wins is **unresolved**; both buy ~+0.010 |
+| **§30.1's "median G = 5.43"** | published inside the retraction | **4.67** — and it was *uncomputed, in the paragraph charging that a number was never computed*. Arrangement-sensitive; power 0.13–0.19 either way, conclusion untouched |
 
 **The week's actual lesson.** I wrote three numbers into correction boxes that
 were not measurements — one of them a value lifted from a **golden test fixture**.
-They were caught only by re-deriving every figure from `results/`. *A number typed
-from memory into a correction is exactly as unsafe as the number it corrects.*
+A second review pair then found **nine more, three of them introduced by the
+correction pass itself** and two more corrections that had failed to propagate to
+the file that matters. *A number typed from memory into a correction is exactly as
+unsafe as the number it corrects* — and **a correction pass is a measurement, so it
+needs the same machinery**: derive from `results/`, cite the file in the box, grep
+that the annotation landed. Both lessons now live in `docs/landmines.md` and
+CLAUDE.md, not only here.
 
 ---
 
