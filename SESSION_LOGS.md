@@ -12232,3 +12232,94 @@ line numbers are not — grep the date, then read that region):
     were searched. The frozen queue script names arms rather than parameters, so the change
     landed without a restart and without poisoning a username pair.
   - Suite 1173 passed / 87 skipped; **+84 tests today**.
+
+- 2026-09-19 — **THE CORRECTION PASS: three Opus review agents went back over every
+  post-ladder claim; SIXTEEN changed, ONE SECTION RETRACTED IN FULL, and three of the
+  wrong numbers were ones I invented while writing the corrections.** No new battles. The
+  session's product is that the record is now true, plus the structural fix for the defect
+  class that produced most of it. Tree clean, suite **1219 passed / 0 failed / 87 skipped**
+  (+32 today). RESULTS §21/§23/§24/§26/§26.1/§27.1/§28/§30/§30.1/§31/§32.1;
+  `readouts/BACKUP_GATE_R5_READOUT.md` (new); STATUS.md rewritten; HANDOFF.md written.
+  - **§30.1 RETRACTED IN FULL — I relaxed a deliberately conservative safeguard on an
+    analysis that could not see the hazard.** §30.1 used a G-test over five greedy draws
+    (G = 3.139, df 4, p = 0.535) to retire the standing "~0.02 session offset" landmine,
+    asserting *"the test has the power to see one of 0.02 (it would push G to ≈12 and p to
+    ≈0.02)."* **That number was never computed.** Simulating the exact design 20,000
+    times: a true 0.02 day spread gives **median G = 5.43 and reaches p < 0.05 just 13% of
+    the time.** The design resolves **0.06** (power 0.85), not 0.02. Worse, decomposing
+    the G that IS there: **between-day 2.760 on 2 df vs within-day 0.379 on 2 df** — 88%
+    of the heterogeneity lies across days, which if anything leans TOWARD a day effect. So
+    "no detectable offset" was true and vacuous. **The landmine stands, on the honest
+    ground that 0.02 is UNRESOLVED rather than measured.** Relaxing a safeguard needs
+    evidence the hazard is ABSENT; I offered evidence it is HARD TO SEE. The five draws
+    and the pooled greedy **0.5818 (n = 6500)** are kept — they are real.
+  - **§27.1's CROSS-VALIDATION LEAKED, and the headline moved.** The split was at the
+    OUTCOME level while the predictor is **constant within a position** (~32 rollouts share
+    one critic value), so **100% of held-out outcomes had their own position in the
+    training fold, at the identical x.** It is "seeds do not pair battles" in a new costume,
+    and I had clustered the se for §31 while leaving this ungrouped. Grouped by position:
+    **isotonic +0.0096, affine +0.0103 — AFFINE NOW BEATS ISOTONIC**, so "isotonic is the
+    best any monotone rescaling can do" was in-sample optimality (707 distinct x-values,
+    ~32 samples each: it overfits). With §27's unbiased ceiling as the denominator the
+    split goes **12%/88% → 7%/93%. The conclusion is unchanged and STRENGTHENED.**
+    `scripts/critic_calibration.py::cross_val` now takes `groups` and holds out whole
+    positions; a counterfactual test proves the row-level split leaks.
+  - **THREE NUMBERS I INVENTED WHILE PROPAGATING A CORRECTION.** Withdrawing §32's "90.9%
+    of root visits" caveat, I wrote "KL 0.66 nats" and "argmax_moved 28%" into five files.
+    The 0.66 is a value lifted from a **GOLDEN TEST FIXTURE**
+    (`tests/test_tree_decision_golden.py`); the 28% has no source at all. Re-derived from
+    `results/tree_budget_r5/bs1.json` (1,107 searched decisions at `iters: 100`):
+    **`pi_top1` 0.417 vs the prior's 0.885, KL 5.70 nats, `argmax_moved` 4.0%** (15.9% at
+    900). **The correction is stronger for it** — π′ is far FLATTER than the prior, the
+    opposite of the concentration the caveat asserted, and `argmax_moved` says the tree's
+    SHAPE moves long before its CHOICE does. **Lesson, and it is the week's lesson: a
+    number typed from memory into a correction box is exactly as unsafe as the number it
+    corrects.** Every figure in every correction box is now traced to a file in `results/`.
+  - **§31 RE-SCOPED — "the determinization sampler is exonerated" inverts the probe's own
+    logic.** `V(s)` and `V(swap(s))` are computed from the **same** determinization, which
+    is precisely why the section can say "no sampler enters" — and therefore the probe
+    carries **zero information about the sampler.** It cannot exonerate what it never
+    varied. Also "fully accounts for §27.1's +0.0416": +0.0586 vs +0.0416 differ by 40%,
+    across different position sets whose turn mixes differ, on a quantity this section
+    measures varying **5× with the turn**. The measurement stands: **+0.059 to whichever
+    side the critic is pointed at, z 14.7**, mechanism identified as the **train/eval
+    distribution shift** league play creates. **IDEAS 4.1's claim on it is WITHDRAWN**
+    (p1/p2 are symmetric — not a seat effect); 4.1 keeps its sample-efficiency argument at
+    zero build cost. Both withdrawals propagated to every dependent sentence, including
+    §27.1's "barred" line, which had barred **the opposite** of what is now true.
+  - **§28's "every stall" rested on SIX battles.** All **103 of 104** capped battles
+    enumerated: 100 are switch loops, **94 (91.3%)** have the opponent immobilised on ≥80%
+    of turns. 91.3%, not "every". Caught by the maintainer's own instruction — *"be careful
+    you 100% close an idea off if it was not done fully"*.
+  - **THE MISSING READOUT.** RESULTS §30 had cited `readouts/BACKUP_GATE_R5_READOUT.md`
+    since it was written; **the file did not exist.** Now written and reconciled against
+    §30 line by line — and my first draft contradicted §30 three times (it re-made the
+    "monotone" claim §30 had already corrected as FALSE; it asserted the DUM contamination
+    "flatters DUM" when the measurement went 1.2 se the OTHER way; and it reported one R0
+    gate passing when seven are declared and `G_OVERRIDE_MATCHED` FAILS). **The account
+    wins; the readout is provenance.** What it adds: the replicate gate as the pre-reg
+    framed it (**D1O 0.5510 vs DUM 0.5530, |d| 0.0020 against a 0.020 floor**), the
+    override regression with leave-one-out, and the fit's intercept landing within **0.006**
+    of the measured greedy anchor.
+  - **THE STRUCTURAL FIX for the week's one defect class — EIGHT instances, all the same
+    shape: a dial or a counter that runs and reports nothing, or reports the wrong thing.**
+    `scripts/ch3_eval.py` forwarded a **hardcoded** list of `SearchAgent` dials, so
+    `disagree` and `calibration` — added to the object afterwards — would have been
+    accepted in a pre-reg, **silently dropped**, and the arm run as an unmodified CONTROL
+    while its readout claimed the dial. Nothing would have caught it: the dial's counters
+    simply stay zero, which reads as "the dial did nothing". Now `_SEARCH_DIALS` is
+    **derived from `inspect.signature(SearchAgent.__init__)`** and `_ARM_KEYS` makes an
+    unrecognised pre-reg key a **hard failure** — verified against all 31 banked pre-regs
+    (zero rejected, sibling-harness keys allowed) while `calibraton`/`disagre`/`depth_2`
+    stop the run. `tests/test_ch3_r0.py`'s pinned job dict is derived too; its own comment
+    had asked for exactly this.
+  - **Two more of the eight.** `rl/common/value_calibration.py` thinned isotonic knots to
+    the FIRST x of each level set, so `np.interp` drew a **RAMP through every STEP**: on a
+    step fixture `apply(1.0)` returned 0.5 where the fit says 1.0, and on the real
+    22,358-pair fit **27% of the fitted gain was thrown away** (EV +0.0213 full vs +0.0155
+    as deployed) — while the module docstring claimed its estimator could not drift from
+    `scripts/critic_calibration.py`. It had. After the fix, mean |deployed − true| 0.0012.
+    And `tree/gate_off` now records when `margin: null` makes the tree branch **greedy by
+    construction**, so "acts 0%, the tree agreed" can never again be confused with "acts
+    0%, the tree was never allowed to act". The golden test caught the additive stat-set
+    change, which is the golden test working.
