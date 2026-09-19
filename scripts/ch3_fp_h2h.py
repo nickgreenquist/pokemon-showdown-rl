@@ -224,6 +224,9 @@ class SeatPlayer(Player):
         self.probe: dict[str, list[float]] = {}
         self.leaves: list[int] = []
         self.concurrent_decisions = 0
+        # ARM-LEVEL decision total. `_decision_index` RESETS every battle, so it
+        # cannot be the denominator of an arm-level rate -- see below.
+        self._decisions_total = 0
 
     def choose_move(self, battle):
         from rl.envs.showdown import SinglesEnv, _recover_mask_desync, embed_battle
@@ -274,6 +277,7 @@ class SeatPlayer(Player):
         else:
             action = self._agent.act(obs, mask, deterministic=self._det)
         self._decision_index += 1
+        self._decisions_total += 1
         try:
             order = SinglesEnv.action_to_order(np.int64(action), battle)
         except ValueError as exc:
@@ -507,8 +511,19 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "max_concurrent_live_battles": seat.max_concurrent_live,
         # the MAX above answers "did it ever happen"; these answer "how much"
         "concurrent_decisions": seat.concurrent_decisions,
+        # WRONG UNTIL 2026-09-19. The numerator accumulates across the ARM while
+        # `_decision_index` RESETS at every battle boundary, so this divided an
+        # arm-level count by the LAST BATTLE's decision count. Four of the seven
+        # non-zero banked values exceed 1.0 -- impossible for a fraction of
+        # decisions -- and `scripts/depth2_r5_readout.py` hard-VOIDs any arm
+        # above 0.01, so the counter written to settle "was the concurrency a
+        # transient?" would have false-VOIDed every arm it was meant to clear
+        # (hd1 reads 4.0851 against a true 0.00195, a factor of 2100).
+        # BANKED VALUES BEFORE THIS DATE ARE NOT RATES; recompute as
+        # concurrent_decisions / (search/decisions) where that field exists.
         "concurrent_decision_rate": (
-            seat.concurrent_decisions / max(seat._decision_index, 1)),
+            seat.concurrent_decisions / max(seat._decisions_total, 1)),
+        "concurrent_decisions_denominator": seat._decisions_total,
     }
     if search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])

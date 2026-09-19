@@ -216,11 +216,16 @@ class SearchAgent:
             "search/placeholder_skips": 0,
             "search/flips": 0,  # chosen != policy argmax
             # D5 only: decisions where the gate LET the search override the
-            # policy. Identical to `flips` whenever margin_delta is not None
-            # (both are "played != policy argmax"); it stays 0 with the gate
-            # off, where no override decision was ever taken. Kept separate
-            # so the two are cross-checkable from disk and so a future
-            # selector cannot silently alias them.
+            # policy. It stays 0 with the gate off, where no override decision
+            # was ever taken. Kept separate so the two are cross-checkable from
+            # disk and so a future selector cannot silently alias them.
+            # THE IDENTITY IS CONDITIONAL, not general (2026-09-19): both the
+            # matrix and the tree set `overrode` from `chosen != policy_argmax`
+            # under a NON-NEGATIVE margin, so there the two counters agree
+            # exactly and a disagreement on disk is a BUG.  A selector that
+            # could play the policy's own action "as an override" -- or a
+            # negative margin -- would break that, so verify before differencing
+            # them rather than assuming it.
             "search/overrides": 0,
             # ens_min diagnostics: which lane supplies the min, and how far
             # apart the lanes are. A lane share near 1.0 means the "minimum"

@@ -596,6 +596,13 @@ def tree_decision(
         "search/chosen": chosen,
         "search/policy_argmax": policy_argmax,
         "search/overrode": int(bool(override)),
+        # A None margin makes this branch GREEDY BY CONSTRUCTION: the tree is
+        # built, the leaves are paid for, and `chosen` is the policy argmax no
+        # matter what the tree found.  Without this flag a readout cannot tell
+        # "the tree agreed" (acts 0%, gate live) from "the tree was never
+        # allowed to act" (acts 0%, gate off) -- the same defect shape as the
+        # counters that reached no disk (L7).
+        "tree/gate_off": float(cfg.margin is None),
         "search/leaves": evals,
         "tree/argmax": tree_argmax,
         "tree/gap": gap,
