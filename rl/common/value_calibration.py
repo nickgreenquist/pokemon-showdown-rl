@@ -75,10 +75,22 @@ class ValueCalibration:
     def fit(cls, values, outcomes, fit_meta=None) -> "ValueCalibration":
         xs, ys = pava(np.asarray(values, dtype=np.float64),
                       np.asarray(outcomes, dtype=np.float64))
-        # thin to unique knots: PAVA returns one point per sample and the map is
-        # a step function, so the duplicates carry no information and a 22k-knot
-        # curve would be shipped in every artifact that records the fit.
-        keep = np.concatenate(([True], np.diff(ys) > 1e-12))
+        # THIN TO BOTH ENDS OF EACH LEVEL SET, not just the first.
+        #
+        # WRONG UNTIL 2026-09-19: keeping only the FIRST x of each flat run turns
+        # every isotonic STEP into a RAMP under np.interp, because the fit is a
+        # step function and interpolation between retained knots invents the
+        # slope. Measured on the real 22,358-pair fit: 42 knots retained, max
+        # |deployed - true| = 0.158, and 27% OF THE FITTED GAIN thrown away
+        # (in-sample EV +0.0213 full vs +0.0155 as deployed) -- while this
+        # module's docstring claimed the estimator was shared with
+        # scripts/critic_calibration.py "so the number reported there and the
+        # transform applied here cannot drift apart". They had drifted.
+        keep = np.zeros(xs.size, dtype=bool)
+        keep[0] = keep[-1] = True
+        step = np.flatnonzero(np.diff(ys) > 1e-12)
+        keep[step] = True            # last x of the run that ENDS at the step
+        keep[step + 1] = True        # first x of the run that BEGINS after it
         return cls(xs[keep], ys[keep], fit_meta)
 
     @classmethod

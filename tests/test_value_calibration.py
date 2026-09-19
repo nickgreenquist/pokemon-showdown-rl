@@ -205,3 +205,37 @@ def test_a_calibration_round_trips_through_the_agents_config_form():
                      calibration=c.to_dict())
     assert sa._calibration.fit_meta["source"] == "unit"
     assert float(sa._calibration.apply(1.0)) == pytest.approx(0.5)
+
+
+# --- L8 (2026-09-19): the thinning dropped one end of every level set --------
+#
+# PAVA produces RUNS of equal y.  The original thinner kept only the FIRST x of
+# each run, so a run's interior and its last x were gone and `np.interp` drew a
+# RAMP from the start of one run to the start of the next -- across ground the
+# true fit holds FLAT and then STEPS.  Deployed error was up to 0.5 on a step
+# fixture: `apply(1.0)` returned 0.5 where the fit says 0.0.  Every calibration
+# used since 2.13 was built this way, which is why the flip-rate numbers above
+# were measured on the DEPLOYED object rather than on the ideal fit.
+
+def test_a_step_fit_is_reproduced_EXACTLY_not_ramped_through():
+    p = np.linspace(-1.0, 1.0, 201)
+    o = np.where(p < 0.0, -1.0, 1.0)          # a single hard step at 0
+    cal = ValueCalibration.fit(p, o)
+    # both ends of each level set survive the thinning
+    assert cal.apply(1.0) == pytest.approx(1.0, abs=1e-9)
+    assert cal.apply(-1.0) == pytest.approx(-1.0, abs=1e-9)
+    assert cal.apply(-0.5) == pytest.approx(-1.0, abs=1e-9)
+    assert cal.apply(0.5) == pytest.approx(1.0, abs=1e-9)
+
+
+def test_the_thinned_knots_track_the_UNTHINNED_fit_everywhere():
+    """The thinning is a SIZE optimisation and must not be a value change."""
+    rng = np.random.default_rng(0)
+    p = np.sort(rng.uniform(-1.0, 1.0, 400))
+    o = np.where(rng.uniform(size=400) < (p + 1.0) / 2.0, 1.0, -1.0)
+    cal = ValueCalibration.fit(p, o)
+    xs_full, ys_full = pava(p, o.astype(float))   # the UN-thinned fit
+    truth = np.interp(p, xs_full, ys_full)
+    got = np.array([cal.apply(float(x)) for x in p])
+    assert np.abs(got - truth).mean() < 0.005
+    assert np.abs(got - truth).max() < 0.05
