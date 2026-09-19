@@ -1506,8 +1506,25 @@ threshold 0.0 searches everything, a threshold above every score plays exactly
 the greedy argmax (not a third policy), and `None` is every banked arm. A
 one-legal-action decision scores 0 under both. Gate skips are folded into the
 `skips` denominator, or a healthy gated arm reads VOID on `depth2/fired_rate`.
-**STILL UNRUN.** The arm needs a threshold swept for its realized `search_rate`
-first, exactly as the margin was swept for override rate.
+**RUN 2026-09-19. THE SELECTION CLAIM IS A NULL; the CONCENTRATION claim is
+still open (DUM pending).** At a search rate matched to three decimals (0.431
+both), gating on committee disagreement reads **0.5870** against a COIN's
+**0.5840** — **+0.0030 at 0.14 se.** The coin does just as well.
+
+**WHAT IS AND IS NOT TESTED, because this is one cut of one metric.** The arm
+ran `votes` at threshold 0.30, which on a THREE-member committee means "ANY
+member dissents" — the coarsest cut the metric has, and a weak notion of
+contested. **Untested: `votes` at 0.5 (two of three dissent, a rarer and
+sharper signal), the continuous `margin` metric, and any committee larger than
+three.** A null at the coarsest cut does not close the idea that disagreement
+carries usable signal; it closes "any dissent, three members, this threshold".
+
+**And the two arms are NOT identical in what they did.** DGV overrode 21.0% of
+the decisions it searched against DRV's 14.7% — selection works, in the sense
+that contested positions do produce more overrides — so DGV changed **9.1%** of
+all decisions and DRV **6.3%**. Given §24's measurement that changing more is
+worse, DGV doing equally well while changing half again as many decisions is, if
+anything, mildly favourable to selection. At 0.14 se none of that is a result.
 **Feeds 4.9 directly** — it is
 the natural answer to 4.9's dose question (search the flagged fraction, train on
 those states).
