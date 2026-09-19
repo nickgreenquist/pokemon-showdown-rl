@@ -220,6 +220,8 @@ class SeatPlayer(Player):
         self._decision_index = 0
         self.tag_index: dict[str, int] = {}  # CH4 R1 BI-7: per-battle records
         self.ms: list[float] = []
+        # per-decision probe stats, keyed by their own name; see choose_move
+        self.probe: dict[str, list[float]] = {}
         self.leaves: list[int] = []
         self.concurrent_decisions = 0
 
@@ -256,6 +258,19 @@ class SeatPlayer(Player):
             if "search/leaves" in stats:
                 self.ms.append((time.perf_counter() - t0) * 1e3)
                 self.leaves.append(int(stats["search/leaves"]))
+                # PER-DECISION PROBE STATS, and this path never carried them.
+                # scripts/ch3_eval.py has aggregated depth2/ tree/ census/ bcts/
+                # heuristic/ keys since 2026-09-16; THIS collector only ever kept
+                # ms and leaves, so every tree/* diagnostic ever produced off
+                # Foul Play was discarded -- including IDEAS 4.9's expert
+                # falsifier, which burned a 45-minute screen on 2026-09-19
+                # reporting nothing. Same defect class, third occurrence: a dial
+                # reaches the WRITER and not the COLLECTOR.
+                for k, v in stats.items():
+                    if (k.split("/")[0] in ("depth2", "tree", "census", "bcts",
+                                            "heuristic", "disagree")
+                            and isinstance(v, (int, float))):
+                        self.probe.setdefault(k, []).append(float(v))
         else:
             action = self._agent.act(obs, mask, deterministic=self._det)
         self._decision_index += 1
@@ -545,6 +560,13 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         # 1.0 is a UNIFORM-DOSE arm wearing a gated label and a 0.0 is greedy,
         # and neither is distinguishable from the win rate alone.
         report["search_disagree"] = search_agent._disagree
+        # THE PROBE STATS, averaged over the decisions that produced them. Their
+        # absence is what made IDEAS 4.9's falsifier unreadable off Foul Play.
+        for k, vals in sorted(seat.probe.items()):
+            if vals:
+                report[k] = float(sum(vals) / len(vals))
+        report["probe/decisions_with_stats"] = (
+            len(next(iter(seat.probe.values()))) if seat.probe else 0)
         # IDEAS 2.13 PROVENANCE. `calib/leaves` at 0 means the dial never
         # touched a leaf whatever the config asked for, and `calib/mean_shift`
         # says how far it moved them -- an arm where both are ~0 is a RAW-critic

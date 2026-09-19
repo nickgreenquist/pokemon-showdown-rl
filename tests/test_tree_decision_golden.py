@@ -256,3 +256,27 @@ def test_an_expert_identical_to_the_prior_reports_zero_kl():
     st = _expert_stats(rows, {6: 0.5, 7: 0.3, 8: 0.2}, prior)
     assert st["tree/kl_pi_prior"] == pytest.approx(0.0, abs=1e-12)
     assert st["tree/argmax_moved"] == 0.0
+
+
+def test_the_expert_counters_REACH_DISK_on_the_foul_play_path():
+    """The rule this repo keeps paying for: a dial reaches the WRITER and not the
+    COLLECTOR, runs, and reports nothing.
+
+    It happened a third time on 2026-09-19. `tree/kl_pi_prior` and friends are
+    per-DECISION stats; `scripts/ch3_eval.py` has aggregated `tree/` keys since
+    2026-09-16 but `scripts/ch3_fp_h2h.py` only ever kept `ms` and `leaves`, so
+    EVERY tree diagnostic ever produced off Foul Play was discarded -- and a
+    45-minute mechanism screen came back empty. This reads the collector out of
+    the source.
+    """
+    from pathlib import Path
+
+    src = (Path(__file__).parent.parent / "scripts/ch3_fp_h2h.py").read_text()
+    assert "self.probe" in src, "the FP seat does not collect per-decision stats"
+    i = src.index("self.probe.setdefault")
+    window = src[max(0, i - 700):i]
+    for prefix in ("depth2", "tree", "bcts", "heuristic", "disagree"):
+        assert f'"{prefix}"' in window, (
+            f"the FP seat's probe filter drops {prefix}/* stats")
+    assert "report[k] = float(sum(vals) / len(vals))" in src, (
+        "the probe stats are collected and never written to the arm's JSON")

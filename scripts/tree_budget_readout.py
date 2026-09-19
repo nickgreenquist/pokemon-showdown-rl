@@ -65,6 +65,18 @@ def main() -> None:
               f"{num(d,'tree/argmax_moved'):>7.3f} {acts:>8.1%}")
 
     lo, hi, vis = arms.get("BS1"), arms.get("BS9"), arms.get("BSV")
+    if not ok:
+        # THE RULE MUST NOT RUN ON MISSING DATA. On 2026-09-19 it did: the
+        # counters never reached disk, every value was NaN, and `NaN >= 1.5` is
+        # False -- so the readout printed "PHASE R DOES NOT FIRE" as a verdict on
+        # an arm that had measured nothing. A gate that fails must SILENCE the
+        # conclusion, not feed it.
+        print("\n" + "=" * 84)
+        print("NO VERDICT. An R0 gate failed above, so the decision rule is NOT")
+        print("evaluated: a rule fed NaN returns False and prints a conclusion that")
+        print("looks identical to a real negative. Fix the gate and re-run.")
+        print("=" * 84)
+        return
     if lo and hi:
         kl_lo, kl_hi = num(lo, "tree/kl_pi_prior"), num(hi, "tree/kl_pi_prior")
         mv_lo, mv_hi = num(lo, "tree/argmax_moved"), num(hi, "tree/argmax_moved")
