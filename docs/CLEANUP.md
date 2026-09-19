@@ -410,7 +410,17 @@ and the **3.5% row-pair flip rate** quoted in RESULTS §27.1 and
 `tests/test_value_calibration.py`. Those are LOWER BOUNDS on the fixed object.
 **Re-run `scripts/calibration_action_diff.py` before any 2.13 arm.**
 
-## L9 — `scripts/action_gap.py` is INVALID for its headline claim (2026-09-19, OPEN)
+## L9 — `scripts/action_gap.py` is INVALID for its headline claim (2026-09-19, FIXED the same evening)
+
+**FIXED 2026-09-19 (evening).** `top2_live` computes (a1, a2) ONCE per position from the
+LIVE observation and action mask — the tensors the committee acts on — and holds the pair
+fixed across determinizations, so no shadow battle and no privileged view enter the
+ranking; every row records `top1_is_played` (a1 vs the action the committee actually
+played) and the summary prints it as a self-check that must sit at ~100%.
+`tests/test_action_gap_top2.py` pins the contract (3 tests). Still UNRUN at the time of the
+fix; the first run is queued behind the wavg_r5 read (`scripts/exit_gate_queue.sh`).
+The original entry follows.
+
 
 The script's docstring calls it *"a ceiling, not a null, and the first thing in
 this project licensed to close the axis"* — the search axis. **It is not valid

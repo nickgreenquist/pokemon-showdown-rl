@@ -1,31 +1,20 @@
 #!/usr/bin/env python
 """HOW MUCH IS THERE FOR SEARCH TO WIN? The prize, measured.
 
-*** DO NOT RUN THIS AND READ THE NUMBER AS A CEILING. INVALID AS OF 2026-09-19. ***
-*** Two defects, both still present, both of which SHRINK the measured gap --   ***
-*** i.e. they bias it toward the "search cannot pay" conclusion it would license.***
-
-  (1) THE TOP-2 IS RE-DERIVED PER DETERMINIZATION.  `tt = top2(shadow_battle(st,
-      turn))` sits INSIDE `for st in states`, so each determinization gets its
-      own (a1, a2). The real policy commits to ONE action at the ROOT, before
-      any determinization, and search swaps THAT argmax. Averaging |Q(a1)-Q(a2)|
-      over per-determinization pairs measures a different and systematically
-      SMALLER quantity than the gap the policy actually faces.
-
-  (2) THE POLICY IS READ FROM A PRIVILEGED OBSERVATION.  `shadow_battle(st,
-      turn)` is called with `view=None`, so `embed_battle` encodes the
-      opponent's FULL determinized team. The live agent sees a zero-padded block
-      for every unrevealed mon. A policy that can see the opponent's team ranks
-      actions better, which again shrinks the top-1/top-2 gap.
-
-  The fix for (1) is to compute (a1, a2) ONCE from the root's live observation
-  and hold it fixed across determinizations; for (2) pass
-  `view=public_view(root_battle)` as the det_blind path does. Neither is done.
-  `cda517d` fixed a THIRD defect (the noise diagnostics measured ~zero by
-  construction) and did not touch these two.
-
-  UNRUN. Nothing in RESULTS, STATUS or any readout cites a number from this
-  script, and nothing should until both are fixed. Tracked in docs/CLEANUP.md.
+FIXED 2026-09-19 (docs/CLEANUP.md L9). Two defects both shrank the measured gap,
+  i.e. biased it toward the "search cannot pay" ceiling it would license:
+  (1) the top-2 was RE-DERIVED PER DETERMINIZATION from a shadow battle, where
+      the real policy commits to ONE argmax at the ROOT and search swaps THAT;
+  (2) that shadow battle was built with view=None, so the policy ranked actions
+      from a PRIVILEGED encoding of the opponent's full determinized team.
+  Now `top2_live` computes (a1, a2) ONCE per position from the LIVE observation
+  and action mask -- the exact tensors the committee acts on -- and holds the
+  pair fixed across determinizations; no shadow battle enters the ranking at
+  all. Every row also records whether a1 equals the action the committee
+  actually played (`top1_is_played`), which the summary prints as a self-check
+  that must sit at ~100%. `cda517d` had fixed a third defect (noise diagnostics
+  measuring ~zero by construction). tests/test_action_gap_top2.py pins the
+  contract.
 
     POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 \
         python scripts/action_gap.py --battles 150 --rollouts 24
@@ -74,6 +63,29 @@ import numpy as np
 
 sys.path.append(str(Path(__file__).parent))
 REPO = Path(__file__).resolve().parents[1]
+
+
+def top2_live(members, obs, mask):
+    """The committee's top two LEGAL actions from the LIVE observation and mask.
+
+    This is the root decision the policy actually faces: the mean over members
+    of the masked log-probabilities, restricted to legal actions, ordered by
+    that mean (a per-member normalisation constant cannot reorder actions, so
+    this is the committee's own argmax ordering). Computed ONCE per position
+    and held fixed across determinizations (CLEANUP L9). Returns None when
+    fewer than two actions are legal -- a forced move has no top-2 gap.
+    """
+    import torch
+    m = np.asarray(mask, dtype=bool)
+    if m.sum() < 2:
+        return None
+    t = torch.as_tensor(np.asarray(obs, dtype=np.float32)[None])
+    with torch.no_grad():
+        lp = torch.stack([
+            torch.log_softmax(mm.actor(t)[0], dim=-1) for mm in members]).mean(0).numpy()
+    legal = np.flatnonzero(m)
+    order = legal[np.argsort(-lp[legal], kind="stable")]
+    return int(order[0]), int(order[1])
 
 
 def main() -> None:
@@ -126,20 +138,6 @@ def main() -> None:
     opponent, _ = _opponent_from_checkpoint(args.checkpoints[0], cfg0.seed)
     env = make_env(cfg0.env_id, cfg0.seed, env_kwargs={"opponent": opponent})
     counters = BridgeCounters()
-
-    def top2(sb):
-        """The committee's top two LEGAL actions at a shadow battle."""
-        mask = ov._shadow_mask(sb)
-        if mask.sum() < 2:
-            return None
-        obs = embed_battle(sb, type_chart)
-        t = torch.as_tensor(np.asarray(obs, dtype=np.float32)[None])
-        with torch.no_grad():
-            lp = torch.stack([
-                torch.log_softmax(m.actor(t)[0], dim=-1) for m in members]).mean(0).numpy()
-        legal = np.flatnonzero(mask)
-        order = legal[np.argsort(-lp[legal])]
-        return int(order[0]), int(order[1]), obs
 
     def q_of(state, action, turn, rng, n):
         """True expected outcome of PLAYING `action` here, by rollout."""
@@ -199,19 +197,22 @@ def main() -> None:
                     raise
                 except BaseException:
                     break
-                q1s, q2s = [], []
+                tt = top2_live(members, obs, mask)
+                if tt is None:
+                    break
+                a1, a2 = tt
+                played = int(agent.act(obs, mask, deterministic=True))
+                q1s, q2s, o1s, o2s = [], [], [], []
                 for st in states:
-                    tt = top2(shadow_battle(st, turn))
-                    if tt is None:
-                        continue
-                    a1, a2, _ = tt
                     o1 = q_of(st, a1, turn, rng, args.rollouts)
                     o2 = q_of(st, a2, turn, rng, args.rollouts)
                     if o1 is None or o2 is None:
                         continue
                     q1s.append(float(o1.mean())); q2s.append(float(o2.mean()))
+                    o1s.append(o1); o2s.append(o2)
                 if len(q1s) >= 1:
                     q1, q2 = float(np.mean(q1s)), float(np.mean(q2s))
+                    o1, o2 = np.concatenate(o1s), np.concatenate(o2s)
                     # MEASURE the rollout noise on the gap, never assume it.
                     # The ceiling is a conditional expectation and therefore a
                     # WINNER'S CURSE: conditioning on a noisy negative selects
@@ -224,6 +225,8 @@ def main() -> None:
                     # answer materially -- so the per-action spread is recorded.
                     row = {"ep": ep, "turn": turn, "q_top1": q1, "q_top2": q2,
                            "gap": q1 - q2, "n_det": len(q1s),
+                           "a1": a1, "a2": a2, "played": played,
+                           "top1_is_played": int(a1 == played),
                            "rollouts": args.rollouts,
                            "var1": float(np.var(o1, ddof=1)) if o1.size > 1 else None,
                            "var2": float(np.var(o2, ddof=1)) if o2.size > 1 else None,
@@ -255,6 +258,11 @@ def main() -> None:
     print("HOW MUCH IS THERE FOR SEARCH TO WIN?")
     print("=" * 80)
     print(f"\n  {len(rows)} positions, {args.dets}x{args.rollouts} rollouts per action")
+    tip = [r.get("top1_is_played") for r in rows if r.get("top1_is_played") is not None]
+    if tip:
+        print(f"  self-check: a1 == the action the committee PLAYED in "
+              f"{np.mean(tip):.1%} of positions (must be ~100%; rows written before "
+              f"2026-09-19 carry no such field and are not comparable)")
     print(f"  E[Q(top1)]                         {q1.mean():+.4f}")
     print(f"  E[Q(top2)]                         {q2.mean():+.4f}")
     print(f"  E[gap] = E[Q(top1) - Q(top2)]      {g.mean():+.4f}")
@@ -282,6 +290,7 @@ def main() -> None:
         "mean_q_top1": float(q1.mean()), "mean_q_top2": float(q2.mean()),
         "mean_gap": float(g.mean()), "mean_abs_gap": float(np.abs(g).mean()),
         "frac_top1_worse": float(wrong.mean()),
+        "top1_is_played_frac": float(np.mean(tip)) if tip else None,
         "mean_loss_when_wrong": float((-g[wrong]).mean()) if wrong.any() else 0.0,
         "ceiling_win_rate": float(wrong.mean() * ((-g[wrong]).mean() if wrong.any() else 0)) / 2,
         "rollout_noise_on_gap": se_row * math.sqrt(2),
