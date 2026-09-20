@@ -47,6 +47,7 @@ fn tables() -> StaticTables {
         type_chart: [[1.0; N_TYPES]; N_TYPES],
         prior: (0..152).map(|_| None).collect(),
         set_prior: true,
+        c6: false,
     }
 }
 

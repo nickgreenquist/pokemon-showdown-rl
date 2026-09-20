@@ -44,7 +44,7 @@ impl Tables {
     /// Built by `rl/envs/engine_tables.py` from poke-env -- the same source the
     /// Python encoder reads. Nothing here is derived from the engine's own data.
     #[new]
-    #[pyo3(signature = (species_base_stats, species_types, moves, type_chart, prior, set_prior=true))]
+    #[pyo3(signature = (species_base_stats, species_types, moves, type_chart, prior, set_prior=true, c6=false))]
     #[allow(clippy::type_complexity)]
     fn new(
         species_base_stats: Vec<[u16; N_BASE_STATS]>,
@@ -53,6 +53,7 @@ impl Tables {
         type_chart: Vec<Vec<f64>>,
         prior: Vec<(u8, Vec<u8>, Vec<Vec<u8>>)>,
         set_prior: bool,
+        c6: bool,
     ) -> PyResult<Self> {
         if species_base_stats.len() != species_types.len() {
             return Err(PyValueError::new_err("species tables have different lengths"));
@@ -132,8 +133,16 @@ impl Tables {
                 type_chart: chart,
                 prior: priors,
                 set_prior,
+                c6,
             },
         })
+    }
+
+    /// C6 on for this table (the runtime flag the collector checks against the
+    /// Python encoder's fingerprint).
+    #[getter]
+    fn c6(&self) -> bool {
+        self.inner.c6
     }
 
     #[getter]

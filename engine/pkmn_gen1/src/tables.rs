@@ -88,6 +88,13 @@ pub struct StaticTables {
     pub prior: Vec<Option<SpeciesPrior>>,
     /// `POKEMON_RL_NO_SET_PRIOR=1`: encode only REVEALED opponent moves.
     pub set_prior: bool,
+    /// `POKEMON_RL_ENCODER_C6=1` (IDEAS 4.6 form (a), ported 2026-09-20): the
+    /// fixed-damage moves carry an EFFECTIVE power and an immunity-only type
+    /// multiplier (`encoder.rs::c6_effective_power`). Constant OBS_DIM; off is
+    /// bit-identical to every banked checkpoint's encoder. Set from Python by
+    /// `rl/envs/engine_tables.py::build_tables` off the same env var the
+    /// reference encoder reads, so the two flip together in one process.
+    pub c6: bool,
 }
 
 impl StaticTables {

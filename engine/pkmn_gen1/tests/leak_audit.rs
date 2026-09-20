@@ -88,6 +88,7 @@ fn tables() -> StaticTables {
         type_chart,
         prior,
         set_prior: true,
+        c6: false,
     }
 }
 

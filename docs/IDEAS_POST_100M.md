@@ -1189,7 +1189,13 @@ cost (§5). The gen4 chapter pays the invalidation anyway (CONSOLIDATED
 encoder the engine collector trains on** (`engine/pkmn_gen1/src/encoder.rs::fill_move`);
 the collector refuses the flag until that port lands (R6 prep plan §6 carries the spec).
 **RULED 2026-09-20: C6 rides R6 only if the Rust encoder port lands before the fleet;
-otherwise R6 is c6-off and C6 moves to R7.** C6
+otherwise R6 is c6-off and C6 moves to R7.** **PORTED THE SAME EVENING — the condition
+is met and C6 rides R6:** `engine/pkmn_gen1/src/encoder.rs` carries the seven-id table
+behind `StaticTables::c6` (`Tables(..., c6=)`, set by `build_tables` from the same env var
+`showdown.py` reads; `pkmn_gen1.ENCODER_C6 = True`; the collector re-checks the pairing);
+P-1 replays 30,000 tape decisions at ZERO mismatches with the flag on and 20,000 with it
+off; `tests/test_engine_c6_port.py` pins the slots bitwise against `_fill_move`. The R6
+launcher must export `POKEMON_RL_ENCODER_C6=1` for its lanes (the fleet yaml's job). C6
 rides EVERY R6 lane in form (a) — the constant-OBS_DIM semantic fix, flagged and
 fingerprinted, tape-hash gate re-pinned — as a common-mode change that is
 **uncredited by design** and read as a mechanism (Seismic Toss / Super Fang usage on

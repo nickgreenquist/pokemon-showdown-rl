@@ -273,6 +273,9 @@ def main() -> int:
                 "top_fields": field_counts.most_common(20),
                 "examples": examples,
                 "tables_fingerprint": fingerprint,
+                # C6 (2026-09-20): the Rust tables' runtime flag, so a parity
+                # report says which encoder SEMANTICS it replayed under.
+                "c6": bool(getattr(tables, "c6", False)),
             }
         )
     )

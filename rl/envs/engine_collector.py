@@ -88,11 +88,13 @@ class _Seam:
 def _check_engine_c6(ext) -> None:
     """C6 (2026-09-19) lives in the PYTHON encoder (rl/envs/showdown.py) behind
     POKEMON_RL_ENCODER_C6; THIS collector's rows come from the RUST encoder
-    (engine/pkmn_gen1/src/encoder.rs::fill_move), which does not read the flag.
-    A lane launched with the flag would stamp c6=True in meta.yaml while
-    training on c6-off observations -- the exact semantic split the fingerprint
-    exists to prevent. Refused until the port lands and the extension exposes
-    `ENCODER_C6 = True` (R6 prep plan section 6)."""
+    (engine/pkmn_gen1/src/encoder.rs::fill_move). A lane launched with the flag
+    against a build that does not implement it would stamp c6=True in meta.yaml
+    while training on c6-off observations -- the exact semantic split the
+    fingerprint exists to prevent. PORTED 2026-09-20 (`Tables(..., c6=True)`,
+    `pkmn_gen1.ENCODER_C6`); this check stays as the STALE-EXTENSION guard --
+    `cargo build` refreshes target/, the importable module only changes on
+    `pip install -e`, and an old .so silently lacks the flag."""
     if os.environ.get("POKEMON_RL_ENCODER_C6") and not getattr(ext, "ENCODER_C6", False):
         raise ValueError(
             "POKEMON_RL_ENCODER_C6=1 but the engine extension does not implement the "
@@ -190,6 +192,16 @@ class EngineCollector:
         _check_engine_c6(pkmn_gen1)
 
         tables, self.tables_fingerprint = build_tables()
+        # The runtime PAIRING: the Rust tables' c6 and the Python fingerprint that
+        # meta.yaml stamps must agree, or the run record lies about its rows.
+        from rl.envs.showdown import ENCODER_FINGERPRINT as _PY_FP
+
+        if bool(tables.c6) != bool(_PY_FP["c6"]):
+            raise ValueError(
+                f"C6 pairing broken: the Rust tables carry c6={bool(tables.c6)} but the "
+                f"Python encoder fingerprint says c6={bool(_PY_FP['c6'])} -- both read "
+                "POKEMON_RL_ENCODER_C6 at construction/import; set it before either"
+            )
         self.bank_header, payload = read_bank(pathlib.Path(team_bank))
         # `battle_counter` at CONSTRUCTION, not after: the k battles in flight
         # are drawn here, so a resumed lane that set it later would replay its

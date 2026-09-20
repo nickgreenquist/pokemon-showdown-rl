@@ -701,6 +701,10 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("N_ACTIONS", crate::env::N_ACTIONS)?;
     m.add("OBS_DIM", crate::encoder::OBS_DIM)?;
     m.add("PRIV_DIM", crate::encoder::PRIV_DIM)?;
+    // C6 is IMPLEMENTED in this build (`Tables(..., c6=True)` re-semanticises the
+    // fixed-damage slots). `rl/envs/engine_collector.py::_check_engine_c6` reads
+    // this so a stale editable install cannot stamp c6=True over c6-off rows.
+    m.add("ENCODER_C6", true)?;
     m.add("__engine_sha__", ffi::ENGINE_SHA)?;
     // Bump whenever the ObservableState dict schema changes. A stale editable
     // install is otherwise INVISIBLE: `cargo build` writes target/, but the

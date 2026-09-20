@@ -151,18 +151,32 @@ def _prior_rows(spec: EncoderSpec = GEN1):
     return rows
 
 
-def build_tables(spec: EncoderSpec = GEN1, set_prior: bool | None = None):
-    """A `pkmn_gen1.Tables` for the Rust encoder, plus its fingerprint."""
+def build_tables(
+    spec: EncoderSpec = GEN1, set_prior: bool | None = None, c6: bool | None = None
+):
+    """A `pkmn_gen1.Tables` for the Rust encoder, plus its fingerprint.
+
+    `c6` (IDEAS 4.6 form (a); ported to the Rust encoder 2026-09-20): `None`
+    reads `POKEMON_RL_ENCODER_C6` exactly as `rl/envs/showdown.py` does at
+    import, so the Rust and Python encoders flip together in one process; the
+    engine collector re-checks `tables.c6` against the Python fingerprint. The
+    tables FINGERPRINT is untouched by it on purpose: it pins the DATA, and c6 is
+    a semantics flag the encoder fingerprint already stamps into meta.yaml.
+    """
     import os
 
     import pkmn_gen1
 
     if set_prior is None:
         set_prior = not bool(os.environ.get("POKEMON_RL_NO_SET_PRIOR"))
+    if c6 is None:
+        c6 = bool(os.environ.get("POKEMON_RL_ENCODER_C6"))
     base, types = _species_rows(spec)
     moves = _move_rows(spec)
     chart = _type_chart(spec)
-    tables = pkmn_gen1.Tables(base, types, moves, chart, _prior_rows(spec), set_prior)
+    tables = pkmn_gen1.Tables(
+        base, types, moves, chart, _prior_rows(spec), set_prior, bool(c6)
+    )
     return tables, fingerprint(spec)
 
 

@@ -481,6 +481,7 @@ mod tests {
             type_chart: [[1.0; crate::tables::N_TYPES]; crate::tables::N_TYPES],
             prior: (0..152).map(|_| None).collect(),
             set_prior: true,
+            c6: false,
         }
     }
 

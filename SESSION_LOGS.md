@@ -12574,3 +12574,22 @@ line numbers are not — grep the date, then read that region):
     niced beside XGR: 13 + 173 (1 skipped) + 96 passed. **The 400k launcher smoke with
     `aux_outcome/*` in history.csv is OWED after QUEUE DONE** (no training lane beside an
     FP arm).
+  - **THE C6 RUST PORT LANDED (~23:50–00:05Z; ruling #2's condition is met — C6 rides R6).**
+    `engine/pkmn_gen1/src/encoder.rs`: the seven-id table (`C6_*` consts = the gen-1 move
+    numbers 49/68/69/82/101/149/162, pinned against `data::MOVE_NAMES` in a unit test) behind
+    `StaticTables::c6`, applied LAST over the finished move block exactly as
+    `_c6_fixed_damage` does (Super Fang 2.2 × the foe's `hp_fraction`, 0.5 unknown; [+4]
+    clamped to 1.0 when non-zero and a foe is known; f64, one rounding at the store);
+    `Tables(..., set_prior=True, c6=False)` + a `c6` getter; `pkmn_gen1.ENCODER_C6 = True`;
+    `build_tables(c6=None)` reads `POKEMON_RL_ENCODER_C6` the way `showdown.py` does, so the
+    two encoders flip together in one process; the collector asserts `tables.c6 ==
+    ENCODER_FINGERPRINT["c6"]` after building the tables and `_check_engine_c6` stays as the
+    stale-extension guard; the P-1 report prints `c6`. Rebuilt + reinstalled in
+    `pkmn-engine-port` (32 s at `-j2` under `taskpolicy -b nice`; `pip install -e` needs the
+    env's bin on PATH because the maturin backend spawns `maturin` by name). GATES:
+    `cargo test --lib` 49/49; **P-1 30,000 decisions / 24.84M floats at ZERO mismatches with
+    the flag ON (`c6 True` in the report) and 20,000 at zero with it OFF**;
+    `tests/test_engine_c6_port.py` (2: the own-move blocks bitwise equal to `_fill_move`
+    under both flags over three foe cases; on/off differ only in [+1]/[+4] of C6 moves);
+    `tests/test_engine_collector.py` 8/8. CPU beside XGR: ~1.5 min total, niced (disclosed).
+    Plan §6's CORRECTION paragraph and IDEAS 4.6 carry the PORTED note.

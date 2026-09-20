@@ -338,6 +338,7 @@ mod tests {
             type_chart: chart,
             prior: vec![None; 4],
             set_prior: true,
+            c6: false,
         }
     }
 

@@ -291,7 +291,8 @@ def cmd_p1(args: argparse.Namespace) -> int:
     fams = d["families"]
     declared = {"transform", "struggle_slot"}
     undeclared = fams.get("undeclared", 0)
-    print(f"[P-1] tapes read: {d['tapes_read']}   tables fingerprint {d['tables_fingerprint'][:16]}")
+    print(f"[P-1] tapes read: {d['tapes_read']}   tables fingerprint {d['tables_fingerprint'][:16]}"
+          f"   c6 {d.get('c6', False)}")
     _print_kv(
         {
             "decisions replayed": d["decisions"],

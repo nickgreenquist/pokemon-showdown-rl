@@ -173,6 +173,37 @@ fn fill_active(vec: &mut [f32], o: usize, seat: &SeatState) {
     vec[o + ACTIVE_COUNTER_OFF + 1] = f32::from(seat.active.preparing);
 }
 
+/// C6 (IDEAS 4.6 form (a); `rl/envs/showdown.py::_c6_fixed_damage`, ported
+/// 2026-09-20). The vendored gen-1 mod gives the fixed-damage moves basePower 1,
+/// so [+1] reads 0.01 beside Thunderbolt's 0.95; with `StaticTables::c6` on,
+/// [+1] becomes an EFFECTIVE power on the same /100 scale and [+4] keeps only
+/// the immunity (0) and drops the 2x/0.5x a fixed-damage move never applies.
+/// Ids are the gen-1 move numbers, which are what `tables::StaticTables::moves`
+/// is indexed by on both sides (`data::MOVE_NAMES` pins each one in the test
+/// module); the constants' derivation is documented beside the Python table.
+/// Super Fang scales with the foe's CURRENT HP fraction, 0.5 for an unknown foe.
+pub const C6_SONIC_BOOM: u8 = 49;
+pub const C6_COUNTER: u8 = 68;
+pub const C6_SEISMIC_TOSS: u8 = 69;
+pub const C6_DRAGON_RAGE: u8 = 82;
+pub const C6_NIGHT_SHADE: u8 = 101;
+pub const C6_PSYWAVE: u8 = 149;
+pub const C6_SUPER_FANG: u8 = 162;
+
+/// The effective power for a C6 move id, `None` for every other move. f64 and
+/// rounded ONCE at the store, the bit-exactness rule above.
+fn c6_effective_power(id: u8, foe: Option<&MonView>) -> Option<f64> {
+    match id {
+        C6_SEISMIC_TOSS | C6_NIGHT_SHADE => Some(1.15),
+        C6_COUNTER => Some(1.0),
+        C6_DRAGON_RAGE => Some(0.56),
+        C6_SONIC_BOOM => Some(0.26),
+        C6_PSYWAVE => Some(0.85),
+        C6_SUPER_FANG => Some(2.2 * foe.map_or(0.5, |f| f.hp_fraction)),
+        _ => None,
+    }
+}
+
 fn fill_move(
     vec: &mut [f32],
     o: usize,
@@ -204,6 +235,17 @@ fn fill_move(
         vec[o + MOVE_TYPE_OFF + mt as usize] = 1.0;
     }
     vec[o + MOVE_DIM_V1..o + MOVE_DIM_V1 + EFFECT_DIM].copy_from_slice(&e.effect);
+    // C6, applied LAST over the finished block exactly as the Python does
+    // (`_fill_move` writes every slot, then `_c6_fixed_damage` overwrites [+1]
+    // and clamps a non-zero [+4] to 1.0 when a foe is known).
+    if t.c6 {
+        if let Some(bp) = c6_effective_power(mv.id, foe) {
+            vec[o + 1] = bp as f32;
+            if foe.is_some() && vec[o + 4] != 0.0 {
+                vec[o + 4] = 1.0;
+            }
+        }
+    }
 }
 
 /// `_opponent_move_slots`: up to four (move, probability) pairs for the
@@ -403,9 +445,31 @@ mod tests {
             type_chart: chart,
             prior: vec![],
             set_prior: true,
+            c6: false,
         };
         assert_eq!(t.multiplier(7, Some(3), None), 2.0);
         assert_eq!(t.multiplier(7, Some(3), Some(3)), 4.0);
+    }
+
+    #[test]
+    fn c6_ids_are_the_engines_own_move_numbers() {
+        // The Python table is keyed by move NAME; this side by move NUMBER. The
+        // engine's own name table (codegenned from the pinned data.json) is the
+        // witness that the seven numbers name the seven moves.
+        use crate::data::MOVE_NAMES;
+        for (id, name) in [
+            (C6_SONIC_BOOM, "Sonic Boom"),
+            (C6_COUNTER, "Counter"),
+            (C6_SEISMIC_TOSS, "Seismic Toss"),
+            (C6_DRAGON_RAGE, "Dragon Rage"),
+            (C6_NIGHT_SHADE, "Night Shade"),
+            (C6_PSYWAVE, "Psywave"),
+            (C6_SUPER_FANG, "Super Fang"),
+        ] {
+            assert_eq!(MOVE_NAMES[id as usize], name, "move {id}");
+        }
+        assert_eq!(c6_effective_power(85, None), None, "Thunderbolt is untouched");
+        assert_eq!(c6_effective_power(C6_SUPER_FANG, None), Some(1.1), "unknown foe -> 0.5");
     }
 }
 
