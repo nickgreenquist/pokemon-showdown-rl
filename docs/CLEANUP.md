@@ -133,7 +133,9 @@ exactly that (see do-not-relitigate below).
   continuous run), an explicit calendar-drift disclosure, and the repeat-opponent
   census above computed in the readout. **Not applied to R5**: changing the
   schedule mid-run is an unregistered deviation, and R5 was 40 games from its
-  floor when this came up. Blocked on a maintainer ruling at R6 pre-reg time.
+  floor when this came up. **RULED 2026-09-20: R6 ladders under the split schedule**
+  (four sessions, different hours and days, its own stopping rule) — the R6 pre-reg
+  carries it.
 
 - **E1 — NO SINGLE ENV RUNS THE TEST SUITE** (opened 2026-09-10). The port env
   `pkmn-engine-port` has the `pkmn_gen1` extension and now the analysis deps;

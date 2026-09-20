@@ -550,6 +550,11 @@ trajectory is a near-orthogonal random walk with a slight restoring tendency.
 **So there IS noise for an average to cancel** — the usual precondition for SWA
 holds.
 
+**RUN 2026-09-19 (`configs/eval/wavg_r5.yaml`, control first, same session): ENS3 of
+the finals 0.6013 vs ENS3 of the averages 0.5813 off FP@20, n=3000 each, delta −0.0200
+at 1.58 se — UNRESOLVED by the pre-stated rule (neither the +0.025 credit nor the −0.025
+close). The finals stay the members; the geometry's "a third of the way back down a
+productive tail" reading is the one the sign favours. No further arm is planned.**
 **THE TWO READINGS DISAGREE, AND THAT IS THE ANSWER: RUN THE EVAL.** Noise to
 cancel argues for it; a third of the way back down a measurably productive tail
 argues against. Neither dominates on paper, and the eval is one hour — a
@@ -634,7 +639,7 @@ credit floor, and **n ≈ 80,000 battles per arm to resolve.**
 **VERDICT: never spend a win-rate arm on this row.** It costs one `np.interp`
 per leaf batch and moves the search the way §30 says is favourable, so **whether
 to turn it on by DEFAULT is a maintainer ruling about the object, not an
-experiment.**
+experiment. RULED 2026-09-20: OFF (moot for a greedy object).**
 
 **What it does NOT do:** close the gap. It is ~7% of it [corrected 2026-09-19
 from 12%]; the other ~93% is
@@ -656,8 +661,9 @@ test pins that it **cannot change a single non-looping battle**.
 **WIRED 2026-09-19 (evening) behind `loop_breaker: true` on greedy/ensemble arms in
 `scripts/ch3_fp_h2h.py`, `scripts/ladder.py` and `scripts/ch3_eval.py`** (reset per battle,
 `loop/*` counters stamped; with the key absent every seat is byte-for-byte what it was;
-`tests/test_loop_breaking_policy.py`). **THE RULING IS STILL OWED:** it changes the POLICY
-FORM and the locked protocol names the policy. **Worth:** up to +0.011 on the worst banked arm
+`tests/test_loop_breaking_policy.py`). **RULED 2026-09-20 (maintainer, "agree with all"): ON for the R6 ladder object.** It
+changes the POLICY FORM and the locked protocol names the policy, so every R6 number that
+carries it says so. **Worth:** up to +0.011 on the worst banked arm
 and ~+0.0014 typically — small, free, and it removes a behaviour that is simply
 wrong. **It is also a LADDER RISK:** R5 never hit it (max 121 turns, 0 ties)
 because humans do not freeze-lock and then sit, but a 1000-turn rated game would
@@ -1178,7 +1184,8 @@ cost (§5). The gen4 chapter pays the invalidation anyway (CONSOLIDATED
 `rl/common/checkpoint.py`; `tests/test_encoder_c6.py`) — **but NOT yet in the RUST
 encoder the engine collector trains on** (`engine/pkmn_gen1/src/encoder.rs::fill_move`);
 the collector refuses the flag until that port lands (R6 prep plan §6 carries the spec).
-**RE-SEQUENCED 2026-09-19 (R6 prep plan §2; needs the maintainer's ruling #2).** C6
+**RULED 2026-09-20: C6 rides R6 only if the Rust encoder port lands before the fleet;
+otherwise R6 is c6-off and C6 moves to R7.** C6
 rides EVERY R6 lane in form (a) — the constant-OBS_DIM semantic fix, flagged and
 fingerprinted, tape-hash gate re-pinned — as a common-mode change that is
 **uncredited by design** and read as a mechanism (Seismic Toss / Super Fang usage on

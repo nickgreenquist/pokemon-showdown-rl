@@ -35,8 +35,12 @@ grep -q "FIXED 2026-09-19 (docs/CLEANUP.md L9)" scripts/action_gap.py || { log "
 log "guards ok (sha $(git rev-parse --short HEAD); dirty=$(git status --porcelain | wc -l | tr -d ' '))"
 
 # ---------------------------------------------------------------- GAP
-if [ -f results/outcome_variance/action_gap.json ]; then
-  log "GAP SKIP (results/outcome_variance/action_gap.json exists)"
+# Skip only a json the FIXED script wrote (it carries top1_is_played_frac). The
+# pre-L9 runs left a json and two rows files here; a bare existence check
+# skipped the fixed run on 2026-09-19 20:38Z, and the rows file would have been
+# RESUMED from invalid rows. Those artifacts now live in invalid_pre_L9/.
+if [ -f results/outcome_variance/action_gap.json ] && grep -q top1_is_played_frac results/outcome_variance/action_gap.json; then
+  log "GAP SKIP (a fixed-version action_gap.json exists)"
 else
   log "GAP: scripts/action_gap.py --battles 150 --rollouts 24 (resume-safe on its rows file)"
   "$PY" scripts/action_gap.py --battles 150 --rollouts 24 >> "$LOG/action_gap.log" 2>&1

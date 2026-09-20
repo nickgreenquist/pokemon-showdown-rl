@@ -12501,3 +12501,22 @@ line numbers are not — grep the date, then read that region):
     emit the three targets as OPT_KEYS rows), the 12M batch/epochs screen (4.12), the
     attention BC screen, the R6 fleet yaml with `POKEMON_RL_ENCODER_C6=1` in the launcher, the
     400k smokes. **Six rulings owed** (plan §5).
+
+- 2026-09-20 (evening, maintainer: *"agree with all"* to the six R6 rulings) — **THE SIX
+  RULINGS TAKEN AS RECOMMENDED; THE 2.12 READ IS UNRESOLVED; THE EXIT-GATE QUEUE
+  RELAUNCHED.** (1) Loop breaker ON for the R6 ladder object (a policy-form change, said on
+  every number that carries it). (2) C6 in R6 only if the Rust encoder port lands first,
+  else c6-off and C6 → R7. (3) Fleet: 6 × 200M, W base, trio A outcome heads (4.11), trio B
+  batch ×4 / epochs 2 (4.12). (4) R6 ladder under CLEANUP L1's split schedule. (5) 2.13
+  recalibration stays OFF. (6) The two R7 gates run now: the exit-gate queue (action-gap
+  run, then the gumbel tree at 900 vs greedy, n=3200 each) and the attention BC screen
+  (next build).
+  - **IDEAS 2.12 READ OUT** (`results/wavg_r5/READOUT.txt`, 09-19 20:37Z): E3WA (finals)
+    **0.6013** vs E3AF (avg_last5) **0.5813**, n=3000 each off FP@20, ties 3/2, **delta
+    −0.0200 at 1.58 se → UNRESOLVED** by the pre-stated rule; the finals stay the members.
+    The sign favours the "a third of the way back down a productive tail" reading.
+  - **A skip guard bit.** The exit-gate queue's GAP step skipped because a PRE-L9
+    `action_gap.json` (336 positions, 09-19 01:38, no `top1_is_played_frac`) and two invalid
+    rows files sat in `results/outcome_variance/`; the rows file would also have been
+    RESUMED from. Moved to `results/outcome_variance/invalid_pre_L9/`; the guard now
+    requires the fixed version's marker. Relaunched with GO at the time of this entry.
