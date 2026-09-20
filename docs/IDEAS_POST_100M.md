@@ -1404,8 +1404,13 @@ profile moves.**
 DATA PATH BUILT the same evening** (`rl/envs/outcome_targets.py`, emitted by the engine
 collector behind `collector.outcome_targets: true`; the targets are read at the LAST
 DECISION plus the outcome — the final-turn approximation is stated in the module — and
-`tests/test_outcome_targets.py` pins the arithmetic); **the heads and the loss are the next
-build, spec in the R6 prep plan §6.**
+`tests/test_outcome_targets.py` pins the arithmetic); **the HEADS AND THE LOSS are BUILT
+2026-09-20** (`EntityDeepSetsNet(value_aux_out=3)` on the critic + `forward_with_aux`,
+`PPOAgent(aux_outcome_coef=0.1)` with the loss inside the critic's minibatch pass, the
+launch-time and update-time seams both ways, `loss/aux_outcome` + `aux_outcome/ev_*`
+from the update, `meta.yaml` stamps the coefficient and the head's params;
+`tests/test_outcome_heads.py`). **UNSMOKED through the launcher** — the 400k smoke waits
+for the exit-gate queue (no training lane beside an FP arm).
 KataGo's 1.65× lever in our currency: auxiliary value heads regressing **(i) our
 survivors, (ii) their survivors, (iii) the terminal HP margin**, all from the episode's
 own terminal observation — self-play-legal, no target from outside the environment.

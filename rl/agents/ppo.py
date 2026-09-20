@@ -212,6 +212,31 @@ def _ln_free_blocks(net: nn.Module) -> list[str]:
     return blocks + [name for name, _ in net.named_parameters(recurse=False)]
 
 
+def _outcome_ev_stats(pred: torch.Tensor, target: torch.Tensor) -> dict[str, float]:
+    """IDEAS 4.11's per-target explained variance, PRE-update over the whole
+    batch, in `loss/explained_variance`'s exact construction: 1 - Var(target -
+    pred) / Var(target), population variances, 0.0 on a degenerate target
+    (every row identical -- a batch of only wins with no survivors would do
+    it) rather than a NaN that poisons the history. Keys: aux_outcome/ev_<name>
+    for the three names rl/envs/outcome_targets.py defines."""
+    from rl.envs.outcome_targets import TARGET_NAMES
+
+    if pred.shape != target.shape or target.shape[1] != len(TARGET_NAMES):
+        raise ValueError(
+            f"outcome head width {tuple(pred.shape)} vs targets {tuple(target.shape)} "
+            f"vs the {len(TARGET_NAMES)} named targets: value_aux_out must be "
+            f"{len(TARGET_NAMES)}"
+        )
+    stats: dict[str, float] = {}
+    for j, name in enumerate(TARGET_NAMES):
+        t, p = target[:, j], pred[:, j]
+        var_t = t.var(unbiased=False)
+        stats[f"aux_outcome/ev_{name}"] = (
+            0.0 if float(var_t) < 1e-12 else float(1.0 - (t - p).var(unbiased=False) / var_t)
+        )
+    return stats
+
+
 MINIBATCH_TAILS = ("keep", "drop", "fold")
 # LR anneal shapes over lr_anneal_steps: `linear` (1 - x), `power` (Wang 2024
 # §3.1.4: (a x + 1)^-b). Selected by the `lr_schedule` hparam.
@@ -323,6 +348,7 @@ class PPOAgent(Agent):
         priv_eval_coef: float = 0.0,
         priv_eval_dim: int = 0,
         priv_eval_max_grad_norm: float = 0.5,
+        aux_outcome_coef: float = 0.0,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -594,6 +620,30 @@ class PPOAgent(Agent):
         self.priv_eval_head: nn.Module | None = None
         # Separate actor and critic, no shared trunk: the value_coef note in
         # the module docstring is premised on it.
+        # IDEAS 4.11 (R6 trio A): the outcome-decomposition loss on the critic's
+        # `aux_value_head` (rl/networks/entity_deepsets.py). The head and its
+        # coefficient are ONE lever set in two places -- `trunk_kwargs.
+        # value_aux_out` builds the head, this coefficient trains it -- and a
+        # disagreement is the "dial that runs and reports nothing" shape
+        # (docs/landmines.md): a head with no loss trains on nothing while the
+        # config claims the lever; a loss with no head has nothing to train.
+        # Refused at construction, before a step is collected.
+        if aux_outcome_coef < 0.0:
+            raise ValueError(f"aux_outcome_coef must be >= 0, got {aux_outcome_coef}")
+        self.aux_outcome_coef = float(aux_outcome_coef)
+        value_aux_out = int((trunk_kwargs or {}).get("value_aux_out", 0) or 0)
+        if (self.aux_outcome_coef > 0.0) != (value_aux_out > 0):
+            raise ValueError(
+                f"outcome-head mismatch: agent.aux_outcome_coef={aux_outcome_coef} "
+                f"but agent.trunk_kwargs.value_aux_out={value_aux_out} -- the head "
+                "and its loss must be set together (IDEAS 4.11: value_aux_out 3 "
+                "with aux_outcome_coef > 0, or neither)"
+            )
+        if self.aux_outcome_coef > 0.0 and trunk != "entity_deepsets":
+            raise ValueError(
+                "aux_outcome_coef > 0 needs trunk 'entity_deepsets': only "
+                f"EntityDeepSetsNet carries the outcome head (got trunk={trunk!r})"
+            )
         if self.obs_rank == 3:
             # Rank-3 obs (binary planes, today only Connect 4's) select the
             # conv net — DQN's rule, no config key. ConvQNet hardcodes ReLU,
@@ -1229,6 +1279,13 @@ class PPOAgent(Agent):
         # step; accumulate until the horizon fills, then train on the rollout.
         # next_masks has no consumer: the critic is the only next_obs reader,
         # and values are never masked.
+        if self.aux_outcome_coef > 0.0:
+            raise ValueError(
+                "aux_outcome_coef > 0 is wired on the EPISODE path only "
+                "(update_episodes: the engine collector under "
+                "collector.outcome_targets: true) -- the rollout buffer carries "
+                "no outcome targets, so this lever cannot train here"
+            )
         (obs, actions, rewards, next_obs, terminated, truncated, masks, _next_masks,
          *rest) = batch
         if len(rest) > 3:
@@ -1472,6 +1529,20 @@ class PPOAgent(Agent):
                 "'privileged' — the collector flag and the agent hparam must be "
                 "set together"
             )
+        # IDEAS 4.11's seam, in the opp_choice seam's exact shape: the collector
+        # emits `outcome_targets` iff the agent has the head and the loss to
+        # consume them. Either half alone is a lane that claims a lever it does
+        # not run (or trains a head on nothing) -- refused, naming both knobs.
+        outcome_targets = batch.get("outcome_targets")
+        if (outcome_targets is None) == (self.aux_outcome_coef > 0.0):
+            raise ValueError(
+                f"outcome-target mismatch: agent aux_outcome_coef="
+                f"{self.aux_outcome_coef} but the collector "
+                f"{'did not emit' if outcome_targets is None else 'emitted'} "
+                "outcome_targets -- collector.outcome_targets and "
+                "agent.aux_outcome_coef (with trunk_kwargs.value_aux_out) must "
+                "be set together"
+            )
         flat_obs = torch.as_tensor(batch["obs"], dtype=torch.float32, device=self.device)
         flat_actions = torch.as_tensor(batch["actions"], device=self.device)
         flat_masks = torch.as_tensor(batch["masks"], device=self.device)
@@ -1496,8 +1567,27 @@ class PPOAgent(Agent):
         flat_critic_obs = flat_obs
         if self.privileged_dim:
             flat_critic_obs = torch.cat([flat_obs, flat_priv], dim=-1)
+        # The outcome head's targets and its PRE-update read, off the SAME
+        # no-grad pass that prices the batch (forward_with_aux shares the
+        # context pass, so `values` is bit-identical to the plain forward).
+        flat_outcome_targets: torch.Tensor | None = None
+        outcome_stats: dict[str, float] = {}
         with torch.no_grad():
-            values = self.critic(flat_critic_obs).squeeze(-1)
+            if self.aux_outcome_coef > 0.0:
+                flat_outcome_targets = torch.as_tensor(
+                    outcome_targets, dtype=torch.float32, device=self.device
+                )
+                if flat_outcome_targets.shape != (flat_obs.shape[0], self.critic.value_aux_out):
+                    raise ValueError(
+                        f"outcome_targets shape {tuple(flat_outcome_targets.shape)} != "
+                        f"({flat_obs.shape[0]}, {self.critic.value_aux_out}): the "
+                        "collector's target width and trunk_kwargs.value_aux_out disagree"
+                    )
+                values, aux_pred = self.critic.forward_with_aux(flat_critic_obs)
+                values = values.squeeze(-1)
+                outcome_stats = _outcome_ev_stats(aux_pred, flat_outcome_targets)
+            else:
+                values = self.critic(flat_critic_obs).squeeze(-1)
         advantages = episode_gae(
             batch["rewards"],
             values.cpu().numpy(),
@@ -1546,6 +1636,7 @@ class PPOAgent(Agent):
             aux_target=aux_target, aux_allow=aux_allow, aux_valid=aux_valid,
             aux_stats=aux_stats, flat_old_values=values,
             flat_priv=flat_priv, flat_priv_targets=flat_priv_targets,
+            flat_outcome_targets=flat_outcome_targets, outcome_stats=outcome_stats,
         )
         return metrics
 
@@ -1566,6 +1657,8 @@ class PPOAgent(Agent):
         flat_old_values: torch.Tensor | None = None,
         flat_priv: torch.Tensor | None = None,
         flat_priv_targets: torch.Tensor | None = None,
+        flat_outcome_targets: torch.Tensor | None = None,
+        outcome_stats: dict[str, float] | None = None,
     ) -> dict[str, float]:
         """The epoch x minibatch optimization on a prepared flat batch, plus
         its diagnostics — everything downstream of advantage computation,
@@ -1582,6 +1675,13 @@ class PPOAgent(Agent):
             raise ValueError(
                 "priv_eval_coef > 0 but no privileged block reached _optimize: "
                 "the head would train on nothing"
+            )
+        if (self.aux_outcome_coef > 0.0) != (flat_outcome_targets is not None):
+            raise ValueError(
+                f"aux_outcome_coef={self.aux_outcome_coef} but _optimize "
+                f"{'received' if flat_outcome_targets is not None else 'received no'} "
+                "outcome targets: the head would train on nothing / the targets "
+                "would train nothing"
             )
         # Design B's head reads obs ‖ priv REGARDLESS of the critic's width —
         # `flat_critic_obs` is the plain obs on a design-B-only lane and the
@@ -1759,7 +1859,13 @@ class PPOAgent(Agent):
                 policy_loss, approx_kl, clip_frac = clipped_surrogate_loss(
                     new_logp, flat_old_logp[idx], mb_adv, self.clip_eps
                 )
-                v_pred = self.critic(flat_critic_obs[idx]).squeeze(-1)
+                aux_out = None
+                if flat_outcome_targets is not None:
+                    # One context pass serves both heads (bit-identical value).
+                    v_out, aux_out = self.critic.forward_with_aux(flat_critic_obs[idx])
+                    v_pred = v_out.squeeze(-1)
+                else:
+                    v_pred = self.critic(flat_critic_obs[idx]).squeeze(-1)
                 if self.value_clip_eps > 0.0:
                     # SB3 clip_range_vf: the prediction may move at most eps from
                     # the value the batch's advantages were computed against.
@@ -1770,6 +1876,17 @@ class PPOAgent(Agent):
                 value_loss = F.mse_loss(v_pred, flat_targets[idx])
                 entropy = entropies.mean()
                 loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
+                if aux_out is not None:
+                    # IDEAS 4.11: coef * MSE over the three terminal targets,
+                    # INSIDE `loss` -- so, unlike D25's decoupled head, its
+                    # gradient flows through the critic trunk and takes part in
+                    # the one clip over actor+critic (it moves `loss/grad_norm`
+                    # by design: reshaping the critic's representation is the
+                    # lever). Not scaled by value_coef; the coefficient is the
+                    # whole weight.
+                    aux_outcome_loss = F.mse_loss(aux_out, flat_outcome_targets[idx])
+                    loss = loss + self.aux_outcome_coef * aux_outcome_loss
+                    sums["loss/aux_outcome"] += float(aux_outcome_loss.item())
                 if self.bc_kl_coef > 0.0:
                     if self._bc_anchor is None:
                         raise RuntimeError(
@@ -1902,6 +2019,9 @@ class PPOAgent(Agent):
             # Rollout-level label diagnostics; already single numbers for this
             # update and must not be divided. Empty unless the lever is on.
             **aux_stats,
+            # IDEAS 4.11's PRE-update per-target explained variance, batch-level
+            # (never divided). Empty unless the outcome head is on.
+            **(outcome_stats or {}),
         }
 
     def state_dict(self) -> dict[str, Any]:
@@ -1963,6 +2083,23 @@ class PPOAgent(Agent):
                 "checkpoint carries a privileged evaluator head but this agent "
                 "has priv_eval_coef = 0: the head would be dropped without a "
                 "word. Rebuild the agent from the run's own config."
+            )
+        # IDEAS 4.11: the outcome head lives INSIDE the critic, so a
+        # mismatched load would fail in torch's strict loader with a key
+        # message and nothing about the lever. Named here, both ways: a
+        # head-on checkpoint into a head-off agent would drop a trained head
+        # silently at eval; a head-off checkpoint into a head-on agent is a
+        # warm start nobody has wired (the optimizer graft below is
+        # positional, and the critic's param list grows by the head).
+        ckpt_has_head = "aux_value_head.weight" in state["critic"]
+        agent_has_head = getattr(self.critic, "aux_value_head", None) is not None
+        if ckpt_has_head != agent_has_head:
+            raise ValueError(
+                f"outcome-head mismatch at load: the checkpoint "
+                f"{'carries' if ckpt_has_head else 'has no'} aux_value_head but "
+                f"this agent {'has' if agent_has_head else 'has no'} one "
+                "(trunk_kwargs.value_aux_out / aux_outcome_coef). Rebuild the "
+                "agent from the run's own config."
             )
         self.actor.load_state_dict(state["actor"])
         self.critic.load_state_dict(state["critic"])

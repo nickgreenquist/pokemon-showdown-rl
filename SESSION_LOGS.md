@@ -12550,3 +12550,27 @@ line numbers are not — grep the date, then read that region):
     this session. Health at open: tree clean at `e6cc5dd`, no second Claude process,
     `simulator: 4` confirmed, XGR at 657 battles after 18 min (~1.65 s/battle, the FP@20
     reference rate).
+  - **IDEAS 4.11's HEADS AND LOSS BUILT** (to plan §6's spec, ~23:30–23:50Z):
+    `EntityDeepSetsNet(value_aux_out: int = 0)` builds `aux_value_head = Linear(ctx_in, 3)`
+    on the CRITIC only (the policy ignores the kwarg, the `value_sizes` precedent), under
+    a REWOUND global RNG and with its own init generator (constant 411), so the head-on
+    and head-off builds are bit-identical everywhere else INCLUDING the post-construction
+    stream the minibatch randperm rides on; `forward_with_aux(x) -> (value, aux)` shares
+    one context pass with `forward`, which is untouched (`forward(x) ==
+    forward_with_aux(x)[0]` bitwise). `PPOAgent(aux_outcome_coef=0.0)`: refused at
+    construction unless paired with `trunk_kwargs.value_aux_out > 0` (both ways) and the
+    entity trunk; `update()` refuses it (rollout buffer has no targets); `update_episodes`
+    carries the loud seam in the `opp_choice` shape, a width check, the PRE-update
+    per-target EV off the same no-grad pass that prices the batch; `_optimize` adds
+    `coef * mse(aux, targets)` INSIDE `loss` (through the critic trunk and the one clip —
+    it moves `loss/grad_norm` by design, unlike D25's decoupled head); `loss/aux_outcome`
+    per grad step and `aux_outcome/ev_survivors_own|opp|hp_margin` batch-level. `rl/train.py`:
+    the collector/agent pair refused at launch in the engine validator, the lever refused
+    on sync/async, `meta.yaml` stamps `aux_outcome_coef`, `critic_aux_outcome` (3,075 for
+    a 1024 critic) and `critic_without_aux_outcome`. `load_state_dict` names a head
+    mismatch both ways. `tests/test_outcome_heads.py` (one subprocess child at 828:
+    default no-op incl. the RNG stream, +1,155 params on the 384 critic, the seams, the
+    metrics, the aux loss falling over 8 updates, the checkpoint round trip). Suites run
+    niced beside XGR: 13 + 173 (1 skipped) + 96 passed. **The 400k launcher smoke with
+    `aux_outcome/*` in history.csv is OWED after QUEUE DONE** (no training lane beside an
+    FP arm).

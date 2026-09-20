@@ -301,6 +301,7 @@ class EntityDeepSetsNet(nn.Module):
         ctx_layernorm: bool = False,
         scorer_sizes: list[int] = (256,),
         value_sizes: list[int] = (384, 384),
+        value_aux_out: int = 0,
         privileged_dim: int = 0,
         layout: TrunkLayout | str = "gen1",
         item_vocab: int = 0,
@@ -400,6 +401,28 @@ class EntityDeepSetsNet(nn.Module):
             self.slot_bias = nn.Parameter(torch.zeros(out_dim))
         else:
             self.head = nn.Linear(ctx_in, 1)
+        # IDEAS 4.11 (R6 trio A): the outcome-decomposition head, CRITIC ONLY.
+        # `value_aux_out` targets (3: our survivors, their survivors, HP margin;
+        # rl/envs/outcome_targets.py) read off the SAME context the value head
+        # reads, so their gradient flows through the critic trunk -- that is the
+        # point of the lever. The policy IGNORES the kwarg (the `value_sizes`
+        # precedent: trunk_kwargs are shared by both nets and the actor never
+        # grows -- its param count and state_dict are untouched, so
+        # ACTOR_PARAM_CEILING sees the pinned count). Default 0 is an EXACT no-op:
+        # no module, identical state_dict keys, identical `forward`, and every
+        # existing checkpoint loads unchanged. Constructed under a REWOUND global
+        # RNG (the priv_eval_head precedent in rl/agents/ppo.py): the head's own
+        # draws never shift the stream the minibatch randperm and every later
+        # draw ride on, so a lane with the head and one without are bit-identical
+        # at the same seed except for the head and its loss.
+        if int(value_aux_out) < 0:
+            raise ValueError(f"value_aux_out must be >= 0, got {value_aux_out}")
+        self.value_aux_out = 0 if self.is_policy else int(value_aux_out)
+        self.aux_value_head: nn.Linear | None = None
+        if self.value_aux_out > 0:
+            rng_state = torch.get_rng_state()
+            self.aux_value_head = nn.Linear(ctx_in, self.value_aux_out)
+            torch.set_rng_state(rng_state)
         self.param_count = sum(p.numel() for p in self.parameters())
         # R0-2, asserted at construction: over the flat MLP actor's count the
         # rung tests capacity, not structure. Gen 1 only (see the constant).
@@ -417,6 +440,8 @@ class EntityDeepSetsNet(nn.Module):
         must never run over this net: it would hit the embedding tables (K4).
         LayerNorms keep their ones/zeros default."""
         for module in self.modules():
+            if module is self.aux_value_head:
+                continue  # its own stream, below -- never the global one
             if isinstance(module, nn.Linear):
                 nn.init.xavier_uniform_(module.weight)
                 nn.init.zeros_(module.bias)
@@ -425,6 +450,18 @@ class EntityDeepSetsNet(nn.Module):
         final = self.scorer[-1] if self.is_policy else self.head
         with torch.no_grad():
             final.weight.mul_(gain)
+        if self.aux_value_head is not None:
+            # The outcome head's init is the value head's (Xavier, zero bias,
+            # the same final-layer gain) from a DEDICATED generator seeded off
+            # the run's torch seed (the `_shuffle_gen` derivation in ppo.py,
+            # constant 411): reproducible per lane, invisible to the global
+            # stream -- see the construction note in __init__.
+            gen = torch.Generator()
+            gen.manual_seed((torch.initial_seed() * 1_000_003 + 411) % (2**63 - 1))
+            nn.init.xavier_uniform_(self.aux_value_head.weight, generator=gen)
+            nn.init.zeros_(self.aux_value_head.bias)
+            with torch.no_grad():
+                self.aux_value_head.weight.mul_(gain)
 
     def _mon_embeds(self, species_ids, item_ids=None, ability_ids=None) -> torch.Tensor:
         """The per-mon embedding block: species alone at gen 1; species ||
@@ -518,7 +555,11 @@ class EntityDeepSetsNet(nn.Module):
         )
         return ctx, opp_moves, opp_bench
 
-    def forward(self, x: torch.Tensor, return_features: bool = False) -> torch.Tensor:
+    def _context(self, x: torch.Tensor):
+        """The trunk up to the context vector: (tok, mons, own_moves, ctx). Shared
+        by `forward` and `forward_with_aux` so the two can never compute a
+        different context (a pure factoring of the old forward -- same ops, same
+        order, bit-identical)."""
         priv = None
         if self.privileged_dim:
             x, priv = x[:, : -self.privileged_dim], x[:, -self.privileged_dim :]
@@ -548,9 +589,29 @@ class EntityDeepSetsNet(nn.Module):
         if priv is not None:
             ctx_parts += self._priv_features(priv)
         ctx = self.ctx_net(torch.cat(ctx_parts, dim=-1))
+        return tok, mons, own_moves, ctx
+
+    def forward_with_aux(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Critic with the IDEAS 4.11 head: (value (B, 1), aux (B, value_aux_out)),
+        both read off one context pass. `forward` is untouched -- search leaves,
+        evals and every other consumer see exactly the old critic -- and
+        `forward(x)` equals `forward_with_aux(x)[0]` bitwise."""
+        if self.is_policy or self.aux_value_head is None:
+            raise ValueError(
+                "forward_with_aux needs a CRITIC built with value_aux_out > 0 "
+                f"(is_policy={self.is_policy}, value_aux_out={self.value_aux_out})"
+            )
+        _, _, _, ctx = self._context(x)
+        return self.head(ctx), self.aux_value_head(ctx)
+
+    def forward(self, x: torch.Tensor, return_features: bool = False) -> torch.Tensor:
+        tok, mons, own_moves, ctx = self._context(x)
         if not self.is_policy:
             if return_features:
-                raise ValueError("return_features is actor-only: the critic has no aux head")
+                raise ValueError(
+                    "return_features is actor-only (the D25 features live on the "
+                    "policy net; the critic's outcome head is forward_with_aux)"
+                )
             return self.head(ctx)
         # Pointer alignment (the exact poke-env mapping the encoder relies
         # on): switch action i <-> own-mon vector i, move action 6+j <->

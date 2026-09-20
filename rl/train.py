@@ -220,6 +220,16 @@ def _write_run_metadata(out_dir: Path, cfg: Config, agent: Agent | None = None) 
             meta["aux_shuffle_labels"] = bool(
                 getattr(agent, "aux_shuffle_labels", False)
             )
+        # IDEAS 4.11: the outcome head lives INSIDE the critic, so `critic`
+        # above already counts it; stamp the head's own count and the
+        # coefficient so the lever cannot be flipped silently at launch and the
+        # critic-without-head number stays auditable against the W base.
+        if float(getattr(agent, "aux_outcome_coef", 0.0) or 0.0) > 0.0:
+            head = agent.critic.aux_value_head
+            n_head = sum(p.numel() for p in head.parameters())
+            meta["aux_outcome_coef"] = float(agent.aux_outcome_coef)
+            meta["params"]["critic_aux_outcome"] = n_head
+            meta["params"]["critic_without_aux_outcome"] = meta["params"]["critic"] - n_head
     (out_dir / "meta.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
 
 
@@ -719,6 +729,17 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
             )
         raise ValueError(f"unknown collector key(s) {sorted(unknown)} for "
                          f"collector.mode {mode!r}; known: {sorted(known)}")
+    # IDEAS 4.11: the outcome-decomposition targets are derived by the ENGINE
+    # collector from each finished episode (rl/envs/outcome_targets.py); neither
+    # the env stack nor the server-backed async collector emits them, so the
+    # head's loss would train on nothing there. PPO refuses it too (update()
+    # and update_episodes), but a whole rollout later.
+    if float(cfg.agent.get("aux_outcome_coef", 0.0) or 0.0) > 0.0 and mode != "engine":
+        raise ValueError(
+            f"agent.aux_outcome_coef > 0 needs collector.mode 'engine' with "
+            f"collector.outcome_targets: true (collector.mode is {mode!r}): only the "
+            "engine collector emits the outcome targets the head trains on"
+        )
     if mode == "sync":
         return "sync"
     if mode == "engine":
@@ -883,6 +904,18 @@ def _engine_collector_checks(cfg: Config, vectorized: bool) -> None:
             "together: the collector emits D25 labels iff the agent has a head "
             "to consume them (PPO refuses the mismatch, but only at the first "
             "update)"
+        )
+    # The IDEAS 4.11 pair, by the same rule: the collector emits outcome targets
+    # iff the agent has the head (trunk_kwargs.value_aux_out, checked against the
+    # coefficient in PPOAgent's constructor) and the loss to consume them.
+    if bool(cfg.collector.get("outcome_targets", False)) != (
+        float(cfg.agent.get("aux_outcome_coef", 0.0) or 0.0) > 0.0
+    ):
+        raise ValueError(
+            "collector.outcome_targets and agent.aux_outcome_coef must be set "
+            "together: the engine collector emits IDEAS 4.11's three terminal "
+            "targets iff the critic has the head and the loss to train on them "
+            "(PPO refuses the mismatch, but only at the first update)"
         )
 
 
