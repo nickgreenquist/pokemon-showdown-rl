@@ -12520,3 +12520,7 @@ line numbers are not — grep the date, then read that region):
     rows files sat in `results/outcome_variance/`; the rows file would also have been
     RESUMED from. Moved to `results/outcome_variance/invalid_pre_L9/`; the guard now
     requires the fixed version's marker. Relaunched with GO at the time of this entry.
+  - **Pushed** `d11f69b..39da8f8` (maintainer: "push"), then **`HANDOFF.md` written at the
+    maintainer's request** (context clear): the running queue and how to check it, the six
+    rulings, the ordered work list with the C6-port / 4.11-heads / attention-screen / 4.12 /
+    fleet specs, the session's landmines, the traced numbers. Committed and pushed after it.

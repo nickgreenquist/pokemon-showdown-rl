@@ -1,6 +1,6 @@
 # STATUS
 ## JOURNEY POSITION — step 11 DONE (R5 LISTED). The post-ladder SEARCH chapter is CLOSED, and closed by a CORRECTION PASS
-**RUNNING: the wavg_r5 read (IDEAS 2.12; ends ~20:40Z 09-19); the exit-gate queue is HELD behind `logs/exit_gate_r5/GO`. Tree clean, suite green.** Eight blocks
+**RUNNING: the exit-gate queue (IDEAS 4.9's gate: action-gap run, then tree@900 vs greedy, n=3200; relaunched 09-20 22:58Z, ~26 h; `HANDOFF.md` §1 says how to check it). Tree clean, suite green (bare 1240/87/0).** Eight blocks
 ran 09-18/19 (§25–§32); **three Opus review passes then went back over every claim and
 changed sixteen of them, retracted one section in full, and found three numbers I had
 invented while writing the corrections themselves.** Read §30.1's retraction box and the
@@ -68,8 +68,8 @@ you may cite:
   from `SearchAgent`'s signature and **hard-fails on an unknown pre-reg key**.
 
 ## Next actions
-1. **R6 PREP PLAN — `docs/proposals/R6_PREP_PLAN_2026-09-19.md`; §6 is the at-home checklist** (server check, read
-   `results/wavg_r5/READOUT.txt`, read the action-gap run, `touch logs/exit_gate_r5/GO` for the ~26 h gate, then the six rulings). Built 09-19: C6 in the PYTHON encoder (the engine path refuses the flag until the Rust port, spec in §6), the loop breaker wired, 4.11's data path, 4.12's screen config; next: the C6 Rust port, 4.11's heads, the screen run.
+1. **PICK UP FROM `HANDOFF.md`** (written 09-20 at the maintainer's request): it carries the running gate
+   queue, the six rulings, and the ordered work list — bank the two gate reads, the C6 Rust port, 4.11's heads, the attention BC screen, the 4.12 screen run, the R6 fleet yaml + smokes, then the split-schedule ladder. The plan is `docs/proposals/R6_PREP_PLAN_2026-09-19.md`.
 2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
    search idea must argue against the override regression (−0.48 win rate per unit override
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.
