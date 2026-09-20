@@ -51,7 +51,9 @@ opponent is weakened by contention, unevenly across arms — the §30-class cont
 4.12 screen and the fleet wait for "QUEUE DONE". The Showdown server was up at 23:01Z;
 `showdown/config/config.js` `simulator: 4` was NOT re-checked this session (rule 5).
 
-**Also on disk, done:** `results/wavg_r5/READOUT.txt` (IDEAS 2.12 — finals 0.6013 vs averages
+**Also on disk, done:**
+- `results/outcome_variance/action_gap.json` (the FIXED action-gap run, 23:03Z 09-20): **134 positions, `top1_is_played_frac` 1.00 (valid)**, top-1 worse than top-2 in 35.1% of positions, mean loss when wrong 0.181, **ceiling on a top-2 swap 0.0317 of win rate** (per-position rollout noise on the gap ~0.204, so single gaps are unresolved; the WINNER'S-CURSE caveat in the script's docstring applies — noise alone inflates this). Read it against the +0.02..0.05 the search blocks chase: it sits AT the credit floor, so it is neither a mechanism kill nor a licence; bank it as item 1 says, with that framing.
+- `results/wavg_r5/READOUT.txt` (IDEAS 2.12 — finals 0.6013 vs averages
 0.5813, n=3000 each, −0.020 at 1.58 se, UNRESOLVED; the finals stay the members).
 
 ## 2. THE SIX RULINGS (maintainer, 2026-09-20, "agree with all") — recorded in STATUS, plan §5, IDEAS, CLEANUP
