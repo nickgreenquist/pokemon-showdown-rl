@@ -150,7 +150,9 @@ its evidence:
   losses are "unforced", and our style matches the human field on every coarse axis.
   **"Find the tactical hole" is closed as a cheap route**; the deficit is decision
   quality in close games, which is the critic's ranking (§27.1) and the policy head's
-  margin (`scripts/action_gap.py`, CLEANUP L9).
+  margin (`scripts/action_gap.py`, CLEANUP L9 — **RUN 2026-09-20, RESULTS §33:** a perfect
+  top-2 swap is worth 0.032 naive / 0.024 deconvolved of win rate per decision, AT the credit
+  floor, neither a kill nor a licence).
 * **NEW Tier-1 rows 4.11 (outcome decomposition on the critic) and 4.12 (the
   batch/epochs dose)** — the two R6 trios. Both were in
   `docs/research_reports/SELFPLAY_RECIPE_2026-09-12.md` §4 and had no row here.
@@ -684,7 +686,9 @@ the ≥1400 slice:** switch share 0.259 vs 0.287, status share 0.216 vs 0.242, E
 Hyper Beam KO rate 0.48 vs 0.50 with the same recharge count. **What it closes:** the hope that a visible
 tactical class explains the ≥1400 deficit — nothing coarse separates the sides.
 **What it points at:** decision quality in close games, i.e. the critic's ranking
-(§27.1) and the policy head's own margin (`action_gap.py`, once L9 is fixed). Matches
+(§27.1) and the policy head's own margin (`action_gap.py` — L9 FIXED and RUN 2026-09-20,
+RESULTS §33: a perfect top-2 swap is worth 0.032 naive [0.022, 0.043] / 0.024 deconvolved of
+win rate per decision, AT the credit floor; `readouts/ACTION_GAP_R5_READOUT.md`). Matches
 §27's 64% irreducible variance from the other direction. Descriptive; credits nothing.
 
 ## 3. Ruled out / answered — do not re-propose
@@ -1605,6 +1609,16 @@ disclosures travel with every number here. (iii) **What is still unspent** is
 therefore not "more milliseconds on the same construction" — it is **where** the
 budget goes (§8.5) and **what the network learned from it** (4.9).
 
+**THE PRIZE ITSELF, MEASURED 2026-09-20 (RESULTS §33; `readouts/ACTION_GAP_R5_READOUT.md`).**
+The bound this row's question rests on — how much a gated search could win by swapping
+the argmax for the runner-up — is **0.032 [0.022, 0.043] naive / 0.024 deconvolved of win
+rate per swap** on the R5 committee (134 positions, no evaluator, no search; noise alone
+would print 0.029). AT the credit floor: NOT a mechanism kill (rule 6 needs the ceiling
+BELOW the chased +0.02..0.05, and a search swaps more than once per battle) and NOT a
+licence (it is an oracle's prize on differences of ~0.16 outcome units, and §30 measured
+our evaluators realise a negative share). The exit gate (tree@900 vs greedy, n=3200)
+decides 4.9.
+
 **8.2 A critic trained AS AN EVALUATOR (the actual bottleneck).** Search amplifies its
 leaf evaluator, and D22 measures ours as the weakest component we have (critic context
 srank99 **9–13 of 384** at 37.5–50M; dormancy 27 → 84–88%). PPO's value loss builds a
@@ -1638,6 +1652,11 @@ move with that width (0.5881 vs 0.5919). Either 0.59 is the format's ceiling
 DIFFERENT OBJECTIVE rather than more capacity — which is **4.9**. This row's
 candidate list is superseded by 4.9 for the second and third items; the first
 (value targets from RESAMPLED states) survives as the cheap version of it.
+**The action gap (RESULTS §33, 2026-09-20) sizes the evaluator's task:** the true
+top-1-vs-top-2 differences have sd ≈ 0.16 outcome units (8 win-rate points) and the
+policy already orders them right ~59% of the time, so an evaluator that pays must
+resolve ~0.1-scale differences in the regime where the critic's r² against the rollout
+oracle is 0.29 (§27, turns 2–8).
 
 **8.3 Belief-sampled search (the imperfect-information leg 11.5 does not ask).** Randbats
 hides sets, EVs and unrevealed moves; JOURNEY 11.5's depth question is perfect-info. FP

@@ -12524,3 +12524,29 @@ line numbers are not — grep the date, then read that region):
     maintainer's request** (context clear): the running queue and how to check it, the six
     rulings, the ordered work list with the C6-port / 4.11-heads / attention-screen / 4.12 /
     fleet specs, the session's landmines, the traced numbers. Committed and pushed after it.
+- 2026-09-20 (cont., agent; after the context clear, from `HANDOFF.md`) — **THE ACTION GAP
+  BANKED (RESULTS §33): a perfect top-2 swap is worth 0.0317 naive [0.0220, 0.0426] /
+  0.0241 deconvolved of win rate per decision — AT the credit floor, NEITHER a mechanism
+  kill NOR a licence.** `scripts/action_gap.py --battles 150 --rollouts 24` (the L9-fixed
+  version) ran as the queue's first phase 22:58–23:03Z at `39da8f8`: 134 positions from 134
+  of 150 battles, self-check `top1_is_played` 1.000 (VALID). E[gap] +0.0383 (se 0.0197),
+  top-1 worse in 35.1% / tie 11.9% / better 53.0%, E[−gap | worse] 0.1805.
+  - **NEW `scripts/action_gap_readout.py`** (+ `tests/test_action_gap_readout.py`, 4 tests)
+    puts the winner's-curse reads beside the naive number, from the RECORDED per-row
+    variances (the run summary's printed noise, 0.204, assumes unit variance; the recorded
+    per-row se on the gap is 0.148 independent / 0.146 paired): noise alone prints **0.0290**
+    [0.0216, 0.0371]; the gaps carry twice the noise variance (0.0521 vs 0.0254), so a
+    Gaussian deconvolution finds real dispersion (τ 0.164, P(true gap < 0) 0.41) and a
+    ceiling of **0.0241**; 7 gaps resolve negative and 14 positive at 2 se against 3.0
+    expected per side; by turn the naive ceiling is 0.035 / 0.040 / 0.042 / 0.015 (2–8 /
+    9–15 / 16–22 / 23+, n 36 / 31 / 28 / 39).
+  - **Read:** not a kill (rule 6 needs the ceiling BELOW the chased +0.02..0.05; the interval
+    reaches 0.043 and the scope is ONE swap, where a gated search makes 2–6 per battle) and
+    not a licence (an oracle's prize on ~0.16-unit differences; §30 measured our evaluators
+    realise a negative share). The exit gate decides 4.9. `readouts/ACTION_GAP_R5_READOUT.md`;
+    CLEANUP L9 CLOSED; IDEAS 2.15 / 8.1 / 8.2 pointers; STATUS next-action 5 rewritten.
+  - **Disclosure:** the readout script (134 rows of numpy, seconds, `nice -n 19`) and the two
+    small test files ran beside the XGR control arm; nothing heavier has run beside the queue
+    this session. Health at open: tree clean at `e6cc5dd`, no second Claude process,
+    `simulator: 4` confirmed, XGR at 657 battles after 18 min (~1.65 s/battle, the FP@20
+    reference rate).

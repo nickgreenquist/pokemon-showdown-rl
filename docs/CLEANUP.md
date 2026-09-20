@@ -421,7 +421,14 @@ ranking; every row records `top1_is_played` (a1 vs the action the committee actu
 played) and the summary prints it as a self-check that must sit at ~100%.
 `tests/test_action_gap_top2.py` pins the contract (3 tests). Still UNRUN at the time of the
 fix; the first run is queued behind the wavg_r5 read (`scripts/exit_gate_queue.sh`).
-The original entry follows.
+
+**RUN 2026-09-20 (22:58–23:03Z, under the queue at `39da8f8`), VALID — `top1_is_played_frac`
+1.000 over 134 positions.** Naive per-swap ceiling **0.0317** [0.0220, 0.0426]; noise alone
+prints 0.0290; deconvolved 0.0241 — AT the credit floor, **neither a mechanism kill nor a
+licence** (RESULTS §33; `readouts/ACTION_GAP_R5_READOUT.md`; `scripts/action_gap_readout.py`
+for the companion reads). The queue's existence-based skip guard had first skipped the run on
+the pre-fix artifacts (now in `results/outcome_variance/invalid_pre_L9/`); since `39da8f8` it
+checks the fixed version's marker. **This item is CLOSED.** The original entry follows.
 
 
 The script's docstring calls it *"a ceiling, not a null, and the first thing in

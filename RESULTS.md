@@ -2786,3 +2786,73 @@ magnitude below the credit line. It costs one `np.interp` per leaf batch — ess
 free — and it moves the search in the direction §30 measured as favourable. **Whether to
 turn it on by default is a maintainer ruling, because it changes the object; it is not an
 experiment.**
+
+## 33. Addendum, 2026-09-20 — **the action gap: a perfect top-2 swap is worth ~0.03 of win rate per decision, AT the credit floor — neither a mechanism kill nor a licence for search**
+
+`scripts/action_gap.py --battles 150 --rollouts 24` (CLEANUP L9's FIXED version; the
+pre-fix artifacts are quarantined in `results/outcome_variance/invalid_pre_L9/`), run under
+the exit-gate queue 2026-09-20 22:58–23:03Z at `39da8f8`;
+`results/outcome_variance/action_gap.json` + `.rows.jsonl`; the companion reads from
+`scripts/action_gap_readout.py` (new, 4 tests). Readout: `readouts/ACTION_GAP_R5_READOUT.md`.
+Hacking run, **credits nothing**. IDEAS 2.15 / 8.1 / 8.2.
+
+**What it measures.** Search can only improve on the policy by swapping its argmax for a
+better legal action, so the prize of a GATED search (argmax → runner-up, §24/§30's form) is
+`P(top-1 worse than top-2) × E[Q(top-2) − Q(top-1) | worse]`, measured by rollout on the R5
+committee with NO evaluator and NO search: the top two from the LIVE observation and mask,
+once per position, then 2 determinizations × 24 rollouts per action under the same
+deterministic committee on both seats (§27's instrument). **Validity gate: the top-1 equals
+the action the committee actually played in 134/134 positions.**
+
+| quantity | value |
+|---|---|
+| positions (one per battle; 16 of 150 battles yielded none) | 134 |
+| E[Q(top-1)] / E[Q(top-2)] | +0.0237 / −0.0145 |
+| E[gap] | **+0.0383** (se 0.0197) |
+| top-1 worse / tie / better | 0.351 / 0.119 / 0.530 |
+| E[−gap \| top-1 worse] | 0.1805 |
+| **naive ceiling on a top-2 swap** (win-rate units) | **0.0317**, bootstrap 95% [0.0220, 0.0426] |
+| per-position rollout noise on the gap (recorded variances, paired) | 0.146 |
+| **noise-only ceiling** (every true gap zero, the same noise) | **0.0290** [0.0216, 0.0371] |
+| **deconvolved ceiling** (true gaps ~ N(μ, τ²); τ 0.164, P(true gap < 0) 0.41) | **0.0241** |
+| gaps resolved at 2 se: negative / positive (3.0 expected per side by chance) | 7 / 14 |
+
+**The naive number is a winner's curse and the script said so before it ran:** conditioning
+on a measured negative selects for negative noise, and with the RECORDED per-row noise (~0.15,
+not the 0.204 the run summary prints under a unit-variance assumption) a world with every true
+gap at zero prints 0.029. That does not make the true prize 0.003: the measured gaps carry
+twice the noise variance (0.052 vs 0.025), so real top-1-vs-top-2 differences exist with sd
+≈ 0.16 outcome units (8 win-rate points), the mean gap is positive at 1.9 se (the policy
+orders the pair right more often than not — P(true gap > 0) ≈ 0.59 under the Gaussian read),
+and the deconvolved prize is 0.024. **Both readings sit at the credit floor.**
+
+| turns | n | mean gap | top-1 worse | naive ceiling |
+|---|---|---|---|---|
+| 2–8 | 36 | +0.034 | 0.389 | 0.0349 |
+| 9–15 | 31 | +0.011 | 0.419 | 0.0404 |
+| 16–22 | 28 | +0.015 | 0.429 | 0.0415 |
+| 23+ | 39 | +0.080 | 0.205 | 0.0147 |
+
+The prize is mid-game, and late in a battle the policy's top-1 is worse in only a fifth of
+positions; n ≈ 30 per bucket, descriptive only.
+
+**Verdict — NEITHER A KILL NOR A LICENCE.** Rule 6's one permitted kill needs a MEASURED
+CEILING BELOW the effects the search blocks chase (+0.02..0.05): the per-swap ceiling is
+0.032 [0.022, 0.043] naive and 0.024 deconvolved, with the interval reaching 0.043, and the
+scope is ONE swap at ONE decision — a gated search intervenes 2–6 times in a ~30-decision
+battle at §30's override rates, so to first order its oracle bound is a small multiple of
+this (advantages do not add exactly; the multiple is loose, not tight). **The search axis is
+not closed by this number.** Nor is it re-opened: the prize is the ORACLE's — realising any
+of it needs an evaluator that ranks a1 against a2 better than the policy head that put them
+in that order, on differences of ~0.16 outcome units, where the critic's opening-game r² is
+0.29 (§27) — and §30 measured that every construction we have realises a NEGATIVE share.
+What decides IDEAS 4.9 is the exit gate now running (tree@900 vs greedy, n=3200 each).
+
+**What may NOT be said.** "Search cannot pay" — the ceiling does not sit below the chased
+effects. "The prize is 0.03 per battle" — it is per SWAP, and the number of swaps is the
+search's own dial. "The policy is wrong 35% of the time" — that is the naive fraction; the
+deconvolved 41% is a model read and the resolved count is 7 confident errors in 134 against
+3 expected by chance. The deconvolution assumes Gaussian true gaps and takes its noise from
+2 × 24 rollouts per action, where the two determinizations' shared-world component is only
+partly removed by the pairing: the companion reads are companions, and the naive ceiling with
+its bootstrap interval is the headline.

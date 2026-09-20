@@ -1,6 +1,6 @@
 # STATUS
 ## JOURNEY POSITION — step 11 DONE (R5 LISTED). The post-ladder SEARCH chapter is CLOSED, and closed by a CORRECTION PASS
-**RUNNING: the exit-gate queue (IDEAS 4.9's gate: action-gap run, then tree@900 vs greedy, n=3200; relaunched 09-20 22:58Z, ~26 h; `HANDOFF.md` §1 says how to check it). Tree clean, suite green (bare 1240/87/0).** Eight blocks
+**RUNNING: the exit-gate queue (IDEAS 4.9's gate) — the action-gap phase is DONE (§33 below); XGR, the greedy control (n=3200), started 09-20 23:07Z at ~1.65 s/battle, then XTG9 (tree@900, ~22 h); `HANDOFF.md` §1 says how to check it. No training lane and no second FP block beside it.** Eight blocks
 ran 09-18/19 (§25–§32); **three Opus review passes then went back over every claim and
 changed sixteen of them, retracted one section in full, and found three numbers I had
 invented while writing the corrections themselves.** Read §30.1's retraction box and the
@@ -82,10 +82,10 @@ you may cite:
    outcome heads, trio B batch/epochs; R6 ladder under the split schedule; 2.13 stays OFF; the
    two R7 gates run now (the exit-gate queue was relaunched 09-20). Also: 4.9's fleet waits on
    that gate; 8.6's re-run is subsumed by it. **The LR-anneal floor: DO NOT floor it (§29).**
-5. **`scripts/action_gap.py` — the one instrument that could CLOSE the search axis** (the
-   prize: P(top-1 worse than top-2) × E|ΔQ|, no evaluator, no search). **Written, UNRUN,
-   and INVALID — two defects that both SHRINK the gap** (CLEANUP L9), i.e. bias it toward
-   the ceiling it would license. Fixing it is contained and high value.
+5. **THE ACTION GAP IS MEASURED (RESULTS §33, `readouts/ACTION_GAP_R5_READOUT.md`): a perfect
+   top-2 swap is worth 0.032 naive [0.022, 0.043] / 0.024 deconvolved of win rate per decision —
+   AT the credit floor, NEITHER a mechanism kill NOR a licence.** Noise alone would print 0.029;
+   true gaps have sd ≈ 0.16 outcome units, ordered right ~59% of the time. The exit gate decides 4.9.
 
 ## Watch items
 - **A SMALL-RUN NULL IS NOT EVIDENCE ABOUT A LEVER** (CLAUDE.md rule 6). §30's selection
