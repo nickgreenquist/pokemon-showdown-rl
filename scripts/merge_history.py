@@ -19,6 +19,7 @@ history rows and contributes nothing (still counted). Writes
 from __future__ import annotations
 
 import csv
+import subprocess
 import sys
 from pathlib import Path
 
@@ -61,6 +62,24 @@ def merge(run: Path) -> Path:
         w.writerows(rows_out)
     print(f"wrote {out}: {len(rows_out)} rows, {len(segments)} segments, last _step {int(steps[-1]) if steps else 'n/a'}")
     return out
+
+
+def history_path(run: "Path | str", python: "str | None" = None) -> Path:
+    """The metric history of a run dir as a CSV path, whichever shape the run has:
+    history_merged.csv when the run was RESUMED (several offline runs; merged here if missing)
+    -- extract_history.py hard-fails on that shape -- else history.csv (extracted if missing).
+    Both the 4.12 screen read and the R6 smoke check go through this, so a lane the watchdog
+    resumed mid-screen reads instead of crashing the read."""
+    run = Path(run)
+    merged, plain = run / "history_merged.csv", run / "history.csv"
+    n = len(list(run.glob("wandb/offline-run-*/run-*.wandb")))
+    if n > 1:
+        if not merged.exists():
+            merge(run)
+        return merged
+    if not plain.exists():
+        subprocess.run([python or sys.executable, str(REPO / "scripts/extract_history.py"), str(run)], check=True)
+    return plain
 
 
 if __name__ == "__main__":

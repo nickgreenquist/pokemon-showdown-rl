@@ -33,13 +33,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import subprocess
 import sys
 
 import numpy as np
 import pandas as pd
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(REPO, "scripts"))
+from merge_history import history_path  # noqa: E402
 COLS = ["loss/approx_kl", "loss/clip_frac", "loss/entropy", "loss/explained_variance",
         "loss/adv_std", "time/update_sec", "time/collect_sec"]
 KL_BAND = (0.005, 0.06)
@@ -77,11 +78,9 @@ def load_bins(history_csv: str, horizon: int, bin_size: int = BIN,
 
 
 def ensure_history(run_dir: str) -> str:
-    p = os.path.join(run_dir, "history.csv")
-    if not os.path.exists(p):
-        subprocess.run([sys.executable, os.path.join(REPO, "scripts/extract_history.py"), run_dir],
-                       check=True)
-    return p
+    """history.csv, extracted if missing -- or history_merged.csv when the watchdog RESUMED the
+    lane mid-screen (a resume splits the wandb history; scripts/merge_history.py)."""
+    return str(history_path(run_dir))
 
 
 def rule(screen: dict[str, pd.DataFrame], w: dict[str, pd.DataFrame], horizon: int) -> dict:

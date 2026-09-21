@@ -24,13 +24,14 @@ import glob
 import json
 import os
 import re
-import subprocess
 import sys
 
 import pandas as pd
 import yaml
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(REPO, "scripts"))
+from merge_history import history_path  # noqa: E402  (merged-or-plain history for a run dir)
 REPORT_COLS = ("time/steps_per_sec", "time/update_sec", "time/collect_sec", "loss/approx_kl",
                "loss/entropy", "loss/explained_variance", "eval/win_rate")
 ERR_RE = re.compile(r"\bError\b|illegal|desync", re.IGNORECASE)
@@ -43,19 +44,6 @@ def load_yaml(p: str) -> dict:
 
 def n_offline(run: str) -> int:
     return len(glob.glob(os.path.join(run, "wandb/offline-run-*/run-*.wandb")))
-
-
-def history_path(run: str) -> str:
-    """history_merged.csv for a resumed run (scripts/merge_history.py: a resume SPLITS the wandb
-    history and extract_history.py hard-fails on it), else history.csv (extracted if missing)."""
-    merged, plain = os.path.join(run, "history_merged.csv"), os.path.join(run, "history.csv")
-    if n_offline(run) > 1:
-        if not os.path.exists(merged):
-            subprocess.run([sys.executable, os.path.join(REPO, "scripts/merge_history.py"), run], check=True)
-        return merged
-    if not os.path.exists(plain):
-        subprocess.run([sys.executable, os.path.join(REPO, "scripts/extract_history.py"), run], check=True)
-    return plain
 
 
 def ckpt_step(run: str) -> int:
@@ -99,7 +87,7 @@ def check(run: str, w_ref: str, watchdog_log: str, expect_resume: bool, expect_c
                          "aux_outcome_coef": {"stamped": meta.get("aux_outcome_coef"), "config": coef},
                          "w_ref": w_ref, "head_formula": f"value_aux_out {vao} * (value_sizes[-1] {vs[-1] if vs else None} + 1)"}
 
-    hp = history or history_path(run)
+    hp = history or str(history_path(run))
     h = pd.read_csv(hp)
 
     def series(c):
