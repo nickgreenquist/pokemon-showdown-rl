@@ -138,6 +138,10 @@ def main() -> None:
     p.add_argument("--seeds", type=int, nargs="+", default=list(SEEDS),
                    help="the pre-registered seeds are 0 1 2; a subset is a SMOKE "
                         "of this script, never a readout")
+    p.add_argument("--json-out", type=Path, default=None,
+                   help="also write every printed quantity as JSON, so the "
+                        "committed readout can CITE A FILE for each number "
+                        "instead of having it transcribed from a terminal")
     args = p.parse_args()
     res = args.results
     seeds = tuple(args.seeds)
@@ -146,6 +150,8 @@ def main() -> None:
               "This is not the screen's readout. ***\n")
 
     loaded, per_seed = {}, []
+    out: dict = {"rule": RULE, "seeds": list(seeds), "n_boot": args.boot,
+                 "boot_seed": BOOT_SEED, "ci_percentiles": list(CI), "fits": []}
     print(f"RULE (pre-registered, configs/bc_arch_screen.yaml):\n  {RULE}\n")
     print("PER-SEED, PER-ARM (each arm at its OWN best epoch; n = held-out rows)")
     header = (f"{'arm':16s} {'seed':>4s} {'ep':>3s} {'agree_free':>11s} {'val_kl':>8s} "
@@ -166,6 +172,25 @@ def main() -> None:
                   f"{row['fitted_entropy']:>8.4f} {row['teacher_entropy']:>8.4f} "
                   f"{buckets[0]:>7.4f} {buckets[1]:>7.4f} {buckets[2]:>7.4f} "
                   f"{int(free.sum()):>7d} {len(free):>7d} {rep['actor_params']:>8,d}")
+            curve = [h["agreement_free"] for h in rep["history"]]
+            out["fits"].append({
+                "run_name": name, "arm": arm, "trunk": trunk, "seed": seed,
+                "best_epoch": epoch, "epochs": rep["epochs"],
+                "agreement_free": row["agreement_free"], "val_kl": row["val_kl"],
+                "fitted_entropy": row["fitted_entropy"],
+                "teacher_entropy": row["teacher_entropy"],
+                "agree_reveal": {f"{lo}_{hi}": b
+                                 for (lo, hi), b in zip(REVEAL_BUCKETS, buckets)},
+                "n_free": int(free.sum()), "n": int(len(free)),
+                "val_battles": int(len(np.unique(rows["battle_ids"]))),
+                "actor_params": rep["actor_params"],
+                # The plateau read: best-epoch selection over a flat tail is
+                # picking noise, not a stopping point. Both arms get the same
+                # treatment, so the bias largely cancels in the paired delta —
+                # but the number has to be on the page to say that.
+                "last5_spread": float(max(curve[-5:]) - min(curve[-5:])),
+                "curve": [round(c, 4) for c in curve],
+            })
 
     # ---- pairing, asserted before any delta is printed --------------------
     for seed in seeds:
@@ -200,6 +225,10 @@ def main() -> None:
             else "negative favours attention"
         print(f"  d{key:15s} {mean:+.4f}   95% CI [{lo:+.4f}, {hi:+.4f}]   "
               f"per-seed {[round(d, 4) for d in ds]}   ({side})")
+        out.setdefault("paired", {})[key] = {
+            "mean": mean, "ci95": [float(lo), float(hi)],
+            "per_seed": [float(d) for d in ds], "direction": side,
+        }
 
     # ---- reveal buckets, mechanism only -----------------------------------
     print("\nSECONDARY (MECHANISM, NEVER A VERDICT INPUT) — delta by how many "
@@ -212,6 +241,10 @@ def main() -> None:
             ns.append(int(sel.sum()))
         print(f"  reveal {lo}-{hi}: d {np.mean(ds):+.4f}   per-seed "
               f"{[round(d, 4) for d in ds]}   n {ns}")
+        out.setdefault("reveal_delta", {})[f"{lo}_{hi}"] = {
+            "mean": float(np.mean(ds)), "per_seed": [float(d) for d in ds],
+            "n_per_seed": ns,
+        }
     for arm, (trunk, _) in ARMS.items():
         fe = [loaded[(arm, s)][4]["fitted_entropy"] for s in seeds]
         te = [loaded[(arm, s)][4]["teacher_entropy"] for s in seeds]
@@ -272,6 +305,33 @@ def main() -> None:
         print("  (iii) is a MEASURED MECHANISM CEILING and is the one result here "
               "that may be cited against adoption. A failure of (i)/(ii) is NOT a "
               "kill and may not appear in a ranking or an opinion (CLAUDE.md rule 6).")
+
+    if args.json_out:
+        out["throughput"] = {
+            "source": str((res / "throughput.json").resolve()),
+            "batch": tp["batch"], "steps": tp["steps"], "warmup": tp["warmup"],
+            "median_ms": {k: {h: 1e3 * v["median_s"] for h, v in r.items()}
+                          for k, r in tp["rows"].items()},
+            "params": {k: {h: v["params"] for h, v in r.items()}
+                       for k, r in tp["rows"].items()},
+            "gate_ratio_attention_over_entity_deepsets": ratio,
+            "both_heads_ratio": both,
+            "attention_over_mlp": tp["ratios"][
+                "attention_over_mlp_policy_HISTORICAL_COMPARATOR"],
+            "entity_deepsets_over_mlp": tp["ratios"]["entity_deepsets_over_mlp_policy"],
+            "utc": tp["env"]["utc"], "git_sha": tp["env"].get("git_sha"),
+            "note": tp.get("note", ""),
+        }
+        out["verdict"] = {
+            "gate_i_delta_ge_0.02": bool(c1),
+            "gate_ii_ci_excludes_zero": bool(c2),
+            "gate_iii_throughput_le_3x": bool(c3),
+            "clears": bool(c1 and c2 and c3),
+            "spec_both_metrics_variant_would_clear": bool(spec),
+        }
+        args.json_out.parent.mkdir(parents=True, exist_ok=True)
+        args.json_out.write_text(json.dumps(out, indent=2) + "\n")
+        print(f"\nwrote {args.json_out}")
 
 
 if __name__ == "__main__":
