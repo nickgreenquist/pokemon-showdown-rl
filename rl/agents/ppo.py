@@ -1907,16 +1907,19 @@ class PPOAgent(Agent):
                 value_loss = F.mse_loss(v_pred, flat_targets[idx])
                 entropy = entropies.mean()
                 loss = policy_loss + self.value_coef * value_loss - self.entropy_coef * entropy
+                aux_outcome_loss = None
                 if aux_out is not None:
-                    # IDEAS 4.11: coef * MSE over the three terminal targets,
-                    # INSIDE `loss` -- so, unlike D25's decoupled head, its
-                    # gradient flows through the critic trunk and takes part in
-                    # the one clip over actor+critic (it moves `loss/grad_norm`
-                    # by design: reshaping the critic's representation is the
-                    # lever). Not scaled by value_coef; the coefficient is the
-                    # whole weight.
+                    # IDEAS 4.11: coef * MSE over the three terminal targets. NOT
+                    # added to `loss` (moved 2026-09-21, a pre-launch review
+                    # finding): in this stack the clip below binds on ~99.9% of
+                    # minibatches (the W lanes log grad_norm ~2.3 against
+                    # max_grad_norm 0.5), so a term inside `loss` would raise
+                    # the norm and shrink the ACTOR's effective step by the
+                    # same fraction -- the read would then difference the
+                    # critic's representation AND the actor's learning rate.
+                    # The gradient is applied after the clip read, to the
+                    # critic only, scaled by the clip's own factor (below).
                     aux_outcome_loss = F.mse_loss(aux_out, flat_outcome_targets[idx])
-                    loss = loss + self.aux_outcome_coef * aux_outcome_loss
                     sums["loss/aux_outcome"] += float(aux_outcome_loss.item())
                 if self.bc_kl_coef > 0.0:
                     if self._bc_anchor is None:
@@ -1948,7 +1951,7 @@ class PPOAgent(Agent):
                 # minibatch's graph rather than paying a second actor forward
                 # (B9's build decision — a second forward is ~+25% update time
                 # and is not in the rung's -2.1% budget).
-                loss.backward(retain_graph=self.aux_head is not None)
+                loss.backward(retain_graph=(self.aux_head is not None) or (aux_outcome_loss is not None))
                 if self.aux_head is not None:
                     # PRE-clip, and read-only: clip_grad_norm_ rescales .grad in
                     # place, so the denominator has to be taken before it. Both
@@ -1969,6 +1972,34 @@ class PPOAgent(Agent):
                 # permanent lr divisor (the 2026-08-05 PPO audit saw it bind
                 # 16/16 on synthetic data and could not tell which).
                 grad_norm = nn.utils.clip_grad_norm_(self.params, self.max_grad_norm)
+                if aux_outcome_loss is not None:
+                    # IDEAS 4.11, AFTER the clip read and BEFORE the step (the
+                    # placement rule D25's head and the priv head follow), so
+                    # the term cannot move `loss/grad_norm` or
+                    # `loss/grad_clip_frac`. `aux_out` depends on no actor
+                    # parameter, so the gradient reaches the CRITIC trunk only
+                    # -- reshaping its representation IS the lever -- and it is
+                    # scaled by the SAME factor the clip just applied to the
+                    # PPO gradient, so the critic receives, to first order,
+                    # exactly what "coef * mse inside loss" would have handed
+                    # it, while the actor's path is the W base's bit for bit.
+                    # The graph is retained (above) for this one extra pass.
+                    clip_scale = min(1.0, self.max_grad_norm / (float(grad_norm) + 1e-6))
+                    aux_grads = torch.autograd.grad(
+                        self.aux_outcome_coef * aux_outcome_loss, self.critic_params,
+                        retain_graph=self.aux_head is not None, allow_unused=True,
+                    )
+                    with torch.no_grad():
+                        sq = 0.0
+                        for p, g in zip(self.critic_params, aux_grads):
+                            if g is None:
+                                continue
+                            sq += float(g.pow(2).sum())
+                            if p.grad is None:
+                                p.grad = torch.zeros_like(p)
+                            p.grad.add_(g, alpha=clip_scale)
+                    sums["aux_outcome/grad_norm"] += math.sqrt(sq)
+                    sums["aux_outcome/clip_scale"] += clip_scale
                 if self.aux_head is not None:
                     # AFTER the clip read above, BEFORE the step: the aux term
                     # must not move loss/grad_norm or loss/grad_clip_frac.

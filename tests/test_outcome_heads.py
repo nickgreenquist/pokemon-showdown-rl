@@ -150,11 +150,29 @@ except ValueError as e:
     assert "aux_outcome_coef" in str(e), str(e)
 b = with_logp(on, episodes(lengths))
 m = on.update_episodes(b, steps_seen=0)
-want = {"loss/aux_outcome"} | {f"aux_outcome/ev_{n}" for n in TARGET_NAMES}
+want = {"loss/aux_outcome", "aux_outcome/grad_norm", "aux_outcome/clip_scale"} | {f"aux_outcome/ev_{n}" for n in TARGET_NAMES}
 assert want <= set(m), sorted(m)
+assert m["aux_outcome/grad_norm"] > 0 and 0 < m["aux_outcome/clip_scale"] <= 1.0, m
 assert all(np.isfinite(m[k]) for k in want), {k: m[k] for k in want}
 control = plain.update_episodes(with_logp(plain, episodes(lengths, targets=False)), steps_seen=0)
 assert set(control).isdisjoint(want), sorted(set(control) & want)
+# 4b. THE ACTOR'S PATH IS THE W BASE'S, BIT FOR BIT, PER GRADIENT STEP (2026-09-21 review
+# finding): on the same seed, the same episodes and the same minibatch draw, a head-on agent and a
+# head-off agent report the SAME loss/grad_norm and loss/grad_clip_frac and end a ONE-STEP update
+# with IDENTICAL actor parameters -- the aux gradient is applied after the clip, to the critic only
+# -- while their critics differ (the lever acted). One step per update here because from the second
+# minibatch on the two critics have diverged, their value-gradient norms differ, and the shared clip
+# couples that into the actor: a second-order coupling every critic lever under this recipe carries
+# (the 1024 critic included), not the first-order one the placement removes.
+torch.manual_seed(11); p2 = agent(epochs=1, minibatches=1); torch.manual_seed(11); o2 = agent(**ON, epochs=1, minibatches=1)
+torch.manual_seed(12); mp = p2.update_episodes(with_logp(p2, episodes(lengths, seed=3, targets=False)), steps_seen=0)
+torch.manual_seed(12); mo = o2.update_episodes(with_logp(o2, episodes(lengths, seed=3)), steps_seen=0)
+for k in ("loss/grad_norm", "loss/grad_clip_frac", "loss/policy", "loss/value"):
+    assert mp[k] == mo[k], (k, mp[k], mo[k])
+for k, v in p2.actor.state_dict().items():
+    assert torch.equal(v, o2.actor.state_dict()[k]), ("actor moved differently", k)
+assert any(not torch.equal(v, o2.critic.state_dict()[k]) for k, v in p2.critic.state_dict().items()
+           if k in o2.critic.state_dict()), "the critic did not receive the aux gradient"
 first = m["loss/aux_outcome"]
 for _ in range(8):
     last = on.update_episodes(b, steps_seen=0)["loss/aux_outcome"]
