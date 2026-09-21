@@ -7,6 +7,14 @@
 # Detached, resume-safe, rate-readable (CLAUDE.md rule 4).
 #
 #   nohup bash scripts/exit_gate_queue.sh > logs/exit_gate_r5/queue.nohup 2>&1 &
+#
+# RELAUNCH AFTER A DEATH (folded from HANDOFF 2026-09-21): an FP arm that dies mid-run
+# poisons its username pair for hours (scripts/ch3_r4_fp_runner.sh's incident record), so
+# BEFORE relaunching give that arm a fresh, prefix-free `seat_username` / `fp_username` in
+# configs/eval/exit_gate_r5.yaml (this queue's inventory check names a collision), keep
+# logs/exit_gate_r5/GO in place, and run the same nohup line with `>>`. Phases whose JSON
+# exists are skipped; the readout is only valid if XGR and XTG9 both finished in ONE
+# session with no relaunch on a poisoned pair -- say so in the readout if they did not.
 set -u
 if [ "${QUEUE_FROZEN:-0}" != "1" ]; then
   FROZEN=$(mktemp -t exit_gate_queue); cat "$0" > "$FROZEN"

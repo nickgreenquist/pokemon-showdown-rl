@@ -1,6 +1,6 @@
 # STATUS
 ## JOURNEY POSITION — step 11 DONE (R5 LISTED). The post-ladder SEARCH chapter is CLOSED, and closed by a CORRECTION PASS
-**RUNNING: the exit-gate queue (IDEAS 4.9's gate) — the action-gap phase is DONE (§33 below); XGR, the greedy control (n=3200), started 09-20 23:07Z at ~1.65 s/battle, then XTG9 (tree@900, ~22 h); `HANDOFF.md` §1 says how to check it. No training lane and no second FP block beside it.** Eight blocks
+**RUNNING: the exit-gate queue (IDEAS 4.9's gate; `configs/eval/exit_gate_r5.yaml`, `scripts/exit_gate_queue.sh`) — the action-gap phase is DONE (§33 below); XGR, the greedy control (n=3200), started 09-20 23:07Z at ~1.6 s/battle, then XTG9 (tree@900, ~22 h at ~25 s/battle), then `results/exit_gate_r5/READOUT.txt`. CHECK: `tail -3 logs/exit_gate_r5/queue.log` and `grep -c Winner results/exit_gate_r5/xtg9.fp.stdout` (stalled = the count stops for ~10 min or the FP seat's CPU time does not advance in 15 s); a dead FP arm poisons its username pair for hours — add a fresh prefix-free pair to the config before relaunching with GO present. No training lane and no second FP block beside it.** Eight blocks
 ran 09-18/19 (§25–§32); **three Opus review passes then went back over every claim and
 changed sixteen of them, retracted one section in full, and found three numbers I had
 invented while writing the corrections themselves.** Read §30.1's retraction box and the

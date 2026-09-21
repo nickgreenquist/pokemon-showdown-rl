@@ -12616,3 +12616,12 @@ line numbers are not — grep the date, then read that region):
     `meta.yaml` `encoder.c6` back on every resume. The 12M screen's header now says why it
     stays c6-OFF (matched against the c6-off W lanes). Tests: 37 passed (r6 configs, engine
     smoke config, a1 prereg). The 400k smokes and the 4.12 screen wait for QUEUE DONE.
+  - **Suite at ~00:10Z 09-21, bare, base env: 1250 passed / 87 skipped / 0 failed** (the
+    1240 baseline plus the ten tests added this session; `test_engine_collector.py` runs in
+    the port env: 8/8). It ran niced beside the XGR control arm (~100 s, one core) — the
+    only job of that size beside the queue this session; XTG9 will run with nothing beside
+    it, so the contamination is one-sided and small (disclosed here and owed in the
+    exit-gate readout). **`HANDOFF.md` FOLDED to the stub:** its queue-check commands and
+    the poisoned-pair relaunch rule now sit in STATUS's RUNNING line; the rulings, the
+    work list, the landmines and the numbers are in STATUS, the plan, `docs/landmines.md`
+    and this log.
