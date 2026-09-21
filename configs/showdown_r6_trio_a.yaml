@@ -129,9 +129,18 @@
 #   (the second ~2 min after the first; one watchdog per trio). ~50 h six-wide.
 # OWED AT READOUT: RESUMES= / NODE_RESTARTS= per trio, every from_step, the /timer line,
 #   encoder.c6 stamps, param counts, the anchor battery, a RESULTS addendum, README row.
-# STATUS: DRAFT 2026-09-21 (agent). NOT LAUNCHABLE until (i) the 400k smokes pass and are
-#   logged here, (ii) the 4.12 screen's verdict is recorded in trio B's header, and
-#   (iii) the maintainer ratifies by editing this line. Launch is the maintainer's.
+# STATUS: SMOKED 2026-09-21 (agent). (i) DONE:
+#   SMOKE A PASS 2026-09-21 22:52Z (`results/r6_smokes/a.json`, every gate computed): 400,002 steps;
+#   encoder.c6 true; params actor 626,059 / critic 1,810,564 = 1,807,489 + 3,075 head;
+#   aux_outcome_coef 0.1; l2init/* rising; aux_outcome/ev_* at 400k hp_margin 0.419 / survivors_own
+#   0.376 / survivors_opp 0.257, rising; aux grad norm 0.035 at clip scale 0.74 vs PPO grad norm
+#   0.78 (W's first 400k 0.70; ratio 1.12, one seed each); episodes_discarded 0; the kill-at-200k
+#   RESUME test PASSED (resumed from checkpoint.pt at 123,088, c6=1, rng restored, pool from
+#   checkpoint.pt, sha stamped, 2 history segments merged); peak RSS 2.35 GB (30 s polls); no
+#   Traceback.
+# (ii) PENDING: the 12M screens' verdicts (GO keys s204/s212 and fallback keys s220/s228) are recorded in
+#   trio B's header when they land; (iii) the maintainer ratifies by editing this line at launch. Launch is
+#   the maintainer's (ruled 2026-09-21: both trios TOGETHER, in the morning if the verdicts are late).
 #
 # BODY: the W base with ONLY the diffs stated above (tests/test_r6_trio_configs.py pins
 # the diff set against configs/showdown_monster200m_w.yaml).

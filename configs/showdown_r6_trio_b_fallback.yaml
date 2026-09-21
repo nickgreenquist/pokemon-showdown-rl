@@ -134,9 +134,21 @@
 #   (the second ~2 min after the first; one watchdog per trio). ~50 h six-wide.
 # OWED AT READOUT: RESUMES= / NODE_RESTARTS= per trio, every from_step, the /timer line,
 #   encoder.c6 stamps, param counts, the anchor battery, a RESULTS addendum, README row.
-# STATUS: DRAFT 2026-09-21 (agent). NOT LAUNCHABLE until (i) the 400k smokes pass and are
-#   logged here, (ii) the 4.12 screen's verdict is recorded in trio B's header, and
-#   (iii) the maintainer ratifies by editing this line. Launch is the maintainer's.
+# STATUS: SMOKED 2026-09-21 (agent). (i) DONE (both forms):
+#   SMOKE B PASS 2026-09-21 23:00Z (`results/r6_smokes/b.json`): 400,086 steps; encoder.c6 true;
+#   params actor 626,059 / critic 1,807,489, no head; l2init/* rising; episodes_discarded 0; per-
+#   update kl 0.0057, entropy 1.80, EV 0.38 over 3.25 updates (122,880 steps each); update 38.6 s +
+#   collect 24.6 s per update beside five lanes; PPO grad norm 1.45 (W's first 400k 0.70); peak RSS
+#   2.40 GB; no Traceback.
+#   SMOKE B-FALLBACK PASS 2026-09-21 23:08Z (`results/r6_smokes/bf.json`): 400,030 steps; encoder.c6
+#   true; params actor 626,059 / critic 1,807,489, no head; l2init/* rising; episodes_discarded 0;
+#   per-update kl 0.0085, entropy 1.77, EV 0.27; update 87.3 s (1,920 optimizer steps) + collect
+#   20.8 s per update beside five lanes; PPO grad norm 0.62 (W's first 400k 0.70); peak RSS 1.75 GB;
+#   no Traceback.
+# (ii) PENDING: the 12M screens' verdicts (GO keys runs/showdown_r6_batch12m_s{204,212}; fallback keys
+#   runs/showdown_r6_batch12m_fallback_s{220,228}) -- recorded here when they land; OPEN RULING: launch
+#   trio B in the FALLBACK form regardless (recommended; SESSION_LOGS 2026-09-21 cont. 3); (iii) the
+#   maintainer ratifies by editing this line at launch. Launch is the maintainer's (both trios TOGETHER).
 #
 # BODY: the W base with ONLY the diffs stated above (tests/test_r6_trio_configs.py pins
 # the diff set against configs/showdown_monster200m_w.yaml).

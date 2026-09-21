@@ -12871,3 +12871,15 @@ line numbers are not — grep the date, then read that region):
     starts right after this commit (smoke A with the resume test, then B, then B-fallback; the window beside the
     screens is disclosed in both screen reads; only `time/*` is affected). The exit-gate readout's G2 pass
     (~20 s of IO over 1.6 GB of stdouts) ran at 22:26Z beside the GO launcher's first lane — disclosed.
+- 2026-09-21 (cont. 5, agent) — **ALL THREE 400k SMOKES PASS (`scripts/r6_smokes.sh` 22:34–23:08Z, beside the four
+  screen lanes; every gate computed by `scripts/r6_smoke_check.py` → `results/r6_smokes/{a,b,bf}.json`).**
+  SMOKE A PASS 2026-09-21 22:52Z (`results/r6_smokes/a.json`, every gate computed): 400,002 steps; encoder.c6 true; params actor 626,059 / critic 1,810,564 = 1,807,489 + 3,075 head; aux_outcome_coef 0.1; l2init/* rising; aux_outcome/ev_* at 400k hp_margin 0.419 / survivors_own 0.376 / survivors_opp 0.257, rising; aux grad norm 0.035 at clip scale 0.74 vs PPO grad norm 0.78 (W's first 400k 0.70; ratio 1.12, one seed each); episodes_discarded 0; the kill-at-200k RESUME test PASSED (resumed from checkpoint.pt at 123,088, c6=1, rng restored, pool from checkpoint.pt, sha stamped, 2 history segments merged); peak RSS 2.35 GB (30 s polls); no Traceback.
+  SMOKE B PASS 2026-09-21 23:00Z (`results/r6_smokes/b.json`): 400,086 steps; encoder.c6 true; params actor 626,059 / critic 1,807,489, no head; l2init/* rising; episodes_discarded 0; per-update kl 0.0057, entropy 1.80, EV 0.38 over 3.25 updates (122,880 steps each); update 38.6 s + collect 24.6 s per update beside five lanes; PPO grad norm 1.45 (W's first 400k 0.70); peak RSS 2.40 GB; no Traceback.
+  SMOKE B-FALLBACK PASS 2026-09-21 23:08Z (`results/r6_smokes/bf.json`): 400,030 steps; encoder.c6 true; params actor 626,059 / critic 1,807,489, no head; l2init/* rising; episodes_discarded 0; per-update kl 0.0085, entropy 1.77, EV 0.27; update 87.3 s (1,920 optimizer steps) + collect 20.8 s per update beside five lanes; PPO grad norm 0.62 (W's first 400k 0.70); peak RSS 1.75 GB; no Traceback.
+  Recorded in the three trio headers' STATUS lines (the smoke leg of R0 gate 1 is DONE; the screens' verdicts
+  and the maintainer's ratification remain). Read, not a verdict: the GO form had made 3 policy updates by 400k
+  against 13 for the W shape, and its in-loop trace sits far behind trio A's there — the extreme early form of the
+  "fewer, larger updates" mechanism the 12M screens read at matched steps (never a win-rate read; rule 6).
+  Memory at six-wide from the smokes' peaks: ~3 × 2.35 + 3 × 2.4 GB ≈ 14–15 GB of 24 (W's fleet: 8–11 GB), under
+  the per-lane STOP gate; disclosed. Screens at 23:08Z: GO pair 3.44M steps (~1,550 steps/s → 12M ≈ 00:35Z),
+  fallback pair 2.46M / 1.97M (its 1,920-step updates are slower → 12M ≈ 01:30Z).
