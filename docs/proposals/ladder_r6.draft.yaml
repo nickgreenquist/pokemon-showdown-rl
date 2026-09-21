@@ -83,6 +83,11 @@
 #   also exports POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1 and the object is disclosed as mixed
 #   on every number. The LG-6 smoke's provenance line must show encoder_c6 matching the
 #   object's generation -- a mismatch is an abort before the first rated game.
+#   LOADER GAP (2026-09-21 pre-launch review, CONFIRMED): rl/common/checkpoint.py warns on a
+#   MISSING meta.yaml c6 stamp only when the process flag is ON and loads silently when it is
+#   OFF, so the floor case (flag unset) cannot detect a c6-on member whose meta.yaml is
+#   unreadable. OWED BEFORE RATIFICATION (M-R6-8): the loader hard-fails on a missing stamp
+#   under either flag state, or LG-6 asserts every member's meta.yaml stamp explicitly.
 #
 # LAUNCH GATES (R5's LG-2..LG-9, adapted; each checked and its evidence line quoted in the
 #   readout): LG-2 the account's profile read BEFORE session 1 and BEFORE every later session
@@ -194,7 +199,7 @@ expected_instrument_values:
   max_concurrent_live_battles_expected: 1
   sec_per_battle_band: [190, 300]  # MEDIAN EXCLUDING GAPS > 900 s, per session
   mean_turns_band: [18, 32]
-  loop_breaker_fired_frac_band: [0.0, 0.05]   # DIAGNOSTIC: RESULTS 28 measured ~3% turn-cap stalls under the deterministic protocol
+  loop_breaker_fired_frac_band: [0.0, 0.05]   # DIAGNOSTIC: RESULTS 28 measured ~3% turn-cap stalls under the deterministic protocol. OWED (M-R6-9, 2026-09-21 review): `loop/fired` counts PINNED visits, not escapes (rl/search/loop_breaker.py fires on seen >= threshold, so once the rank clamps the same worst legal action recurs and fired increments every visit) -- re-specify the band on an escape count or a per-battle fired indicator before ratification
   bands_are_diagnostic: "every band except mean_decision_ms_band is DIAGNOSTIC -- a breach is disclosed in the readout and voids nothing"
 
 comparison_ruling:
