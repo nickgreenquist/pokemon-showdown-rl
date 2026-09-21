@@ -239,6 +239,15 @@ def main() -> None:
     print(f"  historical comparator attention / mlp_512x512 = "
           f"{tp['ratios']['attention_over_mlp_policy_HISTORICAL_COMPARATOR']:.2f}x "
           "(the 2026-08-07 kill quoted 34.6x on this pairing)")
+    # NOT the gate. An RL update trains BOTH heads, so this is the number a
+    # future fleet-arm pre-reg would start its arithmetic from — printed here
+    # so nobody has to recompute it by hand from the JSON.
+    both = ((tp["rows"]["attention"]["policy"]["median_s"]
+             + tp["rows"]["attention"]["value"]["median_s"])
+            / (tp["rows"]["entity_deepsets"]["policy"]["median_s"]
+               + tp["rows"]["entity_deepsets"]["value"]["median_s"]))
+    print(f"  both-heads (actor + critic) attention / entity_deepsets = {both:.2f}x "
+          "— NOT the gate; the input an RL projection would use")
 
     # ---- the verdict, by the rule ----------------------------------------
     d_agree = point["agreement_free"][0]
