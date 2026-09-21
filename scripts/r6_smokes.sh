@@ -83,13 +83,18 @@ for entry in "${SMOKES[@]}"; do
   fi
 
   done_line() { grep -q "$dir DONE at step" "$WD"; }
-  t0=$(date +%s)
+  t0=$(date +%s); maxrss=0
   until done_line; do
     if grep -q "ALERT $dir .*RETIRING" "$WD"; then log "LANE RETIRED by the watchdog: $(grep "ALERT $dir" "$WD" | tail -2 | tr '\n' ' ')"; exit 1; fi
+    # peak RSS of the lane (the resource gates are calibrated at a fleet width; trio B's x4
+    # rollout is a new width -- docs/landmines.md), sampled every poll
+    lp="$(lane_pid "$base")"
+    if [ -n "$lp" ]; then r="$(ps -o rss= -p "$lp" 2>/dev/null | tr -d ' ')"; [ "${r:-0}" -gt "$maxrss" ] && maxrss="$r"; fi
     sleep 30
     if [ $(( $(date +%s) - t0 )) -ge 5400 ]; then log "TIMEOUT waiting for $dir DONE (90 min)"; exit 1; fi
   done
   log "$(grep "$dir DONE at step" "$WD" | tail -1)"
+  log "peak RSS sampled for $base: $((maxrss / 1024)) MB (30 s polls; a lower bound on the true peak)"
   sleep 20
   args=("$dir" --json-out "$OUT/$name.json"); [ "$rtest" = "1" ] && args+=(--expect-resume)
   "$PYB" scripts/r6_smoke_check.py "${args[@]}" 2>&1 | tee -a "$LOG"

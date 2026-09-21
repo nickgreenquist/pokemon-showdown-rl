@@ -75,8 +75,10 @@ def lane_alive(run_dir):
     # rl.train's argv carries `--run-name <basename>`, not the `runs/` path
     # (2026-09-15: the path pattern matched nothing; the DONE-line check was
     # the binding guard). Anchor on the run name.
+    # A RESUMED lane runs as `--resume runs/<dir>` (scripts/train_watchdog.sh), so both spellings
+    # are matched (2026-09-21 pre-launch review: the run-name-only pattern went blind after a resume).
     name = os.path.basename(run_dir.rstrip("/"))
-    out = subprocess.run(["pgrep", "-f", f"bin/python -m rl.train.*--run-name {name}$"],
+    out = subprocess.run(["pgrep", "-f", f"bin/python -m rl.train.*(--run-name {name}$|--resume runs/{name}$)"],
                          capture_output=True, text=True).stdout.split()
     return bool(out)
 

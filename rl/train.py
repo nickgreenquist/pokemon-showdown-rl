@@ -600,6 +600,19 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             # step 0's minibatch permutations and action draws (F-18).
             "rng_restored": resume_rng is not None,
         }
+        # A RUNNING BLOCK IMPORTS THE WORKING TREE (docs/landmines.md), and a
+        # resume is a fresh process: stamp the sha it imported, so a lane
+        # resumed after a commit landed is a DISCLOSED span, not a silent one
+        # (2026-09-21 pre-launch review; the launch stamp is written once).
+        try:
+            stamp["git_sha"] = subprocess.run(
+                ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+            ).stdout.strip()
+            stamp["git_dirty"] = bool(subprocess.run(
+                ["git", "status", "--porcelain"], capture_output=True, text=True, check=True,
+            ).stdout.strip())
+        except (OSError, subprocess.CalledProcessError):
+            stamp["git_sha"] = None
         if pool is not None:
             # Before the meta stamp: a refused pair (torn stamp) must leave
             # no trace of a resume that never happened. Nothing between here

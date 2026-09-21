@@ -46,10 +46,13 @@ log() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG/queue.log"; }
 LANES="runs/showdown_r6_trio_a_s304 runs/showdown_r6_trio_a_s312 runs/showdown_r6_trio_a_s320 runs/showdown_r6_trio_b_s328 runs/showdown_r6_trio_b_s336 runs/showdown_r6_trio_b_s344"
 
 lanes_done() { for d in $1; do grep -q "$d DONE at step" "$WD" || return 1; done; return 0; }
-lanes_alive() { for d in $1; do pgrep -f "bin/python -m rl.train.*--run-name ${d#runs/}\$" > /dev/null && return 0; done; return 1; }
+# A RESUMED lane runs as `--resume runs/<dir>`, not `--run-name <dir>` (scripts/train_watchdog.sh);
+# both spellings are matched (2026-09-21 pre-launch review: the old pattern went blind after any resume).
+lanes_alive() { for d in $1; do pgrep -f "bin/python -m rl.train.*(--run-name ${d#runs/}\$|--resume ${d}\$)" > /dev/null && return 0; done; return 1; }
 
-# Guards: no training lane, no other Foul Play process, the server up.
-pgrep -f "bin/python -m rl.train" > /dev/null && { log "REFUSING: an rl.train lane is alive (never an FP arm beside a training lane)"; exit 1; }
+# Guards at start: no other Foul Play process, the server up. The "no rl.train alive" guard is
+# applied AFTER the WAIT phase (below): this queue is armed WHILE the six lanes train and holds
+# until they are DONE (2026-09-21 review: a start-time guard made the wait unreachable).
 pgrep -f "foul-play/bin/python run.py" > /dev/null && { log "REFUSING: another Foul Play process is alive (FP's budget is wall-clock)"; exit 1; }
 lsof -nP -iTCP:8000 -sTCP:LISTEN > /dev/null 2>&1 || { log "REFUSING: no local Showdown server on :8000"; exit 1; }
 
@@ -116,6 +119,7 @@ log "WAIT: holding until all six R6 lanes are DONE in $WD and no rl.train for th
 until lanes_done "$LANES" && ! lanes_alive "$LANES"; do sleep 120; done
 log "R6 trios DONE; +15 min for room reaping"
 sleep 900
+pgrep -f "bin/python -m rl.train" > /dev/null && { log "REFUSING: an rl.train lane is still alive after the six are DONE (never an FP arm beside a training lane)"; exit 1; }
 git status --porcelain | grep -q . && { log "DIRTY TREE -- refusing to pin/launch (rule 3)"; exit 1; }
 for t in a b; do
   "$PY" scripts/monster_reads_pin.py --trio "$t" --commit >> "$LOG/pin_$t.log" 2>&1 || { log "PIN-$t FAILED -- see $LOG/pin_$t.log"; exit 1; }

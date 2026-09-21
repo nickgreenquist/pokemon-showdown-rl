@@ -38,6 +38,8 @@ def _history(aux: bool, n=40):
         for k in ("survivors_own", "survivors_opp", "hp_margin"):
             d[f"aux_outcome/ev_{k}"] = [0.1 + 0.005 * i for i in range(n)]
         d["loss/aux_outcome"] = [1.0 - 0.01 * i for i in range(n)]
+        d["aux_outcome/grad_norm"] = [0.3 + 0.001 * i for i in range(n)]
+        d["aux_outcome/clip_scale"] = [0.22] * n
     return pd.DataFrame(d)
 
 
@@ -72,6 +74,13 @@ def test_trio_a_shape_passes_and_each_defect_fails(tmp_path):
     run, wref, wdl = _run(tmp_path, "a_head", True, meta=m)
     r = check(run, wref, wdl, expect_resume=True, step=400012, history=f"{run}/history.csv")
     assert not r["gates"]["S_PARAMS"]["ok"] and "critic_aux_outcome" in r["gates"]["S_PARAMS"]["mismatch"]
+    # a DEAD head: EV flat at zero while the loss column still moves
+    h = _history(True)
+    for k in ("survivors_own", "survivors_opp", "hp_margin"):
+        h[f"aux_outcome/ev_{k}"] = 0.0
+    run, wref, wdl = _run(tmp_path, "a_dead", True, hist=h)
+    r = check(run, wref, wdl, expect_resume=True, step=400012, history=f"{run}/history.csv")
+    assert not r["gates"]["S_HISTORY"]["ok"] and not all(r["gates"]["S_HISTORY"]["aux_ev_rising"].values())
     # the lane never reached the horizon
     run, wref, wdl = _run(tmp_path, "a_short", True)
     r = check(run, wref, wdl, expect_resume=True, step=300000, history=f"{run}/history.csv")

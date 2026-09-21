@@ -46,6 +46,31 @@ def n_offline(run: str) -> int:
     return len(glob.glob(os.path.join(run, "wandb/offline-run-*/run-*.wandb")))
 
 
+def _grad_stats_vs_w(h: pd.DataFrame, w_ref: str, horizon: int) -> dict:
+    """Mean loss/grad_norm and loss/grad_clip_frac over the smoke vs the W reference lane's first
+    `horizon` steps (its history.csv is ~775 MB: streamed in chunks and stopped at the horizon)."""
+    out: dict = {}
+    for c in ("loss/grad_norm", "loss/grad_clip_frac"):
+        s = h[c].dropna() if c in h else pd.Series(dtype=float)
+        out[c + "_smoke"] = float(s.mean()) if len(s) else None
+    wp = os.path.join(w_ref, "history.csv")
+    if not os.path.exists(wp):
+        out["note"] = f"no {wp}"
+        return out
+    parts = []
+    for chunk in pd.read_csv(wp, usecols=lambda c: c in ("_step", "loss/grad_norm", "loss/grad_clip_frac"), chunksize=200_000):
+        parts.append(chunk[chunk["_step"] <= horizon])
+        if int(chunk["_step"].max()) >= horizon:
+            break
+    w = pd.concat(parts) if parts else pd.DataFrame()
+    for c in ("loss/grad_norm", "loss/grad_clip_frac"):
+        s = w[c].dropna() if c in w else pd.Series(dtype=float)
+        out[c + "_w"] = float(s.mean()) if len(s) else None
+        a, b = out.get(c + "_smoke"), out.get(c + "_w")
+        out[c + "_ratio"] = (a / b) if (a is not None and b) else None
+    return out
+
+
 def ckpt_step(run: str) -> int:
     import torch
     return int(torch.load(os.path.join(run, "checkpoint.pt"), map_location="cpu", weights_only=False)["step"])
@@ -110,8 +135,16 @@ def check(run: str, w_ref: str, watchdog_log: str, expect_resume: bool, expect_c
     if coef > 0:
         hist["aux_ev_moving"] = {c: moving(c) for c in aux_ev}
         hist["aux_ev_last"] = {c: float(series(c).iloc[-1]) for c in aux_ev if len(series(c))}
+        # a DEAD head prints EV ~0 (rl/agents/ppo.py::_outcome_ev_stats); a live one ends above
+        # its start and above zero -- rising is the evidence the gradient reached the critic
+        hist["aux_ev_rising"] = {c: bool(rising(c) and float(series(c).iloc[-1]) > 0.0) for c in aux_ev}
         hist["loss_aux_outcome_moving"] = moving("loss/aux_outcome")
+        # 2026-09-21: the aux gradient is applied AFTER the shared clip (critic only, clip-scaled);
+        # these two must be present and moving, and loss/grad_norm must look like W's (below)
+        hist["aux_grad_norm_mean"] = float(series("aux_outcome/grad_norm").mean()) if len(series("aux_outcome/grad_norm")) else None
+        hist["aux_clip_scale_mean"] = float(series("aux_outcome/clip_scale").mean()) if len(series("aux_outcome/clip_scale")) else None
         ok &= len(aux_ev) == vao and all(moving(c) for c in aux_ev) and moving("loss/aux_outcome")
+        ok &= all(hist["aux_ev_rising"].values()) and hist["aux_grad_norm_mean"] is not None and hist["aux_grad_norm_mean"] > 0
     else:
         hist["heads_leaked"] = bool(aux_ev or "loss/aux_outcome" in h)
         ok &= not hist["heads_leaked"]
@@ -121,6 +154,11 @@ def check(run: str, w_ref: str, watchdog_log: str, expect_resume: bool, expect_c
     for c in REPORT_COLS:
         s = series(c)
         hist[c.replace("/", "_") + "_mean"] = float(s.mean()) if len(s) else None
+    # REPORTED (not a gate): the smoke's loss/grad_norm and loss/grad_clip_frac against the W
+    # reference lane's own first `total` steps -- the actor's clip must look like W's (a review
+    # finding: a term inside the clipped loss would shrink the actor's step; the fix keeps the
+    # aux gradient outside it, so the ratio should sit near 1 up to seed noise)
+    hist["grad_norm_vs_w"] = _grad_stats_vs_w(h, w_ref, total)
     hist["note"] = "eval/win_rate is DESCRIPTIVE; a smoke reads nothing (rule 6)"
     gates["S_HISTORY"] = {"ok": bool(ok), **hist}
 
