@@ -1,0 +1,298 @@
+# =====================================================================
+# R7 ARCHITECTURE SCREEN — entity ATTENTION vs the entity DEEPSETS trunk,
+# decided offline on Foul Play behavioural cloning.
+#
+# HEADER-ONLY. There is no training loop behind this file: the arms are
+# `scripts/train_bc.py` invocations and are written out verbatim under
+# ARMS below. It exists because the rule has to be on disk, committed,
+# BEFORE the first fit — this is the whole of the pre-registration, and
+# `scripts/arch_screen_readout.py` reads nothing from it, so the two
+# cannot drift into agreement after the fact.
+#
+# WRITTEN 2026-09-20, BEFORE ANY FIT RAN. git log is the proof: the commit
+# that adds this file precedes every commit and every file under
+# results/arch_screen/.
+#
+# journey_step: 11.6 ("Architecture: an attention / transformer trunk —
+#   POST-LADDER, ruled 2026-09-11").
+#
+# THAT STEP'S GOVERNING TEXT, RESTATED VERBATIM (JOURNEY.md §11.6; the step
+# carries a ruling and a shape rather than a numeric exit condition, so all
+# three governing sentences are quoted rather than one):
+#
+#   "next ladder should be as good as we can do with new poke-engine
+#    training and all these search gains ... transformer model can be post
+#    this ladder (wherever that falls in journey). can be recorded there as
+#    idea to try."
+#
+#   "This step does not block step 12 — the story can be wrapped without it."
+#
+#   "The cheap first move, deliberately NOT run yet (2026-09-11):
+#    ARCH_SCREEN_SPEC's re-benchmark against the current trunk — minutes to
+#    an hour, no training, settles THROUGHPUT only."
+#
+#   "Shape when it runs: the win-rate question is a §4-class fleet arm
+#    needing its own pre-reg with mechanism co-primary, on the collector
+#    path where k=8 makes it readable."
+#
+# THIS FILE IS THAT CHEAP FIRST MOVE PLUS ONE STEP. It settles throughput
+# against TODAY's trunk (the thing JOURNEY says is "simply unknown"), and it
+# adds a supervised FIT comparison so the throughput number is not the only
+# input to the decision — which is precisely the failure mode §11.6 records
+# about the 2026-08-07 kill: "An industry-standard architecture is sitting
+# retired on a speed comparison against a trunk we no longer run."
+#
+# IT IS NOT AND CANNOT BECOME THE WIN-RATE ANSWER. §11.6's fleet arm still
+# needs its own pre-reg, and nothing here may be quoted as evidence about
+# win rate in either direction.
+#
+# =====================================================================
+# WHAT THIS SCREEN IS ALLOWED TO DECIDE
+# =====================================================================
+#
+# ONE thing: whether a §11.6 fleet arm is worth ITS pre-reg and its training
+# run. A clear credits the architecture enough to write that pre-reg; a null
+# says the cheap evidence does not support spending a fleet arm YET.
+#
+# A NULL HERE IS NOT A KILL, AND MAY NEVER BE CITED AS ONE (CLAUDE.md rule 6,
+# and the whole "small-run nulls" landmine). This is a 180k-row supervised fit
+# against a search teacher. It cannot resolve an advisory-scale effect on win
+# rate, it measures a DIFFERENT objective from the one the fleet optimises,
+# and its teacher's structure — not the game's — is what agreement rewards.
+# The only thing that kills architecture here is a MEASURED MECHANISM
+# CEILING, and the throughput ratio is the one quantity in this file that
+# could become one.
+#
+# =====================================================================
+# ARMS  (3 matched fit seeds each: 0, 1, 2 — six fits, run SEQUENTIALLY)
+# =====================================================================
+#
+# Both arms, identical in everything but --trunk:
+#   --data /…/data/fp_all_v2i/v2i   (828-dim, gen 1, expert foulplay)
+#   --target soft --max-rows 180000 --epochs 20 --batch-size 512 --lr 1e-3
+#   --val-frac 0.1 (default)  --seed {0,1,2}
+#   POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1, torch threads 1, nice -n 19.
+#
+#   A (CONTROL — today's trunk):
+#     --trunk entity_deepsets
+#     actor 626,059 params; W-base trunk_kwargs, fixed in train_bc.py
+#     (species_vocab 152, move_vocab 166, embed_dim 64, entity_dim 128,
+#      pool max, ctx_sizes [384,384], scorer_sizes [256], value_sizes [384,384]).
+#     ONE DISCLOSED DEVIATION from configs/showdown_monster200m_w.yaml:
+#     value_sizes is the BASE recipe's [384,384], not W's [1024,1024]. W's
+#     wide critic is W's own lever, not part of the trunk under screen, and
+#     the critic is UNTRAINED here (--value-coef 0) — the key is inert.
+#
+#   B (ARM):
+#     --trunk attention --d-model 128 --n-layers 2 --n-heads 4
+#     actor 564,875 params (rl/networks/entity_attention.py, pinned in
+#     tests/test_entity_attention.py).
+#
+# CAPACITY IS NOT THE VARIABLE, and it is arm B that is SMALLER: 564,875 <
+# 626,059 (arm A) < 681,994 (ACTOR_PARAM_CEILING, the flat MLP's count). The
+# two arms share the tokenizer (EntityTokenizer), the entity vocabularies
+# (152 / 166), the embedding width (64), the pointer-head alignment and the
+# masking path. THE ONLY DIFFERENCE IS THE MIXER: a permutation-invariant max
+# pool versus two pre-LN self-attention blocks.
+#
+# DOSE IS MATCHED, AND HERE IS HOW WE WOULD KNOW IF IT WERE NOT. Same dataset
+# prefix, same --max-rows, same --val-frac, and `battle_split` is seeded by
+# the FIT SEED — so at a given seed the two arms hold out the SAME battles in
+# the SAME row order. The readout ASSERTS that (`val_rows.npz` battle_ids
+# equal element-wise between A_s and B_s) and refuses to print a delta if it
+# fails. Epochs, batch size, lr and target are literal and identical.
+#
+# =====================================================================
+# PRIMARY READ  (decided before any fit)
+# =====================================================================
+#
+# QUANTITY: Δagreement_free = mean over seeds s ∈ {0,1,2} of
+#           (agreement_free(B_s) − agreement_free(A_s)),
+#           each arm read AT ITS OWN BEST EPOCH, best = max val
+#           agreement_free over the 20 epochs, exactly as train_bc selects
+#           `best_checkpoint.pt`. `agreement_free` is agreement over
+#           MULTI-CHOICE held-out rows only; single-legal-action rows are
+#           free for any policy and are excluded (train_bc's own rule).
+#
+# ACROSS-LANE AGGREGATOR, NAMED: the unweighted MEAN of the three per-seed
+#           PAIRED differences. Not a pooled-rows difference — the three
+#           seeds hold out different battles, so pooling rows across seeds
+#           would mix a split effect into the arm effect.
+#
+# INTERVAL: CLUSTER BOOTSTRAP BY BATTLE, 1,000 resamples, seeded. One
+#           replicate = for each seed s, resample s's held-out BATTLES with
+#           replacement to the same battle count, recompute agreement_free
+#           for A_s and B_s over the resampled rows (SAME battles for both
+#           arms — the pairing is the point), difference them, then average
+#           the three. 95% CI = the [2.5, 97.5] percentiles of the 1,000
+#           replicate means. Battles, not rows: consecutive decisions in one
+#           battle share a team, an opponent and a turn context, which is the
+#           same reason the holdout is by battle.
+#
+# BAND DIRECTION, STATED: the CI is on B − A. POSITIVE means the attention
+#           arm agrees with the teacher MORE OFTEN. For Δval_kl (reported the
+#           same way) NEGATIVE means attention is better — it is a forward
+#           KL(teacher ‖ student) and lower is closer.
+#
+# THROUGHPUT: median TRAIN-STEP wall time — forward + backward + optimizer
+#           step, batch 512, torch.set_num_threads(1), ≥30 timed steps after
+#           5 warmup, on this box, niced, nothing else of ours running.
+#           Measured for attention, entity_deepsets AND the old flat
+#           [512,512] MLP. THE GATE READS attention / entity_deepsets — the
+#           ratio against TODAY's trunk. The historical 34.6x was measured
+#           against the MLP (2026-08-07), and quoting it against the entity
+#           trunk is the exact error §11.6 records. The MLP row is printed
+#           only so the old number remains checkable.
+#           Written to results/arch_screen/throughput.json.
+#
+# CREDIT LINE — THE SCREEN CLEARS IFF ALL THREE HOLD:
+#           (i)   Δagreement_free ≥ +0.02
+#           (ii)  its 95% cluster-bootstrap CI excludes 0
+#           (iii) throughput loss ≤ 3x, i.e.
+#                 median_step(attention) / median_step(entity_deepsets) ≤ 3.0
+#
+# THE REPO'S STANDING CREDIT LINE, RESTATED VERBATIM AS CLAUDE.md REQUIRES:
+#           "a lever is credited iff pooled delta ≥ +0.025 and ≥ 2·se_diff",
+#           with se_diff the LARGER OF the binomial and the seed-clustered
+#           estimate.
+# AND WHY THIS SCREEN USES A DIFFERENT BAR, SAID PLAINLY RATHER THAN
+# QUIETLY: that line governs a LEVER CREDITED ON vs-SH WIN RATE under the
+#           locked eval protocol. Nothing here is a win-rate number and
+#           nothing here may be reported as one. The +0.02 / CI-excludes-0
+#           bar is ARCH_SCREEN_SPEC's own, pre-existing and unchanged, and it
+#           gates only "is a §11.6 fleet arm worth its pre-reg". That fleet
+#           arm, if it happens, is credited by the standing line above and by
+#           nothing in this file.
+#
+# ONE DISCLOSED DIFFERENCE FROM ARCH_SCREEN_SPEC's sketch: the spec also
+#           required Δval_kl ≤ −0.02 ("both metrics must move"). This screen
+#           gates on agreement_free alone and REPORTS Δval_kl with its own CI
+#           beside it, INCLUDING whether the spec's stricter both-metrics
+#           version would also have cleared. Nothing is hidden by the choice;
+#           the reader can apply either rule.
+#
+# ACTION ON EACH BRANCH, pre-stated:
+#   CLEARS      -> recommend writing the §11.6 fleet-arm pre-reg. No training
+#                  lane starts off this file.
+#   FAILS (i)/(ii) -> report as "the cheap evidence does not support spending
+#                  a fleet arm yet". NOT a kill, NOT a caveat on the lever,
+#                  and it may not appear in any ranking or opinion about
+#                  attention (CLAUDE.md rule 6).
+#   FAILS (iii) ONLY -> that is a MEASURED MECHANISM CEILING and is the one
+#                  result here that may be cited against adoption: a trunk
+#                  costing >3x the update, in a loop whose update is ~65% of
+#                  wall since the engine port, buys its gain with steps.
+#                  Report the ratio with its scope, never as "attention is
+#                  34.6x".
+#
+# =====================================================================
+# SECONDARY — MECHANISM, NEVER A VERDICT INPUT
+# =====================================================================
+#
+# - agree_reveal_{0_1, 2_3, 4_6}: agreement_free split by how many of the
+#   opponent's six mons are revealed. The three buckets PARTITION reveal ∈
+#   [0,6] with no unnamed cell (0-1, 2-3, 4-6), and every held-out row lands
+#   in exactly one. A gain CONCENTRATED in the 4-6 band is evidence for
+#   entity attention specifically — that is where the board has the most
+#   revealed entities for tokens to attend to. A FLAT gain across all three
+#   is generic capacity and should be reported as such.
+# - fitted_entropy vs teacher_entropy at the best epoch. Soft targets anchor
+#   the student's entropy at the teacher's; a fitted entropy far BELOW the
+#   teacher's is the one-hot collapse landmine reappearing, and a fit showing
+#   it is disclosed rather than averaged in.
+# - per-seed best epoch. Both arms early-stop on the same criterion; an arm
+#   whose best epoch is 20 (the last) was still improving and is
+#   UNDER-TRAINED at this budget, which is a caveat on the null, not on the
+#   arm.
+#
+# =====================================================================
+# WHAT MAY NOT BE SAID ABOUT ANY NUMBER PRODUCED HERE
+# =====================================================================
+#
+# 1. BC AGREEMENT IS NOT WIN RATE and predicts no RL outcome. The screen
+#    chooses a trunk; it does not forecast what that trunk does under PPO
+#    with a terminal-only reward. (ARCH_SCREEN_SPEC's own closing caveat,
+#    and the encoder-ceiling diagnostic's: "representable under supervision
+#    does not imply reachable by PPO".)
+# 2. AGREEMENT REWARDS ONLY STRUCTURE THE TEACHER USES. Foul Play is a
+#    search bot with a set prior. An architecture that sees something Foul
+#    Play does not use scores ZERO here and could still be right; one that
+#    reproduces a Foul Play artefact scores well and is not thereby better.
+# 3. PURITY. These are Foul Play tapes. No weights fitted here may ever
+#    enter a learner — the pure self-play lane excludes expert-data
+#    bootstrapping (CLAUDE.md). ONLY THE ARCHITECTURE CHOICE TRANSFERS. Every
+#    checkpoint under runs/ from this screen is throwaway by construction.
+# 4. THE THROUGHPUT NUMBER IS A 1-THREAD CPU MICROBENCHMARK of the actor's
+#    train step at batch 512 — not an RL-loop measurement, not a lane's
+#    steps/s, and not measured beside an idle box (an FP evaluation arm was
+#    running; see the readout's disclosures). Quote it with that scope.
+#
+# =====================================================================
+# PROVENANCE OF THE DATA
+# =====================================================================
+#
+# data/fp_all_v2i/v2i_run_*.npz — six shards, built 2026-09-20 by
+# scripts/tape_to_dataset.py from the six gen-1 Foul Play tape runs in
+# data/fp_tapes_all/ under the CURRENT 828-dim encoder (v2 + ids).
+# 7,200 battles / 180,440 decisions; gates G1-G6 all PASS (G2 label identity
+# 180440/180440, G3 rqid 100%, G4 outcome 100%, 0 protocol errors).
+# The 180k rung takes --max-rows 180000, truncated BY BATTLE.
+#
+# The comparable banked fit is runs/bc_fp_v2r_soft_180k_s0 (the 808-dim v2r
+# clone, best agreement_free 0.5175 at epoch 9). It is a REFERENCE POINT for
+# "is the fit working", NOT a control: different encoder width, different
+# trunk, one seed. It is never differenced against anything here.
+# =====================================================================
+
+journey_step: "11.6"
+kind: header_only_prereg
+written_before_first_fit: true
+
+data:
+  prefix: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/data/fp_all_v2i/v2i
+  shards: 6
+  battles: 7200
+  decisions: 180440
+  obs_dim: 828
+  encoder: {v2: true, ids: true, set_prior: true, recharge_fix: true, c6: false}
+  rung_rows: 180000
+
+fit:
+  target: soft
+  epochs: 20
+  batch_size: 512
+  lr: 1.0e-3
+  val_frac: 0.1
+  value_coef: 0.0
+  seeds: [0, 1, 2]
+  select: best val agreement_free over epochs
+
+arms:
+  A:
+    trunk: entity_deepsets
+    actor_params: 626059
+    run_name: arch_screen_entity_s{seed}
+  B:
+    trunk: attention
+    d_model: 128
+    n_layers: 2
+    n_heads: 4
+    actor_params: 564875
+    run_name: arch_screen_attn_s{seed}
+
+primary:
+  metric: agreement_free
+  statistic: mean over seeds of (B_s - A_s) at each arm's best epoch
+  interval: cluster bootstrap by battle, 1000 resamples, 95 percent
+  also_reported: val_kl, same statistic and interval (negative favours B)
+
+gate:
+  delta_agreement_free_min: 0.02
+  ci_must_exclude_zero: true
+  max_throughput_ratio_vs_entity_deepsets: 3.0
+
+outputs:
+  results_dir: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/results/arch_screen
+  throughput: throughput.json
+  per_fit: "<run_name>.json and <run_name>_val_rows.npz"
+  readout: readouts/ARCH_SCREEN_R7_READOUT.md
