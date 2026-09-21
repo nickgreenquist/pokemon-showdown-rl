@@ -12695,3 +12695,73 @@ line numbers are not — grep the date, then read that region):
     AND ALIGNED:** the launcher names dirs `runs/<config basename>_s<seed>` and overrides the
     config's `run_name`, so the R6 lanes live at `runs/showdown_r6_trio_{a,b}_s*` — the pin
     script, the reads queue, the tests and every header now say so. Tests 15 passed.
+- 2026-09-21 (cont. 2, agent; the launch-night session, picked up from `HANDOFF.md` at 14:29Z) —
+  **THE QUEUE IS ON PACE (XTG9 2,091/3,200 at 14:43Z, ~24.3 s/battle since 00:36Z → QUEUE DONE
+  ≈ 22:10Z = 18:10 EDT), AND THE RUNBOOK'S THREE READS ARE NOW COMPUTED FROM DISK, NOT EYEBALLED.**
+  Health at pickup: tree clean at `db9b106`, Node on :8000, `simulator: 4`, `pkmn_gen1.ENCODER_C6`
+  True in the port env, nothing under `runs/showdown_r6_*`, the search seat at 94.8% CPU. The
+  previous session's watch loop was still alive (a zsh `until` loop) but its `pgrep -f
+  exit_gate_queue` MATCHES ITSELF, so its "queue process gone" branch could never fire; a fresh
+  watch is armed on `queue.log` (`QUEUE DONE|NO FINAL|REFUSING|FAIL`, the liveness pgrep anchored
+  on the frozen queue script's own `bash .../exit_gate_queue.` command line) with the landmine's
+  instrument added: the search seat's CPU time flat across one 120 s poll, or the `Winner` count
+  flat for 12 min, exits as STALL.
+  - **Built (commit `c87f759`; 6 tests, each a few seconds beside XTG9 — disclosed for the ledger,
+    with one ~2 s `grep` pass over `xgr.fp.stdout` for the G2 tally):**
+    (1) `scripts/exit_gate_readout.py` — the block that fills `readouts/EXIT_GATE_R5_READOUT.md`
+    from `xgr.json` / `xtg9.json` / both `.fp.stdout` / both runner logs / the pre-reg: the results
+    row; delta, binomial se_diff and z under the rule (`>=` on both legs as the pre-reg and the
+    queue's own readout have it; a delta within 1e-6 of either boundary is flagged); the five R0
+    gates with evidence (`G_EXPERT_REPORTED` all four counters non-null; `G_BUDGET_REALIZED`
+    ms/decision ≥ half the screen's 766.6, with a note above 2×; `G_CONTROL_FIRST` the control's
+    runner-log start stamp AND its JSON mtime before the tree's; `G_SESSION` one pre-reg sha;
+    `G_TIES` `our_win_rate == our_wins / battles_finished` on both arms); G2 as two tallies AGREEING
+    (the seat's JSON vs Foul Play's own `Winner:` lines, `Winner: None` the tie, exactly; XGR's
+    stdout already tallies 1877 / 1321 / 2 = the JSON); the realized change rate as
+    flips/(decisions − placeholder_skips) with overrides beside it (`search/override_rate` is None
+    on a tree arm by construction — docs/landmines.md); and the launch-sha span: XGR launched at
+    `e6cc5dd` and XTG9 after it, so the readout prints `git diff --stat` under `rl/` and the seat
+    script between the two shas (a running block imports the working tree). The verdict text is
+    printed VERBATIM from the yaml's `decision_rule`.
+    (2) `scripts/r6_smoke_check.py` — the trio headers' R0 gate (1) on a smoke's run dir with
+    every expectation DERIVED (the typed-dial-list landmine): the horizon from the run's own
+    `config.yaml` plus the watchdog's `DONE` line; the actor and the critic-without-head counts
+    from the W lane's OWN `meta.yaml`; the head from `value_aux_out * (value_sizes[-1] + 1)`; the
+    `aux_outcome/ev_*` column COUNT from `value_aux_out`, each moving, `loss/aux_outcome` moving;
+    `l2init/*` rising and moving; `collect/episodes_discarded` summing to 0; a trio B smoke FAILS
+    if the heads leak into its history; with `--expect-resume`, `meta.yaml resumes[]`, the
+    watchdog's `RESUMED ... c6=1` line, and the split history merged by `scripts/merge_history.py`
+    (segments == resumes + 1); no Traceback in the nohup/resume logs. `eval/win_rate` prints as
+    descriptive only. `tests/test_r6_smoke_check.py`: PASS on the trio A shape, FAIL on a false c6
+    stamp, a 384-critic head count (1,155), a short lane, a missing RESUMED line, a resume without
+    c6=1, leaked heads, a flat `l2init` trace.
+    (3) `scripts/r6_smokes.sh` — smoke A (WITH the resume test: the lane's process group killed at
+    its 200k checkpoint, TERM then KILL, then wait for the watchdog's RESUMED line), then smoke B,
+    then B-fallback, ONE AT A TIME through `scripts/monster_fleet.sh`, each checked to
+    `results/r6_smokes/<name>.json`; resumable (a PASS is skipped; a run dir without a PASS is
+    refused, never clobbered); refuses beside an FP arm; frozen-copy exec; `DRY=1` prints the plan
+    (run: the three dirs and seeds 904/912/920 as the smoke files say).
+  - **THE RUNBOOK AT QUEUE DONE (the handoff's section 2 with the built pieces; every command from
+    the repo root):** (0) `queue.log` says QUEUE DONE; no `foul-play/bin/python run.py`; tree clean;
+    Node up; `ENCODER_C6` True. (1) the 4.12 screen, ~2.6 h, note the launch time:
+    `ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh configs/showdown_r6_batch12m.yaml 12000000 204 212`.
+    (2) beside it (the window is disclosed in the screen read; only `time/*` is affected):
+    `nohup bash scripts/r6_smokes.sh > logs/r6_smokes/smokes.nohup 2>&1 &`. (3) meanwhile bank the
+    gate: `python scripts/exit_gate_readout.py --json-out results/exit_gate_r5/readout.json` → the
+    readout, RESULTS §35, IDEAS 4.9 + 8.6, STATUS, log; commit. (4) when both screen lanes are DONE:
+    `python scripts/r6_batch12m_read.py --json-out results/r6_batch12m/read.json` → GO / FALLBACK;
+    record the verdict and the three smoke results in BOTH trio headers' STATUS line; commit (the
+    launcher refuses a dirty tree). (5) post the launch blocks — trio A
+    `bash scripts/monster_fleet.sh configs/showdown_r6_trio_a.yaml 200000000 304 312 320`; trio B
+    ~2 min later, GO `bash scripts/monster_fleet.sh configs/showdown_r6_trio_b.yaml 200000000 328 336 344`
+    or FALLBACK `TAG=showdown_r6_trio_b bash scripts/monster_fleet.sh configs/showdown_r6_trio_b_fallback.yaml 200000000 328 336 344`.
+    A smoke failure → diagnose, do NOT hand over that trio. After the fleet is up:
+    `nohup bash scripts/r6_reads_queue.sh > logs/r6_reads/queue.nohup 2>&1 &`.
+  - **Two questions put to the maintainer** (the handoff's open items, relayed by the maintainer
+    in the restart message): (i) may the agent launch trio B itself if the screen's verdict lands
+    after 21:00 EDT — a one-off rule-4 authorization (the launcher detaches every lane under its
+    own session with a watchdog and a caffeinate bound to it, so the lanes' lifetime is not the
+    agent's); (ii) trio A early (~19:00 EDT, once smoke A passes) or both together. Recommended:
+    (i) yes; (ii) both together if (i) is granted (one commit, both headers final before either
+    launches), else A early by the maintainer and B in the morning.
+  - `HANDOFF.md` folded to the stub; this entry and STATUS's RUNNING line carry it.
