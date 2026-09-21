@@ -69,10 +69,17 @@ def _load(results: Path, seed: int, run_tpl: str):
     assert int(rows["epoch"]) == epoch, (name, int(rows["epoch"]), epoch)
     assert rep.get("best_epoch", epoch) == epoch, (name, rep.get("best_epoch"), epoch)
     row = next(h for h in hist if h["epoch"] == epoch)
-    # The cross-check: the saved rows must reproduce the fit's own number.
+    # THE CROSS-CHECK: the saved rows must reproduce the fit's own three
+    # reported means. All three, not just the one the gate reads — a row file
+    # that agrees on agreement and disagrees on KL is a row file written from
+    # a different forward pass, and the readout would not otherwise notice.
     free = rows["free"].astype(bool)
-    recomputed = float(rows["agree"][free].mean())
-    assert abs(recomputed - best) < 1e-6, (name, recomputed, best)
+    for label, got, want, tol in (
+        ("agreement_free", float(rows["agree"][free].mean()), best, 1e-6),
+        ("val_kl", float(rows["kl"].mean()), row["val_kl"], 1e-5),
+        ("fitted_entropy", float(rows["entropy"].mean()), row["fitted_entropy"], 1e-5),
+    ):
+        assert abs(got - want) < tol, (name, label, got, want)
     return name, rep, rows, epoch, row
 
 
