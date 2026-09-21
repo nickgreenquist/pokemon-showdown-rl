@@ -12593,3 +12593,26 @@ line numbers are not — grep the date, then read that region):
     under both flags over three foe cases; on/off differ only in [+1]/[+4] of C6 moves);
     `tests/test_engine_collector.py` 8/8. CPU beside XGR: ~1.5 min total, niced (disclosed).
     Plan §6's CORRECTION paragraph and IDEAS 4.6 carry the PORTED note.
+  - **R6 FLEET CONFIGS DRAFTED (00:05–00:20Z 09-21): `configs/showdown_r6_trio_a.yaml`
+    (4.11 heads: `collector.outcome_targets`, `aux_outcome_coef 0.1`, `value_aux_out 3`;
+    seeds 304/312/320, seat_tag r6ta) and `configs/showdown_r6_trio_b.yaml` (4.12 dose:
+    `rollout_steps 15360`, `epochs 2`, `minibatches 120`, `lr 3.5e-4` = the 12M screen's
+    keys, fallback stated; seeds 328/336/344, seat_tag r6tb)**, each the W base plus
+    EXACTLY those diffs (`tests/test_r6_trio_configs.py` pins the diff set, the marker, the
+    tag/seed uniqueness, anneal == horizon), under a NEW pre-reg header: journey_step 10
+    (repeated under the 09-20 ratification) feeding 11 with both exit conditions verbatim,
+    the arms, R0 gates (400k smoke with stamped counts, resume test), the primary read off
+    FP@20 vs the R5 W finals RE-DRAWN in session with the credit line verbatim incl. the
+    larger-of clause and the boundary convention, dose matched on env steps, the mechanism
+    co-primaries (trio A: by-turn r² must lift 2–8 above 0.287; trio B: the screen's
+    kl/entropy/EV bands), the exhaustive X-POS/X-NEG/X-FLAT cells, the object rule with the
+    0.013 tie band and the R5 floor, the anchor battery, and STATUS: DRAFT — NOT LAUNCHABLE
+    until the smokes pass, the screen's verdict is recorded, and the maintainer ratifies.
+    **C6 is common-mode and CONFOUNDED with each lever by construction (no c6-off R6 arm),
+    stated in the header; it credits nothing.** LAUNCHER: `scripts/monster_fleet.sh`
+    exports `POKEMON_RL_ENCODER_C6=1` iff the config header carries `# ENCODER_C6: on`
+    (else unsets it — a screen matched against c6-off history must not inherit a shell's
+    flag) and refuses a stale extension; `scripts/train_watchdog.sh` reads each lane's
+    `meta.yaml` `encoder.c6` back on every resume. The 12M screen's header now says why it
+    stays c6-OFF (matched against the c6-off W lanes). Tests: 37 passed (r6 configs, engine
+    smoke config, a1 prereg). The 400k smokes and the 4.12 screen wait for QUEUE DONE.

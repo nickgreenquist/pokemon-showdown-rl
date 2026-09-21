@@ -106,6 +106,14 @@ PYEOF
 
 resume_lane() {  # run dir -> relaunch detached, IN ITS OWN SESSION
   local d="$1"
+  # C6 is part of the observation contract too (2026-09-20): read the lane's
+  # OWN stamp back from meta.yaml rather than trusting the shell, so a lane
+  # trained c6-on resumes c6-on and a c6-off lane never inherits the flag from
+  # a fleet that has it. (rl/common/checkpoint.py refuses a c6 mismatch at
+  # load, so getting this wrong would crash-loop the resume, not corrupt it.)
+  local c6
+  c6="$("$PY" -c 'import sys,yaml; m=yaml.safe_load(open(sys.argv[1]+"/meta.yaml")); print(1 if (m.get("encoder") or {}).get("c6") else 0)' "$d" 2>/dev/null || echo 0)"
+  if [ "$c6" = "1" ]; then export POKEMON_RL_ENCODER_C6=1; else unset POKEMON_RL_ENCODER_C6; fi
   # os.setsid() is not a nicety. A child started with plain `nohup ... &`
   # INHERITS THIS WATCHDOG'S PROCESS GROUP, so the next time that lane stalls,
   # `kill -TERM -$pgid` would kill the watchdog itself -- and on an unattended
@@ -114,7 +122,7 @@ resume_lane() {  # run dir -> relaunch detached, IN ITS OWN SESSION
   # lane. (macOS has no setsid(1); Python's is the portable one.)
   nohup "$PY" -c 'import os,sys; os.setsid(); os.execv(sys.argv[1], sys.argv[1:])' \
     "$PY" -m rl.train --resume "$d" >> "${d}.resume.log" 2>&1 &
-  say "  RESUMED $d -> pid $! (own session; log ${d}.resume.log)"
+  say "  RESUMED $d -> pid $! (own session; c6=${c6}; log ${d}.resume.log)"
 }
 
 # --- THE SHOWDOWN SERVER IS A SINGLE POINT OF FAILURE, so it is kept alive --

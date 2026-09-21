@@ -1,0 +1,180 @@
+# R6 FLEET, TRIO A -- IDEAS 4.11, OUTCOME DECOMPOSITION ON THE CRITIC (3 lanes x 200M, half of the six-lane R6 fleet).
+# ENCODER_C6: on
+#
+# DERIVED 2026-09-21 from configs/showdown_monster200m_w.yaml (the credited W recipe:
+# l2_init_decay 0.02 + the 1024 critic on the k=8 engine collector) under the six
+# rulings the maintainer took 2026-09-20 ("agree with all"; STATUS; R6 prep plan
+# docs/proposals/R6_PREP_PLAN_2026-09-19.md section 5). The [RWL]/[RWM] blocks of the W
+# file are THAT fleet's history and are NOT inherited: THIS header is the
+# pre-registration for these lanes, written before launch (CLAUDE.md conventions).
+#
+# journey_step: "10" (Massive gen1 train), repeated under the maintainer's 2026-09-20
+#   ratification of the R6 prep plan, feeding step "11" (Final gen1 ladder) as LADDER R6.
+#   Exit conditions, verbatim from JOURNEY.md -- step 10: "The big one, with a recipe
+#   validated somewhere the instrument works." ... "The anneal trap still binds: a fresh
+#   full-horizon run with `lr_anneal_steps == total_steps`, never a warm start off a
+#   finished checkpoint." Step 11: "The number the story ends on." ... "Decide before
+#   launching whether the laddered object is greedy or searched." DECIDED: a GREEDY
+#   committee with the loop breaker ON (ruling #1) and no search on the object (ruling #3).
+#
+# ARMS (6 lanes, two trios, distinct seeds AND seat_tags -- CLAUDE.md rule 2):
+#   TRIO A (configs/showdown_r6_trio_a.yaml): W base + C6 + the OUTCOME HEADS (IDEAS
+#     4.11). seeds 304 312 320, seat_tag r6ta, run dirs r6_trio_a_s{304,312,320}. THE
+#     LEVER is three keys set together (PPOAgent and rl/train.py refuse any subset):
+#     collector.outcome_targets true, agent.aux_outcome_coef 0.1,
+#     agent.trunk_kwargs.value_aux_out 3.
+#   TRIO B (configs/showdown_r6_trio_b.yaml): W base + C6 + the BATCH/EPOCHS DOSE (IDEAS
+#     4.12). seeds 328 336 344, seat_tag r6tb, run dirs r6_trio_b_s{328,336,344}.
+#     rollout_steps 15360 (batch 122,880 = x4), epochs 2, minibatches 120 (1,024-row
+#     minibatches), lr 3.5e-4 -- OR the pre-stated FALLBACK the 12M screen selects
+#     (configs/showdown_r6_batch12m.yaml: epochs 4, minibatches 480, lr 2.5e-4 if
+#     approx_kl collapses). The screen's verdict is recorded in this header before launch.
+#   COMMON-MODE on every lane, UNCREDITED BY DESIGN: C6 (IDEAS 4.6 form (a), constant
+#     OBS_DIM, fixed-damage slots re-semanticised; the launcher exports
+#     POKEMON_RL_ENCODER_C6=1 from the marker on line 2; the collector refuses a
+#     Rust/Python pairing mismatch; meta.yaml stamps encoder.c6 true; the watchdog reads
+#     it back on resume). C6 is CONFOUNDED with each lever by construction (no c6-off R6
+#     arm), which is stated here and is why it credits nothing; its mechanism read is
+#     Seismic Toss / Super Fang usage on guaranteed holders, replay-measured.
+#   NOT in R6, by ruling: width, 300M, an LR floor, lambda changes, search on the object.
+#   Horizon = anneal = 200,000,000 on every lane (THE ANNEAL TRAP; the launcher checks).
+#   Both trios launch from the SAME commit; a block that spans commits is disclosed.
+#
+# R0 SANITY GATES (per config before the fleet, per lane before it counts):
+#   (1) a 400k launcher SMOKE passed: param counts stamped (actor 626,059 UNCHANGED;
+#       critic 1,807,489 on trio B, 1,807,489 + 3,075 head on trio A), meta.yaml
+#       encoder.c6 true and (trio A) aux_outcome_coef 0.1, `l2init/*` and (trio A)
+#       `aux_outcome/*` present and moving in history.csv, the kill-one-lane RESUME test
+#       passed with the flag restored by the watchdog;
+#   (2) collect/episodes_discarded == 0, no mask-legality errors, no `Error` outcomes;
+#   (3) throughput inside the W lanes' conforming band at the same width
+#       (runs/showdown_monster200m_w_s*/history.csv; trio B's update is expected FASTER
+#       per datum, its collect unchanged); a window that straddles startup is not a record;
+#   (4) every resume's from_step read from meta.yaml; RESUMES= and NODE_RESTARTS=
+#       disclosed at readout; the /timer disclosure line travels with the headline.
+#
+# PRIMARY READ -- off FP@20 (search_time_ms 20 per arm), GREEDY, n=3000 per lane, ONE
+#   session, SEQUENTIAL arms (FP's budget is wall-clock), fresh prefix-free usernames --
+#   the configs/eval/monster_reads_offfp.yaml protocol. Per trio: the equal-weight mean of
+#   its three finals minus the equal-weight mean of the R5 W finals
+#   (runs/showdown_monster200m_w_s{104,112,120}) RE-DRAWN IN THE SAME SESSION -- never the
+#   banked 0.5987 and never a number from another session. se_diff is the LARGER of the
+#   pooled-binomial se_diff (9000 vs 9000) and the seed-clustered se_diff (k=3 vs k=3),
+#   the latter from the per-seed finals at read time. CREDIT LINE, verbatim (CLAUDE.md):
+#   "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is
+#   the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter
+#   computed from the per-seed finals at read time." Boundary: a delta EXACTLY +0.025 or
+#   EXACTLY 2*se_diff reads as NOT met. Two FP@20 disclosures travel with every number,
+#   forever: the equivalence test is weakly powered, and the point estimate flatters us;
+#   FP@20 is an instrument, not a rung. DOSE IS MATCHED by construction (200M env steps,
+#   k=8, the same horizon and anneal); trio B changes data per policy version x4 and
+#   optimizer passes per datum x1/2 -- a dose change on two axes, stated, matched on env
+#   steps and NOT on gradient steps, which is what its mechanism read is for.
+# MECHANISM CO-PRIMARY (plan section 2; from the finals' logged metrics and one
+#   instrument run each, never from a win rate):
+#   TRIO A: the by-turn r^2 against the rollout oracle (RESULTS section 27's instrument:
+#     scripts/outcome_variance.py + scripts/critic_calibration.py on the trio's finals)
+#     must LIFT the turn-2-8 bucket above the R5 W finals' 0.287 on positions drawn the
+#     same way in the same run; critic first-layer srank99 second; aux_outcome/ev_* per
+#     target over training as the descriptive trace.
+#   TRIO B: per-update approx_kl in [0.005, 0.06], clip_frac, entropy still falling, EV
+#     within 0.05 of the W lanes at matched steps -- the 12M screen's criteria re-read
+#     at 50M / 100M / 200M.
+# SECONDARY: vs SH under the LOCKED protocol (final checkpoint, 3000 battles/seed, 3
+#   seeds pooled, ties non-wins, deterministic policy; saturated near 0.79 -- reported,
+#   never the verdict); committees ENS3-A, ENS3-B, ENS6 (A+B), ENS9 (A+B+the R5 W
+#   finals), each off FP@20 in the same session -- DESCRIPTIVE, they pick the ladder
+#   object and credit nothing.
+# ACTION ON EACH BRANCH -- exhaustive, no unnamed cells, the word "kill" absent (rule 6):
+#   X-POS  (delta >= +0.025 AND delta >= 2*se_diff): the lever is CREDITED; its finals
+#          join the ladder candidates and it rides R7's base.
+#   X-NEG  (delta <= -0.025 AND |delta| >= 2*se_diff): credited NEGATIVE; dropped from
+#          R7's base; its finals still enter the committee reads (descriptive).
+#   X-FLAT (everything else): a NULL that closes nothing; the mechanism read decides
+#          whether R7 repeats the lever (plan section 4: a by-turn r^2 that did not move
+#          at the finals means R7 does not repeat trio A's lever; trio B's dose is
+#          kept if its update is faster per datum at a flat primary, dropped otherwise).
+#   for X in {A, B}; the mechanism axis (MOVED / NOT-MOVED / PARTIAL) is reported beside
+#   every cell and changes no action on the primary.
+# OBJECT RULE (LADDER R6's object): the committee with the highest point estimate off
+#   FP@20 among ENS3-A, ENS3-B, ENS6, ENS9; if the top two are within 1 se_diff (~0.013
+#   at 3000 vs 3000), the LARGER committee; if none reaches the same-session re-drawn R5
+#   committee (ENS3 of the W finals) minus 0.013, the R5 committee stays the object. The
+#   object carries loop_breaker: true (ruling #1 -- a policy-form change disclosed on
+#   every number) and no search (ruling #3). A mixed c6-on/c6-off committee (ENS9) is
+#   built under POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1 and disclosed as mixed.
+# ANCHOR BATTERY before any README row (CLAUDE.md): vs SH locked, the BC-clone h2h
+#   (500), FP@20 h2h; a missing leg reads PENDING and the row WAITS.
+# LAUNCH (over 5 h -> the maintainer launches, CLAUDE.md rule 4; from a CLEAN tree with
+#   Node up; the launcher's default PY is the pkmn-engine-port env; it exports C6 from
+#   the marker and refuses a stale extension):
+#   bash scripts/monster_fleet.sh configs/showdown_r6_trio_a.yaml 200000000 304 312 320
+#   bash scripts/monster_fleet.sh configs/showdown_r6_trio_b.yaml 200000000 328 336 344
+#   (the second ~2 min after the first; one watchdog per trio). ~50 h six-wide.
+# OWED AT READOUT: RESUMES= / NODE_RESTARTS= per trio, every from_step, the /timer line,
+#   encoder.c6 stamps, param counts, the anchor battery, a RESULTS addendum, README row.
+# STATUS: DRAFT 2026-09-21 (agent). NOT LAUNCHABLE until (i) the 400k smokes pass and are
+#   logged here, (ii) the 4.12 screen's verdict is recorded in trio B's header, and
+#   (iii) the maintainer ratifies by editing this line. Launch is the maintainer's.
+#
+# BODY: the W base with ONLY the diffs stated above (tests/test_r6_trio_configs.py pins
+# the diff set against configs/showdown_monster200m_w.yaml).
+env_id: Showdown-v0
+seed: 304                  # lanes via --seed 304 / 312 / 320 (rule 2)
+total_steps: 200000000     # JOURNEY 10's dose, repeated (R6)
+eval_every: 250000         # descriptive in-loop evals only
+eval_episodes: 100
+num_envs: 8                # x rollout_steps = the update budget
+torch_threads: 1
+checkpoint_every: 500000
+run_name: r6_trio_a_s304   # lanes 2/3 via --run-name (the launcher derives it)
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine             # A-1-accepted, signed delta -0.00436 travels forever
+  k: 8                     # DECLARED, NOT ASSUMED. Do not raise.
+  team_bank: data/engine/teams_a1_5000000.bin
+  min_bank_pairs: 1000000
+  learner_seat: p1
+  outcome_targets: true    # TRIO A, key 1 of 3: IDEAS 4.11's three terminal targets per episode
+env_kwargs:
+  opp_action: true         # D25 pair, half 1 of 2. MANDATORY.
+  seat_tag: r6ta           # TRIO A (distinct from every fleet and screen tag)
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  l2_init_decay: 0.02      # W base: D23's regenerative L2 toward theta0
+  aux_oppact_coef: 0.1     # D25 pair, half 2 of 2. MANDATORY.
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  aux_outcome_coef: 0.1    # TRIO A, key 2 of 3: coef * mse over the three targets, inside the critic's loss
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [1024, 1024]   # W base: the 1024 critic (1,807,489 params before the head)
+    value_aux_out: 3           # TRIO A, key 3 of 3: the critic's outcome head (+3,075 params); the actor ignores it
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 200000000  # == total_steps. THE ANNEAL TRAP.
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

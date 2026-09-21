@@ -44,7 +44,10 @@
 # (the launcher's anneal == horizon check is opted out for THIS matched-schedule
 # screen only; it stays binding for fleets).
 # ~2.6 h per lane two-wide at ~1,300 steps/s. DO NOT set POKEMON_RL_ENCODER_C6 for
-# this screen: the engine collector refuses it until the Rust port lands.
+# this screen (the Rust port LANDED 2026-09-20, so the collector would accept it):
+# the read is matched against the W lanes' own first 12M, which trained c6-OFF, and
+# a c6-on screen would change the observation alongside the dose. The launcher
+# exports the flag only for a config whose header carries `# ENCODER_C6: on`.
 env_id: Showdown-v0
 seed: 104                  # lanes via --seed 204 / 212 (rule 2: never a seed a live lane uses)
 total_steps: 12000000     # JOURNEY 10's dose

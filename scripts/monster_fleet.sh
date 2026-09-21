@@ -55,11 +55,24 @@ LOG="logs/monster_fleet.log"; mkdir -p logs runs
 # fleet that fails at 23:00 on the night before an 8-hour drive is the exact
 # failure this script exists to prevent.
 export POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1
+# C6 (IDEAS 4.6 form (a); ported to the Rust encoder 2026-09-20) is exported ONLY
+# for a config whose header carries the marker line `# ENCODER_C6: on`. The
+# observation contract is PER CONFIG: a screen matched against c6-off history
+# (configs/showdown_r6_batch12m.yaml) must not inherit the flag from a shell,
+# and an R6 lane must not lose it to one. Both encoders read the same variable
+# (Python at import, Rust via build_tables), the collector refuses a pairing
+# mismatch, and meta.yaml stamps encoder.c6 -- which the watchdog reads back on
+# every resume (scripts/train_watchdog.sh).
+if grep -qE '^# ENCODER_C6: on' "$CFG"; then
+  export POKEMON_RL_ENCODER_C6=1
+else
+  unset POKEMON_RL_ENCODER_C6
+fi
 say(){ echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG"; }
 die(){ say "REFUSING TO LAUNCH: $*"; exit 2; }
 
 say "=== PREFLIGHT: $CFG, ${STEPS} steps, seeds ${SEEDS[*]} ==="
-say "encoder: V2=$POKEMON_RL_ENCODER_V2 IDS=$POKEMON_RL_ENCODER_IDS"
+say "encoder: V2=$POKEMON_RL_ENCODER_V2 IDS=$POKEMON_RL_ENCODER_IDS C6=${POKEMON_RL_ENCODER_C6:-0} (marker '# ENCODER_C6: on' in the config header)"
 "$PY" -c 'import os,sys
 v,i = os.environ.get("POKEMON_RL_ENCODER_V2"), os.environ.get("POKEMON_RL_ENCODER_IDS")
 sys.exit(0 if v=="1" and i=="1" else 1)' \
@@ -106,6 +119,11 @@ say "collector mode: ${MODE:-<none>}"
 if [ "$MODE" = "engine" ]; then
   "$PY" -c 'import pkmn_gen1' 2>/dev/null \
     || die "mode=engine but $PY cannot import pkmn_gen1 (use the pkmn-engine-port env)"
+  if [ "${POKEMON_RL_ENCODER_C6:-0}" = "1" ]; then
+    "$PY" -c 'import pkmn_gen1,sys; sys.exit(0 if getattr(pkmn_gen1,"ENCODER_C6",False) else 1)' \
+      || die "config asks for C6 but the installed pkmn_gen1 does not implement it (stale editable install: pip install -e engine/pkmn_gen1 in the port env)"
+    say "C6: on, and the extension implements it"
+  fi
   BANK="$("$PY" -c "import yaml,sys;print((yaml.safe_load(open(sys.argv[1])).get('collector') or {}).get('team_bank',''))" "$CFG")"
   [ -n "$BANK" ] && [ -f "$BANK" ] || die "team_bank missing: ${BANK:-<unset>}"
   say "team bank: $BANK ($(du -h "$BANK" | cut -f1))"

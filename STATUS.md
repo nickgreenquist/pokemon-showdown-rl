@@ -69,8 +69,7 @@ you may cite:
 
 ## Next actions
 1. **R6 PREP in `HANDOFF.md`'s order — DONE 09-20: the action gap banked (§33), 4.11's heads + loss BUILT
-   (unsmoked), the C6 RUST PORT LANDED (P-1 zero mismatches at 30k decisions, flag on: ruling 2 met, C6 rides R6).
-   RUNNING: the attention BC screen (R7's gate). NEXT: the R6 fleet yaml + launcher C6 export; after QUEUE DONE the 4.12 screen, the 400k smokes, the fleet, then the split-schedule ladder.
+   (unsmoked), the C6 RUST PORT LANDED (P-1 zero mismatches at 30k decisions, flag on: ruling 2 met, C6 rides R6). RUNNING: the attention BC screen (R7's gate). NEXT: the R6 fleet yaml + launcher C6 export; after QUEUE DONE the 4.12 screen, the 400k smokes, the fleet, then the split-schedule ladder.
 2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
    search idea must argue against the override regression (−0.48 win rate per unit override
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.
