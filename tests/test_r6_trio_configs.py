@@ -70,7 +70,8 @@ def test_c6_marker_is_on_the_trios_and_on_nothing_else_in_configs():
     marked = {pathlib.Path(p).name for p in glob.glob(str(ROOT / "configs/*.yaml"))
               if any(line.rstrip() == "# ENCODER_C6: on"
                      for line in pathlib.Path(p).read_text().splitlines())}
-    assert marked == {A.name, B.name}, marked
+    assert marked == {A.name, B.name, A.name.replace('.yaml', '_smoke400k.yaml'),
+                      B.name.replace('.yaml', '_smoke400k.yaml')}, marked
 
 
 def test_seat_tags_and_seeds_collide_with_no_other_config():
@@ -83,6 +84,24 @@ def test_seat_tags_and_seeds_collide_with_no_other_config():
         tag = ((d or {}).get("env_kwargs") or {}).get("seat_tag") if isinstance(d, dict) else None
         if tag:
             tags.setdefault(tag, []).append(pathlib.Path(p).name)
-    assert tags["r6ta"] == [A.name] and tags["r6tb"] == [B.name], (tags.get("r6ta"), tags.get("r6tb"))
+    # a trio's smoke shares its tag ON PURPOSE (it exercises the exact contract; its seed differs,
+    # so the derived in-loop eval usernames differ); nothing else may carry the tag
+    assert sorted(tags["r6ta"]) == sorted([A.name, A.name.replace(".yaml", "_smoke400k.yaml")]), tags.get("r6ta")
+    assert sorted(tags["r6tb"]) == sorted([B.name, B.name.replace(".yaml", "_smoke400k.yaml")]), tags.get("r6tb")
     header_seeds = {304, 312, 320, 328, 336, 344}
     assert len(header_seeds) == 6 and yaml.safe_load(A.read_text())["seed"] in header_seeds
+
+
+def test_smoke_configs_are_the_trios_with_exactly_the_six_smoke_keys_changed():
+    for trio, seed in (("a", 904), ("b", 912)):
+        base = yaml.safe_load((ROOT / f"configs/showdown_r6_trio_{trio}.yaml").read_text())
+        smoke_path = ROOT / f"configs/showdown_r6_trio_{trio}_smoke400k.yaml"
+        smoke = yaml.safe_load(smoke_path.read_text())
+        assert _diff(base, smoke) == {
+            "seed", "run_name", "total_steps", "eval_every", "checkpoint_every",
+            "agent.lr_anneal_steps",
+        }, trio
+        assert smoke["total_steps"] == smoke["agent"]["lr_anneal_steps"] == 400_000
+        assert smoke["seed"] == seed and smoke["run_name"] == f"r6_trio_{trio}_smoke_s{seed}"
+        assert any(line.rstrip() == "# ENCODER_C6: on" for line in smoke_path.read_text().splitlines())
+        load_config(smoke_path)

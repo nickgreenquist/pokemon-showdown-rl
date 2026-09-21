@@ -1,4 +1,16 @@
-# R6 FLEET, TRIO A -- IDEAS 4.11, OUTCOME DECOMPOSITION ON THE CRITIC (3 lanes x 200M, half of the six-lane R6 fleet).
+# SMOKE of configs/showdown_r6_trio_b.yaml (R0 gate 1 of its header): the SAME file with SIX keys
+# changed and nothing else (tests/test_r6_trio_configs.py pins the diff set): total_steps and
+# lr_anneal_steps 200,000,000 -> 400,000 (together; THE ANNEAL TRAP), seed 328 -> 912,
+# run_name, checkpoint_every 500k -> 100k, eval_every 250k -> 100k. The C6 marker stays, so the
+# launcher exports the flag and meta.yaml stamps encoder.c6 -- the smoke exercises the fleet's
+# exact observation contract. Launch AFTER the exit-gate queue prints QUEUE DONE (never a
+# training lane beside an FP arm), ONE trio smoke at a time:
+#   bash scripts/monster_fleet.sh configs/showdown_r6_trio_b_smoke400k.yaml 400000 912
+# PASS = the lane reaches 400k; meta.yaml stamps params (actor 626,059) and encoder.c6 true;
+# history.csv carries l2init/* rising and time/update_sec below the W lanes' at matched batch; then the RESUME test:
+# kill the lane after its 200k checkpoint, watch the watchdog resume it (c6=1 in its RESUMED line) and
+# finish. The smoke's run dir is r6_trio_b_smoke_s912; it is NOT a fleet lane and enters no read.
+# R6 FLEET, TRIO B -- IDEAS 4.12, THE BATCH / EPOCHS DOSE (3 lanes x 200M, half of the six-lane R6 fleet).
 # ENCODER_C6: on
 #
 # DERIVED 2026-09-21 from configs/showdown_monster200m_w.yaml (the credited W recipe:
@@ -125,14 +137,14 @@
 # BODY: the W base with ONLY the diffs stated above (tests/test_r6_trio_configs.py pins
 # the diff set against configs/showdown_monster200m_w.yaml).
 env_id: Showdown-v0
-seed: 304                  # lanes via --seed 304 / 312 / 320 (rule 2)
-total_steps: 200000000     # JOURNEY 10's dose, repeated (R6)
-eval_every: 250000         # descriptive in-loop evals only
+seed: 912                  # SMOKE seed, distinct from every fleet seed (rule 2); the launcher passes it
+total_steps: 400000         # SMOKE: 400k through the launcher (the R0 gate 1 of the trio header)
+eval_every: 100000         # SMOKE: in-loop evals at 100k/200k/300k/400k (descriptive)
 eval_episodes: 100
-num_envs: 8                # x rollout_steps = the update budget
+num_envs: 8                # x rollout_steps = the update budget (122,880 here)
 torch_threads: 1
-checkpoint_every: 500000
-run_name: r6_trio_a_s304   # lanes 2/3 via --run-name (the launcher derives it)
+checkpoint_every: 100000   # SMOKE: four rungs, so the kill-one-lane resume test has a checkpoint to resume from
+run_name: r6_trio_b_smoke_s912   # SMOKE lane
 logger: wandb
 eval_win_rate: true
 collector:
@@ -141,10 +153,9 @@ collector:
   team_bank: data/engine/teams_a1_5000000.bin
   min_bank_pairs: 1000000
   learner_seat: p1
-  outcome_targets: true    # TRIO A, key 1 of 3: IDEAS 4.11's three terminal targets per episode
 env_kwargs:
   opp_action: true         # D25 pair, half 1 of 2. MANDATORY.
-  seat_tag: r6ta           # TRIO A (distinct from every fleet and screen tag)
+  seat_tag: r6tb           # TRIO B (distinct from every fleet and screen tag)
 selfplay:
   opponent: self
   eval_opponent: heuristics
@@ -160,7 +171,6 @@ agent:
   aux_scorer_sizes: [96]
   aux_head_gain: 0.01
   aux_max_grad_norm: 0.5
-  aux_outcome_coef: 0.1    # TRIO A, key 2 of 3: coef * mse over the three targets, inside the critic's loss
   trunk_kwargs:
     species_vocab: 152
     move_vocab: 166
@@ -169,16 +179,15 @@ agent:
     pool: max
     ctx_sizes: [384, 384]
     scorer_sizes: [256]
-    value_sizes: [1024, 1024]   # W base: the 1024 critic (1,807,489 params before the head)
-    value_aux_out: 3           # TRIO A, key 3 of 3: the critic's outcome head (+3,075 params); the actor ignores it
+    value_sizes: [1024, 1024]   # W base: the 1024 critic
   hidden_sizes: [512, 512]
-  lr: 2.5e-4
-  lr_anneal_steps: 200000000  # == total_steps. THE ANNEAL TRAP.
+  lr: 3.5e-4                 # TRIO B: sqrt(2) x 2.5e-4 for half the passes per datum -- THE 12M SCREEN SETS THIS (fallback 2.5e-4)
+  lr_anneal_steps: 400000     # == total_steps: the smoke's own horizon (the launcher checks the pair)
   gamma: 1.0
   gae_lambda: 0.95
-  rollout_steps: 3840
-  epochs: 4
-  minibatches: 120
+  rollout_steps: 15360       # TRIO B: batch 122,880 per update (x4 the W base's 30,720)
+  epochs: 2                  # TRIO B: sample reuse 4 -> 2 (fallback: 4 with minibatches 480)
+  minibatches: 120           # 1,024-row minibatches
   clip_eps: 0.2
   entropy_coef: 0.01
   value_coef: 0.5

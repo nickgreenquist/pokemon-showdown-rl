@@ -70,6 +70,11 @@
 #   k=8, the same horizon and anneal); trio B changes data per policy version x4 and
 #   optimizer passes per datum x1/2 -- a dose change on two axes, stated, matched on env
 #   steps and NOT on gradient steps, which is what its mechanism read is for.
+#   POLICY FORM OF EVERY READ ARM: loop_breaker true (ruling #1) on the trio finals, the committees
+#   AND the re-drawn R5 W floor alike, so the comparison is matched in form and the form is
+#   disclosed on every number (a policy-form change relative to every banked number, which is
+#   one more reason the floor is re-drawn rather than quoted). The reads live in
+#   configs/eval/r6_reads_offfp.yaml (off FP@20) and configs/eval/r6_reads.yaml (vs SH).
 # MECHANISM CO-PRIMARY (plan section 2; from the finals' logged metrics and one
 #   instrument run each, never from a win rate):
 #   TRIO A: the by-turn r^2 against the rollout oracle (RESULTS section 27's instrument:

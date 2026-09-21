@@ -2,6 +2,18 @@
 """What is the critic actually getting WRONG? A second read of §27's rollouts.
 
     python scripts/critic_calibration.py [--rows results/outcome_variance/variance.json.rows.jsonl]
+        [--ceiling 0.3630] [--label r5w] [--out ...]
+    python scripts/critic_calibration.py --compare A.calibration.json B.calibration.json
+
+R6 (2026-09-21): the by-turn r^2 table carries a POSITION-clustered bootstrap CI
+(1,000 resamples), `--ceiling` reads the run's OWN `ev_ceiling_unbiased` from the
+sibling variance JSON by default (the 0.3630 constant is RESULTS 27's run and is
+only a fallback, printed as such), `--label` names the critic in the JSON, and
+`--compare` sets two calibration JSONs side by side per bucket with the delta
+and its se (sqrt of the two bootstrap se^2 -- the runs sample DIFFERENT positions,
+so the difference is unpaired). That is trio A's mechanism co-primary
+(configs/showdown_r6_trio_a.yaml: the turn-2-8 r^2 must LIFT above the R5 W
+finals' 0.287) read with error bars instead of by eye.
 
 RESULTS §27 measured one number from 707 positions and 22,358 self-play rollouts
 -- the luck ceiling, 0.3630 against the critic's 0.2176 -- and then stopped. The
@@ -102,12 +114,86 @@ def _affine(ptr, otr, pte):
     return a + b * pte
 
 
+def r2_bootstrap(v: np.ndarray, m: np.ndarray, n_boot: int = 1000, seed: int = 0):
+    """r^2 of corr(v, m) with a bootstrap over POSITIONS (each position is one
+    (critic, oracle-mean) pair, so resampling pairs is the cluster bootstrap).
+    Returns (r2, se, lo, hi); degenerate resamples (constant v or m) are dropped."""
+    v = np.asarray(v, dtype=float); m = np.asarray(m, dtype=float)
+    r = float(np.corrcoef(v, m)[0, 1])
+    rng = np.random.default_rng(seed)
+    draws = []
+    for _ in range(n_boot):
+        idx = rng.integers(0, v.size, v.size)
+        a, b = v[idx], m[idx]
+        if a.std() < 1e-12 or b.std() < 1e-12:
+            continue
+        draws.append(float(np.corrcoef(a, b)[0, 1]) ** 2)
+    d = np.asarray(draws)
+    return r * r, float(d.std(ddof=1)) if d.size > 1 else float("nan"), \
+        float(np.percentile(d, 2.5)) if d.size else float("nan"), \
+        float(np.percentile(d, 97.5)) if d.size else float("nan")
+
+
+def compare(a: dict, b: dict) -> list[dict]:
+    """Per-bucket r^2 of two calibration JSONs and the UNPAIRED delta B - A with
+    se = sqrt(se_a^2 + se_b^2). Buckets are matched by their label; a bucket
+    missing on one side is reported as absent, never dropped silently."""
+    ta = {x["turns"]: x for x in a["by_turn"]}
+    tb = {x["turns"]: x for x in b["by_turn"]}
+    out = []
+    for turns in sorted(set(ta) | set(tb), key=lambda t: int(t.split("-")[0])):
+        xa, xb = ta.get(turns), tb.get(turns)
+        row = {"turns": turns,
+               "r2_a": xa["r2"] if xa else None, "r2_b": xb["r2"] if xb else None,
+               "n_a": xa["positions"] if xa else 0, "n_b": xb["positions"] if xb else 0}
+        if xa and xb and "r2_se" in xa and "r2_se" in xb:
+            se = float(np.hypot(xa["r2_se"], xb["r2_se"]))
+            row["delta"] = xb["r2"] - xa["r2"]
+            row["se"] = se
+            row["z"] = row["delta"] / se if se > 0 else float("nan")
+        out.append(row)
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--rows",
                     default="results/outcome_variance/variance.json.rows.jsonl")
     ap.add_argument("--out", default="results/outcome_variance/calibration.json")
+    ap.add_argument("--ceiling", type=float, default=None,
+                    help="the run's ev_ceiling_unbiased; default: read from the sibling "
+                         "variance JSON (<rows> minus '.rows.jsonl'), else RESULTS 27's 0.3630")
+    ap.add_argument("--label", default="", help="the critic's name, stored in the JSON")
+    ap.add_argument("--boot", type=int, default=1000)
+    ap.add_argument("--compare", nargs=2, metavar=("A_JSON", "B_JSON"),
+                    help="print two calibration JSONs side by side per bucket (B - A) and exit")
     args = ap.parse_args()
+
+    if args.compare:
+        a, b = (json.loads(Path(f).read_text()) for f in args.compare)
+        print(f"BY-TURN r^2: A = {a.get('label') or args.compare[0]}   B = {b.get('label') or args.compare[1]}")
+        print(f"  {'turns':>8} {'n_a':>5} {'r2_a':>7} {'n_b':>5} {'r2_b':>7} {'B-A':>8} {'se':>7} {'z':>6}")
+        for r in compare(a, b):
+            ra = "   --" if r["r2_a"] is None else f"{r['r2_a']:7.3f}"
+            rb = "   --" if r["r2_b"] is None else f"{r['r2_b']:7.3f}"
+            tail = (f"{r['delta']:+8.3f} {r['se']:7.3f} {r['z']:6.2f}" if "delta" in r else "   (no CI on one side)")
+            print(f"  {r['turns']:>8} {r['n_a']:>5} {ra} {r['n_b']:>5} {rb} {tail}")
+        print("  se is UNPAIRED (the two runs sample different positions); a bucket's z is descriptive.")
+        return
+
+    ceiling = args.ceiling
+    if ceiling is None:
+        sib = Path(str(args.rows)[:-len(".rows.jsonl")]) if str(args.rows).endswith(".rows.jsonl") else None
+        if sib is not None and sib.exists():
+            try:
+                ceiling = float(json.loads(sib.read_text())["ev_ceiling_unbiased"])
+                print(f"ceiling {ceiling:.4f} read from {sib} (ev_ceiling_unbiased)")
+            except (KeyError, ValueError, json.JSONDecodeError):
+                ceiling = None
+    if ceiling is None:
+        ceiling = CEILING_UNBIASED
+        print(f"WARNING: no sibling variance JSON with ev_ceiling_unbiased -- using RESULTS 27's "
+              f"constant {ceiling:.4f}, which is ANOTHER RUN's ceiling")
 
     rows = [json.loads(l) for l in Path(args.rows).read_text().splitlines() if l.strip()]
     assert rows, f"no rows in {args.rows}"
@@ -132,7 +218,7 @@ def main() -> None:
     # THE DENOMINATOR IS THE UNBIASED CEILING, not the in-sample oracle. §27
     # bars the naive ratio as biased up, and using it here would be using a
     # barred quantity as a denominator two subsections later.
-    gap = CEILING_UNBIASED - raw
+    gap = ceiling - raw
     d = v - m
     bias = float(d.mean())
     bias_se = float(d.std(ddof=1) / np.sqrt(d.size))
@@ -145,9 +231,11 @@ def main() -> None:
             continue
         r = float(np.corrcoef(v[sel], m[sel])[0, 1])
         b, a = (float(x) for x in np.polyfit(v[sel], m[sel], 1))
+        r2, r2_se, r2_lo, r2_hi = r2_bootstrap(v[sel], m[sel], n_boot=args.boot)
         by_turn.append({
             "turns": f"{lo}-{'+' if hi > 999 else hi}", "positions": int(sel.sum()),
-            "corr": r, "r2": r * r, "slope": b, "intercept": a,
+            "corr": r, "r2": r2, "r2_se": r2_se, "r2_ci95": [r2_lo, r2_hi],
+            "slope": b, "intercept": a,
             "paired_bias": float((v[sel] - m[sel]).mean()),
         })
 
@@ -160,7 +248,7 @@ def main() -> None:
     print(f"  EV, affine recalibration (out of samp) {aff_oos:.4f}   {aff_oos - raw:+.4f}")
     print(f"  EV, ISOTONIC recalib.    (out of samp) {iso_oos:.4f}   {iso_oos - raw:+.4f}")
     print(f"  EV, oracle E[outcome|obs]              {oracle:.4f}   IN-SAMPLE, biased up")
-    print(f"  EV ceiling, §27 variance components    {CEILING_UNBIASED:.4f}   <- the denominator")
+    print(f"  EV ceiling, variance components        {ceiling:.4f}   <- the denominator")
     print(f"\n  A monotone recalibration is the BEST any rescaling can do, so")
     print(f"  calibration is worth {iso_oos - raw:+.4f} of the {gap:.4f} gap "
           f"({100 * (iso_oos - raw) / gap:.0f}%).")
@@ -175,12 +263,14 @@ def main() -> None:
     print(f"  affine fit: oracle ~ {intercept:+.4f} + {slope:.4f} x critic")
 
     print("\n## 3. BY TURN -- where does the ranking fail?\n")
-    print(f"  {'turns':>8} {'pos':>4} {'corr':>7} {'r^2':>7} {'slope':>7} {'bias':>8}")
+    print(f"  {'turns':>8} {'pos':>4} {'corr':>7} {'r^2':>7} {'r2 95% CI':>16} {'slope':>7} {'bias':>8}")
     for b in by_turn:
         print(f"  {b['turns']:>8} {b['positions']:>4} {b['corr']:>+7.3f} {b['r2']:>7.3f} "
-              f"{b['slope']:>7.3f} {b['paired_bias']:>+8.4f}")
+              f"[{b['r2_ci95'][0]:.3f}, {b['r2_ci95'][1]:.3f}] {b['slope']:>7.3f} {b['paired_bias']:>+8.4f}")
+    print(f"  (r^2 CI: bootstrap over positions, {args.boot} resamples)")
 
     summary = {
+        "label": args.label, "rows": str(args.rows), "ceiling": ceiling,
         "positions": len(rows), "outcomes": int(o.size),
         "ev_raw": raw, "ev_affine_oos": aff_oos, "ev_isotonic_oos": iso_oos,
         "ev_oracle": oracle, "gap_to_oracle": gap,
