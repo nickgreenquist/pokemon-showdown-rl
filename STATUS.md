@@ -43,7 +43,7 @@ independent measurement that EV IS NOT THE OBJECTIVE** (§21 width, §27.1 ranki
 
 ## WHAT THE REVIEW PASSES CHANGED — **read before citing anything from this week**
 **Five review passes. ~25 claims changed, ONE SECTION RETRACTED, and several of the errors
-were INSIDE the corrections.** The full table is in `HANDOFF.md`; the four that change what
+were INSIDE the corrections.** The full table is in SESSION_LOGS 2026-09-19 and 2026-09-19 (cont.); the four that change what
 you may cite:
 - **§30.1 RETRACTED IN FULL.** It relaxed the "never difference across sessions" landmine
   on a G-test whose power at 0.02 is **0.13** (it claimed "G≈12, p≈0.02" without computing
