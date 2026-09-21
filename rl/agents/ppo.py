@@ -238,6 +238,10 @@ def _outcome_ev_stats(pred: torch.Tensor, target: torch.Tensor) -> dict[str, flo
 
 
 MINIBATCH_TAILS = ("keep", "drop", "fold")
+
+# The trunks `build` knows how to construct. Derived here rather than typed
+# into each guard, so adding one cannot leave a guard reading the old list.
+TRUNKS = ("mlp", "entity_deepsets", "attention")
 # LR anneal shapes over lr_anneal_steps: `linear` (1 - x), `power` (Wang 2024
 # §3.1.4: (a x + 1)^-b). Selected by the `lr_schedule` hparam.
 LR_SCHEDULES = ("linear", "power")
@@ -465,8 +469,14 @@ class PPOAgent(Agent):
         # consumption (regression-tested against pre-seam goldens). The
         # entity trunk is discrete/flat-obs only — the conv rule and the
         # Gaussian track keep their existing shapes.
-        if trunk not in ("mlp", "entity_deepsets"):
-            raise ValueError(f"unknown trunk {trunk!r}; expected 'mlp' or 'entity_deepsets'")
+        # "attention" is the SAME tokenizer and the SAME pointer head with
+        # self-attention between them (R7's architecture screen,
+        # rl/networks/entity_attention.py). It is gen-1 only and it supports
+        # none of the trunk-coupled levers below — each of those refuses
+        # explicitly rather than silently building an MLP critic or a
+        # DeepSets head over a net that has neither.
+        if trunk not in TRUNKS:
+            raise ValueError(f"unknown trunk {trunk!r}; expected one of {list(TRUNKS)}")
         if trunk != "mlp" and self.obs_rank == 3:
             raise TypeError(f"trunk {trunk!r} requires a flat observation space")
         self.trunk = trunk
@@ -478,6 +488,16 @@ class PPOAgent(Agent):
             raise ValueError(f"privileged_dim must be >= 0, got {privileged_dim}")
         if privileged_dim and self.obs_rank == 3:
             raise TypeError("privileged_dim requires a flat observation space")
+        if privileged_dim and trunk == "attention":
+            # Without this the `else` arm of the critic build below would
+            # hand back a FLAT MLP critic beside an attention actor and
+            # nothing would say so. The attention trunk has no
+            # `_priv_features` path; building one is a separate piece of
+            # work, not a silent fallback.
+            raise TypeError(
+                "privileged_dim is not implemented for trunk 'attention': the "
+                "net has no privileged tokenisation path"
+            )
         self.privileged_dim = privileged_dim
         # D25 auxiliary OPPONENT-ACTION head (configs/showdown_sp_actpred12m
         # .yaml, ratified r2 2026-08-13). The head predicts, from the agent's
@@ -663,6 +683,14 @@ class PPOAgent(Agent):
                 return EntityDeepSetsNet(
                     observation_space.shape[0], out_dim, **(trunk_kwargs or {})
                 )
+        elif trunk == "attention":
+            # Same deferred-import rule, same reason.
+            from rl.networks.entity_attention import EntityAttentionNet
+
+            def build(out_dim: int) -> nn.Module:
+                return EntityAttentionNet(
+                    observation_space.shape[0], out_dim, **(trunk_kwargs or {})
+                )
         else:
             # Tanh hiddens: the feedforward-PPO reference default the numeric
             # hyperparameters were validated under.
@@ -686,12 +714,15 @@ class PPOAgent(Agent):
                 observation_space.shape[0] + privileged_dim, hidden_sizes, 1,
                 activation=nn.Tanh,
             )
-        if trunk == "entity_deepsets":
+        if trunk in ("entity_deepsets", "attention"):
             # INIT HAZARD (K4): _orthogonal_init iterates every Linear and
             # would rescale the pointer stack while leaving the embedding
             # tables at torch's default N(0,1) — the net owns its init
             # (Xavier + std-0.02 embeddings + rescaled final layer), with
-            # the same head gains as the orthogonal path.
+            # the same head gains as the orthogonal path. The attention
+            # trunk adds a second face of the same hazard: a Linear walk
+            # reaches `out_proj` and skips `in_proj_weight` (a bare
+            # Parameter), so it would re-init half of every attention block.
             self.actor.init_head(0.01)
             self.critic.init_head(1.0)
         else:
