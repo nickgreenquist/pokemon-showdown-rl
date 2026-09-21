@@ -74,6 +74,12 @@ def load_bins(history_csv: str, horizon: int, bin_size: int = BIN,
     agg.update({c: "mean" for c in COLS if c != "loss/approx_kl" and c in d})
     out = d.groupby("bin").agg(agg)
     out["n_updates"] = d.groupby("bin").size()
+    # POLICY TRAVEL (reported, never a GO input; added 2026-09-21 before the screen ran): the
+    # SUM of per-update approx_kl over the bin. Trio B's GO form takes ~8x fewer optimizer
+    # steps than W over the same env steps (1,628 updates x 2 epochs x 120 minibatches vs
+    # 6,510 x 4 x 120), so "learns slower per env step" is its failure mode and the bands
+    # above only bound a collapse; the cumulative KL at matched steps is the direct witness.
+    out["kl_sum"] = d.groupby("bin")["loss/approx_kl"].sum()
     return out
 
 
@@ -113,10 +119,18 @@ def rule(screen: dict[str, pd.DataFrame], w: dict[str, pd.DataFrame], horizon: i
     upd_w = float(np.mean([t["time/update_sec"].mean() for t in w.values() if "time/update_sec" in t]))
     col_s = float(np.mean([t["time/collect_sec"].mean() for t in screen.values() if "time/collect_sec" in t]))
     col_w = float(np.mean([t["time/collect_sec"].mean() for t in w.values() if "time/collect_sec" in t]))
+    travel = lambda t: float(t["kl_sum"].sum()) if "kl_sum" in t else float("nan")  # noqa: E731
+    upd_n = lambda t: int(t["n_updates"].sum()) if "n_updates" in t else -1  # noqa: E731
     return {"verdict": verdict, "checks": checks,
             "time": {"screen_update_sec_per_update": upd_s, "w_update_sec_per_update": upd_w,
                      "screen_collect_sec_per_update": col_s, "w_collect_sec_per_update": col_w,
-                     "note": "the screen's update covers 4x the data of a W update; compare per datum"}}
+                     "note": "the screen's update covers 4x the data of a W update; compare per datum"},
+            # reported, never a GO input
+            "policy_travel": {"screen_kl_sum_per_lane": {n: travel(t) for n, t in screen.items()},
+                              "w_kl_sum_per_lane": {n: travel(t) for n, t in w.items()},
+                              "screen_updates_per_lane": {n: upd_n(t) for n, t in screen.items()},
+                              "w_updates_per_lane": {n: upd_n(t) for n, t in w.items()},
+                              "note": "sum of per-update approx_kl over the horizon: the total policy movement at matched env steps; a screen lane far below W moved less per env step (fewer, larger updates), whatever the per-update bands say"}}
 
 
 def main() -> None:
@@ -144,6 +158,9 @@ def main() -> None:
     t = r["time"]
     print(f"  time (reported, not a GO input): update_sec/update screen {t['screen_update_sec_per_update']:.2f} vs W {t['w_update_sec_per_update']:.2f}; "
           f"collect_sec/update screen {t['screen_collect_sec_per_update']:.2f} vs W {t['w_collect_sec_per_update']:.2f} -- {t['note']}")
+    pt = r["policy_travel"]
+    print(f"  policy travel (reported, not a GO input): sum approx_kl over the horizon -- screen {json.dumps({k: round(v, 3) for k, v in pt['screen_kl_sum_per_lane'].items()})} "
+          f"over {pt['screen_updates_per_lane']} updates vs W {json.dumps({k: round(v, 3) for k, v in pt['w_kl_sum_per_lane'].items()})} over {pt['w_updates_per_lane']} updates")
     print(f"VERDICT: {r['verdict']}  ({'trio B launches on configs/showdown_r6_trio_b.yaml' if r['verdict'] == 'GO' else 'trio B launches on configs/showdown_r6_trio_b_fallback.yaml'})")
     if args.json_out:
         os.makedirs(os.path.dirname(args.json_out), exist_ok=True)

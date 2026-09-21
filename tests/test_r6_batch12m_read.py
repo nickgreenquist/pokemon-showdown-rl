@@ -58,3 +58,22 @@ def test_load_bins_drops_eval_rows_cuts_at_horizon_and_medians_kl(tmp_path):
     assert list(t.index) == [0, 1], "only the two bins below the 2M horizon"
     assert t.loc[0, "n_updates"] == 20 and abs(t.loc[0, "loss/approx_kl"] - 0.03) < 1e-9
     assert abs(t.loc[1, "loss/entropy"] - 1.5) < 1e-9 and abs(t.loc[1, "time/update_sec"] - 4.0) < 1e-9
+
+
+def test_kl_sum_policy_travel_is_reported(tmp_path):
+    """The cumulative approx_kl per bin (policy travel) rides the bin table and the rule's
+    report; it is never a GO input (the verdict is unchanged with or without it)."""
+    import csv
+    rows = [{"_step": s, "loss/approx_kl": 0.01, "loss/clip_frac": 0.2, "loss/entropy": 1.0,
+             "loss/explained_variance": 0.5, "loss/adv_std": 1.0, "time/update_sec": 1.0,
+             "time/collect_sec": 2.0} for s in range(0, 3_000_000, 100_000)]
+    p = tmp_path / "history.csv"
+    with open(p, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+    b = load_bins(str(p), 3_000_000)
+    assert "kl_sum" in b and abs(b.loc[0, "kl_sum"] - 0.10) < 1e-9 and int(b["n_updates"].sum()) == 30
+    w = {f"w{i}": _table([0.03] * 12, np.linspace(1.6, 1.2, 12), np.linspace(0.1, 0.5, 12)) for i in range(3)}
+    good = _table([0.5] + [0.02] * 11, np.linspace(1.7, 1.1, 12), np.linspace(0.1, 0.48, 12))
+    r = rule({"s204": good}, w, H)
+    assert r["verdict"] == "GO" and "policy_travel" in r
+    assert np.isnan(r["policy_travel"]["screen_kl_sum_per_lane"]["s204"]), "no kl_sum column -> nan, not a crash"
