@@ -33,12 +33,12 @@ TRIOS = {
           ("w112", "runs/showdown_monster200m_w_s112"),
           ("w120", "runs/showdown_monster200m_w_s120")],
     # R6 (2026-09-21): the two R6 trios, pinned into the r6_reads pre-regs.
-    "a": [("a304", "runs/r6_trio_a_s304"),
-          ("a312", "runs/r6_trio_a_s312"),
-          ("a320", "runs/r6_trio_a_s320")],
-    "b": [("b328", "runs/r6_trio_b_s328"),
-          ("b336", "runs/r6_trio_b_s336"),
-          ("b344", "runs/r6_trio_b_s344")],
+    "a": [("a304", "runs/showdown_r6_trio_a_s304"),
+          ("a312", "runs/showdown_r6_trio_a_s312"),
+          ("a320", "runs/showdown_r6_trio_a_s320")],
+    "b": [("b328", "runs/showdown_r6_trio_b_s328"),
+          ("b336", "runs/showdown_r6_trio_b_s336"),
+          ("b344", "runs/showdown_r6_trio_b_s344")],
 }
 MONSTER_CONFIGS = ["configs/eval/monster_reads.yaml", "configs/eval/monster_reads_offfp.yaml"]
 R6_CONFIGS = ["configs/eval/r6_reads.yaml", "configs/eval/r6_reads_offfp.yaml"]

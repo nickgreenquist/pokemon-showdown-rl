@@ -12684,3 +12684,14 @@ line numbers are not — grep the date, then read that region):
     with ALLOW_MISMATCH), LG-2..LG-9 per session, the calendar-drift disclosure and the
     opponent census (the readout already computes the census), the barred-language list
     plus R6's tells, and an empty `ratified_decisions` with M-R6-1..7 owed.
+  - **LAUNCH-READINESS BUILDS (13:00–14:00Z 09-21, for the maintainer's 9 pm EDT launch):**
+    `scripts/r6_batch12m_read.py` — the 4.12 screen's MECHANICAL GO/FALLBACK read (per-1M
+    bins of kl median / clip / entropy / EV / adv_std / time vs the W lanes' own first 12M,
+    streamed from their ~775 MB histories; the three pre-stated checks; `--json-out`;
+    `tests/test_r6_batch12m_read.py` incl. a many-chunk loader test that caught a chunk-stop
+    bug). `configs/showdown_r6_trio_b_fallback.yaml` (+ its 400k smoke, seed 920): trio B with
+    exactly the three pre-stated fallback keys (epochs 4, minibatches 480, lr 2.5e-4), launched
+    with `TAG=showdown_r6_trio_b` so its run dirs match the pins. **RUN-DIR CONVENTION CAUGHT
+    AND ALIGNED:** the launcher names dirs `runs/<config basename>_s<seed>` and overrides the
+    config's `run_name`, so the R6 lanes live at `runs/showdown_r6_trio_{a,b}_s*` — the pin
+    script, the reads queue, the tests and every header now say so. Tests 15 passed.

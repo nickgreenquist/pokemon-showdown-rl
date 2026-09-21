@@ -43,7 +43,7 @@ WD=runs/train_watchdog.log
 mkdir -p "$LOG" "$RES" "$FPRES"
 log() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG/queue.log"; }
 
-LANES="runs/r6_trio_a_s304 runs/r6_trio_a_s312 runs/r6_trio_a_s320 runs/r6_trio_b_s328 runs/r6_trio_b_s336 runs/r6_trio_b_s344"
+LANES="runs/showdown_r6_trio_a_s304 runs/showdown_r6_trio_a_s312 runs/showdown_r6_trio_a_s320 runs/showdown_r6_trio_b_s328 runs/showdown_r6_trio_b_s336 runs/showdown_r6_trio_b_s344"
 
 lanes_done() { for d in $1; do grep -q "$d DONE at step" "$WD" || return 1; done; return 0; }
 lanes_alive() { for d in $1; do pgrep -f "bin/python -m rl.train.*--run-name ${d#runs/}\$" > /dev/null && return 0; done; return 1; }

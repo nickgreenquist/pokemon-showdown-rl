@@ -71,7 +71,8 @@ def test_c6_marker_is_on_the_trios_and_on_nothing_else_in_configs():
               if any(line.rstrip() == "# ENCODER_C6: on"
                      for line in pathlib.Path(p).read_text().splitlines())}
     assert marked == {A.name, B.name, A.name.replace('.yaml', '_smoke400k.yaml'),
-                      B.name.replace('.yaml', '_smoke400k.yaml')}, marked
+                      B.name.replace('.yaml', '_smoke400k.yaml'),
+                      "showdown_r6_trio_b_fallback.yaml", "showdown_r6_trio_b_fallback_smoke400k.yaml"}, marked
 
 
 def test_seat_tags_and_seeds_collide_with_no_other_config():
@@ -87,7 +88,9 @@ def test_seat_tags_and_seeds_collide_with_no_other_config():
     # a trio's smoke shares its tag ON PURPOSE (it exercises the exact contract; its seed differs,
     # so the derived in-loop eval usernames differ); nothing else may carry the tag
     assert sorted(tags["r6ta"]) == sorted([A.name, A.name.replace(".yaml", "_smoke400k.yaml")]), tags.get("r6ta")
-    assert sorted(tags["r6tb"]) == sorted([B.name, B.name.replace(".yaml", "_smoke400k.yaml")]), tags.get("r6tb")
+    assert sorted(tags["r6tb"]) == sorted([B.name, B.name.replace(".yaml", "_smoke400k.yaml"),
+                                           "showdown_r6_trio_b_fallback.yaml",
+                                           "showdown_r6_trio_b_fallback_smoke400k.yaml"]), tags.get("r6tb")
     header_seeds = {304, 312, 320, 328, 336, 344}
     assert len(header_seeds) == 6 and yaml.safe_load(A.read_text())["seed"] in header_seeds
 
@@ -105,3 +108,16 @@ def test_smoke_configs_are_the_trios_with_exactly_the_six_smoke_keys_changed():
         assert smoke["seed"] == seed and smoke["run_name"] == f"r6_trio_{trio}_smoke_s{seed}"
         assert any(line.rstrip() == "# ENCODER_C6: on" for line in smoke_path.read_text().splitlines())
         load_config(smoke_path)
+
+
+def test_trio_b_fallback_is_trio_b_with_exactly_the_three_pre_stated_keys():
+    b = yaml.safe_load(B.read_text())
+    fb_path = ROOT / "configs/showdown_r6_trio_b_fallback.yaml"
+    fb = yaml.safe_load(fb_path.read_text())
+    assert _diff(b, fb) == {"agent.epochs", "agent.minibatches", "agent.lr"}
+    assert fb["agent"]["epochs"] == 4 and fb["agent"]["minibatches"] == 480 and fb["agent"]["lr"] == 2.5e-4
+    assert fb["agent"]["rollout_steps"] == 15360 and fb["run_name"] == b["run_name"] and fb["seed"] == b["seed"]
+    load_config(fb_path)
+    smoke = yaml.safe_load((ROOT / "configs/showdown_r6_trio_b_fallback_smoke400k.yaml").read_text())
+    assert _diff(fb, smoke) == {"seed", "run_name", "total_steps", "eval_every", "checkpoint_every", "agent.lr_anneal_steps"}
+    assert smoke["seed"] == 920 and smoke["total_steps"] == smoke["agent"]["lr_anneal_steps"] == 400_000

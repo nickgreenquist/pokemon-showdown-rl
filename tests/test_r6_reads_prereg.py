@@ -60,8 +60,8 @@ def test_r6_lanes_are_tbd_placeholders_in_the_exact_form_the_pin_script_rewrites
         for lane in R6_LANES:
             assert re.search(rf"^  {lane}: \{{path: TBD, sha256: TBD, step: TBD\}}", text, re.M), (cfg, lane)
     assert [l for l, _ in pin.TRIOS["a"]] == R6_LANES[:3] and [l for l, _ in pin.TRIOS["b"]] == R6_LANES[3:]
-    assert [d for _, d in pin.TRIOS["a"]] == [f"runs/r6_trio_a_s{s}" for s in (304, 312, 320)]
-    assert [d for _, d in pin.TRIOS["b"]] == [f"runs/r6_trio_b_s{s}" for s in (328, 336, 344)]
+    assert [d for _, d in pin.TRIOS["a"]] == [f"runs/showdown_r6_trio_a_s{s}" for s in (304, 312, 320)]
+    assert [d for _, d in pin.TRIOS["b"]] == [f"runs/showdown_r6_trio_b_s{s}" for s in (328, 336, 344)]
     assert pin.CONFIGS_BY_TRIO["a"] == pin.CONFIGS_BY_TRIO["b"] == pin.R6_CONFIGS
     assert pin.CONFIGS_BY_TRIO["w"] == pin.MONSTER_CONFIGS
 

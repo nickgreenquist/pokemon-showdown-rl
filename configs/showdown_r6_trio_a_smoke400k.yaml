@@ -9,7 +9,7 @@
 # PASS = the lane reaches 400k; meta.yaml stamps params (actor 626,059) and encoder.c6 true; history.csv
 # carries aux_outcome/ev_* and loss/aux_outcome moving and l2init/* rising; then the RESUME test:
 # kill the lane after its 200k checkpoint, watch the watchdog resume it (c6=1 in its RESUMED line) and
-# finish. The smoke's run dir is r6_trio_a_smoke_s904; it is NOT a fleet lane and enters no read.
+# finish. The smoke's run dir is runs/showdown_r6_trio_a_smoke400k_s904; it is NOT a fleet lane and enters no read.
 # R6 FLEET, TRIO A -- IDEAS 4.11, OUTCOME DECOMPOSITION ON THE CRITIC (3 lanes x 200M, half of the six-lane R6 fleet).
 # ENCODER_C6: on
 #
@@ -31,12 +31,12 @@
 #
 # ARMS (6 lanes, two trios, distinct seeds AND seat_tags -- CLAUDE.md rule 2):
 #   TRIO A (configs/showdown_r6_trio_a.yaml): W base + C6 + the OUTCOME HEADS (IDEAS
-#     4.11). seeds 304 312 320, seat_tag r6ta, run dirs r6_trio_a_s{304,312,320}. THE
+#     4.11). seeds 304 312 320, seat_tag r6ta, run dirs runs/showdown_r6_trio_a_s{304,312,320} (the launcher names dirs from the CONFIG BASENAME + seed; the run_name key below is overridden by --run-name). THE
 #     LEVER is three keys set together (PPOAgent and rl/train.py refuse any subset):
 #     collector.outcome_targets true, agent.aux_outcome_coef 0.1,
 #     agent.trunk_kwargs.value_aux_out 3.
 #   TRIO B (configs/showdown_r6_trio_b.yaml): W base + C6 + the BATCH/EPOCHS DOSE (IDEAS
-#     4.12). seeds 328 336 344, seat_tag r6tb, run dirs r6_trio_b_s{328,336,344}.
+#     4.12). seeds 328 336 344, seat_tag r6tb, run dirs runs/showdown_r6_trio_b_s{328,336,344} (from the config basename; the fallback file MUST be launched with TAG=showdown_r6_trio_b so its dirs are the same).
 #     rollout_steps 15360 (batch 122,880 = x4), epochs 2, minibatches 120 (1,024-row
 #     minibatches), lr 3.5e-4 -- OR the pre-stated FALLBACK the 12M screen selects
 #     (configs/showdown_r6_batch12m.yaml: epochs 4, minibatches 480, lr 2.5e-4 if
