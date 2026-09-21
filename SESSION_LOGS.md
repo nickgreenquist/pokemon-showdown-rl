@@ -12846,3 +12846,28 @@ line numbers are not — grep the date, then read that region):
     (106 s).** Other CPU beside XTG9 this session (for the ledger): the two review agents' single-file
     pytest runs (6 + 7 + 2 + 7 tests) and their `python -c` layout probes; my test runs of seconds;
     the full suite above. XTG9 at 2,903/3,200 at 20:16Z, ~24.5 s/battle → QUEUE DONE ≈ 22:17Z.
+- 2026-09-21 (cont. 4, agent) — **QUEUE DONE 22:22Z: THE EXPERT-ITERATION GATE CLEARS (RESULTS §35).** XTG9 (the
+  gumbel tree at `iters 900`, seat w112, the R5 committee as prior and evaluator) **0.6184** vs XGR (the same
+  committee greedy, the in-session control, run first) **0.5866**, n=3200 each, ties 0/2:
+  **delta +0.0319, se_diff 0.0122, z +2.61** — both legs of the pre-stated rule met (≥ +0.025; ≥ 2·se =
+  0.0245). Every number computed by `scripts/exit_gate_readout.py` from the arm JSONs, the Foul-Play stdouts
+  and the runner logs (`results/exit_gate_r5/readout.json`): five R0 gates PASS (expert counters reported; budget
+  realized at 771.4 ms = 1.01× the n=40 screen's 766.6; control first; one pre-reg sha; ties non-wins);
+  G2 exact on both arms (1877/1321/2,
+  1979/1221/0); `relaunches 0`.
+  Expert's shape: KL 1.669, π′ top-1 0.762, argmax moved 0.176, change rate 0.1098
+  (11007/100217; ~3.4 decisions per battle of ~29 turns). The two arms launched from different
+  commits (`e6cc5dd` → `5dd27df`: the heads and the C6 port; nothing under `rl/search/`, both arms c6-off, the
+  head-off forward bit-identical by test) — disclosed in the readout. XTG9: 21.8 h at 24.48 s/battle.
+  - **Banked:** `readouts/EXIT_GATE_R5_READOUT.md` (status, results block, verdict, ledger), RESULTS §35, IDEAS
+    4.9 (**R7's first trio is this row** — a pre-reg after R6's readout: mechanism co-primary not EV, the search
+    dose as a sampled fraction of decisions, π′ and the root value logged from step (i), its own re-drawn control)
+    and 8.6 (the top rung ran; 100/300 are R7's budget question), README's readouts row (the three R7 gates),
+    STATUS. Mechanism remark recorded, not measured: §30's override regression on the D5-gated matrix search
+    would predict -0.053 at this change rate; the gumbel tree reads the opposite sign — the vehicle changed.
+  - **The launch night proceeds:** both 12M screens launched by `scripts/monster_fleet.sh` from `058da64`
+    (c6-off; anneal-over-horizon opted in): GO keys s204/s212 up 22:27/22:29Z, fallback keys s220/s228 up
+    22:31/22:33Z (two watchdogs, two caffeinates); lane 204 at 491,678 steps by 22:29:48Z. `scripts/r6_smokes.sh`
+    starts right after this commit (smoke A with the resume test, then B, then B-fallback; the window beside the
+    screens is disclosed in both screen reads; only `time/*` is affected). The exit-gate readout's G2 pass
+    (~20 s of IO over 1.6 GB of stdouts) ran at 22:26Z beside the GO launcher's first lane — disclosed.

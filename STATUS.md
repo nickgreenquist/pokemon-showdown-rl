@@ -1,6 +1,6 @@
 # STATUS
 ## JOURNEY POSITION — step 11 DONE (R5 LISTED). The post-ladder SEARCH chapter is CLOSED, and closed by a CORRECTION PASS
-**RUNNING: the exit-gate queue (IDEAS 4.9's gate; `configs/eval/exit_gate_r5.yaml`, `scripts/exit_gate_queue.sh`) — GAP DONE (§33), XSM DONE, XGR (the greedy control) DONE 09-21 00:35Z at **0.5866 (n=3200, ties 2)**, **XTG9 (tree@900) RUNNING since 00:36Z at ~24.3 s/battle, 2,091/3,200 at 14:43Z → QUEUE DONE ≈ 22:10Z = 18:10 EDT 09-21**, then `results/exit_gate_r5/READOUT.txt`. CHECK: `tail -3 logs/exit_gate_r5/queue.log` and `grep -c Winner results/exit_gate_r5/xtg9.fp.stdout` (stalled = the count stops for ~10 min or the search seat's CPU time does not advance in 15 s; a watch with both instruments is armed this session); a dead FP arm poisons its username pair for hours — add a fresh prefix-free pair to the config before relaunching with GO present. NOTHING starts on the box before QUEUE DONE. THEN the launch-night runbook (SESSION_LOGS 2026-09-21 cont. 2 + cont. 3): BOTH 12M screens (GO keys 204/212 and the fallback keys 220/228, `configs/showdown_r6_batch12m{,_fallback}.yaml`) → `scripts/r6_smokes.sh` beside them → `scripts/exit_gate_readout.py` → `scripts/r6_batch12m_read.py` on each → the launch blocks. RULED: the maintainer launches both trios TOGETHER (morning if late), the agent launches nothing 24 h+; OPEN RULING: trio B in the FALLBACK form regardless of the screen (recommended yes; cont. 3 has the 8×-fewer-steps arithmetic and RESULTS §17's shape). Two pre-launch Opus reviews fixed five confirmed defects (cont. 3): the aux gradient now sits AFTER the shared clip, trio B's league cadence is env-step-matched, the reads queue's guards work during and after the fleet, a resume stamps its sha.** Eight blocks
+**THE EXIT GATE READ 09-21 22:22Z (§35, `readouts/EXIT_GATE_R5_READOUT.md`): CLEARS — XTG9 (gumbel tree, iters 900) **0.6184** vs XGR (greedy committee, control first) **0.5866**, n=3200 each, **delta +0.0319 at z +2.61** (se 0.0122); five R0 gates PASS, G2 exact on both arms; 771 ms/decision, change rate 0.110. IDEAS 4.9 (expert iteration on the tree vehicle) gets R7's first trio — a pre-reg after R6's readout, never a fleet on this number alone. RUNNING: BOTH 12M screens (GO keys `runs/showdown_r6_batch12m_s{204,212}`, fallback keys `runs/showdown_r6_batch12m_fallback_s{220,228}`, up 22:25–22:33Z, ~2 h) with `scripts/r6_smokes.sh` beside them (smoke A + resume test, smoke B, smoke B-fallback → `results/r6_smokes/<name>.json`). CHECK: `tail -5 runs/train_watchdog.log`, `tail -3 logs/r6_smokes/smokes.log`. THEN the launch-night runbook (SESSION_LOGS 2026-09-21 cont. 2 + cont. 3): BOTH 12M screens (GO keys 204/212 and the fallback keys 220/228, `configs/showdown_r6_batch12m{,_fallback}.yaml`) → `scripts/r6_smokes.sh` beside them → `scripts/exit_gate_readout.py` → `scripts/r6_batch12m_read.py` on each → the launch blocks. RULED: the maintainer launches both trios TOGETHER (morning if late), the agent launches nothing 24 h+; OPEN RULING: trio B in the FALLBACK form regardless of the screen (recommended yes; cont. 3 has the 8×-fewer-steps arithmetic and RESULTS §17's shape). Two pre-launch Opus reviews fixed five confirmed defects (cont. 3): the aux gradient now sits AFTER the shared clip, trio B's league cadence is env-step-matched, the reads queue's guards work during and after the fleet, a resume stamps its sha.** Eight blocks
 ran 09-18/19 (§25–§32); **three Opus review passes then went back over every claim and
 changed sixteen of them, retracted one section in full, and found three numbers I had
 invented while writing the corrections themselves.** Read §30.1's retraction box and the
@@ -76,7 +76,7 @@ you may cite:
 3. **The live lever is the CRITIC, and §27/§27.1/§31 say what is wrong with it**: 93% of
    the gap is RANKING, worst in the opening, and the train/eval shift is measured at +0.059.
    `docs/IDEAS_POST_100M.md` Round 4 is re-ranked around that. **4.9 (expert iteration) is
-   the top §4 item and its 2.11 gate has OPENED.**
+   the top §4 item; its 2.11 gate OPENED and its exit gate CLEARED (§35) — R7's first trio.**
 4. **THE SIX R6 RULINGS ARE TAKEN (maintainer, 2026-09-20, "agree with all"):** loop breaker ON
    for the ladder object; C6 in R6 only if the Rust port lands first; fleet = W base, trio A
    outcome heads, trio B batch/epochs; R6 ladder under the split schedule; 2.13 stays OFF; the
@@ -85,7 +85,7 @@ you may cite:
 5. **THE ACTION GAP IS MEASURED (RESULTS §33, `readouts/ACTION_GAP_R5_READOUT.md`): a perfect
    top-2 swap is worth 0.032 naive [0.022, 0.043] / 0.024 deconvolved of win rate per decision —
    AT the credit floor, NEITHER a mechanism kill NOR a licence.** Noise alone would print 0.029;
-   true gaps have sd ≈ 0.16 outcome units, ordered right ~59% of the time. The exit gate decides 4.9.
+   true gaps have sd ≈ 0.16 outcome units, ordered right ~59% of the time. The exit gate CLEARED (§35: +0.0319 at +2.61 se).
 
 ## Watch items
 - **A SMALL-RUN NULL IS NOT EVIDENCE ABOUT A LEVER** (CLAUDE.md rule 6). §30's selection

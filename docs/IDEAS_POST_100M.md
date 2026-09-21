@@ -1346,6 +1346,16 @@ with the n that resolves +0.025 at 2 se). Clears → 4.9 gets R7's first trio on
 vehicle. Does not clear → 4.9 is closed on this object by a measured cost of the
 operator it depends on, not by a null. **No 4.9 fleet before that reads.**
 
+**GATE READ 2026-09-21 (RESULTS §35, `readouts/EXIT_GATE_R5_READOUT.md`): CLEARS.** XTG9 (gumbel,
+iters 900) **0.6184** vs XGR (the greedy committee, in-session control, first) **0.5866**, n=3200
+each, ties 0/2, **delta +0.0319 at +2.61 se** (se_diff 0.0122; the rule needs
+≥ +0.025 and ≥ 2·se). Expert's shape: KL 1.669, π′ top-1 0.762, argmax moved 0.176,
+771 ms/decision, change rate 0.110 (~3.4 decisions per battle). **R7's first trio is
+this row** — a pre-reg owed after R6's readout: mechanism co-primary not EV, the search dose as a sampled
+fraction of decisions, π′ and the root value logged from step (i) before any loss is written, its own
+re-drawn control. One session, one rung (±0.02 across sessions): the pre-reg re-draws the control, never
+quotes this delta as the floor.
+
 **Composes with:** 2.10 (a tree with an optimistic backup would teach the bug),
 §8.5 (which decides WHERE to spend the search), 4.8 (members stay members), and
 4.7 (a privileged critic is a better expert on exactly the hidden-information
@@ -1785,6 +1795,11 @@ acts BETWEEN TV and TG — so this is a statement about the rule itself.
 **Cost:** iters 300 ≈ 2.8 h at n=1000; iters 900 ≈ 5 h at n=600. One block with
 an anchor is a night. **This does not close or open MCTS** — one budget, one
 object, one session, and CLAUDE.md rule 6 still applies.
+**THE TOP RUNG RAN 2026-09-21 at n=3200 (RESULTS §35):** gumbel at `iters 900` **0.6184** vs greedy
+**0.5866** in one session, control first — **+0.0319 at +2.61 se**, KL 1.669, π′ top-1 0.762,
+argmax moved 0.176, 771 ms/decision, change rate 0.110. (i) is answered at 900 with the n that
+resolves +0.025; the 100 / 300 rungs remain unmeasured at that n and are R7's budget question (the
+pre-reg's dose axis), not a repeat of this block.
 
 **8.4 FP distillation — the LAST rung, and a CHARTER CHANGE.** Tapes, soft targets,
 DAgger-style relabelling of our own states. **Excluded from the pure lane by CLAUDE.md

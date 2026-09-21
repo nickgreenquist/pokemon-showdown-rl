@@ -2911,3 +2911,59 @@ trial.
 rebuilt, not re-argued: a cheaper variant (d_model, depth and the 21-token length are untried
 dials), a GPU-for-update (JOURNEY 11.6's named mitigation; a maintainer decision), or a
 mechanism read that points at cross-entity structure.
+
+## 35. Addendum, 2026-09-21 — **R7's expert-iteration gate: the gumbel tree at 900 iterations beats the greedy committee it searches, +0.0319 at +2.61 se (n=3200 each, one session, control first) — the gate CLEARS, and IDEAS 4.9 gets R7's first trio**
+
+`configs/eval/exit_gate_r5.yaml` (a hacking run whose RULE was fixed before either arm ran; credits nothing),
+`scripts/exit_gate_queue.sh` (frozen copy at `39da8f8`, `caffeinate -i`): GAP (§33) → XSM (a 2-battle smoke of
+the tree through the FP seat) → **XGR** (the R5 W finals' committee, greedy, n=3200 — the in-session CONTROL, run
+FIRST; CLEANUP L6) → **XTG9** (the same committee searched by the gumbel tree: `iters 900`, `n_det 2`, `batch 16`,
+`decide gumbel`, `beta 4.0`, `root_min_visits 8`, seat w112, n=3200). Off FP@20 (`search_time_ms 20`),
+deterministic seats, no loop breaker, fresh prefix-free usernames. Every number below is computed by
+`scripts/exit_gate_readout.py` from `results/exit_gate_r5/{xgr,xtg9}.json`, the two Foul-Play stdouts and the
+runner logs (`results/exit_gate_r5/readout.json`); readout `readouts/EXIT_GATE_R5_READOUT.md`. R7's first gate
+(R6 prep plan §4); it decides IDEAS 4.9.
+
+| arm | win rate | n | ties | ms/decision | KL(π′‖prior) | π′ top-1 | argmax moved | change rate |
+|---|---|---|---|---|---|---|---|---|
+| XGR (greedy committee, control, first) | **0.5866** | 3200 | 2 | — | — | — | — | — |
+| XTG9 (gumbel tree, iters 900) | **0.6184** | 3200 | 0 | 771.4 | 1.669 | 0.762 | 0.176 | 0.1098 (11007/100217) |
+
+**delta +0.0319, se_diff 0.0122 (unpaired two-proportion, binomial — one arm per cell), z +2.61.** Rule,
+verbatim: *clears iff delta ≥ +0.025 AND ≥ 2·se_diff* (2·se_diff = 0.0245) → **CLEARS.** R0 gates: expert
+counters reported; budget realized (771 ms = 1.01× the n=40 screen's 766.6); control first (23:07Z vs
+00:36Z); one pre-reg sha; ties non-wins. G2: the seat's JSON and Foul Play's own `Winner:` lines agree exactly on
+both arms (1877/1321/2 and
+1979/1221/0). `relaunches 0` on both.
+
+**What the gate asked.** AlphaZero's loop presupposes that search + net beats net alone at inference; if the
+strongest affordable expert is not measurably better than the student there is no target to iterate toward
+(4.9's gate as restated 2026-09-19). n=3200 per arm resolves +0.025 at 2 se. **It is: the first search result in
+this project above greedy at 2 se** (§26's +0.021 was 0.96 se; §30's ungated matrix arms were COSTS at 2.4–4.4 se).
+
+**The expert's shape (descriptive; never the verdict).** KL(π′ ‖ prior) 1.669, π′ top-1 0.762, argmax moved
+0.176 — the same tree the n=40 screen described (§32: 0.159 / 0.773) and the XSM smoke (1.885 / 0.734 /
+0.176). The tree changed the played action on 11.0% of searched decisions, ~3.4 per battle of
+~29 turns. §30's override regression on the D5-gated MATRIX search (−0.48 win rate per unit change
+fraction, r −0.875) would predict -0.053 at this rate; the gumbel tree reads the opposite sign. Read as a
+mechanism remark, not a re-measurement of §30: the operator that pays is a visit-distribution tree over the
+committee's own prior and values at ~100× a greedy decision's cost, not a margin-gated one-ply override.
+
+**What may NOT be said.** This is ONE session, control first; one rung is worth ±0.02 across sessions and the
+within-session floor is the D1O/DUM replicate spread (0.0020, §30) — the R7 pre-reg re-draws its own control.
+XTG9 is never differenced against a banked greedy number (0.5765 / 0.6050 / 0.5818 are other sessions). Nothing
+here touches the ladder object (ruling #3: R6's object is greedy with the loop breaker) or a smaller budget (8.6's
+100 / 300 rungs are unmeasured at this n). The `tree/*` statistics describe the expert; they are not the verdict.
+FP@20's equivalence test is weakly powered and its point estimate flatters us — both travel with every number.
+
+**Disclosures.** The two arms launched from different commits (`e6cc5dd` → `5dd27df`: the 4.11 heads and the C6
+port landed between them; neither touches `rl/search/`, both arms ran c6-OFF, and a head-off build's forward is
+bit-identical by test), so the seat ran the same search on the same network. Contamination ledger in the readout:
+heavier beside the control (tests, the attention screen's fits, the C6 build) than beside the tree arm (the last
+two fits in its first 30 min, then tests of seconds, one full suite at 01:10Z and one at 20:13Z); disclosed, not
+corrected for. RESUMES 0; `fp_found_dead 1` is the normal end of an FP run on both arms.
+
+**Consequence.** IDEAS 4.9 (expert iteration on the tree vehicle) gets R7's first trio — a PRE-REG after R6's
+readout, on the R6 finals as base, with a mechanism co-primary that is not EV (§21), the search dose as a SAMPLED
+FRACTION of decisions (4.9 item iii), and the tree's own π′ and root value logged from step (i) before any loss is
+written. The search chapter reopens on this evidence and on no other.
