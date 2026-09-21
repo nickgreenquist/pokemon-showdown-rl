@@ -1479,6 +1479,14 @@ epochs 4 with 480 minibatches (steps per datum matched). Rides on the W base wit
   artifact, not a finding). **Purity:** only the architecture choice transfers; no
   weights fitted on FP tapes enter a learner. The mechanistic case it tests: max-pool
   loses bench-vs-bench matchups, which 2.15 says is where close games are decided.
+  **READ 2026-09-21 — DOES NOT CLEAR (RESULTS §34; `readouts/ARCH_SCREEN_R7_READOUT.md`).**
+  Δagreement_free +0.0179 [+0.0143, +0.0214] — real, under the +0.02 bar — at **6.52× the
+  entity trunk's train step** (the 34.6× was MLP-relative and reproduces at 29.3×; 6.52× is
+  the number against today's trunk), and the pre-stated mechanism signature FAILS: the gain
+  is flat across reveal bands and largest where least is revealed — generic capacity, not
+  cross-entity attention. (iii) is the measured mechanism ceiling; (i) is NOT a kill. No R7
+  attention trio on this evidence; the case is rebuilt (a cheaper variant, a GPU-for-update,
+  or a mechanism read that points at structure) or not at all — maintainer decisions.
 - **DCN / two-tower explicit crossing — PARK for step 8.** The unbuilt
   middle rung (CROSS_FEATURES ladder). Only with a mechanism-read design;
   12M win-rate primaries are dead (§1).

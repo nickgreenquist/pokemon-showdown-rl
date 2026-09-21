@@ -2856,3 +2856,58 @@ deconvolved 41% is a model read and the resolved count is 7 confident errors in 
 2 × 24 rollouts per action, where the two determinizations' shared-world component is only
 partly removed by the pairing: the companion reads are companions, and the naive ceiling with
 its bootstrap interval is the headline.
+
+## 34. Addendum, 2026-09-21 — **R7's architecture gate: entity ATTENTION beats today's trunk on Foul-Play cloning by +0.018 (CI excludes 0) at 6.5× the train-step cost — the screen DOES NOT CLEAR, and the mechanism read says the gain is generic capacity**
+
+`configs/bc_arch_screen.yaml` (the rule, committed BEFORE any fit: `958f24f`); six fits by
+`scripts/arch_screen_fits.sh` — 3 seeds × {entity_deepsets, attention}, 180k rows of the six
+gen-1 FP tapes re-embedded at OBS_DIM 828 into `data/fp_all_v2i/` (all six tape gates PASS),
+soft targets, 20 epochs, best epoch on held-out `agreement_free`, held out BY BATTLE;
+`scripts/arch_screen_bench.py`; `scripts/arch_screen_readout.py` → `results/arch_screen/
+readout.json` (+ `readout_stdout.txt`, six `bc_metrics` JSONs, six `val_rows.npz`, two throughput
+JSONs). Readout: `readouts/ARCH_SCREEN_R7_READOUT.md`. R7's architecture gate (R6 prep plan
+§4). Gate read, **credits nothing**. Built and run by an Opus subagent in a worktree; merged
+`2d20cf7`.
+
+| gate (pre-stated) | value | |
+|---|---|---|
+| (i) Δagreement_free (attention − entity), paired over 3 seeds, ≥ +0.02 | **+0.0179** (per seed +0.0220 / +0.0120 / +0.0199) | FAIL |
+| (ii) 95% cluster-bootstrap-by-battle CI (1,000 resamples) excludes 0 | [+0.0143, +0.0214] | PASS |
+| (iii) train step attention / entity_deepsets ≤ 3× (batch 512, 1 thread, median of 30) | **6.52×** (139.5 ms vs 21.4 ms) | FAIL |
+| ⇒ | **DOES NOT CLEAR** | |
+
+Best held-out `agreement_free`: attention 0.7031 / 0.6919 / 0.7012 vs entity 0.6812 / 0.6799 /
+0.6813 (chance on multi-choice rows 0.154; ~18,000 held-out rows over 718 battles per seed);
+Δval_kl −0.0107 [−0.0133, −0.0081], so ARCH_SCREEN_SPEC's stricter both-metrics variant would
+not clear either. The attention actor is the SMALLER net (564,875 params vs 626,059), so the
+gain was not bought with capacity.
+
+**The mechanism read is the finding.** The pre-stated signature for "entity attention is doing
+the work" was a gain CONCENTRATED where 4–6 opponent mons are revealed. The gain is flat —
++0.0218 / +0.0169 / +0.0175 over reveal 0–1 / 2–3 / 4–6 — and largest where the LEAST is
+revealed. Read as pre-stated: generic capacity or a better optimisation surface, not
+cross-entity attention. Fitted entropy sits above the teacher's in both arms (1.27 / 1.24 vs
+1.12): no collapse.
+
+**The throughput number corrects a figure this project has quoted since 2026-08-07.** The
+34.6× that retired attention was measured against the flat [512,512] MLP; this bench reproduces
+that pairing at 29.3× and puts the ratio against TODAY's trunk at **6.52×** (a pre-fit replicate
+read 5.96×; both heads together 8.2×). It is a 1-thread CPU train-step microbenchmark on one
+net, not an RL lane's steps/s. Under the pre-stated rule (iii) is a MEASURED MECHANISM CEILING
+and the one result here that may be cited against adoption — always with its comparator.
+
+**What may NOT be said.** (i)'s failure is not a kill and may not appear in a ranking or an
+opinion (rule 6): one 180k-row supervised fit against a search teacher cannot resolve an
+advisory-scale effect and does not measure the objective the fleet optimises. Nothing here is
+a win rate. Four of the six fits peak at epoch 20 and one at 18 (a plateau by the curves; an
+epochs-16–20 mean reproduces the delta to 0.0003), so +0.018 is an upper bound on the
+asymptotic gap at this budget. The bench's "nothing else running" clause was NOT met — the
+exit-gate queue's FP arm was live — mitigated by timing all three nets back-to-back in one
+process and by the replicate. **Purity:** the clone checkpoints stay in a gitignored run
+directory; nothing fitted on FP tapes enters a learner; only the architecture choice was on
+trial.
+
+**Consequence.** No R7 attention trio on this evidence (plan §4). The case would have to be
+rebuilt, not re-argued: a cheaper variant (d_model, depth and the 21-token length are untried
+dials), a GPU-for-update (JOURNEY 11.6's named mitigation; a maintainer decision), or a
+mechanism read that points at cross-entity structure.

@@ -68,8 +68,8 @@ you may cite:
   from `SearchAgent`'s signature and **hard-fails on an unknown pre-reg key**.
 
 ## Next actions
-1. **R6 PREP in `HANDOFF.md`'s order — DONE 09-20: the action gap banked (§33), 4.11's heads + loss BUILT
-   (unsmoked), the C6 RUST PORT LANDED (P-1 zero mismatches at 30k decisions, flag on: ruling 2 met, C6 rides R6). RUNNING: the attention BC screen (R7's gate). NEXT: the R6 fleet yaml + launcher C6 export; after QUEUE DONE the 4.12 screen, the 400k smokes, the fleet, then the split-schedule ladder.
+1. **R6 PREP — DONE 09-20/21: the action gap banked (§33), 4.11's heads + loss BUILT (unsmoked), the C6 RUST
+   PORT LANDED (P-1 zero mismatches, flag on: ruling 2 met, C6 rides R6), the R6 trio configs DRAFTED with the launcher's C6 export, and R7's ARCHITECTURE GATE READ: the attention screen DOES NOT CLEAR (§34: +0.0179 at 6.52×, flat reveal profile = generic capacity; no R7 attention trio).** NEXT, after QUEUE DONE: the 4.12 screen, the 400k smokes, the fleet (maintainer launches), then the split-schedule ladder.
 2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
    search idea must argue against the override regression (−0.48 win rate per unit override
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.

@@ -12625,3 +12625,28 @@ line numbers are not — grep the date, then read that region):
     the poisoned-pair relaunch rule now sit in STATUS's RUNNING line; the rulings, the
     work list, the landmines and the numbers are in STATUS, the plan, `docs/landmines.md`
     and this log.
+- 2026-09-21 (early, agent) — **R7's ARCHITECTURE GATE READ: THE ATTENTION BC SCREEN DOES NOT
+  CLEAR (RESULTS §34).** Built and run by an Opus subagent in a worktree (branch
+  `worktree-agent-ae28c38b2c31010fc`, 14 commits, pre-reg `958f24f` before any fit; merged
+  `2d20cf7`): `rl/networks/entity_attention.py` (21 tokens over the existing tokenizer, d_model
+  128 × 2 layers × 4 heads, pointer head; actor 564,875 params), a `trunk == "attention"` branch
+  in PPOAgent, `train_bc.py --trunk {mlp,entity_deepsets,attention}` with per-row held-out
+  predictions, the 828-dim dataset `data/fp_all_v2i/` (six shards, all tape gates PASS),
+  `scripts/arch_screen_{fits.sh,bench.py,readout.py}`, 8 tests. Six fits (3 seeds × 2 arms,
+  180k rows, soft, 20 epochs): Δagreement_free **+0.0179** [+0.0143, +0.0214] paired,
+  cluster-bootstrapped by battle — real but under the +0.02 bar; train step attention / entity
+  **6.52×** (139.5 vs 21.4 ms, batch 512, 1 thread; replicate 5.96×) against the 3× bar;
+  Δval_kl −0.0107. **Mechanism: the gain is FLAT across reveal bands (+0.022 / +0.017 / +0.017)
+  and largest where least is revealed — generic capacity, not cross-entity attention.** The
+  34.6× from 2026-08-07 was MLP-relative (reproduced at 29.3×); 6.52× is the number against
+  today's trunk. (iii) is the measured ceiling; (i) is not a kill (rule 6). No R7 attention
+  trio on this evidence. `readouts/ARCH_SCREEN_R7_READOUT.md`; IDEAS §5 and plan §4 carry it.
+  - **Disclosures:** the six fits (single-threaded, niced, ~70 min) ran beside the exit-gate
+    queue — the end of XGR and the first ~40 min of XTG9 — and the bench (~1 min) beside XTG9;
+    the bench's "nothing else running" clause was NOT met (mitigated by back-to-back timing in
+    one process and the replicate). Owed in the exit-gate readout. Purity: the clone
+    checkpoints stayed in the worktree's gitignored `runs/` and were removed with it; nothing
+    fitted on FP tapes enters a learner.
+  - Merged main: suite bare **1258 passed / 87 skipped / 0 failed**. XGR DONE 00:35Z: **0.5866**
+    (n=3200, 2 ties); XTG9 launched 00:36Z at ~27 s/battle (12 battles in 5.4 min) → ETA
+    ~00:40Z 09-22, then the queue prints `results/exit_gate_r5/READOUT.txt`.
