@@ -134,13 +134,20 @@ assert float(moved[2:].min()) > 1e-3, moved.tolist()   # every other token
 torch.manual_seed(0)
 net = EntityAttentionNet(OBS_DIM, 10, **KW)
 pre_qkv = [b.attn.in_proj_weight.detach().clone() for b in net.blocks]
+pre_out = [b.attn.out_proj.weight.detach().clone() for b in net.blocks]
 net.init_head(0.01)
 for name in ("species_emb", "move_emb", "type_emb", "side_emb", "slot_emb"):
     std = float(getattr(net, name).weight.detach().std())
     assert 0.015 < std < 0.026, (name, std)
-# in_proj_weight was re-initialised (the hazard: a Linear-only walk skips it).
-for before, b in zip(pre_qkv, net.blocks):
-    assert not torch.equal(before, b.attn.in_proj_weight)
+# BOTH halves of every attention block were re-initialised. in_proj_weight is
+# a bare Parameter and needs its own branch; out_proj is an nn.Linear subclass
+# and a CHILD module, so modules() yields it and the Linear branch covers it.
+# Asserting both changed is what proves the walk covers the whole block --
+# torch's own construction already zeroes these biases, so a bias check alone
+# proves nothing.
+for before_q, before_o, b in zip(pre_qkv, pre_out, net.blocks):
+    assert not torch.equal(before_q, b.attn.in_proj_weight)
+    assert not torch.equal(before_o, b.attn.out_proj.weight)
     assert float(b.attn.in_proj_bias.detach().abs().max()) == 0.0
     assert float(b.attn.out_proj.bias.detach().abs().max()) == 0.0
 # ONLY the final scorer layer carries the gain: rebuild at the same seed with
