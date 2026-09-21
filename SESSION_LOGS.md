@@ -12650,3 +12650,26 @@ line numbers are not — grep the date, then read that region):
   - Merged main: suite bare **1258 passed / 87 skipped / 0 failed**. XGR DONE 00:35Z: **0.5866**
     (n=3200, 2 ties); XTG9 launched 00:36Z at ~27 s/battle (12 battles in 5.4 min) → ETA
     ~00:40Z 09-22, then the queue prints `results/exit_gate_r5/READOUT.txt`.
+- 2026-09-21 (agent, idle-time builds while XTG9 runs; nothing beside the FP arm but tests) —
+  **THE R6 LAUNCH AND POST-FLEET MACHINERY IS BUILT AHEAD OF THE QUEUE.** (1) 400k SMOKE
+  configs for both trios (`configs/showdown_r6_trio_{a,b}_smoke400k.yaml`: the trio files with
+  exactly six keys changed — total_steps and lr_anneal_steps 400k together, seeds 904/912,
+  run_name, checkpoint_every 100k, eval_every 100k — the C6 marker kept so the smoke runs the
+  fleet's observation contract; the diff set pinned in `tests/test_r6_trio_configs.py`).
+  (2) `scripts/critic_calibration.py` (trio A's mechanism co-primary instrument): `--ceiling`
+  reads the run's own `ev_ceiling_unbiased` instead of the hardcoded §27 constant,
+  position-clustered bootstrap CIs on the by-turn r², `--label`, and `--compare A B` for the
+  unpaired per-bucket delta (`tests/test_critic_calibration_ci.py`). (3) THE POST-FLEET
+  READS: `configs/eval/r6_reads_offfp.yaml` (off FP@20: the PRIMARY per trio under the credit
+  line verbatim with the larger-of clause and the boundary convention, the object rule with
+  the 0.013 band and the re-drawn R5 floor E3WR, R3–R5; 14 arms, all `loop_breaker: true`,
+  usernames `r6<arm><role>` prefix-free against the inventory with rerun pairs; a per-arm
+  `arm_encoder` block: c6 on for R6 finals, off for the W re-draws, on + ALLOW_MISMATCH for
+  the mixed E9RF, disclosed), `configs/eval/r6_reads.yaml` (vs SH, LOCKED form, no loop
+  breaker, banked comparators read from disk), `scripts/monster_reads_pin.py --trio a|b`
+  (pins into the R6 files), `scripts/r6_reads_queue.sh` (waits for all six lanes' DONE, pins,
+  runs the FP arms sequentially with the per-arm encoder setting, then the vs-SH jobs, then
+  the readout; refuses beside a training lane or another FP process), and
+  `scripts/r6_reads_readout.py` with a pure, tested core (`credit`: strictly above both legs;
+  `se_clustered`; `primary` takes the larger se; `object_rule`) — `tests/test_r6_reads_prereg.py`
+  (6). Trio headers now state the loop-breaker form on every read arm. Tests: 12 + 15 passed.

@@ -1,0 +1,54 @@
+title: r6_reads
+status: "DRAFT 2026-09-21 (agent, under the six R6 rulings of 2026-09-20). REGISTERED when scripts/monster_reads_pin.py pins the six R6 finals. CREDITS NOTHING: the locked-protocol leg every headline-grade result owes; the off-FP@20 file carries the credit line and the object pick."
+journey_step: "10"
+credits_nothing: true
+results_dir: results/r6_reads
+
+# THE vs-SH HALF of the R6 reads (the off-FP@20 half is configs/eval/r6_reads_offfp.yaml).
+# Locked eval protocol (CLAUDE.md): final checkpoint, 3000 battles/seed, 3 seeds pooled,
+# ties as non-wins, deterministic policy, vs SimpleHeuristicsPlayer. Committees pool 3
+# batches x 3000 (the ens_width convention).
+#
+# POLICY FORM: the LOCKED form -- NO loop breaker -- so these numbers stay comparable with
+# every banked vs-SH number (the R5 W finals' in results/monster_reads/, the 100M A0
+# 0.78867, the 100M ENS3 0.82356). The loop breaker's own effect vs SH is a separate
+# descriptive question (RESULTS section 28); it is not mixed into this leg.
+#
+# ENCODER: R6 finals are c6-ON (the queue exports POKEMON_RL_ENCODER_C6=1 for every job
+# here); E9R mixes in the c6-off W finals under POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1 and
+# is disclosed as a mixed object.
+#
+# READS (unpaired two-proportion se; seeds do NOT pair battles):
+#   S1 GA pooled (n=9000) and GB pooled (n=9000) vs the R5 W finals' banked vs-SH
+#      (results/monster_reads/gw_*.final.json, read from disk at readout, never typed) and
+#      vs the 100M A0 0.78867: the R6 recipes' vs-SH level. DESCRIPTIVE: vs SH is the
+#      saturated axis (~0.79 greedy, ~0.82-0.83 committees), so a flat read is expected
+#      and is not evidence about either lever.
+#   S2 E3A, E3B, E6R, E9R pooled (n=9000 each) vs the banked R5 committees
+#      (results/monster_reads/e3w_b*.final.json etc.): the committee curve.
+#   S3 committee gain per trio: E3A - GA, E3B - GB.
+
+checkpoints:
+  a304: {path: TBD, sha256: TBD, step: TBD}
+  a312: {path: TBD, sha256: TBD, step: TBD}
+  a320: {path: TBD, sha256: TBD, step: TBD}
+  b328: {path: TBD, sha256: TBD, step: TBD}
+  b336: {path: TBD, sha256: TBD, step: TBD}
+  b344: {path: TBD, sha256: TBD, step: TBD}
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/monster_reads.yaml
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}   # copied from configs/eval/monster_reads.yaml
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}   # copied from configs/eval/monster_reads.yaml
+
+arms:
+  GA:  {kind: policy,   lanes: [a304, a312, a320], battles: 3000, chunks: 10}
+  GB:  {kind: policy,   lanes: [b328, b336, b344], battles: 3000, chunks: 10}
+  E3A: {kind: ensemble, members: [a304, a312, a320], batches: 3, battles: 3000, chunks: 10}
+  E3B: {kind: ensemble, members: [b328, b336, b344], batches: 3, battles: 3000, chunks: 10}
+  E6R: {kind: ensemble, members: [a304, a312, a320, b328, b336, b344], batches: 3, battles: 3000, chunks: 10}
+  E9R: {kind: ensemble, members: [a304, a312, a320, b328, b336, b344, w104, w112, w120], batches: 3, battles: 3000, chunks: 10}
+run_order: [GA, GB, E3A, E3B, E6R, E9R]
+
+comparators_banked:
+  a0_singles_100m_b0: {mean: 0.78867, n: 9000, source: results/search_s3_100m/a0_s1*.chunk*.json}
+  ens3_100m: {pooled: 0.82356, n: 9000, source: results/search_s3_100m/ens3_b*.chunk*.json}
+  r5_w_vs_sh: {source: results/monster_reads/gw_*.final.json and e3w_b*.final.json, note: "read from disk at readout by scripts/r6_reads_readout.py; never typed here"}

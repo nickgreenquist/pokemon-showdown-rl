@@ -1,0 +1,154 @@
+title: r6_reads_offfp
+status: "DRAFT 2026-09-21 (agent, under the six R6 rulings of 2026-09-20). REGISTERED the moment scripts/monster_reads_pin.py pins the six R6 finals (the queue does it). THE PRIMARY READ of configs/showdown_r6_trio_{a,b}.yaml (their credit line, verbatim below) AND the read that PICKS LADDER R6's OBJECT."
+journey_step: "10"
+credits_nothing: false
+results_dir: results/r6_reads_offfp
+
+# THE OFF-FOUL-PLAY READ of the R6 fleet (R6 prep plan section 2; the trio headers'
+# PRIMARY READ). Everything is off FP@20 (search_time_ms 20 PER ARM), n=3000 per arm,
+# GREEDY singles and committees, ONE session, SEQUENTIAL (FP's budget is wall-clock: a
+# second concurrent Foul Play weakens both opponents and flatters both seats), fresh
+# prefix-free usernames (scheme r6<arm><role>; rerun pairs for a poisoned pair).
+#
+# POLICY FORM: EVERY arm carries loop_breaker: true (ruling #1 of 2026-09-20 -- the R6
+# ladder object's form), the re-drawn R5 W floor included, so every comparison here is
+# matched in form; that form is a change relative to every BANKED number, which is one
+# more reason the floor is RE-DRAWN in this session and never quoted from the bank.
+#
+# ENCODER: the six R6 finals are c6-ON checkpoints (the fleet's observation contract;
+# rl/common/checkpoint.py refuses a c6 mismatch at load), the three R5 W finals are
+# c6-OFF. The queue sets POKEMON_RL_ENCODER_C6 PER ARM from the `c6` key below; E9RF
+# mixes both generations and is built under POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1 with
+# the flag ON (the six R6 members are the majority and the object's future is c6-on) --
+# a MIXED object, measured rather than assumed, and disclosed on its number.
+#
+# CHECKPOINT PINS: the six R6 finals are pinned BY scripts/monster_reads_pin.py --trio a /
+# --trio b the moment each trio's watchdog prints "DONE at step" for all three lanes
+# (lanes finish at DIFFERENT steps; a name is never guessed). The three W finals are the
+# monster_reads pins, copied verbatim.
+#
+# READS, stated before any arm runs. Unpaired two-proportion se at p~0.55:
+# se_diff ~0.0128 arm-vs-arm at 3000 vs 3000; ~0.0074 pooled 9000 vs 9000.
+#   R1 THE PRIMARY, per trio (the trio headers' credit line): mean over the trio's three
+#      greedy finals (GA304F GA312F GA320F -> pooled n=9000; GB328F GB336F GB344F likewise)
+#      MINUS the mean over the three re-drawn R5 W finals (GW104R GW112R GW120R, pooled
+#      n=9000). se_diff = the LARGER of the pooled-binomial se_diff and the seed-clustered
+#      se_diff (k=3 vs k=3, from the per-lane rates at read time). CREDIT LINE, verbatim
+#      (CLAUDE.md): "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where
+#      se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff,
+#      the latter computed from the per-seed finals at read time." Boundary: a delta
+#      EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met. Cells (trio headers): X-POS
+#      credited; X-NEG (<= -0.025 and |delta| >= 2*se_diff) credited negative; X-FLAT null,
+#      closes nothing. C6 is common-mode and confounded with each lever by construction
+#      (no c6-off R6 arm) -- stated, uncredited.
+#   R2 THE LADDER OBJECT (LADDER R6): candidates E3AF, E3BF, E6RF, E9RF; FLOOR E3WR (the
+#      R5 committee, re-drawn in this session under the same form). Rule: the candidate
+#      with the highest point estimate; if the top two are within 1 se_diff (0.013), the
+#      LARGER committee; if no candidate reaches E3WR - 0.013, the R5 committee stays the
+#      object. Committee cost at ladder speed is 1-30 ms/decision for 3-9 members.
+#   R3 COMMITTEE GAIN PER TRIO: E3AF - mean(GA*), E3BF - mean(GB*), E3WR - mean(GW*R),
+#      each 3000 vs 9000 -- additive with the lever or not (R5's W trio read +0.0417 over
+#      its 100M floor; the gain is what the committee monetises).
+#   R4 MEMBERS: E9RF vs E6RF (do the c6-off W finals still add inside a c6-on committee?)
+#      and E6RF vs the better ENS3.
+#   R5 (descriptive) the six singles' spread within each trio, as the seed-clustered se's
+#      own witness.
+#
+# DISCLOSURES THAT TRAVEL WITH EVERY FP@20 NUMBER, FOREVER (CLAUDE.md): the equivalence
+# test is weakly powered, and the point estimate flatters us. The budget is NAMED in every
+# quote. FP@20 is an instrument, not a rung; nothing here is a ladder projection in either
+# direction. The whole block runs on an IDLE box (no training lane, no second FP process);
+# anything else that ran beside an arm is logged by the queue and disclosed in the readout.
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  a304: {path: TBD, sha256: TBD, step: TBD}
+  a312: {path: TBD, sha256: TBD, step: TBD}
+  a320: {path: TBD, sha256: TBD, step: TBD}
+  b328: {path: TBD, sha256: TBD, step: TBD}
+  b336: {path: TBD, sha256: TBD, step: TBD}
+  b344: {path: TBD, sha256: TBD, step: TBD}
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/monster_reads_offfp.yaml (pinned there by scripts/monster_reads_pin.py --trio w)
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}   # copied from configs/eval/monster_reads_offfp.yaml
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}   # copied from configs/eval/monster_reads_offfp.yaml
+
+usernames:
+  scheme: "r6<arm><role>. The prefix `r6` is issued to NO existing name in configs/eval/*.yaml (checked 2026-09-21: 0 names start with r6 or rs; training seats are as2s...), so every name here is prefix-free against the inventory; pairwise prefix-freeness is re-checked by scripts/r6_reads_queue.sh before the first arm launches. A killed arm's pair is poisoned for hours -- re-run it on its rerun pair, never on the original."
+  never_reuse: [c4, r4anchor, ch3, ch4, ch5r1, ch5r2, ch5c1, fplad, s3fp, blfp, eof, ew, mr, xg]
+  pairs:
+    GA304F: {seat: r6ga304seat, fp: r6ga304bot}
+    GA312F: {seat: r6ga312seat, fp: r6ga312bot}
+    GA320F: {seat: r6ga320seat, fp: r6ga320bot}
+    GB328F: {seat: r6gb328seat, fp: r6gb328bot}
+    GB336F: {seat: r6gb336seat, fp: r6gb336bot}
+    GB344F: {seat: r6gb344seat, fp: r6gb344bot}
+    E3AF:   {seat: r6e3aseat,   fp: r6e3abot}
+    E3BF:   {seat: r6e3bseat,   fp: r6e3bbot}
+    E6RF:   {seat: r6e6rseat,   fp: r6e6rbot}
+    E9RF:   {seat: r6e9rseat,   fp: r6e9rbot}
+    GW104R: {seat: r6gw104seat, fp: r6gw104bot}
+    GW112R: {seat: r6gw112seat, fp: r6gw112bot}
+    GW120R: {seat: r6gw120seat, fp: r6gw120bot}
+    E3WR:   {seat: r6e3wseat,   fp: r6e3wbot}
+  rerun_pairs:
+    GA304F: {seat: r6ga304r2seat, fp: r6ga304r2bot}
+    GA312F: {seat: r6ga312r2seat, fp: r6ga312r2bot}
+    GA320F: {seat: r6ga320r2seat, fp: r6ga320r2bot}
+    GB328F: {seat: r6gb328r2seat, fp: r6gb328r2bot}
+    GB336F: {seat: r6gb336r2seat, fp: r6gb336r2bot}
+    GB344F: {seat: r6gb344r2seat, fp: r6gb344r2bot}
+    E3AF:   {seat: r6e3ar2seat,   fp: r6e3ar2bot}
+    E3BF:   {seat: r6e3br2seat,   fp: r6e3br2bot}
+    E6RF:   {seat: r6e6rr2seat,   fp: r6e6rr2bot}
+    E9RF:   {seat: r6e9rr2seat,   fp: r6e9rr2bot}
+    GW104R: {seat: r6gw104r2seat, fp: r6gw104r2bot}
+    GW112R: {seat: r6gw112r2seat, fp: r6gw112r2bot}
+    GW120R: {seat: r6gw120r2seat, fp: r6gw120r2bot}
+    E3WR:   {seat: r6e3wr2seat,   fp: r6e3wr2bot}
+
+# `seat` (not `lanes`) on greedy_seat; `lanes` (not `seat`) on ensemble_seat -- both
+# directions are asserted by scripts/ch3_fp_h2h.py. `loop_breaker: true` on every arm
+# (ruling #1). The queue reads `arm_encoder` below for the per-arm C6 setting; the arm
+# dicts themselves carry only keys scripts/ch3_fp_h2h.py knows.
+arms:
+  GW104R: {kind: greedy_seat,   seat: w104, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6gw104seat, fp_username: r6gw104bot}
+  GW112R: {kind: greedy_seat,   seat: w112, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6gw112seat, fp_username: r6gw112bot}
+  GW120R: {kind: greedy_seat,   seat: w120, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6gw120seat, fp_username: r6gw120bot}
+  GA304F: {kind: greedy_seat,   seat: a304, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6ga304seat, fp_username: r6ga304bot}
+  GA312F: {kind: greedy_seat,   seat: a312, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6ga312seat, fp_username: r6ga312bot}
+  GA320F: {kind: greedy_seat,   seat: a320, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6ga320seat, fp_username: r6ga320bot}
+  GB328F: {kind: greedy_seat,   seat: b328, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6gb328seat, fp_username: r6gb328bot}
+  GB336F: {kind: greedy_seat,   seat: b336, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6gb336seat, fp_username: r6gb336bot}
+  GB344F: {kind: greedy_seat,   seat: b344, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6gb344seat, fp_username: r6gb344bot}
+  E3WR:   {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6e3wseat, fp_username: r6e3wbot}
+  E3AF:   {kind: ensemble_seat, lanes: [a304, a312, a320], battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6e3aseat, fp_username: r6e3abot}
+  E3BF:   {kind: ensemble_seat, lanes: [b328, b336, b344], battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6e3bseat, fp_username: r6e3bbot}
+  E6RF:   {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6e6rseat, fp_username: r6e6rbot}
+  E9RF:   {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344, w104, w112, w120], battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: r6e9rseat, fp_username: r6e9rbot}
+
+# Per-arm encoder setting for the queue (the checkpoint loader enforces it): c6 on for
+# every arm holding an R6 final, off for the pure-W arms, mixed for E9RF.
+arm_encoder:
+  GW104R: {c6: false}
+  GW112R: {c6: false}
+  GW120R: {c6: false}
+  E3WR:   {c6: false}
+  GA304F: {c6: true}
+  GA312F: {c6: true}
+  GA320F: {c6: true}
+  GB328F: {c6: true}
+  GB336F: {c6: true}
+  GB344F: {c6: true}
+  E3AF:   {c6: true}
+  E3BF:   {c6: true}
+  E6RF:   {c6: true}
+  E9RF:   {c6: true, allow_mismatch: true}
+
+# The floor and the primary first, so an early stop still leaves the credit read; the
+# committees (the object pick) after.
+run_order: [GW104R, GW112R, GW120R, GA304F, GA312F, GA320F, GB328F, GB336F, GB344F, E3WR, E3AF, E3BF, E6RF, E9RF]
+
+comparators_banked:
+  r5_w_finals_offfp20_2026_09_15: {source: results/monster_reads_offfp/gw1*.json and e3wf.json, note: "NEVER differenced against: a different session and a different policy form (no loop breaker). The same-session re-draw GW*R / E3WR is the only comparator."}

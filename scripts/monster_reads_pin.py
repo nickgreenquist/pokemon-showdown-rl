@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """Pin a monster trio's FINAL checkpoints into the two monster_reads pre-regs.
 
-    python scripts/monster_reads_pin.py --trio l      # l128 l136 l144
-    python scripts/monster_reads_pin.py --trio w      # w104 w112 w120
+    python scripts/monster_reads_pin.py --trio l      # l128 l136 l144  (monster_reads*.yaml)
+    python scripts/monster_reads_pin.py --trio w      # w104 w112 w120  (monster_reads*.yaml)
+    python scripts/monster_reads_pin.py --trio a      # a304 a312 a320  (r6_reads*.yaml, 2026-09-21)
+    python scripts/monster_reads_pin.py --trio b      # b328 b336 b344  (r6_reads*.yaml)
 
 For each lane: refuse unless (a) runs/train_watchdog.log carries the lane's
 "DONE at step" line, (b) no `rl.train` process for that run dir is alive,
@@ -30,8 +32,17 @@ TRIOS = {
     "w": [("w104", "runs/showdown_monster200m_w_s104"),
           ("w112", "runs/showdown_monster200m_w_s112"),
           ("w120", "runs/showdown_monster200m_w_s120")],
+    # R6 (2026-09-21): the two R6 trios, pinned into the r6_reads pre-regs.
+    "a": [("a304", "runs/r6_trio_a_s304"),
+          ("a312", "runs/r6_trio_a_s312"),
+          ("a320", "runs/r6_trio_a_s320")],
+    "b": [("b328", "runs/r6_trio_b_s328"),
+          ("b336", "runs/r6_trio_b_s336"),
+          ("b344", "runs/r6_trio_b_s344")],
 }
-CONFIGS = ["configs/eval/monster_reads.yaml", "configs/eval/monster_reads_offfp.yaml"]
+MONSTER_CONFIGS = ["configs/eval/monster_reads.yaml", "configs/eval/monster_reads_offfp.yaml"]
+R6_CONFIGS = ["configs/eval/r6_reads.yaml", "configs/eval/r6_reads_offfp.yaml"]
+CONFIGS_BY_TRIO = {"l": MONSTER_CONFIGS, "w": MONSTER_CONFIGS, "a": R6_CONFIGS, "b": R6_CONFIGS}
 HORIZON = 200_000_000
 WATCHDOG_LOG = "runs/train_watchdog.log"
 
@@ -93,7 +104,8 @@ def main():
         pins[lane] = (path, sha256(path), step)
         print(f"{lane}: {path} step={step} sha256={pins[lane][1]}")
 
-    for cfg in CONFIGS:
+    configs = CONFIGS_BY_TRIO[args.trio]
+    for cfg in configs:
         text = open(cfg).read()
         for lane, (path, sha, step) in pins.items():
             placeholder = re.compile(rf"^(  {lane}: )\{{path: TBD, sha256: TBD, step: TBD\}}", re.M)
@@ -111,13 +123,14 @@ def main():
         open(cfg, "w").write(text)
 
     if args.commit:
-        subprocess.run(["git", "add", *CONFIGS], check=True)
-        msg = (f"monster reads: pin the {args.trio.upper()} trio finals (sha256, real step names)\n\n"
+        subprocess.run(["git", "add", *configs], check=True)
+        family = "R6 reads" if args.trio in ("a", "b") else "monster reads"
+        msg = (f"{family}: pin the {args.trio.upper()} trio finals (sha256, real step names)\n\n"
                "Mechanical pin by scripts/monster_reads_pin.py at the moment the trio's\n"
                "watchdog printed DONE for all three lanes; no other byte of either\n"
                "pre-reg changed.\n\n"
                "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>\n"
-               "Claude-Session: https://claude.ai/code/session_01Rz5TMHg1uVyb6emrgq7rXn")
+               "Claude-Session: https://claude.ai/code/session_015BnxVk5jpuc9MZ9pzCEqeS")
         r = subprocess.run(["git", "commit", "-q", "-m", msg], capture_output=True, text=True)
         print(r.stdout.strip() or r.stderr.strip() or "committed")
 

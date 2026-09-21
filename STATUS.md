@@ -69,7 +69,7 @@ you may cite:
 
 ## Next actions
 1. **R6 PREP — DONE 09-20/21: the action gap banked (§33), 4.11's heads + loss BUILT (unsmoked), the C6 RUST
-   PORT LANDED (P-1 zero mismatches, flag on: ruling 2 met, C6 rides R6), the R6 trio configs DRAFTED with the launcher's C6 export, and R7's ARCHITECTURE GATE READ: the attention screen DOES NOT CLEAR (§34: +0.0179 at 6.52×, flat reveal profile = generic capacity; no R7 attention trio).** NEXT, after QUEUE DONE: the 4.12 screen, the 400k smokes, the fleet (maintainer launches), then the split-schedule ladder.
+   PORT LANDED (P-1 zero mismatches, flag on: ruling 2 met, C6 rides R6), the R6 trio configs DRAFTED with the launcher's C6 export, and R7's ARCHITECTURE GATE READ: the attention screen DOES NOT CLEAR (§34: +0.0179 at 6.52×, flat reveal profile = generic capacity; no R7 attention trio).** NEXT, after QUEUE DONE: the 4.12 screen, the 400k smokes (`configs/showdown_r6_trio_*_smoke400k.yaml`), the fleet (maintainer launches); the post-fleet reads are BUILT (`scripts/r6_reads_queue.sh`, `configs/eval/r6_reads*.yaml`); then the split-schedule ladder.
 2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
    search idea must argue against the override regression (−0.48 win rate per unit override
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.
