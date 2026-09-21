@@ -309,6 +309,24 @@ assert cfg_a["trunk"] == "attention"
 # the SAME order. A paired delta is meaningless otherwise.
 assert np.array_equal(rows["battle_ids"], rows_a["battle_ids"])
 assert np.array_equal(rows["free"], rows_a["free"])
+
+# THE REAL CONSUMER PATH: eval_checkpoint.py rebuilds a checkpoint from its
+# OWN serialised config -- Config(**ckpt["config"]) -> make_agent -> load. A
+# trunk that round-trips through a hand-built Config but not through the saved
+# one is a trunk nobody can evaluate later.
+from rl.common.checkpoint import load_checkpoint
+from rl.common.config import Config
+from eval_checkpoint import _load_showdown_agent
+
+for name, want in (("t_attn", "EntityAttentionNet"),
+                   ("t_ent", "EntityDeepSetsNet"),
+                   ("t_mlp", "Sequential")):
+    ck = load_checkpoint(f"runs/{name}/checkpoint.pt")
+    cfg = Config(**ck["config"])
+    rebuilt = _load_showdown_agent(ck, cfg)
+    assert type(rebuilt.actor).__name__ == want, (name, type(rebuilt.actor).__name__)
+    out = rebuilt.actor(torch.rand(2, OBS_DIM))
+    assert out.shape == (2, 10), (name, out.shape)
 print("CHILD OK")
 """
 
