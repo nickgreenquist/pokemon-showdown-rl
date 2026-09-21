@@ -12673,3 +12673,14 @@ line numbers are not — grep the date, then read that region):
   `scripts/r6_reads_readout.py` with a pure, tested core (`credit`: strictly above both legs;
   `se_clustered`; `primary` takes the larger se; `object_rule`) — `tests/test_r6_reads_prereg.py`
   (6). Trio headers now state the loop-breaker form on every read arm. Tests: 12 + 15 passed.
+  - **LADDER R6 PRE-REG DRAFTED** (`docs/proposals/ladder_r6.draft.yaml`, R5's file as the
+    template, NOT under the test glob until it moves): the object as rule R2's placeholder
+    (M-R6-1 filled from the reads readout, never chosen), the SPLIT SCHEDULE as four
+    supervisor launches with cumulative targets 50/100/150/200 on four different days in at
+    least two time-of-day bands (no code change: `--battles` is cumulative, the JSONL is the
+    truth), the stopping rule with unchanged keys (rd ≤ 40, n ≥ 200, `max_battles_total` 250
+    for one licensed fifth session) and split-schedule semantics stated, the loop breaker as
+    the policy form on every number, the encoder cases (c6 on / off for the floor / mixed
+    with ALLOW_MISMATCH), LG-2..LG-9 per session, the calendar-drift disclosure and the
+    opponent census (the readout already computes the census), the barred-language list
+    plus R6's tells, and an empty `ratified_decisions` with M-R6-1..7 owed.

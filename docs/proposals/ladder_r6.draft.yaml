@@ -1,0 +1,217 @@
+# =====================================================================
+# LADDER R6 (DRAFT, 2026-09-21) — GEN1 LADDER #5, THE R6 OBJECT UNDER THE SPLIT SCHEDULE
+# Status: DRAFT (agent). Ratification path = R5's: `git mv` to configs/eval/ladder_r6.yaml,
+#   this line replaced, the M-R6-n markers cleared, rulings recorded in ratified_decisions
+#   at the foot. NOT LAUNCHABLE: the object does not exist yet (the R6 fleet has not run) and
+#   the maintainer has not ruled M-R6-1..7. tests/test_ladder.py runs on configs/eval/ladder_*
+#   only, so this draft is untested until it moves; the invariants it will have to meet are
+#   named in-line (glicko_rd_max 40, min_battles 200, max_battles_total > min_battles).
+#
+# WHAT THIS IS: R5 (ratified 2026-09-15; ENS3 of the W trio, greedy, agent-launched, ONE
+#   continuous run: GXE 73.9 / Glicko-1 1697 +/- 25 / Elo 1457, n=200, LISTED) with THREE
+#   changes, all ruled on 2026-09-20 ("agree with all"; STATUS, R6 prep plan section 5):
+#   (1) the OBJECT is the committee rule R2 of configs/eval/r6_reads_offfp.yaml picks among
+#       ENS3-A, ENS3-B, ENS6, ENS9 against the re-drawn R5 committee floor (M-R6-1, filled
+#       from that readout, never chosen);
+#   (2) the POLICY FORM carries the LOOP BREAKER (ruling #1; `loop_breaker: true`,
+#       rl/common/loop_breaker.py, threshold 4) -- a policy-form change said on every number;
+#   (3) the SCHEDULE is SPLIT (ruling #4; docs/CLEANUP.md L1): FOUR SESSIONS of ~50 battles at
+#       different hours and on different days, its own stopping rule, an explicit
+#       calendar-drift disclosure and the repeat-opponent census in the readout.
+#   Everything else R4/R5 settled is INHERITED VERBATIM: /timer on, pacing, G-BLIND, the
+#   do-not-kill rule, the resume rule, the barred-language list, the profile endpoint as the
+#   only rating source, aggregators, the set-pool pin and its 24-h re-check, and the
+#   comparison ruling (STANDALONE DESCRIPTIVE MEASUREMENT; no R1..R6 delta is an effect).
+#
+# THE GOAL IT SERVES (maintainer, 2026-09-15): "break top500 with self play" -- R5 LISTED
+#   (Elo 1457 vs a 1354 cutoff). R6 measures whether the R6 object sits higher; it does not
+#   project a rating (vs-SH and off-FP numbers are NOT ladder numbers; CLAUDE.md).
+#
+# journey_step: 11 ("Final gen1 ladder"), reached via 10 repeated under the 2026-09-20
+#   ratification of docs/proposals/R6_PREP_PLAN_2026-09-19.md. Exit condition, verbatim
+#   (JOURNEY.md step 11): "The number the story ends on." ... "Decide before launching whether
+#   the laddered object is greedy or searched." DECIDED: greedy committee with the loop
+#   breaker, no search (rulings #1 and #3).
+#
+# RULINGS (M-R6-n), each with a recommended default; "go with the recs" clears 2-7 and
+#   M-R6-1 is filled from the reads readout:
+#   M-R6-1 OBJECT -- filled from results/r6_reads_offfp/READOUT.txt rule R2 verbatim (the
+#          candidate with the highest point estimate off FP@20; top two within 0.013 -> the
+#          larger committee; none above the floor E3WR - 0.013 -> the R5 committee stays).
+#          The maintainer ratifies the RULE's output, not a choice. Both FP@20 disclosures
+#          travel with the selection number; nothing about it is a credit.
+#   M-R6-2 ACCOUNT -- RECOMMENDED: reuse nickgen1rbrlbot (R5 M2 stands: multiple accounts
+#          are against the rules and could get the IP banned). The account carries R1 + R4
+#          + R5's 600 rated games; the headline discloses the warm-started rating and the
+#          cumulative-profile denominators exactly as R4/R5 did.
+#   M-R6-3 SCHEDULE -- RULED SPLIT (2026-09-20). RECOMMENDED SHAPE: four sessions with
+#          cumulative targets 50 / 100 / 150 / 200, each a separate supervisor launch
+#          (`scripts/ladder_supervise.sh <arm> <cumulative target> <prereg>`: --battles is
+#          cumulative and the JSONL is the truth, so no code changes), on FOUR DIFFERENT
+#          DAYS and at least two distinct time-of-day bands (e.g. a weekday evening, a
+#          weekday morning, a weekend afternoon, a weekend night, local time), no two
+#          sessions closer than 12 h, the whole run inside 14 calendar days. Each session
+#          ends at its cumulative target (~3-4 h at R5's ~230 s/battle); session 4 ends
+#          under the stopping rule below or at max_battles_total. Box: no fleet, no eval,
+#          local Node STOPPED, a caffeinate bound to the supervisor (R5 M5).
+#   M-R6-4 STOPPING RULE for a split schedule -- RECOMMENDED: keys unchanged (rd <= 40 AND
+#          n >= 200 of THIS run's logged battles, read at the profile at the END of the
+#          last session; tests/test_ladder.py pins both values), with the split-schedule
+#          semantics stated: rd GROWS between sessions by inactivity, so it is recorded at
+#          every session's end (the JSONL carries the pre-battle rating per battle) and the
+#          rule is only evaluated once n >= 200; if rd > 40 at n=200, the licensed
+#          continuation is a FIFTH session to n=250 (max_battles_total 250 -- never moves);
+#          if still unmet, the run stops at 250 and the readout says so. G-BLIND: no board
+#          polling before the cumulative n reaches 200 (rating snapshots at session ends
+#          come from the profile, not the board).
+#   M-R6-5 DECISION CAP -- RECOMMENDED band [1, 30] ms for a 3-9 member greedy committee
+#          with the loop breaker (R5 smoke stamped 2.838 ms for ENS3; the breaker adds a
+#          dictionary lookup per turn). The upper bound is the VOID (e) threshold, as R4/R5;
+#          FINALIZED from the LG-6 smoke stamp at ratification.
+#   M-R6-6 POLICY FORM -- RULED (loop breaker ON). RECOMMENDED: threshold 4 (the default
+#          the R5 evals used); every quoted number carries "greedy committee, loop breaker
+#          on"; the comparison ruling gains `policy_form_loop_breaker` in its confound list;
+#          the readout reports `loop/*` counters (how often it fired) beside the outcome.
+#   M-R6-7 ANCHOR BATTERY -- RECOMMENDED: the ladder run does not wait on the battery (R4
+#          precedent); the README row WAITS on vs-SH (locked, results/r6_reads/) + FP@20
+#          h2h (results/r6_reads_offfp/) + the BC-clone h2h (500; a leg that does not exist
+#          reads PENDING and is never dropped).
+#
+# ENCODER (new in R6; the checkpoint loader enforces it): an R6 committee is c6-ON, so the
+#   launch shell exports POKEMON_RL_ENCODER_C6=1 beside V2/IDS (LG-3); if M-R6-1 lands on the
+#   R5 committee (the floor case) the flag stays UNSET; if it lands on ENS9 (mixed) the shell
+#   also exports POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH=1 and the object is disclosed as mixed
+#   on every number. The LG-6 smoke's provenance line must show encoder_c6 matching the
+#   object's generation -- a mismatch is an abort before the first rated game.
+#
+# LAUNCH GATES (R5's LG-2..LG-9, adapted; each checked and its evidence line quoted in the
+#   readout): LG-2 the account's profile read BEFORE session 1 and BEFORE every later session
+#   (any activity between sessions that is not ours is VOID (d) contamination); LG-3 .env
+#   PS_USERNAME/PS_PASSWORD present, the encoder exports above; LG-4 pytest tests/test_ladder.py
+#   green on the ratified file; LG-5 set-pool re-check within 24 h of session 1; LG-6
+#   --local-smoke >= 2 battles on the object: kind=ensemble, `lanes` with every member sha,
+#   obs_dim 828, encoder_c6 as expected, loop_breaker in the provenance, mean_decision_ms
+#   stamped; LG-7 clean tree, docs committed, LOCAL SERVER STOPPED, nothing else on the box,
+#   caffeinate bound to the supervisor -- re-checked before EVERY session; LG-8 build items:
+#   BI-R6-1 the readout's split-schedule table (per-session n, dates, hours, rd at session
+#   end, rating at session end) and the calendar-drift disclosure -- scripts/ladder_readout.py
+#   already computes the distinct-opponent and rematch census; LG-9 the agent reads the
+#   startup lines within 90 s of EVERY session's launch (kind, userid character by character,
+#   member shas, obs_dim, encoder_c6, the starting rating showing the PARKED values).
+#
+# BABYSITTING (agent), per session: CPU-time deltas + socket checks hourly;
+#   scripts/ladder_supervise.sh relaunches on exit within a session; scripts/ladder_watchdog.sh
+#   kills a hung runner; ONE backup per session (scripts/backup_ladder.sh); readout via
+#   scripts/ladder_readout.py after session 4 (interim reads after sessions 1-3 are LOG reads,
+#   never quoted -- G-BLIND). Do-not-kill: a kill mid-battle forfeits a live rated game.
+# ---------------------------------------------------------------------
+
+primary_arm: R6E
+results_dir: results/ladder
+save_replays: results/ladder/replays_r6
+max_battles_total: 250           # M-R6-4: the fifth-session ceiling; never moves
+pacing:
+  sleep_between_battles_sec: 5
+  start_timer: true              # every seat sends /timer on (CLAUDE.md landmine)
+  board_poll_every_battles: 10   # polling starts ONLY at cumulative min_battles (G-BLIND)
+
+checkpoints:
+  # M-R6-1: the members are the R2 pick's lanes, pinned from configs/eval/r6_reads_offfp.yaml
+  # (scripts/monster_reads_pin.py --trio a / b wrote the real names and sha256s there). Only
+  # the lanes the object uses are listed at ratification; the placeholders below are the six
+  # R6 finals and the three R5 W finals so any of the four candidates can be expressed.
+  a304: {path: TBD, sha256: TBD}
+  a312: {path: TBD, sha256: TBD}
+  a320: {path: TBD, sha256: TBD}
+  b328: {path: TBD, sha256: TBD}
+  b336: {path: TBD, sha256: TBD}
+  b344: {path: TBD, sha256: TBD}
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7}
+
+arms:
+  R6E:
+    kind: ensemble
+    lanes: [TBD]                   # M-R6-1: rule R2's pick, verbatim from results/r6_reads_offfp/READOUT.txt
+    loop_breaker: true             # M-R6-6 RULED 2026-09-20 (ruling #1); a POLICY-FORM change said on every number
+    loop_breaker_threshold: 4
+    display_name: nickgen1rbrlbot  # M-R6-2 recommended: reuse; identity enforced in code
+
+stopping_rule:
+  glicko_rd_max: 40              # cross-run invariant; hardcoded in tests/test_ladder.py
+  min_battles: 200               # THE BINDING HALF; n counts THIS RUN's logged battles across all sessions
+  split_schedule_note: "M-R6-4: evaluated only once cumulative n >= 200, at the profile at the END of the last session; rd is recorded at every session's end and GROWS between sessions by inactivity (the calendar-drift disclosure); unmet at n=200 -> one licensed fifth session to 250, then stop and say so"
+  source: "profile endpoint (pokemonshowdown.com/users/<userid>.json)"
+
+schedule:                        # M-R6-3 RULED SPLIT (2026-09-20); shape recommended
+  plan: SPLIT_FOUR_SESSIONS
+  session_targets: [50, 100, 150, 200]   # CUMULATIVE --battles per supervisor launch
+  fifth_session_target: 250      # only under the stopping rule's licensed continuation
+  different_days: true
+  min_gap_between_sessions_h: 12
+  time_of_day_bands_required: 2  # of {weekday evening, weekday morning, weekend afternoon, weekend night}, local time
+  whole_run_within_days: 14
+  session_plan_h: "3 - 4 each at ~230 s/battle (R1/R5 committee references)"
+  do_not_kill: "Killing mid-battle FORFEITS A LIVE RATED GAME against a human. An early stop is an operational abort under G-BLIND, logged with cause and battle index."
+  resume: "within a session: relaunch with the SAME cumulative --battles; the JSONL is the truth; a death costs one battle"
+  box: "no fleet, no eval, local Node STOPPED, a caffeinate bound to the supervisor, re-checked before EVERY session"
+  calendar_drift_disclosure: "the readout tables per-session dates, local hours, n, rd and rating at session end, and names the drift as a confound beside opponent-pool overlap (CLEANUP L1)"
+
+credit_line_not_applicable: "R6 credits nothing and contains no arm pair a credit could attach to. For the record the line reads: 'a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time.' The R6 levers' credits live in configs/eval/r6_reads_offfp.yaml R1, off FP@20, never here."
+
+aggregators:
+  across_lanes: "NONE at the ladder -- one committee, one arm; members are averaged in log-prob space inside the seat (rl/search/ensemble.py)"
+  primary: "the server's own GXE / Glicko-1 / Elo off the profile; we compute nothing"
+  descriptive_rates: "unweighted pooled proportion over ALL rated battles in the denominator named beside the rate; per-session rates are DIAGNOSTIC (the sessions are not matched draws)"
+  ties: "ties count as non-wins in every rate; the server's tie handling for the RATING is the server's and is reported as found"
+
+barred_language:                 # R5's list plus the R6 tells
+  - "better than R5"
+  - "worse than R5"
+  - "improved on the ladder"
+  - "any arithmetic difference between any two runs' GXE, Glicko or Elo presented as a quantity"
+  - "the outcome heads helped on the ladder"
+  - "the batch lever helped on the ladder"
+  - "the loop breaker helped on the ladder"
+  - "our best model"
+  - "trend"
+  - "trajectory"
+  - "on track for top-500"
+  - "credited (of any ladder number)"
+  - "any (off-FP or vs-SH) <-> ladder mapping, fitted or narrated"
+  - "session 1 vs session 4 as an effect of anything"
+
+set_pool_pin:                    # VOID (c) -- LG-5 re-check within 24 h of session 1
+  vendored_commit: 59da482eabc87245eb62313593e468e81ca537d9
+  data_json_sha256: 85fc2743d9dba5a0dc996f8991be5ec07bcba4818555c3466d4da75eafe5380f
+  teams_ts_sha256: 277d5a375213b7b0e06f58a34058fb0576dc90d8a5e41eecf54d7339ea07c059
+  rerun_before_launch: "LG-5, within 24 h of session 1; re-verified before session 4 (a 14-day window is long enough for an upstream change)"
+
+expected_instrument_values:
+  mean_decision_ms_band: [1, 30]   # M-R6-5; VOID (e) threshold at the upper bound; FINALIZED from the LG-6 smoke stamp
+  provenance_keys_exact: [kind, obs_dim, encoder_v2, encoder_ids, encoder_c6, lanes, sha256, loop_breaker]
+  max_concurrent_live_battles_expected: 1
+  sec_per_battle_band: [190, 300]  # MEDIAN EXCLUDING GAPS > 900 s, per session
+  mean_turns_band: [18, 32]
+  loop_breaker_fired_frac_band: [0.0, 0.05]   # DIAGNOSTIC: RESULTS 28 measured ~3% turn-cap stalls under the deterministic protocol
+  bands_are_diagnostic: "every band except mean_decision_ms_band is DIAGNOSTIC -- a breach is disclosed in the readout and voids nothing"
+
+comparison_ruling:
+  verdict: "R6 IS A STANDALONE DESCRIPTIVE MEASUREMENT. NO R1/R3/R4/R5/R6 DELTA MAY BE QUOTED AS AN EFFECT, IN ANY DIRECTION."
+  confounds_moved_at_once: [policy_kind, policy_form_loop_breaker, encoder_c6, training_scale, training_recipe, account_path_dependence, calendar_and_pool, split_schedule, opponent_memory, launch_ownership]
+  multi_run_tables: "columns under CONFOUNDED -- NOT AN EFFECT with the confound list adjacent, exactly as R4/R5"
+
+instruments:
+  runner: scripts/ladder.py
+  supervisor: scripts/ladder_supervise.sh
+  watchdog: scripts/ladder_watchdog.sh
+  classifier: scripts/ladder_classify.py
+  readout: scripts/ladder_readout.py          # BI-R6-1: the per-session table + calendar-drift line
+  move_audit: scripts/ladder_move_audit.py
+  backup: scripts/backup_ladder.sh
+  tests: tests/test_ladder.py
+  r5_provenance: readouts/LADDER_R5_READOUT.md
+  object_selection: configs/eval/r6_reads_offfp.yaml   # rule R2; results/r6_reads_offfp/READOUT.txt
+
+ratified_decisions: {}           # M-R6-1..7 OWED; nothing here is ruled
