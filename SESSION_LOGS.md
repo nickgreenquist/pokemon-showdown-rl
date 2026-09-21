@@ -12765,3 +12765,84 @@ line numbers are not — grep the date, then read that region):
     (i) yes; (ii) both together if (i) is granted (one commit, both headers final before either
     launches), else A early by the maintainer and B in the morning.
   - `HANDOFF.md` folded to the stub; this entry and STATUS's RUNNING line carry it.
+- 2026-09-21 (cont. 3, agent; maintainer: *"are you confident all the work we are building towards
+  for this next large train for a Ladder6 is going to work? do you need some extra subagent reviews
+  on anything?"*) — **TWO OPUS PRE-LAUNCH REVIEWS (read-only, ~12 min each, beside XTG9), FIVE
+  CONFIRMED DEFECTS FIXED BEFORE THE SMOKES, ONE RULING PUT TO THE MAINTAINER.** Rulings taken
+  earlier this session: no box prep (the launcher's caffeinate is the fix: *"I've trained 5 massive
+  jobs using my terminal and caffeinate"*); the agent launches nothing that runs 24 h+, the
+  maintainer launches the fleet, both trios TOGETHER once the verdict is recorded, in the morning if
+  late; the agent arms the reads queue.
+  - **Review 1 (trio A's lever, end to end) — VERIFIED CLEAN:** the engine collector harvests ONE
+    seat (`rl/train.py` refuses `harvest_both_seats` on engine mode), obs and reward are the
+    learner's, `raw["reward"]` is the terminal ±1/0; targets stay row-aligned through the buffer and
+    the minibatch permutation; the obs offsets `outcome_targets.py` reads were checked against the
+    REAL Rust encoder under V2+IDS+C6 on win/loss/tie; the aux gradient reaches the critic trunk;
+    theta0 anchors the head; the EV metric is real with a zero-variance guard (a dead head prints
+    ~0); resume round-trips the head; `ch3_eval` / `ch3_fp_h2h` build the agent from the
+    checkpoint's own config. **ONE CONFIRMED DEFECT:** the aux term sat INSIDE the loss whose
+    gradient is clipped at 0.5, and in this recipe the clip BINDS on 99.93–99.95% of minibatches
+    (W lanes: `loss/grad_norm` mean 2.30–2.36 vs `max_grad_norm` 0.5, so every step is rescaled by
+    ~0.22) — any added term raises ‖g‖ and shrinks the ACTOR's step by the same fraction (estimated
+    1–8%), so trio A's read would have differenced representation AND learning rate. D25's head and
+    the priv head are placed after the clip on purpose; 4.11 was the first inside. **FIXED
+    `839ba1f`:** the aux gradient is taken by `torch.autograd.grad` w.r.t. the critic params after
+    the clip read, scaled by the clip's own factor `min(1, 0.5/‖g_ppo‖)` and added to the critic's
+    `.grad` — the critic receives, to first order, what "inside the loss" would have given it; the
+    actor's per-step path is W's bit for bit (the child test now builds a head-on and a head-off
+    agent on one seed and asserts identical `loss/grad_norm`, `loss/grad_clip_frac`, `loss/policy`,
+    `loss/value` and IDENTICAL actor parameters after a ONE-step update, with the critics
+    differing). A second-order coupling remains and is inherent to every critic lever under one
+    shared clip (a differently trained critic has a different value-gradient norm from the second
+    minibatch on — the 1024 critic carried it too); stated in every R6 header. `aux_outcome/grad_norm`
+    and `aux_outcome/clip_scale` are logged; `scripts/r6_smoke_check.py` now requires
+    `aux_outcome/ev_*` to END above zero and rising and reports `loss/grad_norm` / `clip_frac`
+    against the W lane's first 400k. Also noted (MEDIUM): `aux_outcome/ev_*` rises on outcome
+    information alone (a P(win)-only head scores > 0 on all three), so it is the descriptive trace
+    and the by-turn r² co-primary carries the mechanism claim.
+  - **Review 2 (C6 port, trio B's dose, plumbing) — VERIFIED:** the seven C6 ids are the gen-1
+    fixed-damage moves and Python/Rust compute identical semantics (Super Fang 2.2 × foe HP
+    fraction, 0.5 unknown; the [+4] clamp; one rounding at the f32 store); flag propagation is
+    consistent launcher → collector pairing check → in-loop eval → watchdog resume; eval seat names
+    are distinct and prefix-free across the six lanes and the screens; resume is experiment-safe;
+    the loop breaker cannot pick an illegal action. **CONFIRMED and FIXED (`1608c3a`, `089e15e`):**
+    (i) `push_every_updates 5` on a ×4 rollout made trio B's league 4× STALER in env steps (pushes
+    every 614,400 vs W's 153,600; span 12.3M vs 3.07M), undisclosed on a config whose header said
+    "only the diffs stated" — now 1 (122,880-step cadence, span 2.46M; R2's own batch ladder coupled
+    it the same way, RESULTS §17) in trio B, its fallback, both B smokes and the screen; (ii)
+    `scripts/r6_reads_queue.sh` refused to start while ANY `rl.train` was alive, so its WAIT phase
+    (armed during the fleet) was unreachable — the guard now runs after the wait; (iii) the queue's
+    and `monster_reads_pin.py`'s lane-alive pgrep matched `--run-name` only, blind to a lane the
+    watchdog RESUMED as `--resume runs/<dir>` — both spellings matched; (iv) a resume stamped no git
+    sha — `meta.yaml resumes[]` now carries `git_sha` / `git_dirty` (a running block imports the
+    working tree, and a resume is a fresh process). **Judged, not fixed:** trio B's GO form takes
+    **8× fewer optimizer steps** than W (1,628 updates × 2 epochs × 120 minibatches = 390,720 vs
+    6,511 × 4 × 120 = 3,125,280; the fallback 1,628 × 4 × 480 = 3,125,760, matched within 0.02%),
+    at 1.41× the LR where the noise-matched scaling at 4× batch is ~2×; the reviewer expects the
+    fallback to beat W and the GO form to underperform, and **RESULTS §17 backs the shape from our
+    own evidence: R2's credited batch lever held minibatch size at 256 and coupled the push
+    cadence — the FALLBACK's shape; the GO form departs on two axes.** The screen's GO rule is a
+    collapse detector, not a slow-learning detector (per-update bands on lanes with 4× fewer
+    updates); `kl_sum` (policy travel) is reported beside it (`2e60045`). **RULING PUT TO THE
+    MAINTAINER (needed before launch, not before the screen): launch trio B in the fallback form
+    regardless of the screen's verdict — recommended yes.** So that the ruling can see both
+    trajectories, **NEW `configs/showdown_r6_batch12m_fallback.yaml`** (the screen on the fallback
+    keys; seeds 220/228, tag r6bf, c6-off like the GO screen) runs BESIDE the GO screen tonight:
+    four screen lanes + one smoke lane. **Ladder-time (owed, `1b598c9`):** M-R6-8 the checkpoint
+    loader loads a member with no readable c6 stamp silently when the process flag is OFF (the floor
+    case); M-R6-9 `loop/fired` counts PINNED visits, not escapes (fires on `seen >= threshold`), so
+    the draft's diagnostic band reads a mixed quantity. **Accepted with disclosure:** two watchdogs
+    (one per trio) each run the Node keepalive and could race on a restart (the W+L2LAM fleet ran
+    the same shape without incident); the queue's 18 vs-SH job names are TYPED (verified equal to
+    `ch3_eval._jobs` today); trio B's RSS is unmeasured at the new width — the orchestrator now logs
+    each smoke lane's peak RSS (30 s polls).
+  - **Runbook amendment at QUEUE DONE:** (1) the GO screen `ALLOW_ANNEAL_OVER_HORIZON=1 bash
+    scripts/monster_fleet.sh configs/showdown_r6_batch12m.yaml 12000000 204 212`; (1b) the fallback
+    screen `ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh
+    configs/showdown_r6_batch12m_fallback.yaml 12000000 220 228`; (2) the smokes orchestrator; (4)
+    both reads — the fallback's with `--screen runs/showdown_r6_batch12m_fallback_s220
+    runs/showdown_r6_batch12m_fallback_s228 --json-out results/r6_batch12m/read_fallback.json`.
+  - **Suite bare, base env, niced beside XTG9 at 20:13Z: 1279 passed / 88 skipped / 0 failed
+    (106 s).** Other CPU beside XTG9 this session (for the ledger): the two review agents' single-file
+    pytest runs (6 + 7 + 2 + 7 tests) and their `python -c` layout probes; my test runs of seconds;
+    the full suite above. XTG9 at 2,903/3,200 at 20:16Z, ~24.5 s/battle → QUEUE DONE ≈ 22:17Z.
