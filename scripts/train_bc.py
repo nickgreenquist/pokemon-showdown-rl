@@ -34,6 +34,17 @@ Two measurement choices that keep the number honest:
 The critic rides along untrained: the dataset carries no value labels, and
 nothing downstream reads it (deterministic eval is an argmax over masked
 actor logits). It exists so the checkpoint keeps the standard shape.
+
+`--trunk` (2026-09-20, R7's architecture screen — configs/bc_arch_screen.yaml)
+picks which actor is fitted: `mlp` is the historical flat [512,512] capstone
+actor and is the default and unchanged in every respect; `entity_deepsets` is
+the fleet's trunk at its FIXED W-base recipe; `attention` is the screen's arm
+B (`--d-model/--n-layers/--n-heads`). The recipe is fixed rather than exposed
+because a screen whose control differs from the shipped fleet in a fourth
+undeclared way measures nothing. Each non-mlp trunk tags its default run
+name, and every fit now also writes `val_rows.npz` beside `bc_metrics.json` —
+the per-row held-out predictions at the BEST epoch, which is what a cluster
+bootstrap by battle needs and what a mean cannot be un-averaged into.
 """
 
 import argparse
@@ -82,6 +93,28 @@ AGENT = dict(
     epochs=4, minibatches=4, clip_eps=0.2, entropy_coef=0.01,
     value_coef=0.5, max_grad_norm=0.5,
 )
+
+# THE ENTITY TRUNK'S RECIPE, FIXED — not flags. It is the W base's
+# `agent.trunk_kwargs` (configs/showdown_monster200m_w.yaml:2020-2028), which
+# is the recipe every banked gen-1 lane ran, so an arm fitted here is the
+# trunk we would actually adopt rather than a variant of it. Exposing these as
+# CLI flags would invite a screen that differs from the fleet in some fourth
+# thing nobody wrote down.
+#
+# ONE DELIBERATE DEVIATION, disclosed rather than silently matched:
+# `value_sizes` is the base recipe's [384, 384], not W's [1024, 1024]. W's
+# wide critic is W's OWN lever (arm W's second diff vs arm A), it is not part
+# of the trunk under screen, and this script trains the ACTOR ONLY unless
+# --value-coef is set — so at value_coef 0 the key is inert here either way.
+ENTITY_TRUNK_KWARGS = dict(
+    species_vocab=152, move_vocab=166, embed_dim=64, entity_dim=128,
+    pool="max", ctx_sizes=[384, 384], scorer_sizes=[256], value_sizes=[384, 384],
+)
+# The attention trunk shares the entity tables and their sizes — that is what
+# makes the screen a test of the MIXER (max-pool vs self-attention) rather
+# than of the embedding budget. d_model / n_layers / n_heads are the screen's
+# own dials and come from the CLI.
+ATTENTION_SHARED_KWARGS = dict(species_vocab=152, move_vocab=166, embed_dim=64)
 
 
 def load_dataset(spec: str) -> dict:
@@ -177,6 +210,44 @@ def evaluate(actor, obs, masks, actions, free, policy=None, reveal=None) -> dict
     return out
 
 
+@torch.no_grad()
+def val_row_predictions(actor, obs, masks, actions, free, policy, reveal,
+                        battle_ids) -> dict:
+    """The per-row held-out read, saved so a CLUSTER BOOTSTRAP BY BATTLE can
+    be run afterwards without re-fitting.
+
+    `evaluate` returns means; a paired A/B needs the rows behind them, because
+    consecutive decisions in one battle are not independent (same team, same
+    opponent, same turn context — the reason the holdout is by battle in the
+    first place). Resampling ROWS would understate the interval by roughly the
+    square root of the per-battle decision count. Saved at the SAME epoch
+    `best_checkpoint.pt` is written, so the file and the checkpoint always
+    describe one model.
+
+    Deterministic under no_grad and identical to `evaluate`'s forward: the
+    nets here carry no dropout and no batch norm, so train/eval mode is the
+    same function.
+    """
+    logits = masked_logits(actor(obs), masks)
+    logp = F.log_softmax(logits, dim=-1)
+    tgt = policy.clamp_min(1e-9) if policy is not None else None
+    return {
+        "battle_ids": np.asarray(battle_ids, dtype=np.int64),
+        "action": actions.numpy().astype(np.int64),
+        "pick": logits.argmax(dim=-1).numpy().astype(np.int64),
+        "agree": (logits.argmax(dim=-1) == actions).numpy(),
+        "free": free.numpy(),
+        "reveal": reveal.numpy().astype(np.int64),
+        "n_legal": masks.sum(dim=1).numpy().astype(np.int64),
+        "entropy": (-(logp.exp() * logp).nan_to_num().sum(-1)).numpy(),
+        "kl": (((tgt * (tgt.log() - logp)).sum(-1)).numpy()
+               if tgt is not None else np.zeros(len(actions), dtype=np.float32)),
+        "teacher_entropy": ((-(tgt * tgt.log()).sum(-1)).numpy()
+                            if tgt is not None
+                            else np.zeros(len(actions), dtype=np.float32)),
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", default="data/bc_p4_40k.npz",
@@ -189,7 +260,17 @@ def main() -> None:
     parser.add_argument("--max-rows", type=int, default=None,
                         help="truncate by BATTLE to this many rows (learning curves)")
     parser.add_argument("--hidden", type=int, nargs="+", default=[512, 512],
-                        help="actor/critic hidden sizes; the capstone's [512, 512]")
+                        help="actor/critic hidden sizes; the capstone's [512, 512]. "
+                             "Read by the mlp trunk only")
+    parser.add_argument("--trunk", choices=["mlp", "entity_deepsets", "attention"],
+                        default="mlp",
+                        help="mlp = the flat [512,512] capstone actor (default, "
+                             "unchanged); entity_deepsets = the fleet's trunk at its "
+                             "fixed W-base recipe; attention = R7's architecture "
+                             "screen arm (--d-model/--n-layers/--n-heads)")
+    parser.add_argument("--d-model", type=int, default=128, help="attention trunk width")
+    parser.add_argument("--n-layers", type=int, default=2, help="attention trunk depth")
+    parser.add_argument("--n-heads", type=int, default=4, help="attention trunk heads")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--run-name", default=None,
                         help="default bc_<expert>_<hidden>_s<seed>")
@@ -204,7 +285,25 @@ def main() -> None:
     enc = _encoder_for(data)
     OBS_DIM, ENCODER_FINGERPRINT = enc["obs_dim"], enc["fingerprint"]
     hidden = "x".join(str(h) for h in args.hidden)
-    run_name = args.run_name or f"bc_{expert}_{hidden}_s{args.seed}"
+    # THE RUN NAME CARRIES THE TRUNK, or two arms of one screen write the same
+    # directory and the second silently overwrites the first. The mlp default
+    # keeps its historical spelling (no trunk tag) because every banked run
+    # directory and readout is named that way — the trunks that can collide
+    # with it are the new ones.
+    if args.trunk == "mlp":
+        trunk_kwargs: dict = {}
+        default_name = f"bc_{expert}_{hidden}_s{args.seed}"
+    elif args.trunk == "entity_deepsets":
+        trunk_kwargs = dict(ENTITY_TRUNK_KWARGS)
+        default_name = f"bc_{expert}_entity_s{args.seed}"
+    else:
+        trunk_kwargs = dict(
+            ATTENTION_SHARED_KWARGS,
+            d_model=args.d_model, n_layers=args.n_layers, n_heads=args.n_heads,
+        )
+        default_name = (f"bc_{expert}_attn_d{args.d_model}l{args.n_layers}"
+                        f"h{args.n_heads}_s{args.seed}")
+    run_name = args.run_name or default_name
 
     torch.set_num_threads(1)
     torch.manual_seed(args.seed)
@@ -218,7 +317,12 @@ def main() -> None:
         eval_episodes=100, run_name=run_name, logger="tensorboard",
         eval_win_rate=True,
         selfplay={"opponent": expert, "eval_opponent": expert},
-        agent={**AGENT, "hidden_sizes": list(args.hidden)},
+        # The trunk keys are added ONLY off the default, so an mlp fit
+        # serialises the exact agent dict it always did and every banked
+        # checkpoint's config round-trips byte-for-byte.
+        agent={**AGENT, "hidden_sizes": list(args.hidden),
+               **({} if args.trunk == "mlp"
+                  else {"trunk": args.trunk, "trunk_kwargs": trunk_kwargs})},
     )
     # Spaces only: a real env here would open websockets just to read shapes
     # (eval_checkpoint.py's cross-play path is the precedent). Bounds mirror
@@ -261,6 +365,9 @@ def main() -> None:
           flush=True)
     print(f"val multi-choice rows {float(free.float().mean()):.3f}, "
           f"uniform-over-legal agreement on them {chance_free:.3f}", flush=True)
+    print(f"trunk {args.trunk}, actor "
+          f"{sum(p.numel() for p in agent.actor.parameters())} params, "
+          f"trunk_kwargs {trunk_kwargs}", flush=True)
 
     # Actor only: the value head has no labels here, and handing its params
     # to the optimizer would imply otherwise.
@@ -270,7 +377,8 @@ def main() -> None:
     optimizer = torch.optim.Adam(params, lr=args.lr)
     generator = torch.Generator().manual_seed(args.seed)
     val = torch.as_tensor(val_idx)
-    history, best = [], -1.0
+    val_battle_ids = np.asarray(data["battle_ids"])[val_idx]
+    history, best, best_epoch = [], -1.0, 0
     for epoch in range(1, args.epochs + 1):
         perm = torch.as_tensor(train_idx)[
             torch.randperm(len(train_idx), generator=generator)
@@ -318,13 +426,24 @@ def main() -> None:
               f"free {metrics['agreement_free']:.3f}", flush=True)
         if metrics["agreement_free"] > best:
             best = metrics["agreement_free"]
+            best_epoch = epoch
             save_checkpoint(f"runs/{run_name}/best_checkpoint.pt", agent, epoch, cfg)
+            rows = val_row_predictions(
+                agent.actor, obs[val], masks[val], actions[val], free,
+                policy[val] if policy is not None else None, reveal[val],
+                val_battle_ids,
+            )
+            np.savez_compressed(f"runs/{run_name}/val_rows.npz", epoch=epoch, **rows)
 
     save_checkpoint(f"runs/{run_name}/checkpoint.pt", agent, args.epochs, cfg)
     report = {
         "run_name": run_name, "data": args.data, "expert": expert,
         "encoder": dict(ENCODER_FINGERPRINT),
         "hidden_sizes": list(args.hidden), "seed": args.seed,
+        "trunk": args.trunk, "trunk_kwargs": trunk_kwargs,
+        "actor_params": sum(p.numel() for p in agent.actor.parameters()),
+        "target": args.target, "max_rows": args.max_rows,
+        "val_frac": args.val_frac, "best_epoch": best_epoch,
         "epochs": args.epochs, "batch_size": args.batch_size, "lr": args.lr,
         "train_decisions": len(train_idx), "val_decisions": len(val_idx),
         "val_battles": n_val_battles, "val_free_frac": float(free.float().mean()),
