@@ -16,8 +16,11 @@ THE PRE-STATED RULE (the screen's header, restated): GO for trio B iff
   (a) approx_kl in [0.005, 0.06] -- the per-bin MEDIAN in every bin after the first 1M, on
       every screen lane (a collapse below 1e-3 is the header's fallback trigger; the band
       is the GO condition);
-  (b) entropy still falling -- every screen lane's last-bin entropy is below its 6M-bin
-      (5-6M) entropy;
+  (b) entropy still falling -- OPERATIONALIZED 2026-09-21 BEFORE THE SCREEN RAN, after a dry
+      run showed the W lanes' own entropy plateaus near 0.70 from ~2M on (a "last bin below
+      the 6M bin" test fails the REFERENCE): every screen lane's last-bin entropy is below its
+      first-bin entropy (the descent happened) AND within +-0.15 of the W lanes' mean last-bin
+      entropy (neither collapsed toward 0 nor stalled high);
   (c) explained variance within 0.05 of the W lanes at the horizon -- the screen lanes'
       mean last-bin EV >= the W lanes' mean last-bin EV - 0.05.
 FALLBACK otherwise: configs/showdown_r6_trio_b_fallback.yaml (epochs 4, minibatches 480,
@@ -41,6 +44,7 @@ COLS = ["loss/approx_kl", "loss/clip_frac", "loss/entropy", "loss/explained_vari
         "loss/adv_std", "time/update_sec", "time/collect_sec"]
 KL_BAND = (0.005, 0.06)
 EV_TOL = 0.05
+ENT_TOL = 0.15
 BIN = 1_000_000
 
 
@@ -83,7 +87,6 @@ def ensure_history(run_dir: str) -> str:
 def rule(screen: dict[str, pd.DataFrame], w: dict[str, pd.DataFrame], horizon: int) -> dict:
     """The GO / FALLBACK decision from per-lane bin tables. Pure; tested."""
     last = horizon // BIN - 1
-    six = min(5, last)
     checks = {}
     kl_ok, kl_detail = True, {}
     for name, t in screen.items():
@@ -94,11 +97,13 @@ def rule(screen: dict[str, pd.DataFrame], w: dict[str, pd.DataFrame], horizon: i
         kl_ok &= not bad
     checks["a_kl_in_band"] = {"ok": bool(kl_ok), "band": KL_BAND, "per_lane": kl_detail}
     ent_ok, ent_detail = True, {}
+    ent_w = float(np.mean([t.loc[last, "loss/entropy"] for t in w.values()]))
     for name, t in screen.items():
-        e6, el = float(t.loc[six, "loss/entropy"]), float(t.loc[last, "loss/entropy"])
-        ent_detail[name] = {"entropy_6m_bin": e6, "entropy_last_bin": el}
-        ent_ok &= el < e6
-    checks["b_entropy_falling"] = {"ok": bool(ent_ok), "per_lane": ent_detail}
+        e0, el = float(t.loc[0, "loss/entropy"]), float(t.loc[last, "loss/entropy"])
+        ent_detail[name] = {"entropy_first_bin": e0, "entropy_last_bin": el}
+        ent_ok &= (el < e0) and (abs(el - ent_w) <= ENT_TOL)
+    checks["b_entropy_falling"] = {"ok": bool(ent_ok), "w_last_bin_entropy": ent_w, "tol": ENT_TOL,
+                                   "per_lane": ent_detail}
     ev_s = float(np.mean([t.loc[last, "loss/explained_variance"] for t in screen.values()]))
     ev_w = float(np.mean([t.loc[last, "loss/explained_variance"] for t in w.values()]))
     checks["c_ev_within_tol"] = {"ok": bool(ev_s >= ev_w - EV_TOL), "screen_last_bin_ev": ev_s,

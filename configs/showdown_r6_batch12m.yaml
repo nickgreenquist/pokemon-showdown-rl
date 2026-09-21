@@ -36,6 +36,16 @@
 # first 12M. GO for trio B if the trajectories are sane (kl in [0.005, 0.06], entropy
 # still falling, EV not below the W lanes' by > 0.05 at 12M); FALLBACK as above
 # otherwise. Never quote eval/win_rate from this screen for anything.
+# OPERATIONALIZED 2026-09-21, BEFORE THE SCREEN RAN, in scripts/r6_batch12m_read.py (the
+# read is computed, not eyeballed): per-1M bins; (a) the per-bin MEDIAN approx_kl in
+# [0.005, 0.06] in every bin after the first 1M on every lane; (b) "entropy still
+# falling" = the last-bin entropy below the first-bin entropy AND within +-0.15 of the W
+# lanes' mean last-bin entropy -- a dry run on the W lanes themselves showed their entropy
+# plateaus near 0.70 from ~2M, so a monotone "last bin below the 6M bin" test would fail
+# the REFERENCE and was replaced before any screen data existed; (c) the lanes' mean
+# last-bin EV >= the W lanes' mean last-bin EV - 0.05. The W lane s104 read against s112
+# and s120 passes all three (the rule is calibrated on its reference). time/* is
+# reported, not a GO input; a 400k smoke that ran beside the screen is disclosed.
 #
 # LAUNCH (after the eval queues are done -- a training lane beside an FP arm distorts
 # FP@20's wall-clock budget; scripts/*_queue.sh refuse to start while rl.train is alive

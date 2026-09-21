@@ -33,6 +33,12 @@ def test_go_when_all_three_hold_and_fallback_on_each_failure():
     rising = _table([0.02] * 12, np.linspace(1.1, 1.7, 12), np.linspace(0.1, 0.48, 12))
     r = rule({"s204": good, "s212": rising}, w, H)
     assert r["verdict"] == "FALLBACK" and not r["checks"]["b_entropy_falling"]["ok"]
+    collapsed_ent = _table([0.02] * 12, np.linspace(1.7, 0.3, 12), np.linspace(0.1, 0.48, 12))
+    r = rule({"s204": good, "s212": collapsed_ent}, w, H)
+    assert not r["checks"]["b_entropy_falling"]["ok"], "0.3 vs the W lanes' 1.2 is a collapse"
+    plateau = _table([0.02] * 12, [1.7] + [1.25] * 5 + [1.27] * 6, np.linspace(0.1, 0.48, 12))
+    r = rule({"s204": good, "s212": plateau}, w, H)
+    assert r["checks"]["b_entropy_falling"]["ok"], "a plateau near the W lanes is not a failure"
     low_ev = _table([0.02] * 12, np.linspace(1.7, 1.1, 12), np.linspace(0.1, 0.40, 12))
     r = rule({"s204": low_ev, "s212": low_ev}, w, H)
     assert r["verdict"] == "FALLBACK" and not r["checks"]["c_ev_within_tol"]["ok"]
