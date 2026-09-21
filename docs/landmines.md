@@ -992,3 +992,55 @@ battles at **5.5 s/battle against its clean 3.0** — the slowdown is visible in
 the artifact. Disclose the window, say which way it biases the specific
 comparison the arm serves, and **measure it** (first-N against the remainder)
 rather than bounding it by argument.
+
+## A SKIP GUARD KEYED ON FILE EXISTENCE SKIPPED A REAL RUN (2026-09-20)
+
+**What happened.** `scripts/exit_gate_queue.sh`'s GAP phase skipped `scripts/action_gap.py`
+because a `results/outcome_variance/action_gap.json` already existed — written by the
+PRE-L9 version of the script (336 positions, biased toward the ceiling it would license,
+no `top1_is_played_frac` field). Worse, the fixed script is resume-safe on its rows file,
+so a re-run would have RESUMED from 336 invalid rows and appended valid ones: a mixed
+artifact with a valid-looking summary. Found by reading the queue log ("GAP SKIP
+(... exists)") against the commit that fixed the script, not by any error.
+
+**The fix.** The guard requires the FIXED version's marker (`top1_is_played_frac` in the
+JSON) before it skips; the invalid artifacts live in
+`results/outcome_variance/invalid_pre_L9/` and were moved there in the same commit that
+changed the guard (`39da8f8`). The valid run then took five minutes.
+
+**The rule.** A resume-safe or skip-safe queue keys on a VERSION MARKER of the artifact,
+never on its existence — and when a script is fixed, its old artifacts move to a quarantine
+directory in the same commit, because "the file is there" is exactly what a stale file
+looks like.
+
+## THE ENGINE TRAINING PATH HAS ITS OWN ENCODER — every encoder change is TWO ports and a parity re-gate (2026-09-19/20)
+
+**What happened.** C6 (IDEAS 4.6 form (a)) was built in the PYTHON encoder
+(`rl/envs/showdown.py`, behind `POKEMON_RL_ENCODER_C6=1`), fingerprinted, tested and
+committed on 2026-09-19 — and every training lane since JOURNEY 7.5 gets its rows from the
+RUST encoder (`engine/pkmn_gen1/src/encoder.rs`), which never reads that variable. A lane
+launched with the flag would have stamped `encoder.c6: true` in `meta.yaml` while training
+on c6-OFF observations: a run record that lies about its rows, invisible until eval loads
+a checkpoint whose fingerprint says one thing and whose weights learned another. Caught
+while wiring the next lever's data path, not by a test.
+
+**The fix, in layers.** (1) `rl/envs/engine_collector.py::_check_engine_c6` REFUSES the flag
+unless the extension exposes `ENCODER_C6 = True` (the stale-extension guard, kept after the
+port). (2) The port (2026-09-20): `StaticTables::c6`, set from Python by
+`build_tables(c6=None)` off the SAME env var the reference reads, so both encoders flip in
+one process; the collector asserts `tables.c6 == ENCODER_FINGERPRINT["c6"]` at
+construction. (3) P-1 replays 30,000 tape decisions BITWISE with the flag on (zero
+mismatches) and 20,000 with it off; `tests/test_engine_c6_port.py` pins the slots against
+`_fill_move` in-process. (4) The launcher exports the flag PER CONFIG from a header marker
+(`# ENCODER_C6: on`), never from the shell, and the watchdog reads each lane's own
+`meta.yaml` stamp back on resume.
+
+**Two traps inside the fix.** The importable extension changes ONLY on `pip install -e
+engine/pkmn_gen1` (`cargo build` refreshes `target/` and nothing else), and that install
+needs the port env's `bin` on PATH because the maturin backend spawns `maturin` by name —
+called through an absolute pip path it fails with "No such file or directory: 'maturin'".
+
+**The rule.** An encoder change is not DONE when the Python side is green: it is done when
+the Rust side matches bitwise on P-1 under the new flag, the extension is REINSTALLED, and
+the collector can refuse the pairing. Budget every encoder change as two implementations
+plus the parity re-gate.
