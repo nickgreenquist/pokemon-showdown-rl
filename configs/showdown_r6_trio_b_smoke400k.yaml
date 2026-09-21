@@ -34,7 +34,15 @@
 #     4.11). seeds 304 312 320, seat_tag r6ta, run dirs runs/showdown_r6_trio_a_s{304,312,320} (the launcher names dirs from the CONFIG BASENAME + seed; the run_name key below is overridden by --run-name). THE
 #     LEVER is three keys set together (PPOAgent and rl/train.py refuse any subset):
 #     collector.outcome_targets true, agent.aux_outcome_coef 0.1,
-#     agent.trunk_kwargs.value_aux_out 3.
+#     agent.trunk_kwargs.value_aux_out 3. PLACEMENT (2026-09-21, a pre-launch review finding):
+#     the aux gradient is applied AFTER the shared actor+critic clip, to the CRITIC only,
+#     scaled by the clip's own factor -- in this recipe the clip binds on ~99.9% of
+#     minibatches (W: grad_norm ~2.3 vs max 0.5), so a term inside the clipped loss would
+#     have shrunk the ACTOR's effective step too; now loss/grad_norm and loss/grad_clip_frac
+#     are W's by construction and the actor's per-step path is bit-identical to W's
+#     (tests/test_outcome_heads.py); aux_outcome/grad_norm and aux_outcome/clip_scale are
+#     logged. A second-order coupling remains and is inherent to every critic lever under
+#     one shared clip: a differently trained critic has a different value-gradient norm.
 #   TRIO B (configs/showdown_r6_trio_b.yaml): W base + C6 + the BATCH/EPOCHS DOSE (IDEAS
 #     4.12). seeds 328 336 344, seat_tag r6tb, run dirs runs/showdown_r6_trio_b_s{328,336,344} (from the config basename; the fallback file MUST be launched with TAG=showdown_r6_trio_b so its dirs are the same).
 #     rollout_steps 15360 (batch 122,880 = x4), epochs 2, minibatches 120 (1,024-row
@@ -160,7 +168,7 @@ selfplay:
   opponent: self
   eval_opponent: heuristics
   pool_size: 20
-  push_every_updates: 5
+  push_every_updates: 1    # x4 ROLLOUT: coupled like R2 did (RESULTS 17, 'the coupled {rollout_steps, minibatches, push_every_updates}') -- 1 update = 122,880 env steps vs the W base's 5 x 30,720 = 153,600 (20% more frequent; 5 would be 614,400, a 4x staler league; 1.25 is not an integer). League span 20 x 122,880 = 2.46M steps vs W's 3.07M. Stated 2026-09-21 (pre-launch review).
   latest_prob: 0.8
 agent:
   algo: ppo

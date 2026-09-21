@@ -2,7 +2,7 @@
 # docs/proposals/R6_PREP_PLAN_2026-09-19.md sections 2-4). HACKING RUN: no pre-reg,
 # NO WIN RATE IS A READ HERE (rule 6). Derived 2026-09-19 from
 # configs/showdown_monster200m_w.yaml (the credited W recipe: L2-toward-init +
-# the 1024 critic, k=8 engine collector) with FIVE edits, each stated:
+# the 1024 critic, k=8 engine collector) with SIX edits, each stated:
 #   total_steps 200,000,000 -> 12,000,000      the screen's horizon
 #   lr_anneal_steps UNCHANGED at 200,000,000   so the LR at every step equals the W
 #                                              lanes' own at that step -- the read is
@@ -21,6 +21,11 @@
 #                                              epochs 4 + minibatches 480 (256-row
 #                                              minibatches, steps per datum matched) at
 #                                              lr 2.5e-4.
+#   push_every_updates 5 -> 1                 SIXTH edit (2026-09-21, before the screen
+#                                              ran; pre-launch review): the pool push
+#                                              cadence in ENV STEPS stays near W's
+#                                              (122,880 vs 153,600) instead of 4x staler;
+#                                              R2 coupled it the same way (RESULTS 17).
 # minibatches stays 120 -> 1,024-row minibatches (BLAS-friendlier on CPU where the
 # update is ~65% of wall). checkpoint_every 500k -> 1M (a screen keeps fewer rungs).
 # seat_tag r6b: distinct from every fleet tag; seeds 204/212 collide with nothing live.
@@ -82,7 +87,7 @@ selfplay:
   opponent: self
   eval_opponent: heuristics
   pool_size: 20
-  push_every_updates: 5
+  push_every_updates: 1    # x4 ROLLOUT: coupled like R2 did (RESULTS 17, 'the coupled {rollout_steps, minibatches, push_every_updates}') -- 1 update = 122,880 env steps vs the W base's 5 x 30,720 = 153,600 (20% more frequent; 5 would be 614,400, a 4x staler league; 1.25 is not an integer). League span 20 x 122,880 = 2.46M steps vs W's 3.07M. Stated 2026-09-21 (pre-launch review).
   latest_prob: 0.8
 agent:
   algo: ppo

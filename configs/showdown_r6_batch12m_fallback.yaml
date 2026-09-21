@@ -1,0 +1,135 @@
+# THE SAME 12M MECHANISM SCREEN ON THE FALLBACK KEYS (derived 2026-09-21, BEFORE either screen
+# ran, after a pre-launch review argued from mechanism -- and RESULTS 17's own batch ladder,
+# which held minibatch size at 256 and coupled the push cadence -- that trio B's FALLBACK form
+# (epochs 4, minibatches 480 = 256-row minibatches, lr 2.5e-4; optimizer steps per datum
+# MATCHED to W) is the likelier form to beat W at 200M, while the GO form spends 8x fewer
+# optimizer steps). Both forms get the identical read at matched steps against the W lanes'
+# first 12M (scripts/r6_batch12m_read.py --screen <these two dirs>), so the maintainer's
+# ruling on trio B's form can see both mechanism trajectories. This file is
+# configs/showdown_r6_batch12m.yaml with EXACTLY: epochs 2 -> 4, minibatches 120 -> 480,
+# lr 3.5e-4 -> 2.5e-4, seed 104 -> 120 (lanes 220 / 228), seat_tag r6b -> r6bf, run_name.
+# LAUNCH (beside the GO screen; four screen lanes + one smoke lane on a 14-core box):
+#   ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh configs/showdown_r6_batch12m_fallback.yaml 12000000 220 228
+# Run dirs runs/showdown_r6_batch12m_fallback_s{220,228}. NEVER a win-rate read (rule 6).
+# --- the GO screen's header follows verbatim for the record ---
+#  IDEAS 4.12 -- THE BATCH / EPOCHS DOSE, 12M MECHANISM SCREEN (R6 prep plan item 8;
+#  docs/proposals/R6_PREP_PLAN_2026-09-19.md sections 2-4). HACKING RUN: no pre-reg,
+#  NO WIN RATE IS A READ HERE (rule 6). Derived 2026-09-19 from
+#  configs/showdown_monster200m_w.yaml (the credited W recipe: L2-toward-init +
+#  the 1024 critic, k=8 engine collector) with SIX edits, each stated:
+#    total_steps 200,000,000 -> 12,000,000      the screen's horizon
+#    lr_anneal_steps UNCHANGED at 200,000,000   so the LR at every step equals the W
+#                                               lanes' own at that step -- the read is
+#                                               the trajectory of approx_kl / clip_frac /
+#                                               entropy / explained_variance AT MATCHED
+#                                               STEPS against the W lanes' history.csv
+#                                               (runs/showdown_monster200m_w_s*/), which
+#                                               only a matched schedule licenses.
+#                                               rl/train.py permits anneal >= horizon.
+#    rollout_steps 3840 -> 15360                batch 30,720 -> 122,880 per update (x4)
+#    epochs 4 -> 2                              sample reuse 4 -> 2 (OpenAI Five ~1)
+#    lr 2.5e-4 -> 3.5e-4                        sqrt(2) for half the optimizer steps per
+#                                               datum; the screen SETS this: if approx_kl
+#                                               collapses (< 1e-3 by 6M against the W
+#                                               lanes' ~0.04) the pre-stated FALLBACK is
+#                                               epochs 4 + minibatches 480 (256-row
+#                                               minibatches, steps per datum matched) at
+#                                               lr 2.5e-4.
+#    push_every_updates 5 -> 1                 SIXTH edit (2026-09-21, before the screen
+#                                               ran; pre-launch review): the pool push
+#                                               cadence in ENV STEPS stays near W's
+#                                               (122,880 vs 153,600) instead of 4x staler;
+#                                               R2 coupled it the same way (RESULTS 17).
+#  minibatches stays 120 -> 1,024-row minibatches (BLAS-friendlier on CPU where the
+#  update is ~65% of wall). checkpoint_every 500k -> 1M (a screen keeps fewer rungs).
+#  seat_tag r6b: distinct from every fleet tag; seeds 204/212 collide with nothing live.
+# 
+#  WHY: the batch lever is the only lever family with a measured MONOTONE credit here
+#  (R2, +0.137 off FP@20, RESULTS 17) and nothing above 30,720 has ever run; mid-run
+#  approx_kl 0.043 at clip_frac 0.225 (recipe audit 1) says the surrogate is saturated
+#  on noisy advantages. A dose change on TWO axes (data per policy version x4, passes
+#  per datum x1/2), stated rather than hidden.
+# 
+#  READ (mechanism only): per-update approx_kl, clip_frac, entropy, explained_variance,
+#  adv_std, and time/update_sec vs collect_sec, at matched steps against the W lanes'
+#  first 12M. GO for trio B if the trajectories are sane (kl in [0.005, 0.06], entropy
+#  still falling, EV not below the W lanes' by > 0.05 at 12M); FALLBACK as above
+#  otherwise. Never quote eval/win_rate from this screen for anything.
+#  OPERATIONALIZED 2026-09-21, BEFORE THE SCREEN RAN, in scripts/r6_batch12m_read.py (the
+#  read is computed, not eyeballed): per-1M bins; (a) the per-bin MEDIAN approx_kl in
+#  [0.005, 0.06] in every bin after the first 1M on every lane; (b) "entropy still
+#  falling" = the last-bin entropy below the first-bin entropy AND within +-0.15 of the W
+#  lanes' mean last-bin entropy -- a dry run on the W lanes themselves showed their entropy
+#  plateaus near 0.70 from ~2M, so a monotone "last bin below the 6M bin" test would fail
+#  the REFERENCE and was replaced before any screen data existed; (c) the lanes' mean
+#  last-bin EV >= the W lanes' mean last-bin EV - 0.05. The W lane s104 read against s112
+#  and s120 passes all three (the rule is calibrated on its reference). time/* is
+#  reported, not a GO input; a 400k smoke that ran beside the screen is disclosed.
+# 
+#  LAUNCH (after the eval queues are done -- a training lane beside an FP arm distorts
+#  FP@20's wall-clock budget; scripts/*_queue.sh refuse to start while rl.train is alive
+#  and the reverse must hold by hand):
+#    ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh configs/showdown_r6_batch12m.yaml 12000000 204 212
+#  (the launcher's anneal == horizon check is opted out for THIS matched-schedule
+#  screen only; it stays binding for fleets).
+#  ~2.6 h per lane two-wide at ~1,300 steps/s. DO NOT set POKEMON_RL_ENCODER_C6 for
+#  this screen (the Rust port LANDED 2026-09-20, so the collector would accept it):
+#  the read is matched against the W lanes' own first 12M, which trained c6-OFF, and
+#  a c6-on screen would change the observation alongside the dose. The launcher
+#  exports the flag only for a config whose header carries `# ENCODER_C6: on`.
+env_id: Showdown-v0
+seed: 120                  # lanes via --seed 220 / 228 (rule 2: distinct from the GO screen's 204 / 212 and every fleet seed)
+total_steps: 12000000     # JOURNEY 10's dose
+eval_every: 250000         # 400 in-loop evals/lane, ~0.61 h; descriptive only
+eval_episodes: 100
+num_envs: 8                # x rollout_steps = the 30,720-step update budget
+torch_threads: 1
+checkpoint_every: 1000000   # ~200 crossing rungs/lane; see DISK in (F)
+run_name: r6_batch12m_fallback_s120   # lanes via --run-name (the launcher derives it)
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine             # A-1-accepted, signed delta -0.00436 travels forever
+  k: 8                     # DECLARED, NOT ASSUMED — see (C). Do not raise.
+  team_bank: data/engine/teams_a1_5000000.bin   # 5,000,000 pairs; recurrence in (H)
+  min_bank_pairs: 1000000  # ENFORCED in code at launch; a floor in prose is not a floor
+  learner_seat: p1
+env_kwargs:
+  opp_action: true         # D25 pair, half 1 of 2. MANDATORY — see (B).
+  seat_tag: r6bf            # the fallback screen's own tag
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 1    # x4 ROLLOUT: coupled like R2 did (RESULTS 17, 'the coupled {rollout_steps, minibatches, push_every_updates}') -- 1 update = 122,880 env steps vs the W base's 5 x 30,720 = 153,600 (20% more frequent; 5 would be 614,400, a 4x staler league; 1.25 is not an integer). League span 20 x 122,880 = 2.46M steps vs W's 3.07M. Stated 2026-09-21 (pre-launch review).
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  l2_init_decay: 0.02      # ARM L2 -- THE ONE DIFF vs showdown_monster200m.yaml: D23's value, decoupled per-step decay toward theta0 (captured at construction, theta0.pt in the run dir, restored on resume)
+  aux_oppact_coef: 0.1     # D25 pair, half 2 of 2. MANDATORY — see (B).
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [1024, 1024]   # ARM W -- THE SECOND DIFF vs arm A: critic capacity 384 -> 1024 (critic 494,849 -> 1,807,489 params; actor untouched, so ACTOR_PARAM_CEILING holds; free at greedy inference)
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4                 # FALLBACK: the W base's LR
+  lr_anneal_steps: 200000000  # == total_steps. THE ANNEAL TRAP — see (D).
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 15360
+  epochs: 4                  # FALLBACK: sample reuse back to 4
+  minibatches: 480           # FALLBACK: 256-row minibatches, optimizer steps per datum matched to W
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5

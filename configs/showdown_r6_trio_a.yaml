@@ -22,11 +22,22 @@
 #     4.11). seeds 304 312 320, seat_tag r6ta, run dirs runs/showdown_r6_trio_a_s{304,312,320} (the launcher names dirs from the CONFIG BASENAME + seed; the run_name key below is overridden by --run-name). THE
 #     LEVER is three keys set together (PPOAgent and rl/train.py refuse any subset):
 #     collector.outcome_targets true, agent.aux_outcome_coef 0.1,
-#     agent.trunk_kwargs.value_aux_out 3.
+#     agent.trunk_kwargs.value_aux_out 3. PLACEMENT (2026-09-21, a pre-launch review finding):
+#     the aux gradient is applied AFTER the shared actor+critic clip, to the CRITIC only,
+#     scaled by the clip's own factor -- in this recipe the clip binds on ~99.9% of
+#     minibatches (W: grad_norm ~2.3 vs max 0.5), so a term inside the clipped loss would
+#     have shrunk the ACTOR's effective step too; now loss/grad_norm and loss/grad_clip_frac
+#     are W's by construction and the actor's per-step path is bit-identical to W's
+#     (tests/test_outcome_heads.py); aux_outcome/grad_norm and aux_outcome/clip_scale are
+#     logged. A second-order coupling remains and is inherent to every critic lever under
+#     one shared clip: a differently trained critic has a different value-gradient norm.
 #   TRIO B (configs/showdown_r6_trio_b.yaml): W base + C6 + the BATCH/EPOCHS DOSE (IDEAS
 #     4.12). seeds 328 336 344, seat_tag r6tb, run dirs runs/showdown_r6_trio_b_s{328,336,344} (from the config basename; the fallback file MUST be launched with TAG=showdown_r6_trio_b so its dirs are the same).
 #     rollout_steps 15360 (batch 122,880 = x4), epochs 2, minibatches 120 (1,024-row
-#     minibatches), lr 3.5e-4 -- OR the pre-stated FALLBACK the 12M screen selects
+#     minibatches), lr 3.5e-4, AND push_every_updates 5 -> 1 so the league's push cadence
+#     stays matched in ENV STEPS (122,880 vs W's 153,600; R2 coupled it the same way,
+#     RESULTS 17; added 2026-09-21 after a pre-launch review found the x4 rollout would
+#     otherwise make the pool 4x staler) -- OR the pre-stated FALLBACK the 12M screen selects
 #     (configs/showdown_r6_batch12m.yaml: epochs 4, minibatches 480, lr 2.5e-4 if
 #     approx_kl collapses). The screen's verdict is recorded in this header before launch.
 #   COMMON-MODE on every lane, UNCREDITED BY DESIGN: C6 (IDEAS 4.6 form (a), constant

@@ -56,7 +56,9 @@ def test_trio_b_is_the_w_base_plus_exactly_its_stated_diffs():
     assert _diff(w, b) == {
         "seed", "run_name", "env_kwargs.seat_tag",
         "agent.rollout_steps", "agent.epochs", "agent.lr",
+        "selfplay.push_every_updates",  # coupled to the x4 rollout (env-step-matched league cadence)
     }
+    assert b["selfplay"]["push_every_updates"] == 1
     assert b["agent"]["rollout_steps"] == 15360 and b["agent"]["epochs"] == 2
     assert b["agent"]["minibatches"] == 120 and b["agent"]["lr"] == 3.5e-4
     assert b["seed"] == 328 and b["env_kwargs"]["seat_tag"] == "r6tb"
@@ -64,6 +66,7 @@ def test_trio_b_is_the_w_base_plus_exactly_its_stated_diffs():
     s = yaml.safe_load((ROOT / "configs/showdown_r6_batch12m.yaml").read_text())
     for k in ("rollout_steps", "epochs", "minibatches", "lr"):
         assert b["agent"][k] == s["agent"][k], k
+    assert s["selfplay"]["push_every_updates"] == b["selfplay"]["push_every_updates"] == 1
 
 
 def test_c6_marker_is_on_the_trios_and_on_nothing_else_in_configs():
@@ -121,3 +124,18 @@ def test_trio_b_fallback_is_trio_b_with_exactly_the_three_pre_stated_keys():
     smoke = yaml.safe_load((ROOT / "configs/showdown_r6_trio_b_fallback_smoke400k.yaml").read_text())
     assert _diff(fb, smoke) == {"seed", "run_name", "total_steps", "eval_every", "checkpoint_every", "agent.lr_anneal_steps"}
     assert smoke["seed"] == 920 and smoke["total_steps"] == smoke["agent"]["lr_anneal_steps"] == 400_000
+
+
+def test_fallback_screen_is_the_go_screen_with_exactly_the_fallback_keys_and_its_own_seeds():
+    go = yaml.safe_load((ROOT / "configs/showdown_r6_batch12m.yaml").read_text())
+    fb_path = ROOT / "configs/showdown_r6_batch12m_fallback.yaml"
+    fb = yaml.safe_load(fb_path.read_text())
+    assert _diff(go, fb) == {"seed", "run_name", "env_kwargs.seat_tag", "agent.epochs", "agent.minibatches", "agent.lr"}
+    assert fb["agent"]["epochs"] == 4 and fb["agent"]["minibatches"] == 480 and fb["agent"]["lr"] == 2.5e-4
+    assert fb["seed"] == 120 and fb["env_kwargs"]["seat_tag"] == "r6bf" and fb["selfplay"]["push_every_updates"] == 1
+    # the same keys the trio B FALLBACK file launches with
+    tb = yaml.safe_load((ROOT / "configs/showdown_r6_trio_b_fallback.yaml").read_text())
+    for k in ("rollout_steps", "epochs", "minibatches", "lr"):
+        assert fb["agent"][k] == tb["agent"][k], k
+    assert not any(line.rstrip() == "# ENCODER_C6: on" for line in fb_path.read_text().splitlines()), "a screen matched against c6-off W history stays c6-OFF"
+    load_config(fb_path)
