@@ -13013,3 +13013,17 @@ line numbers are not — grep the date, then read that region):
   — finals kept — but that is a deletion and waits for a ruling. Also benign: 48 Showdown `bigerror` turn-1000
   auto-tie warnings per lane over 10.4 h (~4.6/h), the usual long-battle timer chatter, not the burst that
   preceded R2's silent stalls.
+
+- 2026-09-22 11:45Z — **RULED: the reads queue keeps its all-six WAIT; no split.** The agent offered to split
+  `scripts/r6_reads_queue.sh` so trio B's six off-FP arms could run in the ~7 h gap between trio B finishing
+  (Wed 09-23 ~21:00 EDT) and trio A finishing (Thu 09-24 ~05:00 EDT), with the contention disclosed.
+  Maintainer, verbatim: **"Gain/lose 7h doesn't bother me so do whatever is simplest and most correct"** — so
+  the queue is unchanged and idles through the gap. That IS the correct form: FP@20 carries a WALL-CLOCK
+  search budget, so an arm running beside a live training lane weakens Foul Play and flatters our seat, which
+  would contaminate the primary read (the credit line) and the read that picks Ladder R6's object. It is also
+  the simplest: zero edits to a script that is already armed and holding (pid 46557, WAIT since 00:56Z), and
+  editing a bash script an instance is executing is its own landmine (the queue re-execs from a frozen temp
+  copy precisely because of it). **Do not re-propose the split.**
+  Weekday correction, since the ETA table was quoted with the wrong day names yesterday: 2026-09-22 is a
+  TUESDAY, so trio B lands Wed 09-23 21:00–21:40 EDT, trio A Thu 09-24 04:45–07:35 EDT, and the R6 readout
+  Fri 09-25 02:00–05:00 EDT (the dates were right throughout; only the weekday labels were wrong).
