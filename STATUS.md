@@ -75,8 +75,8 @@ you may cite:
    fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.
 3. **The live lever is the CRITIC, and §27/§27.1/§31 say what is wrong with it**: 93% of
    the gap is RANKING, worst in the opening, and the train/eval shift is measured at +0.059.
-   `docs/IDEAS_POST_100M.md` Round 4 is re-ranked around that. **4.9 (expert iteration) is
-   the top §4 item; its 2.11 gate OPENED and its exit gate CLEARED (§35) — R7's first trio.**
+   `docs/IDEAS_POST_100M.md` Round 4 is re-ranked around that. **4.9 is the top §4 item; its 2.11 gate OPENED and its exit gate CLEARED (§35) — R7's first trio. R7 RATIFIED 09-22 (JOURNEY 14 opened early):
+   `docs/proposals/R7_NATIVE_SEARCH_PLAN_2026-09-22.md`, frozen at amendment box 3 until G0 reads; the box runner starts at `docs/proposals/R7_RUNNER_BRIEF_2026-09-22.md`.**
 4. **THE SIX R6 RULINGS ARE TAKEN (maintainer, 2026-09-20, "agree with all"):** loop breaker ON
    for the ladder object; C6 in R6 only if the Rust port lands first; fleet = W base, trio A
    outcome heads, trio B batch/epochs; R6 ladder under the split schedule; 2.13 stays OFF; the

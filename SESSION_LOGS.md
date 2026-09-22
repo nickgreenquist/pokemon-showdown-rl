@@ -13050,3 +13050,75 @@ line numbers are not — grep the date, then read that region):
   interpreter the live lanes use before creating one (`ps -eo command | grep rl.train`), and CLAUDE.md rule 1
   records that this env is for analysis / evals / the reads queues while the fleet's is `pkmn-engine-port`.
   Housekeeping, per the standing ruling to fix stale docs without asking.
+- 2026-09-22 (agent, cloud session on branch `claude/pokemon-showdown-randbats-breakthrough-xsxy22`;
+  maintainer: *"come in with a plan to make the next lever leap into a next strongest bracket ...
+  no human data ... anything else is on the table ... something monumental"*) — **R7 PLAN WRITTEN,
+  NOT RATIFIED:** `docs/proposals/R7_NATIVE_SEARCH_PLAN_2026-09-22.md`. One search operator on
+  `pkmn_gen1` (exact first-ply expansion, privileged antisymmetric critic at determinized leaves,
+  matrix-game root regularised to the prior), used at the ladder (the unspent 150 s/turn), inside
+  training (expert iteration at ~1.2 ms per searched decision, async two-core lanes), and as the
+  instrument (rollout-Q at 256 rollouts/cell, G0). Six rulings requested in its §9; the first
+  build (B0–B3) feeds G0, whose pre-stated ceiling (`regret_greedy` < 0.005) is the cheap kill.
+  R6 untouched; the running exit gate's verdict is scoped to the tree-on-PPO-critic operator.
+  Session-scoped constants it leans on (5.7 µs/leaf, 1.1–1.5 µs critic/leaf) are flagged as
+  uncommitted and budgeted conservatively (10 µs). No code, no runs, no numbers produced.
+- 2026-09-22 (later, maintainer: *"Agree with all"* to the six R7 rulings) — **R7 PLAN RATIFIED.**
+  (1) JOURNEY 14 opens now as the R7 chapter; the pure-lane / R7 separation survives as a
+  disclosure rule, not a sequencing rule. (2) The exit gate's closure is scoped to the
+  tree-on-PPO-critic operator; the native operator's kill is G0's regret ceiling. (3) The
+  privileged critic is the leaf evaluator. (4) A search-backed value target is in charter; blend
+  starts at w=0.5, read `search/value_gap` before moving it. (5) The ladder object may be a
+  mixed-strategy searched policy IF G2 clears, disclosed as a policy form; the greedy committee
+  stays the pure-lane number. (6) Two cores per lane for the R7 fleet, the mmap'd team bank
+  lands first, `collector_lag_updates` to disk, synchronous at 20% searched if lag > 1 update.
+  Next build: B0–B3 → G0 (plan §7, §6). R6 and the running exit gate unchanged.
+- 2026-09-22 (later still, agent; maintainer: *"Fold what you think is useful"*) — **R7 PLAN
+  AMENDED** from the teammate's `SEARCH_IN_TRAINING_CHAPTER_2026-09-22.md` (branch
+  `claude/search-in-training-proposal`, `757c4f0`): a dated amendment box adopts six items
+  (behaviour log-prob from π′ pinned by a test; the search value as an auxiliary head before any
+  GAE blend; the value estimand named as the expectation under the opponent's prior policy, never
+  minimax; a coin sampler for the value half; Stage 0B — does the turn-2–8 r² correlate with
+  strength across banked finals, owed to R6 trio A too; a TEXT amendment to RESULTS §1's purity
+  clause) and rejects two with reasons (the L6 abstraction concern does not apply to real-action
+  columns; its cost model prices the poke_engine tree, not the native operator). Verdict on the
+  teammate's chapter: a careful audit of the OLD vehicle, subsumed on the operator, adopted on
+  hygiene. §4 and §6 of the plan updated in place to match.
+- 2026-09-22 (agent; the teammate's REPLY BOX at `dd224a4` on `claude/search-in-training-proposal`)
+  — **R7 PLAN AMENDMENT BOX 2.** The teammate conceded the vehicle and found a defect in the
+  RATIFIED kill branch: G0's `regret_greedy` was a max over noisy rows with a zero-gap floor of
+  ≈0.012–0.018 win-rate against a 0.005 kill (re-derived here from `action_gap.py:218-225`'s
+  own comment and the ±1-scale se). Fixed: split-sample 128/128, CRN across rows, a measured
+  permuted-split null, the kill on the upper 95% bound, scale named as win-rate. Also taken:
+  P3 (true world = posterior sample) is correct as sampling and suffers strategy fusion as
+  search — kept, conditional on D19's measured residual, non-transferable to gen 4/9/OU, with a
+  fusion read after B6; the privileged critic DEMOTED from principle to arm (fusion interaction
+  + IDEAS 4.7's untouched information leg), antisymmetry kept on the observation critic's two
+  views; Stage 0A as a fourth G0 column; a top-k optimism read; §26.1 quote softened; line ref
+  `entity_deepsets.py:348-353`. Teammate owns B5 seams and Stage 0B.
+- 2026-09-22 (agent; the teammate's REPLY BOX 2 at `eed70ed`) — **R7 PLAN AMENDMENT BOX 3,
+  the thread CLOSED.** Verified `docs/landmines.md:614-626` (10P+4E cores, `taskpolicy -b` 6.8×)
+  and `:328` (`torch_threads: 6` at 0.85×): twelve threads for six lanes do not fit on ten
+  P-cores, and under a wall-matched fleet a spilled collector trains fewer steps — a CONFOUND.
+  Width restated to 5 × 2 cores (ruling 7 asked: 5 honest or 6 disclosed); QoS clause on B4;
+  the 4-thread critic figure struck; the antisymmetric second view costed (T-op ≈1.8 ms, all
+  wall figures re-derived: 100M ≈ 38 h at 40% searched, 28 h at 30%). `regret_greedy` renamed
+  `regret_depth1_ceiling` (a perfect-evaluator depth-1 bound on the FIRST iteration); §0 now
+  says the monumental claim rests on COMPOUNDING, and G3 gains the instrument for it (the
+  student's own ceiling falling faster than a coef-0 control's). Disagreements recorded: the
+  proposed minimax-vs-expectation read is an opponent-model separator, not depth-2 (taken as
+  `opp_model_gap`); the fusion bound needs `BattleSpec::from_visible` + a determinizer fill
+  (B1b), not `sample_determinization` (poke-env only). Stage 0B demoted to a necessary-condition
+  check per the teammate's own correction. B5 tests and G3 sign-off adopted as the teammate
+  wrote them; they own B5.
+- 2026-09-22 (maintainer: one runner) — the teammate's `SEARCH_IN_TRAINING_CHAPTER_2026-09-22.md`
+  imported at `eed70ed` under a SUPERSEDED header so its reply boxes (bench spec, B5 test
+  designs, G3 sign-off, fusion bound, 0B correction) stay in the tree; the R7 plan's ownership
+  lines now name a single runner for every build item. `claude/search-in-training-proposal`
+  does no further work.
+- 2026-09-22 (cloud session, closing) — **R7 RUNNER BRIEF written** at the maintainer's request:
+  `docs/proposals/R7_RUNNER_BRIEF_2026-09-22.md` — read order, the worktree rule (a running
+  block imports the working tree), env rule (B0 in `pkmn-engine-port` only), sequencing against
+  the exit-gate queue and the ratified R6 prep, ruling 7 (fleet width, default 5) to ask first,
+  B0–B3 with acceptance (B0's bench replaces §5's constants at a 2× pass line), G0, and the
+  do-nots. The box session merges this branch into `main`, deletes both `claude/` branches and
+  becomes the single runner. This cloud session did no builds and produced no numbers.
