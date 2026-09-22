@@ -279,6 +279,33 @@ in zsh; `echo ===` is a glob error; inline `#` does not parse interactively;
 `read -rs "P?prompt: "`. Anything handed to the maintainer runs in THEIR
 zsh, so prompt-reading one-liners must be zsh-native.
 
+## A WATCH LOOP MUST READ ONLY NEW LINES -- and three ways that breaks
+
+A loop armed to wake a session on "the thing happened" re-fires instantly on a
+matching line that was ALREADY in the log, which reads as the event rather
+than as a bug. Three instances in two days on the R6 launch, each a different
+mechanism:
+
+1. **A stale terminal line.** The smokes watch used `tail -40 | grep "SMOKES
+   DONE"` and fired on the DRY run's own DONE line from an hour earlier.
+2. **`pgrep -f` self-match.** A liveness check whose pattern appears in its own
+   command line matches ITSELF and so can never exit. Five zombie loops came
+   from this; anchor every pattern (`^bash scripts/foo\.sh`), never a bare
+   substring, and keep the watch script's own path out of the pattern.
+3. **A baseline silently blanked (2026-09-22 12:34Z).** `N0=$(wc -l < f)` keeps
+   wc's LEADING SPACES on macOS, so an unquoted heredoc wrote `N0=     500`;
+   bash read that as an empty assignment plus a command `500`, printed
+   `500: command not found` to a log nobody was reading, and left `N0` empty.
+   `tail -n +$((N0 + 1))` then became `tail -n +1` -- the whole file -- and the
+   loop fired on two ALERT lines from 12 h earlier.
+
+**The fix that survives all three:** decide newness from the line's OWN
+timestamp, not from a line count or a tail depth -- `grep ALERT log | awk -v
+a="[$ARM]" '$1 > a'` with `ARM=$(date -u +%FT%TZ)`, since ISO-8601 sorts
+lexically. Then REFUSE TO ARM if anything already postdates the arm time, and
+dry-run the filter once before arming: a watch that fires on arming is
+indistinguishable from a watch that fires on the event.
+
 ## Throughput numbers
 
 `scripts/showdown_throughput.py` measures server-side decisions/s only —
