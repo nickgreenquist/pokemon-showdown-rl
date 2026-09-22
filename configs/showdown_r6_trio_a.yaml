@@ -139,8 +139,13 @@
 #   checkpoint.pt, sha stamped, 2 history segments merged); peak RSS 2.35 GB (30 s polls); no
 #   Traceback.
 # (ii) PENDING: the 12M screens' verdicts (GO keys s204/s212 and fallback keys s220/s228) are recorded in
-#   trio B's header when they land; (iii) the maintainer ratifies by editing this line at launch. Launch is
-#   the maintainer's (ruled 2026-09-21: both trios TOGETHER, in the morning if the verdicts are late).
+#   trio B's header when they land; (iii) RATIFIED 2026-09-22 00:27Z by the maintainer, verbatim: "how about
+#   you just run both screens, and you launch the actual large run yourself. you then monitor all lanes. if
+#   you notice overnight that its much slower than expected (vs if i ran them in my own terminal), then
+#   tomorrow morning ill ping you and you kill your runs and ill run the commands myself" -- a one-off
+#   rule-4 authorization; LAUNCHED BY THE AGENT under it (trio A first, its gates all done; trio B in the
+#   FALLBACK form after its screen's 12M read). Throughput is monitored against the W fleet's per-lane
+#   rate at matched width (R0 gate 3); a much-slower fleet is killed and relaunched by the maintainer.
 #
 # BODY: the W base with ONLY the diffs stated above (tests/test_r6_trio_configs.py pins
 # the diff set against configs/showdown_monster200m_w.yaml).
