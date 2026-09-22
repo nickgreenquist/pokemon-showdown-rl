@@ -140,10 +140,17 @@
 #   per-update kl 0.0085, entropy 1.77, EV 0.27; update 87.3 s (1,920 optimizer steps) + collect
 #   20.8 s per update beside five lanes; PPO grad norm 0.62 (W's first 400k 0.70); peak RSS 1.75 GB;
 #   no Traceback.
-# (ii) PENDING: the 12M screens' verdicts (GO keys runs/showdown_r6_batch12m_s{204,212}; fallback keys
-#   runs/showdown_r6_batch12m_fallback_s{220,228}) -- recorded here when they land; OPEN RULING: launch
-#   trio B in the FALLBACK form regardless (recommended; SESSION_LOGS 2026-09-21 cont. 3); (iii) the
-#   maintainer ratifies by editing this line at launch. Launch is the maintainer's (both trios TOGETHER).
+# (ii) THE VERDICT:
+#   GO SCREEN READ 2026-09-22 00:25Z (`results/r6_batch12m/read.json`,
+#   `scripts/r6_batch12m_read.py`, the rule as pre-stated): **FALLBACK** -- (a) per-update approx_kl
+#   in band [0.0054, 0.0093] OK but ~5x below W's ~0.045; (b) FAIL: last-bin entropy 0.48 / 0.49 vs
+#   W's 0.70 (tol 0.15); (c) FAIL: last-bin EV 0.49 vs W's 0.69 (tol 0.05); policy travel (sum
+#   approx_kl over 12M, reported) 0.72 over 97 updates vs W's 15.4 over 390 -- 22x less movement at
+#   matched env steps. update 32.3 s / collect 35.6 s per update (beside 2-3 other lanes) vs W 21.3
+#   / 9.2. TRIO B LAUNCHES IN THE FALLBACK FORM (configs/showdown_r6_trio_b_fallback.yaml,
+#   TAG=showdown_r6_trio_b). The fallback-keys screen (s220/s228) is its sanity read, PENDING
+#   (~01:30Z), recorded here when it lands.
+# (iii) the maintainer ratifies by editing this line at launch. Launch is the maintainer's (both trios TOGETHER).
 #
 # BODY: the W base with ONLY the diffs stated above (tests/test_r6_trio_configs.py pins
 # the diff set against configs/showdown_monster200m_w.yaml).

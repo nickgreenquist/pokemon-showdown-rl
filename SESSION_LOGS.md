@@ -12883,3 +12883,14 @@ line numbers are not — grep the date, then read that region):
   Memory at six-wide from the smokes' peaks: ~3 × 2.35 + 3 × 2.4 GB ≈ 14–15 GB of 24 (W's fleet: 8–11 GB), under
   the per-lane STOP gate; disclosed. Screens at 23:08Z: GO pair 3.44M steps (~1,550 steps/s → 12M ≈ 00:35Z),
   fallback pair 2.46M / 1.97M (its 1,920-step updates are slower → 12M ≈ 01:30Z).
+- 2026-09-22 (00:25Z, agent) — **THE GO SCREEN READS FALLBACK, decisively, by its own pre-stated rule.** GO SCREEN READ 2026-09-22 00:25Z (`results/r6_batch12m/read.json`, `scripts/r6_batch12m_read.py`, the rule as pre-stated): **FALLBACK** -- (a) per-update approx_kl in band [0.0054, 0.0093] OK but ~5x below W's ~0.045; (b) FAIL: last-bin entropy 0.48 / 0.49 vs W's 0.70 (tol 0.15); (c) FAIL: last-bin EV 0.49 vs W's 0.69 (tol 0.05); policy travel (sum approx_kl over 12M, reported) 0.72 over 97 updates vs W's 15.4 over 390 -- 22x less movement at matched env steps. update 32.3 s / collect 35.6 s per update (beside 2-3 other lanes) vs W 21.3 / 9.2. TRIO B LAUNCHES IN THE FALLBACK FORM (configs/showdown_r6_trio_b_fallback.yaml, TAG=showdown_r6_trio_b). The fallback-keys screen (s220/s228) is its sanity read, PENDING (~01:30Z), recorded here when it lands.
+  Per-1M-bin table in `read.json`: the screen's approx_kl sits at 0.006–0.009 in every bin while W's climbs to
+  0.045; entropy falls 1.60 → 0.48 (W: 1.26 → 0.70); EV 0.40 → 0.49 (W: 0.48 → 0.69); adv_std 0.52–0.55 vs W's
+  0.47. Mechanism as read: at 1,024-row minibatches, 2 epochs and lr 3.5e-4 the policy moves ~7× less per update
+  AND updates 4× less often, so it has travelled ~22× less by 12M — the "fewer, larger updates" failure the
+  reviewer predicted, in the extreme; nothing here is a win-rate read (rule 6). The maintainer's open ruling on
+  trio B's form is moot: the pre-stated rule selects the FALLBACK form, which the second reviewer and RESULTS §17's
+  own batch ladder also argued for. The fallback-keys screen (s220/s228, ~5M steps at this hour) is that form's
+  sanity read under the identical rule; PENDING. Screen histories extracted to `runs/showdown_r6_batch12m_s*/
+  history.csv` (393k / 402k rows). Disclosure: the read (≈2 min of CPU/IO, the W lanes' first 12M streamed
+  three times) ran beside the two fallback screen lanes.
