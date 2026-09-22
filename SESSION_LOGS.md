@@ -12546,3 +12546,14 @@ line numbers are not — grep the date, then read that region):
   stays the pure-lane number. (6) Two cores per lane for the R7 fleet, the mmap'd team bank
   lands first, `collector_lag_updates` to disk, synchronous at 20% searched if lag > 1 update.
   Next build: B0–B3 → G0 (plan §7, §6). R6 and the running exit gate unchanged.
+- 2026-09-22 (later still, agent; maintainer: *"Fold what you think is useful"*) — **R7 PLAN
+  AMENDED** from the teammate's `SEARCH_IN_TRAINING_CHAPTER_2026-09-22.md` (branch
+  `claude/search-in-training-proposal`, `757c4f0`): a dated amendment box adopts six items
+  (behaviour log-prob from π′ pinned by a test; the search value as an auxiliary head before any
+  GAE blend; the value estimand named as the expectation under the opponent's prior policy, never
+  minimax; a coin sampler for the value half; Stage 0B — does the turn-2–8 r² correlate with
+  strength across banked finals, owed to R6 trio A too; a TEXT amendment to RESULTS §1's purity
+  clause) and rejects two with reasons (the L6 abstraction concern does not apply to real-action
+  columns; its cost model prices the poke_engine tree, not the native operator). Verdict on the
+  teammate's chapter: a careful audit of the OLD vehicle, subsumed on the operator, adopted on
+  hygiene. §4 and §6 of the plan updated in place to match.

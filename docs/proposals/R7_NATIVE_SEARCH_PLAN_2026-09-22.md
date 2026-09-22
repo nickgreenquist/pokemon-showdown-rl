@@ -18,6 +18,46 @@ Glicko 1794** (gen1RB top-500 list pulled 2026-08-25, `docs/prior_work/README.md
 93.5 / 2022, list median 75.0 / 1712). So the target is roughly **+8 GXE / +100 Glicko**,
 on a 14-core laptop, CPU only, pure self-play.
 
+> ### AMENDMENT BOX — 2026-09-22, folded from the teammate's `SEARCH_IN_TRAINING_CHAPTER_2026-09-22.md`
+> (branch `claude/search-in-training-proposal`, commit `757c4f0`). Recorded as an amendment, not
+> a rewrite, so the original text stays auditable. Six items adopted; two rejected with reasons.
+> 1. **Behaviour log-prob from `π'`, pinned by a test.** §4 item 1 plays the sampled `π'` action
+>    and stores `log π'(a)`. A ratio computed against `π_θ`'s log-prob on those rows is a SILENT
+>    corruption: `approx_kl` and `clip_frac` will not flag it. Test: a searched batch with `π' ≠
+>    π_θ` must produce ratio 1.0 at the first epoch.
+> 2. **The search value starts as an AUXILIARY head, not a GAE blend.** Searching ~40% of
+>    decisions and blending `v'` only there puts an offset across the searched/unsearched
+>    boundary that GAE straddles on most transitions. Our `v'` is a one-step Bellman backup of the
+>    same critic, so the offset should be small — but that is a prediction, and `search/value_gap`
+>    is the measurement. §4 item 3 is amended: auxiliary head first (the 4.11 pattern, `forward`
+>    unchanged, GAE untouched); the blend is a later dial, promoted only after `value_gap` reads.
+> 3. **The value estimand is named.** The target `v'` is the expectation under the OPPONENT'S
+>    PRIOR POLICY (columns weighted by `π_opp`), which is §27's oracle estimand (the committee
+>    rolled out on both seats). The mixed-strategy root (P4) decides the ACTION only. A minimax
+>    root value (the tree's `puct` default) is a different, pessimistic estimand and is never the
+>    critic's target.
+> 4. **Two samplers.** The policy target may use a contested-state selector; the value target
+>    uses a COIN, because a biased sampler biases the critic's training distribution — the defect
+>    §31 measured. Both rates are dials to disk.
+> 5. **Stage 0B is adopted and runs first, free:** across banked finals with FP@20 / vs-SH
+>    numbers, regress strength on the turn-2–8 r² bucket. If it does not correlate, that bucket
+>    is uninterpretable as a mechanism co-primary — for G3/G4 here AND for R6 trio A, which is
+>    already ratified on it. Owed to R6 regardless of this chapter.
+> 6. **The purity clause needs a TEXT amendment.** RESULTS §1 defines a pure run by three
+>    sources (init, self-play experience, the environment). Search inside training adds the
+>    engine's forward model and the generator prior. Ruling 4 covers the spirit; the enforceable
+>    clause is edited before any R7 number lands, and the amendment says what it admits (the
+>    game's own rules and the format's own generator) and what it still excludes (any external
+>    policy, tape or evaluator).
+>
+> **Rejected, with reasons.** (a) The L6 column-abstraction concern about an equilibrium solve
+> does not apply: our columns are the opponent's actual legal actions in the determinized world,
+> top-k by `π_opp`, so the ≤9×k solve is over the real game. (b) Its cost model (tens of server
+> hours per 10⁴ labelled states, 766.6 ms/decision) prices the poke_engine Python tree; the
+> native operator is ~1 ms/decision with no server (§5), so its Stages A–B are not adopted as
+> written. Its Stage 0A (root value vs oracle r²) is subsumed by G0, which measures the same
+> quantity against a 256-rollout oracle on the engine.
+
 ---
 
 ## 0. The bet in one paragraph
@@ -153,8 +193,10 @@ Keep `PPOAgent`, the snapshot pool, the anneal, the W recipe. Add, on searched r
 2. **Policy loss toward `π'`:** `β · KL(π' ‖ π_θ)` masked through `rl/common/masking`,
    logged as `loss/search_policy` from the update. Soft target, never the argmax
    (`docs/prior_work/DISTILLATION_OBJECTIVES.md`: soft vs hard is +50 Elo at equal agreement).
-3. **Value target blend:** `V_target = (1−w)·GAE + w·v'`, `w` a dial starting at 0.5;
-   `loss/search_value`, and `search/value_gap = |v' − GAE|` as the read.
+3. **Value target:** `v'` (the root's expectation under the opponent's prior policy —
+   amendment 3) trained through an AUXILIARY critic head first (amendment 2), logged as
+   `loss/search_value`, with `search/value_gap = |v' − GAE|` as the read; the GAE blend
+   `V_target = (1−w)·GAE + w·v'` is a later dial, promoted only after `value_gap` reads.
 4. **The critic is privileged and antisymmetric (P2)** — it is the same network the T-op
    evaluates leaves with, so the loop is self-consistent: successors the critic overrates
    get played, visited and corrected. Underrated ones are the exploration problem, which
@@ -162,7 +204,8 @@ Keep `PPOAgent`, the snapshot pool, the anneal, the W recipe. Add, on searched r
 5. **The 4.11 outcome heads ride on the same critic** (built data path; the heads are
    R6 trio A's build) — no conflict, one more target.
 
-**Which decisions get searched.** Not forced moves (one legal row), not decisions where
+**Which decisions get searched.** Two samplers (amendment 4): the value target's rows are
+a coin; the policy target's rows may be contested-state selected. Not forced moves (one legal row), not decisions where
 `π_θ` top-1 ≥ 0.97 — measure the fraction on the R5 finals first (§32: mean
 `pi_top1` 0.885, so a large share is confident). Pre-decide the fraction as a DOSE and
 match it across arms; a pre-stated fallback is "search where the policy's top-2 margin
@@ -198,6 +241,10 @@ L-op at the ladder: ~30 ms depth-1, ~2.5 s depth-2 at S=8, both under 2% of the 
 tight-path budget; the design's ≤ 5 s cap holds, chunked at 4,096 rows (§4.2).
 
 ## 6. Gates and instruments, in order, each with its branch pre-stated
+
+**Stage 0B (amendment 5), before G0 and free:** regress banked finals' FP@20 / vs-SH
+strength on their turn-2–8 r² bucket. No correlation → that bucket is dropped as a mechanism
+co-primary here and flagged to R6 trio A.
 
 **G0 — the rollout-Q instrument (I-op), the one measurement that decides everything.**
 500 positions sampled from R5-final self-play on the engine (stratified by turn bucket),
