@@ -26,10 +26,21 @@ constraints. It adds no new claims. On conflict, the plan wins, then `CLAUDE.md`
   `scripts/` or `engine/` in that checkout while any queue or fleet is running.** Work in
   a git worktree (`docs/engine_port_session_brief.md` §1.1 is the precedent), merge to
   `main` only between blocks, and stamp `launch_git_sha` on everything you run.
-- **The engine extension lives in the `pkmn-engine-port` conda env only** (rule 1). Never
-  `pip install` into `pokemon-showdown-rl`; the live lanes resume into it. B0 is Rust and
-  is built and benched in that env. Python-side work (B1, B2, B5) that does not touch
-  the extension runs in `pokemon-showdown-rl`; tests that need both run per CLEANUP.
+- **The engine extension lives in the `pkmn-engine-port` conda env only** (rule 1).
+  **CORRECTED 2026-09-22 by the box session — this brief inherited rule 1's inversion,
+  fixed in `CLAUDE.md` and `docs/engine_port_session_brief.md` at commit 0f406bb: the env
+  THE LIVE LANES RESUME INTO IS `pkmn-engine-port`, NOT `pokemon-showdown-rl`.**
+  `scripts/monster_fleet.sh` line 43 defaults `PY` there and `scripts/train_watchdog.sh`
+  inherits it for every resume, because `engine` collection needs `pkmn_gen1`, which only
+  that env has. **So B0 MUST NOT be built or installed into `pkmn-engine-port` while an
+  R6 lane is live.** Already-running lanes hold their mapped `.so` and are safe, but a
+  lane the watchdog RESUMES imports whatever is on disk — a rebuilt or half-built
+  extension means a resumed lane runs a different engine than it launched with, at best a
+  provenance break across the fleet and at worst an import death after 50 h of training.
+  B0 therefore waits for the R6 fleet to finish, or is built in a FRESH env of its own
+  (`pkmn-engine-port2`) whose extension no live lane can reach. Python-side work (B1, B2,
+  B5) that does not touch the extension runs in `pokemon-showdown-rl`; tests that need
+  both run per CLEANUP.
 
 ## 2. Sequencing against what is already running or ratified
 
