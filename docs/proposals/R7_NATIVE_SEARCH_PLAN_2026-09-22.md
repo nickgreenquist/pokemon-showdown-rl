@@ -1,6 +1,6 @@
 # R7 — the native-search chapter: turn the engine into supervision (written 2026-09-22)
 
-**Status: a PLAN for a maintainer ruling, not a pre-reg.** Nothing here credits anything.
+**Status: RATIFIED — all six §9 rulings taken by the maintainer 2026-09-22 ("agree with all"). A plan, not a pre-reg.** Nothing here credits anything.
 Every arm that becomes a headline number or a ladder object gets its own config header
 under the standing rules before it runs. Numbers are traced in place; session-scoped
 measurements that never reached a committed file are marked as such.
@@ -277,7 +277,7 @@ can still kill the plan cheaply.
 - **No heavy job beside an FP arm.** G0 and G1 are engine-only and can run niced beside
   the R6 fleet; G2 waits for an idle box.
 
-## 9. Rulings needed (one word each)
+## 9. Rulings — **ALL SIX TAKEN AS RECOMMENDED, maintainer 2026-09-22 ("agree with all")**; #5 is conditional on G2 clearing, #6 lands the mmap'd team bank first
 
 1. **Open JOURNEY 14 now**, before step 12's wrap, as the R7 chapter. (The plan assumes yes.)
 2. **Scope the exit gate's closure** to the tree-on-PPO-critic operator; the native

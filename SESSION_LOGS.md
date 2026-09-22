@@ -12536,3 +12536,13 @@ line numbers are not — grep the date, then read that region):
   R6 untouched; the running exit gate's verdict is scoped to the tree-on-PPO-critic operator.
   Session-scoped constants it leans on (5.7 µs/leaf, 1.1–1.5 µs critic/leaf) are flagged as
   uncommitted and budgeted conservatively (10 µs). No code, no runs, no numbers produced.
+- 2026-09-22 (later, maintainer: *"Agree with all"* to the six R7 rulings) — **R7 PLAN RATIFIED.**
+  (1) JOURNEY 14 opens now as the R7 chapter; the pure-lane / R7 separation survives as a
+  disclosure rule, not a sequencing rule. (2) The exit gate's closure is scoped to the
+  tree-on-PPO-critic operator; the native operator's kill is G0's regret ceiling. (3) The
+  privileged critic is the leaf evaluator. (4) A search-backed value target is in charter; blend
+  starts at w=0.5, read `search/value_gap` before moving it. (5) The ladder object may be a
+  mixed-strategy searched policy IF G2 clears, disclosed as a policy form; the greedy committee
+  stays the pure-lane number. (6) Two cores per lane for the R7 fleet, the mmap'd team bank
+  lands first, `collector_lag_updates` to disk, synchronous at 20% searched if lag > 1 update.
+  Next build: B0–B3 → G0 (plan §7, §6). R6 and the running exit gate unchanged.
