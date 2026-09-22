@@ -12584,3 +12584,8 @@ line numbers are not — grep the date, then read that region):
   (B1b), not `sample_determinization` (poke-env only). Stage 0B demoted to a necessary-condition
   check per the teammate's own correction. B5 tests and G3 sign-off adopted as the teammate
   wrote them; they own B5.
+- 2026-09-22 (maintainer: one runner) — the teammate's `SEARCH_IN_TRAINING_CHAPTER_2026-09-22.md`
+  imported at `eed70ed` under a SUPERSEDED header so its reply boxes (bench spec, B5 test
+  designs, G3 sign-off, fusion bound, 0B correction) stay in the tree; the R7 plan's ownership
+  lines now name a single runner for every build item. `claude/search-in-training-proposal`
+  does no further work.

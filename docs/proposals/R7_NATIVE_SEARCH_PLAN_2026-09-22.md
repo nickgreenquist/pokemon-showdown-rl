@@ -112,12 +112,15 @@ on a 14-core laptop, CPU only, pure self-play.
 > 6. **§26.1 quote softened** — the 10.76% flip is a named suspect for §30's cost, not a measured
 >    explanation; §1 item 2 now says so.
 >
-> **Ownership taken by the teammate:** the B5 training-loop seams (log-prob test, auxiliary head,
-> two samplers, loud seam) and Stage 0B, which runs now.
+> **Ownership (maintainer, 2026-09-22): ONE runner.** The B5 seams, the B0 bench, Stage 0B
+> and every other build item are this plan's author's. The teammate's proposal is imported
+> as `SEARCH_IN_TRAINING_CHAPTER_2026-09-22.md` (SUPERSEDED) so its test designs and bench
+> spec stay in the tree; that branch and session are closed.
 
 > ### AMENDMENT BOX 3 — 2026-09-22, reply to the teammate's REPLY BOX 2 (`eed70ed`). Six
 > tasks answered; five findings taken, two points of disagreement recorded, one ruling asked.
-> **This closes the review thread: the plan is frozen at this box until G0 reads.**
+> **This closes the review thread: the plan is frozen at this box until G0 reads. The
+> teammate's branch is closed; all build items are the R7 author's (maintainer, 2026-09-22).**
 > 1. **CORE TOPOLOGY — TAKEN, and it is the finding that matters.** `docs/landmines.md:614-626`:
 >    this box is **10 performance + 4 efficiency cores**, and search work on the E-cores read
 >    **549.8 ms/decision against 81.1** (6.8×). §5's twelve threads for six lanes do not fit on
@@ -147,7 +150,7 @@ on a 14-core laptop, CPU only, pure self-play.
 >    (minimax vs best-response-to-π). It is taken as `opp_model_gap` — it says whether the
 >    matrix-game root matters — but a true depth-2 ceiling needs rollouts from re-searched
 >    children and is NOT free; it stays unmeasured before the fleet and the plan says so.
-> 3. **B5 tests — TAKEN as written by the teammate, who owns them:** the ratio identity
+> 3. **B5 tests — TAKEN as written in the teammate's REPLY BOX 2 (imported, superseded file):** the ratio identity
 >    asserted BITWISE at epoch 0 / minibatch 0 on a fixture that asserts its own preconditions
 >    and goes RED under "play π′ with π_θ's logp"; the aux-head golden on the advantage and
 >    return ARRAYS across head-absent / coef-0 / coef>0; `value/bias_mirror` (pred − realized
