@@ -148,9 +148,18 @@
 #   approx_kl over 12M, reported) 0.72 over 97 updates vs W's 15.4 over 390 -- 22x less movement at
 #   matched env steps. update 32.3 s / collect 35.6 s per update (beside 2-3 other lanes) vs W 21.3
 #   / 9.2. TRIO B LAUNCHES IN THE FALLBACK FORM (configs/showdown_r6_trio_b_fallback.yaml,
-#   TAG=showdown_r6_trio_b). The fallback-keys screen (s220/s228) is its sanity read, PENDING
-#   (~01:30Z), recorded here when it lands.
-# (iii) the maintainer ratifies by editing this line at launch. Launch is the maintainer's (both trios TOGETHER).
+#   TAG=showdown_r6_trio_b). The fallback-keys screen (s220/s228) is its sanity read; it PASSED,
+#   and that read is recorded immediately below.
+# THE FALLBACK SCREEN'S READ:
+#   FALLBACK-KEYS SCREEN READ 2026-09-22 (`results/r6_batch12m/read_fallback.json`, the identical
+#   rule at 12M vs the W lanes' first 12M): **PASSES (all three checks)** -- (a) per-update
+#   approx_kl [0.0099, 0.0402] in [0.005, 0.06]; (b) last-bin entropy 0.73 / 0.69 vs W's 0.70 (tol
+#   0.15) OK; (c) last-bin EV 0.66 vs W's 0.69 (tol 0.05) OK; policy travel 2.83 over 97 updates vs
+#   W's 15.4 over 390 (5.5x less; reported). update 71.5 s / collect 27.9 s per 122,880-step update
+#   beside 3-4 other lanes.
+# (iii) RATIFIED 2026-09-22 00:27Z by the maintainer (verbatim in trio A's header: the agent launches the fleet
+#   and monitors; a much-slower fleet is killed on the morning ping and relaunched from the maintainer's
+#   terminal). LAUNCHED BY THE AGENT in the FALLBACK form (TAG=showdown_r6_trio_b) after this read.
 #
 # BODY: the W base with ONLY the diffs stated above (tests/test_r6_trio_configs.py pins
 # the diff set against configs/showdown_monster200m_w.yaml).

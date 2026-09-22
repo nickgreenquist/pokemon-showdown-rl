@@ -12932,3 +12932,28 @@ line numbers are not — grep the date, then read that region):
   README's ladder history (R1 → R4 → R5 monotone on both axes; R3 the exception, a broken-selector object
   whose offline number was an artifact and whose ladder rating did not move), with the standing caveat that
   the runs are not comparable in any direction (accounts, opponents, n=200).
+
+- 2026-09-22 01:33Z — **THE FALLBACK-KEYS 4.12 SCREEN PASSES; TRIO B LAUNCHES IN THE FALLBACK FORM.** Both
+  screen pairs are DONE with zero resumes (s204/s212 at 00:23Z, s220/s228 at 01:18Z) and both have now been
+  read by `scripts/r6_batch12m_read.py` under the rule pre-stated in the screen header on 2026-09-21, before
+  either screen ran. They disagree, which is the whole reason the second pair was built:
+    - **GO keys** (rollout ×4, epochs 4→2, minibatches 120, lr 2.5e-4→3.5e-4): **FALLBACK** at 00:25Z
+      (`results/r6_batch12m/read.json`) — kl in band but ~5× below W's, last-bin entropy 0.48/0.49 vs W's
+      0.70 (FAIL), last-bin EV 0.49 vs 0.69 (FAIL), policy travel 0.72 over 97 updates vs W's 15.4 over 390.
+    - **FALLBACK keys** (rollout ×4, epochs 4, minibatches 480 = 256-row minibatches, lr 2.5e-4 — optimizer
+      steps per datum MATCHED to W): **PASSES all three** at 01:33Z (`results/r6_batch12m/read_fallback.json`)
+      — (a) per-bin median approx_kl [0.0099, 0.0402] inside [0.005, 0.06] on both lanes, and rising along
+      W's own shape (bin 1 0.011 vs W 0.029 → bin 11 0.039 vs W 0.046); (b) last-bin entropy 0.73 / 0.69 vs
+      W's 0.70, tol 0.15, after descending from 1.63; (c) last-bin EV 0.664 vs W's 0.690, tol 0.05.
+  Reported, never a GO input: policy travel 2.83 over 97 updates vs W's 15.4 over 390 — 5.5× less movement at
+  matched env steps, against the GO form's 21×. **Read together the two screens say the ×4 batch is only safe
+  when the optimizer steps per datum are held**: the mechanism damage in the GO form was the halved epochs and
+  the raised LR, not the batch. That is RESULTS §17's own shape (its batch ladder held minibatch size at 256
+  and coupled the push cadence) arriving as a measurement rather than an argument.
+  Timing, disclosed as contaminated: 71.5 s update / 27.9 s collect per 122,880-step update, running beside
+  3–4 other lanes, vs W's 21.3 / 9.2 per 30,720-step update — 17.9 s per W-equivalent datum, i.e. no worse per
+  datum, but nothing about wall clock is readable from a box this loaded.
+  Recorded in `configs/showdown_r6_trio_b{,_fallback}.yaml` (ratification block), `configs/showdown_r6_batch12m
+  {,_fallback}.yaml`, STATUS. `tests/test_r6_trio_configs.py` green (8 passed). TRIO B launches on
+  `configs/showdown_r6_trio_b_fallback.yaml` with `TAG=showdown_r6_trio_b`, seeds 328/336/344, immediately
+  after this commit — the tree stays untouched through the launcher's whole stagger window.

@@ -8,6 +8,7 @@
 # ruling on trio B's form can see both mechanism trajectories. This file is
 # configs/showdown_r6_batch12m.yaml with EXACTLY: epochs 2 -> 4, minibatches 120 -> 480,
 # lr 3.5e-4 -> 2.5e-4, seed 104 -> 120 (lanes 220 / 228), seat_tag r6b -> r6bf, run_name.
+# READ: FALLBACK-KEYS SCREEN READ 2026-09-22 (`results/r6_batch12m/read_fallback.json`, the identical rule at 12M vs the W lanes' first 12M): PASSES (all three checks) -- (a) per-update approx_kl [0.0099, 0.0402] in [0.005, 0.06]; (b) last-bin entropy 0.73 / 0.69 vs W's 0.70 (tol 0.15) OK; (c) last-bin EV 0.66 vs W's 0.69 (tol 0.05) OK; policy travel 2.83 over 97 updates vs W's 15.4 over 390 (5.5x less; reported). update 71.5 s / collect 27.9 s per 122,880-step update beside 3-4 other lanes.
 # LAUNCH (beside the GO screen; four screen lanes + one smoke lane on a 14-core box):
 #   ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh configs/showdown_r6_batch12m_fallback.yaml 12000000 220 228
 # Run dirs runs/showdown_r6_batch12m_fallback_s{220,228}. NEVER a win-rate read (rule 6).
