@@ -12524,3 +12524,15 @@ line numbers are not — grep the date, then read that region):
     maintainer's request** (context clear): the running queue and how to check it, the six
     rulings, the ordered work list with the C6-port / 4.11-heads / attention-screen / 4.12 /
     fleet specs, the session's landmines, the traced numbers. Committed and pushed after it.
+- 2026-09-22 (agent, cloud session on branch `claude/pokemon-showdown-randbats-breakthrough-xsxy22`;
+  maintainer: *"come in with a plan to make the next lever leap into a next strongest bracket ...
+  no human data ... anything else is on the table ... something monumental"*) — **R7 PLAN WRITTEN,
+  NOT RATIFIED:** `docs/proposals/R7_NATIVE_SEARCH_PLAN_2026-09-22.md`. One search operator on
+  `pkmn_gen1` (exact first-ply expansion, privileged antisymmetric critic at determinized leaves,
+  matrix-game root regularised to the prior), used at the ladder (the unspent 150 s/turn), inside
+  training (expert iteration at ~1.2 ms per searched decision, async two-core lanes), and as the
+  instrument (rollout-Q at 256 rollouts/cell, G0). Six rulings requested in its §9; the first
+  build (B0–B3) feeds G0, whose pre-stated ceiling (`regret_greedy` < 0.005) is the cheap kill.
+  R6 untouched; the running exit gate's verdict is scoped to the tree-on-PPO-critic operator.
+  Session-scoped constants it leans on (5.7 µs/leaf, 1.1–1.5 µs critic/leaf) are flagged as
+  uncommitted and budgeted conservatively (10 µs). No code, no runs, no numbers produced.
