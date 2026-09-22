@@ -31,9 +31,11 @@ rate_from_rungs() {  # dir -> "rate step_hi age_s" from the two newest rungs, or
 log "MONITOR START poll=${POLL}s W_REF=${W_REF} steps/s per lane (six-wide, 5M..195M) alert below ${ALERT_FRAC}x"
 # (macOS bash 3.2: no associative arrays -- the per-lane seen-alert count lives in a file)
 while true; do
-  lanes=$(ls -d runs/showdown_r6_trio_[ab]_s* 2>/dev/null | grep -v smoke)
+  # DIRECTORIES only: the glob without the trailing slash also matched the lanes' .nohup.log files
+  lanes=$(ls -d runs/showdown_r6_trio_[ab]_s*/ 2>/dev/null | grep -v smoke | sed 's#/$##')
   n_done=0; n_lanes=0
   for d in $lanes; do
+    [ -d "$d" ] && [ -f "$d/meta.yaml" ] || continue
     n_lanes=$((n_lanes+1)); b=$(basename "$d")
     pid=$(lane_pid "$b"); rss=""; cpu=""
     if [ -n "$pid" ]; then rss=$(( $(ps -o rss= -p "$pid" | tr -d ' ') / 1024 )); cpu=$(ps -o %cpu= -p "$pid" | tr -d ' '); fi
@@ -51,7 +53,8 @@ while true; do
     if [ "$alerts" -gt "$prev" ]; then log "ALERT $b WATCHDOG: $(grep "ALERT $d" "$WD" | tail -1 | cut -c1-160)"; echo "$alerts" > "logs/r6_fleet/.seen_alerts_$b"; fi
     [ -z "$pid" ] && ! grep -q "$d DONE at step" "$WD" && [ "$uptime_s" -ge 900 ] && log "ALERT $b NO PROCESS and not DONE (the watchdog resumes within its poll; escalate if it repeats)"
   done
-  free_mb=$(( $(vm_stat | awk '/Pages free/{gsub("\\.","",$3); print $3}') * 16384 / 1048576 ))
+  # macOS keeps "free" small on purpose; free + inactive + speculative is the reclaimable-ish figure
+  free_mb=$(vm_stat | awk '/Pages free|Pages inactive|Pages speculative/{gsub("\\.","",$NF); s+=$NF} END{printf "%d", s*16384/1048576}')
   node=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://localhost:8000/ 2>/dev/null || echo "down")
   log "BOX load=$(uptime | sed 's/.*load averages: //') free=${free_mb}MB node=$node lanes=$n_lanes done=$n_done screens=$(pgrep -f 'rl.train --config configs/showdown_r6_batch12m' | wc -l | tr -d ' ')"
   if [ "$n_lanes" -ge 6 ] && [ "$n_done" -ge 6 ]; then log "ALL LANES DONE"; exit 0; fi
