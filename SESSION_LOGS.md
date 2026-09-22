@@ -13027,3 +13027,26 @@ line numbers are not — grep the date, then read that region):
   Weekday correction, since the ETA table was quoted with the wrong day names yesterday: 2026-09-22 is a
   TUESDAY, so trio B lands Wed 09-23 21:00–21:40 EDT, trio A Thu 09-24 04:45–07:35 EDT, and the R6 readout
   Fri 09-25 02:00–05:00 EDT (the dates were right throughout; only the weekday labels were wrong).
+
+- 2026-09-22 22:30Z — **THE ENV PROHIBITION WAS POINTED AT THE WRONG ENV; CORRECTED. Nothing broke.** Found
+  while checking box memory (the maintainer had Chrome open and a background watch of mine was killed for
+  memory pressure): `ps` shows all six R6 lanes running under
+  `/opt/anaconda3/envs/pkmn-engine-port/bin/python`, not `pokemon-showdown-rl`. That is CORRECT and always has
+  been — `scripts/monster_fleet.sh` line 43 has defaulted `PY` to `pkmn-engine-port` since the launcher's
+  first commit (3469321), `scripts/train_watchdog.sh` inherits that `PY` for every resume, and `engine`
+  collection needs `pkmn_gen1`, which is installed in `pkmn-engine-port` and **not** in `pokemon-showdown-rl`
+  (verified both ways by import). The W fleet, the screens and the smokes all ran there too, so the 1,254
+  steps/s reference and every R6 number are same-env comparisons.
+  **The defect is in the DOCS, and it is the dangerous direction.** `docs/engine_port_session_brief.md`'s
+  hard prohibition #1 and CLAUDE.md's rule 1 both said: never install into `pokemon-showdown-rl`, *because
+  the live lanes resume into it*. The lanes do not resume into it — they resume into `pkmn-engine-port`, which
+  is exactly the env the brief HANDS to an engine-port session and instructs it to `pip install -e ".[dev]"`
+  into (§2). A session following the brief verbatim while a fleet was live would have installed into the env
+  six 200M lanes resume into; a half-resolved dependency there kills a resuming lane at import and costs 50+ h.
+  The guard protected the env that was not at risk and handed over the one that was.
+  Latent, not live: the Rust port landed 2026-09-20, `git worktree list` shows only `main`, and no
+  engine-port session is running. Fixed in both docs — the brief now names `pkmn-engine-port` as the fleet's
+  env, tells a fleet-time session to create a FRESH env (`pkmn-engine-port2` or similar) and to CHECK which
+  interpreter the live lanes use before creating one (`ps -eo command | grep rl.train`), and CLAUDE.md rule 1
+  records that this env is for analysis / evals / the reads queues while the fleet's is `pkmn-engine-port`.
+  Housekeeping, per the standing ruling to fix stale docs without asking.

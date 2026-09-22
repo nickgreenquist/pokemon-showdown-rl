@@ -15,10 +15,16 @@ Violating any of these costs hours, and each already has.
 
 1. **Activate the `pokemon-showdown-rl` conda env.** Never `base`, never shared
    with `deep-rl-from-scratch` — both ship a top-level `rl` package and the
-   loser imports silently from the wrong tree. **Exception while a fleet is
-   running: a session following `docs/engine_port_session_brief.md` uses its OWN
-   env per that brief's §1.1 and must never install into this one — the live
-   lanes resume into it and a half-resolved dependency kills them at import.**
+   loser imports silently from the wrong tree. **But the FLEET's env is
+   `pkmn-engine-port`, NOT this one** (corrected 2026-09-22):
+   `scripts/monster_fleet.sh` line 43 defaults `PY` there and
+   `scripts/train_watchdog.sh` inherits it for every resume, because `engine`
+   collection needs `pkmn_gen1`, which only that env has. This env is the one
+   for analysis, evals and the reads queues. **Exception while a fleet is
+   running: a session following `docs/engine_port_session_brief.md` creates a
+   FRESH env of its own per that brief's §1.1 and must never install into
+   `pkmn-engine-port` — the live lanes resume into it and a half-resolved
+   dependency kills them at import — nor into this one.**
 2. **Concurrent lanes need distinct `--seed`s, including across arms** —
    same-seed lanes collide on Showdown usernames (poke-env derives them from
    globally-seeded `random`) and die with a misleading `TimeoutError`.

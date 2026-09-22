@@ -35,9 +35,22 @@ they would have been if you had never run.**
 
 ## 1. Hard prohibitions (each of these can destroy the run)
 
-1. **Never install into, modify, or activate the `pokemon-showdown-rl` conda
-   env.** The lanes resume into it after any death; a half-resolved dependency
-   there kills them at import. You get your own env (§2). This mirrors the
+1. **Never install into, modify, or activate the env THE LIVE LANES RESUME
+   INTO — which is `pkmn-engine-port`, not `pokemon-showdown-rl`.**
+   CORRECTED 2026-09-22 (found mid-R6-fleet, nothing broken): this rule named
+   `pokemon-showdown-rl` from the day it was written, but
+   `scripts/monster_fleet.sh` has ALWAYS defaulted to
+   `PY=/opt/anaconda3/envs/pkmn-engine-port/bin/python` (line 43, since the
+   launcher's first commit 3469321) and `scripts/train_watchdog.sh` inherits
+   that `PY` for every resume — because `engine` collection needs `pkmn_gen1`,
+   which is installed in `pkmn-engine-port` and NOT in `pokemon-showdown-rl`.
+   So the prohibition was pointed at the wrong env: it protected the one the
+   lanes do not use and handed you the one they do. A `pip install -e` into
+   `pkmn-engine-port` while a fleet is live can kill a resuming lane at import
+   — 50+ h of training on a half-resolved dependency.
+   **If a fleet is running, you get a FRESH env of your own (§2) — never
+   `pkmn-engine-port` itself.** Leave `pokemon-showdown-rl` alone too: it owns
+   the analysis/eval deps and the reads queue runs in it. This mirrors the
    existing `foul-play-gen4` precedent: one env per engine build.
    **This OVERRIDES CLAUDE.md's rule 1 ("Activate the `pokemon-showdown-rl`
    conda env") and the `pip install -e ".[dev]"` line under "Development
@@ -81,15 +94,24 @@ they would have been if you had never run.**
 git worktree add /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-engine -b pkmn-engine-port main
 ```
 
+**Pick an env name no live fleet is using** (see §1.1 — `pkmn-engine-port`
+itself is now the FLEET's env, so a session starting while lanes run must not
+reuse it; append a suffix, e.g. `pkmn-engine-port2`, and use that name in every
+command below). Verify before creating it:
+
 ```
-conda create -y -n pkmn-engine-port python=3.13
+ps -eo command | grep "bin/python -m rl.train" | grep -v grep | awk '{print $1}' | sort -u
+```
+
+```
+conda create -y -n pkmn-engine-port2 python=3.13
 ```
 
 Then, from the **worktree** directory, install the repo editable into the new
-env (never the fleet's env):
+env (never an env a live lane resumes into):
 
 ```
-/opt/anaconda3/envs/pkmn-engine-port/bin/pip install -e ".[dev]"
+/opt/anaconda3/envs/pkmn-engine-port2/bin/pip install -e ".[dev]"
 ```
 
 Toolchain: `cargo`/`rustc` 1.97.1 are already on the box; `zig` and `maturin`
