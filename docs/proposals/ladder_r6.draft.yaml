@@ -89,6 +89,14 @@
 #   unreadable. OWED BEFORE RATIFICATION (M-R6-8): the loader hard-fails on a missing stamp
 #   under either flag state, or LG-6 asserts every member's meta.yaml stamp explicitly.
 #
+# M-R6-10 WHETHER TO LADDER AT ALL (RULED IN PRINCIPLE 2026-09-22, maintainer: "if we dont see offline gains:
+#   why ladder"): LADDER R6 RUNS ONLY IF the reads readout's object rule picks an R6 committee that
+#   beats the same-session re-drawn R5 committee off FP@20 by a margin a 200-game ladder run can
+#   see. RECOMMENDED threshold: >= +0.05 (about +50 Elo at the project's ~+0.10 win rate per ~100
+#   Elo calibration; a +0.03 gain is ~+30 Elo, inside one run's +-27 Glicko). Below it: no R6 ladder
+#   run, no exposure spent; the R6 finals become R7's base and the next ladder run is R7's. The
+#   threshold value is the maintainer's to confirm.
+#
 # LAUNCH GATES (R5's LG-2..LG-9, adapted; each checked and its evidence line quoted in the
 #   readout): LG-2 the account's profile read BEFORE session 1 and BEFORE every later session
 #   (any activity between sessions that is not ours is VOID (d) contamination); LG-3 .env

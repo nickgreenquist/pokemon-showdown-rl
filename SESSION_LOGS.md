@@ -12921,3 +12921,14 @@ line numbers are not — grep the date, then read that region):
   docs-only commit than trio A (disclosed; the trio configs' pinned diff sets make a header edit unable to
   change the program). The reads-queue auto-arm watcher fires once ≥3 fleet lanes are stable for 15 min (the
   queue then holds for all six DONE lines).
+- 2026-09-22 (00:45Z, maintainer: *"why are we laddering with these if you only think theyll move us up about
+  30 elo"* → *"yes: if we dont see offline gains: why ladder"*) — **LADDER R6 IS CONDITIONAL ON OFFLINE GAINS
+  (ruled in principle; threshold to confirm).** The 2026-09-20 ruling "R6 ladder under the split schedule" is
+  amended: the run happens only if the reads readout's object rule picks an R6 committee that beats the
+  same-session re-drawn R5 committee off FP@20 by a margin a 200-game run can see — recommended ≥ +0.05
+  (≈ +50 Elo at ~+0.10 win rate per ~100 Elo; +0.03 ≈ +30 Elo is inside one run's ±27 Glicko). Below it: no
+  R6 ladder, no exposure spent, the R6 finals are R7's base and R7 ladders. Recorded as M-R6-10 in the draft.
+  The maintainer also asked whether offline gains have always shown up on the ladder — answered from the
+  README's ladder history (R1 → R4 → R5 monotone on both axes; R3 the exception, a broken-selector object
+  whose offline number was an artifact and whose ladder rating did not move), with the standing caveat that
+  the runs are not comparable in any direction (accounts, opponents, n=200).
