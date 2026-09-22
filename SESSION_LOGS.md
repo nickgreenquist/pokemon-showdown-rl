@@ -12894,3 +12894,30 @@ line numbers are not — grep the date, then read that region):
   sanity read under the identical rule; PENDING. Screen histories extracted to `runs/showdown_r6_batch12m_s*/
   history.csv` (393k / 402k rows). Disclosure: the read (≈2 min of CPU/IO, the W lanes' first 12M streamed
   three times) ran beside the two fallback screen lanes.
+- 2026-09-22 (00:27–00:40Z, agent) — **THE MAINTAINER RULED THE AGENT LAUNCHES THE FLEET** (verbatim, in trio A's
+  header: *"how about you just run both screens, and you launch the actual large run yourself. you then monitor
+  all lanes. if you notice overnight that its much slower than expected (vs if i ran them in my own terminal),
+  then tomorrow morning ill ping you and you kill your runs and ill run the commands myself"*) — a one-off
+  rule-4 authorization with a kill-and-relaunch fallback. Ratification recorded in trio A's header (`0c60611`).
+  **Trio A launched 00:28Z** by `scripts/monster_fleet.sh` from `0c60611` (preflight: C6 on and implemented,
+  clean tree, bank 458M, simulator 4, Node up); lanes 304 / 312 / 320 up at 00:30 / 00:32 / 00:34Z, watchdog +
+  caffeinate started. **A PROVENANCE DEFECT, CAUGHT IN THE STAMPS AND FIXED BY A CLEAN RELAUNCH:** while the
+  launcher staggered its lanes I wrote and committed `scripts/r6_fleet_monitor.sh` (three commits), so lane 312
+  stamped `git_dirty: true` (`untracked_files: [scripts/r6_fleet_monitor.sh]`) and lane 320 stamped `4307cd5` —
+  the program was identical (the span is that one script, `git diff --stat 0c60611 4307cd5`), but a headline
+  fleet does not carry a dirty stamp four minutes in. Stopped trio A's watchdog (pid 43482) and caffeinate
+  first (a killed lane would otherwise be RESUMED), TERM/KILL'd the three lane process groups, verified no
+  survivor, removed the three run dirs (first launch log kept as `logs/r6_fleet/launch_trio_a.first_attempt.log`),
+  and relaunched from this commit with nothing touching the tree until the launcher's `DONE.`. The stagger-window
+  rule is now in `docs/landmines.md`. The two fallback screen lanes were untouched (8.85M at 00:33Z).
+  **Monitor:** `scripts/r6_fleet_monitor.sh` (`4307cd5`; bash-3.2-safe; lanes are directories with a meta.yaml)
+  polls every 10 min: per-lane rate from the two newest 500k rungs (exact at the boundaries; the lanes print no
+  progress lines and the watchdog's step comes from `checkpoint.pt`), RSS / %CPU, the watchdog's verdict,
+  RESUMED / ALERT counts, load / reclaimable memory / Node; ALERT below 0.6 × the W fleet's per-lane six-wide
+  reference (W s104 `time/realized_steps_per_sec` 5M–195M: mean 1,254, median 1,247, p10 1,012, p90 1,608;
+  first 5M 991) after a lane's first hour. A session watch wakes the agent on any ALERT.
+  **Trio B:** launches in the FALLBACK form after its own screen's 12M read (~01:30Z) if that read passes;
+  otherwise held for the maintainer's morning. Its header will record the read, so trio B launches from a later,
+  docs-only commit than trio A (disclosed; the trio configs' pinned diff sets make a header edit unable to
+  change the program). The reads-queue auto-arm watcher fires once ≥3 fleet lanes are stable for 15 min (the
+  queue then holds for all six DONE lines).

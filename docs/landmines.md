@@ -1044,3 +1044,15 @@ called through an absolute pip path it fails with "No such file or directory: 'm
 the Rust side matches bitwise on P-1 under the new flag, the extension is REINSTALLED, and
 the collector can refuse the pairing. Budget every encoder change as two implementations
 plus the parity re-gate.
+
+## A clean tree must hold for the WHOLE STAGGER WINDOW, not just at preflight (2026-09-22)
+
+The launcher checks `git status` once, at preflight, and then brings the lanes up ~110 s apart; but
+each lane stamps `git_sha` / `git_dirty` / `untracked_files` into its own `meta.yaml` at ITS start.
+On the R6 launch night the agent committed a new monitor script while trio A was staggering: lane
+304 stamped `0c60611` clean, lane 312 stamped `git_dirty: true` (untracked `scripts/r6_fleet_monitor.sh`),
+lane 320 stamped `4307cd5`. The program was identical (the span was that one script), but a
+headline fleet with a dirty stamp four minutes in was relaunched cleanly rather than disclosed.
+Rule: from the launcher's first line to its `DONE.` line, touch nothing in the tree — no edits, no
+commits, no untracked files — and verify every lane's `meta.yaml` (`git_sha`, `git_dirty`) right after
+`DONE.` before anything else is written.
