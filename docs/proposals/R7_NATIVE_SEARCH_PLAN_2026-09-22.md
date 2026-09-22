@@ -115,6 +115,77 @@ on a 14-core laptop, CPU only, pure self-play.
 > **Ownership taken by the teammate:** the B5 training-loop seams (log-prob test, auxiliary head,
 > two samplers, loud seam) and Stage 0B, which runs now.
 
+> ### AMENDMENT BOX 3 — 2026-09-22, reply to the teammate's REPLY BOX 2 (`eed70ed`). Six
+> tasks answered; five findings taken, two points of disagreement recorded, one ruling asked.
+> **This closes the review thread: the plan is frozen at this box until G0 reads.**
+> 1. **CORE TOPOLOGY — TAKEN, and it is the finding that matters.** `docs/landmines.md:614-626`:
+>    this box is **10 performance + 4 efficiency cores**, and search work on the E-cores read
+>    **549.8 ms/decision against 81.1** (6.8×). §5's twelve threads for six lanes do not fit on
+>    ten P-cores; the spill lands on E-cores, and under a WALL-MATCHED comparison a lane whose
+>    collector runs there does not finish late — it trains FEWER STEPS in the same wall, so the
+>    fleet becomes heterogeneous in dose and the arm is CONFOUNDED, not delayed. Changes: §5
+>    carries the topology; B4 gets a QoS clause (normal QoS everywhere, `taskpolicy` barred in
+>    the fleet path, the launcher asserts it); **fleet width is restated as 5 lanes × 2 cores on
+>    the 10 P-cores** — 6-wide only under a pre-registered disclosure that one lane runs
+>    degraded. **RULING ASKED (§9 item 7): 5-wide honest, or 6-wide disclosed.** Also taken: the
+>    "1.1–1.5 µs/leaf at 4 threads" figure is STRUCK (`landmines.md:328`: `torch_threads: 6`
+>    is 0.85× of 1 on 256-row minibatches; a 40-row leaf batch is narrower still) — 10 µs
+>    single-threaded is the only planning number; the antisymmetric second view (amendment 2,
+>    item 3) doubles encodes and forwards per leaf, so the T-op is **≈1.8 ms, not 1.2**; §5's
+>    table is corrected and every wall figure re-derived from it. B0's bench spec is the
+>    teammate's: fleet width (five- and six-wide, never solo), `torch_threads: 1`, both views on,
+>    p99 not mean, the four cost components separated, pass condition pre-stated at 2× the table.
+> 2. **`regret_greedy` RENAMED to what it is — TAKEN.** It is the **depth-1 policy-improvement
+>    ceiling under a PERFECT evaluator** (Q̄ rolls out to termination under the committee, so no
+>    depth-1 evaluator beats it), and it bounds the FIRST ExIt iteration, not the compounding.
+>    Now `regret_depth1_ceiling` in §6. **§0 is amended accordingly:** every independent bound
+>    this repo owns (0.0317 top-two, §27's 64% irreducible, §24/§30/2.10 on depth-2) says the
+>    inference-side prize is small, so **the monumental claim rests on COMPOUNDING through the
+>    student — the training effect — and the plan now measures it** (item 4 below).
+>    **Disagreement recorded:** the proposed `max_a min_b Q̄(a,b)` vs `max_a E_b[Q̄(a,b)]` read
+>    is not a depth-2 separator; both are depth-1 quantities that differ in the OPPONENT MODEL
+>    (minimax vs best-response-to-π). It is taken as `opp_model_gap` — it says whether the
+>    matrix-game root matters — but a true depth-2 ceiling needs rollouts from re-searched
+>    children and is NOT free; it stays unmeasured before the fleet and the plan says so.
+> 3. **B5 tests — TAKEN as written by the teammate, who owns them:** the ratio identity
+>    asserted BITWISE at epoch 0 / minibatch 0 on a fixture that asserts its own preconditions
+>    and goes RED under "play π′ with π_θ's logp"; the aux-head golden on the advantage and
+>    return ARRAYS across head-absent / coef-0 / coef>0; `value/bias_mirror` (pred − realized
+>    on latest-snapshot rows, truth ≈ 0 by symmetry) as the counter §31 lacked;
+>    `V(swap(s)) == −V(s)` bitwise as the antisymmetry property test. G3's six conditions and
+>    the split branch (kl/override move, held-out Spearman does not → policy coefficient only)
+>    are adopted as G3's sign-off, with the coef-0 control lane mandatory.
+> 4. **COMPOUNDING gets an instrument — added here, not in the teammate's reply.** G3 runs the
+>    G0 instrument on the STUDENT'S greedy play at matched steps for the searched lane and the
+>    coef-0 control: `regret_depth1_ceiling(student_greedy)` must FALL FASTER on the searched
+>    lane. That is compounding measured as the student's own ceiling shrinking, and it is the
+>    read the monumental claim now rests on. Rule 6 applies: a 12M null on it is not a kill;
+>    the pre-stated branch is "no separation at 12M → the fleet still runs, the NEXT fleet does
+>    not repeat it".
+> 5. **B4 — TAKEN:** `collect/weights_lag_updates` to disk with a bound of one update;
+>    preallocated leaf buffers (~500 searched decisions/s/lane would otherwise churn hundreds of
+>    MB/s); a second torch runtime per lane added to the memory arithmetic; and seed discipline
+>    moves INTO the collector process, which is exactly where rule 2's username-collision
+>    landmine lives — the launcher derives collector seeds from the lane seed and asserts
+>    distinctness across the fleet.
+> 6. **FUSION BOUND WITHOUT B6 — TAKEN, with a correction on the mechanism.** The read —
+>    `fusion_flip = P(argmax π′(o,w₀) ≠ argmax π′(o,w₁))` and `fusion_bound = E[1{flip} ·
+>    (Q̄(a_avg) − Q̄(a(w₀)))]` over G0's positions with 2–4 resampled worlds — is adopted as a
+>    G0 column. **But it does not run on `rl/search/determinize.py::sample_determinization`,
+>    which takes a poke-env `Battle`;** G0's positions are engine states. The resample is
+>    `pkmn_gen1.BattleSpec::from_visible(b)` (`engine/pkmn_gen1/src/spec.rs:756`, exists) plus
+>    the determinizer's hidden-slot fill ported onto the spec → `build()`. That is an
+>    engine→engine resample, a fraction of B6's poke-env→engine fidelity work; it is **B1b**,
+>    and B6 becomes conditional on the fusion bound instead of a prerequisite for knowing
+>    whether it is needed.
+> 7. **Stage 0B — DEMOTED, the teammate's own correction.** `scripts/critic_calibration.py`
+>    reads one rows file from one object; per-final r² needs a §27-scale rollout campaign each
+>    (~2–4 core-hours, live server, × 6–9 finals), and the regression's n is single digits
+>    against ±0.02–0.03 strength noise: underpowered by construction. Amendment 1 item 5 is
+>    corrected: 0B is a NECESSARY-CONDITION check with its n stated (strongest final must beat
+>    weakest on the bucket; the converse licenses nothing), not a gate. No readout exists
+>    because no run happened.
+
 ---
 
 ## 0. The bet in one paragraph
@@ -132,7 +203,11 @@ including the training encoder (`docs/search_relook/ENGINE_SEARCH_DESIGN.md` §4
 Nothing in the training loop uses it for anything but collection. **The plan is to
 build ONE search operator on that engine and use it in three places: at the ladder
 (the unspent 150 s/turn), inside training (expert iteration), and as the instrument
-that measures both.** The evaluator at its leaves is an **antisymmetric critic** read on
+that measures both.** **Where the monumental claim sits, stated after amendment 3:** every
+independent bound this repo owns says the inference-side prize of one exact ply is small, so
+the +8 GXE bet is on COMPOUNDING — the student absorbing a search-improved target every
+update, which G3 measures as the student's own depth-1 ceiling shrinking faster than a
+control's. The evaluator at its leaves is an **antisymmetric critic** read on
 both seats' views of the determinized leaf; whether it also reads privileged information is
 an ARM that G0 decides (amendment box 2, item 3).
 
@@ -274,9 +349,11 @@ is below the median", which is IDEAS 8.5's selector with a measurable rate.
 ## 5. Cost, on this box, traced
 
 Constants: engine + tracker + Rust encoder **5.7 µs/row** batched; critic forward
-**1.1–1.5 µs/leaf at 4 threads** (both session measurements in ENGINE_SEARCH_DESIGN
-§4.2, **not in any committed result file** — this plan budgets **10 µs/leaf
-single-threaded** until B0's bench pins it); collection **34.9% of wall** at k=8 with
+**10 µs/leaf single-threaded** (the design's "1.1–1.5 µs at 4 threads" is STRUCK per
+amendment 3 — `landmines.md:328` measures threads as slower than one on this box; both
+constants are session measurements **not in any committed result file** until B0's bench,
+run at fleet width, pins them); **box topology: 10 performance + 4 efficiency cores
+(`landmines.md:614-626`), so at most TEN busy threads run at full speed;** collection **34.9% of wall** at k=8 with
 the Rust side ≤ 8.7% of that; **1,282 sps/lane** six-wide (`docs/engine_port/SPEEDUP.md`);
 greedy collection ≈ **0.15 ms/decision** in its phase; box **M4 Pro 14 cores / 24 GB**,
 per-lane RSS **1.825 GB**, the mmap'd team bank returns **2.7 GB** at width 6
@@ -284,18 +361,26 @@ per-lane RSS **1.825 GB**, the mmap'd team bank returns **2.7 GB** at width 6
 
 | | per decision | vs greedy collection |
 |---|---:|---:|
-| T-op, 40 leaves | 0.23 ms engine + 0.4 ms critic + ~0.5 ms glue ≈ **1.2 ms** | **~8×** |
-| T-op on 40% of decisions | mean **0.6 ms** | **~4×** |
+| T-op, 40 leaves, both views (antisymmetry) | 0.46 ms engine/encode + 0.8 ms critic + ~0.5 ms glue ≈ **1.8 ms** | **~12×** |
+| T-op on 40% of decisions | mean **0.7 ms** | **~5×** |
+| T-op on 30% of decisions | mean **0.55 ms** | **~3.7×** |
 
-Synchronous, one core per lane: wall = 0.65T (update) + 4 × 0.35T = **2.05T**, i.e.
-~2× slower per step. **The fix is structural and cheap: give each lane a second core
-for an asynchronous collector.** Six lanes use twelve of fourteen cores instead of six;
-memory is 6 × (1.825 + ~0.6) ≈ 14.6 GB, inside the 24 GB with the mmap unlock in hand.
-Then wall = max(0.65T, 1.4T) = **1.4T** at 40% searched, and with R6 trio B's epochs-2
-update the learner is no longer the bottleneck at all. **A 100M ExIt lane ≈ 30 h; a
-60M lane ≈ 18 h.** The fleet comparison is therefore **matched on WALL-CLOCK, not steps**
-(pre-stated): 6 × ~60–100M searched steps against the R6 finals as the control. The
-sample-efficiency claim is the bet, and matching on wall is the honest way to test it.
+Synchronous, one core per lane: wall = 0.65T (update) + 5 × 0.35T = **2.4T** at 40%
+searched. **The fix is structural: give each lane a second core for an asynchronous
+collector — and the box has TEN performance cores, so that is FIVE lanes, not six**
+(amendment 3, item 1; a sixth lane's threads spill to the efficiency cores at ~6.8× and,
+under a wall-matched comparison, train fewer steps — a confound, not a delay). Memory at
+width 5: 5 × (1.825 + ~0.6 collector + ~0.3 second torch runtime + preallocated leaf
+buffers) ≈ 14 GB of 24, with the mmap unlock in hand. Then wall = max(0.65T, 1.75T) =
+**1.75T** at 40% searched, or **1.3T** at 30%, and with R6 trio B's epochs-2 update the
+learner is never the bottleneck. **A 100M ExIt lane ≈ 38 h at 40% searched, ≈ 28 h at
+30%; a 60M lane ≈ 23 / 17 h.** All of it re-derived from the 1.8 ms row; B0's bench
+replaces that row before any of these numbers enters a pre-reg. The fleet comparison is
+**matched on WALL-CLOCK, not steps** (pre-stated), with each lane's realised step count
+DISCLOSED beside its readout: 5 × ~60–100M searched steps against the R6 finals as the
+control. The sample-efficiency claim is the bet, and matching on wall is the honest way
+to test it. QoS: normal everywhere, `taskpolicy` barred in the fleet path, asserted by
+the launcher (`landmines.md:614-626`).
 
 L-op at the ladder: ~30 ms depth-1, ~2.5 s depth-2 at S=8, both under 2% of the 150 s
 tight-path budget; the design's ≤ 5 s cap holds, chunked at 4,096 rows (§4.2).
@@ -312,10 +397,17 @@ the full row × column matrix, **256 rollouts per cell, split 128/128** (se ≈ 
 cell on the ±1 outcome scale, ≈ 0.025 win-rate; CRN-1 seeds across rows), both seats
 stochastic. **All thresholds below are on the WIN-RATE scale.** Reads, all in one file,
 all in-block:
-- `regret_greedy` = `Q̄_B(a*_A) − Q̄_B(a_greedy)` where `a*_A` is the argmax on the first
-  128 rollouts and `Q̄_B` is the mean on the other 128 — **split-sample, unbiased** (amendment
-  box 2, item 1); by turn bucket; a **measured zero-gap null** (permuted split) printed
-  beside it. This is the prize.
+- `regret_depth1_ceiling` (formerly `regret_greedy`; amendment 3, item 2) =
+  `Q̄_B(a*_A) − Q̄_B(a_greedy)` where `a*_A` is the argmax on the first 128 rollouts and `Q̄_B`
+  is the mean on the other 128 — **split-sample, unbiased** (amendment box 2, item 1); by
+  turn bucket; a **measured zero-gap null** (permuted split) printed beside it. **This is the
+  depth-1 improvement ceiling under a PERFECT evaluator and it bounds the FIRST ExIt
+  iteration, not the compounding.**
+- `opp_model_gap` = `max_a E_b[Q̄(a,b)] − max_a min_b Q̄(a,b)` on the same cells: whether the
+  root's opponent model (best response to π vs minimax) matters. NOT a depth-2 read; the
+  depth-2 ceiling stays unmeasured before the fleet.
+- `fusion_flip` and `fusion_bound` over 2–4 resampled worlds per position via
+  `BattleSpec::from_visible` + the determinizer's fill (B1b; amendment 3, item 6).
 - `spearman(critic, rollout-Q)` per position for the observation critic AND the privileged
   critic on the true world: **can the critic be a leaf, and which one?** And
   `regret_critic_depth1` = the split-sample regret of argmax over critic-valued leaves —
@@ -326,7 +418,7 @@ all in-block:
   best opponent reply is outside the policy's top-k (amendment box 2, item 5).
 - The R5 W finals' committee as the policy; ~2–4 core-hours; runs niced beside the R6
   fleet or after it.
-**Branches.** The **upper 95% bound** of mean split-sample `regret_greedy` below **0.005
+**Branches.** The **upper 95% bound** of mean split-sample `regret_depth1_ceiling` below **0.005
 win-rate** (the effect of fixing every decision could not clear the credit line even if
 compounded): a **measured mechanism ceiling on depth-1 search over this policy** — the
 chapter closes on P1 and the training-side build is not started. Above it: the prize is
@@ -350,10 +442,16 @@ L-op as the object under a disclosed policy form.** Does not clear → the ladde
 greedy and the training side proceeds anyway, because G0 said the prize exists and the
 evaluator is what G3 trains.
 
-**G3 — the ExIt mechanism smoke, 12M, two lanes, never a win rate.** `search/kl_prior`
-falling over training (the student absorbing the expert), `search/override` at a fixed
-gate falling, privileged-critic Spearman on a held-out G0 set rising, `value_gap`
-falling, EV NOT used for sizing (§21 bars it). All three moving → the fleet.
+**G3 — the ExIt mechanism smoke, 12M, searched lane + coef-0 CONTROL lane, never a win
+rate.** The teammate's six sign-off conditions (amendment 3, item 3): `search/kl_prior`
+falling (the student absorbing the expert), `search/override` at a fixed gate falling,
+leaf-critic Spearman on a held-out G0 set rising RELATIVE TO THE CONTROL, `value_gap`
+falling, `value/bias_mirror` ≈ 0, and **the compounding read (amendment 3, item 4):
+`regret_depth1_ceiling(student_greedy)` at matched steps falls faster on the searched
+lane than on the control.** EV NOT used for sizing (§21 bars it). Split branch: kl and
+override move but the held-out Spearman does not → launch with the policy coefficient
+only. A 12M null on the compounding read is not a kill (rule 6): the fleet runs, the
+next fleet does not repeat it.
 
 **G4 — the fleet readout.** vs-SH locked protocol; FP@20 and FP@500; the BC-clone leg;
 the committee rule; the mechanism co-primaries above; then the R7 ladder under the split
@@ -405,10 +503,13 @@ can still kill the plan cheaply.
 5. **The ladder object may be a mixed-strategy searched policy** (P4), disclosed as a
    policy form, if G2 clears. The greedy committee stays the pure-lane number beside it.
 6. **Two cores per lane** for the R7 fleet (B4), with the memory arithmetic in §5.
+7. **FLEET WIDTH (amendment 3, item 1): 5 lanes × 2 cores on the ten performance cores,
+   or 6 lanes with a pre-registered disclosure that one runs degraded on the efficiency
+   cores.** Recommended: 5. — *RULING PENDING.*
 
 ## 10. What would kill it, named before anything runs
 
-- **G0's ceiling** (upper 95% bound of split-sample `regret_greedy` < 0.005 win-rate, with
+- **G0's ceiling** (upper 95% bound of split-sample `regret_depth1_ceiling` < 0.005 win-rate, with
   the measured zero-gap null below it): depth-1 over this policy has nothing to find; P1 is
   wrong for this format at this strength. Close the chapter, keep B0–B1 as instruments.
 - **The fusion read after B6** shows the true-world action's regret against the

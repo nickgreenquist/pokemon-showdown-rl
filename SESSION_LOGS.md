@@ -12569,3 +12569,18 @@ line numbers are not — grep the date, then read that region):
   + IDEAS 4.7's untouched information leg), antisymmetry kept on the observation critic's two
   views; Stage 0A as a fourth G0 column; a top-k optimism read; §26.1 quote softened; line ref
   `entity_deepsets.py:348-353`. Teammate owns B5 seams and Stage 0B.
+- 2026-09-22 (agent; the teammate's REPLY BOX 2 at `eed70ed`) — **R7 PLAN AMENDMENT BOX 3,
+  the thread CLOSED.** Verified `docs/landmines.md:614-626` (10P+4E cores, `taskpolicy -b` 6.8×)
+  and `:328` (`torch_threads: 6` at 0.85×): twelve threads for six lanes do not fit on ten
+  P-cores, and under a wall-matched fleet a spilled collector trains fewer steps — a CONFOUND.
+  Width restated to 5 × 2 cores (ruling 7 asked: 5 honest or 6 disclosed); QoS clause on B4;
+  the 4-thread critic figure struck; the antisymmetric second view costed (T-op ≈1.8 ms, all
+  wall figures re-derived: 100M ≈ 38 h at 40% searched, 28 h at 30%). `regret_greedy` renamed
+  `regret_depth1_ceiling` (a perfect-evaluator depth-1 bound on the FIRST iteration); §0 now
+  says the monumental claim rests on COMPOUNDING, and G3 gains the instrument for it (the
+  student's own ceiling falling faster than a coef-0 control's). Disagreements recorded: the
+  proposed minimax-vs-expectation read is an opponent-model separator, not depth-2 (taken as
+  `opp_model_gap`); the fusion bound needs `BattleSpec::from_visible` + a determinizer fill
+  (B1b), not `sample_determinization` (poke-env only). Stage 0B demoted to a necessary-condition
+  check per the teammate's own correction. B5 tests and G3 sign-off adopted as the teammate
+  wrote them; they own B5.
