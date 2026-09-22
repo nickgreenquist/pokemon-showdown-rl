@@ -12957,3 +12957,27 @@ line numbers are not — grep the date, then read that region):
   {,_fallback}.yaml`, STATUS. `tests/test_r6_trio_configs.py` green (8 passed). TRIO B launches on
   `configs/showdown_r6_trio_b_fallback.yaml` with `TAG=showdown_r6_trio_b`, seeds 328/336/344, immediately
   after this commit — the tree stays untouched through the launcher's whole stagger window.
+
+- 2026-09-22 01:42Z — **TRIO B IS UP; THE SIX-LANE R6 FLEET IS RUNNING.** `scripts/monster_fleet.sh` on
+  `configs/showdown_r6_trio_b_fallback.yaml` with `TAG=showdown_r6_trio_b`, seeds 328 / 336 / 344, launched
+  01:32:54Z and printed `DONE.` at 01:38:24Z; the tree was untouched from the commit (907adc6) through the
+  whole stagger window. Preflight: tree clean at 907adc6, C6 on and implemented by the extension, total_steps
+  == lr_anneal_steps == 200,000,000, engine collector, team bank 5,000,000 pairs, `simulator: 4`, node up.
+  Lanes 328 / 336 / 344 = pids 50835 / 51318 / 51496; watchdog 51682 with caffeinate 51686 (trio A's are
+  44675 / 44679). Every lane's `meta.yaml` verified: `git_sha 907adc6`, `git_dirty false`, `encoder.c6 true`,
+  `params.critic 1,807,489` with **no `critic_aux_outcome` key** — the trio B arm carries no outcome head, and
+  the number matches the W base exactly. Trio A's three read `bfe8493` / clean / c6 true / critic 1,810,564
+  = 1,807,489 + a 3,075 head.
+  **PROVENANCE: `git diff --stat bfe8493 907adc6 -- rl/ scripts/` is EMPTY** — the span between the two trio
+  launch shas touches only SESSION_LOGS, STATUS, four config headers and the ladder draft, so the two trios
+  run the identical program and the fleet is not a block that spans a code change (the landmine that owns
+  `docs/landmines.md`'s "a running block imports the working tree").
+  Fleet monitor discovered trio B on its 01:41Z tick: `lanes=6 done=0 screens=0`. With the screens drained,
+  trio A's per-lane rate came up from ~800 to **972–1,024 steps/s** (0.78–0.82× the W fleet's 1,254 six-wide,
+  well above the 0.6× ALERT floor); trio B has no rate yet — its first 500k rung needs four 122,880-step
+  updates, and its watchdog prints `step=-1` until the first update logs, while its CPU-delta stall check
+  (the instrument that actually catches the orphaned-room shape) reads +21 s/20 s on all three. WATCH ITEMS
+  overnight: (i) trio B's step field must leave -1 on the next ticks; (ii) s328 peaked at 2.95 GB RSS against
+  the ~2.3–2.4 GB the smokes measured — six-wide the box shows free=6.2 GB of 24. The post-fleet reads queue
+  (armed 00:56Z) is holding until all six lanes are DONE. Morning report: per-lane steps / rate vs 1,254 /
+  resumes / RSS, plus the box line.
