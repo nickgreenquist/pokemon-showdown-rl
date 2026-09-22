@@ -29,7 +29,7 @@ rate_from_rungs() {  # dir -> "rate step_hi age_s" from the two newest rungs, or
   echo "$(( (s1 - s0) / (t1 - t0) )) $s1 $(( $(date +%s) - t1 ))"
 }
 log "MONITOR START poll=${POLL}s W_REF=${W_REF} steps/s per lane (six-wide, 5M..195M) alert below ${ALERT_FRAC}x"
-declare -A seen_alerts
+# (macOS bash 3.2: no associative arrays -- the per-lane seen-alert count lives in a file)
 while true; do
   lanes=$(ls -d runs/showdown_r6_trio_[ab]_s* 2>/dev/null | grep -v smoke)
   n_done=0; n_lanes=0
@@ -47,7 +47,8 @@ while true; do
       slow=$(awk -v r="$rate" -v w="$W_REF" -v f="$ALERT_FRAC" 'BEGIN{print (r < w*f) ? 1 : 0}')
       [ "$slow" = 1 ] && log "ALERT $b SLOW: $rate steps/s < ${ALERT_FRAC} x $W_REF (the W fleet six-wide)"
     fi
-    if [ "$alerts" -gt "${seen_alerts[$b]:-0}" ]; then log "ALERT $b WATCHDOG: $(grep "ALERT $d" "$WD" | tail -1 | cut -c1-160)"; seen_alerts[$b]=$alerts; fi
+    prev=$(cat "logs/r6_fleet/.seen_alerts_$b" 2>/dev/null || echo 0)
+    if [ "$alerts" -gt "$prev" ]; then log "ALERT $b WATCHDOG: $(grep "ALERT $d" "$WD" | tail -1 | cut -c1-160)"; echo "$alerts" > "logs/r6_fleet/.seen_alerts_$b"; fi
     [ -z "$pid" ] && ! grep -q "$d DONE at step" "$WD" && [ "$uptime_s" -ge 900 ] && log "ALERT $b NO PROCESS and not DONE (the watchdog resumes within its poll; escalate if it repeats)"
   done
   free_mb=$(( $(vm_stat | awk '/Pages free/{gsub("\\.","",$3); print $3}') * 16384 / 1048576 ))
