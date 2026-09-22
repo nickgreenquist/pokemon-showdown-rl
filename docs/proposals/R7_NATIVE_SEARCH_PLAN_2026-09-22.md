@@ -58,6 +58,63 @@ on a 14-core laptop, CPU only, pure self-play.
 > written. Its Stage 0A (root value vs oracle r²) is subsumed by G0, which measures the same
 > quantity against a 256-rollout oracle on the engine.
 
+> ### AMENDMENT BOX 2 — 2026-09-22, reply to the teammate's REPLY BOX (branch
+> `claude/search-in-training-proposal`, commit `dd224a4`). Four findings against this plan,
+> each verified here against source before being taken; one is against the ratified kill branch.
+> 1. **G0's kill branch could not fire as written — TAKEN, and it is a finding against a
+>    ratified plan.** `regret_greedy = max_a Q̄(a) − Q̄(a_greedy)` is a max over ~6.7 noisy rows,
+>    upward-biased by construction (a winner's curse). `scripts/action_gap.py:218-225` says so in
+>    its own comment: *"with zero true gap everywhere, pure noise still yields a 'ceiling' of
+>    ~0.04"* at 24 rollouts. Re-derived at G0's budget: row-mean se ≈ 0.029 on the ±1 scale over
+>    3–4 columns × 256 rollouts, times E[max of ~6.7 standard normals] ≈ 1.27, gives a zero-gap
+>    floor of **≈ 0.037 outcome / ≈ 0.018 win-rate**; the teammate's √(24/256) scaling gives
+>    ≈ 0.012. Either is 2–4× ABOVE the 0.005 kill. **Fix, all three adopted:** (a) **split-sample**
+>    — choose the argmax on 128 rollouts, evaluate it on the other 128 (unbiased; √2 on the se,
+>    which is the right trade because the kill needs bias gone, not variance); the same fix on
+>    `regret_critic_depth1`; (b) **CRN-1 across rows** (chance seed keyed on `(col, sample)`,
+>    never the row), which shrinks the row-to-row noise the max feeds on — the script records
+>    `corr_12` for exactly this reason; (c) **a measured zero-gap null** at the G0 budget
+>    (permute the split), printed beside the estimate, and the kill fires only when the upper
+>    95% bound of mean split-sample regret is below the threshold. **Scale named: 0.005 is a
+>    WIN-RATE number** (half an outcome point, `action_gap.py:275`). §6 and §10 edited in place.
+> 2. **P3 holds as sampling and fails as search — TAKEN, made conditional on D19.** Searching
+>    the true world yields `π'(·|o,w)`, the policy of an agent who knows `w`; averaging
+>    knowledge-assuming best responses is strategy fusion (two worlds, A wins in w₁ and loses in
+>    w₂, B the mirror, C neutral: the averaged target is ½A + ½B with zero mass on C, the
+>    o-optimal action). Depth 1 does not prevent it. The value target `E_w[V_search(o,w)]`
+>    upper-bounds `V*(o)` for any o-measurable policy — an optimism concentrated in
+>    high-uncertainty positions, invisible in a win rate. **The bias scales with the value of
+>    knowing `w`, which D19 measured at 0.024–0.034 nats of residual belief, 88–90% of the
+>    structure a deterministic cap mask.** So P3 is defensible in gen-1 randbats BECAUSE of that
+>    measurement, and **does not transfer to gen 4, gen 9 or any OU format** without re-measuring
+>    it. Reads added: `search/value_gap` by turn bucket (the opening is where the optimism would
+>    show), and a **fusion read after B6** — the true-world action's regret against the
+>    belief-averaged action over B sampled worlds, on G0's positions.
+> 3. **P2 makes P3 worse — TAKEN; the privileged critic is DEMOTED from principle to arm.** An
+>    observation-only leaf already averages over the posterior, confining fusion to the expanded
+>    ply; a privileged leaf re-introduces the knowledge assumption at every leaf. And IDEAS 4.7's
+>    vacatur *"does NOT touch: the information leg"* — the entire hidden team was worth ~+0.045
+>    EV. **First arm: the observation critic at the leaves. Privileged critic: an arm, decided by
+>    G0's `spearman` columns on the same rows.** What survives of P2 without privilege: the
+>    **antisymmetric construction still works on the observation critic** — in a determinized
+>    world both seats' OBSERVATIONS are renderable (each blind to the other's hidden bench through
+>    the tracker's foe path), so `V := ½(f(obs₁) − f(obs₂))` cancels §31's seat-constant bias as
+>    an identity with no privileged input. B2 builds that form. Line reference corrected:
+>    `entity_deepsets.py:348-353`.
+> 4. **Stage 0A is one more column, not subsumed — TAKEN.** `spearman(root_q_depth1, rollout-Q)`
+>    beside the critic's raw value on the same rows: is the backed-up root value a better
+>    ESTIMATOR than the critic's own output? That decides whether a root-value target is live
+>    independently of whether the search chooses better. Zero extra cost.
+> 5. **Top-k column optimism — TAKEN as a recorded read.** If the opponent's best reply is
+>    outside the searched top-k, the row is overestimated — the same sign as 2.10's
+>    `_look_further` optimism. G0 records the fraction of decisions where the oracle's best reply
+>    falls outside top-k for k ∈ {2,3,4,all}; the T-op's k is set from that read, not typed.
+> 6. **§26.1 quote softened** — the 10.76% flip is a named suspect for §30's cost, not a measured
+>    explanation; §1 item 2 now says so.
+>
+> **Ownership taken by the teammate:** the B5 training-loop seams (log-prob test, auxiliary head,
+> two samplers, loud seam) and Stage 0B, which runs now.
+
 ---
 
 ## 0. The bet in one paragraph
@@ -75,8 +132,9 @@ including the training encoder (`docs/search_relook/ENGINE_SEARCH_DESIGN.md` §4
 Nothing in the training loop uses it for anything but collection. **The plan is to
 build ONE search operator on that engine and use it in three places: at the ladder
 (the unspent 150 s/turn), inside training (expert iteration), and as the instrument
-that measures both.** The evaluator at its leaves is the **privileged critic**, which
-is the right object for determinized search and has never been used as one.
+that measures both.** The evaluator at its leaves is an **antisymmetric critic** read on
+both seats' views of the determinized leaf; whether it also reads privileged information is
+an ARM that G0 decides (amendment box 2, item 3).
 
 ## 1. Why the search chapter read as a cost, and why that does not bind here
 
@@ -93,8 +151,9 @@ r −0.875). Read what was measured:
 2. **The leaves were rendered through a different path than training.** Every search
    arm runs on `poke_engine` + the Python encoder, while the W lanes trained on
    `pkmn_gen1` + the Rust encoder. The `col_views` vs `view=None` rendering difference
-   alone **flips 10.76% of argmaxes** (§26.1). A critic read off-distribution at every
-   leaf is a different critic.
+   alone **flips 10.76% of argmaxes** (§26.1, which calls it a suspect that "may be" the
+   largest unnamed difference — a named suspect, not a measured explanation of §30). A
+   critic read off-distribution at every leaf is a different critic.
 3. **The budgets were tiny and the vehicle was Python.** Depth-1 at 81.7 ms, the tree at
    900 iterations at 766.6 ms per decision (RESULTS :1880, :2706-2711), against a
    ladder that allows ~150 s. The action-gap instrument that is supposed to bound the
@@ -124,11 +183,12 @@ Foul Play's entire strength is exact expansion over a crude evaluator, and it sc
 committee beats FP@500 at 0.5600 (`readouts/FP500_R5_READOUT.md`) — a better evaluator
 under a cruder expansion. The combination has never been run on a consistent evaluator.
 
-**P2 — The privileged critic is the right evaluator for determinized leaves.** A
+**P2 — The critic at a determinized leaf is antisymmetric by construction; privilege is an
+arm, not a principle (amendment box 2, item 3).** A
 determinized leaf is a COMPLETE state: the sampled world has an opponent team, movesets,
 exact HP. An observation-only critic throws that away and then has to marginalise over
 a bench it could read. The D18 privileged form already exists in the net
-(`rl/networks/entity_deepsets.py:340-352`, the 408-block appended to the obs) and the
+(`rl/networks/entity_deepsets.py:348-353`, the 408-block appended to the obs) and the
 engine constructs the block at training time (`env.rs:295-302`); the design's leaf path
 renders it for search leaves at ~1.5× the base leaf cost (ENGINE_SEARCH_DESIGN §4.1).
 D18's −0.0145 at 12M measured it as a **baseline**, was vacated as dose-limited, and
@@ -248,23 +308,32 @@ co-primary here and flagged to R6 trio A.
 
 **G0 — the rollout-Q instrument (I-op), the one measurement that decides everything.**
 500 positions sampled from R5-final self-play on the engine (stratified by turn bucket),
-the full row × column matrix, **256 rollouts per cell** (se ≈ 0.03 per cell), both seats
-stochastic. Reads, all in one file, all in-block:
-- `regret_greedy` = `max_a Q̄(a) − Q̄(a_greedy)`: **how much the played action leaves on
-  the table**, by turn bucket, with the winner's-curse correction the action-gap script
-  already carries. This is the prize, at 10× the resolution of the 24-rollout run.
-- `spearman(critic, rollout-Q)` per position, for the observation critic AND the
-  privileged critic on the true world: **can the critic be a leaf?** And
-  `regret_critic_depth1` = the regret of argmax over critic-valued leaves — the T-op's
-  quality before any training.
+the full row × column matrix, **256 rollouts per cell, split 128/128** (se ≈ 0.05 per
+cell on the ±1 outcome scale, ≈ 0.025 win-rate; CRN-1 seeds across rows), both seats
+stochastic. **All thresholds below are on the WIN-RATE scale.** Reads, all in one file,
+all in-block:
+- `regret_greedy` = `Q̄_B(a*_A) − Q̄_B(a_greedy)` where `a*_A` is the argmax on the first
+  128 rollouts and `Q̄_B` is the mean on the other 128 — **split-sample, unbiased** (amendment
+  box 2, item 1); by turn bucket; a **measured zero-gap null** (permuted split) printed
+  beside it. This is the prize.
+- `spearman(critic, rollout-Q)` per position for the observation critic AND the privileged
+  critic on the true world: **can the critic be a leaf, and which one?** And
+  `regret_critic_depth1` = the split-sample regret of argmax over critic-valued leaves —
+  the T-op's quality before any training.
+- `spearman(root_q_depth1, rollout-Q)` beside the critic's raw value on the same rows —
+  the ESTIMATOR question (amendment box 2, item 4).
+- `opp_best_outside_topk[k]` for k ∈ {2,3,4}: the fraction of decisions where the oracle's
+  best opponent reply is outside the policy's top-k (amendment box 2, item 5).
 - The R5 W finals' committee as the policy; ~2–4 core-hours; runs niced beside the R6
   fleet or after it.
-**Branches.** `regret_greedy` averaged over decisions below **0.005** (the effect of
-fixing every decision could not clear the credit line even if compounded): a **measured
-mechanism ceiling on depth-1 search over this policy** — the chapter closes on P1 and
-the training-side build is not started. Above it: the prize is real and G1 follows.
-`spearman` of the privileged critic below the observation critic's: P2 is wrong for this
-critic and B2 trains the evaluator on rollout labels first (the G0 rows are the dataset).
+**Branches.** The **upper 95% bound** of mean split-sample `regret_greedy` below **0.005
+win-rate** (the effect of fixing every decision could not clear the credit line even if
+compounded): a **measured mechanism ceiling on depth-1 search over this policy** — the
+chapter closes on P1 and the training-side build is not started. Above it: the prize is
+real and G1 follows. `spearman` picks the first arm's leaf critic (observation by default;
+privileged only if it ranks better on the same rows); neither ranking above the critic's
+own raw-value `spearman` on the root: B2 trains the evaluator on rollout labels first (the
+G0 rows are the dataset).
 
 **G1 — engine self-play, the fast in-block test of the operator.** L-op (true world,
 B=1, depth-1) vs greedy, both from the same checkpoint, engine mirror matches, n=5,000
@@ -339,9 +408,12 @@ can still kill the plan cheaply.
 
 ## 10. What would kill it, named before anything runs
 
-- **G0's ceiling** (`regret_greedy` < 0.005): depth-1 over this policy has nothing to
-  find; P1 is wrong for this format at this strength. Close the chapter, keep B0–B1 as
-  instruments.
+- **G0's ceiling** (upper 95% bound of split-sample `regret_greedy` < 0.005 win-rate, with
+  the measured zero-gap null below it): depth-1 over this policy has nothing to find; P1 is
+  wrong for this format at this strength. Close the chapter, keep B0–B1 as instruments.
+- **The fusion read after B6** shows the true-world action's regret against the
+  belief-averaged action above the credit floor: P3's D19 licence is spent for this object,
+  and the T-op must search B ≥ 2 sampled worlds at training time (cost ×B).
 - **The privileged critic ranks successors no better than the observation critic** on
   G0's rows: the evaluator's deficit is fit, not information. Then B2 trains on rollout
   labels (pure self-play; the G0 rows) before any T-op, and the plan slows by a fleet.

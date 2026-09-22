@@ -12557,3 +12557,15 @@ line numbers are not — grep the date, then read that region):
   columns; its cost model prices the poke_engine tree, not the native operator). Verdict on the
   teammate's chapter: a careful audit of the OLD vehicle, subsumed on the operator, adopted on
   hygiene. §4 and §6 of the plan updated in place to match.
+- 2026-09-22 (agent; the teammate's REPLY BOX at `dd224a4` on `claude/search-in-training-proposal`)
+  — **R7 PLAN AMENDMENT BOX 2.** The teammate conceded the vehicle and found a defect in the
+  RATIFIED kill branch: G0's `regret_greedy` was a max over noisy rows with a zero-gap floor of
+  ≈0.012–0.018 win-rate against a 0.005 kill (re-derived here from `action_gap.py:218-225`'s
+  own comment and the ±1-scale se). Fixed: split-sample 128/128, CRN across rows, a measured
+  permuted-split null, the kill on the upper 95% bound, scale named as win-rate. Also taken:
+  P3 (true world = posterior sample) is correct as sampling and suffers strategy fusion as
+  search — kept, conditional on D19's measured residual, non-transferable to gen 4/9/OU, with a
+  fusion read after B6; the privileged critic DEMOTED from principle to arm (fusion interaction
+  + IDEAS 4.7's untouched information leg), antisymmetry kept on the observation critic's two
+  views; Stage 0A as a fourth G0 column; a top-k optimism read; §26.1 quote softened; line ref
+  `entity_deepsets.py:348-353`. Teammate owns B5 seams and Stage 0B.
