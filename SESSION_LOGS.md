@@ -12589,3 +12589,10 @@ line numbers are not — grep the date, then read that region):
   designs, G3 sign-off, fusion bound, 0B correction) stay in the tree; the R7 plan's ownership
   lines now name a single runner for every build item. `claude/search-in-training-proposal`
   does no further work.
+- 2026-09-22 (cloud session, closing) — **R7 RUNNER BRIEF written** at the maintainer's request:
+  `docs/proposals/R7_RUNNER_BRIEF_2026-09-22.md` — read order, the worktree rule (a running
+  block imports the working tree), env rule (B0 in `pkmn-engine-port` only), sequencing against
+  the exit-gate queue and the ratified R6 prep, ruling 7 (fleet width, default 5) to ask first,
+  B0–B3 with acceptance (B0's bench replaces §5's constants at a 2× pass line), G0, and the
+  do-nots. The box session merges this branch into `main`, deletes both `claude/` branches and
+  becomes the single runner. This cloud session did no builds and produced no numbers.
