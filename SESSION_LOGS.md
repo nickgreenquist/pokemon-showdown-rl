@@ -12981,3 +12981,35 @@ line numbers are not — grep the date, then read that region):
   the ~2.3–2.4 GB the smokes measured — six-wide the box shows free=6.2 GB of 24. The post-fleet reads queue
   (armed 00:56Z) is holding until all six lanes are DONE. Morning report: per-lane steps / rate vs 1,254 /
   resumes / RSS, plus the box line.
+
+- 2026-09-22 11:10Z — **MORNING READ ON THE SIX-LANE R6 FLEET: CLEAN, AND THE KILL-AND-RELAUNCH CONTINGENCY
+  IS RETIRED.** 10.4 h in, zero resumes / zero stalls / zero alerts on all six lanes (the only two ALERT lines
+  in `logs/r6_fleet/monitor.log` are 00:30:35Z, the deliberate trio A relaunch, before trio B existed). Per
+  lane at 11:02Z, against the maintainer-launched W fleet's 1,254 steps/s per lane six-wide:
+
+        trio A s304  34.55M   976 steps/s  0.78x   0 resumes  831 MB
+        trio A s312  34.80M   976           0.78x   0          900 MB
+        trio A s320  34.67M   970           0.77x   0          911 MB
+        trio B s328  37.50M  1182           0.94x   0        1,168 MB
+        trio B s336  37.50M  1187           0.95x   0        1,158 MB
+        trio B s344  37.50M  1199           0.96x   0        1,165 MB
+        BOX load 8.3, free 5.9 GB of 24, node 200 procs, lanes=6 done=0
+
+  **The A-vs-B spread is the arm, not the launch context**: both trios share one box under identical
+  contention, trio B carries no outcome head and lands at 0.95x W, trio A carries the head's second backward
+  pass over the critic params and lands at 0.78x. ETA at current rates: trio B Tue 09-23 ~21:00 EDT; trio A
+  Wed 09-24 03:30-06:15 EDT (the range is trio A going three-wide once B exits, at ~168M with 32M to go) —
+  ~57 h wall for trio A against the ~50 h projected, i.e. **1.15x**, all of it the head.
+  **RULING (maintainer, verbatim): "no, not worth it to restart at all: it was for different project bc
+  training a model was 10x as long launched by claude. 1.15x is not a slowdown worth changing anything."** The
+  standing option to kill the lanes and relaunch from the maintainer's terminal is therefore CLOSED for this
+  fleet, and the fleet-scale measurement is recorded in `docs/landmines.md` under "Job lifetime, not
+  throughput" beside the 2026-08-26 correction: the "~10x slower agent-launched" figure belongs to a different
+  project and has now been contradicted twice here, once at 433 steps/s single-lane (2026-08-14) and once at
+  0.94-0.96x across a six-lane 200M fleet. Do not re-raise agent-side throughput as a reason to hand a run over.
+  DISK, the one open watch item: `runs/` is 119 GB with 120 GB free; the six lanes need ~75 GB more to reach
+  200M (~15 GB each, the size the completed W lanes landed at), so it fits with ~45 GB spare while the
+  post-fleet eval queue also writes. 45 GB of completed W-fleet intermediate rungs are deletable if it tightens
+  — finals kept — but that is a deletion and waits for a ruling. Also benign: 48 Showdown `bigerror` turn-1000
+  auto-tie warnings per lane over 10.4 h (~4.6/h), the usual long-battle timer chatter, not the burst that
+  preceded R2's silent stalls.

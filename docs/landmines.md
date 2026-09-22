@@ -350,6 +350,22 @@ breaks a long agent-side job is that it dies with the session. Hence the
 three-part safety test in CLAUDE.md's job-ownership rule: detached,
 resume-safe, progress readable as a rate.
 
+**MEASURED AGAIN AT FLEET SCALE, 2026-09-22 — the "10×" belongs to a
+different project and does not survive here.** The whole six-lane R6 fleet
+(2 × 200M trios) was launched AGENT-SIDE under a one-off authorization and
+read at 10.4 h: trio B (W + C6 + ×4 batch, no head) ran **1,182–1,199
+steps/s per lane six-wide against the maintainer-launched W fleet's 1,254**
+— 0.94–0.96× — and trio A (W + C6 + outcome heads) ran 970–976, 0.78×,
+the gap being the head's second backward pass over the critic params, which
+is arm cost and would be there from any terminal. Both trios shared one box,
+so the A-vs-B spread isolates the arm from the launch context. Zero resumes,
+zero stalls, zero alerts overnight. The maintainer's standing kill-and-
+relaunch contingency was RETIRED on this read, verbatim: *"not worth it to
+restart at all: it was for different project bc training a model was 10x as
+long launched by claude. 1.15x is not a slowdown worth changing anything"*
+(the 1.15× is trio A's wall-clock, ~57 h vs the ~50 h projected).
+**Do not re-raise agent-side throughput as a reason to hand a run over.**
+
 ## DESIGN-era traps (files now under `docs/archive/`)
 
 DESIGN.md's D19 entry sent a whole session down a dead lever (2026-08-16)
