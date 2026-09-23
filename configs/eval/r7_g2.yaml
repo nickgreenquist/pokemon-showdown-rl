@@ -1,7 +1,8 @@
-# R7 G2 -- JOURNEY 14's EXIT CONDITION at the L-op's first budget: the belief-sampled, gated
-# L-op vs THE SAME COMMITTEE GREEDY, off Foul Play at 20 ms. DRAFT 2026-09-23, NOT RATIFIED --
-# it runs only after the maintainer ratifies it, on the IDLE box (after the R6 reads queue;
-# never beside a training lane or an R7 job: FP@20's budget is wall-clock).
+# R7 G2 -- the belief-sampled, gated L-op vs THE SAME COMMITTEE GREEDY, off Foul Play at 20 ms:
+# the L-op's FIRST budget against JOURNEY 14's exit condition. DRAFT r2 2026-09-23 (after two Opus
+# reviews, design + code; every verified finding fixed below or in code), NOT RATIFIED -- it runs only
+# after the maintainer ratifies it, on the IDLE box (after the R6 reads queue; never beside a
+# training lane, an R7 job or another FP arm: FP@20's budget is wall-clock).
 #
 # journey_step: "14". Exit condition, verbatim from JOURNEY.md: "one comparison at a REAL
 #   budget, on the strongest gen-1 object we have. Search-with-our-evaluator vs the same
@@ -12,91 +13,124 @@
 #   2*se_diff, se_diff the larger of binomial and seed-clustered), decisions/sec and the
 #   per-turn budget in every quote, both FP@20 disclosures."
 #
-# WHAT THIS READ IS, AND IS NOT. The L-op here is DEPTH 1, B = 8 belief worlds, k 4 foe
-#   replies, S 2 chance samples (~540 leaves a decision; ms and decisions/sec stamped): the
-#   operator G1 measured at +0.0504 +- 0.0050 over its own greedy in the engine mirror in its
-#   BEST case (true world + the foe's exact prior; readouts/R7_G1_READOUT.md) and G1b measures
-#   without the peek. It is NOT the "real budget" JOURNEY 14 names -- the ladder allows ~150 s
-#   a turn and this spends milliseconds -- so a non-clear here does NOT close the search
-#   question (rule 6 in spirit: a small-budget null is not the budget-ceiling null); it sends
-#   the next L-op arm to a larger budget (more worlds; rollout leaves, whose depth-1 ceiling G0
-#   measured at +0.0236 per decision against the critic leaf's +0.0040). What changes vs G1 is
-#   exactly what the ladder changes: the world is sampled (B6's bridge + the determinizer; gate
-#   R1-E) and the foe is FOUL PLAY, not our committee -- the opponent model is our committee's
-#   guess at a search bot.
+# WHAT THIS READ IS, AND IS NOT. The L-op here is DEPTH 1, B = 8 belief worlds, k 4 foe replies,
+#   S 2 chance samples (~510-540 leaves a decision in the smokes; seat ms and decisions/sec
+#   stamped on BOTH arms): the operator G1 measured at +0.0504 +- 0.0050 over its own greedy in the
+#   engine mirror in its BEST case (true world + the foe's exact prior; readouts/R7_G1_READOUT.md),
+#   and G1b measures without the peek. The ladder allows ~150 s a turn and this spends ~0.2 s, so
+#   it is NOT the "real budget" JOURNEY 14 names -- in EITHER direction: a clear here clears the
+#   credit line at the L-op's first budget and does NOT by itself meet the exit condition (unless
+#   the maintainer rules a millisecond-budget clear sufficient), and a non-clear does NOT close the
+#   search question (rule 6 in spirit); both send the next L-op arm to a larger budget. What changes
+#   vs G1 is exactly what the ladder changes: the world is sampled (B6's bridge + the determinizer;
+#   gate R1-E) and the foe is FOUL PLAY, not our committee -- our committee's prior is a GUESS at a
+#   search bot.
 #
-# THE OBJECT: the R5 W committee (w104/w112/w120, the three 200M finals every R7 measurement
-#   used). If Friday's R6 read makes an R6 committee the ladder object, a second G2 on THAT
-#   committee, under this same protocol, is the addendum's input.
-# POLICY FORM: both arms WITHOUT the loop breaker (matched; the R6 ladder object carries it, so
-#   an L-op addendum there would disclose the form difference or re-read with it).
+# THE OPERATOR, as fixed after the code review (rl/search/lop.py; branch b4965e6, 53bcbec):
+#   * the foe's view in every world is rendered from what the foe has SEEN of us (a per-battle
+#     RevealHistory: our mons in first-seen order, their USED moves in first-use order) -- the
+#     first form handed the tracker our whole team (engine_bridge.our_side_reveal);
+#   * the worlds sample the foe ACTIVE's unrevealed moves as well as the bench
+#     (sample_determinization(sample_active=True)), as G1b's engine resample does;
+#   * a world that raises is counted by type and skipped (lop/errors), never let into poke-env;
+#     an OperatorMismatch (the soft-BR self-check) exits the seat process -- a death, never a
+#     forfeit read as a loss;
+#   * the solve renders one view (native.solve both_views=False: the committee's critic reads obs).
+#
+# THE OBJECT: the R5 W committee (w104/w112/w120, the three 200M finals every R7 measurement used).
+#   The R6 LADDER addendum (plan §6's "clears" branch) is tied to a SECOND G2 on the R6 ladder
+#   object, in ITS policy form (the loop breaker on), under this same protocol -- never to this one.
+# POLICY FORM: both arms WITHOUT the loop breaker (matched).
 # MATCHED GREEDY: the L-op's action when it does not override is EnsembleAgent's over the same
-#   members, bit for bit (tests/test_lop.py: gate shut -> the ensemble_seat's action on every
-#   harvested decision), so G2L - G2G isolates the search.
+#   members -- structurally (the same scores() arithmetic, the same member order; the L-op calls
+#   EnsembleAgent.scores itself) and tested (tests/test_lop.py: gate shut -> the ensemble_seat's
+#   action on 40 harvested decisions, the three-member committee), so G2L - G2G isolates the search.
+# POWER (the design review): n = 3200 per arm (exit_gate_r5's reason: at 3000 the binding bar is
+#   2*se_diff ~0.0254, at 3200 it is +0.025). se_diff ~0.0123 at p ~0.59. Power to CLEAR at a true
+#   delta of +0.025 / +0.030 / +0.035 / +0.040: ~0.50 / 0.66 / 0.79 / 0.89. G1's mirror number
+#   scaled by the belief read's (unresolved) share would sit near the +0.035 row BEFORE any loss
+#   from mis-modelling Foul Play, so a NON-CLEAR IS LIKELY EVEN IF THE OPERATOR WORKS -- read it that
+#   way. The maintainer's option: n = 6000 per arm (power ~0.71 / 0.87 at +0.030 / +0.035; ~2x the
+#   box time).
 title: r7_g2
-status: "DRAFT 2026-09-23 -- awaiting ratification; idle box only; JOURNEY 14's exit condition at the L-op's FIRST budget"
+status: "DRAFT r2 2026-09-23 -- two Opus reviews folded in; awaiting ratification; idle box only; the L-op's FIRST budget"
 journey_step: "14"
 credits_nothing: false
 results_dir: results/r7_g2
 fp:
   search_time_ms: 20
+  search_parallelism: 1          # the runner's SEARCH_PARALLELISM, pinned and stamped (the design review)
 checkpoints:
   w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
   w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
   w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
 usernames:
-  scheme: "r7g2<arm><role>; the prefix must be checked against the username inventory at launch (the exit gate's rule); the smoke pair is throwaway"
-env: "the native_seat arms run in pkmn-engine-r7 (pkmn_gen1 + poke-env; the runner's PY=); the ensemble_seat anchor may run in either env -- the object is the same members"
+  scheme: "r7g2<arm><role>; RERUN pairs insert b after the arm (r7g2grbseat/r7g2grbbot, r7g2lbseat/r7g2lbbot) -- a killed arm's pair is poisoned for hours (the runner landmine); the prefix is checked against the username inventory of every configs/eval/*.yaml at launch; the smoke pair is throwaway"
+env: "BOTH arms run in pkmn-engine-r7 (the runner's PY=/opt/anaconda3/envs/pkmn-engine-r7/bin/python): the two envs import two different rl trees (pokemon-showdown-rl imports the main checkout's), so one env for both arms is what makes them one program -- G_SAME_PROGRAM reads it back from the JSONs"
 arms:
   G2SM: {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 2,    search_time_ms: 20, seat_username: r7g2smkseat, fp_username: r7g2smkbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
-  G2G:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3000, search_time_ms: 20, seat_username: r7g2grseat, fp_username: r7g2grbot}
-  G2L:  {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 3000, search_time_ms: 20, seat_username: r7g2lseat, fp_username: r7g2lbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
+  G2G:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3200, search_time_ms: 20, seat_username: r7g2grseat, fp_username: r7g2grbot}
+  G2L:  {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 3200, search_time_ms: 20, seat_username: r7g2lseat, fp_username: r7g2lbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
 phases:
   smoke: [G2SM]
   R: [G2G, G2L]
 decision_rule:
-  primary: "G2L minus G2G, off FP@20, n=3000 per arm, one session, SEQUENTIAL arms, the control (G2G) FIRST"
+  primary: "G2L minus G2G, off FP@20, n=3200 per arm (n_eff after the crash-forfeit rule), one quiet-box session, SEQUENTIAL arms, the control (G2G) FIRST"
   credit_line_verbatim: >-
     a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the
     LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed
     from the per-seed finals at read time. (Each arm here is ONE object -- the three-member
     committee -- so there are no per-seed finals to cluster and se_diff is the pooled binomial
-    se_diff, 3000 vs 3000, ~0.0127; stated so the clause is not read as silently dropped.)
+    se_diff at the arms' n_eff, ~0.0123 at 3200 vs 3200; stated so the clause is not read as
+    silently dropped. Banked re-draws of this committee off FP@20 show binomial spread only.)
     Boundary: a delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met.
   clears: >-
-    delta >= +0.025 AND >= 2*se_diff -> JOURNEY 14's exit condition is MET at this budget: search
-    with our evaluator beats the same committee greedy off FP@20. The R6 ladder pre-reg gets an
-    addendum offering the L-op as the object under a disclosed policy form (plan §6), and gen9
-    gets MCTS (JOURNEY 13/14).
+    delta >= +0.025 AND >= 2*se_diff (the boundary as above) -> the L-op CLEARS THE CREDIT LINE AT
+    ITS FIRST BUDGET: search with our evaluator beats the same committee greedy off FP@20 at ~0.2 s
+    a decision. JOURNEY 14's exit condition ("at a REAL budget") stays owed unless the maintainer
+    rules a millisecond-budget clear sufficient. The R6 ladder addendum waits for the SECOND G2 on
+    the ladder object in its policy form; the next L-op arm raises the budget.
   does_not_clear: >-
-    otherwise and not negative -> the ladder stays greedy; the training side proceeds anyway
-    (plan §6: G0 said the prize exists and the evaluator is what the fleet trains). NOT the
-    real-budget null: the next L-op arm raises the budget (B >= 16 worlds, rollout leaves on
-    close calls) before anything is concluded about search at the ladder.
+    neither clears nor negative -> the ladder stays greedy; the training side proceeds anyway (plan
+    §6: G0 said the prize exists and the evaluator is what the fleet trains). NOT the real-budget
+    null, and at this power a non-clear is LIKELY even if the operator works (the POWER block): the
+    next L-op arm raises the budget (B >= 16 worlds; rollout leaves on close calls) before anything
+    is concluded about search at the ladder.
   negative: >-
-    delta <= -0.025 AND |delta| >= 2*se_diff -> the L-op at this budget is a measured COST off FP
-    (as §30's ungated arms were); same action as does_not_clear, and the next budget arm must
-    argue against it.
-  also_recorded: "search/override_rate (the landmine: beside every number), lop/argmax_moved_rate, lop/margin_mean, lop/worlds_built_rate, lop/refused by family, lop/no_world, lop/mask_mismatch, search/ms_mean and ms_p99, decisions_per_sec on BOTH arms"
+    delta < -0.025 AND |delta| > 2*se_diff (the same strict boundary) -> the L-op at this budget is a
+    measured COST off FP (as §30's ungated arms were); same action as does_not_clear, and the next
+    budget arm must argue against it.
+  void: >-
+    any R0 gate below VOIDs the PAIR: it re-runs in a fresh quiet-box session, control first, on
+    the named RERUN username pairs; a G2L-only re-run does not count (the in-session anchor rule).
+  also_recorded: "search/override_rate (the landmine: beside every number), lop/argmax_moved_rate, lop/margin_mean, lop/worlds_built_rate, lop/no_world_rate, lop/mask_mismatch_rate, lop/refused by family, lop/errors by type, lop/leaves_mean, search/ms_mean and ms_p99, and on BOTH arms seat/decision_ms p50/p99, seat/decisions_per_sec and arm/decisions_per_wall_sec"
 disclosures:
   - "FP@20: the equivalence test is weakly powered, and the point estimate flatters us; FP@20 is an instrument, not a rung"
-  - "the per-turn budget in every quote: B 8 worlds x k 4 x S 2 at depth 1 (~540 leaves a decision), ms_mean and decisions/sec from the arm's own JSON"
+  - "the per-turn budget in every quote: B 8 worlds x k 4 x S 2 at depth 1, the realized lop/leaves_mean, seat ms p50/p99 and decisions/sec from BOTH arms' JSONs"
   - "the /timer line (every seat sends /timer on)"
+  - "the crash-forfeit count per arm and its difference, beside the delta"
 comparators:
-  g1_true_world: {delta: 0.0504, se: 0.0050, note: "readouts/R7_G1_READOUT.md -- the ENGINE MIRROR, true world + exact foe prior; a different instrument, never differenced"}
-  g1b_belief: {note: "results/r7_g1b -- the same operator on belief worlds in the mirror; PENDING at drafting; never differenced"}
+  exit_gate_r5_s35: {xtg9: 0.6184, xgr: 0.5866, n: 3200, delta: 0.0319, z: 2.61, ms_per_decision: 771, note: "RESULTS §35 -- the same committee, instrument and protocol (the gumbel tree at 900 iterations, credits nothing); CROSS-SESSION, never differenced"}
+  g1_true_world: {delta: 0.0504, se: 0.0050, override: 0.096, note: "readouts/R7_G1_READOUT.md -- the ENGINE MIRROR, true world + exact foe prior; a different instrument, never differenced"}
+  g1b_belief: {override_pooled: 0.0757, battles: 1103, note: "results/r7_g1b at 2026-09-23 23:33Z, still running -- the same operator on belief worlds in the mirror; never differenced"}
 R0_gates:
   - name: G_QUIET_BOX
     check: "no training lane, no R7 job, no other FP arm alive (the reads queue's HOT/ENV nets); FP@20's budget is wall-clock"
   - name: G_CONTROL_FIRST
     check: "G2G's json predates G2L's"
+  - name: G_SAME_PROGRAM
+    check: "both arms' JSONs carry the SAME rl_package and rl_git_sha with rl_git_dirty false, and that sha is the launch commit (the design review: two envs import two trees)"
+  - name: G_RUNNER
+    check: "the runner's standing FP gates carry over (CH3 R4): the crash-forfeit read rule (n_eff = seat-finished minus crash-forfeits, our_wins reduced by the same count, BOTH arms); >= 30 relaunches VOIDs an arm; the two-tally agreement on n_eff EXACTLY (the runner's own 'G2' tally gate -- a name collision with this experiment, spelled G_TALLY here); gate_all_challenges_resolved; mask_desyncs reported"
   - name: G_OPERATOR_RAN
-    check: "G2L: search/searched > 0.5 x search/decisions; lop/worlds_built_rate >= 0.9 (R1-E refused 256 of 13,396 roots); lop/mask_mismatch == 0 (R1-E: mask parity exact); lop/no_world <= 0.02 x decisions; search/override_rate in [0.02, 0.25] (G1 0.096, G1b's belief arms ~0.09) -- outside it the operator did not run as measured and the read says nothing"
+    check: "G2L, every threshold from a measurement: search/searched >= 0.5 x search/decisions; lop/worlds_built_rate >= 0.90 (R1-E refused 1.9% of roots; the harvest probe built 96%); lop/no_world_rate <= 0.10 (a refused root loses all 8 worlds -- the harvest probe's 4.0% is transformed-Ditto roots, and a no-world decision plays the control's action: dilution, not bias); lop/mask_mismatch_rate <= 0.001 of worlds (R1-E: 0 of ~13k roots, a rate bound, not a zero); lop/errors <= 0.001 of worlds tried, every type disclosed; search/override_rate in [0.02, 0.20] (the sweep's cell 0.100 on G0's positions, G1 0.096, G1b's belief arms 0.0757, the harvest probe 0.060; 0.20 is 2x the highest); lop/leaves_mean in [400, 700] (the smokes 512-538: the realized budget). Outside any of these the operator did not run as measured and the read says nothing"
   - name: G_MATCHED_GREEDY
-    check: "tests/test_lop.py green at the launch commit (the gate-shut L-op plays the ensemble_seat's action)"
+    check: "tests/test_lop.py at the launch commit: every test PASSED and NONE SKIPPED (a skip is not a pass -- it skips without pkmn_gen1, the harvest or the three finals)"
   - name: G_SESSION
     check: "no difference against any banked number; the delta is G2L - G2G only"
   - name: G_TIES
     check: "ties are non-wins and are reported beside n"
   - name: G_CONCURRENCY
-    check: "max_concurrent_live_battles == 1 and concurrent_decision_rate <= 0.01 on both arms"
+    check: "VOID only on concurrent_decision_rate > 0.01; max_concurrent_live_battles > 1 is DISCLOSED as a battle-seam transient (scripts/depth2_r5_readout.py's convention since 2026-09-17)"
+  - name: G2G_SANITY
+    check: "DISCLOSURE, not a void: G2G outside 0.5866 +- 0.027 (3 binomial se at 3200 around §35's XGR, the same object) flags the session as unlike the banked instrument; never differenced"

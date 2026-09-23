@@ -26,7 +26,7 @@ def test_the_lop_arm_and_the_anchor_are_the_same_committee():
     assert arms["G2G"]["kind"] == "ensemble_seat" and arms["G2L"]["kind"] == "native_seat"
     assert arms["G2G"]["lanes"] == arms["G2L"]["ensemble_members"]
     assert arms["G2L"]["seat"] in arms["G2L"]["ensemble_members"]
-    assert arms["G2G"]["battles"] == arms["G2L"]["battles"] == 3000
+    assert arms["G2G"]["battles"] == arms["G2L"]["battles"] == 3200   # r2: +0.025 binds at 3200 (the design review)
     assert p["phases"]["R"] == ["G2G", "G2L"], "the control runs FIRST"
     assert set(arms["G2G"]["lanes"]) <= set(p["checkpoints"])
 
@@ -56,3 +56,20 @@ def test_usernames_are_distinct_and_the_kind_is_registered():
     names = [a[k] for a in arms.values() for k in ("seat_username", "fp_username")]
     assert len(names) == len(set(names)), names
     assert all(a["kind"] in ch3_fp_h2h.ARM_KINDS for a in arms.values())
+
+
+def test_r2_carries_the_reviews_gates():
+    """The design review's findings, pinned: one env for both arms, the runner's
+    standing gates, the concurrency convention, a void action, rate-based
+    operator gates, and the pinned FP parallelism."""
+    p = _p()
+    names = {g["name"] for g in p["R0_gates"]}
+    assert {"G_SAME_PROGRAM", "G_RUNNER", "G_CONCURRENCY", "G_OPERATOR_RAN", "G_MATCHED_GREEDY", "G2G_SANITY"} <= names
+    conc = next(g for g in p["R0_gates"] if g["name"] == "G_CONCURRENCY")["check"]
+    assert "concurrent_decision_rate > 0.01" in conc and "DISCLOSED" in conc
+    assert "void" in p["decision_rule"] and "G2L-only re-run does not count" in " ".join(p["decision_rule"]["void"].split())
+    assert p["fp"]["search_parallelism"] == 1
+    assert "pkmn-engine-r7" in p["env"] and "BOTH arms" in p["env"]
+    assert "delta < -0.025 AND |delta| > 2*se_diff" in p["decision_rule"]["negative"]
+    assert "stays owed" in " ".join(p["decision_rule"]["clears"].split())
+
