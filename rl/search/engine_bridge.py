@@ -13,6 +13,17 @@ What is exact (K), determinized (D), sampled (S) and refused here:
   * our side: species, level, moves + PP, HP, status (K); our stats from
     poke-env's `stats` (K; gen1_stat fallback); sleep's REMAINING turns are
     hidden even to us (S, W-SLEEP: sampled 1..7-observed).
+  * OUR SIDE'S PROJECTION is what the FOE has seen of us, not what we know
+    (corrected 2026-09-23, the G2 code review): the tracker renders the foe's
+    view of p1 from p1's reveal payload, and the first form handed it our
+    whole team -- every mon revealed, every move seen -- so the foe's view in
+    every built root knew our hidden bench. R1-E could not see it (it grades
+    OUR view, which the payload does not enter). `our_side_reveal` builds it
+    from what the foe observed: the mons that have been on the field, in the
+    order first seen, and each one's USED moves in first-use order with its
+    observed spends. poke-env keeps no event log, so the ORDER needs a caller
+    that sees every decision (`RevealHistory`); a single snapshot falls back
+    to team / slot order over the same SETS.
   * the foe: revealed mons in reveal order (poke-env's `opponent_team` is
     insertion-ordered by reveal) then the determinizer's bench; moves = the
     revealed ids first (PP = max - observed uses, the A-1a rule; the tracker
@@ -163,6 +174,81 @@ def charging_slot(mon: Any) -> int | None:
 # ---------------------------------------------------------------------------
 # The reveal payload (design §3.1) -- what the CLIENT has seen of each side
 # ---------------------------------------------------------------------------
+
+def _observed_uses(mid: str, mv: Any) -> int:
+    """PP spent = uses the foe watched (gen 1 has no Pressure: one PP a use)."""
+    return max(0, move_max_pp(mid) - int(mv.current_pp))
+
+
+def _seen_by_foe(mon: Any, battle: Any) -> bool:
+    """Has this mon of OURS been on the field? poke-env's `revealed` (set on
+    switch-in) when the battle is live; a rehydrated snapshot carries no flag,
+    so there: the active, a fainted mon, or one that has spent PP or HP."""
+    flag = getattr(mon, "revealed", None)
+    if flag is not None:
+        return bool(flag)
+    return (mon is getattr(battle, "active_pokemon", None) or bool(getattr(mon, "fainted", False))
+            or any(_observed_uses(mid, mv) > 0 for mid, mv in list(mon.moves.items())[:4])
+            or float(getattr(mon, "current_hp_fraction", 1.0) or 0.0) < 1.0)
+
+
+class RevealHistory:
+    """What the FOE has seen of OUR side, accumulated over a battle's
+    decisions: the party indices of our mons in the order they were first
+    seen on the field, and each mon's moves in first-use order. `update` at
+    EVERY decision (forced ones included) so the order is the order; it resets
+    itself when the battle tag changes."""
+
+    def __init__(self) -> None:
+        self.tag: Any = None
+        self.order: list[int] = []
+        self.moves: dict[int, list[int]] = {}
+
+    def update(self, battle: Any) -> "RevealHistory":
+        tag = getattr(battle, "battle_tag", None)
+        if tag != self.tag or tag is None:
+            self.tag, self.order, self.moves = tag, [], {}
+        for i, mon in enumerate(battle.team.values()):
+            if i not in self.order and _seen_by_foe(mon, battle):
+                self.order.append(i)
+            used = self.moves.setdefault(i, [])
+            for mid, mv in list(mon.moves.items())[:4]:
+                if _observed_uses(mid, mv) > 0 and move_id(mid) not in used:
+                    used.append(move_id(mid))
+        return self
+
+
+def our_side_reveal(battle: Any, history: RevealHistory | None = None) -> dict:
+    """OUR side's reveal payload -- what the FOE has seen of us, the object
+    `SearchNode.from_root` renders the foe's view of p1 from. Arrays are
+    indexed by OUR party index (battle_spec builds our party in `battle.team`
+    order); unrevealed mons carry nothing. Without a `history` (one snapshot)
+    the order falls back to party order among the revealed mons and slot
+    order among the used moves."""
+    team = list(battle.team.values())
+    if history is None:
+        history = RevealHistory().update(battle)
+    base = side_reveal(team)
+    order = [i for i in history.order if i < len(team)]
+    revealed_moves: list[list[int]] = []
+    move_uses: list[list[int]] = []
+    sleep_observed: list[int] = []
+    flags: list[list[bool]] = []
+    for i, mon in enumerate(team):
+        if i not in order:
+            revealed_moves.append([]); move_uses.append([]); sleep_observed.append(0); flags.append([False, False])
+            continue
+        slot = {move_id(mid): (mid, mv) for mid, mv in list(mon.moves.items())[:4]}
+        ids = [x for x in history.moves.get(i, []) if x in slot]
+        revealed_moves.append(ids)
+        move_uses.append([_observed_uses(*slot[x]) for x in ids])
+        sleep_observed.append(base["sleep_observed"][i])
+        flags.append(list(base["flags_before_faint"][i]))
+    while len(revealed_moves) < N_PARTY:
+        revealed_moves.append([]); move_uses.append([]); sleep_observed.append(0); flags.append([False, False])
+    return {"reveal_order": order, "revealed_moves": revealed_moves, "move_uses": move_uses,
+            "sleep_observed": sleep_observed, "flags_before_faint": flags, "binding_victim_turns": 0}
+
 
 def side_reveal(mons: list[Any], *, zero_uses: bool = False) -> dict:
     revealed_moves: list[list[int]] = []
@@ -339,11 +425,14 @@ def battle_spec(battle: Any, det: dict, ctl: Any = None, *, seed: int = 0, rng: 
     return pkmn_gen1.BattleSpec(int(battle.turn), int(seed) & ((1 << 64) - 1), p1, p2)
 
 
-def build_root(battle: Any, det: dict, ctl: Any = None, *, seed: int = 0, rng: np.random.Generator | None = None):
+def build_root(battle: Any, det: dict, ctl: Any = None, *, seed: int = 0, rng: np.random.Generator | None = None,
+               our_reveal: dict | None = None):
     """The constructed `SearchNode`: `battle_spec(...).build()` plus the
     client's projection (`SearchNode.from_root`); under control C5 the
     everything-revealed projection (`from_battle`) instead. Returns
-    `(node, req_p1, req_p2)`."""
+    `(node, req_p1, req_p2)`. OUR side's payload is `our_reveal` when given
+    (a caller holding a `RevealHistory`), else `our_side_reveal(battle)` from
+    the snapshot -- what the foe has seen of us, never our whole team."""
     import pkmn_gen1
     spec = battle_spec(battle, det, ctl, seed=seed, rng=rng)
     try:
@@ -353,7 +442,7 @@ def build_root(battle: Any, det: dict, ctl: Any = None, *, seed: int = 0, rng: n
     if getattr(ctl, "all_revealed", False):
         return pkmn_gen1.SearchNode.from_battle(b, r1, r2), r1, r2
     zero = bool(getattr(ctl, "zero_move_uses", False))
-    p1 = side_reveal(list(battle.team.values()))
+    p1 = our_reveal if our_reveal is not None else our_side_reveal(battle)
     p2 = side_reveal(list(battle.opponent_team.values()), zero_uses=zero)
     if getattr(ctl, "reveal_swap", False) and len(p2["reveal_order"]) >= 2:
         p2["reveal_order"][0], p2["reveal_order"][1] = p2["reveal_order"][1], p2["reveal_order"][0]

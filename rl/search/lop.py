@@ -12,15 +12,25 @@ decision with more than one legal action:
      `ensemble_seat` anchor plays in the same state: the comparison isolates
      the search.
   2. B WORLDS from our information set on the POKE-ENV side
-     (`rl/search/determinize.py::sample_determinization`), each built into an
-     engine root by `rl/search/engine_bridge.py::build_root` (gate R1-E: 99.7%
-     of built roots bitwise with the live observation, mask parity exact). A
-     world the bridge refuses (`Unbuildable`) is skipped and COUNTED BY FAMILY;
-     a world whose OUR-side mask disagrees with poke-env's is skipped and
-     counted (the prior is poke-env's, so the two must agree).
+     (`rl/search/determinize.py::sample_determinization(sample_active=True)`:
+     the bench AND the foe active's unrevealed moves are sampled, as G1b's
+     engine resample does), each built into an engine root by
+     `rl/search/engine_bridge.py::build_root` (gate R1-E: 99.7% of built roots
+     bitwise with the live observation, mask parity exact). A world the bridge
+     refuses (`Unbuildable`) is skipped and COUNTED BY FAMILY; a world whose
+     OUR-side mask disagrees with poke-env's is skipped and counted (the prior
+     is poke-env's, so the two must agree); any other exception out of a
+     world's build or solve (a ValueError out of the spec constructors, a
+     pyo3 panic) is skipped and COUNTED BY TYPE (`lop/errors`), never allowed
+     to escape into poke-env, where it would forfeit the battle as an ordinary
+     loss (the G2 reviews).
   3. THE FOE'S PRIOR in each world is the committee's on THAT world's foe view
-     (`node.obs(tables, "p2")`) -- the same object G0, G1 and the belief read
-     measured, with no peek: the foe view is the determinized one.
+     (`node.obs(tables, "p2")`), rendered from what the foe has ACTUALLY seen
+     of us: our side's reveal payload comes from a per-battle `RevealHistory`
+     (the order our mons were first on the field, each one's used moves in
+     first-use order; `engine_bridge.our_side_reveal`), updated at every
+     decision. The first form handed the tracker our whole team, so the foe's
+     view knew our hidden bench (the G2 code review; fixed in the bridge).
   4. `native.solve` scores each world at the operator's dials (the critic --
      the committee's mean observation critic -- at the leaves, one view: the
      fleet's form, box 5 item 5); Qbar per row is AVERAGED over the worlds
@@ -42,6 +52,7 @@ test) with the per-decision `lop/*` reads beside it.
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 import math
 import time
@@ -53,6 +64,16 @@ import numpy as np
 from rl.search import native
 
 N_ACTIONS = 10
+
+
+class OperatorMismatch(RuntimeError):
+    """The L-op's soft best response disagreed with `native.solve`'s pi' on a
+    world: the operator is not the one G1 measured, and the ARM is void. Never
+    caught inside `act`; the FP harness exits the seat process on it, so the
+    runner sees a death rather than a forfeited battle read as a loss."""
+
+
+_NEVER_SWALLOW = (KeyboardInterrupt, SystemExit, GeneratorExit, asyncio.CancelledError, OperatorMismatch)
 
 
 def _softmax_masked(scores: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -88,6 +109,8 @@ class NativeLOp:
             raise ValueError("the L-op's PIMC average re-implements the soft best response only; root_rule must be soft_br")
         self.tau = float(self.solve_dials.get("tau", 1.0))
         self.counters: dict[str, float] = defaultdict(float)
+        from rl.search.engine_bridge import RevealHistory
+        self._history = RevealHistory()
 
     # ---- the committee's surfaces ------------------------------------------------
     def _probs(self, obs: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -103,8 +126,11 @@ class NativeLOp:
     def act(self, battle: Any, obs: np.ndarray, mask: np.ndarray, battle_index: int,
             decision_index: int) -> tuple[int, dict[str, float]]:
         from rl.search.determinize import sample_determinization
-        from rl.search.engine_bridge import Unbuildable, build_root
+        from rl.search.engine_bridge import Unbuildable, build_root, our_side_reveal
 
+        # EVERY decision, forced ones included: the order our mons and moves
+        # were first seen is the foe's knowledge of us (RevealHistory).
+        self._history.update(battle)
         mask = np.asarray(mask, bool)
         scores = np.asarray(self.ens.scores(np.asarray(obs, np.float32), mask), np.float64)
         greedy = int(np.argmax(np.where(mask, scores, -np.inf)))    # EnsembleAgent.act's action (lowest index on ties)
@@ -120,26 +146,33 @@ class NativeLOp:
         rows = np.flatnonzero(mask)
         ig = int(np.flatnonzero(rows == greedy)[0])
         t0 = time.perf_counter()
+        our = our_side_reveal(battle, self._history)
         qs, leaves = [], 0
         for b in range(self.worlds):
-            det = sample_determinization(battle, rng)
             try:
-                node, _r1, _r2 = build_root(battle, det, None, seed=int(rng.integers(0, 2**62)), rng=rng)
+                det = sample_determinization(battle, rng, sample_active=True)
+                node, _r1, _r2 = build_root(battle, det, None, seed=int(rng.integers(0, 2**62)), rng=rng, our_reveal=our)
+                if not np.array_equal(np.asarray(node.mask(self.tables, "p1"), bool), mask):
+                    self.counters["lop/mask_mismatch"] += 1
+                    continue
+                m2 = np.asarray(node.mask(self.tables, "p2"), bool)
+                p2 = self._probs(np.asarray(node.obs(self.tables, "p2"), np.float32), m2) if m2.any() else np.zeros(N_ACTIONS)
+                res = native.solve([native.World(node)], self.tables, "p1", prior, p2, self._value_fn,
+                                   (key * 31 + b + 1) & 0x7FFFFFFFFFFFFFFF, both_views=False, **self.solve_dials)
             except Unbuildable as err:
                 self.counters[f"lop/refused/{err.family}"] += 1
                 continue
-            if not np.array_equal(np.asarray(node.mask(self.tables, "p1"), bool), mask):
-                self.counters["lop/mask_mismatch"] += 1
+            except _NEVER_SWALLOW:
+                raise
+            except BaseException as err:     # a pyo3 PanicException is a BaseException
+                self.counters[f"lop/error/{type(err).__name__}"] += 1
+                self.counters["lop/errors"] += 1
                 continue
-            m2 = np.asarray(node.mask(self.tables, "p2"), bool)
-            p2 = self._probs(np.asarray(node.obs(self.tables, "p2"), np.float32), m2) if m2.any() else np.zeros(N_ACTIONS)
-            res = native.solve([native.World(node)], self.tables, "p1", prior, p2, self._value_fn,
-                               (key * 31 + b + 1) & 0x7FFFFFFFFFFFFFFF, **self.solve_dials)
             q_w = np.asarray(res["q_row"], np.float64)[mask]
             lw = np.log(prior_m) + q_w / self.tau
             pw = np.exp(lw - lw.max())
             if not np.array_equal(pw / pw.sum(), np.asarray(res["pi"], np.float64)[mask]):
-                raise RuntimeError("the L-op's soft BR disagrees with native.solve's pi' -- not the same operator")
+                raise OperatorMismatch("the L-op's soft BR disagrees with native.solve's pi' -- not the operator G1 measured")
             qs.append(q_w)
             leaves += int(res["counters"]["search/leaves"])
         ms = (time.perf_counter() - t0) * 1e3
@@ -186,8 +219,12 @@ class NativeLOp:
             "lop/forced": c["lop/forced"],
             "lop/no_world": c["lop/no_world"],
             "lop/mask_mismatch": c["lop/mask_mismatch"],
+            "lop/mask_mismatch_rate": c["lop/mask_mismatch"] / max(c["lop/worlds_tried"], 1.0),
+            "lop/no_world_rate": c["lop/no_world"] / max(dec, 1.0),
             "lop/worlds_built_rate": c["lop/worlds_built"] / max(c["lop/worlds_tried"], 1.0),
             "lop/refused": {k.split("/", 2)[2]: v for k, v in c.items() if k.startswith("lop/refused/")},
+            "lop/errors": c["lop/errors"],
+            "lop/error_types": {k.split("/", 2)[2]: v for k, v in c.items() if k.startswith("lop/error/")},
         }
         return out
 

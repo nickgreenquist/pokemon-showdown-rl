@@ -122,3 +122,70 @@ def test_the_r1e_gate_runs_the_engine_backend_on_a_root_sample(tmp_path):
     assert report["leg_a"]["undeclared_dims"] == 0, report["leg_a"].get("undeclared_examples")
     assert report["leg_a"]["n_roots"] + report["leg_a"]["n_refused"] >= 50
     assert report["leg_c"]["exact"] == report["leg_a"]["n_roots"], "mask parity must be exact on every built root"
+
+
+@pytest.mark.skipif(not (HARVEST / "harvest_s62.pkl").exists(), reason="the R1 harvest corpus is not on this box")
+def test_our_side_is_projected_as_the_foe_has_seen_it():
+    """The G2 code review: the first form handed the tracker our WHOLE team as
+    p1's reveal payload, so every built root's foe view knew our hidden bench.
+    `our_side_reveal` gives it what the foe has seen: at turn 1 our lead and no
+    moves; later, the mons that have been on the field and their USED moves --
+    and our own view stays bitwise the live one (R1-E's leg A is unaffected)."""
+    r = subprocess.run([sys.executable, "-c", _FOE_VIEW], capture_output=True, text=True, timeout=900, cwd=ROOT,
+                       env={**os.environ, "POKEMON_RL_ENCODER_V2": "1", "POKEMON_RL_ENCODER_IDS": "1"})
+    assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-3000:]
+    assert r.stdout.strip().splitlines()[-1].startswith("OK")
+
+
+_FOE_VIEW = r"""
+import pickle
+import numpy as np
+from rl.envs.engine_tables import build_tables
+from rl.search.harvest import rehydrate_battle
+from rl.search.determinize import sample_determinization
+from rl.search.engine_bridge import RevealHistory, build_root, our_side_reveal, side_reveal
+tables, _ = build_tables()
+eps = pickle.load(open("results/ch3_r1/harvest_s62.pkl", "rb"))
+first = later = live_same = 0
+for bi, ep in enumerate(eps[:40]):
+    hist = RevealHistory()
+    for si, row in enumerate(ep["rows"][:12]):
+        if row["aliased"]:
+            continue
+        b = rehydrate_battle(row["battle"])
+        b.battle_tag = f"harvest-{bi}"
+        hist.update(b)
+        our = our_side_reveal(b, hist)
+        try:
+            node, _, _ = build_root(b, sample_determinization(b, np.random.default_rng(si)), None, seed=si, our_reveal=our)
+            old, _, _ = build_root(b, sample_determinization(b, np.random.default_rng(si)), None, seed=si,
+                                   our_reveal=side_reveal(list(b.team.values())))
+        except ValueError:
+            continue
+        team = node.view(tables, "p2")["opp"]["team"]
+        assert len(team) == len(our["reveal_order"]), (bi, si, len(team), our["reveal_order"])
+        # THE INVARIANT: our own view does not read our side's payload, so the fix
+        # leaves it bit for bit where the first form (and R1-E) had it...
+        assert np.array_equal(node.obs(tables, "p1"), old.obs(tables, "p1")), (bi, si)
+        assert np.array_equal(node.mask(tables, "p1"), old.mask(tables, "p1")), (bi, si)
+        # ...which is R1-E's parity with the live observation (99.7% bitwise; the rest a declared family).
+        live_same += int(np.array_equal(node.obs(tables, "p1"), row["obs"]))
+        if si == 0 and int(row["turn"]) == 1:
+            # the battle's FIRST decision: the foe has seen our lead and nothing else
+            # (a later decision inside turn 1 has already seen a move, correctly)
+            assert len(team) == 1 and not any(our["revealed_moves"]), (bi, si, our)
+            first += 1
+        else:
+            assert 1 <= len(team) <= 6
+            later += 1
+        # every move the foe is shown has been USED (PP spent), never an unused one
+        for i in our["reveal_order"]:
+            mon = list(b.team.values())[i]
+            used = {mid for mid, mv in list(mon.moves.items())[:4] if mv.current_pp < mv.max_pp} if hasattr(next(iter(mon.moves.values())), "max_pp") else None
+            assert len(our["revealed_moves"][i]) == len(our["move_uses"][i]) and all(u > 0 for u in our["move_uses"][i])
+assert first >= 20 and later >= 100, (first, later)   # first: one per episode
+assert live_same >= 0.97 * (first + later), (live_same, first + later)
+print(f"OK foe view: {first} turn-1 roots show the foe our lead and no moves; {later} later roots show only fielded mons and used moves; "
+      f"our view unchanged by the fix on all, bitwise the live one on {live_same}/{first + later}")
+"""
+
