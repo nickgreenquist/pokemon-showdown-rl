@@ -16,7 +16,7 @@ use crate::smoke;
 use crate::spec;
 use crate::team::PokemonSet;
 
-fn player(p: &str) -> PyResult<Player> {
+pub(crate) fn player(p: &str) -> PyResult<Player> {
     match p {
         "p1" | "P1" => Ok(Player::P1),
         "p2" | "P2" => Ok(Player::P2),
@@ -24,7 +24,7 @@ fn player(p: &str) -> PyResult<Player> {
     }
 }
 
-fn request(r: &str) -> PyResult<Request> {
+pub(crate) fn request(r: &str) -> PyResult<Request> {
     match r {
         "pass" => Ok(Request::Pass),
         "move" => Ok(Request::Move),
@@ -60,7 +60,7 @@ fn outcome_to_py(o: Outcome) -> &'static str {
     }
 }
 
-fn request_to_py(r: Request) -> &'static str {
+pub(crate) fn request_to_py(r: Request) -> &'static str {
     match r {
         Request::Pass => "pass",
         Request::Move => "move",
@@ -256,8 +256,8 @@ fn mask_table_split(
 /// (`BatchEnv`) arrives with the later gates; this exists so the B-0/B-1 gate
 /// scripts can drive the engine from Python.
 #[pyclass(name = "Battle")]
-struct PyBattle {
-    inner: Battle,
+pub(crate) struct PyBattle {
+    pub(crate) inner: Battle,
 }
 
 #[pymethods]
@@ -698,6 +698,9 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyBattleSpec>()?;
     m.add_class::<crate::pyencode::Tables>()?;
     m.add_class::<crate::pyencode::BatchEnv>()?;
+    // R7 B0: the batched leaf path (search.rs) and the rollout leaf.
+    m.add_class::<crate::pysearch::SearchNode>()?;
+    m.add_class::<crate::pysearch::LeafBatch>()?;
     m.add("N_ACTIONS", crate::env::N_ACTIONS)?;
     m.add("OBS_DIM", crate::encoder::OBS_DIM)?;
     m.add("PRIV_DIM", crate::encoder::PRIV_DIM)?;

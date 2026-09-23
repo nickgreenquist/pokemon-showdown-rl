@@ -317,7 +317,7 @@ use pyo3::types::PyDict;
 /// all-False MASK that sends every logit to the -1e8 sentinel. That is the
 /// "a bug becomes silent wrong data" shape this repo's masking and
 /// outcome-reading conventions exist to prevent.
-fn rows2<'py, T: numpy::Element>(
+pub(crate) fn rows2<'py, T: numpy::Element>(
     py: Python<'py>,
     flat: &[T],
     width: usize,
@@ -331,6 +331,12 @@ where
             "{what}: {} values is not a whole number of {width}-wide rows",
             flat.len()
         )));
+    }
+    if flat.is_empty() {
+        // `from_vec2` of no rows is (0, 0); a caller zipping an empty pending
+        // set against its declared width wants (0, width). Found by R7 B0's
+        // `LeafBatch.pending` seam test (2026-09-22).
+        return Ok(PyArray2::<T>::zeros(py, [0, width], false));
     }
     PyArray2::from_vec2(py, &flat.chunks(width).map(|c| c.to_vec()).collect::<Vec<_>>())
         .map_err(|e| PyRuntimeError::new_err(format!("{what}: {e}")))
@@ -348,7 +354,7 @@ impl BatchEnv {
     /// `bank` is the packed payload of a `scripts/engine_team_bank.py` file
     /// (header stripped by the caller, which is where the sha256 is checked).
     #[new]
-    #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1", battle_counter=0, privileged=false))]
+    #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1", battle_counter=0, privileged=false, both_views=false))]
     fn new(
         k: usize,
         seed: u64,
@@ -357,6 +363,7 @@ impl BatchEnv {
         learner_seat: &str,
         battle_counter: u64,
         privileged: bool,
+        both_views: bool,
     ) -> PyResult<Self> {
         let learner = match learner_seat {
             "p1" => Player::P1,
@@ -364,8 +371,10 @@ impl BatchEnv {
             s => return Err(PyValueError::new_err(format!("learner_seat {s:?} is not p1/p2"))),
         };
         let bank = TeamBank::new(bank).map_err(PyValueError::new_err)?;
-        let inner = RustBatchEnv::new(k, seed, tables.inner.clone(), bank, learner, battle_counter, privileged)
-            .map_err(PyValueError::new_err)?;
+        let inner = RustBatchEnv::new(
+            k, seed, tables.inner.clone(), bank, learner, battle_counter, privileged, both_views,
+        )
+        .map_err(PyValueError::new_err)?;
         Ok(BatchEnv { inner })
     }
 
@@ -388,6 +397,26 @@ impl BatchEnv {
     /// Which pool member owns a slot, for the lifetime of its battle.
     fn set_member(&mut self, slot: usize, member: i32) {
         self.inner.set_member(slot, member);
+    }
+
+    /// Snapshot one live battle as a search root: its bytes, BOTH seats'
+    /// projections and the request pair, exactly as the collector holds them.
+    /// The env is not disturbed. R7 B0 (`search.rs`).
+    fn snapshot(&self, slot: usize) -> PyResult<crate::pysearch::SearchNode> {
+        let env = self
+            .inner
+            .slot(slot)
+            .ok_or_else(|| PyValueError::new_err(format!("slot {slot} out of range 0..{}", self.inner.len())))?;
+        Ok(crate::pysearch::SearchNode { inner: crate::search::Node::from_env(env) })
+    }
+
+    /// `"p1"` / `"p2"`: which engine seat the learner sits in.
+    #[getter]
+    fn learner_seat(&self) -> &'static str {
+        match self.inner.learner() {
+            Player::P1 => "p1",
+            Player::P2 => "p2",
+        }
     }
 
     /// `(idx int32[n], obs f32[n, 828], mask bool[n, 10], member int32[n])` for
@@ -541,6 +570,10 @@ impl BatchEnv {
             d.set_item("slot", e.slot)?;
             if !e.privileged.is_empty() {
                 d.set_item("privileged", rows2(py, &e.privileged, PRIV_DIM, "episode privileged")?)?;
+            }
+            if !e.obs2.is_empty() {
+                // R7 B2: the foe's own view per learner row, (n, 828).
+                d.set_item("obs2", rows2(py, &e.obs2, OBS_DIM, "episode obs2")?)?;
             }
             out.push(d);
         }

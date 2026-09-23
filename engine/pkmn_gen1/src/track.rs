@@ -38,7 +38,7 @@ pub fn health_percent(hp: u16, max_hp: u16) -> u8 {
 }
 
 /// What one side has REVEALED, plus the counters a client would keep.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct SideTracker {
     /// Party indices this side has shown, in the order they first switched in.
     reveal_order: Vec<u8>,
@@ -81,6 +81,49 @@ pub struct SideTracker {
     prev_charging: bool,
     prev_transform: bool,
     started: bool,
+}
+
+/// Hand-written so that `clone_from` REUSES the Vec capacity: the search's
+/// batched leaf path (`search.rs`) refills one scratch tracker per leaf, and the
+/// derived `clone_from` (`*self = src.clone()`) would allocate thirteen Vecs per
+/// side per leaf. `clone` itself is the derived shape.
+impl Clone for SideTracker {
+    fn clone(&self) -> Self {
+        SideTracker {
+            reveal_order: self.reveal_order.clone(),
+            revealed: self.revealed,
+            revealed_moves: self.revealed_moves.clone(),
+            move_uses: self.move_uses.clone(),
+            sleep_observed: self.sleep_observed,
+            prev_status: self.prev_status,
+            prev_active_party: self.prev_active_party,
+            prev_live_moves: self.prev_live_moves,
+            binding_victim_turns: self.binding_victim_turns,
+            binding_last_turn: self.binding_last_turn,
+            flags_before_faint: self.flags_before_faint,
+            prev_charging: self.prev_charging,
+            prev_transform: self.prev_transform,
+            started: self.started,
+        }
+    }
+    fn clone_from(&mut self, src: &Self) {
+        self.reveal_order.clone_from(&src.reveal_order);
+        for i in 0..6 {
+            self.revealed_moves[i].clone_from(&src.revealed_moves[i]);
+            self.move_uses[i].clone_from(&src.move_uses[i]);
+        }
+        self.revealed = src.revealed;
+        self.sleep_observed = src.sleep_observed;
+        self.prev_status = src.prev_status;
+        self.prev_active_party = src.prev_active_party;
+        self.prev_live_moves = src.prev_live_moves;
+        self.binding_victim_turns = src.binding_victim_turns;
+        self.binding_last_turn = src.binding_last_turn;
+        self.flags_before_faint = src.flags_before_faint;
+        self.prev_charging = src.prev_charging;
+        self.prev_transform = src.prev_transform;
+        self.started = src.started;
+    }
 }
 
 impl Default for SideTracker {
@@ -162,9 +205,20 @@ impl SideTracker {
 }
 
 /// Both sides' projections, advanced together.
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct BattleTracker {
     sides: [SideTracker; 2],
+}
+
+impl Clone for BattleTracker {
+    fn clone(&self) -> Self {
+        BattleTracker { sides: [self.sides[0].clone(), self.sides[1].clone()] }
+    }
+    /// Allocation-free when `self` already has the capacity (see `SideTracker`).
+    fn clone_from(&mut self, src: &Self) {
+        self.sides[0].clone_from(&src.sides[0]);
+        self.sides[1].clone_from(&src.sides[1]);
+    }
 }
 
 impl BattleTracker {
