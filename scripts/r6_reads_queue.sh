@@ -126,6 +126,22 @@ for t in a b; do
   log "PIN-$t: $(grep -E "^[ab][0-9]" "$LOG/pin_$t.log" | tr '\n' ' ')"
 done
 
+# ------------------------------------------------------------- HOLD FOR G0
+# The R7 G0 instrument (scripts/rollout_q.py, run from the r7 worktree's env) is CPU work
+# beside us, and FP@20's budget is WALL-CLOCK: a busy box weakens Foul Play's search and
+# flatters our seat on the read that sets the credit line and picks LADDER R6's object.
+# Maintainer's rule 2026-09-23, verbatim: "wait for G0 to not be running to run FP eval".
+# WAIT, never refuse -- the readout slipping is cheap, a contaminated primary read is not.
+# vs-SH is deliberately NOT gated: its budget is not wall-clock, so contention costs it
+# time and nothing else.
+held=0
+until ! pgrep -f "python .*scripts/rollout_q\.py" > /dev/null; do
+  [ $((held % 12)) -eq 0 ] && log "HOLD: R7 G0 (rollout_q.py) is alive -- FP@20 is wall-clock budgeted; held ~$((held * 5)) min"
+  held=$((held + 1))
+  sleep 300
+done
+if [ "$held" -gt 0 ]; then log "G0 gone after ~$((held * 5)) min of hold -- PHASE FP proceeds"; fi
+
 # ---------------------------------------------------------------- PHASE FP
 log "PHASE FP: off FP@20, sequential, in the pre-reg's run_order (~1.4 h per arm at ~1.6 s/battle)"
 for arm in $("$PY" -c "import yaml;print(' '.join(yaml.safe_load(open('$FPPREREG'))['run_order']))"); do
