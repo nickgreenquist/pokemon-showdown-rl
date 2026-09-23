@@ -279,6 +279,22 @@ def _move_field(off: int) -> str:
 # ---------------------------------------------------------------------------
 
 FAMILY_DOC: dict[str, dict[str, Any]] = {
+    "W-RECHARGE-STALE": {
+        "fields": "our active's V_RECHARGING",
+        "class": "client-stale",
+        "obs_visible": True,
+        "obs_dims": "own_active.volatile[MUST_RECHARGE], exactly one dim",
+        "why": "FINDING F1, resolved on the engine backend 2026-09-23: poke-env's "
+               "`must_recharge` OUTLIVES the server's lock, and the LIVE encoder writes "
+               "the stale flag as a feature. The engine root cannot carry it -- a "
+               "recharging active is FORCED and aliased in the engine, which the live "
+               "root (a full choice set) was not -- so the bridge writes the flag only "
+               "when the request corroborates it. The one dim then differs on exactly "
+               "the roots where poke-env is stale: 38 of 13,396 (0.28%); mask parity is "
+               "exact on all of them. The constructed root is the true state; the live "
+               "feature is the client's error, reproduced nowhere else.",
+        "seen_by": "leg A only (leg C is exact on these roots)",
+    },
     "W-HP": {
         "fields": "opponent P_HP",
         "class": "grain",
@@ -504,6 +520,7 @@ class RootFacts:
     own_preparing: bool
     opp_preparing: bool
     trapped: bool
+    own_recharge_stale: bool = False   # poke-env must_recharge with a full choice set offered
 
 
 def classify_family(d: DimInfo, f: RootFacts) -> str:
@@ -523,6 +540,8 @@ def classify_family(d: DimInfo, f: RootFacts) -> str:
         if d.field == "force_switch":
             return "W-REQ"
         return "undeclared"
+    if d.block == "own_active" and d.field == "volatile[MUST_RECHARGE]" and f.own_recharge_stale:
+        return "W-RECHARGE-STALE"
     if d.field == "preparing":
         return "S-PREPARING"
     if d.field == "status_counter":
@@ -1326,6 +1345,8 @@ def root_facts(frozen: dict) -> RootFacts:
         own_preparing=bool(own and own["preparing"]),
         opp_preparing=bool(opp and opp["preparing"]),
         trapped=bool(frozen["trapped"]),
+        own_recharge_stale=bool(own and own["must_recharge"] and not frozen["trapped"]
+                                and "recharge" not in [str(m) for m in frozen.get("available_moves", [])]),
     )
 
 
@@ -1424,6 +1445,7 @@ class LegA:
         return {
             "leg": "A -- observation parity (bitwise, outside declared families)",
             "n_roots": self.n,
+            "refused": dict(self.refused), "n_refused": int(sum(self.refused.values())),
             "bitwise_identical": self.bitwise_identical,
             "bitwise_identical_frac": bit_frac,
             "dims_per_root": dims_per_root,
@@ -1524,6 +1546,7 @@ class LegC:
             "causes": dict(self.causes),
             "charging_roots_unbuildable_on_the_engine_backend":
                 self.charging_unbuildable,
+            "refused": int(self.refused),
             "examples": self.mismatches,
             "target": LEG_C_TARGET,
             "hard_stop_below": BAR_LEG_C_HARD_STOP,

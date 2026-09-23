@@ -199,8 +199,28 @@ def _boosts(active: Any) -> tuple[int, ...]:
     return (g("atk"), g("def"), g("spe"), g("spa"), g("accuracy"), g("evasion"))
 
 
+def _recharge_corroborated(active: Any, battle: Any, ours: bool) -> bool:
+    """poke-env's `must_recharge` OUTLIVES the server's lock (gate R1-E finding
+    F1: on 38 of 13,396 harvested roots the server offered a full choice set
+    while poke-env still said must_recharge). Written into the bytes as-is it
+    makes the engine's root FORCED and aliased (the moves re-based onto the
+    Recharge placeholder), which the live root was not -- the one undeclared
+    family the first full-corpus run found. For OUR active the request is the
+    authority: the flag counts only when the server trapped us or offered the
+    Recharge placeholder. The foe's flag is what the live encoder read too, so
+    it is written as poke-env reports it."""
+    if not getattr(active, "must_recharge", False):
+        return False
+    if not ours:
+        return True
+    if getattr(battle, "trapped", False):
+        return True
+    avail = [getattr(m, "id", m) for m in (getattr(battle, "available_moves", None) or [])]
+    return any(str(mid) == "recharge" for mid in avail)
+
+
 def _volatiles(active: Any, foe_active: Any, rng: np.random.Generator, max_hp: int,
-               live_slot_of: dict[str, int]) -> dict[str, Any]:
+               live_slot_of: dict[str, int], *, battle: Any = None, ours: bool = False) -> dict[str, Any]:
     v: dict[str, Any] = {}
     for eff in (getattr(active, "effects", None) or {}):
         key = _EFFECT_KEY.get(str(getattr(eff, "name", eff)))
@@ -211,7 +231,7 @@ def _volatiles(active: Any, foe_active: Any, rng: np.random.Generator, max_hp: i
             v["confusion_turns"] = int(rng.integers(1, 5))          # hidden, W-CONF
         if key == "substitute":
             v["substitute_hp"] = min(255, max(1, int(max_hp) // 4))  # at creation, W-SUB
-    if getattr(active, "must_recharge", False):
+    if _recharge_corroborated(active, battle, ours):
         v["recharging"] = True
     if getattr(active, "preparing", False):
         slot = charging_slot(active)
@@ -308,11 +328,13 @@ def battle_spec(battle: Any, det: dict, ctl: Any = None, *, seed: int = 0, rng: 
         raise Unbuildable("W-ORDER", "the foe's active is not in the determinization")
     p1 = pkmn_gen1.SideSpec(
         our, our_active, boosts=_boosts(battle.active_pokemon),
-        volatiles=_volatiles(battle.active_pokemon, opp_active, rng, int(battle.active_pokemon.max_hp or 0), {}),
+        volatiles=_volatiles(battle.active_pokemon, opp_active, rng, int(battle.active_pokemon.max_hp or 0), {},
+                             battle=battle, ours=True),
     )
     p2 = pkmn_gen1.SideSpec(
         foe_party, foe_active, boosts=_boosts(opp_active),
-        volatiles=_volatiles(opp_active, battle.active_pokemon, rng, int(foe_party[foe_active].max_hp), {}),
+        volatiles=_volatiles(opp_active, battle.active_pokemon, rng, int(foe_party[foe_active].max_hp), {},
+                             battle=battle, ours=False),
     )
     return pkmn_gen1.BattleSpec(int(battle.turn), int(seed) & ((1 << 64) - 1), p1, p2)
 
