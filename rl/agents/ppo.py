@@ -173,6 +173,17 @@ def _orthogonal_init(net: nn.Module, head_gain: float) -> None:
         nn.init.zeros_(layer.bias)
 
 
+def _theta0_digest(names: list[str], tensors: list[torch.Tensor]) -> str:
+    """The L2-init anchors' digest: sha256 over (qualified name, raw CPU
+    bytes) in capture order. One function for `theta0_hash` and
+    `install_theta0`, so the two can never disagree about what a digest is."""
+    digest = hashlib.sha256()
+    for name, t in zip(names, tensors):
+        digest.update(name.encode())
+        digest.update(t.detach().to("cpu").contiguous().numpy().tobytes())
+    return digest.hexdigest()
+
+
 def _l2_init_covered(net: nn.Module) -> list[tuple[str, nn.Parameter]]:
     """The parameters an L2-toward-init decay may touch (D23 COVERAGE):
     everything except parameters owned by an `nn.LayerNorm` and except frozen
@@ -1178,11 +1189,37 @@ class PPOAgent(Agent):
         qualified name and its raw CPU bytes. Stamped into every checkpoint
         (60 identical 4.5 MB riders would be strictly worse) so a training
         resume against a theta0.pt from a different init is caught."""
-        digest = hashlib.sha256()
+        return _theta0_digest(self._theta0_names, self._theta0)
+
+    def install_theta0(self, payload: dict[str, Any]) -> None:
+        """A WARM START's anchors (R7 plan AMENDMENT BOX 6, R-F1): the DONOR
+        run's theta0, copied IN PLACE into the anchor tensors construction
+        captured -- the decay groups and the metric blocks alias those tensors,
+        so an in-place copy keeps every view live. Checked BEFORE anything is
+        written: the payload must cover exactly this agent's anchors, in
+        capture order and shape, and must reproduce its own stored digest (a
+        torn or foreign file is a different experiment, never a warning)."""
+        if self.l2_init_decay <= 0.0:
+            raise ValueError("install_theta0 on an agent with l2_init_decay = 0: there are no anchors to install")
+        anchors = payload.get("theta0") or {}
+        names = list(anchors)
+        if names != self._theta0_names:
+            missing = [n for n in self._theta0_names if n not in anchors]
+            extra = [n for n in names if n not in self._theta0_names]
+            raise ValueError(
+                f"theta0 payload does not cover this agent's anchors in capture order "
+                f"(missing {missing[:4]}, extra {extra[:4]}): a different architecture"
+            )
         for name, anchor in zip(self._theta0_names, self._theta0):
-            digest.update(name.encode())
-            digest.update(anchor.detach().to("cpu").contiguous().numpy().tobytes())
-        return digest.hexdigest()
+            if tuple(anchors[name].shape) != tuple(anchor.shape):
+                raise ValueError(f"theta0 anchor {name}: shape {tuple(anchors[name].shape)} != {tuple(anchor.shape)}")
+        stored = payload.get("theta0_hash")
+        if _theta0_digest(names, [anchors[n] for n in names]) != stored:
+            raise ValueError("the theta0 payload does not reproduce its own digest: a torn or edited file")
+        with torch.no_grad():
+            for name, anchor in zip(self._theta0_names, self._theta0):
+                anchor.copy_(anchors[name].to(device=anchor.device, dtype=anchor.dtype))
+        assert self.theta0_hash() == stored
 
     def act(self, obs: Any, action_mask: Any = None, deterministic: bool = False) -> Any:
         # float32 at tensor time (MinAtar obs are bool planes); branch on obs

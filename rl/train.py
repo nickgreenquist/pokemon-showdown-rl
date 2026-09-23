@@ -249,9 +249,23 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
     if getattr(agent, "l2_init_decay", 0.0) <= 0.0:
         return
     path = out_dir / "theta0.pt"
-    digest = agent.theta0_hash()
     if path.exists():
-        stored = torch.load(path, weights_only=False).get("theta0_hash")
+        payload = torch.load(path, weights_only=False)
+        stored = payload.get("theta0_hash")
+        donor = payload.get("donor")
+        if donor is not None:
+            # A WARM-STARTED run (below): its anchors are its DONOR's, and every
+            # reconstruction -- a resume included -- captures a fresh init that
+            # must be replaced by the same anchors from this dir's own copy.
+            if donor.get("init_from") != str(cfg.init_from):
+                raise ValueError(
+                    f"{path} holds a warm start's donor anchors (init_from "
+                    f"{donor.get('init_from')!r}) but this config's init_from is "
+                    f"{str(cfg.init_from)!r}: a different experiment"
+                )
+            agent.install_theta0(payload)
+            return
+        digest = agent.theta0_hash()
         if stored != digest:
             raise ValueError(
                 f"{path} was written from a different initialization "
@@ -260,12 +274,40 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
                 "train a different experiment"
             )
         return
-    if cfg.init_from or any(out_dir.glob("*.pt")):
+    if cfg.init_from:
+        # A WARM START with the lever on (R7 plan AMENDMENT BOX 6, R-F1). The
+        # anchors are the DONOR's theta0 -- the init its weights grew from, so
+        # the regularizer continues as the donor trained under it -- read from
+        # the donor's run dir and checked against the digest its checkpoint
+        # carries. Anchoring to this run's own random init would pull a trained
+        # net toward an unrelated point; anchoring to the loaded weights would
+        # be a different regularizer (a trust region around the start).
+        donor_path = Path(cfg.init_from).parent / "theta0.pt"
+        if not donor_path.exists():
+            raise FileNotFoundError(
+                f"warm start with l2_init_decay > 0: the donor's anchors {donor_path} "
+                "are missing, so this run cannot continue the donor's regularizer"
+            )
+        payload = torch.load(donor_path, weights_only=False)
+        from rl.common.checkpoint import load_checkpoint
+        stamped = load_checkpoint(cfg.init_from)["agent"].get("theta0_hash")
+        if stamped is None or stamped != payload.get("theta0_hash"):
+            raise ValueError(
+                f"{donor_path} (digest {payload.get('theta0_hash')}) is not the theta0 "
+                f"{cfg.init_from} was trained against (stamped {stamped})"
+            )
+        agent.install_theta0(payload)
+        payload = dict(payload)
+        payload["donor"] = {"init_from": str(cfg.init_from), "theta0_path": str(donor_path),
+                            "theta0_hash": payload["theta0_hash"]}
+        torch.save(payload, path)
+        print(f"THETA0: warm start anchored to the donor's theta0 ({donor_path}, {payload['theta0_hash'][:12]})")
+        return
+    if any(out_dir.glob("*.pt")):
         raise FileNotFoundError(
-            f"{path} is missing but {out_dir} already holds checkpoints (or the "
-            "run is warm-started): the L2-toward-init anchors cannot be "
-            "recovered from a checkpoint, so this resume would silently anchor "
-            "to a fresh init"
+            f"{path} is missing but {out_dir} already holds checkpoints: the "
+            "L2-toward-init anchors cannot be recovered from a checkpoint, so "
+            "this resume would silently anchor to a fresh init"
         )
     torch.save(agent.theta0_state(), path)
 
