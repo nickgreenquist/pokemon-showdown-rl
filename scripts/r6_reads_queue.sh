@@ -127,16 +127,18 @@ for t in a b; do
 done
 
 # ------------------------------------------------------------- HOLD FOR G0
-# The R7 G0 instrument (scripts/rollout_q.py, run from the r7 worktree's env) is CPU work
+# Any R7 job -- anything from the r7 worktree's env pkmn-engine-r7 -- is CPU work
 # beside us, and FP@20's budget is WALL-CLOCK: a busy box weakens Foul Play's search and
 # flatters our seat on the read that sets the credit line and picks LADDER R6's object.
 # Maintainer's rule 2026-09-23, verbatim: "wait for G0 to not be running to run FP eval".
 # WAIT, never refuse -- the readout slipping is cheap, a contaminated primary read is not.
 # vs-SH is deliberately NOT gated: its budget is not wall-clock, so contention costs it
-# time and nothing else.
+# time and nothing else. The gate names the ENV, never a script name: the R7 runner's second
+# job (rollout_q_fusion.py) is a different name, and a gate that lists names silently stops
+# seeing new ones -- the typed-dial-list shape in docs/landmines.md.
 held=0
-until ! pgrep -f "python .*scripts/rollout_q\.py" > /dev/null; do
-  [ $((held % 12)) -eq 0 ] && log "HOLD: R7 G0 (rollout_q.py) is alive -- FP@20 is wall-clock budgeted; held ~$((held * 5)) min"
+until ! pgrep -f "(pkmn-engine-r7/bin/python|scripts/rollout_q)" > /dev/null; do
+  [ $((held % 12)) -eq 0 ] && log "HOLD: an R7 job is alive ($(pgrep -f "(pkmn-engine-r7/bin/python|scripts/rollout_q)" | tr '\n' ' ')) -- FP@20 is wall-clock budgeted; held ~$((held * 5)) min"
   held=$((held + 1))
   sleep 300
 done
