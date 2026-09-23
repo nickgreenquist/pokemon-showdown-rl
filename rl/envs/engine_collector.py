@@ -137,6 +137,7 @@ class EngineCollector:
         battle_counter: int = 0,
         outcome_targets: bool = False,
         both_views: bool = False,
+        searcher=None,
     ):
         import pkmn_gen1
 
@@ -198,6 +199,11 @@ class EngineCollector:
         _check_engine_c6(pkmn_gen1)
 
         tables, self.tables_fingerprint = build_tables()
+        self.tables = tables
+        # R7 B4b: the T-op (rl/search/top.py), or None. Set here or as an
+        # attribute before start(); `poll()` hands it every learner decision
+        # and `_episode` takes its records back.
+        self.searcher = searcher
         # The runtime PAIRING: the Rust tables' c6 and the Python fingerprint that
         # meta.yaml stamps must agree, or the run record lies about its rows.
         from rl.envs.showdown import ENCODER_FINGERPRINT as _PY_FP
@@ -311,6 +317,11 @@ class EngineCollector:
             l_actions, l_logp = np.empty(0, np.int64), np.empty(0, np.float32)
         self.seam.inference_seconds += time.perf_counter() - t0
         self.seam.requests += len(l_idx)
+        if self.searcher is not None and len(l_idx):
+            # R7 B4b: the T-op searches a fraction of these decisions, may
+            # replace the played action with a sample from pi' (and its
+            # log-prob with log pi'(a)), and records one entry per row.
+            l_actions, l_logp = self.searcher.decide(self.env, l_idx, l_obs, l_mask, l_actions, l_logp)
 
         o_actions = self._opponent_actions(o_idx, o_obs, o_mask, o_member)
 
@@ -353,7 +364,7 @@ class EngineCollector:
 
     def stats(self) -> dict[str, float]:
         s = self.env.stats()
-        return {
+        out = {
             "collect/seam_requests": float(self.seam.requests),
             "collect/inference_seconds": self.seam.inference_seconds,
             "collect/episodes_finished": float(s["episodes_finished"]),
@@ -364,6 +375,9 @@ class EngineCollector:
             "collect/engine_updates": float(s["engine_updates"]),
             "collect/opponent_inference_seconds": self.opponent_inference_seconds,
         }
+        if self.searcher is not None:
+            out.update(self.searcher.stats())
+        return out
 
     def close(self) -> None:
         """Nothing to close: no sockets, no threads, no child processes."""
@@ -445,6 +459,9 @@ class EngineCollector:
         # Always on (no flag): a row tag, not a lever. True on every row of an
         # episode whose seated member was the pool's newest at seat time.
         episode["opp_latest"] = np.full(n, self._seated_latest[int(raw["slot"])], dtype=np.bool_)
+        if self.searcher is not None:
+            # search_mask / search_pi / search_v, in row order, count asserted.
+            episode.update(self.searcher.take(int(raw["slot"]), n))
         if self._opp_action:
             episode["opp_choice"] = np.asarray(raw["opp_choice"], dtype=np.int32)
         if self._privileged:

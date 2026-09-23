@@ -715,7 +715,10 @@ ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs",
                # (rl/envs/engine_collector_proc.py); `max_steps_ahead` is the
                # backpressure bound (default one rollout budget); `pause_on_update`
                # restores the stop-the-world cadence for a control lane.
-               "process", "max_steps_ahead", "pause_on_update"}
+               "process", "max_steps_ahead", "pause_on_update",
+               # R7 B4b: the T-op's dials (rl/search/top.py::TOp.dials(), derived from
+               # its signature); present iff agent.search_targets (the loud seam).
+               "search"}
 ASYNC_KEYS = {"mode", "concurrency"}
 
 
@@ -776,6 +779,20 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
             f"agent.search_targets needs collector.mode 'engine' (collector.mode is "
             f"{mode!r}): only the engine collector's T-op emits searched rows"
         )
+    # R7 B4b: the T-op rides only with a learner that expects its rows, and vice
+    # versa (update_episodes' seam catches it a rollout later; this is at launch).
+    search_spec = cfg.collector.get("search")
+    if bool(cfg.agent.get("search_targets", False)) != (search_spec is not None):
+        raise ValueError(
+            f"search-target mismatch at launch: agent.search_targets="
+            f"{bool(cfg.agent.get('search_targets', False))} but collector.search is "
+            f"{'present' if search_spec is not None else 'absent'} -- set both (the T-op emits "
+            "the rows the learner trains on) or neither"
+        )
+    if search_spec is not None:
+        from rl.search.top import TOp
+
+        TOp.check_dials(search_spec)
     if mode == "sync":
         return "sync"
     if mode == "engine":
@@ -1029,6 +1046,7 @@ def _async_loop(
             torch_threads=cfg.torch_threads,
             pause_on_update=bool(cfg.collector.get("pause_on_update", False)),
             allow_background_qos=bool(os.environ.get("POKEMON_RL_ALLOW_BACKGROUND_QOS")),
+            search=cfg.collector.get("search"),
         )
     elif mode == "engine":
         # In-process pkmn/engine, no server (plan §8.1). Same seam, same
@@ -1058,6 +1076,14 @@ def _async_loop(
             battle_counter=int(rs.get("battle_counter", 0)),
             outcome_targets=bool(cfg.collector.get("outcome_targets", False)),
         )
+        if cfg.collector.get("search") is not None:
+            # R7 B4b in-process: the T-op on the learner itself (the loop pauses
+            # collection during updates, so no torn read).
+            from rl.search.top import TOp
+
+            collector.searcher = TOp(agent, collector.tables,
+                                     seat=cfg.collector.get("learner_seat", "p1"),
+                                     seed=cfg.seed + 1, **cfg.collector["search"])
     else:
         from rl.envs.showdown_async import AsyncCollector
 
@@ -1182,8 +1208,16 @@ def _async_loop(
             if dataset.steps >= budget:
                 pause()
                 batch = dataset.drain()
-                # G5's staleness read: update-count lag per row, at drain.
+                # G5's staleness read: update-count lag per row, at drain. A
+                # row's lag includes its battle's duration (an early row of a
+                # long battle can be several updates old under whole-episode
+                # collection, on every collector). R7 B4's bound is on the
+                # weights the collector ACTS with: `collect/weights_lag_updates`
+                # = updates minus each episode's LAST row's version, max over
+                # the batch -- <= 1 under the two-core lane's backpressure.
                 lag = agent.updates - batch["version"]
+                ends = np.cumsum(batch["lengths"]) - 1
+                weights_lag = int(agent.updates - batch["version"][ends].min())
                 mark = time.perf_counter()
                 metrics = agent.update_episodes(batch, steps_seen=anneal_basis)
                 update_sec += time.perf_counter() - mark
@@ -1204,6 +1238,7 @@ def _async_loop(
                             np.percentile(lag, 99)
                         ),
                         "collect/policy_version_lag_max": float(lag.max()),
+                        "collect/weights_lag_updates": float(weights_lag),
                         **collector.stats(),
                     },
                     step,
