@@ -13512,3 +13512,23 @@ line numbers are not — grep the date, then read that region):
   ~0.08, 181 ms per searched decision niced, no world refused; ETA ~04:20Z against the last trio A lane's ~04:35–05:00Z
   (the guard cuts them at fleet end if they are late; the rows are resume-safe). Box 6 gains R-G2 (G2's ratification
   and WHEN). Nothing pushed since `a35ff9b` (branch) / `67f3d30` (main).
+
+- 2026-09-23 23:15Z (agent, R6 babysitter) — **TRIO B DONE: all three lanes at 200M, zero resumes.**
+  s336 21:17Z (200,000,017), s328 22:31Z (200,000,039), s344 23:08Z (200,000,009); the trio B
+  watchdog then exited clean (`WATCHDOG EXIT -- every lane DONE or retired. RESUMES=0
+  NODE_RESTARTS=0`). **Trio A three-wide runs 1,410–1,520 steps/s** (from ~1,100 six-wide) and is
+  forecast from 30–60 min rung windows at s312 ~03:25Z, s304 ~04:05Z, **s320 ~04:40Z Thu (00:40
+  EDT)** — ~3.5 h ahead of the morning estimate, so the FP window opens ~05:00Z and the readout
+  moves to ~Thu 22:00 EDT. The R7 runner had promised quiet "from Thu 04:00 EDT" by the clock; it
+  was told the window moved and asked to key on the last lane exiting instead (its G1b guard
+  already does). The queue's HOT/ENV gate holds either way; the ask is only to avoid a 1 a.m. hold.
+  **The wake loop fired "TRIO B WATCHDOG DIED" on that clean exit** — it asserted the watchdog's
+  liveness unconditionally. Fixed (scratchpad) to count `DONE at step` lines first: a supervisor
+  gone is a death only while its lanes are unfinished. Its first dry-run reported 0/3 DONE because
+  it was typed into the agent's zsh, which does not word-split `$LANES`; under bash it reads 3/3
+  and does not fire. Recorded as the fourth watch-loop failure in `docs/landmines.md` ("SUCCESS
+  READ AS DEATH"), with the s336 race from two hours earlier as the same shape one layer down.
+  **G1b** (R7, two niced pkmn-engine-r7 processes since 21:53Z, ~1 core each on the efficiency
+  cores) is on the box with a guard that SIGTERMs both at lanes=0 or Thu 07:30Z; its runner asked
+  that a HOLD naming it be answered by killing it (resume-safe rows) — agreed, with an alert to the
+  maintainer.

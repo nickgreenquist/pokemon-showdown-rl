@@ -306,6 +306,23 @@ lexically. Then REFUSE TO ARM if anything already postdates the arm time, and
 dry-run the filter once before arming: a watch that fires on arming is
 indistinguishable from a watch that fires on the event.
 
+**A fourth, the same night the fleet finished (2026-09-23): SUCCESS READ AS
+DEATH.** A liveness check on a SUPERVISOR must know whether the supervisor's
+work is done. The R6 wake loop asserted `pgrep train_watchdog.sh ... trio_b`
+unconditionally, so when trio B's last lane reached 200M and its watchdog
+exited cleanly (`WATCHDOG EXIT -- every lane DONE ... RESUMES=0`), the loop
+fired "TRIO B WATCHDOG DIED". Same shape, one layer down, two hours earlier:
+the fleet monitor raised `NO PROCESS and not DONE` for s336 in the seconds
+between the lane's clean exit and the watchdog's next sweep. Both were
+harmless because a human checked before acting -- but an automated response
+keyed on either (a resume, a relaunch) would have trampled a completed 200M
+run. **Fix:** a supervisor gone is a death only if its lanes are UNFINISHED
+(count the `DONE at step` lines first); a lane gone is a death only if the
+watchdog does not retire it on its next sweep. **And dry-run the fix in the
+shell that will run it:** its first dry-run, typed into the agent's zsh,
+reported 0/3 DONE because zsh does not word-split `$LANES` -- the "shell loops
+run under bash" landmine, which made a correct script look broken.
+
 ## Throughput numbers
 
 `scripts/showdown_throughput.py` measures server-side decisions/s only —
