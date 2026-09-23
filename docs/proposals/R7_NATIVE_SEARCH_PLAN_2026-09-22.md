@@ -216,7 +216,9 @@ on a 14-core laptop, CPU only, pure self-play.
 >    at 9.2%. At the plan's typed dials (k 3, S 2, τ 1) the operator overrides 0.6% of decisions and measures nothing.
 >    The dose read: π_θ top-1 ≥ 0.97 on 46% of positions, so the eligible pool is ~54%; the T-op's `frac` is set
 >    to search ~40% of decisions (`frac` ≈ 0.75 of eligible rows), matched across arms.
-> 4. **FUSION: P3's licence is INTACT.** `fusion_flip` 0.010 ± 0.004 and `fusion_bound` −0.0000 ± 0.0001 win-rate
+> 4. **[CORRECTED IN BOX 5: this pass ran at τ 1.0 / k 3 / no gate, where the operator barely moves, with the foe's TRUE-view
+>    prior in every resampled world; re-read at the working dials the licence still holds, on the right measurement.]**
+>    **FUSION: P3's licence is INTACT.** `fusion_flip` 0.010 ± 0.004 and `fusion_bound` −0.0000 ± 0.0001 win-rate
 >    (upper95 +0.0002) against the +0.025 floor over 4 resampled worlds per position (B1b). The T-op searches B = 1,
 >    the true world, as planned.
 > 5. **THE SIMULTANEOUS-MOVE NOTE, read and measured** (`docs/prior_work/README.md` "SIMULTANEOUS-MOVE SEARCH";
@@ -251,6 +253,40 @@ on a 14-core laptop, CPU only, pure self-play.
 >    the fleet by amendment 3 item 2); the G1 read (tonight); the critic-level root-rule read after the evaluator is
 >    retrained. CPU share disclosed in the readout: the six R6 lanes ran 1.11–1.24× their 3-rung pre-G0 baseline during
 >    G0's 94 rungs (a wall cost on step-matched lanes, not a measurement).
+
+---
+
+> ### AMENDMENT BOX 5 — 2026-09-23, **G1 HAS READ** (`readouts/R7_G1_READOUT.md`, every number re-derived from the rows by
+> `scripts/r7_g1_readout.py`) **and P3's licence is RE-READ at the dials the operator actually runs.**
+> 1. **G1: THE OPERATOR WORKS, IN ITS BEST CASE.** The gated L-op (true world, B = 1, depth 1; k 4 / S 2 / τ 0.05 / margin
+>    gate 0.01) beats its own greedy committee in the engine mirror by **+0.0504 ± 0.0050 win-rate** pooled over both seats
+>    (0.5504, n 10,000, 10.1 se) at **override 0.096** of all decisions (3.38 a battle). The anchor reads 0.5080 ± 0.0071
+>    (+1.13 se from 0.5: the instrument check passes); no seat interaction (+0.0051 ± 0.0099). The harness's pooled − anchor
+>    (+0.0424 ± 0.0086) subtracts a p1-seat anchor from a seat-balanced number — conservative, reported, not the read. G1
+>    carries no kill clause; nothing blocks G2 or the fleet on its account. Its program is pinned: the belief read's
+>    true-world arm reproduces the sweep's cell bit for bit across the B6 extension rebuild, and G1b's re-runs reproduce G1's
+>    rows in order.
+> 2. **CORRECTION TO BOX 4 ITEM 4.** `scripts/rollout_q_fusion.py` hard-codes τ 1.0 and ran at k 3 / S 2 with no gate — where
+>    the operator's own true-world action moved 0.006 of G0's positions — and it carried the foe's TRUE-view prior into every
+>    resampled world, holding the most direct channel of hidden information at the truth. "INTACT" read an operator that
+>    barely moves. **Re-read** (`scripts/rollout_q_belief.py`, 500 positions × B = 8, each world's foe prior recomputed from
+>    that world's foe view): the choice depends on the hidden world **~9× more** (per-world argmax flips 0.088 ± 0.009; the
+>    belief L-op makes the true L-op's move on 54% of its overrides; the T-op's target moves TV 0.078). The value: the
+>    belief L-op gains +0.0028 ± 0.0013 per decision against the true L-op's +0.0040 ± 0.0015 — **the peek, +0.0012 ±
+>    0.0011, is NOT resolved**. The student: the fusion cost (the PIMC target over the world-averaged target a student of
+>    true-world targets converges to) is **+0.0003 ± 0.0003 per decision, upper95 +0.0008** — +0.012 even summed over the
+>    T-op's ~14 searched decisions of a battle, **below §10's credit floor: the licence HOLDS, now on the right measurement,
+>    and the T-op stays B = 1.** At B = 4 the belief L-op's gain halves and the fusion cost changes sign (noise at this n), so
+>    ladder-side worlds are B ≥ 8. The v′ target's peek-optimism (+0.0078 ± 0.0008 outcome units) is small beside the
+>    critic's own optimism against the rollout root value (+0.034 ± 0.015) and the root max's (+0.019 ± 0.005).
+> 3. **WHAT CHANGES: G1's +0.050 is an UPPER bound on G2's operator in the same mirror** — G1 saw (a) the true world and (b)
+>    the foe's exact prior (the foe IS the committee). **G1b** prices (a) at the battle level: `scripts/g1_engine_mirror.py`
+>    /2's belief arms (B = 8, per-world foe priors, PIMC, the same gate) PAIRED on battle seed with re-runs of G1's true-world
+>    arms, n 2,500 per arm, launched 21:53Z niced beside the fleet, guard-killed at fleet end, resumable on the idle box.
+>    (b) stays G2's to measure. G2's build now has its operator: the belief arm's PIMC loop is the ladder L-op's, fed by
+>    B6's bridge instead of the engine resample.
+> 4. **Order unchanged, one reason sharpened:** the evaluator trained on rollout labels (G0's rows) stays first before the
+>    fleet — the critic's own optimism, not the peek, dominates both the L-op's value error and the v′ target.
 
 ## 0. The bet in one paragraph
 
