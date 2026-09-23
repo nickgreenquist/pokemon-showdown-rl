@@ -54,11 +54,15 @@ EPISODE_KEYS = {
 #               HP margin, each in [-1, 1]), float32, W = 3, the SAME row on
 #               every step of the episode (rl/envs/outcome_targets.py). Emitted
 #               by the engine collector under `outcome_targets=True`.
+#   obs2        R7 B2's second view -- the OPPONENT seat's FULL own observation
+#               of the same state, float32, W = OBS_DIM (828). Emitted by the
+#               engine collector under `both_views=True`; `privileged` is a
+#               slice of it. The antisymmetric critic reads [obs | obs2].
 # There is deliberately no `next_privileged`: per-episode GAE shifts V within
 # an episode and bootstraps the terminal to 0 (`_episode_boundaries` below),
 # so the successor's block is row t+1's own and the last row's is never read —
 # the same reason `next_obs` does not exist on this path.
-OPT_KEYS = ("opp_choice", "privileged", "outcome_targets")
+OPT_KEYS = ("opp_choice", "privileged", "outcome_targets", "obs2")
 
 
 class EpisodeDataset:

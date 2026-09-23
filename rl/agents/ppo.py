@@ -336,6 +336,7 @@ class PPOAgent(Agent):
         trunk: str = "mlp",
         trunk_kwargs: dict | None = None,
         privileged_dim: int = 0,
+        antisymmetric_critic: bool = False,
         l2_init_decay: float = 0.0,
         aux_oppact_coef: float = 0.0,
         aux_label_space: str = "l6",
@@ -499,6 +500,25 @@ class PPOAgent(Agent):
                 "net has no privileged tokenisation path"
             )
         self.privileged_dim = privileged_dim
+        # R7 B2: the ANTISYMMETRIC critic, V := 1/2 (f(obs) - f(obs2)) with obs2
+        # the foe's own view of the same state (rl/networks/entity_deepsets.py).
+        # The critic's INPUT widens to [obs | obs2 (| priv | priv2)]; the actor
+        # never changes. The second view exists only where the engine renders
+        # both seats -- the engine collector (`both_views`, derived from this
+        # flag in rl/train.py) -- so the rollout-buffer path refuses it below.
+        # Set HERE, never in trunk_kwargs: those are shared with the actor, and
+        # a critic-only construction fact belongs on the agent.
+        self.antisymmetric_critic = bool(antisymmetric_critic)
+        if (trunk_kwargs or {}).get("antisymmetric"):
+            raise ValueError(
+                "set agent.antisymmetric_critic, not trunk_kwargs.antisymmetric: "
+                "trunk_kwargs are shared with the actor"
+            )
+        if self.antisymmetric_critic and trunk != "entity_deepsets":
+            raise TypeError(
+                "antisymmetric_critic needs trunk 'entity_deepsets': only "
+                f"EntityDeepSetsNet carries the two-view form (got trunk={trunk!r})"
+            )
         # D25 auxiliary OPPONENT-ACTION head (configs/showdown_sp_actpred12m
         # .yaml, ratified r2 2026-08-13). The head predicts, from the agent's
         # own policy context, which action the opponent is choosing on the same
@@ -698,14 +718,17 @@ class PPOAgent(Agent):
                 return mlp(observation_space.shape[0], hidden_sizes, out_dim, activation=nn.Tanh)
 
         self.actor = build(int(action_space.n))
-        if not privileged_dim:
+        if not privileged_dim and not self.antisymmetric_critic:
             self.critic = build(1)
         elif trunk == "entity_deepsets":
             from rl.networks.entity_deepsets import EntityDeepSetsNet
 
+            # Construction is the plain critic's whichever flags are on
+            # (`antisymmetric` adds no module); only the input contract changes.
             self.critic = EntityDeepSetsNet(
                 observation_space.shape[0], 1,
-                privileged_dim=privileged_dim, **(trunk_kwargs or {}),
+                privileged_dim=privileged_dim, antisymmetric=self.antisymmetric_critic,
+                **(trunk_kwargs or {}),
             )
         else:
             # MLP critic: plain input concat — the widened first layer is the
@@ -941,9 +964,37 @@ class PPOAgent(Agent):
         held-back levers for the gen-4 baseline anyway."""
         if self.privileged_block_dim:
             raise ValueError("harvest_both_seats does not collect seat 2's privileged block")
+        if self.antisymmetric_critic:
+            raise ValueError("harvest_both_seats does not collect seat 2's second view (obs2)")
         if self.aux_head is not None:
             raise ValueError("harvest_both_seats does not collect seat 2's opponent-action labels")
         self._harvest = harvest
+
+    def _critic_input(self, flat_obs: torch.Tensor, flat_priv: torch.Tensor | None,
+                      obs_np: Any, obs2: Any) -> torch.Tensor:
+        """What the critic reads: `obs` (‖ `priv` under D18), or, antisymmetric,
+        `[obs | obs2 (| priv | priv2)]` -- `obs2` the foe's own view from the
+        collector, `priv2` the foe's privileged block = OUR own-side slice of
+        `obs` (rl/envs/showdown.py::privileged_block_rows), so each view
+        carries the block the other seat's critic would read."""
+        if not self.antisymmetric_critic:
+            return torch.cat([flat_obs, flat_priv], dim=-1) if self.privileged_dim else flat_obs
+        flat_obs2 = torch.as_tensor(obs2, dtype=torch.float32, device=self.device)
+        if flat_obs2.shape != flat_obs.shape:
+            raise ValueError(
+                f"obs2 shape {tuple(flat_obs2.shape)} != obs shape {tuple(flat_obs.shape)}: "
+                "the second view must be one row per learner row"
+            )
+        parts = [flat_obs, flat_obs2]
+        if self.privileged_dim:
+            from rl.envs.showdown import privileged_block_rows
+
+            priv2 = torch.as_tensor(
+                privileged_block_rows(np.asarray(obs_np, dtype=np.float32)),
+                dtype=torch.float32, device=self.device,
+            )
+            parts += [flat_priv, priv2]
+        return torch.cat(parts, dim=-1)
 
     def _set_actor_trainable(self, trainable: bool) -> None:
         """The staged unfreeze's switch. requires_grad=False is a TRUE freeze:
@@ -1336,6 +1387,12 @@ class PPOAgent(Agent):
                 "info['privileged'] — the env kwarg and the agent hparam must "
                 "be set together"
             )
+        if self.antisymmetric_critic:
+            raise ValueError(
+                "antisymmetric_critic needs the foe's own view per row (obs2), which "
+                "only the engine collector emits: use collector.mode 'engine' "
+                "(update_episodes), not the rollout-buffer path"
+            )
         # The same loud seam for D25: a lane carrying env_kwargs.opp_action but
         # not agent.aux_oppact_coef would collect labels nobody trains on; the
         # reverse would train the head on a buffer of zeros.
@@ -1595,9 +1652,17 @@ class PPOAgent(Agent):
         flat_priv = None
         if self.privileged_block_dim:
             flat_priv = torch.as_tensor(privs, dtype=torch.float32, device=self.device)
-        flat_critic_obs = flat_obs
-        if self.privileged_dim:
-            flat_critic_obs = torch.cat([flat_obs, flat_priv], dim=-1)
+        # R7 B2's loud seam, the privileged block's shape: a collector emitting
+        # obs2 for a plain critic wastes an encode per row and says nothing; an
+        # antisymmetric critic without obs2 has nothing to be antisymmetric in.
+        obs2 = batch.get("obs2")
+        if (obs2 is None) == self.antisymmetric_critic:
+            raise ValueError(
+                f"second-view mismatch: agent antisymmetric_critic={self.antisymmetric_critic} "
+                f"but the collector {'did not emit' if obs2 is None else 'emitted'} obs2 -- "
+                "rl/train.py derives the collector's both_views from the agent flag"
+            )
+        flat_critic_obs = self._critic_input(flat_obs, flat_priv, batch["obs"], obs2)
         # The outcome head's targets and its PRE-update read, off the SAME
         # no-grad pass that prices the batch (forward_with_aux shares the
         # context pass, so `values` is bit-identical to the plain forward).

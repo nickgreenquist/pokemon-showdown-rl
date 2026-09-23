@@ -753,6 +753,15 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
             f"collector.outcome_targets: true (collector.mode is {mode!r}): only the "
             "engine collector emits the outcome targets the head trains on"
         )
+    # R7 B2: the antisymmetric critic reads the foe's own view of every row
+    # (`obs2`), which only the engine renders; the env stack and the
+    # server-backed collector see one seat. PPO refuses it too (update() /
+    # update_episodes' seam), but a whole rollout later.
+    if bool(cfg.agent.get("antisymmetric_critic", False)) and mode != "engine":
+        raise ValueError(
+            f"agent.antisymmetric_critic needs collector.mode 'engine' (collector.mode "
+            f"is {mode!r}): only the engine collector emits the foe's own view (obs2)"
+        )
     if mode == "sync":
         return "sync"
     if mode == "engine":
@@ -999,6 +1008,9 @@ def _async_loop(
             # lane collects the block with `self.critic` left narrow. The width
             # was validated at launch in _engine_collector_checks.
             privileged=bool(getattr(agent, "privileged_block_dim", 0)),
+            # R7 B2, the same rule: the collector renders the foe's own view iff
+            # the critic is the antisymmetric one (update_episodes' seam checks).
+            both_views=bool(getattr(agent, "antisymmetric_critic", False)),
             battle_counter=int(rs.get("battle_counter", 0)),
             outcome_targets=bool(cfg.collector.get("outcome_targets", False)),
         )

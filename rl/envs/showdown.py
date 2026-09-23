@@ -538,6 +538,18 @@ def privileged_block(vec: np.ndarray) -> np.ndarray:
     return np.concatenate([own, vec[o : o + 6], vec[o + 12 : o + 16]])
 
 
+def privileged_block_rows(mat: np.ndarray) -> np.ndarray:
+    """`privileged_block` over an (n, OBS_DIM) batch: the same slice rule in one
+    call. R7 B2's antisymmetric critic uses it to build the FOE's privileged
+    block -- OUR own side -- from our own observations, so the second view
+    carries the block the foe's critic would read."""
+    own = mat[:, GLOBAL_DIM:_PRIV_OWN_END]
+    if not _ENCODER_IDS:
+        return np.ascontiguousarray(own)
+    o = OBS_DIM - ID_DIM
+    return np.concatenate([own, mat[:, o : o + 6], mat[:, o + 12 : o + 16]], axis=1)
+
+
 @lru_cache(maxsize=4096)
 def _move_obj(move_id: str):
     return Move(move_id, gen=1)

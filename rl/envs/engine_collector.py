@@ -136,6 +136,7 @@ class EngineCollector:
         max_updates_per_battle: int = 8000,
         battle_counter: int = 0,
         outcome_targets: bool = False,
+        both_views: bool = False,
     ):
         import pkmn_gen1
 
@@ -159,6 +160,11 @@ class EngineCollector:
         # cheap against a socket, not free against the engine. Off, the Rust
         # side emits nothing and `_episode` adds no key.
         self._privileged = bool(privileged)
+        # R7 B2: the foe's FULL own view per learner row (`obs2`), the
+        # antisymmetric critic's second input. The same second encode the
+        # privileged block costs (one encode serves both when both are on);
+        # derived from the agent's need in rl/train.py, never configured.
+        self._both_views = bool(both_views)
         # IDEAS 4.11 (R6 trio A): the outcome-decomposition targets, derived in
         # Python from each finished episode's LAST decision row plus its outcome
         # (rl/envs/outcome_targets.py) -- no Rust change. Off, `_episode` adds
@@ -208,7 +214,7 @@ class EngineCollector:
         # first k battles -- same seeds, same teams -- before it took effect.
         self.env = pkmn_gen1.BatchEnv(
             k, int(seed), tables, payload, learner_seat, int(battle_counter),
-            privileged=self._privileged,
+            privileged=self._privileged, both_views=self._both_views,
         )
         self.build_info = pkmn_gen1.build_info()
 
@@ -441,6 +447,11 @@ class EngineCollector:
             # the terminal to 0, so the successor's block is row t+1's own and
             # the final state's is never read (rl/buffers/episode.py:97-112).
             episode["privileged"] = np.asarray(raw["privileged"], dtype=np.float32)
+        if self._both_views:
+            # (n, OBS_DIM) float32, one row per learner row: the foe's own
+            # observation at the acting state (env.rs, the same branch that
+            # appends `ep.obs`).
+            episode["obs2"] = np.asarray(raw["obs2"], dtype=np.float32)
         if self._outcome_targets:
             from rl.envs.outcome_targets import outcome_targets
 
