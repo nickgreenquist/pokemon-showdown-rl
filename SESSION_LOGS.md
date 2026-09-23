@@ -13227,3 +13227,41 @@ line numbers are not — grep the date, then read that region):
   engine-backed test children for B5. Step-matched lanes: wall cost, not a measurement (plan §8
   sanctions G0 niced beside the fleet). Rule kept: kill G0 if any lane sits >10% under its band
   for two consecutive rungs with no test burst to explain it; test bursts stay small.
+
+- 2026-09-23 11:15Z (agent, R6 babysitter) — **THE FP PHASE NOW HOLDS ON ANY R7 JOB.** Maintainer's
+  rule, verbatim: *"New rule: wait for G0 to not be running to run FP eval."* FP@20's budget is
+  WALL-CLOCK (`--search-time-ms 20`), so CPU work beside an arm weakens Foul Play's search and
+  flatters our seat — on the read that sets the credit line and PICKS LADDER R6's OBJECT, where a
+  disclosure repairs nothing (`docs/landmines.md` "match on the override rate"; the same shape that
+  turned a −0.0007 null into a −0.053 "result"). Neither existing guard saw G0: it is not an
+  `rl.train` lane and not a `foul-play/bin/python run.py`. Gate added before PHASE FP (8e31d75) and
+  **widened the same hour to name the ENV, not a script** (fbdc475): `pgrep -f
+  "(pkmn-engine-r7/bin/python|scripts/rollout_q)"`. The widening is the point — the R7 runner's
+  SECOND job is `rollout_q_fusion.py`, which the first spelling would have missed entirely, and a
+  guard that lists names goes blind on the next name while still reporting clean (the typed-dial-list
+  shape). It **WAITS rather than refusing** — a slipped readout is cheap, a contaminated primary read
+  is not — and logs the offending pids hourly, so an indefinite hold is diagnosable from
+  `logs/r6_reads/queue.log` alone. **vs-SH is deliberately NOT gated:** its budget is not wall-clock,
+  so contention costs it time and nothing else. The queue was relaunched twice to pick the gate up
+  (it re-execs from a FROZEN temp copy, so an edit never reaches a live instance); both times it was
+  still in WAIT with one line in its log, so nothing was lost. Now pid 89311, holding, tree clean.
+  COORDINATED WITH THE R7 RUNNER (`pokemon-showdown-rl-e2`), which gated it from its end too: a
+  watcher SIGTERMs G0 when the last trio lane exits, hard deadline Thu 07:30Z, and it runs NOTHING
+  out of `pkmn-engine-r7` — tests and cargo builds included — from Thu 04:00 EDT until the readout
+  lands. Two fences: theirs stops the job, ours stops the measurement.
+  **G0 ETA corrected by the runner and verified here:** bucket 0 (turns 2–8) is the SLOW tail at
+  219.5 s/position with 44 left, not bucket 3 at 35.9 s with 89 left — I had read row counts instead
+  of the `seconds` field. 2.68 + 0.74 + 0.75 + 0.89 = **5.1 h serial, landing ~16:20Z**, ~16 h before
+  the fleet ends, so the gate most likely never fires.
+  **DISK RESOLVED, and no deletion is needed:** measured rather than estimated — 6.0 GB/lane at 82M
+  and 6.8–7.1 GB at 95M ⇒ **~14.5 GB/lane at 200M**, so ~47 GB more against **93 GB free**. The
+  standing offer to delete 45 GB of completed W-fleet intermediate rungs is WITHDRAWN as unnecessary.
+  **MEMORY is the live risk instead:** 1.7 GB free with swap at 4.1/5.1 GB overnight, and the wake
+  loop was reaped twice by the low-memory killer (the fleet was fine both times, verified lane by
+  lane). Chrome is the driver at 3.5–4.3 GB; lanes 7.3 GB, node 0.9 GB, G0 0.7 GB. If the OS picks a
+  lane the watchdog resumes it cleanly, but a resume SPLITS the wandb history and `extract_history.py`
+  then hard-fails. Re-armed on a persistent Monitor rather than a background bash task.
+  **RATES ROSE overnight** (cause unattributed — Chrome still up, G0 still running): trio A 909–966 →
+  1068–1154, trio B 1124–1234 → 1244–1323 steps/s. ETA at the new rates: **trio B Wed 18:12–20:48
+  EDT, trio A Thu 01:51–04:08 EDT**; at last night's rates trio A lands ~07:30 instead. Readout Fri
+  early. Still 0 resumes, 0 alerts since 09-22 12:00Z.
