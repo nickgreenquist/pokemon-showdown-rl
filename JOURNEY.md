@@ -253,6 +253,52 @@ quote. A credit means the strength project is real and gen9 gets MCTS (step 13).
 real budget — not at 20 ms — is what would finally close the search question, and it is also
 the only honest trigger for considering the FP rung.
 
+
+### 15. THE GENERALITY CLAIM — the same algorithm on other generations (maintainer, 2026-09-23)
+**Maintainer verbatim:** *"It would be powerful writeup and/or paper to say we built this amazing
+system and easily it worked on other gens (of course with work needed for the encoder and env).
+Think of it as alphazero where the same algo worked for go and chess and Chinese chess: only
+change was the rules and state encoder etc."*
+
+That is the claim the whole arc is built to make, and it decides what counts as "the system":
+the ALGORITHM — pure self-play, the learner and its recipe, the search operator over our own
+value function, the evaluation protocol — is generation-agnostic and is never tuned per
+generation; what changes per generation is the RULES (the engine) and the STATE ENCODER (and
+the env glue around them). Steps 3–7 (gen 4) and 13 (gen 9) are instances of this step, not
+separate projects. The discipline it imposes:
+- Every lever that lands in the gen-1 system is written as generation-agnostic code with the
+  encoder and the rules behind an interface; a lever that only works because of a gen-1 fact
+  is a finding about gen 1, reported as such, not part of the system.
+- A new generation costs exactly its rules and its encoder (plus parity and the anchor
+  battery for that generation), and the writeup states that cost.
+- The number that makes the claim is the SAME protocol on every generation: the locked
+  vs-SH read, the FP head-to-head, the ladder — never a different bar per generation.
+- Weights never transfer (standing note below); the recipe does. A generation where the
+  recipe fails is a finding the multi-generation study can make and a single one cannot.
+
+### 16. TRUE FINAL STEP — human data, in any way possible, and ONLY after the no-human-data lane is maxed out (maintainer, 2026-09-23)
+**Maintainer verbatim:** *"Allow human data in any way possible. The journey goal should be to
+max out (and I mean truly max out) no human data approach and only as the final step: add in
+human data. For example, temporal context and/or attention mechanics would be before human
+data. Basically every idea, every kitchen sink recipe, needs to be done before any human data
+touches our system."*
+
+The order this fixes, and it is the order of the whole document: (1) every idea we have goes
+into the pure self-play lane first — R7's kitchen sink, then the own-lap items (temporal
+context, attention, the rest of step 14's box), then the generality claim of step 15 — until
+the lane is truly maxed out and a further pure-lane lever has no measured prize left to
+chase; (2) only then does human data enter, in ANY form that helps: replay datasets, FP or
+human tapes as distillation targets, offline RL on human battles, DAgger-style relabelling,
+pretraining. Nothing is excluded at that step. Two rules travel with it:
+- **The purity line is kept as a LINE, not erased.** Every number on the human-data side is
+  reported beside the maxed-out pure-lane number it started from, so the writeup can say what
+  self-play alone reached and what human data added on top. The pure-lane finals and their
+  ladder runs are frozen before the first human row enters.
+- **"Maxed out" is a measured statement.** The step opens when the remaining pure-lane levers
+  have been run and read, not when we are tired of them; the ruling that opens it names the
+  last pure-lane result it stands on. Step 14's charter note ("FP distillation is the LAST
+  rung ... needs its own maintainer ruling") is this ruling.
+
 ---
 
 ## Standing notes
