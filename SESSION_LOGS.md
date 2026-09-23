@@ -13353,3 +13353,26 @@ line numbers are not — grep the date, then read that region):
   final step: human data only after the pure lane is maxed out), both verbatim (`fad800c`); HANDOFF folded
   to the stub (`c13e1fd`). The docs audit (128 tracked .md, ~64.6k lines; consolidation recommended between
   Friday's R6 readout and the fleet) was given as an opinion, not acted on. G0 at 397/500, on schedule.
+
+- 2026-09-23 15:45Z (agent, R7 runner) — **THE SIMULTANEOUS-MOVE NOTE, read and measured at the oracle level.**
+  An outside note (maintainer-forwarded) hypothesised that §30's search cost came from treating a
+  simultaneous-move root sequentially. Read the three papers (indexed, `docs/prior_work/README.md`
+  "SIMULTANEOUS-MOVE SEARCH"): UCB/argmax selection at a simultaneous root does not converge to the
+  matrix's equilibrium; regret matching with guaranteed exploration does, and the strategy is the
+  AVERAGE mix. Correction to the note: `rl/search/tree.py` is DECOUPLED UCT (no move leaks to the
+  foe), but with a pure root decision — the non-convergent combination; `native.solve` (R7) has a
+  matrix root and a mixed soft policy but best-responds to the foe's PRIOR. Built
+  `rl/search/root_rules.py` (regret matching, pure/soft BR, maximin over a payoff matrix; `9a3e4ae`)
+  and `scripts/rollout_q_root_rules.py`, which reads every rule on G0's saved positions against the
+  rollout oracle under the foe's prior AND against the foe's best reply, in-sample and SPLIT-SAMPLE.
+  **INTERIM, 454 positions, split-sample, win-rate (scratch `root_rules_oracle_split_interim.md`; the
+  500-row read lands in the readout):** greedy +0.002 under the prior / **−0.052 vs a best reply**;
+  pure best response +0.025 / −0.061; soft BR at τ 1 (native's rule) +0.001 / −0.046; **regret
+  matching +0.003 / −0.027**; maximin +0.007 / −0.040. Read: under a PERFECT evaluator the
+  equilibrium root halves greedy's exploitability at no cost under the prior, while the best-response
+  root buys the depth-1 ceiling under the prior and is MORE exploitable than greedy. In-sample the
+  same read showed regret matching at −0.000 vs a best reply — the winner's curse on the worst
+  column; the split-sample number is the one to quote. Perfect-evaluator numbers, not the operator's:
+  the critic-level read (`--level critic`) runs after the post-G0 chain. Implication for R7, pending
+  that read: the T-op's target π′ and the L-op's played mix should carry a regret-matching root as a
+  DIAL beside P4's soft best response; the ExIt target question is exactly Becker & Sunberg's.

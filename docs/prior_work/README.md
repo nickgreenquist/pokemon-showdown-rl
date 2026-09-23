@@ -430,6 +430,39 @@ lossy by construction and the code has repeatedly contradicted the project's own
 
 ## Sources
 
+- **SIMULTANEOUS-MOVE SEARCH — read 2026-09-23 (R7), after an outside note that gen-1
+  randbats' structural match in the literature is simultaneous-move imperfect-information
+  Goofspiel, not poker or Stratego.** Verified from the papers' own text:
+  - Lisý, Kovařík, Lanctot, Bošanský, *Convergence of Monte Carlo Tree Search in Simultaneous
+    Move Games*, NeurIPS 2013. https://arxiv.org/abs/1310.8613 — "if a selection method is
+    ε-Hannan consistent in a matrix game and satisfies additional requirements on exploration,
+    then the MCTS algorithm eventually converges to an approximate Nash equilibrium"; and, on
+    the selection rule every AlphaZero-style tree here has used: "The most popular selection
+    policy in this context (UCB) performs very well in some games, but Shafiei et al. show that
+    it does not converge to Nash equilibrium, even in a simple one-stage simultaneous move game."
+    The convergent output is the AVERAGE strategy ("We always use the empirical frequencies to
+    create the evaluated strategy"), i.e. a MIXED policy, with ε-uniform exploration. Empirics
+    are regret matching and Exp3 on random and worst-case games; no UCT arm is evaluated in
+    that paper (the UCB claim rests on the cited Shafiei et al.).
+  - Kovařík & Lisý, *Analysis of Hannan Consistent Selection for Monte Carlo Tree Search in
+    Simultaneous Move Games*, arXiv 1509.00149 (2015; journal version 1804.09045) — the
+    "minor technical modifications" under which any Hannan-consistent selection converges,
+    and the note that without them Hannan consistency alone is not sufficient.
+  - Becker & Sunberg, *Simultaneous AlphaZero: Extending Tree Search to Markov Games*, arXiv
+    2512.12486 (Dec 2025, v2 Aug 2026) — abstract only read: a normal-form game is SOLVED BY
+    REGRET MATCHING at every tree state with a learned value function bootstrapping a
+    finite-depth search, learned regret / average-strategy functions warm-start deployment,
+    finite-time approximate-equilibrium bounds, error decomposed into "game mismatch,
+    regret-fitting error, and strategy-fitting error"; benchmarks are continuous
+    pursuit-evasion and satellite tasks, not board games. Directly the ExIt-at-a-simultaneous-
+    root design question R7's training target faces (what π′ should be: a best response to
+    the foe's prior, or the equilibrium mix).
+  What this changed here: `rl/search/tree.py` (the §30 and exit-gate operator) is decoupled
+  UCT with a pure root decision — exactly the non-convergent combination; `rl/search/native.py`
+  (R7) has a matrix root and a mixed soft policy but best-responds to the foe's PRIOR;
+  `rl/search/root_rules.py` puts regret matching beside it, read on G0's saved positions by
+  `scripts/rollout_q_root_rules.py` (SESSION_LOGS 2026-09-23 15:45Z).
+
 - `wang2024_mit_thesis_randbats_rl.pdf` — Jett Wang, *Winning at Pokémon Random Battles
   Using Reinforcement Learning*, MIT MEng thesis, Feb 2024.
   https://dspace.mit.edu/handle/1721.1/153888
