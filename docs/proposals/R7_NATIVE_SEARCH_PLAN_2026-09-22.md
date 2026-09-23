@@ -342,6 +342,11 @@ on a 14-core laptop, CPU only, pure self-play.
 > checkpoint") is SUSPENDED for this fleet — its finals are 300M-trained objects on two anneals (N-ANNEAL), so a comparison
 > with R6's finals is confounded; the within-fleet comparison is not. ALTERNATIVE, **FRESH**: 200M full-horizon with β and the
 > value coefficient ramped from 0 (a build: a warmup dial with its counter), about twice the wall.
+> *Pre-built for (a) on the branch (`7014f11`):* the warm start with the L2-init lever on — refused until now, because the
+> anchors live in the donor's run dir, not its checkpoint — installs the DONOR's θ0 (checked against the digest its checkpoint
+> carries; re-installed on every resume; the decay then pulls toward the anchors the donor trained under). One constraint it
+> inherits: an outcome head cannot be added to a head-off checkpoint (unwired, and refused loudly at load), so **the fleet
+> warm-starts from trio A's finals whenever the base keeps A's heads**; B's lever is hyperparameters only and rides on either.
 > **R-F2 WIDTH.** RECOMMENDED: **3 + 3 six-wide** if Friday's B0 bench passes its six-wide line (3.6 ms p99) — the credit
 > line's seed-clustered se at k 3 vs 3, all three pairs. Otherwise **3 + 2** (ruling 7's default of five): two pairs, the
 > clustered se at k 3 vs 2 disclosed as the weaker instrument.
