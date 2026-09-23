@@ -13311,7 +13311,7 @@ line numbers are not — grep the date, then read that region):
   Also built: `scripts/rollout_q_top_sweep.py` (branch `r7-native-search`), the T-op dial sweep
   over the saved positions (k, S, τ, margin gate; ~3 s/position niced) — runs after the fusion pass.
 
-- 2026-09-23 13:20Z (agent, R7 runner) — **B4 BUILT (the async two-core lane), commits `311c3b5` (B4a) and
+- 2026-09-23 11:47Z (agent, R7 runner) — **B4 BUILT (the async two-core lane), commits `311c3b5` (B4a) and
   `bb25203` (B4b) on `r7-native-search`; JOURNEY.md step 14 carries the kitchen-sink ruling (`9ad2594`).**
   B4a `rl/envs/engine_collector_proc.py::ProcCollector`: the engine collector, the pool and a copy of
   the policy in a CHILD PROCESS on a second core; `_async_loop`'s seam kept; `ship_weights(agent,
