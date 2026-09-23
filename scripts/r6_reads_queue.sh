@@ -81,28 +81,70 @@ PYEOF
 
 # FP@20's budget is WALL-CLOCK (`--search-time-ms 20`), so CPU work beside an arm weakens Foul
 # Play's search and flatters our seat -- on the read that sets the credit line and PICKS LADDER
-# R6's OBJECT, where a disclosure repairs nothing. Maintainer's rule 2026-09-23, verbatim:
-# "check it anything else is running before FP evals .. if yes, pause and ping me".
+# R6's OBJECT, where a disclosure repairs nothing. Maintainer's rules 2026-09-23, verbatim:
+# "check it anything else is running before FP evals .. if yes, pause and ping me", then
+# "before any FP evals, check for any high cpu running tasks, and pause and alert me if
+# needed. otherwise, run the evals yourself without waiting for me".
 #
-# WHAT COUNTS AS "ANYTHING ELSE": any python from a conda env that is not ours and not Foul
-# Play's. That is the spelling on purpose -- it names the ENV, never a script, because the R7
-# gates arrive one script name at a time (rollout_q.py, then rollout_q_fusion.py, then
-# g1_engine_mirror.py) and a guard that lists names goes blind on the next one while still
-# reporting clean: the typed-dial-list shape in docs/landmines.md. `pokemon-showdown-rl` is
-# excluded because it is the queue's own PY, `foul-play` because it is our own arm's opponent.
+# TWO NETS, EITHER ONE HOLDS:
+# (a) HOT: any process burning >= HOT_PCT of one core over a HOT_WIN-second window, WHATEVER IT
+#     IS -- a cargo build, a zig compile, Spotlight, a stray lane. Measured as a CPU-TIME DELTA
+#     (the watchdog's instrument), never ps's decaying %cpu. It matches on USAGE, not names, so
+#     there is no list to go stale: a process nobody anticipated holds the queue, which is the
+#     SAFE failure (a false hold + an alert), never a silent pass. Baseline measured
+#     2026-09-23 21:30Z with the lanes excluded: nothing above 6.3% (WindowServer); the Showdown
+#     node server is idle because the lanes collect on the engine.
+# (b) ENV: any python from a conda env that is not ours and not Foul Play's, even while idle --
+#     an R7 job between its phases is still a job that is about to burn CPU. It names the ENV,
+#     never a script, because the R7 gates arrive one script name at a time (rollout_q.py, then
+#     rollout_q_fusion.py, then g1_engine_mirror.py). Anchored on the EXECUTABLE ($2), never
+#     the whole line: a grep/ugrep carrying this pattern in its argv matched the line-wise form
+#     in its dry-run (docs/landmines.md, the pgrep self-match).
+# At gate time the queue has no busy children (fparm is blocking), so nothing of ours is hot.
 #
 # It WAITS rather than refusing -- a slipped readout is cheap, a contaminated primary read is
-# not -- and the HOLD line is what the babysitting session watches for, to ping the maintainer
+# not -- and the HOLD line is what the babysitting session watches for, to alert the maintainer
 # so the other runners can be paused. vs-SH is deliberately NOT gated: its budget is not
 # wall-clock, so contention costs it time and nothing else.
-# Anchored on the EXECUTABLE ($2), never on the whole line: a grep/ugrep carrying this very
-# pattern in its argv matched the line-wise form during its dry-run (docs/landmines.md, the
-# pgrep self-match). Only what is actually RUNNING from an env counts.
-others_running() {
+HOT_WIN=20
+HOT_PCT=50
+hot_processes() {
+  local fa fb
+  fa="$(mktemp -t r6q_cpu)"; fb="$(mktemp -t r6q_cpu)"
+  ps -Aeo pid=,time=,command= > "$fa"; sleep "$HOT_WIN"; ps -Aeo pid=,time=,command= > "$fb"
+  "$PY" - "$fa" "$fb" "$HOT_WIN" "$HOT_PCT" <<'PYEOF'
+import re, sys
+def secs(t):  # ps time= is [dd-][hh:]mm:ss[.ss]
+    d = 0
+    if "-" in t:
+        d, t = t.split("-"); d = int(d)
+    p = [float(x) for x in t.split(":")]
+    while len(p) < 3:
+        p.insert(0, 0.0)
+    return d * 86400 + p[0] * 3600 + p[1] * 60 + p[2]
+def load(f):
+    out = {}
+    for line in open(f):
+        m = re.match(r"\s*(\d+)\s+(\S+)\s+(.*)", line.rstrip("\n"))
+        if m:
+            out[m.group(1)] = (secs(m.group(2)), m.group(3))
+    return out
+a, b = load(sys.argv[1]), load(sys.argv[2])
+win, pct = float(sys.argv[3]), float(sys.argv[4])
+for pid, (t1, cmd) in sorted(b.items(), key=lambda kv: int(kv[0])):
+    if pid in a:
+        use = (t1 - a[pid][0]) / win * 100
+        if use >= pct:
+            print(f"hot {pid} {use:.0f}% of a core: {cmd[:140]}")
+PYEOF
+  rm -f "$fa" "$fb"
+}
+foreign_env_pythons() {
   ps -Aeo pid,command | awk '
     $2 ~ /^\/opt\/anaconda3\/envs\/[^\/]+\/bin\/python/ &&
-    $2 !~ /envs\/(pokemon-showdown-rl|foul-play)\/bin\/python/ {print}'
+    $2 !~ /envs\/(pokemon-showdown-rl|foul-play)\/bin\/python/ {print "env " substr($0, 1, 160)}'
 }
+others_running() { hot_processes; foreign_env_pythons; }
 hold_for_others() {  # $1 = what is being held
   local what="$1" held=0 who
   who="$(others_running)"
