@@ -13409,3 +13409,35 @@ line numbers are not — grep the date, then read that region):
   (`8f30bb4`): the `root_rule` dial in `native.solve` (regret matching beside P4's soft best response; default
   bit-identical) and `rollout_q/2` (the real zero-gap null; v1 rows readable; the discriminating test). G1 at
   1,150/5,000 on its first arm, 84 battles/min, override 0.095.
+
+- 2026-09-23 21:35Z (agent, R6 babysitter) — **THE FP GATE NOW HOLDS ON ANY HIGH-CPU PROCESS; the first
+  R6 lane is home.** Maintainer's rules, verbatim, in order: *"G1 running now. All you need to do is
+  check it anything else is running before FP evals..of yes, pause and ping me. I'll tell the other
+  runners to pause."* then *"remember: before any FP evals, check for any high cpu running tasks, and
+  pause and alert me if needed. otherwise, run the evals yourself without waiting for me"*. Three
+  changes to `scripts/r6_reads_queue.sh` since the 11:15Z entry: (1) `hold_for_others` runs before
+  EVERY arm, not once before the phase (67f3d30) — the arms are ~1.4 h each and sequential, so a job
+  starting mid-phase would otherwise ride along on the remaining dozen; (2) the ENV net matches any
+  python from a conda env that is not ours or Foul Play's, anchored on the EXECUTABLE after its
+  dry-run flagged a `ugrep` that merely carried the pattern in its argv (the pgrep self-match in a
+  new costume); (3) a HOT net (c14fa1f): any process at ≥ 50% of one core over a 20 s CPU-TIME DELTA,
+  whatever it is — the ENV net alone would have let a `cargo build` or a zig compile past an arm.
+  HOT matches on USAGE, not names, so an unanticipated process fails SAFE (a false hold + an alert),
+  never silently. Baseline with the lanes excluded: nothing above 6.3% of a core (WindowServer); the
+  node server is idle because the lanes collect on the engine. Dry-run of the exact function text:
+  5 hot + 5 env lines for the live lanes and nothing else; positive test with `yes` for 5 s: caught at
+  100%. Queue relaunched each time while still in WAIT (now pid 80892, PPID 1). The babysitting
+  session watches `logs/r6_reads/queue.log` for HOLD and alerts the maintainer; on a quiet box the
+  evals run without waiting. Saved as feedback memory `fp-evals-need-a-quiet-box`.
+  **s336 DONE 21:17Z at step 200,000,017, 0 resumes** — the first lane home. The monitor's 21:14Z
+  ALERT ("NO PROCESS and not DONE") was the race between the lane's clean exit (wandb `exitcode: 0`,
+  `ckpt_200000017.pt` written) and the watchdog's next sweep. Checked the one thing that mattered —
+  whether the watchdog would take a finished lane for a dead one and RESUME it from a stale
+  checkpoint over a completed 200M run: it decides from `checkpoint.pt`'s step, which was current
+  (200,000,017 ≥ 200,000,000), so it printed DONE and retired the lane.
+  **Memory resolved:** the maintainer closed Chrome after a Claude Code update + resume; swap fell
+  from 4.1/5.1 GB to 1.2/2.0 GB. Everything that matters survived the CLI exit because it is all
+  PPID 1 (checked, not assumed): lanes, both watchdogs, the fleet monitor, the queue, and the
+  `caffeinate -i -s` pair holding the box awake. The session's own watches did not survive and were
+  re-armed as background tasks, since the updated CLI now expires persistent Monitors at 30 min.
+  G0 finished 12:15Z (500/500); G1 has since left the box.
