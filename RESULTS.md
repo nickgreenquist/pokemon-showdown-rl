@@ -65,6 +65,23 @@ architectures, reward designs. Those do not enter the weights. Using proven, ung
 published technique inside this lane is not a compromise of the claim; smuggling a
 *policy* into the observation would be.
 
+*Rider, 2026-09-23 (R7, the native-search chapter — `docs/proposals/R7_NATIVE_SEARCH_PLAN_
+2026-09-22.md` amendment 1 item 6, owed before any R7 number lands; ruling 4 of that plan
+covers the spirit, this is the enforceable text).* Search inside training adds two inputs
+to (a)–(c), and the clause now names them. **Admitted:** (d) **the game's own rules as a
+forward model** — the same simulator the environment is (`pkmn/engine`, the collector's
+engine), cloned and stepped at a decision to look one ply ahead; and (e) **the format's
+own team generator** — the public `gen1randombattle` set prior — used only to sample the
+opponent's hidden slots when a search needs a complete state. Both are the environment's
+own description of itself, not a prior over how to play, and the search that consumes
+them runs over the agent's **own** policy and **own** value function, so every improved
+target the learner trains toward is a function of (a)–(e) and nothing else. **Still
+excluded, unchanged:** any external policy, replay tape, distillation source or evaluator
+not itself trained from (a)–(e); scripted opponents in the training distribution; any
+reward derived from another agent's evaluation. A run whose search leaves were valued by
+a critic trained on human or teacher data would not be pure under this clause, and the
+R7 configs stamp which evaluator each lane searched with so the reader can check.
+
 **Disclosure, required by the purity rules themselves:** the network trunk was chosen by
 a behaviour-cloning screen against a search teacher's banked tapes. No teacher data
 entered any trained weight, but that is a real if weak design-time information channel
