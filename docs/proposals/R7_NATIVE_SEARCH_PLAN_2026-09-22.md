@@ -287,6 +287,22 @@ on a 14-core laptop, CPU only, pure self-play.
 >    B6's bridge instead of the engine resample.
 > 4. **Order unchanged, one reason sharpened:** the evaluator trained on rollout labels (G0's rows) stays first before the
 >    fleet — the critic's own optimism, not the peek, dominates both the L-op's value error and the v′ target.
+> 5. **DESIGN CORRECTION TO BOX 4 ITEM 6's BASE: B2 IS OUT OF THE FLEET.** The T-op scores its leaves with the learner's
+>    OWN critic in its own form (`native.critic_value_fn`), so B2's antisymmetric privileged critic would read `obs2` (the
+>    foe's own view) and `priv` (the hidden state) at every leaf of the TRUE world: a peek at the leaves on top of the peek
+>    item 2 measured, inside the lever under test. The belief read priced fusion for the OBSERVATION leaf only (+0.0003 ±
+>    0.0003 per decision); a leaf that knows the hidden bench sharpens how the per-world Q̄ differ and is exactly what
+>    amendment 1 item 3 warned of ("a privileged leaf re-introduces the knowledge assumption at every leaf"). By the
+>    stacking convention it cannot ride under the lever: it SETS the lever's targets, so it would be a co-suspect in every
+>    searched-vs-control difference. **B2 laps after the fleet, with its own fusion read on a trained B2 critic** (the belief
+>    read's arms with B2 at the leaves). The fleet's critic is the W recipe's observation critic (+ trio A's outcome heads if
+>    09-25 reads them non-negative); the v′ head sits on its context. Drafts and tests changed on the branch (`baa3fc3`); the
+>    seam test now covers both critic forms over a real engine batch.
+> 6. **DESIGN CORRECTION: THE CONTROL LANE NEVER PLAYS.** The drafted coef-0 control kept `play: true`, so its behaviour was
+>    π′ on ~40% of decisions and PPO's advantages carried part of the search into it — the arms would have differed by
+>    distillation alone. The control's T-op now runs at the same dose and cost with `play: false` (behaviour stays π_θ;
+>    nothing trains on π′ or v′; every `search/*` counter still recorded, so G3's "relative to the control" reads work):
+>    **the arms differ by the WHOLE lever — searched behaviour, distilled targets and the v′ head — at matched cost.**
 
 ## 0. The bet in one paragraph
 
