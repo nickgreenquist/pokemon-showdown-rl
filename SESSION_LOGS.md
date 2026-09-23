@@ -13396,3 +13396,16 @@ line numbers are not — grep the date, then read that region):
   volatiles.py` split out of `bridge.py` so the harvest/shadow path imports without `poke_engine` (the engine env
   has none) — its 60-root run is in flight. PUSHED at the maintainer's word: main (18 commits) and
   `r7-native-search` (upstream set).
+
+- 2026-09-23 19:55Z (agent, R7 runner) — **B6 GATE R1-E PASSES on the engine backend, full corpus** (`readouts/
+  R1E_ENGINE_READOUT.md`; branch `dbb3071`): 13,396 roots → 256 refused by named family (209 transformed Ditto
+  W-ACTIVESTATS, 47 charging W-LASTMOVE), 13,140 built, **13,102 (99.7%) bitwise identical to the live observation**,
+  0.0029 dims/root all in ONE declared family, **mask parity exact 13,140/13,140**, all eight controls fire (C5 60
+  dims/root). Two findings closed: the gate's import chain reached `poke_engine` via `shadow_battle → bridge` (the
+  volatile vocabulary now lives in `rl/search/volatiles.py`); and F1 resolved — poke-env's `must_recharge` outlives
+  the server's lock, which made 38 roots forced/aliased in the engine; the bridge writes our recharging flag only when
+  the request corroborates it, and the one dim that still differs on those 38 roots (the live encoder writing the
+  client's stale flag) is declared `W-RECHARGE-STALE` from the frozen battle's own facts. Also on the branch
+  (`8f30bb4`): the `root_rule` dial in `native.solve` (regret matching beside P4's soft best response; default
+  bit-identical) and `rollout_q/2` (the real zero-gap null; v1 rows readable; the discriminating test). G1 at
+  1,150/5,000 on its first arm, 84 battles/min, override 0.095.
