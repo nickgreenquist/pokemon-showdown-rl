@@ -303,6 +303,55 @@ on a 14-core laptop, CPU only, pure self-play.
 >    distillation alone. The control's T-op now runs at the same dose and cost with `play: false` (behaviour stays π_θ;
 >    nothing trains on π′ or v′; every `search/*` counter still recorded, so G3's "relative to the control" reads work):
 >    **the arms differ by the WHOLE lever — searched behaviour, distilled targets and the v′ head — at matched cost.**
+> 7. **THE EVALUATOR READ: G0's rows are too few to teach the leaf** (`scripts/rollout_q_evaluator.py`,
+>    `results/r7_g0/evaluator_k5.json`, git `07ca740`). Each committee member's critic fine-tuned on every cell's rollout mean
+>    (25,822 cells; the prediction is the mean of the critic over the cell's 4 chance leaves — the quantity search reads),
+>    5-fold by POSITION, hyperparameters fixed before the run, every read out of fold. **The positive control fires**
+>    (in-sample cell Spearman +0.497 → +0.663) **and nothing transfers:** out-of-fold committee cell Spearman +0.486 ± 0.011 →
+>    +0.490 ± 0.011 (paired +0.004 ± 0.006); each member alone is WORSE held-out from the first epoch (mean 0.469 → 0.446),
+>    the ensemble averaging it back to flat; held-out cell MSE 0.119 → 0.126; the root bias overcorrects (+0.034 → −0.027
+>    outcome units); the operator with the tuned leaf gains +0.0031 ± 0.0014 per decision against the untuned +0.0040 (which
+>    reproduces the sweep's cell to the last digit; paired −0.0009 ± 0.0006). Four hundred positions are memorized, not
+>    ranked. Only the opening bucket moves (turns 2–8: +0.017 ± 0.008 — one bucket of four, descriptive), where §27 found the
+>    critic weakest. **Box 4 item 1's branch ("B2 trains the evaluator on rollout labels first — the G0 rows are the
+>    dataset") is answered at G0's scale: they are not the dataset.** Rule 6: this says the SIZE is wrong, not that rollout
+>    labels cannot teach the leaf. **The fleet does not wait on an evaluator step.** The next evaluator experiment is a
+>    CAMPAIGN — thousands of positions at ~16 rollouts per cell (positions, not rollouts, are what the fit lacks; G0 spent
+>    15.6 niced core-hours on 6.6M rollouts, so a campaign of that size is a short job on the idle box) — an own-lap item
+>    that serves G2's L-op leaf first; for the T-op, the fleet's own training is the evaluator's lever, read by G3's
+>    held-out leaf Spearman.
+
+---
+
+> ### AMENDMENT BOX 6 — 2026-09-23, **THE FLEET: what the reads now fix, and the RULINGS OWED before its pre-reg is written**
+> **Fixed by the reads, no ruling needed.** THE LEVER: the T-op at G0's sweep cell (k 4 / S 2 / τ 0.05; `frac` 0.75 of eligible
+> rows ≈ 40% of decisions; `top1_skip` 0.97), B = 1 (box 5 item 2), on the OBSERVATION leaf (box 5 item 5), β·KL(π′‖π_θ)
+> plus the v′ aux head, blend 0 — β 0.1 and the value coefficient 0.1 are the plan's defaults, UNMEASURED in magnitude: the
+> shakedown checks they are not inert, G3 whether the student absorbs. THE CONTROL: the same two-core lane with the T-op at
+> `play: false` and both coefficients 0 (box 5 item 6), so the async collector's ≤ 1-update weight lag, the cost and the
+> in-loop `search/*` counters are matched and the arms differ by the lever alone. THE BASE: W + C6 + R6's trios by THEIR OWN
+> pre-stated branches (trio A's header, ACTION ON EACH BRANCH: X-POS rides R7's base, X-NEG is dropped, X-FLAT is decided by
+> its mechanism read), read Friday; B2 laps after; no evaluator pre-step (box 5 item 7).
+> **R-F1 START — the ruling that matters most.** RECOMMENDED, **WARM**: every lane starts from one of the base trio's three R6
+> finals, each final seeding one searched lane and one control lane (**PAIRED BY FINAL**), +100M on a re-armed anneal from a
+> REDUCED starting LR that a 2M smoke sets by reading the policy for a shock (vs-SH before/after, approx_kl, entropy), the
+> warm-start path smoked through the two-core lane. Why: every measurement of the operator — G0's ceiling, the sweep, G1's
+> +0.050, the belief read — was taken on a 200M evaluator; a fresh lane would search for its first tens of millions of steps
+> with a critic nothing measured and distil its noise; half the wall of a fresh 200M; the pairs share their start, so the
+> lever is read within pairs. Cost, disclosed on every number: JOURNEY 10's convention ("never a warm start off a finished
+> checkpoint") is SUSPENDED for this fleet — its finals are 300M-trained objects on two anneals (N-ANNEAL), so a comparison
+> with R6's finals is confounded; the within-fleet comparison is not. ALTERNATIVE, **FRESH**: 200M full-horizon with β and the
+> value coefficient ramped from 0 (a build: a warmup dial with its counter), about twice the wall.
+> **R-F2 WIDTH.** RECOMMENDED: **3 + 3 six-wide** if Friday's B0 bench passes its six-wide line (3.6 ms p99) — the credit
+> line's seed-clustered se at k 3 vs 3, all three pairs. Otherwise **3 + 2** (ruling 7's default of five): two pairs, the
+> clustered se at k 3 vs 2 disclosed as the weaker instrument.
+> **R-F3 HORIZON** (with a warm start): +100M per lane.
+> **The reads (§6, not a ruling):** PRIMARY — the searched finals vs the control finals off FP@20, greedy, n 3,000 per lane,
+> one session, sequential arms (the R6 reads protocol), the credit line verbatim, the within-pair delta beside it; MECHANISM —
+> G3's six conditions on the fleet's own checkpoints at 12M and at the end (held-out G0 positions for the leaf Spearman and
+> the compounding read); then G2's L-op on the fleet's best object — JOURNEY 14's exit condition. The pre-reg
+> (`configs/r7_fleet_{searched,control}.yaml` headers) is written after R-F1 and R-F2 are ruled, then two Opus reviews (the
+> irreversible-artifact rule); the maintainer launches (over 5 h).
 
 ## 0. The bet in one paragraph
 

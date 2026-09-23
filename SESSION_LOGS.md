@@ -13464,3 +13464,25 @@ line numbers are not — grep the date, then read that region):
   Branch commits: `cdaaaa0`, `d8e0ef5` (the belief read), `e486482` (G1 /2: belief arms, battle seeds, launch SHA,
   `--reproduce-v1`), `87dd03f` (the readout generator). Also fixed in passing: STATUS's "G0 finished 12:15Z" was EDT
   (16:15Z).
+
+- 2026-09-23 22:45Z (agent, R7 runner) — **THE EVALUATOR READ; two fleet design corrections; the fleet's rulings
+  written up (plan AMENDMENT BOX 5 items 5–7, BOX 6).** (1) `scripts/rollout_q_evaluator.py` (`07ca740`; niced, 30 min;
+  `results/r7_g0/evaluator_k5.json`): each committee member's critic fine-tuned on all 25,822 of G0's cells (target = the
+  cell's rollout mean, prediction = the critic's mean over the cell's 4 chance leaves), 5-fold by position, settings
+  fixed before the run. The positive control fires (in-sample Spearman +0.497 → +0.663); out of fold nothing transfers
+  (committee cell Spearman +0.486 → +0.490, paired +0.004 ± 0.006; each member alone worse from epoch 1; the root bias
+  overcorrects +0.034 → −0.027; the operator with the tuned leaf +0.0031 vs +0.0040 per decision, paired −0.0009 ±
+  0.0006); only turns 2–8 move (+0.017 ± 0.008, descriptive). The untuned operator reproduced the sweep's cell to the last
+  digit, the third reproduction today. Box 4 item 1's branch is answered at G0's scale: the rows are too few (rule 6: the
+  SIZE is wrong, not the idea); the next evaluator experiment is a position CAMPAIGN (own lap, G2's leaf first), and the
+  fleet does not wait on it. (2) Box 5 item 5: the draft base carried B2's antisymmetric privileged critic, and the T-op
+  scores leaves with the learner's own critic (`native.critic_value_fn`), so every searched target would have read the
+  true world's hidden state and the foe's own view at the leaves — an unmeasured fusion channel inside the lever under
+  test; B2 is out of the base and laps after with its own fusion read. (3) Box 5 item 6: the draft control kept `play:
+  true`, so it differed from the searched lane by distillation only; it now runs the T-op at `play: false` (matched lag,
+  cost and counters). Drafts, the config test and the engine seam test (now over BOTH critic forms; the collector's flags
+  follow the agent) changed on the branch (`baa3fc3`), all green. JOURNEY 14's stacked-base line points at item 5. (4)
+  BOX 6: what the reads fix for the fleet, and three rulings owed — R-F1 start (recommended WARM from the base trio's
+  three R6 finals, each seeding one searched and one control lane, +100M on a reduced-LR re-armed anneal; the N-ANNEAL
+  convention suspended and disclosed), R-F2 width (3 + 3 if B0 passes six-wide, else 3 + 2), R-F3 horizon (+100M). G1b
+  at ~1,500/2,500 on its true-world re-runs (still reproducing G1's rows), belief arms next; ETA ~02:30Z.
