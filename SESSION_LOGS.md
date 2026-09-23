@@ -13194,3 +13194,36 @@ line numbers are not — grep the date, then read that region):
   the reads queue's first FP arm approaching with G0 still running (no R7 job beside an FP arm;
   a kill costs one position). Also owed and done tonight, docs only on main: RESULTS §1's purity
   rider (`54fc6e7`), IDEAS §3's league addendum (`351781b`).
+
+- 2026-09-23 01:35Z (agent, R7 runner) — **B5 BUILT and committed** on `r7-native-search` as
+  `bc24570` (worktree clean; every Rust and Python test green in `pkmn-engine-r7`). The learner's
+  searched-row seams, plan §4 / amendment box 3 item 3, the teammate's REPLY BOX 2 §3 designs
+  taken as written: five dials ON THE CONSTRUCTOR SIGNATURE (`search_targets`,
+  `search_policy_coef` = β·KL(π′‖π_θ) inside the loss on searched rows, `search_value_head` +
+  `search_value_coef` = an agent-owned aux head on the critic's context regressing v′ with its
+  gradient after the clip read (the outcome head's placement), `search_value_blend` = w, the later
+  dial) — `make_agent` passes config keys through `**hparams`, so the list IS the signature and an
+  unknown key fails; episode keys `search_mask / search_pi / search_v` (travel together) and the
+  engine collector's always-on `opp_latest` tag; counters `search/rows_frac, kl_update,
+  override_update, value_gap, value_gap_critic, v_mean`, `loss/search_policy`,
+  `loss/search_value`, `search_value/grad_norm` and (c) `value/pred_mean, realized_mean, bias,
+  bias_mirror, mirror_frac` on every episode update. TESTS: (a) the ratio identity BITWISE at
+  epoch 0 / minibatch 0 — exactly 1.0 on unsearched rows, exactly π_θ(a)/π′(a) on searched rows
+  with log π′(a) read from the STORED π′ — on a fixture that asserts its own preconditions, and
+  RED under "play π′ with π_θ's logp" (the corruption reads as a healthy 1.0 everywhere); (b) the
+  aux-head golden on the fleet's critic form over a real engine batch — advantages and returns
+  arrays bitwise identical across head-absent / coef-0 / coef>0, the actor bitwise identical after
+  one step, coef-0 moves nothing, `ACTOR_PARAM_CEILING` pinned at 681,994 — and the two-minibatch
+  coupling (the shared clip's norm moves once the critic has) documented so it is not misread as
+  a leak; (c) `bias_mirror` re-derived from the tag, `V(swap(s)) == −V(s)` bitwise. The two
+  pre-F04 bitwise pins in `tests/test_ppo_episodes.py` now compare metric keys modulo the
+  always-on `value/*` family (weights, Adam state and RNG unchanged). The collector's half —
+  sampling from π′, recording log π′(a), the T-op flag derived from `search_targets` — is B4's.
+  **G0 at 17/500, ~190 s/position** (`logs/r7_g0/g0.log`; ETA Thu 09-24 ~03:00Z, before trio A
+  ends). CPU-SHARE DISCLOSURE (monitor.log, rungs 00:42–01:32Z vs the 00:38Z baseline bands):
+  a304 846–896 then 829/794, a312 954–956 then 846, a320 863–905 then 866, b328 1179–1190 then
+  1096, b336 1182–1190 then 1098, b344 1111–1138 then 984/1014 steps/s — the a-trio ~5% under
+  its bands since launch, and the 01:22–01:32Z rungs (every lane −4…−10%) overlapped ~12 min of
+  engine-backed test children for B5. Step-matched lanes: wall cost, not a measurement (plan §8
+  sanctions G0 niced beside the fleet). Rule kept: kill G0 if any lane sits >10% under its band
+  for two consecutive rungs with no test burst to explain it; test bursts stay small.
