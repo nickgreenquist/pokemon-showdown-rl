@@ -1,0 +1,102 @@
+# R7 G2 -- JOURNEY 14's EXIT CONDITION at the L-op's first budget: the belief-sampled, gated
+# L-op vs THE SAME COMMITTEE GREEDY, off Foul Play at 20 ms. DRAFT 2026-09-23, NOT RATIFIED --
+# it runs only after the maintainer ratifies it, on the IDLE box (after the R6 reads queue;
+# never beside a training lane or an R7 job: FP@20's budget is wall-clock).
+#
+# journey_step: "14". Exit condition, verbatim from JOURNEY.md: "one comparison at a REAL
+#   budget, on the strongest gen-1 object we have. Search-with-our-evaluator vs the same
+#   checkpoint greedy, pooled under the standing credit line, with decisions/sec reported for
+#   both arms and the per-turn budget named in every quote." Plan §6 G2, verbatim: "L-op with
+#   belief samples vs greedy, off FP@20, n=3,000 per arm, in-session anchor (the R5 greedy
+#   committee re-drawn), the standing credit line verbatim (pooled delta >= +0.025 AND >=
+#   2*se_diff, se_diff the larger of binomial and seed-clustered), decisions/sec and the
+#   per-turn budget in every quote, both FP@20 disclosures."
+#
+# WHAT THIS READ IS, AND IS NOT. The L-op here is DEPTH 1, B = 8 belief worlds, k 4 foe
+#   replies, S 2 chance samples (~540 leaves a decision; ms and decisions/sec stamped): the
+#   operator G1 measured at +0.0504 +- 0.0050 over its own greedy in the engine mirror in its
+#   BEST case (true world + the foe's exact prior; readouts/R7_G1_READOUT.md) and G1b measures
+#   without the peek. It is NOT the "real budget" JOURNEY 14 names -- the ladder allows ~150 s
+#   a turn and this spends milliseconds -- so a non-clear here does NOT close the search
+#   question (rule 6 in spirit: a small-budget null is not the budget-ceiling null); it sends
+#   the next L-op arm to a larger budget (more worlds; rollout leaves, whose depth-1 ceiling G0
+#   measured at +0.0236 per decision against the critic leaf's +0.0040). What changes vs G1 is
+#   exactly what the ladder changes: the world is sampled (B6's bridge + the determinizer; gate
+#   R1-E) and the foe is FOUL PLAY, not our committee -- the opponent model is our committee's
+#   guess at a search bot.
+#
+# THE OBJECT: the R5 W committee (w104/w112/w120, the three 200M finals every R7 measurement
+#   used). If Friday's R6 read makes an R6 committee the ladder object, a second G2 on THAT
+#   committee, under this same protocol, is the addendum's input.
+# POLICY FORM: both arms WITHOUT the loop breaker (matched; the R6 ladder object carries it, so
+#   an L-op addendum there would disclose the form difference or re-read with it).
+# MATCHED GREEDY: the L-op's action when it does not override is EnsembleAgent's over the same
+#   members, bit for bit (tests/test_lop.py: gate shut -> the ensemble_seat's action on every
+#   harvested decision), so G2L - G2G isolates the search.
+title: r7_g2
+status: "DRAFT 2026-09-23 -- awaiting ratification; idle box only; JOURNEY 14's exit condition at the L-op's FIRST budget"
+journey_step: "14"
+credits_nothing: false
+results_dir: results/r7_g2
+fp:
+  search_time_ms: 20
+checkpoints:
+  w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+usernames:
+  scheme: "r7g2<arm><role>; the prefix must be checked against the username inventory at launch (the exit gate's rule); the smoke pair is throwaway"
+env: "the native_seat arms run in pkmn-engine-r7 (pkmn_gen1 + poke-env; the runner's PY=); the ensemble_seat anchor may run in either env -- the object is the same members"
+arms:
+  G2SM: {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 2,    search_time_ms: 20, seat_username: r7g2smkseat, fp_username: r7g2smkbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
+  G2G:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3000, search_time_ms: 20, seat_username: r7g2grseat, fp_username: r7g2grbot}
+  G2L:  {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 3000, search_time_ms: 20, seat_username: r7g2lseat, fp_username: r7g2lbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
+phases:
+  smoke: [G2SM]
+  R: [G2G, G2L]
+decision_rule:
+  primary: "G2L minus G2G, off FP@20, n=3000 per arm, one session, SEQUENTIAL arms, the control (G2G) FIRST"
+  credit_line_verbatim: >-
+    a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the
+    LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed
+    from the per-seed finals at read time. (Each arm here is ONE object -- the three-member
+    committee -- so there are no per-seed finals to cluster and se_diff is the pooled binomial
+    se_diff, 3000 vs 3000, ~0.0127; stated so the clause is not read as silently dropped.)
+    Boundary: a delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met.
+  clears: >-
+    delta >= +0.025 AND >= 2*se_diff -> JOURNEY 14's exit condition is MET at this budget: search
+    with our evaluator beats the same committee greedy off FP@20. The R6 ladder pre-reg gets an
+    addendum offering the L-op as the object under a disclosed policy form (plan §6), and gen9
+    gets MCTS (JOURNEY 13/14).
+  does_not_clear: >-
+    otherwise and not negative -> the ladder stays greedy; the training side proceeds anyway
+    (plan §6: G0 said the prize exists and the evaluator is what the fleet trains). NOT the
+    real-budget null: the next L-op arm raises the budget (B >= 16 worlds, rollout leaves on
+    close calls) before anything is concluded about search at the ladder.
+  negative: >-
+    delta <= -0.025 AND |delta| >= 2*se_diff -> the L-op at this budget is a measured COST off FP
+    (as §30's ungated arms were); same action as does_not_clear, and the next budget arm must
+    argue against it.
+  also_recorded: "search/override_rate (the landmine: beside every number), lop/argmax_moved_rate, lop/margin_mean, lop/worlds_built_rate, lop/refused by family, lop/no_world, lop/mask_mismatch, search/ms_mean and ms_p99, decisions_per_sec on BOTH arms"
+disclosures:
+  - "FP@20: the equivalence test is weakly powered, and the point estimate flatters us; FP@20 is an instrument, not a rung"
+  - "the per-turn budget in every quote: B 8 worlds x k 4 x S 2 at depth 1 (~540 leaves a decision), ms_mean and decisions/sec from the arm's own JSON"
+  - "the /timer line (every seat sends /timer on)"
+comparators:
+  g1_true_world: {delta: 0.0504, se: 0.0050, note: "readouts/R7_G1_READOUT.md -- the ENGINE MIRROR, true world + exact foe prior; a different instrument, never differenced"}
+  g1b_belief: {note: "results/r7_g1b -- the same operator on belief worlds in the mirror; PENDING at drafting; never differenced"}
+R0_gates:
+  - name: G_QUIET_BOX
+    check: "no training lane, no R7 job, no other FP arm alive (the reads queue's HOT/ENV nets); FP@20's budget is wall-clock"
+  - name: G_CONTROL_FIRST
+    check: "G2G's json predates G2L's"
+  - name: G_OPERATOR_RAN
+    check: "G2L: search/searched > 0.5 x search/decisions; lop/worlds_built_rate >= 0.9 (R1-E refused 256 of 13,396 roots); lop/mask_mismatch == 0 (R1-E: mask parity exact); lop/no_world <= 0.02 x decisions; search/override_rate in [0.02, 0.25] (G1 0.096, G1b's belief arms ~0.09) -- outside it the operator did not run as measured and the read says nothing"
+  - name: G_MATCHED_GREEDY
+    check: "tests/test_lop.py green at the launch commit (the gate-shut L-op plays the ensemble_seat's action)"
+  - name: G_SESSION
+    check: "no difference against any banked number; the delta is G2L - G2G only"
+  - name: G_TIES
+    check: "ties are non-wins and are reported beside n"
+  - name: G_CONCURRENCY
+    check: "max_concurrent_live_battles == 1 and concurrent_decision_rate <= 0.01 on both arms"

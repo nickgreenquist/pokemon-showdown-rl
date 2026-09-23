@@ -54,10 +54,11 @@ class _FakeAgent:
 
 
 def test_ensemble_seat_is_registered():
-    """Grows only alongside a pre-registration — CH5 R1 is the licence."""
+    """Grows only alongside a pre-registration — CH5 R1 is the licence; R7 G2's
+    DRAFT pre-reg (configs/eval/r7_g2.yaml) registered native_seat."""
     assert ch3_fp_h2h.ARM_KINDS == (
         "greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
-        "ensemble_seat")
+        "ensemble_seat", "native_seat")
 
 
 def test_ensemble_arm_carrying_seat_fails_loudly():

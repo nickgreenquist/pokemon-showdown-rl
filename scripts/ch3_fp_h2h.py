@@ -70,8 +70,21 @@ BATTLE_FORMAT = "gen1randombattle"
 #     Construction is byte-equivalent to ladder.py's: same sha assert, same
 #     load_checkpoint/Config/_load_showdown_agent, same lane ORDER — the
 #     whole point of the arm is that it rates the object that laddered.
+#   * native_seat (R7 G2, plan §6; 2026-09-23) -- the L-OP on a live battle
+#     (`rl/search/lop.py::NativeLOp`): B belief-sampled worlds built through
+#     B6's write-side bridge into pkmn_gen1 roots, `native.solve` on each with
+#     the committee's critic at the leaves and the committee's prior on that
+#     world's foe view, PIMC over the worlds, the gated soft best response.
+#     Carries `seat:` (provenance and the decision-RNG seed) and
+#     `ensemble_members:` (the committee, the seat among them) like a searched
+#     committee, and a `lop:` block whose keys are NativeLOp's signature
+#     (`lop_from`) with the solve dials under `solve:` (`native.dials_from`).
+#     Its GREEDY action is EnsembleAgent's over the same members, so against an
+#     `ensemble_seat` arm over those members the comparison isolates the
+#     search. RUNS IN AN ENGINE ENV (pkmn-engine-r7: pkmn_gen1 + poke-env,
+#     no poke_engine) -- `PY=` on the runner -- and never imports SearchAgent.
 ARM_KINDS = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
-             "ensemble_seat")
+             "ensemble_seat", "native_seat")
 
 
 def _build_agent(spec: dict):
@@ -363,7 +376,30 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     search_agent = None
     eval_provenance = None
     searched_ensemble = None
-    if arm["kind"] == "search_seat":
+    if arm["kind"] == "native_seat":
+        from rl.envs.engine_tables import build_tables
+        from rl.search.ensemble import EnsembleAgent
+        from rl.search.lop import NativeLOp, lop_from
+
+        members = list(arm["ensemble_members"])
+        assert len(members) == len(set(members)), (
+            f"{arm_name}: duplicate member in {members} -- a repeated member "
+            "silently reweights the log-prob pool")
+        assert not seat_lane_defaulted and seat_lane in members, (
+            f"{arm_name}: native_seat needs an explicit `seat:` among {members}")
+        ens = EnsembleAgent([agent if x == seat_lane else _build_agent(prereg["checkpoints"][x]) for x in members])
+        for m in ens.members:
+            m.actor.eval(); m.critic.eval()
+        tables, tables_fp = build_tables()
+        search_agent = NativeLOp(ens, tables, **lop_from(arm.get("lop")))
+        agent = ens
+        searched_ensemble = {
+            "members": members,
+            "member_sha256": [prereg["checkpoints"][x]["sha256"] for x in members],
+            "member_steps": [prereg["checkpoints"][x].get("step") for x in members],
+            "tables_fingerprint": tables_fp,
+        }
+    elif arm["kind"] == "search_seat":
         from rl.search.agent import SearchAgent, lane_seed
         from rl.search.matrix import DOSES
 
@@ -539,7 +575,19 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             seat.concurrent_decisions / max(seat._decisions_total, 1)),
         "concurrent_decisions_denominator": seat._decisions_total,
     }
-    if search_agent is not None:
+    if arm["kind"] == "native_seat":
+        # The L-op's own counters: the override rate beside every win rate (the
+        # landmine), the refusal families, the dose, decisions/sec (JOURNEY 14's
+        # exit condition names it in every quote).
+        ms = np.array(seat.ms) if seat.ms else np.array([0.0])
+        report.update(search_agent.report())
+        report.update({
+            "search/ms_mean": float(ms.mean()),
+            "search/ms_p99": float(np.percentile(ms, 99)),
+            "search/searched_decisions": len(seat.ms),
+            "decisions_per_sec": (seat._decisions_total / elapsed) if elapsed > 0 else None,
+        })
+    elif search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
         lv = np.array(seat.leaves) if seat.leaves else np.array([0])
         dec = search_agent.counters["search/decisions"]
