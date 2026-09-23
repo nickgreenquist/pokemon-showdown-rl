@@ -38,7 +38,7 @@ pub fn health_percent(hp: u16, max_hp: u16) -> u8 {
 }
 
 /// What one side has REVEALED, plus the counters a client would keep.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SideTracker {
     /// Party indices this side has shown, in the order they first switched in.
     reveal_order: Vec<u8>,
@@ -205,9 +205,113 @@ impl SideTracker {
 }
 
 /// Both sides' projections, advanced together.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct BattleTracker {
     sides: [SideTracker; 2],
+}
+
+/// Byte form of the projection, so a search POSITION can be saved and loaded
+/// (R7 G0 keeps every sampled position on disk; later reads -- the fusion
+/// columns, a privileged critic -- reuse the rollouts instead of re-rolling).
+/// Length-prefixed, little-endian, no compression; `TRACKER_FORMAT` guards it.
+pub const TRACKER_FORMAT: u8 = 1;
+
+fn put_vec(out: &mut Vec<u8>, v: &[u8]) {
+    out.push(v.len() as u8);
+    out.extend_from_slice(v);
+}
+
+fn take<'a>(b: &'a [u8], at: &mut usize, n: usize) -> Result<&'a [u8], String> {
+    if *at + n > b.len() {
+        return Err(format!("tracker bytes truncated at {}", *at));
+    }
+    let s = &b[*at..*at + n];
+    *at += n;
+    Ok(s)
+}
+
+fn take_vec(b: &[u8], at: &mut usize) -> Result<Vec<u8>, String> {
+    let n = take(b, at, 1)?[0] as usize;
+    Ok(take(b, at, n)?.to_vec())
+}
+
+impl SideTracker {
+    pub fn to_bytes(&self, out: &mut Vec<u8>) {
+        put_vec(out, &self.reveal_order);
+        out.extend(self.revealed.iter().map(|&b| b as u8));
+        for i in 0..6 {
+            put_vec(out, &self.revealed_moves[i]);
+            put_vec(out, &self.move_uses[i]);
+        }
+        out.extend_from_slice(&self.sleep_observed);
+        out.extend_from_slice(&self.prev_status);
+        out.push(self.prev_active_party.map(|p| p as u8 + 1).unwrap_or(0));
+        for (id, pp) in self.prev_live_moves {
+            out.push(id);
+            out.push(pp);
+        }
+        out.push(self.binding_victim_turns);
+        out.extend_from_slice(&self.binding_last_turn.to_le_bytes());
+        for (a, b) in self.flags_before_faint {
+            out.push(a as u8);
+            out.push(b as u8);
+        }
+        out.push(self.prev_charging as u8);
+        out.push(self.prev_transform as u8);
+        out.push(self.started as u8);
+    }
+
+    pub fn from_bytes(b: &[u8], at: &mut usize) -> Result<SideTracker, String> {
+        let mut t = SideTracker::default();
+        t.reveal_order = take_vec(b, at)?;
+        for (i, &v) in take(b, at, 6)?.iter().enumerate() {
+            t.revealed[i] = v != 0;
+        }
+        for i in 0..6 {
+            t.revealed_moves[i] = take_vec(b, at)?;
+            t.move_uses[i] = take_vec(b, at)?;
+        }
+        t.sleep_observed.copy_from_slice(take(b, at, 6)?);
+        t.prev_status.copy_from_slice(take(b, at, 6)?);
+        let p = take(b, at, 1)?[0];
+        t.prev_active_party = if p == 0 { None } else { Some(p as usize - 1) };
+        for i in 0..4 {
+            let s = take(b, at, 2)?;
+            t.prev_live_moves[i] = (s[0], s[1]);
+        }
+        t.binding_victim_turns = take(b, at, 1)?[0];
+        let s = take(b, at, 2)?;
+        t.binding_last_turn = u16::from_le_bytes([s[0], s[1]]);
+        for i in 0..6 {
+            let s = take(b, at, 2)?;
+            t.flags_before_faint[i] = (s[0] != 0, s[1] != 0);
+        }
+        let s = take(b, at, 3)?;
+        t.prev_charging = s[0] != 0;
+        t.prev_transform = s[1] != 0;
+        t.started = s[2] != 0;
+        Ok(t)
+    }
+}
+
+impl BattleTracker {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut out = vec![TRACKER_FORMAT];
+        self.sides[0].to_bytes(&mut out);
+        self.sides[1].to_bytes(&mut out);
+        out
+    }
+
+    pub fn from_bytes(b: &[u8]) -> Result<(BattleTracker, usize), String> {
+        let mut at = 0usize;
+        let fmt = take(b, &mut at, 1)?[0];
+        if fmt != TRACKER_FORMAT {
+            return Err(format!("tracker format {fmt} != {TRACKER_FORMAT}"));
+        }
+        let a = SideTracker::from_bytes(b, &mut at)?;
+        let c = SideTracker::from_bytes(b, &mut at)?;
+        Ok((BattleTracker { sides: [a, c] }, at))
+    }
 }
 
 impl Clone for BattleTracker {

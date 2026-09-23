@@ -155,6 +155,26 @@ assert np.array_equal(same.obs(tables, "p2"), node.obs(tables, "p2"))
 fresh = pkmn_gen1.SearchNode.from_battle(b, r1, r2)
 assert fresh.turn() == node.turn() and fresh.requests() == (r1, r2)
 assert len(fresh.revealed("p2")) <= len(node.revealed("p2"))
+# A position saved to bytes loads back exactly: views, masks, requests, and a
+# leaf expansion under the same seed is bit-identical (G0 keeps one per row).
+blob = bytes(node.save())
+back = pkmn_gen1.SearchNode.load(blob)
+assert bytes(back.save()) == blob and back.requests() == node.requests() and back.turn() == node.turn()
+for seat in ("p1", "p2"):
+    assert np.array_equal(back.obs(tables, seat), node.obs(tables, seat))
+    assert np.array_equal(back.mask(tables, seat), node.mask(tables, seat))
+    assert back.revealed(seat) == node.revealed(seat)
+if r1 != "pass":
+    rows = np.flatnonzero(node.mask(tables, "p1")).tolist()
+    cols = np.flatnonzero(node.mask(tables, "p2")).tolist() or [-1]
+    e1 = node.expand(tables, "p1", [(rows[0], cols[0], 2)], 77); e2 = back.expand(tables, "p1", [(rows[0], cols[0], 2)], 77)
+    assert np.array_equal(e1["obs"], e2["obs"]) and np.array_equal(e1["obs2"], e2["obs2"]) and np.array_equal(e1["seed"], e2["seed"])
+try:
+    pkmn_gen1.SearchNode.load(blob[:-1])
+except ValueError:
+    pass
+else:
+    raise AssertionError("a truncated position loaded")
 # Illegal cells are refused by name, never handed to the engine.
 bad = int(np.flatnonzero(~node.mask(tables, "p1"))[0]) if (~node.mask(tables, "p1")).any() else None
 if bad is not None and r1 != "pass":

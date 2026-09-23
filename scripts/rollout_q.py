@@ -61,6 +61,7 @@ Runs niced beside a training fleet only with its CPU share disclosed (brief
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import hashlib
 import json
@@ -356,6 +357,10 @@ def measure_position(pid: int, node, tables, committee: Committee, args, rng: np
         "v_root_search_prior": float(full["v_prior"]),
         "fusion_flip": None, "fusion_bound": None, "fusion_why": "PENDING B1b (engine->engine resample)",
         "search_counters_topk": top["counters"], "seconds": time.time() - t0,
+        # The position itself (bytes, requests, projection), so a later pass --
+        # the fusion columns after B1b, a privileged critic once one exists --
+        # reloads it with `pkmn_gen1.SearchNode.load` and reuses these rollouts.
+        "node_b64": base64.b64encode(bytes(node.save())).decode("ascii"),
         **meta,
     }
     return row

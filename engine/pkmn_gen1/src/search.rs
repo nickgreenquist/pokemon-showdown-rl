@@ -102,6 +102,9 @@ fn req_code(r: Request) -> i8 {
     }
 }
 
+/// Guards `Node::save`'s layout.
+pub const NODE_FORMAT: u8 = 1;
+
 /// **CRN-1.** `(seed_base, col, sample)` -> the u64 written at `B_RNG`. No row.
 pub fn leaf_seed(seed_base: u64, col: i32, sample: u32) -> u64 {
     // col -1 (the foe's Pass) -> 1, col 0 -> 2, ...; sample 0 -> 1, ...
@@ -151,6 +154,34 @@ impl Node {
 
     pub fn request(&self, p: Player) -> Request {
         self.result.request(p)
+    }
+
+    /// The position on disk: format byte, the 384 battle bytes, the result
+    /// byte (both requests and the outcome), the projection. `load` is exact.
+    pub fn save(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(512);
+        out.push(NODE_FORMAT);
+        out.extend_from_slice(&self.battle.0);
+        out.push(self.result.raw());
+        out.extend_from_slice(&self.tracker.to_bytes());
+        out
+    }
+
+    pub fn load(b: &[u8]) -> Result<Node, String> {
+        if b.len() < 1 + crate::layout::BATTLE_SIZE + 1 {
+            return Err("node bytes truncated".into());
+        }
+        if b[0] != NODE_FORMAT {
+            return Err(format!("node format {} != {NODE_FORMAT}", b[0]));
+        }
+        let mut battle = Battle::default();
+        battle.0.copy_from_slice(&b[1..1 + crate::layout::BATTLE_SIZE]);
+        let result = BattleResult::from_raw(b[1 + crate::layout::BATTLE_SIZE]);
+        let (tracker, used) = BattleTracker::from_bytes(&b[2 + crate::layout::BATTLE_SIZE..])?;
+        if 2 + crate::layout::BATTLE_SIZE + used != b.len() {
+            return Err("node bytes have trailing data".into());
+        }
+        Ok(Node { battle, tracker, result })
     }
 
     /// The observable state for `p` under the request it owes -- the same call
@@ -756,6 +787,42 @@ pub(crate) mod tests {
         assert!(lb.done().iter().all(|&d| d));
         // A finished batch has nothing pending and refuses no-op steps quietly.
         assert!(lb.pending(Player::P1, &t).0.is_empty());
+    }
+
+    /// A saved position loads back EXACTLY: bytes, requests, projection, and
+    /// therefore every view and mask -- the contract G0's rows file rests on.
+    #[test]
+    fn a_saved_position_loads_back_exactly() {
+        let t = tables_stub();
+        let mut checked = 0;
+        for seed in 60..70u64 {
+            let (p1, p2) = teams(seed);
+            let mut env = Gen1Env::new(seed, &p1, &p2, Player::P1, 0, false).unwrap();
+            let mut rng = seed | 1;
+            while !env.done() {
+                let node = Node::from_env(&env);
+                let back = Node::load(&node.save()).unwrap();
+                assert_eq!(back.battle.0, node.battle.0);
+                assert_eq!(back.result, node.result);
+                assert_eq!(back.tracker, node.tracker, "seed {seed}");
+                for p in [Player::P1, Player::P2] {
+                    assert_eq!(back.obs(p, &t), node.obs(p, &t));
+                    assert_eq!(back.mask(p, &t), node.mask(p, &t));
+                }
+                checked += 1;
+                let la = pick(&env, Player::P1, &t, &mut rng);
+                let oa = pick(&env, Player::P2, &t, &mut rng);
+                env.step(&t, la, 0.0, 0, oa).unwrap();
+            }
+        }
+        assert!(checked > 300, "{checked}");
+        let node = Node::from_env(&Gen1Env::new(1, &teams(1).0, &teams(1).1, Player::P1, 0, false).unwrap());
+        let mut bad = node.save();
+        bad[0] = 9;
+        assert!(Node::load(&bad).unwrap_err().contains("format"));
+        let mut short = node.save();
+        short.pop();
+        assert!(Node::load(&short).is_err());
     }
 
     #[test]

@@ -54,6 +54,15 @@ impl SearchNode {
     fn bytes(&self) -> Vec<u8> {
         self.inner.battle.0.to_vec()
     }
+    /// The whole position -- bytes, requests, projection -- as bytes; `load`
+    /// restores it exactly (a G0 rows file keeps one per position).
+    fn save(&self) -> Vec<u8> {
+        self.inner.save()
+    }
+    #[staticmethod]
+    fn load(b: Vec<u8>) -> PyResult<Self> {
+        Ok(SearchNode { inner: Node::load(&b).map_err(PyValueError::new_err)? })
+    }
     fn battle(&self) -> PyBattle {
         PyBattle { inner: Battle(self.inner.battle.0) }
     }
