@@ -213,6 +213,17 @@ impl LeafBatch {
         Ok(PyArray1::from_vec(py, self.inner.outcome(player(seat)?)))
     }
 
+    /// Leaf `i` as a root of its own (bytes, projection, requests), for a
+    /// deeper expansion or a fixture. A copy: the batch is not disturbed.
+    fn node(&self, i: usize) -> PyResult<SearchNode> {
+        let n = self
+            .inner
+            .nodes
+            .get(i)
+            .ok_or_else(|| PyValueError::new_err(format!("leaf {i} out of range 0..{}", self.inner.len())))?;
+        Ok(SearchNode { inner: n.clone() })
+    }
+
     /// `(idx int32[m], obs f32[m, 828], mask bool[m, 10])` for every live leaf
     /// where `seat` owes a decision.
     #[pyo3(signature = (tables, seat))]
