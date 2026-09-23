@@ -13293,3 +13293,20 @@ line numbers are not — grep the date, then read that region):
   correction:** against the 3-rung 00:12–00:33Z baseline the six lanes ran 1.06–1.16× FASTER during
   G0 (63 rungs each) — the 01:35Z "a-trio ~5% under" read was a narrow-band artifact of a busy
   baseline window, not a G0 cost; the readout carries the table.
+
+- 2026-09-23 11:40Z (agent, R7 runner) — **RULING: R7 IS THE KITCHEN SINK** (maintainer verbatim, after
+  reading their `V2_PLAN.md` and the runner's pushback: *"I don't want another week lap: make R7 the
+  kitchen sync and add stuff to after that deserve own lever (massive arch change etc)"*). v2's
+  shape — one stacked base, everything that cannot be the sole suspect rides in it — is adopted
+  INSIDE R7: the ExIt fleet's base becomes the stack (W + C6 + whichever of trio A / trio B reads
+  non-negative Friday + the antisymmetric privileged critic + anything else stackable that is
+  BUILT AND SMOKED), with the searched-vs-coef-0-control arms keeping attribution for the one lever
+  with a measured prize; trunk/architecture-class levers get their own lap after. Pushbacks that
+  stand (from the runner's V2 read): critic-side levers are NOT actor-neutral in PPO (the critic
+  sets the advantages — D18's own falsifier), 4.12's surviving fallback form buys no throughput,
+  300M horizons are the slowest lever per wall-hour, both-seat harvest needs a seat-2 block build
+  before it can ride with the privileged critic; counters per stacked lever, signature-derived,
+  stay non-negotiable. The concrete base lands as AMENDMENT BOX 4 with the G0 readout; B4 (the
+  async two-core lane with the T-op) is the critical path; a 12M G3 shakedown precedes the fleet.
+  Also built: `scripts/rollout_q_top_sweep.py` (branch `r7-native-search`), the T-op dial sweep
+  over the saved positions (k, S, τ, margin gate; ~3 s/position niced) — runs after the fusion pass.
