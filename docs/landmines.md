@@ -1099,3 +1099,17 @@ headline fleet with a dirty stamp four minutes in was relaunched cleanly rather 
 Rule: from the launcher's first line to its `DONE.` line, touch nothing in the tree — no edits, no
 commits, no untracked files — and verify every lane's `meta.yaml` (`git_sha`, `git_dirty`) right after
 `DONE.` before anything else is written.
+
+## `maturin develop` INSTALLS INTO `$CONDA_PREFIX`, and from an unactivated shell that is BASE (2026-09-22)
+
+The R7 runner built the engine extension in a fresh env (`pkmn-engine-r7`, rule 1's fleet-safe
+form) by calling that env's own `maturin` binary from a shell whose `CONDA_PREFIX` was still
+`/opt/anaconda3`. maturin resolves the target interpreter from `VIRTUAL_ENV` / `CONDA_PREFIX`, not
+from which `maturin` ran, so the wheel landed in BASE — caught only because the fresh env's Python
+then failed to import `pkmn_gen1`. Base was uninstalled the same minute; the fleet env's `.so` (dated
+09-20) was never touched. The failure mode this guards against is worse than the one that happened:
+with `CONDA_PREFIX` pointing at `pkmn-engine-port`, the same command would have swapped the
+extension under six resuming lanes. Rule: every `maturin develop` / `pip install` that targets a
+build env passes the env EXPLICITLY —
+`env CONDA_PREFIX=/opt/anaconda3/envs/<env> PATH=/opt/anaconda3/envs/<env>/bin:$PATH PKMN_PYTHON=/opt/anaconda3/envs/<env>/bin/python PYO3_PYTHON=... maturin develop --release`
+— and the first thing after it is `pip show pkmn_gen1` in EVERY env on the box, not just the intended one.

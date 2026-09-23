@@ -13122,3 +13122,62 @@ line numbers are not — grep the date, then read that region):
   B0–B3 with acceptance (B0's bench replaces §5's constants at a 2× pass line), G0, and the
   do-nots. The box session merges this branch into `main`, deletes both `claude/` branches and
   becomes the single runner. This cloud session did no builds and produced no numbers.
+- 2026-09-23 00:45Z (agent, the R7 box runner; maintainer: *"You are the single runner for the R7
+  native-search chapter"*) — **R7 BRANCH LANDED; B0, B2, B3, B1 BUILT ON `r7-native-search`.**
+  (1) LANDING: the cloud branch was NOT a fast-forward of the box's main (56 unpushed commits since
+  the origin/main it branched from); landed as a MERGE COMMIT `b2c31d1` on the maintainer's word
+  ("pull the branch, merge into main"), not a rebase — the amendment boxes cite the branch's own
+  SHAs (`30dd1c2`, `eed70ed`, `757c4f0`, `dd224a4`). Conflicts: SESSION_LOGS (the cloud entries
+  appended after the fleet entries) and STATUS item 3 (main's text kept + the R7 pointer; 100 lines
+  held). main pushed (e6cc5dd..b2c31d1, 64 commits); both `claude/` branches deleted; the babysitter
+  session's docs commit `1915eec` (the brief's env inversion) landed on top. (2) HEALTH: the ttys004
+  Claude session is the R6 babysitter and stays (maintainer: it changes nothing); exit-gate queue
+  DONE 09-21 22:22Z; `simulator: 4` confirmed. (3) ENV — a deviation from the maintainer's step 3,
+  which named `pkmn-engine-port`: CLAUDE.md rule 1 (0f406bb) wins, so B0 builds in a FRESH env
+  `pkmn-engine-r7` in the worktree `../pokemon-showdown-rl-r7` (branch `r7-native-search`, `.[dev]`
+  + `ziglang==0.16.0` + `maturin==1.15.0`, submodule at the pin, `data/engine` symlinked read-only).
+  **LANDMINE, new:** `maturin develop` installs into `$CONDA_PREFIX` — from this non-activated shell
+  that was BASE; caught on the first import failure, uninstalled from base, re-run with
+  `CONDA_PREFIX`/`PATH` set to the fresh env. The fleet env's `.so` is dated 09-20 and was never
+  touched. (4) RULINGS: 7 (fleet width) unanswered → the plan's default, 5 lanes × 2 cores; it binds
+  nothing before B4. (5) BUILDS, five commits, every test green (Rust 57; Python seams in
+  subprocesses; builds under `taskpolicy -b -j2`, lane rates unmoved, no ALERT):
+  `c383d8e` **B0** `engine/pkmn_gen1/src/search.rs` + `pysearch.rs` — `SearchNode.expand` (clone →
+  CRN seed at `B_RNG` keyed on (seed_base, col, sample), never the row → `update_unchecked` after a
+  per-cell legality check → tracker `clone_from` (hand-written, allocation-free) → BOTH seats' views,
+  both privileged blocks as slices), `LeafBatch` (the rollout leaf: pending/step from Python,
+  `scripted_step`, `node(i)`), `BatchEnv.snapshot(slot)`, `rust_ns`. THE test:
+  `expand_reproduces_the_training_construction_bitwise` — obs, the foe's own view, both blocks, the
+  requests and the terminal sign bit-identical to `Gen1Env::step` under the same seed over 30
+  battles. `rows2` fixed: an empty batch is (0, width). `scripts/r7_b0_bench.py` written to REPLY
+  BOX 2 §1's spec (normal QoS asserted via Darwin priority 4, torch_threads 1, five-/six-wide with a
+  learner-load process per lane, both views, p50/p99, four components, pass line 2 × 1.8 = 3.6 ms
+  p99 at six-wide; refuses beside a fleet or FP arm; `--smoke` measures nothing). **The bench and
+  its readout WAIT for the idle box** (after the R6 reads queue, Fri 09-25 ~05:00 EDT).
+  `3d5170a` **B2** `antisymmetric` on `EntityDeepSetsNet`'s critic: V = ½(f(obs) − f(obs2)), two
+  calls of ONE shape (a 2N-row call could pick a different GEMM kernel), no new module, identical
+  state_dict — a plain checkpoint loads strictly; `agent.antisymmetric_critic` (refused in
+  trunk_kwargs), `_critic_input` = [obs | obs2 (| priv | priv2)] with priv2 = OUR own-side slice
+  (`privileged_block_rows`); `EngineCollector(both_views)` → `obs2` (env.rs emits the foe's full
+  view; the privileged block is its slice, pinned); loud seam both ways; the rollout-buffer path and
+  the harvest refuse it; rl/train.py derives the collector flag and refuses outside engine mode.
+  Tests: `V(swap(s)) == −V(s)` bitwise at 1 and 4 threads, plain and privileged; the seam end to
+  end with real updates under both forms. `e8200a3` **B3** `rl/search/native.py::solve` — rows =
+  our legal actions, cols = the foe's top-k by π_opp, S chance samples, Q̄ under π_opp (the value
+  estimand), π′ ∝ π_θ·exp(Q̄/τ), v′ = π′·Q̄ with v_prior beside it, 16 `search/*` counters; DIALS
+  derived from the signature (`cols_k, chance_s, tau, max_leaves_per_call`), unknown keys hard-fail;
+  goldens on a hand-built 3-v-3 root and a mid-battle root under a numpy stub critic
+  (`tests/test_native_search.py`). Design note for the readout: the T-op returns v′ under π′ rows
+  × π_opp columns; the plan named the column weighting, the row weighting is the improved policy's.
+  `4e30c0a` **B1** `scripts/rollout_q.py` — engine self-play positions from the R5 committee
+  (w104/w112/w120 finals, sha-checked), four turn buckets, the FULL matrix, N rollouts per cell
+  split in halves under CRN, both seats sampling the committee; per-row reads to disk with a version
+  marker: `regret_depth1_ceiling` (split-sample, both orderings) + the permuted null,
+  `regret_critic_depth1`, `spearman_critic` / `spearman_root_q`, `opp_model_gap`,
+  `opp_best_outside_topk[2,3,4]`, the three root estimates; fusion and the privileged spearman
+  recorded PENDING (B1b; no privileged critic exists for this committee). Outcome AND win-rate
+  units, the kill rule printed with its null. Smoked end to end on the real committee (4 positions
+  × 8 rollouts, resume + summary) — a path check, no number. (6) NOT DONE: the merge to main (a
+  running block imports the working tree — the branch waits for the idle box), the B0 bench, G0,
+  B1b, `readouts/R7_B0_BENCH.md`. `tests/test_dial_forwarding.py` fails only in the fresh env
+  (`poke_engine` is not in `.[dev]`); it passes on main in `pokemon-showdown-rl`.
