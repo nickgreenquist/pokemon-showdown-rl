@@ -189,6 +189,22 @@ If 11.5 says depth pays, build MCTS here — on poke-engine, not on a Showdown f
 If we only ever get two generations, make them gen1 and gen9 — trade the clean transfer claim for relevance.
 
 ### 14. OPTIONAL, AND AFTER THE STORY IS WRAPPED — the strength chapter: search over OUR OWN value function
+
+> **Maintainer, 2026-09-22 → 2026-09-23: this chapter is OPEN NOW, and it is the KITCHEN SINK.**
+> Opened early on 2026-09-22 (R7, `docs/proposals/R7_NATIVE_SEARCH_PLAN_2026-09-22.md`, ruling 1 —
+> before step 12's wrap). Then, 2026-09-23, after reading a stacked-recipe proposal (`V2_PLAN`) and
+> the runner's pushback, verbatim: *"I don't want another week lap: make R7 the kitchen sync and add
+> stuff to after that deserve own lever (massive arch change etc)."* What that changes in the arc:
+> **steps 8 and 10 are FOLDED INTO R7's fleet.** One stacked base — the W recipe, C6, whichever of R6's
+> two levers reads non-negative, the antisymmetric privileged critic, and anything else stackable
+> that is BUILT AND SMOKED — with the searched-vs-control arms keeping attribution for the one lever
+> whose prize was measured (G0's rollout oracle). One fleet, not one lever per lap. What still gets
+> its OWN lap, after that fleet: trunk / architecture replacements (attention already read: it does
+> not clear), a shared actor–critic trunk, feature crosses and temporal context (each pays the
+> encoder tax twice), and objective changes — the things that would be the sole suspect if the fleet
+> disappointed. What does not relax: a mechanism counter per stacked lever, derived from the
+> signature; rule 6; the purity rider (RESULTS §1). The exit condition at the end of this chapter
+> stands as written; the pace expectation is what changed.
 **Maintainer, 2026-09-09: "i want to see how far self play can go on the ladder, but i
 also in the future might want to actually get something REALLY STRONG."** Those are two
 goals, and this chapter exists so they never contaminate each other. Steps 1–12 are the
@@ -241,7 +257,8 @@ the only honest trigger for considering the FP rung.
 
 ## Standing notes
 
-- **The binding constraint is not time.** It is that gen1 measurements are currently uninterpretable at k=3 with σ_seed ≈ 0.062 against a 0.072 bar. Every sequencing decision above follows from that. **Step 7.5 is the answer to it** — the bar falls as 1/√k, so 8 seeds a fleet-day instead of 3 takes it from ≈0.10 to ≈0.062 (or 0.072 → 0.044 against a shared control), which is the difference between "letter-met, seed-fragile" and credited for effects the size ours actually are. Arm-paired training seeds help too; paired *evaluation* under common random numbers is a separate and measured-small prize.
+- **2026-09-23: pace is a constraint now.** The maintainer's words: *"I'm really tired of how slow this project is going."* One-lever-per-week laps are over — stack what cannot be the sole suspect, lap only what must be isolated (step 14's box). The measurement rules below do not move; the cadence does.
+- **The binding constraint was not time.** It is that gen1 measurements are currently uninterpretable at k=3 with σ_seed ≈ 0.062 against a 0.072 bar. Every sequencing decision above follows from that. **Step 7.5 is the answer to it** — the bar falls as 1/√k, so 8 seeds a fleet-day instead of 3 takes it from ≈0.10 to ≈0.062 (or 0.072 → 0.044 against a shared control), which is the difference between "letter-met, seed-fragile" and credited for effects the size ours actually are. Arm-paired training seeds help too; paired *evaluation* under common random numbers is a separate and measured-small prize.
 - **The collector is part of the instrument.** From step 8 on, every gen1 number names the collector it came from and carries A-1's signed delta, the way N-COLL's does. Numbers from the Node path and the engine path are never pooled and never differenced without that disclosure.
 - **"Ladder" always means ladder + Foul Play**: Any checkpoint good enough to ladder gets a full FP head-to-head at pinned settings in the same pass. FP is the incumbent and the reproducible one; the ladder is legibility. Pinned before the first run: FP time budget, engine + poke-engine commit, sample size, and greedy-vs-searched on our side. Unpinned FP numbers are incomparable to each other.
 - **Weights never transfer between generations** — only recipe. Wang tried a bootstrapping variant and reported no significant improvement (§5.1.3); H&L's specialized agent won 77/500 against its own predecessor after a short fine-tune. Mechanics differ too much and the observation space changes anyway.
