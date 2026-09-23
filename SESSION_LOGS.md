@@ -13532,3 +13532,32 @@ line numbers are not — grep the date, then read that region):
   cores) is on the box with a guard that SIGTERMs both at lanes=0 or Thu 07:30Z; its runner asked
   that a HOLD naming it be answered by killing it (resume-safe rows) — agreed, with an alert to the
   maintainer.
+
+- 2026-09-24 00:30Z (agent, R7 runner) — **G2 REVIEWED TWICE AND FIXED; THE mmap'd TEAM BANK BUILT; the max-out
+  throughput items answered.** Two Opus reviews of G2 (design/statistics; code). The CODE review found two MAJOR
+  operator defects, both verified before fixing: (a) `engine_bridge.build_root` handed the tracker
+  `side_reveal(our whole team)` as p1's payload — the object the foe's view is rendered from — so every built root's foe
+  view, and the committee's foe prior on it, knew our hidden bench and unused moves (a turn-1 root showed the foe 6 mons
+  and all moves; truth 1 and 0); R1-E could not see it because it grades OUR view. Now `our_side_reveal` +
+  `RevealHistory` (our mons in first-seen order, used moves in first-use order; poke-env keeps no event log, so the
+  L-op accumulates the order across decisions); our own view pinned unchanged bitwise. (b) The determinizer never
+  varied the foe ACTIVE's hidden moves; `sample_active=True` for the L-op (SearchAgent's MF-5b default untouched). Also:
+  per-world errors counted by type and skipped (an escaped exception would have forfeited the battle on the timer as an
+  ordinary loss); `OperatorMismatch` exits the seat; `native.solve` gained `both_views` (default bit-identical; the
+  T-op derives it, so the fleet's plain-critic T-op stops rendering the foe's view — which also makes the B0 bench's
+  one-view number the T-op's real work); the harness times every decision on every arm kind and stamps the imported
+  `rl` tree and its sha. The DESIGN review's findings went into the pre-reg (DRAFT r2, `666b660`): framing (a clear
+  clears the credit line at the L-op's FIRST budget; JOURNEY 14's exit condition stays owed), power (n 3,200; ~0.50 /
+  0.66 / 0.79 at +0.025 / +0.030 / +0.035 — a non-clear is likely even if the operator works), one env for both arms
+  (the two envs import two `rl` trees), the runner's standing FP gates, the concurrency convention, operator gates as
+  measured rates, a VOID action, strict boundaries. `run()` smoked end to end on both arm kinds against a local
+  RandomPlayer (no Foul Play). Branch: `8f990e7`, `b4965e6`, `53bcbec`, `666b660`. **The maintainer asked about the
+  2026-09-10 max-out findings** (SESSION_LOGS 2026-09-10 overnight): k > 8 — not planned (the two-core lane overlaps
+  collection; the T-op's ms per searched decision dwarfs what k amortises; an acceptance read rides the shakedown only
+  if B0 shows the collector is the critical path); threads × minibatch — ruled out for the base (cores go to width; the
+  minibatch half moves the optimiser); the scorer factorization — reverted 09-10 against `_GEN1_PIN`, now R-E2 (a
+  ruling owed, recommended yes); **the mmap'd bank — ruling 6's precondition that had NOT landed — BUILT** (`7c6cb40`):
+  the Rust `BatchEnv` reads a Python buffer in place (pyo3 `PyBuffer`; `TeamBank` over any `AsRef<[u8]>`), the collector
+  mmaps the bank when `build_info()["bank_zero_copy"]` says so and stamps which path it took, a resume ignores that flag;
+  cargo check + 58 Rust unit tests green offline; its zero-copy test skips until Friday's reinstall and must then pass.
+  Box 6 gains the throughput answers, R-E2 and Friday's ordered checklist.

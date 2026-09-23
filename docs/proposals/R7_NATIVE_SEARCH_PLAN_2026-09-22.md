@@ -365,6 +365,30 @@ on a 14-core laptop, CPU only, pure self-play.
 > two-battle smoke through the server built every world. The ruling owed is WHEN: the idle box before the fleet (~4–5 h of
 > quiet box; it informs the R6 ladder object) or after it. And the honest scope, in the pre-reg: depth 1 at B = 8 is the
 > L-op's FIRST budget, not JOURNEY 14's real-budget null.
+> **G2 after two Opus reviews (design + code): DRAFT r2** (`666b660`). The code review found two MAJOR operator defects, both
+> fixed and pinned: the bridge handed the tracker our WHOLE team as the foe's knowledge of us (every built root's foe view knew
+> our hidden bench; a turn-1 root showed the foe 6 mons and all moves, truth 1 and 0 — `engine_bridge.our_side_reveal`,
+> `RevealHistory`, `b4965e6`), and the worlds never varied the foe active's hidden moves (`sample_active`). Also fixed: errors
+> are counted and skipped, never forfeited as losses; one-view solves (`native.solve`'s new `both_views` dial, `8f990e7`, which
+> also stops the fleet's T-op paying for encodes its critic never reads); decisions/sec and the `rl` tree stamped on BOTH arms
+> (`53bcbec`); the design review's gates, power (n 3,200; a non-clear is likely even if the operator works) and framing (a
+> clear clears the credit line at the FIRST budget; the exit condition stays owed).
+> **THE 2026-09-10 MAX-OUT THROUGHPUT FINDINGS, and where each stands for the fleet** (the maintainer asked, 09-23):
+> (i) collector k > 8 (k 256: 1.87× a lane, 12.6% off-policy rows) — NOT planned: the two-core lane already overlaps
+> collection with the update, and a searched decision costs milliseconds against the ~30 µs k amortises; if B0 shows the
+> collector child is the critical path, a mechanism-level acceptance read (off-policy rows, clip fraction, approx_kl at k 32/64
+> vs 8) rides the shakedown. (ii) threads × minibatch crossed (1.51× the update) — RULED OUT for the base: it needs 4–6
+> threads a learner where the box's cores go to width, and the minibatch half moves the optimiser's path (trio B's GO keys);
+> its own lap. (iii) **R-E2, A RULING OWED: the scorer's `ctx` factorization** (~26% of the epoch loop; same weights sliced, no
+> new parameters; logits move ≤ 3e-07) needs `_GEN1_PIN` re-baselined — recommended YES, on the branch, landing with the merge
+> so both arms run it from step one. (iv) **the mmap'd team bank — ruling 6's precondition, BUILT 09-23** (`7c6cb40`): the
+> Rust env reads a Python buffer in place and the collector mmaps the bank when the extension says `bank_zero_copy`; one copy
+> per box instead of 0.53 GB a lane; installed Friday, its zero-copy test must PASS (not skip) before the fleet.
+> **FRIDAY, the idle box, in order:** (1) the R6 readout lands; (2) merge `r7-native-search` into main; (3) reinstall the
+> merged extension into `pkmn-engine-r7` AND the fleet's `pkmn-engine-port` (no job in either env alive), then the suite — the
+> mmap test PASSES, `test_lop.py` passes with none skipped; (4) the B0 bench at normal QoS (`--widths 5 6`), deciding R-F2;
+> (5) the 400k shakedown smokes on the ruled base (warm-start path included if R-F1 is warm); (6) G2 if R-G2 rules it before
+> the fleet; (7) the fleet pre-reg after R-F1/R-F2, two Opus reviews, the maintainer launches.
 
 ## 0. The bet in one paragraph
 
