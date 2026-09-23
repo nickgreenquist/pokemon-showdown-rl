@@ -1,0 +1,108 @@
+# ENCODER_C6: on
+# =====================================================================================
+# R7 SHAKEDOWN, CONTROL LANE (coef-0) -- a 400k INERT-CHECK SMOKE, NOT A PRE-REG (DRAFT 2026-09-23)
+# =====================================================================================
+# journey_step: 14 (R7, the strength chapter; the kitchen-sink ruling, AMENDMENT BOX 4
+# item 6). Exit condition of the step, verbatim: "one comparison at a REAL budget, on the
+# strongest gen-1 object we have. Search-with-our-evaluator vs the same checkpoint greedy,
+# pooled under the standing credit line". This file is not that comparison: it is the smoke
+# whose only job is that NOTHING IS SILENTLY INERT -- every stacked lever's counter reaches
+# history.csv and moves -- before the fleet spends a week. G3's mechanism conditions are read
+# at 12M ON THE FLEET'S OWN LANES, not here (rule 6: a 12M null stops nothing).
+#
+# BASE (pending the 2026-09-25 R6 read): the W recipe + C6 + trio A's outcome heads
+# (aux_outcome_coef 0.1 / value_aux_out 3 / collector.outcome_targets) -- REPLACE with trio
+# B's ×4-batch fallback form, or drop both, per whichever reads non-negative on 09-25 --
+# + the antisymmetric privileged critic (R7 B2). The R7 lever on top of the base:
+#   collector.process: true          B4 -- the two-core lane (child-process collector)
+#   collector.search: {...}          B4b -- the T-op's dials, SET FROM THE G0 SWEEP
+#                                    (readouts/R7_G0_READOUT.md: k 4, S 2, tau 0.05; 10%
+#                                    override, 17% of the ceiling); frac 0.75 of eligible
+#                                    rows ~ 40% of decisions (top-1 >= 0.97 skipped: 46%)
+#   agent.search_targets: true       B5 -- the learner expects the rows (loud seam both ways)
+#   agent.search_policy_coef 0.1     beta * KL(pi' || pi_theta) on searched rows
+#   agent.search_value_head: true    the v' aux head on the critic's context
+#   agent.search_value_coef 0.1      its coefficient (the GAE blend w stays 0)
+# The CONTROL lane (r7_shakedown_control.yaml) is this file with the two coefficients at 0:
+# the T-op still runs and records (matched dose), nothing trains on it.
+#
+# COUNTERS that must be non-zero and moving in history.csv (tests/test_r7_shakedown_configs.py
+# derives the list from the objects, never types it): search/* (searched_frac, kl_prior,
+# override, ms), loss/search_policy, loss/search_value, search/kl_update, value/bias_mirror,
+# collect/weights_lag_updates (<= 1), collect/child_idle_frac, aux_outcome/*, l2init/*.
+# QoS: NORMAL (the launcher refuses a background shell for process lanes; ruling 7: <= 5 lanes).
+# =====================================================================================
+env_id: Showdown-v0
+seed: 368
+total_steps: 400000
+eval_every: 100000000     # no in-loop eval in the smoke (no server)
+eval_episodes: 100
+num_envs: 8
+torch_threads: 1
+checkpoint_every: 200000
+run_name: r7_shakedown_control_s368
+logger: wandb
+eval_win_rate: true
+collector:
+  mode: engine
+  k: 8
+  team_bank: data/engine/teams_a1_5000000.bin
+  min_bank_pairs: 1000000
+  learner_seat: p1
+  outcome_targets: true    # BASE (trio A) -- pending the 09-25 read
+  process: true            # R7 B4: the two-core lane
+  search:                  # R7 B4b: the T-op, dials from the G0 sweep (never typed from memory)
+    frac: 0.75
+    top1_skip: 0.97
+    cols_k: 4
+    chance_s: 2
+    tau: 0.05
+    play: true
+env_kwargs:
+  opp_action: true
+  seat_tag: r7sc
+selfplay:
+  opponent: self
+  eval_opponent: heuristics
+  pool_size: 20
+  push_every_updates: 5
+  latest_prob: 0.8
+agent:
+  algo: ppo
+  trunk: entity_deepsets
+  l2_init_decay: 0.02
+  aux_oppact_coef: 0.1
+  aux_label_space: l6
+  aux_scorer_sizes: [96]
+  aux_head_gain: 0.01
+  aux_max_grad_norm: 0.5
+  aux_outcome_coef: 0.1    # BASE (trio A) -- pending the 09-25 read
+  antisymmetric_critic: true   # R7 B2: V = 1/2 (f(obs) - f(obs2)), both views from the engine
+  privileged_dim: 408          # the privileged block (PRIV_DIM at gen 1), both seats
+  search_targets: true         # R7 B5
+  search_policy_coef: 0.0      # CONTROL: the T-op runs and records, nothing trains on it
+  search_value_head: true
+  search_value_coef: 0.0       # CONTROL
+  search_value_blend: 0.0
+  trunk_kwargs:
+    species_vocab: 152
+    move_vocab: 166
+    embed_dim: 64
+    entity_dim: 128
+    pool: max
+    ctx_sizes: [384, 384]
+    scorer_sizes: [256]
+    value_sizes: [1024, 1024]
+    value_aux_out: 3         # BASE (trio A) -- pending the 09-25 read
+  hidden_sizes: [512, 512]
+  lr: 2.5e-4
+  lr_anneal_steps: 400000    # == total_steps (the smoke's own horizon)
+  gamma: 1.0
+  gae_lambda: 0.95
+  rollout_steps: 3840
+  epochs: 4
+  minibatches: 120
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  max_grad_norm: 0.5
