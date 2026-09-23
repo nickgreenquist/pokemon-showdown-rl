@@ -65,7 +65,17 @@ banked there, and **retired here in full — including for the learner**. The
 goal here is the strongest agent we can build; external libraries, replay
 datasets, pretrained teachers, a GPU, a different learner are all in scope
 when they win on merit. (But the PURE SELF-PLAY LANE is the novelty —
-expert-data bootstrapping into the learner is excluded.)
+expert-data bootstrapping into the learner is excluded **until JOURNEY step 16**.)
+
+**The arc is three acts (JOURNEY steps 14–16, maintainer 2026-09-23).** (1) Max out the
+no-human-data lane, truly: every idea goes in first (R7's kitchen sink, then the own-lap
+items). (2) The generality claim: the ALGORITHM is generation-agnostic and never tuned per
+generation; a new generation costs its rules (the engine) and its state encoder, nothing
+else, read on the same protocol — so every lever is written behind that interface, and a
+lever that only works because of a gen-1 fact is a finding about gen 1, not part of the
+system. (3) The TRUE FINAL step: human data in ANY form (replays, tapes, distillation,
+offline RL, pretraining), only after (1) and (2), with the pure-lane finals and ladder runs
+FROZEN before the first human row so the writeup can say what self-play alone reached.
 
 Standing obligations: **pin exact versions** in `pyproject.toml`; **name
 anything borrowed** in the README and in code comments; **keep secrets out of
@@ -200,7 +210,15 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   stamps `launch_git_sha` and both live readouts now say when a block spans
   commits; `tests/test_tree_decision_golden.py` answers "did my edit change the
   search?" in a second. The encoder version is part of the search — the same
-  fixture picks a different action at OBS_DIM 612 than at 828.
+  fixture picks a different action at OBS_DIM 612 than at 828. **The installed
+  extension is part of the working tree too:** `maturin develop` installs into
+  `$CONDA_PREFIX` (base in a non-activated shell — set it explicitly), and a
+  reinstall while any job in that env is still to start makes that job a
+  different program (2026-09-23; `docs/landmines.md`).
+- **`taskpolicy -b` / `nice` SENDS A PROCESS TO THE FOUR EFFICIENCY CORES at ~6.8× per
+  decision** (`docs/landmines.md`). Never nice a training lane; the two-core collector
+  (`collector.process`) and the fleet launcher REFUSE a background shell. Niced is for
+  instruments beside a fleet, and their timings are then not timings.
 - **`_look_further` WAS OPTIMISTIC and its docstring said that was fine** — a
   max over our replies with the opponent pinned inflates the rows with the most
   escape hatches, which are the rows search overrides into. Fixed 2026-09-18
@@ -238,6 +256,14 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 
 ## Conventions (they earned their place)
 
+- **STACK WHAT CANNOT BE THE SOLE SUSPECT; LAP WHAT MUST BE ISOLATED** (maintainer,
+  2026-09-23, *"make R7 the kitchen sink"*; the one-lever-per-week cadence is over). A
+  lever rides in a fleet's base only if it is a FIX, a DOSE at the same objective, or a
+  BUILT-AND-SMOKED addition with its own mechanism counter on disk; trunk/architecture
+  replacements and objective changes get their own lap against that base. A critic-side
+  lever is NOT actor-neutral in PPO (the critic sets the advantages — D18's own falsifier),
+  so it stacks only with its counter watched. The cadence changed; the anti-self-deception
+  machinery below did not.
 - **PRE-REG IS FOR LADDER RUNS AND HEADLINE CLAIMS, NOT FOR HACKING** (maintainer,
   2026-09-17, verbatim: *"pre-reg is for ladder runs. For hacking and trying ideas,
   keep going by yourself"*). An offline arm that explores an idea needs no pre-reg,
