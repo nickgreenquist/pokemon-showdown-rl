@@ -354,6 +354,11 @@ class PPOAgent(Agent):
         priv_eval_dim: int = 0,
         priv_eval_max_grad_norm: float = 0.5,
         aux_outcome_coef: float = 0.0,
+        search_targets: bool = False,
+        search_policy_coef: float = 0.0,
+        search_value_head: bool = False,
+        search_value_coef: float = 0.0,
+        search_value_blend: float = 0.0,
     ):
         # A flat obs vector or channel-first image planes, same rule as DQN.
         if not isinstance(observation_space, gym.spaces.Box) or len(observation_space.shape) not in (1, 3):
@@ -684,6 +689,70 @@ class PPOAgent(Agent):
                 "aux_outcome_coef > 0 needs trunk 'entity_deepsets': only "
                 f"EntityDeepSetsNet carries the outcome head (got trunk={trunk!r})"
             )
+        # R7 B5 (docs/proposals/R7_NATIVE_SEARCH_PLAN_2026-09-22.md §4; amendment
+        # box 3 item 3): the learner's seams for SEARCHED ROWS. The T-op (B4's
+        # collector) samples the played action from pi' and records log pi'(a)
+        # as `old_logp` -- PPO's ratio then carries the behaviour correction
+        # with NO change here -- and stores pi' and v' per searched row
+        # (`search_mask`, `search_pi`, `search_v`; rl/buffers/episode.py).
+        #
+        #   search_targets      the learner EXPECTS those rows on every episode
+        #                       (update_episodes' loud seam; rl/train.py derives
+        #                       the collector's T-op flag from it). A control lane
+        #                       is search_targets=True with both coefficients 0:
+        #                       the counters below still read, nothing trains.
+        #   search_policy_coef  beta: beta * KL(pi' || pi_theta) on searched rows,
+        #                       INSIDE `loss` (an actor term, the bc_kl precedent);
+        #                       `loss/search_policy` logs the raw KL.
+        #   search_value_head   an agent-owned aux head on the CRITIC's context
+        #                       regressing v' (amendment 2: the aux head FIRST);
+        #                       a checkpoint rider, constructed last under a
+        #                       rewound RNG (the priv_eval_head precedent).
+        #   search_value_coef   its coefficient; the gradient is applied AFTER the
+        #                       clip read and scaled by the clip's own factor (the
+        #                       outcome head's placement), so `loss/grad_norm` and
+        #                       the actor's path are untouched.
+        #   search_value_blend  w: V_target = (1-w)*GAE + w*v' on searched rows --
+        #                       the LATER dial, promoted only after
+        #                       `search/value_gap` reads; 0 leaves the target
+        #                       array bitwise untouched.
+        # Every default is the exact no-op: no module, no group, no key.
+        self.search_targets = bool(search_targets)
+        if search_policy_coef < 0.0:
+            raise ValueError(f"search_policy_coef must be >= 0, got {search_policy_coef}")
+        if search_value_coef < 0.0:
+            raise ValueError(f"search_value_coef must be >= 0, got {search_value_coef}")
+        if not 0.0 <= search_value_blend <= 1.0:
+            raise ValueError(f"search_value_blend must be in [0, 1], got {search_value_blend}")
+        self.search_policy_coef = float(search_policy_coef)
+        self.search_value_coef = float(search_value_coef)
+        self.search_value_blend = float(search_value_blend)
+        self._search_value_head_wanted = bool(search_value_head)
+        if not self.search_targets and (
+            self.search_policy_coef > 0.0 or self._search_value_head_wanted or self.search_value_blend > 0.0
+        ):
+            raise ValueError(
+                "search_policy_coef / search_value_head / search_value_blend need "
+                "search_targets=True: without searched rows the term would train on "
+                "nothing (the aux_shuffle_labels loud-seam rule)"
+            )
+        if self.search_value_coef > 0.0 and not self._search_value_head_wanted:
+            raise ValueError(
+                f"search_value_coef={search_value_coef} with search_value_head=False: "
+                "the loss has no head to train. Set both (or neither; a control lane "
+                "keeps the head at coef 0 so the checkpoint shape matches)."
+            )
+        if self._search_value_head_wanted and trunk != "entity_deepsets":
+            raise TypeError(
+                "search_value_head needs trunk 'entity_deepsets': the head reads the "
+                f"critic's context vector (got trunk={trunk!r})"
+            )
+        if self.search_value_blend > 0.0 and priv_eval_coef > 0.0:
+            raise ValueError(
+                "search_value_blend > 0 with priv_eval_coef > 0: the blend breaks the "
+                "`flat_targets - flat_advantages == critic values` identity design B's "
+                "MC read relies on"
+            )
         if self.obs_rank == 3:
             # Rank-3 obs (binary planes, today only Connect 4's) select the
             # conv net — DQN's rule, no config key. ConvQNet hardcodes ReLU,
@@ -802,6 +871,22 @@ class PPOAgent(Agent):
             self.priv_eval_head.init_head(1.0)  # a value head, the critic's gain
             self.priv_eval_head.to(self.device)
             torch.set_rng_state(rng_state)
+        # R7 B5's search-value head: ONE Linear over the critic's context (the
+        # outcome head's shape, agent-owned like priv_eval_head). Constructed
+        # under a rewound global RNG and initialised from a dedicated generator
+        # (constant 7; the aux_value_head's 411 rule), so a lane with the head
+        # and one without are bit-identical at the same seed -- actor, critic,
+        # minibatch permutations -- except for the head and its loss.
+        self.search_value_head: nn.Module | None = None
+        if self._search_value_head_wanted:
+            rng_state = torch.get_rng_state()
+            self.search_value_head = nn.Linear(self.critic.head.in_features, 1)
+            gen = torch.Generator()
+            gen.manual_seed((torch.initial_seed() * 1_000_003 + 7) % (2**63 - 1))
+            nn.init.xavier_uniform_(self.search_value_head.weight, generator=gen)
+            nn.init.zeros_(self.search_value_head.bias)
+            self.search_value_head.to(self.device)
+            torch.set_rng_state(rng_state)
         # D25-P's one lever (placebo config P1/P4). The loud seam mirrors the
         # opp_choice seam: a shuffle with no aux loss is a silent no-op and
         # means the wrong config is running.
@@ -907,6 +992,14 @@ class PPOAgent(Agent):
             self.priv_eval_params = list(self.priv_eval_head.parameters())
             self._priv_eval_group = len(groups)
             groups.append({"params": self.priv_eval_params, "lr": lr})
+        # R7 B5's head: its own group, appended LAST for B8's reason, on the
+        # critic's schedule (a value head). No group when absent.
+        self.search_value_params: list[nn.Parameter] = []
+        self._search_value_group = -1
+        if self.search_value_head is not None:
+            self.search_value_params = list(self.search_value_head.parameters())
+            self._search_value_group = len(groups)
+            groups.append({"params": self.search_value_params, "lr": lr})
         self.optimizer = torch.optim.Adam(groups, eps=1e-5)
         self._set_actor_trainable(critic_warmup_updates == 0)
         # theta0 capture, AFTER init_head()/.to(device) (so the anchors are
@@ -966,6 +1059,8 @@ class PPOAgent(Agent):
             raise ValueError("harvest_both_seats does not collect seat 2's privileged block")
         if self.antisymmetric_critic:
             raise ValueError("harvest_both_seats does not collect seat 2's second view (obs2)")
+        if self.search_targets:
+            raise ValueError("harvest_both_seats does not collect seat 2's searched rows")
         if self.aux_head is not None:
             raise ValueError("harvest_both_seats does not collect seat 2's opponent-action labels")
         self._harvest = harvest
@@ -1393,6 +1488,12 @@ class PPOAgent(Agent):
                 "only the engine collector emits: use collector.mode 'engine' "
                 "(update_episodes), not the rollout-buffer path"
             )
+        if self.search_targets:
+            raise ValueError(
+                "search_targets needs searched rows per episode (search_mask / "
+                "search_pi / search_v), which only the engine collector's T-op emits: "
+                "use collector.mode 'engine' (update_episodes), not the rollout-buffer path"
+            )
         # The same loud seam for D25: a lane carrying env_kwargs.opp_action but
         # not agent.aux_oppact_coef would collect labels nobody trains on; the
         # reverse would train the head on a buffer of zeros.
@@ -1663,6 +1764,30 @@ class PPOAgent(Agent):
                 "rl/train.py derives the collector's both_views from the agent flag"
             )
         flat_critic_obs = self._critic_input(flat_obs, flat_priv, batch["obs"], obs2)
+        # R7 B5's loud seam, the opp_choice seam's exact shape: searched rows
+        # arrive iff the agent expects them. Either half alone is a lane that
+        # claims a lever it does not run (or a T-op paying for rows nobody reads).
+        search_mask = batch.get("search_mask")
+        if (search_mask is None) == self.search_targets:
+            raise ValueError(
+                f"search-target mismatch: agent search_targets={self.search_targets} "
+                f"but the collector {'did not emit' if search_mask is None else 'emitted'} "
+                "search_mask/search_pi/search_v -- the collector's T-op flag and the "
+                "agent hparam must be set together"
+            )
+        flat_search_mask = flat_search_pi = flat_search_v = None
+        if self.search_targets:
+            flat_search_mask = torch.as_tensor(np.asarray(search_mask, dtype=np.bool_), device=self.device)
+            flat_search_pi = torch.as_tensor(batch["search_pi"], dtype=torch.float32, device=self.device)
+            flat_search_v = torch.as_tensor(batch["search_v"], dtype=torch.float32, device=self.device)
+            n_rows, n_act = flat_obs.shape[0], flat_masks.shape[1]
+            if (flat_search_mask.shape != (n_rows,) or flat_search_pi.shape != (n_rows, n_act)
+                    or flat_search_v.shape != (n_rows,)):
+                raise ValueError(
+                    f"searched-row shapes {tuple(flat_search_mask.shape)} / "
+                    f"{tuple(flat_search_pi.shape)} / {tuple(flat_search_v.shape)} != "
+                    f"({n_rows},) / ({n_rows}, {n_act}) / ({n_rows},)"
+                )
         # The outcome head's targets and its PRE-update read, off the SAME
         # no-grad pass that prices the batch (forward_with_aux shares the
         # context pass, so `values` is bit-identical to the plain forward).
@@ -1693,6 +1818,34 @@ class PPOAgent(Agent):
         )
         advantages_t = torch.as_tensor(advantages, device=self.device)
         flat_targets = advantages_t + values
+        # The MC return once, pre-update: GAE at lam=1 telescopes to R_t - V(s_t)
+        # (the design-B note below), so `realized` is the game's outcome at gamma
+        # 1 and design B's own target when its head exists. `value/*` are R7 B5
+        # (c)'s counters -- pred - realized on every row, and on the MIRROR rows
+        # (`opp_latest`: the opponent was the newest snapshot, so the truth is
+        # ~0 by seat symmetry) -- the read §31's seat shift never had, live.
+        mc_advantages = episode_gae(
+            batch["rewards"], values.cpu().numpy(), batch["lengths"], self.gamma, 1.0,
+        )
+        realized = torch.as_tensor(mc_advantages, device=self.device) + values
+        value_stats = {
+            "value/pred_mean": float(values.mean()),
+            "value/realized_mean": float(realized.mean()),
+            "value/bias": float((values - realized).mean()),
+        }
+        opp_latest = batch.get("opp_latest")
+        if opp_latest is not None:
+            mirror = torch.as_tensor(np.asarray(opp_latest, dtype=np.bool_), device=self.device)
+            value_stats["value/mirror_frac"] = float(mirror.float().mean())
+            value_stats["value/bias_mirror"] = (
+                float((values[mirror] - realized[mirror]).mean()) if bool(mirror.any()) else 0.0
+            )
+        search_stats: dict[str, float] = {}
+        if self.search_targets:
+            flat_targets, search_stats = self._search_reads(
+                flat_obs, flat_masks, flat_targets, values,
+                flat_search_mask, flat_search_pi, flat_search_v,
+            )
         # DESIGN B REGRESSES THE OUTCOME, NOT THE CRITIC'S OPINION OF IT.
         # `flat_targets` is the GAE(lambda) target, which at gamma 1 with a
         # terminal-only reward decomposes EXACTLY as
@@ -1715,16 +1868,8 @@ class PPOAgent(Agent):
         # terminal-reward broadcast would silently get wrong instead.
         flat_priv_targets = None
         if self.priv_eval_head is not None:
-            mc_advantages = episode_gae(
-                batch["rewards"],
-                values.cpu().numpy(),
-                batch["lengths"],
-                self.gamma,
-                1.0,
-            )
-            flat_priv_targets = (
-                torch.as_tensor(mc_advantages, device=self.device) + values
-            )
+            # The same array `realized` is (one GAE pass at lam=1 above).
+            flat_priv_targets = realized
         metrics = self._optimize(
             flat_obs, flat_actions, flat_masks, flat_critic_obs,
             advantages_t, flat_targets, flat_old_logp,
@@ -1733,8 +1878,73 @@ class PPOAgent(Agent):
             aux_stats=aux_stats, flat_old_values=values,
             flat_priv=flat_priv, flat_priv_targets=flat_priv_targets,
             flat_outcome_targets=flat_outcome_targets, outcome_stats=outcome_stats,
+            flat_search_mask=flat_search_mask, flat_search_pi=flat_search_pi,
+            flat_search_v=flat_search_v, search_stats={**value_stats, **search_stats},
         )
         return metrics
+
+    def _search_reads(
+        self,
+        flat_obs: torch.Tensor,
+        flat_masks: torch.Tensor,
+        flat_targets: torch.Tensor,
+        values: torch.Tensor,
+        flat_search_mask: torch.Tensor,
+        flat_search_pi: torch.Tensor,
+        flat_search_v: torch.Tensor,
+    ) -> tuple[torch.Tensor, dict[str, float]]:
+        """R7 B5's batch-level searched-row reads (pre-update, never divided)
+        and the value-target blend. `search/kl_update` is KL(pi' || pi_theta) on
+        the searched rows at UPDATE time -- G3's "student absorbing the expert"
+        read, beside the collector's act-time `search/kl_prior`;
+        `search/override_update` the fraction whose argmax differ;
+        `search/value_gap` = |v' - GAE target| (§4 item 3's read that gates the
+        blend). At `search_value_blend` 0 the target array is returned
+        UNTOUCHED (bitwise; the aux-head golden pins it)."""
+        stats: dict[str, float] = {}
+        with torch.no_grad():
+            srows = flat_search_mask
+            n_s = int(srows.sum())
+            stats["search/rows_frac"] = float(srows.float().mean())
+            stats["search/rows"] = float(n_s)
+            if n_s:
+                s_obs, s_mask, pi_p = flat_obs[srows], flat_masks[srows], flat_search_pi[srows]
+                logits = masked_logits(self.actor(s_obs), s_mask)
+                logp_theta = F.log_softmax(logits, dim=-1)
+                kl = torch.where(
+                    pi_p > 0, pi_p * (torch.log(pi_p.clamp_min(1e-30)) - logp_theta), torch.zeros_like(pi_p)
+                ).sum(-1)
+                stats["search/kl_update"] = float(kl.mean())
+                stats["search/override_update"] = float(
+                    (pi_p.argmax(-1) != logits.argmax(-1)).float().mean()
+                )
+                v_p = flat_search_v[srows]
+                stats["search/value_gap"] = float((v_p - flat_targets[srows]).abs().mean())
+                stats["search/value_gap_critic"] = float((v_p - values[srows]).abs().mean())
+                stats["search/v_mean"] = float(v_p.mean())
+            else:
+                for key in ("search/kl_update", "search/override_update", "search/value_gap",
+                            "search/value_gap_critic", "search/v_mean"):
+                    stats[key] = 0.0
+            if self.search_value_blend > 0.0 and n_s:
+                w = self.search_value_blend
+                flat_targets = torch.where(
+                    srows, (1.0 - w) * flat_targets + w * flat_search_v, flat_targets
+                )
+        return flat_targets, stats
+
+    def _search_value_pred(self, x: torch.Tensor) -> torch.Tensor:
+        """The search-value head on the critic's context -- the antisymmetric
+        pair when the critic is (v' flips sign with the seats too). A second
+        context pass over the SEARCHED rows only; the critic's own value path is
+        untouched."""
+        c = self.critic
+        if getattr(c, "antisymmetric", False):
+            a, b = c._split_views(x)
+            return 0.5 * (
+                self.search_value_head(c._context(a)[3]) - self.search_value_head(c._context(b)[3])
+            ).squeeze(-1)
+        return self.search_value_head(c._context(x)[3]).squeeze(-1)
 
     def _optimize(
         self,
@@ -1755,6 +1965,10 @@ class PPOAgent(Agent):
         flat_priv_targets: torch.Tensor | None = None,
         flat_outcome_targets: torch.Tensor | None = None,
         outcome_stats: dict[str, float] | None = None,
+        flat_search_mask: torch.Tensor | None = None,
+        flat_search_pi: torch.Tensor | None = None,
+        flat_search_v: torch.Tensor | None = None,
+        search_stats: dict[str, float] | None = None,
     ) -> dict[str, float]:
         """The epoch x minibatch optimization on a prepared flat batch, plus
         its diagnostics — everything downstream of advantage computation,
@@ -1772,6 +1986,8 @@ class PPOAgent(Agent):
                 "priv_eval_coef > 0 but no privileged block reached _optimize: "
                 "the head would train on nothing"
             )
+        if self.search_targets and (flat_search_mask is None or flat_search_pi is None or flat_search_v is None):
+            raise ValueError("search_targets but no searched rows reached _optimize")
         if (self.aux_outcome_coef > 0.0) != (flat_outcome_targets is not None):
             raise ValueError(
                 f"aux_outcome_coef={self.aux_outcome_coef} but _optimize "
@@ -1905,6 +2121,10 @@ class PPOAgent(Agent):
                 self.optimizer.param_groups[self._priv_eval_group]["lr"] = (
                     self.base_lr * frac
                 )
+            if self._search_value_group >= 0:
+                self.optimizer.param_groups[self._search_value_group]["lr"] = (
+                    self.base_lr * frac
+                )
 
         batch_size = flat_actions.shape[0]
         minibatch_size = batch_size // self.minibatches
@@ -2010,6 +2230,28 @@ class PPOAgent(Agent):
                     bc_kl = (cur_logp.exp() * (cur_logp - anchor_logp)).sum(-1).mean()
                     loss = loss + self.bc_kl_coef * bc_kl
                     sums["loss/bc_kl"] += float(bc_kl.item())
+                mb_srows = flat_search_mask[idx] if flat_search_mask is not None else None
+                if self.search_policy_coef > 0.0:
+                    # R7 B5 §4 item 2: beta * KL(pi' || pi_theta) over the searched
+                    # rows of this minibatch (a per-searched-row mean, so beta does
+                    # not scale with the searched dose), through the stored mask
+                    # (the finite sentinel makes every illegal entry's term an
+                    # exact 0 * bounded; pi' is 0 there by construction). INSIDE
+                    # `loss`: it is an actor term and it is meant to move the
+                    # actor (the bc_kl precedent). One extra actor forward over
+                    # the searched rows only. Soft target, never the argmax.
+                    if bool(mb_srows.any()):
+                        s_obs, s_mask = flat_obs[idx][mb_srows], flat_masks[idx][mb_srows]
+                        pi_p = flat_search_pi[idx][mb_srows]
+                        logp_theta = F.log_softmax(masked_logits(self.actor(s_obs), s_mask), dim=-1)
+                        search_kl = torch.where(
+                            pi_p > 0, pi_p * (torch.log(pi_p.clamp_min(1e-30)) - logp_theta),
+                            torch.zeros_like(pi_p),
+                        ).sum(-1).mean()
+                        loss = loss + self.search_policy_coef * search_kl
+                        sums["loss/search_policy"] += float(search_kl.item())
+                    else:
+                        sums["loss/search_policy"] += 0.0
 
                 self.optimizer.zero_grad()
                 # retain_graph only for D25: the aux term reuses THIS
@@ -2065,6 +2307,40 @@ class PPOAgent(Agent):
                             p.grad.add_(g, alpha=clip_scale)
                     sums["aux_outcome/grad_norm"] += math.sqrt(sq)
                     sums["aux_outcome/clip_scale"] += clip_scale
+                if self.search_value_head is not None and bool(mb_srows.any()):
+                    # R7 B5 §4 item 3, the aux head FIRST (amendment 2): MSE of
+                    # the head against v' on the searched rows, its gradient
+                    # applied AFTER the clip read and BEFORE the step, to the
+                    # critic trunk and the head only, scaled by the clip's own
+                    # factor (the outcome head's placement, for the same reason:
+                    # `loss/grad_norm`, `loss/grad_clip_frac` and the ACTOR's
+                    # path cannot move). Its own context pass, so no graph is
+                    # retained for it. At coef 0 (the control lane) the loss is
+                    # read and logged, and nothing moves.
+                    s_x = flat_critic_obs[idx][mb_srows]
+                    s_v = flat_search_v[idx][mb_srows]
+                    if self.search_value_coef > 0.0:
+                        sv_loss = F.mse_loss(self._search_value_pred(s_x), s_v)
+                        clip_scale = min(1.0, self.max_grad_norm / (float(grad_norm) + 1e-6))
+                        sv_params = [*self.critic_params, *self.search_value_params]
+                        sv_grads = torch.autograd.grad(
+                            self.search_value_coef * sv_loss, sv_params, allow_unused=True,
+                        )
+                        with torch.no_grad():
+                            sq = 0.0
+                            for p, g in zip(sv_params, sv_grads):
+                                if g is None:
+                                    continue
+                                sq += float(g.pow(2).sum())
+                                if p.grad is None:
+                                    p.grad = torch.zeros_like(p)
+                                p.grad.add_(g, alpha=clip_scale)
+                        sums["search_value/grad_norm"] += math.sqrt(sq)
+                        sums["search_value/clip_scale"] += clip_scale
+                    else:
+                        with torch.no_grad():
+                            sv_loss = F.mse_loss(self._search_value_pred(s_x), s_v)
+                    sums["loss/search_value"] += float(sv_loss.item())
                 if self.aux_head is not None:
                     # AFTER the clip read above, BEFORE the step: the aux term
                     # must not move loss/grad_norm or loss/grad_clip_frac.
@@ -2149,6 +2425,9 @@ class PPOAgent(Agent):
             # IDEAS 4.11's PRE-update per-target explained variance, batch-level
             # (never divided). Empty unless the outcome head is on.
             **(outcome_stats or {}),
+            # R7 B5: `value/*` on every episode batch; `search/*` under
+            # search_targets. Batch-level, never divided.
+            **(search_stats or {}),
         }
 
     def state_dict(self) -> dict[str, Any]:
@@ -2179,6 +2458,10 @@ class PPOAgent(Agent):
             # it through `make_agent` from the run's own config, which is how
             # every eval site already rebuilds.
             state["priv_eval_head"] = self.priv_eval_head.state_dict()
+        if self.search_value_head is not None:
+            # A rider, the priv_eval_head rule: actor/critic keep a control
+            # checkpoint's exact keys.
+            state["search_value_head"] = self.search_value_head.state_dict()
         if self.l2_init_decay > 0.0:
             # A digest, not the anchors: theta0.pt lives once in the run dir.
             # Riders are ignored by load_state_dict on purpose — an EVAL-side
@@ -2228,6 +2511,12 @@ class PPOAgent(Agent):
                 "(trunk_kwargs.value_aux_out / aux_outcome_coef). Rebuild the "
                 "agent from the run's own config."
             )
+        if state.get("search_value_head") is not None and self.search_value_head is None:
+            raise ValueError(
+                "checkpoint carries a search-value head but this agent has "
+                "search_value_head=False: the head would be dropped without a word. "
+                "Rebuild the agent from the run's own config."
+            )
         self.actor.load_state_dict(state["actor"])
         self.critic.load_state_dict(state["critic"])
         # Optimizer MOMENTS are restored onto THIS agent's param groups, and
@@ -2272,6 +2561,9 @@ class PPOAgent(Agent):
         priv_eval_state = state.get("priv_eval_head")
         if priv_eval_state is not None:
             self.priv_eval_head.load_state_dict(priv_eval_state)
+        search_value_state = state.get("search_value_head")
+        if search_value_state is not None:
+            self.search_value_head.load_state_dict(search_value_state)
 
     def begin_warm_start(self) -> None:
         """`init_from` semantics, settled 2026-08-05: a warm start is a FRESH

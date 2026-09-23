@@ -762,6 +762,13 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
             f"agent.antisymmetric_critic needs collector.mode 'engine' (collector.mode "
             f"is {mode!r}): only the engine collector emits the foe's own view (obs2)"
         )
+    # R7 B5: searched rows come from the engine collector's T-op (B4) and from
+    # nowhere else; the learner's seam would refuse a whole rollout later.
+    if bool(cfg.agent.get("search_targets", False)) and mode != "engine":
+        raise ValueError(
+            f"agent.search_targets needs collector.mode 'engine' (collector.mode is "
+            f"{mode!r}): only the engine collector's T-op emits searched rows"
+        )
     if mode == "sync":
         return "sync"
     if mode == "engine":

@@ -223,6 +223,11 @@ class EngineCollector:
         # identity so a member evicted mid-battle silently moves no counter,
         # and holding the id instead would credit a DIFFERENT member's row.
         self._seated: list[object | None] = [None] * k
+        # R7 B5 (c): per slot, was the member drawn for the CURRENT battle the
+        # pool's newest snapshot at seat time? Read at episode end -- poll()
+        # builds the episode BEFORE re-seating the slot -- and emitted as the
+        # always-on `opp_latest` row tag `value/bias_mirror` selects on.
+        self._seated_latest: list[bool] = [False] * k
         # The pool's own per-episode draw stream. One generator for the lane,
         # seeded off the lane seed: the env path draws from the env's episode
         # RNG, which does not exist here.
@@ -258,6 +263,8 @@ class EngineCollector:
         battle, never per step — the per-EPISODE rule the env path uses."""
         member = self.pool.select(self._rng)
         self._seated[slot] = member
+        members = getattr(self.pool, "members", None)
+        self._seated_latest[slot] = bool(members) and member is members[-1]
         self.env.set_member(slot, self.pool.member_id(member))
 
     # ---- the seam ---------------------------------------------------------
@@ -435,6 +442,9 @@ class EngineCollector:
             "old_logp": np.asarray(raw["old_logp"], dtype=np.float32),
             "version": np.asarray(raw["version"], dtype=np.int64),
         }
+        # Always on (no flag): a row tag, not a lever. True on every row of an
+        # episode whose seated member was the pool's newest at seat time.
+        episode["opp_latest"] = np.full(n, self._seated_latest[int(raw["slot"])], dtype=np.bool_)
         if self._opp_action:
             episode["opp_choice"] = np.asarray(raw["opp_choice"], dtype=np.int32)
         if self._privileged:

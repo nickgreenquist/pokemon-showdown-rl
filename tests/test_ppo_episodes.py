@@ -106,6 +106,9 @@ def test_update_episodes_trains_and_reports_the_locked_keys():
         "loss/policy", "loss/value", "loss/entropy", "loss/approx_kl",
         "loss/clip_frac", "loss/grad_norm", "loss/grad_clip_frac",
         "loss/explained_variance", "loss/adv_std",
+        # R7 B5 (c), always on: pred - realized per update (the seat-shift
+        # read §31 lacked); the mirror pair rides only with `opp_latest`.
+        "value/pred_mean", "value/realized_mean", "value/bias",
     }
     assert agent.updates == 1
     assert any(
@@ -436,6 +439,12 @@ def test_minibatch_tail_keep_is_bit_identical_to_the_pre_f04_agent(tail_rows):
     rng_old = torch.get_rng_state()
 
     _assert_same_weights_and_optimizer(new, old)
+    # R7 B5 (c): the always-on `value/*` counters (pred - realized) are the one
+    # metric family the pre-F-04 agent cannot carry; they touch no tensor the
+    # update consumes (weights, Adam state and RNG above are bit-identical), so
+    # the key comparison runs modulo that family and asserts it is present.
+    assert {"value/pred_mean", "value/realized_mean", "value/bias"} <= set(m_new)
+    m_new = {k: v for k, v in m_new.items() if not k.startswith("value/")}
     assert set(m_new) == set(m_old), "'keep' changed the metric keys"
     assert m_new == m_old
     assert torch.equal(rng_new, rng_old), "'keep' consumed different RNG"
@@ -791,6 +800,10 @@ def test_minibatch_tail_keep_is_bit_identical_at_the_production_shape():
     rng_old = torch.get_rng_state()
 
     _assert_same_weights_and_optimizer(new, old)
+    # R7 B5 (c)'s always-on `value/*` family, modulo which the keys are pinned
+    # (see the small-shape pin above for why).
+    assert {"value/pred_mean", "value/realized_mean", "value/bias"} <= set(m_new)
+    m_new = {k: v for k, v in m_new.items() if not k.startswith("value/")}
     assert set(m_new) == set(m_old), "'keep' changed the metric keys at mbs=256"
     assert m_new == m_old
     assert torch.equal(rng_new, rng_old), "'keep' consumed different RNG at mbs=256"

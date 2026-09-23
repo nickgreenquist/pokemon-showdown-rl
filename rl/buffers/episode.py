@@ -62,7 +62,18 @@ EPISODE_KEYS = {
 # an episode and bootstraps the terminal to 0 (`_episode_boundaries` below),
 # so the successor's block is row t+1's own and the last row's is never read —
 # the same reason `next_obs` does not exist on this path.
-OPT_KEYS = ("opp_choice", "privileged", "outcome_targets", "obs2")
+#   search_mask / search_pi / search_v   R7 B5's searched rows: `search_mask`
+#               (n,) bool says which rows the T-op searched; `search_pi` (n, A)
+#               float32 is pi' (masked, normalised, zeros on unsearched rows);
+#               `search_v` (n,) float32 is v' (0 there). The three travel
+#               TOGETHER (asserted in append) and the learner refuses a batch
+#               carrying them without `search_targets`, or vice versa.
+#   opp_latest  (n,) bool, the engine collector's always-on tag: the member
+#               seated against this episode was the pool's NEWEST snapshot at
+#               seat time -- `value/bias_mirror`'s row selector (R7 B5 (c)).
+OPT_KEYS = ("opp_choice", "privileged", "outcome_targets", "obs2",
+            "search_mask", "search_pi", "search_v", "opp_latest")
+SEARCH_KEYS = ("search_mask", "search_pi", "search_v")
 
 
 class EpisodeDataset:
@@ -95,6 +106,10 @@ class EpisodeDataset:
                 continue
             arr = episode[key]
             assert len(arr) == length, f"{key}: length {len(arr)} != {length}"
+        present = [key in episode for key in SEARCH_KEYS]
+        assert all(present) or not any(present), (
+            f"the search keys travel together: {dict(zip(SEARCH_KEYS, present))}"
+        )
         if self._episodes:
             for key in OPT_KEYS:
                 has = key in self._episodes[0]
