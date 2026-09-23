@@ -37,7 +37,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from rl.envs.engine_bank import read_bank
+from rl.envs.engine_bank import load_bank_for_env, read_bank
 from rl.selfplay.pool import SnapshotPool
 
 # The learner's rows are recorded with this many fields per D25 label; mirrors
@@ -64,6 +64,9 @@ def engine_metadata(team_bank) -> dict:
     )
     info = pkmn_gen1.build_info()
     return {
+        # Whether a lane's BatchEnv reads the bank IN PLACE (mmap, shared) or a
+        # per-lane copy -- the fleet's memory arithmetic assumes the former.
+        "bank_zero_copy": bool(info.get("bank_zero_copy", False)),
         "engine_sha": info["engine_sha"],
         "engine_options": info.get("options"),
         "zig_version": info["zig"],
@@ -214,7 +217,10 @@ class EngineCollector:
                 f"Python encoder fingerprint says c6={bool(_PY_FP['c6'])} -- both read "
                 "POKEMON_RL_ENCODER_C6 at construction/import; set it before either"
             )
-        self.bank_header, payload = read_bank(pathlib.Path(team_bank))
+        # The mmap'd bank when the extension reads buffers in place (one copy per
+        # box, not per lane: R7 plan §9 ruling 6), else the copied bytes; which
+        # one is stamped (`bank_zero_copy` in stats and engine_metadata).
+        self.bank_header, payload, self.bank_zero_copy = load_bank_for_env(pathlib.Path(team_bank))
         # `battle_counter` at CONSTRUCTION, not after: the k battles in flight
         # are drawn here, so a resumed lane that set it later would replay its
         # first k battles -- same seeds, same teams -- before it took effect.

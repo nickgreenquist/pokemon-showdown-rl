@@ -682,8 +682,12 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             from rl.envs.engine_collector import engine_metadata
 
             now = engine_metadata(cfg.collector["team_bank"])
+            # `bank_zero_copy` says HOW the bank's bytes are held (mmap'd in place
+            # or a per-lane copy), never WHICH bytes -- the sha256 check is the
+            # game's -- so a lane resumed across the reinstall that added it is the
+            # same game and must not be refused over a memory layout.
             drift = {k: (meta["engine"].get(k), v) for k, v in now.items()
-                     if meta["engine"].get(k) != v}
+                     if k != "bank_zero_copy" and meta["engine"].get(k) != v}
             if drift:
                 raise SystemExit(
                     "RESUME REFUSED: the engine block moved since this run was "

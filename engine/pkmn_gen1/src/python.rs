@@ -88,6 +88,10 @@ fn build_info(py: Python<'_>) -> PyResult<Py<PyDict>> {
     opts.set_item("calc", calc)?;
     d.set_item("options", &opts)?;
     d.set_item("crate_version", env!("CARGO_PKG_VERSION"))?;
+    // BatchEnv reads its team bank IN PLACE from any buffer (bytes, or the
+    // memoryview over the mmap'd bank file): one copy per box, not per lane.
+    // The collector keys its mmap path on this, and meta.yaml stamps it.
+    d.set_item("bank_zero_copy", true)?;
     Ok(d.into())
 }
 

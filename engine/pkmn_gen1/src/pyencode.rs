@@ -305,6 +305,7 @@ use crate::encoder::PRIV_DIM;
 use crate::env::{BatchEnv as RustBatchEnv, N_ACTIONS, Seat, TeamBank};
 use numpy::PyArray2;
 use pyo3::exceptions::PyRuntimeError;
+use pyo3::buffer::PyBuffer;
 use pyo3::types::PyDict;
 
 
@@ -342,6 +343,20 @@ where
         .map_err(|e| PyRuntimeError::new_err(format!("{what}: {e}")))
 }
 
+/// A Python buffer the team bank reads IN PLACE (bytes, or a memoryview over the
+/// read-only mmap of the bank file): zero-copy, and the buffer export pins the
+/// memory for as long as this lives.
+struct PyBankBytes(PyBuffer<u8>);
+
+impl AsRef<[u8]> for PyBankBytes {
+    fn as_ref(&self) -> &[u8] {
+        // SAFETY: the buffer is C-contiguous (checked at construction), its
+        // export keeps the memory valid while `self` lives, and nothing writes
+        // it (a bytes object is immutable; the bank mmap is opened read-only).
+        unsafe { std::slice::from_raw_parts(self.0.buf_ptr() as *const u8, self.0.len_bytes()) }
+    }
+}
+
 /// K engine battles driven together. NOT a licensed collector: no number from
 /// this is comparable to anything banked until gate A-1 passes.
 #[pyclass]
@@ -352,14 +367,18 @@ pub struct BatchEnv {
 #[pymethods]
 impl BatchEnv {
     /// `bank` is the packed payload of a `scripts/engine_team_bank.py` file
-    /// (header stripped by the caller, which is where the sha256 is checked).
+    /// (header stripped by the caller, which is where the sha256 is checked):
+    /// any object with the buffer protocol -- `bytes`, or the memoryview
+    /// `rl/envs/engine_bank.py::open_bank` returns over the mmap'd file. It is
+    /// READ IN PLACE, never copied: the buffer export keeps the memory alive
+    /// for the env's life, and an mmap'd bank is one copy per box, not per lane.
     #[new]
     #[pyo3(signature = (k, seed, tables, bank, learner_seat="p1", battle_counter=0, privileged=false, both_views=false))]
     fn new(
         k: usize,
         seed: u64,
         tables: &Tables,
-        bank: Vec<u8>,
+        bank: &Bound<'_, PyAny>,
         learner_seat: &str,
         battle_counter: u64,
         privileged: bool,
@@ -370,7 +389,11 @@ impl BatchEnv {
             "p2" => Player::P2,
             s => return Err(PyValueError::new_err(format!("learner_seat {s:?} is not p1/p2"))),
         };
-        let bank = TeamBank::new(bank).map_err(PyValueError::new_err)?;
+        let buf = PyBuffer::<u8>::get(bank)?;
+        if !buf.is_c_contiguous() {
+            return Err(PyValueError::new_err("team bank buffer is not C-contiguous"));
+        }
+        let bank = TeamBank::from_source(Box::new(PyBankBytes(buf))).map_err(PyValueError::new_err)?;
         let inner = RustBatchEnv::new(
             k, seed, tables.inner.clone(), bank, learner, battle_counter, privileged, both_views,
         )

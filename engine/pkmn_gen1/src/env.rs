@@ -448,9 +448,13 @@ impl Gen1Env {
 }
 
 /// The team bank's packed payload (`scripts/engine_team_bank.py`): pairs of two
-/// six-mon teams, eight bytes per mon.
+/// six-mon teams, eight bytes per mon. The bytes come from any source: an owned
+/// `Vec` (tests), or -- `pyencode.rs` -- a Python buffer over the bank file
+/// mmap'd read-only, so every lane on the box reads ONE copy through the page
+/// cache instead of holding its own 0.53 GB (the 2026-09-10 max-out finding;
+/// R7 plan §9 ruling 6's precondition).
 pub struct TeamBank {
-    payload: Vec<u8>,
+    payload: Box<dyn AsRef<[u8]> + Send + Sync>,
 }
 
 const BYTES_PER_MON: usize = 8;
@@ -459,21 +463,28 @@ const PAIR_BYTES: usize = TEAM_BYTES * 2;
 
 impl TeamBank {
     pub fn new(payload: Vec<u8>) -> Result<TeamBank, String> {
-        if payload.is_empty() || payload.len() % PAIR_BYTES != 0 {
-            return Err(format!(
-                "team bank payload is {} bytes, not a multiple of {PAIR_BYTES}",
-                payload.len()
-            ));
+        TeamBank::from_source(Box::new(payload))
+    }
+
+    /// Any read-only byte source; the length is checked once, here.
+    pub fn from_source(payload: Box<dyn AsRef<[u8]> + Send + Sync>) -> Result<TeamBank, String> {
+        let n = (*payload).as_ref().len();
+        if n == 0 || n % PAIR_BYTES != 0 {
+            return Err(format!("team bank payload is {n} bytes, not a multiple of {PAIR_BYTES}"));
         }
         Ok(TeamBank { payload })
     }
 
+    fn bytes(&self) -> &[u8] {
+        (*self.payload).as_ref()
+    }
+
     pub fn pairs(&self) -> usize {
-        self.payload.len() / PAIR_BYTES
+        self.bytes().len() / PAIR_BYTES
     }
 
     fn mon(&self, at: usize) -> PokemonSet {
-        let b = &self.payload[at..at + BYTES_PER_MON];
+        let b = &self.bytes()[at..at + BYTES_PER_MON];
         let min_atk = b[6] & 1 != 0;
         PokemonSet {
             species: b[0],
