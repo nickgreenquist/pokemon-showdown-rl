@@ -196,8 +196,10 @@ If we only ever get two generations, make them gen1 and gen9 — trade the clean
 > the runner's pushback, verbatim: *"I don't want another week lap: make R7 the kitchen sync and add
 > stuff to after that deserve own lever (massive arch change etc)."* What that changes in the arc:
 > **steps 8 and 10 are FOLDED INTO R7's fleet.** One stacked base — the W recipe, C6, whichever of R6's
-> two levers reads non-negative, the antisymmetric privileged critic, and anything else stackable
-> that is BUILT AND SMOKED — with the searched-vs-control arms keeping attribution for the one lever
+> two levers reads non-negative, ~~the antisymmetric privileged critic~~ *(moved to its own lap 2026-09-23,
+> plan AMENDMENT BOX 5 item 5: the search scores its leaves with the learner's own critic, so a critic that
+> reads the hidden state would set the searched lever's targets — a co-suspect, not a stackable)*, and
+> anything else stackable that is BUILT AND SMOKED — with the searched-vs-control arms keeping attribution for the one lever
 > whose prize was measured (G0's rollout oracle). One fleet, not one lever per lap. What still gets
 > its OWN lap, after that fleet: trunk / architecture replacements (attention already read: it does
 > not clear), a shared actor–critic trunk, feature crosses and temporal context (each pays the
