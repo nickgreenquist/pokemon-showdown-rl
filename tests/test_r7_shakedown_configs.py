@@ -1,6 +1,8 @@
 """R7 shakedown configs (`configs/r7_shakedown_{searched,control}.yaml`): both load,
 their anneal equals their horizon, the control is the searched lane with EXACTLY the two
-coefficients zeroed (plus its own seed / run name / seat tag), both pass rl/train.py's
+coefficients zeroed and the T-op's `play` off (plus its own seed / run name / seat tag; plan
+AMENDMENT BOX 5 item 6), the base carries NO critic that reads obs2 / priv (box 5 item 5: the
+T-op's leaf is the learner's own critic), both pass rl/train.py's
 launch-time collector checks (the search seam, the T-op's signature-derived dials) and
 build their agent (every dial refusal fires at construction, not after a rollout), and
 their seeds and seat tags collide with no other config. The counter list a smoke must
@@ -45,13 +47,16 @@ def test_both_load_with_the_anneal_equal_to_the_horizon():
         assert cfg.collector["process"] is True and cfg.agent["search_targets"] is True
 
 
-def test_the_control_is_the_searched_lane_with_exactly_the_coefficients_zeroed():
+def test_the_control_is_the_searched_lane_with_the_coefficients_zeroed_and_play_off():
     a, b = _flat(_raw(SEARCHED)), _flat(_raw(CONTROL))
     diff = {k for k in set(a) | set(b) if a.get(k) != b.get(k)}
-    assert diff == {"seed", "run_name", "env_kwargs.seat_tag", "agent.search_policy_coef", "agent.search_value_coef"}, diff
+    assert diff == {"seed", "run_name", "env_kwargs.seat_tag", "agent.search_policy_coef", "agent.search_value_coef",
+                    "collector.search.play"}, diff
     assert b["agent.search_policy_coef"] == 0.0 and b["agent.search_value_coef"] == 0.0
     assert a["agent.search_policy_coef"] > 0 and a["agent.search_value_coef"] > 0
-    assert b["collector.search"] == a["collector.search"] if "collector.search" in a else True
+    # Box 5 item 6: the control's T-op runs at the same dose and cost but never plays, so the
+    # arms differ by the whole lever (behaviour + targets), not by distillation alone.
+    assert a["collector.search.play"] is True and b["collector.search.play"] is False
 
 
 def test_the_launch_checks_and_the_agent_construction_pass():
@@ -65,7 +70,9 @@ def test_the_launch_checks_and_the_agent_construction_pass():
         assert _async_collector_mode(cfg, True) == "engine"
         obs_space, act_space = fake_spaces()
         agent = make_agent(cfg, SimpleNamespace(observation_space=obs_space, action_space=act_space))
-        assert agent.search_targets and agent.antisymmetric_critic and agent.privileged_dim == 408
+        # Box 5 item 5: the T-op scores leaves with the learner's own critic, so the base carries
+        # no critic that reads obs2 / priv (the belief read measured the observation leaf only).
+        assert agent.search_targets and not agent.antisymmetric_critic and not agent.privileged_dim
         assert (agent.search_value_head is not None)
         assert (agent.search_value_coef > 0) == (path == SEARCHED)
 

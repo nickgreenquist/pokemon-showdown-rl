@@ -1,7 +1,9 @@
-"""R7 B5 -- the learner's searched-row seams on the FLEET'S OWN CRITIC FORM
-(antisymmetric + privileged EntityDeepSetsNet) over a real engine batch, the
-pattern of tests/test_antisymmetric_seam.py. Plan amendment box 3 item 3 /
-REPLY BOX 2 §3:
+"""R7 B5 -- the learner's searched-row seams on BOTH CRITIC FORMS over a real
+engine batch, the pattern of tests/test_antisymmetric_seam.py: the plain
+observation EntityDeepSetsNet -- the FLEET'S form since plan AMENDMENT BOX 5
+item 5 took the antisymmetric privileged critic (B2) out of the base (the
+T-op scores its leaves with the learner's own critic) -- and the antisymmetric
++ privileged form B2 laps with. Plan amendment box 3 item 3 / REPLY BOX 2 §3:
 
 (b) THE AUX-HEAD GOLDEN. Three agents at one seed on one real batch:
     (i) head absent, (ii) `search_value_head` at coef 0, (iii) at coef > 0.
@@ -16,7 +18,8 @@ REPLY BOX 2 §3:
     has the engine-free version and the RED run).
 (c) `opp_latest` is emitted by the engine collector as one tag per episode
     and is MIXED under a two-member pool; `value/bias_mirror` re-derived from
-    the batch; and the free antisymmetry bonus, V(swap(s)) == -V(s) bitwise.
+    the batch; and, on the antisymmetric form only, the free antisymmetry
+    bonus, V(swap(s)) == -V(s) bitwise.
 Plus the checkpoint rider (a head-on checkpoint refuses a head-off agent; the
 reverse warm-starts with the head at init) and the blend/priv_eval refusal.
 
@@ -51,7 +54,9 @@ from rl.envs.showdown import OBS_DIM, PRIV_DIM, N_ACTIONS, fake_spaces
 from rl.networks.entity_deepsets import ACTOR_PARAM_CEILING
 from rl.selfplay.pool import SnapshotPool
 
-BANK = sys.argv[1]
+BANK, FORM = sys.argv[1], sys.argv[2]
+assert FORM in ("plain", "anti"), FORM
+ANTI = FORM == "anti"
 assert ACTOR_PARAM_CEILING == 681_994, ACTOR_PARAM_CEILING  # K2's pin, unchanged by B5
 TRUNK_KWARGS = dict(species_vocab=152, move_vocab=166, embed_dim=16, entity_dim=32,
                     pool="max", ctx_sizes=[64], scorer_sizes=[64], value_sizes=[64])
@@ -63,14 +68,17 @@ def make_agent(seed=0, minibatches=2, **kw):
                     gae_lambda=0.95, rollout_steps=8, epochs=1, minibatches=minibatches,
                     clip_eps=0.2, entropy_coef=0.01, value_coef=0.5, max_grad_norm=0.5,
                     hidden_sizes=[64, 64], trunk="entity_deepsets", trunk_kwargs=TRUNK_KWARGS,
-                    antisymmetric_critic=True, privileged_dim=PRIV_DIM, search_targets=True, **kw)
+                    antisymmetric_critic=ANTI, privileged_dim=PRIV_DIM if ANTI else 0, search_targets=True, **kw)
 
-# ---- one real batch, the fleet's critic form, a two-member pool -------------
+# ---- one real batch, a two-member pool; the collector's flags follow the agent
+# exactly as rl/train.py sets them (privileged/both_views only for B2's form) ----
 seed_agent = make_agent()
 pool = SnapshotPool(pool_size=4, latest_prob=0.7)
 pool.push(seed_agent); pool.push(seed_agent)
 c = EngineCollector(seed_agent.act_logp, pool, seed=4242, k=16, team_bank=BANK,
-                    privileged=True, both_views=True)
+                    privileged=bool(getattr(seed_agent, "privileged_block_dim", 0)),
+                    both_views=bool(getattr(seed_agent, "antisymmetric_critic", False)))
+assert (seed_agent.antisymmetric_critic, bool(seed_agent.privileged_dim)) == (ANTI, ANTI)
 c.seam.version = 0
 c.start(n_battles=10_000)
 ds = EpisodeDataset(); polls = 0; n_eps = 0; n_latest = 0
@@ -228,10 +236,14 @@ assert float((ratio[m] - 1).abs().max()) > 1e-3
 # ---- (c) bias_mirror from the real tag; the antisymmetry bonus -------------
 agent = make_agent()
 with torch.no_grad():
-    x = agent._critic_input(torch.as_tensor(batch["obs"]), torch.as_tensor(batch["privileged"]), batch["obs"], batch["obs2"])
+    x = (agent._critic_input(torch.as_tensor(batch["obs"]), torch.as_tensor(batch["privileged"]), batch["obs"], batch["obs2"])
+         if ANTI else agent._critic_input(torch.as_tensor(batch["obs"]), None, batch["obs"], None))
     values = agent.critic(x).squeeze(-1)
-    swap = torch.cat([x[:, OBS_DIM:2 * OBS_DIM], x[:, :OBS_DIM], x[:, 2 * OBS_DIM + PRIV_DIM:], x[:, 2 * OBS_DIM:2 * OBS_DIM + PRIV_DIM]], 1)
-    assert torch.equal(agent.critic(swap).squeeze(-1), -values), "V(swap(s)) != -V(s)"
+    if ANTI:
+        swap = torch.cat([x[:, OBS_DIM:2 * OBS_DIM], x[:, :OBS_DIM], x[:, 2 * OBS_DIM + PRIV_DIM:], x[:, 2 * OBS_DIM:2 * OBS_DIM + PRIV_DIM]], 1)
+        assert torch.equal(agent.critic(swap).squeeze(-1), -values), "V(swap(s)) != -V(s)"
+    else:
+        assert x.shape[1] == OBS_DIM, ("the plain critic must read our observation only", x.shape)
 realized = episode_gae(batch["rewards"], values.numpy(), batch["lengths"], 1.0, 1.0) + values.numpy()
 mirror = batch["opp_latest"]
 mm = agent.update_episodes(batch, steps_seen=0)
@@ -245,15 +257,16 @@ try:
     raise SystemExit("blend + priv_eval was accepted")
 except ValueError as e:
     assert "identity" in str(e), e
-print(f"OK search seams (engine): {n} rows, {n_eps} episodes ({n_latest} vs latest), "
+print(f"OK search seams (engine, {FORM} critic): {n} rows, {n_eps} episodes ({n_latest} vs latest), "
       f"{int(batch['search_mask'].sum())} searched; golden arrays bitwise across absent/coef0/coef")
 """
 
 
 @pytest.mark.skipif(not BANKS, reason="no team bank built yet")
-def test_the_search_seams_hold_on_the_fleets_critic_form_over_a_real_batch():
+@pytest.mark.parametrize("form", ["plain", "anti"])
+def test_the_search_seams_hold_on_both_critic_forms_over_a_real_batch(form):
     r = subprocess.run(
-        [sys.executable, "-c", _CHILD, BANKS[0]],
+        [sys.executable, "-c", _CHILD, BANKS[0], form],
         capture_output=True, text=True, timeout=1500, cwd=ROOT,
         env={**os.environ, "POKEMON_RL_ENCODER_V2": "1", "POKEMON_RL_ENCODER_IDS": "1"},
     )

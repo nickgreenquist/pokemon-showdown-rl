@@ -13,7 +13,12 @@
 # BASE (pending the 2026-09-25 R6 read): the W recipe + C6 + trio A's outcome heads
 # (aux_outcome_coef 0.1 / value_aux_out 3 / collector.outcome_targets) -- REPLACE with trio
 # B's ×4-batch fallback form, or drop both, per whichever reads non-negative on 09-25 --
-# + the antisymmetric privileged critic (R7 B2). The R7 lever on top of the base:
+# -- and NOT the antisymmetric privileged critic (R7 B2): OUT of the base by AMENDMENT BOX 5
+# item 5. The T-op scores its leaves with the learner's OWN critic (native.critic_value_fn), so
+# a critic that reads obs2 / priv would put the TRUE world's hidden state and the foe's own view
+# into every searched target -- a fusion channel inside the lever under test that the belief
+# read never measured (it measured the observation leaf only). B2 laps after, with its own
+# fusion read. The R7 lever on top of the base:
 #   collector.process: true          B4 -- the two-core lane (child-process collector)
 #   collector.search: {...}          B4b -- the T-op's dials, SET FROM THE G0 SWEEP
 #                                    (readouts/R7_G0_READOUT.md: k 4, S 2, tau 0.05; 10%
@@ -23,8 +28,10 @@
 #   agent.search_policy_coef 0.1     beta * KL(pi' || pi_theta) on searched rows
 #   agent.search_value_head: true    the v' aux head on the critic's context
 #   agent.search_value_coef 0.1      its coefficient (the GAE blend w stays 0)
-# The CONTROL lane (r7_shakedown_control.yaml) is this file with the two coefficients at 0:
-# the T-op still runs and records (matched dose), nothing trains on it.
+# The CONTROL lane (r7_shakedown_control.yaml) is this file with the two coefficients at 0 AND
+# `play: false` (AMENDMENT BOX 5 item 6): the T-op still runs and records at the same dose and
+# cost, but neither plays (the behaviour stays pi_theta) nor trains -- so the arms differ by the
+# WHOLE lever (searched behaviour + distilled targets + the v' head), not by distillation alone.
 #
 # COUNTERS that must be non-zero and moving in history.csv (tests/test_r7_shakedown_configs.py
 # derives the list from the objects, never types it): search/* (searched_frac, kl_prior,
@@ -77,8 +84,6 @@ agent:
   aux_head_gain: 0.01
   aux_max_grad_norm: 0.5
   aux_outcome_coef: 0.1    # BASE (trio A) -- pending the 09-25 read
-  antisymmetric_critic: true   # R7 B2: V = 1/2 (f(obs) - f(obs2)), both views from the engine
-  privileged_dim: 408          # the privileged block (PRIV_DIM at gen 1), both seats
   search_targets: true         # R7 B5
   search_policy_coef: 0.1      # beta
   search_value_head: true
