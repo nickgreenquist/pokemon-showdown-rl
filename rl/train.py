@@ -6,6 +6,7 @@ import argparse
 import importlib.metadata
 import random
 import subprocess
+import os
 import time
 from collections import defaultdict
 from dataclasses import asdict
@@ -708,7 +709,13 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
 
 
 ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs",
-               "outcome_targets"}  # IDEAS 4.11 (R6 trio A): the critic's three terminal targets
+               "outcome_targets",  # IDEAS 4.11 (R6 trio A): the critic's three terminal targets
+               # R7 B4: `process: true` runs the engine collector, the pool and the
+               # policy copy in a CHILD PROCESS on a second core
+               # (rl/envs/engine_collector_proc.py); `max_steps_ahead` is the
+               # backpressure bound (default one rollout budget); `pause_on_update`
+               # restores the stop-the-world cadence for a control lane.
+               "process", "max_steps_ahead", "pause_on_update"}
 ASYNC_KEYS = {"mode", "concurrency"}
 
 
@@ -993,7 +1000,37 @@ def _async_loop(
     # are drawn at construction, so a restored `battle_counter` has to be in
     # hand by then or the resume replays the run's first k battles.
     rs = resume_state or {}
-    if mode == "engine":
+    if mode == "engine" and cfg.collector.get("process", False):
+        # R7 B4: the two-core lane. The engine collector, the pool and a copy
+        # of the policy live in a child process; the learner ships weights
+        # after every update and never stops collection (the module
+        # docstring). The pool object built above seeds the child's pool
+        # (`pool.state_dict()`, so a resume's restored members travel too)
+        # and is NOT pushed to again in this process -- every pool site below
+        # goes through the collector's RPCs.
+        from dataclasses import asdict
+
+        from rl.envs.engine_collector_proc import ProcCollector
+
+        if pool is None:
+            raise ValueError("collector.process needs selfplay.opponent 'self' (a pool)")
+        collector = ProcCollector(
+            asdict(cfg), agent, pool,
+            seed=cfg.seed,
+            k=cfg.collector.get("k", 256),
+            team_bank=cfg.collector["team_bank"],
+            learner_seat=cfg.collector.get("learner_seat", "p1"),
+            opp_action=opp_action,
+            privileged=bool(getattr(agent, "privileged_block_dim", 0)),
+            both_views=bool(getattr(agent, "antisymmetric_critic", False)),
+            battle_counter=int(rs.get("battle_counter", 0)),
+            outcome_targets=bool(cfg.collector.get("outcome_targets", False)),
+            max_steps_ahead=int(cfg.collector.get("max_steps_ahead", 0) or budget),
+            torch_threads=cfg.torch_threads,
+            pause_on_update=bool(cfg.collector.get("pause_on_update", False)),
+            allow_background_qos=bool(os.environ.get("POKEMON_RL_ALLOW_BACKGROUND_QOS")),
+        )
+    elif mode == "engine":
         # In-process pkmn/engine, no server (plan §8.1). Same seam, same
         # cadences, same metric names — only where transitions come from
         # differs. NOT LICENSED until gate A-1.
@@ -1060,9 +1097,16 @@ def _async_loop(
         collector.pause()
         collect_sec += time.perf_counter() - collect_mark
 
+    proc = hasattr(collector, "ship_weights")  # R7 B4's two-core lane
+
     def resume() -> None:
         nonlocal collect_mark
-        collector.resume(version=agent.updates)
+        if proc:
+            # The weights travel with the version (a no-op when the version
+            # did not move: eval and checkpoint pauses).
+            collector.ship_weights(agent, agent.updates)
+        else:
+            collector.resume(version=agent.updates)
         collect_mark = time.perf_counter()
 
     def save_latest() -> None:
@@ -1072,7 +1116,12 @@ def _async_loop(
         # consuming their generator draws on POKE_LOOP while we sit here — an
         # unfenced state_dict() would read generator states mid-draw. The
         # learner's own state needs no fence (no decision is in flight).
-        pool_state = None if pool is None else collector.run_in_loop(pool.state_dict)
+        if pool is None:
+            pool_state = None
+        elif proc:
+            pool_state = collector.pool_state()
+        else:
+            pool_state = collector.run_in_loop(pool.state_dict)
         # The engine lane's battle sequence is `splitmix64(lane_seed * PHI ^
         # battle_counter)`, so without the counter a resume replays the run's
         # first K battles — same teams, same seeds, silently. Nothing else in
@@ -1163,9 +1212,13 @@ def _async_loop(
                 collect_sec, update_sec = 0.0, 0.0
                 if pool is not None:
                     sp_metrics = {}
-                    stats0, stats_last = collector.run_in_loop(
-                        lambda: (list(pool.stats[0]), list(pool.stats[-1]))
-                    )
+                    if proc:
+                        stats0, stats_last, pool_len = collector.pool_stats()
+                    else:
+                        stats0, stats_last = collector.run_in_loop(
+                            lambda: (list(pool.stats[0]), list(pool.stats[-1]))
+                        )
+                        pool_len = len(pool)
                     score, games = stats0
                     if games:
                         sp_metrics["selfplay/winrate_anchor"] = score / games
@@ -1176,8 +1229,12 @@ def _async_loop(
                     if sp_metrics:
                         logger.log(sp_metrics, step)
                     if updates_done % push_every == 0:
-                        collector.run_in_loop(pool.push, agent)
-                        logger.log({"selfplay/pool_size": len(pool)}, step)
+                        if proc:
+                            pool_len = collector.push(agent)
+                        else:
+                            collector.run_in_loop(pool.push, agent)
+                            pool_len = len(pool)
+                        logger.log({"selfplay/pool_size": pool_len}, step)
                 if updates_done % SAVE_LATEST_EVERY_UPDATES == 0:
                     # Still paused, after this boundary's push, before
                     # resume(): learner, counters and pool in the payload all
