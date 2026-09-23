@@ -13486,3 +13486,29 @@ line numbers are not — grep the date, then read that region):
   three R6 finals, each seeding one searched and one control lane, +100M on a reduced-LR re-armed anneal; the N-ANNEAL
   convention suspended and disclosed), R-F2 width (3 + 3 if B0 passes six-wide, else 3 + 2), R-F3 horizon (+100M). G1b
   at ~1,500/2,500 on its true-world re-runs (still reproducing G1's rows), belief arms next; ETA ~02:30Z.
+
+- 2026-09-23 23:00Z (agent, R7 runner) — **G2 BUILT; the warm start's θ0 path and the B0 bench readied for
+  Friday.** All on the branch, every test green. (1) G2 (`54c2f40`): `rl/search/lop.py::NativeLOp`, the L-op on a
+  LIVE poke-env battle — B worlds from `sample_determinization`, built by B6's `build_root` (refusals counted by
+  family; a world whose our-side mask disagrees with poke-env's counted), the committee's prior on each world's foe
+  view, `native.solve`, PIMC, the gated soft best response, self-checked against native's π′ on every world (the check
+  caught a prior-renormalisation difference on its first run). Its greedy is `EnsembleAgent`'s over the same members,
+  so against the `ensemble_seat` anchor the comparison isolates the search (test: gate shut = the anchor's action on
+  every harvested decision). `scripts/ch3_fp_h2h.py` gains the `native_seat` kind (engine env; never imports
+  `SearchAgent`) with its own report branch. `configs/eval/r7_g2.yaml` is the DRAFT pre-reg: G2G (the R5 committee
+  greedy, control first) vs G2L (B 8, k 4, S 2, τ 0.05, gate 0.01), n 3,000 each off FP@20, the credit line verbatim,
+  R0 gates, and why a non-clear at this budget is not JOURNEY 14's real-budget null. On 150 harvested self-play
+  decisions the operator overrides 6.0% and builds 96% of its worlds (the refusals are transformed-Ditto roots, as in
+  R1-E); a live two-battle smoke against a local RandomPlayer (no Foul Play) built every world and overrode nothing —
+  lopsided positions saturate the values, confirmed benign by the harvest probe. (2) `7014f11`: `init_from` + the W
+  recipe's L2-toward-init lever used to be refused (the anchors are not in a checkpoint); a warm start now installs
+  the DONOR's θ0 from its run dir, checked against the digest the donor's checkpoint carries, re-installed on resume
+  (test: in place, the decay pulls toward the donor's anchors exactly, three refusals). It inherits one constraint,
+  written into box 6: an outcome head cannot be added to a head-off checkpoint, so a base that keeps trio A's heads
+  warm-starts from trio A's finals. (3) `f640049`: the B0 bench's pass line (3.6 ms p99 six-wide) is now read at the
+  fleet's configuration — one view (box 5 item 5) at k 4 (the sweep's cell) — moved before the bench ever ran for a
+  verdict; its six-wide verdict also decides R-F2. (4) G1b: the true-world re-runs reproduce G1's rows 2,500/2,500 on
+  all three arms (lop_p1, lop_p2, greedy_greedy); the belief arms are at 100/2,500 each, 7.4 battles/min, override
+  ~0.08, 181 ms per searched decision niced, no world refused; ETA ~04:20Z against the last trio A lane's ~04:35–05:00Z
+  (the guard cuts them at fleet end if they are late; the rows are resume-safe). Box 6 gains R-G2 (G2's ratification
+  and WHEN). Nothing pushed since `a35ff9b` (branch) / `67f3d30` (main).

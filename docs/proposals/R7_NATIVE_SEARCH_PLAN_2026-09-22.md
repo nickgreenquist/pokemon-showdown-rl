@@ -357,6 +357,14 @@ on a 14-core laptop, CPU only, pure self-play.
 > the compounding read); then G2's L-op on the fleet's best object — JOURNEY 14's exit condition. The pre-reg
 > (`configs/r7_fleet_{searched,control}.yaml` headers) is written after R-F1 and R-F2 are ruled, then two Opus reviews (the
 > irreversible-artifact rule); the maintainer launches (over 5 h).
+> **R-G2 — G2 IS BUILT; its pre-reg is a DRAFT awaiting ratification** (`configs/eval/r7_g2.yaml`, branch `54c2f40`): the
+> L-op on a live battle (`rl/search/lop.py::NativeLOp` — B6's bridge + the determinizer, PIMC over B = 8 worlds, the gated
+> soft best response; its greedy is EnsembleAgent's over the same members, so G2L − G2G isolates the search) as a
+> `native_seat` arm of the FP harness, vs the committee greedy, n 3,000 each off FP@20, the credit line verbatim. Offline on
+> 150 harvested self-play decisions it overrides 6.0%, builds 96% of its worlds (transformed-Ditto refusals only); a live
+> two-battle smoke through the server built every world. The ruling owed is WHEN: the idle box before the fleet (~4–5 h of
+> quiet box; it informs the R6 ladder object) or after it. And the honest scope, in the pre-reg: depth 1 at B = 8 is the
+> L-op's FIRST budget, not JOURNEY 14's real-budget null.
 
 ## 0. The bet in one paragraph
 
