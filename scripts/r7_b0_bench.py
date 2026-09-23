@@ -16,17 +16,23 @@ does for each:
      256-row minibatches through the same actor and critic, `torch_threads: 1`),
      so every lane occupies two threads exactly as the async two-core lane will.
      A `--widths 1` run is a disclosure row, never the number.
-  4. BOTH VIEWS on by default (the antisymmetric critic reads the acting seat's
-     view and the foe's own view of every leaf: two encodes, one 2N-row forward).
+  4. THE FLEET'S CRITIC FORM: ONE VIEW by default (corrected 2026-09-23, BEFORE
+     the bench ever ran for a verdict: plan AMENDMENT BOX 5 item 5 took B2's
+     antisymmetric critic out of the fleet's base, so the T-op's leaf reads the
+     acting seat's view only). `--both-views` (the antisymmetric form: two
+     encodes, one 2N-row forward) is now the DISCLOSURE ROW, for B2's own lap.
   5. Reports per-decision p50 AND p99 per lane; the fleet number is the SLOWEST
      lane's p99, because a fleet is gated by its slowest lane.
   6. The four components separately: (i) engine + tracker + encoder (the Rust
      loop's own clock, `rust_ns`), (ii) PyO3 crossing + numpy construction
      (expand wall minus (i)), (iii) critic forward, (iv) the root solve.
   7. PASS LINE, pre-stated: p99 TOTAL per decision at SIX-wide, normal QoS,
-     torch_threads 1, both views <= 2 x the plan's table = 2 x 1.8 ms = 3.6 ms
-     (plan §5). Outside that, the T-op is a lane and not a fleet, and §5 must be
-     rewritten before B4.
+     torch_threads 1, <= 2 x the plan's table = 2 x 1.8 ms = 3.6 ms (plan §5).
+     Outside that, the T-op is a lane and not a fleet. The budget is unchanged;
+     the CONFIGURATION it is read at moved to the fleet's own before any run:
+     one view (item 4) at `--cols 4` (the G0 sweep's cell, box 4 item 3 -- the
+     plan's table assumed 3). The six-wide verdict also decides box 6's R-F2
+     (3 + 3 six-wide, or 3 + 2).
 
 The operator shape is the plan's T-op row: every legal row for the acting seat
 x up to `--cols` opponent replies x `--chance` samples (~6.7 x 3 x 2 ~= 40
@@ -191,7 +197,7 @@ def lane(args, lane_id: int, width: int, out_q: mp.Queue, stop: mp.Event) -> Non
             seed_base = int(rng.integers(0, 2**63 - 1))
 
             t0 = time.perf_counter_ns()
-            e = node.expand(tables, "p1", cells, seed_base, both_views=not args.single_view)
+            e = node.expand(tables, "p1", cells, seed_base, both_views=args.both_views)
             t1 = time.perf_counter_ns()
             n = e["n"]
             live = e["terminal"] == 0
@@ -199,7 +205,7 @@ def lane(args, lane_id: int, width: int, out_q: mp.Queue, stop: mp.Event) -> Non
                 if args.privileged:
                     x = torch.from_numpy(np.concatenate([e["obs"], e["priv"]], 1))
                     v = critic(x).squeeze(-1).numpy()
-                elif args.single_view:
+                elif not args.both_views:
                     v = critic(torch.from_numpy(e["obs"])).squeeze(-1).numpy()
                 else:
                     # The antisymmetric form: V = 1/2 (f(obs1) - f(obs2)), one
@@ -282,10 +288,11 @@ def main() -> None:
     ap.add_argument("--decisions", type=int, default=2000, help="timed decisions per lane")
     ap.add_argument("--warmup", type=int, default=200, help="untimed decisions per lane first")
     ap.add_argument("--k", type=int, default=8, help="battles in flight per lane (the fleet's k)")
-    ap.add_argument("--cols", type=int, default=3, help="opponent replies searched (top-k stand-in)")
+    ap.add_argument("--cols", type=int, default=4, help="opponent replies searched (top-k stand-in; 4 = the G0 sweep's cell)")
     ap.add_argument("--chance", type=int, default=2, help="chance samples per cell")
     ap.add_argument("--torch-threads", type=int, default=1)
-    ap.add_argument("--single-view", action="store_true", help="DISCLOSURE ROW: one encode, one forward")
+    ap.add_argument("--both-views", action="store_true",
+                    help="DISCLOSURE ROW: B2's antisymmetric form (two encodes, one 2N-row forward); the fleet reads one view")
     ap.add_argument("--privileged", action="store_true", help="DISCLOSURE ROW: the 408-block critic (obs || priv)")
     ap.add_argument("--no-learner-load", action="store_true", help="DISCLOSURE ROW: one thread per lane")
     ap.add_argument("--bank", default=None, help="team bank (default: the smallest under data/engine)")
@@ -330,7 +337,7 @@ def main() -> None:
     }
     print(f"[{tag}] {stamp} sha {sha}{' DIRTY' if dirty else ''} qos={info['qos']} "
           f"cores P{info['cores']['performance']}/E{info['cores']['efficiency']} torch_threads={args.torch_threads} "
-          f"both_views={not args.single_view} privileged={args.privileged} learner_load={not args.no_learner_load}")
+          f"both_views={args.both_views} privileged={args.privileged} learner_load={not args.no_learner_load}")
     for w in args.widths:
         t0 = time.time()
         r = run_width(args, w)
@@ -346,12 +353,12 @@ def main() -> None:
                   f"{ln['rust']['p99_ms']:>9.3f} {ln['glue']['p99_ms']:>9.3f} {ln['critic']['p99_ms']:>11.3f} "
                   f"{ln['solve']['p99_ms']:>10.3f} {ln['leaves_mean']:>7.1f}")
     six = next((r for r in info["widths"] if r["width"] == 6), None)
-    if six is not None and not args.smoke and not args.single_view and not args.privileged \
-            and not args.no_learner_load and args.torch_threads == 1:
+    if six is not None and not args.smoke and not args.both_views and not args.privileged \
+            and not args.no_learner_load and args.torch_threads == 1 and args.cols == 4:
         verdict = "PASS" if six["fleet_p99_ms"] <= PASS_LINE_MS else "FAIL"
         info["verdict"] = {"read": verdict, "fleet_p99_ms_at_6": six["fleet_p99_ms"], "pass_line_ms": PASS_LINE_MS,
-                           "rule": "p99 total per decision at six-wide, normal QoS, torch_threads 1, both views, "
-                                   "learner load on, <= 2 x the plan's 1.8 ms"}
+                           "rule": "p99 total per decision at six-wide, normal QoS, torch_threads 1, the fleet's "
+                                   "one-view critic at cols 4, learner load on, <= 2 x the plan's 1.8 ms"}
         print(f"\nVERDICT {verdict}: six-wide fleet p99 {six['fleet_p99_ms']:.3f} ms vs pass line {PASS_LINE_MS:.1f} ms "
               f"(2 x plan §5's {PLAN_TABLE_MS} ms)")
     else:
