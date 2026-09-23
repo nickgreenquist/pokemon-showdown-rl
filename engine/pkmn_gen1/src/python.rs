@@ -665,6 +665,36 @@ impl PyBattleSpec {
     fn from_visible(b: &PyBattle) -> PyBattleSpec {
         PyBattleSpec { inner: spec::BattleSpec::from_visible(&b.inner) }
     }
+
+    /// One side, as a `SideSpec` copy.
+    fn side(&self, seat: &str) -> PyResult<PySideSpec> {
+        Ok(PySideSpec {
+            inner: match player(seat)? {
+                Player::P1 => self.inner.p1,
+                Player::P2 => self.inner.p2,
+            },
+        })
+    }
+
+    /// The same spec with one side replaced -- the engine->engine resample
+    /// (R7 B1b): our side stays `from_visible`'s, the foe's is a belief draw.
+    fn with_side(&self, seat: &str, side: PySideSpec) -> PyResult<PyBattleSpec> {
+        let mut inner = self.inner;
+        match player(seat)? {
+            Player::P1 => inner.p1 = side.inner,
+            Player::P2 => inner.p2 = side.inner,
+        }
+        Ok(PyBattleSpec { inner })
+    }
+
+    #[getter]
+    fn seed(&self) -> u64 {
+        self.inner.seed
+    }
+    #[getter]
+    fn turn(&self) -> u16 {
+        self.inner.turn
+    }
 }
 
 /// **W-VALIDATE** on 384 arbitrary bytes, because `Battle.from_bytes` accepts

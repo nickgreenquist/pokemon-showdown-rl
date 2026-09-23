@@ -11,9 +11,10 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-use crate::battle::Battle;
+use crate::battle::{Battle, Player};
 use crate::encoder::{OBS_DIM, PRIV_DIM};
 use crate::env::N_ACTIONS;
+use crate::observe::{ObservableState, SeatState};
 use crate::pyencode::{Tables, rows2};
 use crate::python::{PyBattle, player, request, request_to_py};
 use crate::search::{Cell, LeafBatch as RustLeafBatch, Node, Render};
@@ -21,6 +22,60 @@ use crate::search::{Cell, LeafBatch as RustLeafBatch, Node, Render};
 #[pyclass(name = "SearchNode")]
 pub struct SearchNode {
     pub(crate) inner: Node,
+}
+
+fn seat_to_py<'py>(py: Python<'py>, s: &SeatState) -> PyResult<Bound<'py, PyDict>> {
+    let d = PyDict::new(py);
+    let team = pyo3::types::PyList::empty(py);
+    for m in s.team.iter().filter(|m| m.present) {
+        let md = PyDict::new(py);
+        md.set_item("species", m.species)?;
+        md.set_item("base_stats", m.base_stats.to_vec())?;
+        md.set_item("type_1", m.type_1.map(|t| t as i64).unwrap_or(-1))?;
+        md.set_item("type_2", m.type_2.map(|t| t as i64).unwrap_or(-1))?;
+        md.set_item("hp", m.hp_fraction)?;
+        md.set_item("fainted", m.fainted)?;
+        md.set_item("is_active", m.is_active)?;
+        md.set_item("status", m.status)?;
+        md.set_item("level", m.level)?;
+        team.append(md)?;
+    }
+    d.set_item("team", team)?;
+    d.set_item("active_slot", s.active_slot)?;
+    d.set_item("boosts", s.active.boosts.to_vec())?;
+    d.set_item("volatiles", s.active.volatiles.to_vec())?;
+    d.set_item("status_counter", s.active.status_counter)?;
+    d.set_item("preparing", s.active.preparing)?;
+    let moves = pyo3::types::PyList::empty(py);
+    for mv in s.moves.iter().filter(|m| m.present) {
+        let vd = PyDict::new(py);
+        vd.set_item("id", mv.id)?;
+        vd.set_item("prob", mv.prob)?;
+        vd.set_item("pp", mv.pp)?;
+        vd.set_item("max_pp", mv.max_pp)?;
+        moves.append(vd)?;
+    }
+    d.set_item("moves", moves)?;
+    Ok(d)
+}
+
+fn state_to_py<'py>(py: Python<'py>, st: &ObservableState) -> PyResult<Bound<'py, PyDict>> {
+    let d = PyDict::new(py);
+    d.set_item("turn", st.turn)?;
+    d.set_item("force_switch", st.force_switch)?;
+    d.set_item("trapped", st.trapped)?;
+    d.set_item("aliased", st.aliased)?;
+    d.set_item("own", seat_to_py(py, &st.own)?)?;
+    d.set_item("opp", seat_to_py(py, &st.opp)?)?;
+    Ok(d)
+}
+
+#[allow(dead_code)]
+fn _seat_name(p: Player) -> &'static str {
+    match p {
+        Player::P1 => "p1",
+        Player::P2 => "p2",
+    }
 }
 
 fn cells_from_py(cells: Vec<(i32, i32, u32)>) -> Vec<Cell> {
@@ -82,6 +137,63 @@ impl SearchNode {
     /// Reveal order of `seat`'s party as its FOE sees it (party indices).
     fn revealed(&self, seat: &str) -> PyResult<Vec<u8>> {
         Ok(self.inner.tracker.side(player(seat)?).reveal_order().to_vec())
+    }
+
+    /// The OBSERVABLE state for `seat`, as the nested dict `Tables.encode`
+    /// reads (`pyencode.rs::parse_state`): `turn`, `force_switch`, `trapped`,
+    /// `aliased`, and `own` / `opp` seats with `team` (present mons only, in
+    /// party order for `own` and REVEAL order for `opp`), `active_slot`,
+    /// `boosts` (7, encoder order), `volatiles` (7), `status_counter`,
+    /// `preparing`, `moves` (`id`, `prob`, `pp`, `max_pp`). This is the input
+    /// the engine->engine resample (build B1b) reads; `Tables.encode(view) ==
+    /// obs` bitwise, by construction.
+    fn view<'py>(&self, py: Python<'py>, tables: &Tables, seat: &str) -> PyResult<Bound<'py, PyDict>> {
+        let st = self.inner.state(player(seat)?, &tables.inner);
+        state_to_py(py, &st)
+    }
+
+    /// What `seat`'s FOE has been shown of `seat`'s party, from the projection:
+    /// one entry per revealed member in REVEAL order --
+    /// `(party_index, revealed_move_ids, observed_uses, sleep_turns_observed)`.
+    /// A resampled world keeps revealed members at their true party indices
+    /// so this projection stays valid over the new bytes.
+    fn revealed_moves(&self, seat: &str) -> PyResult<Vec<(u8, Vec<u8>, Vec<u8>, u8)>> {
+        let tr = self.inner.tracker.side(player(seat)?);
+        Ok(tr
+            .reveal_order()
+            .iter()
+            .map(|&p| {
+                let i = p as usize;
+                (p, tr.revealed_moves(i).to_vec(), tr.move_uses(i).to_vec(), tr.sleep_observed(i))
+            })
+            .collect())
+    }
+
+    /// The ACTIVE slot's identity for `seat`: `(species, (type_1, type_2))`
+    /// as the cartridge stores them -- under Transform the copied target,
+    /// otherwise the party member's own. A client sees this (the `|-transform|`
+    /// line), so a resample may carry it.
+    fn active_identity(&self, seat: &str) -> PyResult<(u8, (u8, u8))> {
+        let a = self.inner.battle.side(player(seat)?).active();
+        Ok((a.species(), a.types()))
+    }
+    /// The active slot's LIVE move slots `(id, pp)` for `seat` -- our own are
+    /// known exactly; the foe's are hidden except under Transform, where they
+    /// are copies of OUR active's moves.
+    fn active_moves(&self, seat: &str) -> PyResult<Vec<(u8, u8)>> {
+        Ok(self.inner.battle.side(player(seat)?).active().moves().to_vec())
+    }
+    /// The active slot's current stats `(hp, atk, def, spe, spc)` for `seat`.
+    /// Ours are known; the foe's are hidden except under Transform.
+    fn active_stats(&self, seat: &str) -> PyResult<[u16; 5]> {
+        let s = self.inner.battle.side(player(seat)?).active().stats();
+        Ok([s.hp, s.atk, s.def, s.spe, s.spc])
+    }
+    /// Boosts `(atk, def, spe, spc, accuracy, evasion)` of `seat`'s active,
+    /// the spec's order.
+    fn active_boosts(&self, seat: &str) -> PyResult<(i8, i8, i8, i8, i8, i8)> {
+        let b = self.inner.battle.side(player(seat)?).active().boosts();
+        Ok((b.atk, b.def, b.spe, b.spc, b.accuracy, b.evasion))
     }
 
     /// poke-env's 10-way mask for `seat`; all-false when it owes a Pass.
