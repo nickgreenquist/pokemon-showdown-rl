@@ -80,6 +80,27 @@ sys.exit(0 if v=="1" and i=="1" else 1)' \
 
 [ -f "$CFG" ] || die "no such config: $CFG"
 
+# R7 B4 (plan amendment box 3, item 1): a TWO-CORE LANE (collector.process: true)
+# must launch at NORMAL QoS -- `taskpolicy -b` schedules to the four efficiency
+# cores at ~6.8x per decision, and under a wall-matched fleet a lane there trains
+# FEWER steps, a confound -- and at most FIVE lanes ride the ten performance
+# cores (ruling 7; six only under a pre-registered disclosure, opt-in here).
+# The collector refuses a background QoS at construction too; this is the
+# launch-time face of the same rule, before any lane spends a minute.
+if "$PY" - "$CFG" <<'PYEOF'
+import yaml, sys
+c = yaml.safe_load(open(sys.argv[1]))
+sys.exit(0 if bool(((c.get("collector") or {}).get("process", False))) else 1)
+PYEOF
+then
+  "$PY" -c 'import os, sys; sys.exit(1 if os.getpriority(4, 0) != 0 else 0)' \
+    || die "collector.process lanes need NORMAL QoS: this shell is background (taskpolicy -b / nice); relaunch from a plain shell"
+  if [ "${#SEEDS[@]}" -gt 5 ] && [ "${ALLOW_SIX_WIDE_DISCLOSED:-0}" != "1" ]; then
+    die "collector.process: ${#SEEDS[@]} two-core lanes > 5 on ten performance cores (ruling 7); ALLOW_SIX_WIDE_DISCLOSED=1 only with the pre-registered degraded-lane disclosure"
+  fi
+  say "two-core lanes: normal QoS asserted, ${#SEEDS[@]} lanes x 2 cores"
+fi
+
 # THE ANNEAL TRAP, checked. `rl.train` has NO --total-steps flag: the horizon
 # comes from the config and ONLY from the config, so a STEPS argument that
 # disagreed with it would silently run the config's number. Worse, the config
