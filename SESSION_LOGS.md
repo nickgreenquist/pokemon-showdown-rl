@@ -13265,3 +13265,31 @@ line numbers are not — grep the date, then read that region):
   1068–1154, trio B 1124–1234 → 1244–1323 steps/s. ETA at the new rates: **trio B Wed 18:12–20:48
   EDT, trio A Thu 01:51–04:08 EDT**; at last night's rates trio A lands ~07:30 instead. Readout Fri
   early. Still 0 resumes, 0 alerts since 09-22 12:00Z.
+
+- 2026-09-23 11:20Z (agent, R7 runner) — **G0 at 307/500; the babysitter relayed the maintainer's
+  ruling (G0 must not be alive when the R6 reads queue's FP@20 arms start) and it is gated from both
+  ends:** my detached guard (`logs/r7_g0/guard.log`, pid 88682) SIGTERMs G0 the moment the six
+  `showdown_r6_trio` lanes are gone or at Thu 09-24 07:30Z, whichever first; the queue (`fbdc475`)
+  HOLDS its FP phase while any `pkmn-engine-r7` python is alive. ETA from the rows' own `seconds`
+  by bucket (219 / 127 / 66 / 36 s per position, 44 bucket-0 positions left): ~5 h serial, landing
+  **Wed ~16:20Z**, ~16 h before the fleet ends; then the fusion pass and the readout (both r7-env,
+  Wed afternoon); NOTHING in that env from Thu 04:00 EDT until the R6 readout. Main tree clean.
+  **INTERIM dry read at 307 rows (`scripts/r7_g0_readout.py`, branch `r7-native-search`; rows sha
+  `6fa13e04005e…`; NOT the readout, the 500-row file is):** split-sample `regret_depth1_ceiling`
+  pooled **+0.0261 ± 0.0037 win-rate, upper95 +0.0334** (by bucket +0.034 / +0.025 / +0.020 /
+  +0.024); `opp_model_gap` +0.063; `spearman(critic, rollout-Q)` over cells +0.481 ± 0.012;
+  `spearman(root Q̄, rollout-Q)` +0.353; the oracle's best reply is outside π_opp's top-2/3/4 on
+  0.505 / 0.357 / 0.252 of positions; root estimator vs rollout V: critic +0.847, search v′ +0.829;
+  T-op at (k 3, S 2, τ 1) overrides **0.7%** of positions (kl_prior 0.0008), so
+  `regret_critic_depth1` is ~0 BY CONSTRUCTION there. The kill does not fire on this interim read.
+  **INSTRUMENT CORRECTION OWED (traced):** `rollout_q.py::permuted_null` re-halves the SAME
+  samples, so the rows' `regret_depth1_ceiling_null` column is a re-split REPLICATE of the estimate
+  (+0.0266 ± 0.0036 beside +0.0261 — identical on positions where every halving picks the same
+  row), not a zero-gap null. The generator computes the zero-gap null the plan's clause names (row
+  labels of the scoring half permuted relative to the selecting half; expectation 0): **−0.0009 ±
+  0.0013 win-rate**, i.e. the halves are independent and the estimator carries no selection bias;
+  the ceiling re-derived from `q_half_a/q_half_b` matches the stored column to 0.0e+00. Fix lands
+  as `rollout_q/2` after the chapter closes (a bump now would refuse G0's rows). **CPU-share
+  correction:** against the 3-rung 00:12–00:33Z baseline the six lanes ran 1.06–1.16× FASTER during
+  G0 (63 rungs each) — the 01:35Z "a-trio ~5% under" read was a narrow-band artifact of a busy
+  baseline window, not a G0 cost; the readout carries the table.
