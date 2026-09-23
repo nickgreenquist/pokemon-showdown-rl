@@ -236,6 +236,10 @@ class SeatPlayer(Player):
         # per-decision probe stats, keyed by their own name; see choose_move
         self.probe: dict[str, list[float]] = {}
         self.leaves: list[int] = []
+        # EVERY decision's seat-side wall time, whatever the arm kind (2026-09-23,
+        # the G2 reviews): JOURNEY 14 wants decisions/sec for BOTH arms, and an
+        # arm's own wall clock is mostly Foul Play's think time and the server.
+        self.decision_ms: list[float] = []
         self.concurrent_decisions = 0
         # ARM-LEVEL decision total. `_decision_index` RESETS every battle, so it
         # cannot be the denominator of an arm-level rate -- see below.
@@ -266,13 +270,26 @@ class SeatPlayer(Player):
             self.tag_index[battle.battle_tag] = self._battle_index
             if hasattr(self._agent, "reset_episode"):
                 self._agent.reset_episode()  # the loop breaker's memory is per battle
+        t_dec = time.perf_counter()
         obs = embed_battle(battle, self._type_chart)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         if self._sa is not None:
             t0 = time.perf_counter()
-            action, stats = self._sa.act(
-                battle, obs, mask, self._battle_index, self._decision_index
-            )
+            try:
+                action, stats = self._sa.act(
+                    battle, obs, mask, self._battle_index, self._decision_index
+                )
+            except Exception as exc:
+                # R7 G2: the native L-op's OperatorMismatch means the arm is not the
+                # operator G1 measured. poke-env would swallow the exception in its
+                # message task and the battle would forfeit on the timer as an
+                # ORDINARY LOSS; exiting the process makes it a death the runner sees.
+                if type(exc).__name__ == "OperatorMismatch":
+                    import os, sys, traceback
+                    traceback.print_exc()
+                    print("FATAL: OperatorMismatch -- the seat exits; the arm is VOID", file=sys.stderr, flush=True)
+                    os._exit(70)
+                raise
             if "search/leaves" in stats:
                 self.ms.append((time.perf_counter() - t0) * 1e3)
                 self.leaves.append(int(stats["search/leaves"]))
@@ -291,6 +308,7 @@ class SeatPlayer(Player):
                         self.probe.setdefault(k, []).append(float(v))
         else:
             action = self._agent.act(obs, mask, deterministic=self._det)
+        self.decision_ms.append((time.perf_counter() - t_dec) * 1e3)
         self._decision_index += 1
         self._decisions_total += 1
         try:
@@ -393,6 +411,9 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         tables, tables_fp = build_tables()
         search_agent = NativeLOp(ens, tables, **lop_from(arm.get("lop")))
         agent = ens
+        # The width stamp over the COMMITTEE (every member's input width), not the
+        # single seat lane the generic stamp above saw (the G2 code review).
+        native_dim = _native_dim(agent)
         searched_ensemble = {
             "members": members,
             "member_sha256": [prereg["checkpoints"][x]["sha256"] for x in members],
@@ -575,6 +596,31 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             seat.concurrent_decisions / max(seat._decisions_total, 1)),
         "concurrent_decisions_denominator": seat._decisions_total,
     }
+    # THE SEAT'S OWN PACE, every arm kind (JOURNEY 14: decisions/sec for BOTH
+    # arms). `seat/*` is our own compute per decision; `arm/decisions_per_wall_sec`
+    # is dominated by Foul Play's think time and the server, labelled as such.
+    dms = np.array(seat.decision_ms) if seat.decision_ms else np.array([0.0])
+    report.update({
+        "seat/decision_ms_mean": float(dms.mean()),
+        "seat/decision_ms_p50": float(np.percentile(dms, 50)),
+        "seat/decision_ms_p99": float(np.percentile(dms, 99)),
+        "seat/decisions_per_sec": (1000.0 / float(dms.mean())) if dms.mean() > 0 else None,
+        "arm/decisions_per_wall_sec": (seat._decisions_total / elapsed) if elapsed > 0 else None,
+    })
+    # WHICH `rl` THIS PROCESS RAN (the G2 design review): two envs import two
+    # different trees, and a launch sha of the CWD would not say which.
+    import pathlib
+    import rl as _rl
+    _rl_root = pathlib.Path(_rl.__file__).resolve().parents[1]
+    report["rl_package"] = str(pathlib.Path(_rl.__file__).resolve().parent)
+    try:
+        import subprocess as _sp
+        report["rl_git_sha"] = _sp.run(["git", "-C", str(_rl_root), "rev-parse", "HEAD"], capture_output=True,
+                                       text=True, check=True).stdout.strip()
+        report["rl_git_dirty"] = bool(_sp.run(["git", "-C", str(_rl_root), "status", "--porcelain", "--untracked-files=no"],
+                                              capture_output=True, text=True, check=True).stdout.strip())
+    except (OSError, _sp.CalledProcessError):
+        report["rl_git_sha"] = None
     if arm["kind"] == "native_seat":
         # The L-op's own counters: the override rate beside every win rate (the
         # landmine), the refusal families, the dose, decisions/sec (JOURNEY 14's
@@ -585,7 +631,6 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             "search/ms_mean": float(ms.mean()),
             "search/ms_p99": float(np.percentile(ms, 99)),
             "search/searched_decisions": len(seat.ms),
-            "decisions_per_sec": (seat._decisions_total / elapsed) if elapsed > 0 else None,
         })
     elif search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
