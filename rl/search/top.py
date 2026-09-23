@@ -74,6 +74,11 @@ class TOp:
         self.tau = float(tau)
         self.play = bool(play)
         self.value_fn = native.critic_value_fn(agent)
+        # The leaf renders what the critic reads, and no more (native.solve's
+        # `both_views`): the foe's view and the privileged blocks only for an
+        # antisymmetric or privileged critic -- the fleet's plain observation
+        # critic (plan AMENDMENT BOX 5 item 5) reads `obs` alone.
+        self.both_views = bool(getattr(agent, "antisymmetric_critic", False)) or bool(int(getattr(agent, "privileged_dim", 0) or 0))
         self.rng = np.random.default_rng(int(seed))
         self._records: dict[int, list[tuple[bool, np.ndarray, float]]] = defaultdict(list)
         self._sums: dict[str, float] = defaultdict(float)
@@ -149,6 +154,7 @@ class TOp:
             res = native.solve(
                 [native.World(node)], self.tables, self.seat, probs[i], opp_prior, self.value_fn,
                 self._decision_counter, cols_k=self.cols_k, chance_s=self.chance_s, tau=self.tau,
+                both_views=self.both_views,
             )
             pi = np.asarray(res["pi"], dtype=np.float64)
             # The STORED pi' is float32; the behaviour log-prob is taken from

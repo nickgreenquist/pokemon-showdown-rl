@@ -100,6 +100,7 @@ def solve(
     max_leaves_per_call: int = 4096,
     root_rule: str = "soft_br",
     rm_iters: int = 2000,
+    both_views: bool = True,
 ) -> dict[str, Any]:
     """The operator. Returns a dict with:
 
@@ -121,6 +122,15 @@ def solve(
     `prior` and `opp_prior` are (10,) probabilities over the ACTING seat's and
     the FOE's actions, already masked (illegal = 0); the masks are re-read
     from the engine and disagreement is an error, never a silent re-mask.
+
+    `both_views` (2026-09-23, the G2 code review): whether `expand` renders
+    the foe's own view and both privileged blocks for every leaf. Default on
+    (bit-identical to every caller before the dial); a value function that
+    reads the acting seat's `obs` only -- the fleet's critic form, plan
+    AMENDMENT BOX 5 item 5 -- passes False and stops paying for encodes it
+    never reads (the acting seat's `obs` is the same bits either way, pinned
+    in tests/test_native_search.py). A value function that reads `obs2` or
+    `priv` under False raises on the None, never silently.
     """
     if not worlds:
         raise ValueError("solve() needs at least one world")
@@ -183,7 +193,7 @@ def solve(
         if not np.array_equal(wm, mask):
             raise ValueError(f"world {w_i}: the acting seat's mask differs from world 0's -- "
                              "a resampled world must keep our own side")
-        e = node.expand(tables, seat, cells, seed_base(decision_key, w_i), both_views=True)
+        e = node.expand(tables, seat, cells, seed_base(decision_key, w_i), both_views=both_views)
         n = int(e["n"])
         rust_ns += int(e["rust_ns"])
         v = np.asarray(value_fn(e), dtype=np.float64).reshape(n)
@@ -287,7 +297,11 @@ def dials_from(spec: dict | None) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for k, v in spec.items():
         ann = hints.get(k)
-        if ann is int:
+        if ann is bool:
+            if not isinstance(v, bool):
+                raise ValueError(f"dial {k} must be a bool, got {v!r}")
+            out[k] = v
+        elif ann is int:
             if isinstance(v, bool) or int(v) != float(v):
                 raise ValueError(f"dial {k} must be an integer, got {v!r}")
             out[k] = int(v)

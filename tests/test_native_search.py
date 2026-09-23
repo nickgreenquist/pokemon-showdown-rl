@@ -157,7 +157,32 @@ try:
     dials_from({"depth2": {}}); raise SystemExit("unknown dial accepted")
 except ValueError as e: assert "unknown native-search dial" in str(e)
 # (10) the dial list is the signature's, and coerces by annotation.
-assert DIALS == ("cols_k", "chance_s", "tau", "max_leaves_per_call", "root_rule", "rm_iters"), DIALS   # + the root_rule dial (box 4 item 5)
+assert DIALS == ("cols_k", "chance_s", "tau", "max_leaves_per_call", "root_rule", "rm_iters", "both_views"), DIALS   # + root_rule (box 4 item 5), both_views (G2 review)
+assert dials_from({"both_views": False}) == {"both_views": False}
+try:
+    dials_from({"both_views": "false"}); raise SystemExit("a string both_views was accepted")
+except ValueError as e:
+    assert "must be a bool" in str(e)
+# (12) both_views: the acting seat's obs is the SAME BITS rendered alone or with the
+# foe's view, so a one-view value function reads identically under either -- and a
+# value function that reads obs2 under False fails loudly on the None.
+cells_bv = [(r, c, 2) for r in np.flatnonzero(root.mask(tables, "p1")).tolist()[:3]
+            for c in np.flatnonzero(root.mask(tables, "p2")).tolist()[:2]]
+e_both = root.expand(tables, "p1", cells_bv, 99, both_views=True)
+e_one = root.expand(tables, "p1", cells_bv, 99, both_views=False)
+assert np.array_equal(e_both["obs"], e_one["obs"]) and e_one["obs2"] is None and e_one["priv"] is None
+def stub1(e):
+    return np.tanh(e["obs"] @ W)
+for node_, key_ in ((root, 11), (mid, 12)):
+    p_, q_ = priors(node_, key_)
+    a1 = solve([World(node_)], tables, "p1", p_, q_, stub1, key_)
+    a2 = solve([World(node_)], tables, "p1", p_, q_, stub1, key_, both_views=False)
+    assert np.array_equal(a1["pi"], a2["pi"]) and np.array_equal(a1["q_row"], a2["q_row"], equal_nan=True), key_
+    assert {k: v for k, v in a1["counters"].items() if "ms" not in k} == {k: v for k, v in a2["counters"].items() if "ms" not in k}
+try:
+    solve([World(root)], tables, "p1", *priors(root, 11), stub, 11, both_views=False); raise SystemExit("obs2 read under both_views=False")
+except (TypeError, ValueError):   # numpy's matmul on the None: loud either way
+    pass
 assert dials_from({"cols_k": "4", "tau": "0.5"}) == {"cols_k": 4, "tau": 0.5}
 # (11) seed_base never aliases decision and world in a small sweep.
 keys = {seed_base(d, w) for d in range(200) for w in range(8)}
