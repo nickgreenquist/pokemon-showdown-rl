@@ -62,6 +62,15 @@ the value of having seen the world.
                 `fusion_flip`, at these dials and with per-world foe priors;
   tv_target     TV(pi'_w0, mean_b pi'_wb): how far the T-op's target moves
                 with the world.
+  value_fusion_gap   mean_b v'_wb - v'_pimc (outcome units): the optimism the
+                T-op's VALUE target carries from searching a known world --
+                the student's v' head learns E_w v'_w, and the belief-level
+                value of the o-measurable PIMC policy is pi'_pimc . mean_b
+                Qbar_wb (plan amendment 1 item 2: "E_w[V_search(o,w)]
+                upper-bounds V*(o)"). By the soft max's convexity it is >= 0
+                up to the prior term.
+  value_peek    v'_w0 - v'_pimc: the same, for the true world alone (what one
+                T-op row hands the v' head).
 
 Rule 6 does not bite: a mechanism read on saved positions, never a win-rate
 A/B. The per-decision GAINS are small against their se on 500 positions (the
@@ -94,7 +103,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-BELIEF_VERSION = "rollout_q_belief/1"
+BELIEF_VERSION = "rollout_q_belief/2"   # /2: the v' fields (value_peek, value_fusion_gap)
 ARMS = ("true", "belief", "t_true", "t_avg", "t_pimc")
 # The T-op dial sweep's grid at its defaults (scripts/rollout_q_top_sweep.py):
 # the true-world arm takes the sweep's decision key for the same (k, S, tau)
@@ -138,6 +147,7 @@ def measure(r: dict, node, tables, committee, native, resample_world, dials: dic
     if int(true["policy_action"]) != greedy:
         raise RuntimeError(f"pid {r['pid']}: the operator's policy action {true['policy_action']} != the row's a_greedy {greedy}")
     q_true_m = true["q_row"][mask1]
+    v_true = float(true["v"])
     pi_true_m = true["pi"][mask1]
     # Self-check: this file's soft BR on the true world's Qbar IS the operator's pi'.
     if not np.array_equal(soft_br(prior_m, q_true_m, tau), pi_true_m):
@@ -145,7 +155,7 @@ def measure(r: dict, node, tables, committee, native, resample_world, dials: dic
     a_true = gated(int(true["action"]), greedy, float(true["counters"]["search/margin"]), gate)
 
     wrng = np.random.default_rng([seed, int(r["pid"])])
-    q_ws, pi_ws, infos, refused = [], [], [], []
+    q_ws, pi_ws, v_ws, infos, refused = [], [], [], [], []
     for b in range(worlds):
         try:
             world, info = resample_world(node, tables, "p1", wrng)
@@ -161,12 +171,13 @@ def measure(r: dict, node, tables, committee, native, resample_world, dials: dic
             p2w = np.zeros_like(prior2)
         res = native.solve([native.World(world)], tables, "p1", prior1, p2w, value_fn,
                            (int(r["pid"]) + 1) * 1_000_003 + b + 1, **dials)
-        q_ws.append(res["q_row"][mask1]); pi_ws.append(res["pi"][mask1])
+        q_ws.append(res["q_row"][mask1]); pi_ws.append(res["pi"][mask1]); v_ws.append(float(res["v"]))
         infos.append({k: info[k] for k in ("tries", "rejected_validate", "rejected_obs", "charging_dropped") if k in info})
     out = {"version": BELIEF_VERSION, "pid": int(r["pid"]), "bucket": int(r["bucket"]), "turn": int(r["turn"]),
            "a_greedy": greedy, "worlds_ok": len(q_ws), "worlds_refused": refused, "resample_info": infos,
            "a_true": a_true, "t_true": int(true["action"]), "margin_true": float(true["counters"]["search/margin"]),
-           "gain_true": float(qbar[row_of[a_true]] - qbar[ig]), "gain_t_true": float(qbar[row_of[int(true["action"])]] - qbar[ig])}
+           "gain_true": float(qbar[row_of[a_true]] - qbar[ig]), "gain_t_true": float(qbar[row_of[int(true["action"])]] - qbar[ig]),
+           "v_true": v_true, "v_root_rollout": float(r["v_root_rollout"])}
     if q_ws:
         q_avg = np.mean(q_ws, axis=0)
         pi_pimc = soft_br(prior_m, q_avg, tau)
@@ -183,6 +194,8 @@ def measure(r: dict, node, tables, committee, native, resample_world, dials: dic
             "flip": int(a_belief != a_true), "target_flip": int(t_avg != int(true["action"])),
             "world_flip": float(np.mean([int(np.argmax(p)) != i_true for p in pi_ws])),
             "tv_target": float(0.5 * np.abs(pi_true_m - pi_avg).sum()),
+            "v_worlds_mean": float(np.mean(v_ws)), "v_pimc": float(pi_pimc @ q_avg),
+            "value_fusion_gap": float(np.mean(v_ws) - pi_pimc @ q_avg), "value_peek": float(v_true - pi_pimc @ q_avg),
         })
     out["seconds"] = time.perf_counter() - t0
     return out
@@ -212,7 +225,7 @@ def summarise(sel: list[dict]) -> dict:
                          "target_peek": ("t_true", "t_avg")}.items():
         m, se = mean_se([s[f"gain_{a}"] - s[f"gain_{b}"] for s in ok])
         out[name] = {"mean_win_rate": m / 2, "se_win_rate": se / 2}
-    for k in ("flip", "target_flip", "world_flip", "tv_target"):
+    for k in ("flip", "target_flip", "world_flip", "tv_target", "value_fusion_gap", "value_peek"):
         m, se = mean_se([s[k] for s in ok])
         out[k] = {"mean": m, "se": se}
     # Of the positions where the true-world operator overrides, how often the
@@ -344,6 +357,9 @@ def main() -> None:
     L += ["", "| dependence on the world | mean ± se |", "|---|---|"]
     for k in ("flip", "target_flip", "world_flip", "tv_target"):
         L.append(f"| {k} | {P[k]['mean']:.3f} ± {P[k]['se']:.3f} |")
+    L += ["", "| the v' target (OUTCOME units, +-1) | mean ± se |", "|---|---|"]
+    for k in ("value_fusion_gap", "value_peek"):
+        L.append(f"| {k} | {P[k]['mean']:+.4f} ± {P[k]['se']:.4f} |")
     kept = P["true_overrides_kept"]
     L.append(f"\nOf the {kept['n']} positions where the true-world L-op overrides, the belief L-op makes the SAME move on {kept['same_move']:.3f}.")
     if repro:
