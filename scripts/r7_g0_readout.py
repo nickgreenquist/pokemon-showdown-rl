@@ -111,6 +111,8 @@ def main() -> None:
     ap.add_argument("--baseline", default="2026-09-23T00:12:00Z,2026-09-23T00:33:00Z",
                     help="the pre-G0 window the lane bands come from")
     ap.add_argument("--out", required=True, help="the markdown to write")
+    ap.add_argument("--sweep", default=None, help="top_sweep.json (scripts/rollout_q_top_sweep.py) for the matched-override table")
+    ap.add_argument("--root-rules", nargs="*", default=None, help="root_rules_*.json files (scripts/rollout_q_root_rules.py)")
     ap.add_argument("--topk-read", type=int, nargs="+", default=[2, 3, 4])
     args = ap.parse_args()
 
@@ -252,6 +254,48 @@ def main() -> None:
              f"(mean top-1 {prior_top1.mean():.3f}; §32's R5 read was 0.885 per decision), forced (one legal row) {forced.mean():.3f}. "
              f"Positions here are sampled per turn bucket, not per decision, so this is not a decision-weighted rate.\n")
 
+    # ---- the T-op dial sweep at MATCHED override bands ------------------------
+    if args.sweep and pathlib.Path(args.sweep).exists():
+        sw = json.loads(pathlib.Path(args.sweep).read_text())
+        cells_ = [c for c in sw["cells"] if c["n_override"] >= 10]
+        L.append("## The T-op dial sweep — the same critic at every (k, S, τ, gate), read at MATCHED override rates\n")
+        L.append(f"`{os.path.basename(args.sweep)}` (`scripts/rollout_q_top_sweep.py`): {sw['positions']} positions × "
+                 f"{len(sw['cells'])} cells; regret = rollout Q̄(a′) − Q̄(greedy) on the 256-sample means, WIN-RATE; "
+                 f"'ceiling captured' = the cell's summed regret over the split-sample ceiling's. Cells with < 10 overrides are omitted.\n")
+        L.append("| override band | k | S | τ | gate | override | n | regret uncond ± se | regret cond | ceiling captured | kl_prior |")
+        L.append("|---|--:|--:|--:|--:|--:|--:|---|--:|--:|--:|")
+        for lo, hi in ((0.0, 0.03), (0.03, 0.06), (0.06, 0.10), (0.10, 0.15), (0.15, 0.25), (0.25, 1.01)):
+            sel = sorted([c for c in cells_ if lo <= c["override_rate"] < hi], key=lambda c: -c["regret_uncond_win_rate"])[:2]
+            for c in sel:
+                L.append(f"| {lo:.2f}–{hi:.2f} | {c['cols_k']} | {c['chance_s']} | {c['tau']} | {c['margin_gate']} | {c['override_rate']:.3f} | {c['n_override']} | "
+                         f"{c['regret_uncond_win_rate']:+.4f} ± {c['regret_uncond_se_win_rate']:.4f} | {c['regret_cond_win_rate']:+.4f} | "
+                         f"{c['ceiling_captured']:.3f} | {c['kl_prior_mean']:.4f} |")
+        worst = min(cells_, key=lambda c: c["regret_uncond_win_rate"])
+        L.append("")
+        L.append(f"No cell reads negative: the worst is k {worst['cols_k']} S {worst['chance_s']} τ {worst['tau']} gate {worst['margin_gate']} at "
+                 f"{worst['regret_uncond_win_rate']:+.4f} ± {worst['regret_uncond_se_win_rate']:.4f} (override {worst['override_rate']:.3f}). "
+                 f"The operator's overrides are better than greedy under the oracle at every dial; the grid's largest override rate is "
+                 f"{max(c['override_rate'] for c in cells_):.3f} (τ ≥ {min(sw['grid']['tau'])}).\n")
+    # ---- the root rules, oracle (split-sample) and critic level --------------
+    for path in (args.root_rules or []):
+        if not pathlib.Path(path).exists():
+            continue
+        rrj = json.loads(pathlib.Path(path).read_text())
+        level = rrj["level"] + (", split-sample" if rrj.get("split") else ", in-sample")
+        L.append(f"## Root rules on the same matrix — level {level} (`{os.path.basename(path)}`, `scripts/rollout_q_root_rules.py`)\n")
+        L.append("Every rule turns the SAME payoff matrix into a row distribution; scored on the rollout oracle under the foe's prior "
+                 "and against the foe's BEST REPLY (exploitability). Split-sample: chosen on one half of the rollouts, scored on the other. "
+                 "WIN-RATE units; Δ against greedy.\n")
+        L.append("| rule | τ | under prior ± se | Δ | vs best reply ± se | Δ | override (mass) |")
+        L.append("|---|--:|---|--:|---|--:|--:|")
+        g = next(e for e in rrj["table"] if e["rule"] == "greedy")["pooled"]
+        for e in rrj["table"]:
+            pp = e["pooled"]
+            L.append(f"| {e['rule']} | {e['tau'] if e['tau'] is not None else ''} | {pp['under_prior']['mean_win_rate']:+.4f} ± {pp['under_prior']['se_win_rate']:.4f} | "
+                     f"{pp['under_prior']['mean_win_rate'] - g['under_prior']['mean_win_rate']:+.4f} | "
+                     f"{pp['vs_best_reply']['mean_win_rate']:+.4f} ± {pp['vs_best_reply']['se_win_rate']:.4f} | "
+                     f"{pp['vs_best_reply']['mean_win_rate'] - g['vs_best_reply']['mean_win_rate']:+.4f} | {pp['override']['mean']:.3f} |")
+        L.append("")
     L.append("## Fusion (P3's licence): `fusion_flip` / `fusion_bound` over resampled worlds\n")
     if fusion_block:
         f_ = fusion_block

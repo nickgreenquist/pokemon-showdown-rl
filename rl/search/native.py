@@ -98,6 +98,8 @@ def solve(
     chance_s: int = 2,
     tau: float = 1.0,
     max_leaves_per_call: int = 4096,
+    root_rule: str = "soft_br",
+    rm_iters: int = 2000,
 ) -> dict[str, Any]:
     """The operator. Returns a dict with:
 
@@ -126,6 +128,10 @@ def solve(
         raise ValueError(f"cols_k {cols_k} and chance_s {chance_s} must be >= 1")
     if not (tau > 0.0 and math.isfinite(tau)):
         raise ValueError(f"tau must be a positive finite float, got {tau!r}")
+    if root_rule not in ROOT_RULES:
+        raise ValueError(f"root_rule must be one of {ROOT_RULES}, got {root_rule!r}")
+    if rm_iters < 1:
+        raise ValueError(f"rm_iters must be >= 1, got {rm_iters}")
     seat = str(seat)
     foe = "p2" if seat == "p1" else "p1"
     prior = np.asarray(prior, dtype=np.float64).reshape(N_ACTIONS)
@@ -195,9 +201,23 @@ def solve(
     q_cell /= wsum
 
     q_row_m = q_cell @ q_col                       # (n_rows,) Qbar under pi_opp
-    logits = np.log(prior_m) + q_row_m / tau
-    pi_m = np.exp(logits - logits.max())
-    pi_m /= pi_m.sum()
+    if root_rule == "soft_br":
+        # P4: a soft best response to the foe's PRIOR (the default; bit-identical
+        # to the pre-dial operator).
+        logits = np.log(prior_m) + q_row_m / tau
+        pi_m = np.exp(logits - logits.max())
+        pi_m /= pi_m.sum()
+    else:
+        # "regret_matching": the matrix's equilibrium, the AVERAGE strategy of
+        # regret matching on the root's payoff matrix (amendment box 4 item 5:
+        # the read on G0's positions says greedy is exploitable by -0.052 win-
+        # rate against a best reply and this rule halves it under a perfect
+        # evaluator; under today's critic every rule is within noise). The
+        # prior seeds the first iterate only; tau is unused.
+        from rl.search.root_rules import regret_matching
+        pi_m = regret_matching(q_cell, rm_iters, prior_m, q_col)[0]
+        pi_m = np.maximum(pi_m, 0.0)
+        pi_m /= pi_m.sum()
     pi = np.zeros(N_ACTIONS); pi[mask] = pi_m
     q_row = np.full(N_ACTIONS, np.nan); q_row[mask] = q_row_m
     # Ties broken toward the lowest action index, the repo's rule.
@@ -205,7 +225,10 @@ def solve(
     policy_action = int(rows[int(np.argmax(prior_m))])
     v_prime = float(pi_m @ q_row_m)
     v_prior = float(prior_m @ q_row_m)
-    kl = float(np.sum(pi_m * (np.log(pi_m) - np.log(prior_m))))
+    # xlogy semantics: a zero-mass row (regret matching's average strategy can
+    # have them) contributes exactly 0; for pi_m > 0 the arithmetic is the
+    # pre-dial expression bit for bit (the max is a no-op there).
+    kl = float(np.sum(np.where(pi_m > 0, pi_m * (np.log(np.maximum(pi_m, 1e-300)) - np.log(prior_m)), 0.0)))
     margin = float(q_row[action] - q_row[policy_action])
     ms = (time.perf_counter_ns() - t0) / 1e6
     counters = {
@@ -225,6 +248,7 @@ def solve(
         "search/pass_leaf_frac": n_pass / max(n_leaves, 1),
         "search/v": v_prime,
         "search/v_prior": v_prior,
+        "search/root_rule_rm": float(root_rule == "regret_matching"),
     }
     return {
         "pi": pi, "q_row": q_row, "v": v_prime, "v_prior": v_prior,
@@ -233,6 +257,8 @@ def solve(
         "counters": counters,
     }
 
+
+ROOT_RULES = ("soft_br", "regret_matching")
 
 # ---------------------------------------------------------------------------
 # The dial list, derived -- never typed.
@@ -281,6 +307,7 @@ def counter_names() -> tuple[str, ...]:
         "search/rust_ms", "search/override", "search/kl_prior", "search/margin",
         "search/pi_top1", "search/prior_top1", "search/topk_mass",
         "search/terminal_frac", "search/pass_leaf_frac", "search/v", "search/v_prior",
+        "search/root_rule_rm",
     )
 
 

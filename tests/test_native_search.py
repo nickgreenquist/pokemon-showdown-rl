@@ -128,6 +128,17 @@ s4 = solve([World(root)], tables, "p1", p, q, stub, 11, chance_s=4)
 assert s4["counters"]["search/leaves"] == 2 * r0["counters"]["search/leaves"]
 # (7) worlds: two copies of the root, distinct chance streams, weights honoured.
 two = solve([World(root, 1.0), World(root, 3.0)], tables, "p1", p, q, stub, 11)
+# The root_rule dial (amendment box 4 item 5): regret matching's average
+# strategy over the SAME matrix -- a valid mix, flagged in the counters; the
+# default ("soft_br") is the goldens above, bit for bit.
+rm = solve([World(root)], tables, "p1", p, q, stub, 11, root_rule="regret_matching", rm_iters=500)
+assert abs(rm["pi"].sum() - 1) < 1e-9 and (rm["pi"][~np.asarray(root.mask(tables, "p1"), bool)] == 0).all()
+assert rm["counters"]["search/root_rule_rm"] == 1.0 and two["counters"]["search/root_rule_rm"] == 0.0
+assert not np.array_equal(rm["pi"], solve([World(root)], tables, "p1", p, q, stub, 11)["pi"]) or rm["pi"].max() > 0.999
+try:
+    solve([World(root)], tables, "p1", p, q, stub, 11, root_rule="nope"); raise SystemExit("unknown root_rule accepted")
+except ValueError as e:
+    assert "root_rule" in str(e)
 assert two["counters"]["search/worlds"] == 2.0 and two["counters"]["search/leaves"] == 72.0
 # (8) the other seat: solving as p2 on the same root uses p2's mask and p1's prior as the foe's.
 r2 = solve([World(root)], tables, "p2", q, p, stub, 11)
@@ -146,7 +157,7 @@ try:
     dials_from({"depth2": {}}); raise SystemExit("unknown dial accepted")
 except ValueError as e: assert "unknown native-search dial" in str(e)
 # (10) the dial list is the signature's, and coerces by annotation.
-assert DIALS == ("cols_k", "chance_s", "tau", "max_leaves_per_call"), DIALS
+assert DIALS == ("cols_k", "chance_s", "tau", "max_leaves_per_call", "root_rule", "rm_iters"), DIALS   # + the root_rule dial (box 4 item 5)
 assert dials_from({"cols_k": "4", "tau": "0.5"}) == {"cols_k": 4, "tau": 0.5}
 # (11) seed_base never aliases decision and world in a small sweep.
 keys = {seed_base(d, w) for d in range(200) for w in range(8)}

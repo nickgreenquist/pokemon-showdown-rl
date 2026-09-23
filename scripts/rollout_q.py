@@ -14,9 +14,12 @@ Reads, per position, all on disk in the rows file before anything is averaged:
   regret_depth1_ceiling  Qbar_B[argmax_a Qbar_A[a]] - Qbar_B[a_greedy], the
                          argmax chosen on one half and EVALUATED on the other
                          (unbiased -- amendment 2 item 1a), averaged over the
-                         two orderings; beside it the PERMUTED-SPLIT ZERO-GAP
-                         NULL (the same statistic with the half assignment
-                         permuted, item 1c). This is the depth-1
+                         two orderings; beside it the ZERO-GAP NULL (v2: the
+                         scoring half's ROW LABELS permuted relative to the
+                         selecting half -- expectation exactly 0 -- item 1c)
+                         and the RE-SPLIT REPLICATE (the same statistic under
+                         other halvings: a second draw of the estimator, NOT a
+                         null; v1 misnamed it). This is the depth-1
                          policy-improvement ceiling under a PERFECT evaluator
                          and bounds the FIRST ExIt iteration only.
   regret_critic_depth1   the same split-sample regret for the action the
@@ -78,7 +81,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-INSTRUMENT_VERSION = "rollout_q/1"
+INSTRUMENT_VERSION = "rollout_q/2"
+# Rows of these versions are READ (the G0 chapter's rows are v1: their
+# `regret_depth1_ceiling_null` column is the re-split replicate, not the zero-gap
+# null -- readouts/R7_G0_READOUT.md computes the real one from the halves).
+READABLE_VERSIONS = ("rollout_q/1", "rollout_q/2")
 BUCKETS = ((2, 8), (9, 15), (16, 22), (23, 10_000))   # scripts/outcome_variance.py's edges
 KILL_WIN_RATE = 0.005                                  # plan §6, WIN-RATE scale
 N_ACTIONS = 10
@@ -110,11 +117,14 @@ def regret_split(outcomes: np.ndarray, q_col: np.ndarray, a_greedy: int, half: n
     return 0.5 * (float(ra) + float(rb))
 
 
-def permuted_null(outcomes: np.ndarray, q_col: np.ndarray, a_greedy: int, n_perm: int,
-                  rng: np.random.Generator) -> float:
-    """The ceiling statistic under a PERMUTED half assignment: the mean over
-    `n_perm` random halvings of the samples. With a true zero gap this is what
-    pure noise prints; the estimate is read against it."""
+def resplit_replicate(outcomes: np.ndarray, q_col: np.ndarray, a_greedy: int, n_perm: int,
+                      rng: np.random.Generator) -> float:
+    """The ceiling statistic under `n_perm` OTHER random halvings of the same
+    samples: a second, independent draw of the same unbiased estimator (the
+    same expectation as the estimate). Reported as a REPLICATION check. Until
+    rollout_q/2 (2026-09-23) this was `permuted_null` and was called the
+    zero-gap null, which it is not (readouts/R7_G0_READOUT.md, "On the two
+    nulls")."""
     s = outcomes.shape[2]
     vals = []
     for _ in range(n_perm):
@@ -122,6 +132,28 @@ def permuted_null(outcomes: np.ndarray, q_col: np.ndarray, a_greedy: int, n_perm
         half = np.zeros(s, dtype=bool)
         half[perm[: s // 2]] = True
         vals.append(regret_split(outcomes, q_col, a_greedy, half))
+    return float(np.mean(vals))
+
+
+def permuted_null(outcomes: np.ndarray, q_col: np.ndarray, a_greedy: int, n_perm: int,
+                  rng: np.random.Generator, half: np.ndarray | None = None) -> float:
+    """THE ZERO-GAP NULL (rollout_q/2): the split-sample statistic with the
+    SCORING half's row labels permuted relative to the selecting half, so the
+    row chosen on one half points at a random row of the other. Expectation
+    exactly 0 when the halves are independent; its spread across positions is
+    the noise floor. Mean over `n_perm` permutations."""
+    s = outcomes.shape[2]
+    if half is None:
+        half = np.zeros(s, dtype=bool)
+        half[: s // 2] = True
+    qa = cell_means(outcomes, half) @ q_col
+    qb = cell_means(outcomes, ~half) @ q_col
+    ia, ib = int(np.argmax(qa)), int(np.argmax(qb))
+    n = outcomes.shape[0]
+    vals = []
+    for _ in range(n_perm):
+        perm = rng.permutation(n)
+        vals.append(0.5 * ((qb[perm[ia]] - qb[perm[a_greedy]]) + (qa[perm[ib]] - qa[perm[a_greedy]])))
     return float(np.mean(vals))
 
 
@@ -287,8 +319,8 @@ def load_rows(path: pathlib.Path) -> list[dict]:
             continue
         r = json.loads(line)
         v = r.get("instrument_version")
-        if v != INSTRUMENT_VERSION:
-            sys.exit(f"REFUSED: {path} carries rows of instrument version {v!r}, this is {INSTRUMENT_VERSION!r}; "
+        if v not in READABLE_VERSIONS:
+            sys.exit(f"REFUSED: {path} carries rows of instrument version {v!r}, this reads {READABLE_VERSIONS}; "
                      "move the file aside rather than mixing versions")
         rows.append(r)
     return rows
@@ -316,7 +348,8 @@ def measure_position(pid: int, node, tables, committee: Committee, args, rng: np
     qbar_full = q_full @ q_col
     g = row_of[a_greedy]
     ceiling = regret_split(outcomes, q_col, g, half)
-    null = permuted_null(outcomes, q_col, g, args.null_perms, rng)
+    null = permuted_null(outcomes, q_col, g, args.null_perms, rng, half=half)   # zero-gap null (v2)
+    resplit = resplit_replicate(outcomes, q_col, g, args.null_perms, rng)     # the v1 "null": a replicate
 
     # THE CRITIC SIDE: the operator on the same root with the committee's
     # observation critic, over ALL columns for the spearman and at the T-op's k
@@ -349,6 +382,7 @@ def measure_position(pid: int, node, tables, committee: Committee, args, rng: np
         "q_half_a": cell_means(outcomes, half).tolist(), "q_half_b": cell_means(outcomes, ~half).tolist(),
         "q_cell_critic": q_cell_critic.tolist(),
         "regret_depth1_ceiling": ceiling, "regret_depth1_ceiling_null": null,
+        "regret_depth1_ceiling_resplit": resplit,
         "regret_critic_depth1": regret_critic,
         "spearman_critic": sp_critic, "spearman_root_q": sp_root_q,
         "spearman_privileged": None, "spearman_privileged_why": "no privileged critic is trained for this committee",
@@ -369,8 +403,10 @@ def measure_position(pid: int, node, tables, committee: Committee, args, rng: np
 def summarise(rows: list[dict], args) -> dict:
     def block(sel: list[dict]) -> dict:
         out = {"positions": len(sel)}
-        for key in ("regret_depth1_ceiling", "regret_depth1_ceiling_null", "regret_critic_depth1",
-                    "opp_model_gap", "spearman_critic", "spearman_root_q"):
+        for key in ("regret_depth1_ceiling", "regret_depth1_ceiling_null", "regret_depth1_ceiling_resplit",
+                    "regret_critic_depth1", "opp_model_gap", "spearman_critic", "spearman_root_q"):
+            if key == "regret_depth1_ceiling_resplit" and not all(key in r for r in sel):
+                continue                                   # v1 rows: no replicate column
             m, se = mean_se([r[key] for r in sel])
             out[key] = {"mean_outcome": m, "se_outcome": se, "mean_win_rate": win_rate(m),
                         "se_win_rate": win_rate(se) if se == se else se,

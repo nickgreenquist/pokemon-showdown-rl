@@ -56,8 +56,20 @@ def test_split_sample_regret_is_unbiased_at_zero_gap_and_recovers_a_planted_gap(
     assert abs(np.mean(null)) < 0.01, np.mean(null)
     # A planted gap: row 3 is worth +0.30 outcome over the greedy row 0.
     planted = np.zeros((n_rows, n_cols)); planted[3] = 0.30
-    got = [rq.regret_split(_outcomes(rng, planted, s), q_col, 0, half) for _ in range(300)]
+    got, null_gap, resplit = [], [], []
+    for _ in range(300):
+        o = _outcomes(rng, planted, s)
+        got.append(rq.regret_split(o, q_col, 0, half))
+        null_gap.append(rq.permuted_null(o, q_col, 0, 4, rng, half=half))
+        resplit.append(rq.resplit_replicate(o, q_col, 0, 4, rng))
     assert abs(np.mean(got) - 0.30) < 0.02, np.mean(got)
+    # THE DISCRIMINATING CASE (rollout_q/2): with a TRUE gap the zero-gap null
+    # stays at 0 while the estimate reads the gap -- and the re-split
+    # replicate FOLLOWS the estimate (it is a second draw of it, not a null;
+    # v1 reported this replicate as the null and the two read identical on
+    # G0's rows).
+    assert abs(np.mean(null_gap)) < 0.02, np.mean(null_gap)
+    assert abs(np.mean(resplit) - 0.30) < 0.02, np.mean(resplit)
 
 
 def test_fixed_action_regret_is_that_actions_value_relative_to_greedy():
