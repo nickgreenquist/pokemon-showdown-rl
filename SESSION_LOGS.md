@@ -13181,3 +13181,16 @@ line numbers are not — grep the date, then read that region):
   running block imports the working tree — the branch waits for the idle box), the B0 bench, G0,
   B1b, `readouts/R7_B0_BENCH.md`. `tests/test_dial_forwarding.py` fails only in the fresh env
   (`poke_engine` is not in `.[dev]`); it passes on main in `pokemon-showdown-rl`.
+- 2026-09-23 00:38Z (agent) — **G0 LAUNCHED, niced beside the R6 fleet** (plan §6/§8: engine-only, CPU
+  share disclosed; brief §2). `scripts/rollout_q.py` from the worktree at `bd30afe`, pid 10130,
+  `taskpolicy -b`, torch threads 2, detached (`nohup`, `logs/r7_g0/g0.log`), resume-safe rows
+  (`results/r7_g0/rollout_q.rows.jsonl`, one position per row incl. the saved position bytes),
+  rate printed per position. Dose: 500 positions (125 per turn bucket), FULL matrix, 256 rollouts
+  per cell split 128/128, 8 null permutations, the R5 committee (w104/w112/w120 finals,
+  sha-checked) on both seats, the A-1 bank, `POKEMON_RL_ENCODER_C6` unset (the W finals are
+  c6-off; the tables pair). BASELINE lane rates before launch (monitor.log 00:12–00:32Z):
+  a304 840–881, a312 938–988, a320 943–948, b328 1139–1152, b336 1026–1207, b344 1118–1128
+  steps/s. KILL CONDITIONS: a lane rate dip beyond the band above that persists two rungs, or
+  the reads queue's first FP arm approaching with G0 still running (no R7 job beside an FP arm;
+  a kill costs one position). Also owed and done tonight, docs only on main: RESULTS §1's purity
+  rider (`54fc6e7`), IDEAS §3's league addendum (`351781b`).
