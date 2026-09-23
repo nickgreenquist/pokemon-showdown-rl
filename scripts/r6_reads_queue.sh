@@ -79,9 +79,50 @@ print("mixed" if e.get("allow_mismatch") else ("on" if e.get("c6") else "off"))
 PYEOF
 }
 
+# FP@20's budget is WALL-CLOCK (`--search-time-ms 20`), so CPU work beside an arm weakens Foul
+# Play's search and flatters our seat -- on the read that sets the credit line and PICKS LADDER
+# R6's OBJECT, where a disclosure repairs nothing. Maintainer's rule 2026-09-23, verbatim:
+# "check it anything else is running before FP evals .. if yes, pause and ping me".
+#
+# WHAT COUNTS AS "ANYTHING ELSE": any python from a conda env that is not ours and not Foul
+# Play's. That is the spelling on purpose -- it names the ENV, never a script, because the R7
+# gates arrive one script name at a time (rollout_q.py, then rollout_q_fusion.py, then
+# g1_engine_mirror.py) and a guard that lists names goes blind on the next one while still
+# reporting clean: the typed-dial-list shape in docs/landmines.md. `pokemon-showdown-rl` is
+# excluded because it is the queue's own PY, `foul-play` because it is our own arm's opponent.
+#
+# It WAITS rather than refusing -- a slipped readout is cheap, a contaminated primary read is
+# not -- and the HOLD line is what the babysitting session watches for, to ping the maintainer
+# so the other runners can be paused. vs-SH is deliberately NOT gated: its budget is not
+# wall-clock, so contention costs it time and nothing else.
+# Anchored on the EXECUTABLE ($2), never on the whole line: a grep/ugrep carrying this very
+# pattern in its argv matched the line-wise form during its dry-run (docs/landmines.md, the
+# pgrep self-match). Only what is actually RUNNING from an env counts.
+others_running() {
+  ps -Aeo pid,command | awk '
+    $2 ~ /^\/opt\/anaconda3\/envs\/[^\/]+\/bin\/python/ &&
+    $2 !~ /envs\/(pokemon-showdown-rl|foul-play)\/bin\/python/ {print}'
+}
+hold_for_others() {  # $1 = what is being held
+  local what="$1" held=0 who
+  who="$(others_running)"
+  [ -z "$who" ] && return 0
+  while [ -n "$who" ]; do
+    if [ $((held % 12)) -eq 0 ]; then
+      log "HOLD $what: another job is on the box -- FP@20 is wall-clock budgeted, so it would flatter our seat. Held ~$((held * 5)) min. Offenders:"
+      echo "$who" | sed 's/^/    /' | tee -a "$LOG/queue.log"
+    fi
+    held=$((held + 1))
+    sleep 300
+    who="$(others_running)"
+  done
+  log "BOX CLEAR after ~$((held * 5)) min of hold -- $what proceeds"
+}
+
 fparm() {  # one off-FP arm through the incident-hardened runner, blocking
   local arm="$1" tag="$2" c6
   if [ -f "$FPRES/$tag.json" ]; then log "$arm SKIP (json exists)"; return; fi
+  hold_for_others "arm $arm"
   c6="$(arm_c6 "$arm")" || { log "$arm: $c6"; exit 1; }
   case "$c6" in
     on)    export POKEMON_RL_ENCODER_C6=1; unset POKEMON_RL_ENCODER_C6_ALLOW_MISMATCH ;;
@@ -126,23 +167,11 @@ for t in a b; do
   log "PIN-$t: $(grep -E "^[ab][0-9]" "$LOG/pin_$t.log" | tr '\n' ' ')"
 done
 
-# ------------------------------------------------------------- HOLD FOR G0
-# Any R7 job -- anything from the r7 worktree's env pkmn-engine-r7 -- is CPU work
-# beside us, and FP@20's budget is WALL-CLOCK: a busy box weakens Foul Play's search and
-# flatters our seat on the read that sets the credit line and picks LADDER R6's object.
-# Maintainer's rule 2026-09-23, verbatim: "wait for G0 to not be running to run FP eval".
-# WAIT, never refuse -- the readout slipping is cheap, a contaminated primary read is not.
-# vs-SH is deliberately NOT gated: its budget is not wall-clock, so contention costs it
-# time and nothing else. The gate names the ENV, never a script name: the R7 runner's second
-# job (rollout_q_fusion.py) is a different name, and a gate that lists names silently stops
-# seeing new ones -- the typed-dial-list shape in docs/landmines.md.
-held=0
-until ! pgrep -f "(pkmn-engine-r7/bin/python|scripts/rollout_q)" > /dev/null; do
-  [ $((held % 12)) -eq 0 ] && log "HOLD: an R7 job is alive ($(pgrep -f "(pkmn-engine-r7/bin/python|scripts/rollout_q)" | tr '\n' ' ')) -- FP@20 is wall-clock budgeted; held ~$((held * 5)) min"
-  held=$((held + 1))
-  sleep 300
-done
-if [ "$held" -gt 0 ]; then log "G0 gone after ~$((held * 5)) min of hold -- PHASE FP proceeds"; fi
+# --------------------------------------------------------- HOLD BEFORE EACH ARM
+# Checked before EVERY arm, not once before the phase: the arms are ~1.4 h each and
+# sequential, so a job that starts mid-phase would otherwise ride along on the remaining
+# dozen. Holding at the arm boundary costs the readout time and costs the read nothing.
+hold_for_others "PHASE FP"
 
 # ---------------------------------------------------------------- PHASE FP
 log "PHASE FP: off FP@20, sequential, in the pre-reg's run_order (~1.4 h per arm at ~1.6 s/battle)"
