@@ -1007,34 +1007,55 @@ class EngineBackend:
     cannot = ("the transition's CHANCE distribution (Phase 2 owns that)",)
 
     # (probe, human name). The probe returns True when the symbol is usable.
+    # LANDED (R7 B6, 2026-09-23): `BattleSpec` (B0/B1b), `SearchNode.from_root`
+    # (= `BattleTracker::from_root` behind the node constructor) and the
+    # seat-X encode / mask on a `SearchNode`; the poke-env -> spec mapping is
+    # `rl/search/engine_bridge.py::build_root`.
     _NEEDED = (
         ("pkmn_gen1.BattleSpec(...).build()  (design §2.4 + W-VALIDATE)",
          lambda: hasattr(_pkmn(), "BattleSpec")),
-        ("rl.search.engine_bridge.battle_spec(battle1, det)  (the poke-env -> "
-         "spec mapping; python.rs says it is not the Rust side's job)",
-         lambda: hasattr(_engine_bridge(), "battle_spec")),
-        ("pkmn_gen1.BattleTracker.from_root(b, p1, p2)  (design §3.1; "
-         "root_reveals() already produces the payload)",
-         lambda: hasattr(_pkmn(), "BattleTracker")),
-        ("a seat-X encode of arbitrary battle bytes + mask_for(b, p, req, "
-         "aliased)  (design §4.1, env.rs:167-173)",
-         lambda: hasattr(_pkmn(), "mask_for")),
+        ("rl.search.engine_bridge.build_root(battle1, det, ctl)  (the poke-env -> "
+         "spec mapping + the client's projection)",
+         lambda: hasattr(_engine_bridge(), "build_root")),
+        ("pkmn_gen1.SearchNode.from_root(b, req1, req2, p1, p2)  (design §3.1: "
+         "BattleTracker::from_root behind the node)",
+         lambda: hasattr(_pkmn().SearchNode, "from_root")),
+        ("a seat-X encode + mask on the constructed node (SearchNode.obs / .mask)",
+         lambda: hasattr(_pkmn().SearchNode, "mask") and hasattr(_pkmn().SearchNode, "obs")),
     )
+
+    def __init__(self) -> None:
+        from rl.envs.engine_tables import build_tables
+
+        self.tables, self.tables_fingerprint = build_tables()
 
     def build(self, battle: Any, det: dict, ctl: Control) -> dict:
         return _build_engine_root(battle, det, ctl)
 
-    def encode(self, root: dict) -> np.ndarray:  # pragma: no cover - stub
-        raise NotImplementedError(self._msg())
+    # -- leg A: the Rust encoder over the constructed root, OUR seat --------
+    def encode(self, root: dict) -> np.ndarray:
+        return np.asarray(root["node"].obs(self.tables, "p1"), dtype=np.float32)
 
-    def mask(self, root: dict) -> MaskResult:  # pragma: no cover - stub
-        raise NotImplementedError(self._msg())
+    # -- leg C: the engine's own choices() through mask_for -------------------
+    def mask(self, root: dict) -> MaskResult:
+        node = root["node"]
+        view = node.view(self.tables, "p1")
+        return MaskResult(mask=np.asarray(node.mask(self.tables, "p1"), dtype=bool),
+                          request=root["req"], forced=bool(view["trapped"]), locked_slot=-1)
 
-    def validate(self, root: dict) -> list[str]:  # pragma: no cover - stub
-        raise NotImplementedError(self._msg())
+    # -- leg B ------------------------------------------------------------------
+    def validate(self, root: dict) -> list[str]:
+        # W-VALIDATE ran inside BattleSpec.build(); a built root passed it.
+        return []
 
-    def step(self, root: dict, our_action: int, opp_action: str):  # pragma: no cover
-        raise NotImplementedError(self._msg())
+    def step(self, root: dict, our_action: int, opp_action: str):
+        # Leg B (iii), one-turn agreement with the poke_engine path, waits for
+        # the transition harness; None is "not measured", never "agrees".
+        return None
+
+    def encode_foe(self, root: dict) -> np.ndarray:
+        """Leg B's cross-seat read: the FOE's own encode of the same root."""
+        return np.asarray(root["node"].obs(self.tables, "p2"), dtype=np.float32)
 
     @classmethod
     def missing(cls) -> list[str]:
@@ -1078,25 +1099,13 @@ def _build_engine_root(battle: Any, det: dict, ctl: Control) -> dict:
     """
     if EngineBackend.missing():
         raise NotImplementedError(EngineBackend._msg())
-    seats = charging_roots_unbuildable(battle)         # pragma: no cover - stub
-    if seats:                                          # pragma: no cover
-        # NOT a degraded build. `VolatileSpec::charging = None` on a mon the
-        # server has locked would write B_LAST_MOVES.index = 0, which the
-        # engine reads as `moves[-1]` with the bounds assert compiled out.
-        raise ValueError(
-            f"charging active on {','.join(seats)} with no recoverable live "
-            "slot (W-LASTMOVE): `freeze_battle` carries `preparing` as a bool "
-            "only. Refusing to build -- a defaulted B_LAST_MOVES.index is an "
-            "OOB read, not a wrong answer. Use the LIVE path, where poke-env's "
-            "`_preparing_move` supplies the slot."
-        )
-    pkmn, bridge = _pkmn(), _engine_bridge()          # pragma: no cover - stub
-    spec = bridge.battle_spec(battle, det, ctl)        # pragma: no cover
-    b, req1, req2 = spec.build()                       # pragma: no cover
-    p1, p2 = root_reveals(battle)                      # pragma: no cover
-    tracker = pkmn.BattleTracker.from_root(b, p1.as_dict(), p2.as_dict())
-    return {"battle": b, "tracker": tracker, "req": req1, "foe_req": req2,
-            "turn": int(battle.turn)}                  # pragma: no cover
+    bridge = _engine_bridge()
+    # A charging active whose live slot the source cannot supply is REFUSED by
+    # the bridge (`Unbuildable("W-LASTMOVE", ...)`), never defaulted: a
+    # B_LAST_MOVES.index of 0 is an out-of-bounds read in the engine, not a
+    # wrong answer. `run_leg_ac` counts every refusal by family.
+    node, req1, req2 = bridge.build_root(battle, det, ctl, seed=R1E_SEED_BASE)
+    return {"node": node, "req": req1, "foe_req": req2, "turn": int(battle.turn)}
 
 
 BACKENDS = {"poke_engine": PokeEngineBackend, "engine": EngineBackend}
@@ -1341,6 +1350,9 @@ class LegA:
     # test reads a working control as BLIND -- measured on the first 400-root
     # control sample, where C7's dims/root moved by exactly 0.0000.
     sig: list = field(default_factory=list)
+    # Roots the ENGINE backend REFUSED to build, by family (W-LASTMOVE, the
+    # transformed Ditto, ...). Never built, never compared: reported, not hidden.
+    refused: Counter = field(default_factory=Counter)
 
     def add(self, v_new: np.ndarray, v_live: np.ndarray, facts: RootFacts,
             root: Root, max_undeclared: int = 40) -> None:
@@ -1444,6 +1456,7 @@ class LegC:
     # Roots the ENGINE backend must REFUSE rather than default: a charging
     # active whose live slot the source cannot supply (FINDING F6).
     charging_unbuildable: int = 0
+    refused: int = 0
 
     def add(self, mr: MaskResult, root: Root, max_examples: int = 40) -> None:
         self.n += 1
@@ -1656,6 +1669,17 @@ class LegB:
 # The run
 # ---------------------------------------------------------------------------
 
+def decision_rng(checkpoint_seed: int, battle_index: int, turn: int,
+                 decision_index: int) -> np.random.Generator:
+    """`rl/search/matrix.py::decision_rng`, copied VERBATIM so the engine
+    backend can run in an env without `poke_engine` (matrix.py imports it at
+    module level; the engine env carries none by rule 1). Determinism clause
+    D2: one Generator keyed per decision; tuple-of-int hash is stable across
+    processes (ints are unsalted)."""
+    key = hash((checkpoint_seed, battle_index, turn, decision_index))
+    return np.random.default_rng(key & 0xFFFFFFFFFFFFFFFF)
+
+
 def run_leg_ac(backend: Any, roots: list[Root], ctl: Control, n_det: int = 1,
                legb: LegB | None = None, leg_b_limit: int = 0,
                seed_base: int = R1E_SEED_BASE) -> tuple[LegA, LegC]:
@@ -1663,7 +1687,6 @@ def run_leg_ac(backend: Any, roots: list[Root], ctl: Control, n_det: int = 1,
     `legb` is given, because it needs the same constructed state."""
     from rl.search.determinize import sample_determinization
     from rl.search.harvest import rehydrate_battle
-    from rl.search.matrix import decision_rng
 
     a, c = LegA(), LegC()
     for k, root in enumerate(roots):
@@ -1676,7 +1699,16 @@ def run_leg_ac(backend: Any, roots: list[Root], ctl: Control, n_det: int = 1,
         det = sample_determinization(battle, rng)
         for _ in range(n_det - 1):
             det = sample_determinization(battle, rng)
-        built = backend.build(battle, det, ctl)
+        try:
+            built = backend.build(battle, det, ctl)
+        except ValueError as err:
+            # The engine backend REFUSES a root it cannot build faithfully
+            # (rl/search/engine_bridge.py::Unbuildable); a refusal is a named
+            # family in the report, never a silent skip and never a default.
+            fam = getattr(err, "family", "W-REFUSED")
+            a.refused[fam] += 1
+            c.refused += 1
+            continue
         facts = root_facts(root.frozen)
         a.add(backend.encode(built), root.row["obs"], facts, root)
         c.charging_unbuildable += int(bool(charging_roots_unbuildable(battle)))

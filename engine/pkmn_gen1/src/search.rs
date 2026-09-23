@@ -137,6 +137,17 @@ impl Node {
         }
     }
 
+    /// A CONSTRUCTED root (R7 B6): bytes from `BattleSpec::build`, the request
+    /// pair, and the projection from `BattleTracker::from_root` -- never
+    /// `fresh`'s everything-revealed one.
+    pub fn constructed(battle: Battle, tracker: BattleTracker, p1: Request, p2: Request) -> Node {
+        Node {
+            battle,
+            tracker,
+            result: BattleResult { outcome: Outcome::None, p1, p2 },
+        }
+    }
+
     /// The same projection over different bytes -- a resampled world built from
     /// `BattleSpec::from_visible` plus a hidden-slot fill (build B1b). What each
     /// seat has REVEALED does not change when the hidden slots are redrawn.

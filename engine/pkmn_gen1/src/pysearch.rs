@@ -18,6 +18,53 @@ use crate::observe::{ObservableState, SeatState};
 use crate::pyencode::{Tables, rows2};
 use crate::python::{PyBattle, player, request, request_to_py};
 use crate::search::{Cell, LeafBatch as RustLeafBatch, Node, Render};
+use crate::track::{BattleTracker, RootReveal};
+
+fn reveal_from_py(d: &Bound<'_, PyDict>) -> PyResult<RootReveal> {
+    let mut r = RootReveal::default();
+    if let Some(v) = d.get_item("reveal_order")? {
+        r.reveal_order = v.extract()?;
+    }
+    if let Some(v) = d.get_item("revealed_moves")? {
+        let m: Vec<Vec<u8>> = v.extract()?;
+        for (i, x) in m.into_iter().take(6).enumerate() {
+            r.revealed_moves[i] = x;
+        }
+    }
+    if let Some(v) = d.get_item("move_uses")? {
+        let m: Vec<Vec<u8>> = v.extract()?;
+        for (i, x) in m.into_iter().take(6).enumerate() {
+            r.move_uses[i] = x;
+        }
+    }
+    if let Some(v) = d.get_item("sleep_observed")? {
+        let s: Vec<u8> = v.extract()?;
+        for (i, x) in s.into_iter().take(6).enumerate() {
+            r.sleep_observed[i] = x;
+        }
+    }
+    if let Some(v) = d.get_item("flags_before_faint")? {
+        let f: Vec<Vec<bool>> = v.extract()?;
+        for (i, x) in f.into_iter().take(6).enumerate() {
+            r.flags_before_faint[i] = (x.first().copied().unwrap_or(false), x.get(1).copied().unwrap_or(false));
+        }
+    }
+    if let Some(v) = d.get_item("binding_victim_turns")? {
+        r.binding_victim_turns = v.extract()?;
+    }
+    Ok(r)
+}
+
+fn reveal_to_py<'py>(py: Python<'py>, r: &RootReveal) -> PyResult<Bound<'py, PyDict>> {
+    let d = PyDict::new(py);
+    d.set_item("reveal_order", r.reveal_order.clone())?;
+    d.set_item("revealed_moves", r.revealed_moves.iter().map(|v| v.clone()).collect::<Vec<Vec<u8>>>())?;
+    d.set_item("move_uses", r.move_uses.iter().map(|v| v.clone()).collect::<Vec<Vec<u8>>>())?;
+    d.set_item("sleep_observed", r.sleep_observed.to_vec())?;
+    d.set_item("flags_before_faint", r.flags_before_faint.iter().map(|&(a, b)| vec![a, b]).collect::<Vec<Vec<bool>>>())?;
+    d.set_item("binding_victim_turns", r.binding_victim_turns)?;
+    Ok(d)
+}
 
 #[pyclass(name = "SearchNode")]
 pub struct SearchNode {
@@ -95,6 +142,34 @@ impl SearchNode {
     #[pyo3(signature = (battle, req_p1, req_p2))]
     fn from_battle(battle: &PyBattle, req_p1: &str, req_p2: &str) -> PyResult<Self> {
         Ok(SearchNode { inner: Node::fresh(Battle(battle.inner.0), request(req_p1)?, request(req_p2)?) })
+    }
+
+    /// A CONSTRUCTED root (R7 B6): bytes from `BattleSpec.build()`, the request
+    /// pair, and each seat's `RootReveal` payload as a dict (`reveal_order`,
+    /// `revealed_moves`, `move_uses`, `sleep_observed`, `flags_before_faint`,
+    /// `binding_victim_turns`) -- the projection is `BattleTracker::from_root`,
+    /// never `from_battle`'s everything-revealed one (control C5).
+    #[staticmethod]
+    #[pyo3(signature = (battle, req_p1, req_p2, p1, p2))]
+    fn from_root(
+        battle: &PyBattle,
+        req_p1: &str,
+        req_p2: &str,
+        p1: &Bound<'_, PyDict>,
+        p2: &Bound<'_, PyDict>,
+    ) -> PyResult<Self> {
+        let r1 = reveal_from_py(p1)?;
+        let r2 = reveal_from_py(p2)?;
+        let b = Battle(battle.inner.0);
+        let tracker = BattleTracker::from_root(&b, &r1, &r2);
+        Ok(SearchNode { inner: Node::constructed(b, tracker, request(req_p1)?, request(req_p2)?) })
+    }
+
+    /// One seat's projection history as the `RootReveal` dict `from_root`
+    /// takes -- the round-trip oracle: `from_root(node.battle(), *reqs,
+    /// node.reveal("p1"), node.reveal("p2"))` must encode and mask like `node`.
+    fn reveal<'py>(&self, py: Python<'py>, seat: &str) -> PyResult<Bound<'py, PyDict>> {
+        reveal_to_py(py, &self.inner.tracker.reveal_of(player(seat)?))
     }
 
     /// The same projection over different bytes -- a resampled world (build

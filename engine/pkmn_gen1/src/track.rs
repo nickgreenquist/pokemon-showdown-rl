@@ -705,6 +705,87 @@ fn active_view(b: &Battle, p: Player, tr: &SideTracker, active_party: usize) -> 
     }
 }
 
+/// What a CLIENT has seen of one side at a CONSTRUCTED root (R7 B6, design
+/// §3.1): the projection's history fields, filled from poke-env's public
+/// surface (`scripts/search_r1e_gate.py::root_reveals`, `rl/search/
+/// engine_bridge.py`). The diff fields are NOT here -- `from_root` seeds them
+/// from the built battle.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RootReveal {
+    pub reveal_order: Vec<u8>,
+    pub revealed_moves: [Vec<u8>; 6],
+    pub move_uses: [Vec<u8>; 6],
+    pub sleep_observed: [u8; 6],
+    pub flags_before_faint: [(bool, bool); 6],
+    pub binding_victim_turns: u8,
+}
+
+impl BattleTracker {
+    /// The projection at a CONSTRUCTED root (design §3.1): (a) the observable
+    /// history from the client's view, (b) the diff state seeded from the built
+    /// battle exactly as `observe` leaves it, so the first `observe` after the
+    /// root re-reveals nothing, counts no phantom PP spend and resets no sleep
+    /// counter. `fresh` (everything the bytes hold, revealed) is control C5;
+    /// this is the real thing, and gate R1-E grades it.
+    pub fn from_root(b: &Battle, p1: &RootReveal, p2: &RootReveal) -> BattleTracker {
+        let mut t = BattleTracker::default();
+        for (p, r) in [(Player::P1, p1), (Player::P2, p2)] {
+            let side = b.side(p);
+            let foe = b.side(p.foe());
+            let s = &mut t.sides[p.index()];
+            for &pi in &r.reveal_order {
+                if (pi as usize) < 6 && side.party(pi as usize).species() != 0 {
+                    s.reveal(pi as usize);
+                }
+            }
+            let active = side.active_party_index();
+            if side.party(active).species() != 0 {
+                s.reveal(active);
+            }
+            for i in 0..6 {
+                s.revealed_moves[i] = r.revealed_moves[i].iter().copied().filter(|&m| m != 0).take(4).collect();
+                let n = s.revealed_moves[i].len();
+                s.move_uses[i] = r.move_uses[i].iter().copied().take(n).collect();
+                while s.move_uses[i].len() < n {
+                    s.move_uses[i].push(0);
+                }
+            }
+            s.sleep_observed = r.sleep_observed;
+            s.flags_before_faint = r.flags_before_faint;
+            s.binding_victim_turns = r.binding_victim_turns;
+            s.binding_last_turn = if foe.active().volatiles().binding() && r.binding_victim_turns > 0 {
+                b.turn()
+            } else {
+                u16::MAX
+            };
+            s.prev_active_party = Some(active);
+            s.prev_live_moves = side.active().moves();
+            s.prev_charging = side.active().volatiles().charging();
+            s.prev_transform = side.active().volatiles().transform();
+            for i in 0..6 {
+                s.prev_status[i] = side.party(i).status().0;
+            }
+            s.started = true;
+        }
+        t
+    }
+
+    /// The history half of one side's projection, as a `RootReveal` -- what
+    /// `from_root` would need to rebuild it (the round-trip test's oracle).
+    pub fn reveal_of(&self, p: Player) -> RootReveal {
+        let s = &self.sides[p.index()];
+        let mut r = RootReveal { reveal_order: s.reveal_order.clone(), ..Default::default() };
+        for i in 0..6 {
+            r.revealed_moves[i] = s.revealed_moves[i].clone();
+            r.move_uses[i] = s.move_uses[i].clone();
+        }
+        r.sleep_observed = s.sleep_observed;
+        r.flags_before_faint = s.flags_before_faint;
+        r.binding_victim_turns = s.binding_victim_turns;
+        r
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
