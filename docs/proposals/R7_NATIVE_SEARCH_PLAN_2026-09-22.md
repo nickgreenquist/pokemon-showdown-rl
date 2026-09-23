@@ -191,6 +191,67 @@ on a 14-core laptop, CPU only, pure self-play.
 
 ---
 
+> ### AMENDMENT BOX 4 — 2026-09-23, **G0 HAS READ** (`readouts/R7_G0_READOUT.md`, rows sha `fa50141ead6c`,
+> 500 positions, every number below re-derived from the rows file by `scripts/r7_g0_readout.py`) **and the
+> maintainer's kitchen-sink ruling is folded in.** The plan unfreezes at this box.
+> 1. **THE KILL DOES NOT FIRE.** Split-sample `regret_depth1_ceiling` pooled **+0.0236 ± 0.0028 win-rate, upper95
+>    +0.0292** against the 0.005 threshold; by turn bucket +0.030 / +0.025 / +0.021 / +0.018 (turns 2–8 … 23+). The
+>    measured zero-gap null is −0.0003 ± 0.0009. **The prize is real and G1 follows** — launched 19:35Z
+>    (`scripts/g1_engine_mirror.py`, n = 5,000 per arm, seat-swapped, greedy-vs-greedy anchor, niced beside the
+>    fleet, a guard kills it at fleet end). Leaf critic for the first arm: the OBSERVATION critic (`spearman_critic`
+>    +0.476 ± 0.011; privileged PENDING, no trained checkpoint). Estimator: the searched root v′ ranks the rollout
+>    root value no better than the critic's raw value (+0.843 vs +0.849), so **B2 trains the evaluator on rollout
+>    labels first — the G0 rows are the dataset** (§6's own branch). `opp_model_gap` +0.059: the root's opponent model
+>    is first-order (item 6).
+> 2. **INSTRUMENT CORRECTION, owed as `rollout_q/2`:** `scripts/rollout_q.py::permuted_null` re-halves the SAME
+>    samples — a re-split REPLICATE of the estimate (+0.0246 ± 0.0028 beside +0.0236), not the zero-gap null §6
+>    named. The readout computes the real one (the scoring half's row labels permuted relative to the selecting
+>    half; expectation 0) and the kill clause is read against it. The bump lands after this chapter's rows are done
+>    with (a version bump refuses the rows).
+> 3. **THE T-OP'S DIALS ARE SET FROM THE READ, NOT TYPED** (amendment 3 item 5): the dial sweep
+>    (`scripts/rollout_q_top_sweep.py`, 300 cells × 500 positions, scored on the rollouts already paid for) reads
+>    POSITIVE at every cell — the critic-leaf operator's overrides beat greedy under the oracle everywhere (worst cell
+>    +0.0004) — and captures the most ceiling at **k 4, S 2, τ 0.05, margin gate 0.01: override 10.0%, +0.0040 ±
+>    0.0015 win-rate unconditional (+0.040 conditional on an override), 17% of the ceiling**; k 2, S 8, τ 0.05 ties it
+>    at 9.2%. At the plan's typed dials (k 3, S 2, τ 1) the operator overrides 0.6% of decisions and measures nothing.
+>    The dose read: π_θ top-1 ≥ 0.97 on 46% of positions, so the eligible pool is ~54%; the T-op's `frac` is set
+>    to search ~40% of decisions (`frac` ≈ 0.75 of eligible rows), matched across arms.
+> 4. **FUSION: P3's licence is INTACT.** `fusion_flip` 0.010 ± 0.004 and `fusion_bound` −0.0000 ± 0.0001 win-rate
+>    (upper95 +0.0002) against the +0.025 floor over 4 resampled worlds per position (B1b). The T-op searches B = 1,
+>    the true world, as planned.
+> 5. **THE SIMULTANEOUS-MOVE NOTE, read and measured** (`docs/prior_work/README.md` "SIMULTANEOUS-MOVE SEARCH";
+>    `rl/search/root_rules.py`, `scripts/rollout_q_root_rules.py`). At the ORACLE level, split-sample, the policy's
+>    greedy row is exploitable by **−0.052 win-rate** against a best reply; the pure best response to the foe's
+>    prior (the depth-1 ceiling's rule) gains +0.025 under the prior and is MORE exploitable (−0.061); **regret
+>    matching's average strategy keeps greedy's value under the prior and halves the exploitability (−0.028)**. At
+>    the CRITIC level (k 4, S 2) every root rule is within noise of greedy: **the root rule cannot repair values that
+>    are wrong, and this critic ranks successors at Spearman 0.48 — the evaluator is the binding constraint, not the
+>    rule.** Change to the plan: `native.solve` gains a `root_rule` dial (soft best response, the current P4 rule, or
+>    regret matching's average strategy) for the T-op target and the L-op's played mix, read in G3's counters once
+>    the evaluator moves; the ExIt-target question is Becker & Sunberg 2025's, and it is deferred to that read.
+> 6. **RULING (maintainer, 2026-09-23, verbatim in JOURNEY step 14): "make R7 the kitchen sync."** The ExIt fleet's
+>    base is the STACKED recipe — W + C6 + whichever of R6 trio A (outcome heads) / trio B (×4 batch, fallback form)
+>    reads non-negative on the 09-25 read + the antisymmetric privileged critic (B2) + anything stackable that is
+>    built and smoked — with **searched vs coef-0 control arms on that base** keeping attribution for the one lever
+>    with a measured prize. Ruling 7 stands at 5 lanes: proposed 3 searched + 2 control, wall-matched. **G3 is not a
+>    separate lap:** a 400k inert-check smoke through the launcher, then the fleet, with G3's six mechanism conditions
+>    read at 12M ON the fleet's own lanes (rule 6: no separation at 12M stops nothing). Own-lap items after the fleet:
+>    trunk / architecture replacements (attention read: does not clear), the shared trunk, feature crosses, temporal
+>    context, objective changes, the seat-2 harvest (needs a seat-2 block build). JOURNEY steps 15–16 order the rest.
+> 7. **BUILT since box 3, all on `r7-native-search` (pushed):** B0–B3, B1b (resample + fusion), **B5** (the learner
+>    seams, signature-derived dials, `value/bias_mirror`), **B4** (the two-core lane: the child-process collector,
+>    weights shipped per update, backpressure, `collect/weights_lag_updates` ≤ 1; the T-op inside it, playing π′ and
+>    recording log π′(a); the loop runs and resumes it; the launcher's QoS clause), **B6 first form** (the write-side
+>    bridge: `BattleTracker::from_root`, `rl/search/engine_bridge.py`, gate R1-E's engine backend; the round trip is
+>    bitwise on live positions; the gate's full run is owed), the G1 harness, the readout generator, the dial sweep,
+>    the root-rule read. **Still owed before the fleet:** `rollout_q/2`; the `root_rule` dial; the fleet and smoke
+>    configs (after the 09-25 read fixes the base); B6's R1-E run and the L-op's ladder path (G2 needs the idle box);
+>    the merge of the branch into main (Friday, the idle box); the B0 bench at normal QoS (Friday).
+> 8. **PENDING, named:** `spearman_privileged` (no trained privileged critic yet); the depth-2 ceiling (unmeasured before
+>    the fleet by amendment 3 item 2); the G1 read (tonight); the critic-level root-rule read after the evaluator is
+>    retrained. CPU share disclosed in the readout: the six R6 lanes ran 1.11–1.24× their 3-rung pre-G0 baseline during
+>    G0's 94 rungs (a wall cost on step-matched lanes, not a measurement).
+
 ## 0. The bet in one paragraph
 
 Every lever this project has pulled feeds the network **one outcome bit per ~30

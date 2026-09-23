@@ -13376,3 +13376,23 @@ line numbers are not — grep the date, then read that region):
   the critic-level read (`--level critic`) runs after the post-G0 chain. Implication for R7, pending
   that read: the T-op's target π′ and the L-op's played mix should carry a regret-matching root as a
   DIAL beside P4's soft best response; the ExIt target question is exactly Becker & Sunberg's.
+
+- 2026-09-23 19:40Z (agent, R7 runner) — **G0 READ; the readout committed; AMENDMENT BOX 4; G1 launched.** The
+  post-G0 chain ran 16:14–16:30Z (fusion, sweep, readout; `logs/r7_g0/post_g0.log`). `readouts/R7_G0_READOUT.md`
+  (rows sha `fa50141ead6c`, 500 positions): **the kill does not fire** — split-sample `regret_depth1_ceiling`
+  +0.0236 ± 0.0028 win-rate, upper95 +0.0292 vs 0.005, zero-gap null −0.0003 ± 0.0009; `opp_model_gap` +0.059;
+  `spearman(critic, rollout-Q)` +0.476; root estimator critic +0.849 vs v′ +0.843; fusion flip 0.010 / bound
+  −0.0000 ± 0.0001 (P3's licence intact, B = 1); the dial sweep: no cell negative, best k 4 / S 2 / τ 0.05 / gate
+  0.01 at 10% override, +0.0040 ± 0.0015 unconditional (+0.040 conditional), 17% of the ceiling; the root-rule
+  read on the full 500 (split-sample, oracle): greedy −0.052 vs a best reply, pure BR +0.025 / −0.061, regret
+  matching +0.003 / −0.028; at the critic level (k 4, S 2) every rule within noise. The plan's branch: G1 follows;
+  the evaluator is the binding constraint (B2 trains it on rollout labels first). AMENDMENT BOX 4 folds the read,
+  the `permuted_null` correction (`rollout_q/2` owed), the dials, the fusion read, the root-rule finding (a
+  `root_rule` dial owed), the kitchen-sink ruling (G3 read ON the fleet, not a lap), the builds and what is owed.
+  **G1 RUNNING** since 19:35Z (`scratchpad/launch_g1.sh`, pid 56021, guard pid in `logs/r7_g1/guard.log`; n 5,000
+  per arm, k 64, the sweep's dials; ~75 battles/min, override 0.098; ETA ~22:40Z, before the FP window). Also:
+  the extension rebuilt into `pkmn-engine-r7` (B6's constructors); `test_engine_search_node`, `test_resample`
+  green on it; B6's round trip is bitwise on 120 live positions; the gate's engine backend needed `rl/search/
+  volatiles.py` split out of `bridge.py` so the harvest/shadow path imports without `poke_engine` (the engine env
+  has none) — its 60-root run is in flight. PUSHED at the maintainer's word: main (18 commits) and
+  `r7-native-search` (upstream set).
