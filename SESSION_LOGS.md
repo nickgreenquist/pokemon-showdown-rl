@@ -13338,3 +13338,18 @@ line numbers are not — grep the date, then read that region):
   shared-memory buffer (pipes + a queue carry ~10 MB/update; measured in the shakedown), the R7
   fleet/shakedown configs (after Friday's R6 read fixes the base), the launcher's QoS preflight
   (the collector's refusal is the mechanical guard today). G0 at 320/500, on schedule.
+
+- 2026-09-23 14:25Z (agent, R7 runner) — **Built while G0 runs, all on `r7-native-search`:** the G1 harness
+  `scripts/g1_engine_mirror.py` (`1d5a39c`: gated L-op vs greedy from the same committee, seat-swapped, the
+  greedy-vs-greedy anchor, override rate beside every win rate, resume-safe rows; smoked 12 battles/arm,
+  ~35 battles/min per L-op arm at k=6 niced, so n=5,000/arm is a few hours tonight once the dial sweep sets
+  k/τ/gate); **B6 in its first form** (`1d6f13b`): `BattleTracker::from_root` + `SearchNode.from_root/reveal`
+  in the engine (cargo test 58 green), `rl/search/engine_bridge.py` (poke-env view + one determinization →
+  BattleSpec → a constructed root with the CLIENT's projection; refuses a charging active without a slot and a
+  transformed Ditto, named families), and gate R1-E's engine backend (refusals counted by family, the
+  backend runs in an env without poke_engine). Its Python tests and the gate run WAIT for the extension
+  rebuild, which waits for the post-G0 chain to finish (~17:30Z) — a reinstall mid-chain is the
+  running-block landmine on the .so. Docs on main: JOURNEY steps 15 (the generality claim) and 16 (the true
+  final step: human data only after the pure lane is maxed out), both verbatim (`fad800c`); HANDOFF folded
+  to the stub (`c13e1fd`). The docs audit (128 tracked .md, ~64.6k lines; consolidation recommended between
+  Friday's R6 readout and the fleet) was given as an opinion, not acted on. G0 at 397/500, on schedule.
