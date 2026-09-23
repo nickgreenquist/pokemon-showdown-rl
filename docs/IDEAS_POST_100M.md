@@ -829,6 +829,33 @@ never-killed item is repriced by the collector plan: **4.3** (see its own note).
   `docs/research_reports/CONSOLIDATED.md` §5 names as the step-8 gate —
   or (b) the cross-play forgetting read (CONSOLIDATED §4.1.ii) firing.
   Without one of those, "add PFSP / exploiters" re-proposes a measured null.
+  **Addendum 2026-09-23 (an audit of the pool machinery on `e6cc5dd`, read by
+  the R7 runner; nothing above changes).** Three build facts, so the re-open
+  costs one evening when (a) or (b) fires: (1) PFSP's matchmaking weights are
+  ALREADY computed — `report()` (`rl/selfplay/pool.py:257`) accumulates per-
+  member [learner score, games] on every episode and `select()` (`:268`) never
+  reads them (`:275` is a flat draw over the non-latest members); the lever is
+  one gated branch in `select()`, and `tests/test_selfplay_pool.py:294` pins
+  the ungated stream byte-identical, so it needs a gated path, not a deleted
+  test. (2) A pinned exploiter is `_frozen_checkpoint_pool` (`rl/train.py:82`,
+  a fresh learner vs one frozen policy — that IS a main exploiter) plus two
+  missing pieces: `push()` takes only the live agent (no foreign-checkpoint
+  insert) and `_evict_index()` protects only index 0 and the newest (a
+  pinned member needs a no-evict flag). (3) `latest_prob` 0.8 has never been
+  swept; a sweep at credit scale is a fleet, not a rider. **Why this is not
+  motivated at gen 1, from mechanism, not from the 6M leg** (rule 6): the
+  format has no team building, its hidden information is shallow (D19), the
+  board is transitive (leg ii), and the sp6m pool read strength-homogeneous —
+  so PFSP has no gradient to weight on and an exploiter has no strategy
+  class to pin that ordinary self-play does not visit. **Where it becomes
+  live: the gen-4 / gen-9 chapters**, where team preview and a real team
+  space give a league the non-transitivity it exists to cover — record the
+  first probe there, under (a). **Not an R7 consumer**: a search-augmented
+  exploiter or pinned member presumes the L-op beats greedy at inference,
+  which RESULTS §30 measured against and R7's G0–G2 exist to re-test; if
+  G2 clears, the exploiter's opponent path needs the operator inside the
+  collector's opponent seat — B4's two-core cost on the other side, not an
+  inference-only add. Ruled 2026-09-23: none of the three rides on R7.
 - **Auxiliary opponent-TEAM prediction (D19) — KILLED AT ZERO LANES.**
   [MECHANISM-BOUNDED — final FOR GEN 1, and the bound is a format fact, not a
   measured effect: 88–90% of gen-1 randbats team structure is a deterministic
