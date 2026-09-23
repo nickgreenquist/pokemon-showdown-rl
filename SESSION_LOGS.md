@@ -13310,3 +13310,31 @@ line numbers are not — grep the date, then read that region):
   async two-core lane with the T-op) is the critical path; a 12M G3 shakedown precedes the fleet.
   Also built: `scripts/rollout_q_top_sweep.py` (branch `r7-native-search`), the T-op dial sweep
   over the saved positions (k, S, τ, margin gate; ~3 s/position niced) — runs after the fusion pass.
+
+- 2026-09-23 13:20Z (agent, R7 runner) — **B4 BUILT (the async two-core lane), commits `311c3b5` (B4a) and
+  `bb25203` (B4b) on `r7-native-search`; JOURNEY.md step 14 carries the kitchen-sink ruling (`9ad2594`).**
+  B4a `rl/envs/engine_collector_proc.py::ProcCollector`: the engine collector, the pool and a copy of
+  the policy in a CHILD PROCESS on a second core; `_async_loop`'s seam kept; `ship_weights(agent,
+  version)` after every update (a version bump without weights is refused); BACKPRESSURE — the child
+  stops at `max_steps_ahead` undrained rows (default one rollout budget), so it is never more than
+  one batch ahead and the weights it acts with are at most one update behind; the pool lives in the
+  child behind push / pool_state / pool_stats RPCs (`run_in_loop` refused); the child's env, member
+  and global streams derive from the lane seed alone; a BACKGROUND QoS is refused unless
+  `allow_background_qos` (taskpolicy barred in the fleet path). TEST: at a fixed version the child's
+  episodes are the in-process collector's BITWISE (30 episodes / 1,958 rows, every key, same order).
+  B4b `rl/search/top.py::TOp`: the T-op inside the collector — eligible = not forced and π_θ top-1 <
+  `top1_skip`, then a coin at `frac` (a dose); `native.solve` on the true world with the agent's own
+  critic as the leaf; under `play` the action is re-sampled from π′ and `old_logp` = float32(log of
+  the STORED float32 π′[a]) so the learner's ratio identity holds to the bit; one record per learner
+  decision per slot, taken back at episode end with the count asserted; dials = the constructor's
+  keyword-only parameters (frac, top1_skip, cols_k, chance_s, tau, play), unknown keys fail at
+  launch; `collector.search` present iff `agent.search_targets`. TEST: the ratio identity on REAL
+  collector rows under play (π_θ/π′ on searched rows, bitwise) and record-only (~1 everywhere); the
+  train loop with `process: true` + `search`: updates while the child collects, pushes through the
+  child, checkpoint with pool state + battle_counter, a resume continues both. NEW COUNTER
+  `collect/weights_lag_updates` (updates − each episode's LAST row's version, max) — the plan's
+  bound, ≤ 1 by construction; the row-level `collect/policy_version_lag_*` includes a battle's
+  duration and can read 2 when a battle spans two updates (as in process). NOT built: a
+  shared-memory buffer (pipes + a queue carry ~10 MB/update; measured in the shakedown), the R7
+  fleet/shakedown configs (after Friday's R6 read fixes the base), the launcher's QoS preflight
+  (the collector's refusal is the mechanical guard today). G0 at 320/500, on schedule.
