@@ -64,6 +64,8 @@ PYEOF
 done
 
 if [ "${DRY:-0}" = "1" ]; then say "DRY: checks passed, nothing launched"; exit 0; fi
+# zsh's BG_NICE runs a backgrounded `cmd &` at nice +5; the lanes would inherit it. Run this in the FOREGROUND.
+[ "$(ps -o nice= -p $$ | tr -d ' ')" = "0" ] || die "this launcher is niced ($(ps -o nice= -p $$ | tr -d ' ')) -- run it in the foreground, never with '&' from zsh"
 
 UP_FILE="$(mktemp -t r7_fleet_up)"
 for i in $(seq 0 $((N - 1))); do

@@ -1,12 +1,12 @@
 #!/bin/bash
 # R7 SMOKES, orchestrated -- the fleet pre-reg's R0 gates (2) and (1) (scripts/derive_r7_fleet.py's header):
 #
-#   nohup bash scripts/r7_smokes.sh lr <base> > logs/r7_smokes/lr.nohup 2>&1 &
+#   bash -c 'nohup bash scripts/r7_smokes.sh lr <base> > logs/r7_smokes/lr.nohup 2>&1 &'   (from bash: zsh's BG_NICE niced it)
 #       the nine 2M LR smokes, ONE LR AT A TIME as a triple under one watchdog (the searched arm, the control and the
 #       beta-0 comparator at the same lr, under the same contention); their histories and the donor's; the seven vs-SH
 #       evals (the donor's final + each searched/control smoke's final, n 3000, sequential -- usernames derive from
 #       each checkpoint's seed); then derive_r7_fleet.py --read-lr, whose verdict JSON the fleet stage requires.
-#   nohup bash scripts/r7_smokes.sh shakedown > logs/r7_smokes/shakedown.nohup 2>&1 &
+#   bash -c 'nohup bash scripts/r7_smokes.sh shakedown > logs/r7_smokes/shakedown.nohup 2>&1 &'
 #       the two warm-start shakedown smokes together under one watchdog; the SEARCHED one is killed once its first
 #       checkpoint.pt exists (the only file a resume loads; the async loop writes it every SAVE_LATEST_EVERY_UPDATES
 #       updates) -- its process group, TERM then KILL, the watchdog's own shape -- and must be RESUMED by the watchdog
@@ -90,6 +90,9 @@ fresh_or_done() {  # <dir>: 0 = launch it, 1 = already DONE (skip); refuses a di
 
 if [ "${DRY:-0}" != "1" ]; then
   pgrep -f "foul-play.*/bin/python run.py" > /dev/null && die "a Foul Play arm is alive (never a training lane beside an FP arm)"
+  # zsh's BG_NICE (on by default) runs `cmd &` at nice +5 and every lane and eval would inherit it: refuse loudly here
+  # rather than lane by lane (the two-core launcher's own QoS check) or silently (the vs-SH evals). Launch from bash.
+  [ "$(ps -o nice= -p $$ | tr -d ' ')" = "0" ] || die "this runner is niced ($(ps -o nice= -p $$ | tr -d ' ')) -- zsh's BG_NICE? launch it from bash: bash -c 'nohup bash scripts/r7_smokes.sh ... &'"
 fi
 log "=== R7 SMOKES: stage '$STAGE' base '${BASE:-n/a}' (DRY=${DRY:-0}); tree $(git rev-parse --short HEAD) ==="
 
