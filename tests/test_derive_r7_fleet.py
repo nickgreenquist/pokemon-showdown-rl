@@ -122,6 +122,8 @@ def test_the_fleet_lanes_load_and_each_pair_differs_exactly_in_the_lever(tmp_pat
                         "agent.search_policy_coef", "agent.search_value_coef"}, diff
         assert a["collector.search.play"] is True and b["collector.search.play"] is False
         assert a["init_from"] == b["init_from"]
+        # The config's run_name IS the launcher's run dir (<config basename>_s<seed>), never a second name.
+        assert a["run_name"] == f"r7_fleet_searched_f{f}_s{a['seed']}" and b["run_name"] == f"r7_fleet_control_f{f}_s{b['seed']}"
     assert (out / "r7_fleet_smoke400k_searched.yaml").exists() and (out / "r7_fleet_smoke400k_control.yaml").exists()
     manifest = [l.split() for l in (out / "r7_fleet_lanes.txt").read_text().splitlines() if not l.startswith("#")]
     assert manifest == [[f"configs/r7_fleet_{arm}_f{f}.yaml", str(seed)] for arm in ("searched", "control")

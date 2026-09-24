@@ -579,10 +579,12 @@ def main() -> None:
                 head = header(arm=arm, lane=f, donor=ds[f - 1], all_donors=ds, base=args.base, lr=args.lr,
                               lr_evidence=lr_evidence, b0=args.b0, kind="", power=power)
                 name = f"r7_fleet_{arm}_f{f}.yaml"
+                body["run_name"] = f"{name[:-5]}_s{seed}"  # the launcher's run dir: <config basename>_s<seed>
                 write(out / name, head, body)
                 manifest.append(f"configs/{name} {seed}")
             smoke = lane_config(args.base, arm, seed=SMOKE_SEEDS[arm], donor=ds[0], lr=args.lr, total=SMOKE_STEPS,
                                 tag=TAGS[f"smoke_{arm}"], cadence=SMOKE_CADENCE)
+            smoke["run_name"] = f"r7_fleet_smoke400k_{arm}_s{SMOKE_SEEDS[arm]}"
             head = header(arm=arm, lane=None, donor=ds[0], all_donors=ds, base=args.base, lr=args.lr,
                           lr_evidence=lr_evidence, b0=args.b0, power=power,
                           kind="400k WARM-START SHAKEDOWN SMOKE, NOT A PRE-REG RUN")
