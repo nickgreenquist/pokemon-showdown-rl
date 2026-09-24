@@ -1,8 +1,9 @@
 """The R7 shakedown checker (`scripts/r7_smoke_check.py`, R0 gate 1 of the fleet pre-reg) on fake run dirs, engine-
-and torch-free (the step and the history are passed in): a well-formed searched smoke with its resume PASSES, a
+and torch-free (the step, the history and the theta0 donor record are passed in): a well-formed searched smoke with its resume PASSES, a
 well-formed control PASSES, and each shape the gate exists to catch FAILS -- a searched-only counter on the control,
 the searched arm's played_frac != searched_frac, the bank copied instead of mapped, a gate counter missing, the donor
-anchors never installed (no THETA0 line), heads counters on a head-off base."""
+anchors never recorded (no donor record in theta0.pt), a resume without its re-install line, weights more than one
+update stale, heads counters on a head-off base."""
 
 from __future__ import annotations
 
@@ -24,9 +25,10 @@ def _mod():
 
 def _fake(tmp: pathlib.Path, m, arm: str, *, drop=(), extra=(), played=None, zero_copy=True, theta0=True,
           theta0_resume=True, lag=1.0):
-    run = tmp / f"runs/r7_fleet_smoke400k_{arm}_s1"
+    run = tmp / f"runs/r7_fleet_smoke_{arm}_s1"
     run.mkdir(parents=True)
-    (run / "config.yaml").write_text(yaml.safe_dump({"total_steps": 400_000, "collector": {"outcome_targets": False}}))
+    (run / "config.yaml").write_text(yaml.safe_dump({"total_steps": 400_000, "collector": {"outcome_targets": False},
+                                                     "init_from": "runs/donor/ckpt_200000011.pt"}))
     (run / "meta.yaml").write_text(yaml.safe_dump({
         "git_sha": "abc", "git_dirty": False, "encoder": {"c6": True}, "engine": {"bank_zero_copy": zero_copy},
         "resumes": [{"from_step": 200_000}]}))
@@ -58,10 +60,11 @@ def _fake(tmp: pathlib.Path, m, arm: str, *, drop=(), extra=(), played=None, zer
     return run, hist, wd, rel
 
 
-def _check(tmp, m, arm, **kw):
+def _check(tmp, m, arm, donor_record=True, **kw):
     run, hist, wd, rel = _fake(tmp, m, arm, **kw)
     m.REPO = str(tmp)  # the fake tree is the repo the checker resolves logs and relpaths against
-    return m.check(str(run), arm, str(wd), expect_resume=(arm == "searched"), step=400_123, history=str(hist))
+    rec = {"donor": {"init_from": "runs/donor/ckpt_200000011.pt", "theta0_hash": "abcdef"}} if donor_record else {}
+    return m.check(str(run), arm, str(wd), expect_resume=(arm == "searched"), step=400_123, history=str(hist), theta0=rec)
 
 
 def test_well_formed_smokes_pass(tmp_path):
@@ -85,7 +88,11 @@ def test_each_shape_the_gate_exists_for_fails(tmp_path):
     assert r["verdict"] == "FAIL" and not r["gates"]["S_META"]["ok"]
     r = _check(tmp_path / "e", m, "searched", drop=("loss/approx_kl_unsearched",))
     assert r["verdict"] == "FAIL" and "loss/approx_kl_unsearched" in r["gates"]["S_COUNTERS"]["missing"]
+    # The anchors are proven by theta0.pt's donor record, not by the first launch's log line (a killed lane can lose
+    # its unflushed stdout): a missing line still PASSES, a missing record FAILS.
     r = _check(tmp_path / "f", m, "searched", theta0=False)
+    assert r["verdict"] == "PASS", r["gates"]["S_THETA0"]
+    r = _check(tmp_path / "f2", m, "searched", donor_record=False)
     assert r["verdict"] == "FAIL" and not r["gates"]["S_THETA0"]["ok"]
     r = _check(tmp_path / "g", m, "control", extra=("aux_outcome/ev_win",))
     assert r["verdict"] == "FAIL" and r["gates"]["S_COUNTERS"]["heads_leaked"] == ["aux_outcome/"]

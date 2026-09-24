@@ -2,8 +2,8 @@
 """R7 400k WARM-START SHAKEDOWN CHECK -- R0 gate (1) of the fleet pre-reg (scripts/derive_r7_fleet.py's header),
 computed from the smoke's run dir so the PASS is read, not eyeballed.
 
-    python scripts/r7_smoke_check.py runs/r7_fleet_smoke400k_searched_s424 --arm searched --expect-resume [--json-out ...]
-    python scripts/r7_smoke_check.py runs/r7_fleet_smoke400k_control_s432 --arm control [--json-out ...]
+    python scripts/r7_smoke_check.py runs/r7_fleet_smoke_searched_s424 --arm searched --expect-resume [--json-out ...]
+    python scripts/r7_smoke_check.py runs/r7_fleet_smoke_control_s432 --arm control [--json-out ...]
 
 Every expectation is DERIVED, never typed (docs/landmines.md, the typed-dial-list shape): the counter table is
 derive_r7_fleet.py's GATE_COUNTERS (the header prints the same table; a test greps rl/ for every name), the horizon
@@ -11,8 +11,10 @@ from the run dir's own config.yaml, the heads expectation from its collector.out
 lines from the watchdog log. Gates:
   S_REACHED   the checkpoint's step >= total_steps and the watchdog's DONE line.
   S_META      meta.yaml: encoder.c6 true, engine.bank_zero_copy true, git_dirty false, a git_sha.
-  S_THETA0    the first launch's log carries the THETA0 donor line, and (with --expect-resume) the resume log its own
-              re-install line -- the first launch's line cannot vouch for a reconstruction.
+  S_THETA0    the run dir's theta0.pt carries the DONOR record the warm start writes (its init_from = the config's), and
+              (with --expect-resume) the resume log carries the resume's own re-install line. The record, not the first
+              launch's log line: a killed lane can lose unflushed stdout (the wiring review's focused pass; the line is
+              flushed now, and reported when present, but never required).
   S_COUNTERS  every BOTH-ARMS counter present (a finite value on some row); l2init/* at the eval rows; aux_outcome/*
               iff the base keeps the heads; the SEARCHED-ONLY counters present on the searched arm and ABSENT on the
               control; search/played_frac == search/searched_frac > 0 on every update row (searched) or == 0 on every
@@ -62,8 +64,14 @@ def n_offline(run: str) -> int:
     return len(glob.glob(os.path.join(run, "wandb/offline-run-*/run-*.wandb")))
 
 
+def theta0_record(run: str) -> dict:
+    import torch
+    p = os.path.join(run, "theta0.pt")
+    return torch.load(p, map_location="cpu", weights_only=False) if os.path.exists(p) else {}
+
+
 def check(run: str, arm: str, watchdog_log: str, expect_resume: bool, step: int | None = None,
-          history: str | None = None) -> dict:
+          history: str | None = None, theta0: dict | None = None) -> dict:
     rel = os.path.relpath(os.path.abspath(run), REPO)
     cfg, meta = load_yaml(os.path.join(run, "config.yaml")), load_yaml(os.path.join(run, "meta.yaml"))
     wd_lines = open(watchdog_log).read().splitlines() if os.path.exists(watchdog_log) else []
@@ -85,8 +93,11 @@ def check(run: str, arm: str, watchdog_log: str, expect_resume: bool, step: int 
     logs = [p for p in (nohup, resume_log) if os.path.exists(p)]
     first = [l.strip() for l in open(nohup, errors="replace") if THETA0_LINE in l] if os.path.exists(nohup) else []
     again = [l.strip() for l in open(resume_log, errors="replace") if THETA0_RESUME_LINE in l] if os.path.exists(resume_log) else []
-    gates["S_THETA0"] = {"ok": bool(first) and (bool(again) or not expect_resume), "first_launch": first[:2],
-                         "resume": again[:2], "logs": [os.path.basename(p) for p in logs]}
+    rec = (theta0 if theta0 is not None else theta0_record(run)).get("donor") or {}
+    donor_ok = bool(rec.get("theta0_hash")) and str(rec.get("init_from")) == str(cfg.get("init_from"))
+    gates["S_THETA0"] = {"ok": donor_ok and (bool(again) or not expect_resume), "donor_record": rec,
+                         "config_init_from": cfg.get("init_from"), "first_launch_line": first[:1],
+                         "resume_line": again[:1], "logs": [os.path.basename(p) for p in logs]}
 
     hp = history or str(history_path(run))
     h = pd.read_csv(hp)

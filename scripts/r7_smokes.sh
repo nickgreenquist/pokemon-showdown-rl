@@ -145,7 +145,7 @@ shakedown)
   if ! grep -q "RESUMED $ds ->" "$WD" 2>/dev/null && ! is_done "$ds"; then
     has_latest() { [ -f "$ds/checkpoint.pt" ]; }
     wait_for "the first checkpoint.pt in $ds" "$(limit_for "$cs")" has_latest || die "no checkpoint.pt in $ds"
-    sleep 20   # never kill mid-write: the save is a single torch.save, done well inside 20 s
+    # checkpoint.pt is written atomically (a .tmp then replace, rl/common/checkpoint.py): no mid-write kill
     base="$(basename "$ds")"; pid="$(lane_pid "$base")"
     [ -n "$pid" ] || die "RESUME TEST: no lane pid for $base after its checkpoint.pt -- see $ds.nohup.log"
     pgid="$(ps -o pgid= -p "$pid" | tr -d ' ')"

@@ -337,7 +337,8 @@ def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], b
         f"#       past {SH_SHOCK} at the chosen lr goes to a ruling. NOT-INERT, at the chosen lr: the SEARCHED arm's mean "
         "search/kl_update over",
         "#       its last half of updates is below the BETA-0 comparator's by more than 2 * sqrt(se_S^2 + se_0^2) (update-level se",
-        "#       over those rows; ~8 autocorrelated updates, so the se understates the noise: disclosed) -- beta moves the student",
+        "#       over those rows: ~8 autocorrelated updates of ONE run per arm, so the se is within-run only and understates the",
+        "#       noise -- the run-to-run spread is not in it: disclosed) -- beta moves the student",
         "#       toward pi' beyond what playing pi' and the v' head do. The LARGEST",
         "#       passing lr is chosen (--read-lr writes results/r7_lr/read_lr.json; --stage fleet refuses any other lr). None",
         "#       passes, the not-inert check fails, or a searched-only vs-SH drop -> a maintainer ruling before launch, never a",

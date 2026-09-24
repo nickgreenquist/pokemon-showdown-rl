@@ -266,7 +266,7 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
             agent.install_theta0(payload)
             # The resume's own line (R7's shakedown check reads it in the resume
             # log: the first launch's line cannot vouch for a reconstruction).
-            print(f"THETA0: resume re-installed the donor's theta0 ({path}, {str(stored)[:12]})")
+            print(f"THETA0: resume re-installed the donor's theta0 ({path}, {str(stored)[:12]})", flush=True)
             return
         digest = agent.theta0_hash()
         if stored != digest:
@@ -304,7 +304,9 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
         payload["donor"] = {"init_from": str(cfg.init_from), "theta0_path": str(donor_path),
                             "theta0_hash": payload["theta0_hash"]}
         torch.save(payload, path)
-        print(f"THETA0: warm start anchored to the donor's theta0 ({donor_path}, {payload['theta0_hash'][:12]})")
+        # flush: stdout is a file (block-buffered), and a lane killed before exit -- the shakedown's resume leg does
+        # exactly that -- would take this line with it (the wiring review's focused pass).
+        print(f"THETA0: warm start anchored to the donor's theta0 ({donor_path}, {payload['theta0_hash'][:12]})", flush=True)
         return
     if any(out_dir.glob("*.pt")):
         raise FileNotFoundError(
@@ -700,7 +702,7 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
                 )
         meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
         print(f"RESUME: {cfg.run_name} from step {ckpt['step']} "
-              f"(best_eval {resume_state.get('best_eval')})")
+              f"(best_eval {resume_state.get('best_eval')})", flush=True)
     else:
         # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
         _write_run_metadata(out_dir, cfg, agent)
