@@ -13690,3 +13690,15 @@ line numbers are not — grep the date, then read that region):
   three budgets, 2/2). The a7 session's find, verified here: zsh's BG_NICE puts a `cmd &` job at nice +5 (plain nice keeps the P-cores --
   r6-runner, `b5be92d`); both R7 scripts now refuse a niced shell. OWED TO THE MAINTAINER with the launch (box 7): X-FLAT's routing; n 3000 vs 6000;
   β·KL inside the shared clip (kept); Friday's ~3 h of extra smokes and evals. Nothing launched.
+
+- 2026-09-24 02:30Z (agent, R7 runner) — **G1b READ: THE PEEK IS WORTH NOTHING MEASURABLE AT THE BATTLE LEVEL** (box 5
+  item 8; `readouts/R7_G1_READOUT.md`). G1b ended on its own at 02:23:52Z, all 12,500 rows (2,500 per arm), inside its
+  guard. The belief L-op (G2's operator in the mirror: B = 8 resampled worlds, PIMC) beats its own greedy by +0.0553 ±
+  0.0070 (n 5,000, 7.9 se) at 7.3% override; the true-world re-runs reproduce G1's rows 2,500/2,500 on all three arms
+  (+0.0527 ± 0.0070); belief minus true, PAIRED on 4,993 battle seeds, +0.0022 ± 0.0079 (95% CI −0.013 to +0.018) — box 5
+  item 3's "upper bound" does not bind in the mirror; G2 (after the fleet) is the live test. PROVENANCE DEFECT FOUND AND
+  FIXED (`2d9b180`): g1_engine_mirror/2 stamped `launch_git_sha` at WRITE time, so G1b's JSON names `068ccaf`; the
+  readout now derives the launch commit from the guard's start line (`e486482`, committed 27 s before launch) and checks
+  the lazily imported modules byte-identical there — one program throughout. The same shape was in the new
+  `scripts/r7_mechanism_reads.py`, fixed before it ever ran for a read. The G1 readout's engine-source check had also
+  started diffing to today's HEAD (the mmap-bank engine work would have read as G1's program): it now stops at G1's end.

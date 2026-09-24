@@ -323,6 +323,17 @@ on a 14-core laptop, CPU only, pure self-play.
 
 ---
 
+> 8. **G1b HAS READ (2026-09-24 02:24Z; `readouts/R7_G1_READOUT.md`, every number re-derived from
+>    `results/r7_g1b/g1b.rows.jsonl`): THE PEEK IS WORTH NOTHING MEASURABLE AT THE BATTLE LEVEL.** The belief L-op -- G2's
+>    operator in the engine mirror: B = 8 resampled worlds, per-world foe priors, PIMC, gated as G1 -- beats its own greedy
+>    by **+0.0553 ± 0.0070** win rate (n 5,000 over both seats, 7.9 se) at 7.3% override; the true-world re-runs reproduce
+>    G1's rows 2,500/2,500 on all three arms and read +0.0527 ± 0.0070. **Belief minus true, PAIRED on 4,993 battle seeds:
+>    +0.0022 ± 0.0079** (95% CI −0.013 to +0.018; identical outcome on 68.8% of pairs). Item 3's question answered: the
+>    per-decision world dependence item 2's re-read found does not reach the outcome, so G1's +0.050 is not a bound G2's
+>    operator measurably falls short of in this mirror. Scope: the mirror is G1's (both seats the R5 committee, the
+>    non-searching seat greedy); the live test against a different opponent is G2, off FP@20, after the fleet. Program:
+>    `e486482` throughout -- the /2 JSON's `launch_git_sha` (`068ccaf`) was stamped at WRITE time, a harness defect fixed
+>    at `2d9b180`, which also found the same shape in the new mechanism scorer before it ran.
 > ### AMENDMENT BOX 6 — 2026-09-23, **THE FLEET: what the reads now fix, and the RULINGS OWED before its pre-reg is written**
 > **Fixed by the reads, no ruling needed.** THE LEVER: the T-op at G0's sweep cell (k 4 / S 2 / τ 0.05; `frac` 0.75 of eligible
 > rows ≈ 40% of decisions; `top1_skip` 0.97), B = 1 (box 5 item 2), on the OBSERVATION leaf (box 5 item 5), β·KL(π′‖π_θ)
