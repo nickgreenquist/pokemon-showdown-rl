@@ -320,3 +320,26 @@ def test_a_missing_donor_is_refused(tmp_path):
     (runs / "showdown_r6_trio_b_s336/ckpt_200000011.pt").unlink()
     _, err = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS", *RULED, ok=False)
     assert "REFUSED" in err
+
+
+def test_the_lr_evals_write_exactly_what_the_rule_reads(tmp_path):
+    """--stage lr-evals prints one vs-SH command per checkpoint the rule compares (the donor f1's final and every
+    smoke's highest-step checkpoint), each writing the JSON read_lr opens -- the two sides of one file name."""
+    m = _mod()
+    runs = _fake_runs(tmp_path)
+    for lr in m.LR_CANDIDATES:
+        for arm in ("searched", "control"):
+            d = m.lr_smoke_dir(runs, arm, lr)
+            d.mkdir(parents=True)
+            (d / "ckpt_001966080.pt").write_bytes(b"a rung")
+            (d / "ckpt_002088960.pt").write_bytes(b"the final")
+    r = subprocess.run([sys.executable, str(ROOT / "scripts/derive_r7_fleet.py"), "--runs", str(runs), "--base", "b",
+                        "--stage", "lr-evals", "--sh-dir", str(tmp_path / "sh")], capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode == 0, r.stdout + r.stderr
+    cmds = [l for l in r.stdout.splitlines() if l and not l.startswith("#")]
+    assert len(cmds) == 1 + 2 * len(m.LR_CANDIDATES)
+    assert "showdown_r6_trio_b_s328/ckpt_200000011.pt" in cmds[0] and cmds[0].endswith(str(tmp_path / "sh" / "donor_f1.json"))
+    outs = {c.rsplit("--out ", 1)[1] for c in cmds[1:]}
+    assert outs == {str(tmp_path / "sh" / f"{m.lr_smoke_dir(runs, a, lr).name}.json")
+                    for lr in m.LR_CANDIDATES for a in ("searched", "control")}
+    assert all("ckpt_002088960.pt" in c and f"--episodes {m.SH_N}" in c and "POKEMON_RL_ENCODER_C6=1" in c for c in cmds[1:])
