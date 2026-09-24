@@ -42,7 +42,7 @@ def _fake_power(tmp: pathlib.Path) -> pathlib.Path:
             for share in (0.0, 0.5):
                 for d in (-0.030, -0.020, 0.0, 0.020, 0.025, 0.030, 0.035, 0.040):
                     table.append({"width": width, "n": n, "donor_share": share, "delta": d,
-                                  "X-POS": 0.111 if d == 0.030 else 0.5, "se_diff_median": 0.0077})
+                                  "X-POS": 0.111 if d == 0.030 else 0.5, "X-GAIN": 0.222, "se_diff_median": 0.0077})
     p = tmp / "power.json"
     p.write_text(json.dumps({"version": "r7_fleet_power/1", "pooled_sd": 0.0102, "binomial_sd": 0.0091, "df": 10,
                              "table": table}))
@@ -107,7 +107,7 @@ def test_the_fleet_lanes_load_and_each_pair_differs_exactly_in_the_lever(tmp_pat
             assert "R0 SANITY GATES" in text and "Search-with-our-evaluator vs the same checkpoint greedy" in text
             # Every branch named, the lane-loss cell, the object rule, the power read from its JSON (0.11 is the
             # fake table's +0.030 cell), the dials and coefficients formatted from the module's own dicts.
-            for cell in ("X-POS", "X-NEG", "X-COST", "X-FLAT", "LANE LOSS", "OBJECT RULE", "MECHANISM AXIS"):
+            for cell in ("X-POS", "X-GAIN", "X-NEG", "X-COST", "X-FLAT", "LANE LOSS", "OBJECT RULE", "MECHANISM ROUTE"):
                 assert cell in text, cell
             assert "0.50 / 0.11 / 0.50 / 0.50" in text and "r7_fleet_power/1" in text
             assert f"frac {m.SEARCH['frac']}" in text
@@ -124,34 +124,44 @@ def test_the_fleet_lanes_load_and_each_pair_differs_exactly_in_the_lever(tmp_pat
         assert a["init_from"] == b["init_from"]
         # The config's run_name IS the launcher's run dir (<config basename>_s<seed>), never a second name.
         assert a["run_name"] == f"r7_fleet_searched_f{f}_s{a['seed']}" and b["run_name"] == f"r7_fleet_control_f{f}_s{b['seed']}"
-    assert (out / "r7_fleet_smoke400k_searched.yaml").exists() and (out / "r7_fleet_smoke400k_control.yaml").exists()
+    assert (out / "r7_fleet_smoke_searched.yaml").exists() and (out / "r7_fleet_smoke_control.yaml").exists()
     manifest = [l.split() for l in (out / "r7_fleet_lanes.txt").read_text().splitlines() if not l.startswith("#")]
     assert manifest == [[f"configs/r7_fleet_{arm}_f{f}.yaml", str(seed)] for arm in ("searched", "control")
                         for f, seed in enumerate(m.SEEDS[arm], start=1)]
-    # The smokes, then a STOP, then ONE fleet launch over the manifest.
-    assert launch.count("monster_fleet.sh") == 2 and launch.count("r7_fleet_launch.sh configs/r7_fleet_lanes.txt") == 1
-    assert launch.index("STOP") < launch.index("r7_fleet_launch.sh")
+    # The shakedown through its runner (never raw per-lane launcher lines), a STOP, then ONE fleet launch.
+    assert "monster_fleet.sh" not in launch and launch.count("bash scripts/r7_smokes.sh shakedown") == 1
+    assert launch.count("r7_fleet_launch.sh configs/r7_fleet_lanes.txt") == 1
+    assert launch.index("r7_smokes.sh shakedown") < launch.index("STOP") < launch.index("r7_fleet_launch.sh")
+    for cell in ("X-GAIN", "MECHANISM ROUTE", "r7_mechanism_reads.py", "BETA-0 COMPARATOR", "ALL FOUR IN THE R6 OBJECT'S POLICY FORM"):
+        assert cell in " ".join(l.lstrip("# ").strip() for l in (out / "r7_fleet_searched_f1.yaml").read_text().splitlines()), cell
 
 
 def test_the_smokes_run_the_lanes_schedule_at_their_cadences(tmp_path):
     m = _mod()
     _fake_runs(tmp_path)
     out, _ = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "5e-5", "--b0", "PASS", *RULED)
+    # base b: 15360 x 8 = 122,880 steps an update; the first checkpoint.pt is SAVE_LATEST_EVERY_UPDATES updates in, and
+    # the shakedown runs two updates past it (the wiring review's second pass: 400k never reached it at this base).
+    assert m.steps_per_update("b") == 122_880 and m.save_latest_every() == 4 and m.smoke_steps("b") == 800_000
+    assert m.steps_per_update("a") == 30_720 and m.smoke_steps("a") == m.SMOKE_MIN_STEPS == 400_000
     for arm in ("searched", "control"):
-        s = yaml.safe_load((out / f"r7_fleet_smoke400k_{arm}.yaml").read_text())
-        assert s["total_steps"] == m.SMOKE_STEPS and s["agent"]["lr_anneal_steps"] == m.HORIZON
-        assert s["eval_every"] == s["checkpoint_every"] == m.SMOKE_CADENCE <= m.RESUME_AT
+        s = yaml.safe_load((out / f"r7_fleet_smoke_{arm}.yaml").read_text())
+        assert s["total_steps"] == 800_000 and s["agent"]["lr_anneal_steps"] == m.HORIZON
+        assert s["eval_every"] == s["checkpoint_every"] == m.SMOKE_CADENCE
         assert s["collector"]["search"]["play"] is (arm == "searched")
+        assert s["run_name"] == f"r7_fleet_smoke_{arm}_s{m.SMOKE_SEEDS[arm]}"
     out2, launch = _derive(tmp_path, "--base", "b", "--stage", "lr-smokes")
     names = sorted(p.name for p in out2.glob("r7_lr_smoke_*.yaml"))
-    assert names == sorted(f"r7_lr_smoke_{arm}_{lr:g}.yaml" for lr in m.LR_CANDIDATES for arm in ("searched", "control"))
+    assert names == sorted(f"r7_lr_smoke_{arm}_{lr:g}.yaml" for lr in m.LR_CANDIDATES for arm in m.LR_ARMS)
     for lr in m.LR_CANDIDATES:
-        for arm in ("searched", "control"):
+        for arm in m.LR_ARMS:
             s = yaml.safe_load((out2 / f"r7_lr_smoke_{arm}_{lr:g}.yaml").read_text())
             assert s["total_steps"] == m.LR_SMOKE_STEPS and s["agent"]["lr_anneal_steps"] == m.HORIZON
-            assert s["agent"]["lr"] == lr and s["collector"]["search"]["play"] is (arm == "searched")
+            assert s["agent"]["lr"] == lr and s["collector"]["search"]["play"] is (arm != "control")
+            assert s["agent"]["search_policy_coef"] == (0.1 if arm == "searched" else 0.0)
+            assert s["agent"]["search_value_coef"] == (0.0 if arm == "control" else 0.1)
             assert s["run_name"] == m.lr_smoke_dir(pathlib.Path("runs"), arm, lr).name
-    assert launch.count("ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh") == 6
+    assert "monster_fleet.sh" not in launch and launch.count("bash scripts/r7_smokes.sh lr b") == 1
 
 
 def test_nothing_else_in_the_base_trios_body_moves(tmp_path):
@@ -196,9 +206,10 @@ def test_the_five_wide_fallback_drops_control_f3(tmp_path):
 
 def test_seeds_and_tags_collide_with_no_existing_config():
     m = _mod()
-    ours = (set(m.SEEDS["searched"]) | set(m.SEEDS["control"]) | set(m.SMOKE_SEEDS.values())
-            | set(m.LR_SMOKE_SEEDS["searched"]) | set(m.LR_SMOKE_SEEDS["control"]))
-    assert len(ours) == 6 + 2 + 6
+    ours = set(m.SEEDS["searched"]) | set(m.SEEDS["control"]) | set(m.SMOKE_SEEDS.values())
+    for arm in m.LR_ARMS:
+        ours |= set(m.LR_SMOKE_SEEDS[arm])
+    assert len(ours) == 6 + 2 + 9
     theirs, tags = set(), set()
     for p in glob.glob(str(ROOT / "configs/**/*.yaml"), recursive=True):
         if pathlib.Path(p).name.startswith(("r7_fleet", "r7_lr_smoke")):
@@ -225,14 +236,24 @@ def _hist(path: pathlib.Path, rows: list[dict]) -> None:
             w.writerow(r)
 
 
-def _smoke_rows(kl_unsearched, entropy, kl_update, kl_whole=0.20):
-    # The WHOLE-batch approx_kl is far past the bar on purpose: the rule must read the unsearched split.
-    return [{"loss/approx_kl": kl_whole, "loss/approx_kl_unsearched": kl_unsearched, "loss/entropy": entropy,
-             "search/kl_update": kl_update} for _ in range(16)]
+def _smoke_rows(arm, kl, entropy, kl_update, kl_whole=0.20):
+    """16 update rows. The searched/beta-0 arms' WHOLE-batch approx_kl is far past the bar on purpose (a searched row
+    carries KL(pi'||pi_theta)): the rule reads their unsearched split, and the control's whole batch. kl_update wobbles
+    +-0.01 so the not-inert margin has an se to read."""
+    rows = []
+    for i in range(16):
+        r = {"loss/entropy": entropy, "search/kl_update": kl_update + (0.01 if i % 2 else -0.01)}
+        if arm == "control":
+            r["loss/approx_kl"] = kl
+        else:
+            r["loss/approx_kl"] = kl_whole
+            r["loss/approx_kl_unsearched"] = kl
+        rows.append(r)
+    return rows
 
 
 def _lr_tree(tmp_path, m, *, spec):
-    """spec[lr][arm] = (kl_unsearched, entropy, kl_update, vs_sh)."""
+    """spec[lr][arm] = (kl, entropy, kl_update, vs_sh or None for beta0)."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     runs = _fake_runs(tmp_path)
     _hist(runs / "showdown_r6_trio_b_s328/history.csv", [{"loss/entropy": 0.70} for _ in range(200)])
@@ -240,37 +261,45 @@ def _lr_tree(tmp_path, m, *, spec):
     sh.mkdir()
     (sh / "donor_f1.json").write_text(json.dumps({"eval/win_rate": 0.88}))
     for lr in m.LR_CANDIDATES:
-        for arm in ("searched", "control"):
-            klu, ent, kup, wr = spec[lr][arm]
+        for arm in m.LR_ARMS:
+            kl, ent, kup, wr = spec[lr][arm]
             d = m.lr_smoke_dir(runs, arm, lr)
-            _hist(d / "history.csv", _smoke_rows(klu, ent, kup))
-            (sh / f"{d.name}.json").write_text(json.dumps({"eval/win_rate": wr}))
+            _hist(d / "history.csv", _smoke_rows(arm, kl, ent, kup))
+            if wr is not None:
+                (sh / f"{d.name}.json").write_text(json.dumps({"eval/win_rate": wr}))
     return runs, sh
 
 
-def test_the_lr_rule_reads_both_arms_and_picks_the_largest_passing_candidate(tmp_path):
+def test_the_lr_rule_gates_the_control_reads_the_searched_arm_and_contrasts_beta(tmp_path):
     m = _mod()
     c1, c2, c3 = m.LR_CANDIDATES  # descending: 1e-4, 5e-5, 2.5e-5
-    good_s, good_c = (0.02, 0.50, 0.10, 0.87), (0.02, 0.69, 0.30, 0.87)   # the searched entropy is read, not gated
-    spec = {c1: {"searched": good_s, "control": (0.07, 0.69, 0.30, 0.87)},       # control's unsearched kl too high
-            c2: {"searched": (0.02, 0.50, 0.10, 0.83), "control": good_c},        # searched vs-SH shock (> 0.04 down)
-            c3: {"searched": good_s, "control": good_c}}
+    S, C, B = (0.02, 0.50, 0.10, 0.87), (0.02, 0.69, 0.30, 0.87), (0.02, 0.60, 0.30, None)
+    spec = {c1: {"searched": S, "control": (0.07, 0.69, 0.30, 0.87), "beta0": B},     # control's whole-batch kl too high
+            c2: {"searched": S, "control": (0.02, 0.69, 0.30, 0.84), "beta0": B},     # control vs-SH shock (> 0.03 down)
+            c3: {"searched": S, "control": C, "beta0": B}}
     runs, sh = _lr_tree(tmp_path / "a", m, spec=spec)
     verdict = tmp_path / "a" / "read_lr.json"
     assert m.read_lr(runs, "b", sh, verdict) == c3
     v = json.loads(verdict.read_text())
-    assert v["chosen"] == c3 and v["per_lr"][f"{c1:g}"]["passes"] is False and v["per_lr"][f"{c2:g}"]["passes"] is False
-    # The control's entropy IS gated: 20% off the donor's 0.70 fails the candidate.
+    assert v["chosen"] == c3 and not v["per_lr"][f"{c1:g}"]["gates"]["control_kl_ok"]
+    assert not v["per_lr"][f"{c2:g}"]["gates"]["control_sh_ok"]
+    # The searched arm's entropy (0.50, 29% off the donor's 0.70) is READ, never gated; the control's IS gated.
     spec[c3]["control"] = (0.02, 0.55, 0.30, 0.87)
     runs, sh = _lr_tree(tmp_path / "b", m, spec=spec)
     assert m.read_lr(runs, "b", sh, tmp_path / "b" / "v.json") is None
-    # NOT-INERT: a passing lr whose searched kl_update is not below the control's -> a ruling, never a default.
-    spec[c3]["control"] = good_c
-    spec[c3]["searched"] = (0.02, 0.50, 0.40, 0.87)
+    # NOT-INERT is against the BETA-0 comparator, with a margin: a searched kl_update not clearly below beta-0's is a
+    # ruling, never a default (0.29 vs 0.30 with an update-level se of ~0.0036 each: inside 2 se).
+    spec[c3]["control"] = C
+    spec[c3]["searched"] = (0.02, 0.50, 0.29, 0.87)
     runs, sh = _lr_tree(tmp_path / "c", m, spec=spec)
     assert m.read_lr(runs, "b", sh, tmp_path / "c" / "v.json") is None
     v = json.loads((tmp_path / "c" / "v.json").read_text())
-    assert v["largest_passing"] == c3 and v["chosen"] is None
+    assert v["largest_passing"] == c3 and v["chosen"] is None and "NOT-INERT" in v["ruling_needed"]
+    # A searched-only vs-SH drop past the tolerance at the chosen lr: a ruling.
+    spec[c3]["searched"] = (0.02, 0.50, 0.10, 0.84)
+    runs, sh = _lr_tree(tmp_path / "d", m, spec=spec)
+    assert m.read_lr(runs, "b", sh, tmp_path / "d" / "v.json") is None
+    assert "SEARCHED arm dropped" in json.loads((tmp_path / "d" / "v.json").read_text())["ruling_needed"]
 
 
 def test_the_fleet_stage_takes_only_the_rules_lr(tmp_path):
@@ -292,7 +321,9 @@ def test_every_gate_counter_is_written_somewhere_in_rl():
     src = "\n".join(p.read_text() for p in (ROOT / "rl").rglob("*.py"))
     for group, names in m.GATE_COUNTERS.items():
         for name in names:
-            assert f'"{name}' in src, (group, name)
+            # a prefix ("l2init/") matches its opening quote; a full name must appear CLOSED (so "search/override"
+            # is not satisfied by "search/override_update" -- the wiring review's second pass)
+            assert (f'"{name}' if name.endswith("/") else f'"{name}"') in src, (group, name)
 
 
 def test_the_t_ops_dials_are_the_signatures():

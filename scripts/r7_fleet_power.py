@@ -2,10 +2,11 @@
 """R7 FLEET POWER -- the power statement of the fleet pre-reg (scripts/derive_r7_fleet.py's header), computed
 from disk so the header quotes a traced number, never a typed one (CLAUDE.md, "a number typed from memory").
 
-Inputs: every banked 3-lane trio's per-lane FP@20 greedy finals at n 3000 (the reads protocol the fleet's
-primary uses). Each trio's across-lane sd is pooled (2 df each) and split into its binomial part (the mean
-p(1-p)/n over the lanes) and the rest -- the TRUE lane sd, which is what a searched/control lane pair differs
-by besides the lever.
+Inputs: five banked 3-lane trio READS of per-lane FP@20 greedy finals at n 3000 (the reads protocol the fleet's
+primary uses) -- FOUR distinct trios: the 100M finals were read in two sessions, so the pooled df double-count
+their lane term (their binomial terms are independent draws). Each read's across-lane sd is pooled (2 df each) and
+split into its binomial part (the mean p(1-p)/n over the lanes) and the rest -- the TRUE lane sd, which is what a
+searched/control lane pair differs by besides the lever.
 
 The simulation applies the pre-reg's rule EXACTLY: delta = the equal-weight mean of the searched finals minus
 the equal-weight mean of the control finals; se_diff = the LARGER of the pooled-binomial se_diff and the
@@ -14,8 +15,9 @@ strict boundary (a delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met). 
 (PAIRED BY FINAL), so the true lane variance is split into a donor part (shared by a pair) and a training part
 (each lane's own); the split is unknown, so both ends are printed. Cells (the header's partition):
   X-POS   delta > +0.025 and delta > 2*se_diff
-  X-NEG   delta < -0.025 and |delta| > 2*se_diff
+  X-GAIN  0 < delta <= +0.025 and delta > 2*se_diff      (a RESOLVED gain below the floor)
   X-COST  -0.025 <= delta < 0 and |delta| > 2*se_diff   (a RESOLVED cost below the floor)
+  X-NEG   delta < -0.025 and |delta| > 2*se_diff
   X-FLAT  everything else
 
     python scripts/r7_fleet_power.py --out <main>/results/r7_fleet/power.json
@@ -86,10 +88,11 @@ def simulate(delta: float, k_c: int, n: int, lane_sd: float, donor_share: float,
     se_clu = np.sqrt(s.var(1, ddof=1) / 3 + c.var(1, ddof=1) / k_c)
     se = np.maximum(se_bin, se_clu)
     pos = (d > FLOOR) & (d > 2 * se)
+    gain = (d > 0) & (d <= FLOOR) & (d > 2 * se)
     neg = (d < -FLOOR) & (-d > 2 * se)
     cost = (d >= -FLOOR) & (d < 0) & (-d > 2 * se)
-    return {"X-POS": float(pos.mean()), "X-NEG": float(neg.mean()), "X-COST": float(cost.mean()),
-            "X-FLAT": float(1.0 - pos.mean() - neg.mean() - cost.mean()),
+    return {"X-POS": float(pos.mean()), "X-GAIN": float(gain.mean()), "X-NEG": float(neg.mean()),
+            "X-COST": float(cost.mean()), "X-FLAT": float(1.0 - pos.mean() - gain.mean() - neg.mean() - cost.mean()),
             "se_diff_median": float(np.median(se)), "se_bin_median": float(np.median(se_bin)),
             "se_clustered_p05_p95": [float(np.quantile(se_clu, 0.05)), float(np.quantile(se_clu, 0.95))]}
 
@@ -112,7 +115,7 @@ def main() -> None:
                 for dl in deltas:
                     cell = simulate(dl, k_c, n, sp["true_lane_sd"], share, args.sims, rng)
                     table.append({"width": width, "n": n, "donor_share": share, "delta": dl, **cell})
-    out = {"version": "r7_fleet_power/1", "sims": args.sims, "seed": args.seed, "floor": FLOOR, **sp, "table": table}
+    out = {"version": "r7_fleet_power/2", "sims": args.sims, "seed": args.seed, "floor": FLOOR, **sp, "table": table}
     pathlib.Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     pathlib.Path(args.out).write_text(json.dumps(out, indent=1) + "\n")
     print(f"pooled per-lane sd {sp['pooled_sd']:.4f} over {sp['df']} df; binomial {sp['binomial_sd']:.4f}; "
@@ -127,8 +130,9 @@ def main() -> None:
                 se30 = next(r["se_diff_median"] for r in cells if r["delta"] == 0.030)
                 print(f"{width}  {n}  {share:.1f}    " + "  ".join(f"{r['X-POS']:.3f} " for r in cells) + f"  {se30:.4f}")
     for width in ("3+3", "3+2"):
-        r = next(r for r in table if r["width"] == width and r["n"] == 3000 and r["donor_share"] == 0.0 and r["delta"] == -0.020)
-        print(f"{width} n 3000 at a true -0.020: X-COST {r['X-COST']:.3f}, X-NEG {r['X-NEG']:.3f}, X-FLAT {r['X-FLAT']:.3f}")
+        for dl in (-0.020, 0.020):
+            r = next(r for r in table if r["width"] == width and r["n"] == 3000 and r["donor_share"] == 0.0 and r["delta"] == dl)
+            print(f"{width} n 3000 at a true {dl:+.3f}: " + ", ".join(f"{k} {r[k]:.3f}" for k in ("X-POS", "X-GAIN", "X-FLAT", "X-COST", "X-NEG")))
     print(f"wrote {args.out}")
 
 
