@@ -20,8 +20,13 @@ arms. The opponent model is the learner's own actor on the foe's view (the
 self-play prior; what G0 measured against). The dial list is this class's
 signature (`dials()`), never typed: a config key that is not a dial fails.
 
+`play` has NO default (the fleet pre-reg's wiring review, 2026-09-24): a
+config that drops the key must fail, not silently make a control lane play.
+
 Counters, batch-level means since the last `stats()` (the collector merges
 them into `collect/*`'s dict): `search/searched_frac`, `search/eligible_frac`,
+`search/played_frac` (decisions whose played action was drawn from pi' -- 0 on
+a record-only control, `searched_frac` under `play`: the behaviour counter),
 `search/decisions`, and the operator's own `search/kl_prior`, `search/override`,
 `search/margin`, `search/ms`, `search/leaves`, `search/pi_top1`,
 `search/prior_top1`, `search/topk_mass`, `search/terminal_frac`,
@@ -57,7 +62,7 @@ class TOp:
         cols_k: int = 3,
         chance_s: int = 2,
         tau: float = 1.0,
-        play: bool = True,
+        play: bool,
     ):
         if not 0.0 <= frac <= 1.0:
             raise ValueError(f"frac must be in [0, 1], got {frac}")
@@ -84,6 +89,7 @@ class TOp:
         self._sums: dict[str, float] = defaultdict(float)
         self._n_searched = 0
         self._n_eligible = 0
+        self._n_played = 0
         self._n_decisions = 0
         self._decision_counter = 0
         self.seconds = 0.0
@@ -106,6 +112,13 @@ class TOp:
             raise ValueError(
                 f"unknown collector.search key(s) {sorted(unknown)}; the T-op's dials are "
                 f"{sorted(cls.dials())} (derived from TOp.__init__, never typed)"
+            )
+        missing = sorted(n for n, p in cls.dials().items()
+                         if p.default is inspect.Parameter.empty and n not in spec)
+        if missing:
+            raise ValueError(
+                f"collector.search is missing required key(s) {missing} (no default, by design: "
+                "`play` decides whether the lane's behaviour is pi' or pi_theta)"
             )
         return spec
 
@@ -166,6 +179,7 @@ class TOp:
                 a = int(self.rng.choice(N_ACTIONS, p=pi / pi.sum()))
                 actions[i] = a
                 logp[i] = np.float32(np.log(np.float64(pi32[a])))
+                self._n_played += 1
             self._records[slot].append((True, pi32, float(res["v"])))
             self._n_searched += 1
             for k, v in res["counters"].items():
@@ -196,11 +210,12 @@ class TOp:
             "search/decisions": float(self._n_decisions),
             "search/searched_frac": self._n_searched / max(self._n_decisions, 1),
             "search/eligible_frac": self._n_eligible / max(self._n_decisions, 1),
+            "search/played_frac": self._n_played / max(self._n_decisions, 1),
             "search/seconds": self.seconds,
         }
         for k, v in self._sums.items():
             out[k] = v / max(self._n_searched, 1)
         self._sums.clear()
-        self._n_searched = self._n_eligible = self._n_decisions = 0
+        self._n_searched = self._n_eligible = self._n_played = self._n_decisions = 0
         self.seconds = 0.0
         return out

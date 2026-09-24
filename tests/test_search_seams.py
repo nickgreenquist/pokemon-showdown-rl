@@ -194,7 +194,7 @@ def test_the_counters_reach_disk_and_match_a_direct_recompute():
     adv = episode_gae(batch["rewards"], values, batch["lengths"], 1.0, 0.95)
     m = agent.update_episodes(batch, steps_seen=0)
     for key in ("value/pred_mean", "value/realized_mean", "value/bias", "value/bias_mirror",
-                "value/mirror_frac", "search/rows_frac", "search/rows", "search/kl_update",
+                "value/mirror_frac", "search/rows_frac", "search/rows_update", "search/kl_update",
                 "search/override_update", "search/value_gap", "search/value_gap_critic",
                 "search/v_mean", "loss/search_policy"):
         assert key in m and math.isfinite(m[key]), key
@@ -206,7 +206,7 @@ def test_the_counters_reach_disk_and_match_a_direct_recompute():
     assert m["value/mirror_frac"] == pytest.approx(mirror.mean())
     assert m["value/bias_mirror"] == pytest.approx(float((values[mirror] - realized[mirror]).mean()), abs=1e-6)
     s = batch["search_mask"]
-    assert m["search/rows_frac"] == pytest.approx(s.mean()) and m["search/rows"] == s.sum()
+    assert m["search/rows_frac"] == pytest.approx(s.mean()) and m["search/rows_update"] == s.sum()
     assert m["search/value_gap"] == pytest.approx(float(np.abs(batch["search_v"] - (adv + values))[s].mean()), abs=1e-5)
     assert m["search/value_gap_critic"] == pytest.approx(float(np.abs(batch["search_v"] - values)[s].mean()), abs=1e-5)
     assert m["search/v_mean"] == pytest.approx(float(batch["search_v"][s].mean()), abs=1e-6)
@@ -221,6 +221,41 @@ def test_the_counters_reach_disk_and_match_a_direct_recompute():
     m2 = _agent(search_targets=True, search_policy_coef=0.5).update_episodes(plain, steps_seen=0)
     assert "value/bias_mirror" not in m2 and "value/mirror_frac" not in m2 and "value/bias" in m2
 
+
+
+def test_approx_kl_and_clip_frac_split_by_the_search_mask():
+    """The fleet pre-reg's wiring review (2026-09-24): under `play` a searched
+    row's old_logp is log pi'(a), so the batch approx_kl carries KL(pi' ||
+    pi_theta) on those rows at ANY lr; the split reads the policy's own movement
+    on the unsearched rows. One epoch, one minibatch: the only surrogate read is
+    before the step, so the unsearched part is ~0 and the searched part equals a
+    direct recompute. The learner's row count reaches the log as
+    `search/rows_update` (the T-op's `search/rows` is merged after it)."""
+    agent = _agent(search_targets=True, search_policy_coef=0.5)
+    batch = _searched(agent, _episodes([7, 9, 6, 10]))
+    with torch.no_grad():
+        new = agent._logp_entropy(
+            torch.as_tensor(batch["obs"]), torch.as_tensor(batch["actions"]),
+            torch.as_tensor(batch["masks"]),
+        )[0].double()
+    s = torch.as_tensor(batch["search_mask"])
+    lr_rows = new - torch.as_tensor(batch["old_logp"]).double()
+    r_rows = lr_rows.exp()
+    kl_s = float(((r_rows - 1.0) - lr_rows)[s].mean())
+    cf_s = float(((r_rows - 1.0).abs() > 0.2)[s].double().mean())
+    m = agent.update_episodes(batch, steps_seen=0)
+    assert m["loss/approx_kl_unsearched"] == pytest.approx(0.0, abs=1e-6)
+    assert m["loss/clip_frac_unsearched"] == 0.0
+    assert kl_s > 1e-3 and m["loss/approx_kl_searched"] == pytest.approx(kl_s, rel=1e-4)
+    assert m["loss/clip_frac_searched"] == pytest.approx(cf_s)
+    # One minibatch: the batch approx_kl is the row mix of the two parts.
+    n_s, n = int(s.sum()), len(s)
+    assert m["loss/approx_kl"] == pytest.approx(kl_s * n_s / n, rel=1e-4, abs=1e-7)
+    assert "search/rows" not in m and m["search/rows_update"] == n_s
+    # No search mask, no split keys.
+    plain = {k: v for k, v in batch.items() if not k.startswith("search_")}
+    m2 = _agent().update_episodes(plain, steps_seen=0)
+    assert not any(k.startswith(("loss/approx_kl_", "loss/clip_frac_")) for k in m2), sorted(m2)
 
 def test_the_blend_moves_only_searched_targets_and_zero_leaves_them_untouched():
     def captured_arrays(agent, batch):

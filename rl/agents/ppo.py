@@ -1943,7 +1943,11 @@ class PPOAgent(Agent):
             srows = flat_search_mask
             n_s = int(srows.sum())
             stats["search/rows_frac"] = float(srows.float().mean())
-            stats["search/rows"] = float(n_s)
+            # `search/rows_update`, never `search/rows`: the T-op's counters
+            # (native.solve's mean legal-row count) reach the same log merged
+            # AFTER these (rl/train.py), so the learner's count under that name
+            # never reached history.csv (the fleet pre-reg's wiring review).
+            stats["search/rows_update"] = float(n_s)
             if n_s:
                 s_obs, s_mask, pi_p = flat_obs[srows], flat_masks[srows], flat_search_pi[srows]
                 logits = masked_logits(self.actor(s_obs), s_mask)
@@ -2175,6 +2179,15 @@ class PPOAgent(Agent):
         # cannot move a number; REPORTED UNDER drop/fold ONLY, so 'keep'
         # adds no metric key (the l2_init_decay / bc_kl_coef precedent).
         rows_min, rows_dropped = batch_size, 0
+        # R7 (the fleet pre-reg's wiring review, 2026-09-24): approx_kl and
+        # clip_frac split by the T-op's search mask, ROW-weighted over the
+        # update ([kl sum, clipped rows, rows] per part). Under `play` a searched
+        # row's behaviour log-prob is log pi'(a) (rl/search/top.py), so the
+        # batch approx_kl carries KL(pi' || pi_theta) on those rows from the
+        # first minibatch at ANY lr; the unsearched split is the policy's own
+        # per-update movement, the read an LR rule needs. Tensor reads only,
+        # detached: nothing trained moves.
+        kl_split = {"searched": [0.0, 0.0, 0], "unsearched": [0.0, 0.0, 0]}
         for _ in range(self.epochs):
             perm = torch.randperm(batch_size, device=self.device)
             for start, stop in slices:
@@ -2434,6 +2447,19 @@ class PPOAgent(Agent):
                 sums["loss/clip_frac"] += float(clip_frac.item())
                 sums["loss/grad_norm"] += float(grad_norm.item())
                 sums["loss/grad_clip_frac"] += float(grad_norm.item() > self.max_grad_norm)
+                if mb_srows is not None:
+                    with torch.no_grad():
+                        lr_rows = new_logp.detach() - flat_old_logp[idx]
+                        r_rows = lr_rows.exp()
+                        kl_rows = (r_rows - 1.0) - lr_rows
+                        clip_rows = ((r_rows - 1.0).abs() > self.clip_eps).float()
+                        for part, sel in (("searched", mb_srows), ("unsearched", ~mb_srows)):
+                            n_sel = int(sel.sum())
+                            if n_sel:
+                                acc = kl_split[part]
+                                acc[0] += float(kl_rows[sel].sum())
+                                acc[1] += float(clip_rows[sel].sum())
+                                acc[2] += n_sel
                 grad_steps += 1
 
         self.updates += 1
@@ -2446,6 +2472,13 @@ class PPOAgent(Agent):
                 "loss/minibatch_rows_min": float(rows_min),
                 "loss/minibatch_rows_dropped": rows_dropped / self.epochs,
             }
+        # Present only under search_targets, and a part only when it had rows
+        # this update (row-weighted: never divided by grad_steps).
+        split_stats: dict[str, float] = {}
+        for part, (kl_sum, clipped, n_rows) in kl_split.items():
+            if n_rows:
+                split_stats[f"loss/approx_kl_{part}"] = kl_sum / n_rows
+                split_stats[f"loss/clip_frac_{part}"] = clipped / n_rows
         # sums are per-grad-step and averaged; the two batch-level reads are
         # already single numbers for this update and must not be divided.
         return {
@@ -2456,6 +2489,7 @@ class PPOAgent(Agent):
             # unless the privileged evaluator head exists.
             **priv_eval_stats,
             **tail_stats,
+            **split_stats,
             # Rollout-level label diagnostics; already single numbers for this
             # update and must not be divided. Empty unless the lever is on.
             **aux_stats,

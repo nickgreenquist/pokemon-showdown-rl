@@ -49,7 +49,7 @@ ROLLOUT, NENV = 160, 4                       # budget 640 rows per update
 AGENT = dict(algo="ppo", lr=2.5e-4, gamma=1.0, gae_lambda=0.95, rollout_steps=ROLLOUT, epochs=1, minibatches=2,
              clip_eps=0.2, entropy_coef=0.01, value_coef=0.5, max_grad_norm=0.5, hidden_sizes=[64, 64],
              trunk="entity_deepsets", trunk_kwargs=TRUNK_KWARGS, search_targets=True, search_policy_coef=0.1)
-DIALS = dict(frac=0.5, cols_k=3, chance_s=2, tau=0.5)
+DIALS = dict(frac=0.5, cols_k=3, chance_s=2, tau=0.5, play=True)
 cfg = Config(env_id="ShowdownGen1-v0", seed=21, total_steps=4 * ROLLOUT * NENV, eval_every=10**9, eval_episodes=1,
              run_name="loop_proc_test", num_envs=NENV, agent=AGENT, checkpoint_every=0,
              selfplay={"opponent": "self", "pool_size": 4, "latest_prob": 0.8, "push_every_updates": 1},
@@ -82,6 +82,12 @@ lags = [m["collect/weights_lag_updates"] for m in updates]
 assert max(lags) <= 1.0, lags
 assert all("search/searched_frac" in m and "loss/search_policy" in m and "value/bias" in m for m in updates)
 assert any(m["search/searched_frac"] > 0 for m in updates)
+# The learner's own searched-row count reaches the log under its own name (the
+# T-op's `search/rows` is merged after it), and approx_kl splits by the search
+# mask whenever the part had rows: the unsearched split is the policy's movement.
+assert all("search/rows_update" in m for m in updates)
+assert all("loss/approx_kl_unsearched" in m and "loss/clip_frac_unsearched" in m for m in updates)
+assert any("loss/approx_kl_searched" in m for m in updates)
 assert "collect/child_idle_frac" in updates[-1] and "collect/child_version" in updates[-1]
 sizes = [m["selfplay/pool_size"] for _, m in sink.rows if "selfplay/pool_size" in m]
 assert sizes and max(sizes) >= 2, sizes
@@ -100,7 +106,13 @@ agent2 = make_agent(cfg, spaces)
 agent2.load_state_dict(ckpt["agent"])
 pool2 = SnapshotPool(4, 0.8)
 pool2.load_state_dict(ckpt["pool"]["state"], agent_factory=lambda: make_agent(cfg, spaces))
-cfg2 = dataclasses.replace(cfg, total_steps=step0 + 2 * ROLLOUT * NENV)
+# THREE budgets, not two (2026-09-24): with two, a second resumed update needed the poll
+# that crosses the target to overshoot it by at least the first batch's own overshoot --
+# an episode-granularity race (the unmodified branch failed it 1 run in 4 under load, this
+# change 4 in 4; not separable at n 4 v 4). With three, the second update's threshold
+# (step0 + 2 budgets + the first overshoot) sits inside the horizon unless the first
+# batch overshoots its budget by a whole budget.
+cfg2 = dataclasses.replace(cfg, total_steps=step0 + 3 * ROLLOUT * NENV)
 resume_state = {"step": step0, **ckpt["loop"]}
 sink2 = Sink()
 _async_loop(cfg2, None, agent2, sink2, out_dir, pool2, 1, resume_state, pool2, mode="engine")

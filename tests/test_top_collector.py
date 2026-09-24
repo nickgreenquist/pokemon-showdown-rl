@@ -76,12 +76,18 @@ pool = SnapshotPool(4, 0.8); pool.push(agent)
 
 # The dial list is the signature.
 assert set(TOp.dials()) == {"frac", "top1_skip", "cols_k", "chance_s", "tau", "play"}, TOp.dials()
-TOp.check_dials(DIALS)
+TOp.check_dials({**DIALS, "play": True})
 try:
-    TOp.check_dials({"cols": 2})
+    TOp.check_dials({"cols": 2, "play": True})
     raise SystemExit("an unknown dial was accepted")
 except ValueError as e:
     assert "unknown collector.search key" in str(e), e
+# `play` has no default: a spec that drops it is refused, never defaulted to playing.
+try:
+    TOp.check_dials(DIALS)
+    raise SystemExit("a spec without `play` was accepted")
+except ValueError as e:
+    assert "missing required key(s) ['play']" in str(e), e
 
 def collect(play, steps=1500, seed=4242):
     c = EngineCollector(agent.act_logp, pool, seed=seed, k=16, team_bank=BANK, privileged=True, both_views=True)
@@ -127,6 +133,8 @@ for key in ("search/searched_frac", "search/eligible_frac", "search/decisions", 
             "search/override", "search/margin", "search/ms", "search/leaves", "search/seconds"):
     assert key in st and np.isfinite(st[key]), (key, st.get(key))
 assert st["search/kl_prior"] > 0 and st["search/leaves"] > 0
+# The behaviour counter: under play every searched decision played pi'.
+assert st["search/played_frac"] == st["search/searched_frac"] > 0, (st["search/played_frac"], st["search/searched_frac"])
 print(f"in-process play: {n} rows, {int(s.sum())} searched ({frac_of_eligible:.2f} of eligible), override {st['search/override']:.3f}, "
       f"kl_prior {st['search/kl_prior']:.4f}, {st['search/ms']:.1f} ms/decision")
 
@@ -161,11 +169,13 @@ with torch.no_grad():
 assert (pi2[s2].argmax(1) != probs2[s2].argmax(1)).sum() > 0, "record-only: no row where the operator disagrees"
 ratio2, _ = epoch0_ratio(copy.deepcopy(agent), rec)
 assert torch.allclose(ratio2, torch.ones_like(ratio2), atol=1e-4), "record-only: ratio != 1"
+# Record-only: searched, never played -- the control's behaviour counter reads 0.
+assert st_rec["search/searched_frac"] > 0 and st_rec["search/played_frac"] == 0.0, st_rec
 print(f"ratio identity: play -> pi_theta/pi' on {int(s.sum())} searched rows (bitwise), ~1 elsewhere; record-only -> ~1 on all {len(rec['obs'])} rows")
 
 # ---- the child-process collector carries the same keys and counters -----------
 pc = ProcCollector(asdict(cfg), agent, pool, seed=4243, k=16, team_bank=BANK, privileged=True, both_views=True,
-                   max_steps_ahead=100_000, allow_background_qos=True, search=DIALS)
+                   max_steps_ahead=100_000, allow_background_qos=True, search={**DIALS, "play": True})
 pc.start(10_000)
 eps, t0 = [], time.time()
 while sum(len(e["actions"]) for e in eps) < 600 and time.time() - t0 < 600:
