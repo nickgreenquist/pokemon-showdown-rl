@@ -116,6 +116,17 @@ exactly that (see do-not-relitigate below).
   visible by then, and a selection rule re-run after an outcome stops being one.
   Disclosed in the config, in the readout, and here. The rule is one line: **a
   matched block sweeps every arm it matches, against an in-session control.**
+- **L10 — A HARNESS STAMPED ITS "LAUNCH" SHA AT WRITE TIME** (opened 2026-09-24).
+  `scripts/g1_engine_mirror.py` /2 ran `git rev-parse HEAD` after its arms
+  finished and saved it as `launch_git_sha`; G1b ran 4.5 h while 31 commits
+  landed on its branch, so its JSON names `068ccaf` for a program launched at
+  `e486482`. The G1 readout now derives the launch commit from the guard's start
+  line and checks the lazily imported modules byte-identical there; `2d9b180`
+  fixed the harness, and the same shape in the new `scripts/r7_mechanism_reads.py`
+  before it ever ran. L5's companion: a running block imports the tree at launch,
+  so the sha that describes it must be read at launch. **Audit owed:** every
+  script that writes `launch_git_sha` / `git_sha` into a results JSON — read it
+  before any work, never at write time.
 
 - **L1 — THE LADDER'S OPPONENT POOL IS SMALL AND ONE SESSION SAMPLES ONE SLICE
   OF IT** (opened 2026-09-16, from the maintainer's observation mid-R5). R5 at
