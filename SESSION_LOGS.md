@@ -13577,3 +13577,11 @@ line numbers are not — grep the date, then read that region):
   tests the MERGE would have broken, fixed at `f23cfed` (the C6-marker rule now admits the R7 configs; the shakedown
   agent test skips when the id flags are unset). CLEANUP E2 closed; box 6 and STATUS updated. G1b's belief arms
   continue (their processes loaded the pre-E2 forward at launch — one program throughout).
+
+- 2026-09-24 00:25Z (agent, R7 runner) — **THE FLEET'S RULINGS (maintainer, 00:20Z, all as recommended):** R-F1 the R7
+  fleet starts WARM from the base trio's three R6 finals, each final seeding one searched and one control lane (PAIRED
+  BY FINAL), +100M on a re-armed anneal from a reduced starting LR (R-F3 with it; JOURNEY 10's "never a warm start off a
+  finished checkpoint" suspended for this fleet and disclosed on every number); R-F2 3 + 3 lanes if Friday's B0 bench
+  passes its six-wide line, else 3 + 2; R-G2 `configs/eval/r7_g2.yaml` RATIFIED, G2 runs AFTER the fleet (only its
+  two-battle smoke on Friday). Recorded in box 6 and STATUS; the fleet pre-reg is drafted next (two Opus reviews before
+  the maintainer launches).

@@ -332,6 +332,9 @@ on a 14-core laptop, CPU only, pure self-play.
 > in-loop `search/*` counters are matched and the arms differ by the lever alone. THE BASE: W + C6 + R6's trios by THEIR OWN
 > pre-stated branches (trio A's header, ACTION ON EACH BRANCH: X-POS rides R7's base, X-NEG is dropped, X-FLAT is decided by
 > its mechanism read), read Friday; B2 laps after; no evaluator pre-step (box 5 item 7).
+> **RULED 2026-09-24 00:20Z (maintainer, as recommended): R-F1 WARM + PAIRED (+100M, reduced-LR re-armed anneal; R-F3 with
+> it); R-F2 3 + 3 if B0 passes six-wide, else 3 + 2; R-G2 RATIFIED, G2 runs AFTER the fleet (only its two-battle smoke on
+> Friday). R-E2 ruled yes and landed.** The fleet pre-reg follows from these.
 > **R-F1 START — the ruling that matters most.** RECOMMENDED, **WARM**: every lane starts from one of the base trio's three R6
 > finals, each final seeding one searched lane and one control lane (**PAIRED BY FINAL**), +100M on a re-armed anneal from a
 > REDUCED starting LR that a 2M smoke sets by reading the policy for a shock (vs-SH before/after, approx_kl, entropy), the
