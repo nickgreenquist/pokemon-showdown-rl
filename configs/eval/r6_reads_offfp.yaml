@@ -64,9 +64,9 @@ fp:
   search_time_ms: 20
 
 checkpoints:
-  a304: {path: TBD, sha256: TBD, step: TBD}
-  a312: {path: TBD, sha256: TBD, step: TBD}
-  a320: {path: TBD, sha256: TBD, step: TBD}
+  a304: {path: runs/showdown_r6_trio_a_s304/ckpt_200000029.pt, sha256: e3903fa608978f3792fbd409013f7a6eb3563075577602c2f9c1deba61ede411, step: 200000029}
+  a312: {path: runs/showdown_r6_trio_a_s312/ckpt_200000046.pt, sha256: 12c10e4a0c7e705be5a46e8ac73a7fa01ae11c9a26d48aad2ffcb161df7f75ef, step: 200000046}
+  a320: {path: runs/showdown_r6_trio_a_s320/ckpt_200000007.pt, sha256: 9315e4fc666fccec53099594e8e1829aacaf83af73d0134128f5fbf5264a62f1, step: 200000007}
   b328: {path: TBD, sha256: TBD, step: TBD}
   b336: {path: TBD, sha256: TBD, step: TBD}
   b344: {path: TBD, sha256: TBD, step: TBD}
