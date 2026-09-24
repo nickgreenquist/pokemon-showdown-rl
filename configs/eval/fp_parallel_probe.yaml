@@ -29,6 +29,8 @@ checkpoints:
 arms:
   SMOKE: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmokeseat, fp_username: fpksmokebot}
   SMOKE2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmoke2seat, fp_username: fpksmoke2bot}
+  SMOKE3: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmoke3seat, fp_username: fpksmoke3bot}
+  SMOKE4: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmoke4seat, fp_username: fpksmoke4bot}
   K1A1: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk1a1seat, fp_username: fpk1a1bot}
   K2A1: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk2a1seat, fp_username: fpk2a1bot}
   K2A2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk2a2seat, fp_username: fpk2a2bot}
