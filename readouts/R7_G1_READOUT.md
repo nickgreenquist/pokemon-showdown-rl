@@ -1,6 +1,6 @@
 # R7 G1 — the operator in the engine mirror, and how much of it is seeing the hidden state
 
-Written 2026-09-24T02:28:11+00:00 by `scripts/r7_g1_readout.py` (branch `r7-native-search` at `a35ff9b`). **Every number below is re-derived from the rows files at generation time; nothing is typed.** Rule 6: G1 is a mechanism read on the operator, never a win-rate A/B against the credit line (G2 is that, off FP@20).
+Written 2026-09-24T02:28:27+00:00 by `scripts/r7_g1_readout.py` (branch `r7-native-search` at `28ea957`). **Every number below is re-derived from the rows files at generation time; nothing is typed.** Rule 6: G1 is a mechanism read on the operator, never a win-rate A/B against the credit line (G2 is that, off FP@20).
 
 ## Provenance
 
