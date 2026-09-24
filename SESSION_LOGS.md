@@ -13585,3 +13585,20 @@ line numbers are not — grep the date, then read that region):
   passes its six-wide line, else 3 + 2; R-G2 `configs/eval/r7_g2.yaml` RATIFIED, G2 runs AFTER the fleet (only its
   two-battle smoke on Friday). Recorded in box 6 and STATUS; the fleet pre-reg is drafted next (two Opus reviews before
   the maintainer launches).
+
+- 2026-09-24 00:30Z (agent, R6 babysitter) — **THE READS QUEUE NOW HOLDS THE BOX AWAKE ITSELF; the box
+  was found on BATTERY.** Checking what keeps the Mac awake once training ends turned up three
+  things: `pmset sleep` is **1 minute**; the reads queue had NO caffeinate, so the only guaranteed
+  blocker was trio A's watchdog `caffeinate -i -s -w 44675`, which exits with the last lane — the
+  moment the unattended ~21 h FP phase begins; and the box was **on battery, 100%, 2 h 10 m left**,
+  where `-s` is not honoured at all. A sleep mid-arm is not a pause: Showdown's turn timers are
+  wall-clock and on by rule, so battles would time out and the arm's win rate would carry forfeits.
+  Fixed in the queue (841e5d3): `caffeinate -i -s -w $$` after the frozen re-exec, so it names the
+  live instance and dies with it; relaunched in WAIT (pid 23932), pmset lists the assertion "on
+  behalf of Process ID 23932". The maintainer was push-alerted to plug in (lid-close sleep is not
+  blocked by caffeinate either). Separately, maintainer-authorized, verbatim: *"if 1am edt and its
+  not closed, you have my permission to safe kill it as ill be asleep"* — a detached one-shot
+  (scratchpad `chrome_quit_0100.sh`, PPID 1, log `logs/r6_reads/chrome_quit.log`) SIGTERMs Chrome's
+  main process at 05:00Z if it is still running (Chrome's POSIX shutdown handler quits in order and
+  saves the session; an AppleScript quit could raise an Automation-permission prompt that waits all
+  night), SIGKILL only if it is still up 90 s later.
