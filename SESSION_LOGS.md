@@ -13702,3 +13702,17 @@ line numbers are not — grep the date, then read that region):
   the lazily imported modules byte-identical there — one program throughout. The same shape was in the new
   `scripts/r7_mechanism_reads.py`, fixed before it ever ran for a read. The G1 readout's engine-source check had also
   started diffing to today's HEAD (the mmap-bank engine work would have read as G1's program): it now stops at G1's end.
+
+- 2026-09-24 02:45Z (agent, R7 runner) — **THE BRANCH'S FULL ENGINE-ENV SUITE, and the merge pre-checked.** `git
+  merge-tree main r7-native-search` is CLEAN (54 branch commits, 44 main commits; no conflicts), so Friday's merge is
+  mechanical. The engine env's suite (niced, `-m "not live_server"` — the live tests would have battled on the R6 fleet's
+  server — flags V2/IDS set, `--continue-on-collection-errors`): 1,183 passed, 39 failed, 17 collection errors, in 11 min.
+  None of the tracebacks mention tonight's changes (searched for the new keys, `play`, the renamed counters); every
+  failure is in a documented class — `poke_engine` absent from this env (42 error lines), no `runs/` or `results/` in
+  the worktree, the id flags set by this invocation (the tests that assert their absence), one timing assertion in the
+  process collector under background QoS (its bitwise equivalence leg passed: 30 episodes, 1,958 rows) — except ONE STALE
+  FIXTURE: `tests/test_outcome_targets.py` built a fake collector without the per-slot state `_episode` has read since
+  B5 (`bc24570`). Fixed (`779d9e8`, 6/6). DISCLOSED: my first fix (`981625f`) was committed through a MASKED exit code —
+  `pytest … | tail` returns tail's status — with the test still failing; the follow-up was committed only on pytest's
+  own return code. Every other commit tonight printed its passing count before it was made. R7 runs nothing more until
+  the R6 readout; r6-runner told.
