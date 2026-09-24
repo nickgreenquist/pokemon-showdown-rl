@@ -71,8 +71,11 @@ for i in $(seq 0 $((N - 1))); do
   if ! WATCHDOG=0 FLEET_WIDTH="$N" UP_FILE="$UP_FILE" PY="$PY" \
        bash scripts/monster_fleet.sh "${CFGS[$i]}" "${STEPS[$i]}" "${SEEDS[$i]}"; then
     say "ALERT lane $((i + 1)) (${CFGS[$i]} seed ${SEEDS[$i]}): the launcher refused or no lane came up -- see $LOG"
-    # A preflight refusal is fleet-wide (tree, server, env): stop before launching the rest.
-    if [ ! -s "$UP_FILE" ]; then die "the first lane did not come up; nothing else launched"; fi
+    # STOP launching: a preflight refusal is fleet-wide (tree, server, env) and a startup crash wants a human. The
+    # lanes already up still get the watchdog below; the pre-reg's LANE LOSS cell then governs the read.
+    [ -s "$UP_FILE" ] || die "the first lane did not come up; nothing launched"
+    say "STOPPED after lane $((i + 1)): lanes $((i + 2))..$N NOT launched"
+    break
   fi
 done
 UP=(); while read -r d; do [ -n "$d" ] && UP+=("$d"); done < "$UP_FILE"

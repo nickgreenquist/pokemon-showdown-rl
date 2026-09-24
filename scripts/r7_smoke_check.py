@@ -11,11 +11,13 @@ from the run dir's own config.yaml, the heads expectation from its collector.out
 lines from the watchdog log. Gates:
   S_REACHED   the checkpoint's step >= total_steps and the watchdog's DONE line.
   S_META      meta.yaml: encoder.c6 true, engine.bank_zero_copy true, git_dirty false, a git_sha.
-  S_THETA0    the lane's log carries the THETA0 donor line (the warm start anchored to the donor's theta0).
+  S_THETA0    the first launch's log carries the THETA0 donor line, and (with --expect-resume) the resume log its own
+              re-install line -- the first launch's line cannot vouch for a reconstruction.
   S_COUNTERS  every BOTH-ARMS counter present (a finite value on some row); l2init/* at the eval rows; aux_outcome/*
               iff the base keeps the heads; the SEARCHED-ONLY counters present on the searched arm and ABSENT on the
               control; search/played_frac == search/searched_frac > 0 on every update row (searched) or == 0 on every
-              update row (control); loss/approx_kl_unsearched and loss/grad_norm moving.
+              update row (control); loss/approx_kl_unsearched and loss/grad_norm moving; collect/weights_lag_updates <= 1
+              on every update row (the two-core lane's backpressure bound).
   S_RESUME    (with --expect-resume) meta.yaml's resumes, the watchdog's RESUMED line with c6=1, the history's
               segments matching the resumes (read through scripts/merge_history.py).
   S_ERRORS    no Traceback in the lane's nohup/resume logs.
@@ -42,6 +44,7 @@ _derive = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_derive)
 GATE_COUNTERS = _derive.GATE_COUNTERS
 THETA0_LINE = "THETA0: warm start anchored to the donor's theta0"
+THETA0_RESUME_LINE = "THETA0: resume re-installed the donor's theta0"
 
 
 def load_yaml(p: str) -> dict:
@@ -78,9 +81,12 @@ def check(run: str, arm: str, watchdog_log: str, expect_resume: bool, step: int 
                        "encoder.c6": enc.get("c6"), "engine.bank_zero_copy": eng.get("bank_zero_copy"),
                        "git_sha": meta.get("git_sha"), "git_dirty": meta.get("git_dirty")}
 
-    logs = [p for p in (os.path.join(REPO, rel + ".nohup.log"), os.path.join(REPO, rel + ".resume.log")) if os.path.exists(p)]
-    theta0 = [l.strip() for p in logs for l in open(p, errors="replace") if THETA0_LINE in l]
-    gates["S_THETA0"] = {"ok": bool(theta0), "lines": theta0[:3], "logs": [os.path.basename(p) for p in logs]}
+    nohup, resume_log = os.path.join(REPO, rel + ".nohup.log"), os.path.join(REPO, rel + ".resume.log")
+    logs = [p for p in (nohup, resume_log) if os.path.exists(p)]
+    first = [l.strip() for l in open(nohup, errors="replace") if THETA0_LINE in l] if os.path.exists(nohup) else []
+    again = [l.strip() for l in open(resume_log, errors="replace") if THETA0_RESUME_LINE in l] if os.path.exists(resume_log) else []
+    gates["S_THETA0"] = {"ok": bool(first) and (bool(again) or not expect_resume), "first_launch": first[:2],
+                         "resume": again[:2], "logs": [os.path.basename(p) for p in logs]}
 
     hp = history or str(history_path(run))
     h = pd.read_csv(hp)
@@ -108,8 +114,11 @@ def check(run: str, arm: str, watchdog_log: str, expect_resume: bool, step: int 
     else:
         played_ok = bool(len(upd)) and bool((upd["search/played_frac"] == 0).all())
     not_moving = [c for c in ("loss/approx_kl_unsearched", "loss/grad_norm") if not moving(c)]
+    lag = h["collect/weights_lag_updates"].dropna() if "collect/weights_lag_updates" in h else pd.Series(dtype=float)
+    lag_ok = bool(len(lag)) and float(lag.max()) <= 1.0
     gates["S_COUNTERS"] = {
-        "ok": bool(not missing and not leaked_heads and not so_wrong and played_ok and not not_moving),
+        "ok": bool(not missing and not leaked_heads and not so_wrong and played_ok and not not_moving and lag_ok),
+        "weights_lag_max": float(lag.max()) if len(lag) else None,
         "history": hp, "rows": int(len(h)), "update_rows": int(len(upd)), "missing": missing,
         "heads_expected": heads, "heads_leaked": leaked_heads,
         ("searched_only_missing" if arm == "searched" else "searched_only_present_on_control"): so_wrong,

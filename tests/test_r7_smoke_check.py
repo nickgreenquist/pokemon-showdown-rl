@@ -22,7 +22,8 @@ def _mod():
     return m
 
 
-def _fake(tmp: pathlib.Path, m, arm: str, *, drop=(), extra=(), played=None, zero_copy=True, theta0=True):
+def _fake(tmp: pathlib.Path, m, arm: str, *, drop=(), extra=(), played=None, zero_copy=True, theta0=True,
+          theta0_resume=True, lag=1.0):
     run = tmp / f"runs/r7_fleet_smoke400k_{arm}_s1"
     run.mkdir(parents=True)
     (run / "config.yaml").write_text(yaml.safe_dump({"total_steps": 400_000, "collector": {"outcome_targets": False}}))
@@ -35,6 +36,7 @@ def _fake(tmp: pathlib.Path, m, arm: str, *, drop=(), extra=(), played=None, zer
         for c in m.GATE_COUNTERS["both"]:
             r[c] = 0.1 + 0.01 * i
         r["search/searched_frac"] = 0.4
+        r["collect/weights_lag_updates"] = lag if i == 2 else 0.0
         r["search/played_frac"] = (0.4 if arm == "searched" else 0.0) if played is None else played
         if arm == "searched":
             for c in m.GATE_COUNTERS["searched_only"]:
@@ -50,6 +52,7 @@ def _fake(tmp: pathlib.Path, m, arm: str, *, drop=(), extra=(), played=None, zer
     rel = run.relative_to(tmp)
     log = tmp / f"{rel}.nohup.log"
     log.write_text((m.THETA0_LINE + " (runs/x/theta0.pt, abcdef012345)\n") if theta0 else "no anchors\n")
+    (tmp / f"{rel}.resume.log").write_text((m.THETA0_RESUME_LINE + " (x, abcdef012345)\n") if theta0_resume else "resumed\n")
     wd = tmp / "watchdog.log"
     wd.write_text(f"[t] RESUMED {rel} -> from_step 200000 c6=1\n[t] {rel} DONE at step 400123/400000 (resumes=1)\n")
     return run, hist, wd, rel
@@ -86,3 +89,9 @@ def test_each_shape_the_gate_exists_for_fails(tmp_path):
     assert r["verdict"] == "FAIL" and not r["gates"]["S_THETA0"]["ok"]
     r = _check(tmp_path / "g", m, "control", extra=("aux_outcome/ev_win",))
     assert r["verdict"] == "FAIL" and r["gates"]["S_COUNTERS"]["heads_leaked"] == ["aux_outcome/"]
+    # The resume's own re-install line is required when the smoke was resumed (the first launch's cannot vouch).
+    r = _check(tmp_path / "h", m, "searched", theta0_resume=False)
+    assert r["verdict"] == "FAIL" and not r["gates"]["S_THETA0"]["ok"]
+    # The two-core lane's backpressure bound: the collector acts on weights at most one update behind.
+    r = _check(tmp_path / "i", m, "control", lag=2.0)
+    assert r["verdict"] == "FAIL" and r["gates"]["S_COUNTERS"]["weights_lag_max"] == 2.0
