@@ -89,13 +89,29 @@
 #   unreadable. OWED BEFORE RATIFICATION (M-R6-8): the loader hard-fails on a missing stamp
 #   under either flag state, or LG-6 asserts every member's meta.yaml stamp explicitly.
 #
-# M-R6-10 WHETHER TO LADDER AT ALL (RULED IN PRINCIPLE 2026-09-22, maintainer: "if we dont see offline gains:
-#   why ladder"): LADDER R6 RUNS ONLY IF the reads readout's object rule picks an R6 committee that
-#   beats the same-session re-drawn R5 committee off FP@20 by a margin a 200-game ladder run can
-#   see. RECOMMENDED threshold: >= +0.05 (about +50 Elo at the project's ~+0.10 win rate per ~100
-#   Elo calibration; a +0.03 gain is ~+30 Elo, inside one run's +-27 Glicko). Below it: no R6 ladder
-#   run, no exposure spent; the R6 finals become R7's base and the next ladder run is R7's. The
-#   threshold value is the maintainer's to confirm.
+# M-R6-10 WHETHER TO LADDER AT ALL -- RATIFIED 2026-09-24 00:50Z AT >= +0.05. Maintainer, verbatim:
+#   "i agree. i want to ladder again with a real winning gain. we already hit our 'goal' of this
+#   project: reach the ladder. resources and time should be spent on step change" (in principle
+#   2026-09-22: "if we dont see offline gains: why ladder").
+#   RULE: LADDER R6 RUNS ONLY IF the object the reads readout's R2 rule picks beats E3WR (the
+#   same-session re-drawn R5 committee, same form, loop breaker on) off FP@20 by a POINT DELTA
+#   >= +0.05 (configs/eval/r6_reads_offfp.yaml; win-rate scale, ties as non-wins). Below it: no R6
+#   ladder run and no exposure spent; the R6 finals become R7's base and the next ladder run is R7's.
+#   WHAT IT IS: a bar for SPENDING LADDER EXPOSURE, not for detecting an improvement. R5 listed
+#   top-500, which was the project's ladder goal; a further run is spent only on a real winning gain,
+#   and time and compute go to the step change (R7).
+#   WHY THE NUMBER HOLDS: one committee arm vs E3WR is 3000 vs 3000, se_diff ~0.0128 (the reads
+#   pre-reg's own figure), so +0.05 is ~3.9 se_diff; that also absorbs the winner's curse of taking
+#   the best of four correlated committees (at most ~+0.01).
+#   WHAT IT COSTS, DISCLOSED: the R5 object cleared its own floor by +0.042 (E3WF 0.5987 vs E3HF
+#   0.5570, n=3000 each, results/monster_reads_offfp/, 2026-09-15) and went on to list top-500;
+#   this bar would have kept it off the ladder. Gains of +0.03..+0.05 are therefore real and go
+#   UNLADDERED BY DESIGN -- they carry into R7's base, and "not now" is not "never": an R6 object
+#   can still be laddered later, under its own ruling, if R7 stalls.
+#   STRUCK 2026-09-24: the draft justified +0.05 as "about +50 Elo at the project's ~+0.10 win rate
+#   per ~100 Elo calibration". That projects an FP@20 delta onto the ladder, which the reads pre-reg
+#   forbids ("nothing here is a ladder projection in either direction"); the ratified threshold rests
+#   on se_diff and on exposure, never on a conversion.
 #
 # LAUNCH GATES (R5's LG-2..LG-9, adapted; each checked and its evidence line quoted in the
 #   readout): LG-2 the account's profile read BEFORE session 1 and BEFORE every later session

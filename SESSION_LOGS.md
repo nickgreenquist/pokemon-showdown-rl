@@ -13622,3 +13622,18 @@ line numbers are not — grep the date, then read that region):
   Housekeeping: two entries above carried stamps later than their own commits (00:30Z → 23:43Z from `c2c79cf`, 01:55Z →
   00:16Z from `4bd9374`), corrected in place so the log reads in order; STATUS item 3 no longer says G0 is running or
   box 6's rulings are owed.
+
+- 2026-09-24 00:50Z (agent, R6 babysitter) — **M-R6-10 RATIFIED: Ladder R6 fires only at a point delta
+  ≥ +0.05 off FP@20** over E3WR (the same-session re-drawn R5 committee), for the object the reads
+  readout's R2 rule picks. Maintainer, verbatim: *"i agree. i want to ladder again with a real winning
+  gain. we already hit our 'goal' of this project: reach the ladder. resources and time should be
+  spent on step change"*. Recorded in `docs/proposals/ladder_r6.draft.yaml` with the reasoning it now
+  rests on — ~3.9 se_diff at 3000 vs 3000 (the reads pre-reg's se_diff ~0.0128), absorbing the
+  best-of-four winner's curse (≤ ~+0.01) — and its disclosed cost: the R5 object cleared its own floor
+  by +0.042 (E3WF 0.5987 vs E3HF 0.5570, `results/monster_reads_offfp/`, 09-15) and listed top-500,
+  so this bar would have kept it off the ladder; +0.03..+0.05 gains go unladdered by design and carry
+  into R7's base. **STRUCK from the draft:** its "about +50 Elo at ~+0.10 win rate per ~100 Elo"
+  rationale, which projected an FP@20 delta onto the ladder — the reads pre-reg forbids a projection
+  in either direction, so the threshold rests on se and exposure, never on a conversion. The readout
+  script is NOT edited to apply the rule (the queue invokes it fresh at the end of a ~21 h run; a
+  late edit risks the readout for a comparison that takes one subtraction by hand).
