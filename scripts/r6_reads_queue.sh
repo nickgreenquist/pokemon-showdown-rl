@@ -31,6 +31,13 @@ if [ "${QUEUE_FROZEN:-0}" != "1" ]; then
 fi
 REPO=/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl
 cd "$REPO" || exit 1
+# HOLD THE BOX AWAKE for exactly as long as this queue runs. Until 2026-09-23 the only sleep
+# blocker was the TRAINING watchdogs' `caffeinate -w <watchdog>`, which exits with the last lane --
+# the moment this queue's unattended FP phase begins -- on a box whose `pmset sleep` is 1 minute.
+# A sleep mid-arm is not a pause: Showdown's turn timers are wall-clock and ON by rule, so battles
+# would time out and the arm's win rate would carry forfeits. -i blocks idle sleep on any power;
+# -s adds system sleep on AC. `-w $$` is taken AFTER the frozen re-exec, so it names this instance.
+caffeinate -i -s -w $$ &
 PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python
 export POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1
 export PYTHONUNBUFFERED=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
