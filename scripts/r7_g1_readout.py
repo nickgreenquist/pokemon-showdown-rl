@@ -283,7 +283,7 @@ def main() -> None:
                      f"({(pb - 0.5) / pbse:.1f} se), override {ovb:.3f}.**")
         if len(diffs) > 1:
             dm, dse = ms(diffs)
-            L.append(f"- **Belief minus true, PAIRED on {len(diffs):,} battles (the same teams and chance streams): {dm:+.4f} ± {dse:.4f}** "
+            L.append(f"- **Belief minus true, PAIRED on {len(diffs):,} battles (the same battle seed: the same teams and chance seed, whose draws part once the two arms' actions do): {dm:+.4f} ± {dse:.4f}** "
                      f"(identical outcome on {float(np.mean(np.asarray(diffs) == 0)):.3f} of pairs).")
         if true2:
             pt, ptse = wr([r["outcome"] for r in true2])
@@ -314,11 +314,14 @@ def main() -> None:
           f"- Rate (niced, E-cores; not a cost): {min(rates) if rates else float('nan'):.0f}–{max(rates) if rates else float('nan'):.0f} battles/min on the "
           f"L-op arms at k {g1j['args']['k']}, {np.median(ms_searched) if ms_searched else float('nan'):.1f} ms per searched decision (median over progress lines).",
           "", "## Branch", "",
-          "G1 carries no kill clause; it reads the operator as WORKING in its best case. Next, per the plan: **G2** on the idle box (the L-op's ladder path with "
-          "belief samples through B6's bridge, whose gate R1-E passed; n = 3,000 per arm off FP@20, in-session anchor, the credit line verbatim) and **G3** on "
-          "the fleet's own lanes. Added by this read: **G1b** (above) prices the peek at the battle level before G2 spends an idle-box block; the T-op stays "
-          "B = 1 (the licence holds on the right measurement); and the **evaluator trained on rollout labels** stays first in line, since the critic's own "
-          "optimism dominates the v′ target and the root-rule read already named the evaluator the binding constraint (amendment box 4 items 1 and 5)."]
+          "G1 carries no kill clause; it reads the operator as WORKING in its best case. Added by this read: **G1b** (above) prices the peek at the battle "
+          "level, in the same mirror, before G2 spends a quiet-box block; the T-op stays B = 1 (the licence holds on the right measurement). Where the next "
+          "steps stand (amendment box 6, rulings of 2026-09-24): **G2** (the L-op's ladder path with belief samples through B6's bridge, whose gate R1-E "
+          "passed; n = 3,000 per arm off FP@20, the credit line verbatim) is RATIFIED (`configs/eval/r7_g2.yaml` r2) and runs AFTER the R7 fleet, only its "
+          "two-battle smoke before it; **G3** reads on the fleet's own lanes; and the **evaluator trained on rollout labels** is an own-lap campaign after "
+          "the fleet — fine-tuning the critic on G0's 500 positions fit them and transferred nothing out of fold (box 5 item 7), so G0-scale data is too "
+          "small, while the critic's own optimism still dominates the v′ target and the root-rule read named the evaluator the binding constraint "
+          "(amendment box 4 items 1 and 5)."]
     out = pathlib.Path(args.out)
     out.write_text("\n".join(L) + "\n")
     print("\n".join(L))
