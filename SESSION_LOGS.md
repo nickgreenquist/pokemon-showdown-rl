@@ -13656,3 +13656,37 @@ line numbers are not — grep the date, then read that region):
   (nice vs background QoS) — raised with the maintainer rather than edited on a peer's report.
   Also approved: a7's k=2 harness smoke (2 arms x 3 battles, finishing ~02:15Z, hours before the
   last lane).
+
+- 2026-09-24 02:00Z (agent, R7 runner) — **THE FLEET PRE-REG r3: two Opus reviews, two verification passes and a
+  two focused passes; every verified finding fixed on the branch (16 commits, `0730f3e..068ccaf`), amendment box 7.**
+  The reviews (Opus, read-only; one on wiring against the code, one on design and statistics) found 2 + 5 MAJOR
+  defects; the verification passes 2 + 4 more, several INTRODUCED BY THE FIRST ROUND'S FIXES; the focused passes one each
+  (a sign-blind keep in X-FLAT; the killed smoke's THETA0 line lost unflushed -- the checker now reads theta0.pt's
+  donor record). The ones that would have cost the fleet: (1) THE LR RULE COULD NEVER HAVE READ THE LR — under
+  `play` a searched row's behaviour log-prob is log π′(a), so PPO's approx_kl carries KL(π′‖π_θ) (G0's kl_prior 0.1645
+  at the fleet's dials, `readouts/R7_G0_READOUT.md` line 60) on ~40% of rows at ANY lr, past the 0.06 bar; its top
+  candidate was the donors' own lr (2.5e-4, all three trio configs), not R-F1's "reduced" one. Now `loss/approx_kl_{
+  searched,unsearched}` + `loss/clip_frac_{…}` split by the search mask (`b7c811e`, tested against a direct recompute),
+  candidates {1e-4, 5e-5, 2.5e-5}, nine 2M smokes (searched, control and a β-0 comparator per lr), the control gated
+  (whole-batch KL, entropy, vs SH within 0.03), the searched arm read, NOT-INERT against β-0 with a 2-se margin. (2) THE
+  SHAKEDOWN'S KILL/RESUME COULD NEVER HAVE RUN AT BASE b — `checkpoint.pt` (`SAVE_LATEST_EVERY_UPDATES` = 4, train.py:57)
+  lands at 491,520 steps there, past a 400k horizon; the length is now derived (800k at b/ab, 400k at a/w) and the kill
+  waits for `checkpoint.pt`; the 400k smokes also evaluated too rarely for `l2init/*` to appear. (3) READ (vi) HAD NO
+  INSTRUMENT — `scripts/r7_mechanism_reads.py` (`ae4933f`) scores a checkpoint's greedy on G0's banked split halves and
+  its critic's cell Spearman; its test reproduces G0's banked `a_greedy`, `regret_depth1_ceiling` and the evaluator's
+  `spearman_base` on 8 bucket-balanced positions, 0 failures; smoked c6-on on trio B's s328 final (20 positions, 14 s).
+  (4) NO POWER STATEMENT — `scripts/r7_fleet_power.py` (`e0cb5f2`) re-derives the per-lane FP@20 spread from five banked
+  trio reads (four distinct trios; W 0.527/0.552/0.546 etc., every input re-read from `results/`), pooled sd 0.0102 of
+  which 0.0091 binomial, and simulates the exact credit rule: P(X-POS) 0.49 / 0.72 / 0.88 / 0.96 at a true
+  +0.025 / .030 / .035 / .040 (3 + 3, n 3000), 0.001 at 0; at +0.020, X-POS 0.27 and X-GAIN 0.34. Also fixed: the G2
+  object misstated (the ratified G2 stays on the R5 W committee; an OBJECT RULE with same-session re-draws in the R6
+  object's form); unnamed cells (LANE LOSS, X-COST, X-GAIN; X-FLAT routed on mechanism reads (i)/(vi) and the sign of
+  delta); mechanism reads with a statistic, window, se and bar; the capacity sentence that had cited the attention
+  screen's non-clear as ruling capacity out (a rule-6 violation in my own fix); the learner's `search/rows` overwritten
+  by the T-op's in the log (`search/rows_update`); `TOp.play` defaulting to True (now required; `search/played_frac`
+  added); six watchdogs racing `ensure_node` (one watchdog, `scripts/r7_fleet_launch.sh`); donors' finals globbed on a
+  digit prefix; FP@500 dropped then RESTORED at n 250 (the plan's G4 names it). An async-loop test turned out to be a
+  two-budget overshoot race (1 fail in 4 on the unmodified branch under load, 4 in 4 with the counters; widened to
+  three budgets, 2/2). The a7 session's find, verified here: zsh's BG_NICE puts a `cmd &` job at nice +5 (plain nice keeps the P-cores --
+  r6-runner, `b5be92d`); both R7 scripts now refuse a niced shell. OWED TO THE MAINTAINER with the launch (box 7): X-FLAT's routing; n 3000 vs 6000;
+  β·KL inside the shared clip (kept); Friday's ~3 h of extra smokes and evals. Nothing launched.
