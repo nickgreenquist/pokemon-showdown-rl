@@ -49,6 +49,7 @@ deliberate deviation, recorded).
 from dataclasses import dataclass
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 # R0-2 HARD CEILING: the flat [512,512] MLP actor on v2/808 — 808*512+512
@@ -678,10 +679,19 @@ class EntityDeepSetsNet(nn.Module):
         # own-move vector j. ONE shared scorer over all 10 [ctx || entity]
         # pairs; masking is applied outside, by the caller.
         entities = torch.cat([mons[:, :6], own_moves], dim=1)  # (B, 10, entity_dim)
-        pairs = torch.cat(
-            [ctx.unsqueeze(1).expand(-1, entities.shape[1], -1), entities], dim=-1
-        )
-        logits = self.scorer(pairs).squeeze(-1) + self.slot_bias
+        # THE CTX FACTORIZATION (CLEANUP E2; ruled 2026-09-24): the scorer's
+        # first Linear over [ctx || entity_i] splits exactly, W @ [ctx; e] + b ==
+        # (W[:, :ctx] @ ctx + b) + W[:, ctx:] @ e, and ctx is the SAME vector in
+        # all ten slots -- so its half runs once a row instead of ten times
+        # (~1.97x on this layer, ~26% of the epoch loop). The SAME weights,
+        # sliced: no new parameters, checkpoints load unchanged. Float32
+        # summation order moves the logits by <= ~3e-07, which is why
+        # tests/test_entity_trunk_gen4.py's bit-exact _GEN1_PIN was re-baselined
+        # with it; tests/test_entity_scorer_factorization.py pins the identity.
+        lin0 = self.scorer[0]
+        c_in = ctx.shape[-1]
+        h0 = F.linear(ctx, lin0.weight[:, :c_in], lin0.bias).unsqueeze(1) + F.linear(entities, lin0.weight[:, c_in:])
+        logits = self.scorer[1:](h0).squeeze(-1) + self.slot_bias
         if not return_features:
             return logits
         return (logits, *self._aux_features(tok, mons, ctx))
