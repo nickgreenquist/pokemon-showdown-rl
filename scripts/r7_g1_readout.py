@@ -115,8 +115,12 @@ def main() -> None:
     g1bj = json.loads(g1bj_p.read_text()) if g1bj_p.exists() else None
     maturin = M / "logs/r7_g0/maturin_b6.log"
     so_built = dt.datetime.fromtimestamp(maturin.stat().st_mtime, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    tip = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
-    eng = subprocess.run(["git", "diff", "--stat", "9a3e4ae", "HEAD", "--", "engine/"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    # The engine-source check runs to the branch commit at G1's END (its guard's exit line), never to today's HEAD: the
+    # extension G1 loaded is fixed at launch, and later engine work (the mmap'd bank, 7c6cb40) is not G1's program.
+    g1_end = next((l[1:21] for l in (M / "logs/r7_g1/guard.log").read_text().splitlines() if "exited" in l), None)
+    tip = subprocess.run(["git", "log", "-1", f"--until={g1_end}", "--format=%h"] if g1_end else ["git", "rev-parse", "--short", "HEAD"],
+                         capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    eng = subprocess.run(["git", "diff", "--stat", "9a3e4ae", tip, "--", "engine/"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
 
     A = {a: arm_stats(g1, a) for a in ("lop_p1", "lop_p2", "greedy_greedy")}
     lop = [r for r in g1 if r["arm"] in ("lop_p1", "lop_p2")]
@@ -285,6 +289,17 @@ def main() -> None:
             dm, dse = ms(diffs)
             L.append(f"- **Belief minus true, PAIRED on {len(diffs):,} battles (the same battle seed: the same teams and chance seed, whose draws part once the two arms' actions do): {dm:+.4f} ± {dse:.4f}** "
                      f"(identical outcome on {float(np.mean(np.asarray(diffs) == 0)):.3f} of pairs).")
+            lo, hi = dm - 1.96 * dse, dm + 1.96 * dse
+            if lo <= 0.0 <= hi:
+                read = ("WITHIN NOISE OF ZERO: the belief operator keeps the true-world operator's gain in this mirror, so the "
+                        "per-decision world dependence the belief read found (box 5) does not reach the battle level, and G1's "
+                        "true-world gain is not a bound G2's operator measurably falls short of here")
+            else:
+                read = ("a measurable COST of not peeking" if hi < 0 else "measurably BETTER without the peek") + \
+                       " at the battle level"
+            L.append(f"- **Read:** the peek's price over a battle is {-dm:+.4f} win-rate (belief minus true {dm:+.4f}, 95% CI "
+                     f"[{lo:+.4f}, {hi:+.4f}]) -- {read}. The mirror is G1's (both seats the R5 committee, greedy but for the L-op); "
+                     "the live test of the belief operator against a different opponent is G2, off FP@20, after the fleet.")
         if true2:
             pt, ptse = wr([r["outcome"] for r in true2])
             L.append(f"- The re-run true-world arms: {pt:.4f} ± {ptse:.4f} on {len(true2):,} battles.")
@@ -297,8 +312,22 @@ def main() -> None:
                 rep_[a] = (sum(all(u[k] == v[k] for k in ("outcome", "length", "decisions", "overrides")) for u, v in zip(x1[:n], x2[:n])), n)
         if rep_:
             L.append("- **/1 reproduction** (the re-run's rows against /1's, in order, on outcome, length, decisions and overrides): " + "; ".join(
-                f"{a} {same:,}/{n:,} identical" for a, (same, n) in rep_.items()) +
-                (f" — git `{g1bj.get('launch_git_sha')}`{' DIRTY' if g1bj.get('git_dirty') else ''}." if g1bj else " — the /2 JSON (launch SHA) is written at run end."))
+                f"{a} {same:,}/{n:,} identical" for a, (same, n) in rep_.items()) + ".")
+        # THE PROGRAM G1b RAN. g1_engine_mirror/2 stamped `launch_git_sha` at WRITE time (fixed after this run), so its
+        # JSON names the tree's HEAD at the end, not the launch; the launch commit is the branch HEAD at the guard's
+        # start line, and the modules the harness imports LAZILY (after launch) are checked byte-identical there.
+        guard = M / "logs/r7_g1b/guard.log"
+        if g1bj and guard.exists():
+            t_launch = guard.read_text().splitlines()[0][1:21]
+            sha_launch = subprocess.run(["git", "log", "-1", f"--until={t_launch}", "--format=%h"], capture_output=True,
+                                        text=True, cwd=ROOT).stdout.strip()
+            lazy = ("rl/search/resample.py", "rl/envs/randbats_prior.py")
+            same_lazy = subprocess.run(["git", "diff", "--quiet", sha_launch, "HEAD", "--", *lazy], cwd=ROOT).returncode == 0
+            L.append(f"- **The program:** launched {t_launch} at the branch's `{sha_launch}` (its HEAD at the guard's start line); "
+                     f"the lazily imported modules ({', '.join(lazy)}) are {'byte-identical' if same_lazy else 'CHANGED'} at "
+                     f"`{sha_launch}` and HEAD, and the rest loaded at launch — one program throughout. The /2 JSON's "
+                     f"`launch_git_sha` reads `{g1bj.get('launch_git_sha')}` because /2 stamped it at WRITE time (a harness defect, "
+                     "fixed after this run: the launch sha is now taken before any arm).")
         done = {a: (G[a]["n"] if G[a] else 0) for a in G}
         if any(v < 2500 for k, v in done.items() if k != "greedy_greedy"):
             L.append(f"- **PARTIAL** — battles on disk per arm: {done}; the run is resume-safe and continues on the idle box.")

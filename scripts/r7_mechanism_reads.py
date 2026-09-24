@@ -102,6 +102,9 @@ def main() -> None:
     rng = np.random.default_rng(20260924)
     units = ([list(range(len(args.checkpoints)))] if args.committee else [[i] for i in range(len(args.checkpoints))])
     t0 = time.time()
+    # the LAUNCH commit, before anything runs (a sha taken at write time describes a different tree)
+    sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True, cwd=ROOT).stdout.strip())
     # Render every position's cells once (the leaves do not depend on the scored unit).
     pos = []
     for r in rows:
@@ -140,8 +143,6 @@ def main() -> None:
                         "regret_mean": gm, "regret_se": gse, "agree_banked_greedy": float(np.mean(agree))})
         print(f"[mech] {', '.join(pathlib.Path(x['path']).parent.name for x in prov)}: spearman {sm:+.4f} +- {sse:.4f}, "
               f"regret {gm:+.5f} +- {gse:.5f} over {len(pos)} positions (banked-greedy agreement {np.mean(agree):.3f})", flush=True)
-    sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
-    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True, cwd=ROOT).stdout.strip())
     summary = {"version": VERSION, "rows": str(rows_path), "rows_sha256": hashlib.sha256(rows_path.read_bytes()).hexdigest(),
                "per_bucket": args.per_bucket, "pids": [int(p["row"]["pid"]) for p in pos], "s_leaves": S_LEAVES,
                "encoder": {k: os.environ.get(k) for k in ("POKEMON_RL_ENCODER_V2", "POKEMON_RL_ENCODER_IDS", "POKEMON_RL_ENCODER_C6")},

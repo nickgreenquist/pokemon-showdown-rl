@@ -292,6 +292,12 @@ def main() -> None:
     import rollout_q as rq
     from rl.envs.engine_tables import build_tables
 
+    # The LAUNCH commit, taken before any arm runs (2026-09-24: G1b's /2 JSON stamped the tree's HEAD at WRITE time as
+    # launch_git_sha -- 068ccaf, 31 commits after the e486482 it launched from). A running block imports the working
+    # tree at launch; the sha that describes the program is this one.
+    import subprocess
+    sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True, cwd=ROOT).stdout.strip())
     rng = np.random.default_rng(args.seed)
     committee, prov = rq.load_committee(args.checkpoints, args.sha256, rng)
     tables, fp = build_tables()
@@ -315,9 +321,7 @@ def main() -> None:
         run_arm(arm, args, committee, tables, payload, rows_path, done)
         rows = [json.loads(l) for l in rows_path.read_text().splitlines() if l.strip()]
 
-    import subprocess
-    sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
-    dirty = bool(subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], capture_output=True, text=True, cwd=ROOT).stdout.strip())
+    written_sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
     summary = {}
     for arm in ARMS:
         sel = [r for r in rows if r["arm"] == arm]
@@ -369,7 +373,7 @@ def main() -> None:
     out = {"version": G1_VERSION, "written": dt.datetime.now(dt.timezone.utc).isoformat(), "committee": prov,
            "bank": args.bank, "tables_fingerprint": fp, "args": vars(args), "summary": summary, "reproduce_v1": repro,
            "rows_file": str(rows_path), "qos": "background" if _qos_background() else "normal",
-           "launch_git_sha": sha, "git_dirty": dirty}
+           "launch_git_sha": sha, "git_dirty": dirty, "written_git_sha": written_sha}
     out_path = pathlib.Path(args.out) if os.path.isabs(args.out) else ROOT / args.out
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(out, indent=1))
