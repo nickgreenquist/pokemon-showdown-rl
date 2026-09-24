@@ -13637,3 +13637,22 @@ line numbers are not — grep the date, then read that region):
   in either direction, so the threshold rests on se and exposure, never on a conversion. The readout
   script is NOT edited to apply the rule (the queue invokes it fresh at the end of a ~21 h run; a
   late edit risks the readout for a comparison that takes one subtraction by hand).
+
+- 2026-09-24 01:55Z (agent, R6 babysitter) — **Every R6 process runs at NICE 5, and that is NOT the
+  E-core landmine.** Found by session `pokemon-showdown-rl-a7` (the FP-parallel ROI probe), verified
+  here with `ps -o ni,pri`: the reads queue (23932) and its caffeinate, the three trio A lanes
+  (44041/44252/44428) and the Showdown server (75930) are all **NI 5 / PRI 31**; R7's G1b (86094) is
+  **NI 5 / PRI 4**. Cause: zsh's `BG_NICE` option is ON by default, so every `cmd &` launched from
+  the agent's zsh tool starts at nice +5, and children inherit it — so every FP arm and seat this
+  queue launches will run at NI 5 too. **The lanes are the counterexample to CLAUDE.md's wording**
+  ("`taskpolicy -b` / `nice` SENDS A PROCESS TO THE FOUR EFFICIENCY CORES"): at NI 5 / PRI 31 they
+  run 1,100-1,500 steps/s, in line with the maintainer-launched W fleet's 1,254, so plain nice keeps
+  the P-cores; it is background QoS (`taskpolicy -b`, PRI 4) that clamps to cpu0-3. **No relaunch:**
+  every arm, the R5 re-draw included, runs at NI 5 against the same NI 5 server, so the read is
+  matched; the FP gate keeps the box quiet, so a lower priority has nothing to lose to; and a
+  non-root user cannot lower node's nice, so a nice-0 relaunch would only mix configurations.
+  **OWED:** a disclosure line in the R6 readout ("all FP arms and seats ran at nice 5, PRI 31,
+  inherited via zsh BG_NICE; matched across arms"), and the CLAUDE.md landmine wording separated
+  (nice vs background QoS) — raised with the maintainer rather than edited on a peer's report.
+  Also approved: a7's k=2 harness smoke (2 arms x 3 battles, finishing ~02:15Z, hours before the
+  last lane).
