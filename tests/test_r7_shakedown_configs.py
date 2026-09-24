@@ -59,6 +59,12 @@ def test_the_control_is_the_searched_lane_with_the_coefficients_zeroed_and_play_
     assert a["collector.search.play"] is True and b["collector.search.play"] is False
 
 
+def _id_dim() -> int:
+    from rl.envs.showdown import ID_DIM
+    return ID_DIM
+
+
+@pytest.mark.skipif(_id_dim() == 0, reason="entity trunk needs POKEMON_RL_ENCODER_IDS=1 (and V2); set them to run this test")
 def test_the_launch_checks_and_the_agent_construction_pass():
     from rl.envs.showdown import fake_spaces
     from rl.search.top import TOp
