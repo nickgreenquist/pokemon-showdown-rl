@@ -13533,7 +13533,7 @@ line numbers are not — grep the date, then read that region):
   that a HOLD naming it be answered by killing it (resume-safe rows) — agreed, with an alert to the
   maintainer.
 
-- 2026-09-24 00:30Z (agent, R7 runner) — **G2 REVIEWED TWICE AND FIXED; THE mmap'd TEAM BANK BUILT; the max-out
+- 2026-09-23 23:43Z (agent, R7 runner; stamp corrected 09-24 from its commit `c2c79cf`, it read 09-24 00:30Z) — **G2 REVIEWED TWICE AND FIXED; THE mmap'd TEAM BANK BUILT; the max-out
   throughput items answered.** Two Opus reviews of G2 (design/statistics; code). The CODE review found two MAJOR
   operator defects, both verified before fixing: (a) `engine_bridge.build_root` handed the tracker
   `side_reveal(our whole team)` as p1's payload — the object the foe's view is rendered from — so every built root's foe
@@ -13562,7 +13562,7 @@ line numbers are not — grep the date, then read that region):
   cargo check + 58 Rust unit tests green offline; its zero-copy test skips until Friday's reinstall and must then pass.
   Box 6 gains the throughput answers, R-E2 and Friday's ordered checklist.
 
-- 2026-09-24 01:55Z (agent, R7 runner) — **R-E2 RULED YES (maintainer: "Yes to: ... land it on the branch with the
+- 2026-09-24 00:16Z (agent, R7 runner; stamp corrected from its commit `4bd9374`, it read 01:55Z) — **R-E2 RULED YES (maintainer: "Yes to: ... land it on the branch with the
   pin re-baselined in the same commit, using the identity test as the bridge, and run the suite for other bitwise
   goldens") and LANDED** on `r7-native-search` at `38f7736`: the pointer scorer's `ctx` factorization (CLEANUP E2,
   measured 2026-09-10: ~1.97x on that layer, ~26% of the epoch loop) — the same first-Linear weights sliced, no new
@@ -13602,3 +13602,23 @@ line numbers are not — grep the date, then read that region):
   main process at 05:00Z if it is still running (Chrome's POSIX shutdown handler quits in order and
   saves the session; an AppleScript quit could raise an Automation-permission prompt that waits all
   night), SIGKILL only if it is still up 90 s later.
+
+- 2026-09-24 00:35Z (agent, R7 runner) — **HANDOFF FOLDED (the context-91% handoff, `1ad844b`); the fleet's lane
+  configs are DERIVED; its two Opus reviews are running.** Resumed from `HANDOFF.md`. Everything durable in it was
+  already in boxes 5–6 and the entries above except one item, recorded here: **`scripts/derive_r7_fleet.py`** (branch
+  `0730f3e`; `tests/test_derive_r7_fleet.py`, 10 green) — the fleet pre-reg as a GENERATOR, never hand-edited. Each lane
+  warm-starts from a different donor and `rl.train` takes one `init_from` per config, so every lane gets its own config,
+  all carrying the same header (nothing added to `rl.train` or `Config`, whose new fields would make every existing run
+  dir un-resumable). The four possible bases of the 09-25 read (a / b / ab / w) take their donors and levers — a base
+  that keeps the outcome heads warm-starts from trio A's finals, since a head cannot be added to a head-off checkpoint.
+  `--stage lr-smokes` writes three 2M searched-arm warm smokes at {2.5e-4, 1e-4, 5e-5} and `--read-lr` applies the
+  pre-stated rule (the largest LR whose smoke keeps every per-update approx_kl ≤ 0.06 and its last-bin entropy within
+  ±20% of the donor's); `--stage fleet` writes 3 + 3 lanes (3 + 2 under `--b0 FAIL`), +100M, and the two 400k warm
+  shakedown smokes. The two reviews (Opus, read-only) got the generator and a sample derivation (base b, lr 1e-4, B0
+  PASS, into the scratchpad; a searched/control pair differs in exactly seed, run_name, seat_tag,
+  `collector.search.play` and the two search coefficients): one audits the wiring against the code, the other the
+  pre-reg's design and statistics. G1b at 00:30Z: the true-world re-runs complete (2,500 × 3 arms), the belief arms at
+  1,220 / 1,236 of 2,500 rows, ~11 battles/min (`logs/r7_g1b/p{1,2}.log`) — ETA ~02:25Z, inside the guard.
+  Housekeeping: two entries above carried stamps later than their own commits (00:30Z → 23:43Z from `c2c79cf`, 01:55Z →
+  00:16Z from `4bd9374`), corrected in place so the log reads in order; STATUS item 3 no longer says G0 is running or
+  box 6's rulings are owed.
