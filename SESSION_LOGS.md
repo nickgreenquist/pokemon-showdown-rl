@@ -13561,3 +13561,19 @@ line numbers are not — grep the date, then read that region):
   mmaps the bank when `build_info()["bank_zero_copy"]` says so and stamps which path it took, a resume ignores that flag;
   cargo check + 58 Rust unit tests green offline; its zero-copy test skips until Friday's reinstall and must then pass.
   Box 6 gains the throughput answers, R-E2 and Friday's ordered checklist.
+
+- 2026-09-24 01:55Z (agent, R7 runner) — **R-E2 RULED YES (maintainer: "Yes to: ... land it on the branch with the
+  pin re-baselined in the same commit, using the identity test as the bridge, and run the suite for other bitwise
+  goldens") and LANDED** on `r7-native-search` at `38f7736`: the pointer scorer's `ctx` factorization (CLEANUP E2,
+  measured 2026-09-10: ~1.97x on that layer, ~26% of the epoch loop) — the same first-Linear weights sliced, no new
+  parameters; `_GEN1_PIN` re-baselined in the same commit (only the actor's summed logits moved, by 6.5e-09 on the sum;
+  the critic values, param counts and sums identical). Built in a side worktree so the running G1b tree was never
+  touched, then fast-forwarded; the side tree and branch removed. THE SWEEP: the analysis env with the encoder flags set,
+  every golden-bearing file (tree decision golden, margin-selector goldens, ensemble search, det-blind, calibration,
+  look-further, disagreement gate, the pin, the identity) 109 passed, 0 skipped; both envs' FULL suites fail only where
+  the unmodified branch fails identically (the analysis env's 9, the engine env's 19 — the poke_engine-less env, runs/
+  provenance files, flags-unset invocations) plus two load flakes (`test_async_loop_proc`, `test_showdown_async`) that
+  pass twice on rerun, 33/33 in their files; the harvest-dependent L-op/bridge tests 10/10. The sweep also found two
+  tests the MERGE would have broken, fixed at `f23cfed` (the C6-marker rule now admits the R7 configs; the shakedown
+  agent test skips when the id flags are unset). CLEANUP E2 closed; box 6 and STATUS updated. G1b's belief arms
+  continue (their processes loaded the pre-E2 forward at launch — one program throughout).

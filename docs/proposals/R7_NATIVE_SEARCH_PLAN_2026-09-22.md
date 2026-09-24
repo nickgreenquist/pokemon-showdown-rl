@@ -379,9 +379,9 @@ on a 14-core laptop, CPU only, pure self-play.
 > collector child is the critical path, a mechanism-level acceptance read (off-policy rows, clip fraction, approx_kl at k 32/64
 > vs 8) rides the shakedown. (ii) threads × minibatch crossed (1.51× the update) — RULED OUT for the base: it needs 4–6
 > threads a learner where the box's cores go to width, and the minibatch half moves the optimiser's path (trio B's GO keys);
-> its own lap. (iii) **R-E2, A RULING OWED: the scorer's `ctx` factorization** (~26% of the epoch loop; same weights sliced, no
-> new parameters; logits move ≤ 3e-07) needs `_GEN1_PIN` re-baselined — recommended YES, on the branch, landing with the merge
-> so both arms run it from step one. (iv) **the mmap'd team bank — ruling 6's precondition, BUILT 09-23** (`7c6cb40`): the
+> its own lap. (iii) **R-E2 RULED YES (maintainer, 2026-09-24) and LANDED** (`38f7736`): the scorer's `ctx` factorization (~26%
+> of the epoch loop; same weights sliced, no new parameters; logits move ≤ 3e-07) with `_GEN1_PIN` re-baselined in the same
+> commit; no other bitwise golden moves (CLEANUP E2, closed); it reaches main at the merge, so both arms run it from step one. (iv) **the mmap'd team bank — ruling 6's precondition, BUILT 09-23** (`7c6cb40`): the
 > Rust env reads a Python buffer in place and the collector mmaps the bank when the extension says `bank_zero_copy`; one copy
 > per box instead of 0.53 GB a lane; installed Friday, its zero-copy test must PASS (not skip) before the fleet.
 > **FRIDAY, the idle box, in order:** (1) the R6 readout lands; (2) merge `r7-native-search` into main; (3) reinstall the

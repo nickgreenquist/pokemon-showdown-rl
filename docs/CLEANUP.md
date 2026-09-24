@@ -162,6 +162,16 @@ exactly that (see do-not-relitigate below).
   exact". 3e-07 is not bit-identical. Regenerating a deliberate golden to pass
   one's own change is backwards, so this needs a maintainer ruling on whether
   the pin may be re-baselined. APPLIED AND REVERTED 2026-09-10.
+  **CLOSED 2026-09-24 — RULED YES (the maintainer, R-E2) and LANDED** on
+  `r7-native-search` at `38f7736` with `_GEN1_PIN` re-baselined IN THE SAME
+  COMMIT (only the actor's summed logits moved: 0.13518786523491144 →
+  0.13518785871565342 at priv 0, 0.18378696037689224 → 0.18378695903811604 at
+  priv 408; the identity test is the bridge). The sweep for other bitwise
+  goldens found none that move (every golden-bearing file with the encoder
+  flags set: 109 passed, 0 skipped; both envs' full suites fail only where the
+  unmodified branch fails identically, plus two load flakes that pass on
+  rerun). Reaches main at the Friday merge, so the R7 fleet runs it from its
+  first step in both arms.
 
 - **E3 — the act path traces bit-identically and is not yet adopted**
   (opened 2026-09-10). `torch.jit.trace` on the actor gives 1.60x at B=1 and
