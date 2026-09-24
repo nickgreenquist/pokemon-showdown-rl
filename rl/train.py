@@ -264,6 +264,9 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
                     f"{str(cfg.init_from)!r}: a different experiment"
                 )
             agent.install_theta0(payload)
+            # The resume's own line (R7's shakedown check reads it in the resume
+            # log: the first launch's line cannot vouch for a reconstruction).
+            print(f"THETA0: resume re-installed the donor's theta0 ({path}, {str(stored)[:12]})")
             return
         digest = agent.theta0_hash()
         if stored != digest:
