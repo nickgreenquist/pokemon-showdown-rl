@@ -3,7 +3,7 @@
 
 The rulings (plan AMENDMENT BOX 6; maintainer, 2026-09-24 00:20Z): the fleet starts WARM from the base
 trio's three R6 finals, PAIRED BY FINAL (final f seeds searched lane f and control lane f), +100M on a
-re-armed anneal from a reduced starting LR; 3 + 3 lanes if the B0 bench passes six-wide, else 3 + 2. Each
+re-armed anneal from a REDUCED starting LR; 3 + 3 lanes if the B0 bench passes six-wide, else 3 + 2. Each
 lane warm-starts from a DIFFERENT checkpoint and `rl.train` takes one `init_from` per config, so every lane
 gets its own config, all carrying the SAME pre-registration header (CLAUDE.md: the pre-reg lives in the
 config header). Nothing is added to `rl.train` or `Config` (a new field would make every existing run dir
@@ -18,13 +18,19 @@ BRANCH), one of four:
 An outcome head cannot be added to a head-off checkpoint (refused at load), so any base that keeps the
 heads warm-starts from trio A's finals.
 
-TWO STAGES (Friday, the idle box):
-  --stage lr-smokes   three 2M warm-start smokes of the SEARCHED arm from lane 1's donor at the candidate
-                      LRs {2.5e-4, 1.0e-4, 5.0e-5}; `--read-lr` then applies the pre-stated rule: the
-                      LARGEST LR whose smoke keeps every per-update approx_kl <= 0.06 and its last-bin mean
-                      entropy within +-20% of the donor's last-bin mean entropy.
-  --stage fleet       the six lane configs (five under --b0 FAIL) and the two 400k warm-start shakedown
-                      smokes (searched + control, lane 1's donor), at the chosen --lr.
+STAGES (Friday, the idle box; header r2 folds in both Opus reviews of 2026-09-24):
+  --stage lr-smokes   2M warm-start smokes of BOTH arms from lane f1's donor at every candidate LR (each one
+                      BELOW the donors' own starting LR -- checked), on the lane's own schedule (anneal over the
+                      100M horizon, so they launch with ALLOW_ANNEAL_OVER_HORIZON=1).
+  --stage lr-evals    prints the vs-SH commands (scripts/eval_checkpoint.py, n 3000) for the donor's final and
+                      each finished smoke's final, into results/r7_lr/.
+  --read-lr           applies the pre-stated rule and writes results/r7_lr/read_lr.json (the fleet stage's only
+                      accepted source for --lr, unless --lr-ruled carries a maintainer ruling in its place).
+  --stage fleet       the lane configs (3 + 3, or 3 + 2 under --b0 FAIL), the lane manifest for
+                      scripts/r7_fleet_launch.sh, and the two 400k warm-start shakedown smokes (eval + checkpoint
+                      every 100k; the searched one is killed and resumed at 200k by scripts/r7_smokes.sh).
+The header's power statement is read from results/r7_fleet/power.json (scripts/r7_fleet_power.py) and its
+counter gate from GATE_COUNTERS below (the checker, scripts/r7_smoke_check.py, imports the same table).
 Writes into --out (default configs/); prints the launch lines.
 """
 
@@ -34,10 +40,10 @@ import argparse
 import copy
 import csv
 import datetime as dt
-import glob
 import hashlib
+import json
 import pathlib
-import sys
+import re
 
 import yaml
 
@@ -46,11 +52,25 @@ TRIO_A = "configs/showdown_r6_trio_a.yaml"
 TRIO_B = "configs/showdown_r6_trio_b_fallback.yaml"
 DONOR_SEEDS = {"a": (304, 312, 320), "b": (328, 336, 344)}
 DONOR_DIR = {"a": "showdown_r6_trio_a_s{}", "b": "showdown_r6_trio_b_s{}"}
+DONOR_MIN_STEP = 200_000_000
 SEEDS = {"searched": (376, 384, 392), "control": (400, 408, 416)}
 SMOKE_SEEDS = {"searched": 424, "control": 432}
-LR_SMOKE = {2.5e-4: 440, 1.0e-4: 444, 5.0e-5: 448}
-TAGS = {"searched": "r7fs", "control": "r7fc", "smoke_searched": "r7ws", "smoke_control": "r7wc", "lr": "r7lr"}
+LR_CANDIDATES = (1.0e-4, 5.0e-5, 2.5e-5)
+LR_SMOKE_SEEDS = {"searched": (440, 444, 448), "control": (452, 456, 460)}
+TAGS = {"searched": "r7fs", "control": "r7fc", "smoke_searched": "r7ws", "smoke_control": "r7wc",
+        "lr_searched": "r7ls", "lr_control": "r7lc"}
 HORIZON = 100_000_000
+LR_SMOKE_STEPS = 2_000_000
+SMOKE_STEPS = 400_000
+SMOKE_CADENCE = 100_000            # the 400k smokes' eval_every AND checkpoint_every (l2init/* is written at eval rows)
+RESUME_AT = 200_000                # the searched 400k smoke is killed at this rung and resumed by the watchdog
+KL_MAX = 0.06                      # every per-update loss/approx_kl_unsearched, both arms
+ENT_TOL, ENT_TAIL, ENT_REF_TAIL = 0.20, 0.25, 0.01
+SH_N = 3000                        # vs SH per checkpoint, the locked protocol's per-seed n
+SH_SHOCK = 0.04                    # two vs-SH rung widths (CLAUDE.md: one rung at n 3000 is worth +-0.02)
+MECH_WINDOW = 5_000_000            # the in-loop mechanism counters are read as means over the last 5M steps
+MECH_POSITIONS = 200               # held-out G0 positions per lane for reads (iii) and (vi), the same for every lane
+OBJECT_TOL = 0.013                 # trio A's object-rule tolerance (~1 se_diff at 3000 vs 3000)
 B_BATCH = {"agent.rollout_steps": 15360, "agent.minibatches": 480, "selfplay.push_every_updates": 1}
 W_BATCH = {"agent.rollout_steps": 3840, "agent.minibatches": 120, "selfplay.push_every_updates": 5}
 HEAD_KEYS = ("collector.outcome_targets", "agent.aux_outcome_coef", "agent.trunk_kwargs.value_aux_out")
@@ -63,6 +83,20 @@ BASE_LINE = {
     "ab": "BOTH R6 levers: trio A's outcome heads + trio B's fallback batch keys (warm from trio A's finals, which carry the heads)",
     "w": "NEITHER R6 lever (both read against keeping them on 09-25): the W recipe's batch keys, no heads (warm from trio B's finals, which carry no heads)",
 }
+# R0 gate (1)'s counters -- ONE table: the header prints it and scripts/r7_smoke_check.py imports it. A name ending
+# in "/" is a prefix. tests/test_derive_r7_fleet.py greps rl/ for every name, so a gate cannot name a counter that
+# nothing writes (the typed-list landmine's other face).
+GATE_COUNTERS = {
+    "both": ("search/decisions", "search/searched_frac", "search/eligible_frac", "search/played_frac",
+             "search/kl_prior", "search/override", "search/ms", "search/leaves", "search/rows_frac",
+             "search/rows_update", "search/kl_update", "search/override_update", "search/value_gap",
+             "loss/search_value", "loss/approx_kl_searched", "loss/approx_kl_unsearched",
+             "loss/clip_frac_searched", "loss/clip_frac_unsearched", "loss/grad_norm", "loss/grad_clip_frac",
+             "value/bias_mirror", "collect/weights_lag_updates", "collect/child_idle_frac"),
+    "searched_only": ("loss/search_policy", "search_value/grad_norm", "search_value/clip_scale"),
+    "eval_rows": ("l2init/",),
+    "heads": ("aux_outcome/",),
+}
 
 
 def _set(d: dict, dotted: str, value) -> None:
@@ -70,13 +104,6 @@ def _set(d: dict, dotted: str, value) -> None:
     for k in keys[:-1]:
         d = d.setdefault(k, {})
     d[keys[-1]] = value
-
-
-def _del(d: dict, dotted: str) -> None:
-    keys = dotted.split(".")
-    for k in keys[:-1]:
-        d = d.get(k, {})
-    d.pop(keys[-1], None)
 
 
 def base_body(base: str) -> dict:
@@ -95,131 +122,285 @@ def donor_trio(base: str) -> str:
     return "a" if base in ("a", "ab") else "b"
 
 
+def donor_lr(base: str) -> float:
+    """The donors' own starting LR: the trio config they trained under (the batch adjustments never touch it)."""
+    return float(yaml.safe_load((ROOT / (TRIO_A if donor_trio(base) == "a" else TRIO_B)).read_text())["agent"]["lr"])
+
+
+def _step(p: pathlib.Path) -> int | None:
+    m = re.fullmatch(r"ckpt_(\d+)\.pt", p.name)
+    return int(m.group(1)) if m else None
+
+
+def final_ckpt(d: pathlib.Path, min_step: int = 0) -> pathlib.Path | None:
+    """The highest-step ckpt_<step>.pt at or past `min_step` (parsed, never globbed on a digit prefix: a final
+    can overshoot 200M by any amount)."""
+    steps = [(s, p) for p in d.glob("ckpt_*.pt") if (s := _step(p)) is not None and s >= min_step]
+    return max(steps)[1] if steps else None
+
+
 def donors(base: str, runs: pathlib.Path) -> list[dict]:
     """Each donor lane's FINAL checkpoint (the highest ckpt at or past 200M), its sha256, and its theta0."""
     out = []
     for s in DONOR_SEEDS[donor_trio(base)]:
         d = runs / DONOR_DIR[donor_trio(base)].format(s)
-        finals = sorted(p for p in d.glob("ckpt_2000000*.pt"))
-        if not finals:
-            raise SystemExit(f"REFUSED: no final (ckpt_2000000*.pt) under {d} -- the donor lane has not finished")
-        final = finals[-1]
+        final = final_ckpt(d, DONOR_MIN_STEP)
+        if final is None:
+            raise SystemExit(f"REFUSED: no final (a ckpt at step >= {DONOR_MIN_STEP:,}) under {d} -- the donor lane has not finished")
         if not (d / "theta0.pt").exists():
             raise SystemExit(f"REFUSED: {d}/theta0.pt missing -- the warm start's L2 anchors are the donor's")
-        out.append({"seed": s, "path": str(final.relative_to(runs.parent)) if final.is_relative_to(runs.parent) else str(final),
+        out.append({"seed": s, "dir": d, "final": final,
+                    "path": str(final.relative_to(runs.parent)) if final.is_relative_to(runs.parent) else str(final),
                     "sha256": hashlib.sha256(final.read_bytes()).hexdigest()})
     return out
 
 
+def load_power(path: pathlib.Path) -> dict:
+    if not path.exists():
+        raise SystemExit(f"REFUSED: {path} missing -- run scripts/r7_fleet_power.py --out {path} (the header's power "
+                         "statement is read from it, never typed)")
+    raw = path.read_bytes()
+    return {**json.loads(raw), "_sha": hashlib.sha256(raw).hexdigest()}
+
+
+def power_lines(power: dict, width: str) -> list[str]:
+    rows = {(r["n"], r["delta"]): r for r in power["table"] if r["width"] == width and r["donor_share"] == 0.0}
+    ds = (0.025, 0.030, 0.035, 0.040)
+    p3 = " / ".join(f"{rows[(3000, d)]['X-POS']:.2f}" for d in ds)
+    p6 = " / ".join(f"{rows[(6000, d)]['X-POS']:.2f}" for d in ds)
+    return [
+        f"#   POWER ({power['version']}, results/r7_fleet/power.json sha {power['_sha'][:12]}, scripts/r7_fleet_power.py, from five",
+        f"#   banked trios' per-lane FP@20 finals at n 3000): per-lane sd {power['pooled_sd']:.4f} over {power['df']} df, "
+        f"{power['binomial_sd']:.4f} of it binomial;",
+        f"#   median se_diff {rows[(3000, 0.030)]['se_diff_median']:.4f} at {width}, so the +0.025 FLOOR is the operative bar. "
+        f"P(X-POS) at a true",
+        f"#   +0.025 / +0.030 / +0.035 / +0.040: {p3}; at a true 0: {rows[(3000, 0.0)]['X-POS']:.3f} ({width}, n 3000, the "
+        "unpaired end of the donor split).",
+        "#   AN X-FLAT IS LIKELY EVEN IF THE LEVER WORKS at the size the plan's own bounds suggest (G1's +0.050 in the mirror is the",
+        "#   operator's inference-side UPPER bound, box 5; the fleet's bet is compounding). n 6000 per lane would buy "
+        f"{p6} at the same",
+        "#   deltas (~+8 h of quiet-box FP): a maintainer option, not taken here.",
+    ]
+
+
+def _fmt(names) -> str:
+    return ", ".join(n + ("*" if n.endswith("/") else "") for n in names)
+
+
 def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], base: str, lr: float, lr_evidence: str,
-           b0: str, kind: str) -> list[str]:
+           b0: str, kind: str, power: dict) -> list[str]:
     today = dt.date.today().isoformat()
     donors_txt = "; ".join(f"f{i + 1} {d['path']} (sha {d['sha256'][:12]})" for i, d in enumerate(all_donors))
     lane_txt = f"LANE f{lane} of 3" if lane else kind
+    width = "3+2" if b0 == "FAIL" else "3+3"
+    n_lanes = 5 if b0 == "FAIL" else 6
+    order = "C1, S1, C2, S2, S3" if b0 == "FAIL" else "C1, S1, C2, S2, C3, S3"
+    body = base_body(base)
+    push, pool_size = body["selfplay"]["push_every_updates"], body["selfplay"]["pool_size"]
+    heads = base in ("a", "ab")
+    s, lv = SEARCH, LEVER["searched"]
+    h = HORIZON // 1_000_000
     return [
         f"# R7 FLEET -- EXPERT ITERATION ON THE STACKED BASE, WARM FROM R6, PAIRED BY FINAL. ARM: {arm.upper()}; {lane_txt}.",
         "# ENCODER_C6: on",
-        f"# GENERATED by scripts/derive_r7_fleet.py on {today} (base {base}); never hand-edit -- re-derive. This lane warm-starts",
-        f"#   from {donor['path']} (sha {donor['sha256'][:12]}).",
+        f"# GENERATED by scripts/derive_r7_fleet.py on {today} (base {base}; header r2, both Opus reviews of 2026-09-24 folded in);",
+        f"#   never hand-edit -- re-derive. This lane warm-starts from {donor['path']} (sha {donor['sha256'][:12]}).",
         "#",
         "# journey_step: \"14\" (R7; steps 8 and 10 folded in by the kitchen-sink ruling, 2026-09-23). Exit condition, verbatim:",
         "#   \"one comparison at a REAL budget, on the strongest gen-1 object we have. Search-with-our-evaluator vs the same",
         "#   checkpoint greedy, pooled under the standing credit line, with decisions/sec reported for both arms and the",
-        "#   per-turn budget named in every quote.\" THIS FLEET IS NOT THAT COMPARISON (that is G2, ratified, run AFTER this",
-        "#   fleet): it trains the objects G2 and the ladder will use, and credits ONE lever, expert iteration.",
+        "#   per-turn budget named in every quote.\" THIS FLEET IS NOT THAT COMPARISON: G2 (ratified, run AFTER this fleet) reads",
+        "#   the L-op on the R5 W committee it pins by sha; this fleet trains the objects a SECOND G2-protocol read and the next",
+        "#   ladder may use (OBJECT RULE below) and credits ONE lever, expert iteration. Step 10 has no written exit condition in",
+        "#   JOURNEY.md; its one convention is suspended under START below.",
         "#",
-        "# THE LEVER (the searched arm; the plan's T-op, AMENDMENT BOXES 4-6): on ~40% of the learner's decisions (frac 0.75",
-        "#   of eligible rows: > 1 legal action and pi_theta top-1 < 0.97) the collector runs native.solve on the TRUE world",
-        "#   (B = 1; box 5 item 2's re-read licence) at k 4 / S 2 / tau 0.05 with the learner's OWN observation critic at the",
-        "#   leaves (one view, box 5 item 5), PLAYS a' ~ pi' and records log pi'(a) (PPO's ratio carries the correction); the",
-        "#   learner adds beta * KL(pi' || pi_theta) on searched rows (beta 0.1) and trains the v' aux head on the critic's",
-        "#   context (coef 0.1; the GAE blend stays 0). THE CONTROL (box 5 item 6): the same two-core lane with the T-op at the",
-        "#   same dose and cost, play false and both coefficients 0 -- the arms differ by the WHOLE lever at matched cost, lag",
-        "#   and counters. beta 0.1 / coef 0.1 are the plan's defaults, UNMEASURED in magnitude (the smokes check they are not",
-        "#   inert; G3 whether the student absorbs).",
+        "# THE LEVER (the searched arm; the plan's T-op, AMENDMENT BOXES 4-6), ONE UNIT OF THREE CHANNELS (box 5 item 6). On the",
+        f"#   eligible rows (> 1 legal action and pi_theta top-1 < {s['top1_skip']}) a coin at frac {s['frac']} (~40% of "
+        "decisions) runs native.solve on the",
+        f"#   TRUE world (B = 1; box 5 item 2's re-read licence) at k {s['cols_k']} / S {s['chance_s']} / tau {s['tau']} "
+        "with the learner's OWN observation critic at the",
+        "#   leaves (one view, box 5 item 5). (1) BEHAVIOUR: the lane PLAYS a' ~ pi' and records log pi'(a), so its data are",
+        "#   off-policy from a true-world search and PPO's clipped ratio pi_theta/pi' is the only correction, exact only inside",
+        "#   the clip (loss/clip_frac_searched vs _unsearched reads how much is clipped). (2) THE POLICY TARGET: beta *",
+        f"#   KL(pi' || pi_theta) on searched rows (beta {lv['search_policy_coef']}); the term sits INSIDE the shared gradient "
+        "clip (B5, the bc_kl",
+        "#   precedent), which binds on ~99.9% of minibatches in this stack (rl/agents/ppo.py's own comment), so it also shrinks",
+        "#   the searched arm's PPO actor AND critic steps by the ratio of the arms' pre-clip norms -- loss/grad_norm per arm",
+        "#   reads that ratio, reported beside the primary (the critic sets the advantages: D18's falsifier). (3) THE VALUE",
+        f"#   TARGET: the v' aux head on the critic's context (coef {lv['search_value_coef']}; applied after the clip read, "
+        "critic only; the GAE blend",
+        "#   stays 0). beta and the value coefficient are the plan's defaults, UNMEASURED in magnitude: R0 gate (2)'s not-inert",
+        "#   check reads that the lever moves the student at all; G3's reads whether it absorbs.",
+        "# THE CONTROL (box 5 item 6): the same two-core lane with the T-op at the same rule and cost, play false and both",
+        "#   coefficients 0 -- it searches and records, never plays, never trains on the targets; the arms differ by the WHOLE",
+        "#   lever. DOSE IS MATCHED BY RULE, NOT BY COUNT: eligibility reads each arm's own pi_theta, so search/eligible_frac,",
+        "#   search/searched_frac and search/played_frac are reported per arm at 12M and at the end, and a divergence is",
+        "#   disclosed beside the primary.",
         "#",
         "# THE BASE (every lane, UNCREDITED BY DESIGN): the W recipe + C6 + E2 (the scorer factorization, common-mode, 38f7736)",
         "#   + the mmap'd team bank + R6's trio lever(s) by THEIR OWN pre-stated branches on the 09-25 read:",
         f"#   {BASE_LINE[base]}.",
         "#   B2 (the antisymmetric privileged critic) is OUT (box 5 item 5): the T-op scores its leaves with the learner's critic.",
+        f"#   The league pool restarts at [donor] (a warm start seeds it with the loaded policy alone); it refills one push every "
+        f"{push} update(s) up",
+        f"#   to pool_size {pool_size}.",
         "#",
         "# START (R-F1, ruled 2026-09-24): WARM + PAIRED BY FINAL -- lane f of each arm from the base trio's f-th final:",
         f"#   {donors_txt}.",
-        f"#   +100M env steps on a RE-ARMED anneal (begin_warm_start) from lr {lr:g} ({lr_evidence}); the L2-toward-init",
-        "#   anchors are the DONOR's theta0 (7014f11). DISCLOSED ON EVERY NUMBER: JOURNEY 10's convention (\"never a warm start",
-        "#   off a finished checkpoint\") is SUSPENDED for this fleet -- its finals are 300M-trained objects on two anneals",
-        "#   (N-ANNEAL); a comparison with R6's finals is confounded, the within-fleet comparison is not.",
-        f"# WIDTH (R-F2, ruled): 3 searched + 3 control if the B0 bench passed six-wide, else 3 + 2 (lane f3's control dropped). B0: {b0}.",
+        f"#   +{h}M env steps on a RE-ARMED anneal (begin_warm_start) from lr {lr:g} ({lr_evidence}), below the donors' own",
+        f"#   starting lr {donor_lr(base):g}; the L2-toward-init anchors are the DONOR's theta0 (7014f11). DISCLOSED ON EVERY "
+        "NUMBER: JOURNEY 10's",
+        "#   convention (\"never a warm start off a finished checkpoint\") is SUSPENDED for this fleet -- its finals are",
+        "#   300M-trained objects on two anneals (N-ANNEAL); a comparison with R6's finals is confounded, the within-fleet",
+        "#   comparison is not.",
+        f"# WIDTH (R-F2, ruled): 3 searched + 3 control if the B0 bench passed six-wide, else 3 + 2 (control f3 dropped). B0: {b0}.",
         "#",
-        "# R0 SANITY GATES (before launch, and per lane before it counts):",
-        "#   (1) the 400k warm-start shakedown smokes (searched + control, lane f1's donor) PASS: every stacked lever's counter",
-        "#       present and moving in history.csv (search/*, loss/search_policy, loss/search_value, search/kl_update,",
-        "#       value/bias_mirror, collect/weights_lag_updates <= 1, collect/child_idle_frac, l2init/*, and the base's own",
-        "#       aux_outcome/* when it keeps the heads); the log carries the THETA0 donor line; the control's search/override",
-        "#       counters present with its behaviour unchanged (play false).",
-        "#   (2) the 2M LR smokes set the starting LR by the rule in scripts/derive_r7_fleet.py (--read-lr): the LARGEST of",
-        "#       {2.5e-4, 1.0e-4, 5.0e-5} whose smoke keeps every per-update approx_kl <= 0.06 and its last-bin mean entropy",
-        "#       within +-20% of the donor's last-bin mean entropy.",
-        "#   (3) the suite at the launch commit: tests/test_engine_bank_mmap.py PASSES (not skipped), tests/test_lop.py and",
-        "#       tests/test_derive_r7_fleet.py pass; meta.yaml stamps engine.bank_zero_copy true, encoder.c6 true, a clean sha.",
-        "#   (4) throughput inside the B0 bench's band at this width; a window that straddles startup is not a record.",
-        "#   (5) every resume's from_step read from meta.yaml; RESUMES= / NODE_RESTARTS= disclosed; the /timer line travels.",
+        "# R0 SANITY GATES (before launch; each with its action on a FAIL):",
+        f"#   (1) THE 400k WARM-START SHAKEDOWN SMOKES (searched + control from lane f1's donor; eval and checkpoint every "
+        f"{SMOKE_CADENCE // 1000}k, since",
+        "#       l2init/* is written at eval rows only; the lane's own anneal) PASS scripts/r7_smoke_check.py: the SEARCHED smoke",
+        f"#       is killed at its {RESUME_AT // 1000}k rung and resumed by the watchdog (a warm-started lane's resume re-installs "
+        "the donor's theta0:",
+        "#       new code) and finishes; the log carries the THETA0 donor line; meta.yaml stamps engine.bank_zero_copy true,",
+        "#       encoder.c6 true and a clean sha; and every counter below is in history.csv (GATE_COUNTERS in",
+        "#       scripts/derive_r7_fleet.py -- one table, the header's and the checker's; a test greps rl/ for every name, so a gate",
+        "#       cannot name a counter nothing writes):",
+        f"#         BOTH ARMS: {_fmt(GATE_COUNTERS['both'])};",
+        f"#         {_fmt(GATE_COUNTERS['eval_rows'])} at the eval rows" + (f"; {_fmt(GATE_COUNTERS['heads'])} (this base keeps the heads)." if heads else "."),
+        f"#         SEARCHED ONLY: {_fmt(GATE_COUNTERS['searched_only'])} (they sit behind a coefficient > 0), and",
+        "#         search/played_frac == search/searched_frac > 0 on every update row.",
+        "#         CONTROL: the searched-only counters ABSENT, and search/played_frac == 0 on every update row.",
+        "#       FAIL -> no fleet: diagnose, fix, re-smoke.",
+        "#   (2) THE LR RULE (R-F1: \"a REDUCED starting LR that a 2M smoke sets by reading the policy for a shock (vs-SH",
+        "#       before/after, approx_kl, entropy)\"). 2M warm-start smokes of BOTH arms from lane f1's donor at each candidate lr",
+        f"#       in {{{', '.join(f'{c:g}' for c in LR_CANDIDATES)}}}, every one below the donors' own starting lr "
+        f"{donor_lr(base):g} (checked), on the lane's own schedule",
+        f"#       (anneal over {h}M: launched with ALLOW_ANNEAL_OVER_HORIZON=1). An lr PASSES iff, on BOTH arms, every per-update",
+        f"#       loss/approx_kl_unsearched <= {KL_MAX} (the UNSEARCHED split: a searched row's behaviour log-prob is log pi'(a), so",
+        "#       the whole-batch approx_kl carries KL(pi' || pi_theta) at ANY lr); the CONTROL's mean loss/entropy over its last",
+        f"#       {ENT_TAIL:.0%} of updates is within +-{ENT_TOL:.0%} of the donor's mean over its last {ENT_REF_TAIL:.0%} "
+        "(the searched arm's entropy moves by",
+        "#       the lever's design: read, not gated); and each smoke's final vs SH (scripts/eval_checkpoint.py, n "
+        f"{SH_N}) is not below",
+        f"#       the donor final's, read the same day at the same n, by more than {SH_SHOCK} (two vs-SH rung widths: CLAUDE.md, "
+        "one rung at",
+        "#       n 3000 is worth +-0.02). NOT-INERT (the same smokes): at the chosen lr the SEARCHED arm's last-quarter mean",
+        "#       search/kl_update is below the CONTROL's (the policy target moves the student toward pi'; the control's beta is 0).",
+        "#       The LARGEST passing lr is chosen (--read-lr writes results/r7_lr/read_lr.json; --stage fleet refuses any other",
+        "#       lr). None passes, or the not-inert check fails -> a maintainer ruling before launch, never a default.",
+        "#   (3) THE SUITE at the launch commit, in pkmn-engine-port after the reinstall (the launcher's interpreter):",
+        "#       tests/test_engine_bank_mmap.py PASSES (not skipped), tests/test_lop.py (none skipped) and",
+        "#       tests/test_derive_r7_fleet.py pass; every lane's meta.yaml stamps the SAME git sha, clean. FAIL -> no launch.",
+        "#   (4) THROUGHPUT, read after each lane's first hour (a window that straddles startup is not a record): each lane's",
+        "#       steps/s is reported beside its pair's (the arms run the same T-op at the same rule, so cost is matched by",
+        "#       construction and this reads it); a lane below 0.6x the fleet's median (the R6 monitor's alert line) gets the",
+        "#       CPU-delta check, then the maintainer -- a lane is never killed for speed alone.",
+        "#   (5) every resume's from_step read from meta.yaml; RESUMES= / NODE_RESTARTS= from the ONE watchdog; the /timer line",
+        "#       travels.",
+        f"#   LANE LOSS (a named cell): a lane that fails a gate or cannot be resumed to {h}M is dropped WITH ITS PAIR; the primary",
+        "#       becomes the surviving pairs (k 2 vs 2, disclosed); fewer than two pairs -> PRIMARY VOID (the finals are",
+        "#       recorded individually and never pooled).",
         "#",
-        "# PRIMARY READ -- off FP@20 (search_time_ms 20 per arm), GREEDY, n = 3000 per lane, ONE session, SEQUENTIAL arms, fresh",
-        "#   prefix-free usernames -- the configs/eval/r6_reads_offfp.yaml protocol. delta = the equal-weight mean of the three",
-        "#   SEARCHED finals minus the equal-weight mean of the CONTROL finals (the across-lane aggregator), both read in the same",
-        "#   session. se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff (k 3 vs 3; k 3 vs 2",
+        "# PRIMARY READ -- off FP@20 (search_time_ms 20 per arm), GREEDY, n = 3000 per lane, ONE session on a QUIET box (the FP",
+        f"#   gate: nothing else at >= 50% of a core; G2 never beside it), SEQUENTIAL arms in the PINNED order {order}",
+        "#   (control first in each pair, the G2 convention), then the OBJECT RULE's re-draws and committees, then the anchors; a",
+        "#   killed arm re-runs LAST on its rerun username pair; fresh prefix-free usernames -- the configs/eval/r6_reads_offfp.yaml",
+        "#   protocol. FP@20 is the primary as in [RWL-3] (configs/showdown_monster200m_l2lam.yaml; vs SH is saturated). delta =",
+        "#   the equal-weight mean of the SEARCHED finals minus the equal-weight mean of the CONTROL finals (the across-lane",
+        "#   aggregator). se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff (k 3 vs 3; k 3 vs 2",
         "#   under the five-wide fallback), the latter from the per-lane finals at read time. CREDIT LINE, verbatim (CLAUDE.md):",
         "#   \"a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the LARGER of the pooled-binomial",
-        "#   se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time.\" Boundary: a",
-        "#   delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met. Both FP@20 disclosures travel with every number,",
-        "#   forever: the equivalence test is weakly powered, and the point estimate flatters us; FP@20 is an instrument, not a",
-        "#   rung. DOSE IS MATCHED BY CONSTRUCTION and CHECKED: the same donors, 100M env steps, horizon, anneal, starting LR, k,",
-        "#   two-core lane and T-op dose; a searched/control pair's configs differ EXACTLY in {seed, run_name, seat_tag,",
+        "#   se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals at read time.\" The operative",
+        "#   test is STRICT: a delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met (the house boundary, R6's and G2's).",
+        "#   Both FP@20 disclosures travel with every number, forever: the equivalence test is weakly powered, and the point",
+        "#   estimate flatters us; FP@20 is an instrument, not a rung.",
+        *power_lines(power, width),
+        f"#   DOSE IS MATCHED BY CONSTRUCTION and CHECKED: the same donors, {h}M env steps, horizon, anneal, starting lr, k,",
+        "#   two-core lane and T-op rule; a searched/control pair's configs differ EXACTLY in {seed, run_name, seat_tag,",
         "#   collector.search.play, agent.search_policy_coef, agent.search_value_coef} (tests/test_derive_r7_fleet.py).",
-        "#   THE PAIRED READ (secondary): the mean over finals f of (searched_f - control_f), each pair sharing its donor --",
-        "#   reported beside the primary, never replacing it. POLICY FORM: greedy, loop breaker OFF on both arms (matched).",
-        "# MECHANISM CO-PRIMARIES (G3's six conditions, amendment 3 item 3 / box 4 item 6), on the fleet's own checkpoints at",
-        "#   12M and at the end, SEARCHED RELATIVE TO CONTROL, never a win rate: (i) search/kl_prior falling; (ii) search/override",
-        "#   at the fixed gate falling; (iii) the leaf critic's per-position cell Spearman on HELD-OUT G0 positions rising",
-        "#   (scripts/rollout_q_evaluator.py's statistic); (iv) search/value_gap falling; (v) value/bias_mirror ~ 0; (vi) THE",
-        "#   COMPOUNDING READ: regret_depth1_ceiling(student greedy) on held-out positions falls faster on the searched arm.",
-        "#   Rule 6: a 12M null on any of these is not a kill; the fleet runs.",
-        "# SECONDARY: vs SH under the LOCKED protocol (final, 3000 battles/lane, lanes pooled per arm, ties non-wins,",
-        "#   deterministic; saturated -- reported, never the verdict); FP@500 on the arms' committees; the committees ENS3-S and",
-        "#   ENS3-C off FP@20 in the same session -- DESCRIPTIVE, they pick the G2/ladder object and credit nothing; G2 (ratified)",
-        "#   on the strongest object after this readout.",
+        "#   THE PAIRED READ (secondary): lanes are paired by DONOR, not by battle (seeds do not pair battles). Under 3+3 each",
+        "#   donor appears once per arm, so the equal-weight delta IS the mean of the pair differences; the paired se,",
+        "#   sd(S_f - C_f)/sqrt(3), is PRINTED and NEVER governs (the credit line's clustered term is per arm; swapping it in",
+        "#   after the data would be a forking path). Under 3+2 the primary is donor-unbalanced (f3 in the searched mean only);",
+        "#   the balanced two-pair delta is printed beside it. POLICY FORM: greedy, loop breaker OFF on both arms (matched).",
+        "#",
+        "# MECHANISM READS (G3's six, amendment 3 item 3 / box 4 item 6), each SEARCHED MINUS CONTROL at the END checkpoint,",
+        "#   paired by donor, both arms in one instrument session; se = the LARGER of the lane-clustered se (sd of the per-pair",
+        "#   differences / sqrt(pairs)) and, for (iii) and (vi), the position-level se (paired by position); MOVED = the named",
+        "#   sign AND |d| > 2 se. The 12M read is DESCRIPTIVE and changes no dial (plan section 6's G3 split branch and section",
+        "#   10's actor kill do not apply mid-fleet); rule 6: a 12M null is not a finding about the lever.",
+        f"#   (i)   search/kl_prior (act-time KL(pi' || pi_theta) on searched decisions), mean over the last {MECH_WINDOW // 1_000_000}M steps: LOWER.",
+        "#   (ii)  search/override (argmax pi' != argmax prior, UNGATED -- the T-op has no margin gate), same window: LOWER.",
+        f"#   (iii) the leaf critic's per-position Spearman (scripts/rollout_q_evaluator.py's spearman_base) on G0's first "
+        f"{MECH_POSITIONS}",
+        "#         positions in its row order, the same for every lane (held out: no lane trains on them): HIGHER. G0's labels",
+        "#         are rollouts under the R5 committee, not either arm's own continuation (disclosed).",
+        "#   (iv)  search/value_gap (|v' - GAE target| on searched rows), same window: LOWER.",
+        "#   (v)   value/bias_mirror per arm: REPORTED, a guard (section 31's +0.059 train/eval shift is the scale it watches);",
+        "#         no action.",
+        "#   (vi)  THE COMPOUNDING READ: regret_depth1_ceiling (scripts/rollout_q.py) of the student greedy on the same positions",
+        "#         as (iii), at normal QoS on the idle box (its cost measured on the first lane, disclosed): LOWER.",
+        "#   THE MECHANISM AXIS: MOVED iff (i) and (vi) both MOVED; anything else, PARTIAL included, reads NOT MOVED.",
+        "#",
+        "# SECONDARY (descriptive, credit nothing): vs SH under the LOCKED protocol (final, 3000 battles/lane, lanes pooled per",
+        "#   arm, ties non-wins, deterministic; saturated; under 3+2 the control pools two lanes, a disclosed deviation from",
+        "#   \"3 seeds pooled\"); per-arm loss/grad_norm, the clip_frac split and the realized dose (above).",
+        "# OBJECT RULE (which object a second G2-protocol read and the next ladder pre-reg use): the same session re-draws the R6",
+        "#   ladder object as R6's readout names it (trio A's OBJECT RULE), in its own policy form, and ENS3 of the three donors",
+        "#   (greedy; skipped when it IS the R6 object), then reads ENS3-S and ENS3-C, n 3000 each. The fleet committee with the",
+        f"#   higher point estimate becomes the object iff it reaches the re-drawn R6 object minus {OBJECT_TOL} (~1 se_diff at "
+        "3000 vs 3000;",
+        "#   trio A's own tolerance); otherwise the R6 object stays. Each arm's committee minus the donors' ENS3 is reported",
+        "#   (DESCRIPTIVE, N-ANNEAL). The ratified G2 stays on the R5 W committee; a LADDER run needs its own earning read (the",
+        "#   09-22 principle, a ladder run is EARNED offline; R6's bar was ~+0.05 off FP@20 over the re-drawn previous object).",
+        "#",
         "# ACTION ON EACH BRANCH -- exhaustive, strict boundaries, no unnamed cells, the word \"kill\" absent (rule 6):",
-        "#   X-POS (delta >= +0.025 AND >= 2*se_diff, the boundary above): EXPERT ITERATION IS CREDITED on this base; the",
-        "#     searched finals are the next objects (G2, the ladder pre-reg); the next fleet keeps the lever.",
-        "#   X-NEG (delta < -0.025 AND |delta| > 2*se_diff): credited NEGATIVE; the next fleet drops the lever; the mechanism",
-        "#     reads decide whether the target form or the evaluator failed.",
-        "#   X-FLAT (everything else): a NULL at this dose that closes nothing; the mechanism co-primaries decide the next",
-        "#     fleet (kl_prior and the compounding read MOVED -> repeat at a longer horizon or a stronger evaluator; NOT MOVED ->",
-        "#     the target form or the evaluator is the next lap -- never \"search does not work\").",
-        "#   The mechanism axis (MOVED / NOT-MOVED / PARTIAL) is reported beside every cell and changes no action.",
-        "# ANCHOR BATTERY before any README row: vs SH locked, the BC-clone h2h (500), FP@20 h2h; a missing leg reads PENDING.",
+        "#   X-POS  (delta > +0.025 AND delta > 2*se_diff): EXPERT ITERATION IS CREDITED -- in the WARM-START regime (R6 finals +",
+        f"#          {h}M at lr {lr:g}, a second anneal) with a TRUE-world T-op at these dials; nothing about fresh-start ExIt,",
+        "#          nothing against R6's objects. The lever stays in the next fleet's base; the object follows the OBJECT RULE.",
+        "#   X-NEG  (delta < -0.025 AND |delta| > 2*se_diff): credited NEGATIVE; the lever leaves the base; the mechanism reads",
+        "#          name the channel to change (behaviour, policy target or evaluator) for its own lap.",
+        "#   X-COST (-0.025 <= delta < 0 AND |delta| > 2*se_diff): a RESOLVED cost below the floor, not a null; the lever leaves",
+        "#          the base and gets its own lap, the mechanism reads picking the channel.",
+        "#   X-FLAT (everything else): a NULL at this dose that closes nothing (rule 6). MOVED -> the lever STAYS in the base and",
+        "#          the next lap is the STRONGER EVALUATOR (the rollout-label campaign: a student that absorbed the targets",
+        "#          without a win-rate move says the targets carry what the critic already knows -- the root-rule read's binding",
+        "#          constraint, box 4). NOT MOVED -> the lever leaves the base and the TARGET FORM is the next lap (beta, the value",
+        "#          coefficient, tau: one lap). Never \"search does not work\".",
+        "#   The mechanism axis is reported beside every cell; outside X-FLAT it changes no action. LANE LOSS is the named cell",
+        "#   under the R0 gates.",
+        "# ANCHOR BATTERY before any README row (CLAUDE.md): vs SH locked, the BC-clone h2h (500), FP@20 h2h; a missing leg reads",
+        "#   PENDING and the README row WAITS.",
         "# LAUNCH (over 5 h -> the maintainer launches, CLAUDE.md rule 4): from a CLEAN tree at the merge commit, normal QoS,",
-        "#   one launcher invocation per lane config (each lane has its own donor), the lines scripts/derive_r7_fleet.py prints.",
-        "# OWED AT READOUT: RESUMES= / NODE_RESTARTS=, every from_step, the /timer line, the donors' sha256, the chosen LR and",
-        "#   its smoke, the B0 verdict, meta stamps (c6, bank_zero_copy, param counts), the anchor battery, RESULTS, README.",
+        "#   `bash scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt`: one launcher call per lane (each lane has its own",
+        "#   donor) with the watchdog deferred, then ONE watchdog over every lane (one ensure_node, one RESUMES= line) and one",
+        f"#   caffeinate; the width guard counts the FLEET ({n_lanes} two-core lanes"
+        + ("; six need ALLOW_SIX_WIDE_DISCLOSED=1, and R-F2's ruling is that disclosure)." if n_lanes == 6 else ")."),
+        "# OWED AT READOUT: RESUMES= / NODE_RESTARTS=, every from_step, the /timer line, the donors' sha256, the chosen lr and its",
+        "#   smokes, the B0 verdict, meta stamps (c6, bank_zero_copy, param counts), the per-arm reads above, the power inputs,",
+        "#   the anchor battery, RESULTS, README.",
     ]
 
 
 def lane_config(base: str, arm: str, *, seed: int, donor: dict, lr: float, total: int, tag: str,
-                search_on: bool = True) -> dict:
+                anneal: int = HORIZON, cadence: int | None = None) -> dict:
+    """A lane (or smoke) body. `anneal` is the LANE's schedule for every stage (a smoke runs the first `total` steps
+    of it); `cadence` sets eval_every AND checkpoint_every for a smoke (None keeps the base's)."""
     body = copy.deepcopy(base_body(base))
     body["seed"] = seed
     body["total_steps"] = total
     body["run_name"] = f"r7_{tag}_s{seed}"
     body["init_from"] = donor["path"]
+    if cadence is not None:
+        body["eval_every"] = cadence
+        body["checkpoint_every"] = cadence
     body.setdefault("env_kwargs", {})["seat_tag"] = tag
     col = body.setdefault("collector", {})
     col["process"] = True
     col["search"] = {**SEARCH, "play": LEVER[arm]["play"]}
     ag = body.setdefault("agent", {})
     ag["lr"] = lr
-    ag["lr_anneal_steps"] = total
+    ag["lr_anneal_steps"] = anneal
     ag["search_targets"] = True
     ag["search_policy_coef"] = LEVER[arm]["search_policy_coef"]
     ag["search_value_head"] = True
@@ -232,31 +413,88 @@ def write(path: pathlib.Path, head: list[str], body: dict) -> None:
     path.write_text("\n".join(head) + "\n" + yaml.safe_dump(body, sort_keys=False))
 
 
-def _entropy_last_bin(history: pathlib.Path, frac: float = 0.25) -> float:
-    rows = list(csv.DictReader(history.open()))
-    vals = [float(r["loss/entropy"]) for r in rows if r.get("loss/entropy") not in (None, "")]
-    if not vals:
-        raise SystemExit(f"{history}: no loss/entropy rows")
+# ---- the LR rule ------------------------------------------------------------------------------------------------
+
+def lr_smoke_name(arm: str, lr: float) -> str:
+    return f"r7_lr_smoke_{arm}_{lr:g}"
+
+
+def lr_smoke_dir(runs: pathlib.Path, arm: str, lr: float) -> pathlib.Path:
+    """The launcher names a run dir <config basename>_s<seed> (scripts/monster_fleet.sh's TAG)."""
+    return runs / f"{lr_smoke_name(arm, lr)}_s{LR_SMOKE_SEEDS[arm][LR_CANDIDATES.index(lr)]}"
+
+
+def _history(run_dir: pathlib.Path) -> list[dict]:
+    h = run_dir / "history.csv"
+    if not h.exists():
+        raise SystemExit(f"REFUSED: {h} missing -- run scripts/extract_history.py {run_dir} first")
+    return list(csv.DictReader(h.open()))
+
+
+def _col(rows: list[dict], key: str) -> list[float]:
+    return [float(r[key]) for r in rows if r.get(key) not in (None, "")]
+
+
+def _tail_mean(vals: list[float], frac: float) -> float:
     tail = vals[-max(1, int(len(vals) * frac)):]
     return sum(tail) / len(tail)
 
 
-def read_lr(runs: pathlib.Path, base: str) -> float:
-    """The pre-stated LR rule over the three 2M smokes' history.csv files."""
+def _sh(path: pathlib.Path) -> float:
+    if not path.exists():
+        raise SystemExit(f"REFUSED: {path} missing -- run the vs-SH evals first (--stage lr-evals prints them)")
+    return float(json.loads(path.read_text())["eval/win_rate"])
+
+
+def read_lr(runs: pathlib.Path, base: str, sh_dir: pathlib.Path, out: pathlib.Path | None = None) -> float | None:
+    """The pre-stated LR rule over the six 2M smokes (both arms at every candidate) and the vs-SH evals. Writes the
+    verdict JSON (the fleet stage's only accepted --lr source) and returns the chosen lr, or None."""
     donor_dir = runs / DONOR_DIR[donor_trio(base)].format(DONOR_SEEDS[donor_trio(base)][0])
-    ref = _entropy_last_bin(donor_dir / "history.csv", frac=0.01)
-    chosen = None
-    for lr in sorted(LR_SMOKE, reverse=True):
-        h = runs / f"r7_lr_smoke_{lr:g}_s{LR_SMOKE[lr]}" / "history.csv"
-        rows = list(csv.DictReader(h.open()))
-        kls = [float(r["loss/approx_kl"]) for r in rows if r.get("loss/approx_kl") not in (None, "")]
-        ent = _entropy_last_bin(h)
-        ok = kls and max(kls) <= 0.06 and abs(ent - ref) <= 0.2 * abs(ref)
-        print(f"lr {lr:g}: max approx_kl {max(kls) if kls else float('nan'):.4f}, last-bin entropy {ent:.4f} vs donor {ref:.4f} -> {'OK' if ok else 'FAILS'}")
+    ent_ref = _tail_mean(_col(_history(donor_dir), "loss/entropy"), ENT_REF_TAIL)
+    sh_donor = _sh(sh_dir / "donor_f1.json")
+    per_lr, chosen = {}, None
+    for lr in sorted(LR_CANDIDATES, reverse=True):
+        arms = {}
+        for arm in ("searched", "control"):
+            d = lr_smoke_dir(runs, arm, lr)
+            rows = _history(d)
+            kls = _col(rows, "loss/approx_kl_unsearched")
+            if not kls:
+                raise SystemExit(f"REFUSED: {d} logged no loss/approx_kl_unsearched -- the counter is missing, not a pass")
+            klu = _col(rows, "search/kl_update")
+            ent = _tail_mean(_col(rows, "loss/entropy"), ENT_TAIL)
+            sh = _sh(sh_dir / f"{d.name}.json")
+            arms[arm] = {"max_approx_kl_unsearched": max(kls), "kl_ok": max(kls) <= KL_MAX, "entropy_tail": ent,
+                         "entropy_ok": abs(ent - ent_ref) <= ENT_TOL * abs(ent_ref), "vs_sh": sh,
+                         "sh_ok": sh >= sh_donor - SH_SHOCK,
+                         "kl_update_last_quarter": _tail_mean(klu, 0.25) if klu else None}
+        ok = (arms["searched"]["kl_ok"] and arms["control"]["kl_ok"] and arms["control"]["entropy_ok"]
+              and arms["searched"]["sh_ok"] and arms["control"]["sh_ok"])
+        s_klu, c_klu = arms["searched"]["kl_update_last_quarter"], arms["control"]["kl_update_last_quarter"]
+        not_inert = s_klu is not None and c_klu is not None and s_klu < c_klu
+        per_lr[f"{lr:g}"] = {"arms": arms, "passes": ok, "not_inert": not_inert}
+        print(f"lr {lr:g}: " + "; ".join(
+            f"{a} max kl_unsearched {v['max_approx_kl_unsearched']:.4f}{'' if v['kl_ok'] else ' FAIL'}, entropy "
+            f"{v['entropy_tail']:.4f} (donor {ent_ref:.4f}){'' if a == 'searched' or v['entropy_ok'] else ' FAIL'}, vs SH "
+            f"{v['vs_sh']:.4f} (donor {sh_donor:.4f}){'' if v['sh_ok'] else ' FAIL'}" for a, v in arms.items())
+            + f" -> {'PASS' if ok else 'FAILS'}; not-inert {not_inert}")
         if ok and chosen is None:
             chosen = lr
+    verdict_ok = chosen is not None and per_lr[f"{chosen:g}"]["not_inert"]
+    if out is not None:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps({
+            "version": "r7_read_lr/1", "base": base, "chosen": chosen if verdict_ok else None,
+            "largest_passing": chosen, "rule": {"candidates": list(LR_CANDIDATES), "kl_max": KL_MAX, "ent_tol": ENT_TOL,
+                                                 "ent_tail": ENT_TAIL, "ent_ref_tail": ENT_REF_TAIL, "sh_n": SH_N,
+                                                 "sh_shock": SH_SHOCK},
+            "donor_entropy_ref": ent_ref, "donor_vs_sh": sh_donor, "per_lr": per_lr}, indent=1) + "\n")
     if chosen is None:
-        raise SystemExit("no candidate LR passed the rule -- a maintainer ruling, not a default")
+        print("NO candidate lr passed the rule -- a maintainer ruling before launch, never a default")
+        return None
+    if not verdict_ok:
+        print(f"lr {chosen:g} passed the shock rule but the NOT-INERT check failed -- a maintainer ruling before launch")
+        return None
     print(f"CHOSEN LR {chosen:g}")
     return chosen
 
@@ -264,55 +502,102 @@ def read_lr(runs: pathlib.Path, base: str) -> float:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base", choices=("a", "b", "ab", "w"), required=True)
-    ap.add_argument("--stage", choices=("lr-smokes", "fleet"), default=None)
-    ap.add_argument("--read-lr", action="store_true", help="apply the LR rule to the three smokes' history.csv")
-    ap.add_argument("--lr", type=float, default=None, help="the starting LR (--stage fleet): the rule's choice")
-    ap.add_argument("--lr-evidence", default="chosen by the 2M LR smokes' rule", help="where the LR came from, for the header")
+    ap.add_argument("--stage", choices=("lr-smokes", "lr-evals", "fleet"), default=None)
+    ap.add_argument("--read-lr", action="store_true", help="apply the LR rule; writes --lr-verdict")
+    ap.add_argument("--lr", type=float, default=None, help="the starting LR (--stage fleet): read_lr.json's choice")
+    ap.add_argument("--lr-ruled", default=None,
+                    help="a maintainer ruling that sets --lr in place of the rule (quoted into the header)")
     ap.add_argument("--b0", choices=("PASS", "FAIL"), default=None, help="the B0 bench's six-wide verdict (--stage fleet)")
     ap.add_argument("--runs", default="runs")
     ap.add_argument("--out", default="configs")
+    ap.add_argument("--power", default="results/r7_fleet/power.json")
+    ap.add_argument("--sh-dir", default="results/r7_lr", help="the vs-SH eval JSONs of the LR rule")
+    ap.add_argument("--lr-verdict", default="results/r7_lr/read_lr.json")
     args = ap.parse_args()
-    runs = pathlib.Path(args.runs) if pathlib.Path(args.runs).is_absolute() else ROOT / args.runs
-    out = pathlib.Path(args.out) if pathlib.Path(args.out).is_absolute() else ROOT / args.out
-    out.mkdir(parents=True, exist_ok=True)
+
+    def path(p: str) -> pathlib.Path:
+        q = pathlib.Path(p)
+        return q if q.is_absolute() else ROOT / q
+
+    runs, out, sh_dir, verdict = path(args.runs), path(args.out), path(args.sh_dir), path(args.lr_verdict)
     if args.read_lr:
-        read_lr(runs, args.base)
+        read_lr(runs, args.base, sh_dir, verdict)
         return
     ds = donors(args.base, runs)
-    lines = []
+    lines: list[str] = []
+    if args.stage == "lr-evals":
+        env = "POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1 POKEMON_RL_ENCODER_C6=1"
+        py = "/opt/anaconda3/envs/pkmn-engine-port/bin/python"
+        lines.append(f"{env} {py} scripts/eval_checkpoint.py {ds[0]['path']} --episodes {SH_N} --out {sh_dir / 'donor_f1.json'}")
+        for lr in LR_CANDIDATES:
+            for arm in ("searched", "control"):
+                d = lr_smoke_dir(runs, arm, lr)
+                final = final_ckpt(d)
+                if final is None:
+                    raise SystemExit(f"REFUSED: {d} has no checkpoint -- the smoke has not run")
+                lines.append(f"{env} {py} scripts/eval_checkpoint.py {final} --episodes {SH_N} --out {sh_dir / (d.name + '.json')}")
+        print("# sequential, one at a time (usernames derive from each checkpoint's seed; never two beside each other)")
+        print("\n".join(lines))
+        return
+    out.mkdir(parents=True, exist_ok=True)
+    dlr = donor_lr(args.base)
+    if any(c >= dlr for c in LR_CANDIDATES):
+        raise SystemExit(f"REFUSED: a candidate lr is not below the donors' own starting lr {dlr:g} (R-F1: a REDUCED lr)")
+    power = load_power(path(args.power))
     if args.stage == "lr-smokes":
-        for lr, seed in LR_SMOKE.items():
-            tag = f"lr_smoke_{lr:g}"
-            body = lane_config(args.base, "searched", seed=seed, donor=ds[0], lr=lr, total=2_000_000, tag=TAGS["lr"])
-            body["run_name"] = f"r7_{tag}_s{seed}"
-            body["eval_every"] = 100_000_000
-            head = header(arm="searched", lane=None, donor=ds[0], all_donors=ds, base=args.base, lr=lr,
-                          lr_evidence="an LR SMOKE candidate", b0="n/a", kind=f"2M LR SMOKE, NOT A PRE-REG RUN (lr {lr:g})")
-            name = f"r7_lr_smoke_{lr:g}.yaml"
-            write(out / name, head, body)
-            lines.append(f"bash scripts/monster_fleet.sh configs/{name} 2000000 {seed}")
+        for lr in LR_CANDIDATES:
+            for arm in ("searched", "control"):
+                seed = LR_SMOKE_SEEDS[arm][LR_CANDIDATES.index(lr)]
+                body = lane_config(args.base, arm, seed=seed, donor=ds[0], lr=lr, total=LR_SMOKE_STEPS,
+                                   tag=TAGS[f"lr_{arm}"], cadence=None)
+                body["run_name"] = f"{lr_smoke_name(arm, lr)}_s{seed}"
+                body["eval_every"] = 100_000_000
+                head = header(arm=arm, lane=None, donor=ds[0], all_donors=ds, base=args.base, lr=lr,
+                              lr_evidence="an LR SMOKE candidate", b0="n/a", power=power,
+                              kind=f"2M LR SMOKE, NOT A PRE-REG RUN (lr {lr:g}, arm {arm})")
+                name = f"{lr_smoke_name(arm, lr)}.yaml"
+                write(out / name, head, body)
+                lines.append(f"ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh configs/{name} {LR_SMOKE_STEPS} {seed}")
     elif args.stage == "fleet":
         if args.lr is None or args.b0 is None:
             raise SystemExit("--stage fleet needs --lr (the rule's choice) and --b0 (the bench's verdict)")
+        if args.lr_ruled:
+            lr_evidence = f"set by a maintainer ruling in place of the rule: {args.lr_ruled}"
+        else:
+            if not verdict.exists():
+                raise SystemExit(f"REFUSED: {verdict} missing -- run --read-lr (or pass --lr-ruled with the ruling)")
+            chosen = json.loads(verdict.read_text()).get("chosen")
+            if chosen is None or abs(float(chosen) - args.lr) > 1e-12:
+                raise SystemExit(f"REFUSED: --lr {args.lr:g} is not the rule's choice ({chosen}) in {verdict}")
+            lr_evidence = f"the LR rule's choice, {verdict.relative_to(ROOT) if verdict.is_relative_to(ROOT) else verdict}"
+        manifest = []
         for arm in ("searched", "control"):
             for f, seed in enumerate(SEEDS[arm], start=1):
                 if arm == "control" and f == 3 and args.b0 == "FAIL":
                     continue
                 body = lane_config(args.base, arm, seed=seed, donor=ds[f - 1], lr=args.lr, total=HORIZON, tag=TAGS[arm])
                 head = header(arm=arm, lane=f, donor=ds[f - 1], all_donors=ds, base=args.base, lr=args.lr,
-                              lr_evidence=args.lr_evidence, b0=args.b0, kind="")
+                              lr_evidence=lr_evidence, b0=args.b0, kind="", power=power)
                 name = f"r7_fleet_{arm}_f{f}.yaml"
                 write(out / name, head, body)
-                lines.append(f"bash scripts/monster_fleet.sh configs/{name} {HORIZON} {seed}")
-            smoke = lane_config(args.base, arm, seed=SMOKE_SEEDS[arm], donor=ds[0], lr=args.lr, total=400_000,
-                                tag=TAGS[f"smoke_{arm}"])
-            smoke["eval_every"] = 100_000_000
+                manifest.append(f"configs/{name} {seed}")
+            smoke = lane_config(args.base, arm, seed=SMOKE_SEEDS[arm], donor=ds[0], lr=args.lr, total=SMOKE_STEPS,
+                                tag=TAGS[f"smoke_{arm}"], cadence=SMOKE_CADENCE)
             head = header(arm=arm, lane=None, donor=ds[0], all_donors=ds, base=args.base, lr=args.lr,
-                          lr_evidence=args.lr_evidence, b0=args.b0, kind="400k WARM-START SHAKEDOWN SMOKE, NOT A PRE-REG RUN")
+                          lr_evidence=lr_evidence, b0=args.b0, power=power,
+                          kind="400k WARM-START SHAKEDOWN SMOKE, NOT A PRE-REG RUN")
             write(out / f"r7_fleet_smoke400k_{arm}.yaml", head, smoke)
-            lines.insert(0, f"bash scripts/monster_fleet.sh configs/r7_fleet_smoke400k_{arm}.yaml 400000 {SMOKE_SEEDS[arm]}")
+        (out / "r7_fleet_lanes.txt").write_text(
+            "# R7 fleet lane manifest (scripts/derive_r7_fleet.py): <config> <seed>, one lane per line, launch order.\n"
+            + "\n".join(manifest) + "\n")
+        lines += ["# THE SHAKEDOWN SMOKES (the agent runs them: scripts/r7_smokes.sh shakedown; R0 gate 1):",
+                  f"ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh configs/r7_fleet_smoke400k_searched.yaml {SMOKE_STEPS} {SMOKE_SEEDS['searched']}",
+                  f"ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh configs/r7_fleet_smoke400k_control.yaml {SMOKE_STEPS} {SMOKE_SEEDS['control']}",
+                  "# ---- STOP: the fleet launches only after BOTH smokes PASS scripts/r7_smoke_check.py ----",
+                  "# THE FLEET (the maintainer launches; over 5 h):",
+                  ("ALLOW_SIX_WIDE_DISCLOSED=1 " if len(manifest) == 6 else "") + "bash scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt"]
     else:
-        raise SystemExit("--stage lr-smokes | fleet, or --read-lr")
+        raise SystemExit("--stage lr-smokes | lr-evals | fleet, or --read-lr")
     print("\n".join(lines))
 
 

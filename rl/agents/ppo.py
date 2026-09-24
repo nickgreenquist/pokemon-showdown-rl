@@ -2474,11 +2474,16 @@ class PPOAgent(Agent):
             }
         # Present only under search_targets, and a part only when it had rows
         # this update (row-weighted: never divided by grad_steps).
+        # The names are spelled out (never formatted) so a grep finds every
+        # counter a pre-reg gate names (tests/test_derive_r7_fleet.py).
+        split_keys = {"searched": ("loss/approx_kl_searched", "loss/clip_frac_searched"),
+                      "unsearched": ("loss/approx_kl_unsearched", "loss/clip_frac_unsearched")}
         split_stats: dict[str, float] = {}
         for part, (kl_sum, clipped, n_rows) in kl_split.items():
             if n_rows:
-                split_stats[f"loss/approx_kl_{part}"] = kl_sum / n_rows
-                split_stats[f"loss/clip_frac_{part}"] = clipped / n_rows
+                kl_key, clip_key = split_keys[part]
+                split_stats[kl_key] = kl_sum / n_rows
+                split_stats[clip_key] = clipped / n_rows
         # sums are per-grad-step and averaged; the two batch-level reads are
         # already single numbers for this update and must not be divided.
         return {

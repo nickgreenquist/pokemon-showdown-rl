@@ -1,16 +1,21 @@
 """R7 fleet derivation (`scripts/derive_r7_fleet.py`), engine-free, on a fake donor tree: every derived lane config
 loads; a searched/control pair differs EXACTLY in the lever (dose matched by construction, checked); every pair
 shares its donor; horizon = anneal = 100M at the chosen LR; the header carries the pre-reg (journey step, the exit
-condition, the credit line verbatim, the gates, the branches) with the C6 marker on line 2 (the launcher reads it
-there); the four bases take the right donors and levers; the five-wide fallback drops control f3; nothing else in
-the base trio's body moves; seeds collide with no existing config; the LR rule picks the largest passing candidate;
-and a missing donor is refused, never defaulted."""
+condition, the credit line verbatim, the gates, the branches, the power read from its JSON) with the C6 marker on line 2
+(the launcher reads it there); the four bases take the right donors and levers; the five-wide fallback drops control
+f3; nothing else in the base trio's body moves; seeds and tags collide with no existing config; the smokes run the
+lane's schedule at their cadences; every LR candidate is below the donors' own lr; the LR rule reads the UNSEARCHED
+approx_kl split, the control's entropy and the vs-SH shock on BOTH arms and picks the largest passing candidate; the
+fleet stage refuses an lr the rule did not choose; every counter the gate names is written somewhere in rl/; the
+T-op's dials are the signature's; a final that overshoots 200M is found; and a missing donor is refused."""
 
 from __future__ import annotations
 
+import ast
 import csv
 import glob
 import importlib.util
+import json
 import pathlib
 import subprocess
 import sys
@@ -30,6 +35,20 @@ def _mod():
     return m
 
 
+def _fake_power(tmp: pathlib.Path) -> pathlib.Path:
+    table = []
+    for width in ("3+3", "3+2"):
+        for n in (3000, 6000):
+            for share in (0.0, 0.5):
+                for d in (-0.030, -0.020, 0.0, 0.020, 0.025, 0.030, 0.035, 0.040):
+                    table.append({"width": width, "n": n, "donor_share": share, "delta": d,
+                                  "X-POS": 0.111 if d == 0.030 else 0.5, "se_diff_median": 0.0077})
+    p = tmp / "power.json"
+    p.write_text(json.dumps({"version": "r7_fleet_power/1", "pooled_sd": 0.0102, "binomial_sd": 0.0091, "df": 10,
+                             "table": table}))
+    return p
+
+
 def _fake_runs(tmp: pathlib.Path) -> pathlib.Path:
     runs = tmp / "runs"
     for trio, seeds in (("a", (304, 312, 320)), ("b", (328, 336, 344))):
@@ -39,15 +58,23 @@ def _fake_runs(tmp: pathlib.Path) -> pathlib.Path:
             (d / "ckpt_199500000.pt").write_bytes(b"not the final")
             (d / "ckpt_200000011.pt").write_bytes(f"final {trio}{s}".encode())
             (d / "theta0.pt").write_bytes(b"anchors")
+    _fake_power(tmp)
     return runs
 
 
-def _derive(tmp, *args) -> tuple[pathlib.Path, str]:
+def _derive(tmp, *args, ok=True) -> tuple[pathlib.Path, str]:
     out = tmp / "configs"
     r = subprocess.run([sys.executable, str(ROOT / "scripts/derive_r7_fleet.py"), "--runs", str(tmp / "runs"),
-                        "--out", str(out), *args], capture_output=True, text=True, cwd=ROOT)
-    assert r.returncode == 0, r.stdout + r.stderr
-    return out, r.stdout
+                        "--out", str(out), "--power", str(tmp / "power.json"), *args],
+                       capture_output=True, text=True, cwd=ROOT)
+    if ok:
+        assert r.returncode == 0, r.stdout + r.stderr
+        return out, r.stdout
+    assert r.returncode != 0, r.stdout
+    return out, r.stdout + r.stderr
+
+
+RULED = ("--lr-ruled", "TEST: no smokes on a fake tree")
 
 
 def _flat(d, prefix=""):
@@ -64,8 +91,9 @@ def _flat(d, prefix=""):
 def test_the_fleet_lanes_load_and_each_pair_differs_exactly_in_the_lever(tmp_path):
     from rl.common.config import load_config
 
+    m = _mod()
     _fake_runs(tmp_path)
-    out, launch = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS")
+    out, launch = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS", *RULED)
     for f in (1, 2, 3):
         s, c = out / f"r7_fleet_searched_f{f}.yaml", out / f"r7_fleet_control_f{f}.yaml"
         for p in (s, c):
@@ -77,6 +105,17 @@ def test_the_fleet_lanes_load_and_each_pair_differs_exactly_in_the_lever(tmp_pat
             text = " ".join(l.lstrip("# ").strip() for l in lines if l.startswith("#"))
             assert CREDIT in text and 'journey_step: "14"' in text and "ACTION ON EACH BRANCH" in text
             assert "R0 SANITY GATES" in text and "Search-with-our-evaluator vs the same checkpoint greedy" in text
+            # Every branch named, the lane-loss cell, the object rule, the power read from its JSON (0.11 is the
+            # fake table's +0.030 cell), the dials and coefficients formatted from the module's own dicts.
+            for cell in ("X-POS", "X-NEG", "X-COST", "X-FLAT", "LANE LOSS", "OBJECT RULE", "MECHANISM AXIS"):
+                assert cell in text, cell
+            assert "0.50 / 0.11 / 0.50 / 0.50" in text and "r7_fleet_power/1" in text
+            assert f"frac {m.SEARCH['frac']}" in text
+            assert f"k {m.SEARCH['cols_k']} / S {m.SEARCH['chance_s']} / tau {m.SEARCH['tau']}" in text
+            assert f"beta {m.LEVER['searched']['search_policy_coef']}" in text
+            assert "C1, S1, C2, S2, C3, S3" in text and "ALLOW_SIX_WIDE_DISCLOSED" in text
+            for name in m.GATE_COUNTERS["both"] + m.GATE_COUNTERS["searched_only"]:
+                assert name in text, name
         a, b = _flat(yaml.safe_load(s.read_text())), _flat(yaml.safe_load(c.read_text()))
         diff = {k for k in set(a) | set(b) if a.get(k) != b.get(k)}
         assert diff == {"seed", "run_name", "env_kwargs.seat_tag", "collector.search.play",
@@ -84,13 +123,39 @@ def test_the_fleet_lanes_load_and_each_pair_differs_exactly_in_the_lever(tmp_pat
         assert a["collector.search.play"] is True and b["collector.search.play"] is False
         assert a["init_from"] == b["init_from"]
     assert (out / "r7_fleet_smoke400k_searched.yaml").exists() and (out / "r7_fleet_smoke400k_control.yaml").exists()
-    assert launch.count("monster_fleet.sh") == 8
+    manifest = [l.split() for l in (out / "r7_fleet_lanes.txt").read_text().splitlines() if not l.startswith("#")]
+    assert manifest == [[f"configs/r7_fleet_{arm}_f{f}.yaml", str(seed)] for arm in ("searched", "control")
+                        for f, seed in enumerate(m.SEEDS[arm], start=1)]
+    # The smokes, then a STOP, then ONE fleet launch over the manifest.
+    assert launch.count("monster_fleet.sh") == 2 and launch.count("r7_fleet_launch.sh configs/r7_fleet_lanes.txt") == 1
+    assert launch.index("STOP") < launch.index("r7_fleet_launch.sh")
+
+
+def test_the_smokes_run_the_lanes_schedule_at_their_cadences(tmp_path):
+    m = _mod()
+    _fake_runs(tmp_path)
+    out, _ = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "5e-5", "--b0", "PASS", *RULED)
+    for arm in ("searched", "control"):
+        s = yaml.safe_load((out / f"r7_fleet_smoke400k_{arm}.yaml").read_text())
+        assert s["total_steps"] == m.SMOKE_STEPS and s["agent"]["lr_anneal_steps"] == m.HORIZON
+        assert s["eval_every"] == s["checkpoint_every"] == m.SMOKE_CADENCE <= m.RESUME_AT
+        assert s["collector"]["search"]["play"] is (arm == "searched")
+    out2, launch = _derive(tmp_path, "--base", "b", "--stage", "lr-smokes")
+    names = sorted(p.name for p in out2.glob("r7_lr_smoke_*.yaml"))
+    assert names == sorted(f"r7_lr_smoke_{arm}_{lr:g}.yaml" for lr in m.LR_CANDIDATES for arm in ("searched", "control"))
+    for lr in m.LR_CANDIDATES:
+        for arm in ("searched", "control"):
+            s = yaml.safe_load((out2 / f"r7_lr_smoke_{arm}_{lr:g}.yaml").read_text())
+            assert s["total_steps"] == m.LR_SMOKE_STEPS and s["agent"]["lr_anneal_steps"] == m.HORIZON
+            assert s["agent"]["lr"] == lr and s["collector"]["search"]["play"] is (arm == "searched")
+            assert s["run_name"] == m.lr_smoke_dir(pathlib.Path("runs"), arm, lr).name
+    assert launch.count("ALLOW_ANNEAL_OVER_HORIZON=1 bash scripts/monster_fleet.sh") == 6
 
 
 def test_nothing_else_in_the_base_trios_body_moves(tmp_path):
     m = _mod()
     _fake_runs(tmp_path)
-    out, _ = _derive(tmp_path, "--base", "a", "--stage", "fleet", "--lr", "5e-5", "--b0", "PASS")
+    out, _ = _derive(tmp_path, "--base", "a", "--stage", "fleet", "--lr", "5e-5", "--b0", "PASS", *RULED)
     trio = _flat(yaml.safe_load((ROOT / m.TRIO_A).read_text()))
     lane = _flat(yaml.safe_load((out / "r7_fleet_searched_f1.yaml").read_text()))
     moved = {k for k in set(trio) | set(lane) if trio.get(k) != lane.get(k)}
@@ -104,29 +169,37 @@ def test_nothing_else_in_the_base_trios_body_moves(tmp_path):
 @pytest.mark.parametrize("base,trio,heads,batch", [("a", "a", True, 3840), ("b", "b", False, 15360),
                                                    ("ab", "a", True, 15360), ("w", "b", False, 3840)])
 def test_each_base_takes_its_donors_and_its_levers(tmp_path, base, trio, heads, batch):
+    m = _mod()
     _fake_runs(tmp_path)
-    out, _ = _derive(tmp_path, "--base", base, "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS")
+    out, _ = _derive(tmp_path, "--base", base, "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS", *RULED)
     lane = _flat(yaml.safe_load((out / "r7_fleet_control_f2.yaml").read_text()))
     assert f"showdown_r6_trio_{trio}_s" in lane["init_from"]
     assert ("agent.trunk_kwargs.value_aux_out" in lane) == heads and ("collector.outcome_targets" in lane) == heads
     assert lane["agent.rollout_steps"] == batch
+    assert ("aux_outcome/*" in (out / "r7_fleet_control_f2.yaml").read_text()) == heads
+    # R-F1: a REDUCED lr -- every candidate below the donors' own starting lr, for every base.
+    assert all(c < m.donor_lr(base) for c in m.LR_CANDIDATES)
 
 
 def test_the_five_wide_fallback_drops_control_f3(tmp_path):
     _fake_runs(tmp_path)
-    out, launch = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "FAIL")
+    out, launch = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "FAIL", *RULED)
     assert not (out / "r7_fleet_control_f3.yaml").exists()
     assert sorted(p.name for p in out.glob("r7_fleet_*_f*.yaml")) == sorted(
         [f"r7_fleet_searched_f{f}.yaml" for f in (1, 2, 3)] + [f"r7_fleet_control_f{f}.yaml" for f in (1, 2)])
+    assert len([l for l in (out / "r7_fleet_lanes.txt").read_text().splitlines() if not l.startswith("#")]) == 5
+    assert "ALLOW_SIX_WIDE_DISCLOSED" not in launch
+    assert "C1, S1, C2, S2, S3" in (out / "r7_fleet_searched_f1.yaml").read_text()
 
 
 def test_seeds_and_tags_collide_with_no_existing_config():
     m = _mod()
-    ours = set(m.SEEDS["searched"]) | set(m.SEEDS["control"]) | set(m.SMOKE_SEEDS.values()) | set(m.LR_SMOKE.values())
-    assert len(ours) == 6 + 2 + 3
+    ours = (set(m.SEEDS["searched"]) | set(m.SEEDS["control"]) | set(m.SMOKE_SEEDS.values())
+            | set(m.LR_SMOKE_SEEDS["searched"]) | set(m.LR_SMOKE_SEEDS["control"]))
+    assert len(ours) == 6 + 2 + 6
     theirs, tags = set(), set()
-    for p in glob.glob(str(ROOT / "configs/*.yaml")):
-        if pathlib.Path(p).name.startswith("r7_fleet") or pathlib.Path(p).name.startswith("r7_lr_smoke"):
+    for p in glob.glob(str(ROOT / "configs/**/*.yaml"), recursive=True):
+        if pathlib.Path(p).name.startswith(("r7_fleet", "r7_lr_smoke")):
             continue
         try:
             d = yaml.safe_load(pathlib.Path(p).read_text())
@@ -137,29 +210,111 @@ def test_seeds_and_tags_collide_with_no_existing_config():
             tags.add(((d.get("env_kwargs") or {}).get("seat_tag")))
     assert not ours & theirs, ours & theirs
     assert not set(m.TAGS.values()) & tags
+    assert len(set(m.TAGS.values())) == len(m.TAGS)
 
 
-def test_the_lr_rule_picks_the_largest_passing_candidate(tmp_path):
+def _hist(path: pathlib.Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    keys = sorted({k for r in rows for k in r})
+    with path.open("w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=keys)
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+
+
+def _smoke_rows(kl_unsearched, entropy, kl_update, kl_whole=0.20):
+    # The WHOLE-batch approx_kl is far past the bar on purpose: the rule must read the unsearched split.
+    return [{"loss/approx_kl": kl_whole, "loss/approx_kl_unsearched": kl_unsearched, "loss/entropy": entropy,
+             "search/kl_update": kl_update} for _ in range(16)]
+
+
+def _lr_tree(tmp_path, m, *, spec):
+    """spec[lr][arm] = (kl_unsearched, entropy, kl_update, vs_sh)."""
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    runs = _fake_runs(tmp_path)
+    _hist(runs / "showdown_r6_trio_b_s328/history.csv", [{"loss/entropy": 0.70} for _ in range(200)])
+    sh = tmp_path / "sh"
+    sh.mkdir()
+    (sh / "donor_f1.json").write_text(json.dumps({"eval/win_rate": 0.88}))
+    for lr in m.LR_CANDIDATES:
+        for arm in ("searched", "control"):
+            klu, ent, kup, wr = spec[lr][arm]
+            d = m.lr_smoke_dir(runs, arm, lr)
+            _hist(d / "history.csv", _smoke_rows(klu, ent, kup))
+            (sh / f"{d.name}.json").write_text(json.dumps({"eval/win_rate": wr}))
+    return runs, sh
+
+
+def test_the_lr_rule_reads_both_arms_and_picks_the_largest_passing_candidate(tmp_path):
+    m = _mod()
+    c1, c2, c3 = m.LR_CANDIDATES  # descending: 1e-4, 5e-5, 2.5e-5
+    good_s, good_c = (0.02, 0.50, 0.10, 0.87), (0.02, 0.69, 0.30, 0.87)   # the searched entropy is read, not gated
+    spec = {c1: {"searched": good_s, "control": (0.07, 0.69, 0.30, 0.87)},       # control's unsearched kl too high
+            c2: {"searched": (0.02, 0.50, 0.10, 0.83), "control": good_c},        # searched vs-SH shock (> 0.04 down)
+            c3: {"searched": good_s, "control": good_c}}
+    runs, sh = _lr_tree(tmp_path / "a", m, spec=spec)
+    verdict = tmp_path / "a" / "read_lr.json"
+    assert m.read_lr(runs, "b", sh, verdict) == c3
+    v = json.loads(verdict.read_text())
+    assert v["chosen"] == c3 and v["per_lr"][f"{c1:g}"]["passes"] is False and v["per_lr"][f"{c2:g}"]["passes"] is False
+    # The control's entropy IS gated: 20% off the donor's 0.70 fails the candidate.
+    spec[c3]["control"] = (0.02, 0.55, 0.30, 0.87)
+    runs, sh = _lr_tree(tmp_path / "b", m, spec=spec)
+    assert m.read_lr(runs, "b", sh, tmp_path / "b" / "v.json") is None
+    # NOT-INERT: a passing lr whose searched kl_update is not below the control's -> a ruling, never a default.
+    spec[c3]["control"] = good_c
+    spec[c3]["searched"] = (0.02, 0.50, 0.40, 0.87)
+    runs, sh = _lr_tree(tmp_path / "c", m, spec=spec)
+    assert m.read_lr(runs, "b", sh, tmp_path / "c" / "v.json") is None
+    v = json.loads((tmp_path / "c" / "v.json").read_text())
+    assert v["largest_passing"] == c3 and v["chosen"] is None
+
+
+def test_the_fleet_stage_takes_only_the_rules_lr(tmp_path):
+    _fake_runs(tmp_path)
+    verdict = tmp_path / "read_lr.json"
+    verdict.write_text(json.dumps({"chosen": 5e-05}))
+    _, err = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS",
+                     "--lr-verdict", str(verdict), ok=False)
+    assert "is not the rule's choice" in err
+    out, _ = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "5e-05", "--b0", "PASS", "--lr-verdict", str(verdict))
+    assert "the LR rule's choice" in (out / "r7_fleet_searched_f1.yaml").read_text()
+    _, err = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "5e-05", "--b0", "PASS",
+                     "--lr-verdict", str(tmp_path / "absent.json"), ok=False)
+    assert "REFUSED" in err
+
+
+def test_every_gate_counter_is_written_somewhere_in_rl():
+    m = _mod()
+    src = "\n".join(p.read_text() for p in (ROOT / "rl").rglob("*.py"))
+    for group, names in m.GATE_COUNTERS.items():
+        for name in names:
+            assert f'"{name}' in src, (group, name)
+
+
+def test_the_t_ops_dials_are_the_signatures():
+    """Derived from rl/search/top.py's AST (engine-free): the fleet's SEARCH dict + `play` is exactly TOp's dial list."""
+    tree = ast.parse((ROOT / "rl/search/top.py").read_text())
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "TOp")
+    init = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == "__init__")
+    dials = {a.arg for a in init.args.kwonlyargs} - {"seat", "seed"}
+    assert set(_mod().SEARCH) | {"play"} == dials, dials
+
+
+def test_a_final_that_overshoots_200m_is_found(tmp_path):
     m = _mod()
     runs = _fake_runs(tmp_path)
-    def hist(path, kl, ent):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("w", newline="") as fh:
-            w = csv.DictWriter(fh, fieldnames=["loss/approx_kl", "loss/entropy"])
-            w.writeheader()
-            for i in range(100):
-                w.writerow({"loss/approx_kl": kl, "loss/entropy": ent})
-    hist(runs / "showdown_r6_trio_b_s328/history.csv", 0.01, 0.70)
-    hist(runs / "r7_lr_smoke_0.00025_s440/history.csv", 0.09, 0.70)     # kl too high
-    hist(runs / "r7_lr_smoke_0.0001_s444/history.csv", 0.03, 0.60)      # entropy within 20%
-    hist(runs / "r7_lr_smoke_5e-05_s448/history.csv", 0.02, 0.69)
-    assert m.read_lr(runs, "b") == 1e-4
+    d = runs / "showdown_r6_trio_b_s336"
+    (d / "ckpt_200000011.pt").unlink()
+    (d / "ckpt_200000163.pt").write_bytes(b"an overshooting final")
+    assert m.donors("b", runs)[1]["path"].endswith("ckpt_200000163.pt")
+    (d / "ckpt_1000000000.pt").write_bytes(b"a longer name, a larger step")
+    assert m.donors("b", runs)[1]["path"].endswith("ckpt_1000000000.pt")
 
 
 def test_a_missing_donor_is_refused(tmp_path):
     runs = _fake_runs(tmp_path)
     (runs / "showdown_r6_trio_b_s336/ckpt_200000011.pt").unlink()
-    r = subprocess.run([sys.executable, str(ROOT / "scripts/derive_r7_fleet.py"), "--runs", str(runs), "--out",
-                        str(tmp_path / "configs"), "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS"],
-                       capture_output=True, text=True, cwd=ROOT)
-    assert r.returncode != 0 and "REFUSED" in (r.stdout + r.stderr)
+    _, err = _derive(tmp_path, "--base", "b", "--stage", "fleet", "--lr", "1e-4", "--b0", "PASS", *RULED, ok=False)
+    assert "REFUSED" in err
