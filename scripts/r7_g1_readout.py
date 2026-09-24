@@ -121,6 +121,7 @@ def main() -> None:
     tip = subprocess.run(["git", "log", "-1", f"--until={g1_end}", "--format=%h"] if g1_end else ["git", "rev-parse", "--short", "HEAD"],
                          capture_output=True, text=True, cwd=ROOT).stdout.strip()
     eng = subprocess.run(["git", "diff", "--stat", "9a3e4ae", tip, "--", "engine/"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
+    head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
 
     A = {a: arm_stats(g1, a) for a in ("lop_p1", "lop_p2", "greedy_greedy")}
     lop = [r for r in g1 if r["arm"] in ("lop_p1", "lop_p2")]
@@ -166,7 +167,7 @@ def main() -> None:
     g1_text = plan_block(plan, "**G1 — engine self-play", r"^\s*$")
 
     L = [f"# R7 G1 — the operator in the engine mirror, and how much of it is seeing the hidden state", "",
-         f"Written {dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')} by `scripts/r7_g1_readout.py` (branch `r7-native-search` at `{tip}`). "
+         f"Written {dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')} by `scripts/r7_g1_readout.py` (branch `r7-native-search` at `{head}`). "
          "**Every number below is re-derived from the rows files at generation time; nothing is typed.** Rule 6: G1 is a mechanism read on the "
          "operator, never a win-rate A/B against the credit line (G2 is that, off FP@20).", "",
          "## Provenance", "",
