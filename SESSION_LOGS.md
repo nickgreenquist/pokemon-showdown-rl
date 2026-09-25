@@ -13908,3 +13908,19 @@ line numbers are not — grep the date, then read that region):
   0.90 / 0.82. The fleet's pre-stated condition ("launches only if both PASS") is met. Landmine written
   (`docs/landmines.md`, and CLAUDE.md's stall bullet: resume after ~6.5 min). NEXT: G2's two-battle smoke, then the
   maintainer's launch.
+
+- 2026-09-25 07:28Z (agent, R7 runner) — **G2's TWO-BATTLE SMOKE PASSES AS A SMOKE; THE R7 FLEET IS READY FOR THE MAINTAINER'S
+  LAUNCH.** Before it, the R7 worktree was fast-forwarded to main (`31f7566`) so `pkmn-engine-r7` -- which imports the
+  worktree's `rl` -- runs the launch commit; the engine source is unchanged since that env's 00:26Z build. G2SM
+  (`configs/eval/r7_g2.yaml`, the FP runner with PY = `pkmn-engine-r7`, FP@20, 07:26:59Z-07:27:56Z,
+  `results/r7_g2/g2sm.json`): 2 battles finished, 0 relaunches, `gate_all_challenges_resolved` true; the seat's tally
+  (2 wins) agrees with Foul Play's own log (two "Winner: r7g2smkseat"); `rl_package` the worktree's `rl`, `rl_git_sha` =
+  `launch_git_sha` = `31f7566`, `rl_git_dirty` false -- G_SAME_PROGRAM's form holds (read at launch since the L10 fix).
+  The L-op: 61/61 decisions searched, `lop/worlds_built_rate` 1.0, no-world 0, mask mismatch 0, errors 0,
+  `search/override_rate` 0.066 (in G2's [0.02, 0.20]), 25.8 ms / decision (p99 44.0), 38.8 decisions/s. **WATCH ITEM for
+  G2 proper (after the fleet): `lop/leaves_mean` 360.7, BELOW its R0 band [400, 700]** (the pre-reg's smokes read 512-538)
+  -- two battles are a small, possibly short-battle sample and a smoke measures nothing, but if G2L reads below 400 the
+  pre-stated gate says the operator did not run as measured. Box 7's Friday order is COMPLETE: the R6 readout, the a7
+  probe, the merge + both reinstalls + the suites, B0 (FAIL -> 3 + 2), the base (`b`, ruled), the LR smokes (lr 2.5e-5),
+  the fleet configs, the shakedown (PASS on its re-run) and G2's smoke. The launch is the maintainer's (over 5 h):
+  `bash scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt` in the foreground (five lanes, so no six-wide flag).
