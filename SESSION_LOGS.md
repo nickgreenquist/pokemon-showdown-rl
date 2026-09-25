@@ -13759,3 +13759,30 @@ line numbers are not — grep the date, then read that region):
   run_name, play, seat_tag and the two coefficients. `pkmn-engine-port` untouched (`.so` 09-20); the merge, its
   reinstall and the suite start when the fp-speedup (a7) probe's STATUS goes terminal; B0 after r6-runner's "instrument
   ended".
+
+- 2026-09-25 01:30Z (agent, R6 babysitter) — **R6 IS READ; no Ladder R6; R7's base is `ab` or `b`.**
+  QUEUE DONE 01:07:53Z. Full record: `readouts/R6_READS_READOUT.md` (the gitignored READOUT.txt is
+  reproduced verbatim there). **R1, off FP@20, 9000 vs 9000 vs the same-session re-drawn R5 finals:
+  trio B (x4 batch, fallback form) +0.0216 at z 2.91 — statistically clear (every one of the 9
+  B-lane vs R5-lane pairings favours B) but 0.003 under the credit line's +0.025 SIZE floor, so
+  B-FLAT and uncredited; trio A (outcome heads) -0.0022 at z -0.21, A-FLAT.** vs SH agrees
+  descriptively (B +0.0241 at z 4.35 vs R5's banked read). B vs A +0.0238 at z 2.07. **R2's object
+  E6RF is +0.0180 over E3WR at z 1.42; M-R6-10's bar is +0.05, so Ladder R6 does not fire.** The
+  committee gain (+0.033..+0.047 per trio over its own singles) remains the largest lever.
+  **R7's base, per both trio headers' pre-stated X-FLAT action (two bits): the batch is KEPT** — B's
+  update is faster per datum than W's (0.980x update, 0.972x total per env step over 20M-180M, from
+  each lane's `history.csv`; ~1.6 se across three lanes; the header asks only "faster") — **and the
+  heads bit is PENDING trio A's pre-registered mechanism instrument** (turn-2-8 by-turn r^2 must lift
+  above the R5 W finals' 0.2866 on positions drawn the same way in the same run), staged to start
+  when the fp-speedup probe's STATUS goes terminal, from the pinned worktree
+  `../pokemon-showdown-rl-r6pin` (25bad2c; `rl/` identical to launch commit 907adc6) with
+  PYTHONPATH set — the analysis env's editable install otherwise imports main's `rl/`, which the R7
+  merge rewrites (the r7-runner's catch). Draw recovered from the 09-18 rows file (ep 0-799 ->
+  `--battles 800`). Both instrument sides and critic_calibration smoked green from the pin; the
+  first smoke measured 0 positions because it asked for 2 outcomes per position against the
+  script's 4-outcome floor — a smoke-design error, not a setup one. **The FP gate held 0 times; no
+  job failed.** Correction owned in-session: I first told the maintainer the base was "a call owed
+  to you"; the r7-runner pointed out the "X-FLAT routing" item was R7's own fleet branch, and the R6
+  base is mechanical under the headers. The maintainer also ruled on wording this session — say
+  which clause a result misses, with delta and z, and lead any status answer with who is running
+  what (memories `say-which-clause-fails`, `status-says-who-is-running`).
