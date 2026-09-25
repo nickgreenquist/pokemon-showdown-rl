@@ -77,14 +77,27 @@ lane_pid() {
   pgrep -f "bin/python.*(--resume ${1}|--run-name $(basename "$1"))" 2>/dev/null | head -1
 }
 
-cpu_secs() {  # PID -> cumulative CPU seconds (ps prints [dd-]hh:mm:ss)
-  local t; t="$(ps -o time= -p "$1" 2>/dev/null | tr -d ' ')"
-  [ -n "$t" ] || { echo ""; return; }
-  echo "$t" | awk -F'[:-]' '{
-    if (NF==4) print $1*86400+$2*3600+$3*60+$4;
-    else if (NF==3) print $1*3600+$2*60+$3;
-    else if (NF==2) print $1*60+$2;
-    else print $1 }'
+descendants() {  # PID -> every descendant PID, depth-first
+  local c
+  for c in $(pgrep -P "$1" 2>/dev/null); do echo "$c"; descendants "$c"; done
+}
+
+cpu_secs() {  # PID -> cumulative CPU seconds of the PID AND every descendant (ps prints [dd-]hh:mm:ss)
+  # The lane's whole process TREE, never the parent alone: a two-process lane (collector.process: true,
+  # R7 B4) idles its PARENT for tens of seconds while the collector child works -- the learner waits for
+  # the next batch -- so the parent alone reads "flat" on a HEALTHY lane. 2026-09-25: that false STALL
+  # killed R7's first LR smoke at 491k (child at 100% CPU throughout, parent +0.2 s per 10 s between
+  # updates). A true stall still reads flat: a blocked parent plus a child idling in its backpressure loop.
+  ps -p "$1" > /dev/null 2>&1 || { echo ""; return; }
+  local p t
+  for p in "$1" $(descendants "$1"); do
+    t="$(ps -o time= -p "$p" 2>/dev/null | tr -d ' ')"
+    [ -n "$t" ] && echo "$t"
+  done | awk -F'[:-]' '{
+    if (NF==4) s+=$1*86400+$2*3600+$3*60+$4;
+    else if (NF==3) s+=$1*3600+$2*60+$3;
+    else if (NF==2) s+=$1*60+$2;
+    else s+=$1 } END { print s+0 }'
 }
 
 lane_step() {  # run dir -> "step total" from checkpoint.pt + config.yaml
