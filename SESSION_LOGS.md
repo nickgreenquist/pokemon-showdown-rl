@@ -14091,3 +14091,22 @@ line numbers are not — grep the date, then read that region):
   - G2's pre-reg header: a dated clock correction.
   The ladder-bar and FP@500 rulings were taken at ~14:05Z and ~14:20Z. FP@500's FP@N is VISITS-MATCHED ONLY, strength not
   tested.
+- 2026-09-25 17:20Z (agent, R7 runner) — **STAGE 0c LAUNCHES: the decision-level ROLLOUT-vs-CRITIC budget curve** (the
+  maintainer approved the inference-budget plan: "I agree"). `scripts/r7_stage0c_rollout_curve.py` +
+  `tests/test_r7_stage0c_rollout_curve.py` (10 passed, engine-free).
+  - Written by the skeptic reviewer in scratch. Reviewed in full before landing, then moved in with two edits: the
+    test's load path, and the default output moved to `results/r7_stage0c`, never the checkout.
+  - What it measures, on G0's 500 banked positions: a one-ply L-op whose leaves are ROLLOUTS of the R5 committee on
+    belief worlds (rungs 16/32/64/128 worlds, one rollout per cell each, nested), against the critic L-op at B 8/32.
+    Its first 8/32 worlds ARE the critic's, so the two are paired on worlds.
+  - Scoring and gates: scored on G0's true-world oracle; every operator is gated to the banked critic's own override
+    rate (0.080) by a quantile of its own margins, never on outcomes.
+  - The pre-stated rule is in its header: STAGE 1 / KEEP LIGHT / UNRESOLVED, plus ADD R = 512 while still rising. No
+    verdict below 490 positions.
+  - The smoke (4 positions): the lockstep rollout matches `rollout_q.rollout_matrix` IDENTICALLY; the B8 critic
+    reproduces the banked rows 4/4; resume is byte-exact.
+  - Launch: two shards under background QoS on the E-cores beside the fleet, an analysis job (the G0/G1b precedent),
+    with PYTHONPATH on main, bytecode off, and `pkmn-engine-r7`. Detached and resume-safe; s/position and rollouts/s
+    log per line. Projected ~3.3M rollouts, ~3-4 h wall on two shards.
+  - Caveat carried: the estimand is committee-vs-committee self-play decision quality, not strength vs Foul Play or
+    humans. Stage 1's battle read vs FP@N answers that.
