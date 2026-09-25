@@ -1,6 +1,28 @@
 # FP@N calibration — is a fixed-iteration Foul Play (25,000 / 12,000) the same opponent as FP@20?
 
-**STATUS: READ 2026-09-25T03:50Z.**
+**STATUS: READ 2026-09-25T10:44Z (two seats). THE TWO-SEAT VERDICT: PASS both, as NON-REJECTION.** The pooled verdict comes from `scripts/fp_iter_calib_read.py --draws 1,2` (`results/fp_iter_calib/read_two_seat.json`).
+
+| seat | vs FP@20 (k=1, empty box, n 3000) | vs FP@N (8 × 375 in parallel) | delta (se) |
+|---|---|---|---|
+| GW104R (greedy w104) | 0.5440 | 0.5385 (n 2999) | −0.0055 (0.0144) |
+| E6RF (ENS6 of the R6 finals) | 0.6113 | 0.6017 (n 3000) | −0.0097 (0.0126) |
+
+- **OFFSET** (the mean of the two deltas): **−0.0076, se 0.0096, 95% CI [−0.026, +0.011].** FP@N reads at most ~2.6 points stronger and ~1.1 points weaker than FP@20.
+- **SCALE** (does FP@N preserve the gap between a weaker and a stronger agent?):
+  - The gap E6RF − GW104R is **+0.0673 on FP@20** and **+0.0632 on FP@N**.
+  - **DiD −0.0042, se 0.0191, 95% CI [−0.042, +0.033]**, MDE (80%) 0.054.
+- **The rule was pre-stated before the second seat ran** (both sessions' consensus). Both pass at 2 se: FP@N at 25k/12k is a candidate replacement for FP@20, and **the MAINTAINER rules on these bounds.**
+- **A pass is NON-REJECTION, not equivalence.**
+  - The DiD excludes only scale changes beyond ~±0.04, so it catches gross compression or stretching, not a gap preserved to within the +0.025 credit line.
+  - Equivalence at that scale needs se ~0.0125 on the DiD, ~2× the battles per arm, ~3 h more.
+- **Integrity.**
+  - G2 is exact on all 17 arms, after the pre-registered crash-forfeit correction (raw on 16 of 17).
+  - FP@N ran exactly N on 100% of its non-forced searches in both seats' waves.
+  - Both FP@20 controls bought medians of 25,000 / 12,000.
+  - Zero CONTAMINATION lines across all four phases.
+- **Cross-session.** FP@20 is steady one day apart: GW104R 0.5440 vs R6's 0.5447, and E6RF 0.6113 vs R6's 0.6097 (`results/r6_reads_offfp/{gw104r,e6rf}.json`).
+
+**Draw 1 (the GW104R seat), READ 2026-09-25T03:50Z, kept as it was read:**
 - **Verdict: NO DETECTABLE DIFFERENCE.** Our seat (the greedy W final s104, loop breaker on) scored **0.5440 against FP@20** (n 3000, k=1, quiet box) and **0.5385 against FP@N** (n 2999, 8 parallel slices).
   - **delta −0.0055, se 0.0144, z −0.38, 95% CI [−0.034, +0.023].** The se is the slice-clustered one, the larger of the two.
   - This is the pre-stated rule's "candidate replacement" branch: **FP@N at 25k/12k may replace FP@20 as the off-FP instrument — the MAINTAINER RULES.**
@@ -60,16 +82,30 @@ The rule named the binomial se. The read uses the LARGER of the binomial (0.0129
   - Steady state is therefore ≈0.83×, consistent with Phase 1's projected **0.841**.
 - **The ROI stands.** The 14-arm FP phase projects to **≈3.3–3.6 h at 8 slots** against **19.73 h** this week (Phase 1 readout, R6 anchor). The occasional crash relaunch adds its few minutes of dead time to one arm, as it always has.
 
+## The second seat: E6RF (consensus design, 2026-09-25)
+
+- **Why a second seat.** The maintainer asked the three sessions for a consensus on tightening the bound; all three said tighten. r6-runner's refinement, which the other two of us agreed to, was to spend the second 3000 vs 3000 on a STRONGER seat rather than re-draw GW104R. A constant offset cancels in same-session deltas; a SCALE change would not, and every read and bar lives on deltas.
+- **The arms.** CE20 is the E6RF object of `configs/eval/r6_reads_offfp.yaml` (the six R6 finals, c6 on, loop breaker on) against FP@20, k=1, empty box, 3000 battles, 09:08:57–10:28:57Z. CEN1..8 is the same seat against FP@N, 8 × 375 in parallel, 10:29:00–10:44:23Z.
+- **Pre-registration.** The rule, written into the config before any of these battles:
+  - OFFSET = the mean of the two seats' deltas.
+  - DiD = delta_E6 − delta_GW.
+  - Each seat's se is the larger of binomial and slice-clustered.
+  - PASS needs both |.| < 2 se, with both 95% CIs reported beside it.
+- **Clean run.** No crash, no relaunch, max one live battle per seat, G2 exact on all 9 arms raw.
+- **Instrument checks.**
+  - The E6RF control's FP@20 bought medians of 25,000 / 12,000 again.
+  - FP@N searches ran 27.88 ms (p50, both seats pooled) against FP@20's 22.09 ms.
+  - Mean turns were 29.19 (FP@20) against 29.30 (FP@N) over both seats.
+- **Speed.** 15 slices ran without a relaunch, at **0.79×** FP@20's single-arm turn rate including per-slice startup. That is consistent with Phase 1's 0.841 projection for 3000-battle arms.
+
 ## For the maintainer's ruling
 
-1. **Adopt FP@N (25,000 / 12,000) as the off-FP instrument in place of FP@20?**
+1. **Adopt FP@N (25,000 / 12,000) as the off-FP instrument in place of FP@20?** The two-seat bounds are an offset in [−0.026, +0.011] and a gap change in [−0.042, +0.033].
    - **Yes:** every future off-FP read runs 7–8 arms at once.
    - **Beside other work:** a fixed iteration budget is the same opponent at any box load. Load costs it time, never strength. So FP@N reads no longer need an empty box, and can run beside training (slower, still valid). The quiet-box rule stays for any FP@<ms> arm, and the scheduler enforces it.
    - **Banked FP@20 numbers stay FP@20 numbers.** Reads already never difference across sessions (each re-draws its comparator in-session), so nothing banked changes meaning.
    - **The two FP disclosures travel unchanged, with the budget named:** the equivalence test is weakly powered, and the point estimate flatters us. FP@N is calibrated to FP@20's median search, not to a stronger opponent.
-2. **Or tighten the bound first.** This read cannot exclude a gap under ~0.029. Another 3000 vs 3000 would bring the se to ~0.010.
-   - The FP@N half is cheap (~20 min at 8 slots, any box).
-   - The FP@20 half costs ~80 min of EMPTY box. That would be coordinated with r7-runner, whose ~3 h of LR smokes were released at ~03:55Z.
+2. **Or tighten further.** Equivalence of the GAP at the credit line's scale (a DiD CI inside ±0.025) needs ~2× the battles per arm: ~3 h, half of it empty box. The consensus above chose the second seat over a longer first draw.
 
 ## If adopted: the integration (no empty box needed, ~1 h)
 
