@@ -178,15 +178,19 @@ def reduction(args) -> int:
     return 0 if out["verdict"] == "PASS" else 1
 
 
-ORACLE_VERSION = "native_tree_oracle/1"
+ORACLE_VERSION = "native_tree_oracle/2"
 BUDGET = 1800                         # §35's XTG9: 900 iterations x 2 worlds, TOTAL simulations
+# batch 4 descents per tree per round (virtual loss): the committee's forward costs about the same from 8 to 64 rows,
+# so 8 worlds x 4 = 32 rows a call instead of 8 cuts the calls ~4x (v1 at batch 1 ran 136 s a root on the E-cores)
 ARMS = {
-    "br": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br"),
+    "br": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br",
+               batch=4),
     "br_sh": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="gumbel_mctx",
-                  root_select="sequential_halving"),
+                  root_select="sequential_halving", batch=4),
     "legacy": dict(sims=BUDGET, mode="legacy", root_grid=False, depth_cap=8, cols_k=5, chance_k=2, opp_rule="puct",
-                   root_rule="legacy_gumbel", beta=4.0),
-    "rm": dict(sims=BUDGET, mode="sm_rm", root_grid=False, depth_cap=8, cols_k=4, chance_k=2, root_rule="rm_average"),
+                   root_rule="legacy_gumbel", beta=4.0, batch=4),
+    "rm": dict(sims=BUDGET, mode="sm_rm", root_grid=False, depth_cap=8, cols_k=4, chance_k=2, root_rule="rm_average",
+               batch=4),
     "d1": dict(sims=1, mode="br_prior", root_grid=True, depth_cap=1, cols_k=4, chance_k=8, root_rule="soft_br"),
     "br_true": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br",
                     batch=8),
@@ -285,7 +289,8 @@ def oracle(args) -> int:
         pid = int(r["pid"])
         t0 = time.perf_counter()
         row = {"version": ORACLE_VERSION, "pid": pid, "bucket": int(r["bucket"]), "turn": int(r["turn"]),
-               "a_greedy": int(r["a_greedy"]), **{k: stamps[k] for k in ("git_sha", "git_dirty", "engine_sha")}}
+               "a_greedy": int(r["a_greedy"]), "dials": arms,
+               **{k: stamps[k] for k in ("git_sha", "git_dirty", "engine_sha")}}
         try:
             node = pkmn_gen1.SearchNode.load(base64.b64decode(r["node_b64"]))
             m1 = np.asarray(node.mask(tables, "p1"), bool)
