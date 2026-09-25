@@ -842,11 +842,18 @@ def test_the_corpus_is_the_non_aliased_roots_and_only_those():
     assert sum(1 for _ in G.iter_corpus(HARVEST, limit=37)) == 37
 
 
-def test_the_engine_backend_raises_with_the_symbols_it_waits_on():
+def test_the_engine_backend_raises_with_the_symbols_it_waits_on(monkeypatch):
     """A gate that silently fell back to the stand-in would report the
-    stand-in's numbers under the engine's name."""
+    stand-in's numbers under the engine's name. R7 B6 (2026-09-23) landed every
+    symbol, so where the extension is installed the seam is complete and the
+    refusal is exercised by withholding one (before B6 this test expected the
+    whole list, and it failed on the branch from B6 on)."""
+    pytest.importorskip("pkmn_gen1")
+    assert G.EngineBackend.missing() == []
+    (name, _), *rest = G.EngineBackend._NEEDED
+    monkeypatch.setattr(G.EngineBackend, "_NEEDED", ((name, lambda: False), *rest))
     be = G.EngineBackend()
     with pytest.raises(NotImplementedError) as exc:
         be.build(object(), {}, G.NO_CONTROL)
     msg = str(exc.value)
-    assert "BattleSpec" in msg and "from_root" in msg and "mask_for" in msg
+    assert "BattleSpec" in msg and "from_root" not in msg
