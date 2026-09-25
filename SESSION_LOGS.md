@@ -13813,3 +13813,14 @@ line numbers are not — grep the date, then read that region):
   (~02:45Z-04:30Z) precedes the LR smokes. **The base:** r6-runner's instrument ended 02:01:37Z -- turn 2-8 r² trio A 0.353
   vs the same-run R5 W 0.317 (+0.036, z 0.44; the banked 0.287 re-drew at 0.317) -- NOT MOVED on the same-run reading, `b`;
   the literal reading against the banked 0.287 gives `ab`; both runners recommend `b`; the maintainer's line is owed.
+
+- 2026-09-25 02:11Z (agent, R7 runner) — **R7's BASE RULED `b` (maintainer, ~02:10Z, one word after the explanation); B0's first
+  run made NOT verdict-bearing (maintainer: "better to rerun the test later once box is truly empty").** The base: trio
+  B's recipe (the W recipe + C6 + the x4 batch in its fallback form), warm from trio B's three 200M finals, no outcome
+  heads -- trio A's heads did not move on the same-run reading (turn 2-8 r² +0.036 at z 0.44 over the same-run R5 W,
+  whose own re-draw moved +0.030 from the banked 0.287). `derive_r7_fleet.py --base b --stage lr-smokes` wrote the nine
+  2M LR-smoke configs (bodies identical to the dry run reviewed at 01:02Z: donor f1 `runs/showdown_r6_trio_b_s328/
+  ckpt_200000039.pt`, sha `f09063696cda` = PIN-b); committed. B0: the re-run goes right after fp-speedup's "calibration
+  done", with all three sessions idle for its minute (r6-runner: a message wakes a CLI at 10-20% of a core, so "starting"
+  goes ~90 s before the launch and nobody replies); it is THE verdict whichever way it reads (`5a9353c`). Then
+  `scripts/r7_smokes.sh lr b` (~3 h).
