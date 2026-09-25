@@ -268,6 +268,31 @@ def fpn_projection(visits):
     return res
 
 
+def fpn_under_load(x, n_by_branch):
+    """FP@N at load k, projected from the SAME k's own searches: each non-trivial window search
+    would take N / (its visits / its search_ms) instead of search_ms -- the rate it actually got
+    at that k -- while forced moves are unchanged (the binding overrides N for them). The extra
+    time lands on the arm's critical path (FP's search blocks the ping-pong), so per arm:
+    s/turn_N = (window + extra_arm) / turns_arm. Assumes every other component runs as observed."""
+    s = json.loads((ROOT / x["label"] / "summary.json").read_text())
+    vis = [json.loads(v) for v in open(REPO / s["visits"])]
+    extra = defaultdict(float)
+    n_real = n_forced = 0
+    for v in vis:
+        if not (x["t0"] <= v["t"] <= x["t1"]):
+            continue
+        if is_trivial(v) or v.get("search_ms", 0) <= 0:
+            n_forced += 1
+            continue
+        n_real += 1
+        key = f"n{int(v['n'])}_x_{int(v['ms'])}ms"
+        extra[v["arm"]] += (n_by_branch[key] * v["search_ms"] / v["visits"] - v["search_ms"]) / 1e3
+    arm_s = sum(x["window_s"] + extra[a["arm"]] for a in x["arms"])
+    return {"per_arm_s_per_turn_fpn": arm_s / x["turns_in_window"],
+            "extra_s_per_arm_mean": round(sum(extra.values()) / len(x["arms"]), 2),
+            "window_searches_real": n_real, "window_searches_forced": n_forced}
+
+
 def r5_anchor():
     arms = {}
     for p in sorted(R5_DIR.glob("*.json")):
@@ -285,6 +310,32 @@ def r5_anchor():
             "phase_b_mean_turns": round(st.mean(a["mean_turns"] for a in b), 2),
             "phase_b_s_per_turn": round(sum(a["sec_per_battle"] for a in b)
                                         / sum(a["mean_turns"] for a in b), 4)}
+
+
+def r6_anchor():
+    """The SAME WEEK's production FP phase at k=1 (scripts/r6_reads_queue.sh, 14 arms x 3000,
+    NI 5 throughout): its phase wall from the queue log, and the arms' own seat walls."""
+    d = MAIN / "results" / "r6_reads_offfp"
+    arms = {}
+    for f in sorted(d.glob("*.json")):
+        if f.name.endswith(".runner.json") or not f.stem.isalnum():
+            continue
+        j = json.loads(f.read_text())
+        if j.get("battles_requested") == N_BATTLES:
+            arms[f.stem] = {"sec_per_battle": j["sec_per_battle"], "wall_clock_sec": j["wall_clock_sec"],
+                            "mean_turns": j.get("mean_turns")}
+    from datetime import datetime
+    t = {}
+    for line in open(MAIN / "logs" / "r6_reads" / "queue.log"):
+        for key in ("PHASE FP:", "PHASE FP DONE"):
+            if f"] {key}" in line:
+                t[key] = datetime.strptime(line[1:21], "%Y-%m-%dT%H:%M:%SZ").timestamp()
+    return {"n_arms_3000": len(arms),
+            "seat_wall_h": round(sum(a["wall_clock_sec"] for a in arms.values()) / 3600, 2),
+            "phase_wall_h": (round((t["PHASE FP DONE"] - t["PHASE FP:"]) / 3600, 2)
+                             if len(t) == 2 else None),
+            "mean_s_per_battle": round(st.mean(a["sec_per_battle"] for a in arms.values()), 3),
+            "e3wr_s_per_battle": arms.get("e3wr", {}).get("sec_per_battle"), "arms": arms}
 
 
 def phase_hours(s_per_battle_by_k, k):
@@ -351,12 +402,30 @@ def main():
                 h, waves = phase_hours(spb, x["k"])
                 roi[name][f"k{x['k']}"] = {"hours": round(h, 2) if h else None, "waves": waves}
     fpn = None
+    roi_fpn = {}
     if base:
         s1 = json.loads((ROOT / base["label"] / "summary.json").read_text())
         fpn = fpn_projection([json.loads(v) for v in open(REPO / s1["visits"])])
+        n_by_branch = {b: v["N_median"] for b, v in fpn.items()}
+        for x in ks:
+            x["fpn"] = fpn_under_load(x, n_by_branch)
+            x["fpn"]["per_arm_turn_rate_vs_fp20_k1"] = round(
+                base["per_arm_s_per_turn"] / x["fpn"]["per_arm_s_per_turn_fpn"], 3)
+        r6a = r6_anchor()
+        roi_fpn = {"N_by_branch": n_by_branch}
+        for name, s1b in (("r5_phase_b", r5["phase_b_mean_s_per_battle"] if r5 else None),
+                          ("r6_same_week", r6a["mean_s_per_battle"])):
+            if s1b is None:
+                continue
+            spb = {x["k"]: s1b / x["fpn"]["per_arm_turn_rate_vs_fp20_k1"] for x in ks}
+            roi_fpn[name] = {"s_per_battle_fp20_k1_anchor": s1b}
+            for x in ks:
+                h, waves = phase_hours(spb, x["k"])
+                roi_fpn[name][f"k{x['k']}"] = {"hours": round(h, 2) if h else None, "waves": waves}
     out = {"labels_read": labels, "failed": failed,
            "no_window": [x for x in reads if x["status"] == "NO_WINDOW"],
-           "ks": ks, "r5_anchor": r5, "roi_14x3000": roi, "fpn_projection_k1": fpn}
+           "ks": ks, "r5_anchor": r5, "roi_14x3000": roi, "fpn_projection_k1": fpn,
+           "roi_14x3000_fpn": roi_fpn, "r6_anchor": r6_anchor()}
     Path(args.json_out).write_text(json.dumps(out, indent=2) + "\n")
 
     # ---- the readout tables, printed (pasted into the readout verbatim)
@@ -389,6 +458,16 @@ def main():
         print(f"k{x['k']} visits (whole run): " + json.dumps(x["visits"]))
     print()
     print("FP@N projection (k=1): " + json.dumps(fpn))
+    for x in ks:
+        if "fpn" in x:
+            print(f"k{x['k']} FP@N under load: " + json.dumps(x["fpn"]))
+    for name, r in roi_fpn.items():
+        if name == "N_by_branch":
+            continue
+        print(f"ROI FP@N [{name}, s/battle at k=1 {r['s_per_battle_fp20_k1_anchor']}]: " + ", ".join(
+            f"k={kk[1:]} {v['hours']} h" for kk, v in r.items() if kk.startswith("k")))
+    r6 = {k: v for k, v in out["r6_anchor"].items() if k != "arms"}
+    print("R6 same-week production FP phase (k=1): " + json.dumps(r6))
     if failed or out["no_window"]:
         print("\nFAILED:", failed, "\nNO_WINDOW:", [(x["label"], x["reason"]) for x in out["no_window"]])
     print(f"\nwrote {args.json_out}")
