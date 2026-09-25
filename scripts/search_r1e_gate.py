@@ -1764,14 +1764,25 @@ def _leg_b_step(backend: Any, built: dict, root: Root, det: dict):
     return backend.step(built, action, opp_str), root, target
 
 
-def provenance(harvest_dir: pathlib.Path, args) -> dict:
-    def sh(cmd):
-        try:
-            return subprocess.run(cmd, capture_output=True, text=True,
-                                  timeout=20, cwd=str(pathlib.Path(__file__).resolve().parents[1])
-                                  ).stdout.strip()
-        except Exception:
-            return None
+def _sh(cmd):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True,
+                              timeout=20, cwd=str(pathlib.Path(__file__).resolve().parents[1])
+                              ).stdout.strip()
+    except Exception:
+        return None
+
+
+def launch_git() -> dict:
+    """The tree this process runs, read at LAUNCH -- before the backend is built
+    or a root is read. provenance() used to read it after legs A/B/C and the
+    controls, so a gate that spanned a commit named the later tree
+    (docs/CLEANUP.md L10)."""
+    return {"git_sha": _sh(["git", "rev-parse", "HEAD"]),
+            "git_dirty": bool(_sh(["git", "status", "--porcelain"]))}
+
+
+def provenance(harvest_dir: pathlib.Path, args, launch: dict) -> dict:
 
     shas = {}
     for lane in LANES:
@@ -1786,8 +1797,9 @@ def provenance(harvest_dir: pathlib.Path, args) -> dict:
         "gate": "R1-E",
         "design": "docs/search_relook/ENGINE_SEARCH_DESIGN.md §3.2/§3.3",
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "git_sha": sh(["git", "rev-parse", "HEAD"]),
-        "git_dirty": bool(sh(["git", "status", "--porcelain"])),
+        "git_sha": launch["git_sha"],
+        "git_dirty": launch["git_dirty"],
+        "written_git_sha": _sh(["git", "rev-parse", "HEAD"]),
         "python": platform.python_version(),
         "platform": platform.platform(),
         "encoder_fingerprint": dict(ENCODER_FINGERPRINT),
@@ -1825,6 +1837,7 @@ def main(argv=None) -> int:
 
     lanes = tuple(x for x in args.lanes.split(",") if x)
     limit = None if args.all else args.limit
+    launch = launch_git()
     t0 = time.time()
     backend = BACKENDS[args.backend]()
 
@@ -1870,7 +1883,7 @@ def main(argv=None) -> int:
     blind = [c["id"] for c in controls if c["status"] == "BLIND"]
     unexposed = [c["id"] for c in controls if c["status"] == "NOT_EXPOSED"]
     report = {
-        "provenance": provenance(args.harvest, args),
+        "provenance": provenance(args.harvest, args, launch),
         "backend": {
             "name": backend.name,
             "licenses": list(backend.licenses),

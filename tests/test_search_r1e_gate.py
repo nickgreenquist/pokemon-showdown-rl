@@ -857,3 +857,26 @@ def test_the_engine_backend_raises_with_the_symbols_it_waits_on(monkeypatch):
         be.build(object(), {}, G.NO_CONTROL)
     msg = str(exc.value)
     assert "BattleSpec" in msg and "from_root" not in msg
+
+
+def test_the_gate_reads_its_tree_at_launch_not_at_write_time(monkeypatch, tmp_path):
+    """docs/CLEANUP.md L10: provenance() read `git_sha` after legs A/B/C and the controls, so a gate that spanned a
+    commit named the later tree. main() now reads it before the backend is built, and provenance() writes that launch
+    value, labelling the write-time one `written_git_sha`."""
+    order = []
+    monkeypatch.setattr(G, "launch_git", lambda: order.append("launch") or {"git_sha": "L", "git_dirty": False})
+
+    class _Stop(Exception):
+        pass
+
+    def backend():
+        order.append("backend")
+        raise _Stop
+
+    monkeypatch.setitem(G.BACKENDS, "poke_engine", backend)
+    with pytest.raises(_Stop):
+        G.main(["--harvest", str(tmp_path), "--out", str(tmp_path / "out")])
+    assert order == ["launch", "backend"]
+    p = G.provenance(tmp_path, SimpleNamespace(seed_base=0, n_det=1), {"git_sha": "L", "git_dirty": False})
+    assert p["git_sha"] == "L" and p["git_dirty"] is False
+    assert "written_git_sha" in p
