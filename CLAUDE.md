@@ -221,10 +221,16 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   different program (2026-09-23; `docs/landmines.md`). **A worktree pins nothing
   without `PYTHONPATH=<worktree>`:** the envs install the repo editable from
   main, so `import rl` resolves to main from any directory (2026-09-25).
-- **`taskpolicy -b` / `nice` SENDS A PROCESS TO THE FOUR EFFICIENCY CORES at ~6.8× per
-  decision** (`docs/landmines.md`). Never nice a training lane; the two-core collector
-  (`collector.process`) and the fleet launcher REFUSE a background shell. Niced is for
-  instruments beside a fleet, and their timings are then not timings.
+- **`taskpolicy -b` (background QoS, PRI 4) SENDS A PROCESS TO THE FOUR EFFICIENCY CORES
+  at ~6.8× per decision; plain `nice` (+5, measured) does NOT** (`docs/landmines.md`, both
+  entries). zsh's `BG_NICE` puts every agent `cmd &` at nice +5 / PRI 31, which keeps the
+  P-cores: the NI-5 R6 lanes ran 1,100–1,500 steps/s, nowhere near the E-cores' 6.8×
+  penalty, while the PRI-4 G1b jobs lit exactly cpu0-3 (2026-09-24). Never put a training
+  lane under background QoS: the two-core collector (`collector.process`) and
+  `monster_fleet.sh` refuse background QoS, and `r7_fleet_launch.sh`, `r7_smokes.sh` and
+  `fp_arms_parallel.py` refuse any niced shell. Timed instruments run at nice 0 — never
+  nice or taskpolicy anything you time, because under contention priority decides who
+  waits. Launch through `bash -c 'nohup … &'` and check `ps -o nice=,pri=`.
 - **`_look_further` WAS OPTIMISTIC and its docstring said that was fine** — a
   max over our replies with the opponent pinned inflates the rows with the most
   escape hatches, which are the rows search overrides into. Fixed 2026-09-18
