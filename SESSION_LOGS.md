@@ -13868,3 +13868,24 @@ line numbers are not — grep the date, then read that region):
   the LR read: the lr-1e-4 searched smoke carries ONE resume (a false stall; its history is split, and the steps
   between `checkpoint.pt` at 491,5xx and the kill are re-collected). CLAUDE.md's stall landmine and
   `docs/landmines.md` now say to sum the whole tree.
+
+- 2026-09-25 06:35Z (agent, R7 runner) — **THE LR RULE READ: lr 2.5e-5, no ruling needed; the fleet stage derived (3 + 2).** The
+  nine 2M smokes ran 03:54Z-06:04Z at base `b`, one lr at a time as searched / control / beta-0 triples (~45 min each,
+  nice 0), then seven vs-SH evals at n 3000 (~1:50 each) and `derive_r7_fleet.py --read-lr`
+  (`results/r7_lr/read_lr.json`, `r7_read_lr/2`). Donor f1 (trio B s328's final) 0.8420 vs SH; donor entropy reference
+  0.4031. Per lr (the control gated -- per-update approx_kl <= 0.06, last-bin entropy within +-20% of the donor's, vs SH
+  within 0.03 of the donor's; the searched arm read):
+  1e-4 -- control kl max 0.0824, entropy 0.6744, vs SH 0.8057 -> FAILS all three; searched unsearched-kl 0.0443, entropy
+  0.7471, vs SH 0.8253. 5e-5 -- control kl 0.0343, entropy 0.5325 (+32%), vs SH 0.8417 -> FAILS entropy; searched 0.0248 /
+  0.7005 / 0.8037. **2.5e-5 -- control kl 0.0149, entropy 0.4669 (+16%), vs SH 0.8343 -> PASS**; searched 0.0121 / 0.6031
+  / 0.8323 (-0.010 vs the donor: no searched-only shock past 0.03). NOT-INERT at every lr (kl_update searched vs beta-0:
+  0.3618 vs 0.4221, 0.3849 vs 0.4111, 0.3861 vs 0.3928; margins 0.0085 / 0.0059 / 0.0034). Reading: the warm start RE-HEATS
+  the policy -- the control's entropy rises with the re-armed lr on every candidate (the donor finished its anneal at ~0),
+  and only the smallest lr keeps it inside the band; the searched arm runs hotter than its control at every lr (it plays
+  and targets pi'). vs SH at n 3000 moves ~0.02 per rung, so the sign flip of searched-minus-control across lrs (+0.020,
+  -0.038, -0.002) reads as that noise. DISCLOSED: the lr-1e-4 searched smoke carries one resume (the false stall; its
+  merged history has 2 segments); the chosen lr's triple ran with none. **The fleet stage** (`--base b --stage fleet --lr
+  2.5e-05 --b0 FAIL`): `configs/r7_fleet_{searched_f1,f2,f3,control_f1,f2}.yaml` (seeds 376/384/392, 400/408; donors
+  b328/b336/b344 paired by final; 100M on a 100M anneal from 2.5e-5), the two 800k shakedown smokes (s424 / s432, eval +
+  checkpoint every 100k), `configs/r7_fleet_lanes.txt` (five lanes, no six-wide flag). NEXT: the shakedown -- no commit
+  from its launch until its resume, which must carry the launch's sha (S_RESUME's `same_program_as_launch`).

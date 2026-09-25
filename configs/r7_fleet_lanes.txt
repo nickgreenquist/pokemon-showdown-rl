@@ -1,0 +1,6 @@
+# R7 fleet lane manifest (scripts/derive_r7_fleet.py): <config> <seed>, one lane per line, launch order.
+configs/r7_fleet_searched_f1.yaml 376
+configs/r7_fleet_searched_f2.yaml 384
+configs/r7_fleet_searched_f3.yaml 392
+configs/r7_fleet_control_f1.yaml 400
+configs/r7_fleet_control_f2.yaml 408
