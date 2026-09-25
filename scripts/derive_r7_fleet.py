@@ -75,7 +75,8 @@ SMOKE_CADENCE = 100_000            # the shakedown's eval_every AND checkpoint_e
 KL_MAX = 0.06                      # per-update approx_kl bar (the control's whole batch; the searched arm's unsearched rows)
 ENT_TOL, ENT_TAIL, ENT_REF_TAIL = 0.20, 0.25, 0.01
 SH_N = 3000                        # vs SH per checkpoint, the locked protocol's per-seed n
-READ_N = 6000                      # the PRIMARY's FP@20 battles per lane -- RULED 2026-09-25 (maintainer, box 7 item 2: n 6000 over 3000)
+READ_N = 6000                      # the PRIMARY's FP battles per lane -- RULED 2026-09-25 (maintainer, box 7 item 2: n 6000 over 3000)
+FP_INSTRUMENT = "FP@N 25k/12k"     # the primary's instrument -- ADOPTED over FP@20 2026-09-25 (maintainer + unanimous vote), before any read
 SH_SHOCK = 0.03                    # CLAUDE.md: one vs-SH rung at n 3000 is worth +-0.02
 MECH_WINDOW = 5_000_000            # the in-loop mechanism counters are read as means over the last 5M steps
 OBJECT_TOL = 0.013                 # trio A's object-rule tolerance (~1 se_diff at 3000 vs 3000)
@@ -210,7 +211,8 @@ def power_lines(power: dict, width: str) -> list[str]:
         f"#   POWER ({power['version']}, results/r7_fleet/power.json sha {power['_sha'][:12]}, scripts/r7_fleet_power.py): five",
         "#   banked trio READS of per-lane FP@20 finals at n 3000 (four distinct trios; the 100M finals were read in two",
         f"#   sessions, so the {power['df']} df double-count their lane term): per-lane sd {power['pooled_sd']:.4f}, "
-        f"{power['binomial_sd']:.4f} of it binomial;",
+        f"{power['binomial_sd']:.4f} of it binomial (FP@20 spreads: under {FP_INSTRUMENT}, the amended instrument, the power "
+        "below is APPROXIMATE);",
         f"#   median se_diff {rows[(READ_N, 0.030)]['se_diff_median']:.4f} at {width} and n {READ_N}, so the +0.025 FLOOR is the "
         f"operative bar. P(X-POS) at a true",
         f"#   +0.025 / +0.030 / +0.035 / +0.040: {p6} at n 6000, the RULED n ({p3} at n 3000); at a true 0: "
@@ -363,12 +365,19 @@ def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], b
         f"#       becomes the surviving pairs ({lane_loss}); fewer than two pairs -> PRIMARY VOID (the finals are",
         "#       recorded individually and never pooled).",
         "#",
-        f"# PRIMARY READ -- off FP@20 (search_time_ms 20 per arm), GREEDY, n = {READ_N} per lane (RULED over 3000, 2026-09-25),"
-        " ONE session on a QUIET box (the FP",
-        f"#   gate: nothing else at >= 50% of a core; G2 never beside it), SEQUENTIAL arms in the PINNED order {order}",
-        "#   (control first in each pair, the G2 convention), then the OBJECT RULE's reads, then FP@500, then the anchors; a",
-        "#   killed arm re-runs LAST on its rerun username pair; fresh prefix-free usernames -- the configs/eval/r6_reads_offfp.yaml",
-        "#   protocol; the whole session is ~28 h (~20 h at n 3000, +~8 h for n 6000). FP@20 is the primary as in [RWL-3]"
+        f"# PRIMARY READ -- off {FP_INSTRUMENT} (Foul Play at a FIXED search budget: search_iterations 25000,"
+        " search_iterations_early 12000",
+        f"#   per arm), GREEDY, n = {READ_N} per lane (RULED over 3000, 2026-09-25), ONE session, the arms launched in the PINNED",
+        f"#   order {order} (control first in each pair, the G2 convention) through scripts/fp_arms_parallel.py in parallel",
+        "#   slots -- a fixed budget makes load cost TIME, never strength, so no quiet box is needed and the read may run beside",
+        "#   other work -- then the OBJECT RULE's reads, then FP@500 (a WALL-CLOCK arm: serial, on a quiet box), then the",
+        "#   anchors; fresh prefix-free usernames; a killed arm re-runs LAST on a fresh pair. AN ARM IS VALID ONLY IF its runner",
+        "#   JSON carries fpn_counters_ok TRUE: realized iterations == N on 100% of non-forced searches, and timer / forfeit",
+        "#   losses <= the arm's crash forfeits (0 on a clean arm) -- else it is INVALID and re-run, never pooled. Never difference",
+        "#   across instruments: every comparator of an FP@N read is re-drawn on FP@N in the same session, and no FP@20",
+        "#   threshold applies to an FP@N delta without saying so. AMENDED 2026-09-25, BEFORE ANY READ BATTLE: the instrument was",
+        "#   FP@20 on a quiet box, SEQUENTIAL (~28 h at n 6000); FP@N was adopted by the maintainer and a unanimous vote of the",
+        "#   three agent sessions after fp-speedup's calibration (results/fp_iter_calib/). FP is the primary as in [RWL-3]"
         " (configs/showdown_monster200m_l2lam.yaml;",
         "#   vs SH is saturated). delta = the equal-weight mean of the SEARCHED finals minus the equal-weight mean of the CONTROL",
         "#   finals (the across-lane aggregator). se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered",
@@ -376,8 +385,12 @@ def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], b
         "#   CREDIT LINE, verbatim (CLAUDE.md): \"a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff",
         "#   is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed",
         "#   finals at read time.\" The operative test is STRICT: a delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met",
-        "#   (the house boundary, R6's and G2's). Both FP@20 disclosures travel with every number, forever: the equivalence test",
-        "#   is weakly powered, and the point estimate flatters us; FP@20 is an instrument, not a rung.",
+        "#   (the house boundary, R6's and G2's). FP@N's CALIBRATION against FP@20 travels with every FP@N number: two seats",
+        "#   (GW104R and E6RF, 3000 vs 3000 each), offset -0.0076, CI95 [-0.026, +0.011]; gap change (DiD) -0.0042, CI95",
+        "#   [-0.042, +0.033], MDE 0.054 -- a PASS as NON-REJECTION, not equivalence at the +0.025 line. The primary is a",
+        "#   same-instrument difference, so a constant offset credits nothing; a mild scale compression would cost power near",
+        "#   the floor. The two FP disclosures still travel with the budget named: the equivalence test is weakly powered, and",
+        f"#   the point estimate flatters us; {FP_INSTRUMENT} is an instrument, not a rung.",
         *power_lines(power, width),
         f"#   DOSE IS MATCHED BY CONSTRUCTION and CHECKED: the same donors, {h}M env steps, horizon, anneal, starting lr, k,",
         "#   two-core lane and T-op rule; a searched/control pair's configs differ EXACTLY in {seed, run_name, seat_tag,",
@@ -426,7 +439,7 @@ def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], b
         "#   ~+0.005, so a replacement may sit ~0.018 below the incumbent in truth. Each arm's committee minus the donors' ENS3 is",
         "#   reported (DESCRIPTIVE, N-ANNEAL). The ratified G2 stays on the R5 W committee; a LADDER run needs its own earning",
         "#   read (the 09-22 principle, a ladder run is EARNED offline; R6's bar, ratified 09-24: >= +0.05 off FP@20 over the",
-        "#   re-drawn previous object).",
+        "#   re-drawn previous object -- an FP@20 bar: applied to an FP@N delta it is named as such, never silently).",
         "#",
         "# ACTION ON EACH BRANCH -- exhaustive, strict boundaries, no unnamed cells, the word \"kill\" absent (rule 6):",
         "#   X-POS  (delta > +0.025 AND delta > 2*se_diff): EXPERT ITERATION IS CREDITED -- in the WARM-START regime (R6 finals +",
@@ -455,9 +468,11 @@ def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], b
         "#   loses: the off-policy data from a true-world search, or the clip's side channel -- the clip_frac split and",
         "#   loss/grad_norm per arm say which). The mechanism reads are reported beside every cell; outside X-FLAT, X-COST and",
         "#   X-NEG they change no action. LANE LOSS is the named cell under the R0 gates.",
-        "# ANCHOR BATTERY before any README row (CLAUDE.md): vs SH locked, the BC-clone h2h (500), FP@20 h2h; a missing leg reads",
+        "# ANCHOR BATTERY before any README row (CLAUDE.md): vs SH locked, the BC-clone h2h (500), the FP h2h at CLAUDE.md's anchor",
+        "#   budget (named in every quote); a missing leg reads",
         "#   PENDING and the README row WAITS.",
-        "# LAUNCH (over 5 h -> the maintainer launches, CLAUDE.md rule 4): from a CLEAN tree at the merge commit, normal QoS,",
+        "# LAUNCH (over 5 h -> the maintainer launches, CLAUDE.md rule 4; LAUNCHED 2026-09-25 10:52-11:02Z agent-side by the",
+        "#   maintainer's permission, from 243453d): from a CLEAN tree at the merge commit, normal QoS,",
         "#   `bash scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt`: one launcher call per lane (each lane has its own",
         "#   donor) with the watchdog deferred, then ONE watchdog over every lane (one ensure_node, one RESUMES= line) and one",
         f"#   caffeinate; the width guard counts the FLEET ({n_lanes} two-core lanes"

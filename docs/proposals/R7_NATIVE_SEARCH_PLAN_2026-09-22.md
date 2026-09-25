@@ -466,6 +466,45 @@ on a 14-core laptop, CPU only, pure self-play.
 > --b0 <verdict>` + commit → `scripts/r7_smokes.sh shakedown` → G2's two-battle smoke → the maintainer launches
 > (`scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt`).
 
+> ### AMENDMENT BOX 8 — 2026-09-25, **THE FLEET RUNS: what Friday decided, and the READ INSTRUMENT amended before any read**
+> **The fleet launched 10:52–11:02Z** from `243453d`. Five lanes: searched f1/f2/f3 and control f1/f2, warm from trio B's
+> finals s328/s336/s344 paired by final, +100M at lr 2.5e-5 on a re-armed 100M anneal. It was launched agent-side with
+> the maintainer's permission ("only stop it or alert me if wayyyyyyy slower than expected"), after every session's work
+> was merged and pushed (the maintainer: "no trailing commits on branches anywhere before R7 is fired off"). One
+> watchdog; `logs/r7_fleet/monitor.log`.
+> **What set it, all on disk and all pre-stated:**
+> - **The base: `b`.** The maintainer ruled it. Trio B's ×4 batch was kept by its header's own X-FLAT rule: 0.980× W's
+>   update per datum. Trio A's heads did NOT MOVE on the same-run reading: turn 2–8 r² 0.353 vs the same-run R5 W's
+>   0.317, +0.036 at z 0.44, while the banked 0.287 itself re-drew at 0.317 (`readouts/R6_READS_READOUT.md`).
+> - **B0: FAIL**, on the quiet-box re-run the maintainer ruled verdict-bearing before it ran. Six-wide p99 7.460 ms vs
+>   3.6 ms; the mean 1.76–2.15 ms sits at the plan's 1.8 ms; the tail is the critic forward. So the fleet is **3 + 2**
+>   by R-F2 (`readouts/R7_B0_BENCH.md`).
+> - **The LR rule: 2.5e-5** (`results/r7_lr/read_lr.json`). 1e-4 failed the control's KL, entropy and vs-SH gates; 5e-5
+>   failed its entropy gate. All three were not-inert. The warm start RE-HEATS the policy: the control's entropy rises
+>   with the re-armed lr.
+> - **The shakedown PASSED on its re-run,** after two watchdog defects the smokes found:
+>   - The stall check read the parent process only, and killed a healthy two-process lane (`acb6d6d`).
+>   - A resume 72 s after a mid-eval kill landed on the dead incarnation's open Showdown room (`c5a2dde`, ROOM_REAP
+>     390 s).
+> - **G2's two-battle smoke PASSED as a smoke.** Watch item: `lop/leaves_mean` 360.7 vs G2's [400, 700] band.
+> **THE READ INSTRUMENT, AMENDED BEFORE ANY READ BATTLE.** The primary moves from FP@20 on a quiet box (sequential,
+> ~28 h at n 6000) to **FP@N 25k/12k**: fixed search iterations 25,000, 12,000 early, through
+> `scripts/fp_arms_parallel.py` in parallel slots. The maintainer and a unanimous vote of the three sessions adopted it
+> after fp-speedup's two-seat calibration (`results/fp_iter_calib/`): offset −0.0076, CI95 [−0.026, +0.011]; gap change
+> −0.0042, CI95 [−0.042, +0.033], MDE 0.054. That is a PASS as non-rejection, not equivalence at the +0.025 line.
+> - **Unchanged:** n 6000 per lane, the credit line verbatim, the branches, the mechanism reads and the object rule.
+> - **Added:**
+>   - Each arm is VALID only with `fpn_counters_ok` true: realized iterations == N on 100% of non-forced searches, and
+>     timer / forfeit losses ≤ the arm's crash forfeits.
+>   - Never difference across instruments. No FP@20 threshold (the ladder bar included) applies to an FP@N delta
+>     without saying so.
+>   - The calibration travels with every FP@N number, and the power statement is disclosed as approximate (it was
+>     derived from FP@20 spreads).
+> - **FP@500 stays** a wall-clock, descriptive arm on a quiet box.
+> - **G2 keeps its RATIFIED FP@20.** Moving it is a separate ruling.
+> The derive header carries all of this (`scripts/derive_r7_fleet.py`, `FP_INSTRUMENT`); the re-derived configs changed
+> only in comments. Every lane body and the manifest are byte-identical to what runs.
+
 ## 0. The bet in one paragraph
 
 Every lever this project has pulled feeds the network **one outcome bit per ~30
