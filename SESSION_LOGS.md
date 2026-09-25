@@ -13980,3 +13980,21 @@ line numbers are not — grep the date, then read that region):
   - **The calibration readout** gains both counter findings as disclosures.
   - **Left for others.** R7's read pre-reg amendment (r7-runner). CLAUDE.md's nice/taskpolicy wording (r6-runner is
     raising it with the maintainer).
+
+- 2026-09-25 11:29Z (agent, R7 runner) — **R7's READ INSTRUMENT AMENDED BEFORE ANY READ BATTLE: FP@N 25k/12k replaces FP@20 as the
+  primary** (`d75113c`: plan AMENDMENT BOX 8; `scripts/derive_r7_fleet.py` `FP_INSTRUMENT`; configs re-derived). The
+  maintainer asked the three sessions to vote ("I say yes"): unanimous YES; fp-speedup integrated FP@N on main (`88e890e`:
+  arms declare `search_iterations: 25000, search_iterations_early: 12000`; the runner verifies the budget from Foul Play's
+  own log; every runner JSON carries `fpn_counters_ok` / `fpn_counters_why`). The R7 runner's three conditions, written
+  into the header: (1) the change is a pre-reg AMENDMENT (the fleet runs, no read has happened), n 6000 per lane and the
+  credit line verbatim, "FP@N 25k/12k" named in every quote, the arms through `scripts/fp_arms_parallel.py` (no quiet box:
+  a fixed budget makes load cost time, never strength); (2) the calibration travels with every FP@N number (two seats,
+  offset CI95 [-0.026, +0.011], gap change CI95 [-0.042, +0.033], MDE 0.054: non-rejection, not equivalence); (3) the
+  power statement is disclosed as APPROXIMATE (derived from FP@20 spreads). r6-runner's conditions ride too: never
+  difference across instruments (no FP@20 threshold, the ladder bar included, applies to an FP@N delta without saying so)
+  and an arm is VALID only with `fpn_counters_ok` true. FP@500 stays a wall-clock descriptive arm; G2 keeps its ratified
+  FP@20 (moving it is a separate ruling). Re-derived: every lane and smoke config changed ONLY in comment lines and the
+  manifest is byte-identical, so the running lanes' own config copies are untouched; `tests/test_derive_r7_fleet.py`
+  16 passed. DISCLOSED: `d75113c` was meant to carry this entry and the STATUS line too -- the one-step script's STATUS
+  anchor had moved (fp-speedup's `88e890e` rewrote that line), its assertion stopped the script after the plan was
+  written, and the unchained `git add` / commit on the next line committed the rest; this commit completes it.
