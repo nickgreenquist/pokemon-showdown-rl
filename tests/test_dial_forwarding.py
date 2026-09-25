@@ -135,3 +135,14 @@ def test_tree_flags_a_gate_that_could_never_fire():
     )
     # and the tree really did run -- the leaves were paid for
     assert s_off["search/leaves"] > 0
+
+
+def test_a_native_seat_arm_is_refused_here_so_its_lop_can_never_be_dropped():
+    """`lop` is tolerated as a SIBLING key (ch3_fp_h2h's native_seat forwards it
+    through the signature-derived `lop_from`). That is safe only because this
+    harness refuses the kind outright: a native_seat arm can never run here as
+    a control while its readout claims the L-op."""
+    m = _ch3_eval()
+    with pytest.raises(ValueError, match="unknown arm kind 'native_seat'"):
+        m._jobs({"arms": {"G": {"kind": "native_seat", "seat": "w", "ensemble_members": ["w"],
+                                "battles": 2, "lop": {"worlds": 8}}}})

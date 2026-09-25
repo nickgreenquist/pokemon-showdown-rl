@@ -93,6 +93,7 @@ _SEARCH_DIALS = tuple(
 # else is a typo or a dial nobody forwards.
 _FOREIGN_KEYS = {
     "fp_username", "search_time_ms", "seat", "seat_username",  # ch3_fp_h2h
+    "lop",               # ch3_fp_h2h's native_seat (lop_from, signature-derived); a kind this harness refuses
     "seat1", "seat2",                                          # r2_falsifier
     "comparator",                                              # anchor_grade
     "display_name", "lane",                                    # ladder.py
