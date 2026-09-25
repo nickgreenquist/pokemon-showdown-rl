@@ -33,12 +33,40 @@ results_dir: results/fp_iter_calib
 #   relaunches and crash forfeits per arm (n_eff rule, verbatim from the R4 pre-reg).
 # Pooling across the 8 slices is a plain sum of wins and n_eff. Every slice is the same
 # object vs the same opponent, and slices are exchangeable.
+#
+# SECOND SEAT (added 2026-09-25 ~04:10Z, BEFORE it runs). The maintainer asked the three sessions
+# for a consensus on tightening the bound ("80 extra min is trivial"). CONSENSUS (r6-runner's
+# refinement, r7-runner and this session agreeing): spend the second 3000 vs 3000 on a STRONGER
+# seat, not a second draw of GW104R. A constant FP@N-vs-FP@20 offset cancels in same-session
+# deltas, but a SCALE change does not, and every read and bar lives on deltas.
+#   CE20       the E6RF object of configs/eval/r6_reads_offfp.yaml (ENS6 of the six R6 finals, c6
+#              ON, loop breaker ON; FP@20 0.6097 there) vs FP@20, k=1, quiet box, 3000. Control first.
+#   CEN1..8    the same seat vs FP@N 25k/12k, 8 x 375 in parallel.
+# THE READ, stated before any draw-2 battle. delta_s = WR(vs FP@N) - WR(vs FP@20) for each seat s.
+#   OFFSET  = the mean of delta_GW and delta_E6; se = half the root-sum-square of their ses (~0.010).
+#   SCALE   DiD = delta_E6 - delta_GW = (E6_N - GW_N) - (E6_20 - GW_20), i.e. how much FP@N changes
+#           the gap between a weak and a strong seat (~+0.065 on FP@20); se ~0.018.
+#   PASS both (|OFFSET| < 2 se AND |DiD| < 2 se) -> FP@N at 25k/12k is a candidate replacement;
+#   the MAINTAINER rules. A failing DiD means the offset is seat-dependent and is itself the
+#   finding: report it, do not average it away. Each seat's se is the larger of binomial and
+#   slice-clustered, as in draw 1.
+# A PASS IS NON-REJECTION, NOT EQUIVALENCE (r6-runner / r7-runner, agreed before launch). |DiD| <
+# 2 se passes any true DiD under ~0.036, and 80% power needs a true DiD of ~0.05 (2.8 se): a pass
+# says "no detectable slope distortion, MDE ~0.05", NOT "the gap is preserved to within the +0.025
+# credit line" (that needs se ~0.0125, ~2x the battles per arm). The readout prints the 95% CI of
+# the OFFSET and of the DiD beside every pass/fail, so the adoption ruling reads bounds, not a verdict.
 
 fp:
   search_time_ms: 20
 
 checkpoints:
   w104: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/r6_reads_offfp.yaml
+  a304: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_r6_trio_a_s304/ckpt_200000029.pt, sha256: e3903fa608978f3792fbd409013f7a6eb3563075577602c2f9c1deba61ede411, step: 200000029}   # copied from configs/eval/r6_reads_offfp.yaml (pinned by the R6 queue)
+  a312: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_r6_trio_a_s312/ckpt_200000046.pt, sha256: 12c10e4a0c7e705be5a46e8ac73a7fa01ae11c9a26d48aad2ffcb161df7f75ef, step: 200000046}   # copied from configs/eval/r6_reads_offfp.yaml (pinned by the R6 queue)
+  a320: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_r6_trio_a_s320/ckpt_200000007.pt, sha256: 9315e4fc666fccec53099594e8e1829aacaf83af73d0134128f5fbf5264a62f1, step: 200000007}   # copied from configs/eval/r6_reads_offfp.yaml (pinned by the R6 queue)
+  b328: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_r6_trio_b_s328/ckpt_200000039.pt, sha256: f09063696cda49c68cd6d4945b7efcd2373bb295faf54a555bb0bb3fcb2cead7, step: 200000039}   # copied from configs/eval/r6_reads_offfp.yaml (pinned by the R6 queue)
+  b336: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_r6_trio_b_s336/ckpt_200000017.pt, sha256: e43e932f5809fb10bfc85e99ce98fc3dbe4d29227f53a5fac4a77a12864a416d, step: 200000017}   # copied from configs/eval/r6_reads_offfp.yaml (pinned by the R6 queue)
+  b344: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_r6_trio_b_s344/ckpt_200000009.pt, sha256: cf9ace6d2b2129ad84ae4b8aa9c9499201b895208558c34fe97db4c11d0b4202, step: 200000009}   # copied from configs/eval/r6_reads_offfp.yaml (pinned by the R6 queue)
 
 arms:
   CAL20: {kind: greedy_seat, seat: w104, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: fpc20seat, fp_username: fpc20bot}
@@ -62,3 +90,44 @@ arms:
   CALN6R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn6r2seat, fp_username: fpcn6r2bot}
   CALN7R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn7r2seat, fp_username: fpcn7r2bot}
   CALN8R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn8r2seat, fp_username: fpcn8r2bot}
+  CE20: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: fpce20seat, fp_username: fpce20bot}
+  CEN1: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen1seat, fp_username: fpcen1bot}
+  CEN2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen2seat, fp_username: fpcen2bot}
+  CEN3: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen3seat, fp_username: fpcen3bot}
+  CEN4: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen4seat, fp_username: fpcen4bot}
+  CEN5: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen5seat, fp_username: fpcen5bot}
+  CEN6: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen6seat, fp_username: fpcen6bot}
+  CEN7: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen7seat, fp_username: fpcen7bot}
+  CEN8: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen8seat, fp_username: fpcen8bot}
+  SMKE1: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 3, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcsmke1seat, fp_username: fpcsmke1bot}
+  CE20R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: fpce20r2seat, fp_username: fpce20r2bot}
+  CEN1R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen1r2seat, fp_username: fpcen1r2bot}
+  CEN2R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen2r2seat, fp_username: fpcen2r2bot}
+  CEN3R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen3r2seat, fp_username: fpcen3r2bot}
+  CEN4R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen4r2seat, fp_username: fpcen4r2bot}
+  CEN5R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen5r2seat, fp_username: fpcen5r2bot}
+  CEN6R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen6r2seat, fp_username: fpcen6r2bot}
+  CEN7R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen7r2seat, fp_username: fpcen7r2bot}
+  CEN8R2: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcen8r2seat, fp_username: fpcen8r2bot}
+
+# Per-arm encoder for scripts/fp_arms_parallel.py: the six R6 finals are c6-ON checkpoints.
+arm_encoder:
+  CE20: {c6: true}
+  CEN1: {c6: true}
+  CEN2: {c6: true}
+  CEN3: {c6: true}
+  CEN4: {c6: true}
+  CEN5: {c6: true}
+  CEN6: {c6: true}
+  CEN7: {c6: true}
+  CEN8: {c6: true}
+  SMKE1: {c6: true}
+  CE20R2: {c6: true}
+  CEN1R2: {c6: true}
+  CEN2R2: {c6: true}
+  CEN3R2: {c6: true}
+  CEN4R2: {c6: true}
+  CEN5R2: {c6: true}
+  CEN6R2: {c6: true}
+  CEN7R2: {c6: true}
+  CEN8R2: {c6: true}

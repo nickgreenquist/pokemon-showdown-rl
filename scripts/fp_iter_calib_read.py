@@ -25,6 +25,9 @@ REPO = Path(__file__).resolve().parents[1]
 PRE = REPO / "configs" / "eval" / "fp_iter_calib.yaml"
 OUT = REPO / "results" / "fp_iter_calib"
 CALN = [f"CALN{i}" for i in range(1, 9)]
+# draw -> (FP@20 control, FP@N slices); draw 2 = the tightening run (config header, SECOND DRAW)
+DRAWS = {"1": ("CAL20", CALN), "2": ("CE20", [f"CEN{i}" for i in range(1, 9)])}
+SEAT_OF = {"1": "GW104R (greedy w104)", "2": "E6RF (ENS6 of the R6 finals)"}
 PHASE1_FPN_K8_TURN_RATE = 0.841   # readouts/FP_PARALLEL_ROI_READOUT.md, FP@N per-arm rate at k=8
 VIS = re.compile(r"PROBE_VISITS t=([\d.]+) n=(\d+) ms=(\d+) i=\d+ visits=(\d+) .*?"
                  r"search_ms=(-?[\d.]+) iters_req=(\d+)")
@@ -107,10 +110,32 @@ def visits_summary(vis_lists):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json-out", default=str(OUT / "read.json"))
+    ap.add_argument("--draws", default="1", help="comma list of draws to POOL, e.g. 1,2")
     args = ap.parse_args()
     pre = yaml.safe_load(open(PRE))
-    c = arm_read("CAL20", pre)
-    slices = [arm_read(a, pre) for a in CALN if (OUT / f"{a.lower()}.json").exists()]
+    draws = args.draws.split(",")
+    ctrls = [arm_read(DRAWS[d][0], pre) for d in draws]
+    slices = [arm_read(a, pre) for d in draws for a in DRAWS[d][1]
+              if (OUT / f"{a.lower()}.json").exists()]
+    # the controls pool into one FP@20 side (plain sums), exactly as the slices do
+    c = dict(ctrls[0])
+    if len(ctrls) > 1:
+        for k in ("n_eff", "wins", "ties", "crash_forfeits", "n_finished", "wall_clock_sec", "relaunches"):
+            c[k] = sum(x[k] for x in ctrls)
+        c["mean_turns"] = sum(x["mean_turns"] * x["n_finished"] for x in ctrls) / c["n_finished"]
+        c["g2_fp_tally_agrees"] = all(x["g2_fp_tally_agrees"] for x in ctrls)
+        c["g2_raw_agrees"] = all(x["g2_raw_agrees"] for x in ctrls)
+        c["arm"] = "+".join(x["arm"] for x in ctrls)
+        c["visits"] = {k: [r for x in ctrls for r in x["visits"].get(k, [])]
+                       for k in {k for x in ctrls for k in x["visits"]}}
+    per_draw = {}
+    for d in draws:
+        cd = next(x for x in ctrls if x["arm"] == DRAWS[d][0])
+        sd = [x for x in slices if x["arm"] in DRAWS[d][1]]
+        if sd:
+            pa, pb = cd["wins"] / cd["n_eff"], sum(x["wins"] for x in sd) / sum(x["n_eff"] for x in sd)
+            per_draw[d] = {"wr_fp20": pa, "wr_fpn": pb, "delta": pb - pa,
+                           "n": [cd["n_eff"], sum(x["n_eff"] for x in sd)]}
     n1, w1 = c["n_eff"], c["wins"]
     n2, w2 = sum(s["n_eff"] for s in slices), sum(s["wins"] for s in slices)
     p1, p2 = w1 / n1, w2 / n2
@@ -141,6 +166,7 @@ def main():
         "pooled": {"wr_fp20": p1, "n_fp20": n1, "wr_fpn": p2, "n_fpn": n2, "delta": delta,
                    "se_binomial": se_bin, "se_slice_clustered": se_clu, "se_used": se, "z": z,
                    "ci95": [delta - 1.96 * se, delta + 1.96 * se], "verdict": verdict},
+        "draws": draws, "per_draw": per_draw,
         "g2_all_agree": c["g2_fp_tally_agrees"] and all(s["g2_fp_tally_agrees"] for s in slices),
         "visits_fp20": visits_summary([c["visits"]]),
         "visits_fpn": visits_summary([s["visits"] for s in slices]),
@@ -155,7 +181,44 @@ def main():
                   "mean_turns_fpn": st.mean(s["mean_turns"] for s in slices)},
         "contamination_lines": contam,
     }
+    if len(draws) == 2:
+        def seat_delta(d):
+            ca = next(x for x in ctrls if x["arm"] == DRAWS[d][0])
+            sl = [x for x in slices if x["arm"] in DRAWS[d][1]]
+            pa = ca["wins"] / ca["n_eff"]
+            nb = sum(x["n_eff"] for x in sl)
+            pb = sum(x["wins"] for x in sl) / nb
+            seb = math.sqrt(pa * (1 - pa) / ca["n_eff"] + pb * (1 - pb) / nb)
+            sc = st.stdev([x["wr"] for x in sl]) / math.sqrt(len(sl))
+            sec = math.sqrt(pa * (1 - pa) / ca["n_eff"] + sc ** 2)
+            return {"seat": SEAT_OF[d], "wr_fp20": pa, "wr_fpn": pb, "delta": pb - pa,
+                    "se": max(seb, sec), "se_binomial": seb, "se_slice_clustered": sec}
+        a, b = seat_delta(draws[0]), seat_delta(draws[1])
+        off = (a["delta"] + b["delta"]) / 2
+        se_off = math.sqrt(a["se"] ** 2 + b["se"] ** 2) / 2
+        did = b["delta"] - a["delta"]
+        se_did = math.sqrt(a["se"] ** 2 + b["se"] ** 2)
+        gap20, gapN = b["wr_fp20"] - a["wr_fp20"], b["wr_fpn"] - a["wr_fpn"]
+        passed = abs(off) < 2 * se_off and abs(did) < 2 * se_did
+        out["two_seat"] = {
+            "seats": [a, b],
+            "offset": off, "offset_se": se_off, "offset_ci95": [off - 1.96 * se_off, off + 1.96 * se_off],
+            "did": did, "did_se": se_did, "did_ci95": [did - 1.96 * se_did, did + 1.96 * se_did],
+            "gap_fp20": gap20, "gap_fpn": gapN,
+            "did_mde80": 2.8 * se_did,
+            "verdict": ("PASS both (non-rejection): no detectable offset and no detectable scale change "
+                        "-- FP@N at 25k/12k is a candidate replacement; the MAINTAINER rules on the bounds"
+                        if passed else "FAIL: see which of offset / DiD crossed 2 se"),
+        }
     Path(args.json_out).write_text(json.dumps(out, indent=2, default=str) + "\n")
+    if "two_seat" in out:
+        T = out["two_seat"]
+        for x in T["seats"]:
+            print(f"  {x['seat']}: FP@20 {x['wr_fp20']:.4f}  FP@N {x['wr_fpn']:.4f}  delta {x['delta']:+.4f} (se {x['se']:.4f})")
+        print(f"OFFSET {T['offset']:+.4f} se {T['offset_se']:.4f} CI95 [{T['offset_ci95'][0]:+.4f}, {T['offset_ci95'][1]:+.4f}]")
+        print(f"GAP E6-GW: FP@20 {T['gap_fp20']:+.4f}  FP@N {T['gap_fpn']:+.4f}; DiD {T['did']:+.4f} se {T['did_se']:.4f} "
+              f"CI95 [{T['did_ci95'][0]:+.4f}, {T['did_ci95'][1]:+.4f}]; MDE(80%) {T['did_mde80']:.3f}")
+        print("TWO-SEAT VERDICT:", T["verdict"])
     P = out["pooled"]
     print(f"CAL20 (FP@20, k=1): {w1}/{n1} = {p1:.4f}  (crash forfeits {c['crash_forfeits']}, ties {c['ties']})")
     print(f"CALN  (FP@N, 8x375 at k=8): {w2}/{n2} = {p2:.4f}  (crash forfeits "
@@ -164,6 +227,7 @@ def main():
     print(f"delta {delta:+.4f}; se binomial {se_bin:.4f}, slice-clustered {se_clu}; se used {se:.4f}; "
           f"z {z:+.2f}; 95% CI [{P['ci95'][0]:+.4f}, {P['ci95'][1]:+.4f}]")
     print("VERDICT:", verdict)
+    print("per draw:", json.dumps(per_draw))
     print("G2 (FP's own tally == seat's less crash forfeits) on every arm:", out["g2_all_agree"],
           "| raw agreement on", sum(1 for a in [c] + slices if a["g2_raw_agrees"]), "of", 1 + len(slices))
     print("visits FP@20:", json.dumps(out["visits_fp20"]))

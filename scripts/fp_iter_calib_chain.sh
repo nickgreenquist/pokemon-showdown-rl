@@ -14,24 +14,30 @@ REPO=/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl-fpprobe
 FPDIR=/Users/nickgreenquist/Documents/Projects/foul-play-fpprobe
 PRE=configs/eval/fp_iter_calib.yaml
 OUT=$REPO/results/fp_iter_calib
+CTRL="${CTRL:-CAL20}"                                                  # draw 2: CTRL=CAL20B
+WAVE="${WAVE:-CALN1,CALN2,CALN3,CALN4,CALN5,CALN6,CALN7,CALN8}"        # draw 2: WAVE=CALNB1,..,CALNB8
 cd "$REPO" || exit 1
 mkdir -p "$OUT"
 st() { echo "[$(date -u +%FT%TZ)] $*" >> "$OUT/STATUS.log"; echo "$*" > "$OUT/STATUS"; }
-st "RUNNING_CAL20 (FP@20 control, k=1, 3000 battles; chain pid $$)"
-/opt/anaconda3/bin/python scripts/fp_arms_parallel.py --prereg "$PRE" --arms CAL20 --slots 1 \
+st "RUNNING_CTRL $CTRL (FP@20 control, k=1, 3000 battles; chain pid $$)"
+/opt/anaconda3/bin/python scripts/fp_arms_parallel.py --prereg "$PRE" --arms "$CTRL" --slots 1 \
   --fpdir "$FPDIR" --gate-hold-min 30 >> "$OUT/chain.nohup" 2>&1
-if [ ! -f "$OUT/cal20.json" ]; then
-  st "FAILED: CAL20 produced no seat JSON -- the FP@N wave NOT run; box released (see parallel.log)"
+CTRL_JSON="$OUT/$(echo "$CTRL" | tr 'A-Z' 'a-z').json"
+if [ ! -f "$CTRL_JSON" ]; then
+  st "FAILED: $CTRL produced no seat JSON -- the FP@N wave NOT run; box released (see parallel.log)"
   exit 1
 fi
-st "RUNNING_CALN (FP@N wave, 8 slots x 375 battles)"
+st "RUNNING_WAVE $WAVE (FP@N, 8 slots x 375 battles)"
 /opt/anaconda3/bin/python scripts/fp_arms_parallel.py --prereg "$PRE" \
-  --arms CALN1,CALN2,CALN3,CALN4,CALN5,CALN6,CALN7,CALN8 --slots 8 --stagger 15 \
+  --arms "$WAVE" --slots 8 --stagger 15 \
   --fpdir "$FPDIR" >> "$OUT/chain.nohup" 2>&1
 rc=$?
-n=$(ls "$OUT"/caln[1-8].json 2>/dev/null | wc -l | tr -d ' ')
+n=0
+for a in $(echo "$WAVE" | tr ',' ' '); do
+  [ -f "$OUT/$(echo "$a" | tr 'A-Z' 'a-z').json" ] && n=$((n + 1))
+done
 if [ "$rc" -eq 0 ] && [ "$n" -eq 8 ]; then
-  st "DONE: CAL20 + 8/8 CALN slices -- box released"
+  st "DONE: $CTRL + 8/8 wave slices -- box released"
 else
-  st "DONE_PARTIAL: CAL20 + $n/8 CALN slices (scheduler rc $rc) -- box released; rerun missing slices on their R2 pairs"
+  st "DONE_PARTIAL: $CTRL + $n/8 wave slices (scheduler rc $rc) -- box released; rerun missing slices on their R2 pairs"
 fi
