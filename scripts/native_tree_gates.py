@@ -28,7 +28,8 @@ starts no server; G0's rows (`results/r7_g0/`) are READ, never written.
               it (proposal §3). Caveat that travels with every number: the oracle is
               the committee-vs-committee continuation, and the tree's leaves are the
               critic the oracle's rollouts are not.
-              ARMS: br (br_prior, root grid, depth cap 8), legacy (tree.py's decoupled
+              ARMS: br (br_prior, root grid, depth cap 8), br_sh (the same with Gumbel's
+              sequential halving at the root: rows compared at EQUAL root visits), legacy (tree.py's decoupled
               rule, foe minimising, no grid, cols_k 5 as tree.py's opp_k), rm (sm_rm),
               d1 (br_prior at depth cap 1 with chance_k 8: the one-ply twin at ~equal
               work), br_true (br_prior on the TRUE world only: the T-op's setting, a
@@ -181,6 +182,8 @@ ORACLE_VERSION = "native_tree_oracle/1"
 BUDGET = 1800                         # §35's XTG9: 900 iterations x 2 worlds, TOTAL simulations
 ARMS = {
     "br": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br"),
+    "br_sh": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="gumbel_mctx",
+                  root_select="sequential_halving"),
     "legacy": dict(sims=BUDGET, mode="legacy", root_grid=False, depth_cap=8, cols_k=5, chance_k=2, opp_rule="puct",
                    root_rule="legacy_gumbel", beta=4.0),
     "rm": dict(sims=BUDGET, mode="sm_rm", root_grid=False, depth_cap=8, cols_k=4, chance_k=2, root_rule="rm_average"),

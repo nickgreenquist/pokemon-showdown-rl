@@ -57,6 +57,13 @@ The decision rule (`root_rule`):
   legacy_gumbel  tree.py's softmax(log prior + beta * q_norm).
   visits
   rm_average     sm_rm's average strategy.
+`root_select` sets how the ROOT spends its simulations: "puct" (the default), or
+"sequential_halving" (Gumbel MuZero's root, br_prior only, since it needs a stationary
+root foe). Each phase gives the rows still in play EQUAL root visits, then keeps the
+better half by g + log prior + sigma(q_hat) on the Q pooled over worlds, and the best
+survivor is the action. A PUCT root compares a row it searched deeply with rows it
+barely left, and so favours whatever the prior makes it search most. `gumbel_scale`
+adds Gumbel noise to that score (0 at inference).
 There is no margin gate: gating is the caller's (the L-op's `margin_gate`, the
 matched-override readouts).
 
@@ -90,6 +97,7 @@ from rl.search.native import N_ACTIONS, World, seed_base
 
 MODES = ("br_prior", "legacy", "sm_rm")
 ROOT_RULES = ("gumbel_mctx", "soft_br", "legacy_gumbel", "visits", "rm_average")
+ROOT_SELECTS = ("puct", "sequential_halving")
 PASS_LEAF = ("through", "critic")
 OPP_RULES = ("puct", "sample")
 Q_INITS = ("parent_v", "zero")
@@ -213,16 +221,17 @@ class _Node:
 
 
 class _Descent:
-    __slots__ = ("path", "node", "need")
+    __slots__ = ("path", "node", "need", "forced")
 
-    def __init__(self, node: _Node, path: list | None = None):
+    def __init__(self, node: _Node, path: list | None = None, forced: int | None = None):
         self.path: list = path or []
         self.node = node
         self.need: str | None = None
+        self.forced = forced            # sequential halving: the root row this simulation must take
 
 
 class _Tree:
-    __slots__ = ("w", "weight", "root", "budget", "done", "active", "rng", "error", "grid_sims")
+    __slots__ = ("w", "weight", "root", "budget", "done", "active", "rng", "error", "grid_sims", "queue")
 
     def __init__(self, w: int, weight: float, root: _Node, budget: int, rng: np.random.Generator):
         self.w = w
@@ -234,6 +243,7 @@ class _Tree:
         self.rng = rng
         self.error: str | None = None
         self.grid_sims = 0
+        self.queue: list[int] = []      # sequential halving's forced root rows for this phase
 
 
 def search(
@@ -249,6 +259,7 @@ def search(
     sims: int = 1800,
     mode: str = "br_prior",
     root_rule: str = "gumbel_mctx",
+    root_select: str = "puct",
     root_grid: bool = True,
     depth_cap: int = 8,
     cols_k: int = 4,
@@ -264,6 +275,7 @@ def search(
     beta: float = 4.0,
     c_visit: float = 50.0,
     c_scale: float = 0.1,
+    gumbel_scale: float = 0.0,
     rm_gamma: float = 0.1,
     batch: int = 1,
     virtual_loss: float = 1.0,
@@ -421,7 +433,7 @@ class _Search:
 
     # ---- selection ----------------------------------------------------------------
 
-    def _select(self, t: _Tree, x: _Node) -> tuple[int, int, Any]:
+    def _select(self, t: _Tree, x: _Node, forced: int | None = None) -> tuple[int, int, Any]:
         nr, nc = x.N.shape
         if self.mode == "sm_rm":
             su = _rm_strategy(x.rm_us, self.rm_gamma)
@@ -432,7 +444,9 @@ class _Search:
         q0 = self._value(x) if self.q_init == "parent_v" else 0.0
         N = x.N + x.VL
         total = math.sqrt(float(N.sum()) + 1.0)
-        if nr == 1:
+        if forced is not None:
+            ri = forced
+        elif nr == 1:
             ri = 0
         else:
             if self.mode == "legacy":
@@ -497,7 +511,7 @@ class _Search:
             if not through and x.level >= self.depth_cap:
                 self.c["capped_sims"] += 1
                 return self._value(x)
-            ri, ci, extra = self._select(t, x)
+            ri, ci, extra = self._select(t, x, d.forced if x is t.root else None)
             e = x.edges.get((ri, ci)) or self._edge(x, ri, ci)
             j = self._slot(e)
             kid = self._kid(x, e, j)
@@ -733,6 +747,19 @@ class _Search:
                     self._grid(t)
                 except EngineError as err:
                     self._fail(t, err)
+        # SEQUENTIAL HALVING (Gumbel MuZero's root; Danihelka et al. 2022): every phase gives the
+        # rows still in play EQUAL root visits, then keeps the better half by g + logits +
+        # sigma(q_hat) on the Q pooled over worlds, so rows are never compared at unequal depth --
+        # the bias a PUCT root has toward whatever its prior makes it search most. The grid is
+        # extra equal visits before phase 1.
+        self.sh = None
+        if self.root_select == "sequential_halving" and len(rows) > 1 and any(not t.error for t in trees):
+            m = len(rows)
+            g = np.zeros(m)
+            if self.gumbel_scale > 0:
+                g = self.gumbel_scale * np.random.default_rng([int(decision_key) & 0x7FFFFFFFFFFFFFFF, 7919]).gumbel(size=m)
+            self.sh = {"S": list(range(m)), "phase": 0, "phases": max(1, math.ceil(math.log2(m))), "g": g, "run": 0}
+            self._sh_fill(trees)
 
         # ---- simulations, in lockstep over worlds
         deadline = t_start + self.deadline_ms / 1e3 if self.deadline_ms > 0 else math.inf
@@ -747,7 +774,12 @@ class _Search:
                     continue
                 if not stop_spawn:
                     while len(t.active) < self.batch and t.done + len(t.active) < t.budget:
-                        t.active.append(_Descent(t.root))
+                        if self.sh is None:
+                            t.active.append(_Descent(t.root))
+                        elif t.queue:
+                            t.active.append(_Descent(t.root, forced=t.queue.pop(0)))
+                        else:
+                            break
                 if not t.active:
                     continue
                 live_trees += 1
@@ -784,39 +816,27 @@ class _Search:
                             keep.append(d)
                     t.active = keep
             if live_trees == 0 and not finished and not (waits_e or waits_p):
+                if self.sh is not None and not stop_spawn and self._sh_next(trees, prior_m):
+                    continue
                 break
         if inspect_fn is not None:
             for t in trees:
                 inspect_fn(t)
         return self._decide(trees, rows, mask, prior_m, policy_action, t_start)
 
-    # ---- the decision -----------------------------------------------------------------
+    # ---- the root's pooled estimate and sequential halving ----------------------------
 
-    def _decide(self, trees: list[_Tree], rows: list[int], mask: np.ndarray, prior_m: np.ndarray,
-                policy_action: int, t_start: float) -> dict[str, Any]:
-        ok = [t for t in trees if not t.error]
-        nr = len(rows)
-        counters = self._counters(trees, ok)
-        if not ok:
-            counters.update({"tree/fallback": 1.0, "search/override": 0.0, "search/kl_prior": 0.0,
-                             "search/margin": 0.0, "search/pi_top1": float(prior_m.max()),
-                             "search/prior_top1": float(prior_m.max()), "search/v": float("nan"),
-                             "search/v_prior": float("nan"), "tree/argmax_moved": 0.0, "tree/world_agree": float("nan")})
-            counters["search/ms"] = (time.perf_counter() - t_start) * 1e3
-            pi = np.zeros(N_ACTIONS)
-            pi[mask] = prior_m
-            return {"pi": pi, "q_row": np.full(N_ACTIONS, np.nan), "n_row": np.zeros(N_ACTIONS),
-                    "v": float("nan"), "v_prior": float("nan"),
-                    "action": policy_action, "policy_action": policy_action, "rows": rows, "root": [],
-                    "counters": counters, "per_world": []}
-        # per-world root estimates over OUR rows (the same rows in every world)
+    def _root_q(self, ok: list[_Tree]) -> tuple[np.ndarray, np.ndarray, list, list]:
+        """Q per OUR row pooled over worlds (br_prior: the foe-prior-weighted joint means,
+        `native.solve`'s arithmetic when every cell is visited; legacy / sm_rm: the
+        marginal visit averages), the pooled visits, and the per-world pieces."""
         per_q, per_n, per_marg, per_w = [], [], [], []
         for t in ok:
             r = t.root
             N, W = r.N, r.W
             vis = N > 0
             qhat = np.where(vis, W / np.where(vis, N, 1.0), 0.0)
-            qbar = qhat @ r.q                     # `native.solve`'s arithmetic when every cell is visited
+            qbar = qhat @ r.q
             full = vis.all(axis=1)
             if not full.all():
                 qw = r.q * vis
@@ -840,6 +860,65 @@ class _Search:
         else:
             wsum = np.sum([m[0] for m in per_marg], axis=0)
             q_root = np.where(n_pool > 0, wsum / np.where(n_pool > 0, n_pool, 1.0), np.nan)
+        return q_root, n_pool, per_q, per_marg
+
+    def _sh_scores(self, trees: list[_Tree], prior_m: np.ndarray) -> np.ndarray:
+        ok = [t for t in trees if not t.error]
+        q_root, n_pool, _pq, _pm = self._root_q(ok)
+        q = np.where(np.isfinite(q_root), q_root, np.nanmin(q_root) if np.isfinite(q_root).any() else 0.0)
+        lo, hi = q.min(), q.max()
+        q_hat = (q - lo) / max(hi - lo, 1e-8)
+        return self.sh["g"] + np.log(prior_m) + (self.c_visit + float(n_pool.max())) * self.c_scale * q_hat
+
+    def _sh_fill(self, trees: list[_Tree]) -> None:
+        """This phase's queue per world: EQUAL visits for every row still in play,
+        interleaved so a batch of descents spreads across them."""
+        S = self.sh["S"]
+        left = self.sh["phases"] - self.sh["phase"]
+        for t in trees:
+            t.queue = []
+            if t.error:
+                continue
+            rem = t.budget - t.done - len(t.active)
+            per = max(1, (rem // max(left, 1)) // len(S)) if rem > 0 else 0
+            t.queue = (S * per)[: max(rem, 0)]
+        self.sh["run"] += 1
+
+    def _sh_next(self, trees: list[_Tree], prior_m: np.ndarray) -> bool:
+        """The phase barrier: halve the rows by their pooled scores, and queue the next
+        phase if one remains and any world has budget left. False = the search is done."""
+        if self.sh["phase"] + 1 >= self.sh["phases"] or len(self.sh["S"]) <= 1:
+            return False
+        sc = self._sh_scores(trees, prior_m)
+        S = sorted(self.sh["S"], key=lambda i: (-sc[i], i))
+        self.sh["S"] = sorted(S[: max(1, math.ceil(len(S) / 2))])
+        self.sh["phase"] += 1
+        if not any(not t.error and t.done < t.budget for t in trees):
+            return False
+        self._sh_fill(trees)
+        return any(t.queue for t in trees)
+
+    # ---- the decision -----------------------------------------------------------------
+
+    def _decide(self, trees: list[_Tree], rows: list[int], mask: np.ndarray, prior_m: np.ndarray,
+                policy_action: int, t_start: float) -> dict[str, Any]:
+        ok = [t for t in trees if not t.error]
+        nr = len(rows)
+        counters = self._counters(trees, ok)
+        if not ok:
+            counters.update({"tree/fallback": 1.0, "search/override": 0.0, "search/kl_prior": 0.0,
+                             "search/margin": 0.0, "search/pi_top1": float(prior_m.max()),
+                             "search/prior_top1": float(prior_m.max()), "search/v": float("nan"),
+                             "search/v_prior": float("nan"), "tree/argmax_moved": 0.0, "tree/world_agree": float("nan")})
+            counters["search/ms"] = (time.perf_counter() - t_start) * 1e3
+            pi = np.zeros(N_ACTIONS)
+            pi[mask] = prior_m
+            return {"pi": pi, "q_row": np.full(N_ACTIONS, np.nan), "n_row": np.zeros(N_ACTIONS),
+                    "v": float("nan"), "v_prior": float("nan"),
+                    "action": policy_action, "policy_action": policy_action, "rows": rows, "root": [],
+                    "counters": counters, "per_world": []}
+        # per-world root estimates over OUR rows (the same rows in every world)
+        q_root, n_pool, per_q, per_marg = self._root_q(ok)
         vis = np.isfinite(q_root)
         v_root = float(np.mean([t.root.v0 if t.root.v0 is not None else self._value(t.root) for t in ok]))
         if vis.any():
@@ -875,6 +954,13 @@ class _Search:
             s = np.sum([t.root.sm_us for t in ok], axis=0)
             pi_m = s / s.sum() if s.sum() > 0 else prior_m.copy()
         action = int(rows[int(np.argmax(pi_m))])
+        sh_final = 0.0
+        if self.sh is not None:
+            # the halving's survivor with the best score is the action; pi' stays the root
+            # rule's improved policy (the training target)
+            sc = self._sh_scores(trees, prior_m)
+            action = int(rows[max(self.sh["S"], key=lambda i: (sc[i], -i))])
+            sh_final = float(len(self.sh["S"]))
         ia = rows.index(action)
         ip = rows.index(policy_action)
         v_prime = float(pi_m @ q_done)
@@ -888,6 +974,8 @@ class _Search:
                  for q in own]
         counters.update({
             "tree/fallback": 0.0,
+            "tree/sh_phases": float(self.sh["run"]) if self.sh is not None else 0.0,
+            "tree/sh_final": sh_final,
             "search/override": float(action != policy_action),
             "search/kl_prior": kl,
             "search/margin": float(q_done[ia] - q_done[ip]),
@@ -974,6 +1062,12 @@ def _check(s: _Search) -> None:
         raise ValueError(f"root_rule must be one of {ROOT_RULES}, got {s.root_rule!r}")
     if s.root_rule == "rm_average" and s.mode != "sm_rm":
         raise ValueError("root_rule rm_average needs mode sm_rm")
+    if s.root_select not in ROOT_SELECTS:
+        raise ValueError(f"root_select must be one of {ROOT_SELECTS}, got {s.root_select!r}")
+    if s.root_select == "sequential_halving" and (s.mode != "br_prior" or not s.root_grid):
+        raise ValueError("sequential_halving needs mode br_prior (a STATIONARY root foe) and the root grid")
+    if s.gumbel_scale < 0:
+        raise ValueError(f"gumbel_scale must be >= 0, got {s.gumbel_scale}")
     if s.pass_leaf not in PASS_LEAF:
         raise ValueError(f"pass_leaf must be one of {PASS_LEAF}, got {s.pass_leaf!r}")
     if s.opp_rule not in OPP_RULES:

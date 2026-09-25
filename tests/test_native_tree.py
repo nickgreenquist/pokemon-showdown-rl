@@ -157,6 +157,29 @@ for name, (cfg, action, pi, q_row, cnt) in GOLDEN.items():
     for k, v in cnt.items():
         assert round(float(r["counters"][k]), 6) == v, (name, k, r["counters"][k], v)
 
+# (4b) SEQUENTIAL HALVING at the root: rows eliminated in the same phase have EQUAL root visits, the
+# finalists too, the survivors' visits only grow phase by phase, and it replays; it refuses a
+# non-stationary root foe (legacy) and a root without the grid.
+for nw, batch in ((1, 1), (3, 2)):
+    trees = []
+    r = search([World(root)] * nw, tables, "p1", p, q, stub, prior_fn, 11, sims=900 * nw, root_select="sequential_halving",
+               batch=batch, _inspect=trees.append)
+    n = r["n_row"][np.asarray(root.mask(tables, "p1"), bool)]
+    groups = sorted(set(n.tolist()))
+    assert r["counters"]["tree/sh_phases"] == 3.0 and r["counters"]["tree/sh_final"] == 2.0, r["counters"]
+    assert len(groups) == 3 and sorted(n.tolist()).count(groups[-1]) == 2, n     # 6 rows: 3 out, 1 out, 2 finalists
+    assert r["action"] in [int(a) for a, v in zip(np.flatnonzero(root.mask(tables, "p1")), n) if v == groups[-1]]
+    assert all(np.all(t.root.VL == 0) for t in trees)
+    r2 = search([World(root)] * nw, tables, "p1", p, q, stub, prior_fn, 11, sims=900 * nw, root_select="sequential_halving",
+                batch=batch)
+    assert r2["action"] == r["action"] and np.array_equal(r2["n_row"], r["n_row"]) and np.array_equal(r2["pi"], r["pi"])
+for kw in (dict(mode="legacy", root_grid=False), dict(root_grid=False)):
+    try:
+        search([World(root)], tables, "p1", p, q, stub, prior_fn, 11, sims=50, root_select="sequential_halving", **kw)
+        raise SystemExit(f"sequential_halving accepted {kw}")
+    except ValueError as err:
+        assert "sequential_halving" in str(err), err
+
 # ---- (5) FIXTURES (gate i-b), on constructed roots
 def ms(sp, moves, hp=None):
     return pkmn_gen1.MonSpec(sp, 100, [(m, pkmn_gen1.max_pp(m)) for m in moves], hp=hp)
@@ -254,9 +277,9 @@ foe_avg = trees[0].root.sm_foe / trees[0].root.sm_foe.sum()
 assert np.all(np.abs(rm["pi"][rows2] - 0.5) < 0.05) and np.all(np.abs(foe_avg - 0.5) < 0.05), (rm["pi"][rows2], foe_avg)
 
 # (6) the dial list is the signature's; unknown keys fail; values coerce by annotation; bad values refuse.
-assert DIALS == ("sims", "mode", "root_rule", "root_grid", "depth_cap", "cols_k", "chance_k", "pw_c", "pw_alpha", "merge",
-                 "pass_leaf", "c_puct", "q_init", "opp_rule", "tau", "beta", "c_visit", "c_scale", "rm_gamma", "batch",
-                 "virtual_loss", "both_views", "deadline_ms"), DIALS
+assert DIALS == ("sims", "mode", "root_rule", "root_select", "root_grid", "depth_cap", "cols_k", "chance_k", "pw_c",
+                 "pw_alpha", "merge", "pass_leaf", "c_puct", "q_init", "opp_rule", "tau", "beta", "c_visit", "c_scale",
+                 "gumbel_scale", "rm_gamma", "batch", "virtual_loss", "both_views", "deadline_ms"), DIALS
 assert dials_from({"sims": "900", "tau": "0.5", "merge": False}) == {"sims": 900, "tau": 0.5, "merge": False}
 for bad, msg in (({"depth2": 1}, "unknown native-tree dial"), ({"merge": "no"}, "must be a bool"), ({"sims": 1.5}, "integer")):
     try:
