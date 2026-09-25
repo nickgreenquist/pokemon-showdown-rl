@@ -1132,6 +1132,24 @@ the Rust side matches bitwise on P-1 under the new flag, the extension is REINST
 the collector can refuse the pairing. Budget every encoder change as two implementations
 plus the parity re-gate.
 
+## A RESUME ONTO A DEAD INCARNATION'S OPEN SHOWDOWN ROOM DIES AT ITS NEXT EVAL (2026-09-25)
+
+A resumed lane reuses its seed-derived Showdown usernames. If the dead process
+left an eval battle open, because it was killed or crashed mid-eval, the server
+pushes that room to the new connection. The resumed lane's next eval then dies on
+poke-env's `OSError: Can not reset player's battles while they are still running`.
+
+R7's first shakedown: the searched smoke was killed at 06:43:27Z during its 500k
+eval, the watchdog's DEAD path resumed it 72 s later (it had no wait; the STALL
+path waited 20 s), and it died at that same eval. A second resume at +11.6 min
+ran. The shakedown's S_ERRORS failed on the traceback.
+
+Showdown ends an abandoned CHALLENGE room on the disconnection bank: 300 s, plus
+a first turn's 60 s grace (`showdown/server/room-battle.ts`). So
+`scripts/train_watchdog.sh` now waits `ROOM_REAP` = 390 s before any resume
+(`c5a2dde`). A killed pair's names are spent regardless: re-run on a FRESH seed
+pair, as the FP runner's landmine already says.
+
 ## A clean tree must hold for the WHOLE STAGGER WINDOW, not just at preflight (2026-09-22)
 
 The launcher checks `git status` once, at preflight, and then brings the lanes up ~110 s apart; but

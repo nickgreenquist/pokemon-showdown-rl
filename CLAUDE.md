@@ -171,7 +171,8 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   waiting on step counts — **summed over the lane's whole process TREE** (a
   `collector.process` lane's parent idles while its child collects; the
   parent alone read a healthy R7 smoke as stalled, 2026-09-25); recover with
-  `--resume runs/<dir>`. **Root cause
+  `--resume runs/<dir>` -- AFTER ~6.5 min (a resume onto the dead process's open Showdown room dies at
+  its next eval; the watchdog waits `ROOM_REAP`). **Root cause
   found and FIXED 2026-08-31 — the ORPHANED-ROOM DEADLOCK; the CPU-delta
   check stays the instrument, because nothing else catches this shape.**
 - **Every connecting seat sends `/timer on`** (`start_timer_on_battle_start`;

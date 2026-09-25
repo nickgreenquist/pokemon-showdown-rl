@@ -13889,3 +13889,22 @@ line numbers are not — grep the date, then read that region):
   b328/b336/b344 paired by final; 100M on a 100M anneal from 2.5e-5), the two 800k shakedown smokes (s424 / s432, eval +
   checkpoint every 100k), `configs/r7_fleet_lanes.txt` (five lanes, no six-wide flag). NEXT: the shakedown -- no commit
   from its launch until its resume, which must carry the launch's sha (S_RESUME's `same_program_as_launch`).
+
+- 2026-09-25 07:26Z (agent, R7 runner) — **THE SHAKEDOWN PASSES (both smokes, every gate), on its re-run after a second watchdog
+  fix.** First shakedown (06:35Z, seeds 424 / 432, tree `1ac940e`): the control PASSED; the searched smoke failed ONLY
+  S_ERRORS. Its RESUME TEST kill (06:43:27Z, at `checkpoint.pt` 491,565) landed during the 500k eval (evals at 400k
+  06:41:32Z and, after the resume, 500k 06:55:18Z), the watchdog's DEAD path resumed it 72 s later with no wait, and the
+  resumed process died at its first eval: poke-env `OSError: Can not reset player's battles while they are still
+  running` -- the server had pushed the dead incarnation's open eval room onto the resumed seat (same seed-derived
+  username). A second resume at 06:55:02Z ran to 800k. Every other gate passed (S_RESUME `same_program_as_launch`
+  true on both resumes). Fix (`c5a2dde`): the watchdog waits `ROOM_REAP` = 390 s before any resume (Showdown's challenge
+  disconnection bank 300 s + first-turn grace 60 s + 30 s, `showdown/server/room-battle.ts`; the STALL path's 20 s and
+  the DEAD path's 0 s were both inside it), and the grace clock starts after the wait. The re-run took a FRESH pair
+  (`SMOKE_SEEDS` 480 / 488; the first pair's run names and watchdog-log lines are spent); the five fleet lane configs are
+  byte-identical. **Re-run** (07:03:50Z, tree `c5a2dde`): kill at 491,669 (07:12:32Z) -> DEAD at 07:13:13Z -> the
+  390 s wait -> RESUMED 07:19:43Z -> the resumed lane's own 500k and 600k evals ran clean -> DONE 800,018 (07:24:44Z,
+  RESUMES=1); control DONE 800,049. `r7_smoke_check.py`: **searched PASS** (S_REACHED, S_META, S_THETA0, S_COUNTERS,
+  S_RESUME with `same_program_as_launch` true, S_ERRORS 0 tracebacks) and **control PASS**; eval win rates (descriptive)
+  0.90 / 0.82. The fleet's pre-stated condition ("launches only if both PASS") is met. Landmine written
+  (`docs/landmines.md`, and CLAUDE.md's stall bullet: resume after ~6.5 min). NEXT: G2's two-battle smoke, then the
+  maintainer's launch.
