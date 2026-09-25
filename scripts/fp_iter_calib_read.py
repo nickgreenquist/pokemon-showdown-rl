@@ -91,16 +91,22 @@ def visits_summary(vis_lists):
     out = {}
     for key in sorted({k for v in vis_lists for k in v}):
         rows = [r for v in vis_lists for r in v.get(key, [])]
-        forced = [r for r in rows if r[0] <= 1000 and r[1] < 2.0]
-        real = [r for r in rows if not (r[0] <= 1000 and r[1] < 2.0)]
+        # forced = one chunk by the binding; under FP@N exactly 1000 visits (a non-forced FP@N
+        # search always runs chunked(N)), under a wall-clock budget the time cut is kept
+        # (scripts/fp_arm_counters.py, the same rule)
+        is_forced = lambda r: (r[0] == 1000) if r[2] > 0 else (r[0] <= 1000 and r[1] < 2.0)
+        forced = [r for r in rows if is_forced(r)]
+        real = [r for r in rows if not is_forced(r)]
         req = {r[2] for r in rows}
         out[f"n{key[0]}_x_{key[1]}ms"] = {
             "searches": len(rows), "forced_frac": round(len(forced) / len(rows), 4),
             "iters_req": sorted(req),
             "visits_p50": pct([r[0] for r in real], .5), "visits_p5": pct([r[0] for r in real], .05),
             "visits_p95": pct([r[0] for r in real], .95),
-            "exactly_requested_frac": (round(sum(1 for r in real if r[0] == r[2]) / len(real), 4)
-                                       if real and max(req) > 0 else None),
+            "exactly_requested_frac": (sum(1 for r in real if r[0] == r[2]) / len(real)
+                                       if real and max(req) > 0 else None),   # UNROUNDED
+            "not_exactly_requested": (sum(1 for r in real if r[0] != r[2])
+                                      if real and max(req) > 0 else None),
             "search_ms_p50": round(pct([r[1] for r in real], .5), 2),
             "search_ms_mean": round(st.mean(r[1] for r in real), 2),
         }

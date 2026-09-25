@@ -1,0 +1,13 @@
+title: fp_n_smoke
+status: "INSTALL SMOKE (2026-09-25): verifies the PRODUCTION Foul Play (../foul-play, scripts/patches/foulplay_gen1_local.patch) runs FP@N end to end through scripts/fp_arms_parallel.py -> scripts/ch3_r4_fp_runner.sh, with the budget verified from foul-play's log and the instrument counters (scripts/fp_arm_counters.py) written. Re-run after any Foul Play / poke-engine reinstall. Not a read: 3 battles."
+journey_step: "off-arc eval ops (FP@N adoption, maintainer + r6-runner + r7-runner, 2026-09-25)"
+credits_nothing: true
+results_dir: results/fp_n_smoke
+
+checkpoints:
+  w104: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/r6_reads_offfp.yaml
+
+arms:
+  SMOKEN1: {kind: greedy_seat, seat: w104, battles: 3, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpnsmk1seat, fp_username: fpnsmk1bot}
+  SMOKEN2: {kind: greedy_seat, seat: w104, battles: 3, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpnsmk2seat, fp_username: fpnsmk2bot}
+  SMOKEN3: {kind: greedy_seat, seat: w104, battles: 3, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpnsmk3seat, fp_username: fpnsmk3bot}

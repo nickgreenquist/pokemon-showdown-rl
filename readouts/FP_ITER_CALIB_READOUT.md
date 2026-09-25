@@ -122,6 +122,10 @@ The rule named the binomial se. The read uses the LARGER of the binomial (0.0129
 
 ## Disclosures
 
+- **Added at adoption (2026-09-25), found by the adoption's instrument counters (`scripts/fp_arm_counters.py`) on these logs:**
+  - **CALN8's single crash orphaned TWO rooms.** The relaunched foul-play logged "fpcn8bot lost due to inactivity." in battle-…621 and battle-…734, and one of those timeouts was logged as a normal Winner. The R4 rule excluded one battle, so draw 1's FP@N side carries one extra seat win: 1614/2998 against 1615/2999 as read. That is −0.0001, and no verdict or bound here moves.
+  - **"Exactly N on 100%" holds UNROUNDED** once a forced move is defined as exactly 1000 visits under FP@N. Six forced chunks took 2.0–2.7 ms 8-wide, and the earlier time cut had mislabelled them; the read printed 1.0 only after rounding.
+
 - **One seat object** (the greedy W final s104, c6 off, loop breaker on): a calibration of the opponent, not of our policy. **n = 3000 per side**, as the brief set it.
 - **Load differs between sides:** FP@N ran 8-wide, FP@20 alone. That is the form each will be used in, and the point of the fixed budget. FP@N's strength cannot depend on load by construction: exactly N iterations on 100% of non-forced searches, and Showdown's timers never came near.
 - **Priority.** Every arm ran at nice 0 (the scheduler refuses otherwise), against the Showdown server at nice 5, as in Phase 1.

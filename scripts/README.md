@@ -36,7 +36,7 @@ Foul-Play anchor machinery**. These three are current, not historical:
 |---|---|
 | `ch3_r4_fp_runner.sh` | invoked by `configs/eval/ch4_r1_offsh_instrument.yaml`; its three landmines are documented in `CLAUDE.md` |
 | `foulplay_vs_sh.py` | shelled out to by that runner; drives the FP side of every anchor |
-| `patches/foulplay_gen1_local.patch` | a **G8 provenance-stamp input** — every FP number is "Foul Play + our patches" |
+| `patches/foulplay_gen1_local.patch` | a **G8 provenance-stamp input** — every FP number is "Foul Play + our patches". Since 2026-09-25 it includes the FP@N flag (`--search-iterations N --search-iterations-early M`) and the per-search `PROBE_VISITS` logging the instrument counters read |
 
 `ch3_fp_h2h.py` is likewise still the seat used by the CH4 R1 arms, and its
 `SeatPlayer` is the pattern `ladder.py` was built from.
@@ -71,6 +71,17 @@ Foul-Play anchor machinery**. These three are current, not historical:
   deterministic, ties as non-wins). This is the vs-SH instrument.
 - `ch3_eval.py`, `ch3_fp_h2h.py`, `ch3_r4_fp_runner.sh`, `foulplay_vs_sh.py`
   — anchor machinery, see above.
+- **FP@N machinery (2026-09-25, the gen-1 FP instrument — CLAUDE.md, FP anchor):**
+  - `fp_arms_parallel.py` — runs off-FP arms K at a time through the runner. A
+    wall-clock arm forces 1 slot plus the quiet-box gate; it samples foreign load
+    and refuses niced starts.
+  - `fp_arm_counters.py` — the adoption's instrument counters, written into every
+    runner JSON; `fpn_counters_ok: false` makes an arm INVALID.
+  - `configs/eval/fp_n_smoke.yaml` — the install smoke; re-run it after any Foul
+    Play / poke-engine reinstall.
+  - Calibration and ROI harness (read-once): `fp_parallel_probe.py`,
+    `fp_parallel_probe_read.py`, `fp_parallel_probe_after_queue.sh`,
+    `fp_iter_calib_chain.sh`, `fp_iter_calib_read.py`.
 - `extract_history.py`, `setup_showdown.sh`, `watch.py` — utilities.
 - `ch3_r2_grade.py`, `d25_grade.py`, `d25_gates.py` — imported unmodified by
   later graders; these are the shared statistical law, not one-offs.

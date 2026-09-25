@@ -99,7 +99,10 @@ def main():
                 continue
             cmd = m.group(3)
             if " -m rl.train" in " " + cmd:
-                bad.append(f"training lane {m.group(1)}")
+                # a training lane weakens only a WALL-CLOCK arm of ours; FP@N arms run beside a
+                # fleet by design (load costs them time, never strength) -- the adoption's point
+                if wallclock:
+                    bad.append(f"training lane {m.group(1)}")
             elif re.search(r"(^|\s)run\.py\s", cmd):
                 u = re.search(r"--ps-username (\S+)", cmd)
                 if u and u.group(1) in mine:
@@ -187,9 +190,13 @@ def main():
                 rc = p.poll()
                 if rc is not None:
                     js = seat_json(a)
+                    rj = out / f"{a.lower()}.runner.json"
+                    ctr = json.loads(rj.read_text()) if rj.exists() else {}
                     done[a] = {"rc": rc, "seat_json": str(js) if js.exists() else None,
-                               "ended": utc()}
-                    log(f"{a} ENDED rc={rc} json={'yes' if js.exists() else 'NO'}")
+                               "ended": utc(), "fpn_counters_ok": ctr.get("fpn_counters_ok"),
+                               "fpn_counters_why": ctr.get("fpn_counters_why")}
+                    log(f"{a} ENDED rc={rc} json={'yes' if js.exists() else 'NO'} "
+                        f"counters={'ok' if ctr.get('fpn_counters_ok') else 'FAIL ' + str(ctr.get('fpn_counters_why'))}")
                     del running[a]
             while queue and len(running) < args.slots and time.time() - last_launch >= args.stagger:
                 a = queue.pop(0)
@@ -244,6 +251,9 @@ def main():
          "stopped_early": stopping, "finished": utc(), "contamination": contamination,
          "budget": "wall-clock" if wallclock else "FP@N"}, indent=2) + "\n")
     ok = all(d.get("seat_json") for d in done.values()) and len(done) == len(queue) + len(done) - len(queue)
+    bad = [a for a, d in done.items() if d.get("seat_json") and d.get("fpn_counters_ok") is False]
+    if bad:
+        log(f"COUNTERS FAIL on {bad}: those arms' reads are INVALID under the FP@N adoption conditions")
     log(f"DONE: {sum(1 for d in done.values() if d.get('seat_json'))}/{len(done)} arms with a seat JSON")
     sys.exit(0 if ok and not stopping else 4)
 

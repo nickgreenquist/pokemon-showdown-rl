@@ -13941,3 +13941,42 @@ line numbers are not — grep the date, then read that region):
   fixes) + caffeinate. Monitor: `scripts/r7_fleet_monitor.sh` (the R6 monitor generalized, `10a0cbc`) ->
   `logs/r7_fleet/monitor.log`, every 10 min, ALERT below 0.4 x 650 = 260 steps/s after a lane's first hour (650 is the
   pre-launch estimate; re-anchor on the first hour).
+- 2026-09-25 11:25Z (agent, fp-speedup) — **FP@N 25k/12k ADOPTED as the gen-1 off-FP instrument (unanimous: the maintainer
+  "I say yes", r6-runner, r7-runner); integrated on main; the adoption's conditions are in CLAUDE.md's FP anchor.**
+  - **The task.** The maintainer's FP-parallel task (Phase 1 ROI, Phase 2 calibration), prioritised over R7 ("Go",
+    02:00Z). Readouts: `readouts/FP_PARALLEL_ROI_READOUT.md`, `readouts/FP_ITER_CALIB_READOUT.md`. Merged at
+    `243453d`, pushed by r7-runner.
+  - **The votes.** The maintainer asked the two other sessions to vote.
+    - r7-runner: YES, if (1) R7 amends its read pre-reg before any read battle (its to draft), (2) the calibration
+      travels as a disclosure, (3) R7's power statement is disclosed as FP@20-derived.
+    - r6-runner: YES, if (a) we never difference across instruments and name "FP@N 25k/12k" in every quote,
+      (b) counters reach disk and the read is invalid if either fails.
+  - **Integration.**
+    - Production `../foul-play` is patched and now byte-identical to the calibration copy. It carries the FP@N flag
+      plus the per-search `PROBE_VISITS` logging. `scripts/patches/foulplay_gen1_local.patch` is regenerated
+      (sha256 b85760d4..., 8 files; it was 8234a15d...).
+    - `scripts/fp_arm_counters.py` checks realized iterations == N on 100% of non-forced searches, and timer+forfeit
+      messages <= crash forfeits. The runner writes both into every runner JSON; the scheduler logs COUNTERS FAIL.
+  - **The counters found two things on the calibration's own logs.**
+    - The calibration read's "100%" had been rounded. Six "inexact" searches were forced moves that took 2.0-2.7 ms
+      8-wide. Under FP@N, forced is now defined as exactly 1000 visits; with that, exact-N is 100% unrounded, 0
+      exceptions.
+    - CALN8's one crash orphaned TWO rooms: two "fpcn8bot lost due to inactivity." lines, one logged as a normal
+      Winner. The R4 n_eff rule excluded one, so there is one extra seat win in 2999 (1614/2998 vs 1615/2999,
+      immaterial). Landmine written.
+  - **Install smoke.** `configs/eval/fp_n_smoke.yaml` ran 3 battles on PRODUCTION FP@N BESIDE the running R7 fleet:
+    budget verified, exact 1.0 on 206 non-forced searches, 0 timer losses, counters ok.
+  - **A scheduler fix the smoke found.** Its first run REFUSED because `fp_arms_parallel.py` treated training lanes as
+    offenders for FP@N arms too. Lanes now block only a wall-clock arm, which is the adoption's point.
+  - **Docs.** CLAUDE.md: the FP anchor (FP@N plus its three conditions; FP@20 serial-only) and the runner-ops landmine
+    (group kills; one crash can orphan two rooms). docs/landmines.md: four entries (zsh BG_NICE is not the E-core
+    landmine; wall-clock FP weakens in parallel even on P-cores; the box-wide pkill fixed; the two-room orphan).
+    scripts/README.md indexes the FP@N machinery. STATUS: R7's reads line now reads FP@N ADOPTED.
+  - **The repo's own L7 guard caught one more.** `test_every_banked_prereg_still_parses` failed on
+    fp_n_smoke.yaml: `search_iterations[_early]` is an arm key ch3_eval does not forward ("it would run as a
+    CONTROL"). It is a sibling-harness key, like `search_time_ms`: consumed by the runner, verified from FP's log,
+    counted. It is now registered in ch3_eval's `_FOREIGN_KEYS`. fp_iter_calib.yaml had only escaped the guard
+    because an unrelated exception on its first arm skipped the file. 318 harness/guard tests pass.
+  - **The calibration readout** gains both counter findings as disclosures.
+  - **Left for others.** R7's read pre-reg amendment (r7-runner). CLAUDE.md's nice/taskpolicy wording (r6-runner is
+    raising it with the maintainer).

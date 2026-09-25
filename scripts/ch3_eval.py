@@ -93,6 +93,11 @@ _SEARCH_DIALS = tuple(
 # else is a typo or a dial nobody forwards.
 _FOREIGN_KEYS = {
     "fp_username", "search_time_ms", "seat", "seat_username",  # ch3_fp_h2h
+    # FP@N (2026-09-25): foul-play's FIXED iteration budget. Consumed by scripts/ch3_r4_fp_runner.sh,
+    # which forwards it to foul-play, verifies it from foul-play's own log (BUDGET_MISMATCH aborts),
+    # and writes scripts/fp_arm_counters.py's realized-iterations counter -- so it cannot run as a
+    # silent control; a vs-SH job has no foul-play to forward it to.
+    "search_iterations", "search_iterations_early",           # ch3_r4_fp_runner (FP@N)
     "lop",               # ch3_fp_h2h's native_seat (lop_from, signature-derived); a kind this harness refuses
     "seat1", "seat2",                                          # r2_falsifier
     "comparator",                                              # anchor_grade

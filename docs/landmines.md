@@ -1175,3 +1175,31 @@ extension under six resuming lanes. Rule: every `maturin develop` / `pip install
 build env passes the env EXPLICITLY —
 `env CONDA_PREFIX=/opt/anaconda3/envs/<env> PATH=/opt/anaconda3/envs/<env>/bin:$PATH PKMN_PYTHON=/opt/anaconda3/envs/<env>/bin/python PYO3_PYTHON=... maturin develop --release`
 — and the first thing after it is `pip show pkmn_gen1` in EVERY env on the box, not just the intended one.
+
+## zsh's BG_NICE runs every agent `cmd &` at nice +5 — and plain nice is NOT the E-core landmine (2026-09-24)
+
+**What happened.** The FP-parallel probe's first waiter showed NI 5 in `ps`. So did the R6 reads queue, the R6 trio-A lanes and the Showdown server. zsh's `BG_NICE` option, on by default in the agent tool's shell, runs every background `cmd &` job at nice +5.
+
+**What it is NOT.** The `taskpolicy -b` landmine above. Plain nice 5 keeps PRI 31 and the P-cores: the NI-5 lanes ran at full speed. `taskpolicy -b` is background QoS, PRI 4, and is confined to cpu0-3: R7's G1b showed exactly that. CLAUDE.md's "`taskpolicy -b` / `nice` sends a process to the E-cores" lumps the two together (r6-runner is raising the wording with the maintainer).
+
+**The rule.** Launch a timed job through bash (`bash -c 'nohup ... &'`) or the tool's run_in_background, and check `ps -o nice=,pri=`. `scripts/fp_arms_parallel.py` and `scripts/fp_parallel_probe.py` refuse a niced or background-QoS start. A job that must match production's NI 5 is a disclosure, not a relaunch.
+
+## WALL-CLOCK FOUL PLAY WEAKENS IN PARALLEL, EVEN ON THE P-CORES (2026-09-25)
+
+**Measured** (`readouts/FP_PARALLEL_ROI_READOUT.md`). k concurrent FP@20 arms, with the E-cores idle and at most 8.4 of 10 P-cores busy. Foul Play's median iterations/ms were 0.948× at k=2, 0.838× at k=4, 0.829× at k=6 and 0.807× at k=8. At k=8 the median 20 ms search reached 21,000 visits instead of 25,000. The cause is not measured; it is not E-core spill.
+
+**The rule.** A wall-clock Foul Play (FP@<ms>) NEVER shares the box, not even with another arm. The fixed-iteration instrument (FP@N 25k/12k, CLAUDE.md) is load-proof by construction and runs K-wide.
+
+## THE FP RUNNER'S BOX-WIDE WORKER `pkill` (fixed 2026-09-25)
+
+**What happened.** `kill_fp` in `scripts/ch3_r4_fp_runner.sh` ended with `pkill -9 -f "foul-play/bin/python -c from multiprocessing"`, which kills EVERY foul-play search worker on the box. Its own comment said that was safe only because "Arms are SERIAL (k=1)". Two arms on one box would have died together at the first crash-relaunch.
+
+**The fix.** foul-play now starts in its OWN session (`perl -MPOSIX -e 'POSIX::setsid() ...; exec ...'`). Its pool workers and resource tracker inherit the group even after reparenting, so `kill -9 -- -$FP_PID` removes the arm and nothing else. A SIGTERM trap cleans up the runner's own arm. Never reintroduce a pattern kill.
+
+## ONE FOUL-PLAY CRASH CAN ORPHAN TWO ROOMS (2026-09-25)
+
+**What happened.** CALN8 of the FP@N calibration: one poke-engine panic (`Invalid PokemonMoveIndex: 4`), one relaunch, one crash forfeit by the R4 rule. Yet the relaunched foul-play's log shows `|-message|fpcn8bot lost due to inactivity.` in TWO rooms, battle-...621 and battle-...734, both pushed to the new connection under the same username. One of those timeouts was logged as a normal `Winner:` line, so G2 agreed and the n_eff rule excluded only one.
+
+**Cost here.** One extra seat win in 2999 battles: 1614/2998 against 1615/2999, immaterial.
+
+**The instrument.** `scripts/fp_arm_counters.py` counts timer and forfeit messages in foul-play's own log and fails an arm when they exceed its crash forfeits. The runner writes the counters into every runner JSON, and an arm with `fpn_counters_ok: false` is INVALID (CLAUDE.md, FP anchor).

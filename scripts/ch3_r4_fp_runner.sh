@@ -488,6 +488,10 @@ SEAT_RC=$?
 kill -- -"$FP_PID" 2>/dev/null
 kill "$FP_PID" 2>/dev/null
 write_runner_json false
+# FP@N adoption conditions (2026-09-25, unanimous): the instrument counters, read from
+# foul-play's own log into this JSON -- realized iterations == N on 100% of non-forced searches,
+# and timer/forfeit losses <= crash forfeits. Either failing makes the arm's read INVALID.
+"$PY" scripts/fp_arm_counters.py "$FP_LOG" "$RUNNER_JSON" 2>&1 | tee -a "$RUNNER_LOG"
 log "seat exited rc=$SEAT_RC; relaunches=$RELAUNCHES"
 log "G2 OWED: cross-check the seat tally against foul-play's own W/L on n_eff EXACTLY before believing the number."
 exit "$SEAT_RC"

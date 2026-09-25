@@ -254,7 +254,12 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   `scripts/ch3_r4_fp_runner.sh` — do not reintroduce (subshell-pid orphans;
   kill search-worker children FIRST; a killed arm's username pair is poisoned
   for hours, re-run it LAST or on a fresh pair; no forfeit at a clean
-  boundary; G2 is two tallies agreeing, never a subtraction).
+  boundary; G2 is two tallies agreeing, never a subtraction). **Since
+  2026-09-25 foul-play runs in its OWN process group and dies as one group
+  kill — never reintroduce a box-wide `pkill` of foul-play workers**, which
+  killed every other arm's search the moment two arms shared a box. **One
+  crash can orphan TWO rooms** (CALN8), so the n_eff rule can under-count;
+  `scripts/fp_arm_counters.py` catches it.
 - Shell loops run under `bash`, not zsh; anything handed to the maintainer
   runs in THEIR zsh.
 - `scripts/showdown_throughput.py` numbers are collection-only (~7×
@@ -305,7 +310,7 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   list ruled 2026-09-05): every headline-grade result reports vs-SH (locked
   protocol, the ONLY verdict input) **plus every descriptive leg for its
   generation** before its README row lands. **Gen 1:** BC-clone h2h (500),
-  Foul Play h2h @20. **Gen 4:** most-damage-typed h2h (500), Foul Play h2h at
+  Foul Play h2h at FP@N 25k/12k (FP@20 before 2026-09-25). **Gen 4:** most-damage-typed h2h (500), Foul Play h2h at
   BOTH 20 and 500 ms until Q38 pins one, BC-clone h2h (500; a gen-4 clone of
   FP@20 tapes — built alongside the first gen-4 run, ready by its readout). A
   leg that does not exist yet is reported as PENDING and the README row WAITS
@@ -314,10 +319,29 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   **never verdict inputs**.
   - **Match the policy form to the rating you compare against** — a clone
     number is never style evidence.
-  - FP anchor at `--search-time-ms 20` (gen 1). **Two disclosures travel with
-    every FP@20 number, forever:** the equivalence test is weakly powered, and
-    the point estimate flatters us. **Name the budget in every quote.** FP@20
-    is an instrument, not a rung — the readiness gradient is the FP budget
+  - **Gen-1 FP instrument is FP@N 25k/12k since 2026-09-25** (unanimous: the
+    maintainer, r6-runner, r7-runner). Each arm declares `search_iterations:
+    25000, search_iterations_early: 12000` and runs K-wide through
+    `scripts/fp_arms_parallel.py`, beside other work if need be, because a
+    fixed budget loses time under load, never strength.
+    `readouts/FP_ITER_CALIB_READOUT.md`, `readouts/FP_PARALLEL_ROI_READOUT.md`.
+    - **Its calibration travels with every FP@N number:** two seats vs FP@20,
+      NON-REJECTION, offset CI95 [−0.026, +0.011], gap-change CI95 [−0.042,
+      +0.033], MDE 0.054.
+    - **Never difference across instruments.** A read re-draws its comparator
+      on FP@N in-session. Never set an FP@20 number, or a threshold defined on
+      FP@20, against an FP@N delta without saying so. Name "FP@N 25k/12k" in
+      every quote beside the two disclosures below.
+    - **An arm whose runner JSON has `fpn_counters_ok: false` is INVALID.**
+      The counters require realized iterations == N on 100% of non-forced
+      searches, and timer+forfeit losses ≤ crash forfeits.
+    - **Wall-clock FP (FP@20) runs serially on a quiet box only.** It loses
+      16–19% of its iterations/ms at 4–8 arms even on P-cores, and the
+      scheduler enforces the rule.
+  - FP@20 (the wall-clock anchor before 2026-09-25) is `--search-time-ms 20`.
+    **Two disclosures travel with every FP number, forever:** the equivalence
+    test is weakly powered, and the point estimate flatters us. **Name the
+    budget in every quote.** FP@20 is an instrument, not a rung — the readiness gradient is the FP budget
     ladder (`configs/eval/fp_budget_ladder.yaml`). **Gen 4's budget is UNPINNED
     until that ladder runs against the first trained gen-4 checkpoint (ruled
     2026-09-05); quote 20 and 500 ms both meanwhile.**
