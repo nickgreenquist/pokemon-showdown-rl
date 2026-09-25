@@ -13786,3 +13786,30 @@ line numbers are not — grep the date, then read that region):
   base is mechanical under the headers. The maintainer also ruled on wording this session — say
   which clause a result misses, with delta and z, and lead any status answer with who is running
   what (memories `say-which-clause-fails`, `status-says-who-is-running`).
+
+- 2026-09-25 02:08Z (agent, R7 runner) — **R7 MERGED INTO MAIN (`9d6a1f8`, 01:43:52Z); B0 READ: FAIL (six-wide p99 7.531 ms vs
+  the 3.6 ms line) -> the fleet is 3 + 2; the post-merge suites classified.** Order kept with the two peer sessions:
+  fp-speedup's probe DONE 01:42:32Z (box released, every k clean); the n 6000 generator change committed on the branch
+  (`377f9df`, `tests/test_derive_r7_fleet.py` 16 passed); the merge landed beside r6-runner's trio-A instrument, which ran
+  from `../pokemon-showdown-rl-r6pin` under PYTHONPATH (both processes' command lines checked before merging).
+  `pkmn-engine-port` rebuilt from main (`.so` 01:44Z; `verify()` the pinned `9b88fd6c`, identical to `pkmn-engine-r7`'s;
+  the engine sources are identical, the two `.so` differ in bytes only by build tree). **Suites (main, `-m "not
+  live_server"`):** flags V2/IDS on -- `pkmn-engine-port` 1,213 passed / 33 failed / 17 errors, `pokemon-showdown-rl` 1,385
+  passed / 9 failed; flags off -- 1,154 / 14 / 23 errors and 1,317 / 2. Every failure classified against a `git archive` of
+  the pre-merge tree (`16e1a28`): `poke_engine` absent from the engine env (the tests pass in `pokemon-showdown-rl`), the
+  flags class (5 `test_showdown_env` + the entity-trunk refusal fail with the flags ON and pass OFF; 2 need IDS and error
+  with them OFF), and two stale R6-area guards (the pre-pin placeholder test; the gen-4 seed window hit by R6's 09-21 batch
+  screen, seed 204) that r6-runner fixed in `7adf81e`. ONE failure was the merge's: ch3_eval's dial guard rejected G2's `lop`
+  key (hidden on the branch behind the engine env's missing `poke_engine`); fixed `2733c3e` with a test that the harness
+  refuses the native_seat kind outright. Live tests 9 passed. **B0** (`results/r7_b0_bench/2026-09-25T020423Z.json`,
+  `readouts/R7_B0_BENCH.md`; launched at nice 0 from `fb3364e`, clean): five-wide p99 6.191 ms, six-wide 7.531 ms; the MEAN
+  decision 1.64-1.73 / 1.78-2.10 ms sits at the plan's 1.8 ms table and the tail is the critic forward (p99 4.9-7.1 ms, p50
+  1.4-1.6), uniform across all 11 lanes -- structural: six-wide with learner load is 12 threads on 10 P-cores (stamped 10 P +
+  4 E). The window was not perfectly quiet (fp-speedup's two sub-second python processes 2 s before the launch stamp;
+  Terminal ~20% and three CLIs 5-12% of a core), disclosed. By R-F2 the fleet is 3 + 2: P(X-POS) at n 6000 0.49 / 0.75 /
+  0.91 / 0.98 vs 3 + 3's 0.50 / 0.78 / 0.94 / 0.99. A quiet-box replication (15 s) may run after the calibration: reported
+  beside this read, a FAIL confirms, a PASS goes to the maintainer. **CLEANUP L10 AUDITED AND FIXED** (`fb3364e`). **Box
+  priority (RULED 02:04Z, maintainer: "your work that requires empty box is P0" to fp-speedup):** fp-speedup's calibration
+  (~02:45Z-04:30Z) precedes the LR smokes. **The base:** r6-runner's instrument ended 02:01:37Z -- turn 2-8 r² trio A 0.353
+  vs the same-run R5 W 0.317 (+0.036, z 0.44; the banked 0.287 re-drew at 0.317) -- NOT MOVED on the same-run reading, `b`;
+  the literal reading against the banked 0.287 gives `ab`; both runners recommend `b`; the maintainer's line is owed.
