@@ -37,7 +37,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from rl.envs.engine_bank import read_bank
+from rl.envs.engine_bank import load_bank_for_env, read_bank
 from rl.selfplay.pool import SnapshotPool
 
 # The learner's rows are recorded with this many fields per D25 label; mirrors
@@ -64,6 +64,9 @@ def engine_metadata(team_bank) -> dict:
     )
     info = pkmn_gen1.build_info()
     return {
+        # Whether a lane's BatchEnv reads the bank IN PLACE (mmap, shared) or a
+        # per-lane copy -- the fleet's memory arithmetic assumes the former.
+        "bank_zero_copy": bool(info.get("bank_zero_copy", False)),
         "engine_sha": info["engine_sha"],
         "engine_options": info.get("options"),
         "zig_version": info["zig"],
@@ -136,6 +139,8 @@ class EngineCollector:
         max_updates_per_battle: int = 8000,
         battle_counter: int = 0,
         outcome_targets: bool = False,
+        both_views: bool = False,
+        searcher=None,
     ):
         import pkmn_gen1
 
@@ -159,6 +164,11 @@ class EngineCollector:
         # cheap against a socket, not free against the engine. Off, the Rust
         # side emits nothing and `_episode` adds no key.
         self._privileged = bool(privileged)
+        # R7 B2: the foe's FULL own view per learner row (`obs2`), the
+        # antisymmetric critic's second input. The same second encode the
+        # privileged block costs (one encode serves both when both are on);
+        # derived from the agent's need in rl/train.py, never configured.
+        self._both_views = bool(both_views)
         # IDEAS 4.11 (R6 trio A): the outcome-decomposition targets, derived in
         # Python from each finished episode's LAST decision row plus its outcome
         # (rl/envs/outcome_targets.py) -- no Rust change. Off, `_episode` adds
@@ -192,6 +202,11 @@ class EngineCollector:
         _check_engine_c6(pkmn_gen1)
 
         tables, self.tables_fingerprint = build_tables()
+        self.tables = tables
+        # R7 B4b: the T-op (rl/search/top.py), or None. Set here or as an
+        # attribute before start(); `poll()` hands it every learner decision
+        # and `_episode` takes its records back.
+        self.searcher = searcher
         # The runtime PAIRING: the Rust tables' c6 and the Python fingerprint that
         # meta.yaml stamps must agree, or the run record lies about its rows.
         from rl.envs.showdown import ENCODER_FINGERPRINT as _PY_FP
@@ -202,13 +217,16 @@ class EngineCollector:
                 f"Python encoder fingerprint says c6={bool(_PY_FP['c6'])} -- both read "
                 "POKEMON_RL_ENCODER_C6 at construction/import; set it before either"
             )
-        self.bank_header, payload = read_bank(pathlib.Path(team_bank))
+        # The mmap'd bank when the extension reads buffers in place (one copy per
+        # box, not per lane: R7 plan §9 ruling 6), else the copied bytes; which
+        # one is stamped (`bank_zero_copy` in stats and engine_metadata).
+        self.bank_header, payload, self.bank_zero_copy = load_bank_for_env(pathlib.Path(team_bank))
         # `battle_counter` at CONSTRUCTION, not after: the k battles in flight
         # are drawn here, so a resumed lane that set it later would replay its
         # first k battles -- same seeds, same teams -- before it took effect.
         self.env = pkmn_gen1.BatchEnv(
             k, int(seed), tables, payload, learner_seat, int(battle_counter),
-            privileged=self._privileged,
+            privileged=self._privileged, both_views=self._both_views,
         )
         self.build_info = pkmn_gen1.build_info()
 
@@ -217,6 +235,11 @@ class EngineCollector:
         # identity so a member evicted mid-battle silently moves no counter,
         # and holding the id instead would credit a DIFFERENT member's row.
         self._seated: list[object | None] = [None] * k
+        # R7 B5 (c): per slot, was the member drawn for the CURRENT battle the
+        # pool's newest snapshot at seat time? Read at episode end -- poll()
+        # builds the episode BEFORE re-seating the slot -- and emitted as the
+        # always-on `opp_latest` row tag `value/bias_mirror` selects on.
+        self._seated_latest: list[bool] = [False] * k
         # The pool's own per-episode draw stream. One generator for the lane,
         # seeded off the lane seed: the env path draws from the env's episode
         # RNG, which does not exist here.
@@ -252,6 +275,8 @@ class EngineCollector:
         battle, never per step — the per-EPISODE rule the env path uses."""
         member = self.pool.select(self._rng)
         self._seated[slot] = member
+        members = getattr(self.pool, "members", None)
+        self._seated_latest[slot] = bool(members) and member is members[-1]
         self.env.set_member(slot, self.pool.member_id(member))
 
     # ---- the seam ---------------------------------------------------------
@@ -298,6 +323,11 @@ class EngineCollector:
             l_actions, l_logp = np.empty(0, np.int64), np.empty(0, np.float32)
         self.seam.inference_seconds += time.perf_counter() - t0
         self.seam.requests += len(l_idx)
+        if self.searcher is not None and len(l_idx):
+            # R7 B4b: the T-op searches a fraction of these decisions, may
+            # replace the played action with a sample from pi' (and its
+            # log-prob with log pi'(a)), and records one entry per row.
+            l_actions, l_logp = self.searcher.decide(self.env, l_idx, l_obs, l_mask, l_actions, l_logp)
 
         o_actions = self._opponent_actions(o_idx, o_obs, o_mask, o_member)
 
@@ -340,7 +370,7 @@ class EngineCollector:
 
     def stats(self) -> dict[str, float]:
         s = self.env.stats()
-        return {
+        out = {
             "collect/seam_requests": float(self.seam.requests),
             "collect/inference_seconds": self.seam.inference_seconds,
             "collect/episodes_finished": float(s["episodes_finished"]),
@@ -351,6 +381,9 @@ class EngineCollector:
             "collect/engine_updates": float(s["engine_updates"]),
             "collect/opponent_inference_seconds": self.opponent_inference_seconds,
         }
+        if self.searcher is not None:
+            out.update(self.searcher.stats())
+        return out
 
     def close(self) -> None:
         """Nothing to close: no sockets, no threads, no child processes."""
@@ -429,6 +462,12 @@ class EngineCollector:
             "old_logp": np.asarray(raw["old_logp"], dtype=np.float32),
             "version": np.asarray(raw["version"], dtype=np.int64),
         }
+        # Always on (no flag): a row tag, not a lever. True on every row of an
+        # episode whose seated member was the pool's newest at seat time.
+        episode["opp_latest"] = np.full(n, self._seated_latest[int(raw["slot"])], dtype=np.bool_)
+        if self.searcher is not None:
+            # search_mask / search_pi / search_v, in row order, count asserted.
+            episode.update(self.searcher.take(int(raw["slot"]), n))
         if self._opp_action:
             episode["opp_choice"] = np.asarray(raw["opp_choice"], dtype=np.int32)
         if self._privileged:
@@ -441,6 +480,11 @@ class EngineCollector:
             # the terminal to 0, so the successor's block is row t+1's own and
             # the final state's is never read (rl/buffers/episode.py:97-112).
             episode["privileged"] = np.asarray(raw["privileged"], dtype=np.float32)
+        if self._both_views:
+            # (n, OBS_DIM) float32, one row per learner row: the foe's own
+            # observation at the acting state (env.rs, the same branch that
+            # appends `ep.obs`).
+            episode["obs2"] = np.asarray(raw["obs2"], dtype=np.float32)
         if self._outcome_targets:
             from rl.envs.outcome_targets import outcome_targets
 

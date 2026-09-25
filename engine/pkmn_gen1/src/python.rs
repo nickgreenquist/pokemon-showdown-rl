@@ -16,7 +16,7 @@ use crate::smoke;
 use crate::spec;
 use crate::team::PokemonSet;
 
-fn player(p: &str) -> PyResult<Player> {
+pub(crate) fn player(p: &str) -> PyResult<Player> {
     match p {
         "p1" | "P1" => Ok(Player::P1),
         "p2" | "P2" => Ok(Player::P2),
@@ -24,7 +24,7 @@ fn player(p: &str) -> PyResult<Player> {
     }
 }
 
-fn request(r: &str) -> PyResult<Request> {
+pub(crate) fn request(r: &str) -> PyResult<Request> {
     match r {
         "pass" => Ok(Request::Pass),
         "move" => Ok(Request::Move),
@@ -60,7 +60,7 @@ fn outcome_to_py(o: Outcome) -> &'static str {
     }
 }
 
-fn request_to_py(r: Request) -> &'static str {
+pub(crate) fn request_to_py(r: Request) -> &'static str {
     match r {
         Request::Pass => "pass",
         Request::Move => "move",
@@ -88,6 +88,10 @@ fn build_info(py: Python<'_>) -> PyResult<Py<PyDict>> {
     opts.set_item("calc", calc)?;
     d.set_item("options", &opts)?;
     d.set_item("crate_version", env!("CARGO_PKG_VERSION"))?;
+    // BatchEnv reads its team bank IN PLACE from any buffer (bytes, or the
+    // memoryview over the mmap'd bank file): one copy per box, not per lane.
+    // The collector keys its mmap path on this, and meta.yaml stamps it.
+    d.set_item("bank_zero_copy", true)?;
     Ok(d.into())
 }
 
@@ -256,8 +260,8 @@ fn mask_table_split(
 /// (`BatchEnv`) arrives with the later gates; this exists so the B-0/B-1 gate
 /// scripts can drive the engine from Python.
 #[pyclass(name = "Battle")]
-struct PyBattle {
-    inner: Battle,
+pub(crate) struct PyBattle {
+    pub(crate) inner: Battle,
 }
 
 #[pymethods]
@@ -665,6 +669,36 @@ impl PyBattleSpec {
     fn from_visible(b: &PyBattle) -> PyBattleSpec {
         PyBattleSpec { inner: spec::BattleSpec::from_visible(&b.inner) }
     }
+
+    /// One side, as a `SideSpec` copy.
+    fn side(&self, seat: &str) -> PyResult<PySideSpec> {
+        Ok(PySideSpec {
+            inner: match player(seat)? {
+                Player::P1 => self.inner.p1,
+                Player::P2 => self.inner.p2,
+            },
+        })
+    }
+
+    /// The same spec with one side replaced -- the engine->engine resample
+    /// (R7 B1b): our side stays `from_visible`'s, the foe's is a belief draw.
+    fn with_side(&self, seat: &str, side: PySideSpec) -> PyResult<PyBattleSpec> {
+        let mut inner = self.inner;
+        match player(seat)? {
+            Player::P1 => inner.p1 = side.inner,
+            Player::P2 => inner.p2 = side.inner,
+        }
+        Ok(PyBattleSpec { inner })
+    }
+
+    #[getter]
+    fn seed(&self) -> u64 {
+        self.inner.seed
+    }
+    #[getter]
+    fn turn(&self) -> u16 {
+        self.inner.turn
+    }
 }
 
 /// **W-VALIDATE** on 384 arbitrary bytes, because `Battle.from_bytes` accepts
@@ -698,6 +732,9 @@ fn pkmn_gen1(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyBattleSpec>()?;
     m.add_class::<crate::pyencode::Tables>()?;
     m.add_class::<crate::pyencode::BatchEnv>()?;
+    // R7 B0: the batched leaf path (search.rs) and the rollout leaf.
+    m.add_class::<crate::pysearch::SearchNode>()?;
+    m.add_class::<crate::pysearch::LeafBatch>()?;
     m.add("N_ACTIONS", crate::env::N_ACTIONS)?;
     m.add("OBS_DIM", crate::encoder::OBS_DIM)?;
     m.add("PRIV_DIM", crate::encoder::PRIV_DIM)?;

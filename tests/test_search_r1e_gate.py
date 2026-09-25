@@ -842,11 +842,41 @@ def test_the_corpus_is_the_non_aliased_roots_and_only_those():
     assert sum(1 for _ in G.iter_corpus(HARVEST, limit=37)) == 37
 
 
-def test_the_engine_backend_raises_with_the_symbols_it_waits_on():
+def test_the_engine_backend_raises_with_the_symbols_it_waits_on(monkeypatch):
     """A gate that silently fell back to the stand-in would report the
-    stand-in's numbers under the engine's name."""
+    stand-in's numbers under the engine's name. R7 B6 (2026-09-23) landed every
+    symbol, so where the extension is installed the seam is complete and the
+    refusal is exercised by withholding one (before B6 this test expected the
+    whole list, and it failed on the branch from B6 on)."""
+    pytest.importorskip("pkmn_gen1")
+    assert G.EngineBackend.missing() == []
+    (name, _), *rest = G.EngineBackend._NEEDED
+    monkeypatch.setattr(G.EngineBackend, "_NEEDED", ((name, lambda: False), *rest))
     be = G.EngineBackend()
     with pytest.raises(NotImplementedError) as exc:
         be.build(object(), {}, G.NO_CONTROL)
     msg = str(exc.value)
-    assert "BattleSpec" in msg and "from_root" in msg and "mask_for" in msg
+    assert "BattleSpec" in msg and "from_root" not in msg
+
+
+def test_the_gate_reads_its_tree_at_launch_not_at_write_time(monkeypatch, tmp_path):
+    """docs/CLEANUP.md L10: provenance() read `git_sha` after legs A/B/C and the controls, so a gate that spanned a
+    commit named the later tree. main() now reads it before the backend is built, and provenance() writes that launch
+    value, labelling the write-time one `written_git_sha`."""
+    order = []
+    monkeypatch.setattr(G, "launch_git", lambda: order.append("launch") or {"git_sha": "L", "git_dirty": False})
+
+    class _Stop(Exception):
+        pass
+
+    def backend():
+        order.append("backend")
+        raise _Stop
+
+    monkeypatch.setitem(G.BACKENDS, "poke_engine", backend)
+    with pytest.raises(_Stop):
+        G.main(["--harvest", str(tmp_path), "--out", str(tmp_path / "out")])
+    assert order == ["launch", "backend"]
+    p = G.provenance(tmp_path, SimpleNamespace(seed_base=0, n_det=1), {"git_sha": "L", "git_dirty": False})
+    assert p["git_sha"] == "L" and p["git_dirty"] is False
+    assert "written_git_sha" in p

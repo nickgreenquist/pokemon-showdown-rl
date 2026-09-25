@@ -38,7 +38,7 @@ pub fn health_percent(hp: u16, max_hp: u16) -> u8 {
 }
 
 /// What one side has REVEALED, plus the counters a client would keep.
-#[derive(Clone, Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SideTracker {
     /// Party indices this side has shown, in the order they first switched in.
     reveal_order: Vec<u8>,
@@ -81,6 +81,49 @@ pub struct SideTracker {
     prev_charging: bool,
     prev_transform: bool,
     started: bool,
+}
+
+/// Hand-written so that `clone_from` REUSES the Vec capacity: the search's
+/// batched leaf path (`search.rs`) refills one scratch tracker per leaf, and the
+/// derived `clone_from` (`*self = src.clone()`) would allocate thirteen Vecs per
+/// side per leaf. `clone` itself is the derived shape.
+impl Clone for SideTracker {
+    fn clone(&self) -> Self {
+        SideTracker {
+            reveal_order: self.reveal_order.clone(),
+            revealed: self.revealed,
+            revealed_moves: self.revealed_moves.clone(),
+            move_uses: self.move_uses.clone(),
+            sleep_observed: self.sleep_observed,
+            prev_status: self.prev_status,
+            prev_active_party: self.prev_active_party,
+            prev_live_moves: self.prev_live_moves,
+            binding_victim_turns: self.binding_victim_turns,
+            binding_last_turn: self.binding_last_turn,
+            flags_before_faint: self.flags_before_faint,
+            prev_charging: self.prev_charging,
+            prev_transform: self.prev_transform,
+            started: self.started,
+        }
+    }
+    fn clone_from(&mut self, src: &Self) {
+        self.reveal_order.clone_from(&src.reveal_order);
+        for i in 0..6 {
+            self.revealed_moves[i].clone_from(&src.revealed_moves[i]);
+            self.move_uses[i].clone_from(&src.move_uses[i]);
+        }
+        self.revealed = src.revealed;
+        self.sleep_observed = src.sleep_observed;
+        self.prev_status = src.prev_status;
+        self.prev_active_party = src.prev_active_party;
+        self.prev_live_moves = src.prev_live_moves;
+        self.binding_victim_turns = src.binding_victim_turns;
+        self.binding_last_turn = src.binding_last_turn;
+        self.flags_before_faint = src.flags_before_faint;
+        self.prev_charging = src.prev_charging;
+        self.prev_transform = src.prev_transform;
+        self.started = src.started;
+    }
 }
 
 impl Default for SideTracker {
@@ -162,9 +205,124 @@ impl SideTracker {
 }
 
 /// Both sides' projections, advanced together.
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct BattleTracker {
     sides: [SideTracker; 2],
+}
+
+/// Byte form of the projection, so a search POSITION can be saved and loaded
+/// (R7 G0 keeps every sampled position on disk; later reads -- the fusion
+/// columns, a privileged critic -- reuse the rollouts instead of re-rolling).
+/// Length-prefixed, little-endian, no compression; `TRACKER_FORMAT` guards it.
+pub const TRACKER_FORMAT: u8 = 1;
+
+fn put_vec(out: &mut Vec<u8>, v: &[u8]) {
+    out.push(v.len() as u8);
+    out.extend_from_slice(v);
+}
+
+fn take<'a>(b: &'a [u8], at: &mut usize, n: usize) -> Result<&'a [u8], String> {
+    if *at + n > b.len() {
+        return Err(format!("tracker bytes truncated at {}", *at));
+    }
+    let s = &b[*at..*at + n];
+    *at += n;
+    Ok(s)
+}
+
+fn take_vec(b: &[u8], at: &mut usize) -> Result<Vec<u8>, String> {
+    let n = take(b, at, 1)?[0] as usize;
+    Ok(take(b, at, n)?.to_vec())
+}
+
+impl SideTracker {
+    pub fn to_bytes(&self, out: &mut Vec<u8>) {
+        put_vec(out, &self.reveal_order);
+        out.extend(self.revealed.iter().map(|&b| b as u8));
+        for i in 0..6 {
+            put_vec(out, &self.revealed_moves[i]);
+            put_vec(out, &self.move_uses[i]);
+        }
+        out.extend_from_slice(&self.sleep_observed);
+        out.extend_from_slice(&self.prev_status);
+        out.push(self.prev_active_party.map(|p| p as u8 + 1).unwrap_or(0));
+        for (id, pp) in self.prev_live_moves {
+            out.push(id);
+            out.push(pp);
+        }
+        out.push(self.binding_victim_turns);
+        out.extend_from_slice(&self.binding_last_turn.to_le_bytes());
+        for (a, b) in self.flags_before_faint {
+            out.push(a as u8);
+            out.push(b as u8);
+        }
+        out.push(self.prev_charging as u8);
+        out.push(self.prev_transform as u8);
+        out.push(self.started as u8);
+    }
+
+    pub fn from_bytes(b: &[u8], at: &mut usize) -> Result<SideTracker, String> {
+        let mut t = SideTracker::default();
+        t.reveal_order = take_vec(b, at)?;
+        for (i, &v) in take(b, at, 6)?.iter().enumerate() {
+            t.revealed[i] = v != 0;
+        }
+        for i in 0..6 {
+            t.revealed_moves[i] = take_vec(b, at)?;
+            t.move_uses[i] = take_vec(b, at)?;
+        }
+        t.sleep_observed.copy_from_slice(take(b, at, 6)?);
+        t.prev_status.copy_from_slice(take(b, at, 6)?);
+        let p = take(b, at, 1)?[0];
+        t.prev_active_party = if p == 0 { None } else { Some(p as usize - 1) };
+        for i in 0..4 {
+            let s = take(b, at, 2)?;
+            t.prev_live_moves[i] = (s[0], s[1]);
+        }
+        t.binding_victim_turns = take(b, at, 1)?[0];
+        let s = take(b, at, 2)?;
+        t.binding_last_turn = u16::from_le_bytes([s[0], s[1]]);
+        for i in 0..6 {
+            let s = take(b, at, 2)?;
+            t.flags_before_faint[i] = (s[0] != 0, s[1] != 0);
+        }
+        let s = take(b, at, 3)?;
+        t.prev_charging = s[0] != 0;
+        t.prev_transform = s[1] != 0;
+        t.started = s[2] != 0;
+        Ok(t)
+    }
+}
+
+impl BattleTracker {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut out = vec![TRACKER_FORMAT];
+        self.sides[0].to_bytes(&mut out);
+        self.sides[1].to_bytes(&mut out);
+        out
+    }
+
+    pub fn from_bytes(b: &[u8]) -> Result<(BattleTracker, usize), String> {
+        let mut at = 0usize;
+        let fmt = take(b, &mut at, 1)?[0];
+        if fmt != TRACKER_FORMAT {
+            return Err(format!("tracker format {fmt} != {TRACKER_FORMAT}"));
+        }
+        let a = SideTracker::from_bytes(b, &mut at)?;
+        let c = SideTracker::from_bytes(b, &mut at)?;
+        Ok((BattleTracker { sides: [a, c] }, at))
+    }
+}
+
+impl Clone for BattleTracker {
+    fn clone(&self) -> Self {
+        BattleTracker { sides: [self.sides[0].clone(), self.sides[1].clone()] }
+    }
+    /// Allocation-free when `self` already has the capacity (see `SideTracker`).
+    fn clone_from(&mut self, src: &Self) {
+        self.sides[0].clone_from(&src.sides[0]);
+        self.sides[1].clone_from(&src.sides[1]);
+    }
 }
 
 impl BattleTracker {
@@ -544,6 +702,87 @@ fn active_view(b: &Battle, p: Player, tr: &SideTracker, active_party: usize) -> 
             0
         },
         preparing: charging,
+    }
+}
+
+/// What a CLIENT has seen of one side at a CONSTRUCTED root (R7 B6, design
+/// §3.1): the projection's history fields, filled from poke-env's public
+/// surface (`scripts/search_r1e_gate.py::root_reveals`, `rl/search/
+/// engine_bridge.py`). The diff fields are NOT here -- `from_root` seeds them
+/// from the built battle.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RootReveal {
+    pub reveal_order: Vec<u8>,
+    pub revealed_moves: [Vec<u8>; 6],
+    pub move_uses: [Vec<u8>; 6],
+    pub sleep_observed: [u8; 6],
+    pub flags_before_faint: [(bool, bool); 6],
+    pub binding_victim_turns: u8,
+}
+
+impl BattleTracker {
+    /// The projection at a CONSTRUCTED root (design §3.1): (a) the observable
+    /// history from the client's view, (b) the diff state seeded from the built
+    /// battle exactly as `observe` leaves it, so the first `observe` after the
+    /// root re-reveals nothing, counts no phantom PP spend and resets no sleep
+    /// counter. `fresh` (everything the bytes hold, revealed) is control C5;
+    /// this is the real thing, and gate R1-E grades it.
+    pub fn from_root(b: &Battle, p1: &RootReveal, p2: &RootReveal) -> BattleTracker {
+        let mut t = BattleTracker::default();
+        for (p, r) in [(Player::P1, p1), (Player::P2, p2)] {
+            let side = b.side(p);
+            let foe = b.side(p.foe());
+            let s = &mut t.sides[p.index()];
+            for &pi in &r.reveal_order {
+                if (pi as usize) < 6 && side.party(pi as usize).species() != 0 {
+                    s.reveal(pi as usize);
+                }
+            }
+            let active = side.active_party_index();
+            if side.party(active).species() != 0 {
+                s.reveal(active);
+            }
+            for i in 0..6 {
+                s.revealed_moves[i] = r.revealed_moves[i].iter().copied().filter(|&m| m != 0).take(4).collect();
+                let n = s.revealed_moves[i].len();
+                s.move_uses[i] = r.move_uses[i].iter().copied().take(n).collect();
+                while s.move_uses[i].len() < n {
+                    s.move_uses[i].push(0);
+                }
+            }
+            s.sleep_observed = r.sleep_observed;
+            s.flags_before_faint = r.flags_before_faint;
+            s.binding_victim_turns = r.binding_victim_turns;
+            s.binding_last_turn = if foe.active().volatiles().binding() && r.binding_victim_turns > 0 {
+                b.turn()
+            } else {
+                u16::MAX
+            };
+            s.prev_active_party = Some(active);
+            s.prev_live_moves = side.active().moves();
+            s.prev_charging = side.active().volatiles().charging();
+            s.prev_transform = side.active().volatiles().transform();
+            for i in 0..6 {
+                s.prev_status[i] = side.party(i).status().0;
+            }
+            s.started = true;
+        }
+        t
+    }
+
+    /// The history half of one side's projection, as a `RootReveal` -- what
+    /// `from_root` would need to rebuild it (the round-trip test's oracle).
+    pub fn reveal_of(&self, p: Player) -> RootReveal {
+        let s = &self.sides[p.index()];
+        let mut r = RootReveal { reveal_order: s.reveal_order.clone(), ..Default::default() };
+        for i in 0..6 {
+            r.revealed_moves[i] = s.revealed_moves[i].clone();
+            r.move_uses[i] = s.move_uses[i].clone();
+        }
+        r.sleep_observed = s.sleep_observed;
+        r.flags_before_faint = s.flags_before_faint;
+        r.binding_victim_turns = s.binding_victim_turns;
+        r
     }
 }
 

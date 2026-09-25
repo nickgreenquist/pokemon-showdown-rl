@@ -69,9 +69,11 @@ def test_engine_collector_emits_the_block_only_when_asked():
     last = _row(1, 6, [1.0] * 5 + [0.0], [(1, 0.0)] * 6)
     raw = {"length": 4, "reward": 1.0, "obs": _episode(last, n=4),
            "masks": np.ones((4, sd.N_ACTIONS), bool), "actions": np.zeros(4, np.int64),
-           "old_logp": np.zeros(4, np.float32), "version": np.zeros(4, np.int64)}
-    off = SimpleNamespace(_opp_action=False, _privileged=False, _outcome_targets=False)
-    on = SimpleNamespace(_opp_action=False, _privileged=False, _outcome_targets=True)
+           "old_logp": np.zeros(4, np.float32), "version": np.zeros(4, np.int64), "slot": 0}
+    # The collector's own per-slot state that _episode reads since B5 (bc24570): the row tag and the T-op hook.
+    base = dict(_opp_action=False, _privileged=False, _both_views=False, _seated_latest=[False], searcher=None)
+    off = SimpleNamespace(**base, _outcome_targets=False)
+    on = SimpleNamespace(**base, _outcome_targets=True)
     assert "outcome_targets" not in EngineCollector._episode(off, raw)
     ep = EngineCollector._episode(on, raw)
     assert ep["outcome_targets"].shape == (4, 3)

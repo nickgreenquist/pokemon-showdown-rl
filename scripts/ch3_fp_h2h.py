@@ -70,8 +70,21 @@ BATTLE_FORMAT = "gen1randombattle"
 #     Construction is byte-equivalent to ladder.py's: same sha assert, same
 #     load_checkpoint/Config/_load_showdown_agent, same lane ORDER — the
 #     whole point of the arm is that it rates the object that laddered.
+#   * native_seat (R7 G2, plan §6; 2026-09-23) -- the L-OP on a live battle
+#     (`rl/search/lop.py::NativeLOp`): B belief-sampled worlds built through
+#     B6's write-side bridge into pkmn_gen1 roots, `native.solve` on each with
+#     the committee's critic at the leaves and the committee's prior on that
+#     world's foe view, PIMC over the worlds, the gated soft best response.
+#     Carries `seat:` (provenance and the decision-RNG seed) and
+#     `ensemble_members:` (the committee, the seat among them) like a searched
+#     committee, and a `lop:` block whose keys are NativeLOp's signature
+#     (`lop_from`) with the solve dials under `solve:` (`native.dials_from`).
+#     Its GREEDY action is EnsembleAgent's over the same members, so against an
+#     `ensemble_seat` arm over those members the comparison isolates the
+#     search. RUNS IN AN ENGINE ENV (pkmn-engine-r7: pkmn_gen1 + poke-env,
+#     no poke_engine) -- `PY=` on the runner -- and never imports SearchAgent.
 ARM_KINDS = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
-             "ensemble_seat")
+             "ensemble_seat", "native_seat")
 
 
 def _build_agent(spec: dict):
@@ -223,6 +236,10 @@ class SeatPlayer(Player):
         # per-decision probe stats, keyed by their own name; see choose_move
         self.probe: dict[str, list[float]] = {}
         self.leaves: list[int] = []
+        # EVERY decision's seat-side wall time, whatever the arm kind (2026-09-23,
+        # the G2 reviews): JOURNEY 14 wants decisions/sec for BOTH arms, and an
+        # arm's own wall clock is mostly Foul Play's think time and the server.
+        self.decision_ms: list[float] = []
         self.concurrent_decisions = 0
         # ARM-LEVEL decision total. `_decision_index` RESETS every battle, so it
         # cannot be the denominator of an arm-level rate -- see below.
@@ -253,13 +270,26 @@ class SeatPlayer(Player):
             self.tag_index[battle.battle_tag] = self._battle_index
             if hasattr(self._agent, "reset_episode"):
                 self._agent.reset_episode()  # the loop breaker's memory is per battle
+        t_dec = time.perf_counter()
         obs = embed_battle(battle, self._type_chart)
         mask = np.array(SinglesEnv.get_action_mask(battle), dtype=bool)
         if self._sa is not None:
             t0 = time.perf_counter()
-            action, stats = self._sa.act(
-                battle, obs, mask, self._battle_index, self._decision_index
-            )
+            try:
+                action, stats = self._sa.act(
+                    battle, obs, mask, self._battle_index, self._decision_index
+                )
+            except Exception as exc:
+                # R7 G2: the native L-op's OperatorMismatch means the arm is not the
+                # operator G1 measured. poke-env would swallow the exception in its
+                # message task and the battle would forfeit on the timer as an
+                # ORDINARY LOSS; exiting the process makes it a death the runner sees.
+                if type(exc).__name__ == "OperatorMismatch":
+                    import os, sys, traceback
+                    traceback.print_exc()
+                    print("FATAL: OperatorMismatch -- the seat exits; the arm is VOID", file=sys.stderr, flush=True)
+                    os._exit(70)
+                raise
             if "search/leaves" in stats:
                 self.ms.append((time.perf_counter() - t0) * 1e3)
                 self.leaves.append(int(stats["search/leaves"]))
@@ -278,6 +308,7 @@ class SeatPlayer(Player):
                         self.probe.setdefault(k, []).append(float(v))
         else:
             action = self._agent.act(obs, mask, deterministic=self._det)
+        self.decision_ms.append((time.perf_counter() - t_dec) * 1e3)
         self._decision_index += 1
         self._decisions_total += 1
         try:
@@ -363,7 +394,33 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     search_agent = None
     eval_provenance = None
     searched_ensemble = None
-    if arm["kind"] == "search_seat":
+    if arm["kind"] == "native_seat":
+        from rl.envs.engine_tables import build_tables
+        from rl.search.ensemble import EnsembleAgent
+        from rl.search.lop import NativeLOp, lop_from
+
+        members = list(arm["ensemble_members"])
+        assert len(members) == len(set(members)), (
+            f"{arm_name}: duplicate member in {members} -- a repeated member "
+            "silently reweights the log-prob pool")
+        assert not seat_lane_defaulted and seat_lane in members, (
+            f"{arm_name}: native_seat needs an explicit `seat:` among {members}")
+        ens = EnsembleAgent([agent if x == seat_lane else _build_agent(prereg["checkpoints"][x]) for x in members])
+        for m in ens.members:
+            m.actor.eval(); m.critic.eval()
+        tables, tables_fp = build_tables()
+        search_agent = NativeLOp(ens, tables, **lop_from(arm.get("lop")))
+        agent = ens
+        # The width stamp over the COMMITTEE (every member's input width), not the
+        # single seat lane the generic stamp above saw (the G2 code review).
+        native_dim = _native_dim(agent)
+        searched_ensemble = {
+            "members": members,
+            "member_sha256": [prereg["checkpoints"][x]["sha256"] for x in members],
+            "member_steps": [prereg["checkpoints"][x].get("step") for x in members],
+            "tables_fingerprint": tables_fp,
+        }
+    elif arm["kind"] == "search_seat":
         from rl.search.agent import SearchAgent, lane_seed
         from rl.search.matrix import DOSES
 
@@ -539,7 +596,30 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
             seat.concurrent_decisions / max(seat._decisions_total, 1)),
         "concurrent_decisions_denominator": seat._decisions_total,
     }
-    if search_agent is not None:
+    # THE SEAT'S OWN PACE, every arm kind (JOURNEY 14: decisions/sec for BOTH
+    # arms). `seat/*` is our own compute per decision; `arm/decisions_per_wall_sec`
+    # is dominated by Foul Play's think time and the server, labelled as such.
+    dms = np.array(seat.decision_ms) if seat.decision_ms else np.array([0.0])
+    report.update({
+        "seat/decision_ms_mean": float(dms.mean()),
+        "seat/decision_ms_p50": float(np.percentile(dms, 50)),
+        "seat/decision_ms_p99": float(np.percentile(dms, 99)),
+        "seat/decisions_per_sec": (1000.0 / float(dms.mean())) if dms.mean() > 0 else None,
+        "arm/decisions_per_wall_sec": (seat._decisions_total / elapsed) if elapsed > 0 else None,
+    })
+    # WHICH `rl` THIS PROCESS RAN is stamped by main() at LAUNCH (_rl_provenance).
+    if arm["kind"] == "native_seat":
+        # The L-op's own counters: the override rate beside every win rate (the
+        # landmine), the refusal families, the dose, decisions/sec (JOURNEY 14's
+        # exit condition names it in every quote).
+        ms = np.array(seat.ms) if seat.ms else np.array([0.0])
+        report.update(search_agent.report())
+        report.update({
+            "search/ms_mean": float(ms.mean()),
+            "search/ms_p99": float(np.percentile(ms, 99)),
+            "search/searched_decisions": len(seat.ms),
+        })
+    elif search_agent is not None:
         ms = np.array(seat.ms) if seat.ms else np.array([0.0])
         lv = np.array(seat.leaves) if seat.leaves else np.array([0])
         dec = search_agent.counters["search/decisions"]
@@ -689,6 +769,29 @@ def _git_sha() -> str:
         return ""
 
 
+def _rl_provenance() -> dict:
+    """WHICH `rl` THIS PROCESS RUNS, and that tree's sha and dirty flag (the G2
+    design review: two envs import two different trees, and a launch sha of the
+    CWD would not say which). main() calls it at LAUNCH, before a single battle;
+    it had been read inside run() AFTER the battles, so an arm that spanned a
+    commit named the later tree (docs/CLEANUP.md L10)."""
+    import pathlib
+    import subprocess
+
+    import rl as _rl
+    root = pathlib.Path(_rl.__file__).resolve().parents[1]
+    prov = {"rl_package": str(pathlib.Path(_rl.__file__).resolve().parent)}
+    try:
+        prov["rl_git_sha"] = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
+                                            text=True, check=True).stdout.strip()
+        prov["rl_git_dirty"] = bool(subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True, text=True, check=True).stdout.strip())
+    except (OSError, subprocess.CalledProcessError):
+        prov["rl_git_sha"] = None
+    return prov
+
+
 def main() -> None:
     import os
 
@@ -718,8 +821,10 @@ def main() -> None:
     # than merely mis-labelled. ARMS WRITTEN BEFORE THIS CHANGE CARRY A
     # FINISH-TIME VALUE UNDER THE LAUNCH NAME (docs/CLEANUP.md L5).
     launch_sha = _git_sha()
+    rl_prov = _rl_provenance()
 
     result = asyncio.run(run(prereg, args.arm, battles, tag))
+    result.update(rl_prov)
 
     # CH4 R1 G8: era/provenance stamp — launch sha, the pre-reg's content
     # hash (the thresholds cannot drift between launch and grading without

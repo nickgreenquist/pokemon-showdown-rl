@@ -49,6 +49,7 @@ deliberate deviation, recorded).
 from dataclasses import dataclass
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 # R0-2 HARD CEILING: the flat [512,512] MLP actor on v2/808 — 808*512+512
@@ -303,6 +304,7 @@ class EntityDeepSetsNet(nn.Module):
         value_sizes: list[int] = (384, 384),
         value_aux_out: int = 0,
         privileged_dim: int = 0,
+        antisymmetric: bool = False,
         layout: TrunkLayout | str = "gen1",
         item_vocab: int = 0,
         ability_vocab: int = 0,
@@ -366,6 +368,27 @@ class EntityDeepSetsNet(nn.Module):
                     "POKEMON_RL_ENCODER_IDS env vars — the id tail is required)"
                 )
         self.privileged_dim = privileged_dim
+        # R7 B2 (plan amendment box 2, item 3): the ANTISYMMETRIC critic,
+        #   V(s) := 1/2 (f(view_1) - f(view_2)),
+        # where view_1 is the acting seat's observation and view_2 the foe's OWN
+        # observation of the same state (both rendered by the engine -- the
+        # collector under `both_views`, and `SearchNode.expand` at a leaf).
+        # RESULTS §31 measured the plain critic adding +0.059 to whichever seat
+        # it is pointed at; this form cancels any seat-constant bias as an
+        # IDENTITY, not a regulariser: swapping the two views flips the sign
+        # bitwise (the two forwards run as two calls of the same shape, so each
+        # view's value is computed identically whichever slot it sits in, and
+        # IEEE subtraction is exactly antisymmetric).
+        # Construction is UNCHANGED -- no new module, identical state_dict keys,
+        # identical param count -- so every existing critic checkpoint loads
+        # into the antisymmetric form and `f` starts as the trained critic.
+        # `forward` takes `[view_1 | view_2]` (2 x in_dim), or
+        # `[view_1 | view_2 | priv_1 | priv_2]` with the privileged block on
+        # (each view carries the OTHER seat's own-side block, the D18 slice).
+        # The POLICY IGNORES the kwarg (the value_sizes / value_aux_out rule:
+        # trunk_kwargs are shared and the actor never changes).
+        self.antisymmetric = bool(antisymmetric) and not self.is_policy
+        self.view_dim = in_dim
         # context: field || own pool || opp pool || own active || opp active
         # (|| priv pool || priv active || priv-move pool when privileged).
         ctx_in = (5 + (3 if privileged_dim else 0)) * entity_dim
@@ -601,10 +624,48 @@ class EntityDeepSetsNet(nn.Module):
                 "forward_with_aux needs a CRITIC built with value_aux_out > 0 "
                 f"(is_policy={self.is_policy}, value_aux_out={self.value_aux_out})"
             )
+        if self.antisymmetric:
+            # The outcome head reads the ACTING seat's context (its targets are
+            # that seat's survivors / margin); the value is the antisymmetric
+            # pair, computed exactly as `forward` computes it.
+            a, b = self._split_views(x)
+            _, _, _, ctx_a = self._context(a)
+            _, _, _, ctx_b = self._context(b)
+            return 0.5 * (self.head(ctx_a) - self.head(ctx_b)), self.aux_value_head(ctx_a)
         _, _, _, ctx = self._context(x)
         return self.head(ctx), self.aux_value_head(ctx)
 
+    def _split_views(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """`[view_1 | view_2 (| priv_1 | priv_2)]` -> the two critic inputs
+        `view_1 (| priv_1)` and `view_2 (| priv_2)`. Refuses any other width:
+        a plain-obs batch reaching an antisymmetric critic is the seam this
+        repo's privileged block already guards against (a silently split
+        single view would value half an observation)."""
+        d, p = self.view_dim, self.privileged_dim
+        want = 2 * d + 2 * p
+        if x.shape[-1] != want:
+            raise ValueError(
+                f"antisymmetric critic expects [view_1 | view_2"
+                f"{' | priv_1 | priv_2' if p else ''}] = {want} wide, got {x.shape[-1]}"
+            )
+        a, b = x[:, :d], x[:, d : 2 * d]
+        if p:
+            a = torch.cat([a, x[:, 2 * d : 2 * d + p]], dim=-1)
+            b = torch.cat([b, x[:, 2 * d + p :]], dim=-1)
+        return a, b
+
     def forward(self, x: torch.Tensor, return_features: bool = False) -> torch.Tensor:
+        if self.antisymmetric:
+            if return_features:
+                raise ValueError("return_features is actor-only")
+            # Two calls of ONE shape, never one 2N-row call: a GEMM may pick a
+            # different kernel for a different batch size, and the bitwise
+            # sign flip under a view swap needs each view valued identically
+            # whichever position it holds.
+            a, b = self._split_views(x)
+            _, _, _, ctx_a = self._context(a)
+            _, _, _, ctx_b = self._context(b)
+            return 0.5 * (self.head(ctx_a) - self.head(ctx_b))
         tok, mons, own_moves, ctx = self._context(x)
         if not self.is_policy:
             if return_features:
@@ -618,10 +679,19 @@ class EntityDeepSetsNet(nn.Module):
         # own-move vector j. ONE shared scorer over all 10 [ctx || entity]
         # pairs; masking is applied outside, by the caller.
         entities = torch.cat([mons[:, :6], own_moves], dim=1)  # (B, 10, entity_dim)
-        pairs = torch.cat(
-            [ctx.unsqueeze(1).expand(-1, entities.shape[1], -1), entities], dim=-1
-        )
-        logits = self.scorer(pairs).squeeze(-1) + self.slot_bias
+        # THE CTX FACTORIZATION (CLEANUP E2; ruled 2026-09-24): the scorer's
+        # first Linear over [ctx || entity_i] splits exactly, W @ [ctx; e] + b ==
+        # (W[:, :ctx] @ ctx + b) + W[:, ctx:] @ e, and ctx is the SAME vector in
+        # all ten slots -- so its half runs once a row instead of ten times
+        # (~1.97x on this layer, ~26% of the epoch loop). The SAME weights,
+        # sliced: no new parameters, checkpoints load unchanged. Float32
+        # summation order moves the logits by <= ~3e-07, which is why
+        # tests/test_entity_trunk_gen4.py's bit-exact _GEN1_PIN was re-baselined
+        # with it; tests/test_entity_scorer_factorization.py pins the identity.
+        lin0 = self.scorer[0]
+        c_in = ctx.shape[-1]
+        h0 = F.linear(ctx, lin0.weight[:, :c_in], lin0.bias).unsqueeze(1) + F.linear(entities, lin0.weight[:, c_in:])
+        logits = self.scorer[1:](h0).squeeze(-1) + self.slot_bias
         if not return_features:
             return logits
         return (logits, *self._aux_features(tok, mons, ctx))

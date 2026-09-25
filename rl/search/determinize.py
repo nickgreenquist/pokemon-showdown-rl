@@ -150,14 +150,22 @@ class _TeamCaps:
         return ok
 
 
-def sample_determinization(battle: Any, rng: np.random.Generator) -> dict:
-    """One consistent opponent team for `battle1`'s current information set."""
+def sample_determinization(battle: Any, rng: np.random.Generator, *, sample_active: bool = False) -> dict:
+    """One consistent opponent team for `battle1`'s current information set.
+
+    `sample_active` (R7's L-op, 2026-09-23, the G2 code review): the foe
+    ACTIVE's unrevealed moves are SAMPLED like a revealed bench mon's
+    (`_complete_revealed`), as the engine -> engine resample does
+    (`rl/search/resample.py`), so B worlds vary the active's moveset -- which
+    at depth 1 sets the foe's move columns and the leaf damage. Off (the
+    default), the active takes the encoder's four deterministic slots (MF-5b
+    containment): SearchAgent's rule and the R1-E gate's, bit for bit."""
     opponents: dict[str, dict] = {}
     seen = set()
     for species, mon in battle.opponent_team.items():
         sp = mon.species
         seen.add(sp)
-        if mon is battle.opponent_active_pokemon:
+        if mon is battle.opponent_active_pokemon and not sample_active:
             # the encoder's four slots, deterministic (MF-5b containment).
             # _opponent_move_slots yields (move_id, prob) pairs.
             from rl.envs.showdown import _opponent_move_slots

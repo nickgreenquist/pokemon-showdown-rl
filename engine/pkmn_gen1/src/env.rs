@@ -54,6 +54,10 @@ pub struct Episode {
     /// was built with `privileged`, because filling it costs a SECOND full
     /// encode per learner row.
     pub privileged: Vec<f32>,
+    /// R7 B2: the OPPONENT seat's FULL own observation per learner row -- the
+    /// antisymmetric critic's second view. Empty unless the env was built with
+    /// `both_views`. `privileged` is a slice of exactly this vector.
+    pub obs2: Vec<f32>,
     pub reward: f32,
     pub length: usize,
     pub turns: u16,
@@ -77,10 +81,11 @@ pub struct Gen1Env {
     ep: Episode,
     done: bool,
     privileged: bool,
+    both_views: bool,
 }
 
 /// Maps an action index to the engine choice it means, or `None` if illegal.
-fn action_to_choice(b: &Battle, p: Player, req: Request, aliased: bool, action: usize) -> Option<Choice> {
+pub(crate) fn action_to_choice(b: &Battle, p: Player, req: Request, aliased: bool, action: usize) -> Option<Choice> {
     let offered = b.choices(p, req);
     if action < 6 {
         let slot = b.side(p).slot_of_party_index(action)?;
@@ -164,7 +169,7 @@ fn choice_identity(b: &Battle, p: Player, aliased: bool, c: Choice) -> (i32, i32
 }
 
 /// The 10-way mask, derived from the engine's own `choices()`.
-fn mask_for(b: &Battle, p: Player, req: Request, aliased: bool) -> [bool; N_ACTIONS] {
+pub(crate) fn mask_for(b: &Battle, p: Player, req: Request, aliased: bool) -> [bool; N_ACTIONS] {
     let mut m = [false; N_ACTIONS];
     for a in 0..N_ACTIONS {
         m[a] = action_to_choice(b, p, req, aliased, a).is_some();
@@ -202,7 +207,16 @@ impl Gen1Env {
             },
             done: false,
             privileged,
+            both_views: false,
         })
+    }
+
+    /// R7 B2: also record the foe's full own view per learner row (`Episode::
+    /// obs2`). Costs the same second encode the privileged block costs; when
+    /// both are on, one encode serves both.
+    pub fn with_both_views(mut self, on: bool) -> Gen1Env {
+        self.both_views = on;
+        self
     }
 
     pub fn done(&self) -> bool {
@@ -292,13 +306,23 @@ impl Gen1Env {
             // loop is I/O-dominated" -- TRUE of the server path and FALSE here,
             // which is the whole point of the port. Hence opt-in: off, it costs
             // nothing; on, T-1 should measure it before an arm relies on it.
-            if self.privileged {
+            if self.privileged || self.both_views {
                 let fst = self.state(foe, t);
                 let mut fobs = vec![0.0f32; OBS_DIM];
                 encode(&mut fobs, t, &fst);
-                let n = self.ep.privileged.len();
-                self.ep.privileged.resize(n + PRIV_DIM, 0.0);
-                privileged_block(&fobs, &mut self.ep.privileged[n..]);
+                if self.privileged {
+                    let n = self.ep.privileged.len();
+                    self.ep.privileged.resize(n + PRIV_DIM, 0.0);
+                    privileged_block(&fobs, &mut self.ep.privileged[n..]);
+                }
+                // R7 B2: the foe's FULL own view, the antisymmetric critic's
+                // second input, read at the same instant as the block above
+                // (which is a slice of this very vector, so they cannot
+                // disagree) -- exactly what `search::Node::expand` renders as
+                // `obs2` at a leaf.
+                if self.both_views {
+                    self.ep.obs2.extend_from_slice(&fobs);
+                }
             }
             self.ep.obs.extend_from_slice(&obs);
             self.ep.masks.extend(mask);
@@ -405,12 +429,32 @@ impl Gen1Env {
     pub fn outcome(&self) -> Outcome {
         self.result.outcome
     }
+
+    /// The projection, for `search::Node::from_env` -- a search leaf starts from
+    /// exactly what the collector knows at this position.
+    pub(crate) fn tracker(&self) -> &BattleTracker {
+        &self.tracker
+    }
+    /// The last update's result: both seats' requests and the outcome.
+    pub(crate) fn result(&self) -> BattleResult {
+        self.result
+    }
+    /// Tests only: write a chance seed so a played step can be compared with a
+    /// search leaf expanded under the same seed.
+    #[cfg(test)]
+    pub(crate) fn battle_mut(&mut self) -> &mut Battle {
+        &mut self.battle
+    }
 }
 
 /// The team bank's packed payload (`scripts/engine_team_bank.py`): pairs of two
-/// six-mon teams, eight bytes per mon.
+/// six-mon teams, eight bytes per mon. The bytes come from any source: an owned
+/// `Vec` (tests), or -- `pyencode.rs` -- a Python buffer over the bank file
+/// mmap'd read-only, so every lane on the box reads ONE copy through the page
+/// cache instead of holding its own 0.53 GB (the 2026-09-10 max-out finding;
+/// R7 plan §9 ruling 6's precondition).
 pub struct TeamBank {
-    payload: Vec<u8>,
+    payload: Box<dyn AsRef<[u8]> + Send + Sync>,
 }
 
 const BYTES_PER_MON: usize = 8;
@@ -419,21 +463,28 @@ const PAIR_BYTES: usize = TEAM_BYTES * 2;
 
 impl TeamBank {
     pub fn new(payload: Vec<u8>) -> Result<TeamBank, String> {
-        if payload.is_empty() || payload.len() % PAIR_BYTES != 0 {
-            return Err(format!(
-                "team bank payload is {} bytes, not a multiple of {PAIR_BYTES}",
-                payload.len()
-            ));
+        TeamBank::from_source(Box::new(payload))
+    }
+
+    /// Any read-only byte source; the length is checked once, here.
+    pub fn from_source(payload: Box<dyn AsRef<[u8]> + Send + Sync>) -> Result<TeamBank, String> {
+        let n = (*payload).as_ref().len();
+        if n == 0 || n % PAIR_BYTES != 0 {
+            return Err(format!("team bank payload is {n} bytes, not a multiple of {PAIR_BYTES}"));
         }
         Ok(TeamBank { payload })
     }
 
+    fn bytes(&self) -> &[u8] {
+        (*self.payload).as_ref()
+    }
+
     pub fn pairs(&self) -> usize {
-        self.payload.len() / PAIR_BYTES
+        self.bytes().len() / PAIR_BYTES
     }
 
     fn mon(&self, at: usize) -> PokemonSet {
-        let b = &self.payload[at..at + BYTES_PER_MON];
+        let b = &self.bytes()[at..at + BYTES_PER_MON];
         let min_atk = b[6] & 1 != 0;
         PokemonSet {
             species: b[0],
@@ -459,11 +510,11 @@ impl TeamBank {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::team::random_team;
 
-    fn tables_stub() -> StaticTables {
+    pub(crate) fn tables_stub() -> StaticTables {
         StaticTables {
             species: (0..152)
                 .map(|i| crate::tables::SpeciesEntry {
@@ -897,6 +948,50 @@ mod tests {
         assert!(env.ep.privileged.iter().any(|&v| v != first), "block is constant");
     }
 
+    /// R7 B2: `obs2` is the foe's own full encode at the acting state, and
+    /// the privileged block is its slice -- one vector, two consumers.
+    #[test]
+    fn the_second_view_is_the_foes_own_encode_and_the_block_is_its_slice() {
+        use crate::encoder::{PRIV_DIM, privileged_block};
+        let t = tables_stub();
+        let p1: Vec<_> = random_team(71, true).iter().map(|m| m.to_bytes()).collect();
+        let p2: Vec<_> = random_team(72, true).iter().map(|m| m.to_bytes()).collect();
+        let mut env = Gen1Env::new(0xB2, &p1, &p2, Player::P2, 0, true).unwrap().with_both_views(true);
+        let mut rng = 6u64;
+        let mut want: Vec<f32> = Vec::new();
+        let mut rows = 0;
+        while !env.done() && rows < 60 {
+            if env.pending(Player::P2, &t).is_some() {
+                // The learner sits at P2 here, so the "foe" is P1.
+                let fst = env.state(Player::P1, &t);
+                let mut fobs = vec![0.0f32; OBS_DIM];
+                crate::encoder::encode(&mut fobs, &t, &fst);
+                want.extend_from_slice(&fobs);
+                rows += 1;
+            }
+            let pick = |env: &Gen1Env, p: Player, rng: &mut u64| -> Option<usize> {
+                let pd = env.pending(p, &t)?;
+                let legal: Vec<usize> = (0..N_ACTIONS).filter(|&a| pd.mask[a]).collect();
+                *rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1);
+                Some(legal[((*rng >> 33) as usize) % legal.len()])
+            };
+            let la = pick(&env, Player::P2, &mut rng);
+            let oa = pick(&env, Player::P1, &mut rng);
+            env.step(&t, la, 0.0, 0, oa).unwrap();
+        }
+        assert!(rows > 10, "only {rows} learner rows");
+        assert_eq!(env.ep.obs2.len(), rows * OBS_DIM);
+        assert_eq!(env.ep.obs2, want, "obs2 is not the foe's own view");
+        assert_eq!(env.ep.privileged.len(), rows * PRIV_DIM);
+        for r in 0..rows {
+            let mut blk = vec![0.0f32; PRIV_DIM];
+            privileged_block(&env.ep.obs2[r * OBS_DIM..(r + 1) * OBS_DIM], &mut blk);
+            assert_eq!(&env.ep.privileged[r * PRIV_DIM..(r + 1) * PRIV_DIM], &blk[..], "row {r}");
+        }
+        // And the two views differ: the foe sees its own bench exactly.
+        assert_ne!(&env.ep.obs2[..OBS_DIM], &env.ep.obs[..OBS_DIM]);
+    }
+
     /// Off by default, and off costs nothing.
     #[test]
     fn the_privileged_block_is_empty_unless_asked_for() {
@@ -918,6 +1013,7 @@ mod tests {
         let ep = env.take_episode();
         assert!(ep.length > 0);
         assert!(ep.privileged.is_empty());
+        assert!(ep.obs2.is_empty());
     }
 
     #[test]
@@ -994,6 +1090,8 @@ pub struct BatchEnv {
     /// D18: fill each learner row's privileged block. Off by default -- it
     /// costs a second full encode per row.
     privileged: bool,
+    /// R7 B2: record the foe's full own view per learner row (`Episode::obs2`).
+    both_views: bool,
     pub stats: BatchStats,
 }
 
@@ -1011,6 +1109,7 @@ impl BatchEnv {
         learner: Player,
         battle_counter: u64,
         privileged: bool,
+        both_views: bool,
     ) -> Result<BatchEnv, String> {
         if k == 0 {
             return Err("BatchEnv needs at least one slot".into());
@@ -1025,6 +1124,7 @@ impl BatchEnv {
             finished: Vec::new(),
             scripted_rng: lane_seed ^ 0x5343_5249_5054_4544,
             privileged,
+            both_views,
             stats: BatchStats::default(),
         };
         for _ in 0..k {
@@ -1048,7 +1148,9 @@ impl BatchEnv {
         let pick = crate::battle::splitmix64(seed ^ 1) as usize;
         let (p1, p2) = self.bank.pair(pick % self.bank.pairs());
         self.stats.battles_started += 1;
-        Gen1Env::new(seed, &p1, &p2, self.learner, -1, self.privileged).map_err(|e| e.to_string())
+        Gen1Env::new(seed, &p1, &p2, self.learner, -1, self.privileged)
+            .map(|e| e.with_both_views(self.both_views))
+            .map_err(|e| e.to_string())
     }
 
     pub fn battle_counter(&self) -> u64 {
@@ -1065,6 +1167,13 @@ impl BatchEnv {
     }
     pub fn tables(&self) -> &StaticTables {
         &self.tables
+    }
+    /// One live battle, read-only -- the search snapshots positions from here.
+    pub fn slot(&self, i: usize) -> Option<&Gen1Env> {
+        self.slots.get(i)
+    }
+    pub fn learner(&self) -> Player {
+        self.learner
     }
     pub fn set_member(&mut self, slot: usize, member: i32) {
         if let Some(s) = self.slots.get_mut(slot) {

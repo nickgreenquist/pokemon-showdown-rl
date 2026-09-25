@@ -305,6 +305,73 @@ def test_training_path_writes_theta0_once_and_guards_resumes(tmp_path):
         _ensure_theta0(_agent(LAMBDA, seed=44), tmp_path, cfg)
 
 
+def test_a_warm_start_anchors_to_its_donors_theta0_and_a_resume_reinstalls_it(tmp_path):
+    """R7 plan AMENDMENT BOX 6, R-F1: `init_from` + l2_init_decay > 0 used to be
+    refused (the anchors cannot be recovered from a checkpoint). They can be
+    recovered from the DONOR's run dir: installed in place (the decay groups
+    alias the anchor tensors), checked against the digest the donor's
+    checkpoint carries, and written into the new run dir with the donor named,
+    so every later reconstruction re-installs the same anchors."""
+    from rl.common.checkpoint import save_checkpoint
+
+    donor_dir = tmp_path / "donor"
+    donor = _agent(LAMBDA, seed=44)
+    donor_dir.mkdir()
+    _ensure_theta0(donor, donor_dir, _cfg(donor_dir))
+    _fill(donor)                                # train it away from its init
+    ckpt = donor_dir / "ckpt_000000016.pt"
+    save_checkpoint(ckpt, donor, 16, _cfg(donor_dir))
+
+    run = tmp_path / "warm"
+    run.mkdir()
+    cfg = _cfg(run, init_from=str(ckpt))
+    warm = _agent(LAMBDA, seed=45)              # a different construction-time init
+    warm.load_state_dict(torch.load(ckpt, weights_only=False)["agent"])
+    assert warm.theta0_hash() != donor.theta0_hash()
+    groups_before = [id(a) for _, _, anchors, _ in warm._l2_init_groups for a in anchors]
+    _ensure_theta0(warm, run, cfg)
+    assert warm.theta0_hash() == donor.theta0_hash()
+    assert [id(a) for _, _, anchors, _ in warm._l2_init_groups for a in anchors] == groups_before, "the copy must be in place"
+    assert all(torch.equal(a, b) for a, b in zip(warm._theta0, donor._theta0))
+    payload = torch.load(run / "theta0.pt", weights_only=False)
+    assert payload["donor"]["init_from"] == str(ckpt) and payload["theta0_hash"] == donor.theta0_hash()
+    # The decay now pulls toward the DONOR's anchors: one decoupled step moves
+    # every covered param by exactly -lr * lambda * (theta - theta0_donor).
+    before = [p.detach().clone() for _, params, _, _ in warm._l2_init_groups for p in params]
+    warm._apply_l2_init_decay()
+    after = [p.detach() for _, params, _, _ in warm._l2_init_groups for p in params]
+    anchors = [a for _, _, group_anchors, _ in warm._l2_init_groups for a in group_anchors]
+    for b, a_, th0 in zip(before, after, anchors):
+        assert torch.allclose(a_, b - LR * LAMBDA * (b - th0), atol=1e-7)
+
+    # A resume reconstructs seed 45's fresh init and re-installs from the run dir's copy.
+    again = _agent(LAMBDA, seed=45)
+    _ensure_theta0(again, run, cfg)
+    assert again.theta0_hash() == donor.theta0_hash()
+    # ...and refuses the same dir under a different init_from.
+    with pytest.raises(ValueError, match="donor anchors"):
+        _ensure_theta0(_agent(LAMBDA, seed=45), run, _cfg(run, init_from=str(donor_dir / "other.pt")))
+
+    # Refusals at the first construction: the donor's anchors missing, or not the
+    # anchors the donor's checkpoint was trained against.
+    fresh = tmp_path / "warm2"
+    fresh.mkdir()
+    moved = donor_dir / "theta0.pt"
+    stash = tmp_path / "theta0.stash"
+    moved.rename(stash)
+    with pytest.raises(FileNotFoundError, match="donor's anchors"):
+        _ensure_theta0(_agent(LAMBDA, seed=46), fresh, _cfg(fresh, init_from=str(ckpt)))
+    torch.save(_agent(LAMBDA, seed=47).theta0_state(), moved)     # a foreign theta0 in the donor's place
+    with pytest.raises(ValueError, match="is not the theta0"):
+        _ensure_theta0(_agent(LAMBDA, seed=46), fresh, _cfg(fresh, init_from=str(ckpt)))
+    # A torn payload (the digest of its own tensors disagrees) is refused by the agent itself.
+    torn = torch.load(stash, weights_only=False)
+    first = next(iter(torn["theta0"]))
+    torn["theta0"][first] = torn["theta0"][first] + 1.0
+    with pytest.raises(ValueError, match="own digest"):
+        _agent(LAMBDA, seed=46).install_theta0(torn)
+
+
 def test_theta0_guard_is_a_no_op_when_the_lever_is_off(tmp_path):
     """The EVAL path builds agents and loads checkpoints without ever seeing
     a run dir; the guard must never fire off the lever."""
