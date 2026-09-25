@@ -194,6 +194,8 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   window that straddles startup invents records; use the conforming window.
 - A wall-clock ETA is not progress — check s/battle against a comparable
   completed arm (FP@20 ≈ 1.2–1.5 s, FP@100 ≈ 6–7 s); 10× off means stalled.
+  An FP@N arm compares against a completed FP@N arm at the same slot count:
+  its per-arm s/battle grows with load by design.
 - **A TYPED DIAL LIST SILENTLY DROPS DIALS** — nine instances in one week of the
   same shape (a dial or counter that runs and reports nothing); the dial's counters
   stay ZERO, which reads as a RESULT rather than an error. Derive the list from the
@@ -316,8 +318,10 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   list ruled 2026-09-05): every headline-grade result reports vs-SH (locked
   protocol, the ONLY verdict input) **plus every descriptive leg for its
   generation** before its README row lands. **Gen 1:** BC-clone h2h (500),
-  Foul Play h2h at FP@N 25k/12k (FP@20 before 2026-09-25). **Gen 4:** most-damage-typed h2h (500), Foul Play h2h at
-  BOTH 20 and 500 ms until Q38 pins one, BC-clone h2h (500; a gen-4 clone of
+  Foul Play h2h at FP@N 25k/12k (FP@20 RETIRED 2026-09-25). **Gen 4:** most-damage-typed h2h (500), Foul Play h2h at
+  BOTH 20 and 500 ms until Q38 pins one (written before FP@20's retirement;
+  25k/12k is calibrated only on gen 1's engine, so gen 4's FP leg is re-ruled
+  when that chapter reopens), BC-clone h2h (500; a gen-4 clone of
   FP@20 tapes — built alongside the first gen-4 run, ready by its readout). A
   leg that does not exist yet is reported as PENDING and the README row WAITS
   for it — legs are never dropped to make a readout land. Random / MaxBasePower
@@ -341,13 +345,21 @@ committed files** (local paths are fine — relaxed 2026-08-05).
     - **An arm whose runner JSON has `fpn_counters_ok: false` is INVALID.**
       The counters require realized iterations == N on 100% of non-forced
       searches, and timer+forfeit losses ≤ crash forfeits.
-    - **Wall-clock FP (FP@20) runs serially on a quiet box only.** It loses
-      16–19% of its iterations/ms at 4–8 arms even on P-cores, and the
-      scheduler enforces the rule.
-  - FP@20 (the wall-clock anchor before 2026-09-25) is `--search-time-ms 20`.
+    - **FP@20 IS RETIRED** (maintainer 2026-09-25: "No one should run outdated
+      F@20 anymore"; unanimous with r6-runner, fp-speedup, r7-runner). No new
+      FP@20 arm by anyone: the runner (exit 7) and `fp_arms_parallel.py` refuse
+      a gen-1 arm with `search_time_ms: 20` and no `search_iterations`
+      (`6936b2f`, `tests/test_fp_runner_guards.py`), and R7's G2 moved to FP@N
+      (r3). Banked FP@20 numbers stay citable as history, never differenced
+      against FP@N. A wall-clock budget still allowed (FP@100/500, descriptive,
+      pending the maintainer's ruling on whether the retirement reaches them)
+      runs serially on a quiet box only: wall-clock FP loses iterations under
+      load (FP@20 measured −16 to −19% of iterations/ms at 4–8 arms even on
+      P-cores), and the scheduler enforces the rule.
+  - FP@20 (the wall-clock anchor until its retirement on 2026-09-25) was `--search-time-ms 20`.
     **Two disclosures travel with every FP number, forever:** the equivalence
     test is weakly powered, and the point estimate flatters us. **Name the
-    budget in every quote.** FP@20 is an instrument, not a rung — the readiness gradient is the FP budget
+    budget in every quote.** FP@N is an instrument, not a rung — the readiness gradient is the FP budget
     ladder (`configs/eval/fp_budget_ladder.yaml`). **Gen 4's budget is UNPINNED
     until that ladder runs against the first trained gen-4 checkpoint (ruled
     2026-09-05); quote 20 and 500 ms both meanwhile.**
