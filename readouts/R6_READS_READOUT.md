@@ -53,15 +53,37 @@ moved only -> `a`, faster only -> `b`, neither -> `w`.
   fleets ran six-wide, and B's context was the heavier one (trio A's lanes, plus R7's niced G0 /
   G1 / G1b beside part of it), so the comparison does not flatter B. The rule and the result agree,
   so no maintainer line was needed.
-- **Trio A: PENDING -- trio A's pre-registered mechanism co-primary** (turn-2-8 by-turn r^2 against
-  the rollout oracle must LIFT above the R5 W finals' 0.287 on positions drawn the same way in the
-  same run; the 0.287 is `results/outcome_variance/calibration.json` by_turn 2-8 = 0.2866, 173
-  positions, 2026-09-18). Runs after the fp-speedup probe from a PINNED worktree
-  (`../pokemon-showdown-rl-r6pin` at 25bad2c; `rl/` and the instrument's scripts identical to the R6
-  launch commit 907adc6) with `PYTHONPATH` set to it, because the analysis env's editable install
-  otherwise imports main's `rl/`, which the R7 merge rewrites. Draw = the 09-18 run's: its rows hold
-  ep 0-799, so `--battles 800`, defaults otherwise. **So R7's base is `ab` or `b`, and this file is
-  amended when the instrument reads.**
+- **Trio A: NOT MOVED -> the heads are DROPPED.** The pre-registered mechanism co-primary (turn-2-8
+  by-turn r^2 against the rollout oracle must LIFT above the R5 W finals' 0.287 on positions drawn the
+  same way in the same run) ran 01:43-02:01Z on 2026-09-25, both sides in parallel from the PINNED
+  worktree `../pokemon-showdown-rl-r6pin` (25bad2c; `rl/` and the instrument's scripts identical to
+  the R6 launch commit 907adc6), `PYTHONPATH` set to it and verified per process (the analysis env's
+  editable install otherwise imports main's `rl/`, and the R7 merge landed on main 45 s after launch).
+  Trio A with C6 on, the R5 W finals with C6 off. Draw = the 09-18 run's (its rows hold ep 0-799 ->
+  `--battles 800`; dets 4 x rollouts 8, max-stop 36, seed 20260917). A 688 positions, W 687.
+  `critic_calibration.py --compare` (B - A = trio A minus R5 W; se unpaired), verbatim:
+
+  ```
+  BY-TURN r^2: A = r5W_finals   B = trioA_finals
+       turns   n_a    r2_a   n_b    r2_b      B-A      se      z
+         2-8   168   0.317   167   0.353   +0.036   0.082   0.44
+        9-15   165   0.572   166   0.487   -0.085   0.077  -1.10
+       16-22   184   0.582   186   0.591   +0.009   0.073   0.12
+        23-+   170   0.629   169   0.644   +0.015   0.074   0.21
+    se is UNPAIRED (the two runs sample different positions); a bucket's z is descriptive.
+  ```
+
+  **The pre-registered bucket: +0.036 at z 0.44 -- not distinguishable from zero.** The header's words
+  split two ways, stated rather than resolved silently: read LITERALLY, trio A's 0.353 is above the
+  quoted 0.287, which gives `ab`; read with error bars against the same-run comparator -- which is
+  what `critic_calibration.py`'s own header says this co-primary is for ("read with error bars instead
+  of by eye") -- it is no lift, and the instrument's own re-draw noise is the same size: the IDENTICAL
+  R5 W critic read 0.287 on 09-18 and 0.317 here, +0.030 with nothing changed. The 9-15 bucket fell
+  (-0.085, z -1.10). Both runners recommended `b` (the heads also cost 1.16x W's update per datum).
+- **R7's BASE: `b`, RULED by the maintainer at ~02:10Z** (in the r7-runner's session; recorded in
+  621a7af and SESSION_LOGS 2026-09-25 02:11Z) -- trio B's recipe (W + C6 + the x4 batch, fallback
+  form), warm from trio B's finals, no outcome heads. The nine 2M LR-smoke configs derive from it
+  (621a7af; donor f1 = PIN-b's b328, sha f09063696cda...).
 
 ## Disclosures
 

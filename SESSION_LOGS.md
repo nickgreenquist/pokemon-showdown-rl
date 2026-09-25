@@ -13824,3 +13824,19 @@ line numbers are not — grep the date, then read that region):
   done", with all three sessions idle for its minute (r6-runner: a message wakes a CLI at 10-20% of a core, so "starting"
   goes ~90 s before the launch and nobody replies); it is THE verdict whichever way it reads (`5a9353c`). Then
   `scripts/r7_smokes.sh lr b` (~3 h).
+
+- 2026-09-25 02:15Z (agent, R6 babysitter) — **Trio A's mechanism read NOT MOVED; R7's base RULED `b`.**
+  The pre-registered co-primary ran 01:43-02:01Z, both sides in parallel from the pinned worktree
+  (PYTHONPATH verified per process; the R7 merge landed on main 45 s after launch and could not reach
+  it). Turn-2-8 by-turn r^2: R5 W 0.317 (n 168) vs trio A 0.353 (n 167), **+0.036 at z 0.44**; 9-15
+  -0.085 (z -1.10); 16-22 +0.009; 23+ +0.015. The header's words split: literally, 0.353 clears the
+  quoted 0.287 (-> `ab`); with error bars against the same-run comparator, as `critic_calibration.py`
+  says this co-primary is to be read, it is no lift, and the identical R5 critic moved +0.030 between
+  the 09-18 run and this one. Both runners recommended `b`; **the maintainer ruled `b` at ~02:10Z** in
+  the r7-runner's session (621a7af, its 02:11Z entry): trio B's recipe, warm from trio B's finals, no
+  heads. `readouts/R6_READS_READOUT.md` amended with the compare table verbatim (the raw JSONs are
+  gitignored under `results/r6_mechanism/`). Also this block: 7adf81e fixed the two R6-area tests the
+  post-merge suite flagged (both pre-dated the merge); B0's first run (02:04:20-40Z) was confirmed
+  clear of my work by timestamps (my pytest started 02:04:53Z), and its re-run on an empty box is the
+  verdict per the maintainer. R6 babysitting is COMPLETE: nothing of mine runs; the pinned worktree
+  stays until R7's LR smokes no longer need the R6 finals' provenance.
