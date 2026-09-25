@@ -13,6 +13,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -89,12 +90,48 @@ def test_runner_never_takes_the_exception_from_the_environment(tmp_path):
     assert r.returncode == 7, r.stderr
 
 
-def _run_sched(tmp_path, arm):
+def test_runner_checks_only_the_launched_arm(tmp_path):
+    # a pre-reg keeps its wall-clock RECORD arms (R7's G2SM); launching a sibling FP@N arm from
+    # the same file must not be refused because of them
+    fpn = _arm(search_iterations=25000, search_iterations_early=12000)
+    r = _run_runner(tmp_path, _prereg(tmp_path, {"OLD": _arm(), "GT": fpn}))
+    assert r.returncode == 5, r.stderr
+    assert "RETIRED" not in r.stderr
+
+
+def _run_sched(tmp_path, arm, arms=None, launch="GT", extra=()):
     env = dict(os.environ)
     env.pop("FORMAT", None)
-    return subprocess.run([sys.executable, str(SCHED), "--prereg", str(_prereg(tmp_path, {"GT": arm})),
-                           "--arms", "GT", "--slots", "1"], env=env, capture_output=True, text=True,
-                          timeout=60)
+    prereg = _prereg(tmp_path, arms if arms is not None else {"GT": arm})
+    return subprocess.run([sys.executable, str(SCHED), "--prereg", str(prereg), "--arms", launch,
+                           "--slots", "1", "--fpdir", str(tmp_path / "no-foul-play"), *extra],
+                          env=env, capture_output=True, text=True, timeout=60)
+
+
+def test_scheduler_checks_only_the_launched_arms(tmp_path):
+    # OLD (wall-clock) sits in the file but is not launched: the run gets past the retirement
+    # check and stops at the next one, the repeated username of A and B (exit 2, not 7)
+    fpn = _arm(search_iterations=25000, search_iterations_early=12000)
+    r = _run_sched(tmp_path, None, arms={"OLD": _arm(), "A": fpn, "B": dict(fpn)}, launch="A,B")
+    assert r.returncode == 2, r.stdout + r.stderr
+    assert "username repeats" in r.stdout
+    assert "RETIRED" not in r.stdout
+
+
+def test_scheduler_refuses_when_a_live_foul_play_holds_our_username(tmp_path):
+    # a restarted scheduler whose runners survived, or a killed arm's orphan: never launch twice
+    squatter = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)", "run.py",
+                                 "--ps-username", "guardtestbot"])
+    try:
+        time.sleep(0.5)
+        fpn = _arm(search_iterations=25000, search_iterations_early=12000)
+        r = _run_sched(tmp_path, fpn)
+        assert r.returncode == 3, r.stdout + r.stderr
+        assert "our usernames are taken" in r.stdout
+        assert "LAUNCHED" not in r.stdout
+    finally:
+        squatter.kill()
+        squatter.wait()
 
 
 def test_scheduler_refuses_wall_clock_arms_before_launching(tmp_path):

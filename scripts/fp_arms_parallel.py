@@ -24,7 +24,10 @@ any load; load costs it time, never strength. So:
     a FOREIGN wall-clock Foul Play, which our load would weaken.
 Each runner runs in its own session. The runner kills only its own arm's process group (never
 a box-wide pattern) and cleans its arm up on SIGTERM, which is how this scheduler stops a wave.
-Resume-safe: an arm whose seat JSON exists is skipped. Refuses to run niced or at background
+Resume-safe: an arm whose seat JSON exists is skipped, and a launch refuses while a live Foul Play
+holds one of its usernames (a second launch of the same arms, or a killed arm's orphan). The
+retirement and every other check apply to the arms LAUNCHED (--arms), never to the rest of the
+pre-reg, which may keep wall-clock record arms. Refuses to run niced or at background
 QoS (the maintainer's rule; zsh's BG_NICE nices every `cmd &` launch by +5 -- launch via bash).
 Per-arm encoder settings come from the pre-reg's `arm_encoder` block, as in
 scripts/r6_reads_queue.sh. The runner's relaunch knobs (STALL_POLLS, MAX_RELAUNCHES,
@@ -96,14 +99,6 @@ def main():
         if specs[a].get("calibration_reference_for"):
             log(f"{a}: CALIBRATION REFERENCE, wall-clock, never a read: {specs[a]['calibration_reference_for']}")
 
-    try:
-        bg = os.getpriority(4, 0)
-    except (OSError, AttributeError):
-        bg = 0
-    if os.nice(0) != 0 or bg:
-        log(f"REFUSING: niced ({os.nice(0)}) or background QoS ({bg}) -- launch via bash, not a zsh `&`")
-        sys.exit(6)
-
     if wallclock and args.slots != 1:
         log(f"REFUSING: {wallclock} carry a WALL-CLOCK budget (no search_iterations); such arms "
             "run one at a time (--slots 1) -- a second process on the box weakens their Foul Play")
@@ -114,11 +109,14 @@ def main():
         sys.exit(2)
 
     def foreign():
-        """Other Foul Plays / training lanes alive, anchored on a python EXECUTABLE."""
+        """Other Foul Plays / training lanes alive, anchored on a python EXECUTABLE -- and any Foul
+        Play already holding one of OUR usernames. Nothing of ours runs yet, so that is a second
+        launch of the same arm (a restarted scheduler whose runners survived in their own
+        sessions) or a killed arm's orphan, whose pair is poisoned for hours."""
         ps = subprocess.run(["ps", "-Aeo", "pid=,command="], capture_output=True, text=True,
                             timeout=60).stdout.splitlines()
         mine = set(users)
-        bad = []
+        bad, dup = [], []
         for line in ps:
             m = re.match(r"\s*(\d+)\s+(\S+)\s(.*)", line)
             if not m or not re.search(r"/bin/python[\d.]*$", m.group(2)):
@@ -132,17 +130,29 @@ def main():
             elif re.search(r"(^|\s)run\.py\s", cmd):
                 u = re.search(r"--ps-username (\S+)", cmd)
                 if u and u.group(1) in mine:
+                    dup.append(f"foul-play {m.group(1)} holds {u.group(1)}")
                     continue
                 fixed = "--search-iterations" in cmd
                 if wallclock or not fixed:        # our FP@20, or their wall-clock FP
                     bad.append(f"foul-play {m.group(1)} ({'FP@N' if fixed else 'wall-clock'})")
-        return bad
+        return bad, dup
 
-    bad = foreign()
+    bad, dup = foreign()
+    if dup:
+        log(f"REFUSING: {dup} -- our usernames are taken: a second launch of these arms, or a "
+            "killed arm's orphan (its pair is poisoned for hours; re-run on the RERUN pair)")
+        sys.exit(3)
     if bad:
         log(f"REFUSING: {bad} alive -- " + ("an FP@<ms> arm needs the box to itself" if wallclock
                                               else "our load would weaken a wall-clock Foul Play"))
         sys.exit(3)
+    try:
+        bg = os.getpriority(4, 0)
+    except (OSError, AttributeError):
+        bg = 0
+    if os.nice(0) != 0 or bg:
+        log(f"REFUSING: niced ({os.nice(0)}) or background QoS ({bg}) -- launch via bash, not a zsh `&`")
+        sys.exit(6)
 
     # A WALL-CLOCK arm also needs the reads queue's full quiet-box gate (any process >= 50% of
     # a core over 20 s; any python from a foreign conda env), held, never skipped.
