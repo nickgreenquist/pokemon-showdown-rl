@@ -13732,3 +13732,30 @@ line numbers are not — grep the date, then read that region):
   --base` waits for the base to be named** (r6-runner puts the numbers and the mechanism questions to the maintainer).
   Pins final and uncorrected (`1b923a0` A, `342bdf3` B). `git merge-tree` main vs the branch re-checked CLEAN (56 / 49
   commits). STATUS unchanged (item 3 already carries this order).
+
+- 2026-09-25 01:10Z (agent, R7 runner) — **BOX 7 RULED (maintainer, all three as recommended): X-FLAT's routing as written, n 6000
+  PER LANE, β·KL inside the shared clip. The branch's CLEANUP L10 fixes and a stale test committed; `pkmn-engine-r7`
+  rebuilt; the R7 base narrowed to `ab` or `b`.** The rulings (~01:05Z): n 6000 buys P(X-POS) 0.50 / 0.78 / 0.94 / 0.99 at
+  a true +0.025 / .030 / .035 / .040 against n 3000's 0.49 / 0.72 / 0.88 / 0.96, and at +0.020 X-POS 0.22 / X-GAIN 0.60
+  against 0.27 / 0.34 (`results/r7_fleet/power.json`, 3+3); the generator now carries `READ_N = 6000` (branch; its test
+  runs after the fp-speedup probe). **The base:** r6-runner's reads keep trio B's ×4 batch by its header's own X-FLAT rule
+  (update 562.2 vs W's 573.7 µs per env step over 20M-180M, 0.980×, ~1.6 se, B's context the heavier), so no ruling was
+  needed; trio A's bit (the turn 2-8 by-turn r² above 0.287) waits on its instrument, run from the pinned worktree
+  `../pokemon-showdown-rl-r6pin` (`25bad2c`) under PYTHONPATH -- the env's editable install would otherwise resolve
+  `import rl` to main's tree, which the R7 merge rewrites (caught here; r6-runner verified that PYTHONPATH wins). `ab` if
+  MOVED, `b` otherwise. R6's QUEUE DONE 01:07:53Z: R2's object E6RF +0.0180 over E3WR, so no Ladder R6. **The branch**
+  (`392dc2e..3a58e79`, five commits, each on pytest's own return code): L10's audit (a read-only Opus pass; 47 files match
+  the stamp grep) found two LIVE write-time stamps -- `ch3_fp_h2h.py`'s `rl_git_*` (G2's "which rl" fields) and
+  `search_r1e_gate.py`'s provenance -- both now read at launch; `eval_checkpoint.py` stamped no sha at all and now stamps
+  `launch_git_sha` / `launch_git_dirty` / `rl_package` (the LR smokes' vs-SH gate evals run through it); `r7_smoke_check.py`'s
+  S_RESUME now requires every resume at the launch's sha (`same_program_as_launch`). The stale test:
+  `test_search_r1e_gate.py`'s engine-backend test still expected B6's pre-landing NotImplementedError and had failed on the
+  branch since B6 (confirmed on a stash of the unmodified branch); it now asserts the seam complete and exercises the
+  refusal by withholding one symbol. **`pkmn-engine-r7` rebuilt** from the branch (the mmap bank was not installed: `.so`
+  09-23 19:33Z vs `7c6cb40` 23:42Z; now 00:26Z, `verify()` pinned sha, zig 0.16.0, 384 B); in it the gating tests read
+  27 passed, 0 skipped (mmap bank 3, `test_lop` 7, mechanism reads 1, derive 16). Dry runs of `--stage lr-smokes` (ab and
+  b) and `--stage fleet` (ab, a placeholder lr) into the scratchpad: the donors match PIN-a / PIN-b (a304 `e3903fa60897`,
+  b328 `f09063696cda`); ab and b differ only in the heads keys and the donor; a searched/control pair exactly in seed,
+  run_name, play, seat_tag and the two coefficients. `pkmn-engine-port` untouched (`.so` 09-20); the merge, its
+  reinstall and the suite start when the fp-speedup (a7) probe's STATUS goes terminal; B0 after r6-runner's "instrument
+  ended".

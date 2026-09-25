@@ -455,6 +455,10 @@ on a 14-core laptop, CPU only, pure self-play.
 > P(X-POS) at +0.030 0.72 → 0.78); (3) β·KL stays inside the shared clip (the standard ExIt form; moving it after the clip,
 > as the outcome heads were, is a design change of its own); (4) Friday grows by ~3 h: nine 2M smokes and seven vs-SH
 > evals.
+> **RULED 2026-09-25 ~01:05Z (maintainer, all three as recommended):** (1) X-FLAT's routing RATIFIED as written;
+> (2) **n 6000 per lane** -- P(X-POS) 0.50 / 0.78 / 0.94 / 0.99 at a true +0.025 / .030 / .035 / .040, X-POS 0.22 and
+> X-GAIN 0.60 at +0.020 (`results/r7_fleet/power.json`, 3+3); the generator's `READ_N`; the read session ~28 h;
+> (3) β·KL stays INSIDE the shared clip. (4) is the schedule's cost, disclosed.
 > **Friday's order (box 6's, updated):** the R6 readout → the a7 session's FP probe (~45 min; its STATUS file releases the
 > box) → merge → reinstall both engine envs + the suite (the mmap test PASSES; `test_lop.py` none skipped;
 > `test_r7_mechanism_reads.py` passes in `pkmn-engine-port`) → B0 `--widths 5 6` → the base from the 09-25 read →
