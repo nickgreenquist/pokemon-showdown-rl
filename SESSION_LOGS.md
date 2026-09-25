@@ -14070,3 +14070,24 @@ line numbers are not — grep the date, then read that region):
   rollout-vs-critic curve on G0's 500 roots (~8 h on the E-cores beside the fleet, no FP battles; being built by
   reviewer B in scratch); then, if it pays, a rollout operator read vs FP@N at the knee after R7's reads; and tick-aware
   ladder time management. G2 at its 25 ms budget gates nothing there.
+- 2026-09-25 17:00Z (agent, R7 runner) — **THE 09-25 FP RULINGS ARE IN THE DOCS, and fp-speedup's code is on main.**
+  fp-speedup rebased onto `136219d`:
+  - `fbe36a1`: the runner, the scheduler and `fp_parallel_probe.py` refuse EVERY gen-1 arm without `search_iterations`,
+    except a pre-reg arm declaring `calibration_reference_for`.
+  - `a7ea447`: FP500_ITER_CALIB, FP@500's visits-matched FP@N for R7's G4 leg.
+  - `ab9c1fa`: a launch is refused while a live Foul Play holds one of its usernames; per-launched-arm tests.
+  This entry's commits:
+  - CLAUDE.md: EVERY wall-clock FP is retired, FP@100/500 too (the maintainer, verbatim). Bigger budgets run only as
+    their own calibrated FP@N; the one serial FP left is a calibration's reference; the budget ladder's wall-clock rungs
+    are retired; the ladder clock is a 150 s bank refilling +10 s/turn.
+  - `docs/prior_work/README.md`: the clock fix, and a VERIFIED section on Foul Play ON THE LADDER. Its author runs ~7 s a
+    decision and reports gen1randombattle GXE 75%, peak ~1450, top 500, a level beside our greedy R5 at 5.40 ms a
+    decision. The "nobody ran Foul Play in gen 1" inference is caveated.
+  - Plan box 9: the three RULED follow-ons; the FPSHA placeholder fixed to `6936b2f`.
+  - The R7 read pre-reg's header: the ladder bar RESTATED as >= +0.05 off FP@N 25k/12k over the re-drawn previous
+    object, re-derived; the G4 leg runs on FP@500's own calibrated FP@N, K-wide, ~45 min instead of ~2.7 h an arm serial.
+    Re-derived with ONLY comment lines changed (5 per config; the manifest byte-identical; `tests/test_derive_r7_fleet.py`
+    passes), so the running lanes' configs differ from their launch copies only in comments.
+  - G2's pre-reg header: a dated clock correction.
+  The ladder-bar and FP@500 rulings were taken at ~14:05Z and ~14:20Z. FP@500's FP@N is VISITS-MATCHED ONLY, strength not
+  tested.

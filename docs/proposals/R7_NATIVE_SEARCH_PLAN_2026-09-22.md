@@ -530,13 +530,19 @@ on a 14-core laptop, CPU only, pure self-play.
 > - Unchanged: the object (the R5 W committee), the operator and its dials, n 3200 per arm, the credit line, the
 >   branches, and every other R0 gate.
 > **FP@20 is retired** for every session (CLAUDE.md): the runner and the scheduler refuse a gen-1 FP@20 arm (fp-speedup,
-> FPSHA). Banked FP@20 numbers stay citable as history, never differenced against FP@N. **Owed to the maintainer:**
-> - The ratified ladder bar (+0.05 off FP@20 over the re-drawn previous object) needs restating on FP@N. All three
->   sessions: keep +0.05, RE-DERIVED rather than translated. Its argument was se_diff and ladder exposure, never a
->   property of FP@20, and both objects are re-drawn on one instrument.
-> - Does the ruling reach FP@500 (box 8's descriptive leg: wall-clock, quiet box only)? All three: it stays descriptive
->   and serial until a fixed-iteration version is calibrated. The FP20 rung of `configs/eval/fp_budget_ladder.yaml` IS
->   FP@20, so it is retired directly; FP@N 25k/12k is its natural replacement.
+> `6936b2f`). Banked FP@20 numbers stay citable as history, never differenced against FP@N. **RULED by the maintainer the same day, closing all three follow-ons:**
+> - **The ladder bar is +0.05 on FP@N 25k/12k,** re-derived rather than translated (the sessions' recommendation): its
+>   argument was se_diff and ladder exposure, never a property of FP@20, and both objects are re-drawn in one session.
+> - **EVERY wall-clock FP is retired, FP@100/500 included** -- stricter than the sessions' lean. The maintainer,
+>   verbatim: "We should never run a FP@500 or 100 again serially. If you need to, you should calibrate them into
+>   the proper FP@N and then retire serial runs forever (except for future calibration). I don't want to ever again
+>   wait hours for FP runs unless calibrating a new N."
+>   So box 8's serial FP@500 leg (the plan's G4, ~2.7 h an arm) runs on FP@500's own CALIBRATED FP@N, K-wide. The
+>   runner and the scheduler refuse every gen-1 arm without search_iterations (`fbe36a1`), except a declared
+>   calibration reference. The budget ladder's wall-clock rungs are retired the same way.
+> - **FP@500's FP@N is VISITS-MATCHED ONLY, strength not tested** (ruled over a ~34 h/seat strength test). fp-speedup
+>   owns it: a 100-battle wall-clock reference (the one serial FP left) on the quiet box after R7's primary reads. G4 is
+>   quoted "FP@N <N>/<N_early>, visits-matched to FP@500 at k=1 on a quiet box; strength not tested".
 
 ## 0. The bet in one paragraph
 
@@ -552,7 +558,7 @@ position instead of one noisy outcome per game. This repo now owns that simulato
 including the training encoder (`docs/search_relook/ENGINE_SEARCH_DESIGN.md` §4.2).
 Nothing in the training loop uses it for anything but collection. **The plan is to
 build ONE search operator on that engine and use it in three places: at the ladder
-(the unspent 150 s/turn), inside training (expert iteration), and as the instrument
+(the unspent budget: the clock sustains ~10 s/turn -- a 150 s bank refilling +10 s/turn), inside training (expert iteration), and as the instrument
 that measures both.** **Where the monumental claim sits, stated after amendment 3:** every
 independent bound this repo owns says the inference-side prize of one exact ply is small, so
 the +8 GXE bet is on COMPOUNDING — the student absorbing a search-improved target every

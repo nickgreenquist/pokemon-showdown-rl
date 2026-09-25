@@ -95,6 +95,9 @@
 #   * A CORRECTION: the "~0.2 s" a decision above predates the smoke, which measured ~25 ms (lop/ms_mean 24.4,
 #     seat decision_ms p50 25.2, 61 decisions; results/r7_g2/g2sm.json). Every quote uses the realized JSON
 #     figures, as the disclosures below require.
+#   * A SECOND CORRECTION, made AFTER the read (2026-09-25, readouts/R7_G2_READOUT.md): "The ladder allows ~150 s
+#     a turn" above overstates the clock. It is a 150 s bank refilling +10 s a turn, charged in 5-s ticks
+#     (showdown/server/room-battle.ts), so ~10 s a turn is sustained and 150 s is a one-turn maximum.
 #   * THE PROGRAM: scripts/fp_arms_parallel.py runs from the MAIN checkout at the launch commit, with
 #     PY=pkmn-engine-r7 (for its pkmn_gen1), so both seats import main's rl and G_SAME_PROGRAM reads main's sha.
 #   * THE LEAVES BAND IS RE-DERIVED BEFORE ANY R-PHASE BATTLE (the maintainer's ruling, 2026-09-25: "30-battle
