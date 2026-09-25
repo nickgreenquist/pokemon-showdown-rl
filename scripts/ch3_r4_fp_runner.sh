@@ -40,7 +40,7 @@ SEARCH_TIME_MS="${SEARCH_TIME_MS:-100}"
 SEARCH_PARALLELISM="${SEARCH_PARALLELISM:-1}"
 # FP@N (2026-09-25, the FP-parallel task): a FIXED iteration budget instead of the
 # wall-clock one. 0 = the stock FP@<SEARCH_TIME_MS>. Needs the patched Foul Play
-# (scripts/patches/foulplay_iterations.patch); refused below if FPDIR lacks it.
+# (scripts/patches/foulplay_gen1_local.patch); refused below if FPDIR lacks it.
 SEARCH_ITERATIONS="${SEARCH_ITERATIONS:-0}"
 SEARCH_ITERATIONS_EARLY="${SEARCH_ITERATIONS_EARLY:-}"
 FORMAT="${FORMAT:-gen1randombattle}"
@@ -93,6 +93,15 @@ fi
 if [ "${SEARCH_ITERATIONS:-0}" -gt 0 ] && ! grep -q -- "--search-iterations" "$FPDIR/fp/config.py" 2>/dev/null; then
     echo "REFUSING: arm $ARM declares search_iterations=$SEARCH_ITERATIONS but $FPDIR has no --search-iterations (unpatched Foul Play)" >&2
     exit 5
+fi
+# FP@20 IS RETIRED FOR GEN 1 (maintainer, 2026-09-25: "No one should run outdated
+# F@20 anymore"; unanimous with the three sessions). The gen-1 instrument is FP@N
+# 25k/12k. Checked after both budget paths (pre-reg arm or env), so neither can
+# launch one. Other wall-clock budgets and other formats keep the serial quiet-box
+# path until ruled; lifting this takes a maintainer ruling, not an env var.
+if [ "$FORMAT" = "gen1randombattle" ] && [ "${SEARCH_ITERATIONS:-0}" -eq 0 ] && [ "$SEARCH_TIME_MS" = "20" ]; then
+    echo "REFUSING: arm $ARM is FP@20 (search_time_ms 20, no search_iterations) -- RETIRED for gen 1 (maintainer, 2026-09-25); declare search_iterations: 25000 and search_iterations_early: 12000 (FP@N 25k/12k)" >&2
+    exit 7
 fi
 
 # G1 smokes: SMOKE_BATTLES (if set) wins over the pre-reg battle count —

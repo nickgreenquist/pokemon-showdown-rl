@@ -74,7 +74,12 @@ Foul-Play anchor machinery**. These three are current, not historical:
 - **FP@N machinery (2026-09-25, the gen-1 FP instrument — CLAUDE.md, FP anchor):**
   - `fp_arms_parallel.py` — runs off-FP arms K at a time through the runner. A
     wall-clock arm forces 1 slot plus the quiet-box gate; it samples foreign load
-    and refuses niced starts.
+    (CONTAMINATION for a wall-clock arm, descriptive LOAD for FP@N) and refuses
+    niced starts. The relaunch knobs (`MAX_RELAUNCHES` etc.) come from the
+    caller's environment when set.
+  - **FP@20 is RETIRED for gen 1 (2026-09-25):** the runner (exit 7) and the
+    scheduler refuse a gen-1 arm with `search_time_ms: 20` and no
+    `search_iterations`; `tests/test_fp_runner_guards.py`.
   - `fp_arm_counters.py` — the adoption's instrument counters, written into every
     runner JSON; `fpn_counters_ok: false` makes an arm INVALID.
   - `configs/eval/fp_n_smoke.yaml` — the install smoke; re-run it after any Foul
