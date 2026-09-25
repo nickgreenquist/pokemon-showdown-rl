@@ -71,6 +71,7 @@ SMOKE_CADENCE = 100_000            # the shakedown's eval_every AND checkpoint_e
 KL_MAX = 0.06                      # per-update approx_kl bar (the control's whole batch; the searched arm's unsearched rows)
 ENT_TOL, ENT_TAIL, ENT_REF_TAIL = 0.20, 0.25, 0.01
 SH_N = 3000                        # vs SH per checkpoint, the locked protocol's per-seed n
+READ_N = 6000                      # the PRIMARY's FP@20 battles per lane -- RULED 2026-09-25 (maintainer, box 7 item 2: n 6000 over 3000)
 SH_SHOCK = 0.03                    # CLAUDE.md: one vs-SH rung at n 3000 is worth +-0.02
 MECH_WINDOW = 5_000_000            # the in-loop mechanism counters are read as means over the last 5M steps
 OBJECT_TOL = 0.013                 # trio A's object-rule tolerance (~1 se_diff at 3000 vs 3000)
@@ -200,20 +201,21 @@ def power_lines(power: dict, width: str) -> list[str]:
     ds = (0.025, 0.030, 0.035, 0.040)
     p3 = " / ".join(f"{rows[(3000, d)]['X-POS']:.2f}" for d in ds)
     p6 = " / ".join(f"{rows[(6000, d)]['X-POS']:.2f}" for d in ds)
-    at20 = rows[(3000, 0.020)]
+    at20 = rows[(READ_N, 0.020)]
     return [
         f"#   POWER ({power['version']}, results/r7_fleet/power.json sha {power['_sha'][:12]}, scripts/r7_fleet_power.py): five",
         "#   banked trio READS of per-lane FP@20 finals at n 3000 (four distinct trios; the 100M finals were read in two",
         f"#   sessions, so the {power['df']} df double-count their lane term): per-lane sd {power['pooled_sd']:.4f}, "
         f"{power['binomial_sd']:.4f} of it binomial;",
-        f"#   median se_diff {rows[(3000, 0.030)]['se_diff_median']:.4f} at {width}, so the +0.025 FLOOR is the operative bar. "
-        f"P(X-POS) at a true",
-        f"#   +0.025 / +0.030 / +0.035 / +0.040: {p3}; at a true 0: {rows[(3000, 0.0)]['X-POS']:.3f}; at a true +0.020: X-POS "
-        f"{at20['X-POS']:.2f}, X-GAIN {at20.get('X-GAIN', float('nan')):.2f}",
-        f"#   ({width}, n 3000, the unpaired end of the donor split). AN X-FLAT OR X-GAIN IS LIKELY EVEN IF THE LEVER WORKS at the",
+        f"#   median se_diff {rows[(READ_N, 0.030)]['se_diff_median']:.4f} at {width} and n {READ_N}, so the +0.025 FLOOR is the "
+        f"operative bar. P(X-POS) at a true",
+        f"#   +0.025 / +0.030 / +0.035 / +0.040: {p6} at n 6000, the RULED n ({p3} at n 3000); at a true 0: "
+        f"{rows[(READ_N, 0.0)]['X-POS']:.3f}; at a true +0.020: X-POS {at20['X-POS']:.2f}, X-GAIN "
+        f"{at20.get('X-GAIN', float('nan')):.2f}",
+        f"#   ({width}, n {READ_N}, the unpaired end of the donor split). AN X-FLAT OR X-GAIN IS LIKELY EVEN IF THE LEVER WORKS at the",
         "#   size the plan's own bounds suggest (G1's +0.050 in the mirror is the operator's inference-side UPPER bound, box 5;",
-        f"#   the fleet's bet is compounding). n 6000 per lane would buy {p6} at the same deltas (~+8 h of quiet-box FP): a",
-        "#   maintainer option, not taken here.",
+        "#   the fleet's bet is compounding). n 6000 per lane was RULED over n 3000 (maintainer, 2026-09-25, box 7 item 2):",
+        "#   ~+8 h of quiet-box FP for power where a working lever likely lands.",
     ]
 
 
@@ -235,7 +237,7 @@ def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], b
     s, lv = SEARCH, LEVER["searched"]
     h = HORIZON // 1_000_000
     spu, save_every, sm = steps_per_update(base), save_latest_every(), smoke_steps(base)
-    at20 = _power_rows(power, width)[(3000, 0.020)]
+    at20 = _power_rows(power, width)[(READ_N, 0.020)]
     from r7_mechanism_reads import PER_BUCKET
     lane_loss = ("under 3+2, losing a lane of pair f1 or f2 leaves ONE full pair -> PRIMARY VOID, while losing searched f3"
                  " leaves 2 vs 2" if b0 == "FAIL" else "k 2 vs 2, disclosed")
@@ -357,11 +359,13 @@ def header(*, arm: str, lane: int | None, donor: dict, all_donors: list[dict], b
         f"#       becomes the surviving pairs ({lane_loss}); fewer than two pairs -> PRIMARY VOID (the finals are",
         "#       recorded individually and never pooled).",
         "#",
-        "# PRIMARY READ -- off FP@20 (search_time_ms 20 per arm), GREEDY, n = 3000 per lane, ONE session on a QUIET box (the FP",
+        f"# PRIMARY READ -- off FP@20 (search_time_ms 20 per arm), GREEDY, n = {READ_N} per lane (RULED over 3000, 2026-09-25),"
+        " ONE session on a QUIET box (the FP",
         f"#   gate: nothing else at >= 50% of a core; G2 never beside it), SEQUENTIAL arms in the PINNED order {order}",
         "#   (control first in each pair, the G2 convention), then the OBJECT RULE's reads, then FP@500, then the anchors; a",
         "#   killed arm re-runs LAST on its rerun username pair; fresh prefix-free usernames -- the configs/eval/r6_reads_offfp.yaml",
-        "#   protocol; the whole session is ~20 h. FP@20 is the primary as in [RWL-3] (configs/showdown_monster200m_l2lam.yaml;",
+        "#   protocol; the whole session is ~28 h (~20 h at n 3000, +~8 h for n 6000). FP@20 is the primary as in [RWL-3]"
+        " (configs/showdown_monster200m_l2lam.yaml;",
         "#   vs SH is saturated). delta = the equal-weight mean of the SEARCHED finals minus the equal-weight mean of the CONTROL",
         "#   finals (the across-lane aggregator). se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered",
         "#   se_diff (k 3 vs 3; k 3 vs 2 under the five-wide fallback), the latter from the per-lane finals at read time.",
