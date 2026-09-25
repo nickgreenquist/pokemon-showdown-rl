@@ -54,11 +54,21 @@ def test_sh_arms_locked_form_and_run_order():
             assert a["batches"] == 3
 
 
-def test_r6_lanes_are_tbd_placeholders_in_the_exact_form_the_pin_script_rewrites():
+def test_r6_lanes_are_pinned_in_the_exact_form_the_pin_script_writes():
+    # Was a PRE-pin guard asserting the TBD placeholders; PIN-a / PIN-b rewrote them on
+    # 2026-09-24 04:37Z (1b923a0, 342bdf3), which is when it went stale. Now: every lane carries
+    # the pin script's exact form -- its own run dir, a 200M-rung checkpoint whose file name
+    # matches the step, a 64-hex sha256 -- and both pre-regs pin every lane identically.
+    pins = {}
     for cfg in ("configs/eval/r6_reads_offfp.yaml", "configs/eval/r6_reads.yaml"):
         text = (ROOT / cfg).read_text()
-        for lane in R6_LANES:
-            assert re.search(rf"^  {lane}: \{{path: TBD, sha256: TBD, step: TBD\}}", text, re.M), (cfg, lane)
+        for lane, run_dir in pin.TRIOS["a"] + pin.TRIOS["b"]:
+            m = re.search(rf"^  {lane}: \{{path: (\S+), sha256: ([0-9a-f]{{64}}), step: (\d+)\}}", text, re.M)
+            assert m, (cfg, lane)
+            path, sha, step = m.group(1), m.group(2), int(m.group(3))
+            assert path == f"{run_dir}/ckpt_{step:09d}.pt" and step >= 200_000_000, (cfg, lane, path, step)
+            assert pins.setdefault(lane, (path, sha, step)) == (path, sha, step), (cfg, lane)
+    assert sorted(pins) == sorted(R6_LANES)
     assert [l for l, _ in pin.TRIOS["a"]] == R6_LANES[:3] and [l for l, _ in pin.TRIOS["b"]] == R6_LANES[3:]
     assert [d for _, d in pin.TRIOS["a"]] == [f"runs/showdown_r6_trio_a_s{s}" for s in (304, 312, 320)]
     assert [d for _, d in pin.TRIOS["b"]] == [f"runs/showdown_r6_trio_b_s{s}" for s in (328, 336, 344)]

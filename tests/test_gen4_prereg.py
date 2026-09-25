@@ -8,6 +8,7 @@ arithmetic, the seed windows, and the header's load-bearing verbatims."""
 
 import math
 import re
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -137,8 +138,21 @@ def test_seed_windows_disjoint_and_unused():
     used = set()
     legal = {f"gen4_wang50m_s{s}" for s in lanes + spares}
     if (REPO / "runs").exists():
+        # A window only has to be free of runs that could have been ALIVE beside the gen-4 fleet
+        # (rule 2: concurrent lanes collide on poke-env usernames). A run started after the last
+        # gen-4 lane's final checkpoint cannot collide with it -- R6's 4.12 screen
+        # (runs/showdown_r6_batch12m_s204, started 2026-09-21, twelve days after the fleet ended)
+        # is the case that made this explicit. The fleet's end is read from its own run dirs,
+        # never typed; a run with no readable started_at still counts (the safe direction).
+        ends = [c.stat().st_mtime for s in lanes
+                for c in (REPO / "runs" / f"gen4_wang50m_s{s}").glob("ckpt_*.pt")]
+        fleet_end = max(ends) if ends else None
         for p in (REPO / "runs").glob("*/config.yaml"):
             if p.parent.name in legal:
+                continue
+            meta = p.parent / "meta.yaml"
+            started = re.search(r"^started_at: '?([^'\n]+)'?", meta.read_text(), re.M) if meta.exists() else None
+            if fleet_end is not None and started and datetime.fromisoformat(started.group(1)).timestamp() > fleet_end:
                 continue
             m = re.search(r"^seed: (\d+)", p.read_text(), re.M)
             if m:
