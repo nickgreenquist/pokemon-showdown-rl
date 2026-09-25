@@ -102,6 +102,7 @@ PASS_LEAF = ("through", "critic")
 OPP_RULES = ("puct", "sample")
 Q_INITS = ("parent_v", "zero")
 DEPTH_HIST = 24
+FUSION_MIN_N = 8          # a node's best row is read for the fusion counter only with this many visits
 
 # `SearchNode.save()`: a format byte, the 384 battle bytes (the RNG at 376..384,
 # `engine/pkmn_gen1/src/layout.rs::B_RNG`), the result byte, the projection.
@@ -191,7 +192,7 @@ class _Edge:
 class _Node:
     __slots__ = ("sn", "batch", "li", "seed", "level", "upd", "turn", "term", "us_dec", "foe_dec",
                  "obs_us", "mask_us", "obs_foe", "mask_foe", "v0", "ready", "rows", "cols", "p", "q",
-                 "topk_mass", "N", "W", "VL", "n", "w", "edges", "digest",
+                 "topk_mass", "N", "W", "VL", "n", "w", "edges", "digest", "view",
                  "rm_us", "rm_foe", "sm_us", "sm_foe")
 
     def __init__(self) -> None:
@@ -217,6 +218,7 @@ class _Node:
         self.w = 0.0
         self.edges: dict = {}
         self.digest: bytes | None = None
+        self.view: bytes | None = None      # our information set: a digest of the acting seat's observation
         self.rm_us = self.rm_foe = self.sm_us = self.sm_foe = None
 
 
@@ -372,6 +374,7 @@ class _Search:
         k = pos.get(i)
         if k is not None:
             nd.us_dec, nd.obs_us, nd.mask_us = True, obs[k].copy(), mask[k].copy()
+            nd.view = hashlib.blake2b(nd.obs_us.tobytes(), digest_size=16).digest()
         pos2, obs2, mask2 = batch.pending(self.tables, self.foe)
         k2 = pos2.get(i)
         if k2 is not None:
@@ -862,6 +865,46 @@ class _Search:
             q_root = np.where(n_pool > 0, wsum / np.where(n_pool > 0, n_pool, 1.0), np.nan)
         return q_root, n_pool, per_q, per_marg
 
+    def _best_row(self, x: _Node) -> int:
+        """Our best row at an expanded node by the mode's own estimate (the fusion counter)."""
+        N, W = x.N, x.W
+        if self.mode == "sm_rm":
+            return int(x.rows[int(np.argmax(x.sm_us))])
+        if self.mode == "legacy":
+            na = N.sum(axis=1)
+            q = np.where(na > 0, W.sum(axis=1) / np.where(na > 0, na, 1.0), -np.inf)
+        else:
+            vis = N > 0
+            qhat = np.where(vis, W / np.where(vis, N, 1.0), 0.0)
+            qw = x.q * vis
+            den = qw.sum(axis=1)
+            q = np.where(den > 0, (qw * qhat).sum(axis=1) / np.where(den > 0, den, 1.0), -np.inf)
+        return int(x.rows[int(np.argmax(q))])
+
+    def _fusion(self, ok: list[_Tree]) -> tuple[float, float]:
+        """STRATEGY FUSION AT DEPTH: below the root, the same observation for us in two
+        worlds is ONE information set, where a single strategy must choose; a
+        determinized tree chooses per world. Returns (information sets seen in >= 2
+        worlds with >= FUSION_MIN_N visits in each, the fraction of them whose best
+        rows disagree across worlds)."""
+        by_view: dict[bytes, dict[int, int]] = {}
+        for t in ok:
+            seen: set[int] = set()
+            stack = [t.root]
+            while stack:
+                x = stack.pop()
+                if id(x) in seen or x.N is None:
+                    continue
+                seen.add(id(x))
+                if x is not t.root and x.view is not None and len(x.rows) > 1 and x.n >= FUSION_MIN_N:
+                    by_view.setdefault(x.view, {}).setdefault(t.w, self._best_row(x))
+                for e in x.edges.values():
+                    stack.extend(k for k in e.kids if k is not None)
+        shared = [v for v in by_view.values() if len(v) >= 2]
+        if not shared:
+            return 0.0, float("nan")
+        return float(len(shared)), float(np.mean([len(set(v.values())) > 1 for v in shared]))
+
     def _sh_scores(self, trees: list[_Tree], prior_m: np.ndarray) -> np.ndarray:
         ok = [t for t in trees if not t.error]
         q_root, n_pool, _pq, _pm = self._root_q(ok)
@@ -966,6 +1009,7 @@ class _Search:
         v_prime = float(pi_m @ q_done)
         v_prior = float(prior_m @ q_done)
         kl = float(np.sum(np.where(pi_m > 0, pi_m * (np.log(np.maximum(pi_m, 1e-300)) - np.log(prior_m)), 0.0)))
+        fus = self._fusion(ok) if len(ok) > 1 else (0.0, float("nan"))
         # FUSION at the root: does each world's own best row agree with the pooled one?
         best = int(np.argmax(np.where(vis, q_root, -np.inf)))
         own = per_q if self.mode == "br_prior" else [np.where(n > 0, m / np.where(n > 0, n, 1.0), np.nan)
@@ -975,6 +1019,8 @@ class _Search:
         counters.update({
             "tree/fallback": 0.0,
             "tree/sh_phases": float(self.sh["run"]) if self.sh is not None else 0.0,
+            "tree/fusion_views": fus[0],
+            "tree/fusion_disagree": fus[1],
             "tree/sh_final": sh_final,
             "search/override": float(action != policy_action),
             "search/kl_prior": kl,
