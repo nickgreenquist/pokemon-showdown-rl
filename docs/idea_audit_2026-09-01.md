@@ -1,5 +1,11 @@
 # Candidate levers — code audit, 2026-09-01
 
+> **HISTORICAL SNAPSHOT, not the live lever list.** Written 2026-09-01 on branch
+> `claude/pokemon-rl-ideas-kiihbg` and merged to main on 2026-09-25 so that no work stayed off
+> main. Several items may since have been run, ruled or superseded (R5 through R7 all landed
+> after it). The live list is `docs/IDEAS_POST_100M.md`; check `STATUS.md` and `SESSION_LOGS.md`
+> before citing anything here, and never cite a sub-scale null from it (CLAUDE.md rule 6).
+
 **THIS IS NOT A PRE-REGISTRATION.** No cell, bar, aggregator or credit sentence
 here is binding. It is a candidate ledger in CHAPTER5 §3 format (claim / for /
 against / cost / what would settle it), written so each item can be lifted into
