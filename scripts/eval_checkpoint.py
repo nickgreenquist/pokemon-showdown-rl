@@ -125,6 +125,28 @@ def _opponent_from_checkpoint(path: str, seed: int):
     return player, cfg.env_id
 
 
+def _launch_provenance() -> dict:
+    """The `rl` tree this process runs and its sha / dirty flag, read at LAUNCH,
+    before the checkpoint loads. This script stamped no sha at all
+    (docs/CLEANUP.md L10), and R7's LR-smoke vs-SH evals -- gate inputs -- run
+    through it."""
+    import subprocess
+
+    import rl
+    root = Path(rl.__file__).resolve().parents[1]
+    prov = {"rl_package": str(Path(rl.__file__).resolve().parent)}
+    try:
+        prov["launch_git_sha"] = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True).stdout.strip()
+        prov["launch_git_dirty"] = bool(subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True, text=True, check=True).stdout.strip())
+    except (OSError, subprocess.CalledProcessError):
+        prov["launch_git_sha"] = None
+    return prov
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("checkpoint", help="path to a checkpoint .pt")
@@ -158,6 +180,7 @@ def main() -> None:
         "overlap with config-derived kwargs), so this flag is the seam.",
     )
     args = parser.parse_args()
+    prov = _launch_provenance()
 
     ckpt = load_checkpoint(args.checkpoint)
     cfg = Config(**ckpt["config"])
@@ -227,6 +250,7 @@ def main() -> None:
         # nonzero count means that many battles contained one random-legal
         # fallback order — disclose beside the win rate, like no_shaping.
         "mask_desyncs": mask_desync_total(),
+        **prov,
         "returns": returns,
     }
     if args.opponent_checkpoint:
