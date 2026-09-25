@@ -14110,3 +14110,22 @@ line numbers are not — grep the date, then read that region):
     log per line. Projected ~3.3M rollouts, ~3-4 h wall on two shards.
   - Caveat carried: the estimand is committee-vs-committee self-play decision quality, not strength vs Foul Play or
     humans. Stage 1's battle read vs FP@N answers that.
+- 2026-09-25 20:45Z (agent, R7 runner) — **DISK CLEANUP: 12.9 GB free (98% full) -> 121 GB free, nothing needed lost.**
+  The maintainer: "Delete obvious old stuff please" / "be careful and don't go overboard".
+  - The repo held ~260 GB: `runs/` 204 GB, mostly intermediate checkpoints, and `results/` 53 GB, of which 50 GB was raw
+    Foul Play stdout. The running R7 fleet keeps every checkpoint (~30 MB every 500k steps, ~6 GB a 100M lane), so it
+    alone would have filled the disk before finishing.
+  - (1) LOSSLESS: every `*.fp.stdout` of a COMPLETED arm was gzipped (135 files, ~94% smaller each; fp-speedup
+    confirmed none of its readers needs them plain). The list is in `logs/cleanup_2026-09-25/gzipped_fp_logs.txt`.
+    **Re-reading a banked tally now needs `gunzip` or `zcat` first**; a LIVE arm's log stays plain until its arm ends.
+  - (2) DELETED: 2,987 INTERMEDIATE checkpoints (57.0 GB) of 31 finished run dirs, the biggest the R5 W trio, L2LAM
+    and the closed gen-4 runs.
+    - Every run keeps its FINAL numbered ckpt, `checkpoint.pt`, `best_checkpoint.pt`, `theta0.pt`, config / meta /
+      history / evals, and every one of the 31 checkpoint paths any tracked file names. This is the policy of the
+      earlier cleanup.
+    - Untouched: the R7 fleet and its smokes, R7's donors (R6 trio B), and anything modified in the last 24 h (R6
+      trio A, the R7 LR smokes).
+    - Checked first: no code reads a finished run's intermediate checkpoints. Warm starts read the donor's final and
+      `theta0.pt`, `derive_r7_fleet.py` globs the donors' finals, and `r7_mechanism_reads.py` reads the fleet's own.
+    - Manifest: `logs/cleanup_2026-09-25/pruned_ckpts.tsv`.
+  - LATER, not now: R6 trio A/B intermediates (~89 GB) once R7's reads are done.
