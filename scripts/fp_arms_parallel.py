@@ -6,9 +6,12 @@
 
 --fpdir defaults to the runner's ../foul-play, the patched production build since 88e890e.
 
-FP@20 IS RETIRED FOR GEN 1 (maintainer, 2026-09-25: "No one should run outdated F@20 anymore";
-unanimous with the three sessions). A gen-1 arm with search_time_ms 20 and no search_iterations
-is refused here and, authoritatively, in the runner (exit 7).
+EVERY WALL-CLOCK FOUL PLAY IS RETIRED FOR GEN 1 (maintainer, 2026-09-25: FP@20 that morning,
+FP@100/500 by ~14:05Z -- "calibrate them into the proper FP@N and then retire serial runs forever
+(except for future calibration)"). A gen-1 arm without search_iterations is refused here and,
+authoritatively, in the runner (exit 7), unless its pre-reg arm declares
+`calibration_reference_for`: the wall-clock REFERENCE inside a calibration of a new N, which
+still runs one slot on a quiet box and is never a read.
 
 WHY IT IS SAFE NOW, AND ONLY FOR FP@N. A Foul Play arm with a WALL-CLOCK budget (FP@20) is
 weakened by anything else on the box -- measured: 16-19% fewer iterations per search at 4-8
@@ -83,11 +86,15 @@ def main():
     specs = {a: prereg["arms"][a] for a in arms}
     wallclock = [a for a in arms if not specs[a].get("search_iterations")]
     if os.environ.get("FORMAT", "gen1randombattle") == "gen1randombattle":
-        retired = [a for a in wallclock if int(specs[a].get("search_time_ms") or 0) == 20]
+        retired = [a for a in wallclock if not specs[a].get("calibration_reference_for")]
         if retired:
-            log(f"REFUSING: {retired} are FP@20, RETIRED for gen 1 (maintainer, 2026-09-25); declare "
-                "search_iterations: 25000 and search_iterations_early: 12000 (FP@N 25k/12k)")
+            log(f"REFUSING: {retired} are wall-clock Foul Play, RETIRED for gen 1 (maintainer, "
+                "2026-09-25); declare search_iterations and search_iterations_early (FP@N 25k/12k), "
+                "or, for a calibration's wall-clock reference only, calibration_reference_for")
             sys.exit(7)
+    for a in wallclock:
+        if specs[a].get("calibration_reference_for"):
+            log(f"{a}: CALIBRATION REFERENCE, wall-clock, never a read: {specs[a]['calibration_reference_for']}")
 
     try:
         bg = os.getpriority(4, 0)

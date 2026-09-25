@@ -98,6 +98,10 @@ _FOREIGN_KEYS = {
     # and writes scripts/fp_arm_counters.py's realized-iterations counter -- so it cannot run as a
     # silent control; a vs-SH job has no foul-play to forward it to.
     "search_iterations", "search_iterations_early",           # ch3_r4_fp_runner (FP@N)
+    # Every wall-clock Foul Play is retired for gen 1 (2026-09-25) except a calibration's
+    # reference arm, which declares this. The runner reads it (and refuses a wall-clock arm
+    # without it) and stamps it into the runner JSON; fp_arm_counters.py marks the arm.
+    "calibration_reference_for",                               # ch3_r4_fp_runner
     "lop",               # ch3_fp_h2h's native_seat (lop_from, signature-derived); a kind this harness refuses
     "seat1", "seat2",                                          # r2_falsifier
     "comparator",                                              # anchor_grade

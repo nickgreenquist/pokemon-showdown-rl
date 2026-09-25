@@ -22,10 +22,12 @@ fp_timer_losses, fp_forfeit_messages, fpn_counters_ok (and why not) into the run
 
 import json
 import re
+import statistics
 import sys
 from pathlib import Path
 
 VIS = re.compile(r"PROBE_VISITS .*?visits=(\d+) .*?search_ms=(-?[\d.]+) iters_req=(\d+)")
+BRANCH = re.compile(r"PROBE_VISITS t=\S+ n=(\d+) ms=(\d+) ")   # budget branch: battles x ms
 TIMER = re.compile(r"\|-message\|.* lost due to inactivity\.")
 FORFEIT = re.compile(r"\|-message\|.* forfeited\.")
 
@@ -40,6 +42,7 @@ def main():
     nonforced = exact = req_seen = n_forced = 0
     timer = forfeit = 0
     probe_lines = 0
+    by_branch = {}
     for line in open(fp_log, errors="replace"):
         if "PROBE_VISITS" in line:
             m = VIS.search(line)
@@ -59,6 +62,9 @@ def main():
                 n_forced += 1
                 continue
             nonforced += 1
+            b = BRANCH.search(line)
+            if b:
+                by_branch.setdefault((int(b.group(1)), int(b.group(2))), []).append(v)
             if req > 0 and v == chunked(req):
                 exact += 1
         elif TIMER.search(line):
@@ -77,7 +83,18 @@ def main():
         why.append("an FP@N arm whose searches carried no iters_req")
     if timer + forfeit > cf:
         why.append(f"{timer} timer + {forfeit} forfeit losses > {cf} crash forfeits")
+    branches = None
+    if not fixed:
+        # A wall-clock arm's realized visits per budget branch -- a calibration reference's
+        # whole output (the FP@N recipe: the median per branch at k=1 on a quiet box).
+        branches = {}
+        for (n, ms), vs in sorted(by_branch.items()):
+            q = statistics.quantiles(vs, n=20) if len(vs) >= 2 else [vs[0]] * 19
+            branches[f"n{n}_ms{ms}"] = {"searches": len(vs), "median": statistics.median(vs),
+                                        "p05": q[0], "p95": q[-1]}
     run.update({
+        "calibration_reference": bool(run.get("calibration_reference_for")),
+        "fp_visits_by_branch": branches,
         "fp_probe_lines": probe_lines, "fp_nonforced_searches": nonforced,
         "fp_forced_searches": n_forced,
         "fp_iters_exact": exact if fixed else None, "fp_iters_exact_rate": rate,

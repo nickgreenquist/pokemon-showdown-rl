@@ -624,7 +624,17 @@ def main():
     ap.add_argument("--hold-max-min", type=float, default=15.0)
     ap.add_argument("--end-by", default=None,
                     help="UTC ISO time; a k that cannot finish by then is not started")
+    ap.add_argument("--calibration-reference-for", default=None,
+                    help="REQUIRED: the calibration this wall-clock run serves (see below)")
     args = ap.parse_args()
+    # This driver launches WALL-CLOCK Foul Play itself, bypassing the runner's guard. Every
+    # wall-clock Foul Play is RETIRED for gen 1 (maintainer, 2026-09-25) except the reference
+    # inside a calibration of a new N, so a run must say which calibration it serves.
+    if not args.calibration_reference_for:
+        print("REFUSING: wall-clock Foul Play is RETIRED for gen 1 (maintainer, 2026-09-25); this "
+              "driver runs only as a calibration's reference: pass --calibration-reference-for",
+              file=sys.stderr)
+        sys.exit(7)
 
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))   # run the finally blocks
     os.chdir(REPO)
@@ -641,7 +651,8 @@ def main():
     end_by = (datetime.strptime(args.end_by, "%Y-%m-%dT%H:%M:%SZ")
               .replace(tzinfo=timezone.utc).timestamp() if args.end_by else None)
     log(f"driver pid {os.getpid()} ks={args.ks} smoke={args.smoke} rerun={args.rerun} "
-        f"end_by={args.end_by} priority={pr} (caffeinate pid {caff.pid})", fh)
+        f"end_by={args.end_by} priority={pr} (caffeinate pid {caff.pid}) "
+        f"CALIBRATION REFERENCE for: {args.calibration_reference_for}", fh)
 
     def one(label, names, allow_busy, hold_max_s):
         try:

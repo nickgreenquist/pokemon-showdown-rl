@@ -67,6 +67,9 @@ export POKEMON_RL_ENCODER_IDS=1
 # vars (review 1 MA-10: a mis-exported SEARCH_TIME_MS used to produce a JSON
 # indistinguishable from a correct one). Older pre-regs without these keys
 # keep the env-var path untouched.
+# CAL_REF (the pre-reg arm's calibration_reference_for) is NEVER taken from the
+# environment: only a pre-reg can declare a calibration's wall-clock reference.
+CAL_REF=""
 ARM_KIND="$("$PY" -c "
 import yaml,sys
 arm = yaml.safe_load(open('$PREREG'))['arms'].get('$ARM') or {}
@@ -78,30 +81,38 @@ if [ -n "$ARM_KIND" ]; then
     SEARCH_ITERATIONS=0
     SEARCH_ITERATIONS_EARLY=""
     eval "$("$PY" -c "
-import yaml
+import shlex, yaml
 arm = yaml.safe_load(open('$PREREG'))['arms']['$ARM']
 for shell, key in (('SEAT_USER','seat_username'),('FP_USER','fp_username'),
                    ('BATTLES','battles'),('SEARCH_TIME_MS','search_time_ms'),
                    ('SEARCH_ITERATIONS','search_iterations'),
-                   ('SEARCH_ITERATIONS_EARLY','search_iterations_early')):
+                   ('SEARCH_ITERATIONS_EARLY','search_iterations_early'),
+                   ('CAL_REF','calibration_reference_for')):
     v = arm.get(key)
     if v is not None:
-        print(f'{shell}={v}')")"
+        print(f'{shell}={shlex.quote(str(v))}')")"
 fi
-# An FP@N arm on a Foul Play without the patch would die on an unknown flag and
-# burn its relaunch budget looking like crashes: refuse it up front instead.
+# EVERY WALL-CLOCK FOUL PLAY IS RETIRED FOR GEN 1 (maintainer, 2026-09-25: "No one
+# should run outdated F@20 anymore", then "We should never run a FP@500 or 100 again
+# serially. If you need to, you should calibrate them into the proper FP@N and then
+# retire serial runs forever (except for future calibration)"). Checked after both
+# budget paths (pre-reg arm or env), so neither can launch one. The ONE exception is
+# a calibration's wall-clock REFERENCE arm, declared in its pre-reg arm as
+# calibration_reference_for and stamped into the runner JSON -- never a read.
+# Gen 4 is re-ruled when that chapter reopens.
+if [ "$FORMAT" = "gen1randombattle" ] && [ "${SEARCH_ITERATIONS:-0}" -eq 0 ] && [ -z "$CAL_REF" ]; then
+    echo "REFUSING: arm $ARM is wall-clock FP@$SEARCH_TIME_MS (no search_iterations) -- every wall-clock Foul Play is RETIRED for gen 1 (maintainer, 2026-09-25). Declare search_iterations and search_iterations_early (FP@N 25k/12k), or, for a calibration's wall-clock reference only, calibration_reference_for in the pre-reg arm" >&2
+    exit 7
+fi
+# A wrong FPDIR, or an FP@N arm on a Foul Play without the patch, would die at
+# launch and burn the relaunch budget looking like crashes: refuse up front.
+if [ ! -f "$FPDIR/run.py" ]; then
+    echo "REFUSING: $FPDIR has no run.py (not a Foul Play checkout)" >&2
+    exit 5
+fi
 if [ "${SEARCH_ITERATIONS:-0}" -gt 0 ] && ! grep -q -- "--search-iterations" "$FPDIR/fp/config.py" 2>/dev/null; then
     echo "REFUSING: arm $ARM declares search_iterations=$SEARCH_ITERATIONS but $FPDIR has no --search-iterations (unpatched Foul Play)" >&2
     exit 5
-fi
-# FP@20 IS RETIRED FOR GEN 1 (maintainer, 2026-09-25: "No one should run outdated
-# F@20 anymore"; unanimous with the three sessions). The gen-1 instrument is FP@N
-# 25k/12k. Checked after both budget paths (pre-reg arm or env), so neither can
-# launch one. Other wall-clock budgets and other formats keep the serial quiet-box
-# path until ruled; lifting this takes a maintainer ruling, not an env var.
-if [ "$FORMAT" = "gen1randombattle" ] && [ "${SEARCH_ITERATIONS:-0}" -eq 0 ] && [ "$SEARCH_TIME_MS" = "20" ]; then
-    echo "REFUSING: arm $ARM is FP@20 (search_time_ms 20, no search_iterations) -- RETIRED for gen 1 (maintainer, 2026-09-25); declare search_iterations: 25000 and search_iterations_early: 12000 (FP@N 25k/12k)" >&2
-    exit 7
 fi
 
 # G1 smokes: SMOKE_BATTLES (if set) wins over the pre-reg battle count —
@@ -135,6 +146,7 @@ rm -f "$VOID_MARKER" "$NO_PROGRESS_MARKER"
 log() {
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$RUNNER_LOG"
 }
+[ -n "$CAL_REF" ] && log "CALIBRATION REFERENCE, wall-clock FP@$SEARCH_TIME_MS, never a read: $CAL_REF"
 
 # 2026-09-25 (the FP-parallel task): a killed RUNNER takes its own arm down with it.
 # foul-play runs in its own session (start_fp), so without this a SIGTERM to the
@@ -291,6 +303,7 @@ write_runner_json() {
   "search_iterations_early": "${SEARCH_ITERATIONS_EARLY:-}",
   "fp_dir": "$FPDIR",
   "fp_budget_seen": "$(budget_seen)",
+  "calibration_reference_for": $("$PY" -c 'import json,sys; print(json.dumps(sys.argv[1] or None))' "$CAL_REF"),
   "relaunches": $RELAUNCHES,
   "crash_forfeits": $RELAUNCHES,
   "max_relaunches": $MAX_RELAUNCHES,

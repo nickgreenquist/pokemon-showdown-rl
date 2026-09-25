@@ -77,11 +77,16 @@ Foul-Play anchor machinery**. These three are current, not historical:
     (CONTAMINATION for a wall-clock arm, descriptive LOAD for FP@N) and refuses
     niced starts. The relaunch knobs (`MAX_RELAUNCHES` etc.) come from the
     caller's environment when set.
-  - **FP@20 is RETIRED for gen 1 (2026-09-25):** the runner (exit 7) and the
-    scheduler refuse a gen-1 arm with `search_time_ms: 20` and no
-    `search_iterations`; `tests/test_fp_runner_guards.py`.
+  - **EVERY wall-clock Foul Play is RETIRED for gen 1 (2026-09-25):** the runner
+    (exit 7), the scheduler and `fp_parallel_probe.py` refuse any gen-1 arm without
+    `search_iterations`. The one exception is a calibration's wall-clock reference,
+    declared in its pre-reg arm as `calibration_reference_for` (never from the
+    environment); it runs one slot on a quiet box and is never a read.
+    `tests/test_fp_runner_guards.py`.
   - `fp_arm_counters.py` — the adoption's instrument counters, written into every
-    runner JSON; `fpn_counters_ok: false` makes an arm INVALID.
+    runner JSON; `fpn_counters_ok: false` makes an arm INVALID. For a wall-clock
+    reference it also writes the realized visits per budget branch
+    (`fp_visits_by_branch`), which is a calibration's output.
   - `configs/eval/fp_n_smoke.yaml` — the install smoke; re-run it after any Foul
     Play / poke-engine reinstall.
   - Calibration and ROI harness (read-once): `fp_parallel_probe.py`,
