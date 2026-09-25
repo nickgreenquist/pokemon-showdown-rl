@@ -3,7 +3,7 @@ and torch-free (the step, the history and the theta0 donor record are passed in)
 well-formed control PASSES, and each shape the gate exists to catch FAILS -- a searched-only counter on the control,
 the searched arm's played_frac != searched_frac, the bank copied instead of mapped, a gate counter missing, the donor
 anchors never recorded (no donor record in theta0.pt), a resume without its re-install line, weights more than one
-update stale, heads counters on a head-off base."""
+update stale, heads counters on a head-off base, a resume that imported a later commit."""
 
 from __future__ import annotations
 
@@ -24,14 +24,14 @@ def _mod():
 
 
 def _fake(tmp: pathlib.Path, m, arm: str, *, drop=(), extra=(), played=None, zero_copy=True, theta0=True,
-          theta0_resume=True, lag=1.0):
+          theta0_resume=True, lag=1.0, resume_sha="abc"):
     run = tmp / f"runs/r7_fleet_smoke_{arm}_s1"
     run.mkdir(parents=True)
     (run / "config.yaml").write_text(yaml.safe_dump({"total_steps": 400_000, "collector": {"outcome_targets": False},
                                                      "init_from": "runs/donor/ckpt_200000011.pt"}))
     (run / "meta.yaml").write_text(yaml.safe_dump({
         "git_sha": "abc", "git_dirty": False, "encoder": {"c6": True}, "engine": {"bank_zero_copy": zero_copy},
-        "resumes": [{"from_step": 200_000}]}))
+        "resumes": [{"from_step": 200_000, "git_sha": resume_sha, "git_dirty": False}]}))
     rows = []
     for i in range(4):
         r = {"_step": 100_000 * (i + 1)}
@@ -102,3 +102,6 @@ def test_each_shape_the_gate_exists_for_fails(tmp_path):
     # The two-core lane's backpressure bound: the collector acts on weights at most one update behind.
     r = _check(tmp_path / "i", m, "control", lag=2.0)
     assert r["verdict"] == "FAIL" and r["gates"]["S_COUNTERS"]["weights_lag_max"] == 2.0
+    # A resume that imported a later commit is a different program (CLEANUP L10's audit).
+    r = _check(tmp_path / "j", m, "searched", resume_sha="def")
+    assert r["verdict"] == "FAIL" and r["gates"]["S_RESUME"]["same_program_as_launch"] is False

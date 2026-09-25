@@ -20,8 +20,9 @@ lines from the watchdog log. Gates:
               control; search/played_frac == search/searched_frac > 0 on every update row (searched) or == 0 on every
               update row (control); loss/approx_kl_unsearched and loss/grad_norm moving; collect/weights_lag_updates <= 1
               on every update row (the two-core lane's backpressure bound).
-  S_RESUME    (with --expect-resume) meta.yaml's resumes, the watchdog's RESUMED line with c6=1, the history's
-              segments matching the resumes (read through scripts/merge_history.py).
+  S_RESUME    (with --expect-resume) meta.yaml's resumes, each at the launch's git_sha on a clean tree (the same
+              program), the watchdog's RESUMED line with c6=1, the history's segments matching the resumes (read
+              through scripts/merge_history.py).
   S_ERRORS    no Traceback in the lane's nohup/resume logs.
 PASS iff every gate is ok. eval/win_rate is printed as DESCRIPTIVE only -- a smoke reads nothing (CLAUDE.md rule 6).
 """
@@ -142,8 +143,12 @@ def check(run: str, arm: str, watchdog_log: str, expect_resume: bool, step: int 
         lines = [l for l in wd_lines if f"RESUMED {rel} ->" in l]
         n = n_offline(run)
         segs_ok = (n == 0) or (n == len(res) + 1)
+        # A resume is a fresh process that imports the working tree: a commit landing between the launch and the
+        # kill makes the resumed lane a different program (docs/CLEANUP.md L10's audit).
+        same_program = all(r.get("git_sha") == meta.get("git_sha") and r.get("git_dirty") is False for r in res)
         gates["S_RESUME"] = {"ok": bool(res and all("from_step" in r for r in res) and lines
-                                        and all("c6=1" in l for l in lines) and segs_ok),
+                                        and all("c6=1" in l for l in lines) and segs_ok and same_program),
+                             "same_program_as_launch": same_program,
                              "resumes": res, "watchdog_resumed_lines": lines, "offline_runs": n,
                              "segments_match_resumes": segs_ok}
 
