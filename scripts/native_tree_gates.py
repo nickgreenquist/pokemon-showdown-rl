@@ -40,6 +40,18 @@ load); the leaf evaluator is its mean observation critic and the prior below the
 root its geometric-pool policy (`scripts/rollout_q.py::Committee`), exactly as the
 G0 chapter's reads use them. The tables fingerprint must equal the banked rows'.
 
+  bench       GATE (ii), the P-CORE BENCH -- a TIMED instrument, so it refuses a busy box
+              (1-min load above --max-load) and any nice / background QoS: run it on the
+              quiet box after the fleet, at nice 0. Per config (worlds, the tree's dials)
+              and per worker count (1 / 2 / 5 / 10 processes, each on its own roots), on
+              turn-stratified G0 roots: ms per decision p50 / p99, simulations and leaves
+              per second, the time split (value / prior forwards, engine, Python), rows
+              per forward (batch fill), depth, peak RSS; and HOURS PER 3,200-BATTLE ARM
+              at G2L's measured searched decisions per battle. The inference rungs are 8
+              worlds (the L-op's), the training rungs the TRUE world (Step C's B = 1).
+              Not built: the shared-inference process (one network server fed by many
+              tree workers); the per-worker scaling says whether it is needed.
+
 Runs from the worktree with PYTHONPATH on it (a worktree pins nothing without it),
 an env that has `pkmn_gen1`, POKEMON_RL_ENCODER_C6 unset, bytecode writes off:
   env -u POKEMON_RL_ENCODER_C6 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=<worktree> \\
@@ -433,12 +445,171 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     return 0
 
 
+BENCH_VERSION = "native_tree_bench/1"
+BENCH_CONFIGS = {
+    # inference (Step B): the L-op's 8 worlds, br_prior with sequential halving and tree.py's legacy rule
+    **{f"inf_sh_{n}_b{b}": {"worlds": 8, "tree": dict(sims=n, mode="br_prior", root_select="sequential_halving",
+                                                       root_rule="gumbel_mctx", batch=b)}
+       for n in (450, 1800, 7200) for b in (1, 4, 16)},
+    **{f"inf_legacy_{n}_b4": {"worlds": 8, "tree": dict(sims=n, mode="legacy", root_grid=False, cols_k=5,
+                                                         root_rule="legacy_gumbel", batch=4)} for n in (1800, 7200)},
+    # training (Step C): the TRUE world, B = 1, a few hundred simulations at a depth floor
+    **{f"train_{n}_b{b}": {"worlds": 1, "tree": dict(sims=n, mode="br_prior", root_rule="gumbel_mctx", batch=b)}
+       for n in (256, 1024) for b in (1, 4, 8, 16)},
+}
+
+
+def _qos_background() -> bool:
+    try:
+        return os.getpriority(4, 0) != 0          # PRIO_DARWIN_PROCESS: nonzero under background QoS
+    except OSError:
+        return False
+
+
+def bench(args) -> int:
+    import resource
+    import pkmn_gen1
+    import torch
+    import rollout_q as rq
+    from rl.envs.engine_tables import build_tables
+    from rl.search import native_tree
+    from rl.search.native import World
+    from rl.search.resample import resample_world
+
+    load1 = os.getloadavg()[0]
+    niced = os.nice(0) != 0
+    if not args.worker and not args.force:
+        if niced or _qos_background():
+            sys.exit("REFUSED: a timed instrument runs at nice 0 and normal QoS (CLAUDE.md: never nice what you time)")
+        if load1 > args.max_load:
+            sys.exit(f"REFUSED: 1-min load {load1:.2f} > --max-load {args.max_load}: the bench needs the quiet box")
+    configs = {k: v for k, v in BENCH_CONFIGS.items() if not args.configs or k in args.configs.split(",")}
+    unknown = sorted(set(args.configs.split(",")) - set(BENCH_CONFIGS)) if args.configs else []
+    if unknown:
+        sys.exit(f"unknown bench config(s) {unknown}; known: {sorted(BENCH_CONFIGS)}")
+    out_dir = pathlib.Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    rows_all, g0_summary, _belief = load_g0(pathlib.Path(args.g0_dir))
+    # turn-stratified roots: the lowest pids of each bucket
+    by_b: dict[int, list] = {}
+    for r in sorted(rows_all, key=lambda r: int(r["pid"])):
+        by_b.setdefault(int(r["bucket"]), []).append(r)
+    roots = sorted([r for b in sorted(by_b) for r in by_b[b][: args.per_bucket]], key=lambda r: int(r["pid"]))
+
+    if not args.worker:
+        # the parent: one pass per worker count, each spawning that many worker processes
+        stamps = None
+        summary = {"version": BENCH_VERSION, "load1_at_start": load1, "configs": configs, "runs": {}}
+        for w in [int(x) for x in args.workers.split(",")]:
+            tag = f"{args.tag}_w{w}"
+            procs = [subprocess.Popen([sys.executable, __file__, "bench", "--worker", f"{i}/{w}", "--tag", tag,
+                                       "--out-dir", str(out_dir), "--g0-dir", args.g0_dir, "--per-bucket", str(args.per_bucket),
+                                       "--torch-threads", str(args.torch_threads)]
+                                      + (["--configs", args.configs] if args.configs else []))
+                     for i in range(w)]
+            t0 = time.time()
+            codes = [p.wait() for p in procs]
+            wall = time.time() - t0
+            if any(codes):
+                sys.exit(f"worker exit codes {codes} at {w} workers")
+            recs = []
+            for i in range(w):
+                recs += [json.loads(x) for x in (out_dir / f"bench_{tag}.w{i}.jsonl").read_text().splitlines() if x.strip()]
+            summary["runs"][str(w)] = _bench_summary(recs, w, wall)
+        g2l = json.loads((MAIN_CHECKOUT / "results" / "r7_g2" / "g2l.json").read_text())
+        per_battle = float(g2l["search/searched"]) / float(g2l.get("battles_finished") or 3200)
+        summary["searched_decisions_per_battle"] = per_battle
+        for w, run in summary["runs"].items():
+            for name, c in run["configs"].items():
+                c["hours_per_3200_battle_arm_per_worker"] = 3200 * per_battle * c["ms_mean"] / 3.6e6
+        summary["written"] = dt.datetime.now(dt.timezone.utc).isoformat()
+        (out_dir / f"bench_{args.tag}.json").write_text(json.dumps(summary, indent=1))
+        for w, run in summary["runs"].items():
+            for name, c in run["configs"].items():
+                print(f"[ii] w{w} {name:22s} ms p50 {c['ms_p50']:7.0f} p99 {c['ms_p99']:7.0f} | sims/s/worker {c['sims_per_s']:6.0f} "
+                      f"| rows/fwd {c['rows_per_forward']:5.1f} | depth {c['depth_mean']:.2f} | split v/p/e/py "
+                      f"{c['split']['value']:.2f}/{c['split']['prior']:.2f}/{c['split']['engine']:.2f}/{c['split']['python']:.2f} "
+                      f"| h/arm {c['hours_per_3200_battle_arm_per_worker']:.1f}")
+        return 0
+
+    # a worker: every config over its slice of the roots, one line per decision
+    torch.set_num_threads(args.torch_threads)
+    i_w, n_w = (int(x) for x in args.worker.split("/"))
+    mine = [r for j, r in enumerate(roots) if j % n_w == i_w]
+    committee, _prov = rq.load_committee([c["path"] for c in g0_summary["committee"]],
+                                         [c["sha256"] for c in g0_summary["committee"]], np.random.default_rng(0))
+    tables, _fp = build_tables()
+
+    def value_fn(e):
+        return committee.critic(e["obs"])
+
+    path = out_dir / f"bench_{args.tag}.w{i_w}.jsonl"
+    with path.open("w") as f:
+        for name, cfg in configs.items():
+            dials = native_tree.dials_from(cfg["tree"])
+            for r in mine:
+                node = pkmn_gen1.SearchNode.load(base64.b64decode(r["node_b64"]))
+                m1 = np.asarray(node.mask(tables, "p1"), bool)
+                prior1 = np.where(m1, np.asarray(r["pi1"], np.float64), 0.0)
+                if cfg["worlds"] == 1:
+                    ws, opp = [World(node)], np.where(np.asarray(node.mask(tables, "p2"), bool), np.asarray(r["pi2"]), 0.0)
+                else:
+                    wrng = np.random.default_rng([20260923, int(r["pid"])])
+                    ws = []
+                    for _b in range(cfg["worlds"]):
+                        try:
+                            w_, _i = resample_world(node, tables, "p1", wrng)
+                        except RuntimeError:
+                            continue
+                        if np.array_equal(np.asarray(w_.mask(tables, "p1"), bool), m1):
+                            ws.append(World(w_))
+                    opp = None
+                    if not ws:
+                        continue
+                t0 = time.perf_counter()
+                res = native_tree.search(ws, tables, "p1", prior1, opp, value_fn, committee.probs,
+                                         int(r["pid"]) * 7919 + 1, **dials)
+                ms = (time.perf_counter() - t0) * 1e3
+                c = res["counters"]
+                f.write(json.dumps({"config": name, "pid": int(r["pid"]), "ms": ms, "sims": c["tree/sims"],
+                                    "leaves": c["search/leaves"], "fwd_v": c["tree/forwards_v"], "fwd_p": c["tree/forwards_p"],
+                                    "prior_rows": c["tree/prior_rows"], "depth": c["tree/depth_mean"],
+                                    "upd": c["tree/upd_mean"], "turns": c["tree/turns_mean"], "ms_value": c["tree/ms_value"],
+                                    "ms_prior": c["tree/ms_prior"], "ms_engine": c["search/rust_ms"],
+                                    "rss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 2**20}) + "\n")
+                f.flush()
+    return 0
+
+
+def _bench_summary(recs: list[dict], workers: int, wall: float) -> dict:
+    out = {"workers": workers, "wall_s": wall, "configs": {}}
+    for name in sorted({x["config"] for x in recs}):
+        xs = [x for x in recs if x["config"] == name]
+        ms = np.array([x["ms"] for x in xs])
+        tot = ms.sum()
+        v = sum(x["ms_value"] for x in xs)
+        pr = sum(x["ms_prior"] for x in xs)
+        e = sum(x["ms_engine"] for x in xs)
+        out["configs"][name] = {
+            "decisions": len(xs), "ms_mean": float(ms.mean()), "ms_p50": float(np.percentile(ms, 50)),
+            "ms_p99": float(np.percentile(ms, 99)), "sims_per_s": float(sum(x["sims"] for x in xs) / (tot / 1e3)),
+            "leaves_per_s": float(sum(x["leaves"] for x in xs) / (tot / 1e3)),
+            "rows_per_forward": float(sum(x["leaves"] for x in xs) / max(sum(x["fwd_v"] for x in xs), 1)),
+            "prior_rows_per_forward": float(sum(x["prior_rows"] for x in xs) / max(sum(x["fwd_p"] for x in xs), 1)),
+            "depth_mean": float(np.mean([x["depth"] for x in xs])), "upd_mean": float(np.mean([x["upd"] for x in xs])),
+            "turns_mean": float(np.mean([x["turns"] for x in xs])), "rss_mb_max": float(max(x["rss_mb"] for x in xs)),
+            "split": {"value": v / tot, "prior": pr / tot, "engine": e / tot, "python": max(0.0, 1 - (v + pr + e) / tot)},
+        }
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     red = sub.add_parser("reduction", help="gate (i-a): the depth-1 reduction to native.solve")
     orc = sub.add_parser("oracle", help="gate (i-c): decision quality on G0's oracle at matched override")
-    for p in (red, orc):
+    bch = sub.add_parser("bench", help="gate (ii): the P-core bench (the quiet box, nice 0)")
+    for p in (red, orc, bch):
         p.add_argument("--g0-dir", default=str(MAIN_CHECKOUT / "results" / "r7_g0"))
         p.add_argument("--out-dir", default=str(MAIN_CHECKOUT / "results" / "native_tree"))
         p.add_argument("--limit", type=int, default=0)
@@ -448,12 +619,19 @@ def main() -> None:
     orc.add_argument("--worlds", type=int, default=8, help="the critic L-op's B")
     orc.add_argument("--belief-seed", type=int, default=20260923, help="the belief read's --seed: the same worlds")
     orc.add_argument("--summarise", action="store_true", help="measure nothing: join every shard of --tag and score it")
+    bch.add_argument("--configs", default="", help=f"comma list (default all): {sorted(BENCH_CONFIGS)}")
+    bch.add_argument("--workers", default="1,2,5,10", help="worker counts, one pass each")
+    bch.add_argument("--per-bucket", type=int, default=10, help="roots per turn bucket (the proposal's full bench: 50)")
+    bch.add_argument("--tag", default="bench")
+    bch.add_argument("--max-load", type=float, default=1.5)
+    bch.add_argument("--force", action="store_true", help="run on a busy box anyway (the numbers are then NOT the bench)")
+    bch.add_argument("--worker", default="", help=argparse.SUPPRESS)
     args = ap.parse_args()
     if os.environ.get("POKEMON_RL_ENCODER_C6"):
         sys.exit("REFUSED: POKEMON_RL_ENCODER_C6 is set; G0's rows and the W finals are c6-off")
     os.environ.setdefault("POKEMON_RL_ENCODER_V2", "1")
     os.environ.setdefault("POKEMON_RL_ENCODER_IDS", "1")
-    sys.exit({"reduction": reduction, "oracle": oracle}[args.cmd](args))
+    sys.exit({"reduction": reduction, "oracle": oracle, "bench": bench}[args.cmd](args))
 
 
 if __name__ == "__main__":
