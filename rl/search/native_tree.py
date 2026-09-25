@@ -278,7 +278,8 @@ def search(
     `prior_fn` on each world's foe view).
 
     Returns `pi` (10,) the improved policy, `q_row` (10,) the root's Q per action
-    (NaN off the mask), `v`, `v_prior`, `action`, `policy_action`, `rows`, `root`
+    (NaN off the mask; NaN on a row no simulation reached), `n_row` (10,) the root's
+    visits pooled over worlds, `v`, `v_prior`, `action`, `policy_action`, `rows`, `root`
     (each world's joint matrix: cols, q, N, W), `counters`, `per_world`.
 
     `_inspect` is not a dial: a diagnostic hook called with each world's finished
@@ -804,7 +805,8 @@ class _Search:
             counters["search/ms"] = (time.perf_counter() - t_start) * 1e3
             pi = np.zeros(N_ACTIONS)
             pi[mask] = prior_m
-            return {"pi": pi, "q_row": np.full(N_ACTIONS, np.nan), "v": float("nan"), "v_prior": float("nan"),
+            return {"pi": pi, "q_row": np.full(N_ACTIONS, np.nan), "n_row": np.zeros(N_ACTIONS),
+                    "v": float("nan"), "v_prior": float("nan"),
                     "action": policy_action, "policy_action": policy_action, "rows": rows, "root": [],
                     "counters": counters, "per_world": []}
         # per-world root estimates over OUR rows (the same rows in every world)
@@ -903,9 +905,11 @@ class _Search:
         pi[mask] = pi_m
         q_row = np.full(N_ACTIONS, np.nan)
         q_row[mask] = q_root
+        n_row = np.zeros(N_ACTIONS)
+        n_row[mask] = n_pool
         root = [{"world": t.w, "rows": rows, "cols": [int(c) for c in t.root.cols], "q": t.root.q.tolist(),
                  "N": t.root.N.tolist(), "W": t.root.W.tolist()} for t in ok]
-        return {"pi": pi, "q_row": q_row, "v": v_prime, "v_prior": v_prior, "action": action,
+        return {"pi": pi, "q_row": q_row, "n_row": n_row, "v": v_prime, "v_prior": v_prior, "action": action,
                 "policy_action": policy_action, "rows": rows, "root": root, "counters": counters,
                 "per_world": [q.tolist() for q in per_q]}
 
