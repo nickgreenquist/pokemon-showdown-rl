@@ -522,6 +522,9 @@ on a 14-core laptop, CPU only, pure self-play.
 > - Beside the fleet the seat ms are load-inflated, so the budget to quote is `lop/leaves_mean` (fp-speedup's note).
 > - G2's primary is a gap, and the calibration's gap-change CI95 [−0.042, +0.033] is wider than the +0.025 line. The
 >   verdict is "search vs the same committee greedy off FP@N", never a translated FP@20 result.
+> - **The leaves band is re-derived before the R phase** (the maintainer: "30-battle measurement first"). r2's
+>   [400, 700] came from build smokes that are not on disk, and both live smokes read below it (360.7, 371.6). G2DOSE
+>   runs G2L's operator for 30 battles; the band becomes its mean ±25%; its win rate is never read.
 > - Unchanged: the object (the R5 W committee), the operator and its dials, n 3200 per arm, the credit line, the
 >   branches, and every other R0 gate.
 > **FP@20 is retired** for every session (CLAUDE.md): the runner and the scheduler refuse a gen-1 FP@20 arm (fp-speedup,

@@ -57,7 +57,7 @@ def _read(R):
     runners = {a: json.loads((R / f"{a.lower()}.runner.json").read_text()) for a in ("G2G", "G2L")}
     ne = {a: rd.neff(seats[a], runners[a]) for a in seats}
     tallies = {a: rd.g_tally(seats[a], ne[a], rd.tally(str(R / f"{a.lower()}.fp.stdout"))) for a in seats}
-    gg = rd.gates(str(R), seats, runners, ne, tallies)
+    gg = rd.gates(str(R), seats, runners, ne, tallies, (400.0, 700.0))
     mg = rd.matched_greedy(str(R / "g_matched_greedy.log"), SHA)
     return seats, ne, rd.primary(ne["G2G"], ne["G2L"]), gg, mg
 
@@ -103,3 +103,15 @@ def test_a_skipped_matched_greedy_test_is_not_a_pass(tmp_path):
     R = _setup(tmp_path)
     (R / "g_matched_greedy.log").write_text(f"launch {SHA}\n===== 11 passed, 1 skipped in 3.1s =====\n")
     assert rd.matched_greedy(str(R / "g_matched_greedy.log"), SHA)["ok"] is False
+
+
+def test_the_leaves_band_is_read_from_the_prereg_never_typed(tmp_path):
+    import yaml
+    pre = yaml.safe_load((ROOT / "configs/eval/r7_g2.yaml").read_text())
+    lo, hi = rd.leaves_band(pre)
+    assert 0 < lo < hi
+    seats, ne, prim, gg, mg = _read(_setup(tmp_path))
+    assert rd.operator_ran(seats["G2L"], (530.0, 900.0))["ok"] is False      # 520 leaves outside a band -> FAIL
+    with pytest.raises(ValueError):
+        rd.leaves_band({"R0_gates": [{"name": "G_OPERATOR_RAN", "leaves_band": [700, 400]}]})
+

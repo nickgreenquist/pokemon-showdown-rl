@@ -36,7 +36,7 @@ def test_the_lop_dials_pass_their_signature_derived_checks():
     from rl.search import native
     from rl.search.lop import lop_from
 
-    for name in ("G2SM", "G2SMN", "G2L"):
+    for name in ("G2SM", "G2SMN", "G2DOSE", "G2L"):
         lop = lop_from(_p()["arms"][name]["lop"])
         assert native.dials_from(lop["solve"]) == {"cols_k": 4, "chance_s": 2, "tau": 0.05}
         assert lop["worlds"] == 8 and lop["margin_gate"] == 0.01
@@ -83,7 +83,8 @@ def test_r3_reads_off_fp_at_n_and_never_gates_on_an_fp20_band():
     is a disclosure naming both instruments, never a gate."""
     p = _p()
     assert p["phases"]["smoke"] == ["G2SMN"], "G2SM ran on FP@20 before r3 and is never re-listed"
-    for name in p["phases"]["smoke"] + p["phases"]["R"]:
+    assert p["phases"]["dose"] == ["G2DOSE"]
+    for name in p["phases"]["smoke"] + p["phases"]["dose"] + p["phases"]["R"]:
         arm = p["arms"][name]    # inside the ARM: the runner reads the budget from the arm only (MA-10)
         assert (arm["search_iterations"], arm["search_iterations_early"], arm["search_time_ms"]) == (25000, 12000, 20), name
     names = {g["name"] for g in p["R0_gates"]}
@@ -135,3 +136,18 @@ def test_rl_provenance_names_the_imported_tree():
     assert prov["rl_package"] == str(pathlib.Path(rl.__file__).resolve().parent)
     assert prov["rl_git_sha"] is None or len(prov["rl_git_sha"]) == 40
     assert prov["rl_git_sha"] is None or isinstance(prov["rl_git_dirty"], bool)
+
+
+def test_g2dose_is_g2ls_operator_exactly_and_the_band_is_machine_readable():
+    """r3 (the maintainer's "30-battle measurement first"): G2DOSE runs G2L's operator -- the same seat,
+    committee, dials and seed -- and G_OPERATOR_RAN carries the leaves band as data, which
+    scripts/r7_g2_readout.py reads (never a second typed copy)."""
+    p = _p()
+    dose, lop = p["arms"]["G2DOSE"], p["arms"]["G2L"]
+    same = ("kind", "seat", "ensemble_members", "lop", "search_time_ms", "search_iterations", "search_iterations_early")
+    assert {k: dose[k] for k in same} == {k: lop[k] for k in same}
+    assert dose["battles"] == 30
+    gate = next(g for g in p["R0_gates"] if g["name"] == "G_OPERATOR_RAN")
+    lo, hi = gate["leaves_band"]
+    assert 0 < lo < hi and "G2DOSE" in gate["check"]
+

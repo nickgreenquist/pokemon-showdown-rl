@@ -97,6 +97,15 @@
 #     figures, as the disclosures below require.
 #   * THE PROGRAM: scripts/fp_arms_parallel.py runs from the MAIN checkout at the launch commit, with
 #     PY=pkmn-engine-r7 (for its pkmn_gen1), so both seats import main's rl and G_SAME_PROGRAM reads main's sha.
+#   * THE LEAVES BAND IS RE-DERIVED BEFORE ANY R-PHASE BATTLE (the maintainer's ruling, 2026-09-25: "30-battle
+#     measurement first"). r2's [400, 700] came from build-time smokes (512-538) whose files are not on disk, and
+#     both live smokes of the ratified operator read below it: G2SM 360.7 off FP@20, G2SMN 371.6 off FP@N. The leaf
+#     count is fixed per position (B 8 x our legal actions x up to k 4 foe replies x up to S 2 chance samples), so its
+#     mean is set by the live battles' position mix, never by load or the instrument. G2DOSE runs G2L's operator,
+#     dials and seed exactly, for 30 battles off FP@N. The band becomes [0.75 m, 1.25 m], with m its lop/leaves_mean
+#     (the +-25% leaves convention of the CH3 graders), written into G_OPERATOR_RAN's leaves_band before G2G and G2L
+#     launch. G2DOSE's win rate is never read. If any other G_OPERATOR_RAN check fails on G2DOSE, or its
+#     fpn_counters_ok is false, nothing launches and the maintainer hears first.
 title: r7_g2
 status: "RATIFIED 2026-09-24 00:20Z (maintainer, R-G2: 'Ratify; run after fleet') -- r2 after two Opus reviews; AMENDED r3 2026-09-25 before any R-phase battle (maintainer: 'G2 should be F@N. No one should run outdated F@20 anymore'; the three sessions voted): off FP@N 25k/12k, both arms in one session beside the R7 fleet (only G2SM, the two-battle smoke, ran, on FP@20, before the fleet); the L-op's FIRST budget"
 journey_step: "14"
@@ -119,10 +128,14 @@ arms:
   G2SM: {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 2,    search_time_ms: 20, seat_username: r7g2smkseat, fp_username: r7g2smkbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
   # G2SMN (r3): the FP@N re-smoke THROUGH THE SCHEDULER (--arms G2SMN --slots 1); a throwaway pair.
   G2SMN: {kind: native_seat,  seat: w112, ensemble_members: [w104, w112, w120], battles: 2,    search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: r7g2smnseat, fp_username: r7g2smnbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
+  # G2DOSE (r3, the maintainer's "30-battle measurement first"): G2L's operator exactly, on a throwaway pair; it
+  # MEASURES the live-battle leaves that set G_OPERATOR_RAN's leaves_band, and nothing else -- its win rate is never read.
+  G2DOSE: {kind: native_seat, seat: w112, ensemble_members: [w104, w112, w120], battles: 30,   search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: r7g2dseat, fp_username: r7g2dbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
   G2G:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3200, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: r7g2grseat, fp_username: r7g2grbot}
   G2L:  {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 3200, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: r7g2lseat, fp_username: r7g2lbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
 phases:
   smoke: [G2SMN]                 # r3; G2SM (FP@20) ran before the amendment -- the record above
+  dose: [G2DOSE]                 # r3; sets G_OPERATOR_RAN's leaves_band before the R phase
   R: [G2G, G2L]
 decision_rule:
   primary: "G2L minus G2G, off FP@N 25k/12k (r3), n=3200 per arm (n_eff after the crash-forfeit rule), ONE session, both arms CONCURRENT through scripts/fp_arms_parallel.py --slots 2, the control (G2G) LAUNCHED FIRST"
@@ -174,7 +187,8 @@ R0_gates:
   - name: G_RUNNER
     check: "the runner's standing FP gates carry over (CH3 R4): the crash-forfeit read rule (n_eff = seat-finished minus crash-forfeits, our_wins reduced by the same count, BOTH arms); >= 30 relaunches VOIDs an arm; the two-tally agreement on n_eff EXACTLY (the runner's own 'G2' tally gate -- a name collision with this experiment, spelled G_TALLY here); gate_all_challenges_resolved; mask_desyncs reported"
   - name: G_OPERATOR_RAN
-    check: "G2L, every threshold from a measurement: search/searched >= 0.5 x search/decisions; lop/worlds_built_rate >= 0.90 (R1-E refused 1.9% of roots; the harvest probe built 96%); lop/no_world_rate <= 0.10 (a refused root loses all 8 worlds -- the harvest probe's 4.0% is transformed-Ditto roots, and a no-world decision plays the control's action: dilution, not bias); lop/mask_mismatch_rate <= 0.001 of worlds (R1-E: 0 of ~13k roots, a rate bound, not a zero); lop/errors <= 0.001 of worlds tried, every type disclosed; search/override_rate in [0.02, 0.20] (the sweep's cell 0.100 on G0's positions, G1 0.096, G1b's belief arms 0.0757, the harvest probe 0.060; 0.20 is 2x the highest); lop/leaves_mean in [400, 700] (the smokes 512-538: the realized budget). Outside any of these the operator did not run as measured and the read says nothing"
+    check: "G2L, every threshold from a measurement: search/searched >= 0.5 x search/decisions; lop/worlds_built_rate >= 0.90 (R1-E refused 1.9% of roots; the harvest probe built 96%); lop/no_world_rate <= 0.10 (a refused root loses all 8 worlds -- the harvest probe's 4.0% is transformed-Ditto roots, and a no-world decision plays the control's action: dilution, not bias); lop/mask_mismatch_rate <= 0.001 of worlds (R1-E: 0 of ~13k roots, a rate bound, not a zero); lop/errors <= 0.001 of worlds tried, every type disclosed; search/override_rate in [0.02, 0.20] (the sweep's cell 0.100 on G0's positions, G1 0.096, G1b's belief arms 0.0757, the harvest probe 0.060; 0.20 is 2x the highest); lop/leaves_mean in leaves_band (r2: [400, 700] from the build smokes' 512-538; r3 RE-DERIVES it from G2DOSE as [0.75 m, 1.25 m] before any R-phase battle -- the realized budget). Outside any of these the operator did not run as measured and the read says nothing"
+    leaves_band: [400, 700]      # r2's; r3 replaces it from G2DOSE before G2G/G2L launch
   - name: G_MATCHED_GREEDY
     check: "tests/test_lop.py at the launch commit: every test PASSED and NONE SKIPPED (a skip is not a pass -- it skips without pkmn_gen1, the harvest or the three finals)"
   - name: G_SESSION

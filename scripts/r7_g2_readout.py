@@ -35,8 +35,10 @@ WINNER_RE = re.compile(r"Winner: (\S+)")
 CREDIT_DELTA = Fraction(1, 40)     # +0.025, exact
 SANITY_REF = {"xgr": 0.5866, "n": 3200, "instrument": "FP@20", "source": "RESULTS §35, the same object"}
 # G_OPERATOR_RAN, each threshold from the pre-reg's own measurement (configs/eval/r7_g2.yaml).
+# The leaves band is NOT here: r3 re-derives it from G2DOSE, and it is read from the pre-reg's
+# G_OPERATOR_RAN `leaves_band` (leaves_band()), never typed twice.
 OP = {"searched_frac_min": 0.5, "worlds_built_min": 0.90, "no_world_max": 0.10, "mask_mismatch_max": 0.001,
-      "errors_per_world_max": 0.001, "override": (0.02, 0.20), "leaves": (400.0, 700.0)}
+      "errors_per_world_max": 0.001, "override": (0.02, 0.20)}
 MAX_RELAUNCHES = 30          # G_RUNNER: ">= 30 relaunches VOIDs an arm"
 BUDGET_LINE = "budget verified from foul-play's log"
 
@@ -121,7 +123,15 @@ def matched_greedy(log: str, launch_sha: str | None) -> dict:
     return {"ok": bool(last and not bad and sha_ok), "summary": last.strip("= "), "launch_sha_in_log": sha_ok}
 
 
-def operator_ran(l: dict) -> dict:
+def leaves_band(prereg: dict) -> tuple[float, float]:
+    g = next(x for x in prereg["R0_gates"] if x["name"] == "G_OPERATOR_RAN")
+    lo, hi = (float(v) for v in g["leaves_band"])
+    if not 0 < lo < hi:
+        raise ValueError(f"G_OPERATOR_RAN leaves_band must be 0 < lo < hi, got {g['leaves_band']}")
+    return lo, hi
+
+
+def operator_ran(l: dict, band: tuple[float, float]) -> dict:
     dec = l.get("search/decisions") or 0
     tried = 8 * max(dec - (l.get("lop/forced") or 0), 0)        # the L-op adds B=8 per non-forced decision
     checks = {
@@ -131,7 +141,7 @@ def operator_ran(l: dict) -> dict:
         "mask_mismatch_rate": (l.get("lop/mask_mismatch_rate"), "<=", OP["mask_mismatch_max"]),
         "errors_per_world": ((l.get("lop/errors") or 0) / tried if tried else None, "<=", OP["errors_per_world_max"]),
         "override_rate": (l.get("search/override_rate"), "in", OP["override"]),
-        "leaves_mean": (l.get("lop/leaves_mean"), "in", OP["leaves"]),
+        "leaves_mean": (l.get("lop/leaves_mean"), "in", tuple(band)),
     }
     res, ok = {}, True
     for k, (v, op, thr) in checks.items():
@@ -150,7 +160,7 @@ def operator_ran(l: dict) -> dict:
     return {"ok": bool(ok), **res}
 
 
-def gates(R: str, seats: dict, runners: dict, ne: dict, tallies: dict) -> dict:
+def gates(R: str, seats: dict, runners: dict, ne: dict, tallies: dict, band: tuple[float, float]) -> dict:
     g, l = seats["G2G"], seats["G2L"]
     out = {}
     fpn = {}
@@ -179,7 +189,7 @@ def gates(R: str, seats: dict, runners: dict, ne: dict, tallies: dict) -> dict:
     out["G_RUNNER"] = {"ok": all((v["relaunches"] or 0) < MAX_RELAUNCHES and not v["void_too_many_crashes"]
                                  and v["all_challenges_resolved"] is True and v["tally_agrees"] for v in run.values()),
                        **run}
-    out["G_OPERATOR_RAN"] = operator_ran(l)
+    out["G_OPERATOR_RAN"] = operator_ran(l, band)
     out["G_SESSION"] = {"ok": bool(g.get("prereg_sha256") and g.get("prereg_sha256") == l.get("prereg_sha256")),
                         "prereg_sha256": (g.get("prereg_sha256"), l.get("prereg_sha256")),
                         "note": "the delta is G2L - G2G only; no banked number enters"}
@@ -241,11 +251,12 @@ def main() -> None:
             if not os.path.exists(p):
                 sys.exit(f"missing {p} -- the arm has not finished; nothing to read")
             d[a] = json.load(open(p))
-    rule = yaml.safe_load(open(args.prereg))["decision_rule"]
+    pre = yaml.safe_load(open(args.prereg))
+    rule = pre["decision_rule"]
     ne = {a: neff(seats[a], runners[a]) for a in seats}
     tallies = {a: g_tally(seats[a], ne[a], tally(os.path.join(R, f"{a.lower()}.fp.stdout"))) for a in seats}
     prim = primary(ne["G2G"], ne["G2L"])
-    gg = gates(R, seats, runners, ne, tallies)
+    gg = gates(R, seats, runners, ne, tallies, leaves_band(pre))
     mg = matched_greedy(os.path.join(R, "g_matched_greedy.log"), seats["G2G"].get("launch_git_sha"))
     print(render(seats, ne, prim, gg, mg, rule))
     if args.json_out:
