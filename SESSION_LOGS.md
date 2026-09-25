@@ -14044,3 +14044,29 @@ line numbers are not — grep the date, then read that region):
   The leaf count is fixed per position (B 8 x our legal actions x up to 4 foe replies x up to 2 chance samples), so its
   mean follows the live battles' position mix, never load or the instrument. Timing beside the fleet: the L-op arm ran
   ~3.8 s/battle, so G2L's 3,200 battles take ~3.4 h (2 slots).
+- 2026-09-25 16:45Z (agent, R7 runner) — **R7 G2 READ: DOES NOT CLEAR** (`readouts/R7_G2_READOUT.md`, computed by
+  `scripts/r7_g2_readout.py` from `results/r7_g2/`). G2L (the belief L-op: B 8 x k 4 x S 2, depth 1) won 0.5947
+  (1903/3200) off FP@N 25k/12k; G2G (the same R5 W committee, greedy) won 0.5934 (1899/3200). Delta +0.0013, se_diff
+  0.0123, z +0.10, CI95 [-0.0228, +0.0253], one-sided upper95 +0.0214.
+  - Every R0 gate PASSES: the FP@N counters on both arms (223,542 and 224,934 non-forced searches, all exact), the
+    control launched first in one session, the same program (`c34f49c`, clean, and both arms finished on it), 0
+    relaunches and 0 crash forfeits, the two tallies agreeing on n_eff, the operator's rates, and the leaves (393.7, in
+    r3's [276.1, 460.3]).
+  - **Under r2's ratified [400, 700] the pair would have VOIDED**; the maintainer's "30-battle measurement first"
+    re-derived the band before the R phase.
+  - The ladder stays greedy; the training side proceeds. This is a null at this operator and budget and says nothing
+    about search at a larger budget or with another evaluator (rule 6; the pre-reg: "NOT the real-budget null").
+  - G2G 0.5934 is the R5 W committee's FIRST FP@N number, printed beside §35's FP@20 XGR 0.5866, never differenced.
+  THE INFERENCE BUDGET (the maintainer asked "how much search", with ~10 s/turn as the cap). Verified that day:
+  - Foul Play's author runs ~7 s a decision on the ladder, and reports gen1randombattle GXE 75%, peak ~1450, top 500.
+  - The Showdown clock charges 5-s ticks against a 150 s bank refilling +10 s a turn, so under ~15 s a turn is
+    bank-neutral and "150 s/turn" was a one-turn max.
+  Two Opus reviews, constructive and skeptical, agree: room is likely left at inference, on the LEAF-EVALUATOR axis
+  (rollouts of our own policy), not more critic breadth.
+  - G0: the best critic-leaf operator captures +0.0040 ± 0.0014 of a +0.0236 ± 0.0028 per-decision rollout ceiling.
+  - Reviewer B's pass over G0's banked rows at matched 10% override: +0.0151 vs +0.0040, true world (an upper bound).
+  - R7's ~2 ms critic-leaf training search cannot distil what rollouts buy.
+  The maintainer approved the plan: a P-core rollout bench (quiet box, after the fleet); a decision-level
+  rollout-vs-critic curve on G0's 500 roots (~8 h on the E-cores beside the fleet, no FP battles; being built by
+  reviewer B in scratch); then, if it pays, a rollout operator read vs FP@N at the knee after R7's reads; and tick-aware
+  ladder time management. G2 at its 25 ms budget gates nothing there.
