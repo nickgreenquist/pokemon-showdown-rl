@@ -14129,3 +14129,19 @@ line numbers are not — grep the date, then read that region):
       `theta0.pt`, `derive_r7_fleet.py` globs the donors' finals, and `r7_mechanism_reads.py` reads the fleet's own.
     - Manifest: `logs/cleanup_2026-09-25/pruned_ckpts.tsv`.
   - LATER, not now: R6 trio A/B intermediates (~89 GB) once R7's reads are done.
+- 2026-09-25 21:45Z (agent, R7 runner) — **STAGE 0c READ (the decision-level rollout-vs-critic curve): STAGE 1, and still
+  rising, so the rule's R = 512 follow-up runs before any conclusion** (`results/r7_stage0c/stage0c.summary.{md,json}`,
+  computed by `scripts/r7_stage0c_rollout_curve.py --summarise` over both shards; 500 positions, 0 errors, 64,000 worlds
+  built, 3,305,216 rollouts; the B8 critic reproduced the banked rows 500/500; both self-checks IDENTICAL).
+  - All figures are win-rate per decision on G0's 500 roots, at the banked critic's own override rate 0.080. The primary
+    (full matrix, soft_br) rollout operator reads +0.0016 / +0.0033 / +0.0037 / +0.0055 at R = 16 / 32 / 64 / 128 worlds
+    (6,610 rollouts a decision at 128). The critic L-op (B8) reads +0.0028 ± 0.0013.
+  - Paired d at R = 128: +0.0027 ± 0.0013 (z 2.02), the only rung where it pays.
+  - The 3x4 variant (1,483 rollouts) reads d +0.0032 ± 0.0013 (z 2.46), so the knee cells are 3x4.
+  - 64 -> 128 rises +0.0018 ± 0.0011, so ADD R = 512 fired: 100 positions at 128/256/512, tag `stage0c_r512`, launched
+    21:40Z on the E-cores.
+  - The critic's breadth axis is flat to negative: B32 - B8 = -0.0010 ± 0.0006.
+  - The true-world rollout operator (the peek) reads +0.0088 ± 0.0018 (true - belief at 128: +0.0033 ± 0.0013).
+  - CAVEATS carried: the estimand is committee-vs-committee decision quality, which the rollouts share with the oracle.
+    Decision-level gains overstate battle gains (G2's critic L-op read +0.0028 here and +0.0013 off FP@N). Stage 1's
+    battle read vs FP@N is the test.
