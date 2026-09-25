@@ -1,0 +1,75 @@
+title: fp_parallel_probe
+status: "THROUGHPUT PROBE 2026-09-24 (agent, maintainer's FP-parallel ROI task, Phase 1). NOT a pre-reg and NOT a strength read: it credits nothing, no win rate from it is quoted anywhere, and FP@20 here is a load generator. Measures aggregate battles/hour vs Foul Play at k = 1, 2, 4, 6 concurrent arms on a quiet box, plus Foul Play's per-search MCTS iteration count (Phase 2's calibration input)."
+journey_step: "off-arc ops (eval throughput); serves every future off-FP read (the R6/R7 reads queues)"
+credits_nothing: true
+results_dir: results/fp_parallel_probe
+
+# WHAT RUNS. k identical arms at once, each its own (seat, Foul Play) username pair on the one
+# :8000 server. The seat is the E3WR object of configs/eval/r6_reads_offfp.yaml (ENS3 of the
+# three W finals, c6 OFF, loop breaker ON), so each arm costs what a committee arm of the reads
+# queue costs. 150 battles per arm (the maintainer's brief). Foul Play runs from a SEPARATE copy
+# (../foul-play-fpprobe) = production FP (upstream 25c976f + scripts/patches/foulplay_gen1_local.patch,
+# sha-matched) + scripts/patches/foulplay_probe_visits.patch (logging only: every search's
+# total_visits, in the PARENT). Same command line as scripts/ch3_r4_fp_runner.sh
+# (--search-time-ms 20 --search-parallelism 1, format gen1randombattle, challenge_user).
+# Driver: scripts/fp_parallel_probe.py; read: scripts/fp_parallel_probe_read.py.
+#
+# USERNAMES: fpk<k>a<i>{seat,bot}; rerun pairs fpk<k>a<i>r2{seat,bot}; smoke fpksmoke{,2}{seat,bot}.
+# Prefix-free against every name in configs/eval/*.yaml (checked 2026-09-24 with the reads
+# queue's own regex). The arms block below is GENERATED, never typed.
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/r6_reads_offfp.yaml
+  w112: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}   # copied from configs/eval/r6_reads_offfp.yaml
+  w120: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}   # copied from configs/eval/r6_reads_offfp.yaml
+
+arms:
+  SMOKE: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmokeseat, fp_username: fpksmokebot}
+  SMOKE2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmoke2seat, fp_username: fpksmoke2bot}
+  SMOKE3: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmoke3seat, fp_username: fpksmoke3bot}
+  SMOKE4: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpksmoke4seat, fp_username: fpksmoke4bot}
+  K1A1: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk1a1seat, fp_username: fpk1a1bot}
+  K2A1: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk2a1seat, fp_username: fpk2a1bot}
+  K2A2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk2a2seat, fp_username: fpk2a2bot}
+  K4A1: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a1seat, fp_username: fpk4a1bot}
+  K4A2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a2seat, fp_username: fpk4a2bot}
+  K4A3: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a3seat, fp_username: fpk4a3bot}
+  K4A4: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a4seat, fp_username: fpk4a4bot}
+  K6A1: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a1seat, fp_username: fpk6a1bot}
+  K6A2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a2seat, fp_username: fpk6a2bot}
+  K6A3: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a3seat, fp_username: fpk6a3bot}
+  K6A4: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a4seat, fp_username: fpk6a4bot}
+  K6A5: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a5seat, fp_username: fpk6a5bot}
+  K6A6: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a6seat, fp_username: fpk6a6bot}
+  K8A1: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a1seat, fp_username: fpk8a1bot}
+  K8A2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a2seat, fp_username: fpk8a2bot}
+  K8A3: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a3seat, fp_username: fpk8a3bot}
+  K8A4: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a4seat, fp_username: fpk8a4bot}
+  K8A5: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a5seat, fp_username: fpk8a5bot}
+  K8A6: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a6seat, fp_username: fpk8a6bot}
+  K8A7: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a7seat, fp_username: fpk8a7bot}
+  K8A8: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a8seat, fp_username: fpk8a8bot}
+  K1A1R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk1a1r2seat, fp_username: fpk1a1r2bot}
+  K2A1R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk2a1r2seat, fp_username: fpk2a1r2bot}
+  K2A2R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk2a2r2seat, fp_username: fpk2a2r2bot}
+  K4A1R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a1r2seat, fp_username: fpk4a1r2bot}
+  K4A2R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a2r2seat, fp_username: fpk4a2r2bot}
+  K4A3R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a3r2seat, fp_username: fpk4a3r2bot}
+  K4A4R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk4a4r2seat, fp_username: fpk4a4r2bot}
+  K6A1R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a1r2seat, fp_username: fpk6a1r2bot}
+  K6A2R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a2r2seat, fp_username: fpk6a2r2bot}
+  K6A3R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a3r2seat, fp_username: fpk6a3r2bot}
+  K6A4R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a4r2seat, fp_username: fpk6a4r2bot}
+  K6A5R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a5r2seat, fp_username: fpk6a5r2bot}
+  K6A6R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk6a6r2seat, fp_username: fpk6a6r2bot}
+  K8A1R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a1r2seat, fp_username: fpk8a1r2bot}
+  K8A2R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a2r2seat, fp_username: fpk8a2r2bot}
+  K8A3R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a3r2seat, fp_username: fpk8a3r2bot}
+  K8A4R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a4r2seat, fp_username: fpk8a4r2bot}
+  K8A5R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a5r2seat, fp_username: fpk8a5r2bot}
+  K8A6R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a6r2seat, fp_username: fpk8a6r2bot}
+  K8A7R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a7r2seat, fp_username: fpk8a7r2bot}
+  K8A8R2: {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 150, search_time_ms: 20, loop_breaker: true, seat_username: fpk8a8r2seat, fp_username: fpk8a8r2bot}

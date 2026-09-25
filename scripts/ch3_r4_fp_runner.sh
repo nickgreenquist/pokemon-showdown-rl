@@ -38,6 +38,11 @@ OUT="${OUT:-results/ch3_r4_fp_anchor}"
 BATTLES="${BATTLES:-250}"
 SEARCH_TIME_MS="${SEARCH_TIME_MS:-100}"
 SEARCH_PARALLELISM="${SEARCH_PARALLELISM:-1}"
+# FP@N (2026-09-25, the FP-parallel task): a FIXED iteration budget instead of the
+# wall-clock one. 0 = the stock FP@<SEARCH_TIME_MS>. Needs the patched Foul Play
+# (scripts/patches/foulplay_iterations.patch); refused below if FPDIR lacks it.
+SEARCH_ITERATIONS="${SEARCH_ITERATIONS:-0}"
+SEARCH_ITERATIONS_EARLY="${SEARCH_ITERATIONS_EARLY:-}"
 FORMAT="${FORMAT:-gen1randombattle}"
 WS="${WS:-ws://localhost:8000/showdown/websocket}"
 SEAT_USER="${SEAT_USER:-r4anchorseat}"
@@ -67,14 +72,27 @@ import yaml,sys
 arm = yaml.safe_load(open('$PREREG'))['arms'].get('$ARM') or {}
 print(arm.get('kind',''))" 2>/dev/null || echo "")"
 if [ -n "$ARM_KIND" ]; then
+    # The iteration budget is part of the arm, so an arm that does not declare
+    # one is FP@<ms> whatever the environment says (the MA-10 lesson again: a
+    # stray export must never turn an FP@20 arm into an FP@N one, or back).
+    SEARCH_ITERATIONS=0
+    SEARCH_ITERATIONS_EARLY=""
     eval "$("$PY" -c "
 import yaml
 arm = yaml.safe_load(open('$PREREG'))['arms']['$ARM']
 for shell, key in (('SEAT_USER','seat_username'),('FP_USER','fp_username'),
-                   ('BATTLES','battles'),('SEARCH_TIME_MS','search_time_ms')):
+                   ('BATTLES','battles'),('SEARCH_TIME_MS','search_time_ms'),
+                   ('SEARCH_ITERATIONS','search_iterations'),
+                   ('SEARCH_ITERATIONS_EARLY','search_iterations_early')):
     v = arm.get(key)
     if v is not None:
         print(f'{shell}={v}')")"
+fi
+# An FP@N arm on a Foul Play without the patch would die on an unknown flag and
+# burn its relaunch budget looking like crashes: refuse it up front instead.
+if [ "${SEARCH_ITERATIONS:-0}" -gt 0 ] && ! grep -q -- "--search-iterations" "$FPDIR/fp/config.py" 2>/dev/null; then
+    echo "REFUSING: arm $ARM declares search_iterations=$SEARCH_ITERATIONS but $FPDIR has no --search-iterations (unpatched Foul Play)" >&2
+    exit 5
 fi
 
 # G1 smokes: SMOKE_BATTLES (if set) wins over the pre-reg battle count —
@@ -109,6 +127,18 @@ log() {
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" | tee -a "$RUNNER_LOG"
 }
 
+# 2026-09-25 (the FP-parallel task): a killed RUNNER takes its own arm down with it.
+# foul-play runs in its own session (start_fp), so without this a SIGTERM to the
+# runner -- from a parallel scheduler stopping a wave -- orphaned a foul-play that
+# kept its username and its challenge loop alive. Scoped to THIS arm's pids only.
+on_term() {
+    log "runner got SIGTERM/SIGINT -- killing this arm's foul-play group and seat"
+    [ -n "${FP_PID:-}" ] && kill -9 -- -"$FP_PID" 2>/dev/null
+    [ -n "${SEAT_PID:-}" ] && kill "$SEAT_PID" 2>/dev/null
+    exit 143
+}
+trap on_term TERM INT
+
 fp_completed() {
     # completed-battle count from FP's own log; cumulative because every
     # relaunch APPENDS. Crash-forfeited battles have no Winner line here --
@@ -117,6 +147,17 @@ fp_completed() {
     c="$(grep -c "Winner:" "$FP_LOG" 2>/dev/null)"
     [ -n "$c" ] || c=0
     echo "$c"
+}
+
+# Which budget foul-play ACTUALLY ran, read from its own log (counters reach disk,
+# never a typed dial): "fixed" once a decision logged "(FIXED N iterations each)",
+# "time" once one logged a plain "Sampling K battles at Mms each", "" before any.
+budget_seen() {
+    if grep -q "iterations each)" "$FP_LOG" 2>/dev/null; then
+        echo fixed
+    elif grep -q "battles at .*ms each" "$FP_LOG" 2>/dev/null; then
+        echo time
+    fi
 }
 
 log_bytes() {
@@ -185,20 +226,35 @@ kill_fp() {
     # CHILDREN FIRST, while $FP_PID is still their parent and `pkill -P` can
     # still see them; once the parent dies they reparent to init and -P
     # cannot find them.
+    # 2026-09-25 (the FP-parallel task): foul-play now runs as the leader of its
+    # OWN process group (start_fp), and its pool workers and resource tracker
+    # inherit it -- even after they reparent to init. So the whole arm dies with
+    # ONE group kill, and nothing here matches a box-wide pattern any more. The
+    # old belt, `pkill -9 -f "foul-play/bin/python -c from multiprocessing"`,
+    # killed EVERY foul-play worker on the box: safe only while arms were
+    # serial, and it would have killed every other arm's search mid-battle the
+    # first time two arms shared a box.
+    kill -9 -- -"$FP_PID" 2>/dev/null
     pkill -9 -P "$FP_PID" 2>/dev/null
-    kill "$FP_PID" 2>/dev/null
-    sleep 2
     kill -9 "$FP_PID" 2>/dev/null
     pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
-    # Belt, for workers already reparented by an earlier bad kill. Arms are
-    # SERIAL (k=1), so there is never a second foul-play to hit by mistake.
-    pkill -9 -f "foul-play/bin/python -c from multiprocessing" 2>/dev/null
     sleep "${NAME_RELEASE_SECS:-15}"
 }
 
 start_fp() {
     remaining="$1"
-    ( cd "$FPDIR" && exec "$FPPY" run.py \
+    ITER_ARGS=""
+    if [ "${SEARCH_ITERATIONS:-0}" -gt 0 ]; then
+        ITER_ARGS="--search-iterations $SEARCH_ITERATIONS"
+        if [ -n "$SEARCH_ITERATIONS_EARLY" ]; then
+            ITER_ARGS="$ITER_ARGS --search-iterations-early $SEARCH_ITERATIONS_EARLY"
+        fi
+    fi
+    # setsid, then exec: foul-play becomes the leader of its own process group,
+    # which kill_fp kills whole (the `exec` chain keeps $! == the python pid).
+    ( cd "$FPDIR" && exec /usr/bin/perl -MPOSIX -e \
+        'POSIX::setsid() or die "setsid: $!"; exec { $ARGV[0] } @ARGV or die "exec: $!"' \
+        "$FPPY" run.py \
         --websocket-uri "$WS" \
         --ps-username "$FP_USER" \
         --bot-mode challenge_user \
@@ -206,6 +262,7 @@ start_fp() {
         --pokemon-format "$FORMAT" \
         --search-time-ms "$SEARCH_TIME_MS" \
         --search-parallelism "$SEARCH_PARALLELISM" \
+        $ITER_ARGS \
         --run-count "$remaining" ) >> "$FP_LOG" 2>&1 &
     FP_PID=$!
     log "foul-play started pid $FP_PID, run-count $remaining"
@@ -220,6 +277,11 @@ write_runner_json() {
   "arm": "$ARM",
   "prereg": "$PREREG",
   "battles_requested": $BATTLES,
+  "search_time_ms": $SEARCH_TIME_MS,
+  "search_iterations": ${SEARCH_ITERATIONS:-0},
+  "search_iterations_early": "${SEARCH_ITERATIONS_EARLY:-}",
+  "fp_dir": "$FPDIR",
+  "fp_budget_seen": "$(budget_seen)",
   "relaunches": $RELAUNCHES,
   "crash_forfeits": $RELAUNCHES,
   "max_relaunches": $MAX_RELAUNCHES,
@@ -283,8 +345,31 @@ SEAT_FROZEN_AT_KILL=0
 
 start_fp "$BATTLES"
 
+BUDGET_CHECKED=0
 while kill -0 "$SEAT_PID" 2>/dev/null; do
     sleep "$POLL_SECS"
+    # ONCE, at foul-play's first logged decision: the budget it runs must be the
+    # budget the arm declares. A mismatch aborts before a single number exists.
+    if [ "$BUDGET_CHECKED" -eq 0 ]; then
+        SEEN="$(budget_seen)"
+        if [ -n "$SEEN" ]; then
+            BUDGET_CHECKED=1
+            WANT=time
+            [ "${SEARCH_ITERATIONS:-0}" -gt 0 ] && WANT=fixed
+            if [ "$SEEN" != "$WANT" ]; then
+                log "BUDGET MISMATCH: arm declares $WANT (search_iterations=${SEARCH_ITERATIONS:-0}) but foul-play logs $SEEN -- aborting (ops failure, NOT a data verdict)"
+                kill -9 -- -"$FP_PID" 2>/dev/null
+                kill "$SEAT_PID" 2>/dev/null
+                sleep 2
+                kill -9 "$SEAT_PID" 2>/dev/null
+                date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.BUDGET_MISMATCH"
+                RELAUNCHES=${RELAUNCHES:-0}
+                write_runner_json false
+                exit 6
+            fi
+            log "budget verified from foul-play's log: $SEEN (search_time_ms=$SEARCH_TIME_MS, search_iterations=${SEARCH_ITERATIONS:-0}/${SEARCH_ITERATIONS_EARLY:-auto})"
+        fi
+    fi
     NOW_BYTES="$(log_bytes)"
     if [ "${NOW_BYTES:-0}" != "$LAST_BYTES" ]; then
         LAST_BYTES="${NOW_BYTES:-0}"
@@ -324,9 +409,9 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
     # the relaunch budget orphaning processes.
     if tail -40 "$FP_LOG" 2>/dev/null | grep -q "nametaken"; then
         log "USERNAME DEADLOCK: '$FP_USER' still registered after a kill; aborting arm (ops failure, NOT a data verdict)"
+        kill -9 -- -"$FP_PID" 2>/dev/null
         pkill -9 -P "$FP_PID" 2>/dev/null
         pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
-        pkill -9 -f "foul-play/bin/python -c from multiprocessing" 2>/dev/null
         date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT/$TAG.USERNAME_DEADLOCK"
         kill "$SEAT_PID" 2>/dev/null
         sleep 2
@@ -365,9 +450,9 @@ while kill -0 "$SEAT_PID" 2>/dev/null; do
     LAST_CRASH_COMPLETED="$COMPLETED"
     if [ "$NO_PROGRESS" -ge "$NO_PROGRESS_RELAUNCHES" ]; then
         log "NO_PROGRESS: $NO_PROGRESS relaunches with zero new Winner: lines at fp-completed $COMPLETED -- aborting arm as an OPS FAILURE (not a data verdict; the SEAT is the suspect, not FP)"
+        kill -9 -- -"$FP_PID" 2>/dev/null
         pkill -9 -P "$FP_PID" 2>/dev/null
         pkill -9 -f "run.py .*--ps-username $FP_USER( |\$)" 2>/dev/null
-        pkill -9 -f "foul-play/bin/python -c from multiprocessing" 2>/dev/null
         date -u +%Y-%m-%dT%H:%M:%SZ > "$NO_PROGRESS_MARKER"
         kill "$SEAT_PID" 2>/dev/null
         sleep 2
@@ -400,6 +485,7 @@ done
 
 wait "$SEAT_PID"
 SEAT_RC=$?
+kill -- -"$FP_PID" 2>/dev/null
 kill "$FP_PID" 2>/dev/null
 write_runner_json false
 log "seat exited rc=$SEAT_RC; relaunches=$RELAUNCHES"

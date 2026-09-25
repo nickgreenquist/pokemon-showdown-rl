@@ -575,6 +575,12 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "searched_ensemble": searched_ensemble,
         "seat_native_dim": native_dim,
         "declared_search_time_ms": arm.get("search_time_ms"),
+        # FP@N (2026-09-25): the FIXED iteration budget, when the arm declares
+        # one (scripts/ch3_r4_fp_runner.sh forwards it to foul-play and verifies
+        # it from foul-play's own log); None = the wall-clock FP@<ms> budget. An
+        # FP@N arm must never be indistinguishable from an FP@20 one (MA-10).
+        "declared_search_iterations": arm.get("search_iterations"),
+        "declared_search_iterations_early": arm.get("search_iterations_early"),
         # 2026-08-27: proves the deadlock fix did not buy concurrency. The
         # queue has slack 2 so a duplicate battle-init cannot block, but play
         # must remain strictly serial; if this is ever > 1 the arm is NOT
