@@ -50,7 +50,11 @@ Violating any of these costs hours, and each already has.
    fourth session quoted D18's 12M null as gospel). When the maintainer asks
    "what do you think of X", answer from mechanism, the literature at scale,
    and the format's properties — never from D18 / D23 / any sub-scale number.
-   `docs/landmines.md` "Small-run nulls".
+   `docs/landmines.md` "Small-run nulls". **Search in training is the standing
+   case** (maintainer, 2026-09-25: *"I do NOT want you to kill search in train if
+   1-ply doesn't work"*). A null, or even a cost, of R7's ONE-PLY training search
+   sets the design of the next training-search lap (a DEEP native tree), never
+   whether that lap runs (`docs/proposals/DEEP_SEARCH_PATH_2026-09-25.md`).
 
 ## What this project is
 
