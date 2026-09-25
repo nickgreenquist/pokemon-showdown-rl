@@ -13716,3 +13716,19 @@ line numbers are not — grep the date, then read that region):
   `pytest … | tail` returns tail's status — with the test still failing; the follow-up was committed only on pytest's
   own return code. Every other commit tonight printed its passing count before it was made. R7 runs nothing more until
   the R6 readout; r6-runner told.
+
+- 2026-09-25 00:00Z (agent, R7 runner) — **HANDOFF FOLDED (the context-73% handoff, `e20c0f0`); the three sessions coordinate
+  by message.** Resumed after a /clear as session `purity-line-ordering-system`. Everything in the handoff was already in
+  STATUS item 3, plan box 7 and the entries above except two operational notes: the worktree has no `runs/` or
+  `results/`, so after the merge `derive_r7_fleet.py` and the smoke checks run from main (or take absolute `--runs` /
+  `--power`); `results/r7_fleet/power.json` already sits in main. At the maintainer's ask the R7 runner messaged
+  r6-runner (ETA; a ping with the base and its commit) and the a7 session (a ping when
+  `../pokemon-showdown-rl-fpprobe/results/fp_parallel_probe/STATUS` goes terminal). **a7:** none of its processes import
+  `pkmn-engine-port` or `pkmn-engine-r7` (driver on base anaconda, seats in `pokemon-showdown-rl` with the fpprobe
+  worktree on PYTHONPATH, Foul Play in `foul-play`), so the post-merge reinstall cannot touch a live importer of its; a
+  QUEUE DONE after 02:20Z makes its waiter write SKIPPED_LATE and release the box at once. **r6-runner:** QUEUE DONE and
+  the computed readout ~01:05Z (PHASE SH is 18 jobs, ~45 min), its written readout ~01:30Z; both trios read X-FLAT,
+  whose pre-stated action is a mechanism read, and `r6_reads_readout.py` names no base -- so **`derive_r7_fleet.py
+  --base` waits for the base to be named** (r6-runner puts the numbers and the mechanism questions to the maintainer).
+  Pins final and uncorrected (`1b923a0` A, `342bdf3` B). `git merge-tree` main vs the branch re-checked CLEAN (56 / 49
+  commits). STATUS unchanged (item 3 already carries this order).
