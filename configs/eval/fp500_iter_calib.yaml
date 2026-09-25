@@ -1,0 +1,62 @@
+# FP500_ITER_CALIB -- the FP@N equivalent of Foul Play's 500 ms budget, VISITS-MATCHED.
+#
+# WHY. The maintainer, 2026-09-25 ~14:05Z (relayed by r7-runner): "We should never run a FP@500
+#   or 100 again serially. If you need to, you should calibrate them into the proper FP@N and then
+#   retire serial runs forever (except for future calibration). I don't want to ever again wait
+#   hours for FP runs unless calibrating a new N." On this plan they ruled VISITS-MATCHED ONLY, no
+#   strength test: at ENS3F500's traced 40.6 s/battle (results/ens_width_offfp/ens3f500.runner.log,
+#   500 battles in 5.64 h) a strength test at the 25k/12k calibration's power would take ~34 h
+#   of serial FP@500 per seat. It serves R7's descriptive G4 leg (ENS3-S / ENS3-C, n 250 each),
+#   whose arms r7-runner writes into R7's read pre-reg once N is known.
+#
+# THE RECIPE -- the 25k/12k calibration's (readouts/FP_ITER_CALIB_READOUT.md). Its medians
+#   re-derive exactly (25,000 / 12,000) from results/fp_iter_calib/cal20.fp.stdout with
+#   scripts/fp_arm_counters.py's per-branch summary, the code this read uses.
+#   1. REF500: ONE wall-clock FP@500 arm, the only kind of serial Foul Play left. It declares
+#      calibration_reference_for; the runner refuses a wall-clock arm without it. k=1 on a QUIET
+#      BOX: scripts/fp_arms_parallel.py --slots 1 holds it at the quiet-box gate, and its 60 s
+#      sampler logs any CONTAMINATION for the whole run. r7-runner hands the box over after R7's
+#      reads. Seat: w104 greedy with the loop breaker -- the 25k/12k calibration's seat 1, so the
+#      budget is the only change. 100 battles, ~68 min at 40.6 s/battle.
+#   2. THE RULE, stated before any battle. foul-play logs every search's realized visits
+#      (PROBE_VISITS). Non-forced searches only: a forced move runs one 1000-iteration chunk.
+#      Group by the per-search budget:
+#        - ms 500, the full branch (2 battles; 1 under time pressure) -> N;
+#        - ms 250, the early branch (4 battles; 2 under time pressure) -> N_early.
+#      Each is the MEDIAN, rounded to the nearest 1000 (poke-engine runs whole chunks), halves up.
+#      The time-pressure searches' share is reported, and disclosed if above 1%.
+#      VOID, re-run on the RERUN pair, if any of these:
+#        - CONTAMINATION samples (any foreign process >= 0.5 core over a minute) in more than 5%
+#          of the run's minutes. A one-minute blip moves a median over thousands of searches by
+#          nothing; any contamination at all is disclosed. Nobody should use Chrome heavily in
+#          the window;
+#        - the runner's timer or forfeit losses exceed its crash forfeits (fpn_counters_ok false);
+#        - fewer than 1000 non-forced searches in either branch;
+#        - no seat JSON.
+#   3. SM500N: the install smoke at the derived N/N_early (4 battles, FP@N, any load). It passes
+#      iff fpn_counters_ok is true, realized iterations == N on 100% of non-forced searches, and
+#      fp_budget_seen is "fixed". scripts/fp500_iter_calib_read.py writes its arm into
+#      results/fp500_iter_calib/sm500n.yaml after step 2, so the tree stays clean -- data,
+#      never a read. It runs in results/fp500_iter_calib/smoke/, so its scheduler summary never
+#      overwrites the reference's.
+#   scripts/fp500_iter_calib_chain.sh runs 1 -> 2 -> 3 and writes results/fp500_iter_calib/calib.json.
+#
+# THE QUOTE: "FP@N <N>/<N_early>, visits-matched to FP@500 at k=1 on a quiet box; strength not
+#   tested". Descriptive only; never differenced against a banked FP@500 number, nor against
+#   FP@N 25k/12k.
+
+title: fp500_iter_calib
+status: "REGISTERED 2026-09-25 (fp-speedup; the maintainer's rulings ~14:05Z: every wall-clock FP retired except a calibration's reference; this calibration VISITS-MATCHED ONLY). Instrument calibration; credits nothing."
+journey_step: "eval ops for R7's reads (JOURNEY 14): the FP@N budget of R7's descriptive G4 leg"
+credits_nothing: true
+results_dir: results/fp500_iter_calib
+
+fp:
+  search_time_ms: 500
+
+checkpoints:
+  w104: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/fp_iter_calib.yaml
+
+arms:
+  REF500: {kind: greedy_seat, seat: w104, battles: 100, search_time_ms: 500, loop_breaker: true, calibration_reference_for: "FP@N for FP@500, visits-matched (configs/eval/fp500_iter_calib.yaml; R7 G4)", seat_username: fpc500seat, fp_username: fpc500bot}
+  REF500R2: {kind: greedy_seat, seat: w104, battles: 100, search_time_ms: 500, loop_breaker: true, calibration_reference_for: "FP@N for FP@500, visits-matched (configs/eval/fp500_iter_calib.yaml; R7 G4) -- the RERUN pair", seat_username: fpc500r2seat, fp_username: fpc500r2bot}

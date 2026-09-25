@@ -92,6 +92,11 @@ Foul-Play anchor machinery**. These three are current, not historical:
   - Calibration and ROI harness (read-once): `fp_parallel_probe.py`,
     `fp_parallel_probe_read.py`, `fp_parallel_probe_after_queue.sh`,
     `fp_iter_calib_chain.sh`, `fp_iter_calib_read.py`.
+  - `fp500_iter_calib_chain.sh` + `fp500_iter_calib_read.py`
+    (`configs/eval/fp500_iter_calib.yaml`): FP@500's visits-matched FP@N for R7's G4. The
+    steps: the wall-clock reference (one slot, quiet box), then N/N_early by the pre-stated
+    median rule, then the FP@N install smoke. Output: `results/fp500_iter_calib/calib.json`.
+    It is the template for calibrating any new N.
 - `extract_history.py`, `setup_showdown.sh`, `watch.py` — utilities.
 - `ch3_r2_grade.py`, `d25_grade.py`, `d25_gates.py` — imported unmodified by
   later graders; these are the shared statistical law, not one-offs.
