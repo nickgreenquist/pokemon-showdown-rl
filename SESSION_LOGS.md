@@ -13998,3 +13998,33 @@ line numbers are not — grep the date, then read that region):
   16 passed. DISCLOSED: `d75113c` was meant to carry this entry and the STATUS line too -- the one-step script's STATUS
   anchor had moved (fp-speedup's `88e890e` rewrote that line), its assertion stopped the script after the plan was
   written, and the unchained `git add` / commit on the next line committed the rest; this commit completes it.
+- 2026-09-25 13:30Z (agent, R7 runner) — **FP@20 RETIRED, and R7's G2 AMENDED to FP@N (r3) before any R-phase battle.**
+  The maintainer, verbatim: "G2 should be F@N. No one should run outdated F@20 anymore. Ask the other two sessions for
+  vote on this as well." The vote was UNANIMOUS YES (r6-runner, fp-speedup, r7-runner), each with conditions folded in.
+  CODE, fp-speedup's `6936b2f`:
+  - The runner exits 7, and `scripts/fp_arms_parallel.py` refuses up front, on a gen-1 arm with `search_time_ms: 20`
+    and no `search_iterations` (`tests/test_fp_runner_guards.py`).
+  - The scheduler honours MAX_RELAUNCHES / STALL_POLLS / NO_PROGRESS_RELAUNCHES from the caller's environment. It had
+    hard-set 10/60/3, which would have tightened G2's ratified ">= 30 relaunches VOIDs an arm" to 10.
+  - FP@N foreign load logs as a descriptive LOAD line; CONTAMINATION stays wall-clock only. The `--smoke-battles` tag
+    fix.
+  G2 r3 (`configs/eval/r7_g2.yaml`; plan AMENDMENT BOX 9, which supersedes box 8's "G2 keeps its RATIFIED FP@20"):
+  - Both R-phase arms, and a new FP@N smoke G2SMN, declare `search_iterations: 25000, search_iterations_early: 12000`
+    INSIDE each arm beside `search_time_ms: 20` (the runner reads the budget from the arm only, MA-10). G2SM, the FP@20
+    smoke of 07:27Z, stays as the record.
+  - `fpn_counters_ok` per arm replaces G_QUIET_BOX. Both arms run concurrently in one scheduler session (`--slots 2`,
+    G2G launched first, MAX_RELAUNCHES=30) BESIDE the R7 fleet. Both seats are fixed-work (Foul Play's iterations; the
+    L-op's B 8 x k 4 x S 2 with no time budget), and so is the fleet's T-op: the load costs time, never strength or data.
+  - G2G_SANITY is a disclosure naming both instruments, never a gate (r6-runner's condition). G2G is the R5 W
+    committee's first FP@N number. Beside the fleet the seat ms are load-inflated, so the leaves are the budget to quote
+    (fp-speedup's note).
+  - G2's primary is a gap, and the calibration's gap-change CI95 [-0.042, +0.033] is wider than +0.025: the verdict
+    reads off FP@N, never as a translated FP@20 result.
+  - A correction folded in: the header's "~0.2 s a decision" predates the smoke's measured ~25 ms.
+  NEW: `scripts/r7_g2_readout.py` + `tests/test_r7_g2_readout.py` (6 passed). The verdict and every R0 gate are computed
+  from disk: n_eff by the crash-forfeit rule, the two tallies agreeing on n_eff, and the strict boundaries in EXACT
+  rational arithmetic (in floats, 0.525 - 0.5 clears +0.025). CLAUDE.md: FP@20 RETIRED, with fp-speedup's three wording
+  fixes. OWED TO THE MAINTAINER:
+  - The ladder bar (+0.05 off FP@20) restated on FP@N. All three sessions: keep +0.05, RE-DERIVED rather than translated.
+  - Whether the retirement reaches FP@100/500. All three: they stay descriptive and serial until a fixed-iteration version
+    is calibrated. The budget ladder's FP20 rung IS FP@20, so it is retired directly.
