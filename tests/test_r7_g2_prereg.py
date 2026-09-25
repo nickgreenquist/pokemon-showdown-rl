@@ -73,3 +73,45 @@ def test_r2_carries_the_reviews_gates():
     assert "delta < -0.025 AND |delta| > 2*se_diff" in p["decision_rule"]["negative"]
     assert "stays owed" in " ".join(p["decision_rule"]["clears"].split())
 
+
+
+def test_the_rl_tree_is_stamped_at_launch_not_at_write_time(monkeypatch, tmp_path):
+    """docs/CLEANUP.md L10: `rl_git_sha` / `rl_git_dirty` were read inside run() AFTER the battles, so an arm that
+    spanned a commit named the later tree. main() now reads them before asyncio.run: a commit that lands while the
+    battles run must reach `finish_git_sha` and nothing else."""
+    import json
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import ch3_fp_h2h
+
+    tree = {"sha": "sha-at-launch"}
+    monkeypatch.setattr(ch3_fp_h2h, "_git_sha", lambda: tree["sha"])
+    monkeypatch.setattr(ch3_fp_h2h, "_rl_provenance",
+                        lambda: {"rl_package": "rl", "rl_git_sha": tree["sha"], "rl_git_dirty": False})
+
+    async def battles_during_which_a_commit_lands(prereg, arm_name, battles, tag):
+        tree["sha"] = "sha-committed-mid-arm"
+        return {"gate_all_challenges_resolved": True}
+
+    monkeypatch.setattr(ch3_fp_h2h, "run", battles_during_which_a_commit_lands)
+    prereg = tmp_path / "p.yaml"
+    prereg.write_text(yaml.safe_dump({"results_dir": str(tmp_path / "out"), "arms": {"X": {"battles": 1}}}))
+    monkeypatch.setenv("POKEMON_RL_ENCODER_V2", "1")
+    monkeypatch.setenv("POKEMON_RL_ENCODER_IDS", "1")
+    monkeypatch.setattr(sys, "argv", ["ch3_fp_h2h.py", "--prereg", str(prereg), "--arm", "X", "--tag", "t"])
+    ch3_fp_h2h.main()
+    out = json.loads((tmp_path / "out" / "t.json").read_text())
+    assert out["rl_git_sha"] == out["launch_git_sha"] == "sha-at-launch"
+    assert out["finish_git_sha"] == "sha-committed-mid-arm"
+
+
+def test_rl_provenance_names_the_imported_tree():
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import ch3_fp_h2h
+    import rl
+
+    prov = ch3_fp_h2h._rl_provenance()
+    assert prov["rl_package"] == str(pathlib.Path(rl.__file__).resolve().parent)
+    assert prov["rl_git_sha"] is None or len(prov["rl_git_sha"]) == 40
+    assert prov["rl_git_sha"] is None or isinstance(prov["rl_git_dirty"], bool)

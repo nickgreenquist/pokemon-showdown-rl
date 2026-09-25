@@ -607,20 +607,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "seat/decisions_per_sec": (1000.0 / float(dms.mean())) if dms.mean() > 0 else None,
         "arm/decisions_per_wall_sec": (seat._decisions_total / elapsed) if elapsed > 0 else None,
     })
-    # WHICH `rl` THIS PROCESS RAN (the G2 design review): two envs import two
-    # different trees, and a launch sha of the CWD would not say which.
-    import pathlib
-    import rl as _rl
-    _rl_root = pathlib.Path(_rl.__file__).resolve().parents[1]
-    report["rl_package"] = str(pathlib.Path(_rl.__file__).resolve().parent)
-    try:
-        import subprocess as _sp
-        report["rl_git_sha"] = _sp.run(["git", "-C", str(_rl_root), "rev-parse", "HEAD"], capture_output=True,
-                                       text=True, check=True).stdout.strip()
-        report["rl_git_dirty"] = bool(_sp.run(["git", "-C", str(_rl_root), "status", "--porcelain", "--untracked-files=no"],
-                                              capture_output=True, text=True, check=True).stdout.strip())
-    except (OSError, _sp.CalledProcessError):
-        report["rl_git_sha"] = None
+    # WHICH `rl` THIS PROCESS RAN is stamped by main() at LAUNCH (_rl_provenance).
     if arm["kind"] == "native_seat":
         # The L-op's own counters: the override rate beside every win rate (the
         # landmine), the refusal families, the dose, decisions/sec (JOURNEY 14's
@@ -782,6 +769,29 @@ def _git_sha() -> str:
         return ""
 
 
+def _rl_provenance() -> dict:
+    """WHICH `rl` THIS PROCESS RUNS, and that tree's sha and dirty flag (the G2
+    design review: two envs import two different trees, and a launch sha of the
+    CWD would not say which). main() calls it at LAUNCH, before a single battle;
+    it had been read inside run() AFTER the battles, so an arm that spanned a
+    commit named the later tree (docs/CLEANUP.md L10)."""
+    import pathlib
+    import subprocess
+
+    import rl as _rl
+    root = pathlib.Path(_rl.__file__).resolve().parents[1]
+    prov = {"rl_package": str(pathlib.Path(_rl.__file__).resolve().parent)}
+    try:
+        prov["rl_git_sha"] = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True,
+                                            text=True, check=True).stdout.strip()
+        prov["rl_git_dirty"] = bool(subprocess.run(
+            ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True, text=True, check=True).stdout.strip())
+    except (OSError, subprocess.CalledProcessError):
+        prov["rl_git_sha"] = None
+    return prov
+
+
 def main() -> None:
     import os
 
@@ -811,8 +821,10 @@ def main() -> None:
     # than merely mis-labelled. ARMS WRITTEN BEFORE THIS CHANGE CARRY A
     # FINISH-TIME VALUE UNDER THE LAUNCH NAME (docs/CLEANUP.md L5).
     launch_sha = _git_sha()
+    rl_prov = _rl_provenance()
 
     result = asyncio.run(run(prereg, args.arm, battles, tag))
+    result.update(rl_prov)
 
     # CH4 R1 G8: era/provenance stamp — launch sha, the pre-reg's content
     # hash (the thresholds cannot drift between launch and grading without
