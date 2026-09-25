@@ -29,12 +29,12 @@ results_dir: results/r6_reads
 #   S3 committee gain per trio: E3A - GA, E3B - GB.
 
 checkpoints:
-  a304: {path: TBD, sha256: TBD, step: TBD}
-  a312: {path: TBD, sha256: TBD, step: TBD}
-  a320: {path: TBD, sha256: TBD, step: TBD}
-  b328: {path: TBD, sha256: TBD, step: TBD}
-  b336: {path: TBD, sha256: TBD, step: TBD}
-  b344: {path: TBD, sha256: TBD, step: TBD}
+  a304: {path: runs/showdown_r6_trio_a_s304/ckpt_200000029.pt, sha256: e3903fa608978f3792fbd409013f7a6eb3563075577602c2f9c1deba61ede411, step: 200000029}
+  a312: {path: runs/showdown_r6_trio_a_s312/ckpt_200000046.pt, sha256: 12c10e4a0c7e705be5a46e8ac73a7fa01ae11c9a26d48aad2ffcb161df7f75ef, step: 200000046}
+  a320: {path: runs/showdown_r6_trio_a_s320/ckpt_200000007.pt, sha256: 9315e4fc666fccec53099594e8e1829aacaf83af73d0134128f5fbf5264a62f1, step: 200000007}
+  b328: {path: runs/showdown_r6_trio_b_s328/ckpt_200000039.pt, sha256: f09063696cda49c68cd6d4945b7efcd2373bb295faf54a555bb0bb3fcb2cead7, step: 200000039}
+  b336: {path: runs/showdown_r6_trio_b_s336/ckpt_200000017.pt, sha256: e43e932f5809fb10bfc85e99ce98fc3dbe4d29227f53a5fac4a77a12864a416d, step: 200000017}
+  b344: {path: runs/showdown_r6_trio_b_s344/ckpt_200000009.pt, sha256: cf9ace6d2b2129ad84ae4b8aa9c9499201b895208558c34fe97db4c11d0b4202, step: 200000009}
   w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/monster_reads.yaml
   w112: {path: runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}   # copied from configs/eval/monster_reads.yaml
   w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}   # copied from configs/eval/monster_reads.yaml

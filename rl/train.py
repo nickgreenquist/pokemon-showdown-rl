@@ -6,6 +6,7 @@ import argparse
 import importlib.metadata
 import random
 import subprocess
+import os
 import time
 from collections import defaultdict
 from dataclasses import asdict
@@ -248,9 +249,26 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
     if getattr(agent, "l2_init_decay", 0.0) <= 0.0:
         return
     path = out_dir / "theta0.pt"
-    digest = agent.theta0_hash()
     if path.exists():
-        stored = torch.load(path, weights_only=False).get("theta0_hash")
+        payload = torch.load(path, weights_only=False)
+        stored = payload.get("theta0_hash")
+        donor = payload.get("donor")
+        if donor is not None:
+            # A WARM-STARTED run (below): its anchors are its DONOR's, and every
+            # reconstruction -- a resume included -- captures a fresh init that
+            # must be replaced by the same anchors from this dir's own copy.
+            if donor.get("init_from") != str(cfg.init_from):
+                raise ValueError(
+                    f"{path} holds a warm start's donor anchors (init_from "
+                    f"{donor.get('init_from')!r}) but this config's init_from is "
+                    f"{str(cfg.init_from)!r}: a different experiment"
+                )
+            agent.install_theta0(payload)
+            # The resume's own line (R7's shakedown check reads it in the resume
+            # log: the first launch's line cannot vouch for a reconstruction).
+            print(f"THETA0: resume re-installed the donor's theta0 ({path}, {str(stored)[:12]})", flush=True)
+            return
+        digest = agent.theta0_hash()
         if stored != digest:
             raise ValueError(
                 f"{path} was written from a different initialization "
@@ -259,12 +277,42 @@ def _ensure_theta0(agent: Agent, out_dir: Path, cfg: Config) -> None:
                 "train a different experiment"
             )
         return
-    if cfg.init_from or any(out_dir.glob("*.pt")):
+    if cfg.init_from:
+        # A WARM START with the lever on (R7 plan AMENDMENT BOX 6, R-F1). The
+        # anchors are the DONOR's theta0 -- the init its weights grew from, so
+        # the regularizer continues as the donor trained under it -- read from
+        # the donor's run dir and checked against the digest its checkpoint
+        # carries. Anchoring to this run's own random init would pull a trained
+        # net toward an unrelated point; anchoring to the loaded weights would
+        # be a different regularizer (a trust region around the start).
+        donor_path = Path(cfg.init_from).parent / "theta0.pt"
+        if not donor_path.exists():
+            raise FileNotFoundError(
+                f"warm start with l2_init_decay > 0: the donor's anchors {donor_path} "
+                "are missing, so this run cannot continue the donor's regularizer"
+            )
+        payload = torch.load(donor_path, weights_only=False)
+        from rl.common.checkpoint import load_checkpoint
+        stamped = load_checkpoint(cfg.init_from)["agent"].get("theta0_hash")
+        if stamped is None or stamped != payload.get("theta0_hash"):
+            raise ValueError(
+                f"{donor_path} (digest {payload.get('theta0_hash')}) is not the theta0 "
+                f"{cfg.init_from} was trained against (stamped {stamped})"
+            )
+        agent.install_theta0(payload)
+        payload = dict(payload)
+        payload["donor"] = {"init_from": str(cfg.init_from), "theta0_path": str(donor_path),
+                            "theta0_hash": payload["theta0_hash"]}
+        torch.save(payload, path)
+        # flush: stdout is a file (block-buffered), and a lane killed before exit -- the shakedown's resume leg does
+        # exactly that -- would take this line with it (the wiring review's focused pass).
+        print(f"THETA0: warm start anchored to the donor's theta0 ({donor_path}, {payload['theta0_hash'][:12]})", flush=True)
+        return
+    if any(out_dir.glob("*.pt")):
         raise FileNotFoundError(
-            f"{path} is missing but {out_dir} already holds checkpoints (or the "
-            "run is warm-started): the L2-toward-init anchors cannot be "
-            "recovered from a checkpoint, so this resume would silently anchor "
-            "to a fresh init"
+            f"{path} is missing but {out_dir} already holds checkpoints: the "
+            "L2-toward-init anchors cannot be recovered from a checkpoint, so "
+            "this resume would silently anchor to a fresh init"
         )
     torch.save(agent.theta0_state(), path)
 
@@ -639,8 +687,12 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
             from rl.envs.engine_collector import engine_metadata
 
             now = engine_metadata(cfg.collector["team_bank"])
+            # `bank_zero_copy` says HOW the bank's bytes are held (mmap'd in place
+            # or a per-lane copy), never WHICH bytes -- the sha256 check is the
+            # game's -- so a lane resumed across the reinstall that added it is the
+            # same game and must not be refused over a memory layout.
             drift = {k: (meta["engine"].get(k), v) for k, v in now.items()
-                     if meta["engine"].get(k) != v}
+                     if k != "bank_zero_copy" and meta["engine"].get(k) != v}
             if drift:
                 raise SystemExit(
                     "RESUME REFUSED: the engine block moved since this run was "
@@ -650,7 +702,7 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
                 )
         meta_path.write_text(yaml.safe_dump(meta, sort_keys=False))
         print(f"RESUME: {cfg.run_name} from step {ckpt['step']} "
-              f"(best_eval {resume_state.get('best_eval')})")
+              f"(best_eval {resume_state.get('best_eval')})", flush=True)
     else:
         # Before the logger: even a run that dies in wandb.init leaves a stamped dir.
         _write_run_metadata(out_dir, cfg, agent)
@@ -708,7 +760,16 @@ def train(cfg: Config, resume_dir: Path | None = None) -> None:
 
 
 ENGINE_KEYS = {"mode", "k", "team_bank", "learner_seat", "min_bank_pairs",
-               "outcome_targets"}  # IDEAS 4.11 (R6 trio A): the critic's three terminal targets
+               "outcome_targets",  # IDEAS 4.11 (R6 trio A): the critic's three terminal targets
+               # R7 B4: `process: true` runs the engine collector, the pool and the
+               # policy copy in a CHILD PROCESS on a second core
+               # (rl/envs/engine_collector_proc.py); `max_steps_ahead` is the
+               # backpressure bound (default one rollout budget); `pause_on_update`
+               # restores the stop-the-world cadence for a control lane.
+               "process", "max_steps_ahead", "pause_on_update",
+               # R7 B4b: the T-op's dials (rl/search/top.py::TOp.dials(), derived from
+               # its signature); present iff agent.search_targets (the loud seam).
+               "search"}
 ASYNC_KEYS = {"mode", "concurrency"}
 
 
@@ -753,6 +814,36 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
             f"collector.outcome_targets: true (collector.mode is {mode!r}): only the "
             "engine collector emits the outcome targets the head trains on"
         )
+    # R7 B2: the antisymmetric critic reads the foe's own view of every row
+    # (`obs2`), which only the engine renders; the env stack and the
+    # server-backed collector see one seat. PPO refuses it too (update() /
+    # update_episodes' seam), but a whole rollout later.
+    if bool(cfg.agent.get("antisymmetric_critic", False)) and mode != "engine":
+        raise ValueError(
+            f"agent.antisymmetric_critic needs collector.mode 'engine' (collector.mode "
+            f"is {mode!r}): only the engine collector emits the foe's own view (obs2)"
+        )
+    # R7 B5: searched rows come from the engine collector's T-op (B4) and from
+    # nowhere else; the learner's seam would refuse a whole rollout later.
+    if bool(cfg.agent.get("search_targets", False)) and mode != "engine":
+        raise ValueError(
+            f"agent.search_targets needs collector.mode 'engine' (collector.mode is "
+            f"{mode!r}): only the engine collector's T-op emits searched rows"
+        )
+    # R7 B4b: the T-op rides only with a learner that expects its rows, and vice
+    # versa (update_episodes' seam catches it a rollout later; this is at launch).
+    search_spec = cfg.collector.get("search")
+    if bool(cfg.agent.get("search_targets", False)) != (search_spec is not None):
+        raise ValueError(
+            f"search-target mismatch at launch: agent.search_targets="
+            f"{bool(cfg.agent.get('search_targets', False))} but collector.search is "
+            f"{'present' if search_spec is not None else 'absent'} -- set both (the T-op emits "
+            "the rows the learner trains on) or neither"
+        )
+    if search_spec is not None:
+        from rl.search.top import TOp
+
+        TOp.check_dials(search_spec)
     if mode == "sync":
         return "sync"
     if mode == "engine":
@@ -977,7 +1068,38 @@ def _async_loop(
     # are drawn at construction, so a restored `battle_counter` has to be in
     # hand by then or the resume replays the run's first k battles.
     rs = resume_state or {}
-    if mode == "engine":
+    if mode == "engine" and cfg.collector.get("process", False):
+        # R7 B4: the two-core lane. The engine collector, the pool and a copy
+        # of the policy live in a child process; the learner ships weights
+        # after every update and never stops collection (the module
+        # docstring). The pool object built above seeds the child's pool
+        # (`pool.state_dict()`, so a resume's restored members travel too)
+        # and is NOT pushed to again in this process -- every pool site below
+        # goes through the collector's RPCs.
+        from dataclasses import asdict
+
+        from rl.envs.engine_collector_proc import ProcCollector
+
+        if pool is None:
+            raise ValueError("collector.process needs selfplay.opponent 'self' (a pool)")
+        collector = ProcCollector(
+            asdict(cfg), agent, pool,
+            seed=cfg.seed,
+            k=cfg.collector.get("k", 256),
+            team_bank=cfg.collector["team_bank"],
+            learner_seat=cfg.collector.get("learner_seat", "p1"),
+            opp_action=opp_action,
+            privileged=bool(getattr(agent, "privileged_block_dim", 0)),
+            both_views=bool(getattr(agent, "antisymmetric_critic", False)),
+            battle_counter=int(rs.get("battle_counter", 0)),
+            outcome_targets=bool(cfg.collector.get("outcome_targets", False)),
+            max_steps_ahead=int(cfg.collector.get("max_steps_ahead", 0) or budget),
+            torch_threads=cfg.torch_threads,
+            pause_on_update=bool(cfg.collector.get("pause_on_update", False)),
+            allow_background_qos=bool(os.environ.get("POKEMON_RL_ALLOW_BACKGROUND_QOS")),
+            search=cfg.collector.get("search"),
+        )
+    elif mode == "engine":
         # In-process pkmn/engine, no server (plan §8.1). Same seam, same
         # cadences, same metric names — only where transitions come from
         # differs. NOT LICENSED until gate A-1.
@@ -999,9 +1121,20 @@ def _async_loop(
             # lane collects the block with `self.critic` left narrow. The width
             # was validated at launch in _engine_collector_checks.
             privileged=bool(getattr(agent, "privileged_block_dim", 0)),
+            # R7 B2, the same rule: the collector renders the foe's own view iff
+            # the critic is the antisymmetric one (update_episodes' seam checks).
+            both_views=bool(getattr(agent, "antisymmetric_critic", False)),
             battle_counter=int(rs.get("battle_counter", 0)),
             outcome_targets=bool(cfg.collector.get("outcome_targets", False)),
         )
+        if cfg.collector.get("search") is not None:
+            # R7 B4b in-process: the T-op on the learner itself (the loop pauses
+            # collection during updates, so no torn read).
+            from rl.search.top import TOp
+
+            collector.searcher = TOp(agent, collector.tables,
+                                     seat=cfg.collector.get("learner_seat", "p1"),
+                                     seed=cfg.seed + 1, **cfg.collector["search"])
     else:
         from rl.envs.showdown_async import AsyncCollector
 
@@ -1041,9 +1174,16 @@ def _async_loop(
         collector.pause()
         collect_sec += time.perf_counter() - collect_mark
 
+    proc = hasattr(collector, "ship_weights")  # R7 B4's two-core lane
+
     def resume() -> None:
         nonlocal collect_mark
-        collector.resume(version=agent.updates)
+        if proc:
+            # The weights travel with the version (a no-op when the version
+            # did not move: eval and checkpoint pauses).
+            collector.ship_weights(agent, agent.updates)
+        else:
+            collector.resume(version=agent.updates)
         collect_mark = time.perf_counter()
 
     def save_latest() -> None:
@@ -1053,7 +1193,12 @@ def _async_loop(
         # consuming their generator draws on POKE_LOOP while we sit here — an
         # unfenced state_dict() would read generator states mid-draw. The
         # learner's own state needs no fence (no decision is in flight).
-        pool_state = None if pool is None else collector.run_in_loop(pool.state_dict)
+        if pool is None:
+            pool_state = None
+        elif proc:
+            pool_state = collector.pool_state()
+        else:
+            pool_state = collector.run_in_loop(pool.state_dict)
         # The engine lane's battle sequence is `splitmix64(lane_seed * PHI ^
         # battle_counter)`, so without the counter a resume replays the run's
         # first K battles — same teams, same seeds, silently. Nothing else in
@@ -1114,8 +1259,16 @@ def _async_loop(
             if dataset.steps >= budget:
                 pause()
                 batch = dataset.drain()
-                # G5's staleness read: update-count lag per row, at drain.
+                # G5's staleness read: update-count lag per row, at drain. A
+                # row's lag includes its battle's duration (an early row of a
+                # long battle can be several updates old under whole-episode
+                # collection, on every collector). R7 B4's bound is on the
+                # weights the collector ACTS with: `collect/weights_lag_updates`
+                # = updates minus each episode's LAST row's version, max over
+                # the batch -- <= 1 under the two-core lane's backpressure.
                 lag = agent.updates - batch["version"]
+                ends = np.cumsum(batch["lengths"]) - 1
+                weights_lag = int(agent.updates - batch["version"][ends].min())
                 mark = time.perf_counter()
                 metrics = agent.update_episodes(batch, steps_seen=anneal_basis)
                 update_sec += time.perf_counter() - mark
@@ -1136,6 +1289,7 @@ def _async_loop(
                             np.percentile(lag, 99)
                         ),
                         "collect/policy_version_lag_max": float(lag.max()),
+                        "collect/weights_lag_updates": float(weights_lag),
                         **collector.stats(),
                     },
                     step,
@@ -1144,9 +1298,13 @@ def _async_loop(
                 collect_sec, update_sec = 0.0, 0.0
                 if pool is not None:
                     sp_metrics = {}
-                    stats0, stats_last = collector.run_in_loop(
-                        lambda: (list(pool.stats[0]), list(pool.stats[-1]))
-                    )
+                    if proc:
+                        stats0, stats_last, pool_len = collector.pool_stats()
+                    else:
+                        stats0, stats_last = collector.run_in_loop(
+                            lambda: (list(pool.stats[0]), list(pool.stats[-1]))
+                        )
+                        pool_len = len(pool)
                     score, games = stats0
                     if games:
                         sp_metrics["selfplay/winrate_anchor"] = score / games
@@ -1157,8 +1315,12 @@ def _async_loop(
                     if sp_metrics:
                         logger.log(sp_metrics, step)
                     if updates_done % push_every == 0:
-                        collector.run_in_loop(pool.push, agent)
-                        logger.log({"selfplay/pool_size": len(pool)}, step)
+                        if proc:
+                            pool_len = collector.push(agent)
+                        else:
+                            collector.run_in_loop(pool.push, agent)
+                            pool_len = len(pool)
+                        logger.log({"selfplay/pool_size": pool_len}, step)
                 if updates_done % SAVE_LATEST_EVERY_UPDATES == 0:
                     # Still paused, after this boundary's push, before
                     # resume(): learner, counters and pool in the payload all

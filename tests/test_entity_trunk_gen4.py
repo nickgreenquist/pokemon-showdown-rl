@@ -191,10 +191,17 @@ KW = dict(num_envs=8, device="cpu", lr=2.5e-4, gamma=1.0, gae_lambda=0.95, rollo
           epochs=4, minibatches=4, clip_eps=0.2, entropy_coef=0.01, value_coef=0.5,
           max_grad_norm=0.5, hidden_sizes=[512, 512])
 # Captured 2026-09-05 on commit 526f839 (the trunk BEFORE the layout argument).
+# RE-BASELINED 2026-09-24 for the scorer ctx factorization (CLEANUP E2, the
+# maintainer's ruling R-E2): ONLY the actor's summed logits (lo) moved, by float32
+# summation order -- 0.13518786523491144 -> 0.13518785871565342 (priv 0) and
+# 0.18378696037689224 -> 0.18378695903811604 (priv 408); param counts, param sums
+# and the critic values are unchanged, and the factored form's identity is pinned
+# by tests/test_entity_scorer_factorization.py. The pin keeps guarding every later
+# change against THIS forward.
 WANT = {
-    0: (626059, 494849, 334.85143576179576, 454.9581814721477, 0.13518786523491144,
+    0: (626059, 494849, 334.85143576179576, 454.9581814721477, 0.13518785871565342,
         [-2.746910572052002, -1.4528512954711914, -0.07449927926063538]),
-    408: (626059, 642305, 410.50954506226424, 385.07299037224624, 0.18378696037689224,
+    408: (626059, 642305, 410.50954506226424, 385.07299037224624, 0.18378695903811604,
           [-0.20323115587234497, -0.7318114638328552, -1.1789518594741821]),
 }
 for priv, (pa_w, pc_w, sa_w, sc_w, lo_w, va_w) in WANT.items():

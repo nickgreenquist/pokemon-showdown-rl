@@ -13637,3 +13637,152 @@ line numbers are not — grep the date, then read that region):
   in either direction, so the threshold rests on se and exposure, never on a conversion. The readout
   script is NOT edited to apply the rule (the queue invokes it fresh at the end of a ~21 h run; a
   late edit risks the readout for a comparison that takes one subtraction by hand).
+
+- 2026-09-24 01:55Z (agent, R6 babysitter) — **Every R6 process runs at NICE 5, and that is NOT the
+  E-core landmine.** Found by session `pokemon-showdown-rl-a7` (the FP-parallel ROI probe), verified
+  here with `ps -o ni,pri`: the reads queue (23932) and its caffeinate, the three trio A lanes
+  (44041/44252/44428) and the Showdown server (75930) are all **NI 5 / PRI 31**; R7's G1b (86094) is
+  **NI 5 / PRI 4**. Cause: zsh's `BG_NICE` option is ON by default, so every `cmd &` launched from
+  the agent's zsh tool starts at nice +5, and children inherit it — so every FP arm and seat this
+  queue launches will run at NI 5 too. **The lanes are the counterexample to CLAUDE.md's wording**
+  ("`taskpolicy -b` / `nice` SENDS A PROCESS TO THE FOUR EFFICIENCY CORES"): at NI 5 / PRI 31 they
+  run 1,100-1,500 steps/s, in line with the maintainer-launched W fleet's 1,254, so plain nice keeps
+  the P-cores; it is background QoS (`taskpolicy -b`, PRI 4) that clamps to cpu0-3. **No relaunch:**
+  every arm, the R5 re-draw included, runs at NI 5 against the same NI 5 server, so the read is
+  matched; the FP gate keeps the box quiet, so a lower priority has nothing to lose to; and a
+  non-root user cannot lower node's nice, so a nice-0 relaunch would only mix configurations.
+  **OWED:** a disclosure line in the R6 readout ("all FP arms and seats ran at nice 5, PRI 31,
+  inherited via zsh BG_NICE; matched across arms"), and the CLAUDE.md landmine wording separated
+  (nice vs background QoS) — raised with the maintainer rather than edited on a peer's report.
+  Also approved: a7's k=2 harness smoke (2 arms x 3 battles, finishing ~02:15Z, hours before the
+  last lane).
+
+- 2026-09-24 02:00Z (agent, R7 runner) — **THE FLEET PRE-REG r3: two Opus reviews, two verification passes and a
+  two focused passes; every verified finding fixed on the branch (16 commits, `0730f3e..068ccaf`), amendment box 7.**
+  The reviews (Opus, read-only; one on wiring against the code, one on design and statistics) found 2 + 5 MAJOR
+  defects; the verification passes 2 + 4 more, several INTRODUCED BY THE FIRST ROUND'S FIXES; the focused passes one each
+  (a sign-blind keep in X-FLAT; the killed smoke's THETA0 line lost unflushed -- the checker now reads theta0.pt's
+  donor record). The ones that would have cost the fleet: (1) THE LR RULE COULD NEVER HAVE READ THE LR — under
+  `play` a searched row's behaviour log-prob is log π′(a), so PPO's approx_kl carries KL(π′‖π_θ) (G0's kl_prior 0.1645
+  at the fleet's dials, `readouts/R7_G0_READOUT.md` line 60) on ~40% of rows at ANY lr, past the 0.06 bar; its top
+  candidate was the donors' own lr (2.5e-4, all three trio configs), not R-F1's "reduced" one. Now `loss/approx_kl_{
+  searched,unsearched}` + `loss/clip_frac_{…}` split by the search mask (`b7c811e`, tested against a direct recompute),
+  candidates {1e-4, 5e-5, 2.5e-5}, nine 2M smokes (searched, control and a β-0 comparator per lr), the control gated
+  (whole-batch KL, entropy, vs SH within 0.03), the searched arm read, NOT-INERT against β-0 with a 2-se margin. (2) THE
+  SHAKEDOWN'S KILL/RESUME COULD NEVER HAVE RUN AT BASE b — `checkpoint.pt` (`SAVE_LATEST_EVERY_UPDATES` = 4, train.py:57)
+  lands at 491,520 steps there, past a 400k horizon; the length is now derived (800k at b/ab, 400k at a/w) and the kill
+  waits for `checkpoint.pt`; the 400k smokes also evaluated too rarely for `l2init/*` to appear. (3) READ (vi) HAD NO
+  INSTRUMENT — `scripts/r7_mechanism_reads.py` (`ae4933f`) scores a checkpoint's greedy on G0's banked split halves and
+  its critic's cell Spearman; its test reproduces G0's banked `a_greedy`, `regret_depth1_ceiling` and the evaluator's
+  `spearman_base` on 8 bucket-balanced positions, 0 failures; smoked c6-on on trio B's s328 final (20 positions, 14 s).
+  (4) NO POWER STATEMENT — `scripts/r7_fleet_power.py` (`e0cb5f2`) re-derives the per-lane FP@20 spread from five banked
+  trio reads (four distinct trios; W 0.527/0.552/0.546 etc., every input re-read from `results/`), pooled sd 0.0102 of
+  which 0.0091 binomial, and simulates the exact credit rule: P(X-POS) 0.49 / 0.72 / 0.88 / 0.96 at a true
+  +0.025 / .030 / .035 / .040 (3 + 3, n 3000), 0.001 at 0; at +0.020, X-POS 0.27 and X-GAIN 0.34. Also fixed: the G2
+  object misstated (the ratified G2 stays on the R5 W committee; an OBJECT RULE with same-session re-draws in the R6
+  object's form); unnamed cells (LANE LOSS, X-COST, X-GAIN; X-FLAT routed on mechanism reads (i)/(vi) and the sign of
+  delta); mechanism reads with a statistic, window, se and bar; the capacity sentence that had cited the attention
+  screen's non-clear as ruling capacity out (a rule-6 violation in my own fix); the learner's `search/rows` overwritten
+  by the T-op's in the log (`search/rows_update`); `TOp.play` defaulting to True (now required; `search/played_frac`
+  added); six watchdogs racing `ensure_node` (one watchdog, `scripts/r7_fleet_launch.sh`); donors' finals globbed on a
+  digit prefix; FP@500 dropped then RESTORED at n 250 (the plan's G4 names it). An async-loop test turned out to be a
+  two-budget overshoot race (1 fail in 4 on the unmodified branch under load, 4 in 4 with the counters; widened to
+  three budgets, 2/2). The a7 session's find, verified here: zsh's BG_NICE puts a `cmd &` job at nice +5 (plain nice keeps the P-cores --
+  r6-runner, `b5be92d`); both R7 scripts now refuse a niced shell. OWED TO THE MAINTAINER with the launch (box 7): X-FLAT's routing; n 3000 vs 6000;
+  β·KL inside the shared clip (kept); Friday's ~3 h of extra smokes and evals. Nothing launched.
+
+- 2026-09-24 02:30Z (agent, R7 runner) — **G1b READ: THE PEEK IS WORTH NOTHING MEASURABLE AT THE BATTLE LEVEL** (box 5
+  item 8; `readouts/R7_G1_READOUT.md`). G1b ended on its own at 02:23:52Z, all 12,500 rows (2,500 per arm), inside its
+  guard. The belief L-op (G2's operator in the mirror: B = 8 resampled worlds, PIMC) beats its own greedy by +0.0553 ±
+  0.0070 (n 5,000, 7.9 se) at 7.3% override; the true-world re-runs reproduce G1's rows 2,500/2,500 on all three arms
+  (+0.0527 ± 0.0070); belief minus true, PAIRED on 4,993 battle seeds, +0.0022 ± 0.0079 (95% CI −0.013 to +0.018) — box 5
+  item 3's "upper bound" does not bind in the mirror; G2 (after the fleet) is the live test. PROVENANCE DEFECT FOUND AND
+  FIXED (`2d9b180`): g1_engine_mirror/2 stamped `launch_git_sha` at WRITE time, so G1b's JSON names `068ccaf`; the
+  readout now derives the launch commit from the guard's start line (`e486482`, committed 27 s before launch) and checks
+  the lazily imported modules byte-identical there — one program throughout. The same shape was in the new
+  `scripts/r7_mechanism_reads.py`, fixed before it ever ran for a read. The G1 readout's engine-source check had also
+  started diffing to today's HEAD (the mmap-bank engine work would have read as G1's program): it now stops at G1's end.
+
+- 2026-09-24 02:45Z (agent, R7 runner) — **THE BRANCH'S FULL ENGINE-ENV SUITE, and the merge pre-checked.** `git
+  merge-tree main r7-native-search` is CLEAN (54 branch commits, 44 main commits; no conflicts), so Friday's merge is
+  mechanical. The engine env's suite (niced, `-m "not live_server"` — the live tests would have battled on the R6 fleet's
+  server — flags V2/IDS set, `--continue-on-collection-errors`): 1,183 passed, 39 failed, 17 collection errors, in 11 min.
+  None of the tracebacks mention tonight's changes (searched for the new keys, `play`, the renamed counters); every
+  failure is in a documented class — `poke_engine` absent from this env (42 error lines), no `runs/` or `results/` in
+  the worktree, the id flags set by this invocation (the tests that assert their absence), one timing assertion in the
+  process collector under background QoS (its bitwise equivalence leg passed: 30 episodes, 1,958 rows) — except ONE STALE
+  FIXTURE: `tests/test_outcome_targets.py` built a fake collector without the per-slot state `_episode` has read since
+  B5 (`bc24570`). Fixed (`779d9e8`, 6/6). DISCLOSED: my first fix (`981625f`) was committed through a MASKED exit code —
+  `pytest … | tail` returns tail's status — with the test still failing; the follow-up was committed only on pytest's
+  own return code. Every other commit tonight printed its passing count before it was made. R7 runs nothing more until
+  the R6 readout; r6-runner told.
+
+- 2026-09-25 00:00Z (agent, R7 runner) — **HANDOFF FOLDED (the context-73% handoff, `e20c0f0`); the three sessions coordinate
+  by message.** Resumed after a /clear as session `purity-line-ordering-system`. Everything in the handoff was already in
+  STATUS item 3, plan box 7 and the entries above except two operational notes: the worktree has no `runs/` or
+  `results/`, so after the merge `derive_r7_fleet.py` and the smoke checks run from main (or take absolute `--runs` /
+  `--power`); `results/r7_fleet/power.json` already sits in main. At the maintainer's ask the R7 runner messaged
+  r6-runner (ETA; a ping with the base and its commit) and the a7 session (a ping when
+  `../pokemon-showdown-rl-fpprobe/results/fp_parallel_probe/STATUS` goes terminal). **a7:** none of its processes import
+  `pkmn-engine-port` or `pkmn-engine-r7` (driver on base anaconda, seats in `pokemon-showdown-rl` with the fpprobe
+  worktree on PYTHONPATH, Foul Play in `foul-play`), so the post-merge reinstall cannot touch a live importer of its; a
+  QUEUE DONE after 02:20Z makes its waiter write SKIPPED_LATE and release the box at once. **r6-runner:** QUEUE DONE and
+  the computed readout ~01:05Z (PHASE SH is 18 jobs, ~45 min), its written readout ~01:30Z; both trios read X-FLAT,
+  whose pre-stated action is a mechanism read, and `r6_reads_readout.py` names no base -- so **`derive_r7_fleet.py
+  --base` waits for the base to be named** (r6-runner puts the numbers and the mechanism questions to the maintainer).
+  Pins final and uncorrected (`1b923a0` A, `342bdf3` B). `git merge-tree` main vs the branch re-checked CLEAN (56 / 49
+  commits). STATUS unchanged (item 3 already carries this order).
+
+- 2026-09-25 01:10Z (agent, R7 runner) — **BOX 7 RULED (maintainer, all three as recommended): X-FLAT's routing as written, n 6000
+  PER LANE, β·KL inside the shared clip. The branch's CLEANUP L10 fixes and a stale test committed; `pkmn-engine-r7`
+  rebuilt; the R7 base narrowed to `ab` or `b`.** The rulings (~01:05Z): n 6000 buys P(X-POS) 0.50 / 0.78 / 0.94 / 0.99 at
+  a true +0.025 / .030 / .035 / .040 against n 3000's 0.49 / 0.72 / 0.88 / 0.96, and at +0.020 X-POS 0.22 / X-GAIN 0.60
+  against 0.27 / 0.34 (`results/r7_fleet/power.json`, 3+3); the generator now carries `READ_N = 6000` (branch; its test
+  runs after the fp-speedup probe). **The base:** r6-runner's reads keep trio B's ×4 batch by its header's own X-FLAT rule
+  (update 562.2 vs W's 573.7 µs per env step over 20M-180M, 0.980×, ~1.6 se, B's context the heavier), so no ruling was
+  needed; trio A's bit (the turn 2-8 by-turn r² above 0.287) waits on its instrument, run from the pinned worktree
+  `../pokemon-showdown-rl-r6pin` (`25bad2c`) under PYTHONPATH -- the env's editable install would otherwise resolve
+  `import rl` to main's tree, which the R7 merge rewrites (caught here; r6-runner verified that PYTHONPATH wins). `ab` if
+  MOVED, `b` otherwise. R6's QUEUE DONE 01:07:53Z: R2's object E6RF +0.0180 over E3WR, so no Ladder R6. **The branch**
+  (`392dc2e..3a58e79`, five commits, each on pytest's own return code): L10's audit (a read-only Opus pass; 47 files match
+  the stamp grep) found two LIVE write-time stamps -- `ch3_fp_h2h.py`'s `rl_git_*` (G2's "which rl" fields) and
+  `search_r1e_gate.py`'s provenance -- both now read at launch; `eval_checkpoint.py` stamped no sha at all and now stamps
+  `launch_git_sha` / `launch_git_dirty` / `rl_package` (the LR smokes' vs-SH gate evals run through it); `r7_smoke_check.py`'s
+  S_RESUME now requires every resume at the launch's sha (`same_program_as_launch`). The stale test:
+  `test_search_r1e_gate.py`'s engine-backend test still expected B6's pre-landing NotImplementedError and had failed on the
+  branch since B6 (confirmed on a stash of the unmodified branch); it now asserts the seam complete and exercises the
+  refusal by withholding one symbol. **`pkmn-engine-r7` rebuilt** from the branch (the mmap bank was not installed: `.so`
+  09-23 19:33Z vs `7c6cb40` 23:42Z; now 00:26Z, `verify()` pinned sha, zig 0.16.0, 384 B); in it the gating tests read
+  27 passed, 0 skipped (mmap bank 3, `test_lop` 7, mechanism reads 1, derive 16). Dry runs of `--stage lr-smokes` (ab and
+  b) and `--stage fleet` (ab, a placeholder lr) into the scratchpad: the donors match PIN-a / PIN-b (a304 `e3903fa60897`,
+  b328 `f09063696cda`); ab and b differ only in the heads keys and the donor; a searched/control pair exactly in seed,
+  run_name, play, seat_tag and the two coefficients. `pkmn-engine-port` untouched (`.so` 09-20); the merge, its
+  reinstall and the suite start when the fp-speedup (a7) probe's STATUS goes terminal; B0 after r6-runner's "instrument
+  ended".
+
+- 2026-09-25 01:30Z (agent, R6 babysitter) — **R6 IS READ; no Ladder R6; R7's base is `ab` or `b`.**
+  QUEUE DONE 01:07:53Z. Full record: `readouts/R6_READS_READOUT.md` (the gitignored READOUT.txt is
+  reproduced verbatim there). **R1, off FP@20, 9000 vs 9000 vs the same-session re-drawn R5 finals:
+  trio B (x4 batch, fallback form) +0.0216 at z 2.91 — statistically clear (every one of the 9
+  B-lane vs R5-lane pairings favours B) but 0.003 under the credit line's +0.025 SIZE floor, so
+  B-FLAT and uncredited; trio A (outcome heads) -0.0022 at z -0.21, A-FLAT.** vs SH agrees
+  descriptively (B +0.0241 at z 4.35 vs R5's banked read). B vs A +0.0238 at z 2.07. **R2's object
+  E6RF is +0.0180 over E3WR at z 1.42; M-R6-10's bar is +0.05, so Ladder R6 does not fire.** The
+  committee gain (+0.033..+0.047 per trio over its own singles) remains the largest lever.
+  **R7's base, per both trio headers' pre-stated X-FLAT action (two bits): the batch is KEPT** — B's
+  update is faster per datum than W's (0.980x update, 0.972x total per env step over 20M-180M, from
+  each lane's `history.csv`; ~1.6 se across three lanes; the header asks only "faster") — **and the
+  heads bit is PENDING trio A's pre-registered mechanism instrument** (turn-2-8 by-turn r^2 must lift
+  above the R5 W finals' 0.2866 on positions drawn the same way in the same run), staged to start
+  when the fp-speedup probe's STATUS goes terminal, from the pinned worktree
+  `../pokemon-showdown-rl-r6pin` (25bad2c; `rl/` identical to launch commit 907adc6) with
+  PYTHONPATH set — the analysis env's editable install otherwise imports main's `rl/`, which the R7
+  merge rewrites (the r7-runner's catch). Draw recovered from the 09-18 rows file (ep 0-799 ->
+  `--battles 800`). Both instrument sides and critic_calibration smoked green from the pin; the
+  first smoke measured 0 positions because it asked for 2 outcomes per position against the
+  script's 4-outcome floor — a smoke-design error, not a setup one. **The FP gate held 0 times; no
+  job failed.** Correction owned in-session: I first told the maintainer the base was "a call owed
+  to you"; the r7-runner pointed out the "X-FLAT routing" item was R7's own fleet branch, and the R6
+  base is mechanical under the headers. The maintainer also ruled on wording this session — say
+  which clause a result misses, with delta and z, and lead any status answer with who is running
+  what (memories `say-which-clause-fails`, `status-says-who-is-running`).

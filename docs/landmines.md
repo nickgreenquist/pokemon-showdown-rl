@@ -917,6 +917,20 @@ readouts label them. **A provenance field nothing reads is a field nobody
 notices is wrong.** Whether a spanning block should be REFUSED is still a maintainer
 ruling (`docs/CLEANUP.md` L5).
 
+**A pinned worktree pins NOTHING by itself (2026-09-25).** The envs install the
+repo EDITABLE from the main checkout (`pip show pokemon-showdown-rl` in
+`pokemon-showdown-rl` and in `pkmn-engine-port`: "Editable project location:
+.../pokemon-showdown-rl"), so `python scripts/x.py` run from inside a worktree
+puts only `<worktree>/scripts` on `sys.path[0]` and `import rl` still resolves
+to MAIN's tree. A merge into main then changes the program under a job that
+believed itself pinned. Caught before R6's trio-A instrument launched from its
+pin (`../pokemon-showdown-rl-r6pin`) while the R7 merge was queued to land beside
+it. The pin is `PYTHONPATH=<worktree root>` (it precedes the editable hook;
+r6-runner verified with a dummy `rl` package), checked before launch by printing
+`rl.__file__` from the same env and PYTHONPATH. `pkmn-engine-r7` is the one env
+whose editable install points at a worktree (the R7 branch's), which is why it
+is that branch's env.
+
 **Also pinned by that fixture, and worth knowing on its own: the ENCODER
 VERSION is part of the search.** The tree encodes every leaf, so under the
 suite's default (`OBS_DIM` 612, flags unset) `visits` and `gumbel` pick a

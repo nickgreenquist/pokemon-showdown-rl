@@ -68,9 +68,12 @@ def test_fp_registered_kinds_are_the_registered_set():
     fp_vs_clone (arms C1/C1b); CH5 R1 registered ensemble_seat, whose own
     gates live in tests/test_ch5_ensemble_seat.py. Update this tuple only
     alongside a pre-reg."""
+    # R7 G2 registered native_seat alongside its pre-reg (configs/eval/r7_g2.yaml,
+    # DRAFT pending ratification); its own gates live in tests/test_lop.py and
+    # tests/test_r7_g2_prereg.py.
     assert ch3_fp_h2h.ARM_KINDS == (
         "greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
-        "ensemble_seat")
+        "ensemble_seat", "native_seat")
 
 
 def test_fp_anchor_config_matches_the_prereg():

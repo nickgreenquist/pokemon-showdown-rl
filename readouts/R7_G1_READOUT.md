@@ -1,11 +1,11 @@
 # R7 G1 — the operator in the engine mirror, and how much of it is seeing the hidden state
 
-Written 2026-09-23T21:58:51+00:00 by `scripts/r7_g1_readout.py` (branch `r7-native-search` at `87dd03f`). **Every number below is re-derived from the rows files at generation time; nothing is typed.** Rule 6: G1 is a mechanism read on the operator, never a win-rate A/B against the credit line (G2 is that, off FP@20).
+Written 2026-09-24T02:28:27+00:00 by `scripts/r7_g1_readout.py` (branch `r7-native-search` at `28ea957`). **Every number below is re-derived from the rows files at generation time; nothing is typed.** Rule 6: G1 is a mechanism read on the operator, never a win-rate A/B against the credit line (G2 is that, off FP@20).
 
 ## Provenance
 
 - G1 rows: `results/r7_g1/g1.rows.jsonl` — sha256 `6f9d86e5d243ee36…`, version `g1_engine_mirror/1`, **15,000 battles** (lop_p1 5,000, lop_p2 5,000, greedy_greedy 5,000); the summary JSON agrees with the rows: **True**. One process, launched 2026-09-23T19:34:54Z (`logs/r7_g1/g1.log`), QoS `background` — niced beside the R6 fleet, so every ms figure here is an efficiency-core timing, not a cost (the B0 bench is the cost).
-- Program: the worktree at `9a3e4ae` with B6's second form in progress; the extension it loaded was rebuilt at 2026-09-23T19:33:53Z (`logs/r7_g0/maturin_b6.log`), a minute before launch, from engine sources unchanged through `87dd03f` (`git diff 9a3e4ae..87dd03f -- engine/`: empty). The /1 harness predates the launch-SHA stamp (fixed in /2). **The operator G1 ran is the sweep's, bit for bit, across that rebuild:** the belief read's true-world arm takes the sweep's decision keys and reproduces the sweep's cell exactly on the rebuilt extension (override 0.100, regret +0.00404 win-rate: identical = **True**); the sweep was written 2026-09-23T16:30:07Z, before it.
+- Program: the worktree at `9a3e4ae` with B6's second form in progress; the extension it loaded was rebuilt at 2026-09-23T19:33:53Z (`logs/r7_g0/maturin_b6.log`), a minute before launch, from engine sources unchanged through `a35ff9b` (`git diff 9a3e4ae..a35ff9b -- engine/`: empty). The /1 harness predates the launch-SHA stamp (fixed in /2). **The operator G1 ran is the sweep's, bit for bit, across that rebuild:** the belief read's true-world arm takes the sweep's decision keys and reproduces the sweep's cell exactly on the rebuilt extension (override 0.100, regret +0.00404 win-rate: identical = **True**); the sweep was written 2026-09-23T16:30:07Z, before it.
 - Committee: `showdown_monster200m_w_s104/ckpt_200000000.pt` (sha `a502af3af5b8`), `showdown_monster200m_w_s112/ckpt_200000012.pt` (sha `add6e89a3fe7`), `showdown_monster200m_w_s120/ckpt_200000003.pt` (sha `33108eadc38c`); bank `teams_a1_5000000.bin`; tables `d2ba00c2ef52`; dials k 4, S 2, τ 0.05, margin gate 0.01 critic units (the sweep's cell, amendment box 4 item 3); 64 battles in flight; seed 20260924.
 - The plan's G1 (§6), verbatim: > **G1 — engine self-play, the fast in-block test of the operator.** L-op (true world, B=1, depth-1) vs greedy, both from the same checkpoint, engine mirror matches, n=5,000 per arm, seat-swapped; anchor = greedy vs greedy = 0.5 by symmetry, which is a free instrument check. Override rate reported; the statistical gate (`Q̄(a') − Q̄(a_greedy) ≥ 2·se`) is the matching device. No Showdown, no FP, hours not days.
 
@@ -56,12 +56,19 @@ Written 2026-09-23T21:58:51+00:00 by `scripts/r7_g1_readout.py` (branch `r7-nati
 
 | arm | seat | battles | win rate ± se | override | overrides / battle | mean length |
 |---|---|--:|---|--:|--:|--:|
-| lop_p1 | p1 | 372 | 0.5605 ± 0.0257 | 0.098 | 3.45 | 35.26 |
-| lop_p2 | p2 | 357 | 0.5406 ± 0.0264 | 0.099 | 3.46 | 34.98 |
+| lop_p1 | p1 | 2,500 | 0.5464 ± 0.0100 | 0.097 | 3.43 | 35.40 |
+| lop_p2 | p2 | 2,500 | 0.5590 ± 0.0099 | 0.098 | 3.46 | 35.33 |
+| greedy_greedy | p1 | 2,500 | 0.5108 ± 0.0100 | 0.000 | 0.00 | 35.43 |
+| lop_belief_p1 | p1 | 2,500 | 0.5516 ± 0.0099 | 0.074 | 2.60 | 34.99 |
+| lop_belief_p2 | p2 | 2,500 | 0.5590 ± 0.0099 | 0.072 | 2.53 | 35.31 |
 
-- The re-run true-world arms: 0.5508 ± 0.0184 on 729 battles.
-- **/1 reproduction** (the re-run's rows against /1's, in order, on outcome, length, decisions and overrides): lop_p1 372/372 identical; lop_p2 357/357 identical — the /2 JSON (launch SHA) is written at run end.
-- **PARTIAL** — battles on disk per arm: {'lop_p1': 372, 'lop_p2': 357, 'greedy_greedy': 0, 'lop_belief_p1': 0, 'lop_belief_p2': 0}; the run is resume-safe and continues on the idle box.
+
+- **The belief L-op vs its own greedy, pooled: 0.5553 ± 0.0070 — +0.0553 over the symmetric line (7.9 se), override 0.073.**
+- **Belief minus true, PAIRED on 4,993 battles (the same battle seed: the same teams and chance seed, whose draws part once the two arms' actions do): +0.0022 ± 0.0079** (identical outcome on 0.688 of pairs).
+- **Read:** the peek's price over a battle is -0.0022 win-rate (belief minus true +0.0022, 95% CI [-0.0132, +0.0176]) -- WITHIN NOISE OF ZERO: the belief operator keeps the true-world operator's gain in this mirror, so the per-decision world dependence the belief read found (box 5) does not reach the battle level, and G1's true-world gain is not a bound G2's operator measurably falls short of here. The mirror is G1's (both seats the R5 committee, greedy but for the L-op); the live test of the belief operator against a different opponent is G2, off FP@20, after the fleet.
+- The re-run true-world arms: 0.5527 ± 0.0070 on 5,000 battles.
+- **/1 reproduction** (the re-run's rows against /1's, in order, on outcome, length, decisions and overrides): lop_p1 2,500/2,500 identical; lop_p2 2,500/2,500 identical; greedy_greedy 2,500/2,500 identical.
+- **The program:** launched 2026-09-23T21:53:45Z at the branch's `e486482` (its HEAD at the guard's start line); the lazily imported modules (rl/search/resample.py, rl/envs/randbats_prior.py) are byte-identical at `e486482` and HEAD, and the rest loaded at launch — one program throughout. The /2 JSON's `launch_git_sha` reads `068ccaf` because /2 stamped it at WRITE time (a harness defect, fixed after this run: the launch sha is now taken before any arm).
 
 ## Secondary reads
 
@@ -71,4 +78,4 @@ Written 2026-09-23T21:58:51+00:00 by `scripts/r7_g1_readout.py` (branch `r7-nati
 
 ## Branch
 
-G1 carries no kill clause; it reads the operator as WORKING in its best case. Next, per the plan: **G2** on the idle box (the L-op's ladder path with belief samples through B6's bridge, whose gate R1-E passed; n = 3,000 per arm off FP@20, in-session anchor, the credit line verbatim) and **G3** on the fleet's own lanes. Added by this read: **G1b** (above) prices the peek at the battle level before G2 spends an idle-box block; the T-op stays B = 1 (the licence holds on the right measurement); and the **evaluator trained on rollout labels** stays first in line, since the critic's own optimism dominates the v′ target and the root-rule read already named the evaluator the binding constraint (amendment box 4 items 1 and 5).
+G1 carries no kill clause; it reads the operator as WORKING in its best case. Added by this read: **G1b** (above) prices the peek at the battle level, in the same mirror, before G2 spends a quiet-box block; the T-op stays B = 1 (the licence holds on the right measurement). Where the next steps stand (amendment box 6, rulings of 2026-09-24): **G2** (the L-op's ladder path with belief samples through B6's bridge, whose gate R1-E passed; n = 3,000 per arm off FP@20, the credit line verbatim) is RATIFIED (`configs/eval/r7_g2.yaml` r2) and runs AFTER the R7 fleet, only its two-battle smoke before it; **G3** reads on the fleet's own lanes; and the **evaluator trained on rollout labels** is an own-lap campaign after the fleet — fine-tuning the critic on G0's 500 positions fit them and transferred nothing out of fold (box 5 item 7), so G0-scale data is too small, while the critic's own optimism still dominates the v′ target and the root-rule read named the evaluator the binding constraint (amendment box 4 items 1 and 5).

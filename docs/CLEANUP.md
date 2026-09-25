@@ -116,6 +116,36 @@ exactly that (see do-not-relitigate below).
   visible by then, and a selection rule re-run after an outcome stops being one.
   Disclosed in the config, in the readout, and here. The rule is one line: **a
   matched block sweeps every arm it matches, against an in-session control.**
+- **L10 — A HARNESS STAMPED ITS "LAUNCH" SHA AT WRITE TIME** (opened 2026-09-24).
+  `scripts/g1_engine_mirror.py` /2 ran `git rev-parse HEAD` after its arms
+  finished and saved it as `launch_git_sha`; G1b ran 4.5 h while 31 commits
+  landed on its branch, so its JSON names `068ccaf` for a program launched at
+  `e486482`. The G1 readout now derives the launch commit from the guard's start
+  line and checks the lazily imported modules byte-identical there; `2d9b180`
+  fixed the harness, and the same shape in the new `scripts/r7_mechanism_reads.py`
+  before it ever ran. L5's companion: a running block imports the tree at launch,
+  so the sha that describes it must be read at launch. **AUDITED AND FIXED
+  2026-09-25** (merged in `9d6a1f8`): a read-only pass over every file under
+  `scripts/` and `rl/` that stamps a sha or a dirty flag (47 files match
+  `launch_git_sha|git_sha|rev-parse`) found two LIVE write-time stamps, both now
+  read at launch with a behavioural test -- `scripts/ch3_fp_h2h.py`'s `rl_git_sha`
+  / `rl_git_dirty` (G2's "which rl" fields, read inside `run()` after the battles;
+  `3050292`) and `scripts/search_r1e_gate.py`'s `provenance()` (after legs A/B/C
+  and the controls; the write-time value kept as `written_git_sha`; `c7efc87`).
+  Two gaps of another shape, closed for what R7 runs next: `scripts/eval_checkpoint.py`
+  stamped NO sha (the LR smokes' vs-SH gate evals run through it; it stamps
+  `launch_git_sha` / `launch_git_dirty` / `rl_package` now, `e384e3d`), and
+  `scripts/r7_smoke_check.py`'s S_RESUME never compared a resume's sha with the
+  launch's (`same_program_as_launch`, `3a58e79`). Every other live stamp is read
+  at launch (rl/train.py, fresh and per resume; rollout_q / _belief / _evaluator;
+  r7_b0_bench; r7_mechanism_reads; g1_engine_mirror) or is a readout's own HEAD.
+  **LEFT, disclosed:** the spent ch3_r*/ch5 graders and probes stamp inline at
+  write time; `scripts/ch3_eval.py` and `scripts/action_gap.py` stamp nothing;
+  `scripts/rollout_q.py` has no dirty flag; rl/train.py's resume stamp omits
+  `cwd=` (harmless: the watchdog cds to the repo). L5's shape, not L10's: a child
+  process imports the tree AFTER the stamp (train.py's spawn `ProcCollector`,
+  r7_b0_bench's per-width children, ch3_fp_h2h's lazy `rl.search`) -- the
+  stagger-window rule covers it.
 
 - **L1 — THE LADDER'S OPPONENT POOL IS SMALL AND ONE SESSION SAMPLES ONE SLICE
   OF IT** (opened 2026-09-16, from the maintainer's observation mid-R5). R5 at

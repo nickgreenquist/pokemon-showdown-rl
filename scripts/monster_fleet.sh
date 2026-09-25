@@ -45,6 +45,15 @@ STAGGER="${STAGGER:-90}"      # seconds between lane launches
 VERIFY="${VERIFY:-20}"        # CPU-delta window per lane
 TAG="${TAG:-$(basename "$CFG" .yaml)}"
 LOG="logs/monster_fleet.log"; mkdir -p logs runs
+# A FLEET OF PER-LANE CONFIGS (R7: each lane warm-starts from its own donor, so each has its own config) is launched
+# by scripts/r7_fleet_launch.sh, one call here per lane, with two opt-in hooks; unset, this script is unchanged:
+#   WATCHDOG=0   launch and verify only; the caller starts ONE watchdog over every lane (one ensure_node on the
+#                shared server -- six watchdogs would race it -- and one RESUMES= line). The dirs that came up are
+#                appended to $UP_FILE.
+#   FLEET_WIDTH  the fleet's lane count, so the two-core width guard counts the FLEET, not this call's seeds.
+WATCHDOG="${WATCHDOG:-1}"
+FLEET_WIDTH="${FLEET_WIDTH:-0}"
+WIDTH=$(( FLEET_WIDTH > ${#SEEDS[@]} ? FLEET_WIDTH : ${#SEEDS[@]} ))
 
 # THE ENCODER FLAGS ARE PART OF THE OBSERVATION CONTRACT, and they are read at
 # IMPORT time by rl/networks/entity_deepsets.py -- so a lane launched without
@@ -79,6 +88,27 @@ sys.exit(0 if v=="1" and i=="1" else 1)' \
   || die "encoder flags not visible to $PY -- the entity trunk reads them at import"
 
 [ -f "$CFG" ] || die "no such config: $CFG"
+
+# R7 B4 (plan amendment box 3, item 1): a TWO-CORE LANE (collector.process: true)
+# must launch at NORMAL QoS -- `taskpolicy -b` schedules to the four efficiency
+# cores at ~6.8x per decision, and under a wall-matched fleet a lane there trains
+# FEWER steps, a confound -- and at most FIVE lanes ride the ten performance
+# cores (ruling 7; six only under a pre-registered disclosure, opt-in here).
+# The collector refuses a background QoS at construction too; this is the
+# launch-time face of the same rule, before any lane spends a minute.
+if "$PY" - "$CFG" <<'PYEOF'
+import yaml, sys
+c = yaml.safe_load(open(sys.argv[1]))
+sys.exit(0 if bool(((c.get("collector") or {}).get("process", False))) else 1)
+PYEOF
+then
+  "$PY" -c 'import os, sys; sys.exit(1 if os.getpriority(4, 0) != 0 else 0)' \
+    || die "collector.process lanes need NORMAL QoS: this shell is background (taskpolicy -b / nice); relaunch from a plain shell"
+  if [ "$WIDTH" -gt 5 ] && [ "${ALLOW_SIX_WIDE_DISCLOSED:-0}" != "1" ]; then
+    die "collector.process: $WIDTH two-core lanes > 5 on ten performance cores (ruling 7); ALLOW_SIX_WIDE_DISCLOSED=1 only with the pre-registered degraded-lane disclosure"
+  fi
+  say "two-core lanes: normal QoS asserted, $WIDTH lanes x 2 cores (this call: ${#SEEDS[@]})"
+fi
 
 # THE ANNEAL TRAP, checked. `rl.train` has NO --total-steps flag: the horizon
 # comes from the config and ONLY from the config, so a STEPS argument that
@@ -200,6 +230,11 @@ done
 say "=== ${#UP[@]}/${#SEEDS[@]} lanes up ==="
 [ "${#DOWN[@]}" -gt 0 ] && say "ALERT lanes that did not come up: ${DOWN[*]}"
 [ "${#UP[@]}" -eq 0 ] && die "no lane came up"
+if [ "$WATCHDOG" = "0" ]; then
+  [ -n "${UP_FILE:-}" ] && printf '%s\n' "${UP[@]}" >> "$UP_FILE"
+  say "WATCHDOG=0: no watchdog started here -- the caller starts ONE over the fleet (${UP[*]})"
+  exit 0
+fi
 
 say "starting watchdog on the lanes that came up"
 PY="$PY" nohup bash scripts/train_watchdog.sh "${UP[@]}" > /dev/null 2>&1 &

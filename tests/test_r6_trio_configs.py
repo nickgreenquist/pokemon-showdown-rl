@@ -73,9 +73,12 @@ def test_c6_marker_is_on_the_trios_and_on_nothing_else_in_configs():
     marked = {pathlib.Path(p).name for p in glob.glob(str(ROOT / "configs/*.yaml"))
               if any(line.rstrip() == "# ENCODER_C6: on"
                      for line in pathlib.Path(p).read_text().splitlines())}
+    # R7's stacked base carries C6 BY DESIGN (the kitchen-sink ruling, 2026-09-23: W + C6 +
+    # ...), so its configs are marked too -- and nothing else may be.
+    r7 = {"r7_shakedown_searched.yaml", "r7_shakedown_control.yaml"}
     assert marked == {A.name, B.name, A.name.replace('.yaml', '_smoke400k.yaml'),
                       B.name.replace('.yaml', '_smoke400k.yaml'),
-                      "showdown_r6_trio_b_fallback.yaml", "showdown_r6_trio_b_fallback_smoke400k.yaml"}, marked
+                      "showdown_r6_trio_b_fallback.yaml", "showdown_r6_trio_b_fallback_smoke400k.yaml"} | r7, marked
 
 
 def test_seat_tags_and_seeds_collide_with_no_other_config():

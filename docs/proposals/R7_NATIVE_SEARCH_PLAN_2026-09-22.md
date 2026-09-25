@@ -323,6 +323,17 @@ on a 14-core laptop, CPU only, pure self-play.
 
 ---
 
+> 8. **G1b HAS READ (2026-09-24 02:24Z; `readouts/R7_G1_READOUT.md`, every number re-derived from
+>    `results/r7_g1b/g1b.rows.jsonl`): THE PEEK IS WORTH NOTHING MEASURABLE AT THE BATTLE LEVEL.** The belief L-op -- G2's
+>    operator in the engine mirror: B = 8 resampled worlds, per-world foe priors, PIMC, gated as G1 -- beats its own greedy
+>    by **+0.0553 ± 0.0070** win rate (n 5,000 over both seats, 7.9 se) at 7.3% override; the true-world re-runs reproduce
+>    G1's rows 2,500/2,500 on all three arms and read +0.0527 ± 0.0070. **Belief minus true, PAIRED on 4,993 battle seeds:
+>    +0.0022 ± 0.0079** (95% CI −0.013 to +0.018; identical outcome on 68.8% of pairs). Item 3's question answered: the
+>    per-decision world dependence item 2's re-read found does not reach the outcome, so G1's +0.050 is not a bound G2's
+>    operator measurably falls short of in this mirror. Scope: the mirror is G1's (both seats the R5 committee, the
+>    non-searching seat greedy); the live test against a different opponent is G2, off FP@20, after the fleet. Program:
+>    `e486482` throughout -- the /2 JSON's `launch_git_sha` (`068ccaf`) was stamped at WRITE time, a harness defect fixed
+>    at `2d9b180`, which also found the same shape in the new mechanism scorer before it ran.
 > ### AMENDMENT BOX 6 — 2026-09-23, **THE FLEET: what the reads now fix, and the RULINGS OWED before its pre-reg is written**
 > **Fixed by the reads, no ruling needed.** THE LEVER: the T-op at G0's sweep cell (k 4 / S 2 / τ 0.05; `frac` 0.75 of eligible
 > rows ≈ 40% of decisions; `top1_skip` 0.97), B = 1 (box 5 item 2), on the OBSERVATION leaf (box 5 item 5), β·KL(π′‖π_θ)
@@ -392,6 +403,68 @@ on a 14-core laptop, CPU only, pure self-play.
 > mmap test PASSES, `test_lop.py` passes with none skipped; (4) the B0 bench at normal QoS (`--widths 5 6`), deciding R-F2;
 > (5) the 400k shakedown smokes on the ruled base (warm-start path included if R-F1 is warm); (6) G2 if R-G2 rules it before
 > the fleet; (7) the fleet pre-reg after R-F1/R-F2, two Opus reviews, the maintainer launches.
+
+> ### AMENDMENT BOX 7 — 2026-09-24, **THE FLEET PRE-REG (r3): two Opus reviews, two verification passes, two focused passes**
+> The pre-reg is a GENERATOR (`scripts/derive_r7_fleet.py`, branch `r7-native-search`): one config per lane (each lane
+> its own donor), the full header in each, derived and never hand-edited. The first review pair (wiring; design) found
+> 2 + 5 MAJOR defects; the verification passes found 2 + 4 more, several of THOSE introduced by the first round's fixes,
+> and the focused passes one each (a sign-blind keep; a log line a kill would lose) -- the house lesson again: a correction
+> needs its own second pass. Branch tip `068ccaf`. What changed, by consequence:
+> **The LR rule could never have read the LR.** Under `play` a searched row's behaviour log-prob is log π′(a), so PPO's
+> approx_kl carries KL(π′‖π_θ) (G0's kl_prior 0.1645 at the fleet's dials, on ~40% of rows) from the first minibatch at
+> ANY lr — past the rule's 0.06 bar — and its top candidate, 2.5e-4, was the donors' own lr, not R-F1's "reduced" one.
+> Now: `loss/approx_kl_{searched,unsearched}` and `loss/clip_frac_{…}` split by the search mask (`b7c811e`); candidates
+> {1e-4, 5e-5, 2.5e-5}, checked below the donors' 2.5e-4; nine 2M smokes — the searched arm, the control and a β-0
+> comparator per lr, as triples under one watchdog — on the lane's own anneal; the CONTROL gated (its whole-batch
+> approx_kl ≤ 0.06, its entropy within ±20% of the donor's, its vs SH within 0.03 of the donor's, n 3000 each), the
+> searched arm READ (its unsearched-row KL gated; its entropy and vs SH carry the lever's own effect — a searched-only
+> vs-SH drop goes to a ruling); NOT-INERT = the searched arm's `search/kl_update` below the β-0 comparator's by a 2-se
+> margin (the control differs by three channels; β-0 isolates the policy target). The verdict JSON is the fleet stage's
+> only source for `--lr`, short of a ruling.
+> **The shakedown's kill/resume could never have run at base b.** `checkpoint.pt` — the only file a resume loads — is
+> written every 4 updates, 491,520 steps at b's 122,880-step update: past the 400k horizon. The length is now DERIVED
+> ((SAVE_LATEST_EVERY_UPDATES + 2) updates: 800k at b and ab, 400k at a and w), the kill waits for `checkpoint.pt`, and a
+> resumed warm start prints its own THETA0 re-install line, which the checker requires; the checker proves the anchors from
+> `theta0.pt`'s DONOR record, not the first launch's log line (stdout to a file is block-buffered and dies with a killed
+> lane -- R6's killed smoke left a 629-byte log; the prints flush now too) (`ae4933f`, `97947b0`, `068ccaf`). The smokes
+> also evaluated too rarely for `l2init/*` (eval rows only) to appear: eval and checkpoint are every 100k now.
+> **Read (vi) had no instrument.** `scripts/r7_mechanism_reads.py` (`ae4933f`) scores each lane's greedy on G0's banked
+> split halves, (vi), and its critic's per-position cell Spearman, (iii), on the first 50 positions of each G0 bucket; its
+> test reproduces G0's banked `a_greedy` and `regret_depth1_ceiling` and the evaluator's `spearman_base` exactly on 8
+> positions (0 failures). A FIXED yardstick — the Q are rollouts under the R5 committee — disclosed with every number.
+> **Power, stated** (`scripts/r7_fleet_power.py` → `results/r7_fleet/power.json`, from five banked trio reads, four
+> distinct trios): P(X-POS) 0.49 / 0.72 / 0.88 / 0.96 at a true +0.025 / .030 / .035 / .040 (3 + 3, n 3000, the credit
+> rule simulated exactly); at a true +0.020, X-POS 0.27 and X-GAIN 0.34. An X-FLAT or X-GAIN is likely even if the lever
+> works; n 6000 per lane is named as the maintainer's option.
+> **Branches:** X-POS; X-GAIN (new — a resolved gain below the floor keeps the lever, the mirror of X-COST); X-COST;
+> X-NEG; X-FLAT routed on the mechanism reads — (i) not moved: the lever out, the target-form lap; (i) moved and (vi)
+> not: the lever out, the evaluator lap; both moved and delta > 0: the lever STAYS, the evaluator lap; both moved and
+> delta ≤ 0: the lever out, the behaviour-channel lap (X-COST's reading). LANE LOSS drops a pair. MOVED
+> needs 2 se AND every pair on the sign. The object rule reads four committees in the R6 object's policy form (trio A's
+> 0.013 tolerance, the winner's curse disclosed); the ratified G2 stays on the R5 W committee.
+> **Also:** one watchdog for the fleet (`scripts/r7_fleet_launch.sh`, two opt-in hooks in `monster_fleet.sh`: six
+> watchdogs would race `ensure_node` on the shared server); `TOp.play` has no default and `search/played_frac` counts the
+> behaviour; the learner's `search/rows` had been overwritten in the log by the T-op's own (`search/rows_update` now);
+> donors parse steps; ruling 7's six-wide disclosure written in; FP@500 kept at n 250 (~2.7 h a committee,
+> descriptive); β·KL's place INSIDE the shared clip disclosed, its side channel on the searched arm's critic read by
+> `loss/grad_norm` per arm; an async-loop test's two-budget resume race widened to three budgets; zsh's BG_NICE puts a
+> `cmd &` job at nice +5 (plain nice keeps the P-cores, r6-runner measured, `b5be92d`), and both R7 scripts refuse a
+> niced shell.
+> **For the maintainer, with the launch:** (1) X-FLAT's routing is a research-direction call, pre-stated so the likeliest
+> branch has no forking path — ratify or amend it; (2) n 3000 per lane, or the n 6000 option (~+8 h of quiet-box FP;
+> P(X-POS) at +0.030 0.72 → 0.78); (3) β·KL stays inside the shared clip (the standard ExIt form; moving it after the clip,
+> as the outcome heads were, is a design change of its own); (4) Friday grows by ~3 h: nine 2M smokes and seven vs-SH
+> evals.
+> **RULED 2026-09-25 ~01:05Z (maintainer, all three as recommended):** (1) X-FLAT's routing RATIFIED as written;
+> (2) **n 6000 per lane** -- P(X-POS) 0.50 / 0.78 / 0.94 / 0.99 at a true +0.025 / .030 / .035 / .040, X-POS 0.22 and
+> X-GAIN 0.60 at +0.020 (`results/r7_fleet/power.json`, 3+3); the generator's `READ_N`; the read session ~28 h;
+> (3) β·KL stays INSIDE the shared clip. (4) is the schedule's cost, disclosed.
+> **Friday's order (box 6's, updated):** the R6 readout → the a7 session's FP probe (~45 min; its STATUS file releases the
+> box) → merge → reinstall both engine envs + the suite (the mmap test PASSES; `test_lop.py` none skipped;
+> `test_r7_mechanism_reads.py` passes in `pkmn-engine-port`) → B0 `--widths 5 6` → the base from the 09-25 read →
+> `derive_r7_fleet.py --stage lr-smokes` + commit → `scripts/r7_smokes.sh lr <base>` → `--stage fleet --lr <chosen>
+> --b0 <verdict>` + commit → `scripts/r7_smokes.sh shakedown` → G2's two-battle smoke → the maintainer launches
+> (`scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt`).
 
 ## 0. The bet in one paragraph
 

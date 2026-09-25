@@ -47,7 +47,7 @@ from poke_env.battle.move import Move as PEMove
 from poke_env.battle.pokemon_type import PokemonType
 from poke_env.battle.status import Status
 
-from rl.search.bridge import EFFECT_VOLATILE_MAP
+from rl.search.volatiles import EFFECT_VOLATILE_MAP  # poke_engine-free (2026-09-23)
 
 _VOLATILE_EFFECT_MAP = {v: k for k, v in EFFECT_VOLATILE_MAP.items()}
 # Keys are the ENGINE's full status names (bridge._STATUS_MAP values;
