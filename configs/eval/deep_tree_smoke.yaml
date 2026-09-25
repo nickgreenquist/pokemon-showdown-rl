@@ -1,0 +1,38 @@
+# DEEP SEARCH Step A, gate (iii): a TWO-BATTLE Foul Play smoke of the native tree as an inference operator
+# (docs/proposals/DEEP_SEARCH_PATH_2026-09-25.md r2 §2 Step A; rl/search/tree_lop.py, rl/search/native_tree.py).
+#
+# A SMOKE, NOT A READ. It checks that the operator plays live battles off FP@N 25k/12k through the incident-hardened
+# runner and that its arm JSON carries every counter -- the override rate, the dose in leaves AND depth (levels,
+# engine updates, turns), worlds built/refused/errored by kind, fallbacks -- with fpn_counters_ok true. Its win rate
+# is never read (n = 2). Hacking, so no pre-reg (maintainer 2026-09-17: "pre-reg is for ladder runs"); the
+# anti-self-deception machinery stays: counters reach disk before any dial gets an arm.
+#
+# THE OBJECT: G2's committee (the three R5 W finals, sha256-pinned) and G2's greedy anchor, with G2's one-ply solve
+# replaced by the tree at §35's budget -- 1,800 TOTAL simulations over the L-op's 8 belief worlds, br_prior, the root
+# grid, depth cap 8, cols_k 4, chance_k 2, root rule soft_br at the L-op's tau 0.05, no margin gate (0.0): the tree's
+# candidate plays whenever it moves. Checkpoint paths are ABSOLUTE because the runner cds into the checkout it
+# lives in, and this runs from the Step A worktree (fp_arms_parallel.py exports PYTHONPATH=<its checkout>, so the
+# seat imports the worktree's rl; the JSON stamps rl_package).
+#
+# ENV: PY=/opt/anaconda3/envs/pkmn-engine-r7/bin/python (pkmn_gen1 + poke-env), as G2's native_seat arms.
+# LAUNCH (bash, never a niced shell; FP@N may share the box with training):
+#   bash -c 'cd <worktree> && PY=/opt/anaconda3/envs/pkmn-engine-r7/bin/python nohup /opt/anaconda3/bin/python
+#     scripts/fp_arms_parallel.py --prereg configs/eval/deep_tree_smoke.yaml --arms DTS --slots 1 > <log> 2>&1 &'
+title: deep_tree_smoke
+status: "SMOKE (Step A gate iii), 2026-09-25: two battles, never read"
+journey_step: "14"
+credits_nothing: true
+results_dir: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/results/deep_tree_smoke
+fp:
+  search_time_ms: 20
+  search_iterations: 25000
+  search_iterations_early: 12000
+  search_parallelism: 1
+checkpoints:
+  w104: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
+  w112: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s112/ckpt_200000012.pt, sha256: add6e89a3fe7ba2a96df5b07d7a932fc3a2de22ac0a644bbb75fdf12911aaf6f, step: 200000012}
+  w120: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
+usernames:
+  scheme: "dsa<n><role>: a throwaway pair per smoke; a killed arm's pair is poisoned for hours (the runner landmine), so a rerun takes the next n"
+arms:
+  DTS: {kind: native_tree_seat, seat: w112, ensemble_members: [w104, w112, w120], battles: 2, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: dsa1seat, fp_username: dsa1bot, tree_lop: {worlds: 8, margin_gate: 0.0, seed: 20260925, tree: {sims: 1800, mode: br_prior, root_grid: true, depth_cap: 8, cols_k: 4, chance_k: 2, root_rule: soft_br, tau: 0.05}}}

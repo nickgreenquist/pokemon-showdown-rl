@@ -103,6 +103,7 @@ _FOREIGN_KEYS = {
     # without it) and stamps it into the runner JSON; fp_arm_counters.py marks the arm.
     "calibration_reference_for",                               # ch3_r4_fp_runner
     "lop",               # ch3_fp_h2h's native_seat (lop_from, signature-derived); a kind this harness refuses
+    "tree_lop",          # ch3_fp_h2h's native_tree_seat (tree_lop_from, signature-derived); a kind this harness refuses
     "seat1", "seat2",                                          # r2_falsifier
     "comparator",                                              # anchor_grade
     "display_name", "lane",                                    # ladder.py

@@ -83,8 +83,14 @@ BATTLE_FORMAT = "gen1randombattle"
 #     `ensemble_seat` arm over those members the comparison isolates the
 #     search. RUNS IN AN ENGINE ENV (pkmn-engine-r7: pkmn_gen1 + poke-env,
 #     no poke_engine) -- `PY=` on the runner -- and never imports SearchAgent.
+#   * native_tree_seat (DEEP SEARCH Step A, 2026-09-25) -- native_seat with the
+#     one-ply solve replaced by the native TREE (`rl/search/tree_lop.py::
+#     NativeTreeLOp`, `rl/search/native_tree.py`): the same committee, worlds,
+#     greedy anchor and gate; a `tree_lop:` block (`tree_lop_from`) with the
+#     tree's dials under `tree:` (`native_tree.dials_from`). Same env as
+#     native_seat.
 ARM_KINDS = ("greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
-             "ensemble_seat", "native_seat")
+             "ensemble_seat", "native_seat", "native_tree_seat")
 
 
 def _build_agent(spec: dict):
@@ -394,10 +400,11 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
     search_agent = None
     eval_provenance = None
     searched_ensemble = None
-    if arm["kind"] == "native_seat":
+    if arm["kind"] in ("native_seat", "native_tree_seat"):
         from rl.envs.engine_tables import build_tables
         from rl.search.ensemble import EnsembleAgent
         from rl.search.lop import NativeLOp, lop_from
+        from rl.search.tree_lop import NativeTreeLOp, tree_lop_from
 
         members = list(arm["ensemble_members"])
         assert len(members) == len(set(members)), (
@@ -409,7 +416,12 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         for m in ens.members:
             m.actor.eval(); m.critic.eval()
         tables, tables_fp = build_tables()
-        search_agent = NativeLOp(ens, tables, **lop_from(arm.get("lop")))
+        if arm["kind"] == "native_seat":
+            assert "tree_lop" not in arm, f"{arm_name}: a tree_lop block on a native_seat would be ignored"
+            search_agent = NativeLOp(ens, tables, **lop_from(arm.get("lop")))
+        else:
+            assert "lop" not in arm, f"{arm_name}: a lop block on a native_tree_seat would be ignored"
+            search_agent = NativeTreeLOp(ens, tables, **tree_lop_from(arm.get("tree_lop")))
         agent = ens
         # The width stamp over the COMMITTEE (every member's input width), not the
         # single seat lane the generic stamp above saw (the G2 code review).
@@ -614,7 +626,7 @@ async def run(prereg: dict, arm_name: str, battles: int, tag: str) -> dict:
         "arm/decisions_per_wall_sec": (seat._decisions_total / elapsed) if elapsed > 0 else None,
     })
     # WHICH `rl` THIS PROCESS RAN is stamped by main() at LAUNCH (_rl_provenance).
-    if arm["kind"] == "native_seat":
+    if arm["kind"] in ("native_seat", "native_tree_seat"):
         # The L-op's own counters: the override rate beside every win rate (the
         # landmine), the refusal families, the dose, decisions/sec (JOURNEY 14's
         # exit condition names it in every quote).

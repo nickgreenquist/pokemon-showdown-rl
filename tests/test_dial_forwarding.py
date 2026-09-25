@@ -146,3 +146,7 @@ def test_a_native_seat_arm_is_refused_here_so_its_lop_can_never_be_dropped():
     with pytest.raises(ValueError, match="unknown arm kind 'native_seat'"):
         m._jobs({"arms": {"G": {"kind": "native_seat", "seat": "w", "ensemble_members": ["w"],
                                 "battles": 2, "lop": {"worlds": 8}}}})
+    # the native TREE's arm (DEEP SEARCH Step A): its `tree_lop` block is the same kind of sibling key
+    with pytest.raises(ValueError, match="unknown arm kind 'native_tree_seat'"):
+        m._jobs({"arms": {"T": {"kind": "native_tree_seat", "seat": "w", "ensemble_members": ["w"],
+                                "battles": 2, "tree_lop": {"worlds": 8, "tree": {"sims": 100}}}}})

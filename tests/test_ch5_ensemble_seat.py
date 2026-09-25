@@ -55,10 +55,13 @@ class _FakeAgent:
 
 def test_ensemble_seat_is_registered():
     """Grows only alongside a pre-registration — CH5 R1 is the licence; R7 G2's
-    DRAFT pre-reg (configs/eval/r7_g2.yaml) registered native_seat."""
+    DRAFT pre-reg (configs/eval/r7_g2.yaml) registered native_seat; DEEP SEARCH
+    Step A (docs/proposals/DEEP_SEARCH_PATH_2026-09-25.md r2, reviewed twice; the
+    maintainer's "Then start work", 2026-09-25) registered native_tree_seat for
+    gate (iii)'s smoke (configs/eval/deep_tree_smoke.yaml) and Step B's reads."""
     assert ch3_fp_h2h.ARM_KINDS == (
         "greedy_seat", "search_seat", "sampled_seat", "fp_vs_clone",
-        "ensemble_seat", "native_seat")
+        "ensemble_seat", "native_seat", "native_tree_seat")
 
 
 def test_ensemble_arm_carrying_seat_fails_loudly():
