@@ -12,7 +12,11 @@
 set -u
 cd "$(cd "$(dirname "$0")/.." && pwd)" || exit 1
 WD=runs/train_watchdog.log
-OUT=logs/r6_fleet/monitor.log; mkdir -p logs/r6_fleet
+# Generalized 2026-09-25 for R7 (scripts/r7_fleet_monitor.sh sets these); the defaults are R6's, unchanged.
+OUTDIR="${OUTDIR:-logs/r6_fleet}"; OUT="$OUTDIR/monitor.log"; mkdir -p "$OUTDIR"
+LANES_GLOB="${LANES_GLOB:-runs/showdown_r6_trio_[ab]_s*}"   # expanded unquoted below, a glob not a regex
+N_LANES="${N_LANES:-6}"                                   # the fleet's width: ALL LANES DONE fires at N_LANES
+REF_LABEL="${REF_LABEL:-the W fleet six-wide}"
 POLL="${POLL:-600}"
 W_REF="${W_REF:-1254}"
 ALERT_FRAC="${ALERT_FRAC:-0.6}"
@@ -28,11 +32,11 @@ rate_from_rungs() {  # dir -> "rate step_hi age_s" from the two newest rungs, or
   [ "$t1" -gt "$t0" ] || { echo ""; return; }
   echo "$(( (s1 - s0) / (t1 - t0) )) $s1 $(( $(date +%s) - t1 ))"
 }
-log "MONITOR START poll=${POLL}s W_REF=${W_REF} steps/s per lane (six-wide, 5M..195M) alert below ${ALERT_FRAC}x"
+log "MONITOR START poll=${POLL}s lanes=${LANES_GLOB} width=${N_LANES} W_REF=${W_REF} steps/s per lane (${REF_LABEL}) alert below ${ALERT_FRAC}x"
 # (macOS bash 3.2: no associative arrays -- the per-lane seen-alert count lives in a file)
 while true; do
   # DIRECTORIES only: the glob without the trailing slash also matched the lanes' .nohup.log files
-  lanes=$(ls -d runs/showdown_r6_trio_[ab]_s*/ 2>/dev/null | grep -v smoke | sed 's#/$##')
+  lanes=$(ls -d $LANES_GLOB/ 2>/dev/null | grep -v smoke | sed 's#/$##')
   n_done=0; n_lanes=0
   for d in $lanes; do
     [ -d "$d" ] && [ -f "$d/meta.yaml" ] || continue
@@ -47,16 +51,16 @@ while true; do
     log "$b pid=${pid:-none} rss=${rss:-?}MB cpu=${cpu:-?}% rate=${rate:-n/a} steps/s (last rung ${step:-n/a}, ${age:-?}s ago) uptime=$((uptime_s/60))min resumes=$resumes alerts=$alerts | $wl"
     if [ -n "$rate" ] && [ "$uptime_s" -ge 3600 ]; then
       slow=$(awk -v r="$rate" -v w="$W_REF" -v f="$ALERT_FRAC" 'BEGIN{print (r < w*f) ? 1 : 0}')
-      [ "$slow" = 1 ] && log "ALERT $b SLOW: $rate steps/s < ${ALERT_FRAC} x $W_REF (the W fleet six-wide)"
+      [ "$slow" = 1 ] && log "ALERT $b SLOW: $rate steps/s < ${ALERT_FRAC} x $W_REF (${REF_LABEL})"
     fi
-    prev=$(cat "logs/r6_fleet/.seen_alerts_$b" 2>/dev/null || echo 0)
-    if [ "$alerts" -gt "$prev" ]; then log "ALERT $b WATCHDOG: $(grep "ALERT $d" "$WD" | tail -1 | cut -c1-160)"; echo "$alerts" > "logs/r6_fleet/.seen_alerts_$b"; fi
+    prev=$(cat "$OUTDIR/.seen_alerts_$b" 2>/dev/null || echo 0)
+    if [ "$alerts" -gt "$prev" ]; then log "ALERT $b WATCHDOG: $(grep "ALERT $d" "$WD" | tail -1 | cut -c1-160)"; echo "$alerts" > "$OUTDIR/.seen_alerts_$b"; fi
     [ -z "$pid" ] && ! grep -q "$d DONE at step" "$WD" && [ "$uptime_s" -ge 900 ] && log "ALERT $b NO PROCESS and not DONE (the watchdog resumes within its poll; escalate if it repeats)"
   done
   # macOS keeps "free" small on purpose; free + inactive + speculative is the reclaimable-ish figure
   free_mb=$(vm_stat | awk '/Pages free|Pages inactive|Pages speculative/{gsub("\\.","",$NF); s+=$NF} END{printf "%d", s*16384/1048576}')
   node=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://localhost:8000/ 2>/dev/null || echo "down")
   log "BOX load=$(uptime | sed 's/.*load averages: //') free=${free_mb}MB node=$node lanes=$n_lanes done=$n_done screens=$(pgrep -f 'rl.train --config configs/showdown_r6_batch12m' | wc -l | tr -d ' ')"
-  if [ "$n_lanes" -ge 6 ] && [ "$n_done" -ge 6 ]; then log "ALL LANES DONE"; exit 0; fi
+  if [ "$n_lanes" -ge "$N_LANES" ] && [ "$n_done" -ge "$N_LANES" ]; then log "ALL LANES DONE"; exit 0; fi
   sleep "$POLL"
 done
