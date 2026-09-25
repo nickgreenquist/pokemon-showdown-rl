@@ -181,7 +181,8 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   lane wedges forever. Do not remove it. Verified live by
   `scripts/ch5_timer_smoke.py` and `scripts/ch5_orphan_demo.py`; a RESULTS
   disclosure line is OWED with the next headline number. The LADDER is the
-  tight path (150 s/turn, not the 300 s a challenge gets).
+  tight path (a 150 s bank refilling +10 s/turn, 150 s max for one turn — so
+  ~10 s/turn sustained — not the 300 s a challenge gets).
 - **A resume SPLITS the wandb history** into two offline runs with
   OVERLAPPING steps: `extract_history.py <run_dir>` then HARD-FAILS, and
   merging means pre-resume rows `_step < from_step` + the whole post-resume
@@ -351,16 +352,23 @@ committed files** (local paths are fine — relaxed 2026-08-05).
       a gen-1 arm with `search_time_ms: 20` and no `search_iterations`
       (`6936b2f`, `tests/test_fp_runner_guards.py`), and R7's G2 moved to FP@N
       (r3). Banked FP@20 numbers stay citable as history, never differenced
-      against FP@N. A wall-clock budget still allowed (FP@100/500, descriptive,
-      pending the maintainer's ruling on whether the retirement reaches them)
-      runs serially on a quiet box only: wall-clock FP loses iterations under
-      load (FP@20 measured −16 to −19% of iterations/ms at 4–8 arms even on
-      P-cores), and the scheduler enforces the rule.
+      against FP@N. **EVERY wall-clock budget is retired with it** (FP@100/500
+      too; maintainer, same day: "We should never run a FP@500 or 100 again
+      serially ... I don't want to ever again wait hours for FP runs unless
+      calibrating a new N."). A bigger budget runs only as its own
+      CALIBRATED FP@N, K-wide (FP@500's is visits-matched, strength not tested,
+      ruled). The runner and the scheduler refuse EVERY gen-1 arm without
+      `search_iterations` (`fbe36a1`), except an arm declaring
+      `calibration_reference_for`: the wall-clock reference inside calibrating a
+      new N, the one serial quiet-box FP left — wall-clock FP loses iterations
+      under load (FP@20 measured −16 to −19% of iterations/ms at 4–8 arms even
+      on P-cores).
   - FP@20 (the wall-clock anchor until its retirement on 2026-09-25) was `--search-time-ms 20`.
     **Two disclosures travel with every FP number, forever:** the equivalence
     test is weakly powered, and the point estimate flatters us. **Name the
     budget in every quote.** FP@N is an instrument, not a rung — the readiness gradient is the FP budget
-    ladder (`configs/eval/fp_budget_ladder.yaml`). **Gen 4's budget is UNPINNED
+    ladder (`configs/eval/fp_budget_ladder.yaml`; its wall-clock rungs are retired, each
+    re-expressed as a calibrated FP@N before it runs again). **Gen 4's budget is UNPINNED
     until that ladder runs against the first trained gen-4 checkpoint (ruled
     2026-09-05); quote 20 and 500 ms both meanwhile.**
 - **Locked metric names:** `rollout/episode_return`, `rollout/episode_length`,
