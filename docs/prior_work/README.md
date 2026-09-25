@@ -819,8 +819,9 @@ Play@20 spends **~40 ms** and gets a tree. **We already spend roughly TWICE the
 anchor's entire budget and put all of it into BREADTH at a single ply.** Dose
 L bought 4x the leaves for -0.014 (BLL vs BLM, off-FP, -0.63 se). So depth-1
 breadth is saturating while the opponent's advantage is structural, not
-budgetary — and the ladder allows **150 s/turn**, against our 0.078 s and
-FP@500's ~1 s. Quote this before arguing that search is compute-limited here.
+budgetary — and the ladder's clock sustains **~10 s/turn** (a 150 s bank
+refilling +10 s/turn; 150 s is a ONE-turn max -- corrected 2026-09-25 from
+"allows 150 s/turn"), against our 0.078 s and FP@500's ~1 s. Quote this before arguing that search is compute-limited here.
 
 
 ## Foul Play@500 costs ONE SECOND per decision — measured, 2026-09-12
@@ -832,3 +833,28 @@ determinizations × 250 ms = **1.0 s per decision**, against FP@20's
 battle**, twice what `configs/eval/fp_budget_ladder.yaml` priced ("FP500 ~1–1.5 h
 for 250"). Price FP@500 at ~5 h per 500 battles, and never run it beside another
 wall-clock-budgeted opponent.
+
+
+## Foul Play ON THE LADDER — what its author runs (verified, 2026-09-25)
+
+**[W]** = read on the web from the primary source, quoted verbatim through a fetch, 2026-09-25.
+
+* **[W] pmariglia, "Foul Play: A Competitive Pokémon Showdown Battle Bot" (pmariglia.github.io/posts/foul-play/,
+  May 11, 2025)**, table "Format | GXE | Peak ELO | Peak Ladder Rank": "gen1randombattle | 75% | ~1450 | Top 500",
+  "gen9randombattle | 88% | 2341 | Top 50", "gen4randombattle | 85% | 1728 | 3". "Each GXE shown was measured only
+  after the Glicko deviation dropped below 50, to ensure a stable rating."
+* **[W] pmariglia on Smogon ("(Re-)Introducing Foul Play", thread 3767378), Nov 8, 2025:** "PS gives 10 seconds per
+  move (or was it 15?), so I usually put about 7 seconds per decision. However Foul Play will do 2 batches of searches
+  if it detects that it has enough time left." And: "diminishing returns to the number of battles searched after maybe
+  8, but I don't have data to back this up." Dec 30, 2025: "16GB of RAM and 4 cores of at least a mid-tier CPU ... is
+  enough build out the game trees deep enough for these results while keeping in the PS timer"; "Gens 1 and 2 work
+  but I haven't vetted them nearly as much as the others."
+* **[V] Showdown's ladder clock** (`showdown/server/room-battle.ts`, L45-49 and L196-201): a 150 s starting bank (+60 s
+  grace once), +10 s per turn, capped at 150, max 150 s for one turn. So ~10 s/turn is the sustainable budget, which is
+  why the author spends ~7 s.
+* **What it means for us.** The ladder Foul Play spends ~7 s a decision, root-parallel over sampled worlds: ~175x our
+  FP@20 anchor's ~40 ms, and FP@N 25k/12k is calibrated to that anchor, not to the ladder bot. In gen 1 its reported
+  level (GXE 75%, peak ~1450, top 500) sits beside our LADDER R5 committee (GREEDY, no search, 5.40 ms a decision:
+  GXE 73.9%, final Elo 1457, listed; RESULTS §20) -- different periods and peak-vs-final, so comparable LEVELS, never
+  a delta. The "nobody has run Foul Play in gen1 randbats seriously" inference above needs this caveat: the author
+  reports a gen1randombattle ladder result, and calls gens 1-2 the least vetted.
