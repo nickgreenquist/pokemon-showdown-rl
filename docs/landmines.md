@@ -1203,3 +1203,23 @@ build env passes the env EXPLICITLY —
 **Cost here.** One extra seat win in 2999 battles: 1614/2998 against 1615/2999, immaterial.
 
 **The instrument.** `scripts/fp_arm_counters.py` counts timer and forfeit messages in foul-play's own log and fails an arm when they exceed its crash forfeits. The runner writes the counters into every runner JSON, and an arm with `fpn_counters_ok: false` is INVALID (CLAUDE.md, FP anchor).
+
+## THE DISK FILLS: A FLEET KEEPS EVERY CHECKPOINT (2026-09-25)
+
+**What happened.** Mid-way through the R7 fleet the maintainer asked whether Chrome and Lightroom were safe to run.
+The check found the data volume at **98%, 12.9 GB free**. The repo held ~260 GB of it: `runs/` 204 GB, almost all
+intermediate checkpoints of finished runs, and `results/` 53 GB, of which 50 GB was raw Foul Play stdout. Each R7 lane
+writes a ~30 MB checkpoint every 500k steps, ~6 GB a 100M lane, so the five lanes alone needed ~23 GB more. They would
+have filled the disk around the next midday and crashed every lane at a checkpoint write. Nobody had checked the disk
+before launch.
+
+**The fix that day** (SESSION_LOGS 2026-09-25 20:45Z; manifests in `logs/cleanup_2026-09-25/`), 12.9 -> 121 GB free:
+- (1) gzip every COMPLETED arm's `*.fp.stdout`: 135 files, ~94% smaller each, lossless. A live arm's log stays plain
+  until its arm ends, because the counters read it then; re-reading a banked tally needs gunzip or zcat first.
+- (2) delete the INTERMEDIATE checkpoints of finished runs: 2,987 files, 57 GB. Each run keeps its final numbered
+  checkpoint, `checkpoint.pt`, `best_checkpoint.pt`, `theta0.pt`, its metadata, and every checkpoint path a tracked
+  file names. First check that no code reads them (warm starts read the donor's final and `theta0.pt`), and never
+  touch a running fleet, its donors, or a run modified in the last day.
+
+**The rule** (CLAUDE.md landmines): check free disk before any fleet or reads launch, project the writes, alert the
+maintainer when free space is under 2x the projection or ~50 GB, and re-check on every monitor pass.

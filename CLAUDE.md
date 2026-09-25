@@ -189,6 +189,18 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   run. `checkpoint.pt` lags the last logged step by MUCH more than one update
   (R2 lost 190,776 and 170,680 steps) — read the real `from_step` from
   `meta.yaml`, and expect `updates_done` one short per resume.
+- **CHECK FREE DISK BEFORE ANY FLEET OR READS LAUNCH, and ALERT the maintainer
+  if it is near full** (2026-09-25: the data volume sat at 98%, 12.9 GB free, in
+  the middle of the R7 fleet). Every lane keeps every checkpoint (~30 MB each
+  500k steps, ~6 GB a 100M lane), and FP@N arms write ~0.25 GB of Foul Play
+  stdout per 1,000 battles, so a full disk would have crashed all five lanes at
+  a checkpoint write. Before launching: `df -h /System/Volumes/Data` and project
+  the run's writes. If free space is under 2x that projection or under ~50 GB,
+  STOP and alert the maintainer; re-check it on every monitor pass. Cleanup that
+  loses nothing needed: gzip COMPLETED arms' `*.fp.stdout`, and prune a FINISHED
+  run's intermediate checkpoints, keeping its final, `checkpoint.pt`,
+  `best_checkpoint.pt`, `theta0.pt`, metadata and every checkpoint a tracked file
+  names (`docs/landmines.md`).
 - **Resource gates are calibrated at a FLEET WIDTH**: R2's D-E (STOP > 4.5 GB)
   came from 2.68 GB/lane 3-wide, and a lane running ALONE legitimately hit
   5.87 GB with the box 85% free — disclose, don't kill. Likewise a throughput
