@@ -1,7 +1,8 @@
 # R7 B0 — the T-op's per-decision cost at fleet width
 
-**Verdict: FAIL** (the pre-stated pass line). Six-wide fleet p99 **7.531 ms** vs the line **3.6 ms**
-(2 × plan §5's 1.8 ms). By box 6's R-F2 (`scripts/derive_r7_fleet.py --b0 FAIL`), **the fleet is 3 + 2**.
+**First run: FAIL, NOT VERDICT-BEARING** — the window was not quiet; a quiet-box re-run is the verdict (maintainer,
+2026-09-25; see Consequence). Six-wide fleet p99 **7.531 ms** vs the line **3.6 ms** (2 × plan §5's 1.8 ms). Under
+FAIL, box 6's R-F2 (`scripts/derive_r7_fleet.py --b0 FAIL`) makes the fleet 3 + 2.
 
 Every number here is from `results/r7_b0_bench/2026-09-25T020423Z.json` (sha256 `dee47c5f1431…`), written by
 `scripts/r7_b0_bench.py --widths 5 6`, launched 2026-09-25 02:04:23Z at `fb3364e` on a clean tree (the merge
@@ -76,9 +77,11 @@ Power at the ruled n 6000 (`results/r7_fleet/power.json`):
 | 3 + 2 | 0.49 | 0.75 | 0.91 | 0.98 |
 | 3 + 3 | 0.50 | 0.78 | 0.94 | 0.99 |
 
-**A replication** on a verified-quiet box can run after fp-speedup's calibration; it takes about 15 s. That rule is
-stated now, before the re-run exists:
+**THIS READ IS SUPERSEDED BY A QUIET-BOX RE-RUN** (maintainer, 2026-09-25 ~02:10Z: "better to rerun the test
+later once box is truly empty"). The window above was not quiet, and a p99 bench is the instrument background load
+corrupts. The rule is stated now, before the re-run exists:
 
-- It is reported BESIDE this read and does not replace it.
-- A FAIL confirms this read.
-- A PASS conflicts with this read and goes to the maintainer.
+- The re-run uses the same command and configuration.
+- It runs right after fp-speedup's calibration, with all three agent sessions idle for its ~1-minute window.
+- It is THE verdict whichever way it reads, and `--b0` takes its reading.
+- This run stays here, disclosed and not verdict-bearing.
