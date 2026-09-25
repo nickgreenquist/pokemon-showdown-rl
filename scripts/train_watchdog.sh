@@ -49,6 +49,13 @@ CPU_WIN="${CPU_WIN:-20}"     # seconds over which CPU time must advance
 CPU_MIN="${CPU_MIN:-2}"      # seconds of CPU that must accrue in CPU_WIN
 MAX_RESUMES="${MAX_RESUMES:-12}"
 GRACE="${GRACE:-600}"        # seconds after a resume before judging a lane
+# Seconds to wait after a lane dies or is killed before resuming it. A resume reuses the dead incarnation's
+# seed-derived Showdown usernames, and a room the dead process left open (an eval killed mid-battle) is pushed
+# to the new connection, whose next eval then dies on poke-env's "Can not reset player's battles while they are
+# still running" (R7 shakedown, 2026-09-25: a resume 72 s after a mid-eval kill crashed; one at +11.6 min ran).
+# Showdown ends an abandoned CHALLENGE room on its disconnection bank, DISCONNECTION_BANK_TIME 300 s, and a
+# first turn carries STARTING_GRACE_TIME 60 s more (showdown/server/room-battle.ts): 300 + 60 + a 30 s margin.
+ROOM_REAP="${ROOM_REAP:-390}"
 LOG="${LOG:-runs/train_watchdog.log}"
 
 # The encoder flags are part of the OBSERVATION CONTRACT, not a convenience:
@@ -201,7 +208,7 @@ for d in "${LANES[@]}"; do
   fi
 done
 
-say "WATCHDOG START poll=${POLL}s cpu_win=${CPU_WIN}s cpu_min=${CPU_MIN}s max_resumes=${MAX_RESUMES}"
+say "WATCHDOG START poll=${POLL}s cpu_win=${CPU_WIN}s cpu_min=${CPU_MIN}s max_resumes=${MAX_RESUMES} room_reap=${ROOM_REAP}s"
 say "  lanes: ${LANES[*]}"
 
 live=1
@@ -233,8 +240,9 @@ while [ "$live" -gt 0 ]; do
         say "ALERT $d DEAD and at the resume cap (${RESUMES[$i]}) -- RETIRING, needs a human"
         RESUMES[$i]=-1; continue
       fi
-      say "ALERT $d DEAD at step ${step}/${total} -- resuming (${RESUMES[$i]} prior)"
-      RESUMES[$i]=$(( ${RESUMES[$i]} + 1 )); LASTACT[$i]=$now
+      say "ALERT $d DEAD at step ${step}/${total} -- resuming (${RESUMES[$i]} prior) after ${ROOM_REAP}s (Showdown reaps its rooms)"
+      sleep "$ROOM_REAP"
+      RESUMES[$i]=$(( ${RESUMES[$i]} + 1 )); LASTACT[$i]=$(date +%s)
       TOTAL_RESUMES=$((TOTAL_RESUMES+1))
       resume_lane "$d"
       continue
@@ -277,8 +285,9 @@ while [ "$live" -gt 0 ]; do
         say "  (pgid $pgid == watchdog's; killing pid $pid alone)"
         kill -TERM "$pid" 2>/dev/null; sleep 10; kill -KILL "$pid" 2>/dev/null
       fi
-      sleep 20   # let Showdown reap the abandoned rooms before reconnecting
-      RESUMES[$i]=$(( ${RESUMES[$i]} + 1 )); LASTACT[$i]=$now
+      say "  waiting ${ROOM_REAP}s for Showdown to reap $d's abandoned rooms before the resume"
+      sleep "$ROOM_REAP"   # 20 s was not enough: a room left mid-eval outlives it (see ROOM_REAP)
+      RESUMES[$i]=$(( ${RESUMES[$i]} + 1 )); LASTACT[$i]=$(date +%s)
       TOTAL_RESUMES=$((TOTAL_RESUMES+1))
       resume_lane "$d"
     fi

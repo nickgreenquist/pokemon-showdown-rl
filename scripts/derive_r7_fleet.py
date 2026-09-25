@@ -58,7 +58,11 @@ DONOR_SEEDS = {"a": (304, 312, 320), "b": (328, 336, 344)}
 DONOR_DIR = {"a": "showdown_r6_trio_a_s{}", "b": "showdown_r6_trio_b_s{}"}
 DONOR_MIN_STEP = 200_000_000
 SEEDS = {"searched": (376, 384, 392), "control": (400, 408, 416)}
-SMOKE_SEEDS = {"searched": 424, "control": 432}
+# The shakedown's pair. The first shakedown (424 / 432, 2026-09-25) FAILED S_ERRORS: its searched smoke was killed
+# mid-eval and the watchdog resumed it 72 s later onto the dead incarnation's open Showdown room (fixed in
+# train_watchdog.sh: ROOM_REAP). The re-run takes a FRESH pair -- the run names, the watchdog log's lines and the
+# seed-derived usernames all key on the seed, and a killed pair is poisoned for hours (the FP runner's landmine).
+SMOKE_SEEDS = {"searched": 480, "control": 488}
 LR_CANDIDATES = (1.0e-4, 5.0e-5, 2.5e-5)
 LR_ARMS = ("searched", "control", "beta0")
 LR_SMOKE_SEEDS = {"searched": (440, 444, 448), "control": (452, 456, 460), "beta0": (464, 468, 472)}

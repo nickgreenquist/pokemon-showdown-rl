@@ -208,14 +208,14 @@
 #   smokes, the B0 verdict, meta stamps (c6, bank_zero_copy, param counts), the per-arm reads above, the power inputs,
 #   the anchor battery, RESULTS, README.
 env_id: Showdown-v0
-seed: 432
+seed: 488
 total_steps: 800000
 eval_every: 100000
 eval_episodes: 100
 num_envs: 8
 torch_threads: 1
 checkpoint_every: 100000
-run_name: r7_fleet_smoke_control_s432
+run_name: r7_fleet_smoke_control_s488
 logger: wandb
 eval_win_rate: true
 collector:
