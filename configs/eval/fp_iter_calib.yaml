@@ -1,0 +1,64 @@
+title: fp_iter_calib
+status: "REGISTERED 2026-09-25 (agent; maintainer 'Go' 02:00Z for FP-parallel Phase 2). Instrument calibration: is FP@N (a FIXED MCTS iteration budget) the same opponent as FP@20? The maintainer rules on adoption; nothing here replaces the locked FP@20 anchor by itself."
+journey_step: "off-arc eval ops (maintainer-prioritised over R7, 2026-09-25): serves every off-FP read, starting with R7's"
+credits_nothing: true
+results_dir: results/fp_iter_calib
+
+# WHAT IS MEASURED. One seat object, two opponents, ONE session, CONTROL FIRST (CLEANUP L6):
+#   CAL20        FP@20 exactly as every banked off-FP read ran it (wall-clock 20 ms, k=1, quiet
+#                box), 3000 battles.
+#   CALN1..8     FP@N: N = 25,000 iterations per full-budget search, 12,000 per early-game
+#                (half-time) search -- the k=1 quiet-box MEDIANS of FP@20's own visits
+#                (readouts/FP_PARALLEL_ROI_READOUT.md, side check) -- run the way it will be
+#                used: 8 slices x 375 battles IN PARALLEL (scripts/fp_arms_parallel.py), 3000 total.
+# FP@N's strength is fixed by construction, so its slices may share the box with each other.
+# FP@20's may not, which is the whole point, and CAL20 runs alone.
+# Both opponents are the SAME Foul Play copy (../foul-play-fpprobe = production
+# + scripts/patches/foulplay_probe_visits.patch + the FP@N flag); they differ ONLY by
+# --search-iterations/--search-iterations-early, which the runner takes from the arm and
+# verifies from foul-play's own log.
+#
+# THE SEAT: the greedy W final s104 (c6 OFF), loop breaker ON -- R6's GW104R object.
+#
+# THE READ, stated before any battle. Our win rate vs each (ties = non-wins):
+#   delta = WR(vs FP@N) - WR(vs FP@20), n 3000 vs 3000, unpaired binomial se_diff ~0.0128.
+#   |delta| < 2 se_diff  -> no detectable difference at this power (a gap under ~0.026 is NOT
+#                           excluded; this is not an equivalence proof) -> FP@N at 25k/12k is a
+#                           candidate replacement for FP@20; the MAINTAINER rules.
+#   delta >= +2 se_diff  -> FP@N is WEAKER than FP@20 (we beat it more): raise N and re-run.
+#   delta <= -2 se_diff  -> FP@N is STRONGER: lower N and re-run.
+#   Also reported: CAL20's same-session visits per branch (does 20 ms still buy ~25k/12k?);
+#   CALN's realized visits (must be N rounded up to 1000; forced moves 1000); CALN's
+#   per-arm s/battle at k=8 vs the Phase-1 projection (0.841x FP@20's k=1 turn rate);
+#   relaunches and crash forfeits per arm (n_eff rule, verbatim from the R4 pre-reg).
+# Pooling across the 8 slices is a plain sum of wins and n_eff. Every slice is the same
+# object vs the same opponent, and slices are exchangeable.
+
+fp:
+  search_time_ms: 20
+
+checkpoints:
+  w104: {path: /Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl/runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}   # copied from configs/eval/r6_reads_offfp.yaml
+
+arms:
+  CAL20: {kind: greedy_seat, seat: w104, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: fpc20seat, fp_username: fpc20bot}
+  CALN1: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn1seat, fp_username: fpcn1bot}
+  CALN2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn2seat, fp_username: fpcn2bot}
+  CALN3: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn3seat, fp_username: fpcn3bot}
+  CALN4: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn4seat, fp_username: fpcn4bot}
+  CALN5: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn5seat, fp_username: fpcn5bot}
+  CALN6: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn6seat, fp_username: fpcn6bot}
+  CALN7: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn7seat, fp_username: fpcn7bot}
+  CALN8: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn8seat, fp_username: fpcn8bot}
+  SMK20: {kind: greedy_seat, seat: w104, battles: 3, search_time_ms: 20, loop_breaker: true, seat_username: fpcsmk20seat, fp_username: fpcsmk20bot}
+  SMKN1: {kind: greedy_seat, seat: w104, battles: 3, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcsmkn1seat, fp_username: fpcsmkn1bot}
+  SMKN2: {kind: greedy_seat, seat: w104, battles: 3, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcsmkn2seat, fp_username: fpcsmkn2bot}
+  CAL20R2: {kind: greedy_seat, seat: w104, battles: 3000, search_time_ms: 20, loop_breaker: true, seat_username: fpc20r2seat, fp_username: fpc20r2bot}
+  CALN1R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn1r2seat, fp_username: fpcn1r2bot}
+  CALN2R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn2r2seat, fp_username: fpcn2r2bot}
+  CALN3R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn3r2seat, fp_username: fpcn3r2bot}
+  CALN4R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn4r2seat, fp_username: fpcn4r2bot}
+  CALN5R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn5r2seat, fp_username: fpcn5r2bot}
+  CALN6R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn6r2seat, fp_username: fpcn6r2bot}
+  CALN7R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn7r2seat, fp_username: fpcn7r2bot}
+  CALN8R2: {kind: greedy_seat, seat: w104, battles: 375, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: fpcn8r2seat, fp_username: fpcn8r2bot}
