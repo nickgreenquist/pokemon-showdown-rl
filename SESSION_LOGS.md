@@ -14028,3 +14028,19 @@ line numbers are not — grep the date, then read that region):
   - The ladder bar (+0.05 off FP@20) restated on FP@N. All three sessions: keep +0.05, RE-DERIVED rather than translated.
   - Whether the retirement reaches FP@100/500. All three: they stay descriptive and serial until a fixed-iteration version
     is calibrated. The budget ladder's FP20 rung IS FP@20, so it is retired directly.
+- 2026-09-25 14:05Z (agent, R7 runner) — **G2's LEAVES BAND RE-DERIVED BEFORE THE R PHASE, then G2G + G2L launch
+  beside the fleet.** Before launching, the ratified G_OPERATOR_RAN band [400, 700] was traced to build smokes
+  ("512-538") whose files are not on disk. Both live smokes of the ratified operator read below it (G2SM 360.7 off FP@20;
+  G2SMN 371.6 off FP@N), so a full G2L landing there would have VOIDED the pair after hours, and any fix made after seeing
+  the delta would have been post-hoc. The maintainer ruled: "30-battle measurement first" (`81c00cb`).
+  - G2SMN (13:28:57-13:29:53Z, through the scheduler at `a1112fb`) passed as a smoke: budget read back fixed 25000/12000,
+    `fpn_counters_ok` true (128/128 non-forced searches exact), `rl` = main at the launch sha, clean.
+  - G2DOSE (13:57:05-13:59:31Z at `81c00cb`, 30 battles, 0 relaunches): `lop/leaves_mean` **368.19** over 1,015 searched
+    decisions. The three live measurements agree (360.7, 371.6, 368.2).
+  - A script wrote the band only after every other operator check and the FP@N counters passed: searched 0.958, worlds
+    built 0.988, no-world 0.011, mask mismatch 0, errors 0, override 0.0575, 2,180 non-forced FP searches exact. So
+    `leaves_band` = **[276.1, 460.3]** ([0.75 m, 1.25 m] rounded outward, the CH3 graders' +-25% convention).
+  - G2DOSE's win rate was NOT read.
+  The leaf count is fixed per position (B 8 x our legal actions x up to 4 foe replies x up to 2 chance samples), so its
+  mean follows the live battles' position mix, never load or the instrument. Timing beside the fleet: the L-op arm ran
+  ~3.8 s/battle, so G2L's 3,200 battles take ~3.4 h (2 slots).

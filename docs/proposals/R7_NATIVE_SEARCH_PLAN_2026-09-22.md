@@ -524,7 +524,9 @@ on a 14-core laptop, CPU only, pure self-play.
 >   verdict is "search vs the same committee greedy off FP@N", never a translated FP@20 result.
 > - **The leaves band is re-derived before the R phase** (the maintainer: "30-battle measurement first"). r2's
 >   [400, 700] came from build smokes that are not on disk, and both live smokes read below it (360.7, 371.6). G2DOSE
->   runs G2L's operator for 30 battles; the band becomes its mean ±25%; its win rate is never read.
+>   runs G2L's operator for 30 battles; the band becomes its mean ±25%; its win rate is never read. It read
+>   **368.19** over 1,015 searched decisions, with every other operator check and its FP@N counters passing, so the
+>   band is **[276.1, 460.3]** (`results/r7_g2/g2dose.json`).
 > - Unchanged: the object (the R5 W committee), the operator and its dials, n 3200 per arm, the credit line, the
 >   branches, and every other R0 gate.
 > **FP@20 is retired** for every session (CLAUDE.md): the runner and the scheduler refuse a gen-1 FP@20 arm (fp-speedup,
