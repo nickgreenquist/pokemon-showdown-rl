@@ -1,8 +1,9 @@
-# R7 G2 -- the belief-sampled, gated L-op vs THE SAME COMMITTEE GREEDY, off Foul Play at 20 ms:
+# R7 G2 -- the belief-sampled, gated L-op vs THE SAME COMMITTEE GREEDY, off Foul Play at FP@N 25k/12k:
 # the L-op's FIRST budget against JOURNEY 14's exit condition. r2 2026-09-23 (after two Opus reviews,
-# design + code; every verified finding fixed below or in code), RATIFIED 2026-09-24 (R-G2) -- it runs
-# AFTER the R7 fleet, on the IDLE box (after the R6 reads queue; never beside a
-# training lane, an R7 job or another FP arm: FP@20's budget is wall-clock).
+# design + code; every verified finding fixed below or in code), RATIFIED 2026-09-24 (R-G2) on FP@20, to
+# run AFTER the R7 fleet on the idle box. r3 2026-09-25, AMENDED BEFORE ANY R-PHASE BATTLE (only G2SM, the
+# two-battle smoke, had run): off FP@N 25k/12k, both arms in ONE session BESIDE the R7 fleet -- see
+# AMENDMENT r3 below the POWER block.
 #
 # journey_step: "14". Exit condition, verbatim from JOURNEY.md: "one comparison at a REAL
 #   budget, on the strongest gen-1 object we have. Search-with-our-evaluator vs the same
@@ -52,13 +53,59 @@
 #   from mis-modelling Foul Play, so a NON-CLEAR IS LIKELY EVEN IF THE OPERATOR WORKS -- read it that
 #   way. The maintainer's option: n = 6000 per arm (power ~0.71 / 0.87 at +0.030 / +0.035; ~2x the
 #   box time).
+#
+# AMENDMENT r3 -- 2026-09-25, BEFORE ANY R-PHASE BATTLE. The maintainer, verbatim: "G2 should be F@N. No one
+#   should run outdated F@20 anymore." The three sessions voted UNANIMOUSLY YES (r6-runner, fp-speedup,
+#   r7-runner); the conditions they attached are folded in below.
+#   * THE INSTRUMENT: every arm r3 runs declares search_iterations 25000 / search_iterations_early 12000 INSIDE
+#     its own dict, beside search_time_ms 20 (FP@N 25k/12k, CLAUDE.md's gen-1 FP instrument since 2026-09-25;
+#     the arm form of configs/eval/fp_iter_calib.yaml, whose patched Foul Play reads search_time_ms to choose
+#     between the two iteration budgets). The runner reads the budget from the arm only (MA-10), so a top-level
+#     key would leave an arm wall-clock. Plan §6's "off FP@20" above is the plan's text; this read is off FP@N.
+#   * THE SMOKE: G2SM stays exactly as it ran (FP@20, 2026-09-25 07:27Z, results/r7_g2/g2sm.json), as the
+#     record, and is never re-listed. G2SMN re-smokes the native seat on FP@N THROUGH THE SCHEDULER
+#     (--arms G2SMN --slots 1, never --smoke-battles), because the scheduler's environment (PYTHONPATH, OMP/MKL 1,
+#     arm_encoder) is the path the R-phase arms take. It must show nonzero lop counters, the budget read back as
+#     fixed from Foul Play's log, and fpn_counters_ok true.
+#   * THE RELAUNCH CAP: the scheduler defaults MAX_RELAUNCHES to 10. The R-phase arms launch with
+#     MAX_RELAUNCHES=30, so the scheduler does not tighten G_RUNNER's ratified ">= 30 relaunches VOIDs an arm";
+#     the runner JSON stamps max_relaunches.
+#   * THE BOX: both seats are FIXED-WORK. Foul Play searches a fixed iteration count. The L-op searches B 8 x k 4
+#     x S 2 at depth 1 with no time budget (the smoke's lop/ms_mean 24.4 is a measurement, not a limit). So load
+#     costs this read time, never strength, and it runs BESIDE the R7 fleet; the fleet's in-training T-op is
+#     fixed-work too, so the read's load costs the fleet time, never data. G_QUIET_BOX is replaced by
+#     G_FPN_COUNTERS.
+#   * THE ORDER: both arms run CONCURRENTLY in one scripts/fp_arms_parallel.py session (--slots 2), the control
+#     (G2G) LAUNCHED FIRST; G_CONTROL_FIRST now reads the launch order. Concurrent is the stronger in-session
+#     anchor: the control plays on the same box, in the same hours, against the same Foul Play build.
+#   * G2G_SANITY stays a DISCLOSURE that names BOTH instruments, never a gate (r6-runner's condition on its
+#     vote): an FP@N number passed or failed against an FP@20 band would difference across instruments, and
+#     G2G - 0.5866 has no pass/fail meaning at the calibration's level CI95 [-0.026, +0.011]. G2G is the R5 W
+#     committee's FIRST FP@N number (the calibration's seats were w104 greedy and R6's E6RF).
+#   * THE BUDGET TO QUOTE IS THE LEAVES: beside the fleet, seat ms and decisions/sec are inflated by the load, so
+#     lop/leaves_mean is the per-decision budget; the ms figures are disclosed as measured under load (§35's 771
+#     ms/decision was measured under other conditions).
+#   * THE CALIBRATION TRAVELS WITH THE NUMBER (readouts/FP_ITER_CALIB_READOUT.md): two seats vs FP@20,
+#     NON-REJECTION, offset -0.0076, CI95 [-0.026, +0.011]; gap change -0.0042, CI95 [-0.042, +0.033]; MDE 0.054.
+#     G2's primary IS a gap, and that gap-change CI is wider than the +0.025 line: the verdict is "search vs the
+#     same committee greedy OFF FP@N 25k/12k", never a translated FP@20 result. JOURNEY 14's exit condition
+#     names no instrument.
+#   * UNCHANGED: the object, the operator and its dials, n 3200 per arm, the usernames, the env, the credit
+#     line verbatim, the branches, and every other R0 gate.
+#   * A CORRECTION: the "~0.2 s" a decision above predates the smoke, which measured ~25 ms (lop/ms_mean 24.4,
+#     seat decision_ms p50 25.2, 61 decisions; results/r7_g2/g2sm.json). Every quote uses the realized JSON
+#     figures, as the disclosures below require.
+#   * THE PROGRAM: scripts/fp_arms_parallel.py runs from the MAIN checkout at the launch commit, with
+#     PY=pkmn-engine-r7 (for its pkmn_gen1), so both seats import main's rl and G_SAME_PROGRAM reads main's sha.
 title: r7_g2
-status: "RATIFIED 2026-09-24 00:20Z (maintainer, R-G2: 'Ratify; run after fleet') -- r2 after two Opus reviews; runs AFTER the R7 fleet on a quiet box (only G2SM, the two-battle smoke, on Friday before the fleet); the L-op's FIRST budget"
+status: "RATIFIED 2026-09-24 00:20Z (maintainer, R-G2: 'Ratify; run after fleet') -- r2 after two Opus reviews; AMENDED r3 2026-09-25 before any R-phase battle (maintainer: 'G2 should be F@N. No one should run outdated F@20 anymore'; the three sessions voted): off FP@N 25k/12k, both arms in one session beside the R7 fleet (only G2SM, the two-battle smoke, ran, on FP@20, before the fleet); the L-op's FIRST budget"
 journey_step: "14"
 credits_nothing: false
 results_dir: results/r7_g2
 fp:
-  search_time_ms: 20
+  search_time_ms: 20             # r3: kept beside the iteration budget -- the patched Foul Play reads it to pick 25k vs 12k
+  search_iterations: 25000       # r3: FP@N 25k/12k; fpn_counters_ok checks the budget was realized
+  search_iterations_early: 12000
   search_parallelism: 1          # the runner's SEARCH_PARALLELISM, pinned and stamped (the design review)
 checkpoints:
   w104: {path: runs/showdown_monster200m_w_s104/ckpt_200000000.pt, sha256: a502af3af5b8d46219a774c46fff7754ff688dc745379103b244af1bdefd982e, step: 200000000}
@@ -66,16 +113,19 @@ checkpoints:
   w120: {path: runs/showdown_monster200m_w_s120/ckpt_200000003.pt, sha256: 33108eadc38c0c1bca7ed322dc517972f1178b00a46d7ee2b3cf08adf1ba56f7, step: 200000003}
 usernames:
   scheme: "r7g2<arm><role>; RERUN pairs insert b after the arm (r7g2grbseat/r7g2grbbot, r7g2lbseat/r7g2lbbot) -- a killed arm's pair is poisoned for hours (the runner landmine); the prefix is checked against the username inventory of every configs/eval/*.yaml at launch; the smoke pair is throwaway"
-env: "BOTH arms run in pkmn-engine-r7 (the runner's PY=/opt/anaconda3/envs/pkmn-engine-r7/bin/python): the two envs import two different rl trees (pokemon-showdown-rl imports the main checkout's), so one env for both arms is what makes them one program -- G_SAME_PROGRAM reads it back from the JSONs"
+env: "BOTH arms run in pkmn-engine-r7 (the runner's PY=/opt/anaconda3/envs/pkmn-engine-r7/bin/python): the two envs import two different rl trees (pokemon-showdown-rl imports the main checkout's), so one env for both arms is what makes them one program -- G_SAME_PROGRAM reads it back from the JSONs. r3: scripts/fp_arms_parallel.py also exports PYTHONPATH=<its checkout>, so both seats import the LAUNCH checkout's rl (stamped as rl_package); PY stays pkmn-engine-r7 for its pkmn_gen1"
 arms:
+  # G2SM RAN on FP@20 before r3 (2026-09-25 07:27Z, results/r7_g2/g2sm.json): the record, never re-listed.
   G2SM: {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 2,    search_time_ms: 20, seat_username: r7g2smkseat, fp_username: r7g2smkbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
-  G2G:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3200, search_time_ms: 20, seat_username: r7g2grseat, fp_username: r7g2grbot}
-  G2L:  {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 3200, search_time_ms: 20, seat_username: r7g2lseat, fp_username: r7g2lbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
+  # G2SMN (r3): the FP@N re-smoke THROUGH THE SCHEDULER (--arms G2SMN --slots 1); a throwaway pair.
+  G2SMN: {kind: native_seat,  seat: w112, ensemble_members: [w104, w112, w120], battles: 2,    search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: r7g2smnseat, fp_username: r7g2smnbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
+  G2G:  {kind: ensemble_seat, lanes: [w104, w112, w120], battles: 3200, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: r7g2grseat, fp_username: r7g2grbot}
+  G2L:  {kind: native_seat,   seat: w112, ensemble_members: [w104, w112, w120], battles: 3200, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, seat_username: r7g2lseat, fp_username: r7g2lbot, lop: {worlds: 8, margin_gate: 0.01, seed: 20260925, solve: {cols_k: 4, chance_s: 2, tau: 0.05}}}
 phases:
-  smoke: [G2SM]
+  smoke: [G2SMN]                 # r3; G2SM (FP@20) ran before the amendment -- the record above
   R: [G2G, G2L]
 decision_rule:
-  primary: "G2L minus G2G, off FP@20, n=3200 per arm (n_eff after the crash-forfeit rule), one quiet-box session, SEQUENTIAL arms, the control (G2G) FIRST"
+  primary: "G2L minus G2G, off FP@N 25k/12k (r3), n=3200 per arm (n_eff after the crash-forfeit rule), ONE session, both arms CONCURRENT through scripts/fp_arms_parallel.py --slots 2, the control (G2G) LAUNCHED FIRST"
   credit_line_verbatim: >-
     a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is the
     LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed
@@ -86,8 +136,8 @@ decision_rule:
     Boundary: a delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met.
   clears: >-
     delta >= +0.025 AND >= 2*se_diff (the boundary as above) -> the L-op CLEARS THE CREDIT LINE AT
-    ITS FIRST BUDGET: search with our evaluator beats the same committee greedy off FP@20 at ~0.2 s
-    a decision. JOURNEY 14's exit condition ("at a REAL budget") stays owed unless the maintainer
+    ITS FIRST BUDGET: search with our evaluator beats the same committee greedy off FP@N 25k/12k at a
+    millisecond budget (the realized seat ms quoted from the JSONs; ~25 ms a decision in the smoke). JOURNEY 14's exit condition ("at a REAL budget") stays owed unless the maintainer
     rules a millisecond-budget clear sufficient. The R6 ladder addendum waits for the SECOND G2 on
     the ladder object in its policy form; the next L-op arm raises the budget.
   does_not_clear: >-
@@ -101,23 +151,24 @@ decision_rule:
     measured COST off FP (as §30's ungated arms were); same action as does_not_clear, and the next
     budget arm must argue against it.
   void: >-
-    any R0 gate below VOIDs the PAIR: it re-runs in a fresh quiet-box session, control first, on
+    any R0 gate below VOIDs the PAIR: it re-runs in a fresh session (r3: no quiet box needed), control first, on
     the named RERUN username pairs; a G2L-only re-run does not count (the in-session anchor rule).
   also_recorded: "search/override_rate (the landmine: beside every number), lop/argmax_moved_rate, lop/margin_mean, lop/worlds_built_rate, lop/no_world_rate, lop/mask_mismatch_rate, lop/refused by family, lop/errors by type, lop/leaves_mean, search/ms_mean and ms_p99, and on BOTH arms seat/decision_ms p50/p99, seat/decisions_per_sec and arm/decisions_per_wall_sec"
 disclosures:
-  - "FP@20: the equivalence test is weakly powered, and the point estimate flatters us; FP@20 is an instrument, not a rung"
-  - "the per-turn budget in every quote: B 8 worlds x k 4 x S 2 at depth 1, the realized lop/leaves_mean, seat ms p50/p99 and decisions/sec from BOTH arms' JSONs"
+  - "FP@N 25k/12k (r3), with its calibration: two seats vs FP@20, NON-REJECTION, offset CI95 [-0.026, +0.011], gap-change CI95 [-0.042, +0.033], MDE 0.054 -- G2's primary is a gap, so the verdict is off FP@N, never a translated FP@20 result; never differenced across instruments"
+  - "the two FP disclosures: the equivalence test is weakly powered, and the point estimate flatters us; FP@N is an instrument, not a rung"
+  - "the per-turn budget in every quote: B 8 worlds x k 4 x S 2 at depth 1, the realized lop/leaves_mean, seat ms p50/p99 and decisions/sec from BOTH arms' JSONs (r3: measured beside the R7 fleet, so the ms and decisions/sec are load-inflated; the leaves are the budget)"
   - "the /timer line (every seat sends /timer on)"
   - "the crash-forfeit count per arm and its difference, beside the delta"
 comparators:
-  exit_gate_r5_s35: {xtg9: 0.6184, xgr: 0.5866, n: 3200, delta: 0.0319, z: 2.61, ms_per_decision: 771, note: "RESULTS §35 -- the same committee, instrument and protocol (the gumbel tree at 900 iterations, credits nothing); CROSS-SESSION, never differenced"}
+  exit_gate_r5_s35: {xtg9: 0.6184, xgr: 0.5866, n: 3200, delta: 0.0319, z: 2.61, ms_per_decision: 771, note: "RESULTS §35 -- the same committee and protocol (the gumbel tree at 900 iterations, credits nothing), off FP@20: CROSS-SESSION AND, since r3, CROSS-INSTRUMENT -- never differenced"}
   g1_true_world: {delta: 0.0504, se: 0.0050, override: 0.096, note: "readouts/R7_G1_READOUT.md -- the ENGINE MIRROR, true world + exact foe prior; a different instrument, never differenced"}
   g1b_belief: {override_pooled: 0.0757, battles: 1103, note: "results/r7_g1b at 2026-09-23 23:33Z, still running -- the same operator on belief worlds in the mirror; never differenced"}
 R0_gates:
-  - name: G_QUIET_BOX
-    check: "no training lane, no R7 job, no other FP arm alive (the reads queue's HOT/ENV nets); FP@20's budget is wall-clock"
+  - name: G_FPN_COUNTERS
+    check: "r3, replacing r2's G_QUIET_BOX (FP@N's budget is not wall-clock): EACH R-phase arm's runner JSON carries fpn_counters_ok TRUE (scripts/fp_arm_counters.py: realized iterations == N on 100% of non-forced searches; timer + forfeit losses <= the arm's crash forfeits), and the runner's 'budget verified from foul-play's log' line names 25000/12000; an arm with fpn_counters_ok false is INVALID and VOIDs the pair"
   - name: G_CONTROL_FIRST
-    check: "G2G's json predates G2L's"
+    check: "r3: G2G LAUNCHED FIRST -- parallel.log's G2G LAUNCHED line precedes G2L's, both in ONE fp_arms_parallel.py session"
   - name: G_SAME_PROGRAM
     check: "both arms' JSONs carry the SAME rl_package and rl_git_sha with rl_git_dirty false, and that sha is the launch commit (the design review: two envs import two trees)"
   - name: G_RUNNER
@@ -133,4 +184,4 @@ R0_gates:
   - name: G_CONCURRENCY
     check: "VOID only on concurrent_decision_rate > 0.01; max_concurrent_live_battles > 1 is DISCLOSED as a battle-seam transient (scripts/depth2_r5_readout.py's convention since 2026-09-17)"
   - name: G2G_SANITY
-    check: "DISCLOSURE, not a void: G2G outside 0.5866 +- 0.027 (3 binomial se at 3200 around §35's XGR, the same object) flags the session as unlike the banked instrument; never differenced"
+    check: "DISCLOSURE ONLY, NEVER A GATE, naming BOTH instruments (r3): G2G off FP@N 25k/12k is printed beside §35's XGR 0.5866 off FP@20 (n 3200, the same object); it neither passes nor fails -- a pass/fail against an FP@20 band would difference across instruments, and the offset has no meaning at the calibration's level CI95 [-0.026, +0.011]; never differenced"

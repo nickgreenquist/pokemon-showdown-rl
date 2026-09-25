@@ -505,6 +505,34 @@ on a 14-core laptop, CPU only, pure self-play.
 > The derive header carries all of this (`scripts/derive_r7_fleet.py`, `FP_INSTRUMENT`); the re-derived configs changed
 > only in comments. Every lane body and the manifest are byte-identical to what runs.
 
+> ### AMENDMENT BOX 9 — 2026-09-25, **G2 MOVES TO FP@N, and FP@20 IS RETIRED**
+> **The ruling.** The maintainer, verbatim: "G2 should be F@N. No one should run outdated F@20 anymore." The three
+> sessions voted UNANIMOUSLY YES (r6-runner, fp-speedup, r7-runner), and their conditions are folded into r3. This
+> supersedes box 8's "G2 keeps its RATIFIED FP@20" line.
+> **G2 r3** (`configs/eval/r7_g2.yaml`), amended before any R-phase battle. Only G2SM's two-battle smoke had run, on FP@20.
+> - Both arms read off **FP@N 25k/12k**, the budget declared inside each arm. Each arm is VALID only with
+>   `fpn_counters_ok` true, which replaces G_QUIET_BOX.
+> - Both seats are fixed-work: Foul Play at a fixed iteration count, and the L-op at B 8 × k 4 × S 2 with no time
+>   budget. So G2 runs **beside the fleet**: both arms in one `scripts/fp_arms_parallel.py` session (`--slots 2`), the
+>   control launched first, with `MAX_RELAUNCHES=30` so G_RUNNER's ratified cap holds. The fleet's own T-op is
+>   fixed-work too, so G2's load costs the fleet time, never data.
+> - G2SMN re-smokes the native seat on FP@N through the scheduler first. G2SM stays as the FP@20 record.
+> - The §35 FP@20 sanity band is a disclosure naming both instruments, never a gate (r6-runner's condition). G2G is the
+>   R5 W committee's first FP@N number.
+> - Beside the fleet the seat ms are load-inflated, so the budget to quote is `lop/leaves_mean` (fp-speedup's note).
+> - G2's primary is a gap, and the calibration's gap-change CI95 [−0.042, +0.033] is wider than the +0.025 line. The
+>   verdict is "search vs the same committee greedy off FP@N", never a translated FP@20 result.
+> - Unchanged: the object (the R5 W committee), the operator and its dials, n 3200 per arm, the credit line, the
+>   branches, and every other R0 gate.
+> **FP@20 is retired** for every session (CLAUDE.md): the runner and the scheduler refuse a gen-1 FP@20 arm (fp-speedup,
+> FPSHA). Banked FP@20 numbers stay citable as history, never differenced against FP@N. **Owed to the maintainer:**
+> - The ratified ladder bar (+0.05 off FP@20 over the re-drawn previous object) needs restating on FP@N. All three
+>   sessions: keep +0.05, RE-DERIVED rather than translated. Its argument was se_diff and ladder exposure, never a
+>   property of FP@20, and both objects are re-drawn on one instrument.
+> - Does the ruling reach FP@500 (box 8's descriptive leg: wall-clock, quiet box only)? All three: it stays descriptive
+>   and serial until a fixed-iteration version is calibrated. The FP20 rung of `configs/eval/fp_budget_ladder.yaml` IS
+>   FP@20, so it is retired directly; FP@N 25k/12k is its natural replacement.
+
 ## 0. The bet in one paragraph
 
 Every lever this project has pulled feeds the network **one outcome bit per ~30

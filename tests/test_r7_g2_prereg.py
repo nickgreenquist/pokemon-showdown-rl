@@ -1,7 +1,8 @@
-"""R7 G2's pre-reg (`configs/eval/r7_g2.yaml`, DRAFT): the L-op arm and the greedy
-anchor are the SAME committee, the L-op's dials pass their signature-derived
-checks, the credit line is restated verbatim with the larger-of clause, the
-usernames are distinct, and the arm kind is the harness's. Engine-free."""
+"""R7 G2's pre-reg (`configs/eval/r7_g2.yaml`, RATIFIED r2, AMENDED r3 to FP@N): the
+L-op arm and the greedy anchor are the SAME committee, the L-op's dials pass their
+signature-derived checks, the credit line is restated verbatim with the larger-of
+clause, the usernames are distinct, the arm kind is the harness's, and every R-phase
+arm reads off FP@N 25k/12k. Engine-free."""
 
 from __future__ import annotations
 
@@ -35,7 +36,7 @@ def test_the_lop_dials_pass_their_signature_derived_checks():
     from rl.search import native
     from rl.search.lop import lop_from
 
-    for name in ("G2SM", "G2L"):
+    for name in ("G2SM", "G2SMN", "G2L"):
         lop = lop_from(_p()["arms"][name]["lop"])
         assert native.dials_from(lop["solve"]) == {"cols_k": 4, "chance_s": 2, "tau": 0.05}
         assert lop["worlds"] == 8 and lop["margin_gate"] == 0.01
@@ -73,6 +74,25 @@ def test_r2_carries_the_reviews_gates():
     assert "delta < -0.025 AND |delta| > 2*se_diff" in p["decision_rule"]["negative"]
     assert "stays owed" in " ".join(p["decision_rule"]["clears"].split())
 
+
+def test_r3_reads_off_fp_at_n_and_never_gates_on_an_fp20_band():
+    """AMENDMENT r3 (maintainer 2026-09-25: "G2 should be F@N. No one should run outdated F@20
+    anymore"): every R-phase arm is FP@N 25k/12k -- fp_arms_parallel.py forces --slots 1 and a
+    quiet box on any arm WITHOUT search_iterations, so a dropped key would silently turn the read
+    back into FP@20 -- the per-arm counters replace the quiet-box gate, and the FP@20 sanity band
+    is a disclosure naming both instruments, never a gate."""
+    p = _p()
+    assert p["phases"]["smoke"] == ["G2SMN"], "G2SM ran on FP@20 before r3 and is never re-listed"
+    for name in p["phases"]["smoke"] + p["phases"]["R"]:
+        arm = p["arms"][name]    # inside the ARM: the runner reads the budget from the arm only (MA-10)
+        assert (arm["search_iterations"], arm["search_iterations_early"], arm["search_time_ms"]) == (25000, 12000, 20), name
+    names = {g["name"] for g in p["R0_gates"]}
+    assert "G_FPN_COUNTERS" in names and "G_QUIET_BOX" not in names
+    counters = next(g for g in p["R0_gates"] if g["name"] == "G_FPN_COUNTERS")["check"]
+    assert "fpn_counters_ok" in counters and "INVALID" in counters
+    sanity = next(g for g in p["R0_gates"] if g["name"] == "G2G_SANITY")["check"]
+    assert "NEVER A GATE" in sanity and "BOTH instruments" in sanity
+    assert "FP@N 25k/12k" in p["decision_rule"]["primary"] and "FP@20" not in p["decision_rule"]["primary"]
 
 
 def test_the_rl_tree_is_stamped_at_launch_not_at_write_time(monkeypatch, tmp_path):
