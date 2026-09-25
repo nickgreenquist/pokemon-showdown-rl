@@ -14145,3 +14145,38 @@ line numbers are not — grep the date, then read that region):
   - CAVEATS carried: the estimand is committee-vs-committee decision quality, which the rollouts share with the oracle.
     Decision-level gains overstate battle gains (G2's critic L-op read +0.0028 here and +0.0013 off FP@N). Stage 1's
     battle read vs FP@N is the test.
+- 2026-09-25 23:45Z (agent, R7 runner) — **DEEP SEARCH STEP A STARTED (the maintainer: "Then start work"): the tree is on
+  the native engine, and its depth-1 reduction IS `native.solve`, bitwise on all 500 of G0's roots.** Branch
+  `deep-search-step-a`, worktree `../pokemon-showdown-rl-deep`; no install anywhere (it runs from `pkmn-engine-r7`'s
+  interpreter with PYTHONPATH on the worktree; the fleet's env and main are untouched). `docs/proposals/
+  DEEP_SEARCH_PATH_2026-09-25.md` r2 §2 Step A.
+  - `rl/search/native_tree.py` (`3910250`, `0d4de52`): the node mechanics review 1 pinned -- both seats from the mask;
+    `chance_k` REUSED chance children per edge seeded by the engine's `leaf_seed` (never the row: CRN at every depth),
+    least-visited first, identical positions MERGED on the RNG-masked `save()` bytes; Pass nodes single-agent and
+    never critic-valued; leaves on the TRACKED view; an engine error drops the world, never a fabricated value.
+    Three estimands (br_prior default, legacy = tree.py's decoupled rule, sm_rm); the root grid IS `native.solve`'s
+    batch; worlds in lockstep with virtual-loss batching; dials derived from the signature; counters to disk (depth in
+    levels / engine updates / turns, merges, Pass nodes, fusion at the root, time split).
+  - GATE (i-a) PASSES: at depth cap 1 the tree reproduces `native.solve` on G0's 500 roots BITWISE -- pi', Qbar, the
+    action and 14 shared counters, max |dQ| 0 (`results/native_tree/reduction.json`, `scripts/native_tree_gates.py`).
+  - GATE (i-b) fixtures pass (`tests/test_native_tree.py`): a KO the one-ply Qbar cannot see (exactly 0 on every row)
+    that the tree at depth 4 finds, Hyper Beam's recharge, a Wrap lock, a Pass node, a double-KO tie, matching pennies
+    (br_prior = M q exactly; sm_rm within 0.05 of 1/2); invariants (visits accounted, virtual loss drained, rows and
+    columns ARE the engine's masks at every expanded node, deterministic) and goldens for all three modes.
+  - GATE (iii) SMOKE passes as a smoke (`results/deep_tree_smoke/dts.json`, `07a19a4`): 2 battles off FP@N 25k/12k
+    through the runner, 57 decisions all searched at §35's 1,800 total simulations over the L-op's 8 worlds, mean depth
+    3.1 levels (max 7.1), 1,539 leaves a decision (§35: 1,547), 1.6 s a decision beside the fleet, zero errors. It
+    moved off greedy on 0 of 57 (G2's one-ply L-op: 6.7%). The root statistics say why: the tree FINDS rows the prior
+    all but excludes (a switch at Q +0.2 over greedy took 479 of 1,800 visits), but a PUCT root compares the row it
+    searched most -- the prior's -- at depth against rows left at one ply, and deeper search raises a row's Q.
+    Hence `root_select: sequential_halving` (Gumbel MuZero's root; `0d4de52`): equal root visits per phase, halving on
+    log prior + sigma(q_hat) pooled over worlds. The root rule / sigma is set on G0's roots next (tier 1), as planned.
+  - The tree as an inference operator: `rl/search/tree_lop.py` (G2's L-op with the tree in place of the one-ply solve)
+    and the FP arm kind `native_tree_seat` (`07a19a4`); `ch3_eval` refuses the kind, like `native_seat`.
+  - RUNNING: GATE (i-c), decision quality on G0's oracle at the critic L-op's matched override, six arms (br, br_sh,
+    legacy, rm, the one-ply twin d1 at ~equal work, br_true) on all 500 roots, three shards at background QoS beside
+    Stage 0c's R=512 (`results/native_tree/oracle_b4.*`, `a0f6dd9`: 4 descents per tree per round, since a batch-1 try
+    ran 136 s a root and was stopped after 4). Descriptive: a gap diagnoses the port, never kills it.
+  - Not yet: (ii) the P-core bench (needs the quiet box after the fleet), (i-d) the tree.py agreement (two envs).
+    Cost note for the bench: the committee's forward costs about the same from 8 to 64 rows, so bigger rounds are
+    nearly free.

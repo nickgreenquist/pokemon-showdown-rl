@@ -70,9 +70,9 @@ you may cite:
 ## Next actions
 1. **R6 PREP — DONE 09-20/21: the action gap banked (§33), 4.11's heads + loss BUILT (unsmoked), the C6 RUST
    PORT LANDED (P-1 zero mismatches, flag on: ruling 2 met, C6 rides R6), the R6 trio configs DRAFTED with the launcher's C6 export, and R7's ARCHITECTURE GATE READ: the attention screen DOES NOT CLEAR (§34: +0.0179 at 6.52×, flat reveal profile = generic capacity; no R7 attention trio).** NEXT, after QUEUE DONE: the 4.12 screen, the 400k smokes (`scripts/r6_smokes.sh` → `scripts/r6_smoke_check.py`, every expectation derived), the exit-gate readout (`scripts/exit_gate_readout.py`, computed from disk), the screen read (`scripts/r6_batch12m_read.py`), the fleet (maintainer launches); the post-fleet reads are BUILT (`scripts/r6_reads_queue.sh`, `configs/eval/r6_reads*.yaml`); then the split-schedule ladder ONLY IF the reads show an R6 committee ≥ +0.05 off FP@20 over the re-drawn R5 committee (RULED in principle 09-22: "if we dont see offline gains: why ladder"; threshold to confirm — M-R6-10 in the DRAFT `docs/proposals/ladder_r6.draft.yaml`, M-R6-1..10 owed); below it the R6 finals are R7's base and R7 ladders.
-2. **The search chapter is closed for now: §30 is a measured COST, not a null.** The next
-   search idea must argue against the override regression (−0.48 win rate per unit override
-   fraction, r −0.875, leave-one-out stable), not merely propose another vehicle.
+2. **DEEP SEARCH PATH (`docs/proposals/DEEP_SEARCH_PATH_2026-09-25.md` r2; RULED 09-25: search in training stays, 1-ply null or not). STEP A IN PROGRESS**
+   on branch `deep-search-step-a` (worktree `../pokemon-showdown-rl-deep`, `0d4de52`): `rl/search/native_tree.py`; gate (i-a) PASSES (500/500 G0 roots bitwise vs native.solve); (i-b)
+   fixtures pass; (iii) the FP@N smoke passes as a smoke (0/57 overrides -> sequential halving at the root added); (i-c) RUNNING (`results/native_tree/oracle.*`). §30's cost was the depth-2 MATRIX vehicle; the TREE read +0.0319 (§35).
 3. **The live lever is the CRITIC, and §27/§27.1/§31 say what is wrong with it**: 93% of
    the gap is RANKING, worst in the opening, and the train/eval shift is measured at +0.059.
    `docs/IDEAS_POST_100M.md` Round 4 is re-ranked around that. **4.9 is the top §4 item; its 2.11 gate OPENED and its exit gate CLEARED (§35) — R7's first trio. R7 RATIFIED 09-22 (JOURNEY 14 opened early):
