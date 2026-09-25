@@ -214,7 +214,9 @@ committed files** (local paths are fine — relaxed 2026-08-05).
   extension is part of the working tree too:** `maturin develop` installs into
   `$CONDA_PREFIX` (base in a non-activated shell — set it explicitly), and a
   reinstall while any job in that env is still to start makes that job a
-  different program (2026-09-23; `docs/landmines.md`).
+  different program (2026-09-23; `docs/landmines.md`). **A worktree pins nothing
+  without `PYTHONPATH=<worktree>`:** the envs install the repo editable from
+  main, so `import rl` resolves to main from any directory (2026-09-25).
 - **`taskpolicy -b` / `nice` SENDS A PROCESS TO THE FOUR EFFICIENCY CORES at ~6.8× per
   decision** (`docs/landmines.md`). Never nice a training lane; the two-core collector
   (`collector.process`) and the fleet launcher REFUSE a background shell. Niced is for
