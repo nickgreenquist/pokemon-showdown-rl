@@ -168,7 +168,10 @@ committed files** (local paths are fine — relaxed 2026-08-05).
 - **A lane can STALL MID-RUN with the process ALIVE and ZERO CPU** — every
   `pgrep` check passes forever (twice in R2, ~10 h apart, at 68.9% and
   94.3%). Confirm in 15 s with CPU-time deltas (`ps -o time=` twice), not by
-  waiting on step counts; recover with `--resume runs/<dir>`. **Root cause
+  waiting on step counts — **summed over the lane's whole process TREE** (a
+  `collector.process` lane's parent idles while its child collects; the
+  parent alone read a healthy R7 smoke as stalled, 2026-09-25); recover with
+  `--resume runs/<dir>`. **Root cause
   found and FIXED 2026-08-31 — the ORPHANED-ROOM DEADLOCK; the CPU-delta
   check stays the instrument, because nothing else catches this shape.**
 - **Every connecting seat sends `/timer on`** (`start_timer_on_battle_start`;

@@ -446,6 +446,19 @@ Identical CPU time on a training process means stalled, full stop. Cheap
 corroborators: last history row age vs wall clock, `.wandb` file mtime,
 and RSS falling instead of holding.
 
+**ON A TWO-PROCESS LANE, SUM THE WHOLE PROCESS TREE (2026-09-25).** Since R7
+B4, a lane with `collector.process: true` collects in a spawned CHILD, and
+the PARENT (the learner) idles for tens of seconds between updates while it
+waits for the next batch. `ps -o time= -p <parent>` then reads "flat" on a
+HEALTHY lane. The watchdog did exactly that and killed R7's first LR smoke at
+491k (04:06:40Z). On the resumed lane, over the watchdog's own 20 s window,
+the parent alone read +0.51 s (under CPU_MIN 2 s) while the tree read
++20.71 s, and the child sat at 100% throughout. `scripts/train_watchdog.sh`
+now sums the pid and every descendant (`acb6d6d`). By hand, the equivalent
+is `ps -o time= -p <pid>` plus `pgrep -P <pid>` for each child. A true stall
+still reads flat: a blocked parent plus a child idling in its 2 ms
+backpressure sleep.
+
 **Recovery is cheap and it works.** `--resume runs/<dir>` restores step,
 loop state, optimizer and `pool.pt` (the pool snapshot exists, so the
 "pool reseeded" disclosure path is NOT hit). Kill the hung pid, confirm the

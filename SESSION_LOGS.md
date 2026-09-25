@@ -13852,3 +13852,19 @@ line numbers are not — grep the date, then read that region):
   PATH; tightened to `cargo (build|test|run)`, relaunched at 03:52:51Z); sysmond 28.7% and Activity Monitor 9.7% at
   launch, Finder 0.4% seven seconds in. Launched at `7524834` (r6-runner's docs-only readout amendment on top of the
   merge; no rl/ / engine / bench change).
+
+- 2026-09-25 04:16Z (agent, R7 runner) — **THE WATCHDOG READ A HEALTHY TWO-PROCESS LANE AS STALLED; fixed (`acb6d6d`).** The LR
+  smokes launched 03:54:44Z (base `b`, lr 1e-4 triple first, all at nice 0; fp-speedup confirmed no more empty-box
+  work). At 04:06:40Z the watchdog flagged the SEARCHED lane "STALLED: alive, step 491570, only +1.01s CPU in 20s" and
+  killed and resumed it (04:07:10Z, pid 20075). No crash report, no traceback, and the lane had written
+  `ckpt_000500021.pt`. Cause: `cpu_secs` read `ps -o time=` of the PARENT only, while a `collector.process` lane
+  (R7 B4) idles its parent between updates as it waits for the child's next 122,880-step batch. Sampled on the resumed
+  lane: the child at 100% CPU throughout; the parent +0.2 s per 10 s for 20 s, then ~107% through the update; over the
+  watchdog's own 20 s window, parent-only +0.51 s (a false STALL) vs the tree +20.71 s. The fix sums the pid and
+  every descendant; a gone pid still reads empty. The running watchdog was STOPPED first -- the script does not
+  freeze itself, and a bash script must never be edited under its running instance -- then relaunched over the same
+  three lanes from the fixed commit (pid 22243, nice 0, its own caffeinate). The lanes never stopped (own sessions).
+  Without this, every searched fleet lane would loop kill -> resume until the resume cap retired it. DISCLOSED for
+  the LR read: the lr-1e-4 searched smoke carries ONE resume (a false stall; its history is split, and the steps
+  between `checkpoint.pt` at 491,5xx and the kill are re-collected). CLAUDE.md's stall landmine and
+  `docs/landmines.md` now say to sum the whole tree.
