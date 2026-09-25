@@ -13924,3 +13924,20 @@ line numbers are not — grep the date, then read that region):
   probe, the merge + both reinstalls + the suites, B0 (FAIL -> 3 + 2), the base (`b`, ruled), the LR smokes (lr 2.5e-5),
   the fleet configs, the shakedown (PASS on its re-run) and G2's smoke. The launch is the maintainer's (over 5 h):
   `bash scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt` in the foreground (five lanes, so no six-wide flag).
+
+- 2026-09-25 11:02Z (agent, R7 runner) — **R7's FLEET IS RUNNING (JOURNEY 14), launched agent-side by the maintainer's permission;
+  every session's work merged and pushed first.** The maintainer, verbatim: "you have my permission to run the fleet.
+  Only stop it or alert me if wayyyyyyy slower than expected. I don't need to launch it", and before it: "all 3 of you
+  (sessions) ... commit and push all you have and merge all your work to main ... no trailing commits on branches
+  anywhere before R7 is fired off". Before the launch, the FP@N calibration was TIGHTENED on a second, stronger seat by
+  the three sessions' consensus (the maintainer: "80 extra min is trivial"; r6-runner's refinement, E6RF, for a scale
+  check). fp-speedup's result, PASS on both as non-rejection: offset -0.0076, se 0.0096, CI95 [-0.026, +0.011]; the
+  E6RF-GW gap +0.0673 on FP@20 vs +0.0632 on FP@N, DiD -0.0042, CI95 [-0.042, +0.033]; adoption is the maintainer's
+  ruling (it would amend R7's read instrument). Merge protocol: r6-runner removed its pin worktree ("r6 clean");
+  fp-speedup merged `fp-parallel-probe` (`243453d`); `git branch --no-merged main` empty; the R7 worktree fast-forwarded
+  to `243453d`; R7's gating tests on the merged tree 38 passed, 0 skipped (fleet env); ONE push, `67f3d30..243453d`,
+  origin/main == main. **Launch** (`scripts/r7_fleet_launch.sh configs/r7_fleet_lanes.txt`, detached from bash, nice 0):
+  lanes 10:52:43Z-11:01:55Z at a 90 s stagger, each verified up; ONE watchdog (pid 58698, the tree-CPU and room-reap
+  fixes) + caffeinate. Monitor: `scripts/r7_fleet_monitor.sh` (the R6 monitor generalized, `10a0cbc`) ->
+  `logs/r7_fleet/monitor.log`, every 10 min, ALERT below 0.4 x 650 = 260 steps/s after a lane's first hour (650 is the
+  pre-launch estimate; re-anchor on the first hour).
