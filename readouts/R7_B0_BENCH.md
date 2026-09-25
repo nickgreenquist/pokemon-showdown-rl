@@ -1,8 +1,40 @@
 # R7 B0 — the T-op's per-decision cost at fleet width
 
-**First run: FAIL, NOT VERDICT-BEARING** — the window was not quiet; a quiet-box re-run is the verdict (maintainer,
-2026-09-25; see Consequence). Six-wide fleet p99 **7.531 ms** vs the line **3.6 ms** (2 × plan §5's 1.8 ms). Under
-FAIL, box 6's R-F2 (`scripts/derive_r7_fleet.py --b0 FAIL`) makes the fleet 3 + 2.
+**VERDICT: FAIL** — the quiet-box re-run, THE verdict (the maintainer's ruling, written before it ran): six-wide fleet
+p99 **7.460 ms** vs the line **3.6 ms** (2 × plan §5's 1.8 ms). By box 6's R-F2 (`scripts/derive_r7_fleet.py --b0 FAIL`),
+**the fleet is 3 + 2.** The first run (below) read the same (7.531 ms) in a noisier window: the tail is structural.
+
+## The verdict-bearing re-run (2026-09-25 03:52:51Z)
+
+From `results/r7_b0_bench/2026-09-25T035251Z.json` (sha256 `631e7adbc9ab…`). The command and configuration are
+identical to the first run's. It launched at `7524834` on a clean tree; that commit is `fb3364e` plus docs only, with
+no change to rl/, engine/ or the bench. QoS normal, nice 0, 10 P + 4 E cores.
+
+**The window was quiet.**
+
+- Both peer agent sessions were idle by agreement, from after fp-speedup's calibration (03:50:10Z) until the
+  "done" message.
+- A guard refused to start if any FP, eval, training, pytest, instrument or build process was alive.
+- Top CPU right before the launch: sysmond 28.7% of one core and Activity Monitor 9.7% (the maintainer had it
+  open), agent CLIs ≤ 1.5%.
+- Seven seconds in, the top non-bench process was Finder at 0.4%.
+
+| width | fleet p99 (slowest lane) | lane p50, max | lane mean total | leaves / decision | wall |
+|---|---|---|---|---|---|
+| 5 | 5.971 ms (lane 2) | 1.539 ms | 1.548–1.730 ms | 51.1 | 7.5 s |
+| **6** | **7.460 ms (lane 4)** | 1.761 ms | 1.761–2.147 ms | 51.1 | 8.7 s |
+
+**Per component at six-wide**, across lanes:
+
+- **Critic forward:** mean 1.61–1.96 ms, p50 1.52–1.60 ms, p99 4.42–7.06 ms.
+- **Engine and tracker (Rust):** mean ≤ 0.048 ms, p99 ≤ 0.157 ms.
+- **Glue:** mean ≤ 0.063 ms, p99 ≤ 0.310 ms.
+- **Solve:** mean ≤ 0.074 ms, p99 ≤ 0.204 ms.
+
+**It reproduces the first run.** The p50 moves by ≤ 0.01 ms and the six-wide p99 by −0.07 ms. So background load
+did not make the tail. The mean decision stays at the plan's 1.8 ms table, and the tail stays in the critic forward.
+
+## The first run (2026-09-25 02:04:23Z) — disclosed, NOT verdict-bearing
 
 Every number here is from `results/r7_b0_bench/2026-09-25T020423Z.json` (sha256 `dee47c5f1431…`), written by
 `scripts/r7_b0_bench.py --widths 5 6`, launched 2026-09-25 02:04:23Z at `fb3364e` on a clean tree (the merge

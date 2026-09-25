@@ -13840,3 +13840,15 @@ line numbers are not — grep the date, then read that region):
   clear of my work by timestamps (my pytest started 02:04:53Z), and its re-run on an empty box is the
   verdict per the maintainer. R6 babysitting is COMPLETE: nothing of mine runs; the pinned worktree
   stays until R7's LR smokes no longer need the R6 finals' provenance.
+
+- 2026-09-25 03:54Z (agent, R7 runner) — **B0 VERDICT: FAIL, on the quiet-box re-run the maintainer ruled verdict-bearing before
+  it ran** (`results/r7_b0_bench/2026-09-25T035251Z.json`, `readouts/R7_B0_BENCH.md`). Six-wide fleet p99 7.460 ms
+  vs the 3.6 ms line (the noisy 02:04Z run read 7.531; the lane p50s moved <= 0.01 ms), five-wide 5.971 ms; the mean
+  decision 1.76-2.15 ms six-wide sits at the plan's 1.8 ms table; the tail is the critic forward (p99 4.4-7.1 ms)
+  -- structural (12 threads on 10 P-cores), not background. The fleet is 3 + 2 by R-F2. The window: fp-speedup's
+  calibration done 03:50:10Z, both peer sessions idle by agreement (a heads-up to r6-runner 90 s ahead; none to
+  fp-speedup, already idle), a guard refusing any FP / eval / training / pytest / build process -- whose first
+  version refused on a false positive (its `cargo` pattern matched `.cargo/bin` in the idle playwright MCP servers'
+  PATH; tightened to `cargo (build|test|run)`, relaunched at 03:52:51Z); sysmond 28.7% and Activity Monitor 9.7% at
+  launch, Finder 0.4% seven seconds in. Launched at `7524834` (r6-runner's docs-only readout amendment on top of the
+  merge; no rl/ / engine / bench change).
