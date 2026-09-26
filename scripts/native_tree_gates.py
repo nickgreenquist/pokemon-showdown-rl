@@ -207,7 +207,7 @@ ARMS = {
     "br_true": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br",
                     batch=8),
 }
-TRUE_ARMS = ("br_true", "tr_256", "tr_1024", "tr_1800", "tr_d1")   # searched on the TRUE world with G0's foe prior
+TRUE_ARMS = ("br_true", "tr_256", "tr_1024", "tr_1800", "tr_d1", "t1_k0", "t1_k1", "t1_k2")   # the TRUE world, G0's foe prior
 CONTRASTS = [("br", "d1"), ("br_sh", "d1"), ("br_sh", "br"), ("legacy", "br"), ("rm", "br")]
 # STEP B, TIER 1 (proposal r2 §2 Step B): the INFERENCE BUDGET CURVE at the decision level on the same 500 roots, the
 # same 8 worlds and the same scorer -- br_prior (gate i-c's estimand) at x4 rungs of total simulations, each beside a
@@ -243,8 +243,19 @@ CONTRASTS_TIER1B = [("br_450", "d1"), ("br_900", "br_450"), ("br_1800", "br_900"
 ARMS_STEPC = {"tr_d1": dict(ARMS["d1"], chance_k=2), "tr_256": dict(ARMS["br_true"], sims=256),
               **{f"fw_256_{b}": dict(ARMS["br_true"], sims=256) for b in range(8)},
               "fj_2048": dict(ARMS["br"], sims=2048)}
+# STEP C's LIKE-FOR-LIKE ONE-PLY REFERENCE (reviewer B's blocker, 2026-09-26): stepc_a's tr_d1 was NOT R7's operator --
+# it ran the tree's default pass_leaf "through", while gate i-a's identity with native.solve is at pass_leaf "critic" --
+# and it was ONE draw set against an 8-world average. R7's exact T-op (the reduction's dials: depth cap 1, the grid only,
+# k 4 / S 2 / tau 0.05, Pass leaves valued by the critic) on the TRUE world under three chance keys (t1_k), and on each of
+# stepc_a's 8 belief worlds (the same worlds: default_rng([belief_seed, pid])) under the same three keys (w1_b_k). Read
+# against stepc_a's deep arms, paired by pid (--ref-tag).
+T_OP_ONE_PLY = dict(sims=1, mode="br_prior", root_grid=True, depth_cap=1, cols_k=4, chance_k=2, root_rule="soft_br",
+                    pass_leaf="critic")
+ONE_PLY_KEYS = (0, 1, 2)
+ARMS_STEPC2 = {**{f"t1_k{k}": dict(T_OP_ONE_PLY) for k in ONE_PLY_KEYS},
+               **{f"w1_{b}_k{k}": dict(T_OP_ONE_PLY) for b in range(8) for k in ONE_PLY_KEYS}}
 ARM_SETS = {"ic": (ARMS, CONTRASTS), "tier1": (ARMS_TIER1, CONTRASTS_TIER1), "tier1b": (ARMS_TIER1B, CONTRASTS_TIER1B),
-            "stepc": (ARMS_STEPC, [])}
+            "stepc": (ARMS_STEPC, []), "stepc2": (ARMS_STEPC2, [])}
 T_OP_SEARCHED_PER_BATTLE = 14      # box 5 item 2: the T-op's ~14 searched decisions a battle, the fusion rule's multiplier
 CREDIT_FLOOR_BATTLE = 0.025        # section 10: a fusion cost above the credit floor spends the B = 1 licence
 SIGMA_GRID = [(cv, cs) for cv in (10.0, 25.0, 50.0, 100.0, 200.0) for cs in (0.01, 0.03, 0.1, 0.3, 1.0)]
@@ -304,6 +315,8 @@ def oracle(args) -> int:
     if args.summarise:
         if args.arm_set == "stepc":
             return stepc_summary(args, rows_all, out_dir)
+        if args.arm_set == "stepc2":
+            return stepc2_summary(args, rows_all, out_dir)
         return oracle_summary(args, rows_all, belief, out_dir)
     torch.set_num_threads(args.torch_threads)
     tau = float(belief["dials"].get("tau", 1.0))
@@ -370,16 +383,23 @@ def oracle(args) -> int:
             row.update({"rows": rows, "worlds_built": len(worlds), "worlds_refused": refused, "arms": {}})
             key = pid * 1_000_003 + 29
             for name, dials in arms.items():
+                arm_key = key
                 if name.startswith("fw_"):                  # ONE resampled world alone (B = 1 on a belief world)
                     b = int(name.rsplit("_", 1)[1])
                     ws = [worlds[b]] if b < len(worlds) else []
+                elif name.startswith("w1_"):                # R7's one-ply T-op on ONE belief world, under key k
+                    _, b, k = name.split("_")
+                    ws = [worlds[int(b)]] if int(b) < len(worlds) else []
+                    arm_key = key + 7919 * int(k[1:])
                 else:
                     ws = [World(node)] if name in TRUE_ARMS else worlds
+                    if name.startswith("t1_k"):
+                        arm_key = key + 7919 * int(name[4:])
                 if not ws:
                     row["arms"][name] = {"no_world": True}
                     continue
                 opp = prior2 if name in TRUE_ARMS else None
-                res = native_tree.search(ws, tables, "p1", prior1, opp, value_fn, committee.probs, key, **dials)
+                res = native_tree.search(ws, tables, "p1", prior1, opp, value_fn, committee.probs, arm_key, **dials)
                 c = res["counters"]
                 row["arms"][name] = {"q": [None if not np.isfinite(x) else float(x) for x in res["q_row"][m1]],
                                      "n": [float(x) for x in res["n_row"][m1]],
@@ -720,6 +740,92 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
     return 0
 
 
+def stepc2_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
+    """Deep vs R7's EXACT one-ply T-op, LIKE FOR LIKE: fixed point against fixed point (the mean over the same 8 belief
+    worlds of per-world targets) and true world against true world, at the distribution level (EI, both halves) and the
+    argmax level (matched override), per one-ply chance key, with the key-to-key spread. Deep arms from --ref-tag
+    (stepc_a), paired by pid."""
+    import glob
+    import r7_stage0c_rollout_curve as s0c
+
+    def load(tag):
+        got = {}
+        for p in sorted(glob.glob(str(out_dir / f"{tag}.rows.s*of*.jsonl"))):
+            for line in pathlib.Path(p).read_text().splitlines():
+                if line.strip():
+                    r = json.loads(line)
+                    if r.get("version") != ORACLE_VERSION:
+                        sys.exit(f"REFUSED: {p} carries version {r.get('version')}")
+                    if "error" not in r:
+                        got[int(r["pid"])] = r
+        return got
+    one, deep = load(args.tag), load(args.ref_tag)
+    g0_by_pid = {int(r["pid"]): r for r in rows_all}
+    pids = sorted(set(one) & set(deep))
+    if not pids:
+        print("no shared roots")
+        return 1
+    def ei(pi, qh, ig):
+        return float(np.dot(pi, qh - qh[ig])) / 2.0
+    per, cand = {}, {}
+    for pid in pids:
+        o = s0c.oracle_of(g0_by_pid[pid])
+        rows = deep[pid]["rows"]
+        fw = [np.asarray(deep[pid]["arms"][f"fw_256_{b}"]["pi"]) for b in range(8) if "pi" in deep[pid]["arms"][f"fw_256_{b}"]]
+        pis = {"deep_fp": np.mean(fw, axis=0) if fw else None, "deep_true": np.asarray(deep[pid]["arms"]["tr_256"]["pi"]),
+               "tr_d1_as_run": np.asarray(deep[pid]["arms"]["tr_d1"]["pi"])}
+        for k in ONE_PLY_KEYS:
+            w = [np.asarray(one[pid]["arms"][f"w1_{b}_k{k}"]["pi"]) for b in range(8) if "pi" in one[pid]["arms"].get(f"w1_{b}_k{k}", {})]
+            pis[f"one_fp_k{k}"] = np.mean(w, axis=0) if w else None
+            pis[f"one_true_k{k}"] = np.asarray(one[pid]["arms"][f"t1_k{k}"]["pi"])
+        for name, pi in pis.items():
+            if pi is None:
+                continue
+            per.setdefault(name, {})[pid] = (ei(pi, o["qa"], o["ig"]) + ei(pi, o["qb"], o["ig"])) / 2.0
+            i = int(np.argmax(pi))
+            cand.setdefault(name, {})[pid] = (rows[i], float(np.log(max(pi[i], 1e-300)) - np.log(max(pi[o["ig"]], 1e-300))))
+    def paired(a, b):
+        common = sorted(set(per[a]) & set(per[b]))
+        return s0c.stat(np.array([per[a][p] - per[b][p] for p in common]))
+    def argmax_read(name, target):
+        ps = sorted(cand[name])
+        greedy = [int(g0_by_pid[p]["a_greedy"]) for p in ps]
+        orc = [s0c.oracle_of(g0_by_pid[p]) for p in ps]
+        cands = [cand[name][p][0] for p in ps]
+        moves = np.array([c != g for c, g in zip(cands, greedy)])
+        return dict(zip(ps, s0c.read_operator(moves, np.array([cand[name][p][1] for p in ps]),
+                                             s0c.gains_for(cands, orc, greedy), target)["per_position"]))
+    target = 0.084
+    am = {n: argmax_read(n, target) for n in cand}
+    def am_paired(a, b):
+        common = sorted(set(am[a]) & set(am[b]))
+        return s0c.stat(np.array([am[a][p] - am[b][p] for p in common]))
+    out = {"tag": args.tag, "ref_tag": args.ref_tag, "positions": len(pids), "argmax_matched_rate": target,
+           "ei": {n: s0c.stat(np.array(list(v.values()))) for n, v in per.items()},
+           "argmax_gain": {n: s0c.stat(np.array(list(v.values()))) for n, v in am.items()},
+           "paired_ei": {}, "paired_argmax": {}}
+    for k in ONE_PLY_KEYS:
+        out["paired_ei"][f"deep_fp - one_fp_k{k}"] = paired("deep_fp", f"one_fp_k{k}")
+        out["paired_ei"][f"deep_true - one_true_k{k}"] = paired("deep_true", f"one_true_k{k}")
+        out["paired_argmax"][f"deep_fp - one_fp_k{k}"] = am_paired("deep_fp", f"one_fp_k{k}")
+        out["paired_argmax"][f"deep_true - one_true_k{k}"] = am_paired("deep_true", f"one_true_k{k}")
+    out["paired_ei"]["one_true_k0 - tr_d1_as_run"] = paired("one_true_k0", "tr_d1_as_run")
+    out["key_spread_one_fp_ei"] = float(np.std([out["ei"][f"one_fp_k{k}"]["mean"] for k in ONE_PLY_KEYS], ddof=1))
+    out["key_spread_one_true_ei"] = float(np.std([out["ei"][f"one_true_k{k}"]["mean"] for k in ONE_PLY_KEYS], ddof=1))
+    (out_dir / f"{args.tag}.stepc2.json").write_text(json.dumps(out, indent=1, default=float))
+    g = lambda x: f"{x['mean']:+.5f} +- {x['se']:.5f} (z {x['z']:+.2f})"  # noqa: E731
+    lines = [f"# Deep (256, stepc_a) vs R7's EXACT one-ply T-op (pass_leaf critic), LIKE FOR LIKE ({len(pids)} roots)", "",
+             "EI over greedy (win rate per decision, both halves):",
+             *[f"  {n}: {g(out['ei'][n])}" for n in sorted(out["ei"])], "",
+             f"argmax gain at matched override {target}:", *[f"  {n}: {g(out['argmax_gain'][n])}" for n in sorted(out["argmax_gain"])], "",
+             "PAIRED, EI:", *[f"  {k}: {g(v)}" for k, v in out["paired_ei"].items()], "",
+             "PAIRED, argmax:", *[f"  {k}: {g(v)}" for k, v in out["paired_argmax"].items()], "",
+             f"key-to-key sd of the one-ply EI: fixed point {out['key_spread_one_fp_ei']:.5f}, true world {out['key_spread_one_true_ei']:.5f}"]
+    (out_dir / f"{args.tag}.stepc2.md").write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+    return 0
+
+
 TIMING = ("search/ms", "search/rust_ms", "tree/ms_value", "tree/ms_prior")
 
 
@@ -965,6 +1071,7 @@ def main() -> None:
     orc.add_argument("--worlds", type=int, default=8, help="the critic L-op's B")
     orc.add_argument("--belief-seed", type=int, default=20260923, help="the belief read's --seed: the same worlds")
     orc.add_argument("--summarise", action="store_true", help="measure nothing: join every shard of --tag and score it")
+    orc.add_argument("--ref-tag", default="stepc_a", help="stepc2: the deep arms' tag, paired by pid")
     orc.add_argument("--arm-set", choices=sorted(ARM_SETS), default="ic",
                      help="ic = gate (i-c)'s six arms; tier1 = Step B tier 1, the budget curve with its depth-1 twins; "
                           "tier1b = the curve below 1,800 and the training setting; stepc = the fusion read at depth "
