@@ -495,6 +495,87 @@ def owed(run_dirs: dict[str, str], watchdog_log: str) -> dict:
     return out
 
 
+# ----------------------------------------------------------------- markdown
+def render_md(out: dict, pre: dict) -> str:
+    """The readout as markdown, every number a field of `out` (the same dict readout.json holds): nothing typed."""
+    f4 = lambda x: "PENDING" if x is None or x != x else f"{x:+.4f}"  # noqa: E731
+    prim = out.get("primary", {})
+    cell = prim.get("cell", "PENDING")
+    L = [f"# R7 READS -- the fleet's PRIMARY off FP@N 25k/12k: **{cell}**", "",
+         "**Pre-reg:** the header of every `configs/r7_fleet_*.yaml` (scripts/derive_r7_fleet.py r3, plan boxes 7-9); arms "
+         "`configs/eval/r7_reads_offfp.yaml` and `configs/eval/r7_reads.yaml`. **Computed from disk** by "
+         "`scripts/r7_reads_readout.py`; every number below is a field of its output.", "",
+         f"**Program:** pinned launch sha `{out['session'].get('pinned_launch_sha')}`; arms ran on "
+         f"{', '.join('`' + str(x)[:10] + '`' for x in out['session'].get('rl_git_sha', []))}; one scheduler session in the "
+         f"pinned order: **{'yes' if out['session'].get('ok') else 'NO (a deviation, disclosed)'}**.", "",
+         "## The arms (off FP@N 25k/12k, n_eff after the crash-forfeit rule)", "",
+         "| arm | source | win rate | n_eff | crash forfeits | valid |", "|---|---|---|---|---|---|"]
+    for a in pre["run_order"]:
+        x = out["arms"].get(a)
+        L.append(f"| {a} | {x['source_arm'] if x else '-'} | " + (f"{x['p']:.4f} | {x['n']} | {x['crash_forfeits']} | "
+                 + ("VALID" if x["ok"] else "INVALID: " + x["why"]) if x else "PENDING | | | ") + " |")
+    L += ["", "## The primary (the credit read)", ""]
+    if prim.get("cell") in ("VOID", "PENDING"):
+        L.append(f"**{prim['cell']}**" + (f": waiting on {prim.get('waiting')}" if prim.get("waiting") else "") + ".")
+    else:
+        L += [f"searched {prim['p_searched']:.4f} (k {prim['k_searched']}, n {prim['n_searched']}) minus control "
+              f"{prim['p_control']:.4f} (k {prim['k_control']}, n {prim['n_control']}) = **delta {prim['delta']:+.4f}**; "
+              f"se_binomial {prim['se_binomial']:.4f}, se_clustered {prim['se_clustered']:.4f} -> se_diff {prim['se_diff']:.4f} "
+              f"({prim['se_leg']}); z {prim['z']:+.2f}. **CELL {cell}**"
+              + (" (EXACTLY on the floor: NOT met)" if prim.get("on_floor") else "")
+              + (" (within 1e-12 of 2 se)" if prim.get("near_2se") else "") + ".", "",
+              'Credit line, verbatim (CLAUDE.md): "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff '
+              'is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed '
+              'finals at read time." STRICT: EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met.']
+        pr = out.get("paired")
+        if pr:
+            L += ["", "PAIRED (printed, never governs): " + ", ".join(f"{k} {v:+.4f}" for k, v in pr["per_pair"].items())
+                  + f"; mean {pr['mean']:+.4f} +- {pr['se']:.4f} (the balanced {pr['pairs']}-pair delta)."]
+    L += ["", "## Beside the primary: the realized dose and the behaviour reads", "",
+          "Means over the 5M steps ending at 12M and over each lane's last 5M steps (the pre-reg: \"reported per arm at 12M and "
+          "at the end, and a divergence is disclosed beside the primary\"; loss/grad_norm per arm and the clip_frac split).", ""]
+    hist = out.get("histories", {})
+    lanes = pre["lanes"]
+    s_l, c_l = list(lanes["searched"].values()), list(lanes["control"].values())
+    L += ["| read | window | " + " | ".join(s_l + c_l) + " | S | C | S - C |", "|---|---|" + "---|" * (len(s_l) + len(c_l) + 3)]
+    for c in DOSE + BEHAVIOUR:
+        for w in ("12M", "end"):
+            vals = {l: (hist.get(l, {}).get(w) or {}).get(c) if hist.get(l, {}).get("ok") else None for l in s_l + c_l}
+            sv = [v for l, v in vals.items() if l in s_l and v is not None and v == v]
+            cv = [v for l, v in vals.items() if l in c_l and v is not None and v == v]
+            ms, mc = (mean(sv) if sv else None), (mean(cv) if cv else None)
+            L.append(f"| {c} | {w} | " + " | ".join("-" if v is None or v != v else f"{v:.4f}" for v in vals.values())
+                     + f" | {'-' if ms is None else f'{ms:.4f}'} | {'-' if mc is None else f'{mc:.4f}'} | "
+                     + ("-" if ms is None or mc is None else f"{ms - mc:+.4f}") + " |")
+    L += ["", "## The mechanism reads (searched - control at the END checkpoint, paired by donor)", "",
+          "| read | d | se | lane se | position se | verdict | per pair |", "|---|---|---|---|---|---|---|"]
+    for name, r in out.get("mechanism", {}).items():
+        if r.get("moved") is None and "d" not in r:
+            L.append(f"| ({name}) | {r.get('why', 'PENDING')} | | | | | |")
+            continue
+        verdict = {True: "MOVED", False: "NOT MOVED", None: "reported"}[r["moved"]]
+        pos = "-" if r["se_position"] != r["se_position"] else f"{r['se_position']:.5f}"
+        L.append(f"| ({name}) | {r['d']:+.5f} | {r['se']:.5f} | {r['se_lane']:.5f} | {pos} | {verdict} | "
+                 + ", ".join(f"{k} {v:+.5f}" for k, v in r["per_pair"].items()) + " |")
+    L += ["", f"**THE ROUTE: {out.get('route', 'PENDING')}**", "", f"**ACTION:** {out.get('action', 'PENDING (the primary)')}", "",
+          "## The object rule (the R6 object's form, loop breaker on; n 3000 each)", "",
+          f"**OBJECT = {out['object_rule'].get('object') or 'PENDING'}** -- {out['object_rule'].get('why')}.", "",
+          "## vs SH (locked form; DESCRIPTIVE, saturated)", ""]
+    for k, v in out.get("vs_sh", {}).items():
+        L.append(f"- {k}: " + ("PENDING" if v is None else f"{v['p']:.4f} (n {v['n']})"))
+    ow = out.get("owed", {})
+    L += ["", "## Owed at readout, from disk", "", f"- watchdog: `{ow.get('watchdog_exit')}`"]
+    L += [f"- {l}: resumes {len(rs)}" + (" (from_step " + ", ".join(str(r['from_step']) for r in rs) + ")" if rs else "")
+          for l, rs in ow.get("resumes", {}).items()]
+    L += [f"- donors: " + ", ".join(f"{k} `{v[:12]}`" for k, v in ow.get("donors_sha256", {}).items()), "",
+          "## Disclosures", "",
+          f"- {N_ANNEAL}.", f"- {WINNERS_CURSE}.", f"- {TIMER}.",
+          "- FP@N 25k/12k with its calibration (two seats vs FP@20, NON-REJECTION, offset CI95 [-0.026, +0.011], gap-change "
+          "CI95 [-0.042, +0.033], MDE 0.054); the equivalence test is weakly powered, and the point estimate flatters us.",
+          "- NOT HERE: the BIG-BUDGET leg (G4, FP@500's calibrated FP@N after fp-speedup's calibration) and the anchors."]
+    return "\n".join(L) + "\n"
+
+
 # ----------------------------------------------------------------- main
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -506,6 +587,7 @@ def main() -> None:
     ap.add_argument("--g0-rows", default=os.path.join(REPO, "results/r7_g0/rollout_q.rows.jsonl"))
     ap.add_argument("--watchdog-log", default=os.path.join(REPO, "runs/train_watchdog.log"))
     ap.add_argument("--json-out", default=None)
+    ap.add_argument("--md-out", default=None, help="also write the readout as markdown (readouts/R7_READS_READOUT.md's body)")
     args = ap.parse_args()
     pre = yaml.safe_load(open(args.prereg))
     P = pre["primary"]
@@ -718,6 +800,11 @@ def main() -> None:
         print(f"  {l}: resumes {len(rs)}" + (" from_step " + ", ".join(str(r['from_step']) for r in rs) if rs else ""))
     print("  donors: " + ", ".join(f"{k} {v[:12]}" for k, v in ow["donors_sha256"].items()))
     print("\nNOT HERE: the BIG-BUDGET leg (G4, on FP@500's calibrated FP@N after fp-speedup's calibration) and the anchors.")
+    if args.md_out:
+        os.makedirs(os.path.dirname(os.path.abspath(args.md_out)), exist_ok=True)
+        with open(args.md_out, "w") as f:
+            f.write(render_md(out, pre))
+        print(f"-> {args.md_out}")
     if args.json_out:
         os.makedirs(os.path.dirname(args.json_out), exist_ok=True)
         with open(args.json_out, "w") as f:

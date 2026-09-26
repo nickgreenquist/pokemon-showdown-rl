@@ -260,7 +260,7 @@ def _tree(tmp: pathlib.Path, fpn_bad: str | None = None, with_rerun: bool = Fals
 def _run(monkeypatch, t: dict, out: pathlib.Path) -> str:
     monkeypatch.setattr(sys, "argv", ["x", "--prereg", str(t["prereg"]), "--fp", str(t["fp"]), "--sh", str(t["sh"]),
                                       "--mech", str(t["mech"]), "--g0-rows", str(t["g0"]), "--watchdog-log", str(t["wd"]),
-                                      "--json-out", str(out)])
+                                      "--json-out", str(out), "--md-out", str(out.with_suffix(".md"))])
     buf = io.StringIO()
     with redirect_stdout(buf):
         R.main()
@@ -284,6 +284,10 @@ def test_end_to_end_readout(tmp_path, monkeypatch):
     assert j["owed"]["watchdog_exit"].endswith("RESUMES=0 NODE_RESTARTS=0") and j["owed"]["resumes"]["s376"] == []
     for s in ("CELL X-FLAT", "GS - GC", "N-ANNEAL", "winner's curse", "BESIDE THE PRIMARY", "(v) per arm", "/timer"):
         assert s in text, s
+    md = (tmp_path / "readout.md").read_text()
+    for s in ("**X-FLAT**", "**CELL X-FLAT**", "THE ROUTE: (i) MOVED, (vi) NOT", "OBJECT = ES3F", "| (vi) |", "N-ANNEAL",
+              "RESUMES=0 NODE_RESTARTS=0", "| search/eligible_frac | end |", "| loss/clip_frac_searched | 12M |", "+0.1000 |"):
+        assert s in md, s
 
 
 def test_end_to_end_resolved_gain_below_the_floor(tmp_path, monkeypatch):
