@@ -445,6 +445,76 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     return 0
 
 
+TIMING = ("search/ms", "search/rust_ms", "tree/ms_value", "tree/ms_prior")
+
+
+def _tag_rows(out_dir: pathlib.Path, tag: str) -> dict[int, dict]:
+    import glob
+
+    got = {}
+    for p in sorted(glob.glob(str(out_dir / f"{tag}.rows.s*of*.jsonl"))):
+        for line in pathlib.Path(p).read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                if r.get("version") != ORACLE_VERSION:
+                    sys.exit(f"REFUSED: {p} carries version {r.get('version')}, not {ORACLE_VERSION}")
+                got[int(r["pid"])] = r
+    return got
+
+
+def oracle_diff(args) -> int:
+    """The REGRESSION CHECK of a refactor: the roots two tags share, arm by arm -- the same
+    root, worlds and dials under two commits must give the same search. Equal means
+    bitwise: q, n, pi, the action and every counter but the timing ones. Exit 1 on any
+    difference, with the largest ones printed."""
+    out_dir = pathlib.Path(args.out_dir)
+    a, b = _tag_rows(out_dir, args.tag), _tag_rows(out_dir, args.against)
+    pids = sorted(p for p in set(a) & set(b) if "error" not in a[p] and "error" not in b[p])
+    if not pids:
+        print(f"no shared error-free roots between {args.tag} ({len(a)}) and {args.against} ({len(b)})")
+        return 1
+    shas = lambda rows: sorted({str(rows[p].get("git_sha", "?"))[:10] for p in pids})
+    print(f"[diff] {args.tag} (git {shas(a)}) vs {args.against} (git {shas(b)}): {len(pids)} shared roots")
+    bad = 0
+    for p in pids:
+        ra, rb = a[p], b[p]
+        for k in ("rows", "worlds_built", "worlds_refused", "a_greedy"):
+            if ra.get(k) != rb.get(k):
+                print(f"  pid {p}: root field {k} differs: {ra.get(k)} vs {rb.get(k)}")
+                bad += 1
+    for name in sorted(set().union(*(a[p]["arms"] for p in pids))):
+        same = agree = n_cmp = 0
+        dq = dpi = 0.0
+        ckeys: set[str] = set()
+        dial_diff = False
+        for p in pids:
+            xa, xb = a[p]["arms"].get(name), b[p]["arms"].get(name)
+            if xa is None or xb is None or "q" not in xa or "q" not in xb:
+                continue
+            n_cmp += 1
+            if a[p]["dials"].get(name) != b[p]["dials"].get(name):
+                dial_diff = True
+            qa = np.array([np.nan if x is None else x for x in xa["q"]], np.float64)
+            qb = np.array([np.nan if x is None else x for x in xb["q"]], np.float64)
+            fin = np.isfinite(qa) & np.isfinite(qb)
+            q_eq = np.array_equal(np.isfinite(qa), np.isfinite(qb)) and np.array_equal(qa[fin], qb[fin])
+            if fin.any():
+                dq = max(dq, float(np.abs(qa[fin] - qb[fin]).max()))
+            dpi = max(dpi, float(np.abs(np.asarray(xa["pi"]) - np.asarray(xb["pi"])).max()))
+            ck = {k for k in set(xa["counters"]) | set(xb["counters"]) if k not in TIMING
+                  and not (xa["counters"].get(k) == xb["counters"].get(k)
+                           or (np.isnan(xa["counters"].get(k, 0.0)) and np.isnan(xb["counters"].get(k, 0.0))))}
+            ckeys |= ck
+            agree += xa["action"] == xb["action"]
+            same += bool(q_eq and xa["n"] == xb["n"] and xa["pi"] == xb["pi"] and xa["action"] == xb["action"] and not ck
+                         and xa.get("errors") == xb.get("errors"))
+        bad += n_cmp - same
+        print(f"  {name:8s} {same}/{n_cmp} bitwise, action agrees {agree}/{n_cmp}, max |dq| {dq:.3g}, max |dpi| {dpi:.3g}"
+              f"{', counters differ: ' + ','.join(sorted(ckeys)) if ckeys else ''}{', DIALS DIFFER' if dial_diff else ''}")
+    print(f"[diff] {'IDENTICAL' if bad == 0 else f'{bad} DIFFERENCES'}")
+    return 0 if bad == 0 else 1
+
+
 BENCH_VERSION = "native_tree_bench/1"
 BENCH_CONFIGS = {
     # inference (Step B): the L-op's 8 worlds, br_prior with sequential halving and tree.py's legacy rule
@@ -609,7 +679,8 @@ def main() -> None:
     red = sub.add_parser("reduction", help="gate (i-a): the depth-1 reduction to native.solve")
     orc = sub.add_parser("oracle", help="gate (i-c): decision quality on G0's oracle at matched override")
     bch = sub.add_parser("bench", help="gate (ii): the P-core bench (the quiet box, nice 0)")
-    for p in (red, orc, bch):
+    dif = sub.add_parser("diff", help="the regression check: two oracle tags' shared roots, bitwise")
+    for p in (red, orc, bch, dif):
         p.add_argument("--g0-dir", default=str(MAIN_CHECKOUT / "results" / "r7_g0"))
         p.add_argument("--out-dir", default=str(MAIN_CHECKOUT / "results" / "native_tree"))
         p.add_argument("--limit", type=int, default=0)
@@ -626,12 +697,14 @@ def main() -> None:
     bch.add_argument("--max-load", type=float, default=1.5)
     bch.add_argument("--force", action="store_true", help="run on a busy box anyway (the numbers are then NOT the bench)")
     bch.add_argument("--worker", default="", help=argparse.SUPPRESS)
+    dif.add_argument("--tag", required=True)
+    dif.add_argument("--against", required=True, help="the reference tag (e.g. rows from an earlier commit)")
     args = ap.parse_args()
     if os.environ.get("POKEMON_RL_ENCODER_C6"):
         sys.exit("REFUSED: POKEMON_RL_ENCODER_C6 is set; G0's rows and the W finals are c6-off")
     os.environ.setdefault("POKEMON_RL_ENCODER_V2", "1")
     os.environ.setdefault("POKEMON_RL_ENCODER_IDS", "1")
-    sys.exit({"reduction": reduction, "oracle": oracle, "bench": bench}[args.cmd](args))
+    sys.exit({"reduction": reduction, "oracle": oracle, "bench": bench, "diff": oracle_diff}[args.cmd](args))
 
 
 if __name__ == "__main__":
