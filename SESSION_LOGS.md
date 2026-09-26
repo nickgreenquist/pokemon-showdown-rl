@@ -14180,7 +14180,7 @@ line numbers are not — grep the date, then read that region):
   - Not yet: (ii) the P-core bench (needs the quiet box after the fleet), (i-d) the tree.py agreement (two envs).
     Cost note for the bench: the committee's forward costs about the same from 8 to 64 rows, so bigger rounds are
     nearly free.
-- 2026-09-26 03:45Z (agent, R7 runner) — **STAGE 0c's R = 512 FOLLOW-UP READ: the knee is R* = 512 and the cells are the
+- 2026-09-26 03:30Z (agent, R7 runner) — **STAGE 0c's R = 512 FOLLOW-UP READ: the knee is R* = 512 and the cells are the
   FULL matrix, so by the pre-stated rule Stage 1's heavy arm spends ~26,500 rollouts a decision -- far past the approved
   plan's 30-200 core-hours for its read. That is the maintainer's call, not a launch.**
   (`results/r7_stage0c/stage0c_r512.summary.{md,json}`, computed by `scripts/r7_stage0c_rollout_curve.py --summarise`
@@ -14208,7 +14208,7 @@ line numbers are not — grep the date, then read that region):
     claimant after R7's reads). Gate i-c relaunched 03:28Z as `oracle_c` at the Step A branch's `0d6de00` (a detached
     chain waited for R = 512 to exit, memory and a clean worktree); 3 shards on the E-cores; its first 27 roots are
     diffed bitwise against the first try's `oracle_b4` rows (`a0f6dd9`) by `native_tree_gates.py diff`.
-- 2026-09-26 05:15Z (agent, R7 runner) — **DEEP SEARCH STEP A, GATE (i-c) READ (descriptive): at §35's budget the
+- 2026-09-26 04:55Z (agent, R7 runner) — **DEEP SEARCH STEP A, GATE (i-c) READ (descriptive): at §35's budget the
   native tree is at most modestly above the one-ply critic L-op at the matched override (+0.0020 at z 1.37 under its
   best rule, not resolved); depth beats its own equal-work one-ply twin with the same sign under every rule (+0.0018
   to +0.0025, z 1.65-2.11); br_prior is the estimand (tree.py's decoupled rule -0.0041 at z -2.78, regret matching
@@ -14241,7 +14241,7 @@ line numbers are not — grep the date, then read that region):
   - WHAT IT SETS (a gap diagnoses the port, never kills it): the estimand is br_prior. NEXT on the E-cores is Step B's
     tier 1, the budget curve at the decision level (x4 rungs from 1,800), where the depth contrast resolves or not.
     Strength parity (legacy at 1,800 vs a same-session greedy control off FP@N) stays Step B's first battle rung.
-- 2026-09-26 05:15Z (agent, R7 runner) — **R7's READS QUEUE IS BUILT, REVIEWED AND ARMED** (`a104093`, `b0ff955`; it
+- 2026-09-26 04:55Z (agent, R7 runner) — **R7's READS QUEUE IS BUILT, REVIEWED AND ARMED** (`a104093`, `b0ff955`; it
   waits for all five lanes DONE, then runs unattended). `configs/eval/r7_reads_offfp.yaml` (the primary C1F S1F C2F S2F
   S3F off FP@N 25k/12k, n 6000, greedy, breaker off, the pinned control-first order; the object rule's E6RR E3BR ES3F
   EC2F, n 3000, breaker on), `configs/eval/r7_reads.yaml` (vs SH), `scripts/r7_reads_queue.sh`, `scripts/
@@ -14251,7 +14251,7 @@ line numbers are not — grep the date, then read that region):
   RETIRING lane alerts. Armed 04:30Z (frozen copy, pid 91075); the fleet ends ~Sun 10-11:30Z, the reads ~3.5-5 h after.
   Also: Stage 0c's offline SH read (`f825953`, `results/r7_stage0c/stage0c_r512.sh_offline.txt`): sequential halving
   matches the full 512-world matrix's choice on 100/100 roots at ~15,600 rollouts (0.59x of 26,522) -- ~2x, not 10x.
-- 2026-09-26 09:45Z (agent, R7 runner) — **DEEP SEARCH STEP B, TIER 1 READ (the inference budget curve at the decision
+- 2026-09-26 09:25Z (agent, R7 runner) — **DEEP SEARCH STEP B, TIER 1 READ (the inference budget curve at the decision
   level): FLAT from 1,800 to 28,800 total simulations. Sixteen times the search deepens the tree from 3.3 to 6.0
   levels and buys nothing measurable; depth's edge over equal-work one-ply breadth holds at ~+0.002 at every rung and
   never grows. With this critic at the leaves, the EVALUATOR is the binding constraint, not depth.**
@@ -14281,7 +14281,7 @@ line numbers are not — grep the date, then read that region):
       The decision-level curve below 1,800 (where Step C's 256-1,024 sits) is not yet measured.
     - Caveat as i-c's: decision quality on G0's committee-vs-committee oracle, 40 of 500 roots overriding at the
       matched rate.
-- 2026-09-26 10:30Z (agent, R7 runner) — **DEEP SEARCH STEP B, TIER 1b READ (the curve below 1,800, and the TRAINING
+- 2026-09-26 10:10Z (agent, R7 runner) — **DEEP SEARCH STEP B, TIER 1b READ (the curve below 1,800, and the TRAINING
   setting): at inference the tree's decision quality rises from the one-ply grid to ~900-1,800 simulations and then
   flattens (tier 1: flat to 28,800). In the training setting (the TRUE world, B = 1: R7's T-op's own), a tree at 256,
   1,024 or 1,800 simulations TIES the one-ply T-op at a matched override. The tree reaches Step C's depth floor (2.5
@@ -14316,7 +14316,7 @@ line numbers are not — grep the date, then read that region):
     +0.0040 (d -0.0004). The harness now gates every true-world arm at its reference's rate, prints each row's rate
     and refuses a contrast that mixes a true and a belief arm. The three summaries were regenerated; belief arms and
     contrasts did not change.
-- 2026-09-26 12:15Z (agent, R7 runner) — **STEP C's E-CORE INPUTS READ, at tier 1b's dose (256 simulations, the
+- 2026-09-26 11:55Z (agent, R7 runner) — **STEP C's E-CORE INPUTS READ, at tier 1b's dose (256 simulations, the
   training setting): the POLICY TARGET is where depth pays. R7's one-ply target carries no measurable expected
   improvement over greedy; the deep tree's target does. The fusion read at depth is UNRESOLVED (B = 1's licence is not
   established at this n, nothing shows it spent), and sigma sits on a ridge at c_scale 0.1.**
@@ -14352,10 +14352,10 @@ line numbers are not — grep the date, then read that region):
   - The Step C DRAFT (`docs/proposals/STEP_C_PREREG_DRAFT_2026-09-26.md`, `456b23b`) now carries these numbers. D2's
     recommendation is (c) with the policy target as the channel that measures, and a new ruling D4 (B = 1 vs B >= 2)
     is added.
-- 2026-09-26 13:00Z (agent, R7 runner) — **CORRECTION to 12:15Z, and STEP C's four rulings DECIDED by the three
+- 2026-09-26 12:20Z (agent, R7 runner) — **CORRECTION to 11:55Z, and STEP C's four rulings DECIDED by the three
   sessions (the maintainer: "You decide among the 3 of you and then go for review").** The draft is at r3
   (`docs/proposals/STEP_C_PREREG_DRAFT_2026-09-26.md`); two Opus reviews come next.
-  - THE CORRECTION (fp-speedup's catch). 12:15Z named the completed-Q target's +0.0044 (z 2.76) over the one-ply
+  - THE CORRECTION (fp-speedup's catch). 11:55Z named the completed-Q target's +0.0044 (z 2.76) over the one-ply
     target as "the channel that measures", and chose sigma on the TRUE-world EI. That gain is almost all PEEK.
     - A student of B = 1 targets converges to their mean over the hidden world. At that FIXED POINT completed-Q keeps
       +0.0002 ± 0.0016 at the true-world sigma, and +0.0008 ± 0.0011 with sigma chosen split-sample on the fixed point
@@ -14380,7 +14380,7 @@ line numbers are not — grep the date, then read that region):
       point beats B = 1's soft_br fixed point at z >= 2.
     - POWER at 3 + 2, n 6000: P(X-POS) 0.60 at B = 1's optimistic ceiling of ~+0.027 a battle, 0.99 at the joint
       ~+0.043 (`results/native_tree/stepc_power.json`).
-- 2026-09-26 14:40Z (agent, R7 runner) — **SECOND CORRECTION to Step C's evidence (the Opus reviews of draft r3; the
+- 2026-09-26 13:10Z (agent, R7 runner) — **SECOND CORRECTION to Step C's evidence (the Opus reviews of draft r3; the
   like-for-like read): the "+0.0019 learnable over R7's one-ply target" does not survive a like-for-like reference.
   At the student's fixed point, depth's edge over R7's exact one-ply operator is ~+0.0008 in expected improvement (not
   resolved), and the argmax ties.** (`results/native_tree/stepc2_a.stepc2.{md,json}`, computed by `scripts/
