@@ -207,7 +207,8 @@ ARMS = {
     "br_true": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br",
                     batch=8),
 }
-TRUE_ARMS = ("br_true", "tr_256", "tr_1024", "tr_1800", "tr_d1", "t1_k0", "t1_k1", "t1_k2")   # the TRUE world, G0's foe prior
+TRUE_ARMS = ("br_true", "tr_256", "tr_1024", "tr_1800", "tr_d1", "t1_k0", "t1_k1", "t1_k2",
+             "dk1_true", "dk2_true")                                                     # the TRUE world, G0's foe prior
 CONTRASTS = [("br", "d1"), ("br_sh", "d1"), ("br_sh", "br"), ("legacy", "br"), ("rm", "br")]
 # STEP B, TIER 1 (proposal r2 §2 Step B): the INFERENCE BUDGET CURVE at the decision level on the same 500 roots, the
 # same 8 worlds and the same scorer -- br_prior (gate i-c's estimand) at x4 rungs of total simulations, each beside a
@@ -254,8 +255,14 @@ T_OP_ONE_PLY = dict(sims=1, mode="br_prior", root_grid=True, depth_cap=1, cols_k
 ONE_PLY_KEYS = (0, 1, 2)
 ARMS_STEPC2 = {**{f"t1_k{k}": dict(T_OP_ONE_PLY) for k in ONE_PLY_KEYS},
                **{f"w1_{b}_k{k}": dict(T_OP_ONE_PLY) for b in range(8) for k in ONE_PLY_KEYS}}
+# THE DEEP SIDE UNDER TWO MORE CHANCE KEYS (r6-runner's condition on the value channel, 2026-09-26): stepc_a's deep
+# arms were ONE key; stepc3 re-draws the true-world tree and the 8 per-world trees at 256 under keys 1 and 2 (the same
+# offsets as stepc2's one-ply), so every deep-vs-critic and deep-vs-one-ply read has its key-to-key spread.
+DEEP_KEYS = (1, 2)
+ARMS_STEPC3 = {**{f"dk{k}_true": dict(ARMS["br_true"], sims=256) for k in DEEP_KEYS},
+               **{f"dk{k}_w{b}": dict(ARMS["br_true"], sims=256) for k in DEEP_KEYS for b in range(8)}}
 ARM_SETS = {"ic": (ARMS, CONTRASTS), "tier1": (ARMS_TIER1, CONTRASTS_TIER1), "tier1b": (ARMS_TIER1B, CONTRASTS_TIER1B),
-            "stepc": (ARMS_STEPC, []), "stepc2": (ARMS_STEPC2, [])}
+            "stepc": (ARMS_STEPC, []), "stepc2": (ARMS_STEPC2, []), "stepc3": (ARMS_STEPC3, [])}
 T_OP_SEARCHED_PER_BATTLE = 14      # box 5 item 2: the T-op's ~14 searched decisions a battle, the fusion rule's multiplier
 CREDIT_FLOOR_BATTLE = 0.025        # section 10: a fusion cost above the credit floor spends the B = 1 licence
 SIGMA_GRID = [(cv, cs) for cv in (10.0, 25.0, 50.0, 100.0, 200.0) for cs in (0.01, 0.03, 0.1, 0.3, 1.0)]
@@ -391,10 +398,16 @@ def oracle(args) -> int:
                     _, b, k = name.split("_")
                     ws = [worlds[int(b)]] if int(b) < len(worlds) else []
                     arm_key = key + 7919 * int(k[1:])
+                elif name.startswith("dk") and "_w" in name:  # the deep tree on ONE belief world, under key k
+                    k, b = name[2:].split("_w")
+                    ws = [worlds[int(b)]] if int(b) < len(worlds) else []
+                    arm_key = key + 7919 * int(k)
                 else:
                     ws = [World(node)] if name in TRUE_ARMS else worlds
                     if name.startswith("t1_k"):
                         arm_key = key + 7919 * int(name[4:])
+                    elif name.startswith("dk") and name.endswith("_true"):
+                        arm_key = key + 7919 * int(name[2:].split("_")[0])
                 if not ws:
                     row["arms"][name] = {"no_world": True}
                     continue
