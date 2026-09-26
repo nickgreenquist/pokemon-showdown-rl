@@ -14180,3 +14180,31 @@ line numbers are not — grep the date, then read that region):
   - Not yet: (ii) the P-core bench (needs the quiet box after the fleet), (i-d) the tree.py agreement (two envs).
     Cost note for the bench: the committee's forward costs about the same from 8 to 64 rows, so bigger rounds are
     nearly free.
+- 2026-09-26 03:45Z (agent, R7 runner) — **STAGE 0c's R = 512 FOLLOW-UP READ: the knee is R* = 512 and the cells are the
+  FULL matrix, so by the pre-stated rule Stage 1's heavy arm spends ~26,500 rollouts a decision -- far past the approved
+  plan's 30-200 core-hours for its read. That is the maintainer's call, not a launch.**
+  (`results/r7_stage0c/stage0c_r512.summary.{md,json}`, computed by `scripts/r7_stage0c_rollout_curve.py --summarise`
+  over both shards; the rule is the script header's ADD R = 512 branch: the knee rule moves to {128, 256, 512}.)
+  - 100 positions (the 25 lowest pids of each turn bucket), 0 errors; 51,200 worlds built, 0 refused; 2,652,160
+    rollouts; the B8 critic reproduced the banked rows 100/100; both self-checks IDENTICAL; one program (`c01a5b1`,
+    clean), engine `9b88fd6c`.
+  - Primary (full matrix, soft_br) at the matched override (0.120 on these 100, the banked critic's own): +0.0040 ±
+    0.0033 / +0.0059 ± 0.0036 / +0.0080 ± 0.0035 at R = 128 / 256 / 512. Paired steps: 128->256 +0.0019 ± 0.0019,
+    256->512 +0.0021 ± 0.0010 (z 2.06) -- still rising at the top rung. **KNEE R* = 512** (256 sits 2.06 se below it).
+  - **CELLS: FULL.** At R*, full - 3x4 = +0.0022 ± 0.0012 (z 1.85), more than 1 se, so the 3x4 cells (5,796 rollouts)
+    do not qualify; the full matrix is 26,522 rollouts a decision, 4x R = 128's 6,630. The summary now records the cells
+    rule for a follow-up tag (`0e2b2a6`; it printed only the knee, and the gap was first recomputed by hand).
+  - Secondary: paired d vs the critic L-op at the matched rate on these 100: -0.0019 ± 0.0024 / -0.0000 ± 0.0020 /
+    +0.0021 ± 0.0015 (z 1.38) at 128 / 256 / 512. A subset: on all 500 roots d at 128 read +0.0027 ± 0.0013 (z 2.02,
+    the STAGE 1 read). The critic's breadth axis is flat again (B32 - B8 -0.0000 ± 0.0003). By bucket the late game
+    (turn 23+) carries the rollouts' edge: d +0.0081 ± 0.0051.
+  - THE COST, rough, for Stage 0b's quiet-box bench to replace: 64 rollouts/s a process on the contended E-cores (the
+    summary's counter); at the landmine's ~6.8x per decision for a P-core, ~60 s a decision per P-core; at G2DOSE's
+    33.8 searched decisions a battle (`results/r7_g2/g2dose.json`: 1,015 over 30 battles), ONE 3,200-battle arm is
+    ~1,800 P-core-hours, ~7-8 days of all 10 P-cores (~4 if a quiet box runs twice the contended rate). The levers
+    the approved plan already names cut it and neither is built: its operator is sequential halving (rollouts spent
+    on the contending rows, not the whole matrix), with a cheap skip on confident decisions.
+  - NEXT: nothing launches. Stage 1's operator, budget and n are the maintainer's call, beside Step C (the box's other
+    claimant after R7's reads). Gate i-c relaunched 03:28Z as `oracle_c` at the Step A branch's `0d6de00` (a detached
+    chain waited for R = 512 to exit, memory and a clean worktree); 3 shards on the E-cores; its first 27 roots are
+    diffed bitwise against the first try's `oracle_b4` rows (`a0f6dd9`) by `native_tree_gates.py diff`.
