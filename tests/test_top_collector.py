@@ -36,7 +36,8 @@ import pytest
 pytest.importorskip("pkmn_gen1", reason="build engine/pkmn_gen1 first")
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-BANKS = sorted(glob.glob(str(ROOT / "data/engine/teams_*.bin")),
+MAIN = pathlib.Path("/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl")   # a worktree has no data/
+BANKS = sorted(glob.glob(str(ROOT / "data/engine/teams_*.bin")) or glob.glob(str(MAIN / "data/engine/teams_*.bin")),
                key=lambda p: pathlib.Path(p).stat().st_size)
 
 _CHILD = r"""
