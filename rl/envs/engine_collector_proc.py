@@ -108,10 +108,10 @@ def _child_main(conn, ep_queue, spec: dict) -> None:  # pragma: no cover - runs 
     if spec.get("search") is not None:
         # R7 B4b: the T-op on the child's mirror agent -- its critic is the
         # leaf evaluator, refreshed with every weights message.
-        from rl.search.top import TOp
+        from rl.search.tree_top import searcher_class
 
-        collector.searcher = TOp(agent, collector.tables, seat=spec["learner_seat"],
-                                 seed=int(spec["seed"]) + 1, **spec["search"])
+        collector.searcher = searcher_class(spec["search"])(agent, collector.tables, seat=spec["learner_seat"],
+                                                            seed=int(spec["seed"]) + 1, **spec["search"])
     set_seed(int(spec["seed"]))
     conn.send(("ready", {
         "build_info": collector.build_info, "tables_fingerprint": collector.tables_fingerprint,

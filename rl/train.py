@@ -841,9 +841,11 @@ def _async_collector_mode(cfg: Config, vectorized: bool) -> str:
             "the rows the learner trains on) or neither"
         )
     if search_spec is not None:
-        from rl.search.top import TOp
+        # the one-ply T-op, or the TREE-op when the block carries `tree` (DEEP SEARCH Step C);
+        # either class validates the block (rl/search/tree_top.py::searcher_class)
+        from rl.search.tree_top import searcher_class
 
-        TOp.check_dials(search_spec)
+        searcher_class(search_spec)
     if mode == "sync":
         return "sync"
     if mode == "engine":
@@ -1130,11 +1132,11 @@ def _async_loop(
         if cfg.collector.get("search") is not None:
             # R7 B4b in-process: the T-op on the learner itself (the loop pauses
             # collection during updates, so no torn read).
-            from rl.search.top import TOp
+            from rl.search.tree_top import searcher_class
 
-            collector.searcher = TOp(agent, collector.tables,
-                                     seat=cfg.collector.get("learner_seat", "p1"),
-                                     seed=cfg.seed + 1, **cfg.collector["search"])
+            collector.searcher = searcher_class(cfg.collector["search"])(
+                agent, collector.tables, seat=cfg.collector.get("learner_seat", "p1"),
+                seed=cfg.seed + 1, **cfg.collector["search"])
     else:
         from rl.envs.showdown_async import AsyncCollector
 
