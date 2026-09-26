@@ -209,6 +209,19 @@ ARMS = {
 }
 TRUE_ARMS = ("br_true",)
 CONTRASTS = [("br", "d1"), ("br_sh", "d1"), ("br_sh", "br"), ("legacy", "br"), ("rm", "br")]
+# STEP B, TIER 1 (proposal r2 §2 Step B): the INFERENCE BUDGET CURVE at the decision level on the same 500 roots, the
+# same 8 worlds and the same scorer -- br_prior (gate i-c's estimand) at x4 rungs of total simulations, each beside a
+# DEPTH-CAP-1 TWIN AT ~EQUAL WORK (the same code at depth 1, its extra work spent on chance breadth: chance_k x4 per
+# rung). The 1,800 rung and its twin repeat gate i-c's br and d1 exactly, so the curve is paired within one run.
+TIER1_RUNGS = (1800, 7200, 28800)
+ARMS_TIER1 = {}
+for _i, _n in enumerate(TIER1_RUNGS):
+    ARMS_TIER1[f"br_{_n}"] = dict(ARMS["br"], sims=_n)
+    ARMS_TIER1[f"d1_{_n}"] = dict(ARMS["d1"], chance_k=ARMS["d1"]["chance_k"] * 4 ** _i)
+CONTRASTS_TIER1 = ([(f"br_{n}", f"d1_{n}") for n in TIER1_RUNGS]
+                   + [(f"br_{b}", f"br_{a}") for a, b in zip(TIER1_RUNGS, TIER1_RUNGS[1:])]
+                   + [(f"d1_{b}", f"d1_{a}") for a, b in zip(TIER1_RUNGS, TIER1_RUNGS[1:])])
+ARM_SETS = {"ic": (ARMS, CONTRASTS), "tier1": (ARMS_TIER1, CONTRASTS_TIER1)}
 RULES = ("soft_br", "gumbel_mctx", "legacy_gumbel", "visits", "argmax", "own")
 KEEP = ("tree/sims", "search/leaves", "tree/depth_mean", "tree/depth_max", "tree/upd_mean", "tree/turns_mean",
         "tree/turns_max", "tree/nodes", "tree/merges", "tree/pass_nodes", "tree/terminal_sims", "tree/capped_sims",
@@ -266,7 +279,8 @@ def oracle(args) -> int:
         return oracle_summary(args, rows_all, belief, out_dir)
     torch.set_num_threads(args.torch_threads)
     tau = float(belief["dials"].get("tau", 1.0))
-    arms = {k: native_tree.dials_from({**v, "tau": tau} if v.get("root_rule") == "soft_br" else v) for k, v in ARMS.items()}
+    arm_specs = ARM_SETS[args.arm_set][0]
+    arms = {k: native_tree.dials_from({**v, "tau": tau} if v.get("root_rule") == "soft_br" else v) for k, v in arm_specs.items()}
     paths = [c["path"] for c in g0_summary["committee"]]
     shas = [c["sha256"] for c in g0_summary["committee"]]
     committee, prov = rq.load_committee(paths, shas, np.random.default_rng(0))
@@ -398,7 +412,10 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
            "critic_native": {"override": target, "gain": s0c.stat(crit_gain)},
            "true_one_ply_native": {"override": float(true_native.mean()), "gain": s0c.stat(true_gain)}, "arms": {}}
     pp: dict[tuple[str, str], np.ndarray] = {}                 # (arm, rule) -> per-root gain at the matched rate
-    for name in ARMS:
+    arm_specs, contrasts = ARM_SETS[args.arm_set]
+    if any(set(r["arms"]) != set(arm_specs) for r in ok):
+        sys.exit(f"REFUSED: rows of --tag {args.tag} do not carry exactly the {args.arm_set} arm set {sorted(arm_specs)}")
+    for name in arm_specs:
         per = {}
         for rule in RULES:
             cands, margins = [], []
@@ -435,10 +452,12 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     # depth-cap-1 twin, d1: ~1,830 leaves vs the tree's ~1,620), the root's selection (sequential halving vs PUCT) and
     # the estimand (tree.py's decoupled rule and regret matching against br_prior).
     out["contrasts"] = {f"{a} - {b}": {rule: s0c.stat(pp[(a, rule)] - pp[(b, rule)]) for rule in RULES}
-                        for a, b in CONTRASTS}
+                        for a, b in contrasts}
     out["written"] = dt.datetime.now(dt.timezone.utc).isoformat()
     (out_dir / f"{args.tag}.summary.json").write_text(json.dumps(out, indent=1, default=float))
-    lines = [f"# gate (i-c): the native tree vs the one-ply critic L-op on G0's oracle ({n} roots, {len(errs)} errors)",
+    title = "gate (i-c): the native tree vs the one-ply critic L-op" if args.arm_set == "ic" else \
+        "Step B tier 1: the budget curve (br_prior) and its equal-work depth-1 twins"
+    lines = [f"# {title} on G0's oracle ({n} roots, {len(errs)} errors)",
              "", f"matched override {target:.3f} (the critic L-op's native gate); gains in WIN-RATE units; d paired per root",
              f"critic L-op (B8, one ply) at its native gate: {out['critic_native']['gain']['mean']:+.4f} +- "
              f"{out['critic_native']['gain']['se']:.4f}", "",
@@ -702,6 +721,8 @@ def main() -> None:
     orc.add_argument("--worlds", type=int, default=8, help="the critic L-op's B")
     orc.add_argument("--belief-seed", type=int, default=20260923, help="the belief read's --seed: the same worlds")
     orc.add_argument("--summarise", action="store_true", help="measure nothing: join every shard of --tag and score it")
+    orc.add_argument("--arm-set", choices=sorted(ARM_SETS), default="ic",
+                     help="ic = gate (i-c)'s six arms; tier1 = Step B tier 1, the budget curve with its depth-1 twins")
     bch.add_argument("--configs", default="", help=f"comma list (default all): {sorted(BENCH_CONFIGS)}")
     bch.add_argument("--workers", default="1,2,5,10", help="worker counts, one pass each")
     bch.add_argument("--per-bucket", type=int, default=10, help="roots per turn bucket (the proposal's full bench: 50)")
