@@ -235,6 +235,12 @@ and `scripts/ch3_eval.py`.
     warm copy) and at its end.
     - The grounding weight is the smallest rung of w_mc / w_ts in {0.5, 1, 2, 4} at which that start-to-end change is
       NOT significant at 2 se. The threshold is never taken at a weight whose own offline loop already drifts.
+    - A rung COUNTS only if (r6-runner) both hold; otherwise G2 runs longer before any rung is picked. This stops a
+      noisy or short G2 from passing on noise and then inflating tau_lvl through its se:
+      - PRECISION: 2 se <= 0.0073, half the measured label optimism (+0.0147 deep FP minus the critic;
+        `value_channel_keys.json` "level").
+      - PLATEAU: the change over G2's last third is not significant at 2 se. The fleet's evaluator trains far longer
+        than G2's, so the bound comes from an equilibrium, never a transient.
     - tau_lvl = |the change| + 2 se, at that rung. It is S2's and G7's threshold, so it is measured, never typed.
     - No rung passes -> the not-green table's TreeStrap row (MC grounding only; the maintainer rules).
 - **G3 — THE WIDTH BENCH (B6)** -> c_tree, against D1's break-even and D1's order.
@@ -287,11 +293,17 @@ and `scripts/ch3_eval.py`.
   - S2, THE EVALUATOR'S LEVEL (r6-runner; replaces r4's typed 0.05). The instrument is the change in
     `evaluator/drift_signed` since the lane's first 1M steps, over the last 5M steps. It is watched at every monitor
     pass; its action fires only at the 25M marks.
-    - A TRIP: the change exceeds tau_lvl (G2) at 2 se AND grew since the previous mark.
-    - First trip: the grounding weight x2 from the next update (B1's resume-time override; disclosed with its
-      from_step).
-    - A trip at a later mark: TreeStrap labels OFF for the rest of the lap (w_ts 0; the evaluator continues on MC
-      grounding; the policy target alone, disclosed). TreeStrap goes to its own lap.
+    - The trigger is TIERED to the action's cost (r6-runner). tau_lvl already carries G2's 2 se, and a stricter test
+      would trip late on a self-reinforcing loop.
+      - FIRST TRIP (mild, reversible in effect): the POINT estimate of the change exceeds tau_lvl AND grew since the
+        previous mark -> the grounding weight x2 from the next update (B1's resume-time override; disclosed with its
+        from_step).
+      - A LATER TRIP: the change exceeds tau_lvl at 2 se AND grew since the previous mark -> TreeStrap labels OFF for
+        the rest of the lap (w_ts 0; the evaluator continues on MC grounding; the policy target alone, disclosed).
+        TreeStrap goes to its own lap.
+    - ONE RECIPE (r6-runner): a trip on ANY S lane applies its action to ALL S lanes at the same 25M mark, disclosed.
+      Otherwise the primary's equal-weight mean of S finals would average different recipes, and a credit would not
+      name one lever. C has no TreeStrap and is unaffected.
     - S2 never waits for a second consecutive trip to act, and never continues silently.
   - S3, THE DEPTH FLOOR: `tree/turns_mean` < 2.5.
 
@@ -411,6 +423,9 @@ Every row: theta0 anchors, pool restart, the LR re-arm and the N-ANNEAL disclosu
     then TreeStrap off for the lap).
   - Added by r7-runner: the grounding-weight rung rule, so tau_lvl is never taken at a weight that already drifts
     offline; the resume-time override that S2's action needs (B1).
+  - r6-runner amended all three: a rung counts only above a PRECISION floor and after a PLATEAU; the trigger is TIERED
+    (the mild action on the point estimate, TreeStrap off at 2 se); ONE RECIPE across the S lanes. All adopted, and
+    fp-speedup's G1 split is agreed by r6-runner.
   - fp-speedup: the +0.0147 is on the PUCT-mean backups (the recursive form should cut it, confirmed in G1), and a
     state-dependent bias survives a played-row anchor. G1's signed gap is split by depth and turn bucket, with the
     depth-cap action.
