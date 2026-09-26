@@ -193,9 +193,10 @@ class _Node:
     __slots__ = ("sn", "batch", "li", "seed", "level", "upd", "turn", "term", "us_dec", "foe_dec",
                  "obs_us", "mask_us", "obs_foe", "mask_foe", "v0", "ready", "rows", "cols", "p", "q",
                  "topk_mass", "N", "W", "VL", "n", "w", "edges", "digest", "view",
-                 "rm_us", "rm_foe", "sm_us", "sm_foe")
+                 "rm_us", "rm_foe", "sm_us", "sm_foe", "dec")
 
     def __init__(self) -> None:
+        self.dec: Any = None            # the decision this node's tree belongs to (its counters)
         self.sn = None
         self.batch = None
         self.li = 0
@@ -232,10 +233,32 @@ class _Descent:
         self.forced = forced            # sequential halving: the root row this simulation must take
 
 
+class _Decision:
+    """One searched decision: its rows, prior, trees (one per world), sequential-halving
+    state and its OWN counters -- several decisions share a round's forwards."""
+
+    def __init__(self, rows: list[int], mask: np.ndarray, prior: np.ndarray, prior_m: np.ndarray,
+                 policy_action: int, key: int):
+        self.rows, self.mask, self.prior, self.prior_m = rows, mask, prior, prior_m
+        self.policy_action, self.key = policy_action, key
+        self.trees: list[_Tree] = []
+        self.sh: dict | None = None
+        self.sh_done = False
+        self.c = {k: 0.0 for k in ("evals", "evals_grid", "pass_evals", "prior_rows", "forwards_v", "forwards_p",
+                                   "nodes", "edges", "merges", "pass_nodes", "terminal_sims", "capped_sims",
+                                   "dup_waits", "sims", "depth_sum", "depth_max", "upd_sum", "upd_max",
+                                   "turn_sum", "turn_max")}
+        self.hist = [0] * DEPTH_HIST
+        self.errors: dict[str, int] = {}
+        self.t_engine = self.t_value = self.t_prior = 0.0
+
+
 class _Tree:
-    __slots__ = ("w", "weight", "root", "budget", "done", "active", "rng", "error", "grid_sims", "queue")
+    __slots__ = ("w", "weight", "root", "budget", "done", "active", "rng", "error", "grid_sims", "queue", "dec", "opp")
 
     def __init__(self, w: int, weight: float, root: _Node, budget: int, rng: np.random.Generator):
+        self.dec: Any = None
+        self.opp: np.ndarray | None = None      # the caller's foe prior for this root, or None (prior_fn's)
         self.w = w
         self.weight = weight
         self.root = root
@@ -300,7 +323,29 @@ def search(
     tree (`_Tree`, root node at `.root`) before the decision (the fixtures walk it).
     """
     s = _Search(tables, seat, value_fn, prior_fn, locals())
-    return s.run(worlds, prior, opp_prior, decision_key, _inspect)
+    return s.run_many([(worlds, prior, opp_prior, decision_key)], _inspect)[0]
+
+
+def search_many(
+    decisions: Sequence[tuple],
+    tables: Any,
+    seat: str,
+    value_fn: ValueFn,
+    prior_fn: PriorFn,
+    _inspect: Callable | None = None,
+    **dials: Any,
+) -> list[dict[str, Any]]:
+    """Several decisions searched TOGETHER: `decisions` are (worlds, prior, opp_prior,
+    decision_key) tuples -- `search`'s per-call inputs -- sharing one set of dials (the
+    same keywords as `search`, validated by `dials_from`). Their trees run in lockstep and
+    every round's leaves go through ONE value_fn and ONE prior_fn call, so a collector's
+    in-flight decisions batch their network work (the proposal's Step C enabler). Each
+    result is exactly what `search` returns for that decision alone, up to the network's
+    batch-size floating point; the forward time is split by rows."""
+    full = {k: p.default for k, p in inspect.signature(search).parameters.items() if k in DIALS}
+    full.update(dials_from(dials))
+    s = _Search(tables, seat, value_fn, prior_fn, full)
+    return s.run_many(list(decisions), _inspect)
 
 
 class _Search:
@@ -313,14 +358,6 @@ class _Search:
         self.foe = "p2" if self.us == "p1" else "p1"
         self.value_fn = value_fn
         self.prior_fn = prior_fn
-        z = 0.0
-        self.c = {k: z for k in ("evals", "evals_grid", "pass_evals", "prior_rows", "forwards_v", "forwards_p",
-                                 "nodes", "edges", "merges", "pass_nodes", "terminal_sims", "capped_sims",
-                                 "dup_waits", "sims", "depth_sum", "depth_max", "upd_sum", "upd_max",
-                                 "turn_sum", "turn_max")}
-        self.hist = [0] * DEPTH_HIST
-        self.t_engine = self.t_value = self.t_prior = 0.0
-        self.errors: dict[str, int] = {}
 
     # ---- nodes ------------------------------------------------------------------
 
@@ -357,10 +394,11 @@ class _Search:
         x.ready = True
         x.obs_us = x.obs_foe = None
         if not x.us_dec:
-            self.c["pass_nodes"] += 1
+            x.dec.c["pass_nodes"] += 1
 
     def _child(self, parent: _Node, batch: _Batch, i: int, seed: int) -> _Node:
         nd = _Node()
+        nd.dec = parent.dec
         nd.batch, nd.li, nd.seed = batch, i, seed
         nd.level = parent.level + (1 if parent.us_dec else 0)
         nd.upd = parent.upd + 1
@@ -379,7 +417,7 @@ class _Search:
         k2 = pos2.get(i)
         if k2 is not None:
             nd.foe_dec, nd.obs_foe, nd.mask_foe = True, obs2[k2].copy(), mask2[k2].copy()
-        self.t_engine += time.perf_counter() - t0
+        nd.dec.t_engine += time.perf_counter() - t0
         if not (nd.us_dec or nd.foe_dec):
             raise EngineError(f"leaf {i}: live, but neither seat owes a decision")
         return nd
@@ -391,13 +429,13 @@ class _Search:
             t0 = time.perf_counter()
             kid.sn = _eng(e.batch.lb.node, kid.li)
             kid.digest = position_digest(_eng(kid.sn.save))
-            self.t_engine += time.perf_counter() - t0
+            kid.dec.t_engine += time.perf_counter() - t0
             for other in e.kids:
                 if other is not None and other.digest == kid.digest:
-                    self.c["merges"] += 1
+                    kid.dec.c["merges"] += 1
                     e.kids[j] = other
                     return other
-        self.c["nodes"] += 1
+        kid.dec.c["nodes"] += 1
         e.kids[j] = kid
         return kid
 
@@ -413,10 +451,10 @@ class _Search:
             acting, cells = self.foe, [(int(x.cols[ci]), -1, k)]
         t0 = time.perf_counter()
         b = _Batch(_eng(x.sn.leaves, self.tables, acting, cells, x.seed), self.us, k)
-        self.t_engine += time.perf_counter() - t0
+        x.dec.t_engine += time.perf_counter() - t0
         e = _Edge(b, key, k)
         x.edges[(ri, ci)] = e
-        self.c["edges"] += 1
+        x.dec.c["edges"] += 1
         return e
 
     def _kid(self, x: _Node, e: _Edge, j: int) -> _Node:
@@ -499,7 +537,7 @@ class _Search:
         while True:
             x = d.node
             if x.term is not None:
-                self.c["terminal_sims"] += 1
+                t.dec.c["terminal_sims"] += 1
                 return x.term
             through = (not x.us_dec) and self.pass_leaf == "through"
             if not x.ready:
@@ -507,12 +545,12 @@ class _Search:
                     d.need = "eval"
                     return None
                 if not through and x.level >= self.depth_cap:
-                    self.c["capped_sims"] += 1
+                    t.dec.c["capped_sims"] += 1
                     return self._value(x)
                 d.need = "prior"
                 return None
             if not through and x.level >= self.depth_cap:
-                self.c["capped_sims"] += 1
+                t.dec.c["capped_sims"] += 1
                 return self._value(x)
             ri, ci, extra = self._select(t, x, d.forced if x is t.root else None)
             e = x.edges.get((ri, ci)) or self._edge(x, ri, ci)
@@ -550,7 +588,7 @@ class _Search:
         self._depth(t, d.node)
 
     def _depth(self, t: _Tree, leaf: _Node) -> None:
-        c = self.c
+        c = t.dec.c
         c["sims"] += 1
         c["depth_sum"] += leaf.level
         c["depth_max"] = max(c["depth_max"], leaf.level)
@@ -559,13 +597,15 @@ class _Search:
         dt = leaf.turn - t.root.turn
         c["turn_sum"] += dt
         c["turn_max"] = max(c["turn_max"], dt)
-        self.hist[min(leaf.level, DEPTH_HIST - 1)] += 1
+        t.dec.hist[min(leaf.level, DEPTH_HIST - 1)] += 1
 
     # ---- the network ----------------------------------------------------------------
 
     def _forward(self, eval_nodes: list[_Node], prior_nodes: list[_Node]) -> None:
         """ONE value_fn call for every new leaf, ONE prior_fn call for every node that
-        needs priors (a new leaf below the cap, a grid child, a Pass node)."""
+        needs priors (a new leaf below the cap, a grid child, a Pass node) -- over every
+        decision in the round. Each decision is charged its rows and its row share of
+        the call's time."""
         if eval_nodes:
             obs = []
             for x in eval_nodes:
@@ -575,12 +615,10 @@ class _Search:
                     if x.sn is None:
                         x.sn = _eng(x.batch.lb.node, x.li)
                     obs.append(np.asarray(_eng(x.sn.obs, self.tables, self.us), dtype=np.float32))
-                    self.c["pass_evals"] += 1
+                    x.dec.c["pass_evals"] += 1
             t0 = time.perf_counter()
             v = np.asarray(self.value_fn({"obs": np.stack(obs)}), dtype=np.float64).reshape(len(obs))
-            self.t_value += time.perf_counter() - t0
-            self.c["evals"] += len(obs)
-            self.c["forwards_v"] += 1
+            _charge([x.dec for x in eval_nodes], time.perf_counter() - t0, "t_value", "evals", "forwards_v")
             for x, val in zip(eval_nodes, v.tolist()):
                 x.v0 = float(val)
         need = [x for x in eval_nodes if x.level < self.depth_cap] + prior_nodes
@@ -598,9 +636,7 @@ class _Search:
         if o:
             t0 = time.perf_counter()
             probs = np.asarray(self.prior_fn(np.stack(o), np.stack(m)), dtype=np.float64)
-            self.t_prior += time.perf_counter() - t0
-            self.c["prior_rows"] += len(o)
-            self.c["forwards_p"] += 1
+            _charge([x.dec for x, _side in own], time.perf_counter() - t0, "t_prior", "prior_rows", "forwards_p")
         got: dict[int, list] = {}
         for k, (x, side) in enumerate(own):
             got.setdefault(id(x), [x, None, None])[1 + side] = probs[k]
@@ -622,25 +658,26 @@ class _Search:
         t0 = time.perf_counter()
         e = _eng(x.sn.expand, self.tables, self.us, cells, x.seed, both_views=self.both_views)
         batch = _Batch(_eng(x.sn.leaves, self.tables, self.us, cells, x.seed), self.us, len(cells) * k)
-        self.t_engine += time.perf_counter() - t0
+        dc = t.dec
+        dc.t_engine += time.perf_counter() - t0
         n = int(e["n"])
         t1 = time.perf_counter()
         v = np.asarray(self.value_fn(e), dtype=np.float64).reshape(n)
-        self.t_value += time.perf_counter() - t1
+        dc.t_value += time.perf_counter() - t1
         term = np.asarray(e["terminal"])
         live = term == 0
         v = np.where(live, v, np.where(term == 2, 0.0, term.astype(np.float64)))
-        self.c["evals"] += n
-        self.c["evals_grid"] += n
-        self.c["forwards_v"] += 1
+        dc.c["evals"] += n
+        dc.c["evals_grid"] += n
+        dc.c["forwards_v"] += 1
         if self.pass_leaf == "critic":   # under "through" their values are never used
-            self.c["pass_evals"] += int((np.asarray(e["req_next"])[:, 0] == 0)[live].sum())
+            dc.c["pass_evals"] += int((np.asarray(e["req_next"])[:, 0] == 0)[live].sum())
         nc = len(x.cols)
         for c, (_a, b, _k) in enumerate(cells):
             ri, ci = divmod(c, nc)
             edge = _Edge(batch, b, k, base=c * k)
             x.edges[(ri, ci)] = edge
-            self.c["edges"] += 1
+            dc.c["edges"] += 1
             for j in range(k):
                 i = c * k + j
                 kid = self._kid(x, edge, j)
@@ -654,7 +691,7 @@ class _Search:
                 if kid.term is None and kid.v0 is None:
                     kid.v0 = val
                 elif kid.term is not None:
-                    self.c["terminal_sims"] += 1
+                    dc.c["terminal_sims"] += 1
                 x.N[ri, ci] += 1.0
                 x.W[ri, ci] += val
                 edge.n[j] += 1.0
@@ -670,12 +707,13 @@ class _Search:
     def _fail(self, t: _Tree, err: BaseException) -> None:
         t.error = type(err).__name__
         key = f"{type(err.__cause__).__name__ if err.__cause__ else type(err).__name__}"
-        self.errors[key] = self.errors.get(key, 0) + 1
+        t.dec.errors[key] = t.dec.errors.get(key, 0) + 1
         t.active = []
+        t.queue = []
 
-    def run(self, worlds: Sequence[World], prior: np.ndarray, opp_prior: np.ndarray | None,
-            decision_key: int, inspect_fn: Callable | None = None) -> dict[str, Any]:
-        t_start = time.perf_counter()
+    def _decision(self, worlds: Sequence[World], prior: np.ndarray, opp_prior: np.ndarray | None,
+                  decision_key: int) -> _Decision:
+        """Validate one decision's inputs and build its trees' roots (not yet installed)."""
         if not worlds:
             raise ValueError("search() needs at least one world")
         prior = np.asarray(prior, dtype=np.float64).reshape(N_ACTIONS)
@@ -689,17 +727,13 @@ class _Search:
             raise ValueError("prior must be masked to the engine's legal actions (and not all zero on them)")
         rows = np.flatnonzero(mask).tolist()
         prior_m = prior[mask] / prior[mask].sum()
-        policy_action = int(rows[int(np.argmax(prior_m))])
+        d = _Decision(rows, mask, prior, prior_m, int(rows[int(np.argmax(prior_m))]), int(decision_key))
         opp = None if opp_prior is None else np.asarray(opp_prior, dtype=np.float64)
         if opp is not None and opp.ndim == 1:
             opp = np.broadcast_to(opp.reshape(1, N_ACTIONS), (len(worlds), N_ACTIONS))
         if opp is not None and opp.shape != (len(worlds), N_ACTIONS):
             raise ValueError(f"opp_prior has shape {opp.shape}; want (10,) or ({len(worlds)}, 10)")
-
-        # ---- roots
-        trees: list[_Tree] = []
         per = [self.sims // len(worlds) + (1 if i < self.sims % len(worlds) else 0) for i in range(len(worlds))]
-        need_opp = []
         for w_i, world in enumerate(worlds):
             sn = world.node
             wm = np.asarray(sn.mask(self.tables, self.us), dtype=bool)
@@ -707,41 +741,54 @@ class _Search:
                 raise ValueError(f"world {w_i}: the acting seat's mask differs from world 0's -- "
                                  "a resampled world must keep our own side")
             r = _Node()
+            r.dec = d
             r.sn, r.seed, r.turn = sn, seed_base(decision_key, w_i), int(sn.turn())
             r.us_dec, r.mask_us = True, mask
             fm = np.asarray(sn.mask(self.tables, self.foe), dtype=bool)
             r.foe_dec, r.mask_foe = bool(fm.any()), fm
             rng = np.random.default_rng([int(decision_key) & 0x7FFFFFFFFFFFFFFF, w_i])
-            trees.append(_Tree(w_i, float(world.weight), r, per[w_i], rng))
+            t = _Tree(w_i, float(world.weight), r, per[w_i], rng)
+            t.dec = d
             if r.foe_dec:
                 if opp is None:
                     r.obs_foe = np.asarray(sn.obs(self.tables, self.foe), dtype=np.float32)
-                    need_opp.append(r)
                 else:
                     po = opp[w_i]
                     if (po[~fm] != 0).any() or not (po[fm] > 0).any():
                         raise ValueError(f"world {w_i}: opp_prior must be masked to the foe's legal actions")
+                    t.opp = po
+            d.trees.append(t)
+        return d
+
+    def run_many(self, specs: Sequence[tuple], inspect_fn: Callable | None = None) -> list[dict[str, Any]]:
+        """Every decision's trees in LOCKSTEP -- one value_fn and one prior_fn call per
+        round across ALL of them, so a collector's in-flight decisions share their
+        forwards -- and each decision's result its own. `specs` are (worlds, prior,
+        opp_prior, decision_key). One decision is exactly `search()`."""
+        t_start = time.perf_counter()
+        decs = [self._decision(*spec) for spec in specs]
+        trees = [t for d in decs for t in d.trees]
+
+        # ---- roots: the foe's prior where the caller gave none (one call), then install
+        need_opp = [t.root for t in trees if t.root.foe_dec and t.opp is None]
+        got: dict[int, np.ndarray] = {}
         if need_opp:
             t0 = time.perf_counter()
             pr = self.prior_fn(np.stack([r.obs_foe for r in need_opp]), np.stack([r.mask_foe for r in need_opp]))
-            self.t_prior += time.perf_counter() - t0
-            self.c["prior_rows"] += len(need_opp)
-            self.c["forwards_p"] += 1
+            _charge([r.dec for r in need_opp], time.perf_counter() - t0, "t_prior", "prior_rows", "forwards_p")
             got = {id(r): np.asarray(pr[i], dtype=np.float64) for i, r in enumerate(need_opp)}
         for t in trees:
             r = t.root
             p_foe = None
             if r.foe_dec:
-                p_foe = got[id(r)] if opp is None else opp[t.w]
-            self._install(r, prior, p_foe)
+                p_foe = got[id(r)] if t.opp is None else t.opp
+            self._install(r, t.dec.prior, p_foe)
         if not self.root_grid:
             # the root's own value: q_init and v_mix need it (tree.py evaluates the root too)
             obs = np.stack([np.asarray(t.root.sn.obs(self.tables, self.us), dtype=np.float32) for t in trees])
             t0 = time.perf_counter()
             v = np.asarray(self.value_fn({"obs": obs}), dtype=np.float64).reshape(len(trees))
-            self.t_value += time.perf_counter() - t0
-            self.c["evals"] += len(trees)
-            self.c["forwards_v"] += 1
+            _charge([t.dec for t in trees], time.perf_counter() - t0, "t_value", "evals", "forwards_v")
             for t, val in zip(trees, v.tolist()):
                 t.root.v0 = float(val)
         else:
@@ -754,17 +801,17 @@ class _Search:
         # rows still in play EQUAL root visits, then keeps the better half by g + logits +
         # sigma(q_hat) on the Q pooled over worlds, so rows are never compared at unequal depth --
         # the bias a PUCT root has toward whatever its prior makes it search most. The grid is
-        # extra equal visits before phase 1.
-        self.sh = None
-        if self.root_select == "sequential_halving" and len(rows) > 1 and any(not t.error for t in trees):
-            m = len(rows)
-            g = np.zeros(m)
-            if self.gumbel_scale > 0:
-                g = self.gumbel_scale * np.random.default_rng([int(decision_key) & 0x7FFFFFFFFFFFFFFF, 7919]).gumbel(size=m)
-            self.sh = {"S": list(range(m)), "phase": 0, "phases": max(1, math.ceil(math.log2(m))), "g": g, "run": 0}
-            self._sh_fill(trees)
+        # extra equal visits before phase 1. Each decision has its own phases and barrier.
+        for d in decs:
+            if self.root_select == "sequential_halving" and len(d.rows) > 1 and any(not t.error for t in d.trees):
+                m = len(d.rows)
+                g = np.zeros(m)
+                if self.gumbel_scale > 0:
+                    g = self.gumbel_scale * np.random.default_rng([d.key & 0x7FFFFFFFFFFFFFFF, 7919]).gumbel(size=m)
+                d.sh = {"S": list(range(m)), "phase": 0, "phases": max(1, math.ceil(math.log2(m))), "g": g, "run": 0}
+                self._sh_fill(d)
 
-        # ---- simulations, in lockstep over worlds
+        # ---- simulations, in lockstep over every decision's worlds
         deadline = t_start + self.deadline_ms / 1e3 if self.deadline_ms > 0 else math.inf
         while True:
             stop_spawn = time.perf_counter() > deadline
@@ -777,7 +824,7 @@ class _Search:
                     continue
                 if not stop_spawn:
                     while len(t.active) < self.batch and t.done + len(t.active) < t.budget:
-                        if self.sh is None:
+                        if t.dec.sh is None:
                             t.active.append(_Descent(t.root))
                         elif t.queue:
                             t.active.append(_Descent(t.root, forced=t.queue.pop(0)))
@@ -796,7 +843,7 @@ class _Search:
                         else:
                             bucket = waits_e if d.need == "eval" else waits_p
                             if id(d.node) in bucket:
-                                self.c["dup_waits"] += 1
+                                d.node.dec.c["dup_waits"] += 1
                             bucket[id(d.node)] = d.node
                             keep.append(d)
                 except EngineError as err:
@@ -818,14 +865,20 @@ class _Search:
                         else:
                             keep.append(d)
                     t.active = keep
-            if live_trees == 0 and not finished and not (waits_e or waits_p):
-                if self.sh is not None and not stop_spawn and self._sh_next(trees, prior_m):
-                    continue
+            # each decision's phase barrier: all its worlds idle -> halve and queue the next phase
+            advanced = False
+            for dc in decs:
+                if dc.sh is not None and not dc.sh_done and all(not t.active and not t.queue for t in dc.trees if not t.error):
+                    if not stop_spawn and self._sh_next(dc):
+                        advanced = True
+                    else:
+                        dc.sh_done = True
+            if live_trees == 0 and not finished and not (waits_e or waits_p) and not advanced:
                 break
         if inspect_fn is not None:
             for t in trees:
                 inspect_fn(t)
-        return self._decide(trees, rows, mask, prior_m, policy_action, t_start)
+        return [self._decide(d, t_start) for d in decs]
 
     # ---- the root's pooled estimate and sequential halving ----------------------------
 
@@ -905,49 +958,49 @@ class _Search:
             return 0.0, float("nan")
         return float(len(shared)), float(np.mean([len(set(v.values())) > 1 for v in shared]))
 
-    def _sh_scores(self, trees: list[_Tree], prior_m: np.ndarray) -> np.ndarray:
-        ok = [t for t in trees if not t.error]
+    def _sh_scores(self, d: _Decision) -> np.ndarray:
+        ok = [t for t in d.trees if not t.error]
         q_root, n_pool, _pq, _pm = self._root_q(ok)
         q = np.where(np.isfinite(q_root), q_root, np.nanmin(q_root) if np.isfinite(q_root).any() else 0.0)
         lo, hi = q.min(), q.max()
         q_hat = (q - lo) / max(hi - lo, 1e-8)
-        return self.sh["g"] + np.log(prior_m) + (self.c_visit + float(n_pool.max())) * self.c_scale * q_hat
+        return d.sh["g"] + np.log(d.prior_m) + (self.c_visit + float(n_pool.max())) * self.c_scale * q_hat
 
-    def _sh_fill(self, trees: list[_Tree]) -> None:
+    def _sh_fill(self, d: _Decision) -> None:
         """This phase's queue per world: EQUAL visits for every row still in play,
         interleaved so a batch of descents spreads across them."""
-        S = self.sh["S"]
-        left = self.sh["phases"] - self.sh["phase"]
-        for t in trees:
+        S = d.sh["S"]
+        left = d.sh["phases"] - d.sh["phase"]
+        for t in d.trees:
             t.queue = []
             if t.error:
                 continue
             rem = t.budget - t.done - len(t.active)
             per = max(1, (rem // max(left, 1)) // len(S)) if rem > 0 else 0
             t.queue = (S * per)[: max(rem, 0)]
-        self.sh["run"] += 1
+        d.sh["run"] += 1
 
-    def _sh_next(self, trees: list[_Tree], prior_m: np.ndarray) -> bool:
+    def _sh_next(self, d: _Decision) -> bool:
         """The phase barrier: halve the rows by their pooled scores, and queue the next
         phase if one remains and any world has budget left. False = the search is done."""
-        if self.sh["phase"] + 1 >= self.sh["phases"] or len(self.sh["S"]) <= 1:
+        if d.sh["phase"] + 1 >= d.sh["phases"] or len(d.sh["S"]) <= 1:
             return False
-        sc = self._sh_scores(trees, prior_m)
-        S = sorted(self.sh["S"], key=lambda i: (-sc[i], i))
-        self.sh["S"] = sorted(S[: max(1, math.ceil(len(S) / 2))])
-        self.sh["phase"] += 1
-        if not any(not t.error and t.done < t.budget for t in trees):
+        sc = self._sh_scores(d)
+        S = sorted(d.sh["S"], key=lambda i: (-sc[i], i))
+        d.sh["S"] = sorted(S[: max(1, math.ceil(len(S) / 2))])
+        d.sh["phase"] += 1
+        if not any(not t.error and t.done < t.budget for t in d.trees):
             return False
-        self._sh_fill(trees)
-        return any(t.queue for t in trees)
+        self._sh_fill(d)
+        return any(t.queue for t in d.trees)
 
     # ---- the decision -----------------------------------------------------------------
 
-    def _decide(self, trees: list[_Tree], rows: list[int], mask: np.ndarray, prior_m: np.ndarray,
-                policy_action: int, t_start: float) -> dict[str, Any]:
+    def _decide(self, d: _Decision, t_start: float) -> dict[str, Any]:
+        trees, rows, mask, prior_m, policy_action = d.trees, d.rows, d.mask, d.prior_m, d.policy_action
         ok = [t for t in trees if not t.error]
         nr = len(rows)
-        counters = self._counters(trees, ok)
+        counters = self._counters(d, ok)
         if not ok:
             counters.update({"tree/fallback": 1.0, "search/override": 0.0, "search/kl_prior": 0.0,
                              "search/margin": 0.0, "search/pi_top1": float(prior_m.max()),
@@ -998,12 +1051,12 @@ class _Search:
             pi_m = s / s.sum() if s.sum() > 0 else prior_m.copy()
         action = int(rows[int(np.argmax(pi_m))])
         sh_final = 0.0
-        if self.sh is not None:
+        if d.sh is not None:
             # the halving's survivor with the best score is the action; pi' stays the root
             # rule's improved policy (the training target)
-            sc = self._sh_scores(trees, prior_m)
-            action = int(rows[max(self.sh["S"], key=lambda i: (sc[i], -i))])
-            sh_final = float(len(self.sh["S"]))
+            sc = self._sh_scores(d)
+            action = int(rows[max(d.sh["S"], key=lambda i: (sc[i], -i))])
+            sh_final = float(len(d.sh["S"]))
         ia = rows.index(action)
         ip = rows.index(policy_action)
         v_prime = float(pi_m @ q_done)
@@ -1018,7 +1071,7 @@ class _Search:
                  for q in own]
         counters.update({
             "tree/fallback": 0.0,
-            "tree/sh_phases": float(self.sh["run"]) if self.sh is not None else 0.0,
+            "tree/sh_phases": float(d.sh["run"]) if d.sh is not None else 0.0,
             "tree/fusion_views": fus[0],
             "tree/fusion_disagree": fus[1],
             "tree/sh_final": sh_final,
@@ -1047,8 +1100,9 @@ class _Search:
                 "policy_action": policy_action, "rows": rows, "root": root, "counters": counters,
                 "per_world": [q.tolist() for q in per_q]}
 
-    def _counters(self, trees: list[_Tree], ok: list[_Tree]) -> dict[str, float]:
-        c = self.c
+    def _counters(self, d: _Decision, ok: list[_Tree]) -> dict[str, float]:
+        trees = d.trees
+        c = d.c
         sims = max(c["sims"], 1.0)
         evals = max(c["evals"], 1.0)
         r0 = (ok or trees)[0].root
@@ -1057,7 +1111,7 @@ class _Search:
             "search/rows": float(len(r0.rows)),
             "search/cols": float(len(r0.cols)) if r0.cols != [-1] else 1.0,
             "search/worlds": float(len(ok)),
-            "search/rust_ms": self.t_engine * 1e3,
+            "search/rust_ms": d.t_engine * 1e3,
             "search/topk_mass": float(np.mean([t.root.topk_mass for t in ok])) if ok else 1.0,
             "search/terminal_frac": c["terminal_sims"] / sims,
             "search/pass_leaf_frac": c["pass_evals"] / evals,
@@ -1080,16 +1134,28 @@ class _Search:
             "tree/upd_max": c["upd_max"],
             "tree/turns_mean": c["turn_sum"] / sims,
             "tree/turns_max": c["turn_max"],
-            "tree/errors": float(sum(self.errors.values())),
+            "tree/errors": float(sum(d.errors.values())),
             "tree/worlds_failed": float(len(trees) - len(ok)),
-            "tree/ms_value": self.t_value * 1e3,
-            "tree/ms_prior": self.t_prior * 1e3,
+            "tree/ms_value": d.t_value * 1e3,
+            "tree/ms_prior": d.t_prior * 1e3,
         }
-        for i, h in enumerate(self.hist):
+        for i, h in enumerate(d.hist):
             out[f"tree/depth_hist/{i}"] = float(h)
-        for k, v in self.errors.items():
+        for k, v in d.errors.items():
             out[f"tree/error/{k}"] = float(v)
         return out
+
+
+def _charge(decs: list, seconds: float, t_attr: str, rows_key: str, calls_key: str) -> None:
+    """Split one shared forward between the decisions whose rows were in it."""
+    n = len(decs)
+    by: dict[int, list] = {}
+    for d in decs:
+        by.setdefault(id(d), [d, 0])[1] += 1
+    for d, k in by.values():
+        setattr(d, t_attr, getattr(d, t_attr) + seconds * k / n)
+        d.c[rows_key] += k
+        d.c[calls_key] += 1
 
 
 def _rm_strategy(r: np.ndarray, gamma: float) -> np.ndarray:

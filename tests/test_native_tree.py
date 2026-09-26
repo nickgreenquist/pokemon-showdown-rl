@@ -180,6 +180,25 @@ for kw in (dict(mode="legacy", root_grid=False), dict(root_grid=False)):
     except ValueError as err:
         assert "sequential_halving" in str(err), err
 
+# (4c) SEVERAL DECISIONS SEARCHED TOGETHER (search_many, the collector's case): every decision gets what it
+# gets alone -- the same action, visits, depth and work, Q to float noise -- while the rounds share forwards.
+from rl.search.native_tree import search_many
+pm, qm = priors(mid)
+specs = [([World(root)], p, q, 11), ([World(mid)], pm, qm, 12), ([World(root)] * 2, p, q, 13)]
+for cfg in (dict(), dict(batch=4), dict(root_select="sequential_halving"), dict(mode="legacy", root_grid=False, root_rule="legacy_gumbel")):
+    together = search_many(specs, tables, "p1", stub, prior_fn, sims=600, **cfg)
+    for (ws, pp, qq, key), got in zip(specs, together):
+        alone = search(ws, tables, "p1", pp, qq, stub, prior_fn, key, sims=600, **cfg)
+        assert got["action"] == alone["action"] and np.array_equal(got["n_row"], alone["n_row"]), (cfg, key)
+        assert np.allclose(got["q_row"], alone["q_row"], equal_nan=True, rtol=0, atol=1e-12), (cfg, key)
+        for k in ("tree/sims", "search/leaves", "tree/nodes", "tree/merges", "tree/depth_mean", "tree/capped_sims"):
+            assert got["counters"][k] == alone["counters"][k], (cfg, key, k, got["counters"][k], alone["counters"][k])
+    assert sum(r["counters"]["tree/forwards_v"] for r in together) > max(r["counters"]["tree/forwards_v"] for r in together)
+try:
+    search_many(specs, tables, "p1", stub, prior_fn, sims=10, depth3=1); raise SystemExit("unknown dial accepted")
+except ValueError as err:
+    assert "unknown native-tree dial" in str(err)
+
 # ---- (5) FIXTURES (gate i-b), on constructed roots
 def ms(sp, moves, hp=None):
     return pkmn_gen1.MonSpec(sp, 100, [(m, pkmn_gen1.max_pp(m)) for m in moves], hp=hp)
