@@ -126,7 +126,12 @@ def test_verdict_branches():
     d, g, g3 = _arrays(n, {16: 0.004, 32: 0.008, 64: 0.012, 128: 0.012},
                        {16: 0.006, 32: 0.010, 64: 0.014, 128: 0.014},
                        {16: 0.0, 32: 0.0, 64: 0.0, 128: 0.0}, sd=0.01)
-    assert s0.verdict(d, g, g3, n)["cells"] == "full"
+    v = s0.verdict(d, g, g3, n)
+    assert v["cells"] == "full"
+    # ONE cells helper: the R = 512 follow-up's curve reads its cells exactly as the verdict does
+    cells, gap = s0.cells_at(g, g3, v["knee"])
+    assert cells == v["cells"] and gap == v["full_minus_3x4_at_knee"]
+    assert s0.cells_at(g, g, 64)[0] == "3x4"
     # STILL RISING attaches ADD R = 512 to any branch
     d, g, g3 = _arrays(n, {16: 0.004, 32: 0.008, 64: 0.012, 128: 0.02},
                        {16: 0.006, 32: 0.010, 64: 0.014, 128: 0.022}, sd=0.01)
@@ -179,6 +184,9 @@ def test_summarise_joins_and_matches_the_banked_operating_point():
     target = np.mean([bel[p]["a_belief"] != 0 for p in range(n)])
     assert math.isclose(s["matched_rate"], target) and s["positions"] == n and s["rungs"] == [16]
     assert s["verdict"]["branch"] == "NO VERDICT"
+    # a follow-up tag (NO VERDICT) still carries its curve's knee AND the cells rule at that knee
+    assert s["curve"]["knee"]["knee"] == 16 and s["curve"]["cells_at_knee"] in ("3x4", "full")
+    assert "full_minus_3x4_at_knee" in s["curve"]
     # the rollout primary at the matched rate, recomputed by hand: gate on its own margins, score on the oracle
     moves = np.array([m["rungs"]["16"]["full/soft_br"]["cand"] != 0 for m in mine])
     margins = np.array([m["rungs"]["16"]["full/soft_br"]["margin"] for m in mine])

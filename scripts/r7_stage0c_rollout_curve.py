@@ -264,6 +264,14 @@ def knee_of(g: dict[int, np.ndarray]) -> dict:
     return {"best": best, "knee": knee, "best_minus": {str(R): diffs[R] for R in rungs}}
 
 
+def cells_at(g_full: dict[int, np.ndarray], g_3x4: dict[int, np.ndarray], knee: int) -> tuple[str, dict]:
+    """The pre-stated cells rule at the knee R*: H uses the 3x4 cells iff their gain
+    is within 1 se (paired) of the full matrix's, else the full matrix. One helper
+    for the verdict and the follow-up curve, so the two can never disagree."""
+    gap = stat(g_full[knee] - g_3x4[knee])
+    return ("3x4" if gap["mean"] <= gap["se"] else "full"), gap
+
+
 def verdict(d: dict[int, np.ndarray], g_full: dict[int, np.ndarray], g_3x4: dict[int, np.ndarray],
             n_positions: int) -> dict:
     """The pre-stated rule (module docstring), on per-position arrays in WIN-RATE
@@ -283,8 +291,7 @@ def verdict(d: dict[int, np.ndarray], g_full: dict[int, np.ndarray], g_3x4: dict
            "still_rising": still_rising}
     if any(pays.values()):
         k = knee_of({R: g_full[R] for R in RUNGS})
-        gap = stat(g_full[k["knee"]] - g_3x4[k["knee"]])
-        cells = "3x4" if gap["mean"] <= gap["se"] else "full"
+        cells, gap = cells_at(g_full, g_3x4, k["knee"])
         out.update({"branch": "STAGE 1", "knee": k["knee"], "best": k["best"], "cells": cells,
                     "full_minus_3x4_at_knee": gap})
     elif d_top["upper95"] < 0 and not still_rising:
@@ -421,10 +428,12 @@ def summarise(rows: list[dict], g0_by_pid: dict[int, dict], belief_by_pid: dict[
     g_full = {R: per(PRIMARY, R) for R in rungs}
     g_3x4 = {R: per("3x4/soft_br", R) for R in rungs}
     ver = verdict(d, g_full, g_3x4, n)
-    # The curve over whatever rungs this tag measured (the R = 512 follow-up reads its knee here).
+    # The curve over whatever rungs this tag measured (the R = 512 follow-up reads its knee AND its cells here).
     curve = {"primary_gain": {str(R): stat(g_full[R]) for R in rungs},
-             "step": {f"{a}->{b}": stat(g_full[b] - g_full[a]) for a, b in zip(rungs, rungs[1:])},
-             **({"knee": knee_of(g_full)} if rungs else {})}
+             "step": {f"{a}->{b}": stat(g_full[b] - g_full[a]) for a, b in zip(rungs, rungs[1:])}}
+    if rungs:
+        curve["knee"] = knee_of(g_full)
+        curve["cells_at_knee"], curve["full_minus_3x4_at_knee"] = cells_at(g_full, g_3x4, curve["knee"]["knee"])
 
     # The critic's breadth axis, recomputed on this program: B32 - B8 at each's native gate and at the matched rate.
     breadth, repro, breadth_pp = {}, {}, {}
@@ -548,7 +557,9 @@ def render_md(s: dict) -> str:
         if cv.get("step"):
             L.append("Steps (paired): " + "; ".join(f"{k}: {g(x)}" for k, x in cv["step"].items()))
         if cv.get("knee"):
-            L.append(f"Knee over these rungs: best R {cv['knee']['best']}, knee R {cv['knee']['knee']}")
+            L.append(f"Knee over these rungs: best R {cv['knee']['best']}, knee R {cv['knee']['knee']}"
+                     + (f"; cells {cv['cells_at_knee']} (full - 3x4 at the knee, paired: {g(cv['full_minus_3x4_at_knee'])})"
+                        if cv.get("cells_at_knee") else ""))
     b = s.get("breadth", {})
     if b:
         L += ["", "Critic breadth (recomputed on this program): " + "; ".join(
