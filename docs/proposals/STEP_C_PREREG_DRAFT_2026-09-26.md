@@ -1,241 +1,405 @@
 # STEP C — DEEP SEARCH IN TRAINING: the pre-reg, DRAFT (2026-09-26)
 
-**Status: DRAFT r3, not ratified. Its four rulings (§0) were DECIDED on 2026-09-26 by the three agent sessions**, as
-the maintainer asked ("Ask the other two sessions for their opinion. You decide among the 3 of you and then go for
-review"). The record, with every condition written in, is §8. Two Opus reviews come next.
+**Status: DRAFT r4, not ratified.**
+- The three agent sessions (r7-runner, r6-runner, fp-speedup) agreed on r4's direction, as the maintainer asked ("You
+  decide among the 3 of you and then go for review").
+- Both Opus reviews of r3 are folded in. Every finding has a disposition in §9.
+- **D1 (the budget) and D4 (worlds per search) are HELD** for the speed work: the maintainer's DeepResearch report
+  (`docs/SearchOptimizationsIdeas.md`, pending) and the quiet-box bench.
+- Next: a verification pass by both reviewers.
 
-It builds on `docs/proposals/DEEP_SEARCH_PATH_2026-09-25.md` r2 §2 Step C and adds the 09-26 reads that set its dose,
-its form and its mechanism. The standing ruling holds throughout: *"I do NOT want you to kill search in train if 1-ply
-doesn't work"* (CLAUDE.md rule 6). Nothing below decides WHETHER Step C runs; the reads set its FORM and DOSE.
+The standing ruling holds throughout: *"I do NOT want you to kill search in train if 1-ply doesn't work"* (CLAUDE.md
+rule 6). Nothing below decides WHETHER Step C runs; the evidence sets its FORM, DOSE and the reads that decide the next
+lap.
 
 **journey_step: "14"**, whose exit condition reads verbatim: "one comparison at a REAL budget, on the strongest gen-1
 object we have. Search-with-our-evaluator vs the same checkpoint greedy, pooled under the standing credit line, with
 decisions/sec reported for both arms and the per-turn budget named in every quote." Step C is not that comparison
-(Step B is). Like R7, it trains the objects such a comparison uses and credits ONE training lever.
+(Step B is). It trains the objects such a comparison uses, and it credits ONE training lever: the bundle {depth, the
+evaluator + TreeStrap} (D3).
 
-## 0. The four rulings, DECIDED (2026-09-26, the three sessions)
+## 0. What Step C tests (the corrected evidence, §2)
 
-### D1 — THE BUDGET: +100M steps per lane in <= 4 days of the box, 3 + 2 lanes
+All of the following are measured at the decision level on G0's 500 roots, with the R5 committee as the net.
 
-- Sunday's quiet-box width bench measures a lane's steps/s with the TreeOp at the dose. `frac`, the searched
-  fraction, is lowered to fit BEFORE the dose is ever touched.
-- **`frac`'s FLOOR** (r6-runner; fp-speedup) is the larger of 0.25 (KataGo's playout-cap p) and the level where the
-  KL term stays not-inert. The beta* smoke ladder and the not-inert check run AT THE FLEET'S `frac`, not only at the
-  smokes'.
-- **The pre-stated action:** if +100M in <= 4 days needs `frac` below the floor, run fewer steps, or the maintainer
-  rules on more days or fewer lanes. Never a thinner lever that can read null for dose reasons.
+- **BETWEEN positions, depth measured.** At the learnable fixed point (the mean over 8 belief worlds, no peek), the deep
+  tree's prior-weighted root value tracks the rollout oracle better than the raw critic:
+  - centred squared error -0.0133 ± 0.0056 (z -2.38) vs the critic;
+  - -0.015 .. -0.017 (z -2.9 .. -3.7) vs R7's exact one-ply fixed point, across 3 one-ply keys;
+  - across 3 DEEP keys: [PENDING stepc3_a].
+- **WITHIN a position, depth ties one ply.** On the ranking of our root rows against the oracle (fp-speedup: Pearson /
+  Spearman paired, every |z| < 1.2 per key), the policy target's learnable EI edge is ~+0.0008, not resolved, and the
+  argmax ties.
+- **So the VALUE channel is where depth measured, and the policy target is the pathway.** An improving evaluator
+  reaches the actor only through the tree's within-position choices. That link, the compounding bet, is UNMEASURED.
+  - Its first test is offline and runs before the fleet (G2, §3).
+  - Its decisive test is the per-checkpoint fixed-point EI read (M2, §5).
+- **Expectation for the primary: X-FLAT is the likely cell.** Off FP@N, the decision-to-battle conversion is G2's
+  ~0.46, not the engine mirror's ~14 (§5 POWER). So the offline mechanism reads are pre-registered as decision-bearing
+  for the next lap's design (D5).
+
+## 1. The rulings (the three sessions, 2026-09-26)
+
+### D1 — THE BUDGET: HELD for the speed work, with its rules pre-stated
+
+- **Target:** +100M steps per lane in <= 4 days of the box, 3 + 2 lanes. C's steps are matched to S's.
+- **The break-even cost per searched decision** (reviewer B #10): 100M in 4 days is 289 steps/s a lane. With eligible
+  decisions ~0.71 and the one-ply T-op at ~1.6 ms a searched decision (R7's lanes), `frac` 0.25 needs c_tree <= ~20 ms,
+  ~12x the one-ply.
+  - The stored E-core timings put the 256-simulation tree at ~20.5x the one-ply's time (680 vs 33 ms, the committee on
+    E-cores). The width bench (G3) measures c_tree on the fleet's own net.
+- **`frac`'s FLOOR** is the larger of 0.25 (KataGo's playout-cap p) and the level where the KL term stays not-inert.
+  The beta ladder and the not-inert check run AT THE FLEET'S `frac`.
+- **If c_tree > break-even, in this order:**
+  1. The speed levers: the merged critic + prior forward; lazy priors, verified bitwise at batch 8; cross-tree batching
+     with more environments per collector; search OFF the collector's critical path (Reanalyze-style workers, which
+     can use the E-cores); a distilled leaf net.
+  2. Then more days or fewer lanes (the maintainer).
+  3. Never a smaller dose, and never a `frac` below the floor.
+- **The minimum steps** below which the fleet waits rather than launches: 50M a lane. That is a dose-limited null
+  otherwise, which rule 6 would forbid reading anyway.
 - The width bench NEVER overlaps fp-speedup's FP@500 calibration reference (REF500 VOIDs above 5% contaminated
   minutes).
 
-### D2 — THE LEVER'S FORM: the tree's soft_br POLICY TARGET at B = 1, TreeStrap stacked beside it on an EVALUATOR head; `play: false`; v' into the evaluator head
+### D2 — THE LEVER (agreed 3/3)
 
-- **THE FORM IS soft_br, not completed-Q** (fp-speedup's finding, reproduced on the instrument). A student of B = 1
-  targets converges to their mean over the hidden world, its FIXED POINT. On that learnable objective (§1):
-  - the soft_br target (tau 0.05) keeps **+0.0019 ± 0.0010 (z 1.91) over R7's one-ply target**;
-  - completed-Q keeps ~0: +0.0003 ± 0.0014 at the true-world sigma, and +0.0008 even with sigma chosen on the fixed
-    point, which is -0.0011 ± 0.0004 (z -2.95) against soft_br's fixed point.
-  - Completed-Q's true-world +0.0044 (z 2.76) is almost all PEEK: true minus fixed point +0.0041 ± 0.0016.
-  - Completed-Q is the form ONLY under a joint belief tree, where the two tie (+0.0005 ± 0.0017).
-  - Whichever form, its dials are chosen on the FIXED POINT's expected improvement, never the true world's.
-- **The learnable number is at the floor.** +0.0019 is z 1.91, suggestive rather than resolved. Times ~14 searched
-  decisions a battle, it puts the B = 1 policy channel's ceiling at ~+0.027 a battle: AT the +0.025 floor, and
-  optimistic (full distillation, additive per-decision gains). The joint 8-world target's is ~+0.043. These are
-  planning numbers, never a kill (rule 6), and the strongest case for stacking TreeStrap.
-- **TREESTRAP, on an EVALUATOR head** (fp-speedup's alternative to a critic-side lever):
-  - The labels train a SEPARATE evaluator head (R7's v' aux head, extended; at the warm start it is initialised from
-    the critic where the donor's aux head is untrained), and the TreeOp reads THAT head at its leaves.
-  - The GAE critic stays PPO's baseline, untouched by the labels. The lever is then actor-neutral on the advantage
-    path by construction (D18's falsifier).
-  - Each label is (the node's obs from OUR information set in the true world, the NON-OPTIMISTIC backup E_{a~pi'}
-    E_{b~prior} Q at the node): v''s own form, NEVER a max over our moves with the foe fixed. That max is G1's +0.019
-    of optimism and the `_look_further` landmine. Nodes with N >= N_min are labelled.
-  - At B = 1 the peek sits in the labels too (true-world backed-up values). The evaluator can only learn their mean
-    over worlds, the posterior mean, which is the right target for an observation-measurable evaluator.
-  - Counters: labels a decision; the labelled nodes' depth histogram; the label-vs-head gap; the evaluator head's
-    loss.
-  - **A pre-smoke LABEL-QUALITY READ** on the E-cores (fp-speedup): at nodes with N >= 16 on G0's roots, the label vs
-    the raw critic vs a rollout value of the node. It sets N_min and shows whether the labels carry signal. If they
-    carry none, TreeStrap goes to its own lap.
-  - **FALLBACK, if the evaluator head's build is not green:** the labels train the GAE critic, with the ON-POLICY
-    CRITIC STOP CONDITION below as the named counter and action.
-- **ON-POLICY CRITIC COUNTERS, a STOP CONDITION** (r6-runner; a critic-side effect is not actor-neutral in PPO): the
-  GAE critic's value loss and explained variance on the rows each lane actually played, searched vs control, every
-  update. A searched-arm EV that falls away from its pair's goes to the maintainer mid-fleet, never a silent
-  continuation.
-- **IF TREESTRAP IS NOT GREEN AT LAUNCH** (r6-runner): the maintainer rules between launching the policy target alone,
-  with TreeStrap on its own lap, and holding the fleet. It is named now so it is not improvised.
+- **THE TREE.** The dials are pinned to the evidence: stepc_a's stamped `dials["tr_256"]` = {sims 256, mode br_prior,
+  root_grid, depth_cap 8, cols_k 4, chance_k 2, root_rule soft_br, tau 0.05, batch 8}, pass_leaf "through", lazy_priors
+  off (or on only after a bitwise check at batch 8).
+  - B = 1 on the TRUE world (D4).
+  - The generator writes the full block, and a test asserts it equals the stamped dials.
+  - TreeOp's own defaults (completed-Q, batch 1, `frac` 0.4) are never relied on, and its docstring's completed-Q line
+    is fixed (reviewer A #6).
+- **THE POLICY TARGET: the tree's soft_br pi' at tau 0.05**, trained as beta * KL(pi' || pi_theta) on searched rows;
+  beta warms up 0 -> beta* (G6).
+  - DISCLOSED (r6-runner): tau 0.05 was INHERITED from G0's belief dials, never tuned on these roots, while
+    completed-Q's sigma was selected split-sample. So completed-Q's z -2.95 deficit against soft_br at the fixed point
+    is conservative.
+  - A policy-entropy counter on searched rows, searched vs control.
+- **THE EVALUATOR, a SEPARATE network on design B's isolation pattern** (`rl/agents/ppo.py` ~592-640;
+  `_priv_eval_gradient` ~1365; reviewers A #1, B #4).
+  - Its own EntityDeepSetsNet on the OBSERVATION only. No privileged block: the TreeOp refuses a privileged leaf.
+  - Warm-started as a copy of the donor's critic in every cell.
+  - It feeds NOTHING but the tree's leaves. Advantages, the policy gradient, `loss/value` and `loss/explained_variance`
+    keep reading the critic.
+  - Its gradient is a separate autograd over its own parameters, called after the shared clip is read, so it cannot
+    move `loss/grad_norm`.
+  - Tests: the critic's updates are bit-identical with the evaluator on and off (tests/test_priv_eval_head.py's
+    pattern); the collector child's evaluator equals the learner's at every weights version; the TreeOp's leaf equals
+    the donor critic at step 0.
+  - R7's v' aux head (a linear head on the critic's context whose gradient reaches the critic trunk; reviewer A #1) is
+    NOT used by S, and "actor-neutral by construction" is claimed only for this separate net.
+- **THE EVALUATOR'S LOSS:**
+  - (1) GROUNDING (r6-runner, fp-speedup): design B's Monte-Carlo-return MSE (lambda 1) on the rows each lane played,
+    at a counted coefficient. Labels alone bootstrap off the evaluator's own leaves (tree/terminal_sims is ~0 at 256),
+    and a flat value is nearly self-consistent.
+  - (2) TREESTRAP labels at a counted weight w_ts (set by G2), on internal nodes with N >= N_min (set by G1):
+    - The obs comes from OUR information set in the true world (the tracked view).
+    - The label is the RECURSIVE prior-weighted backup over the finished tree (fp-speedup): at every node our side is
+      weighted by the prior and the foe's side by its model's q. Unexpanded rows take the evaluator's value (v_mix).
+      No choice anywhere below depends on the peek, so the posterior mean is the prior's value from our information
+      set, which is the oracle's own estimand.
+    - Excluded: Pass nodes (valued through), terminals (their outcome), unvisited rows.
+  - v' (the root soft-best-response value) is NEVER a label (reviewer B #3: v' - v_prior is +0.0293 at 256, only +0.0070
+    of it real, with clairvoyance +0.0208 at z 6.2).
+- **THE STOP CONDITIONS:** §4.
 
-### D3 — THE CONTROL: mechanical from R7's verdict (§6), with the X-POS / X-GAIN case STATED
+### D3 — THE CONTROL (agreed 3/3)
 
-- Under X-POS / X-GAIN, R7's credited recipe is `play: true`, `frac` 0.75, search_policy_coef 0.1
-  (`configs/r7_fleet_searched_f1.yaml`).
-- **C = that credited recipe UNCHANGED** (fp-speedup's preference). **S = the same base with the one-ply T-op
-  REPLACED** by the deep TreeOp at 256, `play: false`, the soft_br target, TreeStrap and the evaluator head.
-- The lever is named as the WHOLE difference: {depth, `play` true -> false, the evaluator head + TreeStrap}. The
-  target form is soft_br tau 0.05 on both sides, so the form is not part of the difference.
-- The mechanism reads and the clip-split / grad-norm counters attribute within it (§5). r2's "isolates DEPTH" was not
-  true as written, and is withdrawn.
-- Otherwise C is R7's base (no T-op) and S = the base + the lever. The finals R7's verdict names are warm starts,
-  paired by final.
+- **C = R7's one-ply T-op at `play: false`, at S's `frac` and beta*** (beta* shared from S's ladder, disclosed),
+  every other key equal.
+- **S - C = {depth, the evaluator + TreeStrap}**, with the behaviour channel MATCHED (reviewer B #5). r3's "C = the
+  credited recipe unchanged" is withdrawn: a lever this small needs the clean contrast more than the credited base.
+- C is a new configuration, so it gets its own smoke and its own not-inert check (G7).
+- **Adoption** (fp-speedup): where R7 does not credit the T-op, C carries an uncredited one-ply target. A positive S - C
+  then credits the bundle OVER THAT C, never "S beats the base". Adoption goes through the object rule (§5) or a
+  disclosed secondary.
+- If R7 credits `play: true` (X-POS), the base's deviation is disclosed.
+- The donors follow §6's table.
 
-### D4 — WORLDS PER SEARCH: B = 1 at 256 simulations, with the soft_br target; the fusion read at depth disclosed as UNRESOLVED
+### D4 — WORLDS PER SEARCH: HELD, B = 1 by default, with the switch rule pre-stated
 
-- **The B = 2 switch, a rule stated before its read** (r6-runner; fp-speedup):
-  - B = 2 runs over BELIEF worlds only. A true world inside a B >= 2 tree brings the peek back.
-  - Each world is searched at the depth floor, ~2x B = 1's cost.
-  - B = 2 replaces B = 1 iff its student fixed point beats B = 1's soft_br fixed point, paired, at z >= 2, AT EQUAL
-    TOTAL COST (B = 2's `frac` halved), AND the halved `frac` stays above the floor.
-  - The fixed-point read runs on the E-cores (G0, decision level); the cost is measured on the quiet box.
-- Why B = 1 now: it is the cheapest, and it carries the only learnable number measured at 256. The joint target has
-  headroom (+0.0031 over one ply, z 2.72) at 8x the work.
+- B = 2 runs over BELIEF worlds only (a true world inside a B >= 2 tree brings the peek back), each world at the depth
+  floor.
+- B = 2 replaces B = 1 iff all of these hold:
+  - its student fixed point's EI beats B = 1's, paired on G0's roots, at z >= 2;
+  - each form's tau is chosen split-sample (fp-speedup: reviewer B's tau 0.01 for the joint target was picked on the
+    same roots);
+  - the width bench fits it at EQUAL TOTAL COST (B = 2's `frac` halved) above `frac`'s floor.
+- ITS POWER, stated before the read (reviewer B #8): at 500 roots, even the joint B = 8 target's EI gap over the B = 1
+  fixed point is +0.0012 ± 0.0007 at tau 0.05 (z 1.82). At a split-chosen tau it is +0.0030 ± 0.0012 (z 2.60),
+  to be re-derived under the split rule. So the rule is likely unreachable at this n, and a non-switch is not evidence
+  against B = 2 (rule 6).
 
-## 0.5 POWER (r6-runner; `results/native_tree/stepc_power.json`, scripts/r7_fleet_power.py's model)
+### D5 — THE DECISION-BEARING MECHANISM READS (agreed 3/3): §5
 
-At 3 + 2 and n 6000 per lane the median se_diff is 0.0062 (pooled-binomial 0.0059). So 2 * se_diff is ~0.012 and the
-+0.025 SIZE FLOOR binds; it stops binding only if the two-control-lane clustered se exceeds ~0.0125.
+## 2. The evidence (every number traced to `results/native_tree/*`, SESSION_LOGS 2026-09-26)
 
-P(X-POS) at a true:
-- +0.019: 0.20 (X-GAIN 0.50);
-- +0.027 (B = 1's optimistic ceiling): 0.60 (X-GAIN 0.32);
-- +0.043 (the joint target's ceiling): 0.99.
+Caveats on everything below (reviewers B #6, #7, #9, #12, #13, #20):
+- Decision level on G0's 500 roots, 125 per turn bucket.
+- The R5 committee (c6-off) as prior and leaf; the fleet uses its own c6-on learner.
+- The root foe prior is the oracle's own column weighting (pi2). Under a uniform or worst-case foe the target reads
+  shrink toward 0, so the planning numbers are re-reported under a foe-robust weighting.
+- The resampled worlds are measurably NOT exchangeable with the true world (TV gap +0.0165 at z 2.9), so the fixed
+  point is a biased stand-in, sign unknown.
+- 230 of 500 roots are ineligible (top-1 >= 0.97 or one legal row).
+- The one-ply target headline sat mostly in the turn 16-22 bucket.
+- The banked one-ply reference used by i-c, tier 1 and tier 1b was the dial sweep's MAXIMUM cell (+0.0040 vs its band
+  mean +0.0028), which biases those reads against the tree.
 
-Said plainly: at B = 1, a non-clear is LIKELY unless the optimistic ceiling is reached in full.
+| read | what it measured | the number | file |
+|---|---|---|---|
+| gate (i-c) | belief tree at 1,800 vs the one-ply critic L-op, matched 0.080 | soft_br +0.0006 (z 0.47); gumbel_mctx +0.0020 (z 1.37); estimand vs br_prior under gumbel_mctx: legacy -0.0041 (z -2.78), sm_rm -0.0055 (z -3.55); under soft_br -0.0016 / -0.0019 | oracle_c.summary.md |
+| tier 1 | the belief tree 1,800 -> 28,800 | FLAT: steps -0.0004 ± 0.0004 / +0.0002 ± 0.0007 (soft_br) | tier1_a.summary.md |
+| tier 1b | the true world at 256 / 1,024 / 1,800 vs the banked one-ply (the sweep's max cell) at 0.100 | ties; every |d| < 1 se under soft_br and gumbel_mctx (legacy_gumbel z -1.28 / -1.47 / -1.29) | tier1b_a.summary.md |
+| stepc_a target form | EI, true world vs fixed point, soft_br vs completed-Q | completed-Q's learnable part ~0 (+0.0002); soft_br's fixed point +0.0018; completed-Q minus soft_br at the fixed point -0.0011 ± 0.0004 (z -2.95); the joint target: tie between forms | stepc_a.stepc.md |
+| stepc2_a like-for-like | R7's EXACT one-ply (pass_leaf critic), 3 keys, the same 8 worlds | fixed-point EI deep minus one-ply +0.0013 / +0.0003 / +0.0006; argmax tie; the one-ply's EI swings +0.0000..+0.0016 with the chance key | stepc2_a.stepc2.md |
+| value channel (peek) | prior-weighted root value vs G0's v_root_rollout, centred squared error | deep TRUE -0.0344 (z -4.98) vs the critic; deep FIXED POINT -0.0133 (z -2.38) vs the critic, -0.015..-0.017 (z -2.9..-3.7) vs the one-ply FP; joint -0.0180 (z -3.64); the one-ply FP = the critic (+0.0021); ~60% of the true edge is peek | SESSION_LOGS; recompute from the stored rows |
+| value channel (deep keys) | the same, deep side under keys 1 and 2 | [PENDING stepc3_a] | stepc3_a |
+| within-position (fp-speedup) | ranking our root rows vs the oracle | deep ties one-ply (|z| < 1.2 per key); among N >= 16 rows +0.11..+0.14 (z ~1.2-1.5) | fp-speedup's offline scripts |
+| fusion at depth | argmax form, t_pimc - t_avg | +0.00058 ± 0.00106 a decision; UNRESOLVED | stepc_a.stepc.md |
+| R7's clip split | R7's searched f1 vs the record-only control f1, last 5M steps (to 29.5M vs to 34.0M: windows NOT matched) | 51.2% vs 15.9% of searched rows (wandb; to be banked with its windows) | DEEP_SEARCH_PATH r2 note |
 
-## 1. The evidence (every number traced; `results/native_tree/*.summary.*` and `stepc_a.stepc.*`, SESSION_LOGS 2026-09-26)
+## 3. The builds and the R0 gates, in order
 
-- **Gate (i-c)** (`oracle_c`): at 1,800 simulations the belief tree is +0.0020 over the one-ply critic L-op at the
-  matched override (z 1.37, its best rule). br_prior is the estimand: legacy -0.0041 at z -2.78 and sm_rm -0.0055 at z
-  -3.55 against it.
-- **Tier 1** (`tier1_a`): FLAT from 1,800 to 28,800 simulations. Depth over equal-work breadth is ~+0.002 at every
-  rung and never grows. The evaluator binds, not depth.
-- **Tier 1b** (`tier1b_a`): in the TRAINING setting (true world, B = 1), the tree's gated ARGMAX ties the one-ply T-op
-  at 256 / 1,024 / 1,800 simulations (matched at 0.100; every |d| < 1 se). The depth floor (mean >= 2.5 turns) is met
-  at 256: 2.89 turns, 228 leaves, ~4.5x the one-ply's ~51.
-- **Step C's E-core inputs** (`stepc_a`; expected improvement, EI, over greedy on G0's oracle, win rate per decision,
-  of the full target distribution):
+**THE ORDER** (reviewer A #16). The merge is never before the R7 reads queue is done: the fleet and the queue import
+main's working tree, and the branch edits `rl/train.py`, `rl/envs/engine_collector_proc.py`, `scripts/ch3_fp_h2h.py`
+and `scripts/ch3_eval.py`.
+1. The R7 fleet DONE.
+2. The R7 reads queue DONE.
+3. Merge `deep-search-step-a`, then the suite at the merge commit (G8).
+4. The builds.
+5. The quiet-box benches (never during REF500).
+6. The E-core reads (G1, G2, the B = 2 read).
+7. The LR rule, then the beta ladder.
+8. The shakedown.
+9. Launch.
 
-| target | true world (with the peek) | STUDENT'S FIXED POINT (learnable) |
+**THE BUILDS.** Each has named counters in a DERIVED `GATE_COUNTERS` table, with a grep test over rl/ (R7's pattern).
+- **B1 — the evaluator network.** As D2: design B's isolation, obs only, the warm copy, its three tests.
+  - Counters: `loss/evaluator_mc`, `loss/evaluator_ts`, `evaluator/label_gap_signed`, `evaluator/drift_signed`.
+- **B2 — the TreeStrap label export.** The tree exports (node obs, recursive prior-weighted value) for N >= N_min
+  through a side channel from the collector child to the learner. TreeOp's `take()` is one record per row today
+  (`rl/search/tree_top.py` ~212-225), and native_tree returns root statistics only.
+  - Counters: `treestrap/labels_per_decision`, `treestrap/depth_hist/*`, `treestrap/label_minus_head_signed`,
+    `treestrap/excluded/{pass,terminal,unvisited}`.
+- **B3 — the TreeOp reads the evaluator.** Its value_fn is switched from `native.critic_value_fn(agent)`; the dials are
+  pinned by test (D2); the docstring is fixed.
+- **B4 — the beta warm-up in `ppo.py`** (`search/beta_effective`).
+- **B5 — the OFFLINE c6-on mechanism instrument** (the `scripts/r7_mechanism_reads.py` precedent). It runs M1-M4 (§5)
+  on G0's roots per checkpoint, with the SAME TreeOp dials on every final and the leaf named (S's evaluator or C's
+  critic).
+- **B6 — the TreeOp collector bench on the fleet's net:** c6-on, fleet width, weights lag <= 1.
+  `native_tree_gates.py bench` runs the committee c6-off (reviewer A #14) and is not this bench.
+- **B7 — the generator, the config-diff test and a Step C readout** derived from the header (R7's pattern:
+  `scripts/derive_r7_fleet.py`, `tests/test_derive_r7_fleet.py`, `scripts/r7_reads_readout.py`).
+
+**THE R0 GATES** (each with its FAIL action):
+- **G1 — THE LABEL-QUALITY READ** (E-cores; the donor final, c6-on, as the net; R = 32 rollouts per labelled node,
+  played from OUR information set by observation-based policies, never the tree; >= 2,000 labelled nodes from G0's
+  roots; both label forms, node-level and recursive). Per node:
+  - the paired |label - rollout| minus |donor critic - rollout|, centred;
+  - the SIGNED mean gap, label - rollout (the optimism);
+  - the WITHIN-position measure (fp-speedup): the ranking of a labelled node's children against their rollout values.
+  - PASS: the centred paired error is below 0 at 2 se. N_min is the smallest N at which it passes. FAIL -> the
+    not-green table.
+- **G2 — THE OFFLINE FIRST-LINK TEST** (r6-runner). Train the evaluator on TreeStrap labels plus MC grounding from ONE
+  fixed donor, for a few hours on idle cores. Then, on HELD-OUT G0 roots:
+  - (a) the evaluator's centred error vs the rollout value;
+  - (b) the tree's fixed-point pi' EI with that evaluator at the leaves vs the donor critic at the leaves.
+  - It sets FORM only (w_ts, N_min, the grounding weight). (a) improved at 2 se -> TreeStrap on. (b) is the compounding
+    link's first measurement: reported, never a gate (rule 6).
+- **G3 — THE WIDTH BENCH (B6)** -> c_tree, against D1's break-even and D1's order.
+- **G4 — THE DEPTH FLOOR:** `tree/turns_mean` >= 2.5 in the smokes, on the fleet's net. FAIL -> 512, re-bench. It is
+  also watched in-fleet (§4).
+- **G5 — THE LR RULE.** R7's candidate clause fails here (R7's finals started at 2.5e-05; reviewer A #9). So the
+  candidates are {2.5e-05, 1.25e-05}, each 2M, control-first. The bars are R7's control bars (approx_kl <= 0.06 on
+  every update, the entropy band, vs SH within 0.03), read on C, since both arms are `play: false`. The largest passing
+  lr wins; none passing -> the maintainer.
+- **G6 — THE BETA LADDER** (after G5). The candidates are {0.03, 0.1, 0.3}: S at each, plus a beta-0 comparator, all
+  AT THE FLEET'S `frac`, 2M each, with the warm-up compressed to 1M (disclosed).
+  - Not-inert (R7's rule): the last half's `search/kl_update` below the beta-0 comparator's by > 2 * sqrt(se_S^2 +
+    se_0^2).
+  - beta* is the largest candidate that passes C-matched KL and entropy bars and is not inert. If none is not-inert at
+    the floor `frac`, it goes back to D1's action.
+- **G7 — THE SHAKEDOWN** (reviewer A #2): S and C each >= 800k steps (6.5 updates at base b), eval and checkpoint every
+  100k.
+  - Kill the searched smoke after its first `checkpoint.pt` and resume it; the resume reproduces.
+  - Every GATE_COUNTER on every update row, and C's own not-inert check.
+  - FAIL -> no fleet.
+- **G8 — THE SUITE at the launch commit**, after the merge. Every lane stamps the same clean sha.
+- **G9 — DISK:** free space >= 2x the projection (~6 GB a lane plus ~7.5 GB of Foul Play stdout for 30k battles) and
+  >= 50 GB; else STOP (CLAUDE.md).
+
+**THE NOT-GREEN TABLE** (one table replacing r3's overlapping routes; reviewer A #8):
+
+| evaluator build (B1) | TreeStrap build (B2) + G1 | action |
 |---|---|---|
-| R7's one-ply T-op (soft_br tau 0.05) | -0.0001 ± 0.0013 | (the reference) |
-| deep soft_br (tau 0.05) | +0.0031 ± 0.0014 | **+0.0018 ± 0.0011; over one ply +0.0019 ± 0.0010 (z 1.91)** |
-| deep completed-Q, sigma chosen on the true world | +0.0043 ± 0.0020 (held out) | +0.0002 ± 0.0016; over one ply +0.0003 (z 0.22) |
-| deep completed-Q, sigma chosen on the fixed point | -- | +0.0008 ± 0.0011 (held out); vs soft_br's fixed point -0.0011 ± 0.0004 (z -2.95) |
-| joint B = 8 tree (no peek; 8x the work) | soft_br +0.0030; completed-Q +0.0035 (tie: +0.0005 ± 0.0017) | the same (a joint target has no peek) |
-
-  - FUSION AT DEPTH: +0.00058 ± 0.00106 per decision. x14 a battle: 95% [-0.021, +0.037] vs the 0.025 floor:
-    UNRESOLVED.
-- **R7's counters** (the searched lane f1 over its last 5M steps; the record-only control's matched baseline): PPO
-  clips 51.2% of searched rows vs 15.9% on the same selection in the record-only twin, ~3.2x at one ply. So **play:
-  false** is Step C's design.
-- **Stage 0c:** rollout leaves beat critic leaves at one ply (+0.0027 at z 2.02 at R 128, still rising to 512). The
-  evaluator axis is where search has shown room, which is TreeStrap's reason to exist.
-
-## 2. The lever (arm S): the collector's TreeOp
-
-`rl/search/tree_top.py::TreeOp` is built and tested on `deep-search-step-a`; `searcher_class(spec)` picks it for a
-block that carries `tree`. Its dials are derived from its signature, and unknown keys fail.
-- **Dose:** 256 TOTAL simulations on the TRUE world (B = 1, D4); br_prior, the root grid, depth cap 8, cols_k 4,
-  chance_k 2. The learner's own actor serves as prior, and the EVALUATOR HEAD (D2) as the leaf. TreeOp refuses an
-  antisymmetric or privileged critic.
-- **Which rows:** eligible rows as R7's (> 1 legal action, pi_theta top-1 < 0.97), searched on a coin at `frac`
-  (D1).
-- **Behaviour:** `play: false`. The lane plays pi_theta, so its data stay on-policy.
-- **Policy target:** the tree's soft_br pi' at tau 0.05 (D2), trained as beta * KL(pi' || pi_theta) on searched rows.
-  beta warms up 0 -> beta* over ~5M steps. beta* comes from a 2M smoke ladder at the fleet's `frac` under R7's
-  not-inert rule.
-- **Value target:** v' = E_{a~pi'} E_{b~prior} Q(a,b) into the evaluator head, NEVER the root max (G1: +0.019 of max
-  optimism).
-- **TreeStrap:** as D2 states it: evaluator head, non-optimistic labels, our information set, N >= N_min from the
-  label-quality read.
-- **The control (arm C):** D3. A searched/control pair differs EXACTLY in {seed, run_name, seat_tag, the search block,
-  the coefficients, `play`}, and a test pins that.
-
-## 3. R0 gates (before launch; each with its action on a FAIL)
-
-1. **THE LABEL-QUALITY READ** (E-cores, before the smokes). No signal -> TreeStrap to its own lap (D2).
-2. **THE WIDTH BENCH** (quiet box, nice 0, never overlapping REF500): `native_tree_gates.py bench`'s training rungs
-   plus a collector-throughput bench with weights lag <= 1. It gives each lane's steps/s at the dose and `frac`. Under
-   D1's floor -> D1's pre-stated action; never a smaller dose.
-3. **THE DEPTH FLOOR** in the bench: `tree/turns_mean` >= 2.5 at 256 simulations. FAIL -> 512, re-bench.
-4. **THE SMOKES** (400k, searched + control, warm from one final): every counter on every update row (search/*,
-   tree/*, the TreeStrap and evaluator-head counters, fallback_frac, batch_rows, the on-policy critic counters); the
-   KL term not inert AT THE FLEET'S `frac`; a resume mid-smoke reproduces. FAIL -> no fleet.
-5. **THE LR RULE** (a third anneal, disclosed), as R7's.
-6. **DISK:** +~6 GB a lane (CLAUDE.md's disk rule).
+| green | green | launch as specified |
+| green | not green, or G1 FAIL | the maintainer rules: the policy target + the evaluator trained on MC grounding only (TreeStrap to its own lap), or hold |
+| not green | any | HOLD (the maintainer); never labels into the GAE critic silently |
 
 ## 4. The fleet
 
-- 3 + 2 (or 3 + 3 by the width bench, as R7's R-F2). Fewer lanes weaken the seed-clustered se.
-- **Steps:** +100M; `frac` fits the 4 days, subject to D1's floor.
-- Warm from the finals R7's verdict names, paired by final.
+- **3 + 2 lanes** (3 + 3 only if the width bench passes six-wide), +100M (D1 held), warm from §6's donors.
+- The theta0 anchors are the donor's; the pool restarts at the donor.
+- The LR is re-armed: a third anneal. The N-ANNEAL disclosure travels on every number (~400M total over three anneals).
+- **LAUNCH:** over 5 h, so the maintainer launches unless a permission is recorded (CLAUDE.md rule 4; R7's
+  agent-side permission is R7's, not this fleet's).
+- **MONITORS:**
+  - A per-arm throughput alert at 0.6x the median of the lane's OWN arm (S and C run different operators; reviewer A
+    #10).
+  - The CPU-delta stall check; RESUMES= / NODE_RESTARTS= from one watchdog; every from_step; the /timer line.
+- **STOP CONDITIONS** (each read over the last 5M steps at every monitor pass; two consecutive trips go to the
+  maintainer mid-fleet, never a silent continuation):
+  - S1, THE CRITIC: S's on-policy explained variance on played rows below its pair's by > 0.05 (r6-runner; reviewers
+    A #15, B #15).
+  - S2, THE EVALUATOR'S DRIFT: |the evaluator's value minus the played-row MC return, signed| > 0.05 (r6-runner's
+    grounding counter).
+  - S3, THE DEPTH FLOOR: `tree/turns_mean` < 2.5.
 
-## 5. The reads (the same instruments as R7's, so no read is differenced across instruments)
+## 5. The reads
 
-- **PRIMARY:** off FP@N 25k/12k, greedy, loop breaker off, n 6000 per lane, one scheduler session in a pinned
-  control-first order. 30k battles, ~2.4-2.6 h at 8 slots on fp-speedup's ROI numbers.
-  - delta = the equal-weight mean of the searched finals minus that of the control finals. se_diff = the LARGER of the
-    pooled-binomial and the seed-clustered se_diff.
-  - CREDIT LINE, verbatim (CLAUDE.md): "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff
-    is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed
-    finals at read time." STRICT at both boundaries.
-  - Cells X-POS / X-GAIN / X-COST / X-NEG / X-FLAT with R7's actions (`scripts/r7_reads_readout.py` generalises).
-  - **An arm whose runner JSON has `fpn_counters_ok` false is INVALID**: it re-runs LAST on its rerun pair and is
-    never pooled.
-  - **Every quote names "FP@N 25k/12k" with its calibration** (two seats vs FP@20, NON-REJECTION, offset CI95 [-0.026,
-    +0.011], gap-change CI95 [-0.042, +0.033], MDE 0.054) and the two disclosures: the equivalence test is weakly
-    powered, and the point estimate flatters us.
-- **MECHANISM READS**, searched minus control, paired by donor, with R7's MOVED rule:
-  - (i) KL(pi' || pi_theta), LOWER: the manipulation check.
-  - (iii) the evaluator head's AND the critic's Spearman on G0, HIGHER.
-  - (vi) the greedy's split-sample regret on G0, LOWER.
-  - (vii) NEW: the evaluator head's error on TREE states against their rollout values (TreeStrap's own target), LOWER.
-  - (viii) NEW: the EI of the searched arm's pi' at its FIXED POINT on G0's oracle (stepc_a's instrument), HIGHER.
-  - The BEHAVIOUR channel: the clip_frac split and loss/grad_norm per arm. They attribute D3's `play` difference.
-  - STOP CONDITION (D2): the on-policy critic's value loss and EV on played rows, searched vs control.
-- **Secondary:** vs SH (locked); the object rule, as R7's.
+**PRIMARY:** off FP@N 25k/12k, greedy, loop breaker off, n 6000 per lane, one scheduler session in a pinned
+control-first order. That is 30k battles, ~2.4-2.6 h at 8 slots (fp-speedup).
+- delta = the equal-weight mean of the searched finals minus that of the control finals (the aggregator).
+- se_diff = the LARGER of the pooled-binomial and the seed-clustered se_diff.
+- CREDIT LINE, verbatim (CLAUDE.md): "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff, where se_diff is
+  the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from the per-seed finals
+  at read time." STRICT at both boundaries.
+- **VALIDITY:** an arm whose runner JSON has `fpn_counters_ok` false is INVALID. It re-runs LAST on its rerun pair and
+  is never pooled.
+- **Every quote** names "FP@N 25k/12k" with its calibration (two seats vs FP@20, NON-REJECTION, offset CI95 [-0.026,
+  +0.011], gap-change CI95 [-0.042, +0.033], MDE 0.054) and the two disclosures: the equivalence test is weakly powered,
+  and the point estimate flatters us.
+- **LANE LOSS:** a lane that fails a gate or cannot reach its steps is dropped with its pair. Under 3 + 2, losing a lane
+  of pair f1 or f2 -> PRIMARY VOID; losing S's f3 -> 2 vs 2.
+- **DOSE IS NOT MATCHED by design:** S and C search differently. Both arms' `search/searched_frac`, `eligible_frac`,
+  `tree/sims` and `search/leaves` are reported at 12M and at the end, beside the primary. The config-key diff is
+  enumerated and pinned by a test (B7).
 
-## 6. R7's outcome -> Step C's design (r2's mapping, corrected by D3; never whether it runs)
+**STEP C's OWN BRANCH ACTIONS** (strict boundaries, no unnamed cells, the word "kill" absent):
+- **X-POS** (delta > +0.025 AND > 2 se):
+  - The bundle {depth, evaluator + TreeStrap} is credited over C, in the warm-start regime.
+  - The lever stays in the next base.
+  - S's evaluator becomes Step B's leaf candidate at inference.
+- **X-GAIN** (0 < delta <= +0.025 AND > 2 se): a resolved gain below the floor, NOT credited; the lever stays in the
+  base.
+- **X-COST** (-0.025 <= delta < 0 AND |delta| > 2 se) and **X-NEG** (delta < -0.025 AND |delta| > 2 se):
+  - The lever leaves the base (X-NEG is credited negative).
+  - Its own lap goes to the channel the mechanism reads name: the evaluator (M1 moved with drift, S2) or the policy
+    pathway (M2).
+- **X-FLAT** (everything else): a null that closes nothing (rule 6), routed on M1 and M2 below. Never "search does not
+  work".
 
-- **X-POS / X-GAIN:** C = R7's credited recipe unchanged; S replaces its one-ply T-op with the lever. The difference is
-  the whole lever (D3).
-- **X-FLAT, (i) not moved:** the target form is the suspect, so beta is a ladder, and CE is sooner.
-- **X-FLAT, (i) moved and (vi) not:** the value channel is the suspect. TreeStrap on the evaluator head is ON, as D2
-  already has it.
-- **Moved with delta <= 0, or X-COST / X-NEG:** `play: false` is mandatory, as it already is here.
-- **VOID:** R7's control recipe on the R6 trio B donors.
+**POWER** (reviewer B #2, A #13; `results/native_tree/stepc_power.json`, via `scripts/r7_fleet_power.py`'s simulate; the
+lane sd comes from FP@20 trio reads, so it is APPROXIMATE under FP@N; the generating call is to be committed):
+- In the engine mirror's units (the ~14x conversion), the ceilings are +0.027 (B = 1) and +0.043 (joint), with P(X-POS)
+  0.60 and 0.99.
+- Off FP@N, the only paired calibration is G2's: 0.46x, CI roughly [-8x, +9x]. At that conversion the planning ceiling
+  is ~+0.001 a battle and P(X-POS) is ~0.
+- **The likely primary cell is X-FLAT, so M1 and M2 carry the next lap's design.**
+
+**THE DECISION-BEARING MECHANISM READS** (D5; B5's instrument; offline on G0's roots, c6-on, the SAME TreeOp dials on
+every final, paired by donor, every 25M checkpoint and at the finals; r6-runner's trajectory condition):
+- **M1 — THE EVALUATOR.** S's evaluator vs C's critic: centred error against the rollout value, paired by position;
+  also the signed level bias.
+  - Threshold: S better at 2 se at the finals -> "the evaluator improved".
+  - Consequence: S's evaluator is Step B's leaf candidate.
+- **M2 — THE TARGET'S FIXED-POINT EI**, the DECISIVE read of the compounding bet. The tree with S's evaluator vs C's
+  one-ply T-op with C's critic, both averaged over the same 8 belief worlds, 3 chance keys; plus the argmax, matched on
+  the override.
+  - Threshold: S's EI above C's at 2 se at the finals -> "the policy pathway moved". The trajectory over checkpoints is
+    the compounding test itself.
+- **M3 — WITHIN-POSITION RANKING** (fp-speedup): Spearman of the root Q against the oracle's qbar, S vs C. Reported.
+- **M4 — READ (i)**, the manipulation check: KL(pi' || pi_theta) with the same dials on each final. Reported.
+- **X-FLAT ROUTING:**
+  - M1 and M2 both moved -> the lever stays; the next lap is SCALE (dose, `frac`, B).
+  - M1 moved, M2 not -> the evaluator improved but did not reach the policy. The next lap puts the evaluator into
+    inference (Step B) and makes the target form the suspect.
+  - M1 not moved -> the value channel did not move at this dose. TreeStrap's form (labels, w_ts, N_min) is the next
+    lap's suspect.
+
+**SECONDARY:** vs SH (locked form). The object rule: the incumbent is R7's object as its readout names it; the fleet's
+committees are ENS-S and ENS-C; the tolerance is 0.013. The anchor battery comes before any README row.
+
+**OWED AT READOUT:** RESUMES= and NODE_RESTARTS=, every from_step, the donors' sha256, the /timer line.
+
+## 6. R7's verdict -> Step C's arms (one table, keyed on R7's action; reviewer A #4)
+
+| R7's action | C | S | donors (every lane's path and sha are pinned by the generator) |
+|---|---|---|---|
+| the lever STAYS (X-POS; X-GAIN; X-FLAT with both (i) and (vi) moved and delta > 0) | R7's T-op at play: false, at S's frac and beta* | C + the bundle | R7's SEARCHED finals, paired by donor (f1, f2, f3), for both arms |
+| the lever LEAVES (X-COST; X-NEG; X-FLAT's other routes) | the same C | the same S | R7's CONTROL finals for f1 and f2. Under 3 + 2 there is NO f3 control final, so Step C runs 2 + 2, unless the maintainer rules a third donor (R6 trio B's b344, with an N-ANNEAL disclosure) |
+| VOID | R7's control recipe | the same S | the R6 trio B donors |
+
+Every row: theta0 anchors, pool restart, the LR re-arm and the N-ANNEAL disclosure, as §4.
 
 ## 7. What changes the plan, and what does not
 
 - **Changes it:**
-  - the fusion read at depth (UNRESOLVED; a resolved SPENT forces B >= 2 at x B the cost);
-  - the B = 2 fixed-point read under D4's rule;
-  - the width bench (`frac` and steps under D1's floor);
-  - the label-quality read (TreeStrap in or on its own lap).
-- **Read, 09-26 (stepc_a + fp-speedup's fixed-point read):** the policy-target channel measures ONLY in soft_br form at
-  B = 1, and only at z 1.91. Completed-Q's learnable part is ~0.
-- **Does not change it:** a null or a cost at any one budget (rule 6); R7's verdict (it sets the control and the
-  suspect channel, never whether this runs).
+  - the speed work and the width bench (D1: `frac`, steps and the order of its levers);
+  - the B = 2 read (D4's rule);
+  - G1 and G2 (TreeStrap in, or on its own lap; w_ts and N_min);
+  - the deep-key value read (stepc3_a). If the fixed-point value edge fails across deep keys, the value channel's
+    rationale is withdrawn before the fleet, and the maintainer rules.
+- **Does not change it:** a null or a cost at any one budget (rule 6); R7's verdict (it sets C's donors, never whether
+  this runs).
+- **GENERATION (JOURNEY 15):** B = 1's licence, tau 0.05, `frac`'s floor and the dose are GEN-1 MEASUREMENTS. The
+  algorithm is generation-agnostic, and a new generation re-measures them. The TreeOp sits behind the engine interface
+  (SearchNode / LeafBatch), so a new generation supplies its engine and encoder, nothing else.
 
-## 8. The three-session decision (2026-09-26)
+## 8. The three-session record (2026-09-26)
 
-- **r7-runner** proposed D1-D4 (r1: completed-Q, B = 1, +100M in <= 4 days, the control from R7's verdict).
-- **r6-runner AGREED on all four**, with conditions now in §0 and §0.5:
-  - the learnable number as the policy channel's;
-  - the ~+0.027 ceiling at the floor, and the power block;
-  - `frac`'s floor at the fleet's `frac`;
-  - TreeStrap's non-optimistic backup from our information set;
-  - the on-policy critic stop condition;
-  - the not-green branch;
-  - the B = 2 rule.
-  Its draft fixes are applied.
-- **fp-speedup: D1 AGREE** (+ the 0.25 floor with its action; never overlapping REF500); **D2 AGREE on the structure,
-  DISAGREE with completed-Q at B = 1.** Its offline fixed-point read, reproduced exactly on the instrument (branch
-  `074f593`), shows completed-Q's learnable part ~0. It asked that dials be chosen on the fixed point, and that
-  TreeStrap be put on an evaluator head or given a named counter. **D3 AGREE**, with the X-POS control stated
-  (adopted: C = the credited recipe unchanged). **D4 AGREE**, with the soft_br form; the B = 2 rule is at equal cost,
-  over belief worlds only, at the depth floor. It also supplied §5's FP validity and disclosure lines and the sizing.
-- **The decision:** D1, D3 and D4 carry three of three. D2's STRUCTURE carries three of three. D2's FORM (soft_br at B
-  = 1) carries two of three (r7-runner + fp-speedup) on the fixed-point evidence. It is also the form r6-runner's own
-  learnable-number condition cites. r6-runner is informed and may object before the Opus reviews close.
-- The maintainer's rulings remain open only where a condition sends a case back to him: D1's floor, D2's not-green
-  branch, and a mid-fleet stop.
+- **r1 -> r3:** D1-D4 as first decided; fp-speedup's completed-Q finding moved D2's form to soft_br.
+- **r4:** the reviews and the like-for-like read overturned r3's D2 rationale (SESSION_LOGS 12:20Z and 13:10Z). The
+  sessions re-decided as follows:
+  - **r6-runner AGREED:**
+    - D2(i)-(iii), with the peek and key checks on the value evidence (the peek check is done; the deep-key check is
+      PENDING);
+    - the grounding term and the drift stop;
+    - D3, with C's own smoke and the shared beta* disclosed;
+    - D5, with the 25M trajectory and G2's offline first-link test;
+    - D1 and D4 held.
+  - **fp-speedup AGREED:**
+    - D2(i), scoped as BETWEEN-position evidence (within a root deep ties one ply), with the within-position measure;
+    - D2(ii), the RECURSIVE prior-weighted labels, both forms in G1 with the signed gap;
+    - D2(iii), design B's isolation without the privileged input, and the MC-return grounding;
+    - D3, with the adoption sentence;
+    - D5, with thresholds and consequences, argmax matched on the override;
+    - D1 and D4 held, with the joint tau chosen split-sample.
+
+## 9. The review record: every finding's disposition (reviewer A = completeness, B = the skeptic; r3)
+
+| finding | disposition |
+|---|---|
+| A1 / B4 the aux head moves the critic trunk | FIXED: a separate design-B evaluator net, its tests, "by construction" claimed only for it (D2, B1) |
+| A2 the 400k smoke is 3.3 updates with no resume | FIXED: G7 (>= 800k, kill + resume); not-inert moved to G6 |
+| A3 read (i) not computable against either control | FIXED: B5's offline instrument, the same dials on every final (M4) |
+| A4 unnamed / misassigned branch cells | FIXED: §6's table; 2 + 2 under "lever leaves", with the named third-donor ruling |
+| A5 the whole difference understated | FIXED: D3 (the bundle); frac and beta matched by construction; dose not matched, reported (§5); the config diff test-pinned (B7) |
+| A6 the tree block not pinned; TreeOp's defaults | FIXED: D2's pinned dials plus the test; the docstring fix (B3) |
+| A7 the machinery unbuilt; no named counters | FIXED: B1-B7 with the derived GATE_COUNTERS and a grep test |
+| A8 the label-quality read has no rule; overlapping routes | FIXED: G1's statistic, net, R, n and pass line; one not-green table |
+| A9 the beta and LR rules only by reference | FIXED: G5 and G6 written in full, with the order |
+| A10 missing house elements | FIXED: lane loss, the suite gate, RESUMES / from_step / timer, the per-arm throughput alert, OWED, the anchors, launch ownership, the object rule, disk (§3-§5) |
+| A11 no Step C branch actions | FIXED: §5's own actions |
+| A12 / B8 the fusion trigger vs D4's rule | FIXED: D4's EI-form rule is the only switch; the argmax-form fusion read is retired for Step C (play: false; the target enters only through the fixed point) |
+| A13 / B2 x14 unjustified off FP@N | FIXED: §5 POWER reports both conversions; X-FLAT likely; M1 and M2 decide |
+| A14 / B10 the bench measures the wrong object; no projection | FIXED: B6 on the fleet's net; D1's break-even and its lever order |
+| A15 / B15 the stop condition has no band | FIXED: §4's S1-S3 |
+| A16 no schedule; the merge hazard | FIXED: §3's order |
+| A17 untraced and mis-framed numbers | FIXED: §2's table with file and frame |
+| A18 rule names on numbers | FIXED: §2 |
+| A19 R7's clip counters untraced; windows unmatched | DISCLOSED in §2; the extraction is to be banked with its windows before ratification |
+| A20 / B7 transfer and foe caveats | FIXED: §2's caveats; foe-robust re-reporting |
+| A21 the B = 2 read has no instrument or power | FIXED: D4 (instrument = G0-root fixed-point EI per form; power stated) |
+| A22 wording | FIXED ("kept recipe"; no "the form only under a tie") |
+| A23 JOURNEY 15's per-generation dials | ADDED: B = 1's licence, tau and the frac floor are gen-1 measurements; the TreeOp sits behind the engine interface |
+| B1 the one-ply reference not like-for-like | FIXED: stepc2_a (R7's exact operator, 3 keys, the same 8 worlds); SECOND CORRECTION logged; D2's rationale rewritten |
+| B3 v' labels optimistic | FIXED: recursive prior-weighted labels; v' never a label; signed gaps (G1, S2) |
+| B5 D3's play confound | FIXED: C at play: false at S's frac and beta* |
+| B6 EI vs a greedy PPO student; eligible roots | ADDED: G2 (realised distillation on held-out roots); planning numbers on eligible roots at the argmax level alongside EI |
+| B9 the resampler is not the posterior | DISCLOSED (§2); M2 reads the trained student's own fixed point, which needs no resampler stand-in for the student |
+| B11 the warm-start leaf is not the tree S launches with | FIXED: G2 runs the donor's net as the leaf; B5 names the leaf per final |
+| B12-B14, B16 | DISCLOSED in §2 (bucket concentration; what is held out; the label gate's pass line is G1; power-model approximations) |
