@@ -154,9 +154,21 @@ adds NEW modules only (review 1).
   expected improvement. beta*KL stays an auxiliary term with a 0 -> beta* warm-up over ~5M steps; beta* is picked by a
   2M smoke ladder under R7's not-inert rule. Making CE the primary loss is the NEXT lap, and only if mechanism reads (i)
   and (vi) both move.
-- **Behaviour:** `play: false` by default. At tree@900's KL(pi' || prior) of 1.669 (§35), against the T-op's ~0.16,
-  PPO's ratio sits far outside the clip. Play pi' only if a 400k smoke shows `clip_frac_searched` within 2x of the
-  unsearched rows.
+- **Behaviour:** `play: false` by default. At tree@900's KL(pi' || prior) of 1.669 (§35), PPO's ratio sits far outside
+  the clip. Play pi' only if a 400k smoke shows `clip_frac_searched` within 2x of the unsearched rows.
+  - CORRECTED 2026-09-26: r2 set this against "the T-op's ~0.16", a figure typed without a source. R7's own training
+    counters say otherwise: searched lane f1, over its last 5M steps to 29.5M, reads KL(pi' || prior) **0.330**, and
+    PPO clips **51.2%** of searched rows against **8.9%** of unsearched ones (5.7x). Source: the lane's wandb history
+    (`runs/r7_fleet_searched_f1_s376`, via `scripts/extract_history.py`).
+  - THE RULE'S BASELINE IS WRONG, per the record-only control. Control lane f1 runs the same one-ply search
+    record-only (searched 53%, played 0%). Over its last 5M steps to 34.0M, its searched rows ALREADY clip **15.9%**
+    against **6.2%** unsearched: 2.6x, with nothing played. That is a selection effect: searched rows are the
+    uncertain decisions, where the policy moves most per update. So "within 2x of the unsearched rows" fails even a
+    lane that never plays.
+  - The rule becomes: searched rows in the playing smoke against the SAME selection in a record-only twin. On R7's
+    lanes (different lanes, descriptive) that is 51.2% vs 15.9%, about 3.2x at one ply.
+  - Playing a deep tree's pi', which moves further from the prior, can only be worse, so `play: false` is Step C's
+    design, not a precaution. R7's pre-registered mechanism reads say what this means for R7 itself.
 - **Value:** v' = E_{a~pi'} E_{b~prior} Q(a,b) into R7's aux head, NEVER the root max (G1 measured +0.019 of max
   optimism on top of the critic's). TreeStrap internal-node labels (N >= 16) are a counted dial.
 - **Fleet:**
