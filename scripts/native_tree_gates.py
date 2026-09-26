@@ -576,8 +576,15 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
         tflip.append(int(t_avg != rows[i_true]))
     fc = stat(fus)
     per_battle_upper = fc["upper95"] * T_OP_SEARCHED_PER_BATTLE
+    per_battle_lower = (fc["mean"] - 1.96 * fc["se"]) * T_OP_SEARCHED_PER_BATTLE
+    # Box 5 item 2 established B = 1's licence by the UPPER bound (upper95 x searched decisions < the floor); section
+    # 10 spends it when the read SHOWS the cost above the floor (here: the lower bound above it). Between the two the
+    # read is UNRESOLVED at this n: the licence is not established, and nothing shows it spent.
+    verdict = ("HOLDS" if per_battle_upper < CREDIT_FLOOR_BATTLE else
+               "SPENT" if per_battle_lower > CREDIT_FLOOR_BATTLE else "UNRESOLVED")
     fusion = {"positions": used, "fusion_cost_win_rate": fc, "upper95_x_searched_per_battle": per_battle_upper,
-              "floor": CREDIT_FLOOR_BATTLE, "licence_holds": bool(per_battle_upper < CREDIT_FLOOR_BATTLE),
+              "lower95_x_searched_per_battle": per_battle_lower, "point_x_searched_per_battle": fc["mean"] * T_OP_SEARCHED_PER_BATTLE,
+              "floor": CREDIT_FLOOR_BATTLE, "verdict": verdict,
               "world_flip": stat(wflip), "target_flip_vs_true_tree": stat(tflip)}
 
     # ---- SIGMA and THE TARGET'S FORM (expected improvement on G0's oracle halves, win-rate units)
@@ -598,6 +605,12 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
             per.setdefault(("prior", half), []).append(ei(prior_m, qh, o["ig"]))
             per.setdefault(("tree_soft_br", half), []).append(ei(np.asarray(t["pi"]), qh, o["ig"]))
             per.setdefault(("one_ply_t_op", half), []).append(ei(np.asarray(r["arms"]["tr_d1"]["pi"]), qh, o["ig"]))
+            # what a student of B = 1 targets can learn (mean over the belief worlds of the per-world deep targets), and
+            # the joint B = 8 tree's target; NaN when a root had no world (dropped from those two reads below)
+            fw = [np.asarray(r["arms"][f"fw_256_{b}"]["pi"]) for b in range(8) if "pi" in r["arms"][f"fw_256_{b}"]]
+            per.setdefault(("student_fixed_point", half), []).append(ei(np.mean(fw, axis=0), qh, o["ig"]) if fw else float("nan"))
+            fj = r["arms"]["fj_2048"]
+            per.setdefault(("joint_b8_target", half), []).append(ei(np.asarray(fj["pi"]), qh, o["ig"]) if "pi" in fj else float("nan"))
             for cv, cs in SIGMA_GRID:
                 per.setdefault((("cq", cv, cs), half), []).append(
                     ei(completed_q_pi(prior_m, q, nn, t["counters"]["tree/v_mix"], cv, cs), qh, o["ig"]))
@@ -606,11 +619,15 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
     pick_a, pick_b = max(grid_a, key=grid_a.get), max(grid_b, key=grid_b.get)
     held = np.array(per[(pick_a, "qb")]) + np.array(per[(pick_b, "qa")])                 # held-out EI, per root, x2
     held = held / 2.0
-    base = {k: (np.array(per[(k, "qa")]) + np.array(per[(k, "qb")])) / 2.0 for k in ("prior", "tree_soft_br", "one_ply_t_op")}
+    base = {k: (np.array(per[(k, "qa")]) + np.array(per[(k, "qb")])) / 2.0
+            for k in ("prior", "tree_soft_br", "one_ply_t_op", "student_fixed_point", "joint_b8_target")}
+    okw = ~np.isnan(base["student_fixed_point"]) & ~np.isnan(base["joint_b8_target"])
     target = {"sigma_chosen_on_half_a": {"c_visit": pick_a[1], "c_scale": pick_a[2], "ei_held_out_on_b": grid_b[pick_a]},
               "sigma_chosen_on_half_b": {"c_visit": pick_b[1], "c_scale": pick_b[2], "ei_held_out_on_a": grid_a[pick_b]},
-              "ei_win_rate": {"completed_q_held_out": stat(held), **{k: stat(v) for k, v in base.items()}},
-              "paired": {"completed_q - one_ply_t_op": stat(held - base["one_ply_t_op"]),
+              "ei_win_rate": {"completed_q_held_out": stat(held), **{k: stat(v[~np.isnan(v)]) for k, v in base.items()}},
+              "paired": {"student_fixed_point - one_ply_t_op": stat((base["student_fixed_point"] - base["one_ply_t_op"])[okw]),
+                         "joint_b8_target - one_ply_t_op": stat((base["joint_b8_target"] - base["one_ply_t_op"])[okw]),
+                         "completed_q - one_ply_t_op": stat(held - base["one_ply_t_op"]),
                          "tree_soft_br - one_ply_t_op": stat(base["tree_soft_br"] - base["one_ply_t_op"]),
                          "one_ply_t_op - prior": stat(base["one_ply_t_op"] - base["prior"]),
                          "completed_q - prior": stat(held - base["prior"])},
@@ -622,8 +639,11 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
     lines = [f"# Step C's E-core inputs at 256 simulations, the training setting ({len(ok)} roots)", "",
              "## The fusion read at depth (plan section 10's rule)",
              f"fusion cost (t_pimc - t_avg, per decision, win rate, ungated targets): {g(fc)}, upper95 {fc['upper95']:+.5f}",
-             f"x {T_OP_SEARCHED_PER_BATTLE} searched decisions a battle: {per_battle_upper:+.4f} vs the floor {CREDIT_FLOOR_BATTLE} -> "
-             f"B = 1 licence {'HOLDS' if fusion['licence_holds'] else 'SPENT (the T-op must search B >= 2 worlds)'}",
+             f"x {T_OP_SEARCHED_PER_BATTLE} searched decisions a battle: point {fusion['point_x_searched_per_battle']:+.4f}, "
+             f"95% [{per_battle_lower:+.4f}, {per_battle_upper:+.4f}] vs the floor {CREDIT_FLOOR_BATTLE} -> B = 1 licence {verdict}"
+             + {"HOLDS": " (the upper bound is below the floor, box 5's standard)",
+                "SPENT": " (the lower bound is above the floor: the T-op must search B >= 2 worlds, section 10)",
+                "UNRESOLVED": " (the licence is not established at this n, and nothing shows it spent: a ruling)"}[verdict],
              f"world flip (per-world tree argmax != the true-world tree's): {fusion['world_flip']['mean']:.3f}; "
              f"target flip (t_avg != the true tree's argmax): {fusion['target_flip_vs_true_tree']['mean']:.3f}", "",
              "## The target's form: expected improvement over greedy on G0's oracle (win rate per decision)",
@@ -632,6 +652,8 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
              f"completed-Q target (tr_256, held out): {g(target['ei_win_rate']['completed_q_held_out'])}",
              f"the tree's soft_br target (tr_256, tau 0.05): {g(target['ei_win_rate']['tree_soft_br'])}",
              f"the one-ply T-op's target (tr_d1, R7's form): {g(target['ei_win_rate']['one_ply_t_op'])}",
+             f"the STUDENT'S FIXED POINT of B = 1 deep targets (mean over the 8 belief worlds): {g(target['ei_win_rate']['student_fixed_point'])}",
+             f"the joint B = 8 tree's target (fj_2048): {g(target['ei_win_rate']['joint_b8_target'])}",
              f"the prior: {g(target['ei_win_rate']['prior'])}",
              *[f"paired {k}: {g(v)}" for k, v in target["paired"].items()]]
     (out_dir / f"{args.tag}.stepc.md").write_text("\n".join(lines) + "\n")
