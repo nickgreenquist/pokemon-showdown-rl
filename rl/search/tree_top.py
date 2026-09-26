@@ -35,8 +35,9 @@ operator's `kl_prior`, `override`, `margin`, `ms`, `leaves`, `pi_top1`, `prior_t
 `topk_mass`, `terminal_frac`, `pass_leaf_frac`, `v`, `v_prior` over the searched rows --
 plus the tree's dose: `tree/sims`, `tree/depth_mean`, `tree/depth_max`, `tree/upd_mean`,
 `tree/turns_mean`, `tree/nodes`, `tree/merges`, `tree/pass_nodes`, `tree/capped_sims`,
-`tree/errors`, `tree/fallback`, `tree/ms_value`, `tree/ms_prior`; and `tree/batch_rows`,
-the rows one `search_many` call searched.
+`tree/errors`, `tree/fallback`, `tree/ms_value`, `tree/ms_prior`; `tree/batch_rows`, the
+rows one `search_many` call searched; and `tree/fallback_frac`, decisions where every world
+failed -- recorded UNSEARCHED, since the tree's v is then NaN.
 """
 
 from __future__ import annotations
@@ -95,6 +96,7 @@ class TreeOp:
         self._records: dict[int, list[tuple[bool, np.ndarray, float]]] = defaultdict(list)
         self._sums: dict[str, float] = defaultdict(float)
         self._n_searched = self._n_eligible = self._n_played = self._n_decisions = 0
+        self._n_fallback = 0
         self._decision_counter = 0
         self._calls = 0
         self.seconds = 0.0
@@ -181,6 +183,12 @@ class TreeOp:
         for i in range(n):
             slot = int(idx[i])
             res = results.get(i)
+            if res is not None and res["counters"]["tree/fallback"]:
+                # every world failed (an engine error, counted by type in the result): the
+                # tree has no pi' and its v is NaN -- a NaN value target would poison the
+                # learner, so the row is recorded UNSEARCHED and the fallback is counted
+                self._n_fallback += 1
+                res = None
             if res is None:
                 self._records[slot].append((False, zeros, 0.0))
                 continue
@@ -227,11 +235,13 @@ class TreeOp:
             "search/played_frac": self._n_played / max(self._n_decisions, 1),
             "search/seconds": self.seconds,
             "tree/batch_rows": self._sums.pop("tree/batch_rows", 0.0) / max(self._calls, 1),
+            "tree/fallback_frac": self._n_fallback / max(self._n_decisions, 1),
         }
         for k, v in self._sums.items():
             out[k] = v / max(self._n_searched, 1)
         self._sums.clear()
         self._n_searched = self._n_eligible = self._n_played = self._n_decisions = 0
+        self._n_fallback = 0
         self._calls = 0
         self.seconds = 0.0
         return out

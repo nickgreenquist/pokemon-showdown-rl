@@ -112,6 +112,29 @@ op = TreeOp(agent, tables, seat="p1", seed=5, frac=1.0, top1_skip=1.0, play=Fals
 op.decide(env, idx, obs, forced, act0, lp0)
 assert not op.take(0, 1)["search_mask"][0] and op.take(1, 1)["search_mask"][0]
 
+# (3b) A FALLBACK (every world failed): the tree's v is NaN, so the row is recorded UNSEARCHED and counted --
+# never a NaN value target for the learner
+import rl.search.tree_top as tt
+real = tt.native_tree.search_many
+def all_failed(specs, *a, **k):
+    out = real(specs, *a, **k)
+    for r in out:
+        r["counters"]["tree/fallback"] = 1.0
+        r["v"] = float("nan")
+    return out
+tt.native_tree.search_many = all_failed
+try:
+    op = TreeOp(agent, tables, seat="p1", seed=6, frac=1.0, top1_skip=1.0, play=True, tree=TREE)
+    a, lp = op.decide(env, idx, obs, mask, act0, lp0)
+finally:
+    tt.native_tree.search_many = real
+assert np.array_equal(a, act0) and np.array_equal(lp, lp0)
+st = op.stats()
+assert st["search/searched_frac"] == 0.0 and st["tree/fallback_frac"] == 1.0 and st["search/played_frac"] == 0.0, st
+for s_ in idx:
+    rec = op.take(int(s_), 1)
+    assert not rec["search_mask"][0] and rec["search_v"][0] == 0.0 and (rec["search_pi"][0] == 0).all()
+
 # (4) THE DIALS: the signature's; play and tree required; the tree's dials validated; unknown keys fail
 assert sorted(TreeOp.dials()) == ["frac", "play", "top1_skip", "tree"]
 for bad, msg in (({"frac": 0.5, "tree": TREE}, "missing required"), ({"play": False}, "missing required"),
