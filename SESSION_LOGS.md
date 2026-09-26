@@ -14408,3 +14408,24 @@ line numbers are not — grep the date, then read that region):
     is withdrawn. Both Opus reviews (A: 3 blockers, 13 majors; B: 2 blockers, 9 majors) and this read go into r4; the
     three sessions re-decide D2 on the corrected evidence. Rule 6 stands: this sets Step C's form, never whether it
     runs.
+- 2026-09-26 13:55Z (agent, R7 runner) — **STEP C's deep-key value read (draft r4's last PENDING cell, r6-runner's
+  condition): the value channel holds on EVERY deep chance key.** (`results/native_tree/stepc3_a.rows.s*of3.jsonl`,
+  `scripts/native_tree_gates.py oracle --arm-set stepc3`, branch `c29d9df`; 500 roots, 0 errors; the recompute from the
+  stored rows is `results/native_tree/value_channel_keys.json`.)
+  - Measure: the prior-weighted root value of the 256-simulation tree, averaged over the same 8 belief worlds (the
+    fixed point), against G0's `v_root_rollout`; centred squared error, paired by root. Negative = tracks the oracle
+    better.
+  - Deep key 0 / 1 / 2 vs the raw critic: -0.0133 ± 0.0056 (z -2.38) / -0.0165 ± 0.0050 (z -3.34) / -0.0127 ± 0.0051
+    (z -2.49). Vs R7's exact one-ply fixed point, all 9 deep-key x one-ply-key pairs: z -2.8 .. -4.2.
+  - Averaged over their keys: the deep FP -0.0184 ± 0.0047 vs the critic (z -3.90) and -0.0184 ± 0.0037 vs the one-ply
+    FP (z -4.95); the one-ply FP averaged over its keys equals the critic (+0.0000 ± 0.0037). Pearson with the oracle:
+    the deep FP 0.875, the critic and the one-ply FP 0.849.
+  - The true-world tree (the peek) reads -0.031 .. -0.034 vs the critic on each key (z -4.8 .. -5.0), so the learnable
+    fixed point is 38-53% of the true-world edge.
+  - NEW, a design input: the deep backup is MORE OPTIMISTIC in level. The deep FP sits +0.046 .. +0.050 above the
+    rollout per key, the critic +0.034, the one-ply FP +0.032 .. +0.038 (deep minus critic +0.0147 ± 0.0060). Centred
+    error removes the level, but a TreeStrap label keeps it, so the MC grounding term anchors the level. G1's signed
+    gap and M1's level bias read it. Written into the draft (§0, §2, §7, §8), and STATUS carries the corrected Step C
+    state.
+  - Consequence: D2's value-channel rationale stands. r6-runner's condition (b) is met; the reviewers' verification
+    pass of r4 is next.

@@ -1,6 +1,6 @@
 # STEP C — DEEP SEARCH IN TRAINING: the pre-reg, DRAFT (2026-09-26)
 
-**Status: DRAFT r4, not ratified.**
+**Status: DRAFT r4 (+ the deep-key value read, 13:55Z), not ratified.**
 - The three agent sessions (r7-runner, r6-runner, fp-speedup) agreed on r4's direction, as the maintainer asked ("You
   decide among the 3 of you and then go for review").
 - Both Opus reviews of r3 are folded in. Every finding has a disposition in §9.
@@ -26,7 +26,14 @@ All of the following are measured at the decision level on G0's 500 roots, with 
   tree's prior-weighted root value tracks the rollout oracle better than the raw critic:
   - centred squared error -0.0133 ± 0.0056 (z -2.38) vs the critic;
   - -0.015 .. -0.017 (z -2.9 .. -3.7) vs R7's exact one-ply fixed point, across 3 one-ply keys;
-  - across 3 DEEP keys: [PENDING stepc3_a].
+  - across 3 DEEP keys it holds on every key: -0.0133 / -0.0165 / -0.0127 vs the critic (z -2.38 / -3.34 / -2.49),
+    and z -2.8 .. -4.2 vs the one-ply FP on all 9 key pairs. Averaged over its keys the deep FP is -0.0184 vs the
+    critic (z -3.90) and -0.0184 vs the one-ply FP averaged over its keys (z -4.95), which equals the critic
+    (+0.0000, z 0.01).
+  - **The deep backup is MORE OPTIMISTIC in level.** The deep FP sits +0.046 .. +0.050 above the rollout; the critic
+    sits +0.034 (deep minus critic +0.0147 ± 0.0060); the one-ply FP matches the critic. Centred error removes a
+    level, but a TreeStrap label keeps it, so the MC grounding term anchors the level. G1's signed gap and M1's level
+    bias read it.
 - **WITHIN a position, depth ties one ply.** On the ranking of our root rows against the oracle (fp-speedup: Pearson /
   Spearman paired, every |z| < 1.2 per key), the policy target's learnable EI edge is ~+0.0008, not resolved, and the
   argmax ties.
@@ -155,7 +162,7 @@ Caveats on everything below (reviewers B #6, #7, #9, #12, #13, #20):
 | stepc_a target form | EI, true world vs fixed point, soft_br vs completed-Q | completed-Q's learnable part ~0 (+0.0002); soft_br's fixed point +0.0018; completed-Q minus soft_br at the fixed point -0.0011 ± 0.0004 (z -2.95); the joint target: tie between forms | stepc_a.stepc.md |
 | stepc2_a like-for-like | R7's EXACT one-ply (pass_leaf critic), 3 keys, the same 8 worlds | fixed-point EI deep minus one-ply +0.0013 / +0.0003 / +0.0006; argmax tie; the one-ply's EI swings +0.0000..+0.0016 with the chance key | stepc2_a.stepc2.md |
 | value channel (peek) | prior-weighted root value vs G0's v_root_rollout, centred squared error | deep TRUE -0.0344 (z -4.98) vs the critic; deep FIXED POINT -0.0133 (z -2.38) vs the critic, -0.015..-0.017 (z -2.9..-3.7) vs the one-ply FP; joint -0.0180 (z -3.64); the one-ply FP = the critic (+0.0021); ~60% of the true edge is peek | SESSION_LOGS; recompute from the stored rows |
-| value channel (deep keys) | the same, deep side under keys 1 and 2 | [PENDING stepc3_a] | stepc3_a |
+| value channel (deep keys) | the same, deep side under keys 1 and 2 | holds on every key: vs the critic -0.0133 / -0.0165 / -0.0127 (z -2.38 / -3.34 / -2.49); vs the one-ply FP z -2.8..-4.2 on all 9 key pairs; 3-key averages -0.0184 vs the critic (z -3.90) and vs the one-ply FP average (z -4.95), which equals the critic (z 0.01); LEVEL: the deep FP +0.0147 ± 0.0060 above the critic's +0.034 optimism | value_channel_keys.json (stepc3_a) |
 | within-position (fp-speedup) | ranking our root rows vs the oracle | deep ties one-ply (|z| < 1.2 per key); among N >= 16 rows +0.11..+0.14 (z ~1.2-1.5) | fp-speedup's offline scripts |
 | fusion at depth | argmax form, t_pimc - t_avg | +0.00058 ± 0.00106 a decision; UNRESOLVED | stepc_a.stepc.md |
 | R7's clip split | R7's searched f1 vs the record-only control f1, last 5M steps (to 29.5M vs to 34.0M: windows NOT matched) | 51.2% vs 15.9% of searched rows (wandb; to be banked with its windows) | DEEP_SEARCH_PATH r2 note |
@@ -341,8 +348,8 @@ Every row: theta0 anchors, pool restart, the LR re-arm and the N-ANNEAL disclosu
   - the speed work and the width bench (D1: `frac`, steps and the order of its levers);
   - the B = 2 read (D4's rule);
   - G1 and G2 (TreeStrap in, or on its own lap; w_ts and N_min);
-  - the deep-key value read (stepc3_a). If the fixed-point value edge fails across deep keys, the value channel's
-    rationale is withdrawn before the fleet, and the maintainer rules.
+  - ~~the deep-key value read (stepc3_a)~~ DONE 2026-09-26: the fixed-point value edge holds on all three deep keys
+    (§2), so the value channel's rationale stands.
 - **Does not change it:** a null or a cost at any one budget (rule 6); R7's verdict (it sets C's donors, never whether
   this runs).
 - **GENERATION (JOURNEY 15):** B = 1's licence, tau 0.05, `frac`'s floor and the dose are GEN-1 MEASUREMENTS. The
@@ -355,8 +362,8 @@ Every row: theta0 anchors, pool restart, the LR re-arm and the N-ANNEAL disclosu
 - **r4:** the reviews and the like-for-like read overturned r3's D2 rationale (SESSION_LOGS 12:20Z and 13:10Z). The
   sessions re-decided as follows:
   - **r6-runner AGREED:**
-    - D2(i)-(iii), with the peek and key checks on the value evidence (the peek check is done; the deep-key check is
-      PENDING);
+    - D2(i)-(iii), with the peek and key checks on the value evidence (both done: the peek check, and the deep-key
+      check, which holds on every key);
     - the grounding term and the drift stop;
     - D3, with C's own smoke and the shared beta* disclosed;
     - D5, with the 25M trajectory and G2's offline first-link test;
