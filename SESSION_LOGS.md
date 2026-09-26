@@ -14380,3 +14380,31 @@ line numbers are not — grep the date, then read that region):
       point beats B = 1's soft_br fixed point at z >= 2.
     - POWER at 3 + 2, n 6000: P(X-POS) 0.60 at B = 1's optimistic ceiling of ~+0.027 a battle, 0.99 at the joint
       ~+0.043 (`results/native_tree/stepc_power.json`).
+- 2026-09-26 14:40Z (agent, R7 runner) — **SECOND CORRECTION to Step C's evidence (the Opus reviews of draft r3; the
+  like-for-like read): the "+0.0019 learnable over R7's one-ply target" does not survive a like-for-like reference.
+  At the student's fixed point, depth's edge over R7's exact one-ply operator is ~+0.0008 in expected improvement (not
+  resolved), and the argmax ties.** (`results/native_tree/stepc2_a.stepc2.{md,json}`, computed by `scripts/
+  native_tree_gates.py oracle --arm-set stepc2 --summarise --tag stepc2_a --ref-tag stepc_a`; branch `f60e58d`; 500
+  roots, 0 errors.)
+  - Reviewer B's blocker: stepc_a's one-ply reference (tr_d1) was not R7's operator (the tree's default pass_leaf
+    "through", where gate i-a's identity with native.solve is at "critic"), and it was ONE draw set against an
+    8-world average.
+  - The new arms run R7's EXACT T-op (the reduction's dials) on the true world under three chance keys, and on each of
+    stepc_a's 8 belief worlds under the same keys. They are paired by root with stepc_a's deep arms.
+  - EI at the fixed point: the deep target +0.00180, the one-ply per key +0.00046 / +0.00148 / +0.00123 (key-to-key sd
+    0.00053). Paired deep - one-ply: +0.00134 ± 0.00066 (z 2.02) / +0.00033 ± 0.00072 / +0.00058 ± 0.00072.
+  - Argmax at the fixed point, matched at 0.084: paired +0.0003 / -0.0006 / +0.0006. A TIE, as reviewer B computed
+    (+0.00002 ± 0.00137).
+  - What moved the old number was the CHANCE KEY, not the Pass handling. R7's one-ply target on the true world reads
+    EI +0.00004 / +0.00163 / +0.00160 across the three keys (sd 0.00091). The first key is the one stepc_a used.
+    pass_leaf alone moves it by +0.00015 ± 0.00008. The deep target (256 simulations) averages many more chance draws
+    than the one-ply's S = 2.
+  - Where the signal is: reviewer B's recompute from the stored rows. The deep tree's prior-weighted root VALUE tracks
+    the oracle better than the raw critic: Pearson 0.898 vs 0.849, centred squared error lower at z -5.0. Its v' form
+    (the soft best response's value) carries the clairvoyance excess instead: v' - v_prior +0.0293 at 256
+    simulations, of which only +0.0070 is real against the oracle. So the VALUE channel with prior-weighted backups is
+    where depth measured; the policy target at the fixed point is at most marginal.
+  - Consequence for the Step C draft (r3, df1222c): D2's rationale ("the policy target is the channel that measured")
+    is withdrawn. Both Opus reviews (A: 3 blockers, 13 majors; B: 2 blockers, 9 majors) and this read go into r4; the
+    three sessions re-decide D2 on the corrected evidence. Rule 6 stands: this sets Step C's form, never whether it
+    runs.
