@@ -14208,3 +14208,46 @@ line numbers are not — grep the date, then read that region):
     claimant after R7's reads). Gate i-c relaunched 03:28Z as `oracle_c` at the Step A branch's `0d6de00` (a detached
     chain waited for R = 512 to exit, memory and a clean worktree); 3 shards on the E-cores; its first 27 roots are
     diffed bitwise against the first try's `oracle_b4` rows (`a0f6dd9`) by `native_tree_gates.py diff`.
+- 2026-09-26 05:15Z (agent, R7 runner) — **DEEP SEARCH STEP A, GATE (i-c) READ (descriptive): at §35's budget the
+  native tree is at most modestly above the one-ply critic L-op at the matched override (+0.0020 at z 1.37 under its
+  best rule, not resolved); depth beats its own equal-work one-ply twin with the same sign under every rule (+0.0018
+  to +0.0025, z 1.65-2.11); br_prior is the estimand (tree.py's decoupled rule -0.0041 at z -2.78, regret matching
+  -0.0055 at z -3.55 against it); the sequential-halving root changes nothing.** (`results/native_tree/
+  oracle_c.summary.{md,json}`, computed by `scripts/native_tree_gates.py oracle --summarise --tag oracle_c`, branch
+  `8c0726f`; the run: branch `0d6de00`, 3 shards on the E-cores, 03:28-04:57Z.)
+  - 500 of G0's roots, 0 errors; the critic L-op's own 8 belief worlds; 1,800 total simulations; the matched override
+    0.080 is the banked critic L-op's native gate, where it reads +0.0028 ± 0.0013.
+  - REGRESSION: the first 27 roots are BITWISE identical to the first try's (`oracle_b4`, `a0f6dd9`) on all six arms
+    (`native_tree_gates.py diff`): search_many, the TreeOp, lazy priors (off) and the fallback change did not move it.
+  - The tree (br_prior, root grid, depth cap 8; mean depth 3.34 levels / 2.84 turns; 1,617 leaves): +0.0034 ± 0.0012
+    under the L-op's soft_br root rule (d vs one-ply +0.0006, z 0.47); +0.0048 ± 0.0014 under gumbel_mctx (d +0.0020,
+    z 1.37).
+  - DEPTH vs BREADTH at ~equal work (paired against d1, the same tree at depth cap 1 with chance_k 8, 1,827 leaves):
+    +0.0018 ± 0.0011 soft_br (z 1.65), +0.0025 ± 0.0014 gumbel_mctx (z 1.83), +0.0025 ± 0.0013 argmax (z 1.87),
+    +0.0023 ± 0.0011 legacy_gumbel (z 2.11). One sign under every rule; no single rule is picked after the fact. (The
+    `visits` rule's +0.0055 is no contrast: at depth 1 there is nothing for visits to count.)
+  - THE ESTIMAND: legacy - br -0.0041 ± 0.0015 (gumbel_mctx, z -2.78; -0.0016 at z -1.24 under soft_br); rm - br
+    -0.0055 ± 0.0016 (z -3.55), and rm sits BELOW the one-ply L-op itself (d -0.0035, z -2.33). That is a measured
+    cost of regret matching at this budget, which the proposal routes to diagnosis, never a kill; br_prior stays the
+    default.
+  - THE ROOT: sequential halving minus PUCT -0.0001 ± 0.0004 (soft_br). The 0/57 smoke's prior anchoring does not
+    cost decision quality at a matched rate.
+  - THE PEEK (br_true: the true world, B = 1, the T-op's setting): +0.0028 (soft_br), no better than the belief tree.
+  - Cost: 4.4 s per 1,800-simulation search at batch 4 on the E-cores (background QoS; the fleet held the P-cores).
+  - CAVEATS carried: decision quality on G0's committee-vs-committee oracle; 40 of 500 roots override at the matched
+    rate, so the gains are small in absolute size; decision-level gains overstate battle gains (G2's critic L-op read
+    +0.0028 here and +0.0013 off FP@N). Stage 0c's rollout L-op at R = 128 read +0.0055 on the same roots (d +0.0027,
+    z 2.02): the evaluator axis resolved where depth did not at these budgets, in different work units.
+  - WHAT IT SETS (a gap diagnoses the port, never kills it): the estimand is br_prior. NEXT on the E-cores is Step B's
+    tier 1, the budget curve at the decision level (x4 rungs from 1,800), where the depth contrast resolves or not.
+    Strength parity (legacy at 1,800 vs a same-session greedy control off FP@N) stays Step B's first battle rung.
+- 2026-09-26 05:15Z (agent, R7 runner) — **R7's READS QUEUE IS BUILT, REVIEWED AND ARMED** (`a104093`, `b0ff955`; it
+  waits for all five lanes DONE, then runs unattended). `configs/eval/r7_reads_offfp.yaml` (the primary C1F S1F C2F S2F
+  S3F off FP@N 25k/12k, n 6000, greedy, breaker off, the pinned control-first order; the object rule's E6RR E3BR ES3F
+  EC2F, n 3000, breaker on), `configs/eval/r7_reads.yaml` (vs SH), `scripts/r7_reads_queue.sh`, `scripts/
+  r7_reads_readout.py` (every cell, boundary, route and action from the fleet header; 34 tests). An Opus review found
+  no blocker; its verified findings are fixed: the dose / clip-split / grad-norm reads beside the primary, streamed
+  histories refused when stale, the scheduler's refusals handled, one program across the wave (--slots 9), a
+  RETIRING lane alerts. Armed 04:30Z (frozen copy, pid 91075); the fleet ends ~Sun 10-11:30Z, the reads ~3.5-5 h after.
+  Also: Stage 0c's offline SH read (`f825953`, `results/r7_stage0c/stage0c_r512.sh_offline.txt`): sequential halving
+  matches the full 512-world matrix's choice on 100/100 roots at ~15,600 rollouts (0.59x of 26,522) -- ~2x, not 10x.
