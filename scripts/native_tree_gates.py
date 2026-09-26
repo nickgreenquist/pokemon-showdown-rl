@@ -207,7 +207,7 @@ ARMS = {
     "br_true": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br",
                     batch=8),
 }
-TRUE_ARMS = ("br_true", "tr_256", "tr_1024", "tr_1800")      # searched on the TRUE world with G0's foe prior
+TRUE_ARMS = ("br_true", "tr_256", "tr_1024", "tr_1800", "tr_d1")   # searched on the TRUE world with G0's foe prior
 CONTRASTS = [("br", "d1"), ("br_sh", "d1"), ("br_sh", "br"), ("legacy", "br"), ("rm", "br")]
 # STEP B, TIER 1 (proposal r2 §2 Step B): the INFERENCE BUDGET CURVE at the decision level on the same 500 roots, the
 # same 8 worlds and the same scorer -- br_prior (gate i-c's estimand) at x4 rungs of total simulations, each beside a
@@ -230,7 +230,24 @@ ARMS_TIER1B = {"d1": dict(ARMS["d1"]), **{f"br_{n}": dict(ARMS["br"], sims=n) fo
                **{f"tr_{n}": dict(ARMS["br_true"], sims=n) for n in (256, 1024, 1800)}}
 CONTRASTS_TIER1B = [("br_450", "d1"), ("br_900", "br_450"), ("br_1800", "br_900"), ("br_1800", "br_450"),
                     ("tr_1024", "tr_256"), ("tr_1800", "tr_1024")]
-ARM_SETS = {"ic": (ARMS, CONTRASTS), "tier1": (ARMS_TIER1, CONTRASTS_TIER1), "tier1b": (ARMS_TIER1B, CONTRASTS_TIER1B)}
+# STEP C's E-CORE INPUTS at the dose tier 1b set (256 simulations, the training setting), proposal r2 Step C:
+#   * THE FUSION READ AT DEPTH (plan section 10's rule, box 5 item 2's measurement at one ply): a tree on EACH of the 8
+#     resampled worlds ALONE (fw_256_b: B = 1, the foe prior from that world's foe view -- what a true-world T-op trains
+#     on when world b is the truth) against ONE tree over all 8 jointly at equal total work (fj_2048: the PIMC-analog
+#     target a B >= 2 T-op would train on). A student of true-world targets converges to mean_b pi'_b (t_avg); the
+#     fusion cost is the oracle gain of t_pimc minus t_avg, per decision, ungated (targets, not played actions).
+#   * SIGMA and THE TARGET'S FORM: the completed-Q policy target (Gumbel MuZero: softmax(log prior + (c_visit + max N)
+#     c_scale q_normalised)) on tr_256's root statistics, its dials chosen by the split-sample oracle's EXPECTED
+#     IMPROVEMENT (chosen on one half of G0's rollouts, scored on the other), beside the one-ply T-op's own target
+#     (tr_d1: the true world at depth cap 1, k 4 / S 2 / tau 0.05 -- native.solve's T-op, by gate i-a's reduction).
+ARMS_STEPC = {"tr_d1": dict(ARMS["d1"], chance_k=2), "tr_256": dict(ARMS["br_true"], sims=256),
+              **{f"fw_256_{b}": dict(ARMS["br_true"], sims=256) for b in range(8)},
+              "fj_2048": dict(ARMS["br"], sims=2048)}
+ARM_SETS = {"ic": (ARMS, CONTRASTS), "tier1": (ARMS_TIER1, CONTRASTS_TIER1), "tier1b": (ARMS_TIER1B, CONTRASTS_TIER1B),
+            "stepc": (ARMS_STEPC, [])}
+T_OP_SEARCHED_PER_BATTLE = 14      # box 5 item 2: the T-op's ~14 searched decisions a battle, the fusion rule's multiplier
+CREDIT_FLOOR_BATTLE = 0.025        # section 10: a fusion cost above the credit floor spends the B = 1 licence
+SIGMA_GRID = [(cv, cs) for cv in (10.0, 25.0, 50.0, 100.0, 200.0) for cs in (0.01, 0.03, 0.1, 0.3, 1.0)]
 RULES = ("soft_br", "gumbel_mctx", "legacy_gumbel", "visits", "argmax", "own")
 KEEP = ("tree/sims", "search/leaves", "tree/depth_mean", "tree/depth_max", "tree/upd_mean", "tree/turns_mean",
         "tree/turns_max", "tree/nodes", "tree/merges", "tree/pass_nodes", "tree/terminal_sims", "tree/capped_sims",
@@ -285,6 +302,8 @@ def oracle(args) -> int:
     out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     if args.summarise:
+        if args.arm_set == "stepc":
+            return stepc_summary(args, rows_all, out_dir)
         return oracle_summary(args, rows_all, belief, out_dir)
     torch.set_num_threads(args.torch_threads)
     tau = float(belief["dials"].get("tau", 1.0))
@@ -351,7 +370,11 @@ def oracle(args) -> int:
             row.update({"rows": rows, "worlds_built": len(worlds), "worlds_refused": refused, "arms": {}})
             key = pid * 1_000_003 + 29
             for name, dials in arms.items():
-                ws = [World(node)] if name in TRUE_ARMS else worlds
+                if name.startswith("fw_"):                  # ONE resampled world alone (B = 1 on a belief world)
+                    b = int(name.rsplit("_", 1)[1])
+                    ws = [worlds[b]] if b < len(worlds) else []
+                else:
+                    ws = [World(node)] if name in TRUE_ARMS else worlds
                 if not ws:
                     row["arms"][name] = {"no_world": True}
                     continue
@@ -494,6 +517,124 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     for name, c in out["contrasts"].items():
         lines.append(f"| {name} | " + " | ".join(f"{c[r]['mean']:+.4f} +- {c[r]['se']:.4f} ({c[r]['z']:+.2f})" for r in RULES) + " |")
     (out_dir / f"{args.tag}.summary.md").write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+    return 0
+
+
+def completed_q_pi(prior_m: np.ndarray, q: np.ndarray, n: np.ndarray, v_mix: float, c_visit: float, c_scale: float) -> np.ndarray:
+    """Gumbel MuZero's completed-Q policy target over the root rows: unvisited rows take v_mix, Q is min-max
+    normalised over the rows, sigma = (c_visit + max N) * c_scale (the same arithmetic as `candidate`'s gumbel_mctx)."""
+    vis = (n > 0) & np.isfinite(q)
+    qd = np.where(vis, q, v_mix)
+    lo, hi = qd.min(), qd.max()
+    z = np.log(prior_m) + (c_visit + float(n.max())) * c_scale * (qd - lo) / max(hi - lo, 1e-8)
+    z = z - z.max()
+    p = np.exp(z)
+    return p / p.sum()
+
+
+def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
+    """The fusion read at depth and the sigma / target-form read, from a --arm-set stepc tag (see ARMS_STEPC)."""
+    import glob
+    import r7_stage0c_rollout_curve as s0c
+
+    g0_by_pid = {int(r["pid"]): r for r in rows_all}
+    ok = []
+    for p in sorted(glob.glob(str(out_dir / f"{args.tag}.rows.s*of*.jsonl"))):
+        for line in pathlib.Path(p).read_text().splitlines():
+            if line.strip():
+                r = json.loads(line)
+                if r.get("version") != ORACLE_VERSION:
+                    sys.exit(f"REFUSED: {p} carries version {r.get('version')}")
+                if "error" not in r:
+                    if set(r["arms"]) != set(ARMS_STEPC):
+                        sys.exit(f"REFUSED: pid {r['pid']} does not carry the stepc arm set")
+                    ok.append(r)
+    ok.sort(key=lambda r: r["pid"])
+    if not ok:
+        print("no rows")
+        return 1
+
+    def stat(x):
+        return s0c.stat(np.asarray(x, np.float64))
+
+    # ---- FUSION AT DEPTH
+    fus, wflip, tflip, used = [], [], [], 0
+    for r in ok:
+        o = s0c.oracle_of(g0_by_pid[r["pid"]])
+        rows, ig = r["rows"], o["ig"]
+        fw = [r["arms"][f"fw_256_{b}"] for b in range(8) if "pi" in r["arms"][f"fw_256_{b}"]]
+        fj = r["arms"]["fj_2048"]
+        if not fw or "pi" not in fj:
+            continue
+        used += 1
+        pi_avg = np.mean([np.asarray(a["pi"]) for a in fw], axis=0)
+        t_avg, t_pimc = rows[int(np.argmax(pi_avg))], rows[int(np.argmax(np.asarray(fj["pi"])))]
+        fus.append((o["qbar"][o["row_of"][t_pimc]] - o["qbar"][o["row_of"][t_avg]]) / 2.0)      # win-rate units
+        i_true = int(np.argmax(np.asarray(r["arms"]["tr_256"]["pi"])))
+        wflip.append(float(np.mean([int(np.argmax(np.asarray(a["pi"]))) != i_true for a in fw])))
+        tflip.append(int(t_avg != rows[i_true]))
+    fc = stat(fus)
+    per_battle_upper = fc["upper95"] * T_OP_SEARCHED_PER_BATTLE
+    fusion = {"positions": used, "fusion_cost_win_rate": fc, "upper95_x_searched_per_battle": per_battle_upper,
+              "floor": CREDIT_FLOOR_BATTLE, "licence_holds": bool(per_battle_upper < CREDIT_FLOOR_BATTLE),
+              "world_flip": stat(wflip), "target_flip_vs_true_tree": stat(tflip)}
+
+    # ---- SIGMA and THE TARGET'S FORM (expected improvement on G0's oracle halves, win-rate units)
+    def ei(pi, qh, ig):
+        return float(np.dot(pi, qh - qh[ig])) / 2.0
+    per = {}
+    for r in ok:
+        g0 = g0_by_pid[r["pid"]]
+        o = s0c.oracle_of(g0)
+        rows = r["rows"]
+        pi1 = np.asarray(g0["pi1"], np.float64)
+        prior_m = pi1[rows] / pi1[rows].sum()
+        t = r["arms"]["tr_256"]
+        q = np.array([np.nan if x is None else x for x in t["q"]], np.float64)
+        nn = np.asarray(t["n"], np.float64)
+        for half in ("qa", "qb"):
+            qh = o[half]
+            per.setdefault(("prior", half), []).append(ei(prior_m, qh, o["ig"]))
+            per.setdefault(("tree_soft_br", half), []).append(ei(np.asarray(t["pi"]), qh, o["ig"]))
+            per.setdefault(("one_ply_t_op", half), []).append(ei(np.asarray(r["arms"]["tr_d1"]["pi"]), qh, o["ig"]))
+            for cv, cs in SIGMA_GRID:
+                per.setdefault((("cq", cv, cs), half), []).append(
+                    ei(completed_q_pi(prior_m, q, nn, t["counters"]["tree/v_mix"], cv, cs), qh, o["ig"]))
+    grid_a = {k[0]: float(np.mean(v)) for k, v in per.items() if isinstance(k[0], tuple) and k[1] == "qa"}
+    grid_b = {k[0]: float(np.mean(v)) for k, v in per.items() if isinstance(k[0], tuple) and k[1] == "qb"}
+    pick_a, pick_b = max(grid_a, key=grid_a.get), max(grid_b, key=grid_b.get)
+    held = np.array(per[(pick_a, "qb")]) + np.array(per[(pick_b, "qa")])                 # held-out EI, per root, x2
+    held = held / 2.0
+    base = {k: (np.array(per[(k, "qa")]) + np.array(per[(k, "qb")])) / 2.0 for k in ("prior", "tree_soft_br", "one_ply_t_op")}
+    target = {"sigma_chosen_on_half_a": {"c_visit": pick_a[1], "c_scale": pick_a[2], "ei_held_out_on_b": grid_b[pick_a]},
+              "sigma_chosen_on_half_b": {"c_visit": pick_b[1], "c_scale": pick_b[2], "ei_held_out_on_a": grid_a[pick_b]},
+              "ei_win_rate": {"completed_q_held_out": stat(held), **{k: stat(v) for k, v in base.items()}},
+              "paired": {"completed_q - one_ply_t_op": stat(held - base["one_ply_t_op"]),
+                         "tree_soft_br - one_ply_t_op": stat(base["tree_soft_br"] - base["one_ply_t_op"]),
+                         "one_ply_t_op - prior": stat(base["one_ply_t_op"] - base["prior"]),
+                         "completed_q - prior": stat(held - base["prior"])},
+              "grid_ei_half_a": {f"{k[1]:g}/{k[2]:g}": v for k, v in grid_a.items()}}
+    out = {"version": ORACLE_VERSION, "tag": args.tag, "positions": len(ok), "fusion": fusion, "target": target,
+           "written": dt.datetime.now(dt.timezone.utc).isoformat()}
+    (out_dir / f"{args.tag}.stepc.json").write_text(json.dumps(out, indent=1, default=float))
+    g = lambda x: f"{x['mean']:+.5f} +- {x['se']:.5f} (z {x['z']:+.2f})"  # noqa: E731
+    lines = [f"# Step C's E-core inputs at 256 simulations, the training setting ({len(ok)} roots)", "",
+             "## The fusion read at depth (plan section 10's rule)",
+             f"fusion cost (t_pimc - t_avg, per decision, win rate, ungated targets): {g(fc)}, upper95 {fc['upper95']:+.5f}",
+             f"x {T_OP_SEARCHED_PER_BATTLE} searched decisions a battle: {per_battle_upper:+.4f} vs the floor {CREDIT_FLOOR_BATTLE} -> "
+             f"B = 1 licence {'HOLDS' if fusion['licence_holds'] else 'SPENT (the T-op must search B >= 2 worlds)'}",
+             f"world flip (per-world tree argmax != the true-world tree's): {fusion['world_flip']['mean']:.3f}; "
+             f"target flip (t_avg != the true tree's argmax): {fusion['target_flip_vs_true_tree']['mean']:.3f}", "",
+             "## The target's form: expected improvement over greedy on G0's oracle (win rate per decision)",
+             f"sigma chosen on half A: c_visit {pick_a[1]:g}, c_scale {pick_a[2]:g} (held-out EI on B {grid_b[pick_a]:+.5f}); "
+             f"on half B: c_visit {pick_b[1]:g}, c_scale {pick_b[2]:g} (held-out EI on A {grid_a[pick_b]:+.5f})",
+             f"completed-Q target (tr_256, held out): {g(target['ei_win_rate']['completed_q_held_out'])}",
+             f"the tree's soft_br target (tr_256, tau 0.05): {g(target['ei_win_rate']['tree_soft_br'])}",
+             f"the one-ply T-op's target (tr_d1, R7's form): {g(target['ei_win_rate']['one_ply_t_op'])}",
+             f"the prior: {g(target['ei_win_rate']['prior'])}",
+             *[f"paired {k}: {g(v)}" for k, v in target["paired"].items()]]
+    (out_dir / f"{args.tag}.stepc.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
     return 0
 
@@ -745,7 +886,8 @@ def main() -> None:
     orc.add_argument("--summarise", action="store_true", help="measure nothing: join every shard of --tag and score it")
     orc.add_argument("--arm-set", choices=sorted(ARM_SETS), default="ic",
                      help="ic = gate (i-c)'s six arms; tier1 = Step B tier 1, the budget curve with its depth-1 twins; "
-                          "tier1b = the curve below 1,800 and the training setting")
+                          "tier1b = the curve below 1,800 and the training setting; stepc = the fusion read at depth "
+                          "and the sigma / target-form read at 256")
     bch.add_argument("--configs", default="", help=f"comma list (default all): {sorted(BENCH_CONFIGS)}")
     bch.add_argument("--workers", default="1,2,5,10", help="worker counts, one pass each")
     bch.add_argument("--per-bucket", type=int, default=10, help="roots per turn bucket (the proposal's full bench: 50)")
