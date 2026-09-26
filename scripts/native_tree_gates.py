@@ -1067,6 +1067,233 @@ def _bench_summary(recs: list[dict], workers: int, wall: float) -> dict:
     return out
 
 
+CAL_VERSION = "native_tree_calibrate/1"
+_TRAIN = dict(mode="br_prior", root_rule="soft_br", pass_leaf="critic")          # Step C's lever form
+_INF = dict(mode="br_prior", root_select="sequential_halving", root_rule="gumbel_mctx")
+CAL_CONFIGS = {
+    # FIT: spans the unit mix -- calls of 1 row to a few hundred, one world and eight, shallow and deep,
+    # one decision per search_many call and several
+    "fit_t64_b1": {"role": "fit", "worlds": 1, "many": 1, "tree": dict(sims=64, batch=1, **_TRAIN)},
+    "fit_t1024_b1": {"role": "fit", "worlds": 1, "many": 1, "tree": dict(sims=1024, batch=1, **_TRAIN)},
+    "fit_t256_b8": {"role": "fit", "worlds": 1, "many": 1, "tree": dict(sims=256, batch=8, **_TRAIN)},
+    "fit_w8_450_b4": {"role": "fit", "worlds": 8, "many": 1, "tree": dict(sims=450, batch=4, **_INF)},
+    "fit_many4_t256_b1": {"role": "fit", "worlds": 1, "many": 4, "tree": dict(sims=256, batch=1, **_TRAIN)},
+    # HELD OUT: the forms we quote (Step C's lever alone and batched as the collector batches it; inference)
+    "val_train_256_b1": {"role": "val", "worlds": 1, "many": 1, "tree": dict(sims=256, batch=1, **_TRAIN)},
+    "val_many8_t256_b1": {"role": "val", "worlds": 1, "many": 8, "tree": dict(sims=256, batch=1, **_TRAIN)},
+    "val_t512_b4": {"role": "val", "worlds": 1, "many": 1, "tree": dict(sims=512, batch=4, **_TRAIN)},
+    "val_inf_sh_1800_b4": {"role": "val", "worlds": 8, "many": 1, "tree": dict(sims=1800, batch=4, **_INF)},
+}
+
+
+def _engine_build() -> str:
+    import hashlib
+    import pkmn_gen1
+    sos = sorted(pathlib.Path(pkmn_gen1.__file__).parent.glob("*.so"))
+    h = hashlib.sha256()
+    for so in sos:
+        h.update(so.read_bytes())
+    return h.hexdigest()[:16] if sos else "unknown"
+
+
+def calibrate(args) -> int:
+    """The work-unit cost model's calibration (rl/search/cost_model.py): the network cost tables from
+    interleaved micro-benchmarks at every GRID size, the in-situ factor and the engine / Python terms
+    from full searches on G0's roots (the FIT configs), accepted on the HELD-OUT configs. Load is
+    TAGGED, never gated: it may run beside a fleet, and the result says under what load it ran."""
+    import torch
+    import pkmn_gen1
+    import rollout_q as rq
+    from rl.common import fast_linear
+    from rl.envs.engine_tables import build_tables
+    from rl.search import cost_model as cm
+    from rl.search import native_tree
+    from rl.search.native import World
+    from rl.search.resample import resample_world
+
+    if os.nice(0) != 0 or _qos_background():
+        sys.exit("REFUSED: a timed instrument runs at nice 0 and normal QoS (CLAUDE.md: never nice what you time); "
+                 "launch it through bash, not a zsh `&`")
+    torch.set_num_threads(args.torch_threads)
+    rng = np.random.default_rng(args.seed)
+    rows_all, g0_summary, _belief = load_g0(pathlib.Path(args.g0_dir))
+    tables, _fp = build_tables()
+    # ---- the nets: G0's committee (the gates' callables) or one checkpoint (the TreeOp's own callables)
+    if args.net == "committee":
+        committee, prov = rq.load_committee([c["path"] for c in g0_summary["committee"]],
+                                            [c["sha256"] for c in g0_summary["committee"]], np.random.default_rng(0))
+        members = committee.members
+
+        def value_fn(e):
+            return committee.critic(e["obs"])
+        prior_fn = committee.probs
+        net_desc = {"committee": [p["sha256"][:12] for p in prov]}
+    else:
+        from rl.search.tree_top import TreeOp
+        path = args.net.removeprefix("ckpt:")
+        one, prov = rq.load_committee([path], None, np.random.default_rng(0))
+        members = one.members
+        op = TreeOp(members[0], tables, seat="p1", seed=0, play=False, tree={"sims": 1})
+        value_fn, prior_fn = op.value_fn, op._probs
+        net_desc = {"ckpt": path, "sha256": prov[0]["sha256"][:12], "c6": bool(os.environ.get("POKEMON_RL_ENCODER_C6"))}
+    swapped = 0
+    if args.linear == "fast":
+        for m in members:
+            swapped += fast_linear.enable(m.actor) + fast_linear.enable(m.critic)
+    key = cm.machine_key(torch_threads=args.torch_threads, linear=args.linear, engine_build=_engine_build(),
+                         nets={"v": f"{len(members)}x" + "".join(cm.arch_signature(m.critic) for m in members)[:32],
+                               "p": f"{len(members)}x" + "".join(cm.arch_signature(m.actor) for m in members)[:32]})
+    # ---- the roots (turn-stratified) and a pool of real rendered rows for the micro-benchmark
+    by_b: dict[int, list] = {}
+    for r in sorted(rows_all, key=lambda r: int(r["pid"])):
+        by_b.setdefault(int(r["bucket"]), []).append(r)
+    roots = [r for b in sorted(by_b) for r in by_b[b][: args.per_bucket]]
+    pool_o, pool_m = [], []
+    for r in rows_all[:600]:
+        nd = pkmn_gen1.SearchNode.load(base64.b64decode(r["node_b64"]))
+        for s in ("p1", "p2"):
+            m = np.asarray(nd.mask(tables, s), bool)
+            if m.any():
+                pool_o.append(np.asarray(nd.obs(tables, s), np.float32))
+                pool_m.append(m)
+    reps = -(-cm.GRID[-1] // len(pool_o))
+    pool_o = np.concatenate([np.stack(pool_o)] * (reps + 1))
+    pool_m = np.concatenate([np.stack(pool_m)] * (reps + 1))
+
+    def nn_cell(net: str, n: int):
+        def fn():
+            i0 = int(rng.integers(0, len(pool_o) - n + 1))
+            if net == "v":
+                value_fn({"obs": pool_o[i0:i0 + n]})
+            else:
+                prior_fn(pool_o[i0:i0 + n], pool_m[i0:i0 + n])
+        return fn
+    nn_cells = {f"{net}:{n}": nn_cell(net, n) for net in cm.NETS for n in cm.GRID}
+    pa, pb = torch.randn(64, 512), torch.randn(512, 512)
+
+    def probe():
+        with torch.no_grad():
+            for _ in range(4):
+                torch.mm(pa, pb)
+        return sum(range(20000))
+
+    # ---- the full-search jobs: (config, group of `many` roots)
+    def specs_for(cfg: dict, grp: list[dict]) -> list[tuple]:
+        out = []
+        for r in grp:
+            node = pkmn_gen1.SearchNode.load(base64.b64decode(r["node_b64"]))
+            m1 = np.asarray(node.mask(tables, "p1"), bool)
+            prior1 = np.where(m1, np.asarray(r["pi1"], np.float64), 0.0)
+            if cfg["worlds"] == 1:
+                ws, opp = [World(node)], np.where(np.asarray(node.mask(tables, "p2"), bool), np.asarray(r["pi2"]), 0.0)
+            else:
+                wrng = np.random.default_rng([20260923, int(r["pid"])])
+                ws = []
+                for _b in range(cfg["worlds"]):
+                    try:
+                        w_, _i = resample_world(node, tables, "p1", wrng)
+                    except RuntimeError:
+                        continue
+                    if np.array_equal(np.asarray(w_.mask(tables, "p1"), bool), m1):
+                        ws.append(World(w_))
+                opp = None
+                if not ws:
+                    return []
+            out.append((ws, prior1, opp, int(r["pid"]) * 7919 + 1))
+        return out
+    configs = {k: v for k, v in CAL_CONFIGS.items() if not args.configs or k in args.configs.split(",")}
+    jobs = []
+    for name, cfg in configs.items():
+        k = cfg["many"]
+        for i in range(0, len(roots) - k + 1, k):
+            grp = roots[i:i + k]
+            jobs.append({"config": name, "role": cfg["role"], "pids": [int(r["pid"]) for r in grp],
+                         "dials": native_tree.dials_from(cfg["tree"]), "cfg": cfg, "grp": grp,
+                         "ms": [], "ms_v": [], "ms_p": [], "ms_engine": [], "units": None, "unit_mismatch": 0})
+
+    def run_job(j: dict) -> None:
+        specs = specs_for(j["cfg"], j["grp"])
+        if not specs:
+            return
+        t0 = time.perf_counter()
+        res = native_tree.search_many(specs, tables, "p1", value_fn, prior_fn, **j["dials"])
+        j["ms"].append((time.perf_counter() - t0) * 1e3)
+        j["ms_v"].append(sum(x["counters"]["tree/ms_value"] for x in res))
+        j["ms_p"].append(sum(x["counters"]["tree/ms_prior"] for x in res))
+        j["ms_engine"].append(sum(x["counters"]["search/rust_ms"] for x in res))
+        us = [cm.units_of(x) for x in res]
+        tot = {"share": {n: np.sum([u["share"][n] for u in us], axis=0).tolist() for n in cm.NETS},
+               "rows": {n: np.sum([u["rows"][n] for u in us], axis=0).tolist() for n in cm.NETS},
+               "count": {c: float(sum(u["count"][c] for u in us)) for c in us[0]["count"]}}
+        if j["units"] is None:
+            j["units"] = tot
+        elif tot != j["units"]:
+            j["unit_mismatch"] += 1          # the units must reproduce: the same dials, root and key
+
+    # ---- the rounds: the micro-benchmark and every job, shuffled, under the same load
+    nn_samples: dict[str, list[float]] = {c: [] for c in nn_cells}
+    probes, loads = [], []
+    procs = subprocess.run(["pgrep", "-f", r"rl\.train"], capture_output=True, text=True).stdout.split()
+    t_start = time.time()
+    for rnd in range(args.rounds):
+        got = cm.time_interleaved(nn_cells, args.nn_rounds, rng, probe=probe, warmup=5 if rnd == 0 else 0)
+        for c, xs in got["samples"].items():
+            nn_samples[c] += xs
+        probes += got["probe"]
+        for i in rng.permutation(len(jobs)):
+            run_job(jobs[int(i)])
+            loads.append(os.getloadavg()[0])
+        print(f"[cal] round {rnd + 1}/{args.rounds} done at {time.time() - t_start:.0f} s; load1 {loads[-1]:.1f}; "
+              f"probe median {np.median(probes):.3f} ms", flush=True)
+    # ---- fit on the FIT jobs, accept on the HELD-OUT jobs
+    t_ms = {net: [float(np.median(nn_samples[f"{net}:{n}"])) for n in cm.GRID] for net in cm.NETS}
+    med = []
+    for j in jobs:
+        if not j["ms"]:
+            continue
+        med.append({"config": j["config"], "role": j["role"], "pids": j["pids"], "units": j["units"],
+                    "ms_total": float(np.median(j["ms"])), "ms_v": float(np.median(j["ms_v"])),
+                    "ms_p": float(np.median(j["ms_p"])), "ms_engine": float(np.median(j["ms_engine"])),
+                    "repeats": len(j["ms"]), "unit_mismatch": j["unit_mismatch"],
+                    "ms_spread": float(np.percentile(j["ms"], 90) / max(np.percentile(j["ms"], 10), 1e-9))})
+    load = {"probe_ms_median": float(np.median(probes)), "probe_ms_p10": float(np.percentile(probes, 10)),
+            "probe_ms_p90": float(np.percentile(probes, 90)), "load1_median": float(np.median(loads)),
+            "load1_min": float(np.min(loads)), "load1_max": float(np.max(loads)), "train_procs": len(procs),
+            "nice": os.nice(0), "linear_layers_swapped": swapped}
+    model = cm.fit(t_ms, [j for j in med if j["role"] == "fit"], key, load)
+    model.validation = {"held_out": cm.validate(model, [j for j in med if j["role"] == "val"]),
+                        "in_sample": cm.validate(model, [j for j in med if j["role"] == "fit"]),
+                        "unit_mismatches": int(sum(j["unit_mismatch"] for j in med))}
+    out_dir = pathlib.Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stem = f"cost_model_{args.tag}"
+    (out_dir / f"{stem}.json").write_text(model.to_json())
+    with (out_dir / f"{stem}.jobs.jsonl").open("w") as f:
+        for j in med:
+            f.write(json.dumps({**j, "pred": model.predict(j["units"])}) + "\n")
+    meta = {"version": CAL_VERSION, "net": net_desc, "git_sha": _stamps(_fp)["git_sha"], "rounds": args.rounds,
+            "nn_rounds": args.nn_rounds, "per_bucket": args.per_bucket, "configs": sorted(configs),
+            "written": dt.datetime.now(dt.timezone.utc).isoformat(), "nn_samples_per_cell": args.rounds * args.nn_rounds}
+    (out_dir / f"{stem}.meta.json").write_text(json.dumps(meta, indent=1))
+    v = model.validation
+    print(f"[cal] {stem}: key linear={args.linear} threads={args.torch_threads}; load1 median {load['load1_median']:.1f} "
+          f"(min {load['load1_min']:.1f}); probe {load['probe_ms_median']:.3f} ms; {load['train_procs']} rl.train procs")
+    for net in cm.NETS:
+        print(f"[cal]   t_{net} ms at n=1/2/4/8/16/32/64/128/256: "
+              + " ".join(f"{t_ms[net][cm.GRID.index(n)]:.2f}" for n in (1, 2, 4, 8, 16, 32, 64, 128, 256))
+              + f" | kappa {model.kappa[net]:.3f}")
+    print(f"[cal]   engine ms/unit {json.dumps({k: round(x, 4) for k, x in model.engine.items()})}")
+    print(f"[cal]   python ms/unit {json.dumps({k: round(x, 4) for k, x in model.python.items()})}")
+    for part in ("in_sample", "held_out"):
+        p = v[part]
+        print(f"[cal]   {part}: median |err| {p['median_abs_err']:.3f}, p90 {p['p90_abs_err']:.3f}, signed {p['median_signed_err']:+.3f} "
+              f"over {p['jobs']} jobs -> {'ACCEPTED' if p['accepted'] else 'NOT accepted'}")
+        for c, x in p["by_config"].items():
+            print(f"[cal]     {c:22s} signed {x['median_signed_err']:+.3f} |err| {x['median_abs_err']:.3f} (n {x['n']})")
+    print(f"[cal]   unit mismatches across repeats: {v['unit_mismatches']} (must be 0)")
+    return 0 if v["held_out"]["accepted"] and v["unit_mismatches"] == 0 else 1
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1074,7 +1301,8 @@ def main() -> None:
     orc = sub.add_parser("oracle", help="gate (i-c): decision quality on G0's oracle at matched override")
     bch = sub.add_parser("bench", help="gate (ii): the P-core bench (the quiet box, nice 0)")
     dif = sub.add_parser("diff", help="the regression check: two oracle tags' shared roots, bitwise")
-    for p in (red, orc, bch, dif):
+    cal = sub.add_parser("calibrate", help="the work-unit cost model's calibration (any load; tagged, never gated)")
+    for p in (red, orc, bch, dif, cal):
         p.add_argument("--g0-dir", default=str(MAIN_CHECKOUT / "results" / "r7_g0"))
         p.add_argument("--out-dir", default=str(MAIN_CHECKOUT / "results" / "native_tree"))
         p.add_argument("--limit", type=int, default=0)
@@ -1096,14 +1324,30 @@ def main() -> None:
     bch.add_argument("--max-load", type=float, default=1.5)
     bch.add_argument("--force", action="store_true", help="run on a busy box anyway (the numbers are then NOT the bench)")
     bch.add_argument("--worker", default="", help=argparse.SUPPRESS)
+    cal.add_argument("--tag", required=True, help="writes <out-dir>/cost_model_<tag>.{json,jobs.jsonl,meta.json}")
+    cal.add_argument("--net", default="committee", help="committee (G0's, the gates' callables) or ckpt:PATH (one agent, "
+                     "the TreeOp's callables)")
+    cal.add_argument("--c6", action="store_true", help="a c6-on checkpoint: the Rust and Python encoders flip together")
+    cal.add_argument("--linear", choices=("stock", "fast"), default="stock",
+                     help="fast = rl/common/fast_linear.py on every member (the contiguous-transpose Linear)")
+    cal.add_argument("--rounds", type=int, default=5, help="full rounds: every job once each, shuffled")
+    cal.add_argument("--nn-rounds", type=int, default=8, help="micro-benchmark rounds per full round")
+    cal.add_argument("--per-bucket", type=int, default=4, help="roots per turn bucket")
+    cal.add_argument("--configs", default="", help=f"comma list (default all): {sorted(CAL_CONFIGS)}")
+    cal.add_argument("--seed", type=int, default=20260926)
     dif.add_argument("--tag", required=True)
     dif.add_argument("--against", required=True, help="the reference tag (e.g. rows from an earlier commit)")
     args = ap.parse_args()
     if os.environ.get("POKEMON_RL_ENCODER_C6"):
         sys.exit("REFUSED: POKEMON_RL_ENCODER_C6 is set; G0's rows and the W finals are c6-off")
+    if args.cmd == "calibrate" and args.c6:
+        if args.net == "committee":
+            sys.exit("REFUSED: --c6 needs --net ckpt:PATH (G0's committee is c6-off)")
+        os.environ["POKEMON_RL_ENCODER_C6"] = "1"   # before any rl import: both encoders read it
     os.environ.setdefault("POKEMON_RL_ENCODER_V2", "1")
     os.environ.setdefault("POKEMON_RL_ENCODER_IDS", "1")
-    sys.exit({"reduction": reduction, "oracle": oracle, "bench": bench, "diff": oracle_diff}[args.cmd](args))
+    sys.exit({"reduction": reduction, "oracle": oracle, "bench": bench, "diff": oracle_diff,
+              "calibrate": calibrate}[args.cmd](args))
 
 
 if __name__ == "__main__":

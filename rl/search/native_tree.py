@@ -93,6 +93,7 @@ from typing import Any, Callable, Sequence
 
 import numpy as np
 
+from rl.search.cost_model import CallMeter
 from rl.search.native import N_ACTIONS, World, seed_base
 
 MODES = ("br_prior", "legacy", "sm_rm")
@@ -251,6 +252,7 @@ class _Decision:
         self.hist = [0] * DEPTH_HIST
         self.errors: dict[str, int] = {}
         self.t_engine = self.t_value = self.t_prior = 0.0
+        self.meter = CallMeter()        # its share of every network call, by the call's size (cost_model)
 
 
 class _Tree:
@@ -683,6 +685,7 @@ class _Search:
         t1 = time.perf_counter()
         v = np.asarray(self.value_fn(e), dtype=np.float64).reshape(n)
         dc.t_value += time.perf_counter() - t1
+        dc.meter.add("v", n, n)
         term = np.asarray(e["terminal"])
         live = term == 0
         v = np.where(live, v, np.where(term == 2, 0.0, term.astype(np.float64)))
@@ -1031,7 +1034,7 @@ class _Search:
             return {"pi": pi, "q_row": np.full(N_ACTIONS, np.nan), "n_row": np.zeros(N_ACTIONS),
                     "v": float("nan"), "v_prior": float("nan"),
                     "action": policy_action, "policy_action": policy_action, "rows": rows, "root": [],
-                    "counters": counters, "per_world": []}
+                    "counters": counters, "per_world": [], "cost_units": d.meter.units()}
         # per-world root estimates over OUR rows (the same rows in every world)
         q_root, n_pool, per_q, per_marg = self._root_q(ok)
         vis = np.isfinite(q_root)
@@ -1117,7 +1120,7 @@ class _Search:
                  "N": t.root.N.tolist(), "W": t.root.W.tolist()} for t in ok]
         return {"pi": pi, "q_row": q_row, "n_row": n_row, "v": v_prime, "v_prior": v_prior, "action": action,
                 "policy_action": policy_action, "rows": rows, "root": root, "counters": counters,
-                "per_world": [q.tolist() for q in per_q]}
+                "per_world": [q.tolist() for q in per_q], "cost_units": d.meter.units()}
 
     def _counters(self, d: _Decision, ok: list[_Tree]) -> dict[str, float]:
         trees = d.trees
@@ -1166,8 +1169,10 @@ class _Search:
 
 
 def _charge(decs: list, seconds: float, t_attr: str, rows_key: str, calls_key: str) -> None:
-    """Split one shared forward between the decisions whose rows were in it."""
+    """Split one shared forward between the decisions whose rows were in it; each decision's
+    meter takes its share of a call of that many rows (cost_model's units)."""
     n = len(decs)
+    net = {"t_value": "v", "t_prior": "p"}[t_attr]
     by: dict[int, list] = {}
     for d in decs:
         by.setdefault(id(d), [d, 0])[1] += 1
@@ -1175,6 +1180,7 @@ def _charge(decs: list, seconds: float, t_attr: str, rows_key: str, calls_key: s
         setattr(d, t_attr, getattr(d, t_attr) + seconds * k / n)
         d.c[rows_key] += k
         d.c[calls_key] += 1
+        d.meter.add(net, k, n)
 
 
 def _rm_strategy(r: np.ndarray, gamma: float) -> np.ndarray:

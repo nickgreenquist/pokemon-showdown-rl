@@ -193,7 +193,17 @@ for cfg in (dict(), dict(batch=4), dict(root_select="sequential_halving"), dict(
         assert np.allclose(got["q_row"], alone["q_row"], equal_nan=True, rtol=0, atol=1e-12), (cfg, key)
         for k in ("tree/sims", "search/leaves", "tree/nodes", "tree/merges", "tree/depth_mean", "tree/capped_sims"):
             assert got["counters"][k] == alone["counters"][k], (cfg, key, k, got["counters"][k], alone["counters"][k])
+        # THE COST METER (rl/search/cost_model.py): its rows are the counters' rows, and a decision searched
+        # alone holds every row of every call it is in, so its shares sum to its call count exactly
+        for res_ in (got, alone):
+            cu = res_["cost_units"]
+            assert sum(cu["rows"]["v"]) == res_["counters"]["search/leaves"], (cfg, key)
+            assert sum(cu["rows"]["p"]) == res_["counters"]["tree/prior_rows"], (cfg, key)
+        for net, fk in (("v", "tree/forwards_v"), ("p", "tree/forwards_p")):
+            assert abs(sum(alone["cost_units"]["share"][net]) - alone["counters"][fk]) < 1e-9, (cfg, key, net)
     assert sum(r["counters"]["tree/forwards_v"] for r in together) > max(r["counters"]["tree/forwards_v"] for r in together)
+    # shared calls split one unit of share between the decisions in them
+    assert sum(sum(r["cost_units"]["share"]["v"]) for r in together) < sum(r["counters"]["tree/forwards_v"] for r in together)
 try:
     search_many(specs, tables, "p1", stub, prior_fn, sims=10, depth3=1); raise SystemExit("unknown dial accepted")
 except ValueError as err:
