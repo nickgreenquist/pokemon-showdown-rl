@@ -20,10 +20,19 @@ decisions/sec reported for both arms and the per-turn budget named in every quot
     JOURNEY 14's own thesis: "this chapter's target is the VALUE FUNCTION, not the depth"; "a critic trained AS AN
     EVALUATOR ... on HYPOTHETICAL states it has never played".
   - (c) Both in one lever, as r2's "the value channel on" branch reads.
-  - **Recommendation: (c) with TreeStrap ON, for two reasons.** First, 09-26 measured that deeper search does not
-    change the root's choice under this critic, so a policy-target-only lever tests the channel least likely to move.
-    Second, stacking the value channel is what the kitchen-sink ruling licenses: a built, counted addition inside
-    the same objective.
+  - **Recommendation: (c), the policy target as the channel that measures, TreeStrap stacked beside it.** The first
+    reason is stepc_a (§1). The deep tree's target DISTRIBUTION carries resolved expected improvement over greedy where
+    R7's one-ply target carries none: +0.0044 ± 0.0016 (z 2.76) paired, completed-Q vs the one-ply target. Only the
+    root's gated ARGMAX ties (tier 1b). The second reason: TreeStrap aims at the evaluator, JOURNEY 14's target and
+    the axis that binds (tier 1). Stacking it is what the kitchen-sink ruling licenses: a built, counted addition
+    inside the same objective.
+- **D4 — B = 1 or B >= 2 WORLDS PER SEARCH (new, from the fusion read at depth: UNRESOLVED).**
+  - B = 1 is the cheapest. The student's fixed point keeps +0.0019 ± 0.0010 (z 1.91) of EI over the one-ply target;
+    the rest of the true-world target's EI is the peek, which a student cannot learn.
+  - A joint belief tree keeps +0.0031 ± 0.0011 (z 2.72), but was measured at 8x the work (8 worlds x 256).
+  - B = 2 at ~256-512 total is unmeasured. It is the cheap next E-core read if the ruling wants it.
+  - Recommendation: B = 1 at the dose, the fusion read disclosed as unresolved, and B = 2 benched beside it on
+    Sunday.
 - **D3 — THE CONTROL.** It is whatever base R7's verdict names (§6), warm from its finals and paired by final. It
   follows mechanically from Sunday's readout; it is listed so the ruling is visible.
 
@@ -37,9 +46,17 @@ decisions/sec reported for both arms and the per-turn budget named in every quot
 - **Tier 1b** (`tier1b_a`): the TRAINING setting (true world, B = 1) ties the one-ply T-op at 256 / 1,024 / 1,800
   simulations (matched at 0.100; every |d| < 1 se). The depth floor (mean >= 2.5 turns) is met at 256 (2.89 turns, 228
   leaves, ~4.5x the one-ply's ~51).
-- **Step C's E-core inputs** (`stepc_a`, [PENDING -- running 09-26 11:28Z]): the FUSION READ AT DEPTH (the B = 1
-  licence, §10's rule); SIGMA for the completed-Q target, chosen split-sample; the TARGET'S FORM, i.e. the expected
-  improvement of the deep completed-Q target vs the one-ply T-op's own target vs the prior.
+- **Step C's E-core inputs** (`stepc_a`, `results/native_tree/stepc_a.stepc.md`, SESSION_LOGS 12:15Z). Expected
+  improvement over greedy on G0's oracle, win rate per decision:
+  - R7's one-ply T-op target: -0.0001 ± 0.0013.
+  - The deep soft_br target: +0.0031.
+  - The completed-Q target: +0.0043, held out.
+  - Paired, completed-Q minus one-ply: +0.0044 ± 0.0016 (z 2.76).
+  - The B = 1 student's fixed point: +0.0019 over one ply (z 1.91).
+  - The joint B = 8 target: +0.0031 (z 2.72, at 8x the work).
+  - FUSION AT DEPTH: +0.00058 ± 0.00106 per decision. x14 a battle: 95% [-0.021, +0.037] vs the 0.025 floor, so
+    UNRESOLVED.
+  - SIGMA: a ridge at c_scale 0.1; c_visit 100-200 best, and the MCTX default is within ~10%.
 - **R7's counters** (the searched lane f1 over its last 5M steps; the record-only control's matched baseline): PPO
   clips 51.2% of searched rows vs 15.9% on the same selection in the record-only twin (~3.2x at one ply), so
   **play: false** is Step C's design.
@@ -50,13 +67,14 @@ decisions/sec reported for both arms and the per-turn budget named in every quot
 
 `rl/search/tree_top.py::TreeOp` (built and tested on `deep-search-step-a`; `searcher_class(spec)` picks it for a
 block that carries `tree`). Its dials are derived from its signature, and unknown keys fail.
-- **Dose:** 256 TOTAL simulations on the TRUE world (B = 1, iff the fusion read at depth holds [PENDING stepc_a];
-  else B >= 2 worlds, with the cost multiplied); br_prior, the root grid, depth cap 8, cols_k 4, chance_k 2. The
+- **Dose:** 256 TOTAL simulations on the TRUE world (B = 1 by D4; the fusion read at depth is UNRESOLVED and
+  disclosed; B = 2 is benched beside it); br_prior, the root grid, depth cap 8, cols_k 4, chance_k 2. The
   learner's OWN actor and critic serve as prior and leaf (TreeOp refuses an antisymmetric or privileged critic).
 - **Which rows:** eligible rows as R7's (> 1 legal action, pi_theta top-1 < 0.97), searched on a coin at `frac` (a
   benched fraction; KataGo's playout-cap randomization). `frac` comes from D1 and the width bench (§4).
 - **Behaviour:** `play: false` (§1). The lane plays pi_theta, so its data stay on-policy.
-- **Policy target:** the completed-Q pi' at sigma = [PENDING stepc_a], trained as beta * KL(pi' || pi_theta) on
+- **Policy target:** the completed-Q pi' at sigma c_visit 100, c_scale 0.1 (stepc_a's split-sample choice; the ridge
+  is flat to within ~10% across c_visit 25-200), trained as beta * KL(pi' || pi_theta) on
   searched rows. beta warms up 0 -> beta* over ~5M steps; beta* comes from a 2M smoke ladder under R7's not-inert
   rule.
 - **Value target:** v' = E_{a~pi'} E_{b~prior} Q(a,b) into R7's aux head, NEVER the root max (G1: +0.019 of max
@@ -115,10 +133,10 @@ block that carries `tree`). Its dials are derived from its signature, and unknow
 
 ## 7. What changes the plan, and what does not
 
-- **Changes it:** the fusion read at depth. If it spends B = 1's licence, the dose becomes B >= 2 worlds at x B the
-  cost.
+- **Changes it:** the fusion read at depth. It read UNRESOLVED; D4 rules, and a resolved SPENT would force B >= 2
+  worlds at x B the cost.
 - **Changes it:** the width bench. It sets `frac` and the steps.
-- **Changes it:** stepc_a's target-form read. If the deep completed-Q target shows no expected improvement over the
-  one-ply T-op's, TreeStrap carries the lever and D2's (b) is the honest name.
+- **Read (stepc_a): the target-form channel measures** (+0.0044 over the one-ply target at z 2.76). The policy
+  target is the lever's primary channel, TreeStrap the stacked value channel.
 - **Does not change it:** a null or a cost at any one budget (rule 6); R7's verdict (it sets the control and the
   suspect channel, never whether this runs).

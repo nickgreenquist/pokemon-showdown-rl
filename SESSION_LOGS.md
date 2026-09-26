@@ -14316,3 +14316,39 @@ line numbers are not — grep the date, then read that region):
     +0.0040 (d -0.0004). The harness now gates every true-world arm at its reference's rate, prints each row's rate
     and refuses a contrast that mixes a true and a belief arm. The three summaries were regenerated; belief arms and
     contrasts did not change.
+- 2026-09-26 12:15Z (agent, R7 runner) — **STEP C's E-CORE INPUTS READ, at tier 1b's dose (256 simulations, the
+  training setting): the POLICY TARGET is where depth pays. R7's one-ply target carries no measurable expected
+  improvement over greedy; the deep tree's target does. The fusion read at depth is UNRESOLVED (B = 1's licence is not
+  established at this n, nothing shows it spent), and sigma sits on a ridge at c_scale 0.1.**
+  (`results/native_tree/stepc_a.stepc.{md,json}`, computed by `scripts/native_tree_gates.py oracle --arm-set stepc
+  --summarise --tag stepc_a`; the run: branch `19109e1`, 3 E-core shards 11:28-11:55Z; the summary at `dc849f9`. 500
+  roots, 0 errors.)
+  - THE TARGET'S FORM. Expected improvement (EI) over greedy on G0's true-world oracle, win rate per decision, of the
+    full target distribution, ungated:
+    - R7's one-ply T-op target (true world, k 4 / S 2 / tau 0.05, the committee as the net): -0.0001 ± 0.0013.
+    - The deep tree's soft_br target (tr_256): +0.0031 ± 0.0014.
+    - The completed-Q target (sigma chosen on one half of G0's rollouts, scored on the other): +0.0043 ± 0.0020.
+    - Paired against the one-ply target: completed-Q +0.0044 ± 0.0016 (z 2.76); soft_br +0.0032 ± 0.0011 (z 2.95). The
+      one-ply target minus the prior: +0.0003 ± 0.0010.
+    - Tier 1b's tie was on the GATED ARGMAX (the root's choice at a 10% override). The DISTRIBUTION is what a student
+      learns, and there depth separates.
+  - WHAT A STUDENT CAN LEARN. A student of true-world (B = 1) targets converges to their average over the hidden
+    world. The mean of the per-world deep targets over the 8 belief worlds reads +0.0018 ± 0.0011, which is +0.0019 ±
+    0.0010 (z 1.91) over the one-ply target: about 40% of the true-world target's EI is the peek, which a student
+    cannot learn. The JOINT tree over all 8 worlds (fj_2048, 8x the work) reads +0.0030 ± 0.0011, +0.0031 ± 0.0011 (z
+    2.72) over the one-ply target.
+  - THE FUSION READ AT DEPTH (plan section 10's rule on box 5 item 2's measurement). t_pimc - t_avg is +0.00058 ±
+    0.00106 per decision (z 0.55). Times ~14 searched decisions a battle: point +0.008, 95% [-0.021, +0.037] against the
+    0.025 floor. UNRESOLVED: box 5 established the licence by the upper bound (+0.012 at one ply), and here the upper
+    bound crosses the floor while nothing shows the cost above it. The choice moves with the hidden world more at depth
+    (world flip 0.133 vs one ply's 0.088; target flip 0.104). A RULING: B = 1 (cheapest; the student keeps +0.0019 over
+    one ply) or B >= 2 (better targets, x B the search).
+  - SIGMA: a ridge at c_scale 0.1 across c_visit (EI on half A +0.0032..+0.0038); chosen c_visit 100 / 200, c_scale 0.1
+    (held out +0.0049 / +0.0037). The MCTX default (50 / 0.1) reads +0.0034, within ~10% of the best. Sharper (1.0)
+    falls to ~0 and flatter (0.01) is the prior.
+  - CAVEATS: decision-level EI on G0's committee-vs-committee oracle, with the R5 committee as the net where Step C
+    would use the student's own; 500 roots; sizes small in absolute terms. R7's one-ply target reading ~0 here is a
+    mechanism read about the committee's one-ply targets, not a verdict on R7 (its reads land Sunday). Rule 6 stands.
+  - The Step C DRAFT (`docs/proposals/STEP_C_PREREG_DRAFT_2026-09-26.md`, `456b23b`) now carries these numbers. D2's
+    recommendation is (c) with the policy target as the channel that measures, and a new ruling D4 (B = 1 vs B >= 2)
+    is added.
