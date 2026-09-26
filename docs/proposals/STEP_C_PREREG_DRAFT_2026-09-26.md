@@ -1,12 +1,13 @@
 # STEP C — DEEP SEARCH IN TRAINING: the pre-reg, DRAFT (2026-09-26)
 
-**Status: DRAFT r4 (+ the deep-key value read, 13:55Z), not ratified.**
+**Status: DRAFT r4 (+ the deep-key value read, 13:55Z; + the level rule, 14:35Z), not ratified.**
 - The three agent sessions (r7-runner, r6-runner, fp-speedup) agreed on r4's direction, as the maintainer asked ("You
   decide among the 3 of you and then go for review").
 - Both Opus reviews of r3 are folded in. Every finding has a disposition in §9.
 - **D1 (the budget) and D4 (worlds per search) are HELD** for the speed work: the maintainer's DeepResearch report
   (`docs/SearchOptimizationsIdeas.md`, pending) and the quiet-box bench.
-- Next: a verification pass by both reviewers.
+- Next: a verification pass by both reviewers, held until the DeepResearch report lands and D1 / D4 are folded in (one
+  pass covers all of it; the reviewers' first try died on the usage limit, 13:58Z).
 
 The standing ruling holds throughout: *"I do NOT want you to kill search in train if 1-ply doesn't work"* (CLAUDE.md
 rule 6). Nothing below decides WHETHER Step C runs; the evidence sets its FORM, DOSE and the reads that decide the next
@@ -32,8 +33,15 @@ All of the following are measured at the decision level on G0's 500 roots, with 
     (+0.0000, z 0.01).
   - **The deep backup is MORE OPTIMISTIC in level.** The deep FP sits +0.046 .. +0.050 above the rollout; the critic
     sits +0.034 (deep minus critic +0.0147 ± 0.0060); the one-ply FP matches the critic. Centred error removes a
-    level, but a TreeStrap label keeps it, so the MC grounding term anchors the level. G1's signed gap and M1's level
-    bias read it.
+    level, but a TreeStrap label keeps it, so the MC grounding term anchors the level.
+    - It is measured on the PUCT-mean (visit-weighted) backups, the only form the stored rows carry. The recursive
+      prior-weighted labels (D2(ii)) should cut it at the source, and G1's signed gap on BOTH forms confirms it
+      (fp-speedup).
+    - The anchor sees PLAYED states only, while labels cover HYPOTHETICAL ones, so a state-dependent bias would
+      survive it. G1 splits the signed gap by node depth and turn bucket (fp-speedup).
+    - The optimism can feed itself: the tree reads the evaluator at its leaves, so high labels lift the evaluator,
+      which lifts the next backups. So the level has a MEASURED threshold and a staged action, not a read-only watch
+      (r6-runner): tau_lvl from G2, G7's clause, stop condition S2.
 - **WITHIN a position, depth ties one ply.** On the ranking of our root rows against the oracle (fp-speedup: Pearson /
   Spearman paired, every |z| < 1.2 per key), the policy target's learnable EI edge is ~+0.0008, not resolved, and the
   argmax ties.
@@ -185,6 +193,10 @@ and `scripts/ch3_eval.py`.
 **THE BUILDS.** Each has named counters in a DERIVED `GATE_COUNTERS` table, with a grep test over rl/ (R7's pattern).
 - **B1 — the evaluator network.** As D2: design B's isolation, obs only, the warm copy, its three tests.
   - Counters: `loss/evaluator_mc`, `loss/evaluator_ts`, `evaluator/label_gap_signed`, `evaluator/drift_signed`.
+    `evaluator/drift_signed` is the evaluator minus the played-row MC return, signed, per update, with its
+    battle-clustered se. S2 and G7 read it.
+  - The grounding weight and w_ts are RESUME-TIME OVERRIDES, stamped in meta.yaml with their from_step, for S2's
+    staged action (a test pins that a resume without the override reproduces the run's value).
 - **B2 — the TreeStrap label export.** The tree exports (node obs, recursive prior-weighted value) for N >= N_min
   through a side channel from the collector child to the learner. TreeOp's `take()` is one record per row today
   (`rl/search/tree_top.py` ~212-225), and native_tree returns root statistics only.
@@ -206,7 +218,10 @@ and `scripts/ch3_eval.py`.
   played from OUR information set by observation-based policies, never the tree; >= 2,000 labelled nodes from G0's
   roots; both label forms, node-level and recursive). Per node:
   - the paired |label - rollout| minus |donor critic - rollout|, centred;
-  - the SIGNED mean gap, label - rollout (the optimism);
+  - the SIGNED mean gap, label - rollout (the optimism), per label form, split by labelled-node depth and by G0's
+    turn bucket (fp-speedup: the played-row anchor cannot see a bias on hypothetical states, so G1 is its only
+    instrument before the fleet). A depth trend in the recursive form at 2 se caps the labels at the deepest depth
+    without one, disclosed;
   - the WITHIN-position measure (fp-speedup): the ranking of a labelled node's children against their rollout values.
   - PASS: the centred paired error is below 0 at 2 se. N_min is the smallest N at which it passes. FAIL -> the
     not-green table.
@@ -216,6 +231,12 @@ and `scripts/ch3_eval.py`.
   - (b) the tree's fixed-point pi' EI with that evaluator at the leaves vs the donor critic at the leaves.
   - It sets FORM only (w_ts, N_min, the grounding weight). (a) improved at 2 se -> TreeStrap on. (b) is the compounding
     link's first measurement: reported, never a gate (rule 6).
+  - **THE LEVEL THRESHOLD tau_lvl** (r6-runner). `evaluator/drift_signed` on HELD-OUT played rows, at G2's start (the
+    warm copy) and at its end.
+    - The grounding weight is the smallest rung of w_mc / w_ts in {0.5, 1, 2, 4} at which that start-to-end change is
+      NOT significant at 2 se. The threshold is never taken at a weight whose own offline loop already drifts.
+    - tau_lvl = |the change| + 2 se, at that rung. It is S2's and G7's threshold, so it is measured, never typed.
+    - No rung passes -> the not-green table's TreeStrap row (MC grounding only; the maintainer rules).
 - **G3 — THE WIDTH BENCH (B6)** -> c_tree, against D1's break-even and D1's order.
 - **G4 — THE DEPTH FLOOR:** `tree/turns_mean` >= 2.5 in the smokes, on the fleet's net. FAIL -> 512, re-bench. It is
   also watched in-fleet (§4).
@@ -233,6 +254,8 @@ and `scripts/ch3_eval.py`.
   100k.
   - Kill the searched smoke after its first `checkpoint.pt` and resume it; the resume reproduces.
   - Every GATE_COUNTER on every update row, and C's own not-inert check.
+  - THE LEVEL (r6-runner): S's `evaluator/drift_signed` change from its first 100k steps to its last exceeds tau_lvl at
+    2 se -> FAIL -> the grounding weight x2 and re-smoke before any fleet.
   - FAIL -> no fleet.
 - **G8 — THE SUITE at the launch commit**, after the merge. Every lane stamps the same clean sha.
 - **G9 — DISK:** free space >= 2x the projection (~6 GB a lane plus ~7.5 GB of Foul Play stdout for 30k battles) and
@@ -261,8 +284,15 @@ and `scripts/ch3_eval.py`.
   maintainer mid-fleet, never a silent continuation):
   - S1, THE CRITIC: S's on-policy explained variance on played rows below its pair's by > 0.05 (r6-runner; reviewers
     A #15, B #15).
-  - S2, THE EVALUATOR'S DRIFT: |the evaluator's value minus the played-row MC return, signed| > 0.05 (r6-runner's
-    grounding counter).
+  - S2, THE EVALUATOR'S LEVEL (r6-runner; replaces r4's typed 0.05). The instrument is the change in
+    `evaluator/drift_signed` since the lane's first 1M steps, over the last 5M steps. It is watched at every monitor
+    pass; its action fires only at the 25M marks.
+    - A TRIP: the change exceeds tau_lvl (G2) at 2 se AND grew since the previous mark.
+    - First trip: the grounding weight x2 from the next update (B1's resume-time override; disclosed with its
+      from_step).
+    - A trip at a later mark: TreeStrap labels OFF for the rest of the lap (w_ts 0; the evaluator continues on MC
+      grounding; the policy target alone, disclosed). TreeStrap goes to its own lap.
+    - S2 never waits for a second consecutive trip to act, and never continues silently.
   - S3, THE DEPTH FLOOR: `tree/turns_mean` < 2.5.
 
 ## 5. The reads
@@ -347,7 +377,7 @@ Every row: theta0 anchors, pool restart, the LR re-arm and the N-ANNEAL disclosu
 - **Changes it:**
   - the speed work and the width bench (D1: `frac`, steps and the order of its levers);
   - the B = 2 read (D4's rule);
-  - G1 and G2 (TreeStrap in, or on its own lap; w_ts and N_min);
+  - G1 and G2 (TreeStrap in, or on its own lap; w_ts, N_min, the grounding weight and tau_lvl);
   - ~~the deep-key value read (stepc3_a)~~ DONE 2026-09-26: the fixed-point value edge holds on all three deep keys
     (§2), so the value channel's rationale stands.
 - **Does not change it:** a null or a cost at any one budget (rule 6); R7's verdict (it sets C's donors, never whether
@@ -375,6 +405,15 @@ Every row: theta0 anchors, pool restart, the LR re-arm and the N-ANNEAL disclosu
     - D3, with the adoption sentence;
     - D5, with thresholds and consequences, argmax matched on the override;
     - D1 and D4 held, with the joint tau chosen split-sample.
+- **After r4 (13:55Z, the deep-key value read):**
+  - r6-runner asked for a harder rule than "read it" on the level optimism, because the optimism feeds itself through
+    the leaves. Adopted: tau_lvl measured in G2, G7's smoke clause, and S2's staged action (the grounding weight x2,
+    then TreeStrap off for the lap).
+  - Added by r7-runner: the grounding-weight rung rule, so tau_lvl is never taken at a weight that already drifts
+    offline; the resume-time override that S2's action needs (B1).
+  - fp-speedup: the +0.0147 is on the PUCT-mean backups (the recursive form should cut it, confirmed in G1), and a
+    state-dependent bias survives a played-row anchor. G1's signed gap is split by depth and turn bucket, with the
+    depth-cap action.
 
 ## 9. The review record: every finding's disposition (reviewer A = completeness, B = the skeptic; r3)
 
