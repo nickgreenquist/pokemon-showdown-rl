@@ -122,6 +122,12 @@ run_order: [C1F, S1F, C2F, S2F, S3F, E6RR, E3BR, ES3F, EC2F]
 primary: {searched: [S1F, S2F, S3F], control: [C1F, C2F], pairs: {f1: [S1F, C1F], f2: [S2F, C2F]}}
 # LANE LOSS is a TRAINING-side cell (the header's R0 gates): a lane that failed a gate or could not be resumed to 100M is
 # listed here by its primary arm name, with the gate it failed, BEFORE the readout runs; it is dropped with its pair.
-# An INVALID FP arm is NOT lane loss: it re-runs LAST on its rerun pair as a new arm with `rerun_of: <arm>`.
+# An INVALID FP arm is NOT lane loss: it re-runs LAST on its rerun pair. THE RE-RUN PROCEDURE (an amendment, committed
+# before the re-run launches): add an arm `<ARM>R` that copies <ARM>'s kind, seat / lanes, battles, budget and
+# loop_breaker, takes `rerun_of: <ARM>` and <ARM>'s pair from usernames.rerun_pairs, and add `<ARM>R: {c6: true}` to
+# arm_encoder (without it the scheduler leaves C6 unset and the c6-on checkpoint is refused at load); then
+#   bash -c 'PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python /opt/anaconda3/bin/python scripts/fp_arms_parallel.py \
+#     --prereg configs/eval/r7_reads_offfp.yaml --arms <ARM>R --slots 1'
+# The readout substitutes a VALID re-run for its original and discloses the second scheduler session.
 lost_lanes: []
 object_rule: {incumbent: E6RR, donors_ens3: E3BR, fleet: [ES3F, EC2F], tolerance: 0.013}

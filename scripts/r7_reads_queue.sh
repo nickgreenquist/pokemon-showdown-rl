@@ -2,30 +2,36 @@
 # R7 READS queue -- the post-fleet reads of the R7 fleet, as its pre-reg (the header of every configs/r7_fleet_*.yaml)
 # states them: configs/eval/r7_reads_offfp.yaml (off FP@N 25k/12k: THE PRIMARY credit read, then the OBJECT RULE's four
 # committees, in ONE scheduler session in the pinned order), the MECHANISM READS (iii)/(vi) at the five END
-# checkpoints (scripts/r7_mechanism_reads.py, one process = one instrument session, c6 on) and the in-loop ones
-# (i)/(ii)/(iv)/(v) from each lane's history, then configs/eval/r7_reads.yaml (vs SH, locked form), then the readout.
-# Detached, resume-safe, rate-readable (CLAUDE.md rule 4). Re-execs from a FROZEN temp copy: never edit a bash script
-# an instance is executing (docs/landmines.md).
+# checkpoints (scripts/r7_mechanism_reads.py, one process = one instrument session, c6 on) and the in-loop ones from
+# each lane's history, then configs/eval/r7_reads.yaml (vs SH, locked form), then the readout. Detached, resume-safe,
+# rate-readable (CLAUDE.md rule 4). Re-execs from a FROZEN temp copy: never edit a bash script an instance is executing
+# (docs/landmines.md).
 #
-#   bash -c 'nohup bash scripts/r7_reads_queue.sh > logs/r7_reads/queue.nohup 2>&1 &'
+#   mkdir -p logs/r7_reads && bash -c 'nohup bash scripts/r7_reads_queue.sh > logs/r7_reads/queue.nohup 2>&1 &'
 #
 # From bash, NEVER a niced shell: scripts/fp_arms_parallel.py refuses to run niced or at background QoS, and zsh's
 # BG_NICE nices every `cmd &` by +5 (docs/landmines.md).
 #
 # PHASES:
 #   WAIT     the watchdog log carries "DONE at step" for all five R7 lanes and no rl.train for them is alive; then
-#            +15 min so Showdown reaps the rooms of the lanes' in-loop evals.
+#            +15 min so Showdown reaps the rooms of the lanes' in-loop evals. A lane the watchdog RETIRES (its resume
+#            cap) never prints DONE: the queue ALERTS and exits -- lane loss is the operator's declared cell
+#            (`lost_lanes` in the pre-reg), never the queue's.
 #   PIN      scripts/monster_reads_pin.py --trio s --commit, then --trio c --commit (real step names, sha256) --
-#            refused on a dirty tree (rule 3).
-#   FP       ONE scripts/fp_arms_parallel.py session over the pre-reg's run_order at --slots 8 (the FP-parallel ROI's
-#            measured width): C1F S1F C2F S2F S3F (the primary, control first in each pair), then E6RR E3BR ES3F EC2F
-#            (the object rule). FP@N is FIXED-BUDGET, so there is no quiet-box hold: load costs time, never strength
-#            (the scheduler still refuses beside a FOREIGN wall-clock Foul Play). The runner's relaunch knobs are the
-#            reads queues' 60 / 10 / 3. An arm with no JSON, or with fpn_counters_ok false, is LOGGED and re-run LAST
-#            on its rerun pair by the operator -- never pooled (the pre-reg).
-#   MECH     BESIDE the FP phase (a deterministic instrument: load cannot move it): extract_history.py for each lane
-#            (the in-loop reads' windows), then r7_mechanism_reads.py over the five END checkpoints, c6 on, in the
-#            fleet's own env (R0 gate 3 ran its test there).
+#            refused on a dirty tree (rule 3); the HEAD after the pins is the reads' PROGRAM (<fp>/launch_sha.txt).
+#   DISK     free space on the data volume >= 50 GB (CLAUDE.md; nine arms write ~11 GB of Foul Play stdout).
+#   HISTORY  each lane's history, extracted fresh (merged when a resume split it) BEFORE the FP phase, on an idle box:
+#            a 100M lane's history is ~3M rows and extraction holds it in memory.
+#   FP       ONE scripts/fp_arms_parallel.py session over the pre-reg's run_order at --slots 9 -- every arm launches in
+#            one wave, so no arm can start after a later commit (one program): C1F S1F C2F S2F S3F (the primary,
+#            control first in each pair), then E6RR E3BR ES3F EC2F (the object rule). FP@N is FIXED-BUDGET, so there is
+#            no quiet-box hold: load costs time, never strength. The scheduler's REFUSALS: rc 3 (a foreign wall-clock
+#            Foul Play alive, or our usernames held) HOLDS and retries every 10 min, alerting in the log; rc 2 / 6 / 7
+#            (a config, niceness or retired-budget refusal) ALERT and exit. An arm with no JSON, or with
+#            fpn_counters_ok false, is LOGGED and re-run LAST on its rerun pair by the operator -- never pooled.
+#            Afterwards every finished arm's Foul Play stdout is gzipped (the readout reads .gz).
+#   MECH     BESIDE the FP phase (a deterministic instrument: load cannot move it): r7_mechanism_reads.py over the five
+#            END checkpoints, c6 on, in the fleet's own env (R0 gate 3 ran its test there).
 #   SH       vs SH, locked form (no loop breaker), gs_* then gc_*, c6 on -- after FP, sequential (minutes each).
 #   READOUT  scripts/r7_reads_readout.py -> results/r7_reads_offfp/READOUT.txt + readout.json.
 set -u
@@ -38,7 +44,7 @@ REPO=/Users/nickgreenquist/Documents/Projects/pokemon-showdown-rl
 cd "$REPO" || exit 1
 # Hold the box awake exactly as long as this queue runs (the training watchdog's caffeinate exits with the last lane).
 caffeinate -i -s -w $$ &
-PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python          # FP seats (the runner's default), vs SH, the readout
+PY=/opt/anaconda3/envs/pokemon-showdown-rl/bin/python          # FP seats (the runner's default), vs SH, histories, readout
 ENGPY=/opt/anaconda3/envs/pkmn-engine-port/bin/python          # the mechanism reads: pkmn_gen1, the fleet's env
 BASEPY=/opt/anaconda3/bin/python                               # the scheduler (yaml only)
 export POKEMON_RL_ENCODER_V2=1 POKEMON_RL_ENCODER_IDS=1
@@ -51,12 +57,14 @@ MECHRES=results/r7_reads_mech
 LOG=logs/r7_reads
 WD=runs/train_watchdog.log
 G0ROWS=results/r7_g0/rollout_q.rows.jsonl
-SLOTS=${SLOTS:-8}
+SLOTS=${SLOTS:-9}
+MIN_FREE_GB=50
 mkdir -p "$LOG" "$FPRES" "$SHRES" "$MECHRES"
 log() { echo "[$(date -u +%FT%TZ)] $*" | tee -a "$LOG/queue.log"; }
 
 LANES="runs/r7_fleet_searched_f1_s376 runs/r7_fleet_searched_f2_s384 runs/r7_fleet_searched_f3_s392 runs/r7_fleet_control_f1_s400 runs/r7_fleet_control_f2_s408"
 lanes_done() { for d in $LANES; do grep -q "$d DONE at step" "$WD" || return 1; done; return 0; }
+lanes_retired() { for d in $LANES; do grep "ALERT $d " "$WD" | grep -q "RETIRING" && echo "$d"; done; }
 # A RESUMED lane runs as `--resume runs/<dir>`, not `--run-name <dir>` (scripts/train_watchdog.sh): both are matched.
 lanes_alive() { for d in $LANES; do pgrep -f "bin/python -m rl.train.*(--run-name ${d#runs/}\$|--resume ${d}\$)" > /dev/null && return 0; done; return 1; }
 
@@ -80,7 +88,14 @@ PYEOF
 
 # ---------------------------------------------------------------- WAIT
 log "WAIT: holding until all five R7 lanes are DONE in $WD and no rl.train for them is alive"
-until lanes_done && ! lanes_alive; do sleep 120; done
+until lanes_done && ! lanes_alive; do
+  r="$(lanes_retired)"
+  if [ -n "$r" ]; then
+    log "ALERT: the watchdog RETIRED $(echo $r) (its resume cap) -- it will never print DONE. LANE LOSS is the operator's cell: declare it in the pre-reg's lost_lanes, pin the surviving lanes by hand, and relaunch this queue. Exiting."
+    exit 1
+  fi
+  sleep 120
+done
 log "R7 fleet DONE; +15 min for room reaping"
 sleep 900
 lanes_alive && { log "REFUSING: an R7 lane is alive again after DONE"; exit 1; }
@@ -92,39 +107,68 @@ for t in s c; do
   log "PIN-$t: $(grep -E "^[sc][0-9]+: " "$LOG/pin_$t.log" | tr '\n' ' ')"
 done
 git status --porcelain --untracked-files=no | grep -q . && { log "DIRTY TREE after the pins -- refusing"; exit 1; }
-log "launch commit $(git rev-parse --short HEAD)"
+git rev-parse HEAD > "$FPRES/launch_sha.txt"
+log "PROGRAM (launch sha, after the pins): $(cat "$FPRES/launch_sha.txt")"
+
+# ---------------------------------------------------------------- DISK
+free_gb=$(df -k /System/Volumes/Data | tail -1 | awk '{print int($4/1048576)}')
+if [ "$free_gb" -lt "$MIN_FREE_GB" ]; then
+  log "ALERT: ${free_gb} GB free on the data volume (< ${MIN_FREE_GB}; CLAUDE.md: check disk before any reads launch) -- exiting"
+  exit 1
+fi
+log "DISK: ${free_gb} GB free"
+
+# ---------------------------------------------------------------- HISTORY (fresh, before FP, on an idle box)
+for d in $LANES; do
+  n=$(ls -d "$d"/wandb/offline-run-*/run-*.wandb 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$n" -gt 1 ]; then
+    "$PY" -c "import sys; sys.path.insert(0, 'scripts'); from pathlib import Path; from merge_history import merge; merge(Path('$d'))" \
+      >> "$LOG/history.log" 2>&1 && log "HISTORY $d: merged $n segments (a resume split it)" || log "HISTORY $d MERGE FAILED -- see $LOG/history.log"
+  else
+    "$PY" scripts/extract_history.py "$d" >> "$LOG/history.log" 2>&1 \
+      && log "HISTORY $d: $(tail -1 "$LOG/history.log" | cut -c1-90)" || log "HISTORY $d FAILED -- see $LOG/history.log"
+  fi
+done
 
 # ---------------------------------------------------------------- MECH (beside FP)
 mech() {
-  local d ck=() sha=()
-  for d in $LANES; do
-    if "$PY" scripts/extract_history.py "$d" >> "$LOG/history.log" 2>&1; then
-      log "HISTORY $d: $(tail -1 "$LOG/history.log" | cut -c1-80)"
-    else
-      log "HISTORY $d FAILED (a resume splits the wandb history: merge by hand, docs/landmines.md) -- see $LOG/history.log"
-    fi
-  done
+  local ck=() sha=() lane
+  if [ -f "$MECHRES/end.json" ]; then log "MECH SKIP (end.json exists)"; return; fi
   for lane in s376 s384 s392 c400 c408; do
     ck+=("$("$PY" -c "import yaml;print(yaml.safe_load(open('$FPPREREG'))['checkpoints']['$lane']['path'])")")
     sha+=("$("$PY" -c "import yaml;print(yaml.safe_load(open('$FPPREREG'))['checkpoints']['$lane']['sha256'])")")
   done
-  if [ -f "$MECHRES/end.json" ]; then log "MECH SKIP (end.json exists)"; return; fi
   log "MECH: r7_mechanism_reads.py over the five END checkpoints (c6 on, $ENGPY)"
-  POKEMON_RL_ENCODER_C6=1 "$ENGPY" scripts/r7_mechanism_reads.py --rows "$G0ROWS" --checkpoints "${ck[@]}" \
-    --sha256 "${sha[@]}" --out "$MECHRES/end.json" >> "$LOG/mech.log" 2>&1 \
-    && log "MECH DONE: $(grep -c '^\[mech\] ' "$LOG/mech.log") units" \
-    || log "MECH FAILED -- see $LOG/mech.log"
+  if POKEMON_RL_ENCODER_C6=1 "$ENGPY" scripts/r7_mechanism_reads.py --rows "$G0ROWS" --checkpoints "${ck[@]}" \
+       --sha256 "${sha[@]}" --out "$MECHRES/end.json" >> "$LOG/mech.log" 2>&1; then
+    log "MECH DONE: $(grep -c '^\[mech\] ' "$LOG/mech.log") units"
+  else
+    log "MECH FAILED -- see $LOG/mech.log"
+  fi
 }
 mech &
 MECH_PID=$!
 
 # ---------------------------------------------------------------- FP
 ARMS=$("$PY" -c "import yaml;print(','.join(yaml.safe_load(open('$FPPREREG'))['run_order']))")
-log "PHASE FP: ONE scheduler session, --slots $SLOTS, arms $ARMS (off FP@N 25k/12k; fixed budget)"
-STALL_POLLS=60 MAX_RELAUNCHES=10 NO_PROGRESS_RELAUNCHES=3 PY="$PY" \
-  "$BASEPY" scripts/fp_arms_parallel.py --prereg "$FPPREREG" --arms "$ARMS" --slots "$SLOTS" --out "$FPRES" \
-  >> "$LOG/fp_parallel.log" 2>&1
-log "PHASE FP returned (rc=$?)"
+tries=0
+while true; do
+  log "PHASE FP: ONE scheduler session, --slots $SLOTS, arms $ARMS (off FP@N 25k/12k; fixed budget)"
+  STALL_POLLS=60 MAX_RELAUNCHES=10 NO_PROGRESS_RELAUNCHES=3 PY="$PY" \
+    "$BASEPY" scripts/fp_arms_parallel.py --prereg "$FPPREREG" --arms "$ARMS" --slots "$SLOTS" --out "$FPRES" \
+    >> "$LOG/fp_parallel.log" 2>&1
+  rc=$?
+  log "PHASE FP returned rc=$rc"
+  case "$rc" in
+    0|4) break ;;
+    3) tries=$((tries + 1))
+       if [ "$tries" -gt 144 ]; then log "ALERT: the scheduler refused (rc 3) for 24 h -- exiting"; exit 1; fi
+       log "HOLD (ALERT): the scheduler refused (rc 3: a foreign wall-clock Foul Play is alive, or our usernames are held -- $(grep REFUSING "$LOG/fp_parallel.log" | tail -1 | cut -c1-160)); retrying in 10 min"
+       sleep 600 ;;
+    *) log "ALERT: the scheduler refused (rc $rc: a config, niceness or retired-budget refusal -- $(grep REFUSING "$LOG/fp_parallel.log" | tail -1 | cut -c1-160)) -- exiting"
+       exit 1 ;;
+  esac
+done
 for arm in $(echo "$ARMS" | tr ',' ' '); do
   tag=$(echo "$arm" | tr 'A-Z' 'a-z')
   if [ -f "$FPRES/$tag.json" ]; then
@@ -133,6 +177,9 @@ import json, os
 s = json.load(open('$FPRES/$tag.json'))
 r = json.load(open('$FPRES/$tag.runner.json')) if os.path.exists('$FPRES/$tag.runner.json') else {}
 print(s.get('our_win_rate'), 'n', s.get('battles_finished'), 'ties', s.get('ties'), 'fpn_counters_ok', r.get('fpn_counters_ok'))")"
+    if [ -f "$FPRES/$tag.runner.json" ] && [ -f "$FPRES/$tag.fp.stdout" ]; then
+      gzip "$FPRES/$tag.fp.stdout" && log "$arm: fp.stdout gzipped"
+    fi
   else
     log "$arm NO JSON -- see $FPRES/$tag.runner.log (a killed arm's pair is POISONED: re-run it LAST on its rerun pair)"
   fi

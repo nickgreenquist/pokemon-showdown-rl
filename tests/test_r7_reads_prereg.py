@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import monster_reads_pin as pin  # noqa: E402
 
 FP = yaml.safe_load((ROOT / "configs/eval/r7_reads_offfp.yaml").read_text())
+RERUNS = {a: x["rerun_of"] for a, x in FP["arms"].items() if x.get("rerun_of")}   # re-run arms (the pre-reg's procedure)
+ORIGINAL = {a: x for a, x in FP["arms"].items() if a not in RERUNS}
 SH = yaml.safe_load((ROOT / "configs/eval/r7_reads.yaml").read_text())
 R6FP = yaml.safe_load((ROOT / "configs/eval/r6_reads_offfp.yaml").read_text())
 MANIFEST = [l.split() for l in (ROOT / "configs/r7_fleet_lanes.txt").read_text().splitlines() if l.strip() and not l.startswith("#")]
@@ -56,7 +58,7 @@ def test_pairs_share_a_donor_and_the_donors_are_trio_b():
 
 
 def test_primary_arms_greedy_breaker_off_6000_in_the_pinned_order():
-    arms = FP["arms"]
+    arms = ORIGINAL
     assert FP["run_order"] == ["C1F", "S1F", "C2F", "S2F", "S3F", "E6RR", "E3BR", "ES3F", "EC2F"]
     assert sorted(arms) == sorted(FP["run_order"]) and FP["lost_lanes"] == []
     P = FP["primary"]
@@ -82,12 +84,16 @@ def test_object_rule_arms_in_the_r6_object_form():
 def test_every_arm_is_fpn_25k_12k_c6_on_with_its_usernames():
     for a, x in FP["arms"].items():
         assert (x["search_iterations"], x["search_iterations_early"], x["search_time_ms"]) == (25000, 12000, 20), a
-        assert FP["arm_encoder"][a] == {"c6": True}, a
-        pair = FP["usernames"]["pairs"][a]
+        assert FP["arm_encoder"][a] == {"c6": True}, a          # a re-run arm without it would die at checkpoint load
+        pair = FP["usernames"]["rerun_pairs"][RERUNS[a]] if a in RERUNS else FP["usernames"]["pairs"][a]
         assert (x["seat_username"], x["fp_username"]) == (pair["seat"], pair["fp"]), a
+        if a in RERUNS:                                          # a re-run copies its original but for the pair
+            o = FP["arms"][RERUNS[a]]
+            assert {k: v for k, v in x.items() if k not in ("rerun_of", "seat_username", "fp_username")} == \
+                {k: v for k, v in o.items() if k not in ("seat_username", "fp_username")}, a
         for lane in ([x["seat"]] if x["kind"] == "greedy_seat" else x["lanes"]):
             assert lane in FP["checkpoints"], (a, lane)
-    assert set(FP["usernames"]["rerun_pairs"]) == set(FP["arms"])
+    assert set(FP["usernames"]["rerun_pairs"]) == set(ORIGINAL)
     assert FP["fp"]["search_iterations"] == 25000 and FP["fp"]["search_iterations_early"] == 12000
 
 
@@ -101,10 +107,20 @@ def test_usernames_prefix_free_across_the_inventory():
     assert all(n.startswith("r7rd") and len(n) <= 18 for n in mine) and len(mine) == len(set(mine))
 
 
+def pinned_or_placeholder(lane: str, ck: dict) -> bool:
+    """TBD until Sunday's pin; after it, the pin script's exact form: the lane's own run dir, a real sha256, >= 100M."""
+    if ck == {"path": "TBD", "sha256": "TBD", "step": "TBD"}:
+        return True
+    return (str(ck["path"]).startswith(FP["lanes"]["run_dirs"][lane] + "/ckpt_") and re.fullmatch(r"[0-9a-f]{64}", ck["sha256"])
+            is not None and int(ck["step"]) >= 100_000_000 and str(ck["path"]).endswith(f"ckpt_{int(ck['step']):09d}.pt"))
+
+
 def test_placeholders_and_copied_pins():
     for f in (FP, SH):
         for lane in ("s376", "s384", "s392", "c400", "c408"):
-            assert f["checkpoints"][lane] == {"path": "TBD", "sha256": "TBD", "step": "TBD"}
+            assert pinned_or_placeholder(lane, f["checkpoints"][lane]), (lane, f["checkpoints"][lane])
+    for lane in ("s376", "s384", "s392", "c400", "c408"):
+        assert FP["checkpoints"][lane] == SH["checkpoints"][lane]     # both files pinned together, or neither
     for x in ("a304", "a312", "a320", "b328", "b336", "b344"):
         assert FP["checkpoints"][x] == R6FP["checkpoints"][x]
     assert SH["arms"]["GS"]["lanes"] == ["s376", "s384", "s392"] and SH["arms"]["GC"]["lanes"] == ["c400", "c408"]
@@ -121,7 +137,8 @@ def test_pin_script_knows_the_r7_trios():
     for cfg in pin.R7_CONFIGS:
         text = (ROOT / cfg).read_text()
         for lane in ("s376", "s384", "s392", "c400", "c408"):
-            assert re.search(rf"^(  {lane}: )\{{path: TBD, sha256: TBD, step: TBD\}}", text, re.M), (cfg, lane)
+            assert (re.search(rf"^(  {lane}: )\{{path: TBD, sha256: TBD, step: TBD\}}", text, re.M)
+                    or re.search(rf"^  {lane}: \{{path: (\S+), sha256: ([0-9a-f]{{64}}), step: (\d+)\}}", text, re.M)), (cfg, lane)
 
 
 def test_final_ckpt_reads_the_horizon(tmp_path):
@@ -140,3 +157,4 @@ def test_queue_lanes_and_jobs_match():
     jobs = sorted(ch3_eval._jobs(SH))
     assert jobs == ["gc_c400", "gc_c408", "gs_s376", "gs_s384", "gs_s392"]
     assert sorted(re.findall(r"\bjob (g[sc]_[sc]\d+)", q)) == jobs
+    assert "SLOTS=${SLOTS:-9}" in q and "launch_sha.txt" in q and "MIN_FREE_GB=50" in q and "RETIRING" in q
