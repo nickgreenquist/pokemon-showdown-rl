@@ -1280,8 +1280,8 @@ def calibrate(args) -> int:
     print(f"[cal] {stem}: key linear={args.linear} threads={args.torch_threads}; load1 median {load['load1_median']:.1f} "
           f"(min {load['load1_min']:.1f}); probe {load['probe_ms_median']:.3f} ms; {load['train_procs']} rl.train procs")
     for net in cm.NETS:
-        print(f"[cal]   t_{net} ms at n=1/2/4/8/16/32/64/128/256: "
-              + " ".join(f"{t_ms[net][cm.GRID.index(n)]:.2f}" for n in (1, 2, 4, 8, 16, 32, 64, 128, 256))
+        print(f"[cal]   t_{net} ms (in situ) at n=1/2/4/8/16/32/64/128/256: "
+              + " ".join(f"{model.t_ms[net][cm.GRID.index(n)]:.2f}" for n in (1, 2, 4, 8, 16, 32, 64, 128, 256))
               + " | loop " + " ".join(f"{model.t_micro[net][cm.GRID.index(n)]:.2f}" for n in (1, 2, 4, 8, 16, 32, 64, 128, 256))
               + " | in-situ scale per band " + " ".join(f"{x:.2f}" for x in model.t_scale[net]))
     print(f"[cal]   engine ms/unit {json.dumps({k: round(x, 4) for k, x in model.engine.items()})}")
