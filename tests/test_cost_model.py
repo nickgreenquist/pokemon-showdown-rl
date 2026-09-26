@@ -47,12 +47,13 @@ def _synthetic_jobs(rng, model_truth: cm.CostModel, n_jobs: int, noise: float) -
     for i in range(n_jobs):
         meter = cm.CallMeter()
         for _ in range(int(rng.integers(5, 80))):
-            n = int(rng.integers(1, 300))
+            n = int(np.exp(rng.uniform(0.0, np.log(300.0))))     # log-uniform, as searches mix 1-row and batch calls
             meter.add("v" if rng.random() < 0.5 else "p", int(rng.integers(1, n + 1)), n)
         u = meter.units()
         count = {"edges_tree": float(rng.integers(10, 900)), "nodes_tree": float(rng.integers(10, 2000)),
                  "sims_tree": float(rng.integers(64, 2000)), "depth_tree": float(rng.integers(64, 8000)),
                  "grid_rows": float(rng.integers(8, 400)), "worlds": float(rng.integers(1, 9)), "decisions": 1.0}
+        count["call_share"] = float(sum(u["share"]["v"]) + sum(u["share"]["p"]))
         units = {"share": u["share"], "rows": u["rows"], "count": count}
         p = model_truth.predict(units)
         f = lambda x: x * (1 + noise * rng.standard_normal())     # noqa: E731
@@ -67,16 +68,19 @@ def test_fit_recovers_known_costs_and_validates():
     truth = cm.CostModel(key={}, t_ms={"v": (0.9 + 0.05 * grid).tolist(), "p": (0.8 + 0.03 * grid).tolist()},
                          kappa={"v": 1.15, "p": 1.05},
                          engine={"edges_tree": 0.04, "nodes_tree": 0.002, "grid_rows": 0.003, "worlds": 0.3},
-                         python={"sims_tree": 0.1, "depth_tree": 0.01, "nodes_tree": 0.03, "grid_rows": 0.004,
-                                 "worlds": 0.2, "decisions": 0.4})
+                         python={"call_share": 0.05, "sims_tree": 0.1, "depth_tree": 0.01, "nodes_tree": 0.03,
+                                 "grid_rows": 0.004, "worlds": 0.2, "decisions": 0.4})
     fit_jobs = _synthetic_jobs(rng, truth, 200, noise=0.02)
+    # the loop's table is 1.15x / 1.05x off the searches' (the in-situ gap): the fit learns the searches' own
     model = cm.fit(truth.t_ms, fit_jobs, key={"k": 1}, load={})
-    assert model.kappa["v"] == pytest.approx(1.15, rel=0.02) and model.kappa["p"] == pytest.approx(1.05, rel=0.02)
+    for net, k in (("v", 1.15), ("p", 1.05)):
+        assert model.t_scale[net] == pytest.approx([k] * len(cm.TABLE_BANDS), rel=0.04), (net, model.t_scale[net])
+    assert model.t_micro == truth.t_ms
     for u in ("edges_tree", "worlds"):    # the well-identified terms (the intercepts are weak: every job is 1 decision)
         assert model.engine[u] == pytest.approx(truth.engine[u], rel=0.25), u
     v = cm.validate(model, _synthetic_jobs(rng, truth, 100, noise=0.02))
     assert v["accepted"] and v["median_abs_err"] < 0.03, v
-    wrong = cm.CostModel(**{**json.loads(model.to_json()), "kappa": {"v": 2.0, "p": 2.0}})
+    wrong = cm.CostModel(**{**json.loads(model.to_json()), "kappa": {"v": 2.0, "p": 2.0}})   # a 2x table
     assert not cm.validate(wrong, _synthetic_jobs(rng, truth, 50, noise=0.0))["accepted"]
 
 
@@ -90,7 +94,19 @@ def test_round_trip_and_key_refusal():
     with pytest.raises(ValueError, match="key mismatch"):
         m.check_key({"cpu": "x", "linear": "stock"})
     with pytest.raises(ValueError, match="version"):
-        cm.CostModel.from_json(json.dumps({**json.loads(m.to_json()), "version": "search_cost_model/0"}))
+        cm.CostModel.from_json(json.dumps({**json.loads(m.to_json()), "version": "search_cost_model/1"}))
+
+
+def test_table_basis_is_the_predictor():
+    rng = np.random.default_rng(3)
+    table = rng.uniform(0.3, 20, len(cm.GRID))
+    m = cm.CallMeter()
+    for _ in range(500):
+        n = int(rng.integers(1, 1100))
+        m.add("v", int(rng.integers(1, n + 1)), n)
+    u = m.units()
+    assert cm.table_basis(u["share"]["v"], u["rows"]["v"]) @ table == pytest.approx(
+        cm.nn_table_ms(table, u["share"]["v"], u["rows"]["v"]), rel=1e-12)
 
 
 def test_units_refuse_a_result_without_the_meter_or_on_another_grid():

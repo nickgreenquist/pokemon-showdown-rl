@@ -17,11 +17,16 @@ THE UNITS (per decision; `native_tree.search` returns them as `res["cost_units"]
   descents (one expand and one critic batch per world against one engine call and one Python
   walk per descent: pooled, they mis-priced a 64-simulation search 2x, 2026-09-26): tree sims,
   their summed depth, tree nodes and edges, grid rows, worlds, and one per decision.
+- ROUNDS: the Python loop pays per round, not per simulation (~160 us a simulation at one descent
+  a round, ~85 us at 32 descents a round, 2026-09-26), and a decision's share of the round's
+  calls is already metered, so `call_share` (its summed shares over both nets) is the unit.
 
-THE MODEL: ms = sum over nets of kappa_net * sum_seg S * t_net(R / S) + e . engine + p . python
-- t_net: the calibration's median ms per call at each GRID point, from interleaved micro-benchmarks.
-- kappa_net: the in-situ factor (the searches' measured network ms over the table's prediction:
-  cache effects between calls), fitted on the fit configs.
+THE MODEL: ms = sum over nets of sum_seg S * t_net(R / S) + e . engine + p . python
+- t_net: the network cost table, FITTED IN SITU: the interleaved micro-benchmark's table
+  (`t_micro`, the SHAPE) times one scale per TABLE_BANDS band, fitted on the fit searches'
+  measured network ms with the loop's own number as the prior (`t_scale`). A micro-benchmark
+  alone misprices sizes whose in-search cost differs: stock nn.Linear's 2-row prior call costs
+  ~2/3 in a search of what it costs in a loop (2026-09-26).
 - e, p: non-negative least squares on the per-job medians of the measured engine ms and of the
   remainder.
 
@@ -46,12 +51,15 @@ from typing import Any, Callable, Sequence
 
 import numpy as np
 
-COST_MODEL_VERSION = "search_cost_model/1"
+COST_MODEL_VERSION = "search_cost_model/2"
 GRID: tuple[int, ...] = (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024)
 NETS: tuple[str, ...] = ("v", "p")     # the value net (leaf evaluator) and the prior net (policy)
 N_SEG = len(GRID) - 1
 ENGINE_UNITS: tuple[str, ...] = ("edges_tree", "nodes_tree", "grid_rows", "worlds")
-PYTHON_UNITS: tuple[str, ...] = ("sims_tree", "depth_tree", "nodes_tree", "grid_rows", "worlds", "decisions")
+PYTHON_UNITS: tuple[str, ...] = ("call_share", "sims_tree", "depth_tree", "nodes_tree", "grid_rows", "worlds",
+                                 "decisions")
+TABLE_BANDS: tuple[tuple[int, int], ...] = ((1, 1), (2, 3), (4, 12), (16, 48), (64, 1024))   # the in-situ scales
+TABLE_PRIOR_WEIGHT = 0.1        # the micro-benchmark's pull on each band's scale, in relative units
 ACCEPT_MEDIAN_ABS_ERR = 0.10
 
 
@@ -98,6 +106,7 @@ def units_of(res: dict[str, Any]) -> dict[str, Any]:
                       "nodes_tree": float(c["tree/nodes"] - c["tree/nodes_grid"]),
                       "edges_tree": float(c["tree/edges"] - c["tree/edges_grid"]),
                       "grid_rows": float(c["tree/evals_grid"]), "worlds": float(c["search/worlds"]),
+                      "call_share": float(sum(cu["share"]["v"]) + sum(cu["share"]["p"])),
                       "decisions": 1.0}}
 
 
@@ -107,6 +116,19 @@ def interp(table: Sequence[float], x: float, s: int | None = None) -> float:
         s = segment(max(1, int(math.floor(x))))
     x0, x1 = GRID[s], GRID[s + 1]
     return float(table[s] + (table[s + 1] - table[s]) * (x - x0) / (x1 - x0))
+
+
+def table_basis(share: Sequence[float], rows: Sequence[float]) -> np.ndarray:
+    """W with nn_table_ms(table, share, rows) == W @ table: each segment's share split between its two
+    grid points by where R / S sits between them."""
+    w = np.zeros(len(GRID))
+    for s in range(N_SEG):
+        if share[s] > 0:
+            x = rows[s] / share[s]
+            lam = (x - GRID[s]) / (GRID[s + 1] - GRID[s])
+            w[s] += share[s] * (1.0 - lam)
+            w[s + 1] += share[s] * lam
+    return w
 
 
 def nn_table_ms(table: Sequence[float], share: Sequence[float], rows: Sequence[float]) -> float:
@@ -126,6 +148,8 @@ class CostModel:
     kappa: dict[str, float]                       # net -> the in-situ factor
     engine: dict[str, float]                      # ENGINE_UNITS -> ms per unit
     python: dict[str, float]                      # PYTHON_UNITS -> ms per unit
+    t_micro: dict[str, list[float]] = field(default_factory=dict)   # the micro-benchmark's table (the prior)
+    t_scale: dict[str, list[float]] = field(default_factory=dict)   # the in-situ scale per TABLE_BANDS band
     load: dict[str, Any] = field(default_factory=dict)
     validation: dict[str, Any] = field(default_factory=dict)
     version: str = COST_MODEL_VERSION
@@ -178,6 +202,42 @@ def nnls(A: np.ndarray, b: np.ndarray) -> np.ndarray:
     return best
 
 
+def band_of(i: int) -> int:
+    """The TABLE_BANDS band of grid point i."""
+    n = GRID[i]
+    return next(b for b, (lo, hi) in enumerate(TABLE_BANDS) if lo <= n <= hi)
+
+
+def fit_table(t_micro: Sequence[float], jobs: Sequence[dict], net: str,
+              prior_weight: float = TABLE_PRIOR_WEIGHT) -> tuple[list[float], list[float]]:
+    """The in-situ table: the micro-benchmark's SHAPE times one scale per TABLE_BANDS band, fitted by
+    least squares in RELATIVE error on every fit job's measured ms for this net, with
+    prior_weight * (scale - 1)^2 per band (a band no search uses keeps the loop's number). Free
+    per-point values were tried first and were not identified at small sizes (2026-09-26)."""
+    tm = np.asarray(t_micro, float)
+    nb = len(TABLE_BANDS)
+    rows, rhs = [], []
+    for j in jobs:
+        m = j["ms_" + net]
+        if m <= 0:
+            continue
+        w = table_basis(j["units"]["share"][net], j["units"]["rows"][net]) * tm
+        f = np.zeros(nb)
+        for i in range(len(GRID)):
+            f[band_of(i)] += w[i]
+        rows.append(f / m)
+        rhs.append(1.0)
+    k = math.sqrt(prior_weight)
+    for b in range(nb):
+        e = np.zeros(nb)
+        e[b] = k
+        rows.append(e)
+        rhs.append(k)
+    c, *_ = np.linalg.lstsq(np.array(rows), np.array(rhs), rcond=None)
+    c = np.clip(c, 0.2, 5.0)
+    return [float(tm[i] * c[band_of(i)]) for i in range(len(GRID))], c.tolist()
+
+
 def fit_kappa(t_ms: dict[str, list[float]], jobs: Sequence[dict]) -> dict[str, float]:
     """Per net: the median over jobs of measured network ms / the table's prediction."""
     out = {}
@@ -197,11 +257,15 @@ def fit_linear(jobs: Sequence[dict], names: Sequence[str], target: Callable[[dic
 def fit(t_ms: dict[str, list[float]], fit_jobs: Sequence[dict], key: dict, load: dict) -> CostModel:
     """`fit_jobs`: one per (config, root), each with its medians `ms_total`, `ms_v`, `ms_p`, `ms_engine`
     and its (deterministic) `units`."""
-    kappa = fit_kappa(t_ms, fit_jobs)
+    fitted = {net: fit_table(t_ms[net], fit_jobs, net) for net in NETS}
+    t_fit = {net: fitted[net][0] for net in NETS}
+    kappa = fit_kappa(t_fit, fit_jobs)        # ~1 by construction: reported as the fit's own residual level
     engine = fit_linear(fit_jobs, ENGINE_UNITS, lambda j: j["ms_engine"])
     python = fit_linear(fit_jobs, PYTHON_UNITS, lambda j: max(0.0, j["ms_total"] - j["ms_v"] - j["ms_p"] - j["ms_engine"]))
-    return CostModel(key=key, t_ms={k: list(map(float, v)) for k, v in t_ms.items()}, kappa=kappa,
-                     engine=engine, python=python, load=load)
+    return CostModel(key=key, t_ms=t_fit, kappa=dict.fromkeys(NETS, 1.0), engine=engine, python=python, load=load,
+                     t_micro={k: list(map(float, v)) for k, v in t_ms.items()},
+                     t_scale={net: fitted[net][1] for net in NETS},
+                     validation={"kappa_after_table_fit": kappa})
 
 
 def validate(model: CostModel, jobs: Sequence[dict]) -> dict[str, Any]:

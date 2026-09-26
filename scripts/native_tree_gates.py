@@ -1076,7 +1076,8 @@ CAL_CONFIGS = {
     "fit_t64_b1": {"role": "fit", "worlds": 1, "many": 1, "tree": dict(sims=64, batch=1, **_TRAIN)},
     "fit_t1024_b1": {"role": "fit", "worlds": 1, "many": 1, "tree": dict(sims=1024, batch=1, **_TRAIN)},
     "fit_t256_b8": {"role": "fit", "worlds": 1, "many": 1, "tree": dict(sims=256, batch=8, **_TRAIN)},
-    "fit_w8_450_b4": {"role": "fit", "worlds": 8, "many": 1, "tree": dict(sims=450, batch=4, **_INF)},
+    # 8 worlds at 1,200: ~86 tree descents a world past the 64-row grid (450 left 10 in all -- the grid ate the budget)
+    "fit_w8_1200_b4": {"role": "fit", "worlds": 8, "many": 1, "tree": dict(sims=1200, batch=4, **_INF)},
     "fit_many4_t256_b1": {"role": "fit", "worlds": 1, "many": 4, "tree": dict(sims=256, batch=1, **_TRAIN)},
     # HELD OUT: the forms we quote (Step C's lever alone and batched as the collector batches it; inference)
     "val_train_256_b1": {"role": "val", "worlds": 1, "many": 1, "tree": dict(sims=256, batch=1, **_TRAIN)},
@@ -1261,7 +1262,7 @@ def calibrate(args) -> int:
             "load1_min": float(np.min(loads)), "load1_max": float(np.max(loads)), "train_procs": len(procs),
             "nice": os.nice(0), "linear_layers_swapped": swapped}
     model = cm.fit(t_ms, [j for j in med if j["role"] == "fit"], key, load)
-    model.validation = {"held_out": cm.validate(model, [j for j in med if j["role"] == "val"]),
+    model.validation = {**model.validation, "held_out": cm.validate(model, [j for j in med if j["role"] == "val"]),
                         "in_sample": cm.validate(model, [j for j in med if j["role"] == "fit"]),
                         "unit_mismatches": int(sum(j["unit_mismatch"] for j in med))}
     out_dir = pathlib.Path(args.out_dir)
@@ -1281,7 +1282,8 @@ def calibrate(args) -> int:
     for net in cm.NETS:
         print(f"[cal]   t_{net} ms at n=1/2/4/8/16/32/64/128/256: "
               + " ".join(f"{t_ms[net][cm.GRID.index(n)]:.2f}" for n in (1, 2, 4, 8, 16, 32, 64, 128, 256))
-              + f" | kappa {model.kappa[net]:.3f}")
+              + " | loop " + " ".join(f"{model.t_micro[net][cm.GRID.index(n)]:.2f}" for n in (1, 2, 4, 8, 16, 32, 64, 128, 256))
+              + " | in-situ scale per band " + " ".join(f"{x:.2f}" for x in model.t_scale[net]))
     print(f"[cal]   engine ms/unit {json.dumps({k: round(x, 4) for k, x in model.engine.items()})}")
     print(f"[cal]   python ms/unit {json.dumps({k: round(x, 4) for k, x in model.python.items()})}")
     for part in ("in_sample", "held_out"):
