@@ -416,6 +416,7 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     crit_gain = np.where(crit_native, s0c.gains_for([b["a_belief"] for b in bel], orc, greedy), 0.0) / 2.0
     # the banked TRUE-world one-ply (the peek twin of br_true), at its native gate
     true_native = np.array([int(b["a_true"]) != int(b["a_greedy"]) for b in bel])
+    true_rate = float(true_native.mean())
     true_gain = np.where(true_native, s0c.gains_for([b["a_true"] for b in bel], orc, greedy), 0.0) / 2.0
     out = {"version": ORACLE_VERSION, "positions": n, "errors": len(errs), "matched_rate": target,
            "critic_native": {"override": target, "gain": s0c.stat(crit_gain)},
@@ -440,11 +441,15 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
                 margins.append(m)
             moves = np.array([c != g for c, g in zip(cands, greedy)])
             og = s0c.gains_for(cands, orc, greedy)
-            matched = s0c.read_operator(moves, np.array(margins), og, target)
+            # MATCH ON THE OVERRIDE RATE (docs/landmines.md): a TRUE-world arm is read against the banked TRUE-world
+            # one-ply at THAT operator's native rate (0.100 on G0's roots), never at the belief critic's (0.080) --
+            # until 2026-09-26 the true arms' d compared a tree at 0.080 with a one-ply at 0.100.
+            rate = true_rate if name in TRUE_ARMS else target
+            matched = s0c.read_operator(moves, np.array(margins), og, rate)
             nominal = s0c.read_operator(moves, np.array(margins), og, 0.10)
             ref = true_gain if name in TRUE_ARMS else crit_gain
             pp[(name, rule)] = matched["per_position"]
-            per[rule] = {"moves_at_gate0": float(moves.mean()),
+            per[rule] = {"matched_rate": rate, "moves_at_gate0": float(moves.mean()),
                          "matched": {k: v for k, v in matched.items() if k != "per_position"},
                          "nominal": {k: v for k, v in nominal.items() if k != "per_position"},
                          "d_vs_one_ply_matched": s0c.stat(matched["per_position"] - ref),
@@ -460,6 +465,9 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     # PAIRED CONTRASTS, per root rule at the matched rate: depth vs breadth at ~equal work (the tree against its own
     # depth-cap-1 twin, d1: ~1,830 leaves vs the tree's ~1,620), the root's selection (sequential halving vs PUCT) and
     # the estimand (tree.py's decoupled rule and regret matching against br_prior).
+    mixed = [(a, b) for a, b in contrasts if (a in TRUE_ARMS) != (b in TRUE_ARMS)]
+    if mixed:                              # a true arm and a belief arm are matched at different rates
+        sys.exit(f"REFUSED: contrasts {mixed} mix a TRUE-world arm with a belief arm (unmatched override rates)")
     out["contrasts"] = {f"{a} - {b}": {rule: s0c.stat(pp[(a, rule)] - pp[(b, rule)]) for rule in RULES}
                         for a, b in contrasts}
     out["written"] = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -471,11 +479,15 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
              "", f"matched override {target:.3f} (the critic L-op's native gate); gains in WIN-RATE units; d paired per root",
              f"critic L-op (B8, one ply) at its native gate: {out['critic_native']['gain']['mean']:+.4f} +- "
              f"{out['critic_native']['gain']['se']:.4f}", "",
-             "| arm | rule | depth | leaves | gain @matched | d vs one-ply (z) | gain @0.10 | moves@0 |", "|---|---|---|---|---|---|---|---|"]
+             f"TRUE-world arms ({', '.join(a for a in arm_specs if a in TRUE_ARMS) or 'none'}) are matched at the banked TRUE-world "
+             f"one-ply's own native rate {true_rate:.3f} (it reads {out['true_one_ply_native']['gain']['mean']:+.4f} +- "
+             f"{out['true_one_ply_native']['gain']['se']:.4f}) and d is against it", "",
+             "| arm | rule | depth | leaves | rate | gain @matched | d vs one-ply (z) | gain @0.10 | moves@0 |",
+             "|---|---|---|---|---|---|---|---|---|"]
     for name, a in out["arms"].items():
         for rule, rr in a["rules"].items():
             g, d = rr["matched"]["gain"], rr["d_vs_one_ply_matched"]
-            lines.append(f"| {name} | {rule} | {a['depth_mean']:.2f} | {a['leaves_mean']:.0f} | {g['mean']:+.4f} +- {g['se']:.4f} "
+            lines.append(f"| {name} | {rule} | {a['depth_mean']:.2f} | {a['leaves_mean']:.0f} | {rr['matched_rate']:.3f} | {g['mean']:+.4f} +- {g['se']:.4f} "
                          f"| {d['mean']:+.4f} ({d['z']:+.2f}) | {rr['nominal']['gain']['mean']:+.4f} | {rr['moves_at_gate0']:.3f} |")
     lines += ["", "PAIRED CONTRASTS at the matched rate (mean +- se (z)), per root rule:", "",
               "| contrast | " + " | ".join(RULES) + " |", "|---|" + "---|" * len(RULES)]
