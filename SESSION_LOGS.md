@@ -14352,3 +14352,31 @@ line numbers are not — grep the date, then read that region):
   - The Step C DRAFT (`docs/proposals/STEP_C_PREREG_DRAFT_2026-09-26.md`, `456b23b`) now carries these numbers. D2's
     recommendation is (c) with the policy target as the channel that measures, and a new ruling D4 (B = 1 vs B >= 2)
     is added.
+- 2026-09-26 13:00Z (agent, R7 runner) — **CORRECTION to 12:15Z, and STEP C's four rulings DECIDED by the three
+  sessions (the maintainer: "You decide among the 3 of you and then go for review").** The draft is at r3
+  (`docs/proposals/STEP_C_PREREG_DRAFT_2026-09-26.md`); two Opus reviews come next.
+  - THE CORRECTION (fp-speedup's catch). 12:15Z named the completed-Q target's +0.0044 (z 2.76) over the one-ply
+    target as "the channel that measures", and chose sigma on the TRUE-world EI. That gain is almost all PEEK.
+    - A student of B = 1 targets converges to their mean over the hidden world. At that FIXED POINT completed-Q keeps
+      +0.0002 ± 0.0016 at the true-world sigma, and +0.0008 ± 0.0011 with sigma chosen split-sample on the fixed point
+      itself. That is -0.0011 ± 0.0004 (z -2.95) against soft_br's fixed point, and true minus fixed point is +0.0041
+      ± 0.0016.
+    - The soft_br target's fixed point keeps +0.0019 ± 0.0010 over one ply (z 1.91). That is the policy channel's
+      learnable number: suggestive, not resolved.
+    - On the joint 8-world tree (no peek) the two forms tie, +0.0005 ± 0.0017.
+    - Reproduced exactly on the instrument (`results/native_tree/stepc_a.stepc.md`'s LEARNABLE section, branch
+      `074f593`) from fp-speedup's offline read of the stored rows.
+    - The lesson: a target's dials are chosen on the fixed point's EI, never the true world's.
+  - THE RULINGS (§8 of the draft carries the record):
+    - D1: +100M a lane in <= 4 days, 3 + 2. `frac`'s floor is the larger of 0.25 and the not-inert level; below it,
+      fewer steps or the maintainer. The width bench never overlaps REF500.
+    - D2: the tree's soft_br target at B = 1, `play: false`, TreeStrap on a separate EVALUATOR head that the TreeOp
+      reads (the GAE critic untouched), after a pre-smoke label-quality read; the on-policy critic stop condition; the
+      not-green branch. Its form is two of three (r7-runner + fp-speedup); r6-runner's learnable-number condition
+      cites the same form, and r6-runner is informed.
+    - D3: under X-POS / X-GAIN, C = R7's credited recipe UNCHANGED (play true, frac 0.75, coef 0.1), and the lever is
+      named as the whole difference. r2's "isolates DEPTH" is withdrawn.
+    - D4: B = 1 at 256. B = 2 (belief worlds only, at the depth floor, equal total cost) replaces it iff its fixed
+      point beats B = 1's soft_br fixed point at z >= 2.
+    - POWER at 3 + 2, n 6000: P(X-POS) 0.60 at B = 1's optimistic ceiling of ~+0.027 a battle, 0.99 at the joint
+      ~+0.043 (`results/native_tree/stepc_power.json`).
