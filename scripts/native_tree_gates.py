@@ -208,6 +208,7 @@ ARMS = {
                     batch=8),
 }
 TRUE_ARMS = ("br_true",)
+CONTRASTS = [("br", "d1"), ("br_sh", "d1"), ("br_sh", "br"), ("legacy", "br"), ("rm", "br")]
 RULES = ("soft_br", "gumbel_mctx", "legacy_gumbel", "visits", "argmax", "own")
 KEEP = ("tree/sims", "search/leaves", "tree/depth_mean", "tree/depth_max", "tree/upd_mean", "tree/turns_mean",
         "tree/turns_max", "tree/nodes", "tree/merges", "tree/pass_nodes", "tree/terminal_sims", "tree/capped_sims",
@@ -396,6 +397,7 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     out = {"version": ORACLE_VERSION, "positions": n, "errors": len(errs), "matched_rate": target,
            "critic_native": {"override": target, "gain": s0c.stat(crit_gain)},
            "true_one_ply_native": {"override": float(true_native.mean()), "gain": s0c.stat(true_gain)}, "arms": {}}
+    pp: dict[tuple[str, str], np.ndarray] = {}                 # (arm, rule) -> per-root gain at the matched rate
     for name in ARMS:
         per = {}
         for rule in RULES:
@@ -415,6 +417,7 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
             matched = s0c.read_operator(moves, np.array(margins), og, target)
             nominal = s0c.read_operator(moves, np.array(margins), og, 0.10)
             ref = true_gain if name in TRUE_ARMS else crit_gain
+            pp[(name, rule)] = matched["per_position"]
             per[rule] = {"moves_at_gate0": float(moves.mean()),
                          "matched": {k: v for k, v in matched.items() if k != "per_position"},
                          "nominal": {k: v for k, v in nominal.items() if k != "per_position"},
@@ -428,6 +431,11 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
                              "leaves_mean": mean("search/leaves"), "ms_mean": mean("search/ms"),
                              "world_agree_mean": mean("tree/world_agree"), "errors": float(sum(c["tree/errors"] for c in cs)),
                              "fallbacks": float(sum(c["tree/fallback"] for c in cs))}
+    # PAIRED CONTRASTS, per root rule at the matched rate: depth vs breadth at ~equal work (the tree against its own
+    # depth-cap-1 twin, d1: ~1,830 leaves vs the tree's ~1,620), the root's selection (sequential halving vs PUCT) and
+    # the estimand (tree.py's decoupled rule and regret matching against br_prior).
+    out["contrasts"] = {f"{a} - {b}": {rule: s0c.stat(pp[(a, rule)] - pp[(b, rule)]) for rule in RULES}
+                        for a, b in CONTRASTS}
     out["written"] = dt.datetime.now(dt.timezone.utc).isoformat()
     (out_dir / f"{args.tag}.summary.json").write_text(json.dumps(out, indent=1, default=float))
     lines = [f"# gate (i-c): the native tree vs the one-ply critic L-op on G0's oracle ({n} roots, {len(errs)} errors)",
@@ -440,6 +448,10 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
             g, d = rr["matched"]["gain"], rr["d_vs_one_ply_matched"]
             lines.append(f"| {name} | {rule} | {a['depth_mean']:.2f} | {a['leaves_mean']:.0f} | {g['mean']:+.4f} +- {g['se']:.4f} "
                          f"| {d['mean']:+.4f} ({d['z']:+.2f}) | {rr['nominal']['gain']['mean']:+.4f} | {rr['moves_at_gate0']:.3f} |")
+    lines += ["", "PAIRED CONTRASTS at the matched rate (mean +- se (z)), per root rule:", "",
+              "| contrast | " + " | ".join(RULES) + " |", "|---|" + "---|" * len(RULES)]
+    for name, c in out["contrasts"].items():
+        lines.append(f"| {name} | " + " | ".join(f"{c[r]['mean']:+.4f} +- {c[r]['se']:.4f} ({c[r]['z']:+.2f})" for r in RULES) + " |")
     (out_dir / f"{args.tag}.summary.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
     return 0
