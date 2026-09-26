@@ -614,6 +614,56 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
             for cv, cs in SIGMA_GRID:
                 per.setdefault((("cq", cv, cs), half), []).append(
                     ei(completed_q_pi(prior_m, q, nn, t["counters"]["tree/v_mix"], cv, cs), qh, o["ig"]))
+    # THE LEARNABLE OBJECTIVE (fp-speedup's catch, 2026-09-26): a student of B = 1 targets converges to their mean over
+    # the hidden world, so a target's dials must be chosen on that FIXED POINT's EI, never the true world's (whose extra
+    # EI is the peek). The completed-Q fixed point, at the true-world sigma and at a sigma chosen split-sample on the
+    # fixed point itself; the joint (no-peek) tree's completed-Q against its soft_br.
+    fpq = {}
+    for r in ok:
+        g0 = g0_by_pid[r["pid"]]
+        o = s0c.oracle_of(g0)
+        rows = r["rows"]
+        pi1 = np.asarray(g0["pi1"], np.float64)
+        prior_m = pi1[rows] / pi1[rows].sum()
+        fw = [r["arms"][f"fw_256_{b}"] for b in range(8) if "pi" in r["arms"][f"fw_256_{b}"]]
+        fj = r["arms"]["fj_2048"]
+        if not fw or "pi" not in fj:
+            continue
+        def cq(a, cv, cs):
+            return completed_q_pi(prior_m, np.array([np.nan if x is None else x for x in a["q"]], np.float64),
+                                  np.asarray(a["n"], np.float64), a["counters"]["tree/v_mix"], cv, cs)
+        for half in ("qa", "qb"):
+            qh = o[half]
+            fpq.setdefault(("sb_fp", half), []).append(ei(np.mean([np.asarray(a["pi"]) for a in fw], axis=0), qh, o["ig"]))
+            fpq.setdefault(("one_ply", half), []).append(ei(np.asarray(r["arms"]["tr_d1"]["pi"]), qh, o["ig"]))
+            fpq.setdefault(("joint_sb", half), []).append(ei(np.asarray(fj["pi"]), qh, o["ig"]))
+            for cv, cs in SIGMA_GRID:
+                fpq.setdefault((("fp", cv, cs), half), []).append(ei(np.mean([cq(a, cv, cs) for a in fw], axis=0), qh, o["ig"]))
+                fpq.setdefault((("joint", cv, cs), half), []).append(ei(cq(fj, cv, cs), qh, o["ig"]))
+    def held_out(kind: str) -> tuple[np.ndarray, tuple, tuple]:
+        ga = {k[0]: float(np.mean(v)) for k, v in fpq.items() if isinstance(k[0], tuple) and k[0][0] == kind and k[1] == "qa"}
+        gb = {k[0]: float(np.mean(v)) for k, v in fpq.items() if isinstance(k[0], tuple) and k[0][0] == kind and k[1] == "qb"}
+        pa, pb = max(ga, key=ga.get), max(gb, key=gb.get)
+        return (np.array(fpq[(pa, "qb")]) + np.array(fpq[(pb, "qa")])) / 2.0, pa, pb
+    both = lambda key: (np.array(fpq[(key, "qa")]) + np.array(fpq[(key, "qb")])) / 2.0  # noqa: E731
+    fp_held, fpa, fpb = held_out("fp")
+    joint_held, jpa, jpb = held_out("joint")
+    fp_at_true_sigma = (np.array(fpq[(("fp",) + pick_true_a[1:], "qb")]) + np.array(fpq[(("fp",) + pick_true_b[1:], "qa")])) / 2.0 \
+        if (pick_true_a := max({k[0]: float(np.mean(v)) for k, v in per.items() if isinstance(k[0], tuple) and k[1] == "qa"},
+                                key=lambda k: float(np.mean(per[(k, "qa")])))) and \
+           (pick_true_b := max({k[0]: float(np.mean(v)) for k, v in per.items() if isinstance(k[0], tuple) and k[1] == "qb"},
+                               key=lambda k: float(np.mean(per[(k, "qb")])))) else None
+    learnable = {
+        "completed_q_fixed_point_at_true_world_sigma": stat(fp_at_true_sigma),
+        "completed_q_fixed_point_sigma_chosen_on_fixed_point": {"on_a": list(fpa[1:]), "on_b": list(fpb[1:]), "held_out": stat(fp_held)},
+        "soft_br_fixed_point": stat(both("sb_fp")),
+        "paired": {"cq_fixed_point(fp sigma) - soft_br_fixed_point": stat(fp_held - both("sb_fp")),
+                   "cq_fixed_point(true sigma) - one_ply": stat(fp_at_true_sigma - both("one_ply")),
+                   "soft_br_fixed_point - one_ply": stat(both("sb_fp") - both("one_ply"))},
+        "joint_b8": {"completed_q_held_out": stat(joint_held), "sigma_on_a": list(jpa[1:]), "sigma_on_b": list(jpb[1:]),
+                     "soft_br": stat(both("joint_sb")), "cq - soft_br": stat(joint_held - both("joint_sb"))},
+        "fixed_point_grid_ei_half_a": {f"{k[0][1]:g}/{k[0][2]:g}": float(np.mean(v)) for k, v in fpq.items()
+                                       if isinstance(k[0], tuple) and k[0][0] == "fp" and k[1] == "qa"}}
     grid_a = {k[0]: float(np.mean(v)) for k, v in per.items() if isinstance(k[0], tuple) and k[1] == "qa"}
     grid_b = {k[0]: float(np.mean(v)) for k, v in per.items() if isinstance(k[0], tuple) and k[1] == "qb"}
     pick_a, pick_b = max(grid_a, key=grid_a.get), max(grid_b, key=grid_b.get)
@@ -633,6 +683,7 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
                          "completed_q - prior": stat(held - base["prior"])},
               "grid_ei_half_a": {f"{k[1]:g}/{k[2]:g}": v for k, v in grid_a.items()}}
     out = {"version": ORACLE_VERSION, "tag": args.tag, "positions": len(ok), "fusion": fusion, "target": target,
+           "learnable": learnable,
            "written": dt.datetime.now(dt.timezone.utc).isoformat()}
     (out_dir / f"{args.tag}.stepc.json").write_text(json.dumps(out, indent=1, default=float))
     g = lambda x: f"{x['mean']:+.5f} +- {x['se']:.5f} (z {x['z']:+.2f})"  # noqa: E731
@@ -655,7 +706,15 @@ def stepc_summary(args, rows_all: list[dict], out_dir: pathlib.Path) -> int:
              f"the STUDENT'S FIXED POINT of B = 1 deep targets (mean over the 8 belief worlds): {g(target['ei_win_rate']['student_fixed_point'])}",
              f"the joint B = 8 tree's target (fj_2048): {g(target['ei_win_rate']['joint_b8_target'])}",
              f"the prior: {g(target['ei_win_rate']['prior'])}",
-             *[f"paired {k}: {g(v)}" for k, v in target["paired"].items()]]
+             *[f"paired {k}: {g(v)}" for k, v in target["paired"].items()], "",
+             "## THE LEARNABLE OBJECTIVE: the student's fixed point (mean over the belief worlds of the per-world targets)",
+             f"completed-Q fixed point at the TRUE-world sigma: {g(learnable['completed_q_fixed_point_at_true_world_sigma'])}",
+             f"completed-Q fixed point, sigma chosen ON THE FIXED POINT (A {fpa[1]:g}/{fpa[2]:g}, B {fpb[1]:g}/{fpb[2]:g}), held out: "
+             f"{g(learnable['completed_q_fixed_point_sigma_chosen_on_fixed_point']['held_out'])}",
+             f"soft_br fixed point (tau 0.05): {g(learnable['soft_br_fixed_point'])}",
+             *[f"paired {k}: {g(v)}" for k, v in learnable["paired"].items()],
+             f"JOINT B = 8 (no peek): completed-Q held out {g(learnable['joint_b8']['completed_q_held_out'])} vs soft_br "
+             f"{g(learnable['joint_b8']['soft_br'])}; paired {g(learnable['joint_b8']['cq - soft_br'])}"]
     (out_dir / f"{args.tag}.stepc.md").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
     return 0
