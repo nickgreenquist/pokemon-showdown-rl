@@ -14429,3 +14429,45 @@ line numbers are not — grep the date, then read that region):
     state.
   - Consequence: D2's value-channel rationale stands. r6-runner's condition (b) is met; the reviewers' verification
     pass of r4 is next.
+- 2026-09-26 16:10Z (agent, R7 runner) — **THE WORK-UNIT COST MODEL (the maintainer: "I hate 'open box' rules"), a
+  Linear speed finding, Q0, and the DeepResearch catalogue merged with corrections.**
+  - **The cost model** (branch `deep-search-step-a`: `ca662a3`, `e067b59`, `61c64d2`, `9f9d1f4`;
+    `rl/search/cost_model.py`, `native_tree_gates.py calibrate`, `tests/test_cost_model.py`).
+    - A search's cost is its deterministic WORK: every network call metered by its row count (a decision's share k/n
+      on a fixed size grid, exact under a piecewise-linear cost table), plus tree descents, depth, nodes, edges, grid
+      rows, worlds, and the decision's share of rounds.
+    - A calibration prices the units under ANY load and tags it (a probe every round). The network tables are the
+      micro-benchmark's shape times five in-situ band scales; engine and Python come from non-negative least squares.
+      It is keyed to the machine, torch, threads, the nets' architecture, the Linear form and the engine build, and
+      refuses a foreign key.
+    - Three passes: r1 mispriced the root grid's batched loop as tree descents (2x on small searches); r2 missed the
+      per-round Python cost and a size-specific in-situ gap. r3, the model of record, fitted on fresh data:
+      held-out median error 2.6% / 2.3% (G0's committee, stock / fast Linear) and 3.1% / 3.2% (the fleet net, R6 trio
+      B b328, c6-on), p90 <= 11.7%, units reproducing exactly across repeats, all under the R7 fleet's load (load1
+      ~11; `results/native_tree/cost_model_r3_*.json`).
+  - **The Linear finding.** `nn.Linear` calls Accelerate's sgemm on the weight transposed as a view. At 2-16 rows that
+    path is ~10x slow: a 1024x1024 layer costs ~590 us at 2-12 rows, ~20 us at 1 row, and ~45-60 us on a contiguous
+    W.T. The E-cores show the same (~1,300 vs ~160 us), and their matrix unit is untouched by the fleet, so this is the
+    kernel, not contention. The W critic is 2.4x faster at 8 rows with `rl/common/fast_linear.py` (opt-in, no-grad
+    only, bitwise at 128 rows, ~3e-7 at 8).
+  - **Step C's lever priced** (`scripts/native_tree_cost_scenarios.py` -> `results/native_tree/
+    stepc_cost_scenarios.json`), fleet net, per searched decision, stock / fast:
+    - in-line at 1 decision a call: 108 / 70 ms;
+    - 3 a call: 61 / 50 ms;
+    - deferred lockstep at 16-64 a call: 42 / 39 ms;
+    - deferred + lazy priors: 36 / 33 ms;
+    - batch 1: 246 / 210 ms.
+    Python is ~18 ms of the deferred cost.
+  - **Q0 (the catalogue's first question), from the five lanes' offline histories** (`results/r7_q0/`): the collector
+    child binds everywhere (`collect/child_idle_frac` median 0.000). The learner updates 90-119 s and waits 39-67 s a
+    rollout; search takes 103-150 s of the child's 129-185 s; eligibility is 0.81 / 0.68 (searched / control).
+  - **The catalogue** (`docs/SearchOptimizationsIdeas.md`, the maintainer's DeepResearch run) merged docs-only
+    (`22bef8f`), with a CORRECTIONS box:
+    - C1 was already in r4;
+    - the two-term model fails for stock nn.Linear;
+    - Q1 is answered without a quiet box;
+    - its Step C costs were 3-8x low, because Python was omitted;
+    - Q0's answer, and the both-cores budget: ~28-33 ms a searched decision at `frac` 0.25 against ~33 ms achievable,
+      so the Python cut (F6 / F7) ranks right after its D1.
+  - The Step C draft carries the measured budget inputs (D1's MEASURED INPUTS) and G3 on the cost model, checked in situ
+    in G7. D1's ruling stays the maintainer's.

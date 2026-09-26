@@ -4,8 +4,9 @@
 - The three agent sessions (r7-runner, r6-runner, fp-speedup) agreed on r4's direction, as the maintainer asked ("You
   decide among the 3 of you and then go for review").
 - Both Opus reviews of r3 are folded in. Every finding has a disposition in §9.
-- **D1 (the budget) and D4 (worlds per search) are HELD** for the speed work: the maintainer's DeepResearch report
-  (`docs/SearchOptimizationsIdeas.md`, pending) and the quiet-box bench.
+- **D1 (the budget) and D4 (worlds per search) are HELD** for the speed work. Its inputs are now MEASURED: the
+  DeepResearch catalogue (`docs/SearchOptimizationsIdeas.md`, merged `22bef8f`) with its corrections box, and the
+  work-unit cost model, which needs no quiet box (D1's MEASURED INPUTS). The ruling is the maintainer's.
 - Next: a verification pass by both reviewers, held until the DeepResearch report lands and D1 / D4 are folded in (one
   pass covers all of it; the reviewers' first try died on the usage limit, 13:58Z).
 
@@ -63,6 +64,17 @@ All of the following are measured at the decision level on G0's 500 roots, with 
   ~12x the one-ply.
   - The stored E-core timings put the 256-simulation tree at ~20.5x the one-ply's time (680 vs 33 ms, the committee on
     E-cores). The width bench (G3) measures c_tree on the fleet's own net.
+- **MEASURED INPUTS (2026-09-26 ~16:10Z; `docs/SearchOptimizationsIdeas.md` CORRECTIONS 2-4).**
+  - c_tree on the fleet's own net (R6 trio B b328, c6-on), under the R7 fleet's load, from the work-unit cost model
+    (held-out error <= 3.2%, no quiet box; `results/native_tree/stepc_cost_scenarios.json`):
+    - 108 ms in-line at the floor (stock nn.Linear), 70 ms with the contiguous-transpose Linear;
+    - ~42 ms with the searches deferred into wide lockstep (the catalogue's D1);
+    - ~33 ms deferred + lazy priors + the fast Linear. About 18 ms of that is Python, which width does not amortize.
+  - The break-even, re-derived from R7's own counters (`results/r7_q0/`): the collector child binds; eligible is
+    0.68-0.81, not 0.71; greedy collection takes ~25-36 s a rollout. At `frac` 0.25 that allows ~28-33 ms a searched
+    decision across BOTH cores (the child's tail and the learner's head), and 12-19 ms on one.
+  - So step 1's levers reach the edge, and only across both cores. Fitting with margin needs the Python cut (a Rust
+    tree or its per-edge traffic), or step 2.
 - **`frac`'s FLOOR** is the larger of 0.25 (KataGo's playout-cap p) and the level where the KL term stays not-inert.
   The beta ladder and the not-inert check run AT THE FLEET'S `frac`.
 - **If c_tree > break-even, in this order:**
@@ -184,7 +196,7 @@ and `scripts/ch3_eval.py`.
 2. The R7 reads queue DONE.
 3. Merge `deep-search-step-a`, then the suite at the merge commit (G8).
 4. The builds.
-5. The quiet-box benches (never during REF500).
+5. The cost-model calibration on the fleet's net (any load, tagged; it replaces the quiet-box benches).
 6. The E-core reads (G1, G2, the B = 2 read).
 7. The LR rule, then the beta ladder.
 8. The shakedown.
@@ -243,7 +255,10 @@ and `scripts/ch3_eval.py`.
         than G2's, so the bound comes from an equilibrium, never a transient.
     - tau_lvl = |the change| + 2 se, at that rung. It is S2's and G7's threshold, so it is measured, never typed.
     - No rung passes -> the not-green table's TreeStrap row (MC grounding only; the maintainer rules).
-- **G3 — THE WIDTH BENCH (B6)** -> c_tree, against D1's break-even and D1's order.
+- **G3 — c_tree FROM WORK UNITS (B6)** -> against D1's break-even and D1's order. The cost model prices the TreeOp's
+  units with a calibration on the fleet's net (any load, tagged; `native_tree_gates.py calibrate`). G7's shakedown
+  checks it in situ: the TreeOp's measured seconds per searched decision against the model's prediction from the
+  same run's units, at fleet width. A gap above 10% re-calibrates at that width before D1 is read.
 - **G4 — THE DEPTH FLOOR:** `tree/turns_mean` >= 2.5 in the smokes, on the fleet's net. FAIL -> 512, re-bench. It is
   also watched in-fleet (§4).
 - **G5 — THE LR RULE.** R7's candidate clause fails here (R7's finals started at 2.5e-05; reviewer A #9). So the

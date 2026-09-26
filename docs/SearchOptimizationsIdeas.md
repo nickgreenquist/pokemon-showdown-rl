@@ -47,6 +47,58 @@ policy too. Spread over the ladder seat's 10 cores, the rollout evaluator fits t
 the measurements say the evaluator binds, not depth, so the budget belongs on the evaluator: rollouts, label campaigns,
 TreeStrap and reanalysis.
 
+**CORRECTIONS (2026-09-26 ~16:10Z, r7-runner, MEASURED on this box; they win over the [D] numbers below where they
+conflict).**
+1. **C1 is already in the draft.** Step C DRAFT r4 (`09f01eb`, §1 "THE TREE") pins stepc_a's stamped `tr_256` dials,
+   batch 8 included, and says the TreeOp's own defaults (batch 1) are never relied on. This catalogue read r3 at
+   `df1222c`. No pre-reg edit is owed.
+2. **§1.2's two-term model does not hold for stock `nn.Linear` here, and the cause is the kernel, not contention.**
+   `nn.Linear` calls Accelerate's sgemm with the weight transposed as a view, and that path is slow at 2-16 rows. A
+   1024x1024 layer costs ~590 us at 2-12 rows, against ~20 us at 1 row (gemv) and ~45-60 us for the same product on a
+   contiguous W.T. That holds on a P-core beside the fleet AND on the E-cores (~1,300 vs ~160 us), whose matrix unit
+   the fleet does not touch (F2/Q2).
+   - On the fleet net (R6 trio B b328, c6-on), in situ under the fleet's load: the critic costs 0.33 ms at 1 row and
+     1.24-1.64 ms at 2-32 rows; the policy prior 0.49 ms at 1 row, 0.83-1.06 at 2-32 (`results/native_tree/
+     cost_model_r3_b328_stock.json`).
+   - So §1.6's "batching independent work into one call is nearly free at <= 8 rows" is false for the stock layer:
+     1 -> 2 rows is ~4x on the critic.
+   - `rl/common/fast_linear.py` (branch `deep-search-step-a` `ca662a3`; opt-in, no-grad forwards only) runs the product
+     on a cached contiguous W.T. It is bitwise at 128 rows and within ~3e-7 at 8, the size of stock's own
+     batch-to-batch difference.
+3. **Q1 is answered without a quiet box, and §1.3's Step C costs are 3-8x low.** The work-unit cost model
+   (`rl/search/cost_model.py`, `scripts/native_tree_gates.py calibrate`; branch `61c64d2` + `9f9d1f4`) prices a
+   search from its deterministic counters. Its calibration runs under any load, with the load tagged.
+   - Held-out median error 2.3-3.2% on four calibrations: G0's committee and the fleet net, each with stock and fast
+     Linear, all under the R7 fleet's load (load1 ~11).
+   - Step C's lever (stepc_a's tr_256 dials) on the fleet net, per searched decision (`results/native_tree/
+     stepc_cost_scenarios.json`, `scripts/native_tree_cost_scenarios.py`):
+
+   | design | stock | fast Linear |
+   |---|---|---|
+   | in-line, 1 decision a call (Step C's floor) | 108 ms | 70 ms |
+   | in-line, 3 a call (R7's frac) | 61 ms | 50 ms |
+   | deferred lockstep (D1), 16-64 a call | 42 ms | 39 ms |
+   | D1 + lazy priors, 64 a call | 36 ms | 33 ms |
+   | in-line at batch 1 (the TreeOp's default) | 246 ms | 210 ms |
+
+   - §1.3 left out PYTHON: ~17-21 ms a decision plus ~7 ms of engine. That is about half of D1's cost, and lockstep
+     width does not amortize it.
+   - So D1 is worth ~2.6x over in-line, not 30-100x, and the Python cuts (F6, F7) rank right after D1, not at #22.
+4. **Q0: the collector child binds in every R7 lane** (offline wandb histories, no resumes; `results/r7_q0/`, re-derive
+   with `scripts/extract_history.py`).
+   - `collect/child_idle_frac` median is 0.000 on 5/5 lanes, over the whole run and the last 10M steps.
+   - Per update (~122,900 steps) the learner updates for 90-119 s, then waits `time/collect_sec` 39-67 s for the
+     child.
+   - `search/seconds` is 135-150 s of the searched child's 162-185 s a rollout, and 103-106 of 129-133 s on the
+     record-only controls. Greedy collection is the other ~25-36 s.
+   - Eligibility reads 0.81 (searched) and 0.68 (controls), not ~54%. `search/searched_frac` is 0.61 / 0.51 at
+     `frac` 0.75.
+   - So D1 needs BOTH cores. At Step C's floor (`frac` 0.25, ~21-25k searched decisions a rollout) and >= 289 steps/s
+     (<= 425 s a rollout), the child has ~395 s spare and the learner ~306 s after R7's update. Together that is
+     ~700 s, or ~28-33 ms a searched decision; either core alone gives ~12-19 ms. D1 + lazy + fast (~33 ms) sits at
+     that edge before Step C's evaluator training lengthens the update. Fitting with margin needs the Python cut, or a
+     longer run than 4 days (the maintainer's call).
+
 ## 0. Ranked summary
 
 Ranked by expected gain on this box per unit of build cost. T = training, I = inference, B = both. "§" is the entry
