@@ -207,7 +207,7 @@ ARMS = {
     "br_true": dict(sims=BUDGET, mode="br_prior", root_grid=True, depth_cap=8, cols_k=4, chance_k=2, root_rule="soft_br",
                     batch=8),
 }
-TRUE_ARMS = ("br_true",)
+TRUE_ARMS = ("br_true", "tr_256", "tr_1024", "tr_1800")      # searched on the TRUE world with G0's foe prior
 CONTRASTS = [("br", "d1"), ("br_sh", "d1"), ("br_sh", "br"), ("legacy", "br"), ("rm", "br")]
 # STEP B, TIER 1 (proposal r2 §2 Step B): the INFERENCE BUDGET CURVE at the decision level on the same 500 roots, the
 # same 8 worlds and the same scorer -- br_prior (gate i-c's estimand) at x4 rungs of total simulations, each beside a
@@ -221,7 +221,16 @@ for _i, _n in enumerate(TIER1_RUNGS):
 CONTRASTS_TIER1 = ([(f"br_{n}", f"d1_{n}") for n in TIER1_RUNGS]
                    + [(f"br_{b}", f"br_{a}") for a, b in zip(TIER1_RUNGS, TIER1_RUNGS[1:])]
                    + [(f"d1_{b}", f"d1_{a}") for a, b in zip(TIER1_RUNGS, TIER1_RUNGS[1:])])
-ARM_SETS = {"ic": (ARMS, CONTRASTS), "tier1": (ARMS_TIER1, CONTRASTS_TIER1)}
+# TIER 1b: the curve BELOW 1,800, where Step C's dose sits (proposal r2: ~256-1,024 simulations at a depth floor) --
+# the inference tree (8 belief worlds) at 450 / 900 / 1,800 beside the one-ply twin, and the TRAINING setting (the TRUE
+# world, B = 1, G0's pi2 as the foe prior: br_true's, the T-op's own setting) at 256 / 1,024 / 1,800. With 8 worlds the
+# root grid alone is ~430-610 leaves (rows x cols_k 4 x chance_k 2 x 8), so br_450 never descends below it: it IS the
+# one-ply grid, native.solve's k4 s2 at B 8 -- the banked critic L-op's own operator, the curve's zero-depth point.
+ARMS_TIER1B = {"d1": dict(ARMS["d1"]), **{f"br_{n}": dict(ARMS["br"], sims=n) for n in (450, 900, 1800)},
+               **{f"tr_{n}": dict(ARMS["br_true"], sims=n) for n in (256, 1024, 1800)}}
+CONTRASTS_TIER1B = [("br_450", "d1"), ("br_900", "br_450"), ("br_1800", "br_900"), ("br_1800", "br_450"),
+                    ("tr_1024", "tr_256"), ("tr_1800", "tr_1024")]
+ARM_SETS = {"ic": (ARMS, CONTRASTS), "tier1": (ARMS_TIER1, CONTRASTS_TIER1), "tier1b": (ARMS_TIER1B, CONTRASTS_TIER1B)}
 RULES = ("soft_br", "gumbel_mctx", "legacy_gumbel", "visits", "argmax", "own")
 KEEP = ("tree/sims", "search/leaves", "tree/depth_mean", "tree/depth_max", "tree/upd_mean", "tree/turns_mean",
         "tree/turns_max", "tree/nodes", "tree/merges", "tree/pass_nodes", "tree/terminal_sims", "tree/capped_sims",
@@ -456,7 +465,8 @@ def oracle_summary(args, rows_all: list[dict], belief: dict, out_dir: pathlib.Pa
     out["written"] = dt.datetime.now(dt.timezone.utc).isoformat()
     (out_dir / f"{args.tag}.summary.json").write_text(json.dumps(out, indent=1, default=float))
     title = "gate (i-c): the native tree vs the one-ply critic L-op" if args.arm_set == "ic" else \
-        "Step B tier 1: the budget curve (br_prior) and its equal-work depth-1 twins"
+        ("Step B tier 1: the budget curve (br_prior) and its equal-work depth-1 twins" if args.arm_set == "tier1" else
+         "Step B tier 1b: the curve below 1,800 (inference, 8 worlds) and the training setting (true world, B = 1)")
     lines = [f"# {title} on G0's oracle ({n} roots, {len(errs)} errors)",
              "", f"matched override {target:.3f} (the critic L-op's native gate); gains in WIN-RATE units; d paired per root",
              f"critic L-op (B8, one ply) at its native gate: {out['critic_native']['gain']['mean']:+.4f} +- "
@@ -722,7 +732,8 @@ def main() -> None:
     orc.add_argument("--belief-seed", type=int, default=20260923, help="the belief read's --seed: the same worlds")
     orc.add_argument("--summarise", action="store_true", help="measure nothing: join every shard of --tag and score it")
     orc.add_argument("--arm-set", choices=sorted(ARM_SETS), default="ic",
-                     help="ic = gate (i-c)'s six arms; tier1 = Step B tier 1, the budget curve with its depth-1 twins")
+                     help="ic = gate (i-c)'s six arms; tier1 = Step B tier 1, the budget curve with its depth-1 twins; "
+                          "tier1b = the curve below 1,800 and the training setting")
     bch.add_argument("--configs", default="", help=f"comma list (default all): {sorted(BENCH_CONFIGS)}")
     bch.add_argument("--workers", default="1,2,5,10", help="worker counts, one pass each")
     bch.add_argument("--per-bucket", type=int, default=10, help="roots per turn bucket (the proposal's full bench: 50)")
