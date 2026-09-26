@@ -199,6 +199,19 @@ try:
 except ValueError as err:
     assert "unknown native-tree dial" in str(err)
 
+# (4d) LAZY PRIORS: priors only for nodes a simulation selects at (their views re-rendered bit for bit). At
+# batch 1 on one world nothing waits out of order, so the search is the eager one's exactly, for ~40% of the rows.
+for cfg in (dict(), dict(root_select="sequential_halving"), dict(mode="legacy", root_grid=False, root_rule="legacy_gumbel")):
+    eager = search([World(root)], tables, "p1", p, q, stub, prior_fn, 11, sims=600, **cfg)
+    lazy = search([World(root)], tables, "p1", p, q, stub, prior_fn, 11, sims=600, lazy_priors=True, **cfg)
+    assert lazy["action"] == eager["action"] and np.array_equal(lazy["n_row"], eager["n_row"]), cfg
+    assert np.array_equal(lazy["q_row"], eager["q_row"], equal_nan=True) and np.array_equal(lazy["pi"], eager["pi"]), cfg
+    assert lazy["counters"]["tree/prior_rows"] < 0.7 * eager["counters"]["tree/prior_rows"], (cfg, lazy["counters"]["tree/prior_rows"])
+    trees = []
+    search([World(root)] * 2, tables, "p1", p, q, stub, prior_fn, 11, sims=600, lazy_priors=True, batch=4, _inspect=trees.append, **cfg)
+    for t_ in trees:
+        walk(t_.root, set(), check_masks=False)
+
 # ---- (5) FIXTURES (gate i-b), on constructed roots
 def ms(sp, moves, hp=None):
     return pkmn_gen1.MonSpec(sp, 100, [(m, pkmn_gen1.max_pp(m)) for m in moves], hp=hp)
@@ -298,7 +311,7 @@ assert np.all(np.abs(rm["pi"][rows2] - 0.5) < 0.05) and np.all(np.abs(foe_avg - 
 # (6) the dial list is the signature's; unknown keys fail; values coerce by annotation; bad values refuse.
 assert DIALS == ("sims", "mode", "root_rule", "root_select", "root_grid", "depth_cap", "cols_k", "chance_k", "pw_c",
                  "pw_alpha", "merge", "pass_leaf", "c_puct", "q_init", "opp_rule", "tau", "beta", "c_visit", "c_scale",
-                 "gumbel_scale", "rm_gamma", "batch", "virtual_loss", "both_views", "deadline_ms"), DIALS
+                 "gumbel_scale", "rm_gamma", "batch", "virtual_loss", "lazy_priors", "both_views", "deadline_ms"), DIALS
 assert dials_from({"sims": "900", "tau": "0.5", "merge": False}) == {"sims": 900, "tau": 0.5, "merge": False}
 for bad, msg in (({"depth2": 1}, "unknown native-tree dial"), ({"merge": "no"}, "must be a bool"), ({"sims": 1.5}, "integer")):
     try:

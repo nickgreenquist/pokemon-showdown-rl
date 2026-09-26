@@ -304,6 +304,7 @@ def search(
     rm_gamma: float = 0.1,
     batch: int = 1,
     virtual_loss: float = 1.0,
+    lazy_priors: bool = False,
     both_views: bool = False,
     deadline_ms: float = 0.0,
     _inspect: Callable | None = None,
@@ -466,6 +467,18 @@ class _Search:
                 e.batch.pend = {}
         return kid
 
+    def _render(self, x: _Node) -> None:
+        """Re-render a node's views for its priors (lazy_priors dropped them after its
+        value forward): `SearchNode.obs` is the encode `pending()` ran, bit for bit."""
+        t0 = time.perf_counter()
+        if x.sn is None:
+            x.sn = _eng(x.batch.lb.node, x.li)
+        if x.us_dec and x.obs_us is None:
+            x.obs_us = np.asarray(_eng(x.sn.obs, self.tables, self.us), dtype=np.float32)
+        if x.foe_dec and x.obs_foe is None:
+            x.obs_foe = np.asarray(_eng(x.sn.obs, self.tables, self.foe), dtype=np.float32)
+        x.dec.t_engine += time.perf_counter() - t0
+
     def _value(self, x: _Node) -> float:
         """A node's value estimate: its own evaluation and every simulation below it."""
         if x.v0 is not None:
@@ -621,9 +634,15 @@ class _Search:
             _charge([x.dec for x in eval_nodes], time.perf_counter() - t0, "t_value", "evals", "forwards_v")
             for x, val in zip(eval_nodes, v.tolist()):
                 x.v0 = float(val)
-        need = [x for x in eval_nodes if x.level < self.depth_cap] + prior_nodes
+                if self.lazy_priors:
+                    # ~62% of evaluated leaves are never selected at (measured): their priors are
+                    # never needed, and their rendered views are dropped here, re-rendered if primed
+                    x.obs_us = x.obs_foe = None
+        need = prior_nodes if self.lazy_priors else [x for x in eval_nodes if x.level < self.depth_cap] + prior_nodes
         o, m, own = [], [], []
         for x in need:
+            if (x.us_dec and x.obs_us is None) or (x.foe_dec and x.obs_foe is None):
+                self._render(x)
             if x.us_dec:
                 o.append(x.obs_us)
                 m.append(x.mask_us)
