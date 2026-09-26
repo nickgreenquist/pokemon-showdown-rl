@@ -14251,3 +14251,33 @@ line numbers are not — grep the date, then read that region):
   RETIRING lane alerts. Armed 04:30Z (frozen copy, pid 91075); the fleet ends ~Sun 10-11:30Z, the reads ~3.5-5 h after.
   Also: Stage 0c's offline SH read (`f825953`, `results/r7_stage0c/stage0c_r512.sh_offline.txt`): sequential halving
   matches the full 512-world matrix's choice on 100/100 roots at ~15,600 rollouts (0.59x of 26,522) -- ~2x, not 10x.
+- 2026-09-26 09:45Z (agent, R7 runner) — **DEEP SEARCH STEP B, TIER 1 READ (the inference budget curve at the decision
+  level): FLAT from 1,800 to 28,800 total simulations. Sixteen times the search deepens the tree from 3.3 to 6.0
+  levels and buys nothing measurable; depth's edge over equal-work one-ply breadth holds at ~+0.002 at every rung and
+  never grows. With this critic at the leaves, the EVALUATOR is the binding constraint, not depth.**
+  (`results/native_tree/tier1_a.summary.{md,json}`, computed by `scripts/native_tree_gates.py oracle --arm-set tier1
+  --summarise --tag tier1_a`; the run: branch `400d150`, 3 shards on the E-cores 05:28-09:27Z; 500 roots, 0 errors.)
+  - Same roots, 8 belief worlds, scorer and matched override (0.080) as gate (i-c); the 1,800 rung and its twin repeat
+    i-c's br and d1 (bitwise on the smoke root).
+  - The curve, br_prior at the matched rate, soft_br / gumbel_mctx: 1,800 (depth 3.34 levels, 2.84 turns, 1,617
+    leaves) +0.0034 / +0.0048; 7,200 (4.95 levels, 5,615 leaves) +0.0030 / +0.0046; 28,800 (5.98 levels, 5.14 turns,
+    17,459 leaves) +0.0031 / +0.0043.
+  - The paired steps: 7,200 - 1,800 -0.0004 ± 0.0004 (soft_br), -0.0002 ± 0.0005 (gumbel_mctx); 28,800 - 7,200
+    +0.0002 ± 0.0007 and -0.0003 ± 0.0004. Any real step is bounded at about +0.001 per decision (upper 95).
+  - DEPTH vs BREADTH at each rung: tree minus its depth-cap-1 twin, which spends 1.1-1.6x the tree's leaves on chance
+    breadth, so the contrast is conservative for depth. 1,800: +0.0018 / +0.0025; 7,200: +0.0008 / +0.0021; 28,800:
+    +0.0014 ± 0.0010 / +0.0024 ± 0.0014 (z 1.4-2.2 across rules). One sign throughout, never growing. The twins are
+    flat too.
+  - The knee rule (proposal r2: the first rung past which x4 more work adds < 10% of the reproduction rung's gain):
+    on tier 1 the knee is the reproduction rung itself, 1,800. The rule reads tiers 1-2 together, so tier 2 (battle
+    level, the engine mirror) still gets its say.
+  - Cost on the E-cores at batch 4: 3.5 / 15.7 / 60.7 s per search at 1,800 / 7,200 / 28,800.
+  - WHAT IT SETS (a dose read, never whether any step runs; rule 6 and the 09-25 ruling):
+    - Inference: room sits on the LEAF-EVALUATOR axis, not depth. Stage 0c's rollout leaves beat the critic on these
+      same roots (d +0.0027 at R 128, z 2.02, still rising to 512), where 16x of critic-leaf depth moved nothing. That
+      is the two inference-budget reviews' own reading, now measured.
+    - Step C: a training tree past ~1,800 simulations deepens without improving its root decisions under this critic.
+      Its value would come from the targets' form and the critic's own improvement (TreeStrap / ExIt), not from depth.
+      The decision-level curve below 1,800 (where Step C's 256-1,024 sits) is not yet measured.
+    - Caveat as i-c's: decision quality on G0's committee-vs-committee oracle, 40 of 500 roots overriding at the
+      matched rate.
