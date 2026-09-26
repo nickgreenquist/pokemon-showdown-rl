@@ -14281,3 +14281,38 @@ line numbers are not — grep the date, then read that region):
       The decision-level curve below 1,800 (where Step C's 256-1,024 sits) is not yet measured.
     - Caveat as i-c's: decision quality on G0's committee-vs-committee oracle, 40 of 500 roots overriding at the
       matched rate.
+- 2026-09-26 10:30Z (agent, R7 runner) — **DEEP SEARCH STEP B, TIER 1b READ (the curve below 1,800, and the TRAINING
+  setting): at inference the tree's decision quality rises from the one-ply grid to ~900-1,800 simulations and then
+  flattens (tier 1: flat to 28,800). In the training setting (the TRUE world, B = 1: R7's T-op's own), a tree at 256,
+  1,024 or 1,800 simulations TIES the one-ply T-op at a matched override. The tree reaches Step C's depth floor (2.5
+  turns) already at 256 simulations, but with this critic depth does not improve the root's choice there.**
+  (`results/native_tree/tier1b_a.summary.{md,json}`, computed by `scripts/native_tree_gates.py oracle --arm-set tier1b
+  --summarise --tag tier1b_a`; the run: branch `e132610`, 3 E-core shards 09:52-10:09Z; the summary at `19cbb9b`, which
+  matches the true-world arms on their own reference's rate -- see the CORRECTION below. 500 roots, 0 errors.)
+  - INFERENCE (8 belief worlds, matched at the belief critic L-op's 0.080). br_450 is the one-ply grid (depth 1.18,
+    496 leaves: the grid alone is ~430-610 leaves) and reads +0.0025 soft_br, d -0.0003 against the banked critic L-op
+    -- the identity holds. br_900 (2.19 levels, 849 leaves) +0.0033 / +0.0043 (soft_br / gumbel_mctx); br_1800 +0.0034
+    / +0.0048. All of depth's contribution, 1,800 - 450: +0.0009 ± 0.0010 soft_br, +0.0024 ± 0.0011 gumbel_mctx (z
+    2.10), +0.0019 ± 0.0011 argmax (z 1.72). The rise is over by ~1,800 (1,800 - 900: +0.0002 / +0.0006).
+  - TRAINING (the true world, B = 1, G0's pi2; matched at the banked TRUE-world one-ply's native 0.100, where that
+    operator -- R7's T-op setting -- reads +0.0040 ± 0.0015). tr_256 (3.41 levels / 2.89 turns, 228 leaves) +0.0041
+    soft_br, d +0.0001; tr_1024 (5.00 / 4.27 turns, 786 leaves) +0.0036 soft_br / +0.0052 gumbel_mctx, d -0.0004 /
+    +0.0012 (z 0.73); tr_1800 (5.47 / 4.68 turns) +0.0036 / +0.0045. Every |d| < 1 se. The steps: 1,024 - 256
+    -0.0005 ± 0.0006 soft_br but +0.0027 ± 0.0011 gumbel_mctx (z 2.37); 1,800 - 1,024 ~0.
+  - WHAT IT SETS FOR STEP C (a dose read, never whether it runs -- the 09-25 ruling):
+    - The DOSE: the depth floor (mean >= 2.5 turns) is met at 256 simulations, the cheapest point of the proposal's
+      256-1,024 range, at 228 leaves a search (~4.5x the one-ply T-op's ~51).
+    - With this critic, a deep tree's ROOT CHOICE is not better than the one-ply T-op's in the T-op's own setting.
+      So Step C's case rests on what a decision-level oracle cannot see: the target's form (completed-Q pi' vs the
+      one-ply's soft_br), TreeStrap-style value targets at internal nodes, and compounding as the student's critic
+      improves. Step C's pre-reg should name that as the mechanism it tests.
+    - Inference: depth is worth ~+0.001-0.002 a decision at most, and saturates by ~1,800; the leaf-evaluator axis
+      (Stage 0c's rollouts, still rising at 512 worlds) is where the inference room is.
+  - CORRECTION (found writing this, fixed at branch `19cbb9b`): the true-world arm's "d vs one-ply" column in gate
+    i-c's table compared br_true gated at the belief critic's 0.080 with the banked true-world one-ply at its native
+    0.100 (unmatched -- the landmine). The i-c entry never cited that column. Its "+0.0028 (soft_br)" for the peek is
+    br_true at 0.080 against the belief tree at 0.080, matched and valid as written; that value now appears only in the
+    summary JSON's 0.08 curve point. At the matched 0.100, br_true reads +0.0036 ± 0.0014 against the true one-ply's
+    +0.0040 (d -0.0004). The harness now gates every true-world arm at its reference's rate, prints each row's rate
+    and refuses a contrast that mixes a true and a belief arm. The three summaries were regenerated; belief arms and
+    contrasts did not change.
