@@ -14471,3 +14471,11 @@ line numbers are not — grep the date, then read that region):
       so the Python cut (F6 / F7) ranks right after its D1.
   - The Step C draft carries the measured budget inputs (D1's MEASURED INPUTS) and G3 on the cost model, checked in situ
     in G7. D1's ruling stays the maintainer's.
+  - ADDENDUM 16:12Z: the fleet net (b328, c6-on) at P-core nice 0 beside the fleet (load1 ~10.4), medians of 25
+    interleaved rounds, with the transpose cache kept between calls (a first try dropped it every call, and so timed
+    a weight copy; it is discarded).
+    - Collection-shaped forward (actor softmax + critic), fast / stock: 0.98x at 1 row, 1.8x at 2, 1.7x at 4, 2.2x
+      at 8, 2.0x at 16. Real collection runs only the actor each step, so the lane gain is smaller and unmeasured.
+    - The training variant (a contiguous W.T rebuilt inside every grad-enabled forward) is SLOWER on the update:
+      0.77x at the 256-row minibatch (122,880 steps / 480) and 0.62x at 64. Its gradients are bitwise equal.
+    - So the fix is inference-only, as `rl/common/fast_linear.py` already restricts it.
