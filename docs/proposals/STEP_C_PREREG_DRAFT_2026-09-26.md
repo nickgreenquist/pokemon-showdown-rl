@@ -1,6 +1,9 @@
 # STEP C — DEEP SEARCH IN TRAINING: the pre-reg, DRAFT (2026-09-26)
 
-**Status: DRAFT, not ratified.** For the maintainer's three rulings (§0) and then two Opus reviews. It builds on
+**Status: DRAFT r2, not ratified.** Its four rulings (§0) were DECIDED on 2026-09-26 by the three agent sessions, as
+the maintainer asked ("Ask the other two sessions for their opinion. You decide among the 3 of you and then go for
+review"). r7-runner proposed and r6-runner agreed on all four, with conditions that are now written in; fp-speedup's
+vote is recorded in §8. Two Opus reviews come next. It builds on
 `docs/proposals/DEEP_SEARCH_PATH_2026-09-25.md` r2 §2 Step C and adds the 09-26 reads that set its dose and its
 mechanism. The standing ruling holds throughout: *"I do NOT want you to kill search in train if 1-ply doesn't work"*
 (CLAUDE.md rule 6). Nothing below decides WHETHER Step C runs; the reads set its FORM and DOSE.
@@ -10,31 +13,50 @@ object we have. Search-with-our-evaluator vs the same checkpoint greedy, pooled 
 decisions/sec reported for both arms and the per-turn budget named in every quote." Step C is not that comparison
 (Step B is); like R7, it trains the objects such a comparison uses and credits ONE training lever.
 
-## 0. The maintainer's rulings this draft needs
+## 0. The four rulings, DECIDED (2026-09-26, the three sessions; conditions from r6-runner written in)
 
-- **D1 — THE BUDGET.** How many days of the box, or how many steps, the fleet may take. Sunday's quiet-box width bench
-  measures a lane's steps/s with the TreeOp at the dose. The budget then sets the searched fraction and the steps (§4).
-- **D2 — THE LEVER'S FORM, given 09-26's reads (§1).** Three options:
-  - (a) As r2 wrote it: the deep tree's policy target (completed-Q pi') plus v'.
-  - (b) Aimed at the EVALUATOR: the tree's INTERNAL-NODE value labels (TreeStrap) as the primary new channel. This is
-    JOURNEY 14's own thesis: "this chapter's target is the VALUE FUNCTION, not the depth"; "a critic trained AS AN
-    EVALUATOR ... on HYPOTHETICAL states it has never played".
-  - (c) Both in one lever, as r2's "the value channel on" branch reads.
-  - **Recommendation: (c), the policy target as the channel that measures, TreeStrap stacked beside it.** The first
-    reason is stepc_a (§1). The deep tree's target DISTRIBUTION carries resolved expected improvement over greedy where
-    R7's one-ply target carries none: +0.0044 ± 0.0016 (z 2.76) paired, completed-Q vs the one-ply target. Only the
-    root's gated ARGMAX ties (tier 1b). The second reason: TreeStrap aims at the evaluator, JOURNEY 14's target and
-    the axis that binds (tier 1). Stacking it is what the kitchen-sink ruling licenses: a built, counted addition
-    inside the same objective.
-- **D4 — B = 1 or B >= 2 WORLDS PER SEARCH (new, from the fusion read at depth: UNRESOLVED).**
-  - B = 1 is the cheapest. The student's fixed point keeps +0.0019 ± 0.0010 (z 1.91) of EI over the one-ply target;
-    the rest of the true-world target's EI is the peek, which a student cannot learn.
-  - A joint belief tree keeps +0.0031 ± 0.0011 (z 2.72), but was measured at 8x the work (8 worlds x 256).
-  - B = 2 at ~256-512 total is unmeasured. It is the cheap next E-core read if the ruling wants it.
-  - Recommendation: B = 1 at the dose, the fusion read disclosed as unresolved, and B = 2 benched beside it on
-    Sunday.
-- **D3 — THE CONTROL.** It is whatever base R7's verdict names (§6), warm from its finals and paired by final. It
-  follows mechanically from Sunday's readout; it is listed so the ruling is visible.
+- **D1 — THE BUDGET: +100M steps per lane in <= 4 days of the box, 3 + 2 lanes.** Sunday's quiet-box width bench
+  measures a lane's steps/s with the TreeOp at the dose. `frac` (the searched fraction) is lowered to fit BEFORE the
+  dose is touched.
+  - A FLOOR ON `frac` (r6-runner): the beta* smoke ladder and the not-inert check run AT THE FLEET'S `frac`, not only at
+    the smokes'. If the budget would push `frac` below the level where the KL term stays not-inert, it goes back to the
+    maintainer (more days, or fewer lanes). A diluted lever is never launched.
+- **D2 — THE LEVER'S FORM: (c), the completed-Q POLICY TARGET as the channel that measured, TreeStrap stacked beside
+  it as a counted dial; `play: false`; v' into R7's aux head.**
+  - THE LEARNABLE NUMBER (r6-runner). A student of B = 1 targets converges to their average over the hidden world. Its
+    fixed point keeps **+0.0019 ± 0.0010 (z 1.91)** of expected improvement over R7's one-ply target, and that is the
+    policy channel's number. The true-world target's +0.0044 ± 0.0016 (z 2.76) INCLUDES THE PEEK, which no student can
+    learn.
+  - Times ~14 searched decisions a battle, the B = 1 policy channel's ceiling is ~+0.027 a battle: AT the +0.025
+    floor, and optimistic (full distillation, additive per-decision gains). The joint 8-world target's is ~+0.043.
+    Planning numbers, never a kill (rule 6). This is the strongest case for stacking TreeStrap.
+  - TREESTRAP LABELS use the SAME non-optimistic backup as v': E_{a~pi'} E_{b~prior} Q at the node. NEVER a max over
+    our moves with the foe fixed; that is G1's +0.019 of max optimism and the `_look_further` landmine, and the
+    label-vs-critic-gap counter would then read optimism as learning. Each internal node's obs is rendered from OUR
+    information set in the true world (the tracked view), so the regression's fixed point is the posterior mean.
+  - ON-POLICY CRITIC COUNTERS, a STOP CONDITION (a critic-side lever is not actor-neutral in PPO, CLAUDE.md
+    conventions): value loss and explained variance on the rows each lane actually played, searched vs control,
+    watched beside labels/decision and the labelled nodes' depth histogram.
+  - IF TREESTRAP IS NOT GREEN AT LAUNCH (it is not built yet; the TreeOp is): the maintainer rules between launching
+    the policy target alone (TreeStrap to its own lap) and holding the fleet. This branch is named now so it is not
+    improvised.
+- **D3 — THE CONTROL.** Whatever base R7's verdict names (§6), warm from its finals and paired by final. It follows
+  mechanically from Sunday's readout.
+- **D4 — WORLDS PER SEARCH: B = 1 at 256 simulations**, the fusion read at depth disclosed as UNRESOLVED.
+  - B = 2 at EQUAL TOTAL simulations is benched beside it on Sunday's quiet box, under a rule stated now (r6-runner),
+    so the bench is a read, not a debate: **B = 2 replaces B = 1 iff its student fixed point beats B = 1's, paired, at
+    z >= 2, AND the width bench fits it above `frac`'s floor.**
+  - Why: B = 1's learnable ceiling sits at the credit floor, and the joint target has headroom.
+
+## 0.5 POWER (r6-runner; `results/native_tree/stepc_power.json`, scripts/r7_fleet_power.py's model)
+
+At 3 + 2 and n 6000 per lane the median se_diff is 0.0062 (pooled-binomial 0.0059), so 2 * se_diff is ~0.012 and the
++0.025 SIZE FLOOR binds. It stops binding only if the two-control-lane clustered se exceeds ~0.0125. P(X-POS) at a
+true:
+- +0.019: 0.20 (X-GAIN 0.50);
+- +0.027 (B = 1's optimistic ceiling): 0.60 (X-GAIN 0.32);
+- +0.043 (the joint target's ceiling): 0.99.
+Said plainly: at B = 1, a non-clear is LIKELY unless the ceiling is reached in full.
 
 ## 1. The evidence (every number traced; `results/native_tree/*.summary.*`, SESSION_LOGS 2026-09-26)
 
@@ -80,7 +102,8 @@ block that carries `tree`). Its dials are derived from its signature, and unknow
 - **Value target:** v' = E_{a~pi'} E_{b~prior} Q(a,b) into R7's aux head, NEVER the root max (G1: +0.019 of max
   optimism).
 - **TreeStrap (D2):** the tree's internal nodes with N >= 16 each contribute (obs of that node, its backed-up value)
-  to the critic's loss at a counted weight. These are the hypothetical states JOURNEY 14 names. Counters:
+  to the critic's loss at a counted weight. The value is the NON-OPTIMISTIC backup, E_{a~pi'} E_{b~prior} Q at the
+  node (v''s own form, never a max over our moves), and the obs comes from OUR information set in the true world. These are the hypothetical states JOURNEY 14 names. Counters:
   labels/decision, the depth histogram of the labelled nodes, and the label-vs-critic gap.
 - **The control (arm C):** §6's mapping of R7's verdict. Identical dose rules, `tree` absent (or the T-op, if R7
   credits), every other key equal. A searched/control pair differs EXACTLY in {seed, run_name, seat_tag, the search
@@ -93,8 +116,8 @@ block that carries `tree`). Its dials are derived from its signature, and unknow
    `frac`, never the dose.
 2. **THE DEPTH FLOOR** in the bench: `tree/turns_mean` >= 2.5 at 256 simulations. FAIL -> raise to 512, re-bench.
 3. **THE SMOKES** (400k, searched + control, warm from one final): every counter on every update row (search/*,
-   tree/*, the TreeStrap counters, fallback_frac, batch_rows); the searched arm's KL term not inert; a resume
-   mid-smoke reproduces. FAIL -> no fleet.
+   tree/*, the TreeStrap counters, fallback_frac, batch_rows); the searched arm's KL term not inert AT THE FLEET'S
+   `frac` (D1's floor); a resume mid-smoke reproduces. FAIL -> no fleet.
 4. **THE LR RULE** (a third anneal, disclosed), as R7's.
 5. **DISK:** +~6 GB a lane (CLAUDE.md's disk rule).
 
@@ -120,6 +143,9 @@ block that carries `tree`). Its dials are derived from its signature, and unknow
   - (vi) the greedy's split-sample regret on G0, LOWER.
   - (vii) NEW: the critic's error on TREE states against their rollout values (TreeStrap's own target): LOWER.
   - (viii) NEW: the expected improvement of the searched arm's pi' on G0's oracle (stepc_a's instrument).
+  - STOP CONDITION (D2): the on-policy critic's value loss and explained variance on the rows each lane played,
+    searched vs control, every update. A searched-arm EV that falls away from its pair's is the maintainer's call
+    mid-fleet, never a silent continuation.
 - **Secondary:** vs SH (locked); the object rule, as R7's.
 
 ## 6. R7's outcome -> Step C's design (r2's mapping, restated; never whether it runs)
@@ -140,3 +166,19 @@ block that carries `tree`). Its dials are derived from its signature, and unknow
   target is the lever's primary channel, TreeStrap the stacked value channel.
 - **Does not change it:** a null or a cost at any one budget (rule 6); R7's verdict (it sets the control and the
   suspect channel, never whether this runs).
+
+## 8. The three-session decision (2026-09-26)
+
+- **r7-runner** proposed D1-D4 as in r1.
+- **r6-runner AGREED on all four**, with conditions that are now in §0 and §0.5:
+  - the learnable +0.0019 as the policy channel's number;
+  - the ~+0.027 ceiling at the floor, and the power block;
+  - `frac`'s floor at the fleet's `frac`;
+  - TreeStrap's non-optimistic backup from our information set;
+  - on-policy critic counters as a stop condition;
+  - the not-green-at-launch branch;
+  - the B = 2 bench's pre-stated rule.
+  Its draft fixes (four rulings, not three; §0 in D1-D4 order; a POWER block) are applied.
+- **fp-speedup:** [PENDING at r2's writing].
+- Two of three decide a point, so D1-D4 stand as decided. The maintainer's rulings remain open only where a condition
+  sends a case back to him (D1's `frac` floor, D2's not-green branch).
