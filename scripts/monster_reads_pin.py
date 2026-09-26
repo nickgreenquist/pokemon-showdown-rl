@@ -5,11 +5,15 @@
     python scripts/monster_reads_pin.py --trio w      # w104 w112 w120  (monster_reads*.yaml)
     python scripts/monster_reads_pin.py --trio a      # a304 a312 a320  (r6_reads*.yaml, 2026-09-21)
     python scripts/monster_reads_pin.py --trio b      # b328 b336 b344  (r6_reads*.yaml)
+    python scripts/monster_reads_pin.py --trio s      # s376 s384 s392  (r7_reads*.yaml, 2026-09-26: R7 searched)
+    python scripts/monster_reads_pin.py --trio c      # c400 c408       (r7_reads*.yaml: R7 control, 3 + 2)
 
 For each lane: refuse unless (a) runs/train_watchdog.log carries the lane's
 "DONE at step" line, (b) no `rl.train` process for that run dir is alive,
-(c) the run dir holds a checkpoint at step >= 200,000,000 (the horizon; lanes
-finish at DIFFERENT steps, so the name is READ, never guessed). Then rewrite
+(c) the run dir holds a checkpoint at step >= the trio's horizon (200,000,000
+for the monster and R6 trios; 100,000,000 for R7's warm-started lanes, whose
+step counter restarts at the donor); lanes finish at DIFFERENT steps, so the
+name is READ, never guessed. Then rewrite
 the placeholder line `  <lane>: {path: TBD, sha256: TBD, step: TBD}` in BOTH
 configs/eval/monster_reads.yaml and configs/eval/monster_reads_offfp.yaml as a
 TEXT substitution (a YAML round-trip would destroy the pre-reg's comments),
@@ -39,11 +43,20 @@ TRIOS = {
     "b": [("b328", "runs/showdown_r6_trio_b_s328"),
           ("b336", "runs/showdown_r6_trio_b_s336"),
           ("b344", "runs/showdown_r6_trio_b_s344")],
+    # R7 (2026-09-26): the fleet's searched and control arms (3 + 2), pinned into the r7_reads pre-regs.
+    "s": [("s376", "runs/r7_fleet_searched_f1_s376"),
+          ("s384", "runs/r7_fleet_searched_f2_s384"),
+          ("s392", "runs/r7_fleet_searched_f3_s392")],
+    "c": [("c400", "runs/r7_fleet_control_f1_s400"),
+          ("c408", "runs/r7_fleet_control_f2_s408")],
 }
 MONSTER_CONFIGS = ["configs/eval/monster_reads.yaml", "configs/eval/monster_reads_offfp.yaml"]
 R6_CONFIGS = ["configs/eval/r6_reads.yaml", "configs/eval/r6_reads_offfp.yaml"]
-CONFIGS_BY_TRIO = {"l": MONSTER_CONFIGS, "w": MONSTER_CONFIGS, "a": R6_CONFIGS, "b": R6_CONFIGS}
+R7_CONFIGS = ["configs/eval/r7_reads.yaml", "configs/eval/r7_reads_offfp.yaml"]
+CONFIGS_BY_TRIO = {"l": MONSTER_CONFIGS, "w": MONSTER_CONFIGS, "a": R6_CONFIGS, "b": R6_CONFIGS,
+                   "s": R7_CONFIGS, "c": R7_CONFIGS}
 HORIZON = 200_000_000
+HORIZON_BY_TRIO = {"s": 100_000_000, "c": 100_000_000}   # R7's lanes run +100M from a warm start at step 0
 WATCHDOG_LOG = "runs/train_watchdog.log"
 
 
@@ -55,11 +68,11 @@ def sha256(path):
     return h.hexdigest()
 
 
-def final_ckpt(run_dir):
+def final_ckpt(run_dir, horizon=HORIZON):
     best = None
     for name in os.listdir(run_dir):
         m = re.fullmatch(r"ckpt_(\d+)\.pt", name)
-        if m and int(m.group(1)) >= HORIZON:
+        if m and int(m.group(1)) >= horizon:
             step = int(m.group(1))
             if best is None or step > best[0]:
                 best = (step, os.path.join(run_dir, name))
@@ -99,9 +112,10 @@ def main():
                 sys.exit(f"REFUSE: {run_dir} has no 'DONE at step' line in {WATCHDOG_LOG}")
             if lane_alive(run_dir):
                 sys.exit(f"REFUSE: an rl.train process for {run_dir} is still alive")
-        best = final_ckpt(run_dir)
+        horizon = HORIZON_BY_TRIO.get(args.trio, HORIZON)
+        best = final_ckpt(run_dir, horizon)
         if best is None:
-            sys.exit(f"REFUSE: {run_dir} has no ckpt at step >= {HORIZON}")
+            sys.exit(f"REFUSE: {run_dir} has no ckpt at step >= {horizon}")
         step, path = best
         pins[lane] = (path, sha256(path), step)
         print(f"{lane}: {path} step={step} sha256={pins[lane][1]}")
@@ -126,13 +140,13 @@ def main():
 
     if args.commit:
         subprocess.run(["git", "add", *configs], check=True)
-        family = "R6 reads" if args.trio in ("a", "b") else "monster reads"
+        family = {"a": "R6 reads", "b": "R6 reads", "s": "R7 reads", "c": "R7 reads"}.get(args.trio, "monster reads")
         msg = (f"{family}: pin the {args.trio.upper()} trio finals (sha256, real step names)\n\n"
                "Mechanical pin by scripts/monster_reads_pin.py at the moment the trio's\n"
-               "watchdog printed DONE for all three lanes; no other byte of either\n"
+               "watchdog printed DONE for all of its lanes; no other byte of either\n"
                "pre-reg changed.\n\n"
-               "Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>\n"
-               "Claude-Session: https://claude.ai/code/session_015BnxVk5jpuc9MZ9pzCEqeS")
+               "Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>\n"
+               "Claude-Session: https://claude.ai/code/session_01EVWD2CNFPqgLa6HGPQwQiJ")
         r = subprocess.run(["git", "commit", "-q", "-m", msg], capture_output=True, text=True)
         print(r.stdout.strip() or r.stderr.strip() or "committed")
 

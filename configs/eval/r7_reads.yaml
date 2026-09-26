@@ -1,0 +1,27 @@
+title: r7_reads
+status: "DRAFT 2026-09-26 (agent, R7 runner). The vs-SH SECONDARY of the R7 fleet pre-reg (the header of every configs/r7_fleet_*.yaml). REGISTERED when scripts/monster_reads_pin.py pins the five R7 finals. CREDITS NOTHING: descriptive, and vs SH is saturated; the off-FP@N file (configs/eval/r7_reads_offfp.yaml) carries the credit read."
+journey_step: "14"
+credits_nothing: true
+results_dir: results/r7_reads
+
+# THE vs-SH HALF of the R7 reads, as the fleet header states it: "vs SH under the LOCKED protocol (final, 3000
+# battles/lane, lanes pooled per arm, ties non-wins, deterministic; saturated; under 3+2 the control pools two lanes,
+# a disclosed deviation from "3 seeds pooled")".
+# POLICY FORM: the LOCKED form -- NO loop breaker -- so these numbers stay comparable with every banked vs-SH number.
+# ENCODER: every R7 final is c6 ON (the queue exports POKEMON_RL_ENCODER_C6=1 for every job here).
+# SEATS: ch3_eval derives each job's poke-env names from the checkpoint's own (seed, seat_tag) -- the names the lane's
+#   in-loop eval used -- so these jobs run only after every lane has EXITED (the queue's WAIT phase).
+# READS (descriptive): GS pooled (3 x 3000) and GC pooled (2 x 3000), their difference with the unpaired se; each
+#   lane's final beside its pair's.
+
+checkpoints:
+  s376: {path: TBD, sha256: TBD, step: TBD}
+  s384: {path: TBD, sha256: TBD, step: TBD}
+  s392: {path: TBD, sha256: TBD, step: TBD}
+  c400: {path: TBD, sha256: TBD, step: TBD}
+  c408: {path: TBD, sha256: TBD, step: TBD}
+
+arms:
+  GS: {kind: policy, lanes: [s376, s384, s392], battles: 3000, chunks: 10}
+  GC: {kind: policy, lanes: [c400, c408], battles: 3000, chunks: 10}
+run_order: [GS, GC]

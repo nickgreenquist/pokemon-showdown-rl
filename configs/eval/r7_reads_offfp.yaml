@@ -1,0 +1,127 @@
+title: r7_reads_offfp
+status: "DRAFT 2026-09-26 (agent, R7 runner). OPERATIONALIZES the R7 fleet pre-reg -- the header of every configs/r7_fleet_*.yaml (scripts/derive_r7_fleet.py r3, amendment boxes 7-9 of docs/proposals/R7_NATIVE_SEARCH_PLAN_2026-09-22.md) -- and changes none of its rules. REGISTERED the moment scripts/monster_reads_pin.py --trio s / --trio c pins the five R7 finals (the queue does it)."
+journey_step: "14"
+credits_nothing: false
+results_dir: results/r7_reads_offfp
+
+# THE OFF-FOUL-PLAY READS OF THE R7 FLEET. The rules are the fleet header's, quoted there in full and never
+# restated differently here; this file only names the arms that carry them out.
+#
+# PRIMARY READ (the credit read): each lane's FINAL, GREEDY, loop breaker OFF, n 6000 per lane, off FP@N 25k/12k,
+#   ONE scheduler session (scripts/fp_arms_parallel.py), launched in the PINNED order C1, S1, C2, S2, S3 (control first
+#   in each pair). delta = the equal-weight mean of the SEARCHED finals minus the equal-weight mean of the CONTROL
+#   finals; se_diff = the LARGER of the pooled-binomial and the seed-clustered se_diff (k 3 vs 2: the fleet is 3 + 2,
+#   B0 FAIL). CREDIT LINE, verbatim (CLAUDE.md): "a lever is credited iff pooled delta >= +0.025 AND >= 2*se_diff,
+#   where se_diff is the LARGER of the pooled-binomial se_diff and the seed-clustered se_diff, the latter computed from
+#   the per-seed finals at read time." STRICT: a delta EXACTLY +0.025 or EXACTLY 2*se_diff reads as NOT met. Cells
+#   X-POS / X-GAIN / X-COST / X-NEG / X-FLAT and X-FLAT's mechanism route: the header's, computed by
+#   scripts/r7_reads_readout.py.
+# OBJECT RULE (after the primary in launch order, same session): the R6 ladder object as R6's readout names it
+#   (E6RF, readouts/R6_READS_READOUT.md R2: all six R6 finals) re-drawn, the donors' ENS3 (E3BF: trio B's three finals,
+#   the R7 donors) re-drawn, ENS3-S (the three searched finals) and ENS-C (the TWO control finals: under 3 + 2 the
+#   control committee has two members, a disclosed deviation from "ENS3-C" -- the vs-SH leg's "the control pools two
+#   lanes" is the same deviation), n 3000 each, ALL FOUR IN THE R6 OBJECT'S POLICY FORM (loop breaker ON). The fleet
+#   committee with the higher point estimate becomes the object iff it reaches the re-drawn R6 object minus 0.013;
+#   otherwise the R6 object stays.
+# NOT HERE: the BIG-BUDGET leg (G4, ENS3-S and ENS-C at FP@500's own CALIBRATED FP@N, n 250 each) waits for
+#   fp-speedup's calibration on the quiet box after these reads and gets its arms when that N exists; the anchors
+#   (before any README row) likewise.
+#
+# VALIDITY (every arm, the header's rule): VALID only if its runner JSON carries fpn_counters_ok TRUE (realized
+#   iterations == N on 100% of non-forced searches; timer / forfeit losses <= the arm's crash forfeits). An INVALID arm
+#   is re-run LAST on its rerun pair, never pooled. The house runner gates travel too (scripts/r7_g2_readout.py's, the
+#   G2 precedent): n_eff = finished - crash forfeits with wins reduced by the same count, Foul Play's own Winner: tally
+#   agreeing with the seat JSON exactly, relaunches < the runner cap, every challenge resolved, one program.
+#
+# ENCODER: every R7 final is a c6-ON checkpoint (the fleet's contract: its donors, trio B's finals, are c6 on), and so
+#   are the R6 finals: every arm here is c6 on (arm_encoder below; the loader refuses a mismatch).
+#
+# DISCLOSURES THAT TRAVEL WITH EVERY FP@N NUMBER (CLAUDE.md): the budget is NAMED (FP@N 25k/12k); its calibration
+#   against FP@20 travels (two seats, NON-REJECTION, offset CI95 [-0.026, +0.011], gap-change CI95 [-0.042, +0.033],
+#   MDE 0.054); the equivalence test is weakly powered, and the point estimate flatters us. Never differenced across
+#   instruments: every comparator here is re-drawn on FP@N in this session. FP@N is fixed-budget, so the read may run
+#   beside other work: load costs time, never strength.
+
+fp:
+  search_time_ms: 20             # kept beside the iteration budget: the patched Foul Play reads it to pick 25k vs 12k
+  search_iterations: 25000
+  search_iterations_early: 12000
+  search_parallelism: 1
+
+checkpoints:
+  s376: {path: TBD, sha256: TBD, step: TBD}
+  s384: {path: TBD, sha256: TBD, step: TBD}
+  s392: {path: TBD, sha256: TBD, step: TBD}
+  c400: {path: TBD, sha256: TBD, step: TBD}
+  c408: {path: TBD, sha256: TBD, step: TBD}
+  a304: {path: runs/showdown_r6_trio_a_s304/ckpt_200000029.pt, sha256: e3903fa608978f3792fbd409013f7a6eb3563075577602c2f9c1deba61ede411, step: 200000029}   # copied from configs/eval/r6_reads_offfp.yaml
+  a312: {path: runs/showdown_r6_trio_a_s312/ckpt_200000046.pt, sha256: 12c10e4a0c7e705be5a46e8ac73a7fa01ae11c9a26d48aad2ffcb161df7f75ef, step: 200000046}   # copied from configs/eval/r6_reads_offfp.yaml
+  a320: {path: runs/showdown_r6_trio_a_s320/ckpt_200000007.pt, sha256: 9315e4fc666fccec53099594e8e1829aacaf83af73d0134128f5fbf5264a62f1, step: 200000007}   # copied from configs/eval/r6_reads_offfp.yaml
+  b328: {path: runs/showdown_r6_trio_b_s328/ckpt_200000039.pt, sha256: f09063696cda49c68cd6d4945b7efcd2373bb295faf54a555bb0bb3fcb2cead7, step: 200000039}   # copied from configs/eval/r6_reads_offfp.yaml; donor f1
+  b336: {path: runs/showdown_r6_trio_b_s336/ckpt_200000017.pt, sha256: e43e932f5809fb10bfc85e99ce98fc3dbe4d29227f53a5fac4a77a12864a416d, step: 200000017}   # copied from configs/eval/r6_reads_offfp.yaml; donor f2
+  b344: {path: runs/showdown_r6_trio_b_s344/ckpt_200000009.pt, sha256: cf9ace6d2b2129ad84ae4b8aa9c9499201b895208558c34fe97db4c11d0b4202, step: 200000009}   # copied from configs/eval/r6_reads_offfp.yaml; donor f3
+
+# The fleet's lanes by donor pair (the header's START): f1 = s376 + c400 (donor b328), f2 = s384 + c408 (donor b336),
+# f3 = s392 alone (donor b344; its control was dropped by R-F2's 3 + 2).
+lanes:
+  searched: {f1: s376, f2: s384, f3: s392}
+  control: {f1: c400, f2: c408}
+  run_dirs: {s376: runs/r7_fleet_searched_f1_s376, s384: runs/r7_fleet_searched_f2_s384, s392: runs/r7_fleet_searched_f3_s392,
+             c400: runs/r7_fleet_control_f1_s400, c408: runs/r7_fleet_control_f2_s408}
+
+usernames:
+  scheme: "r7rd<arm><role>; RERUN pairs insert r after the arm (r7rdc1rseat / r7rdc1rbot). The prefix r7rd is issued to NO existing name in configs/eval/*.yaml (checked 2026-09-26 against 677 names; the only r7 names are r7g2*), and the queue re-checks pairwise prefix-freeness before any arm."
+  pairs:
+    C1F:  {seat: r7rdc1seat,  fp: r7rdc1bot}
+    S1F:  {seat: r7rds1seat,  fp: r7rds1bot}
+    C2F:  {seat: r7rdc2seat,  fp: r7rdc2bot}
+    S2F:  {seat: r7rds2seat,  fp: r7rds2bot}
+    S3F:  {seat: r7rds3seat,  fp: r7rds3bot}
+    E6RR: {seat: r7rde6seat,  fp: r7rde6bot}
+    E3BR: {seat: r7rde3seat,  fp: r7rde3bot}
+    ES3F: {seat: r7rdessseat, fp: r7rdessbot}
+    EC2F: {seat: r7rdecseat,  fp: r7rdecbot}
+  rerun_pairs:
+    C1F:  {seat: r7rdc1rseat,  fp: r7rdc1rbot}
+    S1F:  {seat: r7rds1rseat,  fp: r7rds1rbot}
+    C2F:  {seat: r7rdc2rseat,  fp: r7rdc2rbot}
+    S2F:  {seat: r7rds2rseat,  fp: r7rds2rbot}
+    S3F:  {seat: r7rds3rseat,  fp: r7rds3rbot}
+    E6RR: {seat: r7rde6rseat,  fp: r7rde6rbot}
+    E3BR: {seat: r7rde3rseat,  fp: r7rde3rbot}
+    ES3F: {seat: r7rdessrseat, fp: r7rdessrbot}
+    EC2F: {seat: r7rdecrseat,  fp: r7rdecrbot}
+
+# `seat` on greedy_seat, `lanes` on ensemble_seat (scripts/ch3_fp_h2h.py asserts both). The primary is GREEDY with the
+# loop breaker OFF (the header's POLICY FORM); the four object-rule committees carry loop_breaker: true (the R6
+# object's form).
+arms:
+  C1F:  {kind: greedy_seat,   seat: c400, battles: 6000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: false, seat_username: r7rdc1seat, fp_username: r7rdc1bot}
+  S1F:  {kind: greedy_seat,   seat: s376, battles: 6000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: false, seat_username: r7rds1seat, fp_username: r7rds1bot}
+  C2F:  {kind: greedy_seat,   seat: c408, battles: 6000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: false, seat_username: r7rdc2seat, fp_username: r7rdc2bot}
+  S2F:  {kind: greedy_seat,   seat: s384, battles: 6000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: false, seat_username: r7rds2seat, fp_username: r7rds2bot}
+  S3F:  {kind: greedy_seat,   seat: s392, battles: 6000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: false, seat_username: r7rds3seat, fp_username: r7rds3bot}
+  E6RR: {kind: ensemble_seat, lanes: [a304, a312, a320, b328, b336, b344], battles: 3000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: r7rde6seat, fp_username: r7rde6bot}
+  E3BR: {kind: ensemble_seat, lanes: [b328, b336, b344], battles: 3000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: r7rde3seat, fp_username: r7rde3bot}
+  ES3F: {kind: ensemble_seat, lanes: [s376, s384, s392], battles: 3000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: r7rdessseat, fp_username: r7rdessbot}
+  EC2F: {kind: ensemble_seat, lanes: [c400, c408], battles: 3000, search_time_ms: 20, search_iterations: 25000, search_iterations_early: 12000, loop_breaker: true, seat_username: r7rdecseat, fp_username: r7rdecbot}
+
+arm_encoder:
+  C1F:  {c6: true}
+  S1F:  {c6: true}
+  C2F:  {c6: true}
+  S2F:  {c6: true}
+  S3F:  {c6: true}
+  E6RR: {c6: true}
+  E3BR: {c6: true}
+  ES3F: {c6: true}
+  EC2F: {c6: true}
+
+# The PINNED order: the primary first (C1, S1, C2, S2, S3 -- control first in each pair), then the object rule's four.
+run_order: [C1F, S1F, C2F, S2F, S3F, E6RR, E3BR, ES3F, EC2F]
+primary: {searched: [S1F, S2F, S3F], control: [C1F, C2F], pairs: {f1: [S1F, C1F], f2: [S2F, C2F]}}
+# LANE LOSS is a TRAINING-side cell (the header's R0 gates): a lane that failed a gate or could not be resumed to 100M is
+# listed here by its primary arm name, with the gate it failed, BEFORE the readout runs; it is dropped with its pair.
+# An INVALID FP arm is NOT lane loss: it re-runs LAST on its rerun pair as a new arm with `rerun_of: <arm>`.
+lost_lanes: []
+object_rule: {incumbent: E6RR, donors_ens3: E3BR, fleet: [ES3F, EC2F], tolerance: 0.013}
