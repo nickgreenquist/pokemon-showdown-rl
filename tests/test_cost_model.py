@@ -50,8 +50,9 @@ def _synthetic_jobs(rng, model_truth: cm.CostModel, n_jobs: int, noise: float) -
             n = int(rng.integers(1, 300))
             meter.add("v" if rng.random() < 0.5 else "p", int(rng.integers(1, n + 1)), n)
         u = meter.units()
-        count = {"edges": float(rng.integers(10, 900)), "nodes": float(rng.integers(10, 2000)),
-                 "sims": float(rng.integers(64, 2000)), "worlds": float(rng.integers(1, 9)), "decisions": 1.0}
+        count = {"edges_tree": float(rng.integers(10, 900)), "nodes_tree": float(rng.integers(10, 2000)),
+                 "sims_tree": float(rng.integers(64, 2000)), "depth_tree": float(rng.integers(64, 8000)),
+                 "grid_rows": float(rng.integers(8, 400)), "worlds": float(rng.integers(1, 9)), "decisions": 1.0}
         units = {"share": u["share"], "rows": u["rows"], "count": count}
         p = model_truth.predict(units)
         f = lambda x: x * (1 + noise * rng.standard_normal())     # noqa: E731
@@ -65,12 +66,13 @@ def test_fit_recovers_known_costs_and_validates():
     grid = np.array(cm.GRID, float)
     truth = cm.CostModel(key={}, t_ms={"v": (0.9 + 0.05 * grid).tolist(), "p": (0.8 + 0.03 * grid).tolist()},
                          kappa={"v": 1.15, "p": 1.05},
-                         engine={"edges": 0.004, "nodes": 0.002, "worlds": 0.3, "decisions": 0.05},
-                         python={"sims": 0.02, "nodes": 0.01, "worlds": 0.2, "decisions": 0.4})
+                         engine={"edges_tree": 0.04, "nodes_tree": 0.002, "grid_rows": 0.003, "worlds": 0.3},
+                         python={"sims_tree": 0.1, "depth_tree": 0.01, "nodes_tree": 0.03, "grid_rows": 0.004,
+                                 "worlds": 0.2, "decisions": 0.4})
     fit_jobs = _synthetic_jobs(rng, truth, 200, noise=0.02)
     model = cm.fit(truth.t_ms, fit_jobs, key={"k": 1}, load={})
     assert model.kappa["v"] == pytest.approx(1.15, rel=0.02) and model.kappa["p"] == pytest.approx(1.05, rel=0.02)
-    for u in ("edges", "nodes"):          # the per-decision intercept is weakly identified (every job is 1 decision)
+    for u in ("edges_tree", "worlds"):    # the well-identified terms (the intercepts are weak: every job is 1 decision)
         assert model.engine[u] == pytest.approx(truth.engine[u], rel=0.25), u
     v = cm.validate(model, _synthetic_jobs(rng, truth, 100, noise=0.02))
     assert v["accepted"] and v["median_abs_err"] < 0.03, v

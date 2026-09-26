@@ -248,7 +248,7 @@ class _Decision:
         self.c = {k: 0.0 for k in ("evals", "evals_grid", "pass_evals", "prior_rows", "forwards_v", "forwards_p",
                                    "nodes", "edges", "merges", "pass_nodes", "terminal_sims", "capped_sims",
                                    "dup_waits", "sims", "depth_sum", "depth_max", "upd_sum", "upd_max",
-                                   "turn_sum", "turn_max")}
+                                   "turn_sum", "turn_max", "nodes_grid", "edges_grid", "depth_grid")}
         self.hist = [0] * DEPTH_HIST
         self.errors: dict[str, int] = {}
         self.t_engine = self.t_value = self.t_prior = 0.0
@@ -681,6 +681,7 @@ class _Search:
         batch = _Batch(_eng(x.sn.leaves, self.tables, self.us, cells, x.seed), self.us, len(cells) * k)
         dc = t.dec
         dc.t_engine += time.perf_counter() - t0
+        g0 = (dc.c["nodes"], dc.c["edges"], dc.c["depth_sum"])     # the grid's own work (cost_model's units)
         n = int(e["n"])
         t1 = time.perf_counter()
         v = np.asarray(self.value_fn(e), dtype=np.float64).reshape(n)
@@ -722,6 +723,9 @@ class _Search:
                 t.done += 1
                 t.grid_sims += 1
                 self._depth(t, kid)
+        dc.c["nodes_grid"] += dc.c["nodes"] - g0[0]
+        dc.c["edges_grid"] += dc.c["edges"] - g0[1]
+        dc.c["depth_grid"] += dc.c["depth_sum"] - g0[2]
         t.budget = max(t.budget, len(cells) * k)
 
     # ---- the loop ---------------------------------------------------------------------
@@ -1145,6 +1149,10 @@ class _Search:
             "tree/forwards_p": c["forwards_p"],
             "tree/nodes": c["nodes"],
             "tree/edges": c["edges"],
+            "tree/nodes_grid": c["nodes_grid"],
+            "tree/edges_grid": c["edges_grid"],
+            "tree/depth_sum": c["depth_sum"],
+            "tree/depth_grid": c["depth_grid"],
             "tree/merges": c["merges"],
             "tree/pass_nodes": c["pass_nodes"],
             "tree/terminal_sims": c["terminal_sims"],

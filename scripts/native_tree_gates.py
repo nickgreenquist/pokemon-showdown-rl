@@ -1168,7 +1168,7 @@ def calibrate(args) -> int:
             else:
                 prior_fn(pool_o[i0:i0 + n], pool_m[i0:i0 + n])
         return fn
-    nn_cells = {f"{net}:{n}": nn_cell(net, n) for net in cm.NETS for n in cm.GRID}
+    nn_cells = [(f"{net}:{n}", nn_cell(net, n)) for n in cm.GRID for net in cm.NETS]   # size order, v then p
     pa, pb = torch.randn(64, 512), torch.randn(512, 512)
 
     def probe():
@@ -1231,12 +1231,12 @@ def calibrate(args) -> int:
             j["unit_mismatch"] += 1          # the units must reproduce: the same dials, root and key
 
     # ---- the rounds: the micro-benchmark and every job, shuffled, under the same load
-    nn_samples: dict[str, list[float]] = {c: [] for c in nn_cells}
+    nn_samples: dict[str, list[float]] = {c: [] for c, _fn in nn_cells}
     probes, loads = [], []
     procs = subprocess.run(["pgrep", "-f", r"rl\.train"], capture_output=True, text=True).stdout.split()
     t_start = time.time()
     for rnd in range(args.rounds):
-        got = cm.time_interleaved(nn_cells, args.nn_rounds, rng, probe=probe, warmup=5 if rnd == 0 else 0)
+        got = cm.time_sweeps(nn_cells, args.nn_rounds, probe=probe, warmup=3 if rnd == 0 else 0)
         for c, xs in got["samples"].items():
             nn_samples[c] += xs
         probes += got["probe"]

@@ -13,8 +13,10 @@ THE UNITS (per decision; `native_tree.search` returns them as `res["cost_units"]
   That matters: t(n) is far from affine. Accelerate's sgemm on nn.Linear's transposed weight
   costs ~620 us for a 1024x1024 layer at 2-12 rows and ~20 us at 1 row (2026-09-26), so rows
   and calls alone cannot predict a search whose calls change size.
-- The engine and the Python tree: `tree/edges`, `tree/nodes`, `tree/sims`, `search/worlds`, and
-  one per decision.
+- The engine and the Python tree, with the ROOT GRID's batched work kept apart from the tree's
+  descents (one expand and one critic batch per world against one engine call and one Python
+  walk per descent: pooled, they mis-priced a 64-simulation search 2x, 2026-09-26): tree sims,
+  their summed depth, tree nodes and edges, grid rows, worlds, and one per decision.
 
 THE MODEL: ms = sum over nets of kappa_net * sum_seg S * t_net(R / S) + e . engine + p . python
 - t_net: the calibration's median ms per call at each GRID point, from interleaved micro-benchmarks.
@@ -48,8 +50,8 @@ COST_MODEL_VERSION = "search_cost_model/1"
 GRID: tuple[int, ...] = (1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 192, 256, 384, 512, 768, 1024)
 NETS: tuple[str, ...] = ("v", "p")     # the value net (leaf evaluator) and the prior net (policy)
 N_SEG = len(GRID) - 1
-ENGINE_UNITS: tuple[str, ...] = ("edges", "nodes", "worlds", "decisions")
-PYTHON_UNITS: tuple[str, ...] = ("sims", "nodes", "worlds", "decisions")
+ENGINE_UNITS: tuple[str, ...] = ("edges_tree", "nodes_tree", "grid_rows", "worlds")
+PYTHON_UNITS: tuple[str, ...] = ("sims_tree", "depth_tree", "nodes_tree", "grid_rows", "worlds", "decisions")
 ACCEPT_MEDIAN_ABS_ERR = 0.10
 
 
@@ -91,8 +93,12 @@ def units_of(res: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(f"cost_units were metered on grid {cu['grid']}, this model's is {list(GRID)}")
     c = res["counters"]
     return {"share": cu["share"], "rows": cu["rows"],
-            "count": {"edges": float(c["tree/edges"]), "nodes": float(c["tree/nodes"]),
-                      "sims": float(c["tree/sims"]), "worlds": float(c["search/worlds"]), "decisions": 1.0}}
+            "count": {"sims_tree": float(c["tree/sims"] - c["tree/sims_grid"]),
+                      "depth_tree": float(c["tree/depth_sum"] - c["tree/depth_grid"]),
+                      "nodes_tree": float(c["tree/nodes"] - c["tree/nodes_grid"]),
+                      "edges_tree": float(c["tree/edges"] - c["tree/edges_grid"]),
+                      "grid_rows": float(c["tree/evals_grid"]), "worlds": float(c["search/worlds"]),
+                      "decisions": 1.0}}
 
 
 def interp(table: Sequence[float], x: float, s: int | None = None) -> float:
@@ -241,6 +247,31 @@ def machine_key(*, torch_threads: int, nets: dict[str, str], linear: str, engine
 
 
 # ---- interleaved timing -------------------------------------------------------------------------
+
+def time_sweeps(cells: Sequence[tuple[str, Callable[[], Any]]], rounds: int,
+                probe: Callable[[], Any] | None = None, warmup: int = 3) -> dict[str, Any]:
+    """The network cells in SIZE ORDER, ascending on even rounds and descending on odd ones, so every
+    call follows a call of a neighbouring size, as in a search. A shuffled order put 1-row calls
+    after 1024-row ones, whose activations evict the weights, and read them ~30% slow (2026-09-26).
+    The probe runs once per round."""
+    import time
+
+    for _name, fn in cells:
+        for _ in range(warmup):
+            fn()
+    out: dict[str, list[float]] = {name: [] for name, _fn in cells}
+    probe_ms: list[float] = []
+    for r in range(rounds):
+        for name, fn in (cells if r % 2 == 0 else list(reversed(cells))):
+            t0 = time.perf_counter_ns()
+            fn()
+            out[name].append((time.perf_counter_ns() - t0) / 1e6)
+        if probe is not None:
+            t0 = time.perf_counter_ns()
+            probe()
+            probe_ms.append((time.perf_counter_ns() - t0) / 1e6)
+    return {"samples": out, "probe": probe_ms}
+
 
 def time_interleaved(cells: dict[str, Callable[[], Any]], rounds: int, rng: np.random.Generator,
                      probe: Callable[[], Any] | None = None, warmup: int = 5) -> dict[str, Any]:
